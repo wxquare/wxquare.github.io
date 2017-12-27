@@ -33,5 +33,10 @@ $ hexo server    启动服务器
 10. 写博客的基本流程是用markdown写文章，保存到/source/_posts目录下,执行`hexo clean`;`hexo generate`;`hexo server`；查看本地的博客，然后部署到github上去`hexo deploy`，最后备份本地hexo博客`git add .`;`git commit -m "add Github双分支+hexo搭建个人博客"`；`git push orign hexo`
 
 ## 三.博客个性化设置
+[http://theme-next.iissnan.com/](http://theme-next.iissnan.com/)
 1. 主题设置和修改。hexo初始化默认的主题是landscape，[https://hexo.io/themes/](https://hexo.io/themes/)提供了许多的主题，根据喜好为博客的主题，主题的文档提供了使用方法，设置相应的参数，调整为自己喜欢的格式。我这里选择的Next主题。
+2. 进入博客站点目录，`git clone https://github.com/iissnan/hexo-theme-next themes/next`
+3. 修改站点配置文件_config.yml，`theme: landscape`，重新编译，配置
+4. 主题设置：[http://theme-next.iissnan.com/](http://theme-next.iissnan.com/)
+5. 
 2. 不断更新....
