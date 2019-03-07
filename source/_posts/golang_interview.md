@@ -13,9 +13,9 @@ title: golang面试题汇总
 
 
 ## 二、高级主题
-###2.1. golang中的协程调度？
-
-###2.2. golang中的context包？
+### 2.1. golang中的协程调度？
+ 
+### 2.2. golang中的context包？
 https://juejin.im/post/5a6873fef265da3e317e55b6  
 https://www.flysnow.org/2017/05/12/go-in-action-go-context.html  
 
