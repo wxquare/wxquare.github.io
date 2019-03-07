@@ -1,4 +1,8 @@
-###1、C/C++项目构建
+---
+title: Linux C++ 程序构建和分析
+---
+
+## 1、C/C++项目构建
 - 配置 configure
 - 编译 make、cmake、ccmake
 - 安装 make install
@@ -7,22 +11,22 @@
 如何使用cmake构建C++项目？  
 
 
-##2、程序调试
+## 2、程序调试
 [gdb调试必知必会](https://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/gdb.html#gdb)
 
 
-##3、目标文件分析
+## 3、目标文件分析
 1. nm
 2. readelf
 3. objdump
 4. ldd 查看陈程序的依赖信息
 
 
-##4、程序性能分析
+## 4、程序性能分析
 - top
 - time
 
-##5、程序效率优化
+## 5、程序效率优化
 - pstack 跟踪栈空间，可显示每个进程的栈跟踪
 - strace 分析程序的系统调用
 - prof
@@ -34,11 +38,11 @@
 参考：http://www.cnblogs.com/me115/archive/2013/06/05/3117967.html
 
 
-##6、程序内存泄露分析
+## 6、程序内存泄露分析
 - 调试内存泄漏的工具valgrind
 
 ----------------------
-##常见问题解决：
+## 常见问题解决：
 ### 1、pkg-config：解决编译和链接时候出现的undefined symbol问题
 pkg-config能方便使用第三方库和头文件和库文件，其运行原理 
  
