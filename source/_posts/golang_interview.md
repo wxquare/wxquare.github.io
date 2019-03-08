@@ -19,6 +19,12 @@ title: golang面试题汇总
 https://juejin.im/post/5a6873fef265da3e317e55b6  
 https://www.flysnow.org/2017/05/12/go-in-action-go-context.html  
 
+### 2.3 主协程如何等待其余协程完再操作？协程同步的三种方式？
+
+### 2.4.golang网络编程点点滴滴？
+	https://colobu.com/2014/12/02/go-socket-programming-TCP/
+#### 2.4.1 client如何实现长连接？
+
 
 
 
