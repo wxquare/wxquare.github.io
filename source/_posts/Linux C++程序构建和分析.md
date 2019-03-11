@@ -17,9 +17,9 @@ title: Linux C++ 程序构建和分析
 
 ## 3、目标文件分析
 1. nm
-2. readelf
-3. objdump
-4. ldd 查看陈程序的依赖信息
+2. readelf/objdump
+3. size 查看程序各部分大小
+4. ldd 查看程序的依赖信息
 
 
 ## 4、程序性能分析

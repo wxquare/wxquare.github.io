@@ -10,6 +10,9 @@ title: golang面试题汇总
 5. [golang中的defer、panic和recover和错误处理方式？](https://wxquare.github.io/2019/03/06/golang_error_handling/)
 6. golang中的select关键字？
 7. goalng中的struct可以进行比较吗？了解reflect.DeepEqual吗？
+8. golang中的set实现？map[interface{}]struct{}
+9. goalng中的生产者消费者模式？
+
 
 
 ## 二、高级主题
