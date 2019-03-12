@@ -2,7 +2,18 @@
 title: golang面试题汇总
 ---
 
-## 一、语言基本特性
+
+## 一、计算机基础
+1. 大文件排序？内存不够的情况下，使用归并排序
+2. 网络编程中的http keep-alive，tcp keepalive 和 TIME_WAIT是怎么回事？Time_WAIT有什么作用？
+	- https://www.cnblogs.com/yjf512/p/5354055.html
+	- http://www.nowamagic.net/academy/detail/23350375
+	- https://zhuanlan.zhihu.com/p/40013724
+3. [孤儿进程和僵尸进程？](https://monkeysayhi.github.io/2018/12/05/%E6%B5%85%E8%B0%88Linux%E5%83%B5%E5%B0%B8%E8%BF%9B%E7%A8%8B%E4%B8%8E%E5%AD%A4%E5%84%BF%E8%BF%9B%E7%A8%8B/)
+4. 死锁的条件
+
+
+## 二、golang语言基本特性
 1. make和new的区别？
 2. 协程交替执行,使其能顺序输出1-20的自然数？
 3. channe关闭后，读操作会怎么样？如何优雅的关闭channel？
@@ -15,7 +26,7 @@ title: golang面试题汇总
 
 
 
-## 二、高级主题
+## 三、高级主题
 ### 2.1. golang中的协程调度？
  
 ### 2.2. golang中的context包？
