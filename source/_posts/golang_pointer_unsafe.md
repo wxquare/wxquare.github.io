@@ -1,16 +1,18 @@
 ---
-title: golang 中的指针
+title: golang 指针和unsafe
 ---
 
-## 1、普通指针
-不同类型的指针不能相互转化  
-指针变量不能进行运算，不支持c/c++中的++，--运算  
-任何类型的指针都可以被转换成unsafe.Pointer类型，反之也是  
-uintptr值可以被转换成unsafe.Pointer类型，反之也是
-对unsafe.Pointer和uintptr两种类型单独解释两句：  
+## 一、golang指针和unsafe.pointer
+1. 不同类型的指针不能相互转化  
+2. 指针变量不能进行运算，不支持c/c++中的++，--运算  
+3. 任何类型的指针都可以被转换成unsafe.Pointer类型，反之也是  
+4. uintptr值可以被转换成unsafe.Pointer类型，反之也是
+5. 对unsafe.Pointer和uintptr两种类型单独解释两句：  
+	- unsafe.Pointer是一个指针类型，指向的值不能被解析，类似于C/C++里面的(void *)，只说明这是一个指针，但是指向什么的不知道。
+	- uintptr 是一个整数类型，这个整数的宽度足以用来存储一个指针类型数据；那既然是整数类类型，当然就可以对其进行运算了    
+ 
 
-unsafe.Pointer是一个指针类型，指向的值不能被解析，类似于C/C++里面的(void *)，只说明这是一个指针，但是指向什么的不知道。
-uintptr 是一个整数类型，这个整数的宽度足以用来存储一个指针类型数据；那既然是整数类类型，当然就可以对其进行运算了  
+  
     package main
     import (
     	"fmt"
@@ -41,7 +43,7 @@ uintptr 是一个整数类型，这个整数的宽度足以用来存储一个指
     }
 
 
-##2. nil指针
+## 二、 nil指针
 引用类型声明而没有初始化赋值时，其值为nil。golang需要经常判断nil,防止出现panic错误。  
 
     bool  -> false  
@@ -55,7 +57,7 @@ uintptr 是一个整数类型，这个整数的宽度足以用来存储一个指
     functions -> nil
     interfaces -> nil
 
-===================
+
 
     package main
     
