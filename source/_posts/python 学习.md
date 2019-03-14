@@ -131,4 +131,10 @@ https://www.cnblogs.com/yymn/p/8056487.html
 https://www.imooc.com/article/4170
 
 
+8. python环境
+root用户：  python2.7、pip
+个人用户 ： anaconda、phython3.6
+
+
+
 
