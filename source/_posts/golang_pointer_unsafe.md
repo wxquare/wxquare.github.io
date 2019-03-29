@@ -9,10 +9,8 @@ title: golang 指针和unsafe
 4. uintptr值可以被转换成unsafe.Pointer类型，反之也是
 5. 对unsafe.Pointer和uintptr两种类型单独解释两句：  
 	- unsafe.Pointer是一个指针类型，指向的值不能被解析，类似于C/C++里面的(void *)，只说明这是一个指针，但是指向什么的不知道。
-	- uintptr 是一个整数类型，这个整数的宽度足以用来存储一个指针类型数据；那既然是整数类类型，当然就可以对其进行运算了    
- 
-
-  
+	- uintptr 是一个整数类型，这个整数的宽度足以用来存储一个指针类型数据；那既然是整数类类型，当然就可以对其进行运算了
+```      
     package main
     import (
     	"fmt"
@@ -41,11 +39,10 @@ title: golang 指针和unsafe
     	fmt.Println(*px, *pf32, *pi32)
     
     }
-
-
+```
 ## 二、 nil指针
 引用类型声明而没有初始化赋值时，其值为nil。golang需要经常判断nil,防止出现panic错误。  
-
+```
     bool  -> false  
     numbers -> 0 
     string-> ""  
@@ -85,8 +82,7 @@ title: golang 指针和unsafe
     	// var c chan int
     	// close(c)  panic
     }
-
-
+```
 参考：  
 
 - https://studygolang.com/articles/10953  

@@ -6,7 +6,7 @@ title: golang 基于channel的生产者消费者模型
 通过golang中带缓冲的channel，可以很容易实现；  
 同时也能帮助理解channel和协程并发。   
 
-
+```
     package main
     
     import (
@@ -77,3 +77,4 @@ title: golang 基于channel的生产者消费者模型
     
     	wg.Wait()
     }
+```

@@ -1,12 +1,23 @@
 
 ---
-title: golang 内存管理和垃圾回收
+title: golang 内存分配与TCMalloc
 ---
 
+　　为了避开直接通过系统调用分配内存而导致的性能开销，通常会通过预分配、内存池等操作自主管理内存。golang由运行时runtime管理内存，完成初始化、分配、回收和释放操作。目前主流的内存管理器有glibc和tcmolloc，tcmolloc由Google开发，具有更好的性能，兼顾内存分配的速度和内存利用率。golang也是使用类似tcmolloc的方法进行内存管理。建议参考下面链接学习tcmalloc的原理，其内存管理的方法也是golang内存分配的方法。另外一个原因，golang自主管理也是为了更好的配合垃圾回收。
 
-#golang内存管理和垃圾回收
+【1】.https://zhuanlan.zhihu.com/p/29216091  
+【2】.http://goog-perftools.sourceforge.net/doc/tcmalloc.html 
 
-##1.为什么需要自主管理内存？
+## 一、内存管理基本策略
+为了兼顾内存分配的速度和内存利用率，大多数都采用以下策略进行内存管理：
+1. **申请**：每次从操作系统申请一大块内存（比如1MB），以减少系统调用
+2. **切分**：为了兼顾大小不同的对象，将申请到的内存按照一定的策略切分成小块，使用链接相连
+3. **分配**：为对象分配内存时，只需从大小合适的链表中提取一块即可。
+4. **回收复用**: 对象不再使用时，将该小块内存归还到原链表
+5. **释放**： 如果闲置内存过多，则尝试归凡部分内存给操作系统，减少内存开销。
+
+	
+1.为什么需要自主管理内存？
 - 完成类似预分配、内存池等操作，以避开系统调用带来的性能问题
 - 更好的配合垃圾回收
 
@@ -81,7 +92,9 @@ Golang程序调优：memprof、cpuprof。
 
 
 【1】.https://zhuanlan.zhihu.com/p/29216091  
-【2】.http://goog-perftools.sourceforge.net/doc/tcmalloc.html  
+【2】.http://goog-perftools.sourceforge.net/doc/tcmalloc.html 
+
+
 【3】.https://cloud.tencent.com/developer/article/1072602
 [4].http://www.opscoder.info/golang_gc.html
 
