@@ -26,7 +26,7 @@ title: 基于Github双分支和Hexo搭建博客
    git pull origin hexo 
 ```
 8. 修改站点配置文件_config.yml，将本地博客迁移到github上。
-![](https://raw.githubusercontent.com/wxquare/wxquare.github.io/hexo/source/photos/hexo_deploy.jpg)
+![](https://github.com/wxquare/wxquare.github.io/blob/hexo/source/photos/hexo_deploy.jpghttps://github.com/wxquare/wxquare.github.io/blob/hexo/source/photos/hexo_deploy.jpg)
 8. 执行`npm install hexo-deployer-git --save`
 9. 执行`hexo deploy`部署到github上，网络原因稍等一会儿，浏览器输入https://wxquare.github.io/ 查看效果
 9. 将本地博客内容备份到hexo分支上去 
