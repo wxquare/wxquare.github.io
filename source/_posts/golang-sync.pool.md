@@ -3,7 +3,7 @@ title: golang sync.pool和连接池
 ---
 
 
-## 1.sync.Pool 基本使用
+## 一、sync.Pool 基本使用
 [https://golang.org/pkg/sync/](https://golang.org/pkg/sync/)  
 sync.Pool的使用非常简单，它具有以下几个特点：
   
@@ -15,7 +15,7 @@ sync.Pool的使用非常简单，它具有以下几个特点：
 sync.Pool的使用非常简单，定义一个Pool对象池时，需要提供一个New函数，表示当池中没有对象时，如何生成对象。对象池Pool提供Get和Put函数从Pool中取和存放对象。
 
 下面有一个简单的实例，直接运行是会打印两次“new an object”,注释掉runtime.GC(),发现只会调用一次New函数，表示实现了对象重用。
-
+```
 	package main
 	
 	import (
@@ -39,8 +39,8 @@ sync.Pool的使用非常简单，定义一个Pool对象池时，需要提供一�
 		b := p.Get().(int)
 		fmt.Println(a, b)
 	}
-
-## 2.sync.Pool 如何支持多协程共享？
+```
+## 二、sync.Pool 如何支持多协程共享？
 sync.Pool支持多协程共享，为了尽量减少竞争和加锁的操作，golang在设计的时候为每个P（核）都分配了一个子池，每个子池包含一个私有对象和共享列表。 私有对象只有对应的和核P能够访问，而共享列表是与其它P共享的。  
 
 在golang的GMP调度模型中，我们知道协程G最终会被调度到某个固定的核P上。当一个协程在执行Pool的get或者put方法时，首先对改核P上的子池进行操作，然后对其它核的子池进行操作。因为一个P同一时间只能执行一个goroutine，所以对私有对象存取操作是不需要加锁的，而共享列表是和其他P分享的，因此需要加锁操作。  
@@ -61,7 +61,7 @@ sync.Pool支持多协程共享，为了尽量减少竞争和加锁的操作，go
 	}
 更加细致的sync.Pool源码分析，可参考[http://jack-nie.github.io/go/golang-sync-pool.html](http://jack-nie.github.io/go/golang-sync-pool.html)
 
-## 3.为什么不使用sync.pool实现连接池？
+## 三、为什么不使用sync.pool实现连接池？
 刚开始接触到sync.pool时，很容易让人联想到连接池的概念，但是经过仔细分析后发现sync.pool并不是适合作为连接池，主要有以下两个原因： 
  
 - 连接池的大小通常是固定且受限制的，而sync.Pool是无法控制缓存对象的数量，只受限于内存大小，不符合连接池的目标  
@@ -70,7 +70,7 @@ sync.Pool支持多协程共享，为了尽量减少竞争和加锁的操作，go
 golang中连接池通常利用channel的缓存特性实现。当需要连接时，从channel中获取，如果池中没有连接时，将阻塞或者新建连接，新建连接的数量不能超过某个限制。
 
 [https://github.com/goctx/generic-pool](https://github.com/goctx/generic-pool)基于channel提供了一个通用连接池的实现
-
+```
 	package pool
 	
 	import (
@@ -209,6 +209,7 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
 		p.Unlock()
 		return nil
 	}
+```
 参考：  
 [1].[https://blog.csdn.net/yongjian_lian/article/details/42058893](https://blog.csdn.net/yongjian_lian/article/details/42058893)  
 [2].[https://segmentfault.com/a/1190000013089363](https://segmentfault.com/a/1190000013089363)  
