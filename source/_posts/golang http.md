@@ -1,5 +1,7 @@
 ---
 title: golang http 使用总结
+categories:
+- Golang
 ---
 
 最近在项目开发中使用http服务与第三方服务交互，感觉golang的http封装得很好，很方便使用但是也有一些坑需要注意，一是自动复用连接，二是Response.Body的读取和关闭

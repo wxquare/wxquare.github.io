@@ -1,5 +1,7 @@
 ---
 title: Golang命名和编码规范(整理)
+categories:
+- Golang
 ---
 
 # 1.命名 #

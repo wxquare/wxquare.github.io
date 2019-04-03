@@ -1,5 +1,7 @@
 ---
 title: golang 标准库学习
+categories:
+- Golang
 ---
 
 

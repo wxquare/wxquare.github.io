@@ -1,5 +1,7 @@
 ---
 title: golang错误处理
+categories:
+- Golang
 ---
 
 

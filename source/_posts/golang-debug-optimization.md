@@ -1,5 +1,7 @@
 ---
 title: golang 程序测试和优化
+categories:
+- Golang
 ---
 
 　　Golang非常注重工程化，提供了非常好用单元测试、性能测试（benchmark）和调优工具（pprof），它们对提高代码的质量和服务的性能非常有帮助。[参考链接](https://tonybai.com/2015/08/25/go-debugging-profiling-optimization)中通过一段http代码非常详细的介绍了golang程序优化的步骤和方便之处。实际工作中，我们很难每次都对代码都有那么高的要求，但是能使用一些工具对程序进行优化程序性能也是golang程序员必备的技能。

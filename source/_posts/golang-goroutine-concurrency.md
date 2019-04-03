@@ -1,5 +1,7 @@
 ---
 title: golang 协程与并发
+categories:
+- Golang
 ---
 
 ## 一、基本概念

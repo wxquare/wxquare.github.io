@@ -1,9 +1,9 @@
 ---
 title: golang 协程同步的三种方式
+categories:
+- Golang
 ---
-
-
-
+```
     package main
     
     import (
@@ -72,3 +72,4 @@ title: golang 协程同步的三种方式
     	sync3()
     	time.Sleep(10 * time.Second)
     }
+```

@@ -1,6 +1,7 @@
-
 ---
 title: golang 内存管理与垃圾回收
+categories:
+- Golang
 ---
 
 　　为了避开直接通过系统调用分配内存而导致的性能开销，通常会通过预分配、内存池等操作自主管理内存。golang由运行时runtime管理内存，完成初始化、分配、回收和释放操作。目前主流的内存管理器有glibc和tcmolloc，tcmolloc由Google开发，具有更好的性能，兼顾内存分配的速度和内存利用率。golang也是使用类似tcmolloc的方法进行内存管理。建议参考下面链接学习tcmalloc的原理，其内存管理的方法也是golang内存分配的方法。另外一个原因，golang自主管理也是为了更好的配合垃圾回收。

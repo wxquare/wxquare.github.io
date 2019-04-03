@@ -1,5 +1,7 @@
 ---
 title: golang sync.pool和连接池
+categories:
+- Golang
 ---
 
 

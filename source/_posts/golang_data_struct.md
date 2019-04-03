@@ -1,5 +1,7 @@
 ---
 title: golang常用数据结构和容器
+categories:
+- Golang
 ---
 
 ### 1.字符串string

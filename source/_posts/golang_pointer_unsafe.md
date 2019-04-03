@@ -1,5 +1,7 @@
 ---
 title: golang 指针和unsafe
+categories:
+- Golang
 ---
 
 ## 一、golang指针和unsafe.pointer

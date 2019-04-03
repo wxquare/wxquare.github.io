@@ -1,5 +1,7 @@
 ---
 title: golang 基于channel的生产者消费者模型
+categories:
+- Golang
 ---
 
 生产者消费者模式在实际中非常常见，很多问题多可以被抽象成生产者消费者模型；  

@@ -1,5 +1,7 @@
 ---
 title: golang channel通道
+categories:
+- Golang
 ---
 
 ## 一、channel

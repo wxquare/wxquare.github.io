@@ -1,5 +1,7 @@
 ---
 title: golang面试题汇总
+categories:
+- Golang
 ---
 
 
