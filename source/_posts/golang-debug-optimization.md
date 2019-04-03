@@ -58,4 +58,5 @@ Showing top 5 nodes out of 46
 - sum： 列表前几行所占百分比的总和
 
 更加详细的golang程序调试和优化请参考：
-https://tonybai.com/2015/08/25/go-debugging-profiling-optimization/
+[1]. https://tonybai.com/2015/08/25/go-debugging-profiling-optimization/
+[2]. https://blog.golang.org/profiling-go-programs
