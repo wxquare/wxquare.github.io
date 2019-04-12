@@ -25,6 +25,8 @@ categories:
 7. goalng中的struct可以进行比较吗？了解reflect.DeepEqual吗？
 8. golang中的set实现？map[interface{}]struct{}
 9. goalng中的生产者消费者模式？
+10. golang中的context包的用途？
+
 
 
 
