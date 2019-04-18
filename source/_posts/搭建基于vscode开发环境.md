@@ -1,5 +1,7 @@
 ---
 title: 搭建基于VScode的Windows开发环境
+categories:
+- other
 ---
 
 # 一.下载安装 [vscode](https://code.visualstudio.com/)  

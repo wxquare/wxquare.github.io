@@ -1,5 +1,7 @@
 ---
 title: 基于Github双分支和Hexo搭建博客
+categories:
+- other
 ---
 
 ## 一.前言 ##
@@ -38,7 +40,8 @@ title: 基于Github双分支和Hexo搭建博客
 2. 进入博客站点目录，`git clone https://github.com/iissnan/hexo-theme-next themes/next`
 3. 修改站点配置文件_config.yml，theme：next，重新编译，配置
 4. 参考[http://theme-next.iissnan.com/](http://theme-next.iissnan.com/)，配置网站。 
-5. 不断更新....
+5. 增加分类
+6. 不断更新....
 
 ## 四.填坑  ##
 1. 博客中的图片，将图片放在hexo分支的souce/photos目录下面，然后同步到github中，在hexo分支中找到图片，通过download按钮查看图片的地址。

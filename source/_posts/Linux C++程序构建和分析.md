@@ -1,5 +1,7 @@
 ---
 title: Linux C++ 程序构建和分析
+categories:
+- other
 ---
 
 ## 1、C/C++项目构建

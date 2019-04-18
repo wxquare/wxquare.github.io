@@ -1,7 +1,7 @@
 ---
 title: Golang context
-categories
-Golang
+categories:
+- Golang
 ---
 
 ## 一、介绍和使用场景

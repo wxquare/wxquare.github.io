@@ -1,5 +1,7 @@
 ---
 title: Linux 常用命令汇总
+categories:
+- other
 ---
 
 ## 1、linux基础命令
