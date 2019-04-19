@@ -33,27 +33,27 @@ class RWGClient(object):
 		http://boto.cloudhackers.com/en/latest/s3_tut.html#creating-a-connection
 	'''
 
-	def　__init__(self,access_key,secret_key,host_name,bucket_name,is_secure=False):
+	def __init__(self,access_key,secret_key,host_name,bucket_name,is_secure=False):
 		self.aws_access_key_id = access_key
 		self.aws_secret_access_key = secret_key
 		self.host = host_name
 		self.bucket = bucket_name
 
-	def __get_connection():
+	def __get_connection(self):
 		return boto.connect_s3(
 			aws_access_key_id = self.aws_access_key_id,
 			aws_secret_access_key = self.aws_secret_access_key,
-			host = self.host
+			host = self.host,
 			is_secure = False
 		)
 
 
-	def upload_file_to_rgw(local_file,rgw_file):
+	def upload_file_to_rgw(self,local_file,rgw_file):
 
-	'''
-		upload local_file to rgw_file
-		todo: deal with error ??? 
-	'''
+		"""
+			upload local_file to rgw_file
+			todo: deal with error ??? 
+		"""
 		c = self.__get_connection()
 		b = c.get_bucket(self.bucket)
 		k = Key(b)
@@ -62,17 +62,17 @@ class RWGClient(object):
 
 
 
-	def download_from_rgw(rgw_file,local_file):
-	'''
-		download a rgw_file to localfile
-		todo: deal with error??
-	'''
+	def download_from_rgw(self,rgw_file_key,local_file):
+		"""
+			download a rgw_file to localfile
+			todo: deal with error??
+			rgw_file_url = 
+		"""
 		c = self.__get_connection()
 		b = c.get_bucket(self.bucket)
 		k = Key(b)
-		k.key = rgw_file
+		k.key = rgw_file_key
 		k.get_contents_to_filename(local_file)
-		
 
 ```
 

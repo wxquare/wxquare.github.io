@@ -51,57 +51,62 @@ https://stackoverflow.com/questions/39281594/error-1698-28000-access-denied-for-
 ## 三、 pymysql简单使用
 
 ```
-	import sys
-	sys.path.append('./3rdparty')
+import sys
+sys.path.append('./3rdparty')
 
-	import pymysql
+import pymysql
 
 
-	class MysqlClient(object):
-		def __init__(self,host,port,user,password,db,charset='utf8'):
-			self.host = host
-			self.port = port
-			self.user = user
-			self.password = password
-			self.db = db,
-			self.charset = charset
+class MysqlClient(object):
+	def __init__(self,host,port,user,password,db,charset='utf8'):
 
-		def __get_connection():
-			return pymysql.connect(
+		self.host = host
+		self.port = port
+		self.user = user
+		self.password = password
+		self.db = db
+		self.charset = charset
+
+
+	def get_connection(self):
+
+		return pymysql.connect(
 				host = self.host,
 				port = self.port,
 				user = self.user,
 				password = self.password,
 				db = self.db,
 				charset = self.charset
-				)
+			)
 
 
-		def query(sql_str):
-			'''
-				select
-			'''
-			cur = con.cursor(cursor=pymysql.cursors.Cursor)  # default tuple cursor
+	def query(self,sql_str):
+		'''
+			select
+		'''
+		con = self.get_connection()
+		cur = con.cursor(cursor=pymysql.cursors.DictCursor)  # default tuple cursor
+		cur.execute(sql_str)
+		rows = cur.fetchall() # fetch all data
+		cur.close()
+		con.close()
+		return rows
+
+
+	def execute(self,sql_str):
+		'''
+			insert,update,delete  note:INSERT、UPDATE、DELETE neet commit
+		'''
+		con = self.get_connection()
+		cur = con.cursor()
+		try:
 			cur.execute(sql_str)
-			rows = cur.fetchall() # fetch all data
+			con.commit()
+		except Exception:
+			con.rollback()
+		finally:
 			cur.close()
 			con.close()
-			return rows
-
-
-		def execute(sql_str):
-			'''
-				insert,update,delete  note:INSERT、UPDATE、DELETE neet commit
-			'''
-			cur = con.cursor()
-			try:
-				cur.execute(sql_str)
-				con.commit()
-			except Exception:
-				con.rollback()
-			finally:
-				cur.close()
-				con.close()
 ```
 
 
