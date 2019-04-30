@@ -1,13 +1,14 @@
 ---
-title: Python Logging 日志记录
+title: Python Logging 日志
 categories: 
 - Python
 ---
 
-Python的logging模块非常灵活，提供许多的配置项，方便定义所需的日志管理器，我认为日志至少应做到以下几点：
+　　Python的logging模块非常灵活，提供许多的配置项，方便定义所需的日志管理器，我认为日志至少应做到以下几点：
 1. 灵活日志等级
 2. 日志的格式，包含时间、文件、文件行数、日志信息等。（logging.Formater)
-3. 日志以什么方式写到哪里？(logging.handlers)
+3. 日志以什么方式写到哪里？(logging.handlers)  
+
 结合官方文档可以轻松定义所需要的日志记录器：
 [https://docs.python.org/zh-cn/3/howto/logging.html](https://docs.python.org/zh-cn/3/howto/logging.html)
 
