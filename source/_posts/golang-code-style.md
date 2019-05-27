@@ -101,8 +101,6 @@ categories:
 
 ```
 
-
-
 ## 9.方法接收器
 - 方法接收器的名称一般采用struct的第一个或者两个字母的小写形式。不要使用this、me或者self
 - 指针类型接收器和非指针类型接收器
@@ -112,8 +110,28 @@ categories:
 - 如果接收者是大的结构体或者数组，使用指针传递。
  
 
+## 10.make和new
+- new 返回一个对象的指针，成员都是零值，例如指针的零值是nil
+- golang堆栈的使用是由编译器决定的，因此经常“复合构造器”构造对象。new(object)与&object{}等价
+- make 用于对map、slice和chan对象的构造，初始值而不是零值。
 
-## 10.其它约定
+## 11.内嵌（Embedding）
+- golang没有提供经典类型驱动式的派生类概念，是通过**内嵌其它类型或者接口**的方式来实现类似的功能。
+```
+type Reader interface {
+    Read(p []byte) (n int, err error)
+}
+
+type Writer interface {
+    Write(p []byte) (n int, err error)
+}
+type ReadWriter interface {
+    Reader
+    Writer
+}
+```
+
+## 12.其它约定
 - 文件长度最好不要超过500行，每行最好不超过80字符
 - 多返回值最多返回三个，超过三个请使用 struct
 - golang的内置类型slice，map，chan都是引用，初次使用前，必须先用make分配好对象，不然会有空指针异常
