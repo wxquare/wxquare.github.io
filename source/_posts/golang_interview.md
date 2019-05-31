@@ -26,7 +26,31 @@ categories:
 8. golang中的set实现？map[interface{}]struct{}
 9. goalng中的生产者消费者模式？
 10. golang中的context包的用途？
+11. golang的编译过程？
+12. golang闭包的概念？
+13. golang中可以对只运行一次的函数定义为匿名函数，匿名函数对外部变量使用的是引用
+14. 将匿名函数赋值为一个变量，该变量就称为一个闭包，为闭包对外层词法域变量是引用的。
+```
+	package main
 
+	import (
+		"fmt"
+	)
+
+	func main() {
+
+		x := 1
+		f := func() int {
+			x++
+			return x
+		}
+
+		fmt.Println(f())
+		fmt.Println(f())
+	}
+
+```
+15. golang 逃逸分析。go在一定程度消除了堆和栈的区别，因为go在编译的时候进行逃逸分析，来决定一个对象放栈上还是放堆上，不逃逸的对象放栈上，可能逃逸的放堆上
 
 
 
@@ -42,6 +66,9 @@ https://www.flysnow.org/2017/05/12/go-in-action-go-context.html
 ### 2.4.golang网络编程点点滴滴？
 	https://colobu.com/2014/12/02/go-socket-programming-TCP/
 #### 2.4.1 client如何实现长连接？
+
+
+
 
 
 
