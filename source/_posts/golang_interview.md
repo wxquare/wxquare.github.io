@@ -1,7 +1,7 @@
 ---
-title: golang面试题汇总
+title: 计算机基础之golang知识
 categories:
-- Golang
+- 计算机基础
 ---
 
 

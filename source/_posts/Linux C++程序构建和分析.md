@@ -43,6 +43,23 @@ categories:
 ## 6、程序内存泄露分析
 - 调试内存泄漏的工具valgrind
 
+
+
+## 7、cmake 通过find_package使用第三方库
+https://www.jianshu.com/p/46e9b8a6cb6a
+find_package原理
+首先明确一点，cmake本身不提供任何搜索库的便捷方法，所有搜索库并给变量赋值的操作必须由cmake代码完成，比如下面将要提到的FindXXX.cmake和XXXConfig.cmake。只不过，库的作者通常会提供这两个文件，以方便使用者调用。
+find_package采用两种模式搜索库：
+
+Module模式：搜索CMAKE_MODULE_PATH指定路径下的FindXXX.cmake文件，执行该文件从而找到XXX库。其中，具体查找库并给XXX_INCLUDE_DIRS和XXX_LIBRARIES两个变量赋值的操作由FindXXX.cmake模块完成。
+
+Config模式：搜索XXX_DIR指定路径下的XXXConfig.cmake文件，执行该文件从而找到XXX库。其中具体查找库并给XXX_INCLUDE_DIRS和XXX_LIBRARIES两个变量赋值的操作由XXXConfig.cmake模块完成。
+
+两种模式看起来似乎差不多，不过cmake默认采取Module模式，如果Module模式未找到库，才会采取Config模式。如果XXX_DIR路径下找不到XXXConfig.cmake文件，则会找/usr/local/lib/cmake/XXX/中的XXXConfig.cmake文件。总之，Config模式是一个备选策略。通常，库安装时会拷贝一份XXXConfig.cmake到系统目录中，因此在没有显式指定搜索路径时也可以顺利找到。
+
+
+
+
 ----------------------
 ## 常见问题解决：
 ### 1、pkg-config：解决编译和链接时候出现的undefined symbol问题
@@ -55,7 +72,7 @@ pkg-config能方便使用第三方库和头文件和库文件，其运行原理
 
 - 首先查看是否有对应的opencv.pc find /usr -name opencv.pc  
 - 查看该路径是否包含在PKG_CONFIG_PATH  
-- 使用pkg-config --cflgs --libs opencv 查看库对应的头文件和库文件信息  
+- 使用pkg-config --cflags --libs opencv 查看库对应的头文件和库文件信息  
 - pkg-config --modversion opencv 查看版本信息
 
 参考链接：[https://blog.csdn.net/luotuo44/article/details/24836901](https://blog.csdn.net/luotuo44/article/details/24836901)
@@ -81,3 +98,33 @@ pkg-config能方便使用第三方库和头文件和库文件，其运行原理
 - export LD_LIBRARY_PATH=/usr/local/lib64，增加运行时加载路径  
 
  参考链接：[https://www.cnblogs.com/amyzhu/p/8871475.html](https://www.cnblogs.com/amyzhu/p/8871475.html)
+
+实战1：ffmpage的编译
+a. 下载地址：http://www.ffmpeg.org/releases/ffmpeg-4.1.4.tar.bz2
+b. 查看ffmpeg配置参数：./configure --help
+c. 编译机器 taf.YYBOP.VideoImplant.TSZ19
+d. sudo yum install yasm  或者 -disable-x86asm 选项
+e. 创建build_debug目录，编译debug版本
+./configure --prefix=/usr/local/app/terse/ffmpeg-4.1.4/build_debug --enable-shared  --shlibdir=/usr/local/app/terse/ffmpeg-4.1.4/build_debug/lib
+make -j16
+make install
+d. 创建build_release目录,编译release版本
+./configure --prefix=/home/terse/code/C++/KCF2/third_party/FFmpeg-release-4.1/build --enable-shared  --shlibdir=/home/terse/code/C++/KCF2/third_party/FFmpeg-release-4.1/build/lib --disable-debug
+make -j16
+make install
+
+实战2：opencv的编译
+a. opencv下载地址：https://github.com/opencv/opencv/archive/3.4.6.zip
+b. opencv_contrib下载地址： https://github.com/opencv/opencv_contrib/archive/3.4.6.zip
+c. 编译机器 taf.YYBOP.VideoImplant.TSZ19
+d. 通过ccmake配置参数
+release版本：
+OPENCV_EXTRA_MODULES_PATH=/usr/local/app/terse/opencv_contrib-3.4.6/modules
+BUILD_SHARED_LIBS=ON
+CMAKE_BUILD_TYPE=Release
+CMAKE_INSTALL_PREFIX=/usr/local/app/terse/opencv-3.4.6/release 
+Debug版本：
+OPENCV_EXTRA_MODULES_PATH=/usr/local/app/terse/opencv_contrib-3.4.6/modules
+BUILD_SHARED_LIBS=ON
+CMAKE_BUILD_TYPE=Debug
+CMAKE_INSTALL_PREFIX=/usr/local/app/terse/opencv-3.4.6/Debug 
