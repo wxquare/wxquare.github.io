@@ -4,16 +4,23 @@ categories:
 - 计算机基础
 ---
 
-## 一、编译、链接和程序调试
-1、[linux程序构建和调试](https://wxquare.github.io/2019/03/12/Linux%20C++%E7%A8%8B%E5%BA%8F%E6%9E%84%E5%BB%BA%E5%92%8C%E5%88%86%E6%9E%90)
-2、项目中尽可能使用makefile结合Linux基础命令辅助编译、链接、服务的发布。
-3、OpenCV使用CMake进行项目管理，了解CMAKE的基本语言和编译过程，参考CMake入门实战。
+## 一、Linux C/C++
+1、会使用Makefile和CMake构建项目
+2、会使用gdb调试程序，程序出错、coredump、异常死循环死锁等。
+3、会使用time,top,perf,gprof工具分析程序的性能、资源使用情况。
+4、会使用Valgrind分析程序内存泄露问题。
+5、
+
+
 
 
 ## 二、TODO
 3、gdb调试相关的经验?基本调试、运行的进程、coredump文件分析？
-4、C++程序性能分析、profile？
+- -g参数
+- 不能strip
+- 
 
+4、C++程序性能分析、profile？
 5、C++ 如何定位内存泄露？
 6、动态链接和静态链接的区别
 7、写一个c程序辨别系统是64位 or 32位

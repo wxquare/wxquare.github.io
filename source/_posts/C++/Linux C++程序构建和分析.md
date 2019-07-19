@@ -13,8 +13,10 @@ categories:
 如何使用cmake构建C++项目？  
 
 
-## 2、程序调试
+## 2、程序出错或者异常调试
+程序运行时有时出错，有时会出现异常，例如死循环，死锁等，处理肉眼code review查找出错原因还可以借助gdb调试。
 [gdb调试必知必会](https://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/gdb.html#gdb)
+
 
 
 ## 3、目标文件分析
