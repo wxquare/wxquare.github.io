@@ -11,12 +11,12 @@ date: 2019-03-03 21:56:42
 1. [会使用Makefile和CMake构建项目](https://wxquare.github.io/2019/07/19/C++/makefile-cmake/)
 2. [会使用gdb调试程序，程序出错、coredump、异常死循环死锁等](https://wxquare.github.io/2019/07/18/C++/about-gdb/)
 3. [会使用time,top,perf,gprof工具分析程序的性能、资源使用情况](https://wxquare.github.io/2019/07/19/C++/time-top-perf-gprof/)
-4. [会使用Valgrind分析程序内存泄露问题](https://wxquare.github.io/2019/07/19/C++/valgrind/)
+4. [Linux程序常见的内存问题以及使用Valgrind检测内存问题](https://wxquare.github.io/2019/07/19/C++/valgrind/)
 5. [熟悉Linux常用命令和工具](https://wxquare.github.io/2019/07/19/C++/Linux-commands/)
-6. [C++基础知识整理](https://wxquare.github.io/2019/07/19/C++/Cpp-interview.md/)
-7. [操作系统基础知识整理](https://wxquare.github.io/2019/07/19/C++/Os-interview.md/)
-8. [网络编程基础知识整理](https://wxquare.github.io/2019/07/19/C++/Internet-interview.md/)
-9. [数据库和cache知识整理](https://wxquare.github.io/2019/07/19/C++/Mysql-cache-interview.md/)
+6. [C++基础知识整理](https://wxquare.github.io/2019/07/19/C++/Cpp-interview/)
+7. [操作系统基础知识整理](https://wxquare.github.io/2019/07/19/C++/OS-interview/)
+8. [网络编程基础知识整理](https://wxquare.github.io/2019/07/19/C++/Internet-interview/)
+9. [数据库和cache知识整理](https://wxquare.github.io/2019/07/19/C++/Mysql-cache-interview/)
 10. [了解google C++编码规范](https://zh-google-styleguide.readthedocs.io/en/latest/)
 
 
