@@ -1,7 +1,7 @@
 ---
 title: time/top/perf/gprof程序性能分析
 categories:
-- 计算机基础
+- C/C++
 ---
 
 

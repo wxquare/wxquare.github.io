@@ -1,7 +1,7 @@
 ---
 title: 计算机基础之golang知识
 categories:
-- 计算机基础
+- Golang
 ---
 
 

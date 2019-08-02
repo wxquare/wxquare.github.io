@@ -1,7 +1,7 @@
 ---
 title: Linux程序常见内存问题和Valgrind
 categories: 
-- 计算机基础
+- C/C++
 ---
 
 

@@ -1,7 +1,7 @@
 ---
 title: 计算机基础之使用makefile和cmake构建项目
 categories: 
-- 计算机基础
+- C/C++
 ---
 
 

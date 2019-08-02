@@ -1,7 +1,7 @@
 ---
 title: gdb 程序调试必知必会
 categories:
-- other
+- C/C++
 ---
 
 

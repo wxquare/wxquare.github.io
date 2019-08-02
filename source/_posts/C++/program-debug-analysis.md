@@ -1,7 +1,7 @@
 ---
 title: 计算机基础之程序分析和调试
 categories: 
-- 计算机基础
+- C/C++
 ---
 
 ## 一、Linux C/C++

@@ -48,10 +48,11 @@ date: 2019-03-03 21:56:42
 2. [Python 编码风格](https://wxquare.github.io/2019/07/19/python/python-code-style/)
 3. [Python 开发环境](https://wxquare.github.io/2019/07/19/python/python-dev-env/)
 4. [Python 日志库的使用](https://wxquare.github.io/2019/07/19/python/python-logging/)
-5. [python mutiprocessing的使用](https://wxquare.github.io/2019/07/19/python/python-mutiprocessing/)
-6. [Python 性能分析](https://wxquare.github.io/2019/07/19/python/python-performance/)
+5. [python mutiprocessing的使用](https://wxquare.github.io/2019/07/19/python/Python-mutiprocessing/)
+6. [Python 性能分析](https://wxquare.github.io/2019/07/19/python/Python-performance/)
 7. [Python Mysql](https://wxquare.github.io/2019/07/19/python/python-pymysql/)
 8. [Python S3文件存储](https://wxquare.github.io/2019/07/19/python/python-s3/)
+9. [Python Kafka的简单使用](https://wxquare.github.io/2019/07/29/python/Python-kafka/)
 
 
 
