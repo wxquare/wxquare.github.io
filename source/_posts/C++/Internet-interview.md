@@ -1,5 +1,5 @@
 ---
-title: 计算机基础之网络编程知识
+title: 网络编程基础
 categories: 
 - C/C++
 ---

@@ -1,5 +1,5 @@
 ---
-title: 计算机基础之操作系统知识
+title: 操作系统基础
 categories: 
 - C/C++
 ---

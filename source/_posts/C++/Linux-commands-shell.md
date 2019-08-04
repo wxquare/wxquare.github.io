@@ -1,5 +1,5 @@
 ---
-title: Linux 常用命令汇总
+title: Linux 常用命令和shell编程
 categories:
 - C/C++
 ---
