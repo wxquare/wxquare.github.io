@@ -5,90 +5,52 @@ categories:
 ---
 
 
-C++ 代码编译测试完成功能之后，有时会遇到性能问题，此时需要学会使用一些工具对其进行性能分析，找出程序的性能瓶颈，然后进行优化：
+　　C++代码编译测试完成功能之后，有时会遇到一些性能问题，此时需要学会使用一些工具对其进行性能分析，找出程序的性能瓶颈，然后进行优化，基本需要掌握下面几个命令：
 1. time分析程序的执行时间
 2. top观察程序资源使用情况
 3. perf/gprof进一步分析程序的性能
-4. valgrind分析程序的内存泄露问题
+4. 内存问题与valgrind
+5. 自己写一个计时器，计算局部函数的时间
 
-
-## 一、Linux C/C++
-1、会使用Makefile和CMake构建项目
-2、会使用gdb调试程序，程序出错、coredump、异常死循环死锁等。
-3、会使用time,top,perf,gprof工具分析程序的性能、资源使用情况。
-4、会使用Valgrind分析程序内存泄露问题。
-5、
-
-
-
-
-## 二、TODO
-3、gdb调试相关的经验?基本调试、运行的进程、coredump文件分析？
-- -g参数
-- 不能strip
-- 
-
-4、C++程序性能分析、profile？
-5、C++ 如何定位内存泄露？
-6、动态链接和静态链接的区别
-7、写一个c程序辨别系统是64位 or 32位
-8、写一个c程序辨别系统是大端or小端字节序
-
-
-
-
-
-参考：
-- [跟我学些makefile](https://github.com/wxquare/programming/blob/master/document/%E8%B7%9F%E6%88%91%E4%B8%80%E8%B5%B7%E5%86%99Makefile-%E9%99%88%E7%9A%93.pdf)
-- [CMake入门实战](https://www.hahack.com/codes/cmake/)
-
-
----
-title: time/top/perf/gprof程序性能分析
-categories:
-- C/C++
----
-
-
-　　会使用time、top、perf和gprof工具分析程序的性能。
 
 
 ## 一、time
 1. shell time。 time非常方便获取程序运行的时间，包括用户态时间user、内核态时间sys和实际运行的时间real。我们可以通过(user+sys)/real计算程序CPU占用率，判断程序时CPU密集型还是IO密集型程序。
-$time ffmpeg -y -i in.mp4 -vf "crop=w=100:h=100:x=12:y=34" -acodec copy out.mp4
-real	0m0.144s
-user	0m0.048s
-sys	    0m0.124s
+$time ./kcf2.0 ../data/bag.mp4 312 146 106 98 1 196 result.csv 1
+real	0m2.065s
+user	0m4.598s
+sys	    0m0.907s
+cpu使用率：(4.598+0.907)/2.065=267%
+视频帧数196，196/2.065=95
+
 
 2. Linux中除了shell time，还有/usr/bin/time，它能获取程序运行更多的信息，通常带有-v参数。
 ```
-$ /usr/bin/time -v ffmpeg -y -i in.mp4 -vf "crop=w=100:h=100:x=12:y=34" -acodec copy out.mp4
-
-User time (seconds): 0.01                            # 用户态时间
-System time (seconds): 0.10                          # 内核态时间
-Percent of CPU this job got: 124%                    # CPU占用率
-Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.09 # 实际时间
-Average shared text size (kbytes): 0
-Average unshared data size (kbytes): 0
-Average stack size (kbytes): 0
-Average total size (kbytes): 0
-Maximum resident set size (kbytes): 20096
-Average resident set size (kbytes): 0
-Major (requiring I/O) page faults: 0                 # 缺页异常 
-Minor (reclaiming a frame) page faults: 2953
-Voluntary context switches: 2715                     # 上下文切换
-Involuntary context switches: 414
-Swaps: 0
-File system inputs: 0
-File system outputs: 368
-Socket messages sent: 0
-Socket messages received: 0
-Signals delivered: 0
-Page size (bytes): 4096
-Exit status: 0
+$ /usr/bin/time -v  ./kcf2.0 ../data/bag.mp4 312 146 106 98 1 196 result.csv 1
+    User time (seconds): 4.28                                  # 用户态时间
+	System time (seconds): 1.11                                # 内核态时间
+	Percent of CPU this job got: 279%                          # CPU占用率
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.93   
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 63980                  # 最大内存分配
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 19715              # 缺页异常
+	Voluntary context switches: 3613                           # 上下文切换
+	Involuntary context switches: 295682
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 32
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
 ```
 
-参考：https://my.oschina.net/yumm007/blog/920412
 
 ## 二、top
 top是linux系统的任务管理器，它既能看系统所有任务信息，也能帮助查看单个进程资源使用情况。
@@ -126,7 +88,41 @@ top是linux系统的任务管理器，它既能看系统所有任务信息，也
 参考：https://www.ibm.com/developerworks/cn/linux/l-cn-perf1/index.html
 参考：https://zhuanlan.zhihu.com/p/22194920
 
+### 1. perf stat
+　　做任何事都最好有条有理。老手往往能够做到不慌不忙，循序渐进，而新手则往往东一下，西一下，不知所措。面对一个问题程序，最好采用自顶向下的策略。先整体看看该程序运行时各种统计事件的大概，再针对某些方向深入细节。而不要一下子扎进琐碎细节，会一叶障目的。有些程序慢是因为计算量太大，其多数时间都应该在使用 CPU 进行计算，这叫做 CPU bound 型；有些程序慢是因为过多的 IO，这种时候其 CPU 利用率应该不高，这叫做 IO bound 型；对于 CPU bound 程序的调优和 IO bound 的调优是不同的。如果您认同这些说法的话，Perf stat 应该是您最先使用的一个工具。它通过概括精简的方式提供被调试程序运行的整体情况和汇总数据。虚拟机上面有些参数不全面，cycles、instructions、branches、branch-misses。下面的测试数据来自服务器。                                          
+**$time ./kcf2.0 ../data/bag.mp4 312 146 106 98 1 196 result.csv 1**
+```
+     25053.120420      task-clock (msec)         #   17.196 CPUs utilized          
+         1,509,877      context-switches          #    0.060 M/sec                  
+             3,427      cpu-migrations            #    0.137 K/sec                  
+            34,025      page-faults               #    0.001 M/sec                  
+    65,242,918,152      cycles                    #    2.604 GHz                    
+                 0      stalled-cycles-frontend   #    0.00% frontend cycles idle   
+                 0      stalled-cycles-backend    #    0.00% backend  cycles idle   
+    64,695,693,541      instructions              #    0.99  insns per cycle        
+     8,049,836,066      branches                  #  321.311 M/sec                  
+        42,734,371      branch-misses             #    0.53% of all branches        
 
+       1.456907056 seconds time elapsed
+```
+### 2. perf top
+　　Perf top 用于实时显示当前系统的性能统计信息。该命令主要用来观察整个系统当前的状态，比如可以通过查看该命令的输出来查看当前系统最耗时的内核函数或某个用户进程。
+### 3. perf record/perf report
+　　使用 top 和 stat 之后，这时对程序基本性能有了一个大致的了解，为了优化程序，便需要一些粒度更细的信息。比如说您已经断定目标程序计算量较大，也许是因为有些代码写的不够精简。那么面对长长的代码文件，究竟哪几行代码需要进一步修改呢？这便需要使用 perf record 记录单个函数级别的统计信息，并使用 perf report 来显示统计结果。您的调优应该将注意力集中到百分比高的热点代码片段上，假如一段代码只占用整个程序运行时间的 0.1%，即使您将其优化到仅剩一条机器指令，恐怕也只能将整体的程序性能提高 0.1%。俗话说，好钢用在刀刃上，要优化热点函数。
+
+```
+perf record – e cpu-clock ./t1 
+perf report
+```
+增加-g参数可以获取调用关系
+```
+perf record – e cpu-clock – g ./t1 
+perf report
+```
+$perf record -e cpu-clock -g ./kcf2.0 ../data/bag.mp4 312 146 106 98 1 196 result.csv 1
+$perf report
+![](https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/perf_kcf2.0.jpg)
+	
 
 ## 四、gprof
 参考： https://blog.csdn.net/stanjiang2010/article/details/5655143
@@ -134,36 +130,24 @@ top是linux系统的任务管理器，它既能看系统所有任务信息，也
 
 
 
-
----
-title: Linux程序常见内存问题和Valgrind
-categories: 
-- C/C++
----
-
-
-## Linux程序的内存问题
+## 五、内存问题与valgrind
+### 5.1常见的内存问题
 1. 使用未初始化的变量
 对于位于程序中不同段的变量，其初始值是不同的，全局变量和静态变量初始值为0，而局部变量和动态申请的变量，其初始值为随机值。如果程序使用了为随机值的变量，那么程序的行为就变得不可预期。
-
 2. 内存访问越界
 比如访问数组时越界；对动态内存访问时超出了申请的内存大小范围。
-
-
 3. 内存覆盖
 C 语言的强大和可怕之处在于其可以直接操作内存，C 标准库中提供了大量这样的函数，比如 strcpy, strncpy, memcpy, strcat 等，这些函数有一个共同的特点就是需要设置源地址 (src)，和目标地址(dst)，src 和 dst 指向的地址不能发生重叠，否则结果将不可预期。
-
-
 4. 动态内存管理错误
 常见的内存分配方式分三种：静态存储，栈上分配，堆上分配。全局变量属于静态存储，它们是在编译时就被分配了存储空间，函数内的局部变量属于栈上分配，而最灵活的内存使用方式当属堆上分配，也叫做内存动态分配了。常用的内存动态分配函数包括：malloc, alloc, realloc, new等，动态释放函数包括free, delete。一旦成功申请了动态内存，我们就需要自己对其进行内存管理，而这又是最容易犯错误的。下面的一段程序，就包括了内存动态管理中常见的错误。
 a. 使用完后未释放
 b. 释放后仍然读写
 c. 释放了再释放
-
 5. 内存泄露
 内存泄露（Memory leak）指的是，在程序中动态申请的内存，在使用完后既没有释放，又无法被程序的其他部分访问。内存泄露是在开发大型程序中最令人头疼的问题，以至于有人说，内存泄露是无法避免的。其实不然，防止内存泄露要从良好的编程习惯做起，另外重要的一点就是要加强单元测试（Unit Test），而memcheck就是这样一款优秀的工具
 
-## valgrind内存检测
+### 5.1 valgrind内存检测
+
 ```
 #include <iostream>
 using namespace std;
@@ -231,9 +215,27 @@ int main(int argc, char const *argv[])
 ==102507== ERROR SUMMARY: 2 errors from 2 contexts (suppressed: 0 from 0)
 
 ```
-
-
-
 1. https://www.ibm.com/developerworks/cn/linux/l-cn-valgrind/index.html
 2. http://senlinzhan.github.io/2017/12/31/valgrind/
 3. https://www.ibm.com/developerworks/cn/aix/library/au-memorytechniques.html
+
+
+## 六、自定义timer计时器
+```
+class timer {
+public:
+    clock_t start;
+    clock_t end;
+    string name;
+    timer(string n) {
+        start = clock();
+        name = n;
+    }
+    ~timer() {
+        end = clock();
+        printf("%s time: %f \n", name.c_str(), 
+            (end - start) * 1.0 / CLOCKS_PER_SEC * 1000);
+    }
+};
+```
+

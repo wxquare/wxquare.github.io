@@ -1,5 +1,5 @@
 ---
-title: 计算机基础之数据结构与算法
+title: 程序员应该掌握的数据结构与算法
 categories: 
 - C/C++
 ---
@@ -9,20 +9,24 @@ categories:
 
 
 ## 会手写算法
-1. C++ String类的实现
-2. vector 的简单实现
-3. atoi和itoa的实现
-4. 常见的库函数的实现memcpy、memset、strcpy、strncpy等
-3. 常见排序算法的实现，插入、冒泡、选择、快排、堆排、归并、shell排序、基数排序
-4. 大数加减乘除
-5. KMP字符串匹配算法
-6. 二分查找，递归和非递归的实现
-7. 二叉树的前序、中序、后序遍历，递归和非递归版本
-8. 读写锁的实现
-1. C++ 单例模式的实现
-9. C++生产者消费者模式的实现
-10. C++工厂模式的实现
-11. C++观察者模式的实现
+1. [C++ MyString类的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/mystring.cpp)
+2. [C++ MyVector类的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/myvector.cpp)
+3. [二分查找递归和非递归的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search.cpp)
+4. [排序算法的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/sort.cpp)
+5. [二叉树的前、中、后序遍历](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_tree.cpp)
+6. [二叉搜索树的查找、插入和删除](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search_tree.cpp)
+7. [字符串和数字的相互转换atoi和itoa函数的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/itoa_atoi.cpp)
+8. [memcpy/memset/strcpy/strncpy函数的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/str_function.cpp)
+9. 大数加减乘除
+10. KMP字符串匹配算法]
+11. [快排查找第k大的数](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/select_k.cpp)
+12. [全排列组合的实现](https://www.cnblogs.com/wxquare/p/4719228.html)
+13. [单例模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/singleton.cpp)
+14. [工厂模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/factory.cpp)
+15. [观察者模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/observer.cpp)
+16. [生产者消费者模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/producer_consumer.cpp)
+17. [C++ 不可继承类的实现](https://www.cnblogs.com/wxquare/p/7280025.html)
+18. [C++ 读写锁的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/read_write_locker.cpp) 
 
 
 ## 常用理解的算法

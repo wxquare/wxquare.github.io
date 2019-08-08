@@ -8,9 +8,9 @@ date: 2019-03-03 21:56:42
 
 
 ## Linux C/C++
-1. 熟悉C/C++基础知识和google编码规范
+1. [熟悉C/C++基础知识和google编码规范](https://wxquare.github.io/2019/07/19/C++/Cpp-interview/)
 2. 熟悉STL的基本使用
-3. 熟悉常用的数据结构和算法
+3. [熟悉常用的数据结构和算法](https://wxquare.github.io/2019/08/05/C++/Cpp-datastruct-algorithm/)
 4. 熟悉C/C++程序的项目构建、编译、调试调试的工具和方法
 5. 了解C/C++程序性能分析的工具
 6. 熟悉Linux常用命令和shell的使用
