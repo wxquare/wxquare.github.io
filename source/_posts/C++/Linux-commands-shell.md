@@ -1,5 +1,5 @@
 ---
-title: Linux 常用命令和shell编程
+title: 熟悉Linux常用命令和shell的使用
 categories:
 - C/C++
 ---

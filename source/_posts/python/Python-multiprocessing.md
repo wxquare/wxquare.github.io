@@ -3,8 +3,87 @@ title: Python 多线程和多进程
 categories:
 - Python
 ---
+　　
+　　最近在做一些算法优化的工作，由于对Python认识不够，开始的入坑使用了多线程。发现在一个四核机器，即使使用多线程，CPU使用率始终在100%左右（一个核）。后来发现Python中并行计算要使用多进程，改成多进程模式后，CPU使用率达到340%，也提升了算法的效率。另外multiprocessing对多线程和多进程做了很好的封装，需要掌握。这里总结下面两个问题：
+1. Python中的并行计算为什么要使用多进程？
+2. Python多线程和多进程简单测试
+3. multiprocessing库的使用
 
-## 一、multiprocessing
+
+## Python中的并行计算为什么要使用多进程？
+　　Python在并行计算中必须使用多进程的原因是GIL(Global Interpreter Lock，全局解释器锁)。GIL使得在解释执行Python代码时，会产生互斥锁来限制线程对共享资源的访问，直到解释器遇到I/O操作或者操作次数达到一定数目时才会释放GIL。这使得**Python一个进程内同一时间只能允许一个线程进行运算**”，也就是说多线程无法利用多核CPU。因此：
+1. 对于CPU密集型任务（循环、计算等），由于多线程触发GIL的释放与在竞争，多个线程来回切换损耗资源，因此多线程不但不会提高效率，反而会降低效率。所以**计算密集型程序，要使用多进程**。
+2. 对于I/O密集型代码（文件处理、网络爬虫、sleep等待),开启多线程实际上是**并发(不是并行)**，线程A在IO等待时，会切换到线程B，从而提升效率。
+3. 大多数程序包含CPU和IO操作，但不考虑进程的资源开销，**多进程通常都是优于多线程的**。
+4. 由于Python多线程的问题，因此通常情况下都使用多进程，使用多进程需要注意进程间变量的共享。
+
+## Python多线程和多进程简单测试
+- job1是一个完成CPU没有任务IO的死循环，观察CPU使用率，无论使用多少线程数量num，CPU使用率始终在100%左右，也就是说只能利用核的资源。而多进程则可以使用多核资源，num为1时CPU使用率为100%，num为2时CPU使用率接近200%。
+- job2是一个IO密集型的程序，主要的耗时在print系统调用。num=4时，多线程跑了10.81s，cpu使用率93%；多进程只用了3.23s，CPU使用率130%。
+　
+```
+import multiprocessing
+import threading
+
+def job1():
+    '''
+        full cpu
+    '''
+    while True:
+        continue
+
+NUMS = 100000
+def job2():
+    '''
+        cpu and io
+    '''
+    for i in range(NUMS):
+        print("hello,world")
+
+def multi_threads(num,job):
+    threads = []
+    for i in range(num):
+        t = threading.Thread(target=job,args=())
+        threads.append(t)
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+def multi_process(num,job):
+    process = []
+    for i in range(num):
+        p = multiprocessing.Process(target=job,args=())
+        process.append(p)
+    for p in process:
+        p.start()
+    for p in process:
+        p.join()
+
+if __name__ == '__main__':
+    # multi_threads(4,job1)
+    # multi_process(4,job1)
+    # multi_threads(4,job2)
+    multi_process(4,job2)
+
+```
+
+## [multiprocessing的使用](https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing)
+参考：https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing
+
+1. 单个进程multiprocessing.Process对象，和threading.Thread的API完全一样，start(),join(),参考上文中的测试代码。
+2. 进程池
+3. 进程间对象共享队列multiprocessing.Queue()
+4. 进程同步multiprocessing.Lock()
+5. 进程间状态共享multiprocessing.Value,multiprocessing.Array
+6. multiprocessing.Manager()
+7. 进程池：multiprocessing.Pool()
+- pool.map
+- pool.imap_unordered
+- pool.apply_async
+- 
+
+
 　　Python多线程和多进程的使用非常方面，因为multiprocessing提供了非常好的封装。为了方便设置线程和进程的数量，通常都会使用池pool技术。
 ```
 from multiprocessing.dummy import Pool as DummyPool   # thread pool
@@ -13,62 +92,3 @@ from multiprocessing import Pool                      # process pool
 multilprocessing包的使用可参考：
 - https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing
 - https://thief.one/2016/11/24/Multiprocessing-Pool/
-
-## 二、Python多线程无法利用多核CPU
-　　GIL的存在导致Python多线程无法利用多核CPU。Python中每个进程会有一个GIL，该进程的线程只有在获得该GIL的情况下才能运行。线程在遇到I/O 操作时会释放这把锁，如果是纯计算的没有I\O操作的程序，解释器会每隔100次操作释放该锁，让别的线程有机会执行。因此同一时刻，在python进程中只会有一个线程在运行，其它线程都处于等待状态。    
-**python多线程注意事项：**
-1. 对于CPU密集型代码（循环、计算等），由于计算工作量多和大，计算很快就会达到100，然后触发GIL的释放与在竞争，多个线程来回切换损耗资源，所以在多线程遇到CPU密集型代码时，单线程会比较快。例如下面代码中的python_cpu_100_100ms()函数。
-2. 对于I/O密集型代码（文件处理、网络爬虫、sleep等待),开启多线程实际上是**并发(不是并行)**，线程A在IO等待时，会切换到线程B，从而提升效率。例如：io_100_100ms()函数。
-3. 通常来说python多线程是不适合用于CPU密集型代码的，但是有一种类外，就是当函数底层实现为C/C++代码时,例如以numpy和cv2实现的C_cpu_100_300ms()函数。
-4. 很多程序既包括CPU操作包括IO操作，对于这种程序我们可以用time先简单测试一下cpu利用率，然后考虑是否使用多线程，以及设置合理的线程数量。例如下面代码中的test()函数。　　
-```
-from multiprocessing.dummy import Pool as DummyPool
-from multiprocessing import Pool
-import time
-import os
-
-# avoid numpy thread
-os.environ["MKL_NUM_THREADS"] = "1" 
-os.environ["NUMEXPR_NUM_THREADS"] = "1" 
-os.environ["OMP_NUM_THREADS"] = "1"
-
-import numpy as np
-import cv2
-
-# avoid cv2 threads
-cv2.setNumThreads(1)
-
-# cpu intensive
-def python_cpu_100_100ms():
-    x = 0
-    for i in range(1,2000000):
-        x += i
-
-# IO-intensive
-def io_100_100ms():
-   time.sleep(0.1)
-
-# cpu intensive
-def C_cpu_100_300ms():
-    arr2 = np.ndarray((10000,10000,3), dtype=np.uint8)
-    hist = cv2.calcHist([arr2, arr2],[0],None,histSize=[256],ranges=[0,256])
-
-# CPU and io
-def test():
-    python_cpu_100_100ms()
-    time.sleep(0.1)
-
-if __name__=="__main__":
-    # pool = Pool(processes=4)
-    pool = DummyPool(processes=4)
-    for i in range(500):
-        ret = pool.apply_async(test, args=())   #维持执行的进程总数为10，当一个进程执行完后启动一个新进程.
-    pool.close()
-    pool.join()
-
-```
-
-## 三、关于Python多进程
-1. 通常来说Python多进程能利用机器的多核资源，是程序并行，提高性能
-2. 进程的代价始终比线程的代价要高，当程序耗时较低的不建议使用多进程
-3. 虽然Python多进程支持变量共享，但是不建议使用。建议使用进程返回值，进程同步之后，再整理各个进程执行的结果。 

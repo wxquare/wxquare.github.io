@@ -1,5 +1,5 @@
 ---
-title: C++ 程序性能分析
+title: 了解C/C++程序性能分析的工具
 categories: 
 - C/C++
 ---
@@ -15,16 +15,18 @@ categories:
 
 
 ## 一、time
-1. shell time。 time非常方便获取程序运行的时间，包括用户态时间user、内核态时间sys和实际运行的时间real。我们可以通过(user+sys)/real计算程序CPU占用率，判断程序时CPU密集型还是IO密集型程序。
-$time ./kcf2.0 ../data/bag.mp4 312 146 106 98 1 196 result.csv 1
-real	0m2.065s
-user	0m4.598s
-sys	    0m0.907s
+### 1.shell time。
+　　time非常方便获取程序运行的时间，包括用户态时间user、内核态时间sys和实际运行的时间real。我们可以通过(user+sys)/real计算程序CPU占用率，判断程序时CPU密集型还是IO密集型程序。
+	$time ./kcf2.0 ../data/bag.mp4 312 146 106 98 1 196 result.csv 1
+	real	0m2.065s
+	user	0m4.598s
+	sys	    0m0.907s
 cpu使用率：(4.598+0.907)/2.065=267%
 视频帧数196，196/2.065=95
 
 
-2. Linux中除了shell time，还有/usr/bin/time，它能获取程序运行更多的信息，通常带有-v参数。
+### 2./usr/bin/time
+　　Linux中除了shell time，还有/usr/bin/time，它能获取程序运行更多的信息，通常带有-v参数。
 ```
 $ /usr/bin/time -v  ./kcf2.0 ../data/bag.mp4 312 146 106 98 1 196 result.csv 1
     User time (seconds): 4.28                                  # 用户态时间
@@ -122,7 +124,8 @@ perf report
 $perf record -e cpu-clock -g ./kcf2.0 ../data/bag.mp4 312 146 106 98 1 196 result.csv 1
 $perf report
 ![](https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/perf_kcf2.0.jpg)
-	
+
+经过perf的分析，我们的目标应该很明确了，cv::DFT和get_feature这两个函数比较耗时，另外还有一个和线程相关的操作也比较耗时，接下来要去分析代码，做代码级别的优化。
 
 ## 四、gprof
 参考： https://blog.csdn.net/stanjiang2010/article/details/5655143
