@@ -41,6 +41,7 @@ categories:
 3. 修改站点配置文件_config.yml，theme：next，重新编译，配置
 4. 参考[http://theme-next.iissnan.com/](http://theme-next.iissnan.com/)，配置网站。 
 5. 增加分类
+6. hexo 增加支持markdown公式：http://stevenshi.me/2017/06/26/hexo-insert-formula/
 6. 不断更新....
 
 ## 四.填坑  ##
