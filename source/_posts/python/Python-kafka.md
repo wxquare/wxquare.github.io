@@ -56,4 +56,5 @@ for msg in consumer:
 ## 五、常见问题汇总
 1. consumer设置超时时间：consumer_timeout_ms
 2. 不同consumer group 消费同一个topic的数据
+3. consumer reblance机制导致数据重复消费：https://blog.csdn.net/yhyr_ycy/article/details/88960072
 

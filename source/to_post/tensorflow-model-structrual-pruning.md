@@ -22,3 +22,14 @@ https://zhuanlan.zhihu.com/p/59635378
 
 前两个：Channel pruning for accelerating very deep neural networks - ICCV 2017
 最后一个：Discrimination-aware Channel Pruning for Deep Neural Networks - NIPS 2018
+
+INFO:tensorflow:Channel pruning the model/resnet_model/conv2d_57/Conv2D layer,       the pruning rate is 1
+INFO:tensorflow:loss: 1.2905842065811157
+INFO:tensorflow:accuracy: 0.7403646111488342
+INFO:tensorflow:Pruning accuracy 0.7403646111488342
+INFO:tensorflow:The current model flops is 97141321.10468754
+INFO:tensorflow:Pruned flops 97141321.10468754
+INFO:tensorflow:The accuracy is 0.7403646111488342 and the flops after pruning is 97141321.10468754
+INFO:tensorflow:The speedup ratio is 0.3854528482613462
+INFO:tensorflow:The original model flops is 252018688.0
+INFO:tensorflow:The pruned flops is 97141321.10468754

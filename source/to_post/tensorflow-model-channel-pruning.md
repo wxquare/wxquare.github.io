@@ -26,3 +26,7 @@ time ./scripts/run_local.sh nets/resnet_at_cifar10_run.py     --learner channel 
 
 
 time ./scripts/run_local.sh nets/resnet_at_cifar10_run.py  --learner channel  --exec_mode eval --save_path ./models/pruned_model.ckpt
+
+
+conv1x1 在 channel pruing中的应用。
+
