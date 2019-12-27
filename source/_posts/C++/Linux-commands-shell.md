@@ -39,22 +39,23 @@ categories:
 ## 3、系统资源管理和监控
 - 查询正在运行的进程信息：ps -ef 或者 ps -ajx
 - 查询某用户的进程： ps -ef | grep username 或者 ps -lu username
-- 实时显示进程信息： top linux下的任务管理器
+- 实时显示进程信息： top linux下的任务管理器，内存VIRT和RES
 - 查看用户打开的文件： lsof -u username
 - 查看某进程打开的文件： lsof -p pid
 - 杀死某进程：kill -9 pid
 - pmap输出进程内存你的状况，用来分析线程堆栈
 - 查看**内存**使用量：free -m 或者 vmstat n m
 - 查看**磁盘**使用情况：df -h
+- du -ha --max-depth=1
 - iostat 监视I/O子系统，ubuntu安装systat。通过iostat方便查看CPU、网卡、tty设备、磁盘、CD-ROM 等等设备的活动情况, 负载信息
 -  sar 找出系统瓶颈的利器
 *ubuntu系统下，默认可能没有安装这个包，使用apt-get install sysstat 来安装；
 安装完毕，将性能收集工具的开关打开： vi /etc/default/sysstat
 设置 ENABLED=”true”
 启动这个工具来收集系统性能数据： /etc/init.d/sysstat start. 
- 
 
 ## 4、网络工具
+- 查看网络流量信息iftop
 - netstat命令用于显示各种网络相关信息
 - 查询某端口port被某个进程占用：netstat -antp | grep port，然后使用ps pid查询进程名称
 - 也可以使用lsof -i:port 直接查询该端口的进程
@@ -109,14 +110,7 @@ time nc 192.168.0.11 5001 > /dev/null
 
 
 ## 9、新学习的命令
-netstat tcpdump ipcs ipcrm
-cpu 内存 硬盘 等等与系统性能调试相关的命令必须熟练掌握，设置修改权限 tcp网络状态查看 各进程状态 抓包相关等相关命令
-awk sed需掌握
-系统命令工具
-
 进程间通信设施状态 ipcs
-虚拟内存统计工具 vmstat
-Linux系统运行时长 uptime
 CPU平均负载和磁盘活动 iostat
 监控，收集和汇报系统活动 sar
 监控多处理器使用情况 mpstat
@@ -129,9 +123,6 @@ CPU平均负载和磁盘活动 iostat
 系统管理员调优和基准测量工具 nmon
 密切关注Linux系统 glances
 查看系统调用 strace
-网络参数工具
-
-Linux网络统计监控工具 netstat
 显示和修改网络接口控制器 ethtool
 网络数据包分析利刃 tcpdump
 监控并帮助你调试网络 bmon
@@ -139,22 +130,6 @@ Linux网络统计监控工具 netstat
 显示主机上网络接口带宽使用情况 iftop
 网络流量和 ip 流量分布 ntopng
 
-
-日志监控工具
-
-实时网络日志分析器 GoAccess
-
-多窗口之下日志监控 MultiTail
-日志分析系统 LogWatch/Swatch
-参数监控工具
-
-监控apache网络服务器整体性能 apachetop
-ftp 服务器基本信息 ftptop
-IO监控 iotop
-电量消耗和电源管理 powertop
-监控 mysql 的线程和性能 mytop
-系统运行参数分析 htop/top/atop
-工作基本上离不开 Linux，也是面试常见问题之一
 
 
 参考：https://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/index.html

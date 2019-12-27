@@ -46,3 +46,4 @@ categories:
 
 ## 四.填坑  ##
 1. 博客中的图片，将图片放在hexo分支的souce/photos目录下面，然后同步到github中，在hexo分支中找到图片，通过download按钮查看图片的地址。
+2. Hexo博客Next主题添加统计文章阅读量功能：https://bjtu-hxs.github.io/2018/06/12/leancloud-config/

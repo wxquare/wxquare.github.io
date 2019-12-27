@@ -1,5 +1,5 @@
 ---
-title: tensorflow中模型量化(model quantization)实战
+title: tensorflow模型权重量化(weight quantization)实战
 categories:
 - other
 mathjax: true

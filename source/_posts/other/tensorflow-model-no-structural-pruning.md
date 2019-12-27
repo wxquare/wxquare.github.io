@@ -1,5 +1,5 @@
 ---
-title: tensorflow中模型剪枝(model pruning)实战
+title: tensorflow模型权重稀疏(weight sparsification)实战
 categories:
 - other
 mathjax: true
