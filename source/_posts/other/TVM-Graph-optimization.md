@@ -1,15 +1,18 @@
 ---
-title: TVM学习笔记--关于Relay和图优化
+title: TVM学习笔记--了解Relay和图优化
 categories:
 - other
 mathjax: true
 ---
 
 
-   我理解VM主要包括两个部分，一个是Relay和图优化(graph-level)，另一个就是算子（operator）级别优化，这里简单写最近了解到的关于relay和图优化方面的东西。我们都知道深度学习网络通常都是通过计算图来描述的，计算图中的节点表示各种同的算子(opertor),边表示算子之间的依赖关系。Relay可以理解为一种可以描述深度学习网络的函数式编程语言，通过relay可以描述复杂的深度网络，文中提到了control flow。最近一段时间的时间学习直观的感受的Relay编写网络模型和其它框架没什么太多的区别，但是提供的文本形式的中间表示，对开发和调试有很大的帮助。
+　　TVM主要包括两个部分，一个是Relay和图优化(graph-level)，另一个就是算子（operator）级别优化，这里简单写最近了解到的关于relay和图优化方面的东西。我们都知道深度学习网络通常都是通过计算图来描述的，计算图中的节点表示各种同的算子(opertor),边表示算子之间的依赖关系。Relay可以理解为一种可以描述深度学习网络的函数式编程语言，通过relay可以描述复杂的深度网络，文中提到了control flow。最近一段时间的时间学习直观的感受的Relay编写网络模型和其它框架没什么太多的区别，但是提供的文本形式的中间表示，对开发和调试有很大的帮助。另外，它提供了许多用于图优化的pass，供大家学习和参考。测试代码都在0.6版本上调试通过。
+	代码地址：https://github.com/wxquare/programming/tree/master/blog/TVM_graph_optimization
+
 
  ## 一、Hello Relay
-既然Relay是一种可以描述计算的函数式语言，逛社区的发现一段代码，可以当作Relay的第一个程序。以下代码都在0.6版本上调试通过。  API参考:https://docs.tvm.ai/api/python/relay/index.html
+既然Relay是一种可以描述计算的函数式语言，逛社区的发现一段代码，可以当作Relay的第一个程序。 
+API参考:https://docs.tvm.ai/api/python/relay/index.html
 
     ```
     from tvm import relay
@@ -29,7 +32,7 @@ mathjax: true
 
     ```
 ## 二、使用Relay定义卷积单元
-在学习Relay的时候参考了https://zhuanlan.zhihu.com/p/91283238 这篇文章。但是遗憾的是可能因为版本的问题，很多API多不兼容了，因此修改了一些地方，建议读者也可以去看一下。
+在学习Relay的时候参考了https://zhuanlan.zhihu.com/p/91283238 这篇文章。但是可能因为版本的问题，很多API多不兼容了，因此修改了一些地方，建议读者也可以去看一下。
 ```
     import tvm
     from tvm.relay import transform
@@ -143,32 +146,61 @@ mathjax: true
 
 
 ## 四、使用Python API Relay 图优化
+ TVM核心代码是采用C++编写的，但是也提供了Python接口，这方面初学者体验的使用。Relay图优化核心功能都提供了对应的API，因此可以尝试一下，非常简单。
+
+```
+def my_optimize(func,params=None):
+
+    if params:
+        graph = _bind_params(func, params)
+
+    # https://docs.tvm.ai/api/python/relay/transform.html
+    optimize = relay.transform.Sequential([relay.transform.SimplifyInference(),
+                                      relay.transform.FoldConstant(),
+                                      relay.transform.FoldScaleAxis(),
+                                      relay.transform.CanonicalizeOps(),
+                                      relay.transform.FoldConstant()])
+
+    mod = relay.Module.from_expr(graph)
+    mod = optimize(mod)
+    return mod["main"]
+
+mod['main'] = my_optimize(mod['main'], params)
+print("Relay module function:\n", mod.astext(show_meta_data=False))
+
+```
+这里可以对比优化前后的IR.
+
+```
+Relay module function:
+ v0.0.4
+def @main(%data: Tensor[(1, 3, 224, 224), float32], %graph_conv_weight: Tensor[(32, 3, 3, 3), float32], %graph_bn_gamma: Tensor[(32), float32], %graph_bn_beta: Tensor[(32), float32], %graph_bn_moving_mean: Tensor[(32), float32], %graph_bn_moving_var: Tensor[(32), float32]) -> Tensor[(1, 32, 112, 112), float32] {
+  %0 = nn.conv2d(%data, %graph_conv_weight, strides=[2, 2], padding=[1, 1], channels=32, kernel_size=[3, 3]) /* ty=Tensor[(1, 32, 112, 112), float32] */;
+  %1 = nn.batch_norm(%0, %graph_bn_gamma, %graph_bn_beta, %graph_bn_moving_mean, %graph_bn_moving_var) /* ty=(Tensor[(1, 32, 112, 112), float32], Tensor[(32), float32], Tensor[(32), float32]) */;
+  %2 = %1.0;
+  nn.relu(%2) /* ty=Tensor[(1, 32, 112, 112), float32] */
+}
+# =====================================
+Relay module function:
+ v0.0.4
+def @main(%data: Tensor[(1, 3, 224, 224), float32]) -> Tensor[(1, 32, 112, 112), float32] {
+  %0 = nn.conv2d(%data, meta[relay.Constant][0] /* ty=Tensor[(32, 3, 3, 3), float32] */ /* ty=Tensor[(32, 3, 3, 3), float32] */, strides=[2, 2], padding=[1, 1], channels=32, kernel_size=[3, 3]) /* ty=Tensor[(1, 32, 112, 112), float32] */;
+  %1 = multiply(%0, meta[relay.Constant][1] /* ty=Tensor[(32, 1, 1), float32] */ /* ty=Tensor[(32, 1, 1), float32] */) /* ty=Tensor[(1, 32, 112, 112), float32] */;
+  %2 = add(%1, meta[relay.Constant][2] /* ty=Tensor[(32, 1, 1), float32] */ /* ty=Tensor[(32, 1, 1), float32] */) /* ty=Tensor[(1, 32, 112, 112), float32] */;
+  nn.relu(%2) /* ty=Tensor[(1, 32, 112, 112), float32] */
+}
+
+// meta data omitted. you can use show_meta_data=True to include meta data
+
+```
 
 
-
- TVM论文中提到深度学习模型的计算图和编译器的中间描述(IR)很相似，只是计算图中数据通常是多维的tensor。顺着这个思路，通过一些优化手段，也可以把计算图做功能等价的变换，实现优化性能。学习TVM图优化，我从下面三个内容进行：
-- TVM是怎么表示计算图的的？
-- TVM在图优化上做了哪些工作？以及效果怎么样？
-- 怎么添加优化的pass？
- 
-## 一、TVM是怎么表示计算图的。
-一、relay介绍。Introduction to Relay IR
-二、adding an operator to relay
-三、Relay Pass Infrastructure
-四、Adding a compiler Pass to Relay
-五、(Relay: A New IR for Machine Learning Frameworks)[https://arxiv.org/pdf/1810.00952.pdf]
-
-## 二、TVM已经做了哪些图优化的方法。
-
-
-
-参考：
+参考与进阶学习：
 [1]. https://www.zhihu.com/question/331611341/answer/875630325
 [2]. https://zhuanlan.zhihu.com/p/91283238
 [3]. https://docs.tvm.ai/dev/relay_intro.html
 [4]. https://docs.tvm.ai/dev/relay_add_op.html
 [5]. https://docs.tvm.ai/dev/relay_add_pass.html
 [6]. https://arxiv.org/pdf/1810.00952.pdf
-[7]. 
 
 
