@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="1.工具 godoc gofmt goimport go vet golint  2.命名 工程名服务名 目录与包名：包名与目录名相同，包名应该为小写单词，不要使用下划线或者混合大小写，建议使用比较短的名词短语，例如l5、util、log、kafka、ppMonitor、dao、wsd等 文件名：简短有意义的小写单词，使用下划线分割各个单词 结构体命名： 驼峰命名法，首字母根据访问控制控制大小写">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Golang命名和编码规范">
+<meta property="og:url" content="http://yoursite.com/2020/05/16/golang/golang-code-style/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="1.工具 godoc gofmt goimport go vet golint  2.命名 工程名服务名 目录与包名：包名与目录名相同，包名应该为小写单词，不要使用下划线或者混合大小写，建议使用比较短的名词短语，例如l5、util、log、kafka、ppMonitor、dao、wsd等 文件名：简短有意义的小写单词，使用下划线分割各个单词 结构体命名： 驼峰命名法，首字母根据访问控制控制大小写">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2020-05-16T08:15:48.404Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Golang命名和编码规范">
+<meta name="twitter:description" content="1.工具 godoc gofmt goimport go vet golint  2.命名 工程名服务名 目录与包名：包名与目录名相同，包名应该为小写单词，不要使用下划线或者混合大小写，建议使用比较短的名词短语，例如l5、util、log、kafka、ppMonitor、dao、wsd等 文件名：简短有意义的小写单词，使用下划线分割各个单词 结构体命名： 驼峰命名法，首字母根据访问控制控制大小写">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/05/16/golang/golang-code-style/">
+
+
+
+
+
+  <title>Golang命名和编码规范 | wxquare's Blogs</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">wxquare's Blogs</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/05/16/golang/golang-code-style/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="wxquare">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Golang命名和编码规范</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-16T16:15:48+08:00">
+                2020-05-16
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Golang/" itemprop="url" rel="index">
+                    <span itemprop="name">Golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="1-工具"><a href="#1-工具" class="headerlink" title="1.工具"></a>1.工具</h2><ul>
+<li>godoc</li>
+<li>gofmt</li>
+<li>goimport</li>
+<li>go vet</li>
+<li>golint</li>
+</ul>
+<h2 id="2-命名"><a href="#2-命名" class="headerlink" title="2.命名"></a>2.命名</h2><ul>
+<li><strong>工程名服务名</strong></li>
+<li><strong>目录与包名</strong>：包名与目录名相同，包名应该为小写单词，不要使用下划线或者混合大小写，建议使用比较短的名词短语，例如l5、util、log、kafka、ppMonitor、dao、wsd等</li>
+<li><strong>文件名</strong>：简短有意义的小写单词，使用下划线分割各个单词</li>
+<li><strong>结构体命名</strong>： 驼峰命名法，首字母根据访问控制控制大小写</li>
+<li><strong>接口命名</strong>： 类似结构体</li>
+<li><strong>变量命名</strong>： 与结构体驼峰样式相同，遇到特有名词缩写时应同为全部大写或者小写字母。例如apiClient，UserID，URLArray。若变量为bool类型时，则名称应以Has、Is、Can开头。</li>
+<li><strong>常量命名</strong>： 大写单词加下划线连接</li>
+<li><strong>函数</strong>： 函数采用命名的多值返回，传入变量和返回变量以小写字母开头。因为在godoc生成文档中，带有返回值的函数申明更利于理解。</li>
+</ul>
+<h2 id="3-import规范"><a href="#3-import规范" class="headerlink" title="3.import规范"></a>3.import规范</h2><ul>
+<li>对import的包进行分组管理，分别为标准库、程序内部包、第三方包</li>
+<li>项目中不要使用相对路径引入包，而使用绝对路径 </li>
+</ul>
+<h2 id="4-错误处理"><a href="#4-错误处理" class="headerlink" title="4.错误处理"></a>4.错误处理</h2><ul>
+<li>函数返回error是好习惯，使用多返回值 error， 不要使用 c 风格，返回错误码</li>
+<li>调用函数时，必须首先对函数可能的错误进行处理</li>
+<li>尽早判断和处理错误</li>
+<li>尽量不要使用panic，只有在文件无法打开，数据库无法连接导致程序无法正常运行等特殊情况才考虑使用panic。</li>
+</ul>
+<h2 id="5-测试"><a href="#5-测试" class="headerlink" title="5.测试"></a>5.测试</h2><ul>
+<li>golang提供了非常好的单元测试工具，在提交代码之前，针对重要的代码需要一些单元测试</li>
+<li>单元测试文件名example_test.go,测试用例的函数必须以Test开头，例如TestExample</li>
+</ul>
+<h2 id="6-注释与godoc"><a href="#6-注释与godoc" class="headerlink" title="6.注释与godoc"></a>6.注释与godoc</h2><p>  除了标注某些变量的含义，注释尽可能使用完整的句子       </p>
+<ul>
+<li>包注释  尽量使用//</li>
+<li>文件注释:包含作者，创建时间和简单功能描述   </li>
+<li>关键类和对象注释  </li>
+<li>关键函数注释  </li>
+<li>关键变量含义注释</li>
+</ul>
+<h2 id="7-函数"><a href="#7-函数" class="headerlink" title="7.函数"></a>7.函数</h2><ul>
+<li>为了便于生成清晰点的文档，函数尽量采用命名的多值返回</li>
+<li>传入的变量和返回的变量以小写字母开头</li>
+<li>对于少量数据，尽量不要使用指针，对于大量的struct可以考虑指针</li>
+<li>对于传入参数是map、slice、chan不要传递指针，因为map、slice、chan是引用类型</li>
+</ul>
+<h2 id="8-defer的使用和坑"><a href="#8-defer的使用和坑" class="headerlink" title="8.defer的使用和坑"></a>8.defer的使用和坑</h2><ul>
+<li>golang中的defer在函数返回之前使用，但是使用的时候有一些坑需要注意。<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">package main</span><br><span class="line"></span><br><span class="line">import (</span><br><span class="line">	&quot;fmt&quot;</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">func f() (ret int) &#123;</span><br><span class="line">	defer func() &#123;</span><br><span class="line">		ret++</span><br><span class="line">	&#125;()</span><br><span class="line">	return 0</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func f2() (ret int) &#123;</span><br><span class="line">	r := 5</span><br><span class="line">	defer func() &#123;</span><br><span class="line">		r = r + 5</span><br><span class="line">	&#125;()</span><br><span class="line">	return r</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func f3() (r int) &#123;</span><br><span class="line">	defer func(r int) &#123;</span><br><span class="line">		r = r + 5</span><br><span class="line">	&#125;(r)</span><br><span class="line">	return 1</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func f4() (r int) &#123;</span><br><span class="line">	defer func(r *int) &#123;</span><br><span class="line">		*r = *r + 5</span><br><span class="line">	&#125;(&amp;r)</span><br><span class="line">	return 1</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func main() &#123;</span><br><span class="line">	fmt.Println(f())</span><br><span class="line">	fmt.Println(f2())</span><br><span class="line">	fmt.Println(f3())</span><br><span class="line">	fmt.Println(f4())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h2 id="9-方法接收器"><a href="#9-方法接收器" class="headerlink" title="9.方法接收器"></a>9.方法接收器</h2><ul>
+<li>方法接收器的名称一般采用struct的第一个或者两个字母的小写形式。不要使用this、me或者self</li>
+<li>指针类型接收器和非指针类型接收器</li>
+<li>如果接受者是map、slice或者chan，不要用指针传递</li>
+<li>如果slice等进行修改可通过返回值重新赋值</li>
+<li>如果接受者是含有sync.Mutex或者类似同步字段结构体，必须使用指针传递避免复制</li>
+<li>如果接收者是大的结构体或者数组，使用指针传递。</li>
+</ul>
+<h2 id="10-make和new"><a href="#10-make和new" class="headerlink" title="10.make和new"></a>10.make和new</h2><ul>
+<li>new 返回一个对象的指针，成员都是零值，例如指针的零值是nil</li>
+<li>golang堆栈的使用是由编译器决定的，因此经常“复合构造器”构造对象。new(object)与&amp;object{}等价</li>
+<li>make 用于对map、slice和chan对象的构造，初始值而不是零值。</li>
+</ul>
+<h2 id="11-内嵌（Embedding）"><a href="#11-内嵌（Embedding）" class="headerlink" title="11.内嵌（Embedding）"></a>11.内嵌（Embedding）</h2><ul>
+<li>golang没有提供经典类型驱动式的派生类概念，是通过<strong>内嵌其它类型或者接口</strong>的方式来实现类似的功能。<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">type Reader interface &#123;</span><br><span class="line">    Read(p []byte) (n int, err error)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type Writer interface &#123;</span><br><span class="line">    Write(p []byte) (n int, err error)</span><br><span class="line">&#125;</span><br><span class="line">type ReadWriter interface &#123;</span><br><span class="line">    Reader</span><br><span class="line">    Writer</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h2 id="12-其它约定"><a href="#12-其它约定" class="headerlink" title="12.其它约定"></a>12.其它约定</h2><ul>
+<li>文件长度最好不要超过500行，每行最好不超过80字符</li>
+<li>多返回值最多返回三个，超过三个请使用 struct</li>
+<li>golang的内置类型slice，map，chan都是引用，初次使用前，必须先用make分配好对象，不然会有空指针异常</li>
+<li>尽量少用命名多返回值，如果要用，必须显示 return结果</li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/05/16/golang/golang-channel/" rel="next" title="golang channel通道">
+                <i class="fa fa-chevron-left"></i> golang channel通道
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/05/16/golang/golang-debug-optimization/" rel="prev" title="golang 程序测试和优化">
+                golang 程序测试和优化 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="wxquare">
+            
+              <p class="site-author-name" itemprop="name">wxquare</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">57</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/wxquare" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="http://www.zhihu.com/people/wxquare0" target="_blank" title="知乎">
+                    
+                      <i class="fa fa-fw fa-globe"></i>知乎</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.cnblogs.com/wxquare" target="_blank" title="博客园">
+                    
+                      <i class="fa fa-fw fa-globe"></i>博客园</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="http://www.cplusplus.com/reference" title="C++" target="_blank">C++</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://golang.org/pkg/" title="golang" target="_blank">golang</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://docs.python.org/3" title="python" target="_blank">python</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://en.cppreference.com/w/" title="cppreference" target="_blank">cppreference</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://leetcode.com/problemset/all/" title="leetcode" target="_blank">leetcode</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-工具"><span class="nav-number">1.</span> <span class="nav-text">1.工具</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-命名"><span class="nav-number">2.</span> <span class="nav-text">2.命名</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-import规范"><span class="nav-number">3.</span> <span class="nav-text">3.import规范</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-错误处理"><span class="nav-number">4.</span> <span class="nav-text">4.错误处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-测试"><span class="nav-number">5.</span> <span class="nav-text">5.测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-注释与godoc"><span class="nav-number">6.</span> <span class="nav-text">6.注释与godoc</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-函数"><span class="nav-number">7.</span> <span class="nav-text">7.函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-defer的使用和坑"><span class="nav-number">8.</span> <span class="nav-text">8.defer的使用和坑</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#9-方法接收器"><span class="nav-number">9.</span> <span class="nav-text">9.方法接收器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#10-make和new"><span class="nav-number">10.</span> <span class="nav-text">10.make和new</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11-内嵌（Embedding）"><span class="nav-number">11.</span> <span class="nav-text">11.内嵌（Embedding）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#12-其它约定"><span class="nav-number">12.</span> <span class="nav-text">12.其它约定</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2017 &mdash; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wxquare</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

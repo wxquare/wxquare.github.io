@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="一、s3基本概念　　最近在项目中处理除了使用数据库存储数据，还接触到对象存储的概念，感觉还挺好用的。它能方便的解决海量图片、小视频、语音等小文件的存储。调查后发现，目前市场上存在许多对象存储的云服务，比较有名是亚马逊的S3。第一次使用S3对象存储，有几个概念需要明白：  Accesskey：开发者拥有的身份识别的ID，可以理解为用户名，申请服务时平台提供 Secretkey：开发者用户对应的密钥，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python S3对象存储">
+<meta property="og:url" content="http://yoursite.com/2020/05/16/python/python-s3/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="一、s3基本概念　　最近在项目中处理除了使用数据库存储数据，还接触到对象存储的概念，感觉还挺好用的。它能方便的解决海量图片、小视频、语音等小文件的存储。调查后发现，目前市场上存在许多对象存储的云服务，比较有名是亚马逊的S3。第一次使用S3对象存储，有几个概念需要明白：  Accesskey：开发者拥有的身份识别的ID，可以理解为用户名，申请服务时平台提供 Secretkey：开发者用户对应的密钥，">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2020-05-16T08:15:48.413Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Python S3对象存储">
+<meta name="twitter:description" content="一、s3基本概念　　最近在项目中处理除了使用数据库存储数据，还接触到对象存储的概念，感觉还挺好用的。它能方便的解决海量图片、小视频、语音等小文件的存储。调查后发现，目前市场上存在许多对象存储的云服务，比较有名是亚马逊的S3。第一次使用S3对象存储，有几个概念需要明白：  Accesskey：开发者拥有的身份识别的ID，可以理解为用户名，申请服务时平台提供 Secretkey：开发者用户对应的密钥，">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/05/16/python/python-s3/">
+
+
+
+
+
+  <title>Python S3对象存储 | wxquare's Blogs</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">wxquare's Blogs</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/05/16/python/python-s3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="wxquare">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Python S3对象存储</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-16T16:15:48+08:00">
+                2020-05-16
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Python/" itemprop="url" rel="index">
+                    <span itemprop="name">Python</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="一、s3基本概念"><a href="#一、s3基本概念" class="headerlink" title="一、s3基本概念"></a>一、s3基本概念</h2><p>　　最近在项目中处理除了使用数据库存储数据，还接触到对象存储的概念，感觉还挺好用的。它能方便的解决海量图片、小视频、语音等小文件的存储。调查后发现，目前市场上存在许多对象存储的云服务，比较有名是亚马逊的S3。第一次使用S3对象存储，有几个概念需要明白：</p>
+<ul>
+<li>Accesskey：开发者拥有的身份识别的ID，可以理解为用户名，申请服务时平台提供</li>
+<li>Secretkey：开发者用户对应的密钥，可以理解为密码</li>
+<li>Bucket： 存储桶，S3中用于存储数据的容器，每个对象都存储在一个bucket中。</li>
+<li>Object： 对象指的是存储在S3中具体的文件。</li>
+</ul>
+<h2 id="二、安装bobo-sdk"><a href="#二、安装bobo-sdk" class="headerlink" title="二、安装bobo sdk"></a>二、安装bobo sdk</h2><p>　　为了方便项目的部署，习惯性将项目依赖的sdk直接安装在项目根目录的3rdparty目录下面：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install --target=./3rdparty bobo</span><br></pre></td></tr></table></figure></p>
+<h2 id="三、s3-对象存储基本使用"><a href="#三、s3-对象存储基本使用" class="headerlink" title="三、s3 对象存储基本使用"></a>三、s3 对象存储基本使用</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line">import sys</span><br><span class="line">sys.path.append(&apos;./3rdparty&apos;)</span><br><span class="line"></span><br><span class="line">import boto</span><br><span class="line">from boto.s3.key import Key</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">class RWGClient(object):</span><br><span class="line">	&apos;&apos;&apos;</span><br><span class="line">		http://boto.cloudhackers.com/en/latest/s3_tut.html#creating-a-connection</span><br><span class="line">	&apos;&apos;&apos;</span><br><span class="line"></span><br><span class="line">	def __init__(self,access_key,secret_key,host_name,bucket_name,is_secure=False):</span><br><span class="line">		self.aws_access_key_id = access_key</span><br><span class="line">		self.aws_secret_access_key = secret_key</span><br><span class="line">		self.host = host_name</span><br><span class="line">		self.bucket = bucket_name</span><br><span class="line"></span><br><span class="line">	def __get_connection(self):</span><br><span class="line">		return boto.connect_s3(</span><br><span class="line">			aws_access_key_id = self.aws_access_key_id,</span><br><span class="line">			aws_secret_access_key = self.aws_secret_access_key,</span><br><span class="line">			host = self.host,</span><br><span class="line">			is_secure = False</span><br><span class="line">		)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	def upload_file_to_rgw(self,local_file,rgw_file):</span><br><span class="line"></span><br><span class="line">		&quot;&quot;&quot;</span><br><span class="line">			upload local_file to rgw_file</span><br><span class="line">			todo: deal with error ??? </span><br><span class="line">		&quot;&quot;&quot;</span><br><span class="line">		c = self.__get_connection()</span><br><span class="line">		b = c.get_bucket(self.bucket)</span><br><span class="line">		k = Key(b)</span><br><span class="line">		k.key = rgw_file</span><br><span class="line">		k.set_contents_from_filename(local_file)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	def download_from_rgw(self,rgw_file_key,local_file):</span><br><span class="line">		&quot;&quot;&quot;</span><br><span class="line">			download a rgw_file to localfile</span><br><span class="line">			todo: deal with error??</span><br><span class="line">			rgw_file_url = </span><br><span class="line">		&quot;&quot;&quot;</span><br><span class="line">		c = self.__get_connection()</span><br><span class="line">		b = c.get_bucket(self.bucket)</span><br><span class="line">		k = Key(b)</span><br><span class="line">		k.key = rgw_file_key</span><br><span class="line">		k.get_contents_to_filename(local_file)</span><br></pre></td></tr></table></figure>
+<h2 id="四、对象存储使用问题汇总"><a href="#四、对象存储使用问题汇总" class="headerlink" title="四、对象存储使用问题汇总"></a>四、对象存储使用问题汇总</h2>
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/05/16/python/Python-pymysql/" rel="next" title="Python 使用mysql">
+                <i class="fa fa-chevron-left"></i> Python 使用mysql
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/05/16/python/Python-peformance/" rel="prev" title="Python 程序性能优化">
+                Python 程序性能优化 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="wxquare">
+            
+              <p class="site-author-name" itemprop="name">wxquare</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">57</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/wxquare" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="http://www.zhihu.com/people/wxquare0" target="_blank" title="知乎">
+                    
+                      <i class="fa fa-fw fa-globe"></i>知乎</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.cnblogs.com/wxquare" target="_blank" title="博客园">
+                    
+                      <i class="fa fa-fw fa-globe"></i>博客园</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="http://www.cplusplus.com/reference" title="C++" target="_blank">C++</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://golang.org/pkg/" title="golang" target="_blank">golang</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://docs.python.org/3" title="python" target="_blank">python</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://en.cppreference.com/w/" title="cppreference" target="_blank">cppreference</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://leetcode.com/problemset/all/" title="leetcode" target="_blank">leetcode</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、s3基本概念"><span class="nav-number">1.</span> <span class="nav-text">一、s3基本概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、安装bobo-sdk"><span class="nav-number">2.</span> <span class="nav-text">二、安装bobo sdk</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三、s3-对象存储基本使用"><span class="nav-number">3.</span> <span class="nav-text">三、s3 对象存储基本使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#四、对象存储使用问题汇总"><span class="nav-number">4.</span> <span class="nav-text">四、对象存储使用问题汇总</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2017 &mdash; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wxquare</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

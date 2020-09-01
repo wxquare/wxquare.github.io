@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="tensorflow针对训练、预测、服务端和移动端等环境支持多种模型格式，这对于初学者来说可能比较疑惑。目前，tf中主要包括.ckpt格式、.pb格式SavedModel和tflite四种格式的模型文件。SavedModel用于tensorflow serving环境中，tflite格式模型文件用在移动端，后续遇到相关格式模型文件会继续补充。这里主要介绍常见的ckpt和pb格式的模型文件，以及">
+<meta property="og:type" content="article">
+<meta property="og:title" content="了解tensorflow不同格式的模型及其转换方法">
+<meta property="og:url" content="http://yoursite.com/2020/05/16/other/tensorflow-how-to-freeze-model/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="tensorflow针对训练、预测、服务端和移动端等环境支持多种模型格式，这对于初学者来说可能比较疑惑。目前，tf中主要包括.ckpt格式、.pb格式SavedModel和tflite四种格式的模型文件。SavedModel用于tensorflow serving环境中，tflite格式模型文件用在移动端，后续遇到相关格式模型文件会继续补充。这里主要介绍常见的ckpt和pb格式的模型文件，以及">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2020-05-16T08:15:48.409Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="了解tensorflow不同格式的模型及其转换方法">
+<meta name="twitter:description" content="tensorflow针对训练、预测、服务端和移动端等环境支持多种模型格式，这对于初学者来说可能比较疑惑。目前，tf中主要包括.ckpt格式、.pb格式SavedModel和tflite四种格式的模型文件。SavedModel用于tensorflow serving环境中，tflite格式模型文件用在移动端，后续遇到相关格式模型文件会继续补充。这里主要介绍常见的ckpt和pb格式的模型文件，以及">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/05/16/other/tensorflow-how-to-freeze-model/">
+
+
+
+
+
+  <title>了解tensorflow不同格式的模型及其转换方法 | wxquare's Blogs</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">wxquare's Blogs</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/05/16/other/tensorflow-how-to-freeze-model/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="wxquare">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">了解tensorflow不同格式的模型及其转换方法</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-16T16:15:48+08:00">
+                2020-05-16
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/other/" itemprop="url" rel="index">
+                    <span itemprop="name">other</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>　　tensorflow针对训练、预测、服务端和移动端等环境支持多种模型格式，这对于初学者来说可能比较疑惑。目前，tf中主要包括.ckpt格式、.pb格式SavedModel和tflite四种格式的模型文件。SavedModel用于tensorflow serving环境中，tflite格式模型文件用在移动端，后续遇到相关格式模型文件会继续补充。这里主要介绍常见的ckpt和pb格式的模型文件，以及它们之间的转换方法。</p>
+<h2 id="CheckPoint-ckpt"><a href="#CheckPoint-ckpt" class="headerlink" title="CheckPoint(*.ckpt)"></a>CheckPoint(*.ckpt)</h2><p>　　在使用tensorflow训练模型时，我们常常使用tf.train.Saver类保存和还原，使用该类保存和模型格式称为checkpoint格式。Saver类的save函数将图结构和变量值存在指定路径的三个文件中，restore方法从指定路径下恢复模型。当数据量和迭代次数很多时，训练常常需要数天才能完成，为了防止中间出现异常情况，checkpoint方式能帮助保存训练中间结果，避免重头开始训练的尴尬局面。有些地方说ckpt文件不包括图结构不能重建图是不对的，使用saver类可以保存模型中的全部信息。尽管ckpt模型格式对于训练时非常方便，但是对于预测却不是很好，主要有下面这几个缺点：</p>
+<ol>
+<li>ckpt格式的模型文件依赖于tensorflow，只能在该框架下使用;</li>
+<li>ckpt模型文件保存了模型的全部信息，但是在使用模型预测时，有些信息可能是不需要的。模型预测时，只需要模型的结构和参数变量的取值，因为预测和训练不同，预测不需要变量初始化、反向传播或者模型保存等辅助节点;</li>
+<li>ckpt将模型的变量值和计算图分开存储，变量值存在index和data文件中，计算图信息存储在meta文件中,这给模型存储会有一定的不方便。</li>
+</ol>
+<h2 id="frozen-model-pb"><a href="#frozen-model-pb" class="headerlink" title="frozen model(*.pb)"></a>frozen model(*.pb)</h2><p>　　Google推荐将模型保存为pb格式。PB文件本身就具有语言独立性，而且能被其它语言和深度学习框架读取和继续训练，所以PB文件是最佳的格式选择。另外相比ckpt格式的文件，pb格式可以去掉与预测无关的节点，单个模型文件也方便部署，因此实践中我们常常使用pb格式的模型文件。那么如何将ckpt格式的模型文件转化为pb的格式文件呢？主要包含下面几个步骤，结合这几个步骤写了个通用的脚本，使用该脚本只需指定ckpt模型路径、pb模型路径和模型的输出节点，多个输出节点时使用逗号隔开。</p>
+<ul>
+<li>通过传入的ckpt模型的路径得到模型的图和变量数据</li>
+<li>通过 import_meta_graph 导入模型中的图</li>
+<li>通过 saver.restore 从模型中恢复图中各个变量的数据</li>
+<li>通过 graph_util.convert_variables_to_constants 将模型持久化</li>
+<li>在frozen model的时候可以删除训练节点</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"># -*-coding: utf-8 -*-</span><br><span class="line">import tensorflow as tf</span><br><span class="line">from tensorflow.python.framework import graph_util</span><br><span class="line">import argparse</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">def freeze_graph(input_checkpoint,output_pb_path,output_nodes_name):</span><br><span class="line">    &apos;&apos;&apos;</span><br><span class="line">    :param input_checkpoint:</span><br><span class="line">    :param output_pb_path: PB模型保存路径</span><br><span class="line">    &apos;&apos;&apos;</span><br><span class="line">    saver = tf.train.import_meta_graph(input_checkpoint + &apos;.meta&apos;, clear_devices=True)</span><br><span class="line">    with tf.Session() as sess:</span><br><span class="line">        saver.restore(sess, input_checkpoint) #恢复图并得到数据</span><br><span class="line">        graph = tf.get_default_graph()</span><br><span class="line">        # 模型持久化，将变量值固定</span><br><span class="line">        output_graph_def = graph_util.convert_variables_to_constants(  </span><br><span class="line">            sess=sess,</span><br><span class="line">            input_graph_def=sess.graph_def,</span><br><span class="line">            output_node_names=output_nodes_name.split(&quot;,&quot;))# 如果有多个输出节点，以逗号隔开</span><br><span class="line"></span><br><span class="line">        print(&quot;++++++++++++++%d ops in the freeze graph.&quot; % len(output_graph_def.node)) #得到当前图有几个操作节点</span><br><span class="line">        output_graph_def = graph_util.remove_training_nodes(output_graph_def)</span><br><span class="line">        print(&quot;++++++++++++++%d ops after remove training nodes.&quot; % len(output_graph_def.node)) #得到当前图有几个操作节点</span><br><span class="line"></span><br><span class="line">        # serialize and write pb model to Specified path</span><br><span class="line">        with tf.gfile.GFile(output_pb_path, &quot;wb&quot;) as f: </span><br><span class="line">            f.write(output_graph_def.SerializeToString()) </span><br><span class="line"></span><br><span class="line">if __name__ == &apos;__main__&apos;:</span><br><span class="line">    parser = argparse.ArgumentParser()</span><br><span class="line">    parser.add_argument(&apos;--ckpt_path&apos;, type=str, required=True,help=&apos;checkpoint file path&apos;)</span><br><span class="line">    parser.add_argument(&apos;--pb_path&apos;, type=str, required=True,help=&apos;pb model file path&apos;)</span><br><span class="line">    parser.add_argument(&apos;--output_nodes_name&apos;, type=str, required=True,help=&apos;name of output nodes separated by comma&apos;)</span><br><span class="line"></span><br><span class="line">    args = parser.parse_args()</span><br><span class="line">    freeze_graph(args.ckpt_path,args.pb_path,args.output_nodes_name)</span><br></pre></td></tr></table></figure>
+<p>参考：<br><a href="https://blog.metaflow.fr/tensorflow-how-to-freeze-a-model-and-serve-it-with-a-python-api-d4f3596b3adc" target="_blank" rel="noopener">https://blog.metaflow.fr/tensorflow-how-to-freeze-a-model-and-serve-it-with-a-python-api-d4f3596b3adc</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/05/16/other/tensorflow-model-no-structural-pruning/" rel="next" title="tensorflow模型权重稀疏(weight sparsification)实战">
+                <i class="fa fa-chevron-left"></i> tensorflow模型权重稀疏(weight sparsification)实战
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/05/16/other/TVM-tutorial/" rel="prev" title="TVM 学习资料整理（持续更新）">
+                TVM 学习资料整理（持续更新） <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="wxquare">
+            
+              <p class="site-author-name" itemprop="name">wxquare</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">57</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/wxquare" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="http://www.zhihu.com/people/wxquare0" target="_blank" title="知乎">
+                    
+                      <i class="fa fa-fw fa-globe"></i>知乎</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.cnblogs.com/wxquare" target="_blank" title="博客园">
+                    
+                      <i class="fa fa-fw fa-globe"></i>博客园</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="http://www.cplusplus.com/reference" title="C++" target="_blank">C++</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://golang.org/pkg/" title="golang" target="_blank">golang</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://docs.python.org/3" title="python" target="_blank">python</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://en.cppreference.com/w/" title="cppreference" target="_blank">cppreference</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://leetcode.com/problemset/all/" title="leetcode" target="_blank">leetcode</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#CheckPoint-ckpt"><span class="nav-number">1.</span> <span class="nav-text">CheckPoint(*.ckpt)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#frozen-model-pb"><span class="nav-number">2.</span> <span class="nav-text">frozen model(*.pb)</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2017 &mdash; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wxquare</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+  
+
+
+  
+
+  
+
+</body>
+</html>
