@@ -1,16 +1,21 @@
 ---
-date: 2019-03-03 21:56:42
+date: 2020-09-02 21:56:42
 ---
 
+## Personal Information
+- Name:  Wang Xiangui
+- Email: wxquare@163.com
 
-2018年7月～现在：腾讯后台开发（深圳）     
-邮箱：wxquare@163.com 
+## Education and Career
+- 2018.07 - now &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Tencent Software Engineer
+- 2015.09 - 2018.07 &nbsp;  Peking University 
+- 2011.09 - 2015.07 &nbsp; Sichuan University
 
-1. 熟悉C++/Python/Golang
-2. 熟悉常用数据结构算法
-3. 熟悉常用Linux开发、调试和调优方法
-4. 了解机器学习基本原理、tensorflow框架和模型量化、压缩的基本方法。
-
+## Skills and Interests
+- Familiar With Golang/C++/Python
+- Familiar With Data Structure and Algorithm, Leetcode
+- Familiar With Deep Learning Compiler,TVM
+- Familiar With English
 
 
 

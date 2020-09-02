@@ -67,11 +67,6 @@ categories:
 
 
 
-
-[在腾讯的八年，我的职业思考](https://baijiahao.baidu.com/s?id=1607037562668810273&wfr=spider&for=pc)
-
-
-
 参考：
 - https://go101.org/article/101.html
 - https://colobu.com/
