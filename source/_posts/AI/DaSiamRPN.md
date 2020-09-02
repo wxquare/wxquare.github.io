@@ -1,7 +1,7 @@
 ---
 title: 了解DaSiamRPN追踪算法的运行过程
 categories:
-- other
+- AI
 mathjax: true
 ---
 

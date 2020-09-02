@@ -1,7 +1,7 @@
 ---
 title: 初识TVM，相比于tensorflow的2倍性能提升
 categories:
-- other
+- AI
 mathjax: true
 ---
 

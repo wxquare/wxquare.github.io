@@ -56,6 +56,18 @@ UDT（UDP-based Data Transfer Protocol）基于UDP的数据传输协议（UDP-ba
 8.	简单的socket编程
 9.	Linux下socket的五种I/O 模式，同步阻塞、同步非阻塞、I/O复用、异步I/O、信号驱动I/O
 10.	C++ Boost：：asio网络库
+11. 浅谈对http协议的认识，使用场景，http协议的请求和回包的结构？
+2. http协议的状态码含义？200,404,403，502
+3. http 1.1中的keep-alive字段的含义，长连接和短连接
+4. TCP 链接的建立和状态流转
+7. netstat 查看链接的状态
+8. tcp和udp
+9. http和tcp的关系
+10. udp的头部
+11. http的状态码
+12. 输入url后涉及什么
+13. tcp怎么找到哪个套接字
+
 
 
 

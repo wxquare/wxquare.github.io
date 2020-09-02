@@ -1,7 +1,7 @@
 ---
 title: TVM 学习资料整理（持续更新）
 categories:
-- other
+- AI
 mathjax: true
 ---
 

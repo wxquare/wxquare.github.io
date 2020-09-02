@@ -1,7 +1,7 @@
 ---
 title: TVM学习笔记--模型量化(int8)及其测试数据
 categories:
-- other
+- AI
 mathjax: true
 ---
 

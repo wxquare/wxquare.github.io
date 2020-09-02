@@ -1,7 +1,7 @@
 ---
 title: TVM学习笔记--GEMM优化及测试数据
 categories:
-- other
+- AI
 mathjax: true
 ---
 

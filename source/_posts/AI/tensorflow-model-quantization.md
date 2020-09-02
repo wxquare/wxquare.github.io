@@ -1,7 +1,7 @@
 ---
 title: tensorflow模型权重量化(weight quantization)实战
 categories:
-- other
+- AI
 mathjax: true
 ---
 

@@ -330,12 +330,14 @@ std::sort(v.begin(), v.end(), [](int x, int y) {
 4. 函数名：AddTableEntry()
 5. 命名空间：websearch::index
 
+
+
+
 ## C/C++ 常见问题
 1. 如何让类对象只在栈（堆）上分配空间？https://blog.csdn.net/hxz_qlh/article/details/13135433
 只能在栈上建立对象：
 2. C++不可继承类的实现？
 https://www.cnblogs.com/wxquare/p/7280025.html
-
 
 3. 如何定义和实现一个类的成员函数为回调函数？
 友元函数/静态成员函数消除this指针的影响
@@ -345,3 +347,62 @@ https://www.cnblogs.com/wxquare/p/7280025.html
 
 5. C++全局对象如何在main函数之前构造和析构？
 https://blog.csdn.net/iyangyoulei/article/details/46925973
+
+
+## 其它
+　STL是C++程序重要的组成部分，这里主要记录工作中遇到的问题，目标是熟悉C++的两个网站和两本书籍：
+1. http://www.cplusplus.com/reference/
+2. https://en.cppreference.com/w/
+3. 《Effective STL》书籍
+4. 《STL源码分析》书籍
+
+### 1. 熟悉STL中17种容器及其背后对应的数据结构
+
+### 2. map和unordered_map的区别
+1. map背后是红黑树，unordered_map背后是哈希表
+2. map是key值有序的，unordered_map是key值无序的
+3. 两者内存消耗差不多，但是插入/查找/删除效率unordered_map是map的2到3倍
+4. unordered_map是通过链地址法解决冲突的
+5. std::map [] operator 和 insert 的区别。如果key已经存在，[] operator会将key对应的value用新值替换，而insert会返回一个pair说这组元素已经存在，如果key不存在，二者效果相同
+
+
+
+
+### 4. priority_queue优先队列的实现
+　　priority_queue 优先队列，其底层是用堆来实现的。在优先队列中，队首元素一定是当前队列中优先级最高的那一个。在优先队列中，没有 front() 函数与 back() 函数，而只能通过 top() 函数来访问队首元素（也可称为堆顶元素），也就是优先级最高的元素。基本操作有：
+- empty() 如果队列为空返回真
+- pop() 删除对顶元素
+- push() 加入一个元素
+- size() 返回优先队列中拥有的元素个数
+- top() 返回优先队列对顶元素
+- priority_queue 默认为大顶堆，即堆顶元素为堆中最大元素（比如：在默认的int型中先出队的为较大的数）。
+
+### 5. 迭代器和迭代器失效iterator
+　　为了提高C++编程的效率，STL中提供了许多容器，包括vector、list、map、set等。有些容器例如vector可以通过脚标索引的方式访问容器里面的数据，但是大部分的容器不能使用这种方式，例如list、map、set。STL中每种容器在实现的时候设计了一个内嵌的iterator类，不同的容器有自己专属的迭代器，使用迭代器来访问容器中的数据。除此之外，通过迭代器，可以将容器和通用算法结合在一起，只要给予算法不同的迭代器，就可以对不同容器执行相同的操作，例如find查找函数。迭代器对指针的一些基本操作如*、->、++、==、!=、=进行了重载，使其具有了遍历复杂数据结构的能力，其遍历机制取决于所遍历的数据结构，所有迭代的使用和指针的使用非常相似。通过begin，end函数获取容器的头部和尾部迭代器，end 迭代器不包含在容器之内，当begin和end返回的迭代器相同时表示容器为空。
+　　容器的插入insert和erase操作可能导致迭代器失效，对于erase操作不要使用操作之前的迭代器，因为erase的那个迭代器一定失效了，正确的做法是返回删除操作时候的那个迭代器。
+参考：https://www.cnblogs.com/wxquare/p/4699429.html
+
+### 6. 容器的线程安全性Thread safety
+　　STL为了效率，没有给所有操作加锁。不同线程同时读同一容器对象没关系，不同线程同时写不同的容器对象没关系。但不能同时又读又写同一容器对象的。因此，多线程要同时读写时，还是要自己加锁。
+
+### 7. STL 排序
+1. sort,快排加插入排序
+2. stable_sort，稳定排序
+3. sort_heap，堆排序
+4. list.sort，链表归并排序
+https://www.cnblogs.com/wxquare/p/4922733.html
+
+### 8. STL容器的内存管理方式
+
+### 9. vector和map的内存释放
+
+4. STL容器的内存管理方式？
+
+
+### 其它常见的问题
+1. vector和map的内存释放问题？容器删除数据的时候注意迭代器失效？vector和map正确的内存释放？
+2. C++ 的iostream 的局限
+根据以上分析，我们可以归纳 iostream 的局限：输入方面，istream 不适合输入带格式的数据，因为“纠错”能力不强，进一步的分析请见孟岩写的《契约思想的一个反面案例》，孟岩说“复杂的设计必然带来复杂的使用规则，而面对复杂的使用规则，用户是可以投票的，那就是你做你的，我不用！”可谓鞭辟入里。如果要用 istream，我推荐的做法是用 getline() 读入一行数据，然后用正则表达式来判断内容正误，并做分组，然后用 strtod/strtol 之类的函数做类型转换。这样似乎更容易写出健壮的程序。输出方面，ostream 的格式化输出非常繁琐，而且写死在代码里，不如 stdio 的小语言那么灵活通用。建议只用作简单的无格式输出。log 方面，由于 ostream 没有办法在多线程程序中保证一行输出的完整性，建议不要直接用它来写 log。如果是简单的单线程程序，输出数据量较少的情况下可以酌情使用。当然，产品代码应该用成熟的 logging 库，而不要用其它东西来凑合。in-memory 格式化方面，由于 ostringstream 会动态分配内存，它不适合性能要求较高的场合。文件 IO 方面，如果用作文本文件的输入或输出，(i|o)fstream 有上述的缺点；如果用作二进制数据输入输出，那么自己简单封装一个 File class 似乎更好用，也不必为用不到的功能付出代价（后文还有具体例子）。ifstream 的一个用处是在程序启动时读入简单的文本配置文件。如果配置文件是其他文本格式（XML 或 JSON），那么用相应的库来读，也用不到 ifstream。性能方面，iostream 没有兑现“高效性”诺言。iostream 在某些场合比 stdio 快，在某些场合比 stdio 慢，对于性能要求较高的场合，我们应该自己实现字符串转换（见后文的代码与测试）。iostream 性能方面的一个注脚：在线 ACM/ICPC 判题网站上，如果一个简单的题目发生超时错误，那么把其中 iostream 的输入输出换成 stdio，有时就能过关。
+既然有这么多局限，iostream 在实际项目中的应用就大为受限了，在这上面投入太多的精力实在不值得。说实话，我没有见过哪个 C++ 产品代码使用 iostream 来作为输入输出设施。 
+
+4. STL::list::sort链表归并排序

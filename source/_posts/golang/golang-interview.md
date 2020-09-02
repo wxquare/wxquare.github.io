@@ -1,82 +1,80 @@
 ---
-title: 计算机基础之golang知识
+title: golang 面试题汇总
 categories:
 - Golang
 ---
 
+### golang基础
+- golang中的new和make区别？
+- golang中的defer？调用时机？调用顺序？预计算值？
+- golang中的main函数和init函数？
+- golang中的匿名函数？闭包？闭包延时绑定问题？用闭包写fibonacci数列？
+- golang中的错误处理方式？error，nil，panic，recover？
+- golang select 的用途？
 
-## 一、计算机基础
-1. 大文件排序？内存不够的情况下，使用归并排序
-2. 网络编程中的http keep-alive，tcp keepalive 和 TIME_WAIT是怎么回事？Time_WAIT有什么作用？
-	- https://www.cnblogs.com/yjf512/p/5354055.html
-	- http://www.nowamagic.net/academy/detail/23350375
-	- https://zhuanlan.zhihu.com/p/40013724
-3. [孤儿进程和僵尸进程？](https://monkeysayhi.github.io/2018/12/05/%E6%B5%85%E8%B0%88Linux%E5%83%B5%E5%B0%B8%E8%BF%9B%E7%A8%8B%E4%B8%8E%E5%AD%A4%E5%84%BF%E8%BF%9B%E7%A8%8B/)
-4. 死锁的条件
+### golang类型系统和反射（type system)
+- 如何优雅的关闭channel？https://www.jianshu.com/p/d24dfbb33781, channel关闭后读操作会发生什么？写操作会发生什么？
+- golang 中reflect的理解？reflect.DeepEqual()?如何结构体反射取出所有的成员？
+- golang 接口和接口对象断言
+- golang map的实现，图解，扩容，哈希冲突？非协程安全？map加sync.Mutex的方案？sync.map减少锁带来的影响，sync.map 实现原理，拓扑关系图？
+- sync.Mutex 和 sync.RWMutex 互斥锁和读写锁的使用场景？
+- golang struct 可以比较吗？引用类型不可比较？reflect.DeepEqual的比较？
+- golang 中的空结构体？
+- golang 总的set？
+- golang 中的指针和unsafe包？golang指针退化，不支持类型转换和运算，需要使用借助unsafe
+- 用channel实现定时器？（实际上是两个协程同步）
+- golang channel的内部实现？
+- 实现一个hashmap，解决hash冲突的方法，解决hash倾斜的方法
+- c++的模板跟go的interface的区别
+- 怎么理解go的interface
+- unsafe包学习，与指针
+- golang bytes
 
+### golang并发编程 (concurrent programming)
+- golang中的G-P-M调度模型？
+- 协程的状态流转？Grunnable、Grunning、Gwaiting
+- golang怎么做Goroutine之间的同步？channel、sync.mutex、sync.WaitGroup、context，锁怎么实现，用了什么cpu指令?
+- [goroutine交替执行,使其能顺序输出1-20的自然数code](https://github.com/wxquare/programming/blob/master/golang/learn_golang/goroutine_example1.go)
+- [生产者消费者模式code](https://github.com/wxquare/programming/blob/master/golang/learn_golang/producer_consumer.go)
+- sync.Mutex 和 sync.RWMutex 互斥锁和读写锁的使用场景？
+- golang context 包的用途？
+- [golang 协程优雅的退出？](https://segmentfault.com/a/1190000017251049)
+- golang 为什么高并发好？讲了go的调度模型
 
-## 二、golang语言基本特性
-1. make和new的区别？
-2. 协程交替执行,使其能顺序输出1-20的自然数？
-3. channe关闭后，读操作会怎么样？如何优雅的关闭channel？
-4. golang中的main和init函数？
-5. [golang中的defer、panic和recover和错误处理方式？](https://wxquare.github.io/2019/03/06/golang_error_handling/)
-6. golang中的select关键字？
-7. goalng中的struct可以进行比较吗？了解reflect.DeepEqual吗？
-8. golang中的set实现？map[interface{}]struct{}
-9. goalng中的生产者消费者模式？
-10. golang中的context包的用途？
-11. golang的编译过程？
-12. golang闭包的概念？
-13. golang中可以对只运行一次的函数定义为匿名函数，匿名函数对外部变量使用的是引用
-14. 将匿名函数赋值为一个变量，该变量就称为一个闭包，为闭包对外层词法域变量是引用的。
-```
-	package main
+### golang 内存和垃圾回收（memory and gc）
+- golang中的三级内存管理？对比C++中的内存管理？
+- 堆、栈和逃逸分析？
+- 三色标记垃圾回收？
+- golang 什么情况下会发生内存泄漏？Goroutinue泄露？
+- golang sync.pool 临时对象池
 
-	import (
-		"fmt"
-	)
-
-	func main() {
-
-		x := 1
-		f := func() int {
-			x++
-			return x
-		}
-
-		fmt.Println(f())
-		fmt.Println(f())
-	}
-
-```
-15. golang 逃逸分析。go在一定程度消除了堆和栈的区别，因为go在编译的时候进行逃逸分析，来决定一个对象放栈上还是放堆上，不逃逸的对象放栈上，可能逃逸的放堆上
-
+### golang 内部实现
+- [golang中的runtime包教程](golang中的runtime包教程)
 
 
-## 三、高级主题
-### 2.1. golang中的协程调度？
- 
-### 2.2. golang中的context包？
-https://juejin.im/post/5a6873fef265da3e317e55b6  
-https://www.flysnow.org/2017/05/12/go-in-action-go-context.html  
+### 包和库（package)
+- golang sql 链接池的实现
+- golang http 连接池的实现
+- golang 与 kafka
+- golang 与 mysql
+- [译]Go文件操作大全](https://colobu.com/2016/10/12/go-file-operations/)
 
-### 2.3 主协程如何等待其余协程完再操作？协程同步的三种方式？
-
-### 2.4.golang网络编程点点滴滴？
-	https://colobu.com/2014/12/02/go-socket-programming-TCP/
-#### 2.4.1 client如何实现长连接？
+### 其它相关
+- golang 单元测试，mock
+- golang 性能分析？
+- golang 的编译过程？
+- golang runtime 了解多少？
 
 
 
 
+[在腾讯的八年，我的职业思考](https://baijiahao.baidu.com/s?id=1607037562668810273&wfr=spider&for=pc)
 
 
 
-
-
-
-
-
+参考：
+- https://go101.org/article/101.html
+- https://colobu.com/
+- http://legendtkl.com/about/
 
 

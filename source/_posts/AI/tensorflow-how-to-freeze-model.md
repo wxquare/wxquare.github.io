@@ -1,7 +1,7 @@
 ---
 title: 了解tensorflow不同格式的模型及其转换方法
 categories:
-- other
+- AI
 mathjax: true
 ---
 　　tensorflow针对训练、预测、服务端和移动端等环境支持多种模型格式，这对于初学者来说可能比较疑惑。目前，tf中主要包括.ckpt格式、.pb格式SavedModel和tflite四种格式的模型文件。SavedModel用于tensorflow serving环境中，tflite格式模型文件用在移动端，后续遇到相关格式模型文件会继续补充。这里主要介绍常见的ckpt和pb格式的模型文件，以及它们之间的转换方法。

@@ -1,7 +1,7 @@
 ---
 title: tensorflow模型通道剪枝(channel pruning)实战
 categories:
-- other
+- AI
 mathjax: true
 ---
 

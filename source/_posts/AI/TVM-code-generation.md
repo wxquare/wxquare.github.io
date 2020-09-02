@@ -1,7 +1,7 @@
 ---
 title: TVM学习笔记--代码生成
 categories:
-- other
+- AI
 mathjax: true
 ---
 

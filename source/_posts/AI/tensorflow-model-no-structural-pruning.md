@@ -1,7 +1,7 @@
 ---
 title: tensorflow模型权重稀疏(weight sparsification)实战
 categories:
-- other
+- AI
 mathjax: true
 ---
 
