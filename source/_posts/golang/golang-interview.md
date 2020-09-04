@@ -50,6 +50,13 @@ categories:
 
 ### golang 内部实现
 - [golang中的runtime包教程](golang中的runtime包教程)
+- golang slice 的实现？
+- golang map的实现，哈希算法，如何解决hash冲突，如何扩容？
+- golang sync.map的实现。
+- golang channel的实现
+- golang interface的设计和实现，接口类型转换、类型断言以及动态派发机制
+
+
 
 
 ### 包和库（package)
@@ -65,11 +72,10 @@ categories:
 - golang 的编译过程？
 - golang runtime 了解多少？
 
-
-
 参考：
 - https://go101.org/article/101.html
 - https://colobu.com/
 - http://legendtkl.com/about/
+- https://draveness.me/
 
 
