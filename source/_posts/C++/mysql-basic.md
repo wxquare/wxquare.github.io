@@ -1,7 +1,7 @@
 ---
 title: mysql 基础知识和问题汇总
 categories:
-- other
+- C/C++
 ---
 
 

@@ -5,7 +5,21 @@ categories:
 ---
 
 
-## 网络协议相关
+## TCP和UDP协议相关
+1. TCP协议如何保证可靠传输？
+	- 三次握手四次挥手确保连接的建立和释放
+	- 超时重发：数据切块发送，等待确认，超时未确认会重发
+	- 数据完整性校验：TCP首部中数据有端到端的校验和，接收方会校验，一旦出错将丢弃且不确认收到此报文
+	- 根据序列码进行数据的排序和去重
+	- 根据接收端缓冲区大小做流量控制
+	- 根据网络环境做拥塞控制。当网络拥塞时，会减少数据的发送
+2. TCP三次握手四次挥手状态转换图
+3. [为什么建立连接时是三次握手而不是两次？防止浪费服务器资源](https://blog.csdn.net/xifeijian/article/details/12777187)
+4. 为什么释放链接时需要四次？全双工通信
+5. 为什么会存在close_wait?等待对方去关闭连接
+5. TCP KeepAlive？为什么时常需要应用层实现心跳？
+	- TCP KeepAlive 的基本原理是，隔一段时间给连接对端发送一个探测包，如果收到对方回应的 ACK，则认为连接还是存活的，在超过一定重试次数之后还是没有收到对方的回应，则丢弃该 TCP 连接。TCP-Keepalive-HOWTO 有对 TCP KeepAlive 特性的详细介绍，有兴趣的同学可以参考。这里主要说一下，TCP KeepAlive 的局限。首先 TCP KeepAlive 监测的方式是发送一个 probe 包，会给网络带来额外的流量，另外 TCP KeepAlive 只能在内核层级监测连接的存活与否，而连接的存活不一定代表服务的可用。例如当一个服务器 CPU 进程服务器占用达到 100%，已经卡死不能响应请求了，此时 TCP KeepAlive 依然会认为连接是存活的。因此 TCP KeepAlive 对于应用层程序的价值是相对较小的。需要做连接保活的应用层程序，例如 QQ，往往会在应用层实现自己的心跳功能。
+
 1. tcp与udp的区别（必问）
 2. tcp连接中时序图，状态图，必须非常非常熟练
 3. tcp结束连接怎么握手，time_wait状态是什么,为什么会有time_wait状态？哪一方会有time_wait状态，如何避免time_wait状态占用资源（必须回答的详细，tcp头多少字节？哪些字段?(必问)
@@ -67,7 +81,18 @@ UDT（UDP-based Data Transfer Protocol）基于UDP的数据传输协议（UDP-ba
 11. http的状态码
 12. 输入url后涉及什么
 13. tcp怎么找到哪个套接字
+14. https了解多少,https是怎么实现的，数据怎么加密的。证书获取阶段的非对称加密，数据传输阶段的对称加密
 
 
+## http和https
+1. https协议的流程，非对称加密和对称加密
+2. http采用明文传输，http+ssl的加密传输
+3. http协议的状态码含义，1xx,2xx,3xx,4xx,5xx，例如：200，404，503等
+4. get和post的区别
+5. http长连接和短连接以及keep-Alive的含义，HTTP 长连接不可能一直保持，例如 Keep-Alive: timeout=5, max=100，表示这个TCP通道可以保持5秒，max=100，表示这个长连接最多接收100次请求就断开。
+6. content-Type，content-length
+7. http无状态和cookie的会话跟踪
+8. curl的使用
 
+## 其它
 
