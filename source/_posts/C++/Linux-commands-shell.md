@@ -1,5 +1,5 @@
 ---
-title: 熟悉Linux常用命令和shell的使用
+title: Linux常用命令和shell的使用
 categories:
 - C/C++
 ---
@@ -107,29 +107,6 @@ time nc -l -p 5001 < /test.img
 然后另外一台电脑使用nc来连接到这个端口并读入数据：
 time nc 192.168.0.11 5001 > /dev/null
 上面的测试的结果中，是从磁盘读数据通过网络获取，通过time命令或缺时间参数，可以计算出网络的性能。更准备的测试应该从/dev/zero中多数据会更好一些
-
-
-## 9、新学习的命令
-进程间通信设施状态 ipcs
-CPU平均负载和磁盘活动 iostat
-监控，收集和汇报系统活动 sar
-监控多处理器使用情况 mpstat
-监控进程的内存使用情况 pmap
-进程监控工具 atop
-控制台的流量监控工具 vnstat
-系统进程状态 ps
-详细网络流量分析 tcpdump
-内存使用状态 free
-系统管理员调优和基准测量工具 nmon
-密切关注Linux系统 glances
-查看系统调用 strace
-显示和修改网络接口控制器 ethtool
-网络数据包分析利刃 tcpdump
-监控并帮助你调试网络 bmon
-获取实时网络统计信息 iptraf
-显示主机上网络接口带宽使用情况 iftop
-网络流量和 ip 流量分布 ntopng
-
 
 
 参考：https://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/index.html

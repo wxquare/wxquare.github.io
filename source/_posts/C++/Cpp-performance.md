@@ -1,5 +1,5 @@
 ---
-title: 了解C/C++程序性能分析的工具
+title: C/C++程序性能分析的工具
 categories: 
 - C/C++
 ---

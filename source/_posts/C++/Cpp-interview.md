@@ -1,5 +1,5 @@
 ---
-title: 熟悉C/C++基础知识和编码规范
+title: C/C++基础知识和编码规范
 categories: 
 - C/C++
 ---
