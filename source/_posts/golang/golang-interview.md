@@ -6,7 +6,7 @@ categories:
 
 ### golang基础
 - golang中的new和make区别？
-- golang中的defer？调用时机？调用顺序？预计算值？
+- golang中的defer用途？调用时机？调用顺序？预计算值？
 - golang中的错误处理方式？error，nil，panic，recover？
 - golang select 的用途？
 - nil
@@ -21,11 +21,14 @@ categories:
 - interface接口
 - channel通道的实现原理，
 - function函数
-- 怎么实现set？
+- 怎么实现set？ map[string]struct{}
 - 空结构体
 - 指针类型和unsafe包的使用
 - struct 可以比较吗？引用类型不可比较？reflect.DeepEqual的比较？
+- struct {}
 - golang 中reflect的理解？reflect.DeepEqual()?如何结构体反射取出所有的成员？
+- map 顺序输出. 先取出key，排序，再顺序输出
+
 
 
 ### 函数和方法
@@ -64,7 +67,7 @@ categories:
 
 
 ### golang并发编程 (concurrent programming)
-- golang中的G-P-M调度模型？
+- golang中的G-P-M调度模型？协程的状态?gwaiting和Gsyscall?抢占式调度?
 - 协程的状态流转？Grunnable、Grunning、Gwaiting
 - golang怎么做Goroutine之间的同步？channel、sync.mutex、sync.WaitGroup、context，锁怎么实现，用了什么cpu指令?
 - [goroutine交替执行,使其能顺序输出1-20的自然数code](https://github.com/wxquare/programming/blob/master/golang/learn_golang/goroutine_example1.go)
@@ -75,6 +78,7 @@ categories:
 - golang 为什么高并发好？讲了go的调度模型
 - sync.Mutex 和 sync.RWMutex 互斥锁和读写锁的使用场景？
 - 怎么做协程同步
+- 主协程如何等其余协程完再操作
 - 并发调度
 - 用channel实现定时器？（实际上是两个协程同步）
 
@@ -98,10 +102,11 @@ categories:
 
 ### 包和库（package)
 - golang sql 链接池的实现
-- golang http 连接池的实现
+- golang http 连接池的实现?
 - golang 与 kafka
 - golang 与 mysql
 - [译]Go文件操作大全](https://colobu.com/2016/10/12/go-file-operations/)
+- [Go Http包解析：为什么需要response.Body.Close()](https://segmentfault.com/a/1190000020086816)
 
 
 ### 其它相关
@@ -110,6 +115,10 @@ categories:
 - golang 的编译过程？
 - golang runtime 了解多少？
 - [[]byte和string的相互转换和unsafe？](https://go101.org/article/unsafe.html)
+- 当go服务部署到线上了，发现有内存泄露，该怎么处理?
+- 微服务架构中名字服务，服务注册，服务发现，复杂均衡，心跳，路由等
+- golang 单例模式，mutext，sync.once
+
 
 参考：
 - https://go101.org/article/101.html
