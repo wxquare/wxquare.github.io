@@ -32,6 +32,9 @@ categories:
 ## Redis实现分布式锁
 - Redis为单进程单线程模式，采用队列模式将并发访问变成串行访问，且多客户端对Redis的连接并不存在竞争关系Redis中可以使用SETNX命令实现分布式锁。当且仅当 key 不存在，将 key 的值设为 value。 若给定的 key 已经存在，则 SETNX 不做任何动作SETNX 是『SET if Not eXists』(如果不存在，则 SET)的简写。返回值：设置成功，返回 1 。设置失败，返回 0
 
+## 如何使用Redis实现微信步数排行榜？
+https://www.cnblogs.com/zwwhnly/p/13041641.html
+
 
 ## 推荐阅读:
 1. https://blog.csdn.net/ThinkWon/article/details/103522351
