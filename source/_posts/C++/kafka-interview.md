@@ -76,4 +76,6 @@ Kafka消息消费有两个consumer接口，Low-level API和High-level API：
 消息重复消费及解决参考：https://www.javazhiyin.com/22910.html
 
 ## Kafka Golang Sarama的使用demo
-https://github.com/wxquare/programming/blob/master/golang/util/kafka_util.go
+1. https://github.com/wxquare/programming/blob/master/golang/util/kafka_util.go
+2. [kafka数据可靠性深度解读](https://blog.csdn.net/u013256816/article/details/71091774)
+3. [kafka 选举](https://juejin.im/post/6844903846297206797)

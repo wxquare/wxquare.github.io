@@ -21,6 +21,7 @@ categories:
 - [文本处理](https://linuxtools-rst.readthedocs.io/zh_CN/latest/base/03_text_processing.html)
 - 打包：taf -cvf xxx.tar .  解包： tar -xvf xxx.tar 
 - 压缩与解压：-z 解压gz文件；-j解压bz2；-J解压xz文件
+- grep 查找文件中指定字符出现的次数
 
 
 

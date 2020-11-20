@@ -10,8 +10,19 @@ categories:
 3. 计数器. 
 
 
-##  redis 5种数据类型
+## redis 5种数据类型和底层数据结构
 [!redis数据类型](/images/redis-data-type)
+- redis中zset的底层原理
+- [面试：原来Redis的五种数据类型底层结构是这样的](https://my.oschina.net/ccwwlx/blog/3120883)
+
+
+## redis 数据持久化
+- AOF: AOF持久化(即Append Only File持久化)
+- RDB: 是Redis DataBase缩写快照
+
+
+## redis 怎么扩容扩容和收缩
+- https://www.infoq.cn/article/uiqypvrtnq4buerrm3dc
 
 
 ## redis 过期键的删除策略
@@ -20,6 +31,23 @@ categories:
 - 惰性过期：只有当访问一个key时，才会判断该key是否已过期，过期则清除。该策略可以最大化地节省CPU资源，却对内存非常不友好。极端情况可能出现大量的过期key没有再次被访问，从而不会被清除，占用大量内存。
 - 定期过期：每隔一定的时间，会扫描一定数量的数据库的expires字典中一定数量的key，并清除其中已过期的key。该策略是前两者的一个折中方案。通过调整定时扫描的时间间隔和每次扫描的限定耗时，可以在不同情况下使得CPU和内存资源达到最优的平衡效果。
 (expires字典会保存所有设置了过期时间的key的过期时间数据，其中，key是指向键空间中的某个键的指针，value是该键的毫秒精度的UNIX时间戳表示的过期时间。键空间是指该Redis集群中保存的所有键。)
+
+## redis 内存淘汰策略
+- MySQL里有2000w数据，redis中只存20w的数据，如何保证redis中的数据都是热点数据
+- https://juejin.cn/post/6844903927037558792
+
+## redis 为什么使用单线程模型
+- https://draveness.me/whys-the-design-redis-single-thread/
+
+## 缓存异常与对应的解决办法
+- 缓存雪崩
+- 缓存穿透
+- 缓存击穿
+缓存预热
+缓存降级
+热点数据和冷数据
+缓存热点key
+- 缓存穿透，缓存击穿，缓存雪崩解决方案分析，https://juejin.im/post/6844903651182542856
 
 ## redis 为什么这么快
 - 1、完全基于内存，绝大部分请求是纯粹的内存操作，非常快速。数据存在内存中，类似于 HashMap，HashMap 的优势就是查找和操作的时间复杂度都是O(1)；
@@ -34,6 +62,7 @@ categories:
 
 ## 如何使用Redis实现微信步数排行榜？
 https://www.cnblogs.com/zwwhnly/p/13041641.html
+
 
 
 ## 推荐阅读:
