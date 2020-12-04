@@ -78,7 +78,7 @@ categories:
 
 ## golang并发编程 (concurrent programming)
 - channel、sync.mutex,sync.RWmutext,sync.WaitGroup,sync.Once,atomic 原子操作
-- goroutine
+- goroutine的实现以及其调度模型
 - golang中的G-P-M调度模型？协程的状态?gwaiting和Gsyscall?抢占式调度?
 - 协程的状态流转？Grunnable、Grunning、Gwaiting
 - golang怎么做Goroutine之间的同步？channel、sync.mutex、sync.WaitGroup、context，锁怎么实现，用了什么cpu指令?

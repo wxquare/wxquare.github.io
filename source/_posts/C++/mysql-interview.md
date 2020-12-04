@@ -45,8 +45,12 @@ categories:
 
 ## 事务Transaction与锁
 - 什么是数据库事务？事务是一个不可分割的数据库操作序列，也是数据库并发控制的基本单位，其执行的结果必须使数据库从一种一致性状态变到另一种一致性状态。事务是逻辑上的一组操作，要么都执行，要么都不执行
-- 事务的ACID
-- 四个隔离属性以及脏读，不可重复读和幻读,READ-UNCOMMITTED，READ-COMMITTED，READ-COMMITTED，SERIALIZABLE(可串行化)
+- 事务的ACID特性，innodb实现事务的原理? https://www.cnblogs.com/kismetv/p/10331633.html.其中redo,log用于保证事务持久性；undo log则是事务原子性和隔离性实现的基础
+- innodb四种隔离属性以及分别会产生什么问题?
+- [MySQL InnoDB MVCC 机制的原理及实现](https://zhuanlan.zhihu.com/p/64576887)
+- mvcc. https://zhuanlan.zhihu.com/p/64576887
+
+- 四个隔离属性以及脏读，不可重复读和幻读,READ-UNCOMMITTED，READ-COMMITTED，READ-Repeatable，SERIALIZABLE(可串行化)
 - 锁，在Read Uncommitted级别下，读取数据不需要加共享锁，这样就不会跟被修改的数据上的排他锁冲突；在Read Committed级别下，读操作需要加共享锁，但是在语句执行完以后释放共享锁；在Repeatable Read级别下，读操作需要加共享锁，但是在事务提交之前并不释放共享锁，也就是必须等待事务执行完毕以后才释放共享锁。SERIALIZABLE 是限制性最强的隔离级别，因为该级别锁定整个范围的键，并一直持有锁，直到事务完成
 - 死锁。死锁是指两个或多个事务在同一资源上相互占用，并请求锁定对方的资源，从而导致恶性循环的现象
 - 悲观锁和乐观锁。悲观锁：假定会发生并发冲突，屏蔽一切可能违反数据完整性的操作。在查询完数据的时候就把事务锁起来，直到提交事务。实现方式：使用数据库中的锁机制。：假设不会发生并发冲突，只在提交操作时检查是否违反数据完整性。在修改数据的时候把事务锁起来，通过version的方式来进行锁定。实现方式：乐一般会使用版本号机制或CAS算法实现。乐观锁适合多读的场景，悲观锁适合多写的场景
@@ -60,6 +64,7 @@ categories:
 - 悲观锁：现获取操作权限，再对数据进行操作
 - 显示加锁：select ... for upate,隐式加锁，insert/update/delete
 - [mysql事务的面试](https://blog.csdn.net/qq_43255017/article/details/106442887?utm_medium=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&depth_1-utm_source=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&request_id=)
+- mysql mysql 逻辑存储结构
 
 
 ## 视图view
@@ -117,3 +122,5 @@ explain分析sql语句，查看执行计划，优化sql
 2. [MySQL索引那些事](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
 3. [MySQL foreign key](https://draveness.me/whys-the-design-database-foreign-key/)
 4. [mysql auto increment primary key](https://draveness.me/whys-the-design-mysql-auto-increment/)
+5. https://juejin.cn/post/6844903655439597582?hmsr=joyk.com&utm_source=joyk.com&utm_source=joyk.com&utm_medium=referral%3Fhmsr%3Djoyk.com&utm_medium=referral
+6. https://www.cnblogs.com/kyoner/p/11366805.html

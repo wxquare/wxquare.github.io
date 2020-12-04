@@ -1,29 +1,35 @@
 ---
-title: redis 基础知识和问题汇总
+title: 如何用好缓存？（redis）
 categories:
 - C/C++
 ---
 
-## redis 应用场景
-1. 缓存. 设置内存的最大使用量以及淘汰策略来保证缓存的命中率.
-2. 分布式锁实现. 在分布式场景下，无法使用单机环境下的锁来对多个节点上的进程进行同步。可以使用 Redis 自带的 SETNX 命令实现分布式锁，除此之外，还可以使用官方提供的 RedLock 分布式锁实现
-3. 计数器. 
+## redis 使用场景分析
+1. 分布式锁. 在分布式场景下，无法使用单机环境下的锁来对多个节点上的进程进行同步。可以使用 Redis 自带的 SETNX 命令实现分布式锁，除此之外，还可以使用官方提供的 RedLock 分布式锁实现
+2. [[如何使用Redis实现微信步数排行榜？](https://www.cnblogs.com/zwwhnly/p/13041641.html)]
+
+## redis 使用注意事项
+1. 五种数据结构选择string/list/hashmap/set/zset
+2. 容量与淘汰策略
+3. 过期键的删除策略
+4. 缓存持久化策略
+5. 如何做的缓存初始，缓存预热？
+6. 如何处理可能遇到的缓存雪崩，缓存穿透和热点数据缓存击穿问题？
 
 
 ## redis 5种数据类型和底层数据结构
 [!redis数据类型](/images/redis-data-type)
 - redis中zset的底层原理
 - [面试：原来Redis的五种数据类型底层结构是这样的](https://my.oschina.net/ccwwlx/blog/3120883)
+https://juejin.cn/post/6844904192042074126#heading-8
 
 
 ## redis 数据持久化
 - AOF: AOF持久化(即Append Only File持久化)
 - RDB: 是Redis DataBase缩写快照
 
-
 ## redis 怎么扩容扩容和收缩
 - https://www.infoq.cn/article/uiqypvrtnq4buerrm3dc
-
 
 ## redis 过期键的删除策略
 过期策略通常有以下三种：
@@ -47,6 +53,7 @@ categories:
 缓存降级
 热点数据和冷数据
 缓存热点key
+- 使用redis计数限制mdb并发访问的次数
 - 缓存穿透，缓存击穿，缓存雪崩解决方案分析，https://juejin.im/post/6844903651182542856
 
 ## redis 为什么这么快
@@ -61,9 +68,17 @@ categories:
 - Redis为单进程单线程模式，采用队列模式将并发访问变成串行访问，且多客户端对Redis的连接并不存在竞争关系Redis中可以使用SETNX命令实现分布式锁。当且仅当 key 不存在，将 key 的值设为 value。 若给定的 key 已经存在，则 SETNX 不做任何动作SETNX 是『SET if Not eXists』(如果不存在，则 SET)的简写。返回值：设置成功，返回 1 。设置失败，返回 0
 
 ## 如何使用Redis实现微信步数排行榜？
-https://www.cnblogs.com/zwwhnly/p/13041641.html
+- https://www.cnblogs.com/zwwhnly/p/13041641.html
 
+## 如何将db里面的数据同步到redis中去，以减小数据库的压力
+- 
+
+
+
+## 缓存使用注意事项
+1. 缓存使用注意事项
 
 
 ## 推荐阅读:
 1. https://blog.csdn.net/ThinkWon/article/details/103522351
+2. https://tech.meituan.com/2017/03/17/cache-about.html

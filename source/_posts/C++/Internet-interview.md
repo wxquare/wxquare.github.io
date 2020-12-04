@@ -25,7 +25,30 @@ categories:
 	- TCP只支持点对点通信，UDP支持一对一、一对多、多对一、多对多的通信模式；
 	- TCP是面向字节流的，UDP是面向报文的；
 	- TCP有拥塞控制机制;UDP没有拥塞控制，适合媒体通信；
-7. 流量控制和滑动窗口
+
+7. [流量控制和滑动窗口](https://www.cnblogs.com/xiaolincoding/p/12732052.html)
+	- 为了缓解一问一答式的效率比较低的问题
+	- 累积确认ACK
+	- 流量控制
+
+8. 在浏览器中输入www.baidu.com后执行的全部过程
+	链接：https://www.nowcoder.com/questionTerminal/f09d6db0077d4731ac5b34607d4431ee
+
+事件顺序
+(1) 浏览器获取输入的域名www.baidu.com
+(2) 浏览器向DNS请求解析www.baidu.com的IP地址
+(3) 域名系统DNS解析出百度服务器的IP地址
+(4) 浏览器与该服务器建立TCP连接(默认端口号80)
+(5) 浏览器发出HTTP请求，请求百度首页
+(6) 服务器通过HTTP响应把首页文件发送给浏览器
+(7) TCP连接释放
+(8) 浏览器将首页文件进行解析，并将Web页显示给用户。
+涉及到的协议
+(1) 应用层：HTTP(WWW访问协议)，DNS(域名解析服务)
+(2) 传输层：TCP(为HTTP提供可靠的数据传输)，UDP(DNS使用UDP传输)
+(3) 网络层：IP(IP数据数据包传输和路由选择)，ICMP(提供网络传输过程中的差错检测)，ARP(将本机的默认网关IP地址映射成物理MAC地址)
+
+
 8. tcp拥塞控制和拥塞窗口？
    ![TCP拥塞控制](/images/tcp-network-congestion.jpg)
 9. time\_wait状态是什么,为什么会有time\_wait状态？哪一方会有time\_wait状态？time\_wait的时间
@@ -40,6 +63,7 @@ categories:
 18. 为什么 TCP 协议有粘包问题
 19. 为什么 HTTPS 需要 7 次握手
 20. 为什么 TCP 建立连接需要三次握手
+21. 
 
 
 ## http和https
@@ -70,5 +94,7 @@ categories:
 
 
 ## 其它
-
-参考：https://blog.csdn.net/justloveyou_/article/details/78303617
+参考：
+1. https://blog.csdn.net/justloveyou_/article/details/78303617
+2. 图解https的过程:https://segmentfault.com/a/1190000021494676
+3. [35 张图解：被问千百遍的 TCP 三次握手和四次挥手面试题](https://www.cnblogs.com/xiaolincoding/p/12638546.html)
