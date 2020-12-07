@@ -1,5 +1,5 @@
 ---
-title: mysql 基础知识和问题汇总
+title: mysql 必知必会
 categories:
 - C/C++
 ---

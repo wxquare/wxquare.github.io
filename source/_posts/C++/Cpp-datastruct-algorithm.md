@@ -43,8 +43,12 @@ categories:
 11. hash表设计要注意什么问题
 12. LRU的实现
 13. 布隆过滤器,bloom filter 使用场景，优缺点.与 hash set的比较
-
-
+14. ## 经典算法
+15. 单例模式. https://www.liwenzhou.com/posts/Go/singleton_in_go/
+16. 求平方根（根号n）的两种算法——二分法
+17. 雪花算法SnowFlake
+18. 洗牌算法
+19. 蓄水池抽样，从m个数中抽取n个数
 
 
 ## 大数据算法

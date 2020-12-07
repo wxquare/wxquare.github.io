@@ -1,5 +1,5 @@
 ---
-title: 如何用好缓存？（redis）
+title: redis缓存使用
 categories:
 - C/C++
 ---

@@ -1,5 +1,5 @@
 ---
-title: golang mysql基本使用
+title: golang mysql以及链接池的实现
 categories:
 - Golang
 ---

@@ -1,5 +1,5 @@
 ---
-title: 网络协议编程基础
+title: 计算机网络基础
 categories: 
 - C/C++
 ---
@@ -63,7 +63,19 @@ categories:
 18. 为什么 TCP 协议有粘包问题
 19. 为什么 HTTPS 需要 7 次握手
 20. 为什么 TCP 建立连接需要三次握手
-21. 
+21. TCP keepalive 和 http keep-alive
+  keepalive虽然不是TCP协议规范的内容， 但是Linux和windows中都实现了keepalive功能。因为在使用TCP长连接的时候，需要对TCP连接进行保活。操作系统通过在TCP连接定时发送keepalive探测包，实现**连接保活、检测连接**的有效性和**自动关闭无效连接**的作用。
+  TCP的keepalive是默认关闭的，可以通过内核设置或者SO_KEEPALIVE才能生效。
+
+  除了TCP自带的Keeplive机制，实现业务中经常在业务层面定制**“心跳”**功能，主要有以下几点考虑：  
+- TCP自带的keepalive使用简单，仅提供连接是否存活的功能  
+- 应用层心跳包不依赖于传输协议，支持tcp和udp  
+- 应用层心跳包可以定制，可以应对更加复杂的情况或者传输一些额外的消息  
+- Keepalive仅仅代表连接保持着，而心跳往往还表示服务正常工作  
+	
+在 HTTP 1.0 时期，每个 TCP 连接只会被一个 HTTP Transaction（请求加响应）使用，请求时建立，请求完成释放连接。当网页内容越来越复杂，包含大量图片、CSS 等资源之后，这种模式效率就显得太低了。所以，在 HTTP 1.1 中，引入了 HTTP persistent connection 的概念，也称为 HTTP keep-alive，目的是复用TCP连接，在一个TCP连接上进行多次的HTTP请求从而提高性能。HTTP1.0中默认是关闭的，需要在HTTP头加入"Connection: Keep-Alive"，才能启用Keep-Alive；HTTP1.1中默认启用Keep-Alive，加入"Connection: close "，才关闭。
+
+两者在写法上不同，http keep-alive 中间有个"-"符号。 **HTTP协议的keep-alive 意图在于连接复用**，同一个连接上串行方式传递请求-响应数据。**TCP的keepalive机制意图在于保活、心跳，检测连接错误。**
 
 
 ## http和https
