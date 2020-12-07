@@ -94,6 +94,7 @@ categories:
 - 并发调度
 - 用channel实现定时器？（实际上是两个协程同步）
 - 深入理解协程gmp调度模型，以及其发展历史
+- 理解操作系统是怎么调度的，golang协程调度的优势
 
 
 ## golang 内存和垃圾回收（memory and gc）
