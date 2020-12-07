@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="一、接口和依赖第三方包 标准库：database/sql 数据库驱动(driver): github.com/go-sql-driver/mysql 第三方扩展包：github.com/jmoiron/sqlx  database/sql　　Golang提供了database/sql包用于对sql数据库的访问，它提供操作数据库的入口对象sql.DB。sql.DB表示操作数据库的抽象访问接口。sql">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang mysql基本使用">
+<meta property="og:url" content="http://yoursite.com/2020/12/07/golang/golang-mysql/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="一、接口和依赖第三方包 标准库：database/sql 数据库驱动(driver): github.com/go-sql-driver/mysql 第三方扩展包：github.com/jmoiron/sqlx  database/sql　　Golang提供了database/sql包用于对sql数据库的访问，它提供操作数据库的入口对象sql.DB。sql.DB表示操作数据库的抽象访问接口。sql">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2020-12-07T13:36:11.019Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="golang mysql基本使用">
+<meta name="twitter:description" content="一、接口和依赖第三方包 标准库：database/sql 数据库驱动(driver): github.com/go-sql-driver/mysql 第三方扩展包：github.com/jmoiron/sqlx  database/sql　　Golang提供了database/sql包用于对sql数据库的访问，它提供操作数据库的入口对象sql.DB。sql.DB表示操作数据库的抽象访问接口。sql">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/12/07/golang/golang-mysql/">
+
+
+
+
+
+  <title>golang mysql基本使用 | wxquare's Blogs</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">wxquare's Blogs</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/12/07/golang/golang-mysql/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="wxquare">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">golang mysql基本使用</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T21:36:11+08:00">
+                2020-12-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Golang/" itemprop="url" rel="index">
+                    <span itemprop="name">Golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="一、接口和依赖第三方包"><a href="#一、接口和依赖第三方包" class="headerlink" title="一、接口和依赖第三方包"></a>一、接口和依赖第三方包</h2><ul>
+<li>标准库：<a href="https://golang.org/pkg/database/sql/" target="_blank" rel="noopener">database/sql</a></li>
+<li>数据库驱动(driver): <a href="https://github.com/go-sql-driver/mysql" target="_blank" rel="noopener">github.com/go-sql-driver/mysql</a></li>
+<li>第三方扩展包：<a href="https://github.com/jmoiron/sqlx" target="_blank" rel="noopener">github.com/jmoiron/sqlx</a></li>
+</ul>
+<h3 id="database-sql"><a href="#database-sql" class="headerlink" title="database/sql"></a>database/sql</h3><p>　　Golang提供了database/sql包用于对sql数据库的访问，它提供操作数据库的入口对象<strong>sql.DB</strong>。sql.DB表示操作数据库的抽象访问接口。sql包提供了操作数据库所有必要的结构体、函数和方法，sql包使得从一个数据库迁移到另一个数据库变得容易，只需更换一个驱动包即可。例如从sql server迁移到Mysql。</p>
+<h3 id="github-com-go-sql-driver-mysql"><a href="#github-com-go-sql-driver-mysql" class="headerlink" title="github.com/go-sql-driver/mysql"></a>github.com/go-sql-driver/mysql</h3><p>　　Golang操作数据库需要安装第三方的数据库驱动包，例如mysql的github.com/go-sql-driver/mysql。Golang提供的database/sql/driver定义了数据库驱动的所有的接口。下面是目前Golang支持的数据库驱动的列表：<a href="https://github.com/golang/go/wiki/SQLDrivers" target="_blank" rel="noopener">https://github.com/golang/go/wiki/SQLDrivers</a></p>
+<h3 id="sqlx第三方包"><a href="#sqlx第三方包" class="headerlink" title="sqlx第三方包"></a>sqlx第三方包</h3><p>　　sqlx是针对database/sql包扩展，使得golang对数据库的访问更加方便。比较database/sql和sqlx的文档，可以发现sqlx尽可能保留了sql包功能的同时也扩展了更加方便的接口:</p>
+<ul>
+<li>sqlx文档：<a href="https://godoc.org/github.com/jmoiron/sqlx" target="_blank" rel="noopener">https://godoc.org/github.com/jmoiron/sqlx</a></li>
+<li>sql标准库文档：<a href="https://golang.org/pkg/database/sql/" target="_blank" rel="noopener">https://golang.org/pkg/database/sql/</a></li>
+</ul>
+<h2 id="二、基本用法"><a href="#二、基本用法" class="headerlink" title="二、基本用法"></a>二、基本用法</h2><p><strong>新建sqlx.DB</strong>:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">package mysql</span><br><span class="line"></span><br><span class="line">import (</span><br><span class="line">	&quot;fmt&quot;</span><br><span class="line">	&quot;github.com/jmoiron/sqlx&quot;</span><br><span class="line">	&quot;time&quot;</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">// Config is mysql config.</span><br><span class="line">type Config struct &#123;</span><br><span class="line">	Host        string</span><br><span class="line">	Port        int</span><br><span class="line">	User        string</span><br><span class="line">	Pass        string</span><br><span class="line">	Database    string</span><br><span class="line">	Charset     string</span><br><span class="line">	Active      int           //SetMaxOpenConns,recommendation 100</span><br><span class="line">	Idle        int           //SetMaxIdleConns,recommendation 2</span><br><span class="line">	IdleTimeout time.Duration //SetConnMaxLifetime,recommendation 5 second</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// New a sqlx.DB.</span><br><span class="line">func NewMysqlSqlDB(c *Config) (*sqlx.DB, error) &#123;</span><br><span class="line">	if c.Charset == &quot;&quot; &#123;</span><br><span class="line">		c.Charset = &quot;utf-8&quot;</span><br><span class="line">	&#125;</span><br><span class="line">	DSN := fmt.Sprint(c.User, &quot;:&quot;, c.Pass, &quot;@tcp(&quot;, c.Host, &quot;:&quot;, c.Port, &quot;)/&quot;, c.Database, &quot;?charset=&quot;, c.Charset)</span><br><span class="line">	driverName := &quot;mysql&quot;</span><br><span class="line">	db, err := sqlx.Connect(driverName, DSN)</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		return db, err</span><br><span class="line">	&#125;</span><br><span class="line">	if c.Active != 0 &#123;</span><br><span class="line">		db.SetMaxOpenConns(c.Active) //设置连接池最大打开数据库连接数，&lt;=0表示不限制打开连接数，默认为0</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line">	if c.Idle != 0 &#123;</span><br><span class="line">		db.SetMaxIdleConns(c.Idle) //&lt;=0表示不保留空闲连接，默认值2</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	if c.IdleTimeout != 0 &#123;</span><br><span class="line">		db.SetConnMaxLifetime(c.IdleTimeout) //设置连接超时时间</span><br><span class="line">	&#125;</span><br><span class="line">	return db, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们通常将数据库查询逻辑封装在dao中，它sqlx.DB是他的成员：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">package mysql</span><br><span class="line"></span><br><span class="line">import (</span><br><span class="line">	&quot;fmt&quot;</span><br><span class="line">	&quot;github.com/jmoiron/sqlx&quot;</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">type Dao struct &#123;</span><br><span class="line">	db *sqlx.DB</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">//New a Dao.</span><br><span class="line">func NewDao(db *sqlx.DB) *Dao &#123;</span><br><span class="line">	d := &amp;Dao&#123;</span><br><span class="line">		db: db,</span><br><span class="line">	&#125;</span><br><span class="line">	return d</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="select"><a href="#select" class="headerlink" title="select:"></a>select:</h3><ol>
+<li>查询一条数据，QueryRowx</li>
+<li>查询多条数据，QueryRowx,rows.Next(),rows.Close()</li>
+<li>解析少数几个字段，row.Scan，rows.Scan</li>
+<li>按照结构体解析，row,StructScan,rows.StructScan</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line">func (self *Dao) QueryXX() &#123;</span><br><span class="line">	sql := &quot;SELECT * FROM users WHERE id=?&quot;</span><br><span class="line">	var (</span><br><span class="line">		id     int</span><br><span class="line">		name   string</span><br><span class="line">		salary int</span><br><span class="line">	)</span><br><span class="line">	if err := self.db.QueryRowx(sql, id).Scan(&amp;id, &amp;name, &amp;salary); err != nil &#123;</span><br><span class="line">		fmt.Println(err)</span><br><span class="line">		return</span><br><span class="line">	&#125; else &#123;</span><br><span class="line">		fmt.Println(id, name, salary)</span><br><span class="line">	&#125;</span><br><span class="line">	/*</span><br><span class="line">		type Employee struct &#123;</span><br><span class="line">			id     int</span><br><span class="line">			name   string</span><br><span class="line">			salary int</span><br><span class="line">		&#125;</span><br><span class="line">		employeeInfo := &amp;Employee&#123;&#125;</span><br><span class="line">		if err := self.db.QueryRowx(sql, id).StructScan(employeeInfo); err != nil &#123;</span><br><span class="line">			fmt.Println(err)</span><br><span class="line">			return</span><br><span class="line">		&#125; else &#123;</span><br><span class="line">			fmt.Println(employeeInfo)</span><br><span class="line">		&#125;</span><br><span class="line">	*/</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">//query</span><br><span class="line">func (self *Dao) QueryXXXX() &#123;</span><br><span class="line">	sql := &quot;SELECT * FROM users WHERE id &lt; ?&quot;</span><br><span class="line">	rows, err := self.db.Queryx(sql, 10)</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		fmt.Println(err)</span><br><span class="line">		return</span><br><span class="line">	&#125;</span><br><span class="line">	defer rows.Close()</span><br><span class="line"></span><br><span class="line">	for rows.Next() &#123;</span><br><span class="line">		var (</span><br><span class="line">			id     int</span><br><span class="line">			name   string</span><br><span class="line">			salary int</span><br><span class="line">		)</span><br><span class="line">		err = rows.Scan(&amp;id, &amp;name, &amp;salary)</span><br><span class="line">		if err != nil &#123;</span><br><span class="line">			fmt.Println(err)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	/*</span><br><span class="line">		// rows.StructScan</span><br><span class="line">		type Employee struct &#123;</span><br><span class="line">			id     int</span><br><span class="line">			name   string</span><br><span class="line">			salary int</span><br><span class="line">		&#125;</span><br><span class="line">		employeeInfo := &amp;Employee&#123;&#125;</span><br><span class="line">		for rows.Next() &#123;</span><br><span class="line">			err = rows.StructScan(employeeInfo)</span><br><span class="line">			if err != nil &#123;</span><br><span class="line">				fmt.Println(err)</span><br><span class="line">			&#125; else &#123;</span><br><span class="line">				fmt.Println(employeeInfo.id, employeeInfo.name, employeeInfo.salary)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	*/</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="insert、update，delete："><a href="#insert、update，delete：" class="headerlink" title="insert、update，delete："></a>insert、update，delete：</h3><p>　　Exec()或ExecContext()方法的第一个返回值为一个实现了sql.Result接口的类型，我们可以用sql.Result中的LastInsertId()方法或RowsAffected()来判断SQL语句是否执行成功。注意LastInsertId()方法只有在使用INSERT语句且数据表有自增id时才有返回自增id值，否则返回0。<br>sql.Result的定义如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">type Result interface &#123;</span><br><span class="line">    LastInsertId() (int64, error)//使用insert向数据插入记录，数据表有自增id时，该函数有返回值</span><br><span class="line">    RowsAffected() (int64, error)//表示影响的数据表行数</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">func (self *Dao) InsertXX() &#123;</span><br><span class="line">	sql := &quot;INSERT INTO users values(?,?,?)&quot;</span><br><span class="line">	rs, err := self.db.Exec(sql, 4, &quot;yyy&quot;, 1000)</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		fmt.Println(err)</span><br><span class="line">		return</span><br><span class="line">	&#125;</span><br><span class="line">	if id, _ := rs.LastInsertId(); id &gt; 0 &#123;</span><br><span class="line">		fmt.Println(&quot;insert success&quot;)</span><br><span class="line">	&#125;</span><br><span class="line">	/*也可以这样判断是否插入成功</span><br><span class="line">	  if n,_ := rs.RowsAffected();n &gt; 0 &#123;</span><br><span class="line">	      fmt.Println(&quot;insert success&quot;)</span><br><span class="line">	  &#125;</span><br><span class="line">	*/</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="预编译：Prepared-Statements"><a href="#预编译：Prepared-Statements" class="headerlink" title="预编译：Prepared Statements"></a>预编译：Prepared Statements</h3><p>sql语句在db接收到最终执行完毕返回会经历三个过程：</p>
+<ul>
+<li>词法和语义分析</li>
+<li>优化sql语句，指定执行计划</li>
+<li>执行并返回结果<br>　　有些时候，我们的一条sql语句可能会反复执行，或者每次执行的时候只有个别的值不同（比如query的where子句值不同，update的set子句值不同,insert的values值不同）。如果每次都需要经过上面的词法语义解析、语句优化、制定执行计划等，则效率就明显不行了。所谓预编译语句就是将这类语句中的值用占位符替代，可以视为将sql语句模板化或者说参数化，一般称这类语句叫Prepared Statements或者Parameterized Statements预编译语句的优势在于归纳为：<strong>一次编译、多次运行，省去了解析优化等过程；此外预编译语句能防止sql注入</strong>。</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">//Prepared Statements</span><br><span class="line">//select,insert,update,delete</span><br><span class="line">func (self *Dao) PreparedStms() &#123;</span><br><span class="line">	stmt, err := self.db.Prepare(&quot;SELECT * FROM users WHERE id = ?&quot;)</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		return</span><br><span class="line">	&#125;</span><br><span class="line">	defer stmt.Close()</span><br><span class="line">	rows, err := stmt.Query(2)</span><br><span class="line">	defer rows.Close()</span><br><span class="line">	for rows.Next() &#123;</span><br><span class="line">		var (</span><br><span class="line">			id       int</span><br><span class="line">			username string</span><br><span class="line">			salary   int</span><br><span class="line">		)</span><br><span class="line">		err = rows.Scan(&amp;id, &amp;username, &amp;salary)</span><br><span class="line">		if err != nil &#123;</span><br><span class="line">			fmt.Println(err)</span><br><span class="line">		&#125; else &#123;</span><br><span class="line">			fmt.Println(id, username, salary)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="事务transaction"><a href="#事务transaction" class="headerlink" title="事务transaction"></a>事务transaction</h3><p>　　默认会把提交的每一条SQL语句都当作一个事务来处理，如果多条语句一起执行，当其中某个语句执行错误，则前面已经执行的SQL语句无法回滚。对于一些要求比较严格的业务逻辑来说(如订单付款、用户转账等)，应该在同一个事务提交多条SQL语句，避免发生执行出错无法回滚事务的情况。<br>事务的隔离级别：</p>
+<ul>
+<li>read uncommitted （可以读取其它事务未提交的数据，造成脏读的问题）</li>
+<li>read committed （可以读取其它事务提交事务提交的数据，可能造成该事务两次读取的数据不一样，即不可重复读</li>
+<li>repeatable read（保证事务多次读取的数据相同，但是可能会造成幻读，例如该事物尝试插入数据是，因为别的事务插入数据导致插入失败，而该事务本身却很难发现）</li>
+<li>serializable（串行化，当把当前的会话设置为serializable时，其它会话对该表的写操作会被挂起。</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">//transactions</span><br><span class="line">func (self *Dao) txOps() &#123;</span><br><span class="line">	tx, _ := self.db.Beginx()</span><br><span class="line">	rs, err := tx.Exec(&quot;UPDATE users SET username = ? WHERE id = ?&quot;, &quot;aaaa&quot;, 2)</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		fmt.Println(err)</span><br><span class="line">	&#125;</span><br><span class="line">	err = tx.Commit()</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		fmt.Println(err)</span><br><span class="line">	&#125;</span><br><span class="line">	if n, _ := rs.RowsAffected(); n &gt; 0 &#123;</span><br><span class="line">		fmt.Println(&quot;txops success!&quot;)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>参考：<br><a href="https://juejin.im/post/5cb94e3a5188251ad954e6f7#heading-13" target="_blank" rel="noopener">https://juejin.im/post/5cb94e3a5188251ad954e6f7#heading-13</a><br><a href="https://www.cnblogs.com/hanyouchun/p/6708037.html" target="_blank" rel="noopener">https://www.cnblogs.com/hanyouchun/p/6708037.html</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/12/07/golang/golang-pointer-unsafe/" rel="next" title="golang 指针和unsafe">
+                <i class="fa fa-chevron-left"></i> golang 指针和unsafe
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/12/07/golang/golang-reflect/" rel="prev" title="golang 反射">
+                golang 反射 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="wxquare">
+            
+              <p class="site-author-name" itemprop="name">wxquare</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">52</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/wxquare" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="http://www.zhihu.com/people/wxquare0" target="_blank" title="知乎">
+                    
+                      <i class="fa fa-fw fa-globe"></i>知乎</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.cnblogs.com/wxquare" target="_blank" title="博客园">
+                    
+                      <i class="fa fa-fw fa-globe"></i>博客园</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="http://www.cplusplus.com/reference" title="C++" target="_blank">C++</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://golang.org/pkg/" title="golang" target="_blank">golang</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://docs.python.org/3" title="python" target="_blank">python</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://en.cppreference.com/w/" title="cppreference" target="_blank">cppreference</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://leetcode.com/problemset/all/" title="leetcode" target="_blank">leetcode</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、接口和依赖第三方包"><span class="nav-number">1.</span> <span class="nav-text">一、接口和依赖第三方包</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#database-sql"><span class="nav-number">1.1.</span> <span class="nav-text">database/sql</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#github-com-go-sql-driver-mysql"><span class="nav-number">1.2.</span> <span class="nav-text">github.com/go-sql-driver/mysql</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sqlx第三方包"><span class="nav-number">1.3.</span> <span class="nav-text">sqlx第三方包</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、基本用法"><span class="nav-number">2.</span> <span class="nav-text">二、基本用法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#select"><span class="nav-number">2.1.</span> <span class="nav-text">select:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#insert、update，delete："><span class="nav-number">2.2.</span> <span class="nav-text">insert、update，delete：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#预编译：Prepared-Statements"><span class="nav-number">2.3.</span> <span class="nav-text">预编译：Prepared Statements</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#事务transaction"><span class="nav-number">2.4.</span> <span class="nav-text">事务transaction</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2017 &mdash; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wxquare</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

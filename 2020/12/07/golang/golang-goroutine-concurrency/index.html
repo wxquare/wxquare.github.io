@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="一、并发与并行 并行与串行： 程序能否利用多核物理设备同一时刻执行多个任务，并行依赖多核的支持 并发： 程序在同一时刻执行过个任务，并发不需要多核的支持，在单核处理器上能以间隔方式切换不同的任务 进程 线程 协程，协程更为轻量，协程栈2KB，线程栈MB级别  二、Goroutinegolang从语言层面支持协程，通过协程实现程序的并发，所有golang代码通常由许多的协程构成。  golang通过">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang 并发、协程与调度">
+<meta property="og:url" content="http://yoursite.com/2020/12/07/golang/golang-goroutine-concurrency/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="一、并发与并行 并行与串行： 程序能否利用多核物理设备同一时刻执行多个任务，并行依赖多核的支持 并发： 程序在同一时刻执行过个任务，并发不需要多核的支持，在单核处理器上能以间隔方式切换不同的任务 进程 线程 协程，协程更为轻量，协程栈2KB，线程栈MB级别  二、Goroutinegolang从语言层面支持协程，通过协程实现程序的并发，所有golang代码通常由许多的协程构成。  golang通过">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/goroutine-scheduler-model.png">
+<meta property="og:updated_time" content="2020-12-07T13:36:11.018Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="golang 并发、协程与调度">
+<meta name="twitter:description" content="一、并发与并行 并行与串行： 程序能否利用多核物理设备同一时刻执行多个任务，并行依赖多核的支持 并发： 程序在同一时刻执行过个任务，并发不需要多核的支持，在单核处理器上能以间隔方式切换不同的任务 进程 线程 协程，协程更为轻量，协程栈2KB，线程栈MB级别  二、Goroutinegolang从语言层面支持协程，通过协程实现程序的并发，所有golang代码通常由许多的协程构成。  golang通过">
+<meta name="twitter:image" content="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/goroutine-scheduler-model.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/12/07/golang/golang-goroutine-concurrency/">
+
+
+
+
+
+  <title>golang 并发、协程与调度 | wxquare's Blogs</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">wxquare's Blogs</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/12/07/golang/golang-goroutine-concurrency/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="wxquare">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">golang 并发、协程与调度</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T21:36:11+08:00">
+                2020-12-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Golang/" itemprop="url" rel="index">
+                    <span itemprop="name">Golang</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="一、并发与并行"><a href="#一、并发与并行" class="headerlink" title="一、并发与并行"></a>一、并发与并行</h2><ol>
+<li>并行与串行： 程序能否利用多核物理设备同一时刻执行多个任务，并行依赖多核的支持</li>
+<li>并发： 程序在同一时刻执行过个任务，并发不需要多核的支持，在单核处理器上能以间隔方式切换不同的任务</li>
+<li>进程</li>
+<li>线程</li>
+<li>协程，协程更为轻量，协程栈2KB，线程栈MB级别</li>
+</ol>
+<h2 id="二、Goroutine"><a href="#二、Goroutine" class="headerlink" title="二、Goroutine"></a>二、Goroutine</h2><p>golang从语言层面支持协程，通过协程实现程序的并发，所有golang代码通常由许多的协程构成。</p>
+<ol>
+<li>golang通过关键字go创建并发任务单元，但并不是执行并发操作。新建的协程会被放置在系统调度队列中，等待调度器安排合适的系统线程去获取执行权。通过go创建并发单元不会导致阻塞，程序不会等待改协程的启动，运行时runtime也不保证协程的执行顺序，也就是不保证先创建的协程一定比后创建的协程先执行。</li>
+<li>golang程序退出时，不会等待所有的goroutine执行结束，因此需要借助channel或者sync等同步手段。</li>
+<li>为了应对多种并发任务，golang需要创建很多协程，但仅有限个线程参与并发任务执行。该数量通常默认与处理器核数相等，可通过runtime.GOMAXPROCS(1)函数修改，设置最大的可同时使用的CPU核数。</li>
+<li><font color="red">Goroutine与线程不同，它无法设置优先级，无法获取编号，甚至无法获取返回值。只能通过在协程外部定义变量，以参数的形式传递给协程，同时需要做并发保护</font>。</li>
+<li>操作系统在线程调度时具有时间片抢占的概念，意味着线程不会一直占有某处理器。而协程goroutine一旦被调度，在没有阻塞、系统调用、IO等情况下，将一直占有cpu，不会被其它协程抢占。协程可通过runtime.Gosched函数主动释放线程器质性其它任务，等待下次调度时恢复执行。</li>
+</ol>
+<h2 id="三、CSP并发模式"><a href="#三、CSP并发模式" class="headerlink" title="三、CSP并发模式"></a>三、CSP并发模式</h2><p>　　Golang主张基于协程的CSP（Communicating Sequential Processes）并发模型，以channel通信来代替内存共享，而不是以内存共享来通信，因此channel对于golang并发至关重要。<strong>Don’t communicate by sharing memory,share memory by communicating.</strong> 另外，Golang提供sync包、互斥锁、读写锁和原子操作帮助更好的编写并发代码，提供context用于管理父子协程之间的关系。channel不是用来代替锁的，它们有各自不同的应用场景，channel倾向于解决协程之间的逻辑层次，而锁则用来保护局部数据的安全。</p>
+<ul>
+<li>channel：参考<a href="https://wxquare.github.io/2019/03/20/golang-channel/" target="_blank" rel="noopener">https://wxquare.github.io/2019/03/20/golang-channel/</a></li>
+<li>sync: Mutex和RWMutex的使用并不复杂，有以下几点需要注意：<br>  a、使用Mutex作为匿名字段时，相关方法必须实现为pointer-receiver,否则会因为复制导致锁失效<br>  b、应该将锁粒度控制在最小范围，及早释放，考虑到性能，不要一昧的使用defer unlock<br>  c、mutex不支持递归锁，即使在同一goroutine下也会导致死锁<br>  d、读写并发时，用RWMutex性能会好一些<br>  e、对单个数据的读写保护，建议使用原子操作</li>
+<li>context：由于任务复杂，常会存在协程嵌套，context能帮助更好的管理协程之间的关系</li>
+</ul>
+<h2 id="四、协程调度"><a href="#四、协程调度" class="headerlink" title="四、协程调度"></a>四、协程调度</h2><p>上文讲过go关键字只是创建协程并发任务，并不是立刻执行，需要等待运行时runtime的调度。接下来介绍goroutine的G-M-P调度模型。</p>
+<h3 id="4-1-协程并发的优点"><a href="#4-1-协程并发的优点" class="headerlink" title="4.1. 协程并发的优点"></a>4.1. 协程并发的优点</h3><p>操作系统线程并发：</p>
+<ul>
+<li>创建线程和切换线程代价较大，线程数量不能太多，经常采用线程池或者网络IO复用技术，因此线程调度难以扩展</li>
+<li>线程的同步和通信较为麻烦</li>
+<li>加锁易犯错且易效率低<br>协程并发：  </li>
+<li>创建协程goroutine的代价低</li>
+<li>协程数量大，可达数十万个</li>
+<li>协程的同步和通信机制简单  </li>
+<li>G-P-M调度模型较为高效，实现协程阻塞、抢占式调度、stealing等情况，具有较高的调度效率  </li>
+</ul>
+<h3 id="4-2-Golang运行时调度器"><a href="#4-2-Golang运行时调度器" class="headerlink" title="4.2. Golang运行时调度器"></a>4.2. Golang运行时调度器</h3><p>　　golang运行时调度器位于用户golang代码和操作系统os之间，它决定何时哪个goroutine将获得资源开始执行、哪个goroutine应该停止执行让出资源、哪个goroutine应该被唤醒恢复执行等。由于操作系统是以线程为调度的单位，因此golang运行时调度器实际上是将协程调度到具体的线程上。在go1.1版本之前，实现的是简单的G-M调度模型，但是它限制了Go并发程序的伸缩性。随着golang版本的更新，其调度模型也在不断的优化，goalng 1.1版本中的G-P-M模型使其调度模型基本成型，也具有较高的效率。为了实现调度的可扩展性（scalable），在协程和线程之间增加了一个逻辑层P。</p>
+<ul>
+<li>goroutine 都由一个G结构表示，它管理着goroutine的栈和状态</li>
+<li>运行时管理着G，并将它们映射到Logical Processor P上。P可以看作是一个抽象的资源或者一个上下文</li>
+<li>为了运行goroutine，M需要持有上下文P，M会从P的queue弹出一个goutine并执行。<br><img src="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/goroutine-scheduler-model.png" alt="G-p-M调度模型"></li>
+</ul>
+<h3 id="4-3-抢占式调度"><a href="#4-3-抢占式调度" class="headerlink" title="4.3 抢占式调度"></a>4.3 抢占式调度</h3><p>　　和操作系统按时间片调度线程不同，Go并没有时间片的概念。如果某个G没有进行system call调用、没有进行I/O操作、没有阻塞在一个channel操作上，那么改协程将一直占据改M的资源，除非改协程主动放弃资源，例如使用runtime.Gosched()</p>
+<h3 id="4-4-channel阻塞或者network-I-O情况下的调度"><a href="#4-4-channel阻塞或者network-I-O情况下的调度" class="headerlink" title="4.4 channel阻塞或者network I/O情况下的调度"></a>4.4 channel阻塞或者network I/O情况下的调度</h3><p>　　如果G被阻塞在某个channel操作或network I/O操作上时，G会被放置到某个wait队列中，而M会尝试运行下一个runnable的G；如果此时没有runnable的G供m运行，那么m将解绑P，并进入sleep状态。当I/O available或channel操作完成，在wait队列中的G会被唤醒，标记为runnable，放入到某P的队列中，绑定一个M继续执行。</p>
+<h3 id="4-5-system-call阻塞状态下的调度"><a href="#4-5-system-call阻塞状态下的调度" class="headerlink" title="4.5 system call阻塞状态下的调度"></a>4.5 system call阻塞状态下的调度</h3><p>　　如果G被阻塞在某个system call操作上，那么不光G会阻塞，执行该G的M也会解绑P(实质是被sysmon抢走了)，与G一起进入sleep状态。如果此时有idle的M，则P与其绑定继续执行其他G；如果没有idle M，但仍然有其他G要去执行，那么就会创建一个新M。当阻塞在syscall上的G完成syscall调用后，G会去尝试获取一个可用的P，如果没有可用的P，那么G会被标记为runnable，之前的那个sleep的M将再次进入sleep。</p>
+<h3 id="4-6-golang调度器的跟踪调试"><a href="#4-6-golang调度器的跟踪调试" class="headerlink" title="4.6 golang调度器的跟踪调试"></a>4.6 golang调度器的跟踪调试</h3><p><a href="https://colobu.com/2016/04/19/Scheduler-Tracing-In-Go/" target="_blank" rel="noopener">https://colobu.com/2016/04/19/Scheduler-Tracing-In-Go/</a></p>
+<p>参考：  </p>
+<ul>
+<li><a href="https://tonybai.com/2017/06/23/an-intro-about-goroutine-scheduler/" target="_blank" rel="noopener">https://tonybai.com/2017/06/23/an-intro-about-goroutine-scheduler/</a>  </li>
+<li><a href="https://colobu.com/2017/05/04/go-scheduler/" target="_blank" rel="noopener">https://colobu.com/2017/05/04/go-scheduler/</a>  </li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/12/07/golang/golang http/" rel="next" title="golang http 使用总结">
+                <i class="fa fa-chevron-left"></i> golang http 使用总结
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/12/07/golang/golang-high-performance/" rel="prev" title="golang 程序性能分析与优化">
+                golang 程序性能分析与优化 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="wxquare">
+            
+              <p class="site-author-name" itemprop="name">wxquare</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">52</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/wxquare" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="http://www.zhihu.com/people/wxquare0" target="_blank" title="知乎">
+                    
+                      <i class="fa fa-fw fa-globe"></i>知乎</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.cnblogs.com/wxquare" target="_blank" title="博客园">
+                    
+                      <i class="fa fa-fw fa-globe"></i>博客园</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="http://www.cplusplus.com/reference" title="C++" target="_blank">C++</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://golang.org/pkg/" title="golang" target="_blank">golang</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://docs.python.org/3" title="python" target="_blank">python</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://en.cppreference.com/w/" title="cppreference" target="_blank">cppreference</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://leetcode.com/problemset/all/" title="leetcode" target="_blank">leetcode</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、并发与并行"><span class="nav-number">1.</span> <span class="nav-text">一、并发与并行</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、Goroutine"><span class="nav-number">2.</span> <span class="nav-text">二、Goroutine</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三、CSP并发模式"><span class="nav-number">3.</span> <span class="nav-text">三、CSP并发模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#四、协程调度"><span class="nav-number">4.</span> <span class="nav-text">四、协程调度</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-协程并发的优点"><span class="nav-number">4.1.</span> <span class="nav-text">4.1. 协程并发的优点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-Golang运行时调度器"><span class="nav-number">4.2.</span> <span class="nav-text">4.2. Golang运行时调度器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-抢占式调度"><span class="nav-number">4.3.</span> <span class="nav-text">4.3 抢占式调度</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-channel阻塞或者network-I-O情况下的调度"><span class="nav-number">4.4.</span> <span class="nav-text">4.4 channel阻塞或者network I/O情况下的调度</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-5-system-call阻塞状态下的调度"><span class="nav-number">4.5.</span> <span class="nav-text">4.5 system call阻塞状态下的调度</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-6-golang调度器的跟踪调试"><span class="nav-number">4.6.</span> <span class="nav-text">4.6 golang调度器的跟踪调试</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2017 &mdash; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wxquare</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="最近在做深度学习模型加速的工作，先后尝试了模型权重量化(quantization)、模型权重稀疏（sparsification）和模型通道剪枝(channel pruning)等压缩方法，但效果都不明显。权重量化和稀疏属于非结构化的压缩，需要推理引擎和硬件的优化才能实现推理加速，通道剪枝能直接减少FLOPs，确实能卷积网络的效率，在ResNet56网络中能大概提升卷积50%的速度。在工程实">
+<meta property="og:type" content="article">
+<meta property="og:title" content="初识TVM，相比于tensorflow的2倍性能提升">
+<meta property="og:url" content="http://yoursite.com/2020/12/07/AI/TVM-hello/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="最近在做深度学习模型加速的工作，先后尝试了模型权重量化(quantization)、模型权重稀疏（sparsification）和模型通道剪枝(channel pruning)等压缩方法，但效果都不明显。权重量化和稀疏属于非结构化的压缩，需要推理引擎和硬件的优化才能实现推理加速，通道剪枝能直接减少FLOPs，确实能卷积网络的效率，在ResNet56网络中能大概提升卷积50%的速度。在工程实">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2020-12-07T13:36:11.010Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="初识TVM，相比于tensorflow的2倍性能提升">
+<meta name="twitter:description" content="最近在做深度学习模型加速的工作，先后尝试了模型权重量化(quantization)、模型权重稀疏（sparsification）和模型通道剪枝(channel pruning)等压缩方法，但效果都不明显。权重量化和稀疏属于非结构化的压缩，需要推理引擎和硬件的优化才能实现推理加速，通道剪枝能直接减少FLOPs，确实能卷积网络的效率，在ResNet56网络中能大概提升卷积50%的速度。在工程实">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/12/07/AI/TVM-hello/">
+
+
+
+
+
+  <title>初识TVM，相比于tensorflow的2倍性能提升 | wxquare's Blogs</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">wxquare's Blogs</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/12/07/AI/TVM-hello/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="wxquare">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">初识TVM，相比于tensorflow的2倍性能提升</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-07T21:36:11+08:00">
+                2020-12-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AI/" itemprop="url" rel="index">
+                    <span itemprop="name">AI</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>　　<br>　　最近在做深度学习模型加速的工作，先后尝试了模型权重量化(quantization)、模型权重稀疏（sparsification）和模型通道剪枝(channel pruning)等压缩方法，但效果都不明显。权重量化和稀疏属于非结构化的压缩，需要推理引擎和硬件的优化才能实现推理加速，通道剪枝能直接减少FLOPs，确实能卷积网络的效率，在ResNet56网络中能大概提升卷积50%的速度。在工程实践中，除了通过模型压缩提升推理性能，还可以通过优化推理引擎提高推理效率。目前存在多种开源的推理引擎，我首先尝试了TVM。</p>
+<h3 id="为什么选择TVM"><a href="#为什么选择TVM" class="headerlink" title="为什么选择TVM"></a>为什么选择TVM</h3><p>　　为提升深度学习模型的推理效率，设备平台制造商针对自己的平台推出优化的推理引擎，例如NAVIDA的tensorRT，Intel的OpenVINO，Tencent针对移动端应用推出NCNN等。目前，深度学习模型应用广泛，在服务端和移动端都有应用，甚至于特殊的嵌入式场景想，它们都有加速模型推理的需求。个人感觉针对不同平台选择不同的推理引擎，学习成本太高。我这里选择尝试TVM，主要有以下几个原因：</p>
+<ul>
+<li>尝试了过一些模型压缩方法，效率提升有限</li>
+<li>有些是模型压缩方法需要推理引擎和硬件的支持的，例如量化</li>
+<li>tensorflow推理效率有限，需要更好的推理引擎</li>
+<li>针对平台选择不同推理引擎，学习成本太高</li>
+<li>需要能支持跨平台的推理引擎，未来可能在定制的嵌入式芯片上运行深度学习模型</li>
+<li>除了TVM之外，还存在XLA之类方案，选择TVM也是因为tianqi等大佬主导的项目，相信大佬！</li>
+</ul>
+<h3 id="初次体验TVM，相比于tensorflow2倍的性能提升"><a href="#初次体验TVM，相比于tensorflow2倍的性能提升" class="headerlink" title="初次体验TVM，相比于tensorflow2倍的性能提升"></a>初次体验TVM，相比于tensorflow2倍的性能提升</h3><p>　　看了几篇TVM介绍文章后，了解到它是从深度学习编译器的角度来做推理引擎，目前技术领域还比较新，具体技术细节以后有机会会深入学习，这里主要想体验一下使用TVM做深度模型推理，重点是推理效率的提升，因为是骡子还是马得拉出来遛遛。参考官方文档进行编译安装，整个过程还是比较简单的，结果显示相比于tensorflow大概100%的性能提升。实验环境是ubuntu 19.04，x86_64架构。</p>
+<ol>
+<li><p>安装llvm,也可源码编译</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ sudo apt-get install llvm</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>编译TVM</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ git clone --recursive https://github.com/dmlc/tvm.git</span><br><span class="line">$ cd tvm $$ mkdir build</span><br><span class="line">$ cp cmake/config.cmake build</span><br><span class="line"># 编辑config.cmake 然后将USE_LLVM OFF 改为 set(USE_LLVM /usr/bin/llvm-config)</span><br><span class="line">$ cd build</span><br><span class="line">$ cmake ..</span><br><span class="line">$ cmake -j4</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>编辑.bashrc配置Python环境</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">export TVM_HOME=/home/xxxx/code/tvm</span><br><span class="line">export PYTHONPATH=$TVM_HOME/python:$TVM_HOME/topi/python:$TVM_HOME/nnvm/python</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>官方<a href="https://docs.tvm.ai/tutorials/frontend/from_tensorflow.html#sphx-glr-tutorials-frontend-from-tensorflow-py" target="_blank" rel="noopener">Compile Tensorflow Models</a><br>直接运行出现了两个问题，下载文件时和SSL相关，另外一个是缺少antlr</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># install antlr</span><br><span class="line">$ pip install antlr4-python3-runtime</span><br><span class="line"># debug ssl</span><br><span class="line">import ssl</span><br><span class="line">ssl._create_default_https_context = ssl._create_unverified_context</span><br><span class="line"># run demo</span><br><span class="line">$ python from_tensorflow.py</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>在代码中加入时间测试，实验测试结果。TVM与测试时间为0.277s，tensorflow为0.586s。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">============ TVM ============ 0.2770531177520752</span><br><span class="line">African elephant, Loxodonta africana (score = 0.58335)</span><br><span class="line">tusker (score = 0.33901)</span><br><span class="line">Indian elephant, Elephas maximus (score = 0.02391)</span><br><span class="line">banana (score = 0.00025)</span><br><span class="line">vault (score = 0.00021)</span><br><span class="line">============= Tensorflow ===== 0.58619508743286133</span><br><span class="line">===== TENSORFLOW RESULTS =======</span><br><span class="line">African elephant, Loxodonta africana (score = 0.58394)</span><br><span class="line">tusker (score = 0.33909)</span><br><span class="line">Indian elephant, Elephas maximus (score = 0.03186)</span><br><span class="line">banana (score = 0.00022)</span><br><span class="line">desk (score = 0.00019)</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<h2 id="未填的坑"><a href="#未填的坑" class="headerlink" title="未填的坑"></a>未填的坑</h2><p>　　过程遇到一个坑，查了TVM社区，没有很好的解答，看起来好像会和性能有关，希望路过的大佬能帮忙解决。<a href="https://discuss.tvm.ai/t/cannot-find-config-for-target-llvm-when-using-autotvm-in-tensorflow-example-for-cpu/1544" target="_blank" rel="noopener">https://discuss.tvm.ai/t/cannot-find-config-for-target-llvm-when-using-autotvm-in-tensorflow-example-for-cpu/1544</a><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">WARNING:autotvm:Cannot find config for target=llvm, workload=(&apos;conv2d&apos;, (1, 8, 8, 2048, &apos;float32&apos;), (1, 1, 2048, 384, &apos;float32&apos;), (1, 1), (0, 0), (1, 1), &apos;NHWC&apos;, &apos;float32&apos;). A fallback configuration is used, which may bring great performance regression.</span><br><span class="line">WARNING:autotvm:Cannot find config for target=llvm, workload=(&apos;conv2d&apos;, (1, 8, 8, 2048, &apos;float32&apos;), (1, 1, 2048, 448, &apos;float32&apos;), (1, 1), (0, 0), (1, 1), &apos;NHWC&apos;, &apos;float32&apos;). A fallback configuration is used, which may bring great performance regression.</span><br><span class="line">WARNING:autotvm:Cannot find config for target=llvm, workload=(&apos;conv2d&apos;, (1, 8, 8, 2048, &apos;float32&apos;), (1, 1, 2048, 192, &apos;float32&apos;), (1, 1), (0, 0), (1, 1), &apos;NHWC&apos;, &apos;float32&apos;). A fallback configuration is used, which may bring great performance regression.</span><br></pre></td></tr></table></figure></p>
+<p>参考：</p>
+<ol>
+<li>tvm install: <a href="https://docs.tvm.ai/install/from_source.html" target="_blank" rel="noopener">https://docs.tvm.ai/install/from_source.html</a></li>
+<li>tvm tutorial: <a href="https://docs.tvm.ai/tutorials/frontend/from_tensorflow.html#sphx-glr-tutorials-frontend-from-tensorflow-py" target="_blank" rel="noopener">Compile Tensorflow Models</a></li>
+<li>未填的坑：<a href="https://discuss.tvm.ai/t/cannot-find-config-for-target-llvm-when-using-autotvm-in-tensorflow-example-for-cpu/1544" target="_blank" rel="noopener">https://discuss.tvm.ai/t/cannot-find-config-for-target-llvm-when-using-autotvm-in-tensorflow-example-for-cpu/1544</a></li>
+</ol>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/12/07/AI/TVM-GEMM-CPU/" rel="next" title="TVM学习笔记--GEMM优化及测试数据">
+                <i class="fa fa-chevron-left"></i> TVM学习笔记--GEMM优化及测试数据
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/12/07/AI/TVM-code-generation/" rel="prev" title="TVM学习笔记--代码生成">
+                TVM学习笔记--代码生成 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="wxquare">
+            
+              <p class="site-author-name" itemprop="name">wxquare</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">52</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/wxquare" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="http://www.zhihu.com/people/wxquare0" target="_blank" title="知乎">
+                    
+                      <i class="fa fa-fw fa-globe"></i>知乎</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.cnblogs.com/wxquare" target="_blank" title="博客园">
+                    
+                      <i class="fa fa-fw fa-globe"></i>博客园</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="http://www.cplusplus.com/reference" title="C++" target="_blank">C++</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://golang.org/pkg/" title="golang" target="_blank">golang</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://docs.python.org/3" title="python" target="_blank">python</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://en.cppreference.com/w/" title="cppreference" target="_blank">cppreference</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://leetcode.com/problemset/all/" title="leetcode" target="_blank">leetcode</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#为什么选择TVM"><span class="nav-number">1.</span> <span class="nav-text">为什么选择TVM</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#初次体验TVM，相比于tensorflow2倍的性能提升"><span class="nav-number">2.</span> <span class="nav-text">初次体验TVM，相比于tensorflow2倍的性能提升</span></a></li></ol><li class="nav-item nav-level-2"><a class="nav-link" href="#未填的坑"><span class="nav-number"></span> <span class="nav-text">未填的坑</span></a></li></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2017 &mdash; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wxquare</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+  
+
+
+  
+
+  
+
+</body>
+</html>
