@@ -6,7 +6,7 @@ categories:
 
 
 ## TCP和UDP协议
-###. [tcp头格式，其20个字节包含哪些内容？](https://www.cnblogs.com/xiaolincoding/p/12638546.html) udp头部格式，其8个字节分别包含哪些内容？ 
+### [tcp头格式，其20个字节包含哪些内容？](https://www.cnblogs.com/xiaolincoding/p/12638546.html) udp头部格式，其8个字节分别包含哪些内容？ 
 2. 为什么 UDP 头部没有「首部长度」字段，而 TCP 头部有「首部长度」字段呢？原因是 TCP 有可变长的「选项」字段，而 UDP 头部长度则是不会变化的，无需多一个字段去记录 UDP 的首部长度
 3. tcp和udp的区别以及应用场景
     - TCP是否是面向连接的，而UDP是不需要建立连接的
