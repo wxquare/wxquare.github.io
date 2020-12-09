@@ -50,4 +50,19 @@ categories:
 6. 共享内存的同步机制，使用信号量，无锁数据结构 
 7.	多线程里一个线程sleep，实质上是在干嘛，忙等还是闲等。？
 8.	exit()函数与_exit()函数最大的区别就在于exit()函数在调用exit系统调用之前要检查文件的打开情况，把文件缓冲区中的内容写回文件，就是"清理I/O缓冲"。
+9.  select/epoll https://www.cnblogs.com/anker/p/3265058.html
+- select 内核态和用户态重复拷贝
+- select 需要遍历遍历查找就绪的socket
+- select 有数量限制1024
+- epoll 注册时写进内核
+- epoll_wait 返回就绪的事件
 
+
+## 网络编程
+1.	简单了解C语言的socket编程api。socket，bind，listen，accept，connect，read/write.
+2.	Linux下socket的五种I/O 模式，同步阻塞、同步非阻塞、同步I/O复用、异步I/O、信号驱动I/O
+3.	[Linux套接字和I/O模型](https://www.cnblogs.com/wxquare/archive/2004/01/13/6802078.html)
+4.	select和epoll的区别
+5.	什么是I/O 复用？关于I/O多路复用(又被称为“事件驱动”)，首先要理解的是，操作系统为你提供了一个功能，当你的某个socket可读或者可写的时候，它可以给你一个通知。这样当配合非阻塞的socket使用时，只有当系统通知我哪个描述符可读了，我才去执行read操作，可以保证每次read都能读到有效数据而不做纯返回-1和EAGAIN的无用功。写操作类似。操作系统的这个功能通过select/poll/epoll/kqueue之类的系统调用函数来使用，这些函数都可以同时监视多个描述符的读写就绪状况，这样，多个描述符的I/O操作都能在一个线程内并发交替地顺序完成，这就叫I/O多路复用，这里的“复用”指的是复用同一个线程。
+
+6.	网络分析工具。ping/tcpdump/netstat/lsof

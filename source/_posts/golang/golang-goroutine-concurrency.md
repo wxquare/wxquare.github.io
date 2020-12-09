@@ -1,59 +1,82 @@
 ---
-title: 深入GMP调度模型原理和实现
+title: Golang 并发编程和GMP调度模型
 categories:
 - Golang
 ---
 
 
-## 二、Goroutine
-golang从语言层面支持协程，通过协程实现程序的并发，所有golang代码通常由许多的协程构成。
-1. golang通过关键字go创建并发任务单元，但并不是执行并发操作。新建的协程会被放置在系统调度队列中，等待调度器安排合适的系统线程去获取执行权。通过go创建并发单元不会导致阻塞，程序不会等待改协程的启动，运行时runtime也不保证协程的执行顺序，也就是不保证先创建的协程一定比后创建的协程先执行。
-2. golang程序退出时，不会等待所有的goroutine执行结束，因此需要借助channel或者sync等同步手段。
-3. 为了应对多种并发任务，golang需要创建很多协程，但仅有限个线程参与并发任务执行。该数量通常默认与处理器核数相等，可通过runtime.GOMAXPROCS(1)函数修改，设置最大的可同时使用的CPU核数。
-4. <font color=red>Goroutine与线程不同，它无法设置优先级，无法获取编号，甚至无法获取返回值。只能通过在协程外部定义变量，以参数的形式传递给协程，同时需要做并发保护</font>。
-5. 操作系统在线程调度时具有时间片抢占的概念，意味着线程不会一直占有某处理器。而协程goroutine一旦被调度，在没有阻塞、系统调用、IO等情况下，将一直占有cpu，不会被其它协程抢占。协程可通过runtime.Gosched函数主动释放线程器质性其它任务，等待下次调度时恢复执行。
+# 并发编程的模式
+1. 多进程
+2. 多线程
+3. 线程池
+4. Goroutine 之类的协程
+5. 同步和异步
+6. 阻塞和非阻塞
+## 问题1：进程，线程和协程的区别？
+- 进程是系统进行资源分配和调度的一个独立单位,每个进程都有自己的独立内存空间,栈、寄存器、虚拟内存、文件句柄等
+- 线程是进程的一个实体,是CPU调度和分派的基本单位,在运行中必不可少的资源,如程序计数器,一组寄存器和栈
+- 协程是一种用户态的轻量级线程，协程的调度完全由用户控制,协程拥有自己的寄存器上下文和栈,直接操作栈则基本没有内核切换的开销
+## 问题2：进程、线程、协程切换分别包含哪些内容?
+- 进程因为有自己独立的地址空间，所以进程切换时需要切换页目录以使用新的地址空间，除此之外也需要切换内核栈和上下文环境
+- 线程的调度只有拥有最高权限的内核空间才可以完成，所以线程的切换涉及到用户空间和内核空间的切换,也就是特权模式切换，然后需要操作系统调度模块完成线程调度（taskstruct）.
+- 协程切换只涉及基本的CPU上下文切换，所谓的 CPU 上下文，就是一堆寄存器，里面保存了 CPU运行任务所需要的信息：从哪里开始运行（%rip：指令指针寄存器，标识 CPU 运行的下一条指令），栈顶的位置（%rsp： 是堆栈指针寄存器，通常会指向栈顶位置），当前栈帧在哪（%rbp 是栈帧指针，用于标识当前栈帧的起始位置）以及其它的CPU的中间状态或者结果（%rbx，%r12，%r13，%14，%15 等等）。协程切换非常简单，就是把当前协程的 CPU 寄存器状态保存起来，然后将需要切换进来的协程的 CPU 寄存器状态加载的 CPU 寄存器上就 ok 了。而且完全在用户态进行
+## 问题3：多进程、多线程、多协程编程有哪些优缺点?
+- 多进程的优点是稳定性好，一个子进程崩溃了，不会影响主进程以及其余进程.多进程编程也有不足，即创建进程的代价非常大
+- 多线程编程的优点是效率较高一些，适用于批处理任务等功能；不足之处在于，任何一个线程崩溃都可能造成整个进程的崩溃，因为它们共享了进程的内存资源池
+- 协程并发粒度小，可以同时进行的并发量比较大。缺点是需要用户自己调度。Golang 自己内置了runtime调度器;创建协程goroutine的代价低，通常为KB级别，因此协程数量大，可达数十万个
 
 
-## 三、CSP并发模式
-　　Golang主张基于协程的CSP（Communicating Sequential Processes）并发模型，以channel通信来代替内存共享，而不是以内存共享来通信，因此channel对于golang并发至关重要。**Don't communicate by sharing memory,share memory by communicating.** 另外，Golang提供sync包、互斥锁、读写锁和原子操作帮助更好的编写并发代码，提供context用于管理父子协程之间的关系。channel不是用来代替锁的，它们有各自不同的应用场景，channel倾向于解决协程之间的逻辑层次，而锁则用来保护局部数据的安全。
-- channel：参考[https://wxquare.github.io/2019/03/20/golang-channel/](https://wxquare.github.io/2019/03/20/golang-channel/)
-- sync: Mutex和RWMutex的使用并不复杂，有以下几点需要注意：
-	a、使用Mutex作为匿名字段时，相关方法必须实现为pointer-receiver,否则会因为复制导致锁失效
-	b、应该将锁粒度控制在最小范围，及早释放，考虑到性能，不要一昧的使用defer unlock
-	c、mutex不支持递归锁，即使在同一goroutine下也会导致死锁
-	d、读写并发时，用RWMutex性能会好一些
-	e、对单个数据的读写保护，建议使用原子操作
-- context：由于任务复杂，常会存在协程嵌套，context能帮助更好的管理协程之间的关系
+# 执行体之间的通信方式
+1. 进程间的通信方式
+- 共享内存、socket、管道、信号、共享队列
+2. 线程间的通信方式
+- 共享内存加锁
+3. Goroutine 之间的通信方式
+- 基于channel的CSP模式
+- 共享内存加锁
 
 
-## 四、协程调度
-上文讲过go关键字只是创建协程并发任务，并不是立刻执行，需要等待运行时runtime的调度。接下来介绍goroutine的G-M-P调度模型。
-### 4.1. 协程并发的优点
-操作系统线程并发：
-- 创建线程和切换线程代价较大，线程数量不能太多，经常采用线程池或者网络IO复用技术，因此线程调度难以扩展
-- 线程的同步和通信较为麻烦，加锁易犯错且易效率低
-协程并发：  
-- 创建协程goroutine的代价低，通常为KB级别，因此协程数量大，可达数十万个
-- Goroutine协程的同步和通信机制简单  
-- G-P-M调度模型较为高效，实现协程阻塞、抢占式调度、stealing等情况，具有较高的调度效率  
+# 执行体之间的同步原语和锁
+## C++
+## Golang
+1. [互斥锁,sync.Mutex](https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-sync-primitives/#mutex)
+- 饥饿模式
+- 普通模式
+- 自旋
+2. [读写锁，sync.RWMtex](https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-sync-primitives/#rwmutex)
+3. sync.Waitgroup
+4. 单例模式,[sync.Once](https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-sync-primitives/#once)
+5. sync.Cond
+6. [channel](https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-channel/#642-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84)
+7. [context](https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-context/)
+8. sync.atomic
+9. sync.map
+- 双map,read 和 dirty
+- lock
+- https://colobu.com/2017/07/11/dive-into-sync-Map/
+- https://segmentfault.com/a/1190000020946989
+- https://wudaijun.com/2018/02/go-sync-map-implement/
+- load,store,delete 的流程
 
-### 4.2. Golang运行时调度器
-　　golang运行时调度器位于用户golang代码和操作系统os之间，它决定何时哪个goroutine将获得资源开始执行、哪个goroutine应该停止执行让出资源、哪个goroutine应该被唤醒恢复执行等。由于操作系统是以线程为调度的单位，因此golang运行时调度器实际上是将协程调度到具体的线程上。在go1.1版本之前，实现的是简单的G-M调度模型，但是它限制了Go并发程序的伸缩性。随着golang版本的更新，其调度模型也在不断的优化，goalng 1.1版本中的G-P-M模型使其调度模型基本成型，也具有较高的效率。为了实现调度的可扩展性（scalable），在协程和线程之间增加了一个逻辑层P。
-- goroutine 都由一个G结构表示，它管理着goroutine的栈和状态
-- 运行时管理着G，并将它们映射到Logical Processor P上。P可以看作是一个抽象的资源或者一个上下文
-- 为了运行goroutine，M需要持有上下文P，M会从P的queue弹出一个goutine并执行。
-![G-p-M调度模型](https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/goroutine-scheduler-model.png)
 
-### 4.3 抢占式调度
-　　和操作系统按时间片调度线程不同，Go并没有时间片的概念。如果某个G没有进行system call调用、没有进行I/O操作、没有阻塞在一个channel操作上，那么改协程将一直占据改M的资源，除非改协程主动放弃资源，例如使用runtime.Gosched()
-### 4.4 channel阻塞或者network I/O情况下的调度
-　　如果G被阻塞在某个channel操作或network I/O操作上时，G会被放置到某个wait队列中，而M会尝试运行下一个runnable的G；如果此时没有runnable的G供m运行，那么m将解绑P，并进入sleep状态。当I/O available或channel操作完成，在wait队列中的G会被唤醒，标记为runnable，放入到某P的队列中，绑定一个M继续执行。
-### 4.5 system call阻塞状态下的调度
-　　如果G被阻塞在某个system call操作上，那么不光G会阻塞，执行该G的M也会解绑P(实质是被sysmon抢走了)，与G一起进入sleep状态。如果此时有idle的M，则P与其绑定继续执行其他G；如果没有idle M，但仍然有其他G要去执行，那么就会创建一个新M。当阻塞在syscall上的G完成syscall调用后，G会去尝试获取一个可用的P，如果没有可用的P，那么G会被标记为runnable，之前的那个sleep的M将再次进入sleep。
+# 执行体的调度模型GMP
+1. 操作系统os的调度
+- 非抢占式（nonpreemptive）调度算法：挑选一个进程让它一直执行直至被阻塞或自动释放CPU（在这种情况下，该进程若交出CPU都是自愿的）
+- 抢占式（preemptive）调度算法：挑选一个进程让它运行某个固定时间的最大值，结束时会被挂起，调度程序会选择另一个合适的进程来运行（优先级高的先调度），必须要有可用的时钟来发生时钟中断，不然只能用非抢占式调度算法
+- 先来先服务（FCFS：first-come first-served）
+- 时间片轮转调度（Round Robin，RR）
+- 优先级调度（Priority Schedule）
+- 多级队列（Multilevel Queue）
+2. [golang 运行时GMP的调度]()
+- G/M/P
+- 基于协作的抢占式调度器
 
-### 4.6 golang调度器的跟踪调试
-https://colobu.com/2016/04/19/Scheduler-Tracing-In-Go/
 
-参考：  
-- https://tonybai.com/2017/06/23/an-intro-about-goroutine-scheduler/  
-- https://colobu.com/2017/05/04/go-scheduler/  
+并发日常编程必不可少的内容，可以选择多进程、多线程、多协程、池化技术，golang协程并发具有以下这些优势：
+1. 编码比较简单
+2. 推崇基于channel的CSP模式，避免了重复加锁出错的概率
+3. 同步原语比较丰富
+4. 相比进程、线程MB级别的代价，创建协程的代价比较低，通常为KB级别。
+5. 相比进程、线程并发调度时的切换，线程切换在非系统调用阻塞下通常只在用户态进行
+6. golang GMP实现了通过较少内核线程调度多个协程
+7. 因此goroutine具有粒度更小，高效调度且易用的特点。
