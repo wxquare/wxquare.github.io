@@ -113,6 +113,7 @@ CHECK: 用于控制字段的值范围。
 explain分析sql语句，查看执行计划，优化sql
 查看mysql执行日志，分析是否有其他方面的问题
 - Redis和mysql数据怎么保持数据一致的？ https://juejin.im/post/6844903805641818120
+- [怎么处理线上DDL变更?](https://zhuanlan.zhihu.com/p/247939271)
 
 ## 推荐阅读:
 1. https://thinkwon.blog.csdn.net/article/details/104778621
