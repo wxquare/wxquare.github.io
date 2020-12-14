@@ -47,7 +47,7 @@ categories:
 
 ## 事务Transaction与锁
 - 什么是数据库事务？事务是一个不可分割的数据库操作序列，也是数据库并发控制的基本单位，其执行的结果必须使数据库从一种一致性状态变到另一种一致性状态。事务是逻辑上的一组操作，要么都执行，要么都不执行
-- innodb事务的ACID特性，以及其对应的实现原理? https://www.cnblogs.com/kismetv/p/10331633.html   
+- [innodb事务的ACID特性，以及其对应的实现原理?](https://www.cnblogs.com/kismetv/p/10331633.html)   
     - 原子性：语句要么全执行，要么全不执行，是事务最核心的特性，事务本身就是以原子性来定义的；实现主要基于undo log
     - 持久性：保证事务提交后不会因为宕机等原因导致数据丢失；实现主要基于redo log
     - 隔离性：保证事务执行尽可能不受其他事务影响；InnoDB默认的隔离级别是RR，RR的实现主要基于锁机制（包含next-key lock）、MVCC（包括数据的隐藏列、基于undo log的版本链、ReadView）
