@@ -29,6 +29,7 @@ categories:
 	- dead
 12. 进程、线程与协程的区别
 13. 操作系统写时复制:https://juejin.cn/post/6844903702373859335
+14. [操作系统为什么设计用户态和内核态，用户态和内核态的权限不同？怎么解决IO频繁发生内核和用户态的态的切换（缓存）？](https://imageslr.github.io/2020/07/07/user-mode-kernel-mode.html)
 
 
 ## 存储系统，内存和存储
