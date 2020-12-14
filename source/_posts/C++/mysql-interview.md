@@ -37,6 +37,11 @@ categories:
 - 覆盖索引。覆盖索引（covering index）指一个查询语句的执行只用从索引中就能够取得，不必从数据表中读取。也可以称之为实现了索引覆盖。
 如果一个索引包含了（或覆盖了）满足查询语句中字段与条件的数据就叫做覆盖索引
 - [索引的数据结构，红黑树、B树、B+树的比较](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
+- 列出索引失效的几种场景？
+    - 条件中包含or
+    - 条件中包含%like
+    - 联调索引，违背最左匹配原则
+    - 在索引列上有一些额外的计算操作
 
 
 
