@@ -119,6 +119,7 @@ categories:
 	- http 2.0，二进制压缩+连接复用
 	- http QUIC，udp+ssl
 10. 使用curl
+11. [https中间人攻击原理以及防御措施](https://zh.wikipedia.org/wiki/%E4%B8%AD%E9%97%B4%E4%BA%BA%E6%94%BB%E5%87%BB)
 
 
 
