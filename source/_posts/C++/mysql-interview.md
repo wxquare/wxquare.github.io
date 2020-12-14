@@ -36,7 +36,7 @@ categories:
 - 聚簇索引和非聚簇索引
 - 覆盖索引。覆盖索引（covering index）指一个查询语句的执行只用从索引中就能够取得，不必从数据表中读取。也可以称之为实现了索引覆盖。
 如果一个索引包含了（或覆盖了）满足查询语句中字段与条件的数据就叫做覆盖索引
-- 索引的数据结构，B+树、B树、hash索引，各自的优缺点及用途
+- [索引的数据结构，红黑树、B树、B+树的比较](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
 
 
 
