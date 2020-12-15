@@ -31,6 +31,7 @@ categories:
 13. 操作系统写时复制:https://juejin.cn/post/6844903702373859335
 14. [操作系统为什么设计用户态和内核态，用户态和内核态的权限不同？怎么解决IO频繁发生内核和用户态的态的切换（缓存）？](https://imageslr.github.io/2020/07/07/user-mode-kernel-mode.html)
 15. [select、epoll的监听回调机制，红黑树？](https://www.jianshu.com/p/31cdfd6f5a48)
+16. [从一道面试题谈linux下fork的运行机制](https://www.cnblogs.com/leoo2sk/archive/2009/12/11/talk-about-fork-in-linux.html)
 
 
 ## 存储系统，内存和存储
