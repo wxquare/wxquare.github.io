@@ -27,6 +27,8 @@ categories:
 16. [生产者消费者模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/producer_consumer.cpp)
 17. [C++ 不可继承类的实现](https://www.cnblogs.com/wxquare/p/7280025.html)
 18. [C++ 读写锁的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/read_write_locker.cpp) 
+19. LRU
+20. LFU
 
 
 ## 常用理解的算法
