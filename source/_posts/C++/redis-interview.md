@@ -18,7 +18,7 @@ categories:
 
 
 ## redis 5种数据类型和底层数据结构
-[!redis数据类型](/images/redis-data-type)
+[redis数据类型](/images/redis-data-type)
 - redis中zset的底层原理
 - [面试：原来Redis的五种数据类型底层结构是这样的](https://my.oschina.net/ccwwlx/blog/3120883)
 https://juejin.cn/post/6844904192042074126#heading-8
