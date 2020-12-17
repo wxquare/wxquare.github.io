@@ -23,6 +23,7 @@ categories:
 - [面试：原来Redis的五种数据类型底层结构是这样的](https://my.oschina.net/ccwwlx/blog/3120883)
 https://juejin.cn/post/6844904192042074126#heading-8
 - [最详细的Redis五种数据结构详解](https://juejin.cn/post/6844904192042074126)
+- https://juejin.cn/post/6868409018151337991
 
 
 ## redis 数据持久化
