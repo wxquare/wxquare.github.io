@@ -13,12 +13,9 @@ date: 2020-09-02 21:56:42
 
 ## Skills and Interests
 - Familiar With Golang/C++/Python
-- Familiar With Data Structure and Algorithm, Leetcode
+- Familiar With Data Structure and Algorithm
 - Familiar With Mysql, Kafka
 - Familiar With Deep Learning Compiler,TVM
 - Familiar With English
-
-
-
 
 
