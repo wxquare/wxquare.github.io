@@ -10,12 +10,7 @@ categories:
 
 
 
-## 经典算法
-1. 单例模式. https://www.liwenzhou.com/posts/Go/singleton_in_go/
-2. 求平方根（根号n）的两种算法——二分法
-3. 雪花算法SnowFlake
-4. 洗牌算法
-5. 蓄水池抽样，从m个数中抽取n个数
+
 
 
 
