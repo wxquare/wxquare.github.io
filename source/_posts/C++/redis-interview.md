@@ -84,3 +84,4 @@ https://juejin.cn/post/6844904192042074126#heading-8
 ## 推荐阅读:
 1. https://blog.csdn.net/ThinkWon/article/details/103522351
 2. https://tech.meituan.com/2017/03/17/cache-about.html
+3. [一不小心肝出了4W字的Redis面试教程](https://juejin.cn/post/6868409018151337991)
