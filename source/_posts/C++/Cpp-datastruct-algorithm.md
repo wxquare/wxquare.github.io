@@ -44,6 +44,12 @@ categories:
 - 雪花算法SnowFlake
 - 洗牌算法
 - 蓄水池抽样，从m个数中抽取n个数
+- 经典算法
+- 单例模式. https://www.liwenzhou.com/posts/Go/singleton_in_go/
+- 求平方根（根号n）的两种算法——二分法
+- 雪花算法SnowFlake
+- 洗牌算法
+- 蓄水池抽样，从m个数中抽取n个数
 
 ## 大数据算法
 1. 十道海量数据处理面试题与十个方法大总结
