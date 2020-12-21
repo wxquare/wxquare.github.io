@@ -15,5 +15,5 @@ categories:
 ## 系统设计
 1. protobuf 为什么这么快,tlv编码 https://blog.csdn.net/carson_ho/article/details/70568606s
 2. [阿里云，救火必备！问题排查与系统优化手册](https://zhuanlan.51cto.com/art/202007/620840.htm)
-  - 常见的问题及其应对办法
-  - 怎么做系统优化
+    - 常见的问题及其应对办法
+    - 怎么做系统优化
