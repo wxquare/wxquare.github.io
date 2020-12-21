@@ -43,6 +43,11 @@ Kafka速度的秘诀在于，它把所有的消息都变成一个批量的文件
 - 每个partition又分为多个segment（段），segment文件由两部分组成，.index文件和.log文件。通过将partition划分为多个segment，避免单个partition文件无限制扩张，方便旧的消息的清理。
 
 
+## 五、kafka partition副本机制保障高可用性
+- 为了保障消息的可靠性，kafka中每个partition会设置大于1的副本数。
+- 每个patition都有唯一的leader
+
+
 
 ## 四、kafka消息堆积
 在消费者端，kafka只允许单个分区的数据被一个消费者线程消费，如果消费者越多意味着partition也要越多。然而在分区数量有限的情况下，消费者数量也就会被限制。在这种约束下，如果消息堆积了该如何处理？
