@@ -54,15 +54,14 @@ Kafka速度的秘诀在于，它把所有的消息都变成一个批量的文件
   - -1：producer需要等待ISR中的所有follower都确认接收到数据后才算一次发送完成，可靠性最高。但是这样也不能保证数据不丢失，比如当ISR中只有leader时（前面ISR那一节讲到，ISR中的成员由于某些情况会增加也会减少，最少就只剩一个leader），这样就变成了acks=1的情况。
 - ISR 副本选举leader
 
-## 四、kafka消息堆积
+## 六、kafka topic消息堆积
 在消费者端，kafka只允许单个分区的数据被一个消费者线程消费，如果消费者越多意味着partition也要越多。然而在分区数量有限的情况下，消费者数量也就会被限制。在这种约束下，如果消息堆积了该如何处理？
 目前我处理的方法比较粗暴，消费消息的时候直接返回，然后启动异步线程去处理消息，消息如果再处理的过程中失败的话，再重新发送到kafka中。
 - 增加分区数量
 - 优化消费速度
 - 增加并行度，找多个人消化
 
-## 五、Rebalance 机制
-https://zhuanlan.zhihu.com/p/46963810  
+## 七、[消费者 Rebalance 机制](https://zhuanlan.zhihu.com/p/46963810)
 Rebalance本身是Kafka集群的一个保护设定，用于剔除掉无法消费或者过慢的消费者，然后由于我们的数据量较大，同时后续消费后的数据写入需要走网络IO，很有可能存在依赖的第三方服务存在慢的情况而导致我们超时。Rebalance对我们数据的影响主要有以下几点：
 - 数据重复消费: 消费过的数据由于提交offset任务也会失败，在partition被分配给其他消费者的时候，会造成重复消费，数据重复且增加集群压力
 - Rebalance扩散到整个ConsumerGroup的所有消费者，因为一个消费者的退出，导致整个Group进行了Rebalance，并在一个比较慢的时间内达到稳定状态，影响面较大
@@ -70,7 +69,7 @@ Rebalance本身是Kafka集群的一个保护设定，用于剔除掉无法消费
 - 数据不能及时消费，会累积lag，在Kafka的超过一定时间后会丢弃数据
 
 
-## 六、Kafka中的消息是否会丢失和重复消费
+## 八、Kafka中三种语义
 要确定Kafka的消息是否丢失或重复，从两个方面分析入手：消息发送和消息消费。
 
 ### 1、消息发送
@@ -91,8 +90,8 @@ Kafka消息消费有两个consumer接口，Low-level API和High-level API：
 
 消息重复消费及解决参考：https://www.javazhiyin.com/22910.html
 
-## Kafka Golang Sarama的使用demo
-1. https://github.com/wxquare/programming/blob/master/golang/util/kafka_util.go
+## 参考
+1. Kafka Golang Sarama的使用demo,https://github.com/wxquare/programming/blob/master/golang/util/kafka_util.go
 2. [kafka数据可靠性深度解读](https://blog.csdn.net/u013256816/article/details/71091774)
 3. [kafka 选举](https://juejin.im/post/6844903846297206797)
 4. [Kafka为什么吞吐量大、速度快？](https://blog.csdn.net/kzadmxz/article/details/101576401)
