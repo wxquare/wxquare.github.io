@@ -24,8 +24,8 @@ categories:
 - [生产者消费者模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/producer_consumer.cpp)
 - [C++ 不可继承类的实现](https://www.cnblogs.com/wxquare/p/7280025.html)
 - [C++ 读写锁的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/read_write_locker.cpp) 
-- LRU
-- LFU
+- [LRU](https://leetcode-cn.com/problems/lru-cache/)
+- [LFU](https://leetcode-cn.com/problems/lfu-cache/)
 - 哈希算法、冲突解决和简单实现
 - 平衡二叉树、红黑树、B树、Trie树
 - bitmamp布隆滤波器
