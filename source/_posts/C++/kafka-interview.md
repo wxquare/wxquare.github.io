@@ -43,7 +43,7 @@ Kafka速度的秘诀在于，它把所有的消息都变成一个批量的文件
 - 每个partition又分为多个segment（段），segment文件由两部分组成，.index文件和.log文件。通过将partition划分为多个segment，避免单个partition文件无限制扩张，方便旧的消息的清理。
 
 
-## 五、kafka partition 副本ISR机制保障高可用性
+## 五、[kafka partition 副本ISR机制保障高可用性](https://blog.csdn.net/u013256816/article/details/71091774)
 - 为了保障消息的可靠性，kafka中每个partition会设置大于1的副本数。
 - 每个patition都有唯一的leader
 - partition的所有副本称为AR。所有的副本（replicas）统称为Assigned Replicas，即AR。ISR是AR中的一个子集，由leader维护ISR列表，follower从leader同步数据有一些延迟（包括延迟时间replica.lag.time.max.ms和延迟条数replica.lag.max.messages两个维度, 当前最新的版本0.10.x中只支持replica.lag.time.max.ms这个维度），任意一个超过阈值都会把follower剔除出ISR, 存入OSR（Outof-Sync Replicas）列表，新加入的follower也会先存放在OSR中。AR=ISR+OSR
