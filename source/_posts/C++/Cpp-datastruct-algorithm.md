@@ -5,10 +5,7 @@ categories:
 ---
 
 
-知乎链接：https://www.zhihu.com/question/23148377
 
-
-## 会手写算法
 - [C++ MyString类的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/mystring.cpp)
 - [C++ MyVector类的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/myvector.cpp)
 - [二分查找递归和非递归的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search.cpp)
@@ -19,44 +16,39 @@ categories:
 - [memcpy/memset/strcpy/strncpy函数的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/str_function.cpp)
 - 大数加减乘除
 - KMP字符串匹配算法]
-11. [快排查找第k大的数](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/select_k.cpp)
-12. [全排列组合的实现](https://www.cnblogs.com/wxquare/p/4719228.html)
-13. [单例模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/singleton.cpp)
-14. [工厂模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/factory.cpp)
-15. [观察者模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/observer.cpp)
-16. [生产者消费者模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/producer_consumer.cpp)
-17. [C++ 不可继承类的实现](https://www.cnblogs.com/wxquare/p/7280025.html)
-18. [C++ 读写锁的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/read_write_locker.cpp) 
-19. LRU
-20. LFU
-1. 哈希算法、冲突解决和简单实现
-2. 平衡二叉树、红黑树、B树、Trie树
-3. bitmamp
-4. 布隆滤波器
-5. 暴力：dfs和bfs
-6. 哈希一致性算法
-7. 逻辑问题
-8. 100亿个数选top5，小根堆
-9. 唯一订单号问题，并发量高的话怎么解决
-10. 跳跃表，为什么使用跳跃表而不使用红黑树
-11. hash表设计要注意什么问题
-12. LRU的实现
-13. 布隆过滤器,bloom filter 使用场景，优缺点.与 hash set的比较
-14. ## 经典算法
-15. 单例模式. https://www.liwenzhou.com/posts/Go/singleton_in_go/
-16. 求平方根（根号n）的两种算法——二分法
-17. 雪花算法SnowFlake
-18. 洗牌算法
-19. 蓄水池抽样，从m个数中抽取n个数
-
+- [快排查找第k大的数](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/select_k.cpp)
+- [全排列组合的实现](https://www.cnblogs.com/wxquare/p/4719228.html)
+- [单例模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/singleton.cpp)
+- [工厂模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/factory.cpp)
+- [观察者模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/observer.cpp)
+- [生产者消费者模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/producer_consumer.cpp)
+- [C++ 不可继承类的实现](https://www.cnblogs.com/wxquare/p/7280025.html)
+- [C++ 读写锁的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/read_write_locker.cpp) 
+- LRU
+- LFU
+- 哈希算法、冲突解决和简单实现
+- 平衡二叉树、红黑树、B树、Trie树
+- bitmamp布隆滤波器
+- 暴力：dfs和bfs
+- 哈希一致性算法
+- 逻辑问题
+- 100亿个数选top5，小根堆
+- 唯一订单号问题，并发量高的话怎么解决
+- 跳跃表，为什么使用跳跃表而不使用红黑树
+- hash表设计要注意什么问题
+- LRU的实现
+- 布隆过滤器,bloom filter 使用场景，优缺点.与 hash set的比较
+- 经典算法
+- 单例模式. https://www.liwenzhou.com/posts/Go/singleton_in_go/
+- 求平方根（根号n）的两种算法——二分法
+- 雪花算法SnowFlake
+- 洗牌算法
+- 蓄水池抽样，从m个数中抽取n个数
 
 ## 大数据算法
 1. 十道海量数据处理面试题与十个方法大总结
 
 
-## 剑指offer
-
-## [leetcode](https://leetcode.com/problemset/all/)
 
 
 
