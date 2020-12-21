@@ -17,3 +17,5 @@ categories:
 2. [阿里云，救火必备！问题排查与系统优化手册](https://zhuanlan.51cto.com/art/202007/620840.htm)
     - 常见的问题及其应对办法
     - 怎么做系统优化
+3. 怎么设计一个分布式调度系统（滴滴）
+4. [使用redis实现微信步数排行榜](https://www.cnblogs.com/zwwhnly/p/13041641.html)
