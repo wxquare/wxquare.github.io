@@ -10,7 +10,7 @@ categories:
 - [C++ MyVector类的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/myvector.cpp)
 - [二分查找递归和非递归的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search.cpp)
 - [排序算法的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/sort.cpp)
-- [二叉树的前、中、后序遍历](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_tree.cpp)
+- [二叉树的前、中、后序遍历,非递归的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_tree.cpp)（12.21）
 - [二叉搜索树的查找、插入和删除](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search_tree.cpp)
 - [字符串和数字的相互转换atoi和itoa函数的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/itoa_atoi.cpp)
 - [memcpy/memset/strcpy/strncpy函数的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/str_function.cpp)
