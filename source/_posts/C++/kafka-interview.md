@@ -11,7 +11,7 @@ categories:
 4. 其它作用：扩展性、冗余、顺序性（partition中的数据有序）   
 实例：广告系统和用户增长项目中经常将用户行为数据和广告投放数据接入消息队列中做后续的处理
 
-## 二、 如何向别人介绍kafka的架构和实现原理？
+## 二、 如何向别人介绍kafka的架构及其实现原理？
 ![kafka架构图](/images/kafka_architecture.png)
 - broker
 Kafka 集群包含一个或多个服务器，服务器节点称为broker。broker 是消息的代理，Producers往Brokers里面的指定Topic中写消息，Consumers从Brokers里面拉取指定Topic的消息，然后进行业务处理，broker在中间起到一个代理保存消息的中转站。 
