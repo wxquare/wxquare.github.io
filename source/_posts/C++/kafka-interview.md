@@ -28,8 +28,7 @@ topic中的数据分割为一个或多个partition。每个topic至少有一个p
 - zookeeper
 zookeeper 是一个分布式的协调组件，早期版本的kafka用zk做meta信息存储，consumer的消费状态，group的管理以及 offset的值。考虑到zk本身的一些因素以及整个架构较大概率存在单点问题，新版本中逐渐弱化了zookeeper的作用。新的consumer使用了kafka内部的group coordination协议，也减少了对zookeeper的依赖，但是broker依然依赖于ZK，zookeeper 在kafka中还用来选举controller 和 检测broker是否存活等等
 
-## 三、kafka是怎么做到高性能
-https://blog.csdn.net/kzadmxz/article/details/101576401
+## 三、[kafka是怎么做到高性能](https://blog.csdn.net/kzadmxz/article/details/101576401)
 Kafka虽然除了具有上述优点之外，还具有高性能、高吞吐、低延时的特点，其吞吐量动辄几十万、上百万。
 - **磁盘顺序写入**。Kafka的message是不断追加到本地磁盘文件末尾的，而不是随机的写入。所以Kafka是不会删除数据的，它会把所有的数据都保留下来，每个消费者（Consumer）对每个Topic都有一个offset用来表示 读取到了第几条数据 。
 - **操作系统page cache**，使得kafka的读写操作基本基于内存，提高读写的性能
@@ -79,3 +78,4 @@ Kafka消息消费有两个consumer接口，Low-level API和High-level API：
 1. https://github.com/wxquare/programming/blob/master/golang/util/kafka_util.go
 2. [kafka数据可靠性深度解读](https://blog.csdn.net/u013256816/article/details/71091774)
 3. [kafka 选举](https://juejin.im/post/6844903846297206797)
+4. [Kafka为什么吞吐量大、速度快？](https://blog.csdn.net/kzadmxz/article/details/101576401)
