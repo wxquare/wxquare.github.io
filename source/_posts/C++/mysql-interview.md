@@ -126,7 +126,8 @@ explain分析sql语句，查看执行计划，优化sql
 - [怎么处理线上DDL变更?](https://zhuanlan.zhihu.com/p/247939271)
 
 ## sql 练习
-    [leetcode sql](https://juejin.cn/post/6844903827934560263#heading-3)
+[leetcode sql](https://juejin.cn/post/6844903827934560263#heading-3)
+
 ## 推荐阅读:
 1. https://thinkwon.blog.csdn.net/article/details/104778621
 2. [MySQL索引那些事](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
