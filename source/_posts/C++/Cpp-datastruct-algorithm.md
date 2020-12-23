@@ -15,6 +15,8 @@ categories:
 - [观察者模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/observer.cpp)
 - [生产者消费者模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/producer_consumer.cpp)
 
+## 大数据算法总结
+- [教你如何迅速秒杀掉99%的海量数据处理面试题](https://juejin.cn/post/6844903519640616967)
 
 - [C++ MyString类的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/mystring.cpp)
 - [C++ MyVector类的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/myvector.cpp)
