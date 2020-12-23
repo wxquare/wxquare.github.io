@@ -5,9 +5,9 @@ categories:
 ---
 
 ## binary tree
-1. [lowest common ancestor](https://leetcode-cn.com/problems/lowest-common-ancestor-of-a-binary-tree/)
-2. [二叉树的前、中、后序遍历,非递归的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_tree.cpp)（12.21）
-3. [二叉搜索树的查找、插入和删除](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search_tree.cpp)
+- [lowest common ancestor](https://leetcode-cn.com/problems/lowest-common-ancestor-of-a-binary-tree/)
+- [二叉树的前、中、后序遍历,非递归的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_tree.cpp)（12.21）
+- [二叉搜索树的查找、插入和删除](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search_tree.cpp)
 
 
 - [C++ MyString类的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/mystring.cpp)
