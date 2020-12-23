@@ -22,6 +22,7 @@ categories:
 - 有一个1G大小的一个文件，里面每一行是一个词，词的大小不超过16字节，内存限制大小是1M。返回频数最高的100个词
 - 海量数据分布在100台电脑中，想个办法高效统计出这批数据的TOP10
 - 有10个文件，每个文件1G，每个文件的每一行存放的都是用户的query，每个文件的query都可能重复。要求你按照query的频度排序
+- 5亿个int找它们的中位数
 
 其它：
 - [C++ MyString类的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/mystring.cpp)
