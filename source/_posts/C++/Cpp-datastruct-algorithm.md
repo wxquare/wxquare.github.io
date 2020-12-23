@@ -9,23 +9,24 @@ categories:
 - [二叉树的前、中、后序遍历,非递归的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_tree.cpp)（12.21）
 - [二叉搜索树的查找、插入和删除](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search_tree.cpp)
 
+## design pattern
+- [单例模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/singleton.cpp)
+- [工厂模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/factory.cpp)
+- [观察者模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/observer.cpp)
+- [生产者消费者模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/producer_consumer.cpp)
+
 
 - [C++ MyString类的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/mystring.cpp)
 - [C++ MyVector类的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/myvector.cpp)
 - [二分查找递归和非递归的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search.cpp)
 - [排序算法的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/sort.cpp)
-
-
 - [字符串和数字的相互转换atoi和itoa函数的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/itoa_atoi.cpp)
 - [memcpy/memset/strcpy/strncpy函数的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/str_function.cpp)
 - 大数加减乘除
 - KMP字符串匹配算法]
 - [快排查找第k大的数](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/select_k.cpp)
 - [全排列组合的实现](https://www.cnblogs.com/wxquare/p/4719228.html)
-- [单例模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/singleton.cpp)
-- [工厂模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/factory.cpp)
-- [观察者模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/observer.cpp)
-- [生产者消费者模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/producer_consumer.cpp)
+
 - [C++ 不可继承类的实现](https://www.cnblogs.com/wxquare/p/7280025.html)
 - [C++ 读写锁的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/read_write_locker.cpp) 
 - [LRU](https://leetcode-cn.com/problems/lru-cache/)
