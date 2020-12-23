@@ -17,7 +17,13 @@ categories:
 
 ## 大数据算法总结
 - [教你如何迅速秒杀掉99%的海量数据处理面试题](https://juejin.cn/post/6844903519640616967)
+- 海量日志数据，提取出某日访问百度次数最多的那个IP
+- 寻找热门查询，300万个查询字符串中统计最热门的10个查询
+- 有一个1G大小的一个文件，里面每一行是一个词，词的大小不超过16字节，内存限制大小是1M。返回频数最高的100个词
+- 海量数据分布在100台电脑中，想个办法高效统计出这批数据的TOP10
+- 有10个文件，每个文件1G，每个文件的每一行存放的都是用户的query，每个文件的query都可能重复。要求你按照query的频度排序
 
+其它：
 - [C++ MyString类的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/mystring.cpp)
 - [C++ MyVector类的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/myvector.cpp)
 - [二分查找递归和非递归的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search.cpp)
