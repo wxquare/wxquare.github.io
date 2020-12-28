@@ -43,7 +43,7 @@ categories:
 6. Linux系统原理之文件系统（磁盘、分区、文件系统、inode表、data block）
 7. 在linux执行ls上实际发生了什么
 8. [CPU寻址过程](http://www.ssdfans.com/?p=105901),tlb,cache miss.
-9. https://blog.csdn.net/K346K346/article/details/80849966
+9. [栈和堆的区别](https://blog.csdn.net/K346K346/article/details/80849966)
 
 ## 系统编程以及其它注意事项
 1. 使用过哪些进程间通讯机制，并详细说明,linux进程之间的通信7种方式
