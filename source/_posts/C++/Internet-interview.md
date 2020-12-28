@@ -120,6 +120,7 @@ categories:
 	- http QUIC，udp+ssl
 10. 使用curl
 11. [https中间人攻击原理以及防御措施](https://zh.wikipedia.org/wiki/%E4%B8%AD%E9%97%B4%E4%BA%BA%E6%94%BB%E5%87%BB)
+12. [如何理解http的无连接和无状态的特点？](https://blog.csdn.net/tennysonsky/article/details/44562435)
 
 
 
