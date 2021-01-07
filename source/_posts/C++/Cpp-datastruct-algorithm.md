@@ -77,7 +77,7 @@ categories:
 2. [三数之和](https://leetcode-cn.com/problems/3sum/)
 
 ## leetcode monthly
-1. [除法求值](https://leetcode-cn.com/problems/evaluate-division/)
+1. [除法求值](https://leetcode-cn.com/problems/evaluate-division/)(graph)
 
 ## leetcode weekly contest
 
