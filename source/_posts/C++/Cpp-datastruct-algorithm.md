@@ -77,10 +77,9 @@ categories:
 2. [三数之和](https://leetcode-cn.com/problems/3sum/)
 3. [215. 数组中的第K个最大元素](https://leetcode-cn.com/problems/kth-largest-element-in-an-array/)
 
-## leetcode monthly
-1. [除法求值](https://leetcode-cn.com/problems/evaluate-division/)(graph)
-
-## leetcode weekly contest
+## Graph && Union Find && DFS && BFS
+1. [547. 省份的数量](https://leetcode-cn.com/problems/number-of-provinces/)
+2. [399. 除法求值](https://leetcode-cn.com/problems/evaluate-division/)(graph)
 
 
 
