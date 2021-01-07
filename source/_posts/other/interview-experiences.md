@@ -56,3 +56,4 @@ categories:
 
 ### microsoft
 1. https://leetcode-cn.com/circle/discuss/TEXcH1/
+2. https://zhuanlan.zhihu.com/p/95836541
