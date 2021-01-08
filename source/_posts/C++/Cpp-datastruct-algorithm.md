@@ -88,5 +88,5 @@ categories:
 2. 
 
 ## Easy
-1. 830. Positions of Large Groups
+1. [830. Positions of Large Groups](https://leetcode-cn.com/problems/positions-of-large-groups/)
 
