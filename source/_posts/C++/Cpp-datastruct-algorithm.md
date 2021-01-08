@@ -85,7 +85,7 @@ categories:
 
 ## Dynamic programming
 1. [300. 最长递增子序列](https://leetcode-cn.com/problems/longest-increasing-subsequence/)
-2. 
+2. [poj，ws面试,最长的递增递减子序列长度](https://my.oschina.net/Alexanderzhou/blog/205171)
 
 ## Easy
 1. [830. Positions of Large Groups](https://leetcode-cn.com/problems/positions-of-large-groups/)
