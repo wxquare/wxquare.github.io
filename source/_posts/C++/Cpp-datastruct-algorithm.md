@@ -83,4 +83,10 @@ categories:
 2. [399. 除法求值](https://leetcode-cn.com/problems/evaluate-division/)(graph)
 
 
+## Dynamic programming
+1. [300. 最长递增子序列](https://leetcode-cn.com/problems/longest-increasing-subsequence/)
+2. 
+
+## Easy
+1. 830. Positions of Large Groups
 
