@@ -87,8 +87,9 @@ categories:
 ## Dynamic Programming
 1. [300. 最长递增子序列](https://leetcode-cn.com/problems/longest-increasing-subsequence/)
 2. [poj，ws面试,最长的递增递减子序列长度](https://my.oschina.net/Alexanderzhou/blog/205171)
-3. [121. 买卖股票的最佳时机](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock/)
-4. 
+3. [121. 买卖股票的最佳时机](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock/),最多买卖一次
+4. [122. 买卖股票的最佳时机](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-ii/)，可以买卖任意次数
+
 
 ## Easy
 1. [830. Positions of Large Groups](https://leetcode-cn.com/problems/positions-of-large-groups/)
