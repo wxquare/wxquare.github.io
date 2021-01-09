@@ -84,9 +84,11 @@ categories:
 2. [399. 除法求值](https://leetcode-cn.com/problems/evaluate-division/)(graph)
 3. [ws面试：有一个矩形格子框，每个框都有一个字母，需要你找到路径，使得这条路径上的字母都不重复，请问这个最长的路径是多长?]
 
-## Dynamic programming
+## Dynamic Programming
 1. [300. 最长递增子序列](https://leetcode-cn.com/problems/longest-increasing-subsequence/)
 2. [poj，ws面试,最长的递增递减子序列长度](https://my.oschina.net/Alexanderzhou/blog/205171)
+3. [121. 买卖股票的最佳时机](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock/)
+4. 
 
 ## Easy
 1. [830. Positions of Large Groups](https://leetcode-cn.com/problems/positions-of-large-groups/)
