@@ -77,6 +77,7 @@ categories:
 2. [三数之和](https://leetcode-cn.com/problems/3sum/)
 3. [215. 数组中的第K个最大元素](https://leetcode-cn.com/problems/kth-largest-element-in-an-array/)
 4. [18. 四数之和](https://leetcode-cn.com/problems/4sum/)
+5. [189. 旋转数组](https://leetcode-cn.com/problems/rotate-array/),注意是否能使用额外的内存
 
 ## Graph && Union Find && DFS && BFS
 1. [547. 省份的数量](https://leetcode-cn.com/problems/number-of-provinces/)
