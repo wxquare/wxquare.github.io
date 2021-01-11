@@ -4,10 +4,7 @@ categories:
 - C/C++
 ---
 
-## binary tree
-- [lowest common ancestor](https://leetcode-cn.com/problems/lowest-common-ancestor-of-a-binary-tree/)
-- [二叉树的前、中、后序遍历,非递归的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_tree.cpp)（12.21）
-- [二叉搜索树的查找、插入和删除](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search_tree.cpp)
+
 
 ## design pattern
 - [单例模式的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/singleton.cpp)
@@ -97,6 +94,11 @@ categories:
 9. [ 完成所有工作的最短时间](https://leetcode-cn.com/problems/find-minimum-time-to-finish-all-jobs/)，状态压缩DP或者dfs加剪枝
 
 
+## Linked List && Tree
+1. [交换链表中的第K个节点和倒数第K个节点](https://leetcode-cn.com/problems/swapping-nodes-in-a-linked-list/)
+
 ## Easy
 1. [830. Positions of Large Groups](https://leetcode-cn.com/problems/positions-of-large-groups/)
-
+2. [lowest common ancestor](https://leetcode-cn.com/problems/lowest-common-ancestor-of-a-binary-tree/)
+3. [二叉树的前、中、后序遍历,非递归的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_tree.cpp)（12.21）
+4. [二叉搜索树的查找、插入和删除](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search_tree.cpp)
