@@ -67,14 +67,13 @@ categories:
 
 
 
-
-
-## leetcode
+## Array && String && Double Pointer
 1. [两数之和](https://leetcode-cn.com/problems/two-sum/)
 2. [三数之和](https://leetcode-cn.com/problems/3sum/)
 3. [215. 数组中的第K个最大元素](https://leetcode-cn.com/problems/kth-largest-element-in-an-array/)
 4. [18. 四数之和](https://leetcode-cn.com/problems/4sum/)
 5. [189. 旋转数组](https://leetcode-cn.com/problems/rotate-array/),注意是否能使用额外的内存
+6. [830. Positions of Large Groups](https://leetcode-cn.com/problems/positions-of-large-groups/)
 
 ## Graph && Union Find && DFS && BFS
 1. [547. 省份的数量](https://leetcode-cn.com/problems/number-of-provinces/)
@@ -96,9 +95,6 @@ categories:
 
 ## Linked List && Tree
 1. [交换链表中的第K个节点和倒数第K个节点](https://leetcode-cn.com/problems/swapping-nodes-in-a-linked-list/)
-
-## Easy
-1. [830. Positions of Large Groups](https://leetcode-cn.com/problems/positions-of-large-groups/)
-2. [lowest common ancestor](https://leetcode-cn.com/problems/lowest-common-ancestor-of-a-binary-tree/)
-3. [二叉树的前、中、后序遍历,非递归的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_tree.cpp)（12.21）
-4. [二叉搜索树的查找、插入和删除](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search_tree.cpp)
+3. [lowest common ancestor](https://leetcode-cn.com/problems/lowest-common-ancestor-of-a-binary-tree/)
+4. [二叉树的前、中、后序遍历,非递归的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_tree.cpp)（12.21）
+5. [二叉搜索树的查找、插入和删除](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search_tree.cpp)
