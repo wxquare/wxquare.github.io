@@ -49,7 +49,7 @@ categories:
 1. https://blog.csdn.net/luolianxi/article/details/105592179
 2. https://www.jianshu.com/p/d424dcb6637f
 3. https://www.nowcoder.com/discuss/471541
-4. https://leetcode-cn.com/circle/discuss/A0YstA/
+4. https://leetcode-cn.com/circle/discuss/A0YstA/(2021,1月，2week）
 
 ### tencent
 1. https://blog.csdn.net/luolianxi/article/details/105606741
