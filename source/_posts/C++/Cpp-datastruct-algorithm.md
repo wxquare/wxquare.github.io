@@ -75,6 +75,7 @@ categories:
 5. [189. 旋转数组](https://leetcode-cn.com/problems/rotate-array/),注意是否能使用额外的内存
 6. [830. Positions of Large Groups](https://leetcode-cn.com/problems/positions-of-large-groups/)
 7. [228. 汇总区间](https://leetcode-cn.com/problems/summary-ranges/)
+8. [3. 无重复字符的最长子串](https://leetcode-cn.com/problems/longest-substring-without-repeating-characters/)
 
 ## Graph && Union Find && DFS && BFS
 1. [547. 省份的数量](https://leetcode-cn.com/problems/number-of-provinces/)
