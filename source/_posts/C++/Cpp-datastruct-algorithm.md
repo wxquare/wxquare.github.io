@@ -77,12 +77,15 @@ categories:
 7. [228. 汇总区间](https://leetcode-cn.com/problems/summary-ranges/)
 8. [3. 无重复字符的最长子串](https://leetcode-cn.com/problems/longest-substring-without-repeating-characters/)
 
-## Graph && Union Find && DFS && BFS
+## Graph && Union Find && DFS && BFS && Topological-sort
 1. [547. 省份的数量](https://leetcode-cn.com/problems/number-of-provinces/)
 2. [399. 除法求值](https://leetcode-cn.com/problems/evaluate-division/)(graph)
 3. [ws面试：有一个矩形格子框，每个框都有一个字母，需要你找到路径，使得这条路径上的字母都不重复，请问这个最长的路径是多长?]
 4. [执行交换操作后的最小汉明距离](https://leetcode-cn.com/problems/minimize-hamming-distance-after-swap-operations/)
 5. [1202. 交换字符串中的元素](https://leetcode-cn.com/problems/smallest-string-with-swaps/)
+6. [684. 冗余连接](https://leetcode-cn.com/problems/redundant-connection/)
+7. [207. 课程表](https://leetcode-cn.com/problems/course-schedule/)
+8. [210. 课程表 II](https://leetcode-cn.com/problems/course-schedule-ii/)
 
 ## Dynamic Programming && DFS
 1. [300. 最长递增子序列](https://leetcode-cn.com/problems/longest-increasing-subsequence/)
