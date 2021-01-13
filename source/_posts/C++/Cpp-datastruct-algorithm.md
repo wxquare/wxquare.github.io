@@ -35,8 +35,6 @@ categories:
 
 - [C++ 不可继承类的实现](https://www.cnblogs.com/wxquare/p/7280025.html)
 - [C++ 读写锁的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/read_write_locker.cpp) 
-- [LRU](https://leetcode-cn.com/problems/lru-cache/)
-- [LFU](https://leetcode-cn.com/problems/lfu-cache/)
 - 哈希算法、冲突解决和简单实现
 - 平衡二叉树、红黑树、B树、Trie树
 - bitmamp布隆滤波器
@@ -107,3 +105,7 @@ categories:
 5. [链表反转](https://leetcode-cn.com/problems/reverse-linked-list/)
 6. [面试题 02.05. 链表求和](https://leetcode-cn.com/problems/sum-lists-lcci/)
 7. [2. 两数相加](https://leetcode-cn.com/problems/add-two-numbers/)
+
+## Design DataStruct
+1. [LRU](https://leetcode-cn.com/problems/lru-cache/)
+2. [LFU](https://leetcode-cn.com/problems/lfu-cache/)
