@@ -84,6 +84,7 @@ categories:
 6. [684. 冗余连接](https://leetcode-cn.com/problems/redundant-connection/)
 7. [207. 课程表](https://leetcode-cn.com/problems/course-schedule/)
 8. [210. 课程表 II](https://leetcode-cn.com/problems/course-schedule-ii/)
+并查集时间复杂读分析(https://leetcode-cn.com/problems/number-of-provinces/solution/jie-zhe-ge-wen-ti-ke-pu-yi-xia-bing-cha-0unne/)
 
 ## Dynamic Programming && DFS
 1. [300. 最长递增子序列](https://leetcode-cn.com/problems/longest-increasing-subsequence/)
