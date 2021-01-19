@@ -19,6 +19,14 @@ categories:
 - datetime，timestamp
 - 约束：NOT UNLL,UNIQUE,PRIMARY KEY,DEFAULT,FOREIGN KEY约束
 - 建立一张表时需要注意什么？
+```
+    create table Student(
+    -> Sno int not null auto_increment primary key,
+    -> Sname varchar(10) not null,
+    -> Sex char(1) not null,
+    -> Sage tinyint(100) not null,
+    -> Sdept char(4) not null)comment = '学生表';
+```
 
 ## mysql常用存储引擎以及区别
 - mysql存储引擎是插件式的，支持多种存储引擎，比较常用的是innodb和myisam
