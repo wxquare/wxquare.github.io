@@ -27,6 +27,7 @@ categories:
     -> Sage tinyint(100) not null,
     -> Sdept char(4) not null)comment = '学生表';
 ```
+- 自增主键还是UUID？
 
 ## mysql常用存储引擎以及区别
 - mysql存储引擎是插件式的，支持多种存储引擎，比较常用的是innodb和myisam
