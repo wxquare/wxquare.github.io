@@ -74,8 +74,6 @@ categories:
     - 一致性：事务追求的最终目标，一致性的实现既需要数据库层面的保障，也需要应用层面的保障
 
 - innodb四种隔离属性以及分别会产生什么问题?
-- [MySQL InnoDB MVCC 机制的原理及实现](https://zhuanlan.zhihu.com/p/64576887)
-- mvcc. https://zhuanlan.zhihu.com/p/64576887
 
 - 四个隔离属性以及脏读，不可重复读和幻读,READ-UNCOMMITTED，READ-COMMITTED，READ-Repeatable，SERIALIZABLE(可串行化)
 - 锁，在Read Uncommitted级别下，读取数据不需要加共享锁，这样就不会跟被修改的数据上的排他锁冲突；在Read Committed级别下，读操作需要加共享锁，但是在语句执行完以后释放共享锁；在Repeatable Read级别下，读操作需要加共享锁，但是在事务提交之前并不释放共享锁，也就是必须等待事务执行完毕以后才释放共享锁。SERIALIZABLE 是限制性最强的隔离级别，因为该级别锁定整个范围的键，并一直持有锁，直到事务完成
