@@ -172,7 +172,6 @@ explain分析sql语句，查看执行计划，优化sql
 查看mysql执行日志，分析是否有其他方面的问题
 - Redis和mysql数据怎么保持数据一致的？ https://juejin.im/post/6844903805641818120
 - [怎么处理线上DDL变更?](https://zhuanlan.zhihu.com/p/247939271)
-- 腾讯面试：一条SQL语句执行得很慢的原因有哪些？---不看后悔系列
 
 ## sql 练习
 [leetcode sql](https://juejin.cn/post/6844903827934560263#heading-3)
