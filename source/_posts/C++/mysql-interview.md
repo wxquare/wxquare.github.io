@@ -137,6 +137,9 @@ categories:
 - [4种MySQL分页查询优化的方法](https://juejin.cn/post/6844903955470745614#heading-6)
 - [不同DB库的表如何联表查询](https://www.modb.pro/db/27539)，怎么优化？
 - [一个跨库复杂查询的SQL优化的案例](https://blog.csdn.net/waste_land_wolf/article/details/76419207)
+- [怎么处理线上DDL变更?](https://zhuanlan.zhihu.com/p/247939271)
+- Redis和mysql数据怎么保持数据一致的？ https://juejin.im/post/6844903805641818120
+
 - 一个6亿的表a，一个3亿的表b，通过外间tid关联，你如何最快的查询出满足条件的第50000到第50200中的这200条数据记录。
 1、如果A表TID是自增长,并且是连续的,B表的ID为索引 select * from a,b where a.tid = b.id and a.tid>500000 limit 200;
 2、如果A表的TID不是连续的,那么就需要使用覆盖索引.TID要么是主键,要么是辅助索引,B表ID也需要有索引。select * from b , (select tid from a limit 50000,200) a where b.id = a .tid;
@@ -170,8 +173,8 @@ CHECK: 用于控制字段的值范围。
 数据库主从分离，读写分离
 explain分析sql语句，查看执行计划，优化sql
 查看mysql执行日志，分析是否有其他方面的问题
-- Redis和mysql数据怎么保持数据一致的？ https://juejin.im/post/6844903805641818120
-- [怎么处理线上DDL变更?](https://zhuanlan.zhihu.com/p/247939271)
+
+
 
 ## sql 练习
 [leetcode sql](https://juejin.cn/post/6844903827934560263#heading-3)
