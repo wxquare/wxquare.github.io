@@ -138,7 +138,7 @@ categories:
 - [不同DB库的表如何联表查询](https://www.modb.pro/db/27539)，怎么优化？
 - [一个跨库复杂查询的SQL优化的案例](https://blog.csdn.net/waste_land_wolf/article/details/76419207)
 - [怎么处理线上DDL变更?](https://zhuanlan.zhihu.com/p/247939271)
-- Redis和mysql数据怎么保持数据一致的？ https://juejin.im/post/6844903805641818120
+- [Redis和mysql数据怎么保持数据一致的？](https://coolshell.cn/articles/17416.html) 
 
 - 一个6亿的表a，一个3亿的表b，通过外间tid关联，你如何最快的查询出满足条件的第50000到第50200中的这200条数据记录。
 1、如果A表TID是自增长,并且是连续的,B表的ID为索引 select * from a,b where a.tid = b.id and a.tid>500000 limit 200;
