@@ -90,6 +90,7 @@ categories:
 - 显示加锁：select ... for upate,隐式加锁，insert/update/delete
 - [mysql事务的面试](https://blog.csdn.net/qq_43255017/article/details/106442887?utm_medium=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&depth_1-utm_source=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&request_id=)
 - mysql mysql 逻辑存储结构
+- MySQL中InnoDB引擎的行锁是怎么实现的？
 
 
 ## 视图view
@@ -159,7 +160,7 @@ UNIQUE: 约束字段唯一性，一个表允许有多个 Unique 约束。
 PRIMARY KEY: 约束字段唯一，不可重复，一个表只允许存在一个。
 FOREIGN KEY: 用于预防破坏表之间连接的动作，也能防止非法数据插入外键。
 CHECK: 用于控制字段的值范围。
-- MySQL中InnoDB引擎的行锁是怎么实现的？
+
 - 主键和外键。数据库表中对储存数据对象予以唯一和完整标识的数据列或属性的组合。一个数据列只能有一个主键，且主键的取值不能缺失，即不能为空值（Null）。外键：在一个表中存在的另一个表的主键称此表的外键。
 - 主键是数据库确保数据行在整张表唯一性的保障，即使业务上本张表没有主键，也建议添加一个自增长的ID列作为主键。设定了主键之后，在后续的删改查的时候可能更加快速以及确保操作数据范围安全。
 - 关联查询、联合查询、子查询（嵌套查询）
