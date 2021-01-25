@@ -115,6 +115,17 @@ categories:
     - 分页查询优化
     - 子查询和连接查询
     - 会查看sql执行计划explain
+     ```
+     id列：在复杂的查询语句中包含多个查询使用id标示
+     select_type:select/subquery/derived/union
+     table: 显示对应行正在访问哪个表
+     type：访问类型，关联类型。非常重要，All,index,range,ref,const,
+     possible_keys: 显示可以使用哪些索引列
+     key列：显示mysql决定使用哪个索引来优化对该表的访问
+     key_len：显示在索引里使用的字节数
+     rows：为了找到所需要的行而需要读取的行数
+     ```
+     
     - 什么是慢查询
 - **索引优化**
     - 怎么建索引
