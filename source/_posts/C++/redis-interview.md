@@ -8,7 +8,7 @@ categories:
 1. 分布式锁. 在分布式场景下，无法使用单机环境下的锁来对多个节点上的进程进行同步。可以使用 Redis 自带的 SETNX 命令实现分布式锁，除此之外，还可以使用官方提供的 RedLock 分布式锁实现
 2. [如何使用Redis实现微信步数排行榜？](https://www.cnblogs.com/zwwhnly/p/13041641.html)
 
-## redis 使用注意事项
+## redis 常见问题
 1. 熟悉redis五种数据结构选择string/list/hashmap/set/zset以及其底层实现原理
 2. 熟悉计算需要的容量与以及超过使用容量时的淘汰策略？
 3. 过期键的删除策略
