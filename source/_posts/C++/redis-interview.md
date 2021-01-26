@@ -9,8 +9,8 @@ categories:
 2. [如何使用Redis实现微信步数排行榜？](https://www.cnblogs.com/zwwhnly/p/13041641.html)
 
 ## redis 使用注意事项
-1. 五种数据结构选择string/list/hashmap/set/zset
-2. 容量与淘汰策略
+1. 熟悉redis五种数据结构选择string/list/hashmap/set/zset以及其底层实现原理
+2. 熟悉计算需要的容量与以及超过使用容量时的淘汰策略？
 3. 过期键的删除策略
 4. 缓存持久化策略
 5. 如何做的缓存初始，缓存预热？
@@ -24,6 +24,20 @@ categories:
 https://juejin.cn/post/6844904192042074126#heading-8
 - [最详细的Redis五种数据结构详解](https://juejin.cn/post/6844904192042074126)
 - https://juejin.cn/post/6868409018151337991
+
+
+## 计算所需的缓存的容量，当容量超过限制时的淘汰策略
+```
+- noeviction(默认策略)：对于写请求不再提供服务，直接返回错误（DEL请求和部分特殊请求除外）
+- allkeys-lru：从所有key中使用LRU算法进行淘汰
+- volatile-lru：从设置了过期时间的key中使用LRU算法进行淘汰
+- allkeys-random：从所有key中随机淘汰数据
+- volatile-random：从设置了过期时间的key中随机淘汰
+- volatile-ttl：在设置了过期时间的key中，根据key的过期时间进行淘汰，越早过期的越优先被淘汰
+LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Frequently Used
+
+```
+
 
 
 ## redis 数据持久化
