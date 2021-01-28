@@ -41,21 +41,21 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
 
 ```
 
-
-
-## redis 数据持久化
-- AOF: AOF持久化(即Append Only File持久化)
-- RDB: 是Redis DataBase缩写快照
-
-## redis 怎么扩容扩容和收缩
-- https://www.infoq.cn/article/uiqypvrtnq4buerrm3dc
-
 ## redis 过期键的删除策略
 过期策略通常有以下三种：
 - 定时过期：每个设置过期时间的key都需要创建一个定时器，到过期时间就会立即清除。该策略可以立即清除过期的数据，对内存很友好；但是会占用大量的CPU资源去处理过期的数据，从而影响缓存的响应时间和吞吐量。
 - 惰性过期：只有当访问一个key时，才会判断该key是否已过期，过期则清除。该策略可以最大化地节省CPU资源，却对内存非常不友好。极端情况可能出现大量的过期key没有再次被访问，从而不会被清除，占用大量内存。
 - 定期过期：每隔一定的时间，会扫描一定数量的数据库的expires字典中一定数量的key，并清除其中已过期的key。该策略是前两者的一个折中方案。通过调整定时扫描的时间间隔和每次扫描的限定耗时，可以在不同情况下使得CPU和内存资源达到最优的平衡效果。
 (expires字典会保存所有设置了过期时间的key的过期时间数据，其中，key是指向键空间中的某个键的指针，value是该键的毫秒精度的UNIX时间戳表示的过期时间。键空间是指该Redis集群中保存的所有键。)
+
+
+## redis 两种数据持久化的原理以及优缺点
+- AOF: AOF持久化(即Append Only File持久化)
+- RDB: 是Redis DataBase缩写快照
+
+## redis 怎么扩容扩容和收缩
+- https://www.infoq.cn/article/uiqypvrtnq4buerrm3dc
+
 
 ## redis 内存淘汰策略
 - MySQL里有2000w数据，redis中只存20w的数据，如何保证redis中的数据都是热点数据
