@@ -86,6 +86,7 @@ categories:
 8. [210. 课程表 II](https://leetcode-cn.com/problems/course-schedule-ii/)
 9. [721. 账户合并](https://leetcode-cn.com/problems/accounts-merge/)
 并查集时间复杂读分析(https://leetcode-cn.com/problems/number-of-provinces/solution/jie-zhe-ge-wen-ti-ke-pu-yi-xia-bing-cha-0unne/)
+10. [相似字符串组](https://leetcode-cn.com/problems/similar-string-groups/)
 
 ## Dynamic Programming && DFS
 1. [300. 最长递增子序列](https://leetcode-cn.com/problems/longest-increasing-subsequence/)
