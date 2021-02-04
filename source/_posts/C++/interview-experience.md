@@ -6,7 +6,7 @@ categories:
 
 ## 数据结构和算法
 1. 数组和链表对比，增加元素、删除元素、插入元素、查询性能对比
-2. C++的map、unordered_map、go的map和sync.map的实现
+2. C++的map、unordered_map、go的map和sync.map的实现、怎么解决hash碰撞问题，线程的安全性。
 
 
 ## golang 
