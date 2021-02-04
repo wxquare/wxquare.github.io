@@ -4,6 +4,10 @@ categories:
 - other
 ---
 
+## 数据结构和算法
+1. 数组和链表对比，增加元素、删除元素、插入元素、查询性能对比
+2. C++的map、unordered_map、go的map和syc.map的实现
+
 
 ## golang 
 1. 相比线程，协程有哪些优势？
