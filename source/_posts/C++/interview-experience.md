@@ -59,6 +59,7 @@ categories:
 1. https://blog.csdn.net/luolianxi/article/details/105606741
 
 ### shopee
+1. https://leetcode-cn.com/circle/discuss/ej0oh6/
 
 ### microsoft
 1. https://leetcode-cn.com/circle/discuss/TEXcH1/
