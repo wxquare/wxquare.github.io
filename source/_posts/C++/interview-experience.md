@@ -54,6 +54,8 @@ categories:
 ### tencent
 1. https://blog.csdn.net/luolianxi/article/details/105606741
 
+### shopee
+
 ### microsoft
 1. https://leetcode-cn.com/circle/discuss/TEXcH1/
 2. https://zhuanlan.zhihu.com/p/95836541
