@@ -88,6 +88,7 @@ categories:
 ### 指针和unsafe.Pointer
 - 原生指针
 - unsafe.Pointer
+- 实践string和[]byte的高效转换
 
 ### 集合set
 1. golang中本身没有提供set，但可以通过map自己实现
