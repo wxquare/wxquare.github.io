@@ -12,9 +12,11 @@ categories:
 - [[]byte和string的相互转换和unsafe？](https://go101.org/article/unsafe.html)
 ### array 
 ### slice
+- 初始化
 - 内部实现
 - make，len，cap
 - 扩容
+- 拷贝copy
 ### map
 - 内部实现的结构
 - 链地址法解决冲突
