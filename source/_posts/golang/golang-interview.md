@@ -8,7 +8,7 @@ categories:
 
 ### string/[]byte
 - string是golang的基本数组类型，s := "hello,world"，一旦初始化后不允许修改其内容
-- 内部实现结构，指向数据的指针data和表示长度的len
+- [内部实现结构](https://draveness.me/golang/docs/part2-foundation/ch03-datastructure/golang-string/)，指向数据的指针data和表示长度的len
 - 字符串拼接和格式化四种方式，+=，strings.join,buffer.writestring,fmt.sprintf
 - string 与 []byte的类型转换，[[]byte和string的相互转换和unsafe？](https://go101.org/article/unsafe.html)
 - <font color=red>字符串与数值类型的不能强制转化，要使用strconv包中的函数</font>
