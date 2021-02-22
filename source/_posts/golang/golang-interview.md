@@ -11,10 +11,10 @@ categories:
 - string 与 []byte的类型转换
 - [[]byte和string的相互转换和unsafe？](https://go101.org/article/unsafe.html)
 ### array 
-- ### 2.数组array: [3]int{1,2,3}
-1. <font color=red>**数组是值类型**</font>，数组传参发生拷贝
-2. 定长
-3. 数组的创建、初始化、访问和遍历range，len(arr)求数组的长度
+1. 数组array: [3]int{1,2,3}
+2. <font color=red>**数组是值类型**</font>，数组传参发生拷贝
+3. 定长
+4. 数组的创建、初始化、访问和遍历range，len(arr)求数组的长度
   
 ### slice
 - 初始化
