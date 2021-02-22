@@ -7,15 +7,12 @@ categories:
 ## golang 常用数据结构以及内部实现
 
 ### string/[]byte
-1. string 内容不可变，只可读
-2. 字符串拼接的四种方式，+=，strings.join,buffer.writestring,fmt.sprintf
-3. string 与 []byte的类型转换
-4. [[]byte和string的相互转换和unsafe？](https://go101.org/article/unsafe.html)
-5. 基本数组类型s := "hello,world"
-6. 一旦初始化后不允许修改字符串的内容
-7. 常用函数s1+s2,len(s1)等
-8. <font color=red>字符串与数值类型的不能强制转化，要使用strconv包中的函数</font>
-9. 标准库strings提供了许多字符串操作的函数,例如Split、HasPrefix,Trim。
+- string是golang的基本数组类型，s := "hello,world"，一旦初始化后不允许修改其内容
+- string 内部实现
+- 字符串拼接和格式化四种方式，+=，strings.join,buffer.writestring,fmt.sprintf
+- string 与 []byte的类型转换，[[]byte和string的相互转换和unsafe？](https://go101.org/article/unsafe.html)
+- <font color=red>字符串与数值类型的不能强制转化，要使用strconv包中的函数</font>
+- 标准库strings提供了许多字符串操作的函数,例如Split、HasPrefix,Trim。
 
 ### array 
 1. 数组array: [3]int{1,2,3}
