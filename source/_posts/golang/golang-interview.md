@@ -27,7 +27,7 @@ categories:
 4. 内存结构和实现：指针、cap、size共24字节
 5. 常用函数，append，cap，len
 6. 切片动态扩容
-7. 拷贝copy
+7. 拷贝copy和“=”的区别
 
 ### map,make(map[string]int,5) 
 - 内部实现的结构
