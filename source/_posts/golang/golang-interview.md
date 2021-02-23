@@ -42,12 +42,14 @@ categories:
 
 ### sync.map
 - 双map,read 和 dirty
-- lock
+- 以空间换效率，通过read和dirty两个map来提高读取效率
+- 优先从read map中读取(无锁)，否则再从dirty map中读取(加锁)
+- 动态调整，当misses次数过多时，将dirty map提升为read map
+- 延迟删除，删除只是为value打一个标记，在dirty map提升时才执行真正的删除
 - https://colobu.com/2017/07/11/dive-into-sync-Map/
 - https://segmentfault.com/a/1190000020946989
 - https://wudaijun.com/2018/02/go-sync-map-implement/
 - load,store,delete 的流程
-
 
 ### struct
 - 空结构体struct{}
