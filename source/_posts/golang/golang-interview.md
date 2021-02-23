@@ -65,6 +65,7 @@ categories:
 - https://draveness.me/golang/docs/part2-foundation/ch04-basic/golang-interface/
 - 隐式接口，实现接口的所有方法就隐式地实现了接口；不需要显示申明实现某接口
 - 接口也是 Go 语言中的一种类型，它能够出现在变量的定义、函数的入参和返回值中并对它们进行约束，不过 Go 语言中有两种略微不同的接口，一种是带有一组方法的接口，另一种是不带任何方法的 interface{}：
+- interface{} 类型不是任意类型，而是将类型转换成了 interface{} 类型
 - 空接口的实现
 - 带函数的interface的实现
 - 理解隐式接口的含义
