@@ -68,6 +68,7 @@ categories:
 - interface{} 类型不是任意类型，而是将类型转换成了 interface{} 类型
 - 结构体实现接口 vs 结构体指针实现接口 区别？
 - runtime.eface 和 runtime.iface 结构？
+- 类型变换 ============= 20210223
 - 空接口的实现
 - 带函数的interface的实现
 - 理解隐式接口的含义
