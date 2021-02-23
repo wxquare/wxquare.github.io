@@ -15,35 +15,30 @@ categories:
 - 标准库strings提供了许多字符串操作的函数,例如Split、HasPrefix,Trim。
 
 ### array 
-1. 数组array: [3]int{1,2,3}
-2. <font color=red>**数组是值类型**</font>，数组传参发生拷贝
-3. 定长
-4. 数组的创建、初始化、访问和遍历range，len(arr)求数组的长度
+- 数组array: [3]int{1,2,3}
+- <font color=red>**数组是值类型**</font>，数组传参发生拷贝
+- 定长
+- 数组的创建、初始化、访问和遍历range，len(arr)求数组的长度
   
 ### slice
-1. 切片slice初始化: make([]int,len,cap)
-2. <font color=red>**slice是引用类型**</font>
-3. 变长，用容量和长度的区别，分别使用cap和len函数获取
-4. 内存结构和实现：指针、cap、size共24字节
-5. 常用函数，append，cap，len
-6. 切片动态扩容
-7. 拷贝copy和“=”的区别
+- 切片slice初始化: make([]int,len,cap)
+- <font color=red>**slice是引用类型**</font>
+- 变长，用容量和长度的区别，分别使用cap和len函数获取
+- 内存结构和实现：指针、cap、size共24字节
+- 常用函数，append，cap，len
+- 切片动态扩容
+- 拷贝copy和“=”的区别
 
-### map,make(map[string]int,5) 
-- 内部实现的结构
+### map
+- 引用类型，需要初始化 make(map[string]int,5) 
+- [内部实现的数据结构，hmap、bmap等](https://draveness.me/golang/docs/part2-foundation/ch03-datastructure/golang-hashmap/)
 - 链地址法解决冲突
-- hashmap中buckets为什么为2的幂次方
-- 怎么做的增量扩容
-- map按照key顺序输出
-- 使用map[interface{}]struct{}
-- https://segmentfault.com/a/1190000018632347
-- map的创建，为了避免频繁的扩容和迁移，创建map时应指定适当的大小
-- 无序
-- 赋值，相同键值会覆盖
-- 遍历，range
+- hashmap中buckets为什么为通常2的幂次方
+- 访问流程，先用低位确定bucket，再用高8位粗选
+- 增量扩容，迁移
+- 使用map[interface{}]struct{}作为set
 - [如何实现顺序遍历？](https://blog.csdn.net/slvher/article/details/44779081)
 - [内部hashmap的实现原理](https://ninokop.github.io/2017/10/24/Go-Hashmap%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E5%92%8C%E5%AE%9E%E7%8E%B0/)。内部结构（bucket），扩容与迁移，删除。 
-- 如何保证map的协程安全性？[sync.map](https://colobu.com/2017/07/11/dive-into-sync-Map/)? 
 
 ### sync.map
 - 双map,read 和 dirty
