@@ -52,10 +52,9 @@ categories:
 
 
 ### struct
-- 空结构体struct{}
-- 结构体嵌套
-- struct 可以比较吗？普通struct可以比较，带引用的struc不可比较
-- reflect.DeepEqual
+- 空结构体struct{}的用途，节省内存。
+- 不支持继承，使用结构体嵌套组合
+- struct 可以比较吗？普通struct可以比较，带引用的struc不可比较，需要使用reflect.DeepEqual
 
 ### interface
 - 空接口的实现
