@@ -76,7 +76,7 @@ categories:
 ### channel
 - Go鼓励CSP模型(communicating sequential processes),Goroutin之间通过channel传递数据
 - 非缓冲的同步channel和带缓冲的异步channel
-- [**内部实现结构，带锁的循环队列runtime.hchan**](https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-channel/#642-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84)
+- [内部实现结构，带锁的循环队列runtime.hchan](https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-channel/#642-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84)
 - 
 
 - channel的实现原理
