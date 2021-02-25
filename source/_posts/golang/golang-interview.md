@@ -82,6 +82,7 @@ categories:
   当存在等待的接收者时，通过 runtime.send 直接将数据发送给阻塞的接收者；
   当缓冲区存在空余空间时，将发送的数据写入 Channel 的缓冲区；
   当不存在缓冲区或者缓冲区已满时，等待其他 Goroutine 从 Channel 接收数据；
+- i <- ch，i, ok <- ch
 - **从channel接收数据**。当存在等待的发送者时，通过 runtime.recv 从阻塞的发送者或者缓冲区中获取数据；当缓冲区存在数据时，从 Channel 的缓冲区中接收数据；当缓冲区中不存在数据时，等待其他 Goroutine 向 Channel 发送数据；
 - channel的实现原理
 - 如何优雅的关闭channel？https://www.jianshu.com/p/d24dfbb33781, channel关闭后读操作会发生什么？写操作会发生什么？
