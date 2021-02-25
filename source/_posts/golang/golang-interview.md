@@ -84,7 +84,13 @@ categories:
   当缓冲区存在空余空间时，将发送的数据写入 Channel 的缓冲区；
   当不存在缓冲区或者缓冲区已满时，等待其他 Goroutine 从 Channel 接收数据；
 - i <- ch，i, ok <- ch
-- **从channel接收数据**。当存在等待的发送者时，通过 runtime.recv 从阻塞的发送者或者缓冲区中获取数据；当缓冲区存在数据时，从 Channel 的缓冲区中接收数据；当缓冲区中不存在数据时，等待其他 Goroutine 向 Channel 发送数据；
+- **从channel接收数据**的五种情况:
+  - 如果 Channel 为空，那么会直接调用 runtime.gopark 挂起当前 Goroutine；
+  - 如果 Channel 已经关闭并且缓冲区没有任何数据，runtime.chanrecv 会直接返回；
+  - 如果 Channel 的 sendq 队列中存在挂起的 Goroutine，会将 recvx 索引所在的数据拷贝到接收变量所在的内存空间上并将 sendq 队列中 Goroutine 的数据拷贝到缓冲区；
+  - 如果 Channel 的缓冲区中包含数据，那么直接读取 recvx 索引对应的数据；
+  - 在默认情况下会挂起当前的 Goroutine，将 runtime.sudog 结构加入 recvq 队列并陷入休眠等待调度器的唤醒；
+
 - channel的实现原理
 - 如何优雅的关闭channel？https://www.jianshu.com/p/d24dfbb33781, channel关闭后读操作会发生什么？写操作会发生什么？
 
