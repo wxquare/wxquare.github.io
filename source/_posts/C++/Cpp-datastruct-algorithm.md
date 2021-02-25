@@ -75,7 +75,9 @@ categories:
 7. [228. 汇总区间](https://leetcode-cn.com/problems/summary-ranges/)
 8. [3. 无重复字符的最长子串](https://leetcode-cn.com/problems/longest-substring-without-repeating-characters/)
 9. [1438. 绝对差不超过限制的最长连续子数组](https://leetcode-cn.com/problems/longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit/)
-10. [1052. 爱生气的书店老板]https://leetcode-cn.com/problems/grumpy-bookstore-owner/
+10. [1052. 爱生气的书店老板](https://leetcode-cn.com/problems/grumpy-bookstore-owner/)
+11. [1438. 绝对差不超过限制的最长连续子数组](https://leetcode-cn.com/problems/longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit/)
+
 
 ## Graph && Union Find && DFS && BFS && Topological-sort
 1. [547. 省份的数量](https://leetcode-cn.com/problems/number-of-provinces/)
