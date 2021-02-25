@@ -90,7 +90,7 @@ categories:
   - 如果 Channel 的 sendq 队列中存在挂起的 Goroutine，会将 recvx 索引所在的数据拷贝到接收变量所在的内存空间上并将 sendq 队列中 Goroutine 的数据拷贝到缓冲区；
   - 如果 Channel 的缓冲区中包含数据，那么直接读取 recvx 索引对应的数据；
   - 在默认情况下会挂起当前的 Goroutine，将 runtime.sudog 结构加入 recvq 队列并陷入休眠等待调度器的唤醒；
-- channel的实现原理
+- ** 关闭channel **
 - 如何优雅的关闭channel？https://www.jianshu.com/p/d24dfbb33781, channel关闭后读操作会发生什么？写操作会发生什么？
 
 ### 指针和unsafe.Pointer
