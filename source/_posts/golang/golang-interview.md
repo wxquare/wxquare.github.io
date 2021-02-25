@@ -78,6 +78,7 @@ categories:
 - 非缓冲的同步channel和带缓冲的异步channel
 - [内部实现结构，带锁的循环队列runtime.hchan](https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-channel/#642-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84)
 - channel创建make
+- chan <- i
 - **向channel发送数据**。在发送数据的逻辑执行之前会先为当前 Channel 加锁，防止多个线程并发修改数据。如果 Channel 已经关闭，那么向该 Channel 发送数据时会报 “send on closed channel” 错误并中止程序。分为的三个部分：
   当存在等待的接收者时，通过 runtime.send 直接将数据发送给阻塞的接收者；
   当缓冲区存在空余空间时，将发送的数据写入 Channel 的缓冲区；
