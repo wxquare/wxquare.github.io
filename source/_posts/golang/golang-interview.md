@@ -55,6 +55,11 @@ categories:
 - 空结构体struct{}的用途，节省内存。
 - 不支持继承，使用结构体嵌套组合
 - struct 可以比较吗？普通struct可以比较，带引用的struc不可比较，需要使用reflect.DeepEqual
+- struct没有slice和map类型时可直接判断
+- slice和map本身不可比较，需要使用reflect.DeepEqual()。
+- struct中包含slice和map等字段时，也要使用reflect.DeepEqual().
+- https://stackoverflow.com/questions/24534072/how-to-compare-struct-slice-map-are-equal
+
 
 ### 函数和方法，匿名函数
 - init函数
@@ -108,24 +113,6 @@ categories:
 3. [如何自己实现set？](https://studygolang.com/articles/11179)
 
   
-### 容器container/heap、list、ring
-1. heap与优先队列，最小堆
-2. 链表list，双向列表
-3. 循环队列ring
-4. <font color=red>golang没有提供stack，可自己实现</font>
-5. <font color=red>golang没有提供queue，但可以通过channel替换或者自己实现</font>
-
-
-### 延伸问题：
-#### 1.如何比较struct/slice/map?
-- struct没有slice和map类型时可直接判断
-- slice和map本身不可比较，需要使用reflect.DeepEqual()。
-- truct中包含slice和map等字段时，也要使用reflect.DeepEqual().
-- [https://stackoverflow.com/questions/24534072/how-to-compare-struct-slice-map-are-equal](https://stackoverflow.com/questions/24534072/how-to-compare-struct-slice-map-are-equal)
-- [https://studygolang.com/articles/11342](https://studygolang.com/articles/11342)
-
-
-
 ## golang 关键字
 ### defer
 - golang中的defer用途？调用时机？调用顺序？预计算值？
@@ -136,8 +123,6 @@ categories:
 - make和new的区别
 ### panic/recover
 ### nil
-
-
 
 ## golang并发编程 (concurrent programming)
 - channel、sync.mutex,sync.RWmutext,sync.WaitGroup,sync.Once,atomic 原子操作
