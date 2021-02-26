@@ -100,7 +100,7 @@ categories:
 - unsafe.Pointer是一个指针类型，指向的值不能被解析，类似于C/C++里面的(void *)，只说明这是一个指针，但是指向什么的不知道。
 - uintptr 是一个整数类型，这个整数的宽度足以用来存储一个指针类型数据；那既然是整数类类型，当然就可以对其进行运算了
 - nil
-- 实践string和[]byte的高效转换
+- [实践string和[]byte的高效转换](https://www.cnblogs.com/shuiyuejiangnan/p/9707066.html)
 
 ### 集合set
 1. golang中本身没有提供set，但可以通过map自己实现
