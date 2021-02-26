@@ -94,8 +94,12 @@ categories:
 - 如何优雅的关闭channel？https://www.jianshu.com/p/d24dfbb33781, channel关闭后读操作会发生什么？写操作会发生什么？
 
 ### 指针和unsafe.Pointer
-- 原生指针
-- unsafe.Pointer
+- 相比C/C++，为了安全性考虑，Go指针弱化。不同类型的指针不能相互转化，指针变量不支持运算，不支持c/c++中的++，需要借助unsafe包
+- 任何类型的指针都可以被转换成unsafe.Pointer类型，通过unsafe.Pointer实现不同类型指针的转化
+- uintptr值可以被转换成unsafe.Pointer类型，通过uintptr实现指针的运算
+- unsafe.Pointer是一个指针类型，指向的值不能被解析，类似于C/C++里面的(void *)，只说明这是一个指针，但是指向什么的不知道。
+- uintptr 是一个整数类型，这个整数的宽度足以用来存储一个指针类型数据；那既然是整数类类型，当然就可以对其进行运算了
+- nil
 - 实践string和[]byte的高效转换
 
 ### 集合set
