@@ -121,7 +121,7 @@ categories:
 
 
 ### Golang并发编程 (concurrent programming)
-- 比较进程、线程和Goroutine。进程是自然分配的单位，有独立的地址空间，线程是操作系统调度的单位。协程是更细力度的执行单元，需要程序自身调度。Go语言原生支持Goroutine，并提供高效的协程调度模型。
+- 比较进程、线程和Goroutine。进程是资源分配的单位，有独立的地址空间，线程是操作系统调度的单位，协程是更细力度的执行单元，需要程序自身调度。Go语言原生支持Goroutine，并提供高效的协程调度模型。
 - channel、sync.mutex,sync.RWmutext,sync.WaitGroup,sync.Once,atomic 原子操作
 - goroutine的实现以及其调度模型
 - golang中的G-P-M调度模型？协程的状态?gwaiting和Gsyscall?抢占式调度?
