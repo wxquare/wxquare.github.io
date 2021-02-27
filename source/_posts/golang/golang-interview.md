@@ -112,10 +112,15 @@ categories:
 2. 利用map键值不可重复的特性实现set，value为空结构体。 map[interface{}]struct{} 
 3. [如何自己实现set？](https://studygolang.com/articles/11179)
 
-  
-## golang 关键字
+
 ### defer
+- defer定义的延迟函数参数在defer语句出时就已经确定下来了
+- defer定义顺序与实际执行顺序相反
+- return不是原子操作，执行过程是: 保存返回值(若有)-->执行defer（若有）-->执行ret跳转
+- 申请资源后立即使用defer关闭资源是好习惯
 - golang中的defer用途？调用时机？调用顺序？预计算值？
+- [defer 实现原理？](https://blog.csdn.net/Tybyqi/article/details/83827140)
+
 ### select
 - 用途和实现
 ### range
