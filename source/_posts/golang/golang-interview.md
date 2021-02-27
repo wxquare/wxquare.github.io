@@ -121,15 +121,8 @@ categories:
 - golang中的defer用途？调用时机？调用顺序？预计算值？
 - [defer 实现原理？](https://blog.csdn.net/Tybyqi/article/details/83827140)
 
-### select
-- 用途和实现
-### range
-### make/new
-- make和new的区别
-### panic/recover
-### nil
 
-## golang并发编程 (concurrent programming)
+## Golang并发编程 (concurrent programming)
 - channel、sync.mutex,sync.RWmutext,sync.WaitGroup,sync.Once,atomic 原子操作
 - goroutine的实现以及其调度模型
 - golang中的G-P-M调度模型？协程的状态?gwaiting和Gsyscall?抢占式调度?
