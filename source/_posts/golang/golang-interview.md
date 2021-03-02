@@ -145,7 +145,7 @@ categories:
 ## Golang 内存管理和垃圾回收（memory and gc）
 - **多级缓存**：内存分配器不仅会区别对待大小不同的对象，还会将内存分成不同的级别分别管理，TCMalloc 和 Go 运行时分配器都会引入线程缓存（Thread Cache）、中心缓存（Central Cache）和页堆（Page Heap）三个组件分级管理内存
 - **对象大小**：Go 语言的内存分配器会根据申请分配的内存大小选择不同的处理逻辑，运行时根据对象的大小将对象分成微对象、小对象和大对象三种，tiny,small,large
-- mspan,mcache、mcentral、mheap
+- mspan、mcache、mcentral、mheap
 - golang中的三级内存管理？对比C++中的内存管理？
 - [golang GC](https://segmentfault.com/a/1190000022030353)
 - golang 什么情况下会发生内存泄漏？Goroutinue泄露？
