@@ -142,7 +142,7 @@ categories:
 - 理解操作系统是怎么调度的，golang协程调度的优势，切换代价低，goroutine开销低，并发度高。
 
 
-## golang 内存管理和垃圾回收（memory and gc）
+## Golang 内存管理和垃圾回收（memory and gc）
 - golang中的三级内存管理？对比C++中的内存管理？
 - [golang GC](https://segmentfault.com/a/1190000022030353)
 - golang 什么情况下会发生内存泄漏？Goroutinue泄露？
