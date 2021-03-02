@@ -135,18 +135,11 @@ categories:
 -  golang context 用于在树形goroutine结构中，通过信号减少资源的消耗，包含Deadline、Done、Error、Value四个接口
 -  常用的同步原语：channel、sync.mutex、sync.RWmutex、sync.WaitGroup、sync.Once、atomic
 - 协程的状态流转？Grunnable、Grunning、Gwaiting
-- [goroutine交替执行,使其能顺序输出1-20的自然数code](https://github.com/wxquare/programming/blob/master/golang/learn_golang/goroutine_example1.go)
-- [生产者消费者模式code](https://github.com/wxquare/programming/blob/master/golang/learn_golang/producer_consumer.go)
 - sync.Mutex 和 sync.RWMutex 互斥锁和读写锁的使用场景？
-- golang context 包的用途？
 - [golang 协程优雅的退出？](https://segmentfault.com/a/1190000017251049)
-- sync.Mutex 和 sync.RWMutex 互斥锁和读写锁的使用场景？
-- 怎么做协程同步
-- 主协程如何等其余协程完再操作
-- 并发调度
 - 用channel实现定时器？（实际上是两个协程同步）
 - 深入理解协程gmp调度模型，以及其发展历史
-- 理解操作系统是怎么调度的，golang协程调度的优势
+- 理解操作系统是怎么调度的，golang协程调度的优势，切换代价低，goroutine开销低，并发度高。
 
 
 ## golang 内存管理和垃圾回收（memory and gc）
