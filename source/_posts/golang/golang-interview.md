@@ -140,19 +140,17 @@ categories:
 - 用channel实现定时器？（实际上是两个协程同步）
 - 深入理解协程gmp调度模型，以及其发展历史
 - 理解操作系统是怎么调度的，golang协程调度的优势，切换代价低，goroutine开销低，并发度高。
+- Golang IO 模型和网络轮训器
 
 
 ## Golang 内存管理和垃圾回收（memory and gc）
 - **多级缓存**：内存分配器不仅会区别对待大小不同的对象，还会将内存分成不同的级别分别管理，TCMalloc 和 Go 运行时分配器都会引入线程缓存（Thread Cache）、中心缓存（Central Cache）和页堆（Page Heap）三个组件分级管理内存
 - **对象大小**：Go 语言的内存分配器会根据申请分配的内存大小选择不同的处理逻辑，运行时根据对象的大小将对象分成微对象、小对象和大对象三种，tiny,small,large
 - mspan、mcache、mcentral、mheap
-- golang中的三级内存管理？对比C++中的内存管理？
 - [golang GC](https://segmentfault.com/a/1190000022030353)
 - golang 什么情况下会发生内存泄漏？Goroutinue泄露？
 - golang sync.pool 临时对象池
 - [golang 程序启动过程?](https://blog.iceinto.com/posts/go/start/) 
-- golang 内存模型与C++的比较?
-- golang IO 模型和网络轮训器
 - 当go服务部署到线上了，发现有内存泄露，该怎么处理?
 
 ## 包和库（package)
