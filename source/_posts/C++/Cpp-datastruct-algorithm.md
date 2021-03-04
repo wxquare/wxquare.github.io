@@ -104,7 +104,8 @@ categories:
 7. [309. 最佳买卖股票时机含冷冻期](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-with-cooldown/)
 8. [714. 买卖股票的最佳时机含手续费](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-with-transaction-fee/)
 9. [ 完成所有工作的最短时间](https://leetcode-cn.com/problems/find-minimum-time-to-finish-all-jobs/)，状态压缩DP或者dfs加剪枝
-10. [回文字符串分割IV](https://leetcode-cn.com/problems/palindrome-partitioning-iv)
+11. [回文字符串分割IV](https://leetcode-cn.com/problems/palindrome-partitioning-iv)
+12. [354. 俄罗斯套娃信封问题](https://leetcode-cn.com/problems/russian-doll-envelopes/)
 
 ## Linked List && Tree
 1. [交换链表中的第K个节点和倒数第K个节点](https://leetcode-cn.com/problems/swapping-nodes-in-a-linked-list/)
