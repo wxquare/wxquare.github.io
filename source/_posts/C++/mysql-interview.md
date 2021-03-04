@@ -16,7 +16,7 @@ categories:
 - int,tinyint,int(10)什么意思
 - float，double
 - varchar，char（定长，根据需要使用空格填充）
-- datetime，timestamp
+- [datetime，timestamp](https://segmentfault.com/a/1190000017393602?utm_source=tag-newest)
 - 约束：NOT UNLL,UNIQUE,PRIMARY KEY,DEFAULT,FOREIGN KEY约束
 - 建立一张表时需要注意什么？
 ```
