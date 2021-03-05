@@ -89,7 +89,7 @@ categories:
 - 显示加锁：select ... for upate,隐式加锁，insert/update/delete
 - [mysql事务的面试](https://blog.csdn.net/qq_43255017/article/details/106442887?utm_medium=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&depth_1-utm_source=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&request_id=)
 - mysql mysql 逻辑存储结构
-- MySQL中InnoDB引擎的行锁是怎么实现的？
+- MySQL中InnoDB引擎的行锁是怎么实现的？InnoDB行锁是通过给索引上的索引项加锁来实现的，只有通过索引条件检索数据，InnoDB才使用行级锁，否则，InnoDB将使用表锁。
 - 隔离级别与锁的关系.可以先阐述四种隔离级别，再阐述它们的实现原理。隔离级别就是依赖锁和MVCC实现的。
 - 可以先阐述四种隔离级别，再阐述它们的实现原理。隔离级别就是依赖锁和MVCC实现的。
 
