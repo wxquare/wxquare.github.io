@@ -80,6 +80,10 @@ categories:
 12. [1004. 最大连续1的个数 III](https://leetcode-cn.com/problems/max-consecutive-ones-iii/)
 13. [至少有 K 个重复字符的最长子串](https://leetcode-cn.com/problems/longest-substring-with-at-least-k-repeating-characters/)
 
+## stack,单调栈
+1. [503. 下一个更大元素 II](https://leetcode-cn.com/problems/next-greater-element-ii/)
+2. [496. 下一个更大元素 I](https://leetcode-cn.com/problems/next-greater-element-i/)
+3. [556. 下一个更大元素 III](https://leetcode-cn.com/problems/next-greater-element-iii/)
 
 ## Graph && Union Find && DFS && BFS && Topological-sort
 1. [547. 省份的数量](https://leetcode-cn.com/problems/number-of-provinces/)
