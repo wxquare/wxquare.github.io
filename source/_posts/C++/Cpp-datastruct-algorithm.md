@@ -84,6 +84,7 @@ categories:
 1. [503. 下一个更大元素 II](https://leetcode-cn.com/problems/next-greater-element-ii/)
 2. [496. 下一个更大元素 I](https://leetcode-cn.com/problems/next-greater-element-i/)
 3. [556. 下一个更大元素 III](https://leetcode-cn.com/problems/next-greater-element-iii/)
+4. [739. 每日温度](https://leetcode-cn.com/problems/daily-temperatures/)
 
 ## Graph && Union Find && DFS && BFS && Topological-sort
 1. [547. 省份的数量](https://leetcode-cn.com/problems/number-of-provinces/)
