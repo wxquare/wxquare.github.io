@@ -20,3 +20,5 @@ categories:
 3. 怎么设计一个分布式调度系统（滴滴）
 4. [使用redis实现微信步数排行榜](https://www.cnblogs.com/zwwhnly/p/13041641.html)
 5. https://leetcode-cn.com/circle/discuss/ej0oh6/
+6. 虚拟机与容器的区别？
+7. 负载均衡有哪些？
