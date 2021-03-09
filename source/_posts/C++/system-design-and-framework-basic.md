@@ -22,4 +22,4 @@ categories:
 5. https://leetcode-cn.com/circle/discuss/ej0oh6/
 6. 虚拟机与容器的区别？虚拟机需要多一层guestos，隔离更好，一把是用户级别的隔离。而docker则是应用级别的隔离，共享宿主机操作系统。
 7. docker和k8s之间的关系：官方定义1：Docker是一个开源的应用容器引擎，开发者可以打包他们的应用及依赖到一个可移植的容器中，发布到流行的Linux机器上，也可实现虚拟化。官方定义2：k8s是一个开源的容器集群管理系统，可以实现容器集群的自动化部署、自动扩缩容、维护等功能。
-9. 负载均衡与l5名字服务？
+9. 负载均衡与l5名字服务？https://blog.csdn.net/qq_18144747/article/details/86672206
