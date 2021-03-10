@@ -43,6 +43,7 @@ https://juejin.cn/post/6844904192042074126#heading-8
 LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Frequently Used
 
 ```
+[redis 内存淘汰策略解析](https://juejin.cn/post/6844903927037558792)
 
 ## redis 过期键的删除策略
 过期策略通常有以下三种：
@@ -60,9 +61,7 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
 - https://www.infoq.cn/article/uiqypvrtnq4buerrm3dc
 
 
-## redis 内存淘汰策略
-- MySQL里有2000w数据，redis中只存20w的数据，如何保证redis中的数据都是热点数据
-- https://juejin.cn/post/6844903927037558792
+
 
 ## redis 为什么使用单线程模型
 - https://draveness.me/whys-the-design-redis-single-thread/
