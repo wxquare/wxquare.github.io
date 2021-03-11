@@ -67,9 +67,10 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
 - https://draveness.me/whys-the-design-redis-single-thread/
 
 ## 缓存异常与对应的解决办法
-- 缓存雪崩
-- 缓存穿透
-- 缓存击穿
+- 缓存雪崩问题
+- 缓存穿透问题
+- 热点数据缓存击穿
+- 缓存一致性问题
 缓存预热
 缓存降级
 热点数据和冷数据
