@@ -79,12 +79,17 @@ categories:
 11. [1438. 绝对差不超过限制的最长连续子数组](https://leetcode-cn.com/problems/longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit/)
 12. [1004. 最大连续1的个数 III](https://leetcode-cn.com/problems/max-consecutive-ones-iii/)
 13. [至少有 K 个重复字符的最长子串](https://leetcode-cn.com/problems/longest-substring-with-at-least-k-repeating-characters/)
+14. [54 螺旋矩阵](https://leetcode-cn.com/problems/spiral-matrix/)
+15. 
 
 ## stack,单调栈
 1. [503. 下一个更大元素 II](https://leetcode-cn.com/problems/next-greater-element-ii/)
 2. [496. 下一个更大元素 I](https://leetcode-cn.com/problems/next-greater-element-i/)
 3. [556. 下一个更大元素 III](https://leetcode-cn.com/problems/next-greater-element-iii/)
 4. [739. 每日温度](https://leetcode-cn.com/problems/daily-temperatures/)
+5. [基本计算器](https://leetcode-cn.com/problems/basic-calculator/)
+6. [基本计算器2](https://leetcode-cn.com/problems/basic-calculator-ii/)
+7. 
 
 ## Graph && Union Find && DFS && BFS && Topological-sort
 1. [547. 省份的数量](https://leetcode-cn.com/problems/number-of-provinces/)
@@ -124,3 +129,5 @@ categories:
 ## Design DataStruct
 1. [LRU](https://leetcode-cn.com/problems/lru-cache/)
 2. [LFU](https://leetcode-cn.com/problems/lfu-cache/)
+3. [HashSet](https://leetcode-cn.com/problems/design-hashset/)
+4. [HashMap](https://leetcode-cn.com/problems/design-hashmap/)
