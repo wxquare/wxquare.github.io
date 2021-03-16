@@ -80,7 +80,7 @@ categories:
 12. [1004. 最大连续1的个数 III](https://leetcode-cn.com/problems/max-consecutive-ones-iii/)
 13. [至少有 K 个重复字符的最长子串](https://leetcode-cn.com/problems/longest-substring-with-at-least-k-repeating-characters/)
 14. [54 螺旋矩阵](https://leetcode-cn.com/problems/spiral-matrix/)
-15. 
+15. [好子数组的最大分数](https://leetcode-cn.com/problems/maximum-score-of-a-good-subarray/)
 
 ## stack,单调栈
 1. [503. 下一个更大元素 II](https://leetcode-cn.com/problems/next-greater-element-ii/)
@@ -89,7 +89,15 @@ categories:
 4. [739. 每日温度](https://leetcode-cn.com/problems/daily-temperatures/)
 5. [基本计算器](https://leetcode-cn.com/problems/basic-calculator/)
 6. [基本计算器2](https://leetcode-cn.com/problems/basic-calculator-ii/)
-7. 
+7. [验证二叉树的前序序列化](https://leetcode-cn.com/problems/verify-preorder-serialization-of-a-binary-tree/)
+
+
+## priority_queue
+1. [最大平均通过率](https://leetcode-cn.com/problems/maximum-average-pass-ratio/)
+
+## 贪心greedy
+1. [好子数组的最大分数](https://leetcode-cn.com/problems/maximum-score-of-a-good-subarray/)
+2. 
 
 ## Graph && Union Find && DFS && BFS && Topological-sort
 1. [547. 省份的数量](https://leetcode-cn.com/problems/number-of-provinces/)
@@ -116,6 +124,9 @@ categories:
 9. [ 完成所有工作的最短时间](https://leetcode-cn.com/problems/find-minimum-time-to-finish-all-jobs/)，状态压缩DP或者dfs加剪枝
 11. [回文字符串分割IV](https://leetcode-cn.com/problems/palindrome-partitioning-iv)
 12. [354. 俄罗斯套娃信封问题](https://leetcode-cn.com/problems/russian-doll-envelopes/)
+13. [131. 分割回文串](https://leetcode-cn.com/problems/palindrome-partitioning/)
+14. [分割回文串 II](https://leetcode-cn.com/problems/palindrome-partitioning-ii/)
+15. 
 
 ## Linked List && Tree
 1. [交换链表中的第K个节点和倒数第K个节点](https://leetcode-cn.com/problems/swapping-nodes-in-a-linked-list/)
