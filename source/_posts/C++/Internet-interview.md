@@ -80,6 +80,8 @@ categories:
 	- TCP 的三次握手带来了额外开销，这些开销不只包括需要传输更多的数据，还增加了首次传输数据的网络延迟；
 	- TCP 的重传机制在数据包丢失时可能会重新传输已经成功接收的数据段，造成带宽的浪费；
 
+16. [QUIC 是如何解决TCP 性能瓶颈的？](https://blog.csdn.net/m0_37621078/article/details/106506532)
+
 ## http和https
 1. [HTTP协议协议格式详解](https://www.jianshu.com/p/8fe93a14754c)
     - 请求行(request line)。请求方法、域名、协议版本。
