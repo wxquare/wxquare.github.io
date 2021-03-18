@@ -126,7 +126,7 @@ categories:
 12. [354. 俄罗斯套娃信封问题](https://leetcode-cn.com/problems/russian-doll-envelopes/)
 13. [131. 分割回文串](https://leetcode-cn.com/problems/palindrome-partitioning/)
 14. [分割回文串 II](https://leetcode-cn.com/problems/palindrome-partitioning-ii/)
-15. 
+15. [115. 不同的子序列](https://leetcode-cn.com/problems/distinct-subsequences/)
 
 ## Linked List && Tree
 1. [交换链表中的第K个节点和倒数第K个节点](https://leetcode-cn.com/problems/swapping-nodes-in-a-linked-list/)
