@@ -81,6 +81,7 @@ categories:
 	- TCP 的重传机制在数据包丢失时可能会重新传输已经成功接收的数据段，造成带宽的浪费；
 
 16. [QUIC 是如何解决TCP 性能瓶颈的？](https://blog.csdn.net/m0_37621078/article/details/106506532)
+17. [科普：QUIC协议原理分析](https://zhuanlan.zhihu.com/p/32553477)
 
 ## http和https
 1. [HTTP协议协议格式详解](https://www.jianshu.com/p/8fe93a14754c)
