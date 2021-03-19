@@ -82,6 +82,7 @@ categories:
 
 16. [QUIC 是如何解决TCP 性能瓶颈的？](https://blog.csdn.net/m0_37621078/article/details/106506532)
 17. [科普：QUIC协议原理分析](https://zhuanlan.zhihu.com/p/32553477)
+18. 
 
 ## http和https
 1. [HTTP协议协议格式详解](https://www.jianshu.com/p/8fe93a14754c)
@@ -127,6 +128,7 @@ categories:
 	- http 1.1, 长连接
 	- http 2.0，二进制压缩+连接复用
 	- http QUIC，udp+ssl
+10. [HTTP/3 竟然基于 UDP，HTTP 协议这些年都经历了啥？](https://zhuanlan.zhihu.com/p/68012355)
 10. 使用curl
 11. [https中间人攻击原理以及防御措施](https://zh.wikipedia.org/wiki/%E4%B8%AD%E9%97%B4%E4%BA%BA%E6%94%BB%E5%87%BB)
 12. [如何理解http的无连接和无状态的特点？](https://blog.csdn.net/tennysonsky/article/details/44562435)
