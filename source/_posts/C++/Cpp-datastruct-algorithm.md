@@ -81,6 +81,10 @@ categories:
 13. [至少有 K 个重复字符的最长子串](https://leetcode-cn.com/problems/longest-substring-with-at-least-k-repeating-characters/)
 14. [54 螺旋矩阵](https://leetcode-cn.com/problems/spiral-matrix/)
 15. [好子数组的最大分数](https://leetcode-cn.com/problems/maximum-score-of-a-good-subarray/)
+16. [删除有序数组中的重复项](https://leetcode-cn.com/problems/remove-duplicates-from-sorted-array/)
+17. [删除有序数组中的重复项 II](https://leetcode-cn.com/problems/remove-duplicates-from-sorted-array-ii/)
+18. [存在重复元素 III](https://leetcode-cn.com/problems/contains-duplicate-iii/)
+19. [存在重复元素 II](https://leetcode-cn.com/problems/contains-duplicate-ii/)
 
 ## stack,单调栈
 1. [503. 下一个更大元素 II](https://leetcode-cn.com/problems/next-greater-element-ii/)
@@ -94,6 +98,7 @@ categories:
 
 ## priority_queue
 1. [最大平均通过率](https://leetcode-cn.com/problems/maximum-average-pass-ratio/)
+2. [单线程 CPU](https://leetcode-cn.com/problems/single-threaded-cpu/)
 
 ## 贪心greedy
 1. [好子数组的最大分数](https://leetcode-cn.com/problems/maximum-score-of-a-good-subarray/)
@@ -127,6 +132,10 @@ categories:
 13. [131. 分割回文串](https://leetcode-cn.com/problems/palindrome-partitioning/)
 14. [分割回文串 II](https://leetcode-cn.com/problems/palindrome-partitioning-ii/)
 15. [115. 不同的子序列](https://leetcode-cn.com/problems/distinct-subsequences/)
+16. [5. 最长回文子串](https://leetcode-cn.com/problems/distinct-subsequences/)
+17. [198. 打家劫舍](https://leetcode-cn.com/problems/house-robber/)
+18. [87. 扰乱字符串](https://leetcode-cn.com/problems/scramble-string/)
+19. 
 
 ## Linked List && Tree
 1. [交换链表中的第K个节点和倒数第K个节点](https://leetcode-cn.com/problems/swapping-nodes-in-a-linked-list/)
@@ -134,11 +143,24 @@ categories:
 4. [二叉树的前、中、后序遍历,非递归的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_tree.cpp)（12.21）
 5. [二叉搜索树的查找、插入和删除](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search_tree.cpp)
 5. [链表反转](https://leetcode-cn.com/problems/reverse-linked-list/)
-6. [面试题 02.05. 链表求和](https://leetcode-cn.com/problems/sum-lists-lcci/)
-7. [2. 两数相加](https://leetcode-cn.com/problems/add-two-numbers/)
+6. [92. 反转链表 II](https://leetcode-cn.com/problems/reverse-linked-list-ii/)
+7. [面试题 02.05. 链表求和](https://leetcode-cn.com/problems/sum-lists-lcci/)
+8. [2. 两数相加](https://leetcode-cn.com/problems/add-two-numbers/)
 
 ## Design DataStruct
 1. [LRU](https://leetcode-cn.com/problems/lru-cache/)
 2. [LFU](https://leetcode-cn.com/problems/lfu-cache/)
 3. [HashSet](https://leetcode-cn.com/problems/design-hashset/)
 4. [HashMap](https://leetcode-cn.com/problems/design-hashmap/)
+
+## Trie 字典树
+1. [统计异或值在范围内的数对有多少](https://leetcode-cn.com/problems/count-pairs-with-xor-in-a-range/)
+
+## 二分法
+1. [有界数组中指定下标处的最大值](https://leetcode-cn.com/problems/maximum-value-at-a-given-index-in-a-bounded-array/)
+2. [1482. 制作 m 束花所需的最少天数](https://leetcode-cn.com/problems/minimum-number-of-days-to-make-m-bouquets/)
+
+
+## bit 操作
+1. [所有数对按位与结果的异或和](https://leetcode-cn.com/problems/find-xor-sum-of-all-pairs-bitwise-and/)
+2. 

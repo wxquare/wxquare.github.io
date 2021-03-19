@@ -78,9 +78,7 @@ categories:
 - 锁，在Read Uncommitted级别下，读取数据不需要加共享锁，这样就不会跟被修改的数据上的排他锁冲突；在Read Committed级别下，读操作需要加共享锁，但是在语句执行完以后释放共享锁；在Repeatable Read级别下，读操作需要加共享锁，但是在事务提交之前并不释放共享锁，也就是必须等待事务执行完毕以后才释放共享锁。SERIALIZABLE 是限制性最强的隔离级别，因为该级别锁定整个范围的键，并一直持有锁，直到事务完成
 - 死锁。死锁是指两个或多个事务在同一资源上相互占用，并请求锁定对方的资源，从而导致恶性循环的现象
 - 悲观锁和乐观锁。悲观锁：假定会发生并发冲突，屏蔽一切可能违反数据完整性的操作。在查询完数据的时候就把事务锁起来，直到提交事务。实现方式：使用数据库中的锁机制。：假设不会发生并发冲突，只在提交操作时检查是否违反数据完整性。在修改数据的时候把事务锁起来，通过version的方式来进行锁定。实现方式：乐一般会使用版本号机制或CAS算法实现。乐观锁适合多读的场景，悲观锁适合多写的场景
-- MySQL中InnoDB引擎的行锁是怎么实现的？
 - innodb支持行级索，事务和聚簇索引
-- innodb的行级锁是基于索引实现的，即：加锁的对象是索引而非具体的数据。当加锁操作是使用聚簇索引时，innodb会先锁住非主键索引，再锁定非聚簇索引所对应的聚簇索引。行级锁的加锁条件必须有对应的索引项，否则会退化为表级索
 - 表级锁：lock table tbl_name
 - 页级锁：锁住指定数据空间。select id from table_name where age between 1 and 10 for update
 - 行级锁：select id from table where age=12 for update
@@ -105,6 +103,7 @@ categories:
 ## 数据库优化
 - 如何定位及优化SQL语句的性能问题？创建的索引有没有被使用到?或者说怎么才可以知道这条语句运行很慢的原因？explain
 -  **优化的步骤**
+    - 检查mysql服务器资源使用情况，https://www.cnblogs.com/remember-forget/p/10400496.html
     - sql语句优化。分析执行计划，减少load的数据量
     - 增加索引，索引优化
     - 缓存，memcached, redis
@@ -164,3 +163,5 @@ categories:
 4. [mysql auto increment primary key](https://draveness.me/whys-the-design-mysql-auto-increment/)
 5. https://juejin.cn/post/6844903655439597582?hmsr=joyk.com&utm_source=joyk.com&utm_source=joyk.com&utm_medium=referral%3Fhmsr%3Djoyk.com&utm_medium=referral
 6. https://www.cnblogs.com/kyoner/p/11366805.html
+7. [一文精通MYSQL](http://km.oa.com/articles/show/491871?kmref=author_post)
+8. MySQL alter table的过程如下： 创建ALTER TABLE目的新表；将老表数据导入新表；删除老表。（https://blog.csdn.net/zhaiwx1987/article/details/6688970）

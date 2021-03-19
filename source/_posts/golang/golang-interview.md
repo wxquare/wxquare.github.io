@@ -35,7 +35,7 @@ categories:
 - 访问流程，先用低位确定bucket，再用高8位粗选
 - 增量扩容，迁移
 - 使用map[interface{}]struct{}作为set
-- [如何实现顺序遍历？](https://blog.csdn.net/slvher/article/details/44779081)
+- [map遍历是无序且随机的，如何实现顺序遍历？](https://blog.csdn.net/slvher/article/details/44779081)
 - [内部hashmap的实现原理](https://ninokop.github.io/2017/10/24/Go-Hashmap%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E5%92%8C%E5%AE%9E%E7%8E%B0/)。内部结构（bucket），扩容与迁移，删除。 
 
 ### sync.map
@@ -141,14 +141,20 @@ categories:
 - 深入理解协程gmp调度模型，以及其发展历史
 - 理解操作系统是怎么调度的，golang协程调度的优势，切换代价低，goroutine开销低，并发度高。
 - Golang IO 模型和网络轮训器
+- [sync.Mutex: “锁”实现背后那些事](http://km.oa.com/articles/show/502088)
 
 
 ## Golang 内存管理和垃圾回收（memory and gc）
 - **多级缓存**：内存分配器不仅会区别对待大小不同的对象，还会将内存分成不同的级别分别管理，TCMalloc 和 Go 运行时分配器都会引入线程缓存（Thread Cache）、中心缓存（Central Cache）和页堆（Page Heap）三个组件分级管理内存
 - **对象大小**：Go 语言的内存分配器会根据申请分配的内存大小选择不同的处理逻辑，运行时根据对象的大小将对象分成微对象、小对象和大对象三种，tiny,small,large
 - mspan、mcache、mcentral、mheap
-- [golang GC](https://segmentfault.com/a/1190000022030353)
+- [深入理解golang GC的演进过程](https://segmentfault.com/a/1190000022030353)
 - golang 什么情况下会发生内存泄漏？Goroutinue泄露？
+- [Memory Leaking Scenarios](https://go101.org/article/memory-leaking.html)
+  - hanging goroutine
+  - cgo
+  - substring/slice
+  - ticker
 - golang sync.pool 临时对象池
 - [golang 程序启动过程?](https://blog.iceinto.com/posts/go/start/) 
 - 当go服务部署到线上了，发现有内存泄露，该怎么处理?
@@ -163,7 +169,18 @@ categories:
 - reflect
 - http http库源码分析
 - [Go Http包解析：为什么需要response.Body.Close()](https://segmentfault.com/a/1190000020086816)
+- [为什么Response.Body需要被关闭](https://studygolang.com/articles/9887)
 - [译]Go文件操作大全](https://colobu.com/2016/10/12/go-file-operations/)
+- [Golang调度器GPM原理与调度全分析](https://zhuanlan.zhihu.com/p/323271088)
+- [为什么要使用 Go 语言？Go 语言的优势在哪里？](https://www.zhihu.com/question/21409296/answer/1040884859)
+- [Go内置数据结构原理](https://zhuanlan.zhihu.com/p/341945051)
+- [从 bug 中学习：六大开源项目告诉你 go 并发编程的那些坑](https://zhuanlan.zhihu.com/p/352589023)
+- [Go runtime剖析系列（一）：内存管理](https://zhuanlan.zhihu.com/p/323915446)
+- [Go 内存泄露三宗罪](http://km.oa.com/group/19253/articles/show/460278?kmref=home_headline)
+- [Go 与 C 的桥梁：cgo 入门，剖析与实践](https://www.zhihu.com/org/teng-xun-ji-zhu-gong-cheng),警惕cgo引入导致的性能问题比如线程数量过多，内存泄漏问题
+- 定时器的设计和实现原理，golang的定时器是怎么实现的？
+- [一次 go 服务大量连接 time_wait 问题排查](http://km.oa.com/group/35228/articles/show/461981?kmref=discovery).一般解决思路：TIME_WAIT排查是不是短链接，即频繁create and close socket CLOSE_WAIT排查自己代码BUG，socket没有close
+
 
 
 ## 其它

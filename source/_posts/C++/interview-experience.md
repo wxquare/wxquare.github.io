@@ -60,7 +60,9 @@ categories:
 
 ### shopee
 1. https://leetcode-cn.com/circle/discuss/ej0oh6/
+2. https://leetcode-cn.com/circle/discuss/aX6VxT/
 
 ### microsoft
 1. https://leetcode-cn.com/circle/discuss/TEXcH1/
 2. https://zhuanlan.zhihu.com/p/95836541
+3. https://leetcode-cn.com/circle/discuss/5tFRIM/

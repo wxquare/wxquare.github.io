@@ -32,6 +32,7 @@ categories:
 14. [操作系统为什么设计用户态和内核态，用户态和内核态的权限不同？怎么解决IO频繁发生内核和用户态的态的切换（缓存）？](https://imageslr.github.io/2020/07/07/user-mode-kernel-mode.html)
 15. [select、epoll的监听回调机制，红黑树？](https://www.jianshu.com/p/31cdfd6f5a48)
 16. [从一道面试题谈linux下fork的运行机制](https://www.cnblogs.com/leoo2sk/archive/2009/12/11/talk-about-fork-in-linux.html)
+17. malloc分配多少内存：http://fallincode.com/blog/2020/01/malloc%e6%9c%80%e5%a4%9a%e8%83%bd%e5%88%86%e9%85%8d%e5%a4%9a%e5%b0%91%e5%86%85%e5%ad%98/
 
 
 ## 存储系统，内存和存储

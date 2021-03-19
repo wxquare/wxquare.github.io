@@ -99,9 +99,14 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
 
 
 
-
+## 面试题汇总
+1. redis 为什么快？
+2. redis数据结构，详细说说一种。字典如何实现的？
+3. redis内存淘汰策略？
+4. 
 
 ## 推荐阅读:
 1. https://blog.csdn.net/ThinkWon/article/details/103522351
 2. https://tech.meituan.com/2017/03/17/cache-about.html
 3. [一不小心肝出了4W字的Redis面试教程](https://juejin.cn/post/6868409018151337991)
+4. [你的 Redis 为什么变慢了？](https://cloud.tencent.com/developer/article/1724076)

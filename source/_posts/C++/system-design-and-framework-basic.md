@@ -23,3 +23,23 @@ categories:
 6. 虚拟机与容器的区别？虚拟机需要多一层guestos，隔离更好，一把是用户级别的隔离。而docker则是应用级别的隔离，共享宿主机操作系统。
 7. docker和k8s之间的关系：官方定义1：Docker是一个开源的应用容器引擎，开发者可以打包他们的应用及依赖到一个可移植的容器中，发布到流行的Linux机器上，也可实现虚拟化。官方定义2：k8s是一个开源的容器集群管理系统，可以实现容器集群的自动化部署、自动扩缩容、维护等功能。
 9. 负载均衡与l5名字服务？https://blog.csdn.net/qq_18144747/article/details/86672206
+
+## go
+1. [Golang调度器GPM原理与调度全分析](https://zhuanlan.zhihu.com/p/323271088)
+2. [为什么要使用 Go 语言？Go 语言的优势在哪里？](https://www.zhihu.com/question/21409296/answer/1040884859)
+3. [Go内置数据结构原理](https://zhuanlan.zhihu.com/p/341945051)
+4. [从 bug 中学习：六大开源项目告诉你 go 并发编程的那些坑](https://zhuanlan.zhihu.com/p/352589023)
+5. [Go runtime剖析系列（一）：内存管理](https://zhuanlan.zhihu.com/p/323915446)
+6. [Go 内存泄露三宗罪](http://km.oa.com/group/19253/articles/show/460278?kmref=home_headline)
+
+## redis
+6. [Redis 多线程网络模型全面揭秘](https://zhuanlan.zhihu.com/p/356059845)
+
+## db
+1. [https://zhuanlan.zhihu.com/p/329865336](https://zhuanlan.zhihu.com/p/329865336)
+2. 
+
+## 
+1. [Kubernetes 入门&进阶实战](https://zhuanlan.zhihu.com/p/339008746)
+2. Lambda 和 Kappa 架构简介：https://libertydream.github.io/2020/04/12/lambda-%E5%92%8C-kappa-%E7%AE%80%E4%BB%8B/
+3. https://blog.csdn.net/weixin_39471249/article/details/79585231

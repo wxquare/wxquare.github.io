@@ -57,3 +57,4 @@ categories:
 ### microsoft
 1. https://leetcode-cn.com/circle/discuss/TEXcH1/
 2. https://zhuanlan.zhihu.com/p/95836541
+3. [英特尔 Intel｜面经分享｜2021｜](https://leetcode-cn.com/circle/discuss/5tFRIM/)
