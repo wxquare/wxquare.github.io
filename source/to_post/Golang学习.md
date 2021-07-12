@@ -1502,7 +1502,32 @@ C++使用redis用hiredis完成，hiredis使用c语言编写。
 ##6.Golang使用Redis
 [https://github.com/go-redis/redis](https://github.com/go-redis/redis)
 
-
+[给以后的同学攒点golang的面经](https://www.nowcoder.com/discuss/145338?type=2)
+https://wiki.jikexueyuan.com/project/go-command-tutorial/0.12.html
+[golang ----------- goroutine（协程）](https://blog.csdn.net/qq_36183935/article/details/80036388)
+[Go socket编程实践: TCP服务器和客户端实现]https://colobu.com/2014/12/02/go-socket-programming-TCP/
+[The Laws of Reflection](https://blog.golang.org/laws-of-reflection)
+[Golang的反射reflect深入理解和示例](https://juejin.cn/post/6844903559335526407)
+[http://blog.studygolang.com/2012/12/gdb%E8%B0%83%E8%AF%95go%E7%A8%8B%E5%BA%8F/]()
+https://tonybai.com/2014/10/22/golang-testing-techniques/
+https://studygolang.com/articles/17796
+https://studygolang.com/articles/10114
+https://studygolang.com/articles/7516
+https://studygolang.com/articles/16751?fr=sidebar
+https://www.cnblogs.com/CraryPrimitiveMan/p/7928647.html
+https://studygolang.com/articles/7211
+https://www.kancloud.cn/kancloud/effective/72202
+https://juejin.cn/post/6844903488166559751
+https://zhuanlan.zhihu.com/p/51220836
+http://gopl-zh.codeyu.com/ch1/ch1-04.html
+https://juejin.cn/post/6844903793771937805
+http://www.opscoder.info/golang_unsafe.html
+https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-context/
+	
+	
+	
+	
+	
 书籍
 《图解http》
 [使用 Gomock 进行单元测试](https://juejin.cn/post/6844903732258275335)
