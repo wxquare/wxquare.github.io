@@ -852,23 +852,6 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
 [3].[http://jack-nie.github.io/go/golang-sync-pool.html](http://jack-nie.github.io/go/golang-sync-pool.html)
 
 
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
 参考：  
 - https://tonybai.com/2017/06/23/an-intro-about-goroutine-scheduler/  
 - https://colobu.com/2017/05/04/go-scheduler/  
