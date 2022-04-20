@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="最近在做一些算法优化的工作，由于对Python认识不够，开始的入坑使用了多线程。发现在一个四核机器，即使使用多线程，CPU使用率始终在100%左右（一个核）。后来发现Python中并行计算要使用多进程，改成多进程模式后，CPU使用率达到340%，也提升了算法的效率。另外multiprocessing对多线程和多进程做了很好的封装，需要掌握。这里总结下面两个问题：  Python中的并行计算">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python 多线程和多进程">
+<meta property="og:url" content="http://yoursite.com/2022/04/19/python/Python-multiprocessing/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="最近在做一些算法优化的工作，由于对Python认识不够，开始的入坑使用了多线程。发现在一个四核机器，即使使用多线程，CPU使用率始终在100%左右（一个核）。后来发现Python中并行计算要使用多进程，改成多进程模式后，CPU使用率达到340%，也提升了算法的效率。另外multiprocessing对多线程和多进程做了很好的封装，需要掌握。这里总结下面两个问题：  Python中的并行计算">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2022-04-19T14:44:18.462Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Python 多线程和多进程">
+<meta name="twitter:description" content="最近在做一些算法优化的工作，由于对Python认识不够，开始的入坑使用了多线程。发现在一个四核机器，即使使用多线程，CPU使用率始终在100%左右（一个核）。后来发现Python中并行计算要使用多进程，改成多进程模式后，CPU使用率达到340%，也提升了算法的效率。另外multiprocessing对多线程和多进程做了很好的封装，需要掌握。这里总结下面两个问题：  Python中的并行计算">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/04/19/python/Python-multiprocessing/">
+
+
+
+
+
+  <title>Python 多线程和多进程 | wxquare's Blogs</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">wxquare's Blogs</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/04/19/python/Python-multiprocessing/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="wxquare">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Python 多线程和多进程</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2022-04-19T22:44:18+08:00">
+                2022-04-19
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Python/" itemprop="url" rel="index">
+                    <span itemprop="name">Python</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>　　<br>　　最近在做一些算法优化的工作，由于对Python认识不够，开始的入坑使用了多线程。发现在一个四核机器，即使使用多线程，CPU使用率始终在100%左右（一个核）。后来发现Python中并行计算要使用多进程，改成多进程模式后，CPU使用率达到340%，也提升了算法的效率。另外multiprocessing对多线程和多进程做了很好的封装，需要掌握。这里总结下面两个问题：</p>
+<ol>
+<li>Python中的并行计算为什么要使用多进程？</li>
+<li>Python多线程和多进程简单测试</li>
+<li>multiprocessing库的使用</li>
+</ol>
+<h2 id="Python中的并行计算为什么要使用多进程？"><a href="#Python中的并行计算为什么要使用多进程？" class="headerlink" title="Python中的并行计算为什么要使用多进程？"></a>Python中的并行计算为什么要使用多进程？</h2><p>　　Python在并行计算中必须使用多进程的原因是GIL(Global Interpreter Lock，全局解释器锁)。GIL使得在解释执行Python代码时，会产生互斥锁来限制线程对共享资源的访问，直到解释器遇到I/O操作或者操作次数达到一定数目时才会释放GIL。这使得<strong>Python一个进程内同一时间只能允许一个线程进行运算</strong>”，也就是说多线程无法利用多核CPU。因此：</p>
+<ol>
+<li>对于CPU密集型任务（循环、计算等），由于多线程触发GIL的释放与在竞争，多个线程来回切换损耗资源，因此多线程不但不会提高效率，反而会降低效率。所以<strong>计算密集型程序，要使用多进程</strong>。</li>
+<li>对于I/O密集型代码（文件处理、网络爬虫、sleep等待),开启多线程实际上是<strong>并发(不是并行)</strong>，线程A在IO等待时，会切换到线程B，从而提升效率。</li>
+<li>大多数程序包含CPU和IO操作，但不考虑进程的资源开销，<strong>多进程通常都是优于多线程的</strong>。</li>
+<li>由于Python多线程的问题，因此通常情况下都使用多进程，使用多进程需要注意进程间变量的共享。</li>
+</ol>
+<h2 id="Python多线程和多进程简单测试"><a href="#Python多线程和多进程简单测试" class="headerlink" title="Python多线程和多进程简单测试"></a>Python多线程和多进程简单测试</h2><ul>
+<li>job1是一个完成CPU没有任务IO的死循环，观察CPU使用率，无论使用多少线程数量num，CPU使用率始终在100%左右，也就是说只能利用核的资源。而多进程则可以使用多核资源，num为1时CPU使用率为100%，num为2时CPU使用率接近200%。</li>
+<li>job2是一个IO密集型的程序，主要的耗时在print系统调用。num=4时，多线程跑了10.81s，cpu使用率93%；多进程只用了3.23s，CPU使用率130%。
+　<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">import multiprocessing</span><br><span class="line">import threading</span><br><span class="line"></span><br><span class="line">def job1():</span><br><span class="line">    &apos;&apos;&apos;</span><br><span class="line">        full cpu</span><br><span class="line">    &apos;&apos;&apos;</span><br><span class="line">    while True:</span><br><span class="line">        continue</span><br><span class="line"></span><br><span class="line">NUMS = 100000</span><br><span class="line">def job2():</span><br><span class="line">    &apos;&apos;&apos;</span><br><span class="line">        cpu and io</span><br><span class="line">    &apos;&apos;&apos;</span><br><span class="line">    for i in range(NUMS):</span><br><span class="line">        print(&quot;hello,world&quot;)</span><br><span class="line"></span><br><span class="line">def multi_threads(num,job):</span><br><span class="line">    threads = []</span><br><span class="line">    for i in range(num):</span><br><span class="line">        t = threading.Thread(target=job,args=())</span><br><span class="line">        threads.append(t)</span><br><span class="line">    for t in threads:</span><br><span class="line">        t.start()</span><br><span class="line">    for t in threads:</span><br><span class="line">        t.join()</span><br><span class="line"></span><br><span class="line">def multi_process(num,job):</span><br><span class="line">    process = []</span><br><span class="line">    for i in range(num):</span><br><span class="line">        p = multiprocessing.Process(target=job,args=())</span><br><span class="line">        process.append(p)</span><br><span class="line">    for p in process:</span><br><span class="line">        p.start()</span><br><span class="line">    for p in process:</span><br><span class="line">        p.join()</span><br><span class="line"></span><br><span class="line">if __name__ == &apos;__main__&apos;:</span><br><span class="line">    # multi_threads(4,job1)</span><br><span class="line">    # multi_process(4,job1)</span><br><span class="line">    # multi_threads(4,job2)</span><br><span class="line">    multi_process(4,job2)</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h2 id="multiprocessing的使用"><a href="#multiprocessing的使用" class="headerlink" title="multiprocessing的使用"></a><a href="https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing" target="_blank" rel="noopener">multiprocessing的使用</a></h2><p>参考：<a href="https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing" target="_blank" rel="noopener">https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing</a></p>
+<ol>
+<li>单个进程multiprocessing.Process对象，和threading.Thread的API完全一样，start(),join(),参考上文中的测试代码。</li>
+<li>进程池</li>
+<li>进程间对象共享队列multiprocessing.Queue()</li>
+<li>进程同步multiprocessing.Lock()</li>
+<li>进程间状态共享multiprocessing.Value,multiprocessing.Array</li>
+<li>multiprocessing.Manager()</li>
+<li>进程池：multiprocessing.Pool()</li>
+</ol>
+<ul>
+<li>pool.map</li>
+<li>pool.imap_unordered</li>
+<li>pool.apply_async</li>
+<li></li>
+</ul>
+<p>　　Python多线程和多进程的使用非常方面，因为multiprocessing提供了非常好的封装。为了方便设置线程和进程的数量，通常都会使用池pool技术。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">from multiprocessing.dummy import Pool as DummyPool   # thread pool</span><br><span class="line">from multiprocessing import Pool                      # process pool</span><br></pre></td></tr></table></figure></p>
+<p>multilprocessing包的使用可参考：</p>
+<ul>
+<li><a href="https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing" target="_blank" rel="noopener">https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing</a></li>
+<li><a href="https://thief.one/2016/11/24/Multiprocessing-Pool/" target="_blank" rel="noopener">https://thief.one/2016/11/24/Multiprocessing-Pool/</a></li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/04/19/python/Python-call-cpp/" rel="next" title="Python通过swig调用复杂C++库">
+                <i class="fa fa-chevron-left"></i> Python通过swig调用复杂C++库
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/04/19/python/Python-peformance/" rel="prev" title="Python 程序性能优化">
+                Python 程序性能优化 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="wxquare">
+            
+              <p class="site-author-name" itemprop="name">wxquare</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">47</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/wxquare" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="http://www.zhihu.com/people/wxquare0" target="_blank" title="知乎">
+                    
+                      <i class="fa fa-fw fa-globe"></i>知乎</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.cnblogs.com/wxquare" target="_blank" title="博客园">
+                    
+                      <i class="fa fa-fw fa-globe"></i>博客园</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="http://www.cplusplus.com/reference" title="C++" target="_blank">C++</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://golang.org/pkg/" title="golang" target="_blank">golang</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://docs.python.org/3" title="python" target="_blank">python</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://en.cppreference.com/w/" title="cppreference" target="_blank">cppreference</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://leetcode.com/problemset/all/" title="leetcode" target="_blank">leetcode</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Python中的并行计算为什么要使用多进程？"><span class="nav-number">1.</span> <span class="nav-text">Python中的并行计算为什么要使用多进程？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Python多线程和多进程简单测试"><span class="nav-number">2.</span> <span class="nav-text">Python多线程和多进程简单测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#multiprocessing的使用"><span class="nav-number">3.</span> <span class="nav-text">multiprocessing的使用</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2017 &mdash; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wxquare</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>

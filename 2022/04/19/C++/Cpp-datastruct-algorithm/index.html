@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="design pattern 单例模式的实现 工厂模式的实现 观察者模式的实现 生产者消费者模式的实现  大数据算法总结 教你如何迅速秒杀掉99%的海量数据处理面试题 海量日志数据，提取出某日访问百度次数最多的那个IP 寻找热门查询，300万个查询字符串中统计最热门的10个查询 有一个1G大小的一个文件，里面每一行是一个词，词的大小不超过16字节，内存限制大小是1M。返回频数最高的100个词 海量">
+<meta property="og:type" content="article">
+<meta property="og:title" content="熟悉常用的数据结构和算法">
+<meta property="og:url" content="http://yoursite.com/2022/04/19/C++/Cpp-datastruct-algorithm/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="design pattern 单例模式的实现 工厂模式的实现 观察者模式的实现 生产者消费者模式的实现  大数据算法总结 教你如何迅速秒杀掉99%的海量数据处理面试题 海量日志数据，提取出某日访问百度次数最多的那个IP 寻找热门查询，300万个查询字符串中统计最热门的10个查询 有一个1G大小的一个文件，里面每一行是一个词，词的大小不超过16字节，内存限制大小是1M。返回频数最高的100个词 海量">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2022-04-19T14:44:18.454Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="熟悉常用的数据结构和算法">
+<meta name="twitter:description" content="design pattern 单例模式的实现 工厂模式的实现 观察者模式的实现 生产者消费者模式的实现  大数据算法总结 教你如何迅速秒杀掉99%的海量数据处理面试题 海量日志数据，提取出某日访问百度次数最多的那个IP 寻找热门查询，300万个查询字符串中统计最热门的10个查询 有一个1G大小的一个文件，里面每一行是一个词，词的大小不超过16字节，内存限制大小是1M。返回频数最高的100个词 海量">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/04/19/C++/Cpp-datastruct-algorithm/">
+
+
+
+
+
+  <title>熟悉常用的数据结构和算法 | wxquare's Blogs</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">wxquare's Blogs</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/04/19/C++/Cpp-datastruct-algorithm/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="wxquare">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">熟悉常用的数据结构和算法</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2022-04-19T22:44:18+08:00">
+                2022-04-19
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C-C/" itemprop="url" rel="index">
+                    <span itemprop="name">C/C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="design-pattern"><a href="#design-pattern" class="headerlink" title="design pattern"></a>design pattern</h2><ul>
+<li><a href="https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/singleton.cpp" target="_blank" rel="noopener">单例模式的实现</a></li>
+<li><a href="https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/factory.cpp" target="_blank" rel="noopener">工厂模式的实现</a></li>
+<li><a href="https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/observer.cpp" target="_blank" rel="noopener">观察者模式的实现</a></li>
+<li><a href="https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/producer_consumer.cpp" target="_blank" rel="noopener">生产者消费者模式的实现</a></li>
+</ul>
+<h2 id="大数据算法总结"><a href="#大数据算法总结" class="headerlink" title="大数据算法总结"></a>大数据算法总结</h2><ul>
+<li><a href="https://juejin.cn/post/6844903519640616967" target="_blank" rel="noopener">教你如何迅速秒杀掉99%的海量数据处理面试题</a></li>
+<li>海量日志数据，提取出某日访问百度次数最多的那个IP</li>
+<li>寻找热门查询，300万个查询字符串中统计最热门的10个查询</li>
+<li>有一个1G大小的一个文件，里面每一行是一个词，词的大小不超过16字节，内存限制大小是1M。返回频数最高的100个词</li>
+<li>海量数据分布在100台电脑中，想个办法高效统计出这批数据的TOP10</li>
+<li>有10个文件，每个文件1G，每个文件的每一行存放的都是用户的query，每个文件的query都可能重复。要求你按照query的频度排序</li>
+<li>5亿个int找它们的中位数</li>
+</ul>
+<p>其它：</p>
+<ul>
+<li><a href="https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/mystring.cpp" target="_blank" rel="noopener">C++ MyString类的实现</a></li>
+<li><a href="https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/myvector.cpp" target="_blank" rel="noopener">C++ MyVector类的实现</a></li>
+<li><a href="https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search.cpp" target="_blank" rel="noopener">二分查找递归和非递归的实现</a></li>
+<li><a href="https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/sort.cpp" target="_blank" rel="noopener">排序算法的实现</a></li>
+<li><a href="https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/itoa_atoi.cpp" target="_blank" rel="noopener">字符串和数字的相互转换atoi和itoa函数的实现</a></li>
+<li><a href="https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/str_function.cpp" target="_blank" rel="noopener">memcpy/memset/strcpy/strncpy函数的实现</a></li>
+<li>大数加减乘除</li>
+<li>KMP字符串匹配算法]</li>
+<li><a href="https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/select_k.cpp" target="_blank" rel="noopener">快排查找第k大的数</a></li>
+<li><p><a href="https://www.cnblogs.com/wxquare/p/4719228.html" target="_blank" rel="noopener">全排列组合的实现</a></p>
+</li>
+<li><p><a href="https://www.cnblogs.com/wxquare/p/7280025.html" target="_blank" rel="noopener">C++ 不可继承类的实现</a></p>
+</li>
+<li><a href="https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/read_write_locker.cpp" target="_blank" rel="noopener">C++ 读写锁的实现</a> </li>
+<li>哈希算法、冲突解决和简单实现</li>
+<li>平衡二叉树、红黑树、B树、Trie树</li>
+<li>bitmamp布隆滤波器</li>
+<li>暴力：dfs和bfs</li>
+<li>哈希一致性算法</li>
+<li>逻辑问题</li>
+<li>100亿个数选top5，小根堆</li>
+<li>唯一订单号问题，并发量高的话怎么解决</li>
+<li>跳跃表，为什么使用跳跃表而不使用红黑树</li>
+<li>hash表设计要注意什么问题</li>
+<li>LRU的实现</li>
+<li>布隆过滤器,bloom filter 使用场景，优缺点.与 hash set的比较</li>
+<li>经典算法</li>
+<li>单例模式. <a href="https://www.liwenzhou.com/posts/Go/singleton_in_go/" target="_blank" rel="noopener">https://www.liwenzhou.com/posts/Go/singleton_in_go/</a></li>
+<li>求平方根（根号n）的两种算法——二分法</li>
+<li>雪花算法SnowFlake</li>
+<li>洗牌算法</li>
+<li>蓄水池抽样，从m个数中抽取n个数</li>
+<li>经典算法</li>
+<li>单例模式. <a href="https://www.liwenzhou.com/posts/Go/singleton_in_go/" target="_blank" rel="noopener">https://www.liwenzhou.com/posts/Go/singleton_in_go/</a></li>
+<li>求平方根（根号n）的两种算法——二分法</li>
+<li>雪花算法SnowFlake</li>
+<li>洗牌算法</li>
+<li>蓄水池抽样，从m个数中抽取n个数</li>
+</ul>
+<h2 id="大数据算法"><a href="#大数据算法" class="headerlink" title="大数据算法"></a>大数据算法</h2><ol>
+<li>十道海量数据处理面试题与十个方法大总结</li>
+</ol>
+<h2 id="Array-amp-amp-String-amp-amp-Double-Pointer"><a href="#Array-amp-amp-String-amp-amp-Double-Pointer" class="headerlink" title="Array &amp;&amp; String &amp;&amp; Double Pointer"></a>Array &amp;&amp; String &amp;&amp; Double Pointer</h2><ol>
+<li><a href="https://leetcode-cn.com/problems/two-sum/" target="_blank" rel="noopener">两数之和</a></li>
+<li><a href="https://leetcode-cn.com/problems/3sum/" target="_blank" rel="noopener">三数之和</a></li>
+<li><a href="https://leetcode-cn.com/problems/kth-largest-element-in-an-array/" target="_blank" rel="noopener">215. 数组中的第K个最大元素</a></li>
+<li><a href="https://leetcode-cn.com/problems/4sum/" target="_blank" rel="noopener">18. 四数之和</a></li>
+<li><a href="https://leetcode-cn.com/problems/rotate-array/" target="_blank" rel="noopener">189. 旋转数组</a>,注意是否能使用额外的内存</li>
+<li><a href="https://leetcode-cn.com/problems/positions-of-large-groups/" target="_blank" rel="noopener">830. Positions of Large Groups</a></li>
+<li><a href="https://leetcode-cn.com/problems/summary-ranges/" target="_blank" rel="noopener">228. 汇总区间</a></li>
+<li><a href="https://leetcode-cn.com/problems/longest-substring-without-repeating-characters/" target="_blank" rel="noopener">3. 无重复字符的最长子串</a></li>
+<li><a href="https://leetcode-cn.com/problems/longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit/" target="_blank" rel="noopener">1438. 绝对差不超过限制的最长连续子数组</a></li>
+<li><a href="https://leetcode-cn.com/problems/grumpy-bookstore-owner/" target="_blank" rel="noopener">1052. 爱生气的书店老板</a></li>
+<li><a href="https://leetcode-cn.com/problems/longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit/" target="_blank" rel="noopener">1438. 绝对差不超过限制的最长连续子数组</a></li>
+<li><a href="https://leetcode-cn.com/problems/max-consecutive-ones-iii/" target="_blank" rel="noopener">1004. 最大连续1的个数 III</a></li>
+<li><a href="https://leetcode-cn.com/problems/longest-substring-with-at-least-k-repeating-characters/" target="_blank" rel="noopener">至少有 K 个重复字符的最长子串</a></li>
+<li><a href="https://leetcode-cn.com/problems/spiral-matrix/" target="_blank" rel="noopener">54 螺旋矩阵</a></li>
+<li><a href="https://leetcode-cn.com/problems/maximum-score-of-a-good-subarray/" target="_blank" rel="noopener">好子数组的最大分数</a></li>
+<li><a href="https://leetcode-cn.com/problems/remove-duplicates-from-sorted-array/" target="_blank" rel="noopener">删除有序数组中的重复项</a></li>
+<li><a href="https://leetcode-cn.com/problems/remove-duplicates-from-sorted-array-ii/" target="_blank" rel="noopener">删除有序数组中的重复项 II</a></li>
+<li><a href="https://leetcode-cn.com/problems/contains-duplicate-iii/" target="_blank" rel="noopener">存在重复元素 III</a></li>
+<li><a href="https://leetcode-cn.com/problems/contains-duplicate-ii/" target="_blank" rel="noopener">存在重复元素 II</a></li>
+</ol>
+<h2 id="stack-单调栈"><a href="#stack-单调栈" class="headerlink" title="stack,单调栈"></a>stack,单调栈</h2><ol>
+<li><a href="https://leetcode-cn.com/problems/next-greater-element-ii/" target="_blank" rel="noopener">503. 下一个更大元素 II</a></li>
+<li><a href="https://leetcode-cn.com/problems/next-greater-element-i/" target="_blank" rel="noopener">496. 下一个更大元素 I</a></li>
+<li><a href="https://leetcode-cn.com/problems/next-greater-element-iii/" target="_blank" rel="noopener">556. 下一个更大元素 III</a></li>
+<li><a href="https://leetcode-cn.com/problems/daily-temperatures/" target="_blank" rel="noopener">739. 每日温度</a></li>
+<li><a href="https://leetcode-cn.com/problems/basic-calculator/" target="_blank" rel="noopener">基本计算器</a></li>
+<li><a href="https://leetcode-cn.com/problems/basic-calculator-ii/" target="_blank" rel="noopener">基本计算器2</a></li>
+<li><a href="https://leetcode-cn.com/problems/verify-preorder-serialization-of-a-binary-tree/" target="_blank" rel="noopener">验证二叉树的前序序列化</a></li>
+</ol>
+<h2 id="priority-queue"><a href="#priority-queue" class="headerlink" title="priority_queue"></a>priority_queue</h2><ol>
+<li><a href="https://leetcode-cn.com/problems/maximum-average-pass-ratio/" target="_blank" rel="noopener">最大平均通过率</a></li>
+<li><a href="https://leetcode-cn.com/problems/single-threaded-cpu/" target="_blank" rel="noopener">单线程 CPU</a></li>
+</ol>
+<h2 id="贪心greedy"><a href="#贪心greedy" class="headerlink" title="贪心greedy"></a>贪心greedy</h2><ol>
+<li><a href="https://leetcode-cn.com/problems/maximum-score-of-a-good-subarray/" target="_blank" rel="noopener">好子数组的最大分数</a></li>
+<li></li>
+</ol>
+<h2 id="Graph-amp-amp-Union-Find-amp-amp-DFS-amp-amp-BFS-amp-amp-Topological-sort"><a href="#Graph-amp-amp-Union-Find-amp-amp-DFS-amp-amp-BFS-amp-amp-Topological-sort" class="headerlink" title="Graph &amp;&amp; Union Find &amp;&amp; DFS &amp;&amp; BFS &amp;&amp; Topological-sort"></a>Graph &amp;&amp; Union Find &amp;&amp; DFS &amp;&amp; BFS &amp;&amp; Topological-sort</h2><ol>
+<li><a href="https://leetcode-cn.com/problems/number-of-provinces/" target="_blank" rel="noopener">547. 省份的数量</a></li>
+<li><a href="https://leetcode-cn.com/problems/evaluate-division/" target="_blank" rel="noopener">399. 除法求值</a>(graph)</li>
+<li>[ws面试：有一个矩形格子框，每个框都有一个字母，需要你找到路径，使得这条路径上的字母都不重复，请问这个最长的路径是多长?]</li>
+<li><a href="https://leetcode-cn.com/problems/minimize-hamming-distance-after-swap-operations/" target="_blank" rel="noopener">执行交换操作后的最小汉明距离</a></li>
+<li><a href="https://leetcode-cn.com/problems/smallest-string-with-swaps/" target="_blank" rel="noopener">1202. 交换字符串中的元素</a></li>
+<li><a href="https://leetcode-cn.com/problems/redundant-connection/" target="_blank" rel="noopener">684. 冗余连接</a></li>
+<li><a href="https://leetcode-cn.com/problems/course-schedule/" target="_blank" rel="noopener">207. 课程表</a></li>
+<li><a href="https://leetcode-cn.com/problems/course-schedule-ii/" target="_blank" rel="noopener">210. 课程表 II</a></li>
+<li><a href="https://leetcode-cn.com/problems/accounts-merge/" target="_blank" rel="noopener">721. 账户合并</a><br>并查集时间复杂读分析(<a href="https://leetcode-cn.com/problems/number-of-provinces/solution/jie-zhe-ge-wen-ti-ke-pu-yi-xia-bing-cha-0unne/" target="_blank" rel="noopener">https://leetcode-cn.com/problems/number-of-provinces/solution/jie-zhe-ge-wen-ti-ke-pu-yi-xia-bing-cha-0unne/</a>)</li>
+<li><a href="https://leetcode-cn.com/problems/similar-string-groups/" target="_blank" rel="noopener">相似字符串组</a></li>
+</ol>
+<h2 id="Dynamic-Programming-amp-amp-DFS"><a href="#Dynamic-Programming-amp-amp-DFS" class="headerlink" title="Dynamic Programming &amp;&amp; DFS"></a>Dynamic Programming &amp;&amp; DFS</h2><ol>
+<li><a href="https://leetcode-cn.com/problems/longest-increasing-subsequence/" target="_blank" rel="noopener">300. 最长递增子序列</a></li>
+<li><a href="https://my.oschina.net/Alexanderzhou/blog/205171" target="_blank" rel="noopener">poj，ws面试,最长的递增递减子序列长度</a></li>
+<li><a href="https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock/" target="_blank" rel="noopener">121. 买卖股票的最佳时机</a>，最多买卖一次</li>
+<li><a href="https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-ii/" target="_blank" rel="noopener">122. 买卖股票的最佳时机</a>，可以买卖任意次数</li>
+<li><a href="https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-iii/" target="_blank" rel="noopener">123. 买卖股票的最佳时机 III</a>，最多可以买卖两次</li>
+<li><a href="https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-iv/" target="_blank" rel="noopener">188. 买卖股票的最佳时机 IV</a>，最多可以买卖K次</li>
+<li><a href="https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-with-cooldown/" target="_blank" rel="noopener">309. 最佳买卖股票时机含冷冻期</a></li>
+<li><a href="https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-with-transaction-fee/" target="_blank" rel="noopener">714. 买卖股票的最佳时机含手续费</a></li>
+<li><a href="https://leetcode-cn.com/problems/find-minimum-time-to-finish-all-jobs/" target="_blank" rel="noopener"> 完成所有工作的最短时间</a>，状态压缩DP或者dfs加剪枝</li>
+<li><a href="https://leetcode-cn.com/problems/palindrome-partitioning-iv" target="_blank" rel="noopener">回文字符串分割IV</a></li>
+<li><a href="https://leetcode-cn.com/problems/russian-doll-envelopes/" target="_blank" rel="noopener">354. 俄罗斯套娃信封问题</a></li>
+<li><a href="https://leetcode-cn.com/problems/palindrome-partitioning/" target="_blank" rel="noopener">131. 分割回文串</a></li>
+<li><a href="https://leetcode-cn.com/problems/palindrome-partitioning-ii/" target="_blank" rel="noopener">分割回文串 II</a></li>
+<li><a href="https://leetcode-cn.com/problems/distinct-subsequences/" target="_blank" rel="noopener">115. 不同的子序列</a></li>
+<li><a href="https://leetcode-cn.com/problems/distinct-subsequences/" target="_blank" rel="noopener">5. 最长回文子串</a></li>
+<li><a href="https://leetcode-cn.com/problems/house-robber/" target="_blank" rel="noopener">198. 打家劫舍</a></li>
+<li><a href="https://leetcode-cn.com/problems/scramble-string/" target="_blank" rel="noopener">87. 扰乱字符串</a></li>
+<li></li>
+</ol>
+<h2 id="Linked-List-amp-amp-Tree"><a href="#Linked-List-amp-amp-Tree" class="headerlink" title="Linked List &amp;&amp; Tree"></a>Linked List &amp;&amp; Tree</h2><ol>
+<li><a href="https://leetcode-cn.com/problems/swapping-nodes-in-a-linked-list/" target="_blank" rel="noopener">交换链表中的第K个节点和倒数第K个节点</a></li>
+<li><a href="https://leetcode-cn.com/problems/lowest-common-ancestor-of-a-binary-tree/" target="_blank" rel="noopener">lowest common ancestor</a></li>
+<li><a href="https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_tree.cpp" target="_blank" rel="noopener">二叉树的前、中、后序遍历,非递归的实现</a>（12.21）</li>
+<li><a href="https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search_tree.cpp" target="_blank" rel="noopener">二叉搜索树的查找、插入和删除</a></li>
+<li><a href="https://leetcode-cn.com/problems/reverse-linked-list/" target="_blank" rel="noopener">链表反转</a></li>
+<li><a href="https://leetcode-cn.com/problems/reverse-linked-list-ii/" target="_blank" rel="noopener">92. 反转链表 II</a></li>
+<li><a href="https://leetcode-cn.com/problems/sum-lists-lcci/" target="_blank" rel="noopener">面试题 02.05. 链表求和</a></li>
+<li><a href="https://leetcode-cn.com/problems/add-two-numbers/" target="_blank" rel="noopener">2. 两数相加</a></li>
+</ol>
+<h2 id="Design-DataStruct"><a href="#Design-DataStruct" class="headerlink" title="Design DataStruct"></a>Design DataStruct</h2><ol>
+<li><a href="https://leetcode-cn.com/problems/lru-cache/" target="_blank" rel="noopener">LRU</a></li>
+<li><a href="https://leetcode-cn.com/problems/lfu-cache/" target="_blank" rel="noopener">LFU</a></li>
+<li><a href="https://leetcode-cn.com/problems/design-hashset/" target="_blank" rel="noopener">HashSet</a></li>
+<li><a href="https://leetcode-cn.com/problems/design-hashmap/" target="_blank" rel="noopener">HashMap</a></li>
+</ol>
+<h2 id="Trie-字典树"><a href="#Trie-字典树" class="headerlink" title="Trie 字典树"></a>Trie 字典树</h2><ol>
+<li><a href="https://leetcode-cn.com/problems/count-pairs-with-xor-in-a-range/" target="_blank" rel="noopener">统计异或值在范围内的数对有多少</a></li>
+</ol>
+<h2 id="二分法"><a href="#二分法" class="headerlink" title="二分法"></a>二分法</h2><ol>
+<li><a href="https://leetcode-cn.com/problems/maximum-value-at-a-given-index-in-a-bounded-array/" target="_blank" rel="noopener">有界数组中指定下标处的最大值</a></li>
+<li><a href="https://leetcode-cn.com/problems/minimum-number-of-days-to-make-m-bouquets/" target="_blank" rel="noopener">1482. 制作 m 束花所需的最少天数</a></li>
+</ol>
+<h2 id="bit-操作"><a href="#bit-操作" class="headerlink" title="bit 操作"></a>bit 操作</h2><ol>
+<li><a href="https://leetcode-cn.com/problems/find-xor-sum-of-all-pairs-bitwise-and/" target="_blank" rel="noopener">所有数对按位与结果的异或和</a></li>
+<li></li>
+</ol>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/04/19/C++/Cpp-build-complie-debug/" rel="next" title="C/C++程序的项目构建、编译、调试工具和方法">
+                <i class="fa fa-chevron-left"></i> C/C++程序的项目构建、编译、调试工具和方法
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/04/19/C++/Cpp-interview/" rel="prev" title="C/C++基础知识和编码规范">
+                C/C++基础知识和编码规范 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="wxquare">
+            
+              <p class="site-author-name" itemprop="name">wxquare</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">47</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/wxquare" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="http://www.zhihu.com/people/wxquare0" target="_blank" title="知乎">
+                    
+                      <i class="fa fa-fw fa-globe"></i>知乎</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.cnblogs.com/wxquare" target="_blank" title="博客园">
+                    
+                      <i class="fa fa-fw fa-globe"></i>博客园</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="http://www.cplusplus.com/reference" title="C++" target="_blank">C++</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://golang.org/pkg/" title="golang" target="_blank">golang</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://docs.python.org/3" title="python" target="_blank">python</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://en.cppreference.com/w/" title="cppreference" target="_blank">cppreference</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://leetcode.com/problemset/all/" title="leetcode" target="_blank">leetcode</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#design-pattern"><span class="nav-number">1.</span> <span class="nav-text">design pattern</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#大数据算法总结"><span class="nav-number">2.</span> <span class="nav-text">大数据算法总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#大数据算法"><span class="nav-number">3.</span> <span class="nav-text">大数据算法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Array-amp-amp-String-amp-amp-Double-Pointer"><span class="nav-number">4.</span> <span class="nav-text">Array &amp;&amp; String &amp;&amp; Double Pointer</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#stack-单调栈"><span class="nav-number">5.</span> <span class="nav-text">stack,单调栈</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#priority-queue"><span class="nav-number">6.</span> <span class="nav-text">priority_queue</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#贪心greedy"><span class="nav-number">7.</span> <span class="nav-text">贪心greedy</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Graph-amp-amp-Union-Find-amp-amp-DFS-amp-amp-BFS-amp-amp-Topological-sort"><span class="nav-number">8.</span> <span class="nav-text">Graph &amp;&amp; Union Find &amp;&amp; DFS &amp;&amp; BFS &amp;&amp; Topological-sort</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Dynamic-Programming-amp-amp-DFS"><span class="nav-number">9.</span> <span class="nav-text">Dynamic Programming &amp;&amp; DFS</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Linked-List-amp-amp-Tree"><span class="nav-number">10.</span> <span class="nav-text">Linked List &amp;&amp; Tree</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Design-DataStruct"><span class="nav-number">11.</span> <span class="nav-text">Design DataStruct</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Trie-字典树"><span class="nav-number">12.</span> <span class="nav-text">Trie 字典树</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二分法"><span class="nav-number">13.</span> <span class="nav-text">二分法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#bit-操作"><span class="nav-number">14.</span> <span class="nav-text">bit 操作</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2017 &mdash; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wxquare</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>
