@@ -1,5 +1,5 @@
 ---
-title: kafka必知必会
+title: Middleware - kafka 
 categories:
 - C/C++
 ---
@@ -96,3 +96,4 @@ Kafka消息消费有两个consumer接口，Low-level API和High-level API：
 3. [kafka 选举](https://juejin.im/post/6844903846297206797)
 4. [Kafka为什么吞吐量大、速度快？](https://blog.csdn.net/kzadmxz/article/details/101576401)
 5. [简单理解 Kafka 的消息可靠性策略](https://cloud.tencent.com/developer/article/1752150)
+6. [Bootstrap server vs zookeeper in kafka?](https://stackoverflow.com/questions/46173003/bootstrap-server-vs-zookeeper-in-kafka)
