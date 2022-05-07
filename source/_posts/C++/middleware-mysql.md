@@ -1,5 +1,5 @@
 ---
-title: mysql 必知必会
+title: Middleware - MySQL
 categories:
 - C/C++
 ---
