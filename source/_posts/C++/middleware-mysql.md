@@ -12,10 +12,11 @@ categories:
 - 第三范式：在第二范式的基础上，非主键列只依赖于主键，不依赖于其他非主键。
 在设计数据库结构的时候，要尽量遵守三范式，如果不遵守，必须有足够的理由。比如性能。事实上我们经常会为了性能而妥协数据库的设计。
 
-## 建表的类型和约束
-- int,tinyint,int(10)什么意思
+## 如何建表
+- int,tinyint,int(10),bigint
 - float，double
-- varchar，char（定长，根据需要使用空格填充）
+- varchar(24)，char(10)（定长，根据需要使用空格填充),text
+- create_time,update_time
 - [datetime，timestamp](https://segmentfault.com/a/1190000017393602?utm_source=tag-newest)
 - 约束：NOT UNLL,UNIQUE,PRIMARY KEY,DEFAULT,FOREIGN KEY约束
 - 建立一张表时需要注意什么？
@@ -27,6 +28,8 @@ categories:
     -> Sage tinyint(100) not null,
     -> Sdept char(4) not null)comment = '学生表';
 ```
+- [int(10) 零填充zerofill](https://blog.csdn.net/houwanle/article/details/123192185)
+- [怎么选择varchar，char,text](https://www.jianshu.com/p/a1ef006ade16)
 - [自增主键还是UUID？优缺点？怎么生成UUID？](https://blog.csdn.net/rocling/article/details/83116950)
 - [snowfake生成订单号](https://blog.csdn.net/fly910905/article/details/82054196)
 - 主键和外键。数据库表中对储存数据对象予以唯一和完整标识的数据列或属性的组合。一个数据列只能有一个主键，且主键的取值不能缺失，即不能为空值（Null）。外键：在一个表中存在的另一个表的主键称此表的外键。主键是数据库确保数据行在整张表唯一性的保障，即使业务上本张表没有主键，也建议添加一个自增长的ID列作为主键。设定了主键之后，在后续的删改查的时候可能更加快速以及确保操作数据范围安全。
@@ -154,6 +157,13 @@ categories:
 
 
 ## sql 练习
+1. 常用命令
+    mysql登陆：
+        mysql -h主机 -P端口 -u用户 -p密码
+        SET PASSWORD FOR 'root'@'localhost' = PASSWORD('root');
+        create database wxquare_test;
+        show databases;
+        use wxquare_test;
 [leetcode sql](https://juejin.cn/post/6844903827934560263#heading-3)
 
 ## 推荐阅读:
