@@ -28,8 +28,11 @@ categories:
     -> Sdept char(4) not null)comment = '学生表';
 ```
 - [int(10) 零填充zerofill](https://blog.csdn.net/houwanle/article/details/123192185)
+- https://dev.mysql.com/doc/refman/5.7/en/null-values.html
+- https://blog.csdn.net/thekenofDIS/article/details/108577905
 - [怎么选择varchar，char,text](https://www.jianshu.com/p/a1ef006ade16)
 - [自增主键还是UUID？优缺点？怎么生成UUID？](https://blog.csdn.net/rocling/article/details/83116950)
+- [ROW_FORMAT问题](https://dev.mysql.com/doc/refman/5.7/en/innodb-row-format.html)
 - [snowfake生成订单号](https://blog.csdn.net/fly910905/article/details/82054196)
 - 主键和外键。数据库表中对储存数据对象予以唯一和完整标识的数据列或属性的组合。一个数据列只能有一个主键，且主键的取值不能缺失，即不能为空值（Null）。外键：在一个表中存在的另一个表的主键称此表的外键。主键是数据库确保数据行在整张表唯一性的保障，即使业务上本张表没有主键，也建议添加一个自增长的ID列作为主键。设定了主键之后，在后续的删改查的时候可能更加快速以及确保操作数据范围安全。
 
