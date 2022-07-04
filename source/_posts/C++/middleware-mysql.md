@@ -29,11 +29,11 @@ categories:
 ```
 - [int(10) 零填充zerofill](https://blog.csdn.net/houwanle/article/details/123192185)
 - [9.1.7 NULL Values](https://dev.mysql.com/doc/refman/5.7/en/null-values.html)
-- https://blog.csdn.net/thekenofDIS/article/details/108577905
 - [怎么选择varchar，char,text](https://www.jianshu.com/p/a1ef006ade16)
 - [自增主键还是UUID？优缺点？怎么生成UUID？](https://blog.csdn.net/rocling/article/details/83116950)
 - [ROW_FORMAT问题](https://dev.mysql.com/doc/refman/5.7/en/innodb-row-format.html)
-- 编码问题
+- [10.9.1 The utf8mb4 Character Set (4-Byte UTF-8 Unicode Encoding)](https://dev.mysql.com/doc/refman/5.7/en/charset-unicode-utf8mb4.html)
+- 
 
 ### 怎么考虑分表，单表的size？
 原文链接：https://juejin.cn/post/6844903872134135816
