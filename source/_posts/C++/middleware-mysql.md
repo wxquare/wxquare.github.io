@@ -28,7 +28,7 @@ categories:
     -> Sdept char(4) not null)comment = '学生表';
 ```
 - [int(10) 零填充zerofill](https://blog.csdn.net/houwanle/article/details/123192185)
-- https://dev.mysql.com/doc/refman/5.7/en/null-values.html
+- [9.1.7 NULL Values] https://dev.mysql.com/doc/refman/5.7/en/null-values.html
 - https://blog.csdn.net/thekenofDIS/article/details/108577905
 - [怎么选择varchar，char,text](https://www.jianshu.com/p/a1ef006ade16)
 - [自增主键还是UUID？优缺点？怎么生成UUID？](https://blog.csdn.net/rocling/article/details/83116950)
