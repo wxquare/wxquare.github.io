@@ -20,38 +20,32 @@ categories:
 CREATE TABLE `hotel_basic_info_tab` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `hotel_id` bigint(20) NOT NULL DEFAULT '0',
+  `hotel_name` varchar(64) NOT NULL DEFAULT '',
   `area_code` varchar(64) NOT NULL DEFAULT '',
+  `phone_no` varchar(24) NOT NULL DEFAULT '',
   `address` text,
-  `last_renovated_year` int(11) NOT NULL DEFAULT '0',
   `star_rating` varchar(16) NOT NULL DEFAULT '',
-  `guest_view_score` varchar(16) NOT NULL DEFAULT '',
-  `number_of_reviews` int(11) NOT NULL DEFAULT '0',
   `popularity_score` int(11) NOT NULL DEFAULT '0',
   `longitude` varchar(64) NOT NULL DEFAULT '',
   `latitude` varchar(64) NOT NULL DEFAULT '',
   `policies` text,
-  `helpful_facts` text,
   `ext_info` text,
   `update_time` bigint(20) NOT NULL DEFAULT '0',
-  `phone_no` varchar(24) NOT NULL DEFAULT '',
   `create_time` bigint(20) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uidx_hotel_id` (`hotel_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ROW_FORMAT=COMPRESSED
 ```
+
 - 数值类型：int,tinyint,int(10),bigint、float，double
-- varchar(24)，char(10)（定长，根据需要使用空格填充),text
+- string: varchar(24)，char(10)（定长，根据需要使用空格填充),text
 - 建表时通常带上create_time,update_time，[datetime，timestamp类型](https://segmentfault.com/a/1190000017393602?utm_source=tag-newest)，有时也会用int32和int64
-- 约束：NOT UNLL,UNIQUE,PRIMARY KEY,DEFAULT,FOREIGN KEY约束
-- 建立一张表时需要注意什么？
-```
-    create table Student(
-    -> Sno int not null auto_increment primary key,
-    -> Sname varchar(10) not null,
-    -> Sex char(1) not null,
-    -> Sage tinyint(100) not null,
-    -> Sdept char(4) not null)comment = '学生表';
-```
+- 约束：NOT UNLL,DEFAULT、UNIQUE,PRIMARY KEY,,FOREIGN KEY约束
+- primary key
+- index
+- engine
+- charset
+- row_format
 - [int(10) 零填充zerofill](https://blog.csdn.net/houwanle/article/details/123192185)
 - [9.1.7 NULL Values](https://dev.mysql.com/doc/refman/5.7/en/null-values.html)
 - [怎么选择varchar，char,text](https://www.jianshu.com/p/a1ef006ade16)
