@@ -13,8 +13,8 @@ categories:
 在设计数据库结构的时候，要尽量遵守三范式，如果不遵守，必须有足够的理由。比如性能。事实上我们经常会为了性能而妥协数据库的设计。
 
 ## 如何建表
-- int,tinyint,int(10),bigint
-- float，double
+- 
+- 数值类型：int,tinyint,int(10),bigint、float，double
 - varchar(24)，char(10)（定长，根据需要使用空格填充),text
 - 建表时通常带上create_time,update_time，[datetime，timestamp类型](https://segmentfault.com/a/1190000017393602?utm_source=tag-newest)，有时也会用int32和int64
 - 约束：NOT UNLL,UNIQUE,PRIMARY KEY,DEFAULT,FOREIGN KEY约束
