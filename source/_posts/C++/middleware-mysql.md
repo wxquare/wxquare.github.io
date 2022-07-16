@@ -12,6 +12,9 @@ categories:
 - 第三范式：在第二范式的基础上，非主键列只依赖于主键，不依赖于其他非主键。
 在设计数据库结构的时候，要尽量遵守三范式，如果不遵守，必须有足够的理由。比如性能。事实上我们经常会为了性能而妥协数据库的设计。
 
+
+[MySQL 5.7 Reference Manual](https://dev.mysql.com/doc/refman/5.7/en/null-values.html)
+
 ## 如何建表
 ```
 CREATE TABLE `hotel_basic_info_tab` (
