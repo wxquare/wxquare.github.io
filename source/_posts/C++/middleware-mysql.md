@@ -41,18 +41,18 @@ CREATE TABLE `hotel_basic_info_tab` (
 - string: varchar(24)，char(10)（定长，根据需要使用空格填充),text
 - 建表时通常带上create_time,update_time，[datetime，timestamp类型](https://segmentfault.com/a/1190000017393602?utm_source=tag-newest)，有时也会用int32和int64
 - 约束：NOT UNLL,DEFAULT、UNIQUE,PRIMARY KEY,,FOREIGN KEY约束
-- primary key
+- primary key,[自增主键还是UUID？优缺点？怎么生成UUID？](https://blog.csdn.net/rocling/article/details/83116950)
 - index
-- engine
+- engine，通常是innodb
 - charset
 - row_format
 - [int(10) 零填充zerofill](https://blog.csdn.net/houwanle/article/details/123192185)
 - [9.1.7 NULL Values](https://dev.mysql.com/doc/refman/5.7/en/null-values.html)
 - [怎么选择varchar，char,text](https://www.jianshu.com/p/a1ef006ade16)
-- [自增主键还是UUID？优缺点？怎么生成UUID？](https://blog.csdn.net/rocling/article/details/83116950)
 - [ROW_FORMAT问题](https://dev.mysql.com/doc/refman/5.7/en/innodb-row-format.html)
 - [10.9.1 The utf8mb4 Character Set (4-Byte UTF-8 Unicode Encoding)](https://dev.mysql.com/doc/refman/5.7/en/charset-unicode-utf8mb4.html)
-- 
+- 表的大小评估，是否分表
+
 
 ### 怎么考虑分表，单表的size？
 原文链接：https://juejin.cn/post/6844903872134135816
