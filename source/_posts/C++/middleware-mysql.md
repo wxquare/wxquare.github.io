@@ -13,7 +13,29 @@ categories:
 在设计数据库结构的时候，要尽量遵守三范式，如果不遵守，必须有足够的理由。比如性能。事实上我们经常会为了性能而妥协数据库的设计。
 
 ## 如何建表
-- 
+```
+CREATE TABLE `hotel_basic_info_tab` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `hotel_id` bigint(20) NOT NULL DEFAULT '0',
+  `area_code` varchar(64) NOT NULL DEFAULT '',
+  `address` text,
+  `last_renovated_year` int(11) NOT NULL DEFAULT '0',
+  `star_rating` varchar(16) NOT NULL DEFAULT '',
+  `guest_view_score` varchar(16) NOT NULL DEFAULT '',
+  `number_of_reviews` int(11) NOT NULL DEFAULT '0',
+  `popularity_score` int(11) NOT NULL DEFAULT '0',
+  `longitude` varchar(64) NOT NULL DEFAULT '',
+  `latitude` varchar(64) NOT NULL DEFAULT '',
+  `policies` text,
+  `helpful_facts` text,
+  `ext_info` text,
+  `update_time` bigint(20) NOT NULL DEFAULT '0',
+  `phone_no` varchar(24) NOT NULL DEFAULT '',
+  `create_time` bigint(20) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uidx_hotel_id` (`hotel_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ROW_FORMAT=COMPRESSED
+```
 - 数值类型：int,tinyint,int(10),bigint、float，double
 - varchar(24)，char(10)（定长，根据需要使用空格填充),text
 - 建表时通常带上create_time,update_time，[datetime，timestamp类型](https://segmentfault.com/a/1190000017393602?utm_source=tag-newest)，有时也会用int32和int64
