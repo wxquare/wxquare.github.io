@@ -10,6 +10,9 @@ categories:
 - https://github.com/jincheng9/go-tutorial/tree/main/workspace/gin/02
 - https://github.com/gin-gonic/gin
 
+## 服务发现 zk
+- https://blog.csdn.net/zyhlwzy/article/details/101847565
+
 
 ## 源码阅读
 1. 如何实现定时任务? https://github.com/go-co-op/gocron
