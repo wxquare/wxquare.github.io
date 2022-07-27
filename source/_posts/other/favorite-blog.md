@@ -12,4 +12,5 @@ https://www.zhihu.com/people/wxquare0
 
 https://leetcode.cn/leetbook/read/leetcode-cookbook/5is6a6/
 https://leetcode.cn/problems/range-module/solution/by-lfool-eo50/
+https://jincheng9.github.io/post/go-release-1.19beta1-last/
 
