@@ -5,11 +5,18 @@ categories:
 ---
 
 
+##  Gin web 
+- https://github.com/jincheng9/go-tutorial/tree/main/workspace/gin/01
+- https://github.com/jincheng9/go-tutorial/tree/main/workspace/gin/02
+- https://github.com/gin-gonic/gin
+
 
 ## 源码阅读
 1. 如何实现定时任务? https://github.com/go-co-op/gocron
 2. 协程池的实现? https://strikefreedom.top/high-performance-implementation-of-goroutine-pool
 3. database/sql连接池的实现,mysql链接池的实现? github.com/go-sql-driver/mysql
+
+
 
 
 ## 系统设计
