@@ -10,12 +10,45 @@ categories:
 - https://github.com/jincheng9/go-tutorial/tree/main/workspace/gin/02
 - https://github.com/gin-gonic/gin
 
+
+## RPC 框架
+- https://github.com/jincheng9/go-tutorial/tree/main/workspace/rpc/02
+- trpc
+
+
 ## 服务发现 zk
 - https://blog.csdn.net/zyhlwzy/article/details/101847565
 
 
 ## 定时任务调度 cron task
 - https://github.com/robfig/cron
+- https://github.com/xuxueli/xxl-job
+
+
+
+## 延时队列
+
+
+## 限流
+- 分布式限流
+
+
+## 监控平台
+- prometheus
+
+
+## 配置管理平台
+- apollo
+
+
+## cicd
+- jenkins
+
+## docker
+
+## Kubernetes
+- [Kubernetes 入门&进阶实战](https://zhuanlan.zhihu.com/p/339008746)
+
 
 
 ## 源码阅读
