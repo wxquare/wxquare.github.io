@@ -1,5 +1,5 @@
 ---
-title: 系统方案设计
+title: 程序员的自我修养
 categories: 
 - C/C++
 ---
@@ -52,7 +52,8 @@ https://juejin.cn/post/7000189281641693192
 - prometheus,https://prometheus.io/
 - grafna,https://www.google.com.hk/search?q=grafana&rlz=1C5GCEM_enCN985CN985&oq=grafana&aqs=chrome..69i57j69i60l3j69i65l3j69i60.8511j0j7&sourceid=chrome&ie=UTF-8
 
-
+## abtest 平台
+- 
 
 ## cicd
 - jenkins
