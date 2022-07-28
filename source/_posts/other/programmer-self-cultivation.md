@@ -12,12 +12,14 @@ categories:
 - 网络和抓包
 - 数据结构和算法leetcode
 
+## leetcode
+- [线段树详解]https://leetcode.cn/problems/range-module/solution/by-lfool-eo50/
+
 # 中间件
 - Mysql https://wxquare.github.io/2022/04/19/C++/middleware-mysql/
 - redis https://wxquare.github.io/2022/04/19/C++/redis-interview/
 - Kafka:https://wxquare.github.io/2022/05/07/C++/middleware-kafka/
 - Elastic search https://wxquare.github.io/2022/05/20/C++/middleware-elasticsearch/
-
 
 # 编程语言
 - C/C++
@@ -69,22 +71,39 @@ categories:
 - https://wxquare.github.io/2022/05/20/C++/system-design-and-framework-basic/
 
 # 英语能力
-- 
+- 每日英语学习
+
 
 # 好用工具
 - https://wxquare.github.io/2022/05/20/other/tools/
+- github
+- git
+- vscode
+- plantuml,时序图
+- [使用 Sublime + PlantUML 高效地画图](https://www.jianshu.com/p/e92a52770832)
+- https://app.diagrams.net/
+- https://github.com/plantuml/plantuml
+- https://plantuml.com/zh/
+- https://plantuml.com/cn/
+- charles https代理抓包工具，https://www.charlesproxy.com/
+- postman 
+
+
 
 # 好的博客，站点
-- https://catcoding.me/
-- https://coderscat.com/
-- https://www.zhihu.com/people/wxquare0
-- https://leetcode.cn/leetbook/read/leetcode-cookbook/5is6a6/
-- https://jincheng9.github.io/
-
+- [oier，微软，宫水三叶](https://leetcode.cn/u/ac_oier/)
+- [清华 无忌](https://jincheng9.github.io/)
+- [35+ 程序员](https://coderscat.com/,https://catcoding.me/)
 
 
 # 源码和开源社区
 - tvm
+
+
+# 最近遇到的问题
+- [github token](https://namespaceit.com/blog/remote-support-for-password-authentication-was-removed-on-august-13-2021-please-use-a-personal-access-token-instead)
+- [leetcode 区间和问题](https://leetcode.cn/problems/range-sum-query-mutable/solution/guan-yu-ge-lei-qu-jian-he-wen-ti-ru-he-x-41hv/)
+
 
 
 # 其它
