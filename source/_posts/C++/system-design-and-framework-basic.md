@@ -15,9 +15,19 @@ categories:
 - https://github.com/jincheng9/go-tutorial/tree/main/workspace/rpc/02
 - trpc
 
+## Mysql 
+- 
+
+## 缓存redis
+
+## Kafka
+
+
 
 ## 服务发现 zk
 - https://blog.csdn.net/zyhlwzy/article/details/101847565
+
+
 
 
 ## 定时任务调度 cron task
@@ -26,7 +36,12 @@ categories:
 
 
 
+## 监控平台
+- prometheus,https://prometheus.io/
+- grafna,https://www.google.com.hk/search?q=grafana&rlz=1C5GCEM_enCN985CN985&oq=grafana&aqs=chrome..69i57j69i60l3j69i65l3j69i60.8511j0j7&sourceid=chrome&ie=UTF-8
+
 ## 延时队列
+https://juejin.cn/post/7000189281641693192
 
 
 ## 限流
@@ -37,10 +52,6 @@ categories:
 - prometheus,https://prometheus.io/
 - grafna,https://www.google.com.hk/search?q=grafana&rlz=1C5GCEM_enCN985CN985&oq=grafana&aqs=chrome..69i57j69i60l3j69i65l3j69i60.8511j0j7&sourceid=chrome&ie=UTF-8
 
-
-## 配置管理平台
-- apollo
-- https://github.com/apolloconfig/apollo/wiki/Apollo%E9%85%8D%E7%BD%AE%E4%B8%AD%E5%BF%83%E4%BB%8B%E7%BB%8D
 
 
 ## cicd
