@@ -65,12 +65,17 @@ https://juejin.cn/post/7000189281641693192
 
 
 
+## 数据分析和处理
+- scala
+- spark
+- presto
+
+
+
 ## 源码阅读
 1. 如何实现定时任务? https://github.com/go-co-op/gocron
 2. 协程池的实现? https://strikefreedom.top/high-performance-implementation-of-goroutine-pool
 3. database/sql连接池的实现,mysql链接池的实现? github.com/go-sql-driver/mysql
-
-
 
 
 ## 系统设计
