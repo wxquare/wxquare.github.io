@@ -43,6 +43,7 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_count' -d '{
     }
 }'
 
+# index example
 
 <details>
   <summary>es index example</summary>
