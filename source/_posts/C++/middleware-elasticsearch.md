@@ -5,7 +5,7 @@ categories:
 ---
 
 
-## 普通搜素和向量索引
+## 普通搜索和向量搜索
 https://blog.csdn.net/weixin_40601534/article/details/122435858?spm=1001.2014.3001.5501
 
 
