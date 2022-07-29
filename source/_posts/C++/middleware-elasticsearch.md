@@ -31,3 +31,12 @@ curl -XPOST  -H'Content-Type: application/json' 'host/index/_doc/doc_id/_update'
 }
 }'
 
+### 聚合count查询
+curl -XPOST -H'Content-Type: application/json' 'host/index_name/_count' -d '{
+    "query": {
+        "term": {
+            "city_name.value_in_english.keyword": "Jakarta"
+        }
+    }
+}'
+
