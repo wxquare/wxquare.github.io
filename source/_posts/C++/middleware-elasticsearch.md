@@ -22,3 +22,12 @@ curl -XGET  'host/index/_doc/doc_id?pretty=true'
 ### query
 curl -XPOST -H'Content-Type: application/json' 'http://es.i.dp.online_es.sz.shopee.io:9201/shopee_digital_purchase_hotel_search_key_v2_live_id/_search?pretty=true' -d '{
 "query":{}}'
+
+
+### update
+curl -XPOST  -H'Content-Type: application/json' 'host/index/_doc/doc_id/_update' -d '{
+"doc": {
+    "price": "6500000001"
+}
+}'
+
