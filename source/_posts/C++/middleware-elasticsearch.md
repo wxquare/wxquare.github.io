@@ -5,6 +5,11 @@ categories:
 ---
 
 
+## 普通搜素和向量索引
+https://blog.csdn.net/weixin_40601534/article/details/122435858?spm=1001.2014.3001.5501
+
+
+## official document
 官方文档：https://www.elastic.co/guide/en/elasticsearch/reference/8.3/index.html
 
 
