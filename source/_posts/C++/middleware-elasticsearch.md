@@ -45,9 +45,167 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_count' -d '{
 
 
 <details>
-  <summary>点击时的区域标题</summary>
-  ```bash
-  echo "hello shell"
-  echo "hello python"
+  <summary>es index example</summary>
+  ```json
+{
+    "settings": {
+        "index": {
+            "number_of_shards": "5",
+            "number_of_replicas": "2"
+        },
+        "analysis": {
+            "filter": {
+                "t2sconvert": {
+                    "convert_type": "t2s",
+                    "type": "stconvert"
+                }
+            },
+            "analyzer": {
+                "traditional_chinese_analyzer": {
+                    "filter": "t2sconvert",
+                    "type": "custom",
+                    "tokenizer": "ik_smart"
+                }
+            },
+            "normalizer": {
+                "lowercase": {
+                    "type": "custom",
+                    "filter": [
+                        "lowercase"
+                    ]
+                }
+            }
+        }
+    },
+    "mappings": {
+        "_doc": {
+            "properties": {
+                "key_type": {
+                    "type": "integer"
+                },
+                "country": {
+                    "type": "keyword"
+                },
+                "language_code": {
+                    "type": "keyword"
+                },
+                "level": {
+                    "type": "integer"
+                },
+                "code": {
+                    "type": "keyword"
+                },
+                "is_available": {
+                    "type": "boolean"
+                },
+                "is_popular": {
+                    "type": "boolean"
+                },
+                "pop_rank": {
+                    "type": "integer"
+                },
+                "name": {
+                    "properties": {
+                        "value_in_chinese": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {
+                                    "type": "keyword"
+                                }
+                            },
+                            "analyzer": "ik_max_word",
+                            "search_analyzer": "ik_smart"
+                        },
+                        "value_in_english": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {
+                                    "type": "keyword",
+                                    "normalizer": "lowercase"
+                                }
+                            }
+                        }
+                    }
+                },
+                "display_name": {
+                    "properties": {
+                        "value_in_chinese": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {
+                                    "type": "keyword"
+                                }
+                            },
+                            "analyzer": "ik_max_word",
+                            "search_analyzer": "ik_smart"
+                        },
+                        "value_in_english": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {
+                                    "type": "keyword",
+                                    "normalizer": "lowercase"
+                                }
+                            }
+                        }
+                    }
+                },
+                "address": {
+                    "properties": {
+                        "value_in_chinese": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {
+                                    "type": "keyword"
+                                }
+                            },
+                            "analyzer": "ik_max_word",
+                            "search_analyzer": "ik_smart"
+                        },
+                        "value_in_english": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {
+                                    "type": "keyword",
+                                    "normalizer": "lowercase"
+                                }
+                            }
+                        }
+                    }
+                },
+                "city_code": {
+                    "type": "keyword"
+                },
+                "city_name": {
+                    "properties": {
+                        "value_in_chinese": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {
+                                    "type": "keyword"
+                                }
+                            },
+                            "analyzer": "ik_max_word",
+                            "search_analyzer": "ik_smart"
+                        },
+                        "value_in_english": {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {
+                                    "type": "keyword",
+                                    "normalizer": "lowercase"
+                                }
+                            }
+                        }
+                    },
+                    "updated": {
+                        "type": "date",
+                        "format": "strict_date_optional_time||epoch_millis"
+                    }
+                }
+            }
+        }
+    }
+}
   ```
 </details>
