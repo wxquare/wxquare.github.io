@@ -43,3 +43,11 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_count' -d '{
     }
 }'
 
+
+<details>
+  <summary>点击时的区域标题</summary>
+  ```bash
+  echo "hello shell"
+  echo "hello python"
+  ```
+</details>
