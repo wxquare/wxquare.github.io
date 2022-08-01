@@ -216,8 +216,8 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_count' -d '{
   ```
 </details>
 
-analyzer: https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
-normalizer: https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
+- analyzer: https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
+- normalizer: https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
 
 
 
