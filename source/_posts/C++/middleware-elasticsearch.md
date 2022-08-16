@@ -262,5 +262,3 @@ curl -XPUT  host/index_nane/_alias/index_alias_name
 
 ## es scroll 和 深度翻页问题
 - [如何解决Elasticsearch的深度翻页问题](https://www.jianshu.com/p/eb7f11e178b3)
-
-}
