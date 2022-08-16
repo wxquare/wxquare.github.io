@@ -246,6 +246,10 @@ POST /_aliases
 }
 ```
 
+```
+curl -XPUT  host/index_nane/_alias/index_alias_name
+```
+
 
 ## Golang SDK
 - github.com/olivere/elastic
