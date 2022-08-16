@@ -67,7 +67,7 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_count' -d '{
 <details>
   <summary>es index example</summary>
   ```json
-{
+ {
     "settings": {
         "index": {
             "number_of_shards": "5",
