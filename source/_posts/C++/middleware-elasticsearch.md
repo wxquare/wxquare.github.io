@@ -5,7 +5,7 @@ categories:
 ---
 
 
-## 普通搜索和向量搜索
+## 普通搜索和向量搜索介绍
 https://blog.csdn.net/weixin_40601534/article/details/122435858?spm=1001.2014.3001.5501
 
 
@@ -219,6 +219,18 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_count' -d '{
 - analyzer: https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
 - normalizer: https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
 
+
+
+## alias
+```
+POST /_aliases
+{
+  "actions": [
+    {"remove": {"index": "l1", "alias": "a1"}},
+    {"add": {"index": "l1", "alias": "a2"}}
+  ]
+}
+```
 
 
 ## Golang SDK
