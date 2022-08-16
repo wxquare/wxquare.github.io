@@ -251,3 +251,7 @@ POST /_aliases
 - github.com/olivere/elastic
 - https://github.com/elastic/go-elasticsearch
 
+
+## es migrate tools
+- https://github.com/medcl/esm
+- https://github.com/medcl/esm/tree/0.1.0
