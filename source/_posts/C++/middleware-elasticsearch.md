@@ -264,13 +264,16 @@ POST /_aliases
 ```
 curl -XPUT  host/index_nane/_alias/index_alias_name
 ```
+## 3、query DSL
+- compound queries
+- full text queries
+- term level queries
 
-## 3、原理和实现
+## 4、原理和实现
 
-## 4、性能优化
+## 5、性能优化
 
-
-## 5、SDK 使用
+## 6、SDK 使用
 - github.com/olivere/elastic
 - https://github.com/elastic/go-elasticsearch
 
