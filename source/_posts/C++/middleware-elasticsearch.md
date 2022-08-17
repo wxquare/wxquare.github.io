@@ -265,8 +265,12 @@ POST /_aliases
 curl -XPUT  host/index_nane/_alias/index_alias_name
 ```
 
+## 3、原理和实现
 
-## Golang SDK
+## 4、性能优化
+
+
+## 5、SDK 使用
 - github.com/olivere/elastic
 - https://github.com/elastic/go-elasticsearch
 
