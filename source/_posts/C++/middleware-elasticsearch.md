@@ -193,12 +193,12 @@ curl -XGET 'host/_cat/indices/*hotel_basic_info_v2_live*(支持正则表达式�
 curl -XGET 'host/index_name/_mapping?pretty=true'
 ```
 
-### 通过doc id 查询
+### 通过doc id 正向查询
 ```
 curl -XGET  'host/index/_doc/doc_id?pretty=true'
 ```
 
-### query,search
+### query,search，倒排查询
 ```
 curl -XPOST -H'Content-Type: application/json' 'host/index_name/_search?pretty=true' -d '{
 "query":{}}'
@@ -225,9 +225,6 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_count' -d '{
 }'
 ```
 
-### index setting mapping example
-
-
 
 ### analyzer
 - 参考：https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
@@ -246,7 +243,6 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_count' -d '{
 二哈分词器：
 [武汉, 市长, 江大桥, 欢迎, 您]
 ```
-
 
 ### normalizer 
 - 参考：https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
