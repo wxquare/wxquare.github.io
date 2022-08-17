@@ -9,6 +9,7 @@ categories:
 ## 1、基本概念和文档导读
 - [普通搜索和向量搜索介绍](https://blog.csdn.net/weixin_40601534/article/details/122435858?spm=1001.2014.3001.5501)
 - [official document](https://www.elastic.co/guide/en/elasticsearch/reference/8.3/index.html)
+- [scroll使用和Elasticsearch的深度翻页问题](https://www.jianshu.com/p/eb7f11e178b3)
 
 
 ## 2、基本用法
@@ -274,5 +275,3 @@ curl -XPUT  host/index_nane/_alias/index_alias_name
 - https://github.com/medcl/esm
 - https://github.com/medcl/esm/tree/0.1.0
 
-## es scroll 和 深度翻页问题
-- [如何解决Elasticsearch的深度翻页问题](https://www.jianshu.com/p/eb7f11e178b3)
