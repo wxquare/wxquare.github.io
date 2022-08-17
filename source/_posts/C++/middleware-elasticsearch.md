@@ -230,8 +230,24 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_count' -d '{
   ```
 </details>
 
-- analyzer: https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
-- normalizer: https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
+## analyzer: https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
+    Elastic Search 在处理 Text 类型数据的时候，会把数据交给分词器处理。然后根据分词器给的词，建立倒排索引，通常一句话都由若干词语组成，分词结果会极大的影响到查询结果的质量
+在 Elastic Search 中，分词器起到了非常重要的作用，在定义文档结构、录入和更新文档、查询文档的时候都会用到它。例如：
+```
+武汉市长江大桥欢迎您
+
+默认分词器：
+[武, 汉, 市, 长, 江, 大, 桥, 欢, 迎, 您]
+
+普通分词器：
+[武汉, 市, 武汉市, 长江, 大桥,长江大桥, 欢迎, 您, 欢迎您]
+
+二哈分词器：
+[武汉, 市长, 江大桥, 欢迎, 您]
+```
+
+
+## normalizer: https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
 
 
 
