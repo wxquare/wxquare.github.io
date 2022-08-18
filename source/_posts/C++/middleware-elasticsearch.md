@@ -273,6 +273,13 @@ curl -XPUT  host/index_nane/_alias/index_alias_name
 
 ## 5、性能优化
 
+### 性能指标
+- （读）query latency 1-2ms，复杂的查询可能到几十ms
+- （读）fetch latency
+- （写）index rate
+- （写）index latency
+
+
 ## 6、SDK 使用
 - github.com/olivere/elastic
 - https://github.com/elastic/go-elasticsearch
