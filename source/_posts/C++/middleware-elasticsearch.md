@@ -270,6 +270,13 @@ curl -XPUT  host/index_nane/_alias/index_alias_name
 - term level queries
 
 ## 4、原理和实现
+### search的流程
+* coordinator节点接收到查询请求。
+* 协调节点将搜索请求转发到所有的shard对应的primary shard或replica shard所在节点。
+* query phase：每个shard将自己的搜索结果（其实就是一些doc id），返回给协调节点，由协调节点进行数据的合并、排序、分页等操作，产出最终结果
+* fetch phase：接着由协调节点，根据doc id去各个节点上拉取实际的document数据，最终返回给客户端
+
+
 
 ## 5、性能优化
 
