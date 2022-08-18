@@ -312,7 +312,7 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 - （写）index latency
 
 **方法**
-1. 结合profile、explain api 分析query慢的原因
+1. 结合profile、explain api 分析query慢的原因。[search profile api](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-profile.html)
 
 
 ## 6、SDK 使用
