@@ -305,11 +305,14 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 
 ## 5、性能优化
 
-### 性能指标
+### 关注哪些性能指标
 - （读）query latency 1-2ms，复杂的查询可能到几十ms
 - （读）fetch latency
 - （写）index rate
 - （写）index latency
+
+**方法**
+1. 结合profile、explain api 分析query慢的原因
 
 
 ## 6、SDK 使用
