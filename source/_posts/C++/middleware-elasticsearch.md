@@ -10,6 +10,7 @@ categories:
 - [普通搜索和向量搜索介绍](https://blog.csdn.net/weixin_40601534/article/details/122435858?spm=1001.2014.3001.5501)
 - [official document](https://www.elastic.co/guide/en/elasticsearch/reference/8.3/index.html)
 - [scroll使用和Elasticsearch的深度翻页问题](https://www.jianshu.com/p/eb7f11e178b3)
+- [ES 读写流程](https://www.cnblogs.com/upupfeng/p/13488120.html)
 
 
 ## 2、基本用法
@@ -270,7 +271,7 @@ curl -XPUT  host/index_nane/_alias/index_alias_name
 - term level queries
 
 ## 4、原理和实现
-### search的流程
+### search流程
 * coordinator节点接收到查询请求。
 * 协调节点将搜索请求转发到所有的shard对应的primary shard或replica shard所在节点。
 * query phase：每个shard将自己的搜索结果（其实就是一些doc id），返回给协调节点，由协调节点进行数据的合并、排序、分页等操作，产出最终结果
