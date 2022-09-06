@@ -227,6 +227,19 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_count' -d '{
 }'
 ```
 
+### 增加字段
+```
+curl -XPOST -H'Content-Type: application/json' 'host/index_name/_doc/_mapping' -d '{
+    "properties": {
+        "facility_codes": {
+            "type":"keyword"
+        }
+    }
+}'
+
+```
+
+
 
 ### analyzer
 - 参考：https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
