@@ -11,6 +11,7 @@ categories:
 - [official document](https://www.elastic.co/guide/en/elasticsearch/reference/8.3/index.html)
 - [scroll使用和Elasticsearch的深度翻页问题](https://www.jianshu.com/p/eb7f11e178b3)
 - [ES 读写流程](https://www.cnblogs.com/upupfeng/p/13488120.html)
+- [达观数据搜索引擎的Query自动纠错技术和架构](http://www.datagrand.com/blog/search-query.html)
 
 
 ## 2、基本用法
