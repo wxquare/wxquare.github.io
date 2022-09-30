@@ -6,6 +6,8 @@
 5. 防晒用品，防晒霜、太阳镜
 6. 雨伞
 
+
+<font color="green"> Some green text </font>
 ## 重要交通时间
 1. 起床：5:00 
 2. 下沙 - 深圳站，5:45 - 6:25，打车预计40分钟，<font color=#FF0000 >车未预订</font>
