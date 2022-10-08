@@ -16,14 +16,8 @@ categories:
 [MySQL 5.7 Reference Manual](https://dev.mysql.com/doc/refman/5.7/en/null-values.html)
 
 ## 如何建表
-- int,tinyint,int(10),bigint
-- float，double
-- varchar(24)，char(10)（定长，根据需要使用空格填充),text
-- 建表时通常需要带上create_time,update_time，[datetime，timestamp类型](https://segmentfault.com/a/1190000017393602?utm_source=tag-newest)，有时也会用int32和int64
-- 约束：PRIMARY KEY,NOT UNLL,UNIQUE,DEFAULT,FOREIGN KEY约束
-- 建立一张表时需要注意什么？
 ```
-CREATE TABLE `hotel_basic_info_tab` (
+CREATE TABLE `hotel_info_tab` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `hotel_id` bigint(20) NOT NULL DEFAULT '0',
   `hotel_name` varchar(64) NOT NULL DEFAULT '',
