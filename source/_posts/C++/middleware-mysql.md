@@ -135,17 +135,17 @@ CREATE TABLE `hotel_info_tab` (
 - **概念**
   - 共享锁/读锁（Shared Locks）
   - 排他锁/写锁（Exclusive Locks）
-  - 间隙锁、
-  - 行锁（Record Locks）
-  - 表锁
+  - 间隙锁
   - 死锁。死锁是指两个或多个事务在同一资源上相互占用，并请求锁定对方的资源，从而导致恶性循环的现象
   - 悲观锁和乐观锁。悲观锁：假定会发生并发冲突，屏蔽一切可能违反数据完整性的操作。在查询完数据的时候就把事务锁起来，直到提交事务。实现方式：使用数据库中的锁机制。：假设不会发生并发冲突，只在提交操作时检查是否违反数据完整性。在修改数据的时候把事务锁起来，通过version的方式来进行锁定。实现方式：乐一般会使用版本号机制或CAS算法实现。乐观锁适合多读的场景，悲观锁适合多写的场景
   - 表级锁：lock table tbl_name
   - 页级锁：锁住指定数据空间。select id from table_name where age between 1 and 10 for update
   - 行级锁：select id from table where age=12 for update
+  - 在数据库的增、删、改、查中，只有增、删、改才会加上排它锁，而只是查询并不会加锁，只能通过在select语句后显式加lock in share mode或者for update来加共享锁或者排它锁
   - 显示加锁：select ... for upate,隐式加锁，insert/update/delete
   - MySQL中InnoDB引擎的行锁是怎么实现的？InnoDB行锁是通过给索引上的索引项加锁来实现的，只有通过索引条件检索数据，InnoDB才使用行级锁，否则，InnoDB将使用表锁。
   - 隔离级别与锁的关系.可以先阐述四种隔离级别，再阐述它们的实现原理。隔离级别就是依赖锁和MVCC实现的。
+- **事务的隔离属性底层实现原理**，关于锁和mvcc
   - 可以先阐述四种隔离级别，再阐述它们的实现原理。隔离级别就是依赖锁和MVCC实现的。
   - https://zhuanlan.zhihu.com/p/143866444
 
