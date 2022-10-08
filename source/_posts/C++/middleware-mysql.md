@@ -56,7 +56,6 @@ CREATE TABLE `hotel_info_tab` (
 - [9.1.7 NULL Values](https://dev.mysql.com/doc/refman/5.7/en/null-values.html)
 - null值问题：https://dev.mysql.com/doc/refman/5.7/en/null-values.html
 - https://blog.csdn.net/thekenofDIS/article/details/108577905
-- [怎么选择varchar，char,text](https://www.jianshu.com/p/a1ef006ade16)
 - [ROW_FORMAT问题](https://dev.mysql.com/doc/refman/5.7/en/innodb-row-format.html)
 - [10.9.1 The utf8mb4 Character Set (4-Byte UTF-8 Unicode Encoding)](https://dev.mysql.com/doc/refman/5.7/en/charset-unicode-utf8mb4.html)
 - 表的大小评估，是否分表
