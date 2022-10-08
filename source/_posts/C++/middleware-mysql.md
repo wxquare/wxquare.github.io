@@ -37,9 +37,11 @@ CREATE TABLE `hotel_info_tab` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ROW_FORMAT=COMPRESSED
 ```
 
-- 数值类型：int,tinyint,int(10),bigint、float，double
+- 数值类型：int,tinyint,int(10),bigint
+- 定点数（exact-value），decimal，使用字符串存储
+- 浮点数（approximate-value (floating-point)）：float，double
 - string: varchar(24)，char(10)（定长，根据需要使用空格填充),text
-- 建表时通常带上create_time,update_time，[datetime，timestamp类型](https://segmentfault.com/a/1190000017393602?utm_source=tag-newest)，有时也会用int32和int64
+- 时间time：建表时通常会带上create_time,update_time，[datetime，timestamp类型](https://segmentfault.com/a/1190000017393602?utm_source=tag-newest)，有时也会用int32和int64
 - 约束：NOT UNLL,DEFAULT、UNIQUE,PRIMARY KEY,,FOREIGN KEY约束
 - primary key,[自增主键还是UUID？优缺点？怎么生成UUID？](https://blog.csdn.net/rocling/article/details/83116950)
 - index
