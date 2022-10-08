@@ -132,28 +132,22 @@ CREATE TABLE `hotel_info_tab` (
   -  读提交，READ-COMMITTED，会产生不可重复读问题
   -  可重复读 （REPEATABLE READ），幻读问题
   -  SERIALIZABLE(可串行化)
-- **锁机制**
-  - 享锁/读锁（Shared Locks）
+- **概念**
+  - 共享锁/读锁（Shared Locks）
   - 排他锁/写锁（Exclusive Locks）
   - 间隙锁、
   - 行锁（Record Locks）
   - 表锁
-- 在Read Uncommitted级别下，读取数据不需要加共享锁，这样就不会跟被修改的数据上的排他锁冲突；在Read Committed级别下，读操作需要加共享锁，但是在语句执行完以后释放共享锁；在Repeatable Read级别下，读操作需要加共享锁，但是在事务提交之前并不释放共享锁，也就是必须等待事务执行完毕以后才释放共享锁。SERIALIZABLE 是限制性最强的隔离级别，因为该级别锁定整个范围的键，并一直持有锁，直到事务完成
-- 死锁。死锁是指两个或多个事务在同一资源上相互占用，并请求锁定对方的资源，从而导致恶性循环的现象
-- 悲观锁和乐观锁。悲观锁：假定会发生并发冲突，屏蔽一切可能违反数据完整性的操作。在查询完数据的时候就把事务锁起来，直到提交事务。实现方式：使用数据库中的锁机制。：假设不会发生并发冲突，只在提交操作时检查是否违反数据完整性。在修改数据的时候把事务锁起来，通过version的方式来进行锁定。实现方式：乐一般会使用版本号机制或CAS算法实现。乐观锁适合多读的场景，悲观锁适合多写的场景
-- innodb支持行级索，事务和聚簇索引
-- 表级锁：lock table tbl_name
-- 页级锁：锁住指定数据空间。select id from table_name where age between 1 and 10 for update
-- 行级锁：select id from table where age=12 for update
-- 乐观锁：先对数据进行操作，提交时再校验权限的状态
-- 悲观锁：现获取操作权限，再对数据进行操作
-- 显示加锁：select ... for upate,隐式加锁，insert/update/delete
-- 
-- mysql mysql 逻辑存储结构
-- MySQL中InnoDB引擎的行锁是怎么实现的？InnoDB行锁是通过给索引上的索引项加锁来实现的，只有通过索引条件检索数据，InnoDB才使用行级锁，否则，InnoDB将使用表锁。
-- 隔离级别与锁的关系.可以先阐述四种隔离级别，再阐述它们的实现原理。隔离级别就是依赖锁和MVCC实现的。
-- 可以先阐述四种隔离级别，再阐述它们的实现原理。隔离级别就是依赖锁和MVCC实现的。
-- https://zhuanlan.zhihu.com/p/143866444
+  - 死锁。死锁是指两个或多个事务在同一资源上相互占用，并请求锁定对方的资源，从而导致恶性循环的现象
+  - 悲观锁和乐观锁。悲观锁：假定会发生并发冲突，屏蔽一切可能违反数据完整性的操作。在查询完数据的时候就把事务锁起来，直到提交事务。实现方式：使用数据库中的锁机制。：假设不会发生并发冲突，只在提交操作时检查是否违反数据完整性。在修改数据的时候把事务锁起来，通过version的方式来进行锁定。实现方式：乐一般会使用版本号机制或CAS算法实现。乐观锁适合多读的场景，悲观锁适合多写的场景
+  - 表级锁：lock table tbl_name
+  - 页级锁：锁住指定数据空间。select id from table_name where age between 1 and 10 for update
+  - 行级锁：select id from table where age=12 for update
+  - 显示加锁：select ... for upate,隐式加锁，insert/update/delete
+  - MySQL中InnoDB引擎的行锁是怎么实现的？InnoDB行锁是通过给索引上的索引项加锁来实现的，只有通过索引条件检索数据，InnoDB才使用行级锁，否则，InnoDB将使用表锁。
+  - 隔离级别与锁的关系.可以先阐述四种隔离级别，再阐述它们的实现原理。隔离级别就是依赖锁和MVCC实现的。
+  - 可以先阐述四种隔离级别，再阐述它们的实现原理。隔离级别就是依赖锁和MVCC实现的。
+  - https://zhuanlan.zhihu.com/p/143866444
 
 
 ## 视图view
