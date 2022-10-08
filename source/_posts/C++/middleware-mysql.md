@@ -58,6 +58,7 @@ CREATE TABLE `hotel_info_tab` (
 - [10.9.1 The utf8mb4 Character Set (4-Byte UTF-8 Unicode Encoding)](https://dev.mysql.com/doc/refman/5.7/en/charset-unicode-utf8mb4.html)
 - 是否需要分表，分库?（https://blog.csdn.net/thekenofDIS/article/details/108577905）
 - 是否需要增加index？
+- 查看见表sql：show create table table_name;
 
 
 ## 怎么考虑分表，单表的size？
