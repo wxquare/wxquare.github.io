@@ -96,6 +96,7 @@ CREATE TABLE `hotel_info_tab` (
     如果一个索引包含了（或覆盖了）满足查询语句中字段与条件的数据就叫做覆盖索引
 ```
 - [索引的数据结构，红黑树、B树、B+树的比较](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
+- [面试题：InnoDB中一棵B+树能存多少行数据？](https://cloud.tencent.com/developer/article/1443681)
 - 列出索引失效的几种场景？
     - 条件中包含or
     - 条件中包含%like
