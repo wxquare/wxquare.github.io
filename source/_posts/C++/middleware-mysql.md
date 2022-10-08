@@ -203,7 +203,10 @@ CREATE TABLE `hotel_basic_info_tab` (
         create database wxquare_test;
         show databases;
         use wxquare_test;
-[leetcode sql](https://juejin.cn/post/6844903827934560263#heading-3)
+        
+- [leetcode sql](https://juejin.cn/post/6844903827934560263#heading-3)
+
+
 
 ## 推荐阅读:
 1. https://thinkwon.blog.csdn.net/article/details/104778621
@@ -214,3 +217,4 @@ CREATE TABLE `hotel_basic_info_tab` (
 6. https://www.cnblogs.com/kyoner/p/11366805.html
 7. [一文精通MYSQL](http://km.oa.com/articles/show/491871?kmref=author_post)
 8. MySQL alter table的过程如下： 创建ALTER TABLE目的新表；将老表数据导入新表；删除老表。（https://blog.csdn.net/zhaiwx1987/article/details/6688970）
+9. [Mysql on duplicate key update 用法以及优缺点](https://www.cnblogs.com/better-farther-world2099/articles/11737376.html)
