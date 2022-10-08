@@ -158,6 +158,11 @@ CREATE TABLE `hotel_info_tab` (
 
 
 ## 数据库优化
+- mysql的服务器核心指标
+  - read write qps
+  - connections
+  - slow query
+  - 
 - 如何定位及优化SQL语句的性能问题？创建的索引有没有被使用到?或者说怎么才可以知道这条语句运行很慢的原因？explain
 -  **优化的步骤**
     - 检查mysql服务器资源使用情况，https://www.cnblogs.com/remember-forget/p/10400496.html
