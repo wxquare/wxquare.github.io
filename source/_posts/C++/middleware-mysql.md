@@ -110,6 +110,12 @@ CREATE TABLE `hotel_info_tab` (
     - 区分度高的字段放在前面，区分度低的字段放后面。像性别、状态这种字段区分度就很低，我们一般放后面
     - [结合实例理解联合索引与最左匹配原则](https://www.cnblogs.com/rjzheng/p/12557314.html)
     - https://dev.mysql.com/doc/refman/5.7/en/multiple-column-indexes.html
+- sql
+    ```
+    - 增加index，
+    - ALTER TABLE `table` ADD INDEX `product_id_index` (`product_id`)
+
+    ```
 
 
 
