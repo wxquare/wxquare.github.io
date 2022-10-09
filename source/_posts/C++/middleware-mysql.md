@@ -196,9 +196,9 @@ CREATE TABLE `hotel_info_tab` (
   ```
   - [performance_schema](https://www.cnblogs.com/Courage129/p/14188422.html)
   - slow query
-- 如何定位及优化SQL语句的性能问题？创建的索引有没有被使用到?或者说怎么才可以知道这条语句运行很慢的原因？explain
+  - 读写分离架构需要考虑主从延时
+  
 -  **优化的步骤**
-    - 检查mysql服务器资源使用情况，https://www.cnblogs.com/remember-forget/p/10400496.html
     - sql语句优化。分析执行计划，减少load的数据量
     - 增加索引，索引优化
     - 缓存，memcached, redis
