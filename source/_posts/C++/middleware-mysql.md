@@ -235,30 +235,14 @@ CREATE TABLE `hotel_info_tab` (
     - 水平分表
     - 分库
     - 业界成熟的方案
-- [腾讯面试：一条SQL语句执行得很慢的原因有哪些？---不看后悔系列](https://www.cnblogs.com/kubidemanong/p/10734045.html)
-- [4种MySQL分页查询优化的方法](https://juejin.cn/post/6844903955470745614#heading-6)
-- [不同DB库的表如何联表查询](https://www.modb.pro/db/27539)，怎么优化？
-- [一个跨库复杂查询的SQL优化的案例](https://blog.csdn.net/waste_land_wolf/article/details/76419207)
-- [怎么处理线上DDL变更?](https://zhuanlan.zhihu.com/p/247939271)
-- [Redis和mysql数据怎么保持数据一致的？](https://coolshell.cn/articles/17416.html) 
-
-- 一个6亿的表a，一个3亿的表b，通过外间tid关联，你如何最快的查询出满足条件的第50000到第50200中的这200条数据记录。
-1、如果A表TID是自增长,并且是连续的,B表的ID为索引 select * from a,b where a.tid = b.id and a.tid>500000 limit 200;
-2、如果A表的TID不是连续的,那么就需要使用覆盖索引.TID要么是主键,要么是辅助索引,B表ID也需要有索引。select * from b , (select tid from a limit 50000,200) a where b.id = a .tid;
-
-
-## sql 练习
-1. 常用命令
+    
+## 常用命令
     mysql登陆：
         mysql -h主机 -P端口 -u用户 -p密码
         SET PASSWORD FOR 'root'@'localhost' = PASSWORD('root');
         create database wxquare_test;
         show databases;
         use wxquare_test;
-        
-- [leetcode sql](https://juejin.cn/post/6844903827934560263#heading-3)
-
-
 
 ## 推荐阅读:
 1. https://thinkwon.blog.csdn.net/article/details/104778621
@@ -271,3 +255,7 @@ CREATE TABLE `hotel_info_tab` (
 8. MySQL alter table的过程如下： 创建ALTER TABLE目的新表；将老表数据导入新表；删除老表。（https://blog.csdn.net/zhaiwx1987/article/details/6688970）
 9. [Mysql on duplicate key update 用法以及优缺点](https://www.cnblogs.com/better-farther-world2099/articles/11737376.html)
 10. [upsert](https://stackoverflow.com/questions/6107752/how-to-perform-an-upsert-so-that-i-can-use-both-new-and-old-values-in-update-par)
+11. [腾讯面试：一条SQL语句执行得很慢的原因有哪些？---不看后悔系列](https://www.cnblogs.com/kubidemanong/p/10734045.html)
+12. [4种MySQL分页查询优化的方法](https://juejin.cn/post/6844903955470745614#heading-6)
+13. [怎么处理线上DDL变更?](https://zhuanlan.zhihu.com/p/247939271)
+14.[Redis和mysql数据怎么保持数据一致的？](https://coolshell.cn/articles/17416.html) 
