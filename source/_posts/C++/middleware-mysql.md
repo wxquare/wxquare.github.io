@@ -208,7 +208,7 @@ CREATE TABLE `hotel_info_tab` (
    
 - **sql优化**
     - 分析数据sql的结构是否加载了不必要的字段和数据
-    - [深度分页查询优化(https://juejin.cn/post/7012016858379321358)
+    - [深度分页查询优化](https://juejin.cn/post/7012016858379321358)
     - 子查询和连接查询
     - 会查看sql执行计划explain
      ```
