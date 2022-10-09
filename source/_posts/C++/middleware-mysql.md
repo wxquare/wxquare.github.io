@@ -158,7 +158,7 @@ CREATE TABLE `hotel_info_tab` (
 
 
 ## 数据库优化
-- mysql的服务器核心指标
+- **关注监控指标**
   - read write qps
   - connections
     ```
