@@ -212,21 +212,20 @@ CREATE TABLE `hotel_info_tab` (
     - 子查询和连接查询
     - 会查看sql执行计划explain
      ```
-     id列：在复杂的查询语句中包含多个查询使用id标示
-     select_type:select/subquery/derived/union
-     table: 显示对应行正在访问哪个表
-     type：访问类型，关联类型。非常重要，All,index,range,ref,const,
-     possible_keys: 显示可以使用哪些索引列
-     key列：显示mysql决定使用哪个索引来优化对该表的访问
-     key_len：显示在索引里使用的字节数
-     rows：为了找到所需要的行而需要读取的行数
+       id列：在复杂的查询语句中包含多个查询使用id标示
+       select_type:select/subquery/derived/union
+       table: 显示对应行正在访问哪个表
+       type：访问类型，关联类型。非常重要，All,index,range,ref,const,
+       possible_keys: 显示可以使用哪些索引列
+       key列：显示mysql决定使用哪个索引来优化对该表的访问
+       key_len：显示在索引里使用的字节数
+       rows：为了找到所需要的行而需要读取的行数
      ```  
 
 - **缓存优化**
-    - 缓存更新和淘汰的策略
+    - 缓存更新、过期、淘汰的策略
     - 缓存可能遇到的三大问题，雪崩、穿透、击穿
-    - 缓存和db的一致性问题
-    - [缓存更新策略及其分析？](https://zhuanlan.zhihu.com/p/86396877),业界比较通用的先更新DB，在删除cache
+    - 缓存和db的一致性问题，[缓存更新策略及其分析？](https://zhuanlan.zhihu.com/p/86396877),业界比较通用的先更新DB，再删除cache
     
 - **读写分离优化**
     - 在写操作的较多的情况可以考虑数据库读写分离的方案
