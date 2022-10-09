@@ -161,13 +161,40 @@ CREATE TABLE `hotel_info_tab` (
 - mysql的服务器核心指标
   - read write qps
   - connections
-
-
     ```
     show variables like '%max_connection%'; 查看最大连接数
     show status like  'Threads%';
-    
+    show processlist;
     ```
+  - 存储空间information_schema
+  ```
+    -- desc information_schema.tables;
+  
+    -- 查看 MySQL「所有库」的容量大小
+    SELECT table_schema AS '数据库', SUM(table_rows) AS '记录数', 
+    SUM(truncate(data_length / 1024 / 1024, 2)) AS '数据容量(MB)',
+    SUM(truncate(index_length / 1024 / 1024, 2)) AS '索引容量(MB)',
+    SUM(truncate(DATA_FREE / 1024 / 1024, 2)) AS '碎片占用(MB)'
+    FROM information_schema.tables
+    GROUP BY table_schema
+    ORDER BY SUM(data_length) DESC, SUM(index_length) DESC;
+    
+    -- 指定书库查看表的数据量
+    SELECT
+      table_schema as '数据库',
+      table_name as '表名',
+      table_rows as '记录数',
+      truncate(data_length/1024/1024, 2) as '数据容量(MB)',
+      truncate(index_length/1024/1024, 2) as '索引容量(MB)',
+      truncate(DATA_FREE/1024/1024, 2) as '碎片占用(MB)'
+    from 
+      information_schema.tables
+    where 
+      table_schema='<数据库名>'
+    order by 
+      data_length desc, index_length desc;
+  ```
+  - 
   - slow query
 - 如何定位及优化SQL语句的性能问题？创建的索引有没有被使用到?或者说怎么才可以知道这条语句运行很慢的原因？explain
 -  **优化的步骤**
