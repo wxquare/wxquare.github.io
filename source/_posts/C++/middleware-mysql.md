@@ -194,7 +194,7 @@ CREATE TABLE `hotel_info_tab` (
     order by 
       data_length desc, index_length desc;
   ```
-  - 
+  - [performance_schema](https://www.cnblogs.com/Courage129/p/14188422.html)
   - slow query
 - 如何定位及优化SQL语句的性能问题？创建的索引有没有被使用到?或者说怎么才可以知道这条语句运行很慢的原因？explain
 -  **优化的步骤**
