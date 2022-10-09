@@ -148,7 +148,8 @@ CREATE TABLE `hotel_info_tab` (
 - **事务的隔离属性底层实现原理**，关于锁和mvcc
   - 可以先阐述四种隔离级别，再阐述它们的实现原理。隔离级别就是依赖锁和MVCC实现的。
   - https://zhuanlan.zhihu.com/p/143866444
-
+- **分布式事务**
+  - https://juejin.cn/post/6844903647197806605
 
 ## 视图view
 - 什么是视图，什么场景下使用，为什么使用？有什么优缺点
