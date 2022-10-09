@@ -248,16 +248,14 @@ CREATE TABLE `hotel_info_tab` (
 - [MySQL索引那些事](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
 - [MySQL foreign key](https://draveness.me/whys-the-design-database-foreign-key/)
 - [mysql auto increment primary key](https://draveness.me/whys-the-design-mysql-auto-increment/)
-5. https://juejin.cn/post/6844903655439597582?hmsr=joyk.com&utm_source=joyk.com&utm_source=joyk.com&utm_medium=referral%3Fhmsr%3Djoyk.com&utm_medium=referral
-6. https://www.cnblogs.com/kyoner/p/11366805.html
-7. [一文精通MYSQL](http://km.oa.com/articles/show/491871?kmref=author_post)
-8. MySQL alter table的过程如下： 创建ALTER TABLE目的新表；将老表数据导入新表；删除老表。（https://blog.csdn.net/zhaiwx1987/article/details/6688970）
-9. [Mysql on duplicate key update 用法以及优缺点](https://www.cnblogs.com/better-farther-world2099/articles/11737376.html)
-10. [upsert](https://stackoverflow.com/questions/6107752/how-to-perform-an-upsert-so-that-i-can-use-both-new-and-old-values-in-update-par)
-11. [腾讯面试：一条SQL语句执行得很慢的原因有哪些？---不看后悔系列](https://www.cnblogs.com/kubidemanong/p/10734045.html)
-12. [4种MySQL分页查询优化的方法](https://juejin.cn/post/6844903955470745614#heading-6)
-13. [怎么处理线上DDL变更?](https://zhuanlan.zhihu.com/p/247939271)
-14.[Redis和mysql数据怎么保持数据一致的？](https://coolshell.cn/articles/17416.html) 
+- [SQL语句执行过程详解](https://juejin.cn/post/6844903655439597582?hmsr=joyk.com&utm_source=joyk.com&utm_source=joyk.com&utm_medium=referral%3Fhmsr%3Djoyk.com&utm_medium=referral)
+- MySQL alter table的过程如下： 创建ALTER TABLE目的新表；将老表数据导入新表；删除老表。（https://blog.csdn.net/zhaiwx1987/article/details/6688970）
+- [Mysql on duplicate key update 用法以及优缺点](https://www.cnblogs.com/better-farther-world2099/articles/11737376.html)
+- [mysql upsert](https://stackoverflow.com/questions/6107752/how-to-perform-an-upsert-so-that-i-can-use-both-new-and-old-values-in-update-par)
+- [腾讯面试：一条SQL语句执行得很慢的原因有哪些？---不看后悔系列](https://www.cnblogs.com/kubidemanong/p/10734045.html)
+- [4种MySQL分页查询优化的方法](https://juejin.cn/post/6844903955470745614#heading-6)
+- [怎么处理线上DDL变更?](https://zhuanlan.zhihu.com/p/247939271)
+- [Redis和mysql数据怎么保持数据一致的？](https://coolshell.cn/articles/17416.html) 
 - [MySQL数据库面试题（2020最新版）](https://thinkwon.blog.csdn.net/article/details/104778621)
 
 
