@@ -5,7 +5,7 @@ categories:
 ---
 
 ## redis 使用场景分析
-1. 缓存db的数据
+1. 缓存db或者接口的数据
 2. setnx分布式锁，分布式锁. 在分布式场景下，无法使用单机环境下的锁来对多个节点上的进程进行同步。可以使用 Redis 自带的 SETNX 命令实现分布式锁，除此之外，还可以使用官方提供的 RedLock 分布式锁实现
 3. zset的排行榜，如何使用Redis实现微信步数排行榜？](https://www.cnblogs.com/zwwhnly/p/13041641.html)
 4. incr计数器
