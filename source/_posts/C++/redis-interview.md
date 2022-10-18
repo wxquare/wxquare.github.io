@@ -5,11 +5,93 @@ categories:
 ---
 
 ## redis 使用场景分析
-1. 缓存db或者接口的数据
-2. setnx分布式锁，分布式锁. 在分布式场景下，无法使用单机环境下的锁来对多个节点上的进程进行同步。可以使用 Redis 自带的 SETNX 命令实现分布式锁，除此之外，还可以使用官方提供的 RedLock 分布式锁实现
-3. zset的排行榜，如何使用Redis实现微信步数排行榜？](https://www.cnblogs.com/zwwhnly/p/13041641.html)
-4. incr计数器
-5. list 简单消息队列
+1. 缓存数据（db，service) 的数据，提高访问效率
+2. incr计数器
+4. incr + expire 实现滑动窗口计数器限流
+```
+      package main
+
+      import (
+        "fmt"
+        "time"
+
+        "github.com/go-redis/redis"
+      )
+
+      var pool redis.UniversalClient
+
+      func simpleIncr(key string) {
+        ok, err := pool.SetNX(key, 1, time.Duration(10)*time.Second).Result()
+        fmt.Printf("%+v,%+v\n", ok, err)
+        val, err := pool.Incr(key).Result()
+        fmt.Printf("%+v,%+v\n", val, err)
+        //手动过期
+        ok, err = pool.Expire(key, time.Duration(60)*time.Second).Result()
+        fmt.Printf("%+v,%+v\n", ok, err)
+      }
+
+      func simpleUserRateLimit(userID string) bool {
+        /*
+          限制用户1秒钟最多访问10次，对于异常用户冻结2分钟
+        */
+        key := userID
+        var maxRequestPerSecond int64 = 10
+        var frozenTime int = 2 * 60
+        ok, _ := pool.SetNX(key, 1, time.Duration(1)*time.Second).Result()
+        if ok {
+          return true
+        }
+        val, _ := pool.Incr(key).Result()
+        if val <= maxRequestPerSecond {
+          return true
+        }
+        if val > maxRequestPerSecond {
+          pool.Expire(key, time.Duration(frozenTime)*time.Second).Result()
+          return false
+        }
+        return false
+      }
+
+      func main() {
+        pool = redis.NewUniversalClient(&redis.UniversalOptions{
+          Addrs:        []string{"127.0.0.1:6379"},
+          MaxRetries:   3,
+          DialTimeout:  time.Duration(300) * time.Millisecond,
+          ReadTimeout:  time.Duration(300) * time.Millisecond,
+          WriteTimeout: time.Duration(300) * time.Millisecond,
+          PoolSize:     10,
+          IdleTimeout:  time.Duration(10) * time.Second,
+        })
+        _, err := pool.Ping().Result()
+        if err != nil {
+          fmt.Printf("%+v", err)
+        }
+
+        for i := 0; i < 20; i++ {
+          islimited := simpleUserRateLimit("12345678")
+          fmt.Println(islimited)
+        }
+
+      }
+
+```
+
+6. 
+7. setnx分布式锁，分布式锁. 在分布式场景下，无法使用单机环境下的锁来对多个节点上的进程进行同步。可以使用 Redis 自带的 SETNX 命令实现分布式锁，除此之外，还可以使用官方提供的 RedLock 分布式锁实现
+8. zset的排行榜，如何使用Redis实现微信步数排行榜？](https://www.cnblogs.com/zwwhnly/p/13041641.html)
+
+6. list 简单消息队列
+7. 限频
+8. 延时队列
+9. 分布式锁
+
+
+
+
+## 常用命令
+- setnx
+- incr
+- expire,手动设置过期时间
 
 ## redis 常见问题
 1. 熟悉redis五种数据结构选择string/list/hashmap/set/zset以及其底层实现原理
