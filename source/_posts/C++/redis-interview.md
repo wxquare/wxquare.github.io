@@ -5,7 +5,7 @@ categories:
 ---
 
 ## 前言
-1. redis 使用场景
+1. redis有哪些使用场景？
 1. redis五种数据结构选择string/list/hashmap/set/zset以及其底层实现原理
 2. 熟悉计算需要的容量与以及超过使用容量时的淘汰策略？
 3. redis 扩容问题？
