@@ -4,10 +4,9 @@ categories:
 - C/C++
 ---
 
-## redis 使用场景分析
+## redis 使用场景
 1. 缓存数据（db，service) 的数据，提高访问效率
-2. incr计数器
-4. incr + expire 实现滑动窗口计数器限流
+2. incr + expire 实现滑动窗口计数器限流
 ```
       package main
 
@@ -75,15 +74,19 @@ categories:
       }
 
 ```
-
-6. 
-7. setnx分布式锁，分布式锁. 在分布式场景下，无法使用单机环境下的锁来对多个节点上的进程进行同步。可以使用 Redis 自带的 SETNX 命令实现分布式锁，除此之外，还可以使用官方提供的 RedLock 分布式锁实现
-8. zset的排行榜，如何使用Redis实现微信步数排行榜？](https://www.cnblogs.com/zwwhnly/p/13041641.html)
-
-6. list 简单消息队列
-7. 限频
-8. 延时队列
-9. 分布式锁
+3. 延时队列
+   - 使用 ZSET+ 定时轮询的方式实现延时队列机制，任务集合记为 taskGroupKey
+   - 生成任务以 当前时间戳 与 延时时间 相加后得到任务真正的触发时间，记为 time1，任务的 uuid 即为 taskid，当前时间戳记为 curTime
+   - 使用 ZADD taskGroupKey time1 taskid 将任务写入 ZSET
+   - 主逻辑不断以轮询方式 ZRANGE taskGroupKey curTime MAXTIME withscores 获取 [curTime,MAXTIME) 之间的任务，记为已经到期的延时任务（集）
+   - 处理延时任务，处理完成后删除即可
+   - 保存当前时间戳 curTime，作为下一次轮询时的 ZRANGE 指令的范围起点
+   - https://github.com/bitleak/lmstfy
+   
+4. 消息队列
+   - redis 支持 List 数据结构，有时也会充当消息队列。使用生产者：LPUSH；消费者：RBPOP 或 RPOP 模拟队列
+5. incr计数器
+6. 分布式锁：https://juejin.cn/post/6936956908007850014
 
 
 
@@ -92,6 +95,7 @@ categories:
 - setnx
 - incr
 - expire,手动设置过期时间
+- zset、zrang
 
 ## redis 常见问题
 1. 熟悉redis五种数据结构选择string/list/hashmap/set/zset以及其底层实现原理
