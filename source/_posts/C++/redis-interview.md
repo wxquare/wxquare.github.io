@@ -87,6 +87,7 @@ categories:
    - redis 支持 List 数据结构，有时也会充当消息队列。使用生产者：LPUSH；消费者：RBPOP 或 RPOP 模拟队列
 5. incr计数器
 6. 分布式锁：https://juejin.cn/post/6936956908007850014
+7. 基于redis的分布式限流：https://pandaychen.github.io/2020/09/21/A-DISTRIBUTE-GOREDIS-RATELIMITER-ANALYSIS/
 
 
 
