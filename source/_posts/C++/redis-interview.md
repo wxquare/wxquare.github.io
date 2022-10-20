@@ -132,6 +132,7 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
 ## redis 两种数据持久化的原理以及优缺点
 - AOF: AOF持久化(即Append Only File持久化)，文本日志，记录增删改
 - RDB: 是Redis DataBase缩写快照，紧凑的二进制数据
+- [Redis持久化是如何做的？RDB和AOF对比分析] (http://kaito-kidd.com/2020/06/29/redis-persistence-rdb-aof/)
 
 
 ## 怎么考虑缓存和db数据一致性的问题
