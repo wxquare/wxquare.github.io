@@ -191,3 +191,4 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
 7. redis内存淘汰策略？
 8. redis dbindex. https://blog.csdn.net/lsm135/article/details/52945197
 9. [颠覆认知——Redis会遇到的15个「坑」，你踩过几个？](http://kaito-kidd.com/2021/03/14/redis-trap/)
+10. [Redis最佳实践：7个维度+43条使用规范](http://kaito-kidd.com/2021/03/04/redis-best-practice-optimization-road/)
