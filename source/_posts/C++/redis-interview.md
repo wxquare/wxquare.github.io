@@ -11,7 +11,8 @@ categories:
 4. 如何考虑缓存和数据库一致性的问题？
 5. redis 超过使用容量时的内存淘汰策略
 6. redis 过期键的删除策略
-7. redis 分布式架构，codis，rdis cluster？
+7. redis 数据持久化是怎么做的？RDB和AOF机制？
+8. redis 分布式架构，codis，rdis cluster？
 
 
 ## redis 使用场景
