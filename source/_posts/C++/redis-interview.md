@@ -7,12 +7,13 @@ categories:
 ## 前言
 1. redis有哪些使用场景？
 2. redis五种数据结构选择以及其底层实现原理？
-3. 如何处理可能遇到的缓存雪崩，缓存穿透和热点数据缓存击穿问题？是否需要缓存预热
-4. 如何考虑缓存和数据库一致性的问题？
-5. redis 超过使用容量时的内存淘汰策略
-6. redis 过期键的删除策略
-7. redis 数据持久化是怎么做的？RDB和AOF机制？
-8. redis 分布式架构，codis，rdis cluster？
+3. redis 常用命令以及时间复杂度？
+4. 如何处理可能遇到的缓存雪崩，缓存穿透和热点数据缓存击穿问题？是否需要缓存预热
+5. 如何考虑缓存和数据库一致性的问题？
+6. redis 超过使用容量时的内存淘汰策略
+7. redis 过期键的删除策略
+8. redis 数据持久化是怎么做的？RDB和AOF机制？
+9. redis 分布式架构，codis，rdis cluster？
 
 
 ## redis 使用场景
@@ -192,3 +193,5 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
 8. redis dbindex. https://blog.csdn.net/lsm135/article/details/52945197
 9. [颠覆认知——Redis会遇到的15个「坑」，你踩过几个？](http://kaito-kidd.com/2021/03/14/redis-trap/)
 10. [Redis最佳实践：7个维度+43条使用规范](http://kaito-kidd.com/2021/03/04/redis-best-practice-optimization-road/)
+11. [Redis为什么变慢了？](apollo-portal.test.shopee.io)
+12. [redis 常用命令以及时间复杂度](http://blog.caoxl.com/2018/11/28/Redis-Time-Complexity/)
