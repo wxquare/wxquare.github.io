@@ -17,8 +17,7 @@ categories:
 ## redis 使用场景
 1. 缓存数据（db，service) 的数据，提高访问效率
 2. incr + expire 实现滑动窗口计数器限流
-```
-   go
+```go
       package main
 
       import (
