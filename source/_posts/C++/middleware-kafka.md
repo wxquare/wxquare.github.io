@@ -74,16 +74,17 @@ Kafka消息发送有两种方式：同步（sync）和异步（async），默认
 - 增加并行度，找多个人消化
 
 
-## [Rebalance 机制以及可能产生的影响](https://zhuanlan.zhihu.com/p/46963810)
+## Rebalance 机制以及可能产生的影响
 Rebalance本身是Kafka集群的一个保护设定，用于剔除掉无法消费或者过慢的消费者，然后由于我们的数据量较大，同时后续消费后的数据写入需要走网络IO，很有可能存在依赖的第三方服务存在慢的情况而导致我们超时。Rebalance对我们数据的影响主要有以下几点：
 - 数据重复消费: 消费过的数据由于提交offset任务也会失败，在partition被分配给其他消费者的时候，会造成重复消费，数据重复且增加集群压力
 - Rebalance扩散到整个ConsumerGroup的所有消费者，因为一个消费者的退出，导致整个Group进行了Rebalance，并在一个比较慢的时间内达到稳定状态，影响面较大
 - 频繁的Rebalance反而降低了消息的消费速度，大部分时间都在重复消费和Rebalance
 - 数据不能及时消费，会累积lag，在Kafka的超过一定时间后会丢弃数据
+- https://zhuanlan.zhihu.com/p/46963810
 
 
 
-## 三、[kafka是怎么做到高性能](https://blog.csdn.net/kzadmxz/article/details/101576401)
+## kafka是怎么做到高性能
 Kafka虽然除了具有上述优点之外，还具有高性能、高吞吐、低延时的特点，其吞吐量动辄几十万、上百万。
 - **磁盘顺序写入**。Kafka的message是不断追加到本地磁盘文件末尾的，而不是随机的写入。所以Kafka是不会删除数据的，它会把所有的数据都保留下来，每个消费者（Consumer）对每个Topic都有一个offset用来表示 读取到了第几条数据 。
 - **操作系统page cache**，使得kafka的读写操作基本基于内存，提高读写的性能
@@ -91,15 +92,16 @@ Kafka虽然除了具有上述优点之外，还具有高性能、高吞吐、低
 -  消息topic分区partition、segment存储，提高数据操作的并行度。
 -  **批量读写和批量压缩**
 Kafka速度的秘诀在于，它把所有的消息都变成一个批量的文件，并且进行合理的批量压缩，减少网络IO损耗，通过mmap提高I/O速度，写入数据的时候由于单个Partion是末尾添加所以速度最优；读取数据的时候配合sendfile直接暴力输出。
+- https://blog.csdn.net/kzadmxz/article/details/101576401
 
 
-## 四、Kafka文件存储机制
+## Kafka文件存储机制
 - 逻辑上以topic进行分类和分组
 - 物理上topic以partition分组，一个topic分成若干个partition，物理上每个partition为一个目录，名称规则为topic名称+partition序列号
 - 每个partition又分为多个segment（段），segment文件由两部分组成，.index文件和.log文件。通过将partition划分为多个segment，避免单个partition文件无限制扩张，方便旧的消息的清理。
 
 
-## 五、[kafka partition 副本ISR机制保障高可用性](https://blog.csdn.net/u013256816/article/details/71091774)
+## kafka partition 副本ISR机制保障高可用性
 - 为了保障消息的可靠性，kafka中每个partition会设置大于1的副本数。
 - 每个patition都有唯一的leader
 - partition的所有副本称为AR。所有的副本（replicas）统称为Assigned Replicas，即AR。ISR是AR中的一个子集，由leader维护ISR列表，follower从leader同步数据有一些延迟（包括延迟时间replica.lag.time.max.ms和延迟条数replica.lag.max.messages两个维度, 当前最新的版本0.10.x中只支持replica.lag.time.max.ms这个维度），任意一个超过阈值都会把follower剔除出ISR, 存入OSR（Outof-Sync Replicas）列表，新加入的follower也会先存放在OSR中。AR=ISR+OSR
@@ -109,11 +111,7 @@ Kafka速度的秘诀在于，它把所有的消息都变成一个批量的文件
   - 0：这意味着producer无需等待来自broker的确认而继续发送下一批消息。这种情况下数据传输效率最高，但是数据可靠性确是最低的。
   - -1：producer需要等待ISR中的所有follower都确认接收到数据后才算一次发送完成，可靠性最高。但是这样也不能保证数据不丢失，比如当ISR中只有leader时（前面ISR那一节讲到，ISR中的成员由于某些情况会增加也会减少，最少就只剩一个leader），这样就变成了acks=1的情况。
 - ISR 副本选举leader
-
-
-
-
-
+- https://blog.csdn.net/u013256816/article/details/71091774
 
 
 
