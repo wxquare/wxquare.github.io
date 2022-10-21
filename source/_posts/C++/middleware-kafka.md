@@ -4,14 +4,14 @@ categories:
 - C/C++
 ---
 
-## 一、 在什么场景下使用kafka消息队列？
-1. 数据的接入和处理进行异步解耦，相比接口调用，减少单个服务的复杂性
-2. 增加数据处理的灵活性，提高扩展性
-3. 面对突发流量，有一定的消除峰作用
-4. 其它作用：扩展性、冗余、顺序性（partition中的数据有序）   
-实例：广告系统和用户增长项目中经常将用户行为数据和广告投放数据接入消息队列中做后续的处理
+## kafka 特点和使用场景
+- kafka具有高吞吐、低延迟、分布式容错、持久化、可扩展的特点，常用于系统之间的异步解偶，相比接口调用，减少单个服务的复杂性
+- 场景1: 系统间不同模块的异步解偶，例如电商系统的订单和发货
+- 场景2：系统或者用户日志的采集、异步分析、持久化
+- 场景3: 保存收集流数据，以提供之后对接的Storm或其他流式计算框架进行处理。例如风控系统
 
-## 二、 如何向别人介绍kafka的架构及其实现原理？
+
+## 基本概念和组成
 ![kafka架构图](/images/kafka_architecture.png)
 - broker
 Kafka 集群包含一个或多个服务器，服务器节点称为broker。broker 是消息的代理，Producers往Brokers里面的指定Topic中写消息，Consumers从Brokers里面拉取指定Topic的消息，然后进行业务处理，broker在中间起到一个代理保存消息的中转站。 
@@ -27,6 +27,44 @@ topic中的数据分割为一个或多个partition。每个topic至少有一个p
 每个partition有多个副本，其中有且仅有一个作为Leader，Leader是当前负责数据的读写的partition。Follower跟随Leader，所有写请求都通过Leader路由，数据变更会广播给所有Follower，Follower与Leader保持数据同步。如果Leader失效，则从Follower中选举出一个新的Leader。当Follower与Leader挂掉、卡住或者同步太慢，leader会把这个follower从“in sync replicas”（ISR）列表中删除，重新创建一个Follower。
 - zookeeper
 zookeeper 是一个分布式的协调组件，早期版本的kafka用zk做meta信息存储，consumer的消费状态，group的管理以及 offset的值。考虑到zk本身的一些因素以及整个架构较大概率存在单点问题，新版本中逐渐弱化了zookeeper的作用。新的consumer使用了kafka内部的group coordination协议，也减少了对zookeeper的依赖，但是broker依然依赖于ZK，zookeeper 在kafka中还用来选举controller 和 检测broker是否存活等等
+
+
+## 关注系统所需要的可靠性（语义）
+### 生产者producer
+对于生产者需要关注失败、丢失、重复三个问题：
+- 消费发送失败：消息写入失败是否需要ack，是否需要重试
+- 消息发送重复：同一条消息重复写入对系统产生的影响
+- 消息发送丢失：消息写入成功，但是由于kafka内部的副本、容错机制，导致消息丢失对系统产生的影响
+
+三种语义：
+
+- 至少一次语义（At least once semantics）：如果生产者收到了Kafka broker的确认（acknowledgement，ack），并且生产者的acks配置项设置为all（或-1），这就意味着消息已经被精确一次写入Kafka topic了。然而，如果生产者接收ack超时或者收到了错误，它就会认为消息没有写入Kafka topic而尝试重新发送消息。如果broker恰好在消息已经成功写入Kafka topic后，发送ack前，出了故障，生产者的重试机制就会导致这条消息被写入Kafka两次，从而导致同样的消息会被消费者消费不止一次。每个人都喜欢一个兴高采烈的给予者，但是这种方式会导致重复的工作和错误的结果。
+- 至多一次语义（At most once semantics）：如果生产者在ack超时或者返回错误的时候不重试发送消息，那么消息有可能最终并没有写入Kafka topic中，因此也就不会被消费者消费到。但是为了避免重复处理的可能性，我们接受有些消息可能被遗漏处理。
+- 精确一次语义（Exactly once semantics）： 即使生产者重试发送消息，也只会让消息被发送给消费者一次。精确一次语义是最令人满意的保证，但也是最难理解的。因为它需要消息系统本身和生产消息的应用程序还有消费消息的应用程序一起合作。比如，在成功消费一条消息后，你又把消费的offset重置到之前的某个offset位置，那么你将收到从那个offset到最新的offset之间的所有消息。这解释了为什么消息系统和客户端程序必须合作来保证精确一次语义
+
+Kafka消息发送有两种方式：同步（sync）和异步（async），默认是同步方式，可通过producer.type属性进行配置。Kafka通过配置request.required.acks属性来确认消息的生产：
+- 0 ---表示不进行消息接收是否成功的确认；
+- 1 ---表示当Leader接收成功时确认；
+- -1---表示Leader和Follower都接收成功时确认
+
+综上所述，有6种消息生产的情况，下面分情况来分析消息丢失的场景：
+- acks=0，不和Kafka集群进行消息接收确认，则当网络异常、缓冲区满了等情况时，消息可能丢失；
+- acks=1、同步模式下，只有Leader确认接收成功后但挂掉了，副本没有同步，数据可能丢失；
+
+** 通常来说，producer 采用至少at least once **
+
+### 2、消息消费
+Kafka消息消费有两个consumer接口，Low-level API和High-level API：
+- Low-level API：消费者自己维护offset等值，可以实现对Kafka的完全控制
+- High-level API：封装了对parition和offset的管理，使用简单  
+  如果使用高级接口High-level API，可能存在一个问题就是当消息消费者从集群中把消息取出来、并提交了新的消息offset值后，还没来得及消费就挂掉了，那么下次再消费时之前没消费成功的消息就“诡异”的消失了；解决办法：
+针对消息丢失：同步模式下，确认机制设置为-1，即让消息写入Leader和Follower之后再确认消息发送成功；异步模式下，为防止缓冲区满，可以在配置文件设置不限制阻塞超时时间，当缓冲区满时让生产者一直处于阻塞状态；针对消息重复：将消息的唯一标识保存到外部介质中，每次消费时判断是否处理过即可。
+
+消息重复消费及解决参考：https://www.javazhiyin.com/22910.html
+
+### 消息写入producer
+
+### 消息消费consumer
 
 ## 三、[kafka是怎么做到高性能](https://blog.csdn.net/kzadmxz/article/details/101576401)
 Kafka虽然除了具有上述优点之外，还具有高性能、高吞吐、低延时的特点，其吞吐量动辄几十万、上百万。
