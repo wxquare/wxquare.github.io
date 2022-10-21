@@ -24,7 +24,7 @@ topic中的数据分割为一个或多个partition。每个topic至少有一个p
 - **zookeeper**。zookeeper 是一个分布式的协调组件，早期版本的kafka用zk做meta信息存储，consumer的消费状态，group的管理以及 offset的值。考虑到zk本身的一些因素以及整个架构较大概率存在单点问题，新版本中逐渐弱化了zookeeper的作用。新的consumer使用了kafka内部的group coordination协议，也减少了对zookeeper的依赖，但是broker依然依赖于ZK，zookeeper 在kafka中还用来选举controller 和 检测broker是否存活等等
 
 
-## 系统所需要可靠性语义
+## 可靠性语义、幂等性
 ### 生产者producer
 **业务上需要考关注失败、丢失、重复三个问题**：
 - 消费发送失败：消息写入失败是否需要ack，是否需要重试
