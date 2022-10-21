@@ -13,6 +13,8 @@ categories:
 
 ## 基本概念和组成
 ![kafka架构图](source/images/kafka_architecture.png)
+
+<img src=https://github.com/wxquare/wxquare.github.io/blob/hexo/source/images/kafka_architecture.png width=128/> Open Deep Learning Compiler Stack
 - broker
 Kafka 集群包含一个或多个服务器，服务器节点称为broker。broker 是消息的代理，Producers往Brokers里面的指定Topic中写消息，Consumers从Brokers里面拉取指定Topic的消息，然后进行业务处理，broker在中间起到一个代理保存消息的中转站。 
 - producer和client id
