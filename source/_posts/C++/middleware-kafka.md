@@ -29,7 +29,7 @@ topic中的数据分割为一个或多个partition。每个topic至少有一个p
 zookeeper 是一个分布式的协调组件，早期版本的kafka用zk做meta信息存储，consumer的消费状态，group的管理以及 offset的值。考虑到zk本身的一些因素以及整个架构较大概率存在单点问题，新版本中逐渐弱化了zookeeper的作用。新的consumer使用了kafka内部的group coordination协议，也减少了对zookeeper的依赖，但是broker依然依赖于ZK，zookeeper 在kafka中还用来选举controller 和 检测broker是否存活等等
 
 
-## 关注系统所需要的可靠性（语义）
+## 系统所需要可靠性语义
 ### 生产者producer
 **业务上需要考关注失败、丢失、重复三个问题**：
 - 消费发送失败：消息写入失败是否需要ack，是否需要重试
@@ -54,19 +54,12 @@ Kafka消息发送有两种方式：同步（sync）和异步（async），默认
 
 **通常来说，producer 采用at least once方式**
 
-### 2、消息消费
-
-Kafka消息消费有两个consumer接口，Low-level API和High-level API：
-- Low-level API：消费者自己维护offset等值，可以实现对Kafka的完全控制
-- High-level API：封装了对parition和offset的管理，使用简单  
-  如果使用高级接口High-level API，可能存在一个问题就是当消息消费者从集群中把消息取出来、并提交了新的消息offset值后，还没来得及消费就挂掉了，那么下次再消费时之前没消费成功的消息就“诡异”的消失了；解决办法：
-针对消息丢失：同步模式下，确认机制设置为-1，即让消息写入Leader和Follower之后再确认消息发送成功；异步模式下，为防止缓冲区满，可以在配置文件设置不限制阻塞超时时间，当缓冲区满时让生产者一直处于阻塞状态；针对消息重复：将消息的唯一标识保存到外部介质中，每次消费时判断是否处理过即可。
-
-消息重复消费及解决参考：https://www.javazhiyin.com/22910.html
-
-### 消息写入producer
-
 ### 消息消费consumer
+- **重复消息的幂等性**：由于生产者可能多次投递和消费者commit机制等原因，消费者重复消费是很常见的问题，需要思考系统对于幂等性的要求。在很多场景下， 比如写db、redis是天然的幂等性，某些特殊的场景，可以根据唯一id，借助例如redis判别是否消费过来实现消费者的幂等性
+- **消息丢失**：评估消息丢失的影响和容忍度
+- **commit**：考虑auto commit 和 mannul commit
+
+
 
 ## 三、[kafka是怎么做到高性能](https://blog.csdn.net/kzadmxz/article/details/101576401)
 Kafka虽然除了具有上述优点之外，还具有高性能、高吞吐、低延时的特点，其吞吐量动辄几十万、上百万。
