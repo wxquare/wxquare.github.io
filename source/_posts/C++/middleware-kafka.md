@@ -135,9 +135,9 @@ Kafka速度的秘诀在于，它把所有的消息都变成一个批量的文件
 ```
 
 
-## kafka 命令
+## kafka 常用命令
 - 创建topic
-```
+```sh
 bin/kafka-topics.sh --create --topic topic-name --replication-factor 2 --partitions 3 --bootstrap-server ip:port
 ```
 
