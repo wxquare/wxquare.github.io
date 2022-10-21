@@ -170,7 +170,6 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
 - Redis为单进程单线程模式，采用队列模式将并发访问变成串行访问，且多客户端对Redis的连接并不存在竞争关系Redis中可以使用SETNX命令实现分布式锁。当且仅当 key 不存在，将 key 的值设为 value。 若给定的 key 已经存在，则 SETNX 不做任何动作SETNX 是『SET if Not eXists』(如果不存在，则 SET)的简写。返回值：设置成功，返回 1 。设置失败，返回 0
 
 
-
 ## 分布式redis
 1. 单机版，并发访问有限，存储有限，单点故障。
 2. 数据持久化
@@ -180,7 +179,6 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
 7. **redis cluster集群模式**：集群模式时一个无中心的架构模式，将数据进行分片，分不到对应的槽中，每个节点存储不同的数据内容，通过路由能够找到对应的节点负责存储的槽，能够实现高效率的查询。并且集群模式增加了横向和纵向的扩展能力，实现节点加入和收缩，集群模式时哨兵的升级版，哨兵的优点集群都有
 8. [redis 分布式架构演进](https://blog.csdn.net/QQ1006207580/article/details/103243281)
 9. [Redis集群化方案对比：Codis、Twemproxy、Redis Cluster](http://kaito-kidd.com/2020/07/07/redis-cluster-codis-twemproxy/)
-
 
 
 
