@@ -122,8 +122,7 @@ Kafka速度的秘诀在于，它把所有的消息都变成一个批量的文件
 	c.Producer.Return.Errors = true
 	c.Producer.CompressionLevel = CompressionLevelDefault
 
-
-  c.Consumer.Fetch.Min = 1
+	c.Consumer.Fetch.Min = 1
 	c.Consumer.Fetch.Default = 1024 * 1024
 	c.Consumer.Retry.Backoff = 2 * time.Second
 	c.Consumer.MaxWaitTime = 500 * time.Millisecond
