@@ -13,7 +13,7 @@ categories:
 
 ## 基本概念和组成
 <img src=https://github.com/wxquare/wxquare.github.io/blob/hexo/source/images/kafka_architecture.png width=1024/>
-====================
+
 - broker: Kafka 集群包含一个或多个服务器，服务器节点称为broker。broker 是消息的代理，Producers往Brokers里面的指定Topic中写消息，Consumers从Brokers里面拉取指定Topic的消息，然后进行业务处理，broker在中间起到一个代理保存消息的中转站。 
 - producer和client id
 生产者即数据的发布者，该角色将消息发布到Kafka的topic中。broker接收到生产者发送的消息后，broker将该消息追加到当前用于追加数据的segment文件中。生产者发送的消息，存储到一个partition中，生产者也可以指定数据存储的partition。
