@@ -109,6 +109,32 @@ Kafka速度的秘诀在于，它把所有的消息都变成一个批量的文件
 - https://blog.csdn.net/u013256816/article/details/71091774
 
 
+## 配置参数
+- kafka producer和consumer提供了大量打配置参数，很多问题可以通过参数来进行优化,常用了有下面参数
+- https://github.com/Shopify/sarama/blob/v1.37.2/config.go
+```go
+	c.Producer.MaxMessageBytes = 1000000
+	c.Producer.RequiredAcks = WaitForLocal
+	c.Producer.Timeout = 10 * time.Second
+	c.Producer.Partitioner = NewHashPartitioner
+	c.Producer.Retry.Max = 3
+	c.Producer.Retry.Backoff = 100 * time.Millisecond
+	c.Producer.Return.Errors = true
+	c.Producer.CompressionLevel = CompressionLevelDefault
+
+
+  c.Consumer.Fetch.Min = 1
+	c.Consumer.Fetch.Default = 1024 * 1024
+	c.Consumer.Retry.Backoff = 2 * time.Second
+	c.Consumer.MaxWaitTime = 500 * time.Millisecond
+	c.Consumer.MaxProcessingTime = 100 * time.Millisecond
+	c.Consumer.Return.Errors = false
+	c.Consumer.Offsets.AutoCommit.Enable = true
+	c.Consumer.Offsets.AutoCommit.Interval = 1 * time.Second
+	c.Consumer.Offsets.Initial = OffsetNewest
+	c.Consumer.Offsets.Retry.Max = 3
+```
+
 
 ## kafka 命令
 - 创建topic
