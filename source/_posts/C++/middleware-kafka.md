@@ -52,9 +52,10 @@ Kafka消息发送有两种方式：同步（sync）和异步（async），默认
 - acks=0，不和Kafka集群进行消息接收确认，则当网络异常、缓冲区满了等情况时，消息可能丢失；
 - acks=1、同步模式下，只有Leader确认接收成功后但挂掉了，副本没有同步，数据可能丢失；
 
-**通常来说，producer 采用至少at least once**
+**通常来说，producer 采用at least once方式**
 
 ### 2、消息消费
+
 Kafka消息消费有两个consumer接口，Low-level API和High-level API：
 - Low-level API：消费者自己维护offset等值，可以实现对Kafka的完全控制
 - High-level API：封装了对parition和offset的管理，使用简单  
