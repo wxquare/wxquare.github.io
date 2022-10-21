@@ -152,10 +152,9 @@ bin/kafka-topics.sh --topic topic_name --describe --bootstrap-server broker
 ./bin/kafka-consumer-groups.sh --describe --group group_name  --bootstrap-server brokers
 ```
 
-## 参考
-1. Kafka Golang Sarama的使用demo,https://github.com/wxquare/programming/blob/master/golang/util/kafka_util.go
-2. [kafka数据可靠性深度解读](https://blog.csdn.net/u013256816/article/details/71091774)
-3. [kafka 选举](https://juejin.im/post/6844903846297206797)
-4. [Kafka为什么吞吐量大、速度快？](https://blog.csdn.net/kzadmxz/article/details/101576401)
-5. [简单理解 Kafka 的消息可靠性策略](https://cloud.tencent.com/developer/article/1752150)
-6. [Bootstrap server vs zookeeper in kafka?](https://stackoverflow.com/questions/46173003/bootstrap-server-vs-zookeeper-in-kafka)
+## 推荐阅读
+1. [kafka数据可靠性深度解读](https://blog.csdn.net/u013256816/article/details/71091774)
+2. [kafka 选举](https://juejin.im/post/6844903846297206797)
+3. [Kafka为什么吞吐量大、速度快？](https://blog.csdn.net/kzadmxz/article/details/101576401)
+4. [简单理解 Kafka 的消息可靠性策略](https://cloud.tencent.com/developer/article/1752150)
+5. [Bootstrap server vs zookeeper in kafka?](https://stackoverflow.com/questions/46173003/bootstrap-server-vs-zookeeper-in-kafka)
