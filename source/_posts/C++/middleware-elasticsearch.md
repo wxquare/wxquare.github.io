@@ -1,5 +1,5 @@
 ---
-title: Middleware - elasticSearch
+title: Middleware - Elasticsearch
 categories:
 - C/C++
 ---
