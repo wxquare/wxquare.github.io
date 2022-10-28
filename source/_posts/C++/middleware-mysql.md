@@ -244,6 +244,23 @@ CREATE TABLE `hotel_info_tab` (
         create database wxquare_test;
         show databases;
         use wxquare_test;
+        
+## 常见问题
+1. 收到sql update json 文本
+ ```sql
+  update table set extinfo='{
+    \"urls\": [
+        {
+            \"url\": \"/path1\",
+            \"type\": \"type1\"
+        },
+        {
+            \"url\": \"/path2\",
+            \"type\": \"type2\"
+        },
+    ]
+}' where id = 2;
+ ```
 
 ## 推荐阅读:
 - [MySQL索引那些事](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
