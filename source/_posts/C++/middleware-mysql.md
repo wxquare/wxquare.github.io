@@ -246,7 +246,7 @@ CREATE TABLE `hotel_info_tab` (
         use wxquare_test;
         
 ## 常见问题
-1. 收到sql update json 文本
+1. update json 文本需要转义
  ```sql
   update table set extinfo='{
     \"urls\": [
