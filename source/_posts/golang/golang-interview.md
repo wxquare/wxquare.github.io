@@ -104,6 +104,7 @@ categories:
 - uintptr 是一个整数类型，这个整数的宽度足以用来存储一个指针类型数据；那既然是整数类类型，当然就可以对其进行运算了
 - nil
 - [实践string和[]byte的高效转换](https://www.cnblogs.com/shuiyuejiangnan/p/9707066.html)
+- 在业务场景中，使用指针虽然方便，但是要注意深拷贝和浅拷贝，这种错误还是比较常见的
 
 ### 集合set
 1. golang中本身没有提供set，但可以通过map自己实现
