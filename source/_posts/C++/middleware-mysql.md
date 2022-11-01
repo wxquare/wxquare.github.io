@@ -263,6 +263,17 @@ CREATE TABLE `hotel_info_tab` (
  ```
  
 2. truncate table 属于ddl语句，需要ddl的权限
+3. rename database
+     ```
+        create database new_db; 
+        rename table old_db.aaa to new_db. aaa;
+        mysql -hhost -PPort -uuser_name -ppassword old_db -sNe 'show tables' | while read table; do mysql -hhost -PPort -uuser_name -ppassword -sNe "rename table old_db.$table to new_db.$table"; done
+     ```
+4. dump 库表结构
+        ```
+        mysqldump --column-statistics=0 -hhost -PPort -uuser_name -ppassword --databases -d db_name --skip-lock-tables --skip-add-drop-table --set-gtid-purged=OFF | sed 's/ AUTO_INCREMENT=[0-9]*//g' > db.sql
+
+        ```
 
 ## 推荐阅读:
 - [MySQL索引那些事](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
