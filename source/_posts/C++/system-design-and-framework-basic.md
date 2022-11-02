@@ -44,7 +44,7 @@ categories:
 - https://github.com/robfig/cron
 - https://github.com/xuxueli/xxl-job
 
-## 其它
+
 
 ## zookeeper
 Zookeeper是一个高性能、分布式的开源的协作服务；
@@ -58,9 +58,10 @@ Zookeeper是一个高性能、分布式的开源的协作服务；
 2. [golang 操作zookeeper](https://www.cnblogs.com/zhichaoma/p/12640064.html)
 3. https://zookeeper.apache.org/
 4. https://github.com/go-zookeeper/zk
+5. 服务发现 zk https://blog.csdn.net/zyhlwzy/article/details/101847565
 
 
-- 服务发现 zk https://blog.csdn.net/zyhlwzy/article/details/101847565
+## 其它
 - 延时队列https://juejin.cn/post/7000189281641693192
 - 限流的设计和实，单机限流，分布式限流
 - abtest 平台
