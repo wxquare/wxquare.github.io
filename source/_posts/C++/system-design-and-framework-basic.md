@@ -45,6 +45,21 @@ categories:
 - https://github.com/xuxueli/xxl-job
 
 ## 其它
+
+## zookeeper
+Zookeeper是一个高性能、分布式的开源的协作服务；
+提供一系列简单的功能，分布式应用可以在此基础上实现例如数据发布/订阅、负载均衡、命名服务、分布式协调/通知、集群管理、Leader选举、分布式锁和分布式队列等。常用的场景：
+- 命名服务（Name Service）
+- 配置中心
+- 分布式锁
+- 集群管理
+参考：
+1. [zookeeper介绍与使用场景](https://juejin.cn/post/6911981919974457358)
+2. [golang 操作zookeeper](https://www.cnblogs.com/zhichaoma/p/12640064.html)
+3. https://zookeeper.apache.org/
+4. https://github.com/go-zookeeper/zk
+
+
 - 服务发现 zk https://blog.csdn.net/zyhlwzy/article/details/101847565
 - 延时队列https://juejin.cn/post/7000189281641693192
 - 限流的设计和实，单机限流，分布式限流
