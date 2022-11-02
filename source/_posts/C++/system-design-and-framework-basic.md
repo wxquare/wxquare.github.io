@@ -41,8 +41,8 @@ categories:
 
 
 ## 定时任务调度 cron task
-- https://github.com/robfig/cron
-- https://github.com/xuxueli/xxl-job
+- 单点调度：https://github.com/robfig/cron
+- 分布式调度：https://github.com/xuxueli/xxl-job
 
 
 
@@ -59,6 +59,8 @@ Zookeeper是一个高性能、分布式的开源的协作服务；
 3. https://zookeeper.apache.org/
 4. https://github.com/go-zookeeper/zk
 5. 服务发现 zk https://blog.csdn.net/zyhlwzy/article/details/101847565
+
+
 
 
 ## 其它
