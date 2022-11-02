@@ -50,6 +50,9 @@ categories:
 - 执行模块（执行器，executor）：
 负责接收调度请求并执行任务逻辑。任务模块专注于任务的执行等操作，开发和维护更加简单和高效；
 接收“调度中心”的执行请求、终止请求和日志请求等
+参考：
+- https://www.xuxueli.com/xxl-job/
+- https://github.com/mousycoder/xxl-job-go-sdk
 
 
 
