@@ -40,7 +40,7 @@ categories:
 - grafna,https://www.google.com.hk/search?q=grafana&rlz=1C5GCEM_enCN985CN985&oq=grafana&aqs=chrome..69i57j69i60l3j69i65l3j69i60.8511j0j7&sourceid=chrome&ie=UTF-8
 
 
-## 定时任务调度 cron task
+## 定时任务调度
 - 单点调度：https://github.com/robfig/cron
 - 分布式调度：https://github.com/xuxueli/xxl-job
 
