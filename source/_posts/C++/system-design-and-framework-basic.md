@@ -85,7 +85,7 @@ Zookeeper是一个高性能、分布式的开源的协作服务；
 - https://github.com/bitleak/lmstfy
 
 
-## 服务异常重试-指数退避算法
+## backoff 服务异常重试-指数退避算法
 在wiki当中对指数退避算法的介绍是：“In a variety of computer networks, binary exponential backoff or truncated binary exponential backoff refers to an algorithm used to space out repeated retransmissions of the same block of data, often as part of network congestion avoidance.”
 
 翻译成中文的意思大概是“在各种的计算机网络中，二进制指数后退或是截断的二进制指数后退使用于一种隔离同一数据块重复传输的算法，常常做为网络避免冲突的一部分”
