@@ -31,7 +31,8 @@ categories:
 - JSON validation：JSON验证。Gin可以解析和验证request里的JSON内容，比如字段必填等。当然开发人员也可以选择使用第三方的JSON validation工具，比如[beego validation](https://github.com/beego/beego/tree/develop/core/validation)。
 - Error management：错误管理。Gin提供了一种简单的方式可以收集http request处理过程中的错误，最终中间件可以选择把这些错误写入到log文件、数据库或者发送到其它系统。
 - Middleware Extendtable：可以自定义中间件。Gin除了自带的官方中间件之外，还支持用户自定义中间件，甚至可以把自己开发的中间件提交到[官方代码仓库](https://github.com/gin-gonic/contrib)里。
-
+- 
+参考：
 - https://github.com/jincheng9/go-tutorial/tree/main/workspace/gin/01
 - https://github.com/jincheng9/go-tutorial/tree/main/workspace/gin/02
 - https://github.com/gin-gonic/gin
