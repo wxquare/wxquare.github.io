@@ -44,6 +44,7 @@ Zookeeper是一个高性能、分布式的开源的协作服务；
 - 配置中心
 - 分布式锁
 - 集群管理
+
 参考：
 1. [zookeeper介绍与使用场景](https://juejin.cn/post/6911981919974457358)
 2. [golang 操作zookeeper](https://www.cnblogs.com/zhichaoma/p/12640064.html)
@@ -97,39 +98,26 @@ Zookeeper是一个高性能、分布式的开源的协作服务；
 - jenkins
 - docker
 - Kubernetes [Kubernetes 入门&进阶实战](https://zhuanlan.zhihu.com/p/339008746)
-
-# 数据分析和处理
+- 数据分析和处理
 - scala
 - spark
 - spark streaming
 - hive
 - presto
-
-# 方案设计与写作
+- 方案设计与写作
 - 方案模版
 - 画架构图
 - 数据
-
-# 系统和架构设计
+- 系统和架构设计
 - https://wxquare.github.io/2022/05/20/C++/system-design-and-framework-basic/
-
-# 英语能力
-
-# 好用工具
+- 英语能力
+- 好用工具
 - https://wxquare.github.io/2022/05/20/other/tools/
-
-# 好的博客，站点
+- 好的博客，站点
 - https://catcoding.me/
 - https://coderscat.com/
 - https://www.zhihu.com/people/wxquare0
 - https://leetcode.cn/leetbook/read/leetcode-cookbook/5is6a6/
-
-# 源码和开源社区
-
-# 其它
-
-
-
 1. 如何实现定时任务? https://github.com/go-co-op/gocron
 2. 协程池的实现? https://strikefreedom.top/high-performance-implementation-of-goroutine-pool
 3. database/sql连接池的实现,mysql链接池的实现? github.com/go-sql-driver/mysql
@@ -144,7 +132,6 @@ Zookeeper是一个高性能、分布式的开源的协作服务；
 7. docker和k8s之间的关系：官方定义1：Docker是一个开源的应用容器引擎，开发者可以打包他们的应用及依赖到一个可移植的容器中，发布到流行的Linux机器上，也可实现虚拟化。官方定义2：k8s是一个开源的容器集群管理系统，可以实现容器集群的自动化部署、自动扩缩容、维护等功能。
 9. 负载均衡与l5名字服务？https://blog.csdn.net/qq_18144747/article/details/86672206
 10. bus 中 bitmap使用，[bitmap原理和应用](https://www.jianshu.com/p/970c367460b1)
-
 10. [Golang调度器GPM原理与调度全分析](https://zhuanlan.zhihu.com/p/323271088)
 1. [为什么要使用 Go 语言？Go 语言的优势在哪里？](https://www.zhihu.com/question/21409296/answer/1040884859)
 3. [Go内置数据结构原理](https://zhuanlan.zhihu.com/p/341945051)
