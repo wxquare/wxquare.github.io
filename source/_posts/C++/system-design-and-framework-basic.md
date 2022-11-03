@@ -15,22 +15,12 @@ categories:
 - Middleware Extendtable：可以自定义中间件。Gin除了自带的官方中间件之外，还支持用户自定义中间件，甚至可以把自己开发的中间件提交到[官方代码仓库](https://github.com/gin-gonic/contrib)里。
 
 参考：
-- https://github.com/jincheng9/go-tutorial/tree/main/workspace/gin/01
-- https://github.com/jincheng9/go-tutorial/tree/main/workspace/gin/02
+- [web 框架比较](https://github.com/jincheng9/go-tutorial/tree/main/workspace/gin/01)
 - https://github.com/gin-gonic/gin
 - https://github.com/gin-gonic/contrib
 
-## RPC 框架
-- https://github.com/jincheng9/go-tutorial/tree/main/workspace/rpc/02
-- trpc
 
-
-## 监控平台
-- prometheus,https://prometheus.io/
-- grafna,https://www.google.com.hk/search?q=grafana&rlz=1C5GCEM_enCN985CN985&oq=grafana&aqs=chrome..69i57j69i60l3j69i65l3j69i60.8511j0j7&sourceid=chrome&ie=UTF-8
-
-
-## 定时任务调度
+## 任务调度
 ### 单点调度：https://github.com/robfig/cron
 ### 分布式调度：https://github.com/xuxueli/xxl-job
 将调度行为抽象形成“调度中心”公共平台，而平台自身并不承担业务逻辑，“调度中心”负责发起调度请求。将任务抽象成分散的JobHandler，交由“执行器”统一管理，“执行器”负责接收调度请求并执行对应的JobHandler中业务逻辑。因此，“调度”和“任务”两部分可以相互解耦，提高系统整体稳定性和扩展性
@@ -89,7 +79,14 @@ Zookeeper是一个高性能、分布式的开源的协作服务；
 - https://github.com/cenkalti/backoff
 
 
-## 
+## RPC 框架
+- https://github.com/jincheng9/go-tutorial/tree/main/workspace/rpc/02
+- trpc
+
+
+## 监控平台
+- prometheus,https://prometheus.io/
+- grafna,https://www.google.com.hk/search?q=grafana&rlz=1C5GCEM_enCN985CN985&oq=grafana&aqs=chrome..69i57j69i60l3j69i65l3j69i60.8511j0j7&sourceid=chrome&ie=UTF-8
 
 
 ## 其它
