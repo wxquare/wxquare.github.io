@@ -77,9 +77,9 @@ Zookeeper是一个高性能、分布式的开源的协作服务；
 - 定时任务，如每天早上 8 点开始推送消息，定期删除过期数据等
 - 任务流，如自动创建 Redis 流程由资源创建，资源配置，DNS 修改等部分组成，使用任务队列可以简化整体的设计和重试流程
 - 重试任务，典型场景如离线图片处理
-
 <img src=https://raw.githubusercontent.com/bitleak/lmstfy/master/doc/lmstfy-internal.png width=600/>
-https://raw.githubusercontent.com/bitleak/lmstfy/master/doc/lmstfy-internal.png
+
+参考：
 - 延时队列
 - https://juejin.cn/post/7000189281641693192
 - https://github.com/bitleak/lmstfy
