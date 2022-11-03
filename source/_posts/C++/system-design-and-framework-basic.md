@@ -19,10 +19,7 @@ categories:
 - Elastic search https://wxquare.github.io/2022/05/20/C++/middleware-elasticsearch/
 
 
-# 编程语言
-- C/C++
-- Golang
-- Python
+
 
 # 框架组件
 ## Gin web 
