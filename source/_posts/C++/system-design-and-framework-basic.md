@@ -1,27 +1,9 @@
 ---
-title: 程序员的自我修养
+title: Golang 后台常用组件介绍
 categories: 
 - C/C++
 ---
 
-
-# 计算机基础
-- 操作系统os
-- linux 常用命令
-- 计算机网络
-- 网络和抓包
-- 数据结构和算法leetcode
-
-# 中间件
-- Mysql https://wxquare.github.io/2022/04/19/C++/middleware-mysql/
-- redis https://wxquare.github.io/2022/04/19/C++/redis-interview/
-- Kafka:https://wxquare.github.io/2022/05/07/C++/middleware-kafka/
-- Elastic search https://wxquare.github.io/2022/05/20/C++/middleware-elasticsearch/
-
-
-
-
-# 框架组件
 ## Gin web 
 我们先思考下，一个完整的Web开发框架需要做哪些事情
 - server，作为server，监听端口，接受请求
