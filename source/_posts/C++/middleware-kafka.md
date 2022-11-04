@@ -134,6 +134,8 @@ Kafka速度的秘诀在于，它把所有的消息都变成一个批量的文件
 	c.Consumer.Offsets.Retry.Max = 3
 ```
 
+## 
+
 
 ## kafka 常用命令
 - 创建topic
@@ -158,3 +160,4 @@ bin/kafka-topics.sh --topic topic_name --describe --bootstrap-server broker
 3. [Kafka为什么吞吐量大、速度快？](https://blog.csdn.net/kzadmxz/article/details/101576401)
 4. [简单理解 Kafka 的消息可靠性策略](https://cloud.tencent.com/developer/article/1752150)
 5. [Bootstrap server vs zookeeper in kafka?](https://stackoverflow.com/questions/46173003/bootstrap-server-vs-zookeeper-in-kafka)
+6. [kafka 如何保证顺序消费](https://blog.csdn.net/java_atguigu/article/details/123920233)
