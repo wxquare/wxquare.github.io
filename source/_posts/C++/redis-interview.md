@@ -14,7 +14,8 @@ categories:
 7. redis 分布式架构，codis，rdis cluster？
 8. redis 超过使用容量时的内存淘汰策略
 9. redis 过期键的删除策略
-10. reids 的单线程架构为什么快，有哪些优势和缺点？
+10. redis 的单线程架构为什么快，有哪些优势和缺点？
+11. redis & Lua ？
 
 
 
@@ -179,6 +180,15 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
 7. **redis cluster集群模式**：集群模式时一个无中心的架构模式，将数据进行分片，分不到对应的槽中，每个节点存储不同的数据内容，通过路由能够找到对应的节点负责存储的槽，能够实现高效率的查询。并且集群模式增加了横向和纵向的扩展能力，实现节点加入和收缩，集群模式时哨兵的升级版，哨兵的优点集群都有
 8. [redis 分布式架构演进](https://blog.csdn.net/QQ1006207580/article/details/103243281)
 9. [Redis集群化方案对比：Codis、Twemproxy、Redis Cluster](http://kaito-kidd.com/2020/07/07/redis-cluster-codis-twemproxy/)
+
+## redis & Lua
+Redis 执行 Lua 脚本会以原子性方式进行，在执行脚本时不会再执行其他脚本或命令。并且，Redis 只要开始执行 Lua 脚本，就会一直执行完该脚本再进行其他操作，所以 Lua 脚本中 不能进行耗时操作 。此外，基于 Redis + Lua 的应用场景非常多，如分布式锁，限流，秒杀等等。
+基于项目经验来看，使用 Redis + Lua 方案有如下注意事项：
+- 使用 Lua 脚本实现原子性操作的 CAS，避免不同客户端先读 Redis 数据，经过计算后再写数据造成的并发问题
+- 前后多次请求的结果有依赖关系时，最好使用 Lua 脚本将多个请求整合为一个；但请求前后无依赖时，使用 pipeline 方式，比 Lua 脚本方便
+- 为了保证安全性，在 Lua 脚本中不要定义自己的全局变量，以免污染 Redis 内嵌的 Lua 环境。因为 Lua 脚本中你会使用一些预制的全局变量，比如说 redis.call()
+- 注意 Lua 脚本的时间复杂度，Redis 的单线程同样会阻塞在 Lua 脚本的执行中，Lua 脚本不要进行高耗时操作
+- Redis 要求单个 Lua 脚本操作的 key 必须在同一个 Redis 节点上，因此 Redis Cluster 方式需要设置 HashTag（实际中不太建议这样操作）
 
 
 
