@@ -89,7 +89,32 @@ Zookeeper是一个高性能、分布式的开源的协作服务；
 | 令牌桶 | 单元格 | 单元格 |
 | 楼痛 | 单元格 | 单元格 |
 
-计数器
+```lua
+-- 获取调用脚本时传入的第一个 key 值（用作限流的 key）
+local key = KEYS[1]
+-- 获取调用脚本时传入的第一个参数值（限流大小）
+local limit = tonumber(ARGV[1])
+-- 获取计数器的限速区间 TTL
+local ttl = tonumber(ARGV[2])
+
+-- 获取当前流量大小
+local curentLimit = tonumber(redis.call('get', key) or "0")
+
+-- 是否超出限流
+if curentLimit + 1 > limit then
+    -- 返回 (拒绝)
+    return 0
+else
+    -- 没有超出 value + 1
+    redis.call('INCRBY', key, 1)
+    -- 如果 key 中保存的并发计数为 0，说明当前是一个新的时间窗口，它的过期时间设置为窗口的过期时间
+    if (current_permits == 0) then
+            redis.call('EXPIRE', key, ttl)
+	  end
+    -- 返回 (放行)
+    return 1
+end
+```
 令牌桶
 漏桶
 
