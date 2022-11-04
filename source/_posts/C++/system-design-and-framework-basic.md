@@ -87,7 +87,7 @@ Zookeeper是一个高性能、分布式的开源的协作服务；
 | :-----| :----: | :----: |
 | 计数器 | 实现简单，计数器算法容易出现不平滑的情况，瞬间的 qps 有可能超过系统的承载 | 单元格 |
 | 令牌桶 | 单元格 | 单元格 |
-| 楼痛 | 单元格 | 单元格 |
+| 漏桶算 | 单元格 | 单元格 |
 
 ```lua
 -- 获取调用脚本时传入的第一个 key 值（用作限流的 key）
@@ -115,7 +115,137 @@ else
     return 1
 end
 ```
-令牌桶
+
+```go
+package main
+
+import (
+	"fmt"
+	"sync"
+
+	"github.com/go-redis/redis"
+)
+
+func createScript() *redis.Script {
+	script := redis.NewScript(`
+	-- key
+local key = KEYS[1]
+-- 最大存储的令牌数
+local max_permits = tonumber(ARGV[1])
+-- 每秒钟产生的令牌数
+local permits_per_second = tonumber(ARGV[2])
+-- 请求的令牌数
+local required_permits = tonumber(ARGV[3])
+
+-- 下次请求可以获取令牌的起始时间
+local next_free_ticket_micros = tonumber(redis.call('hget', key, 'next_free_ticket_micros') or 0)
+
+-- 当前时间
+local time = redis.call('time')
+-- time[1] 返回的为秒，time[2] 为 ms
+local now_micros = tonumber(time[1]) * 1000000 + tonumber(time[2])
+
+-- 查询获取令牌是否超时（传入参数，单位为 微秒）
+if (ARGV[2] ~= nil) then
+    -- 获取令牌的超时时间
+    local timeout_micros = tonumber(ARGV[2])
+    local micros_to_wait = next_free_ticket_micros - now_micros
+    if (micros_to_wait> timeout_micros) then
+        return micros_to_wait
+    end
+end
+
+-- 当前存储的令牌数
+local stored_permits = tonumber(redis.call('hget', key, 'stored_permits') or 0)
+-- 添加令牌的时间间隔（1000000ms 为 1s）
+-- 计算生产 1 个令牌需要多少微秒
+local stable_interval_micros = 1000000 / permits_per_second
+
+-- 补充令牌
+if (now_micros> next_free_ticket_micros) then
+    local new_permits = (now_micros - next_free_ticket_micros) / stable_interval_micros
+    stored_permits = math.min(max_permits, stored_permits + new_permits)
+    -- 补充后，更新下次可以获取令牌的时间
+    next_free_ticket_micros = now_micros
+end
+
+-- 消耗令牌
+local moment_available = next_free_ticket_micros
+-- 两种情况：required_permits<=stored_permits 或者 required_permits>stored_permits
+local stored_permits_to_spend = math.min(required_permits, stored_permits)
+local fresh_permits = required_permits - stored_permits_to_spend;
+-- 如果 fresh_permits>0，说明令牌桶的剩余数目不够了，需要等待一段时间
+local wait_micros = fresh_permits * stable_interval_micros
+
+-- Redis 提供了 redis.replicate_commands() 函数来实现这一功能，把发生数据变更的命令以事务的方式做持久化和主从复制，从而允许在 Lua 脚本内进行随机写入
+redis.replicate_commands()
+-- 存储剩余的令牌数：桶中剩余的数目 - 本次申请的数目
+redis.call('hset', key, 'stored_permits', stored_permits - stored_permits_to_spend)
+redis.call('hset', key, 'next_free_ticket_micros', next_free_ticket_micros + wait_micros)
+redis.call('expire', key, 10)
+
+-- 返回需要等待的时间长度
+-- 返回为 0（moment_available==now_micros）表示桶中剩余的令牌足够，不需要等待
+return moment_available - now_micros
+	`)
+
+	return script
+}
+
+type TokenRateLimit struct {
+	client *redis.Client
+	Key    string
+	Burst  int32 // capacity of bucket
+	Limit  int32 // token of per second
+	script *redis.Script
+}
+
+func NewTokenRateLimit(client *redis.Client, key string, burst int32, limit int32) *TokenRateLimit {
+	return &TokenRateLimit{
+		client: client,
+		Key:    key,
+		Burst:  burst,
+		Limit:  limit,
+		script: createScript(),
+	}
+}
+
+func (r TokenRateLimit) AllowN(n int32) bool {
+	ret := r.script.Run(r.client, []string{r.Key}, r.Burst, r.Limit, n)
+	result, err := ret.Result()
+	if err != nil {
+		return false
+	}
+	return result.(int64) <= 0
+}
+
+func (r TokenRateLimit) Allow() bool {
+	return r.AllowN(1)
+}
+
+func evalScript(ratelimiter *TokenRateLimit, id int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	fmt.Printf("id=%d,%t\n", id, ratelimiter.Allow())
+}
+
+func main() {
+	var wg sync.WaitGroup
+	client := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+	ratelimiter := NewTokenRateLimit(client, "test_token_limiter", 100, 6000)
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go evalScript(ratelimiter, i, &wg)
+	}
+	wg.Wait()
+}
+
+
+```
+
 漏桶
 
 
