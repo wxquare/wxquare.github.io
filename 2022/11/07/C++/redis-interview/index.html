@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="前言 redis有哪些使用场景？ redis五种数据结构选择以及其底层实现原理？ redis 常用命令以及时间复杂度？ 如何处理可能遇到的缓存雪崩，缓存穿透和热点数据缓存击穿问题？是否需要缓存预热 如何考虑缓存和数据库一致性的问题？ redis 数据持久化是怎么做的？RDB和AOF机制？ redis 分布式架构，codis，rdis cluster？ redis 超过使用容量时的内存淘汰策略 re">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Middleware - Redis">
+<meta property="og:url" content="http://yoursite.com/2022/11/07/C++/redis-interview/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="前言 redis有哪些使用场景？ redis五种数据结构选择以及其底层实现原理？ redis 常用命令以及时间复杂度？ 如何处理可能遇到的缓存雪崩，缓存穿透和热点数据缓存击穿问题？是否需要缓存预热 如何考虑缓存和数据库一致性的问题？ redis 数据持久化是怎么做的？RDB和AOF机制？ redis 分布式架构，codis，rdis cluster？ redis 超过使用容量时的内存淘汰策略 re">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2022-11-07T14:18:42.579Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Middleware - Redis">
+<meta name="twitter:description" content="前言 redis有哪些使用场景？ redis五种数据结构选择以及其底层实现原理？ redis 常用命令以及时间复杂度？ 如何处理可能遇到的缓存雪崩，缓存穿透和热点数据缓存击穿问题？是否需要缓存预热 如何考虑缓存和数据库一致性的问题？ redis 数据持久化是怎么做的？RDB和AOF机制？ redis 分布式架构，codis，rdis cluster？ redis 超过使用容量时的内存淘汰策略 re">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2022/11/07/C++/redis-interview/">
+
+
+
+
+
+  <title>Middleware - Redis | wxquare's Blogs</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">wxquare's Blogs</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-friends">
+          <a href="/friends" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-sitemap"></i> <br>
+            
+            友链
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2022/11/07/C++/redis-interview/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="wxquare">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Middleware - Redis</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2022-11-07T22:18:42+08:00">
+                2022-11-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/C-C/" itemprop="url" rel="index">
+                    <span itemprop="name">C/C++</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><ol>
+<li>redis有哪些使用场景？</li>
+<li>redis五种数据结构选择以及其底层实现原理？</li>
+<li>redis 常用命令以及时间复杂度？</li>
+<li>如何处理可能遇到的缓存雪崩，缓存穿透和热点数据缓存击穿问题？是否需要缓存预热</li>
+<li>如何考虑缓存和数据库一致性的问题？</li>
+<li>redis 数据持久化是怎么做的？RDB和AOF机制？</li>
+<li>redis 分布式架构，codis，rdis cluster？</li>
+<li>redis 超过使用容量时的内存淘汰策略</li>
+<li>redis 过期键的删除策略</li>
+<li>redis 的单线程架构为什么快，有哪些优势和缺点？</li>
+<li>redis &amp; Lua ？</li>
+</ol>
+<h2 id="redis-使用场景"><a href="#redis-使用场景" class="headerlink" title="redis 使用场景"></a>redis 使用场景</h2><ol>
+<li>缓存数据（db，service) 的数据，提高访问效率</li>
+<li><p>incr + expire 实现滑动窗口计数器限流</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">  <span class="string">"fmt"</span></span><br><span class="line">  <span class="string">"time"</span></span><br><span class="line"></span><br><span class="line">  <span class="string">"github.com/go-redis/redis"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> pool redis.UniversalClient</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">simpleIncr</span><span class="params">(key <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">  ok, err := pool.SetNX(key, <span class="number">1</span>, time.Duration(<span class="number">10</span>)*time.Second).Result()</span><br><span class="line">  fmt.Printf(<span class="string">"%+v,%+v\n"</span>, ok, err)</span><br><span class="line">  val, err := pool.Incr(key).Result()</span><br><span class="line">  fmt.Printf(<span class="string">"%+v,%+v\n"</span>, val, err)</span><br><span class="line">  <span class="comment">//手动过期</span></span><br><span class="line">  ok, err = pool.Expire(key, time.Duration(<span class="number">60</span>)*time.Second).Result()</span><br><span class="line">  fmt.Printf(<span class="string">"%+v,%+v\n"</span>, ok, err)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">simpleUserRateLimit</span><span class="params">(userID <span class="keyword">string</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">  <span class="comment">/*</span></span><br><span class="line"><span class="comment">    限制用户1秒钟最多访问10次，对于异常用户冻结2分钟</span></span><br><span class="line"><span class="comment">  */</span></span><br><span class="line">  key := userID</span><br><span class="line">  <span class="keyword">var</span> maxRequestPerSecond <span class="keyword">int64</span> = <span class="number">10</span></span><br><span class="line">  <span class="keyword">var</span> frozenTime <span class="keyword">int</span> = <span class="number">2</span> * <span class="number">60</span></span><br><span class="line">  ok, _ := pool.SetNX(key, <span class="number">1</span>, time.Duration(<span class="number">1</span>)*time.Second).Result()</span><br><span class="line">  <span class="keyword">if</span> ok &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">  &#125;</span><br><span class="line">  val, _ := pool.Incr(key).Result()</span><br><span class="line">  <span class="keyword">if</span> val &lt;= maxRequestPerSecond &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> val &gt; maxRequestPerSecond &#123;</span><br><span class="line">    pool.Expire(key, time.Duration(frozenTime)*time.Second).Result()</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">  pool = redis.NewUniversalClient(&amp;redis.UniversalOptions&#123;</span><br><span class="line">    Addrs:        []<span class="keyword">string</span>&#123;<span class="string">"127.0.0.1:6379"</span>&#125;,</span><br><span class="line">    MaxRetries:   <span class="number">3</span>,</span><br><span class="line">    DialTimeout:  time.Duration(<span class="number">300</span>) * time.Millisecond,</span><br><span class="line">    ReadTimeout:  time.Duration(<span class="number">300</span>) * time.Millisecond,</span><br><span class="line">    WriteTimeout: time.Duration(<span class="number">300</span>) * time.Millisecond,</span><br><span class="line">    PoolSize:     <span class="number">10</span>,</span><br><span class="line">    IdleTimeout:  time.Duration(<span class="number">10</span>) * time.Second,</span><br><span class="line">  &#125;)</span><br><span class="line">  _, err := pool.Ping().Result()</span><br><span class="line">  <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    fmt.Printf(<span class="string">"%+v"</span>, err)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">20</span>; i++ &#123;</span><br><span class="line">    islimited := simpleUserRateLimit(<span class="string">"12345678"</span>)</span><br><span class="line">    fmt.Println(islimited)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>延时队列</p>
+<ul>
+<li>使用 ZSET+ 定时轮询的方式实现延时队列机制，任务集合记为 taskGroupKey</li>
+<li>生成任务以 当前时间戳 与 延时时间 相加后得到任务真正的触发时间，记为 time1，任务的 uuid 即为 taskid，当前时间戳记为 curTime</li>
+<li>使用 ZADD taskGroupKey time1 taskid 将任务写入 ZSET</li>
+<li>主逻辑不断以轮询方式 ZRANGE taskGroupKey curTime MAXTIME withscores 获取 [curTime,MAXTIME) 之间的任务，记为已经到期的延时任务（集）</li>
+<li>处理延时任务，处理完成后删除即可</li>
+<li>保存当前时间戳 curTime，作为下一次轮询时的 ZRANGE 指令的范围起点</li>
+<li><a href="https://github.com/bitleak/lmstfy" target="_blank" rel="noopener">https://github.com/bitleak/lmstfy</a></li>
+</ul>
+</li>
+<li><p>消息队列</p>
+<ul>
+<li>redis 支持 List 数据结构，有时也会充当消息队列。使用生产者：LPUSH；消费者：RBPOP 或 RPOP 模拟队列</li>
+</ul>
+</li>
+<li>incr计数器</li>
+<li>分布式锁：<a href="https://juejin.cn/post/6936956908007850014" target="_blank" rel="noopener">https://juejin.cn/post/6936956908007850014</a></li>
+<li>基于redis的分布式限流：<a href="https://pandaychen.github.io/2020/09/21/A-DISTRIBUTE-GOREDIS-RATELIMITER-ANALYSIS/" target="_blank" rel="noopener">https://pandaychen.github.io/2020/09/21/A-DISTRIBUTE-GOREDIS-RATELIMITER-ANALYSIS/</a></li>
+<li>bloomfilter: <a href="https://juejin.cn/post/6844903862072000526" target="_blank" rel="noopener">https://juejin.cn/post/6844903862072000526</a></li>
+</ol>
+<h2 id="redis-5种数据类型和底层数据结构"><a href="#redis-5种数据类型和底层数据结构" class="headerlink" title="redis 5种数据类型和底层数据结构"></a>redis 5种数据类型和底层数据结构</h2><ul>
+<li>[面试：原来Redis的五种数据类型底层结构是这样的]<a href="https://juejin.cn/post/6844904192042074126#heading-8" target="_blank" rel="noopener">https://juejin.cn/post/6844904192042074126#heading-8</a></li>
+<li><a href="https://juejin.cn/post/6844904192042074126" target="_blank" rel="noopener">最详细的Redis五种数据结构详解</a></li>
+</ul>
+<h2 id="计算所需的缓存的容量，当容量超过限制时的淘汰策略"><a href="#计算所需的缓存的容量，当容量超过限制时的淘汰策略" class="headerlink" title="计算所需的缓存的容量，当容量超过限制时的淘汰策略"></a>计算所需的缓存的容量，当容量超过限制时的淘汰策略</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">- noeviction(默认策略)：对于写请求不再提供服务，直接返回错误（DEL请求和部分特殊请求除外）</span><br><span class="line">- allkeys-lru：从所有key中使用LRU算法进行淘汰</span><br><span class="line">- volatile-lru：从设置了过期时间的key中使用LRU算法进行淘汰</span><br><span class="line">- allkeys-random：从所有key中随机淘汰数据</span><br><span class="line">- volatile-random：从设置了过期时间的key中随机淘汰</span><br><span class="line">- volatile-ttl：在设置了过期时间的key中，根据key的过期时间进行淘汰，越早过期的越优先被淘汰</span><br><span class="line">LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Frequently Used</span><br></pre></td></tr></table></figure>
+<p><a href="https://juejin.cn/post/6844903927037558792" target="_blank" rel="noopener">redis 内存淘汰策略解析</a></p>
+<h2 id="redis-过期键的删除策略"><a href="#redis-过期键的删除策略" class="headerlink" title="redis 过期键的删除策略"></a>redis 过期键的删除策略</h2><p>过期策略通常有以下三种：</p>
+<ul>
+<li>定时过期：每个设置过期时间的key都需要创建一个定时器，到过期时间就会立即清除。该策略可以立即清除过期的数据，对内存很友好；但是会占用大量的CPU资源去处理过期的数据，从而影响缓存的响应时间和吞吐量。</li>
+<li>惰性过期：只有当访问一个key时，才会判断该key是否已过期，过期则清除。该策略可以最大化地节省CPU资源，却对内存非常不友好。极端情况可能出现大量的过期key没有再次被访问，从而不会被清除，占用大量内存。</li>
+<li>定期过期：每隔一定的时间，会扫描一定数量的数据库的expires字典中一定数量的key，并清除其中已过期的key。该策略是前两者的一个折中方案。通过调整定时扫描的时间间隔和每次扫描的限定耗时，可以在不同情况下使得CPU和内存资源达到最优的平衡效果。<br>(expires字典会保存所有设置了过期时间的key的过期时间数据，其中，key是指向键空间中的某个键的指针，value是该键的毫秒精度的UNIX时间戳表示的过期时间。键空间是指该Redis集群中保存的所有键。)</li>
+</ul>
+<h2 id="redis-两种数据持久化的原理以及优缺点"><a href="#redis-两种数据持久化的原理以及优缺点" class="headerlink" title="redis 两种数据持久化的原理以及优缺点"></a>redis 两种数据持久化的原理以及优缺点</h2><ul>
+<li>AOF: AOF持久化(即Append Only File持久化)，文本日志，记录增删改</li>
+<li>RDB: 是Redis DataBase缩写快照，紧凑的二进制数据</li>
+<li>[Redis持久化是如何做的？RDB和AOF对比分析] (<a href="http://kaito-kidd.com/2020/06/29/redis-persistence-rdb-aof/" target="_blank" rel="noopener">http://kaito-kidd.com/2020/06/29/redis-persistence-rdb-aof/</a>)</li>
+</ul>
+<h2 id="怎么考虑缓存和db数据一致性的问题"><a href="#怎么考虑缓存和db数据一致性的问题" class="headerlink" title="怎么考虑缓存和db数据一致性的问题"></a>怎么考虑缓存和db数据一致性的问题</h2><ul>
+<li>当使用redis缓存db数据时，db数据会发生update，如何考虑redis和db数据的一致性问题呢？</li>
+<li>通常来说，对于流量较小的业务来说，可以设置较小的expire time,可以将redis和db的不一致的时间控制在一定的范围内部</li>
+<li>对于缓存和db一致性要求较高的场合，通常采用的是先更新db，再删除或者更新redis，考虑到并发性和两个操作的原子性（删除或者更新可能会失败），可以增加重试机制（双删除），如果考虑主从延时，可以引入mq做延时双删</li>
+<li><a href="http://kaito-kidd.com/2021/09/08/how-to-keep-cache-and-consistency-of-db/" target="_blank" rel="noopener">http://kaito-kidd.com/2021/09/08/how-to-keep-cache-and-consistency-of-db/</a></li>
+</ul>
+<h2 id="redis-怎么扩容扩容和收缩"><a href="#redis-怎么扩容扩容和收缩" class="headerlink" title="redis 怎么扩容扩容和收缩"></a>redis 怎么扩容扩容和收缩</h2><ul>
+<li><a href="https://www.infoq.cn/article/uiqypvrtnq4buerrm3dc" target="_blank" rel="noopener">https://www.infoq.cn/article/uiqypvrtnq4buerrm3dc</a></li>
+</ul>
+<h2 id="redis-为什么使用单线程模型"><a href="#redis-为什么使用单线程模型" class="headerlink" title="redis 为什么使用单线程模型"></a>redis 为什么使用单线程模型</h2><ul>
+<li><a href="https://draveness.me/whys-the-design-redis-single-thread/" target="_blank" rel="noopener">https://draveness.me/whys-the-design-redis-single-thread/</a></li>
+</ul>
+<h2 id="缓存异常与对应的解决办法"><a href="#缓存异常与对应的解决办法" class="headerlink" title="缓存异常与对应的解决办法"></a>缓存异常与对应的解决办法</h2><ul>
+<li>缓存雪崩问题，大面积键失效或删除</li>
+<li>缓存穿透问题，不存在key的攻击行为</li>
+<li>热点数据缓存击穿，热门key失效</li>
+<li>是否需要缓存预热</li>
+<li>缓存穿透，缓存击穿，缓存雪崩解决方案分析，<a href="https://juejin.im/post/6844903651182542856" target="_blank" rel="noopener">https://juejin.im/post/6844903651182542856</a></li>
+</ul>
+<h2 id="redis-为什么这么快"><a href="#redis-为什么这么快" class="headerlink" title="redis 为什么这么快"></a>redis 为什么这么快</h2><ul>
+<li>1、完全基于内存，绝大部分请求是纯粹的内存操作，非常快速。数据存在内存中，类似于 HashMap，HashMap 的优势就是查找和操作的时间复杂度都是O(1)；</li>
+<li>2、数据结构简单，对数据操作也简单，Redis 中的数据结构是专门进行设计的；</li>
+<li>3、采用单线程，避免了不必要的上下文切换和竞争条件，也不存在多进程或者多线程导致的切换而消耗 CPU，不用去考虑各种锁的问题，不存在加锁释放锁操作，没有因为可能出现死锁而导致的性能消耗；</li>
+<li>4、使用多路 I/O 复用模型，非阻塞 IO；</li>
+<li>5、使用底层模型不同，它们之间底层实现方式以及与客户端之间通信的应用协议不一样，Redis 直接自己构建了 VM 机制 ，因为一般的系统调用系统函数的话，会浪费一定的时间去移动和请求；</li>
+</ul>
+<h2 id="Redis实现分布式锁"><a href="#Redis实现分布式锁" class="headerlink" title="Redis实现分布式锁"></a>Redis实现分布式锁</h2><ul>
+<li>Redis为单进程单线程模式，采用队列模式将并发访问变成串行访问，且多客户端对Redis的连接并不存在竞争关系Redis中可以使用SETNX命令实现分布式锁。当且仅当 key 不存在，将 key 的值设为 value。 若给定的 key 已经存在，则 SETNX 不做任何动作SETNX 是『SET if Not eXists』(如果不存在，则 SET)的简写。返回值：设置成功，返回 1 。设置失败，返回 0</li>
+</ul>
+<h2 id="分布式redis"><a href="#分布式redis" class="headerlink" title="分布式redis"></a>分布式redis</h2><ol>
+<li>单机版，并发访问有限，存储有限，单点故障。</li>
+<li>数据持久化</li>
+<li>主从复制。主库（写）同步到从库（读）的延时会造成数据的不一致；主从模式不具备自动容错，需要大量的人工操作</li>
+<li>哨兵模式sentinel。在主从的基础上，实现哨兵模式就是为了监控主从的运行状况，对主从的健壮进行监控，就好像哨兵一样，只要有异常就发出警告，对异常状况进行处理。当master出现故障时，哨兵通过raft选举，leader哨兵选择优先级最高的slave作为新的master，其它slaver从新的master同步数据。哨兵解决和主从不能自动故障恢复的问题，但是同时也存在难以扩容以及单机存储、读写能力受限的问题，并且集群之前都是一台redis都是全量的数据，这样所有的redis都冗余一份，就会大大消耗内存空间</li>
+<li><strong>codis</strong>: <a href="https://github.com/CodisLabs/codis" target="_blank" rel="noopener">https://github.com/CodisLabs/codis</a></li>
+<li><strong>redis cluster集群模式</strong>：集群模式时一个无中心的架构模式，将数据进行分片，分不到对应的槽中，每个节点存储不同的数据内容，通过路由能够找到对应的节点负责存储的槽，能够实现高效率的查询。并且集群模式增加了横向和纵向的扩展能力，实现节点加入和收缩，集群模式时哨兵的升级版，哨兵的优点集群都有</li>
+<li><a href="https://blog.csdn.net/QQ1006207580/article/details/103243281" target="_blank" rel="noopener">redis 分布式架构演进</a></li>
+<li><a href="http://kaito-kidd.com/2020/07/07/redis-cluster-codis-twemproxy/" target="_blank" rel="noopener">Redis集群化方案对比：Codis、Twemproxy、Redis Cluster</a></li>
+</ol>
+<h2 id="redis-amp-Lua"><a href="#redis-amp-Lua" class="headerlink" title="redis &amp; Lua"></a>redis &amp; Lua</h2><p>Redis 执行 Lua 脚本会以原子性方式进行，在执行脚本时不会再执行其他脚本或命令。并且，Redis 只要开始执行 Lua 脚本，就会一直执行完该脚本再进行其他操作，所以 Lua 脚本中 不能进行耗时操作 。此外，基于 Redis + Lua 的应用场景非常多，如分布式锁，限流，秒杀等等。<br>基于项目经验来看，使用 Redis + Lua 方案有如下注意事项：</p>
+<ul>
+<li>使用 Lua 脚本实现原子性操作的 CAS，避免不同客户端先读 Redis 数据，经过计算后再写数据造成的并发问题</li>
+<li>前后多次请求的结果有依赖关系时，最好使用 Lua 脚本将多个请求整合为一个；但请求前后无依赖时，使用 pipeline 方式，比 Lua 脚本方便</li>
+<li>为了保证安全性，在 Lua 脚本中不要定义自己的全局变量，以免污染 Redis 内嵌的 Lua 环境。因为 Lua 脚本中你会使用一些预制的全局变量，比如说 redis.call()</li>
+<li>注意 Lua 脚本的时间复杂度，Redis 的单线程同样会阻塞在 Lua 脚本的执行中，Lua 脚本不要进行高耗时操作</li>
+<li>Redis 要求单个 Lua 脚本操作的 key 必须在同一个 Redis 节点上，因此 Redis Cluster 方式需要设置 HashTag（实际中不太建议这样操作）</li>
+</ul>
+<h2 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读:"></a>推荐阅读:</h2><ol>
+<li><a href="https://blog.csdn.net/ThinkWon/article/details/103522351" target="_blank" rel="noopener">https://blog.csdn.net/ThinkWon/article/details/103522351</a></li>
+<li><a href="https://tech.meituan.com/2017/03/17/cache-about.html" target="_blank" rel="noopener">https://tech.meituan.com/2017/03/17/cache-about.html</a></li>
+<li><a href="https://juejin.cn/post/6868409018151337991" target="_blank" rel="noopener">一不小心肝出了4W字的Redis面试教程</a></li>
+<li><a href="https://cloud.tencent.com/developer/article/1724076" target="_blank" rel="noopener">你的 Redis 为什么变慢了？</a></li>
+<li>redis dbindex. <a href="https://blog.csdn.net/lsm135/article/details/52945197" target="_blank" rel="noopener">https://blog.csdn.net/lsm135/article/details/52945197</a></li>
+<li><a href="http://kaito-kidd.com/2021/03/14/redis-trap/" target="_blank" rel="noopener">颠覆认知——Redis会遇到的15个「坑」，你踩过几个？</a></li>
+<li><a href="http://kaito-kidd.com/2021/03/04/redis-best-practice-optimization-road/" target="_blank" rel="noopener">Redis最佳实践：7个维度+43条使用规范</a></li>
+<li><a href="apollo-portal.test.shopee.io">Redis为什么变慢了？</a></li>
+<li><a href="http://blog.caoxl.com/2018/11/28/Redis-Time-Complexity/" target="_blank" rel="noopener">redis 常用命令以及时间复杂度</a></li>
+<li><a href="http://kaito-kidd.com/2020/06/28/why-redis-so-fast/" target="_blank" rel="noopener">单线程redis为什么快</a></li>
+</ol>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/11/07/C++/middleware-kafka/" rel="next" title="Middleware - kafka 实战">
+                <i class="fa fa-chevron-left"></i> Middleware - kafka 实战
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/11/07/C++/system-design-and-framework-basic/" rel="prev" title="Golang 后台常用组件介绍">
+                Golang 后台常用组件介绍 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="wxquare">
+            
+              <p class="site-author-name" itemprop="name">wxquare</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">48</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/wxquare" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="http://www.zhihu.com/people/wxquare0" target="_blank" title="知乎">
+                    
+                      <i class="fa fa-fw fa-globe"></i>知乎</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="https://www.cnblogs.com/wxquare" target="_blank" title="博客园">
+                    
+                      <i class="fa fa-fw fa-globe"></i>博客园</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="http://www.cplusplus.com/reference" title="C++" target="_blank">C++</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://golang.org/pkg/" title="golang" target="_blank">golang</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://docs.python.org/3" title="python" target="_blank">python</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://en.cppreference.com/w/" title="cppreference" target="_blank">cppreference</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://leetcode.com/problemset/all/" title="leetcode" target="_blank">leetcode</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redis-使用场景"><span class="nav-number">2.</span> <span class="nav-text">redis 使用场景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redis-5种数据类型和底层数据结构"><span class="nav-number">3.</span> <span class="nav-text">redis 5种数据类型和底层数据结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#计算所需的缓存的容量，当容量超过限制时的淘汰策略"><span class="nav-number">4.</span> <span class="nav-text">计算所需的缓存的容量，当容量超过限制时的淘汰策略</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redis-过期键的删除策略"><span class="nav-number">5.</span> <span class="nav-text">redis 过期键的删除策略</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redis-两种数据持久化的原理以及优缺点"><span class="nav-number">6.</span> <span class="nav-text">redis 两种数据持久化的原理以及优缺点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#怎么考虑缓存和db数据一致性的问题"><span class="nav-number">7.</span> <span class="nav-text">怎么考虑缓存和db数据一致性的问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redis-怎么扩容扩容和收缩"><span class="nav-number">8.</span> <span class="nav-text">redis 怎么扩容扩容和收缩</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redis-为什么使用单线程模型"><span class="nav-number">9.</span> <span class="nav-text">redis 为什么使用单线程模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#缓存异常与对应的解决办法"><span class="nav-number">10.</span> <span class="nav-text">缓存异常与对应的解决办法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redis-为什么这么快"><span class="nav-number">11.</span> <span class="nav-text">redis 为什么这么快</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis实现分布式锁"><span class="nav-number">12.</span> <span class="nav-text">Redis实现分布式锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分布式redis"><span class="nav-number">13.</span> <span class="nav-text">分布式redis</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#redis-amp-Lua"><span class="nav-number">14.</span> <span class="nav-text">redis &amp; Lua</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#推荐阅读"><span class="nav-number">15.</span> <span class="nav-text">推荐阅读:</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2017 &mdash; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wxquare</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>
