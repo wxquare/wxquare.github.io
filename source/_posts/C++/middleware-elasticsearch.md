@@ -8,6 +8,7 @@ categories:
 
 ## 1、基本概念和文档导读
 - [普通搜索和向量搜索介绍](https://blog.csdn.net/weixin_40601534/article/details/122435858?spm=1001.2014.3001.5501)
+- [广告索引（定向）的布尔表达式](https://www.cnblogs.com/chenny7/p/14765412.html)
 - [official document](https://www.elastic.co/guide/en/elasticsearch/reference/8.3/index.html)
 - [scroll使用和Elasticsearch的深度翻页问题](https://www.jianshu.com/p/eb7f11e178b3)
 - [ES 读写流程](https://www.cnblogs.com/upupfeng/p/13488120.html)
