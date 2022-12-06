@@ -1,9 +1,9 @@
 
 
 
-let's design the high level architecture of Twitter I mean how hard Could It 
+let's design the high level architecture of Twitter I mean how hard Could It Be 
 
-Be by the way this video is taken from my ongoing course system design interview which will be complete by the end of this month you can check it out on
+by the way this video is taken from my ongoing course system design interview which will be complete by the end of this month you can check it out on
 
 neco.io before we get started 
 
