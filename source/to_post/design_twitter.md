@@ -53,71 +53,10 @@ I don't know if she's the most popular on Twitter but I think it's at least over
 
      let's get into the high level design we know of course that everything is going to start with our client whether that's a computer or a mobile device it doesn't really matter for us. we're focusing on the back end which is agnostic to the front end. we know the first thing our user is going to be hitting is the application servers to perform actions like creating a tweet or getting their news feed or following someone now because of the scale that we're dealing with. we're probably going to be **bottlenecked** by getting the news feed that's what's going to be happening most frequently and if we want to scale this up assuming that these application servers are **stateless** it should be easy to scale them up and of course we will have the **load balancer** in between this that's pretty hand wavy I mean that's something you can just memorize and say well if you want to scale horizontally. scale this and put a load balancer in there it's pretty trivial so I'm not going to spend a lot of time on that 
 
-      Now of course our application server is going to be reading from some storage let's say we do have a database and let's say that it is a **relational database** and you might be thinking if we're going to be doing read heavy why use a relational database why not just have a **nosql database** well it depends on what type of data we're going to be
+Now of course our application server is going to be reading from some storage let's say we do have a database and let's say that it is a **relational database** and you might be thinking if we're going to be doing read heavy why use a relational database why not just have a **nosql database** well it depends on what type of data we're going to be storing do we need joins in this case and we could because we do have a very relational model when it comes to following that's a pretty clear relationship between followers and follow ease so that's a reason to go with a relational database now in theory you it would be easier to scale a nosql database but we can Implement sharding with a relational database so that does give us some flexibility though after finishing our high level design we might want to revise this because we could just store tweets and user information in a nosql database and then have the graph DB which would be very easy to find that follower relationship because a graph DB is essentially like an adjacency list graph where every person is like a node in a graph and to find all the people that they follow you just have to look at every outgoing Edge and to find all the followers of a person you just have to look at every incoming Edge so depending on your expertise and your background and of course what your interviewer is looking for and what they might be familiar with you can kind of have some discussion about these differences 
 
-storing do we need joins in this case
 
-and we could because we do have a very
-
-relational model when it comes to
-
-following that's a pretty clear
-
-relationship between followers and
-
-follow ease so that's a reason to go
-
-with a relational database now in theory
-
-you it would be easier to scale a nosql
-
-database but we can Implement sharding
-
-with a relational database so that does
-
-give us some flexibility though after
-
-finishing our high level design we might
-
-want to revise this because we could
-
-just store tweets and user information
-
-in a nosql database and then have the
-
-graph DB which would be very easy to
-
-find that follower relationship because
-
-a graph DB is essentially like an
-
-adjacency list graph where every person
-
-is like a node in a graph and to find
-
-all the people that they follow you just
-
-have to look at every outgoing Edge and
-
-to find all the followers of a person
-
-you just have to look at every incoming
-
-Edge so depending on your expertise and
-
-your background and of course what your
-
-interviewer is looking for and what they
-
-might be familiar with you can kind of
-
-have some discussion about these
-
-differences now with the massive amount
-
-of reads that we're going to be doing we
-
-basically have to have a caching layer
+now with the massive amount of reads that we're going to be doing we basically have to have a caching layer
 
 in between so as we're reading tweets we
 
