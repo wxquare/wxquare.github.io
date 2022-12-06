@@ -1,84 +1,27 @@
-let's design the high level architecture
 
-of Twitter I mean how hard Could It Be
 
-by the way this video is taken from my
 
-ongoing course system design interview
+let's design the high level architecture of Twitter I mean how hard Could It 
 
-which will be complete by the end of
+Be by the way this video is taken from my ongoing course system design interview which will be complete by the end of this month you can check it out on
 
-this month you can check it out on
+neco.io before we get started 
 
-neco.io before we get started I do want
+I do want to mention Twitter has been quite a popular topic recently especially the underlying infrastructure and design but keep in mind that in a real interview Your Design does not have to exactly match the product that's not what it's about at all 
 
-to mention Twitter has been quite a
+it's about discussing the trade-offs and kind of demonstrating your knowledge of being able to weigh the pros and cons of an approach and of course there's many similar products to Twitter 
 
-popular topic recently especially the
+there really isn't any one correct approach so we don't have to actually replicate the real Twitter design unless of course you'reinterviewing at Twitter in that case you might have to because they recently fired everyone so they need people to know how it works 
 
-underlying infrastructure and design but
+so let's start with the background we know that Twitter is a social network **first and foremost** where some people can follow other people and that relationship can be be mutual. this erson can also follow the other person
 
-keep in mind that in a real interview
+but some people might end up with more followers than others right 
 
-Your Design does not have to exactly
+so assume that one person is really popular and everybody wants to read all of their tweets but you know most people on Twitter probably aren't actually
 
-match the product that's not what it's
+tweeting very often most people don't actually have many followers including myself  
 
-about at all it's about discussing the
-
-trade-offs and kind of demonstrating
-
-your knowledge of being able to weigh
-
-the pros and cons of an approach and of
-
-course there's many similar products to
-
-Twitter there really isn't any one
-
-correct approach so we don't have to
-
-actually replicate the real Twitter
-
-design unless of course you're
-
-interviewing at Twitter in that case you
-
-might have to because they recently
-
-fired everyone so they need people to
-
-know how it works so let's start with
-
-the background we know that Twitter is a
-
-social network first and foremost where
-
-some people can follow other people and
-
-that relationship can be be mutual this
-
-person can also follow the other person
-
-but some people might end up with more
-
-followers than others right so assume
-
-that one person is really popular and
-
-everybody wants to read all of their
-
-tweets but you know most people on
-
-Twitter probably aren't actually
-
-tweeting very often most people don't
-
-actually have many followers including
-
-myself I'm mentioning this because it
-
-kind of hints that this is going to be a
+I'm mentioning this because it kind of hints that this is going to be a
 
 very read heavy system and of course on
 
