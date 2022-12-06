@@ -46,101 +46,14 @@ million daily active users each of them will read about a hundred tweets per day
 
 so how much data are we going to be reading if it's 20 billion tweets a megabyte for each tweet that is quite a lot of data.so if each tweet was just one byte 20 billion that's going to be 20 **Gigabytes**. but now we're actually multiplying this by a **megabyte** which is a million so multiply this by a thousand we get 20 **terabytes**. but we have to multiply it by a thousand again because that's you know what a million is and then we get to 20 **petabytes** so overall we're going to be reading 20 petabytes of data per day now it's no surprise to us that this is going to be a read heavy system. 
 
-this is kind of hinting to us what type of storage solution should we use we probably don't need to be **strongly consistent**  **eventual consistency** is enough and that brings us to how much are we going to be writing per day how many tweets are we going to be creating per day. well we have 200 million daily active users so let's say a reasonable number is 50 million tweets created per day most people aren't going to be creating tweets but maybe some people create 10 tweets per day so this is a **decent number** but you're not going to be guessing this your interviewer should be giving you something reasonable now we could go through the rest of the math with this number and I can show you that we're going to be writing much less than 20 petabytes of data per day especially if we don't include the images and videos which we're probably not going to be directly storing in a database but the main thing here to realize is that yes **we're going to be writing much less than we're reading** so that's how we want to optimize our design and let's say that the average user follow those about a hundred people so a hundred follows per person but of course there can be power users who have a thousand or ten thousand people that they follow but the more important consideration here is for a user how many followers can they have someone like Kim Kardashian I don't know
+this is kind of hinting to us what type of storage solution should we use we probably don't need to be **strongly consistent**  **eventual consistency** is enough and that brings us to how much are we going to be writing per day how many tweets are we going to be creating per day. well we have 200 million daily active users so let's say a reasonable number is 50 million tweets created per day most people aren't going to be creating tweets but maybe some people create 10 tweets per day so this is a **decent number** but you're not going to be guessing this your interviewer should be giving you something reasonable now we could go through the rest of the math with this number and I can show you that we're going to be writing much less than 20 petabytes of data per day especially if we don't include the images and videos which we're probably not going to be directly storing in a database but the main thing here to realize is that yes **we're going to be writing much less than we're reading** so that's how we want to optimize our design and let's say that the average user follow those about a hundred people so a hundred follows per person but of course there can be power users who have a thousand or ten thousand people that they follow but the more important consideration here is for a user how many followers can they have someone like Kim Kardashian 
 
-if she's the most popular on Twitter but
+I don't know if she's the most popular on Twitter but I think it's at least over a hundred million followers that they have so this is the more important consideration people who have a massive amount of followers so the question is going to be for all the people that follow Kim Kardashian how are they gonna get the tweets this is kind of hinting to us that wherever we're storing her tweets it's gonna get overloaded pretty quickly so now that we kind of know what we're looking for. 
 
-I think it's at least over a hundred
 
-million followers that they have so this
+     let's get into the high level design we know of course that everything is going to start with our client whether that's a computer or a mobile device it doesn't really matter for us. we're focusing on the back end which is agnostic to the front end. we know the first thing our user is going to be hitting is the application servers to perform actions like creating a tweet or getting their news feed or following someone now because of the scale that we're dealing with. we're probably going to be **bottlenecked** by getting the news feed that's what's going to be happening most frequently and if we want to scale this up assuming that these application servers are **stateless** it should be easy to scale them up and of course we will have the **load balancer** in between this that's pretty hand wavy I mean that's something you can just memorize and say well if you want to scale horizontally. scale this and put a load balancer in there it's pretty trivial so I'm not going to spend a lot of time on that 
 
-is the more important consideration
-
-people who have a massive amount of
-
-followers so the question is going to be
-
-for all the people that follow Kim
-
-Kardashian how are they gonna get the
-
-tweets this is kind of hinting to us
-
-that wherever we're storing her tweets
-
-it's gonna get overloaded pretty quickly
-
-so now that we kind of know what we're
-
-looking for let's get into the high
-
-level design we know of course that
-
-everything is going to start with our
-
-client whether that's a computer or a
-
-mobile device it doesn't really matter
-
-for us we're focusing on the back end
-
-which is agnostic to the front end we
-
-know the first thing our user is going
-
-to be hitting is the application servers
-
-to perform actions like creating a tweet
-
-or getting their news feed or following
-
-someone now because of the scale that
-
-we're dealing with we're probably going
-
-to be bottlenecked by getting the news
-
-feed that's what's going to be happening
-
-most frequently and if we want to scale
-
-this up assuming that these application
-
-servers are stateless it should be easy
-
-to scale them up and of course we will
-
-have the load balancer in between this
-
-that's pretty hand wavy I mean that's
-
-something you can just memorize and say
-
-well if you want to scale horizontally
-
-scale this and put a load balancer in
-
-there it's pretty trivial so I'm not
-
-going to spend a lot of time on that now
-
-of course our application server is
-
-going to be reading from some storage
-
-let's say we do have a database and
-
-let's say that it is a relational
-
-database and you might be thinking if
-
-we're going to be doing read heavy why
-
-use a relational database why not just
-
-have a nosql database well it depends on
-
-what type of data we're going to be
+      Now of course our application server is going to be reading from some storage let's say we do have a database and let's say that it is a **relational database** and you might be thinking if we're going to be doing read heavy why use a relational database why not just have a **nosql database** well it depends on what type of data we're going to be
 
 storing do we need joins in this case
 
