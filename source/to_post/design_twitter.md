@@ -56,237 +56,47 @@ I don't know if she's the most popular on Twitter but I think it's at least over
 Now of course our application server is going to be reading from some storage let's say we do have a database and let's say that it is a **relational database** and you might be thinking if we're going to be doing read heavy why use a relational database why not just have a **nosql database** well it depends on what type of data we're going to be storing do we need joins in this case and we could because we do have a very relational model when it comes to following that's a pretty clear relationship between followers and follow ease so that's a reason to go with a relational database now in theory you it would be easier to scale a nosql database but we can Implement sharding with a relational database so that does give us some flexibility though after finishing our high level design we might want to revise this because we could just store tweets and user information in a nosql database and then have the graph DB which would be very easy to find that follower relationship because a graph DB is essentially like an adjacency list graph where every person is like a node in a graph and to find all the people that they follow you just have to look at every outgoing Edge and to find all the followers of a person you just have to look at every incoming Edge so depending on your expertise and your background and of course what your interviewer is looking for and what they might be familiar with you can kind of have some discussion about these differences 
 
 
-now with the massive amount of reads that we're going to be doing we basically have to have a caching layer
+Now with the massive amount of reads that we're going to be doing  we basically have to have a caching layer in between so as we're reading tweets we will be hitting our cache before we hit our database but also remember that we are going to be storing media so we need a separate storage solution for that media. Relational Database aren't the best for that so we'll have some type of object storage for that something like Google Cloud Storage or amazon S3 
+so when we actually read a tweet we'll be getting the information about that tweet like the Tweet ID who's the creator of that tweet what time was it created, whether it included an image or not,what was the image that it included the profile picture of the person who made it. 
 
-in between so as we're reading tweets we
+the application server can then fetch the image like the profile picture or the video that showed up in that tweet and it can do that separately but at the same time, because these assets are static in nature, it may be better to actually distribute them over a CDN Network, so then actually our application server does not have to interact with the object storage. the application server will respond to the user with all the information that they need including the URL of that image or video that they need and then the client whether they're using a mobile device or a desktop browser will make a separate request which will actually hit our CDN Network which is tied to our object storage.
 
-will be hitting our cache before we hit
 
-our database but also remember that we
+what type of algorithm would we use in this case well even though we're looking at the high level right now 
 
-are going to be storing media so we need
+we probably want to use a pull based CDN we don't want to necessarily push every image or video to the CDN immediately also remember the benefit of a CDN is that it's geographically located close to the user 
 
-a separate storage solution for that
+we know that people in India might be looking at different types of tweets and images and videos than people in the United States so it doesn't make sense to put every single new tweet push it directly to the CDN Network and with a pull-based CDN. 
 
-media related National databases aren't
+we kind of guarantee that the stuff that's loaded onto our CDN is the relevant stuff that people want to see
 
-the best for that so we'll have some
+anyway the popular things 
 
-type of object storage for that
+so now let's spend most of our time actually digging into the details which some people like to start out with the interface that we'll be using we will
 
-something like Google Cloud Storage or
+have a couple 
 
-Amazon S3 so when we actually read a
+so remember we have a create tweet 
 
-tweet we'll be getting the information
 
-about that tweet like the Tweet ID who's
+there could be a lot of metadata sent with that request 
 
-the creator of that tweet what time was
+of course the user ID of the person creating the Tweet but mainly the user is actually responsible for sending the content of the tweets 
 
-it created whether it included an image
+so one is the actual text and then second is going to be the actual media of course every tweet has a created timestamp but we assume that that will be handled server side and every tweet has to be identified but we'll assume that the Tweet ID is also **created server side** and of course the user ID of the person that's actually creating it well 
 
-or not what was the image that it
+we'll assume that in the header of the HTTP request that there's some authorization token for us to know that the correct person is making the Tweet but we could also have the user ID passed into this request or the username of the person and next of course we have getting the actual feed and that really doesn't need any information at all that's a very basic read request we don't need to send additional data that we're going to be actually storing get feed should just pass in the user ID so that we know which person's feed are we getting but at the same time I should not be able to pass in your user ID even if I know it's to get your user feed there's nothing that can go super wrong with that but it shouldn't be allowed and that would be
+ handled by the HTTP header we know that that there's actual authentication going on in this system it's just that we're not focusing on that 
+ 
+ we're focusing on the actual Twitter design authentication happens with pretty much every application and we also have the follow interaction. so a user can follow another person they'll pass in their user ID and maybe the username of the person that they're trying to follow so these are the three main interactions. so how are we actually going to be storing this data in particular we're going to be storing two things the actual tweets 
+ 
+so assuming we have a relational database
 
-included the profile picture of the
+we'll have a table of tweets and 
 
-person who made it the application
+we'll also have a table of follows so the follow relationship is pretty simple you have the followee the person who's following the other person that's going to be a string and we'll have another the actual follow ER I think I misspoke
 
-server can then fetch the image like the
-
-profile picture or the video that showed
-
-up in that tweet and it can do that
-
-separately but at the same time because
-
-these assets are static in nature it may
-
-be better to actually distribute them
-
-over a CDN Network so then actually our
-
-application server does not have to
-
-interact with the object storage the
-
-application server will respond to the
-
-user with all the information that they
-
-need including the URL of that image or
-
-video that they need and then the client
-
-whether they're using a mobile device or
-
-a desktop browser will make a separate
-
-request which will actually hit our CDN
-
-Network which is tied to our object
-
-storage what type of algorithm would we
-
-use in this case well even though we're
-
-looking at the high level right now we
-
-probably want to use a poll based CDN we
-
-don't want to necessarily push every
-
-image or video to the CDN immediately
-
-also remember the benefit of a CDN is
-
-that it's geographically located close
-
-to the user we know that people in India
-
-might be looking at different types of
-
-tweets and images and videos than people
-
-in the United States so it doesn't make
-
-sense to put every single new tweet push
-
-it directly to the CDN Network and with
-
-a pull-based CDN we kind of guarantee
-
-that the stuff that's loaded onto our
-
-CDN is the relevant stuff that people
-
-want to see anyway the popular things so
-
-now let's spend most of our time
-
-actually digging into the details which
-
-some people like to start out with the
-
-interface that we'll be using we will
-
-have a couple so remember we have a
-
-create tweet there could be a lot of
-
-metadata sent with that request of
-
-course the user ID of the person
-
-creating the Tweet but mainly the user
-
-is actually responsible for sending the
-
-content of the tweets so one is the
-
-actual text and then second is going to
-
-be the actual media of course every
-
-tweet has a created timestamp but we
-
-assume that that will be handled server
-
-side and every tweet has to be
-
-identified but we'll assume that the
-
-Tweet ID is also created server side and
-
-of course the user ID of the person
-
-that's actually creating it well we'll
-
-assume that in the header of the HTTP
-
-request that there's some authorization
-
-token for us to know that the correct
-
-person is making the Tweet but we could
-
-also have the user ID passed into this
-
-request or the username of the person
-
-and next of course we have getting the
-
-actual feed and that really doesn't need
-
-any information at all that's a very
-
-basic read request we don't need to send
-
-additional data that we're going to be
-
-actually storing get feed should just
-
-pass in the user ID so that we know
-
-which person's feed are we getting but
-
-at the same time I should not be able to
-
-pass in your user ID even if I know it
-
-to get your user feed there's nothing
-
-that can go super wrong with that but it
-
-shouldn't be allowed and that would be
-
-handled by the HTTP header we know that
-
-that there's actual authentication going
-
-on in this system it's just that we're
-
-not focusing on that we're focusing on
-
-the actual Twitter design authentication
-
-happens with pretty much every
-
-application and we also have the follow
-
-interaction so a user can follow another
-
-person they'll pass in their user ID and
-
-maybe the username of the person that
-
-they're trying to follow so these are
-
-the three main interactions now how are
-
-we actually going to be storing this
-
-data in particular we're going to be
-
-storing two things the actual tweets so
-
-assuming we have a relational database
-
-we'll have a table of tweets and we'll
-
-also have a table of follows so the
-
-follow relationship is pretty simple you
-
-have the follow e the person who's
-
-following the other person that's going
-
-to be a string and we'll have another
-
-the actual follow ER I think I misspoke
-
-when I was describing followey so the
+when I was describing followee so the
 
 follower is the person that's following
 
