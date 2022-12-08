@@ -13,6 +13,9 @@ categories:
 - [scroll使用和Elasticsearch的深度翻页问题](https://www.jianshu.com/p/eb7f11e178b3)
 - [ES 读写流程](https://www.cnblogs.com/upupfeng/p/13488120.html)
 - [达观数据搜索引擎的Query自动纠错技术和架构](http://www.datagrand.com/blog/search-query.html)
+- [Elasticsearch基础之相关性介绍](https://donggeitnote.com/2021/09/19/elasticsearch-tfidf/)
+- [ElasticSearch进阶之拼写错误](https://donggeitnote.com/2022/01/02/elasticsearch-typo/)
+- [ElasticSearch进阶之输入匹配](https://donggeitnote.com/2021/11/06/elasticsearch-typematch/)
 
 
 ## 2、基本用法
