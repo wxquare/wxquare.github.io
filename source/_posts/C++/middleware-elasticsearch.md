@@ -20,7 +20,7 @@ categories:
 - [ElasticSearch进阶之Shard/segment内部原理](https://donggeitnote.com/2021/09/29/elasticsearch-shard/)
 
 ## 2、基本用法
-### 创建索引
+### 常用命令
 ```
 curl -XPUT -H'Content-Type: application/json'  host/index_name?pretty=true -d@index_mapping.json 
 ```
@@ -326,7 +326,7 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 
 ### 关注哪些性能指标
 - （读）query latency 1-2ms，复杂的查询可能到几十ms
-- （读）fetch latency
+- （读）fetch latency 
 - （写）index rate
 - （写）index latency
 
