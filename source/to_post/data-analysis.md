@@ -14,6 +14,9 @@ spark scala 读写mysql
 - https://blog.csdn.net/lingeio/article/details/92795030
 - https://www.staroon.dev/2022/03/12/SparkMySQL/index.html
 
+spark exapmles:
+- https://github.com/apache/spark/tree/master/examples/src/main/scala/org/apache/spark/examples
+
 
 
 
