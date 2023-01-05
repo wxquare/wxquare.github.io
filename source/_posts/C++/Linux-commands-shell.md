@@ -66,6 +66,7 @@ categories:
 - 网络远程复制：scp -r localpath ID@host:path
 - 使用ssh协议下载： scp -r ID@host:path localpath
 - nc服务器编程常用，既可以作为客户端又可以指定端口作为服务端。
+- 查看网络端口使用情况：https://www.runoob.com/w3cnote/linux-check-port-usage.html
 
 
 
