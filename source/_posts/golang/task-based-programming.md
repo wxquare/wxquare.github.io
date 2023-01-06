@@ -1,6 +1,6 @@
 
 ---
-title: golang 基于task编程模式
+title: golang 基于task的编程方式
 categories:
 - Golang
 ---
