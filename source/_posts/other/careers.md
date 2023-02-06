@@ -1,4 +1,5 @@
-- 拼多多商业化搜索团队组员内推 小组急招 多hc
+## 拼多多
+-  拼多多商业化搜索团队组员内推 小组急招 多hc
 岗位职责：
 1、负责电商搜索服务架构设计，打造高性能、高可用、可扩展的架构，支撑业务快速发展；
 2、负责高并发搜索引擎的全链路研发，包括检索、打分、排序等相关后端服务架构，优化搜索引擎的计算和存储性能；
@@ -24,11 +25,12 @@
 微信号咨询：li_again520
 简历投递邮箱：568103034@qq.com
 
+
+## thetradedesk
 - https://careers.thetradedesk.com/us/en/job/REQ-3052/Lead-Staff-Software-Engineer
 - The Trade Desk is a global technology company with a mission to create a better, more open Internet for everyone through principled, intelligent advertising. 
 
  
-
 Handling over 600 billion queries per day (more than 100X the query volume of search globally), our platform operates at unprecedented scale.  We have also built something even stronger and more valuable: an award-winning culture based on trust, empathy, collaboration, and ownership. By working together across typical dividing lines, we are better as a team than any of us could be apart.
 
 Do you have a passion for solving hard problems at scale? Are you eager to join a trust-based, globally-connected team, where your contributions will make a meaningful difference?  
