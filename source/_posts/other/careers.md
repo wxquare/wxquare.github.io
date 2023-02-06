@@ -58,7 +58,6 @@ Senior Lead Software Engineers contribute to more than our product – they buil
  
 WHO WE ARE LOOKING FOR:
 
- 
 
 You have a sustained track record of leading engineers with a wide range of experience, while also making significant, self-directed, and end-to-end contributions to large and impactful software projects. You think beyond just the task at hand to deeply understand the 'why' behind what you & your team are doing.
 You are a driver. You will be driving technical projects and providing leadership in a ground-breaking and fast-paced environment. This includes task planning and conducting code reviews, as well as individual code contribution.
