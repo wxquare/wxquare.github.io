@@ -71,3 +71,16 @@ You are a creative thinker, not bound by "the way things have always been done".
 
 The Trade Desk does not accept unsolicited resumes from search firm recruiters. Fees will not be paid in the event a candidate submitted by a recruiter without an agreement in place is hired; such resumes will be deemed the sole property of The Trade Desk. The Trade Desk is an equal opportunity employer. All aspects of employment will be based on merit, competence, performance, and business needs. We do not discriminate on the basis of race, color, religion, marital status, age, national origin, ancestry, physical or mental disability, medical condition, pregnancy, genetic information, gender, sexual orientation, gender identity or expression, veteran status, or any other status protected under federal, state, or local law.
 
+## me
+2021.07 ～  至今              Shopee/Digital Purchase 商品系统          负责商品系统数据同步、检索、详情等服务
+- 负责设计和开发shopee hotel/movie/bus等品类的商品检索(listing)和详情(detail)服务
+- 设计和实现数据同步系统，包括模型设计，多供应商数据抓取、数据标准化、聚合等功能
+- 基于ES设计和实现商品检索和目的地推荐，包含索引构建、更新、打分，实时检索、排序等
+- 基于用户搜索行为设计Hotel 报价缓存系统，缓存命中率高于60%，变价率低于8%等
+
+2018.09  ～ 2021.07           腾讯/应用宝/微信广告部                           广告系统后台/数据开发/模型部署/策略开发
+- 维护腾讯应用宝广告系统，引入Druid、Golang 等提高团队问题排查的效率。
+- 从零建设短视频原生广告植入项目，将项目中核心模板追踪算法，从3fps提升到30fps；尝试了权重量化、权重稀疏、通道剪枝等方法，将多数模型推理的效率提升接近30%；引入TVM深度学习编译器，应对多模型部署优化问题。相关优化过程记录在内部KM平台超过10篇。
+- 从零建设腾讯APP换量平台和外部广告平台买量的营销系统。完成腾讯AMS、字节 、百度、oppo、vivo、趣头条、小米、wifi万能钥匙等主要广告平台的对接，服务于微视、全民K歌、Now直播以及多款游戏客户的用户增长需求，主要负责广告投放点击数据的接收和转发、Druid实时分析、离线hive报表开发等。
+- 优化微信广告实时数据系统，将数据上线时间由10分钟级提升到1分钟级，大大提升系统的稳定性
+- 构建微信广告加强模式的工程链路，提升智能调价能力，提升广告主投放效果。在游戏、教育等大广告主均有10%以上的ROI提升。
