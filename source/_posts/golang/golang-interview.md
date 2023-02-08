@@ -181,6 +181,8 @@ The **Communicating Sequential Processes (CSP) model** is a theoretical model of
   -  当调用一些系统方法的时候，如果系统方法调用的时候发生阻塞，这种情况下，网络轮询器（NetPoller）无法使用，而进行系统调用的 Goroutine 将阻塞当前 M，则创建新的M。阻塞的系统调用完成后：M1 将被放在旁边以备将来重复使用
   -  如果在 Goroutine 去执行一个 sleep 操作，导致 M 被阻塞了。Go 程序后台有一个监控线程 sysmon，它监控那些长时间运行的 G 任务然后设置可以强占的标识符，别的 Goroutine 就可以抢先进来执行。
 
+### What are the states of Goroutine and how do they flow?
+- 协程的状态流转？Grunnable、Grunning、Gwaiting
 
 
 -  golang context 用于在树形goroutine结构中，通过信号减少资源的消耗，包含Deadline、Done、Error、Value四个接口
