@@ -143,8 +143,22 @@ categories:
 	}()
  ```
 
-### Golang并发编程 (concurrent programming)
+## 并非编程模型，How does Go handle concurrency?
+### 并非编程的三架马车？Goroutine,GMP调度模型，channel 
+### what's CSP?
+The **Communicating Sequential Processes (CSP) model** is a theoretical model of concurrent programming that was first introduced by Tony Hoare in 1978. The CSP model is based on the idea of concurrent processes that communicate with each other by sending and receiving messages through channels.The Go programming language provides support for the CSP model through its built-in concurrency features, such as goroutines and channels. In Go, concurrent processes are represented by goroutines, which are lightweight threads of execution. The communication between goroutines is achieved through channels, which provide a mechanism for passing values between goroutines in a safe and synchronized manner.
+### Goroutine
+- Goroutines are lightweight, user-level threads of execution that run concurrently with other goroutines within the same process.
+- Unlike traditional threads, goroutines are managed by the Go runtime, which automatically schedules and balances their execution across multiple CPUs and makes efficient use of available system resources.
+### 比较Goroutine、thread、process
 - 比较进程、线程和Goroutine。进程是资源分配的单位，有独立的地址空间，线程是操作系统调度的单位，协程是更细力度的执行单元，需要程序自身调度。Go语言原生支持Goroutine，并提供高效的协程调度模型。
+- Goroutines, threads, and processes are all mechanisms for writing concurrent and parallel code, but they have some important differences:
+- Goroutines: A goroutine is a lightweight, user-level thread of execution that runs concurrently with other goroutines within the same process. Goroutines are managed by the Go runtime, which automatically schedules and balances their execution across multiple CPUs. Goroutines require much less memory and have much lower overhead compared to threads, allowing for many goroutines to run simultaneously within a single process.
+- Threads: A thread is a basic unit of execution within a process. Threads are independent units of execution that share the same address space as the process that created them. This allows threads to share data and communicate with each other, but also introduces the need for explicit synchronization to prevent race conditions and other synchronization issues.
+- Processes: A process is a self-contained execution environment that runs in its own address space. Processes are independent of each other, meaning that they do not share memory or other resources. Communication between processes requires inter-process communication mechanisms, such as pipes, sockets, or message queues.
+- In general, goroutines provide a more flexible and scalable approach to writing concurrent code compared to threads, as they are much lighter and more efficient, and allow for many more concurrent units of execution within a single process. Processes provide a more secure and isolated execution environment, but have higher overhead and require more explicit communication mechanisms.
+###
+
 - 参考：[为什么要使用 Go 语言？Go 语言的优势在哪里？](https://www.zhihu.com/question/21409296/answer/1040884859)
 - Goroutine 上下文切换只涉及到三个寄存器（PC / SP / DX）的值修改；而对比线程的上下文切换则需要涉及模式切换（从用户态切换到内核态）、以及 16 个寄存器、PC、SP...等寄存器的刷新；内存占用少：线程栈空间通常是 2M，Goroutine 栈空间最小 2K；Golang 程序中可以轻松支持10w 级别的 Goroutine 运行，而线程数量达到 1k 时，内存占用就已经达到 2G。
 - 理解G、P、M的含义以及调度模型
@@ -220,3 +234,4 @@ categories:
 - https://draveness.me/
 - https://github.com/uber-go/guide 《golang uber style》
 - [Effective Go](http://https://golang.org/doc/effective_go.html)
+- https://github.com/iswbm/golang-interview
