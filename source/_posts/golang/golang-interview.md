@@ -164,23 +164,25 @@ The **Communicating Sequential Processes (CSP) model** is a theoretical model of
 - Scheduling: Goroutines are scheduled by the Go runtime, which automatically balances and schedules their execution across multiple CPUs. This eliminates the need for explicit thread management and synchronization, reducing overhead.
 - Context switching: Context switching is the process of saving and restoring the state of a running thread in order to switch to a different thread. Goroutines have a much lower overhead for context switching compared to threads, as they are much lighter and require less state to be saved and restored.
 - Resource sharing: Goroutines share resources with each other and with the underlying process, eliminating the need for explicit resource allocation and deallocation. This reduces overhead and allows for more efficient use of system resources.
-
 - Overall, the combination of a small stack size, efficient scheduling, low overhead context switching, and efficient resource sharing makes goroutines much lighter and more efficient than threads or processes, and allows for many more concurrent units of execution within a single process.
-
 - Goroutine 上下文切换只涉及到三个寄存器（PC / SP / DX）的值修改；而对比线程的上下文切换则需要涉及模式切换（从用户态切换到内核态）、以及 16 个寄存器、PC、SP...等寄存器的刷新；内存占用少：线程栈空间通常是 2M，Goroutine 栈空间最小 2K；Golang 程序中可以轻松支持10w 级别的 Goroutine 运行，而线程数量达到 1k 时，内存占用就已经达到 2G。
 - 理解G、P、M的含义以及调度模型
 
-
-
-- 参考：[为什么要使用 Go 语言？Go 语言的优势在哪里？](https://www.zhihu.com/question/21409296/answer/1040884859)
-- 
-- G 的数量可以远远大于 M 的数量，换句话说，Go 程序可以利用少量的内核级线程来支撑大量 Goroutine 的并发。多个 Goroutine 通过用户级别的上下文切换来共享内核线程 M 的计算资源，但对于操作系统来说并没有线程上下文切换产生的性能损耗
-- 支持任务窃取（work-stealing）策略：为了提高 Go 并行处理能力，调高整体处理效率，当每个 P 之间的 G 任务不均衡时，调度器允许从 GRQ，或者其他 P 的 LRQ 中获取 G 执行。
+### How are goroutines scheduled by runtime?
+- **Cooperative** (协作式). The scheduler uses a **cooperative** scheduling model, which means that goroutines voluntarily yield control to the runtime when they are blocked or waiting for an event. 
+- **Timer-based preemption**. The scheduler uses a technique called **timer-based preemption** to interrupt the execution of a running goroutine and switch to another goroutine if it exceeds its time slice
+- **Work-stealing**. The scheduler uses a work-stealing algorithm, where each CPU has its own local run queue, and goroutines are dynamically moved between run queues to balance the o balance the load and improve performance.
+- **no explicit prioritization**. The Go runtime scheduler does not provide explicit support for prioritizing goroutines. Instead, it relies on the cooperative nature of goroutines to ensure that all goroutines make progress. In a well-designed Go program, the program should be designed such that all goroutines make progress in a fair and balanced manner.
+- https://blog.csdn.net/sinat_34715587/article/details/124990458
+- G 的数量可以远远大于 M 的数量，换句话说，Go 程序可以利用少量的内核级线程来支撑大量 Goroutine 的并发。多个 Goroutine 通过用户级别的上下文切换来共享内核线程 M 的计算资源，但对于操作系统来说并没有线程上下文切换产生的性能损耗，支持任务窃取（work-stealing）策略：为了提高 Go 并行处理能力，调高整体处理效率，当每个 P 之间的 G 任务不均衡时，调度器允许从 GRQ，或者其他 P 的 LRQ 中获取 G 执行。
 - 减少因Goroutine创建大量M：
   -  由于原子、互斥量或通道操作调用导致 Goroutine 阻塞，调度器将把当前阻塞的 Goroutine 切换出去，重新调度 LRQ 上的其他 Goroutine；
   -  由于网络请求和 IO 操作导致 Goroutine 阻塞，通过使用 NetPoller 进行网络系统调用，调度器可以防止 Goroutine 在进行这些系统调用时阻塞 M。这可以让 M 执行 P 的 LRQ 中其他的 Goroutines，而不需要创建新的 M。有助于减少操作系统上的调度负载。
   -  当调用一些系统方法的时候，如果系统方法调用的时候发生阻塞，这种情况下，网络轮询器（NetPoller）无法使用，而进行系统调用的 Goroutine 将阻塞当前 M，则创建新的M。阻塞的系统调用完成后：M1 将被放在旁边以备将来重复使用
   -  如果在 Goroutine 去执行一个 sleep 操作，导致 M 被阻塞了。Go 程序后台有一个监控线程 sysmon，它监控那些长时间运行的 G 任务然后设置可以强占的标识符，别的 Goroutine 就可以抢先进来执行。
+
+
+
 -  golang context 用于在树形goroutine结构中，通过信号减少资源的消耗，包含Deadline、Done、Error、Value四个接口
 -  常用的同步原语：channel、sync.mutex、sync.RWmutex、sync.WaitGroup、sync.Once、atomic
 - 协程的状态流转？Grunnable、Grunning、Gwaiting
@@ -229,6 +231,7 @@ The **Communicating Sequential Processes (CSP) model** is a theoretical model of
 - [Go 与 C 的桥梁：cgo 入门，剖析与实践](https://www.zhihu.com/org/teng-xun-ji-zhu-gong-cheng),警惕cgo引入导致的性能问题比如线程数量过多，内存泄漏问题
 - 定时器的设计和实现原理，golang的定时器是怎么实现的？
 - [一次 go 服务大量连接 time_wait 问题排查](http://km.oa.com/group/35228/articles/show/461981?kmref=discovery).一般解决思路：TIME_WAIT排查是不是短链接，即频繁create and close socket CLOSE_WAIT排查自己代码BUG，socket没有close
+- [为什么要使用 Go 语言？Go 语言的优势在哪里？](https://www.zhihu.com/question/21409296/answer/1040884859)
 
 
 
