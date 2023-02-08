@@ -125,6 +125,24 @@ categories:
 - [defer 实现原理？](https://blog.csdn.net/Tybyqi/article/details/83827140)
 
 
+### 如何golang处理程序中的error、panic
+- 在Go 语言中，错误被认为是一种可以预期的结果；而异常则是一种非预期的结果，发生异常可能表示程序中存在BUG 或发生了其它不可控的问题。 
+- Go 语言推荐使用 recover 函数将内部异常转为错误处理，这使得用户可以真正的关心业务相关的错误处理。
+- 在Go服务中通常需要自定义粗错误类型，最好能有效区分业务逻辑错误和系统错误，同时需要捕获panic，将panic转化为error，避免某个错误影响server重启
+- panic 时需要保留runtime stack
+  ```
+  		defer func() {
+			if x := recover(); x != nil {
+				panicReason := fmt.Sprintf("I'm panic because of: %v\n", x)
+				logger.LogError(panicReason)
+				stk := make([]byte, 10240)
+				stkLen := runtime.Stack(stk, false)
+				logger.LogErrorf("%s\n", string(stk[:stkLen]))
+			}
+		}()
+ ```
+
+
 ### Golang并发编程 (concurrent programming)
 - 比较进程、线程和Goroutine。进程是资源分配的单位，有独立的地址空间，线程是操作系统调度的单位，协程是更细力度的执行单元，需要程序自身调度。Go语言原生支持Goroutine，并提供高效的协程调度模型。
 - 参考：[为什么要使用 Go 语言？Go 语言的优势在哪里？](https://www.zhihu.com/question/21409296/answer/1040884859)
