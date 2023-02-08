@@ -143,6 +143,7 @@ categories:
  ```
 
 
+
 ### Golang并发编程 (concurrent programming)
 - 比较进程、线程和Goroutine。进程是资源分配的单位，有独立的地址空间，线程是操作系统调度的单位，协程是更细力度的执行单元，需要程序自身调度。Go语言原生支持Goroutine，并提供高效的协程调度模型。
 - 参考：[为什么要使用 Go 语言？Go 语言的优势在哪里？](https://www.zhihu.com/question/21409296/answer/1040884859)
@@ -167,7 +168,7 @@ categories:
 - [sync.Mutex: “锁”实现背后那些事](http://km.oa.com/articles/show/502088)
 
 
-## Golang 内存管理和垃圾回收（memory and gc）
+### Golang 内存管理和垃圾回收（memory and gc）
 - **多级缓存**：内存分配器不仅会区别对待大小不同的对象，还会将内存分成不同的级别分别管理，TCMalloc 和 Go 运行时分配器都会引入线程缓存（Thread Cache）、中心缓存（Central Cache）和页堆（Page Heap）三个组件分级管理内存
 - **对象大小**：Go 语言的内存分配器会根据申请分配的内存大小选择不同的处理逻辑，运行时根据对象的大小将对象分成微对象、小对象和大对象三种，tiny,small,large
 - mspan、mcache、mcentral、mheap
@@ -182,7 +183,7 @@ categories:
 - [golang 程序启动过程?](https://blog.iceinto.com/posts/go/start/) 
 - 当go服务部署到线上了，发现有内存泄露，该怎么处理?
 
-## 包和库（package)
+### 包和库（package)
 - golang sql 链接池的实现
 - golang http 连接池的实现?
 - golang 与 kafka
@@ -206,7 +207,7 @@ categories:
 
 
 
-## 其它
+### 其它
 - golang 单元测试，mock
 - golang 性能分析？
 - golang 的编译过程？
