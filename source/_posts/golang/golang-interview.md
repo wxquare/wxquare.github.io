@@ -142,8 +142,6 @@ categories:
 	}()
  ```
 
-
-
 ### Golang并发编程 (concurrent programming)
 - 比较进程、线程和Goroutine。进程是资源分配的单位，有独立的地址空间，线程是操作系统调度的单位，协程是更细力度的执行单元，需要程序自身调度。Go语言原生支持Goroutine，并提供高效的协程调度模型。
 - 参考：[为什么要使用 Go 语言？Go 语言的优势在哪里？](https://www.zhihu.com/question/21409296/answer/1040884859)
