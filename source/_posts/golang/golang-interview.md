@@ -25,7 +25,7 @@ categories:
 - 内存结构和实现：指针、cap、size共24字节
 - 常用函数，append，cap，len
 - 切片动态扩容
-- 拷贝copy和“=”的区别
+- 深拷贝copy和浅拷贝“=”的区别
 
 ### map
 - 引用类型，需要初始化 make(map[string]int,5) 
@@ -58,6 +58,10 @@ categories:
 - struct中包含slice和map等字段时，也要使用reflect.DeepEqual().
 - https://stackoverflow.com/questions/24534072/how-to-compare-struct-slice-map-are-equal
 
+
+### 类型和拷贝方式
+- 值类型 ：String，Array，Int，Struct，Float，Bool，pointer（深拷贝）
+- 引用类型：Slice，Map （浅拷贝）
 
 ### 函数和方法，匿名函数
 - init函数
