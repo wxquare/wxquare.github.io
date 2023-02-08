@@ -109,6 +109,7 @@ categories:
 - nil
 - [实践string和[]byte的高效转换](https://www.cnblogs.com/shuiyuejiangnan/p/9707066.html)
 - 在业务场景中，使用指针虽然方便，但是要注意深拷贝和浅拷贝，这种错误还是比较常见的
+- 当你对象是结构体对象的指针时，你想要获取字段属性时，可以直接使用'.'，而不需要解引用
 
 ### 集合set
 1. golang中本身没有提供set，但可以通过map自己实现
