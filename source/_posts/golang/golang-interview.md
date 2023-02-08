@@ -143,8 +143,7 @@ categories:
 	}()
  ```
 
-## 并非编程模型，How does Go handle concurrency?
-### 并非编程的三架马车？Goroutine,GMP调度模型，channel 
+## How does Go handle concurrency? (Goroutine,GMP调度模型，channel)
 ### what's CSP?
 The **Communicating Sequential Processes (CSP) model** is a theoretical model of concurrent programming that was first introduced by Tony Hoare in 1978. The CSP model is based on the idea of concurrent processes that communicate with each other by sending and receiving messages through channels.The Go programming language provides support for the CSP model through its built-in concurrency features, such as goroutines and channels. In Go, concurrent processes are represented by goroutines, which are lightweight threads of execution. The communication between goroutines is achieved through channels, which provide a mechanism for passing values between goroutines in a safe and synchronized manner.
 ### Goroutine
