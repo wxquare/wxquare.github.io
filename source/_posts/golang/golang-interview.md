@@ -130,7 +130,7 @@ categories:
 - Go 语言推荐使用 recover 函数将内部异常转为错误处理，这使得用户可以真正的关心业务相关的错误处理。
 - 在Go服务中通常需要自定义粗错误类型，最好能有效区分业务逻辑错误和系统错误，同时需要捕获panic，将panic转化为error，避免某个错误影响server重启
 - panic 时需要保留runtime stack
-  ```
+```
   defer func() {
 		if x := recover(); x != nil {
 			panicReason := fmt.Sprintf("I'm panic because of: %v\n", x)
