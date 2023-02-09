@@ -192,7 +192,75 @@ The **Communicating Sequential Processes (CSP) model** is a theoretical model of
 
 In summary, the lifetime of a Goroutine in Go starts when it is created and ends when it completes its execution or encounters a panic, and can be influenced by synchronization mechanisms such as channels and wait groups.
 
-### 
+### 生产者、消费者模型，并行计算累加求和
+<details>
+  <summary>点击时的区域标题</summary>
+<code>
+package main
+
+import (
+	"fmt"
+	"math/rand"
+	"sync"
+	"time"
+)
+
+func produce(mq chan<- int) {
+	rand.Seed(time.Now().UnixNano())
+	limitGoroutine := 2
+	cnt := 100000
+	var wg sync.WaitGroup
+	for i := 0; i < limitGoroutine; i++ {
+		wg.Add(1)
+		go func(start int) {
+			defer wg.Done()
+			for j := start; j < cnt; j += limitGoroutine {
+				num := rand.Intn(100)
+				mq <- num
+			}
+		}(i)
+	}
+	go func() {
+		wg.Wait()
+		close(mq)
+	}()
+}
+
+func consume(nums <-chan int) int {
+	limitGoroutine := 4
+	resChan := make(chan int)
+	var wg sync.WaitGroup
+	for i := 0; i < limitGoroutine; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var sum int = 0
+			for num := range nums {
+				sum += num
+			}
+			resChan <- sum
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(resChan)
+	}()
+	var finalRes int = 0
+	for r := range resChan {
+		finalRes += r
+	}
+	return finalRes
+}
+
+func main() {
+	mq := make(chan int, 10)
+	go produce(mq)
+	res := consume(mq)
+	fmt.Printf("%+v\n", res)
+}
+
+</code>
+</details>
 
 -  golang context 用于在树形goroutine结构中，通过信号减少资源的消耗，包含Deadline、Done、Error、Value四个接口
 -  常用的同步原语：channel、sync.mutex、sync.RWmutex、sync.WaitGroup、sync.Once、atomic
