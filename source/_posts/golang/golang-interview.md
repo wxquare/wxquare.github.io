@@ -194,8 +194,9 @@ In summary, the lifetime of a Goroutine in Go starts when it is created and ends
 
 ### 生产者、消费者模型，并行计算累加求和
 <details>
-  <summary>点击时的区域标题</summary>
+  <summary>代码快</summary>
 <code>
+```
 package main
 
 import (
@@ -258,7 +259,7 @@ func main() {
 	res := consume(mq)
 	fmt.Printf("%+v\n", res)
 }
-
+```
 </code>
 </details>
 
