@@ -193,9 +193,6 @@ The **Communicating Sequential Processes (CSP) model** is a theoretical model of
 In summary, the lifetime of a Goroutine in Go starts when it is created and ends when it completes its execution or encounters a panic, and can be influenced by synchronization mechanisms such as channels and wait groups.
 
 ### 生产者、消费者模型，并行计算累加求和
-<details>
-  <summary>代码快</summary>
-<code>
 ```
 package main
 
@@ -260,8 +257,6 @@ func main() {
 	fmt.Printf("%+v\n", res)
 }
 ```
-</code>
-</details>
 
 -  golang context 用于在树形goroutine结构中，通过信号减少资源的消耗，包含Deadline、Done、Error、Value四个接口
 -  常用的同步原语：channel、sync.mutex、sync.RWmutex、sync.WaitGroup、sync.Once、atomic
