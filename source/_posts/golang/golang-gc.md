@@ -57,15 +57,15 @@ categories:
 
 ## 五、golang gc调优实例
 gc 是golang程序性能优化非常重要的一部分，建议依照下面两个实例实践golang程序优化。
-[1]. https://tonybai.com/2015/08/25/go-debugging-profiling-optimization/
-[2]. https://blog.golang.org/profiling-go-programs
+- https://tonybai.com/2015/08/25/go-debugging-profiling-optimization/
+- https://blog.golang.org/profiling-go-programs
 　　
 	
 
 参考：
-[1]. http://legendtkl.com/2017/04/28/golang-gc/
-[2]. https://www.jianshu.com/p/9c8e56314164
-[3]. https://blog.golang.org/ismmkeynote
-[4]. http://goog-perftools.sourceforge.net/doc/tcmalloc.html
-[5]. https://zhuanlan.zhihu.com/p/29216091
+- http://legendtkl.com/2017/04/28/golang-gc/
+- https://www.jianshu.com/p/9c8e56314164
+- https://blog.golang.org/ismmkeynote
+- http://goog-perftools.sourceforge.net/doc/tcmalloc.html
+- https://zhuanlan.zhihu.com/p/29216091
 
