@@ -277,6 +277,15 @@ func main() {
 - Compacting phase: In this phase, the Go runtime rearranges the remaining objects on the heap to reduce fragmentation and minimize the impact of future allocations and deallocations.
 
 
+### What are the memory leak scenarios in Go language?
+- Goroutine leaks: If a goroutine is created and never terminated, it can result in a memory leak. This can occur when a program creates a goroutine to perform a task but fails to provide a mechanism for the goroutine to terminate, such as a channel to receive a signal to stop.
+- Leaked closures: Closures are anonymous functions that capture variables from their surrounding scope. If a closure is created and assigned to a global variable, it can result in a memory leak, as the closure will continue to hold onto the captured variables even after they are no longer needed.
+- Incorrect use of channels: Channels are a mechanism for communicating between goroutines. If a program creates a channel but never closes it, it can result in a memory leak. Additionally, if a program receives values from a channel but never discards them, they will accumulate in memory and result in a leak.
+- Unclosed resources: In Go, it's important to close resources, such as files and network connections, when they are no longer needed. Failure to do so can result in a memory leak, as the resources and their associated memory will continue to be held by the program.
+- Unreferenced objects: In Go, unreferenced objects are objects that are no longer being used by the program but still exist in memory. This can occur when an object is created and never explicitly deleted or when an object is assigned a new value and the old object is not properly disposed of.
+By following best practices and being mindful of these common scenarios, you can help to avoid memory leaks in your Go programs. Additionally, you can use tools such as the Go runtime profiler to detect and diagnose memory leaks in your programs.
+
+
 - **多级缓存**：内存分配器不仅会区别对待大小不同的对象，还会将内存分成不同的级别分别管理，TCMalloc 和 Go 运行时分配器都会引入线程缓存（Thread Cache）、中心缓存（Central Cache）和页堆（Page Heap）三个组件分级管理内存
 - **对象大小**：Go 语言的内存分配器会根据申请分配的内存大小选择不同的处理逻辑，运行时根据对象的大小将对象分成微对象、小对象和大对象三种，tiny,small,large
 - mspan、mcache、mcentral、mheap
