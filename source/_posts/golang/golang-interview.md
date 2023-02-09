@@ -193,7 +193,7 @@ The **Communicating Sequential Processes (CSP) model** is a theoretical model of
 In summary, the lifetime of a Goroutine in Go starts when it is created and ends when it completes its execution or encounters a panic, and can be influenced by synchronization mechanisms such as channels and wait groups.
 
 ### 生产者、消费者模型，并行计算累加求和
-```
+```Go
 package main
 
 import (
