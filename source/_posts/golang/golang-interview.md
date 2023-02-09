@@ -183,7 +183,16 @@ The **Communicating Sequential Processes (CSP) model** is a theoretical model of
 
 ### What are the states of Goroutine and how do they flow?
 - 协程的状态流转？Grunnable、Grunning、Gwaiting
+- In Go, a Goroutine can be in one of several states during its lifetime. The states are:
+- New: The Goroutine is created but has not started executing yet.
+- Running: The Goroutine is executing on a machine-level thread.
+- Waiting: The Goroutine is waiting for some external event, such as I/O, channel communication, or a timer.
+- Sleeping: The Goroutine is sleeping, or waiting for a specified amount of time.
+- Dead: The Goroutine has completed its execution and is no longer running.
 
+In summary, the lifetime of a Goroutine in Go starts when it is created and ends when it completes its execution or encounters a panic, and can be influenced by synchronization mechanisms such as channels and wait groups.
+
+### 
 
 -  golang context 用于在树形goroutine结构中，通过信号减少资源的消耗，包含Deadline、Done、Error、Value四个接口
 -  常用的同步原语：channel、sync.mutex、sync.RWmutex、sync.WaitGroup、sync.Once、atomic
