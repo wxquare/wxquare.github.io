@@ -77,6 +77,12 @@ CREATE TABLE `hotel_info_tab` (
 - 事务的支持：Innodb提供了对数据库ACID事务的支持，并且还提供了行级锁和外键的约束。MyIASM引擎不提供事务的支持，支持表级锁，不支持行级锁和外键。
 - 索引的不同：innodb主键索引是聚簇索引，非主键索引是非聚簇索引，myisam是非聚簇索引。聚簇索引的叶子节点就是数据节点，而myism索引的叶子节点仍然是索引节点，只不过是指向对应数据块的指针,InnoDB的非聚簇索引叶子节点存储的是主键，需要再寻址一次才能得到数据
 
+InnoDB and MyISAM are two of the most commonly used storage engines in MySQL.
+
+InnoDB is a transactional storage engine, which means that it supports the ACID (Atomicity, Consistency, Isolation, Durability) properties of database transactions. This makes InnoDB well-suited for applications that require data consistency and integrity, such as e-commerce and financial applications. InnoDB also supports row-level locking, which allows multiple transactions to access and modify different rows in the same table simultaneously. This results in higher concurrency and better performance for multi-user applications.
+
+MyISAM, on the other hand, is a non-transactional storage engine. This means that it does not support transactions and does not enforce the ACID properties. MyISAM is optimized for fast read performance, and is often used for applications that need to read large amounts of data quickly, such as reporting and data warehousing applications. However, because MyISAM does not support transactions, it is not as well-suited for applications that require data consistency and integrity.
+
 
 ## 添加索引index，优化访问速度
 - [精度MySQL索引那些事](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
