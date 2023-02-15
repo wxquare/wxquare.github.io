@@ -1,5 +1,5 @@
 ---
-title: golang 内存管理与垃圾回收
+title: Go 内存管理与垃圾回收
 categories:
 - Golang
 ---
