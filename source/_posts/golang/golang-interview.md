@@ -357,4 +357,4 @@ By following best practices and being mindful of these common scenarios, you can
 - https://github.com/uber-go/guide 《golang uber style》
 - [Effective Go](http://https://golang.org/doc/effective_go.html)
 - https://github.com/iswbm/golang-interview
-- https://github.com/wxquare/go-tutorial
+- https://github.com/jincheng9/go-tutorial
