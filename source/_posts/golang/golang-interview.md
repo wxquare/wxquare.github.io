@@ -143,7 +143,7 @@ Overall, the choice of programming language depends on the project requirements,
 - [defer 实现原理？](https://blog.csdn.net/Tybyqi/article/details/83827140)
 
 
-### 如何golang处理程序中的error、panic
+### Go 错误处理 error、panic
 - 在Go 语言中，错误被认为是一种可以预期的结果；而异常则是一种非预期的结果，发生异常可能表示程序中存在BUG 或发生了其它不可控的问题。 
 - Go 语言推荐使用 recover 函数将内部异常转为错误处理，这使得用户可以真正的关心业务相关的错误处理。
 - 在Go服务中通常需要自定义粗错误类型，最好能有效区分业务逻辑错误和系统错误，同时需要捕获panic，将panic转化为error，避免某个错误影响server重启
