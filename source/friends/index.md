@@ -13,7 +13,7 @@ date: 2022-11-07 22:33:15
 - https://github.com/jincheng9/go-tutorial
 
 
-## other
+## Other
 - **东哥IT笔记**，微软Principal Engineer，https://donggeitnote.com/
 - https://coderscat.com
 - **陈皓**，https://coolshell.cn
