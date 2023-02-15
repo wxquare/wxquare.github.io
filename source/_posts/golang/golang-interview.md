@@ -4,6 +4,23 @@ categories:
 - Golang
 ---
 
+
+### Go 和 C++ 语言对比
+Go and C++ are two different programming languages with different design goals, syntax, and feature sets. Here's a brief comparison of the two:
+
+Syntax: Go has a simpler syntax than C++. It uses indentation for block structure and has fewer keywords and symbols. C++ has a more complex syntax with a lot of features that can make it harder to learn and use effectively.
+
+Memory Management: C++ gives the programmer more control over memory management through its support for pointers, manual memory allocation, and deallocation. Go, on the other hand, uses a garbage collector to automatically manage memory, making it less error-prone.
+
+Concurrency: Go has built-in support for concurrency through goroutines and channels, which make it easier to write concurrent code. C++ has a thread library that can be used to write concurrent code, but it requires more manual management of threads and locks.
+
+Performance: C++ is often considered a high-performance language, and it can be used for system-level programming and performance-critical applications. Go is also fast but may not be as fast as C++ in some cases.
+
+Libraries and Frameworks: C++ has a vast ecosystem of libraries and frameworks that can be used for a variety of applications, from game development to machine learning. Go's ecosystem is smaller, but it has good support for web development and distributed systems.
+
+Overall, the choice of programming language depends on the project requirements, the available resources, and the developer's expertise. Both Go and C++ have their strengths and weaknesses, and the best choice depends on the specific needs of the project.
+
+
 ### string/[]byte
 - string是golang的基本数组类型，s := "hello,world"，一旦初始化后不允许修改其内容
 - [内部实现结构](https://draveness.me/golang/docs/part2-foundation/ch03-datastructure/golang-string/)，指向数据的指针data和表示长度的len
