@@ -20,9 +20,10 @@ At a high level, the Go runtime is responsible for several core tasks:
 - Low-level system interaction: The runtime provides an interface for Go programs to interact with low-level system resources, including system calls, I/O operations, and other low-level functionality.
 
 The Go runtime is an essential component of the Go programming language, and it is responsible for many of the language's unique features and capabilities. By providing a consistent, efficient environment for Go code to run in, the runtime enables developers to write high-performance, scalable software that can run on a wide range of platforms and architectures.
+
 <div align='center'>
 <img src="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/images/runtime.png" width="500" height="500">
-<!-- ![runtime](https://github.com/wxquare/wxquare.github.io/raw/hexo/source/images/runtime.png 100*100) -->
+</div >
 
 ## 程序启动过程bootstrap
 
