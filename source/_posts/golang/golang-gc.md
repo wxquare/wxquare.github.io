@@ -26,12 +26,20 @@ The Go runtime is an essential component of the Go programming language, and it 
 </div >
 
 ## 程序bootstrap过程
-
 如上图所示，Go程序启动大致分为一下一个部分：
-- 参数处理
-- 操作系统初始化
-- 调度器初始化
-- 运行runtime.main函数，装载用户main函数并运行
+- 参数处理，runtime·args(SB)
+- 操作系统初始化，runtime·osinit(SB)
+- 调度器初始化，runtime·schedinit(SB)
+- 运行runtime.main函数，装载用户main函数并运行，runtime.main()
+参数处理和osinit逻辑比较简单，代码也较少，这里主要记录下调度器初始化和runtime.main函数两个部分
+
+### 调度器初始化runtime·schedinit(SB)
+
+
+### runtime.main
+
+
+
 
 
 
