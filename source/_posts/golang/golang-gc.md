@@ -40,6 +40,41 @@ The Go runtime is an essential component of the Go programming language, and it 
   - gc初始化 gcinit()
   - 初始化resize allp []*p procresize()
 
+stackinit() 核心代码用于初始化全局的stackpool和stackLarge两个结构
+```GO
+var stackpool [_NumStackOrders]struct {
+	item stackpoolItem
+	_    [cpu.CacheLinePadSize - unsafe.Sizeof(stackpoolItem{})%cpu.CacheLinePadSize]byte
+}
+
+//go:notinheap
+type stackpoolItem struct {
+	mu   mutex
+	span mSpanList
+}
+
+// Global pool of large stack spans.
+var stackLarge struct {
+	lock mutex
+	free [heapAddrBits - pageShift]mSpanList // free lists by log_2(s.npages)
+}
+
+func stackinit() {
+	if _StackCacheSize&_PageMask != 0 {
+		throw("cache size must be a multiple of page size")
+	}
+	for i := range stackpool {
+		stackpool[i].item.span.init()
+		lockInit(&stackpool[i].item.mu, lockRankStackpool)
+	}
+	for i := range stackLarge.free {
+		stackLarge.free[i].init()
+		lockInit(&stackLarge.lock, lockRankStackLarge)
+	}
+}
+
+```
+
 
 
 ### runtime.main
