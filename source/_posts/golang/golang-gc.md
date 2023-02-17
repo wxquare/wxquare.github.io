@@ -34,6 +34,12 @@ The Go runtime is an essential component of the Go programming language, and it 
 参数处理和osinit逻辑比较简单，代码也较少，这里主要记录下调度器初始化和runtime.main函数两个部分
 
 ### runtime·schedinit
+  schedinit内容比较多，主要包含：
+  - 栈初始化 stackinit() 
+  - 堆初始化 mallocinit()
+  - gc初始化 gcinit()
+  - 初始化resize allp []*p procresize()
+
 
 
 ### runtime.main
