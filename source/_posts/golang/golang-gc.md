@@ -9,6 +9,28 @@ categories:
 【1】.https://zhuanlan.zhihu.com/p/29216091  
 【2】.http://goog-perftools.sourceforge.net/doc/tcmalloc.html 
 
+
+## What is the Go runtime?
+  The Go runtime is a collection of software components that provide essential services for Go programs, including memory management, garbage collection, scheduling, and low-level system interaction. The runtime is responsible for managing the execution of Go programs and for providing a consistent, predictable environment for Go code to run in.
+
+At a high level, the Go runtime is responsible for several core tasks:
+- Memory management: The runtime manages the allocation and deallocation of memory used by Go programs, including the stack, heap, and other data structures.
+- Garbage collection: The runtime automatically identifies and frees memory that is no longer needed by a program, preventing memory leaks and other related issues.
+- Scheduling: The runtime manages the scheduling of Goroutines, the lightweight threads used by Go programs, to ensure that they are executed efficiently and fairly.
+- Low-level system interaction: The runtime provides an interface for Go programs to interact with low-level system resources, including system calls, I/O operations, and other low-level functionality.
+
+The Go runtime is an essential component of the Go programming language, and it is responsible for many of the language's unique features and capabilities. By providing a consistent, efficient environment for Go code to run in, the runtime enables developers to write high-performance, scalable software that can run on a wide range of platforms and architectures.
+
+## 程序启动过程bootstrap
+
+## 内存分配和管理策略mallocgc
+
+## 垃圾回收garbage collector
+
+## 程序并发Goroutine调度
+
+
+
 ## 一、内存管理基本策略
 为了兼顾内存分配的速度和内存利用率，大多数都采用以下策略进行内存管理：
 1. **申请**：每次从操作系统申请一大块内存（比如1MB），以减少系统调用
