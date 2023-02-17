@@ -33,7 +33,7 @@ The Go runtime is an essential component of the Go programming language, and it 
 - 运行runtime.main函数，装载用户main函数并运行，runtime.main()
 参数处理和osinit逻辑比较简单，代码也较少，这里主要记录下调度器初始化和runtime.main函数两个部分
 
-### 调度器初始化runtime·schedinit(SB)
+### runtime·schedinit
 
 
 ### runtime.main
