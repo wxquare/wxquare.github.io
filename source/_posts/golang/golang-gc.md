@@ -25,7 +25,13 @@ The Go runtime is an essential component of the Go programming language, and it 
 <img src="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/images/runtime.png" width="500" height="500">
 </div >
 
-## 程序启动过程bootstrap
+## 程序bootstrap过程
+
+如上图所示，Go程序启动大致分为一下一个部分：
+- 参数处理
+- 操作系统初始化
+- 调度器初始化
+- 运行runtime.main函数，装载用户main函数并运行
 
 
 
