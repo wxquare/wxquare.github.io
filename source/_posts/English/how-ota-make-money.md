@@ -20,9 +20,9 @@ Expedia Group includes Expedia, Hotels.com, Trivago, HomeAway, VRBO, Orbitz, Tra
 
 Both Expedia and Booking have three main channels to generate revenue: merchant model, agency model, and advertising. In the merchant model, OTAs purchase hotel rooms or other bookings in advance at a discount and **sell them over time** at a higher price. For instance, let's consider this example - Pretend Expedia uses **their purchasing power** to book a block of 50 rooms at a **popular resort** for $100 per night, while the current **market rate** is around $150 per night. Since they are booking 50 rooms at a time, they are getting a **volume discount**. Expedia resells the rooms over time at a higher rate, say $135, but that's still lower than the current market rate, which we will assume has risen to $170 since Expedia first booked the 50 room block. In this way, Expedia makes money by selling these rooms at a higher rate than they purchased them for and presents savings to customers over the current market rate.
 
-In the agency model, OTAs act as a facilitator and never collect the customer's money. Instead, they help customers to book hotel rooms, rental cars, or airline tickets and receive a commission or fee from the supplier. For instance, if a customer makes a hotel booking through Booking.com, Booking.com will pass that reservation to the hotel, and the hotel will pay a commission back to Booking.com. In the 10k report of Booking.com in 2018, they explain that most of their agency revenues come from these commission payments, but there are also some booking and insurance fees as well.
+In the agency model, OTAs act as a facilitator and never collect the customer's money. Instead, they help customers to book hotel rooms, **rental cars**, or airline tickets and receive a commission or fee from the supplier. For instance, if a customer makes a hotel booking through Booking.com, Booking.com will pass that reservation to the hotel, and the hotel will pay a commission back to Booking.com. In the 10k report of Booking.com in 2018, they explain that most of their agency revenues come from these commission payments, but there are also some booking and **insurance fees** as well.
 
-Finally, OTAs also make money from advertising and other revenue. Expedia sells a lot of advertising to both travel and non-travel companies on their Trivago platform, which is a price comparison platform focused on the hotel market. Another of Expedia's other revenue sources is HomeAway, their vacation rental and home-sharing platform that includes VRBO. Expedia earns both per transaction commissions as well as service fees through HomeAway. Meanwhile, Booking Holdings has seen recent growth from Agoda in international markets, which is one of their growing platforms largely focused on accommodations
+Finally, OTAs also make money from advertising and other revenue. Expedia sells a lot of advertising to both travel and non-travel companies on their Trivago platform, which is a **price comparison platform** focused on the hotel market. Another of Expedia's other revenue sources is HomeAway, their vacation rental and home-sharing platform that includes VRBO. Expedia earns both per transaction commissions as well as service fees through HomeAway. Meanwhile, Booking Holdings has seen recent growth from Agoda in international markets, which is one of their growing platforms largely focused on accommodations
 
 
 - Explorer Informed
@@ -36,3 +36,8 @@ Finally, OTAs also make money from advertising and other revenue. Expedia sells 
 - portfolio: 公文包，（个人或者机构） 投资组合
 - purchasing power
 - volume: 体积，大量的
+- popular resort
+- rental cars
+- nsurance fee
+- price comparison platform
+- accommodation
