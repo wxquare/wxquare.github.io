@@ -87,6 +87,8 @@ func stackinit() {
 		gp.stackguard0 = gp.stack.lo + _StackGuard
 ```
 
+goroutine 运行时需要把stack 地址传给m
+
 
 ### 
 
