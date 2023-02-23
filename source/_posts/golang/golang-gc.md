@@ -40,6 +40,8 @@ The Go runtime is an essential component of the Go programming language, and it 
   - gc初始化 gcinit()
   - 初始化resize allp []*p procresize()
 
+#### stack
+
 stackinit() 核心代码用于初始化全局的stackpool和stackLarge两个结构
 ```GO
 var stackpool [_NumStackOrders]struct {
@@ -74,6 +76,19 @@ func stackinit() {
 }
 
 ```
+
+### newproc 需要一个初始的stack
+```Go
+	if gp.stack.lo == 0 {
+		// Stack was deallocated in gfput or just above. Allocate a new one.
+		systemstack(func() {
+			gp.stack = stackalloc(startingStackSize)
+		})
+		gp.stackguard0 = gp.stack.lo + _StackGuard
+```
+
+
+### 
 
 
 
