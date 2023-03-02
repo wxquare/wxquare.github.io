@@ -1,5 +1,3 @@
-
-
 ---
 title: Design Twitter - System Design Interview
 categories:
