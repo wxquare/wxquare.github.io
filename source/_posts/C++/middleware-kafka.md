@@ -154,6 +154,14 @@ bin/kafka-topics.sh --topic topic_name --describe --bootstrap-server broker
 ./bin/kafka-consumer-groups.sh --describe --group group_name  --bootstrap-server brokers
 ```
 
+
+-- 重置消费offsets
+```
+
+./bin/kafka-consumer-groups.sh --group group_name --bootstrap-server brokers --reset-offsets  --all-topics --to-latest --execute
+
+```
+
 ## 推荐阅读
 1. [kafka数据可靠性深度解读](https://blog.csdn.net/u013256816/article/details/71091774)
 2. [kafka 选举](https://juejin.im/post/6844903846297206797)
