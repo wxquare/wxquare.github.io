@@ -155,7 +155,7 @@ bin/kafka-topics.sh --topic topic_name --describe --bootstrap-server broker
 ```
 
 
--- 重置消费offsets
+- 重置消费offsets
 ```
 
 ./bin/kafka-consumer-groups.sh --group group_name --bootstrap-server brokers --reset-offsets  --all-topics --to-latest --execute
