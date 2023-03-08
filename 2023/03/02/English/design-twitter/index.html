@@ -86,7 +86,7 @@
 <meta property="og:site_name" content="wxquare&#39;s Blogs">
 <meta property="og:description" content="视频链接 Let’s design the high-level architecture of Twitter - I mean, how hard could it be? By the way, this video is taken from my ongoing course “System Design Interview,” which will be complete by the">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2023-03-02T15:18:12.313Z">
+<meta property="og:updated_time" content="2023-03-08T15:25:39.040Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Design Twitter - System Design Interview">
 <meta name="twitter:description" content="视频链接 Let’s design the high-level architecture of Twitter - I mean, how hard could it be? By the way, this video is taken from my ongoing course “System Design Interview,” which will be complete by the">
@@ -382,11 +382,11 @@
 <p>When we read a tweet, we’ll retrieve information such as the tweet ID, the creator of the tweet, the time it was created, and any images it included. We’ll also retrieve information about the user who created the tweet, such as their profile picture.</p>
 <p>In this Twitter design, let’s assume that the HTTP request header contains an <strong>authorization token</strong> for us to verify the correct person who is making the tweet. However, we could also pass the user ID or the username of the person making the tweet as additional parameters in this request. To get the actual feed, we only need the user ID to retrieve the tweets of the user. However, we need to ensure that users cannot pass in other user IDs to get their feeds, which can be handled by the HTTP header authentication. <strong>Although there is authentication going on in this system, we’re not focusing on it as we’re primarily looking at the Twitter design</strong>.</p>
 <p>In this design, we have three main interactions: making a tweet, getting the feed, and following another user. <strong>We will be storing two things: the actual tweets and the follow relationships</strong>. Assuming we have a relational database, we will have a table of tweets and another table of follows. The follow relationship is straightforward, with the follower being the person following another, and the followee is the person being followed.</p>
-<p>If we want to get all the tweets of people that a particular user follows, we need to <strong>index this table</strong>. We would favor indexing based on the follower, which means that all records for this person will be grouped together in a particular range. If we have a read-heavy system, this approach would be ideal.</p>
-<p>For the tweet itself, we will have the tweet ID, timestamp, user ID of the person who created it, and the content of the tweet. We will not store the media itself in the database, but we’ll have a reference to that media that references the object store.</p>
+<p>If we want to get all the tweets of people that a particular user follows, we need to <strong>index this table</strong>. We would <strong>favor</strong> indexing based on the follower, which means that all records for this person will be grouped together in a particular range. If we have a read-heavy system, this approach would be ideal.</p>
+<p>For the tweet itself, we will have the tweet ID, timestamp, user ID of the person who created it, and the content of the tweet. <strong>We will not store the media itself in the database, but we’ll have a reference to that media that references the object store.</strong></p>
 <p>One of the bigger problems with our storage is that we will be storing a massive amount of data. If we go through the calculation mentioned earlier, roughly 50 gigabytes of data are going to be written per day to our relational database if we’re not including the media. In a month, we will have 1.5 terabytes, and in a year, we’ll have roughly 18 terabytes of data.</p>
 <p>Since we will have many reads hitting this database, we can have read-only replicas of the database. If reads are the bottleneck, it’s not hard to add additional database instances.</p>
-<p>However, the problem arises when a user creates a tweet. If we have a single leader replication, all those writes are going to be hitting a single database. Ideally, we should be able to scale our writes as well, and the obvious way to do this is by using sharding. Sharding allows us to break up our database into smaller pieces to scale writes more efficiently.</p>
+<p>However, the problem arises when a user creates a tweet. If we have a single leader replication, all those writes are going to be hitting a single database. Ideally, we should be able to scale our writes as well, and the obvious way to do this is by using sharding.  <strong>Sharding allows us to break up our database into smaller pieces to scale writes more efficiently</strong>.</p>
 <p>To shard this Twitter design, we could do it based on user ID because that’s the whole point of our design. A user only cares about a subset of users, and it doesn’t make sense to do it based on tweet ID. By using the user ID as the shard key, we can break up our database into smaller pieces and ensure that a particular user only hits one of these pieces.</p>
 <p>In case we have read-only replicas, it’s okay if a single instance gets the writes and then asynchronously populates the read-only replicas with the data. If a user ends up hitting one of the replicas and gets some stale data, it’s not a problem if it takes a few seconds before they get the tweet. However, if there is a sudden spike in traffic, the peak could be much higher, and it’s important to be able to scale writes to handle this.</p>
 <ul>
@@ -422,8 +422,9 @@
 <li>We can use <strong>stateless application servers</strong> and <strong>load balancers</strong> to <strong>scale up</strong> our system as needed</li>
 <li>relational database,NoSQL database</li>
 <li>object storage</li>
-<li></li>
-<li></li>
+<li>favor</li>
+<li>Sharding allows us to break up our database into smaller pieces to scale writes more efficiently</li>
+<li>stale data，陈旧的数据</li>
 </ul>
 
       
@@ -449,8 +450,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2023/03/02/golang/golang-gc/" rel="next" title="Go 内存管理与垃圾回收">
-                <i class="fa fa-chevron-left"></i> Go 内存管理与垃圾回收
+              <a href="/2023/02/21/English/how-ota-make-money/" rel="next" title="How OTAs Make Money">
+                <i class="fa fa-chevron-left"></i> How OTAs Make Money
               </a>
             
           </div>
@@ -458,6 +459,10 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2023/03/02/golang/golang-gc/" rel="prev" title="Go 内存管理与垃圾回收">
+                Go 内存管理与垃圾回收 <i class="fa fa-chevron-right"></i>
+              </a>
             
           </div>
         </div>
@@ -527,7 +532,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">52</span>
+                  <span class="site-state-item-count">53</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
