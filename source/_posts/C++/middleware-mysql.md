@@ -227,6 +227,70 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 - 查看数据timeout相关参数
 ```
 show variables like '%timeout%';
+{
+"show variables like '%timeout%'": [
+	{
+		"Variable_name" : "connect_timeout",
+		"Value" : "10"
+	},
+	{
+		"Variable_name" : "delayed_insert_timeout",
+		"Value" : "300"
+	},
+	{
+		"Variable_name" : "have_statement_timeout",
+		"Value" : "YES"
+	},
+	{
+		"Variable_name" : "innodb_flush_log_at_timeout",
+		"Value" : "1"
+	},
+	{
+		"Variable_name" : "innodb_lock_wait_timeout",
+		"Value" : "50"
+	},
+	{
+		"Variable_name" : "innodb_print_lock_wait_timeout_info",
+		"Value" : "OFF"
+	},
+	{
+		"Variable_name" : "innodb_rollback_on_timeout",
+		"Value" : "OFF"
+	},
+	{
+		"Variable_name" : "interactive_timeout",
+		"Value" : "28800"
+	},
+	{
+		"Variable_name" : "lock_wait_timeout",
+		"Value" : "31536000"
+	},
+	{
+		"Variable_name" : "net_read_timeout",
+		"Value" : "30"
+	},
+	{
+		"Variable_name" : "net_write_timeout",
+		"Value" : "60"
+	},
+	{
+		"Variable_name" : "rpl_stop_slave_timeout",
+		"Value" : "31536000"
+	},
+	{
+		"Variable_name" : "slave_net_timeout",
+		"Value" : "60"
+	},
+	{
+		"Variable_name" : "thread_pool_idle_timeout",
+		"Value" : "60"
+	},
+	{
+		"Variable_name" : "wait_timeout",
+		"Value" : "28800"
+	}
+]}
+
 ```
  
   
