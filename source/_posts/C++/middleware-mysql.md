@@ -38,7 +38,7 @@ CREATE TABLE `hotel_info_tab` (
   `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
    ```
-   通常存储的都是时间戳，需要考虑使用mysql服务器的时间还是业务的时间戳。
+   **通常存储的都是时间戳，需要考虑使用mysql服务器的时间还是业务的时间戳，考虑使用mysql时间戳是否会有不利的影响**
 - 约束：NOT UNLL,DEFAULT、UNIQUE,PRIMARY KEY,,FOREIGN KEY约束
 -  [9.1.7 NULL Values](https://dev.mysql.com/doc/refman/5.7/en/null-values.html)，除text类型外其它类型一般不使用null
 - primary key,[自增主键还是UUID？优缺点？怎么生成UUID？](https://blog.csdn.net/rocling/article/details/83116950)
