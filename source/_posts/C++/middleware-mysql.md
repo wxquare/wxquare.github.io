@@ -223,6 +223,12 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
   - [performance_schema](https://www.cnblogs.com/Courage129/p/14188422.html)
   - slow query
   - 读写分离架构需要考虑主从延时
+
+- 查看数据timeout相关参数
+```
+show variables like '%timeout%';
+```
+ 
   
 -  **优化的步骤**
     - 考虑数据量大导致的性能问题，访问量大导致的性能问题？
