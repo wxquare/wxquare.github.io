@@ -191,7 +191,8 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     show status like  'Threads%';
     show processlist;
     ```
-  - 存储空间information_schema
+  
+- 存储空间information_schema
   ```
     -- desc information_schema.tables;
   
