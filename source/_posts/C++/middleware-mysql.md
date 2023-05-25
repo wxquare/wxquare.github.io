@@ -40,7 +40,7 @@ CREATE TABLE `hotel_info_tab` (
    ```
    **通常存储的都是时间戳，需要考虑使用mysql服务器的时间还是业务的时间戳，考虑使用mysql时间戳是否会有不利的影响**
 - 约束：NOT UNLL,DEFAULT、UNIQUE,PRIMARY KEY,,FOREIGN KEY约束
--  [9.1.7 NULL Values](https://dev.mysql.com/doc/refman/5.7/en/null-values.html)，除text类型外其它类型一般不使用null
+-  除text类型外其它类型一般不使用null，都应该指定默认值
 - primary key,[自增主键还是UUID？优缺点？怎么生成UUID？](https://blog.csdn.net/rocling/article/details/83116950)
 - [snowfake生成订单号](https://blog.csdn.net/fly910905/article/details/82054196)
 - 主键和外键。数据库表中对储存数据对象予以唯一和完整标识的数据列或属性的组合。一个数据列只能有一个主键，且主键的取值不能缺失，即不能为空值（Null）。外键：在一个表中存在的另一个表的主键称此表的外键。主键是数据库确保数据行在整张表唯一性的保障，即使业务上本张表没有主键，也建议添加一个自增长的ID列作为主键。设定了主键之后，在后续的删改查的时候可能更加快速以及确保操作数据范围安全。
