@@ -164,6 +164,7 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
   - https://zhuanlan.zhihu.com/p/143866444
 - **分布式事务**
   - https://juejin.cn/post/6844903647197806605
+  - https://www.cnblogs.com/jajian/p/10014145.html
 
 ## mysql 乐观锁和悲观锁使用
 - 悲观锁：
