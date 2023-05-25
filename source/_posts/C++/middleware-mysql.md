@@ -51,7 +51,6 @@ CREATE TABLE `hotel_info_tab` (
 - [10.9.1 The utf8mb4 Character Set (4-Byte UTF-8 Unicode Encoding)](https://dev.mysql.com/doc/refman/5.7/en/charset-unicode-utf8mb4.html)
 - 是否需要分表，分库?（https://blog.csdn.net/thekenofDIS/article/details/108577905）
 - 是否需要增加index？
-- 查看见表sql：show create table table_name;
 
 ## 不建议使用null
    在MySQL和许多其他数据库系统中，**NULL是一个特殊的值，表示缺少值或未知值**。虽然NULL在某些情况下是有用的，但由于它的特殊性，使用NULL可能会带来一些问题，因此在某些情况下不建议过度使用NULL。一般只有text类型回用到，其它都应该制定默认值
@@ -132,12 +131,6 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     - 区分度高的字段放在前面，区分度低的字段放后面。像性别、状态这种字段区分度就很低，我们一般放后面
     - [结合实例理解联合索引与最左匹配原则](https://www.cnblogs.com/rjzheng/p/12557314.html)
     - https://dev.mysql.com/doc/refman/5.7/en/multiple-column-indexes.html
-- sql
-    ```
-    - 增加index，
-    - ALTER TABLE `table` ADD INDEX `product_id_index` (`product_id`)
-
-    ```
 
 
 ## 事务Transaction与锁
@@ -175,10 +168,8 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 ## mysql 乐观锁和悲观锁使用
 - 悲观锁：
   悲观锁是一种保守的并发控制机制，它假设在并发访问中会发生冲突，因此在访问数据之前会锁定资源，阻止其他事务对资源进行修改。在MySQL中，悲观锁主要通过以下方式实现：
-
   - 使用SELECT ... FOR UPDATE语句：在读取数据时对所选行进行锁定，确保其他事务不能对这些行进行修改。
   - 使用LOCK TABLES语句：锁定整个表，防止其他事务对该表进行读取和修改。
-
 
 - 乐观锁：
   乐观锁是一种乐观的并发控制机制，它假设在并发访问中不会发生冲突，允许多个事务同时访问资源。当提交事务时，系统会检查资源是否被其他事务修改，如果检测到冲突，则回滚事务。在MySQL中，乐观锁通常通过以下方式实现：
@@ -348,14 +339,20 @@ show variables like '%timeout%';
     - 业界成熟的方案
     
 ## 常用命令
-    mysql登陆：
+
+   - mysql登陆：
         mysql -h主机 -P端口 -u用户 -p密码
         SET PASSWORD FOR 'root'@'localhost' = PASSWORD('root');
         create database wxquare_test;
         show databases;
         use wxquare_test;
+	
+   - 查看见表sql：show create table table_name;
+   - show variables like '%timeout%';
+   
         
 ## 常见问题
+
 1. update json 文本需要转义
  ```sql
   update table set extinfo='{
