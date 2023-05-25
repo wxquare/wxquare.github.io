@@ -26,7 +26,7 @@ CREATE TABLE `hotel_info_tab` (
   `create_time` bigint(20) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uidx_hotel_id` (`hotel_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ROW_FORMAT=COMPRESSED
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED
 ```
 
 - 数值类型：int,tinyint,int(10),bigint
