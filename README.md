@@ -63,7 +63,7 @@
 
 ## DP问题
 - 记忆化搜索
--     - [2707. 字符串中的额外字符](https://leetcode.cn/problems/extra-characters-in-a-string/submissions/436332452/)
+      - [2707. 字符串中的额外字符](https://leetcode.cn/problems/extra-characters-in-a-string/submissions/436332452/)
 - 线性 DP
       - [斐波那契数列](https://leetcode.cn/problems/fibonacci-number/submissions/431236355/)
       - [数字三角形](https://leetcode.cn/problems/triangle/submissions/431243125/)
