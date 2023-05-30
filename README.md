@@ -1,17 +1,17 @@
 # online-algorithm-coding
 
 
-## 基本算法
-### 链表
+
+## 链表
 - [92. 反转链表 II](https://leetcode-cn.com/problems/reverse-linked-list-ii/)
 - [面试题 02.05. 链表求和](https://leetcode-cn.com/problems/sum-lists-lcci/)
 - [2. 两数相加](https://leetcode-cn.com/problems/add-two-numbers/)
 - [交换链表中的第K个节点和倒数第K个节点](https://leetcode-cn.com/problems/swapping-nodes-in-a-linked-list/)
-### 二叉树
+## 二叉树
 - [lowest common ancestor](https://leetcode-cn.com/problems/lowest-common-ancestor-of-a-binary-tree/)
 - [二叉树的前、中、后序遍历,非递归的实现](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_tree.cpp)（12.21）
 - [二叉搜索树的查找、插入和删除](https://github.com/wxquare/programming/blob/master/oj/datastruct-algorithm/binary_search_tree.cpp)
-### 滑动窗口/哈希表/双指针/快慢指针
+## 滑动窗口/哈希表/双指针/快慢指针
 - [两数之和](https://leetcode-cn.com/problems/two-sum/)
 - [三数之和](https://leetcode-cn.com/problems/3sum/)
 - [215. 数组中的第K个最大元素](https://leetcode-cn.com/problems/kth-largest-element-in-an-array/)
@@ -23,7 +23,7 @@
 - [1438. 绝对差不超过限制的最长连续子数组](https://leetcode-cn.com/problems/longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit/)
 - [1052. 爱生气的书店老板](https://leetcode-cn.com/problems/grumpy-bookstore-owner/)
 - [1438. 绝对差不超过限制的最长连续子数组](https://leetcode-cn.com/problems/longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit/)
-### stack/单调stack/双stack/队列/单调队列/双端队列
+## stack/单调stack/双stack/队列/单调队列/双端队列
 - [503. 下一个更大元素 II](https://leetcode-cn.com/problems/next-greater-element-ii/)
 - [496. 下一个更大元素 I](https://leetcode-cn.com/problems/next-greater-element-i/)
 - [556. 下一个更大元素 III](https://leetcode-cn.com/problems/next-greater-element-iii/)
@@ -55,10 +55,10 @@
 - [Reorder Routes to Make All Paths Lead to the City Zero](https://leetcode.com/problems/reorder-routes-to-make-all-paths-lead-to-the-city-zero/)
 - 切割回文串135
 - [2698. 求一个整数的惩罚数](https://leetcode.cn/problems/find-the-punishment-number-of-an-integer/submissions/435214562/)
-### 搜索:子集问题
+1. 搜索:子集问题
 - Unique Generalized Abbreviations (hard)
 - [2597. 美丽子集的数目](https://leetcode.cn/problems/the-number-of-beautiful-subsets/submissions/415822742/)
-### 记忆化搜索
+2. 记忆化搜索
 - [2707. 字符串中的额外字符](https://leetcode.cn/problems/extra-characters-in-a-string/submissions/436332452/)
 
 ## DP问题
@@ -161,25 +161,25 @@
 - [统计异或值在范围内的数对有多少](https://leetcode-cn.com/problems/count-pairs-with-xor-in-a-range/)
 
 ## 区间问题/前缀/后缀/差分/树状数组/线段树
-- 前缀和数组
-- 差分数组 （区间修改，求单点和）
+1. 前缀和数组
+2. 差分数组 （区间修改，求单点和）
   - [1109. Corporate Flight Bookings](https://leetcode.cn/problems/corporate-flight-bookings/submissions/213589517/)
-- 树状数组 (单点修改，前缀和和区间和）
+3. 树状数组 (单点修改，前缀和和区间和）
   - [307. Range Sum Query - Mutable](https://leetcode.cn/problems/range-sum-query-mutable/submissions/413938101/)
-- 线段树 （区间修改，求区间和）
+4. 线段树 （区间修改，求区间和）
   - [307. Range Sum Query - Mutable](https://leetcode.cn/problems/range-sum-query-mutable/submissions/413762232/)
 
 ## 数学
 1. 数论问题
-- [判断是否是素数](https://github.com/wxquare/online-algorithm-coding/blob/master/other/primes.cc)
-- [求一个数的所有素数](https://github.com/wxquare/online-algorithm-coding/blob/master/other/primes.cc)
-- [求多个数的所有素数](https://github.com/wxquare/online-algorithm-coding/blob/master/other/primes.cc)
-- [求多个数的公共素数](https://github.com/wxquare/online-algorithm-coding/blob/master/other/primes.cc)
-- [两数、多数最大公约数](https://github.com/wxquare/online-algorithm-coding/blob/master/other/primes.cc)
-- [两数、多数最小公倍数](https://github.com/wxquare/online-algorithm-coding/blob/master/other/primes.cc)
-- [2709. 最大公约数遍历](https://leetcode.cn/problems/greatest-common-divisor-traversal/submissions/436245155/)
-- [2698. 求一个整数的惩罚数](https://leetcode.cn/problems/find-the-punishment-number-of-an-integer/submissions/435214562/)
-- [1998. 数组的最大公因数排序](https://leetcode.cn/problems/gcd-sort-of-an-array/description/)
+      - [判断是否是素数](https://github.com/wxquare/online-algorithm-coding/blob/master/other/primes.cc)
+      - [求一个数的所有素数](https://github.com/wxquare/online-algorithm-coding/blob/master/other/primes.cc)
+      - [求多个数的所有素数](https://github.com/wxquare/online-algorithm-coding/blob/master/other/primes.cc)
+      - [求多个数的公共素数](https://github.com/wxquare/online-algorithm-coding/blob/master/other/primes.cc)
+      - [两数、多数最大公约数](https://github.com/wxquare/online-algorithm-coding/blob/master/other/primes.cc)
+      - [两数、多数最小公倍数](https://github.com/wxquare/online-algorithm-coding/blob/master/other/primes.cc)
+      - [2709. 最大公约数遍历](https://leetcode.cn/problems/greatest-common-divisor-traversal/submissions/436245155/)
+      - [2698. 求一个整数的惩罚数](https://leetcode.cn/problems/find-the-punishment-number-of-an-integer/submissions/435214562/)
+      - [1998. 数组的最大公因数排序](https://leetcode.cn/problems/gcd-sort-of-an-array/description/)
 2. 位运算
-- [所有数对按位与结果的异或和](https://leetcode-cn.com/problems/find-xor-sum-of-all-pairs-bitwise-and/)
+      - [所有数对按位与结果的异或和](https://leetcode-cn.com/problems/find-xor-sum-of-all-pairs-bitwise-and/)
 3. 拒绝抽样、水塘抽样、随机、概率问题
