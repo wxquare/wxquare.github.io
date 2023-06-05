@@ -44,15 +44,15 @@ In this Twitter design, let's assume that the HTTP request header contains an **
 
 In this design, we have three main interactions: making a tweet, getting the feed, and following another user. **We will be storing two things: the actual tweets and the follow relationships**. Assuming we have a relational database, we will have a table of tweets and another table of follows. The follow relationship is straightforward, with the follower being the person following another, and the followee is the person being followed.
 
-If we want to get all the tweets of people that a particular user follows, we need to **index this table**. We would favor indexing based on the follower, which means that all records for this person will be grouped together in a particular range. If we have a read-heavy system, this approach would be ideal.
+If we want to get all the tweets of people that a particular user follows, we need to **index this table**. We would **favor** indexing based on the follower, which means that all records for this person will be grouped together in a particular range. If we have a read-heavy system, this approach would be ideal.
 
-For the tweet itself, we will have the tweet ID, timestamp, user ID of the person who created it, and the content of the tweet. We will not store the media itself in the database, but we'll have a reference to that media that references the object store.
+For the tweet itself, we will have the tweet ID, timestamp, user ID of the person who created it, and the content of the tweet. **We will not store the media itself in the database, but we'll have a reference to that media that references the object store.**
 
 One of the bigger problems with our storage is that we will be storing a massive amount of data. If we go through the calculation mentioned earlier, roughly 50 gigabytes of data are going to be written per day to our relational database if we're not including the media. In a month, we will have 1.5 terabytes, and in a year, we'll have roughly 18 terabytes of data.
 
 Since we will have many reads hitting this database, we can have read-only replicas of the database. If reads are the bottleneck, it's not hard to add additional database instances.
 
-However, the problem arises when a user creates a tweet. If we have a single leader replication, all those writes are going to be hitting a single database. Ideally, we should be able to scale our writes as well, and the obvious way to do this is by using sharding. Sharding allows us to break up our database into smaller pieces to scale writes more efficiently.
+However, the problem arises when a user creates a tweet. If we have a single leader replication, all those writes are going to be hitting a single database. Ideally, we should be able to scale our writes as well, and the obvious way to do this is by using sharding.  **Sharding allows us to break up our database into smaller pieces to scale writes more efficiently**.
 
 To shard this Twitter design, we could do it based on user ID because that's the whole point of our design. A user only cares about a subset of users, and it doesn't make sense to do it based on tweet ID. By using the user ID as the shard key, we can break up our database into smaller pieces and ensure that a particular user only hits one of these pieces.
 
@@ -67,8 +67,8 @@ In case we have read-only replicas, it's okay if a single instance gets the writ
 - first and foremost
 - read-heavy system
 - hint
-	-   n. a slight or indirect indication or suggestion.
-	-   v. suggest or indicate something indirectly or covertly.
+	- n. a slight or indirect indication or suggestion.
+	- v. suggest or indicate something indirectly or covertly.
 -  the whole point
 -  profile picture: 头像
 - follow or unfollow the person
@@ -89,5 +89,6 @@ In case we have read-only replicas, it's okay if a single instance gets the writ
 - We can use **stateless application servers** and **load balancers** to **scale up** our system as needed
 - relational database,NoSQL database
 - object storage
-- 
-- 
+- favor
+- Sharding allows us to break up our database into smaller pieces to scale writes more efficiently
+- stale data，陈旧的数据
