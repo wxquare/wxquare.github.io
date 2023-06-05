@@ -4,15 +4,7 @@ categories:
 - C/C++
 ---
 
-
-
-## 了解数据库三大范式
-- 第一范式：每个列都不可以再拆分。
-- 第二范式：在第一范式的基础上，非主键列完全依赖于主键，而不能是依赖于主键的一部分。
-- 第三范式：在第二范式的基础上，非主键列只依赖于主键，不依赖于其他非主键。
-在设计数据库结构的时候，要尽量遵守三范式，如果不遵守，必须有足够的理由。比如性能。事实上我们经常会为了性能而妥协数据库的设计。
-
-
+多查看文档
 [MySQL 5.7 Reference Manual](https://dev.mysql.com/doc/refman/5.7/en/null-values.html)
 
 ## 如何建表
@@ -34,34 +26,43 @@ CREATE TABLE `hotel_info_tab` (
   `create_time` bigint(20) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uidx_hotel_id` (`hotel_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ROW_FORMAT=COMPRESSED
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED
 ```
 
 - 数值类型：int,tinyint,int(10),bigint
-- 定点数（exact-value），decimal，使用字符串存储
-- 浮点数（approximate-value (floating-point)）：float，double
+- 定点数（exact-value），decimal，使用字符串存储，精度
+- 浮点数（approximate-value (floating-point)）：float，double，精度缺失
 - string: varchar(24)，char(10)（定长，根据需要使用空格填充),text
 - 时间time：建表时通常会带上create_time,update_time，[datetime，timestamp类型](https://segmentfault.com/a/1190000017393602?utm_source=tag-newest)，有时也会用int32和int64的时间戳类型
    ```
   `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
    ```
+   **通常存储的都是时间戳，需要考虑使用mysql服务器的时间还是业务的时间戳，考虑使用mysql时间戳是否会有不利的影响**
 - 约束：NOT UNLL,DEFAULT、UNIQUE,PRIMARY KEY,,FOREIGN KEY约束
--  [9.1.7 NULL Values](https://dev.mysql.com/doc/refman/5.7/en/null-values.html)，除text类型外其它类型一般不使用null
-- primary key,[自增主键还是UUID？优缺点？怎么生成UUID？](https://blog.csdn.net/rocling/article/details/83116950)
-- [snowfake生成订单号](https://blog.csdn.net/fly910905/article/details/82054196)
-- 主键和外键。数据库表中对储存数据对象予以唯一和完整标识的数据列或属性的组合。一个数据列只能有一个主键，且主键的取值不能缺失，即不能为空值（Null）。外键：在一个表中存在的另一个表的主键称此表的外键。主键是数据库确保数据行在整张表唯一性的保障，即使业务上本张表没有主键，也建议添加一个自增长的ID列作为主键。设定了主键之后，在后续的删改查的时候可能更加快速以及确保操作数据范围安全。
-- engine，通常是innodb
-- 字符集选择，mysql数据默认情况下是不区分大小写的，可通过设置字符集设置大小写敏感，charset,utf8mb4
+- 除text类型外其它类型一般不使用null，都应该指定默认值
+- 指定主键primary key,[自增主键还是UUID？优缺点？怎么生成UUID？](https://blog.csdn.net/rocling/article/details/83116950)，比如item表使用自增ID，order表使用订单id，订单id可以认为是uuid
+- 主键和外键。数据库表中对储存数据对象予以唯一和完整标识的数据列或属性的组合。一个数据列只能有一个主键，且主键的取值不能缺失，即不能为空值（Null）。外键：在一个表中存在的另一个表的主键称此表的外键。主键是数据库确保数据行在整张表唯一 性的保障，即使业务上本张表没有主键，也建议添加一个自增长的ID列作为主键。设定了主键之后，在后续的删改查的时候可能更加快速以及确保操作数据范围安全。
+- 存储引擎选择
+- **utf8mb4**：通过 show variables like 'character_set_%'; 可以查看系统默认字符集。mysql中有utf8和utf8mb4两种编码，在mysql中请大家忘记**utf8**，永远使用**utf8mb4**。这是mysql的一个遗留问题，mysql中的utf8最多只能支持3bytes长度的字符编码，对于一些需要占据4bytes的文字，mysql的utf8就不支持了，要使用utf8mb4才行
+- **COLLATE=utf8mb4_unicode_ci**,所谓utf8_unicode_ci，其实是用来排序的规则。对于mysql中那些字符类型的列，如VARCHAR，CHAR，TEXT类型的列，都需要有一个COLLATE类型来告知mysql如何对该列进行排序和比较。简而言之，COLLATE会影响到ORDER BY语句的顺序，会影响到WHERE条件中大于小于号筛选出来的结果，会影响**DISTINCT**、**GROUP BY**、**HAVING**语句的查询结果。另外，mysql建索引的时候，如果索引列是字符类型，也会影响索引创建，只不过这种影响我们感知不到。总之，凡是涉及到字符类型比较或排序的地方，都会和COLLATE有关。
 - 行格式，row_format，(https://dev.mysql.com/doc/refman/5.7/en/innodb-row-format.html)
 - [int(10) 零填充zerofill](https://blog.csdn.net/houwanle/article/details/123192185)
 - [10.9.1 The utf8mb4 Character Set (4-Byte UTF-8 Unicode Encoding)](https://dev.mysql.com/doc/refman/5.7/en/charset-unicode-utf8mb4.html)
 - 是否需要分表，分库?（https://blog.csdn.net/thekenofDIS/article/details/108577905）
 - 是否需要增加index？
-- 查看见表sql：show create table table_name;
+
+## 不建议使用null
+   在MySQL和许多其他数据库系统中，**NULL是一个特殊的值，表示缺少值或未知值**。虽然NULL在某些情况下是有用的，但由于它的特殊性，使用NULL可能会带来一些问题，因此在某些情况下不建议过度使用NULL。一般只有text类型回用到，其它都应该制定默认值
+1. 逻辑判断和比较的复杂性：由于NULL表示未知或缺少值，它的比较结果不是true也不是false，而是NULL。这意味着使用NULL进行逻辑判断和比较时需要额外的注意，可能需要使用IS NULL或IS NOT NULL等特殊的操作符。
+2. 聚合函数的结果处理：在使用聚合函数（如SUM、AVG、COUNT等）进行计算时，NULL的处理可能会产生意外的结果。通常情况下，聚合函数会忽略NULL值，因此如果某列中有NULL值，可能会导致计算结果不准确。
+3. 索引的使用限制：某些类型的索引在处理NULL值时可能会受到限制。例如，对于普通索引（B-tree索引）来说，NULL值并不会被索引，因此在查询时可能无法充分利用索引的性能优势。
+4. 查询语句的复杂性增加：当使用NULL值进行查询时，可能需要编写更复杂的查询语句来处理NULL的情况，这会增加查询的复杂性和维护成本。
+
+虽然NULL有其合理的用途，例如表示缺失的数据或未知的值，但过度使用NULL可能会导致代码的复杂性增加、查询的不准确性和性能问题。在设计数据库模式和数据模型时，需要根据实际需求和业务逻辑合理使用NULL，并考虑到其带来的潜在问题。
 
 
-## 怎么考虑分表，单表的size？
+## 怎么考虑分库，分表？
 原文链接：https://juejin.cn/post/6844903872134135816
 - 今天，探讨一个有趣的话题：MySQL 单表数据达到多少时才需要考虑分库分表？有人说 2000 万行，也有人说 500 万行。那么，你觉得这个数值多少才合适呢？
 曾经在中国互联网技术圈广为流传着这么一个说法：MySQL 单表数据量大于 2000 万行，性能会明显下降。事实上，这个传闻据说最早起源于百度。具体情况大概是这样的，当年的 DBA 测试 MySQL性能时发现，当单表的量在 2000 万行量级的时候，SQL 操作的性能急剧下降，因此，结论由此而来。然后又据说百度的工程师流动到业界的其它公司，也带去了这个信息，所以，就在业界流传开这么一个说法。
@@ -71,6 +72,20 @@ CREATE TABLE `hotel_info_tab` (
 
 ## 存储引擎（Storage Engine) 选择
 [Setting the Storage Engine](https://dev.mysql.com/doc/refman/5.7/en/storage-engine-setting.html)
+MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景。以下是几种常见的MySQL存储引擎对比：
+- InnoDB：
+	- 事务支持：InnoDB是MySQL默认的事务性存储引擎，支持ACID事务特性，适用于需要强一致性和事务支持的应用。
+	- 行级锁定：InnoDB支持行级锁定，提供更好的并发性能。
+	- 外键约束：InnoDB支持外键约束，可以保持数据完整性。
+	- Crash Recovery：InnoDB具有崩溃恢复机制，能够在故障恢复时保证数据的一致性。
+	- 适用场景：适用于高并发、需要事务支持和数据完整性的应用，如电子商务、在线交易等。
+
+- MyISAM：
+	- 速度和性能：MyISAM对于读取操作有很好的性能表现，适用于读取频繁的应用。
+	- 表级锁定：MyISAM使用表级锁定，对并发性能有一定影响。
+	- 不支持事务：MyISAM不支持事务和崩溃恢复机制，不保证数据的完整性和一致性。
+	- 全文索引：MyISAM支持全文索引，适用于对文本内容进行高效搜索的应用。
+	- 适用场景：适用于读取频繁、对事务和数据完整性要求不高的应用，如博客、新闻等。
 - mysql存储引擎是插件式的，支持多种存储引擎，比较常用的是innodb和myisam
 - 存储结构上的不同：innodb数据和索引时集中存储的，myism数据和索引是分开存储的
 - 数据插入顺序不同：innodb插入记录时是按照主键大小有序插入，myism插入数据时是按照插入顺序保存的
@@ -116,18 +131,10 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     - 区分度高的字段放在前面，区分度低的字段放后面。像性别、状态这种字段区分度就很低，我们一般放后面
     - [结合实例理解联合索引与最左匹配原则](https://www.cnblogs.com/rjzheng/p/12557314.html)
     - https://dev.mysql.com/doc/refman/5.7/en/multiple-column-indexes.html
-- sql
-    ```
-    - 增加index，
-    - ALTER TABLE `table` ADD INDEX `product_id_index` (`product_id`)
-
-    ```
-
 
 
 ## 事务Transaction与锁
-- [精读mysql事务的面试](https://blog.csdn.net/qq_43255017/article/details/106442887?utm_medium=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&depth_1-utm_source=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&request_id=)
-- 什么是数据库事务？事务是一个不可分割的数据库操作序列，也是数据库并发控制的基本单位，其执行的结果必须使数据库从一种一致性状态变到另一种一致性状态。事务是逻辑上的一组操作，要么都执行，要么都不执行
+- [精读mysql事务](https://blog.csdn.net/qq_43255017/article/details/106442887?utm_medium=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&depth_1-utm_source=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&request_id=)
 - [innodb事务的ACID特性，以及其对应的实现原理?](https://www.cnblogs.com/kismetv/p/10331633.html)   
     - 原子性：语句要么全执行，要么全不执行，是事务最核心的特性，事务本身就是以原子性来定义的；实现主要基于undo log
     - 持久性：保证事务提交后不会因为宕机等原因导致数据丢失；实现主要基于redo log
@@ -138,30 +145,21 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
   -  读提交，READ-COMMITTED，会产生不可重复读问题
   -  可重复读 （REPEATABLE READ），幻读问题
   -  SERIALIZABLE(可串行化)
-- **概念**
-  - 共享锁/读锁（Shared Locks）
-  - 排他锁/写锁（Exclusive Locks）
-  - 间隙锁
-  - 死锁。死锁是指两个或多个事务在同一资源上相互占用，并请求锁定对方的资源，从而导致恶性循环的现象
-  - 悲观锁和乐观锁。悲观锁：假定会发生并发冲突，屏蔽一切可能违反数据完整性的操作。在查询完数据的时候就把事务锁起来，直到提交事务。实现方式：使用数据库中的锁机制。：假设不会发生并发冲突，只在提交操作时检查是否违反数据完整性。在修改数据的时候把事务锁起来，通过version的方式来进行锁定。实现方式：乐一般会使用版本号机制或CAS算法实现。乐观锁适合多读的场景，悲观锁适合多写的场景
-  - 表级锁：lock table tbl_name
-  - 页级锁：锁住指定数据空间。select id from table_name where age between 1 and 10 for update
-  - 行级锁：select id from table where age=12 for update
-  - 在数据库的增、删、改、查中，只有增、删、改才会加上排它锁，而只是查询并不会加锁，只能通过在select语句后显式加lock in share mode或者for update来加共享锁或者排它锁
-  - 显示加锁：select ... for upate,隐式加锁，insert/update/delete
-  - MySQL中InnoDB引擎的行锁是怎么实现的？InnoDB行锁是通过给索引上的索引项加锁来实现的，只有通过索引条件检索数据，InnoDB才使用行级锁，否则，InnoDB将使用表锁。
-  - 隔离级别与锁的关系.可以先阐述四种隔离级别，再阐述它们的实现原理。隔离级别就是依赖锁和MVCC实现的。
 - **事务的隔离属性底层实现原理**，关于锁和mvcc
   - 可以先阐述四种隔离级别，再阐述它们的实现原理。隔离级别就是依赖锁和MVCC实现的。
   - https://zhuanlan.zhihu.com/p/143866444
+- **悲观锁与乐观锁**
+  - 悲观锁：悲观锁是一种保守的并发控制机制，它假设在并发访问中会发生冲突，因此在访问数据之前会锁定资源，阻止其他事务对资源进行修改。在MySQL中，悲观锁主要通过以下方式实现：
+  	- 使用SELECT ... FOR UPDATE语句：在读取数据时对所选行进行锁定，确保其他事务不能对这些行进行修改。
+  	- 使用LOCK TABLES语句：锁定整个表，防止其他事务对该表进行读取和修改。
+  - 乐观锁：乐观锁是一种乐观的并发控制机制，它假设在并发访问中不会发生冲突，允许多个事务同时访问资源。当提交事务时，系统会检查资源是否被其他事务修改，如果检测到冲突，则回滚事务。在MySQL中，乐观锁通常通过以下方式实现：
+   	- 使用版本号或时间戳：在数据表中增加一个版本号或时间戳字段，每次修改数据时更新该字段。在提交事务时，检查版本号或时间戳是否与开始事务时的值相同，如果不同则表示发生了冲突。
+   	- 使用CAS（Compare and Swap）操作：在编程语言层面，通过CAS操作来比较内存中的值与预期值是否相等，如果相等则修改，否则放弃修改。
+   使用乐观锁和悲观锁的选择取决于应用场景和需求：悲观锁适合在并发冲突频繁的情况下，通过独占资源避免并发问题，但会对系统性能产生一定的影响。乐观锁适合在并发冲突较少的情况下，通过乐观的并发控制机制提高系统性能，但需要处理冲突的情况。在实际使用时，需要根据具体业务场景和需求选择适当的并发控制机制，并注意处理冲突和回滚事务的策略，以确保数据的一致性和完整性。
+
 - **分布式事务**
   - https://juejin.cn/post/6844903647197806605
-
-## 视图view
-- 什么是视图，什么场景下使用，为什么使用？有什么优缺点
-- 数据安全性，简化sql查询；
-- 视图是由基本表(实表)产生的表(虚表)，视图的列可以来自不同的表，是表的抽象和在逻辑意义上建立的新关系，视图的建立和删除不影响基本表
-- 数据库必须把视图的查询转化成对基本表的查询，如果这个视图是由一个复杂的多表查询所定义，那么，即使是视图的一个简单查询，数据库也把它变成一个复杂的结合体，需要花费一定的时间
+  - https://www.cnblogs.com/jajian/p/10014145.html
 
 
 ## 数据库优化
@@ -173,7 +171,8 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     show status like  'Threads%';
     show processlist;
     ```
-  - 存储空间information_schema
+  
+- 存储空间information_schema
   ```
     -- desc information_schema.tables;
   
@@ -204,6 +203,76 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
   - [performance_schema](https://www.cnblogs.com/Courage129/p/14188422.html)
   - slow query
   - 读写分离架构需要考虑主从延时
+
+- 查看数据timeout相关参数设置
+```
+show variables like '%timeout%';
+{
+"show variables like '%timeout%'": [
+	{
+		"Variable_name" : "connect_timeout",
+		"Value" : "10"
+	},
+	{
+		"Variable_name" : "delayed_insert_timeout",
+		"Value" : "300"
+	},
+	{
+		"Variable_name" : "have_statement_timeout",
+		"Value" : "YES"
+	},
+	{
+		"Variable_name" : "innodb_flush_log_at_timeout",
+		"Value" : "1"
+	},
+	{
+		"Variable_name" : "innodb_lock_wait_timeout",
+		"Value" : "50"
+	},
+	{
+		"Variable_name" : "innodb_print_lock_wait_timeout_info",
+		"Value" : "OFF"
+	},
+	{
+		"Variable_name" : "innodb_rollback_on_timeout",
+		"Value" : "OFF"
+	},
+	{
+		"Variable_name" : "interactive_timeout",
+		"Value" : "28800"
+	},
+	{
+		"Variable_name" : "lock_wait_timeout",
+		"Value" : "31536000"
+	},
+	{
+		"Variable_name" : "net_read_timeout",
+		"Value" : "30"
+	},
+	{
+		"Variable_name" : "net_write_timeout",
+		"Value" : "60"
+	},
+	{
+		"Variable_name" : "rpl_stop_slave_timeout",
+		"Value" : "31536000"
+	},
+	{
+		"Variable_name" : "slave_net_timeout",
+		"Value" : "60"
+	},
+	{
+		"Variable_name" : "thread_pool_idle_timeout",
+		"Value" : "60"
+	},
+	{
+		"Variable_name" : "wait_timeout",
+		"Value" : "28800"
+	}
+]}
+
+```
+ 
   
 -  **优化的步骤**
     - 考虑数据量大导致的性能问题，访问量大导致的性能问题？
@@ -244,14 +313,20 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     - 业界成熟的方案
     
 ## 常用命令
-    mysql登陆：
+
+   - mysql登陆：
         mysql -h主机 -P端口 -u用户 -p密码
         SET PASSWORD FOR 'root'@'localhost' = PASSWORD('root');
         create database wxquare_test;
         show databases;
         use wxquare_test;
+	
+   - 查看见表sql：show create table table_name;
+   - show variables like '%timeout%';
+   
         
 ## 常见问题
+
 1. update json 文本需要转义
  ```sql
   update table set extinfo='{
@@ -294,5 +369,11 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 - [怎么处理线上DDL变更?](https://zhuanlan.zhihu.com/p/247939271)
 - [Redis和mysql数据怎么保持数据一致的？](https://coolshell.cn/articles/17416.html) 
 - [MySQL数据库面试题（2020最新版）](https://thinkwon.blog.csdn.net/article/details/104778621)
+
+## 了解数据库三大范式
+- 第一范式：每个列都不可以再拆分。
+- 第二范式：在第一范式的基础上，非主键列完全依赖于主键，而不能是依赖于主键的一部分。
+- 第三范式：在第二范式的基础上，非主键列只依赖于主键，不依赖于其他非主键。
+在设计数据库结构的时候，要尽量遵守三范式，如果不遵守，必须有足够的理由。比如性能。事实上我们经常会为了性能而妥协数据库的设计。
 
 
