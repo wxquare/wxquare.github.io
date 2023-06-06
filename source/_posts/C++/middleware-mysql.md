@@ -136,18 +136,19 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 ## 事务Transaction与锁
 - [精读mysql事务](https://blog.csdn.net/qq_43255017/article/details/106442887?utm_medium=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&depth_1-utm_source=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&request_id=)
 - [innodb事务的ACID特性，以及其对应的实现原理?](https://www.cnblogs.com/kismetv/p/10331633.html)   
-    - 原子性：语句要么全执行，要么全不执行，是事务最核心的特性，事务本身就是以原子性来定义的；实现主要基于undo log
+    - 原子性：语句要么全执行，要么全不执行，是事务最核心的特性，事务本身就是以原子性来定义的；实现主要基于undolog/redolog
     - 持久性：保证事务提交后不会因为宕机等原因导致数据丢失；实现主要基于redo log
     - 隔离性：保证事务执行尽可能不受其他事务影响；InnoDB默认的隔离级别是RR，RR的实现主要基于锁机制（包含next-key lock）、MVCC（包括数据的隐藏列、基于undo log的版本链、ReadView）
     - 一致性：事务追求的最终目标，一致性的实现既需要数据库层面的保障，也需要应用层面的保障
 - **innodb四种隔离属性以及分别会产生什么问题?分别举例说明**
   -  读未提交（READ UNCOMMITTED),会产生脏读问题
   -  读提交，READ-COMMITTED，会产生不可重复读问题
-  -  可重复读 （REPEATABLE READ），幻读问题
+  -  可重复读 （REPEATABLE READ），幻读问题(insert)
   -  SERIALIZABLE(可串行化)
 - **事务的隔离属性底层实现原理**，关于锁和mvcc
   - 可以先阐述四种隔离级别，再阐述它们的实现原理。隔离级别就是依赖锁和MVCC实现的。
   - https://zhuanlan.zhihu.com/p/143866444
+  -
 - **悲观锁与乐观锁**
   - 悲观锁：悲观锁是一种保守的并发控制机制，它假设在并发访问中会发生冲突，因此在访问数据之前会锁定资源，阻止其他事务对资源进行修改。在MySQL中，悲观锁主要通过以下方式实现：
   	- 使用SELECT ... FOR UPDATE语句：在读取数据时对所选行进行锁定，确保其他事务不能对这些行进行修改。
