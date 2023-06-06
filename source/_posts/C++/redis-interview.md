@@ -192,7 +192,9 @@ Redis 执行 Lua 脚本会以原子性方式进行，在执行脚本时不会再
 
 
 ## redis 常用命令
-- 
+- redis-cli -h host -p port -a password
+- set key value [NX|XX] [EX seconds|PX milliseconds|EXAT unix]
+- get key
 
 ## 推荐阅读:
 1. https://blog.csdn.net/ThinkWon/article/details/103522351
