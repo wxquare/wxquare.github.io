@@ -232,15 +232,18 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
      ```  
 - **index优化** 
     - 会查看sql执行计划explain
-- **缓存优化**
+
+- **使用缓存优化DB需要考虑的问题**
     - 缓存更新、过期、淘汰的策略
     - 缓存可能遇到的三大问题，雪崩、穿透、击穿
     - 缓存和db的一致性问题，[缓存更新策略及其分析？](https://zhuanlan.zhihu.com/p/86396877),业界比较通用的先更新DB，再删除cache
+
 - **库表优化/分表/分库**
     - 垂直分表
     - 水平分表
     - 分库
     - 业界成熟的方案
+
 - **架构优化读写分离优化**
     - 在写操作的较多的情况可以考虑数据库读写分离的方案
     - [业界的方案](https://www.cnblogs.com/wollow/p/10839890.html),代理实现和业务实现
@@ -256,23 +259,23 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
    - show variables like '%timeout%';
    - update json 文本需要转义
 	 ```sql
-	  update table set extinfo='{
-	    \"urls\": [
-		{
-		    \"url\": \"/path1\",
-		    \"type\": \"type1\"
-		},
-		{
-		    \"url\": \"/path2\",
-		    \"type\": \"type2\"
-		},
-	    ]
-	}' where id = 2;
+        update table set extinfo='{
+          \"urls\": [
+        {
+            \"url\": \"/path1\",
+            \"type\": \"type1\"
+        },
+        {
+            \"url\": \"/path2\",
+            \"type\": \"type2\"
+        },
+          ]
+      }' where id = 2;
 	 ```
    - truncate table 属于ddl语句，需要ddl的权限
-   - dump 库表结构
-	```
-	mysqldump --column-statistics=0 -hhost -PPort -uuser_name -ppassword --databases -d db_name --skip-lock-tables --skip-add-drop-table --set-gtid-purged=OFF | sed 's/ AUTO_INCREMENT=	[0-9]*//g' > db.sql
+   - mysqldump 库表结构
+	   ```
+      mysqldump --column-statistics=0 -hhost -PPort -uuser_name -ppassword --databases -d db_name --skip-lock-tables --skip-add-drop-table --set-gtid-purged=OFF | sed 's/ AUTO_INCREMENT=	[0-9]*//g' > db.sql
      ```
 
 ## 推荐阅读:
@@ -294,5 +297,3 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 - 第二范式：在第一范式的基础上，非主键列完全依赖于主键，而不能是依赖于主键的一部分。
 - 第三范式：在第二范式的基础上，非主键列只依赖于主键，不依赖于其他非主键。
 在设计数据库结构的时候，要尽量遵守三范式，如果不遵守，必须有足够的理由。比如性能。事实上我们经常会为了性能而妥协数据库的设计。
-
-
