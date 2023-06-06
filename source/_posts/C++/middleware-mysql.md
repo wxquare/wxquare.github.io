@@ -143,7 +143,7 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 - **innodb四种隔离属性以及分别会产生什么问题?分别举例说明**
   -  读未提交（READ UNCOMMITTED),会产生脏读问题
   -  读提交，READ-COMMITTED，会产生不可重复读问题
-  -  可重复读 （REPEATABLE READ），幻读问题(insert)，mysql 默认的事务隔离级别
+  -  可重复读 （REPEATABLE READ），幻读问题(insert)，**mysql 默认的事务隔离级别**
   -  SERIALIZABLE(可串行化)
 - **事务的隔离属性底层实现原理**，关于锁和mvcc
   - 可以先阐述四种隔离级别，再阐述它们的实现原理。隔离级别就是依赖锁和MVCC实现的。
