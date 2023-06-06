@@ -169,6 +169,7 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
   - connections/thread
   - 慢查询监控
   - 网络流量IO
+  - 读写分离架构时需要监控主从延时
     ```
     show variables like '%max_connection%'; 查看最大连接数
     show status like  'Threads%';
@@ -201,8 +202,6 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
       data_length desc, index_length desc;
   ```
   - [performance_schema](https://www.cnblogs.com/Courage129/p/14188422.html)
-  - slow query
-  - 读写分离架构需要考虑主从延时
   
 - 会查看mysql server的相关配置参数 例如timeout
 ```
