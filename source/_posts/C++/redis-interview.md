@@ -171,7 +171,7 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
 - Redis为单进程单线程模式，采用队列模式将并发访问变成串行访问，且多客户端对Redis的连接并不存在竞争关系Redis中可以使用SETNX命令实现分布式锁。当且仅当 key 不存在，将 key 的值设为 value。 若给定的 key 已经存在，则 SETNX 不做任何动作SETNX 是『SET if Not eXists』(如果不存在，则 SET)的简写。返回值：设置成功，返回 1 。设置失败，返回 0
 
 
-## 分布式redis
+## redis分布式方案
 1. 单机版，并发访问有限，存储有限，单点故障。
 2. 数据持久化
 4. 主从复制。主库（写）同步到从库（读）的延时会造成数据的不一致；主从模式不具备自动容错，需要大量的人工操作
@@ -191,6 +191,8 @@ Redis 执行 Lua 脚本会以原子性方式进行，在执行脚本时不会再
 - Redis 要求单个 Lua 脚本操作的 key 必须在同一个 Redis 节点上，因此 Redis Cluster 方式需要设置 HashTag（实际中不太建议这样操作）
 
 
+## redis 常用命令
+- 
 
 ## 推荐阅读:
 1. https://blog.csdn.net/ThinkWon/article/details/103522351
