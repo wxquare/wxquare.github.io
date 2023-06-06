@@ -163,7 +163,7 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
   - https://www.cnblogs.com/jajian/p/10014145.html
 
 
-## 数据库优化
+## 数据库核心监控
 - **核心监控告警指标**
   - read write qps 监控/select/update/insert
   - connections/thread
@@ -208,20 +208,18 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 	show variables like '%timeout%';
 ```
  
-  
--  **优化的步骤**
+ ## 数据库优化
+ -  **优化的步骤**
     - 考虑数据量大导致的性能问题，访问量大导致的性能问题？
     - sql语句优化。分析执行计划，减少load的数据量
     - 考虑能否通过增加索引优化查询效率，检查索引是否生效
     - 是否有缓存
-    - 根据场景来看，写操作多的情况下，考虑读写分离
     - 垂直分表、水平分表、分库
-   
+    -     - 根据场景来看，写操作多的情况下，考虑读写分离
 - **sql优化**
     - 分析数据sql的结构是否加载了不必要的字段和数据
     - [深度分页查询优化](https://juejin.cn/post/7012016858379321358)
     - 子查询和连接查询
-    - 会查看sql执行计划explain
      ```
        id列：在复杂的查询语句中包含多个查询使用id标示
        select_type:select/subquery/derived/union
@@ -232,23 +230,23 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
        key_len：显示在索引里使用的字节数
        rows：为了找到所需要的行而需要读取的行数
      ```  
-
+- **index优化** 
+    - 会查看sql执行计划explain
 - **缓存优化**
     - 缓存更新、过期、淘汰的策略
     - 缓存可能遇到的三大问题，雪崩、穿透、击穿
     - 缓存和db的一致性问题，[缓存更新策略及其分析？](https://zhuanlan.zhihu.com/p/86396877),业界比较通用的先更新DB，再删除cache
-    
-- **读写分离优化**
-    - 在写操作的较多的情况可以考虑数据库读写分离的方案
-    - [业界的方案](https://www.cnblogs.com/wollow/p/10839890.html),代理实现和业务实现
-- **分表、分库**
+- **库表优化/分表/分库**
     - 垂直分表
     - 水平分表
     - 分库
     - 业界成熟的方案
+- **架构优化读写分离优化**
+    - 在写操作的较多的情况可以考虑数据库读写分离的方案
+    - [业界的方案](https://www.cnblogs.com/wollow/p/10839890.html),代理实现和业务实现
+    
     
 ## 常用命令
-
    - mysql登陆：
         mysql -h主机 -P端口 -u用户 -p密码
         SET PASSWORD FOR 'root'@'localhost' = PASSWORD('root');
