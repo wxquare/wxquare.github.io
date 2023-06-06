@@ -164,19 +164,19 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 
 
 ## 数据库优化
-- **关注监控指标**
-  - read write qps
-  - connections
+- **核心监控指标**
+  - read write qps 监控/select/update/insert
+  - connections/thread
+  - 慢查询监控
+  - 网络流量IO
     ```
     show variables like '%max_connection%'; 查看最大连接数
     show status like  'Threads%';
     show processlist;
     ```
-  
 - 存储空间information_schema
   ```
     -- desc information_schema.tables;
-  
     -- 查看 MySQL「所有库」的容量大小
     SELECT table_schema AS '数据库', SUM(table_rows) AS '记录数', 
     SUM(truncate(data_length / 1024 / 1024, 2)) AS '数据容量(MB)',
@@ -185,7 +185,6 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     FROM information_schema.tables
     GROUP BY table_schema
     ORDER BY SUM(data_length) DESC, SUM(index_length) DESC;
-    
     -- 指定书库查看表的数据量
     SELECT
       table_schema as '数据库',
@@ -204,74 +203,10 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
   - [performance_schema](https://www.cnblogs.com/Courage129/p/14188422.html)
   - slow query
   - 读写分离架构需要考虑主从延时
-
-- 查看数据timeout相关参数设置
+  
+- 会查看mysql server的相关配置参数 例如timeout
 ```
-show variables like '%timeout%';
-{
-"show variables like '%timeout%'": [
-	{
-		"Variable_name" : "connect_timeout",
-		"Value" : "10"
-	},
-	{
-		"Variable_name" : "delayed_insert_timeout",
-		"Value" : "300"
-	},
-	{
-		"Variable_name" : "have_statement_timeout",
-		"Value" : "YES"
-	},
-	{
-		"Variable_name" : "innodb_flush_log_at_timeout",
-		"Value" : "1"
-	},
-	{
-		"Variable_name" : "innodb_lock_wait_timeout",
-		"Value" : "50"
-	},
-	{
-		"Variable_name" : "innodb_print_lock_wait_timeout_info",
-		"Value" : "OFF"
-	},
-	{
-		"Variable_name" : "innodb_rollback_on_timeout",
-		"Value" : "OFF"
-	},
-	{
-		"Variable_name" : "interactive_timeout",
-		"Value" : "28800"
-	},
-	{
-		"Variable_name" : "lock_wait_timeout",
-		"Value" : "31536000"
-	},
-	{
-		"Variable_name" : "net_read_timeout",
-		"Value" : "30"
-	},
-	{
-		"Variable_name" : "net_write_timeout",
-		"Value" : "60"
-	},
-	{
-		"Variable_name" : "rpl_stop_slave_timeout",
-		"Value" : "31536000"
-	},
-	{
-		"Variable_name" : "slave_net_timeout",
-		"Value" : "60"
-	},
-	{
-		"Variable_name" : "thread_pool_idle_timeout",
-		"Value" : "60"
-	},
-	{
-		"Variable_name" : "wait_timeout",
-		"Value" : "28800"
-	}
-]}
-
+	show variables like '%timeout%';
 ```
  
   
