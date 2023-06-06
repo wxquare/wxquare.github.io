@@ -164,7 +164,7 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 
 
 ## 数据库优化
-- **核心监控指标**
+- **核心监控告警指标**
   - read write qps 监控/select/update/insert
   - connections/thread
   - 慢查询监控
