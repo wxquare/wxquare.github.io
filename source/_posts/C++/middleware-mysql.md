@@ -245,7 +245,6 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     - 在写操作的较多的情况可以考虑数据库读写分离的方案
     - [业界的方案](https://www.cnblogs.com/wollow/p/10839890.html),代理实现和业务实现
     
-    
 ## 常用命令
    - mysql登陆：
         mysql -h主机 -P端口 -u用户 -p密码
@@ -253,40 +252,27 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
         create database wxquare_test;
         show databases;
         use wxquare_test;
-	
    - 查看见表sql：show create table table_name;
    - show variables like '%timeout%';
-   
-        
-## 常见问题
-
-1. update json 文本需要转义
- ```sql
-  update table set extinfo='{
-    \"urls\": [
-        {
-            \"url\": \"/path1\",
-            \"type\": \"type1\"
-        },
-        {
-            \"url\": \"/path2\",
-            \"type\": \"type2\"
-        },
-    ]
-}' where id = 2;
- ```
- 
-2. truncate table 属于ddl语句，需要ddl的权限
-3. rename database
-     ```
-        create database new_db; 
-        rename table old_db.aaa to new_db. aaa;
-        mysql -hhost -PPort -uuser_name -ppassword old_db -sNe 'show tables' | while read table; do mysql -hhost -PPort -uuser_name -ppassword -sNe "rename table old_db.$table to new_db.$table"; done
-     ```
-4. dump 库表结构
-     ```
-        mysqldump --column-statistics=0 -hhost -PPort -uuser_name -ppassword --databases -d db_name --skip-lock-tables --skip-add-drop-table --set-gtid-purged=OFF | sed 's/ AUTO_INCREMENT=[0-9]*//g' > db.sql
-
+   - update json 文本需要转义
+	 ```sql
+	  update table set extinfo='{
+	    \"urls\": [
+		{
+		    \"url\": \"/path1\",
+		    \"type\": \"type1\"
+		},
+		{
+		    \"url\": \"/path2\",
+		    \"type\": \"type2\"
+		},
+	    ]
+	}' where id = 2;
+	 ```
+   - truncate table 属于ddl语句，需要ddl的权限
+   - dump 库表结构
+	```
+	mysqldump --column-statistics=0 -hhost -PPort -uuser_name -ppassword --databases -d db_name --skip-lock-tables --skip-add-drop-table --set-gtid-purged=OFF | sed 's/ AUTO_INCREMENT=	[0-9]*//g' > db.sql
      ```
 
 ## 推荐阅读:
