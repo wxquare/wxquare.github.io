@@ -304,6 +304,10 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 ## mysql binlog
 - https://zhuanlan.zhihu.com/p/33504555
 
+## show processlist;
+- https://zhuanlan.zhihu.com/p/30743094
+
+
 ## 常用命令
    - mysql登陆：
         mysql -h主机 -P端口 -u用户 -p密码
