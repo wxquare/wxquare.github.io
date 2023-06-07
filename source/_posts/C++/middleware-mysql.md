@@ -91,6 +91,10 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
 - 数据插入顺序不同：innodb插入记录时是按照主键大小有序插入，myism插入数据时是按照插入顺序保存的
 - 事务的支持：Innodb提供了对数据库ACID事务的支持，并且还提供了行级锁和外键的约束。MyIASM引擎不提供事务的支持，支持表级锁，不支持行级锁和外键。
 - 索引的不同：innodb主键索引是聚簇索引，非主键索引是非聚簇索引，myisam是非聚簇索引。聚簇索引的叶子节点就是数据节点，而myism索引的叶子节点仍然是索引节点，只不过是指向对应数据块的指针,InnoDB的非聚簇索引叶子节点存储的是主键，需要再寻址一次才能得到数据
+总结：
+- 是否需要支持事务？innodb
+- 并发写是不是很多？innoda
+- 读多，写少，追求读速度？myisam
 
 InnoDB and MyISAM are two of the most commonly used storage engines in MySQL.
 
@@ -126,7 +130,8 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     - 联合索引，违背最左匹配原则
     - 在索引列上有一些额外的计算操作
 - **联合索引和最左匹配原则**
-    - 最左匹配原则
+    - 对于联合索引c1、c2、c3，跳过c1 字段会导致无法命中index
+    - 对于联合索引c1、c2、c3，不按照创建索引顺序也可以命中索引，innodb有索引优化
     - 当遇到范围查询(>、<、between、like)就会停止匹配
     - 区分度高的字段放在前面，区分度低的字段放后面。像性别、状态这种字段区分度就很低，我们一般放后面
     - [结合实例理解联合索引与最左匹配原则](https://www.cnblogs.com/rjzheng/p/12557314.html)
