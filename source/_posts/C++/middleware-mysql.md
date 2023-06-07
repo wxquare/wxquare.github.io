@@ -226,6 +226,9 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     - [深度分页查询优化](https://juejin.cn/post/7012016858379321358)
     - 子查询和连接查询
      ```
+       	explain select * from test_xxxx_tab txt order by id limit 10000,10;
+	explain SELECT * from test_xxxx_tab txt where id >= (select id from test_xxxx_tab txt order by id limit 10,1) limit 10;
+     
        id列：在复杂的查询语句中包含多个查询使用id标示
        select_type:select/subquery/derived/union
        table: 显示对应行正在访问哪个表
