@@ -237,6 +237,8 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
      ```  
 - **index优化** 
     - 会查看sql执行计划explain
+    - 关注：type、const、ref
+    - 关注：extra等字段
 
 - **使用缓存优化DB需要考虑的问题**
     - 缓存更新、过期、淘汰的策略
