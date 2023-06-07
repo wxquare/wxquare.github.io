@@ -301,6 +301,9 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 	- 缓存利用：多次单表查询+Service组装方式可以更好地利用缓存，针对每个单表查询的结果进行缓存，提高查询性能
   https://www.zhihu.com/question/68258877
 
+## mysql binlog
+- https://zhuanlan.zhihu.com/p/33504555
+
 ## 常用命令
    - mysql登陆：
         mysql -h主机 -P端口 -u用户 -p密码
