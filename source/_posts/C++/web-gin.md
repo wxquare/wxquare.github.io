@@ -51,6 +51,64 @@
 - 错误处理：在使用中间件时，要注意正确处理错误。某些中间件可能会产生错误，例如身份验证失败或请求频率超限。在中间件链中的后续中间件或路由处理函数中，要适当地处理这些错误，返回适当的响应
 
 
+## JSON validator
+JSON 验证（JSON validation）是指对传入的 JSON 数据进行验证和检查，以确保其符合预期的数据结构和数据类型，以及满足特定的验证规则。在 Web 开发中，JSON 是一种常用的数据交换格式，因此对传入的 JSON 数据进行验证是一项重要的任务。
+JSON 验证通常涉及以下几个方面：
+- 数据结构验证：确保 JSON 数据的结构与预期的格式相匹配。例如，验证 JSON 对象是否包含必需的字段，数组是否具有正确的长度等。
+- 数据类型验证：验证 JSON 数据中的值是否具有正确的数据类型。例如，验证字符串、数字、布尔值等数据类型是否符合预期。
+- 数据格式验证：验证 JSON 数据中的字符串是否符合特定的格式要求，例如日期、时间、邮箱地址等。这可以通过正则表达式或其他格式验证方法来实现。
+- 值范围验证：验证 JSON 数据中的数值是否在预期的范围内，例如确保某个数值大于等于零，小于某个上限等。
+- 自定义验证规则：根据业务需求，可以定义自定义的验证规则，以满足特定的验证需求。例如，验证密码强度、用户名唯一性等。
+```
+package main
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+)
+
+type User struct {
+	Username string `json:"username" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Age      int    `json:"age" binding:"gte=18,lte=60"`
+}
+
+func main() {
+	router := gin.Default()
+
+	// 注册自定义验证器
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterValidation("customValidation", customValidationFunc)
+	}
+
+	router.POST("/users", createUser)
+
+	router.Run(":8080")
+}
+
+func createUser(c *gin.Context) {
+	var user User
+
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 执行其他逻辑...
+
+	c.JSON(http.StatusOK, gin.H{"message": "User created successfully"})
+}
+func customValidationFunc(fl validator.FieldLevel) bool {
+	// 自定义验证规则
+	// 返回 true 表示验证通过，返回 false 表示验证失败
+	return // 验证逻辑
+}
+```
+
+
+
 ## 
 Gin 框架中的路由是如何定义和处理的？
 Gin 框架中的上下文（Context）是什么？如何在处理程序中使用上下文？
