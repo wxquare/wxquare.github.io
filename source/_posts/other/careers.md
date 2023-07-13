@@ -71,6 +71,15 @@ You are a creative thinker, not bound by "the way things have always been done".
 
 The Trade Desk does not accept unsolicited resumes from search firm recruiters. Fees will not be paid in the event a candidate submitted by a recruiter without an agreement in place is hired; such resumes will be deemed the sole property of The Trade Desk. The Trade Desk is an equal opportunity employer. All aspects of employment will be based on merit, competence, performance, and business needs. We do not discriminate on the basis of race, color, religion, marital status, age, national origin, ancestry, physical or mental disability, medical condition, pregnancy, genetic information, gender, sexual orientation, gender identity or expression, veteran status, or any other status protected under federal, state, or local law.
 
+
+## https://careers.thetradedesk.com/us/en/job/REQ-5196/Senior-Software-Engineer
+
+
+## morganstanley
+- https://www.morganstanley.com/careers/career-opportunities-search#
+
+
+
 ## me
 2021.07 ～  至今              Shopee/Digital Purchase 商品系统          负责商品系统数据同步、检索、详情等服务
 - 负责设计和开发shopee hotel/movie/bus等品类的商品检索(listing)和详情(detail)服务
