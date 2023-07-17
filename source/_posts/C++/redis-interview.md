@@ -21,74 +21,7 @@ categories:
 
 ## redis 使用场景
 1. 缓存数据（db，service) 的数据，提高访问效率
-2. incr + expire 实现滑动窗口计数器限流
-```go
-      package main
-
-      import (
-        "fmt"
-        "time"
-
-        "github.com/go-redis/redis"
-      )
-
-      var pool redis.UniversalClient
-
-      func simpleIncr(key string) {
-        ok, err := pool.SetNX(key, 1, time.Duration(10)*time.Second).Result()
-        fmt.Printf("%+v,%+v\n", ok, err)
-        val, err := pool.Incr(key).Result()
-        fmt.Printf("%+v,%+v\n", val, err)
-        //手动过期
-        ok, err = pool.Expire(key, time.Duration(60)*time.Second).Result()
-        fmt.Printf("%+v,%+v\n", ok, err)
-      }
-
-      func simpleUserRateLimit(userID string) bool {
-        /*
-          限制用户1秒钟最多访问10次，对于异常用户冻结2分钟
-        */
-        key := userID
-        var maxRequestPerSecond int64 = 10
-        var frozenTime int = 2 * 60
-        ok, _ := pool.SetNX(key, 1, time.Duration(1)*time.Second).Result()
-        if ok {
-          return true
-        }
-        val, _ := pool.Incr(key).Result()
-        if val <= maxRequestPerSecond {
-          return true
-        }
-        if val > maxRequestPerSecond {
-          pool.Expire(key, time.Duration(frozenTime)*time.Second).Result()
-          return false
-        }
-        return false
-      }
-
-      func main() {
-        pool = redis.NewUniversalClient(&redis.UniversalOptions{
-          Addrs:        []string{"127.0.0.1:6379"},
-          MaxRetries:   3,
-          DialTimeout:  time.Duration(300) * time.Millisecond,
-          ReadTimeout:  time.Duration(300) * time.Millisecond,
-          WriteTimeout: time.Duration(300) * time.Millisecond,
-          PoolSize:     10,
-          IdleTimeout:  time.Duration(10) * time.Second,
-        })
-        _, err := pool.Ping().Result()
-        if err != nil {
-          fmt.Printf("%+v", err)
-        }
-
-        for i := 0; i < 20; i++ {
-          islimited := simpleUserRateLimit("12345678")
-          fmt.Println(islimited)
-        }
-
-      }
-
-```
+2. incr + expire 实现滑动窗口计数器限流，lua脚本
 3. 延时队列
    - 使用 ZSET+ 定时轮询的方式实现延时队列机制，任务集合记为 taskGroupKey
    - 生成任务以 当前时间戳 与 延时时间 相加后得到任务真正的触发时间，记为 time1，任务的 uuid 即为 taskid，当前时间戳记为 curTime
@@ -196,6 +129,9 @@ Redis 执行 Lua 脚本会以原子性方式进行，在执行脚本时不会再
 - set key value [NX|XX] [EX seconds|PX milliseconds|EXAT unix]
 - get key
 - keys pattern,*表示通配符，表示任意字符，会遍历所有键显示所有的键列表，时间复杂度O(n)，在生产环境不建议使用
+- exists key [key ...]
+- 秒语法查询key的过期时间：ttl key
+- 
 
 ## 推荐阅读:
 1. https://blog.csdn.net/ThinkWon/article/details/103522351
