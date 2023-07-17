@@ -195,6 +195,7 @@ Redis 执行 Lua 脚本会以原子性方式进行，在执行脚本时不会再
 - redis-cli -h host -p port -a password
 - set key value [NX|XX] [EX seconds|PX milliseconds|EXAT unix]
 - get key
+- keys pattern,*表示通配符，表示任意字符，会遍历所有键显示所有的键列表，时间复杂度O(n)，在生产环境不建议使用
 
 ## 推荐阅读:
 1. https://blog.csdn.net/ThinkWon/article/details/103522351
