@@ -79,6 +79,10 @@ The Trade Desk does not accept unsolicited resumes from search firm recruiters. 
 - https://www.morganstanley.com/careers/career-opportunities-search#
 
 
+## 携程：
+- https://leetcode.cn/circle/discuss/x3yz3e/
+
+
 
 ## me
 2021.07 ～  至今              Shopee/Digital Purchase 商品系统          负责商品系统数据同步、检索、详情等服务
