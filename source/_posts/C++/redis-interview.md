@@ -37,7 +37,8 @@ categories:
 6. 分布式锁：https://juejin.cn/post/6936956908007850014
 7. 基于redis的分布式限流：https://pandaychen.github.io/2020/09/21/A-DISTRIBUTE-GOREDIS-RATELIMITER-ANALYSIS/
 8. bloomfilter: https://juejin.cn/post/6844903862072000526
-     $xyz$
+   
+     $m = -frac{x+y}{log(2)}$
    ```
    n 是预期插入的元素数量（数据规模），例如 20,000,000。
    p 是预期的误判率，例如 0.001。
