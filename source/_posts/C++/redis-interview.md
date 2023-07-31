@@ -39,6 +39,7 @@ categories:
 8. bloomfilter: https://juejin.cn/post/6844903862072000526
    
       $m = -\frac{nln(p)}{(ln2)^2}$
+
       $k=\frac{m}{n}ln(2)$
    ```
    n 是预期插入的元素数量（数据规模），例如 20,000,000。
