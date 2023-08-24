@@ -6,6 +6,8 @@ categories:
 
 ## DNS、lvs 和 Ngnix 负载均衡和高可用架构设计
 - https://zhuanlan.zhihu.com/p/508672222
+- https://cloud.tencent.com/developer/article/1049707
+
 
 ## Gin 框架特点
 - Zero allocation router（零分配路由器）：Gin 使用了高效的路由算法，旨在最小化内存分配并提高路由匹配的性能。它通过减少不必要的内存分配和优化路由查找过程，使路由器具有出色的性能。
