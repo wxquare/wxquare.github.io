@@ -6,7 +6,7 @@ categories:
 
 ## 1. 基本步骤
 
-- 参考：https://zhuanlan.zhihu.com/p/26625249 学整体流程
+- 参考：https://zhuanlan.zhihu.com/p/26625249
 - 安装git、node.js、hexo
 - 在github建立repo，命名为wxquare.github.io，两个branch，分别为master和hexo
 - 使用markdown在hexo branch 写文章，hexo generate生成静态文件，并通过hexo deploy 部署到远端
@@ -19,7 +19,7 @@ categories:
        hexo init  初始化  
        hexo generate  生成静态网页
        hexo server 启动服务器 （浏览器输入http://localhost:4000/验证是否正确。）
-       hexo deploy 部署到远端 （wxquare.githuh.io）
+       hexo deploy 部署到远端 （wxquare.github.io）
    ```
 
 ## 3. 修改站点配置文件_config.yml，使得能将本地博客迁移到github上
