@@ -23,6 +23,8 @@ categories:
 - 压缩与解压：-z 解压gz文件；-j解压bz2；-J解压xz文件
 - grep 查找文件中指定字符出现的次数
 
+cat Temp\ Query\ 1_20230914-171937.csv | grep  "\"sop_v3_user" | grep -v "xxxx" | awk -F ',' '{print $2,$5,$6}' | sort | uniq -c | sort -rk 2
+
 
 
 ## 2、系统信息查看工具
