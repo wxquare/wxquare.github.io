@@ -286,9 +286,164 @@ POST /_aliases
 curl -XPUT  host/index_nane/_alias/index_alias_name
 ```
 ## 3、query DSL
-- compound queries
-- full text queries
 - term level queries
+	- keyword term
+    - https://www.elastic.co/guide/en/elasticsearch/reference/6.7/term-level-queries.html
+- full text queries
+	- Match Phrase Query
+    - Mathc Query
+- compound queries
+   - dismax
+   - bool
+   - function score
+   - boosting query
+
+- https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl.html
+
+```
+{
+    "query": {
+        "function_score": {
+            "functions": [
+                {
+                    "filter": {
+                        "term": {
+                            "key_type": 1
+                        }
+                    },
+                    "weight": 3
+                },
+                {
+                    "filter": {
+                        "term": {
+                            "key_type": 2
+                        }
+                    },
+                    "weight": 2
+                }
+            ],
+            "min_score": 0,
+            "query": {
+                "dis_max": {
+                    "queries": [
+                        {
+                            "function_score": {
+                                "functions": [
+                                    {
+                                        "filter": {
+                                            "term": {
+                                                "search_key.filed1.keyword": "querywords"
+                                            }
+                                        },
+                                        "weight": 100
+                                    },
+                                    {
+                                        "filter": {
+                                            "term": {
+                                                "search_key.filed2.keyword": "querywords"
+                                            }
+                                        },
+                                        "weight": 100
+                                    }
+                                ],
+                                "score_mode": "max"
+                            }
+                        },
+                        {
+                            "dis_max": {
+                                "queries": [
+                                    {
+                                        "match_phrase": {
+                                            "search_key.filed1": {
+                                                "boost": 50,
+                                                "query": "querywords"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "match_phrase": {
+                                            "search_key.field2": {
+                                                "boost": 50,
+                                                "query": "querywords"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "dis_max": {
+                                "queries": [
+                                    {
+                                        "prefix": {
+                                            "search_key.filed1.keyword": {
+                                                "boost": 30,
+                                                "value": "querywords"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "prefix": {
+                                            "search_key.field2.keyword": {
+                                                "boost": 30,
+                                                "value": "querywords"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "dis_max": {
+                                "queries": [
+                                    {
+                                        "match": {
+                                            "search_key.field1": {
+                                                "boost": 10,
+                                                "fuzziness": "auto:6,20",
+                                                "minimum_should_match": "3>75%",
+                                                "query": "querywords"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "match": {
+                                            "search_key.field2": {
+                                                "boost": 10,
+                                                "fuzziness": "auto:6,20",
+                                                "minimum_should_match": "3>75%",
+                                                "query": "querywords"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    "size": 30,
+    "sort": [
+        {
+            "_score": {
+                "order": "desc"
+            }
+        },
+        {
+            "key_type": {
+                "order": "asc"
+            }
+        },
+        {
+            "others": {
+                "order": "desc"
+            }
+        }
+    ]
+}
+```
 
 ## 4、原理和实现
 ES的读写流程主要是协调节点，主分片节点、副分片节点间的相互协调。
