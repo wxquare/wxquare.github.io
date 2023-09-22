@@ -3288,3 +3288,9 @@ func main() {
 }
 
 ```
+获取服务器pprof
+curl -o XXX-X.out http://localhost:port/debug/pprof/profile
+go tool pprof -http=:port cpu.out
+
+
+
