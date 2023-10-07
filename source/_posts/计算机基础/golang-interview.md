@@ -1259,64 +1259,136 @@ import (
 	"fmt"
 	"math/rand"
 	"sync"
-	"time"
+	"sync/atomic"
 )
 
-func produce(mq chan<- int) {
-	rand.Seed(time.Now().UnixNano())
-	limitGoroutine := 2
-	cnt := 100000
+/*
+	使用3个producer和4个消费者生成100000个随机数，求和
+*/
+
+var producerLimit = 3
+var consumerLimit = 4
+
+var Q chan int32
+
+var total = 100000
+
+var sum int32 = 0 // 原子操作，验证结果是否相同
+
+func produce() {
+	a := total / producerLimit
+	b := total % producerLimit
 	var wg sync.WaitGroup
-	for i := 0; i < limitGoroutine; i++ {
+	for i := 0; i < producerLimit; i++ {
+		batch := a
+		if i < b {
+			batch += 1
+		}
 		wg.Add(1)
-		go func(start int) {
+		go func(b int32) {
 			defer wg.Done()
-			for j := start; j < cnt; j += limitGoroutine {
-				num := rand.Intn(100)
-				mq <- num
+			for j := 0; j < batch; j++ {
+				num := rand.Intn(10)
+				atomic.AddInt32(&sum, int32(num))
+				Q <- int32(num)
 			}
-		}(i)
+		}(int32(batch))
 	}
-	go func() {
-		wg.Wait()
-		close(mq)
-	}()
+	wg.Wait()
+	close(Q)
 }
 
-func consume(nums <-chan int) int {
-	limitGoroutine := 4
-	resChan := make(chan int)
+func consume() int32 {
+	res := make(chan int32, 1)
 	var wg sync.WaitGroup
-	for i := 0; i < limitGoroutine; i++ {
+	for i := 0; i < consumerLimit; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			var sum int = 0
-			for num := range nums {
-				sum += num
+			var sum int32 = 0
+			for num := range Q {
+				sum = sum + int32(num)
 			}
-			resChan <- sum
+			res <- sum
 		}()
 	}
+
 	go func() {
 		wg.Wait()
-		close(resChan)
+		close(res)
 	}()
-	var finalRes int = 0
-	for r := range resChan {
-		finalRes += r
+
+	var ans int32 = 0
+	for sum := range res {
+		ans += sum
 	}
-	return finalRes
+	return ans
 }
 
 func main() {
-	mq := make(chan int, 10)
-	go produce(mq)
-	res := consume(mq)
-	fmt.Printf("%+v\n", res)
+	Q = make(chan int32, 10)
+	go produce()
+	fmt.Printf("%+v,%+v\n", consume(), sum)
 }
 ```
 
+
+## Go 实践：interface/base/derive
+```Go
+package main
+
+import "fmt"
+
+type service interface {
+	foo1()
+	foo2()
+}
+
+type baseService struct {
+	name string
+}
+
+func NewBaseService(name string) *baseService {
+	b := baseService{}
+	b.name = name
+	return &b
+}
+
+func (b *baseService) foo1() {
+	fmt.Println(b.name)
+}
+
+func (b *baseService) foo2() {
+	fmt.Println(b.name)
+}
+
+type AService struct {
+	*baseService
+	name string
+}
+
+func NewAService(name string, b *baseService) *AService {
+	s := AService{}
+	s.baseService = b
+	s.name = name
+	return &s
+}
+
+func (a *AService) foo1() {
+	fmt.Println(a.name)
+}
+
+func foo(s service) {
+	s.foo1()
+	s.foo2()
+}
+
+func main() {
+	b := NewBaseService("baseService")
+	s := NewAService("AService", b)
+	foo(s)
+}
+```
 ## Go实践：设计模式的实现
 https://refactoringguru.cn/design-patterns/chain-of-responsibility/go/example
 
