@@ -278,24 +278,40 @@ The **Communicating Sequential Processes (CSP) model** is a theoretical model of
 
 In summary, the lifetime of a Goroutine in Go starts when it is created and ends when it completes its execution or encounters a panic, and can be influenced by synchronization mechanisms such as channels and wait groups.
 
-
 -  Golang context 用于在树形goroutine结构中，通过信号减少资源的消耗，包含Deadline、Done、Error、Value四个接口
 - 常用的同步原语：channel、sync.mutex、sync.RWmutex、sync.WaitGroup、sync.Once、atomic
 - 协程的状态流转？Grunnable、Grunning、Gwaiting
 - sync.Mutex 和 sync.RWMutex 互斥锁和读写锁的使用场景？
--  [sync.Mutex: “锁”实现背后那些事](http://km.oa.com/articles/show/502088)
+- [sync.Mutex: “锁”实现背后那些事](http://km.oa.com/articles/show/502088)
 - [Golang 协程优雅的退出？](https://segmentfault.com/a/1190000017251049)
 - 深入理解协程gmp调度模型，以及其发展历史
 - 理解操作系统是怎么调度的，golang协程调度的优势，切换代价低，goroutine开销低，并发度高。
 - Golang IO 模型和网络轮训器
 
 
+## Go 内存管理和垃圾回收（memory and gc）
 
-## Golang 内存管理和垃圾回收（memory and gc）
-### gc 的过程
-- Marking phase: In this phase, the Go runtime identifies all objects that are accessible by the program and marks them as reachable. Objects that are not marked as reachable are considered unreachable and eligible for collection.
-- Sweeping phase: In this phase, the Go runtime scans the memory heap and frees all objects that are marked as unreachable. The memory space occupied by these objects is now available for future allocation.
-- Compacting phase: In this phase, the Go runtime rearranges the remaining objects on the heap to reduce fragmentation and minimize the impact of future allocations and deallocations.
+### 内存管理基本策略
+为了兼顾内存分配的速度和内存利用率，大多数都采用以下策略进行内存管理：
+1. **申请**：每次从操作系统申请一大块内存（比如1MB），以减少系统调用
+2. **切分**：为了兼顾大小不同的对象，将申请到的内存按照一定的策略切分成小块，使用链接相连
+3. **分配**：为对象分配内存时，只需从大小合适的链表中提取一块即可。
+4. **回收复用**: 对象不再使用时，将该小块内存归还到原链表
+5. **释放**： 如果闲置内存过多，则尝试归凡部分内存给操作系统，减少内存开销。
+
+### golang内存管理
+　golang内存管理基本继承了tcmolloc成熟的架构，因此也符合内存管理的基本策略。
+1. 分三级管理，线程级的thread cache，中央center cache，和管理span的center heap。
+2. 每一级都采用链表管理不同size空闲内存，提高内存利用率
+3. 线程级的tread local cache能够减少竞争和加锁操作，提高效率。中央center cache为所有线程共享。
+4. 小对象直接从本地cache获取，大对象从center heap获取，提高内存利用率
+5. 每一级内存不足时，尝试从下一级内存获取
+![内存三级管理](https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/threelayer.jpg)
+![线程cache](https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/threadheap.gif)
+![大对象span管理](https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/pageheap.gif)
+- **多级缓存**：内存分配器不仅会区别对待大小不同的对象，还会将内存分成不同的级别分别管理，TCMalloc 和 Go 运行时分配器都会引入线程缓存（Thread Cache）、中心缓存（Central Cache）和页堆（Page Heap）三个组件分级管理内存
+- **对象大小**：Go 语言的内存分配器会根据申请分配的内存大小选择不同的处理逻辑，运行时根据对象的大小将对象分成微对象、小对象和大对象三种，tiny,small,large
+- mspan、mcache、mcentral、mheap
 
 
 ### What are the memory leak scenarios in Go language?
@@ -306,20 +322,11 @@ In summary, the lifetime of a Goroutine in Go starts when it is created and ends
 - Unreferenced objects: In Go, unreferenced objects are objects that are no longer being used by the program but still exist in memory. This can occur when an object is created and never explicitly deleted or when an object is assigned a new value and the old object is not properly disposed of.
 By following best practices and being mindful of these common scenarios, you can help to avoid memory leaks in your Go programs. Additionally, you can use tools such as the Go runtime profiler to detect and diagnose memory leaks in your programs.
 
-
-- **多级缓存**：内存分配器不仅会区别对待大小不同的对象，还会将内存分成不同的级别分别管理，TCMalloc 和 Go 运行时分配器都会引入线程缓存（Thread Cache）、中心缓存（Central Cache）和页堆（Page Heap）三个组件分级管理内存
-- **对象大小**：Go 语言的内存分配器会根据申请分配的内存大小选择不同的处理逻辑，运行时根据对象的大小将对象分成微对象、小对象和大对象三种，tiny,small,large
-- mspan、mcache、mcentral、mheap
-- [深入理解golang GC的演进过程](https://segmentfault.com/a/1190000022030353)
-- golang 什么情况下会发生内存泄漏？Goroutinue泄露？
 - [Memory Leaking Scenarios](https://go101.org/article/memory-leaking.html)
   - hanging goroutine
   - cgo
   - substring/slice
   - ticker
-- golang sync.pool 临时对象池
-- [golang 程序启动过程?](https://blog.iceinto.com/posts/go/start/) 
-- 当go服务部署到线上了，发现有内存泄露，该怎么处理?
 
 
 golang支持垃圾回收，gc能减少编程的负担，但与此同时也可能造成程序的性能问题。那么如何测量golang程序使用的内存，以及如何减少golang gc的负担呢？经历了许多版本的迭代，golang gc 沿着低延迟和高吞吐的目标在进化，相比早起版本，目前有了很大的改善，但仍然有可能是程序的瓶颈。因此要学会分析golang 程序的内存和垃圾回收问题。
@@ -342,24 +349,10 @@ tips：
 8. 当数据量很大的时候，考虑使用流式IO(streaming IO)。io.ReaderFrom / io.WriterTo
 
 
-### 一、内存管理基本策略
-为了兼顾内存分配的速度和内存利用率，大多数都采用以下策略进行内存管理：
-1. **申请**：每次从操作系统申请一大块内存（比如1MB），以减少系统调用
-2. **切分**：为了兼顾大小不同的对象，将申请到的内存按照一定的策略切分成小块，使用链接相连
-3. **分配**：为对象分配内存时，只需从大小合适的链表中提取一块即可。
-4. **回收复用**: 对象不再使用时，将该小块内存归还到原链表
-5. **释放**： 如果闲置内存过多，则尝试归凡部分内存给操作系统，减少内存开销。
-
-### 二、golang内存管理
-　golang内存管理基本继承了tcmolloc成熟的架构，因此也符合内存管理的基本策略。
-1. 分三级管理，线程级的thread cache，中央center cache，和管理span的center heap。
-2. 每一级都采用链表管理不同size空闲内存，提高内存利用率
-3. 线程级的tread local cache能够减少竞争和加锁操作，提高效率。中央center cache为所有线程共享。
-4. 小对象直接从本地cache获取，大对象从center heap获取，提高内存利用率
-5. 每一级内存不足时，尝试从下一级内存获取
-![内存三级管理](https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/threelayer.jpg)
-![线程cache](https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/threadheap.gif)
-![大对象span管理](https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/pageheap.gif)
+### gc 的过程
+- Marking phase: In this phase, the Go runtime identifies all objects that are accessible by the program and marks them as reachable. Objects that are not marked as reachable are considered unreachable and eligible for collection.
+- Sweeping phase: In this phase, the Go runtime scans the memory heap and frees all objects that are marked as unreachable. The memory space occupied by these objects is now available for future allocation.
+- Compacting phase: In this phase, the Go runtime rearranges the remaining objects on the heap to reduce fragmentation and minimize the impact of future allocations and deallocations.
 
 ### 垃圾回收算法概述
 　　golang是近几年出现的带有垃圾回收的现代语言，其垃圾回收算法自然也相互借鉴。因此在学习golang gc之前有必要了解目前主流的垃圾回收方法。
@@ -380,23 +373,11 @@ tips：
 　　**gc控制器**：gc算法并不万能的，针对不同的场景可能需要适当的设置。例如大数据密集计算可能不在乎内存使用量，甚至可以将gc关闭。golang 通过百分比来控制gc触发的时机，设置的百分比指的是程序新分配的内存与上一次gc之后剩余的内存量，例如上次gc之后程序占有2MB，那么下一次gc触发的时机是程序又新分配了2MB的内存。我们可以通过*SetGCPercent*函数动态设置，默认值为100，当百分比设置为负数时例如-1，表明关闭gc。
 ![SetGCPercent](https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/gc_setGCPercent.jpg)
 
-
 ### golang gc调优实例
 gc 是golang程序性能优化非常重要的一部分，建议依照下面两个实例实践golang程序优化。
 - https://tonybai.com/2015/08/25/go-debugging-profiling-optimization/
 - https://blog.golang.org/profiling-go-programs
 　
-
-参考：
-- http://legendtkl.com/2017/04/28/golang-gc/
-- https://www.jianshu.com/p/9c8e56314164
-- https://blog.golang.org/ismmkeynote
-- http://goog-perftools.sourceforge.net/doc/tcmalloc.html
-- https://zhuanlan.zhihu.com/p/29216091
-
-
-
-
 ## What's Go closure?
 
 In Go, a closure is a function that has access to variables from its outer (enclosing) function's scope. The closure "closes over" the variables, meaning that it retains access to them even after the outer function has returned. This makes closures a powerful tool for encapsulating data and functionality and for creating reusable code.
@@ -616,14 +597,6 @@ client.go
 测试结果发现，连接数一直增加。    
 产生的原因：body实际上是一个嵌套了多层的net.TCPConn，当body没有被完全读取，也没有被关闭是，那么这次的http事物就没有完成，除非连接因为超时终止了，否则相关资源无法被回收。
 从实现上看只要body被读完，连接就能被回收，只有需要抛弃body时才需要close，似乎不关闭也可以。但那些正常情况能读完的body，即第一种情况，在出现错误时就不会被读完，即转为第二种情况。而分情况处理则增加了维护者的心智负担，所以始终close body是最佳选择。
-
-
-
-
-
-
-
-
 
 ## Go sync.Pool 
 ### 基本使用
@@ -873,7 +846,7 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
     
     }
 ```
-### 二、 nil
+### nil
 引用类型声明而没有初始化赋值时，其值为nil。golang需要经常判断nil,防止出现panic错误。  
 ```
     bool  -> false  
@@ -915,47 +888,6 @@ golang中连接池通常利用channel的缓存特性实现。当需要连接时�
     }
 ```
 
-## Go程序启动流程
-### 程序启动流程
-　　在golang中，可执行文件的入口函数并不是我们写的main函数，编译器在编译go代码时会插入一段起引导作用的汇编代码，它引导程序进行命令行参数、运行时的初始化，例如内存分配器初始化、垃圾回收器初始化、协程调度器的初始化。golang引导初始化之后就会进入用户逻辑，因为存在特殊的init函数，main函数也不是程序最开始执行的函数。
-
-　　golang可执行程序由于运行时runtime的存在，其启动过程还是非常复杂的，这里通过gdb调试工具简单查看其启动流程：  
-1. 找一个golang编译的可执行程序test，info file查看其入口地址：gdb test，info files
-(gdb) info files
-Symbols from "/home/terse/code/go/src/learn_golang/test_init/main".
-Local exec file:
-	/home/terse/code/go/src/learn_golang/test_init/main', 
-    file type elf64-x86-64.
-	**Entry point: 0x452110**
-	.....
-2. 利用断点信息找到目标文件信息：
-(gdb) b *0x452110
-Breakpoint 1 at 0x452110: file /usr/local/go/src/runtime/rt0_linux_amd64.s, line 8.
-3. 依次找到对应的文件对应的行数，设置断点，调到指定的行，查看具体的内容：
-(gdb) b _rt0_amd64  
-(gdb) b b runtime.rt0_go  
-至此，由汇编代码针对特定平台实现的引导过程就全部完成了，后续的代码都是用Go实现的。分别实现命令行参数初始化，内存分配器初始化、垃圾回收器初始化、协程调度器的初始化等功能。
-```
-	CALL	runtime·args(SB)
-	CALL	runtime·osinit(SB)
-	CALL	runtime·schedinit(SB)
-
-	CALL	runtime·newproc(SB)
-
-	CALL	runtime·mstart(SB)
-```
-
-### 特殊的init函数
-1. init函数先于main函数自动执行，不能被其他函数调用
-2. init函数没有输入参数、没有返回值
-3. 每个包可以含有多个同名的init函数，每个源文件也可以有多个同名的init函数
-4. **执行顺序** 变量初始化 > init函数 > main函数。在复杂项目中，初始化的顺序如下：
-	- 先初始化import包的变量，然后先初始化import的包中的init函数，，再初始化main包变量，最后执行main包的init函数
-	- 从上到下初始化导入的包（执行init函数），遇到依赖关系，先初始化没有依赖的包
-	- 从上到下初始化导入包中的变量，遇到依赖，先执行没有依赖的变量初始化
-	- main包本身变量的初始化，main包本身的init函数
-	- 同一个包中不同源文件的初始化是按照源文件名称的字典序
-　　
 
 ## 编译器优化和逃逸分析
 ### 逃逸分析（Escape analysis）
@@ -1017,14 +949,11 @@ Breakpoint 1 at 0x452110: file /usr/local/go/src/runtime/rt0_linux_amd64.s, line
 - "-l -N",关闭所有的优化
 
 
-
 ## Go runtime 介绍
 
 　　为了避开直接通过系统调用分配内存而导致的性能开销，通常会通过预分配、内存池等操作自主管理内存。golang由运行时runtime管理内存，完成初始化、分配、回收和释放操作。目前主流的内存管理器有glibc和tcmolloc，tcmolloc由Google开发，具有更好的性能，兼顾内存分配的速度和内存利用率。golang也是使用类似tcmolloc的方法进行内存管理。建议参考下面链接学习tcmalloc的原理，其内存管理的方法也是golang内存分配的方法。另外一个原因，golang自主管理也是为了更好的配合垃圾回收。
-
 【1】.https://zhuanlan.zhihu.com/p/29216091  
 【2】.http://goog-perftools.sourceforge.net/doc/tcmalloc.html 
-
 
 ### What is the Go runtime?
   The Go runtime is a collection of software components that provide essential services for Go programs, including memory management, garbage collection, scheduling, and low-level system interaction. The runtime is responsible for managing the execution of Go programs and for providing a consistent, predictable environment for Go code to run in.
@@ -1041,6 +970,46 @@ The Go runtime is an essential component of the Go programming language, and it 
 <img src="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/images/runtime.png" width="500" height="500">
 </div >
 
+### 程序启动流程
+　　在golang中，可执行文件的入口函数并不是我们写的main函数，编译器在编译go代码时会插入一段起引导作用的汇编代码，它引导程序进行命令行参数、运行时的初始化，例如内存分配器初始化、垃圾回收器初始化、协程调度器的初始化。golang引导初始化之后就会进入用户逻辑，因为存在特殊的init函数，main函数也不是程序最开始执行的函数。
+
+　　golang可执行程序由于运行时runtime的存在，其启动过程还是非常复杂的，这里通过gdb调试工具简单查看其启动流程：  
+1. 找一个golang编译的可执行程序test，info file查看其入口地址：gdb test，info files
+(gdb) info files
+Symbols from "/home/terse/code/go/src/learn_golang/test_init/main".
+Local exec file:
+	/home/terse/code/go/src/learn_golang/test_init/main', 
+    file type elf64-x86-64.
+	**Entry point: 0x452110**
+	.....
+2. 利用断点信息找到目标文件信息：
+(gdb) b *0x452110
+Breakpoint 1 at 0x452110: file /usr/local/go/src/runtime/rt0_linux_amd64.s, line 8.
+3. 依次找到对应的文件对应的行数，设置断点，调到指定的行，查看具体的内容：
+(gdb) b _rt0_amd64  
+(gdb) b b runtime.rt0_go  
+至此，由汇编代码针对特定平台实现的引导过程就全部完成了，后续的代码都是用Go实现的。分别实现命令行参数初始化，内存分配器初始化、垃圾回收器初始化、协程调度器的初始化等功能。
+```
+	CALL	runtime·args(SB)
+	CALL	runtime·osinit(SB)
+	CALL	runtime·schedinit(SB)
+
+	CALL	runtime·newproc(SB)
+
+	CALL	runtime·mstart(SB)
+```
+
+### 特殊的init函数
+1. init函数先于main函数自动执行，不能被其他函数调用
+2. init函数没有输入参数、没有返回值
+3. 每个包可以含有多个同名的init函数，每个源文件也可以有多个同名的init函数
+4. **执行顺序** 变量初始化 > init函数 > main函数。在复杂项目中，初始化的顺序如下：
+	- 先初始化import包的变量，然后先初始化import的包中的init函数，，再初始化main包变量，最后执行main包的init函数
+	- 从上到下初始化导入的包（执行init函数），遇到依赖关系，先初始化没有依赖的包
+	- 从上到下初始化导入包中的变量，遇到依赖，先执行没有依赖的变量初始化
+	- main包本身变量的初始化，main包本身的init函数
+	- 同一个包中不同源文件的初始化是按照源文件名称的字典序
+　　
 ### 程序bootstrap过程
 如上图所示，Go程序启动大致分为一下一个部分：
 - 参数处理，runtime·args(SB)
@@ -1102,9 +1071,7 @@ func stackinit() {
 		})
 		gp.stackguard0 = gp.stack.lo + _StackGuard
 ```
-
 goroutine 运行时需要把stack 地址传给m
-
 
 ### 
 
@@ -1420,4 +1387,10 @@ https://refactoringguru.cn/design-patterns/chain-of-responsibility/go/example
 - [https://serholiu.com/go-http-client-keepalive](https://serholiu.com/go-http-client-keepalive)
 - [https://blog.csdn.net/yongjian_lian/article/details/42058893](https://blog.csdn.net/yongjian_lian/article/details/42058893)  
 - [https://segmentfault.com/a/1190000013089363](https://segmentfault.com/a/1190000013089363)  
-- [http://jack-nie.github.io/go/golang-sync-pool.html](http://jack-nie.github.io/go/golang-sync-pool.html)
+- [http://jack-nie.github.io/go/golang-sync-pool.html](http://jack-nie.github.io/go/golang-sync-pool.html)参考：
+- http://legendtkl.com/2017/04/28/golang-gc/
+- https://www.jianshu.com/p/9c8e56314164
+- https://blog.golang.org/ismmkeynote
+- http://goog-perftools.sourceforge.net/doc/tcmalloc.html
+- https://zhuanlan.zhihu.com/p/29216091
+- [《Go 语言设计和实现》](https://draveness.me/golang/)
