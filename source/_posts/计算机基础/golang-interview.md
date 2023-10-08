@@ -1219,83 +1219,87 @@ Showing top 5 nodes out of 46
 
 
 ## Go实践：生产者、消费者模型，并行计算累加求和
-```Go
+```
 package main
 
 import (
-	"fmt"
 	"math/rand"
 	"sync"
 	"sync/atomic"
+
+	"fmt"
 )
 
-/*
-	使用3个producer和4个消费者生成100000个随机数，求和
-*/
+var total int32 = 100000
 
-var producerLimit = 3
-var consumerLimit = 4
+var producerLimit int32 = 3
+
+var consumerLimit int32 = 4
 
 var Q chan int32
+var SumQ chan int32
 
-var total = 100000
+var AtomicSum int32 = 0
 
-var sum int32 = 0 // 原子操作，验证结果是否相同
+func init() {
+	Q = make(chan int32, 10)
+	SumQ = make(chan int32)
+}
 
 func produce() {
 	a := total / producerLimit
 	b := total % producerLimit
 	var wg sync.WaitGroup
-	for i := 0; i < producerLimit; i++ {
+	for i := 0; i < int(producerLimit); i++ {
 		batch := a
-		if i < b {
+		if i < int(b) {
 			batch += 1
 		}
 		wg.Add(1)
-		go func(b int32) {
+		go func(x int32) {
 			defer wg.Done()
-			for j := 0; j < batch; j++ {
+			for j := 0; j < int(x); j++ {
 				num := rand.Intn(10)
-				atomic.AddInt32(&sum, int32(num))
+				atomic.AddInt32(&AtomicSum, int32(num))
 				Q <- int32(num)
 			}
-		}(int32(batch))
+		}(batch)
 	}
-	wg.Wait()
-	close(Q)
+	go func() {
+		wg.Wait()
+		close(Q)
+	}()
 }
 
-func consume() int32 {
-	res := make(chan int32, 1)
+func consumer() int32 {
 	var wg sync.WaitGroup
-	for i := 0; i < consumerLimit; i++ {
+	for i := 0; i < int(consumerLimit); i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			var sum int32 = 0
+			var batchSum int32 = 0
 			for num := range Q {
-				sum = sum + int32(num)
+				batchSum += num
 			}
-			res <- sum
+			SumQ <- batchSum
 		}()
 	}
 
 	go func() {
 		wg.Wait()
-		close(res)
+		close(SumQ)
 	}()
 
 	var ans int32 = 0
-	for sum := range res {
+	for sum := range SumQ {
 		ans += sum
 	}
 	return ans
 }
 
 func main() {
-	Q = make(chan int32, 10)
-	go produce()
-	fmt.Printf("%+v,%+v\n", consume(), sum)
+	produce()
+	fmt.Printf("%d,%d\n", consumer(), atomic.LoadInt32(&AtomicSum))
 }
 ```
 
