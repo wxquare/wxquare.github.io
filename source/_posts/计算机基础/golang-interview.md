@@ -1219,7 +1219,7 @@ Showing top 5 nodes out of 46
 
 
 ## Go实践：生产者、消费者模型，并行计算累加求和
-```
+```Go
 package main
 
 import (
