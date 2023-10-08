@@ -153,7 +153,7 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 - **事务的隔离属性底层实现原理**，关于锁和mvcc
   - 可以先阐述四种隔离级别，再阐述它们的实现原理。隔离级别就是依赖锁和MVCC实现的。
 - **悲观锁与乐观锁**
-  - [Select for update使用详解](https://zhuanlan.zhihu.com/p/143866444)
+  - [Select for update使用详解](https://zhuanlan.zhihu.com/p/143866444) 及在库存和金钱系统上的应用
   - 悲观锁：悲观锁是一种保守的并发控制机制，它假设在并发访问中会发生冲突，因此在访问数据之前会锁定资源，阻止其他事务对资源进行修改。在MySQL中，悲观锁主要通过以下方式实现：
   	- 使用SELECT ... FOR UPDATE语句：在读取数据时对所选行进行锁定，确保其他事务不能对这些行进行修改。
   	- 使用LOCK TABLES语句：锁定整个表，防止其他事务对该表进行读取和修改。
