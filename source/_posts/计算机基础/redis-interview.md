@@ -29,8 +29,13 @@ categories:
      - 缓存击穿
      - 缓存更新和一致性问题
      - 缓存热key和大key问题
-3. incr + expire 实现滑动窗口计数器限流，lua脚本
-4. 延时队列
+2. 限流和计数。lua脚本
+     - 计数器 （临届值和frozen)
+     - token （常用）
+     - 漏桶（平滑）
+     - 基于redis的分布式限流：https://pandaychen.github.io/2020/09/21/A-DISTRIBUTE-GOREDIS-RATELIMITER-ANALYSIS/
+     - https://blog.csdn.net/crazymakercircle/article/details/130035504
+3. 延时队列
    - 使用 ZSET+ 定时轮询的方式实现延时队列机制，任务集合记为 taskGroupKey
    - 生成任务以 当前时间戳 与 延时时间 相加后得到任务真正的触发时间，记为 time1，任务的 uuid 即为 taskid，当前时间戳记为 curTime
    - 使用 ZADD taskGroupKey time1 taskid 将任务写入 ZSET
@@ -38,13 +43,10 @@ categories:
    - 处理延时任务，处理完成后删除即可
    - 保存当前时间戳 curTime，作为下一次轮询时的 ZRANGE 指令的范围起点
    - https://github.com/bitleak/lmstfy
-   
-5. 消息队列
+4. 消息队列
    - redis 支持 List 数据结构，有时也会充当消息队列。使用生产者：LPUSH；消费者：RBPOP 或 RPOP 模拟队列
-6. incr计数器
-7. 分布式锁：https://juejin.cn/post/6936956908007850014
-8. 基于redis的分布式限流：https://pandaychen.github.io/2020/09/21/A-DISTRIBUTE-GOREDIS-RATELIMITER-ANALYSIS/
-9. bloomfilter: https://juejin.cn/post/6844903862072000526
+5. 分布式锁：https://juejin.cn/post/6936956908007850014
+6. bloomfilter: https://juejin.cn/post/6844903862072000526
    
       $m = -\frac{nln(p)}{(ln2)^2}$
 
@@ -55,7 +57,6 @@ categories:
    m 是位数组的大小。
    k 是哈希函数的数量。
    ```
-
 
 
 ## redis 5种数据类型和底层数据结构
