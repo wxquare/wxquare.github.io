@@ -22,8 +22,15 @@ categories:
 
 ## redis 使用场景
 1. 缓存数据（db，service) 的数据，提高访问效率
-2. incr + expire 实现滑动窗口计数器限流，lua脚本
-3. 延时队列
+     - 缓存容量评估
+     - 缓存过期机制，时间
+     - 缓存miss，溯源和监控
+     - 缓存雪崩
+     - 缓存击穿
+     - 缓存更新和一致性问题
+     - 缓存热key和大key问题
+3. incr + expire 实现滑动窗口计数器限流，lua脚本
+4. 延时队列
    - 使用 ZSET+ 定时轮询的方式实现延时队列机制，任务集合记为 taskGroupKey
    - 生成任务以 当前时间戳 与 延时时间 相加后得到任务真正的触发时间，记为 time1，任务的 uuid 即为 taskid，当前时间戳记为 curTime
    - 使用 ZADD taskGroupKey time1 taskid 将任务写入 ZSET
@@ -32,12 +39,12 @@ categories:
    - 保存当前时间戳 curTime，作为下一次轮询时的 ZRANGE 指令的范围起点
    - https://github.com/bitleak/lmstfy
    
-4. 消息队列
+5. 消息队列
    - redis 支持 List 数据结构，有时也会充当消息队列。使用生产者：LPUSH；消费者：RBPOP 或 RPOP 模拟队列
-5. incr计数器
-6. 分布式锁：https://juejin.cn/post/6936956908007850014
-7. 基于redis的分布式限流：https://pandaychen.github.io/2020/09/21/A-DISTRIBUTE-GOREDIS-RATELIMITER-ANALYSIS/
-8. bloomfilter: https://juejin.cn/post/6844903862072000526
+6. incr计数器
+7. 分布式锁：https://juejin.cn/post/6936956908007850014
+8. 基于redis的分布式限流：https://pandaychen.github.io/2020/09/21/A-DISTRIBUTE-GOREDIS-RATELIMITER-ANALYSIS/
+9. bloomfilter: https://juejin.cn/post/6844903862072000526
    
       $m = -\frac{nln(p)}{(ln2)^2}$
 
