@@ -30,7 +30,7 @@ categories:
      - 缓存更新和一致性问题
      - 缓存热key和大key问题
 2. 限流和计数。lua脚本
-     - 计数器 （临届值和frozen)
+     - 计数器 （临界值和frozen)
      - token （常用）
      - 漏桶（平滑）
      - 基于redis的分布式限流：https://pandaychen.github.io/2020/09/21/A-DISTRIBUTE-GOREDIS-RATELIMITER-ANALYSIS/
