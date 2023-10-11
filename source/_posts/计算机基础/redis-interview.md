@@ -18,6 +18,7 @@ categories:
 11. redis & Lua ？
 12. [redis 性能调优？避免大key、热key导致集群倾斜，比秒复杂命令的使用，CPU、内存、宽带的监控](https://help.aliyun.com/zh/redis/user-guide/suggestions-for-handling-common-latency-events?spm=a2c4g.11186623.0.0.21b77ba2oGegZ3)
 13. [秒杀系统的设计和实现](https://gongfukangee.github.io/2019/06/09/SecondsKill/)
+14. 分布式锁，setnx,expire
 
 
 
