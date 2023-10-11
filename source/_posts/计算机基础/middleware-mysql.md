@@ -231,7 +231,7 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     - 考虑能否通过增加索引优化查询效率，检查索引是否生效
     - 是否有缓存
     - 垂直分表、水平分表、分库
-    -     - 根据场景来看，写操作多的情况下，考虑读写分离
+    - 根据场景来看，写操作多的情况下，考虑读写分离
 - **sql优化**
     - 分析数据sql的结构是否加载了不必要的字段和数据
     - [深度分页查询优化](https://juejin.cn/post/7012016858379321358)
@@ -248,25 +248,25 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
        key列：显示mysql决定使用哪个索引来优化对该表的访问
        key_len：显示在索引里使用的字节数
        rows：为了找到所需要的行而需要读取的行数
-     ```  
-   - 一条慢查询日志
+     ```
+   - 慢查询日志样例子
    ```
    	# Time: 2022-05-10T10:15:32.123456Z
-	# User@Host: myuser[192.168.0.1] @ localhost []  Id: 12345
-	# Query_time: 3.456789  Lock_time: 0.123456 Rows_sent: 10  Rows_examined: 100000
-	SET timestamp=1657475732;
-	SELECT * FROM orders WHERE customer_id = 1001 ORDER BY order_date DESC LIMIT 10;
-	这个慢查询日志示例包含以下重要的信息：
+    # User@Host: myuser[192.168.0.1] @ localhost []  Id: 12345
+    # Query_time: 3.456789  Lock_time: 0.123456 Rows_sent: 10  Rows_examined: 100000
+    SET timestamp=1657475732;
+    SELECT * FROM orders WHERE customer_id = 1001 ORDER BY order_date DESC LIMIT 10;
+    这个慢查询日志示例包含以下重要的信息：
 
-	时间戳（Time）: 日志记录的时间，以 UTC 时间表示。
-	用户和主机（User@Host）: 执行查询的用户和主机地址。
-	连接 ID（Id）: 表示执行查询的连接 ID。
-	查询时间（Query_time）: 查询执行所花费的时间，以秒为单位。
-	锁定时间（Lock_time）: 在执行查询期间等待锁定资源所花费的时间，以秒为单位。
-	返回行数（Rows_sent）: 查询返回的结果集中的行数。
-	扫描行数（Rows_examined）: 在执行查询过程中扫描的行数。
-	时间戳（SET timestamp）: 查询开始执行的时间戳。
-	查询语句（SELECT * FROM orders WHERE customer_id = 1001 ORDER BY order_date DESC LIMIT 10）: 实际执行的查询语句
+    时间戳（Time）: 日志记录的时间，以 UTC 时间表示。
+    用户和主机（User@Host）: 执行查询的用户和主机地址。
+    连接 ID（Id）: 表示执行查询的连接 ID。
+    查询时间（Query_time）: 查询执行所花费的时间，以秒为单位。
+    锁定时间（Lock_time）: 在执行查询期间等待锁定资源所花费的时间，以秒为单位。
+    返回行数（Rows_sent）: 查询返回的结果集中的行数。
+    扫描行数（Rows_examined）: 在执行查询过程中扫描的行数。
+    时间戳（SET timestamp）: 查询开始执行的时间戳。
+    查询语句（SELECT * FROM orders WHERE customer_id = 1001 ORDER BY order_date DESC LIMIT 10）: 实际执行的查询语句
    ```
 - **index优化** 
     - 会查看sql执行计划explain
