@@ -219,6 +219,9 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 - 会查看mysql server的相关配置参数 例如timeout
 ```
 	show variables like '%timeout%';
+	show full processlist;
+	show variables like '%connection%';
+	show variables like '%timeout%';
 ```
  
  ## 数据库优化
@@ -263,9 +266,7 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 	返回行数（Rows_sent）: 查询返回的结果集中的行数。
 	扫描行数（Rows_examined）: 在执行查询过程中扫描的行数。
 	时间戳（SET timestamp）: 查询开始执行的时间戳。
-	查询语句（SELECT * FROM orders WHERE customer_id = 1001 ORDER BY order_date DESC LIMIT 10）: 实际执行的查询语句。
-	
-
+	查询语句（SELECT * FROM orders WHERE customer_id = 1001 ORDER BY order_date DESC LIMIT 10）: 实际执行的查询语句
    ```
 - **index优化** 
     - 会查看sql执行计划explain
