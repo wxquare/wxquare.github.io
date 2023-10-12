@@ -21,8 +21,6 @@ categories:
 14. 实践：分布式锁，setnx,expire,del
 15. 实践：bloomfilter
 
-
-
 ## redis 使用场景
 1. 缓存数据（db，service) 的数据，提高访问效率
      - 缓存容量评估
