@@ -7,19 +7,24 @@ categories:
 ## 前言
 1. redis有哪些使用场景？
 2. redis五种数据结构选择以及其底层实现原理？
-3. redis 常用命令以及时间复杂度？
-4. 如何处理可能遇到的key大面积失效的缓存雪崩，无效key缓存穿透、热key缓存击穿问题？是否需要缓存预热
-5. 如何考虑缓存和数据库一致性的问题？更新DB之后删除缓存？还是更新缓存？
-6. redis 数据持久化是怎么做的？RDB和AOF机制？
-7. redis 分布式架构，codis，rdis cluster？
-8. redis 超过使用容量时的内存淘汰策略
-9. redis 过期键的删除策略
-10. redis 的单线程架构为什么快，有哪些优势和缺点？
-11. redis & Lua ？
-12. [redis 性能调优？避免大key、热key导致集群倾斜，比秒复杂命令的使用，CPU、内存、宽带的监控](https://help.aliyun.com/zh/redis/user-guide/suggestions-for-handling-common-latency-events?spm=a2c4g.11186623.0.0.21b77ba2oGegZ3)
-13. 实践：[秒杀系统的设计和实现](https://gongfukangee.github.io/2019/06/09/SecondsKill/)
-14. 实践：分布式锁，setnx,expire,del
-15. 实践：bloomfilter
+   - string
+   - list
+   - set
+   - zset
+   - hmap
+4. redis 常用命令以及时间复杂度？
+5. 如何处理可能遇到的key大面积失效的缓存雪崩，无效key缓存穿透、热key缓存击穿问题？是否需要缓存预热
+6. 如何考虑缓存和数据库一致性的问题？更新DB之后删除缓存？还是更新缓存？
+7. redis 数据持久化是怎么做的？RDB和AOF机制？
+8. redis 分布式架构，codis，rdis cluster？
+9. redis 超过使用容量时的内存淘汰策略
+10. redis 过期键的删除策略
+11. redis 的单线程架构为什么快，有哪些优势和缺点？
+12. redis & Lua ？
+13. [redis 性能调优？避免大key、热key导致集群倾斜，比秒复杂命令的使用，CPU、内存、宽带的监控](https://help.aliyun.com/zh/redis/user-guide/suggestions-for-handling-common-latency-events?spm=a2c4g.11186623.0.0.21b77ba2oGegZ3)
+14. 实践：[秒杀系统的设计和实现](https://gongfukangee.github.io/2019/06/09/SecondsKill/)
+15. 实践：分布式锁，setnx,expire,del
+16. 实践：bloomfilter
 
 ## redis 使用场景
 1. 缓存数据（db，service) 的数据，提高访问效率
