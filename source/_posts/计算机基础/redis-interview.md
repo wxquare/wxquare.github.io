@@ -20,6 +20,7 @@ categories:
 14. 实践：[秒杀系统的设计和实现](https://gongfukangee.github.io/2019/06/09/SecondsKill/)
 15. 实践：分布式锁，setnx,expire,del
 16. 实践：bloomfilter 和 bitmap
+17. 实线：[使用redis实现微信步数排行榜](https://www.cnblogs.com/zwwhnly/p/13041641.html)
 
 ## redis 使用场景
 1. 缓存数据（db，service) 的数据，提高访问效率

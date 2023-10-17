@@ -1,16 +1,18 @@
 ---
-title: 系统架构设计
+title: 系统架构设计以及组件基础
 categories: 
 - 计算机基础
 ---
 
+## 总体架构
+
 <p align="center">
-  <img src="/images/jrUBAF7.png">
+  <img src="/images/jrUBAF7.png" width=550 height=550>
   <br/>
 </p>
 
 
-## 系统设计考量和性能指标
+## 关键指标
 - 可用性，接口成功率，SLA多少个九来衡量；数据的正确性（一致性）；异常容灾
 - 可扩展，是否支持水平扩容？服务扩容？依赖的中间件是否支持水平扩容？
 - 性能。低延时latency和高吞吐throughput，在同步系统中一般低延时意味着高吞吐。有些异步接口，需要考虑异步处理逻辑，例如订单和发货系统。
@@ -34,7 +36,7 @@ categories:
 
 ## 域名系统
 <p align="center">
-  <img src="images/IOyLj4i.jpg">
+  <img src="/images/IOyLj4i.jpg">
   <br/>
   <strong><a href="http://www.slideshare.net/srikrupa5/dns-security-presentation-issa">来源：DNS 安全介绍</a></strong>
 </p>
@@ -71,7 +73,7 @@ categories:
 ## 内容分发网络（CDN）
 
 <p align="center">
-  <img src="images/h9TAuGI.jpg">
+  <img src="/images/h9TAuGI.jpg">
   <br/>
   <strong><a href="https://www.creative-artworks.eu/why-use-a-content-delivery-network-cdn/">来源：为什么使用 CDN</a></strong>
 </p>
@@ -110,7 +112,7 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 ## 负载均衡器
 
 <p align="center">
-  <img src="images/h81n9iK.png">
+  <img src="/images/h81n9iK.png">
   <br/>
   <strong><a href="http://horicky.blogspot.com/2010/10/scalable-system-design-patterns.html">来源：可扩展的系统设计模式</a></strong>
 </p>
@@ -179,7 +181,7 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 ## 反向代理（web 服务器）
 
 <p align="center">
-  <img src="images/n41Azff.png">
+  <img src="/images/n41Azff.png">
   <br/>
   <strong><a href="https://upload.wikimedia.org/wikipedia/commons/6/67/Reverse_proxy_h2g2bob.svg">资料来源：维基百科</a></strong>
   <br/>
@@ -222,7 +224,7 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 ## 应用层网关
 
 <p align="center">
-  <img src="images/yB5SYwm.png">
+  <img src="/images/yB5SYwm.png">
   <br/>
   <strong><a href="http://lethain.com/introduction-to-architecting-systems-for-scale/#platform_layer">资料来源：可缩放系统构架介绍</a></strong>
 </p>
@@ -257,10 +259,11 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 - [Zookeeper 介绍](http://www.slideshare.net/sauravhaloi/introduction-to-apache-zookeeper)
 - [构建微服务，你所需要知道的一切](https://cloudncode.wordpress.com/2016/07/22/msa-getting-started/)
 
-## 数据库
+
+## 数据库设计
 
 <p align="center">
-  <img src="images/Xkm5CXz.png">
+  <img src="/images/Xkm5CXz.png">
   <br/>
   <strong><a href="https://www.youtube.com/watch?v=w95murBkYmU">资料来源：扩展你的用户数到第一个一千万</a></strong>
 </p>
@@ -281,7 +284,7 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 关系型数据库扩展包括许多技术：**主从复制**、**主主复制**、**联合**、**分片**、**非规范化**和 **SQL调优**。
 
 <p align="center">
-  <img src="images/C9ioGtn.png">
+  <img src="/images/C9ioGtn.png">
   <br/>
   <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
 </p>
@@ -296,7 +299,7 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 - 参考[不利之处：复制](#不利之处复制)中，主从复制和主主复制**共同**的问题。
 
 <p align="center">
-  <img src="images/krAHLGg.png">
+  <img src="/images/krAHLGg.png">
   <br/>
   <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
 </p>
@@ -331,7 +334,7 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 #### 联合
 
 <p align="center">
-  <img src="images/U3qV33e.png">
+  <img src="/images/U3qV33e.png">
   <br/>
   <strong><a href="https://www.youtube.com/watch?v=w95murBkYmU">资料来源：扩展你的用户数到第一个一千万</a></strong>
 </p>
@@ -353,7 +356,7 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 #### 分片
 
 <p align="center">
-  <img src="images/wU8x5Id.png">
+  <img src="/images/wU8x5Id.png">
   <br/>
   <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
 </p>
@@ -496,7 +499,7 @@ MongoDB 和 CouchDB 等一些文档类型存储还提供了类似 SQL 语言的�
 #### 列型存储
 
 <p align="center">
-  <img src="images/n16iOGk.png">
+  <img src="/images/n16iOGk.png">
   <br/>
   <strong><a href="http://blog.grio.com/2015/11/sql-nosql-a-brief-history.html">资料来源: SQL 和 NoSQL，一个简短的历史</a></strong>
 </p>
@@ -519,7 +522,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 #### 图数据库
 
 <p align="center">
-  <img src="images/fNcl65g.png">
+  <img src="/images/fNcl65g.png">
   <br/>
   <strong><a href="https://en.wikipedia.org/wiki/File:GraphDatabase_PropertyGraph.png"/>资料来源：图数据库</a></strong>
 </p>
@@ -546,7 +549,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 ### SQL 还是 NoSQL
 
 <p align="center">
-  <img src="images/wXGqG5f.png">
+  <img src="/images/wXGqG5f.png">
   <br/>
   <strong><a href="https://www.infoq.com/articles/Transition-RDBMS-NoSQL/">资料来源：从 RDBMS 转换到 NoSQL</a></strong>
 </p>
@@ -585,12 +588,10 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - [扩展你的用户数到第一个千万](https://www.youtube.com/watch?v=w95murBkYmU)
 - [SQL 和 NoSQL 的不同](https://www.sitepoint.com/sql-vs-nosql-differences/)
 
-
-
 ## 缓存
 
 <p align="center">
-  <img src="images/Q6z24La.png">
+  <img src="/images/Q6z24La.png">
   <br/>
   <strong><a href="http://horicky.blogspot.com/2010/10/scalable-system-design-patterns.html">资料来源：可扩展的系统设计模式</a></strong>
 </p>
@@ -661,7 +662,7 @@ Redis 有下列附加功能：
 #### 缓存模式
 
 <p align="center">
-  <img src="images/ONjORqk.png">
+  <img src="/images/ONjORqk.png">
   <br/>
   <strong><a href="http://www.slideshare.net/tmatyashovsky/from-cache-to-in-memory-data-grid-introduction-to-hazelcast">资料来源：从缓存到内存数据网格</a></strong>
 </p>
@@ -691,13 +692,13 @@ def get_user(self, user_id):
 ##### 缓存的缺点：
 
 - 请求的数据如果不在缓存中就需要经过三个步骤来获取数据，这会导致明显的延迟。
-- 如果数据库中的数据更新了会导致缓存中的数据过时。这个问题需要通过设置 TTL 强制更新缓存或者直写模式来缓解这种情况。
+- 如果数据库中的数据更新了会导致缓存中的数据过时。这个问题需要通过设置TTL 强制更新缓存或者直写模式来缓解这种情况。
 - 当一个节点出现故障的时候，它将会被一个新的节点替代，这增加了延迟的时间。
 
 #### 直写模式
 
 <p align="center">
-  <img src="images/0vBc0hN.png">
+  <img src="/images/0vBc0hN.png">
   <br/>
   <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
 </p>
@@ -732,7 +733,7 @@ def set_user(user_id, values):
 #### 回写模式
 
 <p align="center">
-  <img src="images/rgSrvjG.png">
+  <img src="/images/rgSrvjG.png">
   <br/>
   <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
 </p>
@@ -750,7 +751,7 @@ def set_user(user_id, values):
 #### 刷新
 
 <p align="center">
-  <img src="images/kxtjqgE.png">
+  <img src="/images/kxtjqgE.png">
   <br/>
   <strong><a href=http://www.slideshare.net/tmatyashovsky/from-cache-to-in-memory-data-grid-introduction-to-hazelcast>资料来源：从缓存到内存数据网格</a></strong>
 </p>
@@ -782,7 +783,7 @@ def set_user(user_id, values):
 ## 异步
 
 <p align="center">
-  <img src="images/54GYsSx.png">
+  <img src="/images/54GYsSx.png">
   <br/>
   <strong><a href=http://lethain.com/introduction-to-architecting-systems-for-scale/#platform_layer>资料来源：可缩放系统构架介绍</a></strong>
 </p>
@@ -828,7 +829,7 @@ def set_user(user_id, values):
 ## 通讯
 
 <p align="center">
-  <img src="images/5KeocQs.jpg">
+  <img src="/images/5KeocQs.jpg">
   <br/>
   <strong><a href=http://www.escotal.com/osilayer.html>资料来源：OSI 7层模型</a></strong>
 </p>
@@ -863,7 +864,7 @@ HTTP 是依赖于较低级协议（如 **TCP** 和 **UDP**）的应用层协议�
 ### 传输控制协议（TCP）
 
 <p align="center">
-  <img src="images/JdAsdvG.jpg">
+  <img src="/images/JdAsdvG.jpg">
   <br/>
   <strong><a href="http://www.wildbunny.co.uk/blog/2012/10/09/how-to-make-a-multi-player-game-part-1/">资料来源：如何制作多人游戏</a></strong>
 </p>
@@ -887,7 +888,7 @@ TCP  对于需要高可靠性但时间紧迫的应用程序很有用。比如包
 ### 用户数据报协议（UDP）
 
 <p align="center">
-  <img src="images/yzDrJtA.jpg">
+  <img src="/images/yzDrJtA.jpg">
   <br/>
   <strong><a href="http://www.wildbunny.co.uk/blog/2012/10/09/how-to-make-a-multi-player-game-part-1">资料来源：如何制作多人游戏</a></strong>
 </p>
@@ -916,7 +917,7 @@ UDP 可靠性更低但适合用在网络电话、视频聊天，流媒体和实�
 ### 远程过程调用协议（RPC）
 
 <p align="center">
-  <img src="images/iF4Mkb5.png">
+  <img src="/images/iF4Mkb5.png">
   <br/>
   <strong><a href="http://www.puncsky.com/blog/2016/02/14/crack-the-system-design-interview">Source: Crack the system design interview</a></strong>
 </p>
@@ -1016,14 +1017,11 @@ REST 关注于暴露数据。它减少了客户端／服务端的耦合程度，
 * [使用 REST 的缺点是什么](https://www.quora.com/What-are-the-drawbacks-of-using-RESTful-APIs)
 * [破解系统设计面试](http://www.puncsky.com/blog/2016-02-13-crack-the-system-design-interview)
 * [Thrift](https://code.facebook.com/posts/1468950976659943/)
-* [为什么在内部使用 REST 而不是 RPC](http://arstechnica.com/civis/viewtopic.php?t=1190508)
+- [为什么在内部使用 REST 而不是 RPC](http://arstechnica.com/civis/viewtopic.php?t=1190508)
 
 ## 安全
-
 这一部分需要更多内容。[一起来吧](#贡献)！
-
 安全是一个宽泛的话题。除非你有相当的经验、安全方面背景或者正在申请的职位要求安全知识，你不需要了解安全基础知识以外的内容：
-
 * 在运输和等待过程中加密
 * 对所有的用户输入和从用户那里发来的参数进行处理以防止 [XSS](https://en.wikipedia.org/wiki/Cross-site_scripting) 和 [SQL 注入](https://en.wikipedia.org/wiki/SQL_injection)。
 * 使用参数化的查询来防止 SQL 注入。
@@ -1107,7 +1105,6 @@ Notes
 ### 其它的系统设计面试题
 
 > 常见的系统设计面试问题，给出了如何解决的方案链接
-
 | 问题                      | 引用                                       |
 | ----------------------- | ---------------------------------------- |
 | 设计类似于 Dropbox 的文件同步服务   | [youtube.com](https://www.youtube.com/watch?v=PE4gwstWhmc) |
@@ -1138,159 +1135,10 @@ Notes
 > 关于现实中真实的系统是怎么设计的文章。
 
 <p align="center">
-  <img src="images/TcUo2fw.png">
+  <img src="/images/TcUo2fw.png">
   <br/>
   <strong><a href="https://www.infoq.com/presentations/Twitter-Timeline-Scalability">Source: Twitter timelines at scale</a></strong>
 </p>
-
-**不要专注于以下文章的细节，专注于以下方面：**
-
-* 发现这些文章中的共同的原则、技术和模式。
-* 学习每个组件解决哪些问题，什么情况下使用，什么情况下不适用
-* 复习学过的文章
-
-| 类型              | 系统                                       | 引用                                       |
-| --------------- | ---------------------------------------- | ---------------------------------------- |
-| Data processing | **MapReduce** - Google的分布式数据处理 | [research.google.com](http://static.googleusercontent.com/media/research.google.com/zh-CN/us/archive/mapreduce-osdi04.pdf) |
-| Data processing | **Spark** - Databricks 的分布式数据处理 | [slideshare.net](http://www.slideshare.net/AGrishchenko/apache-spark-architecture) |
-| Data processing | **Storm** - Twitter 的分布式数据处理 | [slideshare.net](http://www.slideshare.net/previa/storm-16094009) |
-|                 |                                          |                                          |
-| Data store      | **Bigtable** - Google 的列式数据库 | [harvard.edu](http://www.read.seas.harvard.edu/~kohler/class/cs239-w08/chang06bigtable.pdf) |
-| Data store      | **HBase** - Bigtable 的开源实现 | [slideshare.net](http://www.slideshare.net/alexbaranau/intro-to-hbase) |
-| Data store      | **Cassandra** - Facebook 的列式数据库 | [slideshare.net](http://www.slideshare.net/planetcassandra/cassandra-introduction-features-30103666) |
-| Data store      | **DynamoDB** - Amazon 的文档数据库 | [harvard.edu](http://www.read.seas.harvard.edu/~kohler/class/cs239-w08/decandia07dynamo.pdf) |
-| Data store      | **MongoDB** - 文档数据库 | [slideshare.net](http://www.slideshare.net/mdirolf/introduction-to-mongodb) |
-| Data store      | **Spanner** - Google 的全球分布数据库 | [research.google.com](http://research.google.com/archive/spanner-osdi2012.pdf) |
-| Data store      | **Memcached** - 分布式内存缓存系统 | [slideshare.net](http://www.slideshare.net/oemebamo/introduction-to-memcached) |
-| Data store      | **Redis** - 能够持久化及具有值类型的分布式内存缓存系统 | [slideshare.net](http://www.slideshare.net/dvirsky/introduction-to-redis) |
-|                 |                                          |                                          |
-| File system     | **Google File System (GFS)** - 分布式文件系统 | [research.google.com](http://static.googleusercontent.com/media/research.google.com/zh-CN/us/archive/gfs-sosp2003.pdf) |
-| File system     | **Hadoop File System (HDFS)** - GFS 的开源实现 | [apache.org](https://hadoop.apache.org/docs/r1.2.1/hdfs_design.html) |
-|                 |                                          |                                          |
-| Misc            | **Chubby** - Google 的分布式系统的低耦合锁服务 | [research.google.com](http://static.googleusercontent.com/external_content/untrusted_dlcp/research.google.com/en/us/archive/chubby-osdi06.pdf) |
-| Misc            | **Dapper** - 分布式系统跟踪基础设施 | [research.google.com](http://static.googleusercontent.com/media/research.google.com/en//pubs/archive/36356.pdf) |
-| Misc            | **Kafka** - LinkedIn 的发布订阅消息系统 | [slideshare.net](http://www.slideshare.net/mumrah/kafka-talk-tri-hug) |
-| Misc            | **Zookeeper** - 集中的基础架构和协调服务 | [slideshare.net](http://www.slideshare.net/sauravhaloi/introduction-to-apache-zookeeper) |
-|                 | 添加更多                      | [贡献](#贡献)              |
-
-### 公司的系统架构
-
-| Company        | Reference(s)                             |
-| -------------- | ---------------------------------------- |
-| Amazon         | [Amazon 的架构](http://highscalability.com/amazon-architecture) |
-| Cinchcast      | [每天产生 1500 小时的音频](http://highscalability.com/blog/2012/7/16/cinchcast-architecture-producing-1500-hours-of-audio-every-d.html) |
-| DataSift       | [每秒实时挖掘 120000 条 tweet](http://highscalability.com/blog/2011/11/29/datasift-architecture-realtime-datamining-at-120000-tweets-p.html) |
-| DropBox        | [我们如何缩放 Dropbox](https://www.youtube.com/watch?v=PE4gwstWhmc) |
-| ESPN           | [每秒操作 100000 次](http://highscalability.com/blog/2013/11/4/espns-architecture-at-scale-operating-at-100000-duh-nuh-nuhs.html) |
-| Google         | [Google 的架构](http://highscalability.com/google-architecture) |
-| Instagram      | [1400 万用户，达到兆级别的照片存储](http://highscalability.com/blog/2011/12/6/instagram-architecture-14-million-users-terabytes-of-photos.html)<br/>[是什么在驱动 Instagram](http://instagram-engineering.tumblr.com/post/13649370142/what-powers-instagram-hundreds-of-instances) |
-| Justin.tv      | [Justin.Tv 的直播广播架构](http://highscalability.com/blog/2010/3/16/justintvs-live-video-broadcasting-architecture.html) |
-| Facebook       | [Facebook 的可扩展 memcached](https://cs.uwaterloo.ca/~brecht/courses/854-Emerging-2014/readings/key-value/fb-memcached-nsdi-2013.pdf)<br/>[TAO: Facebook 社交图的分布式数据存储](https://cs.uwaterloo.ca/~brecht/courses/854-Emerging-2014/readings/data-store/tao-facebook-distributed-datastore-atc-2013.pdf)<br/>[Facebook 的图片存储](https://www.usenix.org/legacy/event/osdi10/tech/full_papers/Beaver.pdf) |
-| Flickr         | [Flickr 的架构](http://highscalability.com/flickr-architecture) |
-| Mailbox        | [在 6 周内从 0 到 100 万用户](http://highscalability.com/blog/2013/6/18/scaling-mailbox-from-0-to-one-million-users-in-6-weeks-and-1.html) |
-| Pinterest      | [从零到每月数十亿的浏览量](http://highscalability.com/blog/2013/4/15/scaling-pinterest-from-0-to-10s-of-billions-of-page-views-a.html)<br/>[1800 万访问用户，10 倍增长，12 名员工](http://highscalability.com/blog/2012/5/21/pinterest-architecture-update-18-million-visitors-10x-growth.html) |
-| Playfish       | [月用户量 5000 万并在不断增长](http://highscalability.com/blog/2010/9/21/playfishs-social-gaming-architecture-50-million-monthly-user.html) |
-| PlentyOfFish   | [PlentyOfFish 的架构](http://highscalability.com/plentyoffish-architecture) |
-| Salesforce     | [他们每天如何处理 13 亿笔交易](http://highscalability.com/blog/2013/9/23/salesforce-architecture-how-they-handle-13-billion-transacti.html) |
-| Stack Overflow | [Stack Overflow 的架构](http://highscalability.com/blog/2009/8/5/stack-overflow-architecture.html) |
-| TripAdvisor    | [40M 访问者，200M 页面浏览量，30TB 数据](http://highscalability.com/blog/2011/6/27/tripadvisor-architecture-40m-visitors-200m-dynamic-page-view.html) |
-| Tumblr         | [每月 150 亿的浏览量](http://highscalability.com/blog/2012/2/13/tumblr-architecture-15-billion-page-views-a-month-and-harder.html) |
-| Twitter        | [Making Twitter 10000 percent faster](http://highscalability.com/scaling-twitter-making-twitter-10000-percent-faster)<br/>[每天使用 MySQL 存储2.5亿条 tweet](http://highscalability.com/blog/2011/12/19/how-twitter-stores-250-million-tweets-a-day-using-mysql.html)<br/>[150M 活跃用户，300K QPS，22 MB/S 的防火墙](http://highscalability.com/blog/2013/7/8/the-architecture-twitter-uses-to-deal-with-150m-active-users.html)<br/>[可扩展时间表](https://www.infoq.com/presentations/Twitter-Timeline-Scalability)<br/>[Twitter 的大小数据](https://www.youtube.com/watch?v=5cKTP36HVgI)<br/>[Twitter 的行为：规模超过 1 亿用户](https://www.youtube.com/watch?v=z8LU0Cj6BOU) |
-| Uber           | [Uber 如何扩展自己的实时化市场](http://highscalability.com/blog/2015/9/14/how-uber-scales-their-real-time-market-platform.html) |
-| WhatsApp       | [Facebook 用 190 亿美元购买 WhatsApp 的架构](http://highscalability.com/blog/2014/2/26/the-whatsapp-architecture-facebook-bought-for-19-billion.html) |
-| YouTube        | [YouTube 的可扩展性](https://www.youtube.com/watch?v=w5WVu624fY8)<br/>[YouTube 的架构](http://highscalability.com/youtube-architecture) |
-
-### 公司工程博客
-
-> 你即将面试的公司的架构
->
-> 你面对的问题可能就来自于同样领域
-
-* [Airbnb Engineering](http://nerds.airbnb.com/)
-* [Atlassian Developers](https://developer.atlassian.com/blog/)
-* [Autodesk Engineering](http://cloudengineering.autodesk.com/blog/)
-* [AWS Blog](https://aws.amazon.com/blogs/aws/)
-* [Bitly Engineering Blog](http://word.bitly.com/)
-* [Box Blogs](https://www.box.com/blog/engineering/)
-* [Cloudera Developer Blog](http://blog.cloudera.com/blog/)
-* [Dropbox Tech Blog](https://tech.dropbox.com/)
-* [Engineering at Quora](http://engineering.quora.com/)
-* [Ebay Tech Blog](http://www.ebaytechblog.com/)
-* [Evernote Tech Blog](https://blog.evernote.com/tech/)
-* [Etsy Code as Craft](http://codeascraft.com/)
-* [Facebook Engineering](https://www.facebook.com/Engineering)
-* [Flickr Code](http://code.flickr.net/)
-* [Foursquare Engineering Blog](http://engineering.foursquare.com/)
-* [GitHub Engineering Blog](https://github.blog/category/engineering)
-* [Google Research Blog](http://googleresearch.blogspot.com/)
-* [Groupon Engineering Blog](https://engineering.groupon.com/)
-* [Heroku Engineering Blog](https://engineering.heroku.com/)
-* [Hubspot Engineering Blog](http://product.hubspot.com/blog/topic/engineering)
-* [High Scalability](http://highscalability.com/)
-* [Instagram Engineering](http://instagram-engineering.tumblr.com/)
-* [Intel Software Blog](https://software.intel.com/en-us/blogs/)
-* [Jane Street Tech Blog](https://blogs.janestreet.com/category/ocaml/)
-* [LinkedIn Engineering](http://engineering.linkedin.com/blog)
-* [Microsoft Engineering](https://engineering.microsoft.com/)
-* [Microsoft Python Engineering](https://blogs.msdn.microsoft.com/pythonengineering/)
-* [Netflix Tech Blog](http://techblog.netflix.com/)
-* [Paypal Developer Blog](https://devblog.paypal.com/category/engineering/)
-* [Pinterest Engineering Blog](http://engineering.pinterest.com/)
-* [Quora Engineering](https://engineering.quora.com/)
-* [Reddit Blog](http://www.redditblog.com/)
-* [Salesforce Engineering Blog](https://developer.salesforce.com/blogs/engineering/)
-* [Slack Engineering Blog](https://slack.engineering/)
-* [Spotify Labs](https://labs.spotify.com/)
-* [Twilio Engineering Blog](http://www.twilio.com/engineering)
-* [Twitter Engineering](https://engineering.twitter.com/)
-* [Uber Engineering Blog](http://eng.uber.com/)
-* [Yahoo Engineering Blog](http://yahooeng.tumblr.com/)
-* [Yelp Engineering Blog](http://engineeringblog.yelp.com/)
-* [Zynga Engineering Blog](https://www.zynga.com/blogs/engineering)
-
-#### 来源及延伸阅读
-
-* [kilimchoi/engineering-blogs](https://github.com/kilimchoi/engineering-blogs)
-
-## 正在完善中
-
-有兴趣加入添加一些部分或者帮助完善某些部分吗？[加入进来吧](#贡献)！
-
-* 使用 MapReduce 进行分布式计算
-* 一致性哈希
-* 直接存储器访问（DMA）控制器
-* [贡献](#贡献)
-
-## 致谢
-
-整个仓库都提供了证书和源
-
-特别鸣谢：
-
-* [Hired in tech](http://www.hiredintech.com/system-design/the-system-design-process/)
-* [Cracking the coding interview](https://www.amazon.com/dp/0984782850/)
-* [High scalability](http://highscalability.com/)
-* [checkcheckzz/system-design-interview](https://github.com/checkcheckzz/system-design-interview)
-* [shashank88/system_design](https://github.com/shashank88/system_design)
-* [mmcgrana/services-engineering](https://github.com/mmcgrana/services-engineering)
-* [System design cheat sheet](https://gist.github.com/vasanthk/485d1c25737e8e72759f)
-* [A distributed systems reading list](http://dancres.github.io/Pages/)
-* [Cracking the system design interview](http://www.puncsky.com/blog/2016-02-13-crack-the-system-design-interview)
-
-## 联系方式
-
-欢迎联系我讨论本文的不足、问题或者意见。
-
-可以在我的 [GitHub 主页](https://github.com/donnemartin)上找到我的联系方式
-
-## 许可
-
-    Creative Commons Attribution 4.0 International License (CC BY 4.0)
-
-    http://creativecommons.org/licenses/by/4.0/
-
-
-
 
 
 ## Gin web 
@@ -1323,7 +1171,6 @@ Notes
 参考：
 - https://www.xuxueli.com/xxl-job/
 - https://github.com/mousycoder/xxl-job-go-sdk
-
 
 
 ## zookeeper
@@ -1371,176 +1218,11 @@ Zookeeper是一个高性能、分布式的开源的协作服务；
 
 
 ## 限流器 ratelimit
-
 | 实现方式 | 优缺点 | 居中对齐 |
 | :-----| :----: | :----: |
 | 计数器 | 实现简单，计数器算法容易出现不平滑的情况，瞬间的 qps 有可能超过系统的承载 | 单元格 |
 | 令牌桶 | 生成令牌的速度是恒定的，而请求去拿令牌是没有速度限制的。允许统一时刻有一定程度的并发，常用于服务端保护自身| 单元格 |
 | 漏桶算 | 单元格 | 单元格 |
-
-```lua
--- 获取调用脚本时传入的第一个 key 值（用作限流的 key）
-local key = KEYS[1]
--- 获取调用脚本时传入的第一个参数值（限流大小）
-local limit = tonumber(ARGV[1])
--- 获取计数器的限速区间 TTL
-local ttl = tonumber(ARGV[2])
-
--- 获取当前流量大小
-local curentLimit = tonumber(redis.call('get', key) or "0")
-
--- 是否超出限流
-if curentLimit + 1 > limit then
-    -- 返回 (拒绝)
-    return 0
-else
-    -- 没有超出 value + 1
-    redis.call('INCRBY', key, 1)
-    -- 如果 key 中保存的并发计数为 0，说明当前是一个新的时间窗口，它的过期时间设置为窗口的过期时间
-    if (current_permits == 0) then
-            redis.call('EXPIRE', key, ttl)
-	  end
-    -- 返回 (放行)
-    return 1
-end
-```
-
-```go
-package main
-
-import (
-	"fmt"
-	"sync"
-
-	"github.com/go-redis/redis"
-)
-
-func createScript() *redis.Script {
-	script := redis.NewScript(`
-	-- key
-local key = KEYS[1]
--- 最大存储的令牌数
-local max_permits = tonumber(ARGV[1])
--- 每秒钟产生的令牌数
-local permits_per_second = tonumber(ARGV[2])
--- 请求的令牌数
-local required_permits = tonumber(ARGV[3])
-
--- 下次请求可以获取令牌的起始时间
-local next_free_ticket_micros = tonumber(redis.call('hget', key, 'next_free_ticket_micros') or 0)
-
--- 当前时间
-local time = redis.call('time')
--- time[1] 返回的为秒，time[2] 为 ms
-local now_micros = tonumber(time[1]) * 1000000 + tonumber(time[2])
-
--- 查询获取令牌是否超时（传入参数，单位为 微秒）
-if (ARGV[2] ~= nil) then
-    -- 获取令牌的超时时间
-    local timeout_micros = tonumber(ARGV[2])
-    local micros_to_wait = next_free_ticket_micros - now_micros
-    if (micros_to_wait> timeout_micros) then
-        return micros_to_wait
-    end
-end
-
--- 当前存储的令牌数
-local stored_permits = tonumber(redis.call('hget', key, 'stored_permits') or 0)
--- 添加令牌的时间间隔（1000000ms 为 1s）
--- 计算生产 1 个令牌需要多少微秒
-local stable_interval_micros = 1000000 / permits_per_second
-
--- 补充令牌
-if (now_micros> next_free_ticket_micros) then
-    local new_permits = (now_micros - next_free_ticket_micros) / stable_interval_micros
-    stored_permits = math.min(max_permits, stored_permits + new_permits)
-    -- 补充后，更新下次可以获取令牌的时间
-    next_free_ticket_micros = now_micros
-end
-
--- 消耗令牌
-local moment_available = next_free_ticket_micros
--- 两种情况：required_permits<=stored_permits 或者 required_permits>stored_permits
-local stored_permits_to_spend = math.min(required_permits, stored_permits)
-local fresh_permits = required_permits - stored_permits_to_spend;
--- 如果 fresh_permits>0，说明令牌桶的剩余数目不够了，需要等待一段时间
-local wait_micros = fresh_permits * stable_interval_micros
-
--- Redis 提供了 redis.replicate_commands() 函数来实现这一功能，把发生数据变更的命令以事务的方式做持久化和主从复制，从而允许在 Lua 脚本内进行随机写入
-redis.replicate_commands()
--- 存储剩余的令牌数：桶中剩余的数目 - 本次申请的数目
-redis.call('hset', key, 'stored_permits', stored_permits - stored_permits_to_spend)
-redis.call('hset', key, 'next_free_ticket_micros', next_free_ticket_micros + wait_micros)
-redis.call('expire', key, 10)
-
--- 返回需要等待的时间长度
--- 返回为 0（moment_available==now_micros）表示桶中剩余的令牌足够，不需要等待
-return moment_available - now_micros
-	`)
-
-	return script
-}
-
-type TokenRateLimit struct {
-	client *redis.Client
-	Key    string
-	Burst  int32 // capacity of bucket
-	Limit  int32 // token of per second
-	script *redis.Script
-}
-
-func NewTokenRateLimit(client *redis.Client, key string, burst int32, limit int32) *TokenRateLimit {
-	return &TokenRateLimit{
-		client: client,
-		Key:    key,
-		Burst:  burst,
-		Limit:  limit,
-		script: createScript(),
-	}
-}
-
-func (r TokenRateLimit) AllowN(n int32) bool {
-	ret := r.script.Run(r.client, []string{r.Key}, r.Burst, r.Limit, n)
-	result, err := ret.Result()
-	if err != nil {
-		return false
-	}
-	return result.(int64) <= 0
-}
-
-func (r TokenRateLimit) Allow() bool {
-	return r.AllowN(1)
-}
-
-func evalScript(ratelimiter *TokenRateLimit, id int, wg *sync.WaitGroup) {
-	defer wg.Done()
-	fmt.Printf("id=%d,%t\n", id, ratelimiter.Allow())
-}
-
-func main() {
-	var wg sync.WaitGroup
-	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	})
-	ratelimiter := NewTokenRateLimit(client, "test_token_limiter", 100, 6000)
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go evalScript(ratelimiter, i, &wg)
-	}
-	wg.Wait()
-}
-
-
-```
-
-漏桶
-
-
-## RPC 框架
-- https://github.com/jincheng9/go-tutorial/tree/main/workspace/rpc/02
-- trpc
 
 
 ## 监控平台
@@ -1548,19 +1230,22 @@ func main() {
 - grafna,https://www.google.com.hk/search?q=grafana&rlz=1C5GCEM_enCN985CN985&oq=grafana&aqs=chrome..69i57j69i60l3j69i65l3j69i60.8511j0j7&sourceid=chrome&ie=UTF-8
 
 
-## 其它
-
-- 限流的设计和实，单机限流，分布式限流
-- abtest 平台
+## CI/CD和SRE运维
 - jenkins
 - docker
 - Kubernetes [Kubernetes 入门&进阶实战](https://zhuanlan.zhihu.com/p/339008746)
-- 数据分析和处理
-- scala
+- 虚拟机与容器的区别？虚拟机需要多一层guestos，隔离更好，一把是用户级别的隔离。而docker则是应用级别的隔离，共享宿主机操作系统。
+
+
+## 大数据存储和计算
 - spark
 - spark streaming
 - hive
 - presto
+- Lambda 和 Kappa 架构简介：https://libertydream.github.io/2020/04/12/lambda-%E5%92%8C-kappa-%E7%AE%80%E4%BB%8B/
+
+
+## 系统设计文档和架构图
 - 方案设计与写作
 - 方案模版
 - 画架构图
@@ -1569,34 +1254,3 @@ func main() {
 - https://wxquare.github.io/2022/05/20/C++/system-design-and-framework-basic/
 - 英语能力
 - 好用工具
-- https://wxquare.github.io/2022/05/20/other/tools/
-- 好的博客，站点
-- https://catcoding.me/
-- https://coderscat.com/
-- https://www.zhihu.com/people/wxquare0
-- https://leetcode.cn/leetbook/read/leetcode-cookbook/5is6a6/
-1. 如何实现定时任务? https://github.com/go-co-op/gocron
-2. 协程池的实现? https://strikefreedom.top/high-performance-implementation-of-goroutine-pool
-3. database/sql连接池的实现,mysql链接池的实现? github.com/go-sql-driver/mysql
-3. protobuf 为什么这么快,tlv编码 https://blog.csdn.net/carson_ho/article/details/70568606s
-4. [阿里云，救火必备！问题排查与系统优化手册](https://zhuanlan.51cto.com/art/202007/620840.htm)
-    - 常见的问题及其应对办法
-    - 怎么做系统优化
-3. 怎么设计一个分布式调度系统（滴滴）
-4. [使用redis实现微信步数排行榜](https://www.cnblogs.com/zwwhnly/p/13041641.html)
-5. https://leetcode-cn.com/circle/discuss/ej0oh6/
-6. 虚拟机与容器的区别？虚拟机需要多一层guestos，隔离更好，一把是用户级别的隔离。而docker则是应用级别的隔离，共享宿主机操作系统。
-7. docker和k8s之间的关系：官方定义1：Docker是一个开源的应用容器引擎，开发者可以打包他们的应用及依赖到一个可移植的容器中，发布到流行的Linux机器上，也可实现虚拟化。官方定义2：k8s是一个开源的容器集群管理系统，可以实现容器集群的自动化部署、自动扩缩容、维护等功能。
-9. 负载均衡与l5名字服务？https://blog.csdn.net/qq_18144747/article/details/86672206
-10. bus 中 bitmap使用，[bitmap原理和应用](https://www.jianshu.com/p/970c367460b1)
-10. [Golang调度器GPM原理与调度全分析](https://zhuanlan.zhihu.com/p/323271088)
-1. [为什么要使用 Go 语言？Go 语言的优势在哪里？](https://www.zhihu.com/question/21409296/answer/1040884859)
-3. [Go内置数据结构原理](https://zhuanlan.zhihu.com/p/341945051)
-4. [从 bug 中学习：六大开源项目告诉你 go 并发编程的那些坑](https://zhuanlan.zhihu.com/p/352589023)
-5. [Go runtime剖析系列（一）：内存管理](https://zhuanlan.zhihu.com/p/323915446)
-6. [Go 内存泄露三宗罪](http://km.oa.com/group/19253/articles/show/460278?kmref=home_headline)
-6. [Redis 多线程网络模型全面揭秘](https://zhuanlan.zhihu.com/p/356059845)
-1. [https://zhuanlan.zhihu.com/p/329865336](https://zhuanlan.zhihu.com/p/329865336)
-1. [Kubernetes 入门&进阶实战](https://zhuanlan.zhihu.com/p/339008746)
-2. Lambda 和 Kappa 架构简介：https://libertydream.github.io/2020/04/12/lambda-%E5%92%8C-kappa-%E7%AE%80%E4%BB%8B/
-3. https://blog.csdn.net/weixin_39471249/article/details/79585231
