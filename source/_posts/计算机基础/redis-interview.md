@@ -6,12 +6,7 @@ categories:
 
 ## 前言
 1. redis有哪些使用场景？
-2. redis五种数据结构选择以及其底层实现原理？
-   - string
-   - list
-   - set
-   - zset
-   - hmap
+2. redis五种数据结构选择以及其底层实现原理？string、hashmap、list、set、zset
 4. redis 常用命令以及时间复杂度？
 5. 如何处理可能遇到的key大面积失效的缓存雪崩，无效key缓存穿透、热key缓存击穿问题？是否需要缓存预热
 6. 如何考虑缓存和数据库一致性的问题？更新DB之后删除缓存？还是更新缓存？
