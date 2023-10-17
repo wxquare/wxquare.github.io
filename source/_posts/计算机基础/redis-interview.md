@@ -19,7 +19,7 @@ categories:
 13. [redis 性能调优？避免大key、热key导致集群倾斜，比秒复杂命令的使用，CPU、内存、宽带的监控](https://help.aliyun.com/zh/redis/user-guide/suggestions-for-handling-common-latency-events?spm=a2c4g.11186623.0.0.21b77ba2oGegZ3)
 14. 实践：[秒杀系统的设计和实现](https://gongfukangee.github.io/2019/06/09/SecondsKill/)
 15. 实践：分布式锁，setnx,expire,del
-16. 实践：bloomfilter
+16. 实践：bloomfilter 和 bitmap
 
 ## redis 使用场景
 1. 缓存数据（db，service) 的数据，提高访问效率
