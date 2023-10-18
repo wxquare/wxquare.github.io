@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.3" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.3">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.3">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.3" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="关键指标 可用性，接口成功率，SLA多少个九来衡量；数据的正确性（一致性）；异常容灾 可扩展，是否支持水平扩容？服务扩容？依赖的中间件是否支持水平扩容？ 性能。低延时latency和高吞吐throughput，在同步系统中一般低延时意味着高吞吐。有些异步接口，需要考虑异步处理逻辑，例如订单和发货系统。 CAP 理论 BASE 理论 一致模式 最终一致性 强一致性   分布式理论：CAP、BASE与">
+<meta property="og:type" content="article">
+<meta property="og:title" content="系统架构设计以及组件基础">
+<meta property="og:url" content="http://yoursite.com/2023/10/18/计算机基础/system-design-and-framework-basic/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="关键指标 可用性，接口成功率，SLA多少个九来衡量；数据的正确性（一致性）；异常容灾 可扩展，是否支持水平扩容？服务扩容？依赖的中间件是否支持水平扩容？ 性能。低延时latency和高吞吐throughput，在同步系统中一般低延时意味着高吞吐。有些异步接口，需要考虑异步处理逻辑，例如订单和发货系统。 CAP 理论 BASE 理论 一致模式 最终一致性 强一致性   分布式理论：CAP、BASE与">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://yoursite.com/images/jrUBAF7.png">
+<meta property="og:image" content="http://yoursite.com/images/IOyLj4i.jpg">
+<meta property="og:image" content="http://yoursite.com/images/h9TAuGI.jpg">
+<meta property="og:image" content="http://yoursite.com/images/h81n9iK.png">
+<meta property="og:image" content="http://yoursite.com/images/n41Azff.png">
+<meta property="og:image" content="http://yoursite.com/images/yB5SYwm.png">
+<meta property="og:image" content="http://yoursite.com/images/Xkm5CXz.png">
+<meta property="og:image" content="http://yoursite.com/images/C9ioGtn.png">
+<meta property="og:image" content="http://yoursite.com/images/krAHLGg.png">
+<meta property="og:image" content="http://yoursite.com/images/U3qV33e.png">
+<meta property="og:image" content="http://yoursite.com/images/wU8x5Id.png">
+<meta property="og:image" content="http://yoursite.com/images/n16iOGk.png">
+<meta property="og:image" content="http://yoursite.com/images/fNcl65g.png">
+<meta property="og:image" content="http://yoursite.com/images/wXGqG5f.png">
+<meta property="og:image" content="http://yoursite.com/images/Q6z24La.png">
+<meta property="og:image" content="http://yoursite.com/images/ONjORqk.png">
+<meta property="og:image" content="http://yoursite.com/images/0vBc0hN.png">
+<meta property="og:image" content="http://yoursite.com/images/rgSrvjG.png">
+<meta property="og:image" content="http://yoursite.com/images/kxtjqgE.png">
+<meta property="og:image" content="http://yoursite.com/images/54GYsSx.png">
+<meta property="og:image" content="http://yoursite.com/images/5KeocQs.jpg">
+<meta property="og:image" content="http://yoursite.com/images/JdAsdvG.jpg">
+<meta property="og:image" content="http://yoursite.com/images/yzDrJtA.jpg">
+<meta property="og:image" content="http://yoursite.com/images/iF4Mkb5.png">
+<meta property="og:image" content="https://camo.githubusercontent.com/77f72259e1eb58596b564d1ad823af1853bc60a3/687474703a2f2f692e696d6775722e636f6d2f6b307431652e706e67">
+<meta property="og:image" content="http://yoursite.com/images/TcUo2fw.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/bitleak/lmstfy/master/doc/lmstfy-internal.png">
+<meta property="og:updated_time" content="2023-10-18T13:18:53.005Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="系统架构设计以及组件基础">
+<meta name="twitter:description" content="关键指标 可用性，接口成功率，SLA多少个九来衡量；数据的正确性（一致性）；异常容灾 可扩展，是否支持水平扩容？服务扩容？依赖的中间件是否支持水平扩容？ 性能。低延时latency和高吞吐throughput，在同步系统中一般低延时意味着高吞吐。有些异步接口，需要考虑异步处理逻辑，例如订单和发货系统。 CAP 理论 BASE 理论 一致模式 最终一致性 强一致性   分布式理论：CAP、BASE与">
+<meta name="twitter:image" content="http://yoursite.com/images/jrUBAF7.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.3',
+    sidebar: {"position":"left","display":"always","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2023/10/18/计算机基础/system-design-and-framework-basic/">
+
+
+
+
+
+  <title>系统架构设计以及组件基础 | wxquare's Blogs</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">wxquare's Blogs</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-friends">
+          <a href="/friends" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-sitemap"></i> <br>
+            
+            友链
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2023/10/18/计算机基础/system-design-and-framework-basic/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="wxquare">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">系统架构设计以及组件基础</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2023-10-18T21:18:53+08:00">
+                2023-10-18
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/计算机基础/" itemprop="url" rel="index">
+                    <span itemprop="name">计算机基础</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="关键指标"><a href="#关键指标" class="headerlink" title="关键指标"></a>关键指标</h2><ul>
+<li>可用性，接口成功率，SLA多少个九来衡量；数据的正确性（一致性）；异常容灾</li>
+<li>可扩展，是否支持水平扩容？服务扩容？依赖的中间件是否支持水平扩容？</li>
+<li>性能。低延时latency和高吞吐throughput，在同步系统中一般低延时意味着高吞吐。有些异步接口，需要考虑异步处理逻辑，例如订单和发货系统。</li>
+<li>CAP 理论</li>
+<li>BASE 理论</li>
+<li>一致模式<ul>
+<li>最终一致性</li>
+<li>强一致性</li>
+</ul>
+</li>
+<li><a href="https://monkeysayhi.github.io/2018/03/09/%E5%88%86%E5%B8%83%E5%BC%8F%E7%90%86%E8%AE%BA%EF%BC%9ACAP%E3%80%81BASE%E4%B8%8EACID/" target="_blank" rel="noopener">分布式理论：CAP、BASE与ACID</a></li>
+</ul>
+<h2 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h2><p align="center"><br>  <img src="/images/jrUBAF7.png" width="550" height="550"><br>  <br><br></p>
+
+
+<h2 id="域名系统"><a href="#域名系统" class="headerlink" title="域名系统"></a>域名系统</h2><p align="center"><br>  <img src="/images/IOyLj4i.jpg"><br>  <br><br>  <strong><a href="http://www.slideshare.net/srikrupa5/dns-security-presentation-issa" target="_blank" rel="noopener">来源：DNS 安全介绍</a></strong><br></p>
+
+<p>域名系统是把 www.example.com 等域名转换成 IP 地址。</p>
+<p>域名系统是分层次的，一些 DNS 服务器位于顶层。当查询（域名） IP 时，路由或 ISP 提供连接 DNS 服务器的信息。较底层的 DNS 服务器缓存映射，它可能会因为 DNS 传播延时而失效。DNS 结果可以缓存在浏览器或操作系统中一段时间，时间长短取决于<a href="https://en.wikipedia.org/wiki/Time_to_live" target="_blank" rel="noopener">存活时间 TTL</a>。</p>
+<ul>
+<li><strong>NS 记录（域名服务）</strong> ─ 指定解析域名或子域名的 DNS 服务器。</li>
+<li><strong>MX 记录（邮件交换）</strong> ─ 指定接收信息的邮件服务器。</li>
+<li><strong>A 记录（地址）</strong> ─ 指定域名对应的 IP 地址记录。</li>
+<li><strong>CNAME（规范）</strong> ─ 一个域名映射到另一个域名或 <code>CNAME</code> 记录（ example.com 指向 www.example.com ）或映射到一个 <code>A</code> 记录。</li>
+</ul>
+<p><a href="https://www.cloudflare.com/dns/" target="_blank" rel="noopener">CloudFlare</a> 和 <a href="https://aws.amazon.com/route53/" target="_blank" rel="noopener">Route 53</a> 等平台提供管理 DNS 的功能。某些 DNS 服务通过集中方式来路由流量:</p>
+<ul>
+<li><a href="http://g33kinfo.com/info/archives/2657" target="_blank" rel="noopener">加权轮询调度</a><ul>
+<li>防止流量进入维护中的服务器</li>
+<li>在不同大小集群间负载均衡</li>
+<li>A/B 测试</li>
+</ul>
+</li>
+<li>基于延迟路由</li>
+<li>基于地理位置路由</li>
+</ul>
+<h3 id="缺陷-DNS"><a href="#缺陷-DNS" class="headerlink" title="缺陷:DNS"></a>缺陷:DNS</h3><ul>
+<li>虽说缓存可以减轻 DNS 延迟，但连接 DNS 服务器还是带来了轻微的延迟。</li>
+<li>虽然它们通常由<a href="http://superuser.com/questions/472695/who-controls-the-dns-servers/472729" target="_blank" rel="noopener">政府，网络服务提供商和大公司</a>管理，但 DNS 服务管理仍可能是复杂的。</li>
+<li>DNS 服务最近遭受 <a href="http://dyn.com/blog/dyn-analysis-summary-of-friday-october-21-attack/" target="_blank" rel="noopener">DDoS 攻击</a>，阻止不知道 Twitter IP 地址的用户访问 Twitter。</li>
+</ul>
+<h3 id="来源及延伸阅读"><a href="#来源及延伸阅读" class="headerlink" title="来源及延伸阅读"></a>来源及延伸阅读</h3><ul>
+<li><a href="https://technet.microsoft.com/en-us/library/dd197427(v=ws.10" target="_blank" rel="noopener">DNS 架构</a>.aspx)</li>
+<li><a href="https://en.wikipedia.org/wiki/Domain_Name_System" target="_blank" rel="noopener">Wikipedia</a></li>
+<li><a href="https://support.dnsimple.com/categories/dns/" target="_blank" rel="noopener">关于 DNS 的文章</a></li>
+</ul>
+<h2 id="内容分发网络（CDN）"><a href="#内容分发网络（CDN）" class="headerlink" title="内容分发网络（CDN）"></a>内容分发网络（CDN）</h2><p align="center"><br>  <img src="/images/h9TAuGI.jpg"><br>  <br><br>  <strong><a href="https://www.creative-artworks.eu/why-use-a-content-delivery-network-cdn/" target="_blank" rel="noopener">来源：为什么使用 CDN</a></strong><br></p>
+
+<p>内容分发网络（CDN）是一个全球性的代理服务器分布式网络，它从靠近用户的位置提供内容。通常，HTML/CSS/JS，图片和视频等静态内容由 CDN 提供，虽然亚马逊 CloudFront 等也支持动态内容。CDN 的 DNS 解析会告知客户端连接哪台服务器。</p>
+<p>将内容存储在 CDN 上可以从两个方面来提供性能:</p>
+<ul>
+<li>从靠近用户的数据中心提供资源</li>
+<li>通过 CDN 你的服务器不必真的处理请求</li>
+</ul>
+<h3 id="CDN-推送（push）"><a href="#CDN-推送（push）" class="headerlink" title="CDN 推送（push）"></a>CDN 推送（push）</h3><p>当你服务器上内容发生变动时，推送 CDN 接受新内容。直接推送给 CDN 并重写 URL 地址以指向你的内容的 CDN 地址。你可以配置内容到期时间及何时更新。内容只有在更改或新增是才推送，流量最小化，但储存最大化。</p>
+<h3 id="CDN-拉取（pull）"><a href="#CDN-拉取（pull）" class="headerlink" title="CDN 拉取（pull）"></a>CDN 拉取（pull）</h3><p>CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源。你将内容留在自己的服务器上并重写 URL 指向 CDN 地址。直到内容被缓存在 CDN 上为止，这样请求只会更慢，</p>
+<p><a href="https://en.wikipedia.org/wiki/Time_to_live" target="_blank" rel="noopener">存活时间（TTL）</a>决定缓存多久时间。CDN 拉取方式最小化 CDN 上的储存空间，但如果过期文件并在实际更改之前被拉取，则会导致冗余的流量。</p>
+<p>高流量站点使用 CDN 拉取效果不错，因为只有最近请求的内容保存在 CDN 中，流量才能更平衡地分散。</p>
+<h3 id="缺陷：CDN"><a href="#缺陷：CDN" class="headerlink" title="缺陷：CDN"></a>缺陷：CDN</h3><ul>
+<li>CDN 成本可能因流量而异，可能在权衡之后你将不会使用 CDN。</li>
+<li>如果在 TTL 过期之前更新内容，CDN 缓存内容可能会过时。</li>
+<li>CDN 需要更改静态内容的 URL 地址以指向 CDN。</li>
+</ul>
+<h3 id="来源及延伸阅读-1"><a href="#来源及延伸阅读-1" class="headerlink" title="来源及延伸阅读"></a>来源及延伸阅读</h3><ul>
+<li><a href="http://repository.cmu.edu/cgi/viewcontent.cgi?article=2112&amp;context=compsci" target="_blank" rel="noopener">全球性内容分发网络</a></li>
+<li><a href="http://www.travelblogadvice.com/technical/the-differences-between-push-and-pull-cdns/" target="_blank" rel="noopener">CDN 拉取和 CDN 推送的区别</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Content_delivery_network" target="_blank" rel="noopener">Wikipedia</a></li>
+</ul>
+<h2 id="负载均衡器（网关）"><a href="#负载均衡器（网关）" class="headerlink" title="负载均衡器（网关）"></a>负载均衡器（网关）</h2><p align="center"><br>  <img src="/images/h81n9iK.png"><br>  <br><br>  <strong><a href="http://horicky.blogspot.com/2010/10/scalable-system-design-patterns.html" target="_blank" rel="noopener">来源：可扩展的系统设计模式</a></strong><br></p>
+
+<p>负载均衡器将传入的请求分发到应用服务器和数据库等计算资源。无论哪种情况，负载均衡器将从计算资源来的响应返回给恰当的客户端。负载均衡器的效用在于:</p>
+<ul>
+<li>防止请求进入不好的服务器</li>
+<li>防止资源过载</li>
+<li>帮助消除单一的故障点</li>
+</ul>
+<p>负载均衡器可以通过硬件（昂贵）或 HAProxy 等软件来实现。<br>增加的好处包括:</p>
+<ul>
+<li><strong>SSL 终结</strong> ─ 解密传入的请求并加密服务器响应，这样的话后端服务器就不必再执行这些潜在高消耗运算了。<ul>
+<li>不需要再每台服务器上安装 <a href="https://en.wikipedia.org/wiki/X.509" target="_blank" rel="noopener">X.509 证书</a>。</li>
+</ul>
+</li>
+<li><strong>Session 留存</strong> ─ 如果 Web 应用程序不追踪会话，发出 cookie 并将特定客户端的请求路由到同一实例。</li>
+</ul>
+<p>通常会设置采用<a href="#工作到备用切换active-passive">工作─备用</a> 或 <a href="#双工作切换active-active">双工作</a> 模式的多个负载均衡器，以免发生故障。</p>
+<p>负载均衡器能基于多种方式来路由流量:</p>
+<ul>
+<li>随机</li>
+<li>最少负载</li>
+<li>Session/cookie</li>
+<li><a href="http://g33kinfo.com/info/archives/2657" target="_blank" rel="noopener">轮询调度或加权轮询调度算法</a></li>
+<li><a href="#四层负载均衡">四层负载均衡</a></li>
+<li><a href="#七层负载均衡">七层负载均衡</a></li>
+</ul>
+<h3 id="四层负载均衡"><a href="#四层负载均衡" class="headerlink" title="四层负载均衡"></a>四层负载均衡</h3><p>四层负载均衡根据监看<a href="#通讯">传输层</a>的信息来决定如何分发请求。通常，这会涉及来源，目标 IP 地址和请求头中的端口，但不包括数据包（报文）内容。四层负载均衡执行<a href="https://www.nginx.com/resources/glossary/layer-4-load-balancing/" target="_blank" rel="noopener">网络地址转换（NAT）</a>来向上游服务器转发网络数据包。</p>
+<h3 id="七层负载均衡器"><a href="#七层负载均衡器" class="headerlink" title="七层负载均衡器"></a>七层负载均衡器</h3><p>七层负载均衡器根据监控<a href="#通讯">应用层</a>来决定怎样分发请求。这会涉及请求头的内容，消息和 cookie。七层负载均衡器终结网络流量，读取消息，做出负载均衡判定，然后传送给特定服务器。比如，一个七层负载均衡器能直接将视频流量连接到托管视频的服务器，同时将更敏感的用户账单流量引导到安全性更强的服务器。</p>
+<p>以损失灵活性为代价，四层负载均衡比七层负载均衡花费更少时间和计算资源，虽然这对现代商用硬件的性能影响甚微。</p>
+<h3 id="水平扩展"><a href="#水平扩展" class="headerlink" title="水平扩展"></a>水平扩展</h3><p>负载均衡器还能帮助水平扩展，提高性能和可用性。使用商业硬件的性价比更高，并且比在单台硬件上<strong>垂直扩展</strong>更贵的硬件具有更高的可用性。相比招聘特定企业系统人才，招聘商业硬件方面的人才更加容易。</p>
+<h4 id="缺陷：水平扩展"><a href="#缺陷：水平扩展" class="headerlink" title="缺陷：水平扩展"></a>缺陷：水平扩展</h4><ul>
+<li>水平扩展引入了复杂度并涉及服务器复制<ul>
+<li>服务器应该是无状态的:它们也不该包含像 session 或资料图片等与用户关联的数据。</li>
+<li>session 可以集中存储在数据库或持久化<a href="#缓存">缓存</a>（Redis、Memcached）的数据存储区中。</li>
+</ul>
+</li>
+<li>缓存和数据库等下游服务器需要随着上游服务器进行扩展，以处理更多的并发连接。</li>
+</ul>
+<h3 id="缺陷：负载均衡器"><a href="#缺陷：负载均衡器" class="headerlink" title="缺陷：负载均衡器"></a>缺陷：负载均衡器</h3><ul>
+<li>如果没有足够的资源配置或配置错误，负载均衡器会变成一个性能瓶颈。</li>
+<li>引入负载均衡器以帮助消除单点故障但导致了额外的复杂性。</li>
+<li>单个负载均衡器会导致单点故障，但配置多个负载均衡器会进一步增加复杂性。</li>
+</ul>
+<h3 id="来源及延伸阅读-2"><a href="#来源及延伸阅读-2" class="headerlink" title="来源及延伸阅读"></a>来源及延伸阅读</h3><ul>
+<li><a href="https://www.nginx.com/blog/inside-nginx-how-we-designed-for-performance-scale/" target="_blank" rel="noopener">NGINX 架构</a></li>
+<li><a href="http://www.haproxy.org/download/1.2/doc/architecture.txt" target="_blank" rel="noopener">HAProxy 架构指南</a></li>
+<li><a href="http://www.lecloud.net/post/7295452622/scalability-for-dummies-part-1-clones" target="_blank" rel="noopener">可扩展性</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Load_balancing_(computing" target="_blank" rel="noopener">Wikipedia</a>)</li>
+<li><a href="https://www.nginx.com/resources/glossary/layer-4-load-balancing/" target="_blank" rel="noopener">四层负载平衡</a></li>
+<li><a href="https://www.nginx.com/resources/glossary/layer-7-load-balancing/" target="_blank" rel="noopener">七层负载平衡</a></li>
+<li><a href="http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-listener-config.html" target="_blank" rel="noopener">ELB 监听器配置</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/508672222" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/508672222</a></li>
+<li><a href="https://cloud.tencent.com/developer/article/1049707" target="_blank" rel="noopener">https://cloud.tencent.com/developer/article/1049707</a></li>
+</ul>
+<h2 id="反向代理（web-服务器）"><a href="#反向代理（web-服务器）" class="headerlink" title="反向代理（web 服务器）"></a>反向代理（web 服务器）</h2><p align="center"><br>  <img src="/images/n41Azff.png"><br>  <br><br>  <strong><a href="https://upload.wikimedia.org/wikipedia/commons/6/67/Reverse_proxy_h2g2bob.svg" target="_blank" rel="noopener">资料来源：维基百科</a></strong><br>  <br><br></p>
+
+<p>反向代理是一种可以集中地调用内部服务，并提供统一接口给公共客户的 web 服务器。来自客户端的请求先被反向代理服务器转发到可响应请求的服务器，然后代理再把服务器的响应结果返回给客户端。</p>
+<p>带来的好处包括：</p>
+<ul>
+<li><strong>增加安全性</strong> - 隐藏后端服务器的信息，屏蔽黑名单中的 IP，限制每个客户端的连接数。</li>
+<li><strong>提高可扩展性和灵活性</strong> - 客户端只能看到反向代理服务器的 IP，这使你可以增减服务器或者修改它们的配置。</li>
+<li><strong>本地终结 SSL 会话</strong> - 解密传入请求，加密服务器响应，这样后端服务器就不必完成这些潜在的高成本的操作。<ul>
+<li>免除了在每个服务器上安装 <a href="https://en.wikipedia.org/wiki/X.509" target="_blank" rel="noopener">X.509</a> 证书的需要</li>
+</ul>
+</li>
+<li><strong>压缩</strong> - 压缩服务器响应</li>
+<li><strong>缓存</strong> - 直接返回命中的缓存结果</li>
+<li><strong>静态内容</strong> - 直接提供静态内容<ul>
+<li>HTML/CSS/JS</li>
+<li>图片</li>
+<li>视频</li>
+<li>等等</li>
+</ul>
+</li>
+</ul>
+<h3 id="负载均衡器与反向代理"><a href="#负载均衡器与反向代理" class="headerlink" title="负载均衡器与反向代理"></a>负载均衡器与反向代理</h3><ul>
+<li>当你有多个服务器时，部署负载均衡器非常有用。通常，负载均衡器将流量路由给一组功能相同的服务器上。</li>
+<li>即使只有一台 web 服务器或者应用服务器时，反向代理也有用，可以参考上一节介绍的好处。</li>
+<li>NGINX 和 HAProxy 等解决方案可以同时支持第七层反向代理和负载均衡。</li>
+</ul>
+<h3 id="不利之处：反向代理"><a href="#不利之处：反向代理" class="headerlink" title="不利之处：反向代理"></a>不利之处：反向代理</h3><ul>
+<li>引入反向代理会增加系统的复杂度。</li>
+<li>单独一个反向代理服务器仍可能发生单点故障，配置多台反向代理服务器（如<a href="https://en.wikipedia.org/wiki/Failover" target="_blank" rel="noopener">故障转移</a>）会进一步增加复杂度。</li>
+</ul>
+<h3 id="来源及延伸阅读-3"><a href="#来源及延伸阅读-3" class="headerlink" title="来源及延伸阅读"></a>来源及延伸阅读</h3><ul>
+<li><a href="https://www.nginx.com/resources/glossary/reverse-proxy-vs-load-balancer/" target="_blank" rel="noopener">反向代理与负载均衡</a></li>
+<li><a href="https://www.nginx.com/blog/inside-nginx-how-we-designed-for-performance-scale/" target="_blank" rel="noopener">NGINX 架构</a></li>
+<li><a href="http://www.haproxy.org/download/1.2/doc/architecture.txt" target="_blank" rel="noopener">HAProxy 架构指南</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Reverse_proxy" target="_blank" rel="noopener">Wikipedia</a></li>
+</ul>
+<h2 id="应用层网关"><a href="#应用层网关" class="headerlink" title="应用层网关"></a>应用层网关</h2><p align="center"><br>  <img src="/images/yB5SYwm.png"><br>  <br><br>  <strong><a href="http://lethain.com/introduction-to-architecting-systems-for-scale/#platform_layer" target="_blank" rel="noopener">资料来源：可缩放系统构架介绍</a></strong><br></p>
+
+<p>将 Web 服务层与应用层（也被称作平台层）分离，可以独立缩放和配置这两层。添加新的 API 只需要添加应用服务器，而不必添加额外的 web 服务器。</p>
+<p><strong>单一职责原则</strong>提倡小型的，自治的服务共同合作。小团队通过提供小型的服务，可以更激进地计划增长。</p>
+<p>应用层中的工作进程也有可以实现<a href="#异步">异步化</a>。<br>用于完成基础的鉴权、限流、监控日志、参数校验、协议转换等工作<br><a href="https://tech.meituan.com/2021/05/20/shepherd-api-gateway.html" target="_blank" rel="noopener">百亿规模API网关服务Shepherd的设计与实现</a></p>
+<h2 id="微服务"><a href="#微服务" class="headerlink" title="微服务"></a>微服务</h2><p>与此讨论相关的话题是 <a href="https://en.wikipedia.org/wiki/Microservices" target="_blank" rel="noopener">微服务</a>，可以被描述为一系列可以独立部署的小型的，模块化服务。每个服务运行在一个独立的线程中，通过明确定义的轻量级机制通讯，共同实现业务目标。<sup><a href="https://smartbear.com/learn/api-design/what-are-microservices" target="_blank" rel="noopener">1</a></sup><br>例如，Pinterest 可能有这些微服务： 用户资料、关注者、Feed 流、搜索、照片上传等。</p>
+<ul>
+<li>grpc</li>
+</ul>
+<h3 id="服务发现"><a href="#服务发现" class="headerlink" title="服务发现"></a>服务发现</h3><p>像 <a href="https://www.consul.io/docs/index.html" target="_blank" rel="noopener">Consul</a>，<a href="https://coreos.com/etcd/docs/latest" target="_blank" rel="noopener">Etcd</a> 和 <a href="http://www.slideshare.net/sauravhaloi/introduction-to-apache-zookeeper" target="_blank" rel="noopener">Zookeeper</a> 这样的系统可以通过追踪注册名、地址、端口等信息来帮助服务互相发现对方。<a href="https://www.consul.io/intro/getting-started/checks.html" target="_blank" rel="noopener">Health checks</a> 可以帮助确认服务的完整性和是否经常使用一个 <a href="#超文本传输协议http">HTTP</a> 路径。Consul 和 Etcd 都有一个内建的 <a href="#键-值存储">key-value 存储</a> 用来存储配置信息和其他的共享信息。</p>
+<h3 id="不利之处：应用层"><a href="#不利之处：应用层" class="headerlink" title="不利之处：应用层"></a>不利之处：应用层</h3><ul>
+<li>添加由多个松耦合服务组成的应用层，从架构、运营、流程等层面来讲将非常不同（相对于单体系统）。</li>
+<li>微服务会增加部署和运营的复杂度。</li>
+</ul>
+<h3 id="来源及延伸阅读-4"><a href="#来源及延伸阅读-4" class="headerlink" title="来源及延伸阅读"></a>来源及延伸阅读</h3><ul>
+<li><a href="http://lethain.com/introduction-to-architecting-systems-for-scale" target="_blank" rel="noopener">可缩放系统构架介绍</a></li>
+<li><a href="http://www.puncsky.com/blog/2016-02-13-crack-the-system-design-interview" target="_blank" rel="noopener">破解系统设计面试</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Service-oriented_architecture" target="_blank" rel="noopener">面向服务架构</a></li>
+<li><a href="http://www.slideshare.net/sauravhaloi/introduction-to-apache-zookeeper" target="_blank" rel="noopener">Zookeeper 介绍</a></li>
+<li><a href="https://cloudncode.wordpress.com/2016/07/22/msa-getting-started/" target="_blank" rel="noopener">构建微服务，你所需要知道的一切</a></li>
+</ul>
+<h2 id="数据库"><a href="#数据库" class="headerlink" title="数据库"></a>数据库</h2><p align="center"><br>  <img src="/images/Xkm5CXz.png"><br>  <br><br>  <strong><a href="https://www.youtube.com/watch?v=w95murBkYmU" target="_blank" rel="noopener">资料来源：扩展你的用户数到第一个一千万</a></strong><br></p>
+
+<h3 id="关系型数据库管理系统（RDBMS）"><a href="#关系型数据库管理系统（RDBMS）" class="headerlink" title="关系型数据库管理系统（RDBMS）"></a>关系型数据库管理系统（RDBMS）</h3><p>像 SQL 这样的关系型数据库是一系列以表的形式组织的数据项集合。</p>
+<blockquote>
+<p>校对注：这里作者 SQL 可能指的是 MySQL</p>
+</blockquote>
+<p><strong>ACID</strong> 用来描述关系型数据库<a href="https://en.wikipedia.org/wiki/Database_transaction" target="_blank" rel="noopener">事务</a>的特性。</p>
+<ul>
+<li><strong>原子性</strong> - 每个事务内部所有操作要么全部完成，要么全部不完成。</li>
+<li><strong>一致性</strong> - 任何事务都使数据库从一个有效的状态转换到另一个有效状态。</li>
+<li><strong>隔离性</strong> - 并发执行事务的结果与顺序执行事务的结果相同。</li>
+<li><strong>持久性</strong> - 事务提交后，对系统的影响是永久的。</li>
+</ul>
+<p>关系型数据库扩展包括许多技术：<strong>主从复制</strong>、<strong>主主复制</strong>、<strong>联合</strong>、<strong>分片</strong>、<strong>非规范化</strong>和 <strong>SQL调优</strong>。</p>
+<p align="center"><br>  <img src="/images/C9ioGtn.png"><br>  <br><br>  <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/" target="_blank" rel="noopener">资料来源：可扩展性、可用性、稳定性、模式</a></strong><br></p>
+
+<h3 id="关系型数据库扩展架构"><a href="#关系型数据库扩展架构" class="headerlink" title="关系型数据库扩展架构"></a>关系型数据库扩展架构</h3><h4 id="主从复制"><a href="#主从复制" class="headerlink" title="主从复制"></a>主从复制</h4><p>主库同时负责读取和写入操作，并复制写入到一个或多个从库中，从库只负责读操作。树状形式的从库再将写入复制到更多的从库中去。如果主库离线，系统可以以只读模式运行，直到某个从库被提升为主库或有新的主库出现。</p>
+<h5 id="不利之处：主从复制"><a href="#不利之处：主从复制" class="headerlink" title="不利之处：主从复制"></a>不利之处：主从复制</h5><ul>
+<li>将从库提升为主库需要额外的逻辑。</li>
+<li>参考<a href="#不利之处复制">不利之处：复制</a>中，主从复制和主主复制<strong>共同</strong>的问题。</li>
+</ul>
+<p align="center"><br>  <img src="/images/krAHLGg.png"><br>  <br><br>  <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/" target="_blank" rel="noopener">资料来源：可扩展性、可用性、稳定性、模式</a></strong><br></p>
+
+<h4 id="主主复制"><a href="#主主复制" class="headerlink" title="主主复制"></a>主主复制</h4><p>两个主库都负责读操作和写操作，写入操作时互相协调。如果其中一个主库挂机，系统可以继续读取和写入。</p>
+<h5 id="不利之处：-主主复制"><a href="#不利之处：-主主复制" class="headerlink" title="不利之处： 主主复制"></a>不利之处： 主主复制</h5><ul>
+<li>你需要添加负载均衡器或者在应用逻辑中做改动，来确定写入哪一个数据库。</li>
+<li>多数主-主系统要么不能保证一致性（违反 ACID），要么因为同步产生了写入延迟。</li>
+<li>随着更多写入节点的加入和延迟的提高，如何解决冲突显得越发重要。</li>
+<li>参考<a href="#不利之处复制">不利之处：复制</a>中，主从复制和主主复制<strong>共同</strong>的问题。</li>
+</ul>
+<h5 id="不利之处：复制"><a href="#不利之处：复制" class="headerlink" title="不利之处：复制"></a>不利之处：复制</h5><ul>
+<li>如果主库在将新写入的数据复制到其他节点前挂掉，则有数据丢失的可能。</li>
+<li>写入会被重放到负责读取操作的副本。副本可能因为过多写操作阻塞住，导致读取功能异常。</li>
+<li>读取从库越多，需要复制的写入数据就越多，导致更严重的复制延迟。</li>
+<li>在某些数据库系统中，写入主库的操作可以用多个线程并行写入，但读取副本只支持单线程顺序地写入。</li>
+<li>复制意味着更多的硬件和额外的复杂度。</li>
+</ul>
+<h5 id="来源及延伸阅读-5"><a href="#来源及延伸阅读-5" class="headerlink" title="来源及延伸阅读"></a>来源及延伸阅读</h5><ul>
+<li><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/" target="_blank" rel="noopener">扩展性，可用性，稳定性模式</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Multi-master_replication" target="_blank" rel="noopener">多主复制</a></li>
+</ul>
+<h4 id="联合"><a href="#联合" class="headerlink" title="联合"></a>联合</h4><p align="center"><br>  <img src="/images/U3qV33e.png"><br>  <br><br>  <strong><a href="https://www.youtube.com/watch?v=w95murBkYmU" target="_blank" rel="noopener">资料来源：扩展你的用户数到第一个一千万</a></strong><br></p>
+
+<p>联合（或按功能划分）将数据库按对应功能分割。例如，你可以有三个数据库：<strong>论坛</strong>、<strong>用户</strong>和<strong>产品</strong>，而不仅是一个单体数据库，从而减少每个数据库的读取和写入流量，减少复制延迟。较小的数据库意味着更多适合放入内存的数据，进而意味着更高的缓存命中几率。没有只能串行写入的中心化主库，你可以并行写入，提高负载能力。</p>
+<h5 id="不利之处：联合"><a href="#不利之处：联合" class="headerlink" title="不利之处：联合"></a>不利之处：联合</h5><ul>
+<li>如果你的数据库模式需要大量的功能和数据表，联合的效率并不好。</li>
+<li>你需要更新应用程序的逻辑来确定要读取和写入哪个数据库。</li>
+<li>用 <a href="http://stackoverflow.com/questions/5145637/querying-data-by-joining-two-tables-in-two-database-on-different-servers" target="_blank" rel="noopener">server link</a> 从两个库联结数据更复杂。</li>
+<li>联合需要更多的硬件和额外的复杂度。</li>
+</ul>
+<h5 id="来源及延伸阅读：联合"><a href="#来源及延伸阅读：联合" class="headerlink" title="来源及延伸阅读：联合"></a>来源及延伸阅读：联合</h5><ul>
+<li><a href="https://www.youtube.com/watch?v=w95murBkYmU" target="_blank" rel="noopener">扩展你的用户数到第一个一千万</a></li>
+</ul>
+<h4 id="分片"><a href="#分片" class="headerlink" title="分片"></a>分片</h4><p align="center"><br>  <img src="/images/wU8x5Id.png"><br>  <br><br>  <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/" target="_blank" rel="noopener">资料来源：可扩展性、可用性、稳定性、模式</a></strong><br></p>
+
+<p>分片将数据分配在不同的数据库上，使得每个数据库仅管理整个数据集的一个子集。以用户数据库为例，随着用户数量的增加，越来越多的分片会被添加到集群中。</p>
+<p>类似<a href="#联合">联合</a>的优点，分片可以减少读取和写入流量，减少复制并提高缓存命中率。也减少了索引，通常意味着查询更快，性能更好。如果一个分片出问题，其他的仍能运行，你可以使用某种形式的冗余来防止数据丢失。类似联合，没有只能串行写入的中心化主库，你可以并行写入，提高负载能力。</p>
+<p>常见的做法是用户姓氏的首字母或者用户的地理位置来分隔用户表。</p>
+<h5 id="不利之处：分片"><a href="#不利之处：分片" class="headerlink" title="不利之处：分片"></a>不利之处：分片</h5><ul>
+<li>你需要修改应用程序的逻辑来实现分片，这会带来复杂的 SQL 查询。</li>
+<li>分片不合理可能导致数据负载不均衡。例如，被频繁访问的用户数据会导致其所在分片的负载相对其他分片高。<ul>
+<li>再平衡会引入额外的复杂度。基于<a href="http://www.paperplanes.de/2011/12/9/the-magic-of-consistent-hashing.html" target="_blank" rel="noopener">一致性哈希</a>的分片算法可以减少这种情况。</li>
+</ul>
+</li>
+<li>联结多个分片的数据操作更复杂。</li>
+<li>分片需要更多的硬件和额外的复杂度。</li>
+</ul>
+<h4 id="来源及延伸阅读：分片"><a href="#来源及延伸阅读：分片" class="headerlink" title="来源及延伸阅读：分片"></a>来源及延伸阅读：分片</h4><ul>
+<li><a href="http://highscalability.com/blog/2009/8/6/an-unorthodox-approach-to-database-design-the-coming-of-the.html" target="_blank" rel="noopener">分片时代来临</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Shard_(database_architecture" target="_blank" rel="noopener">数据库分片架构</a>)</li>
+<li><a href="http://www.paperplanes.de/2011/12/9/the-magic-of-consistent-hashing.html" target="_blank" rel="noopener">一致性哈希</a></li>
+</ul>
+<h4 id="非规范化"><a href="#非规范化" class="headerlink" title="非规范化"></a>非规范化</h4><p>非规范化试图以写入性能为代价来换取读取性能。在多个表中冗余数据副本，以避免高成本的联结操作。一些关系型数据库，比如 <a href="https://en.wikipedia.org/wiki/PostgreSQL" target="_blank" rel="noopener">PostgreSQL</a> 和 Oracle 支持<a href="https://en.wikipedia.org/wiki/Materialized_view" target="_blank" rel="noopener">物化视图</a>，可以处理冗余信息存储和保证冗余副本一致。</p>
+<p>当数据使用诸如<a href="#联合">联合</a>和<a href="#分片">分片</a>等技术被分割，进一步提高了处理跨数据中心的联结操作复杂度。非规范化可以规避这种复杂的联结操作。</p>
+<p>在多数系统中，读取操作的频率远高于写入操作，比例可达到 100:1，甚至 1000:1。需要复杂的数据库联结的读取操作成本非常高，在磁盘操作上消耗了大量时间。</p>
+<h5 id="不利之处：非规范化"><a href="#不利之处：非规范化" class="headerlink" title="不利之处：非规范化"></a>不利之处：非规范化</h5><ul>
+<li>数据会冗余。</li>
+<li>约束可以帮助冗余的信息副本保持同步，但这样会增加数据库设计的复杂度。</li>
+<li>非规范化的数据库在高写入负载下性能可能比规范化的数据库差。</li>
+</ul>
+<h5 id="来源及延伸阅读：非规范化"><a href="#来源及延伸阅读：非规范化" class="headerlink" title="来源及延伸阅读：非规范化"></a>来源及延伸阅读：非规范化</h5><ul>
+<li><a href="https://en.wikipedia.org/wiki/Denormalization" target="_blank" rel="noopener">非规范化</a></li>
+</ul>
+<h3 id="SQL-调优"><a href="#SQL-调优" class="headerlink" title="SQL 调优"></a>SQL 调优</h3><p>SQL 调优是一个范围很广的话题，有很多相关的<a href="https://www.amazon.com/s/ref=nb_sb_noss_2?url=search-alias%3Daps&amp;field-keywords=sql+tuning" target="_blank" rel="noopener">书</a>可以作为参考。</p>
+<p>利用<strong>基准测试</strong>和<strong>性能分析</strong>来模拟和发现系统瓶颈很重要。</p>
+<ul>
+<li><strong>基准测试</strong> - 用 <a href="http://httpd.apache.org/docs/2.2/programs/ab.html" target="_blank" rel="noopener">ab</a> 等工具模拟高负载情况。</li>
+<li><strong>性能分析</strong> - 通过启用如<a href="http://dev.mysql.com/doc/refman/5.7/en/slow-query-log.html" target="_blank" rel="noopener">慢查询日志</a>等工具来辅助追踪性能问题。</li>
+</ul>
+<p>基准测试和性能分析可能会指引你到以下优化方案。</p>
+<h4 id="改进模式"><a href="#改进模式" class="headerlink" title="改进模式"></a>改进模式</h4><ul>
+<li>为了实现快速访问，MySQL 在磁盘上用连续的块存储数据。</li>
+<li>使用 <code>CHAR</code> 类型存储固定长度的字段，不要用 <code>VARCHAR</code>。<ul>
+<li><code>CHAR</code> 在快速、随机访问时效率很高。如果使用 <code>VARCHAR</code>，如果你想读取下一个字符串，不得不先读取到当前字符串的末尾。</li>
+</ul>
+</li>
+<li>使用 <code>TEXT</code> 类型存储大块的文本，例如博客正文。<code>TEXT</code> 还允许布尔搜索。使用 <code>TEXT</code> 字段需要在磁盘上存储一个用于定位文本块的指针。</li>
+<li>使用 <code>INT</code> 类型存储高达 2^32 或 40 亿的较大数字。</li>
+<li>使用 <code>DECIMAL</code> 类型存储货币可以避免浮点数表示错误。</li>
+<li>避免使用 <code>BLOBS</code> 存储实际对象，而是用来存储存放对象的位置。</li>
+<li><code>VARCHAR(255)</code> 是以 8 位数字存储的最大字符数，在某些关系型数据库中，最大限度地利用字节。</li>
+<li>在适用场景中设置 <code>NOT NULL</code> 约束来<a href="http://stackoverflow.com/questions/1017239/how-do-null-values-affect-performance-in-a-database-search" target="_blank" rel="noopener">提高搜索性能</a>。</li>
+</ul>
+<h4 id="使用正确的索引"><a href="#使用正确的索引" class="headerlink" title="使用正确的索引"></a>使用正确的索引</h4><ul>
+<li>你正查询（<code>SELECT</code>、<code>GROUP BY</code>、<code>ORDER BY</code>、<code>JOIN</code>）的列如果用了索引会更快。</li>
+<li>索引通常表示为自平衡的 <a href="https://en.wikipedia.org/wiki/B-tree" target="_blank" rel="noopener">B 树</a>，可以保持数据有序，并允许在对数时间内进行搜索，顺序访问，插入，删除操作。</li>
+<li>设置索引，会将数据存在内存中，占用了更多内存空间。</li>
+<li>写入操作会变慢，因为索引需要被更新。</li>
+<li>加载大量数据时，禁用索引再加载数据，然后重建索引，这样也许会更快。</li>
+</ul>
+<h4 id="避免高成本的联结操作"><a href="#避免高成本的联结操作" class="headerlink" title="避免高成本的联结操作"></a>避免高成本的联结操作</h4><ul>
+<li>有性能需要，可以进行非规范化。</li>
+</ul>
+<h4 id="分割数据表"><a href="#分割数据表" class="headerlink" title="分割数据表"></a>分割数据表</h4><ul>
+<li>将热点数据拆分到单独的数据表中，可以有助于缓存。</li>
+</ul>
+<h4 id="调优查询缓存"><a href="#调优查询缓存" class="headerlink" title="调优查询缓存"></a>调优查询缓存</h4><ul>
+<li>在某些情况下，<a href="http://dev.mysql.com/doc/refman/5.7/en/query-cache" target="_blank" rel="noopener">查询缓存</a>可能会导致<a href="https://www.percona.com/blog/2014/01/28/10-mysql-performance-tuning-settings-after-installation/" target="_blank" rel="noopener">性能问题</a>。</li>
+</ul>
+<h4 id="来源及延伸阅读-6"><a href="#来源及延伸阅读-6" class="headerlink" title="来源及延伸阅读"></a>来源及延伸阅读</h4><ul>
+<li><a href="http://20bits.com/article/10-tips-for-optimizing-mysql-queries-that-dont-suck" target="_blank" rel="noopener">MySQL 查询优化小贴士</a></li>
+<li><a href="http://stackoverflow.com/questions/1217466/is-there-a-good-reason-i-see-varchar255-used-so-often-as-opposed-to-another-l" target="_blank" rel="noopener">为什么 VARCHAR(255) 很常见？</a></li>
+<li><a href="http://stackoverflow.com/questions/1017239/how-do-null-values-affect-performance-in-a-database-search" target="_blank" rel="noopener">Null 值是如何影响数据库性能的？</a></li>
+<li><a href="http://dev.mysql.com/doc/refman/5.7/en/slow-query-log.html" target="_blank" rel="noopener">慢查询日志</a></li>
+</ul>
+<h3 id="NoSQL"><a href="#NoSQL" class="headerlink" title="NoSQL"></a>NoSQL</h3><p>NoSQL 是<strong>键-值数据库</strong>、<strong>文档型数据库</strong>、<strong>列型数据库</strong>或<strong>图数据库</strong>的统称。数据库是非规范化的，表联结大多在应用程序代码中完成。大多数 NoSQL 无法实现真正符合 ACID 的事务，支持<a href="#最终一致性">最终一致</a>。</p>
+<p><strong>BASE</strong> 通常被用于描述 NoSQL 数据库的特性。相比 <a href="#cap-理论">CAP 理论</a>，BASE 强调可用性超过一致性。</p>
+<ul>
+<li><strong>基本可用</strong> - 系统保证可用性。</li>
+<li><strong>软状态</strong> - 即使没有输入，系统状态也可能随着时间变化。</li>
+<li><strong>最终一致性</strong> - 经过一段时间之后，系统最终会变一致，因为系统在此期间没有收到任何输入。</li>
+</ul>
+<p>除了在 <a href="#sql-还是-nosql">SQL 还是 NoSQL</a> 之间做选择，了解哪种类型的 NoSQL 数据库最适合你的用例也是非常有帮助的。我们将在下一节中快速了解下 <strong>键-值存储</strong>、<strong>文档型存储</strong>、<strong>列型存储</strong>和<strong>图存储</strong>数据库。</p>
+<h3 id="键-值存储（redis"><a href="#键-值存储（redis" class="headerlink" title="键-值存储（redis)"></a>键-值存储（redis)</h3><blockquote>
+<p>抽象模型：哈希表</p>
+</blockquote>
+<p>键-值存储通常可以实现 O(1) 时间读写，用内存或 SSD 存储数据。数据存储可以按<a href="https://en.wikipedia.org/wiki/Lexicographical_order" target="_blank" rel="noopener">字典顺序</a>维护键，从而实现键的高效检索。键-值存储可以用于存储元数据。</p>
+<p>键-值存储性能很高，通常用于存储简单数据模型或频繁修改的数据，如存放在内存中的缓存。键-值存储提供的操作有限，如果需要更多操作，复杂度将转嫁到应用程序层面。</p>
+<p>键-值存储是如文档存储，在某些情况下，甚至是图存储等更复杂的存储系统的基础。</p>
+<h4 id="来源及延伸阅读-7"><a href="#来源及延伸阅读-7" class="headerlink" title="来源及延伸阅读"></a>来源及延伸阅读</h4><ul>
+<li><a href="https://en.wikipedia.org/wiki/Key-value_database" target="_blank" rel="noopener">键-值数据库</a></li>
+<li><a href="http://stackoverflow.com/questions/4056093/what-are-the-disadvantages-of-using-a-key-value-table-over-nullable-columns-or" target="_blank" rel="noopener">键-值存储的劣势</a></li>
+<li><a href="http://qnimate.com/overview-of-redis-architecture/" target="_blank" rel="noopener">Redis 架构</a></li>
+<li><a href="https://adayinthelifeof.nl/2011/02/06/memcache-internals/" target="_blank" rel="noopener">Memcached 架构</a></li>
+</ul>
+<h3 id="文档类型存储-es"><a href="#文档类型存储-es" class="headerlink" title="文档类型存储(es)"></a>文档类型存储(es)</h3><blockquote>
+<p>抽象模型：将文档作为值的键-值存储</p>
+</blockquote>
+<p>文档类型存储以文档（XML、JSON、二进制文件等）为中心，文档存储了指定对象的全部信息。文档存储根据文档自身的内部结构提供 API 或查询语句来实现查询。请注意，许多键-值存储数据库有用值存储元数据的特性，这也模糊了这两种存储类型的界限。</p>
+<p>基于底层实现，文档可以根据集合、标签、元数据或者文件夹组织。尽管不同文档可以被组织在一起或者分成一组，但相互之间可能具有完全不同的字段。</p>
+<p>MongoDB 和 CouchDB 等一些文档类型存储还提供了类似 SQL 语言的查询语句来实现复杂查询。DynamoDB 同时支持键-值存储和文档类型存储。</p>
+<p>文档类型存储具备高度的灵活性，常用于处理偶尔变化的数据。</p>
+<h4 id="来源及延伸阅读：文档类型存储"><a href="#来源及延伸阅读：文档类型存储" class="headerlink" title="来源及延伸阅读：文档类型存储"></a>来源及延伸阅读：文档类型存储</h4><ul>
+<li><a href="https://en.wikipedia.org/wiki/Document-oriented_database" target="_blank" rel="noopener">面向文档的数据库</a></li>
+<li><a href="https://www.mongodb.com/mongodb-architecture" target="_blank" rel="noopener">MongoDB 架构</a></li>
+<li><a href="https://blog.couchdb.org/2016/08/01/couchdb-2-0-architecture/" target="_blank" rel="noopener">CouchDB 架构</a></li>
+<li><a href="https://www.elastic.co/blog/found-elasticsearch-from-the-bottom-up" target="_blank" rel="noopener">Elasticsearch 架构</a></li>
+</ul>
+<h3 id="列型存储-hbase"><a href="#列型存储-hbase" class="headerlink" title="列型存储(hbase)"></a>列型存储(hbase)</h3><p align="center"><br>  <img src="/images/n16iOGk.png"><br>  <br><br>  <strong><a href="http://blog.grio.com/2015/11/sql-nosql-a-brief-history.html" target="_blank" rel="noopener">资料来源: SQL 和 NoSQL，一个简短的历史</a></strong><br></p>
+
+<blockquote>
+<p>抽象模型：嵌套的 <code>ColumnFamily&lt;RowKey, Columns&lt;ColKey, Value, Timestamp&gt;&gt;</code> 映射</p>
+</blockquote>
+<p>类型存储的基本数据单元是列（名／值对）。列可以在列族（类似于 SQL 的数据表）中被分组。超级列族再分组普通列族。你可以使用行键独立访问每一列，具有相同行键值的列组成一行。每个值都包含版本的时间戳用于解决版本冲突。</p>
+<p>Google 发布了第一个列型存储数据库 <a href="http://www.read.seas.harvard.edu/~kohler/class/cs239-w08/chang06bigtable.pdf" target="_blank" rel="noopener">Bigtable</a>，它影响了 Hadoop 生态系统中活跃的开源数据库 <a href="https://www.mapr.com/blog/in-depth-look-hbase-architecture" target="_blank" rel="noopener">HBase</a> 和 Facebook 的 <a href="http://docs.datastax.com/en/archived/cassandra/2.0/cassandra/architecture/architectureIntro_c.html" target="_blank" rel="noopener">Cassandra</a>。像 BigTable，HBase 和 Cassandra 这样的存储系统将键以字母顺序存储，可以高效地读取键列。</p>
+<p>列型存储具备高可用性和高可扩展性。通常被用于大数据相关存储。</p>
+<h4 id="来源及延伸阅读：列型存储"><a href="#来源及延伸阅读：列型存储" class="headerlink" title="来源及延伸阅读：列型存储"></a>来源及延伸阅读：列型存储</h4><ul>
+<li><a href="http://blog.grio.com/2015/11/sql-nosql-a-brief-history.html" target="_blank" rel="noopener">SQL 与 NoSQL 简史</a></li>
+<li><a href="http://www.read.seas.harvard.edu/~kohler/class/cs239-w08/chang06bigtable.pdf" target="_blank" rel="noopener">BigTable 架构</a></li>
+<li><a href="https://www.mapr.com/blog/in-depth-look-hbase-architecture" target="_blank" rel="noopener">Hbase 架构</a></li>
+<li><a href="http://docs.datastax.com/en/archived/cassandra/2.0/cassandra/architecture/architectureIntro_c.html" target="_blank" rel="noopener">Cassandra 架构</a></li>
+</ul>
+<h3 id="图数据库"><a href="#图数据库" class="headerlink" title="图数据库"></a>图数据库</h3><p align="center"><br>  <img src="/images/fNcl65g.png"><br>  <br><br>  <strong><a href="https://en.wikipedia.org/wiki/File:GraphDatabase_PropertyGraph.png" target="_blank" rel="noopener">资料来源：图数据库</a></strong><br></p>
+
+<blockquote>
+<p>抽象模型： 图</p>
+</blockquote>
+<p>在图数据库中，一个节点对应一条记录，一个弧对应两个节点之间的关系。图数据库被优化用于表示外键繁多的复杂关系或多对多关系。</p>
+<p>图数据库为存储复杂关系的数据模型，如社交网络，提供了很高的性能。它们相对较新，尚未广泛应用，查找开发工具或者资源相对较难。许多图只能通过 <a href="#表述性状态转移rest">REST API</a> 访问。</p>
+<h4 id="相关资源和延伸阅读：图"><a href="#相关资源和延伸阅读：图" class="headerlink" title="相关资源和延伸阅读：图"></a>相关资源和延伸阅读：图</h4><ul>
+<li><a href="https://en.wikipedia.org/wiki/Graph_database" target="_blank" rel="noopener">图数据库</a></li>
+<li><a href="https://neo4j.com/" target="_blank" rel="noopener">Neo4j</a></li>
+<li><a href="https://blog.twitter.com/2010/introducing-flockdb" target="_blank" rel="noopener">FlockDB</a></li>
+</ul>
+<h4 id="来源及延伸阅读：NoSQL"><a href="#来源及延伸阅读：NoSQL" class="headerlink" title="来源及延伸阅读：NoSQL"></a>来源及延伸阅读：NoSQL</h4><ul>
+<li><a href="http://stackoverflow.com/questions/3342497/explanation-of-base-terminology" target="_blank" rel="noopener">数据库术语解释</a></li>
+<li><a href="https://medium.com/baqend-blog/nosql-databases-a-survey-and-decision-guidance-ea7823a822d#.wskogqenq" target="_blank" rel="noopener">NoSQL 数据库 - 调查及决策指南</a></li>
+<li><a href="http://www.lecloud.net/post/7994751381/scalability-for-dummies-part-2-database" target="_blank" rel="noopener">可扩展性</a></li>
+<li><a href="https://www.youtube.com/watch?v=qI_g07C_Q5I" target="_blank" rel="noopener">NoSQL 介绍</a></li>
+<li><a href="http://horicky.blogspot.com/2009/11/nosql-patterns.html" target="_blank" rel="noopener">NoSQL 模式</a></li>
+</ul>
+<h3 id="SQL-还是-NoSQL"><a href="#SQL-还是-NoSQL" class="headerlink" title="SQL 还是 NoSQL"></a>SQL 还是 NoSQL</h3><p align="center"><br>  <img src="/images/wXGqG5f.png"><br>  <br><br>  <strong><a href="https://www.infoq.com/articles/Transition-RDBMS-NoSQL/" target="_blank" rel="noopener">资料来源：从 RDBMS 转换到 NoSQL</a></strong><br></p>
+
+<p>选取 <strong>SQL</strong> 的原因:</p>
+<ul>
+<li>结构化数据</li>
+<li>严格的模式</li>
+<li>关系型数据</li>
+<li>需要复杂的联结操作</li>
+<li>事务</li>
+<li>清晰的扩展模式</li>
+<li>既有资源更丰富：开发者、社区、代码库、工具等</li>
+<li>通过索引进行查询非常快</li>
+</ul>
+<p>选取 <strong>NoSQL</strong> 的原因：</p>
+<ul>
+<li>半结构化数据</li>
+<li>动态或灵活的模式</li>
+<li>非关系型数据</li>
+<li>不需要复杂的联结操作</li>
+<li>存储 TB （甚至 PB）级别的数据</li>
+<li>高数据密集的工作负载</li>
+<li>IOPS 高吞吐量</li>
+</ul>
+<p>适合 NoSQL 的示例数据：</p>
+<ul>
+<li>埋点数据和日志数据</li>
+<li>排行榜或者得分数据</li>
+<li>临时数据，如购物车</li>
+<li>频繁访问的（“热”）表</li>
+<li>元数据／查找表</li>
+</ul>
+<h4 id="来源及延伸阅读：SQL-或-NoSQL"><a href="#来源及延伸阅读：SQL-或-NoSQL" class="headerlink" title="来源及延伸阅读：SQL 或 NoSQL"></a>来源及延伸阅读：SQL 或 NoSQL</h4><ul>
+<li><a href="https://www.youtube.com/watch?v=w95murBkYmU" target="_blank" rel="noopener">扩展你的用户数到第一个千万</a></li>
+<li><a href="https://www.sitepoint.com/sql-vs-nosql-differences/" target="_blank" rel="noopener">SQL 和 NoSQL 的不同</a></li>
+</ul>
+<h2 id="缓存"><a href="#缓存" class="headerlink" title="缓存"></a>缓存</h2><p align="center"><br>  <img src="/images/Q6z24La.png"><br>  <br><br>  <strong><a href="http://horicky.blogspot.com/2010/10/scalable-system-design-patterns.html" target="_blank" rel="noopener">资料来源：可扩展的系统设计模式</a></strong><br></p>
+
+<p>缓存可以提高页面加载速度，并可以减少服务器和数据库的负载。在这个模型中，分发器先查看请求之前是否被响应过，如果有则将之前的结果直接返回，来省掉真正的处理。</p>
+<p>数据库分片均匀分布的读取是最好的。但是热门数据会让读取分布不均匀，这样就会造成瓶颈，如果在数据库前加个缓存，就会抹平不均匀的负载和突发流量对数据库的影响。</p>
+<h3 id="客户端缓存"><a href="#客户端缓存" class="headerlink" title="客户端缓存"></a>客户端缓存</h3><p>缓存可以位于客户端（操作系统或者浏览器），<a href="#反向代理web-服务器">服务端</a>或者不同的缓存层。</p>
+<h3 id="CDN-缓存"><a href="#CDN-缓存" class="headerlink" title="CDN 缓存"></a>CDN 缓存</h3><p><a href="#内容分发网络cdn">CDN</a> 也被视为一种缓存。</p>
+<h3 id="Web-服务器缓存"><a href="#Web-服务器缓存" class="headerlink" title="Web 服务器缓存"></a>Web 服务器缓存</h3><p><a href="#反向代理web-服务器">反向代理</a>和缓存（比如 <a href="https://www.varnish-cache.org/" target="_blank" rel="noopener">Varnish</a>）可以直接提供静态和动态内容。Web 服务器同样也可以缓存请求，返回相应结果而不必连接应用服务器。</p>
+<h3 id="数据库缓存"><a href="#数据库缓存" class="headerlink" title="数据库缓存"></a>数据库缓存</h3><p>数据库的默认配置中通常包含缓存级别，针对一般用例进行了优化。调整配置，在不同情况下使用不同的模式可以进一步提高性能。</p>
+<h3 id="应用缓存"><a href="#应用缓存" class="headerlink" title="应用缓存"></a>应用缓存</h3><p>基于内存的缓存比如 Memcached 和 Redis 是应用程序和数据存储之间的一种键值存储。由于数据保存在 RAM 中，它比存储在磁盘上的典型数据库要快多了。RAM 比磁盘限制更多，所以例如 <a href="https://en.wikipedia.org/wiki/Cache_algorithms#Least_Recently_Used" target="_blank" rel="noopener">least recently used (LRU)</a> 的<a href="https://en.wikipedia.org/wiki/Cache_algorithms" target="_blank" rel="noopener">缓存无效算法</a>可以将「热门数据」放在 RAM 中，而对一些比较「冷门」的数据不做处理。</p>
+<p>Redis 有下列附加功能：</p>
+<ul>
+<li>持久性选项</li>
+<li>内置数据结构比如有序集合和列表</li>
+</ul>
+<p>有多个缓存级别，分为两大类：<strong>数据库查询</strong>和<strong>对象</strong>：</p>
+<ul>
+<li>行级别</li>
+<li>查询级别</li>
+<li>完整的可序列化对象</li>
+<li>完全渲染的 HTML</li>
+</ul>
+<p>一般来说，你应该尽量避免基于文件的缓存，因为这使得复制和自动缩放很困难。</p>
+<h3 id="数据库查询级别的缓存"><a href="#数据库查询级别的缓存" class="headerlink" title="数据库查询级别的缓存"></a>数据库查询级别的缓存</h3><p>当你查询数据库的时候，将查询语句的哈希值与查询结果存储到缓存中。这种方法会遇到以下问题：</p>
+<ul>
+<li>很难用复杂的查询删除已缓存结果。</li>
+<li>如果一条数据比如表中某条数据的一项被改变，则需要删除所有可能包含已更改项的缓存结果。</li>
+</ul>
+<h3 id="对象级别的缓存"><a href="#对象级别的缓存" class="headerlink" title="对象级别的缓存"></a>对象级别的缓存</h3><p>将您的数据视为对象，就像对待你的应用代码一样。让应用程序将数据从数据库中组合到类实例或数据结构中：</p>
+<ul>
+<li>如果对象的基础数据已经更改了，那么从缓存中删掉这个对象。</li>
+<li>允许异步处理：workers 通过使用最新的缓存对象来组装对象。</li>
+</ul>
+<p>建议缓存的内容：</p>
+<ul>
+<li>用户会话</li>
+<li>完全渲染的 Web 页面</li>
+<li>活动流</li>
+<li>用户图数据</li>
+</ul>
+<h3 id="何时更新缓存"><a href="#何时更新缓存" class="headerlink" title="何时更新缓存"></a>何时更新缓存</h3><p>由于你只能在缓存中存储有限的数据，所以你需要选择一个适用于你用例的缓存更新策略。</p>
+<h4 id="缓存模式"><a href="#缓存模式" class="headerlink" title="缓存模式"></a>缓存模式</h4><p align="center"><br>  <img src="/images/ONjORqk.png"><br>  <br><br>  <strong><a href="http://www.slideshare.net/tmatyashovsky/from-cache-to-in-memory-data-grid-introduction-to-hazelcast" target="_blank" rel="noopener">资料来源：从缓存到内存数据网格</a></strong><br></p>
+
+<p>应用从存储器读写。缓存不和存储器直接交互，应用执行以下操作：</p>
+<ul>
+<li>在缓存中查找记录，如果所需数据不在缓存中</li>
+<li>从数据库中加载所需内容</li>
+<li>将查找到的结果存储到缓存中</li>
+<li>返回所需内容</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_user</span><span class="params">(self, user_id)</span>:</span></span><br><span class="line">    user = cache.get(<span class="string">"user.&#123;0&#125;"</span>, user_id)</span><br><span class="line">    <span class="keyword">if</span> user <span class="keyword">is</span> <span class="keyword">None</span>:</span><br><span class="line">        user = db.query(<span class="string">"SELECT * FROM users WHERE user_id = &#123;0&#125;"</span>, user_id)</span><br><span class="line">        <span class="keyword">if</span> user <span class="keyword">is</span> <span class="keyword">not</span> <span class="keyword">None</span>:</span><br><span class="line">            key = <span class="string">"user.&#123;0&#125;"</span>.format(user_id)</span><br><span class="line">            cache.set(key, json.dumps(user))</span><br><span class="line">    <span class="keyword">return</span> user</span><br></pre></td></tr></table></figure>
+<p><a href="https://memcached.org/" target="_blank" rel="noopener">Memcached</a> 通常用这种方式使用。</p>
+<p>添加到缓存中的数据读取速度很快。缓存模式也称为延迟加载。只缓存所请求的数据，这避免了没有被请求的数据占满了缓存空间。</p>
+<h5 id="缓存的缺点："><a href="#缓存的缺点：" class="headerlink" title="缓存的缺点："></a>缓存的缺点：</h5><ul>
+<li>请求的数据如果不在缓存中就需要经过三个步骤来获取数据，这会导致明显的延迟。</li>
+<li>如果数据库中的数据更新了会导致缓存中的数据过时。这个问题需要通过设置TTL 强制更新缓存或者直写模式来缓解这种情况。</li>
+<li>当一个节点出现故障的时候，它将会被一个新的节点替代，这增加了延迟的时间。</li>
+</ul>
+<h4 id="直写模式"><a href="#直写模式" class="headerlink" title="直写模式"></a>直写模式</h4><p align="center"><br>  <img src="/images/0vBc0hN.png"><br>  <br><br>  <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/" target="_blank" rel="noopener">资料来源：可扩展性、可用性、稳定性、模式</a></strong><br></p>
+
+<p>应用使用缓存作为主要的数据存储，将数据读写到缓存中，而缓存负责从数据库中读写数据。</p>
+<ul>
+<li>应用向缓存中添加/更新数据</li>
+<li>缓存同步地写入数据存储</li>
+<li>返回所需内容</li>
+</ul>
+<p>应用代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">set_user(12345, &#123;&quot;foo&quot;:&quot;bar&quot;&#125;)</span><br></pre></td></tr></table></figure>
+<p>缓存代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">set_user</span><span class="params">(user_id, values)</span>:</span></span><br><span class="line">    user = db.query(<span class="string">"UPDATE Users WHERE id = &#123;0&#125;"</span>, user_id, values)</span><br><span class="line">    cache.set(user_id, user)</span><br></pre></td></tr></table></figure>
+<p>由于存写操作所以直写模式整体是一种很慢的操作，但是读取刚写入的数据很快。相比读取数据，用户通常比较能接受更新数据时速度较慢。缓存中的数据不会过时。</p>
+<h5 id="直写模式的缺点："><a href="#直写模式的缺点：" class="headerlink" title="直写模式的缺点："></a>直写模式的缺点：</h5><ul>
+<li>由于故障或者缩放而创建的新的节点，新的节点不会缓存，直到数据库更新为止。缓存应用直写模式可以缓解这个问题。</li>
+<li>写入的大多数数据可能永远都不会被读取，用 TTL 可以最小化这种情况的出现。</li>
+</ul>
+<h4 id="回写模式"><a href="#回写模式" class="headerlink" title="回写模式"></a>回写模式</h4><p align="center"><br>  <img src="/images/rgSrvjG.png"><br>  <br><br>  <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/" target="_blank" rel="noopener">资料来源：可扩展性、可用性、稳定性、模式</a></strong><br></p>
+
+<p>在回写模式中，应用执行以下操作：</p>
+<ul>
+<li>在缓存中增加或者更新条目</li>
+<li>异步写入数据，提高写入性能。</li>
+</ul>
+<h5 id="回写模式的缺点："><a href="#回写模式的缺点：" class="headerlink" title="回写模式的缺点："></a>回写模式的缺点：</h5><ul>
+<li>缓存可能在其内容成功存储之前丢失数据。</li>
+<li>执行直写模式比缓存或者回写模式更复杂。</li>
+</ul>
+<h4 id="刷新"><a href="#刷新" class="headerlink" title="刷新"></a>刷新</h4><p align="center"><br>  <img src="/images/kxtjqgE.png"><br>  <br><br>  <strong><a href="http://www.slideshare.net/tmatyashovsky/from-cache-to-in-memory-data-grid-introduction-to-hazelcast" target="_blank" rel="noopener">资料来源：从缓存到内存数据网格</a></strong><br></p>
+
+<p>你可以将缓存配置成在到期之前自动刷新最近访问过的内容。</p>
+<p>如果缓存可以准确预测将来可能请求哪些数据，那么刷新可能会导致延迟与读取时间的降低。</p>
+<h5 id="刷新的缺点："><a href="#刷新的缺点：" class="headerlink" title="刷新的缺点："></a>刷新的缺点：</h5><ul>
+<li>不能准确预测到未来需要用到的数据可能会导致性能不如不使用刷新。</li>
+</ul>
+<h3 id="缓存的缺点：-1"><a href="#缓存的缺点：-1" class="headerlink" title="缓存的缺点："></a>缓存的缺点：</h3><ul>
+<li>需要保持缓存和真实数据源之间的一致性，比如数据库根据<a href="https://en.wikipedia.org/wiki/Cache_algorithms" target="_blank" rel="noopener">缓存无效</a>。</li>
+<li>需要改变应用程序比如增加 Redis 或者 memcached。</li>
+<li>无效缓存是个难题，什么时候更新缓存是与之相关的复杂问题。</li>
+</ul>
+<h3 id="相关资源和延伸阅读"><a href="#相关资源和延伸阅读" class="headerlink" title="相关资源和延伸阅读"></a>相关资源和延伸阅读</h3><ul>
+<li><a href="http://www.slideshare.net/tmatyashovsky/from-cache-to-in-memory-data-grid-introduction-to-hazelcast" target="_blank" rel="noopener">从缓存到内存数据</a></li>
+<li><a href="http://horicky.blogspot.com/2010/10/scalable-system-design-patterns.html" target="_blank" rel="noopener">可扩展系统设计模式</a></li>
+<li><a href="http://lethain.com/introduction-to-architecting-systems-for-scale/" target="_blank" rel="noopener">可缩放系统构架介绍</a></li>
+<li><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/" target="_blank" rel="noopener">可扩展性，可用性，稳定性和模式</a></li>
+<li><a href="http://www.lecloud.net/post/9246290032/scalability-for-dummies-part-3-cache" target="_blank" rel="noopener">可扩展性</a></li>
+<li><a href="http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Strategies.html" target="_blank" rel="noopener">AWS ElastiCache 策略</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Cache_(computing" target="_blank" rel="noopener">维基百科</a>)</li>
+</ul>
+<h2 id="异步"><a href="#异步" class="headerlink" title="异步"></a>异步</h2><p align="center"><br>  <img src="/images/54GYsSx.png"><br>  <br><br>  <strong><a href="http://lethain.com/introduction-to-architecting-systems-for-scale/#platform_layer" target="_blank" rel="noopener">资料来源：可缩放系统构架介绍</a></strong><br></p>
+
+<p>异步工作流有助于减少那些原本顺序执行的请求时间。它们可以通过提前进行一些耗时的工作来帮助减少请求时间，比如定期汇总数据。</p>
+<h3 id="消息队列"><a href="#消息队列" class="headerlink" title="消息队列"></a>消息队列</h3><p>消息队列接收，保留和传递消息。如果按顺序执行操作太慢的话，你可以使用有以下工作流的消息队列：</p>
+<ul>
+<li>应用程序将作业发布到队列，然后通知用户作业状态</li>
+<li>一个 worker 从队列中取出该作业，对其进行处理，然后显示该作业完成</li>
+</ul>
+<p>不去阻塞用户操作，作业在后台处理。在此期间，客户端可能会进行一些处理使得看上去像是任务已经完成了。例如，如果要发送一条推文，推文可能会马上出现在你的时间线上，但是可能需要一些时间才能将你的推文推送到你的所有关注者那里去。</p>
+<p><strong>Redis</strong> 是一个令人满意的简单的消息代理，但是消息有可能会丢失。</p>
+<p><strong>RabbitMQ</strong> 很受欢迎但是要求你适应「AMQP」协议并且管理你自己的节点。</p>
+<p><strong>Amazon SQS</strong> 是被托管的，但可能具有高延迟，并且消息可能会被传送两次。</p>
+<h3 id="任务队列"><a href="#任务队列" class="headerlink" title="任务队列"></a>任务队列</h3><p>任务队列接收任务及其相关数据，运行它们，然后传递其结果。 它们可以支持调度，并可用于在后台运行计算密集型作业。</p>
+<p><strong>Celery</strong> 支持调度，主要是用 Python 开发的。</p>
+<h3 id="背压"><a href="#背压" class="headerlink" title="背压"></a>背压</h3><p>如果队列开始明显增长，那么队列大小可能会超过内存大小，导致高速缓存未命中，磁盘读取，甚至性能更慢。<a href="http://mechanical-sympathy.blogspot.com/2012/05/apply-back-pressure-when-overloaded.html" target="_blank" rel="noopener">背压</a>可以通过限制队列大小来帮助我们，从而为队列中的作业保持高吞吐率和良好的响应时间。一旦队列填满，客户端将得到服务器忙或者 HTTP 503 状态码，以便稍后重试。客户端可以在稍后时间重试该请求，也许是<a href="https://en.wikipedia.org/wiki/Exponential_backoff" target="_blank" rel="noopener">指数退避</a>。</p>
+<h3 id="异步的缺点："><a href="#异步的缺点：" class="headerlink" title="异步的缺点："></a>异步的缺点：</h3><ul>
+<li>简单的计算和实时工作流等用例可能更适用于同步操作，因为引入队列可能会增加延迟和复杂性。</li>
+</ul>
+<h3 id="相关资源和延伸阅读-1"><a href="#相关资源和延伸阅读-1" class="headerlink" title="相关资源和延伸阅读"></a>相关资源和延伸阅读</h3><ul>
+<li><a href="https://www.youtube.com/watch?v=1KRYH75wgy4" target="_blank" rel="noopener">这是一个数字游戏</a></li>
+<li><a href="http://mechanical-sympathy.blogspot.com/2012/05/apply-back-pressure-when-overloaded.html" target="_blank" rel="noopener">超载时应用背压</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Little%27s_law" target="_blank" rel="noopener">利特尔法则</a></li>
+<li><a href="https://www.quora.com/What-is-the-difference-between-a-message-queue-and-a-task-queue-Why-would-a-task-queue-require-a-message-broker-like-RabbitMQ-Redis-Celery-or-IronMQ-to-function" target="_blank" rel="noopener">消息队列与任务队列有什么区别？</a></li>
+</ul>
+<h2 id="通讯"><a href="#通讯" class="headerlink" title="通讯"></a>通讯</h2><p align="center"><br>  <img src="/images/5KeocQs.jpg"><br>  <br><br>  <strong><a href="http://www.escotal.com/osilayer.html" target="_blank" rel="noopener">资料来源：OSI 7层模型</a></strong><br></p>
+
+<h3 id="超文本传输协议（HTTP）"><a href="#超文本传输协议（HTTP）" class="headerlink" title="超文本传输协议（HTTP）"></a>超文本传输协议（HTTP）</h3><p>HTTP 是一种在客户端和服务器之间编码和传输数据的方法。它是一个请求/响应协议：客户端和服务端针对相关内容和完成状态信息的请求和响应。HTTP 是独立的，允许请求和响应流经许多执行负载均衡，缓存，加密和压缩的中间路由器和服务器。</p>
+<p>一个基本的 HTTP 请求由一个动词（方法）和一个资源（端点）组成。 以下是常见的 HTTP 动词：</p>
+<table>
+<thead>
+<tr>
+<th>动词</th>
+<th>描述</th>
+<th>*幂等</th>
+<th>安全性</th>
+<th>可缓存</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td>读取资源</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>创建资源或触发处理数据的进程</td>
+<td>No</td>
+<td>No</td>
+<td>Yes，如果回应包含刷新信息</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td>创建或替换资源</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td>部分更新资源</td>
+<td>No</td>
+<td>No</td>
+<td>Yes，如果回应包含刷新信息</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td>删除资源</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p><strong>多次执行不会产生不同的结果</strong>。</p>
+<p>HTTP 是依赖于较低级协议（如 <strong>TCP</strong> 和 <strong>UDP</strong>）的应用层协议。</p>
+<h4 id="来源及延伸阅读：HTTP"><a href="#来源及延伸阅读：HTTP" class="headerlink" title="来源及延伸阅读：HTTP"></a>来源及延伸阅读：HTTP</h4><ul>
+<li><a href="https://www.quora.com/What-is-the-difference-between-HTTP-protocol-and-TCP-protocol" target="_blank" rel="noopener">README</a>    +</li>
+<li><a href="https://www.nginx.com/resources/glossary/http/" target="_blank" rel="noopener">HTTP 是什么？</a></li>
+<li><a href="https://www.quora.com/What-is-the-difference-between-HTTP-protocol-and-TCP-protocol" target="_blank" rel="noopener">HTTP 和 TCP 的区别</a></li>
+<li><a href="https://laracasts.com/discuss/channels/general-discussion/whats-the-differences-between-put-and-patch?page=1" target="_blank" rel="noopener">PUT 和 PATCH的区别</a></li>
+</ul>
+<h3 id="传输控制协议（TCP）"><a href="#传输控制协议（TCP）" class="headerlink" title="传输控制协议（TCP）"></a>传输控制协议（TCP）</h3><p align="center"><br>  <img src="/images/JdAsdvG.jpg"><br>  <br><br>  <strong><a href="http://www.wildbunny.co.uk/blog/2012/10/09/how-to-make-a-multi-player-game-part-1/" target="_blank" rel="noopener">资料来源：如何制作多人游戏</a></strong><br></p>
+
+<p>TCP 是通过 <a href="https://en.wikipedia.org/wiki/Internet_Protocol" target="_blank" rel="noopener">IP 网络</a>的面向连接的协议。 使用<a href="https://en.wikipedia.org/wiki/Handshaking" target="_blank" rel="noopener">握手</a>建立和断开连接。 发送的所有数据包保证以原始顺序到达目的地，用以下措施保证数据包不被损坏：</p>
+<ul>
+<li>每个数据包的序列号和<a href="https://en.wikipedia.org/wiki/Transmission_Control_Protocol#Checksum_computation" target="_blank" rel="noopener">校验码</a>。</li>
+<li><a href="https://en.wikipedia.org/wiki/Acknowledgement_(data_networks" target="_blank" rel="noopener">确认包</a>)和自动重传</li>
+</ul>
+<p>如果发送者没有收到正确的响应，它将重新发送数据包。如果多次超时，连接就会断开。TCP 实行<a href="https://en.wikipedia.org/wiki/Flow_control_(data" target="_blank" rel="noopener">流量控制</a>)和<a href="https://en.wikipedia.org/wiki/Network_congestion#Congestion_control" target="_blank" rel="noopener">拥塞控制</a>。这些确保措施会导致延迟，而且通常导致传输效率比 UDP 低。</p>
+<p>为了确保高吞吐量，Web 服务器可以保持大量的 TCP 连接，从而导致高内存使用。在 Web 服务器线程间拥有大量开放连接可能开销巨大，消耗资源过多，也就是说，一个 <a href="#memcached">memcached</a> 服务器。<a href="https://en.wikipedia.org/wiki/Connection_pool" target="_blank" rel="noopener">连接池</a> 可以帮助除了在适用的情况下切换到 UDP。</p>
+<p>TCP  对于需要高可靠性但时间紧迫的应用程序很有用。比如包括 Web 服务器，数据库信息，SMTP，FTP 和 SSH。</p>
+<p>以下情况使用 TCP 代替 UDP：</p>
+<ul>
+<li>你需要数据完好无损。</li>
+<li>你想对网络吞吐量自动进行最佳评估。</li>
+</ul>
+<h3 id="用户数据报协议（UDP）"><a href="#用户数据报协议（UDP）" class="headerlink" title="用户数据报协议（UDP）"></a>用户数据报协议（UDP）</h3><p align="center"><br>  <img src="/images/yzDrJtA.jpg"><br>  <br><br>  <strong><a href="http://www.wildbunny.co.uk/blog/2012/10/09/how-to-make-a-multi-player-game-part-1" target="_blank" rel="noopener">资料来源：如何制作多人游戏</a></strong><br></p>
+
+<p>UDP 是无连接的。数据报（类似于数据包）只在数据报级别有保证。数据报可能会无序的到达目的地，也有可能会遗失。UDP 不支持拥塞控制。虽然不如 TCP 那样有保证，但 UDP 通常效率更高。</p>
+<p>UDP 可以通过广播将数据报发送至子网内的所有设备。这对 <a href="https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol" target="_blank" rel="noopener">DHCP</a> 很有用，因为子网内的设备还没有分配 IP 地址，而 IP 对于 TCP 是必须的。</p>
+<p>UDP 可靠性更低但适合用在网络电话、视频聊天，流媒体和实时多人游戏上。</p>
+<p>以下情况使用 UDP 代替 TCP：</p>
+<ul>
+<li>你需要低延迟</li>
+<li>相对于数据丢失更糟的是数据延迟</li>
+<li>你想实现自己的错误校正方法</li>
+</ul>
+<h4 id="来源及延伸阅读：TCP-与-UDP"><a href="#来源及延伸阅读：TCP-与-UDP" class="headerlink" title="来源及延伸阅读：TCP 与 UDP"></a>来源及延伸阅读：TCP 与 UDP</h4><ul>
+<li><a href="http://gafferongames.com/networking-for-game-programmers/udp-vs-tcp/" target="_blank" rel="noopener">游戏编程的网络</a></li>
+<li><a href="http://www.cyberciti.biz/faq/key-differences-between-tcp-and-udp-protocols/" target="_blank" rel="noopener">TCP 与 UDP 的关键区别</a></li>
+<li><a href="http://stackoverflow.com/questions/5970383/difference-between-tcp-and-udp" target="_blank" rel="noopener">TCP 与 UDP 的不同</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Transmission_Control_Protocol" target="_blank" rel="noopener">传输控制协议</a></li>
+<li><a href="https://en.wikipedia.org/wiki/User_Datagram_Protocol" target="_blank" rel="noopener">用户数据报协议</a></li>
+<li><a href="http://www.cs.bu.edu/~jappavoo/jappavoo.github.com/451/papers/memcache-fb.pdf" target="_blank" rel="noopener">Memcache 在 Facebook 的扩展</a></li>
+</ul>
+<h3 id="远程过程调用协议（RPC）"><a href="#远程过程调用协议（RPC）" class="headerlink" title="远程过程调用协议（RPC）"></a>远程过程调用协议（RPC）</h3><p align="center"><br>  <img src="/images/iF4Mkb5.png"><br>  <br><br>  <strong><a href="http://www.puncsky.com/blog/2016/02/14/crack-the-system-design-interview" target="_blank" rel="noopener">Source: Crack the system design interview</a></strong><br></p>
+
+<p>在 RPC 中，客户端会去调用另一个地址空间（通常是一个远程服务器）里的方法。调用代码看起来就像是调用的是一个本地方法，客户端和服务器交互的具体过程被抽象。远程调用相对于本地调用一般较慢而且可靠性更差，因此区分两者是有帮助的。热门的 RPC 框架包括 <a href="https://developers.google.com/protocol-buffers/" target="_blank" rel="noopener">Protobuf</a>、<a href="https://thrift.apache.org/" target="_blank" rel="noopener">Thrift</a> 和 <a href="https://avro.apache.org/docs/current/" target="_blank" rel="noopener">Avro</a>。</p>
+<p>RPC 是一个“请求-响应”协议：</p>
+<ul>
+<li><strong>客户端程序</strong> ── 调用客户端存根程序。就像调用本地方法一样，参数会被压入栈中。</li>
+<li><strong>客户端 stub 程序</strong> ── 将请求过程的 id 和参数打包进请求信息中。</li>
+<li><strong>客户端通信模块</strong> ── 将信息从客户端发送至服务端。</li>
+<li><strong>服务端通信模块</strong> ── 将接受的包传给服务端存根程序。</li>
+<li><strong>服务端 stub 程序</strong> ── 将结果解包，依据过程 id 调用服务端方法并将参数传递过去。</li>
+</ul>
+<p>RPC 调用示例：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GET /someoperation?data=anId</span><br><span class="line"></span><br><span class="line">POST /anotheroperation</span><br><span class="line">&#123;</span><br><span class="line">  &quot;data&quot;:&quot;anId&quot;;</span><br><span class="line">  &quot;anotherdata&quot;: &quot;another value&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>RPC 专注于暴露方法。RPC 通常用于处理内部通讯的性能问题，这样你可以手动处理本地调用以更好的适应你的情况。</p>
+<p>当以下情况时选择本地库（也就是 SDK）：</p>
+<ul>
+<li>你知道你的目标平台。</li>
+<li>你想控制如何访问你的“逻辑”。</li>
+<li>你想对发生在你的库中的错误进行控制。</li>
+<li>性能和终端用户体验是你最关心的事。</li>
+</ul>
+<p>遵循 <strong>REST</strong> 的 HTTP API 往往更适用于公共 API。</p>
+<h4 id="缺点：RPC"><a href="#缺点：RPC" class="headerlink" title="缺点：RPC"></a>缺点：RPC</h4><ul>
+<li>RPC 客户端与服务实现捆绑地很紧密。</li>
+<li>一个新的 API 必须在每一个操作或者用例中定义。</li>
+<li>RPC 很难调试。</li>
+<li>你可能没办法很方便的去修改现有的技术。举个例子，如果你希望在 <a href="http://www.squid-cache.org/" target="_blank" rel="noopener">Squid</a> 这样的缓存服务器上确保 <a href="http://etherealbits.com/2012/12/debunking-the-myths-of-rpc-rest/" target="_blank" rel="noopener">RPC 被正确缓存</a>的话可能需要一些额外的努力了。</li>
+</ul>
+<h3 id="表述性状态转移（REST）"><a href="#表述性状态转移（REST）" class="headerlink" title="表述性状态转移（REST）"></a>表述性状态转移（REST）</h3><p>REST 是一种强制的客户端/服务端架构设计模型，客户端基于服务端管理的一系列资源操作。服务端提供修改或获取资源的接口。所有的通信必须是无状态和可缓存的。</p>
+<p>RESTful 接口有四条规则：</p>
+<ul>
+<li><strong>标志资源（HTTP 里的 URI）</strong> ── 无论什么操作都使用同一个 URI。</li>
+<li><strong>表示的改变（HTTP 的动作）</strong> ── 使用动作, headers 和 body。</li>
+<li><strong>可自我描述的错误信息（HTTP 中的 status code）</strong> ── 使用状态码，不要重新造轮子。</li>
+<li><strong><a href="http://restcookbook.com/Basics/hateoas/" target="_blank" rel="noopener">HATEOAS</a>（HTTP 中的HTML 接口）</strong> ── 你的 web 服务器应该能够通过浏览器访问。</li>
+</ul>
+<p>REST 请求的例子：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">GET /someresources/anId</span><br><span class="line"></span><br><span class="line">PUT /someresources/anId</span><br><span class="line">&#123;&quot;anotherdata&quot;: &quot;another value&quot;&#125;</span><br></pre></td></tr></table></figure>
+<p>REST 关注于暴露数据。它减少了客户端／服务端的耦合程度，经常用于公共 HTTP API 接口设计。REST 使用更通常与规范化的方法来通过 URI 暴露资源，<a href="https://github.com/for-GET/know-your-http-well/blob/master/headers.md" target="_blank" rel="noopener">通过 header 来表述</a>并通过 GET、POST、PUT、DELETE 和 PATCH 这些动作来进行操作。因为无状态的特性，REST 易于横向扩展和隔离。</p>
+<h4 id="缺点：REST"><a href="#缺点：REST" class="headerlink" title="缺点：REST"></a>缺点：REST</h4><ul>
+<li>由于 REST 将重点放在暴露数据，所以当资源不是自然组织的或者结构复杂的时候它可能无法很好的适应。举个例子，返回过去一小时中与特定事件集匹配的更新记录这种操作就很难表示为路径。使用 REST，可能会使用 URI 路径，查询参数和可能的请求体来实现。</li>
+<li>REST 一般依赖几个动作（GET、POST、PUT、DELETE 和 PATCH），但有时候仅仅这些没法满足你的需要。举个例子，将过期的文档移动到归档文件夹里去，这样的操作可能没法简单的用上面这几个 verbs 表达。</li>
+<li>为了渲染单个页面，获取被嵌套在层级结构中的复杂资源需要客户端，服务器之间多次往返通信。例如，获取博客内容及其关联评论。对于使用不确定网络环境的移动应用来说，这些多次往返通信是非常麻烦的。</li>
+<li>随着时间的推移，更多的字段可能会被添加到 API 响应中，较旧的客户端将会接收到所有新的数据字段，即使是那些它们不需要的字段，结果它会增加负载大小并引起更大的延迟。</li>
+</ul>
+<h3 id="RPC-与-REST-比较"><a href="#RPC-与-REST-比较" class="headerlink" title="RPC 与 REST 比较"></a>RPC 与 REST 比较</h3><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>RPC</th>
+<th>REST</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>注册</td>
+<td><strong>POST</strong> /signup</td>
+<td><strong>POST</strong> /persons</td>
+</tr>
+<tr>
+<td>注销</td>
+<td><strong>POST</strong> /resign<br>{<br>“personid”: “1234”<br>}</td>
+<td><strong>DELETE</strong> /persons/1234</td>
+</tr>
+<tr>
+<td>读取用户信息</td>
+<td><strong>GET</strong> /readPerson?personid=1234</td>
+<td><strong>GET</strong> /persons/1234</td>
+</tr>
+<tr>
+<td>读取用户物品列表</td>
+<td><strong>GET</strong> /readUsersItemsList?personid=1234</td>
+<td><strong>GET</strong> /persons/1234/items</td>
+</tr>
+<tr>
+<td>向用户物品列表添加一项</td>
+<td><strong>POST</strong> /addItemToUsersItemsList<br>{<br>“personid”: “1234”;<br>“itemid”: “456”<br>}</td>
+<td><strong>POST</strong> /persons/1234/items<br>{<br>“itemid”: “456”<br>}</td>
+</tr>
+<tr>
+<td>更新一个物品</td>
+<td><strong>POST</strong> /modifyItem<br>{<br>“itemid”: “456”;<br>“key”: “value”<br>}</td>
+<td><strong>PUT</strong> /items/456<br>{<br>“key”: “value”<br>}</td>
+</tr>
+<tr>
+<td>删除一个物品</td>
+<td><strong>POST</strong> /removeItem<br>{<br>“itemid”: “456”<br>}</td>
+<td><strong>DELETE</strong> /items/456</td>
+</tr>
+</tbody>
+</table>
+<p align="center"><br>  <strong><a href="https://apihandyman.io/do-you-really-know-why-you-prefer-rest-over-rpc" target="_blank" rel="noopener">资料来源：你真的知道你为什么更喜欢 REST 而不是 RPC 吗</a></strong><br></p>
+
+<h4 id="来源及延伸阅读：REST-与-RPC"><a href="#来源及延伸阅读：REST-与-RPC" class="headerlink" title="来源及延伸阅读：REST 与 RPC"></a>来源及延伸阅读：REST 与 RPC</h4><ul>
+<li><a href="https://apihandyman.io/do-you-really-know-why-you-prefer-rest-over-rpc/" target="_blank" rel="noopener">你真的知道你为什么更喜欢 REST 而不是 RPC 吗</a></li>
+<li><a href="http://programmers.stackexchange.com/a/181186" target="_blank" rel="noopener">什么时候 RPC 比 REST 更合适？</a></li>
+<li><a href="http://stackoverflow.com/questions/15056878/rest-vs-json-rpc" target="_blank" rel="noopener">REST vs JSON-RPC</a></li>
+<li><a href="http://etherealbits.com/2012/12/debunking-the-myths-of-rpc-rest/" target="_blank" rel="noopener">揭开 RPC 和 REST 的神秘面纱</a></li>
+<li><a href="https://www.quora.com/What-are-the-drawbacks-of-using-RESTful-APIs" target="_blank" rel="noopener">使用 REST 的缺点是什么</a></li>
+<li><a href="http://www.puncsky.com/blog/2016-02-13-crack-the-system-design-interview" target="_blank" rel="noopener">破解系统设计面试</a></li>
+<li><a href="https://code.facebook.com/posts/1468950976659943/" target="_blank" rel="noopener">Thrift</a></li>
+</ul>
+<ul>
+<li><a href="http://arstechnica.com/civis/viewtopic.php?t=1190508" target="_blank" rel="noopener">为什么在内部使用 REST 而不是 RPC</a></li>
+</ul>
+<h2 id="安全"><a href="#安全" class="headerlink" title="安全"></a>安全</h2><p>这一部分需要更多内容。<a href="#贡献">一起来吧</a>！<br>安全是一个宽泛的话题。除非你有相当的经验、安全方面背景或者正在申请的职位要求安全知识，你不需要了解安全基础知识以外的内容：</p>
+<ul>
+<li>在运输和等待过程中加密</li>
+<li>对所有的用户输入和从用户那里发来的参数进行处理以防止 <a href="https://en.wikipedia.org/wiki/Cross-site_scripting" target="_blank" rel="noopener">XSS</a> 和 <a href="https://en.wikipedia.org/wiki/SQL_injection" target="_blank" rel="noopener">SQL 注入</a>。</li>
+<li>使用参数化的查询来防止 SQL 注入。</li>
+<li>使用<a href="https://en.wikipedia.org/wiki/Principle_of_least_privilege" target="_blank" rel="noopener">最小权限原则</a>。</li>
+</ul>
+<h3 id="来源及延伸阅读-8"><a href="#来源及延伸阅读-8" class="headerlink" title="来源及延伸阅读"></a>来源及延伸阅读</h3><ul>
+<li><a href="https://github.com/FallibleInc/security-guide-for-developers" target="_blank" rel="noopener">为开发者准备的安全引导</a></li>
+<li><a href="https://www.owasp.org/index.php/OWASP_Top_Ten_Cheat_Sheet" target="_blank" rel="noopener">OWASP top ten</a></li>
+</ul>
+<h2 id="附录"><a href="#附录" class="headerlink" title="附录"></a>附录</h2><p>一些时候你会被要求做出保守估计。比如，你可能需要估计从磁盘中生成 100 张图片的缩略图需要的时间或者一个数据结构需要多少的内存。<strong>2 的次方表</strong>和<strong>每个开发者都需要知道的一些时间数据</strong>（译注：OSChina 上有这篇文章的<a href="https://www.oschina.net/news/30009/every-programmer-should-know" target="_blank" rel="noopener">译文</a>）都是一些很方便的参考资料。</p>
+<h3 id="2-的次方表"><a href="#2-的次方表" class="headerlink" title="2 的次方表"></a>2 的次方表</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Power           Exact Value         Approx Value        Bytes</span><br><span class="line">---------------------------------------------------------------</span><br><span class="line">7                             128</span><br><span class="line">8                             256</span><br><span class="line">10                           1024   1 thousand           1 KB</span><br><span class="line">16                         65,536                       64 KB</span><br><span class="line">20                      1,048,576   1 million            1 MB</span><br><span class="line">30                  1,073,741,824   1 billion            1 GB</span><br><span class="line">32                  4,294,967,296                        4 GB</span><br><span class="line">40              1,099,511,627,776   1 trillion           1 TB</span><br></pre></td></tr></table></figure>
+<h4 id="来源及延伸阅读-9"><a href="#来源及延伸阅读-9" class="headerlink" title="来源及延伸阅读"></a>来源及延伸阅读</h4><ul>
+<li><a href="https://en.wikipedia.org/wiki/Power_of_two" target="_blank" rel="noopener">2 的次方</a></li>
+</ul>
+<h3 id="每个程序员都应该知道的延迟数"><a href="#每个程序员都应该知道的延迟数" class="headerlink" title="每个程序员都应该知道的延迟数"></a>每个程序员都应该知道的延迟数</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">Latency Comparison Numbers</span><br><span class="line">--------------------------</span><br><span class="line">L1 cache reference                           0.5 ns</span><br><span class="line">Branch mispredict                            5   ns</span><br><span class="line">L2 cache reference                           7   ns                      14x L1 cache</span><br><span class="line">Mutex lock/unlock                           25   ns</span><br><span class="line">Main memory reference                      100   ns                      20x L2 cache, 200x L1 cache</span><br><span class="line">Compress 1K bytes with Zippy            10,000   ns       10 us</span><br><span class="line">Send 1 KB bytes over 1 Gbps network     10,000   ns       10 us</span><br><span class="line">Read 4 KB randomly from SSD*           150,000   ns      150 us          ~1GB/sec SSD</span><br><span class="line">Read 1 MB sequentially from memory     250,000   ns      250 us</span><br><span class="line">Round trip within same datacenter      500,000   ns      500 us</span><br><span class="line">Read 1 MB sequentially from SSD*     1,000,000   ns    1,000 us    1 ms  ~1GB/sec SSD, 4X memory</span><br><span class="line">Disk seek                           10,000,000   ns   10,000 us   10 ms  20x datacenter roundtrip</span><br><span class="line">Read 1 MB sequentially from 1 Gbps  10,000,000   ns   10,000 us   10 ms  40x memory, 10X SSD</span><br><span class="line">Read 1 MB sequentially from disk    30,000,000   ns   30,000 us   30 ms 120x memory, 30X SSD</span><br><span class="line">Send packet CA-&gt;Netherlands-&gt;CA    150,000,000   ns  150,000 us  150 ms</span><br><span class="line"></span><br><span class="line">Notes</span><br><span class="line">-----</span><br><span class="line">1 ns = 10^-9 seconds</span><br><span class="line">1 us = 10^-6 seconds = 1,000 ns</span><br><span class="line">1 ms = 10^-3 seconds = 1,000 us = 1,000,000 ns</span><br></pre></td></tr></table></figure>
+<p>基于上述数字的指标：</p>
+<ul>
+<li>从磁盘以 30 MB/s 的速度顺序读取</li>
+<li>以 100 MB/s 从 1 Gbps 的以太网顺序读取</li>
+<li>从 SSD 以 1 GB/s 的速度读取</li>
+<li>以 4 GB/s 的速度从主存读取</li>
+<li>每秒能绕地球 6-7 圈</li>
+<li>数据中心内每秒有 2,000 次往返</li>
+</ul>
+<h4 id="延迟数可视化"><a href="#延迟数可视化" class="headerlink" title="延迟数可视化"></a>延迟数可视化</h4><p><img src="https://camo.githubusercontent.com/77f72259e1eb58596b564d1ad823af1853bc60a3/687474703a2f2f692e696d6775722e636f6d2f6b307431652e706e67" alt></p>
+<h4 id="来源及延伸阅读-10"><a href="#来源及延伸阅读-10" class="headerlink" title="来源及延伸阅读"></a>来源及延伸阅读</h4><ul>
+<li><a href="https://gist.github.com/jboner/2841832" target="_blank" rel="noopener">每个程序员都应该知道的延迟数 — 1</a></li>
+<li><a href="https://gist.github.com/hellerbarde/2843375" target="_blank" rel="noopener">每个程序员都应该知道的延迟数 — 2</a></li>
+<li><a href="http://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf" target="_blank" rel="noopener">关于建设大型分布式系统的的设计方案、课程和建议</a></li>
+<li><a href="https://static.googleusercontent.com/media/research.google.com/en//people/jeff/stanford-295-talk.pdf" target="_blank" rel="noopener">关于建设大型可拓展分布式系统的软件工程咨询</a></li>
+</ul>
+<h3 id="其它的系统设计面试题"><a href="#其它的系统设计面试题" class="headerlink" title="其它的系统设计面试题"></a>其它的系统设计面试题</h3><blockquote>
+<p>常见的系统设计面试问题，给出了如何解决的方案链接<br>| 问题                      | 引用                                       |<br>| ———————– | —————————————- |<br>| 设计类似于 Dropbox 的文件同步服务   | <a href="https://www.youtube.com/watch?v=PE4gwstWhmc" target="_blank" rel="noopener">youtube.com</a> |<br>| 设计类似于 Google 的搜索引擎      | <a href="http://queue.acm.org/detail.cfm?id=988407" target="_blank" rel="noopener">queue.acm.org</a><br><a href="http://programmers.stackexchange.com/questions/38324/interview-question-how-would-you-implement-google-search" target="_blank" rel="noopener">stackexchange.com</a><br><a href="http://www.ardendertat.com/2012/01/11/implementing-search-engines/" target="_blank" rel="noopener">ardendertat.com</a><br><a href="http://infolab.stanford.edu/~backrub/google.html" target="_blank" rel="noopener">stanford.edu</a> |<br>| 设计类似于 Google 的可扩展网络爬虫   | <a href="https://www.quora.com/How-can-I-build-a-web-crawler-from-scratch" target="_blank" rel="noopener">quora.com</a> |<br>| 设计 Google 文档            | <a href="https://code.google.com/p/google-mobwrite/" target="_blank" rel="noopener">code.google.com</a><br><a href="https://neil.fraser.name/writing/sync/" target="_blank" rel="noopener">neil.fraser.name</a> |<br>| 设计类似 Redis 的键值存储        | <a href="http://www.slideshare.net/dvirsky/introduction-to-redis" target="_blank" rel="noopener">slideshare.net</a> |<br>| 设计类似 Memcached 的缓存系统    | <a href="http://www.slideshare.net/oemebamo/introduction-to-memcached" target="_blank" rel="noopener">slideshare.net</a> |<br>| 设计类似亚马逊的推荐系统            | <a href="http://tech.hulu.com/blog/2011/09/19/recommendation-system.html" target="_blank" rel="noopener">hulu.com</a><br><a href="http://ijcai13.org/files/tutorial_slides/td3.pdf" target="_blank" rel="noopener">ijcai13.org</a> |<br>| 设计类似 Bitly 的短链接系统       | <a href="http://n00tc0d3r.blogspot.com/" target="_blank" rel="noopener">n00tc0d3r.blogspot.com</a> |<br>| 设计类似 WhatsApp 的聊天应用     | <a href="http://highscalability.com/blog/2014/2/26/the-whatsapp-architecture-facebook-bought-for-19-billion.html" target="_blank" rel="noopener">highscalability.com</a> |<br>| 设计类似 Instagram 的图片分享系统  | <a href="http://highscalability.com/flickr-architecture" target="_blank" rel="noopener">highscalability.com</a><br><a href="http://highscalability.com/blog/2011/12/6/instagram-architecture-14-million-users-terabytes-of-photos.html" target="_blank" rel="noopener">highscalability.com</a> |<br>| 设计 Facebook 的新闻推荐方法     | <a href="http://www.quora.com/What-are-best-practices-for-building-something-like-a-News-Feed" target="_blank" rel="noopener">quora.com</a><br><a href="http://www.quora.com/Activity-Streams/What-are-the-scaling-issues-to-keep-in-mind-while-developing-a-social-network-feed" target="_blank" rel="noopener">quora.com</a><br><a href="http://www.slideshare.net/danmckinley/etsy-activity-feeds-architecture" target="_blank" rel="noopener">slideshare.net</a> |<br>| 设计 Facebook 的时间线系统      | <a href="https://www.facebook.com/note.php?note_id=10150468255628920" target="_blank" rel="noopener">facebook.com</a><br><a href="http://highscalability.com/blog/2012/1/23/facebook-timeline-brought-to-you-by-the-power-of-denormaliza.html" target="_blank" rel="noopener">highscalability.com</a> |<br>| 设计 Facebook 的聊天系统       | <a href="http://www.erlang-factory.com/upload/presentations/31/EugeneLetuchy-ErlangatFacebook.pdf" target="_blank" rel="noopener">erlang-factory.com</a><br><a href="https://www.facebook.com/note.php?note_id=14218138919&amp;id=9445547199&amp;index=0" target="_blank" rel="noopener">facebook.com</a> |<br>| 设计类似 Facebook 的图表搜索系统   | <a href="https://www.facebook.com/notes/facebook-engineering/under-the-hood-building-out-the-infrastructure-for-graph-search/10151347573598920" target="_blank" rel="noopener">facebook.com</a><br><a href="https://www.facebook.com/notes/facebook-engineering/under-the-hood-indexing-and-ranking-in-graph-search/10151361720763920" target="_blank" rel="noopener">facebook.com</a><br><a href="https://www.facebook.com/notes/facebook-engineering/under-the-hood-the-natural-language-interface-of-graph-search/10151432733048920" target="_blank" rel="noopener">facebook.com</a> |<br>| 设计类似 CloudFlare 的内容传递网络 | <a href="http://repository.cmu.edu/cgi/viewcontent.cgi?article=2112&amp;context=compsci" target="_blank" rel="noopener">cmu.edu</a> |<br>| 设计类似 Twitter 的热门话题系统    | <a href="http://www.michael-noll.com/blog/2013/01/18/implementing-real-time-trending-topics-in-storm/" target="_blank" rel="noopener">michael-noll.com</a><br><a href="http://snikolov.wordpress.com/2012/11/14/early-detection-of-twitter-trends/" target="_blank" rel="noopener">snikolov .wordpress.com</a> |<br>| 设计一个随机 ID 生成系统          | <a href="https://blog.twitter.com/2010/announcing-snowflake" target="_blank" rel="noopener">blog.twitter.com</a><br><a href="https://github.com/twitter/snowflake/" target="_blank" rel="noopener">github.com</a> |<br>| 返回一定时间段内次数前 k 高的请求      | <a href="https://icmi.cs.ucsb.edu/research/tech_reports/reports/2005-23.pdf" target="_blank" rel="noopener">ucsb.edu</a><br><a href="http://davis.wpi.edu/xmdv/docs/EDBT11-diyang.pdf" target="_blank" rel="noopener">wpi.edu</a> |<br>| 设计一个数据源于多个数据中心的服务系统     | <a href="http://highscalability.com/blog/2009/8/24/how-google-serves-data-from-multiple-datacenters.html" target="_blank" rel="noopener">highscalability.com</a> |<br>| 设计一个多人网络卡牌游戏            | <a href="https://web.archive.org/web/20180929181117/http://www.indieflashblog.com/how-to-create-an-asynchronous-multiplayer-game.html" target="_blank" rel="noopener">indieflashblog.com</a><br><a href="http://buildnewgames.com/real-time-multiplayer/" target="_blank" rel="noopener">buildnewgames.com</a> |<br>| 设计一个垃圾回收系统              | <a href="http://journal.stuffwithstuff.com/2013/12/08/babys-first-garbage-collector/" target="_blank" rel="noopener">stuffwithstuff.com</a><br><a href="http://courses.cs.washington.edu/courses/csep521/07wi/prj/rick.pdf" target="_blank" rel="noopener">washington.edu</a> |<br>| 添加更多的系统设计问题             | <a href="#贡献">贡献</a>              |</p>
+</blockquote>
+<h3 id="真实架构"><a href="#真实架构" class="headerlink" title="真实架构"></a>真实架构</h3><blockquote>
+<p>关于现实中真实的系统是怎么设计的文章。</p>
+</blockquote>
+<p align="center"><br>  <img src="/images/TcUo2fw.png"><br>  <br><br>  <strong><a href="https://www.infoq.com/presentations/Twitter-Timeline-Scalability" target="_blank" rel="noopener">Source: Twitter timelines at scale</a></strong><br></p>
+
+
+<h2 id="Gin-web"><a href="#Gin-web" class="headerlink" title="Gin web"></a>Gin web</h2><p>我们先思考下，一个完整的Web开发框架需要做哪些事情</p>
+<ul>
+<li>server，作为server，监听端口，接受请求</li>
+<li>router 路由和分组路由，可以把请求路由到对应的处理函数</li>
+<li>middleware 支持中间件，对外部发过来的http请求经过中间件处理，再给到对应的处理函数。例如http请求的日志记录、请求鉴权(比如校验token)、CORS支持、CSRF校验等。</li>
+<li>Crash-free：崩溃恢复，Gin可以捕捉运行期处理http请求过程中的panic并且做recover操作，让服务一直可用。</li>
+<li>JSON validation：JSON验证。Gin可以解析和验证request里的JSON内容，比如字段必填等。当然开发人员也可以选择使用第三方的JSON validation工具，比如<a href="https://github.com/beego/beego/tree/develop/core/validation" target="_blank" rel="noopener">beego validation</a>。</li>
+<li>Error management：错误管理。Gin提供了一种简单的方式可以收集http request处理过程中的错误，最终中间件可以选择把这些错误写入到log文件、数据库或者发送到其它系统。</li>
+<li>Middleware Extendtable：可以自定义中间件。Gin除了自带的官方中间件之外，还支持用户自定义中间件，甚至可以把自己开发的中间件提交到<a href="https://github.com/gin-gonic/contrib" target="_blank" rel="noopener">官方代码仓库</a>里。</li>
+</ul>
+<p>参考：</p>
+<ul>
+<li><a href="https://github.com/jincheng9/go-tutorial/tree/main/workspace/gin/01" target="_blank" rel="noopener">web 框架比较</a></li>
+<li><a href="https://github.com/gin-gonic/gin" target="_blank" rel="noopener">https://github.com/gin-gonic/gin</a></li>
+<li><a href="https://github.com/gin-gonic/contrib" target="_blank" rel="noopener">https://github.com/gin-gonic/contrib</a></li>
+</ul>
+<h2 id="任务调度"><a href="#任务调度" class="headerlink" title="任务调度"></a>任务调度</h2><h3 id="单点调度：https-github-com-robfig-cron"><a href="#单点调度：https-github-com-robfig-cron" class="headerlink" title="单点调度：https://github.com/robfig/cron"></a>单点调度：<a href="https://github.com/robfig/cron" target="_blank" rel="noopener">https://github.com/robfig/cron</a></h3><h3 id="分布式调度：https-github-com-xuxueli-xxl-job"><a href="#分布式调度：https-github-com-xuxueli-xxl-job" class="headerlink" title="分布式调度：https://github.com/xuxueli/xxl-job"></a>分布式调度：<a href="https://github.com/xuxueli/xxl-job" target="_blank" rel="noopener">https://github.com/xuxueli/xxl-job</a></h3><p>将调度行为抽象形成“调度中心”公共平台，而平台自身并不承担业务逻辑，“调度中心”负责发起调度请求。将任务抽象成分散的JobHandler，交由“执行器”统一管理，“执行器”负责接收调度请求并执行对应的JobHandler中业务逻辑。因此，“调度”和“任务”两部分可以相互解耦，提高系统整体稳定性和扩展性</p>
+<ul>
+<li>调度模块（调度中心）：<br>负责管理调度信息，按照调度配置发出调度请求，自身不承担业务代码。调度系统与任务解耦，提高了系统可用性和稳定性，同时调度系统性能不再受限于任务模块；<br>支持可视化、简单且动态的管理调度信息，包括任务新建，更新，删除，GLUE开发和任务报警等，所有上述操作都会实时生效，同时支持监控调度结果以及执行日志，支持执行器Failover。</li>
+<li>执行模块（执行器，executor）：<br>负责接收调度请求并执行任务逻辑。任务模块专注于任务的执行等操作，开发和维护更加简单和高效；<br>接收“调度中心”的执行请求、终止请求和日志请求等</li>
+</ul>
+<p>参考：</p>
+<ul>
+<li><a href="https://www.xuxueli.com/xxl-job/" target="_blank" rel="noopener">https://www.xuxueli.com/xxl-job/</a></li>
+<li><a href="https://github.com/mousycoder/xxl-job-go-sdk" target="_blank" rel="noopener">https://github.com/mousycoder/xxl-job-go-sdk</a></li>
+</ul>
+<h2 id="zookeeper"><a href="#zookeeper" class="headerlink" title="zookeeper"></a>zookeeper</h2><p>Zookeeper是一个高性能、分布式的开源的协作服务；<br>提供一系列简单的功能，分布式应用可以在此基础上实现例如数据发布/订阅、负载均衡、命名服务、分布式协调/通知、集群管理、Leader选举、分布式锁和分布式队列等。常用的场景：</p>
+<ul>
+<li>命名服务（Name Service）</li>
+<li>配置中心</li>
+<li>分布式锁</li>
+<li>集群管理</li>
+</ul>
+<p>参考：</p>
+<ol>
+<li><a href="https://juejin.cn/post/6911981919974457358" target="_blank" rel="noopener">zookeeper介绍与使用场景</a></li>
+<li><a href="https://www.cnblogs.com/zhichaoma/p/12640064.html" target="_blank" rel="noopener">golang 操作zookeeper</a></li>
+<li><a href="https://zookeeper.apache.org/" target="_blank" rel="noopener">https://zookeeper.apache.org/</a></li>
+<li><a href="https://github.com/go-zookeeper/zk" target="_blank" rel="noopener">https://github.com/go-zookeeper/zk</a></li>
+<li>服务发现 zk <a href="https://blog.csdn.net/zyhlwzy/article/details/101847565" target="_blank" rel="noopener">https://blog.csdn.net/zyhlwzy/article/details/101847565</a></li>
+</ol>
+<h2 id="延时队列"><a href="#延时队列" class="headerlink" title="延时队列"></a>延时队列</h2><p>任务队列跟消息队列在使用场景上最大的区别是： 任务之间是没有顺序约束而消息要求顺序(FIFO)，且可能会对任务的状态更新而消息一般只会消费不会更新。 类似 Kafka 利用消息 FIFO 和不需要更新(不需要对消息做索引)的特性来设计消息存储，将消息读写变成磁盘的顺序读写来实现比较好的性能。而任务队列需要能够任务状态进行更新则需要对每个消息进行索引，如果把两者放到一起实现则很难实现在功能和性能上兼得。比如一下场景：</p>
+<ul>
+<li>定时任务，如每天早上 8 点开始推送消息，定期删除过期数据等</li>
+<li>任务流，如自动创建 Redis 流程由资源创建，资源配置，DNS 修改等部分组成，使用任务队列可以简化整体的设计和重试流程</li>
+<li>重试任务，典型场景如离线图片处理<br><img src="https://raw.githubusercontent.com/bitleak/lmstfy/master/doc/lmstfy-internal.png" width="600/"></li>
+</ul>
+<p>参考：</p>
+<ul>
+<li>延时队列</li>
+<li><a href="https://juejin.cn/post/7000189281641693192" target="_blank" rel="noopener">https://juejin.cn/post/7000189281641693192</a></li>
+<li><a href="https://github.com/bitleak/lmstfy" target="_blank" rel="noopener">https://github.com/bitleak/lmstfy</a></li>
+</ul>
+<h2 id="backoff-服务异常重试-指数退避算法"><a href="#backoff-服务异常重试-指数退避算法" class="headerlink" title="backoff 服务异常重试-指数退避算法"></a>backoff 服务异常重试-指数退避算法</h2><p>在wiki当中对指数退避算法的介绍是：“In a variety of computer networks, binary exponential backoff or truncated binary exponential backoff refers to an algorithm used to space out repeated retransmissions of the same block of data, often as part of network congestion avoidance.”</p>
+<p>翻译成中文的意思大概是“在各种的计算机网络中，二进制指数后退或是截断的二进制指数后退使用于一种隔离同一数据块重复传输的算法，常常做为网络避免冲突的一部分”</p>
+<p>比如说在我们的服务调用过程中发生了调用失败，系统要对失败的资源进行重试，那么这个重试的时间如何把握，使用指数退避算法我们可以在某一范围内随机对失败的资源发起重试，并且随着失败次数的增加长，重试时间也会随着指数的增加而增加。</p>
+<p>当然，指数退避算法并没有人上面说的那么简单，想具体了解的可以具体wiki上的介绍<br>参考：</p>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/Exponential_backoff" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Exponential_backoff</a></li>
+<li>github golang 实现：<a href="https://github.com/cenkalti/backoff" target="_blank" rel="noopener">https://github.com/cenkalti/backoff</a></li>
+<li><a href="https://github.com/cenkalti/backoff" target="_blank" rel="noopener">https://github.com/cenkalti/backoff</a></li>
+</ul>
+<h2 id="限流器-ratelimit"><a href="#限流器-ratelimit" class="headerlink" title="限流器 ratelimit"></a>限流器 ratelimit</h2><table>
+<thead>
+<tr>
+<th style="text-align:left">实现方式</th>
+<th style="text-align:center">优缺点</th>
+<th style="text-align:center">居中对齐</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">计数器</td>
+<td style="text-align:center">实现简单，计数器算法容易出现不平滑的情况，瞬间的 qps 有可能超过系统的承载</td>
+<td style="text-align:center">单元格</td>
+</tr>
+<tr>
+<td style="text-align:left">令牌桶</td>
+<td style="text-align:center">生成令牌的速度是恒定的，而请求去拿令牌是没有速度限制的。允许统一时刻有一定程度的并发，常用于服务端保护自身</td>
+<td style="text-align:center">单元格</td>
+</tr>
+<tr>
+<td style="text-align:left">漏桶算</td>
+<td style="text-align:center">单元格</td>
+<td style="text-align:center">单元格</td>
+</tr>
+</tbody>
+</table>
+<h2 id="监控平台"><a href="#监控平台" class="headerlink" title="监控平台"></a>监控平台</h2><ul>
+<li>prometheus,<a href="https://prometheus.io/" target="_blank" rel="noopener">https://prometheus.io/</a></li>
+<li>grafna,<a href="https://www.google.com.hk/search?q=grafana&amp;rlz=1C5GCEM_enCN985CN985&amp;oq=grafana&amp;aqs=chrome..69i57j69i60l3j69i65l3j69i60.8511j0j7&amp;sourceid=chrome&amp;ie=UTF-8" target="_blank" rel="noopener">https://www.google.com.hk/search?q=grafana&amp;rlz=1C5GCEM_enCN985CN985&amp;oq=grafana&amp;aqs=chrome..69i57j69i60l3j69i65l3j69i60.8511j0j7&amp;sourceid=chrome&amp;ie=UTF-8</a></li>
+</ul>
+<h2 id="CI-CD和SRE运维"><a href="#CI-CD和SRE运维" class="headerlink" title="CI/CD和SRE运维"></a>CI/CD和SRE运维</h2><ul>
+<li>jenkins</li>
+<li>docker</li>
+<li>Kubernetes <a href="https://zhuanlan.zhihu.com/p/339008746" target="_blank" rel="noopener">Kubernetes 入门&amp;进阶实战</a></li>
+<li>虚拟机与容器的区别？虚拟机需要多一层guestos，隔离更好，一把是用户级别的隔离。而docker则是应用级别的隔离，共享宿主机操作系统。</li>
+</ul>
+<h2 id="大数据存储和计算"><a href="#大数据存储和计算" class="headerlink" title="大数据存储和计算"></a>大数据存储和计算</h2><ul>
+<li>spark</li>
+<li>spark streaming</li>
+<li>hive</li>
+<li>presto</li>
+<li>Lambda 和 Kappa 架构简介：<a href="https://libertydream.github.io/2020/04/12/lambda-%E5%92%8C-kappa-%E7%AE%80%E4%BB%8B/" target="_blank" rel="noopener">https://libertydream.github.io/2020/04/12/lambda-%E5%92%8C-kappa-%E7%AE%80%E4%BB%8B/</a></li>
+</ul>
+<h2 id="系统设计文档和架构图"><a href="#系统设计文档和架构图" class="headerlink" title="系统设计文档和架构图"></a>系统设计文档和架构图</h2><ul>
+<li>方案设计与写作</li>
+<li>方案模版</li>
+<li>画架构图</li>
+<li>数据</li>
+<li>系统和架构设计</li>
+<li><a href="https://wxquare.github.io/2022/05/20/C++/system-design-and-framework-basic/" target="_blank" rel="noopener">https://wxquare.github.io/2022/05/20/C++/system-design-and-framework-basic/</a></li>
+<li>英语能力</li>
+<li>好用工具</li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2023/10/18/计算机基础/redis-interview/" rel="next" title="Middleware - Redis">
+                <i class="fa fa-chevron-left"></i> Middleware - Redis
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="wxquare">
+            
+              <p class="site-author-name" itemprop="name">wxquare</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">30</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+
+          </nav>
+
+          
+
+          <div class="links-of-author motion-element">
+            
+              
+                <span class="links-of-author-item">
+                  <a href="https://github.com/wxquare" target="_blank" title="GitHub">
+                    
+                      <i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  <a href="mailto:xianguiwang0316@gmail" target="_blank" title="E-Mail">
+                    
+                      <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                </span>
+              
+            
+          </div>
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="http://www.cplusplus.com/reference" title="C++" target="_blank">C++</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://golang.org/pkg/" title="golang" target="_blank">golang</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://docs.python.org/3" title="python" target="_blank">python</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://en.cppreference.com/w/" title="cppreference" target="_blank">cppreference</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://leetcode.com/problemset/all/" title="leetcode" target="_blank">leetcode</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#关键指标"><span class="nav-number">1.</span> <span class="nav-text">关键指标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#架构"><span class="nav-number">2.</span> <span class="nav-text">架构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#域名系统"><span class="nav-number">3.</span> <span class="nav-text">域名系统</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#缺陷-DNS"><span class="nav-number">3.1.</span> <span class="nav-text">缺陷:DNS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#来源及延伸阅读"><span class="nav-number">3.2.</span> <span class="nav-text">来源及延伸阅读</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内容分发网络（CDN）"><span class="nav-number">4.</span> <span class="nav-text">内容分发网络（CDN）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#CDN-推送（push）"><span class="nav-number">4.1.</span> <span class="nav-text">CDN 推送（push）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#CDN-拉取（pull）"><span class="nav-number">4.2.</span> <span class="nav-text">CDN 拉取（pull）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#缺陷：CDN"><span class="nav-number">4.3.</span> <span class="nav-text">缺陷：CDN</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#来源及延伸阅读-1"><span class="nav-number">4.4.</span> <span class="nav-text">来源及延伸阅读</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#负载均衡器（网关）"><span class="nav-number">5.</span> <span class="nav-text">负载均衡器（网关）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#四层负载均衡"><span class="nav-number">5.1.</span> <span class="nav-text">四层负载均衡</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#七层负载均衡器"><span class="nav-number">5.2.</span> <span class="nav-text">七层负载均衡器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#水平扩展"><span class="nav-number">5.3.</span> <span class="nav-text">水平扩展</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#缺陷：水平扩展"><span class="nav-number">5.3.1.</span> <span class="nav-text">缺陷：水平扩展</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#缺陷：负载均衡器"><span class="nav-number">5.4.</span> <span class="nav-text">缺陷：负载均衡器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#来源及延伸阅读-2"><span class="nav-number">5.5.</span> <span class="nav-text">来源及延伸阅读</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#反向代理（web-服务器）"><span class="nav-number">6.</span> <span class="nav-text">反向代理（web 服务器）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#负载均衡器与反向代理"><span class="nav-number">6.1.</span> <span class="nav-text">负载均衡器与反向代理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#不利之处：反向代理"><span class="nav-number">6.2.</span> <span class="nav-text">不利之处：反向代理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#来源及延伸阅读-3"><span class="nav-number">6.3.</span> <span class="nav-text">来源及延伸阅读</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#应用层网关"><span class="nav-number">7.</span> <span class="nav-text">应用层网关</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#微服务"><span class="nav-number">8.</span> <span class="nav-text">微服务</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#服务发现"><span class="nav-number">8.1.</span> <span class="nav-text">服务发现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#不利之处：应用层"><span class="nav-number">8.2.</span> <span class="nav-text">不利之处：应用层</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#来源及延伸阅读-4"><span class="nav-number">8.3.</span> <span class="nav-text">来源及延伸阅读</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据库"><span class="nav-number">9.</span> <span class="nav-text">数据库</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#关系型数据库管理系统（RDBMS）"><span class="nav-number">9.1.</span> <span class="nav-text">关系型数据库管理系统（RDBMS）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#关系型数据库扩展架构"><span class="nav-number">9.2.</span> <span class="nav-text">关系型数据库扩展架构</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#主从复制"><span class="nav-number">9.2.1.</span> <span class="nav-text">主从复制</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#不利之处：主从复制"><span class="nav-number">9.2.1.1.</span> <span class="nav-text">不利之处：主从复制</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#主主复制"><span class="nav-number">9.2.2.</span> <span class="nav-text">主主复制</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#不利之处：-主主复制"><span class="nav-number">9.2.2.1.</span> <span class="nav-text">不利之处： 主主复制</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#不利之处：复制"><span class="nav-number">9.2.2.2.</span> <span class="nav-text">不利之处：复制</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#来源及延伸阅读-5"><span class="nav-number">9.2.2.3.</span> <span class="nav-text">来源及延伸阅读</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#联合"><span class="nav-number">9.2.3.</span> <span class="nav-text">联合</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#不利之处：联合"><span class="nav-number">9.2.3.1.</span> <span class="nav-text">不利之处：联合</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#来源及延伸阅读：联合"><span class="nav-number">9.2.3.2.</span> <span class="nav-text">来源及延伸阅读：联合</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#分片"><span class="nav-number">9.2.4.</span> <span class="nav-text">分片</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#不利之处：分片"><span class="nav-number">9.2.4.1.</span> <span class="nav-text">不利之处：分片</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#来源及延伸阅读：分片"><span class="nav-number">9.2.5.</span> <span class="nav-text">来源及延伸阅读：分片</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#非规范化"><span class="nav-number">9.2.6.</span> <span class="nav-text">非规范化</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#不利之处：非规范化"><span class="nav-number">9.2.6.1.</span> <span class="nav-text">不利之处：非规范化</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#来源及延伸阅读：非规范化"><span class="nav-number">9.2.6.2.</span> <span class="nav-text">来源及延伸阅读：非规范化</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SQL-调优"><span class="nav-number">9.3.</span> <span class="nav-text">SQL 调优</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#改进模式"><span class="nav-number">9.3.1.</span> <span class="nav-text">改进模式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#使用正确的索引"><span class="nav-number">9.3.2.</span> <span class="nav-text">使用正确的索引</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#避免高成本的联结操作"><span class="nav-number">9.3.3.</span> <span class="nav-text">避免高成本的联结操作</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#分割数据表"><span class="nav-number">9.3.4.</span> <span class="nav-text">分割数据表</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#调优查询缓存"><span class="nav-number">9.3.5.</span> <span class="nav-text">调优查询缓存</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#来源及延伸阅读-6"><span class="nav-number">9.3.6.</span> <span class="nav-text">来源及延伸阅读</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#NoSQL"><span class="nav-number">9.4.</span> <span class="nav-text">NoSQL</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#键-值存储（redis"><span class="nav-number">9.5.</span> <span class="nav-text">键-值存储（redis)</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#来源及延伸阅读-7"><span class="nav-number">9.5.1.</span> <span class="nav-text">来源及延伸阅读</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#文档类型存储-es"><span class="nav-number">9.6.</span> <span class="nav-text">文档类型存储(es)</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#来源及延伸阅读：文档类型存储"><span class="nav-number">9.6.1.</span> <span class="nav-text">来源及延伸阅读：文档类型存储</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#列型存储-hbase"><span class="nav-number">9.7.</span> <span class="nav-text">列型存储(hbase)</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#来源及延伸阅读：列型存储"><span class="nav-number">9.7.1.</span> <span class="nav-text">来源及延伸阅读：列型存储</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#图数据库"><span class="nav-number">9.8.</span> <span class="nav-text">图数据库</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#相关资源和延伸阅读：图"><span class="nav-number">9.8.1.</span> <span class="nav-text">相关资源和延伸阅读：图</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#来源及延伸阅读：NoSQL"><span class="nav-number">9.8.2.</span> <span class="nav-text">来源及延伸阅读：NoSQL</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SQL-还是-NoSQL"><span class="nav-number">9.9.</span> <span class="nav-text">SQL 还是 NoSQL</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#来源及延伸阅读：SQL-或-NoSQL"><span class="nav-number">9.9.1.</span> <span class="nav-text">来源及延伸阅读：SQL 或 NoSQL</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#缓存"><span class="nav-number">10.</span> <span class="nav-text">缓存</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#客户端缓存"><span class="nav-number">10.1.</span> <span class="nav-text">客户端缓存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#CDN-缓存"><span class="nav-number">10.2.</span> <span class="nav-text">CDN 缓存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Web-服务器缓存"><span class="nav-number">10.3.</span> <span class="nav-text">Web 服务器缓存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#数据库缓存"><span class="nav-number">10.4.</span> <span class="nav-text">数据库缓存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#应用缓存"><span class="nav-number">10.5.</span> <span class="nav-text">应用缓存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#数据库查询级别的缓存"><span class="nav-number">10.6.</span> <span class="nav-text">数据库查询级别的缓存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#对象级别的缓存"><span class="nav-number">10.7.</span> <span class="nav-text">对象级别的缓存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#何时更新缓存"><span class="nav-number">10.8.</span> <span class="nav-text">何时更新缓存</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#缓存模式"><span class="nav-number">10.8.1.</span> <span class="nav-text">缓存模式</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#缓存的缺点："><span class="nav-number">10.8.1.1.</span> <span class="nav-text">缓存的缺点：</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#直写模式"><span class="nav-number">10.8.2.</span> <span class="nav-text">直写模式</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#直写模式的缺点："><span class="nav-number">10.8.2.1.</span> <span class="nav-text">直写模式的缺点：</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#回写模式"><span class="nav-number">10.8.3.</span> <span class="nav-text">回写模式</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#回写模式的缺点："><span class="nav-number">10.8.3.1.</span> <span class="nav-text">回写模式的缺点：</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#刷新"><span class="nav-number">10.8.4.</span> <span class="nav-text">刷新</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#刷新的缺点："><span class="nav-number">10.8.4.1.</span> <span class="nav-text">刷新的缺点：</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#缓存的缺点：-1"><span class="nav-number">10.9.</span> <span class="nav-text">缓存的缺点：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#相关资源和延伸阅读"><span class="nav-number">10.10.</span> <span class="nav-text">相关资源和延伸阅读</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#异步"><span class="nav-number">11.</span> <span class="nav-text">异步</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#消息队列"><span class="nav-number">11.1.</span> <span class="nav-text">消息队列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#任务队列"><span class="nav-number">11.2.</span> <span class="nav-text">任务队列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#背压"><span class="nav-number">11.3.</span> <span class="nav-text">背压</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#异步的缺点："><span class="nav-number">11.4.</span> <span class="nav-text">异步的缺点：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#相关资源和延伸阅读-1"><span class="nav-number">11.5.</span> <span class="nav-text">相关资源和延伸阅读</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#通讯"><span class="nav-number">12.</span> <span class="nav-text">通讯</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#超文本传输协议（HTTP）"><span class="nav-number">12.1.</span> <span class="nav-text">超文本传输协议（HTTP）</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#来源及延伸阅读：HTTP"><span class="nav-number">12.1.1.</span> <span class="nav-text">来源及延伸阅读：HTTP</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#传输控制协议（TCP）"><span class="nav-number">12.2.</span> <span class="nav-text">传输控制协议（TCP）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#用户数据报协议（UDP）"><span class="nav-number">12.3.</span> <span class="nav-text">用户数据报协议（UDP）</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#来源及延伸阅读：TCP-与-UDP"><span class="nav-number">12.3.1.</span> <span class="nav-text">来源及延伸阅读：TCP 与 UDP</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#远程过程调用协议（RPC）"><span class="nav-number">12.4.</span> <span class="nav-text">远程过程调用协议（RPC）</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#缺点：RPC"><span class="nav-number">12.4.1.</span> <span class="nav-text">缺点：RPC</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#表述性状态转移（REST）"><span class="nav-number">12.5.</span> <span class="nav-text">表述性状态转移（REST）</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#缺点：REST"><span class="nav-number">12.5.1.</span> <span class="nav-text">缺点：REST</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RPC-与-REST-比较"><span class="nav-number">12.6.</span> <span class="nav-text">RPC 与 REST 比较</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#来源及延伸阅读：REST-与-RPC"><span class="nav-number">12.6.1.</span> <span class="nav-text">来源及延伸阅读：REST 与 RPC</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#安全"><span class="nav-number">13.</span> <span class="nav-text">安全</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#来源及延伸阅读-8"><span class="nav-number">13.1.</span> <span class="nav-text">来源及延伸阅读</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#附录"><span class="nav-number">14.</span> <span class="nav-text">附录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-的次方表"><span class="nav-number">14.1.</span> <span class="nav-text">2 的次方表</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#来源及延伸阅读-9"><span class="nav-number">14.1.1.</span> <span class="nav-text">来源及延伸阅读</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#每个程序员都应该知道的延迟数"><span class="nav-number">14.2.</span> <span class="nav-text">每个程序员都应该知道的延迟数</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#延迟数可视化"><span class="nav-number">14.2.1.</span> <span class="nav-text">延迟数可视化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#来源及延伸阅读-10"><span class="nav-number">14.2.2.</span> <span class="nav-text">来源及延伸阅读</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#其它的系统设计面试题"><span class="nav-number">14.3.</span> <span class="nav-text">其它的系统设计面试题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#真实架构"><span class="nav-number">14.4.</span> <span class="nav-text">真实架构</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Gin-web"><span class="nav-number">15.</span> <span class="nav-text">Gin web</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#任务调度"><span class="nav-number">16.</span> <span class="nav-text">任务调度</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#单点调度：https-github-com-robfig-cron"><span class="nav-number">16.1.</span> <span class="nav-text">单点调度：https://github.com/robfig/cron</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#分布式调度：https-github-com-xuxueli-xxl-job"><span class="nav-number">16.2.</span> <span class="nav-text">分布式调度：https://github.com/xuxueli/xxl-job</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#zookeeper"><span class="nav-number">17.</span> <span class="nav-text">zookeeper</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#延时队列"><span class="nav-number">18.</span> <span class="nav-text">延时队列</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#backoff-服务异常重试-指数退避算法"><span class="nav-number">19.</span> <span class="nav-text">backoff 服务异常重试-指数退避算法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#限流器-ratelimit"><span class="nav-number">20.</span> <span class="nav-text">限流器 ratelimit</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#监控平台"><span class="nav-number">21.</span> <span class="nav-text">监控平台</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CI-CD和SRE运维"><span class="nav-number">22.</span> <span class="nav-text">CI/CD和SRE运维</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#大数据存储和计算"><span class="nav-number">23.</span> <span class="nav-text">大数据存储和计算</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#系统设计文档和架构图"><span class="nav-number">24.</span> <span class="nav-text">系统设计文档和架构图</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; 2017 &mdash; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">wxquare</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.3</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.3"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.3"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.3"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.3"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.3"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+
+  
+
+  
+
+</body>
+</html>
