@@ -488,7 +488,7 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 - https://github.com/medcl/esm/tree/0.1.0
 
 
-## 1、基本概念和文档导读
+## 拓展阅读
 - [普通搜索和向量搜索介绍](https://blog.csdn.net/weixin_40601534/article/details/122435858?spm=1001.2014.3001.5501)
 - [广告索引（定向）的布尔表达式](https://www.cnblogs.com/chenny7/p/14765412.html)
 - [official document](https://www.elastic.co/guide/en/elasticsearch/reference/8.3/index.html)
