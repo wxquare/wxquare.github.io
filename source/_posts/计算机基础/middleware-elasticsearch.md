@@ -238,7 +238,6 @@ curl -XPOST -H'Content-Type: application/json' 'host/index_name/_doc/_mapping' -
 ```
 
 
-
 ### analyzer
 - 参考：https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html
 
@@ -276,7 +275,7 @@ POST /_aliases
 ```
 curl -XPUT  host/index_nane/_alias/index_alias_name
 ```
-## 3、query DSL
+## query DSL
 - term level queries
 	- keyword term
     - https://www.elastic.co/guide/en/elasticsearch/reference/6.7/term-level-queries.html
@@ -439,9 +438,11 @@ curl -XPUT  host/index_nane/_alias/index_alias_name
 ```
 </details>
 
-## 4、原理和实现
+## 原理
+基本概念：
+节点：分布系统都有的master节点和普通节点。类似于kafka集群都会存在的一种节点，master节点用于管理索引（创建索引、删除索引）、分配分片，维护元数据。
+协调节点：ES的特殊性，需要由一个节点汇总多个分片的query结果。节点是否担任协调节点可通过配置文件配置。例如某个节点只想做协调节点：node.master=false，node.data=false
 ES的读写流程主要是协调节点，主分片节点、副分片节点间的相互协调。
-
 ES的读取分为GET和Search两种操作。GET根据文档id从正排索引中获取内容；Search不指定id，根据关键字从倒排索引中获取内容。
 
 ### 写单个文档的流程
@@ -472,8 +473,7 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 
 
 
-## 5、性能优化
-
+## 调优
 ### 关注哪些性能指标
 - （读）query latency 1-2ms，复杂的查询可能到几十ms
 - （读）fetch latency 
@@ -484,7 +484,7 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 1. 结合profile、explain api 分析query慢的原因。[search profile api](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-profile.html)
 
 
-## 6、SDK 使用
+## SDK 使用
 - github.com/olivere/elastic
 - https://github.com/elastic/go-elasticsearch
 
@@ -492,7 +492,6 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 ## es migrate tools
 - https://github.com/medcl/esm
 - https://github.com/medcl/esm/tree/0.1.0
-
 
 ## 拓展阅读
 - [普通搜索和向量搜索介绍](https://blog.csdn.net/weixin_40601534/article/details/122435858?spm=1001.2014.3001.5501)
