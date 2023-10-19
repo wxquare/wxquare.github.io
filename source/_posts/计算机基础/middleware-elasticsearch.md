@@ -187,6 +187,12 @@ curl -XGET 'host/_cat/indices/*hotel_basic_info_v2_live*(支持正则表达式�
 curl -XGET 'host/index_name/_mapping?pretty=true'
 ```
 
+
+### 查看索引mapping信息
+```
+curl -XGET 'host/index_name/_settings?pretty=true'
+```
+
 ### 通过doc id 正向查询
 ```
 curl -XGET  'host/index/_doc/doc_id?pretty=true'
