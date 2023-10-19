@@ -6,7 +6,7 @@ categories:
 
 
 ## 基本使用
-### 创建index
+### 创建index，setting和mapping
 ```
 curl -XPUT -H'Content-Type: application/json'  host/index_name?pretty=true -d@index_mapping.json 
 ```
