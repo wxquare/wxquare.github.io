@@ -5,27 +5,7 @@ categories:
 ---
 
 
-
-## 1、基本概念和文档导读
-- [普通搜索和向量搜索介绍](https://blog.csdn.net/weixin_40601534/article/details/122435858?spm=1001.2014.3001.5501)
-- [广告索引（定向）的布尔表达式](https://www.cnblogs.com/chenny7/p/14765412.html)
-- [official document](https://www.elastic.co/guide/en/elasticsearch/reference/8.3/index.html)
-- [scroll使用和Elasticsearch的深度翻页问题](https://www.jianshu.com/p/eb7f11e178b3)
-- [ES 读写流程](https://www.cnblogs.com/upupfeng/p/13488120.html)
-- [达观数据搜索引擎的Query自动纠错技术和架构](http://www.datagrand.com/blog/search-query.html)
-- [Elasticsearch基础之相关性介绍](https://donggeitnote.com/2021/09/19/elasticsearch-tfidf/)
-- [ElasticSearch进阶之拼写错误](https://donggeitnote.com/2022/01/02/elasticsearch-typo/)
-- [ElasticSearch进阶之输入匹配](https://donggeitnote.com/2021/11/06/elasticsearch-typematch/)
-- [ElasticSearch进阶之多域搜索](https://donggeitnote.com/2021/10/02/elasticsearch-multiplesearch/)
-- [ElasticSearch进阶之Shard/segment内部原理](https://donggeitnote.com/2021/09/29/elasticsearch-shard/)
-- analysizer,normalizer,常用分词器介绍和评估。https://blog.csdn.net/Q176782/article/details/119054132
-- [Kafka VS ElasticSearch 的相似性和比较](https://juejin.cn/post/6844904008432402440)
-  - 节点
-  - index/topic
-  - shard/partiion
-  - 副本机制
-
-## 2、常用命令
+## 基本使用
 ### 创建index
 ```
 curl -XPUT -H'Content-Type: application/json'  host/index_name?pretty=true -d@index_mapping.json 
@@ -506,4 +486,24 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 ## es migrate tools
 - https://github.com/medcl/esm
 - https://github.com/medcl/esm/tree/0.1.0
+
+
+## 1、基本概念和文档导读
+- [普通搜索和向量搜索介绍](https://blog.csdn.net/weixin_40601534/article/details/122435858?spm=1001.2014.3001.5501)
+- [广告索引（定向）的布尔表达式](https://www.cnblogs.com/chenny7/p/14765412.html)
+- [official document](https://www.elastic.co/guide/en/elasticsearch/reference/8.3/index.html)
+- [scroll使用和Elasticsearch的深度翻页问题](https://www.jianshu.com/p/eb7f11e178b3)
+- [ES 读写流程](https://www.cnblogs.com/upupfeng/p/13488120.html)
+- [达观数据搜索引擎的Query自动纠错技术和架构](http://www.datagrand.com/blog/search-query.html)
+- [Elasticsearch基础之相关性介绍](https://donggeitnote.com/2021/09/19/elasticsearch-tfidf/)
+- [ElasticSearch进阶之拼写错误](https://donggeitnote.com/2022/01/02/elasticsearch-typo/)
+- [ElasticSearch进阶之输入匹配](https://donggeitnote.com/2021/11/06/elasticsearch-typematch/)
+- [ElasticSearch进阶之多域搜索](https://donggeitnote.com/2021/10/02/elasticsearch-multiplesearch/)
+- [ElasticSearch进阶之Shard/segment内部原理](https://donggeitnote.com/2021/09/29/elasticsearch-shard/)
+- analysizer,normalizer,常用分词器介绍和评估。https://blog.csdn.net/Q176782/article/details/119054132
+- [Kafka VS ElasticSearch 的相似性和比较](https://juejin.cn/post/6844904008432402440)
+  - 节点
+  - index/topic
+  - shard/partiion
+  - 副本机制
 
