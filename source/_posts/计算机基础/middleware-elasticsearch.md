@@ -431,7 +431,7 @@ curl -XPUT  host/index_nane/_alias/index_alias_name
     ]
 }
 ```
-<details>
+</details>
 
 ## 4、原理和实现
 ES的读写流程主要是协调节点，主分片节点、副分片节点间的相互协调。
