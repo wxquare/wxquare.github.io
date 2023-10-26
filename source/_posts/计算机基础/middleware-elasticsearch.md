@@ -513,6 +513,7 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 - [ElasticSearch进阶之Shard/segment内部原理](https://donggeitnote.com/2021/09/29/elasticsearch-shard/)
 - analysizer,normalizer,常用分词器介绍和评估。https://blog.csdn.net/Q176782/article/details/119054132
 - [Kafka VS ElasticSearch 的相似性和比较](https://juejin.cn/post/6844904008432402440)
+- [理解ES的refresh、flush、merge](https://blog.csdn.net/weixin_37692493/article/details/108182161)
   - 节点
   - index/topic
   - shard/partiion
