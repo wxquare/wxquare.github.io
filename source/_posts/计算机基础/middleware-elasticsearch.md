@@ -503,6 +503,7 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 - [广告索引（定向）的布尔表达式](https://www.cnblogs.com/chenny7/p/14765412.html)
 - [official document](https://www.elastic.co/guide/en/elasticsearch/reference/8.3/index.html)
 - [scroll使用和Elasticsearch的深度翻页问题](https://www.jianshu.com/p/eb7f11e178b3)
+- [ES 更新并发控制问题](https://www.jianshu.com/p/d4da0182a67a)
 - [ES 读写流程](https://www.cnblogs.com/upupfeng/p/13488120.html)
 - [达观数据搜索引擎的Query自动纠错技术和架构](http://www.datagrand.com/blog/search-query.html)
 - [Elasticsearch基础之相关性介绍](https://donggeitnote.com/2021/09/19/elasticsearch-tfidf/)
