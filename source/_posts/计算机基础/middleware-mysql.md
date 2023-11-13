@@ -242,8 +242,8 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     - 是否有缓存
     - 垂直分表、水平分表、分库
     - 根据场景来看，写操作多的情况下，考虑读写分离
+    - [数据归档](https://www.cnblogs.com/goodAndyxublog/p/14994451.html)：数据是否有冷热的区别，例如订单数据有比较明显的时间冷热的区别，可以考虑冷数据归档。比如半年前的订单数据可以写入hbase
     - 池化
-
 
 - **连接池的配置和使用**
     - 连接池能减少连接创建和释放带来的开销，大多数SDK也支持是支持连接池的，通常实际生产环境中也都会使用到连接池，需要关注一下几个参数
@@ -253,8 +253,6 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     - 要使用好连接池，除了关注客户端的配置还需要关注mysql服务端的配置
     - 服务端最大连接数量：show variables like '%connection%'; max_connections
     - 服务端连接最大生命周期：show variables like '%wait_timeout%'
-
-- 
 
 - **sql优化**
     - 分析数据sql的结构是否加载了不必要的字段和数据
