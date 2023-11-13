@@ -51,6 +51,7 @@ CREATE TABLE `hotel_info_tab` (
 - [10.9.1 The utf8mb4 Character Set (4-Byte UTF-8 Unicode Encoding)](https://dev.mysql.com/doc/refman/5.7/en/charset-unicode-utf8mb4.html)
 - 是否需要分表，分库?（https://blog.csdn.net/thekenofDIS/article/details/108577905）
 - 是否需要增加index？
+- [为什么不推荐使用外键约束，而是业务代码来实现？](https://www.zhihu.com/question/21863571)
 
 ## 不建议使用null
    在MySQL和许多其他数据库系统中，**NULL是一个特殊的值，表示缺少值或未知值**。虽然NULL在某些情况下是有用的，但由于它的特殊性，使用NULL可能会带来一些问题，因此在某些情况下不建议过度使用NULL。一般只有text类型回用到，其它都应该制定默认值
