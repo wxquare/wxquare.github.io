@@ -152,7 +152,7 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     - [结合实例理解联合索引与最左匹配原则](https://www.cnblogs.com/rjzheng/p/12557314.html)
     - https://dev.mysql.com/doc/refman/5.7/en/multiple-column-indexes.html
 
-## 事务Transaction与锁（数据准确性和并发安全，一锁二判三更新）
+## 事务Transaction与数据库锁（数据准确性和并发安全，一锁二判三更新）
 - [精读mysql事务](https://blog.csdn.net/qq_43255017/article/details/106442887?utm_medium=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&depth_1-utm_source=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&request_id=)
 - [innodb事务的ACID特性，以及其对应的实现原理?](https://www.cnblogs.com/kismetv/p/10331633.html)   
     - 原子性：在很多场景中，一个操作需要执行多条 update/insert SQL。原子性保证了SQL语句要么全执行，要么全不执行，是事务最核心的特性，事务本身就是以原子性来定义的；实现主要基于undolog/redolog
