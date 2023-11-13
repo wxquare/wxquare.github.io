@@ -378,6 +378,7 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 - [怎么处理线上DDL变更?](https://zhuanlan.zhihu.com/p/247939271)
 - [Redis和mysql数据怎么保持数据一致的？](https://coolshell.cn/articles/17416.html) 
 - [MySQL数据库面试题（2020最新版）](https://thinkwon.blog.csdn.net/article/details/104778621)
+- https://cyborg2077.github.io/2023/05/06/InQMySQL/
 
 ## 了解数据库三大范式
 - 第一范式：每个列都不可以再拆分。
