@@ -77,7 +77,7 @@ CREATE TABLE `hotel_info_tab` (
 - 分表方式：hotel 1张表，多语言表10张表，房型表20张，图片表：100张表
 - 酒店和多语言文本垂直分表
 - 根据酒店id水平分表。
-- 如果还要继续扩展，可以重新搞一个库。酒店id从500w开始，不断扩展
+- 如果还要继续扩展，可以重新搞一个库。酒店id从500w开始，不断扩展。增加一个数据路由的模块。
 
 ## 存储引擎（Storage Engine) 选择
 [Setting the Storage Engine](https://dev.mysql.com/doc/refman/5.7/en/storage-engine-setting.html)
