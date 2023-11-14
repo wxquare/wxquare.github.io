@@ -64,7 +64,6 @@ CREATE TABLE `hotel_info_tab` (
 
 虽然NULL有其合理的用途，例如表示缺失的数据或未知的值，但过度使用NULL可能会导致代码的复杂性增加、查询的不准确性和性能问题。在设计数据库模式和数据模型时，需要根据实际需求和业务逻辑合理使用NULL，并考虑到其带来的潜在问题。
 
-
 ## 分表/分库/历史数据归档和路由
 原文链接：https://juejin.cn/post/6844903872134135816
 - 今天，探讨一个有趣的话题：MySQL 单表数据达到多少时才需要考虑分库分表？有人说 2000 万行，也有人说 500 万行。那么，你觉得这个数值多少才合适呢？
@@ -84,6 +83,8 @@ CREATE TABLE `hotel_info_tab` (
 订单分表
 - 订单每天新增1000w。按照用户维度分1000张表。一年下来，平均每张表360w。
 - 超过1年的历史订单归档，将时间超过1年的订单归档存储到hbase中
+- 如何实现历史订单表数据归档，冷热数据的路由？
+- [订单系统设计方案之如何做历史订单和归档](https://www.80wz.com/wfwstudy/1084.html)
 
 ## 存储引擎（Storage Engine) 选择
 [Setting the Storage Engine](https://dev.mysql.com/doc/refman/5.7/en/storage-engine-setting.html)
