@@ -89,6 +89,10 @@ CREATE TABLE `hotel_info_tab` (
 - 数据变更时通常会先写入快照表或者历史记录表，通常在业务代码中实现
 - 有时也会采用mysql 存储过程实现：https://blog.csdn.net/wcdunf/article/details/129792810
 
+**案例4. 商品库存扣减方案**
+- 乐观索和悲观锁
+- https://zhuanlan.zhihu.com/p/143866444
+
 ## 存储引擎（Storage Engine) 选择
 [Setting the Storage Engine](https://dev.mysql.com/doc/refman/5.7/en/storage-engine-setting.html)
 MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景。以下是几种常见的MySQL存储引擎对比：
