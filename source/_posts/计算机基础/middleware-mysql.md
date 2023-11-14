@@ -84,6 +84,11 @@ CREATE TABLE `hotel_info_tab` (
 - 如何实现历史订单表数据归档，冷热数据的路由？
 - [订单系统设计方案之如何做历史订单和归档](https://www.80wz.com/wfwstudy/1084.html)
 
+**案例3. 数据历史版本记录、快照表**
+- 在有些场景中，数据变更不回特别频繁，特别是人工变更时，记录数据版本和快照是非常好的习惯，方便追溯历史行为记录
+- 数据变更时通常会先写入快照表或者历史记录表，通常在业务代码中实现
+- 有时也会采用mysql 存储过程实现：https://blog.csdn.net/wcdunf/article/details/129792810
+
 ## 存储引擎（Storage Engine) 选择
 [Setting the Storage Engine](https://dev.mysql.com/doc/refman/5.7/en/storage-engine-setting.html)
 MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景。以下是几种常见的MySQL存储引擎对比：
