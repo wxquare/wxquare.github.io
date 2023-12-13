@@ -338,6 +338,7 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 
 ## mysql binlog
 - https://zhuanlan.zhihu.com/p/33504555
+- show global variables like "binlog%";
 
 ## show processlist;
 - https://zhuanlan.zhihu.com/p/30743094
