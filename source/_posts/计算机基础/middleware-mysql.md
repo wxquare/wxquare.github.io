@@ -39,20 +39,23 @@ CREATE TABLE `hotel_info_tab` (
   `update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
    ```
    **通常存储的都是时间戳，需要考虑使用mysql服务器的时间还是业务的时间戳，考虑使用mysql时间戳是否会有不利的影响**
-- 约束：NOT UNLL,DEFAULT、UNIQUE,PRIMARY KEY,,FOREIGN KEY约束
+- 约束：NOT UNLL,DEFAULT、UNIQUE,PRIMARY KEY,FOREIGN KEY约束
 - 除text类型外其它类型一般不使用null，都应该指定默认值
-- 指定主键primary key,[自增主键还是UUID？优缺点？怎么生成UUID？](https://blog.csdn.net/rocling/article/details/83116950)，比如item表使用自增ID，order表使用订单id，订单id可以认为是uuid
-- 主键和外键。数据库表中对储存数据对象予以唯一和完整标识的数据列或属性的组合。一个数据列只能有一个主键，且主键的取值不能缺失，即不能为空值（Null）。外键：在一个表中存在的另一个表的主键称此表的外键。主键是数据库确保数据行在整张表唯一 性的保障，即使业务上本张表没有主键，也建议添加一个自增长的ID列作为主键。设定了主键之后，在后续的删改查的时候可能更加快速以及确保操作数据范围安全。
-- 存储引擎选择
-- **utf8mb4**：通过 show variables like 'character_set_%'; 可以查看系统默认字符集。mysql中有utf8和utf8mb4两种编码，在mysql中请大家忘记**utf8**，永远使用**utf8mb4**。这是mysql的一个遗留问题，mysql中的utf8最多只能支持3bytes长度的字符编码，对于一些需要占据4bytes的文字，mysql的utf8就不支持了，要使用utf8mb4才行
+- **主键primary key**。数据库表中对储存数据对象予以唯一和完整标识的数据列或属性的组合。一个数据列只能有一个主键，且主键的取值不能缺失，即不能为空值（Null）。主键是数据库确保数据行在整张表唯一 性的保障，即使业务上本张表没有主键，也建议添加一个自增长的ID列作为主键。设定了主键之后，在后续的删改查的时候可能更加快速以及确保操作数据范围安全。
+- [自增主键还是UUID？优缺点？怎么生成UUID？](https://blog.csdn.net/rocling/article/details/83116950)，比如item表使用自增ID，order表使用订单id，订单id可以认为是uuid。
+- **唯一性约束**：唯一性约束是很重要的特性，防止重复插入数据
+- **外键**：在一个表中存在的另一个表的主键称此表的外键。外键约束能保证好的保证的数据的完整性，但是会影响数据插入的性能，并且不方便后续的shard，所以一般不建议使用。
+- [为什么不推荐使用外键约束，而是业务代码来实现？](https://www.zhihu.com/question/21863571)
+- **编码方式**：**utf8mb4**：通过 show variables like 'character_set_%'; 可以查看系统默认字符集。mysql中有utf8和utf8mb4两种编码，在mysql中请大家忘记**utf8**，永远使用**utf8mb4**。这是mysql的一个遗留问题，mysql中的utf8最多只能支持3bytes长度的字符编码，对于一些需要占据4bytes的文字，mysql的utf8就不支持了，要使用utf8mb4才行
 - **COLLATE=utf8mb4_unicode_ci**,所谓utf8_unicode_ci，其实是用来排序的规则。对于mysql中那些字符类型的列，如VARCHAR，CHAR，TEXT类型的列，都需要有一个COLLATE类型来告知mysql如何对该列进行排序和比较。简而言之，COLLATE会影响到ORDER BY语句的顺序，会影响到WHERE条件中大于小于号筛选出来的结果，会影响**DISTINCT**、**GROUP BY**、**HAVING**语句的查询结果。另外，mysql建索引的时候，如果索引列是字符类型，也会影响索引创建，只不过这种影响我们感知不到。总之，凡是涉及到字符类型比较或排序的地方，都会和COLLATE有关。
-- 行格式，row_format，(https://dev.mysql.com/doc/refman/5.7/en/innodb-row-format.html)
+- **行格式**，row_format，(https://dev.mysql.com/doc/refman/5.7/en/innodb-row-format.html)
 - [int(10) 零填充zerofill](https://blog.csdn.net/houwanle/article/details/123192185)
 - [10.9.1 The utf8mb4 Character Set (4-Byte UTF-8 Unicode Encoding)](https://dev.mysql.com/doc/refman/5.7/en/charset-unicode-utf8mb4.html)
 - 是否需要分表，分库?（https://blog.csdn.net/thekenofDIS/article/details/108577905）
 - 是否需要增加index？
+- 存储引擎选择
 
-## 不建议使用null
+## 为什么不建议使用null？
    在MySQL和许多其他数据库系统中，**NULL是一个特殊的值，表示缺少值或未知值**。虽然NULL在某些情况下是有用的，但由于它的特殊性，使用NULL可能会带来一些问题，因此在某些情况下不建议过度使用NULL。一般只有text类型回用到，其它都应该制定默认值
 1. 逻辑判断和比较的复杂性：由于NULL表示未知或缺少值，它的比较结果不是true也不是false，而是NULL。这意味着使用NULL进行逻辑判断和比较时需要额外的注意，可能需要使用IS NULL或IS NOT NULL等特殊的操作符。
 2. 聚合函数的结果处理：在使用聚合函数（如SUM、AVG、COUNT等）进行计算时，NULL的处理可能会产生意外的结果。通常情况下，聚合函数会忽略NULL值，因此如果某列中有NULL值，可能会导致计算结果不准确。
@@ -61,14 +64,34 @@ CREATE TABLE `hotel_info_tab` (
 
 虽然NULL有其合理的用途，例如表示缺失的数据或未知的值，但过度使用NULL可能会导致代码的复杂性增加、查询的不准确性和性能问题。在设计数据库模式和数据模型时，需要根据实际需求和业务逻辑合理使用NULL，并考虑到其带来的潜在问题。
 
-
-## 怎么考虑分库，分表？
+## 分表/分库/历史数据归档和路由
 原文链接：https://juejin.cn/post/6844903872134135816
 - 今天，探讨一个有趣的话题：MySQL 单表数据达到多少时才需要考虑分库分表？有人说 2000 万行，也有人说 500 万行。那么，你觉得这个数值多少才合适呢？
 曾经在中国互联网技术圈广为流传着这么一个说法：MySQL 单表数据量大于 2000 万行，性能会明显下降。事实上，这个传闻据说最早起源于百度。具体情况大概是这样的，当年的 DBA 测试 MySQL性能时发现，当单表的量在 2000 万行量级的时候，SQL 操作的性能急剧下降，因此，结论由此而来。然后又据说百度的工程师流动到业界的其它公司，也带去了这个信息，所以，就在业界流传开这么一个说法。
 再后来，阿里巴巴《Java 开发手册》提出单表行数超过 500 万行或者单表容量超过 2GB，才推荐进行分库分表。对此，有阿里的黄金铁律支撑，所以，很多人设计大数据存储时，多会以此为标准，进行分表操作。那么，你觉得这个数值多少才合适呢？为什么不是 300 万行，或者是 800 万行，而是 500 万行？也许你会说这个可能就是阿里的最佳实战的数值吧？那么，问题又来了，这个数值是如何评估出来的呢？稍等片刻，请你小小思考一会儿。事实上，这个数值和实际记录的条数无关，而与 MySQL 的配置以及机器的硬件有关。因为，MySQL 为了提高性能，会将表的索引装载到内存中。InnoDB buffer size 足够的情况下，其能完成全加载进内存，查询不会有问题。但是，当单表数据库到达某个量级的上限时，导致内存无法存储其索引，使得之后的 SQL 查询会产生磁盘 IO，从而导致性能下降。当然，这个还有具体的表结构的设计有关，最终导致的问题都是内存限制。这里，增加硬件配置，可能会带来立竿见影的性能提升哈。
 那么，我对于分库分表的观点是，需要结合实际需求，不宜过度设计，在项目一开始不采用分库与分表设计，而是随着业务的增长，在无法继续优化的情况下，再考虑分库与分表提高系统的性能。对此，阿里巴巴《Java 开发手册》补充到：如果预计三年后的数据量根本达不到这个级别，请不要在创建表时就分库分表。那么，回到一开始的问题，你觉得这个数值多少才合适呢？我的建议是，根据自身的机器的情况综合评估，如果心里没有标准，那么暂时以 500 万行作为一个统一的标准，相对而言算是一个比较折中的数值。
 
+**案例1. 酒店分表：**
+- 酒店数量100w, 支持8中语言，2000kw种房型，1亿的图片。支持未来3年可能扩展成：酒店数量500w, 支持8钟语言，房型1亿，图片5亿
+- 分表方式：hotel 1张表，多语言表10张表，房型表20张，图片表：100张表
+- 酒店和多语言文本垂直分表
+- 根据酒店id水平分表。
+- 如果还要继续扩展，可以重新搞一个库，酒店id从500w开始，不断扩展。增加一个数据路由的模块。
+
+**案例2. 订单分表和历史订单归档（3个月或者更长时间）**
+- 订单每天新增1000w。按照用户维度分1000张表。一年下来，平均每张表360w。
+- 超过1年的历史订单归档，将时间超过1年的订单归档存储到hbase中
+- 如何实现历史订单表数据归档，冷热数据的路由？
+- [订单系统设计方案之如何做历史订单和归档](https://www.80wz.com/wfwstudy/1084.html)
+
+**案例3. 数据历史版本记录、快照表**
+- 在有些场景中，数据变更不回特别频繁，特别是人工变更时，记录数据版本和快照是非常好的习惯，方便追溯历史行为记录
+- 数据变更时通常会先写入快照表或者历史记录表，通常在业务代码中实现
+- 有时也会采用mysql 存储过程实现：https://blog.csdn.net/wcdunf/article/details/129792810
+
+**案例4. 商品库存扣减方案**
+- 乐观索和悲观锁
+- https://zhuanlan.zhihu.com/p/143866444
 
 ## 存储引擎（Storage Engine) 选择
 [Setting the Storage Engine](https://dev.mysql.com/doc/refman/5.7/en/storage-engine-setting.html)
@@ -137,11 +160,10 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     - [结合实例理解联合索引与最左匹配原则](https://www.cnblogs.com/rjzheng/p/12557314.html)
     - https://dev.mysql.com/doc/refman/5.7/en/multiple-column-indexes.html
 
-
-## 事务Transaction与锁
+## 事务Transaction与数据库锁（数据准确性和并发安全，一锁二判三更新）
 - [精读mysql事务](https://blog.csdn.net/qq_43255017/article/details/106442887?utm_medium=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&depth_1-utm_source=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&request_id=)
 - [innodb事务的ACID特性，以及其对应的实现原理?](https://www.cnblogs.com/kismetv/p/10331633.html)   
-    - 原子性：语句要么全执行，要么全不执行，是事务最核心的特性，事务本身就是以原子性来定义的；实现主要基于undolog/redolog
+    - 原子性：在很多场景中，一个操作需要执行多条 update/insert SQL。原子性保证了SQL语句要么全执行，要么全不执行，是事务最核心的特性，事务本身就是以原子性来定义的；实现主要基于undolog/redolog
     - 持久性：保证事务提交后不会因为宕机等原因导致数据丢失；实现主要基于redo log
     - 隔离性：保证事务执行尽可能不受其他事务影响；InnoDB默认的隔离级别是RR，RR的实现主要基于锁机制（包含next-key lock）、MVCC（包括数据的隐藏列、基于undo log的版本链、ReadView）
     - 一致性：事务追求的最终目标，一致性的实现既需要数据库层面的保障，也需要应用层面的保障
@@ -176,18 +198,27 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
   - https://www.cnblogs.com/jajian/p/10014145.html
 
 
+
 ## 数据库核心监控
 - **核心监控告警指标**
   - read write qps 监控/select/update/insert
-  - connections/thread
+  - connections
+  - thread
+  - InnoDB buffer pool
   - 慢查询监控
   - 网络流量IO
   - 读写分离架构时需要监控主从延时
+
+
+- 关键配置查看
     ```
+    show global variables;
     show variables like '%max_connection%'; 查看最大连接数
     show status like  'Threads%';
     show processlist;
+    show variables like '%connection%';
     ```
+
 - 存储空间information_schema
   ```
     -- desc information_schema.tables;
@@ -216,15 +247,8 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
   ```
   - [performance_schema](https://www.cnblogs.com/Courage129/p/14188422.html)
   
-- 会查看mysql server的相关配置参数 例如timeout
-```
-	show variables like '%timeout%';
-	show full processlist;
-	show variables like '%connection%';
-	show variables like '%timeout%';
-```
  
- ## 数据库优化
+ ## 数据库调优
  -  **优化的步骤**
     - 考虑数据量大导致的性能问题，访问量大导致的性能问题？
     - sql语句优化。分析执行计划，减少load的数据量
@@ -232,6 +256,18 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     - 是否有缓存
     - 垂直分表、水平分表、分库
     - 根据场景来看，写操作多的情况下，考虑读写分离
+    - [数据归档](https://www.cnblogs.com/goodAndyxublog/p/14994451.html)：数据是否有冷热的区别，例如订单数据有比较明显的时间冷热的区别，可以考虑冷数据归档。比如半年前的订单数据可以写入hbase
+    - 池化
+
+- **连接池的配置和使用**
+    - 连接池能减少连接创建和释放带来的开销，大多数SDK也支持是支持连接池的，通常实际生产环境中也都会使用到连接池，需要关注一下几个参数
+    - max_idle_connections: 最大空闲连接数
+    - max_open_connections: 最大连接数
+    - connection_max_lifetime: 连接最大可重用时间
+    - 要使用好连接池，除了关注客户端的配置还需要关注mysql服务端的配置
+    - 服务端最大连接数量：show variables like '%connection%'; max_connections
+    - 服务端连接最大生命周期：show variables like '%wait_timeout%'
+
 - **sql优化**
     - 分析数据sql的结构是否加载了不必要的字段和数据
     - [深度分页查询优化](https://juejin.cn/post/7012016858379321358)
@@ -239,7 +275,6 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
      ```
        	explain select * from test_xxxx_tab txt order by id limit 10000,10;
 	explain SELECT * from test_xxxx_tab txt where id >= (select id from test_xxxx_tab txt order by id limit 10,1) limit 10;
-     
        id列：在复杂的查询语句中包含多个查询使用id标示
        select_type:select/subquery/derived/union
        table: 显示对应行正在访问哪个表
@@ -303,6 +338,7 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 
 ## mysql binlog
 - https://zhuanlan.zhihu.com/p/33504555
+- show global variables like "binlog%";
 
 ## show processlist;
 - https://zhuanlan.zhihu.com/p/30743094
@@ -351,6 +387,7 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 - [怎么处理线上DDL变更?](https://zhuanlan.zhihu.com/p/247939271)
 - [Redis和mysql数据怎么保持数据一致的？](https://coolshell.cn/articles/17416.html) 
 - [MySQL数据库面试题（2020最新版）](https://thinkwon.blog.csdn.net/article/details/104778621)
+- https://cyborg2077.github.io/2023/05/06/InQMySQL/
 
 ## 了解数据库三大范式
 - 第一范式：每个列都不可以再拆分。
