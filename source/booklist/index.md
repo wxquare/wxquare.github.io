@@ -12,6 +12,7 @@ date: 2022-11-07 22:33:15
 - 《C++ Primer》
 - 《More Effective C++》
 - 《Linux 系统编程》
+- https://github.com/backstudy/bookrack/blob/master/DDD(%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1)-%E7%B2%BE%E7%AE%80%E7%89%88.pdf
  
 ## 非技术
 - 《影响力》
