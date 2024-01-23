@@ -1363,6 +1363,13 @@ func main() {
 ## Go实践：设计模式的实现
 https://refactoringguru.cn/design-patterns/chain-of-responsibility/go/example
 
+
+## Go 1.12 压测后rss内存一直无法释放问题
+- https://github.com/golang/go/issues/41818
+- https://www.shouxicto.com/article/138.html
+- https://www.glean.com/blog/how-we-analyzed-and-fixed-a-golang-memory-leak
+
+
 ## 包和库（package)
 - github.com/gin-gonic/gin
 - github.com/go-xorm/xorm
