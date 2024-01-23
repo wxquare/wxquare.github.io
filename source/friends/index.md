@@ -13,12 +13,12 @@ date: 2022-11-07 22:33:15
 - 吕聘,智能硬件
 - [**陈皓**](https://coolshell.cn)
 
-## 刷题：
+## 算法竞赛
 - [leetcode](https://leetcode.cn/u/wxquare/)
 - [灵茶山艾府](https://leetcode.cn/u/endlesscheng/)
 - https://oi-wiki.org/
 - https://zerotrac.github.io/leetcode_problem_rating/
 
-## 关注的项目
+## 项目
 - logseq
 - tvm
