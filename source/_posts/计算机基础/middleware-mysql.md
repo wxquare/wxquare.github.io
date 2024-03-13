@@ -373,6 +373,17 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 	   ```
       mysqldump --column-statistics=0 -hhost -PPort -uuser_name -ppassword --databases -d db_name --skip-lock-tables --skip-add-drop-table --set-gtid-purged=OFF | sed 's/ AUTO_INCREMENT=	[0-9]*//g' > db.sql
      ```
+    - 批量更新
+       	```
+	UPDATE employees
+	SET salary = CASE
+	    WHEN grade = 'A' THEN salary * 1.1
+	    WHEN grade = 'B' THEN salary * 1.05
+	    WHEN grade = 'C' THEN salary * 1.03
+	    ELSE salary
+	END
+	WHERE department = 'IT';
+	```
 
 ## 推荐阅读:
 - [MySQL索引那些事](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
