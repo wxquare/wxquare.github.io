@@ -370,10 +370,10 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 	 ```
    - truncate table 属于ddl语句，需要ddl的权限
    - mysqldump 库表结构
-	   ```
+	```
       mysqldump --column-statistics=0 -hhost -PPort -uuser_name -ppassword --databases -d db_name --skip-lock-tables --skip-add-drop-table --set-gtid-purged=OFF | sed 's/ AUTO_INCREMENT=	[0-9]*//g' > db.sql
      ```
-    - 批量更新
+	- 批量更新
        	```
 	UPDATE employees
 	SET salary = CASE
