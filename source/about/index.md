@@ -49,6 +49,16 @@
   - 批处理
   - 流式处理
   - scala/python/spark/hive/presto/Flink/speak streaming
+    
+- 工作流引擎与任务编排
+  - https://github.com/s8sg/goflow
+  - https://github.com/go-workflow/go-workflow
+- 规则引擎与风控、资损、校验
+  - https://github.com/bilibili/gengine
+- 脚本执行引擎与低代码平台
+  - https://github.com/d5/tengo
+  - https://github.com/mattn/anko
+  
 
 ## 规范
 - git 使用规范。代码管理规范
