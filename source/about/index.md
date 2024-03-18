@@ -18,10 +18,13 @@
   - hbase
 - lvs + ngnix 网关和负载均衡的设计和实现
 - Gin和Web服务的架构和网关原理
+  - gin: https://github.com/gin-gonic/gin
 - 限流的设计和实，单机限流，分布式限流
 - grpc和RPC服务的架构解析原理
-- 服务指标监控：prometheus,grafna
-- 服务日志：tracing 和 opentracing 机制
+- 服务指标监控
+  - prometheus,grafna
+- 服务日志：
+- -tracing 和 opentracing 机制
 - 定时任务调度：
   - 单机调度，https://github.com/robfig/cron
   - 分布式调度：https://github.com/xuxueli/xxl-job
