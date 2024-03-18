@@ -17,14 +17,20 @@
   - Elastic search
   - hbase
 - lvs + ngnix 网关和负载均衡的设计和实现
+  - lvs 和 ngnix
+  - https://www.modb.pro/db/474513
+  -  load balancing and high preformance
 - Gin和Web服务的架构和网关原理
   - gin: https://github.com/gin-gonic/gin
-- 限流的设计和实，单机限流，分布式限流
-- grpc和RPC服务的架构解析原理
-- 服务指标监控
-  - prometheus,grafna
-- 服务日志：
-- -tracing 和 opentracing 机制
+- 限流的设计和实现
+  - 单机限流
+  - 分布式限流
+- Grpc和RPC服务的架构解析原理
+- 监控体系
+  - 日志管理和检索： Elasticsearch、Logstash、Kibana（ELK Stack）
+  - 指标监控：Prometheus、Grafana
+  - 分布式追踪：分布式追踪工具包括 Jaeger + opentracing
+    
 - 定时任务调度：
   - 单机调度，https://github.com/robfig/cron
   - 分布式调度：https://github.com/xuxueli/xxl-job
@@ -37,15 +43,21 @@
   - jenkins
   - docker
   - Kubernetes
-- 大数据处理和分析：scala/python/spark/hive/presto/Flink/speak streaming
-- 方案设计、文档写作、架构图
-  - 规范 
-- 规范和优秀实践
+- 大数据处理和分析：
+  - 批处理
+  - 流式处理
+  - scala/python/spark/hive/presto/Flink/speak streaming
+
+
+## 规范
 - git 使用规范。代码管理规范
 - Go 编码规范。 https://github.com/golang-standards/project-layout
 - API 设计规范 RESTFULL  API 设计规范，yapi swapper 加 yapi
 - UML 使用规范
 - 文档书写规范
+
+
+
 # AI 技术学习
 
 # 好用工具
