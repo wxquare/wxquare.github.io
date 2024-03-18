@@ -11,7 +11,7 @@
 - 编程语言：C++/Golang/Python
 - 数据结构和算法: leetcode
 - 后台中间件：
-  - [Mysql](../posts/计算机基础/middleware-mysql.md)
+  - [Mysql](../_posts/计算机基础/middleware-mysql.md)
   - redis
   - kafka
   - Elastic search
