@@ -12,7 +12,7 @@
 - 数据结构和算法: leetcode
 - 后台中间件：
   - [Mysql](../_posts/计算机基础/middleware-mysql.md)
-  - redis
+  - [redis](../_posts/计算机基础/middleware-redis.md)
   - kafka
   - Elastic search
   - hbase
