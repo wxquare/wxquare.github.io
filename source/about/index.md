@@ -11,13 +11,16 @@
 - 编程语言：C++/Golang/Python
 - 数据结构和算法: leetcode
 - 后台中间件：Mysql/redis/kafka/Elastic search
-- gin和Web服务的架构和网关
+- lvs + ngnix 网关和负载均衡的设计和实现
+- Gin和Web服务的架构和网关原理
 - 限流的设计和实，单机限流，分布式限流
-- grpc和RPC 服务的架构
+- grpc和RPC服务的架构解析原理
 - 服务指标监控：prometheus,grafna
 - 服务日志：tracing 和 opentracing 机制
-- 定时任务调度：单机和分布式调度，https://github.com/robfig/cron，https://github.com/xuxueli/xxl-job
-- 延时队列：https://juejin.cn/post/7000189281641693192
+- 定时任务调度：
+  - 单机和分布式调度，https://github.com/robfig/cron，
+  - https://github.com/xuxueli/xxl-job
+- 延时任务队列：https://juejin.cn/post/7000189281641693192
 - abtest 平台
 - 服务发现 zk https://blog.csdn.net/zyhlwzy/article/details/101847565
 - 服务的部署CICD和运维：jenkins/docker/Kubernetes
