@@ -37,7 +37,12 @@
 - 大数据处理和分析：scala/python/spark/hive/presto/Flink/speak streaming
 - 方案设计、文档写作、架构图
   - 规范 
-
+- 规范和优秀实践
+- git 使用规范。代码管理规范
+- Go 编码规范。 https://github.com/golang-standards/project-layout
+- API 设计规范 RESTFULL  API 设计规范，yapi swapper 加 yapi
+- UML 使用规范
+- 文档书写规范
 # AI 技术学习
 
 # 好用工具
