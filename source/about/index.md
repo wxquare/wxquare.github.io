@@ -8,13 +8,16 @@
 
 # 计算机基础
 - linux 操作系统和常用的命令，cpu/内存/网络/存储
+  - [Linux 常用命令](../_posts/计算机基础/Linux-commands-shell.md)
+  - [操作系统](../_posts/计算机基础/OS-interview.md)
+  - [计算机网络](../_posts/计算机基础/Internet-interview.md)
 - 编程语言：C++/Golang/Python
 - 数据结构和算法: leetcode
 - 后台中间件：
   - [Mysql](../_posts/计算机基础/middleware-mysql.md)
   - [redis](../_posts/计算机基础/middleware-redis.md)
-  - kafka
-  - Elastic search
+  - [kafka](../_posts/计算机基础/middleware-redis.md)
+  - [Elasticsearch](../_posts/计算机基础/middleware-elasticsearch.md)
   - hbase
 - lvs + ngnix 网关和负载均衡的设计和实现
   - lvs 和 ngnix
@@ -30,7 +33,6 @@
   - 日志管理和检索： Elasticsearch、Logstash、Kibana（ELK Stack）
   - 指标监控：Prometheus、Grafana
   - 分布式追踪：分布式追踪工具包括 Jaeger + opentracing
-    
 - 定时任务调度：
   - 单机调度，https://github.com/robfig/cron
   - 分布式调度：https://github.com/xuxueli/xxl-job
@@ -48,14 +50,12 @@
   - 流式处理
   - scala/python/spark/hive/presto/Flink/speak streaming
 
-
 ## 规范
 - git 使用规范。代码管理规范
 - Go 编码规范。 https://github.com/golang-standards/project-layout
 - API 设计规范 RESTFULL  API 设计规范，yapi swapper 加 yapi
 - UML 使用规范
 - 文档书写规范
-
 
 
 # AI 技术学习
