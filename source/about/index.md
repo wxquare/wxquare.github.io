@@ -22,6 +22,7 @@
 - lvs + ngnix 网关和负载均衡的设计和实现
   - lvs 和 ngnix
   - https://www.modb.pro/db/474513
+  - [Shopee Games API 网关设计与实现](https://www.modb.pro/db/474513)
   -  load balancing and high preformance
 - Gin和Web服务的架构和网关原理
   - gin: https://github.com/gin-gonic/gin
