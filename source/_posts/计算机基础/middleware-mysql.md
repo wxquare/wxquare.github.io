@@ -270,6 +270,7 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
       ```
 	      最大空闲连接数 =（QPS*请求平均耗时）/ 应用节点个数
 	      最大连接数 =（QPS*请求最大耗时）/ 应用节点个数
+              客户端连接maxlifetime < 数据库服务端设置的connection_max_lifttime
       ```
 
 - **sql优化**
