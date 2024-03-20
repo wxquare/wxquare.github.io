@@ -27,6 +27,7 @@
 - Gin和Web服务的架构和网关原理
   - gin: https://github.com/gin-gonic/gin
 - 限流的设计和实现
+  - https://github.com/alibaba/Sentinel
   - 单机限流
   - 分布式限流
 - Grpc和RPC服务的架构解析原理
