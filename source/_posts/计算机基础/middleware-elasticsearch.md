@@ -187,7 +187,7 @@ curl -XGET 'host/_cat/indices/*hotel_basic_info_v2_live*(支持正则表达式�
 curl -XGET 'host/index_name/_mapping?pretty=true'
 ```
 
-### 查看索引mapping信息
+### 查看索引的setting信息
 ```
 curl -XGET 'host/index_name/_settings?pretty=true'
 ```
@@ -274,7 +274,7 @@ POST /_aliases
 ```
 curl -XPUT  host/index_nane/_alias/index_alias_name
 ```
-## query DSL
+### query DSL
 - term level queries
 	- keyword term
     - https://www.elastic.co/guide/en/elasticsearch/reference/6.7/term-level-queries.html
@@ -471,7 +471,7 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 3. 协调阶段等待所有的文档被取得，然后返回给客户端。
 
 
-## es 更新和乐观锁控制
+### es 更新和乐观锁控制
 -  "_version" : 1,
 - "_seq_no" : 426,
 - "_primary_term" : 1,
