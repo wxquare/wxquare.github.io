@@ -258,6 +258,16 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     - 根据场景来看，写操作多的情况下，考虑读写分离
     - [数据归档](https://www.cnblogs.com/goodAndyxublog/p/14994451.html)：数据是否有冷热的区别，例如订单数据有比较明显的时间冷热的区别，可以考虑冷数据归档。比如半年前的订单数据可以写入hbase
     - 池化
+  
+  
+- **架构优化**
+    - 分库，分表。垂直分，水平分。依据QPS和耗时，服务端最大并非连接数量
+    - 读写分离
+    - 批量读写，批量更新
+    - 异步写，写平滑
+    - 缓存优化
+    - 历史数据归档
+
 
 - **连接池的配置和使用**
     - 连接池能减少连接创建和释放带来的开销，大多数SDK也支持是支持连接池的，通常实际生产环境中也都会使用到连接池，需要关注一下几个参数
@@ -267,8 +277,15 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     - 要使用好连接池，除了关注客户端的配置还需要关注mysql服务端的配置
     - 服务端最大连接数量：show variables like '%connection%'; max_connections
     - 服务端连接最大生命周期：show variables like '%wait_timeout%'
+      ```
+	      最大空闲连接数 =（QPS*请求平均耗时）/ 应用节点个数
+	      最大连接数 =（QPS*请求最大耗时）/ 应用节点个数
+              客户端连接maxlifetime < 数据库服务端设置的connection_max_lifttime
+      ```
 
-- **sql优化**
+- **慢sql优化**
+    - 慢查询问题，查看慢查询设置的阈值。show variables like '%long_query%';
+    - 打开慢查询日志
     - 分析数据sql的结构是否加载了不必要的字段和数据
     - [深度分页查询优化](https://juejin.cn/post/7012016858379321358)
     - 子查询和连接查询
@@ -342,7 +359,6 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
 
 ## show processlist;
 - https://zhuanlan.zhihu.com/p/30743094
-
 
 ## 常用命令
    - mysql登陆：

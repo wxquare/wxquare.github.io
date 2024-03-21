@@ -43,3 +43,7 @@ categories:
 - metric & log & trace
 - 监控体系和告警指标
 - SLA和NOC指标
+
+参考：
+- [浅谈系统稳定性与高可用保障的几种思路](https://tech.dewu.com/article?id=5)
+- [ShopeePay 数据中心同城双活之路](https://www.modb.pro/db/474515)
