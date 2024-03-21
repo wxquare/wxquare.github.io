@@ -187,7 +187,6 @@ curl -XGET 'host/_cat/indices/*hotel_basic_info_v2_live*(支持正则表达式�
 curl -XGET 'host/index_name/_mapping?pretty=true'
 ```
 
-
 ### 查看索引mapping信息
 ```
 curl -XGET 'host/index_name/_settings?pretty=true'
@@ -478,15 +477,201 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 - "_primary_term" : 1,
 
 
-## 调优
+## 性能优化
+
 ### 关注哪些性能指标
 - （读）query latency 1-2ms，复杂的查询可能到几十ms
-- （读）fetch latency 
-- （写）index rate
+- （读）fetch latency ，QPS，读数据量，延时
+- （写）index rate，QPS，数据量，延时
 - （写）index latency
+- 存储数据量
+- 集群读写QPS，CPU、内存、存储、网络IO的监控
+- 节点维度的监控
+- index维度的监控
+
+
+### 集群规划
+- 业务存储量，期望的SLA指标
+- 节点数量、内存、CPU数量，是否需要SSD等
+- 预留buffer,磁盘使用率达到85%、90%、95%
+- CPU使用率
+- 内存使用率
+- 冷热数据，灾备方案
+
+### settings 索引优化实践
+- 分片数量：number_of_shards，经验值：建议每个分片大小不要超过30GB。建议根据集群节点的个数规模，分片个数建议>=集群节点的个数。5节点的集群，5个分片就比较合理。注意：除非reindex操作，分片数是不可以修改的
+- 副本数量：number_of_replicas。除非你对系统的健壮性有异常高的要求，比如：银行系统。可以考虑2个副本以上。否则，1个副本足够。注意：副本数是可以通过配置随时修改的
+- refresh_interval 是一个参数，用于配置 Elasticsearch 中的索引刷新间隔。索引刷新是将内存中的数据写入磁盘以使其可搜索的过程。刷新操作会将新的文档和更新的文档写入磁盘，并使其在搜索结果中可见。默认值表示每秒执行一次刷新操作
+- 按照日期规划索引是个很好的习惯
+- 务必使用别名，ES不像mysql方面的更改索引名称。使用别名就是一个相对灵活的选择
+- setting中定义繁体全文检索时的traditional_chinese_analyzer以及一个名为lowercase的normalizer，常用于keyword类型的匹配
+```
+{
+    "hotel_index_20220810": {
+        "settings": {
+            "index": {
+                "refresh_interval": "1s",
+                "number_of_shards": "5",
+                "provided_name": "hotel_index_20220810",
+                "creation_date": "1660127508475",
+                "analysis": {
+                    "filter": {
+                        "t2sconvert": {
+                            "convert_type": "t2s",
+                            "type": "stconvert"
+                        }
+                    },
+                    "normalizer": {
+                        "lowercase": {
+                            "filter": [
+                                "lowercase"
+                            ],
+                            "type": "custom"
+                        }
+                    },
+                    "analyzer": {
+                        "traditional_chinese_analyzer": {
+                            "filter": "t2sconvert",
+                            "type": "custom",
+                            "tokenizer": "ik_smart"
+                        }
+                    }
+                },
+                "number_of_replicas": "2",
+                "uuid": "afdjafkdlaf",
+                "version": {
+                    "created": "6080599"
+                }
+            }
+        }
+    }
+}
+
+```
+
+### mapping 数据模型优化
+- 不要使用默认的mapping.默认Mapping的字段类型是系统自动识别的。其中：string类型默认分成：text和keyword两种类型。如果你的业务中不需要分词、检索，仅需要精确匹配，仅设置为keyword即可。根据业务需要选择合适的类型，有利于节省空间和提升精度，如：浮点型的选择.
+-  Mapping各字段的选型流程
+- 选择合理的分词器。常见的开源中文分词器包括：ik分词器、ansj分词器、hanlp分词器、结巴分词器、海量分词器、“ElasticSearch最全分词器比较及使用方法” 搜索可查看对比效果。如果选择ik，建议使用ik_max_word。因为：粗粒度的分词结果基本包含细粒度ik_smart的结果。
+- 一个字段包含多种语言：分别设置了不同的分词器。中文：ik_max_word，英语：english等
+- analyzer：表示文档写入时的分词，search_analyzer表示检索时query的分词
+- type:text，type:keyword，不分词
+- normalizer 表示英文keyword判断时不区分大小写
+- "dynamic" : "strict"
+- https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
+
+```json
+"properties": {
+    "accommodation": {
+        "properties": {
+            "value_in_chinese": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                },
+                "analyzer": "ik_max_word",
+                "search_analyzer": "ik_smart"
+            },
+            "value_in_english": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword",
+                        "normalizer": "lowercase"
+                    }
+                },
+                "analyzer": "english"
+            },
+            "value_in_filipino": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                },
+                "analyzer": "standard"
+            },
+            "value_in_indonesian": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                },
+                "analyzer": "indonesian"
+            },
+            "value_in_malay": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                },
+                "analyzer": "standard"
+            },
+            "value_in_thai": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                },
+                "analyzer": "thai"
+            },
+            "value_in_tw_chinese": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                },
+                "analyzer": "traditional_chinese_analyzer"
+            },
+            "value_in_vietnamese": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword"
+                    }
+                },
+                "analyzer": "standard"
+            }
+        }
+    }
+}
+```
+
+
+
 
 **方法**
 1. 结合profile、explain api 分析query慢的原因。[search profile api](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-profile.html)
+
+
+
+
+### 数据写入优化
+1. 要不要秒级响应？Elasticsearch近实时的本质是：最快1s写入的数据可以被查询到。如果refresh_interval设置为1s，势必会产生大量的segment，检索性能会受到影响。所以，非实时的场景可以调大，设置为30s，甚至-1
+2. 能批量就不单条写入
+3. 减少副本，提升写入性能。写入前，副本数设置为0，写入后，副本数设置为原来值
+
+
+
+### 读优化
+1. 分析dsl
+2. 禁用 wildcard模糊匹配,通过match_phrase和slop结合查询。
+3. 极小的概率使用match匹配
+4. 结合业务场景，大量使用filter过滤器
+5. 控制返回字段和结果,同理，ES中，_source 返回全部字段也是非必须的。要通过_source 控制字段的返回，只返回业务相关的字段。
+6. 分页深度查询和遍历.分页查询使用：from+size;遍历使用：scroll；并行遍历使用：scroll+slice
+
+
+### 业务优化
+1. 字段抽取、倾向性分析、分类/聚类、相关性判定放在写入ES之前的ETL阶段进行
+2. 产品经理基于各种奇葩业务场景可能会提各种无理需求
+
 
 
 ## SDK 使用
@@ -518,5 +703,5 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
   - index/topic
   - shard/partiion
   - 副本机制
-- []
+- [让Elasticsearch飞起来!——性能优化实践干货](https://developer.aliyun.com/article/706990)
 
