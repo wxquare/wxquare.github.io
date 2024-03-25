@@ -33,7 +33,7 @@
 - Grpc和RPC服务的架构解析原理
 - 监控体系
   - 日志管理和检索： Elasticsearch、Logstash、Kibana（ELK Stack）
-  - 指标监控：Prometheus、Grafana
+  - 指标监控：Prometheus、Grafana、cat
   - 分布式追踪：分布式追踪工具包括 Jaeger + opentracing
 - 定时任务调度：
   - 单机调度，https://github.com/robfig/cron
