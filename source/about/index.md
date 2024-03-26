@@ -19,6 +19,7 @@
   - [kafka](../_posts/计算机基础/middleware-redis.md)
   - [Elasticsearch](../_posts/计算机基础/middleware-elasticsearch.md)
   - hbase
+  - s3 对象存储
 - lvs + ngnix 网关和负载均衡的设计和实现
   - lvs 和 ngnix
   - https://www.modb.pro/db/474513
