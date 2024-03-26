@@ -505,6 +505,8 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 - 按照日期规划索引是个很好的习惯
 - 务必使用别名，ES不像mysql方面的更改索引名称。使用别名就是一个相对灵活的选择
 - setting中定义繁体全文检索时的traditional_chinese_analyzer以及一个名为lowercase的normalizer，常用于keyword类型的匹配
+- 结合profile、explain api 分析query慢的原因。[search profile api](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-profile.html)
+
 ```
 {
     "hotel_index_20220810": {
@@ -646,8 +648,6 @@ query节点知道了要获取哪些信息，但是没有具体的数据，fetch�
 
 
 
-**方法**
-1. 结合profile、explain api 分析query慢的原因。[search profile api](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-profile.html)
 
 
 
