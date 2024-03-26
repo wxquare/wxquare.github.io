@@ -67,6 +67,7 @@
 - API 设计规范 RESTFULL  API 设计规范，yapi，swapper 加 yapi
 - UML 使用规范
 - 文档书写规范
+- DDD 设计规范
 
 
 # 工具
