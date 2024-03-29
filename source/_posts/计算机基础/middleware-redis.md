@@ -153,7 +153,10 @@ Redis 执行 Lua 脚本会以原子性方式进行，在执行脚本时不会再
 - keys pattern,*表示通配符，表示任意字符，会遍历所有键显示所有的键列表，时间复杂度O(n)，在生产环境不建议使用
 - exists key [key ...]
 - 秒语法查询key的过期时间：ttl key
-- 
+
+
+## sdk
+- github.com/go-redis/redis
 
 ## 推荐阅读:
 1. https://blog.csdn.net/ThinkWon/article/details/103522351

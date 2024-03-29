@@ -1,10 +1,8 @@
 
 # 主要项目和工作经历
 1. 电商系统的设计和实现
-2. 在线广告系统的设计和实现
-3. leetcode 周赛
-4. 个人博客
-5. TVM 设计和实现
+2. 在线广告引擎的设计和实现
+
 
 # 计算机基础
 - linux 操作系统和常用的命令，cpu/内存/网络/存储
@@ -19,6 +17,7 @@
   - [kafka](../_posts/计算机基础/middleware-redis.md)
   - [Elasticsearch](../_posts/计算机基础/middleware-elasticsearch.md)
   - hbase
+  - s3 对象存储
 - lvs + ngnix 网关和负载均衡的设计和实现
   - lvs 和 ngnix
   - https://www.modb.pro/db/474513
@@ -30,12 +29,14 @@
   - https://github.com/alibaba/Sentinel
   - 单机限流
   - 分布式限流
-- Grpc和RPC服务的架构解析原理
+- grpc和RPC服务的架构解析原理
+  - https://github.com/grpc/grpc 
 - 监控体系
   - 日志管理和检索： Elasticsearch、Logstash、Kibana（ELK Stack）
   - 指标监控：Prometheus、Grafana、cat
   - 分布式追踪：分布式追踪工具包括 Jaeger + opentracing
-- 定时任务调度：
+  - 日志组件：https://github.com/uber-go/zap
+- 定时任务调度
   - 单机调度，https://github.com/robfig/cron
   - 分布式调度：https://github.com/xuxueli/xxl-job
 - 延时任务队列
@@ -43,15 +44,6 @@
 - abtest 平台
 - 服务发现zookeeper
   - https://blog.csdn.net/zyhlwzy/article/details/101847565
-- 服务的部署CICD和运维
-  - jenkins
-  - docker
-  - Kubernetes
-- 大数据处理和分析：
-  - 批处理
-  - 流式处理
-  - scala/python/spark/hive/presto/Flink/speak streaming
-    
 - 工作流引擎与任务编排
   - https://github.com/s8sg/goflow
   - https://github.com/go-workflow/go-workflow
@@ -60,22 +52,27 @@
 - 脚本执行引擎与低代码平台
   - https://github.com/d5/tengo
   - https://github.com/mattn/anko
-  
+- 大数据技术
+  - 批处理
+  - 流式处理
+  - scala/python/spark/hive/presto/Flink/speak streaming
+- 服务的部署CI/CD和运维
+  - jenkins
+  - docker
+  - Kubernetes
 
 ## 规范
 - git 使用规范。代码管理规范
 - Go 编码规范。 https://github.com/golang-standards/project-layout
-- API 设计规范 RESTFULL  API 设计规范，yapi swapper 加 yapi
+- API 设计规范 RESTFULL  API 设计规范，yapi，swapper 加 yapi
 - UML 使用规范
 - 文档书写规范
+- DDD 设计规范
 
 
-# AI 技术学习
-
-# 好用工具
+# 工具
 - Visual Studio Code（VS Code）： 一个轻量级、免费且功能丰富的代码编辑器，支持多
 - IntelliJ IDEA： 用于Java/spark开发的强大IDE，也支持其他语言和框架
-- Git： 分布式版本控制系统，用于跟踪和管理代码变更
 - dbeaver： 数据库桌面工具
 - Postman： 用于测试和调试API的强大工具。
 - Swagger： 自动生成API文档和测试工具的框架
@@ -83,7 +80,6 @@
 - plantuml,时序图
 - [使用 Sublime + PlantUML 高效地画图](https://www.jianshu.com/p/e92a52770832)
 - https://app.diagrams.net/
-- https://github.com/plantuml/plantuml
 - https://plantuml.com/zh/
 - https://plantuml.com/cn/
 - charles https代理抓包工具，https://www.charlesproxy.com/
