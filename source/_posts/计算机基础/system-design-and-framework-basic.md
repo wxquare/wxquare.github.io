@@ -19,7 +19,7 @@ categories:
 ## 架构
 
 <p align="center">
-  <img src="/images/jrUBAF7.png" width=550 height=550>
+  <img src="../../images/jrUBAF7.png" width=550 height=550>
   <br/>
 </p>
 
