@@ -33,6 +33,9 @@
   - https://github.com/alibaba/Sentinel
   - 单机限流
   - 分布式限流
+- 熔断机制的设计
+  - 当接口超时率或者某种错误率较高时，可以考虑接口直接熔断
+  - 
 - grpc和RPC服务的架构解析原理
   - https://github.com/grpc/grpc 
 - 监控体系
