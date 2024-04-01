@@ -12,17 +12,10 @@ date: 2022-11-07 22:33:15
 - [纳芯微 王升杨](https://www.novosns.com/)
 - 吕聘,智能硬件
 - [**陈皓**](https://coolshell.cn)
+- https://lethain.com/
 
 ## 算法竞赛
 - [leetcode](https://leetcode.cn/u/wxquare/)
 - [灵茶山艾府](https://leetcode.cn/u/endlesscheng/)
 - https://oi-wiki.org/
 - https://zerotrac.github.io/leetcode_problem_rating/
-
-## 项目
-- logseq
-- tvm
-
-## tool
-- https://app.diagrams.net/
-- 
