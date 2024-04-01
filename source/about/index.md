@@ -18,17 +18,24 @@
   - [Elasticsearch](../_posts/计算机基础/middleware-elasticsearch.md)
   - hbase
   - s3 对象存储
-- lvs + ngnix 网关和负载均衡的设计和实现
+  - CDN 存储
+- dns + lvs + ngnix 网关和负载均衡的设计和实现
+  - 域名注册、域名解析
   - lvs 和 ngnix
   - https://www.modb.pro/db/474513
-  - [Shopee Games API 网关设计与实现](https://www.modb.pro/db/474513)
-  -  load balancing and high preformance
-- Gin和Web服务的架构和网关原理
+  - load balancing and high preformance
+- 业务网关原理的设计和实现
   - gin: https://github.com/gin-gonic/gin
+  - [Shopee Games API 网关设计与实现](https://www.modb.pro/db/474513)
+  - [百亿规模API网关服务Shepherd的设计与实现](https://tech.meituan.com/2021/05/20/shepherd-api-gateway.html)
+  - [grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway)
 - 限流的设计和实现
   - https://github.com/alibaba/Sentinel
   - 单机限流
   - 分布式限流
+- 熔断机制的设计
+  - 当接口超时率或者某种错误率较高时，可以考虑接口直接熔断
+  - https://github.com/afex/hystrix-go
 - grpc和RPC服务的架构解析原理
   - https://github.com/grpc/grpc 
 - 监控体系
