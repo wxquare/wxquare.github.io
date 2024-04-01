@@ -19,51 +19,56 @@ categories:
 ## 架构
 
 <p align="center">
-  <img src="../../images/jrUBAF7.png" width=550 height=550>
+  <img src="../../images/jrUBAF7.png" width=500 height=500>
   <br/>
 </p>
 
 
 ## 域名系统
+
+### Amazon Route 53域名系统
 <p align="center">
-  <img src="../../images/IOyLj4i.jpg">
+  <img src="../../images/aws_route_53.png" width=600 height=400>
+  <br/>
+  <strong><a href="https://aws.amazon.com/cn/route53">Amazon Route 53 工作原理</a></strong>
+</p>
+
+
+### 域名解析的过程
+<p align="center">
+  <img src="../../images/IOyLj4i.jpg" width=400 height=400>
   <br/>
   <strong><a href="http://www.slideshare.net/srikrupa5/dns-security-presentation-issa">来源：DNS 安全介绍</a></strong>
 </p>
 
-域名系统是把 www.example.com 等域名转换成 IP 地址。
+域名系统是把 www.example.com 等域名转换成 IP 地址。域名系统是分层次的，一些 DNS 服务器位于顶层。当查询（域名） IP 时，路由或 ISP 提供连接 DNS 服务器的信息。较底层的 DNS 服务器缓存映射，它可能会因为 DNS 传播延时而失效。DNS 结果可以缓存在浏览器或操作系统中一段时间，时间长短取决于[存活时间 TTL](https://en.wikipedia.org/wiki/Time_to_live)。
 
-域名系统是分层次的，一些 DNS 服务器位于顶层。当查询（域名） IP 时，路由或 ISP 提供连接 DNS 服务器的信息。较底层的 DNS 服务器缓存映射，它可能会因为 DNS 传播延时而失效。DNS 结果可以缓存在浏览器或操作系统中一段时间，时间长短取决于[存活时间 TTL](https://en.wikipedia.org/wiki/Time_to_live)。
 
-* **NS 记录（域名服务）** ─ 指定解析域名或子域名的 DNS 服务器。
-* **MX 记录（邮件交换）** ─ 指定接收信息的邮件服务器。
 * **A 记录（地址）** ─ 指定域名对应的 IP 地址记录。
 * **CNAME（规范）** ─ 一个域名映射到另一个域名或 `CNAME` 记录（ example.com 指向 www.example.com ）或映射到一个 `A` 记录。
+* **NS 记录（域名服务）** ─ 指定解析域名或子域名的 DNS 服务器。
+* **MX 记录（邮件交换）** ─ 指定接收信息的邮件服务.
 
-[CloudFlare](https://www.cloudflare.com/dns/) 和 [Route 53](https://aws.amazon.com/route53/) 等平台提供管理 DNS 的功能。某些 DNS 服务通过集中方式来路由流量:
+### 域名管理服务
+- [Route 53](https://aws.amazon.com/route53/)
+- [CloudFlare](https://www.cloudflare.com/dns/)
 
-* [加权轮询调度](http://g33kinfo.com/info/archives/2657)
-    * 防止流量进入维护中的服务器
-    * 在不同大小集群间负载均衡
-    * A/B 测试
-* 基于延迟路由
-* 基于地理位置路由
-
-### 缺陷:DNS
-
-* 虽说缓存可以减轻 DNS 延迟，但连接 DNS 服务器还是带来了轻微的延迟。
-* 虽然它们通常由[政府，网络服务提供商和大公司](http://superuser.com/questions/472695/who-controls-the-dns-servers/472729)管理，但 DNS 服务管理仍可能是复杂的。
-* DNS 服务最近遭受 [DDoS 攻击](http://dyn.com/blog/dyn-analysis-summary-of-friday-october-21-attack/)，阻止不知道 Twitter IP 地址的用户访问 Twitter。
+### 常用命令
+- nslookup
+- dig
 
 ### 来源及延伸阅读
 * [DNS 架构](https://technet.microsoft.com/en-us/library/dd197427(v=ws.10).aspx)
 * [Wikipedia](https://en.wikipedia.org/wiki/Domain_Name_System)
 * [关于 DNS 的文章](https://support.dnsimple.com/categories/dns/)
+* [DNS Technical Reference](https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/dd197461(v=ws.10))
+
+
+
 
 ## 内容分发网络（CDN）
-
 <p align="center">
-  <img src="/images/h9TAuGI.jpg">
+  <img src="../../images/h9TAuGI.jpg" width=500 height=500>
   <br/>
   <strong><a href="https://www.creative-artworks.eu/why-use-a-content-delivery-network-cdn/">来源：为什么使用 CDN</a></strong>
 </p>
@@ -102,8 +107,14 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 
 ## 负载均衡器（网关）
 
+
 <p align="center">
-  <img src="/images/h81n9iK.png">
+  <img src="../../images/load_balanging.png" width=800 height=400>
+  <br/>
+</p>
+
+<p align="center">
+  <img src="../../images/h81n9iK.png" width=600 height=400>
   <br/>
   <strong><a href="http://horicky.blogspot.com/2010/10/scalable-system-design-patterns.html">来源：可扩展的系统设计模式</a></strong>
 </p>
@@ -113,15 +124,10 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 * 防止请求进入不好的服务器
 * 防止资源过载
 * 帮助消除单一的故障点
-
-负载均衡器可以通过硬件（昂贵）或 HAProxy 等软件来实现。
-增加的好处包括:
-
 * **SSL 终结** ─ 解密传入的请求并加密服务器响应，这样的话后端服务器就不必再执行这些潜在高消耗运算了。
-    * 不需要再每台服务器上安装 [X.509 证书](https://en.wikipedia.org/wiki/X.509)。
+* 不需要再每台服务器上安装 [X.509 证书](https://en.wikipedia.org/wiki/X.509)。
 * **Session 留存** ─ 如果 Web 应用程序不追踪会话，发出 cookie 并将特定客户端的请求路由到同一实例。
-
-通常会设置采用[工作─备用](#工作到备用切换active-passive) 或 [双工作](#双工作切换active-active) 模式的多个负载均衡器，以免发生故障。
+* 通常会设置采用[工作─备用](#工作到备用切换active-passive) 或 [双工作](#双工作切换active-active) 模式的多个负载均衡器，以免发生故障。
 
 负载均衡器能基于多种方式来路由流量:
 * 随机
@@ -146,34 +152,20 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 负载均衡器还能帮助水平扩展，提高性能和可用性。使用商业硬件的性价比更高，并且比在单台硬件上**垂直扩展**更贵的硬件具有更高的可用性。相比招聘特定企业系统人才，招聘商业硬件方面的人才更加容易。
 
 #### 缺陷：水平扩展
-
 * 水平扩展引入了复杂度并涉及服务器复制
-    * 服务器应该是无状态的:它们也不该包含像 session 或资料图片等与用户关联的数据。
-    * session 可以集中存储在数据库或持久化[缓存](#缓存)（Redis、Memcached）的数据存储区中。
+* 服务器应该是无状态的:它们也不该包含像 session 或资料图片等与用户关联的数据。
+* session 可以集中存储在数据库或持久化[缓存](#缓存)（Redis、Memcached）的数据存储区中。
 * 缓存和数据库等下游服务器需要随着上游服务器进行扩展，以处理更多的并发连接。
 
 ### 缺陷：负载均衡器
-
 * 如果没有足够的资源配置或配置错误，负载均衡器会变成一个性能瓶颈。
 * 引入负载均衡器以帮助消除单点故障但导致了额外的复杂性。
 * 单个负载均衡器会导致单点故障，但配置多个负载均衡器会进一步增加复杂性。
 
-### 来源及延伸阅读
-* [NGINX 架构](https://www.nginx.com/blog/inside-nginx-how-we-designed-for-performance-scale/)
-* [HAProxy 架构指南](http://www.haproxy.org/download/1.2/doc/architecture.txt)
-* [可扩展性](http://www.lecloud.net/post/7295452622/scalability-for-dummies-part-1-clones)
-* [Wikipedia](https://en.wikipedia.org/wiki/Load_balancing_(computing))
-* [四层负载平衡](https://www.nginx.com/resources/glossary/layer-4-load-balancing/)
-* [七层负载平衡](https://www.nginx.com/resources/glossary/layer-7-load-balancing/)
-* [ELB 监听器配置](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-listener-config.html)
-* https://zhuanlan.zhihu.com/p/508672222
-* https://cloud.tencent.com/developer/article/1049707
-
 
 ## 反向代理（web 服务器）
-
 <p align="center">
-  <img src="/images/n41Azff.png">
+  <img src="../../images/n41Azff.png">
   <br/>
   <strong><a href="https://upload.wikimedia.org/wikipedia/commons/6/67/Reverse_proxy_h2g2bob.svg">资料来源：维基百科</a></strong>
   <br/>
@@ -182,11 +174,9 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 反向代理是一种可以集中地调用内部服务，并提供统一接口给公共客户的 web 服务器。来自客户端的请求先被反向代理服务器转发到可响应请求的服务器，然后代理再把服务器的响应结果返回给客户端。
 
 带来的好处包括：
-
 - **增加安全性** - 隐藏后端服务器的信息，屏蔽黑名单中的 IP，限制每个客户端的连接数。
 - **提高可扩展性和灵活性** - 客户端只能看到反向代理服务器的 IP，这使你可以增减服务器或者修改它们的配置。
-- **本地终结 SSL 会话** - 解密传入请求，加密服务器响应，这样后端服务器就不必完成这些潜在的高成本的操作。
-  - 免除了在每个服务器上安装 [X.509](https://en.wikipedia.org/wiki/X.509) 证书的需要
+- **本地终结 SSL 会话** - 解密传入请求，加密服务器响应，这样后端服务器就不必完成这些潜在的高成本的操作。免除了在每个服务器上安装 [X.509](https://en.wikipedia.org/wiki/X.509) 证书的需要
 - **压缩** - 压缩服务器响应
 - **缓存** - 直接返回命中的缓存结果
 - **静态内容** - 直接提供静态内容
@@ -195,39 +185,53 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
   - 视频
   - 等等
 
-### 负载均衡器与反向代理
+#### 负载均衡器与反向代理
 
 - 当你有多个服务器时，部署负载均衡器非常有用。通常，负载均衡器将流量路由给一组功能相同的服务器上。
 - 即使只有一台 web 服务器或者应用服务器时，反向代理也有用，可以参考上一节介绍的好处。
 - NGINX 和 HAProxy 等解决方案可以同时支持第七层反向代理和负载均衡。
 
-### 不利之处：反向代理
+#### 不利之处：反向代理
 
 - 引入反向代理会增加系统的复杂度。
 - 单独一个反向代理服务器仍可能发生单点故障，配置多台反向代理服务器（如[故障转移](https://en.wikipedia.org/wiki/Failover)）会进一步增加复杂度。
 
 ### 来源及延伸阅读
-
 - [反向代理与负载均衡](https://www.nginx.com/resources/glossary/reverse-proxy-vs-load-balancer/)
 - [NGINX 架构](https://www.nginx.com/blog/inside-nginx-how-we-designed-for-performance-scale/)
 - [HAProxy 架构指南](http://www.haproxy.org/download/1.2/doc/architecture.txt)
 - [Wikipedia](https://en.wikipedia.org/wiki/Reverse_proxy)
+- [NGINX 架构](https://www.nginx.com/blog/inside-nginx-how-we-designed-for-performance-scale/)
+- [HAProxy 架构指南](http://www.haproxy.org/download/1.2/doc/architecture.txt)
+- [可扩展性](http://www.lecloud.net/post/7295452622/scalability-for-dummies-part-1-clones)
+- [Wikipedia](https://en.wikipedia.org/wiki/Load_balancing_(computing))
+- [四层负载平衡](https://www.nginx.com/resources/glossary/layer-4-load-balancing/)
+- [七层负载平衡](https://www.nginx.com/resources/glossary/layer-7-load-balancing/)
+- [ELB 监听器配置](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-listener-config.html)
+- https://zhuanlan.zhihu.com/p/508672222
+- https://cloud.tencent.com/developer/article/1049707
+
+
+
 
 ## 应用层网关
-
 <p align="center">
-  <img src="/images/yB5SYwm.png">
+  <img src="../../images/meituan_gateway.png" width=600 height=400>
   <br/>
-  <strong><a href="http://lethain.com/introduction-to-architecting-systems-for-scale/#platform_layer">资料来源：可缩放系统构架介绍</a></strong>
+  <strong><a href="https://tech.meituan.com/2021/05/20/shepherd-api-gateway.html">百亿规模API网关服务Shepherd的设计与实现</a></strong>
 </p>
 
-将 Web 服务层与应用层（也被称作平台层）分离，可以独立缩放和配置这两层。添加新的 API 只需要添加应用服务器，而不必添加额外的 web 服务器。
-
-**单一职责原则**提倡小型的，自治的服务共同合作。小团队通过提供小型的服务，可以更激进地计划增长。
-
-应用层中的工作进程也有可以实现[异步化](#异步)。
-用于完成基础的鉴权、限流、监控日志、参数校验、协议转换等工作
-[百亿规模API网关服务Shepherd的设计与实现](https://tech.meituan.com/2021/05/20/shepherd-api-gateway.html)
+将 Web 服务层与应用层（也被称作平台层）分离，可以独立缩放和配置这两层。添加新的 API 只需要添加应用服务器，而不必添加额外的 web 服务器。用于完成基础的:
+- 参数校验
+- 协议转换等
+- 鉴权
+- 限流
+- 监控、日志
+- 熔断（错误率较高时，熔断机制）
+- 降级策略（比如电商搜索时正常情况下提供搜索+个性化服务，高负载时仅提供搜索服务，非核心功能降级）
+- [Shopee Games API 网关设计与实现](https://www.modb.pro/db/474513)
+- [百亿规模API网关服务Shepherd的设计与实现](https://tech.meituan.com/2021/05/20/shepherd-api-gateway.html)
+- [grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway)
 
 
 ## 微服务
