@@ -26,7 +26,7 @@ categories:
 
 ## 域名系统
 <p align="center">
-  <img src="/images/IOyLj4i.jpg">
+  <img src="../../images/IOyLj4i.jpg">
   <br/>
   <strong><a href="http://www.slideshare.net/srikrupa5/dns-security-presentation-issa">来源：DNS 安全介绍</a></strong>
 </p>
@@ -1243,3 +1243,5 @@ Zookeeper是一个高性能、分布式的开源的协作服务；
 - https://wxquare.github.io/2022/05/20/C++/system-design-and-framework-basic/
 - 英语能力
 - 好用工具
+
+
