@@ -20,6 +20,7 @@
   - s3 对象存储
   - CDN 存储
 - dns + lvs + ngnix 网关和负载均衡的设计和实现
+  - 域名注册、域名解析
   - lvs 和 ngnix
   - https://www.modb.pro/db/474513
   - load balancing and high preformance
