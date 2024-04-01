@@ -23,9 +23,10 @@
   - lvs 和 ngnix
   - https://www.modb.pro/db/474513
   - load balancing and high preformance
-- Gin和Web服务的架构和网关原理的设计和实现
+- 业务网关原理的设计和实现
   - gin: https://github.com/gin-gonic/gin
   - [Shopee Games API 网关设计与实现](https://www.modb.pro/db/474513)
+  - [百亿规模API网关服务Shepherd的设计与实现](https://tech.meituan.com/2021/05/20/shepherd-api-gateway.html)
 - 限流的设计和实现
   - https://github.com/alibaba/Sentinel
   - 单机限流
