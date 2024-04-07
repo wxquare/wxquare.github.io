@@ -7,7 +7,9 @@ categories:
 多查看文档
 [MySQL 5.7 Reference Manual](https://dev.mysql.com/doc/refman/5.7/en/null-values.html)
 
-## 如何建表
+
+## 基本使用
+### 建表注意事项
 ```
 CREATE TABLE `hotel_info_tab` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -28,7 +30,6 @@ CREATE TABLE `hotel_info_tab` (
   UNIQUE KEY `uidx_hotel_id` (`hotel_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED
 ```
-
 - 数值类型：int,tinyint,int(10),bigint
 - 定点数（exact-value），decimal，使用字符串存储，精度
 - 浮点数（approximate-value (floating-point)）：float，double，精度缺失
@@ -40,7 +41,6 @@ CREATE TABLE `hotel_info_tab` (
    ```
    **通常存储的都是时间戳，需要考虑使用mysql服务器的时间还是业务的时间戳，考虑使用mysql时间戳是否会有不利的影响**
 - 约束：NOT UNLL,DEFAULT、UNIQUE,PRIMARY KEY,FOREIGN KEY约束
-- 除text类型外其它类型一般不使用null，都应该指定默认值
 - **主键primary key**。数据库表中对储存数据对象予以唯一和完整标识的数据列或属性的组合。一个数据列只能有一个主键，且主键的取值不能缺失，即不能为空值（Null）。主键是数据库确保数据行在整张表唯一 性的保障，即使业务上本张表没有主键，也建议添加一个自增长的ID列作为主键。设定了主键之后，在后续的删改查的时候可能更加快速以及确保操作数据范围安全。
 - [自增主键还是UUID？优缺点？怎么生成UUID？](https://blog.csdn.net/rocling/article/details/83116950)，比如item表使用自增ID，order表使用订单id，订单id可以认为是uuid。
 - **唯一性约束**：唯一性约束是很重要的特性，防止重复插入数据
@@ -55,7 +55,8 @@ CREATE TABLE `hotel_info_tab` (
 - 是否需要增加index？
 - 存储引擎选择
 
-## 为什么不建议使用null？
+### 关于 null 的使用
+- **除text类型外其它类型一般不使用null，都应该指定默认值**
    在MySQL和许多其他数据库系统中，**NULL是一个特殊的值，表示缺少值或未知值**。虽然NULL在某些情况下是有用的，但由于它的特殊性，使用NULL可能会带来一些问题，因此在某些情况下不建议过度使用NULL。一般只有text类型回用到，其它都应该制定默认值
 1. 逻辑判断和比较的复杂性：由于NULL表示未知或缺少值，它的比较结果不是true也不是false，而是NULL。这意味着使用NULL进行逻辑判断和比较时需要额外的注意，可能需要使用IS NULL或IS NOT NULL等特殊的操作符。
 2. 聚合函数的结果处理：在使用聚合函数（如SUM、AVG、COUNT等）进行计算时，NULL的处理可能会产生意外的结果。通常情况下，聚合函数会忽略NULL值，因此如果某列中有NULL值，可能会导致计算结果不准确。
@@ -63,6 +64,107 @@ CREATE TABLE `hotel_info_tab` (
 4. 查询语句的复杂性增加：当使用NULL值进行查询时，可能需要编写更复杂的查询语句来处理NULL的情况，这会增加查询的复杂性和维护成本。
 
 虽然NULL有其合理的用途，例如表示缺失的数据或未知的值，但过度使用NULL可能会导致代码的复杂性增加、查询的不准确性和性能问题。在设计数据库模式和数据模型时，需要根据实际需求和业务逻辑合理使用NULL，并考虑到其带来的潜在问题。
+
+
+### 存储引擎（Storage Engine) 选择
+[Setting the Storage Engine](https://dev.mysql.com/doc/refman/5.7/en/storage-engine-setting.html)
+MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景。以下是几种常见的MySQL存储引擎对比：
+- InnoDB：
+	- 事务支持：InnoDB是MySQL默认的事务性存储引擎，支持ACID事务特性，适用于需要强一致性和事务支持的应用。
+	- 行级锁定：InnoDB支持行级锁定，提供更好的并发性能。
+	- 外键约束：InnoDB支持外键约束，可以保持数据完整性。
+	- Crash Recovery：InnoDB具有崩溃恢复机制，能够在故障恢复时保证数据的一致性。
+	- 适用场景：适用于高并发、需要事务支持和数据完整性的应用，如电子商务、在线交易等。
+
+- MyISAM：
+	- 速度和性能：MyISAM对于读取操作有很好的性能表现，适用于读取频繁的应用。
+	- 表级锁定：MyISAM使用表级锁定，对并发性能有一定影响。
+	- 不支持事务：MyISAM不支持事务和崩溃恢复机制，不保证数据的完整性和一致性。
+	- 全文索引：MyISAM支持全文索引，适用于对文本内容进行高效搜索的应用。
+	- 适用场景：适用于读取频繁、对事务和数据完整性要求不高的应用，如博客、新闻等。
+- mysql存储引擎是插件式的，支持多种存储引擎，比较常用的是innodb和myisam
+- 存储结构上的不同：innodb数据和索引时集中存储的，myism数据和索引是分开存储的
+- 数据插入顺序不同：innodb插入记录时是按照主键大小有序插入，myism插入数据时是按照插入顺序保存的
+- 事务的支持：Innodb提供了对数据库ACID事务的支持，并且还提供了行级锁和外键的约束。MyIASM引擎不提供事务的支持，支持表级锁，不支持行级锁和外键。
+- 索引的不同：innodb主键索引是聚簇索引，非主键索引是非聚簇索引，myisam是非聚簇索引。聚簇索引的叶子节点就是数据节点，而myism索引的叶子节点仍然是索引节点，只不过是指向对应数据块的指针,InnoDB的非聚簇索引叶子节点存储的是主键，需要再寻址一次才能得到数据
+总结：
+- 是否需要支持事务？innodb
+- 并发写是不是很多？innoda
+- 读多，写少，追求读速度？myisam
+
+
+## mysql架构扩展
+
+关系型数据库扩展包括许多技术：**主从复制**、**主主复制**、**联合**、**分片**、**非规范化**和 **SQL调优**。
+- [扩展你的用户数到第一个一千万](https://www.youtube.com/watch?v=w95murBkYmU)
+
+
+### 主从复制
+<p align="center">
+  <img src="../../images/C9ioGtn.png" width=600 height=400>
+  <br/>
+  <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
+</p>
+
+主库同时负责读取和写入操作，并复制写入到一个或多个从库中，从库只负责读操作。树状形式的从库再将写入复制到更多的从库中去。如果主库离线，系统可以以只读模式运行，直到某个从库被提升为主库或有新的主库出现。主要的优缺点：
+- 读写分离提供集群的性能
+- 主、从多节点，宕机容灾
+- 将从库提升为主库需要额外的逻辑
+- 主从延时问题，需要监控
+
+
+
+### 主主复制,多主复制
+<p align="center">
+  <img src="../../images/krAHLGg.png" width=600 height=400>
+  <br/>
+  <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
+</p>
+
+两个主库都负责读操作和写操作，写入操作时互相协调。如果其中一个主库挂机，系统可以继续读取和写入。
+- [多主复制](https://en.wikipedia.org/wiki/Multi-master_replication)
+优缺点：
+- 你需要添加负载均衡器或者在应用逻辑中做改动，来确定写入哪一个数据库。
+- 多数主-主系统要么不能保证一致性（违反 ACID），要么因为同步产生了写入延迟。
+- 随着更多写入节点的加入和延迟的提高，**如何解决冲突显得越发重要**
+- 多活架构
+
+### 联合（垂直分实例，比如商品实例、订单实例等分开）
+
+<p align="center">
+  <img src="../../images/U3qV33e.png" width=600 height=400>
+  <br/>
+  <strong><a href="https://www.youtube.com/watch?v=w95murBkYmU">资料来源：扩展你的用户数到第一个一千万</a></strong>
+</p>
+
+优缺点：
+联合（或按功能划分）将数据库按对应功能分割。例如，你可以有三个数据库：**论坛**、**用户**和**产品**，而不仅是一个单体数据库，从而减少每个数据库的读取和写入流量，减少复制延迟。较小的数据库意味着更多适合放入内存的数据，进而意味着更高的缓存命中几率。没有只能串行写入的中心化主库，你可以并行写入，提高负载能力。
+- 如果你的数据库模式需要大量的功能和数据表，联合的效率并不好。
+- 你需要更新应用程序的逻辑来确定要读取和写入哪个数据库。
+- 从两个库联结数据更复杂。
+- 联合需要更多的硬件和额外的复杂度。
+
+
+### 分片 (水平分实例，比如订单按照用户shard)
+<p align="center">
+  <img src="../../images/wU8x5Id.png" width=600 height=400>
+  <br/>
+  <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
+</p>
+
+分片将数据分配在不同的数据库上，使得每个数据库仅管理整个数据集的一个子集。以用户数据库为例，随着用户数量的增加，越来越多的分片会被添加到集群中。
+类似[联合](#联合)的优点，分片可以减少读取和写入流量，减少复制并提高缓存命中率。也减少了索引，通常意味着查询更快，性能更好。如果一个分片出问题，其他的仍能运行，你可以使用某种形式的冗余来防止数据丢失。类似联合，没有只能串行写入的中心化主库，你可以并行写入，提高负载能力。
+常见的做法是用户姓氏的首字母或者用户的地理位置来分隔用户表。
+- 你需要修改应用程序的逻辑来实现分片，这会带来复杂的 SQL 查询。
+- 分片不合理可能导致数据负载不均衡。例如，被频繁访问的用户数据会导致其所在分片的负载相对其他分片高。
+- 再平衡会引入额外的复杂度。基于[一致性哈希](http://www.paperplanes.de/2011/12/9/the-magic-of-consistent-hashing.html)的分片算法可以减少这种情况。
+- 联结多个分片的数据操作更复杂。
+- 分片需要更多的硬件和额外的复杂度。
+- [分片时代来临](http://highscalability.com/blog/2009/8/6/an-unorthodox-approach-to-database-design-the-coming-of-the.html)
+- [数据库分片架构](https://en.wikipedia.org/wiki/Shard_(database_architecture))
+- [一致性哈希](http://www.paperplanes.de/2011/12/9/the-magic-of-consistent-hashing.html)
+
+
 
 ## 分表/分库/历史数据归档和路由
 原文链接：https://juejin.cn/post/6844903872134135816
@@ -92,38 +194,6 @@ CREATE TABLE `hotel_info_tab` (
 **案例4. 商品库存扣减方案**
 - 乐观索和悲观锁
 - https://zhuanlan.zhihu.com/p/143866444
-
-## 存储引擎（Storage Engine) 选择
-[Setting the Storage Engine](https://dev.mysql.com/doc/refman/5.7/en/storage-engine-setting.html)
-MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景。以下是几种常见的MySQL存储引擎对比：
-- InnoDB：
-	- 事务支持：InnoDB是MySQL默认的事务性存储引擎，支持ACID事务特性，适用于需要强一致性和事务支持的应用。
-	- 行级锁定：InnoDB支持行级锁定，提供更好的并发性能。
-	- 外键约束：InnoDB支持外键约束，可以保持数据完整性。
-	- Crash Recovery：InnoDB具有崩溃恢复机制，能够在故障恢复时保证数据的一致性。
-	- 适用场景：适用于高并发、需要事务支持和数据完整性的应用，如电子商务、在线交易等。
-
-- MyISAM：
-	- 速度和性能：MyISAM对于读取操作有很好的性能表现，适用于读取频繁的应用。
-	- 表级锁定：MyISAM使用表级锁定，对并发性能有一定影响。
-	- 不支持事务：MyISAM不支持事务和崩溃恢复机制，不保证数据的完整性和一致性。
-	- 全文索引：MyISAM支持全文索引，适用于对文本内容进行高效搜索的应用。
-	- 适用场景：适用于读取频繁、对事务和数据完整性要求不高的应用，如博客、新闻等。
-- mysql存储引擎是插件式的，支持多种存储引擎，比较常用的是innodb和myisam
-- 存储结构上的不同：innodb数据和索引时集中存储的，myism数据和索引是分开存储的
-- 数据插入顺序不同：innodb插入记录时是按照主键大小有序插入，myism插入数据时是按照插入顺序保存的
-- 事务的支持：Innodb提供了对数据库ACID事务的支持，并且还提供了行级锁和外键的约束。MyIASM引擎不提供事务的支持，支持表级锁，不支持行级锁和外键。
-- 索引的不同：innodb主键索引是聚簇索引，非主键索引是非聚簇索引，myisam是非聚簇索引。聚簇索引的叶子节点就是数据节点，而myism索引的叶子节点仍然是索引节点，只不过是指向对应数据块的指针,InnoDB的非聚簇索引叶子节点存储的是主键，需要再寻址一次才能得到数据
-总结：
-- 是否需要支持事务？innodb
-- 并发写是不是很多？innoda
-- 读多，写少，追求读速度？myisam
-
-InnoDB and MyISAM are two of the most commonly used storage engines in MySQL.
-
-InnoDB is a transactional storage engine, which means that it supports the ACID (Atomicity, Consistency, Isolation, Durability) properties of database transactions. This makes InnoDB well-suited for applications that require data consistency and integrity, such as e-commerce and financial applications. InnoDB also supports row-level locking, which allows multiple transactions to access and modify different rows in the same table simultaneously. This results in higher concurrency and better performance for multi-user applications.
-
-MyISAM, on the other hand, is a non-transactional storage engine. This means that it does not support transactions and does not enforce the ACID properties. MyISAM is optimized for fast read performance, and is often used for applications that need to read large amounts of data quickly, such as reporting and data warehousing applications. However, because MyISAM does not support transactions, it is not as well-suited for applications that require data consistency and integrity.
 
 
 ## 添加索引index，优化访问速度
@@ -160,7 +230,7 @@ MyISAM, on the other hand, is a non-transactional storage engine. This means tha
     - [结合实例理解联合索引与最左匹配原则](https://www.cnblogs.com/rjzheng/p/12557314.html)
     - https://dev.mysql.com/doc/refman/5.7/en/multiple-column-indexes.html
 
-## 事务Transaction与数据库锁（数据准确性和并发安全，一锁二判三更新）
+## ACID、事务、数据库锁（数据准确性和并发安全，一锁二判三更新）
 - [精读mysql事务](https://blog.csdn.net/qq_43255017/article/details/106442887?utm_medium=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&depth_1-utm_source=distribute.pc_feed.none-task-blog-alirecmd-3.nonecase&request_id=)
 - [innodb事务的ACID特性，以及其对应的实现原理?](https://www.cnblogs.com/kismetv/p/10331633.html)   
     - 原子性：在很多场景中，一个操作需要执行多条 update/insert SQL。原子性保证了SQL语句要么全执行，要么全不执行，是事务最核心的特性，事务本身就是以原子性来定义的；实现主要基于undolog/redolog
