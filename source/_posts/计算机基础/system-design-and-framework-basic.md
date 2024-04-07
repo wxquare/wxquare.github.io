@@ -14,6 +14,11 @@ categories:
   - 最终一致性
   - 强一致性
 - [分布式理论：CAP、BASE与ACID](https://monkeysayhi.github.io/2018/03/09/%E5%88%86%E5%B8%83%E5%BC%8F%E7%90%86%E8%AE%BA%EF%BC%9ACAP%E3%80%81BASE%E4%B8%8EACID/)
+- 大多数 NoSQL 无法实现真正符合 ACID 的事务，支持[最终一致](#最终一致性)。
+**BASE** 通常被用于描述 NoSQL 数据库的特性。相比 [CAP 理论](#cap-理论)，BASE 强调可用性超过一致性。
+- **基本可用** - 系统保证可用性。
+- **软状态** - 即使没有输入，系统状态也可能随着时间变化。
+- **最终一致性** - 经过一段时间之后，系统最终会变一致，因为系统在此期间没有收到任何输入。
 
 
 ## 架构
@@ -287,7 +292,7 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 
 
 
-## 数据库
+## mysql 数据库
 <p align="center">
   <img src="../../images/Xkm5CXz.png" width=700 height=400>
   <br/>
@@ -295,226 +300,53 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 </p>
 
 
-关系型数据库扩展包括许多技术：**主从复制**、**主主复制**、**联合**、**分片**、**非规范化**和 **SQL调优**。
+### [延伸思考和学习](./middleware-mysql.md)
+- 如何正确建表。类型选择、主键约束、not null、编码方式等
+- 外建约束、还是业务约束
+- mysql join 还是业务关联等
+- 如何使用index优化查询
+- 如何使用事物acid
+- DDL注意事项
+- 是否需呀分库分表
+- 历史数据如何处理
+- 如何扩展mysql？垂直分、水平分、主备复制、主主复制
+- 性能调优？架构优化、索引优化、sql优化、连接池优化、缓存优化
 
+
+## redis 键值存储系统
 <p align="center">
-  <img src="../../images/C9ioGtn.png">
-  <br/>
-  <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
+  <img src="../../images/codis.png" width=600 height=400>
 </p>
 
-### 关系型数据库扩展架构
-#### 主从复制
+### [延伸思考和学习](./middleware-redis.md)
+- redis 五种数据结构
+- redis 使用场景。缓存数据、计数器和限流、分布式锁、bloomfilter等
+- redis key 过期时间
+- redis 存储数据一致性的容忍度
+- redis 扩展和分不少方案
+- redis 热key和大key问题
 
-主库同时负责读取和写入操作，并复制写入到一个或多个从库中，从库只负责读操作。树状形式的从库再将写入复制到更多的从库中去。如果主库离线，系统可以以只读模式运行，直到某个从库被提升为主库或有新的主库出现。
 
-##### 不利之处：主从复制
 
-- 将从库提升为主库需要额外的逻辑。
-- 参考[不利之处：复制](#不利之处复制)中，主从复制和主主复制**共同**的问题。
+## 文档类型存储(es)
 
 <p align="center">
-  <img src="../../images/krAHLGg.png">
-  <br/>
-  <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
+  <img src="../../images/es.png" width=600 height=400>
 </p>
 
-#### 主主复制
+### [延伸思考和学习](./middleware-elasticsearch.md)
+- ES index 的mapping结构
+- setting 分片和副本机制
+- 分词器
+- 检索query dsl
+- 读写流程
+- 集群架构和规划
+- 读写优化
 
-两个主库都负责读操作和写操作，写入操作时互相协调。如果其中一个主库挂机，系统可以继续读取和写入。
-
-##### 不利之处： 主主复制
-
-- 你需要添加负载均衡器或者在应用逻辑中做改动，来确定写入哪一个数据库。
-- 多数主-主系统要么不能保证一致性（违反 ACID），要么因为同步产生了写入延迟。
-- 随着更多写入节点的加入和延迟的提高，如何解决冲突显得越发重要。
-- 参考[不利之处：复制](#不利之处复制)中，主从复制和主主复制**共同**的问题。
-
-##### 不利之处：复制
-
-
-- 如果主库在将新写入的数据复制到其他节点前挂掉，则有数据丢失的可能。
-- 写入会被重放到负责读取操作的副本。副本可能因为过多写操作阻塞住，导致读取功能异常。
-- 读取从库越多，需要复制的写入数据就越多，导致更严重的复制延迟。
-- 在某些数据库系统中，写入主库的操作可以用多个线程并行写入，但读取副本只支持单线程顺序地写入。
-- 复制意味着更多的硬件和额外的复杂度。
-
-
-##### 来源及延伸阅读
-
-
-- [扩展性，可用性，稳定性模式](http://www.slideshare.net/jboner/scalability-availability-stability-patterns/)
-- [多主复制](https://en.wikipedia.org/wiki/Multi-master_replication)
-
-#### 联合
+## 列型存储(hbase)
 
 <p align="center">
-  <img src="/images/U3qV33e.png">
-  <br/>
-  <strong><a href="https://www.youtube.com/watch?v=w95murBkYmU">资料来源：扩展你的用户数到第一个一千万</a></strong>
-</p>
-
-联合（或按功能划分）将数据库按对应功能分割。例如，你可以有三个数据库：**论坛**、**用户**和**产品**，而不仅是一个单体数据库，从而减少每个数据库的读取和写入流量，减少复制延迟。较小的数据库意味着更多适合放入内存的数据，进而意味着更高的缓存命中几率。没有只能串行写入的中心化主库，你可以并行写入，提高负载能力。
-
-##### 不利之处：联合
-
-
-- 如果你的数据库模式需要大量的功能和数据表，联合的效率并不好。
-- 你需要更新应用程序的逻辑来确定要读取和写入哪个数据库。
-- 用 [server link](http://stackoverflow.com/questions/5145637/querying-data-by-joining-two-tables-in-two-database-on-different-servers) 从两个库联结数据更复杂。
-- 联合需要更多的硬件和额外的复杂度。
-
-##### 来源及延伸阅读：联合
-
-- [扩展你的用户数到第一个一千万](https://www.youtube.com/watch?v=w95murBkYmU)
-
-#### 分片
-
-<p align="center">
-  <img src="../../images/wU8x5Id.png">
-  <br/>
-  <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
-</p>
-
-分片将数据分配在不同的数据库上，使得每个数据库仅管理整个数据集的一个子集。以用户数据库为例，随着用户数量的增加，越来越多的分片会被添加到集群中。
-
-类似[联合](#联合)的优点，分片可以减少读取和写入流量，减少复制并提高缓存命中率。也减少了索引，通常意味着查询更快，性能更好。如果一个分片出问题，其他的仍能运行，你可以使用某种形式的冗余来防止数据丢失。类似联合，没有只能串行写入的中心化主库，你可以并行写入，提高负载能力。
-
-常见的做法是用户姓氏的首字母或者用户的地理位置来分隔用户表。
-
-##### 不利之处：分片
-
-- 你需要修改应用程序的逻辑来实现分片，这会带来复杂的 SQL 查询。
-- 分片不合理可能导致数据负载不均衡。例如，被频繁访问的用户数据会导致其所在分片的负载相对其他分片高。
-  - 再平衡会引入额外的复杂度。基于[一致性哈希](http://www.paperplanes.de/2011/12/9/the-magic-of-consistent-hashing.html)的分片算法可以减少这种情况。
-- 联结多个分片的数据操作更复杂。
-- 分片需要更多的硬件和额外的复杂度。
-
-#### 来源及延伸阅读：分片
-
-- [分片时代来临](http://highscalability.com/blog/2009/8/6/an-unorthodox-approach-to-database-design-the-coming-of-the.html)
-- [数据库分片架构](https://en.wikipedia.org/wiki/Shard_(database_architecture))
-- [一致性哈希](http://www.paperplanes.de/2011/12/9/the-magic-of-consistent-hashing.html)
-
-#### 非规范化
-
-非规范化试图以写入性能为代价来换取读取性能。在多个表中冗余数据副本，以避免高成本的联结操作。一些关系型数据库，比如 [PostgreSQL](https://en.wikipedia.org/wiki/PostgreSQL) 和 Oracle 支持[物化视图](https://en.wikipedia.org/wiki/Materialized_view)，可以处理冗余信息存储和保证冗余副本一致。
-
-当数据使用诸如[联合](#联合)和[分片](#分片)等技术被分割，进一步提高了处理跨数据中心的联结操作复杂度。非规范化可以规避这种复杂的联结操作。
-
-在多数系统中，读取操作的频率远高于写入操作，比例可达到 100:1，甚至 1000:1。需要复杂的数据库联结的读取操作成本非常高，在磁盘操作上消耗了大量时间。
-
-##### 不利之处：非规范化
-
-- 数据会冗余。
-- 约束可以帮助冗余的信息副本保持同步，但这样会增加数据库设计的复杂度。
-- 非规范化的数据库在高写入负载下性能可能比规范化的数据库差。
-
-##### 来源及延伸阅读：非规范化
-
-- [非规范化](https://en.wikipedia.org/wiki/Denormalization)
-
-### SQL 调优
-
-SQL 调优是一个范围很广的话题，有很多相关的[书](https://www.amazon.com/s/ref=nb_sb_noss_2?url=search-alias%3Daps&field-keywords=sql+tuning)可以作为参考。
-
-利用**基准测试**和**性能分析**来模拟和发现系统瓶颈很重要。
-
-- **基准测试** - 用 [ab](http://httpd.apache.org/docs/2.2/programs/ab.html) 等工具模拟高负载情况。
-- **性能分析** - 通过启用如[慢查询日志](http://dev.mysql.com/doc/refman/5.7/en/slow-query-log.html)等工具来辅助追踪性能问题。
-
-基准测试和性能分析可能会指引你到以下优化方案。
-
-#### 改进模式
-
-- 为了实现快速访问，MySQL 在磁盘上用连续的块存储数据。
-- 使用 `CHAR` 类型存储固定长度的字段，不要用 `VARCHAR`。
-  - `CHAR` 在快速、随机访问时效率很高。如果使用 `VARCHAR`，如果你想读取下一个字符串，不得不先读取到当前字符串的末尾。
-- 使用 `TEXT` 类型存储大块的文本，例如博客正文。`TEXT` 还允许布尔搜索。使用 `TEXT` 字段需要在磁盘上存储一个用于定位文本块的指针。
-- 使用 `INT` 类型存储高达 2^32 或 40 亿的较大数字。
-- 使用 `DECIMAL` 类型存储货币可以避免浮点数表示错误。
-- 避免使用 `BLOBS` 存储实际对象，而是用来存储存放对象的位置。
-- `VARCHAR(255)` 是以 8 位数字存储的最大字符数，在某些关系型数据库中，最大限度地利用字节。
-- 在适用场景中设置 `NOT NULL` 约束来[提高搜索性能](http://stackoverflow.com/questions/1017239/how-do-null-values-affect-performance-in-a-database-search)。
-
-#### 使用正确的索引
-- 你正查询（`SELECT`、`GROUP BY`、`ORDER BY`、`JOIN`）的列如果用了索引会更快。
-- 索引通常表示为自平衡的 [B 树](https://en.wikipedia.org/wiki/B-tree)，可以保持数据有序，并允许在对数时间内进行搜索，顺序访问，插入，删除操作。
-- 设置索引，会将数据存在内存中，占用了更多内存空间。
-- 写入操作会变慢，因为索引需要被更新。
-- 加载大量数据时，禁用索引再加载数据，然后重建索引，这样也许会更快。
-
-#### 避免高成本的联结操作
-
-- 有性能需要，可以进行非规范化。
-
-#### 分割数据表
-
-- 将热点数据拆分到单独的数据表中，可以有助于缓存。
-
-#### 调优查询缓存
-
-- 在某些情况下，[查询缓存](http://dev.mysql.com/doc/refman/5.7/en/query-cache)可能会导致[性能问题](https://www.percona.com/blog/2014/01/28/10-mysql-performance-tuning-settings-after-installation/)。
-
-#### 来源及延伸阅读
-
-- [MySQL 查询优化小贴士](http://20bits.com/article/10-tips-for-optimizing-mysql-queries-that-dont-suck)
-- [为什么 VARCHAR(255) 很常见？](http://stackoverflow.com/questions/1217466/is-there-a-good-reason-i-see-varchar255-used-so-often-as-opposed-to-another-l)
-- [Null 值是如何影响数据库性能的？](http://stackoverflow.com/questions/1017239/how-do-null-values-affect-performance-in-a-database-search)
-- [慢查询日志](http://dev.mysql.com/doc/refman/5.7/en/slow-query-log.html)
-
-### NoSQL
-
-NoSQL 是**键-值数据库**、**文档型数据库**、**列型数据库**或**图数据库**的统称。数据库是非规范化的，表联结大多在应用程序代码中完成。大多数 NoSQL 无法实现真正符合 ACID 的事务，支持[最终一致](#最终一致性)。
-
-**BASE** 通常被用于描述 NoSQL 数据库的特性。相比 [CAP 理论](#cap-理论)，BASE 强调可用性超过一致性。
-
-- **基本可用** - 系统保证可用性。
-- **软状态** - 即使没有输入，系统状态也可能随着时间变化。
-- **最终一致性** - 经过一段时间之后，系统最终会变一致，因为系统在此期间没有收到任何输入。
-
-除了在 [SQL 还是 NoSQL](#sql-还是-nosql) 之间做选择，了解哪种类型的 NoSQL 数据库最适合你的用例也是非常有帮助的。我们将在下一节中快速了解下 **键-值存储**、**文档型存储**、**列型存储**和**图存储**数据库。
-
-### 键-值存储（redis)
-
-> 抽象模型：哈希表
-
-键-值存储通常可以实现 O(1) 时间读写，用内存或 SSD 存储数据。数据存储可以按[字典顺序](https://en.wikipedia.org/wiki/Lexicographical_order)维护键，从而实现键的高效检索。键-值存储可以用于存储元数据。
-
-键-值存储性能很高，通常用于存储简单数据模型或频繁修改的数据，如存放在内存中的缓存。键-值存储提供的操作有限，如果需要更多操作，复杂度将转嫁到应用程序层面。
-
-键-值存储是如文档存储，在某些情况下，甚至是图存储等更复杂的存储系统的基础。
-
-#### 来源及延伸阅读
-
-- [键-值数据库](https://en.wikipedia.org/wiki/Key-value_database)
-- [键-值存储的劣势](http://stackoverflow.com/questions/4056093/what-are-the-disadvantages-of-using-a-key-value-table-over-nullable-columns-or)
-- [Redis 架构](http://qnimate.com/overview-of-redis-architecture/)
-- [Memcached 架构](https://adayinthelifeof.nl/2011/02/06/memcache-internals/)
-
-### 文档类型存储(es)
-
-> 抽象模型：将文档作为值的键-值存储
-
-文档类型存储以文档（XML、JSON、二进制文件等）为中心，文档存储了指定对象的全部信息。文档存储根据文档自身的内部结构提供 API 或查询语句来实现查询。请注意，许多键-值存储数据库有用值存储元数据的特性，这也模糊了这两种存储类型的界限。
-
-基于底层实现，文档可以根据集合、标签、元数据或者文件夹组织。尽管不同文档可以被组织在一起或者分成一组，但相互之间可能具有完全不同的字段。
-
-MongoDB 和 CouchDB 等一些文档类型存储还提供了类似 SQL 语言的查询语句来实现复杂查询。DynamoDB 同时支持键-值存储和文档类型存储。
-
-文档类型存储具备高度的灵活性，常用于处理偶尔变化的数据。
-
-#### 来源及延伸阅读：文档类型存储
-
-- [面向文档的数据库](https://en.wikipedia.org/wiki/Document-oriented_database)
-- [MongoDB 架构](https://www.mongodb.com/mongodb-architecture)
-- [CouchDB 架构](https://blog.couchdb.org/2016/08/01/couchdb-2-0-architecture/)
-- [Elasticsearch 架构](https://www.elastic.co/blog/found-elasticsearch-from-the-bottom-up)
-
-### 列型存储(hbase)
-
-<p align="center">
-  <img src="/images/n16iOGk.png">
+  <img src="../../images/n16iOGk.png">
   <br/>
   <strong><a href="http://blog.grio.com/2015/11/sql-nosql-a-brief-history.html">资料来源: SQL 和 NoSQL，一个简短的历史</a></strong>
 </p>
@@ -537,7 +369,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 ### 图数据库
 
 <p align="center">
-  <img src="/images/fNcl65g.png">
+  <img src="../../images/fNcl65g.png">
   <br/>
   <strong><a href="https://en.wikipedia.org/wiki/File:GraphDatabase_PropertyGraph.png"/>资料来源：图数据库</a></strong>
 </p>
@@ -564,7 +396,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 ### SQL 还是 NoSQL
 
 <p align="center">
-  <img src="/images/wXGqG5f.png">
+  <img src="../../images/wXGqG5f.png">
   <br/>
   <strong><a href="https://www.infoq.com/articles/Transition-RDBMS-NoSQL/">资料来源：从 RDBMS 转换到 NoSQL</a></strong>
 </p>
@@ -606,7 +438,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 ## 缓存
 
 <p align="center">
-  <img src="/images/Q6z24La.png">
+  <img src="../../images/Q6z24La.png",width=600 height=400>
   <br/>
   <strong><a href="http://horicky.blogspot.com/2010/10/scalable-system-design-patterns.html">资料来源：可扩展的系统设计模式</a></strong>
 </p>
@@ -670,135 +502,36 @@ Redis 有下列附加功能：
 - 活动流
 - 用户图数据
 
-### 何时更新缓存
 
-由于你只能在缓存中存储有限的数据，所以你需要选择一个适用于你用例的缓存更新策略。
 
-#### 缓存模式
 
-<p align="center">
-  <img src="/images/ONjORqk.png">
-  <br/>
-  <strong><a href="http://www.slideshare.net/tmatyashovsky/from-cache-to-in-memory-data-grid-introduction-to-hazelcast">资料来源：从缓存到内存数据网格</a></strong>
-</p>
 
-应用从存储器读写。缓存不和存储器直接交互，应用执行以下操作：
-
-- 在缓存中查找记录，如果所需数据不在缓存中
-- 从数据库中加载所需内容
-- 将查找到的结果存储到缓存中
-- 返回所需内容
-
-```python
-def get_user(self, user_id):
-    user = cache.get("user.{0}", user_id)
-    if user is None:
-        user = db.query("SELECT * FROM users WHERE user_id = {0}", user_id)
-        if user is not None:
-            key = "user.{0}".format(user_id)
-            cache.set(key, json.dumps(user))
-    return user
-```
-
-[Memcached](https://memcached.org/) 通常用这种方式使用。
-
-添加到缓存中的数据读取速度很快。缓存模式也称为延迟加载。只缓存所请求的数据，这避免了没有被请求的数据占满了缓存空间。
-
-##### 缓存的缺点：
-
-- 请求的数据如果不在缓存中就需要经过三个步骤来获取数据，这会导致明显的延迟。
-- 如果数据库中的数据更新了会导致缓存中的数据过时。这个问题需要通过设置TTL 强制更新缓存或者直写模式来缓解这种情况。
-- 当一个节点出现故障的时候，它将会被一个新的节点替代，这增加了延迟的时间。
-
-#### 直写模式
+### 缓存更新的四种模式
 
 <p align="center">
-  <img src="/images/0vBc0hN.png">
-  <br/>
-  <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
+  <img src="../../images/cache-refesh.png" width=600 height=850>
 </p>
 
-应用使用缓存作为主要的数据存储，将数据读写到缓存中，而缓存负责从数据库中读写数据。
+|  缓存更新方式  |  优缺点  | 
+| -- | -- |
+| 缓存模式+TTL | 业务代码只更新DB，不更新cache，设置较短的TTL(通常分钟级），依靠cache过期无法找到key时回源DB，热key过期可能回导致请求大量请求击穿到DB，需要使用分布式锁或者singleflight等方式避免这种问题 |
+| 定时刷新模式 | 定时任务异步获取DB数据刷新到cache，读请求可不回源，需要考虑刷新时间和批量读写 |
+| 写DB,写cache | 在并发条件下，DB写操作顺序和cache操作不同保证顺序一致性，需要增加分布式锁等操作 |
+| 写DB，删除cache| 删除cache可能失败，需要增加重试，重试也可能失败，比较复杂的加个MQ补偿重试 |
 
-- 应用向缓存中添加/更新数据
-- 缓存同步地写入数据存储
-- 返回所需内容
 
-应用代码：
+#### 思考：
+- 对一致性要求有多强？
+- TTL 设置的时长
+- 并发冲突可能性
+- 热key缓存击穿保护
 
-```
-set_user(12345, {"foo":"bar"})
-```
 
-缓存代码：
-
-```python
-def set_user(user_id, values):
-    user = db.query("UPDATE Users WHERE id = {0}", user_id, values)
-    cache.set(user_id, user)
-```
-
-由于存写操作所以直写模式整体是一种很慢的操作，但是读取刚写入的数据很快。相比读取数据，用户通常比较能接受更新数据时速度较慢。缓存中的数据不会过时。
-
-##### 直写模式的缺点：
-
-- 由于故障或者缩放而创建的新的节点，新的节点不会缓存，直到数据库更新为止。缓存应用直写模式可以缓解这个问题。
-- 写入的大多数数据可能永远都不会被读取，用 TTL 可以最小化这种情况的出现。
-
-#### 回写模式
-
-<p align="center">
-  <img src="/images/rgSrvjG.png">
-  <br/>
-  <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
-</p>
-
-在回写模式中，应用执行以下操作：
-
-- 在缓存中增加或者更新条目
-- 异步写入数据，提高写入性能。
-
-##### 回写模式的缺点：
-
-- 缓存可能在其内容成功存储之前丢失数据。
-- 执行直写模式比缓存或者回写模式更复杂。
-
-#### 刷新
-
-<p align="center">
-  <img src="/images/kxtjqgE.png">
-  <br/>
-  <strong><a href=http://www.slideshare.net/tmatyashovsky/from-cache-to-in-memory-data-grid-introduction-to-hazelcast>资料来源：从缓存到内存数据网格</a></strong>
-</p>
-
-你可以将缓存配置成在到期之前自动刷新最近访问过的内容。
-
-如果缓存可以准确预测将来可能请求哪些数据，那么刷新可能会导致延迟与读取时间的降低。
-
-##### 刷新的缺点：
-
-- 不能准确预测到未来需要用到的数据可能会导致性能不如不使用刷新。
-
-### 缓存的缺点：
-
-- 需要保持缓存和真实数据源之间的一致性，比如数据库根据[缓存无效](https://en.wikipedia.org/wiki/Cache_algorithms)。
-- 需要改变应用程序比如增加 Redis 或者 memcached。
-- 无效缓存是个难题，什么时候更新缓存是与之相关的复杂问题。
-
-### 相关资源和延伸阅读
-
-- [从缓存到内存数据](http://www.slideshare.net/tmatyashovsky/from-cache-to-in-memory-data-grid-introduction-to-hazelcast)
-- [可扩展系统设计模式](http://horicky.blogspot.com/2010/10/scalable-system-design-patterns.html)
-- [可缩放系统构架介绍](http://lethain.com/introduction-to-architecting-systems-for-scale/)
-- [可扩展性，可用性，稳定性和模式](http://www.slideshare.net/jboner/scalability-availability-stability-patterns/)
-- [可扩展性](http://www.lecloud.net/post/9246290032/scalability-for-dummies-part-3-cache)
-- [AWS ElastiCache 策略](http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Strategies.html)
-- [维基百科](https://en.wikipedia.org/wiki/Cache_(computing))
 
 ## 异步
 
 <p align="center">
-  <img src="/images/54GYsSx.png">
+  <img src="../../images/54GYsSx.png">
   <br/>
   <strong><a href=http://lethain.com/introduction-to-architecting-systems-for-scale/#platform_layer>资料来源：可缩放系统构架介绍</a></strong>
 </p>
@@ -844,7 +577,7 @@ def set_user(user_id, values):
 ## 通讯
 
 <p align="center">
-  <img src="/images/5KeocQs.jpg">
+  <img src="../../images/5KeocQs.jpg">
   <br/>
   <strong><a href=http://www.escotal.com/osilayer.html>资料来源：OSI 7层模型</a></strong>
 </p>
@@ -879,7 +612,7 @@ HTTP 是依赖于较低级协议（如 **TCP** 和 **UDP**）的应用层协议�
 ### 传输控制协议（TCP）
 
 <p align="center">
-  <img src="/images/JdAsdvG.jpg">
+  <img src="../../images/JdAsdvG.jpg">
   <br/>
   <strong><a href="http://www.wildbunny.co.uk/blog/2012/10/09/how-to-make-a-multi-player-game-part-1/">资料来源：如何制作多人游戏</a></strong>
 </p>
@@ -903,7 +636,7 @@ TCP  对于需要高可靠性但时间紧迫的应用程序很有用。比如包
 ### 用户数据报协议（UDP）
 
 <p align="center">
-  <img src="/images/yzDrJtA.jpg">
+  <img src="../../images/yzDrJtA.jpg">
   <br/>
   <strong><a href="http://www.wildbunny.co.uk/blog/2012/10/09/how-to-make-a-multi-player-game-part-1">资料来源：如何制作多人游戏</a></strong>
 </p>
@@ -932,7 +665,7 @@ UDP 可靠性更低但适合用在网络电话、视频聊天，流媒体和实�
 ### 远程过程调用协议（RPC）
 
 <p align="center">
-  <img src="/images/iF4Mkb5.png">
+  <img src="../../images/iF4Mkb5.png">
   <br/>
   <strong><a href="http://www.puncsky.com/blog/2016/02/14/crack-the-system-design-interview">Source: Crack the system design interview</a></strong>
 </p>

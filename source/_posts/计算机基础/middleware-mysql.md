@@ -9,7 +9,7 @@ categories:
 
 
 ## 基本使用
-### 建表注意事项
+### 如何建表？
 ```
 CREATE TABLE `hotel_info_tab` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -30,32 +30,50 @@ CREATE TABLE `hotel_info_tab` (
   UNIQUE KEY `uidx_hotel_id` (`hotel_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED
 ```
+
+#### 类型选择？
 - 数值类型：int,tinyint,int(10),bigint
 - 定点数（exact-value），decimal，使用字符串存储，精度
 - 浮点数（approximate-value (floating-point)）：float，double，精度缺失
-- string: varchar(24)，char(10)（定长，根据需要使用空格填充),text
+- 字符串: varchar(256)，char(10)（定长，根据需要使用空格填充)
+- 文本: text,json
+  ```
+  JSON 数据类型提供了数据格式验证和以及一些内置函数帮助查询和检索。
+  JSON数据类型更适合存储和处理结构化的JSON数据，而TEXT数据类型更适合存储纯文本字符串。如果你需要在数据库中存储和操作JSON数据，并且使用MySQL 5.7及更高版本，那么JSON数据类型是更好的选择。如果你只需要存储普通的文本字符串，而不需要对JSON数据进行特殊处理，那么TEXT数据类型就足够了
+  ```
 - 时间time：建表时通常会带上create_time,update_time，[datetime，timestamp类型](https://segmentfault.com/a/1190000017393602?utm_source=tag-newest)，有时也会用int32和int64的时间戳类型
    ```
   `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
    ```
    **通常存储的都是时间戳，需要考虑使用mysql服务器的时间还是业务的时间戳，考虑使用mysql时间戳是否会有不利的影响**
-- 约束：NOT UNLL,DEFAULT、UNIQUE,PRIMARY KEY,FOREIGN KEY约束
-- **主键primary key**。数据库表中对储存数据对象予以唯一和完整标识的数据列或属性的组合。一个数据列只能有一个主键，且主键的取值不能缺失，即不能为空值（Null）。主键是数据库确保数据行在整张表唯一 性的保障，即使业务上本张表没有主键，也建议添加一个自增长的ID列作为主键。设定了主键之后，在后续的删改查的时候可能更加快速以及确保操作数据范围安全。
+
+#### primary key
+- **主键PRIMARY KEY**。数据库表中对储存数据对象予以唯一和完整标识的数据列或属性的组合。一个数据列只能有一个主键，且主键的取值不能缺失，即不能为空值（Null）。主键是数据库确保数据行在整张表唯一 性的保障，即使业务上本张表没有主键，也建议添加一个自增长的ID列作为主键。设定了主键之后，在后续的删改查的时候可能更加快速以及确保操作数据范围安全。
 - [自增主键还是UUID？优缺点？怎么生成UUID？](https://blog.csdn.net/rocling/article/details/83116950)，比如item表使用自增ID，order表使用订单id，订单id可以认为是uuid。
-- **唯一性约束**：唯一性约束是很重要的特性，防止重复插入数据
+
+#### unique key
+- **唯一性约束UNIQUE KEY**：唯一性约束是很重要的特性，防止重复插入数据
+
+
+#### 关于FOREIGN KEY约束,不建议使用
 - **外键**：在一个表中存在的另一个表的主键称此表的外键。外键约束能保证好的保证的数据的完整性，但是会影响数据插入的性能，并且不方便后续的shard，所以一般不建议使用。
 - [为什么不推荐使用外键约束，而是业务代码来实现？](https://www.zhihu.com/question/21863571)
+
+
+#### int(10),bigint(20)
+- **整数类型的括号中的数字仅用于指定显示宽度，并不会影响存储范围或存储空**
+- 显示宽度：括号中的数字用于指定在查询结果中显示整数类型字段时的字符个数。它可以控制字段在查询结果中的对齐和显示格式。例如，如果将一个整数字段定义为 int(3)，并插入值 100，在查询时该字段将以 '100' 的形式显示，左侧用空格填充以达到指定的宽度
+- 零填充：括号中的数字还可以与 ZEROFILL 属性一起使用，以实现零填充的效果。当整数类型字段定义为 int(3) ZEROFILL 时，如果插入的值不足指定的宽度，MySQL 将在左侧用零进行填充
+
+
+#### 编码方式 
 - **编码方式**：**utf8mb4**：通过 show variables like 'character_set_%'; 可以查看系统默认字符集。mysql中有utf8和utf8mb4两种编码，在mysql中请大家忘记**utf8**，永远使用**utf8mb4**。这是mysql的一个遗留问题，mysql中的utf8最多只能支持3bytes长度的字符编码，对于一些需要占据4bytes的文字，mysql的utf8就不支持了，要使用utf8mb4才行
 - **COLLATE=utf8mb4_unicode_ci**,所谓utf8_unicode_ci，其实是用来排序的规则。对于mysql中那些字符类型的列，如VARCHAR，CHAR，TEXT类型的列，都需要有一个COLLATE类型来告知mysql如何对该列进行排序和比较。简而言之，COLLATE会影响到ORDER BY语句的顺序，会影响到WHERE条件中大于小于号筛选出来的结果，会影响**DISTINCT**、**GROUP BY**、**HAVING**语句的查询结果。另外，mysql建索引的时候，如果索引列是字符类型，也会影响索引创建，只不过这种影响我们感知不到。总之，凡是涉及到字符类型比较或排序的地方，都会和COLLATE有关。
 - **行格式**，row_format，(https://dev.mysql.com/doc/refman/5.7/en/innodb-row-format.html)
-- [int(10) 零填充zerofill](https://blog.csdn.net/houwanle/article/details/123192185)
 - [10.9.1 The utf8mb4 Character Set (4-Byte UTF-8 Unicode Encoding)](https://dev.mysql.com/doc/refman/5.7/en/charset-unicode-utf8mb4.html)
-- 是否需要分表，分库?（https://blog.csdn.net/thekenofDIS/article/details/108577905）
-- 是否需要增加index？
-- 存储引擎选择
 
-### 关于 null 的使用
+#### 关于 null 的使用
 - **除text类型外其它类型一般不使用null，都应该指定默认值**
    在MySQL和许多其他数据库系统中，**NULL是一个特殊的值，表示缺少值或未知值**。虽然NULL在某些情况下是有用的，但由于它的特殊性，使用NULL可能会带来一些问题，因此在某些情况下不建议过度使用NULL。一般只有text类型回用到，其它都应该制定默认值
 1. 逻辑判断和比较的复杂性：由于NULL表示未知或缺少值，它的比较结果不是true也不是false，而是NULL。这意味着使用NULL进行逻辑判断和比较时需要额外的注意，可能需要使用IS NULL或IS NOT NULL等特殊的操作符。
@@ -66,7 +84,7 @@ CREATE TABLE `hotel_info_tab` (
 虽然NULL有其合理的用途，例如表示缺失的数据或未知的值，但过度使用NULL可能会导致代码的复杂性增加、查询的不准确性和性能问题。在设计数据库模式和数据模型时，需要根据实际需求和业务逻辑合理使用NULL，并考虑到其带来的潜在问题。
 
 
-### 存储引擎（Storage Engine) 选择
+#### 存储引擎（Storage Engine) 选择
 [Setting the Storage Engine](https://dev.mysql.com/doc/refman/5.7/en/storage-engine-setting.html)
 MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景。以下是几种常见的MySQL存储引擎对比：
 - InnoDB：
@@ -93,11 +111,43 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
 - 读多，写少，追求读速度？myisam
 
 
+#### 索引选择
+- 唯一性约束
+- 联合索引
+- 见索引
+
+#### mysql隐式类型变换（有一次面试题：存储类型和查询类型不一致会发生什么？）
+在MySQL中，隐式类型转换是指在表达式或操作中自动将一个数据类型转换为另一个数据类型。MySQL会根据一组规则来执行隐式类型转换，以便执行操作或比较不同类型的数据。以下是MySQL中的一些常见的隐式类型转换规则：
+- 数值类型之间的转换：MySQL会自动将不同数值类型之间进行隐式转换，例如将整数转换为浮点数，或将较小的数值类型转换为较大的数值类型。
+- 字符串和数值类型之间的转换：MySQL会尝试将字符串转换为数值类型，或将数值类型转换为字符串。如果字符串可以解析为有效的数值，那么它将被转换为相应的数值类型。
+- 日期和时间类型之间的转换：MySQL会自动将日期和时间类型转换为其他日期和时间类型。例如，可以将日期类型转换为字符串，或将字符串转换为日期类型。
+- NULL的处理：在与其他数据类型进行操作时，MySQL会将NULL隐式转换为适当的数据类型。例如，NULL与数值类型相加时会被转换为0
+
+
+## mysql 线上DDL表结构变更注意事项
+
+在MySQL中进行字段类型修改、增加字段、增加索引和删除索引时，需要注意以下事项：
+
+- 数据备份：在进行任何结构变更之前，务必备份数据库的数据。这样可以在出现意外情况或错误时恢复数据。
+- 考虑数据类型转换：如果要修改字段的数据类型，需要考虑可能的数据类型转换问题。确保目标数据类型能够容纳原有数据，并且进行数据类型转换时不会导致数据丢失或截断。
+- 处理依赖关系：在修改字段类型、增加字段或删除字段时，需要考虑是否存在其他对象（如视图、存储过程或触发器）依赖于该字段。如果存在依赖关系，需要先处理这些依赖关系，以免操作失败或导致不一致性。
+- 使用ALTER TABLE语句：对于字段类型修改、增加字段和删除字段操作，可以使用ALTER TABLE语句来执行。确保在执行ALTER TABLE语句之前，先检查表的当前状态和结构，以避免不必要的错误。
+- 考虑数据量和性能：在进行结构变更操作时，特别是增加字段或增加索引时，需要考虑表中的数据量和性能影响。某些操作可能需要较长时间来完成，或者会对数据库的性能产生影响。在进行这些操作时，要谨慎评估和测试，以确保不会对正常运行产生负面影响。
+- 索引的选择和删除：在增加索引时，需要根据查询需求和数据访问模式选择合适的索引类型（如B-tree索引、哈希索引等）。而在删除索引时，需要确保不会影响到相关查询的性能。在进行索引的修改和删除操作时，最好事先进行性能测试和评估。
+- 注意并发操作和锁定：某些结构变更操作可能需要锁定表或行，以确保数据的一致性。在进行这些操作时，要注意可能的并发访问冲突，并在必要时进行合理的调度和通知，以避免对系统的影响。
+- 测试和验证：在进行结构变更之后，务必进行充分的测试和验证，以确保数据库的功能和性能没有受到不良影响。验证包括执行常见的查询、操作和业务逻辑，以确保一切正常。
+- 一般要求先变更DB，再发布代码
+总之，在进行MySQL的字段类型修改、增加字段、增加索引和删除索引时，需要谨慎行事，提前做好充分的准备、备份和测试，以确保操作的成功和数据的安全性
+- 表锁定和影响：某些DDL操作可能需要锁定整个表，这可能会对其他用户的操作产生影响。请在合适的时机执行DDL操作，避免对关键业务时间或频繁访问的表造成过多的阻塞。
+- 大型表操作：对于大型表的DDL操作（如ALTER TABLE），可能会涉及大量的数据移动和重建，可能会导致长时间的操作和额外的存储空间使用。在执行这些操作之前，请确保对表的大小和操作的影响进行评估
+- 错误处理和回滚：在执行DDL操作时，要注意捕获和处理可能的错误。如果DDL操作失败，确保有适当的错误处理机制和回滚策略，以保持数据的一致性
+- 数据库备份：在执行重要的DDL操作之前，请确保对数据库进行备份，以防操作出现问题导致数据丢失或不可恢复。这可以帮助你在需要时还原到先前的状态
+
+
 ## mysql架构扩展
 
 关系型数据库扩展包括许多技术：**主从复制**、**主主复制**、**联合**、**分片**、**非规范化**和 **SQL调优**。
 - [扩展你的用户数到第一个一千万](https://www.youtube.com/watch?v=w95murBkYmU)
-
 
 ### 主从复制
 <p align="center">
@@ -105,14 +155,11 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
   <br/>
   <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
 </p>
-
 主库同时负责读取和写入操作，并复制写入到一个或多个从库中，从库只负责读操作。树状形式的从库再将写入复制到更多的从库中去。如果主库离线，系统可以以只读模式运行，直到某个从库被提升为主库或有新的主库出现。主要的优缺点：
 - 读写分离提供集群的性能
 - 主、从多节点，宕机容灾
 - 将从库提升为主库需要额外的逻辑
 - 主从延时问题，需要监控
-
-
 
 ### 主主复制,多主复制
 <p align="center">
@@ -165,7 +212,6 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
 - [一致性哈希](http://www.paperplanes.de/2011/12/9/the-magic-of-consistent-hashing.html)
 
 
-
 ## 分表/分库/历史数据归档和路由
 原文链接：https://juejin.cn/post/6844903872134135816
 - 今天，探讨一个有趣的话题：MySQL 单表数据达到多少时才需要考虑分库分表？有人说 2000 万行，也有人说 500 万行。那么，你觉得这个数值多少才合适呢？
@@ -185,6 +231,11 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
 - 超过1年的历史订单归档，将时间超过1年的订单归档存储到hbase中
 - 如何实现历史订单表数据归档，冷热数据的路由？
 - [订单系统设计方案之如何做历史订单和归档](https://www.80wz.com/wfwstudy/1084.html)
+- [订单数据归档方案](https://zq99299.github.io/note-book/back-end-storage/02/07.html#%E5%AD%98%E6%A1%A3%E5%8E%86%E5%8F%B2%E8%AE%A2%E5%8D%95%E6%95%B0%E6%8D%AE%E6%8F%90%E5%8D%87%E6%9F%A5%E8%AF%A2%E6%80%A7%E8%83%BD)
+- <p align="center">
+  <img src="../../images/mysql-order-archive.png" width=600 height=200>
+</p>
+
 
 **案例3. 数据历史版本记录、快照表**
 - 在有些场景中，数据变更不回特别频繁，特别是人工变更时，记录数据版本和快照是非常好的习惯，方便追溯历史行为记录
@@ -267,56 +318,6 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
   - https://juejin.cn/post/6844903647197806605
   - https://www.cnblogs.com/jajian/p/10014145.html
 
-
-
-## 数据库核心监控
-- **核心监控告警指标**
-  - read write qps 监控/select/update/insert
-  - connections
-  - thread
-  - InnoDB buffer pool
-  - 慢查询监控
-  - 网络流量IO
-  - 读写分离架构时需要监控主从延时
-
-
-- 关键配置查看
-    ```
-    show global variables;
-    show variables like '%max_connection%'; 查看最大连接数
-    show status like  'Threads%';
-    show processlist;
-    show variables like '%connection%';
-    ```
-
-- 存储空间information_schema
-  ```
-    -- desc information_schema.tables;
-    -- 查看 MySQL「所有库」的容量大小
-    SELECT table_schema AS '数据库', SUM(table_rows) AS '记录数', 
-    SUM(truncate(data_length / 1024 / 1024, 2)) AS '数据容量(MB)',
-    SUM(truncate(index_length / 1024 / 1024, 2)) AS '索引容量(MB)',
-    SUM(truncate(DATA_FREE / 1024 / 1024, 2)) AS '碎片占用(MB)'
-    FROM information_schema.tables
-    GROUP BY table_schema
-    ORDER BY SUM(data_length) DESC, SUM(index_length) DESC;
-    -- 指定书库查看表的数据量
-    SELECT
-      table_schema as '数据库',
-      table_name as '表名',
-      table_rows as '记录数',
-      truncate(data_length/1024/1024, 2) as '数据容量(MB)',
-      truncate(index_length/1024/1024, 2) as '索引容量(MB)',
-      truncate(DATA_FREE/1024/1024, 2) as '碎片占用(MB)'
-    from 
-      information_schema.tables
-    where 
-      table_schema='<数据库名>'
-    order by 
-      data_length desc, index_length desc;
-  ```
-  - [performance_schema](https://www.cnblogs.com/Courage129/p/14188422.html)
-  
  
  ## 数据库调优
  -  **优化的步骤**
@@ -329,7 +330,6 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
     - [数据归档](https://www.cnblogs.com/goodAndyxublog/p/14994451.html)：数据是否有冷热的区别，例如订单数据有比较明显的时间冷热的区别，可以考虑冷数据归档。比如半年前的订单数据可以写入hbase
     - 池化
   
-  
 - **架构优化**
     - 分库，分表。垂直分，水平分。依据QPS和耗时，服务端最大并非连接数量
     - 读写分离
@@ -337,7 +337,6 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
     - 异步写，写平滑
     - 缓存优化
     - 历史数据归档
-
 
 - **连接池的配置和使用**
     - 连接池能减少连接创建和释放带来的开销，大多数SDK也支持是支持连接池的，通常实际生产环境中也都会使用到连接池，需要关注一下几个参数
@@ -410,11 +409,54 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
     - 在写操作的较多的情况可以考虑数据库读写分离的方案
     - [业界的方案](https://www.cnblogs.com/wollow/p/10839890.html),代理实现和业务实现
 
-## mysql DDL 操作注意事项
-- 表锁定和影响：某些DDL操作可能需要锁定整个表，这可能会对其他用户的操作产生影响。请在合适的时机执行DDL操作，避免对关键业务时间或频繁访问的表造成过多的阻塞。
-- 大型表操作：对于大型表的DDL操作（如ALTER TABLE），可能会涉及大量的数据移动和重建，可能会导致长时间的操作和额外的存储空间使用。在执行这些操作之前，请确保对表的大小和操作的影响进行评估
-- 错误处理和回滚：在执行DDL操作时，要注意捕获和处理可能的错误。如果DDL操作失败，确保有适当的错误处理机制和回滚策略，以保持数据的一致性
-- 数据库备份：在执行重要的DDL操作之前，请确保对数据库进行备份，以防操作出现问题导致数据丢失或不可恢复。这可以帮助你在需要时还原到先前的状态
+- **核心监控告警指标**
+  - read write qps 监控/select/update/insert
+  - connections
+  - thread
+  - InnoDB buffer pool
+  - 慢查询监控
+  - 网络流量IO
+  - 读写分离架构时需要监控主从延时
+
+
+- **关键配置查看**
+    ```
+    show global variables;
+    show variables like '%max_connection%'; 查看最大连接数
+    show status like  'Threads%';
+    show processlist;
+    show variables like '%connection%';
+    ```
+
+- 存储空间information_schema
+  ```
+    -- desc information_schema.tables;
+    -- 查看 MySQL「所有库」的容量大小
+    SELECT table_schema AS '数据库', SUM(table_rows) AS '记录数', 
+    SUM(truncate(data_length / 1024 / 1024, 2)) AS '数据容量(MB)',
+    SUM(truncate(index_length / 1024 / 1024, 2)) AS '索引容量(MB)',
+    SUM(truncate(DATA_FREE / 1024 / 1024, 2)) AS '碎片占用(MB)'
+    FROM information_schema.tables
+    GROUP BY table_schema
+    ORDER BY SUM(data_length) DESC, SUM(index_length) DESC;
+    -- 指定书库查看表的数据量
+    SELECT
+      table_schema as '数据库',
+      table_name as '表名',
+      table_rows as '记录数',
+      truncate(data_length/1024/1024, 2) as '数据容量(MB)',
+      truncate(index_length/1024/1024, 2) as '索引容量(MB)',
+      truncate(DATA_FREE/1024/1024, 2) as '碎片占用(MB)'
+    from 
+      information_schema.tables
+    where 
+      table_schema='<数据库名>'
+    order by 
+      data_length desc, index_length desc;
+  ```
+  - [performance_schema](https://www.cnblogs.com/Courage129/p/14188422.html)
+
+
     
 ## MySQL多表关联查询 vs 多次单表查询service组装
 - 多次单表查询+Service组装：
@@ -486,8 +528,3 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
 - [MySQL数据库面试题（2020最新版）](https://thinkwon.blog.csdn.net/article/details/104778621)
 - https://cyborg2077.github.io/2023/05/06/InQMySQL/
 
-## 了解数据库三大范式
-- 第一范式：每个列都不可以再拆分。
-- 第二范式：在第一范式的基础上，非主键列完全依赖于主键，而不能是依赖于主键的一部分。
-- 第三范式：在第二范式的基础上，非主键列只依赖于主键，不依赖于其他非主键。
-在设计数据库结构的时候，要尽量遵守三范式，如果不遵守，必须有足够的理由。比如性能。事实上我们经常会为了性能而妥协数据库的设计。

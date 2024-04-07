@@ -99,6 +99,23 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
 - 通常来说，对于流量较小的业务来说，可以设置较小的expire time,可以将redis和db的不一致的时间控制在一定的范围内部
 - 对于缓存和db一致性要求较高的场合，通常采用的是先更新db，再删除或者更新redis，考虑到并发性和两个操作的原子性（删除或者更新可能会失败），可以增加重试机制（双删除），如果考虑主从延时，可以引入mq做延时双删
 - http://kaito-kidd.com/2021/09/08/how-to-keep-cache-and-consistency-of-db/
+<p align="center">
+  <img src="../../images/cache-refesh.png" width=600 height=850>
+</p>
+
+|  缓存更新方式  |  优缺点  | 
+| -- | -- |
+| 缓存模式+TTL | 业务代码只更新DB，不更新cache，设置较短的TTL(通常分钟级），依靠cache过期无法找到key时回源DB，热key过期可能回导致请求大量请求击穿到DB，需要使用分布式锁或者singleflight等方式避免这种问题 |
+| 定时刷新模式 | 定时任务异步获取DB数据刷新到cache，读请求可不回源，需要考虑刷新时间和批量读写 |
+| 写DB,写cache | 在并发条件下，DB写操作顺序和cache操作不同保证顺序一致性，需要增加分布式锁等操作 |
+| 写DB，删除cache| 删除cache可能失败，需要增加重试，重试也可能失败，比较复杂的加个MQ补偿重试 |
+
+
+### 思考：
+- 对一致性要求有多强？
+- TTL 设置的时长
+- 并发冲突可能性
+- 热key缓存击穿保护
 
 ## redis 怎么扩容扩容和收缩
 - https://www.infoq.cn/article/uiqypvrtnq4buerrm3dc
