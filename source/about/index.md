@@ -11,7 +11,7 @@
   - [计算机网络](../_posts/计算机基础/Internet-interview.md)
 - 编程语言：C++/Golang/Python
 - 数据结构和算法: leetcode
-- 后台中间件：
+- 后台中间件
   - [Mysql](../_posts/计算机基础/middleware-mysql.md)
   - [redis](../_posts/计算机基础/middleware-redis.md)
   - [kafka](../_posts/计算机基础/middleware-redis.md)
@@ -19,6 +19,10 @@
   - hbase
   - s3 对象存储
   - CDN 存储
+- 缓存
+  - 本地缓存，remote cache（双buffer vs LRU，并发安全问题）
+  - 缓存更新机制（TTL，击穿问题，随机过期时间避免雪崩，singleflight 分布式锁 存储保护）
+  - localcache，github.com/golang/groupcache
 - dns + lvs + ngnix 网关和负载均衡的设计和实现
   - 域名注册、域名解析
   - lvs 和 ngnix
