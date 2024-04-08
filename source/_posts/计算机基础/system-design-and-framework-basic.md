@@ -241,7 +241,7 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 
 ## 单体服务、微服务、Service Mesh
 <p align="center">
-  <img src="../../images/rpc_to_service_mesh.png" width=600 height=400>
+  <img src="../../images/rpc_to_service_mesh.png" width=600 height=350>
   <br/>
   <strong><a href="https://www.zhihu.com/question/56125281">什么是服务治理</a></strong>
 </p>
@@ -256,7 +256,7 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 
 ## 微服务
 <p align="center">
-  <img src="../../images/landing-2.svg" width=600 height=400>
+  <img src="../../images/landing-2.svg" width=600 height=350>
   <br/>
   <strong><a href="https://grpc.io/docs/what-is-grpc/introduction">gRPC 概述</a></strong>
 </p>
@@ -447,69 +447,47 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 
 数据库分片均匀分布的读取是最好的。但是热门数据会让读取分布不均匀，这样就会造成瓶颈，如果在数据库前加个缓存，就会抹平不均匀的负载和突发流量对数据库的影响。
 
-### 客户端缓存
-
+### 缓存级别
+- 客户端缓存
 缓存可以位于客户端（操作系统或者浏览器），[服务端](#反向代理web-服务器)或者不同的缓存层。
-
-### CDN 缓存
-
-[CDN](#内容分发网络cdn) 也被视为一种缓存。
-
-### Web 服务器缓存
-
+- CDN 缓存，[CDN](#内容分发网络cdn) 也被视为一种缓存。
+- Web 服务器缓存
 [反向代理](#反向代理web-服务器)和缓存（比如 [Varnish](https://www.varnish-cache.org/)）可以直接提供静态和动态内容。Web 服务器同样也可以缓存请求，返回相应结果而不必连接应用服务器。
-
-### 数据库缓存
-
-数据库的默认配置中通常包含缓存级别，针对一般用例进行了优化。调整配置，在不同情况下使用不同的模式可以进一步提高性能。
-
-### 应用缓存
-
-基于内存的缓存比如 Memcached 和 Redis 是应用程序和数据存储之间的一种键值存储。由于数据保存在 RAM 中，它比存储在磁盘上的典型数据库要快多了。RAM 比磁盘限制更多，所以例如 [least recently used (LRU)](https://en.wikipedia.org/wiki/Cache_algorithms#Least_Recently_Used) 的[缓存无效算法](https://en.wikipedia.org/wiki/Cache_algorithms)可以将「热门数据」放在 RAM 中，而对一些比较「冷门」的数据不做处理。
-
-Redis 有下列附加功能：
-
-- 持久性选项
-- 内置数据结构比如有序集合和列表
-
-有多个缓存级别，分为两大类：**数据库查询**和**对象**：
-
-- 行级别
-- 查询级别
-- 完整的可序列化对象
-- 完全渲染的 HTML
-
-一般来说，你应该尽量避免基于文件的缓存，因为这使得复制和自动缩放很困难。
-
-### 数据库查询级别的缓存
-
-当你查询数据库的时候，将查询语句的哈希值与查询结果存储到缓存中。这种方法会遇到以下问题：
-
-- 很难用复杂的查询删除已缓存结果。
-- 如果一条数据比如表中某条数据的一项被改变，则需要删除所有可能包含已更改项的缓存结果。
-
-### 对象级别的缓存
-
-将您的数据视为对象，就像对待你的应用代码一样。让应用程序将数据从数据库中组合到类实例或数据结构中：
-
-- 如果对象的基础数据已经更改了，那么从缓存中删掉这个对象。
-- 允许异步处理：workers 通过使用最新的缓存对象来组装对象。
-
-建议缓存的内容：
-
-- 用户会话
-- 完全渲染的 Web 页面
-- 活动流
-- 用户图数据
+- 应用服务缓存(本地缓存)
+- 缓存服务器（remote cache）
+- 数据库本身的缓存
 
 
+### 双buffer vs LRU/LFU
 
+<p align="center">
+  <img src="../../images/double-buffer-lru.png" width=550 height=600>
+</p>
 
+本地缓存的双缓冲机制和本地LRU（Least Recently Used）算法都是常见的缓存优化技术，它们具有不同的优点和缺点。
+
+1. 双缓冲机制：
+   - 优点：
+     - 提高并发性能：双缓冲机制使用两个缓冲区，一个用于读取数据，另一个用于写入数据。这样可以避免读写冲突，提高了并发性能。
+     - 提高数据访问效率：由于读取操作不会直接访问主缓存，而是读取缓冲区的数据，因此可以更快地获取数据。
+   - 缺点：
+     - 内存开销增加：双缓冲机制需要维护两个缓冲区，这会增加内存开销。
+     - 数据延迟：数据更新定时同步，有一定延时。
+
+2. 本地LRU算法：
+   - 优点：
+     - 数据访问效率高：LRU算法根据数据的访问顺序进行缓存替换，将最近最少使用的数据淘汰出缓存。这样可以保留最常用的数据，提高数据的访问效率。
+     - 简单有效：LRU算法的实现相对简单，只需要维护一个访问顺序链表和一个哈希表即可。
+   - 缺点：
+     - 缓存命中率下降：如果数据的访问模式不符合LRU算法的假设，即最近访问的数据在未来也是最有可能被访问的，那么LRU算法的效果可能不理想，缓存命中率会下降。
+     - 对于热点数据不敏感：LRU算法只考虑了最近的访问情况，对于热点数据（频繁访问的数据）可能无法有效地保留在缓存中。
+
+综合来看，双缓冲机制适用于需要提高并发性能、批量更新等场景，但会增加内存开销。本地LRU算法适用于需要提高数据访问效率的场景，但对于访问模式不符合LRU假设的情况下，缓存命中率可能下降。在实际应用中，可以根据具体需求和场景选择适合的缓存优化技术。
 
 ### 缓存更新的四种模式
 
 <p align="center">
-  <img src="../../images/cache-refesh.png" width=600 height=850>
+  <img src="../../images/cache-refesh.png" width=550 height=700>
 </p>
 
 |  缓存更新方式  |  优缺点  | 
@@ -531,7 +509,7 @@ Redis 有下列附加功能：
 ## 异步
 
 <p align="center">
-  <img src="../../images/54GYsSx.png">
+  <img src="../../images/54GYsSx.png" width=500 height=150>
   <br/>
   <strong><a href=http://lethain.com/introduction-to-architecting-systems-for-scale/#platform_layer>资料来源：可缩放系统构架介绍</a></strong>
 </p>
@@ -540,42 +518,47 @@ Redis 有下列附加功能：
 
 ### 消息队列
 
-消息队列接收，保留和传递消息。如果按顺序执行操作太慢的话，你可以使用有以下工作流的消息队列：
+<p align="center">
+  <img src="../../images/kafka_architecture.png" width=600 height=400>
+</p>
 
+消息队列接收，保留和传递消息。如果按顺序执行操作太慢的话，你可以使用有以下工作流的消息队列：
 - 应用程序将作业发布到队列，然后通知用户作业状态
 - 一个 worker 从队列中取出该作业，对其进行处理，然后显示该作业完成
-
 不去阻塞用户操作，作业在后台处理。在此期间，客户端可能会进行一些处理使得看上去像是任务已经完成了。例如，如果要发送一条推文，推文可能会马上出现在你的时间线上，但是可能需要一些时间才能将你的推文推送到你的所有关注者那里去。
+- **kafka** 是一个令人满意的简单的消息代理，但是消息有可能会丢失。
+- **RabbitMQ** 很受欢迎但是要求你适应「AMQP」协议并且管理你自己的节点。
+- **Apache Pulsar** Pulsar是一个开源的、可扩展的消息队列和流处理平台。它具有高吞吐量、低延迟和可持久化的特点，支持多租户、多数据中心和多协议等功能
 
-**Redis** 是一个令人满意的简单的消息代理，但是消息有可能会丢失。
 
-**RabbitMQ** 很受欢迎但是要求你适应「AMQP」协议并且管理你自己的节点。
+### 任务队列 （xxl-job)
+<p align="center">
+  <img src="../../images/xxljob-architecture.png" width=600 height=350>
+  <br/>
+  <strong><a href=https://www.xuxueli.com/xxl-job/#5.3.3%20%E6%9E%B6%E6%9E%84%E5%9B%BE>资料来源：xxl-job系统构架介绍</a></strong>
+</p>
 
-**Amazon SQS** 是被托管的，但可能具有高延迟，并且消息可能会被传送两次。
+如果队列开始明显增长，那么队列大小可能会超过内存大小，导致高速缓存未命中，磁盘读取，甚至性能更慢。[背压](http://mechanical-sympathy.blogspot.com/2012/05/apply-back-pressure-when-overloaded.html)可以通过限制队列大小来帮助我们，从而为队列中的作业保持高吞吐率和良好的响应时间。一旦队列填满，客户端将得到服务器忙或者 HTTP 503 状态码，以便稍后重试。客户端可以在稍后时间重试该请求，也许是[指数退避](https://en.wikipedia.org/wiki/Exponential_backoff)
 
-### 任务队列
+### 延时任务调度
 
-任务队列接收任务及其相关数据，运行它们，然后传递其结果。 它们可以支持调度，并可用于在后台运行计算密集型作业。
+<p align="center">
+  <img src="../../images/lmstfy-internal.png" width=600 height=350>
+  <br/>
+  <strong><a href=https://github.com/bitleak/lmstfy?tab=readme-ov-file>资料来源：lmstfy github</a></strong>
+</p>
 
-**Celery** 支持调度，主要是用 Python 开发的。
+#### 延时任务场景
+- 延时处理：有时候需要在某个事件发生后的一段时间内执行任务。例如，当用户提交订单后，可以设置一个延时任务，在一段时间后检查是否是支付
+- 提醒和通知：延时任务调度可用于发送提醒和通知。例如，你可以设置一个延时任务，在用户注册后的24小时内发送一封欢迎邮件，或在用户下单后的一段时间内发送订单确认通知。
+- 缓存刷新：延时任务调度可用于刷新缓存数据。当缓存过期时，可以设置一个延时任务，在一定的延时时间后重新加载缓存数据，以保持数据的新鲜性
 
-### 背压
+#### 可用组件
+- redis 包括有序集合（Sorted Set）你可以使用Redis的有序集合来实现延时任务队列。将任务的执行时间作为分数（score），任务的内容作为成员（member），将任务按照执行时间排序。通过定期轮询有序集合，检查是否有任务的执行时间到达，然后执行相应的任务
+- https://github.com/bitleak/lmstfy
 
-如果队列开始明显增长，那么队列大小可能会超过内存大小，导致高速缓存未命中，磁盘读取，甚至性能更慢。[背压](http://mechanical-sympathy.blogspot.com/2012/05/apply-back-pressure-when-overloaded.html)可以通过限制队列大小来帮助我们，从而为队列中的作业保持高吞吐率和良好的响应时间。一旦队列填满，客户端将得到服务器忙或者 HTTP 503 状态码，以便稍后重试。客户端可以在稍后时间重试该请求，也许是[指数退避](https://en.wikipedia.org/wiki/Exponential_backoff)。
-
-### 异步的缺点：
-
-- 简单的计算和实时工作流等用例可能更适用于同步操作，因为引入队列可能会增加延迟和复杂性。
-
-### 相关资源和延伸阅读
-
-- [这是一个数字游戏](https://www.youtube.com/watch?v=1KRYH75wgy4)
-- [超载时应用背压](http://mechanical-sympathy.blogspot.com/2012/05/apply-back-pressure-when-overloaded.html)
-- [利特尔法则](https://en.wikipedia.org/wiki/Little%27s_law)
-- [消息队列与任务队列有什么区别？](https://www.quora.com/What-is-the-difference-between-a-message-queue-and-a-task-queue-Why-would-a-task-queue-require-a-message-broker-like-RabbitMQ-Redis-Celery-or-IronMQ-to-function)
 
 ## 通讯
-
 <p align="center">
   <img src="../../images/5KeocQs.jpg">
   <br/>
