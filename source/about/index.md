@@ -52,9 +52,13 @@
   - 分布式调度：https://github.com/xuxueli/xxl-job
 - 延时任务队列
   - https://juejin.cn/post/7000189281641693192
+  - redis sorted set
+  - lmstfy https://github.com/bitleak/lmstfy
 - abtest 平台
-- 服务发现zookeeper
+- 服务发现，集群管理
   - https://blog.csdn.net/zyhlwzy/article/details/101847565
+  - zookeeper：https://zookeeper.apache.org
+  - etcd https://coreos.com/etcd/docs/latest
 - 工作流引擎与任务编排
   - https://github.com/s8sg/goflow
   - https://github.com/go-workflow/go-workflow
