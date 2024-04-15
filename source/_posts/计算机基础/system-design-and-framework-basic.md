@@ -566,6 +566,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 </p>
 
 ### 超文本传输协议（HTTPS/HTTP1.1/HTTP2/HTTP3）
+https://aws.amazon.com/cn/compare/the-difference-between-https-and-http/
 
 HTTP 是一种在客户端和服务器之间编码和传输数据的方法。它是一个请求/响应协议：客户端和服务端针对相关内容和完成状态信息的请求和响应。HTTP 是独立的，允许请求和响应流经许多执行负载均衡，缓存，加密和压缩的中间路由器和服务器。
 
