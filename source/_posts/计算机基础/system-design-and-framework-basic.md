@@ -565,7 +565,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
   <strong><a href=http://www.escotal.com/osilayer.html>资料来源：OSI 7层模型</a></strong>
 </p>
 
-### 超文本传输协议（HTTP）
+### 超文本传输协议（HTTPS/HTTP1.1/HTTP2/HTTP3）
 
 HTTP 是一种在客户端和服务器之间编码和传输数据的方法。它是一个请求/响应协议：客户端和服务端针对相关内容和完成状态信息的请求和响应。HTTP 是独立的，允许请求和响应流经许多执行负载均衡，缓存，加密和压缩的中间路由器和服务器。
 
