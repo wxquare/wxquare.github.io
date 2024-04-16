@@ -594,7 +594,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - HTTP/2 是 HTTP 的第二个主要版本，使用二进制协议，引入了多路复用、头部压缩、服务器推送等特性。
 - HTTP/3 是 HTTP 的第三个主要版本，基于 QUIC 协议，使用 UDP，提供更快的传输速度和更好的性能
 
-## 安全
+## 安全问题
 这一部分需要更多内容。[一起来吧](#贡献)！
 安全是一个宽泛的话题。除非你有相当的经验、安全方面背景或者正在申请的职位要求安全知识，你不需要了解安全基础知识以外的内容：
 * 在运输和等待过程中加密
@@ -636,14 +636,7 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 * 数据中心内每秒有 2,000 次往返
 
 
-#### 来源及延伸阅读
-* [每个程序员都应该知道的延迟数 — 1](https://gist.github.com/jboner/2841832)
-* [每个程序员都应该知道的延迟数 — 2](https://gist.github.com/hellerbarde/2843375)
-* [关于建设大型分布式系统的的设计方案、课程和建议](http://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf)
-* [关于建设大型可拓展分布式系统的软件工程咨询](https://static.googleusercontent.com/media/research.google.com/en//people/jeff/stanford-295-talk.pdf)
-
-### 其它的系统设计面试题
-
+## 其它的系统设计
 > 常见的系统设计面试问题，给出了如何解决的方案链接
 | 问题                      | 引用                                       |
 | ----------------------- | ---------------------------------------- |
@@ -670,31 +663,8 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 | 设计一个垃圾回收系统              | [stuffwithstuff.com](http://journal.stuffwithstuff.com/2013/12/08/babys-first-garbage-collector/)<br/>[washington.edu](http://courses.cs.washington.edu/courses/csep521/07wi/prj/rick.pdf) |
 | 添加更多的系统设计问题             | [贡献](#贡献)              |
 
-### 真实架构
-
-> 关于现实中真实的系统是怎么设计的文章。
-
-<p align="center">
-  <img src="../../images/TcUo2fw.png">
-  <br/>
-  <strong><a href="https://www.infoq.com/presentations/Twitter-Timeline-Scalability">Source: Twitter timelines at scale</a></strong>
-</p>
 
 
-## Gin web 
-我们先思考下，一个完整的Web开发框架需要做哪些事情
-- server，作为server，监听端口，接受请求
-- router 路由和分组路由，可以把请求路由到对应的处理函数
-- middleware 支持中间件，对外部发过来的http请求经过中间件处理，再给到对应的处理函数。例如http请求的日志记录、请求鉴权(比如校验token)、CORS支持、CSRF校验等。
-- Crash-free：崩溃恢复，Gin可以捕捉运行期处理http请求过程中的panic并且做recover操作，让服务一直可用。
-- JSON validation：JSON验证。Gin可以解析和验证request里的JSON内容，比如字段必填等。当然开发人员也可以选择使用第三方的JSON validation工具，比如[beego validation](https://github.com/beego/beego/tree/develop/core/validation)。
-- Error management：错误管理。Gin提供了一种简单的方式可以收集http request处理过程中的错误，最终中间件可以选择把这些错误写入到log文件、数据库或者发送到其它系统。
-- Middleware Extendtable：可以自定义中间件。Gin除了自带的官方中间件之外，还支持用户自定义中间件，甚至可以把自己开发的中间件提交到[官方代码仓库](https://github.com/gin-gonic/contrib)里。
-
-参考：
-- [web 框架比较](https://github.com/jincheng9/go-tutorial/tree/main/workspace/gin/01)
-- https://github.com/gin-gonic/gin
-- https://github.com/gin-gonic/contrib
 
 
 ## 任务调度
