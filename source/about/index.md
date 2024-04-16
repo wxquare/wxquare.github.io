@@ -42,7 +42,7 @@
   - https://github.com/afex/hystrix-go
 - grpc和RPC服务的架构解析原理
   - https://github.com/grpc/grpc 
-- 监控体系
+- 可视化监控
   - 日志管理和检索： Elasticsearch、Logstash、Kibana（ELK Stack）
   - 指标监控：Prometheus、Grafana、cat
   - 分布式追踪：分布式追踪工具包括 Jaeger + opentracing
@@ -72,9 +72,10 @@
   - 流式处理
   - scala/python/spark/hive/presto/Flink/speak streaming
 - 服务的部署CI/CD和运维
-  - jenkins
-  - docker
-  - Kubernetes
+  - docker（容器、镜像管理）
+  - Kubernetes 
+  - jenkins/CI/CD
+  - git
 
 ## 规范
 - git 使用规范。代码管理规范
