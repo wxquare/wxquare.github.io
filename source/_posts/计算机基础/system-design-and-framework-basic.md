@@ -556,6 +556,20 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
   <strong><a href=https://www.xuxueli.com/xxl-job/#5.3.3%20%E6%9E%B6%E6%9E%84%E5%9B%BE>资料来源：xxl-job系统构架介绍</a></strong>
 </p>
 
+- 单点调度：https://github.com/robfig/cron
+- 分布式调度：https://github.com/xuxueli/xxl-job
+将调度行为抽象形成“调度中心”公共平台，而平台自身并不承担业务逻辑，“调度中心”负责发起调度请求。将任务抽象成分散的JobHandler，交由“执行器”统一管理，“执行器”负责接收调度请求并执行对应的JobHandler中业务逻辑。因此，“调度”和“任务”两部分可以相互解耦，提高系统整体稳定性和扩展性
+- 调度模块（调度中心）：
+负责管理调度信息，按照调度配置发出调度请求，自身不承担业务代码。调度系统与任务解耦，提高了系统可用性和稳定性，同时调度系统性能不再受限于任务模块；
+支持可视化、简单且动态的管理调度信息，包括任务新建，更新，删除，GLUE开发和任务报警等，所有上述操作都会实时生效，同时支持监控调度结果以及执行日志，支持执行器Failover。
+- 执行模块（执行器，executor）：
+负责接收调度请求并执行任务逻辑。任务模块专注于任务的执行等操作，开发和维护更加简单和高效；
+接收“调度中心”的执行请求、终止请求和日志请求等
+
+参考：
+- https://www.xuxueli.com/xxl-job/
+- https://github.com/mousycoder/xxl-job-go-sdk
+
 如果队列开始明显增长，那么队列大小可能会超过内存大小，导致高速缓存未命中，磁盘读取，甚至性能更慢。[背压](http://mechanical-sympathy.blogspot.com/2012/05/apply-back-pressure-when-overloaded.html)可以通过限制队列大小来帮助我们，从而为队列中的作业保持高吞吐率和良好的响应时间。一旦队列填满，客户端将得到服务器忙或者 HTTP 503 状态码，以便稍后重试。客户端可以在稍后时间重试该请求，也许是[指数退避](https://en.wikipedia.org/wiki/Exponential_backoff)
 
 ### 延时任务调度
@@ -570,6 +584,10 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - 延时处理：有时候需要在某个事件发生后的一段时间内执行任务。例如，当用户提交订单后，可以设置一个延时任务，在一段时间后检查是否是支付
 - 提醒和通知：延时任务调度可用于发送提醒和通知。例如，你可以设置一个延时任务，在用户注册后的24小时内发送一封欢迎邮件，或在用户下单后的一段时间内发送订单确认通知。
 - 缓存刷新：延时任务调度可用于刷新缓存数据。当缓存过期时，可以设置一个延时任务，在一定的延时时间后重新加载缓存数据，以保持数据的新鲜性
+- 任务队列跟消息队列在使用场景上最大的区别是： 任务之间是没有顺序约束而消息要求顺序(FIFO)，且可能会对任务的状态更新而消息一般只会消费不会更新。 类似 Kafka 利用消息 FIFO 和不需要更新(不需要对消息做索引)的特性来设计消息存储，将消息读写变成磁盘的顺序读写来实现比较好的性能。而任务队列需要能够任务状态进行更新则需要对每个消息进行索引，如果把两者放到一起实现则很难实现在功能和性能上兼得。比如一下场景：
+- 定时任务，如每天早上 8 点开始推送消息，定期删除过期数据等
+- 任务流，如自动创建 Redis 流程由资源创建，资源配置，DNS 修改等部分组成，使用任务队列可以简化整体的设计和重试流程
+- 重试任务，典型场景如离线图片处理
 
 #### 可用组件
 - redis 包括有序集合（Sorted Set）你可以使用Redis的有序集合来实现延时任务队列。将任务的执行时间作为分数（score），任务的内容作为成员（member），将任务按照执行时间排序。通过定期轮询有序集合，检查是否有任务的执行时间到达，然后执行相应的任务
@@ -636,111 +654,16 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 * 数据中心内每秒有 2,000 次往返
 
 
-## 其它的系统设计
-> 常见的系统设计面试问题，给出了如何解决的方案链接
-| 问题                      | 引用                                       |
-| ----------------------- | ---------------------------------------- |
-| 设计类似于 Dropbox 的文件同步服务   | [youtube.com](https://www.youtube.com/watch?v=PE4gwstWhmc) |
-| 设计类似于 Google 的搜索引擎      | [queue.acm.org](http://queue.acm.org/detail.cfm?id=988407)<br/>[stackexchange.com](http://programmers.stackexchange.com/questions/38324/interview-question-how-would-you-implement-google-search)<br/>[ardendertat.com](http://www.ardendertat.com/2012/01/11/implementing-search-engines/)<br/>[stanford.edu](http://infolab.stanford.edu/~backrub/google.html) |
-| 设计类似于 Google 的可扩展网络爬虫   | [quora.com](https://www.quora.com/How-can-I-build-a-web-crawler-from-scratch) |
-| 设计 Google 文档            | [code.google.com](https://code.google.com/p/google-mobwrite/)<br/>[neil.fraser.name](https://neil.fraser.name/writing/sync/) |
-| 设计类似 Redis 的键值存储        | [slideshare.net](http://www.slideshare.net/dvirsky/introduction-to-redis) |
-| 设计类似 Memcached 的缓存系统    | [slideshare.net](http://www.slideshare.net/oemebamo/introduction-to-memcached) |
-| 设计类似亚马逊的推荐系统            | [hulu.com](http://tech.hulu.com/blog/2011/09/19/recommendation-system.html)<br/>[ijcai13.org](http://ijcai13.org/files/tutorial_slides/td3.pdf) |
-| 设计类似 Bitly 的短链接系统       | [n00tc0d3r.blogspot.com](http://n00tc0d3r.blogspot.com/) |
-| 设计类似 WhatsApp 的聊天应用     | [highscalability.com](http://highscalability.com/blog/2014/2/26/the-whatsapp-architecture-facebook-bought-for-19-billion.html) |
-| 设计类似 Instagram 的图片分享系统  | [highscalability.com](http://highscalability.com/flickr-architecture)<br/>[highscalability.com](http://highscalability.com/blog/2011/12/6/instagram-architecture-14-million-users-terabytes-of-photos.html) |
-| 设计 Facebook 的新闻推荐方法     | [quora.com](http://www.quora.com/What-are-best-practices-for-building-something-like-a-News-Feed)<br/>[quora.com](http://www.quora.com/Activity-Streams/What-are-the-scaling-issues-to-keep-in-mind-while-developing-a-social-network-feed)<br/>[slideshare.net](http://www.slideshare.net/danmckinley/etsy-activity-feeds-architecture) |
-| 设计 Facebook 的时间线系统      | [facebook.com](https://www.facebook.com/note.php?note_id=10150468255628920)<br/>[highscalability.com](http://highscalability.com/blog/2012/1/23/facebook-timeline-brought-to-you-by-the-power-of-denormaliza.html) |
-| 设计 Facebook 的聊天系统       | [erlang-factory.com](http://www.erlang-factory.com/upload/presentations/31/EugeneLetuchy-ErlangatFacebook.pdf)<br/>[facebook.com](https://www.facebook.com/note.php?note_id=14218138919&id=9445547199&index=0) |
-| 设计类似 Facebook 的图表搜索系统   | [facebook.com](https://www.facebook.com/notes/facebook-engineering/under-the-hood-building-out-the-infrastructure-for-graph-search/10151347573598920)<br/>[facebook.com](https://www.facebook.com/notes/facebook-engineering/under-the-hood-indexing-and-ranking-in-graph-search/10151361720763920)<br/>[facebook.com](https://www.facebook.com/notes/facebook-engineering/under-the-hood-the-natural-language-interface-of-graph-search/10151432733048920) |
-| 设计类似 CloudFlare 的内容传递网络 | [cmu.edu](http://repository.cmu.edu/cgi/viewcontent.cgi?article=2112&context=compsci) |
-| 设计类似 Twitter 的热门话题系统    | [michael-noll.com](http://www.michael-noll.com/blog/2013/01/18/implementing-real-time-trending-topics-in-storm/)<br/>[snikolov .wordpress.com](http://snikolov.wordpress.com/2012/11/14/early-detection-of-twitter-trends/) |
-| 设计一个随机 ID 生成系统          | [blog.twitter.com](https://blog.twitter.com/2010/announcing-snowflake)<br/>[github.com](https://github.com/twitter/snowflake/) |
-| 返回一定时间段内次数前 k 高的请求      | [ucsb.edu](https://icmi.cs.ucsb.edu/research/tech_reports/reports/2005-23.pdf)<br/>[wpi.edu](http://davis.wpi.edu/xmdv/docs/EDBT11-diyang.pdf) |
-| 设计一个数据源于多个数据中心的服务系统     | [highscalability.com](http://highscalability.com/blog/2009/8/24/how-google-serves-data-from-multiple-datacenters.html) |
-| 设计一个多人网络卡牌游戏            | [indieflashblog.com](https://web.archive.org/web/20180929181117/http://www.indieflashblog.com/how-to-create-an-asynchronous-multiplayer-game.html)<br/>[buildnewgames.com](http://buildnewgames.com/real-time-multiplayer/) |
-| 设计一个垃圾回收系统              | [stuffwithstuff.com](http://journal.stuffwithstuff.com/2013/12/08/babys-first-garbage-collector/)<br/>[washington.edu](http://courses.cs.washington.edu/courses/csep521/07wi/prj/rick.pdf) |
-| 添加更多的系统设计问题             | [贡献](#贡献)              |
-
-
-
-
-
-## 任务调度
-### 单点调度：https://github.com/robfig/cron
-### 分布式调度：https://github.com/xuxueli/xxl-job
-将调度行为抽象形成“调度中心”公共平台，而平台自身并不承担业务逻辑，“调度中心”负责发起调度请求。将任务抽象成分散的JobHandler，交由“执行器”统一管理，“执行器”负责接收调度请求并执行对应的JobHandler中业务逻辑。因此，“调度”和“任务”两部分可以相互解耦，提高系统整体稳定性和扩展性
-- 调度模块（调度中心）：
-负责管理调度信息，按照调度配置发出调度请求，自身不承担业务代码。调度系统与任务解耦，提高了系统可用性和稳定性，同时调度系统性能不再受限于任务模块；
-支持可视化、简单且动态的管理调度信息，包括任务新建，更新，删除，GLUE开发和任务报警等，所有上述操作都会实时生效，同时支持监控调度结果以及执行日志，支持执行器Failover。
-- 执行模块（执行器，executor）：
-负责接收调度请求并执行任务逻辑。任务模块专注于任务的执行等操作，开发和维护更加简单和高效；
-接收“调度中心”的执行请求、终止请求和日志请求等
-
-参考：
-- https://www.xuxueli.com/xxl-job/
-- https://github.com/mousycoder/xxl-job-go-sdk
-
-
-## zookeeper
-Zookeeper是一个高性能、分布式的开源的协作服务；
-提供一系列简单的功能，分布式应用可以在此基础上实现例如数据发布/订阅、负载均衡、命名服务、分布式协调/通知、集群管理、Leader选举、分布式锁和分布式队列等。常用的场景：
-- 命名服务（Name Service）
-- 配置中心
-- 分布式锁
-- 集群管理
-
-参考：
-1. [zookeeper介绍与使用场景](https://juejin.cn/post/6911981919974457358)
-2. [golang 操作zookeeper](https://www.cnblogs.com/zhichaoma/p/12640064.html)
-3. https://zookeeper.apache.org/
-4. https://github.com/go-zookeeper/zk
-5. 服务发现 zk https://blog.csdn.net/zyhlwzy/article/details/101847565
-
-
-## 延时队列
-
-任务队列跟消息队列在使用场景上最大的区别是： 任务之间是没有顺序约束而消息要求顺序(FIFO)，且可能会对任务的状态更新而消息一般只会消费不会更新。 类似 Kafka 利用消息 FIFO 和不需要更新(不需要对消息做索引)的特性来设计消息存储，将消息读写变成磁盘的顺序读写来实现比较好的性能。而任务队列需要能够任务状态进行更新则需要对每个消息进行索引，如果把两者放到一起实现则很难实现在功能和性能上兼得。比如一下场景：
-- 定时任务，如每天早上 8 点开始推送消息，定期删除过期数据等
-- 任务流，如自动创建 Redis 流程由资源创建，资源配置，DNS 修改等部分组成，使用任务队列可以简化整体的设计和重试流程
-- 重试任务，典型场景如离线图片处理
-<img src=https://raw.githubusercontent.com/bitleak/lmstfy/master/doc/lmstfy-internal.png width=600/>
-
-参考：
-- 延时队列
-- https://juejin.cn/post/7000189281641693192
-- https://github.com/bitleak/lmstfy
-
-
-## backoff 服务异常重试-指数退避算法
-在wiki当中对指数退避算法的介绍是：“In a variety of computer networks, binary exponential backoff or truncated binary exponential backoff refers to an algorithm used to space out repeated retransmissions of the same block of data, often as part of network congestion avoidance.”
-
-翻译成中文的意思大概是“在各种的计算机网络中，二进制指数后退或是截断的二进制指数后退使用于一种隔离同一数据块重复传输的算法，常常做为网络避免冲突的一部分”
-
-比如说在我们的服务调用过程中发生了调用失败，系统要对失败的资源进行重试，那么这个重试的时间如何把握，使用指数退避算法我们可以在某一范围内随机对失败的资源发起重试，并且随着失败次数的增加长，重试时间也会随着指数的增加而增加。
-
-当然，指数退避算法并没有人上面说的那么简单，想具体了解的可以具体wiki上的介绍
-参考：
-- https://en.wikipedia.org/wiki/Exponential_backoff
-- github golang 实现：https://github.com/cenkalti/backoff
-- https://github.com/cenkalti/backoff
-
-
-## 限流器 ratelimit
-| 实现方式 | 优缺点 | 居中对齐 |
-| :-----| :----: | :----: |
-| 计数器 | 实现简单，计数器算法容易出现不平滑的情况，瞬间的 qps 有可能超过系统的承载 | 单元格 |
-| 令牌桶 | 生成令牌的速度是恒定的，而请求去拿令牌是没有速度限制的。允许统一时刻有一定程度的并发，常用于服务端保护自身| 单元格 |
-| 漏桶算 | 单元格 | 单元格 |
-
-
-## 监控平台
+## 可视化监控
 - prometheus,https://prometheus.io/
 - grafna,https://www.google.com.hk/search?q=grafana&rlz=1C5GCEM_enCN985CN985&oq=grafana&aqs=chrome..69i57j69i60l3j69i65l3j69i60.8511j0j7&sourceid=chrome&ie=UTF-8
+- 日志管理和检索： Elasticsearch、Logstash、Kibana（ELK Stack）
+- 指标监控：Prometheus、Grafana、cat
+- 分布式追踪：分布式追踪工具包括 Jaeger + opentracing
+- 日志组件：https://github.com/uber-go/zap
 
 
-## 云原生和
+## 云原生部署CICD等
 - docker
 - Kubernetes [Kubernetes 入门&进阶实战](https://zhuanlan.zhihu.com/p/339008746)
 
@@ -759,7 +682,73 @@ Zookeeper是一个高性能、分布式的开源的协作服务；
 - 画架构图
 - 数据
 - 系统和架构设计
-- 英语能力
-- 好用工具
+
+
+## 其它的系统设计
+- 设计类似于 Dropbox 的文件同步服务
+  - [youtube.com](https://www.youtube.com/watch?v=PE4gwstWhmc)
+- 设计类似于 Google 的搜索引擎
+  - [queue.acm.org](http://queue.acm.org/detail.cfm?id=988407)
+  - [stackexchange.com](http://programmers.stackexchange.com/questions/38324/interview-question-how-would-you-implement-google-search)
+  - [ardendertat.com](http://www.ardendertat.com/2012/01/11/implementing-search-engines/)
+  - [stanford.edu](http://infolab.stanford.edu/~backrub/google.html)
+- 设计类似于 Google 的可扩展网络爬虫 
+  - [quora.com](https://www.quora.com/How-can-I-build-a-web-crawler-from-scratch)
+- 设计 Google 文档
+  - [code.google.com](https://code.google.com/p/google-mobwrite/)
+  - [neil.fraser.name](https://neil.fraser.name/writing/sync/)
+- 设计类似 Redis 的键值存储
+  - [slideshare.net](http://www.slideshare.net/dvirsky/introduction-to-redis)
+- 设计类似 Memcached 的缓存系统
+  - [slideshare.net](http://www.slideshare.net/oemebamo/introduction-to-memcached)
+- 设计类似亚马逊的推荐系统
+  - [hulu.com](http://tech.hulu.com/blog/2011/09/19/recommendation-system.html)
+  - [ijcai13.org](http://ijcai13.org/files/tutorial_slides/td3.pdf)
+- 设计类似 Bitly 的短链接系统 
+  - [n00tc0d3r.blogspot.com](http://n00tc0d3r.blogspot.com/)
+- 设计类似 WhatsApp 的聊天应用
+  - [highscalability.com](http://highscalability.com/blog/2014/2/26/the-whatsapp-architecture-facebook-bought-for-19-billion.html)
+- 设计类似 Instagram 的图片分享系统
+  - [highscalability.com](http://highscalability.com/flickr-architecture)
+  - [highscalability.com](http://highscalability.com/blog/2011/12/6/instagram-architecture-14-million-users-terabytes-of-photos.html)
+- 设计 Facebook 的新闻推荐方法
+  - [quora.com](http://www.quora.com/What-are-best-practices-for-building-something-like-a-News-Feed)
+  - [quora.com](http://www.quora.com/Activity-Streams/What-are-the-scaling-issues-to-keep-in-mind-while-developing-a-social-network-feed)
+  - [slideshare.net](http://www.slideshare.net/danmckinley/etsy-activity-feeds-architecture)
+- 设计 Facebook 的时间线系统 
+  - [facebook.com](https://www.facebook.com/note.php?note_id=10150468255628920)
+  - [highscalability.com](http://highscalability.com/blog/2012/1/23/facebook-timeline-brought-to-you-by-the-power-of-denormaliza.html)
+- 设计 Facebook 的聊天系统
+  - [erlang-factory.com](http://www.erlang-factory.com/upload/presentations/31/EugeneLetuchy-ErlangatFacebook.pdf)
+  - [facebook.com](https://www.facebook.com/note.php?note_id=14218138919&id=9445547199&index=0)
+- 设计类似 Facebook 的图表搜索系统
+  - [facebook.com](https://www.facebook.com/notes/facebook-engineering/under-the-hood-building-out-the-infrastructure-for-graph-search/10151347573598920)
+  - [facebook.com](https://www.facebook.com/notes/facebook-engineering/under-the-hood-indexing-and-ranking-in-graph-search/10151361720763920)
+  - [facebook.com](https://www.facebook.com/notes/facebook-engineering/under-the-hood-the-natural-language-interface-of-graph-search/10151432733048920)
+- 设计类似 CloudFlare 的内容传递网络
+  - [cmu.edu](http://repository.cmu.edu/cgi/viewcontent.cgi?article=2112&context=compsci)
+- 设计类似 Twitter 的热门话题系统
+  - [michael-noll.com](http://www.michael-noll.com/blog/2013/01/18/implementing-real-time-trending-topics-in-storm/)
+  - [snikolov .wordpress.com](http://snikolov.wordpress.com/2012/11/14/early-detection-of-twitter-trends/)
+- 设计一个随机 ID 生成系统
+  - [blog.twitter.com](https://blog.twitter.com/2010/announcing-snowflake)
+  - [github.com](https://github.com/twitter/snowflake/)
+- 返回一定时间段内次数前 k 高的请求
+  - [ucsb.edu](https://icmi.cs.ucsb.edu/research/tech_reports/reports/2005-23.pdf)
+  - [wpi.edu](http://davis.wpi.edu/xmdv/docs/EDBT11-diyang.pdf)
+- 设计一个数据源于多个数据中心的服务系统
+  [highscalability.com](http://highscalability.com/blog/2009/8/24/how-google-serves-data-from-multiple-datacenters.html)
+- 设计一个多人网络卡牌游戏
+  - [indieflashblog.com](https://web.archive.org/web/20180929181117/http://www.indieflashblog.com/how-to-create-an-asynchronous-multiplayer-game.html)
+  - [buildnewgames.com](http://buildnewgames.com/real-time-multiplayer/)
+- 设计一个垃圾回收系统
+  - [stuffwithstuff.com](http://journal.stuffwithstuff.com/2013/12/08/babys-first-garbage-collector/)
+  - [washington.edu](http://courses.cs.washington.edu/courses/csep521/07wi/prj/rick.pdf)
+           
+
+
+
+
+
 
 
