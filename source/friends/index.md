@@ -10,12 +10,8 @@ date: 2022-11-07 22:33:15
 - [Bojie Li 李博杰 AI操作系统](https://ring0.me/) 
 - [简单伟明 象点科技](https://www.pixdot.cn/)
 - [纳芯微 王升杨](https://www.novosns.com/)
-- 吕聘,智能硬件
 - [**陈皓**](https://coolshell.cn)
 - https://lethain.com/
+- [元培 · 元视角](https://blog.yuanpei.me/)
+- 吕聘,智能硬件
 
-## 算法竞赛
-- [leetcode](https://leetcode.cn/u/wxquare/)
-- [灵茶山艾府](https://leetcode.cn/u/endlesscheng/)
-- https://oi-wiki.org/
-- https://zerotrac.github.io/leetcode_problem_rating/
