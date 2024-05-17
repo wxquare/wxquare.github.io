@@ -1,7 +1,8 @@
 ---
-title: Middleware - Elasticsearch
+title: 互联网系统设计 - 搜索和Elasticsearch
+date: 2024-03-07
 categories:
-- 计算机基础
+- 系统设计
 ---
 
 

@@ -1,5 +1,6 @@
 ---
-title: 如何写设计文档
+title: 互联网系统设计 - 方案写作
+date: 2024-05-10
 categories:
 - other
 ---

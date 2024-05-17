@@ -1,7 +1,8 @@
 ---
-title: Middleware - MySQL
+title: 互联网系统设计 - 存储与Mysql数据库
+date: 2024-03-04
 categories:
-- 计算机基础
+- 系统设计
 ---
 
 多查看文档
@@ -151,7 +152,7 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
 
 ### 主从复制
 <p align="center">
-  <img src="../../images/C9ioGtn.png" width=600 height=400>
+  <img src="/images/C9ioGtn.png" width=600 height=400>
   <br/>
   <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
 </p>
@@ -163,7 +164,7 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
 
 ### 主主复制,多主复制
 <p align="center">
-  <img src="../../images/krAHLGg.png" width=600 height=400>
+  <img src="/images/krAHLGg.png" width=600 height=400>
   <br/>
   <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
 </p>
@@ -179,7 +180,7 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
 ### 联合（垂直分实例，比如商品实例、订单实例等分开）
 
 <p align="center">
-  <img src="../../images/U3qV33e.png" width=600 height=400>
+  <img src="/images/U3qV33e.png" width=600 height=400>
   <br/>
   <strong><a href="https://www.youtube.com/watch?v=w95murBkYmU">资料来源：扩展你的用户数到第一个一千万</a></strong>
 </p>
@@ -194,7 +195,7 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
 
 ### 分片 (水平分实例，比如订单按照用户shard)
 <p align="center">
-  <img src="../../images/wU8x5Id.png" width=600 height=400>
+  <img src="/images/wU8x5Id.png" width=600 height=400>
   <br/>
   <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
 </p>
@@ -233,7 +234,7 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
 - [订单系统设计方案之如何做历史订单和归档](https://www.80wz.com/wfwstudy/1084.html)
 - [订单数据归档方案](https://zq99299.github.io/note-book/back-end-storage/02/07.html#%E5%AD%98%E6%A1%A3%E5%8E%86%E5%8F%B2%E8%AE%A2%E5%8D%95%E6%95%B0%E6%8D%AE%E6%8F%90%E5%8D%87%E6%9F%A5%E8%AF%A2%E6%80%A7%E8%83%BD)
 - <p align="center">
-  <img src="../../images/mysql-order-archive.png" width=600 height=200>
+  <img src="/images/mysql-order-archive.png" width=600 height=200>
 </p>
 
 

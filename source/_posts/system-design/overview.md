@@ -1,10 +1,11 @@
 ---
-title: 系统架构设计以及组件基础
+title: 互联网系统设计 - 概述
+date: 2024-01-01
 categories: 
-- 计算机基础
+- 系统设计
 ---
 
-## 关键指标
+## 理论知识
 - 可用性，接口成功率，SLA多少个九来衡量；数据的正确性（一致性）；异常容灾
 - 可扩展，是否支持水平扩容？服务扩容？依赖的中间件是否支持水平扩容？
 - 性能。低延时latency和高吞吐throughput，在同步系统中一般低延时意味着高吞吐。有些异步接口，需要考虑异步处理逻辑，例如订单和发货系统。
@@ -20,19 +21,19 @@ categories:
 - **软状态** - 即使没有输入，系统状态也可能随着时间变化。
 - **最终一致性** - 经过一段时间之后，系统最终会变一致，因为系统在此期间没有收到任何输入。
 
-## 架构
 
+## 架构概述
 <p align="center">
-  <img src="../../images/jrUBAF7.png" width=500 height=500>
+  <img src="/images/jrUBAF7.png" width=500 height=500>
   <br/>
 </p>
 
 
-## 域名系统
 
+## 域名系统
 ### Amazon Route 53域名系统
 <p align="center">
-  <img src="../../images/aws_route_53.png" width=600 height=400>
+  <img src="/images/aws_route_53.png" width=600 height=400>
   <br/>
   <strong><a href="https://aws.amazon.com/cn/route53">Amazon Route 53 工作原理</a></strong>
 </p>
@@ -40,7 +41,7 @@ categories:
 
 ### 域名解析的过程
 <p align="center">
-  <img src="../../images/IOyLj4i.jpg" width=400 height=400>
+  <img src="/images/IOyLj4i.jpg" width=400 height=400>
   <br/>
   <strong><a href="http://www.slideshare.net/srikrupa5/dns-security-presentation-issa">来源：DNS 安全介绍</a></strong>
 </p>
@@ -72,7 +73,7 @@ categories:
 
 ## 内容分发网络（CDN）
 <p align="center">
-  <img src="../../images/h9TAuGI.jpg" width=500 height=500>
+  <img src="/images/h9TAuGI.jpg" width=500 height=500>
   <br/>
   <strong><a href="https://www.creative-artworks.eu/why-use-a-content-delivery-network-cdn/">来源：为什么使用 CDN</a></strong>
 </p>
@@ -109,16 +110,15 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 * [Wikipedia](https://en.wikipedia.org/wiki/Content_delivery_network)
 
 
-## 负载均衡器（网关）
-
+## 负载均衡器和反向代理
 
 <p align="center">
-  <img src="../../images/load_balanging.png" width=800 height=400>
+  <img src="/images/load_balanging.png" width=800 height=400>
   <br/>
 </p>
 
 <p align="center">
-  <img src="../../images/h81n9iK.png" width=600 height=400>
+  <img src="/images/h81n9iK.png" width=600 height=400>
   <br/>
   <strong><a href="http://horicky.blogspot.com/2010/10/scalable-system-design-patterns.html">来源：可扩展的系统设计模式</a></strong>
 </p>
@@ -151,11 +151,12 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 
 以损失灵活性为代价，四层负载均衡比七层负载均衡花费更少时间和计算资源，虽然这对现代商用硬件的性能影响甚微。
 
+
 ### 水平扩展
 
 负载均衡器还能帮助水平扩展，提高性能和可用性。使用商业硬件的性价比更高，并且比在单台硬件上**垂直扩展**更贵的硬件具有更高的可用性。相比招聘特定企业系统人才，招聘商业硬件方面的人才更加容易。
 
-#### 缺陷：水平扩展
+### 缺陷：水平扩展
 * 水平扩展引入了复杂度并涉及服务器复制
 * 服务器应该是无状态的:它们也不该包含像 session 或资料图片等与用户关联的数据。
 * session 可以集中存储在数据库或持久化[缓存](#缓存)（Redis、Memcached）的数据存储区中。
@@ -167,9 +168,9 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 * 单个负载均衡器会导致单点故障，但配置多个负载均衡器会进一步增加复杂性。
 
 
-## 反向代理（web 服务器）
+### 反向代理（web 服务器）
 <p align="center">
-  <img src="../../images/n41Azff.png">
+  <img src="/images/n41Azff.png">
   <br/>
   <strong><a href="https://upload.wikimedia.org/wikipedia/commons/6/67/Reverse_proxy_h2g2bob.svg">资料来源：维基百科</a></strong>
   <br/>
@@ -189,14 +190,13 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
   - 视频
   - 等等
 
-#### 负载均衡器与反向代理
+### 负载均衡器与反向代理
 
 - 当你有多个服务器时，部署负载均衡器非常有用。通常，负载均衡器将流量路由给一组功能相同的服务器上。
 - 即使只有一台 web 服务器或者应用服务器时，反向代理也有用，可以参考上一节介绍的好处。
 - NGINX 和 HAProxy 等解决方案可以同时支持第七层反向代理和负载均衡。
 
-#### 不利之处：反向代理
-
+### 不利之处：反向代理
 - 引入反向代理会增加系统的复杂度。
 - 单独一个反向代理服务器仍可能发生单点故障，配置多台反向代理服务器（如[故障转移](https://en.wikipedia.org/wiki/Failover)）会进一步增加复杂度。
 
@@ -212,15 +212,10 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 - [四层负载平衡](https://www.nginx.com/resources/glossary/layer-4-load-balancing/)
 - [七层负载平衡](https://www.nginx.com/resources/glossary/layer-7-load-balancing/)
 - [ELB 监听器配置](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-listener-config.html)
-- https://zhuanlan.zhihu.com/p/508672222
-- https://cloud.tencent.com/developer/article/1049707
 
-
-
-
-## 应用层网关
+## 应用层web网关
 <p align="center">
-  <img src="../../images/meituan_gateway.png" width=600 height=400>
+  <img src="/images/meituan_gateway.png" width=600 height=400>
   <br/>
   <strong><a href="https://tech.meituan.com/2021/05/20/shepherd-api-gateway.html">百亿规模API网关服务Shepherd的设计与实现</a></strong>
 </p>
@@ -237,10 +232,14 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 - [百亿规模API网关服务Shepherd的设计与实现](https://tech.meituan.com/2021/05/20/shepherd-api-gateway.html)
 - [grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway)
 
+## API 设计规范和管理
+- restful
 
-## 单体服务、微服务、Service Mesh
+
+## RPC 服务开发
+### 单体服务、微服务、Service Mesh
 <p align="center">
-  <img src="../../images/rpc_to_service_mesh.png" width=600 height=350>
+  <img src="/images/rpc_to_service_mesh.png" width=600 height=350>
   <br/>
   <strong><a href="https://www.zhihu.com/question/56125281">什么是服务治理</a></strong>
 </p>
@@ -252,10 +251,9 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 - Service Mesh：Service Mesh是一种用于解决微服务架构中服务间通信和治理问题的基础设施层。它通过在服务之间插入一个专用的代理（称为Sidecar）来提供服务间的通信、安全性、可观察性和弹性的功能。Service Mesh可以提供流量管理、负载均衡、故障恢复、安全认证、监控和追踪等功能，而不需要在每个微服务中显式实现这些功能。常见的Service Mesh实现包括Istio、Linkerd和Consul Connect等。
 
 
-
-## 微服务
+### 微服务
 <p align="center">
-  <img src="../../images/landing-2.svg" width=600 height=350>
+  <img src="/images/landing-2.svg" width=600 height=350>
   <br/>
   <strong><a href="https://grpc.io/docs/what-is-grpc/introduction">gRPC 概述</a></strong>
 </p>
@@ -282,17 +280,16 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 - [Consul](https://www.consul.io/docs/index.html)
 - [grpc](https://grpc.io/docs)
 
-## Service Mesh
+### Service Mesh
 <p align="center">
-  <img src="../../images/istio_service_mesh.svg" width=600 height=600>
+  <img src="/images/istio_service_mesh.svg" width=600 height=600>
   <br/>
   <strong><a href="https://istio.io/latest/about/service-mesh/">service Mesh 是怎么工作的</a></strong>
 </p>
 
 ### 远程过程调用协议（RPC）
-
 <p align="center">
-  <img src="../../images/iF4Mkb5.png" width=700 height=400>
+  <img src="/images/iF4Mkb5.png" width=700 height=400>
   <br/>
   <strong><a href="http://www.puncsky.com/blog/2016/02/14/crack-the-system-design-interview">Source: Crack the system design interview</a></strong>
 </p>
@@ -308,10 +305,11 @@ RPC 是一个“请求-响应”协议：
 * **服务端 stub 程序** ── 将结果解包，依据过程 id 调用服务端方法并将参数传递过去。
 
 
+## 中间件和存储
 
-## mysql 数据库
+### mysql 数据库
 <p align="center">
-  <img src="../../images/Xkm5CXz.png" width=700 height=400>
+  <img src="/images/Xkm5CXz.png" width=700 height=400>
   <br/>
   <strong><a href="https://www.youtube.com/watch?v=w95murBkYmU">资料来源：扩展你的用户数到第一个一千万</a></strong>
 </p>
@@ -330,9 +328,9 @@ RPC 是一个“请求-响应”协议：
 - 性能调优？架构优化、索引优化、sql优化、连接池优化、缓存优化
 
 
-## redis 键值存储系统
+### redis 键值存储系统
 <p align="center">
-  <img src="../../images/codis.png" width=600 height=400>
+  <img src="/images/codis.png" width=600 height=400>
 </p>
 
 ### [延伸思考和学习](./middleware-redis.md)
@@ -343,12 +341,9 @@ RPC 是一个“请求-响应”协议：
 - redis 扩展和分不少方案
 - redis 热key和大key问题
 
-
-
-## 文档类型存储(es)
-
+### 文档类型存储(es)
 <p align="center">
-  <img src="../../images/es.png" width=600 height=400>
+  <img src="/images/es.png" width=600 height=400>
 </p>
 
 ### [延伸思考和学习](./middleware-elasticsearch.md)
@@ -360,10 +355,9 @@ RPC 是一个“请求-响应”协议：
 - 集群架构和规划
 - 读写优化
 
-## 列型存储(hbase)
-
+### 列型存储(hbase)
 <p align="center">
-  <img src="../../images/n16iOGk.png">
+  <img src="/images/n16iOGk.png">
   <br/>
   <strong><a href="http://blog.grio.com/2015/11/sql-nosql-a-brief-history.html">资料来源: SQL 和 NoSQL，一个简短的历史</a></strong>
 </p>
@@ -376,7 +370,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 
 列型存储具备高可用性和高可扩展性。通常被用于大数据相关存储。
 
-#### 来源及延伸阅读：列型存储
+### 来源及延伸阅读：列型存储
 
 - [SQL 与 NoSQL 简史](http://blog.grio.com/2015/11/sql-nosql-a-brief-history.html)
 - [BigTable 架构](http://www.read.seas.harvard.edu/~kohler/class/cs239-w08/chang06bigtable.pdf)
@@ -386,7 +380,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 ### 图数据库
 
 <p align="center">
-  <img src="../../images/fNcl65g.png">
+  <img src="/images/fNcl65g.png">
   <br/>
   <strong><a href="https://en.wikipedia.org/wiki/File:GraphDatabase_PropertyGraph.png"/>资料来源：图数据库</a></strong>
 </p>
@@ -413,7 +407,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 ### SQL 还是 NoSQL
 
 <p align="center">
-  <img src="../../images/wXGqG5f.png">
+  <img src="/images/wXGqG5f.png">
   <br/>
   <strong><a href="https://www.infoq.com/articles/Transition-RDBMS-NoSQL/">资料来源：从 RDBMS 转换到 NoSQL</a></strong>
 </p>
@@ -452,10 +446,10 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - [扩展你的用户数到第一个千万](https://www.youtube.com/watch?v=w95murBkYmU)
 - [SQL 和 NoSQL 的不同](https://www.sitepoint.com/sql-vs-nosql-differences/)
 
-## 缓存
+## 缓存使用注意事项
 
 <p align="center">
-  <img src="../../images/Q6z24La.png",width=600 height=400>
+  <img src="/images/Q6z24La.png",width=600 height=400>
   <br/>
   <strong><a href="http://horicky.blogspot.com/2010/10/scalable-system-design-patterns.html">资料来源：可扩展的系统设计模式</a></strong>
 </p>
@@ -478,7 +472,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 ### 双buffer vs LRU/LFU
 
 <p align="center">
-  <img src="../../images/double-buffer-lru.png" width=550 height=600>
+  <img src="/images/double-buffer-lru.png" width=550 height=600>
 </p>
 
 本地缓存的双缓冲机制和本地LRU（Least Recently Used）算法都是常见的缓存优化技术，它们具有不同的优点和缺点。
@@ -504,7 +498,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 ### 缓存更新的四种模式
 
 <p align="center">
-  <img src="../../images/cache-refesh.png" width=550 height=700>
+  <img src="/images/cache-refesh.png" width=550 height=700>
 </p>
 
 |  缓存更新方式  |  优缺点  | 
@@ -522,11 +516,10 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - 热key缓存击穿保护
 
 
-
-## 异步
+## 异步与队列
 
 <p align="center">
-  <img src="../../images/54GYsSx.png" width=500 height=150>
+  <img src="/images/54GYsSx.png" width=500 height=150>
   <br/>
   <strong><a href=http://lethain.com/introduction-to-architecting-systems-for-scale/#platform_layer>资料来源：可缩放系统构架介绍</a></strong>
 </p>
@@ -536,7 +529,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 ### 消息队列
 
 <p align="center">
-  <img src="../../images/kafka_architecture.png" width=600 height=400>
+  <img src="/images/kafka_architecture.png" width=600 height=400>
 </p>
 
 消息队列接收，保留和传递消息。如果按顺序执行操作太慢的话，你可以使用有以下工作流的消息队列：
@@ -550,7 +543,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 
 ### 任务队列 （xxl-job)
 <p align="center">
-  <img src="../../images/xxljob-architecture.png" width=600 height=350>
+  <img src="/images/xxljob-architecture.png" width=600 height=350>
   <br/>
   <strong><a href=https://www.xuxueli.com/xxl-job/#5.3.3%20%E6%9E%B6%E6%9E%84%E5%9B%BE>资料来源：xxl-job系统构架介绍</a></strong>
 </p>
@@ -574,12 +567,12 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 ### 延时任务调度
 
 <p align="center">
-  <img src="../../images/lmstfy-internal.png" width=600 height=350>
+  <img src="/images/lmstfy-internal.png" width=600 height=350>
   <br/>
   <strong><a href=https://github.com/bitleak/lmstfy?tab=readme-ov-file>资料来源：lmstfy github</a></strong>
 </p>
 
-#### 延时任务场景
+###  延时任务场景
 - 延时处理：有时候需要在某个事件发生后的一段时间内执行任务。例如，当用户提交订单后，可以设置一个延时任务，在一段时间后检查是否是支付
 - 提醒和通知：延时任务调度可用于发送提醒和通知。例如，你可以设置一个延时任务，在用户注册后的24小时内发送一封欢迎邮件，或在用户下单后的一段时间内发送订单确认通知。
 - 缓存刷新：延时任务调度可用于刷新缓存数据。当缓存过期时，可以设置一个延时任务，在一定的延时时间后重新加载缓存数据，以保持数据的新鲜性
@@ -588,21 +581,21 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - 任务流，如自动创建 Redis 流程由资源创建，资源配置，DNS 修改等部分组成，使用任务队列可以简化整体的设计和重试流程
 - 重试任务，典型场景如离线图片处理
 
-#### 可用组件
+###  可用组件
 - redis 包括有序集合（Sorted Set）你可以使用Redis的有序集合来实现延时任务队列。将任务的执行时间作为分数（score），任务的内容作为成员（member），将任务按照执行时间排序。通过定期轮询有序集合，检查是否有任务的执行时间到达，然后执行相应的任务
 - https://github.com/bitleak/lmstfy
 
 
 ## 网络通讯协议
 <p align="center">
-  <img src="../../images/5KeocQs.jpg",width=500 height=500>
+  <img src="/images/5KeocQs.jpg",width=500 height=500>
   <br/>
   <strong><a href=http://www.escotal.com/osilayer.html>资料来源：OSI 7层模型</a></strong>
 </p>
 
 ### 超文本传输协议（HTTPS/HTTP1.1/HTTP2/HTTP3）
 <p align="center">
-  <img src="../../images/http.png" width=600 height=150>
+  <img src="/images/http.png" width=600 height=150>
 </p>
 
 - [aws http 选择介绍](https://aws.amazon.com/cn/compare/the-difference-between-https-and-http/)
@@ -611,20 +604,29 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - HTTP/2 是 HTTP 的第二个主要版本，使用二进制协议，引入了多路复用、头部压缩、服务器推送等特性。
 - HTTP/3 是 HTTP 的第三个主要版本，基于 QUIC 协议，使用 UDP，提供更快的传输速度和更好的性能
 
-## 安全问题
-这一部分需要更多内容。[一起来吧](#贡献)！
-安全是一个宽泛的话题。除非你有相当的经验、安全方面背景或者正在申请的职位要求安全知识，你不需要了解安全基础知识以外的内容：
-* 在运输和等待过程中加密
-* 对所有的用户输入和从用户那里发来的参数进行处理以防止 
-- [SQL 注入](https://en.wikipedia.org/wiki/SQL_injection)
-- [XSS](https://en.wikipedia.org/wiki/Cross-site_scripting) 
-- 使用参数化的查询来防止 SQL 注入。
-- 使用[最小权限原则](https://en.wikipedia.org/wiki/Principle_of_least_privilege)。
-- [为开发者准备的安全引导](https://github.com/FallibleInc/security-guide-for-developers)
-- [OWASP top ten](https://www.owasp.org/index.php/OWASP_Top_Ten_Cheat_Sheet)
+
+## 如何搭建监控和日志系统
+- prometheus,https://prometheus.io/
+- grafna,https://www.google.com.hk/search?q=grafana&rlz=1C5GCEM_enCN985CN985&oq=grafana&aqs=chrome..69i57j69i60l3j69i65l3j69i60.8511j0j7&sourceid=chrome&ie=UTF-8
+- 日志管理和检索： Elasticsearch、Logstash、Kibana（ELK Stack）
+- 指标监控：Prometheus、Grafana、cat
+- 分布式追踪：分布式追踪工具包括 Jaeger + opentracing
+- 日志组件：https://github.com/uber-go/zap
+
+## 云原生和服务部署CI/CD
+- docker
+- Kubernetes [Kubernetes 入门&进阶实战](https://zhuanlan.zhihu.com/p/339008746)
+
+## 大数据存储和计算
+- spark
+- spark streaming
+- hive
+- presto
+- Lambda 和 Kappa 架构简介：https://libertydream.github.io/2020/04/12/lambda-%E5%92%8C-kappa-%E7%AE%80%E4%BB%8B/
 
 
-## 每个程序员都应该知道的延迟数
+## 应该知道的性能问题
+### 每个程序员都应该知道的延迟数
 ```
 Latency Comparison Numbers
 --------------------------
@@ -652,38 +654,20 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 * 每秒能绕地球 6-7 圈
 * 数据中心内每秒有 2,000 次往返
 
-
-## 可视化监控
-- prometheus,https://prometheus.io/
-- grafna,https://www.google.com.hk/search?q=grafana&rlz=1C5GCEM_enCN985CN985&oq=grafana&aqs=chrome..69i57j69i60l3j69i65l3j69i60.8511j0j7&sourceid=chrome&ie=UTF-8
-- 日志管理和检索： Elasticsearch、Logstash、Kibana（ELK Stack）
-- 指标监控：Prometheus、Grafana、cat
-- 分布式追踪：分布式追踪工具包括 Jaeger + opentracing
-- 日志组件：https://github.com/uber-go/zap
-
-
-## 云原生部署CICD等
-- docker
-- Kubernetes [Kubernetes 入门&进阶实战](https://zhuanlan.zhihu.com/p/339008746)
+## 应该知道的安全问题
+这一部分需要更多内容。[一起来吧](#贡献)！
+安全是一个宽泛的话题。除非你有相当的经验、安全方面背景或者正在申请的职位要求安全知识，你不需要了解安全基础知识以外的内容：
+* 在运输和等待过程中加密
+* 对所有的用户输入和从用户那里发来的参数进行处理以防止 
+- [SQL 注入](https://en.wikipedia.org/wiki/SQL_injection)
+- [XSS](https://en.wikipedia.org/wiki/Cross-site_scripting) 
+- 使用参数化的查询来防止 SQL 注入。
+- 使用[最小权限原则](https://en.wikipedia.org/wiki/Principle_of_least_privilege)。
+- [为开发者准备的安全引导](https://github.com/FallibleInc/security-guide-for-developers)
+- [OWASP top ten](https://www.owasp.org/index.php/OWASP_Top_Ten_Cheat_Sheet)
 
 
-## 大数据存储和计算
-- spark
-- spark streaming
-- hive
-- presto
-- Lambda 和 Kappa 架构简介：https://libertydream.github.io/2020/04/12/lambda-%E5%92%8C-kappa-%E7%AE%80%E4%BB%8B/
-
-
-## 系统设计文档和架构图
-- 方案设计与写作
-- 方案模版
-- 画架构图
-- 数据
-- 系统和架构设计
-
-
-## 其它的系统设计
+## 系统设计实践
 - 设计类似于 Dropbox 的文件同步服务
   - [youtube.com](https://www.youtube.com/watch?v=PE4gwstWhmc)
 - 设计类似于 Google 的搜索引擎

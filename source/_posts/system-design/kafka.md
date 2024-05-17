@@ -1,7 +1,8 @@
 ---
-title: Middleware - kafka 实战
+title: 互联网系统设计 - 异步和消息队列
+date: 2024-03-10
 categories:
-- 计算机基础
+- 系统设计
 ---
 
 ## kafka 特点和使用场景
