@@ -10,9 +10,9 @@ const LAYOUTS = {
     2: [2]
   },
   3: {
-    1: [3],
-    2: [1, 2],
-    3: [2, 1]
+    1: [1, 2],
+    2: [2, 1],
+    3: [3]
   },
   4: {
     1: [1, 2, 1],
@@ -120,13 +120,14 @@ const templates = {
 };
 
 module.exports = ctx => function(args, content) {
-  args = args[0].split('-');
-  const group = parseInt(args[0], 10);
-  const layout = parseInt(args[1], 10);
+  let group, layout;
+  if (args[0]) {
+    [group, layout] = args[0].split('-');
+  }
 
   content = ctx.render.renderSync({ text: content, engine: 'markdown' });
 
-  const pictures = content.match(/<img[\s\S]*?>/g);
+  const pictures = content.match(/(<a[^>]*>((?!<\/a)(.|\n))+<\/a>)|(<img[^>]+>)/g);
 
   return `<div class="group-picture">${templates.dispatch(pictures, group, layout)}</div>`;
 };

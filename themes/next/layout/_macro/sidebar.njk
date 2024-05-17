@@ -1,14 +1,7 @@
 {% macro render(display_toc) %}
-  <div class="toggle sidebar-toggle">
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-    <span class="toggle-line"></span>
-  </div>
-
   <aside class="sidebar">
-    {%- set display_toc = page.toc.enable and display_toc %}
     {%- if display_toc %}
-      {%- set toc = toc(page.content, { class: "nav", list_number: page.toc.number, max_depth: page.toc.max_depth }) %}
+      {%- set toc = toc(page.content, {class: 'nav', list_number: page.toc.number, max_depth: page.toc.max_depth}) %}
       {%- set display_toc = toc.length > 1 and display_toc %}
     {%- endif %}
 
@@ -22,27 +15,63 @@
         </li>
       </ul>
 
-      <!--noindex-->
-      <section class="post-toc-wrap sidebar-panel">
-        {%- if display_toc %}
-          <div class="post-toc animated">{{ toc }}</div>
-        {%- endif %}
-      </section>
-      <!--/noindex-->
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+          {%- if display_toc %}
+            <div class="post-toc animated">{{ toc }}</div>
+          {%- endif %}
+        </div>
+        <!--/noindex-->
 
-      <section class="site-overview-wrap sidebar-panel">
-        {{ partial('_partials/sidebar/site-overview.njk', {}, {cache: theme.cache.enable}) }}
+        <div class="site-overview-wrap sidebar-panel">
+          {{ partial('_partials/sidebar/site-overview.njk', {}, {cache: theme.cache.enable}) }}
 
-        {{- next_inject('sidebar') }}
-      </section>
+          {{- next_inject('sidebar') }}
+        </div>
+      </div>
 
       {%- if theme.back2top.enable and theme.back2top.sidebar %}
-        <div class="back-to-top animated">
+        <div class="back-to-top animated" role="button" aria-label="{{ __('accessibility.back_to_top') }}">
           <i class="fa fa-arrow-up"></i>
           <span>0%</span>
         </div>
       {%- endif %}
     </div>
+
+    {# Blogroll #}
+    {%- if theme.links %}
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title">
+          {%- if theme.links_settings.icon %}<i class="{{ theme.links_settings.icon }} fa-fw"></i>{% endif %}
+          {{ __('sidebar.links') }}
+        </div>
+        <ul class="links-of-blogroll-list">
+          {%- for blogrollText, blogrollURL in theme.links %}
+            <li class="links-of-blogroll-item">
+              {{ next_url(blogrollURL, blogrollText, {title: blogrollURL}) }}
+            </li>
+          {%- endfor %}
+        </ul>
+      </div>
+    </div>
+    {%- endif %}
+
+    {%- if theme.related_posts.enable %}
+      {%- if theme.pjax %}
+        <div class="pjax">
+      {%- endif %}
+      {%- if page.related_posts and page.related_posts.length > 0 %}
+        <div class="sidebar-inner sidebar-post-related">
+          <div class="animated">
+            {{ partial('_partials/post/post-related.njk') }}
+          </div>
+        </div>
+      {%- endif %}
+      {%- if theme.pjax %}
+        </div>
+      {%- endif %}
+    {%- endif %}
   </aside>
-  <div class="sidebar-dimmer"></div>
 {% endmacro %}

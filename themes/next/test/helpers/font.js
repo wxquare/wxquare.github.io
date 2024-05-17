@@ -5,7 +5,7 @@ const Hexo = require('hexo');
 const hexo = new Hexo();
 
 const fontStyles = ':300,300italic,400,400italic,700,700italic';
-const fontHost = '//fonts.googleapis.com';
+const fontHost = 'https://fonts.googleapis.com';
 
 describe('font', () => {
   const nextFont = require('../../scripts/helpers/font').bind(hexo);
@@ -55,7 +55,7 @@ describe('font', () => {
       family  : 'Palatino',
       external: true
     };
-    nextFont().should.eql(`<link rel="stylesheet" href="${fontHost}/css?family=Amatic+SC${fontStyles}|Palatino${fontStyles}&display=swap&subset=latin,latin-ext">`);
+    nextFont().should.eql(`<link rel="stylesheet" href="${fontHost}/css?family=Amatic+SC${fontStyles}%7CPalatino${fontStyles}&display=swap&subset=latin,latin-ext">`);
   });
 
   it('duplicate', () => {
@@ -81,6 +81,6 @@ describe('font', () => {
       family  : 'Palatino',
       external: true
     };
-    nextFont().should.eql(`<link rel="stylesheet" href="${fontHost}/css?family=Roboto+Slab${fontStyles}|Noto+Serif+SC${fontStyles}|Palatino${fontStyles}&display=swap&subset=latin,latin-ext">`);
+    nextFont().should.eql(`<link rel="stylesheet" href="${fontHost}/css?family=Roboto+Slab${fontStyles}%7CNoto+Serif+SC${fontStyles}%7CPalatino${fontStyles}&display=swap&subset=latin,latin-ext">`);
   });
 });

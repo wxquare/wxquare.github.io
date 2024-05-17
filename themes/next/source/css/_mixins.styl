@@ -52,6 +52,16 @@ desktop-largest() {
   }
 }
 
+sidebar() {
+  if (($scheme == 'Muse') or ($scheme == 'Mist')) {
+    {block}
+  } else {
+    +tablet-mobile() {
+      {block}
+    }
+  }
+}
+
 random-color($min, $max) {
   return floor(math(0, 'random') * ($max - $min + 1) + $min);
 }
@@ -70,7 +80,7 @@ disable-user-select() {
 sidebar-inline-links-item() {
   margin: 5px 0 0;
 
-  a, span.exturl {
+  a {
     box-sizing: border-box;
     display: inline-block;
     max-width: 100%;
@@ -103,13 +113,17 @@ font-family-icons($icon = '') {
   if ($icon) {
     content: $icon;
   }
-  font-family: 'Font Awesome 5 Free';
+  font-family: 'Font Awesome 6 Free';
   font-weight: 900;
 }
 
 main-container() {
   margin: 0 auto;
   width: $content-desktop;
+
+  +mobile() {
+    width: auto;
+  }
 
   +desktop-large() {
     width: $content-desktop-large;
@@ -120,21 +134,12 @@ main-container() {
   }
 }
 
-sidebar-toggle-position($reverse = false) {
-  $condition = hexo-config('sidebar.position') == 'right';
-  if (($scheme == 'Muse') || ($scheme == 'Mist')) {
-    $condition = $condition == $reverse;
-  }
-  if ($condition) {
-    left: $b2t-position-right;
-    +tablet-mobile() {
-      left: $b2t-position-right-mobile;
-    }
-  } else {
-    right: $b2t-position-right;
-    +tablet-mobile() {
-      right: $b2t-position-right-mobile;
-    }
+sidebar-toggle-position($reverse) {
+  $condition = ($sidebar-toggle-alignment == 'right') == $reverse;
+  $alignment = $condition ? 'left' : 'right';
+  {$alignment}: $b2t-position-right;
+  +tablet-mobile() {
+    {$alignment}: $b2t-position-right-mobile;
   }
 }
 
@@ -144,7 +149,7 @@ sidebar-toggle() {
   opacity: $b2t-opacity;
   position: fixed;
   z-index: $zindex-3;
-  sidebar-toggle-position();
+  sidebar-toggle-position(false);
 
   &:hover {
     opacity: $b2t-opacity-hover;
@@ -164,26 +169,26 @@ round-icon($diameter) {
 
 toggle-arrow($position) {
   if ($position == 'right') {
-    .toggle-line:first-child {
+    :first-child {
       top: 2px;
       transform: rotate(-45deg);
       width: 50%;
     }
 
-    .toggle-line:last-child {
+    :last-child {
       top: -2px;
       transform: rotate(45deg);
       width: 50%;
     }
   } else {
-    .toggle-line:first-child {
+    :first-child {
       left: 50%;
       top: 2px;
       transform: rotate(45deg);
       width: 50%;
     }
 
-    .toggle-line:last-child {
+    :last-child {
       left: 50%;
       top: -2px;
       transform: rotate(-45deg);
@@ -193,29 +198,100 @@ toggle-arrow($position) {
 }
 
 toggle-close($position) {
-  .toggle-line:nth-child(2) {
+  :nth-child(2) {
     opacity: 0;
   }
 
   if ($position == 'right') {
-    .toggle-line:first-child {
-      top: 5px;
+    :first-child {
+      top: 6px;
       transform: rotate(-45deg);
     }
 
-    .toggle-line:last-child {
-      top: -5px;
+    :last-child {
+      top: -6px;
       transform: rotate(45deg);
     }
   } else {
-    .toggle-line:first-child {
-      top: 5px;
+    :first-child {
+      top: 6px;
       transform: rotate(45deg);
     }
 
-    .toggle-line:last-child {
-      top: -5px;
+    :last-child {
+      top: -6px;
       transform: rotate(-45deg);
     }
   }
+}
+
+site-nav-hide-by-default() {
+  --scroll-height: 0;
+  height: 0;
+  overflow: hidden;
+  transition: $transition-ease;
+  transition-property: height, visibility;
+  visibility: hidden;
+
+  body:not(.site-nav-on) & .animated {
+    animation: none;
+  }
+
+  body.site-nav-on & {
+    height: var(--scroll-height);
+    visibility: unset;
+  }
+}
+
+button($color) {
+  background: transparent;
+  color: $color;
+  cursor: pointer;
+  line-height: 2;
+  padding: 0 15px;
+
+  &:hover {
+    background: $color;
+    color: white;
+  }
+}
+
+gemini-block() {
+  background: var(--content-bg-color);
+  border-radius: $border-radius-inner;
+  box-shadow: $box-shadow-inner;
+}
+
+gemini-block-not-first() {
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+  margin-top: $sidebar-offset;
+
+  +tablet() {
+    margin-top: $content-tablet-padding;
+  }
+
+  +mobile() {
+    margin-top: $content-mobile-padding;
+  }
+}
+
+menu-item-row() {
+  display: flex;
+  align-items: center;
+
+  .badge {
+    margin-left: auto;
+  }
+}
+
+badge() {
+  background: $badge-background;
+  border-radius: $badge-border-radius;
+  color: $badge-color;
+  font-weight: bold;
+  line-height: 1;
+  margin-left: .35em;
+  padding: $badge-padding;
+  text-shadow: $badge-text-shadow;
 }

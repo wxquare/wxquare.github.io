@@ -1,7 +1,19 @@
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
-<meta name="theme-color" content="{{ theme.android_chrome_color }}">
-<meta name="generator" content="Hexo {{ hexo_version }}">
+<meta name="viewport" content="width=device-width">
+{%- if theme.darkmode %}
+<meta name="theme-color" content="{{ theme.theme_color.light }}" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="{{ theme.theme_color.dark }}" media="(prefers-color-scheme: dark)">
+{%- else %}
+<meta name="theme-color" content="{{ theme.theme_color.light }}">
+{%- endif %}
+{%- if config.meta_generator %}
+  {{- meta_generator() }}
+{%- endif %}
+
+{%- if config.preconnect %}
+  <link rel="preload" href="{{ url_for(theme.css) }}/main.css" as="style">
+{%- endif %}
+{{ next_pre() }}
 
 {%- if theme.favicon.apple_touch_icon %}
   <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for(theme.favicon.apple_touch_icon) }}">
@@ -13,19 +25,12 @@
   <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for(theme.favicon.small) }}">
 {%- endif %}
 {%- if theme.favicon.safari_pinned_tab %}
-  <link rel="mask-icon" href="{{ url_for(theme.favicon.safari_pinned_tab) }}" color="{{ theme.android_chrome_color }}">
+  <link rel="mask-icon" href="{{ url_for(theme.favicon.safari_pinned_tab) }}" color="{{ theme.theme_color.light }}">
 {%- endif %}
 {%- if theme.favicon.android_manifest %}
   <link rel="manifest" href="{{ url_for(theme.favicon.android_manifest) }}">
 {%- endif %}
-{%- if theme.favicon.ms_browserconfig %}
-  <meta name="msapplication-config" content="{{ url_for(theme.favicon.ms_browserconfig) }}">
-{%- endif %}
 
-{%- if theme.disable_baidu_transformation %}
-  <meta http-equiv="Cache-Control" content="no-transform">
-  <meta http-equiv="Cache-Control" content="no-siteapp">
-{%- endif %}
 {%- if theme.google_site_verification %}
   <meta name="google-site-verification" content="{{ theme.google_site_verification }}">
 {%- endif %}
@@ -43,19 +48,20 @@
 
 {{ next_font() }}
 
-<link rel="stylesheet" href="{{ theme.vendors.fontawesome }}">
+{{ next_vendors('fontawesome') }}
 
-{%-if theme.motion.enable %}
-  <link rel="stylesheet" href="{{ theme.vendors.animate_css }}">
+{%- if theme.motion.enable %}
+  {{ next_vendors('animate_css') }}
 {%- endif %}
 
 {%- if theme.fancybox %}
-  <link rel="stylesheet" href="{{ theme.vendors.fancybox_css }}">
+  {{ next_vendors('fancybox_css') }}
 {%- endif %}
 
 {%- if theme.pace.enable %}
-  <link rel="stylesheet" href="{{ theme.vendors.pace_css }}">
-  <script src="{{ theme.vendors.pace }}"></script>
+  {{ next_vendors('pace_css') }}
+  {{ next_vendors('pace_js') }}
 {%- endif %}
 
-{{ next_config() }}
+{{ next_data('main', next_config()) }}
+{{- next_js('config.js') }}

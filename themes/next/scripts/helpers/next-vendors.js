@@ -5,7 +5,7 @@
 hexo.extend.helper.register('js_vendors', function() {
   const { config, theme } = this;
   const vendors = ['anime'];
-  if (config.prismjs.enable && !config.prismjs.preprocess) {
+  if (theme.prism.enable && !config.prismjs.preprocess) {
     vendors.push('prism', 'prism_autoloader');
     if (config.prismjs.line_number) {
       vendors.push('prism_line_numbers');
@@ -15,7 +15,7 @@ hexo.extend.helper.register('js_vendors', function() {
     vendors.push('pjax');
   }
   if (theme.fancybox) {
-    vendors.push('jquery', 'fancybox');
+    vendors.push('fancybox_js');
   }
   if (theme.mediumzoom) {
     vendors.push('mediumzoom');

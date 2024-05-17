@@ -1,25 +1,31 @@
-  {##################}
-  {### POST BLOCK ###}
-  {##################}
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="{{ post.lang or config.language }}">
+{##################}
+{### POST BLOCK ###}
+{##################}
+<div class="post-block">
+  {# Gallery support #}
+  {{ post_gallery(post.photos) }}
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="{{ post.lang }}">
     <link itemprop="mainEntityOfPage" href="{{ post.permalink }}">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="{{ url_for(theme.avatar.url or theme.images + '/avatar.gif') }}">
       <meta itemprop="name" content="{{ author }}">
-      <meta itemprop="description" content="{{ description }}">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
       <meta itemprop="name" content="{{ title }}">
+      <meta itemprop="description" content="{{ description }}">
     </span>
 
-    {# Gallery support #}
-    {{ post_gallery(post.photos) }}
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="{{ page.title + ' | ' + title }}">
+      <meta itemprop="description" content="{{ page.description }}">
+    </span>
 
     {%- if post.header !== false %}
       <header class="post-header">
-        <{%- if is_index %}h2{% else %}h1{%- endif %} class="post-title{%- if post.direction and post.direction.toLowerCase() === 'rtl' %} rtl{%- endif %}" itemprop="name headline">
+        <{% if is_index %}h2{% else %}h1{% endif %} class="post-title{% if post.direction and post.direction.toLowerCase() === 'rtl' %} rtl{% endif %}" itemprop="name headline">
           {# Link posts #}
           {%- if post.link %}
             {%- if post.sticky > 0 %}
@@ -29,19 +35,19 @@
             {%- endif %}
             {%- set postTitleIcon = '<i class="fa fa-external-link-alt"></i>' %}
             {%- set postText = post.title or post.link %}
-            {{ next_url(post.link, postText + postTitleIcon, {class: 'post-title-link post-title-link-external', itemprop: 'url'}) }}
+            {{- next_url(post.link, postText + postTitleIcon, {class: 'post-title-link post-title-link-external', itemprop: 'url'}) }}
           {% elif is_index %}
             {%- if post.sticky > 0 %}
               <span class="post-sticky-flag" title="{{ __('post.sticky') }}">
                 <i class="fa fa-thumbtack"></i>
               </span>
             {%- endif %}
-            {{ next_url(post.path, post.title or __('post.untitled'), {class: 'post-title-link', itemprop: 'url'}) }}
+            {{- next_url(post.path, post.title or __('post.untitled'), {class: 'post-title-link', itemprop: 'url'}) }}
           {%- else %}
             {{- post.title }}
             {{- post_edit(post.source) }}
           {%- endif %}
-        </{%- if is_index %}h2{% else %}h1{%- endif %}>
+        </{% if is_index %}h2{% else %}h1{% endif %}>
 
         <div class="post-meta-container">
           {{ partial('_partials/post/post-meta.njk') }}
@@ -56,7 +62,7 @@
     {#################}
     {### POST BODY ###}
     {#################}
-    <div class="post-body{%- if post.direction and post.direction.toLowerCase() === 'rtl' %} rtl{%- endif %}" itemprop="articleBody">
+    <div class="post-body{% if post.direction and post.direction.toLowerCase() === 'rtl' %} rtl{% endif %}" itemprop="articleBody">
       {%- if is_index %}
         {%- if post.description and theme.excerpt_description %}
           <p>{{ post.description }}</p>
@@ -84,17 +90,14 @@
           {{ post.content }}
         {%- endif %}
       {% else %}
-        {{ post.content }}
+        {{- next_inject('postBodyStart') }}
+        {{- post.content }}
       {%- endif %}
     </div>
 
     {#####################}
     {### END POST BODY ###}
     {#####################}
-
-    {%- if theme.related_posts.enable and (theme.related_posts.display_in_home or not is_index) %}
-      {{ partial('_partials/post/post-related.njk') }}
-    {%- endif %}
 
     <footer class="post-footer">
       {%- if is_index %}
@@ -106,7 +109,7 @@
           {{ partial('_partials/post/post-reward.njk') }}
         {%- endif %}
 
-        {%- if theme.creative_commons.license and theme.creative_commons.post %}
+        {%- if theme.creative_commons.license and theme.creative_commons.post and post.copyright !== false %}
           {{ partial('_partials/post/post-copyright.njk') }}
         {%- endif %}
 
@@ -123,7 +126,7 @@
           </div>
         {%- endif %}
 
-        {{ partial('_partials/post/post-footer.njk', {}, {cache: theme.cache.enable}) }}
+        {{ partial('_partials/post/post-share.njk', {}, {cache: theme.cache.enable}) }}
 
         {%- if theme.post_navigation and (post.prev or post.next) %}
           {%- set prev = post.prev if theme.post_navigation === 'right' else post.next %}
@@ -132,14 +135,14 @@
             <div class="post-nav-item">
               {%- if prev %}
                 <a href="{{ url_for(prev.path) }}" rel="prev" title="{{ prev.title }}">
-                  <i class="fa fa-chevron-left"></i> {{ prev.title }}
+                  <i class="fa fa-angle-left"></i> {{ prev.title }}
                 </a>
               {%- endif %}
             </div>
             <div class="post-nav-item">
               {%- if next %}
                 <a href="{{ url_for(next.path) }}" rel="next" title="{{ next.title }}">
-                  {{ next.title }} <i class="fa fa-chevron-right"></i>
+                  {{ next.title }} <i class="fa fa-angle-right"></i>
                 </a>
               {%- endif %}
             </div>
@@ -149,6 +152,7 @@
       {%- endif %}
     </footer>
   </article>
-  {######################}
-  {### END POST BLOCK ###}
-  {######################}
+</div>
+{######################}
+{### END POST BLOCK ###}
+{######################}
