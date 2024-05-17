@@ -211,12 +211,12 @@
     
     <div class="post-body" itemprop="articleBody"><h2 id="代码生成的接口"><a href="#代码生成的接口" class="headerlink" title="代码生成的接口"></a>代码生成的接口</h2><p>　　TVM代码生成的接口和主要类型，可以总结为两个build，两个module，两个function。它提供了两个代码生成的接口，tvm.build和tvm.relay.build，前者是针对算子的代码生成，后者是针对relay计算图的代码生成。在0.7版本中，tvm进行了IR的统一，使得两个build的输入参数类型都可以是IRModule，输出类型都是运行时Module。尽管两个build接口统一了输入类型，但是内部包含的函数类型是不一样的，算子编译时是tvm.tir.function.PrimFunc，而relay图编译时函数类型是tvm.relay.function.Function。TVM在设计时提供了方便的调试功能，通过IRModule的astext函数可以查看ir中间描述，通过运行时module的get_source查看生成的代码。下面通过两个简单的例子查看算子和relay图的ir中间描述和以及对应生成的源代码。</p>
 <ul>
-<li><a href="https://tvm.apache.org/docs/api/python/driver.html?highlight=build#tvm.build" target="_blank" rel="noopener">tvm.build</a></li>
-<li><a href="https://tvm.apache.org/docs/api/python/relay/index.html?highlight=build#tvm.relay.build" target="_blank" rel="noopener">tvm.relay.build</a></li>
-<li><a href="https://tvm.apache.org/docs/api/python/ir.html?highlight=irmodule#tvm.ir.IRModule" target="_blank" rel="noopener">tvm.ir.module.IRModule</a></li>
-<li><a href="https://tvm.apache.org/docs/api/python/runtime.html?highlight=module#tvm.runtime.Module" target="_blank" rel="noopener">tvm.runtime.module.Module</a></li>
-<li><a href="https://tvm.apache.org/docs/api/python/tir.html?highlight=primfunc#tvm.tir.PrimFunc" target="_blank" rel="noopener">tvm.tir.function.PrimFunc</a></li>
-<li><a href="https://tvm.apache.org/docs/api/python/relay/index.html?highlight=function#tvm.relay.Function" target="_blank" rel="noopener">tvm.relay.function.Function</a></li>
+<li><a href="https://tvm.apache.org/docs/api/python/driver.html?highlight=build#tvm.build">tvm.build</a></li>
+<li><a href="https://tvm.apache.org/docs/api/python/relay/index.html?highlight=build#tvm.relay.build">tvm.relay.build</a></li>
+<li><a href="https://tvm.apache.org/docs/api/python/ir.html?highlight=irmodule#tvm.ir.IRModule">tvm.ir.module.IRModule</a></li>
+<li><a href="https://tvm.apache.org/docs/api/python/runtime.html?highlight=module#tvm.runtime.Module">tvm.runtime.module.Module</a></li>
+<li><a href="https://tvm.apache.org/docs/api/python/tir.html?highlight=primfunc#tvm.tir.PrimFunc">tvm.tir.function.PrimFunc</a></li>
+<li><a href="https://tvm.apache.org/docs/api/python/relay/index.html?highlight=function#tvm.relay.Function">tvm.relay.function.Function</a></li>
 </ul>
 <h3 id="算子编译"><a href="#算子编译" class="headerlink" title="算子编译"></a>算子编译</h3><pre><code>import tvm
 from tvm import te
@@ -226,24 +226,25 @@ K = 1024
 N = 1024
 
 # Algorithm
-k = te.reduce_axis((0, K), &apos;k&apos;)
-A = te.placeholder((M, K), name=&apos;A&apos;)
-B = te.placeholder((K, N), name=&apos;B&apos;)
+k = te.reduce_axis((0, K), &#39;k&#39;)
+A = te.placeholder((M, K), name=&#39;A&#39;)
+B = te.placeholder((K, N), name=&#39;B&#39;)
 C = te.compute(
            (M, N),
            lambda x, y: te.sum(A[x, k] * B[k, y], axis=k),
-           name=&apos;C&apos;)
+           name=&#39;C&#39;)
 
 # Default schedule
 s = te.create_schedule(C.op)
-ir_m = tvm.lower(s, [A, B, C], simple_mode=True,name=&apos;mmult&apos;)
-rt_m = tvm.build(ir_m, [A, B, C], target=&apos;c&apos;, name=&apos;mmult&apos;)
+ir_m = tvm.lower(s, [A, B, C], simple_mode=True,name=&#39;mmult&#39;)
+rt_m = tvm.build(ir_m, [A, B, C], target=&#39;c&#39;, name=&#39;mmult&#39;)
 
 # print tir
 print(&quot;tir:\n&quot;, ir_m.astext(show_meta_data=False))
 # print source code
 print(&quot;source code:\n&quot;,rt_m.get_source())
-</code></pre><h3 id="relay图编译"><a href="#relay图编译" class="headerlink" title="relay图编译"></a>relay图编译</h3><pre><code>import ssl
+</code></pre>
+<h3 id="relay图编译"><a href="#relay图编译" class="headerlink" title="relay图编译"></a>relay图编译</h3><pre><code>import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
 from tvm import relay
@@ -262,9 +263,10 @@ print(resnet18_mod.astext(show_meta_data=False))
 
 # print source code
 print(resnet18_lib.get_source())
-</code></pre><h2 id="代码生成的流程"><a href="#代码生成的流程" class="headerlink" title="代码生成的流程"></a>代码生成的流程</h2><p>　　通过上面两个例子我们知道tvm代码生成接口上是IRModule到运行时module的转换，它完成tir或者relay ir到目标target代码的编译，例如c或者llvm IR等。下面的流程图描述整个代码的编译流程，深色表示C++代码，浅色表示python代码。算子编译时会首先进行tir的优化，分离出host和device部分，之后会调用注册的target.build.target函数进行编译。relay图编译相比算子稍微复杂一点，核心代码采用C++开发。它会通过relayBuildModule.Optimize进行relay图优化，之后针对module中的每个lower_funcs进行编译之前，合成最终的运行时module，其后部分的编译流程和算子编译相似。</p>
+</code></pre>
+<h2 id="代码生成的流程"><a href="#代码生成的流程" class="headerlink" title="代码生成的流程"></a>代码生成的流程</h2><p>　　通过上面两个例子我们知道tvm代码生成接口上是IRModule到运行时module的转换，它完成tir或者relay ir到目标target代码的编译，例如c或者llvm IR等。下面的流程图描述整个代码的编译流程，深色表示C++代码，浅色表示python代码。算子编译时会首先进行tir的优化，分离出host和device部分，之后会调用注册的target.build.target函数进行编译。relay图编译相比算子稍微复杂一点，核心代码采用C++开发。它会通过relayBuildModule.Optimize进行relay图优化，之后针对module中的每个lower_funcs进行编译之前，合成最终的运行时module，其后部分的编译流程和算子编译相似。</p>
 <p><img src="/images/tvm_code_generation.jpg" alt="TVM代码生成流程"></p>
-<h2 id="Codegen的实现"><a href="#Codegen的实现" class="headerlink" title="Codegen的实现"></a>Codegen的实现</h2><p> TVM针对不同的target实现了许多的codgen，它完成了tir到目标代码的翻译工作，例如c,llvm ir等。我们也可以根据需求实现自己的codegen，官网提供了一个<a href="https://tvm.apache.org/docs/dev/relay_bring_your_own_codegen.html" target="_blank" rel="noopener">教程</a>。</p>
+<h2 id="Codegen的实现"><a href="#Codegen的实现" class="headerlink" title="Codegen的实现"></a>Codegen的实现</h2><p> TVM针对不同的target实现了许多的codgen，它完成了tir到目标代码的翻译工作，例如c,llvm ir等。我们也可以根据需求实现自己的codegen，官网提供了一个<a href="https://tvm.apache.org/docs/dev/relay_bring_your_own_codegen.html">教程</a>。</p>
 <ul>
 <li>target.build.c</li>
 <li>target.build.llvm</li>
@@ -274,7 +276,7 @@ print(resnet18_lib.get_source())
 <li>target.build.metal</li>
 <li>target.build.vulkan</li>
 </ul>
-<h2 id="References"><a href="#References" class="headerlink" title="References"></a>References</h2><p>[1]. Unified IR RFC,<a href="https://github.com/apache/incubator-tvm/issues/4617" target="_blank" rel="noopener">https://github.com/apache/incubator-tvm/issues/4617</a><br>[2]. Codegen的实现：<a href="https://tvm.apache.org/docs/dev/relay_bring_your_own_codegen.html" target="_blank" rel="noopener">https://tvm.apache.org/docs/dev/relay_bring_your_own_codegen.html</a></p>
+<h2 id="References"><a href="#References" class="headerlink" title="References"></a>References</h2><p>[1]. Unified IR RFC,<a href="https://github.com/apache/incubator-tvm/issues/4617">https://github.com/apache/incubator-tvm/issues/4617</a><br>[2]. Codegen的实现：<a href="https://tvm.apache.org/docs/dev/relay_bring_your_own_codegen.html">https://tvm.apache.org/docs/dev/relay_bring_your_own_codegen.html</a></p>
 
     </div>
 
@@ -293,8 +295,8 @@ print(resnet18_lib.get_source())
                 </a>
             </div>
             <div class="post-nav-item">
-                <a href="/2023/09/09/AI/tensorflow-how-to-freeze-model/" rel="next" title="了解tensorflow不同格式的模型及其转换方法">
-                  了解tensorflow不同格式的模型及其转换方法 <i class="fa fa-angle-right"></i>
+                <a href="/2023/09/09/AI/TVM-Graph-optimization/" rel="next" title="TVM学习笔记--了解Relay和图优化">
+                  TVM学习笔记--了解Relay和图优化 <i class="fa fa-angle-right"></i>
                 </a>
             </div>
           </div>
