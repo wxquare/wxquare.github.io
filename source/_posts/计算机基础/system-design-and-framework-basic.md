@@ -21,10 +21,12 @@ categories:
 - **最终一致性** - 经过一段时间之后，系统最终会变一致，因为系统在此期间没有收到任何输入。
 
 
+![](/images/jrUBAF7.png)
+
 ## 架构
 
 <p align="center">
-  <img src="../../images/jrUBAF7.png" width=500 height=500>
+  <img src="/images/jrUBAF7.png" width=500 height=500>
   <br/>
 </p>
 
