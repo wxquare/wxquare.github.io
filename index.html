@@ -3439,7 +3439,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2023/12/20/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9F%BA%E7%A1%80/k8s-docker/" class="post-title-link" itemprop="url">一文记录 k8s 与 docker 实践</a>
+          <a href="/2023/12/20/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9F%BA%E7%A1%80/k8s-docker/" class="post-title-link" itemprop="url">一文记录 k8s 与 docker</a>
         </h2>
 
         <div class="post-meta-container">
@@ -3457,7 +3457,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2024-05-20 15:51:53" itemprop="dateModified" datetime="2024-05-20T15:51:53+08:00">2024-05-20</time>
+      <time title="Modified: 2024-05-20 16:04:03" itemprop="dateModified" datetime="2024-05-20T16:04:03+08:00">2024-05-20</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -3479,11 +3479,7 @@
     
     
     <div class="post-body" itemprop="articleBody">
-          <div class="pdf-container" data-target="/pdf/k8s-network.pdf" data-height="500px"></div>
-
-<h1 id="docker-与-镜像"><a href="#docker-与-镜像" class="headerlink" title="docker 与 镜像"></a>docker 与 镜像</h1><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">minikube <span class="built_in">command</span></span></span><br><span class="line">minikube start</span><br><span class="line">minikube status</span><br><span class="line">minikube ssh</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">docker</span></span><br><span class="line">docker ps  # 查看所有正在运行的容器</span><br><span class="line">docker ps -a # 查看所有的容器，包括正在运行的和停止的</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">用交互式的方式启动容器</span></span><br><span class="line">docker start -ai &lt;容器名或容器ID&gt;</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">打开容器进行交互式终端对话框</span></span><br><span class="line">docker exec -it &lt;容器名或容器ID&gt; bash</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">容器中执行命令</span></span><br><span class="line">docker exec &lt;容器名或容器ID&gt; ls</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h1 id="k8s"><a href="#k8s" class="headerlink" title="k8s"></a>k8s</h1><h2 id="k8s-网络"><a href="#k8s-网络" class="headerlink" title="k8s 网络"></a>k8s 网络</h2><h3 id="linux-虚拟网络-veth-pair-和-bridge"><a href="#linux-虚拟网络-veth-pair-和-bridge" class="headerlink" title="linux 虚拟网络 veth pair 和 bridge"></a>linux 虚拟网络 veth pair 和 bridge</h3><ul>
+          <h1 id="k8s-网络"><a href="#k8s-网络" class="headerlink" title="k8s 网络"></a>k8s 网络</h1><h2 id="linux-虚拟网络-veth-pair-和-bridge"><a href="#linux-虚拟网络-veth-pair-和-bridge" class="headerlink" title="linux 虚拟网络 veth pair 和 bridge"></a>linux 虚拟网络 veth pair 和 bridge</h2><ul>
 <li>Network namespace 实现网络隔离</li>
 <li>Veth pair提供了一种连接两个network namespace的方法</li>
 <li>Bridge 实现同一网络中多个namespace的连接</li>
@@ -3493,7 +3489,7 @@
 </ul>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line">sudo ip netns add ns1</span><br><span class="line">sudo ip netns add ns2</span><br><span class="line">sudo ip netns add ns3</span><br><span class="line"></span><br><span class="line">sudo brctl addbr virtual-bridge</span><br><span class="line"></span><br><span class="line">sudo ip <span class="built_in">link</span> add veth-ns1 <span class="built_in">type</span> veth peer name veth-ns1-br</span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> veth-ns1 netns ns1</span><br><span class="line">sudo brctl addif virtual-bridge veth-ns1-br</span><br><span class="line"></span><br><span class="line">sudo ip <span class="built_in">link</span> add veth-ns2 <span class="built_in">type</span> veth peer name veth-ns2-br</span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> veth-ns2 netns ns2</span><br><span class="line">sudo brctl addif virtual-bridge veth-ns2-br</span><br><span class="line"></span><br><span class="line">sudo ip <span class="built_in">link</span> add veth-ns3 <span class="built_in">type</span> veth peer name veth-ns3-br</span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> veth-ns3 netns ns3</span><br><span class="line">sudo brctl addif virtual-bridge veth-ns3-br</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">sudo ip -n ns1 addr add <span class="built_in">local</span> 192.168.1.1/24 dev veth-ns1</span><br><span class="line">sudo ip -n ns2 addr add <span class="built_in">local</span> 192.168.1.2/24 dev veth-ns2</span><br><span class="line">sudo ip -n ns3 addr add <span class="built_in">local</span> 192.168.1.3/24 dev veth-ns3</span><br><span class="line"></span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> virtual-bridge up</span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> veth-ns1-br up</span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> veth-ns2-br up</span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> veth-ns3-br up</span><br><span class="line">sudo ip -n ns1 <span class="built_in">link</span> <span class="built_in">set</span> veth-ns1 up</span><br><span class="line">sudo ip -n ns2 <span class="built_in">link</span> <span class="built_in">set</span> veth-ns2 up</span><br><span class="line">sudo ip -n ns3 <span class="built_in">link</span> <span class="built_in">set</span> veth-ns3 up</span><br><span class="line"></span><br><span class="line">sudo ip netns delete ns1</span><br><span class="line">sudo ip netns delete ns2</span><br><span class="line">sudo ip netns delete ns3</span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> virtual-bridge down</span><br><span class="line">sudo brctl delbr virtual-bridge</span><br><span class="line"></span><br><span class="line">$ sudo ip netns <span class="built_in">exec</span> ns1 ping 192.168.1.2</span><br><span class="line">PING 192.168.1.2 (192.168.1.2): 56 data bytes</span><br><span class="line">64 bytes from 192.168.1.2: <span class="built_in">seq</span>=0 ttl=64 time=0.068 ms</span><br><span class="line">--- 192.168.1.2 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 packets received, 0% packet loss</span><br><span class="line">round-trip min/avg/max = 0.060/0.064/0.068 ms</span><br><span class="line">$ sudo ip netns <span class="built_in">exec</span> ns1 ping 192.168.1.3</span><br><span class="line">PING 192.168.1.3 (192.168.1.3): 56 data bytes</span><br><span class="line">64 bytes from 192.168.1.3: <span class="built_in">seq</span>=0 ttl=64 time=0.055 ms</span><br><span class="line">--- 192.168.1.3 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 packets received, 0% packet loss</span><br><span class="line">round-trip min/avg/max = 0.055/0.378/1.016 ms</span><br></pre></td></tr></table></figure>
 
-<h3 id="docker-网络-和-docker0"><a href="#docker-网络-和-docker0" class="headerlink" title="docker 网络 和 docker0"></a>docker 网络 和 docker0</h3><ul>
+<h2 id="docker-网络-和-docker0"><a href="#docker-网络-和-docker0" class="headerlink" title="docker 网络 和 docker0"></a>docker 网络 和 docker0</h2><ul>
 <li>docker0网桥和缺省路由</li>
 <li>docker0</li>
 <li>route</li>
@@ -3502,19 +3498,19 @@
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看网桥</span></span><br><span class="line">$ brctl show</span><br><span class="line">bridge name	bridge <span class="built_in">id</span>		STP enabled	interfaces</span><br><span class="line">docker0		8000.02421557ce52	no		veth91e1730</span><br><span class="line">							            vethc858a6a</span><br><span class="line"><span class="comment"># 查看docker 网络</span></span><br><span class="line">docker network inspect bridge</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看container route信息</span></span><br><span class="line"><span class="comment"># 目的地址为172.17的网络不走route，其它走默认的172.17.0.1 route</span></span><br><span class="line">$ docker <span class="built_in">exec</span> busybox1 route -n</span><br><span class="line">Kernel IP routing table</span><br><span class="line">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface</span><br><span class="line">0.0.0.0         172.17.0.1      0.0.0.0         UG    0      0        0 eth0</span><br><span class="line">172.17.0.0      0.0.0.0         255.255.0.0     U     0      0        0 eth0</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看iptables</span></span><br><span class="line"><span class="comment"># 出口不为0docker的流量都使用SNAT</span></span><br><span class="line">$ sudo iptables -t nat -S | grep docker</span><br><span class="line">-A POSTROUTING -s 172.17.0.0/16 ! -o docker0 -j MASQUERADE</span><br><span class="line">-A DOCKER -i docker0 -j RETURN</span><br></pre></td></tr></table></figure>
 
 
-<h3 id="pod-网络"><a href="#pod-网络" class="headerlink" title="pod 网络"></a>pod 网络</h3><h4 id="pause"><a href="#pause" class="headerlink" title="pause"></a>pause</h4><ul>
+<h2 id="pod-网络"><a href="#pod-网络" class="headerlink" title="pod 网络"></a>pod 网络</h2><h3 id="pause"><a href="#pause" class="headerlink" title="pause"></a>pause</h3><ul>
 <li>pause容器实现1个pod中多个container的网络共享</li>
 <li>Pause 用于实现容器之间共享网络，如果其中部分容器挂掉，其余容器网路正常工作</li>
 <li><a href="https://github.com/kubernetes/kubernetes/blob/master/build/pause/linux/pause.c">https://github.com/kubernetes/kubernetes/blob/master/build/pause/linux/pause.c</a></li>
 </ul>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ docker ps | grep etcd</span><br><span class="line">8fd1337b0bf2   73deb9a3f702                <span class="string">&quot;etcd --advertise-cl…&quot;</span>   3 hours ago      Up 3 hours                k8s_etcd_etcd-minikube_kube-system_94aa022caf543792dfcddf4a2ca05a30_0</span><br><span class="line">1202ef34af2b   registry.k8s.io/pause:3.9   <span class="string">&quot;/pause&quot;</span>                 3 hours ago      Up 3 hours                k8s_POD_etcd-minikube_kube-system_94aa022caf543792dfcddf4a2ca05a30_0</span><br><span class="line"></span><br><span class="line">$ docker inspect 8fd1337b0bf2 | grep -i networkMode</span><br><span class="line">$ docker inspect 8fd1337b0bf2 | grep -i networkMode</span><br><span class="line">            <span class="string">&quot;NetworkMode&quot;</span>: <span class="string">&quot;container:1202ef34af2b155e938cbe770870ba6c8edd3a57c88545a697816c340a6ce320&quot;</span>,</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h4 id="CNI-标准和插件"><a href="#CNI-标准和插件" class="headerlink" title="CNI 标准和插件"></a>CNI 标准和插件</h4><ul>
+<h3 id="CNI-标准和插件"><a href="#CNI-标准和插件" class="headerlink" title="CNI 标准和插件"></a>CNI 标准和插件</h3><ul>
 <li>CNI标准: <a href="https://github.com/containernetworking/cni">https://github.com/containernetworking/cni</a></li>
 <li>CNI 插件:<a href="https://github.com/containernetworking/plugins">https://github.com/containernetworking/plugins</a></li>
 </ul>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">ls</span> -l /opt/cni/bin/</span><br><span class="line">-rwxr-xr-x 1 root root 2660408 Nov  7  2023 bandwidth</span><br><span class="line">-rwxr-xr-x 1 root root 3018552 Nov  7  2023 bridge</span><br><span class="line">-rwxr-xr-x 1 root root 1984728 Nov  7  2023 cnitool</span><br><span class="line">-rwxr-xr-x 1 root root 7432152 Nov  7  2023 dhcp</span><br><span class="line">-rwxr-xr-x 1 root root 3096120 Nov  7  2023 firewall</span><br><span class="line">-rwxr-xr-x 1 root root 2250104 Nov  7  2023 host-local</span><br><span class="line">-rwxr-xr-x 1 root root 2775128 Nov  7  2023 ipvlan</span><br><span class="line">-rwxr-xr-x 1 root root 2305848 Nov  7  2023 loopback</span><br><span class="line">-rwxr-xr-x 1 root root 2799704 Nov  7  2023 macvlan</span><br><span class="line">-rwxr-xr-x 1 root root 2615256 Nov  7  2023 portmap</span><br><span class="line">-rwxr-xr-x 1 root root 2891096 Nov  7  2023 ptp</span><br><span class="line">-rwxr-xr-x 1 root root 2367288 Nov  7  2023 tuning</span><br><span class="line">-rwxr-xr-x 1 root root 2771032 Nov  7  2023 vlan</span><br></pre></td></tr></table></figure>
 
-<h3 id="service-网络"><a href="#service-网络" class="headerlink" title="service 网络"></a>service 网络</h3><h4 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h4><ul>
+<h2 id="service-网络"><a href="#service-网络" class="headerlink" title="service 网络"></a>service 网络</h2><h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><ul>
 <li>Zookeeper提供名字服务，pod自身实现负载均衡，RPC框架实现负载均衡</li>
 <li>Service 为 Pods 提供的固定 IP，其他服务可以通过 Service IP 找到提供服务的Endpoints。</li>
 <li>Service提供负载均衡。Service 由多个 Endpoints 组成，kubernetes 对组成 Service 的 Pods 提供的负载均衡方案，例如随机访问、robin 轮询等。</li>
@@ -3525,7 +3521,7 @@
   <br/>
 </p>
 
-<h4 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h4><ul>
+<h3 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h3><ul>
 <li>Service IP IP 由API server分配，写入etcd</li>
 <li>Etcd 中存储service和endpoints</li>
 <li>Controllermanager watch etcd的变换生成endpoints</li>
@@ -3537,7 +3533,7 @@
 </p>
 
 
-<h4 id="kube-proxy-服务发现和负载均衡"><a href="#kube-proxy-服务发现和负载均衡" class="headerlink" title="kube-proxy 服务发现和负载均衡"></a>kube-proxy 服务发现和负载均衡</h4><ul>
+<h3 id="kube-proxy-服务发现和负载均衡"><a href="#kube-proxy-服务发现和负载均衡" class="headerlink" title="kube-proxy 服务发现和负载均衡"></a>kube-proxy 服务发现和负载均衡</h3><ul>
 <li>Order -&gt; item 的流程</li>
 <li>服务发现：<a href="https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/#environment-variables">环境变量和DNS</a></li>
 <li>servicename.namespace.svc.cluster.local</li>
@@ -3549,12 +3545,12 @@
   <br/>
 </p>
 
-<h4 id="service-类型"><a href="#service-类型" class="headerlink" title="service 类型"></a><a href="https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/#loadbalancer">service 类型</a></h4><ul>
+<h3 id="service-类型"><a href="#service-类型" class="headerlink" title="service 类型"></a><a href="https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/#loadbalancer">service 类型</a></h3><ul>
 <li>ClusterIP</li>
 <li>NodePort</li>
 <li>LoadBalancer</li>
 </ul>
-<h3 id="ingress-网络"><a href="#ingress-网络" class="headerlink" title="ingress 网络"></a>ingress 网络</h3><h4 id="背景-1"><a href="#背景-1" class="headerlink" title="背景"></a>背景</h4><ul>
+<h2 id="ingress-网络"><a href="#ingress-网络" class="headerlink" title="ingress 网络"></a>ingress 网络</h2><h3 id="背景-1"><a href="#背景-1" class="headerlink" title="背景"></a>背景</h3><ul>
 <li>集群外部访问集群内部资源？nodeport,loadbalancer。一个服务一个port或者一个外网IP，一个域名</li>
 <li>Ingress 是 Kubernetes 中的一种 API 对象，用于管理入站网络流量，基于域名和URL路径把用户的请求转发到对应的service</li>
 <li>ingress相当于七层负载均衡器，是k8s对反向代理的抽象</li>
@@ -3565,7 +3561,7 @@
   <br/>
 </p>
 
-<h4 id="实现原理-1"><a href="#实现原理-1" class="headerlink" title="实现原理"></a>实现原理</h4><ul>
+<h3 id="实现原理-1"><a href="#实现原理-1" class="headerlink" title="实现原理"></a>实现原理</h3><ul>
 <li>ingress 资源对象用于编写资源配置规则</li>
 <li>Ingress-controller 监听apiserver感知集群中service和pod的变化动态更新配置规则，并重载proxy反向代理的配置</li>
 <li>proxy反向代理负载均衡器，例如ngnix，接收并按照ingress定义的规则进行转发，常用的是ingress-nginx等，直接转发到pod中<p align="center">
@@ -3579,8 +3575,11 @@
 <li>基于主机的路由匹配。例如，可以将 app1.example.com 主机名映射到一个服务，将 app2.example.com 主机名映射到另一个服务。主机匹配也可以与路径匹配结合使用，实现更细粒度的路由控制。</li>
 <li>其他条件的路由匹配：：请求方法（如 GET、POST）、请求头（如 Content-Type）、查询参数等。</li>
 </ul>
-<p>参考资料：</p>
-<ol>
+<h1 id="docker-k8s-常用命令"><a href="#docker-k8s-常用命令" class="headerlink" title="docker k8s 常用命令"></a>docker k8s 常用命令</h1><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">minikube</span></span><br><span class="line">minikube start</span><br><span class="line">minikube status</span><br><span class="line">minikube ssh</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">docker</span></span><br><span class="line">docker ps  # 查看所有正在运行的容器</span><br><span class="line">docker ps -a # 查看所有的容器，包括正在运行的和停止的</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">用交互式的方式启动容器</span></span><br><span class="line">docker start -ai &lt;容器名或容器ID&gt;</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">打开容器进行交互式终端对话框</span></span><br><span class="line">docker exec -it &lt;容器名或容器ID&gt; bash</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">容器中执行命令</span></span><br><span class="line">docker exec &lt;容器名或容器ID&gt; ls</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>参考资料</p>
+<ul>
+<li><a href="https://github.com/wxquare/effective-resourses/blob/master/share/k8s%20%E7%BD%91%E7%BB%9C%E5%85%A5%E9%97%A8.pdf">分享PPT</a></li>
 <li><a href="https://github.com/caicloud/kube-ladder/blob/master/tutorials/lab1-installation.md">Minikube 环境安装</a></li>
 <li><a href="https://github.com/caicloud/kube-ladder/blob/master/tutorials/lab2-application-and-service.md">Kubectl 命令和集群体验</a></li>
 <li><a href="https://www.zhaohuabing.com/post/2020-03-12-linux-network-virtualization/">Linux network namespace,veth,bridge 和 路由</a></li>
@@ -3595,7 +3594,7 @@
 <li><a href="https://luckymrwang.github.io/2021/02/20/%E6%8E%A2%E7%A9%B6K8S-Service%E5%86%85%E9%83%A8iptables%E8%B7%AF%E7%94%B1%E8%A7%84%E5%88%99/">探究k8s service iptables 路由规则</a></li>
 <li><a href="https://kubernetes.io/zh-cn/docs/tasks/access-application-cluster/ingress-minikube/">官方文档：在minikube中使用nginx ingress 控制配置ingress</a></li>
 <li><a href="https://kubernetes.io/zh-cn/docs/concepts/services-networking/ingress/">官方文档：ingress</a></li>
-</ol>
+</ul>
 
       
     </div>
