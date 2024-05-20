@@ -1,5 +1,6 @@
 ---
-title: Linux常用命令和shell的使用
+title: 一文记录Linux常用命令和shell实践
+date: 2023-10-13
 categories:
 - 计算机基础
 ---

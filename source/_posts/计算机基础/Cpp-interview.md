@@ -1,5 +1,6 @@
 ---
-title: C/C++基础知识和编码规范
+title: 一文记录 C/C++基础知识和编码规范
+date: 2023-10-13
 categories: 
 - 计算机基础
 ---
@@ -406,3 +407,472 @@ https://www.cnblogs.com/wxquare/p/4922733.html
 既然有这么多局限，iostream 在实际项目中的应用就大为受限了，在这上面投入太多的精力实在不值得。说实话，我没有见过哪个 C++ 产品代码使用 iostream 来作为输入输出设施。 
 
 4. STL::list::sort链表归并排序
+
+
+
+
+
+
+
+---
+title: C/C++程序的项目构建、编译、调试工具和方法
+categories:
+- 计算机基础
+---
+
+　　在Linux C/C++项目实践中，随和项目越来越复杂，第三方依赖项的增加，有时会遇到一些编译、链接和调试问题，这里总结一下遇到的问题、解决的办法和使用到的工具：
+1. 了解gcc/g++编译过程、常见和编译选项解决编译过程遇到的问题
+2. 了解链接过程、动态链接、静态链接，解决链接过程中遇到的问题
+4. 解决程序运行出现的依赖问题、符号未定义问题
+5. 学习会使用gdb调试一些基本问题
+5. 学会使用makefile和cmake工具构建项目
+
+
+## 一、排查编译问题常用工具
+### 1. gcc/g++的区别和使用
+1. 后缀为.c的，gcc把它当作是C程序，而g++当作是c++程序；后缀为.cpp的，两者都会认为是c++程序，注意，虽然c++是c的超集，但是两者对语法的要求是有区别的
+2. 对于C代码，编译和链接都使用gcc
+3. 对于C++代码，编译时可以使用gcc/g++，gcc实际也是调用g++；链接时gcc 不能自动和C++使用库链接，因此要使用g++或者gcc -lstdc++  
+
+### 2. 常见gcc编译链接选项
+- -c 只编译并生成目标文件
+- -g 生成调试信息，gdb可以利用该调试信息
+- -o 指定生成的输出文件，可执行程序或者动态链接库文件名
+- -I 编译时添加头文件路径
+- -L 链接时添加库文件路径
+- -D 定义宏，常用于开关控制代码
+- -shared 用于生成共享库.so
+- -Wall 显示所有警告信息，-w不生成任何警告信息
+- -O0选项不进行任何优化，debug会产出和程序预期的结果；O1优化会消耗少多的编译时间，它主要对代码的分支，常量以及表达式等进行优化;O2会尝试更多的寄存器级的优化以及指令级的优化，它会在编译期间占用更多的内存和编译时间。 通常情况下线上代码至少加上O2优化选项。
+- -fPIC 位置无关选项，生成动态库时使用，实现真正意义上的多进程共享的.so库。
+- -Wl选项告诉编译器将后面的参数传递给链接器
+- -Wl,-Bstatic，指明后面是链接今静态库
+- -Wl,-Bdynamic,指明后面是链接动态库
+
+### 3. 编译时添加头文件依赖路径
+　　-include用来包含头文件，但一般情况下包含头文件都在源码里用#include xxxxxx实现，-include参数很少用。-I参数是用来指定头文件目录，/usr/include目录一般是不用指定的，gcc知道去那里找，但 是如果头文件不在/usr/include里我们就要用-I参数指定了，比如头文件放在/myinclude目录里，那编译命令行就要加上-I /myinclude参数了，如果不加你会得到一个"xxxx.h: No such file or directory"的错误。-I参数可以用相对路径，比如头文件在当前目录，可以用-I.来指定。
+
+## 二、排查链接问题常用工具
+1. 查看ld链接器的搜索顺序 ld --verbose | grep SEARCH
+2. 链接时指定链接目录 -L/dir
+3. -Wl,-Bstatic，指明后面是链接今静态库
+4. -Wl,-Bdynamic,指明后面是链接动态库  
+5. 运行时找不到动态库so文件，设置LD_LIBRARY_PATH，添加依赖so文件所在路径
+6. 链接完成后使用ldd查看动态库依赖关系，如果依赖的某个库找不到，通过这个命令可以迅速定位问题所在
+7. ldd -r，帮助检查是否存在未定义的符号undefine symbol,so库链接状态和错误信息
+
+
+
+## 三、gdb调试基本使用
+### 1. 对C/C++程序的调试，需要在编译前就加上-g选项。
+1. $gdb <programe>
+2. 设置参数：set args 可指定运行时参数。（如：set args 10 20 30 40 50） 
+
+### 2. 查看源代码
+- list ：简记为 l ，其作用就是列出程序的源代码，默认每次显示10行。
+- list 行号：将显示当前文件以“行号”为中心的前后10行代码，如：list 12
+- list 函数名：将显示“函数名”所在函数的源代码，如：list main
+- list ：不带参数，将接着上一次 list 命令的，输出下边的内容
+
+### 3. 设置断点和关闭断点
+- break n （简写b n）: 在第n行处设置断点（可以带上代码路径和代码名称： b test.cpp:578）
+- break func（简写b func): 在函数func()的入口处设置断点，如：break test_func
+- info b （info breakpoints)：显示当前程序的断点设置情况
+- delete 断点号n：删除第n个断点
+- disable 断点号n：暂停第n个断点
+- clear 行号n：清除第n行的断点
+
+### 4. 程序调试运行
+- run：简记为 r ，其作用是运行程序，当遇到断点后，程序会在断点处停止运行，等待用户输入下一步的命令。
+- continue （简写c ）：继续执行，到下一个断点处（或运行结束）
+- next：（简写 n），单步跟踪程序，当遇到函数调用时，也不进入此函数体；此命令同 step 的主要区别是，step 遇到用户自定义的函数，将步进到函数中去运行，而 next 则直接调用函数，不会进入到函数体内。
+- step （简写s）：单步调试如果有函数调用，则进入函数；与命令n不同，n是不进入调用的函数的
+- until：当你厌倦了在一个循环体内单步跟踪时，这个命令可以运行程序直到退出循环体。
+- until+行号： 运行至某行，不仅仅用来跳出循环
+- finish： 运行程序，直到当前函数完成返回，并打印函数返回时的堆栈地址和返回值及参数值等信息。
+- call 函数(参数)：调用程序中可见的函数，并传递“参数”，如：call gdb_test(55)
+- quit：简记为 q ，退出gdb
+
+### 5. 打印程序运行的调试信息
+- print 表达式：简记为 p ，其中“表达式”可以是任何当前正在被测试程序的有效表达式，比如当前正在调试C语言的程序，那么“表达式”可以是任何C语言的有效表达式，包括数字，变量甚至是函数调用。
+- print a：将显示整数 a 的值
+- print name：将显示字符串 name 的值
+- print gdb_test(22)：将以整数22作为参数调用 gdb_test() 函数
+- print gdb_test(a)：将以变量 a 作为参数调用 gdb_test() 函数
+- 扩展info locals： 显示当前堆栈页的所有变量
+
+### 6. 查询运行信息
+- where/bt ：当前运行的堆栈列表；
+- bt backtrace 显示当前调用堆栈
+- up/down 改变堆栈显示的深度
+- set args 参数:指定运行时的参数
+- show args：查看设置好的参数
+- info program： 来查看程序的是否在运行，进程号，被暂停的原因。
+
+
+## 四、gdb调试coredump问题
+ 　　Coredump叫做核心转储，它是进程运行时在突然崩溃的那一刻的一个内存快照。操作系统在程序发生异常而异常在进程内部又没有被捕获的情况下，会把进程此刻内存、寄存器状态、运行堆栈等信息转储保存在一个文件里。该文件也是二进制文件，可以使用gdb调试。虽然我们知道进程在coredump的时候会产生core文件，但是有时候却发现进程虽然core了，但是我们却找不到core文件。在ubuntu系统中需要进行设置，ulimit  -c 可以设置core文件的大小，如果这个值为0.则不会产生core文件，这个值太小，则core文件也不会产生，因为core文件一般都比较大。使用**ulimit  -c unlimited**来设置无限大，则任意情况下都会产生core文件。
+ 　　gdb打开core文件时，有显示没有调试信息，因为之前编译的时候没有带上-g选项，没有调试信息是正常的，实际上它也不影响调试core文件。因为调试core文件时，符号信息都来自符号表，用不到调试信息。如下为加上调试信息的效果。
+ 调试步骤：
+ ＄gdb program core_file 进入
+ $ bt或者where # 查看coredump位置
+ 当程序带有调试信息的情况下，我们实际上是可以看到core的地方和代码行的匹配位置。但往往正常发布环境是不会带上调试信息的，因为调试信息通常会占用比较大的存储空间，一般都会在编译的时候把-g选项去掉。这种情况啊也是可以通过core_dump文件找到错误位置的，但这个过程比较复杂，参考：https://blog.csdn.net/u014403008/article/details/54174109
+
+## 五、gdb调试线上死锁问题
+　　如果你的程序是一个服务程序，那么你可以指定这个服务程序运行时的进程ID。gdb会自动attach上去，并调试。对于服务进程，我们除了使用gdb调试之外，还可以使用pstack跟踪进程栈。这个命令在排查进程问题时非常有用，比如我们发现一个服务一直处于work状态（如假死状态，好似死循环），使用这个命令就能轻松定位问题所在；可以在一段时间内，多执行几次pstack，若发现代码栈总是停在同一个位置，那个位置就需要重点关注，很可能就是出问题的地方。gdb比pstack更加强大，gdb可以随意进入进程、线程中改变程序的运行状态和查看程序的运行信息。思考：如何调试死锁？
+$gdb <program> <PID>
+$pstack pid
+
+
+## 六、undefined symbol问题解决步骤
+1. file 检查so或者可执行文件的架构
+```
+$ file _visp.so 
+_visp.so: ELF 64-bit LSB pie executable, x86-64, version 1 (GNU/Linux), dynamically linked, BuildID[sha1]=6503ba6b7545e38e669ab9ed31f86449d8a5f78b, stripped
+```
+2. ldd -r _visp.so 命令查看so库链接状态和错误信息
+```
+undefined symbol: __itt_api_version_ptr__3_0	(./_visp.so)
+undefined symbol: __itt_id_create_ptr__3_0	(./_visp.so)
+```
+3. c++filt symbol 定位错误在那个C++文件中
+```
+base) terse@ubuntu:~/code/terse-visp$ c++filt __itt_domain_create_ptr__3_0
+__itt_domain_create_ptr__3_0
+```
+4. 还可以使用grep -R __itt_domain_create_ptr__3_0 ./
+最终发现这个符号来自XXX/opencv-3.4.6/build/share/OpenCV/3rdparty/libittnotify.a
+
+5. 通过nm命令也能看出该符号确实未定义
+```
+$ nm _visp.so | grep __itt_domain_create_ptr__3_0
+      U __itt_domain_create_ptr__3_0
+```
+
+
+## 七、pkg-config 找第三方库的头文件和库文件
+pkg-config能方便使用第三方库和头文件和库文件，其运行原理 
+- 它首先根据PKG_CONFIG_PATH环境变量下寻找库对应的pc文件  
+- 然后从pc文件中获取该库对应的头文件和库文件的位置信息
+  
+例如在项目中需要使用opencv库，该库包含的头文件和库文件比较多  
+- 首先查看是否有对应的opencv.pc find /usr -name opencv.pc  
+- 查看该路径是否包含在PKG_CONFIG_PATH  
+- 使用pkg-config --cflags --libs opencv 查看库对应的头文件和库文件信息  
+- pkg-config --modversion opencv 查看版本信息
+参考链接：[https://blog.csdn.net/luotuo44/article/details/24836901](https://blog.csdn.net/luotuo44/article/details/24836901)
+
+
+## 八、cmake中的find_package
+https://www.jianshu.com/p/46e9b8a6cb6a
+find_package原理
+首先明确一点，cmake本身不提供任何搜索库的便捷方法，所有搜索库并给变量赋值的操作必须由cmake代码完成，比如下面将要提到的FindXXX.cmake和XXXConfig.cmake。只不过，库的作者通常会提供这两个文件，以方便使用者调用。
+find_package采用两种模式搜索库：
+
+Module模式：搜索CMAKE_MODULE_PATH指定路径下的FindXXX.cmake文件，执行该文件从而找到XXX库。其中，具体查找库并给XXX_INCLUDE_DIRS和XXX_LIBRARIES两个变量赋值的操作由FindXXX.cmake模块完成。
+
+Config模式：搜索XXX_DIR指定路径下的XXXConfig.cmake文件，执行该文件从而找到XXX库。其中具体查找库并给XXX_INCLUDE_DIRS和XXX_LIBRARIES两个变量赋值的操作由XXXConfig.cmake模块完成。
+
+两种模式看起来似乎差不多，不过cmake默认采取Module模式，如果Module模式未找到库，才会采取Config模式。如果XXX_DIR路径下找不到XXXConfig.cmake文件，则会找/usr/local/lib/cmake/XXX/中的XXXConfig.cmake文件。总之，Config模式是一个备选策略。通常，库安装时会拷贝一份XXXConfig.cmake到系统目录中，因此在没有显式指定搜索路径时也可以顺利找到。
+
+## 九、ldd解决运行时问题
+**现象**：  
+- <font color=red >error while loading shared libraries: libopencv_cudabgsegm.so.3.4: cannot open shared object file: No such file or directory </font>  
+- ldd ./xxx，发现库文件not found  
+
+      libopencv_cudaobjdetect.so.3.4 => not found  
+      libopencv_cudalegacy.so.3.4 => not found
+
+**ld.so 动态共享库搜索顺序**：  
+1. ELF可执行文件中动态段DT_RPATH指定；gcc加入链接参数“-Wl,-rpath”指定动态库搜索路径；  
+2. 环境变量LD_LIBRARY_PATH指定路径；  
+3. /etc/ld.so.cache中缓存的动态库路径。可以通过修改配置文件/etc/ld.so.conf 增删路径（修改后需要运行ldconfig命令）；  
+4. 默认的 /lib/;  
+5. 默认的 /usr/lib/  
+
+**解决办法**：  
+- 确认系统中是包含这个库文件的  
+- pkg-config --libs opencv 查看opencv库的路径  
+- export LD_LIBRARY_PATH=/usr/local/lib64，增加运行时加载路径  
+
+ 参考链接：[https://www.cnblogs.com/amyzhu/p/8871475.html](https://www.cnblogs.com/amyzhu/p/8871475.html)
+
+## 十、makefile和cmake的使用
+- [跟我学些makefile](https://github.com/wxquare/programming/blob/master/document/%E8%B7%9F%E6%88%91%E4%B8%80%E8%B5%B7%E5%86%99Makefile-%E9%99%88%E7%9A%93.pdf)
+- [CMake入门实战](https://www.hahack.com/codes/cmake/)
+
+
+## 其它问题
+1. c++进程内存空间分布
+2. ELF是什么？其大小与程序中全局变量的是否初始化有什么关系（注意.bss段）、elf文件格式和运行时内存布局
+3. 标准库函数和系统调用的区别
+4. 编译器内存对齐和内存对齐的原理
+5. 编译器如何区分C和C++？
+6. C++动态链接库和静态链接库？如何创建和使用静态链接库和动态链接库？（fPIC, shared）
+8. 如何判断计算机的字节序是大端还是小端的？
+9. 预编译、编译、汇编、链接
+10. GDB的基本工作原理是什么？和断点调试的实现原理：在程序中设置断点，现将该位置原来的指令保存，然后向该位置写入int 3，当执行到int 3的时候，发生软中断。内核会给子进程发出sigtrap信号，当然这个信号首先被gdb捕获，gdb会进行断点命中判定，如果命中的话就会转入等待用户输入进行下一步的处理，否则继续运行，替换int 3，恢复执行
+12. gdb调试、coredump、调试运行中的程序？通过ptrace让父进程可以观察和控制其它进程的执行，检查和改变其核心映像以及寄存器，主要通过实现断电调试和系统调用跟踪。
+119. 编译器的编译过程？链接的时候做了什么事？在中间层优化时怎么做?编译。词法分析、句法分析、语义分析生成中间的汇编代码。汇编，链接：静态链接库、动态链接库
+5.	gcc 和 g++的区别
+6.	项目构建工具makefile、cmake
+20. 预处理：#include文件、条件预编译指令、注释。保留#pargma编译器指令
+21. valgrind(内存、堆栈、函数调用、多线程竞争、缓存，可扩展)，valgrind内存检查的原理、和具体使用！
+22. C++内存管理：内存布局、堆栈的区别、内存操作四个原则、内存泄露检查、智能指针、STL内存管理(内存池)
+23. gdb调试多进程和多线程命令
+
+
+
+参考：
+[1]. gdb 调试利器:https://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/gdb.html
+[2]. 陈皓专栏gdb调试系列：https://blog.csdn.net/haoel/article/details/2879
+[3]. gdb core_dump调试：https://blog.csdn.net/u014403008/article/details/54174109
+[4]. 进程调试，死循环和死锁卡死：https://blog.csdn.net/guowenyan001/article/details/46238355
+
+
+
+
+
+---
+title: C/C++程序性能分析的工具
+categories: 
+- 计算机基础
+---
+
+
+　　C++代码编译测试完成功能之后，有时会遇到一些性能问题，此时需要学会使用一些工具对其进行性能分析，找出程序的性能瓶颈，然后进行优化，基本需要掌握下面几个命令：
+1. time分析程序的执行时间
+2. top观察程序资源使用情况
+3. perf/gprof进一步分析程序的性能
+4. 内存问题与valgrind
+5. 自己写一个计时器，计算局部函数的时间
+
+
+
+## 一、time
+### 1.shell time。
+　　time非常方便获取程序运行的时间，包括用户态时间user、内核态时间sys和实际运行的时间real。我们可以通过(user+sys)/real计算程序CPU占用率，判断程序时CPU密集型还是IO密集型程序。
+	$time ./kcf2.0 ../data/bag.mp4 312 146 106 98 1 196 result.csv 1
+	real	0m2.065s
+	user	0m4.598s
+	sys	    0m0.907s
+cpu使用率：(4.598+0.907)/2.065=267%
+视频帧数196，196/2.065=95
+
+
+### 2./usr/bin/time
+　　Linux中除了shell time，还有/usr/bin/time，它能获取程序运行更多的信息，通常带有-v参数。
+```
+$ /usr/bin/time -v  ./kcf2.0 ../data/bag.mp4 312 146 106 98 1 196 result.csv 1
+    User time (seconds): 4.28                                  # 用户态时间
+	System time (seconds): 1.11                                # 内核态时间
+	Percent of CPU this job got: 279%                          # CPU占用率
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.93   
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 63980                  # 最大内存分配
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 19715              # 缺页异常
+	Voluntary context switches: 3613                           # 上下文切换
+	Involuntary context switches: 295682
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 32
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+```
+
+
+## 二、top
+top是linux系统的任务管理器，它既能看系统所有任务信息，也能帮助查看单个进程资源使用情况。
+主要有以下几个功能：
+1. 查看系统任务信息：
+ Tasks:  87 total,   1 running,  86 sleeping,   0 stopped,   0 zombie
+2. 查看CPU使用情况
+ Cpu(s):  0.0%us,  0.2%sy,  0.0%ni, 99.7%id,  0.0%wa,  0.0%hi,  0.0%si,  0.2%st
+3. 查看内存使用情况
+ Mem:    377672k total,   322332k used,    55340k free,    32592k buffers
+4. 查看单个进程资源使用情况 
+	- PID：进程的ID
+	- USER：进程所有者
+	- PR：进程的优先级别，越小越优先被执行
+	- NInice：值
+	- VIRT：进程占用的虚拟内存
+	- RES：进程占用的物理内存
+	- SHR：进程使用的共享内存
+	- S：进程的状态。S表示休眠，R表示正在运行，Z表示僵死状态，N表示该进程优先值为负数
+	- %CPU：进程占用CPU的使用率
+	- %MEM：进程使用的物理内存和总内存的百分比
+	- TIME+：该进程启动后占用的总的CPU时间，即占用CPU使用时间的累加值。
+	- COMMAND：进程启动命令名称
+5. 除此之外top还提供了一些交互命令：
+	- q:退出
+	- 1:查看每个逻辑核
+	- H：查看线程
+	- P：按照CPU使用率排序
+	- M：按照内存占用排序
+
+参考：https://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/top.html
+
+
+## 三、perf
+参考：https://www.ibm.com/developerworks/cn/linux/l-cn-perf1/index.html
+参考：https://zhuanlan.zhihu.com/p/22194920
+
+### 1. perf stat
+　　做任何事都最好有条有理。老手往往能够做到不慌不忙，循序渐进，而新手则往往东一下，西一下，不知所措。面对一个问题程序，最好采用自顶向下的策略。先整体看看该程序运行时各种统计事件的大概，再针对某些方向深入细节。而不要一下子扎进琐碎细节，会一叶障目的。有些程序慢是因为计算量太大，其多数时间都应该在使用 CPU 进行计算，这叫做 CPU bound 型；有些程序慢是因为过多的 IO，这种时候其 CPU 利用率应该不高，这叫做 IO bound 型；对于 CPU bound 程序的调优和 IO bound 的调优是不同的。如果您认同这些说法的话，Perf stat 应该是您最先使用的一个工具。它通过概括精简的方式提供被调试程序运行的整体情况和汇总数据。虚拟机上面有些参数不全面，cycles、instructions、branches、branch-misses。下面的测试数据来自服务器。                                          
+**$time ./kcf2.0 ../data/bag.mp4 312 146 106 98 1 196 result.csv 1**
+```
+     25053.120420      task-clock (msec)         #   17.196 CPUs utilized          
+         1,509,877      context-switches          #    0.060 M/sec                  
+             3,427      cpu-migrations            #    0.137 K/sec                  
+            34,025      page-faults               #    0.001 M/sec                  
+    65,242,918,152      cycles                    #    2.604 GHz                    
+                 0      stalled-cycles-frontend   #    0.00% frontend cycles idle   
+                 0      stalled-cycles-backend    #    0.00% backend  cycles idle   
+    64,695,693,541      instructions              #    0.99  insns per cycle        
+     8,049,836,066      branches                  #  321.311 M/sec                  
+        42,734,371      branch-misses             #    0.53% of all branches        
+
+       1.456907056 seconds time elapsed
+```
+### 2. perf top
+　　Perf top 用于实时显示当前系统的性能统计信息。该命令主要用来观察整个系统当前的状态，比如可以通过查看该命令的输出来查看当前系统最耗时的内核函数或某个用户进程。
+### 3. perf record/perf report
+　　使用 top 和 stat 之后，这时对程序基本性能有了一个大致的了解，为了优化程序，便需要一些粒度更细的信息。比如说您已经断定目标程序计算量较大，也许是因为有些代码写的不够精简。那么面对长长的代码文件，究竟哪几行代码需要进一步修改呢？这便需要使用 perf record 记录单个函数级别的统计信息，并使用 perf report 来显示统计结果。您的调优应该将注意力集中到百分比高的热点代码片段上，假如一段代码只占用整个程序运行时间的 0.1%，即使您将其优化到仅剩一条机器指令，恐怕也只能将整体的程序性能提高 0.1%。俗话说，好钢用在刀刃上，要优化热点函数。
+
+```
+perf record – e cpu-clock ./t1 
+perf report
+```
+增加-g参数可以获取调用关系
+```
+perf record – e cpu-clock – g ./t1 
+perf report
+```
+$perf record -e cpu-clock -g ./kcf2.0 ../data/bag.mp4 312 146 106 98 1 196 result.csv 1
+$perf report
+![](https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/perf_kcf2.0.jpg)
+
+经过perf的分析，我们的目标应该很明确了，cv::DFT和get_feature这两个函数比较耗时，另外还有一个和线程相关的操作也比较耗时，接下来要去分析代码，做代码级别的优化。
+
+## 四、gprof
+参考： https://blog.csdn.net/stanjiang2010/article/details/5655143
+
+
+
+
+## 五、内存问题与valgrind
+### 5.1常见的内存问题
+1. 使用未初始化的变量
+对于位于程序中不同段的变量，其初始值是不同的，全局变量和静态变量初始值为0，而局部变量和动态申请的变量，其初始值为随机值。如果程序使用了为随机值的变量，那么程序的行为就变得不可预期。
+2. 内存访问越界
+比如访问数组时越界；对动态内存访问时超出了申请的内存大小范围。
+3. 内存覆盖
+C 语言的强大和可怕之处在于其可以直接操作内存，C 标准库中提供了大量这样的函数，比如 strcpy, strncpy, memcpy, strcat 等，这些函数有一个共同的特点就是需要设置源地址 (src)，和目标地址(dst)，src 和 dst 指向的地址不能发生重叠，否则结果将不可预期。
+4. 动态内存管理错误
+常见的内存分配方式分三种：静态存储，栈上分配，堆上分配。全局变量属于静态存储，它们是在编译时就被分配了存储空间，函数内的局部变量属于栈上分配，而最灵活的内存使用方式当属堆上分配，也叫做内存动态分配了。常用的内存动态分配函数包括：malloc, alloc, realloc, new等，动态释放函数包括free, delete。一旦成功申请了动态内存，我们就需要自己对其进行内存管理，而这又是最容易犯错误的。下面的一段程序，就包括了内存动态管理中常见的错误。
+a. 使用完后未释放
+b. 释放后仍然读写
+c. 释放了再释放
+5. 内存泄露
+内存泄露（Memory leak）指的是，在程序中动态申请的内存，在使用完后既没有释放，又无法被程序的其他部分访问。内存泄露是在开发大型程序中最令人头疼的问题，以至于有人说，内存泄露是无法避免的。其实不然，防止内存泄露要从良好的编程习惯做起，另外重要的一点就是要加强单元测试（Unit Test），而memcheck就是这样一款优秀的工具
+
+### 5.1 valgrind内存检测
+
+```
+#include <iostream>
+using namespace std;
+
+
+int main(int argc, char const *argv[])
+{
+    int a[5];
+    a[0] = a[1] = a[3] = a[4] = 0;
+
+    int s=0;
+    for(int i=0;i<5;i++){
+        s+=a[i];
+    }
+    if(s == 0){
+        std::cout << s << std::endl;
+    }
+    a[5] = 10;
+    std::cout << a[5] << std::endl;
+
+
+    int *invalid_write = new int[10];
+    delete [] invalid_write;
+    invalid_write[0] = 3;
+
+    int *undelete = new int[10];
+    
+    return 0;
+}
+```
+```
+==102507== Memcheck, a memory error detector
+==102507== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==102507== Using Valgrind-3.14.0 and LibVEX; rerun with -h for copyright info
+==102507== Command: ./a.out
+==102507== 
+==102507== Conditional jump or move depends on uninitialised value(s)
+==102507==    at 0x1091F6: main (learn_valgrind.cpp:14)
+==102507== 
+10
+==102507== Invalid write of size 4
+==102507==    at 0x109270: main (learn_valgrind.cpp:23)
+==102507==  Address 0x4dc30c0 is 0 bytes inside a block of size 40 free'd
+==102507==    at 0x483A55B: operator delete[](void*) (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==102507==    by 0x10926B: main (learn_valgrind.cpp:22)
+==102507==  Block was alloc'd at
+==102507==    at 0x48394DF: operator new[](unsigned long) (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==102507==    by 0x109254: main (learn_valgrind.cpp:21)
+==102507== 
+==102507== 
+==102507== HEAP SUMMARY:
+==102507==     in use at exit: 40 bytes in 1 blocks
+==102507==   total heap usage: 4 allocs, 3 frees, 73,808 bytes allocated
+==102507== 
+==102507== LEAK SUMMARY:
+==102507==    definitely lost: 40 bytes in 1 blocks
+==102507==    indirectly lost: 0 bytes in 0 blocks
+==102507==      possibly lost: 0 bytes in 0 blocks
+==102507==    still reachable: 0 bytes in 0 blocks
+==102507==         suppressed: 0 bytes in 0 blocks
+==102507== Rerun with --leak-check=full to see details of leaked memory
+==102507== 
+==102507== For counts of detected and suppressed errors, rerun with: -v
+==102507== Use --track-origins=yes to see where uninitialised values come from
+==102507== ERROR SUMMARY: 2 errors from 2 contexts (suppressed: 0 from 0)
+
+```
+1. https://www.ibm.com/developerworks/cn/linux/l-cn-valgrind/index.html
+2. http://senlinzhan.github.io/2017/12/31/valgrind/
+3. https://www.ibm.com/developerworks/cn/aix/library/au-memorytechniques.html
+
+
+## 六、自定义timer计时器
+```
+class timer {
+public:
+    clock_t start;
+    clock_t end;
+    string name;
+    timer(string n) {
+        start = clock();
+        name = n;
+    }
+    ~timer() {
+        end = clock();
+        printf("%s time: %f \n", name.c_str(), 
+            (end - start) * 1.0 / CLOCKS_PER_SEC * 1000);
+    }
+};
+```

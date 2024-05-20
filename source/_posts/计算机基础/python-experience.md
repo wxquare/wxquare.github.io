@@ -1,5 +1,6 @@
 ---
-title: Python 使用总结
+title: 一文记录Python实践
+date: 2023-10-20
 categories:
 - 计算机基础
 ---

@@ -1,6 +1,7 @@
 
 ---
-title: Golang 实践和总结
+title: 一文记录 Golang 实践
+date: 2023-11-13
 categories:
 - 计算机基础
 ---
