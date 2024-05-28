@@ -13,6 +13,8 @@ date: 2022-11-07 22:33:15
 - [**陈皓**](https://coolshell.cn)
 - https://lethain.com/
 - [元培 · 元视角](https://blog.yuanpei.me/)
-- [werner vogels aws cto]https://www.allthingsdistributed.com/
+- [werner vogels aws cto](https://www.allthingsdistributed.com/)
+- [美团技术团队](https://tech.meituan.com/)
+- [得物技术][https://tech.dewu.com/article?id=111]
 - 吕聘,智能硬件
 

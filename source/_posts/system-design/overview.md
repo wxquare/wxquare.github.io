@@ -5,7 +5,102 @@ categories:
 - 系统设计
 ---
 
-## 理论知识
+
+How I Would Learn System Design Fundamentals (If I Had To Start Over):
+
+📌 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐊𝐞𝐲 𝐂𝐨𝐧𝐜𝐞𝐩𝐭𝐬
+- Scalability: lnkd.in/gpge_z76
+- Latency vs Throughput: lnkd.in/g_amhAtN
+- CAP Theorem: lnkd.in/g3hmVamx
+- ACID Transactions: lnkd.in/gMe2JqaF
+- Consistent Hashing: lnkd.in/gd3eAQKA
+- Rate Limiting: lnkd.in/gWsTDR3m
+- API Design: lnkd.in/ghYzrr8q
+- Strong vs Eventual Consistency: lnkd.in/gJ-uXQXZ
+- Synchronous vs. asynchronous communications: lnkd.in/g4EqcckR
+- REST vs RPC: lnkd.in/gN__zcAB
+- Batch Processing vs Stream Processing: lnkd.in/gaAnP_fT
+- Fault Tolerance: lnkd.in/dVJ6n3wA
+- Consensus Algorithms: lnkd.in/ggc3tFbr
+- Gossip Protocol: lnkd.in/gfPMtrJZ
+- Service Discovery: lnkd.in/gjnrYkyF
+- Disaster Recovery: lnkd.in/g8rnr3V3
+- Distributed Tracing: lnkd.in/d6r5RdXG
+- Top 15 Tradeoffs: lnkd.in/gnM8QC-z
+
+🛠️ 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐁𝐮𝐢𝐥𝐝𝐢𝐧𝐠 𝐁𝐥𝐨𝐜𝐤𝐬
+- Horizontal vs Vertical Scaling: lnkd.in/gAH2e9du
+- Databases: lnkd.in/gti8gjpz
+- Content Delivery Network (CDN): lnkd.in/gjJrEJeH
+- Domain Name System (DNS): lnkd.in/gkMcZW8V
+- Caching: lnkd.in/gC9piQbJ
+- Distributed Caching: lnkd.in/g7WKydNg
+- Load Balancing: lnkd.in/gQaa8sXK
+- SQL vs NoSQL: lnkd.in/g3WC_yxn
+- Database Indexes: lnkd.in/dGnZiNmM
+- HeartBeats: lnkd.in/gfb9-hpN
+- Circuit Breaker: lnkd.in/gCxyFzKm
+- Idempotency: lnkd.in/gPm6EtKJ
+- Database Scaling: lnkd.in/gAXpSyWQ
+- Data Replication: lnkd.in/gVAJxTpS
+- Data Redundancy: lnkd.in/gNN7TF7n
+- Database Sharding: lnkd.in/gRHb-67m
+- Failover: lnkd.in/dihZ-cEG
+- Proxy Server: lnkd.in/gi8KnKS6
+- Message Queues: lnkd.in/gTzY6uk8
+- WebSockets: lnkd.in/g76Gv2KQ
+- Bloom Filters: lnkd.in/dt4QbSUz
+- API Gateway: lnkd.in/gnsJGJaM
+- Distributed Locking: lnkd.in/gRxNJwWE
+- Checksum: lnkd.in/gCTa4DrS
+
+🖇️ 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐀𝐫𝐜𝐡𝐢𝐭𝐞𝐜𝐭𝐮𝐫𝐚𝐥 𝐏𝐚𝐭𝐭𝐞𝐫𝐧𝐬
+- Client-Server Architecture: lnkd.in/dAARQYzq
+- Microservices Architecture: lnkd.in/gFXUrz_T
+- Serverless Architecture: lnkd.in/gQNAXKkb
+- Event-Driven Architecture: lnkd.in/dp8CPvey
+- Peer-to-Peer (P2P) Architecture: lnkd.in/di32HDu3
+
+***
+
+♻️ Repost to help others in your network.
+
+Join 12,600+ readers of my free newsletter (AlgoMaster) to master coding and system design: newsletter.ashishps.com
+18:35
+
+
+
+
+## 系统设计的目标、原则、权衡
+### 目标
+- 可扩展性：系统应能够在面对不断增长的用户和数据量时保持高性能和可靠性。
+- 可靠性：系统应能够处理错误和故障，保证数据的完整性和可用性。
+- 可维护性：系统应易于理解、调试和修改，以便进行维护和演进。
+- 安全性：系统应能够保护用户数据和系统资源，防止未经授权的访问和恶意行为。
+- 性能：系统应能够快速响应用户请求，提供高效的数据处理和计算能力。
+- 用户体验：系统应提供友好的用户界面和良好的用户交互，以提高用户满意度和使用效率
+
+### 原则
+单一职责原则（SRP）：每个组件或模块应该具有单一的责任，降低耦合度，提高可维护性。
+开闭原则（OCP）：系统应对扩展开放，对修改关闭，通过接口和抽象来实现。
+替换原则（LSP）：子类应该能够替换其基类，而不会影响系统的正确性。
+接口隔离原则（ISP）：客户端不应该依赖于它不需要的接口，接口应该精简而专注。
+依赖倒置原则（DIP）：高层模块不应该依赖于低层模块，两者都应该依赖于抽象
+
+### 权衡
+性能与可扩展性的权衡：提高性能可能需要牺牲一部分可扩展性，因为某些优化可能会引入复杂性或限制系统的扩展性。
+可维护性与性能的权衡：某些优化措施可能会降低代码的可读性和可维护性，因此需要在维护性和性能之间进行权衡。
+安全性与用户体验的权衡：强大的安全措施可能会增加用户的身份验证和授权过程，从而影响用户体验。
+时间与成本的权衡：系统设计需要考虑开发时间和成本，以确保在给定资源限制下实现最佳的设计方案
+
+
+[架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
+[架构-trade-off（架构权衡](https://juejin.cn/post/7248914499915235389)
+https://haomo-tech.com/project-docs/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/assets/%E7%B3%BB%E7%BB%9F%E4%B8%9A%E5%8A%A1%E6%9E%B6%E6%9E%84%E5%9B%BE.omnigraffle
+https://juejin.cn/post/7248914499915235389
+https://juejin.cn/post/7027701112077549605
+[系统架构](https://book.douban.com/subject/26938710/)
+
 - 可用性，接口成功率，SLA多少个九来衡量；数据的正确性（一致性）；异常容灾
 - 可扩展，是否支持水平扩容？服务扩容？依赖的中间件是否支持水平扩容？
 - 性能。低延时latency和高吞吐throughput，在同步系统中一般低延时意味着高吞吐。有些异步接口，需要考虑异步处理逻辑，例如订单和发货系统。
@@ -20,6 +115,11 @@ categories:
 - **基本可用** - 系统保证可用性。
 - **软状态** - 即使没有输入，系统状态也可能随着时间变化。
 - **最终一致性** - 经过一段时间之后，系统最终会变一致，因为系统在此期间没有收到任何输入。
+
+
+
+### 关于架构图
+
 
 
 ## 架构概述
