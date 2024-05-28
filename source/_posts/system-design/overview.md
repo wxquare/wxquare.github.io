@@ -10,7 +10,7 @@ How I Would Learn System Design Fundamentals (If I Had To Start Over):
 
 📌 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐊𝐞𝐲 𝐂𝐨𝐧𝐜𝐞𝐩𝐭𝐬
 - Scalability: lnkd.in/gpge_z76
-- Latency vs Throughput: lnkd.in/g_amhAtN
+
 - CAP Theorem: lnkd.in/g3hmVamx
 - ACID Transactions: lnkd.in/gMe2JqaF
 - Consistent Hashing: lnkd.in/gd3eAQKA
@@ -71,14 +71,33 @@ Join 12,600+ readers of my free newsletter (AlgoMaster) to master coding and sys
 
 
 
+http://www.cs.fsu.edu/~myers/cop3331/notes/sysdesign2.html
+
 ## 系统设计的目标、原则、权衡
 ### 目标
-- 可扩展性：系统应能够在面对不断增长的用户和数据量时保持高性能和可靠性。
-- 可靠性：系统应能够处理错误和故障，保证数据的完整性和可用性。
-- 可维护性：系统应易于理解、调试和修改，以便进行维护和演进。
-- 安全性：系统应能够保护用户数据和系统资源，防止未经授权的访问和恶意行为。
-- 性能：系统应能够快速响应用户请求，提供高效的数据处理和计算能力。
-- 用户体验：系统应提供友好的用户界面和良好的用户交互，以提高用户满意度和使用效率
+#### 稳定性（Dependability Criteria）：
+- 可靠性（Reliability）：系统处理错误和故障，保证数据完整性和可用性的能力。
+- 可用性（Availability）：系统在投入使用时可操作和可访问的程度。
+- 安全性（Security）：系统保护用户数据和系统资源，防止未经授权的访问和恶意行为的能力。
+#### 性能（Performance）：
+- 响应时间（Latency）：系统对请求的反应速度。
+- 吞吐量（Throughput）：系统处理的工作量。
+#### 成本（Cost）：
+- 开发成本（Development Cost）：系统的构建和开发所需的费用。
+- 部署成本（Deployment Cost）：系统部署和运行所需的资源成本。
+- 升级成本（Upgrade Cost）：将数据从旧系统转换到新系统，以及满足向后兼容性要求的成本。
+- 维护成本（Maintenance Cost）：包括错误修复和未来功能增强的成本。
+- 运营成本（Administration Cost）：运行系统的成本。
+#### 维护性（Maintainability）：
+- 可扩展性（Extensibility）：系统添加新功能的容易程度。
+- 可修改性（Modifiability）：系统更改功能的容易程度。
+- 适应性（Adaptability）：系统适应不同应用领域的能力。
+- 可移植性（Portability）：系统在不同计算机平台上运行的容易程度。
+- 可读性（Readability）：代码的理解难度。
+- 需求可追溯性（Tracability of Requirements）：代码与需求之间的映射关系。
+#### 用户体验（User Experience）
+- 系统提供友好的用户界面和良好的用户交互，以提高用户满意度和使用效率
+
 
 ### 原则
 单一职责原则（SRP）：每个组件或模块应该具有单一的责任，降低耦合度，提高可维护性。
@@ -90,9 +109,8 @@ Join 12,600+ readers of my free newsletter (AlgoMaster) to master coding and sys
 ### 权衡
 性能与可扩展性的权衡：提高性能可能需要牺牲一部分可扩展性，因为某些优化可能会引入复杂性或限制系统的扩展性。
 可维护性与性能的权衡：某些优化措施可能会降低代码的可读性和可维护性，因此需要在维护性和性能之间进行权衡。
-安全性与用户体验的权衡：强大的安全措施可能会增加用户的身份验证和授权过程，从而影响用户体验。
 时间与成本的权衡：系统设计需要考虑开发时间和成本，以确保在给定资源限制下实现最佳的设计方案
-
+安全性与用户体验的权衡：强大的安全措施可能会增加用户的身份验证和授权过程，从而影响用户体验。
 
 [架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
 [架构-trade-off（架构权衡](https://juejin.cn/post/7248914499915235389)
@@ -127,6 +145,12 @@ https://juejin.cn/post/7027701112077549605
   <img src="/images/jrUBAF7.png" width=500 height=500>
   <br/>
 </p>
+- Client-Server Architecture: lnkd.in/dAARQYzq
+- Microservices Architecture: lnkd.in/gFXUrz_T
+- Serverless Architecture: lnkd.in/gQNAXKkb
+- Event-Driven Architecture: lnkd.in/dp8CPvey
+- Peer-to-Peer (P2P) Architecture: lnkd.in/di32HDu3
+
 
 
 
