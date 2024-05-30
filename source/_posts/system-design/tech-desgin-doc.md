@@ -1,5 +1,5 @@
 ---
-title: 互联网系统设计 - 方案写作
+title: 互联网系统设计 - 技术方案写作
 date: 2024-05-10
 categories:
 - 系统设计
@@ -143,6 +143,8 @@ I think test-driven design is great. I do that a lot more than I used to do. But
 不要使用不同颜色来区分内容。不要在文中使用超过三种颜色。 可以在标题及分级标题使用标志性的颜色，同时正文使用黑色。
 
 
+
+
 ** 附录：设计文档模板 **
 设计文档没有定式。即使如此，笔者参考谷歌设计文档的结构和格式，并结合实际工作经验加以完善。在此提供一个可供新手参考的设计文档模版，您可以使用此文档模板作为思考的基础。通常，无须事无巨细地填写每一部分，不相关的内容直接略过即可。
 
@@ -161,7 +163,6 @@ I think test-driven design is great. I do that a lot more than I used to do. But
 相关的项目，如 “tRPC 框架中可能会对接的其它 PCG 系统”
 不要在背景中写你的设计，或对问题的解决思路。
 
-
 ** 难点和挑战 ** 
 
 “解决这个问题的难点和挑战”
@@ -178,7 +179,6 @@ I think test-driven design is great. I do that a lot more than I used to do. But
 - 全球分布
 - 同步复制
 非目标也可能很重要。非目标并非单纯目标的否定形式，也不是与解决问题无关的其它目标，而是一些可能是读者非预期的、本可作为目标但并没有的目标，如：
-
 - 高可用性
 - 高可靠性 如果可能，解释是基于哪些方面的考虑将之作为非目标。如：
 - 可维护性： 本服务只是过渡方案，预计寿命三个月，待 XX 上线运行后即可下线
@@ -272,53 +272,12 @@ SLA 目标是什么？ 如果监控？如何保证？
 ** 外部依赖 ** 
 你的外部依赖的可靠性（如 SLA）如何？会对你的系统的可靠性造成何种影响？如果你的外部依赖不可用，会对你的系统造成何种影响？除了服务级的依赖外，不要忘记一些隐含的依赖，如 DNS 服务、时间协议服务、运行集群等。
 
-** 实现计划 ** 
+
+** 任务查分和研发排期 ** 
 描述时间及人力安排（如里程碑）。 这利于相关人员了解预期，调整工作计划。
 
-** 未来计划 ** 
+** 遗留的问题、未来计划 ** 
 未来可能的计划会方便读者更好地理解该设计以及其定位。
 
-我们确实应该把设计限定在当前问题，但是该设计可能是更高层系统所要解决问题的一部分，或者只是阶段性方案。 读者可能会对方案的完整性有所疑问，会质疑到底问题是否得到完整解决，甚至会质疑该问题在更高层的系统中是否确实值得解决。 “背景（过去）– 当前方案 – 未来计划” 三者的结合会为读者提供更好的全景图。
 
-附录： 参考文献
-参考文档
-设计文档
-Design Docs at Google
-chromium 设计文档实例
-技术写作
-Google Technical Writing Course
-Microsoft Writing Style Guide
-参考书籍
-写作/表达
-Style, Joseph M. Williams / Joseph Bizup
-金字塔原理 : 思考、写作和解决问题的逻辑, 巴巴拉·明托
-写作这回事，斯蒂芬·金
-The elements of style, William Strunk Jr. / E. B. White - Coders at work，Peter Siebel 采访 Joshua Block 原文： Joshua Block: “Another is Elements of Style, which isn’t even a programming book. You should read it for two reasons: The first is that a large part of every software engineer’s job is writing prose. If you can’t write precise, coherent, readable specs, nobody is going to be able to use your stuff. So anything that improves your prose style is good. The second reason is that most of the ideas in that book are also applicable to programs.”
-精准表达，高田贵久
-写作提高一点点，Mary-Kate Mackey
-On writing well, William Zinsser
-Artful Sentences, Virginia Tufte
-技术写作/文献写作
-写作是门手艺，刘军强
-How to write a lot, Paul J. Silvia
-Writing for Computer Science, Justin Zobel
-The craft of research, Wayne C. Booth / Gregory G. Colomb / Joseph M. Williams
-会读才会写， Phillip C. Shon
-Writing Science, Joshua Schimel
-故事
-前文强调了要讲故事。 以下书目阐述了何谓故事、为什么要讲故事及如何讲故事：
-
-Writing Science, Joshua Schimel
-金字塔原理 : 思考、写作和解决问题的逻辑, 巴巴拉·明托
-故事，Robert McKee
-如何阅读一本文学书， 托马斯·福斯特
-架构设计
-Software engineering at Google, Titus Winters / Tom Manshreck / Hyrum K. Wright
-Build Secure and realiable systems, Heather Adkins / Betsy Beyer / Paul Blankinship / Piotr Lewandowski / Ana Oprea / Adam Stubblefield
-The Design of Design, Fredrick P. Brooks Jr.
-Fundamentals of Software Architecture, Mark Richards / Neal Ford
-图表
-Storytelling with data，Cole Nussbaumer Knaflic
-列表
-https://developers.google.com/tech-writing/one/lists-and-tables
 
