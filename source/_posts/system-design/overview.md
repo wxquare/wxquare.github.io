@@ -6,92 +6,40 @@ categories:
 ---
 
 
-How I Would Learn System Design Fundamentals (If I Had To Start Over):
-
-📌 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐊𝐞𝐲 𝐂𝐨𝐧𝐜𝐞𝐩𝐭𝐬
-- Scalability: lnkd.in/gpge_z76
-
-- CAP Theorem: lnkd.in/g3hmVamx
-- ACID Transactions: lnkd.in/gMe2JqaF
-- Consistent Hashing: lnkd.in/gd3eAQKA
-- Rate Limiting: lnkd.in/gWsTDR3m
-- API Design: lnkd.in/ghYzrr8q
-- Strong vs Eventual Consistency: lnkd.in/gJ-uXQXZ
-- Synchronous vs. asynchronous communications: lnkd.in/g4EqcckR
-- REST vs RPC: lnkd.in/gN__zcAB
-- Batch Processing vs Stream Processing: lnkd.in/gaAnP_fT
-- Fault Tolerance: lnkd.in/dVJ6n3wA
-- Consensus Algorithms: lnkd.in/ggc3tFbr
-- Gossip Protocol: lnkd.in/gfPMtrJZ
-- Service Discovery: lnkd.in/gjnrYkyF
-- Disaster Recovery: lnkd.in/g8rnr3V3
-- Distributed Tracing: lnkd.in/d6r5RdXG
-- Top 15 Tradeoffs: lnkd.in/gnM8QC-z
-
-🛠️ 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐁𝐮𝐢𝐥𝐝𝐢𝐧𝐠 𝐁𝐥𝐨𝐜𝐤𝐬
-- Horizontal vs Vertical Scaling: lnkd.in/gAH2e9du
-- Databases: lnkd.in/gti8gjpz
-- Content Delivery Network (CDN): lnkd.in/gjJrEJeH
-- Domain Name System (DNS): lnkd.in/gkMcZW8V
-- Caching: lnkd.in/gC9piQbJ
-- Distributed Caching: lnkd.in/g7WKydNg
-- Load Balancing: lnkd.in/gQaa8sXK
-- SQL vs NoSQL: lnkd.in/g3WC_yxn
-- Database Indexes: lnkd.in/dGnZiNmM
-- HeartBeats: lnkd.in/gfb9-hpN
-- Circuit Breaker: lnkd.in/gCxyFzKm
-- Idempotency: lnkd.in/gPm6EtKJ
-- Database Scaling: lnkd.in/gAXpSyWQ
-- Data Replication: lnkd.in/gVAJxTpS
-- Data Redundancy: lnkd.in/gNN7TF7n
-- Database Sharding: lnkd.in/gRHb-67m
-- Failover: lnkd.in/dihZ-cEG
-- Proxy Server: lnkd.in/gi8KnKS6
-- Message Queues: lnkd.in/gTzY6uk8
-- WebSockets: lnkd.in/g76Gv2KQ
-- Bloom Filters: lnkd.in/dt4QbSUz
-- API Gateway: lnkd.in/gnsJGJaM
-- Distributed Locking: lnkd.in/gRxNJwWE
-- Checksum: lnkd.in/gCTa4DrS
-
-🖇️ 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐀𝐫𝐜𝐡𝐢𝐭𝐞𝐜𝐭𝐮𝐫𝐚𝐥 𝐏𝐚𝐭𝐭𝐞𝐫𝐧𝐬
-- Client-Server Architecture: lnkd.in/dAARQYzq
-- Microservices Architecture: lnkd.in/gFXUrz_T
-- Serverless Architecture: lnkd.in/gQNAXKkb
-- Event-Driven Architecture: lnkd.in/dp8CPvey
-- Peer-to-Peer (P2P) Architecture: lnkd.in/di32HDu3
-
-***
-
-♻️ Repost to help others in your network.
-
-Join 12,600+ readers of my free newsletter (AlgoMaster) to master coding and system design: newsletter.ashishps.com
-18:35
-
-
-
-
 http://www.cs.fsu.edu/~myers/cop3331/notes/sysdesign2.html
 
 
 https://hangzhouhot.com/architecturepicture/
 
-## 系统设计的目标、原则、权衡
+## 系统设计的目标、基本概念
 ### 为什么要做设计？
-- 设计是系统实现的蓝图
-- 设计是沟通协作的基础
-- 设计是思考的过程决定了产品的质量
+#### 设计是系统实现的蓝图
+<p align="center">
+  <img src="/images/arch-blu.png" width=600 height=300>
+  <br/>
+</p>
+
+
+#### 设计是沟通协作的基础
+<p align="center">
+  <img src="/images/arch-comm-02.png" width=600 height=400>
+  <br/>
+</p>
+
 **理解对齐**：所有软件系统的目的都是为了实现用户需求，但实现的途径有无限种可能性（相比传统工程行业，软件的灵活性更大、知识迭代更快）。架构设计就是去选择其中一条最合适的实现途径，因此其中会涉及非常多关键的选路决策（为什么要这么拆分？为什么选择 A 技术而不是 B？）。这些重要的技术决策需要通过架构描述这种形式被记录和同步，才能让项目组所有成员对整个系统的理解对齐，形成共识。
 **工作量化**：项目管理最重要的步骤之一就是工时评估，它是确定项目排期和里程碑的直接依据。显然，只通过 PRD / 交互图是无法科学量化出项目工作量的，因为很难直观判断出一句简短需求或一个简单页面背后，究竟要写多少代码、实现起来难度有多大。有了清晰明确的架构之后，理论上绝大部分开发工作都能做到可见、可预测和可拆解，自然而然也就能够被更准确地量化。当然，精准的工作量评估在 IT 行业内也一直是个未解之谜，实际的工期会受太多未知因素影响，包括程序员的技能熟练度、心情好不好、有没有吃饱等。
 **标准术语**：编程作为一种具有创造力的工作，从某种角度看跟写科幻小说是类似的。好的科幻小说都喜欢造概念，比如三体中的智子，如果没看过小说肯定不知道这是个啥玩意儿。软件系统在造概念这一点上，相比科幻小说只有过之而无不及，毕竟小说里的世界通常还是以现实为背景，而软件中的世界就全凭造物者（程序员）的想象（建模）了。稍微复杂一点的软件系统，都会引入一些领域特定甚至全新创作的概念。为了避免在项目过程中出现鸡同鸭讲的沟通障碍和理解歧义，就必须对描述这些概念的术语进行统一。而架构的一个重要目的，就是定义和解释清楚系统中涉及的所有关键概念，并在整个架构设计和描述过程中使用标准和一致的术语，真正做到让大家的沟通都在一个频道上。
 **言之有物** ：就跟讨论产品交互时需要对着原型图、讨论代码细节时需要直接看代码一样，架构是在讨论一些较高维技术问题时的必要实物（具体的实物化形式就是所谓架构描述）。否则，要么一堆人对着空气谈（纸上谈兵都说不上），要么每次沟通时都重新找块白板画一画（费时费力且容易遗落信息，显然不是长久之计）。
 **知识沉淀 & 新人培训**：架构应该被作为与代码同等重要的文档资产持续沉淀和维护，同时也是项目新人快速理解和上手系统的重要依据。不要让你的系统跟公司内某些祖传遗留系统一样 —— 只有代码遗留了下来，架构文档却没有；只能靠一些口口相传的残留设计记忆，苦苦维系着项目的生命延续
 
+#### 设计了决定产品的质量
+<p align="center">
+  <img src="/images/arch-qua-01.jpeg" width=600 height=200>
+  <br/>
+</p>
 
 
 ### 技术方案应该包含哪些内容
-非常抱歉，以下是每个部分应该包括的内容的更详细说明：
-
 1. 背景：
    - 解决的问题：明确要解决的技术问题和产品问题的具体描述。
    - 难点和挑战：列出可能遇到的难点、挑战和限制条件。
@@ -145,23 +93,8 @@ https://hangzhouhot.com/architecturepicture/
     - 评审会议记录：记录技术方案评审会议的讨论和决策结果。
     - 修改和改进建议：记录评审过程中提出的修改和改进建议，并记录其处理状态。
 
-以上是每个部分应该包括的内容的详细说明。根据具体的项目和需求，可以适当调整和补充这些内容。
 
-
-- 系统架构设计：确定系统的整体结构和组织方式。包括选择适当的架构风格（如分层、微服务、事件驱动等），定义系统的模块和组件，确定它们之间的关系和通信方式。
-- 数据库设计：设计系统所需的数据库结构和数据模型。包括确定数据库类型（关系型、非关系型等），定义表和字段，建立数据关系和约束。
-- 接口设计：定义系统与外部系统或组件之间的接口和交互方式。包括确定接口的输入和输出，定义数据格式和协议，规定接口的安全性和验证机制。
-- 模块设计：对系统的各个模块进行详细设计。包括定义模块的功能和职责，确定模块之间的接口和依赖关系，设计模块内部的算法和数据结构。
-- 数据流设计：描述系统中的数据流动和处理过程。包括绘制数据流程图、时序图或流程图，明确数据的输入、处理和输出流程。
-- 安全设计：考虑系统的安全性需求，设计安全策略和机制。包括身份认证、访问控制、数据加密、漏洞防护等方面的设计。
-- 性能设计：考虑系统的性能需求，设计性能优化策略。包括选择合适的算法和数据结构、优化数据库查询、使用缓存和异步处理等方面的设计。
-- 异常处理和错误处理设计：定义系统对异常情况和错误的处理方式。包括异常捕获和处理、错误日志记录、恢复策略等方面的设计。
-- 部署和运维设计：考虑系统的部署和运维需求，设计相应的方案。包括选择合适的部署架构、配置管理、监控和日志管理等方面的设计。
-- 测试策略和方案：制定系统的测试策略和测试计划。包括单元测试、集成测试、系统测试、性能测试等方面的设计
-
-
-
-### 系统（设计）质量评估
+### 技术设计“好”“坏”评估
 #### 功能性
 - 功能完整度
 - 功能正确性
@@ -194,6 +127,7 @@ https://hangzhouhot.com/architecturepicture/
 上述质量模型中列出的所有点，都是架构设计需要着重考虑的。其中除了功能适合性以外，其他所有点都属于非功能需求的范畴，这也是区分架构好坏的真正分水岭 —— 好的架构设计，不会停留在仅满足功能需求这一最基本的需求层次上（最坏的架构设计也同样能做到），更重要且更难以应对的是其他众多的非功能需求
 
 https://hangzhouhot.com/architecturepicture/
+https://www.industrialempathy.com/posts/design-docs-at-google/
 
 
 ### 面向对象系统设计的原则
@@ -215,8 +149,7 @@ SOLID 原则是一套比较经典且流行的架构原则（主要还是名字�
 隔离变化：许多架构原则与模式的本质都是在隔离变化 —— 将预期可能变化的部分都隔离到一块，减少发生变化时受影响（需要修改代码、重新测试或产生故障隐患）的其他稳定部分
 https://github.com/leewaiho/Clean-Architecture-zh/tree/master?tab=readme-ov-file
 
-
-### 系统设计的权衡
+### 系统设计的权衡(top15 trade-off)
 性能与可扩展性的权衡：提高性能可能需要牺牲一部分可扩展性，因为某些优化可能会引入复杂性或限制系统的扩展性。
 可维护性与性能的权衡：某些优化措施可能会降低代码的可读性和可维护性，因此需要在维护性和性能之间进行权衡。
 时间与成本的权衡：系统设计需要考虑开发时间和成本，以确保在给定资源限制下实现最佳的设计方案
@@ -227,21 +160,81 @@ https://haomo-tech.com/project-docs/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E8%AE%B
 [架构-trade-off（架构权衡](https://juejin.cn/post/7248914499915235389)
 [架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
 [系统架构](https://book.douban.com/subject/26938710/)
+https://newsletter.ashishps.com/p/system-design-top-15-trade-offs
+
+
+### CAP 理论
+
+### BASE 理论
+- **基本可用** - 系统保证可用性。
+- **软状态** - 即使没有输入，系统状态也可能随着时间变化。
+- **最终一致性** - 经过一段时间之后，系统最终会变一致，因为系统在此期间没有收到任何输入。
+
+### 一致性模型
+- [分布式理论：CAP、BASE与ACID](https://monkeysayhi.github.io/2018/03/09/%E5%88%86%E5%B8%83%E5%BC%8F%E7%90%86%E8%AE%BA%EF%BC%9ACAP%E3%80%81BASE%E4%B8%8EACID/)
 
 
 
-### 架构模式（patterns)
-- c/s 架构
-- mvc 架构
-- 分层 架构
-- 事件驱动架构
-- 微服务架构
-- 云原生架构
-- P2P架构
+### 如何写好一份技术方案设计文档
 
 
-### 关于画图
-- https://hangzhouhot.com/architecturepicture
+
+### 每个程序员都应该知道的延迟数
+```
+Latency Comparison Numbers
+--------------------------
+L1 cache reference                           0.5 ns
+Branch mispredict                            5   ns
+L2 cache reference                           7   ns                      14x L1 cache
+Mutex lock/unlock                           25   ns
+Main memory reference                      100   ns                      20x L2 cache, 200x L1 cache
+Compress 1K bytes with Zippy            10,000   ns       10 us
+Send 1 KB bytes over 1 Gbps network     10,000   ns       10 us
+Read 4 KB randomly from SSD*           150,000   ns      150 us          ~1GB/sec SSD
+Read 1 MB sequentially from memory     250,000   ns      250 us
+Round trip within same datacenter      500,000   ns      500 us
+Read 1 MB sequentially from SSD*     1,000,000   ns    1,000 us    1 ms  ~1GB/sec SSD, 4X memory
+Disk seek                           10,000,000   ns   10,000 us   10 ms  20x datacenter roundtrip
+Read 1 MB sequentially from 1 Gbps  10,000,000   ns   10,000 us   10 ms  40x memory, 10X SSD
+Read 1 MB sequentially from disk    30,000,000   ns   30,000 us   30 ms 120x memory, 30X SSD
+Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
+```
+基于上述数字的指标：
+* 从磁盘以 30 MB/s 的速度顺序读取
+* 以 100 MB/s 从 1 Gbps 的以太网顺序读取
+* 从 SSD 以 1 GB/s 的速度读取
+* 以 4 GB/s 的速度从主存读取
+* 每秒能绕地球 6-7 圈
+* 数据中心内每秒有 2,000 次往返
+
+
+## 整体设计 
+## 软件架构模式（patterns）
+### Application Landscape Patterns
+- Monolith （单体架构）
+- N-tiers,3-tier
+- 面向服务的架构 (service - orienterd)
+- 微服务架构 (microservices)
+- 无服务架构 (serverless)
+- p2p 架构 (peer to peer)
+### Application structure Patterns
+- 分层架构 (Layerd architecture)
+- 微内核架构 (microkernel)
+- 事件驱动架构 (Event-driven)
+### User Interface Patterns
+- MVC
+- MVP
+
+### 参考阅读：
+- 微服务架构：https://lnkd.in/gFXUrz_T
+- 无服务器架构：https://lnkd.in/gQNAXKkb
+- 事件驱动架构：https://lnkd.in/dp8CPvey
+- 点对点 （P2P） 架构：https://lnkd.in/di32HDu3
+- [软件架构: 开发人员的软件架构模式](https://www.bilibili.com/video/BV1cr4y1a7iU/?p=3&spm_id_from=pageDriver&vd_source=04e82c25f6ff3d6a1a08a7f1c343987c)
+- [什么是软件架构设计](https://hangzhouhot.com/architecturepicture/)
+
+
+## 架构图
 - 产品/业务架构
   重点关注产品功能组成，从业务逻辑的视角出发，整体展现一个企业各类系统之间的层次和关系。产品架构关注的是业务视角
 - 系统/应用架构
@@ -258,25 +251,15 @@ https://haomo-tech.com/project-docs/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E8%AE%B
 - 类图
 - 时序图
 - 泳道图
-https://www.cnblogs.com/zpbolgs/p/15270837.html
-https://aws.amazon.com/cn/what-is/architecture-diagramming/
-[架构图分类详解](https://juejin.cn/post/7137250779928199181)
-The Art of Crafting Architectural Diagrams
-https://www.infoq.com/articles/crafting-architectural-diagrams/
+
+### 扩展阅读
+- [互联网系统设计原则 ](https://www.cnblogs.com/zpbolgs/p/15270837.html)
+- [什么是架构绘图？](https://aws.amazon.com/cn/what-is/architecture-diagramming)
+- [架构图分类详解](https://juejin.cn/post/7137250779928199181)
+- [The Art of Crafting Architectural Diagrams](https://www.infoq.com/articles/crafting-architectural-diagrams/)
 
 
-### CAP 理论
-
-### BASE 理论
-- **基本可用** - 系统保证可用性。
-- **软状态** - 即使没有输入，系统状态也可能随着时间变化。
-- **最终一致性** - 经过一段时间之后，系统最终会变一致，因为系统在此期间没有收到任何输入。
-
-### 一致性模型
-- [分布式理论：CAP、BASE与ACID](https://monkeysayhi.github.io/2018/03/09/%E5%88%86%E5%B8%83%E5%BC%8F%E7%90%86%E8%AE%BA%EF%BC%9ACAP%E3%80%81BASE%E4%B8%8EACID/)
-
-
-## 架构
+### 架构
 <p align="center">
   <img src="/images/jrUBAF7.png" width=500 height=500>
   <br/>
@@ -287,6 +270,131 @@ https://www.infoq.com/articles/crafting-architectural-diagrams/
 - Event-Driven Architecture: lnkd.in/dp8CPvey
 - Peer-to-Peer (P2P) Architecture: lnkd.in/di32HDu3
 
+
+
+### 单体服务、微服务、Service Mesh
+<p align="center">
+  <img src="/images/rpc_to_service_mesh.png" width=600 height=350>
+  <br/>
+  <strong><a href="https://www.zhihu.com/question/56125281">什么是服务治理</a></strong>
+</p>
+
+- 单体服务（Monolithic Services）：单体服务是指将整个应用程序作为一个单一的、紧密耦合的单元进行开发、部署和运行的架构模式。在单体服务中，应用程序的各个功能模块通常运行在同一个进程中，并共享相同的数据库和资源。单体服务的优点是开发简单、部署方便，但随着业务规模的增长，单体服务可能变得庞大且难以维护。
+
+- 微服务（Microservices）：微服务是一种将应用程序拆分为一组小型、独立部署的服务的架构模式。每个微服务都专注于单个业务功能，并通过轻量级的通信机制（如RESTful API或消息队列）进行相互通信。微服务的优点是灵活性高、可扩展性好，每个微服务可以独立开发、测试、部署和扩展。然而，微服务架构也带来了分布式系统的复杂性和管理的挑战。
+
+- Service Mesh：Service Mesh是一种用于解决微服务架构中服务间通信和治理问题的基础设施层。它通过在服务之间插入一个专用的代理（称为Sidecar）来提供服务间的通信、安全性、可观察性和弹性的功能。Service Mesh可以提供流量管理、负载均衡、故障恢复、安全认证、监控和追踪等功能，而不需要在每个微服务中显式实现这些功能。常见的Service Mesh实现包括Istio、Linkerd和Consul Connect等。
+
+
+### 微服务
+<p align="center">
+  <img src="/images/landing-2.svg" width=600 height=350>
+  <br/>
+  <strong><a href="https://grpc.io/docs/what-is-grpc/introduction">gRPC 概述</a></strong>
+</p>
+
+与此讨论相关的话题是 [微服务](https://en.wikipedia.org/wiki/Microservices)，可以被描述为一系列可以独立部署的小型的，模块化服务。每个服务运行在一个独立的线程中，通过明确定义的轻量级机制通讯，共同实现业务目标。<sup><a href=https://smartbear.com/learn/api-design/what-are-microservices>1</a></sup>例如，Pinterest 可能有这些微服务： 用户资料、关注者、Feed 流、搜索、照片上传等。
+
+### 服务发现
+**ZooKeeper**
+- ZooKeeper是一个开源的分布式协调服务，最初由雅虎开发并后来成为Apache软件基金会的顶级项目。
+- ZooKeeper提供了一个分布式的、高可用的、强一致性的数据存储服务。它的设计目标是为构建分布式系统提供可靠的协调机制。
+- ZooKeeper使用基于ZAB（ZooKeeper Atomic Broadcast）协议的一致性算法来保证数据的一致性和可靠性。
+- ZooKeeper提供了一个类似于文件系统的层次化命名空间（称为ZNode），可以存储和管理数据，并支持对数据的读写操作。
+- ZooKeeper还提供了一些特性，如临时节点、顺序节点和观察者机制，用于实现分布式锁、选举算法和事件通知等。
+
+**etcd**
+- etcd是一个开源的分布式键值存储系统，由CoreOS开发并后来成为Cloud Native Computing Foundation（CNCF）的项目之一。
+- etcd被设计为一个高可用、可靠的分布式存储系统，用于存储和管理关键的配置数据和元数据。
+- etcd使用Raft一致性算法来保证数据的一致性和可靠性，Raft是一种强一致性的分布式共识算法。
+- etcd提供了一个简单的键值存储接口，可以存储和检索键值对数据，并支持对数据的原子更新操作。
+- etcd还提供了一些高级特性，如目录结构、事务操作和观察者机制，用于构建复杂的分布式系统和应用
+
+- [Etcd](https://coreos.com/etcd/docs/latest) 
+- [Zookeeper](https://zookeeper.apache.org) 
+- [Consul](https://www.consul.io/docs/index.html)
+- [grpc](https://grpc.io/docs)
+
+### Service Mesh
+<p align="center">
+  <img src="/images/istio_service_mesh.svg" width=600 height=600>
+  <br/>
+  <strong><a href="https://istio.io/latest/about/service-mesh/">service Mesh 是怎么工作的</a></strong>
+</p>
+
+### 远程过程调用协议（RPC）
+<p align="center">
+  <img src="/images/iF4Mkb5.png" width=700 height=400>
+  <br/>
+  <strong><a href="http://www.puncsky.com/blog/2016/02/14/crack-the-system-design-interview">Source: Crack the system design interview</a></strong>
+</p>
+
+在 RPC 中，客户端会去调用另一个地址空间（通常是一个远程服务器）里的方法。调用代码看起来就像是调用的是一个本地方法，客户端和服务器交互的具体过程被抽象。远程调用相对于本地调用一般较慢而且可靠性更差，因此区分两者是有帮助的。热门的 RPC 框架包括 [Protobuf](https://developers.google.com/protocol-buffers/)、[Thrift](https://thrift.apache.org/) 和 [Avro](https://avro.apache.org/docs/current/)。
+
+RPC 是一个“请求-响应”协议：
+
+* **客户端程序** ── 调用客户端存根程序。就像调用本地方法一样，参数会被压入栈中。
+* **客户端 stub 程序** ── 将请求过程的 id 和参数打包进请求信息中。
+* **客户端通信模块** ── 将信息从客户端发送至服务端。
+* **服务端通信模块** ── 将接受的包传给服务端存根程序。
+* **服务端 stub 程序** ── 将结果解包，依据过程 id 调用服务端方法并将参数传递过去。
+
+
+## 网络通讯协议
+### OSI 七层网络模型
+<p align="center">
+  <img src="/images/5KeocQs.jpg",width=500 height=500>
+  <br/>
+  <strong><a href=http://www.escotal.com/osilayer.html>资料来源：OSI 7层模型</a></strong>
+</p>
+
+### 常用的应用层协议
+
+#### HTTP (Hypertext Transfer Protocol)
+用途：主要用于Web浏览器和服务器之间的通信，是万维网的数据传输基础。
+特点：无状态、请求-响应模式。
+版本：HTTP/1.1, HTTP/2, HTTP/3
+
+#### FTP (File Transfer Protocol)
+用途：用于在客户端和服务器之间传输文件。
+特点：支持文件上传和下载，支持匿名访问和身份验证。
+#### 邮件协议
+- SMTP (Simple Mail Transfer Protocol)
+用途：用于发送电子邮件。
+特点：主要用于邮件服务器之间的邮件传输。
+- POP3 (Post Office Protocol 3)
+用途：用于从邮件服务器下载邮件到本地客户端。
+特点：下载后邮件通常会从服务器删除。
+- IMAP (Internet Message Access Protocol)
+用途：用于从邮件服务器读取邮件。
+特点：支持在服务器上管理和存储邮件，客户端和服务器邮件同步
+#### WebSocket
+用途：提供全双工通信的协议，允许在客户端和服务器之间建立持久连接。
+特点：低延迟、实时通信、减少HTTP请求开销。
+[为什么需要websocket](https://www.bilibili.com/video/BV19N411474y/?spm_id_from=333.788&vd_source=04e82c25f6ff3d6a1a08a7f1c343987c)
+#### WebRTC (Web Real-Time Communication)
+用途：用于实现浏览器和移动应用之间的实时音视频通信和数据共享。
+特点：P2P通信、低延迟、高质量音视频传输。
+[webRTC](https://www.bilibili.com/video/BV1BU4y1B7oE/?spm_id_from=333.337.search-card.all.click&vd_source=04e82c25f6ff3d6a1a08a7f1c343987c)
+#### MQTT (Message Queuing Telemetry Transport)
+用途：轻量级的发布/订阅消息传输协议，常用于物联网（IoT）设备之间的通信。
+特点：低带宽、低能耗、可靠性高
+
+### 超文本传输协议
+<p align="center">
+  <img src="/images/http.png" width=600 height=150>
+</p>
+
+
+<p align="center">
+  <img src="/images/http_compare.png" width=600 height=300>
+</p>
+
+- [aws http 选择介绍](https://aws.amazon.com/cn/compare/the-difference-between-https-and-http/)
+- HTTPS 是基于 HTTP 的安全版本，通过使用 SSL 或 TLS 加密和身份验证通信。
+- HTTP/1.1 是 HTTP 的第一个主要版本，引入了持久连接、管道化请求等特性。
+- HTTP/2 是 HTTP 的第二个主要版本，使用二进制协议，引入了多路复用、头部压缩、服务器推送等特性。
+- HTTP/3 是 HTTP 的第三个主要版本，基于 QUIC 协议，使用 UDP，提供更快的传输速度和更好的性能
 
 
 
@@ -369,10 +477,20 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 * [Wikipedia](https://en.wikipedia.org/wiki/Content_delivery_network)
 
 
-## 负载均衡器和反向代理
+## 代理+负载均衡器
+### 正向forward proxy
+### 反向reverse proxy
+<p align="center">
+  <img src="/images/proxy_server.png" width=800 height=500>
+  <br/>
+</p>
+
+
+### 负载均衡器
+
 
 <p align="center">
-  <img src="/images/load_balanging.png" width=800 height=400>
+  <img src="/images/load_balancer.png" width=800 height=400>
   <br/>
 </p>
 
@@ -472,6 +590,8 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 - [七层负载平衡](https://www.nginx.com/resources/glossary/layer-7-load-balancing/)
 - [ELB 监听器配置](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-listener-config.html)
 
+
+
 ## 应用层web网关
 <p align="center">
   <img src="/images/meituan_gateway.png" width=600 height=400>
@@ -495,73 +615,6 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 - restful
 
 
-## RPC 服务开发
-### 单体服务、微服务、Service Mesh
-<p align="center">
-  <img src="/images/rpc_to_service_mesh.png" width=600 height=350>
-  <br/>
-  <strong><a href="https://www.zhihu.com/question/56125281">什么是服务治理</a></strong>
-</p>
-
-- 单体服务（Monolithic Services）：单体服务是指将整个应用程序作为一个单一的、紧密耦合的单元进行开发、部署和运行的架构模式。在单体服务中，应用程序的各个功能模块通常运行在同一个进程中，并共享相同的数据库和资源。单体服务的优点是开发简单、部署方便，但随着业务规模的增长，单体服务可能变得庞大且难以维护。
-
-- 微服务（Microservices）：微服务是一种将应用程序拆分为一组小型、独立部署的服务的架构模式。每个微服务都专注于单个业务功能，并通过轻量级的通信机制（如RESTful API或消息队列）进行相互通信。微服务的优点是灵活性高、可扩展性好，每个微服务可以独立开发、测试、部署和扩展。然而，微服务架构也带来了分布式系统的复杂性和管理的挑战。
-
-- Service Mesh：Service Mesh是一种用于解决微服务架构中服务间通信和治理问题的基础设施层。它通过在服务之间插入一个专用的代理（称为Sidecar）来提供服务间的通信、安全性、可观察性和弹性的功能。Service Mesh可以提供流量管理、负载均衡、故障恢复、安全认证、监控和追踪等功能，而不需要在每个微服务中显式实现这些功能。常见的Service Mesh实现包括Istio、Linkerd和Consul Connect等。
-
-
-### 微服务
-<p align="center">
-  <img src="/images/landing-2.svg" width=600 height=350>
-  <br/>
-  <strong><a href="https://grpc.io/docs/what-is-grpc/introduction">gRPC 概述</a></strong>
-</p>
-
-与此讨论相关的话题是 [微服务](https://en.wikipedia.org/wiki/Microservices)，可以被描述为一系列可以独立部署的小型的，模块化服务。每个服务运行在一个独立的线程中，通过明确定义的轻量级机制通讯，共同实现业务目标。<sup><a href=https://smartbear.com/learn/api-design/what-are-microservices>1</a></sup>例如，Pinterest 可能有这些微服务： 用户资料、关注者、Feed 流、搜索、照片上传等。
-
-### 服务发现
-**ZooKeeper**
-- ZooKeeper是一个开源的分布式协调服务，最初由雅虎开发并后来成为Apache软件基金会的顶级项目。
-- ZooKeeper提供了一个分布式的、高可用的、强一致性的数据存储服务。它的设计目标是为构建分布式系统提供可靠的协调机制。
-- ZooKeeper使用基于ZAB（ZooKeeper Atomic Broadcast）协议的一致性算法来保证数据的一致性和可靠性。
-- ZooKeeper提供了一个类似于文件系统的层次化命名空间（称为ZNode），可以存储和管理数据，并支持对数据的读写操作。
-- ZooKeeper还提供了一些特性，如临时节点、顺序节点和观察者机制，用于实现分布式锁、选举算法和事件通知等。
-
-**etcd**
-- etcd是一个开源的分布式键值存储系统，由CoreOS开发并后来成为Cloud Native Computing Foundation（CNCF）的项目之一。
-- etcd被设计为一个高可用、可靠的分布式存储系统，用于存储和管理关键的配置数据和元数据。
-- etcd使用Raft一致性算法来保证数据的一致性和可靠性，Raft是一种强一致性的分布式共识算法。
-- etcd提供了一个简单的键值存储接口，可以存储和检索键值对数据，并支持对数据的原子更新操作。
-- etcd还提供了一些高级特性，如目录结构、事务操作和观察者机制，用于构建复杂的分布式系统和应用
-
-- [Etcd](https://coreos.com/etcd/docs/latest) 
-- [Zookeeper](https://zookeeper.apache.org) 
-- [Consul](https://www.consul.io/docs/index.html)
-- [grpc](https://grpc.io/docs)
-
-### Service Mesh
-<p align="center">
-  <img src="/images/istio_service_mesh.svg" width=600 height=600>
-  <br/>
-  <strong><a href="https://istio.io/latest/about/service-mesh/">service Mesh 是怎么工作的</a></strong>
-</p>
-
-### 远程过程调用协议（RPC）
-<p align="center">
-  <img src="/images/iF4Mkb5.png" width=700 height=400>
-  <br/>
-  <strong><a href="http://www.puncsky.com/blog/2016/02/14/crack-the-system-design-interview">Source: Crack the system design interview</a></strong>
-</p>
-
-在 RPC 中，客户端会去调用另一个地址空间（通常是一个远程服务器）里的方法。调用代码看起来就像是调用的是一个本地方法，客户端和服务器交互的具体过程被抽象。远程调用相对于本地调用一般较慢而且可靠性更差，因此区分两者是有帮助的。热门的 RPC 框架包括 [Protobuf](https://developers.google.com/protocol-buffers/)、[Thrift](https://thrift.apache.org/) 和 [Avro](https://avro.apache.org/docs/current/)。
-
-RPC 是一个“请求-响应”协议：
-
-* **客户端程序** ── 调用客户端存根程序。就像调用本地方法一样，参数会被压入栈中。
-* **客户端 stub 程序** ── 将请求过程的 id 和参数打包进请求信息中。
-* **客户端通信模块** ── 将信息从客户端发送至服务端。
-* **服务端通信模块** ── 将接受的包传给服务端存根程序。
-* **服务端 stub 程序** ── 将结果解包，依据过程 id 调用服务端方法并将参数传递过去。
 
 
 ## 中间件和存储
@@ -845,25 +898,6 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - https://github.com/bitleak/lmstfy
 
 
-## 网络通讯协议
-<p align="center">
-  <img src="/images/5KeocQs.jpg",width=500 height=500>
-  <br/>
-  <strong><a href=http://www.escotal.com/osilayer.html>资料来源：OSI 7层模型</a></strong>
-</p>
-
-### 超文本传输协议（HTTPS/HTTP1.1/HTTP2/HTTP3）
-<p align="center">
-  <img src="/images/http.png" width=600 height=150>
-</p>
-
-- [aws http 选择介绍](https://aws.amazon.com/cn/compare/the-difference-between-https-and-http/)
-- HTTPS 是基于 HTTP 的安全版本，通过使用 SSL 或 TLS 加密和身份验证通信。
-- HTTP/1.1 是 HTTP 的第一个主要版本，引入了持久连接、管道化请求等特性。
-- HTTP/2 是 HTTP 的第二个主要版本，使用二进制协议，引入了多路复用、头部压缩、服务器推送等特性。
-- HTTP/3 是 HTTP 的第三个主要版本，基于 QUIC 协议，使用 UDP，提供更快的传输速度和更好的性能
-
-
 ## 如何搭建监控和日志系统
 - prometheus,https://prometheus.io/
 - grafna,https://www.google.com.hk/search?q=grafana&rlz=1C5GCEM_enCN985CN985&oq=grafana&aqs=chrome..69i57j69i60l3j69i65l3j69i60.8511j0j7&sourceid=chrome&ie=UTF-8
@@ -989,6 +1023,69 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
            
 
 
+
+
+How I Would Learn System Design Fundamentals (If I Had To Start Over):
+
+📌 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐊𝐞𝐲 𝐂𝐨𝐧𝐜𝐞𝐩𝐭𝐬
+- Scalability: lnkd.in/gpge_z76
+
+- CAP Theorem: lnkd.in/g3hmVamx
+- ACID Transactions: lnkd.in/gMe2JqaF
+- Consistent Hashing: lnkd.in/gd3eAQKA
+- Rate Limiting: lnkd.in/gWsTDR3m
+- API Design: lnkd.in/ghYzrr8q
+- Strong vs Eventual Consistency: lnkd.in/gJ-uXQXZ
+- Synchronous vs. asynchronous communications: lnkd.in/g4EqcckR
+- REST vs RPC: lnkd.in/gN__zcAB
+- Batch Processing vs Stream Processing: lnkd.in/gaAnP_fT
+- Fault Tolerance: lnkd.in/dVJ6n3wA
+- Consensus Algorithms: lnkd.in/ggc3tFbr
+- Gossip Protocol: lnkd.in/gfPMtrJZ
+- Service Discovery: lnkd.in/gjnrYkyF
+- Disaster Recovery: lnkd.in/g8rnr3V3
+- Distributed Tracing: lnkd.in/d6r5RdXG
+- Top 15 Tradeoffs: lnkd.in/gnM8QC-z
+
+🛠️ 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐁𝐮𝐢𝐥𝐝𝐢𝐧𝐠 𝐁𝐥𝐨𝐜𝐤𝐬
+- Horizontal vs Vertical Scaling: lnkd.in/gAH2e9du
+- Databases: lnkd.in/gti8gjpz
+- Content Delivery Network (CDN): lnkd.in/gjJrEJeH
+- Domain Name System (DNS): lnkd.in/gkMcZW8V
+- Caching: lnkd.in/gC9piQbJ
+- Distributed Caching: lnkd.in/g7WKydNg
+- Load Balancing: lnkd.in/gQaa8sXK
+- SQL vs NoSQL: lnkd.in/g3WC_yxn
+- Database Indexes: lnkd.in/dGnZiNmM
+- HeartBeats: lnkd.in/gfb9-hpN
+- Circuit Breaker: lnkd.in/gCxyFzKm
+- Idempotency: lnkd.in/gPm6EtKJ
+- Database Scaling: lnkd.in/gAXpSyWQ
+- Data Replication: lnkd.in/gVAJxTpS
+- Data Redundancy: lnkd.in/gNN7TF7n
+- Database Sharding: lnkd.in/gRHb-67m
+- Failover: lnkd.in/dihZ-cEG
+- Proxy Server: lnkd.in/gi8KnKS6
+- Message Queues: lnkd.in/gTzY6uk8
+- WebSockets: lnkd.in/g76Gv2KQ
+- Bloom Filters: lnkd.in/dt4QbSUz
+- API Gateway: lnkd.in/gnsJGJaM
+- Distributed Locking: lnkd.in/gRxNJwWE
+- Checksum: lnkd.in/gCTa4DrS
+
+🖇️ 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐀𝐫𝐜𝐡𝐢𝐭𝐞𝐜𝐭𝐮𝐫𝐚𝐥 𝐏𝐚𝐭𝐭𝐞𝐫𝐧𝐬
+- Client-Server Architecture: lnkd.in/dAARQYzq
+- Microservices Architecture: lnkd.in/gFXUrz_T
+- Serverless Architecture: lnkd.in/gQNAXKkb
+- Event-Driven Architecture: lnkd.in/dp8CPvey
+- Peer-to-Peer (P2P) Architecture: lnkd.in/di32HDu3
+
+***
+
+♻️ Repost to help others in your network.
+
+Join 12,600+ readers of my free newsletter (AlgoMaster) to master coding and system design: newsletter.ashishps.com
+18:35
 
 
 
