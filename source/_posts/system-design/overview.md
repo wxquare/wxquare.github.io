@@ -26,6 +26,46 @@ https://hangzhouhot.com/architecturepicture/
   <br/>
 </p>
 
+
+## 系统设计的目标、原则、权衡
+
+## 互联网系统的特点、难点和核心指标
+互联网系统具有以下几个特点：
+
+1. 分布式架构：互联网系统通常采用分布式架构，将功能和数据分散在多个服务器和节点上。这种架构可以提高系统的可伸缩性、容错性和性能。
+
+2. 大规模用户：互联网系统面向大规模用户，可能有数百万甚至数亿的用户同时使用系统。因此，系统需要能够处理高并发的请求和大量的数据流量。
+
+3. 高可用性：互联网系统需要保持高可用性，即在面对故障或意外情况时，能够快速恢复并持续提供服务。对于关键业务系统，甚至要求实现无单点故障的设计。
+
+4. 实时性和响应性：互联网系统通常需要实时响应用户的请求，提供快速的交互和即时的数据更新。用户对于系统的响应时间非常敏感，因此系统需要具备高效的处理能力和低延迟的数据传输。
+
+在开发和维护互联网系统时，也会面临一些难点：
+
+1. 复杂性：互联网系统通常由多个组件、服务和技术堆栈组成，涉及到大量的代码和逻辑。管理和维护这样的复杂系统需要具备深入的技术知识和经验。
+
+2. 安全性：互联网系统面临各种安全威胁，如数据泄露、网络攻击、恶意软件等。确保系统的安全性是一个重要的挑战，需要采取适当的安全措施和实施安全策略。
+
+3. 扩展性：随着用户数量和业务规模的增长，互联网系统需要具备良好的扩展性，能够支持更多的用户和处理更大的数据负载。设计和实现可扩展的系统架构是一个复杂的任务。
+
+互联网系统的核心指标可以包括以下几个：
+
+1. 可用性：衡量系统持续提供服务的能力，通常以百分比形式表示。例如，99.99%的可用性表示系统每年只有不到1小时的停机时间。
+
+2. 平均响应时间：衡量系统对用户请求的响应速度，通常以毫秒或秒为单位。较低的平均响应时间表示系统能够快速响应用户的请求。
+
+3. 吞吐量：衡量系统处理请求或事务的能力，通常以每秒处理的请求数或事务数来表示。较高的吞吐量表示系统能够处理更多的并发请求。
+
+4. 错误率：衡量系统在处理请求过程中出现错误的比例。较低的错误率表示系统的稳定性和可靠性较高。
+
+5. 扩展性：衡量系统在面对用户数量和负载增加时的能力，是否能够有效地扩展和适应变化。
+
+这些指标可以帮助评估和监控互联网系统的性能、可靠性和用户体验，从而指导系统的优化和改进。
+
+## 为什么要做设计？
+- 设计是系统实现的蓝图
+- 设计是沟通协作的基础
+- 设计是思考的过程决定了产品的质量
 **理解对齐**：所有软件系统的目的都是为了实现用户需求，但实现的途径有无限种可能性（相比传统工程行业，软件的灵活性更大、知识迭代更快）。架构设计就是去选择其中一条最合适的实现途径，因此其中会涉及非常多关键的选路决策（为什么要这么拆分？为什么选择 A 技术而不是 B？）。这些重要的技术决策需要通过架构描述这种形式被记录和同步，才能让项目组所有成员对整个系统的理解对齐，形成共识。
 **工作量化**：项目管理最重要的步骤之一就是工时评估，它是确定项目排期和里程碑的直接依据。显然，只通过 PRD / 交互图是无法科学量化出项目工作量的，因为很难直观判断出一句简短需求或一个简单页面背后，究竟要写多少代码、实现起来难度有多大。有了清晰明确的架构之后，理论上绝大部分开发工作都能做到可见、可预测和可拆解，自然而然也就能够被更准确地量化。当然，精准的工作量评估在 IT 行业内也一直是个未解之谜，实际的工期会受太多未知因素影响，包括程序员的技能熟练度、心情好不好、有没有吃饱等。
 **标准术语**：编程作为一种具有创造力的工作，从某种角度看跟写科幻小说是类似的。好的科幻小说都喜欢造概念，比如三体中的智子，如果没看过小说肯定不知道这是个啥玩意儿。软件系统在造概念这一点上，相比科幻小说只有过之而无不及，毕竟小说里的世界通常还是以现实为背景，而软件中的世界就全凭造物者（程序员）的想象（建模）了。稍微复杂一点的软件系统，都会引入一些领域特定甚至全新创作的概念。为了避免在项目过程中出现鸡同鸭讲的沟通障碍和理解歧义，就必须对描述这些概念的术语进行统一。而架构的一个重要目的，就是定义和解释清楚系统中涉及的所有关键概念，并在整个架构设计和描述过程中使用标准和一致的术语，真正做到让大家的沟通都在一个频道上。
@@ -40,6 +80,8 @@ https://hangzhouhot.com/architecturepicture/
 
 
 ### 技术方案应该包含哪些内容
+### 通过技术方案文档表达技术设计
+非常抱歉，以下是每个部分应该包括的内容的更详细说明：
 1. 背景：
    - 解决的问题：明确要解决的技术问题和产品问题的具体描述。
    - 难点和挑战：列出可能遇到的难点、挑战和限制条件。
@@ -95,6 +137,18 @@ https://hangzhouhot.com/architecturepicture/
 
 
 ### 技术设计“好”“坏”评估
+- 系统架构设计：确定系统的整体结构和组织方式。包括选择适当的架构风格（如分层、微服务、事件驱动等），定义系统的模块和组件，确定它们之间的关系和通信方式。
+- 数据库设计：设计系统所需的数据库结构和数据模型。包括确定数据库类型（关系型、非关系型等），定义表和字段，建立数据关系和约束。
+- 接口设计：定义系统与外部系统或组件之间的接口和交互方式。包括确定接口的输入和输出，定义数据格式和协议，规定接口的安全性和验证机制。
+- 模块设计：对系统的各个模块进行详细设计。包括定义模块的功能和职责，确定模块之间的接口和依赖关系，设计模块内部的算法和数据结构。
+- 数据流设计：描述系统中的数据流动和处理过程。包括绘制数据流程图、时序图或流程图，明确数据的输入、处理和输出流程。
+- 安全设计：考虑系统的安全性需求，设计安全策略和机制。包括身份认证、访问控制、数据加密、漏洞防护等方面的设计。
+- 性能设计：考虑系统的性能需求，设计性能优化策略。包括选择合适的算法和数据结构、优化数据库查询、使用缓存和异步处理等方面的设计。
+- 异常处理和错误处理设计：定义系统对异常情况和错误的处理方式。包括异常捕获和处理、错误日志记录、恢复策略等方面的设计。
+- 部署和运维设计：考虑系统的部署和运维需求，设计相应的方案。包括选择合适的部署架构、配置管理、监控和日志管理等方面的设计。
+- 测试策略和方案：制定系统的测试策略和测试计划。包括单元测试、集成测试、系统测试、性能测试等方面的设计
+
+### 如何评估技术设计的质量
 #### 功能性
 - 功能完整度
 - 功能正确性
@@ -125,9 +179,14 @@ https://hangzhouhot.com/architecturepicture/
 - 系统提供友好的用户界面和良好的用户交互，以提高用户满意度和使用效率
 
 上述质量模型中列出的所有点，都是架构设计需要着重考虑的。其中除了功能适合性以外，其他所有点都属于非功能需求的范畴，这也是区分架构好坏的真正分水岭 —— 好的架构设计，不会停留在仅满足功能需求这一最基本的需求层次上（最坏的架构设计也同样能做到），更重要且更难以应对的是其他众多的非功能需求
-
 https://hangzhouhot.com/architecturepicture/
 https://www.industrialempathy.com/posts/design-docs-at-google/
+[技术方案设计的规范与模板](https://juejin.cn/post/7294443057835425855)
+
+
+https://www.youtube.com/watch?v=T9lrBu6DLtc
+https://www.youtube.com/watch?v=MbjObHmDbZo
+
 
 
 ### 面向对象系统设计的原则
@@ -174,6 +233,86 @@ https://newsletter.ashishps.com/p/system-design-top-15-trade-offs
 - [分布式理论：CAP、BASE与ACID](https://monkeysayhi.github.io/2018/03/09/%E5%88%86%E5%B8%83%E5%BC%8F%E7%90%86%E8%AE%BA%EF%BC%9ACAP%E3%80%81BASE%E4%B8%8EACID/)
 
 
+### 如何量化系统指标(SLA指标)
+#### reliable
+<p align="center">
+  <img src="/images/MTPF.png" width=600 height=400>
+  <br/>
+</p>
+
+#### available
+<p align="center">
+  <img src="/images/available-metric.png" width=600 height=400>
+  <br/>
+</p>
+
+#### efficiency
+##### latency and throughput
+#### manageability
+<p align="center">
+  <img src="/images/manageability.png" width=600 height=400>
+  <br/>
+</p>
+
+
+
+## 每个程序员都应该知道的延迟数
+
+### latency
+```
+Latency Comparison Numbers
+--------------------------
+L1 cache reference                           0.5 ns
+Branch mispredict                            5   ns
+L2 cache reference                           7   ns                      14x L1 cache
+Mutex lock/unlock                           25   ns
+Main memory reference                      100   ns                      20x L2 cache, 200x L1 cache
+Compress 1K bytes with Zippy            10,000   ns       10 us
+Send 1 KB bytes over 1 Gbps network     10,000   ns       10 us
+Read 4 KB randomly from SSD*           150,000   ns      150 us          ~1GB/sec SSD
+Read 1 MB sequentially from memory     250,000   ns      250 us
+Round trip within same datacenter      500,000   ns      500 us
+Read 1 MB sequentially from SSD*     1,000,000   ns    1,000 us    1 ms  ~1GB/sec SSD, 4X memory
+Disk seek                           10,000,000   ns   10,000 us   10 ms  20x datacenter roundtrip
+Read 1 MB sequentially from 1 Gbps  10,000,000   ns   10,000 us   10 ms  40x memory, 10X SSD
+Read 1 MB sequentially from disk    30,000,000   ns   30,000 us   30 ms 120x memory, 30X SSD
+Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
+```
+基于上述数字的指标：
+* 从磁盘以 30 MB/s 的速度顺序读取
+* 以 100 MB/s 从 1 Gbps 的以太网顺序读取
+* 从 SSD 以 1 GB/s 的速度读取
+* 以 4 GB/s 的速度从主存读取
+* 每秒能绕地球 6-7 圈
+* 数据中心内每秒有 2,000 次往返
+
+### traffic estimates
+<p align="center">
+  <img src="/images/traffic_estimate.png" width=600 height=300>
+  <br/>
+</p>
+
+
+### memory estimates
+
+<p align="center">
+  <img src="/images/memory.png" width=600 height=300>
+  <br/>
+</p>
+
+
+### bandwidth estimates
+<p align="center">
+  <img src="/images/bandwidth.png" width=600 height=300>
+  <br/>
+</p>
+
+
+### storage estimates
+<p align="center">
+  <img src="/images/storage.png" width=600 height=300>
+  <br/>
+</p>
 
 ### 如何写好一份技术方案设计文档
 
@@ -235,6 +374,30 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 
 
 ## 架构图
+### 互联网系统八大谬论
+<p align="center">
+  <img src="/images/8-fallacies.png" width=600 height=400>
+  <br/>
+</p>
+
+- 网络是可靠的；
+- 通信时延为0；
+- 带宽是无限的；
+- 网络是安全的；
+- 拓扑不会改变；
+- 只有一个管理者；
+- 传输成本为0；
+- 网络是同构的；
+
+https://ably.com/blog/8-fallacies-of-distributed-computing
+
+
+
+
+
+
+### 关于画图
+- https://hangzhouhot.com/architecturepicture
 - 产品/业务架构
   重点关注产品功能组成，从业务逻辑的视角出发，整体展现一个企业各类系统之间的层次和关系。产品架构关注的是业务视角
 - 系统/应用架构
@@ -488,6 +651,7 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 
 ### 负载均衡器
 
+## 负载均衡器和反向代理（load balancer)
 
 <p align="center">
   <img src="/images/load_balancer.png" width=800 height=400>
@@ -612,7 +776,131 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 - [grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway)
 
 ## API 设计规范和管理
-- restful
+### API 架构风格
+- RESTful API
+- GraphQL 
+- RPC
+- SOA
+
+### RESTful API 
+- 路径名称避免动词
+```sh
+路径名称避免动词
+# Good
+curl -X GET /orders
+# Bad
+curl -X GET /getOrders
+```
+
+- GET 获取指定 URI 的资源信息
+```sh
+# 代表获取当前系统的所有订单信息
+curl -X GET /orders
+
+curl -X GET /users/{user_id}/orders
+
+# 代表获取指定订单编号为订单详情信息
+curl -X GET /orders/{order_id}
+```
+
+- POST 通过指定的 URI 创建资源
+```sh
+curl -X POST /orders \
+  -d '{"name": "awesome", region: "A"}' \
+```
+
+- PUT 创建或全量替换指定 URI 上的资源
+```
+curl -X PUT http://httpbin.org/orders/1 \
+  -d '{"name": "new awesome", region: "B"}' \
+```
+
+- PATCH 执行一个资源的部分更新
+```sh
+# 代表将 id 为 1 的 order 中的 region 字段进行更改，其他数据保持不变
+curl -X PATCH /orders/{order_id} \
+  -d '{name: "nameB"}' \
+curl -X order/{order_id}/name (用来重命名)
+curl -X /order/{order_id}/status(用来更改用户状态)
+```
+
+- DELETE 通过指定的 URI 移除资源
+```sh
+# 代表将id的 order 删除
+curl -X DELETE /orders/{order_id}
+```
+
+其它规则：
+规则1：应使用连字符（ - ）来提高URI的可读性
+规则2：不得在URI中使用下划线（_）
+规则3：URI路径中全都使用小写字母
+
+
+### API 错误码设计规范
+1. 不论请求成功或失败，始终返回 200 http status code，在 HTTP Body 中包含用户账号没有找到的错误信息:
+
+```
+如: Facebook API 的错误 Code 设计，始终返回 200 http status code：
+{
+  "error": {
+    "message": "Syntax error \"Field picture specified more than once. This is only possible before version 2.1\" at character 23: id,name,picture,picture",
+    "type": "OAuthException",
+    "code": 2500,
+    "fbtrace_id": "xxxxxxxxxxx"
+  }
+}
+
+缺点:
+  对于每一次请求，我们都要去解析 HTTP Body，从中解析出错误码和错误信息
+
+```
+
+2. 返回 http 404 Not Found 错误码，并在 Body 中返回简单的错误信息:
+
+```
+如: Twitter API 的错误设计
+根据错误类型，返回合适的 HTTP Code，并在 Body 中返回错误信息和自定义业务 Code
+
+HTTP/1.1 400 Bad Request
+{"errors":[{"code":215,"message":"Bad Authentication data."}]}
+```
+
+3. 返回 http 404 Not Found 错误码，并在 Body 中返回详细的错误信息:
+
+```
+如: 微软 Bing API 的错误设计，会根据错误类型，返回合适的 HTTP Code，并在 Body 中返回详尽的错误信息
+HTTP/1.1 400
+{
+  "code": 100101,
+  "message": "Database error",
+  "reference": "https://github.com/xx/tree/master/docs/guide/faq/xxxx"
+}
+```
+
+4. 业务 Code 码设计
+- 纯数字表示
+- 不同部位代表不同的服务
+- 不同的模块（品类）
+
+```
+如: 错误代码说明：100101
+10: 服务
+01: 某个服务下的某个模块
+01: 模块下的错误码序号，每个模块可以注册 100 个错误
+建议 http status code 不要太多:
+
+200 - 表示请求成功执行
+400 - 表示客户端出问题
+500 - 表示服务端出问题
+
+如果觉得这 3 个错误码不够用，可以加如下 3 个错误码:
+401 - 表示认证失败
+403 - 表示授权失败
+404 - 表示资源找不到，这里的资源可以是 URL 或者 RESTful 资源
+```
+
+### 接口幂等性设计
+
 
 
 
@@ -919,7 +1207,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 
 
 ## 应该知道的性能问题
-### 每个程序员都应该知道的延迟数
+## 每个程序员都应该知道的延迟数
 ```
 Latency Comparison Numbers
 --------------------------
@@ -1091,3 +1379,6 @@ Join 12,600+ readers of my free newsletter (AlgoMaster) to master coding and sys
 
 
 
+
+
+https://www.youtube.com/watch?v=MbjObHmDbZo
