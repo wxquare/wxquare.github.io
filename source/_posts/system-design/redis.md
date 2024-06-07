@@ -131,6 +131,12 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
   <img src="/images/cache-refesh.png" width=600 height=800>
 </p>
 
+
+<p align="center">
+  <img src="/images/cache-read-write-mode.png" width=600 height=400>
+</p>
+
+
 |  缓存更新方式  |  优缺点  | 
 | -- | -- |
 | 缓存模式+TTL | 业务代码只更新DB，不更新cache，设置较短的TTL(通常分钟级），依靠cache过期无法找到key时回源DB，热key过期可能回导致请求大量请求击穿到DB，需要使用分布式锁或者singleflight等方式避免这种问题 |

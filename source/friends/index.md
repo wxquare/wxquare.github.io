@@ -17,4 +17,5 @@ date: 2022-11-07 22:33:15
 - [美团技术团队](https://tech.meituan.com/)
 - [得物技术][https://tech.dewu.com/article?id=111]
 - 吕聘,智能硬件
+- [https://lianglianglee.com/](技术文章摘抄)
 
