@@ -9,6 +9,16 @@ categories:
 [MySQL 5.7 Reference Manual](https://dev.mysql.com/doc/refman/5.7/en/null-values.html)
 
 
+## 数据建模
+
+
+https://vertabelo.com/blog/types-data-models/
+https://blog.csdn.net/zhulangfly/article/details/130432124
+https://aws.amazon.com/cn/what-is/data-modeling
+https://www.qlik.com/us/data-modeling
+
+
+
 ## 基本使用
 ### 如何建表？
 ```
@@ -199,6 +209,7 @@ MySQL支持多种存储引擎，每种存储引擎都有其特点和适用场景
   <br/>
   <strong><a href="http://www.slideshare.net/jboner/scalability-availability-stability-patterns/">资料来源：可扩展性、可用性、稳定性、模式</a></strong>
 </p>
+https://www.digitalocean.com/community/tutorials/understanding-database-sharding
 
 分片将数据分配在不同的数据库上，使得每个数据库仅管理整个数据集的一个子集。以用户数据库为例，随着用户数量的增加，越来越多的分片会被添加到集群中。
 类似[联合](#联合)的优点，分片可以减少读取和写入流量，减少复制并提高缓存命中率。也减少了索引，通常意味着查询更快，性能更好。如果一个分片出问题，其他的仍能运行，你可以使用某种形式的冗余来防止数据丢失。类似联合，没有只能串行写入的中心化主库，你可以并行写入，提高负载能力。

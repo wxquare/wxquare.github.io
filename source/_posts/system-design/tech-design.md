@@ -1,103 +1,18 @@
 ---
-title: 互联网系统设计 - 概述
+title: 互联网系统设计
 date: 2024-01-01
 categories: 
 - 系统设计
 ---
 
 
-http://www.cs.fsu.edu/~myers/cop3331/notes/sysdesign2.html
-
-
-https://hangzhouhot.com/architecturepicture/
-
-
-## 系统设计的目标、基本概念
-
-## 互联网系统的特点、难点和核心指标
-互联网系统具有以下几个特点：
-
-1. 分布式架构：互联网系统通常采用分布式架构，将功能和数据分散在多个服务器和节点上。这种架构可以提高系统的可伸缩性、容错性和性能。
-
-2. 大规模用户：互联网系统面向大规模用户，可能有数百万甚至数亿的用户同时使用系统。因此，系统需要能够处理高并发的请求和大量的数据流量。
-
-3. 高可用性：互联网系统需要保持高可用性，即在面对故障或意外情况时，能够快速恢复并持续提供服务。对于关键业务系统，甚至要求实现无单点故障的设计。
-
-4. 实时性和响应性：互联网系统通常需要实时响应用户的请求，提供快速的交互和即时的数据更新。用户对于系统的响应时间非常敏感，因此系统需要具备高效的处理能力和低延迟的数据传输。
-
-在开发和维护互联网系统时，也会面临一些难点：
-
-1. 复杂性：互联网系统通常由多个组件、服务和技术堆栈组成，涉及到大量的代码和逻辑。管理和维护这样的复杂系统需要具备深入的技术知识和经验。
-
-2. 安全性：互联网系统面临各种安全威胁，如数据泄露、网络攻击、恶意软件等。确保系统的安全性是一个重要的挑战，需要采取适当的安全措施和实施安全策略。
-
-3. 扩展性：随着用户数量和业务规模的增长，互联网系统需要具备良好的扩展性，能够支持更多的用户和处理更大的数据负载。设计和实现可扩展的系统架构是一个复杂的任务。
-
-互联网系统的核心指标可以包括以下几个：
-
-1. 可用性：衡量系统持续提供服务的能力，通常以百分比形式表示。例如，99.99%的可用性表示系统每年只有不到1小时的停机时间。
-
-2. 平均响应时间：衡量系统对用户请求的响应速度，通常以毫秒或秒为单位。较低的平均响应时间表示系统能够快速响应用户的请求。
-
-3. 吞吐量：衡量系统处理请求或事务的能力，通常以每秒处理的请求数或事务数来表示。较高的吞吐量表示系统能够处理更多的并发请求。
-
-4. 错误率：衡量系统在处理请求过程中出现错误的比例。较低的错误率表示系统的稳定性和可靠性较高。
-
-5. 扩展性：衡量系统在面对用户数量和负载增加时的能力，是否能够有效地扩展和适应变化。
-
-这些指标可以帮助评估和监控互联网系统的性能、可靠性和用户体验，从而指导系统的优化和改进。
-
-## 为什么要做设计？
-#### 设计是系统实现的蓝图
+## 前言 
+### 为什么要做设计方案
 <p align="center">
-  <img src="/images/arch-blu.png" width=600 height=300>
+  <img src="/images/why-tech-desgin.png" width=600 height=400>
   <br/>
 </p>
 
-
-#### 设计是沟通协作的基础
-<p align="center">
-  <img src="/images/arch-comm-02.png" width=600 height=400>
-  <br/>
-</p>
-
-
-## 系统设计的目标、原则、权衡
-
-## 互联网系统的特点、难点和核心指标
-互联网系统具有以下几个特点：
-
-1. 分布式架构：互联网系统通常采用分布式架构，将功能和数据分散在多个服务器和节点上。这种架构可以提高系统的可伸缩性、容错性和性能。
-
-2. 大规模用户：互联网系统面向大规模用户，可能有数百万甚至数亿的用户同时使用系统。因此，系统需要能够处理高并发的请求和大量的数据流量。
-
-3. 高可用性：互联网系统需要保持高可用性，即在面对故障或意外情况时，能够快速恢复并持续提供服务。对于关键业务系统，甚至要求实现无单点故障的设计。
-
-4. 实时性和响应性：互联网系统通常需要实时响应用户的请求，提供快速的交互和即时的数据更新。用户对于系统的响应时间非常敏感，因此系统需要具备高效的处理能力和低延迟的数据传输。
-
-在开发和维护互联网系统时，也会面临一些难点：
-
-1. 复杂性：互联网系统通常由多个组件、服务和技术堆栈组成，涉及到大量的代码和逻辑。管理和维护这样的复杂系统需要具备深入的技术知识和经验。
-
-2. 安全性：互联网系统面临各种安全威胁，如数据泄露、网络攻击、恶意软件等。确保系统的安全性是一个重要的挑战，需要采取适当的安全措施和实施安全策略。
-
-3. 扩展性：随着用户数量和业务规模的增长，互联网系统需要具备良好的扩展性，能够支持更多的用户和处理更大的数据负载。设计和实现可扩展的系统架构是一个复杂的任务。
-
-互联网系统的核心指标可以包括以下几个：
-
-1. 可用性：衡量系统持续提供服务的能力，通常以百分比形式表示。例如，99.99%的可用性表示系统每年只有不到1小时的停机时间。
-
-2. 平均响应时间：衡量系统对用户请求的响应速度，通常以毫秒或秒为单位。较低的平均响应时间表示系统能够快速响应用户的请求。
-
-3. 吞吐量：衡量系统处理请求或事务的能力，通常以每秒处理的请求数或事务数来表示。较高的吞吐量表示系统能够处理更多的并发请求。
-
-4. 错误率：衡量系统在处理请求过程中出现错误的比例。较低的错误率表示系统的稳定性和可靠性较高。
-
-5. 扩展性：衡量系统在面对用户数量和负载增加时的能力，是否能够有效地扩展和适应变化。
-
-这些指标可以帮助评估和监控互联网系统的性能、可靠性和用户体验，从而指导系统的优化和改进。
-
-## 为什么要做设计？
 - 设计是系统实现的蓝图
 - 设计是沟通协作的基础
 - 设计是思考的过程决定了产品的质量
@@ -107,19 +22,19 @@ https://hangzhouhot.com/architecturepicture/
 **言之有物** ：就跟讨论产品交互时需要对着原型图、讨论代码细节时需要直接看代码一样，架构是在讨论一些较高维技术问题时的必要实物（具体的实物化形式就是所谓架构描述）。否则，要么一堆人对着空气谈（纸上谈兵都说不上），要么每次沟通时都重新找块白板画一画（费时费力且容易遗落信息，显然不是长久之计）。
 **知识沉淀 & 新人培训**：架构应该被作为与代码同等重要的文档资产持续沉淀和维护，同时也是项目新人快速理解和上手系统的重要依据。不要让你的系统跟公司内某些祖传遗留系统一样 —— 只有代码遗留了下来，架构文档却没有；只能靠一些口口相传的残留设计记忆，苦苦维系着项目的生命延续
 
-
-
 ### 技术方案应该包含哪些内容
-### 通过技术方案文档表达技术设计
-非常抱歉，以下是每个部分应该包括的内容的更详细说明：
-非常抱歉，以下是每个部分应该包括的内容的更详细说明：
+<p align="center">
+  <img src="/images/what-tech-design-contain.png" width=600 height=400>
+  <br/>
+</p>
+
 
 1. 背景：
    - 解决的问题：明确要解决的技术问题和产品问题的具体描述。
    - 难点和挑战：列出可能遇到的难点、挑战和限制条件。
    - 目标和关键指标：明确解决方案的目标和关键指标，例如性能要求、用户体验等。
 
-2. 外部依赖：
+2. 外部依赖调研
    - 外部服务和组件：列出系统所依赖的外部服务、组件或系统，并描述其功能和接口。
    - 管理和集成策略：说明如何管理和集成外部依赖，包括版本控制、接口规范等。
 
@@ -149,54 +64,31 @@ https://hangzhouhot.com/architecturepicture/
    - 测试策略和方案：定义系统的测试策略和测试计划，包括单元测试、集成测试和系统测试等。
    - 部署和运维设计：描述系统的部署和运维策略，包括自动化部署、监控和故障处理等。
    - 风险点：识别系统设计中的潜在风险和问题，并提供相应的应对措施。
-
-7. 监控设计和异常处理机制：
+   - 监控设计和异常处理机制：
    - 监控需求：定义系统的监控需求，包括日志记录、性能监控和错误监控等。
    - 异常处理机制：描述系统对异常情况的处理方式和机制，包括错误提示、异常捕获和处理流程等。
 
-8. 资源清单：
+7. 资源清单：
    - 硬件资源：列出系统所需的硬件资源，例如服务器、存储设备等。
    - 软件资源：列出系统所需的软件资源，例如操作系统、数据库等。
    - 人力资源：确定系统开发和维护所需的人力资源，包括开发人员、测试人员等。
 
-9. 任务拆分和排期：
+8. 任务拆分和排期：
    - 任务拆分：将系统开发和实施过程分解为具体的任务和子任务。
    - 排期计划：为每个任务和子任务确定时间表和优先级。
 
-10. 评审记录：
+9. 评审记录：
     - 评审会议记录：记录技术方案评审会议的讨论和决策结果。
     - 修改和改进建议：记录评审过程中提出的修改和改进建议，并记录其处理状态。
 
-以上是每个部分应该包括的内容的详细说明。根据具体的项目和需求，可以适当调整和补充这些内容。
-
-
-- 系统架构设计：确定系统的整体结构和组织方式。包括选择适当的架构风格（如分层、微服务、事件驱动等），定义系统的模块和组件，确定它们之间的关系和通信方式。
-- 数据库设计：设计系统所需的数据库结构和数据模型。包括确定数据库类型（关系型、非关系型等），定义表和字段，建立数据关系和约束。
-- 接口设计：定义系统与外部系统或组件之间的接口和交互方式。包括确定接口的输入和输出，定义数据格式和协议，规定接口的安全性和验证机制。
-- 模块设计：对系统的各个模块进行详细设计。包括定义模块的功能和职责，确定模块之间的接口和依赖关系，设计模块内部的算法和数据结构。
-- 数据流设计：描述系统中的数据流动和处理过程。包括绘制数据流程图、时序图或流程图，明确数据的输入、处理和输出流程。
-- 安全设计：考虑系统的安全性需求，设计安全策略和机制。包括身份认证、访问控制、数据加密、漏洞防护等方面的设计。
-- 性能设计：考虑系统的性能需求，设计性能优化策略。包括选择合适的算法和数据结构、优化数据库查询、使用缓存和异步处理等方面的设计。
-- 异常处理和错误处理设计：定义系统对异常情况和错误的处理方式。包括异常捕获和处理、错误日志记录、恢复策略等方面的设计。
-- 部署和运维设计：考虑系统的部署和运维需求，设计相应的方案。包括选择合适的部署架构、配置管理、监控和日志管理等方面的设计。
-- 测试策略和方案：制定系统的测试策略和测试计划。包括单元测试、集成测试、系统测试、性能测试等方面的设计
-
-
-
-### 技术设计“好”“坏”评估
-- 系统架构设计：确定系统的整体结构和组织方式。包括选择适当的架构风格（如分层、微服务、事件驱动等），定义系统的模块和组件，确定它们之间的关系和通信方式。
-- 数据库设计：设计系统所需的数据库结构和数据模型。包括确定数据库类型（关系型、非关系型等），定义表和字段，建立数据关系和约束。
-- 接口设计：定义系统与外部系统或组件之间的接口和交互方式。包括确定接口的输入和输出，定义数据格式和协议，规定接口的安全性和验证机制。
-- 模块设计：对系统的各个模块进行详细设计。包括定义模块的功能和职责，确定模块之间的接口和依赖关系，设计模块内部的算法和数据结构。
-- 数据流设计：描述系统中的数据流动和处理过程。包括绘制数据流程图、时序图或流程图，明确数据的输入、处理和输出流程。
-- 安全设计：考虑系统的安全性需求，设计安全策略和机制。包括身份认证、访问控制、数据加密、漏洞防护等方面的设计。
-- 性能设计：考虑系统的性能需求，设计性能优化策略。包括选择合适的算法和数据结构、优化数据库查询、使用缓存和异步处理等方面的设计。
-- 异常处理和错误处理设计：定义系统对异常情况和错误的处理方式。包括异常捕获和处理、错误日志记录、恢复策略等方面的设计。
-- 部署和运维设计：考虑系统的部署和运维需求，设计相应的方案。包括选择合适的部署架构、配置管理、监控和日志管理等方面的设计。
-- 测试策略和方案：制定系统的测试策略和测试计划。包括单元测试、集成测试、系统测试、性能测试等方面的设计
 
 ### 如何评估技术设计的质量
-### 系统（设计）质量评估
+
+<p align="center">
+  <img src="/images/what-tech-design-contain.png" width=600 height=400>
+  <br/>
+</p>
+
 #### 功能性
 - 功能完整度
 - 功能正确性
@@ -226,17 +118,184 @@ https://hangzhouhot.com/architecturepicture/
 #### 用户体验（User Experience）
 - 系统提供友好的用户界面和良好的用户交互，以提高用户满意度和使用效率
 
-上述质量模型中列出的所有点，都是架构设计需要着重考虑的。其中除了功能适合性以外，其他所有点都属于非功能需求的范畴，这也是区分架构好坏的真正分水岭 —— 好的架构设计，不会停留在仅满足功能需求这一最基本的需求层次上（最坏的架构设计也同样能做到），更重要且更难以应对的是其他众多的非功能需求
-https://hangzhouhot.com/architecturepicture/
-https://www.industrialempathy.com/posts/design-docs-at-google/
+
+### 如何量化系统指标(SLA指标)
+#### reliable
+<p align="center">
+  <img src="/images/MTPF.png" width=600 height=300>
+  <br/>
+</p>
+
+#### available
+<p align="center">
+  <img src="/images/available-metric.png" width=600 height=300>
+  <br/>
+</p>
+
+#### efficiency
+##### latency and throughput
+#### manageability
+<p align="center">
+  <img src="/images/manageability.png" width=600 height=300>
+  <br/>
+</p>
+
+
+
+
+
+### 系统设计的权衡(top15 trade-off)
+性能与可扩展性的权衡：提高性能可能需要牺牲一部分可扩展性，因为某些优化可能会引入复杂性或限制系统的扩展性。
+可维护性与性能的权衡：某些优化措施可能会降低代码的可读性和可维护性，因此需要在维护性和性能之间进行权衡。
+时间与成本的权衡：系统设计需要考虑开发时间和成本，以确保在给定资源限制下实现最佳的设计方案
+安全性与用户体验的权衡：强大的安全措施可能会增加用户的身份验证和授权过程，从而影响用户体验。
+[架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
+[架构-trade-off（架构权衡](https://juejin.cn/post/7248914499915235389)
+https://haomo-tech.com/project-docs/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/assets/%E7%B3%BB%E7%BB%9F%E4%B8%9A%E5%8A%A1%E6%9E%B6%E6%9E%84%E5%9B%BE.omnigraffle
+[架构-trade-off（架构权衡](https://juejin.cn/post/7248914499915235389)
+[架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
+[系统架构](https://book.douban.com/subject/26938710/)
+
+
+### 技术方案模板
+** 附录：设计文档模板 **
+设计文档没有定式。即使如此，笔者参考谷歌设计文档的结构和格式，并结合实际工作经验加以完善。在此提供一个可供新手参考的设计文档模版，您可以使用此文档模板作为思考的基础。通常，无须事无巨细地填写每一部分，不相关的内容直接略过即可。
+
+计决策的合理性，同时也有助于日后迭代设计时，检查最初的假设是否仍然成立。
+
+#### 背景
+
+##### 我们要解决的问题是什么
+
+为设计文档的目标读者提供理解详细设计所需的背景信息。按读者范围来提供背景。见上文关于目标读者的圈定。设计文档应该是“自足的”（self-contained），即应该为读者提供足够的背景知识，使其无需进一步的查阅资料即可理解后文的设计。保持简洁，通常以几段为宜，每段简要介绍即可。如果需要向读者提供进一步的信息，最好只提供链接。警惕知识的诅咒（知识的诅咒（Curse of knowledge）是一种认知偏差，指人在与他人交流的时候，下意识地假设对方拥有理解交流主题所需要的背景知识）
+
+背景通常可以包括：
+需求动机以及可能的例子。 如，“（tRPC) 微服务模式正在公司内变得流行，但是缺少一个通用的、封装了常用内部工具及服务接口的微服务框架”。 - 这是放置需求文档的链接的好地方。
+此前的版本以及它们的问题。 如，“(tRPC) Taf 是之前的应用框架， 有以下特点，…………， 但是有以下局限性及历史遗留问题”。
+其它已有方案， 如公司内其它方案或开源方案， “tRPC v.s. gRPC v.s. Arvo”
+相关的项目，如 “tRPC 框架中可能会对接的其它 PCG 系统”
+不要在背景中写你的设计，或对问题的解决思路。
+
+##### 难点和挑战 
+
+“解决这个问题的难点和挑战”
+
+用几句话说明该设计文档的关键目的，让读者能够一眼得知自己是否对该设计文档感兴趣。 如：“本文描述 Spanner 的顶层设计”
+
+
+##### 目标和关键指标
+
+继而，使用 Bullet Points 描述该设计试图达到的重要目标，如：
+
+- 可扩展性
+- 多版本
+- 全球分布
+- 同步复制
+非目标也可能很重要。非目标并非单纯目标的否定形式，也不是与解决问题无关的其它目标，而是一些可能是读者非预期的、本可作为目标但并没有的目标，如：
+- 高可用性
+- 高可靠性 如果可能，解释是基于哪些方面的考虑将之作为非目标。如：
+- 可维护性： 本服务只是过渡方案，预计寿命三个月，待 XX 上线运行后即可下线
+设计不是试图达到完美，而是试图达到平衡。 显式地声明哪些是目标，哪些是非目标，有助于帮助读者理解下文中设
+
+
+
+#### 总体设计
+
+“我们如何解决这个问题？”
+
+用一页描述高层设计。说明系统的主要组成部分，以及一些关键设计决策。应该说明该系统的模块和决策如何满足前文所列出的目标。
+
+本设计文档的评审人应该能够根据该总体设计理解你的设计思路并做出评价。描述应该对一个新加入的、不在该项目工作的腾讯工程师而言是可以理解的。
+
+推荐使用系统关系图描述设计。它可以使读者清晰地了解文中的新系统和已经熟悉的系统间的关系。它也可以包含新系统内部概要的组成模块。
+
+注意：不要只放一个图而不做任何说明，请根据上面小节的要求用文字描述设计思想。
+
+- 一个示例体统关系图
+
+- 自举的文档结构图
+
+- 可能不太好的顶层设计
+不要在这里描述细节，放在下一章节中； 不要在这里描述背景，放在上一章节中。
+
+#### 详细设计 
+
+在这一节中，除了介绍设计方案的细节，还应该包括在产生最终方案过程中，主要的设计思想及权衡（tradeoff）。这一节的结构和内容因设计对象（系统，API，流程等）的不同可以自由决定，可以划分一些小节来更好地组织内容，尽可能以简洁明了的结构阐明整个设计。
+
+不要过多写实现细节。就像我们不推荐添加只是说明”代码做了什么”的注释，我们也不推荐在设计文档中只说明你具体要怎么实现该系统。否则，为什么不直接实现呢？ 以下内容可能是实现细节例子，不适合在设计文档中讨论：
+
+- ** API 的所有细节 ** 
+- ** 存储系统的 Data Schema ** 
+- ** 具体代码或伪代码 ** 
+- ** 该系统各模块代码的存放位置、各模块代码的布局 ** 
+- ** 该系统使用的编译器版本 ** 
+开发规范
+通常可以包含以下内容（注意，小节的命名可以更改为更清晰体现内容的标题）：
+
+** 各子模块的设计 ** 
+阐明一些复杂模块内部的细节，可以包含一些模块图、流程图来帮助读者理解。可以借助时序图进行展现，如一次调用在各子模块中的运行过程。每个子模块需要说明自己存在的意义。如无必要，勿添模块。如果没有特殊情况（例如该设计文档是为了描述并实现一个核心算法），不要在系统设计加入代码或者伪代码。
+
+** API 接口 ** 
+如果设计的系统会暴露 API 接口，那么简要地描述一下 API 会帮助读者理解系统的边界。避免将整个接口复制粘贴到文档中，因为在特定编程语言中的接口通常包含一些语言细节而显得冗长，并且有一些细节也会很快变化。着重表现 API 接口跟设计最相关的主要部分即可。
+
+** 存储 ** 
+介绍系统依赖的存储设计。该部分内容应该回答以下问题，如果答案并非显而易见：
+
+该系统对数据/存储有哪些要求？ - 该系统会如何使用数据？ - 数据是什么类型的？ - 数据规模有多大？ - 读写比是多少？读写频率有多高？ - 对可扩展性是否有要求？ - 对原子性要求是什么？ - 对一致性要求是什么？是否需要支持事务？ - 对可用性要求是什么？ - 对性能的要求是什么？ - …………
+基于上面的事实，数据库应该如何选型？ - 选用关系型数据库还是非关系型数据库？是否有合适的中间件可以使用？ - 如何分片？是否需要分库分表？是否需要副本？ - 是否需要异地容灾？ - 是否需要冷热分离？ - …………
+数据的抽象以及数据间关系的描述至关重要。可以借助 ER 图(Entity Relationshiop) 的方式展现数据关系。
+
+回答上述问题时，尽可能提供数据，将数据作为答案或作为辅助。 不要回答“数据规模很大，读写频繁”，而是回答“预计数据规模为 300T， 3M 日读出， 0.3M 日写入， 巅峰 QPS 为 300”。这样才能为下一步的具体数据库造型提供详细的决策依据，并让读者信服。 注意：在选型时也应包括可能会造成显著影响的非技术因素，如费用。
+
+避免将所有数据定义（data schema）复制粘贴到文档中，因为 data schema 更偏实现细节。
+
+其他方案
+“我们为什么不用另一种方式解决问题？”
+
+在介绍了最终方案后，可以有一节介绍一下设计过程中考虑过的其他设计方案（Alternatives Considered）、它们各自的优缺点和权衡点、以及导致选择最终方案的原因等。通常，有经验的读者（尤其是方案的审阅者）会很自然地想到一些其他设计方案，如果这里的介绍描述了没有选择这些方案的原因，就避免读者带着疑问看完整个设计再来询问作者。这一节可以体现设计的严谨性和全面性。
+
+交叉关注点
+基础设施
+如果基础设施的选用需要特殊考量，则应该列出。 如果该系统的实现需要对基础设施进行增强或变更，也应该在此讨论。
+
+可扩展性
+你的系统如何扩展？横向扩展还是纵向扩展？注意数据存储量和流量都可能会需要扩展。
+
+安全 & 隐私
+项目通常需要在设计期即确定对安全性的保证，而难以事后补足。不同于其它部分是可选的，安全部分往往是必需的。即使你的系统不需要考虑安全和隐私，也需要显式地在本章说明为何是不必要的。安全性如何保证？
+
+系统如何授权、鉴权和审计(Authorization, Authentication and Auditing, AAA）？
+是否需要破窗（break-glass）机制？
+有哪些已知漏洞和潜在的不安全依赖关系？
+是否应该与专业安全团队讨论安全性设计评审？
+……
+数据完整性
+如何保证数据完整性（Data Integrity）？如何发现存储数据的损坏或丢失？如何恢复？由数据库保证即可，还是需要额外的安全措施？为了数据完整性，需要对稳定性、性能、可复用性、可维护性造成哪些影响？
+
+延迟
+声明延迟的预期目标。描述预期延迟可能造成的影响，以及相关的应对措施。
+
+冗余 & 可靠性
+是否需要容灾？是否需要过载保护、有损降级、接口熔断、轻重分离？是否需要备份？备份策略是什么？如何修复？在数据丢失和恢复之间会发生什么？
+
+稳定性
+SLA 目标是什么？ 如果监控？如何保证？
+
+#### 外部依赖
+你的外部依赖的可靠性（如 SLA）如何？会对你的系统的可靠性造成何种影响？如果你的外部依赖不可用，会对你的系统造成何种影响？除了服务级的依赖外，不要忘记一些隐含的依赖，如 DNS 服务、时间协议服务、运行集群等。
+
+
+#### 任务查分和研发排期
+描述时间及人力安排（如里程碑）。 这利于相关人员了解预期，调整工作计划。
+
+#### 遗留的问题、未来计划
+未来可能的计划会方便读者更好地理解该设计以及其定位。
+
+
 [技术方案设计的规范与模板](https://juejin.cn/post/7294443057835425855)
 
 
-https://www.youtube.com/watch?v=T9lrBu6DLtc
-https://www.youtube.com/watch?v=MbjObHmDbZo
-
-
-
+## 技术设计基础
 ### 面向对象系统设计的原则
 单一职责原则（SRP）：每个组件或模块应该具有单一的责任，降低耦合度，提高可维护性。
 开闭原则（OCP）：系统应对扩展开放，对修改关闭，通过接口和抽象来实现。
@@ -256,168 +315,6 @@ SOLID 原则是一套比较经典且流行的架构原则（主要还是名字�
 隔离变化：许多架构原则与模式的本质都是在隔离变化 —— 将预期可能变化的部分都隔离到一块，减少发生变化时受影响（需要修改代码、重新测试或产生故障隐患）的其他稳定部分
 https://github.com/leewaiho/Clean-Architecture-zh/tree/master?tab=readme-ov-file
 
-### 系统设计的权衡(top15 trade-off)
-性能与可扩展性的权衡：提高性能可能需要牺牲一部分可扩展性，因为某些优化可能会引入复杂性或限制系统的扩展性。
-可维护性与性能的权衡：某些优化措施可能会降低代码的可读性和可维护性，因此需要在维护性和性能之间进行权衡。
-时间与成本的权衡：系统设计需要考虑开发时间和成本，以确保在给定资源限制下实现最佳的设计方案
-安全性与用户体验的权衡：强大的安全措施可能会增加用户的身份验证和授权过程，从而影响用户体验。
-[架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
-[架构-trade-off（架构权衡](https://juejin.cn/post/7248914499915235389)
-https://haomo-tech.com/project-docs/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/assets/%E7%B3%BB%E7%BB%9F%E4%B8%9A%E5%8A%A1%E6%9E%B6%E6%9E%84%E5%9B%BE.omnigraffle
-[架构-trade-off（架构权衡](https://juejin.cn/post/7248914499915235389)
-[架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
-[系统架构](https://book.douban.com/subject/26938710/)
-
-
-
-### 如何量化系统指标(SLA指标)
-#### reliable
-<p align="center">
-  <img src="/images/MTPF.png" width=600 height=400>
-  <br/>
-</p>
-
-#### available
-<p align="center">
-  <img src="/images/available-metric.png" width=600 height=400>
-  <br/>
-</p>
-
-#### efficiency
-##### latency and throughput
-#### manageability
-<p align="center">
-  <img src="/images/manageability.png" width=600 height=400>
-  <br/>
-</p>
-
-
-
-## 每个程序员都应该知道的延迟数
-
-### latency
-```
-Latency Comparison Numbers
---------------------------
-L1 cache reference                           0.5 ns
-Branch mispredict                            5   ns
-L2 cache reference                           7   ns                      14x L1 cache
-Mutex lock/unlock                           25   ns
-Main memory reference                      100   ns                      20x L2 cache, 200x L1 cache
-Compress 1K bytes with Zippy            10,000   ns       10 us
-Send 1 KB bytes over 1 Gbps network     10,000   ns       10 us
-Read 4 KB randomly from SSD*           150,000   ns      150 us          ~1GB/sec SSD
-Read 1 MB sequentially from memory     250,000   ns      250 us
-Round trip within same datacenter      500,000   ns      500 us
-Read 1 MB sequentially from SSD*     1,000,000   ns    1,000 us    1 ms  ~1GB/sec SSD, 4X memory
-Disk seek                           10,000,000   ns   10,000 us   10 ms  20x datacenter roundtrip
-Read 1 MB sequentially from 1 Gbps  10,000,000   ns   10,000 us   10 ms  40x memory, 10X SSD
-Read 1 MB sequentially from disk    30,000,000   ns   30,000 us   30 ms 120x memory, 30X SSD
-Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
-```
-基于上述数字的指标：
-* 从磁盘以 30 MB/s 的速度顺序读取
-* 以 100 MB/s 从 1 Gbps 的以太网顺序读取
-* 从 SSD 以 1 GB/s 的速度读取
-* 以 4 GB/s 的速度从主存读取
-* 每秒能绕地球 6-7 圈
-* 数据中心内每秒有 2,000 次往返
-
-### traffic estimates
-<p align="center">
-  <img src="/images/traffic_estimate.png" width=600 height=300>
-  <br/>
-</p>
-
-
-### memory estimates
-
-<p align="center">
-  <img src="/images/memory.png" width=600 height=300>
-  <br/>
-</p>
-
-
-### bandwidth estimates
-<p align="center">
-  <img src="/images/bandwidth.png" width=600 height=300>
-  <br/>
-</p>
-
-
-### storage estimates
-<p align="center">
-  <img src="/images/storage.png" width=600 height=300>
-  <br/>
-</p>
-### 架构模式（patterns)
-- c/s 架构
-- mvc 架构
-- 分层 架构
-- 事件驱动架构
-- 微服务架构
-- 云原生架构
-- P2P架构
-
-
-
-
-### 每个程序员都应该知道的延迟数
-```
-Latency Comparison Numbers
---------------------------
-L1 cache reference                           0.5 ns
-Branch mispredict                            5   ns
-L2 cache reference                           7   ns                      14x L1 cache
-Mutex lock/unlock                           25   ns
-Main memory reference                      100   ns                      20x L2 cache, 200x L1 cache
-Compress 1K bytes with Zippy            10,000   ns       10 us
-Send 1 KB bytes over 1 Gbps network     10,000   ns       10 us
-Read 4 KB randomly from SSD*           150,000   ns      150 us          ~1GB/sec SSD
-Read 1 MB sequentially from memory     250,000   ns      250 us
-Round trip within same datacenter      500,000   ns      500 us
-Read 1 MB sequentially from SSD*     1,000,000   ns    1,000 us    1 ms  ~1GB/sec SSD, 4X memory
-Disk seek                           10,000,000   ns   10,000 us   10 ms  20x datacenter roundtrip
-Read 1 MB sequentially from 1 Gbps  10,000,000   ns   10,000 us   10 ms  40x memory, 10X SSD
-Read 1 MB sequentially from disk    30,000,000   ns   30,000 us   30 ms 120x memory, 30X SSD
-Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
-```
-基于上述数字的指标：
-* 从磁盘以 30 MB/s 的速度顺序读取
-* 以 100 MB/s 从 1 Gbps 的以太网顺序读取
-* 从 SSD 以 1 GB/s 的速度读取
-* 以 4 GB/s 的速度从主存读取
-* 每秒能绕地球 6-7 圈
-* 数据中心内每秒有 2,000 次往返
-
-
-## 整体设计 
-## 软件架构模式（patterns）
-### Application Landscape Patterns
-- Monolith （单体架构）
-- N-tiers,3-tier
-- 面向服务的架构 (service - orienterd)
-- 微服务架构 (microservices)
-- 无服务架构 (serverless)
-- p2p 架构 (peer to peer)
-### Application structure Patterns
-- 分层架构 (Layerd architecture)
-- 微内核架构 (microkernel)
-- 事件驱动架构 (Event-driven)
-### User Interface Patterns
-- MVC
-- MVP
-
-### 参考阅读：
-- 微服务架构：https://lnkd.in/gFXUrz_T
-- 无服务器架构：https://lnkd.in/gQNAXKkb
-- 事件驱动架构：https://lnkd.in/dp8CPvey
-- 点对点 （P2P） 架构：https://lnkd.in/di32HDu3
-- [软件架构: 开发人员的软件架构模式](https://www.bilibili.com/video/BV1cr4y1a7iU/?p=3&spm_id_from=pageDriver&vd_source=04e82c25f6ff3d6a1a08a7f1c343987c)
-- [什么是软件架构设计](https://hangzhouhot.com/architecturepicture/)
-
-
-## 架构图
 ### 互联网系统八大谬论
 <p align="center">
   <img src="/images/8-fallacies.png" width=600 height=400>
@@ -432,45 +329,114 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 - 只有一个管理者；
 - 传输成本为0；
 - 网络是同构的；
-
 https://ably.com/blog/8-fallacies-of-distributed-computing
 
 
+### 数学估算
+#### 延迟数
+```
+Latency Comparison Numbers
+--------------------------
+L1 cache reference                           0.5 ns
+Branch mispredict                            5   ns
+L2 cache reference                           7   ns                      14x L1 cache
+Mutex lock/unlock                           25   ns
+Main memory reference                      100   ns                      20x L2 cache, 200x L1 cache
+Compress 1K bytes with Zippy            10,000   ns       10 us
+Send 1 KB bytes over 1 Gbps network     10,000   ns       10 us
+Read 4 KB randomly from SSD*           150,000   ns      150 us          ~1GB/sec SSD
+Read 1 MB sequentially from memory     250,000   ns      250 us
+Round trip within same datacenter      500,000   ns      500 us
+Read 1 MB sequentially from SSD*     1,000,000   ns    1,000 us    1 ms  ~1GB/sec SSD, 4X memory
+Disk seek                           10,000,000   ns   10,000 us   10 ms  20x datacenter roundtrip
+Read 1 MB sequentially from 1 Gbps  10,000,000   ns   10,000 us   10 ms  40x memory, 10X SSD
+Read 1 MB sequentially from disk    30,000,000   ns   30,000 us   30 ms 120x memory, 30X SSD
+Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
+```
+基于上述数字的指标：
+* 从磁盘以 30 MB/s 的速度顺序读取
+* 以 100 MB/s 从 1 Gbps 的以太网顺序读取
+* 从 SSD 以 1 GB/s 的速度读取
+* 以 4 GB/s 的速度从主存读取
+* 每秒能绕地球 6-7 圈
+* 数据中心内每秒有 2,000 次往返
 
-
-
-
-### 关于画图
-- https://hangzhouhot.com/architecturepicture
-- 产品/业务架构
-  重点关注产品功能组成，从业务逻辑的视角出发，整体展现一个企业各类系统之间的层次和关系。产品架构关注的是业务视角
-- 系统/应用架构
-  系统架构，关注系统的整体组成结构，描述内部的逻辑功能模块及其之间的组成关系、外部系统依赖等
-  应用架构，侧重从应用部署单元角度，描述系统下多个应用间的层次分布、依赖关系等
-- 技术架构
-  突出技术实现，重点描述系统的关键技术组件，例如分层、核心技术组件、上下游通信方式、数据流向等
-- 数据架构
-  描述核心数据模型设计、数据同步和备份的机制等
-- 部署架构图
-  描述技术部件的物理拓扑结构，重点突出网络、机房、应用以及基础设施的关系
-- 用例图
-- 流程图
-- 类图
-- 时序图
-- 泳道图
-
-### 扩展阅读
-- [互联网系统设计原则 ](https://www.cnblogs.com/zpbolgs/p/15270837.html)
-- [什么是架构绘图？](https://aws.amazon.com/cn/what-is/architecture-diagramming)
-- [架构图分类详解](https://juejin.cn/post/7137250779928199181)
-- [The Art of Crafting Architectural Diagrams](https://www.infoq.com/articles/crafting-architectural-diagrams/)
-
-
-### 架构
+#### traffic estimates
 <p align="center">
-  <img src="/images/jrUBAF7.png" width=500 height=500>
+  <img src="/images/traffic_estimate.png" width=600 height=300>
   <br/>
 </p>
+
+
+#### memory estimates
+
+<p align="center">
+  <img src="/images/memory.png" width=600 height=300>
+  <br/>
+</p>
+
+
+#### bandwidth estimates
+<p align="center">
+  <img src="/images/bandwidth.png" width=600 height=300>
+  <br/>
+</p>
+
+
+#### storage estimates
+<p align="center">
+  <img src="/images/storage.png" width=600 height=300>
+  <br/>
+</p>
+
+
+### 系统设计核心概念
+📌 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐊𝐞𝐲 𝐂𝐨𝐧𝐜𝐞𝐩𝐭𝐬
+- Scalability: lnkd.in/gpge_z76
+- CAP Theorem: lnkd.in/g3hmVamx
+- ACID Transactions: lnkd.in/gMe2JqaF
+- Consistent Hashing: lnkd.in/gd3eAQKA
+- Rate Limiting: lnkd.in/gWsTDR3m
+- API Design: lnkd.in/ghYzrr8q
+- Strong vs Eventual Consistency: lnkd.in/gJ-uXQXZ
+- Synchronous vs. asynchronous communications: lnkd.in/g4EqcckR
+- REST vs RPC: lnkd.in/gN__zcAB
+- Batch Processing vs Stream Processing: lnkd.in/gaAnP_fT
+- Fault Tolerance: lnkd.in/dVJ6n3wA
+- Consensus Algorithms: lnkd.in/ggc3tFbr
+- Gossip Protocol: lnkd.in/gfPMtrJZ
+- Service Discovery: lnkd.in/gjnrYkyF
+- Disaster Recovery: lnkd.in/g8rnr3V3
+- Distributed Tracing: lnkd.in/d6r5RdXG
+- Top 15 Tradeoffs: lnkd.in/gnM8QC-z
+
+🛠️ 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐁𝐮𝐢𝐥𝐝𝐢𝐧𝐠 𝐁𝐥𝐨𝐜𝐤𝐬
+- Horizontal vs Vertical Scaling: lnkd.in/gAH2e9du
+- Databases: lnkd.in/gti8gjpz
+- Content Delivery Network (CDN): lnkd.in/gjJrEJeH
+- Domain Name System (DNS): lnkd.in/gkMcZW8V
+- Caching: lnkd.in/gC9piQbJ
+- Distributed Caching: lnkd.in/g7WKydNg
+- Load Balancing: lnkd.in/gQaa8sXK
+- SQL vs NoSQL: lnkd.in/g3WC_yxn
+- Database Indexes: lnkd.in/dGnZiNmM
+- HeartBeats: lnkd.in/gfb9-hpN
+- Circuit Breaker: lnkd.in/gCxyFzKm
+- Idempotency: lnkd.in/gPm6EtKJ
+- Database Scaling: lnkd.in/gAXpSyWQ
+- Data Replication: lnkd.in/gVAJxTpS
+- Data Redundancy: lnkd.in/gNN7TF7n
+- Database Sharding: lnkd.in/gRHb-67m
+- Failover: lnkd.in/dihZ-cEG
+- Proxy Server: lnkd.in/gi8KnKS6
+- Message Queues: lnkd.in/gTzY6uk8
+- WebSockets: lnkd.in/g76Gv2KQ
+- Bloom Filters: lnkd.in/dt4QbSUz
+- API Gateway: lnkd.in/gnsJGJaM
+- Distributed Locking: lnkd.in/gRxNJwWE
+- Checksum: lnkd.in/gCTa4DrS
+
+🖇️ 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐀𝐫𝐜𝐡𝐢𝐭𝐞𝐜𝐭𝐮𝐫𝐚𝐥 𝐏𝐚𝐭𝐭𝐞𝐫𝐧𝐬
 - Client-Server Architecture: lnkd.in/dAARQYzq
 - Microservices Architecture: lnkd.in/gFXUrz_T
 - Serverless Architecture: lnkd.in/gQNAXKkb
@@ -479,6 +445,70 @@ https://ably.com/blog/8-fallacies-of-distributed-computing
 
 
 
+## 整体设计 
+### 软件架构模式（patterns）
+#### Application Landscape Patterns
+- Monolith （单体架构）
+- N-tiers,3-tier
+- 面向服务的架构 (service - orienterd)
+- [微服务架构 (microservices)](https://lnkd.in/gFXUrz_T)
+- [无服务架构 (serverless)](https://lnkd.in/gQNAXKkb)
+- [p2p 架构 (peer to peer)](https://lnkd.in/di32HDu3)
+#### Application structure Patterns
+- 分层架构 (Layerd architecture)
+- 微内核架构 (microkernel)
+- [事件驱动架构 (Event-driven)](https://lnkd.in/dp8CPvey)
+#### User Interface Patterns
+- MVC
+- MVP
+#### 参考阅读：
+- [软件架构: 开发人员的软件架构模式](https://www.bilibili.com/video/BV1cr4y1a7iU/?p=3&spm_id_from=pageDriver&vd_source=04e82c25f6ff3d6a1a08a7f1c343987c)
+- [什么是软件架构设计](https://hangzhouhot.com/architecturepicture/)
+
+### 架构 EA+4A
+#### 什么是架构 EA+4A
+<p align="center">
+  <img src="/images/what-is-architecture.png" width=600 height=400>
+</p>
+
+#### 业务架构
+<p align="center">
+  <img src="/images/business-architecture.png" width=600 height=400>
+</p>
+
+#### 应用架构
+<p align="center">
+  <img src="/images/application-architecture.png" width=600 height=400>
+</p>
+
+
+#### 技术架构
+<p align="center">
+  <img src="/images/technical-architecture.png" width=600 height=400>
+</p>
+
+#### 数据架构
+
+<p align="center">
+  <img src="/images/data-architecture.png" width=600 height=400>
+</p>
+
+#### 架构设计原则
+
+<p align="center">
+  <img src="/images/tech-design-principles.png" width=600 height=400>
+</p>
+
+#### 扩展阅读
+- [互联网系统设计原则 ](https://www.cnblogs.com/zpbolgs/p/15270837.html)
+- [什么是架构绘图？](https://aws.amazon.com/cn/what-is/architecture-diagramming)
+- [架构图分类详解](https://juejin.cn/post/7137250779928199181)
+- [The Art of Crafting Architectural Diagrams](https://www.infoq.com/articles/crafting-architectural-diagrams/)
+- [去哪儿网架构课](https://www.bilibili.com/video/BV1MR4y1F7r7/?vd_source=04e82c25f6ff3d6a1a08a7f1c343987c)
+
+
+
+## 微服务架构
 ### 单体服务、微服务、Service Mesh
 <p align="center">
   <img src="/images/rpc_to_service_mesh.png" width=600 height=350>
@@ -605,15 +635,14 @@ RPC 是一个“请求-响应”协议：
 
 
 
-## 域名系统
-### Amazon Route 53域名系统
+## 域名/代理/负载均衡
+### 域名系统
+#### Amazon Route 53域名系统
 <p align="center">
   <img src="/images/aws_route_53.png" width=600 height=400>
   <br/>
   <strong><a href="https://aws.amazon.com/cn/route53">Amazon Route 53 工作原理</a></strong>
 </p>
-
-
 ### 域名解析的过程
 <p align="center">
   <img src="/images/IOyLj4i.jpg" width=400 height=400>
@@ -622,82 +651,34 @@ RPC 是一个“请求-响应”协议：
 </p>
 
 域名系统是把 www.example.com 等域名转换成 IP 地址。域名系统是分层次的，一些 DNS 服务器位于顶层。当查询（域名） IP 时，路由或 ISP 提供连接 DNS 服务器的信息。较底层的 DNS 服务器缓存映射，它可能会因为 DNS 传播延时而失效。DNS 结果可以缓存在浏览器或操作系统中一段时间，时间长短取决于[存活时间 TTL](https://en.wikipedia.org/wiki/Time_to_live)。
-
-
 * **A 记录（地址）** ─ 指定域名对应的 IP 地址记录。
 * **CNAME（规范）** ─ 一个域名映射到另一个域名或 `CNAME` 记录（ example.com 指向 www.example.com ）或映射到一个 `A` 记录。
 * **NS 记录（域名服务）** ─ 指定解析域名或子域名的 DNS 服务器。
 * **MX 记录（邮件交换）** ─ 指定接收信息的邮件服务.
 
-### 域名管理服务
+#### 域名管理服务
 - [Route 53](https://aws.amazon.com/route53/)
 - [CloudFlare](https://www.cloudflare.com/dns/)
 
-### 常用命令
+#### 常用命令
 - nslookup
 - dig
 
-### 来源及延伸阅读
+#### 来源及延伸阅读
 * [DNS 架构](https://technet.microsoft.com/en-us/library/dd197427(v=ws.10).aspx)
 * [Wikipedia](https://en.wikipedia.org/wiki/Domain_Name_System)
 * [关于 DNS 的文章](https://support.dnsimple.com/categories/dns/)
 * [DNS Technical Reference](https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/dd197461(v=ws.10))
 
 
-
-## 内容分发网络（CDN）
-<p align="center">
-  <img src="/images/h9TAuGI.jpg" width=500 height=500>
-  <br/>
-  <strong><a href="https://www.creative-artworks.eu/why-use-a-content-delivery-network-cdn/">来源：为什么使用 CDN</a></strong>
-</p>
-
-内容分发网络（CDN）是一个全球性的代理服务器分布式网络，它从靠近用户的位置提供内容。通常，HTML/CSS/JS，图片和视频等静态内容由 CDN 提供，虽然亚马逊 CloudFront 等也支持动态内容。CDN 的 DNS 解析会告知客户端连接哪台服务器。
-
-将内容存储在 CDN 上可以从两个方面来提供性能:
-
-* 从靠近用户的数据中心提供资源
-* 通过 CDN 你的服务器不必真的处理请求
-
-### CDN 推送（push）
-
-当你服务器上内容发生变动时，推送 CDN 接受新内容。直接推送给 CDN 并重写 URL 地址以指向你的内容的 CDN 地址。你可以配置内容到期时间及何时更新。内容只有在更改或新增是才推送，流量最小化，但储存最大化。
-
-### CDN 拉取（pull）
-
-CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源。你将内容留在自己的服务器上并重写 URL 指向 CDN 地址。直到内容被缓存在 CDN 上为止，这样请求只会更慢，
-
-[存活时间（TTL）](https://en.wikipedia.org/wiki/Time_to_live)决定缓存多久时间。CDN 拉取方式最小化 CDN 上的储存空间，但如果过期文件并在实际更改之前被拉取，则会导致冗余的流量。
-
-高流量站点使用 CDN 拉取效果不错，因为只有最近请求的内容保存在 CDN 中，流量才能更平衡地分散。
-
-### 缺陷：CDN
-
-* CDN 成本可能因流量而异，可能在权衡之后你将不会使用 CDN。
-* 如果在 TTL 过期之前更新内容，CDN 缓存内容可能会过时。
-* CDN 需要更改静态内容的 URL 地址以指向 CDN。
-
-### 来源及延伸阅读
-
-* [全球性内容分发网络](http://repository.cmu.edu/cgi/viewcontent.cgi?article=2112&context=compsci)
-* [CDN 拉取和 CDN 推送的区别](http://www.travelblogadvice.com/technical/the-differences-between-push-and-pull-cdns/)
-* [Wikipedia](https://en.wikipedia.org/wiki/Content_delivery_network)
-
-
-## 代理+负载均衡器
-### 正向forward proxy
-### 反向reverse proxy
+### 代理+负载均衡器
+#### 正向forward proxy
+#### 反向reverse proxy
 <p align="center">
   <img src="/images/proxy_server.png" width=800 height=500>
   <br/>
 </p>
-
-
-### 负载均衡器
-
-## 负载均衡器和反向代理（load balancer)
-## 负载均衡器和反向代理
-
+#### 负载均衡器和反向代理
 <p align="center">
   <img src="/images/load_balancer.png" width=800 height=400>
   <br/>
@@ -727,34 +708,33 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 * [四层负载均衡](#四层负载均衡)
 * [七层负载均衡](#七层负载均衡)
 
-### 四层负载均衡
+#### 四层负载均衡
 
 四层负载均衡根据监看[传输层](#通讯)的信息来决定如何分发请求。通常，这会涉及来源，目标 IP 地址和请求头中的端口，但不包括数据包（报文）内容。四层负载均衡执行[网络地址转换（NAT）](https://www.nginx.com/resources/glossary/layer-4-load-balancing/)来向上游服务器转发网络数据包。
 
-### 七层负载均衡器
+#### 七层负载均衡器
 
 七层负载均衡器根据监控[应用层](#通讯)来决定怎样分发请求。这会涉及请求头的内容，消息和 cookie。七层负载均衡器终结网络流量，读取消息，做出负载均衡判定，然后传送给特定服务器。比如，一个七层负载均衡器能直接将视频流量连接到托管视频的服务器，同时将更敏感的用户账单流量引导到安全性更强的服务器。
 
 以损失灵活性为代价，四层负载均衡比七层负载均衡花费更少时间和计算资源，虽然这对现代商用硬件的性能影响甚微。
 
 
-### 水平扩展
+#### 水平扩展
 
 负载均衡器还能帮助水平扩展，提高性能和可用性。使用商业硬件的性价比更高，并且比在单台硬件上**垂直扩展**更贵的硬件具有更高的可用性。相比招聘特定企业系统人才，招聘商业硬件方面的人才更加容易。
 
-### 缺陷：水平扩展
+#### 缺陷：水平扩展
 * 水平扩展引入了复杂度并涉及服务器复制
 * 服务器应该是无状态的:它们也不该包含像 session 或资料图片等与用户关联的数据。
 * session 可以集中存储在数据库或持久化[缓存](#缓存)（Redis、Memcached）的数据存储区中。
 * 缓存和数据库等下游服务器需要随着上游服务器进行扩展，以处理更多的并发连接。
 
-### 缺陷：负载均衡器
+#### 缺陷：负载均衡器
 * 如果没有足够的资源配置或配置错误，负载均衡器会变成一个性能瓶颈。
 * 引入负载均衡器以帮助消除单点故障但导致了额外的复杂性。
 * 单个负载均衡器会导致单点故障，但配置多个负载均衡器会进一步增加复杂性。
 
-
-### 反向代理（web 服务器）
+#### 反向代理（web 服务器）
 <p align="center">
   <img src="/images/n41Azff.png">
   <br/>
@@ -776,13 +756,13 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
   - 视频
   - 等等
 
-### 负载均衡器与反向代理
+#### 负载均衡器与反向代理
 
 - 当你有多个服务器时，部署负载均衡器非常有用。通常，负载均衡器将流量路由给一组功能相同的服务器上。
 - 即使只有一台 web 服务器或者应用服务器时，反向代理也有用，可以参考上一节介绍的好处。
 - NGINX 和 HAProxy 等解决方案可以同时支持第七层反向代理和负载均衡。
 
-### 不利之处：反向代理
+#### 不利之处：反向代理
 - 引入反向代理会增加系统的复杂度。
 - 单独一个反向代理服务器仍可能发生单点故障，配置多台反向代理服务器（如[故障转移](https://en.wikipedia.org/wiki/Failover)）会进一步增加复杂度。
 
@@ -798,7 +778,6 @@ CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源�
 - [四层负载平衡](https://www.nginx.com/resources/glossary/layer-4-load-balancing/)
 - [七层负载平衡](https://www.nginx.com/resources/glossary/layer-7-load-balancing/)
 - [ELB 监听器配置](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-listener-config.html)
-
 
 
 ## 应用层web网关
@@ -946,6 +925,10 @@ HTTP/1.1 400
 
 ### 接口幂等性设计
 
+<p align="center">
+  <img src="/images/api-idempotence.png">
+</p>
+
 #### 幂等性的重要性
 - 提高可靠性：在网络不稳定的情况下，客户端可能会重试请求。幂等性确保重复请求不会导致意外的副作用。
 - 简化客户端代码：客户端不需要担心重复请求的副作用，从而简化了错误处理逻辑。
@@ -956,8 +939,49 @@ HTTP/1.1 400
 
 
 
-
 ## 中间件和存储
+### 如何选择存储组件
+<p align="center">
+  <img src="/images/how-to-choose-storage.png" width=600 height=400>
+</p>
+
+### 内容分发网络（CDN）
+<p align="center">
+  <img src="/images/h9TAuGI.jpg" width=500 height=300>
+  <br/>
+  <strong><a href="https://www.creative-artworks.eu/why-use-a-content-delivery-network-cdn/">来源：为什么使用 CDN</a></strong>
+</p>
+
+内容分发网络（CDN）是一个全球性的代理服务器分布式网络，它从靠近用户的位置提供内容。通常，HTML/CSS/JS，图片和视频等静态内容由 CDN 提供，虽然亚马逊 CloudFront 等也支持动态内容。CDN 的 DNS 解析会告知客户端连接哪台服务器。
+
+将内容存储在 CDN 上可以从两个方面来提供性能:
+
+* 从靠近用户的数据中心提供资源
+* 通过 CDN 你的服务器不必真的处理请求
+
+#### CDN 推送（push）
+
+当你服务器上内容发生变动时，推送 CDN 接受新内容。直接推送给 CDN 并重写 URL 地址以指向你的内容的 CDN 地址。你可以配置内容到期时间及何时更新。内容只有在更改或新增是才推送，流量最小化，但储存最大化。
+
+#### CDN 拉取（pull）
+
+CDN 拉取是当第一个用户请求该资源时，从服务器上拉取资源。你将内容留在自己的服务器上并重写 URL 指向 CDN 地址。直到内容被缓存在 CDN 上为止，这样请求只会更慢，
+
+[存活时间（TTL）](https://en.wikipedia.org/wiki/Time_to_live)决定缓存多久时间。CDN 拉取方式最小化 CDN 上的储存空间，但如果过期文件并在实际更改之前被拉取，则会导致冗余的流量。
+
+高流量站点使用 CDN 拉取效果不错，因为只有最近请求的内容保存在 CDN 中，流量才能更平衡地分散。
+
+#### 缺陷：CDN
+
+* CDN 成本可能因流量而异，可能在权衡之后你将不会使用 CDN。
+* 如果在 TTL 过期之前更新内容，CDN 缓存内容可能会过时。
+* CDN 需要更改静态内容的 URL 地址以指向 CDN。
+
+#### 来源及延伸阅读
+* [全球性内容分发网络](http://repository.cmu.edu/cgi/viewcontent.cgi?article=2112&context=compsci)
+* [CDN 拉取和 CDN 推送的区别](http://www.travelblogadvice.com/technical/the-differences-between-push-and-pull-cdns/)
+* [Wikipedia](https://en.wikipedia.org/wiki/Content_delivery_network)
+
 
 ### mysql 数据库
 <p align="center">
@@ -966,8 +990,7 @@ HTTP/1.1 400
   <strong><a href="https://www.youtube.com/watch?v=w95murBkYmU">资料来源：扩展你的用户数到第一个一千万</a></strong>
 </p>
 
-
-### [延伸思考和学习](./middleware-mysql.md)
+#### [延伸思考和学习](./mysql-storage.md)
 - 如何正确建表。类型选择、主键约束、not null、编码方式等
 - 外建约束、还是业务约束
 - mysql join 还是业务关联等
@@ -985,7 +1008,7 @@ HTTP/1.1 400
   <img src="/images/codis.png" width=600 height=400>
 </p>
 
-### [延伸思考和学习](./middleware-redis.md)
+#### [延伸思考和学习](./cache-desgin.md)
 - redis 五种数据结构
 - redis 使用场景。缓存数据、计数器和限流、分布式锁、bloomfilter等
 - redis key 过期时间
@@ -998,7 +1021,7 @@ HTTP/1.1 400
   <img src="/images/es.png" width=600 height=400>
 </p>
 
-### [延伸思考和学习](./middleware-elasticsearch.md)
+#### [延伸思考和学习](./elasticsearch.md)
 - ES index 的mapping结构
 - setting 分片和副本机制
 - 分词器
@@ -1022,7 +1045,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 
 列型存储具备高可用性和高可扩展性。通常被用于大数据相关存储。
 
-### 来源及延伸阅读：列型存储
+#### 来源及延伸阅读：列型存储
 
 - [SQL 与 NoSQL 简史](http://blog.grio.com/2015/11/sql-nosql-a-brief-history.html)
 - [BigTable 架构](http://www.read.seas.harvard.edu/~kohler/class/cs239-w08/chang06bigtable.pdf)
@@ -1065,7 +1088,6 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 </p>
 
 选取 **SQL** 的原因:
-
 - 结构化数据
 - 严格的模式
 - 关系型数据
@@ -1076,7 +1098,6 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - 通过索引进行查询非常快
 
 选取 **NoSQL** 的原因：
-
 - 半结构化数据
 - 动态或灵活的模式
 - 非关系型数据
@@ -1086,7 +1107,6 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - IOPS 高吞吐量
 
 适合 NoSQL 的示例数据：
-
 - 埋点数据和日志数据
 - 排行榜或者得分数据
 - 临时数据，如购物车
@@ -1098,8 +1118,9 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - [扩展你的用户数到第一个千万](https://www.youtube.com/watch?v=w95murBkYmU)
 - [SQL 和 NoSQL 的不同](https://www.sitepoint.com/sql-vs-nosql-differences/)
 
-## 缓存使用注意事项
 
+
+### 缓存redis
 <p align="center">
   <img src="/images/Q6z24La.png",width=600 height=400>
   <br/>
@@ -1110,7 +1131,6 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 
 数据库分片均匀分布的读取是最好的。但是热门数据会让读取分布不均匀，这样就会造成瓶颈，如果在数据库前加个缓存，就会抹平不均匀的负载和突发流量对数据库的影响。
 
-### 缓存级别
 - 客户端缓存
 缓存可以位于客户端（操作系统或者浏览器），[服务端](#反向代理web-服务器)或者不同的缓存层。
 - CDN 缓存，[CDN](#内容分发网络cdn) 也被视为一种缓存。
@@ -1120,56 +1140,14 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - 缓存服务器（remote cache）
 - 数据库本身的缓存
 
-
-### 双buffer vs LRU/LFU
-
-<p align="center">
-  <img src="/images/double-buffer-lru.png" width=550 height=600>
-</p>
-
-本地缓存的双缓冲机制和本地LRU（Least Recently Used）算法都是常见的缓存优化技术，它们具有不同的优点和缺点。
-
-1. 双缓冲机制：
-   - 优点：
-     - 提高并发性能：双缓冲机制使用两个缓冲区，一个用于读取数据，另一个用于写入数据。这样可以避免读写冲突，提高了并发性能。
-     - 提高数据访问效率：由于读取操作不会直接访问主缓存，而是读取缓冲区的数据，因此可以更快地获取数据。
-   - 缺点：
-     - 内存开销增加：双缓冲机制需要维护两个缓冲区，这会增加内存开销。
-     - 数据延迟：数据更新定时同步，有一定延时。
-
-2. 本地LRU算法：
-   - 优点：
-     - 数据访问效率高：LRU算法根据数据的访问顺序进行缓存替换，将最近最少使用的数据淘汰出缓存。这样可以保留最常用的数据，提高数据的访问效率。
-     - 简单有效：LRU算法的实现相对简单，只需要维护一个访问顺序链表和一个哈希表即可。
-   - 缺点：
-     - 缓存命中率下降：如果数据的访问模式不符合LRU算法的假设，即最近访问的数据在未来也是最有可能被访问的，那么LRU算法的效果可能不理想，缓存命中率会下降。
-     - 对于热点数据不敏感：LRU算法只考虑了最近的访问情况，对于热点数据（频繁访问的数据）可能无法有效地保留在缓存中。
-
-综合来看，双缓冲机制适用于需要提高并发性能、批量更新等场景，但会增加内存开销。本地LRU算法适用于需要提高数据访问效率的场景，但对于访问模式不符合LRU假设的情况下，缓存命中率可能下降。在实际应用中，可以根据具体需求和场景选择适合的缓存优化技术。
-
-### 缓存更新的四种模式
-
-<p align="center">
-  <img src="/images/cache-refesh.png" width=550 height=700>
-</p>
-
-|  缓存更新方式  |  优缺点  | 
-| -- | -- |
-| 缓存模式+TTL | 业务代码只更新DB，不更新cache，设置较短的TTL(通常分钟级），依靠cache过期无法找到key时回源DB，热key过期可能回导致请求大量请求击穿到DB，需要使用分布式锁或者singleflight等方式避免这种问题 |
-| 定时刷新模式 | 定时任务异步获取DB数据刷新到cache，读请求可不回源，需要考虑刷新时间和批量读写 |
-| 写DB,写cache | 在并发条件下，DB写操作顺序和cache操作不同保证顺序一致性，需要增加分布式锁等操作 |
-| 写DB，删除cache| 删除cache可能失败，需要增加重试，重试也可能失败，比较复杂的加个MQ补偿重试 |
-
-
-#### 思考：
-- 对一致性要求有多强？
-- TTL 设置的时长
-- 并发冲突可能性
-- 热key缓存击穿保护
+#### [延伸思考和学习](./mysql-storage.md)
+- 本地缓存、分布式缓存
+- 缓存的TTL
+- 缓存的安全性
+- 缓存的更新模式
 
 
 ## 异步与队列
-
 <p align="center">
   <img src="/images/54GYsSx.png" width=500 height=150>
   <br/>
@@ -1238,13 +1216,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - https://github.com/bitleak/lmstfy
 
 
-## 如何搭建监控和日志系统
-- prometheus,https://prometheus.io/
-- grafna,https://www.google.com.hk/search?q=grafana&rlz=1C5GCEM_enCN985CN985&oq=grafana&aqs=chrome..69i57j69i60l3j69i65l3j69i60.8511j0j7&sourceid=chrome&ie=UTF-8
-- 日志管理和检索： Elasticsearch、Logstash、Kibana（ELK Stack）
-- 指标监控：Prometheus、Grafana、cat
-- 分布式追踪：分布式追踪工具包括 Jaeger + opentracing
-- 日志组件：https://github.com/uber-go/zap
+
 
 ## 云原生和服务部署CI/CD
 - docker
@@ -1258,36 +1230,67 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - Lambda 和 Kappa 架构简介：https://libertydream.github.io/2020/04/12/lambda-%E5%92%8C-kappa-%E7%AE%80%E4%BB%8B/
 
 
-## 应该知道的性能问题
-## 每个程序员都应该知道的延迟数
-```
-Latency Comparison Numbers
---------------------------
-L1 cache reference                           0.5 ns
-Branch mispredict                            5   ns
-L2 cache reference                           7   ns                      14x L1 cache
-Mutex lock/unlock                           25   ns
-Main memory reference                      100   ns                      20x L2 cache, 200x L1 cache
-Compress 1K bytes with Zippy            10,000   ns       10 us
-Send 1 KB bytes over 1 Gbps network     10,000   ns       10 us
-Read 4 KB randomly from SSD*           150,000   ns      150 us          ~1GB/sec SSD
-Read 1 MB sequentially from memory     250,000   ns      250 us
-Round trip within same datacenter      500,000   ns      500 us
-Read 1 MB sequentially from SSD*     1,000,000   ns    1,000 us    1 ms  ~1GB/sec SSD, 4X memory
-Disk seek                           10,000,000   ns   10,000 us   10 ms  20x datacenter roundtrip
-Read 1 MB sequentially from 1 Gbps  10,000,000   ns   10,000 us   10 ms  40x memory, 10X SSD
-Read 1 MB sequentially from disk    30,000,000   ns   30,000 us   30 ms 120x memory, 30X SSD
-Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
-```
-基于上述数字的指标：
-* 从磁盘以 30 MB/s 的速度顺序读取
-* 以 100 MB/s 从 1 Gbps 的以太网顺序读取
-* 从 SSD 以 1 GB/s 的速度读取
-* 以 4 GB/s 的速度从主存读取
-* 每秒能绕地球 6-7 圈
-* 数据中心内每秒有 2,000 次往返
+## 系统稳定性建设
 
-## 应该知道的安全问题
+### 影响系统可用性的因素
+
+### 在系统可以用性可以做哪些工作
+
+### 架构上设计 (拆分/解偶/资源隔离）
+- 支持异地多活（DR集群）
+- 服务支持横向扩容，扩容时注意事项（mysql，redis，kafka，es，依赖方，监控）
+- 离线和在线分离
+- mysql分库，分表、kafka topic、不同的ES集群
+- 辑架构和物理架构分离，订单系统支持根据业务类型路由
+
+### 系统保护
+- 限流
+- 熔断降级（核心功能报错，非核心功能返回空或者固定内容）
+
+### 技术选型，组件本身的可用性保证和容量评估
+- 适用性
+- 优缺点
+- 产品口碑
+- 社区活跃度
+- 实战案例
+- 扩展性等多个方面进行全量评估
+- 容量评估，mysql 一写多读，codis，kafka，ES
+- 灾备，快速恢复
+
+### 功能设计时考虑
+- 接口维度的限流、用户维度限流
+- 避免单点：比如在主页设计时，主页配置数据需要写在多个redis中
+- 核心功能降级策略：redis→cdn
+
+### 变更和服务扩容发布流程
+- 新版本发布兼容，数据准备，变更流程，服务发布顺序
+- 扩容时注意事项（mysql，redis，kafka，es，依赖方，监控）
+- DB变更、配置变更、组件变更
+
+### 可观测性&告警
+- metric & log & trace
+- 监控体系和告警指标
+- SLA和NOC指标
+
+### 可观测性、监控和告警
+- 业务层的监控，例如NOC核心指标监控，登陆、首页流量、成功率、PDP流量、成功率、下单流量、成功率、支付数量、成功率等
+- 网关的监控。所有接口的流量、成功率、耗时95线，限流监控
+- 接口详情监控：可以筛选出每个接口流量、成功率、具体错误吗、耗时均线、95线等
+- 核心功能监控：缓存命中率、变价率、数据一致性监控
+- 中间件外部组件监控：mysql、redis、kafka、es,容器资源监控等
+- 外部依赖监控：支付团队，履约团队、供应商依赖服务监控
+
+### 如何搭建监控和日志系统
+- prometheus,https://prometheus.io/
+- grafna,https://www.google.com.hk/search?q=grafana&rlz=1C5GCEM_enCN985CN985&oq=grafana&aqs=chrome..69i57j69i60l3j69i65l3j69i60.8511j0j7&sourceid=chrome&ie=UTF-8
+- 日志管理和检索： Elasticsearch、Logstash、Kibana（ELK Stack）
+- 指标监控：Prometheus、Grafana、cat
+- 分布式追踪：分布式追踪工具包括 Jaeger + opentracing
+- 日志组件：https://github.com/uber-go/zap
+
+
+
+### 应该知道的安全问题
 这一部分需要更多内容。[一起来吧](#贡献)！
 安全是一个宽泛的话题。除非你有相当的经验、安全方面背景或者正在申请的职位要求安全知识，你不需要了解安全基础知识以外的内容：
 * 在运输和等待过程中加密
@@ -1298,6 +1301,11 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 - 使用[最小权限原则](https://en.wikipedia.org/wiki/Principle_of_least_privilege)。
 - [为开发者准备的安全引导](https://github.com/FallibleInc/security-guide-for-developers)
 - [OWASP top ten](https://www.owasp.org/index.php/OWASP_Top_Ten_Cheat_Sheet)
+
+### 参考：
+- [浅谈系统稳定性与高可用保障的几种思路](https://tech.dewu.com/article?id=5)
+- [ShopeePay 数据中心同城双活之路](https://www.modb.pro/db/474515)
+- [如何建设监控体系](https://dunwu.github.io/blog/pages/e593a4/)
 
 
 ## 系统设计实践
@@ -1360,77 +1368,9 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 - 设计一个垃圾回收系统
   - [stuffwithstuff.com](http://journal.stuffwithstuff.com/2013/12/08/babys-first-garbage-collector/)
   - [washington.edu](http://courses.cs.washington.edu/courses/csep521/07wi/prj/rick.pdf)
-           
 
 
-
-
-How I Would Learn System Design Fundamentals (If I Had To Start Over):
-
-📌 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐊𝐞𝐲 𝐂𝐨𝐧𝐜𝐞𝐩𝐭𝐬
-- Scalability: lnkd.in/gpge_z76
-
-- CAP Theorem: lnkd.in/g3hmVamx
-- ACID Transactions: lnkd.in/gMe2JqaF
-- Consistent Hashing: lnkd.in/gd3eAQKA
-- Rate Limiting: lnkd.in/gWsTDR3m
-- API Design: lnkd.in/ghYzrr8q
-- Strong vs Eventual Consistency: lnkd.in/gJ-uXQXZ
-- Synchronous vs. asynchronous communications: lnkd.in/g4EqcckR
-- REST vs RPC: lnkd.in/gN__zcAB
-- Batch Processing vs Stream Processing: lnkd.in/gaAnP_fT
-- Fault Tolerance: lnkd.in/dVJ6n3wA
-- Consensus Algorithms: lnkd.in/ggc3tFbr
-- Gossip Protocol: lnkd.in/gfPMtrJZ
-- Service Discovery: lnkd.in/gjnrYkyF
-- Disaster Recovery: lnkd.in/g8rnr3V3
-- Distributed Tracing: lnkd.in/d6r5RdXG
-- Top 15 Tradeoffs: lnkd.in/gnM8QC-z
-
-🛠️ 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐁𝐮𝐢𝐥𝐝𝐢𝐧𝐠 𝐁𝐥𝐨𝐜𝐤𝐬
-- Horizontal vs Vertical Scaling: lnkd.in/gAH2e9du
-- Databases: lnkd.in/gti8gjpz
-- Content Delivery Network (CDN): lnkd.in/gjJrEJeH
-- Domain Name System (DNS): lnkd.in/gkMcZW8V
-- Caching: lnkd.in/gC9piQbJ
-- Distributed Caching: lnkd.in/g7WKydNg
-- Load Balancing: lnkd.in/gQaa8sXK
-- SQL vs NoSQL: lnkd.in/g3WC_yxn
-- Database Indexes: lnkd.in/dGnZiNmM
-- HeartBeats: lnkd.in/gfb9-hpN
-- Circuit Breaker: lnkd.in/gCxyFzKm
-- Idempotency: lnkd.in/gPm6EtKJ
-- Database Scaling: lnkd.in/gAXpSyWQ
-- Data Replication: lnkd.in/gVAJxTpS
-- Data Redundancy: lnkd.in/gNN7TF7n
-- Database Sharding: lnkd.in/gRHb-67m
-- Failover: lnkd.in/dihZ-cEG
-- Proxy Server: lnkd.in/gi8KnKS6
-- Message Queues: lnkd.in/gTzY6uk8
-- WebSockets: lnkd.in/g76Gv2KQ
-- Bloom Filters: lnkd.in/dt4QbSUz
-- API Gateway: lnkd.in/gnsJGJaM
-- Distributed Locking: lnkd.in/gRxNJwWE
-- Checksum: lnkd.in/gCTa4DrS
-
-🖇️ 𝐒𝐲𝐬𝐭𝐞𝐦 𝐃𝐞𝐬𝐢𝐠𝐧 𝐀𝐫𝐜𝐡𝐢𝐭𝐞𝐜𝐭𝐮𝐫𝐚𝐥 𝐏𝐚𝐭𝐭𝐞𝐫𝐧𝐬
-- Client-Server Architecture: lnkd.in/dAARQYzq
-- Microservices Architecture: lnkd.in/gFXUrz_T
-- Serverless Architecture: lnkd.in/gQNAXKkb
-- Event-Driven Architecture: lnkd.in/dp8CPvey
-- Peer-to-Peer (P2P) Architecture: lnkd.in/di32HDu3
-
-***
-
-♻️ Repost to help others in your network.
-
-Join 12,600+ readers of my free newsletter (AlgoMaster) to master coding and system design: newsletter.ashishps.com
-18:35
-
-
-
-
-
-
-
-https://www.youtube.com/watch?v=MbjObHmDbZo
+参考：
+- https://github.com/Vonng/ddia
+- https://github.com/leewaiho/Clean-Architecture-zh
+- https://github.com/donnemartin/system-design-primer

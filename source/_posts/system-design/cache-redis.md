@@ -1,5 +1,5 @@
 ---
-title: 互联网系统设计 - 缓存的设计
+title: 互联网系统设计 - Redis与缓存
 date: 2024-03-06
 categories:
 - 系统设计
@@ -95,10 +95,18 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
 - [Redis持久化是如何做的？RDB和AOF对比分析] (http://kaito-kidd.com/2020/06/29/redis-persistence-rdb-aof/)
 
 
+## 选择local、remote、multilevel cache
+<p align="center">
+  <img src="/images/cache-remote-local-multilevel.png" width=600 height=360>
+</p>
 
 ## 双buffer vs LRU/LFU
 <p align="center">
   <img src="/images/double-buffer-lru.png" width=550 height=600>
+</p>
+
+<p align="center">
+  <img src="/images/cache-double-buffer-lru.png" width=600 height=400>
 </p>
 
 本地缓存的双缓冲机制和本地LRU（Least Recently Used）算法都是常见的缓存优化技术，它们具有不同的优点和缺点。
@@ -130,6 +138,12 @@ LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Fre
 <p align="center">
   <img src="/images/cache-refesh.png" width=600 height=800>
 </p>
+
+
+<p align="center">
+  <img src="/images/cache-read-write-mode.png" width=600 height=400>
+</p>
+
 
 |  缓存更新方式  |  优缺点  | 
 | -- | -- |
