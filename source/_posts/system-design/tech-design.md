@@ -1216,11 +1216,35 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - https://github.com/bitleak/lmstfy
 
 
+## 框架和引擎
+### 工作流引擎与任务编排
+https://github.com/s8sg/goflow
+https://github.com/go-workflow/go-workflow
+### 规则引擎与风控、资损、校验
+https://github.com/bilibili/gengine
+### 脚本执行引擎与低代码平台
+https://github.com/d5/tengo
+https://github.com/mattn/anko
 
+
+## 好用的规范和工具
+### 规范：
+- Go编码规范
+- api 设计规范
+- git 使用规范
+
+### 工具：
+- 绘图工具：https://app.diagrams.net/
+- plantuml: https://plantuml.com/
+- Postman: https://www.postman.com/
+- Charles: https://www.charlesproxy.com/
+- API 文档生成工具：Swagger
+- DBeaver：开源的数据库管理工具，支持多种数据库
 
 ## 云原生和服务部署CI/CD
 - docker
 - Kubernetes [Kubernetes 入门&进阶实战](https://zhuanlan.zhihu.com/p/339008746)
+- Jenkins
 
 ## 大数据存储和计算
 - spark
