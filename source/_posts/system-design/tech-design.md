@@ -444,7 +444,6 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 - Peer-to-Peer (P2P) Architecture: lnkd.in/di32HDu3
 
 
-
 ## 整体设计 
 ### 软件架构模式（patterns）
 #### Application Landscape Patterns
@@ -1398,3 +1397,5 @@ https://github.com/mattn/anko
 - https://github.com/Vonng/ddia
 - https://github.com/leewaiho/Clean-Architecture-zh
 - https://github.com/donnemartin/system-design-primer
+- https://www.oreilly.com/library/view/system-design-on/9781098146887/
+- [设计系统 · 如何向你的主管和团队介绍 Design System 的重要性](https://www.thefivekey.com/how-to-prove-the-value-of-design-system-to-your-boss/)
