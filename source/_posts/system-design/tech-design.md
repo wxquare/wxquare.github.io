@@ -1,5 +1,5 @@
 ---
-title: 互联网系统设计
+title: 互联网业务系统设计
 date: 2024-01-01
 categories: 
 - 系统设计
@@ -10,7 +10,6 @@ categories:
 ### 为什么要做设计方案
 <p align="center">
   <img src="/images/why-tech-desgin.png" width=600 height=400>
-  <br/>
 </p>
 
 - 设计是系统实现的蓝图
