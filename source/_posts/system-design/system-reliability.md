@@ -1,5 +1,5 @@
 ---
-title: 互联网业务系统怎么做稳定性&大促保障
+title: 互联网业务系统稳定性建设
 date: 2023-12-10
 categories:
 - 系统设计
@@ -12,7 +12,7 @@ categories:
 跳出这些“套路”，回到问题的本质，我们为什么要按照这些策略来做？
 除了口口相传的历史经验，我们还能做些什么？又有什么理论依据？
 <p align="center">
-  <img src="/images/big-promotion-system-stability.png" width=800 height=800>
+  <img src="/images/system-stability.png" width=800 height=800>
   <br/>
 </p>
 
