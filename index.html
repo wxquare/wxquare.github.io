@@ -2152,7 +2152,7 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2024/01/01/system-design/tech-design/" class="post-title-link" itemprop="url">互联网系统设计</a>
+          <a href="/2024/01/01/system-design/tech-design/" class="post-title-link" itemprop="url">互联网业务系统设计</a>
         </h2>
 
         <div class="post-meta-container">
@@ -2170,7 +2170,7 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2024-07-10 10:34:04" itemprop="dateModified" datetime="2024-07-10T10:34:04+08:00">2024-07-10</time>
+      <time title="Modified: 2024-07-25 10:19:22" itemprop="dateModified" datetime="2024-07-25T10:19:22+08:00">2024-07-25</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -2194,7 +2194,6 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
     <div class="post-body" itemprop="articleBody">
           <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><h3 id="为什么要做设计方案"><a href="#为什么要做设计方案" class="headerlink" title="为什么要做设计方案"></a>为什么要做设计方案</h3><p align="center">
   <img src="/images/why-tech-desgin.png" width=600 height=400>
-  <br/>
 </p>
 
 <ul>
@@ -3568,7 +3567,7 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2024-07-24 14:17:48" itemprop="dateModified" datetime="2024-07-24T14:17:48+08:00">2024-07-24</time>
+      <time title="Modified: 2024-07-25 19:07:39" itemprop="dateModified" datetime="2024-07-25T19:07:39+08:00">2024-07-25</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -3590,13 +3589,7 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
     
     
     <div class="post-body" itemprop="articleBody">
-          <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>年年有大促，大家对于大促稳定性保障这个词都不陌生，业务场景尽管各不相同，“套路”往往殊路同归，全链路压测、容量评估、限流、紧急预案等，来来去去总少不了那么几板斧。<br>跳出这些“套路”，回到问题的本质，我们为什么要按照这些策略来做？<br>除了口口相传的历史经验，我们还能做些什么？又有什么理论依据？</p>
-<p align="center">
-  <img src="/images/system-stability.png" width=800 height=800>
-  <br/>
-</p>
-
-<h2 id="怎样的系统算是稳定？"><a href="#怎样的系统算是稳定？" class="headerlink" title="怎样的系统算是稳定？"></a>怎样的系统算是稳定？</h2><p>首先回答另一个问题，怎样的系统算是稳定的？</p>
+          <h2 id="前言：怎样的系统算是稳定高可用的"><a href="#前言：怎样的系统算是稳定高可用的" class="headerlink" title="前言：怎样的系统算是稳定高可用的"></a>前言：怎样的系统算是稳定高可用的</h2><p>首先回答另一个问题，怎样的系统算是稳定的？</p>
 <p>Google SRE中(SRE三部曲[1])有一个层级模型来描述系统可靠性基础和高层次需求(Dickerson’s Hierarchy of Service Reliability)，如下图：</p>
 <p align="center">
   <img src="/images/service-reliability-hierarchy.png" width=600 height=500>
@@ -3613,16 +3606,24 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
 <li>容量规划(Capacity Planning)则是针对于这方面变化进行的保障策略。现有系统体量是否足够支撑新的流量需求，整体链路上是否存在不对等的薄弱节点，都是容量规划需要考虑的问题。</li>
 <li>位于金字塔模型最顶端的是产品设计(Product)与软件研发(Development)，即通过优秀的产品设计与软件设计使系统具备更高的可靠性，构建高可用产品架构体系，从而提升用户体验</li>
 </ul>
-<h2 id="可用性-大促稳定性保障方法"><a href="#可用性-大促稳定性保障方法" class="headerlink" title="可用性&amp;大促稳定性保障方法"></a>可用性&amp;大促稳定性保障方法</h2><p>从金字塔模型我们可以看到构建维护一个高可用服务所需要做到的几方面工作，那么问题回到大促稳定性，如何体系化地保障大促期间系统稳定性？大促保障实际上针对于特定业务场景的集中稳定性建设工作，日常保障工作也可以借鉴。考虑到上述特性，我们如何在短时间内针对大促大流量业务场景对系统稳定性需求进行优化巩固？</p>
-<p>因此第一步，需要获得全局系统链路现状，包括关键外部依赖、重点业务影响等，找到整体保障的核心关注点。接下来进一步分析大促业务数据，得到除系统本身以外的变量干扰因素。以这两者为基础，集中围绕金字塔模型中系统监控、规划容量、应急响应、测试和复盘等几个方面需求对系统进行针对性集中保障建设，得到最终保障结果。</p>
-<p>至此，基本获得了完整的大促稳定性保障策略方向，按照执行顺序依次是:</p>
+<h2 id="系统稳定性建设概述"><a href="#系统稳定性建设概述" class="headerlink" title="系统稳定性建设概述"></a>系统稳定性建设概述</h2><p align="center">
+  <img src="/images/system-stability.png" width=800 height=800>
+  <br/>
+</p>
+
+<p>从金字塔模型我们可以看到构建维护一个高可用服务所需要做到的几方面工作：</p>
 <ul>
-<li>系统链路&amp;业务策略梳理（System &amp; Biz Profiling）</li>
-<li>监控（Monitoring）</li>
+<li>产品、技术、架构的设计，高可用的架构体系</li>
+<li>系统链路&amp;业务策略梳理和维护（System &amp; Biz Profiling）</li>
 <li>容量规划（Capacity Planning）</li>
 <li>应急响应（Incident Response）</li>
 <li>测试</li>
 <li>事后总结（Testing &amp; Postmortem）</li>
+<li>监控（Monitoring）</li>
+<li>资损体系</li>
+<li>风控体系</li>
+<li>大促保障</li>
+<li>性能优化</li>
 </ul>
 <p align="center">
   <img src="/images/6-reliability-steps.png" width=600 height=500>
@@ -3630,8 +3631,8 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
 </p>
 
 
-<h3 id="System-Biz-Profiling-系统链路梳理"><a href="#System-Biz-Profiling-系统链路梳理" class="headerlink" title="System &amp; Biz Profiling - 系统链路梳理"></a>System &amp; Biz Profiling - 系统链路梳理</h3><p>系统链路梳理是所有保障工作的基础，如同对整体应用系统进行一次全面体检，从流量入口开始，按照链路轨迹，逐级分层节点，得到系统全局画像与核心保障点。</p>
-<h4 id="入口梳理盘点"><a href="#入口梳理盘点" class="headerlink" title="入口梳理盘点"></a>入口梳理盘点</h4><p>一个系统往往存在十几个甚至更多流量入口，包含HTTP、RPC、消息等都多种来源。如果无法覆盖所有所有链路，可以从以下三类入口开始进行梳理：</p>
+<h2 id="高可用的架构设计"><a href="#高可用的架构设计" class="headerlink" title="高可用的架构设计"></a>高可用的架构设计</h2><h2 id="系统链路梳理和维护-System-Biz-Profiling"><a href="#系统链路梳理和维护-System-Biz-Profiling" class="headerlink" title="系统链路梳理和维护 System &amp; Biz Profiling"></a>系统链路梳理和维护 System &amp; Biz Profiling</h2><p>系统链路梳理是所有保障工作的基础，如同对整体应用系统进行一次全面体检，从流量入口开始，按照链路轨迹，逐级分层节点，得到系统全局画像与核心保障点。</p>
+<h3 id="入口梳理盘点"><a href="#入口梳理盘点" class="headerlink" title="入口梳理盘点"></a>入口梳理盘点</h3><p>一个系统往往存在十几个甚至更多流量入口，包含HTTP、RPC、消息等都多种来源。如果无法覆盖所有所有链路，可以从以下三类入口开始进行梳理：</p>
 <ul>
 <li>核心重保流量入口<ul>
 <li>用户承诺服务SLI较高，对数据准确性、服务响应时间、可靠度具有明确要求。</li>
@@ -3649,7 +3650,7 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
 </ul>
 </li>
 </ul>
-<h4 id="节点分层判断"><a href="#节点分层判断" class="headerlink" title="节点分层判断"></a>节点分层判断</h4><p>对于复杂场景可以做节点分层判断</p>
+<h3 id="节点分层判断"><a href="#节点分层判断" class="headerlink" title="节点分层判断"></a>节点分层判断</h3><p>对于复杂场景可以做节点分层判断</p>
 <p>流量入口就如同线团中的线头，挑出线头后就可按照流量轨迹对链路上的节点(HSF\DB\Tair\HBase等一切外部依赖)按照依赖程度、可用性、可靠性进行初级分层区分。</p>
 <ol>
 <li>强弱依赖节点判断</li>
@@ -3677,36 +3678,22 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
 <li>节点对应系统是否曾经出现高级别故障</li>
 <li>节点故障后存在资损风险</li>
 </ul>
-<h4 id="应产出数据"><a href="#应产出数据" class="headerlink" title="应产出数据"></a>应产出数据</h4><ul>
+<h3 id="应产出数据"><a href="#应产出数据" class="headerlink" title="应产出数据"></a>应产出数据</h3><ul>
 <li>识别核心接口（流程）调用拓扑图或者时序图（借用分布式链路追踪系统获得调用拓扑图）</li>
 <li>调用比</li>
 <li>识别资损风险</li>
 <li>识别内外部依赖</li>
 </ul>
 <p>完成该项梳理工作后，我们应该产出以下数据：对应业务域所有核心链路分析，技术&amp;业务强依赖、核心上游、下游系统、资损风险应明确标注。</p>
-<p>下图为单条链路分析示例：</p>
-<p>图片</p>
-<h3 id="System-Biz-Profiling-业务策略同步"><a href="#System-Biz-Profiling-业务策略同步" class="headerlink" title="System &amp; Biz Profiling - 业务策略同步"></a>System &amp; Biz Profiling - 业务策略同步</h3><p>不同于高可用系统建设体系，大促稳定性保障体系与面向特定业务活动的针对性保障建设，因此，业务策略与数据是我们进行保障前不可或缺的数据。<br>一般大促业务数据可分为两类，全局业务形态评估以及应急策略&amp;玩法。</p>
-<h4 id="全局评估"><a href="#全局评估" class="headerlink" title="全局评估"></a>全局评估</h4><p>该类数据从可以帮助我们进行精准流量评估、峰值预测、大促人力排班等等，一般包含下面几类：</p>
-<ul>
-<li>业务量预估体量（日常X倍）</li>
-<li>预估峰值日期</li>
-<li>大促业务时长（XX日-XX日）</li>
-<li>业务场景预估流量分配</li>
-</ul>
-<h4 id="应急策略"><a href="#应急策略" class="headerlink" title="应急策略"></a>应急策略</h4><ul>
-<li>该类数据指相较于往年大促活动，本次大促业务变量，可用于应急响应预案与高风险节点评估等，一般包含下面两类：</li>
-<li>特殊业务玩法</li>
-</ul>
-<h3 id="3-Monitoring-监控-告警梳理"><a href="#3-Monitoring-监控-告警梳理" class="headerlink" title="3  Monitoring - 监控&amp;告警梳理"></a>3  Monitoring - 监控&amp;告警梳理</h3><p>站在监控的角度看，我们的系统从上到下一般可以分为三层：业务（Biz）、应用（Application）、系统（System）。系统层为最下层基础，表示操作系统相关状态；应用层为JVM层，涵盖主应用进程与中间件运行状态；业务层为最上层，为业务视角下服务对外运行状态。因此进行大促稳定性监控梳理时，可以先脱离现有监控，先从核心、资损链路开始，按照业务、应用（中间件、JVM、DB）、系统三个层次梳理需要哪些监控，再从根据这些索引找到对应的监控告警，如果不存在，则相应补上；如果存在则检查阈值、时间、告警人是否合理。</p>
-<h4 id="监控"><a href="#监控" class="headerlink" title="监控"></a>监控</h4><p>监控系统一般有四项黄金指标：延时（Latency）, 错误（Error）,流量（Traffic）, 饱和度（Situation），各层的关键性监控同样也可以按照这四项指标来进行归类，具体如下：</p>
+<h2 id="监控-告警梳理-–-Monitoring"><a href="#监控-告警梳理-–-Monitoring" class="headerlink" title="监控&amp;告警梳理 – Monitoring"></a>监控&amp;告警梳理 – Monitoring</h2><p>站在监控的角度看，我们的系统从上到下一般可以分为三层：业务（Biz）、应用（Application）、系统（System）。系统层为最下层基础，表示操作系统相关状态；应用层为JVM层，涵盖主应用进程与中间件运行状态；业务层为最上层，为业务视角下服务对外运行状态。因此进行大促稳定性监控梳理时，可以先脱离现有监控，先从核心、资损链路开始，按照业务、应用（中间件、JVM、DB）、系统三个层次梳理需要哪些监控，再从根据这些索引找到对应的监控告警，如果不存在，则相应补上；如果存在则检查阈值、时间、告警人是否合理。</p>
+<h3 id="监控"><a href="#监控" class="headerlink" title="监控"></a>监控</h3><p>监控系统一般有四项黄金指标：延时（Latency）, 错误（Error）,流量（Traffic）, 饱和度（Situation），各层的关键性监控同样也可以按照这四项指标来进行归类，具体如下：</p>
 <p align="center">
   <img src="/images/how-to-monitor.png" width=900 height=500>
   <br/>
 </p>
 
 
-<h4 id="告警"><a href="#告警" class="headerlink" title="告警"></a>告警</h4><p>是不是每项监控都需要告警？答案当然是否定的。建议优先设置Biz层告警，因为Biz层我们对外服务最直观业务表现，最贴切用户感受。Application&amp;System层指标主要用于监控，部分关键&amp;高风险指标可设置告警，用于问题排查定位以及故障提前发现。对于一项告警，我们一般需要关注级别、阈值、通知人等几个点。</p>
+<h3 id="告警"><a href="#告警" class="headerlink" title="告警"></a>告警</h3><p>是不是每项监控都需要告警？答案当然是否定的。建议优先设置Biz层告警，因为Biz层我们对外服务最直观业务表现，最贴切用户感受。Application&amp;System层指标主要用于监控，部分关键&amp;高风险指标可设置告警，用于问题排查定位以及故障提前发现。对于一项告警，我们一般需要关注级别、阈值、通知人等几个点。</p>
 <ol>
 <li>级别<br>即当前告警被触发时，问题的严重程度，一般来说有几个衡量点：</li>
 </ol>
@@ -3756,8 +3743,20 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
 <li>业务指标大盘，包含Biz层重点监控指标数据</li>
 <li>系统&amp;应用指标大盘，包含核心系统关键系统指标，可用于白盒监控定位问题。</li>
 </ol>
-<h3 id="Capacity-Planning-容量规划"><a href="#Capacity-Planning-容量规划" class="headerlink" title="Capacity Planning - 容量规划"></a>Capacity Planning - 容量规划</h3><p>容量规划的本质是追求计算风险最小化和计算成本最小化之间的平衡，只追求任意其一都不是合理的。为了达到这两者的最佳平衡点，需尽量精准计算系统峰值负载流量，再将流量根据单点资源负载上限换算成相应容量，得到最终容量规划模型。</p>
-<h4 id="流量模型评估"><a href="#流量模型评估" class="headerlink" title="流量模型评估"></a>流量模型评估</h4><ol>
+<h2 id="业务策略-容量规划-Capacity-Planning-容量规划"><a href="#业务策略-容量规划-Capacity-Planning-容量规划" class="headerlink" title="业务策略&amp;容量规划 Capacity Planning - 容量规划"></a>业务策略&amp;容量规划 Capacity Planning - 容量规划</h2><h3 id="业务策略"><a href="#业务策略" class="headerlink" title="业务策略"></a>业务策略</h3><p>不同于高可用系统建设体系，大促稳定性保障体系与面向特定业务活动的针对性保障建设，因此，业务策略与数据是我们进行保障前不可或缺的数据。<br>一般大促业务数据可分为两类，全局业务形态评估以及应急策略&amp;玩法。</p>
+<h4 id="全局评估"><a href="#全局评估" class="headerlink" title="全局评估"></a>全局评估</h4><p>该类数据从可以帮助我们进行精准流量评估、峰值预测、大促人力排班等等，一般包含下面几类：</p>
+<ul>
+<li>业务量预估体量（日常X倍）</li>
+<li>预估峰值日期</li>
+<li>大促业务时长（XX日-XX日）</li>
+<li>业务场景预估流量分配</li>
+</ul>
+<h4 id="应急策略"><a href="#应急策略" class="headerlink" title="应急策略"></a>应急策略</h4><ul>
+<li>该类数据指相较于往年大促活动，本次大促业务变量，可用于应急响应预案与高风险节点评估等，一般包含下面两类：</li>
+<li>特殊业务玩法</li>
+</ul>
+<p>容量规划的本质是追求计算风险最小化和计算成本最小化之间的平衡，只追求任意其一都不是合理的。为了达到这两者的最佳平衡点，需尽量精准计算系统峰值负载流量，再将流量根据单点资源负载上限换算成相应容量，得到最终容量规划模型。</p>
+<h3 id="流量模型评估"><a href="#流量模型评估" class="headerlink" title="流量模型评估"></a>流量模型评估</h3><ol>
 <li>入口流量</li>
 </ol>
 <p>对于一次大促，系统峰值入口流量一般由常规业务流量与非常规增量（比如容灾预案&amp;业务营销策略变化带来的流量模型配比变化）叠加拟合而成。</p>
@@ -3778,25 +3777,25 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
 <li>针对同一链路上同一节点，若存在多次调用，需计算按倍数同比放大（比如DB\Tair等）。</li>
 <li>DB写流量重点关注，可能出现热点造成DB HANG死。</li>
 </ul>
-<h4 id="容量转化"><a href="#容量转化" class="headerlink" title="容量转化"></a>容量转化</h4><p>节点容量是指一个节点在运行过程中，能够<strong>同时处理的最大请求数</strong>。它反映了系统的瞬时负载能力。</p>
+<h3 id="容量转化"><a href="#容量转化" class="headerlink" title="容量转化"></a>容量转化</h3><p>节点容量是指一个节点在运行过程中，能够<strong>同时处理的最大请求数</strong>。它反映了系统的瞬时负载能力。</p>
 <p>1）Little Law衍生法则<br>不同类型资源节点(应用容器、Tair、DB、HBASE等)流量-容量转化比各不相同，但都服从Little Law衍生法则，即：<br>  节点容量&#x3D;节点吞吐率×平均响应时间</p>
 <p>2）N + X 冗余原则</p>
 <p>在满足目标流量所需要的最小容量基础上，冗余保留X单位冗余能力<br>X与目标成本与资源节点故障概率成正相关，不可用概率越高，X越高<br>对于一般应用容器集群，可考虑X &#x3D; 0.2N</p>
-<h4 id="全链路压测-TODO"><a href="#全链路压测-TODO" class="headerlink" title="全链路压测(TODO)"></a>全链路压测(TODO)</h4><ul>
+<h3 id="全链路压测-TODO"><a href="#全链路压测-TODO" class="headerlink" title="全链路压测(TODO)"></a>全链路压测(TODO)</h3><ul>
 <li>上述法则只能用于容量初估(大促压测前&amp;新依赖)，最终精准系统容量还是需要结合系统周期性压力测试得出。</li>
 </ul>
 <h3 id="应产出数据-2"><a href="#应产出数据-2" class="headerlink" title="应产出数据"></a>应产出数据</h3><ul>
 <li>基于模型评估的入口流量模型 &amp; 集群自身容量转化结果（若为非入口应用，则为限流点梳理）。</li>
 <li>基于链路梳理的分支流量模型 &amp; 外部依赖容量转化结果。</li>
 </ul>
-<h3 id="Incident-Response-紧急-前置预案梳理"><a href="#Incident-Response-紧急-前置预案梳理" class="headerlink" title="Incident Response - 紧急&amp;前置预案梳理"></a>Incident Response - 紧急&amp;前置预案梳理</h3><p>要想在大促高并发流量场景下快速对线上紧急事故进行响应处理，仅仅依赖值班同学临场发挥是远远不够的。争分夺秒的情况下，无法给处理人员留有充足的策略思考空间，而错误的处理决策，往往会导致更为失控严重的业务&amp;系统影响。因此，要想在大促现场快速而正确的响应问题，值班同学需要做的是选择题(Which)，而不是陈述题(What)。而选项的构成，便是我们的业务&amp;系统预案。从执行时机与解决问题属性来划分，预案可分为技术应急预案、技术前置预案、业务应急预案、业务前置预案等四大类。结合之前的链路梳理和业务评估结果，我们可以快速分析出链路中需要的预案，遵循以下原则：</p>
+<h2 id="大促保障"><a href="#大促保障" class="headerlink" title="大促保障"></a>大促保障</h2><h3 id="Incident-Response-紧急-前置预案梳理"><a href="#Incident-Response-紧急-前置预案梳理" class="headerlink" title="Incident Response - 紧急&amp;前置预案梳理"></a>Incident Response - 紧急&amp;前置预案梳理</h3><p>要想在大促高并发流量场景下快速对线上紧急事故进行响应处理，仅仅依赖值班同学临场发挥是远远不够的。争分夺秒的情况下，无法给处理人员留有充足的策略思考空间，而错误的处理决策，往往会导致更为失控严重的业务&amp;系统影响。因此，要想在大促现场快速而正确的响应问题，值班同学需要做的是选择题(Which)，而不是陈述题(What)。而选项的构成，便是我们的业务&amp;系统预案。从执行时机与解决问题属性来划分，预案可分为技术应急预案、技术前置预案、业务应急预案、业务前置预案等四大类。结合之前的链路梳理和业务评估结果，我们可以快速分析出链路中需要的预案，遵循以下原则：</p>
 <ul>
 <li>技术应急预案：该类预案用于处理系统链路中，某层次节点不可用的情况，例如技术&#x2F;业务强依赖、弱稳定性、高风险等节点不可用等异常场景。</li>
 <li>技术前置预案：该类预案用于平衡整体系统风险与单节点服务可用性，通过熔断等策略保障全局服务可靠。例如弱稳定性&amp;弱依赖服务提前降级、与峰值流量时间冲突的离线任务提前暂定等。</li>
 <li>业务应急预案：该类预案用于应对业务变更等非系统性异常带来的需应急处理问题，例如业务数据错误（数据正确性敏感节点）、务策略调整（配合业务应急策略）等</li>
 <li>业务前置预案：该类预案用于配和业务全局策略进行的前置服务调整（非系统性需求）</li>
 </ul>
-<h4 id="应产出数据-3"><a href="#应产出数据-3" class="headerlink" title="应产出数据"></a>应产出数据</h4><p>完成该项梳理工作后，我们应该产出以下数据：</p>
+<h3 id="应产出数据-3"><a href="#应产出数据-3" class="headerlink" title="应产出数据"></a>应产出数据</h3><p>完成该项梳理工作后，我们应该产出以下数据：</p>
 <ul>
 <li>执行&amp;关闭时间（前置预案）</li>
 <li>触发阈值（紧急预案，须关联相关告警）</li>
@@ -3808,10 +3807,7 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
 </ul>
 <p>阶段性产出-全链路作战地图</p>
 <p>进行完上述几项保障工作，我们基本可得到全局链路作战地图，包含链路分支流量模型、强弱依赖节点、资损评估、对应预案&amp;处理策略等信息。大促期间可凭借该地图快速从全局视角查看应急事件相关影响，同时也可根据地图反向评估预案、容量等梳理是否完善合理。</p>
-<p>图片</p>
-<h4 id="Incident-Response-作战手册梳理"><a href="#Incident-Response-作战手册梳理" class="headerlink" title="Incident Response - 作战手册梳理"></a>Incident Response - 作战手册梳理</h4><p>作战手册是整个大促保障的行动依据，贯穿于整个大促生命周期，可从事前、事中、事后三个阶段展开考虑。整体梳理应本着精准化、精细化的原则，理想状态下，即便是对业务、系统不熟悉的轮班同学，凭借手册也能快速响应处理线上问题。</p>
-<p><strong>事前</strong></p>
-<p>1）前置检查事项清单</p>
+<h4 id="Incident-Response-作战手册梳理"><a href="#Incident-Response-作战手册梳理" class="headerlink" title="Incident Response - 作战手册梳理"></a>Incident Response - 作战手册梳理</h4><p>作战手册是整个大促保障的行动依据，贯穿于整个大促生命周期，可从事前、事中、事后三个阶段展开考虑。整体梳理应本着精准化、精细化的原则，理想状态下，即便是对业务、系统不熟悉的轮班同学，凭借手册也能快速响应处理线上问题。<br><strong>事前</strong><br>1）前置检查事项清单</p>
 <ul>
 <li>大促前必须执行事项checklist,通常包含以下事项：</li>
 <li>集群机器重启 or 手动FGC</li>
@@ -3822,26 +3818,19 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
 <li>检查数据库配置</li>
 <li>检查中间件容量、配置(DB\缓存\NoSQL等)</li>
 <li>检查监控有效性（业务大盘、技术大盘、核心告警）</li>
-<li>每个事项都需包含具体执行人、检查方案、检查结果三列数据</li>
-</ul>
-<p>2）前置预案</p>
-<ul>
+<li>每个事项都需包含具体执行人、检查方案、检查结果三列数据<br>2）前置预案</li>
 <li>域内所有业务&amp;技术前置预案。</li>
 </ul>
 <p><strong>事中</strong></p>
 <ol>
-<li>紧急技术&amp;业务预案</li>
+<li>紧急技术&amp;业务预案<br>需要包含的内容基本同前置预案，差异点如下：</li>
 </ol>
-<p>需要包含的内容基本同前置预案，差异点如下：</p>
 <ul>
 <li>执行条件&amp;恢复条件：具体触发阈值，对应监控告警项。</li>
 <li>通知决策人。</li>
 </ul>
 <ol start="2">
-<li>应急工具&amp;脚本</li>
-</ol>
-<p>常见故障排查方式、核心告警止血方式(强弱依赖不可用等)，业务相关日志捞取脚本等。</p>
-<ol start="3">
+<li>应急工具&amp;脚本<br>常见故障排查方式、核心告警止血方式(强弱依赖不可用等)，业务相关日志捞取脚本等。</li>
 <li>告警&amp;大盘</li>
 </ol>
 <ul>
@@ -3878,30 +3867,22 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
 <li>值班问题记录</li>
 </ol>
 <ul>
-<li>作战记录，记录工单、业务问题、预案(前置\紧急)（至少包含：时间、问题描述（截图）、影响分析、决策&amp;解决过程等）。值班同学在值班结束前，进行记录。</li>
+<li>作战记录，记录工单、业务问题、预案(前置\紧急)（至少包含：时间、问题描述（截图）、影响分析、决策&amp;解决过程等）。值班同学在值班结束前，进行记录。<br><strong>事后</strong></li>
 </ul>
-<p><strong>事后</strong></p>
 <ol>
-<li><p>系统恢复设置事项清单(限流、缩容)<br>一般与事前检查事项清单对应，包含限流阈值调整、集群缩容等大促后恢复操作。</p>
-</li>
-<li><p>大促问题复盘记录</p>
-</li>
+<li>系统恢复设置事项清单(限流、缩容)<br>一般与事前检查事项清单对应，包含限流阈值调整、集群缩容等大促后恢复操作。</li>
+<li>大促问题复盘记录</li>
 </ol>
 <ul>
 <li>应包含大促遇到的核心事件总结梳理。</li>
 </ul>
-<h3 id="Incident-Response-沙盘推演"><a href="#Incident-Response-沙盘推演" class="headerlink" title="Incident Response - 沙盘推演"></a>Incident Response - 沙盘推演</h3><p>实战沙盘演练是应急响应方面的最后一项保障工作，以历史真实故障CASE作为应急场景输入，模拟大促期间紧急状况，旨在考验值班同学们对应急问题处理的响应情况。</p>
-<p>一般来说，一个线上问题从发现到解决，中间需要经历定位&amp;排查&amp;诊断&amp;修复等过程，总体遵循以下几点原则：</p>
+<h3 id="沙盘推演和演练-Incident-Response"><a href="#沙盘推演和演练-Incident-Response" class="headerlink" title="沙盘推演和演练 Incident Response"></a>沙盘推演和演练 Incident Response</h3><p>实战沙盘演练是应急响应方面的最后一项保障工作，以历史真实故障CASE作为应急场景输入，模拟大促期间紧急状况，旨在考验值班同学们对应急问题处理的响应情况。<br>一般来说，一个线上问题从发现到解决，中间需要经历定位&amp;排查&amp;诊断&amp;修复等过程，总体遵循以下几点原则：</p>
 <ul>
 <li>尽最大可能让系统先恢复服务，同时为根源调查保护现场（机器、日志、水位记录）。</li>
 <li>避免盲目搜索，依据白盒监控针对性诊断定位。</li>
 <li>有序分工，各司其职，避免一窝蜂失控乱象。</li>
 <li>依据现场情况实时评估影响范围，实在无法通过技术手段挽救的情况(例如强依赖不可用)，转化为业务问题思考（影响范围、程度、是否有资损、如何协同业务方）。</li>
-<li>沙盘演练旨在检验值班同学故障处理能力，着重关注止血策略、分工安排、问题定位等三个方面：</li>
-</ul>
-<p>国际化中台双11买家域演练</p>
-<p>根据故障类型，常见止血策略有以下解决思路：</p>
-<ul>
+<li>沙盘演练旨在检验值班同学故障处理能力，着重关注止血策略、分工安排、问题定位等三个方面：<br>国际化中台双11买家域演练<br>根据故障类型，常见止血策略有以下解决思路：</li>
 <li>入口限流：调低对应Provider服务来源限流值</li>
 <li>应对突发流量过高导致自身系统、下游强依赖负载被打满。</li>
 <li>下游降级：降级对应下游服务</li>
@@ -3920,6 +3901,11 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
 <li>明确公开的职责交接</li>
 <li>其中嵌套式职责分离，即分确的职能分工安排，达到各司其职，有序处理的效果，一般可分为下列几个角色：<br>事故总控：负责协调分工以及未分配事务兜底工作，掌握全局概要信息，一般为PM&#x2F;TL担任。<br>事务处理团队：事故真正处理人员，可根据具体业务场景&amp;系统特性分为多个小团队。团队内部存在域内负责人，与事故总控人员进行沟通。<br>发言人：事故对外联络人员，负责对事故处理内部成员以及外部关注人员信息做周期性信息同步，同时需要实时维护更新事故文档。<br>规划负责人：负责外部持续性支持工作，比如当大型故障出现，多轮排班轮转时，负责组织职责交接记录</li>
 </ul>
+<h2 id="资损体系"><a href="#资损体系" class="headerlink" title="资损体系"></a>资损体系</h2><h2 id="风控体系"><a href="#风控体系" class="headerlink" title="风控体系"></a>风控体系</h2><h2 id="性能优化"><a href="#性能优化" class="headerlink" title="性能优化"></a>性能优化</h2><p align="center">
+  <img src="/images/performance.png" width=800 height=800>
+  <br/>
+</p>
+
 <p>学习资料：</p>
 <ul>
 <li><a href="https://landing.google.com/sre/books/">https://landing.google.com/sre/books/</a></li>
