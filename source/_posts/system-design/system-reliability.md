@@ -326,6 +326,23 @@ Google SRE中，对于紧急事故管理有以下几点要素：
 
 ## 资损体系
 
+### 定期review资损风险
+
+### 事中及时发现
+
+<p align="center">
+  <img src="/images/realtime-verify.webp" width=800 height=600>
+  <br/>
+  <strong><a href="https://segmentfault.com/a/1190000040286146">【得物技术】浅谈资损防控</a></strong>
+  <br/>
+</p>
+
+### 事后复盘和知识沉淀
+
+### 参考学习
+- [资损防控技术体系简介及实践](https://tech.dewu.com/article?id=73)
+- [浅谈资损防控](https://segmentfault.com/a/1190000040286146)
+
 ## 风控体系
 
 ## 性能优化

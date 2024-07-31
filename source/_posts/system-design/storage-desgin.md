@@ -10,8 +10,6 @@ categories:
 
 
 ## 数据建模
-
-
 https://vertabelo.com/blog/types-data-models/
 https://blog.csdn.net/zhulangfly/article/details/130432124
 https://aws.amazon.com/cn/what-is/data-modeling
