@@ -6,7 +6,5 @@ categories:
 ---
 
 <p align="center">
-  <img src="/images/e-commerce-system.png" width=800 height=800>
+  <img src="/images/e-commerce-system.png" width=800 height=1600>
 </p>
-
-
