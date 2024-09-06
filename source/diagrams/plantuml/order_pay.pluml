@@ -1,0 +1,58 @@
+@startuml
+== 用户主动pay核心过程 ==
+actor User
+participant "PaymentCallback" as PaymentCallback
+
+participant "API" as API
+participant "InternalAPI" as InternalAPI
+
+participant "Order Service" as Order
+participant "Coin Service" as Coin
+participant "Voucher Service" as Voucher
+participant "Payment Service" as Payment
+database OrderDB
+database orderBus
+
+User -> API: api/order/pay
+API -> Order: plugins.PayOrderProcessor
+Order -> Coin: Try Reserve Coins
+Order -> Voucher: Try Reserve Voucher
+Order -> Payment: Init SPM
+Order -> OrderDB: Update Payment Status Order Status
+alt All Try Successful
+    Order -> Coin: Confirm Deduct Coins
+    Order -> Voucher: Confirm Deduct Voucher
+else Any Try Fails
+    Order -> Coin: Cancel Coins Reservation
+    Order -> Voucher: Cancel Voucher Reservation
+end
+
+
+== Payment Callback ==
+PaymentCallback -> InternalAPI: /api/spm/v1/payment/result
+InternalAPI -> Order: plugins.UpdatePaymentStatusProcessor
+alt payment_result == "success"
+    Order -> OrderDB: Update pay_order_tab `payment_status` = 'P1' to 'P2'
+    Order -> OrderDB: Update order_tab `order_status` = OR1' to 'OR3'
+    Order -> orderBus: 事件写入mq
+else payment_result == "expire"
+Order -> OrderDB: 订单超时未支付
+    Order -> OrderDB: Update pay_order_tab `payment_status` = 'P1' to 'P4'
+    Order -> OrderDB: Update order_tab `order_status` = OR1' to 'OR3'
+    Order -> orderBus: 订单超时
+else payment_result == "cancel"
+    Order -> OrderDB: Update pay_order_tab `payment_status` = 'P1' to 'P5'
+    Order -> OrderDB: Update order_tab `order_status` = OR1' to 'OR3'
+    Order -> orderBus: 事件写入mq
+else payment_result == "fail":
+    Order -> OrderDB: Update pay_order_tab `payment_status` = 'P1' to 'P3'
+    Order -> OrderDB: Update order_tab `order_status` = OR1' to 'OR3'
+    Order -> orderBus: 事件写入mq
+end
+alt not payment_result == "success":
+    Order -> Coin: return coin
+    Order -> Voucher: return voucher
+end
+InternalAPI <- Order: return
+PaymentCallback <- InternalAPI:return
+@enduml

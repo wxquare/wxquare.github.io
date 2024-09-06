@@ -1,0 +1,31 @@
+@startuml
+participant "Client" as Client
+participant "Local Cache" as LocalCache
+participant "Remote Cache" as RemoteCache
+participant "Database" as Database
+participant "GDS Log" as GDSLog
+participant "Cache Updater" as CacheUpdater
+
+Client -> LocalCache: Query(item_id)
+alt Cache hit
+    LocalCache -> Client: Return item_info
+else Cache miss
+    LocalCache -> RemoteCache: Query(item_id)
+    alt Cache hit
+        RemoteCache -> LocalCache: Store item_info
+        RemoteCache -> Client: Return item_info
+    else Cache miss
+        RemoteCache -> Database: Query(item_id)
+        Database -> RemoteCache: Return item_info
+        RemoteCache -> LocalCache: Store item_info
+        RemoteCache -> Client: Return item_info
+    end
+end
+
+== Data Update Flow ==
+Client -> Database: update(item_id)
+Database -> GDSLog: binlog
+GDSLog -> CacheUpdater: Receive update notification
+CacheUpdater -> RemoteCache: Update item_info，需要检查版本，避免binlog delay导致的回退
+RemoteCache -> LocalCache: Update item_info
+@enduml

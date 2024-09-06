@@ -1,0 +1,62 @@
+@startuml
+
+entity "pay_order_tab" {
+    * pay_order_id : UUID <<PK>>
+    ---
+    + user_id : UUID
+    + payment_method : String
+    + <color:red>payment_status</color>: String
+    + pay_amount : Decimal
+    + cash_amount
+    + coin_amount
+    + voucher_amount
+    + create_ime : timestamp
+    + init_time : timestamp
+    + update_time : timestamp
+}
+
+entity "order_tab" {
+    * order_id : UUID <<PK>>
+    ---
+    + pay_order_id : UUID <<FK>>
+    + user_id : UUID
+    + total_amount : Decimal
+    + <color:red>order_status</color>: String
+    + <color:red>payment_status</color>: String
+    + <color:red>fulfillment_status</color>: String
+    + <color:red>refund_status</color>: String
+    + create_order_time : timestamp
+}
+
+entity "order_item_tab" {
+    * order_item_id : UUID <<PK>>
+    ---
+    + order_id : UUID <<FK>>
+    + item_id: UUID
+    + item_snapshot_id: Integer
+    + <color:red>item_status</color>: String
+    + quantity : Integer
+    + price : Decimal
+    + discount : Decimal
+}
+
+entity "refund_tab" {
+    * refund_id : UUID <<PK>>
+    ---
+    + order_id : UUID <<FK>>
+    + order_item_id
+    + refund_amount : Decimal
+    + reason : String
+    + quantity : Integer
+    + <color:red>refund_status</color>: String
+    + refund_time : timestamp
+}
+
+' Relationships
+pay_order_tab -[hidden]r- order_tab
+pay_order_tab ||--o{ order_tab : "has"
+order_tab -[hidden]r- order_item_tab
+order_tab ||--o{ order_item_tab : "contains"
+order_tab ||--o{ refund_tab : "may have"
+
+@enduml

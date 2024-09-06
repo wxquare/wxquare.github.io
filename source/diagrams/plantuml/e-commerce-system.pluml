@@ -13,56 +13,102 @@
 **** api: entrance
 **** api: entrance/search
 
-** 商品
-*** 商品 item info
-**** 模型
-***** item_tab、basic_info、description info、statistics info
-***** 图片信息 image_tab
-***** 价格信息
-***** 商品状态 state control.
-***** 商品快照 snapshot
-**** 核心流程
-***** C端
-****** 搜索列表
-****** 商品详情
-***** B端listing upload
-****** upload/Edit
-******* massupload
-******* validation
-******* single edit
-****** item sync
+**: <b> <size:30><color:red>商品listing</color><size:20>
+  1. 为类目、品牌、商品资料、价格、tag等提供系统和工具
+  2. 负责商品库的质量、存储、快照
+  3. listing upload 负责商品的录入和auto sync
+  4. 负责商品的搜索和推荐等功能
+  5. 负责商品详情的读取
+;
 
-*** 类目item classification
-**** 类目
-***** be_category
-***** fe_category
-***** 前后台类目分离，后台类目相对稳定，前台类目灵活多变
-**** 品牌
-***** carrier_tab
-***** brand_tab
-***** 品牌和类目可以1对1、1对多，多对1
-**** SPU 与 属性
-***** spu_tab
-***** spu_attr_tab
-***** spu_attr_value_tab
+
+*** 模型
+
+**** 类目item classification
+***** 类目category
+****** be_category：后台类目树，多级类目
+****** fe_category: 基于后台类目构建前端首页的类目树
+****** 前后台类目分离，后台类目相对稳定，前台类目灵活多变
+***** 品牌brand
+****** carrier_tab
+****** brand_tab
+******[#Red] 品牌和类目可以1对1、1对多，多对1
+
+***** attribute属性 & spu
+****** core entity SPU
+****** spu_tab : standard product unit，基于attribute/category/brand等构建的商品的聚合
+****** spu_attr_tab：商品组成的公共数据，例如面额，颜色等
+****** spu_attr_value_tab：属性的值，50，红色等
+****** spu/item relation
+
+**** 商品 item info (SKU+model)
+***** item_name,item_title、basic_info、description info
+***** 图片信息 image_tab
+***** 商品状态 state control
+*****[#Lightgreen] price
+****** 一个model 存在多个price
+****** supplier_price
+****** original_price
+****** discount_price
+****** promotion_price
+****** flashsale_price
+****** bound_price
+*****[#Orange] stock
+****** 无限库存，infinite stock
+****** 创单库存
+****** 支付扣减库存
+****** 营销库存 promotion_stock
+*****[#Cyan] 商品快照 snapshot
+*****[#Yellow] 统计信息statistics info
+
+
 
 **** 标签Tagging System
 ***** value、purpose、Support Product Selection Capabilities
-***** 模型
-****** tag_tab
-****** product_tag_binding_tab
-***** 核心流程
-****** Tagging Rule Engine
+***** tag_tab
+***** product_tag_binding_tab,tag/target relation
+***** Tagging Rule Engine
+
+
+*** 核心流程
+**** B端listing upload
+***** mass/single、upload/edit、validation、upload
+***** 虚拟商品的创建和更新
+*****[#Yellow] 批量更新如何保证不要产生死锁？
+****** 获取锁的顺序是一致的
+****** timeout 检测
+***** item sync
+***** admin listing
+*****[#Red] snapshot
+*****[#Red] listing QC 质量监控和保障
+
+**** C端
+***** 搜索列表list
+****** entrance/search
+****** hotel/search
+****** recommend quickbuy
+****** 商品详情detail
 
 
 ** 订单
 *** 购物车cart
+**** 用户购物车
+**** cart_tab
+
 *** 订单模型
 **** pay_order_tab
 **** order_tab
 **** order_item_tab
-**** 订单拆单
+**** refund_tab
+****[#Lightgreen] 订单拆单 pay_order->order_tab 根据shop_id
+****[#Lightgreen] refund 可以和order关联也可以和item关联
+
 *** 状态机模型
+**** 订单状态
+**** 支付状态
+**** 履约状态
+**** Refund & Return 状态
+
 *** 核心流程
 **** 创单checkout
 **** 支付paynow
@@ -110,9 +156,6 @@
 *** 供应商管理
 *** 履约
 
-
-
-
 left side
 
 ** 挑战和应对措施
@@ -126,11 +169,37 @@ left side
 **** 统一订单平台
 ***** 统一订单模型、状态机可编辑、业务流可配置
 
+*** 商品批量编辑怎么避免死锁？
+**** 获取锁的顺序是一致的
+**** 拆分API，比如更新状态单读设置api
+**** 更新price，单读表等
+
 *** 商品质量保障？
 **** 商品上传、编辑、校验、管控
 **** 商品实时数据同步、价格库存同步
 **** 在线检索，检验
 **** 每日商品质量报告
+
+***[#lightyellow] 价格和库存服务的挑战
+**** 灵活性，支持多种价格和库存
+**** 性能优化
+**** V1：XLock in PlaceOrder API （5/s)
+**** V2: XLock on item stock  (100/s) 优化锁的力度，从表锁到行锁
+**** TCC(1K)，10K
+**** 分库、分表，优化DB
+**** 缓存、异步
+**** 比秒超卖
+**** 秒杀系统，库存问题：mysql和redis数据一致性问题，乐观锁更新mysql，然后更新redis，设置过期时间
+**** 限流，redis + mysql，库存缓存，乐观锁
+**** 12306的异步机制，接受请求，异步创单
+**** https://gongfukangee.github.io/2019/06/09/SecondsKill/
+
+
+***[#lightyellow] iteminfo 是怎么做缓存的
+**** 见下面缓存价格
+**** 当前只有localcache，缓存命中率80%，qps 100
+**** 如果流量非常的高的情况下，理想的缓存架构
+**** 缓存和DB的一致性问题。过期策略+版本策略
 
 *** 订单系统数据一致性？
 **** 梳理哪些存在数据一致性风险

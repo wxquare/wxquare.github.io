@@ -1,0 +1,100 @@
+@startuml
+
+!define RECTANGLE rect
+!define ENTITY entity
+!define PRIMARY_KEY
+
+ENTITY fe_category {
+    PRIMARY_KEY <color:red>fe_category_id</color> : UUID
+    name : String
+    description : String
+    be_category_id : UUID
+}
+
+
+ENTITY be_category {
+    PRIMARY_KEY <color:red>be_category_id</color> : UUID
+    parent_id: UUID
+    name : String
+    description : String
+}
+
+
+ENTITY attribute {
+    PRIMARY_KEY <color:red>attribute_id</color> : UUID
+    name : String
+    value_type : String
+}
+
+ENTITY spu_attribute_value {
+    PRIMARY_KEY <color:red>spu_attribute_value_id</color> : UUID
+    spu_id : UUID
+    attribute_id : UUID
+    value : String
+}
+
+ENTITY sku_attribute_value {
+    PRIMARY_KEY <color:red>sku_attribute_value_id</color> : UUID
+    sku_id : UUID
+    attribute_id : UUID
+    value : String
+}
+
+ENTITY brand {
+    PRIMARY_KEY <color:red>brand_id</color> : UUID
+    name : String
+    description : String
+}
+
+
+ENTITY "SKU_ITEM" as SKU {
+    PRIMARY_KEY <color:red>sku_id</color> : UUID
+    spu_id : UUID
+    price : Decimal
+    stock : Integer
+}
+
+entity "Model" as Model {
+    + mpsku_model_id : int <<PK>>
+    + model_name : varchar(255)
+    + cover_image : varchar(255)
+    + model_weight : float
+    + model_dimensions : json
+    + GTIN : varchar(255)
+    + DTS : int
+    + shipping_channel : varchar(255)
+}
+
+
+ENTITY spu {
+    PRIMARY_KEY <color:red>spu_id</color> : UUID
+    name : String
+    description : String
+    brand_id : UUID
+    be_category_id : UUID
+}
+
+
+be_category ||--o{ fe_category : "maps_to"
+be_category -[hidden]u-> fe_category
+
+spu ||--o{ sku : has
+brand ||--o{ spu : provides
+be_category ||--o{ spu : categorized_as
+
+attribute ||--o{ spu_attribute_value : describes
+attribute ||--o{ sku_attribute_value : describes
+
+
+spu ||--o{ spu_attribute_value : has
+spu -[hidden]r-> spu_attribute_value
+
+
+sku ||--o{ sku_attribute_value : has
+sku  -[hidden]r-> sku_attribute_value
+
+SKU --o Model : "has" 
+
+
+
+@enduml
