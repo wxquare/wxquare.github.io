@@ -61,14 +61,11 @@
 *****[#Cyan] 商品快照 snapshot
 *****[#Yellow] 统计信息statistics info
 
-
-
 **** 标签Tagging System
 ***** value、purpose、Support Product Selection Capabilities
 ***** tag_tab
 ***** product_tag_binding_tab,tag/target relation
 ***** Tagging Rule Engine
-
 
 *** 核心流程
 **** B端listing upload
@@ -105,19 +102,30 @@
 ****[#Lightgreen] 订单拆单 pay_order->order_tab 根据shop_id
 ****[#Lightgreen] refund 可以和order关联也可以和item关联
 
-*** 技术挑战
-**** 全表扫描
-***** 订单定时任务，状态机
-***** admin 查询订单，走ES
-***** 考虑分布式数据库例如TiDB
-**** 历史订单归档
-**** 主从架构中如何获取订单最新数据？
 
 *** 状态机模型
 **** 订单状态
 **** 支付状态
 **** 履约状态
 **** Refund & Return 状态
+
+*** 技术挑战
+**** 全表扫描，
+***** 订单定时任务，状态机补偿；
+***** 报表和对账
+***** admin 查询订单，走ES
+***** 考虑分布式数据库例如TiDB
+**** 历史订单归档
+**** 主从架构中如何获取订单最新数据？
+**** 订单状态一致性
+***** 内部表transaction + 乐观锁
+***** 外部系统
+****** coin tcc。支付时已经扣了coin，支付失败退还coin
+****** 支付系统
+******* 支付初始化init
+******* 支付结果回调，回调可以重试，幂等
+******* 支付结果查询
+
 
 *** 核心流程
 **** 创单checkout

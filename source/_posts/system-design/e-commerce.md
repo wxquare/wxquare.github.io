@@ -92,3 +92,14 @@ categories:
 |                             | - **可扩展性:** 通过将大部分读取操作卸载到从库，实现更好的扩展性。      | - **缓存管理:** 需要进行适当的缓存失效处理和同步，以确保数据的一致性。                 |
 |                             | - **一致性:** 通过比较版本并在必要时回退到主库，提供确保最新数据的机制。| - **潜在延迟:** 从库的数据可能仍然存在不同步的可能性，导致数据更新前有轻微延迟。         |
 
+
+## 订单支付核心逻辑
+<p align="center">
+  <img src="/images/order_pay.png" width=500 height=1000>
+</p>
+
+
+## 订单履约核心逻辑
+<p align="center">
+  <img src="/images/order_fulfillment.png" width=500 height=1000>
+</p>

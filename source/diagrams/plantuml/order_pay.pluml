@@ -1,58 +1,44 @@
 @startuml
-== 用户主动pay核心过程 ==
-actor User
-participant "PaymentCallback" as PaymentCallback
+title 订单系统与支付系统的交互
 
-participant "API" as API
-participant "InternalAPI" as InternalAPI
+actor "用户" as User
+participant "订单系统" as OrderSystem
+participant "支付系统" as PaymentSystem
 
-participant "Order Service" as Order
-participant "Coin Service" as Coin
-participant "Voucher Service" as Voucher
-participant "Payment Service" as Payment
-database OrderDB
-database orderBus
+== 支付初始化 ==
+User -> OrderSystem: 发起支付，Initiate Payment
+OrderSystem -> PaymentSystem: Init Payment Request
+alt InitSuccess
+    PaymentSystem --> OrderSystem: Init Success (P1: Payment Pending)
+else Failed
+    PaymentSystem --> OrderSystem: Init Failure (P3: Payment Failed)
+end
 
-User -> API: api/order/pay
-API -> Order: plugins.PayOrderProcessor
-Order -> Coin: Try Reserve Coins
-Order -> Voucher: Try Reserve Voucher
-Order -> Payment: Init SPM
-Order -> OrderDB: Update Payment Status Order Status
-alt All Try Successful
-    Order -> Coin: Confirm Deduct Coins
-    Order -> Voucher: Confirm Deduct Voucher
-else Any Try Fails
-    Order -> Coin: Cancel Coins Reservation
-    Order -> Voucher: Cancel Voucher Reservation
+== 支付系统内部支付 ==
+PaymentSystem --> PaymentSystem: 支付逻辑
+
+
+== 支付回调 ==
+PaymentSystem -> OrderSystem: Callback 支付结果
+alt Success
+    OrderSystem -> OrderSystem: Update Order to P2 (Payment Success)
+else Failure Callback
+    OrderSystem -> OrderSystem: Update Order to P3/P4 (Failure)
 end
 
 
-== Payment Callback ==
-PaymentCallback -> InternalAPI: /api/spm/v1/payment/result
-InternalAPI -> Order: plugins.UpdatePaymentStatusProcessor
-alt payment_result == "success"
-    Order -> OrderDB: Update pay_order_tab `payment_status` = 'P1' to 'P2'
-    Order -> OrderDB: Update order_tab `order_status` = OR1' to 'OR3'
-    Order -> orderBus: 事件写入mq
-else payment_result == "expire"
-Order -> OrderDB: 订单超时未支付
-    Order -> OrderDB: Update pay_order_tab `payment_status` = 'P1' to 'P4'
-    Order -> OrderDB: Update order_tab `order_status` = OR1' to 'OR3'
-    Order -> orderBus: 订单超时
-else payment_result == "cancel"
-    Order -> OrderDB: Update pay_order_tab `payment_status` = 'P1' to 'P5'
-    Order -> OrderDB: Update order_tab `order_status` = OR1' to 'OR3'
-    Order -> orderBus: 事件写入mq
-else payment_result == "fail":
-    Order -> OrderDB: Update pay_order_tab `payment_status` = 'P1' to 'P3'
-    Order -> OrderDB: Update order_tab `order_status` = OR1' to 'OR3'
-    Order -> orderBus: 事件写入mq
+== 异常：支付回调结果异常导致回调重试 ==
+alt Callback Timeout or other Error
+    PaymentSystem -> OrderSystem: Retry Callback
+    OrderSystem -> OrderSystem: Ensure Idempotency（幂等）
+    PaymentSystem <- OrderSystem: Return Callback Result
 end
-alt not payment_result == "success":
-    Order -> Coin: return coin
-    Order -> Voucher: return voucher
+
+== 异常：支付一定时间内没有回调，查询支付结果 ==
+OrderSystem -> PaymentSystem: Query Payment Result
+alt Query Success
+    PaymentSystem --> OrderSystem: Payment Success (Update to P2)
+else Query Failure
+    PaymentSystem --> OrderSystem: Payment Failure (Update to P3/P4)
 end
-InternalAPI <- Order: return
-PaymentCallback <- InternalAPI:return
 @enduml
