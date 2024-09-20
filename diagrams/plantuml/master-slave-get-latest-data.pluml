@@ -1,0 +1,20 @@
+@startuml
+title 主从架构 - 最新数据获取流程
+
+participant "Client" as Client
+participant "Version Cache" as VCache
+participant "Slave DB" as Slave
+participant "Master DB" as Master
+
+Client --> VCache: 请求数据version
+Client --> Slave: 请求slave 数据
+Client --> Client: 比较version 和 Slave DB 数据
+
+alt 版本相同
+    Client --> Client: 返回Slave数据
+else 版本不同
+    Client --> Master: 读取最新商品数据
+    Master --> Client: 返回最新数据与版本号
+end
+
+@enduml
