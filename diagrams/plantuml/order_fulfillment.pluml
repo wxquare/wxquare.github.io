@@ -1,0 +1,44 @@
+@startuml
+participant OrderBus as OB
+participant OrderSystem as OS
+participant FulfillmentSystem as FS
+
+
+== 发货初始化 ==
+OB <- OS: 订阅支付成功事件
+OS <-> FS: Request and Return ReferenceID
+OS -> FS: Create Shipping Order (using ReferenceID)
+FS --> OS: Shipping Order Success/Failure
+alt Shipping Order Success
+    OS -> OS: 更新发货状态为pending F1，等待发货结果的回调
+else Shipping Order Failure
+    OS -> OS: 更新发货状态发货失败F2，触发refund流程
+end
+
+
+== 发货系统内部发货 ==
+FS -> FS: 发货系统发货
+
+== 发货结果回调 ==
+OS <- FS: 回调发货结果
+alt Shipping Order Success
+    OS -> OS: 更新发货状态发货成功F3，等待发货结果的回调
+else Shipping Order Failure
+    OS -> OS: 根据错误码更新发货状态，并且触发refund过程
+end
+
+
+== 异常：发货回调异常导致回调重试 ==
+alt Callback Timeout or Network Issue
+    FS -> OS: Retry Callback
+    OS -> OS: Ensure Idempotent Callback Handling
+end
+
+== 异常：发货异常，订单主动查询发货状态 ==
+OS -> FS: 主动查询发货状态
+alt Dispatch Success
+    FS --> OS: Dispatch Success Response (Update Order Status)
+else Dispatch Failure
+    FS --> OS: Dispatch Failed Response (Update Order Status)
+end
+@enduml

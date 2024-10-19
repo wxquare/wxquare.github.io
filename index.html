@@ -121,7 +121,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">31</span>
+          <span class="site-state-item-count">32</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -152,6 +152,283 @@
     </div>
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2024/10/16/system-design/e-commerce/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2024/10/16/system-design/e-commerce/" class="post-title-link" itemprop="url">互联网业务系统 - 电商系统后台</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2024-10-16 22:07:32" itemprop="dateCreated datePublished" datetime="2024-10-16T22:07:32+08:00">2024-10-16</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p align="center">
+  <img src="/images/e-commerce-system.png" width=800 height=1300>
+</p>
+
+
+<h2 id="通用商品模型"><a href="#通用商品模型" class="headerlink" title="通用商品模型"></a>通用商品模型</h2><p align="center">
+  <img src="/images/item-sku.png" width=600 height=1000>
+</p>
+
+
+<h2 id="通用商品缓存架构"><a href="#通用商品缓存架构" class="headerlink" title="通用商品缓存架构"></a>通用商品缓存架构</h2><p align="center">
+  <img src="/images/item-info-cache.png" width=600 height=500>
+</p>
+
+<h2 id="通用订单模型"><a href="#通用订单模型" class="headerlink" title="通用订单模型"></a>通用订单模型</h2><p align="center">
+  <img src="/images/order_er.png" width=800 height=600>
+</p>
+
+<h3 id="支付订单表（pay-order-tab）：主要用于记录用户的支付信息。主键为-pay-order-id，标识唯一的支付订单。"><a href="#支付订单表（pay-order-tab）：主要用于记录用户的支付信息。主键为-pay-order-id，标识唯一的支付订单。" class="headerlink" title="支付订单表（pay_order_tab）：主要用于记录用户的支付信息。主键为 pay_order_id，标识唯一的支付订单。"></a>支付订单表（pay_order_tab）：主要用于记录用户的支付信息。主键为 pay_order_id，标识唯一的支付订单。</h3><ul>
+<li>user_id：用户ID，标识支付的用户。</li>
+<li>payment_method：支付方式，如信用卡、支付宝等。</li>
+<li>payment_status：支付状态，如已支付、未支付等。</li>
+<li>pay_amount、cash_amount、coin_amount、voucher_amount：支付金额、现金支付金额、代币支付金额、优惠券使用金额。</li>
+<li>时间戳字段包括创建时间、初始化时间和更新时间</li>
+</ul>
+<h3 id="订单表（order-tab）：记录用户的购买订单信息。主键为-order-id。"><a href="#订单表（order-tab）：记录用户的购买订单信息。主键为-order-id。" class="headerlink" title="订单表（order_tab）：记录用户的购买订单信息。主键为 order_id。"></a>订单表（order_tab）：记录用户的购买订单信息。主键为 order_id。</h3><ul>
+<li>pay_order_id：支付订单ID，作为外键关联支付订单。</li>
+<li>user_id：用户ID，标识购买订单的用户。</li>
+<li>total_amount：订单的总金额。</li>
+<li>order_status：订单状态，如已完成、已取消等。</li>
+<li>payment_status：支付状态，与支付订单相关。</li>
+<li>fulfillment_status：履约状态，表示订单的配送或服务状态。</li>
+<li>refund_status：退款状态，用于标识订单是否有退款</li>
+</ul>
+<h3 id="订单项表（order-item-tab：记录订单中具体商品的信息。主键为-order-item-id。"><a href="#订单项表（order-item-tab：记录订单中具体商品的信息。主键为-order-item-id。" class="headerlink" title="订单项表（order_item_tab：记录订单中具体商品的信息。主键为 order_item_id。"></a>订单项表（order_item_tab：记录订单中具体商品的信息。主键为 order_item_id。</h3><ul>
+<li>order_id：订单ID，作为外键关联订单。</li>
+<li>item_id：商品ID，表示订单中的商品。</li>
+<li>item_snapshot_id：商品快照ID，记录当时购买时的商品信息快照。</li>
+<li>item_status：商品状态，如已发货、退货等。</li>
+<li>quantity：购买数量。</li>
+<li>price：商品单价。</li>
+<li>discount：商品折扣金额</li>
+</ul>
+<h4 id="退款表（refund-tab）：记录订单或订单项的退款信息。主键为-refund-id。"><a href="#退款表（refund-tab）：记录订单或订单项的退款信息。主键为-refund-id。" class="headerlink" title="退款表（refund_tab）：记录订单或订单项的退款信息。主键为 refund_id。"></a>退款表（refund_tab）：记录订单或订单项的退款信息。主键为 refund_id。</h4><ul>
+<li>order_id：订单ID，作为外键关联订单。</li>
+<li>order_item_id：订单项ID，标识具体商品的退款。</li>
+<li>refund_amount：退款金额。</li>
+<li>reason：退款原因。</li>
+<li>quantity：退款的商品数量。</li>
+<li>refund_status：退款状态。</li>
+<li>refund_time：退款操作时间。</li>
+</ul>
+<h3 id="实体间关系："><a href="#实体间关系：" class="headerlink" title="实体间关系："></a>实体间关系：</h3><h3 id="支付订单与订单："><a href="#支付订单与订单：" class="headerlink" title="支付订单与订单："></a>支付订单与订单：</h3><ul>
+<li>一个支付订单可能关联多个购买订单，形成 一对多 关系。<br>例如，用户可以通过一次支付购买多个不同的订单。</li>
+</ul>
+<h3 id="订单与订单商品："><a href="#订单与订单商品：" class="headerlink" title="订单与订单商品："></a>订单与订单商品：</h3><p>一个订单可以包含多个订单项，形成 一对多 关系。<br>订单项代表订单中所购买的每个商品的详细信息。</p>
+<h3 id="订单与退款："><a href="#订单与退款：" class="headerlink" title="订单与退款："></a>订单与退款：</h3><ul>
+<li>一个订单可能包含多个退款，形成 一对多 关系。</li>
+<li>退款可以是针对订单整体，也可以针对订单中的某个商品</li>
+</ul>
+<h2 id="通用订单状态机"><a href="#通用订单状态机" class="headerlink" title="通用订单状态机"></a>通用订单状态机</h2><p align="center">
+  <img src="/images/order_state_machine.png" width=800 height=800>
+</p>
+
+
+<h2 id="主从架构中如何获取最新的数据，避免因为主从延时导致获得脏数据"><a href="#主从架构中如何获取最新的数据，避免因为主从延时导致获得脏数据" class="headerlink" title="主从架构中如何获取最新的数据，避免因为主从延时导致获得脏数据"></a>主从架构中如何获取最新的数据，避免因为主从延时导致获得脏数据</h2><p align="center">
+  <img src="/images/master-slave-get-latest-data.png" width=500 height=400>
+</p>
+
+
+
+<table>
+<thead>
+<tr>
+<th><strong>策略</strong></th>
+<th><strong>优点</strong></th>
+<th><strong>缺点</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>1. 直接读取主库</strong></td>
+<td>- <strong>一致性:</strong> 始终获取最新的数据。</td>
+<td>- <strong>性能:</strong> 增加主库的负载，可能导致性能瓶颈。</td>
+</tr>
+<tr>
+<td></td>
+<td>- <strong>简单性:</strong> 实现简单直接，因为它直接查询可信的源。</td>
+<td>- <strong>可扩展性:</strong> 主库可能成为瓶颈，限制系统在高读流量下有效扩展的能力。</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>2. 使用VersionCache与从库</strong></td>
+<td>- <strong>性能:</strong> 分散读取负载到从库，减少主库的压力。</td>
+<td>- <strong>复杂性:</strong> 实现更加复杂，需要进行缓存管理并处理潜在的不一致性问题。</td>
+</tr>
+<tr>
+<td></td>
+<td>- <strong>可扩展性:</strong> 通过将大部分读取操作卸载到从库，实现更好的扩展性。</td>
+<td>- <strong>缓存管理:</strong> 需要进行适当的缓存失效处理和同步，以确保数据的一致性。</td>
+</tr>
+<tr>
+<td></td>
+<td>- <strong>一致性:</strong> 通过比较版本并在必要时回退到主库，提供确保最新数据的机制。</td>
+<td>- <strong>潜在延迟:</strong> 从库的数据可能仍然存在不同步的可能性，导致数据更新前有轻微延迟。</td>
+</tr>
+</tbody></table>
+<h2 id="订单支付核心逻辑"><a href="#订单支付核心逻辑" class="headerlink" title="订单支付核心逻辑"></a>订单支付核心逻辑</h2><p align="center">
+  <img src="/images/order_pay.png" width=500 height=1000>
+</p>
+
+
+<h2 id="订单履约核心逻辑"><a href="#订单履约核心逻辑" class="headerlink" title="订单履约核心逻辑"></a>订单履约核心逻辑</h2><p align="center">
+  <img src="/images/order_fulfillment.png" width=500 height=1000>
+</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2024/10/16/other/programmer-survival-guide/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2024/10/16/other/programmer-survival-guide/" class="post-title-link" itemprop="url">程序员生成指南</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2024-10-16 00:00:00 / Modified: 23:14:50" itemprop="dateCreated datePublished" datetime="2024-10-16T00:00:00+08:00">2024-10-16</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/other/" itemprop="url" rel="index"><span itemprop="name">other</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p align="center">
+  <img src="/images/程序员生存指南.jpg" width=400 height=1500>
+</p>
+
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
@@ -2148,7 +2425,7 @@ print(resnet18_lib.get_source())
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2024/05/17/system-design/%E5%B9%BF%E5%91%8A%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E5%92%8C%E5%AE%9E%E7%8E%B0/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2024/04/10/system-design/system-reliability/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpeg">
@@ -2166,7 +2443,7 @@ print(resnet18_lib.get_source())
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2024/05/17/system-design/%E5%B9%BF%E5%91%8A%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E5%92%8C%E5%AE%9E%E7%8E%B0/" class="post-title-link" itemprop="url">互联网系统设计 - 广告系统设计和实现</a>
+          <a href="/2024/04/10/system-design/system-reliability/" class="post-title-link" itemprop="url">互联网业务系统 - 稳定性建设</a>
         </h2>
 
         <div class="post-meta-container">
@@ -2177,14 +2454,14 @@ print(resnet18_lib.get_source())
       </span>
       <span class="post-meta-item-text">Posted on</span>
 
-      <time title="Created: 2024-05-17 00:00:00" itemprop="dateCreated datePublished" datetime="2024-05-17T00:00:00+08:00">2024-05-17</time>
+      <time title="Created: 2024-04-10 00:00:00" itemprop="dateCreated datePublished" datetime="2024-04-10T00:00:00+08:00">2024-04-10</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2024-05-22 22:36:51" itemprop="dateModified" datetime="2024-05-22T22:36:51+08:00">2024-05-22</time>
+      <time title="Modified: 2024-10-16 22:07:32" itemprop="dateModified" datetime="2024-10-16T22:07:32+08:00">2024-10-16</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -2206,192 +2483,341 @@ print(resnet18_lib.get_source())
     
     
     <div class="post-body" itemprop="articleBody">
-          
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
+          <h2 id="前言：怎样的系统算是稳定高可用的"><a href="#前言：怎样的系统算是稳定高可用的" class="headerlink" title="前言：怎样的系统算是稳定高可用的"></a>前言：怎样的系统算是稳定高可用的</h2><p>首先回答另一个问题，怎样的系统算是稳定的？</p>
+<p>Google SRE中(SRE三部曲[1])有一个层级模型来描述系统可靠性基础和高层次需求(Dickerson’s Hierarchy of Service Reliability)，如下图：</p>
+<p align="center">
+  <img src="/images/service-reliability-hierarchy.png" width=600 height=500>
+  <br/>
+</p>
 
 
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2024/05/13/system-design/%E6%9C%AC%E5%9C%B0%E7%94%9F%E6%B4%BB%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E5%92%8C%E5%AE%9E%E7%8E%B0/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="wxquare">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="undefined | wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2024/05/13/system-design/%E6%9C%AC%E5%9C%B0%E7%94%9F%E6%B4%BB%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E5%92%8C%E5%AE%9E%E7%8E%B0/" class="post-title-link" itemprop="url">互联网系统设计 - 本地生活系统(电商）设计和实现</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2024-05-13 00:00:00" itemprop="dateCreated datePublished" datetime="2024-05-13T00:00:00+08:00">2024-05-13</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2024-06-24 11:49:27" itemprop="dateModified" datetime="2024-06-24T11:49:27+08:00">2024-06-24</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">系统设计</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h1 id="业务模型"><a href="#业务模型" class="headerlink" title="业务模型"></a>业务模型</h1><h1 id="总体架构"><a href="#总体架构" class="headerlink" title="总体架构"></a>总体架构</h1><h1 id="商品系统"><a href="#商品系统" class="headerlink" title="商品系统"></a>商品系统</h1><h2 id="商品管理"><a href="#商品管理" class="headerlink" title="商品管理"></a>商品管理</h2><h2 id="商品检索"><a href="#商品检索" class="headerlink" title="商品检索"></a>商品检索</h2><h2 id="商品详情"><a href="#商品详情" class="headerlink" title="商品详情"></a>商品详情</h2><h1 id="订单系统"><a href="#订单系统" class="headerlink" title="订单系统"></a>订单系统</h1><h1 id="系统稳定性和可用性"><a href="#系统稳定性和可用性" class="headerlink" title="系统稳定性和可用性"></a>系统稳定性和可用性</h1><h2 id="风控"><a href="#风控" class="headerlink" title="风控"></a>风控</h2><h1 id="系统性能"><a href="#系统性能" class="headerlink" title="系统性能"></a>系统性能</h1><h1 id="效率"><a href="#效率" class="headerlink" title="效率"></a>效率</h1><h1 id="电商领域常见问题"><a href="#电商领域常见问题" class="headerlink" title="电商领域常见问题"></a>电商领域常见问题</h1><p>那么，电商领域的技术架构有哪些常见问题？</p>
-<h4 id="避免重复下单"><a href="#避免重复下单" class="headerlink" title="避免重复下单"></a>避免重复下单</h4><p>用户快速点了两次 “提交订单”  按钮，浏览器会向后端发送两条创建订单的请求，最终会创建两条一模一样的订单。</p>
-<p>1、解决方案<br>解决方案就是采用幂等机制，多次请求和一次请求产生的效果是一样的。</p>
-<p>1）方案一<br>利用数据库自身特性 “主键唯一约束”，在插入订单记录时，带上主键值，如果订单重复，记录插入会失败。</p>
-<p>操作过程如下：</p>
-<p>引入一个服务，用于生成一个“全局唯一的订单号”；<br>进入创建订单页面时，前端请求该服务，预生成订单ID；<br>提交订单时，请求参数除了业务参数外，还要带上这个预生成订单ID。<br>2）方案二<br>前端通过js脚本控制，无法解决用户刷新提交的请求。另外也无法解决恶意提交。</p>
-<p>不建议采用该方案，如果想用，也只是作为一个补充方案。</p>
-<p>3）方案三<br>前后约定附加参数校验。</p>
-<p>当用户点击购买按钮时，渲染下单页面，展示商品、收货地址、运费、价格等信息，同时页面会埋上 Token 信息，用户提交订单时，后端业务逻辑会校验token，有且匹配才认为是合理请求。</p>
-<p>同一个 Token 只能用一次，用完后立马失效掉。</p>
-<p>二、订单快照，减少存储成本<br>商品信息是可以修改的，当用户下单后，为了更好解决后面可能存在的买卖纠纷，创建订单时会同步保存一份商品详情信息，称之为订单快照。</p>
-<p>同一件商品，会有很多用户会购买，如果热销商品，短时间就会有上万的订单。如果每个订单都创建一份快照，存储成本太高。另外商品信息虽然支持修改，但毕竟是一个低频动作。我们可以理解成，大部分订单的商品快照信息都是一样的，除非下单时用户修改过。</p>
-<p>如何实时识别修改动作是解决快照成本的关键所在。我们采用摘要比对的方法‍。创建订单时，先检查商品信息摘要是否已经存在，如果不存在，会创建快照记录。订单明细会关联商品的快照主键。</p>
-<p>复制<br>public class DigestTest {<br>    public static void encodeStr(String data) {<br>        String encodeS &#x3D; DigestUtils.md5Hex(data);<br>        System.out.println(encodeS);<br>    }<br>    public static void main(String[] args) {<br>        String data &#x3D; “网销投连险是保险公司的一款保险产品，在互联网金融上还是很常见的。” + “比如京东天天盈，网易有钱零钱++。这些保险削弱了保险的保障功能，降低成本，从而提高保险的理财功能提高理财收益。”<br>                      + “投连险基本和银行结构性理财产品一样，信息披露度不高，但是有保险公司兜底，不至于整个平台跑路。”<br>                      + “投资投连险可以想象为投资一个起点低的银行理财产品吧。网销投连险一般都受益在4-6%，不承诺保本。”<br>                      + “经常爆出保险公司的保障型长期投连险出现投资亏损新闻，但是网销短期投连险投资型投连险目前没有出现亏损，基本也能按照预期收益兑付。”<br>                      + “网销投连险安全性和收益性都比较居中，短期产品危险系数不高，但是在债券违约的大环境下，长期产品安全性没有太大保障。” + “不过好在保险公司没有跑路风险，至少不会把本金损失殆尽啊。”;<br>        encodeStr(data);<br>    }<br>}</p>
-<p>由于订单快照属于非核心操作，即使失败也不应该影响用户正常购买流程，所以通常采用异步流程执行。</p>
-<p>三、购物车，混合存储<br>购物车是电商系统的标配功能，暂存用户想要购买的商品。分为添加商品、列表查看、结算下单三个动作。</p>
-<p>技术设计并不是特别复杂，存储的信息也相对有限（用户id、商品id、sku_id、数量、添加时间）。这里特别拿出来单讲主要是用户体验层面要注意几个问题：</p>
-<p>添加购物车时，后端校验用户未登录，常规思路，引导用户跳转登录页，待登录成功后，再添加购物车。多了一步操作，给用户一种强迫的感觉，体验会比较差。有没有更好的方式？</p>
-<p>如果细心体验京东、淘宝等大平台，你会发现即使未登录态也可以添加购物车，这到底是怎么实现的？</p>
-<p>细细琢磨其实原理并不复杂，服务端这边在用户登录态校验时，做了分支路由，当用户未登录时，会创建一个临时Token，作为用户的唯一标识，购物车数据挂载在该Token下，为了避免购物车数据相互影响以及设计的复杂度，这里会有一个临时购物车表。</p>
-<p>当然，临时购物车表的数据量并不会太大，why？用户不会一直闲着添加购物车玩，当用户登录后，查看自己的购物车，服务端会从请求的cookie里查找购物车Token标识，并查询临时购物车表是否有数据，然后合并到正式购物车表里。</p>
-<p>临时购物车是不是一定要在服务端存储？未必。<br>有架构师倾向前置存储，将数据存储在浏览器或者 APP LocalStorage， 这部分数据毕竟不是共享的，但是不太好的增加了设计的复杂度。</p>
-<p>客户端需要借助本地数据索引，远程请求查完整信息；<br>如果是登录态，还要增加数据合并逻辑；<br>考虑到这两部分数据只是用户标识的差异性，所以作者还是建议统一存到服务端，日后即使业务逻辑变更，只需要改一处就可以了，毕竟自运营系统，良好的可维护性也需要我们非常关注的。</p>
-<p>四、库存超卖<br>常见的库存扣减方式有：</p>
-<p>下单减库存： 即当买家下单后，在商品的总库存中减去买家购买数量。下单减库存是最简单的减库存方式，也是控制最精确的一种，下单时直接通过数据库的事务机制控制商品库存，这样一定不会出现超卖的情况。但是你要知道，有些人下完单可能并不会付款。<br>付款减库存： 即买家下单后，并不立即减库存，而是等到有用户付款后才真正减库存，否则库存一直保留给其他买家。但因为付款时才减库存，如果并发比较高，有可能出现买家下单后付不了款的情况，因为可能商品已经被其他人买走了。<br>预扣库存： 这种方式相对复杂一些，买家下单后，库存为其保留一定的时间（如 30 分钟），超过这个时间，库存将会自动释放，释放后其他买家就可以继续购买。在买家付款前，系统会校验该订单的库存是否还有保留：如果没有保留，则再次尝试预扣；如果库存不足（也就是预扣失败）则不允许继续付款；如果预扣成功，则完成付款并实际地减去库存。<br>至于采用哪一种减库存方式更多是业务层面的考虑，减库存最核心的是大并发请求时保证数据库中的库存字段值不能为负数。</p>
-<p>方案一<br>通常在扣减库存的场景下使用行级锁，通过数据库引擎本身对记录加锁的控制，保证数据库的更新的安全性，并且通过where语句的条件，保证库存不会被减到 0 以下，也就是能够有效的控制超卖的场景。</p>
-<p>复制<br>update … set amount &#x3D; amount - 1 where id &#x3D; $id and amount - 1 &gt;&#x3D;0<br>1.<br>方案二<br>设置数据库的字段数据为无符号整数，这样减后库存字段值小于零时 SQL 语句会报错。</p>
-<p>五、商家发货，物流单更新 ABA 问题<br>举个例子：</p>
-<p>商家发货，填写运单号，开始填了 123，后来发现填错了，然后又修改为 456。</p>
-<p>此时，如果就为某种特殊场景埋下错误伏笔，具体我们来看下：</p>
-<p>过程如下：</p>
-<p>开始「请求A」发货，调订单服务接口，更新运单号 123；<br>但是响应有点慢，超时了；<br>此时，商家发现运单号填错了，发起了「请求B」，更新运单号为 456 ，订单服务也响应成功了；<br>这时，「请求A」触发了重试，再次调用订单服务，更新运单号 123，订单服务也响应成功了；<br>订单服务最后保存的 运单号 是 123。<br>是不是犯错了！！！！</p>
-<p>那么有什么好的解决方案吗？</p>
-<p>很多人可能会说，不重试不就可以了，要知道 重试机制 是高可用服务的重要保障手段，很多重试是框架自动发起的。</p>
-<p>理想的解决方案：<br>数据库表引入一个额外字段 version ，每次更新时，判断表中的版本号与请求参数携带的版本号是否一致。</p>
-<p>复制<br>update order<br>set logistics_num &#x3D; #{logistics_num} , version &#x3D; #{version} + 1<br>where order_id&#x3D; 1111 and version &#x3D; #{version}<br>1.<br>2.<br>3.<br>一致： 才触发更新；<br>不一致： 说明这期间执行过数据更新，可能会引发错误，拒绝执行。<br>六、账户余额更新，保证事务<br>用户支付，我们要从买家账户减掉一定金额，再往卖家增加一定金额，为了保证数据的 完整性、可追溯性， 变更余额时，我们通常会同时插入一条 记录流水。</p>
-<p>账户流水核心字段： 流水ID、金额、交易双方账户、交易时间戳、订单号。</p>
-<p>账户流水只能新增，不能修改和删除。流水号必须是自增的。<br>后续，系统对账时，我们只需要对交易流水明细数据做累计即可，如果出现和余额不一致情况，一般以交易流水为准来修复余额数据。</p>
-<p>更新余额、记录流水 虽属于两个操作，但是要保证要么都成功，要么都失败。要做到事务。</p>
-<p>数据库的事务隔离级别有： 读未提交（RU）、读已提交（RC）、可重复读（RR）、串行化（Serializable）。</p>
-<p>常用的隔离级别是 RC 和 RR ，因为这两种隔离级别都可以避免脏读。</p>
-<p>当然，如果涉及多个微服务调用，会用到 分布式事务。</p>
-<p>分布式事务，细想下也很容易理解，就是 将一个大事务拆分为多个本地事务， 本地事务依然借助于数据库自身事务来解决，难点在于解决这个分布式一致性问题，借助重试机制，保证最终一致是我们常用的方案。</p>
-<p>七、MySQL读写分离带来的数据不一致问题<br>互联网业务大部分都是 读多写少， 为了提升数据库集群的吞吐性能，我们通常会采用 主从架构、读写分离。</p>
-<p>部署一个主库实例，客户端请求 所有写操作 全部写到主库，然后借助 MySQL 自带的 主从同步 功能，做一些简单配置，可以近乎实时的将主库的数据同步给 多个从库实例 ，主从延迟非常小，一般 不超过 1 毫秒。</p>
-<p>客户端请求的 所有读操作 全部打到 从库 ，借助多实例集群提升 读请求 的整体处理能力。</p>
-<p>这个方案看似天衣无缝，但实际有个 副作用。</p>
-<p>主从同步虽然近乎实时，但还是有个 时间差 ，主库数据刚更新完，但数据还没来得及同步到从库，后续 读请求 直接访问了从库，看到的还是旧数据，影响用户体验。</p>
-<p>任何事情都不是完美的，从主同步也是一样，没有完美的解决方案，我们要找到其中的平衡取舍点。</p>
-<p>我们以电商为例，看看如何从 产品层面 来化解这个问题。</p>
-<p>为了实验的真实性，Tom哥 特意在淘宝下了一笔购物订单。 在下单确认页面，点击购买按钮，进入了支付页面。</p>
-<p>输入支付宝支付密码，进入支付成功页面，页面有查看订单详情的入口。</p>
-<p>点击 查看交易详情 ，才跳到真正的 订单详情页，可以查看订单的支付状态（订单数据取自从库）。</p>
-<p>看懂了吗？<br>我们在支付成功后，并没有立即跳到 订单详情页， 而是增加了一个 无关紧要的 中间页（支付成功页） ，一是告诉你支付的结果是成功的，钱没丢，不要担心；另外也可以增加一些推荐商品，引流提升网站的GMV。最重要的，增加了一个缓冲期，为 订单的主从库数据同步 争取了更多的时间。</p>
-<p>可谓一举多得，其他互联网业务也是类似道理。</p>
-<p>是不是又学了一招？</p>
-<p>八、历史订单，归档<br>根据 二八定律， 系统绝大部分的性能开销花在20%的业务。数据也不例外，从数据的使用频率来看，经常被业务访问的数据称为热点数据；反之，称之为冷数据。</p>
-<p>在了解的数据的冷、热特性后，便可以指导我们做一些有针对性的性能优化。这里面有业务层面的优化，也有技术层面的优化。比如：电商网站，一般只能查询3个月内的订单，如果你想看看3个月前的订单，需要访问历史订单页面。</p>
-<p>实现思路如下：</p>
-<p>1、冷热数据区分的标准是什么？<br>要结合业务思考，可能要找产品同学一块讨论才能做决策，切记不要拍脑袋。以电商订单为例：</p>
-<p>1）方案一<br>以“下单时间”为标准，将3 个月前的订单数据当作冷数据，3 个月内的当作热数据。</p>
-<p>2）方案二<br>根据“订单状态”字段来区分，已完结的订单当作冷数据，未完结的订单当作热数据。</p>
-<p>3）方案三<br>组合方式，把下单时间 &gt; 3 个月且状态为“已完结”的订单标识为冷数据，其他的当作热数据。</p>
-<p>2、如何触发冷热数据的分离？<br>1）方案一<br>直接修改业务代码，每次业务请求触发冷热数据判断，根据结果路由到对应的冷数据表或热数据表。缺点：如果判断标准是 时间维度，数据过期了无法主动感知。</p>
-<p>2）方案二<br>如果觉得修改业务代码，耦合性高，不易于后期维护。可以通过监听数据库变更日志 binlog 方式来触发。</p>
-<p>3）方案三<br>常用的手段是跑定时任务，一般是选择凌晨系统压力小的时候，通过跑批任务，将满足条件的冷数据迁移到其他存储介质。在途业务表中只留下来少量的热点数据。</p>
-<p>3、如何实现冷热数据分离？<br>过程大概分为三步：</p>
-<p>判断数据是冷、还是热；<br>将冷数据插入冷数据表中；<br>然后，从原来的热库中删除迁移的数据。<br>4、如何使用冷热数据？<br>1）方案一<br>界面设计时会有选项区分，如上面举例的电商订单。</p>
-<p>2）方案二<br>直接在业务代码里区分。</p>
-<p>九、订单分库分表，多维度查询<br>如果电商网站的订单数过多，我们一般会想到 分库分表 解决策略。没问题，这个方向是对的。</p>
-<p>但是查询维度很多：<br>买家，查询 我的订单 列表，需要根据 buyer_id 来查询；<br>查看订单详情，需要根据 order_id 来查询；<br>卖家，查询 我的销售 列表，需要根据 seller_id 来查询。<br>而订单分表只有一个分表键，如何满足多维度 SQL 操作呢？</p>
-<p>我们一般是基于买家维度来设计，下图是 淘宝 的订单列表：</p>
-<p>一个订单号 19 位，我们会发现同一个用户不同订单的最后 6 位都是一样的，没错，那是用户id的后6位。</p>
-<p>这样，上文中 场景1、场景2 的查询可以共性抽取， 采用 buyer_id 或 order_id  的 后六位 作为分表键，对 1000 000 取模，得到买家维度的订单分表的编号。</p>
-<p>至于 场景3 卖家维度的订单查询，我们可以采用数据异构方式，按 seller_id 维度另外存储一份数据，专门供卖家使用</p>
+<p>该模型由Google SRE工程师Mikey Dickerson在2013年提出，将系统稳定性需求按照基础程度进行了不同层次的体系化区分，形成稳定性标准金字塔模型:</p>
 <ul>
-<li><p><a href="https://www.51cto.com/article/707081.html">https://www.51cto.com/article/707081.html</a></p>
+<li>金字塔的底座是监控(Monitoring)，这是一个系统对于稳定性最基础的要求，缺少监控的系统，如同蒙上眼睛狂奔的野马，无从谈及可控性，更遑论稳定性。</li>
+<li>更上层是应急响应(Incident Response)，从一个问题被监控发现到最终解决，这期间的耗时直接取决于应急响应机制的成熟度。合理的应急策略能保证当故障发生时，所有问题能得到有序且妥善的处理，而不是慌乱成一锅粥。</li>
+<li>事后总结以及根因分析(Postmortem&amp;Root Caue Analysis)，即我们平时谈到的“复盘”，虽然很多人都不太喜欢这项活动，但是不得不承认这是避免我们下次犯同样错误的最有效手段，只有当摸清故障的根因以及对应的缺陷，我们才能对症下药，合理进行规避。</li>
+<li>测试和发布管控(Testing&amp;Release procedures),大大小小的应用都离不开不断的变更与发布,有效的测试与发布策略能保障系统所有新增变量都处于可控稳定区间内，从而达到整体服务终态稳定</li>
+<li>容量规划(Capacity Planning)则是针对于这方面变化进行的保障策略。现有系统体量是否足够支撑新的流量需求，整体链路上是否存在不对等的薄弱节点，都是容量规划需要考虑的问题。</li>
+<li>位于金字塔模型最顶端的是产品设计(Product)与软件研发(Development)，即通过优秀的产品设计与软件设计使系统具备更高的可靠性，构建高可用产品架构体系，从而提升用户体验</li>
+</ul>
+<h2 id="系统稳定性建设概述"><a href="#系统稳定性建设概述" class="headerlink" title="系统稳定性建设概述"></a>系统稳定性建设概述</h2><p align="center">
+  <img src="/images/system-stability.png" width=800 height=800>
+  <br/>
+</p>
+
+<p>从金字塔模型我们可以看到构建维护一个高可用服务所需要做到的几方面工作：</p>
+<ul>
+<li>产品、技术、架构的设计，高可用的架构体系</li>
+<li>系统链路&amp;业务策略梳理和维护（System &amp; Biz Profiling）</li>
+<li>容量规划（Capacity Planning）</li>
+<li>应急响应（Incident Response）</li>
+<li>测试</li>
+<li>事后总结（Testing &amp; Postmortem）</li>
+<li>监控（Monitoring）</li>
+<li>资损体系</li>
+<li>风控体系</li>
+<li>大促保障</li>
+<li>性能优化</li>
+</ul>
+<p align="center">
+  <img src="/images/6-reliability-steps.png" width=600 height=500>
+  <br/>
+</p>
+
+
+<h2 id="高可用的架构设计"><a href="#高可用的架构设计" class="headerlink" title="高可用的架构设计"></a>高可用的架构设计</h2><h2 id="系统链路梳理和维护-System-Biz-Profiling"><a href="#系统链路梳理和维护-System-Biz-Profiling" class="headerlink" title="系统链路梳理和维护 System &amp; Biz Profiling"></a>系统链路梳理和维护 System &amp; Biz Profiling</h2><p>系统链路梳理是所有保障工作的基础，如同对整体应用系统进行一次全面体检，从流量入口开始，按照链路轨迹，逐级分层节点，得到系统全局画像与核心保障点。</p>
+<h3 id="入口梳理盘点"><a href="#入口梳理盘点" class="headerlink" title="入口梳理盘点"></a>入口梳理盘点</h3><p>一个系统往往存在十几个甚至更多流量入口，包含HTTP、RPC、消息等都多种来源。如果无法覆盖所有所有链路，可以从以下三类入口开始进行梳理：</p>
+<ul>
+<li>核心重保流量入口<ul>
+<li>用户承诺服务SLI较高，对数据准确性、服务响应时间、可靠度具有明确要求。</li>
+<li>业务核心链路，浏览、下单、支付、履约</li>
+<li>面向企业级用户</li>
+</ul>
 </li>
-<li><p><a href="https://cloud.tencent.com/developer/article/2367141">电商系统架构设计浅析</a></p>
+<li>资损事件对应入口<ul>
+<li>关联到公司资金收入或者客户资金收入收费服务</li>
+</ul>
 </li>
-<li><p><a href="https://cloud.tencent.com/developer/article/2367141">https://cloud.tencent.com/developer/article/2367141</a></p>
-</li>
-<li><p><a href="https://www.oreilly.com/library/view/system-design-on/9781098146887/">https://www.oreilly.com/library/view/system-design-on/9781098146887/</a></p>
-</li>
-<li><p>系统设计的目标、原则和权衡</p>
-</li>
-<li><p>常用系统设计的组件和工具</p>
-</li>
-<li><p>案例分析与讨论</p>
+<li>大流量入口<ul>
+<li>系统TPS&amp;QPS TOP5~10</li>
+<li>该类入口虽然不涉及较高SLI与资损要求，但是流量较高，对整体系统负载有较大影响</li>
+</ul>
 </li>
 </ul>
-<p>aws system design<br><a href="https://www.thefivekey.com/how-to-prove-the-value-of-design-system-to-your-boss/">https://www.thefivekey.com/how-to-prove-the-value-of-design-system-to-your-boss/</a></p>
-<p>system design primer<br><a href="https://github.com/donnemartin/system-design-primer/blob/master/README-zh-Hans.md">https://github.com/donnemartin/system-design-primer/blob/master/README-zh-Hans.md</a></p>
-<p>《数据密性型应用》</p>
-<p><a href="https://www.cnblogs.com/zpbolgs/p/15270837.html">https://www.cnblogs.com/zpbolgs/p/15270837.html</a></p>
+<h3 id="节点分层判断"><a href="#节点分层判断" class="headerlink" title="节点分层判断"></a>节点分层判断</h3><p>对于复杂场景可以做节点分层判断</p>
+<p>流量入口就如同线团中的线头，挑出线头后就可按照流量轨迹对链路上的节点(HSF\DB\Tair\HBase等一切外部依赖)按照依赖程度、可用性、可靠性进行初级分层区分。</p>
+<ol>
+<li>强弱依赖节点判断</li>
+</ol>
 <ul>
-<li><a href="https://tech.meituan.com/2024/05/09/ddd-practice-trading-system.html">DDD在大众点评交易系统演进中的应用</a></li>
-<li><a href="https://xie.infoq.cn/article/3cd6823f387f66bfdd34c9ba8">DDD 领域驱动设计理论｜得物技术</a></li>
-<li><a href="https://www.6aiq.com/article/1652457838293">去哪儿网｜国内酒店交易 DDD 应用与实践——理论篇</a></li>
-<li><a href="https://www.6aiq.com/article/1652458167227#google_vignette">去哪儿网｜国内酒店交易 DDD 应用与实践——代码篇</a><br><a href="https://tech.meituan.com/2017/12/22/ddd-in-practice.html">https://tech.meituan.com/2017/12/22/ddd-in-practice.html</a></li>
+<li>若节点不可用，链路业务逻辑被中断 or 高级别有损(存在一定耐受阈值)，则为业务强依赖；反之为弱依赖。</li>
+<li>若节点不可用，链路执行逻辑被中断(return error)，则为系统强依赖；反之为弱依赖。</li>
+<li>若节点不可用，系统性能受影响，则为系统强依赖；反之为弱依赖。</li>
+<li>按照快速失败设计逻辑，该类节点不应存在，但是在不变更应用代码前提下，如果出现该类节点，应作为强依赖看待。</li>
+<li>若节点无感可降级 or 存在业务轻微损伤替换方案，则为弱依赖。</li>
 </ul>
-<p><a href="https://www.bilibili.com/video/BV1MR4y1F7r7?p=5&vd_source=04e82c25f6ff3d6a1a08a7f1c343987c">国内酒店交易系统</a></p>
+<ol start="2">
+<li>低可用依赖节点判断</li>
+</ol>
+<ul>
+<li>节点服务日常超时严重</li>
+<li>节点对应系统资源不足</li>
+</ul>
+<ol start="3">
+<li>高风险节点判断</li>
+</ol>
+<ul>
+<li>上次大促后，节点存在大版本系统改造</li>
+<li>新上线未经历过大促的节点</li>
+<li>节点对应系统是否曾经出现高级别故障</li>
+<li>节点故障后存在资损风险</li>
+</ul>
+<h3 id="应产出数据"><a href="#应产出数据" class="headerlink" title="应产出数据"></a>应产出数据</h3><ul>
+<li>识别核心接口（流程）调用拓扑图或者时序图（借用分布式链路追踪系统获得调用拓扑图）</li>
+<li>调用比</li>
+<li>识别资损风险</li>
+<li>识别内外部依赖</li>
+</ul>
+<p>完成该项梳理工作后，我们应该产出以下数据：对应业务域所有核心链路分析，技术&amp;业务强依赖、核心上游、下游系统、资损风险应明确标注。</p>
+<h2 id="监控-告警梳理-–-Monitoring"><a href="#监控-告警梳理-–-Monitoring" class="headerlink" title="监控&amp;告警梳理 – Monitoring"></a>监控&amp;告警梳理 – Monitoring</h2><p>站在监控的角度看，我们的系统从上到下一般可以分为三层：业务（Biz）、应用（Application）、系统（System）。系统层为最下层基础，表示操作系统相关状态；应用层为JVM层，涵盖主应用进程与中间件运行状态；业务层为最上层，为业务视角下服务对外运行状态。因此进行大促稳定性监控梳理时，可以先脱离现有监控，先从核心、资损链路开始，按照业务、应用（中间件、JVM、DB）、系统三个层次梳理需要哪些监控，再从根据这些索引找到对应的监控告警，如果不存在，则相应补上；如果存在则检查阈值、时间、告警人是否合理。</p>
+<h3 id="监控"><a href="#监控" class="headerlink" title="监控"></a>监控</h3><p>监控系统一般有四项黄金指标：延时（Latency）, 错误（Error）,流量（Traffic）, 饱和度（Situation），各层的关键性监控同样也可以按照这四项指标来进行归类，具体如下：</p>
+<p align="center">
+  <img src="/images/how-to-monitor.png" width=900 height=500>
+  <br/>
+</p>
+
+
+<h3 id="告警"><a href="#告警" class="headerlink" title="告警"></a>告警</h3><p>是不是每项监控都需要告警？答案当然是否定的。建议优先设置Biz层告警，因为Biz层我们对外服务最直观业务表现，最贴切用户感受。Application&amp;System层指标主要用于监控，部分关键&amp;高风险指标可设置告警，用于问题排查定位以及故障提前发现。对于一项告警，我们一般需要关注级别、阈值、通知人等几个点。</p>
+<ol>
+<li>级别<br>即当前告警被触发时，问题的严重程度，一般来说有几个衡量点：</li>
+</ol>
+<ul>
+<li>是否关联NOC</li>
+<li>是否产生严重业务影响</li>
+<li>是否产生资损</li>
+</ul>
+<ol start="2">
+<li>阈值</li>
+</ol>
+<ul>
+<li>即一项告警的触发条件&amp;时间，需根据具体场景合理制定。一般遵循以下原则：</li>
+<li>不可过于迟钝。一个合理的监控体系中，任何异常发生后都应触发相关告警。</li>
+<li>不可过于敏感。过于敏感的阈值会造成频繁告警，从而导致响应人员疲劳应对，无法筛选真实异常。若一个告警频繁出现，一般是两个原因：系统设计不合理 or 阈值设置不合理。</li>
+<li>若单一指标无法反馈覆盖整体业务场景，可结合多项指标关联构建。</li>
+<li>需符合业务波动曲线，不同时段可设置不同条件&amp;通知策略。</li>
+</ul>
+<ol start="3">
+<li>通知人&amp;方式</li>
+</ol>
+<ul>
+<li>若为业务指标异常(Biz层告警)，通知人应为问题处理人员(开发、运维同学)与业务关注人员(TL、业务同学)的集合，通知方式较为实时，比如电话通知。</li>
+<li>若为应用 &amp; 系统层告警，主要用于定位异常原因，通知人设置问题排查处理人员即可，通知方式可考虑钉钉、短信等低干扰方式。</li>
+<li>除了关联层次，对于不同级别的告警，通知人范围也可适当扩大，尤其是关联GOC故障的告警指标，应适当放宽范围，通知方式也应更为实时直接</li>
+</ul>
+<h4 id="应产出数据-1"><a href="#应产出数据-1" class="headerlink" title="应产出数据"></a>应产出数据</h4><p>完成该项梳理工作后，我们应该产出以下数据：</p>
+<ol>
+<li>系统监控模型，格式同表1</li>
+</ol>
+<ul>
+<li>Biz、Application、System 分别存在哪些待监控点</li>
+<li>监控点是否已全部存在指标，仍有哪些待补充</li>
+</ul>
+<ol start="2">
+<li>系统告警模型列表，需包含以下数据</li>
+</ol>
+<ul>
+<li>关联监控指标（链接）</li>
+<li>告警关键级别</li>
+<li>是否推送GOC</li>
+<li>是否产生资损</li>
+<li>是否关联故障</li>
+<li>是否关联预案</li>
+</ul>
+<ol start="3">
+<li>业务指标大盘，包含Biz层重点监控指标数据</li>
+<li>系统&amp;应用指标大盘，包含核心系统关键系统指标，可用于白盒监控定位问题。</li>
+</ol>
+<h2 id="业务策略-容量规划-Capacity-Planning-容量规划"><a href="#业务策略-容量规划-Capacity-Planning-容量规划" class="headerlink" title="业务策略&amp;容量规划 Capacity Planning - 容量规划"></a>业务策略&amp;容量规划 Capacity Planning - 容量规划</h2><h3 id="业务策略"><a href="#业务策略" class="headerlink" title="业务策略"></a>业务策略</h3><p>不同于高可用系统建设体系，大促稳定性保障体系与面向特定业务活动的针对性保障建设，因此，业务策略与数据是我们进行保障前不可或缺的数据。<br>一般大促业务数据可分为两类，全局业务形态评估以及应急策略&amp;玩法。</p>
+<h4 id="全局评估"><a href="#全局评估" class="headerlink" title="全局评估"></a>全局评估</h4><p>该类数据从可以帮助我们进行精准流量评估、峰值预测、大促人力排班等等，一般包含下面几类：</p>
+<ul>
+<li>业务量预估体量（日常X倍）</li>
+<li>预估峰值日期</li>
+<li>大促业务时长（XX日-XX日）</li>
+<li>业务场景预估流量分配</li>
+</ul>
+<h4 id="应急策略"><a href="#应急策略" class="headerlink" title="应急策略"></a>应急策略</h4><ul>
+<li>该类数据指相较于往年大促活动，本次大促业务变量，可用于应急响应预案与高风险节点评估等，一般包含下面两类：</li>
+<li>特殊业务玩法</li>
+</ul>
+<p>容量规划的本质是追求计算风险最小化和计算成本最小化之间的平衡，只追求任意其一都不是合理的。为了达到这两者的最佳平衡点，需尽量精准计算系统峰值负载流量，再将流量根据单点资源负载上限换算成相应容量，得到最终容量规划模型。</p>
+<h3 id="流量模型评估"><a href="#流量模型评估" class="headerlink" title="流量模型评估"></a>流量模型评估</h3><ol>
+<li>入口流量</li>
+</ol>
+<p>对于一次大促，系统峰值入口流量一般由常规业务流量与非常规增量（比如容灾预案&amp;业务营销策略变化带来的流量模型配比变化）叠加拟合而成。</p>
+<ul>
+<li>常规业务流量一般有两类计算方式：<ul>
+<li>历史流量算法：该类算法假设当年大促增幅完全符合历史流量模型，根据当前&amp;历年日常流量，计算整体业务体量同比增量模型；然后根据历年大促-日常对比，计算预估流量环比增量模型；最后二者拟合得到最终评估数据。</li>
+<li>由于计算时无需依赖任何业务信息输入，该类算法可用于保障工作初期业务尚未给出业务总量评估时使用，得到初估业务流量。</li>
+<li>业务量-流量转化算法(GMV\DAU\订单量)：该类算法一般以业务预估总量（GMV\DAU\订单量）为输入，根据历史大促&amp;日常业务量-流量转化模型（比如经典漏洞模型）换算得到对应子域业务体量评估。- 该种方式强依赖业务总量预估，可在保障工作中后期使用，在初估业务流量基础上纳入业务评估因素考虑。</li>
+</ul>
+</li>
+<li>非常规增量一般指前台业务营销策略变更或系统应急预案执行后流量模型变化造成的增量流量。例如，NA61机房故障时，流量100%切换到NA62后，带来的增量变化.考虑到成本最小化，非常规增量P计算时一般无需与常规业务流量W一起，全量纳入叠加入口流量K，一般会将非常规策略发生概率λ作为权重</li>
+</ul>
+<ol start="2">
+<li>节点流量<br>节点流量由入口流量根据流量分支模型，按比例转化而来。分支流量模型以系统链路为计算基础，遵循以下原则：</li>
+</ol>
+<ul>
+<li>同一入口，不同链路占比流量独立计算。</li>
+<li>针对同一链路上同一节点，若存在多次调用，需计算按倍数同比放大（比如DB\Tair等）。</li>
+<li>DB写流量重点关注，可能出现热点造成DB HANG死。</li>
+</ul>
+<h3 id="容量转化"><a href="#容量转化" class="headerlink" title="容量转化"></a>容量转化</h3><p>节点容量是指一个节点在运行过程中，能够<strong>同时处理的最大请求数</strong>。它反映了系统的瞬时负载能力。</p>
+<p>1）Little Law衍生法则<br>不同类型资源节点(应用容器、Tair、DB、HBASE等)流量-容量转化比各不相同，但都服从Little Law衍生法则，即：<br>  节点容量&#x3D;节点吞吐率×平均响应时间</p>
+<p>2）N + X 冗余原则</p>
+<p>在满足目标流量所需要的最小容量基础上，冗余保留X单位冗余能力<br>X与目标成本与资源节点故障概率成正相关，不可用概率越高，X越高<br>对于一般应用容器集群，可考虑X &#x3D; 0.2N</p>
+<h3 id="全链路压测-TODO"><a href="#全链路压测-TODO" class="headerlink" title="全链路压测(TODO)"></a>全链路压测(TODO)</h3><ul>
+<li>上述法则只能用于容量初估(大促压测前&amp;新依赖)，最终精准系统容量还是需要结合系统周期性压力测试得出。</li>
+</ul>
+<h3 id="应产出数据-2"><a href="#应产出数据-2" class="headerlink" title="应产出数据"></a>应产出数据</h3><ul>
+<li>基于模型评估的入口流量模型 &amp; 集群自身容量转化结果（若为非入口应用，则为限流点梳理）。</li>
+<li>基于链路梳理的分支流量模型 &amp; 外部依赖容量转化结果。</li>
+</ul>
+<h2 id="大促保障"><a href="#大促保障" class="headerlink" title="大促保障"></a>大促保障</h2><h3 id="Incident-Response-紧急-前置预案梳理"><a href="#Incident-Response-紧急-前置预案梳理" class="headerlink" title="Incident Response - 紧急&amp;前置预案梳理"></a>Incident Response - 紧急&amp;前置预案梳理</h3><p>要想在大促高并发流量场景下快速对线上紧急事故进行响应处理，仅仅依赖值班同学临场发挥是远远不够的。争分夺秒的情况下，无法给处理人员留有充足的策略思考空间，而错误的处理决策，往往会导致更为失控严重的业务&amp;系统影响。因此，要想在大促现场快速而正确的响应问题，值班同学需要做的是选择题(Which)，而不是陈述题(What)。而选项的构成，便是我们的业务&amp;系统预案。从执行时机与解决问题属性来划分，预案可分为技术应急预案、技术前置预案、业务应急预案、业务前置预案等四大类。结合之前的链路梳理和业务评估结果，我们可以快速分析出链路中需要的预案，遵循以下原则：</p>
+<ul>
+<li>技术应急预案：该类预案用于处理系统链路中，某层次节点不可用的情况，例如技术&#x2F;业务强依赖、弱稳定性、高风险等节点不可用等异常场景。</li>
+<li>技术前置预案：该类预案用于平衡整体系统风险与单节点服务可用性，通过熔断等策略保障全局服务可靠。例如弱稳定性&amp;弱依赖服务提前降级、与峰值流量时间冲突的离线任务提前暂定等。</li>
+<li>业务应急预案：该类预案用于应对业务变更等非系统性异常带来的需应急处理问题，例如业务数据错误（数据正确性敏感节点）、务策略调整（配合业务应急策略）等</li>
+<li>业务前置预案：该类预案用于配和业务全局策略进行的前置服务调整（非系统性需求）</li>
+</ul>
+<h3 id="应产出数据-3"><a href="#应产出数据-3" class="headerlink" title="应产出数据"></a>应产出数据</h3><p>完成该项梳理工作后，我们应该产出以下数据：</p>
+<ul>
+<li>执行&amp;关闭时间（前置预案）</li>
+<li>触发阈值（紧急预案，须关联相关告警）</li>
+<li>关联影响（系统&amp;业务）</li>
+<li>决策&amp;执行&amp;验证人员</li>
+<li>开启验证方式</li>
+<li>关闭阈值（紧急预案）</li>
+<li>关闭验证方式</li>
+</ul>
+<p>阶段性产出-全链路作战地图</p>
+<p>进行完上述几项保障工作，我们基本可得到全局链路作战地图，包含链路分支流量模型、强弱依赖节点、资损评估、对应预案&amp;处理策略等信息。大促期间可凭借该地图快速从全局视角查看应急事件相关影响，同时也可根据地图反向评估预案、容量等梳理是否完善合理。</p>
+<h4 id="Incident-Response-作战手册梳理"><a href="#Incident-Response-作战手册梳理" class="headerlink" title="Incident Response - 作战手册梳理"></a>Incident Response - 作战手册梳理</h4><p>作战手册是整个大促保障的行动依据，贯穿于整个大促生命周期，可从事前、事中、事后三个阶段展开考虑。整体梳理应本着精准化、精细化的原则，理想状态下，即便是对业务、系统不熟悉的轮班同学，凭借手册也能快速响应处理线上问题。<br><strong>事前</strong><br>1）前置检查事项清单</p>
+<ul>
+<li>大促前必须执行事项checklist,通常包含以下事项：</li>
+<li>集群机器重启 or 手动FGC</li>
+<li>影子表数据清理</li>
+<li>检查上下游机器权限</li>
+<li>检查限流值</li>
+<li>检查机器开关一致性</li>
+<li>检查数据库配置</li>
+<li>检查中间件容量、配置(DB\缓存\NoSQL等)</li>
+<li>检查监控有效性（业务大盘、技术大盘、核心告警）</li>
+<li>每个事项都需包含具体执行人、检查方案、检查结果三列数据<br>2）前置预案</li>
+<li>域内所有业务&amp;技术前置预案。</li>
+</ul>
+<p><strong>事中</strong></p>
+<ol>
+<li>紧急技术&amp;业务预案<br>需要包含的内容基本同前置预案，差异点如下：</li>
+</ol>
+<ul>
+<li>执行条件&amp;恢复条件：具体触发阈值，对应监控告警项。</li>
+<li>通知决策人。</li>
+</ul>
+<ol start="2">
+<li>应急工具&amp;脚本<br>常见故障排查方式、核心告警止血方式(强弱依赖不可用等)，业务相关日志捞取脚本等。</li>
+<li>告警&amp;大盘</li>
+</ol>
+<ul>
+<li>应包含业务、系统集群及中间件告警监控梳理结果，核心业务以及系统大盘，对应日志数据源明细等数据：</li>
+<li>日志数据源明细：数据源名称、文件位置、样例、切分格式。</li>
+<li>业务、系统集群及中间件告警监控梳理结果：关联监控指标（链接）、告警关键级别、是否推送GOC、是否产生资损、是否关联故障、是否关联预案。</li>
+<li>核心业务&amp;系统大盘：大盘地址、包含指标明细(含义、是否关联告警、对应日志)。</li>
+</ul>
+<ol start="4">
+<li>上下游机器分组</li>
+</ol>
+<ul>
+<li>应包含核心系统、上下游系统，在不同机房、单元集群分组、应用名，可用于事前-机器权限检查、事中-应急问题排查黑屏处理。</li>
+</ul>
+<ol start="5">
+<li>值班注意事项</li>
+</ol>
+<ul>
+<li>包含每班轮班同学值班必做事项、应急变更流程、核心大盘链接等。</li>
+</ul>
+<ol start="6">
+<li>核心播报指标</li>
+</ol>
+<ul>
+<li>包含核心系统&amp;服务指标(CPU\LOAD\RT)、业务关注指标等，每项指标应明确具体监控地址、采集方式。</li>
+</ul>
+<ol start="7">
+<li>域内&amp;关联域人员通讯录、值班</li>
+</ol>
+<ul>
+<li>包含域内技术、TL、业务方对应排班情况、联系方式(电话)，相关上下游、基础组件(DB、中间件等)对应值班情况。</li>
+</ul>
+<ol start="8">
+<li>值班问题记录</li>
+</ol>
+<ul>
+<li>作战记录，记录工单、业务问题、预案(前置\紧急)（至少包含：时间、问题描述（截图）、影响分析、决策&amp;解决过程等）。值班同学在值班结束前，进行记录。<br><strong>事后</strong></li>
+</ul>
+<ol>
+<li>系统恢复设置事项清单(限流、缩容)<br>一般与事前检查事项清单对应，包含限流阈值调整、集群缩容等大促后恢复操作。</li>
+<li>大促问题复盘记录</li>
+</ol>
+<ul>
+<li>应包含大促遇到的核心事件总结梳理。</li>
+</ul>
+<h3 id="沙盘推演和演练-Incident-Response"><a href="#沙盘推演和演练-Incident-Response" class="headerlink" title="沙盘推演和演练 Incident Response"></a>沙盘推演和演练 Incident Response</h3><p>实战沙盘演练是应急响应方面的最后一项保障工作，以历史真实故障CASE作为应急场景输入，模拟大促期间紧急状况，旨在考验值班同学们对应急问题处理的响应情况。<br>一般来说，一个线上问题从发现到解决，中间需要经历定位&amp;排查&amp;诊断&amp;修复等过程，总体遵循以下几点原则：</p>
+<ul>
+<li>尽最大可能让系统先恢复服务，同时为根源调查保护现场（机器、日志、水位记录）。</li>
+<li>避免盲目搜索，依据白盒监控针对性诊断定位。</li>
+<li>有序分工，各司其职，避免一窝蜂失控乱象。</li>
+<li>依据现场情况实时评估影响范围，实在无法通过技术手段挽救的情况(例如强依赖不可用)，转化为业务问题思考（影响范围、程度、是否有资损、如何协同业务方）。</li>
+<li>沙盘演练旨在检验值班同学故障处理能力，着重关注止血策略、分工安排、问题定位等三个方面：<br>国际化中台双11买家域演练<br>根据故障类型，常见止血策略有以下解决思路：</li>
+<li>入口限流：调低对应Provider服务来源限流值</li>
+<li>应对突发流量过高导致自身系统、下游强依赖负载被打满。</li>
+<li>下游降级：降级对应下游服务</li>
+<li>下游弱依赖不可用。</li>
+<li>下游业务强依赖经业务同意后降级（业务部分有损）。</li>
+<li>单点失败移除：摘除不可用节点</li>
+<li>单机水位飙高时，先下线不可用单机服务（无需下线机器，保留现场）。</li>
+<li>应对集群单点不可用、性能差。</li>
+<li>切换：单元切流或者切换备份</li>
+</ul>
+<p>应对单库或某单元依赖因为自身原因（宿主机或网络），造成局部流量成功率下跌下跌。<br>Google SRE中，对于紧急事故管理有以下几点要素：</p>
+<ul>
+<li>嵌套式职责分离，即分确的职能分工安排</li>
+<li>控制中心\作战室</li>
+<li>实时事故状态文档</li>
+<li>明确公开的职责交接</li>
+<li>其中嵌套式职责分离，即分确的职能分工安排，达到各司其职，有序处理的效果，一般可分为下列几个角色：<br>事故总控：负责协调分工以及未分配事务兜底工作，掌握全局概要信息，一般为PM&#x2F;TL担任。<br>事务处理团队：事故真正处理人员，可根据具体业务场景&amp;系统特性分为多个小团队。团队内部存在域内负责人，与事故总控人员进行沟通。<br>发言人：事故对外联络人员，负责对事故处理内部成员以及外部关注人员信息做周期性信息同步，同时需要实时维护更新事故文档。<br>规划负责人：负责外部持续性支持工作，比如当大型故障出现，多轮排班轮转时，负责组织职责交接记录</li>
+</ul>
+<h2 id="资损体系"><a href="#资损体系" class="headerlink" title="资损体系"></a>资损体系</h2><h3 id="定期review资损风险"><a href="#定期review资损风险" class="headerlink" title="定期review资损风险"></a>定期review资损风险</h3><h3 id="事中及时发现"><a href="#事中及时发现" class="headerlink" title="事中及时发现"></a>事中及时发现</h3><p align="center">
+  <img src="/images/realtime-verify.webp" width=800 height=600>
+  <br/>
+  <strong><a href="https://segmentfault.com/a/1190000040286146">【得物技术】浅谈资损防控</a></strong>
+  <br/>
+</p>
+
+<h3 id="事后复盘和知识沉淀"><a href="#事后复盘和知识沉淀" class="headerlink" title="事后复盘和知识沉淀"></a>事后复盘和知识沉淀</h3><h3 id="参考学习"><a href="#参考学习" class="headerlink" title="参考学习"></a>参考学习</h3><ul>
+<li><a href="https://tech.dewu.com/article?id=73">资损防控技术体系简介及实践</a></li>
+<li><a href="https://segmentfault.com/a/1190000040286146">浅谈资损防控</a></li>
+</ul>
+<h2 id="风控体系"><a href="#风控体系" class="headerlink" title="风控体系"></a>风控体系</h2><h2 id="性能优化"><a href="#性能优化" class="headerlink" title="性能优化"></a>性能优化</h2><p align="center">
+  <img src="/images/performance.png" width=800 height=800>
+  <br/>
+</p>
+
+<p>学习资料：</p>
+<ul>
+<li><a href="https://landing.google.com/sre/books/">https://landing.google.com/sre/books/</a></li>
+<li><a href="https://sre.google/sre-book/table-of-contents/">https://sre.google/sre-book/table-of-contents/</a></li>
+<li><a href="https://sre.google/workbook/table-of-contents/">https://sre.google/workbook/table-of-contents/</a></li>
+<li><a href="https://mp.weixin.qq.com/s/w2tOXR6rcTmUHGsJKJilzg?spm=a2c6h.12873639.article-detail.7.31fc2988tIxeaF">https://mp.weixin.qq.com/s/w2tOXR6rcTmUHGsJKJilzg?spm=a2c6h.12873639.article-detail.7.31fc2988tIxeaF</a></li>
+</ul>
 
       
     </div>
@@ -2593,293 +3019,6 @@ print(resnet18_lib.get_source())
 <li><a href="https://stackoverflow.com/questions/46173003/bootstrap-server-vs-zookeeper-in-kafka">Bootstrap server vs zookeeper in kafka?</a></li>
 <li><a href="https://blog.csdn.net/java_atguigu/article/details/123920233">kafka 如何保证顺序消费</a></li>
 </ol>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2024/03/07/system-design/elasticsearch/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="wxquare">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="undefined | wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2024/03/07/system-design/elasticsearch/" class="post-title-link" itemprop="url">互联网系统设计 - 搜索和Elasticsearch</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2024-03-07 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-07T00:00:00+08:00">2024-03-07</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2024-05-22 22:36:51" itemprop="dateModified" datetime="2024-05-22T22:36:51+08:00">2024-05-22</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">系统设计</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h2 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h2><h3 id="创建index，setting和mapping"><a href="#创建index，setting和mapping" class="headerlink" title="创建index，setting和mapping"></a>创建index，setting和mapping</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -XPUT -H&#x27;Content-Type: application/json&#x27;  host/index_name?pretty=true -d@index_mapping.json </span><br></pre></td></tr></table></figure>
-
-<details>
-  <summary>es index example</summary>
-  <figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br></pre></td><td class="code"><pre><span class="line"> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;settings&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;index&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;number_of_shards&quot;</span><span class="punctuation">:</span> <span class="string">&quot;5&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;number_of_replicas&quot;</span><span class="punctuation">:</span> <span class="string">&quot;2&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;analysis&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;filter&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;t2sconvert&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;convert_type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;t2s&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;stconvert&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;traditional_chinese_analyzer&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;filter&quot;</span><span class="punctuation">:</span> <span class="string">&quot;t2sconvert&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;custom&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;tokenizer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_smart&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;normalizer&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;lowercase&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;custom&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;filter&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">                        <span class="string">&quot;lowercase&quot;</span></span><br><span class="line">                    <span class="punctuation">]</span></span><br><span class="line">                <span class="punctuation">&#125;</span></span><br><span class="line">            <span class="punctuation">&#125;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;mappings&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;_doc&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;properties&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;key_type&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;integer&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;country&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;language_code&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;level&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;integer&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;code&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;is_available&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;boolean&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;is_popular&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;boolean&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;pop_rank&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;integer&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;properties&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;value_in_chinese&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_max_word&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;search_analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_smart&quot;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                        <span class="attr">&quot;value_in_english&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span><span class="punctuation">,</span></span><br><span class="line">                                    <span class="attr">&quot;normalizer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;lowercase&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;display_name&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;properties&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;value_in_chinese&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_max_word&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;search_analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_smart&quot;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                        <span class="attr">&quot;value_in_english&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span><span class="punctuation">,</span></span><br><span class="line">                                    <span class="attr">&quot;normalizer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;lowercase&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;address&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;properties&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;value_in_chinese&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_max_word&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;search_analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_smart&quot;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                        <span class="attr">&quot;value_in_english&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span><span class="punctuation">,</span></span><br><span class="line">                                    <span class="attr">&quot;normalizer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;lowercase&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;city_code&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;city_name&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;properties&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;value_in_chinese&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_max_word&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;search_analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_smart&quot;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                        <span class="attr">&quot;value_in_english&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span><span class="punctuation">,</span></span><br><span class="line">                                    <span class="attr">&quot;normalizer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;lowercase&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;updated&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;date&quot;</span><span class="punctuation">,</span></span><br><span class="line">                        <span class="attr">&quot;format&quot;</span><span class="punctuation">:</span> <span class="string">&quot;strict_date_optional_time||epoch_millis&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span></span><br><span class="line">            <span class="punctuation">&#125;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-</details>
-
-<h3 id="查看index-cat-基本信息"><a href="#查看index-cat-基本信息" class="headerlink" title="查看index,_cat 基本信息"></a>查看index,_cat 基本信息</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -XGET &#x27;host/_cat/indices/*hotel_basic_info_v2_live*(支持正则表达式）?v=true&amp;pretty=true&#x27;</span><br></pre></td></tr></table></figure>
-
-<h3 id="查看索引mapping信息"><a href="#查看索引mapping信息" class="headerlink" title="查看索引mapping信息"></a>查看索引mapping信息</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -XGET &#x27;host/index_name/_mapping?pretty=true&#x27;</span><br></pre></td></tr></table></figure>
-
-<h3 id="查看索引的setting信息"><a href="#查看索引的setting信息" class="headerlink" title="查看索引的setting信息"></a>查看索引的setting信息</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -XGET &#x27;host/index_name/_settings?pretty=true&#x27;</span><br></pre></td></tr></table></figure>
-
-<h3 id="通过doc-id-正向查询"><a href="#通过doc-id-正向查询" class="headerlink" title="通过doc id 正向查询"></a>通过doc id 正向查询</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -XGET  &#x27;host/index/_doc/doc_id?pretty=true&#x27;</span><br></pre></td></tr></table></figure>
-
-<h3 id="query-search，倒排查询"><a href="#query-search，倒排查询" class="headerlink" title="query,search，倒排查询"></a>query,search，倒排查询</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">curl -XPOST -H&#x27;Content-Type: application/json&#x27; &#x27;host/index_name/_search?pretty=true&#x27; -d &#x27;&#123;</span><br><span class="line">&quot;query&quot;:&#123;&#125;&#125;&#x27;</span><br></pre></td></tr></table></figure>
-
-
-<h3 id="update"><a href="#update" class="headerlink" title="update"></a>update</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">curl -XPOST  -H&#x27;Content-Type: application/json&#x27; &#x27;host/index/_doc/doc_id/_update&#x27; -d &#x27;&#123;</span><br><span class="line">&quot;doc&quot;: &#123;</span><br><span class="line">    &quot;price&quot;: &quot;6500000001&quot;</span><br><span class="line">&#125;</span><br><span class="line">&#125;&#x27;</span><br></pre></td></tr></table></figure>
-
-<h3 id="聚合count查询"><a href="#聚合count查询" class="headerlink" title="聚合count查询"></a>聚合count查询</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">curl -XPOST -H&#x27;Content-Type: application/json&#x27; &#x27;host/index_name/_count&#x27; -d &#x27;&#123;</span><br><span class="line">    &quot;query&quot;: &#123;</span><br><span class="line">        &quot;term&quot;: &#123;</span><br><span class="line">            &quot;city_name.value_in_english.keyword&quot;: &quot;Jakarta&quot;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;&#x27;</span><br></pre></td></tr></table></figure>
-
-<h3 id="增加字段"><a href="#增加字段" class="headerlink" title="增加字段"></a>增加字段</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">curl -XPOST -H&#x27;Content-Type: application/json&#x27; &#x27;host/index_name/_doc/_mapping&#x27; -d &#x27;&#123;</span><br><span class="line">    &quot;properties&quot;: &#123;</span><br><span class="line">        &quot;facility_codes&quot;: &#123;</span><br><span class="line">            &quot;type&quot;:&quot;keyword&quot;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;&#x27;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-<h3 id="analyzer"><a href="#analyzer" class="headerlink" title="analyzer"></a>analyzer</h3><ul>
-<li><p>参考：<a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html</a></p>
-<p>  Elastic Search 在处理 Text 类型数据的时候，会把数据交给分词器处理。然后根据分词器给的词，建立倒排索引，通常一句话都由若干词语组成，分词结果会极大的影响到查询结果的质量</p>
-</li>
-</ul>
-<p>在 Elastic Search 中，分词器起到了非常重要的作用，在定义文档结构、录入和更新文档、查询文档的时候都会用到它。例如：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">武汉市长江大桥欢迎您</span><br><span class="line"></span><br><span class="line">默认分词器：</span><br><span class="line">[武, 汉, 市, 长, 江, 大, 桥, 欢, 迎, 您]</span><br><span class="line"></span><br><span class="line">普通分词器：</span><br><span class="line">[武汉, 市, 武汉市, 长江, 大桥,长江大桥, 欢迎, 您, 欢迎您]</span><br><span class="line"></span><br><span class="line">二哈分词器：</span><br><span class="line">[武汉, 市长, 江大桥, 欢迎, 您]</span><br></pre></td></tr></table></figure>
-
-<h3 id="normalizer"><a href="#normalizer" class="headerlink" title="normalizer"></a>normalizer</h3><ul>
-<li>参考：<a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html</a></li>
-</ul>
-<h3 id="alias"><a href="#alias" class="headerlink" title="alias"></a>alias</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">POST /_aliases</span><br><span class="line">&#123;</span><br><span class="line">  &quot;actions&quot;: [</span><br><span class="line">    &#123;&quot;remove&quot;: &#123;&quot;index&quot;: &quot;l1&quot;, &quot;alias&quot;: &quot;a1&quot;&#125;&#125;,</span><br><span class="line">    &#123;&quot;add&quot;: &#123;&quot;index&quot;: &quot;l1&quot;, &quot;alias&quot;: &quot;a2&quot;&#125;&#125;</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -XPUT  host/index_nane/_alias/index_alias_name</span><br></pre></td></tr></table></figure>
-<h3 id="query-DSL"><a href="#query-DSL" class="headerlink" title="query DSL"></a>query DSL</h3><ul>
-<li><p>term level queries</p>
-<ul>
-<li>keyword term</li>
-<li><a href="https://www.elastic.co/guide/en/elasticsearch/reference/6.7/term-level-queries.html">https://www.elastic.co/guide/en/elasticsearch/reference/6.7/term-level-queries.html</a></li>
-</ul>
-</li>
-<li><p>full text queries</p>
-<ul>
-<li>Match Phrase Query</li>
-<li>Mathc Query</li>
-</ul>
-</li>
-<li><p>compound queries</p>
-<ul>
-<li>dismax</li>
-<li>bool</li>
-<li>function score</li>
-<li>boosting query</li>
-</ul>
-</li>
-<li><p><a href="https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl.html">https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl.html</a></p>
-</li>
-</ul>
-<details>
-  <summary>es query dsl</summary>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;query&quot;: &#123;</span><br><span class="line">        &quot;function_score&quot;: &#123;</span><br><span class="line">            &quot;functions&quot;: [</span><br><span class="line">                &#123;</span><br><span class="line">                    &quot;filter&quot;: &#123;</span><br><span class="line">                        &quot;term&quot;: &#123;</span><br><span class="line">                            &quot;key_type&quot;: 1</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;,</span><br><span class="line">                    &quot;weight&quot;: 3</span><br><span class="line">                &#125;,</span><br><span class="line">                &#123;</span><br><span class="line">                    &quot;filter&quot;: &#123;</span><br><span class="line">                        &quot;term&quot;: &#123;</span><br><span class="line">                            &quot;key_type&quot;: 2</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;,</span><br><span class="line">                    &quot;weight&quot;: 2</span><br><span class="line">                &#125;</span><br><span class="line">            ],</span><br><span class="line">            &quot;min_score&quot;: 0,</span><br><span class="line">            &quot;query&quot;: &#123;</span><br><span class="line">                &quot;dis_max&quot;: &#123;</span><br><span class="line">                    &quot;queries&quot;: [</span><br><span class="line">                        &#123;</span><br><span class="line">                            &quot;function_score&quot;: &#123;</span><br><span class="line">                                &quot;functions&quot;: [</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;filter&quot;: &#123;</span><br><span class="line">                                            &quot;term&quot;: &#123;</span><br><span class="line">                                                &quot;search_key.filed1.keyword&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;,</span><br><span class="line">                                        &quot;weight&quot;: 100</span><br><span class="line">                                    &#125;,</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;filter&quot;: &#123;</span><br><span class="line">                                            &quot;term&quot;: &#123;</span><br><span class="line">                                                &quot;search_key.filed2.keyword&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;,</span><br><span class="line">                                        &quot;weight&quot;: 100</span><br><span class="line">                                    &#125;</span><br><span class="line">                                ],</span><br><span class="line">                                &quot;score_mode&quot;: &quot;max&quot;</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;,</span><br><span class="line">                        &#123;</span><br><span class="line">                            &quot;dis_max&quot;: &#123;</span><br><span class="line">                                &quot;queries&quot;: [</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;match_phrase&quot;: &#123;</span><br><span class="line">                                            &quot;search_key.filed1&quot;: &#123;</span><br><span class="line">                                                &quot;boost&quot;: 50,</span><br><span class="line">                                                &quot;query&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;</span><br><span class="line">                                    &#125;,</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;match_phrase&quot;: &#123;</span><br><span class="line">                                            &quot;search_key.field2&quot;: &#123;</span><br><span class="line">                                                &quot;boost&quot;: 50,</span><br><span class="line">                                                &quot;query&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;</span><br><span class="line">                                    &#125;</span><br><span class="line">                                ]</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;,</span><br><span class="line">                        &#123;</span><br><span class="line">                            &quot;dis_max&quot;: &#123;</span><br><span class="line">                                &quot;queries&quot;: [</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;prefix&quot;: &#123;</span><br><span class="line">                                            &quot;search_key.filed1.keyword&quot;: &#123;</span><br><span class="line">                                                &quot;boost&quot;: 30,</span><br><span class="line">                                                &quot;value&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;</span><br><span class="line">                                    &#125;,</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;prefix&quot;: &#123;</span><br><span class="line">                                            &quot;search_key.field2.keyword&quot;: &#123;</span><br><span class="line">                                                &quot;boost&quot;: 30,</span><br><span class="line">                                                &quot;value&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;</span><br><span class="line">                                    &#125;</span><br><span class="line">                                ]</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;,</span><br><span class="line">                        &#123;</span><br><span class="line">                            &quot;dis_max&quot;: &#123;</span><br><span class="line">                                &quot;queries&quot;: [</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;match&quot;: &#123;</span><br><span class="line">                                            &quot;search_key.field1&quot;: &#123;</span><br><span class="line">                                                &quot;boost&quot;: 10,</span><br><span class="line">                                                &quot;fuzziness&quot;: &quot;auto:6,20&quot;,</span><br><span class="line">                                                &quot;minimum_should_match&quot;: &quot;3&gt;75%&quot;,</span><br><span class="line">                                                &quot;query&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;</span><br><span class="line">                                    &#125;,</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;match&quot;: &#123;</span><br><span class="line">                                            &quot;search_key.field2&quot;: &#123;</span><br><span class="line">                                                &quot;boost&quot;: 10,</span><br><span class="line">                                                &quot;fuzziness&quot;: &quot;auto:6,20&quot;,</span><br><span class="line">                                                &quot;minimum_should_match&quot;: &quot;3&gt;75%&quot;,</span><br><span class="line">                                                &quot;query&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;</span><br><span class="line">                                    &#125;</span><br><span class="line">                                ]</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;</span><br><span class="line">                    ]</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    &quot;size&quot;: 30,</span><br><span class="line">    &quot;sort&quot;: [</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;_score&quot;: &#123;</span><br><span class="line">                &quot;order&quot;: &quot;desc&quot;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;key_type&quot;: &#123;</span><br><span class="line">                &quot;order&quot;: &quot;asc&quot;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;others&quot;: &#123;</span><br><span class="line">                &quot;order&quot;: &quot;desc&quot;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-</details>
-
-<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><h3 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h3><ul>
-<li>节点：分布系统都有的master节点和普通节点。类似于kafka集群都会存在的一种节点</li>
-<li>master节点:用于管理索引（创建索引、删除索引）、分配分片，维护元数据</li>
-<li>协调节点：ES的特殊性，需要由一个节点汇总多个分片的query结果。节点是否担任协调节点可通过配置文件配置。例如某个节点只想做协调节点：node.master&#x3D;false，node.data&#x3D;false</li>
-<li>ES的读写流程主要是协调节点，主分片节点、副分片节点间的相互协调。</li>
-<li>ES的读取分为GET和Search两种操作。GET根据文档id从正排索引中获取内容；Search不指定id，根据关键字从倒排索引中获取内容。</li>
-</ul>
-<h3 id="写单个文档的流程"><a href="#写单个文档的流程" class="headerlink" title="写单个文档的流程"></a>写单个文档的流程</h3><ol>
-<li>客户端向集群中的某个节点发送写请求，该节点就作为本次请求的协调节点</li>
-<li>协调节点使用文档ID来确定文档属于某个分片，再通过集群状态中的内容路由表信息获知该分片的主分片位置，将请求转发到主分片所在节点；</li>
-<li>主分片节点上的主分片执行写操作。如果写入成功，则它将请求并行转发到副分片所在的节点，等待副分片写入成功。所有副分片写入成功后，主分片节点向协调节点报告成功，协调节点向客户端报告成功。</li>
-</ol>
-<h3 id="读取单个文档的流程"><a href="#读取单个文档的流程" class="headerlink" title="读取单个文档的流程"></a>读取单个文档的流程</h3><ol>
-<li>客户端向集群中的某个节点发送读取请求，该节点就作为本次请求的协调节点；</li>
-<li>协调节点使用文档ID来确定文档属于某个分片，再通过集群状态中的内容路由表信息获知该分片的副本信息，此时它可以把请求转发到有副分片的任意节点读取数据。</li>
-<li>协调节点会将客户端请求轮询发送到集群的所有副本来实现负载均衡。</li>
-<li>收到读请求的节点将文档返回给协调节点，协调节点将文档返回给客户端</li>
-</ol>
-<h3 id="Search流程"><a href="#Search流程" class="headerlink" title="Search流程"></a>Search流程</h3><p>ES的Search操作分为两个阶段：query then fetch。需要两阶段完成搜索的原因是：在查询时不知道文档位于哪个分片，因此索引的所有分片都要参与搜索，然后协调节点将结果合并，在根据文档ID获取文档内容。</p>
-<p><strong>Query查询阶段</strong> </p>
-<ol>
-<li>客户端向集群中的某个节点发送Search请求，该节点就作为本次请求的协调节点；</li>
-<li>协调节点将查询请求转发到索引的每个主分片或者副分片中；</li>
-<li>每个分片在本地执行查询，并使用本地的Term&#x2F;Document Frequency信息进行打分，添加结果到大小为from+size的本地有序优先队列中；</li>
-<li>每个分片返回各自优先队列中所有文档的ID和排序值给协调节点，协调节点合并这些值到自己的优先队列中，产生一个全局排序后的列表。</li>
-</ol>
-<p><strong>Fetch拉取阶段</strong><br>query节点知道了要获取哪些信息，但是没有具体的数据，fetch阶段要去拉取具体的数据。相当于执行多次上面的GET流程</p>
-<ol>
-<li>协调节点向相关的节点发送GET请求；</li>
-<li>分片所在节点向协调节点返回数据；</li>
-<li>协调阶段等待所有的文档被取得，然后返回给客户端。</li>
-</ol>
-<h3 id="es-更新和乐观锁控制"><a href="#es-更新和乐观锁控制" class="headerlink" title="es 更新和乐观锁控制"></a>es 更新和乐观锁控制</h3><ul>
-<li>“_version” : 1,</li>
-<li>“_seq_no” : 426,</li>
-<li>“_primary_term” : 1,</li>
-</ul>
-<h2 id="性能优化"><a href="#性能优化" class="headerlink" title="性能优化"></a>性能优化</h2><h3 id="关注哪些性能指标"><a href="#关注哪些性能指标" class="headerlink" title="关注哪些性能指标"></a>关注哪些性能指标</h3><ul>
-<li>（读）query latency 1-2ms，复杂的查询可能到几十ms</li>
-<li>（读）fetch latency ，QPS，读数据量，延时</li>
-<li>（写）index rate，QPS，数据量，延时</li>
-<li>（写）index latency</li>
-<li>存储数据量</li>
-<li>集群读写QPS，CPU、内存、存储、网络IO的监控</li>
-<li>节点维度的监控</li>
-<li>index维度的监控</li>
-</ul>
-<h3 id="集群规划"><a href="#集群规划" class="headerlink" title="集群规划"></a>集群规划</h3><ul>
-<li>业务存储量，期望的SLA指标</li>
-<li>节点数量、内存、CPU数量，是否需要SSD等</li>
-<li>预留buffer,磁盘使用率达到85%、90%、95%</li>
-<li>CPU使用率</li>
-<li>内存使用率</li>
-<li>冷热数据，灾备方案</li>
-</ul>
-<h3 id="settings-索引优化实践"><a href="#settings-索引优化实践" class="headerlink" title="settings 索引优化实践"></a>settings 索引优化实践</h3><ul>
-<li>分片数量：number_of_shards，经验值：建议每个分片大小不要超过30GB。建议根据集群节点的个数规模，分片个数建议&gt;&#x3D;集群节点的个数。5节点的集群，5个分片就比较合理。注意：除非reindex操作，分片数是不可以修改的</li>
-<li>副本数量：number_of_replicas。除非你对系统的健壮性有异常高的要求，比如：银行系统。可以考虑2个副本以上。否则，1个副本足够。注意：副本数是可以通过配置随时修改的</li>
-<li>refresh_interval 是一个参数，用于配置 Elasticsearch 中的索引刷新间隔。索引刷新是将内存中的数据写入磁盘以使其可搜索的过程。刷新操作会将新的文档和更新的文档写入磁盘，并使其在搜索结果中可见。默认值表示每秒执行一次刷新操作</li>
-<li>按照日期规划索引是个很好的习惯</li>
-<li>务必使用别名，ES不像mysql方面的更改索引名称。使用别名就是一个相对灵活的选择</li>
-<li>setting中定义繁体全文检索时的traditional_chinese_analyzer以及一个名为lowercase的normalizer，常用于keyword类型的匹配</li>
-<li>结合profile、explain api 分析query慢的原因。<a href="https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-profile.html">search profile api</a></li>
-</ul>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;hotel_index_20220810&quot;: &#123;</span><br><span class="line">        &quot;settings&quot;: &#123;</span><br><span class="line">            &quot;index&quot;: &#123;</span><br><span class="line">                &quot;refresh_interval&quot;: &quot;1s&quot;,</span><br><span class="line">                &quot;number_of_shards&quot;: &quot;5&quot;,</span><br><span class="line">                &quot;provided_name&quot;: &quot;hotel_index_20220810&quot;,</span><br><span class="line">                &quot;creation_date&quot;: &quot;1660127508475&quot;,</span><br><span class="line">                &quot;analysis&quot;: &#123;</span><br><span class="line">                    &quot;filter&quot;: &#123;</span><br><span class="line">                        &quot;t2sconvert&quot;: &#123;</span><br><span class="line">                            &quot;convert_type&quot;: &quot;t2s&quot;,</span><br><span class="line">                            &quot;type&quot;: &quot;stconvert&quot;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;,</span><br><span class="line">                    &quot;normalizer&quot;: &#123;</span><br><span class="line">                        &quot;lowercase&quot;: &#123;</span><br><span class="line">                            &quot;filter&quot;: [</span><br><span class="line">                                &quot;lowercase&quot;</span><br><span class="line">                            ],</span><br><span class="line">                            &quot;type&quot;: &quot;custom&quot;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;,</span><br><span class="line">                    &quot;analyzer&quot;: &#123;</span><br><span class="line">                        &quot;traditional_chinese_analyzer&quot;: &#123;</span><br><span class="line">                            &quot;filter&quot;: &quot;t2sconvert&quot;,</span><br><span class="line">                            &quot;type&quot;: &quot;custom&quot;,</span><br><span class="line">                            &quot;tokenizer&quot;: &quot;ik_smart&quot;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;,</span><br><span class="line">                &quot;number_of_replicas&quot;: &quot;2&quot;,</span><br><span class="line">                &quot;uuid&quot;: &quot;afdjafkdlaf&quot;,</span><br><span class="line">                &quot;version&quot;: &#123;</span><br><span class="line">                    &quot;created&quot;: &quot;6080599&quot;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h3 id="mapping-数据模型优化"><a href="#mapping-数据模型优化" class="headerlink" title="mapping 数据模型优化"></a>mapping 数据模型优化</h3><ul>
-<li>不要使用默认的mapping.默认Mapping的字段类型是系统自动识别的。其中：string类型默认分成：text和keyword两种类型。如果你的业务中不需要分词、检索，仅需要精确匹配，仅设置为keyword即可。根据业务需要选择合适的类型，有利于节省空间和提升精度，如：浮点型的选择.</li>
-<li>Mapping各字段的选型流程</li>
-<li>选择合理的分词器。常见的开源中文分词器包括：ik分词器、ansj分词器、hanlp分词器、结巴分词器、海量分词器、“ElasticSearch最全分词器比较及使用方法” 搜索可查看对比效果。如果选择ik，建议使用ik_max_word。因为：粗粒度的分词结果基本包含细粒度ik_smart的结果。</li>
-<li>一个字段包含多种语言：分别设置了不同的分词器。中文：ik_max_word，英语：english等</li>
-<li>analyzer：表示文档写入时的分词，search_analyzer表示检索时query的分词</li>
-<li>type:text，type:keyword，不分词</li>
-<li>normalizer 表示英文keyword判断时不区分大小写</li>
-<li>“dynamic” : “strict”</li>
-<li><a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html</a></li>
-</ul>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">&quot;properties&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;accommodation&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;properties&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;value_in_chinese&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_max_word&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;search_analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_smart&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;value_in_english&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span><span class="punctuation">,</span></span><br><span class="line">                        <span class="attr">&quot;normalizer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;lowercase&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;english&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;value_in_filipino&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;standard&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;value_in_indonesian&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;indonesian&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;value_in_malay&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;standard&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;value_in_thai&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;thai&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;value_in_tw_chinese&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;traditional_chinese_analyzer&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;value_in_vietnamese&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;standard&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-
-
-<h3 id="数据写入优化"><a href="#数据写入优化" class="headerlink" title="数据写入优化"></a>数据写入优化</h3><ol>
-<li>要不要秒级响应？Elasticsearch近实时的本质是：最快1s写入的数据可以被查询到。如果refresh_interval设置为1s，势必会产生大量的segment，检索性能会受到影响。所以，非实时的场景可以调大，设置为30s，甚至-1</li>
-<li>能批量就不单条写入</li>
-<li>减少副本，提升写入性能。写入前，副本数设置为0，写入后，副本数设置为原来值</li>
-</ol>
-<h3 id="读优化"><a href="#读优化" class="headerlink" title="读优化"></a>读优化</h3><ol>
-<li>分析dsl</li>
-<li>禁用 wildcard模糊匹配,通过match_phrase和slop结合查询。</li>
-<li>极小的概率使用match匹配</li>
-<li>结合业务场景，大量使用filter过滤器</li>
-<li>控制返回字段和结果,同理，ES中，_source 返回全部字段也是非必须的。要通过_source 控制字段的返回，只返回业务相关的字段。</li>
-<li>分页深度查询和遍历.分页查询使用：from+size;遍历使用：scroll；并行遍历使用：scroll+slice</li>
-</ol>
-<h3 id="业务优化"><a href="#业务优化" class="headerlink" title="业务优化"></a>业务优化</h3><ol>
-<li>字段抽取、倾向性分析、分类&#x2F;聚类、相关性判定放在写入ES之前的ETL阶段进行</li>
-<li>产品经理基于各种奇葩业务场景可能会提各种无理需求</li>
-</ol>
-<h2 id="SDK-使用"><a href="#SDK-使用" class="headerlink" title="SDK 使用"></a>SDK 使用</h2><ul>
-<li>github.com&#x2F;olivere&#x2F;elastic</li>
-<li><a href="https://github.com/elastic/go-elasticsearch">https://github.com/elastic/go-elasticsearch</a></li>
-</ul>
-<h2 id="es-migrate-tools"><a href="#es-migrate-tools" class="headerlink" title="es migrate tools"></a>es migrate tools</h2><ul>
-<li><a href="https://github.com/medcl/esm">https://github.com/medcl/esm</a></li>
-<li><a href="https://github.com/medcl/esm/tree/0.1.0">https://github.com/medcl/esm/tree/0.1.0</a></li>
-</ul>
-<h2 id="拓展阅读"><a href="#拓展阅读" class="headerlink" title="拓展阅读"></a>拓展阅读</h2><ul>
-<li><a href="https://blog.csdn.net/weixin_40601534/article/details/122435858?spm=1001.2014.3001.5501">普通搜索和向量搜索介绍</a></li>
-<li><a href="https://www.cnblogs.com/chenny7/p/14765412.html">广告索引（定向）的布尔表达式</a></li>
-<li><a href="https://www.elastic.co/guide/en/elasticsearch/reference/8.3/index.html">official document</a></li>
-<li><a href="https://www.jianshu.com/p/eb7f11e178b3">scroll使用和Elasticsearch的深度翻页问题</a></li>
-<li><a href="https://www.jianshu.com/p/d4da0182a67a">ES 更新并发控制问题</a></li>
-<li><a href="https://www.cnblogs.com/upupfeng/p/13488120.html">ES 读写流程</a></li>
-<li><a href="http://www.datagrand.com/blog/search-query.html">达观数据搜索引擎的Query自动纠错技术和架构</a></li>
-<li><a href="https://donggeitnote.com/2021/09/19/elasticsearch-tfidf/">Elasticsearch基础之相关性介绍</a></li>
-<li><a href="https://donggeitnote.com/2022/01/02/elasticsearch-typo/">ElasticSearch进阶之拼写错误</a></li>
-<li><a href="https://donggeitnote.com/2021/11/06/elasticsearch-typematch/">ElasticSearch进阶之输入匹配</a></li>
-<li><a href="https://donggeitnote.com/2021/10/02/elasticsearch-multiplesearch/">ElasticSearch进阶之多域搜索</a></li>
-<li><a href="https://donggeitnote.com/2021/09/29/elasticsearch-shard/">ElasticSearch进阶之Shard&#x2F;segment内部原理</a></li>
-<li>analysizer,normalizer,常用分词器介绍和评估。<a href="https://blog.csdn.net/Q176782/article/details/119054132">https://blog.csdn.net/Q176782/article/details/119054132</a></li>
-<li><a href="https://juejin.cn/post/6844904008432402440">Kafka VS ElasticSearch 的相似性和比较</a></li>
-<li><a href="https://blog.csdn.net/weixin_37692493/article/details/108182161">理解ES的refresh、flush、merge</a><ul>
-<li>节点</li>
-<li>index&#x2F;topic</li>
-<li>shard&#x2F;partiion</li>
-<li>副本机制</li>
-</ul>
-</li>
-<li><a href="https://developer.aliyun.com/article/706990">让Elasticsearch飞起来!——性能优化实践干货</a></li>
-</ul>
 
       
     </div>

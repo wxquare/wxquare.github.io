@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="通用商品模型       通用商品缓存架构      通用订单模型      支付订单表（pay_order_tab）：主要用于记录用户的支付信息。主键为 pay_order_id，标识唯一的支付订单。 user_id：用户ID，标识支付的用户。 payment_method：支付方式，如信用卡、支付宝等。 payment_status：支付状态，如已支付、未支付等。 pay_amo">
+<meta property="og:type" content="article">
+<meta property="og:title" content="互联网业务系统 - 电商系统后台">
+<meta property="og:url" content="http://yoursite.com/2024/10/16/system-design/e-commerce/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="通用商品模型       通用商品缓存架构      通用订单模型      支付订单表（pay_order_tab）：主要用于记录用户的支付信息。主键为 pay_order_id，标识唯一的支付订单。 user_id：用户ID，标识支付的用户。 payment_method：支付方式，如信用卡、支付宝等。 payment_status：支付状态，如已支付、未支付等。 pay_amo">
+<meta property="og:locale">
+<meta property="og:image" content="http://yoursite.com/images/e-commerce-system.png">
+<meta property="og:image" content="http://yoursite.com/images/item-sku.png">
+<meta property="og:image" content="http://yoursite.com/images/item-info-cache.png">
+<meta property="og:image" content="http://yoursite.com/images/order_er.png">
+<meta property="og:image" content="http://yoursite.com/images/order_state_machine.png">
+<meta property="og:image" content="http://yoursite.com/images/master-slave-get-latest-data.png">
+<meta property="og:image" content="http://yoursite.com/images/order_pay.png">
+<meta property="og:image" content="http://yoursite.com/images/order_fulfillment.png">
+<meta property="article:published_time" content="2024-10-16T14:07:32.246Z">
+<meta property="article:modified_time" content="2024-10-16T14:07:32.247Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/images/e-commerce-system.png">
+
+
+<link rel="canonical" href="http://yoursite.com/2024/10/16/system-design/e-commerce/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2024/10/16/system-design/e-commerce/","path":"2024/10/16/system-design/e-commerce/","title":"互联网业务系统 - 电商系统后台"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>互联网业务系统 - 电商系统后台 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E7%94%A8%E5%95%86%E5%93%81%E6%A8%A1%E5%9E%8B"><span class="nav-number">1.</span> <span class="nav-text">通用商品模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E7%94%A8%E5%95%86%E5%93%81%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84"><span class="nav-number">2.</span> <span class="nav-text">通用商品缓存架构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E7%94%A8%E8%AE%A2%E5%8D%95%E6%A8%A1%E5%9E%8B"><span class="nav-number">3.</span> <span class="nav-text">通用订单模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%94%AF%E4%BB%98%E8%AE%A2%E5%8D%95%E8%A1%A8%EF%BC%88pay-order-tab%EF%BC%89%EF%BC%9A%E4%B8%BB%E8%A6%81%E7%94%A8%E4%BA%8E%E8%AE%B0%E5%BD%95%E7%94%A8%E6%88%B7%E7%9A%84%E6%94%AF%E4%BB%98%E4%BF%A1%E6%81%AF%E3%80%82%E4%B8%BB%E9%94%AE%E4%B8%BA-pay-order-id%EF%BC%8C%E6%A0%87%E8%AF%86%E5%94%AF%E4%B8%80%E7%9A%84%E6%94%AF%E4%BB%98%E8%AE%A2%E5%8D%95%E3%80%82"><span class="nav-number">3.1.</span> <span class="nav-text">支付订单表（pay_order_tab）：主要用于记录用户的支付信息。主键为 pay_order_id，标识唯一的支付订单。</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%A2%E5%8D%95%E8%A1%A8%EF%BC%88order-tab%EF%BC%89%EF%BC%9A%E8%AE%B0%E5%BD%95%E7%94%A8%E6%88%B7%E7%9A%84%E8%B4%AD%E4%B9%B0%E8%AE%A2%E5%8D%95%E4%BF%A1%E6%81%AF%E3%80%82%E4%B8%BB%E9%94%AE%E4%B8%BA-order-id%E3%80%82"><span class="nav-number">3.2.</span> <span class="nav-text">订单表（order_tab）：记录用户的购买订单信息。主键为 order_id。</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%A2%E5%8D%95%E9%A1%B9%E8%A1%A8%EF%BC%88order-item-tab%EF%BC%9A%E8%AE%B0%E5%BD%95%E8%AE%A2%E5%8D%95%E4%B8%AD%E5%85%B7%E4%BD%93%E5%95%86%E5%93%81%E7%9A%84%E4%BF%A1%E6%81%AF%E3%80%82%E4%B8%BB%E9%94%AE%E4%B8%BA-order-item-id%E3%80%82"><span class="nav-number">3.3.</span> <span class="nav-text">订单项表（order_item_tab：记录订单中具体商品的信息。主键为 order_item_id。</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%80%80%E6%AC%BE%E8%A1%A8%EF%BC%88refund-tab%EF%BC%89%EF%BC%9A%E8%AE%B0%E5%BD%95%E8%AE%A2%E5%8D%95%E6%88%96%E8%AE%A2%E5%8D%95%E9%A1%B9%E7%9A%84%E9%80%80%E6%AC%BE%E4%BF%A1%E6%81%AF%E3%80%82%E4%B8%BB%E9%94%AE%E4%B8%BA-refund-id%E3%80%82"><span class="nav-number">3.3.1.</span> <span class="nav-text">退款表（refund_tab）：记录订单或订单项的退款信息。主键为 refund_id。</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E4%BD%93%E9%97%B4%E5%85%B3%E7%B3%BB%EF%BC%9A"><span class="nav-number">3.4.</span> <span class="nav-text">实体间关系：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%94%AF%E4%BB%98%E8%AE%A2%E5%8D%95%E4%B8%8E%E8%AE%A2%E5%8D%95%EF%BC%9A"><span class="nav-number">3.5.</span> <span class="nav-text">支付订单与订单：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%A2%E5%8D%95%E4%B8%8E%E8%AE%A2%E5%8D%95%E5%95%86%E5%93%81%EF%BC%9A"><span class="nav-number">3.6.</span> <span class="nav-text">订单与订单商品：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%A2%E5%8D%95%E4%B8%8E%E9%80%80%E6%AC%BE%EF%BC%9A"><span class="nav-number">3.7.</span> <span class="nav-text">订单与退款：</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E7%94%A8%E8%AE%A2%E5%8D%95%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="nav-number">4.</span> <span class="nav-text">通用订单状态机</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BB%E4%BB%8E%E6%9E%B6%E6%9E%84%E4%B8%AD%E5%A6%82%E4%BD%95%E8%8E%B7%E5%8F%96%E6%9C%80%E6%96%B0%E7%9A%84%E6%95%B0%E6%8D%AE%EF%BC%8C%E9%81%BF%E5%85%8D%E5%9B%A0%E4%B8%BA%E4%B8%BB%E4%BB%8E%E5%BB%B6%E6%97%B6%E5%AF%BC%E8%87%B4%E8%8E%B7%E5%BE%97%E8%84%8F%E6%95%B0%E6%8D%AE"><span class="nav-number">5.</span> <span class="nav-text">主从架构中如何获取最新的数据，避免因为主从延时导致获得脏数据</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%A2%E5%8D%95%E6%94%AF%E4%BB%98%E6%A0%B8%E5%BF%83%E9%80%BB%E8%BE%91"><span class="nav-number">6.</span> <span class="nav-text">订单支付核心逻辑</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%A2%E5%8D%95%E5%B1%A5%E7%BA%A6%E6%A0%B8%E5%BF%83%E9%80%BB%E8%BE%91"><span class="nav-number">7.</span> <span class="nav-text">订单履约核心逻辑</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">32</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2024/10/16/system-design/e-commerce/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="互联网业务系统 - 电商系统后台 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          互联网业务系统 - 电商系统后台
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2024-10-16 22:07:32" itemprop="dateCreated datePublished" datetime="2024-10-16T22:07:32+08:00">2024-10-16</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p align="center">
+  <img src="/images/e-commerce-system.png" width=800 height=1300>
+</p>
+
+
+<h2 id="通用商品模型"><a href="#通用商品模型" class="headerlink" title="通用商品模型"></a>通用商品模型</h2><p align="center">
+  <img src="/images/item-sku.png" width=600 height=1000>
+</p>
+
+
+<h2 id="通用商品缓存架构"><a href="#通用商品缓存架构" class="headerlink" title="通用商品缓存架构"></a>通用商品缓存架构</h2><p align="center">
+  <img src="/images/item-info-cache.png" width=600 height=500>
+</p>
+
+<h2 id="通用订单模型"><a href="#通用订单模型" class="headerlink" title="通用订单模型"></a>通用订单模型</h2><p align="center">
+  <img src="/images/order_er.png" width=800 height=600>
+</p>
+
+<h3 id="支付订单表（pay-order-tab）：主要用于记录用户的支付信息。主键为-pay-order-id，标识唯一的支付订单。"><a href="#支付订单表（pay-order-tab）：主要用于记录用户的支付信息。主键为-pay-order-id，标识唯一的支付订单。" class="headerlink" title="支付订单表（pay_order_tab）：主要用于记录用户的支付信息。主键为 pay_order_id，标识唯一的支付订单。"></a>支付订单表（pay_order_tab）：主要用于记录用户的支付信息。主键为 pay_order_id，标识唯一的支付订单。</h3><ul>
+<li>user_id：用户ID，标识支付的用户。</li>
+<li>payment_method：支付方式，如信用卡、支付宝等。</li>
+<li>payment_status：支付状态，如已支付、未支付等。</li>
+<li>pay_amount、cash_amount、coin_amount、voucher_amount：支付金额、现金支付金额、代币支付金额、优惠券使用金额。</li>
+<li>时间戳字段包括创建时间、初始化时间和更新时间</li>
+</ul>
+<h3 id="订单表（order-tab）：记录用户的购买订单信息。主键为-order-id。"><a href="#订单表（order-tab）：记录用户的购买订单信息。主键为-order-id。" class="headerlink" title="订单表（order_tab）：记录用户的购买订单信息。主键为 order_id。"></a>订单表（order_tab）：记录用户的购买订单信息。主键为 order_id。</h3><ul>
+<li>pay_order_id：支付订单ID，作为外键关联支付订单。</li>
+<li>user_id：用户ID，标识购买订单的用户。</li>
+<li>total_amount：订单的总金额。</li>
+<li>order_status：订单状态，如已完成、已取消等。</li>
+<li>payment_status：支付状态，与支付订单相关。</li>
+<li>fulfillment_status：履约状态，表示订单的配送或服务状态。</li>
+<li>refund_status：退款状态，用于标识订单是否有退款</li>
+</ul>
+<h3 id="订单项表（order-item-tab：记录订单中具体商品的信息。主键为-order-item-id。"><a href="#订单项表（order-item-tab：记录订单中具体商品的信息。主键为-order-item-id。" class="headerlink" title="订单项表（order_item_tab：记录订单中具体商品的信息。主键为 order_item_id。"></a>订单项表（order_item_tab：记录订单中具体商品的信息。主键为 order_item_id。</h3><ul>
+<li>order_id：订单ID，作为外键关联订单。</li>
+<li>item_id：商品ID，表示订单中的商品。</li>
+<li>item_snapshot_id：商品快照ID，记录当时购买时的商品信息快照。</li>
+<li>item_status：商品状态，如已发货、退货等。</li>
+<li>quantity：购买数量。</li>
+<li>price：商品单价。</li>
+<li>discount：商品折扣金额</li>
+</ul>
+<h4 id="退款表（refund-tab）：记录订单或订单项的退款信息。主键为-refund-id。"><a href="#退款表（refund-tab）：记录订单或订单项的退款信息。主键为-refund-id。" class="headerlink" title="退款表（refund_tab）：记录订单或订单项的退款信息。主键为 refund_id。"></a>退款表（refund_tab）：记录订单或订单项的退款信息。主键为 refund_id。</h4><ul>
+<li>order_id：订单ID，作为外键关联订单。</li>
+<li>order_item_id：订单项ID，标识具体商品的退款。</li>
+<li>refund_amount：退款金额。</li>
+<li>reason：退款原因。</li>
+<li>quantity：退款的商品数量。</li>
+<li>refund_status：退款状态。</li>
+<li>refund_time：退款操作时间。</li>
+</ul>
+<h3 id="实体间关系："><a href="#实体间关系：" class="headerlink" title="实体间关系："></a>实体间关系：</h3><h3 id="支付订单与订单："><a href="#支付订单与订单：" class="headerlink" title="支付订单与订单："></a>支付订单与订单：</h3><ul>
+<li>一个支付订单可能关联多个购买订单，形成 一对多 关系。<br>例如，用户可以通过一次支付购买多个不同的订单。</li>
+</ul>
+<h3 id="订单与订单商品："><a href="#订单与订单商品：" class="headerlink" title="订单与订单商品："></a>订单与订单商品：</h3><p>一个订单可以包含多个订单项，形成 一对多 关系。<br>订单项代表订单中所购买的每个商品的详细信息。</p>
+<h3 id="订单与退款："><a href="#订单与退款：" class="headerlink" title="订单与退款："></a>订单与退款：</h3><ul>
+<li>一个订单可能包含多个退款，形成 一对多 关系。</li>
+<li>退款可以是针对订单整体，也可以针对订单中的某个商品</li>
+</ul>
+<h2 id="通用订单状态机"><a href="#通用订单状态机" class="headerlink" title="通用订单状态机"></a>通用订单状态机</h2><p align="center">
+  <img src="/images/order_state_machine.png" width=800 height=800>
+</p>
+
+
+<h2 id="主从架构中如何获取最新的数据，避免因为主从延时导致获得脏数据"><a href="#主从架构中如何获取最新的数据，避免因为主从延时导致获得脏数据" class="headerlink" title="主从架构中如何获取最新的数据，避免因为主从延时导致获得脏数据"></a>主从架构中如何获取最新的数据，避免因为主从延时导致获得脏数据</h2><p align="center">
+  <img src="/images/master-slave-get-latest-data.png" width=500 height=400>
+</p>
+
+
+
+<table>
+<thead>
+<tr>
+<th><strong>策略</strong></th>
+<th><strong>优点</strong></th>
+<th><strong>缺点</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>1. 直接读取主库</strong></td>
+<td>- <strong>一致性:</strong> 始终获取最新的数据。</td>
+<td>- <strong>性能:</strong> 增加主库的负载，可能导致性能瓶颈。</td>
+</tr>
+<tr>
+<td></td>
+<td>- <strong>简单性:</strong> 实现简单直接，因为它直接查询可信的源。</td>
+<td>- <strong>可扩展性:</strong> 主库可能成为瓶颈，限制系统在高读流量下有效扩展的能力。</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>2. 使用VersionCache与从库</strong></td>
+<td>- <strong>性能:</strong> 分散读取负载到从库，减少主库的压力。</td>
+<td>- <strong>复杂性:</strong> 实现更加复杂，需要进行缓存管理并处理潜在的不一致性问题。</td>
+</tr>
+<tr>
+<td></td>
+<td>- <strong>可扩展性:</strong> 通过将大部分读取操作卸载到从库，实现更好的扩展性。</td>
+<td>- <strong>缓存管理:</strong> 需要进行适当的缓存失效处理和同步，以确保数据的一致性。</td>
+</tr>
+<tr>
+<td></td>
+<td>- <strong>一致性:</strong> 通过比较版本并在必要时回退到主库，提供确保最新数据的机制。</td>
+<td>- <strong>潜在延迟:</strong> 从库的数据可能仍然存在不同步的可能性，导致数据更新前有轻微延迟。</td>
+</tr>
+</tbody></table>
+<h2 id="订单支付核心逻辑"><a href="#订单支付核心逻辑" class="headerlink" title="订单支付核心逻辑"></a>订单支付核心逻辑</h2><p align="center">
+  <img src="/images/order_pay.png" width=500 height=1000>
+</p>
+
+
+<h2 id="订单履约核心逻辑"><a href="#订单履约核心逻辑" class="headerlink" title="订单履约核心逻辑"></a>订单履约核心逻辑</h2><p align="center">
+  <img src="/images/order_fulfillment.png" width=500 height=1000>
+</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/10/16/other/programmer-survival-guide/" rel="prev" title="程序员生成指南">
+                  <i class="fa fa-angle-left"></i> 程序员生成指南
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2024</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
