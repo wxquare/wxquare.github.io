@@ -18,4 +18,6 @@ date: 2022-11-07 22:33:15
 - [得物技术][https://tech.dewu.com/article?id=111]
 - 吕聘,智能硬件
 - [https://lianglianglee.com/](技术文章摘抄)
+- https://yupaits.com，学习博客维护
+
 
