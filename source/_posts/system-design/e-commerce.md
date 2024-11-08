@@ -437,7 +437,18 @@ type RefundService interface {
 ```
 #### 订单详情查询
 ## 系统挑战
-### 通用商品缓存架构
+### 如何维护订单状态的最终一致性？
+<p align="center">
+  <img src="/images/order_final_consistency_activity.png" width=600 height=600>
+</p>
+
+- 状态机一定要设计好，只有特定的原始状态 + 特定的事件才可以推进到指定的状态。
+- 并发更新数据库前，要用乐观锁或者悲观锁，先使用select for update进行锁行记录，同时在更新时判断版本号是否是之前取出来的版本号，更新成功就结束，更新失败就组成消息发到消息队列，后面再消费。
+- 通过补偿机制兜底，比如查询补单。
+- 通过上述三个步骤，正常情况下，最终的数据状态一定是正确的。除非是某个系统有异常，比如外部渠道开始返回支付成功，然后又返回支付失败，说明依赖的外部系统已经异常，这样只能进人工差错处理流程。
+
+
+### 商品信息缓存和数据一致性
 <p align="center">
   <img src="/images/item-info-cache.png" width=600 height=500>
 </p>
@@ -459,6 +470,7 @@ type RefundService interface {
 
 
 
-参考:
+## 参考:
+
 - [订单状态机的设计和实现](https://www.cnblogs.com/wanglifeng717/p/16214122.html)
 - 
