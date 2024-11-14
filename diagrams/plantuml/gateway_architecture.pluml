@@ -1,0 +1,58 @@
+@startuml
+left to right direction
+skinparam linetype polyline // 使用 polyline 以减少曲线
+
+package "Web Gateway Architecture" {
+
+    [User] as User
+    [DNS] as DNS
+    [LVS] as LVS
+    [Nginx1] as Nginx1
+    [Nginx2] as Nginx2
+    [Business Gateway1] as BusinessGateway1
+    [Business Gateway2] as BusinessGateway2
+    [Business Gateway3] as BusinessGateway3
+    [Service 1] as Service1
+    [Service 2] as Service2
+    [Service N] as ServiceN
+
+    User --> DNS : Request DNS Resolution
+    DNS --> User : Return VIP
+    User --> LVS : Request With (CIP,VIP)
+    
+    LVS -down-> Nginx1 : Forward to Nginx (DIP,RIP1)
+    LVS -down-> Nginx2 : Forward to Nginx (DIP,RIP2)
+    
+    Nginx1 -down-> BusinessGateway1 : Forward to Business Logic
+    Nginx1 -down-> BusinessGateway2 : Forward to Business Logic
+    Nginx1 -down-> BusinessGateway3 : Forward to Business Logic
+    
+    Nginx2 -down-> BusinessGateway1 : Forward to Business Logic
+    Nginx2 -down-> BusinessGateway2 : Forward to Business Logic
+    Nginx2 -down-> BusinessGateway3 : Forward to Business Logic
+    
+    BusinessGateway1 -down-> Service1 : Call RPC Service
+    BusinessGateway1 -down-> Service2 : Call RPC Service
+    BusinessGateway1 -down-> ServiceN : Call RPC Service
+    
+    BusinessGateway2 -down-> Service1 : Call RPC Service
+    BusinessGateway2 -down-> Service2 : Call RPC Service
+    BusinessGateway2 -down-> ServiceN : Call RPC Service
+    
+    BusinessGateway3 -down-> Service1 : Call RPC Service
+    BusinessGateway3 -down-> Service2 : Call RPC Service
+    BusinessGateway3 -down-> ServiceN : Call RPC Service
+}
+
+note right of User : CIP: Client IP
+note right of DNS : DNS Resolution
+note right of LVS : VIP: Virtual IP\nDIP: Internal IP
+note right of Nginx1 : Handles Requests
+note right of BusinessGateway1 : Business Logic
+note right of BusinessGateway2 : Business Logic
+note right of BusinessGateway3 : Business Logic
+note right of Service1 : RPC Service
+note right of Service2 : RPC Service
+note right of ServiceN : RPC Service
+
+@enduml
