@@ -1,15 +1,78 @@
 ---
-title: 互联网业务系统 - 电商系统后台
+title: 互联网业务系统 - 电商系统设计
 categories:
 - 系统设计
 ---
+
+
+https://axureboutique.com/blogs/product-design/understanding-the-structure-of-e-commerce-products
+
+
+## 电商系统业务流程 (business process)
+<p align="center">
+  <img src="/images/E-commerce-whole-business-process.webp" width=1200 height=700>
+  <br/>
+  <strong><a href="https://axureboutique.com/blogs/product-design/understanding-the-structure-of-e-commerce-products">E-commerce process</a></strong>
+</p>
+
+## 电商系统系统(system process)
+<p align="center">
+  <img src="/images/E-commerce-whole-system-process.webp" width=1200 height=700>
+  <br/>
+  <strong><a href="https://axureboutique.com/blogs/product-design/understanding-the-structure-of-e-commerce-products">E-commerce whole process of system</a></strong>
+</p>
+
+
+## 电商系统整体产品架构 (Product Structure)
+<p align="center">
+  <img src="/images/E-commerce-product-structure.webp" width=1200 height=700>
+  <br/>
+  <strong><a href="https://axureboutique.com/blogs/product-design/understanding-the-structure-of-e-commerce-products">E-commerce product structure</a></strong>
+</p>
+
 
 <p align="center">
   <img src="/images/e-commerce-system.png" width=800 height=1300>
 </p>
 
 
-## 商品模型
+
+## 电商Product Center
+### 类目属性管理：classification/category/brand/attribute Management
+<p align="center">
+  <img src="/images/E-commerce-category-brand-product.webp" width=1000 height=400>
+  <br/>
+  <strong><a href="https://axureboutique.com/blogs/product-design/build-an-e-commerce-product-center-from-scratch">E-commerce product center</a></strong>
+</p>
+
+### 商品管理：Product management
+<p align="center">
+  <img src="/images/E-commerce-product-management.webp" width=1000 height=400>
+  <br/>
+  <strong><a href="https://axureboutique.com/blogs/product-design/build-an-e-commerce-product-center-from-scratch">E-commerce product center</a></strong>
+</p>
+
+### 商品管理（SPU和SKU）
+
+方案一：同时创建多个SKU，并同步生成关联的SPU。整体方案是直接创建SKU，并维护多个不同的属性；该方案适用于大多数C2C综合电商平台（例如，阿里巴巴就是采用这种方式创建商品）。
+
+方案二：先创建SPU，再根据SPU创建SKU。整体方案是由平台的主数据团队负责维护SPU，商家（包括自营和POP）根据SPU维护SKU。在创建SKU时，首先选择SPU（SPU中的基本属性由数据团队维护），然后基于SPU维护销售属性和物流属性，最后生成SKU；该方案适用于高度专业化的垂直B2B行业，如汽车、医药等。
+
+这两种方案的原因是：垂直B2B平台上的业务（传统行业、年长的商家）操作能力有限，维护产品属性的错误率远高于C2C平台，同时平台对产品结构控制的要求较高。为了避免同一产品被不同商家维护成多个不同的属性（例如，汽车轮胎的胎面宽度、尺寸等属性），平台通常选择专门的数据团队来维护产品的基本属性，即维护SPU。
+
+此外，B2B垂直电商的品类较少，SKU数量相对较小，品类标准化程度高，平台统一维护的可行性较高。
+
+对于拥有成千上万品类的综合电商平台，依靠平台数据团队的统一维护是不现实的，或者像服装这样非标准化的品类对商品结构化管理的要求较低。因此，综合平台（阿里巴巴和亚马逊）的设计方向与垂直平台有所不同。
+
+实际上，即使对于综合平台，不同的品类也会有不同的设计方法。一些品类具有垂直深度，因此也采用平台维护SPU和商家创建SKU的方式
+
+
+### 模型1:
+<p align="center">
+  <img src="/images/E-commerce-product-management-ER.jpg" width=1000 height=500>
+</p>
+
+### 模型2:
 <p align="center">
   <img src="/images/item-sku-er.png" width=600 height=1000>
 </p>
@@ -29,7 +92,9 @@ categories:
   <span style="color: blue; font-weight: bold;">item-SKU</span>
 </p>
 
-## 订单模型
+
+
+## 电商Order Transaction Center
 <p align="center">
   <img src="/images/order_er.png" width=800 height=600>
 </p>
@@ -40,6 +105,7 @@ categories:
   - payment_status：支付状态，如已支付、未支付等。
   - pay_amount、cash_amount、coin_amount、voucher_amount：支付金额、现金支付金额、代币支付金额、优惠券使用金额。
   - 时间戳字段包括创建时间、初始化时间和更新时间
+
 ### 订单表（order_tab）：记录用户的购买订单信息。主键为 order_id。
   - pay_order_id：支付订单ID，作为外键关联支付订单。
   - user_id：用户ID，标识购买订单的用户。
@@ -48,6 +114,7 @@ categories:
   - payment_status：支付状态，与支付订单相关。
   - fulfillment_status：履约状态，表示订单的配送或服务状态。
   - refund_status：退款状态，用于标识订单是否有退款
+
 ### 订单商品表（order_item_tab：记录订单中具体商品的信息。主键为 order_item_id。
   - order_id：订单ID，作为外键关联订单。
   - item_id：商品ID，表示订单中的商品。
@@ -56,6 +123,7 @@ categories:
   - quantity：购买数量。
   - price：商品单价。
   - discount：商品折扣金额
+
 #### 退款表（refund_tab）：记录订单或订单项的退款信息。主键为 refund_id。
   - order_id：订单ID，作为外键关联订单。
   - order_item_id：订单项ID，标识具体商品的退款。
@@ -77,21 +145,36 @@ categories:
   - 退款可以是针对订单整体，也可以针对订单中的某个商品
 
 
-## 订单状态机
+### 订单状态机
 <p align="center">
   <img src="/images/order_state_machine.png" width=800 height=800>
 </p>
 
 
-
-## 核心业务流
+### 核心业务流
 ### B 端
 #### 首页运营和维护
-#### 批量商品上传
-#### 商品Edit更新，价格、状态等
+#### 批量商品上传、编辑商品信息、价格、库存、状态
+- mass/single upload
+- mass/single edit
+- verify，upload
+- item sync fetch pull
+- openapi
+
 ### APP端
 #### 首页获取
-#### 商品搜索（列表）
+#### 商品搜索
+#### 
+要求：
+- 海量的数据，亿级别的商品量；
+- 高并发查询，日 PV 过亿；
+- 请求需要快速响应
+特点：
+- 商品数据已经结构化，但散布在商品、库存、价格、促销、仓储等多个系统
+- 召回率要求高，保证每一个正常的商品均能够被搜索到
+- 为保证用户体验，商品信息变更（比如价格、库存的变化）实时性要求高，导致更新量大，每天的更新量为千万级别
+- 较强的个性化需求，由于是一个相对垂直的搜索领域，需要满足用户的个性化搜索意图，比如用户搜索“小说”有的用户希望找言情小说有的人需要找武侠小说有的人希望找到励志小说
+
 #### 商品（商品详情）
 
 #### 创单核心逻辑
