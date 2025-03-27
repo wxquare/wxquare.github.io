@@ -34,47 +34,185 @@ categories:
 
 ## 电商用户管理
 
-### 1. 用户模型
+### 核心功能
+#### 用户注册
+- 记录用户的基本信息
+- 支持密码加密存储
+- 发送验证码或邮件验证
+- 通过邮箱、手机号或第三方账号注册
+
+* 使用 bcrypt 对密码进行哈希存储、存储 salt，防止彩虹表攻击、防止弱密码（如 12345678）*
+
+#### 用户登录
+- 记住登录状态（JWT/Session）
+- 通过邮箱、手机号+密码登录
+- 支持 OAuth 登录（如 Google、微信、支付宝等）
+- 账户锁定策略（防止暴力破解）
+
+#### 其他功能（可扩展）
+- 账户找回（忘记密码、重置密码）
+- 用户权限管理（普通用户、VIP 用户、管理员）
+- 多设备登录检测、账号安全管理（修改密码、绑定手机号、解绑社交账号）
+- **社交登录（微信、Google、Apple ID）**  
+- **用户等级 & 会员系统**  
+- **黑名单风控（限制恶意 IP）**  
+- **短信登录 & OAuth 认证**  
+
+
+#### 注意事项
+- 使用 **bcrypt** 对密码进行哈希存储
+- 存储 `salt`，防止彩虹表攻击
+- 防止**弱密码**（如 `12345678`）
+- **JWT（JSON Web Token）**
+  - 生成用户 Token 并存储在 `Authorization: Bearer <token>` 头部
+  - 过期时间如 `7 天`
+- **Session 认证**
+  - 在 Redis 或数据库存储用户 Session
+- **多次登录失败锁定账户**（5 次错误后，10 分钟内禁止登录）
+- **短信/邮件验证码**（可选）
+- **双因子认证（2FA）**（高级功能）
+
+---
+
+### 模型和数据库设计
+
+#### 用户表（users）
 ```
 CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    phone VARCHAR(20) UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    nickname VARCHAR(100),
-    full_name VARCHAR(100),
-    gender VARCHAR(10),
-    date_of_birth DATE,
-    shipping_address TEXT,
-    billing_address TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_login TIMESTAMP,
-    status VARCHAR(20) DEFAULT 'active',
-    role VARCHAR(20) DEFAULT 'user' comment '角色，这里角色暂时比较简单0表示普通用户，1表示特殊权限的用户'
-    reset_token VARCHAR(255),
-    reset_token_expiry TIMESTAMP,
-    avatar VARCHAR(255) comment '头像'
-    points INT DEFAULT 0
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+    username        VARCHAR(50) UNIQUE NOT NULL,
+    email           VARCHAR(100) UNIQUE,
+    phone           VARCHAR(20) UNIQUE,
+    password_hash   VARCHAR(255) NOT NULL,
+    salt            VARCHAR(32) NOT NULL COMMENT '增强密码安全性，防止彩虹攻击',
+    avatar          VARCHAR(255),
+    status          TINYINT DEFAULT 1 COMMENT '1-正常, 0-禁用',
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 ```
-### 2. 核心流程
-#### 注册
-1. 获取手机号码 （先获取手机验证码）
-2. Register 手机验证码+手机号+password+nickname
-3. 登录方式
-  - 用户名 + 密码登陆
-  - 手机号码 + 验证码登录
 
-注意事项：
-- 一般需要手机验证码来防止恶意注册
-- 密码存储：使用强哈希算法（如 bcrypt）存储密码。
-- 输入验证：确保用户输入的格式正确，防止 SQL 注入等攻击。
-- 验证码：在敏感操作（如登录、注册）中使用验证码，防止暴力破解
-- 提供清晰的错误信息，帮助用户理解注册或登录失败的原因。
-- 在注册和登录页面提供“忘记密码”功能，以便用户重置密码
-- [session 和  jwt 认证流程] (https://www.ruanyifeng.com/blog/2018/07/json_web_token-tutorial.html)
+#### 用户登录日志（user_login_logs）
+```
+CREATE TABLE user_login_logs (
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id     BIGINT NOT NULL,
+    login_ip    VARCHAR(50) NOT NULL,
+    login_time  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    device      VARCHAR(100),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+```
 
+---
 
+###  核心流程以及API 设计
+
+#### 用户注册 API
+```
+POST /api/register
+Content-Type: application/json
+
+{
+    "username": "john_doe",
+    "email": "john@example.com",
+    "password": "password123",
+    "phone": "13812345678"
+}
+
+{
+    "code": 200,
+    "message": "注册成功"
+}
+```
+
+#### 用户登录 API
+```
+POST /api/login
+Content-Type: application/json
+
+{
+    "username": "john_doe",
+    "password": "password123"
+}
+
+返回：
+{
+    "code": 200,
+    "message": "登录成功",
+    "token": "jwt_token_here"
+}
+```
+
+## 5. 代码实现（Go + Gin + GORM 示例）
+
+### 用户注册
+```
+go
+package controllers
+
+import (
+	"ecommerce/models"
+	"ecommerce/utils"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+// 用户注册
+func Register(c *gin.Context) {
+	var user models.User
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid input"})
+		return
+	}
+
+	// 哈希加密密码
+	hashedPassword, salt := utils.HashPassword(user.Password)
+	user.Password = hashedPassword
+	user.Salt = salt
+
+	// 存入数据库
+	if err := models.DB.Create(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "注册失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "注册成功"})
+}
+```
+
+### 用户登录
+```
+go
+func Login(c *gin.Context) {
+	var req struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "参数错误"})
+		return
+	}
+
+	var user models.User
+	if err := models.DB.Where("username = ?", req.Username).First(&user).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "用户不存在"})
+		return
+	}
+
+	// 校验密码
+	if !utils.CheckPassword(req.Password, user.Password, user.Salt) {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "密码错误"})
+		return
+	}
+
+	// 生成 JWT Token
+	token, _ := utils.GenerateToken(user.ID)
+	c.JSON(http.StatusOK, gin.H{"message": "登录成功", "token": token})
+}
+```
 
 ## 电商Product Center
 ### 类目属性管理：classification/category/brand/attribute Management
