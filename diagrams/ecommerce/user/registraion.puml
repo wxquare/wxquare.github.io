@@ -1,0 +1,35 @@
+@startuml
+actor User
+participant "用户服务" as UserService
+participant "短信服务" as SMSService
+
+database "用户DB" as UserDB
+
+== 1. 获取手机验证码 ==
+User -> UserService: 输入手机号码并请求验证码
+UserService -> SMSService: 生成并发送验证码
+SMSService -> UserService: 短信发送验证码
+SMSService -> User: 返回验证吗
+
+== 2. 使用手机号吗+验证码+密码+nickname 注册账号 == 
+User -> UserService: 输入验证码、手机号、密码
+UserService -> UserService: 验证验证码
+alt 验证成功
+    UserService -> UserDB: 用户信息写入DB
+    UserService -> User: 注册成功
+else 验证失败
+    UserService -> User: 返回错误信息
+end
+
+
+== 3. 用户登录 == 
+User -> UserService: 输入验证码、手机号、密码
+UserService -> UserService: 验证验证码
+alt 验证成功
+    UserService -> UserDB: 用户信息写入DB
+    UserService -> User: 注册成功
+else 验证失败
+    UserService -> User: 返回错误信息
+end
+
+@enduml

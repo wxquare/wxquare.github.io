@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="代理正常代理正向代理是指对客户端提供的代理服务，在客户端无法直接访问服务端的情况下，通过配置代理服务器的方式访问服务端。在整个过程中，客户端请求首先发送到代理服务器，代理服务器再将请求发送到服务端后将结果返回给客户端。从服务端角度来看，认为代理服务器才客户端，因此正向代理即代理客户端与服务端进行交互。比如生活中我们通过代购去购买海外商品，代购就是我们的正向代理。  提供网络通道：解决客户端由于防火">
+<meta property="og:type" content="article">
+<meta property="og:title" content="互联网系统设计 - 代理、负载均衡和高可用性网关">
+<meta property="og:url" content="http://yoursite.com/2024/02/02/system-design/load-balancer/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="代理正常代理正向代理是指对客户端提供的代理服务，在客户端无法直接访问服务端的情况下，通过配置代理服务器的方式访问服务端。在整个过程中，客户端请求首先发送到代理服务器，代理服务器再将请求发送到服务端后将结果返回给客户端。从服务端角度来看，认为代理服务器才客户端，因此正向代理即代理客户端与服务端进行交互。比如生活中我们通过代购去购买海外商品，代购就是我们的正向代理。  提供网络通道：解决客户端由于防火">
+<meta property="og:locale">
+<meta property="og:image" content="http://yoursite.com/images/load_balancer_architecture.jpeg">
+<meta property="article:published_time" content="2024-02-01T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-03-13T15:06:36.484Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/images/load_balancer_architecture.jpeg">
+
+
+<link rel="canonical" href="http://yoursite.com/2024/02/02/system-design/load-balancer/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2024/02/02/system-design/load-balancer/","path":"2024/02/02/system-design/load-balancer/","title":"互联网系统设计 - 代理、负载均衡和高可用性网关"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>互联网系统设计 - 代理、负载均衡和高可用性网关 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A3%E7%90%86"><span class="nav-number">1.</span> <span class="nav-text">代理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AD%A3%E5%B8%B8%E4%BB%A3%E7%90%86"><span class="nav-number">1.1.</span> <span class="nav-text">正常代理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86"><span class="nav-number">1.2.</span> <span class="nav-text">反向代理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8C%BA%E5%88%AB"><span class="nav-number">1.3.</span> <span class="nav-text">区别</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7%E7%BD%91%E5%85%B3"><span class="nav-number">2.</span> <span class="nav-text">负载均衡和高可用性网关</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E6%96%B9%E6%A1%88"><span class="nav-number">2.1.</span> <span class="nav-text">负载均衡方案</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%99%A8%EF%BC%88L4-lvs%EF%BC%89"><span class="nav-number">2.2.</span> <span class="nav-text">网络负载均衡器（L4,lvs）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%83%E5%B1%82%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%99%A8%E5%92%8C%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86"><span class="nav-number">2.3.</span> <span class="nav-text">七层负载均衡器和反向代理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E9%AB%98%E5%8F%AF%E7%94%A8%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="nav-number">3.</span> <span class="nav-text">负载均衡和高可用的区别</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%EF%BC%88Load-Balancing%EF%BC%89"><span class="nav-number">3.1.</span> <span class="nav-text">负载均衡（Load Balancing）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7%EF%BC%88High-Availability%EF%BC%89"><span class="nav-number">3.2.</span> <span class="nav-text">高可用性（High Availability）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">3.3.</span> <span class="nav-text">总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9D%A5%E6%BA%90%E5%8F%8A%E5%BB%B6%E4%BC%B8%E9%98%85%E8%AF%BB"><span class="nav-number">4.</span> <span class="nav-text">来源及延伸阅读</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">33</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2024/02/02/system-design/load-balancer/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="互联网系统设计 - 代理、负载均衡和高可用性网关 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          互联网系统设计 - 代理、负载均衡和高可用性网关
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2024-02-02 00:00:00" itemprop="dateCreated datePublished" datetime="2024-02-02T00:00:00+08:00">2024-02-02</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-03-13 23:06:36" itemprop="dateModified" datetime="2025-03-13T23:06:36+08:00">2025-03-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="代理"><a href="#代理" class="headerlink" title="代理"></a>代理</h2><h3 id="正常代理"><a href="#正常代理" class="headerlink" title="正常代理"></a>正常代理</h3><p>正向代理是指对客户端提供的代理服务，在客户端无法直接访问服务端的情况下，通过配置代理服务器的方式访问服务端。<br>在整个过程中，客户端请求首先发送到代理服务器，代理服务器再将请求发送到服务端后将结果返回给客户端。从服务端角度来看，认为代理服务器才客户端，因此正向代理即代理客户端与服务端进行交互。比如生活中我们通过代购去购买海外商品，代购就是我们的正向代理。</p>
+<ul>
+<li>提供网络通道：解决客户端由于防火墙或网络限制无法访问服务端的问题，如访问google等国外网站。</li>
+<li>隐藏客户端身份：服务端只感知代理服务器，无法获取真实客户端，如黑客控制肉鸡</li>
+</ul>
+<h3 id="反向代理"><a href="#反向代理" class="headerlink" title="反向代理"></a>反向代理</h3><p>反向代理是指对服务端提供的代理服务，通常出于安全考虑，真正的服务端只有内网网络，无法直接提供对外服务，为此需要设置反向代理服务器，由代理服务器接收外网请求，然后再转发到内部服务器。从客户端角度看，代理服务器是提供服务的服务端，因此反向代理即代理服务端与客户端交互</p>
+<ul>
+<li>提供对外服务：代理服务器暴露公网地址，接收请求并转发到内网服务器。</li>
+<li>负载均衡：根据预设策略将请求分发到多台服务器</li>
+</ul>
+<h3 id="区别"><a href="#区别" class="headerlink" title="区别"></a>区别</h3><ul>
+<li>正向代理代理客户端，服务端认为请求来自代理服务器；反向代理代理服务端，客户端认为提供服务的是代理服务器</li>
+<li>正向代理通常解决访问限制的问题，反向代理通常解决对外服务和负载均衡的问题</li>
+</ul>
+<h2 id="负载均衡和高可用性网关"><a href="#负载均衡和高可用性网关" class="headerlink" title="负载均衡和高可用性网关"></a>负载均衡和高可用性网关</h2><h3 id="负载均衡方案"><a href="#负载均衡方案" class="headerlink" title="负载均衡方案"></a>负载均衡方案</h3><ul>
+<li><p>基于DNS的负载均衡<br>在DNS服务器中，可以为多个不同的地址配置相同的名字，最终查询这个名字的客户机将在解析这个名字时得到其中一个地址，所以这种代理方式是通过DNS服务中的随机名字解析域名和IP来实现负载均衡。</p>
+</li>
+<li><p>基于NAT的负载均衡（四层）<br>该技术通过一个地址转换网关将每个客户端连接转换为不同的内部服务器地址，因此客户端就各自与自己转换得到的地址上的服务器进行通信，从而达到负载均衡的目的，如LVS和Nginx的四层配置形式</p>
+</li>
+<li><p>反向代理负载均衡（7层）<br>通常的反向代理技术，支持为同一服务配置多个后端服务器地址，以及设定相应的轮询策略。请求到达反向代理服务器后，代理通过既定的轮询策略转发请求到具体服务器，实现负载均衡，如Nginx的七层配置形式。</p>
+</li>
+</ul>
+<p align="center">
+  <img src="/images/load_balancer_architecture.jpeg" width=600 height=700>
+  <br/>
+</p>
+
+<h3 id="网络负载均衡器（L4-lvs）"><a href="#网络负载均衡器（L4-lvs）" class="headerlink" title="网络负载均衡器（L4,lvs）"></a>网络负载均衡器（L4,lvs）</h3><ul>
+<li>CIP：客户端ip地址</li>
+<li>VIP：lvs服务器对外发布的ip地址，用户通过vip访问集群</li>
+<li>DIP：LVS连内网的ip地址叫DIP，用于接收用户请求的ip叫做VIP</li>
+<li>RS：提供服务的服务器<br>用户访问流程：<br>  客户端通过 CIP—&gt;VIP—&gt;DIP—-&gt;RIP</li>
+<li><a href="https://www.cnblogs.com/heyongshen/p/16827111.html">https://www.cnblogs.com/heyongshen/p/16827111.html</a></li>
+</ul>
+<p>四层负载常用软件有：</p>
+<ul>
+<li>LVS（常用，稳定性最好）</li>
+<li>Nginx（需要额外编译stream模块）</li>
+<li>HaProxy</li>
+</ul>
+<h3 id="七层负载均衡器和反向代理"><a href="#七层负载均衡器和反向代理" class="headerlink" title="七层负载均衡器和反向代理"></a>七层负载均衡器和反向代理</h3><p>负载均衡器将传入的请求分发到应用服务器和数据库等计算资源。无论哪种情况，负载均衡器将从计算资源来的响应返回给恰当的客户端。负载均衡器的效用在于:</p>
+<ul>
+<li>防止请求进入不好的服务器</li>
+<li>防止资源过载</li>
+<li>帮助消除单一的故障点</li>
+<li><strong>SSL 终结</strong> ─ 解密传入的请求并加密服务器响应，这样的话后端服务器就不必再执行这些潜在高消耗运算了。</li>
+<li>不需要再每台服务器上安装 <a href="https://en.wikipedia.org/wiki/X.509">X.509 证书</a>。</li>
+<li><strong>Session 留存</strong> ─ 如果 Web 应用程序不追踪会话，发出 cookie 并将特定客户端的请求路由到同一实例。</li>
+<li>通常会设置采用<a href="#%E5%B7%A5%E4%BD%9C%E5%88%B0%E5%A4%87%E7%94%A8%E5%88%87%E6%8D%A2active-passive">工作─备用</a> 或 <a href="#%E5%8F%8C%E5%B7%A5%E4%BD%9C%E5%88%87%E6%8D%A2active-active">双工作</a> 模式的多个负载均衡器，以免发生故障。<br>负载均衡器能基于多种方式来路由流量:</li>
+<li>随机</li>
+<li>最少负载</li>
+<li>Session&#x2F;cookie</li>
+<li><a href="http://g33kinfo.com/info/archives/2657">轮询调度或加权轮询调度算法</a></li>
+<li><a href="#%E5%9B%9B%E5%B1%82%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1">四层负载均衡</a></li>
+<li><a href="#%E4%B8%83%E5%B1%82%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1">七层负载均衡</a></li>
+</ul>
+<p>七层负载常用软件有：</p>
+<ul>
+<li>Nginx</li>
+<li>haproxy</li>
+</ul>
+<h2 id="负载均衡和高可用的区别"><a href="#负载均衡和高可用的区别" class="headerlink" title="负载均衡和高可用的区别"></a>负载均衡和高可用的区别</h2><p>“Load Balancing”（负载均衡）和“High Availability”（高可用性）是两个重要的概念，它们在系统设计和架构中有不同的侧重点。以下是它们的主要区别：</p>
+<h3 id="负载均衡（Load-Balancing）"><a href="#负载均衡（Load-Balancing）" class="headerlink" title="负载均衡（Load Balancing）"></a>负载均衡（Load Balancing）</h3><ol>
+<li><strong>定义</strong>: 负载均衡是将流量或请求分配到多个服务器或资源上的技术，以确保没有单个服务器过载，从而提高性能和响应速度。主要目的是优化资源使用，减少响应时间，提高吞吐量。通过分散负载，系统可以处理更多的请求。</li>
+<li><strong>实现方式</strong>: 负载均衡可以通过硬件负载均衡器或软件负载均衡器（如 Nginx、HAProxy 等）来实现。它可以根据多种策略进行流量分配，如轮询、最少连接、加权等。</li>
+<li><strong>场景</strong>: 常用于需要处理大量并发请求的应用，如网站、API 服务等。</li>
+</ol>
+<h3 id="高可用性（High-Availability）"><a href="#高可用性（High-Availability）" class="headerlink" title="高可用性（High Availability）"></a>高可用性（High Availability）</h3><ol>
+<li><strong>定义</strong>: 高可用性是指系统在一定时间内保持正常运行和可用的能力，通常通过冗余和故障转移机制来实现。主要目的是确保系统在硬件故障、软件故障或其他问题发生时仍能继续服务，降低停机时间。</li>
+<li><strong>实现方式</strong>: 高可用性通常通过冗余（如多个服务器、数据中心等）、故障检测和自动切换等机制来实现。常见的高可用性解决方案包括集群、主从复制等。</li>
+<li><strong>场景</strong>: 适用于对可用性要求极高的应用，如金融服务、医疗系统等。</li>
+</ol>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><ul>
+<li><strong>负载均衡</strong> 关注的是如何有效分配流量和资源，以提高性能。</li>
+<li><strong>高可用性</strong> 关注的是如何确保系统在故障时仍能保持运行。</li>
+</ul>
+<p>这两者可以结合使用，负载均衡可以在高可用性架构中发挥重要作用，确保在多个冗余实例之间分配请求，从而提高整体的可用性和性能。</p>
+<h2 id="来源及延伸阅读"><a href="#来源及延伸阅读" class="headerlink" title="来源及延伸阅读"></a>来源及延伸阅读</h2><ul>
+<li><a href="https://www.nginx.com/resources/glossary/reverse-proxy-vs-load-balancer/">反向代理与负载均衡</a></li>
+<li><a href="https://www.nginx.com/blog/inside-nginx-how-we-designed-for-performance-scale/">NGINX 架构</a></li>
+<li><a href="http://www.haproxy.org/download/1.2/doc/architecture.txt">HAProxy 架构指南</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Reverse_proxy">Wikipedia</a></li>
+<li><a href="https://www.nginx.com/blog/inside-nginx-how-we-designed-for-performance-scale/">NGINX 架构</a></li>
+<li><a href="http://www.haproxy.org/download/1.2/doc/architecture.txt">HAProxy 架构指南</a></li>
+<li><a href="http://www.lecloud.net/post/7295452622/scalability-for-dummies-part-1-clones">可扩展性</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Load_balancing_(computing)">Wikipedia</a></li>
+<li><a href="https://www.nginx.com/resources/glossary/layer-4-load-balancing/">四层负载平衡</a></li>
+<li><a href="https://www.nginx.com/resources/glossary/layer-7-load-balancing/">七层负载平衡</a></li>
+<li><a href="http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-listener-config.html">ELB 监听器配置</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/01/01/system-design/tech-design/" rel="prev" title="互联网系统设计 - 概述">
+                  <i class="fa fa-angle-left"></i> 互联网系统设计 - 概述
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/03/04/system-design/storage-desgin/" rel="next" title="互联网系统设计 - 存储与Mysql数据库">
+                  互联网系统设计 - 存储与Mysql数据库 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
