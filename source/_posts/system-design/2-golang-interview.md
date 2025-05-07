@@ -1,9 +1,9 @@
 
 ---
-title: 一文记录 Golang 实践
+title: Go基础和常见面试题
 date: 2023-11-13
 categories:
-- 计算机基础
+- 系统设计
 ---
 
 ## Go 和 C++ 语言对比

@@ -20,5 +20,6 @@ date: 2022-11-07 22:33:15
 - [https://lianglianglee.com/](技术文章摘抄)
 - https://yupaits.com，学习博客维护
 - https://engineering.grab.com/
+- [indigox](https://www.indigox.me)
 
 

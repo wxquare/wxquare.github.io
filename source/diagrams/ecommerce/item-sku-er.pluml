@@ -1,148 +1,98 @@
 @startuml
-
-!define ENTITY entity
-!define PRIMARY_KEY
-
-ENTITY fe_category {
-    PRIMARY_KEY <color:red>fe_category_id</color> : UUID
-    name : String
-    description : String
-    be_category_id : UUID
+' 定义实体
+entity "brand" as Brand {
+  *id : BIGINT <<PK>>
+  name : VARCHAR
+  logo : VARCHAR
+  first_letter : CHAR
+  sort : INT
+  description : TEXT
+  create_time : DATETIME
+  update_time : DATETIME
 }
 
-ENTITY be_category {
-    PRIMARY_KEY <color:red>be_category_id</color> : UUID
-    parent_id : UUID <<FK>>
-    name : String
-    description : String
+entity "category" as Category {
+  *id : BIGINT <<PK>>
+  name : VARCHAR
+  parent_id : BIGINT
+  level : INT
+  sort : INT
+  is_show : TINYINT
+  create_time : DATETIME
+  update_time : DATETIME
 }
 
-ENTITY brand {
-    PRIMARY_KEY <color:red>brand_id</color> : UUID
-    name : String
-    description : String
+entity "attribute" as Attribute {
+  *id : BIGINT <<PK>>
+  name : VARCHAR
+  type : TINYINT
+  input_type : TINYINT
+  value_options : TEXT
+  unit : VARCHAR
+  searchable : TINYINT
+  create_time : DATETIME
 }
 
-ENTITY seller {
-    PRIMARY_KEY <color:red>seller_id</color> : UUID
-    name : String
-    description : String
+entity "category_attribute" as CategoryAttribute {
+  *id : BIGINT <<PK>>
+  category_id : BIGINT
+  attribute_id : BIGINT
+  is_required : TINYINT
+  sort : INT
 }
 
-ENTITY shop {
-    PRIMARY_KEY <color:red>shop_id</color> : UUID
-    name : String
-    description : String
+entity "item (SPU)" as Item {
+  *id : BIGINT <<PK>>
+  name : VARCHAR
+  category_id : BIGINT
+  brand_id : BIGINT
+  description : TEXT
+  images : JSON
+  specs : JSON
+  status : TINYINT
+  create_time : DATETIME
+  update_time : DATETIME
 }
 
-
-ENTITY spu_tab {
-    PRIMARY_KEY <color:red>id</color> : bigint
-    spu_id : bigint
-    des : varchar(512)
-    category_id : int
-    carrier_id : int
-    img_url : varchar(256)
-    show_status : tinyint
-    extend_info : text
-    creator : varchar(128)
+entity "sku" as SKU {
+  *id : BIGINT <<PK>>
+  item_id : BIGINT
+  title : VARCHAR
+  price : DECIMAL
+  stock : INT
+  sales : INT
+  specs : JSON
+  image : VARCHAR
+  create_time : DATETIME
+  update_time : DATETIME
 }
 
-
-ENTITY attr_type_tab {
-    PRIMARY_KEY <color:red>id</color> : bigint
-    name:string
-    status:tinyint
+entity "item_state" as ItemState {
+  *item_id : BIGINT <<PK>>
+  min_price : DECIMAL
+  max_price : DECIMAL
+  total_stock : INT
+  total_sales : INT
+  default_sku_id : BIGINT
+  update_time : DATETIME
 }
 
-ENTITY attr_group_tab {
-    PRIMARY_KEY <color:red>id</color> : bigint
-    association_attr_type_id:
-    name:string
-    status:tinyint
+entity "spu_attr_value" as SPUAttrValue {
+  *id : BIGINT <<PK>>
+  item_id : BIGINT
+  attribute_id : BIGINT
+  value : VARCHAR
+  create_time : DATETIME
 }
 
-
-ENTITY attr_tab {
-    PRIMARY_KEY <color:red>id</color> : bigint
-    be_category_id : bigint
-    name: String
-    association_attr_group_id:
-    association_attr_type_id:
-    status : tinyint
-    fill_in_type: 字段类型
-}
-
-ENTITY attr_value_tab {
-    PRIMARY_KEY <color:red>id</color> : bigint
-    attr_id : bigint
-    attr_value:
-    status:
-}
-
-
-ENTITY spu_attr_value_tab {
-    PRIMARY_KEY <color:red>id</color> : bigint
-    attr_name : varchar(128)
-    des : text
-    attr_biz_config_type : varchar(64)
-}
-
-
-ENTITY "sku_item" as item {
-    PRIMARY_KEY <color:red>item_id</color> : UUID
-    association_be_category_id : UUID <<FK>>
-    association_brand_id: UUID
-    name: String
-    description: String
-    image: String
-    price : Decimal
-    stock : Integer
-}
-
-
-
-
-
-ENTITY "sku_Model" as Model {
-    PRIMARY_KEY <color:red>sku_model_id</color> : int
-    sku_id: UUID
-    model_name : varchar(255)
-    model_denomination: float
-    model_weight : float
-    model_dimensions : json
-}
-
-ENTITY Price {
-    PRIMARY_KEY <color:red>id</color> : bigint
-    sku_item_id : bigint
-    sku_model_id : bigint
-    price_rule_type : varchar(64)
-    price_rule_id : bigint
-    price : decimal
-    currency : varchar(3)
-}
-
-ENTITY Stock {
-    PRIMARY_KEY <color:red>id</color> : bigint
-    sku_item_id : bigint
-    sku_model_id : bigint
-    quantity : int
-    warehouse_id : bigint
-    location : varchar(256)
-    status : varchar(64)
-    last_updated : datetime
-}
-
-fe_category ||--o{ be_category : "maps_to"
-be_category ||--o{ item : "categorizes"
-brand ||--o{ item : "produces"
-seller ||--o{ shop : "has"
-shop ||--o{ item : "has"
-spu_tab ||--o{ item : has
-item --o Model : "has"
-Model ||--o{ Price
-Model ||--o{ Stock
-spu_tab ||--o{ spu_attr_tab : "has"
-spu_attr_tab ||--o{ spu_attr_value_tab : "references"
+' 关系
+Brand ||--o{ Item : "1:N"
+Category ||--o{ Item : "1:N"
+Category ||--o{ Category : "parent"
+Category ||--o{ CategoryAttribute : "1:N"
+Attribute ||--o{ CategoryAttribute : "1:N"
+Item ||--o{ SKU : "1:N"
+Item ||--|| ItemState : "1:1"
+Item ||--o{ SPUAttrValue : "1:N"
+Attribute ||--o{ SPUAttrValue : "1:N"
 @enduml
