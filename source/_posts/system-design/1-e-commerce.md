@@ -688,6 +688,60 @@ CREATE TABLE order_item (
 - 订单量太大，考虑复用快照
 
 ### 创单
+#### 核心步骤
+1. 参数校验。用户校验，是否异常用户。
+2. 商品与价格校验。校验商品是否存在、是否上架、价格是否有效
+3. 库存校验与预占。检查库存是否充足，部分场景下进行库存预占（锁库存）。
+4. 营销信息校验。校验优惠券、积分等是否可用，计算优惠金额。
+6. 订单金额计算。计算订单总金额、应付金额、各项明细。
+7. 生成订单号。生成全局唯一订单号，保证幂等性。
+8. 订单数据落库。写入订单主表、订单明细表、扩展表等。
+9. 扣减库存、扣减实际库存（有的系统在支付后扣减）。
+10. 发送消息/异步处理。发送订单创建成功消息，通知库存、物流、营销等系统。
+11. 返回下单结果。返回订单号、支付信息等给前端。
+
+#### 支持订单差异性
+1. 实物订单
+典型场景：电商平台购物（如买衣服、家电）
+核心特征：
+需要物流配送，涉及收货地址、运费、物流跟踪
+需要库存校验与扣减
+售后流程（退货、换货、退款）复杂
+订单状态多（待发货、已发货、已收货等）
+
+2. 虚拟订单
+典型场景：会员卡、电子券、游戏点卡、电影票等
+核心特征：
+无物流配送，不需要收货地址和运费
+通常无需库存（或库存为虚拟库存）
+订单完成后直接发放虚拟物品或凭证
+售后流程简单或无售后
+
+3. 预售订单
+典型场景：新品预售、定金膨胀、众筹等
+核心特征：
+订单分为定金和尾款两阶段
+需校验定金支付、尾款支付的时效
+可能涉及定金不退、尾款未付订单自动关闭等规则
+发货时间通常在尾款支付后
+
+4. 酒店订单
+典型场景：酒店预订
+核心特征：
+需选择入住/离店日期、房型、入住人信息
+需对接第三方酒店系统实时查房、锁房
+取消、变更政策复杂，可能涉及违约金
+无物流，但有电子凭证或入住确认
+
+6. 充值订单
+典型场景：话费充值、游戏币充值
+核心特征：
+订单完成后需实时到账
+需对接第三方充值通道
+通常无物流、无库存
+售后处理难度大（如充值到账失败）
+
+#### 实现思路
 - 接口定义：通过OrderCreationStep接口定义了每个步骤必须实现的方法
 - 上下文共享：使用OrderCreationContext在步骤间共享数据
 - 步骤独立：每个步骤都是独立的，便于维护和测试
@@ -695,728 +749,637 @@ CREATE TABLE order_item (
 - 流程管理：通过OrderCreationManager统一管理步骤的执行和回滚
 - 错误处理：统一的错误处理和回滚机制
 - 可扩展性：易于添加新的步骤或修改现有步骤
-- 如何解决不同category 创单差异较大的问题。
+- 如何解决不同category 创单差异较大的问题？
+  - 插件化/策略模式。将订单处理流程拆分为多个步骤（如校验、支付、通知等）。不同订单类型实现各自的处理逻辑，通过策略模式动态选择。
+  2. 订单类型标识。在订单主表中增加订单类型字段，根据类型选择不同的处理流程。
+  3. 扩展字段。使用JSON或扩展表存储特定订单类型的特殊字段（如酒店的入住日期、机票的航班信息）。
+  4. 流程引擎。使用流程引擎（如BPMN）定义和管理复杂的订单处理流程，支持动态调整。
 
-```
-// 定义错误码
-type ErrorCode int
+```Go
+package order
 
-const (
-    Success ErrorCode = iota
-    ErrUserNotFound
-    ErrProductNotFound
-    ErrInsufficientStock
-    ErrPriceChanged
-    ErrPromotionExpired
-    ErrSystemError
-    // ... 其他错误码
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"time"
 )
 
-// 错误处理结构
-type OrderError struct {
-    Code    ErrorCode
-    Message string
-    Step    string
-    Details map[string]interface{}
+// OrderType 订单类型
+type OrderType string
+
+const (
+	OrderTypePhysical OrderType = "physical" // 实物订单
+	OrderTypeVirtual  OrderType = "virtual"  // 虚拟订单
+	OrderTypePresale  OrderType = "presale"  // 预售订单
+	OrderTypeHotel    OrderType = "hotel"    // 酒店订单
+	OrderTypeTopUp    OrderType = "topup"    // 充值订单
+)
+
+// OrderStatus 订单状态
+type OrderStatus string
+
+const (
+	OrderStatusInit     OrderStatus = "init"     // 初始化
+	OrderStatusPending  OrderStatus = "pending"  // 待支付
+	OrderStatusPaid     OrderStatus = "paid"     // 已支付
+	OrderStatusShipping OrderStatus = "shipping" // 发货中
+	OrderStatusSuccess  OrderStatus = "success"  // 成功
+	OrderStatusFailed   OrderStatus = "failed"   // 失败
+	OrderStatusCanceled OrderStatus = "canceled" // 已取消
+)
+
+// Order 订单基础信息
+type Order struct {
+	ID        string          `json:"id"`
+	UserID    string          `json:"user_id"`
+	Type      OrderType       `json:"type"`
+	Status    OrderStatus     `json:"status"`
+	Amount    float64         `json:"amount"`
+	Detail    json.RawMessage `json:"detail"` // 不同类型订单的特殊字段
+	CreatedAt time.Time       `json:"created_at"`
+	UpdatedAt time.Time       `json:"updated_at"`
 }
 
-// 错误处理方法
-func handleError(err *OrderError) {
-    // 1. 记录错误日志
-    logError(err)
-    
-    // 2. 发送告警
-    if isCriticalError(err.Code) {
-        sendAlert(err)
-    }
-    
-    // 3. 记录错误统计
-    recordErrorMetrics(err)
+// OrderCreationContext 创单上下文
+type OrderCreationContext struct {
+	Ctx                 context.Context
+	Order               *Order
+	Params              map[string]interface{} // 创单参数
+	Cache               map[string]interface{} // 步骤间共享数据
+	Errors              []error                // 错误记录
+	StepResults         map[string]StepResult  // 每个步骤的执行结果
+	RollbackFailedSteps []string               // 记录回滚失败的步骤
 }
 
-
-// 回滚管理器
-type RollbackManager struct {
-    steps []RollbackStep
+// StepResult 步骤执行结果
+type StepResult struct {
+	Success        bool
+	Error          error
+	Data           interface{}
+	CompensateData interface{} // 用于补偿的数据
 }
 
-// 回滚步骤接口
-type RollbackStep interface {
-    Execute() error
-    Rollback() error
-}
-
-// 订单创建回滚
-func (rm *RollbackManager) Rollback() error {
-    // 从后往前执行回滚
-    for i := len(rm.steps) - 1; i >= 0; i-- {
-        if err := rm.steps[i].Rollback(); err != nil {
-            log.Printf("Rollback step %d failed: %v", i, err)
-            // 继续执行其他回滚步骤
-        }
-    }
-    return nil
-}
-
-func validateUser(userID string) (*UserValidationStep, error) {
-    step := &UserValidationStep{
-        userID: userID,
-    }
-    
-    // 执行校验
-    if err := step.Execute(); err != nil {
-        return nil, &OrderError{
-            Code:    ErrUserNotFound,
-            Message: "User validation failed",
-            Step:    "UserValidation",
-            Details: map[string]interface{}{
-                "userID": userID,
-                "error":  err.Error(),
-            },
-        }
-    }
-    
-    return step, nil
-}
-
-func validateAndDeductStock(productID string, quantity int) (*StockDeductionStep, error) {
-    step := &StockDeductionStep{
-        productID: productID,
-        quantity:  quantity,
-    }
-    
-    // 使用分布式锁
-    lock := distributedLock.NewLock("stock:" + productID)
-    if !lock.TryLock() {
-        return nil, &OrderError{
-            Code:    ErrLockFailed,
-            Message: "Failed to acquire stock lock",
-            Step:    "StockDeduction",
-        }
-    }
-    defer lock.Unlock()
-    
-    // 执行库存扣减
-    if err := step.Execute(); err != nil {
-        return nil, &OrderError{
-            Code:    ErrInsufficientStock,
-            Message: "Stock deduction failed",
-            Step:    "StockDeduction",
-        }
-    }
-    
-    return step, nil
-}
-
-func validateAndDeductPromotion(promoCode string) (*PromotionDeductionStep, error) {
-    step := &PromotionDeductionStep{
-        promoCode: promoCode,
-    }
-    
-    // 执行促销活动处理
-    if err := step.Execute(); err != nil {
-        return nil, &OrderError{
-            Code:    ErrPromotionExpired,
-            Message: "Promotion validation failed",
-            Step:    "PromotionDeduction",
-        }
-    }
-    
-    return step, nil
-}
-
-func CreateOrder(request OrderRequest) (*OrderResponse, error) {
-    // 创建回滚管理器
-    rollbackManager := &RollbackManager{}
-    
-    // 1. 用户校验
-    userStep, err := validateUser(request.UserID)
-    if err != nil {
-        return nil, err
-    }
-    rollbackManager.steps = append(rollbackManager.steps, userStep)
-    
-    // 2. 商品校验
-    productStep, err := validateProduct(request.ProductID)
-    if err != nil {
-        rollbackManager.Rollback()
-        return nil, err
-    }
-    rollbackManager.steps = append(rollbackManager.steps, productStep)
-    
-    // 3. 库存校验和扣减
-    stockStep, err := validateAndDeductStock(request.ProductID, request.Quantity)
-    if err != nil {
-        rollbackManager.Rollback()
-        return nil, err
-    }
-    rollbackManager.steps = append(rollbackManager.steps, stockStep)
-    
-    // 4. 营销活动处理
-    if request.PromoCode != "" {
-        promoStep, err := validateAndDeductPromotion(request.PromoCode)
-        if err != nil {
-            rollbackManager.Rollback()
-            return nil, err
-        }
-        rollbackManager.steps = append(rollbackManager.steps, promoStep)
-    }
-    
-    // 5. 创建订单
-    orderStep, err := createOrder(request)
-    if err != nil {
-        rollbackManager.Rollback()
-        return nil, err
-    }
-    rollbackManager.steps = append(rollbackManager.steps, orderStep)
-    
-    return &OrderResponse{
-        OrderID: orderStep.OrderID,
-        Status:  "SUCCESS",
-    }, nil
-}
-
-// 补偿任务
-type CompensationTask struct {
-    OrderID    string
-    Step       string
-    RetryCount int
-    MaxRetries int
-}
-
-// 补偿执行器
-func (ct *CompensationTask) Execute() error {
-    if ct.RetryCount >= ct.MaxRetries {
-        return errors.New("max retries exceeded")
-    }
-    
-    // 根据步骤执行不同的补偿逻辑
-    switch ct.Step {
-    case "StockDeduction":
-        return compensateStockDeduction(ct.OrderID)
-    case "PromotionDeduction":
-        return compensatePromotionDeduction(ct.OrderID)
-    // ... 其他补偿逻辑
-    }
-    
-    return nil
-}
-
-
-// 订单创建步骤接口
+// OrderCreationStep 创单步骤接口
 type OrderCreationStep interface {
-    // 执行步骤
-    Execute(ctx context.Context) error
-    // 回滚步骤
-    Rollback(ctx context.Context) error
-    // 获取步骤名称
-    GetStepName() string
+	Execute(ctx *OrderCreationContext) error
+	Rollback(ctx *OrderCreationContext) error
+	Compensate(ctx *OrderCreationContext) error // 异步补偿
+	Name() string
 }
 
-// 订单创建上下文
-type OrderCreationContext struct {
-    OrderID      string
-    UserID       string
-    ProductID    string
-    Quantity     int
-    PromoCode    string
-    PaymentInfo  PaymentInfo
-    DeliveryInfo DeliveryInfo
-    // 存储中间结果
-    StepResults  map[string]interface{}
-}
-
-// 基础步骤实现
-type BaseStep struct {
-    ctx *OrderCreationContext
-}
-
-// 1. 用户校验步骤
-type UserValidationStep struct {
-    BaseStep
-    userService UserService
-}
-
-func (s *UserValidationStep) Execute(ctx context.Context) error {
-    // 1. 检查用户是否存在
-    user, err := s.userService.GetUser(s.ctx.UserID)
-    if err != nil {
-        return fmt.Errorf("user not found: %v", err)
-    }
-    
-    // 2. 检查用户状态
-    if user.Status != UserStatusNormal {
-        return fmt.Errorf("user status abnormal: %s", user.Status)
-    }
-    
-    // 3. 存储校验结果
-    s.ctx.StepResults["user"] = user
-    return nil
-}
-
-func (s *UserValidationStep) Rollback(ctx context.Context) error {
-    // 用户校验步骤通常不需要回滚
-    return nil
-}
-
-func (s *UserValidationStep) GetStepName() string {
-    return "UserValidation"
-}
-
-// 2. 商品校验步骤
-type ProductValidationStep struct {
-    BaseStep
-    productService ProductService
-}
-
-func (s *ProductValidationStep) Execute(ctx context.Context) error {
-    // 1. 获取商品信息
-    product, err := s.productService.GetProduct(s.ctx.ProductID)
-    if err != nil {
-        return fmt.Errorf("product not found: %v", err)
-    }
-    
-    // 2. 检查商品状态
-    if product.Status != ProductStatusOnSale {
-        return fmt.Errorf("product not on sale: %s", product.Status)
-    }
-    
-    // 3. 存储商品信息
-    s.ctx.StepResults["product"] = product
-    return nil
-}
-
-func (s *ProductValidationStep) Rollback(ctx context.Context) error {
-    // 商品校验步骤通常不需要回滚
-    return nil
-}
-
-func (s *ProductValidationStep) GetStepName() string {
-    return "ProductValidation"
-}
-
-// 3. 库存校验和扣减步骤
-type StockDeductionStep struct {
-    BaseStep
-    inventoryService InventoryService
-    lockService      LockService
-}
-
-func (s *StockDeductionStep) Execute(ctx context.Context) error {
-    // 1. 获取分布式锁
-    lock := s.lockService.NewLock("stock:" + s.ctx.ProductID)
-    if !lock.TryLock() {
-        return fmt.Errorf("failed to acquire stock lock")
-    }
-    defer lock.Unlock()
-    
-    // 2. 检查库存
-    stock, err := s.inventoryService.GetStock(s.ctx.ProductID)
-    if err != nil {
-        return fmt.Errorf("failed to get stock: %v", err)
-    }
-    
-    if stock < s.ctx.Quantity {
-        return fmt.Errorf("insufficient stock")
-    }
-    
-    // 3. 扣减库存
-    if err := s.inventoryService.DeductStock(s.ctx.ProductID, s.ctx.Quantity); err != nil {
-        return fmt.Errorf("failed to deduct stock: %v", err)
-    }
-    
-    // 4. 记录扣减结果
-    s.ctx.StepResults["stock_deduction"] = true
-    return nil
-}
-
-func (s *StockDeductionStep) Rollback(ctx context.Context) error {
-    // 回滚库存扣减
-    if s.ctx.StepResults["stock_deduction"] == true {
-        return s.inventoryService.ReturnStock(s.ctx.ProductID, s.ctx.Quantity)
-    }
-    return nil
-}
-
-func (s *StockDeductionStep) GetStepName() string {
-    return "StockDeduction"
-}
-
-// 4. 营销活动处理步骤
-type PromotionDeductionStep struct {
-    BaseStep
-    promotionService PromotionService
-}
-
-func (s *PromotionDeductionStep) Execute(ctx context.Context) error {
-    if s.ctx.PromoCode == "" {
-        return nil
-    }
-    
-    // 1. 校验促销活动
-    promotion, err := s.promotionService.ValidatePromotion(s.ctx.PromoCode)
-    if err != nil {
-        return fmt.Errorf("promotion validation failed: %v", err)
-    }
-    
-    // 2. 扣减促销活动库存
-    if err := s.promotionService.DeductPromotion(s.ctx.PromoCode); err != nil {
-        return fmt.Errorf("failed to deduct promotion: %v", err)
-    }
-    
-    // 3. 记录促销结果
-    s.ctx.StepResults["promotion"] = promotion
-    return nil
-}
-
-func (s *PromotionDeductionStep) Rollback(ctx context.Context) error {
-    if s.ctx.PromoCode != "" && s.ctx.StepResults["promotion"] != nil {
-        return s.promotionService.ReturnPromotion(s.ctx.PromoCode)
-    }
-    return nil
-}
-
-func (s *PromotionDeductionStep) GetStepName() string {
-    return "PromotionDeduction"
-}
-
-// 5. 订单创建步骤
-type OrderCreationStep struct {
-    BaseStep
-    orderService OrderService
-}
-
-func (s *OrderCreationStep) Execute(ctx context.Context) error {
-    // 1. 构建订单信息
-    order := &Order{
-        OrderID:      s.ctx.OrderID,
-        UserID:       s.ctx.UserID,
-        ProductID:    s.ctx.ProductID,
-        Quantity:     s.ctx.Quantity,
-        PromoCode:    s.ctx.PromoCode,
-        Status:       OrderStatusCreated,
-        CreatedAt:    time.Now(),
-    }
-    
-    // 2. 创建订单
-    if err := s.orderService.CreateOrder(order); err != nil {
-        return fmt.Errorf("failed to create order: %v", err)
-    }
-    
-    // 3. 记录订单信息
-    s.ctx.StepResults["order"] = order
-    return nil
-}
-
-func (s *OrderCreationStep) Rollback(ctx context.Context) error {
-    if order, ok := s.ctx.StepResults["order"].(*Order); ok {
-        return s.orderService.CancelOrder(order.OrderID)
-    }
-    return nil
-}
-
-func (s *OrderCreationStep) GetStepName() string {
-    return "OrderCreation"
-}
-
-// 订单创建流程管理器
-type OrderCreationManager struct {
-    steps []OrderCreationStep
-    ctx   *OrderCreationContext
-}
-
-func NewOrderCreationManager(ctx *OrderCreationContext) *OrderCreationManager {
-    return &OrderCreationManager{
-        ctx: ctx,
-        steps: []OrderCreationStep{
-            &UserValidationStep{BaseStep{ctx: ctx}},
-            &ProductValidationStep{BaseStep{ctx: ctx}},
-            &StockDeductionStep{BaseStep{ctx: ctx}},
-            &PromotionDeductionStep{BaseStep{ctx: ctx}},
-            &OrderCreationStep{BaseStep{ctx: ctx}},
-        },
-    }
-}
-
-func (m *OrderCreationManager) Execute(ctx context.Context) error {
-    // 记录已执行的步骤
-    executedSteps := make([]OrderCreationStep, 0)
-    
-    // 按顺序执行步骤
-    for _, step := range m.steps {
-        if err := step.Execute(ctx); err != nil {
-            // 发生错误时，从后往前回滚已执行的步骤
-            for i := len(executedSteps) - 1; i >= 0; i-- {
-                if rollbackErr := executedSteps[i].Rollback(ctx); rollbackErr != nil {
-                    log.Printf("Failed to rollback step %s: %v", 
-                        executedSteps[i].GetStepName(), rollbackErr)
-                }
-            }
-            return fmt.Errorf("step %s failed: %v", step.GetStepName(), err)
-        }
-        executedSteps = append(executedSteps, step)
-    }
-    
-    return nil
-}
-
-
-func CreateOrder(request OrderRequest) (*OrderResponse, error) {
-    // 创建上下文
-    ctx := &OrderCreationContext{
-        OrderID:      generateOrderID(),
-        UserID:       request.UserID,
-        ProductID:    request.ProductID,
-        Quantity:     request.Quantity,
-        PromoCode:    request.PromoCode,
-        StepResults:  make(map[string]interface{}),
-    }
-    
-    // 创建订单创建管理器
-    manager := NewOrderCreationManager(ctx)
-    
-    // 执行订单创建流程
-    if err := manager.Execute(context.Background()); err != nil {
-        return nil, err
-    }
-    
-    // 获取创建的订单
-    order := ctx.StepResults["order"].(*Order)
-    
-    return &OrderResponse{
-        OrderID: order.OrderID,
-        Status:  "SUCCESS",
-    }, nil
-}
-
-
-// 1. 定义商品类目类型
-type CategoryType string
-
-const (
-    CategoryTypePhysical    CategoryType = "PHYSICAL"    // 实物商品
-    CategoryTypeVirtual     CategoryType = "VIRTUAL"     // 虚拟商品
-    CategoryTypeSubscription CategoryType = "SUBSCRIPTION" // 订阅商品
-    CategoryTypeService     CategoryType = "SERVICE"     // 服务类商品
+// 错误定义
+var (
+	ErrInvalidParams     = errors.New("invalid parameters")
+	ErrProductNotFound   = errors.New("product not found")
+	ErrProductOffline    = errors.New("product is offline")
+	ErrStockInsufficient = errors.New("stock insufficient")
+	ErrUserBlocked       = errors.New("user is blocked")
+	ErrSystemBusy        = errors.New("system is busy")
 )
 
-// 2. 定义商品类目特定的创单步骤接口
-type CategorySpecificStep interface {
-    OrderCreationStep
-    // 获取支持的类目类型
-    GetSupportedCategories() []CategoryType
+// OrderError 订单错误
+type OrderError struct {
+	Step    string
+	Message string
+	Err     error
 }
 
-// 3. 定义不同类目的创单策略
-type OrderCreationStrategy interface {
-    // 获取类目特定的校验步骤
-    GetValidationSteps() []CategorySpecificStep
-    // 获取类目特定的库存步骤
-    GetInventorySteps() []CategorySpecificStep
-    // 获取类目特定的支付步骤
-    GetPaymentSteps() []CategorySpecificStep
-    // 获取类目特定的履约步骤
-    GetFulfillmentSteps() []CategorySpecificStep
+func (e *OrderError) Error() string {
+	return fmt.Sprintf("step: %s, message: %s, error: %v", e.Step, e.Message, e.Err)
 }
 
-// 4. 实现不同类目的创单策略
-// 4.1 实物商品策略
-type PhysicalOrderStrategy struct {
-    BaseStep
+// 参数校验步骤
+type ParamValidationStep struct{}
+
+func (s *ParamValidationStep) Execute(ctx *OrderCreationContext) error {
+	// 通用参数校验
+	if ctx.Order.UserID == "" || ctx.Order.Type == "" {
+		return &OrderError{Step: s.Name(), Message: "missing required fields", Err: ErrInvalidParams}
+	}
+
+	// 订单类型特殊参数校验
+	switch ctx.Order.Type {
+	case OrderTypePhysical:
+		if addr, ok := ctx.Params["address"].(string); !ok || addr == "" {
+			return &OrderError{Step: s.Name(), Message: "missing address for physical order", Err: ErrInvalidParams}
+		}
+	case OrderTypeHotel:
+		if _, ok := ctx.Params["check_in_date"].(time.Time); !ok {
+			return &OrderError{Step: s.Name(), Message: "missing check-in date for hotel order", Err: ErrInvalidParams}
+		}
+	}
+	return nil
 }
 
-func (s *PhysicalOrderStrategy) GetValidationSteps() []CategorySpecificStep {
-    return []CategorySpecificStep{
-        &PhysicalProductValidationStep{BaseStep: s.BaseStep},
-        &PhysicalInventoryValidationStep{BaseStep: s.BaseStep},
-        &PhysicalDeliveryValidationStep{BaseStep: s.BaseStep},
-    }
+func (s *ParamValidationStep) Rollback(ctx *OrderCreationContext) error {
+	// 参数校验步骤无需回滚
+	return nil
 }
 
-func (s *PhysicalOrderStrategy) GetInventorySteps() []CategorySpecificStep {
-    return []CategorySpecificStep{
-        &PhysicalStockDeductionStep{BaseStep: s.BaseStep},
-        &PhysicalWarehouseSelectionStep{BaseStep: s.BaseStep},
-    }
+func (s *ParamValidationStep) Compensate(ctx *OrderCreationContext) error {
+	// 参数校验步骤无需补偿
+	return nil
 }
 
-func (s *PhysicalOrderStrategy) GetPaymentSteps() []CategorySpecificStep {
-    return []CategorySpecificStep{
-        &PhysicalPaymentValidationStep{BaseStep: s.BaseStep},
-    }
+func (s *ParamValidationStep) Name() string {
+	return "param_validation"
 }
 
-func (s *PhysicalOrderStrategy) GetFulfillmentSteps() []CategorySpecificStep {
-    return []CategorySpecificStep{
-        &PhysicalFulfillmentStep{BaseStep: s.BaseStep},
-    }
+// Product 商品信息
+type Product struct {
+	ID       string
+	Name     string
+	Price    float64
+	IsOnSale bool
 }
 
-// 4.2 虚拟商品策略
-type VirtualOrderStrategy struct {
-    BaseStep
+// ProductService 商品服务接口
+type ProductService interface {
+	GetProduct(ctx context.Context, productID string) (*Product, error)
 }
 
-func (s *VirtualOrderStrategy) GetValidationSteps() []CategorySpecificStep {
-    return []CategorySpecificStep{
-        &VirtualProductValidationStep{BaseStep: s.BaseStep},
-        &VirtualInventoryValidationStep{BaseStep: s.BaseStep},
-    }
+// StockService 库存服务接口
+type StockService interface {
+	LockStock(ctx context.Context, productID string, quantity int) (string, error)
+	UnlockStock(ctx context.Context, lockID string) error
+	DeductStock(ctx context.Context, productID string, quantity int) error
+	RevertDeductStock(ctx context.Context, productID string, quantity int) error
 }
 
-func (s *VirtualOrderStrategy) GetInventorySteps() []CategorySpecificStep {
-    return []CategorySpecificStep{
-        &VirtualStockDeductionStep{BaseStep: s.BaseStep},
-    }
+// PromotionService 营销服务接口
+type PromotionService interface {
+	ValidateCoupon(ctx context.Context, couponCode string, userID string, orderAmount float64) (*Coupon, error)
+	UseCoupon(ctx context.Context, couponCode string, userID string, orderID string) error
+	RevertCouponUsage(ctx context.Context, couponCode string, userID string, orderID string) error
+	DeductPoints(ctx context.Context, userID string, points int) error
+	RevertPointsDeduction(ctx context.Context, userID string, points int) error
 }
 
-func (s *VirtualOrderStrategy) GetPaymentSteps() []CategorySpecificStep {
-    return []CategorySpecificStep{
-        &VirtualPaymentValidationStep{BaseStep: s.BaseStep},
-    }
+// Coupon 优惠券信息
+type Coupon struct {
+	Code       string
+	Type       string
+	Amount     float64
+	Threshold  float64
+	ExpireTime time.Time
 }
 
-func (s *VirtualOrderStrategy) GetFulfillmentSteps() []CategorySpecificStep {
-    return []CategorySpecificStep{
-        &VirtualFulfillmentStep{BaseStep: s.BaseStep},
-    }
+// 商品校验步骤
+type ProductValidationStep struct {
+	productService ProductService
 }
 
-// 5. 策略工厂
-type OrderStrategyFactory struct {
-    strategies map[CategoryType]OrderCreationStrategy
+func (s *ProductValidationStep) Execute(ctx *OrderCreationContext) error {
+	productID := ctx.Params["product_id"].(string)
+	product, err := s.productService.GetProduct(ctx.Ctx, productID)
+	if err != nil {
+		return &OrderError{Step: s.Name(), Message: "failed to get product", Err: err}
+	}
+
+	if !product.IsOnSale {
+		return &OrderError{Step: s.Name(), Message: "product is offline", Err: ErrProductOffline}
+	}
+
+	ctx.Cache["product"] = product
+	return nil
 }
 
-func NewOrderStrategyFactory() *OrderStrategyFactory {
-    return &OrderStrategyFactory{
-        strategies: map[CategoryType]OrderCreationStrategy{
-            CategoryTypePhysical:    &PhysicalOrderStrategy{},
-            CategoryTypeVirtual:     &VirtualOrderStrategy{},
-            CategoryTypeSubscription: &SubscriptionOrderStrategy{},
-            CategoryTypeService:     &ServiceOrderStrategy{},
-        },
-    }
+func (s *ProductValidationStep) Rollback(ctx *OrderCreationContext) error {
+	return nil
 }
 
-func (f *OrderStrategyFactory) GetStrategy(categoryType CategoryType) (OrderCreationStrategy, error) {
-    if strategy, exists := f.strategies[categoryType]; exists {
-        return strategy, nil
-    }
-    return nil, fmt.Errorf("unsupported category type: %s", categoryType)
+func (s *ProductValidationStep) Compensate(ctx *OrderCreationContext) error {
+	return nil
 }
 
-// 6. 扩展订单创建上下文
-type OrderCreationContext struct {
-    // ... 原有字段 ...
-    CategoryType CategoryType
-    CategorySpecificData map[string]interface{}
+func (s *ProductValidationStep) Name() string {
+	return "product_validation"
 }
 
-// 7. 扩展订单创建管理器
+// 库存校验步骤
+type StockValidationStep struct {
+	stockService StockService
+}
+
+func (s *StockValidationStep) Execute(ctx *OrderCreationContext) error {
+	if ctx.Order.Type == OrderTypeVirtual || ctx.Order.Type == OrderTypeTopUp {
+		return nil
+	}
+
+	productID := ctx.Params["product_id"].(string)
+	quantity := ctx.Params["quantity"].(int)
+
+	lockID, err := s.stockService.LockStock(ctx.Ctx, productID, quantity)
+	if err != nil {
+		return &OrderError{Step: s.Name(), Message: "failed to lock stock", Err: err}
+	}
+
+	ctx.Cache["stock_lock_id"] = lockID
+	return nil
+}
+
+func (s *StockValidationStep) Rollback(ctx *OrderCreationContext) error {
+	if lockID, ok := ctx.Cache["stock_lock_id"].(string); ok {
+		return s.stockService.UnlockStock(ctx.Ctx, lockID)
+	}
+	return nil
+}
+
+func (s *StockValidationStep) Compensate(ctx *OrderCreationContext) error {
+	return nil
+}
+
+func (s *StockValidationStep) Name() string {
+	return "stock_validation"
+}
+
+// 库存扣减步骤
+type StockDeductionStep struct {
+	stockService StockService
+}
+
+func (s *StockDeductionStep) Execute(ctx *OrderCreationContext) error {
+	// 虚拟商品和充值订单跳过库存扣减
+	if ctx.Order.Type == OrderTypeVirtual || ctx.Order.Type == OrderTypeTopUp {
+		return nil
+	}
+
+	productID := ctx.Params["product_id"].(string)
+	quantity := ctx.Params["quantity"].(int)
+
+	// 执行库存扣减
+	if err := s.stockService.DeductStock(ctx.Ctx, productID, quantity); err != nil {
+		return &OrderError{
+			Step:    s.Name(),
+			Message: "failed to deduct stock",
+			Err:     err,
+		}
+	}
+
+	// 记录扣减信息，用于回滚
+	ctx.Cache["stock_deducted"] = map[string]interface{}{
+		"product_id": productID,
+		"quantity":   quantity,
+	}
+
+	return nil
+}
+
+func (s *StockDeductionStep) Rollback(ctx *OrderCreationContext) error {
+	deducted, ok := ctx.Cache["stock_deducted"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	productID := deducted["product_id"].(string)
+	quantity := deducted["quantity"].(int)
+
+	return s.stockService.RevertDeductStock(ctx.Ctx, productID, quantity)
+}
+
+func (s *StockDeductionStep) Compensate(ctx *OrderCreationContext) error {
+	deducted, ok := ctx.Cache["stock_deducted"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	productID := deducted["product_id"].(string)
+	quantity := deducted["quantity"].(int)
+
+	// 创建补偿消息
+	compensationMsg := StockCompensationMessage{
+		OrderID:   ctx.Order.ID,
+		ProductID: productID,
+		Quantity:  quantity,
+		Timestamp: time.Now(),
+	}
+
+	// TODO: 实现发送到补偿队列的逻辑
+	// return sendToCompensationQueue("stock_compensation", compensationMsg)
+	return nil
+}
+
+func (s *StockDeductionStep) Name() string {
+	return "stock_deduction"
+}
+
+// 营销活动扣减步骤
+type PromotionDeductionStep struct {
+	promotionService PromotionService
+}
+
+func (s *PromotionDeductionStep) Execute(ctx *OrderCreationContext) error {
+	// 处理优惠券
+	if couponCode, ok := ctx.Params["coupon_code"].(string); ok {
+		// 验证优惠券
+		coupon, err := s.promotionService.ValidateCoupon(
+			ctx.Ctx,
+			couponCode,
+			ctx.Order.UserID,
+			ctx.Order.Amount,
+		)
+		if err != nil {
+			return &OrderError{
+				Step:    s.Name(),
+				Message: "invalid coupon",
+				Err:     err,
+			}
+		}
+
+		// 使用优惠券
+		if err := s.promotionService.UseCoupon(ctx.Ctx, couponCode, ctx.Order.UserID, ctx.Order.ID); err != nil {
+			return &OrderError{
+				Step:    s.Name(),
+				Message: "failed to use coupon",
+				Err:     err,
+			}
+		}
+
+		// 记录优惠券使用信息，用于回滚
+		ctx.Cache["used_coupon"] = couponCode
+
+		// 更新订单金额
+		ctx.Order.Amount -= coupon.Amount
+	}
+
+	// 处理积分抵扣
+	if points, ok := ctx.Params["use_points"].(int); ok && points > 0 {
+		// 扣减积分
+		if err := s.promotionService.DeductPoints(ctx.Ctx, ctx.Order.UserID, points); err != nil {
+			return &OrderError{
+				Step:    s.Name(),
+				Message: "failed to deduct points",
+				Err:     err,
+			}
+		}
+
+		// 记录积分扣减信息，用于回滚
+		ctx.Cache["deducted_points"] = points
+
+		// 更新订单金额（假设1积分=0.01元）
+		ctx.Order.Amount -= float64(points) * 0.01
+	}
+
+	return nil
+}
+
+func (s *PromotionDeductionStep) Rollback(ctx *OrderCreationContext) error {
+	// 回滚优惠券使用
+	if couponCode, ok := ctx.Cache["used_coupon"].(string); ok {
+		if err := s.promotionService.RevertCouponUsage(ctx.Ctx, couponCode, ctx.Order.UserID, ctx.Order.ID); err != nil {
+			return err
+		}
+	}
+
+	// 回滚积分扣减
+	if points, ok := ctx.Cache["deducted_points"].(int); ok {
+		if err := s.promotionService.RevertPointsDeduction(ctx.Ctx, ctx.Order.UserID, points); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *PromotionDeductionStep) Compensate(ctx *OrderCreationContext) error {
+	// 优惠券补偿
+	if couponCode, ok := ctx.Cache["used_coupon"].(string); ok {
+		// TODO: 实现优惠券补偿逻辑
+		// 1. 发送到补偿队列
+		// 2. 记录补偿日志
+		// 3. 通知运营人员
+	}
+
+	// 积分补偿
+	if points, ok := ctx.Cache["deducted_points"].(int); ok {
+		// TODO: 实现积分补偿逻辑
+		// 1. 发送到补偿队列
+		// 2. 记录补偿日志
+		// 3. 通知运营人员
+	}
+
+	return nil
+}
+
+func (s *PromotionDeductionStep) Name() string {
+	return "promotion_deduction"
+}
+
+// OrderFactory 订单工厂
+type OrderFactory struct {
+	commonSteps []OrderCreationStep
+	typeSteps   map[OrderType][]OrderCreationStep
+}
+
+func NewOrderFactory() *OrderFactory {
+	f := &OrderFactory{
+		commonSteps: []OrderCreationStep{
+			&ParamValidationStep{},
+			&ProductValidationStep{},
+			&PromotionDeductionStep{},
+		},
+		typeSteps: make(map[OrderType][]OrderCreationStep),
+	}
+
+	// 实物订单特有步骤
+	f.typeSteps[OrderTypePhysical] = []OrderCreationStep{
+		&StockValidationStep{},
+		&StockDeductionStep{},
+	}
+
+	// 虚拟订单特有步骤
+	f.typeSteps[OrderTypeVirtual] = []OrderCreationStep{}
+
+	// 预售订单特有步骤
+	f.typeSteps[OrderTypePresale] = []OrderCreationStep{
+		&StockValidationStep{},
+	}
+
+	// 酒店订单特有步骤
+	f.typeSteps[OrderTypeHotel] = []OrderCreationStep{}
+
+	return f
+}
+
+func (f *OrderFactory) GetSteps(orderType OrderType) []OrderCreationStep {
+	steps := make([]OrderCreationStep, 0)
+	steps = append(steps, f.commonSteps...)
+	if typeSteps, ok := f.typeSteps[orderType]; ok {
+		steps = append(steps, typeSteps...)
+	}
+	return steps
+}
+
+// Logger 日志接口
+type Logger interface {
+	Info(msg string, args ...interface{})
+	Error(msg string, args ...interface{})
+}
+
+// OrderCreationManager 订单创建管理器
 type OrderCreationManager struct {
-    steps []OrderCreationStep
-    ctx   *OrderCreationContext
-    strategy OrderCreationStrategy
+	factory *OrderFactory
+	logger  Logger
 }
 
-func NewOrderCreationManager(ctx *OrderCreationContext) (*OrderCreationManager, error) {
-    factory := NewOrderStrategyFactory()
-    strategy, err := factory.GetStrategy(ctx.CategoryType)
-    if err != nil {
-        return nil, err
-    }
+func (m *OrderCreationManager) CreateOrder(ctx context.Context, params map[string]interface{}) (*Order, error) {
+	orderCtx := &OrderCreationContext{
+		Ctx:                 ctx,
+		Params:              params,
+		Cache:               make(map[string]interface{}),
+		StepResults:         make(map[string]StepResult),
+		RollbackFailedSteps: make([]string, 0),
+	}
 
-    // 获取基础步骤
-    baseSteps := []OrderCreationStep{
-        &UserValidationStep{BaseStep{ctx: ctx}},
-        &CommonProductValidationStep{BaseStep{ctx: ctx}},
-    }
+	// 初始化订单
+	order := &Order{
+		ID:        generateOrderID(),
+		UserID:    params["user_id"].(string),
+		Type:      OrderType(params["type"].(string)),
+		Status:    OrderStatusInit,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	orderCtx.Order = order
 
-    // 获取类目特定步骤
-    categorySteps := strategy.GetValidationSteps()
-    inventorySteps := strategy.GetInventorySteps()
-    paymentSteps := strategy.GetPaymentSteps()
-    fulfillmentSteps := strategy.GetFulfillmentSteps()
+	// 获取订单类型对应的处理步骤
+	steps := m.factory.GetSteps(order.Type)
 
-    // 合并所有步骤
-    allSteps := append(baseSteps, categorySteps...)
-    allSteps = append(allSteps, inventorySteps...)
-    allSteps = append(allSteps, paymentSteps...)
-    allSteps = append(allSteps, fulfillmentSteps...)
+	// 执行步骤
+	executedSteps := make([]OrderCreationStep, 0)
+	for _, step := range steps {
+		stepName := step.Name()
+		m.logger.Info("executing step", "step", stepName)
 
-    return &OrderCreationManager{
-        steps: allSteps,
-        ctx:   ctx,
-        strategy: strategy,
-    }, nil
+		err := step.Execute(orderCtx)
+		if err != nil {
+			m.logger.Error("step execution failed", "step", stepName, "error", err)
+
+			orderCtx.Errors = append(orderCtx.Errors, err)
+
+			// 执行回滚，并记录回滚失败的步骤
+			m.rollbackSteps(orderCtx, executedSteps)
+
+			// 只对回滚失败的步骤进行补偿
+			if len(orderCtx.RollbackFailedSteps) > 0 {
+				go m.compensateFailedRollbacks(orderCtx)
+			}
+
+			return nil, err
+		}
+
+		executedSteps = append(executedSteps, step)
+		m.logger.Info("step executed successfully", "step", stepName)
+	}
+
+	return order, nil
 }
 
-// 8. 实现具体的类目特定步骤
-// 8.1 实物商品特定步骤
-type PhysicalProductValidationStep struct {
-    BaseStep
+// 修改回滚逻辑，记录回滚失败的步骤
+func (m *OrderCreationManager) rollbackSteps(ctx *OrderCreationContext, steps []OrderCreationStep) {
+	for i := len(steps) - 1; i >= 0; i-- {
+		step := steps[i]
+		stepName := step.Name()
+
+		if err := step.Rollback(ctx); err != nil {
+			m.logger.Error("step rollback failed", "step", stepName, "error", err)
+			// 记录回滚失败的步骤
+			ctx.RollbackFailedSteps = append(ctx.RollbackFailedSteps, stepName)
+		}
+	}
 }
 
-func (s *PhysicalProductValidationStep) Execute(ctx context.Context) error {
-    // 实物商品特定的校验逻辑
-    // 1. 检查商品重量
-    // 2. 检查商品尺寸
-    // 3. 检查是否支持配送
-    return nil
+// 新的补偿方法，只处理回滚失败的步骤
+func (m *OrderCreationManager) compensateFailedRollbacks(ctx *OrderCreationContext) {
+	m.logger.Info("starting compensation for failed rollbacks",
+		"failed_steps", ctx.RollbackFailedSteps)
+
+	// 获取所有步骤的映射
+	allSteps := make(map[string]OrderCreationStep)
+	for _, step := range m.factory.GetSteps(ctx.Order.Type) {
+		allSteps[step.Name()] = step
+	}
+
+	// 只对回滚失败的步骤进行补偿
+	for _, failedStepName := range ctx.RollbackFailedSteps {
+		if step, ok := allSteps[failedStepName]; ok {
+			if err := step.Compensate(ctx); err != nil {
+				m.logger.Error("step compensation failed",
+					"step", failedStepName,
+					"error", err)
+
+				// 补偿失败处理
+				m.handleCompensationFailure(ctx, failedStepName, err)
+			}
+		}
+	}
 }
 
-func (s *PhysicalProductValidationStep) GetSupportedCategories() []CategoryType {
-    return []CategoryType{CategoryTypePhysical}
+// 处理补偿失败的情况
+func (m *OrderCreationManager) handleCompensationFailure(ctx *OrderCreationContext, stepName string, err error) {
+	// 创建补偿任务
+	compensationTask := CompensationTask{
+		OrderID:    ctx.Order.ID,
+		StepName:   stepName,
+		Params:     ctx.Params,
+		Cache:      ctx.Cache,
+		RetryCount: 0,
+		MaxRetries: 3,
+		CreatedAt:  time.Now(),
+	}
+
+	// 记录错误日志
+	m.logger.Error("compensation task created for failed step",
+		"order_id", compensationTask.OrderID,
+		"step", compensationTask.StepName,
+		"error", err)
+
+	// TODO: 实现具体的补偿任务处理逻辑
+	// 1. 将任务保存到数据库
+	// 2. 发送到消息队列
+	// 3. 触发告警
 }
 
-// 8.2 虚拟商品特定步骤
-type VirtualProductValidationStep struct {
-    BaseStep
+// DefaultLogger 默认日志实现
+type DefaultLogger struct{}
+
+func NewDefaultLogger() Logger {
+	return &DefaultLogger{}
 }
 
-func (s *VirtualProductValidationStep) Execute(ctx context.Context) error {
-    // 虚拟商品特定的校验逻辑
-    // 1. 检查激活码库存
-    // 2. 检查有效期
-    // 3. 检查使用限制
-    return nil
+func (l *DefaultLogger) Info(msg string, args ...interface{}) {
+	log.Printf("INFO: "+msg, args...)
 }
 
-func (s *VirtualProductValidationStep) GetSupportedCategories() []CategoryType {
-    return []CategoryType{CategoryTypeVirtual}
+func (l *DefaultLogger) Error(msg string, args ...interface{}) {
+	log.Printf("ERROR: "+msg, args...)
 }
 
-func CreateOrder(request OrderRequest) (*OrderResponse, error) {
-    // 创建上下文
-    ctx := &OrderCreationContext{
-        OrderID:      generateOrderID(),
-        UserID:       request.UserID,
-        ProductID:    request.ProductID,
-        Quantity:     request.Quantity,
-        PromoCode:    request.PromoCode,
-        CategoryType: request.CategoryType,
-        StepResults:  make(map[string]interface{}),
-        CategorySpecificData: make(map[string]interface{}),
-    }
-    
-    // 创建订单创建管理器
-    manager, err := NewOrderCreationManager(ctx)
-    if err != nil {
-        return nil, err
-    }
-    
-    // 执行订单创建流程
-    if err := manager.Execute(context.Background()); err != nil {
-        return nil, err
-    }
-    
-    // 获取创建的订单
-    order := ctx.StepResults["order"].(*Order)
-    
-    return &OrderResponse{
-        OrderID: order.OrderID,
-        Status:  "SUCCESS",
-    }, nil
+// 辅助函数
+func generateOrderID() string {
+	return fmt.Sprintf("ORDER_%d", time.Now().UnixNano())
+}
+
+// CompensationTask 补偿任务结构
+type CompensationTask struct {
+	OrderID    string
+	StepName   string
+	Params     map[string]interface{}
+	Cache      map[string]interface{}
+	RetryCount int
+	MaxRetries int
+	CreatedAt  time.Time
+}
+
+// StockCompensationMessage 库存补偿消息
+type StockCompensationMessage struct {
+	OrderID   string
+	ProductID string
+	Quantity  int
+	Timestamp time.Time
 }
 ```
 
