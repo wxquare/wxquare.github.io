@@ -37,7 +37,6 @@ categories:
 
 ### 数据架构
 
-
 ## 商品管理 Product Center
 
 ### 什么是SPU、SKU
@@ -77,20 +76,370 @@ categories:
 - 多语言支持
 - 多币种支持
 
+#### 商品信息录入JSON示例
 
-## 电商订单管理 Order Center
+##### 实体商品
+
+<details>
+<summary>1、实体商品男士T恤 JSON 数据</summary>
+<pre><code class="json">
+```json
+{
+  "categoryId": 1003001,
+  "spu": {
+    "name": "经典圆领男士T恤",
+    "brandId": 2001,
+    "description": "柔软舒适，100%纯棉"
+  },
+  "basicAttributes": [
+    {
+      "attributeId": 101,         // 品牌
+      "attributeName": "品牌",
+      "value": "NIKE"
+    },
+    {
+      "attributeId": 102,         // 材质
+      "attributeName": "材质",
+      "value": "棉"
+    },
+    {
+      "attributeId": 103,         // 产地
+      "attributeName": "产地",
+      "value": "中国"
+    },
+    {
+      "attributeId": 104,         // 袖型
+      "attributeName": "袖型",
+      "value": "短袖"
+    }
+  ],
+  "skus": [
+    {
+      "skuName": "黑色 L",
+      "price": 79.00,
+      "stock": 100,
+      "salesAttributes": [
+        {
+          "attributeId": 201,
+          "attributeName": "颜色",
+          "value": "黑色"
+        },
+        {
+          "attributeId": 202,
+          "attributeName": "尺码",
+          "value": "L"
+        }
+      ]
+    },
+    {
+      "skuName": "白色 M",
+      "price": 79.00,
+      "stock": 150,
+      "salesAttributes": [
+        {
+          "attributeId": 201,
+          "attributeName": "颜色",
+          "value": "白色"
+        },
+        {
+          "attributeId": 202,
+          "attributeName": "尺码",
+          "value": "M"
+        }
+      ]
+    }
+  ]
+}
+```
+</code></pre>
+</details> 
+
+##### 虚拟商品
+
+<details>
+<summary>2、虚拟商品流量充值 JSON 数据</summary>
+<pre><code class="json">
+```json
+{
+  "categoryId": 1005002,
+  "spu": {
+    "name": "中国移动流量包充值",
+    "brandId": 3001,
+    "description": "全国通用流量包充值，按需选择，自动到账"
+  },
+  "basicAttributes": [
+    {
+      "attributeId": 301,
+      "attributeName": "运营商",
+      "value": "中国移动"
+    },
+    {
+      "attributeId": 302,
+      "attributeName": "适用网络",
+      "value": "4G/5G"
+    }
+  ],
+  "skus": [
+    {
+      "skuName": "中国移动1GB全国流量包（7天）",
+      "price": 5.00,
+      "stock": 9999,
+      "salesAttributes": [
+        {
+          "attributeId": 401,
+          "attributeName": "流量容量",
+          "value": "1GB"
+        },
+        {
+          "attributeId": 402,
+          "attributeName": "有效期",
+          "value": "7天"
+        },
+        {
+          "attributeId": 403,
+          "attributeName": "流量类型",
+          "value": "全国通用"
+        }
+      ]
+    },
+    {
+      "skuName": "中国移动5GB全国流量包（30天）",
+      "price": 20.00,
+      "stock": 9999,
+      "salesAttributes": [
+        {
+          "attributeId": 401,
+          "attributeName": "流量容量",
+          "value": "5GB"
+        },
+        {
+          "attributeId": 402,
+          "attributeName": "有效期",
+          "value": "30天"
+        },
+        {
+          "attributeId": 403,
+          "attributeName": "流量类型",
+          "value": "全国通用"
+        }
+      ]
+    },
+    {
+      "skuName": "中国移动10GB全国流量包（90天）",
+      "price": 38.00,
+      "stock": 9999,
+      "salesAttributes": [
+        {
+          "attributeId": 401,
+          "attributeName": "流量容量",
+          "value": "10GB"
+        },
+        {
+          "attributeId": 402,
+          "attributeName": "有效期",
+          "value": "90天"
+        },
+        {
+          "attributeId": 403,
+          "attributeName": "流量类型",
+          "value": "全国通用"
+        }
+      ]
+    }
+  ]
+}
+
+```
+</code></pre>
+</details> 
+
+
+### 商品的价格和库存
+#### 方案1. 价格和库存直接放在sku表中
+在这种方案中，SKU（Stock Keeping Unit） 表包含商品的所有信息，包括价格和库存数量。每个 SKU 记录一个独立的商品实例，它有唯一的标识符，直接关联价格和库存。
+```sql
+CREATE TABLE sku_tab (
+    sku_id INT PRIMARY KEY,             -- SKU ID
+    product_id INT,                     -- 商品ID (外键，指向商品表)
+    sku_name VARCHAR(255),              -- SKU 名称
+    original_price DECIMAL(10, 2),      -- 原始价格
+    price DECIMAL(10, 2),               -- 销售价格
+    discount_price DECIMAL(10, 2),      -- 折扣价格（如果有）
+    stock_quantity INT,                 -- 库存数量
+    warehouse_id INT,                   -- 仓库ID（如果有多个仓库）
+    created_at TIMESTAMP,               -- 创建时间
+    updated_at TIMESTAMP                -- 更新时间
+);
+```
+
+优点：
+- 简单：所有信息都集中在一个表中，查询和管理都很方便。
+- 查询效率：查询某个商品的价格和库存不需要多表联接，减少了数据库查询的复杂度。
+- 维护方便：商品的所有信息（包括价格和库存）都在一个地方，减少了冗余数据和数据不一致的可能性。
+
+缺点：
+- 灵活性差：如果价格和库存的管理策略较复杂（如促销、库存管理、动态定价等），这种方式可能不太适用。修改价格或库存时需要直接更新 SKU 表。
+- 扩展性差：对于一些复杂的定价和库存管理需求（如多层次的定价结构、分仓库管理等），直接放在 SKU 表中可能不够灵活。
+
+适用场景：
+- 商品种类较少，SKU 数量相对固定且不复杂的场景。
+- 价格和库存变动较少，不涉及复杂的促销或动态定价的场景
+
+
+#### 方案2. 价格和库存单独管理
+
+```sql
+
+CREATE TABLE price_tab (
+    price_id INT PRIMARY KEY,         -- 价格ID
+    sku_id INT,                       -- SKU ID (外键)
+    price DECIMAL(10, 2),             -- 商品价格
+    discount_price DECIMAL(10, 2),    -- 折扣价格
+    effective_date TIMESTAMP,         -- 价格生效时间
+    expiry_date TIMESTAMP,            -- 价格失效时间
+    price_type VARCHAR(50),           -- 价格类型（如标准价、促销价等）
+    FOREIGN KEY (sku_id) REFERENCES ProductSKUs(sku_id)
+);
+
+CREATE TABLE inventory_tab (
+    inventory_id INT PRIMARY KEY,     -- 库存ID
+    sku_id INT,                        -- SKU ID (外键)
+    quantity INT,                      -- 库存数量
+    warehouse_id INT,                  -- 仓库ID（如果有多个仓库）
+    updated_at TIMESTAMP,              -- 库存更新时间
+    FOREIGN KEY (sku_id) REFERENCES ProductSKUs(sku_id)
+);
+```
+优点：
+- 灵活性高：价格和库存信息可以独立管理，更容易支持多样化的定价策略、促销活动、库存管理等。
+- 可扩展性强：对于需要频繁更新价格、库存、促销等信息的商品，这种方案更容易扩展和适应变化。例如，可以灵活地增加新的价格策略或库存仓库。
+- 数据结构清晰：避免了价格和库存在 SKU 表中的冗余存储，使得数据结构更清晰。
+
+缺点：
+- 查询复杂：获取某个商品的价格和库存信息时，需要联接多个表，查询效率可能会降低，尤其是在数据量大时。
+- 管理复杂：需要更多的表和关系，增加了维护成本和系统复杂度。
+
+适用场景：
+- 商品种类繁多，SKU 数量较大，且需要支持动态定价、促销、库存管理等复杂需求的场景。
+- 需要频繁变动价格或库存的商品，且这些信息与 SKU 无法紧密绑定的场景
+
+
+### 商品的生命周期
+- 商品的生命周期
+- 如何处理商品的上下架
+- 如何设计商品的审核流程？
+
+
+### 缓存的使用
+
+
+
+### 核心流程
+#### B端：商品创建和发布的流程
+- 批量上传、批量编辑
+- 单个上传、编辑
+- 审核、发布
+- OpenAPI，支持外部同步API push 商品
+- auto-sync，自动同步外部商品
+#### C端：商品搜索、商品详情
+- 商品搜索
+  - elastic search 索引构建。获取商品列表(首页索引)
+  - 如何处理商品的SEO优化？
+<details>
+<summary>1、item index</summary>
+<pre><code class="json">
+```json
+POST /products/_doc/1
+{
+  "product_id": "123456",
+  "name": "Wireless Bluetooth Headphones",
+  "description": "High-quality wireless headphones with noise-cancellation.",
+  "price": 99.99,
+  "stock": 50,
+  "category": "Electronics",
+  "brand": "SoundMax",
+  "sku": "SM-123",
+  "spu": "SPU-456",
+  "image_urls": [
+    "http://example.com/images/headphones1.jpg",
+    "http://example.com/images/headphones2.jpg"
+  ],
+  "ratings": 4.5,
+  "seller_info": {
+    "seller_id": "78910",
+    "seller_name": "BestSeller"
+  },
+  "attributes": {
+    "color": "Black",
+    "size": "Standard",
+    "material": "Plastic"
+  },
+  "release_date": "2023-01-15",
+  "location": {
+    "lat": 40.7128,
+    "lon": -74.0060
+  },
+  "tags": ["headphones", "bluetooth", "wireless"],
+  "promotional_info": "20% off for a limited time"
+}
+```
+</code></pre>
+</details> 
+- 商品推荐
+  - 商品的A/B测试如何设计？
+  - 如何设计商品的推荐算法？
+  - 商品的个性化定制如何实现？
+- 获取商品详情
+
+### 商品快照 item_snapshots
+1. 商品编辑时生成快照:
+- 每次商品信息（如价格、描述、属性等）发生编辑时，生成一个新的商品快照。
+- 将快照信息存储在 item_snapshots 表中，并生成一个唯一的 snapshot_id。
+
+2. 订单创建时使用快照:
+在用户下单时，查找当前商品的最新 snapshot_id。
+在 order_items 表中记录该 snapshot_id，以确保订单项反映下单时的商品状态
+
+(如何设计商品的版本控制？)
+(商品的历史记录如何管理？)
+
+```sql
+  CREATE TABLE `snapshot_tab` (
+    `snapshot_id` int(11) NOT NULL AUTO_INCREMENT,
+    `snapshot_type` int(11) NOT NULL, 
+    `create_time` int(11) NOT NULL DEFAULT '0',
+    `data` text NOT NULL,
+    `entity_id` int(11) DEFAULT NULL,
+    PRIMARY KEY (`snapshot_id`),
+    KEY `idx_entity_id` (`entity_id`)
+  ) 
+```
+
+### 用户操作日志
+```sql
+CREATE TABLE user_operation_logs (
+  log_id INT PRIMARY KEY AUTO_INCREMENT,  -- Unique identifier for each log entry
+  user_id INT NOT NULL,                   -- ID of the user who made the edit
+  entity_id INT NOT NULL,                 -- ID of the entity being edited
+  entity_type VARCHAR(50) NOT NULL,       -- Type of entity (e.g., SPU, SKU, Price, Stock)
+  operation_type VARCHAR(50) NOT NULL,    -- Type of operation (e.g., CREATE, UPDATE, DELETE)
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Time of the operation
+  details TEXT,                           -- Additional details about the operation
+  FOREIGN KEY (user_id) REFERENCES users(id)  -- Assuming a users table exists
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+### 扩展，多语言多币种
+### 扩展，物流
+
+
+## 订单管理 Order Center
+
+### 订单模型
 <p align="center">
   <img src="/images/order_er.png" width=800 height=600>
 </p>
 
-### 支付订单表（pay_order_tab）：主要用于记录用户的支付信息。主键为 pay_order_id，标识唯一的支付订单。
-  - user_id：用户ID，标识支付的用户。
-  - payment_method：支付方式，如信用卡、支付宝等。
-  - payment_status：支付状态，如已支付、未支付等。
-  - pay_amount、cash_amount、coin_amount、voucher_amount：支付金额、现金支付金额、代币支付金额、优惠券使用金额。
-  - 时间戳字段包括创建时间、初始化时间和更新时间
-
-### 订单表（order_tab）：记录用户的购买订单信息。主键为 order_id。
+#### 订单表（order_tab）：记录用户的购买订单信息。主键为 order_id。
   - pay_order_id：支付订单ID，作为外键关联支付订单。
   - user_id：用户ID，标识购买订单的用户。
   - total_amount：订单的总金额。
@@ -99,7 +448,7 @@ categories:
   - fulfillment_status：履约状态，表示订单的配送或服务状态。
   - refund_status：退款状态，用于标识订单是否有退款
 
-### 订单商品表（order_item_tab：记录订单中具体商品的信息。主键为 order_item_id。
+#### 订单商品表（order_item_tab：记录订单中具体商品的信息。主键为 order_item_id。
   - order_id：订单ID，作为外键关联订单。
   - item_id：商品ID，表示订单中的商品。
   - item_snapshot_id：商品快照ID，记录当时购买时的商品信息快照。
@@ -107,6 +456,13 @@ categories:
   - quantity：购买数量。
   - price：商品单价。
   - discount：商品折扣金额
+
+#### 订单支付表（pay_order_tab）：主要用于记录用户的支付信息。主键为 pay_order_id，标识唯一的支付订单。
+  - user_id：用户ID，标识支付的用户。
+  - payment_method：支付方式，如信用卡、支付宝等。
+  - payment_status：支付状态，如已支付、未支付等。
+  - pay_amount、cash_amount、coin_amount、voucher_amount：支付金额、现金支付金额、代币支付金额、优惠券使用金额。
+  - 时间戳字段包括创建时间、初始化时间和更新时间
 
 #### 退款表（refund_tab）：记录订单或订单项的退款信息。主键为 refund_id。
   - order_id：订单ID，作为外键关联订单。
@@ -117,14 +473,14 @@ categories:
   - refund_status：退款状态。
   - refund_time：退款操作时间。
 
-### 实体间关系：
-### 支付订单与订单：
+#### 实体间关系：
+- 支付订单与订单：
 - 一个支付订单可能关联多个购买订单，形成 一对多 关系。
 例如，用户可以通过一次支付购买多个不同的订单。
-### 订单与订单商品：
+- 订单与订单商品：
 一个订单可以包含多个订单项，形成 一对多 关系。
 订单项代表订单中所购买的每个商品的详细信息。
-### 订单与退款：
+- 订单与退款：
   - 一个订单可能包含多个退款，形成 一对多 关系。
   - 退款可以是针对订单整体，也可以针对订单中的某个商品
 
@@ -133,6 +489,943 @@ categories:
 <p align="center">
   <img src="/images/order_state_machine.png" width=800 height=800>
 </p>
+
+### 订单ID 生成策略。
+``` python 
+  # 时间戳 + 机器id + uid % 1000 + 自增序号
+
+import time
+import threading
+from typing import Union
+
+class OrderNoGenerator:
+    def __init__(self, machine_id: int):
+        """
+        初始化订单号生成器
+        :param machine_id: 机器ID (0-999)
+        """
+        if not 0 <= machine_id <= 999:
+            raise ValueError("机器ID必须在0-999之间")
+        
+        self.machine_id = machine_id
+        self.sequence = 0
+        self.last_timestamp = -1
+        self.lock = threading.Lock()  # 线程锁，保证线程安全
+
+    def _wait_next_second(self, last_timestamp: int) -> int:
+        """
+        等待下一秒
+        :param last_timestamp: 上次时间戳
+        :return: 新的时间戳
+        """
+        timestamp = int(time.time())
+        while timestamp <= last_timestamp:
+            timestamp = int(time.time())
+        return timestamp
+
+    def generate_order_no(self, user_id: int) -> Union[int, str]:
+        """
+        生成订单号
+        :param user_id: 用户ID
+        :return: 订单号（整数或字符串形式）
+        """
+        with self.lock:  # 使用线程锁保证线程安全
+            # 获取当前时间戳（秒级）
+            timestamp = int(time.time())
+            
+            # 处理时间回拨
+            if timestamp < self.last_timestamp:
+                raise RuntimeError("系统时间回拨，拒绝生成订单号")
+            
+            # 如果是同一秒，序列号自增
+            if timestamp == self.last_timestamp:
+                self.sequence = (self.sequence + 1) % 1000
+                # 如果序列号用完了，等待下一秒
+                if self.sequence == 0:
+                    timestamp = self._wait_next_second(self.last_timestamp)
+            else:
+                # 不同秒，序列号重置
+                self.sequence = 0
+            
+            self.last_timestamp = timestamp
+            
+            # 获取用户ID的后3位
+            user_id_suffix = user_id % 1000
+            
+            # 组装订单号
+            order_no = (timestamp * 1000000000 +  # 时间戳左移9位
+                       self.machine_id * 1000000 +  # 机器ID左移6位
+                       user_id_suffix * 1000 +      # 用户ID左移3位
+                       self.sequence)               # 序列号
+            
+            return order_no
+
+    def generate_order_no_str(self, user_id: int) -> str:
+        """
+        生成字符串形式的订单号
+        :param user_id: 用户ID
+        :return: 字符串形式的订单号
+        """
+        order_no = self.generate_order_no(user_id)
+        return f"{order_no:019d}"  # 补零到19位
+
+# 使用示例
+def main():
+    # 创建订单号生成器实例
+    generator = OrderNoGenerator(machine_id=1)
+    
+    # 生成订单号
+    user_id = 12345
+    order_no = generator.generate_order_no(user_id)
+    order_no_str = generator.generate_order_no_str(user_id)
+    
+    print(f"整数形式订单号: {order_no}")
+    print(f"字符串形式订单号: {order_no_str}")
+    
+    # 测试并发
+    def test_concurrent():
+        for _ in range(5):
+            order_no = generator.generate_order_no(user_id)
+            print(f"并发生成的订单号: {order_no}")
+    
+    # 创建多个线程测试并发
+    threads = []
+    for _ in range(3):
+        t = threading.Thread(target=test_concurrent)
+        threads.append(t)
+        t.start()
+    
+    # 等待所有线程完成
+    for t in threads:
+        t.join()
+
+if __name__ == "__main__":
+    main()
+```
+
+### 订单商品快照
+
+#### 方案1. 直接使用商品系统的item snapshot。（由商品系统维护快照）
+- 商品系统负责维护商品快照
+- 订单系统通过引用商品快照ID来关联商品信息
+- 商品信息变更时，商品系统生成新的快照版本
+```sql
+-- 商品系统维护的快照表
+CREATE TABLE item_snapshot_tab (
+    snapshot_id BIGINT PRIMARY KEY,
+    item_id BIGINT NOT NULL,
+    version INT NOT NULL,
+    data JSON NOT NULL,  -- 存储商品完整信息
+    created_at TIMESTAMP NOT NULL,
+    INDEX idx_item_version (item_id, version)
+);
+
+-- 订单系统引用快照
+CREATE TABLE order_item_tab (
+    order_id BIGINT,
+    item_id BIGINT,
+    snapshot_id BIGINT,  -- 引用商品快照
+    quantity INT,
+    price DECIMAL(10,2),
+    FOREIGN KEY (snapshot_id) REFERENCES item_snapshot(snapshot_id)
+);
+```
+优点
+- 数据一致性高：商品系统统一管理快照，避免数据不一致
+- 存储效率高：多个订单可以共享同一个快照版本
+- 维护成本低：订单系统不需要关心快照的生成和管理
+- 查询性能好：可以直接通过快照ID获取完整商品信息
+
+缺点
+- 系统耦合度高：订单系统强依赖商品系统的快照服务
+- 扩展性受限：商品系统需要支持所有订单系统可能需要的商品信息
+- 版本管理复杂：需要处理快照的版本控制和清理
+- 跨系统调用：订单系统需要调用商品系统获取快照信息
+
+#### 方案2. 创单时提供商品详情信息。（由订单维护商品快照)
+```sql
+CREATE TABLE order_item (
+    order_id BIGINT,
+    item_id BIGINT,
+    quantity INT,
+    price DECIMAL(10,2),
+    snapshot_data JSON NOT NULL,  -- 存储下单时的商品信息
+    FOREIGN KEY (order_id, item_id) REFERENCES order_item_snapshot(order_id, item_id)
+);
+```
+
+#### 方案3. 创单时提供商品详情信息。（由订单维护商品快照）+ 快照复用
+设计思路：
+- 订单系统维护自己的快照表，但增加快照复用机制
+- 使用商品信息的摘要(摘要算法如MD5)作为快照的唯一标识
+- 相同摘要的商品信息共享同一个快照记录
+- 创单时先检查摘要是否存在，存在则复用，不存在则创建新快照
+
+```sql
+-- 订单系统维护的快照表
+CREATE TABLE order_item_snapshot (
+    snapshot_id BIGINT PRIMARY KEY,
+    item_id BIGINT NOT NULL,
+    item_hash VARCHAR(32) NOT NULL COMMENT '商品信息摘要',
+    snapshot_data JSON NOT NULL COMMENT '存储下单时的商品信息',
+    created_at TIMESTAMP NOT NULL,
+    INDEX idx_item_hash (item_hash),
+    INDEX idx_item_id (item_id)
+);
+-- 订单商品表
+CREATE TABLE order_item (
+    order_id BIGINT,
+    item_id BIGINT,
+    snapshot_id BIGINT,
+    quantity INT,
+    price DECIMAL(10,2),
+    FOREIGN KEY (snapshot_id) REFERENCES order_item_snapshot(snapshot_id)
+);
+```
+适用场景：
+- 商品模型比较固定，项目初期，团队比较小，能接受系统之间的耦合，可以考虑用1
+- 不同商品差异比较大，商品信息结构复杂，考虑用2
+- 订单量太大，考虑复用快照
+
+### 创单
+- 接口定义：通过OrderCreationStep接口定义了每个步骤必须实现的方法
+- 上下文共享：使用OrderCreationContext在步骤间共享数据
+- 步骤独立：每个步骤都是独立的，便于维护和测试
+- 回滚机制：每个步骤都实现了回滚方法
+- 流程管理：通过OrderCreationManager统一管理步骤的执行和回滚
+- 错误处理：统一的错误处理和回滚机制
+- 可扩展性：易于添加新的步骤或修改现有步骤
+- 如何解决不同category 创单差异较大的问题。
+
+```
+// 定义错误码
+type ErrorCode int
+
+const (
+    Success ErrorCode = iota
+    ErrUserNotFound
+    ErrProductNotFound
+    ErrInsufficientStock
+    ErrPriceChanged
+    ErrPromotionExpired
+    ErrSystemError
+    // ... 其他错误码
+)
+
+// 错误处理结构
+type OrderError struct {
+    Code    ErrorCode
+    Message string
+    Step    string
+    Details map[string]interface{}
+}
+
+// 错误处理方法
+func handleError(err *OrderError) {
+    // 1. 记录错误日志
+    logError(err)
+    
+    // 2. 发送告警
+    if isCriticalError(err.Code) {
+        sendAlert(err)
+    }
+    
+    // 3. 记录错误统计
+    recordErrorMetrics(err)
+}
+
+
+// 回滚管理器
+type RollbackManager struct {
+    steps []RollbackStep
+}
+
+// 回滚步骤接口
+type RollbackStep interface {
+    Execute() error
+    Rollback() error
+}
+
+// 订单创建回滚
+func (rm *RollbackManager) Rollback() error {
+    // 从后往前执行回滚
+    for i := len(rm.steps) - 1; i >= 0; i-- {
+        if err := rm.steps[i].Rollback(); err != nil {
+            log.Printf("Rollback step %d failed: %v", i, err)
+            // 继续执行其他回滚步骤
+        }
+    }
+    return nil
+}
+
+func validateUser(userID string) (*UserValidationStep, error) {
+    step := &UserValidationStep{
+        userID: userID,
+    }
+    
+    // 执行校验
+    if err := step.Execute(); err != nil {
+        return nil, &OrderError{
+            Code:    ErrUserNotFound,
+            Message: "User validation failed",
+            Step:    "UserValidation",
+            Details: map[string]interface{}{
+                "userID": userID,
+                "error":  err.Error(),
+            },
+        }
+    }
+    
+    return step, nil
+}
+
+func validateAndDeductStock(productID string, quantity int) (*StockDeductionStep, error) {
+    step := &StockDeductionStep{
+        productID: productID,
+        quantity:  quantity,
+    }
+    
+    // 使用分布式锁
+    lock := distributedLock.NewLock("stock:" + productID)
+    if !lock.TryLock() {
+        return nil, &OrderError{
+            Code:    ErrLockFailed,
+            Message: "Failed to acquire stock lock",
+            Step:    "StockDeduction",
+        }
+    }
+    defer lock.Unlock()
+    
+    // 执行库存扣减
+    if err := step.Execute(); err != nil {
+        return nil, &OrderError{
+            Code:    ErrInsufficientStock,
+            Message: "Stock deduction failed",
+            Step:    "StockDeduction",
+        }
+    }
+    
+    return step, nil
+}
+
+func validateAndDeductPromotion(promoCode string) (*PromotionDeductionStep, error) {
+    step := &PromotionDeductionStep{
+        promoCode: promoCode,
+    }
+    
+    // 执行促销活动处理
+    if err := step.Execute(); err != nil {
+        return nil, &OrderError{
+            Code:    ErrPromotionExpired,
+            Message: "Promotion validation failed",
+            Step:    "PromotionDeduction",
+        }
+    }
+    
+    return step, nil
+}
+
+func CreateOrder(request OrderRequest) (*OrderResponse, error) {
+    // 创建回滚管理器
+    rollbackManager := &RollbackManager{}
+    
+    // 1. 用户校验
+    userStep, err := validateUser(request.UserID)
+    if err != nil {
+        return nil, err
+    }
+    rollbackManager.steps = append(rollbackManager.steps, userStep)
+    
+    // 2. 商品校验
+    productStep, err := validateProduct(request.ProductID)
+    if err != nil {
+        rollbackManager.Rollback()
+        return nil, err
+    }
+    rollbackManager.steps = append(rollbackManager.steps, productStep)
+    
+    // 3. 库存校验和扣减
+    stockStep, err := validateAndDeductStock(request.ProductID, request.Quantity)
+    if err != nil {
+        rollbackManager.Rollback()
+        return nil, err
+    }
+    rollbackManager.steps = append(rollbackManager.steps, stockStep)
+    
+    // 4. 营销活动处理
+    if request.PromoCode != "" {
+        promoStep, err := validateAndDeductPromotion(request.PromoCode)
+        if err != nil {
+            rollbackManager.Rollback()
+            return nil, err
+        }
+        rollbackManager.steps = append(rollbackManager.steps, promoStep)
+    }
+    
+    // 5. 创建订单
+    orderStep, err := createOrder(request)
+    if err != nil {
+        rollbackManager.Rollback()
+        return nil, err
+    }
+    rollbackManager.steps = append(rollbackManager.steps, orderStep)
+    
+    return &OrderResponse{
+        OrderID: orderStep.OrderID,
+        Status:  "SUCCESS",
+    }, nil
+}
+
+// 补偿任务
+type CompensationTask struct {
+    OrderID    string
+    Step       string
+    RetryCount int
+    MaxRetries int
+}
+
+// 补偿执行器
+func (ct *CompensationTask) Execute() error {
+    if ct.RetryCount >= ct.MaxRetries {
+        return errors.New("max retries exceeded")
+    }
+    
+    // 根据步骤执行不同的补偿逻辑
+    switch ct.Step {
+    case "StockDeduction":
+        return compensateStockDeduction(ct.OrderID)
+    case "PromotionDeduction":
+        return compensatePromotionDeduction(ct.OrderID)
+    // ... 其他补偿逻辑
+    }
+    
+    return nil
+}
+
+
+// 订单创建步骤接口
+type OrderCreationStep interface {
+    // 执行步骤
+    Execute(ctx context.Context) error
+    // 回滚步骤
+    Rollback(ctx context.Context) error
+    // 获取步骤名称
+    GetStepName() string
+}
+
+// 订单创建上下文
+type OrderCreationContext struct {
+    OrderID      string
+    UserID       string
+    ProductID    string
+    Quantity     int
+    PromoCode    string
+    PaymentInfo  PaymentInfo
+    DeliveryInfo DeliveryInfo
+    // 存储中间结果
+    StepResults  map[string]interface{}
+}
+
+// 基础步骤实现
+type BaseStep struct {
+    ctx *OrderCreationContext
+}
+
+// 1. 用户校验步骤
+type UserValidationStep struct {
+    BaseStep
+    userService UserService
+}
+
+func (s *UserValidationStep) Execute(ctx context.Context) error {
+    // 1. 检查用户是否存在
+    user, err := s.userService.GetUser(s.ctx.UserID)
+    if err != nil {
+        return fmt.Errorf("user not found: %v", err)
+    }
+    
+    // 2. 检查用户状态
+    if user.Status != UserStatusNormal {
+        return fmt.Errorf("user status abnormal: %s", user.Status)
+    }
+    
+    // 3. 存储校验结果
+    s.ctx.StepResults["user"] = user
+    return nil
+}
+
+func (s *UserValidationStep) Rollback(ctx context.Context) error {
+    // 用户校验步骤通常不需要回滚
+    return nil
+}
+
+func (s *UserValidationStep) GetStepName() string {
+    return "UserValidation"
+}
+
+// 2. 商品校验步骤
+type ProductValidationStep struct {
+    BaseStep
+    productService ProductService
+}
+
+func (s *ProductValidationStep) Execute(ctx context.Context) error {
+    // 1. 获取商品信息
+    product, err := s.productService.GetProduct(s.ctx.ProductID)
+    if err != nil {
+        return fmt.Errorf("product not found: %v", err)
+    }
+    
+    // 2. 检查商品状态
+    if product.Status != ProductStatusOnSale {
+        return fmt.Errorf("product not on sale: %s", product.Status)
+    }
+    
+    // 3. 存储商品信息
+    s.ctx.StepResults["product"] = product
+    return nil
+}
+
+func (s *ProductValidationStep) Rollback(ctx context.Context) error {
+    // 商品校验步骤通常不需要回滚
+    return nil
+}
+
+func (s *ProductValidationStep) GetStepName() string {
+    return "ProductValidation"
+}
+
+// 3. 库存校验和扣减步骤
+type StockDeductionStep struct {
+    BaseStep
+    inventoryService InventoryService
+    lockService      LockService
+}
+
+func (s *StockDeductionStep) Execute(ctx context.Context) error {
+    // 1. 获取分布式锁
+    lock := s.lockService.NewLock("stock:" + s.ctx.ProductID)
+    if !lock.TryLock() {
+        return fmt.Errorf("failed to acquire stock lock")
+    }
+    defer lock.Unlock()
+    
+    // 2. 检查库存
+    stock, err := s.inventoryService.GetStock(s.ctx.ProductID)
+    if err != nil {
+        return fmt.Errorf("failed to get stock: %v", err)
+    }
+    
+    if stock < s.ctx.Quantity {
+        return fmt.Errorf("insufficient stock")
+    }
+    
+    // 3. 扣减库存
+    if err := s.inventoryService.DeductStock(s.ctx.ProductID, s.ctx.Quantity); err != nil {
+        return fmt.Errorf("failed to deduct stock: %v", err)
+    }
+    
+    // 4. 记录扣减结果
+    s.ctx.StepResults["stock_deduction"] = true
+    return nil
+}
+
+func (s *StockDeductionStep) Rollback(ctx context.Context) error {
+    // 回滚库存扣减
+    if s.ctx.StepResults["stock_deduction"] == true {
+        return s.inventoryService.ReturnStock(s.ctx.ProductID, s.ctx.Quantity)
+    }
+    return nil
+}
+
+func (s *StockDeductionStep) GetStepName() string {
+    return "StockDeduction"
+}
+
+// 4. 营销活动处理步骤
+type PromotionDeductionStep struct {
+    BaseStep
+    promotionService PromotionService
+}
+
+func (s *PromotionDeductionStep) Execute(ctx context.Context) error {
+    if s.ctx.PromoCode == "" {
+        return nil
+    }
+    
+    // 1. 校验促销活动
+    promotion, err := s.promotionService.ValidatePromotion(s.ctx.PromoCode)
+    if err != nil {
+        return fmt.Errorf("promotion validation failed: %v", err)
+    }
+    
+    // 2. 扣减促销活动库存
+    if err := s.promotionService.DeductPromotion(s.ctx.PromoCode); err != nil {
+        return fmt.Errorf("failed to deduct promotion: %v", err)
+    }
+    
+    // 3. 记录促销结果
+    s.ctx.StepResults["promotion"] = promotion
+    return nil
+}
+
+func (s *PromotionDeductionStep) Rollback(ctx context.Context) error {
+    if s.ctx.PromoCode != "" && s.ctx.StepResults["promotion"] != nil {
+        return s.promotionService.ReturnPromotion(s.ctx.PromoCode)
+    }
+    return nil
+}
+
+func (s *PromotionDeductionStep) GetStepName() string {
+    return "PromotionDeduction"
+}
+
+// 5. 订单创建步骤
+type OrderCreationStep struct {
+    BaseStep
+    orderService OrderService
+}
+
+func (s *OrderCreationStep) Execute(ctx context.Context) error {
+    // 1. 构建订单信息
+    order := &Order{
+        OrderID:      s.ctx.OrderID,
+        UserID:       s.ctx.UserID,
+        ProductID:    s.ctx.ProductID,
+        Quantity:     s.ctx.Quantity,
+        PromoCode:    s.ctx.PromoCode,
+        Status:       OrderStatusCreated,
+        CreatedAt:    time.Now(),
+    }
+    
+    // 2. 创建订单
+    if err := s.orderService.CreateOrder(order); err != nil {
+        return fmt.Errorf("failed to create order: %v", err)
+    }
+    
+    // 3. 记录订单信息
+    s.ctx.StepResults["order"] = order
+    return nil
+}
+
+func (s *OrderCreationStep) Rollback(ctx context.Context) error {
+    if order, ok := s.ctx.StepResults["order"].(*Order); ok {
+        return s.orderService.CancelOrder(order.OrderID)
+    }
+    return nil
+}
+
+func (s *OrderCreationStep) GetStepName() string {
+    return "OrderCreation"
+}
+
+// 订单创建流程管理器
+type OrderCreationManager struct {
+    steps []OrderCreationStep
+    ctx   *OrderCreationContext
+}
+
+func NewOrderCreationManager(ctx *OrderCreationContext) *OrderCreationManager {
+    return &OrderCreationManager{
+        ctx: ctx,
+        steps: []OrderCreationStep{
+            &UserValidationStep{BaseStep{ctx: ctx}},
+            &ProductValidationStep{BaseStep{ctx: ctx}},
+            &StockDeductionStep{BaseStep{ctx: ctx}},
+            &PromotionDeductionStep{BaseStep{ctx: ctx}},
+            &OrderCreationStep{BaseStep{ctx: ctx}},
+        },
+    }
+}
+
+func (m *OrderCreationManager) Execute(ctx context.Context) error {
+    // 记录已执行的步骤
+    executedSteps := make([]OrderCreationStep, 0)
+    
+    // 按顺序执行步骤
+    for _, step := range m.steps {
+        if err := step.Execute(ctx); err != nil {
+            // 发生错误时，从后往前回滚已执行的步骤
+            for i := len(executedSteps) - 1; i >= 0; i-- {
+                if rollbackErr := executedSteps[i].Rollback(ctx); rollbackErr != nil {
+                    log.Printf("Failed to rollback step %s: %v", 
+                        executedSteps[i].GetStepName(), rollbackErr)
+                }
+            }
+            return fmt.Errorf("step %s failed: %v", step.GetStepName(), err)
+        }
+        executedSteps = append(executedSteps, step)
+    }
+    
+    return nil
+}
+
+
+func CreateOrder(request OrderRequest) (*OrderResponse, error) {
+    // 创建上下文
+    ctx := &OrderCreationContext{
+        OrderID:      generateOrderID(),
+        UserID:       request.UserID,
+        ProductID:    request.ProductID,
+        Quantity:     request.Quantity,
+        PromoCode:    request.PromoCode,
+        StepResults:  make(map[string]interface{}),
+    }
+    
+    // 创建订单创建管理器
+    manager := NewOrderCreationManager(ctx)
+    
+    // 执行订单创建流程
+    if err := manager.Execute(context.Background()); err != nil {
+        return nil, err
+    }
+    
+    // 获取创建的订单
+    order := ctx.StepResults["order"].(*Order)
+    
+    return &OrderResponse{
+        OrderID: order.OrderID,
+        Status:  "SUCCESS",
+    }, nil
+}
+
+
+// 1. 定义商品类目类型
+type CategoryType string
+
+const (
+    CategoryTypePhysical    CategoryType = "PHYSICAL"    // 实物商品
+    CategoryTypeVirtual     CategoryType = "VIRTUAL"     // 虚拟商品
+    CategoryTypeSubscription CategoryType = "SUBSCRIPTION" // 订阅商品
+    CategoryTypeService     CategoryType = "SERVICE"     // 服务类商品
+)
+
+// 2. 定义商品类目特定的创单步骤接口
+type CategorySpecificStep interface {
+    OrderCreationStep
+    // 获取支持的类目类型
+    GetSupportedCategories() []CategoryType
+}
+
+// 3. 定义不同类目的创单策略
+type OrderCreationStrategy interface {
+    // 获取类目特定的校验步骤
+    GetValidationSteps() []CategorySpecificStep
+    // 获取类目特定的库存步骤
+    GetInventorySteps() []CategorySpecificStep
+    // 获取类目特定的支付步骤
+    GetPaymentSteps() []CategorySpecificStep
+    // 获取类目特定的履约步骤
+    GetFulfillmentSteps() []CategorySpecificStep
+}
+
+// 4. 实现不同类目的创单策略
+// 4.1 实物商品策略
+type PhysicalOrderStrategy struct {
+    BaseStep
+}
+
+func (s *PhysicalOrderStrategy) GetValidationSteps() []CategorySpecificStep {
+    return []CategorySpecificStep{
+        &PhysicalProductValidationStep{BaseStep: s.BaseStep},
+        &PhysicalInventoryValidationStep{BaseStep: s.BaseStep},
+        &PhysicalDeliveryValidationStep{BaseStep: s.BaseStep},
+    }
+}
+
+func (s *PhysicalOrderStrategy) GetInventorySteps() []CategorySpecificStep {
+    return []CategorySpecificStep{
+        &PhysicalStockDeductionStep{BaseStep: s.BaseStep},
+        &PhysicalWarehouseSelectionStep{BaseStep: s.BaseStep},
+    }
+}
+
+func (s *PhysicalOrderStrategy) GetPaymentSteps() []CategorySpecificStep {
+    return []CategorySpecificStep{
+        &PhysicalPaymentValidationStep{BaseStep: s.BaseStep},
+    }
+}
+
+func (s *PhysicalOrderStrategy) GetFulfillmentSteps() []CategorySpecificStep {
+    return []CategorySpecificStep{
+        &PhysicalFulfillmentStep{BaseStep: s.BaseStep},
+    }
+}
+
+// 4.2 虚拟商品策略
+type VirtualOrderStrategy struct {
+    BaseStep
+}
+
+func (s *VirtualOrderStrategy) GetValidationSteps() []CategorySpecificStep {
+    return []CategorySpecificStep{
+        &VirtualProductValidationStep{BaseStep: s.BaseStep},
+        &VirtualInventoryValidationStep{BaseStep: s.BaseStep},
+    }
+}
+
+func (s *VirtualOrderStrategy) GetInventorySteps() []CategorySpecificStep {
+    return []CategorySpecificStep{
+        &VirtualStockDeductionStep{BaseStep: s.BaseStep},
+    }
+}
+
+func (s *VirtualOrderStrategy) GetPaymentSteps() []CategorySpecificStep {
+    return []CategorySpecificStep{
+        &VirtualPaymentValidationStep{BaseStep: s.BaseStep},
+    }
+}
+
+func (s *VirtualOrderStrategy) GetFulfillmentSteps() []CategorySpecificStep {
+    return []CategorySpecificStep{
+        &VirtualFulfillmentStep{BaseStep: s.BaseStep},
+    }
+}
+
+// 5. 策略工厂
+type OrderStrategyFactory struct {
+    strategies map[CategoryType]OrderCreationStrategy
+}
+
+func NewOrderStrategyFactory() *OrderStrategyFactory {
+    return &OrderStrategyFactory{
+        strategies: map[CategoryType]OrderCreationStrategy{
+            CategoryTypePhysical:    &PhysicalOrderStrategy{},
+            CategoryTypeVirtual:     &VirtualOrderStrategy{},
+            CategoryTypeSubscription: &SubscriptionOrderStrategy{},
+            CategoryTypeService:     &ServiceOrderStrategy{},
+        },
+    }
+}
+
+func (f *OrderStrategyFactory) GetStrategy(categoryType CategoryType) (OrderCreationStrategy, error) {
+    if strategy, exists := f.strategies[categoryType]; exists {
+        return strategy, nil
+    }
+    return nil, fmt.Errorf("unsupported category type: %s", categoryType)
+}
+
+// 6. 扩展订单创建上下文
+type OrderCreationContext struct {
+    // ... 原有字段 ...
+    CategoryType CategoryType
+    CategorySpecificData map[string]interface{}
+}
+
+// 7. 扩展订单创建管理器
+type OrderCreationManager struct {
+    steps []OrderCreationStep
+    ctx   *OrderCreationContext
+    strategy OrderCreationStrategy
+}
+
+func NewOrderCreationManager(ctx *OrderCreationContext) (*OrderCreationManager, error) {
+    factory := NewOrderStrategyFactory()
+    strategy, err := factory.GetStrategy(ctx.CategoryType)
+    if err != nil {
+        return nil, err
+    }
+
+    // 获取基础步骤
+    baseSteps := []OrderCreationStep{
+        &UserValidationStep{BaseStep{ctx: ctx}},
+        &CommonProductValidationStep{BaseStep{ctx: ctx}},
+    }
+
+    // 获取类目特定步骤
+    categorySteps := strategy.GetValidationSteps()
+    inventorySteps := strategy.GetInventorySteps()
+    paymentSteps := strategy.GetPaymentSteps()
+    fulfillmentSteps := strategy.GetFulfillmentSteps()
+
+    // 合并所有步骤
+    allSteps := append(baseSteps, categorySteps...)
+    allSteps = append(allSteps, inventorySteps...)
+    allSteps = append(allSteps, paymentSteps...)
+    allSteps = append(allSteps, fulfillmentSteps...)
+
+    return &OrderCreationManager{
+        steps: allSteps,
+        ctx:   ctx,
+        strategy: strategy,
+    }, nil
+}
+
+// 8. 实现具体的类目特定步骤
+// 8.1 实物商品特定步骤
+type PhysicalProductValidationStep struct {
+    BaseStep
+}
+
+func (s *PhysicalProductValidationStep) Execute(ctx context.Context) error {
+    // 实物商品特定的校验逻辑
+    // 1. 检查商品重量
+    // 2. 检查商品尺寸
+    // 3. 检查是否支持配送
+    return nil
+}
+
+func (s *PhysicalProductValidationStep) GetSupportedCategories() []CategoryType {
+    return []CategoryType{CategoryTypePhysical}
+}
+
+// 8.2 虚拟商品特定步骤
+type VirtualProductValidationStep struct {
+    BaseStep
+}
+
+func (s *VirtualProductValidationStep) Execute(ctx context.Context) error {
+    // 虚拟商品特定的校验逻辑
+    // 1. 检查激活码库存
+    // 2. 检查有效期
+    // 3. 检查使用限制
+    return nil
+}
+
+func (s *VirtualProductValidationStep) GetSupportedCategories() []CategoryType {
+    return []CategoryType{CategoryTypeVirtual}
+}
+
+func CreateOrder(request OrderRequest) (*OrderResponse, error) {
+    // 创建上下文
+    ctx := &OrderCreationContext{
+        OrderID:      generateOrderID(),
+        UserID:       request.UserID,
+        ProductID:    request.ProductID,
+        Quantity:     request.Quantity,
+        PromoCode:    request.PromoCode,
+        CategoryType: request.CategoryType,
+        StepResults:  make(map[string]interface{}),
+        CategorySpecificData: make(map[string]interface{}),
+    }
+    
+    // 创建订单创建管理器
+    manager, err := NewOrderCreationManager(ctx)
+    if err != nil {
+        return nil, err
+    }
+    
+    // 执行订单创建流程
+    if err := manager.Execute(context.Background()); err != nil {
+        return nil, err
+    }
+    
+    // 获取创建的订单
+    order := ctx.StepResults["order"].(*Order)
+    
+    return &OrderResponse{
+        OrderID: order.OrderID,
+        Status:  "SUCCESS",
+    }, nil
+}
+```
+
+
+
+
+### 支付/支付回调
+
+### 履约/履约回调
 
 
 
@@ -1184,6 +2477,62 @@ Google SRE中，对于紧急事故管理有以下几点要素：
 - 电商后台系统的 API 设计规范应包含哪些内容？
 - 如何设计电商后台系统的异常处理机制？
 
+
+
+### 商品管理
+- 什么是SPU和SKU？它们之间的关系是什么？
+- 电商系统中的商品分类体系是如何设计的？ category 父子类目
+- 什么是商品属性？如何区分规格属性（Sales Attributes））和非规格属性？属性，会影响商品SKU的属性直接关系到库存和价格，用户购买时需要选择的属性，例如：颜色、尺码、内存容量等。非规格属性（Basic Attributes）：用于描述商品特征，产地、材质、生产日期
+- 商品的生命周期包含哪些状态？
+```
+  创建阶段
+  DRAFT(0): 草稿状态
+  PENDING_AUDIT(1): 待审核
+  AUDIT_REJECTED(2): 审核拒绝
+  AUDIT_APPROVED(3): 审核通过
+  销售阶段
+  ON_SHELF(10): 在售/上架
+  OFF_SHELF(11): 下架
+  SOLD_OUT(12): 售罄
+  特殊状态
+  FROZEN(20): 冻结（违规/投诉）
+  DELETED(99): 删除
+```
+什么是商品快照？为什么需要商品快照？
+
+- 商品的 SKU 和 SPU 概念在后台系统中如何体现？两者的关系是怎样的？
+- 电商后台系统中商品的基础信息包括哪些？如何设计商品表的数据库模型？
+- 商品的库存管理和价格管理在后台系统中是如何关联的？
+- 如何处理商品的多规格（如颜色、尺寸、型号等）信息？数据库表结构如何设计？
+- 商品详情页的信息（如描述、图片、参数）在后台系统中如何存储和管理？
+- 商品上下架的逻辑在后台系统中是如何实现的？需要考虑哪些因素（如库存、审核状态等）？
+- 商品的搜索和筛选功能在后台系统中是如何实现的？涉及哪些技术（如全文搜索、数据库索引等）？
+- 新品发布和商品淘汰在后台系统中的处理流程是怎样的？
+- 如何保证商品信息的唯一性和完整性，避免重复录入和数据错误？
+1) 唯一性保证：
+使用唯一索引
+引入商品编码系统
+查重机制
+2) 完整性保证：
+必填字段验证
+数据格式校验
+关联完整性检查
+业务规则校验
+
+
+### 订单管理
+- 电商后台系统中订单的主要状态有哪些？状态流转的触发条件和处理逻辑是怎样的？
+- 订单的创建流程在后台系统中是如何处理的？涉及哪些模块（如库存、价格、用户信息等）的交互？
+- 如何实现订单的分单处理（如不同仓库发货、不同店铺订单拆分）？
+- 订单的支付状态如何与支付系统进行同步？后台系统需要处理哪些异常情况？
+- 订单的取消、修改（如收货地址、商品数量）在后台系统中有哪些限制和处理逻辑？
+- 如何计算订单的总价（包括商品价格、运费、优惠活动等）？优惠分摊的逻辑是怎样的？
+- 订单的物流信息在后台系统中如何获取和更新？与物流服务商的接口如何对接？
+- 历史订单的存储和查询在后台系统中如何优化？涉及大量数据时如何提高查询效率？
+- 如何设计订单的反欺诈机制，识别和防范恶意订单？
+- 订单的售后服务（如退货、换货、退款）在后台系统中的处理流程是怎样的？与库存、财务等模块如何交互？
+
+
 ### 用户与账户管理
 - 电商后台系统中用户信息通常包含哪些字段？如何设计用户表的数据库结构？
 - 如何实现用户的注册、登录（包括第三方登录）功能在后台系统中的处理逻辑？
@@ -1195,18 +2544,6 @@ Google SRE中，对于紧急事故管理有以下几点要素：
 - 电商后台如何统计用户的活跃度、留存率等指标？数据来源和计算逻辑是怎样的？
 - 用户信息修改（如手机号、邮箱）时，后台系统需要进行哪些验证和处理？
 - 如何设计用户操作日志的记录和查询功能，以满足审计和问题排查需求？
-
-### 商品管理
-- 电商后台系统中商品的基础信息包括哪些？如何设计商品表的数据库模型？
-- 商品的 SKU 和 SPU 概念在后台系统中如何体现？两者的关系是怎样的？
-- 商品的库存管理和价格管理在后台系统中是如何关联的？
-- 如何处理商品的多规格（如颜色、尺寸、型号等）信息？数据库表结构如何设计？
-- 商品详情页的信息（如描述、图片、参数）在后台系统中如何存储和管理？
-
-- 商品上下架的逻辑在后台系统中是如何实现的？需要考虑哪些因素（如库存、审核状态等）？
-- 商品的搜索和筛选功能在后台系统中是如何实现的？涉及哪些技术（如全文搜索、数据库索引等）？
-- 新品发布和商品淘汰在后台系统中的处理流程是怎样的？
-- 如何保证商品信息的唯一性和完整性，避免重复录入和数据错误？
 
 ### 库存管理
 - 电商后台系统中库存管理的主要目标是什么？常见的库存管理策略有哪些？
@@ -1220,17 +2557,7 @@ Google SRE中，对于紧急事故管理有以下几点要素：
 - 对于虚拟商品（如电子卡券），库存管理的方式与实物商品有何区别？
 - 如何统计库存的周转率、缺货率等指标？数据来源和计算方法是怎样的？
 
-### 订单管理
-- 电商后台系统中订单的主要状态有哪些？状态流转的触发条件和处理逻辑是怎样的？
-- 订单的创建流程在后台系统中是如何处理的？涉及哪些模块（如库存、价格、用户信息等）的交互？
-- 如何实现订单的分单处理（如不同仓库发货、不同店铺订单拆分）？
-- 订单的支付状态如何与支付系统进行同步？后台系统需要处理哪些异常情况？
-- 订单的取消、修改（如收货地址、商品数量）在后台系统中有哪些限制和处理逻辑？
-- 如何计算订单的总价（包括商品价格、运费、优惠活动等）？优惠分摊的逻辑是怎样的？
-- 订单的物流信息在后台系统中如何获取和更新？与物流服务商的接口如何对接？
-- 历史订单的存储和查询在后台系统中如何优化？涉及大量数据时如何提高查询效率？
-- 如何设计订单的反欺诈机制，识别和防范恶意订单？
-- 订单的售后服务（如退货、换货、退款）在后台系统中的处理流程是怎样的？与库存、财务等模块如何交互？
+
 
 ### 支付与结算
 - 电商后台系统支持哪些支付方式？每种支付方式的对接流程和注意事项是什么？
@@ -1300,3 +2627,10 @@ Google SRE中，对于紧急事故管理有以下几点要素：
 - [订单状态机的设计和实现](https://www.cnblogs.com/wanglifeng717/p/16214122.html)
 - [Understanding the Structure of E-Commerce Products](https://axureboutique.com/blogs/product-design/understanding-the-structure-of-e-commerce-products?srsltid=AfmBOorcMDfLRBbuCUYyKtkpkf5Vf8yQUjJSRKR0FzQSI2lvcvMmIK--)
 - [Build an E-Commerce Product Center from Scratch](https://axureboutique.com/blogs/product-design/build-an-e-commerce-product-center-from-scratch)
+
+
+
+
+
+ 1000336300005941988
+ 2746699375374033603
