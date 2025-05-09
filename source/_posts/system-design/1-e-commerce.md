@@ -755,7 +755,11 @@ CREATE TABLE order_item (
   3. 扩展字段。使用JSON或扩展表存储特定订单类型的特殊字段（如酒店的入住日期、机票的航班信息）。
   4. 流程引擎。使用流程引擎（如BPMN）定义和管理复杂的订单处理流程，支持动态调整。
 
-```Go
+<details>
+<summary>点击查看创单核心逻辑代码实现</summary>
+<pre><code class="go">
+
+``` Go
 package order
 
 import (
@@ -1383,300 +1387,19 @@ type StockCompensationMessage struct {
 }
 ```
 
+</code></pre>
+</details>
 
 
 
-### 支付/支付回调
-
-### 履约/履约回调
-
-
-
-## 电商用户管理
-
-### 核心功能
-#### 用户注册
-- 记录用户的基本信息
-- 支持密码加密存储
-- 发送验证码或邮件验证
-- 通过邮箱、手机号或第三方账号注册
-
-* 使用 bcrypt 对密码进行哈希存储、存储 salt，防止彩虹表攻击、防止弱密码（如 12345678）*
-
-#### 用户登录
-- 记住登录状态（JWT/Session）
-- 通过邮箱、手机号+密码登录
-- 支持 OAuth 登录（如 Google、微信、支付宝等）
-- 账户锁定策略（防止暴力破解）
-
-#### 其他功能（可扩展）
-- 账户找回（忘记密码、重置密码）
-- 用户权限管理（普通用户、VIP 用户、管理员）
-- 多设备登录检测、账号安全管理（修改密码、绑定手机号、解绑社交账号）
-- **社交登录（微信、Google、Apple ID）**  
-- **用户等级 & 会员系统**  
-- **黑名单风控（限制恶意 IP）**  
-- **短信登录 & OAuth 认证**  
-
-
-#### 注意事项
-- 使用 **bcrypt** 对密码进行哈希存储
-- 存储 `salt`，防止彩虹表攻击
-- 防止**弱密码**（如 `12345678`）
-- **JWT（JSON Web Token）**
-  - 生成用户 Token 并存储在 `Authorization: Bearer <token>` 头部
-  - 过期时间如 `7 天`
-- **Session 认证**
-  - 在 Redis 或数据库存储用户 Session
-- **多次登录失败锁定账户**（5 次错误后，10 分钟内禁止登录）
-- **短信/邮件验证码**（可选）
-- **双因子认证（2FA）**（高级功能）
-
----
-
-### 模型和数据库设计
-
-#### 用户表（users）
-```
-CREATE TABLE users (
-    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
-    username        VARCHAR(50) UNIQUE NOT NULL,
-    email           VARCHAR(100) UNIQUE,
-    phone           VARCHAR(20) UNIQUE,
-    password_hash   VARCHAR(255) NOT NULL,
-    salt            VARCHAR(32) NOT NULL COMMENT '增强密码安全性，防止彩虹攻击',
-    avatar          VARCHAR(255),
-    status          TINYINT DEFAULT 1 COMMENT '1-正常, 0-禁用',
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-```
-
-#### 用户登录日志（user_login_logs）
-```
-CREATE TABLE user_login_logs (
-    id          BIGINT PRIMARY KEY AUTO_INCREMENT,
-    user_id     BIGINT NOT NULL,
-    login_ip    VARCHAR(50) NOT NULL,
-    login_time  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    device      VARCHAR(100),
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
-```
-
----
-
-###  核心流程以及API 设计
-
-#### 用户注册 API
-```
-POST /api/register
-Content-Type: application/json
-
-{
-    "username": "john_doe",
-    "email": "john@example.com",
-    "password": "password123",
-    "phone": "13812345678"
-}
-
-{
-    "code": 200,
-    "message": "注册成功"
-}
-```
-
-#### 用户登录 API
-```
-POST /api/login
-Content-Type: application/json
-
-{
-    "username": "john_doe",
-    "password": "password123"
-}
-
-返回：
-{
-    "code": 200,
-    "message": "登录成功",
-    "token": "jwt_token_here"
-}
-```
-
-## 5. 代码实现（Go + Gin + GORM 示例）
-
-### 用户注册
-```
-go
-package controllers
-
-import (
-	"ecommerce/models"
-	"ecommerce/utils"
-	"net/http"
-
-	"github.com/gin-gonic/gin"
-)
-
-// 用户注册
-func Register(c *gin.Context) {
-	var user models.User
-	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid input"})
-		return
-	}
-
-	// 哈希加密密码
-	hashedPassword, salt := utils.HashPassword(user.Password)
-	user.Password = hashedPassword
-	user.Salt = salt
-
-	// 存入数据库
-	if err := models.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "注册失败"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "注册成功"})
-}
-```
-
-### 用户登录
-```
-go
-func Login(c *gin.Context) {
-	var req struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "参数错误"})
-		return
-	}
-
-	var user models.User
-	if err := models.DB.Where("username = ?", req.Username).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "用户不存在"})
-		return
-	}
-
-	// 校验密码
-	if !utils.CheckPassword(req.Password, user.Password, user.Salt) {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "密码错误"})
-		return
-	}
-
-	// 生成 JWT Token
-	token, _ := utils.GenerateToken(user.ID)
-	c.JSON(http.StatusOK, gin.H{"message": "登录成功", "token": token})
-}
-```
-
-
-### 核心业务流
-### B 端
-#### 首页运营和维护
-#### 批量商品上传、编辑商品信息、价格、库存、状态
-- mass/single upload
-- mass/single edit
-- verify，upload
-- item sync fetch pull
-- openapi
-
-### APP端
-#### 首页获取
-#### 商品搜索
-#### 
-要求：
-- 海量的数据，亿级别的商品量；
-- 高并发查询，日 PV 过亿；
-- 请求需要快速响应
-特点：
-- 商品数据已经结构化，但散布在商品、库存、价格、促销、仓储等多个系统
-- 召回率要求高，保证每一个正常的商品均能够被搜索到
-- 为保证用户体验，商品信息变更（比如价格、库存的变化）实时性要求高，导致更新量大，每天的更新量为千万级别
-- 较强的个性化需求，由于是一个相对垂直的搜索领域，需要满足用户的个性化搜索意图，比如用户搜索“小说”有的用户希望找言情小说有的人需要找武侠小说有的人希望找到励志小说
-
-#### 商品（商品详情）
-
-#### 创单核心逻辑
-- 用户校验
-- 商品信息获取和校验
-- 价格校验
-- 营销活动校验
-- antifraud
-- 库存校验
-- 生成payorderid和orderid
-- 库存扣减和返还
-- 营销活动扣减和返还
-- 构建订单信息，插入DB
-- 不同类型的创单逻辑会不同，这里通过接口定义基础的创单逻辑，后续不同类型的定义机遇这个逻辑扩展
-```Go
-package orderserver
-
-// OrderRequest 包含创建订单所需的参数
-type OrderRequest struct {
-	UserID    string
-	ProductID string
-	Quantity  int
-}
-
-// OrderResponse 表示创建订单的响应
-type OrderResponse struct {
-	OrderID string
-	Message string // 返回的信息，例如错误信息
-}
-
-// OrderServer 接口定义了创建订单的功能
-type OrderServer interface {
-	// validate
-	ValidateUser(userID string) errors.ErrorCode
-	GetProductInfo(productID string) (ProductInfo, errors.ErrorCode)
-	ValidateProduct(productID string) errors.ErrorCode
-	ValidatePrice(productID string) errors.ErrorCode
-	ValidateInventory(productID string, quantity int) errors.ErrorCode
-	ValidatePromotionCode(promoCode string) errors.ErrorCode
-	CheckFraud() errors.ErrorCode
-
-	GeneratePayOrderID() (string, errors.ErrorCode)
-	GenerateOrderID() (string, errors.ErrorCode)
-
-	DeductInventory(productID string, quantity int) errors.ErrorCode
-	ReturnInventory(productID string, quantity int) errors.ErrorCode
-
-	DeductPromotion(promoCode string) errors.ErrorCode
-	ReturnPromotion(promoCode string) errors.ErrorCode
-
-  BuildDBModels() errors.ErrorCode
-	InsertOrder(order OrderRequest) (OrderResponse, error)
-	LogOperation(orderID string, userID string) error
-
-  PushOrderCreateEvent() errors.ErrorCode
-}
-
-// BaseOrderService 实现 OrderServer 接口
-type BaseOrderService struct {
-	// 可以添加数据库连接或其他依赖项
-	req  OrderRequest
-	resp OrderResponse
-
-	OrderModel      *order.Model
-  PayOrderModel   *order.PayModel
-	OrderItemModels []*item.OrderItemModel
-}
-
-func (bos *BaseOrderService) ValidateUser(userID string) ErrorCode {
-	// 简单的用户验证逻辑（示例）
-	return Success
-}
-....
-```
-#### 订单支付和支付结果回调
+### 订单支付和支付结果回调
 <p align="center">
   <img src="/images/order_pay.png" width=500 height=1000>
 </p>
+
+<details>
+<summary>点击查看创单核心逻辑代码实现</summary>
+<pre><code class="go">
 
 ```Go
   type OrderPayRequest struct {
@@ -1714,6 +1437,11 @@ func (bos *BaseOrderService) ValidateUser(userID string) ErrorCode {
       HandleError(orderID string, err error) ErrorCode
   }
 ```
+
+</code></pre>
+</details>
+
+
 
 #### 订单履约和履约结果回调
 <p align="center">
@@ -1990,9 +1718,9 @@ type RefundService interface {
 2. 中间环节去重。根据请求参数中间去重
 当用户点击购买按钮时，渲染下单页面，展示商品、收货地址、运费、价格等信息，同时页面会埋上 Token 信息，用户提交订单时，后端业务逻辑会校验token，有且匹配才认为是合理请求。
 
-3. 利用数据库自身特性 “主键唯一约束”，在插入订单记录时，带上主键值，如果订单重复，记录插入会失败。
+3. 利用数据库自身特性 "主键唯一约束"，在插入订单记录时，带上主键值，如果订单重复，记录插入会失败。
 操作过程如下：
-引入一个服务，用于生成一个“全局唯一的订单号”；
+引入一个服务，用于生成一个"全局唯一的订单号"；
 进入创建订单页面时，前端请求该服务，预生成订单ID；
 提交订单时，请求参数除了业务参数外，还要带上这个预生成订单ID
 
@@ -2089,7 +1817,7 @@ Google SRE中(SRE三部曲[1])有一个层级模型来描述系统可靠性基�
 该模型由Google SRE工程师Mikey Dickerson在2013年提出，将系统稳定性需求按照基础程度进行了不同层次的体系化区分，形成稳定性标准金字塔模型:
 - 金字塔的底座是监控(Monitoring)，这是一个系统对于稳定性最基础的要求，缺少监控的系统，如同蒙上眼睛狂奔的野马，无从谈及可控性，更遑论稳定性。
 - 更上层是应急响应(Incident Response)，从一个问题被监控发现到最终解决，这期间的耗时直接取决于应急响应机制的成熟度。合理的应急策略能保证当故障发生时，所有问题能得到有序且妥善的处理，而不是慌乱成一锅粥。
-- 事后总结以及根因分析(Postmortem&Root Caue Analysis)，即我们平时谈到的“复盘”，虽然很多人都不太喜欢这项活动，但是不得不承认这是避免我们下次犯同样错误的最有效手段，只有当摸清故障的根因以及对应的缺陷，我们才能对症下药，合理进行规避。
+- 事后总结以及根因分析(Postmortem&Root Caue Analysis)，即我们平时谈到的"复盘"，虽然很多人都不太喜欢这项活动，但是不得不承认这是避免我们下次犯同样错误的最有效手段，只有当摸清故障的根因以及对应的缺陷，我们才能对症下药，合理进行规避。
 - 测试和发布管控(Testing&Release procedures),大大小小的应用都离不开不断的变更与发布,有效的测试与发布策略能保障系统所有新增变量都处于可控稳定区间内，从而达到整体服务终态稳定
 - 容量规划(Capacity Planning)则是针对于这方面变化进行的保障策略。现有系统体量是否足够支撑新的流量需求，整体链路上是否存在不对等的薄弱节点，都是容量规划需要考虑的问题。
 - 位于金字塔模型最顶端的是产品设计(Product)与软件研发(Development)，即通过优秀的产品设计与软件设计使系统具备更高的可靠性，构建高可用产品架构体系，从而提升用户体验
