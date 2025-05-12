@@ -434,7 +434,46 @@ CREATE TABLE user_operation_logs (
 
 ## 订单管理 Order Center
 
-### 订单模型
+[订单系统，平台的“生命中轴线”](https://www.woshipm.com/pd/753646.html)
+### 订单中需要包含哪些信息
+<p align="center">
+  <img src="/images/order_content.webp" width=800 height=500>
+</p>
+
+### 常见的订单类型
+1. 实物订单
+典型场景：电商平台购物（如买衣服、家电）
+核心特征：
+需要物流配送，涉及收货地址、运费、物流跟踪
+需要库存校验与扣减
+售后流程（退货、换货、退款）复杂
+订单状态多（待发货、已发货、已收货等）
+
+2. 虚拟订单
+典型场景：会员卡、电子券、游戏点卡、电影票等
+核心特征：
+无物流配送，不需要收货地址和运费
+通常无需库存（或库存为虚拟库存）
+订单完成后直接发放虚拟物品或凭证
+售后流程简单或无售后
+
+3. 预售订单
+典型场景：新品预售、定金膨胀、众筹等
+核心特征：
+订单分为定金和尾款两阶段
+需校验定金支付、尾款支付的时效
+可能涉及定金不退、尾款未付订单自动关闭等规则
+发货时间通常在尾款支付后
+
+4. O2O订单，外卖订单
+典型场景：酒店预订
+核心特征：
+需选择入住/离店日期、房型、入住人信息
+需对接第三方酒店系统实时查房、锁房
+取消、变更政策复杂，可能涉及违约金
+无物流，但有电子凭证或入住确认
+
+### 常见的订单模型设计
 <p align="center">
   <img src="/images/order_er.png" width=800 height=600>
 </p>
@@ -485,10 +524,38 @@ CREATE TABLE user_operation_logs (
   - 退款可以是针对订单整体，也可以针对订单中的某个商品
 
 
-### 订单状态机
+### 订单状态机设计
+
+
+#### Order 主状态机
 <p align="center">
-  <img src="/images/order_state_machine.png" width=800 height=800>
+  <img src="/images/order_status.png" width=500 height=450>
 </p>
+
+
+#### 支付状态机
+<p align="center">
+  <img src="/images/pay_status.png" width=700 height=400>
+</p>
+
+
+#### 履约状态机
+<p align="center">
+  <img src="/images/fulfillment_status.png" width=500 height=400>
+</p>
+
+#### 退货退款状体机
+<p align="center">
+  <img src="/images/refund_status.png" width=700 height=1100>
+</p>
+
+
+#### 异常单人工介入
+- 用户发起退款单拒绝
+- 退货失败，订单状态无法流转
+- 退款失败
+- 退营销失败
+
 
 ### 订单ID 生成策略
 ``` python 
@@ -686,9 +753,10 @@ CREATE TABLE order_item (
 - 商品模型比较固定，项目初期，团队比较小，能接受系统之间的耦合，可以考虑用1
 - 不同商品差异比较大，商品信息结构复杂，考虑用2
 - 订单量太大，考虑复用快照
-
-### 创单
-#### 核心步骤
+### 核心流程
+#### 正常流程和逆向流程
+#### 创单
+##### 核心步骤
 1. 参数校验。用户校验，是否异常用户。
 2. 商品与价格校验。校验商品是否存在、是否上架、价格是否有效
 3. 库存校验与预占。检查库存是否充足，部分场景下进行库存预占（锁库存）。
@@ -700,48 +768,7 @@ CREATE TABLE order_item (
 10. 发送消息/异步处理。发送订单创建成功消息，通知库存、物流、营销等系统。
 11. 返回下单结果。返回订单号、支付信息等给前端。
 
-#### 支持订单差异性
-1. 实物订单
-典型场景：电商平台购物（如买衣服、家电）
-核心特征：
-需要物流配送，涉及收货地址、运费、物流跟踪
-需要库存校验与扣减
-售后流程（退货、换货、退款）复杂
-订单状态多（待发货、已发货、已收货等）
-
-2. 虚拟订单
-典型场景：会员卡、电子券、游戏点卡、电影票等
-核心特征：
-无物流配送，不需要收货地址和运费
-通常无需库存（或库存为虚拟库存）
-订单完成后直接发放虚拟物品或凭证
-售后流程简单或无售后
-
-3. 预售订单
-典型场景：新品预售、定金膨胀、众筹等
-核心特征：
-订单分为定金和尾款两阶段
-需校验定金支付、尾款支付的时效
-可能涉及定金不退、尾款未付订单自动关闭等规则
-发货时间通常在尾款支付后
-
-4. 酒店订单
-典型场景：酒店预订
-核心特征：
-需选择入住/离店日期、房型、入住人信息
-需对接第三方酒店系统实时查房、锁房
-取消、变更政策复杂，可能涉及违约金
-无物流，但有电子凭证或入住确认
-
-6. 充值订单
-典型场景：话费充值、游戏币充值
-核心特征：
-订单完成后需实时到账
-需对接第三方充值通道
-通常无物流、无库存
-售后处理难度大（如充值到账失败）
-
-#### 实现思路
+##### 实现思路
 - 接口定义：通过OrderCreationStep接口定义了每个步骤必须实现的方法
 - 上下文共享：使用OrderCreationContext在步骤间共享数据
 - 步骤独立：每个步骤都是独立的，便于维护和测试
@@ -1391,297 +1418,209 @@ type StockCompensationMessage struct {
 </details>
 
 
+#### 支付
 
-### 订单支付和支付结果回调
+##### 支付流程
 <p align="center">
-  <img src="/images/order_pay.png" width=500 height=1000>
+  <img src="/images/order_pay.png" width=600 height=1200>
 </p>
+1. 支付校验。用户校验，订单状态校验等
+2. 营销活动扣减deduction、回滚rollback、补偿compensation.
+3. 支付初始化
+4. 支付回调
+5. 补偿队列
+6. OrderBus 订单事件
 
-<details>
-<summary>点击查看创单核心逻辑代码实现</summary>
-<pre><code class="go">
-
-```Go
-  type OrderPayRequest struct {
-      UserID      string
-      OrderID     string
-      PaymentMethod string // 支付方式，例如信用卡、支付宝等
-      EVoucherCode string // 可选的电子券代码
-      Coins        int     // 可用积分
-  }
-
-  // OrderPayResponse 表示支付请求的响应
-  type OrderPayResponse struct {
-      Success     bool
-      Message     string
-      PaymentID   string // 支付订单ID
-  }
-
-  // OrderPayService 接口定义了支付相关的功能
-  type OrderPayService interface {
-      ValidateUser(userID string) ErrorCode
-      ValidateOrderStatus(orderID string) ErrorCode
-      ValidatePrice(orderID string) ErrorCode
-      ValidatePromotionCode(promoCode string) ErrorCode
-      ValidateEVoucher(evoucherCode string) ErrorCode
-      ValidateCoins(coins int) ErrorCode
-      ValidatePaymentMethod(paymentMethod string) ErrorCode
-      ValidatePaymentFees(orderID string, paymentMethod string) ErrorCode
-
-      RedeemEVoucher(evoucherCode string) ErrorCode
-      DeductCoins(coins int) ErrorCode
-
-      InitializePayment(orderID string, paymentMethod string) (OrderPayResponse, ErrorCode)
-      ConstructPaymentRequest(orderID string) (OrderPayResponse, ErrorCode)
-      UpdateOrderStatus(orderID string, status string) ErrorCode
-      HandleError(orderID string, err error) ErrorCode
-  }
+##### 支付状态的设计
 ```
+P0: PAYMENT_NOT_STARTED - 未开始
+P1: PAYMENT_PENDING - 支付中,用户点击了pay按钮，等待支付）
 
-</code></pre>
-</details>
+P2: MARKETING_Init - 营销初始化
+P3: MARKETING_FAILED - 营销扣减失败
+P4: MARKETING_SUCCESS - 营销扣减成功
 
+P5: PAYMENT_INITIALIZED - 支付初始化
+P6: PAYMENT_INITIALIZED_FAILED - 支付初始化失败
+P7: PAYMENT_PROCESSING - 支付处理中。（支付系统正在处理支付请求）
+P8: PAYMENT_SUCCESS - 支付成功
+P9: PAYMENT_FAILED - 支付失败
+P10: PAYMENT_CANCELLED - 支付取消
+P11: PAYMENT_TIMEOUT - 支付超时
+```
+##### 异常和补偿设计
+常见的异常：
+营销部分：
+1. 营销扣减补偿操作重复。（营销接口幂等设计）
+2. 营销已经扣减了，但是后续步骤失败，需要回滚扣减的操作。（业务代码中需要有rollback操作）
+3. 营销已经扣减了，回滚扣减失败。延时队列任务补偿。（回滚失败发送延时队列，任务补偿）
+4. 营销已经扣减了，写延时队列失败，任务没有补偿成功。（补偿任务通过扫描异常单进行补偿）
+5. 营销已经扣减了，延时队列消息重复，重复回滚。（依赖营销系统的幂等操作）
+6. 营销已经扣减了，请求已经发给了营销服务，营销服务已经扣减了，但是回包失败。（请求营销接口之前更新订单状态为P2,针对P2的订单进行补偿）
 
+支付部分：
+1. 重复支付。（支付接口幂等设计）
+2. 支付初始化请求支付成功，但是回包失败（重续针对P5的订单进行补偿，查询支付系统是否收单，已经支付结果查询）
+3. 支付回调包重复，更新回调结果幂等。
+4. 支付回调包丢失，对于P7支付单需要补偿。
 
-#### 订单履约和履约结果回调
+#### 履约
+##### 履约核心流程
 <p align="center">
   <img src="/images/order_fulfillment.png" width=500 height=1000>
 </p>
 
-```Go
-package fulfillmentserver
 
-// OrderFulfillmentRequest 包含履行请求所需的参数
-type OrderFulfillmentRequest struct {
-    OrderID  string
-    UserID   string
-    Quantity int
-}
-
-// OrderFulfillmentResponse 表示履行请求的响应
-type OrderFulfillmentResponse struct {
-    Success   bool
-    Message   string
-    TrackingID string // 物流跟踪ID
-}
-
-// FulfillmentService 接口定义了订单履行相关的功能
-type FulfillmentService interface {
-    ValidateStock(orderID string, quantity int) ErrorCode
-    ProcessOrder(request OrderFulfillmentRequest) (OrderFulfillmentResponse, ErrorCode)
-    UpdateOrderStatus(orderID string, status string) ErrorCode
-    HandleDelivery(orderID string) ErrorCode
-    HandleError(orderID string, err error) ErrorCode
-}
+##### 履约状态机的设计
 ```
+  F0: FULFILLMENT_NOT_STARTED - 未开始
+  F1: FULFILLMENT_PENDING - 履约开始
+  F2: FULFILLMENT_PROCESSING - 履约处理中
+  F3: FULFILLMENT_FAILED - 履约失败
+  F4: FULFILLMENT_SUCCESS - 履约成功
+  F5: FULFILLMENT_CANCELLED - 履约取消
+```
+
+##### 异常和补偿的设计
+1. 订阅支付完成的事件O2
+2. 在请求fulfillment/init履约初始化之前，更新订单状态为F1
+3. fulfillment/init 接口的回包丢了。（针对F1订单进行补偿）
+4. fulfillment/init 重复请求（幂等设计）
+5. F2订单补偿。（fulfillment/callback 丢包，处理失败等）
+
+
 #### return & refund
 <p align="center">
-  <img src="/images/return&refund.png" width=500 height=1000>
+  <img src="/images/return-refund.png" width=500 height=1000>
 </p>
 
-- UserRefundOrderService、AdminRefundOrderService、FailedFulfillmentRefundOrderService
-- Return
-- refund
+##### 主要流程
+1. 订单服务作为协调者。与履约服务、营销服务、支付服务解耦
+2. 用 OrderBus 进行事件传递
+3. 状体机设计
+4. 异常处理
 
-##### RefundPlaceOrder
-```Go
-package refundservice
+##### 异常和补偿机制
+1. 退货环节异常
+- 退货初始化失败：直接发送退款失败事件
+- 退货回调失败：更新状态为 R7，发送失败事件
+2. 营销退款异常
+- 营销处理失败：更新状态为 R14，发送失败事件
+- 营销处理成功：更新状态为 R13，继续后续流程
+3. 支付退款异常
+- 支付退款失败：更新状态为 R11，发送失败事件
+- 支付退款成功：更新状态为 R10，发送成功事件
 
-// RefundOrderRequest 包含退款请求所需的参数
-type RefundOrderRequest struct {
-    OrderID  string
-    UserID   string
-    Amount   float64
-}
+##### 订单详情查询
 
-// RefundOrderResponse 表示退款请求的响应
-type RefundOrderResponse struct {
-    Success   bool
-    Message   string
-    RefundID  string // 退款ID
-}
+### 订单系统的演进
+1. 订单第一阶段：实现订单流转
+ - 完成订单的基本流程
+2. 订单第二阶段：平台化搭建
+  - 支持拆单、合单逻辑（配送单、支付单等）
+  - 支持跨平台交易单生成（即同一个大交易单内既有商家商品又有自营商品或者是多个商家的商品）
+3. 订单第三阶段：更多类型的订单模式
+- 预售单。 订单第三阶段：更多类型的订单模式
+- JIT 销售驱动生产，根据订单进行生产配送。
 
-// RefundOrderService 接口定义了退款相关的功能
-type RefundOrderService interface {
-    ValidateRefund(request RefundOrderRequest) ErrorCode
-    PlaceOrder(request RefundOrderRequest) (RefundOrderResponse, ErrorCode)
-}
-
-// BaseRefundOrderService 实现 RefundOrderService 接口
-type BaseRefundOrderService struct{}
-
-func (bros *BaseRefundOrderService) ValidateRefund(request RefundOrderRequest) ErrorCode {
-    if request.Amount <= 0 {
-        return ErrInvalidAmount
-    }
-    if !orderExists(request.OrderID) {
-        return ErrOrderNotFound
-    }
-    return Success
-}
-// 假设的辅助函数
-func orderExists(orderID string) bool {
-    // 检查订单是否存在的逻辑
-    return true // 示例返回
-}
-
-func initiateRefund(orderID string, amount float64) string {
-    // 处理退款并返回退款ID的逻辑
-    return "refund123" // 示例返回
-}
-
-
-// UserRefundOrderService 实现用户退款订单的逻辑
-type UserRefundOrderService struct {
-    baseService *BaseRefundOrderService
-}
-
-func (uros *UserRefundOrderService) ValidateRefund(request RefundOrderRequest) ErrorCode {
-    return uros.baseService.ValidateRefund(request)
-}
-
-func (uros *UserRefundOrderService) PlaceOrder(request RefundOrderRequest) (RefundOrderResponse, ErrorCode) {
-    if errCode := uros.ValidateRefund(request); errCode != Success {
-        return RefundOrderResponse{}, errCode
-    }
-
-    // 处理用户创建退款订单的逻辑
-    refundID := initiateRefund(request.OrderID, request.Amount)
-
-    return RefundOrderResponse{
-        Success:  true,
-        Message:  "User refund order created successfully.",
-        RefundID: refundID,
-    }, Success
-}
-
-// AdminRefundOrderService 实现管理员退款订单的逻辑
-type AdminRefundOrderService struct {
-    baseService *BaseRefundOrderService
-}
-
-func (aros *AdminRefundOrderService) ValidateRefund(request RefundOrderRequest) ErrorCode {
-    return aros.baseService.ValidateRefund(request)
-}
-
-func (aros *AdminRefundOrderService) PlaceOrder(request RefundOrderRequest) (RefundOrderResponse, ErrorCode) {
-    if errCode := aros.ValidateRefund(request); errCode != Success {
-        return RefundOrderResponse{}, errCode
-    }
-
-    // 处理管理员创建退款订单的逻辑
-    refundID := initiateRefund(request.OrderID, request.Amount)
-
-    return RefundOrderResponse{
-        Success:  true,
-        Message:  "Admin refund order created successfully.",
-        RefundID: refundID,
-    }, Success
-}
-
-// FailedDeliveryRefundOrderService 实现发货失败退款订单的逻辑
-type FailedFulfillmentRefundOrderService struct {
-    baseService *BaseRefundOrderService
-}
-
-func (fdros *FailedFulfillmentRefundOrderService) HandleFailedDelivery(orderID string) (RefundOrderResponse, ErrorCode) {
-    // 假设处理发货失败的逻辑
-    refundRequest := RefundOrderRequest{
-        OrderID: orderID,
-        UserID:  "system", // 系统自动处理
-        Amount:  0.0,      // 假设金额为0，具体金额需要根据业务逻辑设置
-    }
-
-    // 处理退款
-    refundID := initiateRefund(refundRequest.OrderID, refundRequest.Amount)
-
-    return RefundOrderResponse{
-        Success:  true,
-        Message:  "Refund order created due to failed delivery.",
-        RefundID: refundID,
-    }, Success
-}
-```
-
-##### RefundApproveService
-```Go
-// RefundApproveRequest 包含退款审批请求所需的参数
-type RefundApproveRequest struct {
-    RefundID string
-    Approve  bool
-}
-
-// RefundApproveResponse 表示退款审批的响应
-type RefundApproveResponse struct {
-    Success bool
-    Message string
-}
-
-// RefundApproveService 接口定义了退款审批相关的功能
-type RefundApproveService interface {
-    ApproveRefund(request RefundApproveRequest) (RefundApproveResponse, ErrorCode)
-}
-```
-
-##### ReturnPurchaseService
-```Go
-// ReturnPurchaseRequest 包含退货请求所需的参数
-type ReturnPurchaseRequest struct {
-    OrderID  string
-    UserID   string
-    Reason   string
-    Amount   float64
-}
-
-// ReturnPurchaseResponse 表示退货请求的响应
-type ReturnPurchaseResponse struct {
-    Success   bool
-    Message   string
-    ReturnID  string // 退货ID
-}
-// ReturnPurchaseService 接口定义了退货相关的功能
-type ReturnPurchaseService interface {
-    ValidateReturn(request ReturnPurchaseRequest) ErrorCode
-    ProcessReturn(request ReturnPurchaseRequest) (ReturnPurchaseResponse, ErrorCode)
-}
-```
-
-##### RefundService
-```Go
-package refundservice
-
-// RefundRequest 包含退款请求所需的参数
-type RefundRequest struct {
-    OrderID string
-    UserID  string
-    Amount  float64
-}
-
-// RefundResponse 表示退款请求的响应
-type RefundResponse struct {
-    Success  bool
-    Message  string
-    RefundID string // 退款ID
-}
-
-// RefundService 接口定义了退款相关的功能
-type RefundService interface {
-    ValidateRefund(request RefundRequest) ErrorCode
-    ProcessRefund(request RefundRequest) (RefundResponse, ErrorCode)
-}
-```
-#### 订单详情查询
 ## 系统挑战
 ### 如何维护订单状态的最终一致性？
 <p align="center">
   <img src="/images/order_final_consistency_activity.png" width=600 height=600>
 </p>
 
-- 状态机一定要设计好，只有特定的原始状态 + 特定的事件才可以推进到指定的状态。
-- 并发更新数据库前，要用乐观锁或者悲观锁，先使用select for update进行锁行记录，同时在更新时判断版本号是否是之前取出来的版本号，更新成功就结束，更新失败就组成消息发到消息队列，后面再消费。
-- 通过补偿机制兜底，比如查询补单。
-- 通过上述三个步骤，正常情况下，最终的数据状态一定是正确的。除非是某个系统有异常，比如外部渠道开始返回支付成功，然后又返回支付失败，说明依赖的外部系统已经异常，这样只能进人工差错处理流程。
+#### 不一致的原因
+- 重复请求
+- 丢包。例如，请求发货，对方收单，回包失败。
+- 资源回滚：营销、库存
+- 并发问题
 
+#### 状态机
+  - 设计层面，严格的状态转换规则 + 状态转换的触发事件
+  - 状态转换的原子性。（事务性）
+
+#### 并发更新数据库前，要用乐观锁或者悲观锁，
+  - 乐观锁：同时在更新时判断版本号是否是之前取出来的版本号，更新成功就结束
+  - 悲观锁：先使用select for update进行锁行记录，然后更新
+
+```sql
+ UPDATE orders 
+   SET status = 'NEW_STATUS', 
+       version = version + 1 
+   WHERE id = ? AND version = ?
+
+   BEGIN;
+   SELECT * FROM orders WHERE id = ? FOR UPDATE;
+   UPDATE orders SET status = 'NEW_STATUS' WHERE id = ?;
+   COMMIT;
+```
+
+
+#### 幂等设计。比如重复支付、重复扣减营销、重复履约等
+  - 支付重复支付，支付回调幂等设计。
+  - 重复营销扣减，回滚，
+  - 重复履约
+  - 重复回调
+
+``` java
+   // 使用支付单号作为幂等键
+   @Transactional
+   public void handlePaymentCallback(String paymentId, String status) {
+       // 检查是否已处理
+       if (isProcessed(paymentId)) {
+           return;
+       }
+       // 处理支付回调
+       processPaymentCallback(paymentId, status);
+       // 记录处理状态
+       markAsProcessed(paymentId);
+   }
+
+
+      // 使用订单号+营销资源ID作为幂等键
+   @Transactional
+   public void deductMarketingResource(String orderId, String resourceId) {
+       if (isDeducted(orderId, resourceId)) {
+           return;
+       }
+       // 扣减营销资源
+       deductResource(orderId, resourceId);
+       // 记录扣减状态
+       markAsDeducted(orderId, resourceId);
+   }
+
+```
+
+#### 补偿机制兜底
+  - 异常回滚。营销扣减回滚
+  - 消息队列补偿：补偿队列，重试。（可能丢消息）
+  - 定时任务补偿：扫表补偿
+  - 依赖方支付查询和幂等设计
+
+#### 分布式事务
+ - 营销扣减
+ - 库存扣减
+ - 支付等业务
+ - 实现状态转换和业务操作在同一个事务中完成
+ ```java
+  @Transactional
+   public void processOrderWithDistributedTransaction(Order order) {
+       try {
+           // 1. 更新订单状态
+           updateOrderStatus(order);
+           // 2. 扣减库存
+           deductInventory(order);
+           // 3. 创建物流单
+           createLogistics(order);
+       } catch (Exception e) {
+           // 触发补偿机制
+           triggerCompensation(order);
+       }
+   }
+ ```
+
+#### 异常单人工介入
+#### 对账机制
 
 ### 商品信息缓存和数据一致性
 <p align="center">

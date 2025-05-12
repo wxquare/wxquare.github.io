@@ -1,0 +1,127 @@
+@startuml
+
+skinparam defaultFontName "Arial"
+skinparam LegendBackgroundColor yellow
+skinparam LegendBorderColor black
+skinparam LegendTextColor black
+
+title 订单系统与支付流程
+
+legend top
+订单状态说明：
+O0: CREATED - 订单创建
+O1: PAYMENT_SUCCESS - 支付成功
+O2: FULFILLED_SUCCESS - 发货成功
+O3: REFUND_SUCCESS - 退款成功
+O4: CANCELLED - 订单取消。（用户主动取消，或者超时未支付，或者支付失败）
+O5: COMPLETED - 订单完成
+
+支付状态说明：
+P0: PAYMENT_NOT_STARTED - 未开始
+P1: PAYMENT_PENDING - 支付中,用户点击了pay按钮，等待支付）
+P2: MARKETING_Init - 营销初始化
+P3: MARKETING_FAILED - 营销扣减失败
+P4: MARKETING_SUCCESS - 营销扣减成功
+P5: PAYMENT_INITIALIZED - 支付初始化
+P6: PAYMENT_INITIALIZED_FAILED - 支付初始化失败
+P7: PAYMENT_PROCESSING - 支付处理中。（支付系统正在处理支付请求）
+P8: PAYMENT_SUCCESS - 支付成功
+P9: PAYMENT_FAILED - 支付失败
+P10: PAYMENT_CANCELLED - 支付取消
+P11: PAYMENT_TIMEOUT - 支付超时
+end legend
+
+actor "用户" as User
+participant "订单服务" as OrderService
+database "订单数据库" as OrderDB
+queue "延时队列" as DelayQueue
+queue "OrderBus" as OrderBus
+participant "营销服务" as MarketingService
+participant "支付服务" as PaymentService
+
+== step1: 支付初始化 ==
+User -> OrderService: 点击pay按钮发起支付，call pay api
+OrderService -> OrderDB: 查询订单信息
+OrderService <- OrderDB: 返回订单
+alt Order Not Found
+    OrderService -> User: Order Not Found
+end
+
+alt Order Status Not Payable
+    OrderService -> User: Order Status Not Payable
+end
+
+OrderService -> OrderDB: update order status to <color:red>P1</color>.
+
+== step2: 营销扣减 ==
+OrderService -> OrderDB: update order status to <color:red>P2</color>.
+OrderService -> MarketingService: 校验营销信息，营销扣减（coin,voucher）
+alt Marketing Failed
+    OrderService -> User: Marketing Failed
+    OrderService -> OrderDB: update order status to <color:red>P3</color>.
+else Marketing Success
+    OrderService -> OrderDB: update order status to <color:red>P4</color>.
+end
+
+== step3: 支付初始化 ==
+OrderService -> OrderDB: update order status to <color:red>P5</color>.
+OrderService -> PaymentService: call payment init api 支付初始化
+PaymentService -> PaymentService: 支付初始化
+alt Payment Init Failed
+    OrderService -> User: Payment Init Failed
+    OrderService -> OrderDB: update order status to <color:red>P6</color>.
+    OrderService -> MarketingService: 支付初始化失败，回滚营销扣减
+    alt Marketing Rollback Failed
+        OrderService -> DelayQueue: 异步延迟回滚营销扣减补偿
+    end
+else Payment Init Success
+    OrderService -> OrderDB: update order status to <color:red>P7</color>.
+    OrderService -> User: Payment Init Success，返回支付url
+    OrderService -> OrderBus: 发送支付初始化成功事件
+end
+
+== step4: 支付系统内部支付 ==
+User -> PaymentService: 输入支付密码
+PaymentService -> PaymentService: 支付逻辑
+alt Payment Failed
+    PaymentService -> PaymentService: Payment Failed
+else Payment Success
+    PaymentService -> PaymentService: pay
+end
+
+
+== step5: 支付结果回调 ==
+PaymentService -> OrderService: Callback 支付结果
+alt Success
+    OrderService -> OrderService: Update payment status to <color:red>P7</color>,order status to O1
+else Failure Callback
+    OrderService -> OrderService: Update Order to <color:red>P8,P9,P10</color>
+    OrderService -> OrderBus: 发送支付结果回调事件
+    OrderService -> MarketingService: 回滚营销扣减
+    alt Marketing Rollback Failed
+        OrderService -> DelayQueue: 异步延迟回滚营销扣减补偿
+    end
+end
+
+== step6: 退款审批流程 ==
+User -> OrderService: 申请退款
+OrderService -> OrderDB: 查询订单信息
+OrderService <- OrderDB: 返回订单信息
+alt 订单状态不可退款
+    OrderService -> User: 订单状态不可退款
+else 订单可退款
+    OrderService -> OrderDB: 更新订单状态为退款中
+    OrderService -> PaymentService: 发起退款请求
+    PaymentService -> PaymentService: 退款审批
+    alt 退款审批通过
+        PaymentService -> OrderService: 退款审批通过
+        OrderService -> OrderDB: 更新订单状态为退款成功
+        OrderService -> MarketingService: 退还营销资源
+        OrderService -> User: 退款成功通知
+    else 退款审批拒绝
+        PaymentService -> OrderService: 退款审批拒绝
+        OrderService -> OrderDB: 更新订单状态为退款拒绝
+        OrderService -> User: 退款拒绝通知
+    end
+end
+@enduml

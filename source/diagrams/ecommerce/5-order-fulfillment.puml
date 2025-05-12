@@ -1,0 +1,69 @@
+@startuml
+
+
+title 订单系统与履约系统交互
+
+skinparam defaultFontName "Arial"
+skinparam LegendBackgroundColor yellow
+skinparam LegendBorderColor black
+skinparam LegendTextColor black
+
+legend top
+订单状态说明：
+O0: CREATED - 订单创建
+O1: PAYMENT_SUCCESS - 支付成功
+O2: FULFILLED_SUCCESS - 发货成功
+O3: REFUND_SUCCESS - 退款成功
+O4: CANCELLED - 订单取消。（用户主动取消，或者超时未支付，或者支付失败）
+O5: COMPLETED - 订单完成
+
+履约状态说明：
+F0: FULFILLMENT_NOT_STARTED - 未开始
+F1: FULFILLMENT_PENDING - 履约开始
+F2: FULFILLMENT_PROCESSING - 履约处理中
+F3: FULFILLMENT_FAILED - 履约失败
+F4: FULFILLMENT_SUCCESS - 履约成功
+F5: FULFILLMENT_CANCELLED - 履约取消
+end legend
+
+participant OrderSystem as OS
+database "OrderDB" as OrderDB
+queue "OrderBus" as OrderBus
+participant FulfillmentSystem as FS
+
+== step1: 发货初始化 ==
+OS <- OrderBus: 订阅支付成功事件O2
+OS -> OrderDB: 获取订单信息
+
+OrderDB <- OS: 返回订单信息,校验订单是否可以发货
+alt Order Not Found
+    OS -> OS: 订单不存在
+end
+
+alt Order Not Fulfillable
+    OS -> OS: 订单不可发货
+end
+
+OS -> OrderDB: 更新订单状态为F1，履约开始
+OS <-> FS: Request fulfillment service to initiate fulfillment fulfillment/init
+alt init success
+    OS -> OrderDB: 更新订单状态为F2，履约处理中
+else init failed
+    OS -> OrderDB: 更新订单状态为F3，履约失败
+    OS -> OrderBus: 发送履约失败事件
+end
+
+== step2: 发货系统内部发货 ==
+FS -> FS: 发货系统发货
+
+
+== step3: 发货结果回调 ==
+OS <- FS: 回调发货结果
+alt Shipping Order Success
+    OS -> OrderDB: 更新发货状态发货成功O2,F4，等待发货结果的回调
+    OS -> OrderBus: 发送履约成功事件
+else Shipping Order Failure
+    OS -> OrderDB: 根据错误码更新发货状态F3，并且触发refund过程
+    OS -> OrderBus: 发送履约失败事件
+end
+@enduml
