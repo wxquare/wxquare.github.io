@@ -1,0 +1,119 @@
+@startuml
+title return&refund退款流程
+
+
+skinparam LegendBackgroundColor yellow
+
+legend top
+订单状态说明：
+O0: CREATED - 订单创建
+O1: PAYMENT_SUCCESS - 支付成功
+O2: FULFILLED_SUCCESS - 发货成功
+O3: REFUND_SUCCESS - 退款成功
+O4: CANCELLED - 订单取消。（用户主动取消，或者超时未支付，或者支付失败）
+O5: COMPLETED - 订单完成
+
+退款状态说明：
+R0: REFUND_CREATED - 退款创建
+
+R1: REFUND_APPROVING - 退款审批中
+R2: APPROVED - 退款批准
+R3: REJECTED - 退款拒绝
+
+R4: RETURN_PENDING - 退货处理中
+R5: RETURN_PROCESSING - 退货处理中
+R6: RETURN_SUCCESS - 退货成功
+R7: RETURN_FAILED - 退货失败
+
+R8: REFUND_PENDING - 退款处理中
+R9: REFUND_PROCESSING - 退款处理中
+R10: REFUND_SUCCESS - 退款成功
+R11: REFUND_FAILED - 退款失败
+
+R12: REFUND_MARKETING_PENDING - 退款营销处理中
+R13: REFUND_MARKETING_SUCCESS - 退款营销成功
+R14: REFUND_MARKETING_FAILED - 退款营销失败
+
+end legend
+
+actor "用户" as User
+participant "订单服务" as OrderService
+database "订单数据库" as OrderDB
+queue "OrderBus" as OrderBus
+participant "营销服务" as MarketingService
+participant "支付服务" as PaymentService
+participant "履约服务" as FulfillmentService
+
+
+== step1: refund request and create refund order ==
+group 履约失败
+    OrderBus <- OrderService: 订阅履约失败事件。
+    OrderService -> OrderDB: order refund_status = R8。（不用退货）
+    OrderService -> OrderBus: 发送refund_created事件
+end
+group 用户主动发起refund
+    User -> OrderService: 用户主动发起refund
+    OrderService -> OrderDB: 创建refundOrder,refund_status = R0
+    OrderService -> User: 返回refundOrderID
+end
+
+== step2: refund approval 【用户发起的退款单 ==
+OrderService -> OrderDB: update refund_status = R2,R3
+OrderService -> OrderBus: 发送refund_approved事件
+
+
+== step3: return init == 
+OrderService -> OrderBus: 订阅refund_approved事件 R2
+OrderService -> OrderDB: update refund_status = R4
+OrderService -> FulfillmentService: 调用order/return
+alt return failed
+    OrderService -> OrderBus: 发送refund_failed事件
+else return success
+    OrderService -> OrderDB: update refund_status = R5
+    OrderService -> OrderBus: 发送refund_success事件
+    OrderService -> User: 返回refund_success事件
+end
+
+== step4: return callback ==
+OrderService <- FulfillmentService: return callback
+alt return failed
+    OrderService -> OrderDB: update refund_status = R7
+    OrderService -> OrderBus: 发送refund_failed事件
+else return success
+    OrderService -> OrderDB: update refund_status = R6
+    OrderService -> OrderBus: 发送refund_success事件
+end
+
+== step5: refund init ==
+OrderService -> OrderBus: 订阅refund_success事件 R6
+group refund promotion
+    OrderService -> OrderDB: update refund_status = R12
+    OrderService -> MarketingService: refund promotion
+    alt refund failed
+        OrderService -> OrderDB: update refund_status = R14
+        OrderService -> OrderBus: 发送refund_failed事件
+    else refund success
+        OrderService -> OrderDB: update refund_status = R13
+        OrderService -> OrderBus: 发送refund_success事件
+    end
+end
+
+group refund payment
+    OrderService -> PaymentService: refund payment
+    alt refund success
+        OrderService -> OrderDB: update refund_status = R9
+    end
+end
+
+
+== step6: refund callback ==
+OrderService <- PaymentService: refund payment callback
+alt refund failed
+    OrderService -> OrderDB: update refund_status = R11
+    OrderService -> OrderBus: 发送refund_failed事件
+else refund success
+    OrderService -> OrderDB: update refund_status = R10
+    OrderService -> OrderBus: 发送refund_success事件    
+end
+
+@enduml
