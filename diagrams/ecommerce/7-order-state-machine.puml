@@ -1,0 +1,112 @@
+@startuml
+
+state OrderStatus #lightblue {
+    O0: CREATED - 订单创建
+    O1: PAYMENT_SUCCESS - 支付成功
+    O2: FULFILLED_SUCCESS - 发货成功
+    O3: REFUND_SUCCESS - 退款成功
+    O4: CANCELLED - 订单取消。\n（用户主动取消，或者超时未支付，或者支付失败）
+    O5: COMPLETED - 订单完成
+
+    O0 --> O1 : 支付成功
+    O0 --> O4 : 取消订单
+    O1 --> O2 : 发货成功
+    O1 --> O3 : 发货失败，退款成功
+    O2 --> O3 : 退款成功
+    O2 --> O5 : 订单完成
+    O3 --> O5 : 订单自动完成
+    O4 --> O5 : 异常单也走到完成
+}
+
+state PaymentStatus #lightgreen {
+    P0: PAYMENT_NOT_STARTED - 未开始
+    P1: PAYMENT_PENDING - 支付中,用户点击了pay按钮,等待支付）
+    P2: MARKETING_Init - 营销初始化
+    P3: MARKETING_FAILED - 营销扣减失败
+    P4: MARKETING_SUCCESS - 营销扣减成功
+    P5: PAYMENT_INITIALIZED - 支付初始化
+    P6: PAYMENT_INITIALIZED_FAILED - 支付初始化失败
+    P7: PAYMENT_PROCESSING - 支付处理中。（支付系统正在处理支付请求）
+    P8: PAYMENT_SUCCESS - 支付成功
+    P9: PAYMENT_FAILED - 支付失败
+    P10: PAYMENT_CANCELLED - 支付取消
+    P11: PAYMENT_TIMEOUT - 支付超时
+
+    P0 --> P1 : 开始支付
+
+    P1 --> P2 : 营销初始化
+    P2 --> P3 : 营销失败
+    P2 --> P4 : 营销成功
+
+    P4 --> P5 : 支付初始化
+    P5 --> P6 : 初始化失败
+    P5 --> P7 : 开始处理
+    P7 --> P8 : 支付成功
+    P7 --> P9 : 支付失败
+    P7 --> P10 : 用户取消
+    P7 --> P11 : 支付超时
+}
+
+state FulfillmentStatus #lightgreen {
+    F0: FULFILLMENT_NOT_STARTED - 未开始
+    F1: FULFILLMENT_PENDING - 履约开始
+    F2: FULFILLMENT_PROCESSING - 履约处理中
+    F3: FULFILLMENT_FAILED - 履约失败
+    F4: FULFILLMENT_SUCCESS - 履约成功
+    
+    F0 --> F1 : 开始履约
+    F1 --> F2 : 处理中
+    F2 --> F3 : 履约失败
+    F2 --> F4 : 履约成功
+}
+
+
+state RefundStatus #lightcyan {
+    R0: REFUND_CREATED - 退款创建
+
+    R1: REFUND_APPROVING - 退款审批中
+    R2: APPROVED - 退款批准
+    R3: REJECTED - 退款拒绝
+
+    R4: RETURN_PENDING - 退货处理中
+    R5: RETURN_PROCESSING - 退货处理中
+    R6: RETURN_SUCCESS - 退货成功
+    R7: RETURN_FAILED - 退货失败
+
+    R8: FULFILLMENT_FAILED_REFUND_PENDING
+    R9: REFUND_PENDING - 退款处理中
+    R10: REFUND_PROCESSING - 退款处理中
+    R11: REFUND_SUCCESS - 退款成功
+    R12: REFUND_FAILED - 退款失败
+
+    R13: REFUND_MARKETING_PENDING - 退款营销处理中
+    R14: REFUND_MARKETING_SUCCESS - 退款营销成功
+    R15: REFUND_MARKETING_FAILED - 退款营销失败
+
+    R16: REFUND_MANUAL_INTERVENTION - 人工介入
+
+    R0 --> R1 : 开始审批
+    R1 --> R2 : 审批通过
+    R1 --> R3 : 审批拒绝
+    R2 --> R4 : 开始退货
+    R4 --> R5 : 退货处理中
+    R5 --> R6 : 退货成功
+    R5 --> R7 : 退货失败
+    R6 --> R9 : 开始退款
+  
+
+    R8 --> R9 : 请求退款服务，发货失败的单
+    R9 --> R10 : 退款成功
+
+    R10 --> R11 : 退款失败
+    R10 --> R12 : 退款失败
+
+    R11 --> R13 : 退款营销处理中
+    R13 --> R14 : 退款营销成功
+    R13 --> R15 : 退款营销失败
+
+    R7 --> R16 : 退货失败，人工介入
+    R12 --> R16 : 退款失败，人工介入
+    R15 --> R16 : 退款营销失败，人工介入
+}
+@enduml
