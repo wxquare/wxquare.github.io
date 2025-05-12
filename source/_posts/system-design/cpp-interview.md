@@ -1,5 +1,5 @@
 ---
-title: C/C++ 基础和常见面试问题
+title: C/C++ 基础知识
 date: 2023-10-13
 categories: 
 - 系统设计

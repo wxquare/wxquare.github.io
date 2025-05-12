@@ -490,7 +490,7 @@ CREATE TABLE user_operation_logs (
   <img src="/images/order_state_machine.png" width=800 height=800>
 </p>
 
-### 订单ID 生成策略。
+### 订单ID 生成策略
 ``` python 
   # 时间戳 + 机器id + uid % 1000 + 自增序号
 
