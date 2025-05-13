@@ -39,6 +39,20 @@ categories:
 
 ## 商品管理 Product Center
 
+### 商品信息包括哪些内容
+<p align="center">
+  <img src="/images/item-info.png" width=700 height=700>
+</p>
+
+### 商品系统的演进
+
+| 阶段         | 主要特征/能力                                                         | 技术架构/数据模型           | 适用场景/目标                         | 实现方式简单说明 |
+|--------------|---------------------------------------------------------------------|-----------------------------|--------------------------------------|----------------|
+| 初始阶段     | - 商品信息简单，字段少<br>- SKU/SPU未严格区分<br>- 价格库存直接在商品表<br>- 仅支持基本的增删改查 | 单表/简单表结构              | 小型电商、业务初期，SKU数量少         | 单体应用，单表存储，简单业务逻辑，直接数据库操作 |
+| 成长阶段     | - 引入SPU/SKU模型<br>- 属性、类目、品牌等实体独立<br>- 支持多规格商品<br>- 价格库存可拆分为独立表 | 关系型数据库，ER模型优化      | SKU多样化，品类扩展，业务快速增长     | 关系型数据库，ER模型优化，多表存储，业务逻辑复杂 |
+| 成熟阶段     | - 商品中台化，支持多业务线/多渠道<br>- 属性体系灵活可扩展<br>- 多级类目、标签、图片、描述等丰富<br>- 商品快照、操作日志、版本控制 | 中台架构，微服务/多表/NoSQL   | 大型平台，业务复杂，需支撑多业务场景   | 分布式服务，插件化/配置化流程，状态机驱动，异步消息，灵活数据模型 |
+| 未来演进     | - 多语言多币种支持<br>- 商品内容多媒体化（视频、3D等）<br>- AI智能标签/推荐<br>- 商品数据实时分析与洞察 | 分布式/云原生/大数据平台      | 国际化、智能化、数据驱动的电商生态    | 云原生架构，AI/大数据分析，自动化运维，弹性伸缩，智能路由与风控 |
+
 ### 什么是SPU、SKU
 方案一：同时创建多个SKU，并同步生成关联的SPU。整体方案是直接创建SKU，并维护多个不同的属性；该方案适用于大多数C2C综合电商平台（例如，阿里巴巴就是采用这种方式创建商品）。
 方案二：先创建SPU，再根据SPU创建SKU。整体方案是由平台的主数据团队负责维护SPU，商家（包括自营和POP）根据SPU维护SKU。在创建SKU时，首先选择SPU（SPU中的基本属性由数据团队维护），然后基于SPU维护销售属性和物流属性，最后生成SKU；该方案适用于高度专业化的垂直B2B行业，如汽车、医药等。
@@ -69,12 +83,6 @@ categories:
 - 灵活的属性体系。通过 category_attribute 和 spu_attr_value 支持不同类目下的不同属性，适应多样化商品需求。属性值与商品解耦，支持动态扩展
 - item_stat 单独存储统计信息，便于高并发下的读写优化。
 - 可以方便地增加标签（tag）、图片、描述、规格等字段，适应业务变化
-
-#### 后序扩展：
-- images 字段为 JSON，建议单独建表管理图片，便于后续扩展（如视频、3D模型等）。
-- 价格、库存等字段仅在 sku/item_state，若需支持价格历史、促销活动等，需额外设计。增加单独的库存表stock_tab和价格表 price_tab.
-- 多语言支持
-- 多币种支持
 
 #### 商品信息录入JSON示例
 
@@ -253,9 +261,9 @@ categories:
 </code></pre>
 </details> 
 
+#### 商品的价格和库存
 
-### 商品的价格和库存
-#### 方案1. 价格和库存直接放在sku表中
+##### 方案1. 价格和库存直接放在sku表中 （变化小）
 在这种方案中，SKU（Stock Keeping Unit） 表包含商品的所有信息，包括价格和库存数量。每个 SKU 记录一个独立的商品实例，它有唯一的标识符，直接关联价格和库存。
 ```sql
 CREATE TABLE sku_tab (
@@ -286,7 +294,7 @@ CREATE TABLE sku_tab (
 - 价格和库存变动较少，不涉及复杂的促销或动态定价的场景
 
 
-#### 方案2. 价格和库存单独管理
+##### 方案2. 价格和库存单独管理（变化大）
 
 ```sql
 
@@ -324,16 +332,44 @@ CREATE TABLE inventory_tab (
 - 需要频繁变动价格或库存的商品，且这些信息与 SKU 无法紧密绑定的场景
 
 
-### 商品的生命周期
-- 商品的生命周期
-- 如何处理商品的上下架
-- 如何设计商品的审核流程？
+#### 商品快照 item_snapshots
+1. 商品编辑时生成快照:
+- 每次商品信息（如价格、描述、属性等）发生编辑时，生成一个新的商品快照。
+- 将快照信息存储在 item_snapshots 表中，并生成一个唯一的 snapshot_id。
+
+2. 订单创建时使用快照:
+在用户下单时，查找当前商品的最新 snapshot_id。
+在 order_items 表中记录该 snapshot_id，以确保订单项反映下单时的商品状态
+```sql
+  CREATE TABLE `snapshot_tab` (
+    `snapshot_id` int(11) NOT NULL AUTO_INCREMENT,
+    `snapshot_type` int(11) NOT NULL, 
+    `create_time` int(11) NOT NULL DEFAULT '0',
+    `data` text NOT NULL,
+    `entity_id` int(11) DEFAULT NULL,
+    PRIMARY KEY (`snapshot_id`),
+    KEY `idx_entity_id` (`entity_id`)
+  ) 
+```
+
+#### 用户操作日志
+```sql
+CREATE TABLE user_operation_logs (
+  log_id INT PRIMARY KEY AUTO_INCREMENT,  -- Unique identifier for each log entry
+  user_id INT NOT NULL,                   -- ID of the user who made the edit
+  entity_id INT NOT NULL,                 -- ID of the entity being edited
+  entity_type VARCHAR(50) NOT NULL,       -- Type of entity (e.g., SPU, SKU, Price, Stock)
+  operation_type VARCHAR(50) NOT NULL,    -- Type of operation (e.g., CREATE, UPDATE, DELETE)
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Time of the operation
+  details TEXT,                           -- Additional details about the operation
+  FOREIGN KEY (user_id) REFERENCES users(id)  -- Assuming a users table exists
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+#### 商品的统计信息
+
 
 
 ### 缓存的使用
-
-
-
 ### 核心流程
 #### B端：商品创建和发布的流程
 - 批量上传、批量编辑
@@ -391,50 +427,9 @@ POST /products/_doc/1
   - 商品的个性化定制如何实现？
 - 获取商品详情
 
-### 商品快照 item_snapshots
-1. 商品编辑时生成快照:
-- 每次商品信息（如价格、描述、属性等）发生编辑时，生成一个新的商品快照。
-- 将快照信息存储在 item_snapshots 表中，并生成一个唯一的 snapshot_id。
-
-2. 订单创建时使用快照:
-在用户下单时，查找当前商品的最新 snapshot_id。
-在 order_items 表中记录该 snapshot_id，以确保订单项反映下单时的商品状态
-
-(如何设计商品的版本控制？)
-(商品的历史记录如何管理？)
-
-```sql
-  CREATE TABLE `snapshot_tab` (
-    `snapshot_id` int(11) NOT NULL AUTO_INCREMENT,
-    `snapshot_type` int(11) NOT NULL, 
-    `create_time` int(11) NOT NULL DEFAULT '0',
-    `data` text NOT NULL,
-    `entity_id` int(11) DEFAULT NULL,
-    PRIMARY KEY (`snapshot_id`),
-    KEY `idx_entity_id` (`entity_id`)
-  ) 
-```
-
-### 用户操作日志
-```sql
-CREATE TABLE user_operation_logs (
-  log_id INT PRIMARY KEY AUTO_INCREMENT,  -- Unique identifier for each log entry
-  user_id INT NOT NULL,                   -- ID of the user who made the edit
-  entity_id INT NOT NULL,                 -- ID of the entity being edited
-  entity_type VARCHAR(50) NOT NULL,       -- Type of entity (e.g., SPU, SKU, Price, Stock)
-  operation_type VARCHAR(50) NOT NULL,    -- Type of operation (e.g., CREATE, UPDATE, DELETE)
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Time of the operation
-  details TEXT,                           -- Additional details about the operation
-  FOREIGN KEY (user_id) REFERENCES users(id)  -- Assuming a users table exists
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
-### 扩展，多语言多币种
-### 扩展，物流
-
 
 ## 订单管理 Order Center
-
-[订单系统，平台的“生命中轴线”](https://www.woshipm.com/pd/753646.html)
+[订单系统，平台的"生命中轴线"](https://www.woshipm.com/pd/753646.html)
 ### 订单中需要包含哪些信息
 <p align="center">
   <img src="/images/order_content.webp" width=800 height=500>
@@ -472,6 +467,15 @@ CREATE TABLE user_operation_logs (
 需对接第三方酒店系统实时查房、锁房
 取消、变更政策复杂，可能涉及违约金
 无物流，但有电子凭证或入住确认
+
+### 订单系统的演进
+
+| 阶段         | 主要特征/能力                                                                 | 技术架构/数据模型           | 适用场景/目标                         | 实现方式简单说明 |
+|--------------|----------------------------------------------------------------------------|-----------------------------|--------------------------------------|----------------|
+| 初始阶段     | - 实现订单基本流转（下单、支付、发货、收货、取消）<br>- 单一订单类型（实物订单）<br>- 订单与商品、用户简单关联 | 单体应用/单表或少量表结构    | 业务初期，订单量小，流程简单，SKU/商家数量有限 | 单体应用，单表存储，简单业务逻辑，直接数据库操作 |
+| 成长阶段（订单中心） | - 支持订单拆单、合单（如多仓发货、合并支付）<br>- 支持多品类订单（如实物+虚拟）<br>- 订单中心化，订单与支付、配送、售后等子系统解耦<br>- 订单与商品快照、操作日志关联 | 微服务/多表/订单中心架构         | 平台型电商，业务扩展，需支持多商家、多类型订单，订单量大幅增长 | 订单中心服务，微服务拆分，多表关联，服务间接口调用，快照与日志表设计 |
+| 成熟期（平台化）   | - 支持多样化订单类型（预售、虚拟、O2O、定制、JIT等）<br>- 订单流程可配置/插件化/工作流引擎/状态机框架/规则引擎等<br>- 订单状态机、履约、支付、退款等子流程解耦<br>- 支持复杂的促销、分账、履约模式 | 分布式/服务化/灵活数据模型    | 大型/综合电商，业务复杂，需快速适应新业务模式和高并发场景 | 分布式服务，插件化/配置化流程，状态机驱动，异步消息，灵活数据模型 |
+| 未来智能化   | - 订单智能路由与分配（如智能分仓、智能客服）<br>- 实时风控与反欺诈<br>- 订单数据实时分析与洞察<br>- 高可用、弹性伸缩、自动化运维 | 云原生/大数据/AI驱动架构      | 超大规模平台，国际化、智能化、数据驱动，需极致稳定与创新能力 | 云原生架构，AI/大数据分析，自动化运维，弹性伸缩，智能路由与风控 |
 
 ### 常见的订单模型设计
 <p align="center">
@@ -1513,17 +1517,8 @@ P11: PAYMENT_TIMEOUT - 支付超时
 
 ##### 订单详情查询
 
-### 订单系统的演进
-1. 订单第一阶段：实现订单流转
- - 完成订单的基本流程
-2. 订单第二阶段：平台化搭建
-  - 支持拆单、合单逻辑（配送单、支付单等）
-  - 支持跨平台交易单生成（即同一个大交易单内既有商家商品又有自营商品或者是多个商家的商品）
-3. 订单第三阶段：更多类型的订单模式
-- 预售单。 订单第三阶段：更多类型的订单模式
-- JIT 销售驱动生产，根据订单进行生产配送。
 
-## 系统挑战
+## 系统挑战和解决方案
 ### 如何维护订单状态的最终一致性？
 <p align="center">
   <img src="/images/order_final_consistency_activity.png" width=600 height=600>
@@ -1739,9 +1734,9 @@ DP唯一ID生成调研说明
 request 生成方法：时间戳 + 机器mac地址 + sequence
 
 
-### 电商系统稳定性建设
+## 系统稳定性建设
 
-## 前言：怎样的系统算是稳定高可用的
+### 前言：怎样的系统算是稳定高可用的
 
 首先回答另一个问题，怎样的系统算是稳定的？
 
@@ -1762,7 +1757,7 @@ Google SRE中(SRE三部曲[1])有一个层级模型来描述系统可靠性基�
 - 位于金字塔模型最顶端的是产品设计(Product)与软件研发(Development)，即通过优秀的产品设计与软件设计使系统具备更高的可靠性，构建高可用产品架构体系，从而提升用户体验
 
 
-## 系统稳定性建设概述
+### 系统稳定性建设概述
 <p align="center">
   <img src="/images/system-stability.png" width=800 height=800>
   <br/>
@@ -1787,7 +1782,7 @@ Google SRE中(SRE三部曲[1])有一个层级模型来描述系统可靠性基�
 </p>
 
 
-## 高可用的架构设计
+### 高可用的架构设计
 
 ## 系统链路梳理和维护 System & Biz Profiling
 
