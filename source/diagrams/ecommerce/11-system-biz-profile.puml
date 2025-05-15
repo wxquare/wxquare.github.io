@@ -1,0 +1,60 @@
+@startuml
+!theme plain
+
+' 定义样式
+skinparam rectangle {
+BackgroundColor<<StrongDep>> Pink
+BackgroundColor<<WeakDep>> LightGreen  
+BackgroundColor<<HighRisk>> Orange
+}
+
+' 定义组件
+cloud "负载均衡\nQPS: 10k" as LB
+node "API网关\nQPS: 8k" as Gateway
+
+rectangle "用户服务\nQPS: 3k" <<StrongDep>> as UserService
+rectangle "商品服务\nQPS: 5k" <<StrongDep>> as ItemService
+rectangle "订单服务\nQPS: 2k\n(高风险:资金相关)" <<HighRisk>> as OrderService
+rectangle "支付服务\nQPS: 1k\n(高风险:资金相关)" <<HighRisk>> as PayService
+rectangle "库存服务\nQPS: 2k" <<StrongDep>> as StockService
+rectangle "物流服务\nQPS: 0.5k" <<WeakDep>> as LogisticsService
+
+database "用户DB" <<StrongDep>> as UserDB
+database "商品DB" <<StrongDep>> as ItemDB
+database "订单DB" <<StrongDep>> as OrderDB
+database "支付DB" <<StrongDep>> as PayDB
+database "库存DB" <<StrongDep>> as StockDB
+
+queue "消息队列\nQPS: 5k" <<WeakDep>> as MQ
+
+' 定义调用关系
+LB --> Gateway
+Gateway --> UserService
+Gateway --> ItemService
+Gateway --> OrderService
+Gateway --> PayService
+
+UserService --> UserDB : "读写QPS: 2k"
+ItemService --> ItemDB : "读写QPS: 4k"
+OrderService --> OrderDB : "读写QPS: 1.5k"
+PayService --> PayDB : "读写QPS: 0.8k"
+StockService --> StockDB : "读写QPS: 1.5k"
+
+OrderService --> ItemService : "QPS: 2k"
+OrderService --> StockService : "QPS: 2k"
+OrderService --> PayService : "QPS: 1k"
+OrderService --> LogisticsService : "QPS: 0.5k"
+OrderService --> MQ : "QPS: 2k"
+
+PayService --> MQ : "QPS: 1k"
+StockService --> MQ : "QPS: 1.5k"
+LogisticsService --> MQ : "QPS: 0.5k"
+
+legend right
+|Color|Meaning|
+|<#Pink>|Strong Dependency|
+|<#LightGreen>|Weak Dependency|
+|<#Orange>|High Risk Node|
+endlegend
+
+@enduml
