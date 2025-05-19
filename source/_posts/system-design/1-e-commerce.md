@@ -30,13 +30,13 @@ categories:
 
 ### 应用架构
 <p align="center">
-  <img src="/images/application-architecture.png" width=700 height=800>
+  <img src="/images/application-architecture.png" width=700 height=550>
 </p>
 
 ### 技术架构
 
 <p align="center">
-  <img src="/images/e-commerce-mindmap.png" width=600 height=2400>
+  <img src="/images/14-e-commerce-tech-architecture-mindmap.png" width=700 height=1400>
 </p>
 
 ### 数据架构
@@ -45,7 +45,7 @@ categories:
 
 ### 商品信息包括哪些内容
 <p align="center">
-  <img src="/images/item-info.png" width=700 height=700>
+  <img src="/images/item-info.png" width=700 height=600>
 </p>
 
 ### 商品系统的演进
@@ -1430,7 +1430,7 @@ type StockCompensationMessage struct {
 
 ##### 支付流程
 <p align="center">
-  <img src="/images/order_pay.png" width=600 height=1200>
+  <img src="/images/order_pay.png" width=800 height=1800>
 </p>
 1. 支付校验。用户校验，订单状态校验等
 2. 营销活动扣减deduction、回滚rollback、补偿compensation.
@@ -1475,7 +1475,7 @@ P11: PAYMENT_TIMEOUT - 支付超时
 #### 履约
 ##### 履约核心流程
 <p align="center">
-  <img src="/images/order_fulfillment.png" width=500 height=1000>
+  <img src="/images/order_fulfillment.png" width=700 height=1500>
 </p>
 
 
@@ -1499,7 +1499,7 @@ P11: PAYMENT_TIMEOUT - 支付超时
 
 #### return & refund
 <p align="center">
-  <img src="/images/return-refund.png" width=500 height=1000>
+  <img src="/images/return-refund.png" width=700 height=2000>
 </p>
 
 ##### 主要流程
