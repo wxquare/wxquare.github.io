@@ -161,7 +161,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2025/05/12/system-design/1-e-commerce/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2025/05/01/system-design/1-e-commerce/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpeg">
@@ -179,7 +179,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2025/05/12/system-design/1-e-commerce/" class="post-title-link" itemprop="url">互联网业务系统 - 电商系统设计</a>
+          <a href="/2025/05/01/system-design/1-e-commerce/" class="post-title-link" itemprop="url">互联网业务系统 - 电商系统设计</a>
         </h2>
 
         <div class="post-meta-container">
@@ -189,9 +189,15 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">Posted on</span>
-      
 
-      <time title="Created: 2025-05-12 09:48:19 / Modified: 19:19:38" itemprop="dateCreated datePublished" datetime="2025-05-12T09:48:19+08:00">2025-05-12</time>
+      <time title="Created: 2025-05-01 00:00:00" itemprop="dateCreated datePublished" datetime="2025-05-01T00:00:00+08:00">2025-05-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-05-14 16:40:39" itemprop="dateModified" datetime="2025-05-14T16:40:39+08:00">2025-05-14</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -235,7 +241,50 @@
   <img src="/images/e-commerce-system.png" width=800 height=1300>
 </p>
 
-<h3 id="应用架构"><a href="#应用架构" class="headerlink" title="应用架构"></a>应用架构</h3><h3 id="技术架构"><a href="#技术架构" class="headerlink" title="技术架构"></a>技术架构</h3><h3 id="数据架构"><a href="#数据架构" class="headerlink" title="数据架构"></a>数据架构</h3><h2 id="商品管理-Product-Center"><a href="#商品管理-Product-Center" class="headerlink" title="商品管理 Product Center"></a>商品管理 Product Center</h2><h3 id="什么是SPU、SKU"><a href="#什么是SPU、SKU" class="headerlink" title="什么是SPU、SKU"></a>什么是SPU、SKU</h3><p>方案一：同时创建多个SKU，并同步生成关联的SPU。整体方案是直接创建SKU，并维护多个不同的属性；该方案适用于大多数C2C综合电商平台（例如，阿里巴巴就是采用这种方式创建商品）。<br>方案二：先创建SPU，再根据SPU创建SKU。整体方案是由平台的主数据团队负责维护SPU，商家（包括自营和POP）根据SPU维护SKU。在创建SKU时，首先选择SPU（SPU中的基本属性由数据团队维护），然后基于SPU维护销售属性和物流属性，最后生成SKU；该方案适用于高度专业化的垂直B2B行业，如汽车、医药等。<br>这两种方案的原因是：垂直B2B平台上的业务（传统行业、年长的商家）操作能力有限，维护产品属性的错误率远高于C2C平台，同时平台对产品结构控制的要求较高。为了避免同一产品被不同商家维护成多个不同的属性（例如，汽车轮胎的胎面宽度、尺寸等属性），平台通常选择专门的数据团队来维护产品的基本属性，即维护SPU。<br>此外，B2B垂直电商的品类较少，SKU数量相对较小，品类标准化程度高，平台统一维护的可行性较高。<br>对于拥有成千上万品类的综合电商平台，依靠平台数据团队的统一维护是不现实的，或者像服装这样非标准化的品类对商品结构化管理的要求较低。因此，综合平台（阿里巴巴和亚马逊）的设计方向与垂直平台有所不同。<br>实际上，即使对于综合平台，不同的品类也会有不同的设计方法。一些品类具有垂直深度，因此也采用平台维护SPU和商家创建SKU的方式</p>
+<h3 id="应用架构"><a href="#应用架构" class="headerlink" title="应用架构"></a>应用架构</h3><h3 id="技术架构"><a href="#技术架构" class="headerlink" title="技术架构"></a>技术架构</h3><h3 id="数据架构"><a href="#数据架构" class="headerlink" title="数据架构"></a>数据架构</h3><h2 id="商品管理-Product-Center"><a href="#商品管理-Product-Center" class="headerlink" title="商品管理 Product Center"></a>商品管理 Product Center</h2><h3 id="商品信息包括哪些内容"><a href="#商品信息包括哪些内容" class="headerlink" title="商品信息包括哪些内容"></a>商品信息包括哪些内容</h3><p align="center">
+  <img src="/images/item-info.png" width=700 height=700>
+</p>
+
+<h3 id="商品系统的演进"><a href="#商品系统的演进" class="headerlink" title="商品系统的演进"></a>商品系统的演进</h3><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>主要特征&#x2F;能力</th>
+<th>技术架构&#x2F;数据模型</th>
+<th>适用场景&#x2F;目标</th>
+<th>实现方式简单说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>初始阶段</td>
+<td>- 商品信息简单，字段少<br>- SKU&#x2F;SPU未严格区分<br>- 价格库存直接在商品表<br>- 仅支持基本的增删改查</td>
+<td>单表&#x2F;简单表结构</td>
+<td>小型电商、业务初期，SKU数量少</td>
+<td>单体应用，单表存储，简单业务逻辑，直接数据库操作</td>
+</tr>
+<tr>
+<td>成长阶段</td>
+<td>- 引入SPU&#x2F;SKU模型<br>- 属性、类目、品牌等实体独立<br>- 支持多规格商品<br>- 价格库存可拆分为独立表</td>
+<td>关系型数据库，ER模型优化</td>
+<td>SKU多样化，品类扩展，业务快速增长</td>
+<td>关系型数据库，ER模型优化，多表存储，业务逻辑复杂</td>
+</tr>
+<tr>
+<td>成熟阶段</td>
+<td>- 商品中台化，支持多业务线&#x2F;多渠道<br>- 属性体系灵活可扩展<br>- 多级类目、标签、图片、描述等丰富<br>- 商品快照、操作日志、版本控制</td>
+<td>中台架构，微服务&#x2F;多表&#x2F;NoSQL</td>
+<td>大型平台，业务复杂，需支撑多业务场景</td>
+<td>分布式服务，插件化&#x2F;配置化流程，状态机驱动，异步消息，灵活数据模型</td>
+</tr>
+<tr>
+<td>未来演进</td>
+<td>- 多语言多币种支持<br>- 商品内容多媒体化（视频、3D等）<br>- AI智能标签&#x2F;推荐<br>- 商品数据实时分析与洞察</td>
+<td>分布式&#x2F;云原生&#x2F;大数据平台</td>
+<td>国际化、智能化、数据驱动的电商生态</td>
+<td>云原生架构，AI&#x2F;大数据分析，自动化运维，弹性伸缩，智能路由与风控</td>
+</tr>
+</tbody></table>
+<h3 id="什么是SPU、SKU"><a href="#什么是SPU、SKU" class="headerlink" title="什么是SPU、SKU"></a>什么是SPU、SKU</h3><p>方案一：同时创建多个SKU，并同步生成关联的SPU。整体方案是直接创建SKU，并维护多个不同的属性；该方案适用于大多数C2C综合电商平台（例如，阿里巴巴就是采用这种方式创建商品）。<br>方案二：先创建SPU，再根据SPU创建SKU。整体方案是由平台的主数据团队负责维护SPU，商家（包括自营和POP）根据SPU维护SKU。在创建SKU时，首先选择SPU（SPU中的基本属性由数据团队维护），然后基于SPU维护销售属性和物流属性，最后生成SKU；该方案适用于高度专业化的垂直B2B行业，如汽车、医药等。<br>这两种方案的原因是：垂直B2B平台上的业务（传统行业、年长的商家）操作能力有限，维护产品属性的错误率远高于C2C平台，同时平台对产品结构控制的要求较高。为了避免同一产品被不同商家维护成多个不同的属性（例如，汽车轮胎的胎面宽度、尺寸等属性），平台通常选择专门的数据团队来维护产品的基本属性，即维护SPU。<br>此外，B2B垂直电商的品类较少，SKU数量相对较小，品类标准化程度高，平台统一维护的可行性较高。<br>对于拥有成千上万品类的综合电商平台，依靠平台数据团队的统一维护是不现实的，或者像服装这样非标准化的品类对商品结构化管理的要求较低。因此，综合平台（阿里巴巴和亚马逊）的设计方向与垂直平台有所不同。<br>实际上，即使对于综合平台，不同的品类也会有不同的设计方法。一些品类具有垂直深度，因此也采用平台维护SPU和商家创建SKU的方式</p>
 <h3 id="数据库模型"><a href="#数据库模型" class="headerlink" title="数据库模型"></a>数据库模型</h3><ul>
 <li>类目category</li>
 <li>品牌brand</li>
@@ -259,12 +308,6 @@
 <li>item_stat 单独存储统计信息，便于高并发下的读写优化。</li>
 <li>可以方便地增加标签（tag）、图片、描述、规格等字段，适应业务变化</li>
 </ul>
-<h4 id="后序扩展："><a href="#后序扩展：" class="headerlink" title="后序扩展："></a>后序扩展：</h4><ul>
-<li>images 字段为 JSON，建议单独建表管理图片，便于后续扩展（如视频、3D模型等）。</li>
-<li>价格、库存等字段仅在 sku&#x2F;item_state，若需支持价格历史、促销活动等，需额外设计。增加单独的库存表stock_tab和价格表 price_tab.</li>
-<li>多语言支持</li>
-<li>多币种支持</li>
-</ul>
 <h4 id="商品信息录入JSON示例"><a href="#商品信息录入JSON示例" class="headerlink" title="商品信息录入JSON示例"></a>商品信息录入JSON示例</h4><h5 id="实体商品"><a href="#实体商品" class="headerlink" title="实体商品"></a>实体商品</h5><details>
 <summary>1、实体商品男士T恤 JSON 数据</summary>
 <pre><code class="json">
@@ -279,8 +322,7 @@
 </code></pre>
 </details> 
 
-
-<h3 id="商品的价格和库存"><a href="#商品的价格和库存" class="headerlink" title="商品的价格和库存"></a>商品的价格和库存</h3><h4 id="方案1-价格和库存直接放在sku表中"><a href="#方案1-价格和库存直接放在sku表中" class="headerlink" title="方案1. 价格和库存直接放在sku表中"></a>方案1. 价格和库存直接放在sku表中</h4><p>在这种方案中，SKU（Stock Keeping Unit） 表包含商品的所有信息，包括价格和库存数量。每个 SKU 记录一个独立的商品实例，它有唯一的标识符，直接关联价格和库存。</p>
+<h4 id="商品的价格和库存"><a href="#商品的价格和库存" class="headerlink" title="商品的价格和库存"></a>商品的价格和库存</h4><h5 id="方案1-价格和库存直接放在sku表中-（变化小）"><a href="#方案1-价格和库存直接放在sku表中-（变化小）" class="headerlink" title="方案1. 价格和库存直接放在sku表中 （变化小）"></a>方案1. 价格和库存直接放在sku表中 （变化小）</h5><p>在这种方案中，SKU（Stock Keeping Unit） 表包含商品的所有信息，包括价格和库存数量。每个 SKU 记录一个独立的商品实例，它有唯一的标识符，直接关联价格和库存。</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> sku_tab (</span><br><span class="line">    sku_id <span class="type">INT</span> <span class="keyword">PRIMARY</span> KEY,             <span class="comment">-- SKU ID</span></span><br><span class="line">    product_id <span class="type">INT</span>,                     <span class="comment">-- 商品ID (外键，指向商品表)</span></span><br><span class="line">    sku_name <span class="type">VARCHAR</span>(<span class="number">255</span>),              <span class="comment">-- SKU 名称</span></span><br><span class="line">    original_price <span class="type">DECIMAL</span>(<span class="number">10</span>, <span class="number">2</span>),      <span class="comment">-- 原始价格</span></span><br><span class="line">    price <span class="type">DECIMAL</span>(<span class="number">10</span>, <span class="number">2</span>),               <span class="comment">-- 销售价格</span></span><br><span class="line">    discount_price <span class="type">DECIMAL</span>(<span class="number">10</span>, <span class="number">2</span>),      <span class="comment">-- 折扣价格（如果有）</span></span><br><span class="line">    stock_quantity <span class="type">INT</span>,                 <span class="comment">-- 库存数量</span></span><br><span class="line">    warehouse_id <span class="type">INT</span>,                   <span class="comment">-- 仓库ID（如果有多个仓库）</span></span><br><span class="line">    created_at <span class="type">TIMESTAMP</span>,               <span class="comment">-- 创建时间</span></span><br><span class="line">    updated_at <span class="type">TIMESTAMP</span>                <span class="comment">-- 更新时间</span></span><br><span class="line">);</span><br></pre></td></tr></table></figure>
 
 <p>优点：</p>
@@ -299,7 +341,7 @@
 <li>商品种类较少，SKU 数量相对固定且不复杂的场景。</li>
 <li>价格和库存变动较少，不涉及复杂的促销或动态定价的场景</li>
 </ul>
-<h4 id="方案2-价格和库存单独管理"><a href="#方案2-价格和库存单独管理" class="headerlink" title="方案2. 价格和库存单独管理"></a>方案2. 价格和库存单独管理</h4><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> price_tab (</span><br><span class="line">    price_id <span class="type">INT</span> <span class="keyword">PRIMARY</span> KEY,         <span class="comment">-- 价格ID</span></span><br><span class="line">    sku_id <span class="type">INT</span>,                       <span class="comment">-- SKU ID (外键)</span></span><br><span class="line">    price <span class="type">DECIMAL</span>(<span class="number">10</span>, <span class="number">2</span>),             <span class="comment">-- 商品价格</span></span><br><span class="line">    discount_price <span class="type">DECIMAL</span>(<span class="number">10</span>, <span class="number">2</span>),    <span class="comment">-- 折扣价格</span></span><br><span class="line">    effective_date <span class="type">TIMESTAMP</span>,         <span class="comment">-- 价格生效时间</span></span><br><span class="line">    expiry_date <span class="type">TIMESTAMP</span>,            <span class="comment">-- 价格失效时间</span></span><br><span class="line">    price_type <span class="type">VARCHAR</span>(<span class="number">50</span>),           <span class="comment">-- 价格类型（如标准价、促销价等）</span></span><br><span class="line">    <span class="keyword">FOREIGN</span> KEY (sku_id) <span class="keyword">REFERENCES</span> ProductSKUs(sku_id)</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> inventory_tab (</span><br><span class="line">    inventory_id <span class="type">INT</span> <span class="keyword">PRIMARY</span> KEY,     <span class="comment">-- 库存ID</span></span><br><span class="line">    sku_id <span class="type">INT</span>,                        <span class="comment">-- SKU ID (外键)</span></span><br><span class="line">    quantity <span class="type">INT</span>,                      <span class="comment">-- 库存数量</span></span><br><span class="line">    warehouse_id <span class="type">INT</span>,                  <span class="comment">-- 仓库ID（如果有多个仓库）</span></span><br><span class="line">    updated_at <span class="type">TIMESTAMP</span>,              <span class="comment">-- 库存更新时间</span></span><br><span class="line">    <span class="keyword">FOREIGN</span> KEY (sku_id) <span class="keyword">REFERENCES</span> ProductSKUs(sku_id)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<h5 id="方案2-价格和库存单独管理（变化大）"><a href="#方案2-价格和库存单独管理（变化大）" class="headerlink" title="方案2. 价格和库存单独管理（变化大）"></a>方案2. 价格和库存单独管理（变化大）</h5><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> price_tab (</span><br><span class="line">    price_id <span class="type">INT</span> <span class="keyword">PRIMARY</span> KEY,         <span class="comment">-- 价格ID</span></span><br><span class="line">    sku_id <span class="type">INT</span>,                       <span class="comment">-- SKU ID (外键)</span></span><br><span class="line">    price <span class="type">DECIMAL</span>(<span class="number">10</span>, <span class="number">2</span>),             <span class="comment">-- 商品价格</span></span><br><span class="line">    discount_price <span class="type">DECIMAL</span>(<span class="number">10</span>, <span class="number">2</span>),    <span class="comment">-- 折扣价格</span></span><br><span class="line">    effective_date <span class="type">TIMESTAMP</span>,         <span class="comment">-- 价格生效时间</span></span><br><span class="line">    expiry_date <span class="type">TIMESTAMP</span>,            <span class="comment">-- 价格失效时间</span></span><br><span class="line">    price_type <span class="type">VARCHAR</span>(<span class="number">50</span>),           <span class="comment">-- 价格类型（如标准价、促销价等）</span></span><br><span class="line">    <span class="keyword">FOREIGN</span> KEY (sku_id) <span class="keyword">REFERENCES</span> ProductSKUs(sku_id)</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> inventory_tab (</span><br><span class="line">    inventory_id <span class="type">INT</span> <span class="keyword">PRIMARY</span> KEY,     <span class="comment">-- 库存ID</span></span><br><span class="line">    sku_id <span class="type">INT</span>,                        <span class="comment">-- SKU ID (外键)</span></span><br><span class="line">    quantity <span class="type">INT</span>,                      <span class="comment">-- 库存数量</span></span><br><span class="line">    warehouse_id <span class="type">INT</span>,                  <span class="comment">-- 仓库ID（如果有多个仓库）</span></span><br><span class="line">    updated_at <span class="type">TIMESTAMP</span>,              <span class="comment">-- 库存更新时间</span></span><br><span class="line">    <span class="keyword">FOREIGN</span> KEY (sku_id) <span class="keyword">REFERENCES</span> ProductSKUs(sku_id)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
 <p>优点：</p>
 <ul>
 <li>灵活性高：价格和库存信息可以独立管理，更容易支持多样化的定价策略、促销活动、库存管理等。</li>
@@ -316,12 +358,18 @@
 <li>商品种类繁多，SKU 数量较大，且需要支持动态定价、促销、库存管理等复杂需求的场景。</li>
 <li>需要频繁变动价格或库存的商品，且这些信息与 SKU 无法紧密绑定的场景</li>
 </ul>
-<h3 id="商品的生命周期"><a href="#商品的生命周期" class="headerlink" title="商品的生命周期"></a>商品的生命周期</h3><ul>
-<li>商品的生命周期</li>
-<li>如何处理商品的上下架</li>
-<li>如何设计商品的审核流程？</li>
+<h4 id="商品快照-item-snapshots"><a href="#商品快照-item-snapshots" class="headerlink" title="商品快照 item_snapshots"></a>商品快照 item_snapshots</h4><ol>
+<li>商品编辑时生成快照:</li>
+</ol>
+<ul>
+<li>每次商品信息（如价格、描述、属性等）发生编辑时，生成一个新的商品快照。</li>
+<li>将快照信息存储在 item_snapshots 表中，并生成一个唯一的 snapshot_id。</li>
 </ul>
-<h3 id="缓存的使用"><a href="#缓存的使用" class="headerlink" title="缓存的使用"></a>缓存的使用</h3><h3 id="核心流程"><a href="#核心流程" class="headerlink" title="核心流程"></a>核心流程</h3><h4 id="B端：商品创建和发布的流程"><a href="#B端：商品创建和发布的流程" class="headerlink" title="B端：商品创建和发布的流程"></a>B端：商品创建和发布的流程</h4><ul>
+<ol start="2">
+<li>订单创建时使用快照:<br>在用户下单时，查找当前商品的最新 snapshot_id。<br>在 order_items 表中记录该 snapshot_id，以确保订单项反映下单时的商品状态<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> `snapshot_tab` (</span><br><span class="line">  `snapshot_id` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> AUTO_INCREMENT,</span><br><span class="line">  `snapshot_type` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>, </span><br><span class="line">  `create_time` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">&#x27;0&#x27;</span>,</span><br><span class="line">  `data` text <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  `entity_id` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">DEFAULT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  <span class="keyword">PRIMARY</span> KEY (`snapshot_id`),</span><br><span class="line">  KEY `idx_entity_id` (`entity_id`)</span><br><span class="line">) </span><br></pre></td></tr></table></figure></li>
+</ol>
+<h4 id="用户操作日志"><a href="#用户操作日志" class="headerlink" title="用户操作日志"></a>用户操作日志</h4><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> user_operation_logs (</span><br><span class="line">  log_id <span class="type">INT</span> <span class="keyword">PRIMARY</span> KEY AUTO_INCREMENT,  <span class="comment">-- Unique identifier for each log entry</span></span><br><span class="line">  user_id <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,                   <span class="comment">-- ID of the user who made the edit</span></span><br><span class="line">  entity_id <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,                 <span class="comment">-- ID of the entity being edited</span></span><br><span class="line">  entity_type <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,       <span class="comment">-- Type of entity (e.g., SPU, SKU, Price, Stock)</span></span><br><span class="line">  operation_type <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,    <span class="comment">-- Type of operation (e.g., CREATE, UPDATE, DELETE)</span></span><br><span class="line">  <span class="type">timestamp</span> <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span>,  <span class="comment">-- Time of the operation</span></span><br><span class="line">  details TEXT,                           <span class="comment">-- Additional details about the operation</span></span><br><span class="line">  <span class="keyword">FOREIGN</span> KEY (user_id) <span class="keyword">REFERENCES</span> users(id)  <span class="comment">-- Assuming a users table exists</span></span><br><span class="line">) ENGINE<span class="operator">=</span>InnoDB <span class="keyword">DEFAULT</span> CHARSET<span class="operator">=</span>utf8mb4;</span><br></pre></td></tr></table></figure>
+<h4 id="商品的统计信息"><a href="#商品的统计信息" class="headerlink" title="商品的统计信息"></a>商品的统计信息</h4><h3 id="缓存的使用"><a href="#缓存的使用" class="headerlink" title="缓存的使用"></a>缓存的使用</h3><h3 id="核心流程"><a href="#核心流程" class="headerlink" title="核心流程"></a>核心流程</h3><h4 id="B端：商品创建和发布的流程"><a href="#B端：商品创建和发布的流程" class="headerlink" title="B端：商品创建和发布的流程"></a>B端：商品创建和发布的流程</h4><ul>
 <li>批量上传、批量编辑</li>
 <li>单个上传、编辑</li>
 <li>审核、发布</li>
@@ -347,21 +395,7 @@
 </li>
 <li>获取商品详情</li>
 </ul>
-<h3 id="商品快照-item-snapshots"><a href="#商品快照-item-snapshots" class="headerlink" title="商品快照 item_snapshots"></a>商品快照 item_snapshots</h3><ol>
-<li>商品编辑时生成快照:</li>
-</ol>
-<ul>
-<li>每次商品信息（如价格、描述、属性等）发生编辑时，生成一个新的商品快照。</li>
-<li>将快照信息存储在 item_snapshots 表中，并生成一个唯一的 snapshot_id。</li>
-</ul>
-<ol start="2">
-<li>订单创建时使用快照:<br>在用户下单时，查找当前商品的最新 snapshot_id。<br>在 order_items 表中记录该 snapshot_id，以确保订单项反映下单时的商品状态</li>
-</ol>
-<p>(如何设计商品的版本控制？)<br>(商品的历史记录如何管理？)</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> `snapshot_tab` (</span><br><span class="line">  `snapshot_id` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> AUTO_INCREMENT,</span><br><span class="line">  `snapshot_type` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>, </span><br><span class="line">  `create_time` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="string">&#x27;0&#x27;</span>,</span><br><span class="line">  `data` text <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  `entity_id` <span class="type">int</span>(<span class="number">11</span>) <span class="keyword">DEFAULT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  <span class="keyword">PRIMARY</span> KEY (`snapshot_id`),</span><br><span class="line">  KEY `idx_entity_id` (`entity_id`)</span><br><span class="line">) </span><br></pre></td></tr></table></figure>
-
-<h3 id="用户操作日志"><a href="#用户操作日志" class="headerlink" title="用户操作日志"></a>用户操作日志</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> user_operation_logs (</span><br><span class="line">  log_id <span class="type">INT</span> <span class="keyword">PRIMARY</span> KEY AUTO_INCREMENT,  <span class="comment">-- Unique identifier for each log entry</span></span><br><span class="line">  user_id <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,                   <span class="comment">-- ID of the user who made the edit</span></span><br><span class="line">  entity_id <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,                 <span class="comment">-- ID of the entity being edited</span></span><br><span class="line">  entity_type <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,       <span class="comment">-- Type of entity (e.g., SPU, SKU, Price, Stock)</span></span><br><span class="line">  operation_type <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,    <span class="comment">-- Type of operation (e.g., CREATE, UPDATE, DELETE)</span></span><br><span class="line">  <span class="type">timestamp</span> <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span>,  <span class="comment">-- Time of the operation</span></span><br><span class="line">  details TEXT,                           <span class="comment">-- Additional details about the operation</span></span><br><span class="line">  <span class="keyword">FOREIGN</span> KEY (user_id) <span class="keyword">REFERENCES</span> users(id)  <span class="comment">-- Assuming a users table exists</span></span><br><span class="line">) ENGINE<span class="operator">=</span>InnoDB <span class="keyword">DEFAULT</span> CHARSET<span class="operator">=</span>utf8mb4;</span><br></pre></td></tr></table></figure>
-<h3 id="扩展，多语言多币种"><a href="#扩展，多语言多币种" class="headerlink" title="扩展，多语言多币种"></a>扩展，多语言多币种</h3><h3 id="扩展，物流"><a href="#扩展，物流" class="headerlink" title="扩展，物流"></a>扩展，物流</h3><h2 id="订单管理-Order-Center"><a href="#订单管理-Order-Center" class="headerlink" title="订单管理 Order Center"></a>订单管理 Order Center</h2><p><a href="https://www.woshipm.com/pd/753646.html">订单系统，平台的“生命中轴线”</a></p>
+<h2 id="订单管理-Order-Center"><a href="#订单管理-Order-Center" class="headerlink" title="订单管理 Order Center"></a>订单管理 Order Center</h2><p><a href="https://www.woshipm.com/pd/753646.html">订单系统，平台的”生命中轴线”</a></p>
 <h3 id="订单中需要包含哪些信息"><a href="#订单中需要包含哪些信息" class="headerlink" title="订单中需要包含哪些信息"></a>订单中需要包含哪些信息</h3><p align="center">
   <img src="/images/order_content.webp" width=800 height=500>
 </p>
@@ -376,6 +410,45 @@
 <li><p>O2O订单，外卖订单<br>典型场景：酒店预订<br>核心特征：<br>需选择入住&#x2F;离店日期、房型、入住人信息<br>需对接第三方酒店系统实时查房、锁房<br>取消、变更政策复杂，可能涉及违约金<br>无物流，但有电子凭证或入住确认</p>
 </li>
 </ol>
+<h3 id="订单系统的演进"><a href="#订单系统的演进" class="headerlink" title="订单系统的演进"></a>订单系统的演进</h3><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>主要特征&#x2F;能力</th>
+<th>技术架构&#x2F;数据模型</th>
+<th>适用场景&#x2F;目标</th>
+<th>实现方式简单说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>初始阶段</td>
+<td>- 实现订单基本流转（下单、支付、发货、收货、取消）<br>- 单一订单类型（实物订单）<br>- 订单与商品、用户简单关联</td>
+<td>单体应用&#x2F;单表或少量表结构</td>
+<td>业务初期，订单量小，流程简单，SKU&#x2F;商家数量有限</td>
+<td>单体应用，单表存储，简单业务逻辑，直接数据库操作</td>
+</tr>
+<tr>
+<td>成长阶段（订单中心）</td>
+<td>- 支持订单拆单、合单（如多仓发货、合并支付）<br>- 支持多品类订单（如实物+虚拟）<br>- 订单中心化，订单与支付、配送、售后等子系统解耦<br>- 订单与商品快照、操作日志关联</td>
+<td>微服务&#x2F;多表&#x2F;订单中心架构</td>
+<td>平台型电商，业务扩展，需支持多商家、多类型订单，订单量大幅增长</td>
+<td>订单中心服务，微服务拆分，多表关联，服务间接口调用，快照与日志表设计</td>
+</tr>
+<tr>
+<td>成熟期（平台化）</td>
+<td>- 支持多样化订单类型（预售、虚拟、O2O、定制、JIT等）<br>- 订单流程可配置&#x2F;插件化&#x2F;工作流引擎&#x2F;状态机框架&#x2F;规则引擎等<br>- 订单状态机、履约、支付、退款等子流程解耦<br>- 支持复杂的促销、分账、履约模式</td>
+<td>分布式&#x2F;服务化&#x2F;灵活数据模型</td>
+<td>大型&#x2F;综合电商，业务复杂，需快速适应新业务模式和高并发场景</td>
+<td>分布式服务，插件化&#x2F;配置化流程，状态机驱动，异步消息，灵活数据模型</td>
+</tr>
+<tr>
+<td>未来智能化</td>
+<td>- 订单智能路由与分配（如智能分仓、智能客服）<br>- 实时风控与反欺诈<br>- 订单数据实时分析与洞察<br>- 高可用、弹性伸缩、自动化运维</td>
+<td>云原生&#x2F;大数据&#x2F;AI驱动架构</td>
+<td>超大规模平台，国际化、智能化、数据驱动，需极致稳定与创新能力</td>
+<td>云原生架构，AI&#x2F;大数据分析，自动化运维，弹性伸缩，智能路由与风控</td>
+</tr>
+</tbody></table>
 <h3 id="常见的订单模型设计"><a href="#常见的订单模型设计" class="headerlink" title="常见的订单模型设计"></a>常见的订单模型设计</h3><p align="center">
   <img src="/images/order_er.png" width=800 height=600>
 </p>
@@ -596,27 +669,7 @@
 <li>支付退款失败：更新状态为 R11，发送失败事件</li>
 <li>支付退款成功：更新状态为 R10，发送成功事件</li>
 </ul>
-<h5 id="订单详情查询"><a href="#订单详情查询" class="headerlink" title="订单详情查询"></a>订单详情查询</h5><h3 id="订单系统的演进"><a href="#订单系统的演进" class="headerlink" title="订单系统的演进"></a>订单系统的演进</h3><ol>
-<li>订单第一阶段：实现订单流转</li>
-</ol>
-<ul>
-<li>完成订单的基本流程</li>
-</ul>
-<ol start="2">
-<li>订单第二阶段：平台化搭建</li>
-</ol>
-<ul>
-<li>支持拆单、合单逻辑（配送单、支付单等）</li>
-<li>支持跨平台交易单生成（即同一个大交易单内既有商家商品又有自营商品或者是多个商家的商品）</li>
-</ul>
-<ol start="3">
-<li>订单第三阶段：更多类型的订单模式</li>
-</ol>
-<ul>
-<li>预售单。 订单第三阶段：更多类型的订单模式</li>
-<li>JIT 销售驱动生产，根据订单进行生产配送。</li>
-</ul>
-<h2 id="系统挑战"><a href="#系统挑战" class="headerlink" title="系统挑战"></a>系统挑战</h2><h3 id="如何维护订单状态的最终一致性？"><a href="#如何维护订单状态的最终一致性？" class="headerlink" title="如何维护订单状态的最终一致性？"></a>如何维护订单状态的最终一致性？</h3><p align="center">
+<h5 id="订单详情查询"><a href="#订单详情查询" class="headerlink" title="订单详情查询"></a>订单详情查询</h5><h2 id="系统挑战和解决方案"><a href="#系统挑战和解决方案" class="headerlink" title="系统挑战和解决方案"></a>系统挑战和解决方案</h2><h3 id="如何维护订单状态的最终一致性？"><a href="#如何维护订单状态的最终一致性？" class="headerlink" title="如何维护订单状态的最终一致性？"></a>如何维护订单状态的最终一致性？</h3><p align="center">
   <img src="/images/order_final_consistency_activity.png" width=600 height=600>
 </p>
 
@@ -737,7 +790,7 @@
 <li>前后端联合存储</li>
 </ul>
 <h3 id="系统中的分布式ID是怎么生成的"><a href="#系统中的分布式ID是怎么生成的" class="headerlink" title="系统中的分布式ID是怎么生成的"></a>系统中的分布式ID是怎么生成的</h3><p>item ID 自增。（100w级别）<br>order id. 时间戳 + 机器ID + uid % 100 + sequence<br>DP唯一ID生成调研说明<br>request 生成方法：时间戳 + 机器mac地址 + sequence</p>
-<h3 id="电商系统稳定性建设"><a href="#电商系统稳定性建设" class="headerlink" title="电商系统稳定性建设"></a>电商系统稳定性建设</h3><h2 id="前言：怎样的系统算是稳定高可用的"><a href="#前言：怎样的系统算是稳定高可用的" class="headerlink" title="前言：怎样的系统算是稳定高可用的"></a>前言：怎样的系统算是稳定高可用的</h2><p>首先回答另一个问题，怎样的系统算是稳定的？</p>
+<h2 id="系统稳定性建设"><a href="#系统稳定性建设" class="headerlink" title="系统稳定性建设"></a>系统稳定性建设</h2><h3 id="前言：怎样的系统算是稳定高可用的"><a href="#前言：怎样的系统算是稳定高可用的" class="headerlink" title="前言：怎样的系统算是稳定高可用的"></a>前言：怎样的系统算是稳定高可用的</h3><p>首先回答另一个问题，怎样的系统算是稳定的？</p>
 <p>Google SRE中(SRE三部曲[1])有一个层级模型来描述系统可靠性基础和高层次需求(Dickerson’s Hierarchy of Service Reliability)，如下图：</p>
 <p align="center">
   <img src="/images/service-reliability-hierarchy.png" width=600 height=500>
@@ -754,7 +807,7 @@
 <li>容量规划(Capacity Planning)则是针对于这方面变化进行的保障策略。现有系统体量是否足够支撑新的流量需求，整体链路上是否存在不对等的薄弱节点，都是容量规划需要考虑的问题。</li>
 <li>位于金字塔模型最顶端的是产品设计(Product)与软件研发(Development)，即通过优秀的产品设计与软件设计使系统具备更高的可靠性，构建高可用产品架构体系，从而提升用户体验</li>
 </ul>
-<h2 id="系统稳定性建设概述"><a href="#系统稳定性建设概述" class="headerlink" title="系统稳定性建设概述"></a>系统稳定性建设概述</h2><p align="center">
+<h3 id="系统稳定性建设概述"><a href="#系统稳定性建设概述" class="headerlink" title="系统稳定性建设概述"></a>系统稳定性建设概述</h3><p align="center">
   <img src="/images/system-stability.png" width=800 height=800>
   <br/>
 </p>
@@ -779,8 +832,8 @@
 </p>
 
 
-<h2 id="高可用的架构设计"><a href="#高可用的架构设计" class="headerlink" title="高可用的架构设计"></a>高可用的架构设计</h2><h2 id="系统链路梳理和维护-System-Biz-Profiling"><a href="#系统链路梳理和维护-System-Biz-Profiling" class="headerlink" title="系统链路梳理和维护 System &amp; Biz Profiling"></a>系统链路梳理和维护 System &amp; Biz Profiling</h2><p>系统链路梳理是所有保障工作的基础，如同对整体应用系统进行一次全面体检，从流量入口开始，按照链路轨迹，逐级分层节点，得到系统全局画像与核心保障点。</p>
-<h3 id="入口梳理盘点"><a href="#入口梳理盘点" class="headerlink" title="入口梳理盘点"></a>入口梳理盘点</h3><p>一个系统往往存在十几个甚至更多流量入口，包含HTTP、RPC、消息等都多种来源。如果无法覆盖所有所有链路，可以从以下三类入口开始进行梳理：</p>
+<h3 id="高可用的架构设计"><a href="#高可用的架构设计" class="headerlink" title="高可用的架构设计"></a>高可用的架构设计</h3><h3 id="系统链路梳理和维护-System-Biz-Profiling"><a href="#系统链路梳理和维护-System-Biz-Profiling" class="headerlink" title="系统链路梳理和维护 System &amp; Biz Profiling"></a>系统链路梳理和维护 System &amp; Biz Profiling</h3><p>系统链路梳理是所有保障工作的基础，如同对整体应用系统进行一次全面体检，从流量入口开始，按照链路轨迹，逐级分层节点，得到系统全局画像与核心保障点。</p>
+<h4 id="入口梳理盘点"><a href="#入口梳理盘点" class="headerlink" title="入口梳理盘点"></a>入口梳理盘点</h4><p>一个系统往往存在十几个甚至更多流量入口，包含HTTP、RPC、消息等都多种来源。如果无法覆盖所有所有链路，可以从以下三类入口开始进行梳理：</p>
 <ul>
 <li>核心重保流量入口<ul>
 <li>用户承诺服务SLI较高，对数据准确性、服务响应时间、可靠度具有明确要求。</li>
@@ -798,7 +851,7 @@
 </ul>
 </li>
 </ul>
-<h3 id="节点分层判断"><a href="#节点分层判断" class="headerlink" title="节点分层判断"></a>节点分层判断</h3><p>对于复杂场景可以做节点分层判断</p>
+<h4 id="节点分层判断"><a href="#节点分层判断" class="headerlink" title="节点分层判断"></a>节点分层判断</h4><p>对于复杂场景可以做节点分层判断</p>
 <p>流量入口就如同线团中的线头，挑出线头后就可按照流量轨迹对链路上的节点(HSF\DB\Tair\HBase等一切外部依赖)按照依赖程度、可用性、可靠性进行初级分层区分。</p>
 <ol>
 <li>强弱依赖节点判断</li>
@@ -826,7 +879,7 @@
 <li>节点对应系统是否曾经出现高级别故障</li>
 <li>节点故障后存在资损风险</li>
 </ul>
-<h3 id="应产出数据"><a href="#应产出数据" class="headerlink" title="应产出数据"></a>应产出数据</h3><ul>
+<h4 id="应产出数据"><a href="#应产出数据" class="headerlink" title="应产出数据"></a>应产出数据</h4><ul>
 <li>识别核心接口（流程）调用拓扑图或者时序图（借用分布式链路追踪系统获得调用拓扑图）</li>
 <li>调用比</li>
 <li>识别资损风险</li>
@@ -1208,7 +1261,6 @@
 <li><a href="https://axureboutique.com/blogs/product-design/understanding-the-structure-of-e-commerce-products?srsltid=AfmBOorcMDfLRBbuCUYyKtkpkf5Vf8yQUjJSRKR0FzQSI2lvcvMmIK--">Understanding the Structure of E-Commerce Products</a></li>
 <li><a href="https://axureboutique.com/blogs/product-design/build-an-e-commerce-product-center-from-scratch">Build an E-Commerce Product Center from Scratch</a></li>
 </ul>
-<p> 1000336300005941988<br> 2746699375374033603</p>
 
       
     </div>
