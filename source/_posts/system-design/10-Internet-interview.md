@@ -2,7 +2,7 @@
 title: 一文记录计算机网络
 date: 2023-09-13
 categories: 
-- 计算机基础
+- 系统设计
 ---
 
 
@@ -325,6 +325,64 @@ REST 关注于暴露数据。它减少了客户端／服务端的耦合程度，
 <p align="center">
   <strong><a href="https://apihandyman.io/do-you-really-know-why-you-prefer-rest-over-rpc">资料来源：你真的知道你为什么更喜欢 REST 而不是 RPC 吗</a></strong>
 </p>
+
+## 网络通讯协议
+### OSI 七层网络模型
+<p align="center">
+  <img src="/images/5KeocQs.jpg",width=500 height=500>
+  <br/>
+  <strong><a href=http://www.escotal.com/osilayer.html>资料来源：OSI 7层模型</a></strong>
+</p>
+
+### 常用的应用层协议
+
+#### HTTP (Hypertext Transfer Protocol)
+用途：主要用于Web浏览器和服务器之间的通信，是万维网的数据传输基础。
+特点：无状态、请求-响应模式。
+版本：HTTP/1.1, HTTP/2, HTTP/3
+
+#### FTP (File Transfer Protocol)
+用途：用于在客户端和服务器之间传输文件。
+特点：支持文件上传和下载，支持匿名访问和身份验证。
+#### 邮件协议
+- SMTP (Simple Mail Transfer Protocol)
+用途：用于发送电子邮件。
+特点：主要用于邮件服务器之间的邮件传输。
+- POP3 (Post Office Protocol 3)
+用途：用于从邮件服务器下载邮件到本地客户端。
+特点：下载后邮件通常会从服务器删除。
+- IMAP (Internet Message Access Protocol)
+用途：用于从邮件服务器读取邮件。
+特点：支持在服务器上管理和存储邮件，客户端和服务器邮件同步
+#### WebSocket
+用途：提供全双工通信的协议，允许在客户端和服务器之间建立持久连接。
+特点：低延迟、实时通信、减少HTTP请求开销。
+[为什么需要websocket](https://www.bilibili.com/video/BV19N411474y/?spm_id_from=333.788&vd_source=04e82c25f6ff3d6a1a08a7f1c343987c)
+#### WebRTC (Web Real-Time Communication)
+用途：用于实现浏览器和移动应用之间的实时音视频通信和数据共享。
+特点：P2P通信、低延迟、高质量音视频传输。
+[webRTC](https://www.bilibili.com/video/BV1BU4y1B7oE/?spm_id_from=333.337.search-card.all.click&vd_source=04e82c25f6ff3d6a1a08a7f1c343987c)
+#### MQTT (Message Queuing Telemetry Transport)
+用途：轻量级的发布/订阅消息传输协议，常用于物联网（IoT）设备之间的通信。
+特点：低带宽、低能耗、可靠性高
+
+### 超文本传输协议
+<p align="center">
+  <img src="/images/http.png" width=600 height=150>
+</p>
+
+
+<p align="center">
+  <img src="/images/http_compare.png" width=600 height=300>
+</p>
+
+- [aws http 选择介绍](https://aws.amazon.com/cn/compare/the-difference-between-https-and-http/)
+- HTTPS 是基于 HTTP 的安全版本，通过使用 SSL 或 TLS 加密和身份验证通信。
+- HTTP/1.1 是 HTTP 的第一个主要版本，引入了持久连接、管道化请求等特性。
+- HTTP/2 是 HTTP 的第二个主要版本，使用二进制协议，引入了多路复用、头部压缩、服务器推送等特性。
+- HTTP/3 是 HTTP 的第三个主要版本，基于 QUIC 协议，使用 UDP，提供更快的传输速度和更好的性能
+
+
 
 ## 其它
 1. https://blog.csdn.net/justloveyou_/article/details/78303617

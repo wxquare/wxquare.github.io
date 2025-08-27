@@ -1,5 +1,5 @@
 ---
-title: 互联网系统设计 - 概述
+title: 互联网系统设计 - 概述和技术方案写作
 date: 2024-01-01
 categories: 
 - 系统设计
@@ -26,7 +26,6 @@ categories:
   <img src="/images/what-tech-design-contain.png" width=600 height=400>
   <br/>
 </p>
-
 
 1. 背景：
    - 解决的问题：明确要解决的技术问题和产品问题的具体描述。
@@ -81,8 +80,7 @@ categories:
     - 修改和改进建议：记录评审过程中提出的修改和改进建议，并记录其处理状态。
 
 
-### 如何评估技术设计的质量
-
+### 如何评估技术方案的质量
 <p align="center">
   <img src="/images/what-tech-design-contain.png" width=600 height=400>
   <br/>
@@ -116,45 +114,6 @@ categories:
 - 可测试性
 #### 用户体验（User Experience）
 - 系统提供友好的用户界面和良好的用户交互，以提高用户满意度和使用效率
-
-
-### 如何量化系统指标(SLA指标)
-#### reliable
-<p align="center">
-  <img src="/images/MTPF.png" width=600 height=300>
-  <br/>
-</p>
-
-#### available
-<p align="center">
-  <img src="/images/available-metric.png" width=600 height=300>
-  <br/>
-</p>
-
-#### efficiency
-##### latency and throughput
-#### manageability
-<p align="center">
-  <img src="/images/manageability.png" width=600 height=300>
-  <br/>
-</p>
-
-
-
-
-
-### 系统设计的权衡(top15 trade-off)
-性能与可扩展性的权衡：提高性能可能需要牺牲一部分可扩展性，因为某些优化可能会引入复杂性或限制系统的扩展性。
-可维护性与性能的权衡：某些优化措施可能会降低代码的可读性和可维护性，因此需要在维护性和性能之间进行权衡。
-时间与成本的权衡：系统设计需要考虑开发时间和成本，以确保在给定资源限制下实现最佳的设计方案
-安全性与用户体验的权衡：强大的安全措施可能会增加用户的身份验证和授权过程，从而影响用户体验。
-[架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
-[架构-trade-off（架构权衡](https://juejin.cn/post/7248914499915235389)
-https://haomo-tech.com/project-docs/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/assets/%E7%B3%BB%E7%BB%9F%E4%B8%9A%E5%8A%A1%E6%9E%B6%E6%9E%84%E5%9B%BE.omnigraffle
-[架构-trade-off（架构权衡](https://juejin.cn/post/7248914499915235389)
-[架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
-[系统架构](https://book.douban.com/subject/26938710/)
-
 
 ### 技术方案模板
 ** 附录：设计文档模板 **
@@ -195,8 +154,6 @@ https://haomo-tech.com/project-docs/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E8%AE%B
 - 高可靠性 如果可能，解释是基于哪些方面的考虑将之作为非目标。如：
 - 可维护性： 本服务只是过渡方案，预计寿命三个月，待 XX 上线运行后即可下线
 设计不是试图达到完美，而是试图达到平衡。 显式地声明哪些是目标，哪些是非目标，有助于帮助读者理解下文中设
-
-
 
 #### 总体设计
 
@@ -290,11 +247,43 @@ SLA 目标是什么？ 如果监控？如何保证？
 #### 遗留的问题、未来计划
 未来可能的计划会方便读者更好地理解该设计以及其定位。
 
-
 [技术方案设计的规范与模板](https://juejin.cn/post/7294443057835425855)
 
 
 ## 技术设计基础
+### 如何量化系统指标(SLA指标)
+#### reliable
+<p align="center">
+  <img src="/images/MTPF.png" width=600 height=300>
+  <br/>
+</p>
+
+#### available
+<p align="center">
+  <img src="/images/available-metric.png" width=600 height=300>
+  <br/>
+</p>
+
+#### efficiency
+##### latency and throughput
+#### manageability
+<p align="center">
+  <img src="/images/manageability.png" width=600 height=300>
+  <br/>
+</p>
+
+### 系统设计的权衡(top15 trade-off)
+性能与可扩展性的权衡：提高性能可能需要牺牲一部分可扩展性，因为某些优化可能会引入复杂性或限制系统的扩展性。
+可维护性与性能的权衡：某些优化措施可能会降低代码的可读性和可维护性，因此需要在维护性和性能之间进行权衡。
+时间与成本的权衡：系统设计需要考虑开发时间和成本，以确保在给定资源限制下实现最佳的设计方案
+安全性与用户体验的权衡：强大的安全措施可能会增加用户的身份验证和授权过程，从而影响用户体验。
+[架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
+[架构-trade-off（架构权衡](https://juejin.cn/post/7248914499915235389)
+https://haomo-tech.com/project-docs/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/assets/%E7%B3%BB%E7%BB%9F%E4%B8%9A%E5%8A%A1%E6%9E%B6%E6%9E%84%E5%9B%BE.omnigraffle
+[架构-trade-off（架构权衡](https://juejin.cn/post/7248914499915235389)
+[架构权衡评估方法（ATAM）：如何评估一个系统的质量](https://juejin.cn/post/7027701112077549605)
+[系统架构](https://book.douban.com/subject/26938710/)
+
 ### 面向对象系统设计的原则
 单一职责原则（SRP）：每个组件或模块应该具有单一的责任，降低耦合度，提高可维护性。
 开闭原则（OCP）：系统应对扩展开放，对修改关闭，通过接口和抽象来实现。
@@ -443,7 +432,7 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 - Peer-to-Peer (P2P) Architecture: lnkd.in/di32HDu3
 
 
-## 整体设计 
+## 整体架构设计 
 ### 软件架构模式（patterns）
 #### Application Landscape Patterns
 - Monolith （单体架构）
@@ -506,7 +495,7 @@ Send packet CA->Netherlands->CA    150,000,000   ns  150,000 us  150 ms
 
 
 
-## 微服务架构
+### 微服务架构
 ### 单体服务、微服务、Service Mesh
 <p align="center">
   <img src="/images/rpc_to_service_mesh.png" width=600 height=350>
@@ -575,65 +564,7 @@ RPC 是一个“请求-响应”协议：
 * **服务端 stub 程序** ── 将结果解包，依据过程 id 调用服务端方法并将参数传递过去。
 
 
-## 网络通讯协议
-### OSI 七层网络模型
-<p align="center">
-  <img src="/images/5KeocQs.jpg",width=500 height=500>
-  <br/>
-  <strong><a href=http://www.escotal.com/osilayer.html>资料来源：OSI 7层模型</a></strong>
-</p>
-
-### 常用的应用层协议
-
-#### HTTP (Hypertext Transfer Protocol)
-用途：主要用于Web浏览器和服务器之间的通信，是万维网的数据传输基础。
-特点：无状态、请求-响应模式。
-版本：HTTP/1.1, HTTP/2, HTTP/3
-
-#### FTP (File Transfer Protocol)
-用途：用于在客户端和服务器之间传输文件。
-特点：支持文件上传和下载，支持匿名访问和身份验证。
-#### 邮件协议
-- SMTP (Simple Mail Transfer Protocol)
-用途：用于发送电子邮件。
-特点：主要用于邮件服务器之间的邮件传输。
-- POP3 (Post Office Protocol 3)
-用途：用于从邮件服务器下载邮件到本地客户端。
-特点：下载后邮件通常会从服务器删除。
-- IMAP (Internet Message Access Protocol)
-用途：用于从邮件服务器读取邮件。
-特点：支持在服务器上管理和存储邮件，客户端和服务器邮件同步
-#### WebSocket
-用途：提供全双工通信的协议，允许在客户端和服务器之间建立持久连接。
-特点：低延迟、实时通信、减少HTTP请求开销。
-[为什么需要websocket](https://www.bilibili.com/video/BV19N411474y/?spm_id_from=333.788&vd_source=04e82c25f6ff3d6a1a08a7f1c343987c)
-#### WebRTC (Web Real-Time Communication)
-用途：用于实现浏览器和移动应用之间的实时音视频通信和数据共享。
-特点：P2P通信、低延迟、高质量音视频传输。
-[webRTC](https://www.bilibili.com/video/BV1BU4y1B7oE/?spm_id_from=333.337.search-card.all.click&vd_source=04e82c25f6ff3d6a1a08a7f1c343987c)
-#### MQTT (Message Queuing Telemetry Transport)
-用途：轻量级的发布/订阅消息传输协议，常用于物联网（IoT）设备之间的通信。
-特点：低带宽、低能耗、可靠性高
-
-### 超文本传输协议
-<p align="center">
-  <img src="/images/http.png" width=600 height=150>
-</p>
-
-
-<p align="center">
-  <img src="/images/http_compare.png" width=600 height=300>
-</p>
-
-- [aws http 选择介绍](https://aws.amazon.com/cn/compare/the-difference-between-https-and-http/)
-- HTTPS 是基于 HTTP 的安全版本，通过使用 SSL 或 TLS 加密和身份验证通信。
-- HTTP/1.1 是 HTTP 的第一个主要版本，引入了持久连接、管道化请求等特性。
-- HTTP/2 是 HTTP 的第二个主要版本，使用二进制协议，引入了多路复用、头部压缩、服务器推送等特性。
-- HTTP/3 是 HTTP 的第三个主要版本，基于 QUIC 协议，使用 UDP，提供更快的传输速度和更好的性能
-
-
-
-## 域名/代理/负载均衡
+## 接入层设计：域名/代理/负载均衡
 ### 域名系统
 #### Amazon Route 53域名系统
 <p align="center">
@@ -669,14 +600,20 @@ RPC 是一个“请求-响应”协议：
 * [DNS Technical Reference](https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2008-r2-and-2008/dd197461(v=ws.10))
 
 
-### 代理+负载均衡器
+#### 代理+负载均衡器
 #### 正向forward proxy
 #### 反向reverse proxy
 <p align="center">
   <img src="/images/proxy_server.png" width=800 height=500>
   <br/>
 </p>
+
 #### 负载均衡器和反向代理
+
+<p align="center">
+  <img src="/images/lvs-ngnix-load-balancer.png" width=800 height=800>
+</p>
+
 <p align="center">
   <img src="/images/load_balancer.png" width=800 height=400>
   <br/>
@@ -778,7 +715,7 @@ RPC 是一个“请求-响应”协议：
 - [ELB 监听器配置](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-listener-config.html)
 
 
-## 应用层web网关
+## 应用层web网关设计
 <p align="center">
   <img src="/images/meituan_gateway.png" width=600 height=400>
   <br/>
@@ -797,7 +734,7 @@ RPC 是一个“请求-响应”协议：
 - [百亿规模API网关服务Shepherd的设计与实现](https://tech.meituan.com/2021/05/20/shepherd-api-gateway.html)
 - [grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway)
 
-## API 设计规范和管理
+### API 设计规范和管理
 ### API 架构风格
 - RESTful API
 - GraphQL 
@@ -1145,7 +1082,7 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 - 缓存的更新模式
 
 
-## 异步与队列
+### 异步与队列
 <p align="center">
   <img src="/images/54GYsSx.png" width=500 height=150>
   <br/>
@@ -1216,13 +1153,44 @@ Google 发布了第一个列型存储数据库 [Bigtable](http://www.read.seas.h
 
 ## 框架和引擎
 ### 工作流引擎与任务编排
-https://github.com/s8sg/goflow
-https://github.com/go-workflow/go-workflow
+
+#### goflow
+- **技术原理**：goflow 是基于数据流编程模型的工作流引擎，采用有向无环图（DAG）描述任务节点之间的依赖关系。每个节点可独立执行，节点间通过通道（channel）传递数据，充分利用 Go 的并发特性（goroutine、channel）实现高效的任务编排和并行处理。
+- **使用场景**：适用于需要复杂任务编排、数据流转、并发处理的场景，如数据处理流水线、ETL、自动化运维流程等。适合对任务依赖关系有明确建模需求的系统。
+
+参考：[goflow GitHub](https://github.com/s8sg/goflow)
+
+#### go-workflow
+- **技术原理**：go-workflow 是一款轻量级的工作流引擎，支持任务的定义、调度、状态管理和持久化。通过状态机管理任务流转，支持任务重试、超时、失败回调等机制。底层可集成多种存储后端（如 MySQL、Redis）以保证任务可靠性和可恢复性。
+- **使用场景**：适合需要可靠任务编排、长流程管理、任务状态追踪的业务，如订单处理、审批流、异步任务调度等。适用于对任务持久化和容错有较高要求的系统。
+
+参考：[go-workflow GitHub](https://github.com/go-workflow/go-workflow)
+
+---
+
 ### 规则引擎与风控、资损、校验
-https://github.com/bilibili/gengine
+
+#### gengine
+- **技术原理**：gengine 是一款高性能、轻量级的 Go 规则引擎，采用自定义 DSL（领域特定语言）编写规则，支持动态加载和热更新。底层通过 AST（抽象语法树）解析和高效的规则匹配算法，实现复杂业务规则的快速执行。支持规则优先级、条件判断、动作执行等特性。
+- **使用场景**：广泛应用于风控决策、资损防控、数据校验、营销策略等需要灵活配置和频繁变更规则的场景。适合对规则实时性和可维护性有较高要求的金融、电商等行业。
+
+参考：[gengine GitHub](https://github.com/bilibili/gengine)
+
+---
+
 ### 脚本执行引擎与低代码平台
-https://github.com/d5/tengo
-https://github.com/mattn/anko
+
+#### tengo
+- **技术原理**：tengo 是一个用 Go 实现的嵌入式脚本语言，语法类似 JavaScript。支持类型安全、垃圾回收、闭包、模块化等特性。可将业务逻辑以脚本形式动态加载和执行，便于扩展和热更新。适合嵌入到 Go 应用中作为业务自定义脚本引擎。
+- **使用场景**：适用于低代码平台、动态业务规则、用户自定义脚本、插件系统等场景。可用于实现灵活的业务扩展和快速迭代。
+
+参考：[tengo GitHub](https://github.com/d5/tengo)
+
+#### anko
+- **技术原理**：anko 是一个简洁的 Go 脚本解释器，支持基本的脚本语法、变量、函数、流程控制等。可与 Go 代码无缝集成，支持在运行时动态执行脚本。适合对脚本功能要求不高但需要快速集成的场景。
+- **使用场景**：适合低代码平台、配置驱动、动态表达式计算、简单自动化脚本等。适用于对性能和安全性有一定要求但业务逻辑相对简单的系统。
+
+参考：[anko GitHub](https://github.com/mattn/anko)
 
 
 ## 好用的规范和工具
@@ -1309,114 +1277,6 @@ https://github.com/mattn/anko
 - 指标监控：Prometheus、Grafana、cat
 - 分布式追踪：分布式追踪工具包括 Jaeger + opentracing
 - 日志组件：https://github.com/uber-go/zap
-
-
-
----
-title: 互联网系统设计 - 代理、负载均衡和高可用性网关
-date: 2024-02-02
-categories:
-- 系统设计
----
-
-
-## 代理
-### 正常代理
-正向代理是指对客户端提供的代理服务，在客户端无法直接访问服务端的情况下，通过配置代理服务器的方式访问服务端。
-在整个过程中，客户端请求首先发送到代理服务器，代理服务器再将请求发送到服务端后将结果返回给客户端。从服务端角度来看，认为代理服务器才客户端，因此正向代理即代理客户端与服务端进行交互。比如生活中我们通过代购去购买海外商品，代购就是我们的正向代理。
-- 提供网络通道：解决客户端由于防火墙或网络限制无法访问服务端的问题，如访问google等国外网站。
-- 隐藏客户端身份：服务端只感知代理服务器，无法获取真实客户端，如黑客控制肉鸡
-### 反向代理
-反向代理是指对服务端提供的代理服务，通常出于安全考虑，真正的服务端只有内网网络，无法直接提供对外服务，为此需要设置反向代理服务器，由代理服务器接收外网请求，然后再转发到内部服务器。从客户端角度看，代理服务器是提供服务的服务端，因此反向代理即代理服务端与客户端交互
-- 提供对外服务：代理服务器暴露公网地址，接收请求并转发到内网服务器。
-- 负载均衡：根据预设策略将请求分发到多台服务器
-
-### 区别
-- 正向代理代理客户端，服务端认为请求来自代理服务器；反向代理代理服务端，客户端认为提供服务的是代理服务器
-- 正向代理通常解决访问限制的问题，反向代理通常解决对外服务和负载均衡的问题
-
-## 负载均衡和高可用性网关
-### 负载均衡方案
-- 基于DNS的负载均衡
-在DNS服务器中，可以为多个不同的地址配置相同的名字，最终查询这个名字的客户机将在解析这个名字时得到其中一个地址，所以这种代理方式是通过DNS服务中的随机名字解析域名和IP来实现负载均衡。
-
-- 基于NAT的负载均衡（四层）
-该技术通过一个地址转换网关将每个客户端连接转换为不同的内部服务器地址，因此客户端就各自与自己转换得到的地址上的服务器进行通信，从而达到负载均衡的目的，如LVS和Nginx的四层配置形式
-
-- 反向代理负载均衡（7层）
-通常的反向代理技术，支持为同一服务配置多个后端服务器地址，以及设定相应的轮询策略。请求到达反向代理服务器后，代理通过既定的轮询策略转发请求到具体服务器，实现负载均衡，如Nginx的七层配置形式。
-
-<p align="center">
-  <img src="/images/load_balancer_architecture.jpeg" width=600 height=700>
-  <br/>
-</p>
-
-### 网络负载均衡器（L4,lvs）
-- CIP：客户端ip地址
-- VIP：lvs服务器对外发布的ip地址，用户通过vip访问集群
-- DIP：LVS连内网的ip地址叫DIP，用于接收用户请求的ip叫做VIP
-- RS：提供服务的服务器
-用户访问流程：
-  客户端通过 CIP--->VIP--->DIP---->RIP
-- https://www.cnblogs.com/heyongshen/p/16827111.html
-
-四层负载常用软件有：
-- LVS（常用，稳定性最好）
-- Nginx（需要额外编译stream模块）
-- HaProxy
-
-### 七层负载均衡器和反向代理
-
-负载均衡器将传入的请求分发到应用服务器和数据库等计算资源。无论哪种情况，负载均衡器将从计算资源来的响应返回给恰当的客户端。负载均衡器的效用在于:
-
-* 防止请求进入不好的服务器
-* 防止资源过载
-* 帮助消除单一的故障点
-* **SSL 终结** ─ 解密传入的请求并加密服务器响应，这样的话后端服务器就不必再执行这些潜在高消耗运算了。
-* 不需要再每台服务器上安装 [X.509 证书](https://en.wikipedia.org/wiki/X.509)。
-* **Session 留存** ─ 如果 Web 应用程序不追踪会话，发出 cookie 并将特定客户端的请求路由到同一实例。
-* 通常会设置采用[工作─备用](#工作到备用切换active-passive) 或 [双工作](#双工作切换active-active) 模式的多个负载均衡器，以免发生故障。
-负载均衡器能基于多种方式来路由流量:
-* 随机
-* 最少负载
-* Session/cookie
-* [轮询调度或加权轮询调度算法](http://g33kinfo.com/info/archives/2657)
-* [四层负载均衡](#四层负载均衡)
-* [七层负载均衡](#七层负载均衡)
-
-七层负载常用软件有：
-- Nginx
-- haproxy
-
-## 负载均衡和高可用的区别
-“Load Balancing”（负载均衡）和“High Availability”（高可用性）是两个重要的概念，它们在系统设计和架构中有不同的侧重点。以下是它们的主要区别：
-### 负载均衡（Load Balancing）
-1. **定义**: 负载均衡是将流量或请求分配到多个服务器或资源上的技术，以确保没有单个服务器过载，从而提高性能和响应速度。主要目的是优化资源使用，减少响应时间，提高吞吐量。通过分散负载，系统可以处理更多的请求。
-2. **实现方式**: 负载均衡可以通过硬件负载均衡器或软件负载均衡器（如 Nginx、HAProxy 等）来实现。它可以根据多种策略进行流量分配，如轮询、最少连接、加权等。
-3. **场景**: 常用于需要处理大量并发请求的应用，如网站、API 服务等。
-### 高可用性（High Availability）
-1. **定义**: 高可用性是指系统在一定时间内保持正常运行和可用的能力，通常通过冗余和故障转移机制来实现。主要目的是确保系统在硬件故障、软件故障或其他问题发生时仍能继续服务，降低停机时间。
-2. **实现方式**: 高可用性通常通过冗余（如多个服务器、数据中心等）、故障检测和自动切换等机制来实现。常见的高可用性解决方案包括集群、主从复制等。
-3. **场景**: 适用于对可用性要求极高的应用，如金融服务、医疗系统等。
-### 总结
-- **负载均衡** 关注的是如何有效分配流量和资源，以提高性能。
-- **高可用性** 关注的是如何确保系统在故障时仍能保持运行。
-
-这两者可以结合使用，负载均衡可以在高可用性架构中发挥重要作用，确保在多个冗余实例之间分配请求，从而提高整体的可用性和性能。
-
-## 来源及延伸阅读
-- [反向代理与负载均衡](https://www.nginx.com/resources/glossary/reverse-proxy-vs-load-balancer/)
-- [NGINX 架构](https://www.nginx.com/blog/inside-nginx-how-we-designed-for-performance-scale/)
-- [HAProxy 架构指南](http://www.haproxy.org/download/1.2/doc/architecture.txt)
-- [Wikipedia](https://en.wikipedia.org/wiki/Reverse_proxy)
-- [NGINX 架构](https://www.nginx.com/blog/inside-nginx-how-we-designed-for-performance-scale/)
-- [HAProxy 架构指南](http://www.haproxy.org/download/1.2/doc/architecture.txt)
-- [可扩展性](http://www.lecloud.net/post/7295452622/scalability-for-dummies-part-1-clones)
-- [Wikipedia](https://en.wikipedia.org/wiki/Load_balancing_(computing))
-- [四层负载平衡](https://www.nginx.com/resources/glossary/layer-4-load-balancing/)
-- [七层负载平衡](https://www.nginx.com/resources/glossary/layer-7-load-balancing/)
-- [ELB 监听器配置](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-listener-config.html)
-
 
 
 ### 应该知道的安全问题

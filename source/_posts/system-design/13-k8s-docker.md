@@ -2,7 +2,7 @@
 title: 一文记录 k8s 与 docker
 date: 2023-12-20
 categories: 
-- 计算机基础
+- 系统设计
 ---
 
 # k8s 网络

@@ -2,7 +2,7 @@
 title: 一文记录Python实践
 date: 2023-10-20
 categories:
-- 计算机基础
+- 系统设计
 ---
 
 Python程序为什么慢？
