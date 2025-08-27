@@ -1,0 +1,98 @@
+@startuml
+' 定义实体
+entity "brand" as Brand {
+  *id : BIGINT <<PK>>
+  name : VARCHAR
+  logo : VARCHAR
+  first_letter : CHAR
+  sort : INT
+  description : TEXT
+  create_time : DATETIME
+  update_time : DATETIME
+}
+
+entity "category" as Category {
+  *id : BIGINT <<PK>>
+  name : VARCHAR
+  parent_id : BIGINT
+  level : INT
+  sort : INT
+  is_show : TINYINT
+  create_time : DATETIME
+  update_time : DATETIME
+}
+
+entity "attribute" as Attribute {
+  *id : BIGINT <<PK>>
+  name : VARCHAR
+  type : TINYINT
+  input_type : TINYINT
+  value_options : TEXT
+  unit : VARCHAR
+  searchable : TINYINT
+  create_time : DATETIME
+}
+
+entity "category_attribute" as CategoryAttribute {
+  *id : BIGINT <<PK>>
+  category_id : BIGINT
+  attribute_id : BIGINT
+  is_required : TINYINT
+  sort : INT
+}
+
+entity "item (SPU)" as Item {
+  *id : BIGINT <<PK>>
+  name : VARCHAR
+  category_id : BIGINT
+  brand_id : BIGINT
+  description : TEXT
+  images : JSON
+  specs : JSON
+  status : TINYINT
+  create_time : DATETIME
+  update_time : DATETIME
+}
+
+entity "sku" as SKU {
+  *id : BIGINT <<PK>>
+  item_id : BIGINT
+  title : VARCHAR
+  price : DECIMAL
+  stock : INT
+  sales : INT
+  specs : JSON
+  image : VARCHAR
+  create_time : DATETIME
+  update_time : DATETIME
+}
+
+entity "item_stat" as ItemStat {
+  *item_id : BIGINT <<PK>>
+  min_price : DECIMAL
+  max_price : DECIMAL
+  total_stock : INT
+  total_sales : INT
+  default_sku_id : BIGINT
+  update_time : DATETIME
+}
+
+entity "spu_attr_value" as SPUAttrValue {
+  *id : BIGINT <<PK>>
+  item_id : BIGINT
+  attribute_id : BIGINT
+  value : VARCHAR
+  create_time : DATETIME
+}
+
+' 关系
+Brand ||--o{ Item : "1:N"
+Category ||--o{ Item : "1:N"
+Category ||--o{ Category : "parent"
+Category ||--o{ CategoryAttribute : "1:N"
+Attribute ||--o{ CategoryAttribute : "1:N"
+Item ||--o{ SKU : "1:N"
+Item ||--|| ItemStat : "1:1"
+Item ||--o{ SPUAttrValue : "1:N"
+Attribute ||--o{ SPUAttrValue : "1:N"
+@enduml

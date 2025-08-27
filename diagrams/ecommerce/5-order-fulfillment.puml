@@ -1,0 +1,116 @@
+@startuml
+
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam defaultFontName "Microsoft YaHei"
+skinparam handwritten false
+skinparam shadowing false
+skinparam roundcorner 10
+
+' 全局样式
+skinparam {
+    ParticipantPadding 20
+    BoxPadding 10
+    DefaultFontSize 12
+    DefaultTextAlignment center
+    
+    SequenceGroupBorderColor #2C3E50
+    SequenceGroupBodyBackgroundColor #F8F9FA
+    
+    ParticipantBackgroundColor #E8F4F9
+    ParticipantBorderColor #4C9BC7
+    ParticipantFontColor #2C3E50
+    
+    DatabaseBackgroundColor #F4F6F6
+    DatabaseBorderColor #95A5A6
+    
+    QueueBackgroundColor #FCF3CF
+    QueueBorderColor #F1C40F
+    
+    ArrowColor #2C3E50
+    LifeLineBorderColor #95A5A6
+    
+    NoteBackgroundColor #FFF8DC
+    NoteBorderColor #D4AC0D
+}
+
+title <size:18>订单履约流程</size>
+
+legend top
+|= 状态 |= 说明 |
+|<#ECF0F1,#2C3E50>| **订单状态说明** |
+| O0: CREATED | 订单创建 |
+| O1: PAYMENT_SUCCESS | 支付成功 |
+| O2: FULFILLED_SUCCESS | 发货成功 |
+| O3: REFUND_SUCCESS | 退款成功 |
+| O4: CANCELLED | 订单取消（用户主动取消/超时未支付/支付失败）|
+| O5: COMPLETED | 订单完成 |
+|<#ECF0F1,#2C3E50>| **履约状态说明** |
+| F0: FULFILLMENT_NOT_STARTED | 未开始 |
+| F1: FULFILLMENT_PENDING | 履约开始 |
+| F2: FULFILLMENT_PROCESSING | 履约处理中 |
+| F3: FULFILLMENT_FAILED | 履约失败 |
+| F4: FULFILLMENT_SUCCESS | 履约成功 |
+| F5: FULFILLMENT_CANCELLED | 履约取消 |
+end legend
+
+participant "OrderSystem" as OS #E8F4F9
+database "OrderDB" as OrderDB #F4F6F6
+queue "OrderBus" as OrderBus #FCF3CF
+participant "FulfillmentSystem" as FS #E8F4F9
+
+== 发货初始化阶段 ==
+activate OS
+
+OS <- OrderBus: **1.** 订阅支付成功事件O2
+OS -> OrderDB: **2.** 获取订单信息
+activate OrderDB
+OrderDB --> OS: 返回订单信息
+deactivate OrderDB
+
+OS -> OS: **3.** 校验订单是否可以发货
+
+alt 订单不存在
+    OS -> OS: 记录错误: 订单不存在
+else 订单不可发货
+    OS -> OS: 记录错误: 订单状态不允许发货
+else 订单可发货
+    OS -> OrderDB: **4.** 更新订单状态为F1(履约开始)
+    activate OrderDB
+    OrderDB --> OS
+    deactivate OrderDB
+
+    OS -> FS: **5.** 请求履约服务初始化 (fulfillment/init)
+    activate FS
+    
+    alt 初始化成功
+        FS --> OS: 返回初始化成功
+        OS -> OrderDB: 更新订单状态为F2(履约处理中)
+    else 初始化失败
+        FS --> OS: 返回初始化失败
+        OS -> OrderDB: 更新订单状态为F3(履约失败)
+        OS -> OrderBus: 发送履约失败事件
+    end
+    deactivate FS
+end
+
+== 发货处理阶段 ==
+FS -> FS: **6.** 履约系统内部处理发货流程
+
+== 发货结果回调阶段 ==
+OS <- FS: **7.** 回调发货结果
+activate FS
+
+alt 发货成功
+    OS -> OrderDB: **8.1** 更新状态为发货成功(O2,F4)
+    OS -> OrderBus: 发送履约成功事件
+else 发货失败
+    OS -> OrderDB: **8.2** 更新状态为履约失败(F3)
+    OS -> OrderBus: 发送履约失败事件并触发退款流程
+end
+
+deactivate FS
+deactivate OS
+
+@enduml
