@@ -1,5 +1,5 @@
 ---
-title: 互联网系统设计 - Redis与缓存
+title: 中间件 - Redis与缓存
 date: 2024-03-06
 categories:
 - 系统设计

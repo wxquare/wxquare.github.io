@@ -1,5 +1,6 @@
 ---
 title: TVM学习笔记--模型量化(int8)及其测试数据
+date: 2020-08-13
 categories:
 - AI
 mathjax: true

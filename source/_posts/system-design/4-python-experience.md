@@ -1,5 +1,5 @@
 ---
-title: 一文记录Python实践
+title: 编程语言：Python实践记录
 date: 2023-10-20
 categories:
 - 系统设计

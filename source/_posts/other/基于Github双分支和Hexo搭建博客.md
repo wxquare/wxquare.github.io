@@ -1,5 +1,6 @@
 ---
 title: 基于Github双分支和Hexo搭建博客
+date: 2023-08-13
 categories:
 - other
 ---

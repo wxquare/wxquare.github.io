@@ -1,5 +1,5 @@
 ---
-title: 互联网系统设计 - 存储与Mysql数据库
+title: 中间件 - 存储与Mysql数据库
 date: 2024-03-04
 categories:
 - 系统设计

@@ -1,6 +1,6 @@
 ---
-title: C/C++ 基础知识
-date: 2023-10-13
+title: 编程语言：C/C++ 实践
+date: 2023-11-01
 categories: 
 - 系统设计
 ---

@@ -1,6 +1,6 @@
 
 ---
-title: Go基础和常见面试题
+title: 编程语言：Go 实践
 date: 2023-11-13
 categories:
 - 系统设计

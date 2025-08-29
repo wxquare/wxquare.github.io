@@ -1,5 +1,6 @@
 ---
 title: 初识OpenCL及在移动端的一些测试数据
+date: 2020-08-13
 categories:
 - AI
 ---

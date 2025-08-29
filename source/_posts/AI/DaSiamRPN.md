@@ -1,5 +1,6 @@
 ---
 title: 了解DaSiamRPN追踪算法的运行过程
+date: 2020-08-13
 categories:
 - AI
 mathjax: true

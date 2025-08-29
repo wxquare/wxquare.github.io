@@ -1,5 +1,5 @@
 ---
-title: 互联网系统设计 - 搜索和Elasticsearch
+title: 中间件 - 搜索和Elasticsearch
 date: 2024-03-07
 categories:
 - 系统设计

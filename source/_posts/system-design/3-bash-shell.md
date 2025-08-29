@@ -1,5 +1,5 @@
 ---
-title: 一文记录Linux常用命令和shell实践
+title: 编程语言：bash shell实践
 date: 2023-10-13
 categories:
 - 系统设计

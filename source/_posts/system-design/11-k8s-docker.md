@@ -1,6 +1,6 @@
 ---
-title: 一文记录 k8s 与 docker
-date: 2023-12-20
+title: 互联网基础设施：k8s 与 docker 实践
+date: 2024-12-20
 categories: 
 - 系统设计
 ---

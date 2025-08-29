@@ -1,6 +1,6 @@
 ---
-title: Pipeline Pattern + Service Layer 模式写复杂业务代码
-date: 2023-10-20
+title: 代码：Pipeline Pattern + Service Layer 模式写复杂业务代码
+date: 2025-06-20
 categories:
 - 系统设计
 ---
@@ -411,6 +411,25 @@ func (p *TracingProcessor) Process(ctx context.Context, fsCtx *FlashSaleContext)
 - **顺序重要**：Processor的顺序要有逻辑意义
 - **错误传播**：错误要能正确向上传播
 - **资源管理**：确保资源得到正确释放
+
+
+
+## 业务引擎
+- 对于简单的接口逻辑可以直接写过程代码
+- 复杂接口可以考虑使用责任链的方式
+- 复杂度更高的代码流程控制的方式
+
+## 工作流引擎与任务编排
+- https://github.com/s8sg/goflow
+- https://github.com/go-workflow/go-workflow
+## 规则引擎与风控、资损、校验
+
+- https://github.com/bilibili/gengine
+
+## 脚本执行引擎与低代码平台
+
+- https://github.com/d5/tengo
+- https://github.com/mattn/anko
 
 ## 总结
 

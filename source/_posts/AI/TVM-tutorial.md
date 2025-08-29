@@ -1,5 +1,6 @@
 ---
 title: TVM 学习资料整理（持续更新）
+date: 2020-08-13
 categories:
 - AI
 mathjax: true
