@@ -33,7 +33,11 @@ categories:
   <img src="/images/application-architecture.png" width=700 height=550>
 </p>
 
-### 技术架构
+### 技术架构tech architecture
+
+<p align="center">
+  <img src="/images/1-tech-architecture.png" width=1000 height=600>
+</p>
 
 <p align="center">
   <img src="/images/14-e-commerce-tech-architecture-mindmap.png" width=700 height=1400>
