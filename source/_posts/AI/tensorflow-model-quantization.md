@@ -1,5 +1,6 @@
 ---
 title: tensorflow模型权重量化(weight quantization)实战
+date: 2020-08-13
 categories:
 - AI
 mathjax: true

@@ -1,5 +1,6 @@
 ---
 title: 了解模板追踪算法和高斯牛顿迭代法
+date: 2020-08-13
 categories:
 - AI
 mathjax: true

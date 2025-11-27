@@ -1,5 +1,6 @@
 ---
 title: TVM学习笔记--了解Relay和图优化
+date: 2020-08-13
 categories:
 - AI
 mathjax: true

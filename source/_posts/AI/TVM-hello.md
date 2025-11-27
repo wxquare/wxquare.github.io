@@ -1,5 +1,6 @@
 ---
 title: 初识TVM，相比于tensorflow的2倍性能提升
+date: 2020-08-13
 categories:
 - AI
 mathjax: true
