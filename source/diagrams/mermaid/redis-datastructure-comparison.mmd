@@ -1,0 +1,139 @@
+graph TB
+    subgraph comparison ["Redis 底层数据结构对比"]
+        direction TB
+        
+        subgraph ziplist_visual ["1. ziplist - 连续内存"]
+            direction LR
+            zl_header["Header<br/>10B"]
+            zl_e1["Entry1<br/>6B"]
+            zl_e2["Entry2<br/>8B"]
+            zl_e3["Entry3<br/>7B"]
+            zl_end["End<br/>1B"]
+            
+            zl_header ~~~ zl_e1 ~~~ zl_e2 ~~~ zl_e3 ~~~ zl_end
+            
+            zl_memory["连续内存块: 32字节"]
+        end
+        
+        subgraph linkedlist_visual ["2. linkedlist - 双向链表"]
+            direction LR
+            ll_node1["Node1<br/>prev: 8B<br/>next: 8B<br/>data: 6B<br/>total: 22B"]
+            ll_node2["Node2<br/>prev: 8B<br/>next: 8B<br/>data: 8B<br/>total: 24B"]
+            ll_node3["Node3<br/>prev: 8B<br/>next: 8B<br/>data: 7B<br/>total: 23B"]
+            
+            ll_node1 -->|next| ll_node2
+            ll_node2 -->|next| ll_node3
+            ll_node3 -.->|prev| ll_node2
+            ll_node2 -.->|prev| ll_node1
+            
+            ll_memory["分散内存: 69字节 + 指针开销"]
+        end
+        
+        subgraph hashtable_visual ["3. hashtable - 哈希表"]
+            direction TB
+            ht_array["table[8]<br/>指针数组<br/>64字节"]
+            
+            ht_e1["Entry<br/>key: 8B<br/>val: 8B<br/>next: 8B<br/>24B"]
+            ht_e2["Entry<br/>24B"]
+            ht_e3["Entry<br/>24B"]
+            
+            ht_array --> ht_e1
+            ht_array --> ht_e2
+            ht_array --> ht_e3
+            
+            ht_memory["分散内存: 136字节 + 哈希开销"]
+        end
+    end
+    
+    subgraph perf_table ["性能对比表"]
+        direction TB
+        
+        metrics["
+        | 操作 | ziplist | linkedlist | hashtable |
+        |------|---------|------------|-----------|
+        | 查找 | O(n) | O(n) | O(1) |
+        | 头插入 | O(n) | O(1) | O(1) |
+        | 尾插入 | O(1) | O(1) | O(1) |
+        | 中间插入 | O(n) | O(1) | O(1) |
+        | 删除 | O(n) | O(1) | O(1) |
+        | 内存/3节点 | 32B | 69B | 136B |
+        | 内存效率 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+        | 查询效率 | ⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ |
+        | CPU缓存 | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐ |
+        "]
+    end
+    
+    subgraph use_cases ["使用场景选择"]
+        direction LR
+        
+        subgraph when_ziplist ["使用 ziplist"]
+            zl_case1["数据量小<br/>< 512 个元素"]
+            zl_case2["单个数据小<br/>< 64 字节"]
+            zl_case3["顺序访问为主<br/>LRANGE/HGETALL"]
+            zl_case4["内存敏感<br/>需要高密度存储"]
+        end
+        
+        subgraph when_linkedlist ["使用 linkedlist"]
+            ll_case1["频繁头尾插入<br/>LPUSH/RPUSH"]
+            ll_case2["数据量较大<br/>> 512 个元素"]
+            ll_case3["中间插入频繁<br/>LINSERT"]
+            ll_case4["不关心内存<br/>关注插入性能"]
+        end
+        
+        subgraph when_hashtable ["使用 hashtable"]
+            ht_case1["需要快速查找<br/>HGET/HEXISTS"]
+            ht_case2["数据量大<br/>> 512 个字段"]
+            ht_case3["随机访问为主<br/>按 key 查询"]
+            ht_case4["字段独立更新<br/>HINCRBY"]
+        end
+    end
+    
+    subgraph real_example ["实际应用举例"]
+        direction TB
+        
+        subgraph ex_hash ["Hash 类型"]
+            hash_small["小对象 < 512 字段<br/>Session, 商品详情<br/>→ ziplist"]
+            hash_large["大对象 > 512 字段<br/>用户画像, 复杂对象<br/>→ hashtable"]
+        end
+        
+        subgraph ex_list ["List 类型"]
+            list_small["消息队列 < 512 条<br/>最近浏览记录<br/>→ ziplist"]
+            list_large["长消息队列<br/>日志流, Feed流<br/>→ linkedlist<br/>或 quicklist"]
+        end
+        
+        subgraph ex_zset ["ZSet 类型"]
+            zset_small["小排行榜 < 128<br/>今日TOP10<br/>→ ziplist"]
+            zset_large["大排行榜 > 128<br/>全站排名<br/>→ skiplist<br/>+ hashtable"]
+        end
+    end
+    
+    subgraph encoding_transition ["编码转换规则"]
+        direction LR
+        
+        trans_hash["Hash:<br/>ziplist → hashtable<br/>触发: entries>512 或 value>64B<br/>不可逆"]
+        
+        trans_list["List:<br/>ziplist → linkedlist<br/>触发: entries>512 或 value>64B<br/>Redis 3.2+ 使用 quicklist"]
+        
+        trans_zset["ZSet:<br/>ziplist → skiplist+dict<br/>触发: entries>128 或 value>64B<br/>不可逆"]
+    end
+    
+    subgraph memory_overhead ["内存开销分析 - 存储3个键值对"]
+        direction TB
+        
+        mo_ziplist["ziplist<br/>----<br/>头部: 10B<br/>entry1: 6B<br/>entry2: 8B<br/>entry3: 7B<br/>尾部: 1B<br/>总计: 32B"]
+        
+        mo_linkedlist["linkedlist<br/>----<br/>node1: 22B 16B指针<br/>node2: 24B 16B指针<br/>node3: 23B 16B指针<br/>总计: 69B<br/>多 115%"]
+        
+        mo_hashtable["hashtable<br/>----<br/>dictht: 24B<br/>table[8]: 64B<br/>entry1: 24B 8B指针<br/>entry2: 24B 8B指针<br/>entry3: 24B 8B指针<br/>总计: 160B<br/>多 400%"]
+    end
+    
+    classDef ziplistStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef linkedlistStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef hashtableStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef noteStyle fill:#fce4ec,stroke:#880e4f,stroke-width:1px
+    
+    class zl_header,zl_e1,zl_e2,zl_e3,zl_end,zl_memory,mo_ziplist,zl_case1,zl_case2,zl_case3,zl_case4,hash_small,list_small,zset_small ziplistStyle
+    class ll_node1,ll_node2,ll_node3,ll_memory,mo_linkedlist,ll_case1,ll_case2,ll_case3,ll_case4,hash_large,list_large linkedlistStyle
+    class ht_array,ht_e1,ht_e2,ht_e3,ht_memory,mo_hashtable,ht_case1,ht_case2,ht_case3,ht_case4,zset_large hashtableStyle
+    class trans_hash,trans_list,trans_zset noteStyle
+

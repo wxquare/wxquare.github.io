@@ -119,6 +119,24 @@ rdb.Set(ctx, "visit:count", 0, 0)
   3. 如果是首次调用（返回 1），设置过期时间 EXPIRE 60（即 1 分钟限流）。 
   4. 如果返回值超过阈值（如 100），直接拒绝请求。
 
+```lua
+const bookNormalStockScript = `
+local key = KEYS[1]
+local book_num = tonumber(ARGV[1])
+local platform = tonumber(ARGV[2]) or 1
+
+local normal_stock = tonumber(redis.call("HGET", key, "0")) or 0
+if book_num > normal_stock then
+    return -1
+end
+redis.call("hincrby", key, "0", -book_num)
+redis.call("HINCRBY", key, "booking", book_num)
+end
+
+return normal_stock - book_num
+`
+```
+
 ### ZSet 使用场景
 
 ### List 使用场景
