@@ -1,0 +1,179 @@
+@startuml
+
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam defaultFontName "Microsoft YaHei"
+skinparam handwritten false
+skinparam shadowing false
+skinparam roundcorner 10
+
+' 全局样式
+skinparam {
+    ParticipantPadding 20
+    BoxPadding 10
+    DefaultFontSize 12
+    DefaultTextAlignment center
+    
+    SequenceGroupBorderColor #2C3E50
+    SequenceGroupBodyBackgroundColor #F8F9FA
+    
+    ParticipantBackgroundColor #E8F4F9
+    ParticipantBorderColor #4C9BC7
+    ParticipantFontColor #2C3E50
+    
+    DatabaseBackgroundColor #F4F6F6
+    DatabaseBorderColor #95A5A6
+    
+    QueueBackgroundColor #FCF3CF
+    QueueBorderColor #F1C40F
+    
+    ArrowColor #2C3E50
+    LifeLineBorderColor #95A5A6
+    
+    NoteBackgroundColor #FFF8DC
+    NoteBorderColor #D4AC0D
+}
+
+title <size:18>订单退货退款流程</size>
+
+legend top
+|= 状态 |= 说明 |
+|<#ECF0F1,#2C3E50>| **订单状态说明** |
+| O0: CREATED | 订单创建 |
+| O1: PAYMENT_SUCCESS | 支付成功 |
+| O2: FULFILLED_SUCCESS | 发货成功 |
+| O3: REFUND_SUCCESS | 退款成功 |
+| O4: CANCELLED | 订单取消（用户主动取消/超时未支付/支付失败）|
+| O5: COMPLETED | 订单完成 |
+|<#ECF0F1,#2C3E50>| **退款状态说明** |
+| R0: REFUND_CREATED | 退款创建 |
+|<#F8F9F9>| **退款审批状态** |
+| R1: REFUND_APPROVING | 退款审批中 |
+| R2: APPROVED | 退款批准 |
+| R3: REJECTED | 退款拒绝 |
+|<#F8F9F9>| **退货状态** |
+| R4: RETURN_PENDING | 退货处理中 |
+| R5: RETURN_PROCESSING | 退货处理中 |
+| R6: RETURN_SUCCESS | 退货成功 |
+| R7: RETURN_FAILED | 退货失败 |
+|<#F8F9F9>| **退款处理状态** |
+| R8: REFUND_PENDING | 退款处理中 |
+| R9: REFUND_PROCESSING | 退款处理中 |
+| R10: REFUND_SUCCESS | 退款成功 |
+| R11: REFUND_FAILED | 退款失败 |
+|<#F8F9F9>| **营销退款状态** |
+| R12: REFUND_MARKETING_PENDING | 退款营销处理中 |
+| R13: REFUND_MARKETING_SUCCESS | 退款营销成功 |
+| R14: REFUND_MARKETING_FAILED | 退款营销失败 |
+end legend
+
+actor "用户" as User #E8F4F9
+participant "订单服务" as OrderService #E8F4F9
+database "订单数据库" as OrderDB #F4F6F6
+queue "OrderBus" as OrderBus #FCF3CF
+participant "营销服务" as MarketingService #F9EBEA
+participant "支付服务" as PaymentService #EAFAF1
+participant "履约服务" as FulfillmentService #E8F4F9
+
+== 退款单创建阶段 ==
+group 履约失败场景
+    OrderBus -> OrderService: **1.** 订阅履约失败事件
+    activate OrderService
+    OrderService -> OrderDB: **2.** 更新退款状态为处理中(R8)
+    OrderService -> OrderBus: **3.** 发送退款创建事件
+    deactivate OrderService
+end
+
+group 用户主动退款场景
+    User -> OrderService: **1.** 发起退款申请
+    activate OrderService
+    OrderService -> OrderDB: **2.** 创建退款单(R0)
+    OrderService --> User: **3.** 返回退款单号
+    deactivate OrderService
+end
+
+== 退款审批阶段 ==
+OrderService -> OrderDB: **1.** 更新退款状态(R2/R3)
+activate OrderService
+OrderService -> OrderBus: **2.** 发送退款审批结果事件
+deactivate OrderService
+
+== 退货初始化阶段 ==
+OrderBus -> OrderService: **1.** 订阅退款审批通过事件(R2)
+activate OrderService
+OrderService -> OrderDB: **2.** 更新退款状态为退货处理中(R4)
+OrderService -> FulfillmentService: **3.** 调用退货接口
+activate FulfillmentService
+
+alt 退货初始化失败
+    FulfillmentService --> OrderService: 返回失败
+    OrderService -> OrderBus: 发送退款失败事件
+else 退货初始化成功
+    FulfillmentService --> OrderService: 返回成功
+    OrderService -> OrderDB: 更新退款状态为退货处理中(R5)
+    OrderService -> OrderBus: 发送退货处理事件
+    OrderService --> User: 通知用户退货处理中
+end
+deactivate FulfillmentService
+deactivate OrderService
+
+== 退货结果处理阶段 ==
+FulfillmentService -> OrderService: **1.** 退货结果回调
+activate OrderService
+
+alt 退货失败
+    OrderService -> OrderDB: 更新退款状态为退货失败(R7)
+    OrderService -> OrderBus: 发送退货失败事件
+else 退货成功
+    OrderService -> OrderDB: 更新退款状态为退货成功(R6)
+    OrderService -> OrderBus: 发送退货成功事件
+end
+deactivate OrderService
+
+== 退款处理阶段 ==
+OrderBus -> OrderService: **1.** 订阅退货成功事件(R6)
+activate OrderService
+
+group 营销退款处理
+    OrderService -> OrderDB: **2.1** 更新退款状态为营销退款处理中(R12)
+    OrderService -> MarketingService: **2.2** 请求营销退款
+    activate MarketingService
+    
+    alt 营销退款失败
+        MarketingService --> OrderService: 返回失败
+        OrderService -> OrderDB: 更新状态为营销退款失败(R14)
+        OrderService -> OrderBus: 发送营销退款失败事件
+    else 营销退款成功
+        MarketingService --> OrderService: 返回成功
+        OrderService -> OrderDB: 更新状态为营销退款成功(R13)
+        OrderService -> OrderBus: 发送营销退款成功事件
+    end
+    deactivate MarketingService
+end
+
+group 支付退款处理
+    OrderService -> PaymentService: **3.** 发起支付退款
+    activate PaymentService
+    alt 退款初始化成功
+        PaymentService --> OrderService: 返回成功
+        OrderService -> OrderDB: 更新退款状态为退款处理中(R9)
+    end
+    deactivate PaymentService
+end
+deactivate OrderService
+
+== 退款结果处理阶段 ==
+PaymentService -> OrderService: **1.** 退款结果回调
+activate OrderService
+
+alt 退款失败
+    OrderService -> OrderDB: 更新退款状态为退款失败(R11)
+    OrderService -> OrderBus: 发送退款失败事件
+else 退款成功
+    OrderService -> OrderDB: 更新退款状态为退款成功(R10)
+    OrderService -> OrderBus: 发送退款成功事件
+end
+deactivate OrderService
+
+@enduml

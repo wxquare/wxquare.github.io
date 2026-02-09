@@ -1,0 +1,137 @@
+@startuml
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+' 自定义样式
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+
+' 参与者样式
+skinparam participant {
+    BackgroundColor #f4f4f4
+    BorderColor #2c3e50
+    FontStyle bold
+    FontColor #2c3e50
+}
+
+' 箭头样式
+skinparam arrow {
+    Color #2c3e50
+    FontColor #2c3e50
+}
+
+' 生命线样式
+skinparam LifeLine {
+    BorderColor #a0a0a0
+    BackgroundColor #f4f4f4
+}
+
+' 激活块样式
+skinparam activate {
+    BackgroundColor #e8f4f9
+    BorderColor #4c9bc7
+}
+
+' 注释框样式
+skinparam note {
+    BackgroundColor #fff8dc
+    BorderColor #d4ac0d
+    FontColor #333333
+}
+
+' 分组框样式
+skinparam sequence {
+    GroupBackgroundColor #f9f9f9
+    GroupBodyBackgroundColor #ffffff
+    GroupBorderColor #3498db
+    GroupFontColor #2c3e50
+    GroupHeaderFontColor #2c3e50
+}
+
+actor "Client" as client
+participant "OrderService" as order #e8f4f9
+participant "ProductService" as product #f9ebea
+participant "StockService" as stock #e8f8f5
+participant "PromotionService" as promotion #fdf2e9
+participant "PaymentService" as payment #eafaf1
+database "OrderDB" as db #f4f6f6
+
+== 初始化阶段 ==
+client -> order: **1.** createOrder(items, address, promotions)
+activate order
+
+== 商品校验阶段 ==
+order -> product: **2.1** validateProducts(items)
+activate product
+product --> order: return product info & status
+deactivate product
+
+order -> product: **2.2** getProductSnapshot(items)
+activate product
+product --> order: return product snapshots
+deactivate product
+
+== 库存处理阶段 ==
+order -> stock: **3.1** checkStock(items)
+activate stock
+stock --> order: return stock status
+deactivate stock
+
+order -> stock: **3.2** lockStock(items)
+activate stock
+stock --> order: return lock result
+deactivate stock
+
+== 营销处理阶段 ==
+order -> promotion: **4.1** validatePromotions(promotions)
+activate promotion
+promotion --> order: return validation result
+deactivate promotion
+
+order -> promotion: **4.2** deductPromotions(promotions)
+activate promotion
+promotion --> order: return deduction result
+deactivate promotion
+
+== 订单创建阶段 ==
+order -> order: **5.1** generateOrderId()
+order -> order: **5.2** calculateOrderAmount()
+
+order -> db: **5.3** saveOrder()
+activate db
+db --> order: return save result
+deactivate db
+
+== 支付初始化阶段 ==
+order -> payment: **6.1** initializePayment(orderId, amount)
+activate payment
+payment --> order: return payment info
+deactivate payment
+
+order --> client: **7.** return order & payment info
+deactivate order
+
+note right of order #fff8dc
+<style>
+notetext {
+    FontSize 11
+    FontColor #333333
+}
+</style>
+**关键步骤说明:**
+1. 接收订单创建请求
+2.1 校验商品信息(价格、状态)
+2.2 获取商品快照
+3.1 检查库存
+3.2 锁定库存
+4.1 校验优惠信息
+4.2 扣减优惠资源
+5.1 生成订单号
+5.2 计算订单金额
+5.3 保存订单
+6.1 初始化支付
+7. 返回订单信息
+end note
+
+@enduml
