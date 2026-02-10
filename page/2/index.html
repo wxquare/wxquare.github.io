@@ -131,7 +131,7 @@
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
-        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-count">7</span>
         <span class="site-state-item-name">tags</span>
       </div>
   </nav>
@@ -156,6 +156,118 @@
     </div>
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/DaSiamRPN/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/08/13/AI/DaSiamRPN/" class="post-title-link" itemprop="url">了解DaSiamRPN追踪算法的运行过程</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>　　在2018年的CVPR上SiameseRPN模型被提出，它宣称在单目标跟踪问题上做到了state-of-the-art，能同时兼顾精度(accuracy)和速度(efficiency)。在这之后，很快又在ECCV上发表了DaSiamRPN模型，它在SiameseRPN基础进一步提升了追踪的性能。SiameseRPN不是一簇而就的，它的设计思想来源于SiameseFc，并引入物体检测领域的区域推荐网络(RPN),通过网络回归避免了多尺度测试，同时得到更加精准的目标框和目标的位置。实际使用中发现DaSiamRPN相比传统的KCF效果直观感受确实精度有较大提升，在普通pc无GPU环境上大概是10.6fps。这里主要结合<a href="http://openaccess.thecvf.com/content_cvpr_2018/papers/Li_High_Performance_Visual_CVPR_2018_paper.pdf">SimeseRPN的论文</a>和<a href="https://github.com/foolwood/DaSiamRPN">DaSiamRPN的代码</a>帮助了解SimeseRPN的模型结构以及DaSiamRPN的运行过程。</p>
+<h2 id="SiameseRPN模型"><a href="#SiameseRPN模型" class="headerlink" title="SiameseRPN模型"></a>SiameseRPN模型</h2><p>　　Siamese-RPN本质上是组合网络模型，它包括用于特征提取的Siamese网络和生成候选区域的RPN网络。<br>　　<strong>Siamese特征提取网络</strong>：它目前在追踪领域使用比较多，包括模板分支(template branch)和检测分支(detection branch)，它们都是经过裁剪的AlexNet卷积网络，用于提取图像的特征。两个分支网络参数和权重值完全相同，只是输入不同，模板分支输入模板帧中的目标部分(target patch)，检测分支输入当前需要追踪的帧的区域(target patch)。<br>　　<strong>RPN(region proposal subnetwork)候选区域生成网络</strong>：它包括的分类(classification)和回归(regression)两个分支。这里有个重要的锚点(anchor),就是通过RPN对每个锚点上的k个不同宽度和高度的矩形分类和回归，得到感兴趣区域。每个anhcor box要分前景和背景，所以cls&#x3D;2k；而每个anchor box都有[x, y, w, h]对应4个偏移量，所以reg&#x3D;4k。</p>
+<p><img src="/images/Siamese-RPN.jpg" alt="SiameseRPN模型"></p>
+<p>　　因此设模板分支输入为$z$维度为(127,127,3)，首先通过Siamese网络特征提取得到$ψ(z)$维度为(6,6,256)，然后再经历卷积分别的到$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$。检测分支输入为$x$，$ψ(x)$为Siamese特征提取网路的输出，以$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$为核卷积得到最终的SiameseRPN的输出，$*$表示卷积运算。<br>$$A_{w×h×2k}^{cls} &#x3D; [ψ(x)]<em>{cls} * [ψ(z)]</em>{cls}$$</p>
+<p>$$A_{w×h×4k}^{res} &#x3D; [ψ(x)]<em>{res} * [ψ(z)]</em>{res}$$</p>
+<h2 id="DaSiamRPN视频追踪的过程"><a href="#DaSiamRPN视频追踪的过程" class="headerlink" title="DaSiamRPN视频追踪的过程"></a>DaSiamRPN视频追踪的过程</h2><p>　　DaSiamRPN做视频目标追踪，DaSiamRPN相比SiameseRPN做了进一步的优化，例如训练时引入采样策略控制不平衡的样本分布，设计了一种distractor-aware模块执行增量学习等。结合官方的<a href="https://github.com/foolwood/DaSiamRPN">https://github.com/foolwood/DaSiamRPN</a> 中的例子，很容易将demo运行起来。需要注意的是github上的代码需要gpu运行环境，如果要在无gpu机器上运行DaSiamRPN的demo需要将有关cuda代码去掉。例如将将net.eval().cuda()换成net.eval()。DaSiamRPN的运行包含两个步骤：</p>
+<ol>
+<li>初始化。输入模板帧，得到$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$两个用于卷积的核。</li>
+<li>追踪。将待追踪帧输入到模型，得到每个候选区域的score和偏移delta。从候选区域中选出分数最高的候选区域proposal。</li>
+</ol>
+<h3 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a>初始化</h3><ol>
+<li>输出模板图片im，模板图片中目标位置target_pos，目标大小target_size，使用get_subwindow_tracking函数裁剪目标区域临近部分(target patch),并将裁剪得到图片resize到宽和高为127的图片。</li>
+<li>将模板目标区域裁剪好的视频输入网络模型的模板分支(template branch)，得到$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$</li>
+<li>使用generate_anchor函数产生anchers，其大小为$(271-127)&#x2F;8+1&#x3D;19,19*19*5&#x3D;1805$，anchor的维度为(4,1805)，这表示会有1805个候选区域，偏移量$d_x,d_y,d_w,d_h$</li>
+</ol>
+<h3 id="追踪"><a href="#追踪" class="headerlink" title="追踪"></a>追踪</h3><ol>
+<li>输入追踪的图片im，基于上一帧的target_pos和目标的大小位置target_size，在图片中裁剪部分区域并将该区域resize到271*271得到x_crop。</li>
+<li>将x_crop输入网络的检测分支(detection branch)得到对所有anchor进行分类和回归得到delta和score。</li>
+<li>根据delta获取细化后的候选区域(refinement coordinates)<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># generate the refined top K proposals</span><br><span class="line">delta[0, :] = delta[0, :] * p.anchor[:, 2] + p.anchor[:, 0]  #x</span><br><span class="line">delta[1, :] = delta[1, :] * p.anchor[:, 3] + p.anchor[:, 1]  #y</span><br><span class="line">delta[2, :] = np.exp(delta[2, :]) * p.anchor[:, 2]           #w</span><br><span class="line">delta[3, :] = np.exp(delta[3, :]) * p.anchor[:, 3]           #h</span><br></pre></td></tr></table></figure></li>
+<li>结合scale penalty、ration penalty、cosine window调整每个候选区域score中每个候选区域的分数,选出分数最大的候选区域best_pscore_id.<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># size penalty</span><br><span class="line">s_c = change(sz(delta[2, :], delta[3, :]) / sz_wh(target_sz))  # scale penalty</span><br><span class="line">r_c = change((target_sz[0] / target_sz[1]) / (delta[2, :] / delta[3, :]))  # ratio penalty</span><br><span class="line">penalty = np.exp(-(r_c * s_c - 1.) * p.penalty_k)</span><br><span class="line">pscore = penalty * score</span><br><span class="line"># window float</span><br><span class="line">pscore = pscore * (1 - p.window_influence) + window * p.window_influence</span><br><span class="line">best_pscore_id = np.argmax(pscore)</span><br></pre></td></tr></table></figure></li>
+<li>计算出当前帧目标的位置target_pos和target_size。<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">target = delta[:, best_pscore_id] / scale_z</span><br><span class="line">target_sz = target_sz / scale_z</span><br><span class="line"></span><br><span class="line">lr = penalty[best_pscore_id] * score[best_pscore_id] * p.lr</span><br><span class="line"></span><br><span class="line">res_x = target_pos[0] + target[0]</span><br><span class="line">res_y = target_pos[1] + target[1]</span><br><span class="line">res_w = target_sz[0] * (1 - lr) + target[2] * lr</span><br><span class="line">res_h = target_sz[1] * (1 - lr) + target[3] * lr</span><br><span class="line"></span><br><span class="line">target_pos = np.array([res_x, res_y])</span><br><span class="line">target_sz = np.array([res_w, res_h])</span><br></pre></td></tr></table></figure></li>
+</ol>
+<p>参考：</p>
+<ol>
+<li><a href="https://zhuanlan.zhihu.com/p/37856765">https://zhuanlan.zhihu.com/p/37856765</a></li>
+<li><a href="https://github.com/foolwood/DaSiamRPN">https://github.com/foolwood/DaSiamRPN</a></li>
+<li><a href="http://openaccess.thecvf.com/content_cvpr_2018/papers/Li_High_Performance_Visual_CVPR_2018_paper.pdf">http://openaccess.thecvf.com/content_cvpr_2018/papers/Li_High_Performance_Visual_CVPR_2018_paper.pdf</a></li>
+</ol>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
@@ -529,118 +641,6 @@ print(resnet18_lib.get_source())
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/DaSiamRPN/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="wxquare">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="undefined | wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/08/13/AI/DaSiamRPN/" class="post-title-link" itemprop="url">了解DaSiamRPN追踪算法的运行过程</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>　　在2018年的CVPR上SiameseRPN模型被提出，它宣称在单目标跟踪问题上做到了state-of-the-art，能同时兼顾精度(accuracy)和速度(efficiency)。在这之后，很快又在ECCV上发表了DaSiamRPN模型，它在SiameseRPN基础进一步提升了追踪的性能。SiameseRPN不是一簇而就的，它的设计思想来源于SiameseFc，并引入物体检测领域的区域推荐网络(RPN),通过网络回归避免了多尺度测试，同时得到更加精准的目标框和目标的位置。实际使用中发现DaSiamRPN相比传统的KCF效果直观感受确实精度有较大提升，在普通pc无GPU环境上大概是10.6fps。这里主要结合<a href="http://openaccess.thecvf.com/content_cvpr_2018/papers/Li_High_Performance_Visual_CVPR_2018_paper.pdf">SimeseRPN的论文</a>和<a href="https://github.com/foolwood/DaSiamRPN">DaSiamRPN的代码</a>帮助了解SimeseRPN的模型结构以及DaSiamRPN的运行过程。</p>
-<h2 id="SiameseRPN模型"><a href="#SiameseRPN模型" class="headerlink" title="SiameseRPN模型"></a>SiameseRPN模型</h2><p>　　Siamese-RPN本质上是组合网络模型，它包括用于特征提取的Siamese网络和生成候选区域的RPN网络。<br>　　<strong>Siamese特征提取网络</strong>：它目前在追踪领域使用比较多，包括模板分支(template branch)和检测分支(detection branch)，它们都是经过裁剪的AlexNet卷积网络，用于提取图像的特征。两个分支网络参数和权重值完全相同，只是输入不同，模板分支输入模板帧中的目标部分(target patch)，检测分支输入当前需要追踪的帧的区域(target patch)。<br>　　<strong>RPN(region proposal subnetwork)候选区域生成网络</strong>：它包括的分类(classification)和回归(regression)两个分支。这里有个重要的锚点(anchor),就是通过RPN对每个锚点上的k个不同宽度和高度的矩形分类和回归，得到感兴趣区域。每个anhcor box要分前景和背景，所以cls&#x3D;2k；而每个anchor box都有[x, y, w, h]对应4个偏移量，所以reg&#x3D;4k。</p>
-<p><img src="/images/Siamese-RPN.jpg" alt="SiameseRPN模型"></p>
-<p>　　因此设模板分支输入为$z$维度为(127,127,3)，首先通过Siamese网络特征提取得到$ψ(z)$维度为(6,6,256)，然后再经历卷积分别的到$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$。检测分支输入为$x$，$ψ(x)$为Siamese特征提取网路的输出，以$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$为核卷积得到最终的SiameseRPN的输出，$*$表示卷积运算。<br>$$A_{w×h×2k}^{cls} &#x3D; [ψ(x)]<em>{cls} * [ψ(z)]</em>{cls}$$</p>
-<p>$$A_{w×h×4k}^{res} &#x3D; [ψ(x)]<em>{res} * [ψ(z)]</em>{res}$$</p>
-<h2 id="DaSiamRPN视频追踪的过程"><a href="#DaSiamRPN视频追踪的过程" class="headerlink" title="DaSiamRPN视频追踪的过程"></a>DaSiamRPN视频追踪的过程</h2><p>　　DaSiamRPN做视频目标追踪，DaSiamRPN相比SiameseRPN做了进一步的优化，例如训练时引入采样策略控制不平衡的样本分布，设计了一种distractor-aware模块执行增量学习等。结合官方的<a href="https://github.com/foolwood/DaSiamRPN">https://github.com/foolwood/DaSiamRPN</a> 中的例子，很容易将demo运行起来。需要注意的是github上的代码需要gpu运行环境，如果要在无gpu机器上运行DaSiamRPN的demo需要将有关cuda代码去掉。例如将将net.eval().cuda()换成net.eval()。DaSiamRPN的运行包含两个步骤：</p>
-<ol>
-<li>初始化。输入模板帧，得到$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$两个用于卷积的核。</li>
-<li>追踪。将待追踪帧输入到模型，得到每个候选区域的score和偏移delta。从候选区域中选出分数最高的候选区域proposal。</li>
-</ol>
-<h3 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a>初始化</h3><ol>
-<li>输出模板图片im，模板图片中目标位置target_pos，目标大小target_size，使用get_subwindow_tracking函数裁剪目标区域临近部分(target patch),并将裁剪得到图片resize到宽和高为127的图片。</li>
-<li>将模板目标区域裁剪好的视频输入网络模型的模板分支(template branch)，得到$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$</li>
-<li>使用generate_anchor函数产生anchers，其大小为$(271-127)&#x2F;8+1&#x3D;19,19*19*5&#x3D;1805$，anchor的维度为(4,1805)，这表示会有1805个候选区域，偏移量$d_x,d_y,d_w,d_h$</li>
-</ol>
-<h3 id="追踪"><a href="#追踪" class="headerlink" title="追踪"></a>追踪</h3><ol>
-<li>输入追踪的图片im，基于上一帧的target_pos和目标的大小位置target_size，在图片中裁剪部分区域并将该区域resize到271*271得到x_crop。</li>
-<li>将x_crop输入网络的检测分支(detection branch)得到对所有anchor进行分类和回归得到delta和score。</li>
-<li>根据delta获取细化后的候选区域(refinement coordinates)<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># generate the refined top K proposals</span><br><span class="line">delta[0, :] = delta[0, :] * p.anchor[:, 2] + p.anchor[:, 0]  #x</span><br><span class="line">delta[1, :] = delta[1, :] * p.anchor[:, 3] + p.anchor[:, 1]  #y</span><br><span class="line">delta[2, :] = np.exp(delta[2, :]) * p.anchor[:, 2]           #w</span><br><span class="line">delta[3, :] = np.exp(delta[3, :]) * p.anchor[:, 3]           #h</span><br></pre></td></tr></table></figure></li>
-<li>结合scale penalty、ration penalty、cosine window调整每个候选区域score中每个候选区域的分数,选出分数最大的候选区域best_pscore_id.<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># size penalty</span><br><span class="line">s_c = change(sz(delta[2, :], delta[3, :]) / sz_wh(target_sz))  # scale penalty</span><br><span class="line">r_c = change((target_sz[0] / target_sz[1]) / (delta[2, :] / delta[3, :]))  # ratio penalty</span><br><span class="line">penalty = np.exp(-(r_c * s_c - 1.) * p.penalty_k)</span><br><span class="line">pscore = penalty * score</span><br><span class="line"># window float</span><br><span class="line">pscore = pscore * (1 - p.window_influence) + window * p.window_influence</span><br><span class="line">best_pscore_id = np.argmax(pscore)</span><br></pre></td></tr></table></figure></li>
-<li>计算出当前帧目标的位置target_pos和target_size。<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">target = delta[:, best_pscore_id] / scale_z</span><br><span class="line">target_sz = target_sz / scale_z</span><br><span class="line"></span><br><span class="line">lr = penalty[best_pscore_id] * score[best_pscore_id] * p.lr</span><br><span class="line"></span><br><span class="line">res_x = target_pos[0] + target[0]</span><br><span class="line">res_y = target_pos[1] + target[1]</span><br><span class="line">res_w = target_sz[0] * (1 - lr) + target[2] * lr</span><br><span class="line">res_h = target_sz[1] * (1 - lr) + target[3] * lr</span><br><span class="line"></span><br><span class="line">target_pos = np.array([res_x, res_y])</span><br><span class="line">target_sz = np.array([res_w, res_h])</span><br></pre></td></tr></table></figure></li>
-</ol>
-<p>参考：</p>
-<ol>
-<li><a href="https://zhuanlan.zhihu.com/p/37856765">https://zhuanlan.zhihu.com/p/37856765</a></li>
-<li><a href="https://github.com/foolwood/DaSiamRPN">https://github.com/foolwood/DaSiamRPN</a></li>
-<li><a href="http://openaccess.thecvf.com/content_cvpr_2018/papers/Li_High_Performance_Visual_CVPR_2018_paper.pdf">http://openaccess.thecvf.com/content_cvpr_2018/papers/Li_High_Performance_Visual_CVPR_2018_paper.pdf</a></li>
-</ol>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/TVM-hello/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -726,6 +726,106 @@ print(resnet18_lib.get_source())
 <li>tvm tutorial: <a href="https://docs.tvm.ai/tutorials/frontend/from_tensorflow.html#sphx-glr-tutorials-frontend-from-tensorflow-py">Compile Tensorflow Models</a></li>
 <li>未填的坑：<a href="https://discuss.tvm.ai/t/cannot-find-config-for-target-llvm-when-using-autotvm-in-tensorflow-example-for-cpu/1544">https://discuss.tvm.ai/t/cannot-find-config-for-target-llvm-when-using-autotvm-in-tensorflow-example-for-cpu/1544</a></li>
 </ol>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/TVM-tutorial/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/08/13/AI/TVM-tutorial/" class="post-title-link" itemprop="url">TVM 学习资料整理（持续更新）</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p><strong>这周没什么产出，在TVM社区闲逛。。。</strong></p>
+<h3 id="1-TVM编译和安装"><a href="#1-TVM编译和安装" class="headerlink" title="1.TVM编译和安装"></a>1.TVM编译和安装</h3><ul>
+<li><a href="https://wxquare.github.io/2019/10/24/other/TVM-hello/">https://wxquare.github.io/2019/10/24/other/TVM-hello/</a></li>
+</ul>
+<h3 id="2-TVM中向量相加"><a href="#2-TVM中向量相加" class="headerlink" title="2.TVM中向量相加"></a>2.TVM中向量相加</h3><ul>
+<li><a href="http://tvm.d2l.ai/chapter_getting_started/vector_add.html">http://tvm.d2l.ai/chapter_getting_started/vector_add.html</a></li>
+</ul>
+<h3 id="3-TVM编译tensorflow模型"><a href="#3-TVM编译tensorflow模型" class="headerlink" title="3.TVM编译tensorflow模型"></a>3.TVM编译tensorflow模型</h3><ul>
+<li><a href="https://wxquare.github.io/2019/10/24/other/TVM-hello/">https://wxquare.github.io/2019/10/24/other/TVM-hello/</a></li>
+<li><a href="https://docs.tvm.ai/tutorials/frontend/from_tensorflow.html#sphx-glr-tutorials-frontend-from-tensorflow-py">https://docs.tvm.ai/tutorials/frontend/from_tensorflow.html#sphx-glr-tutorials-frontend-from-tensorflow-py</a></li>
+</ul>
+<h3 id="4-TVM怎么做模型量化？-doing"><a href="#4-TVM怎么做模型量化？-doing" class="headerlink" title="4.TVM怎么做模型量化？(doing)"></a>4.TVM怎么做模型量化？(doing)</h3><ul>
+<li><a href="https://discuss.tvm.ai/t/int8-quantization-proposal/516">https://discuss.tvm.ai/t/int8-quantization-proposal/516</a></li>
+<li><a href="https://discuss.tvm.ai/t/quantization-story/3920">https://discuss.tvm.ai/t/quantization-story/3920</a></li>
+</ul>
+<p>参考：<br>【1】 [Dive into Deep Learning Compiler](Dive into Deep Learning Compiler “<a href="http://tvm.d2l.ai/">http://tvm.d2l.ai/</a>“)<br>【2】 <a href="https://tvm.ai/">https://tvm.ai/</a></p>
 
       
     </div>
@@ -870,7 +970,7 @@ print(resnet18_lib.get_source())
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/TVM-tutorial/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tensorflow-model-channel-pruning/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpeg">
@@ -888,7 +988,7 @@ print(resnet18_lib.get_source())
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/08/13/AI/TVM-tutorial/" class="post-title-link" itemprop="url">TVM 学习资料整理（持续更新）</a>
+          <a href="/2020/08/13/AI/tensorflow-model-channel-pruning/" class="post-title-link" itemprop="url">tensorflow模型通道剪枝(channel pruning)实战</a>
         </h2>
 
         <div class="post-meta-container">
@@ -928,134 +1028,23 @@ print(resnet18_lib.get_source())
     
     
     <div class="post-body" itemprop="articleBody">
-          <p><strong>这周没什么产出，在TVM社区闲逛。。。</strong></p>
-<h3 id="1-TVM编译和安装"><a href="#1-TVM编译和安装" class="headerlink" title="1.TVM编译和安装"></a>1.TVM编译和安装</h3><ul>
-<li><a href="https://wxquare.github.io/2019/10/24/other/TVM-hello/">https://wxquare.github.io/2019/10/24/other/TVM-hello/</a></li>
-</ul>
-<h3 id="2-TVM中向量相加"><a href="#2-TVM中向量相加" class="headerlink" title="2.TVM中向量相加"></a>2.TVM中向量相加</h3><ul>
-<li><a href="http://tvm.d2l.ai/chapter_getting_started/vector_add.html">http://tvm.d2l.ai/chapter_getting_started/vector_add.html</a></li>
-</ul>
-<h3 id="3-TVM编译tensorflow模型"><a href="#3-TVM编译tensorflow模型" class="headerlink" title="3.TVM编译tensorflow模型"></a>3.TVM编译tensorflow模型</h3><ul>
-<li><a href="https://wxquare.github.io/2019/10/24/other/TVM-hello/">https://wxquare.github.io/2019/10/24/other/TVM-hello/</a></li>
-<li><a href="https://docs.tvm.ai/tutorials/frontend/from_tensorflow.html#sphx-glr-tutorials-frontend-from-tensorflow-py">https://docs.tvm.ai/tutorials/frontend/from_tensorflow.html#sphx-glr-tutorials-frontend-from-tensorflow-py</a></li>
-</ul>
-<h3 id="4-TVM怎么做模型量化？-doing"><a href="#4-TVM怎么做模型量化？-doing" class="headerlink" title="4.TVM怎么做模型量化？(doing)"></a>4.TVM怎么做模型量化？(doing)</h3><ul>
-<li><a href="https://discuss.tvm.ai/t/int8-quantization-proposal/516">https://discuss.tvm.ai/t/int8-quantization-proposal/516</a></li>
-<li><a href="https://discuss.tvm.ai/t/quantization-story/3920">https://discuss.tvm.ai/t/quantization-story/3920</a></li>
-</ul>
-<p>参考：<br>【1】 [Dive into Deep Learning Compiler](Dive into Deep Learning Compiler “<a href="http://tvm.d2l.ai/">http://tvm.d2l.ai/</a>“)<br>【2】 <a href="https://tvm.ai/">https://tvm.ai/</a></p>
+          <h2 id="一、概述"><a href="#一、概述" class="headerlink" title="一、概述"></a>一、概述</h2><p>　　最近在做模型压缩(model compress)相关工作，之前分别尝试了权重量化(weight quantization)【1】和权重稀疏(weight sparsification)【2】，遗憾的是它们都需要推理引擎和硬件的特定优化才能实现推理加速，而tensorflow在x86架构的CPU下并没有没有针对量化和稀疏矩阵的优化，因此效果一般。吸取前两次的经验，这次尝试了结构化压缩通道剪枝(channel pruning)，它通过删减模型中冗余通道channel，减少的模型前向计算所需的FLOPs。通道剪枝来自论文ICCV2017论文 Channel Pruning for Accelerating Very Deep Neural Networks。 这里会首先简单介绍channel pruning的原理，然后通过PocketFlow压缩工具对ResNet56进行通道剪枝，结果显示channel pruning在精度不怎么损失的基础上，减小接近50%的FLOPs。由于剪枝后模型中增加了许多的conv2d 1x1卷积，实际提升推理效率大概20%。</p>
+<h2 id="二、channel-pruning-基本原理"><a href="#二、channel-pruning-基本原理" class="headerlink" title="二、channel pruning 基本原理"></a>二、channel pruning 基本原理</h2><h3 id="1-什么是通道剪枝"><a href="#1-什么是通道剪枝" class="headerlink" title="1. 什么是通道剪枝"></a>1. 什么是通道剪枝</h3><p>　　虽然论文末尾谈到channel pruning可以应用到模型训练中，但是文章的核心内容还是对训练好的模型进行channel pruning，也就是文章中说的inference time。通道剪枝正如其名字channel pruning核心思想是移除一些冗余的channel简化模型。下图是从论文中截取的通道剪枝的示意图，它表示的网络模型中某一层的channel pruning。<strong>B</strong>表示输入feature map，<strong>C</strong>表示输出的feature map；c表示输入B的通道数量，n表示输出C的通道数量；<strong>W</strong>表示卷积核，卷积核的数量是n，每个卷积核的维度是c<em>kh</em>kw，kh和kw表示卷积核的size。通道剪枝的目的就是要把<strong>B</strong>中的某些通道剪掉，但是剪掉后的<strong>B</strong>和<strong>W</strong>的卷积结果能尽可能和<strong>C</strong>接近。当删减<strong>B</strong>中的某些通道时，同时也裁剪了<strong>W</strong>中与这些通道的对应的卷积核，因此通过通过剪枝能减小卷积的运算量。  </p>
+<p><img src="/images/channel_pruning.jpg" alt="channel-pruning示意图"></p>
+<h3 id="2-通道剪枝数学描述"><a href="#2-通道剪枝数学描述" class="headerlink" title="2. 通道剪枝数学描述"></a>2. 通道剪枝数学描述</h3><p>　　通道剪枝的思想是简单的，难点是怎么选择要裁剪的通道，同时要保证输出feature map误差尽可能得小，这也是文章的主要内容。channel pruning总体分为两个步骤，首先是channel selection，它是采用LASSO regression来做的，通过添加L1范数来约束权重，因为L1范数可以使得权重中大部分值为0，所以能使权重更加稀疏，这样就可以把那些稀疏的channel剪掉；第二步是reconstruction，这一步是基于linear least优化，使输出特征图变化尽可能的小。  </p>
+<p>　　接下来通过数学表达式描述了通道剪枝。Ｘ($N*c* k_h*k_w$)表示输入feature map，W($n * c * k_h * k_w$)表示卷积核，Y($N*n$)表示输出feature map。$\beta_i$表示通道系数，如果等于0，表示该通道可以被删除。我们期望将输入feature map的channel从c压缩为c’($0&lt;&#x3D;c’&lt;&#x3D; c$)，同时要使得构造误差(reconstruction error)尽可能的小。通过下面的优化表达式，就可以选择哪些通道被删除。文章中详细介绍了怎么用算法解决下面的数据问题，这里就不赘述了。另外文章还考虑分支情况下的通道剪枝，例如ResNet和GoogleNet，感兴趣的可以仔细研读该论文【3】。</p>
+<p><img src="/images/channel_pruning2.jpg" alt="channel-pruning示意图"></p>
+<h2 id="三、PocketFlow"><a href="#三、PocketFlow" class="headerlink" title="三、PocketFlow"></a>三、PocketFlow</h2><p>　　PocketFlow是腾讯AI Lab开源的自动化深度学习模型压缩框架，它集成了腾讯自己研发的和来自其他同行的主流的模型压缩与训练算法，还引入了自研的超参数优化组件，实现了自动托管式模型压缩与加速。PocketFlow能够自动选择模型压缩的超参，极大的方便了算法人员的调参。这里主要使用里面的channel pruning算法（learner）进行通道剪枝。【4】</p>
+<h3 id="1-实验准备"><a href="#1-实验准备" class="headerlink" title="1.实验准备:"></a>1.实验准备:</h3><p>1.cifar10数据集： <a href="https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz">https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz</a><br>2.ResNet56预训练模型：<a href="https://share.weiyun.com/5610f11d61dfb733db1f2c77a9f34531">https://share.weiyun.com/5610f11d61dfb733db1f2c77a9f34531</a><br>3.下载Pocketflow: <a href="https://github.com/wxquare/PocketFlow.git">https://github.com/wxquare/PocketFlow.git</a></p>
+<h3 id="2-准备配置文件path-conf"><a href="#2-准备配置文件path-conf" class="headerlink" title="2.准备配置文件path.conf"></a>2.准备配置文件path.conf</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># data files</span><br><span class="line">data_dir_local_cifar10 = ./cifar-10-binary/cifar-10-batches-bin #cifar10数据集解压的位置</span><br><span class="line"></span><br><span class="line"># model files </span><br><span class="line"># 这里模型文件用wget下载不下来，要登录下载，解压到PocketFlow根目录的model目录下面</span><br><span class="line">model_http_url = https://share.weiyun.com/5610f11d61dfb733db1f2c77a9f34531</span><br><span class="line">   </span><br></pre></td></tr></table></figure>
+<h3 id="3-在本地运行通道剪枝的learner"><a href="#3-在本地运行通道剪枝的learner" class="headerlink" title="3.在本地运行通道剪枝的learner"></a>3.在本地运行通道剪枝的learner</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ ./scripts/run_local.sh nets/resnet_at_cifar10_run.py \</span><br><span class="line">--learner=channel \</span><br><span class="line">--cp_uniform_preserve_ratio=0.5 \</span><br><span class="line">--cp_prune_option=uniform \</span><br><span class="line">--resnet_size=56</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h3 id="4-模型转换"><a href="#4-模型转换" class="headerlink" title="4. 模型转换"></a>4. 模型转换</h3><p>步骤3之后会在models产生ckpt文件，需要通过进行模型转化,最终会生成model_original.pb，model_transformed.pb，同时也会生成移动端对应的tflite文件。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ python tools/conversion/export_chn_pruned_tflite_model.py \</span><br><span class="line">--model_dir=models/pruned_model </span><br><span class="line">--input_coll=train_images</span><br><span class="line">--output_coll=logits</span><br></pre></td></tr></table></figure>
 
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tensorflow-benchmark-model/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="wxquare">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="undefined | wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/08/13/AI/tensorflow-benchmark-model/" class="post-title-link" itemprop="url">了解tensorflow中的模型基准测试工具</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>　　深度学习模型落地需要考虑决定推理（inference）过程所需的计算资源（成本）和效率（系统的吞吐量和延时），有时甚至需要进行适当的模型裁剪和压缩工作。理论上说，模型结构一旦确定是可以计算它的复杂度和计算量，但这有些繁琐。实际中可以借助一些工具帮助预估模型实际的性能，比较模型优化前后的差别，主要使用到的是benchmark_model和summarize_graph。</p>
-<h2 id="一、benchmark-model模型推理速度分析"><a href="#一、benchmark-model模型推理速度分析" class="headerlink" title="一、benchmark_model模型推理速度分析"></a>一、benchmark_model模型推理速度分析</h2><p>　　在深度学习模型工程落地时，我们追求在成本可控的前提下提高良好的用户体验，因此模型的推理效率和计算代价是重要的衡量指标。通常用FLOPs（floating point operations）描述模型的计算力消耗，它表示浮点运算计算量，用来衡量算法&#x2F;模型的复杂度。我们是可以从原理上计算出模型需要的FLOPs，参考：<a href="https://www.zhihu.com/question/65305385%E3%80%82">https://www.zhihu.com/question/65305385。</a> 除了从理论计算之外，还可以使用tensorflow中的 benchmark_model 工具来进行粗略估计，它可以帮助估算出模型所需的浮点操作数(FLOPS)，然后你就可以使用这些信息来确定你的模型在你的目标设备上运行的可行性。除此之外，比较容易混淆的概念是FLOPS（floating point operations per second），意指每秒浮点运算次数，理解为计算速度，它是衡量硬件性能的指标对于来说TESLA P40可以每秒处理12T个FLOP，普通单核CPU每秒大概处理100亿次的FLOP。当有了计算操作消耗的估计之后，它就对你计划的目标设备上有所帮助，如果模型的计算操作太多，那么就需要优化模型减小FLOP数量。</p>
-<p>　　例如下面的例子中，我们通过benchmark_model分析resetNet20-cifar10，大概有82.15M的FLOPs，该机器每秒执行21.89B，因此该模型大概需要4ms的计算时间。在使用benchmark_model之前，需要使用tensorflow源码进行编译。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">编译benchmark_model</span><br><span class="line">$ bazel build -c opt tensorflow/tools/benchmark:benchmark_model</span><br><span class="line">$ bazel-bin/tensorflow/tools/benchmark/benchmark_model \</span><br><span class="line">--graph=model_original.pb \</span><br><span class="line">--input_layer=&quot;net_input&quot; \</span><br><span class="line">--input_layer_shape=&quot;1,32,32,3&quot; \</span><br><span class="line">--input_layer_type=&quot;float&quot; \</span><br><span class="line">--output_layer=&quot;net_output&quot; \</span><br><span class="line">--show_flops=true \</span><br><span class="line">--show_run_order=false \</span><br><span class="line">--show_time=false \</span><br><span class="line">--num_threads=1</span><br></pre></td></tr></table></figure>
-
-
-<h4 id="预估FLOPs"><a href="#预估FLOPs" class="headerlink" title="预估FLOPs"></a>预估FLOPs</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">2019-10-11 21:30:31.288678: I tensorflow/tools/benchmark/benchmark_model.cc:636] FLOPs estimate: 82.15M</span><br><span class="line">2019-10-11 21:30:31.288744: I tensorflow/tools/benchmark/benchmark_model.cc:638] FLOPs/second: 21.89B</span><br></pre></td></tr></table></figure>
-
-
-<h4 id="查看不同类型节点消耗的时间："><a href="#查看不同类型节点消耗的时间：" class="headerlink" title="查看不同类型节点消耗的时间："></a>查看不同类型节点消耗的时间：</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">========================= Summary by node type ==========================================</span><br><span class="line"> [Node type]	  [count]	  [avg ms]	    [avg %]	    [cdf %]	  [mem KB]	[times called]</span><br><span class="line">          &lt;&gt;	       65	     4.110	    47.269%	    47.269%	     0.000	       65</span><br><span class="line">FusedBatchNorm	       19	     2.028	    23.324%	    70.592%	   240.384	       19</span><br><span class="line">      Conv2D	       22	     2.003	    23.036%	    93.629%	   868.352	       22</span><br><span class="line">         Pad	        2	     0.239	     2.749%	    96.377%	   115.456	        2</span><br><span class="line">        Relu	       19	     0.082	     0.943%	    97.320%	     0.000	       19</span><br><span class="line">       Const	       65	     0.071	     0.817%	    98.137%	     0.000	       65</span><br><span class="line">        NoOp	        1	     0.066	     0.759%	    98.896%	     0.000	        1</span><br><span class="line">         Add	        9	     0.059	     0.679%	    99.574%	     0.000	        9</span><br><span class="line">        Mean	        1	     0.010	     0.115%	    99.689%	     0.256	        1</span><br><span class="line">     Softmax	        1	     0.008	     0.092%	    99.781%	     0.000	        1</span><br><span class="line">_FusedMatMul	        1	     0.007	     0.081%	    99.862%	     0.040	        1</span><br><span class="line">     _Retval	        1	     0.005	     0.058%	    99.919%	     0.000	        1</span><br><span class="line">     Squeeze	        1	     0.005	     0.058%	    99.977%	     0.000	        1</span><br><span class="line">        _Arg	        1	     0.002	     0.023%	   100.000%	     0.000	        1</span><br><span class="line"></span><br><span class="line">Timings (microseconds): count=1000 first=7287 curr=7567 min=7198 max=18864 avg=8794.03 std=1249</span><br><span class="line">Memory (bytes): count=1000 curr=1224488(all same)</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>node type：进行操作的节点类型。</li>
-<li>start：运算符的启动时间，展示了其在操作顺序中的位置。</li>
-<li>first: 以毫秒为单位。默认情况下 TensorFlow 会执行 20 次运行结果来获得统计数据，这个字段则表示第一次运行基准测试所需的操作时间。</li>
-<li>avg ms：以毫秒为单位。表示整个运行的平均操作时间。</li>
-<li>%：一次运行占总运行时间的百分比。这对理解密集计算区域非常有用。</li>
-<li>cdf%：整个过程中表格中当前运算符及上方全部运算符的累积计算时间。这对理解神经网络不同层之间的性能分布非常重要，有助于查看是否只有少数节点占用大部分时间。</li>
-<li>mem KB：当前层消耗的内存大小。</li>
-<li>Name：节点名称。</li>
-</ul>
-<h2 id="二、summarize-graph-模型大小分析"><a href="#二、summarize-graph-模型大小分析" class="headerlink" title="二、summarize_graph 模型大小分析"></a>二、summarize_graph 模型大小分析</h2><p>　　服务端深度模型落地时主要关注模型的预测效率，移动端模型落地需要考虑模型的大小。通过summarize_graph工具可以帮助我们简要分析模型的参数量和包含哪些op。设置–print_structure&#x3D;true可以观察到模型的结构，这也可以通过tensorboard来可视化实现。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">tensorflow-1.14.0编译summarize_graph工具</span><br><span class="line">$ bazel build -c opt tensorflow/tools/graph_transforms:summarize_graph</span><br><span class="line">$ bazel-bin/tensorflow/tools/graph_transforms/summarize_graph \</span><br><span class="line">--in_graph=reset20_cifar10_original.pb \</span><br><span class="line">--print_structure=true</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Found 1 possible inputs: (name=net_input, type=float(1), shape=[?,32,32,3]) </span><br><span class="line">No variables spotted.</span><br><span class="line">Found 1 possible outputs: (name=net_output, op=Softmax) </span><br><span class="line">Found 272572 (272.57k) const parameters, 0 (0) variable parameters, and 0 control_edges</span><br><span class="line">Op types used: 194 Const, 77 Identity, 22 Conv2D, 19 Relu, 19 FusedBatchNorm, 11 Add, 6 Slice, 5 Pad, 5 Reshape, 4 Sub, 4 MatchingFiles, 3 Switch, 2 Squeeze, 2 ShuffleDataset, 2 ShuffleAndRepeatDataset, 2 StridedSlice, 2 Shape, 2 TensorSliceDataset, 2 RealDiv, 2 PrefetchDataset, 2 ParallelMapDataset, 2 ParallelInterleaveDataset, 2 Transpose, 2 OneHot, 2 BatchDatasetV2, 2 Cast, 2 Maximum, 2 DecodeRaw, 1 GreaterEqual, 1 All, 1 Assert, 1 BiasAdd, 1 Softmax, 1 ExpandDims, 1 FixedLengthRecordDataset, 1 FloorMod, 1 Mul, 1 ReverseV2, 1 Less, 1 MatMul, 1 RandomUniformInt, 1 RandomUniform, 1 Mean, 1 Placeholder, 1 Merge</span><br></pre></td></tr></table></figure>
-
-
-<p><a href="https://tensorflow.juejin.im/mobile/optimizing.html">https://tensorflow.juejin.im/mobile/optimizing.html</a></p>
+<h2 id="四、剪枝前后模型分析"><a href="#四、剪枝前后模型分析" class="headerlink" title="四、剪枝前后模型分析"></a>四、剪枝前后模型分析</h2><p>　　我们可以通过之前介绍的模型基准测试工具benchmark_model分别测试剪枝前后的模型。可以很清楚看到通道剪枝大大减少了模型前向计算的FLOPs的变化，以及各阶段、算子的耗时和内存消耗情况。可以发现模型下降为原来的1&#x2F;2，卷积耗时下降接近50%。除此之外通过netron工具可以直观的看到模型通道剪枝前后结构发生的变化，通道剪枝之后的模型中明显增加了许多conv1*1的卷积。这里主要利用1x1卷积先降维，然后升维度，达到减少计算量的目的。1x1卷积还有多种用途，可以参考【5】。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ bazel-bin/tensorflow/tools/benchmark/benchmark_model \ </span><br><span class="line">--graph=model_original.pb \</span><br><span class="line">--input_layer=&quot;net_input&quot; \</span><br><span class="line">--input_layer_shape=&quot;1,32,32,3&quot; \</span><br><span class="line">--input_layer_type=&quot;float&quot; \</span><br><span class="line">--output_layer=&quot;net_output&quot; \</span><br><span class="line">--show_flops=true \</span><br><span class="line">--show_run_order=false \</span><br><span class="line">--show_time=true \</span><br><span class="line">--num_threads=1</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><img src="/images/channel_pruning3.jpg" alt="channel-pruning 1x1 convolution"></p>
+<p>参考：<br>[1]. <a href="https://wxquare.github.io/2019/09/16/other/tensorflow-model-quantization/">tensorflow模型权重量化(weight quantization)实战</a><br>[2]. <a href="https://wxquare.github.io/2019/09/27/other/tensorflow-model-no-structural-pruning">tensorflow模型权重稀疏(weight sparsification)实战</a><br>[3].<a href="https://arxiv.org/abs/1707.06168">Channel Pruning for Accelerating Very Deep Neural Networks</a><br>[4].<a href="https://github.com/wxquare/PocketFlow">PocketFLow</a><br>[5].1x1卷积：<a href="https://www.zhihu.com/question/56024942">https://www.zhihu.com/question/56024942</a> </p>
 
       
     </div>
@@ -1185,107 +1174,6 @@ print(resnet18_lib.get_source())
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tensorflow-model-channel-pruning/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="wxquare">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="undefined | wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/08/13/AI/tensorflow-model-channel-pruning/" class="post-title-link" itemprop="url">tensorflow模型通道剪枝(channel pruning)实战</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h2 id="一、概述"><a href="#一、概述" class="headerlink" title="一、概述"></a>一、概述</h2><p>　　最近在做模型压缩(model compress)相关工作，之前分别尝试了权重量化(weight quantization)【1】和权重稀疏(weight sparsification)【2】，遗憾的是它们都需要推理引擎和硬件的特定优化才能实现推理加速，而tensorflow在x86架构的CPU下并没有没有针对量化和稀疏矩阵的优化，因此效果一般。吸取前两次的经验，这次尝试了结构化压缩通道剪枝(channel pruning)，它通过删减模型中冗余通道channel，减少的模型前向计算所需的FLOPs。通道剪枝来自论文ICCV2017论文 Channel Pruning for Accelerating Very Deep Neural Networks。 这里会首先简单介绍channel pruning的原理，然后通过PocketFlow压缩工具对ResNet56进行通道剪枝，结果显示channel pruning在精度不怎么损失的基础上，减小接近50%的FLOPs。由于剪枝后模型中增加了许多的conv2d 1x1卷积，实际提升推理效率大概20%。</p>
-<h2 id="二、channel-pruning-基本原理"><a href="#二、channel-pruning-基本原理" class="headerlink" title="二、channel pruning 基本原理"></a>二、channel pruning 基本原理</h2><h3 id="1-什么是通道剪枝"><a href="#1-什么是通道剪枝" class="headerlink" title="1. 什么是通道剪枝"></a>1. 什么是通道剪枝</h3><p>　　虽然论文末尾谈到channel pruning可以应用到模型训练中，但是文章的核心内容还是对训练好的模型进行channel pruning，也就是文章中说的inference time。通道剪枝正如其名字channel pruning核心思想是移除一些冗余的channel简化模型。下图是从论文中截取的通道剪枝的示意图，它表示的网络模型中某一层的channel pruning。<strong>B</strong>表示输入feature map，<strong>C</strong>表示输出的feature map；c表示输入B的通道数量，n表示输出C的通道数量；<strong>W</strong>表示卷积核，卷积核的数量是n，每个卷积核的维度是c<em>kh</em>kw，kh和kw表示卷积核的size。通道剪枝的目的就是要把<strong>B</strong>中的某些通道剪掉，但是剪掉后的<strong>B</strong>和<strong>W</strong>的卷积结果能尽可能和<strong>C</strong>接近。当删减<strong>B</strong>中的某些通道时，同时也裁剪了<strong>W</strong>中与这些通道的对应的卷积核，因此通过通过剪枝能减小卷积的运算量。  </p>
-<p><img src="/images/channel_pruning.jpg" alt="channel-pruning示意图"></p>
-<h3 id="2-通道剪枝数学描述"><a href="#2-通道剪枝数学描述" class="headerlink" title="2. 通道剪枝数学描述"></a>2. 通道剪枝数学描述</h3><p>　　通道剪枝的思想是简单的，难点是怎么选择要裁剪的通道，同时要保证输出feature map误差尽可能得小，这也是文章的主要内容。channel pruning总体分为两个步骤，首先是channel selection，它是采用LASSO regression来做的，通过添加L1范数来约束权重，因为L1范数可以使得权重中大部分值为0，所以能使权重更加稀疏，这样就可以把那些稀疏的channel剪掉；第二步是reconstruction，这一步是基于linear least优化，使输出特征图变化尽可能的小。  </p>
-<p>　　接下来通过数学表达式描述了通道剪枝。Ｘ($N*c* k_h*k_w$)表示输入feature map，W($n * c * k_h * k_w$)表示卷积核，Y($N*n$)表示输出feature map。$\beta_i$表示通道系数，如果等于0，表示该通道可以被删除。我们期望将输入feature map的channel从c压缩为c’($0&lt;&#x3D;c’&lt;&#x3D; c$)，同时要使得构造误差(reconstruction error)尽可能的小。通过下面的优化表达式，就可以选择哪些通道被删除。文章中详细介绍了怎么用算法解决下面的数据问题，这里就不赘述了。另外文章还考虑分支情况下的通道剪枝，例如ResNet和GoogleNet，感兴趣的可以仔细研读该论文【3】。</p>
-<p><img src="/images/channel_pruning2.jpg" alt="channel-pruning示意图"></p>
-<h2 id="三、PocketFlow"><a href="#三、PocketFlow" class="headerlink" title="三、PocketFlow"></a>三、PocketFlow</h2><p>　　PocketFlow是腾讯AI Lab开源的自动化深度学习模型压缩框架，它集成了腾讯自己研发的和来自其他同行的主流的模型压缩与训练算法，还引入了自研的超参数优化组件，实现了自动托管式模型压缩与加速。PocketFlow能够自动选择模型压缩的超参，极大的方便了算法人员的调参。这里主要使用里面的channel pruning算法（learner）进行通道剪枝。【4】</p>
-<h3 id="1-实验准备"><a href="#1-实验准备" class="headerlink" title="1.实验准备:"></a>1.实验准备:</h3><p>1.cifar10数据集： <a href="https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz">https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz</a><br>2.ResNet56预训练模型：<a href="https://share.weiyun.com/5610f11d61dfb733db1f2c77a9f34531">https://share.weiyun.com/5610f11d61dfb733db1f2c77a9f34531</a><br>3.下载Pocketflow: <a href="https://github.com/wxquare/PocketFlow.git">https://github.com/wxquare/PocketFlow.git</a></p>
-<h3 id="2-准备配置文件path-conf"><a href="#2-准备配置文件path-conf" class="headerlink" title="2.准备配置文件path.conf"></a>2.准备配置文件path.conf</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># data files</span><br><span class="line">data_dir_local_cifar10 = ./cifar-10-binary/cifar-10-batches-bin #cifar10数据集解压的位置</span><br><span class="line"></span><br><span class="line"># model files </span><br><span class="line"># 这里模型文件用wget下载不下来，要登录下载，解压到PocketFlow根目录的model目录下面</span><br><span class="line">model_http_url = https://share.weiyun.com/5610f11d61dfb733db1f2c77a9f34531</span><br><span class="line">   </span><br></pre></td></tr></table></figure>
-<h3 id="3-在本地运行通道剪枝的learner"><a href="#3-在本地运行通道剪枝的learner" class="headerlink" title="3.在本地运行通道剪枝的learner"></a>3.在本地运行通道剪枝的learner</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ ./scripts/run_local.sh nets/resnet_at_cifar10_run.py \</span><br><span class="line">--learner=channel \</span><br><span class="line">--cp_uniform_preserve_ratio=0.5 \</span><br><span class="line">--cp_prune_option=uniform \</span><br><span class="line">--resnet_size=56</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h3 id="4-模型转换"><a href="#4-模型转换" class="headerlink" title="4. 模型转换"></a>4. 模型转换</h3><p>步骤3之后会在models产生ckpt文件，需要通过进行模型转化,最终会生成model_original.pb，model_transformed.pb，同时也会生成移动端对应的tflite文件。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ python tools/conversion/export_chn_pruned_tflite_model.py \</span><br><span class="line">--model_dir=models/pruned_model </span><br><span class="line">--input_coll=train_images</span><br><span class="line">--output_coll=logits</span><br></pre></td></tr></table></figure>
-
-<h2 id="四、剪枝前后模型分析"><a href="#四、剪枝前后模型分析" class="headerlink" title="四、剪枝前后模型分析"></a>四、剪枝前后模型分析</h2><p>　　我们可以通过之前介绍的模型基准测试工具benchmark_model分别测试剪枝前后的模型。可以很清楚看到通道剪枝大大减少了模型前向计算的FLOPs的变化，以及各阶段、算子的耗时和内存消耗情况。可以发现模型下降为原来的1&#x2F;2，卷积耗时下降接近50%。除此之外通过netron工具可以直观的看到模型通道剪枝前后结构发生的变化，通道剪枝之后的模型中明显增加了许多conv1*1的卷积。这里主要利用1x1卷积先降维，然后升维度，达到减少计算量的目的。1x1卷积还有多种用途，可以参考【5】。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ bazel-bin/tensorflow/tools/benchmark/benchmark_model \ </span><br><span class="line">--graph=model_original.pb \</span><br><span class="line">--input_layer=&quot;net_input&quot; \</span><br><span class="line">--input_layer_shape=&quot;1,32,32,3&quot; \</span><br><span class="line">--input_layer_type=&quot;float&quot; \</span><br><span class="line">--output_layer=&quot;net_output&quot; \</span><br><span class="line">--show_flops=true \</span><br><span class="line">--show_run_order=false \</span><br><span class="line">--show_time=true \</span><br><span class="line">--num_threads=1</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p><img src="/images/channel_pruning3.jpg" alt="channel-pruning 1x1 convolution"></p>
-<p>参考：<br>[1]. <a href="https://wxquare.github.io/2019/09/16/other/tensorflow-model-quantization/">tensorflow模型权重量化(weight quantization)实战</a><br>[2]. <a href="https://wxquare.github.io/2019/09/27/other/tensorflow-model-no-structural-pruning">tensorflow模型权重稀疏(weight sparsification)实战</a><br>[3].<a href="https://arxiv.org/abs/1707.06168">Channel Pruning for Accelerating Very Deep Neural Networks</a><br>[4].<a href="https://github.com/wxquare/PocketFlow">PocketFLow</a><br>[5].1x1卷积：<a href="https://www.zhihu.com/question/56024942">https://www.zhihu.com/question/56024942</a> </p>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tensorflow-model-no-structural-pruning/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1386,6 +1274,118 @@ print(resnet18_lib.get_source())
 <li><a href="https://arxiv.org/pdf/1710.01878.pdf">Michael Zhu and Suyog Gupta, “To prune, or not to prune: exploring the efficacy of pruning for model compression”, 2017 NIPS </a></li>
 <li><a href="https://zhuanlan.zhihu.com/p/48069799">https://zhuanlan.zhihu.com/p/48069799</a></li>
 </ol>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tensorflow-benchmark-model/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/08/13/AI/tensorflow-benchmark-model/" class="post-title-link" itemprop="url">了解tensorflow中的模型基准测试工具</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>　　深度学习模型落地需要考虑决定推理（inference）过程所需的计算资源（成本）和效率（系统的吞吐量和延时），有时甚至需要进行适当的模型裁剪和压缩工作。理论上说，模型结构一旦确定是可以计算它的复杂度和计算量，但这有些繁琐。实际中可以借助一些工具帮助预估模型实际的性能，比较模型优化前后的差别，主要使用到的是benchmark_model和summarize_graph。</p>
+<h2 id="一、benchmark-model模型推理速度分析"><a href="#一、benchmark-model模型推理速度分析" class="headerlink" title="一、benchmark_model模型推理速度分析"></a>一、benchmark_model模型推理速度分析</h2><p>　　在深度学习模型工程落地时，我们追求在成本可控的前提下提高良好的用户体验，因此模型的推理效率和计算代价是重要的衡量指标。通常用FLOPs（floating point operations）描述模型的计算力消耗，它表示浮点运算计算量，用来衡量算法&#x2F;模型的复杂度。我们是可以从原理上计算出模型需要的FLOPs，参考：<a href="https://www.zhihu.com/question/65305385%E3%80%82">https://www.zhihu.com/question/65305385。</a> 除了从理论计算之外，还可以使用tensorflow中的 benchmark_model 工具来进行粗略估计，它可以帮助估算出模型所需的浮点操作数(FLOPS)，然后你就可以使用这些信息来确定你的模型在你的目标设备上运行的可行性。除此之外，比较容易混淆的概念是FLOPS（floating point operations per second），意指每秒浮点运算次数，理解为计算速度，它是衡量硬件性能的指标对于来说TESLA P40可以每秒处理12T个FLOP，普通单核CPU每秒大概处理100亿次的FLOP。当有了计算操作消耗的估计之后，它就对你计划的目标设备上有所帮助，如果模型的计算操作太多，那么就需要优化模型减小FLOP数量。</p>
+<p>　　例如下面的例子中，我们通过benchmark_model分析resetNet20-cifar10，大概有82.15M的FLOPs，该机器每秒执行21.89B，因此该模型大概需要4ms的计算时间。在使用benchmark_model之前，需要使用tensorflow源码进行编译。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">编译benchmark_model</span><br><span class="line">$ bazel build -c opt tensorflow/tools/benchmark:benchmark_model</span><br><span class="line">$ bazel-bin/tensorflow/tools/benchmark/benchmark_model \</span><br><span class="line">--graph=model_original.pb \</span><br><span class="line">--input_layer=&quot;net_input&quot; \</span><br><span class="line">--input_layer_shape=&quot;1,32,32,3&quot; \</span><br><span class="line">--input_layer_type=&quot;float&quot; \</span><br><span class="line">--output_layer=&quot;net_output&quot; \</span><br><span class="line">--show_flops=true \</span><br><span class="line">--show_run_order=false \</span><br><span class="line">--show_time=false \</span><br><span class="line">--num_threads=1</span><br></pre></td></tr></table></figure>
+
+
+<h4 id="预估FLOPs"><a href="#预估FLOPs" class="headerlink" title="预估FLOPs"></a>预估FLOPs</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">2019-10-11 21:30:31.288678: I tensorflow/tools/benchmark/benchmark_model.cc:636] FLOPs estimate: 82.15M</span><br><span class="line">2019-10-11 21:30:31.288744: I tensorflow/tools/benchmark/benchmark_model.cc:638] FLOPs/second: 21.89B</span><br></pre></td></tr></table></figure>
+
+
+<h4 id="查看不同类型节点消耗的时间："><a href="#查看不同类型节点消耗的时间：" class="headerlink" title="查看不同类型节点消耗的时间："></a>查看不同类型节点消耗的时间：</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">========================= Summary by node type ==========================================</span><br><span class="line"> [Node type]	  [count]	  [avg ms]	    [avg %]	    [cdf %]	  [mem KB]	[times called]</span><br><span class="line">          &lt;&gt;	       65	     4.110	    47.269%	    47.269%	     0.000	       65</span><br><span class="line">FusedBatchNorm	       19	     2.028	    23.324%	    70.592%	   240.384	       19</span><br><span class="line">      Conv2D	       22	     2.003	    23.036%	    93.629%	   868.352	       22</span><br><span class="line">         Pad	        2	     0.239	     2.749%	    96.377%	   115.456	        2</span><br><span class="line">        Relu	       19	     0.082	     0.943%	    97.320%	     0.000	       19</span><br><span class="line">       Const	       65	     0.071	     0.817%	    98.137%	     0.000	       65</span><br><span class="line">        NoOp	        1	     0.066	     0.759%	    98.896%	     0.000	        1</span><br><span class="line">         Add	        9	     0.059	     0.679%	    99.574%	     0.000	        9</span><br><span class="line">        Mean	        1	     0.010	     0.115%	    99.689%	     0.256	        1</span><br><span class="line">     Softmax	        1	     0.008	     0.092%	    99.781%	     0.000	        1</span><br><span class="line">_FusedMatMul	        1	     0.007	     0.081%	    99.862%	     0.040	        1</span><br><span class="line">     _Retval	        1	     0.005	     0.058%	    99.919%	     0.000	        1</span><br><span class="line">     Squeeze	        1	     0.005	     0.058%	    99.977%	     0.000	        1</span><br><span class="line">        _Arg	        1	     0.002	     0.023%	   100.000%	     0.000	        1</span><br><span class="line"></span><br><span class="line">Timings (microseconds): count=1000 first=7287 curr=7567 min=7198 max=18864 avg=8794.03 std=1249</span><br><span class="line">Memory (bytes): count=1000 curr=1224488(all same)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>node type：进行操作的节点类型。</li>
+<li>start：运算符的启动时间，展示了其在操作顺序中的位置。</li>
+<li>first: 以毫秒为单位。默认情况下 TensorFlow 会执行 20 次运行结果来获得统计数据，这个字段则表示第一次运行基准测试所需的操作时间。</li>
+<li>avg ms：以毫秒为单位。表示整个运行的平均操作时间。</li>
+<li>%：一次运行占总运行时间的百分比。这对理解密集计算区域非常有用。</li>
+<li>cdf%：整个过程中表格中当前运算符及上方全部运算符的累积计算时间。这对理解神经网络不同层之间的性能分布非常重要，有助于查看是否只有少数节点占用大部分时间。</li>
+<li>mem KB：当前层消耗的内存大小。</li>
+<li>Name：节点名称。</li>
+</ul>
+<h2 id="二、summarize-graph-模型大小分析"><a href="#二、summarize-graph-模型大小分析" class="headerlink" title="二、summarize_graph 模型大小分析"></a>二、summarize_graph 模型大小分析</h2><p>　　服务端深度模型落地时主要关注模型的预测效率，移动端模型落地需要考虑模型的大小。通过summarize_graph工具可以帮助我们简要分析模型的参数量和包含哪些op。设置–print_structure&#x3D;true可以观察到模型的结构，这也可以通过tensorboard来可视化实现。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">tensorflow-1.14.0编译summarize_graph工具</span><br><span class="line">$ bazel build -c opt tensorflow/tools/graph_transforms:summarize_graph</span><br><span class="line">$ bazel-bin/tensorflow/tools/graph_transforms/summarize_graph \</span><br><span class="line">--in_graph=reset20_cifar10_original.pb \</span><br><span class="line">--print_structure=true</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Found 1 possible inputs: (name=net_input, type=float(1), shape=[?,32,32,3]) </span><br><span class="line">No variables spotted.</span><br><span class="line">Found 1 possible outputs: (name=net_output, op=Softmax) </span><br><span class="line">Found 272572 (272.57k) const parameters, 0 (0) variable parameters, and 0 control_edges</span><br><span class="line">Op types used: 194 Const, 77 Identity, 22 Conv2D, 19 Relu, 19 FusedBatchNorm, 11 Add, 6 Slice, 5 Pad, 5 Reshape, 4 Sub, 4 MatchingFiles, 3 Switch, 2 Squeeze, 2 ShuffleDataset, 2 ShuffleAndRepeatDataset, 2 StridedSlice, 2 Shape, 2 TensorSliceDataset, 2 RealDiv, 2 PrefetchDataset, 2 ParallelMapDataset, 2 ParallelInterleaveDataset, 2 Transpose, 2 OneHot, 2 BatchDatasetV2, 2 Cast, 2 Maximum, 2 DecodeRaw, 1 GreaterEqual, 1 All, 1 Assert, 1 BiasAdd, 1 Softmax, 1 ExpandDims, 1 FixedLengthRecordDataset, 1 FloorMod, 1 Mul, 1 ReverseV2, 1 Less, 1 MatMul, 1 RandomUniformInt, 1 RandomUniform, 1 Mean, 1 Placeholder, 1 Merge</span><br></pre></td></tr></table></figure>
+
+
+<p><a href="https://tensorflow.juejin.im/mobile/optimizing.html">https://tensorflow.juejin.im/mobile/optimizing.html</a></p>
 
       
     </div>
