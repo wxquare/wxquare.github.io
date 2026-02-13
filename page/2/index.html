@@ -664,6 +664,169 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2023/08/13/system-design/1-OS-interview/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2023/08/13/system-design/1-OS-interview/" class="post-title-link" itemprop="url">计算机基础：操作系统</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2023-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2023-08-13T00:00:00+08:00">2023-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="CPU任务调度，进程-线程-协程"><a href="#CPU任务调度，进程-线程-协程" class="headerlink" title="CPU任务调度，进程&#x2F;线程&#x2F;协程"></a>CPU任务调度，进程&#x2F;线程&#x2F;协程</h2><ol>
+<li>进程和线程的区别，了解协程吗？CPU调度，数据共享。</li>
+<li>复杂系统中通常融合了多进程编程，多线程编程，协程编程</li>
+<li>进程之间怎么通信，线程通信通信，协程怎么通信</li>
+<li>进程之间怎么同步（信号量，自旋锁，屏障），线程之间怎么同步（锁），协程怎么同步。进程之间通过共享内存、管道、消息队列消息队列等方式通信，通过信号和信号量进行同步。线程在进程内部，全部变量时共享的，通过锁机制来同步。</li>
+<li>死锁：产生的四个条件、四个解决方法,死锁检测</li>
+<li>守护进程，linux系统编程实现守护进程</li>
+<li>在Linux上，对于多进程，子进程继承了父进程的下列哪些？堆栈、文件描述符、进程组、会话、环境变量、共享内存 </li>
+<li>僵尸进程和孤儿进程。孤儿进程：一个父进程退出，而它的一个或多个子进程还在运行，那么那些子进程将成为孤儿进程。孤儿进程将被init进程(进程号为1)所收养，并由init进程对它们完成状态收集工作。僵尸进程：一个进程使用fork创建子进程，如果子进程退出，而父进程并没有调用wait或waitpid获取子进程的状态信息，那么子进程的进程描述符仍然保存在系统中。这种进程称之为僵死进程。</li>
+<li>进程的状态。<ul>
+<li>TASK_RUNNING（运行态）：进bai程是可执行du的；或者正在执行，zhi或者在运行队列中等待执行。</li>
+<li>TASK_INTERRUPTIBLE（可中断睡眠态）：进程被阻塞，等待某些条件的完成。一旦完成这些条件，内核就会将该进程的状态设置为运行态。</li>
+<li>TASK_UNINTERRUPTIBLE（不可中断睡眠态）：进程被阻塞，等待某些条件的完成。与可中断睡眠态不同的是，该状态进程不可被信号唤醒。</li>
+<li>TASK_ZOMBIE（僵死态）：该进程已经结束，但是其父进程还没有将其回收。</li>
+<li>TASK_STOP（终止态）：进程停止执行。通常进程在收到SIGSTOP、SIGTTIN、SIGTTOU等信号的时候会进入该状态。</li>
+</ul>
+</li>
+<li>linux的CFS调度机制是什么？时间片&#x2F;policy（进程类别）&#x2F;priority（优先级）&#x2F;counter。linux的任务调度机制是什么？在每个进程的task_struct结构中有以下四项：policy、priority、counter、rt_priority。这四项是选择进程的依据。其中，policy是进程的调度策略，用来区分实时进程和普通进程，实时进程优先于普通进程运行；priority是进程(包括实时和普通)的静态优先级；counter是进程剩余的时间片，它的起始值就是priority的值；由于counter在后面计算一个处于可运行状态的进程值得运行的程度goodness时起重要作用，因此，counter 也可以看作是进程的动态优先级。rt_priority是实时进程特有的，用于实时进程间的选择。 Linux用函数goodness()来衡量一个处于可运行状态的进程值得运行的程度。该函数综合了以上提到的四项，还结合了一些其他的因素，给每个处于可运行状态的进程赋予一个权值(weight)，调度程序以这个权值作为选择进程的唯一依据。</li>
+<li>goroutine的GPM，没有时间片和优先级的概念，但也支持“抢占式调度”。 goroutine的主要状态grunnable、grunning、gwaiting</li>
+<li>线程的状态<ul>
+<li>runnable</li>
+<li>running</li>
+<li>blocked</li>
+<li>dead</li>
+</ul>
+</li>
+<li>进程、线程与协程的区别</li>
+<li>操作系统写时复制:<a href="https://juejin.cn/post/6844903702373859335">https://juejin.cn/post/6844903702373859335</a></li>
+<li><a href="https://imageslr.github.io/2020/07/07/user-mode-kernel-mode.html">操作系统为什么设计用户态和内核态，用户态和内核态的权限不同？怎么解决IO频繁发生内核和用户态的态的切换（缓存）？</a></li>
+<li><a href="https://www.jianshu.com/p/31cdfd6f5a48">select、epoll的监听回调机制，红黑树？</a></li>
+<li><a href="https://www.cnblogs.com/leoo2sk/archive/2009/12/11/talk-about-fork-in-linux.html">从一道面试题谈linux下fork的运行机制</a></li>
+<li>malloc分配多少内存：<a href="http://fallincode.com/blog/2020/01/malloc%e6%9c%80%e5%a4%9a%e8%83%bd%e5%88%86%e9%85%8d%e5%a4%9a%e5%b0%91%e5%86%85%e5%ad%98/">http://fallincode.com/blog/2020/01/malloc%e6%9c%80%e5%a4%9a%e8%83%bd%e5%88%86%e9%85%8d%e5%a4%9a%e5%b0%91%e5%86%85%e5%ad%98/</a></li>
+</ol>
+<h2 id="存储系统，内存和存储"><a href="#存储系统，内存和存储" class="headerlink" title="存储系统，内存和存储"></a>存储系统，内存和存储</h2><ol>
+<li>寄存器、缓存cache、内存和磁盘</li>
+<li>可执行文件的空间结构，进程的空间结构(虚拟地址空间，栈，堆，未初始化变量，初始化区，代码）</li>
+<li>查看进程使用的资源，top，ps，cat &#x2F;proc&#x2F;pid&#x2F;status </li>
+<li>进程的虚拟内存机制（虚拟地址-页表-物理地址）。Linux虚拟内存的实现需要6种机制的支持：地址映射机制、内存分配回收机制、缓存和刷新机制、请求页机制、交换机制和内存共享机制,内存管理程序通过映射机制把用户程序的逻辑地址映射到物理地址。当用户程序运行时，如果发现程序中要用的虚地址没有对应的物理内存，就发出了请求页要求。如果有空闲的内存可供分配，就请求分配内存(于是用到了内存的分配和回收)，并把正在使用的物理页记录在缓存中(使用了缓存机制)。如果没有足够的内存可供分配，那么就调用交换机制；腾出一部分内存。另外，在地址映射中要通过TLB(翻译后援存储器)来寻找物理页；交换机制中也要用到交换缓存，并且把物理页内容交换到交换文件中，也要修改页表来映射文件地址。</li>
+<li>操作系统内存分配算法常用缓存置换算法（FIFO，LRU，LFU），LRU算法的实现和优化？</li>
+<li>Linux系统原理之文件系统（磁盘、分区、文件系统、inode表、data block）</li>
+<li>在linux执行ls上实际发生了什么</li>
+<li><a href="http://www.ssdfans.com/?p=105901">CPU寻址过程</a>,tlb,cache miss.</li>
+<li><a href="https://blog.csdn.net/K346K346/article/details/80849966">栈和堆的区别</a></li>
+</ol>
+<h2 id="系统编程以及其它注意事项"><a href="#系统编程以及其它注意事项" class="headerlink" title="系统编程以及其它注意事项"></a>系统编程以及其它注意事项</h2><ol>
+<li>使用过哪些进程间通讯机制，并详细说明,linux进程之间的通信7种方式</li>
+<li>内核函数、系统调用、库函数&#x2F;API,strace系统调用追踪调试</li>
+<li>coredump文件产生？内存访问越界、野指针、堆栈溢出等等</li>
+<li>fork 和 vfork，exec，system（进程的用户空间是在执行系统调用的fork时创建的，基于写时复制的原理，子进程创建的时候继承了父进程的用户空间，仅仅是mm_struc结构的建立、vm_area_struct结构的建立以及页目录和页表的建立，并没有真正地复制一个物理页面，这也是为什么Linux内核能迅速地创建进程的原因之一。）写时复制(Copy-on-write)是一种可以推迟甚至免除拷贝数据的技术。内核此时并不复制整个进程空间，而是让父进程和子进程共享同一个拷贝。只有在需要写入的时候，数据才会被复制，从而使各个进程拥有各自的拷贝。也就是说，资源的复制只有在需要写入的时候才进行，在此之前，以只读方式共享。这种技术使地址空间上的页的拷贝被推迟到实际发生写入的时候。有时共享页根本不会被写入，例如，fork()后立即调用exec()，就无需复制父进程的页了。fork()的实际开销就是复制父进程的页表以及给子进程创建唯一的PCB。这种优化可以避免拷贝大量根本就不会使用的数据</li>
+<li>锁？互斥锁的属性设置、多进程共享内存的使用、多线程的使用互斥锁、pshaed和type设置。使用互斥量和条件变脸实现互斥锁 </li>
+<li>共享内存的同步机制，使用信号量，无锁数据结构 </li>
+<li>   多线程里一个线程sleep，实质上是在干嘛，忙等还是闲等。？</li>
+<li>   exit()函数与_exit()函数最大的区别就在于exit()函数在调用exit系统调用之前要检查文件的打开情况，把文件缓冲区中的内容写回文件，就是”清理I&#x2F;O缓冲”。</li>
+<li>select&#x2F;epoll <a href="https://www.cnblogs.com/anker/p/3265058.html">https://www.cnblogs.com/anker/p/3265058.html</a></li>
+</ol>
+<ul>
+<li>select 内核态和用户态重复拷贝</li>
+<li>select 需要遍历遍历查找就绪的socket</li>
+<li>select 有数量限制1024</li>
+<li>epoll 注册时写进内核</li>
+<li>epoll_wait 返回就绪的事件</li>
+</ul>
+<h2 id="网络编程"><a href="#网络编程" class="headerlink" title="网络编程"></a>网络编程</h2><ol>
+<li><p>   简单了解C语言的socket编程api。socket，bind，listen，accept，connect，read&#x2F;write.</p>
+</li>
+<li><p>   Linux下socket的五种I&#x2F;O 模式，同步阻塞、同步非阻塞、同步I&#x2F;O复用、异步I&#x2F;O、信号驱动I&#x2F;O</p>
+</li>
+<li><p>   <a href="https://www.cnblogs.com/wxquare/archive/2004/01/13/6802078.html">Linux套接字和I&#x2F;O模型</a></p>
+</li>
+<li><p>   select和epoll的区别</p>
+</li>
+<li><p>   什么是I&#x2F;O 复用？关于I&#x2F;O多路复用(又被称为“事件驱动”)，首先要理解的是，操作系统为你提供了一个功能，当你的某个socket可读或者可写的时候，它可以给你一个通知。这样当配合非阻塞的socket使用时，只有当系统通知我哪个描述符可读了，我才去执行read操作，可以保证每次read都能读到有效数据而不做纯返回-1和EAGAIN的无用功。写操作类似。操作系统的这个功能通过select&#x2F;poll&#x2F;epoll&#x2F;kqueue之类的系统调用函数来使用，这些函数都可以同时监视多个描述符的读写就绪状况，这样，多个描述符的I&#x2F;O操作都能在一个线程内并发交替地顺序完成，这就叫I&#x2F;O多路复用，这里的“复用”指的是复用同一个线程。</p>
+</li>
+<li><p>   网络分析工具。ping&#x2F;tcpdump&#x2F;netstat&#x2F;lsof</p>
+</li>
+</ol>
+<h2 id="其它问题"><a href="#其它问题" class="headerlink" title="其它问题"></a>其它问题</h2><ol>
+<li><a href="https://juejin.cn/post/7010416601711427615">计算机中浮点数表示方法，以及浮点数转换中精度缺失的问题</a></li>
+</ol>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2023/08/13/other/%E5%9F%BA%E4%BA%8EGithub%E5%8F%8C%E5%88%86%E6%94%AF%E5%92%8CHexo%E6%90%AD%E5%BB%BA%E5%8D%9A%E5%AE%A2/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -927,7 +1090,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2023/08/13/system-design/1-OS-interview/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/DaSiamRPN/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpeg">
@@ -945,7 +1108,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2023/08/13/system-design/1-OS-interview/" class="post-title-link" itemprop="url">计算机基础：操作系统</a>
+          <a href="/2020/08/13/AI/DaSiamRPN/" class="post-title-link" itemprop="url">了解DaSiamRPN追踪算法的运行过程</a>
         </h2>
 
         <div class="post-meta-container">
@@ -956,7 +1119,7 @@
       </span>
       <span class="post-meta-item-text">Posted on</span>
 
-      <time title="Created: 2023-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2023-08-13T00:00:00+08:00">2023-08-13</time>
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -971,7 +1134,7 @@
       </span>
       <span class="post-meta-item-text">In</span>
         <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">系统设计</span></a>
+          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
         </span>
     </span>
 
@@ -985,84 +1148,33 @@
     
     
     <div class="post-body" itemprop="articleBody">
-          <h2 id="CPU任务调度，进程-线程-协程"><a href="#CPU任务调度，进程-线程-协程" class="headerlink" title="CPU任务调度，进程&#x2F;线程&#x2F;协程"></a>CPU任务调度，进程&#x2F;线程&#x2F;协程</h2><ol>
-<li>进程和线程的区别，了解协程吗？CPU调度，数据共享。</li>
-<li>复杂系统中通常融合了多进程编程，多线程编程，协程编程</li>
-<li>进程之间怎么通信，线程通信通信，协程怎么通信</li>
-<li>进程之间怎么同步（信号量，自旋锁，屏障），线程之间怎么同步（锁），协程怎么同步。进程之间通过共享内存、管道、消息队列消息队列等方式通信，通过信号和信号量进行同步。线程在进程内部，全部变量时共享的，通过锁机制来同步。</li>
-<li>死锁：产生的四个条件、四个解决方法,死锁检测</li>
-<li>守护进程，linux系统编程实现守护进程</li>
-<li>在Linux上，对于多进程，子进程继承了父进程的下列哪些？堆栈、文件描述符、进程组、会话、环境变量、共享内存 </li>
-<li>僵尸进程和孤儿进程。孤儿进程：一个父进程退出，而它的一个或多个子进程还在运行，那么那些子进程将成为孤儿进程。孤儿进程将被init进程(进程号为1)所收养，并由init进程对它们完成状态收集工作。僵尸进程：一个进程使用fork创建子进程，如果子进程退出，而父进程并没有调用wait或waitpid获取子进程的状态信息，那么子进程的进程描述符仍然保存在系统中。这种进程称之为僵死进程。</li>
-<li>进程的状态。<ul>
-<li>TASK_RUNNING（运行态）：进bai程是可执行du的；或者正在执行，zhi或者在运行队列中等待执行。</li>
-<li>TASK_INTERRUPTIBLE（可中断睡眠态）：进程被阻塞，等待某些条件的完成。一旦完成这些条件，内核就会将该进程的状态设置为运行态。</li>
-<li>TASK_UNINTERRUPTIBLE（不可中断睡眠态）：进程被阻塞，等待某些条件的完成。与可中断睡眠态不同的是，该状态进程不可被信号唤醒。</li>
-<li>TASK_ZOMBIE（僵死态）：该进程已经结束，但是其父进程还没有将其回收。</li>
-<li>TASK_STOP（终止态）：进程停止执行。通常进程在收到SIGSTOP、SIGTTIN、SIGTTOU等信号的时候会进入该状态。</li>
-</ul>
-</li>
-<li>linux的CFS调度机制是什么？时间片&#x2F;policy（进程类别）&#x2F;priority（优先级）&#x2F;counter。linux的任务调度机制是什么？在每个进程的task_struct结构中有以下四项：policy、priority、counter、rt_priority。这四项是选择进程的依据。其中，policy是进程的调度策略，用来区分实时进程和普通进程，实时进程优先于普通进程运行；priority是进程(包括实时和普通)的静态优先级；counter是进程剩余的时间片，它的起始值就是priority的值；由于counter在后面计算一个处于可运行状态的进程值得运行的程度goodness时起重要作用，因此，counter 也可以看作是进程的动态优先级。rt_priority是实时进程特有的，用于实时进程间的选择。 Linux用函数goodness()来衡量一个处于可运行状态的进程值得运行的程度。该函数综合了以上提到的四项，还结合了一些其他的因素，给每个处于可运行状态的进程赋予一个权值(weight)，调度程序以这个权值作为选择进程的唯一依据。</li>
-<li>goroutine的GPM，没有时间片和优先级的概念，但也支持“抢占式调度”。 goroutine的主要状态grunnable、grunning、gwaiting</li>
-<li>线程的状态<ul>
-<li>runnable</li>
-<li>running</li>
-<li>blocked</li>
-<li>dead</li>
-</ul>
-</li>
-<li>进程、线程与协程的区别</li>
-<li>操作系统写时复制:<a href="https://juejin.cn/post/6844903702373859335">https://juejin.cn/post/6844903702373859335</a></li>
-<li><a href="https://imageslr.github.io/2020/07/07/user-mode-kernel-mode.html">操作系统为什么设计用户态和内核态，用户态和内核态的权限不同？怎么解决IO频繁发生内核和用户态的态的切换（缓存）？</a></li>
-<li><a href="https://www.jianshu.com/p/31cdfd6f5a48">select、epoll的监听回调机制，红黑树？</a></li>
-<li><a href="https://www.cnblogs.com/leoo2sk/archive/2009/12/11/talk-about-fork-in-linux.html">从一道面试题谈linux下fork的运行机制</a></li>
-<li>malloc分配多少内存：<a href="http://fallincode.com/blog/2020/01/malloc%e6%9c%80%e5%a4%9a%e8%83%bd%e5%88%86%e9%85%8d%e5%a4%9a%e5%b0%91%e5%86%85%e5%ad%98/">http://fallincode.com/blog/2020/01/malloc%e6%9c%80%e5%a4%9a%e8%83%bd%e5%88%86%e9%85%8d%e5%a4%9a%e5%b0%91%e5%86%85%e5%ad%98/</a></li>
+          <p>　　在2018年的CVPR上SiameseRPN模型被提出，它宣称在单目标跟踪问题上做到了state-of-the-art，能同时兼顾精度(accuracy)和速度(efficiency)。在这之后，很快又在ECCV上发表了DaSiamRPN模型，它在SiameseRPN基础进一步提升了追踪的性能。SiameseRPN不是一簇而就的，它的设计思想来源于SiameseFc，并引入物体检测领域的区域推荐网络(RPN),通过网络回归避免了多尺度测试，同时得到更加精准的目标框和目标的位置。实际使用中发现DaSiamRPN相比传统的KCF效果直观感受确实精度有较大提升，在普通pc无GPU环境上大概是10.6fps。这里主要结合<a href="http://openaccess.thecvf.com/content_cvpr_2018/papers/Li_High_Performance_Visual_CVPR_2018_paper.pdf">SimeseRPN的论文</a>和<a href="https://github.com/foolwood/DaSiamRPN">DaSiamRPN的代码</a>帮助了解SimeseRPN的模型结构以及DaSiamRPN的运行过程。</p>
+<h2 id="SiameseRPN模型"><a href="#SiameseRPN模型" class="headerlink" title="SiameseRPN模型"></a>SiameseRPN模型</h2><p>　　Siamese-RPN本质上是组合网络模型，它包括用于特征提取的Siamese网络和生成候选区域的RPN网络。<br>　　<strong>Siamese特征提取网络</strong>：它目前在追踪领域使用比较多，包括模板分支(template branch)和检测分支(detection branch)，它们都是经过裁剪的AlexNet卷积网络，用于提取图像的特征。两个分支网络参数和权重值完全相同，只是输入不同，模板分支输入模板帧中的目标部分(target patch)，检测分支输入当前需要追踪的帧的区域(target patch)。<br>　　<strong>RPN(region proposal subnetwork)候选区域生成网络</strong>：它包括的分类(classification)和回归(regression)两个分支。这里有个重要的锚点(anchor),就是通过RPN对每个锚点上的k个不同宽度和高度的矩形分类和回归，得到感兴趣区域。每个anhcor box要分前景和背景，所以cls&#x3D;2k；而每个anchor box都有[x, y, w, h]对应4个偏移量，所以reg&#x3D;4k。</p>
+<p><img src="/images/Siamese-RPN.jpg" alt="SiameseRPN模型"></p>
+<p>　　因此设模板分支输入为$z$维度为(127,127,3)，首先通过Siamese网络特征提取得到$ψ(z)$维度为(6,6,256)，然后再经历卷积分别的到$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$。检测分支输入为$x$，$ψ(x)$为Siamese特征提取网路的输出，以$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$为核卷积得到最终的SiameseRPN的输出，$*$表示卷积运算。<br>$$A_{w×h×2k}^{cls} &#x3D; [ψ(x)]<em>{cls} * [ψ(z)]</em>{cls}$$</p>
+<p>$$A_{w×h×4k}^{res} &#x3D; [ψ(x)]<em>{res} * [ψ(z)]</em>{res}$$</p>
+<h2 id="DaSiamRPN视频追踪的过程"><a href="#DaSiamRPN视频追踪的过程" class="headerlink" title="DaSiamRPN视频追踪的过程"></a>DaSiamRPN视频追踪的过程</h2><p>　　DaSiamRPN做视频目标追踪，DaSiamRPN相比SiameseRPN做了进一步的优化，例如训练时引入采样策略控制不平衡的样本分布，设计了一种distractor-aware模块执行增量学习等。结合官方的<a href="https://github.com/foolwood/DaSiamRPN">https://github.com/foolwood/DaSiamRPN</a> 中的例子，很容易将demo运行起来。需要注意的是github上的代码需要gpu运行环境，如果要在无gpu机器上运行DaSiamRPN的demo需要将有关cuda代码去掉。例如将将net.eval().cuda()换成net.eval()。DaSiamRPN的运行包含两个步骤：</p>
+<ol>
+<li>初始化。输入模板帧，得到$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$两个用于卷积的核。</li>
+<li>追踪。将待追踪帧输入到模型，得到每个候选区域的score和偏移delta。从候选区域中选出分数最高的候选区域proposal。</li>
 </ol>
-<h2 id="存储系统，内存和存储"><a href="#存储系统，内存和存储" class="headerlink" title="存储系统，内存和存储"></a>存储系统，内存和存储</h2><ol>
-<li>寄存器、缓存cache、内存和磁盘</li>
-<li>可执行文件的空间结构，进程的空间结构(虚拟地址空间，栈，堆，未初始化变量，初始化区，代码）</li>
-<li>查看进程使用的资源，top，ps，cat &#x2F;proc&#x2F;pid&#x2F;status </li>
-<li>进程的虚拟内存机制（虚拟地址-页表-物理地址）。Linux虚拟内存的实现需要6种机制的支持：地址映射机制、内存分配回收机制、缓存和刷新机制、请求页机制、交换机制和内存共享机制,内存管理程序通过映射机制把用户程序的逻辑地址映射到物理地址。当用户程序运行时，如果发现程序中要用的虚地址没有对应的物理内存，就发出了请求页要求。如果有空闲的内存可供分配，就请求分配内存(于是用到了内存的分配和回收)，并把正在使用的物理页记录在缓存中(使用了缓存机制)。如果没有足够的内存可供分配，那么就调用交换机制；腾出一部分内存。另外，在地址映射中要通过TLB(翻译后援存储器)来寻找物理页；交换机制中也要用到交换缓存，并且把物理页内容交换到交换文件中，也要修改页表来映射文件地址。</li>
-<li>操作系统内存分配算法常用缓存置换算法（FIFO，LRU，LFU），LRU算法的实现和优化？</li>
-<li>Linux系统原理之文件系统（磁盘、分区、文件系统、inode表、data block）</li>
-<li>在linux执行ls上实际发生了什么</li>
-<li><a href="http://www.ssdfans.com/?p=105901">CPU寻址过程</a>,tlb,cache miss.</li>
-<li><a href="https://blog.csdn.net/K346K346/article/details/80849966">栈和堆的区别</a></li>
+<h3 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a>初始化</h3><ol>
+<li>输出模板图片im，模板图片中目标位置target_pos，目标大小target_size，使用get_subwindow_tracking函数裁剪目标区域临近部分(target patch),并将裁剪得到图片resize到宽和高为127的图片。</li>
+<li>将模板目标区域裁剪好的视频输入网络模型的模板分支(template branch)，得到$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$</li>
+<li>使用generate_anchor函数产生anchers，其大小为$(271-127)&#x2F;8+1&#x3D;19,19*19*5&#x3D;1805$，anchor的维度为(4,1805)，这表示会有1805个候选区域，偏移量$d_x,d_y,d_w,d_h$</li>
 </ol>
-<h2 id="系统编程以及其它注意事项"><a href="#系统编程以及其它注意事项" class="headerlink" title="系统编程以及其它注意事项"></a>系统编程以及其它注意事项</h2><ol>
-<li>使用过哪些进程间通讯机制，并详细说明,linux进程之间的通信7种方式</li>
-<li>内核函数、系统调用、库函数&#x2F;API,strace系统调用追踪调试</li>
-<li>coredump文件产生？内存访问越界、野指针、堆栈溢出等等</li>
-<li>fork 和 vfork，exec，system（进程的用户空间是在执行系统调用的fork时创建的，基于写时复制的原理，子进程创建的时候继承了父进程的用户空间，仅仅是mm_struc结构的建立、vm_area_struct结构的建立以及页目录和页表的建立，并没有真正地复制一个物理页面，这也是为什么Linux内核能迅速地创建进程的原因之一。）写时复制(Copy-on-write)是一种可以推迟甚至免除拷贝数据的技术。内核此时并不复制整个进程空间，而是让父进程和子进程共享同一个拷贝。只有在需要写入的时候，数据才会被复制，从而使各个进程拥有各自的拷贝。也就是说，资源的复制只有在需要写入的时候才进行，在此之前，以只读方式共享。这种技术使地址空间上的页的拷贝被推迟到实际发生写入的时候。有时共享页根本不会被写入，例如，fork()后立即调用exec()，就无需复制父进程的页了。fork()的实际开销就是复制父进程的页表以及给子进程创建唯一的PCB。这种优化可以避免拷贝大量根本就不会使用的数据</li>
-<li>锁？互斥锁的属性设置、多进程共享内存的使用、多线程的使用互斥锁、pshaed和type设置。使用互斥量和条件变脸实现互斥锁 </li>
-<li>共享内存的同步机制，使用信号量，无锁数据结构 </li>
-<li>   多线程里一个线程sleep，实质上是在干嘛，忙等还是闲等。？</li>
-<li>   exit()函数与_exit()函数最大的区别就在于exit()函数在调用exit系统调用之前要检查文件的打开情况，把文件缓冲区中的内容写回文件，就是”清理I&#x2F;O缓冲”。</li>
-<li>select&#x2F;epoll <a href="https://www.cnblogs.com/anker/p/3265058.html">https://www.cnblogs.com/anker/p/3265058.html</a></li>
+<h3 id="追踪"><a href="#追踪" class="headerlink" title="追踪"></a>追踪</h3><ol>
+<li>输入追踪的图片im，基于上一帧的target_pos和目标的大小位置target_size，在图片中裁剪部分区域并将该区域resize到271*271得到x_crop。</li>
+<li>将x_crop输入网络的检测分支(detection branch)得到对所有anchor进行分类和回归得到delta和score。</li>
+<li>根据delta获取细化后的候选区域(refinement coordinates)<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># generate the refined top K proposals</span><br><span class="line">delta[0, :] = delta[0, :] * p.anchor[:, 2] + p.anchor[:, 0]  #x</span><br><span class="line">delta[1, :] = delta[1, :] * p.anchor[:, 3] + p.anchor[:, 1]  #y</span><br><span class="line">delta[2, :] = np.exp(delta[2, :]) * p.anchor[:, 2]           #w</span><br><span class="line">delta[3, :] = np.exp(delta[3, :]) * p.anchor[:, 3]           #h</span><br></pre></td></tr></table></figure></li>
+<li>结合scale penalty、ration penalty、cosine window调整每个候选区域score中每个候选区域的分数,选出分数最大的候选区域best_pscore_id.<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># size penalty</span><br><span class="line">s_c = change(sz(delta[2, :], delta[3, :]) / sz_wh(target_sz))  # scale penalty</span><br><span class="line">r_c = change((target_sz[0] / target_sz[1]) / (delta[2, :] / delta[3, :]))  # ratio penalty</span><br><span class="line">penalty = np.exp(-(r_c * s_c - 1.) * p.penalty_k)</span><br><span class="line">pscore = penalty * score</span><br><span class="line"># window float</span><br><span class="line">pscore = pscore * (1 - p.window_influence) + window * p.window_influence</span><br><span class="line">best_pscore_id = np.argmax(pscore)</span><br></pre></td></tr></table></figure></li>
+<li>计算出当前帧目标的位置target_pos和target_size。<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">target = delta[:, best_pscore_id] / scale_z</span><br><span class="line">target_sz = target_sz / scale_z</span><br><span class="line"></span><br><span class="line">lr = penalty[best_pscore_id] * score[best_pscore_id] * p.lr</span><br><span class="line"></span><br><span class="line">res_x = target_pos[0] + target[0]</span><br><span class="line">res_y = target_pos[1] + target[1]</span><br><span class="line">res_w = target_sz[0] * (1 - lr) + target[2] * lr</span><br><span class="line">res_h = target_sz[1] * (1 - lr) + target[3] * lr</span><br><span class="line"></span><br><span class="line">target_pos = np.array([res_x, res_y])</span><br><span class="line">target_sz = np.array([res_w, res_h])</span><br></pre></td></tr></table></figure></li>
 </ol>
-<ul>
-<li>select 内核态和用户态重复拷贝</li>
-<li>select 需要遍历遍历查找就绪的socket</li>
-<li>select 有数量限制1024</li>
-<li>epoll 注册时写进内核</li>
-<li>epoll_wait 返回就绪的事件</li>
-</ul>
-<h2 id="网络编程"><a href="#网络编程" class="headerlink" title="网络编程"></a>网络编程</h2><ol>
-<li><p>   简单了解C语言的socket编程api。socket，bind，listen，accept，connect，read&#x2F;write.</p>
-</li>
-<li><p>   Linux下socket的五种I&#x2F;O 模式，同步阻塞、同步非阻塞、同步I&#x2F;O复用、异步I&#x2F;O、信号驱动I&#x2F;O</p>
-</li>
-<li><p>   <a href="https://www.cnblogs.com/wxquare/archive/2004/01/13/6802078.html">Linux套接字和I&#x2F;O模型</a></p>
-</li>
-<li><p>   select和epoll的区别</p>
-</li>
-<li><p>   什么是I&#x2F;O 复用？关于I&#x2F;O多路复用(又被称为“事件驱动”)，首先要理解的是，操作系统为你提供了一个功能，当你的某个socket可读或者可写的时候，它可以给你一个通知。这样当配合非阻塞的socket使用时，只有当系统通知我哪个描述符可读了，我才去执行read操作，可以保证每次read都能读到有效数据而不做纯返回-1和EAGAIN的无用功。写操作类似。操作系统的这个功能通过select&#x2F;poll&#x2F;epoll&#x2F;kqueue之类的系统调用函数来使用，这些函数都可以同时监视多个描述符的读写就绪状况，这样，多个描述符的I&#x2F;O操作都能在一个线程内并发交替地顺序完成，这就叫I&#x2F;O多路复用，这里的“复用”指的是复用同一个线程。</p>
-</li>
-<li><p>   网络分析工具。ping&#x2F;tcpdump&#x2F;netstat&#x2F;lsof</p>
-</li>
-</ol>
-<h2 id="其它问题"><a href="#其它问题" class="headerlink" title="其它问题"></a>其它问题</h2><ol>
-<li><a href="https://juejin.cn/post/7010416601711427615">计算机中浮点数表示方法，以及浮点数转换中精度缺失的问题</a></li>
+<p>参考：</p>
+<ol>
+<li><a href="https://zhuanlan.zhihu.com/p/37856765">https://zhuanlan.zhihu.com/p/37856765</a></li>
+<li><a href="https://github.com/foolwood/DaSiamRPN">https://github.com/foolwood/DaSiamRPN</a></li>
+<li><a href="http://openaccess.thecvf.com/content_cvpr_2018/papers/Li_High_Performance_Visual_CVPR_2018_paper.pdf">http://openaccess.thecvf.com/content_cvpr_2018/papers/Li_High_Performance_Visual_CVPR_2018_paper.pdf</a></li>
 </ol>
 
       
@@ -1454,118 +1566,6 @@ print(resnet18_lib.get_source())
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/DaSiamRPN/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="wxquare">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="undefined | wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/08/13/AI/DaSiamRPN/" class="post-title-link" itemprop="url">了解DaSiamRPN追踪算法的运行过程</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>　　在2018年的CVPR上SiameseRPN模型被提出，它宣称在单目标跟踪问题上做到了state-of-the-art，能同时兼顾精度(accuracy)和速度(efficiency)。在这之后，很快又在ECCV上发表了DaSiamRPN模型，它在SiameseRPN基础进一步提升了追踪的性能。SiameseRPN不是一簇而就的，它的设计思想来源于SiameseFc，并引入物体检测领域的区域推荐网络(RPN),通过网络回归避免了多尺度测试，同时得到更加精准的目标框和目标的位置。实际使用中发现DaSiamRPN相比传统的KCF效果直观感受确实精度有较大提升，在普通pc无GPU环境上大概是10.6fps。这里主要结合<a href="http://openaccess.thecvf.com/content_cvpr_2018/papers/Li_High_Performance_Visual_CVPR_2018_paper.pdf">SimeseRPN的论文</a>和<a href="https://github.com/foolwood/DaSiamRPN">DaSiamRPN的代码</a>帮助了解SimeseRPN的模型结构以及DaSiamRPN的运行过程。</p>
-<h2 id="SiameseRPN模型"><a href="#SiameseRPN模型" class="headerlink" title="SiameseRPN模型"></a>SiameseRPN模型</h2><p>　　Siamese-RPN本质上是组合网络模型，它包括用于特征提取的Siamese网络和生成候选区域的RPN网络。<br>　　<strong>Siamese特征提取网络</strong>：它目前在追踪领域使用比较多，包括模板分支(template branch)和检测分支(detection branch)，它们都是经过裁剪的AlexNet卷积网络，用于提取图像的特征。两个分支网络参数和权重值完全相同，只是输入不同，模板分支输入模板帧中的目标部分(target patch)，检测分支输入当前需要追踪的帧的区域(target patch)。<br>　　<strong>RPN(region proposal subnetwork)候选区域生成网络</strong>：它包括的分类(classification)和回归(regression)两个分支。这里有个重要的锚点(anchor),就是通过RPN对每个锚点上的k个不同宽度和高度的矩形分类和回归，得到感兴趣区域。每个anhcor box要分前景和背景，所以cls&#x3D;2k；而每个anchor box都有[x, y, w, h]对应4个偏移量，所以reg&#x3D;4k。</p>
-<p><img src="/images/Siamese-RPN.jpg" alt="SiameseRPN模型"></p>
-<p>　　因此设模板分支输入为$z$维度为(127,127,3)，首先通过Siamese网络特征提取得到$ψ(z)$维度为(6,6,256)，然后再经历卷积分别的到$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$。检测分支输入为$x$，$ψ(x)$为Siamese特征提取网路的输出，以$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$为核卷积得到最终的SiameseRPN的输出，$*$表示卷积运算。<br>$$A_{w×h×2k}^{cls} &#x3D; [ψ(x)]<em>{cls} * [ψ(z)]</em>{cls}$$</p>
-<p>$$A_{w×h×4k}^{res} &#x3D; [ψ(x)]<em>{res} * [ψ(z)]</em>{res}$$</p>
-<h2 id="DaSiamRPN视频追踪的过程"><a href="#DaSiamRPN视频追踪的过程" class="headerlink" title="DaSiamRPN视频追踪的过程"></a>DaSiamRPN视频追踪的过程</h2><p>　　DaSiamRPN做视频目标追踪，DaSiamRPN相比SiameseRPN做了进一步的优化，例如训练时引入采样策略控制不平衡的样本分布，设计了一种distractor-aware模块执行增量学习等。结合官方的<a href="https://github.com/foolwood/DaSiamRPN">https://github.com/foolwood/DaSiamRPN</a> 中的例子，很容易将demo运行起来。需要注意的是github上的代码需要gpu运行环境，如果要在无gpu机器上运行DaSiamRPN的demo需要将有关cuda代码去掉。例如将将net.eval().cuda()换成net.eval()。DaSiamRPN的运行包含两个步骤：</p>
-<ol>
-<li>初始化。输入模板帧，得到$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$两个用于卷积的核。</li>
-<li>追踪。将待追踪帧输入到模型，得到每个候选区域的score和偏移delta。从候选区域中选出分数最高的候选区域proposal。</li>
-</ol>
-<h3 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a>初始化</h3><ol>
-<li>输出模板图片im，模板图片中目标位置target_pos，目标大小target_size，使用get_subwindow_tracking函数裁剪目标区域临近部分(target patch),并将裁剪得到图片resize到宽和高为127的图片。</li>
-<li>将模板目标区域裁剪好的视频输入网络模型的模板分支(template branch)，得到$[ψ(z)]<em>{cls}$和$[ψ(z)]</em>{res}$</li>
-<li>使用generate_anchor函数产生anchers，其大小为$(271-127)&#x2F;8+1&#x3D;19,19*19*5&#x3D;1805$，anchor的维度为(4,1805)，这表示会有1805个候选区域，偏移量$d_x,d_y,d_w,d_h$</li>
-</ol>
-<h3 id="追踪"><a href="#追踪" class="headerlink" title="追踪"></a>追踪</h3><ol>
-<li>输入追踪的图片im，基于上一帧的target_pos和目标的大小位置target_size，在图片中裁剪部分区域并将该区域resize到271*271得到x_crop。</li>
-<li>将x_crop输入网络的检测分支(detection branch)得到对所有anchor进行分类和回归得到delta和score。</li>
-<li>根据delta获取细化后的候选区域(refinement coordinates)<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># generate the refined top K proposals</span><br><span class="line">delta[0, :] = delta[0, :] * p.anchor[:, 2] + p.anchor[:, 0]  #x</span><br><span class="line">delta[1, :] = delta[1, :] * p.anchor[:, 3] + p.anchor[:, 1]  #y</span><br><span class="line">delta[2, :] = np.exp(delta[2, :]) * p.anchor[:, 2]           #w</span><br><span class="line">delta[3, :] = np.exp(delta[3, :]) * p.anchor[:, 3]           #h</span><br></pre></td></tr></table></figure></li>
-<li>结合scale penalty、ration penalty、cosine window调整每个候选区域score中每个候选区域的分数,选出分数最大的候选区域best_pscore_id.<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># size penalty</span><br><span class="line">s_c = change(sz(delta[2, :], delta[3, :]) / sz_wh(target_sz))  # scale penalty</span><br><span class="line">r_c = change((target_sz[0] / target_sz[1]) / (delta[2, :] / delta[3, :]))  # ratio penalty</span><br><span class="line">penalty = np.exp(-(r_c * s_c - 1.) * p.penalty_k)</span><br><span class="line">pscore = penalty * score</span><br><span class="line"># window float</span><br><span class="line">pscore = pscore * (1 - p.window_influence) + window * p.window_influence</span><br><span class="line">best_pscore_id = np.argmax(pscore)</span><br></pre></td></tr></table></figure></li>
-<li>计算出当前帧目标的位置target_pos和target_size。<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">target = delta[:, best_pscore_id] / scale_z</span><br><span class="line">target_sz = target_sz / scale_z</span><br><span class="line"></span><br><span class="line">lr = penalty[best_pscore_id] * score[best_pscore_id] * p.lr</span><br><span class="line"></span><br><span class="line">res_x = target_pos[0] + target[0]</span><br><span class="line">res_y = target_pos[1] + target[1]</span><br><span class="line">res_w = target_sz[0] * (1 - lr) + target[2] * lr</span><br><span class="line">res_h = target_sz[1] * (1 - lr) + target[3] * lr</span><br><span class="line"></span><br><span class="line">target_pos = np.array([res_x, res_y])</span><br><span class="line">target_sz = np.array([res_w, res_h])</span><br></pre></td></tr></table></figure></li>
-</ol>
-<p>参考：</p>
-<ol>
-<li><a href="https://zhuanlan.zhihu.com/p/37856765">https://zhuanlan.zhihu.com/p/37856765</a></li>
-<li><a href="https://github.com/foolwood/DaSiamRPN">https://github.com/foolwood/DaSiamRPN</a></li>
-<li><a href="http://openaccess.thecvf.com/content_cvpr_2018/papers/Li_High_Performance_Visual_CVPR_2018_paper.pdf">http://openaccess.thecvf.com/content_cvpr_2018/papers/Li_High_Performance_Visual_CVPR_2018_paper.pdf</a></li>
-</ol>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/TVM-hello/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1651,6 +1651,106 @@ print(resnet18_lib.get_source())
 <li>tvm tutorial: <a href="https://docs.tvm.ai/tutorials/frontend/from_tensorflow.html#sphx-glr-tutorials-frontend-from-tensorflow-py">Compile Tensorflow Models</a></li>
 <li>未填的坑：<a href="https://discuss.tvm.ai/t/cannot-find-config-for-target-llvm-when-using-autotvm-in-tensorflow-example-for-cpu/1544">https://discuss.tvm.ai/t/cannot-find-config-for-target-llvm-when-using-autotvm-in-tensorflow-example-for-cpu/1544</a></li>
 </ol>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/TVM-tutorial/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/08/13/AI/TVM-tutorial/" class="post-title-link" itemprop="url">TVM 学习资料整理（持续更新）</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p><strong>这周没什么产出，在TVM社区闲逛。。。</strong></p>
+<h3 id="1-TVM编译和安装"><a href="#1-TVM编译和安装" class="headerlink" title="1.TVM编译和安装"></a>1.TVM编译和安装</h3><ul>
+<li><a href="https://wxquare.github.io/2019/10/24/other/TVM-hello/">https://wxquare.github.io/2019/10/24/other/TVM-hello/</a></li>
+</ul>
+<h3 id="2-TVM中向量相加"><a href="#2-TVM中向量相加" class="headerlink" title="2.TVM中向量相加"></a>2.TVM中向量相加</h3><ul>
+<li><a href="http://tvm.d2l.ai/chapter_getting_started/vector_add.html">http://tvm.d2l.ai/chapter_getting_started/vector_add.html</a></li>
+</ul>
+<h3 id="3-TVM编译tensorflow模型"><a href="#3-TVM编译tensorflow模型" class="headerlink" title="3.TVM编译tensorflow模型"></a>3.TVM编译tensorflow模型</h3><ul>
+<li><a href="https://wxquare.github.io/2019/10/24/other/TVM-hello/">https://wxquare.github.io/2019/10/24/other/TVM-hello/</a></li>
+<li><a href="https://docs.tvm.ai/tutorials/frontend/from_tensorflow.html#sphx-glr-tutorials-frontend-from-tensorflow-py">https://docs.tvm.ai/tutorials/frontend/from_tensorflow.html#sphx-glr-tutorials-frontend-from-tensorflow-py</a></li>
+</ul>
+<h3 id="4-TVM怎么做模型量化？-doing"><a href="#4-TVM怎么做模型量化？-doing" class="headerlink" title="4.TVM怎么做模型量化？(doing)"></a>4.TVM怎么做模型量化？(doing)</h3><ul>
+<li><a href="https://discuss.tvm.ai/t/int8-quantization-proposal/516">https://discuss.tvm.ai/t/int8-quantization-proposal/516</a></li>
+<li><a href="https://discuss.tvm.ai/t/quantization-story/3920">https://discuss.tvm.ai/t/quantization-story/3920</a></li>
+</ul>
+<p>参考：<br>【1】 [Dive into Deep Learning Compiler](Dive into Deep Learning Compiler “<a href="http://tvm.d2l.ai/">http://tvm.d2l.ai/</a>“)<br>【2】 <a href="https://tvm.ai/">https://tvm.ai/</a></p>
 
       
     </div>
@@ -1769,106 +1869,6 @@ print(resnet18_lib.get_source())
 <td>116ms</td>
 </tr>
 </tbody></table>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/TVM-tutorial/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="wxquare">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="undefined | wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/08/13/AI/TVM-tutorial/" class="post-title-link" itemprop="url">TVM 学习资料整理（持续更新）</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p><strong>这周没什么产出，在TVM社区闲逛。。。</strong></p>
-<h3 id="1-TVM编译和安装"><a href="#1-TVM编译和安装" class="headerlink" title="1.TVM编译和安装"></a>1.TVM编译和安装</h3><ul>
-<li><a href="https://wxquare.github.io/2019/10/24/other/TVM-hello/">https://wxquare.github.io/2019/10/24/other/TVM-hello/</a></li>
-</ul>
-<h3 id="2-TVM中向量相加"><a href="#2-TVM中向量相加" class="headerlink" title="2.TVM中向量相加"></a>2.TVM中向量相加</h3><ul>
-<li><a href="http://tvm.d2l.ai/chapter_getting_started/vector_add.html">http://tvm.d2l.ai/chapter_getting_started/vector_add.html</a></li>
-</ul>
-<h3 id="3-TVM编译tensorflow模型"><a href="#3-TVM编译tensorflow模型" class="headerlink" title="3.TVM编译tensorflow模型"></a>3.TVM编译tensorflow模型</h3><ul>
-<li><a href="https://wxquare.github.io/2019/10/24/other/TVM-hello/">https://wxquare.github.io/2019/10/24/other/TVM-hello/</a></li>
-<li><a href="https://docs.tvm.ai/tutorials/frontend/from_tensorflow.html#sphx-glr-tutorials-frontend-from-tensorflow-py">https://docs.tvm.ai/tutorials/frontend/from_tensorflow.html#sphx-glr-tutorials-frontend-from-tensorflow-py</a></li>
-</ul>
-<h3 id="4-TVM怎么做模型量化？-doing"><a href="#4-TVM怎么做模型量化？-doing" class="headerlink" title="4.TVM怎么做模型量化？(doing)"></a>4.TVM怎么做模型量化？(doing)</h3><ul>
-<li><a href="https://discuss.tvm.ai/t/int8-quantization-proposal/516">https://discuss.tvm.ai/t/int8-quantization-proposal/516</a></li>
-<li><a href="https://discuss.tvm.ai/t/quantization-story/3920">https://discuss.tvm.ai/t/quantization-story/3920</a></li>
-</ul>
-<p>参考：<br>【1】 [Dive into Deep Learning Compiler](Dive into Deep Learning Compiler “<a href="http://tvm.d2l.ai/">http://tvm.d2l.ai/</a>“)<br>【2】 <a href="https://tvm.ai/">https://tvm.ai/</a></p>
 
       
     </div>
