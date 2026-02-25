@@ -1,0 +1,97 @@
+graph TB
+    subgraph decision ["Redis Hash 编码选择"]
+        start["创建 Hash"]
+        
+        check1{"元素个数 <= 512<br/>且<br/>单个value <= 64字节?"}
+        
+        ziplist["使用 ziplist<br/>压缩列表编码"]
+        hashtable["使用 hashtable<br/>哈希表编码"]
+        
+        start --> check1
+        check1 -->|是| ziplist
+        check1 -->|否| hashtable
+        
+        trigger["后续操作触发转换"]
+        convert["ziplist → hashtable<br/>不可逆转换"]
+        
+        ziplist --> trigger
+        trigger -->|超过阈值| convert
+        convert --> hashtable
+    end
+    
+    subgraph ziplist_struct ["ziplist 结构 - 紧凑存储"]
+        zl_header["zlbytes<br/>总字节数"]
+        zl_tail["zltail<br/>尾节点偏移"]
+        zl_len["zllen<br/>节点数量"]
+        
+        zl_entry1["field1<br/>'name'"]
+        zl_value1["value1<br/>'iPhone'"]
+        zl_entry2["field2<br/>'price'"]
+        zl_value2["value2<br/>'5999'"]
+        zl_entry3["field3<br/>'stock'"]
+        zl_value3["value3<br/>'100'"]
+        
+        zl_end["zlend<br/>0xFF"]
+        
+        zl_header --> zl_tail --> zl_len
+        zl_len --> zl_entry1 --> zl_value1 --> zl_entry2
+        zl_value2 --> zl_entry3 --> zl_value3 --> zl_end
+    end
+    
+    subgraph ht_struct ["hashtable 结构 - 快速索引"]
+        ht_table["dictEntry** table<br/>指针数组"]
+        
+        ht_idx0["[0] NULL"]
+        ht_idx1["[1] →"]
+        ht_idx2["[2] →"]
+        ht_idx3["[3] NULL"]
+        
+        ht_entry1["key: 'name'<br/>val: 'iPhone'<br/>next: NULL"]
+        ht_entry2["key: 'price'<br/>val: '5999'<br/>next: →"]
+        ht_entry3["key: 'stock'<br/>val: '100'<br/>next: NULL"]
+        
+        ht_table --> ht_idx0
+        ht_table --> ht_idx1
+        ht_table --> ht_idx2
+        ht_table --> ht_idx3
+        
+        ht_idx1 --> ht_entry1
+        ht_idx2 --> ht_entry2
+        ht_entry2 --> ht_entry3
+    end
+    
+    subgraph comparison ["性能对比"]
+        direction LR
+        
+        subgraph zl_perf ["ziplist"]
+            zl_get["HGET: O(n)<br/>顺序遍历"]
+            zl_set["HSET: O(n)<br/>查找+插入"]
+            zl_mem["内存: 低<br/>连续紧凑"]
+            zl_cache["CPU缓存: 友好<br/>连续访问"]
+        end
+        
+        subgraph ht_perf ["hashtable"]
+            ht_get["HGET: O(1)<br/>哈希定位"]
+            ht_set["HSET: O(1)<br/>直接插入"]
+            ht_mem["内存: 高<br/>指针开销"]
+            ht_cache["CPU缓存: 一般<br/>随机访问"]
+        end
+    end
+    
+    subgraph config ["配置参数 redis.conf"]
+        param1["hash-max-ziplist-entries 512<br/>最大元素个数"]
+        param2["hash-max-ziplist-value 64<br/>最大值长度 字节"]
+        
+        advice["建议:<br/>小对象用 ziplist 省内存<br/>大对象用 hashtable 保性能"]
+    end
+    
+    classDef zlStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef htStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef decisionStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef configStyle fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    
+    class ziplist,zl_header,zl_entry1,zl_value1,zl_entry2,zl_value2,zl_entry3,zl_value3,zl_end,zl_get,zl_set,zl_mem,zl_cache zlStyle
+    class hashtable,ht_table,ht_entry1,ht_entry2,ht_entry3,ht_get,ht_set,ht_mem,ht_cache htStyle
+    class start,check1,trigger,convert decisionStyle
+    class param1,param2,advice configStyle
+
