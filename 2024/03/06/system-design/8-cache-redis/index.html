@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="本文深入剖析 Redis 的核心原理、数据结构底层实现、电商场景最佳实践。包含 Hash ziplist 字节级内存分析、渐进式 rehash 机制、缓存一致性方案等。  📋 目录导航一、基础篇 Redis 核心特性与使用场景 五种数据类型与底层实现 常用命令与时间复杂度  二、数据结构深度剖析 Hash 底层实现详解（⭐ 核心重点） ziplist 压缩列表（字节级分析） hashtable">
+<meta property="og:type" content="article">
+<meta property="og:title" content="中间件 - Redis 原理与实践">
+<meta property="og:url" content="http://yoursite.com/2024/03/06/system-design/8-cache-redis/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="本文深入剖析 Redis 的核心原理、数据结构底层实现、电商场景最佳实践。包含 Hash ziplist 字节级内存分析、渐进式 rehash 机制、缓存一致性方案等。  📋 目录导航一、基础篇 Redis 核心特性与使用场景 五种数据类型与底层实现 常用命令与时间复杂度  二、数据结构深度剖析 Hash 底层实现详解（⭐ 核心重点） ziplist 压缩列表（字节级分析） hashtable">
+<meta property="og:locale">
+<meta property="og:image" content="http://yoursite.com/images/cache-remote-local-multilevel.png">
+<meta property="og:image" content="http://yoursite.com/images/double-buffer-lru.png">
+<meta property="og:image" content="http://yoursite.com/images/cache-double-buffer-lru.png">
+<meta property="og:image" content="http://yoursite.com/images/cache-refesh.png">
+<meta property="og:image" content="http://yoursite.com/images/cache-read-write-mode.png">
+<meta property="article:published_time" content="2024-03-05T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-01-07T16:00:00.000Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="数据结构">
+<meta property="article:tag" content="Redis">
+<meta property="article:tag" content="缓存">
+<meta property="article:tag" content="分布式系统">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/images/cache-remote-local-multilevel.png">
+
+
+<link rel="canonical" href="http://yoursite.com/2024/03/06/system-design/8-cache-redis/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2024/03/06/system-design/8-cache-redis/","path":"2024/03/06/system-design/8-cache-redis/","title":"中间件 - Redis 原理与实践"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>中间件 - Redis 原理与实践 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%F0%9F%93%8B-%E7%9B%AE%E5%BD%95%E5%AF%BC%E8%88%AA"><span class="nav-number">1.</span> <span class="nav-text">📋 目录导航</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%9F%BA%E7%A1%80%E7%AF%87"><span class="nav-number">1.1.</span> <span class="nav-text">一、基础篇</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90"><span class="nav-number">1.2.</span> <span class="nav-text">二、数据结构深度剖析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E8%B7%B5"><span class="nav-number">1.3.</span> <span class="nav-text">三、缓存设计与实践</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E9%AB%98%E7%BA%A7%E7%89%B9%E6%80%A7"><span class="nav-number">1.4.</span> <span class="nav-text">四、高级特性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96"><span class="nav-number">1.5.</span> <span class="nav-text">五、性能优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%AD%E3%80%81%E5%AE%9E%E6%88%98%E6%A1%88%E4%BE%8B"><span class="nav-number">1.6.</span> <span class="nav-text">六、实战案例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-%E6%A0%B8%E5%BF%83%E7%89%B9%E6%80%A7%E4%B8%8E%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">2.</span> <span class="nav-text">Redis 核心特性与使用场景</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E7%89%B9%E6%80%A7%E6%80%BB%E8%A7%88"><span class="nav-number">2.1.</span> <span class="nav-text">核心特性总览</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B8%E5%9E%8B%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">2.2.</span> <span class="nav-text">典型应用场景</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BC%93%E5%AD%98%E5%8A%A0%E9%80%9F%EF%BC%88%E4%B8%8A%E6%B8%B8%E6%95%B0%E6%8D%AE-%E6%95%B0%E6%8D%AE%E5%BA%93-%E5%A4%96%E9%83%A8%E8%81%9A%E5%90%88%E6%95%B0%E6%8D%AE%EF%BC%89"><span class="nav-number">2.2.1.</span> <span class="nav-text">缓存加速（上游数据&#x2F;数据库&#x2F;外部聚合数据）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%A1%E6%95%B0%E5%99%A8%E5%9C%BA%E6%99%AF%EF%BC%88incr-int%EF%BC%89"><span class="nav-number">2.3.</span> <span class="nav-text">计数器场景（incr + int）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ZSet-%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">2.4.</span> <span class="nav-text">ZSet 使用场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#List-%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">2.5.</span> <span class="nav-text">List 使用场景</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90-1"><span class="nav-number">3.</span> <span class="nav-text">二、数据结构深度剖析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Hash-%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3"><span class="nav-number">3.1.</span> <span class="nav-text">Hash 底层实现原理详解</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E7%BC%96%E7%A0%81%E9%80%89%E6%8B%A9%E7%AD%96%E7%95%A5"><span class="nav-number">3.1.1.</span> <span class="nav-text">1. 编码选择策略</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-ziplist%EF%BC%88%E5%8E%8B%E7%BC%A9%E5%88%97%E8%A1%A8%EF%BC%89-%E5%86%85%E5%AD%98%E4%BC%98%E5%8C%96"><span class="nav-number">3.1.2.</span> <span class="nav-text">2. ziplist（压缩列表）- 内存优化</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#2-1-%E6%95%B4%E4%BD%93%E7%BB%93%E6%9E%84"><span class="nav-number">3.1.2.1.</span> <span class="nav-text">2.1 整体结构</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-2-Entry-%E8%8A%82%E7%82%B9%E8%AF%A6%E7%BB%86%E7%BB%93%E6%9E%84%EF%BC%88%E4%B8%89%E9%83%A8%E5%88%86%EF%BC%89"><span class="nav-number">3.1.2.2.</span> <span class="nav-text">2.2 Entry 节点详细结构（三部分）</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link" href="#Part-1-prevlen%EF%BC%88%E5%89%8D%E4%B8%80%E8%8A%82%E7%82%B9%E9%95%BF%E5%BA%A6%EF%BC%89"><span class="nav-number">3.1.2.2.1.</span> <span class="nav-text">Part 1: prevlen（前一节点长度）</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#Part-2-encoding%EF%BC%88%E7%BC%96%E7%A0%81%E7%B1%BB%E5%9E%8B%EF%BC%89"><span class="nav-number">3.1.2.2.2.</span> <span class="nav-text">Part 2: encoding（编码类型）</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#Part-3-content%EF%BC%88%E5%AE%9E%E9%99%85%E6%95%B0%E6%8D%AE%EF%BC%89"><span class="nav-number">3.1.2.2.3.</span> <span class="nav-text">Part 3: content（实际数据）</span></a></li></ol></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-3-%E5%AE%9E%E9%99%85%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E7%A4%BA%E4%BE%8B"><span class="nav-number">3.1.2.3.</span> <span class="nav-text">2.3 实际内存布局示例</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-4-%E9%81%8D%E5%8E%86%E6%9C%BA%E5%88%B6"><span class="nav-number">3.1.2.4.</span> <span class="nav-text">2.4 遍历机制</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-5-%E8%BF%9E%E9%94%81%E6%9B%B4%E6%96%B0%E9%97%AE%E9%A2%98%EF%BC%88Cascade-Update%EF%BC%89"><span class="nav-number">3.1.2.5.</span> <span class="nav-text">2.5 连锁更新问题（Cascade Update）</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-6-%E7%BC%96%E7%A0%81%E7%A4%BA%E4%BE%8B%EF%BC%88Go-%E4%BB%A3%E7%A0%81%EF%BC%89"><span class="nav-number">3.1.2.6.</span> <span class="nav-text">2.6 编码示例（Go 代码）</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-7-%E4%BC%98%E5%8A%BF%E4%B8%8E%E9%99%90%E5%88%B6"><span class="nav-number">3.1.2.7.</span> <span class="nav-text">2.7 优势与限制</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-8-%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF%E6%80%BB%E7%BB%93"><span class="nav-number">3.1.2.8.</span> <span class="nav-text">2.8 应用场景总结</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-hashtable%EF%BC%88%E5%93%88%E5%B8%8C%E8%A1%A8%EF%BC%89-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96"><span class="nav-number">3.1.3.</span> <span class="nav-text">3. hashtable（哈希表）- 性能优化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-%E6%B8%90%E8%BF%9B%E5%BC%8F-Rehash-%E6%9C%BA%E5%88%B6%EF%BC%88%E6%A0%B8%E5%BF%83%EF%BC%89"><span class="nav-number">3.1.4.</span> <span class="nav-text">4. 渐进式 Rehash 机制（核心）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-%E5%93%88%E5%B8%8C%E5%87%BD%E6%95%B0"><span class="nav-number">3.1.5.</span> <span class="nav-text">5. 哈希函数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#6-%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94"><span class="nav-number">3.1.6.</span> <span class="nav-text">6. 性能对比</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#7-%E7%94%B5%E5%95%86%E5%9C%BA%E6%99%AF%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5"><span class="nav-number">3.1.7.</span> <span class="nav-text">7. 电商场景最佳实践</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#8-Hash-vs-String-JSON"><span class="nav-number">3.1.8.</span> <span class="nav-text">8. Hash vs String(JSON)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#9-%E7%9B%91%E6%8E%A7%E4%B8%8E%E8%B0%83%E4%BC%98"><span class="nav-number">3.1.9.</span> <span class="nav-text">9. 监控与调优</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#String-%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.2.</span> <span class="nav-text">String 底层实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#String-SDS-%E6%A0%B8%E5%BF%83%E7%BB%93%E6%9E%84"><span class="nav-number">3.2.1.</span> <span class="nav-text">String&#x2F;SDS 核心结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#SDS-%E7%BB%93%E6%9E%84"><span class="nav-number">3.2.2.</span> <span class="nav-text">SDS 结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BC%98%E5%8A%BF%E5%AF%B9%E6%AF%94"><span class="nav-number">3.2.3.</span> <span class="nav-text">优势对比</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BC%96%E7%A0%81%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.2.4.</span> <span class="nav-text">编码类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">3.2.5.</span> <span class="nav-text">应用场景</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#List-%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.3.</span> <span class="nav-text">List 底层实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#quicklist-%E7%BB%93%E6%9E%84"><span class="nav-number">3.3.1.</span> <span class="nav-text">quicklist 结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0"><span class="nav-number">3.3.2.</span> <span class="nav-text">配置参数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF-1"><span class="nav-number">3.3.3.</span> <span class="nav-text">应用场景</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94"><span class="nav-number">3.3.4.</span> <span class="nav-text">性能对比</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Set-%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.4.</span> <span class="nav-text">Set 底层实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#intset%EF%BC%88%E6%95%B4%E6%95%B0%E9%9B%86%E5%90%88%EF%BC%89"><span class="nav-number">3.4.1.</span> <span class="nav-text">intset（整数集合）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF-2"><span class="nav-number">3.4.2.</span> <span class="nav-text">应用场景</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ZSet-%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.5.</span> <span class="nav-text">ZSet 底层实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#ziplist-%E7%BC%96%E7%A0%81"><span class="nav-number">3.5.1.</span> <span class="nav-text">ziplist 编码</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#skiplist-hashtable-%E7%BC%96%E7%A0%81"><span class="nav-number">3.5.2.</span> <span class="nav-text">skiplist + hashtable 编码</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF-3"><span class="nav-number">3.5.3.</span> <span class="nav-text">应用场景</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E8%B7%B5-1"><span class="nav-number">4.</span> <span class="nav-text">三、缓存设计与实践</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%93%E5%AD%98%E5%AE%B9%E9%87%8F%E8%A7%84%E5%88%92%E4%B8%8E%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86"><span class="nav-number">4.1.</span> <span class="nav-text">缓存容量规划与内存管理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%86%85%E5%AD%98%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5"><span class="nav-number">4.1.1.</span> <span class="nav-text">内存淘汰策略</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%87%E6%9C%9F%E9%94%AE%E5%88%A0%E9%99%A4%E7%AD%96%E7%95%A5"><span class="nav-number">4.2.</span> <span class="nav-text">过期键删除策略</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E9%AB%98%E7%BA%A7%E7%89%B9%E6%80%A7-1"><span class="nav-number">5.</span> <span class="nav-text">四、高级特性</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8C%81%E4%B9%85%E5%8C%96%E6%9C%BA%E5%88%B6%EF%BC%88RDB%E3%80%81AOF%EF%BC%89"><span class="nav-number">5.1.</span> <span class="nav-text">持久化机制（RDB、AOF）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%AC%E5%9C%B0%E7%BC%93%E5%AD%98-vs-%E8%BF%9C%E7%A8%8B%E7%BC%93%E5%AD%98"><span class="nav-number">5.2.</span> <span class="nav-text">本地缓存 vs 远程缓存</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%8Cbuffer-vs-LRU-LFU"><span class="nav-number">5.2.1.</span> <span class="nav-text">双buffer vs LRU&#x2F;LFU</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%93%E5%AD%98%E4%B8%8EDB%E4%B8%80%E8%87%B4%E6%80%A7%E6%96%B9%E6%A1%88"><span class="nav-number">5.3.</span> <span class="nav-text">缓存与DB一致性方案</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%80%E8%87%B4%E6%80%A7%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90"><span class="nav-number">5.3.1.</span> <span class="nav-text">一致性问题分析</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%9D%E8%80%83%EF%BC%9A"><span class="nav-number">5.4.</span> <span class="nav-text">思考：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%93%E5%AD%98%E5%BC%82%E5%B8%B8%E5%A4%84%E7%90%86%EF%BC%88%E9%9B%AA%E5%B4%A9%E3%80%81%E7%A9%BF%E9%80%8F%E3%80%81%E5%87%BB%E7%A9%BF%EF%BC%89"><span class="nav-number">5.5.</span> <span class="nav-text">缓存异常处理（雪崩、穿透、击穿）</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%89%E5%A4%A7%E7%BC%93%E5%AD%98%E9%97%AE%E9%A2%98"><span class="nav-number">5.5.1.</span> <span class="nav-text">三大缓存问题</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96-1"><span class="nav-number">6.</span> <span class="nav-text">五、性能优化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88-Redis-%E8%BF%99%E4%B9%88%E5%BF%AB%EF%BC%9F"><span class="nav-number">6.1.</span> <span class="nav-text">为什么 Redis 这么快？</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E5%8E%9F%E5%9B%A0"><span class="nav-number">6.1.1.</span> <span class="nav-text">核心原因</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%95%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B"><span class="nav-number">6.2.</span> <span class="nav-text">单线程模型</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BD%BF%E7%94%A8%E5%8D%95%E7%BA%BF%E7%A8%8B%EF%BC%9F"><span class="nav-number">6.2.1.</span> <span class="nav-text">为什么使用单线程？</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%A7Key%E5%92%8C%E7%83%ADKey%E9%97%AE%E9%A2%98"><span class="nav-number">6.3.</span> <span class="nav-text">大Key和热Key问题</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%A4%A7Key%EF%BC%9F"><span class="nav-number">6.3.1.</span> <span class="nav-text">什么是大Key？</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%B9%E6%A1%88%EF%BC%88%E4%B8%BB%E4%BB%8E%E3%80%81%E5%93%A8%E5%85%B5%E3%80%81%E9%9B%86%E7%BE%A4%EF%BC%89"><span class="nav-number">6.4.</span> <span class="nav-text">分布式方案（主从、哨兵、集群）</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9E%B6%E6%9E%84%E6%BC%94%E8%BF%9B%E8%B7%AF%E7%BA%BF"><span class="nav-number">6.4.1.</span> <span class="nav-text">架构演进路线</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6"><span class="nav-number">6.4.2.</span> <span class="nav-text">主从复制</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%93%A8%E5%85%B5%E6%A8%A1%E5%BC%8F-Sentinel"><span class="nav-number">6.4.3.</span> <span class="nav-text">哨兵模式 (Sentinel)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Redis-Cluster-%E9%9B%86%E7%BE%A4%E6%A8%A1%E5%BC%8F"><span class="nav-number">6.4.4.</span> <span class="nav-text">Redis Cluster 集群模式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Codis"><span class="nav-number">6.4.5.</span> <span class="nav-text">Codis</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Lua-%E8%84%9A%E6%9C%AC"><span class="nav-number">6.5.</span> <span class="nav-text">Lua 脚本</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BD%BF%E7%94%A8-Lua%EF%BC%9F"><span class="nav-number">6.5.1.</span> <span class="nav-text">为什么使用 Lua？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="nav-number">6.5.2.</span> <span class="nav-text">使用注意事项</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis-%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4"><span class="nav-number">7.</span> <span class="nav-text">Redis 常用命令</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%9E%E6%8E%A5%E5%91%BD%E4%BB%A4"><span class="nav-number">7.1.</span> <span class="nav-text">连接命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4"><span class="nav-number">7.2.</span> <span class="nav-text">基础命令</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98%E4%B8%8E%E7%9B%91%E6%8E%A7"><span class="nav-number">8.</span> <span class="nav-text">性能调优与监控</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%A7Key%E5%92%8C%E7%83%ADKey%E9%97%AE%E9%A2%98-1"><span class="nav-number">8.1.</span> <span class="nav-text">大Key和热Key问题</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%A4%A7Key%EF%BC%9F-1"><span class="nav-number">8.1.1.</span> <span class="nav-text">什么是大Key？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A4%A7-Key-%E5%8D%B1%E5%AE%B3"><span class="nav-number">8.1.2.</span> <span class="nav-text">大 Key 危害</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%91%E7%8E%B0%E5%A4%A7-Key"><span class="nav-number">8.1.3.</span> <span class="nav-text">发现大 Key</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">8.1.4.</span> <span class="nav-text">解决方案</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%83%AD-Key-%E5%8D%B1%E5%AE%B3"><span class="nav-number">8.1.5.</span> <span class="nav-text">热 Key 危害</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88-1"><span class="nav-number">8.1.6.</span> <span class="nav-text">解决方案</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9B%91%E6%8E%A7%E6%8C%87%E6%A0%87"><span class="nav-number">8.2.</span> <span class="nav-text">监控指标</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%B3%E9%94%AE%E6%8C%87%E6%A0%87"><span class="nav-number">8.2.1.</span> <span class="nav-text">关键指标</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%9B%91%E6%8E%A7%E5%91%8A%E8%AD%A6"><span class="nav-number">8.2.2.</span> <span class="nav-text">监控告警</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81%E5%AE%9E%E6%88%98%E6%A1%88%E4%BE%8B-1"><span class="nav-number">9.</span> <span class="nav-text">六、实战案例</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E5%AE%9E%E7%8E%B0"><span class="nav-number">9.1.</span> <span class="nav-text">分布式锁实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E5%AE%9E%E7%8E%B0"><span class="nav-number">9.1.1.</span> <span class="nav-text">基本实现</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#BloomFilter-%E5%AE%9E%E8%B7%B5"><span class="nav-number">9.2.</span> <span class="nav-text">BloomFilter 实践</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8E%9F%E7%90%86"><span class="nav-number">9.2.1.</span> <span class="nav-text">原理</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%AC%E5%BC%8F"><span class="nav-number">9.3.</span> <span class="nav-text">公式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Redis-%E5%AE%9E%E7%8E%B0"><span class="nav-number">9.4.</span> <span class="nav-text">Redis 实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF-4"><span class="nav-number">9.5.</span> <span class="nav-text">应用场景</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A7%92%E6%9D%80%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1"><span class="nav-number">10.</span> <span class="nav-text">秒杀系统设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E9%97%AE%E9%A2%98"><span class="nav-number">10.1.</span> <span class="nav-text">核心问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%B9%E6%A1%88%E8%AE%BE%E8%AE%A1"><span class="nav-number">10.2.</span> <span class="nav-text">方案设计</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%92%E8%A1%8C%E6%A6%9C%E5%AE%9E%E7%8E%B0"><span class="nav-number">11.</span> <span class="nav-text">排行榜实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E6%97%B6%E6%8E%92%E8%A1%8C%E6%A6%9C"><span class="nav-number">11.1.</span> <span class="nav-text">实时排行榜</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AF%8F%E6%97%A5%E6%8E%92%E8%A1%8C%E6%A6%9C%EF%BC%88%E8%87%AA%E5%8A%A8%E8%BF%87%E6%9C%9F%EF%BC%89"><span class="nav-number">11.2.</span> <span class="nav-text">每日排行榜（自动过期）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SDK-%E6%8E%A8%E8%8D%90"><span class="nav-number">12.</span> <span class="nav-text">SDK 推荐</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Go-Client"><span class="nav-number">12.1.</span> <span class="nav-text">Go Client</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93"><span class="nav-number">13.</span> <span class="nav-text">核心知识点总结</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B3%E9%94%AE%E6%95%B0%E5%AD%97%E8%AE%B0%E5%BF%86"><span class="nav-number">13.1.</span> <span class="nav-text">关键数字记忆</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E9%80%89%E6%8B%A9%E5%86%B3%E7%AD%96%E6%A0%91"><span class="nav-number">13.2.</span> <span class="nav-text">数据结构选择决策树</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%93%E5%AD%98%E8%AE%BE%E8%AE%A1%E6%A3%80%E6%9F%A5%E6%B8%85%E5%8D%95"><span class="nav-number">13.3.</span> <span class="nav-text">缓存设计检查清单</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5%E9%80%9F%E6%9F%A5"><span class="nav-number">13.4.</span> <span class="nav-text">最佳实践速查</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%AF%E8%A7%86%E5%8C%96%E5%9B%BE%E8%A1%A8%E7%B4%A2%E5%BC%95"><span class="nav-number">14.</span> <span class="nav-text">可视化图表索引</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Hash-%E7%9B%B8%E5%85%B3"><span class="nav-number">14.1.</span> <span class="nav-text">Hash 相关</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Ziplist-%E7%9B%B8%E5%85%B3"><span class="nav-number">14.2.</span> <span class="nav-text">Ziplist 相关</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E6%88%98%E6%A1%88%E4%BE%8B"><span class="nav-number">14.3.</span> <span class="nav-text">实战案例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%AF%B9%E6%AF%94"><span class="nav-number">14.4.</span> <span class="nav-text">数据结构对比</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%A8%E8%8D%90%E9%98%85%E8%AF%BB"><span class="nav-number">15.</span> <span class="nav-text">推荐阅读</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%98%E6%96%B9%E6%96%87%E6%A1%A3"><span class="nav-number">15.1.</span> <span class="nav-text">官方文档</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B7%B1%E5%BA%A6%E6%96%87%E7%AB%A0"><span class="nav-number">15.2.</span> <span class="nav-text">深度文章</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E6%88%98%E6%A1%88%E4%BE%8B-1"><span class="nav-number">15.3.</span> <span class="nav-text">实战案例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96"><span class="nav-number">15.4.</span> <span class="nav-text">性能优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9D%A2%E8%AF%95%E9%A2%98%E5%BA%93"><span class="nav-number">15.5.</span> <span class="nav-text">面试题库</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97"><span class="nav-number">16.</span> <span class="nav-text">更新日志</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2024/03/06/system-design/8-cache-redis/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="中间件 - Redis 原理与实践 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          中间件 - Redis 原理与实践
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2024-03-06 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-06T00:00:00+08:00">2024-03-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-01-08 00:00:00" itemprop="dateModified" datetime="2026-01-08T00:00:00+08:00">2026-01-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><blockquote>
+<p>本文深入剖析 Redis 的核心原理、数据结构底层实现、电商场景最佳实践。包含 Hash ziplist 字节级内存分析、渐进式 rehash 机制、缓存一致性方案等。</p>
+</blockquote>
+<h2 id="📋-目录导航"><a href="#📋-目录导航" class="headerlink" title="📋 目录导航"></a>📋 目录导航</h2><h3 id="一、基础篇"><a href="#一、基础篇" class="headerlink" title="一、基础篇"></a>一、基础篇</h3><ol>
+<li><a href="#redis-%E6%A0%B8%E5%BF%83%E7%89%B9%E6%80%A7%E4%B8%8E%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF">Redis 核心特性与使用场景</a></li>
+<li><a href="#redis-5%E7%A7%8D%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84">五种数据类型与底层实现</a></li>
+<li><a href="#redis-%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4">常用命令与时间复杂度</a></li>
+</ol>
+<h3 id="二、数据结构深度剖析"><a href="#二、数据结构深度剖析" class="headerlink" title="二、数据结构深度剖析"></a>二、数据结构深度剖析</h3><ol>
+<li><a href="#hash-%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3">Hash 底层实现详解</a>（⭐ 核心重点）<ul>
+<li>ziplist 压缩列表（字节级分析）</li>
+<li>hashtable 哈希表（渐进式 rehash）</li>
+<li>实战案例：<code>&#123;name: &quot;iPhone&quot;, price: 5999&#125;</code></li>
+</ul>
+</li>
+<li><a href="#string-%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0">String&#x2F;SDS 实现</a></li>
+<li><a href="#list-%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0">List 实现（ziplist&#x2F;linkedlist&#x2F;quicklist）</a></li>
+<li><a href="#set-%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0">Set 实现（intset&#x2F;hashtable）</a></li>
+<li><a href="#zset-%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0">ZSet 实现（ziplist&#x2F;skiplist）</a></li>
+</ol>
+<h3 id="三、缓存设计与实践"><a href="#三、缓存设计与实践" class="headerlink" title="三、缓存设计与实践"></a>三、缓存设计与实践</h3><ol>
+<li><a href="#redis-%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF">缓存使用场景</a>（计数器、限流、队列）</li>
+<li><a href="#%E6%80%8E%E4%B9%88%E8%80%83%E8%99%91%E7%BC%93%E5%AD%98%E5%92%8Cdb%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7%E7%9A%84%E9%97%AE%E9%A2%98">缓存与DB一致性</a></li>
+<li><a href="#%E7%BC%93%E5%AD%98%E5%BC%82%E5%B8%B8%E4%B8%8E%E5%AF%B9%E5%BA%94%E7%9A%84%E8%A7%A3%E5%86%B3%E5%8A%9E%E6%B3%95">缓存异常处理</a>（雪崩、穿透、击穿）</li>
+<li><a href="#%E9%80%89%E6%8B%A9local-remote-multilevel-cache">本地缓存 vs 远程缓存</a></li>
+</ol>
+<h3 id="四、高级特性"><a href="#四、高级特性" class="headerlink" title="四、高级特性"></a>四、高级特性</h3><ol>
+<li><a href="#%E8%AE%A1%E7%AE%97%E6%89%80%E9%9C%80%E7%9A%84%E7%BC%93%E5%AD%98%E7%9A%84%E5%AE%B9%E9%87%8F%E5%BD%93%E5%AE%B9%E9%87%8F%E8%B6%85%E8%BF%87%E9%99%90%E5%88%B6%E6%97%B6%E7%9A%84%E6%B7%98%E6%B1%B0%E7%AD%96%E7%95%A5">内存管理</a>（淘汰策略、过期键删除）</li>
+<li><a href="#redis-%E4%B8%A4%E7%A7%8D%E6%95%B0%E6%8D%AE%E6%8C%81%E4%B9%85%E5%8C%96%E7%9A%84%E5%8E%9F%E7%90%86%E4%BB%A5%E5%8F%8A%E4%BC%98%E7%BC%BA%E7%82%B9">持久化机制</a>（RDB、AOF）</li>
+<li><a href="#redis%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%B9%E6%A1%88">分布式方案</a>（主从、哨兵、集群）</li>
+<li><a href="#redis--lua">Lua 脚本</a></li>
+</ol>
+<h3 id="五、性能优化"><a href="#五、性能优化" class="headerlink" title="五、性能优化"></a>五、性能优化</h3><ol>
+<li><a href="#redis-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%BF%99%E4%B9%88%E5%BF%AB">为什么 Redis 这么快</a></li>
+<li><a href="#redis-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BD%BF%E7%94%A8%E5%8D%95%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B">单线程模型</a></li>
+<li><a href="#%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98%E4%B8%8E%E7%9B%91%E6%8E%A7">性能调优实践</a></li>
+<li><a href="#%E5%A4%A7key%E5%92%8C%E7%83%ADkey%E9%97%AE%E9%A2%98">大 Key、热 Key 问题</a></li>
+</ol>
+<h3 id="六、实战案例"><a href="#六、实战案例" class="headerlink" title="六、实战案例"></a>六、实战案例</h3><ol>
+<li><a href="#redis%E5%AE%9E%E7%8E%B0%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81">分布式锁实现</a></li>
+<li><a href="#bloomfilter-%E5%AE%9E%E8%B7%B5">BloomFilter 应用</a></li>
+<li><a href="#%E7%A7%92%E6%9D%80%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1">秒杀系统设计</a></li>
+<li><a href="#%E6%8E%92%E8%A1%8C%E6%A6%9C%E5%AE%9E%E7%8E%B0">排行榜实现</a></li>
+</ol>
+<hr>
+<h2 id="Redis-核心特性与使用场景"><a href="#Redis-核心特性与使用场景" class="headerlink" title="Redis 核心特性与使用场景"></a>Redis 核心特性与使用场景</h2><h3 id="核心特性总览"><a href="#核心特性总览" class="headerlink" title="核心特性总览"></a>核心特性总览</h3><table>
+<thead>
+<tr>
+<th>特性</th>
+<th>说明</th>
+<th>优势</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>内存存储</strong></td>
+<td>数据全部在内存中</td>
+<td>极快的读写速度（10w+ QPS）</td>
+</tr>
+<tr>
+<td><strong>单线程模型</strong></td>
+<td>命令串行执行</td>
+<td>避免锁竞争，简化并发</td>
+</tr>
+<tr>
+<td><strong>多种数据结构</strong></td>
+<td>String&#x2F;Hash&#x2F;List&#x2F;Set&#x2F;ZSet</td>
+<td>覆盖多种业务场景</td>
+</tr>
+<tr>
+<td><strong>持久化支持</strong></td>
+<td>RDB + AOF</td>
+<td>数据不丢失</td>
+</tr>
+<tr>
+<td><strong>主从复制</strong></td>
+<td>读写分离</td>
+<td>高可用、高并发</td>
+</tr>
+<tr>
+<td><strong>集群模式</strong></td>
+<td>分片存储</td>
+<td>横向扩展能力</td>
+</tr>
+</tbody></table>
+<h3 id="典型应用场景"><a href="#典型应用场景" class="headerlink" title="典型应用场景"></a>典型应用场景</h3><h4 id="缓存加速（上游数据-数据库-外部聚合数据）"><a href="#缓存加速（上游数据-数据库-外部聚合数据）" class="headerlink" title="缓存加速（上游数据&#x2F;数据库&#x2F;外部聚合数据）"></a>缓存加速（上游数据&#x2F;数据库&#x2F;外部聚合数据）</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 查询商品详情</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetProduct</span><span class="params">(productID <span class="type">string</span>)</span></span> (*Product, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 1. 先查缓存</span></span><br><span class="line">    key := <span class="string">&quot;product:&quot;</span> + productID</span><br><span class="line">    data, err := rdb.Get(ctx, key).Result()</span><br><span class="line">    <span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> json.Unmarshal(data)  <span class="comment">// 缓存命中</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2. 缓存未命中，查询 DB</span></span><br><span class="line">    product, err := db.QueryProduct(productID)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3. 回写缓存（设置过期时间）</span></span><br><span class="line">    rdb.Set(ctx, key, json.Marshal(product), <span class="number">1</span>*time.Hour)</span><br><span class="line">    <span class="keyword">return</span> product, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 存储 JSON 对象</span></span><br><span class="line">rdb.Set(ctx, <span class="string">&quot;user:123&quot;</span>, <span class="string">`&#123;&quot;name&quot;:&quot;alice&quot;,&quot;age&quot;:25&#125;`</span>, <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 存储计数器</span></span><br><span class="line">rdb.Set(ctx, <span class="string">&quot;visit:count&quot;</span>, <span class="number">0</span>, <span class="number">0</span>)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><strong>性能提升</strong>：DB 查询 100ms → Redis 查询 1ms（提升 100 倍）</p>
+<h3 id="计数器场景（incr-int）"><a href="#计数器场景（incr-int）" class="headerlink" title="计数器场景（incr + int）"></a>计数器场景（incr + int）</h3><ol>
+<li>库存扣减（最核心场景）这是计数器最广泛的应用。在秒杀或大促期间，直接操作数据库库存会瞬间拖垮磁盘 I&#x2F;O。</li>
+</ol>
+<ul>
+<li>逻辑：</li>
+</ul>
+<ol>
+<li><p>活动开始前，将商品库存同步到 Redis：SET stock:sku:1001 50。 </p>
+</li>
+<li><p>用户下单时，执行：DECR stock:sku:1001。 </p>
+</li>
+<li><p>如果返回值 &gt;&#x3D; 0，放行去写订单；如果返回值 &lt; 0，立即返回“已售罄”。</p>
+</li>
+<li><p>优势： 内存级操作，单机可支撑 10w+ TPS，彻底杜绝超卖。</p>
+</li>
+<li><p>高频限流（防刷与风控）</p>
+</li>
+</ol>
+<ul>
+<li>逻辑： <ol>
+<li>Key 为 limit:user:{uid}:api:{api_name}。 </li>
+<li>每次请求执行 INCR。 </li>
+<li>如果是首次调用（返回 1），设置过期时间 EXPIRE 60（即 1 分钟限流）。 </li>
+<li>如果返回值超过阈值（如 100），直接拒绝请求。</li>
+</ol>
+</li>
+</ul>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">const bookNormalStockScript = `</span><br><span class="line"><span class="keyword">local</span> key = KEYS[<span class="number">1</span>]</span><br><span class="line"><span class="keyword">local</span> book_num = <span class="built_in">tonumber</span>(ARGV[<span class="number">1</span>])</span><br><span class="line"><span class="keyword">local</span> platform = <span class="built_in">tonumber</span>(ARGV[<span class="number">2</span>]) <span class="keyword">or</span> <span class="number">1</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> normal_stock = <span class="built_in">tonumber</span>(redis.call(<span class="string">&quot;HGET&quot;</span>, key, <span class="string">&quot;0&quot;</span>)) <span class="keyword">or</span> <span class="number">0</span></span><br><span class="line"><span class="keyword">if</span> book_num &gt; normal_stock <span class="keyword">then</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">-1</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line">redis.call(<span class="string">&quot;hincrby&quot;</span>, key, <span class="string">&quot;0&quot;</span>, -book_num)</span><br><span class="line">redis.call(<span class="string">&quot;HINCRBY&quot;</span>, key, <span class="string">&quot;booking&quot;</span>, book_num)</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> normal_stock - book_num</span><br><span class="line">`</span><br></pre></td></tr></table></figure>
+
+<h3 id="ZSet-使用场景"><a href="#ZSet-使用场景" class="headerlink" title="ZSet 使用场景"></a>ZSet 使用场景</h3><h3 id="List-使用场景"><a href="#List-使用场景" class="headerlink" title="List 使用场景"></a>List 使用场景</h3><ol>
+<li>在秒杀瞬间，由于流量远超数据库承受能力，先将请求“队列化”。</li>
+</ol>
+<ul>
+<li>操作： 用户的请求到达后，通过 LPUSH 压入一个排队列 seckill:queue:product_id。</li>
+<li>处理： 后台开启固定数量的 Worker 进程，通过 RPOP 或 BRPOP 获取请求进行后续减库存操作。</li>
+<li>优势： 削峰填谷，保护后端核心系统</li>
+</ul>
+<ol start="2">
+<li><p>浏览最近查看的商品（Top 10） 如果你在商城详情页下方展示“最近查看”，你可能需要先读取前 10 个显示给用户</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">// 1. 先读取前 10 个给前端展示，不删除</span><br><span class="line">products, _ := rdb.LRange(ctx, &quot;user:history:123&quot;, 0, 9).Result()</span><br><span class="line"></span><br><span class="line">// 2. 如果用户点开了某个商品，你再往里加，并裁剪</span><br><span class="line">pipe := rdb.Pipeline()</span><br><span class="line">pipe.LPush(ctx, &quot;user:history:123&quot;, &quot;new_product_id&quot;)</span><br><span class="line">pipe.LTrim(ctx, &quot;user:history:123&quot;, 0, 9) // 只保留最新的10个</span><br><span class="line">pipe.Exec(ctx)</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>缓存数据（db，service) 的数据，提高访问效率</p>
+<ul>
+<li>缓存容量评估</li>
+<li>缓存过期机制，时间</li>
+<li>缓存miss，溯源和监控</li>
+<li>缓存雪崩,大面积key失效DB保护。</li>
+<li>缓存击穿：热key击穿保护</li>
+<li>缓存穿透：无效key击穿DB保护</li>
+<li>缓存更新和一致性问题</li>
+<li>缓存热key和大key问题</li>
+</ul>
+</li>
+<li><p>限流和计数。lua脚本。（int,incr,lua）</p>
+<ul>
+<li>计数器 （临界值和frozen)</li>
+<li>token （常用）</li>
+<li>漏桶（平滑）</li>
+<li>基于redis的分布式限流：<a href="https://pandaychen.github.io/2020/09/21/A-DISTRIBUTE-GOREDIS-RATELIMITER-ANALYSIS/">https://pandaychen.github.io/2020/09/21/A-DISTRIBUTE-GOREDIS-RATELIMITER-ANALYSIS/</a></li>
+<li><a href="https://blog.csdn.net/crazymakercircle/article/details/130035504">https://blog.csdn.net/crazymakercircle/article/details/130035504</a></li>
+</ul>
+</li>
+<li><p>延时队列</p>
+<ul>
+<li>使用 ZSET+ 定时轮询的方式实现延时队列机制，任务集合记为 taskGroupKey</li>
+<li>生成任务以 当前时间戳 与 延时时间 相加后得到任务真正的触发时间，记为 time1，任务的 uuid 即为 taskid，当前时间戳记为 curTime</li>
+<li>使用 ZADD taskGroupKey time1 taskid 将任务写入 ZSET</li>
+<li>主逻辑不断以轮询方式 ZRANGE taskGroupKey curTime MAXTIME withscores 获取 [curTime,MAXTIME) 之间的任务，记为已经到期的延时任务（集）</li>
+<li>处理延时任务，处理完成后删除即可</li>
+<li>保存当前时间戳 curTime，作为下一次轮询时的 ZRANGE 指令的范围起点</li>
+<li><a href="https://github.com/bitleak/lmstfy">https://github.com/bitleak/lmstfy</a></li>
+</ul>
+</li>
+<li><p>消息队列</p>
+<ul>
+<li>redis 支持 List 数据结构，有时也会充当消息队列。使用生产者：LPUSH；消费者：RBPOP 或 RPOP 模拟队列</li>
+</ul>
+</li>
+<li><p>分布式锁：<a href="https://juejin.cn/post/6936956908007850014">https://juejin.cn/post/6936956908007850014</a></p>
+</li>
+<li><p>bloomfilter: <a href="https://juejin.cn/post/6844903862072000526">https://juejin.cn/post/6844903862072000526</a></p>
+<p>   $m &#x3D; -\frac{nln(p)}{(ln2)^2}$</p>
+<p>   $k&#x3D;\frac{m}{n}ln(2)$</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">n 是预期插入的元素数量（数据规模），例如 20,000,000。</span><br><span class="line">p 是预期的误判率，例如 0.001。</span><br><span class="line">m 是位数组的大小。</span><br><span class="line">k 是哈希函数的数量。</span><br></pre></td></tr></table></figure></li>
+</ol>
+<hr>
+<h2 id="二、数据结构深度剖析-1"><a href="#二、数据结构深度剖析-1" class="headerlink" title="二、数据结构深度剖析"></a>二、数据结构深度剖析</h2><blockquote>
+<p>深入理解 Redis 五种数据类型的底层实现原理，掌握内存优化技巧。</p>
+</blockquote>
+<p><strong>参考资料</strong>：</p>
+<ul>
+<li><a href="https://juejin.cn/post/6844904192042074126">Redis 五种数据类型底层结构详解</a></li>
+<li><a href="http://redisbook.com/">Redis 设计与实现</a></li>
+</ul>
+<hr>
+<h3 id="Hash-底层实现原理详解"><a href="#Hash-底层实现原理详解" class="headerlink" title="Hash 底层实现原理详解"></a>Hash 底层实现原理详解</h3><p>Redis Hash 采用<strong>两种编码方式</strong>，根据数据特征自动选择：</p>
+<h4 id="1-编码选择策略"><a href="#1-编码选择策略" class="headerlink" title="1. 编码选择策略"></a>1. 编码选择策略</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">graph LR</span><br><span class="line">    A[创建Hash] --&gt; B&#123;元素数&lt;=512 且 值长度&lt;=64B?&#125;</span><br><span class="line">    B --&gt;|是| C[ziplist 压缩列表]</span><br><span class="line">    B --&gt;|否| D[hashtable 哈希表]</span><br><span class="line">    C --&gt;|超过阈值| D</span><br><span class="line">    </span><br><span class="line">    style C fill:#e8f5e9</span><br><span class="line">    style D fill:#e1f5fe</span><br></pre></td></tr></table></figure>
+
+<p><strong>配置参数（redis.conf）：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hash-max-ziplist-entries 512   # 最大元素个数</span><br><span class="line">hash-max-ziplist-value 64       # 单个value最大长度（字节）</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-ziplist（压缩列表）-内存优化"><a href="#2-ziplist（压缩列表）-内存优化" class="headerlink" title="2. ziplist（压缩列表）- 内存优化"></a>2. ziplist（压缩列表）- 内存优化</h4><p><strong>适用场景</strong>：小对象存储（如商品详情、Session、小型 List）</p>
+<p>ziplist 是 Redis 为节省内存设计的<strong>紧凑型数据结构</strong>，所有数据存储在<strong>一块连续的内存</strong>中。</p>
+<h5 id="2-1-整体结构"><a href="#2-1-整体结构" class="headerlink" title="2.1 整体结构"></a>2.1 整体结构</h5><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">+----------+----------+--------+---------+---------+-----+---------+--------+</span><br><span class="line">| zlbytes  | zltail   | zllen  | entry1  | entry2  | ... | entryN  | zlend  |</span><br><span class="line">+----------+----------+--------+---------+---------+-----+---------+--------+</span><br><span class="line">  4字节      4字节      2字节    变长      变长            变长      1字节</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>长度</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>zlbytes</strong></td>
+<td>4 字节</td>
+<td>整个 ziplist 占用的总字节数（包括 zlbytes 自身）</td>
+</tr>
+<tr>
+<td><strong>zltail</strong></td>
+<td>4 字节</td>
+<td>到尾节点的偏移量（用于快速定位尾部，支持反向遍历）</td>
+</tr>
+<tr>
+<td><strong>zllen</strong></td>
+<td>2 字节</td>
+<td>节点数量，最大 65535；超过则需遍历整个列表计数</td>
+</tr>
+<tr>
+<td><strong>entry</strong></td>
+<td>变长</td>
+<td>实际数据节点，每个节点长度不固定</td>
+</tr>
+<tr>
+<td><strong>zlend</strong></td>
+<td>1 字节</td>
+<td>固定为 <code>0xFF</code>，标记 ziplist 结束</td>
+</tr>
+</tbody></table>
+<h5 id="2-2-Entry-节点详细结构（三部分）"><a href="#2-2-Entry-节点详细结构（三部分）" class="headerlink" title="2.2 Entry 节点详细结构（三部分）"></a>2.2 Entry 节点详细结构（三部分）</h5><p>每个 entry 由三部分组成：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">+----------+----------+----------+</span><br><span class="line">| prevlen  | encoding | content  |</span><br><span class="line">+----------+----------+----------+</span><br><span class="line">  1或5字节   1-5字节    变长</span><br></pre></td></tr></table></figure>
+
+<h6 id="Part-1-prevlen（前一节点长度）"><a href="#Part-1-prevlen（前一节点长度）" class="headerlink" title="Part 1: prevlen（前一节点长度）"></a><strong>Part 1: prevlen（前一节点长度）</strong></h6><p>记录<strong>前一个节点的长度</strong>，用于<strong>从后向前遍历</strong>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 编码规则</span></span><br><span class="line"><span class="keyword">if</span> (前一节点长度 &lt; <span class="number">254</span> 字节) &#123;</span><br><span class="line">    prevlen = <span class="number">1</span> 字节      <span class="comment">// 直接存储长度值</span></span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    prevlen = <span class="number">5</span> 字节      <span class="comment">// 第1字节=0xFE，后4字节存实际长度</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>示例</strong>：</p>
+<ul>
+<li>前一节点 10 字节 → <code>prevlen = 0x0A</code>（1字节）</li>
+<li>前一节点 300 字节 → <code>prevlen = 0xFE 0x00 0x00 0x01 0x2C</code>（5字节）</li>
+</ul>
+<h6 id="Part-2-encoding（编码类型）"><a href="#Part-2-encoding（编码类型）" class="headerlink" title="Part 2: encoding（编码类型）"></a><strong>Part 2: encoding（编码类型）</strong></h6><p>记录 <strong>content 的数据类型和长度</strong>，Redis 使用变长编码节省空间。</p>
+<p><strong>字符串编码</strong>（前 2 位标识）：</p>
+<table>
+<thead>
+<tr>
+<th>编码格式</th>
+<th>说明</th>
+<th>长度范围</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>00pppppp</code></td>
+<td>1字节，后6位存长度</td>
+<td>0 - 63 字节</td>
+</tr>
+<tr>
+<td><code>01pppppp qqqqqqqq</code></td>
+<td>2字节，14位存长度</td>
+<td>64 - 16383 字节</td>
+</tr>
+<tr>
+<td><code>10______ [4字节]</code></td>
+<td>5字节，后续4字节存长度</td>
+<td>&gt; 16383 字节</td>
+</tr>
+</tbody></table>
+<p><strong>整数编码</strong>（前 2 位为 <code>11</code>）：</p>
+<table>
+<thead>
+<tr>
+<th>编码值</th>
+<th>说明</th>
+<th>数据长度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>11000000</code></td>
+<td>int16_t</td>
+<td>2 字节</td>
+</tr>
+<tr>
+<td><code>11010000</code></td>
+<td>int32_t</td>
+<td>4 字节</td>
+</tr>
+<tr>
+<td><code>11100000</code></td>
+<td>int64_t</td>
+<td>8 字节</td>
+</tr>
+<tr>
+<td><code>11110000</code></td>
+<td>24 位整数</td>
+<td>3 字节</td>
+</tr>
+<tr>
+<td><code>11111110</code></td>
+<td>8 位整数</td>
+<td>1 字节</td>
+</tr>
+<tr>
+<td><code>1111xxxx</code></td>
+<td>0-12 的整数直接编码在后4位</td>
+<td><strong>0 字节</strong>（无 content）</td>
+</tr>
+</tbody></table>
+<h6 id="Part-3-content（实际数据）"><a href="#Part-3-content（实际数据）" class="headerlink" title="Part 3: content（实际数据）"></a><strong>Part 3: content（实际数据）</strong></h6><p>存储实际的数据内容，根据 <code>encoding</code> 字段解析：</p>
+<ul>
+<li><strong>字符串</strong>：原始字节数组</li>
+<li><strong>整数</strong>：二进制整数（小端序）</li>
+</ul>
+<h5 id="2-3-实际内存布局示例"><a href="#2-3-实际内存布局示例" class="headerlink" title="2.3 实际内存布局示例"></a>2.3 实际内存布局示例</h5><p>存储 Hash：<code>&#123;name: &quot;iPhone&quot;, price: 5999&#125;</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">偏移 | 字段        | 值                  | 说明</span><br><span class="line">-----|------------|---------------------|------------------</span><br><span class="line">0-3  | zlbytes    | 0x0000003F (63)     | 总大小 63 字节</span><br><span class="line">4-7  | zltail     | 0x00000035 (53)     | 尾节点偏移 53</span><br><span class="line">8-9  | zllen      | 0x0004 (4)          | 4个节点（2 field + 2 value）</span><br><span class="line"></span><br><span class="line">10   | prevlen    | 0x00                | 第一个节点</span><br><span class="line">11   | encoding   | 0x04                | 字符串长度 4</span><br><span class="line">12-15| content    | &quot;name&quot;              | field</span><br><span class="line">     | (共 6 字节)</span><br><span class="line"></span><br><span class="line">16   | prevlen    | 0x06                | 前一节点 6 字节</span><br><span class="line">17   | encoding   | 0x06                | 字符串长度 6</span><br><span class="line">18-23| content    | &quot;iPhone&quot;            | value</span><br><span class="line">     | (共 8 字节)</span><br><span class="line"></span><br><span class="line">24   | prevlen    | 0x08                | 前一节点 8 字节</span><br><span class="line">25   | encoding   | 0x05                | 字符串长度 5</span><br><span class="line">26-30| content    | &quot;price&quot;             | field</span><br><span class="line">     | (共 7 字节)</span><br><span class="line"></span><br><span class="line">31   | prevlen    | 0x07                | 前一节点 7 字节</span><br><span class="line">32   | encoding   | 0xC0                | int16_t</span><br><span class="line">33-34| content    | 0x176F (5999)       | value（整数优化）</span><br><span class="line">     | (共 4 字节)</span><br><span class="line"></span><br><span class="line">35   | zlend      | 0xFF                | 结束标记</span><br></pre></td></tr></table></figure>
+
+<p><strong>内存计算</strong>：10（头）+ 6 + 8 + 7 + 4 + 1（尾）&#x3D; <strong>36 字节</strong></p>
+<h5 id="2-4-遍历机制"><a href="#2-4-遍历机制" class="headerlink" title="2.4 遍历机制"></a>2.4 遍历机制</h5><p><strong>正向遍历（从头到尾）</strong>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ptr = ziplist + <span class="number">10</span>;  <span class="comment">// 跳过头部</span></span><br><span class="line"><span class="keyword">while</span> (*ptr != <span class="number">0xFF</span>) &#123;</span><br><span class="line">    <span class="comment">// 解析 encoding，计算节点长度</span></span><br><span class="line">    node_len = prevlen_size + encoding_size + content_size;</span><br><span class="line">    ptr += node_len;  <span class="comment">// 跳到下一个节点</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>反向遍历（从尾到头）</strong>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ptr = ziplist + zltail;  <span class="comment">// 直接定位尾节点</span></span><br><span class="line"><span class="keyword">while</span> (ptr &gt; ziplist + <span class="number">10</span>) &#123;</span><br><span class="line">    prevlen = parse_prevlen(ptr);  <span class="comment">// 读取 prevlen</span></span><br><span class="line">    ptr -= prevlen;  <span class="comment">// 跳到前一个节点</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="2-5-连锁更新问题（Cascade-Update）"><a href="#2-5-连锁更新问题（Cascade-Update）" class="headerlink" title="2.5 连锁更新问题（Cascade Update）"></a>2.5 连锁更新问题（Cascade Update）</h5><p><strong>问题</strong>：插入&#x2F;删除节点可能导致后续节点的 <code>prevlen</code> 字段长度变化。</p>
+<p><strong>场景示例</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">初始状态：[253B] [253B] [253B]</span><br><span class="line">          每个节点的 prevlen 占 1 字节</span><br><span class="line"></span><br><span class="line">插入大节点：[253B] [260B] [???] [???]</span><br><span class="line">                     ↑</span><br><span class="line">          前一节点变为 260 字节 (&gt;254)</span><br><span class="line">          当前节点的 prevlen 需从 1 字节扩展为 5 字节</span><br><span class="line">          当前节点长度从 253 → 257 字节</span><br><span class="line">          下一个节点的 prevlen 也需扩展...</span><br></pre></td></tr></table></figure>
+
+<p><strong>影响</strong>：</p>
+<ul>
+<li><strong>最坏时间复杂度</strong>：O(n²)（所有节点连锁更新）</li>
+<li><strong>内存重分配</strong>：连续的 <code>realloc</code> 操作</li>
+<li><strong>实际概率</strong>：极低（需要大量节点刚好在 254 字节边界）</li>
+</ul>
+<p><strong>Redis 优化</strong>：</p>
+<ul>
+<li>预先检查是否会触发连锁更新</li>
+<li>一次性分配足够内存，减少 <code>realloc</code> 次数</li>
+</ul>
+<h5 id="2-6-编码示例（Go-代码）"><a href="#2-6-编码示例（Go-代码）" class="headerlink" title="2.6 编码示例（Go 代码）"></a>2.6 编码示例（Go 代码）</h5><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 示例：字符串 &quot;hello&quot; 的 encoding</span></span><br><span class="line"><span class="comment">// 长度 5 &lt; 63，使用 00pppppp 格式</span></span><br><span class="line">encoding := <span class="number">0</span>b00000101  <span class="comment">// 0x05</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 示例：整数 100 的 encoding</span></span><br><span class="line"><span class="comment">// 范围在 int16 内，使用 11000000</span></span><br><span class="line">encoding := <span class="number">0</span>b11000000  <span class="comment">// 0xC0</span></span><br><span class="line">content := []<span class="type">byte</span>&#123;<span class="number">0x64</span>, <span class="number">0x00</span>&#125;  <span class="comment">// 小端序 100</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 示例：整数 12 的 encoding</span></span><br><span class="line"><span class="comment">// 0-12 直接编码在 encoding 中</span></span><br><span class="line">encoding := <span class="number">0</span>b11111100  <span class="comment">// 0xFC，后4位 1100 = 12</span></span><br><span class="line"><span class="comment">// 无需 content 字段！</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="2-7-优势与限制"><a href="#2-7-优势与限制" class="headerlink" title="2.7 优势与限制"></a>2.7 优势与限制</h5><p><strong>✅ 优势</strong>：</p>
+<ul>
+<li><strong>内存高效</strong>：无指针开销，紧凑存储<ul>
+<li>对比链表：每个节点省 16 字节（prev + next 指针）</li>
+</ul>
+</li>
+<li><strong>CPU 缓存友好</strong>：连续内存，预读优化</li>
+<li><strong>智能编码</strong>：整数压缩、变长存储</li>
+<li><strong>双向遍历</strong>：通过 <code>zltail</code> 和 <code>prevlen</code> 实现</li>
+</ul>
+<p><strong>❌ 限制</strong>：</p>
+<ul>
+<li><strong>查找慢</strong>：O(n) 顺序遍历，不适合大数据</li>
+<li><strong>连锁更新</strong>：最坏 O(n²)（实际很少发生）</li>
+<li><strong>内存重分配</strong>：插入&#x2F;删除需 <code>realloc</code></li>
+<li><strong>默认阈值</strong>：<ul>
+<li>Hash: 512 entries</li>
+<li>List: 512 entries</li>
+<li>ZSet: 128 entries</li>
+</ul>
+</li>
+</ul>
+<h5 id="2-8-应用场景总结"><a href="#2-8-应用场景总结" class="headerlink" title="2.8 应用场景总结"></a>2.8 应用场景总结</h5><table>
+<thead>
+<tr>
+<th>数据类型</th>
+<th>使用 ziplist 条件</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Hash</strong></td>
+<td>entries ≤ 512, value ≤ 64B</td>
+<td>商品基础信息、用户 Session</td>
+</tr>
+<tr>
+<td><strong>List</strong></td>
+<td>entries ≤ 512</td>
+<td>消息队列、浏览历史</td>
+</tr>
+<tr>
+<td><strong>ZSet</strong></td>
+<td>entries ≤ 128, member ≤ 64B</td>
+<td>小型排行榜、优先队列</td>
+</tr>
+</tbody></table>
+<p><strong>监控命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看编码类型</span></span><br><span class="line">redis&gt; OBJECT ENCODING mykey</span><br><span class="line"><span class="string">&quot;ziplist&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看内存占用</span></span><br><span class="line">redis&gt; MEMORY USAGE mykey</span><br><span class="line">(<span class="built_in">integer</span>) 184</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 ziplist 详细信息（DEBUG 命令）</span></span><br><span class="line">redis&gt; DEBUG OBJECT mykey</span><br><span class="line">Value at:0x7f8a9c0a0a00 refcount:1 encoding:ziplist serializedlength:48</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-hashtable（哈希表）-性能优化"><a href="#3-hashtable（哈希表）-性能优化" class="headerlink" title="3. hashtable（哈希表）- 性能优化"></a>3. hashtable（哈希表）- 性能优化</h4><p><strong>适用场景</strong>：大量字段或需要快速查找</p>
+<p><strong>核心结构</strong>：经典拉链法哈希表</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Redis 字典结构（dict）</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dict</span> &#123;</span></span><br><span class="line">    dictht ht[<span class="number">2</span>];        <span class="comment">// 两个哈希表，ht[1] 用于 rehash</span></span><br><span class="line">    <span class="type">long</span> rehashidx;      <span class="comment">// rehash 进度，-1 表示未进行</span></span><br><span class="line">&#125; dict;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 哈希表结构（dictht）</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dictht</span> &#123;</span></span><br><span class="line">    dictEntry **table;   <span class="comment">// 哈希表数组（指针数组）</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> size;  <span class="comment">// 大小（2的幂次方）</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> used;  <span class="comment">// 已有节点数</span></span><br><span class="line">&#125; dictht;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 哈希节点（dictEntry）</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dictEntry</span> &#123;</span></span><br><span class="line">    <span class="type">void</span> *key;           <span class="comment">// 键</span></span><br><span class="line">    <span class="type">void</span> *value;         <span class="comment">// 值</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">dictEntry</span> *<span class="title">next</span>;</span>  <span class="comment">// 链表指针（解决冲突）</span></span><br><span class="line">&#125; dictEntry;</span><br></pre></td></tr></table></figure>
+
+<p><strong>可视化结构</strong>：详见 <a href="/diagrams/mermaid/redis-hashtable.mmd">redis-hashtable.mmd</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">dict</span><br><span class="line">├── ht[0] (主哈希表)</span><br><span class="line">│   ├── table[0] → NULL</span><br><span class="line">│   ├── table[1] → entry(name:iPhone) → NULL</span><br><span class="line">│   ├── table[2] → entry(price:5999) → entry(stock:100) → NULL  (拉链法)</span><br><span class="line">│   └── ...</span><br><span class="line">└── ht[1] (rehash用)</span><br><span class="line">    └── NULL (未使用)</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-渐进式-Rehash-机制（核心）"><a href="#4-渐进式-Rehash-机制（核心）" class="headerlink" title="4. 渐进式 Rehash 机制（核心）"></a>4. 渐进式 Rehash 机制（核心）</h4><p><strong>触发条件</strong>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 扩容</span></span><br><span class="line"><span class="number">1.</span> 负载因子 = used/size &gt;= <span class="number">1</span> (无BGSAVE/BGREWRITEAOF时)</span><br><span class="line"><span class="number">2.</span> 负载因子 &gt;= <span class="number">5</span> (强制扩容)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 缩容</span></span><br><span class="line">负载因子 &lt; <span class="number">0.1</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>渐进式 Rehash 流程</strong>：</p>
+<ol>
+<li>为 <code>ht[1]</code> 分配空间（扩容为 <code>used * 2</code> 的最小 2^n）</li>
+<li><code>rehashidx = 0</code> 开始迁移</li>
+<li><strong>每次增删改查操作时</strong>，顺带迁移 <code>ht[0].table[rehashidx]</code> 的所有数据到 <code>ht[1]</code></li>
+<li>全部迁移完成后，释放 <code>ht[0]</code>，将 <code>ht[1]</code> 设为 <code>ht[0]</code></li>
+</ol>
+<p><strong>可视化流程</strong>：详见 <a href="/diagrams/mermaid/redis-rehash-process.mmd">redis-rehash-process.mmd</a></p>
+<p><strong>Rehash 期间的操作</strong>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">查找：先查 ht[<span class="number">0</span>]，未找到再查 ht[<span class="number">1</span>]</span><br><span class="line">新增：直接写入 ht[<span class="number">1</span>]（新数据不进旧表）</span><br><span class="line">删除/更新：在 ht[<span class="number">0</span>] 或 ht[<span class="number">1</span>] 中找到后操作</span><br></pre></td></tr></table></figure>
+
+<p><strong>为什么用渐进式？</strong></p>
+<ul>
+<li>避免一次性 rehash 大量数据导致 Redis 阻塞（毫秒级→微秒级）</li>
+<li>分摊到每次操作中，对单次请求影响极小</li>
+</ul>
+<h4 id="5-哈希函数"><a href="#5-哈希函数" class="headerlink" title="5. 哈希函数"></a>5. 哈希函数</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Redis 使用 MurmurHash2（速度快、分布均匀）</span></span><br><span class="line">hash = MurmurHash2(key, len);</span><br><span class="line">index = hash &amp; dict-&gt;ht[x].sizemask;  <span class="comment">// 位运算代替取模，性能优</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="6-性能对比"><a href="#6-性能对比" class="headerlink" title="6. 性能对比"></a>6. 性能对比</h4><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>ziplist</th>
+<th>hashtable</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>HSET</td>
+<td>O(n)</td>
+<td>O(1) 平均</td>
+</tr>
+<tr>
+<td>HGET</td>
+<td>O(n)</td>
+<td>O(1) 平均</td>
+</tr>
+<tr>
+<td>HDEL</td>
+<td>O(n)</td>
+<td>O(1) 平均</td>
+</tr>
+<tr>
+<td>HGETALL</td>
+<td>O(n)</td>
+<td>O(n)</td>
+</tr>
+<tr>
+<td>内存占用</td>
+<td><strong>低</strong>（无指针）</td>
+<td><strong>高</strong>（指针+空间换时间）</td>
+</tr>
+<tr>
+<td>CPU缓存</td>
+<td><strong>友好</strong>（连续）</td>
+<td>一般（随机访问）</td>
+</tr>
+<tr>
+<td>适用场景</td>
+<td>&lt; 512字段小对象</td>
+<td>大量字段快速查找</td>
+</tr>
+</tbody></table>
+<h4 id="7-电商场景最佳实践"><a href="#7-电商场景最佳实践" class="headerlink" title="7. 电商场景最佳实践"></a>7. 电商场景最佳实践</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ✅ 推荐：商品详情缓存（字段适中，频繁部分更新）</span></span><br><span class="line">rdb.HSet(ctx, <span class="string">&quot;product:1001&quot;</span>, <span class="keyword">map</span>[<span class="type">string</span>]<span class="keyword">interface</span>&#123;&#125;&#123;</span><br><span class="line">    <span class="string">&quot;name&quot;</span>:      <span class="string">&quot;iPhone 15&quot;</span>,</span><br><span class="line">    <span class="string">&quot;price&quot;</span>:     <span class="string">&quot;5999&quot;</span>,</span><br><span class="line">    <span class="string">&quot;stock&quot;</span>:     <span class="string">&quot;100&quot;</span>,</span><br><span class="line">    <span class="string">&quot;seller_id&quot;</span>: <span class="string">&quot;10086&quot;</span>,</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 只更新库存，无需读取整个对象</span></span><br><span class="line">rdb.HIncrBy(ctx, <span class="string">&quot;product:1001&quot;</span>, <span class="string">&quot;stock&quot;</span>, <span class="number">-1</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// ✅ 推荐：用户 Session 存储</span></span><br><span class="line">rdb.HSet(ctx, <span class="string">&quot;session:abc123&quot;</span>, <span class="string">&quot;uid&quot;</span>, <span class="string">&quot;88888&quot;</span>)</span><br><span class="line">rdb.HSet(ctx, <span class="string">&quot;session:abc123&quot;</span>, <span class="string">&quot;role&quot;</span>, <span class="string">&quot;buyer&quot;</span>)</span><br><span class="line">rdb.Expire(ctx, <span class="string">&quot;session:abc123&quot;</span>, <span class="number">30</span>*time.Minute)</span><br><span class="line"></span><br><span class="line"><span class="comment">// ❌ 避免：大 Hash（&gt; 10000 字段）</span></span><br><span class="line"><span class="comment">// 问题：HGETALL 阻塞、集群数据倾斜、持久化慢</span></span><br><span class="line"><span class="comment">// 解决：拆分为多个小 Hash，如 product:1001:base、product:1001:detail</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="8-Hash-vs-String-JSON"><a href="#8-Hash-vs-String-JSON" class="headerlink" title="8. Hash vs String(JSON)"></a>8. Hash vs String(JSON)</h4><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Hash</th>
+<th>String (JSON)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>内存</td>
+<td>ziplist 模式更省</td>
+<td>JSON 序列化开销大</td>
+</tr>
+<tr>
+<td>部分更新</td>
+<td>✅ <code>HSET field</code></td>
+<td>❌ 需整体 GET→改→SET</td>
+</tr>
+<tr>
+<td>序列化</td>
+<td>无需序列化</td>
+<td>需 JSON 编解码（CPU开销）</td>
+</tr>
+<tr>
+<td>查询灵活性</td>
+<td><code>HMGET</code> 精确取字段</td>
+<td><code>GET</code> 整体取出</td>
+</tr>
+<tr>
+<td>适用场景</td>
+<td>频繁部分字段更新</td>
+<td>整体读写、复杂嵌套结构</td>
+</tr>
+</tbody></table>
+<p><strong>选择建议</strong>：</p>
+<ul>
+<li><strong>用 Hash</strong>：对象字段 &lt; 1000，需要单独读写某些字段（如库存）</li>
+<li><strong>用 String</strong>：对象结构复杂嵌套（JSON），整体读写居多</li>
+</ul>
+<h4 id="9-监控与调优"><a href="#9-监控与调优" class="headerlink" title="9. 监控与调优"></a>9. 监控与调优</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 查找大 key</span></span><br><span class="line">redis-cli --bigkeys</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 查看 Hash 编码</span></span><br><span class="line">redis-cli&gt; OBJECT ENCODING product:1001</span><br><span class="line"><span class="string">&quot;ziplist&quot;</span>  <span class="comment"># 或 &quot;hashtable&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 查看内存占用</span></span><br><span class="line">redis-cli&gt; MEMORY USAGE product:1001</span><br><span class="line">(<span class="built_in">integer</span>) 184</span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. 调整编码阈值（根据业务调整）</span></span><br><span class="line">CONFIG SET hash-max-ziplist-entries 1024</span><br><span class="line">CONFIG SET hash-max-ziplist-value 128</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="String-底层实现"><a href="#String-底层实现" class="headerlink" title="String 底层实现"></a>String 底层实现</h3><h4 id="String-SDS-核心结构"><a href="#String-SDS-核心结构" class="headerlink" title="String&#x2F;SDS 核心结构"></a>String&#x2F;SDS 核心结构</h4><p>Redis String 实际是 <strong>SDS（Simple Dynamic String）</strong>，而非 C 字符串。</p>
+<h4 id="SDS-结构"><a href="#SDS-结构" class="headerlink" title="SDS 结构"></a>SDS 结构</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sdshdr</span> &#123;</span></span><br><span class="line">    <span class="type">int</span> len;        <span class="comment">// 已使用长度</span></span><br><span class="line">    <span class="type">int</span> <span class="built_in">free</span>;       <span class="comment">// 剩余可用空间</span></span><br><span class="line">    <span class="type">char</span> buf[];     <span class="comment">// 实际数据</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h4 id="优势对比"><a href="#优势对比" class="headerlink" title="优势对比"></a>优势对比</h4><table>
+<thead>
+<tr>
+<th>特性</th>
+<th>C 字符串</th>
+<th>SDS</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>获取长度</td>
+<td>O(n) 遍历</td>
+<td>O(1) 直接读 len</td>
+</tr>
+<tr>
+<td>缓冲区溢出</td>
+<td>不检查，易溢出</td>
+<td>自动扩容，安全</td>
+</tr>
+<tr>
+<td>内存重分配</td>
+<td>每次都需要</td>
+<td>空间预分配 + 惰性释放</td>
+</tr>
+<tr>
+<td>二进制安全</td>
+<td>否（遇 <code>\0</code> 结束）</td>
+<td>是（记录长度）</td>
+</tr>
+</tbody></table>
+<h4 id="编码类型"><a href="#编码类型" class="headerlink" title="编码类型"></a>编码类型</h4><p>String 有 3 种编码：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. int 编码（整数）</span></span><br><span class="line">SET count 100</span><br><span class="line">OBJECT ENCODING count  <span class="comment"># &quot;int&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. embstr 编码（短字符串 ≤ 44 字节）</span></span><br><span class="line">SET short <span class="string">&quot;hello&quot;</span></span><br><span class="line">OBJECT ENCODING short  <span class="comment"># &quot;embstr&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. raw 编码（长字符串 &gt; 44 字节）</span></span><br><span class="line">SET long <span class="string">&quot;very long string...&quot;</span></span><br><span class="line">OBJECT ENCODING long  <span class="comment"># &quot;raw&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>embstr vs raw</strong>：</p>
+<ul>
+<li><strong>embstr</strong>：SDS 和 redisObject 在连续内存（一次分配）</li>
+<li><strong>raw</strong>：SDS 和 redisObject 分开分配（两次分配）</li>
+</ul>
+<h4 id="应用场景"><a href="#应用场景" class="headerlink" title="应用场景"></a>应用场景</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. 计数器</span></span><br><span class="line">rdb.Incr(ctx, <span class="string">&quot;page:views&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 分布式 ID 生成</span></span><br><span class="line">id := rdb.Incr(ctx, <span class="string">&quot;order:id&quot;</span>).Val()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 限流（固定窗口）</span></span><br><span class="line">count := rdb.Incr(ctx, <span class="string">&quot;limit:user:123&quot;</span>).Val()</span><br><span class="line"><span class="keyword">if</span> count == <span class="number">1</span> &#123;</span><br><span class="line">    rdb.Expire(ctx, <span class="string">&quot;limit:user:123&quot;</span>, <span class="number">60</span>*time.Second)</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> count &gt; <span class="number">100</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> ErrRateLimited</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 4. Session 存储</span></span><br><span class="line">rdb.Set(ctx, <span class="string">&quot;session:token_abc&quot;</span>, userJSON, <span class="number">30</span>*time.Minute)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="List-底层实现"><a href="#List-底层实现" class="headerlink" title="List 底层实现"></a>List 底层实现</h3><p>List 在 Redis 3.2 之前使用 <strong>ziplist</strong> 或 <strong>linkedlist</strong>，3.2+ 统一使用 <strong>quicklist</strong>。</p>
+<h4 id="quicklist-结构"><a href="#quicklist-结构" class="headerlink" title="quicklist 结构"></a>quicklist 结构</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">quicklist = ziplist 链表</span><br><span class="line"></span><br><span class="line">[ziplist1] ⇄ [ziplist2] ⇄ [ziplist3] ⇄ [ziplist4]</span><br><span class="line">    ↓             ↓             ↓             ↓</span><br><span class="line">  [a,b,c]      [d,e,f]      [g,h,i]      [j,k,l]</span><br></pre></td></tr></table></figure>
+
+<p><strong>设计思想</strong>：</p>
+<ul>
+<li><strong>ziplist</strong>：内存紧凑，但大量数据时性能差</li>
+<li><strong>linkedlist</strong>：插入快，但内存碎片多</li>
+<li><strong>quicklist</strong>：折中方案，每个节点是一个小 ziplist</li>
+</ul>
+<h4 id="配置参数"><a href="#配置参数" class="headerlink" title="配置参数"></a>配置参数</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># 每个 ziplist 的最大大小（字节）</span><br><span class="line">list-max-ziplist-size -2  # -2 表示 8KB</span><br><span class="line"></span><br><span class="line"># 两端不压缩的节点数（LZF 压缩）</span><br><span class="line">list-compress-depth 0  # 0 表示不压缩</span><br></pre></td></tr></table></figure>
+
+<h4 id="应用场景-1"><a href="#应用场景-1" class="headerlink" title="应用场景"></a>应用场景</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. 消息队列（FIFO）</span></span><br><span class="line">rdb.LPush(ctx, <span class="string">&quot;queue:tasks&quot;</span>, task1, task2)  <span class="comment">// 生产者</span></span><br><span class="line">task := rdb.RPop(ctx, <span class="string">&quot;queue:tasks&quot;</span>)         <span class="comment">// 消费者</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 最近浏览记录（LIFO）</span></span><br><span class="line">rdb.LPush(ctx, <span class="string">&quot;user:123:history&quot;</span>, productID)</span><br><span class="line">rdb.LTrim(ctx, <span class="string">&quot;user:123:history&quot;</span>, <span class="number">0</span>, <span class="number">9</span>)  <span class="comment">// 只保留最新 10 条</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 时间线（Timeline）</span></span><br><span class="line">rdb.LPush(ctx, <span class="string">&quot;timeline:user:123&quot;</span>, postID)</span><br><span class="line">posts := rdb.LRange(ctx, <span class="string">&quot;timeline:user:123&quot;</span>, <span class="number">0</span>, <span class="number">19</span>)  <span class="comment">// 最新 20 条</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 4. 阻塞队列（BRPOP）</span></span><br><span class="line">task := rdb.BRPop(ctx, <span class="number">5</span>*time.Second, <span class="string">&quot;queue:tasks&quot;</span>)  <span class="comment">// 阻塞等待</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="性能对比"><a href="#性能对比" class="headerlink" title="性能对比"></a>性能对比</h4><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>时间复杂度</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>LPUSH&#x2F;RPUSH</td>
+<td>O(1)</td>
+<td>头尾插入</td>
+</tr>
+<tr>
+<td>LPOP&#x2F;RPOP</td>
+<td>O(1)</td>
+<td>头尾弹出</td>
+</tr>
+<tr>
+<td>LINDEX</td>
+<td>O(n)</td>
+<td>按索引查询</td>
+</tr>
+<tr>
+<td>LRANGE</td>
+<td>O(n)</td>
+<td>范围查询</td>
+</tr>
+<tr>
+<td>LINSERT</td>
+<td>O(n)</td>
+<td>中间插入</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="Set-底层实现"><a href="#Set-底层实现" class="headerlink" title="Set 底层实现"></a>Set 底层实现</h3><p>Set 使用 <strong>intset</strong> 或 <strong>hashtable</strong> 编码。</p>
+<h4 id="intset（整数集合）"><a href="#intset（整数集合）" class="headerlink" title="intset（整数集合）"></a>intset（整数集合）</h4><p><strong>适用条件</strong>：</p>
+<ul>
+<li>所有元素都是整数</li>
+<li>元素数量 ≤ 512（<code>set-max-intset-entries</code>）</li>
+</ul>
+<p><strong>结构</strong>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">intset</span> &#123;</span></span><br><span class="line">    <span class="type">uint32_t</span> encoding;  <span class="comment">// INTSET_ENC_INT16/INT32/INT64</span></span><br><span class="line">    <span class="type">uint32_t</span> length;    <span class="comment">// 元素数量</span></span><br><span class="line">    <span class="type">int8_t</span> contents[];  <span class="comment">// 有序数组</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>特点</strong>：</p>
+<ul>
+<li>✅ 有序存储，二分查找 O(log n)</li>
+<li>✅ 内存紧凑</li>
+<li>❌ 插入&#x2F;删除需移动元素 O(n)</li>
+</ul>
+<h4 id="应用场景-2"><a href="#应用场景-2" class="headerlink" title="应用场景"></a>应用场景</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. 标签系统</span></span><br><span class="line">rdb.SAdd(ctx, <span class="string">&quot;user:123:tags&quot;</span>, <span class="string">&quot;VIP&quot;</span>, <span class="string">&quot;男性&quot;</span>, <span class="string">&quot;90后&quot;</span>)</span><br><span class="line">tags := rdb.SMembers(ctx, <span class="string">&quot;user:123:tags&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 共同好友</span></span><br><span class="line">rdb.SAdd(ctx, <span class="string">&quot;user:123:friends&quot;</span>, <span class="string">&quot;456&quot;</span>, <span class="string">&quot;789&quot;</span>)</span><br><span class="line">rdb.SAdd(ctx, <span class="string">&quot;user:456:friends&quot;</span>, <span class="string">&quot;123&quot;</span>, <span class="string">&quot;789&quot;</span>)</span><br><span class="line">common := rdb.SInter(ctx, <span class="string">&quot;user:123:friends&quot;</span>, <span class="string">&quot;user:456:friends&quot;</span>)  <span class="comment">// [789]</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 去重（抽奖池）</span></span><br><span class="line">rdb.SAdd(ctx, <span class="string">&quot;lottery:pool&quot;</span>, userIDs...)</span><br><span class="line">winner := rdb.SPop(ctx, <span class="string">&quot;lottery:pool&quot;</span>)  <span class="comment">// 随机抽取</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 4. 点赞用户列表</span></span><br><span class="line">rdb.SAdd(ctx, <span class="string">&quot;post:1001:likes&quot;</span>, <span class="string">&quot;user:123&quot;</span>)</span><br><span class="line">isLiked := rdb.SIsMember(ctx, <span class="string">&quot;post:1001:likes&quot;</span>, <span class="string">&quot;user:123&quot;</span>)</span><br><span class="line">likeCount := rdb.SCard(ctx, <span class="string">&quot;post:1001:likes&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="ZSet-底层实现"><a href="#ZSet-底层实现" class="headerlink" title="ZSet 底层实现"></a>ZSet 底层实现</h3><p>ZSet 使用 <strong>ziplist</strong> 或 <strong>skiplist + hashtable</strong> 编码。</p>
+<h4 id="ziplist-编码"><a href="#ziplist-编码" class="headerlink" title="ziplist 编码"></a>ziplist 编码</h4><p><strong>条件</strong>：</p>
+<ul>
+<li>元素数量 ≤ 128（<code>zset-max-ziplist-entries</code>）</li>
+<li>单个元素 ≤ 64 字节（<code>zset-max-ziplist-value</code>）</li>
+</ul>
+<p><strong>存储格式</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[member1, score1, member2, score2, ...]</span><br><span class="line">按 score 有序存储</span><br></pre></td></tr></table></figure>
+
+<h4 id="skiplist-hashtable-编码"><a href="#skiplist-hashtable-编码" class="headerlink" title="skiplist + hashtable 编码"></a>skiplist + hashtable 编码</h4><p><strong>为什么用两种结构？</strong></p>
+<ul>
+<li><strong>skiplist</strong>：按 score 有序，范围查询 O(log n)</li>
+<li><strong>hashtable</strong>：按 member 查找，O(1) 获取 score</li>
+</ul>
+<p><strong>skiplist 结构</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Level 3:  1 --------------------------------&gt; 100</span><br><span class="line">Level 2:  1 -------&gt; 50 -------------------&gt; 100</span><br><span class="line">Level 1:  1 --&gt; 25 &gt; 50 --&gt; 75 ------------&gt; 100</span><br><span class="line">Level 0:  1 &gt; 10 &gt; 25 &gt; 50 &gt; 75 &gt; 90 &gt; 100</span><br></pre></td></tr></table></figure>
+
+<p>平均查找复杂度：O(log n)</p>
+<h4 id="应用场景-3"><a href="#应用场景-3" class="headerlink" title="应用场景"></a>应用场景</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. 排行榜</span></span><br><span class="line">rdb.ZAdd(ctx, <span class="string">&quot;rank:score&quot;</span>, &amp;redis.Z&#123;Score: <span class="number">5999</span>, Member: <span class="string">&quot;user:123&quot;</span>&#125;)</span><br><span class="line">top10 := rdb.ZRevRange(ctx, <span class="string">&quot;rank:score&quot;</span>, <span class="number">0</span>, <span class="number">9</span>)  <span class="comment">// 前 10 名</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 延时队列</span></span><br><span class="line">rdb.ZAdd(ctx, <span class="string">&quot;delay:queue&quot;</span>, &amp;redis.Z&#123;</span><br><span class="line">    Score:  <span class="type">float64</span>(time.Now().Add(<span class="number">5</span>*time.Minute).Unix()),</span><br><span class="line">    Member: taskID,</span><br><span class="line">&#125;)</span><br><span class="line"><span class="comment">// 定时拉取到期任务</span></span><br><span class="line">tasks := rdb.ZRangeByScore(ctx, <span class="string">&quot;delay:queue&quot;</span>, &amp;redis.ZRangeBy&#123;</span><br><span class="line">    Min: <span class="string">&quot;0&quot;</span>,</span><br><span class="line">    Max: strconv.Itoa(<span class="type">int</span>(time.Now().Unix())),</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 权重推荐</span></span><br><span class="line">rdb.ZAdd(ctx, <span class="string">&quot;recommend:user:123&quot;</span>, &amp;redis.Z&#123;Score: <span class="number">0.95</span>, Member: <span class="string">&quot;item:1001&quot;</span>&#125;)</span><br><span class="line">recommended := rdb.ZRevRangeByScore(ctx, <span class="string">&quot;recommend:user:123&quot;</span>, &amp;redis.ZRangeBy&#123;</span><br><span class="line">    Min: <span class="string">&quot;0.8&quot;</span>,</span><br><span class="line">    Max: <span class="string">&quot;+inf&quot;</span>,</span><br><span class="line">    Count: <span class="number">10</span>,</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 4. 微信步数排行榜</span></span><br><span class="line">rdb.ZAdd(ctx, <span class="string">&quot;steps:2026-01-08&quot;</span>, &amp;redis.Z&#123;Score: <span class="number">10000</span>, Member: <span class="string">&quot;user:123&quot;</span>&#125;)</span><br><span class="line">myRank := rdb.ZRevRank(ctx, <span class="string">&quot;steps:2026-01-08&quot;</span>, <span class="string">&quot;user:123&quot;</span>)  <span class="comment">// 我的排名</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="三、缓存设计与实践-1"><a href="#三、缓存设计与实践-1" class="headerlink" title="三、缓存设计与实践"></a>三、缓存设计与实践</h2><blockquote>
+<p>掌握缓存使用模式、一致性方案、异常处理策略，构建高可用缓存系统。</p>
+</blockquote>
+<hr>
+<h3 id="缓存容量规划与内存管理"><a href="#缓存容量规划与内存管理" class="headerlink" title="缓存容量规划与内存管理"></a>缓存容量规划与内存管理</h3><h4 id="内存淘汰策略"><a href="#内存淘汰策略" class="headerlink" title="内存淘汰策略"></a>内存淘汰策略</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">- noeviction(默认策略)：对于写请求不再提供服务，直接返回错误（DEL请求和部分特殊请求除外）</span><br><span class="line">- allkeys-lru：从所有key中使用LRU算法进行淘汰</span><br><span class="line">- volatile-lru：从设置了过期时间的key中使用LRU算法进行淘汰</span><br><span class="line">- allkeys-random：从所有key中随机淘汰数据</span><br><span class="line">- volatile-random：从设置了过期时间的key中随机淘汰</span><br><span class="line">- volatile-ttl：在设置了过期时间的key中，根据key的过期时间进行淘汰，越早过期的越优先被淘汰</span><br><span class="line">LFU算法是Redis4.0里面新加的一种淘汰策略。它的全称是Least Frequently Used</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><a href="https://juejin.cn/post/6844903927037558792">redis 内存淘汰策略解析</a></p>
+<h3 id="过期键删除策略"><a href="#过期键删除策略" class="headerlink" title="过期键删除策略"></a>过期键删除策略</h3><p>过期策略通常有以下三种：</p>
+<ul>
+<li>定时过期：每个设置过期时间的key都需要创建一个定时器，到过期时间就会立即清除。该策略可以立即清除过期的数据，对内存很友好；但是会占用大量的CPU资源去处理过期的数据，从而影响缓存的响应时间和吞吐量。</li>
+<li>惰性过期：只有当访问一个key时，才会判断该key是否已过期，过期则清除。该策略可以最大化地节省CPU资源，却对内存非常不友好。极端情况可能出现大量的过期key没有再次被访问，从而不会被清除，占用大量内存。</li>
+<li>定期过期：每隔一定的时间，会扫描一定数量的数据库的expires字典中一定数量的key，并清除其中已过期的key。该策略是前两者的一个折中方案。通过调整定时扫描的时间间隔和每次扫描的限定耗时，可以在不同情况下使得CPU和内存资源达到最优的平衡效果。<br>(expires字典会保存所有设置了过期时间的key的过期时间数据，其中，key是指向键空间中的某个键的指针，value是该键的毫秒精度的UNIX时间戳表示的过期时间。键空间是指该Redis集群中保存的所有键。)</li>
+</ul>
+<hr>
+<h2 id="四、高级特性-1"><a href="#四、高级特性-1" class="headerlink" title="四、高级特性"></a>四、高级特性</h2><blockquote>
+<p>掌握持久化、分布式架构、Lua 脚本等高级特性，构建生产级 Redis 系统。</p>
+</blockquote>
+<hr>
+<h3 id="持久化机制（RDB、AOF）"><a href="#持久化机制（RDB、AOF）" class="headerlink" title="持久化机制（RDB、AOF）"></a>持久化机制（RDB、AOF）</h3><p>Redis 提供两种持久化方案：</p>
+<ul>
+<li>**RDB (Redis DataBase)**：快照方式，紧凑的二进制数据</li>
+<li>**AOF (Append Only File)**：追加日志方式，记录所有写操作</li>
+</ul>
+<p><strong>详细对比</strong>：<a href="http://kaito-kidd.com/2020/06/29/redis-persistence-rdb-aof/">Redis持久化原理</a></p>
+<hr>
+<h3 id="本地缓存-vs-远程缓存"><a href="#本地缓存-vs-远程缓存" class="headerlink" title="本地缓存 vs 远程缓存"></a>本地缓存 vs 远程缓存</h3><p align="center">
+  <img src="/images/cache-remote-local-multilevel.png" width=600 height=360>
+</p>
+
+<h4 id="双buffer-vs-LRU-LFU"><a href="#双buffer-vs-LRU-LFU" class="headerlink" title="双buffer vs LRU&#x2F;LFU"></a>双buffer vs LRU&#x2F;LFU</h4><p align="center">
+  <img src="/images/double-buffer-lru.png" width=550 height=600>
+</p>
+
+<p align="center">
+  <img src="/images/cache-double-buffer-lru.png" width=600 height=400>
+</p>
+
+<p>本地缓存的双缓冲机制和本地LRU（Least Recently Used）算法都是常见的缓存优化技术，它们具有不同的优点和缺点。</p>
+<ol>
+<li><p>双缓冲机制：</p>
+<ul>
+<li>优点：<ul>
+<li>提高并发性能：双缓冲机制使用两个缓冲区，一个用于读取数据，另一个用于写入数据。这样可以避免读写冲突，提高了并发性能。</li>
+<li>提高数据访问效率：由于读取操作不会直接访问主缓存，而是读取缓冲区的数据，因此可以更快地获取数据。</li>
+</ul>
+</li>
+<li>缺点：<ul>
+<li>内存开销增加：双缓冲机制需要维护两个缓冲区，这会增加内存开销。</li>
+<li>数据延迟：数据更新定时同步，有一定延时。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>本地LRU算法：</p>
+<ul>
+<li>优点：<ul>
+<li>数据访问效率高：LRU算法根据数据的访问顺序进行缓存替换，将最近最少使用的数据淘汰出缓存。这样可以保留最常用的数据，提高数据的访问效率。</li>
+<li>简单有效：LRU算法的实现相对简单，只需要维护一个访问顺序链表和一个哈希表即可。</li>
+</ul>
+</li>
+<li>缺点：<ul>
+<li>缓存命中率下降：如果数据的访问模式不符合LRU算法的假设，即最近访问的数据在未来也是最有可能被访问的，那么LRU算法的效果可能不理想，缓存命中率会下降。</li>
+<li>对于热点数据不敏感：LRU算法只考虑了最近的访问情况，对于热点数据（频繁访问的数据）可能无法有效地保留在缓存中。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<p>综合来看，双缓冲机制适用于需要提高并发性能、批量更新等场景，但会增加内存开销。本地LRU算法适用于需要提高数据访问效率的场景，但对于访问模式不符合LRU假设的情况下，缓存命中率可能下降。在实际应用中，可以根据具体需求和场景选择适合的缓存优化技术。</p>
+<h3 id="缓存与DB一致性方案"><a href="#缓存与DB一致性方案" class="headerlink" title="缓存与DB一致性方案"></a>缓存与DB一致性方案</h3><h4 id="一致性问题分析"><a href="#一致性问题分析" class="headerlink" title="一致性问题分析"></a>一致性问题分析</h4><p>当使用 Redis 缓存 DB 数据时，DB 数据会发生 UPDATE，如何考虑 Redis 和 DB 数据的一致性问题呢？</p>
+<ul>
+<li>通常来说，对于流量较小的业务来说，可以设置较小的expire time,可以将redis和db的不一致的时间控制在一定的范围内部</li>
+<li>对于缓存和db一致性要求较高的场合，通常采用的是先更新db，再删除或者更新redis，考虑到并发性和两个操作的原子性（删除或者更新可能会失败），可以增加重试机制（双删除），如果考虑主从延时，可以引入mq做延时双删</li>
+<li><a href="http://kaito-kidd.com/2021/09/08/how-to-keep-cache-and-consistency-of-db/">http://kaito-kidd.com/2021/09/08/how-to-keep-cache-and-consistency-of-db/</a><p align="center">
+<img src="/images/cache-refesh.png" width=600 height=800>
+</p></li>
+</ul>
+<p align="center">
+  <img src="/images/cache-read-write-mode.png" width=600 height=400>
+</p>
+
+
+<table>
+<thead>
+<tr>
+<th>缓存更新方式</th>
+<th>优缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>缓存模式+TTL</td>
+<td>业务代码只更新DB，不更新cache，设置较短的TTL(通常分钟级），依靠cache过期无法找到key时回源DB，热key过期可能回导致请求大量请求击穿到DB，需要使用分布式锁或者singleflight等方式避免这种问题</td>
+</tr>
+<tr>
+<td>定时刷新模式</td>
+<td>定时任务异步获取DB数据刷新到cache，读请求可不回源，需要考虑刷新时间和批量读写</td>
+</tr>
+<tr>
+<td>写DB,写cache</td>
+<td>在并发条件下，DB写操作顺序和cache操作不同保证顺序一致性，需要增加分布式锁等操作</td>
+</tr>
+<tr>
+<td>写DB，删除cache</td>
+<td>删除cache可能失败，需要增加重试，重试也可能失败，比较复杂的加个MQ补偿重试</td>
+</tr>
+</tbody></table>
+<h3 id="思考："><a href="#思考：" class="headerlink" title="思考："></a>思考：</h3><ul>
+<li>对一致性要求有多强？</li>
+<li>TTL 设置的时长</li>
+<li>并发冲突可能性</li>
+<li>热key缓存击穿保护</li>
+</ul>
+<h3 id="缓存异常处理（雪崩、穿透、击穿）"><a href="#缓存异常处理（雪崩、穿透、击穿）" class="headerlink" title="缓存异常处理（雪崩、穿透、击穿）"></a>缓存异常处理（雪崩、穿透、击穿）</h3><h4 id="三大缓存问题"><a href="#三大缓存问题" class="headerlink" title="三大缓存问题"></a>三大缓存问题</h4><ol>
+<li><strong>缓存雪崩</strong>：大面积 Key 同时失效或删除，导致请求全部打到 DB</li>
+<li><strong>缓存穿透</strong>：查询不存在的 Key（恶意攻击），绕过缓存直击 DB</li>
+<li><strong>缓存击穿</strong>：热点 Key 失效瞬间，高并发请求击穿到 DB</li>
+</ol>
+<p><strong>详细方案</strong>：<a href="https://juejin.im/post/6844903651182542856">缓存异常解决方案</a></p>
+<hr>
+<h2 id="五、性能优化-1"><a href="#五、性能优化-1" class="headerlink" title="五、性能优化"></a>五、性能优化</h2><blockquote>
+<p>理解 Redis 高性能原理，掌握性能调优技巧，解决大Key&#x2F;热Key问题。</p>
+</blockquote>
+<hr>
+<h3 id="为什么-Redis-这么快？"><a href="#为什么-Redis-这么快？" class="headerlink" title="为什么 Redis 这么快？"></a>为什么 Redis 这么快？</h3><h4 id="核心原因"><a href="#核心原因" class="headerlink" title="核心原因"></a>核心原因</h4><ol>
+<li><strong>完全基于内存</strong>：绝大部分请求是纯粹的内存操作，非常快速。数据存在内存中，类似于 HashMap，HashMap 的优势就是查找和操作的时间复杂度都是 O(1)；</li>
+</ol>
+<ul>
+<li>2、数据结构简单，对数据操作也简单，Redis 中的数据结构是专门进行设计的；</li>
+<li>3、采用单线程，避免了不必要的上下文切换和竞争条件，也不存在多进程或者多线程导致的切换而消耗 CPU，不用去考虑各种锁的问题，不存在加锁释放锁操作，没有因为可能出现死锁而导致的性能消耗；</li>
+<li>4、使用多路 I&#x2F;O 复用模型，非阻塞 IO；</li>
+<li>5、<strong>自建 VM 机制</strong>：使用底层模型不同，它们之间底层实现方式以及与客户端之间通信的应用协议不一样，Redis 直接自己构建了 VM 机制，因为一般的系统调用系统函数的话，会浪费一定的时间去移动和请求。</li>
+</ul>
+<p><strong>详细分析</strong>：<a href="http://kaito-kidd.com/2020/06/28/why-redis-so-fast/">单线程 Redis 为什么快？</a></p>
+<hr>
+<h3 id="单线程模型"><a href="#单线程模型" class="headerlink" title="单线程模型"></a>单线程模型</h3><h4 id="为什么使用单线程？"><a href="#为什么使用单线程？" class="headerlink" title="为什么使用单线程？"></a>为什么使用单线程？</h4><p><strong>参考</strong>：<a href="https://draveness.me/whys-the-design-redis-single-thread/">Redis 单线程设计</a></p>
+<p><strong>优势</strong>：</p>
+<ul>
+<li>避免上下文切换</li>
+<li>无需考虑锁问题</li>
+<li>实现简单清晰</li>
+</ul>
+<p><strong>劣势</strong>：</p>
+<ul>
+<li>无法利用多核 CPU</li>
+<li>长耗时命令会阻塞</li>
+</ul>
+<hr>
+<h3 id="大Key和热Key问题"><a href="#大Key和热Key问题" class="headerlink" title="大Key和热Key问题"></a>大Key和热Key问题</h3><h4 id="什么是大Key？"><a href="#什么是大Key？" class="headerlink" title="什么是大Key？"></a>什么是大Key？</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 什么是大 Key？</span></span><br><span class="line">- String: value &gt; 10KB</span><br><span class="line">- Hash/List/Set/ZSet: 元素数量 &gt; 10000</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="分布式方案（主从、哨兵、集群）"><a href="#分布式方案（主从、哨兵、集群）" class="headerlink" title="分布式方案（主从、哨兵、集群）"></a>分布式方案（主从、哨兵、集群）</h3><h4 id="架构演进路线"><a href="#架构演进路线" class="headerlink" title="架构演进路线"></a>架构演进路线</h4><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>方案</th>
+<th>特点</th>
+<th>局限性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>单机版</strong></td>
+<td>简单直接</td>
+<td>单点故障、容量有限、并发有限</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>主从复制</strong></td>
+<td>读写分离、高可用</td>
+<td>主从延迟、无自动故障转移</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>哨兵模式 (Sentinel)</strong></td>
+<td>自动故障转移</td>
+<td>难以扩容、主库写入瓶颈</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>集群模式 (Cluster)</strong></td>
+<td>横向扩展、高可用</td>
+<td>复杂度高、跨slot操作受限</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Codis</strong></td>
+<td>中心化管理、易运维</td>
+<td>需要额外组件（Zookeeper）</td>
+</tr>
+</tbody></table>
+<h4 id="主从复制"><a href="#主从复制" class="headerlink" title="主从复制"></a>主从复制</h4><p><strong>特点</strong>：</p>
+<ul>
+<li>主库（Master）负责写操作</li>
+<li>从库（Slave）负责读操作</li>
+<li>主库数据自动同步到从库</li>
+</ul>
+<p><strong>问题</strong>：</p>
+<ul>
+<li>主从延迟导致数据不一致</li>
+<li>无自动故障恢复，需人工介入</li>
+</ul>
+<h4 id="哨兵模式-Sentinel"><a href="#哨兵模式-Sentinel" class="headerlink" title="哨兵模式 (Sentinel)"></a>哨兵模式 (Sentinel)</h4><p><strong>目标</strong>：解决主从复制的自动故障恢复问题</p>
+<p><strong>工作机制</strong>：</p>
+<ul>
+<li>监控主从运行状态</li>
+<li>当 Master 故障时，通过 Raft 选举</li>
+<li>Leader 哨兵选择优先级最高的 Slave 作为新 Master</li>
+<li>其他 Slave 从新 Master 同步数据</li>
+</ul>
+<p><strong>局限性</strong>：</p>
+<ul>
+<li>难以扩容</li>
+<li>单机存储、读写能力受限</li>
+<li>所有 Redis 节点都有全量数据，内存冗余</li>
+</ul>
+<h4 id="Redis-Cluster-集群模式"><a href="#Redis-Cluster-集群模式" class="headerlink" title="Redis Cluster 集群模式"></a>Redis Cluster 集群模式</h4><p><strong>特点</strong>：</p>
+<ul>
+<li>无中心架构，去中心化</li>
+<li>数据分片，每个节点存储部分数据（16384 个槽）</li>
+<li>通过路由找到对应节点</li>
+<li>支持横向和纵向扩展</li>
+<li>自动故障转移</li>
+</ul>
+<p><strong>优势</strong>：</p>
+<ul>
+<li>哨兵的所有优点</li>
+<li>可动态扩容&#x2F;缩容</li>
+<li>数据分布式存储</li>
+</ul>
+<h4 id="Codis"><a href="#Codis" class="headerlink" title="Codis"></a>Codis</h4><p><strong>特点</strong>：</p>
+<ul>
+<li>豌豆荚开源方案</li>
+<li>中心化管理（Zookeeper&#x2F;Etcd）</li>
+<li>Proxy 层路由</li>
+<li>Dashboard 可视化管理</li>
+</ul>
+<p><strong>GitHub</strong>：<a href="https://github.com/CodisLabs/codis">https://github.com/CodisLabs/codis</a></p>
+<p><strong>参考资料</strong>：</p>
+<ul>
+<li><a href="https://blog.csdn.net/QQ1006207580/article/details/103243281">Redis 分布式架构演进</a></li>
+<li><a href="http://kaito-kidd.com/2020/07/07/redis-cluster-codis-twemproxy/">Redis 集群化方案对比：Codis、Twemproxy、Redis Cluster</a></li>
+</ul>
+<hr>
+<h3 id="Lua-脚本"><a href="#Lua-脚本" class="headerlink" title="Lua 脚本"></a>Lua 脚本</h3><h4 id="为什么使用-Lua？"><a href="#为什么使用-Lua？" class="headerlink" title="为什么使用 Lua？"></a>为什么使用 Lua？</h4><p>Redis 执行 Lua 脚本具有以下特性：</p>
+<ol>
+<li><strong>原子性</strong>：脚本执行期间不会执行其他脚本或命令</li>
+<li><strong>独占性</strong>：Redis 一旦开始执行 Lua 脚本，就会一直执行完该脚本</li>
+<li><strong>应用广泛</strong>：分布式锁、限流、秒杀等场景</li>
+</ol>
+<h4 id="使用注意事项"><a href="#使用注意事项" class="headerlink" title="使用注意事项"></a>使用注意事项</h4><ul>
+<li>使用 Lua 脚本实现原子性操作的 CAS，避免不同客户端先读 Redis 数据，经过计算后再写数据造成的并发问题</li>
+<li>前后多次请求的结果有依赖关系时，最好使用 Lua 脚本将多个请求整合为一个；但请求前后无依赖时，使用 pipeline 方式，比 Lua 脚本方便</li>
+<li>为了保证安全性，在 Lua 脚本中不要定义自己的全局变量，以免污染 Redis 内嵌的 Lua 环境。因为 Lua 脚本中你会使用一些预制的全局变量，比如说 redis.call()</li>
+<li>注意 Lua 脚本的时间复杂度，Redis 的单线程同样会阻塞在 Lua 脚本的执行中，Lua 脚本不要进行高耗时操作</li>
+<li>Redis 要求单个 Lua 脚本操作的 key 必须在同一个 Redis 节点上，因此 Redis Cluster 方式需要设置 HashTag（实际中不太建议这样操作）</li>
+</ul>
+<hr>
+<h2 id="Redis-常用命令"><a href="#Redis-常用命令" class="headerlink" title="Redis 常用命令"></a>Redis 常用命令</h2><h3 id="连接命令"><a href="#连接命令" class="headerlink" title="连接命令"></a>连接命令</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 连接 Redis</span></span><br><span class="line">redis-cli -h host -p port -a password</span><br><span class="line"></span><br><span class="line"><span class="comment"># 切换数据库</span></span><br><span class="line">SELECT 0</span><br><span class="line"></span><br><span class="line"><span class="comment"># 测试连接</span></span><br><span class="line">PING  <span class="comment"># 返回 PONG</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="基础命令"><a href="#基础命令" class="headerlink" title="基础命令"></a>基础命令</h3><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>说明</th>
+<th>时间复杂度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>SET key value [NX|XX] [EX seconds]</code></td>
+<td>设置键值</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td><code>GET key</code></td>
+<td>获取值</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td><code>DEL key [key ...]</code></td>
+<td>删除键</td>
+<td>O(N)</td>
+</tr>
+<tr>
+<td><code>EXISTS key [key ...]</code></td>
+<td>检查键是否存在</td>
+<td>O(N)</td>
+</tr>
+<tr>
+<td><code>TTL key</code></td>
+<td>查询过期时间（秒）</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td><code>EXPIRE key seconds</code></td>
+<td>设置过期时间</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td><code>SCAN cursor [MATCH pattern]</code></td>
+<td>扫描键（推荐）</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td><code>KEYS pattern</code></td>
+<td>模式匹配键（⚠️ 生产环境禁用）</td>
+<td>O(N)</td>
+</tr>
+</tbody></table>
+<p><strong>⚠️ 生产环境注意</strong>：</p>
+<ul>
+<li>**禁用 <code>KEYS *</code>**：遍历所有键，时间复杂度 O(N)，会阻塞 Redis</li>
+<li>**推荐使用 <code>SCAN</code>**：渐进式遍历，不阻塞服务器</li>
+</ul>
+<h2 id="性能调优与监控"><a href="#性能调优与监控" class="headerlink" title="性能调优与监控"></a>性能调优与监控</h2><h3 id="大Key和热Key问题-1"><a href="#大Key和热Key问题-1" class="headerlink" title="大Key和热Key问题"></a>大Key和热Key问题</h3><h4 id="什么是大Key？-1"><a href="#什么是大Key？-1" class="headerlink" title="什么是大Key？"></a>什么是大Key？</h4><h4 id="大-Key-危害"><a href="#大-Key-危害" class="headerlink" title="大 Key 危害"></a>大 Key 危害</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 什么是大 Key？</span></span><br><span class="line">- String: value &gt; 10KB</span><br><span class="line">- Hash/List/Set/ZSet: 元素数量 &gt; 10000</span><br><span class="line"></span><br><span class="line"><span class="comment"># 危害</span></span><br><span class="line">1. 内存占用过大，可能 OOM</span><br><span class="line">2. 单个操作耗时长，阻塞其他请求</span><br><span class="line">3. 主从同步慢，导致从库延迟</span><br><span class="line">4. 持久化慢（RDB/AOF）</span><br><span class="line">5. 集群数据倾斜</span><br></pre></td></tr></table></figure>
+
+<h4 id="发现大-Key"><a href="#发现大-Key" class="headerlink" title="发现大 Key"></a>发现大 Key</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 扫描整个实例</span></span><br><span class="line">redis-cli --bigkeys</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 扫描指定数据库</span></span><br><span class="line">redis-cli -n 0 --bigkeys</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 分析 RDB 文件</span></span><br><span class="line">redis-rdb-tools dump.rdb --<span class="built_in">command</span> memory --bytes 10240</span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. 使用 MEMORY USAGE 命令</span></span><br><span class="line">redis&gt; MEMORY USAGE mykey</span><br><span class="line">(<span class="built_in">integer</span>) 1048576</span><br></pre></td></tr></table></figure>
+
+<h4 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. 拆分大 Key</span></span><br><span class="line"><span class="comment">// 错误：单个 Hash 存储所有商品</span></span><br><span class="line">HSET products <span class="number">1001</span> <span class="string">&quot;&#123;...&#125;&quot;</span> <span class="number">1002</span> <span class="string">&quot;&#123;...&#125;&quot;</span> ... <span class="number">10000</span> <span class="string">&quot;&#123;...&#125;&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 正确：按分片拆分</span></span><br><span class="line"><span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">    rdb.HSet(ctx, fmt.Sprintf(<span class="string">&quot;products:shard:%d&quot;</span>, i), productID, data)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 压缩数据</span></span><br><span class="line">data := compress(largeJSON)</span><br><span class="line">rdb.Set(ctx, key, data)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 设置合理过期时间</span></span><br><span class="line">rdb.Set(ctx, key, value, <span class="number">1</span>*time.Hour)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 4. 异步删除大 Key</span></span><br><span class="line">rdb.Unlink(ctx, largeKey)  <span class="comment">// 非阻塞删除</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="热-Key-危害"><a href="#热-Key-危害" class="headerlink" title="热 Key 危害"></a>热 Key 危害</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 什么是热 Key？</span></span><br><span class="line">QPS &gt; 10000 的 Key（如秒杀商品）</span><br><span class="line"></span><br><span class="line"><span class="comment"># 危害</span></span><br><span class="line">1. 单个 Redis 节点流量过大</span><br><span class="line">2. CPU 占用过高</span><br><span class="line">3. 网络带宽打满</span><br><span class="line">4. 集群节点负载不均</span><br></pre></td></tr></table></figure>
+
+<h4 id="解决方案-1"><a href="#解决方案-1" class="headerlink" title="解决方案"></a>解决方案</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. 本地缓存 + Redis 二级缓存</span></span><br><span class="line">localCache := cache.New(<span class="number">5</span>*time.Minute, <span class="number">10</span>*time.Minute)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetHotKey</span><span class="params">(key <span class="type">string</span>)</span></span> (<span class="type">string</span>, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 先查本地缓存</span></span><br><span class="line">    <span class="keyword">if</span> val, found := localCache.Get(key); found &#123;</span><br><span class="line">        <span class="keyword">return</span> val.(<span class="type">string</span>), <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 再查 Redis</span></span><br><span class="line">    val, err := rdb.Get(ctx, key).Result()</span><br><span class="line">    <span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">        localCache.Set(key, val, cache.DefaultExpiration)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> val, err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 多副本分散请求</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetHotKeyWithReplica</span><span class="params">(key <span class="type">string</span>)</span></span> (<span class="type">string</span>, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 随机选择副本</span></span><br><span class="line">    replica := rand.Intn(<span class="number">10</span>)</span><br><span class="line">    replicaKey := fmt.Sprintf(<span class="string">&quot;%s:replica:%d&quot;</span>, key, replica)</span><br><span class="line">    <span class="keyword">return</span> rdb.Get(ctx, replicaKey).Result()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 限流保护</span></span><br><span class="line">limiter := rate.NewLimiter(<span class="number">10000</span>, <span class="number">20000</span>)  <span class="comment">// 10000 QPS, burst 20000</span></span><br><span class="line"><span class="keyword">if</span> !limiter.Allow() &#123;</span><br><span class="line">    <span class="keyword">return</span> ErrTooManyRequests</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="监控指标"><a href="#监控指标" class="headerlink" title="监控指标"></a>监控指标</h3><h4 id="关键指标"><a href="#关键指标" class="headerlink" title="关键指标"></a>关键指标</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 内存使用</span></span><br><span class="line">redis&gt; INFO memory</span><br><span class="line">used_memory:1073741824             <span class="comment"># 已使用内存</span></span><br><span class="line">used_memory_peak:2147483648        <span class="comment"># 峰值内存</span></span><br><span class="line">used_memory_rss:1610612736         <span class="comment"># 物理内存</span></span><br><span class="line">mem_fragmentation_ratio:1.5        <span class="comment"># 碎片率</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 性能指标</span></span><br><span class="line">redis&gt; INFO stats</span><br><span class="line">instantaneous_ops_per_sec:10000    <span class="comment"># 当前 QPS</span></span><br><span class="line">total_commands_processed:1000000   <span class="comment"># 总命令数</span></span><br><span class="line">rejected_connections:0             <span class="comment"># 拒绝连接数</span></span><br><span class="line">expired_keys:1000                  <span class="comment"># 过期键数量</span></span><br><span class="line">evicted_keys:0                     <span class="comment"># 淘汰键数量</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 持久化</span></span><br><span class="line">redis&gt; INFO persistence</span><br><span class="line">rdb_last_save_time:1641024000      <span class="comment"># 最后 RDB 时间</span></span><br><span class="line">rdb_changes_since_last_save:1000   <span class="comment"># 自上次 RDB 变更数</span></span><br><span class="line">aof_enabled:1                      <span class="comment"># AOF 是否开启</span></span><br><span class="line">aof_last_rewrite_time_sec:2        <span class="comment"># 最后 AOF 重写耗时</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. 复制</span></span><br><span class="line">redis&gt; INFO replication</span><br><span class="line">role:master                        <span class="comment"># 角色</span></span><br><span class="line">connected_slaves:2                 <span class="comment"># 从库数量</span></span><br><span class="line">master_repl_offset:1000000         <span class="comment"># 主库偏移量</span></span><br><span class="line">repl_backlog_size:1048576          <span class="comment"># 积压缓冲区大小</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 5. 慢查询</span></span><br><span class="line">redis&gt; SLOWLOG GET 10</span><br><span class="line">1) 1) (<span class="built_in">integer</span>) 1</span><br><span class="line">   2) (<span class="built_in">integer</span>) 1641024000</span><br><span class="line">   3) (<span class="built_in">integer</span>) 50000              <span class="comment"># 耗时 50ms</span></span><br><span class="line">   4) 1) <span class="string">&quot;KEYS&quot;</span></span><br><span class="line">      2) <span class="string">&quot;*&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="监控告警"><a href="#监控告警" class="headerlink" title="监控告警"></a>监控告警</h4><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Prometheus 监控规则</span></span><br><span class="line"><span class="attr">groups:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">redis_alerts</span></span><br><span class="line">    <span class="attr">rules:</span></span><br><span class="line">      <span class="comment"># 内存使用率 &gt; 80%</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">alert:</span> <span class="string">RedisMemoryHigh</span></span><br><span class="line">        <span class="attr">expr:</span> <span class="string">redis_memory_used_bytes</span> <span class="string">/</span> <span class="string">redis_memory_max_bytes</span> <span class="string">&gt;</span> <span class="number">0.8</span></span><br><span class="line">        <span class="attr">for:</span> <span class="string">5m</span></span><br><span class="line">        </span><br><span class="line">      <span class="comment"># QPS &gt; 50000</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">alert:</span> <span class="string">RedisQPSHigh</span></span><br><span class="line">        <span class="attr">expr:</span> <span class="string">rate(redis_commands_processed_total[1m])</span> <span class="string">&gt;</span> <span class="number">50000</span></span><br><span class="line">        <span class="attr">for:</span> <span class="string">5m</span></span><br><span class="line">        </span><br><span class="line">      <span class="comment"># 慢查询 &gt; 10ms</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">alert:</span> <span class="string">RedisSlowLog</span></span><br><span class="line">        <span class="attr">expr:</span> <span class="string">redis_slowlog_length</span> <span class="string">&gt;</span> <span class="number">100</span></span><br><span class="line">        <span class="attr">for:</span> <span class="string">10m</span></span><br><span class="line">        </span><br><span class="line">      <span class="comment"># 主从延迟 &gt; 10s</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">alert:</span> <span class="string">RedisReplLag</span></span><br><span class="line">        <span class="attr">expr:</span> <span class="string">redis_master_repl_offset</span> <span class="bullet">-</span> <span class="string">redis_slave_repl_offset</span> <span class="string">&gt;</span> <span class="number">10000000</span></span><br><span class="line">        <span class="attr">for:</span> <span class="string">5m</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="六、实战案例-1"><a href="#六、实战案例-1" class="headerlink" title="六、实战案例"></a>六、实战案例</h2><blockquote>
+<p>基于真实业务场景，掌握分布式锁、BloomFilter、秒杀、排行榜等高级应用。</p>
+</blockquote>
+<hr>
+<h3 id="分布式锁实现"><a href="#分布式锁实现" class="headerlink" title="分布式锁实现"></a>分布式锁实现</h3><p>Redis 为单进程单线程模式，采用队列模式将并发访问变成串行访问，且多客户端对 Redis 的连接并不存在竞争关系。</p>
+<h4 id="基本实现"><a href="#基本实现" class="headerlink" title="基本实现"></a>基本实现</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// SETNX + EXPIRE 实现</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Lock</span><span class="params">(key <span class="type">string</span>, value <span class="type">string</span>, expiration time.Duration)</span></span> <span class="type">bool</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> rdb.SetNX(ctx, key, value, expiration).Val()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Unlock</span><span class="params">(key <span class="type">string</span>, value <span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 使用 Lua 保证原子性</span></span><br><span class="line">    script := <span class="string">`</span></span><br><span class="line"><span class="string">        if redis.call(&quot;get&quot;, KEYS[1]) == ARGV[1] then</span></span><br><span class="line"><span class="string">            return redis.call(&quot;del&quot;, KEYS[1])</span></span><br><span class="line"><span class="string">        else</span></span><br><span class="line"><span class="string">            return 0</span></span><br><span class="line"><span class="string">        end</span></span><br><span class="line"><span class="string">    `</span></span><br><span class="line">    <span class="keyword">return</span> rdb.Eval(ctx, script, []<span class="type">string</span>&#123;key&#125;, value).Err()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>详细实现</strong>：<a href="https://juejin.cn/post/6936956908007850014">Redis 分布式锁</a></p>
+<hr>
+<h3 id="BloomFilter-实践"><a href="#BloomFilter-实践" class="headerlink" title="BloomFilter 实践"></a>BloomFilter 实践</h3><h4 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h4><p>BloomFilter 用于快速判断元素是否存在，<strong>允许误判（False Positive）</strong>，但<strong>不会漏判（No False Negative）</strong>。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">判断结果 = 一定不存在 or 可能存在</span><br></pre></td></tr></table></figure>
+
+<h3 id="公式"><a href="#公式" class="headerlink" title="公式"></a>公式</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">m = -n*ln(p) / (ln2)²    # 位数组大小</span><br><span class="line">k = m/n * ln2            # 哈希函数数量</span><br><span class="line"></span><br><span class="line">n = 预期元素数量</span><br><span class="line">p = 误判率</span><br></pre></td></tr></table></figure>
+
+<p><strong>示例</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">n = 1,000,000（百万数据）</span><br><span class="line">p = 0.01（1% 误判率）</span><br><span class="line"></span><br><span class="line">m = 9,585,059 bits ≈ 1.15 MB</span><br><span class="line">k = 7 个哈希函数</span><br></pre></td></tr></table></figure>
+
+<h3 id="Redis-实现"><a href="#Redis-实现" class="headerlink" title="Redis 实现"></a>Redis 实现</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="string">&quot;github.com/bits-and-blooms/bloom/v3&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 1. 创建 BloomFilter</span></span><br><span class="line">bf := bloom.NewWithEstimates(<span class="number">1000000</span>, <span class="number">0.01</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 添加元素</span></span><br><span class="line">bf.Add([]<span class="type">byte</span>(<span class="string">&quot;user:123&quot;</span>))</span><br><span class="line">bf.Add([]<span class="type">byte</span>(<span class="string">&quot;user:456&quot;</span>))</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 查询元素</span></span><br><span class="line">exists := bf.Test([]<span class="type">byte</span>(<span class="string">&quot;user:123&quot;</span>))  <span class="comment">// true</span></span><br><span class="line">exists = bf.Test([]<span class="type">byte</span>(<span class="string">&quot;user:999&quot;</span>))   <span class="comment">// false 或 true（误判）</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 4. 序列化到 Redis</span></span><br><span class="line">data, _ := bf.GobEncode()</span><br><span class="line">rdb.Set(ctx, <span class="string">&quot;bloomfilter:users&quot;</span>, data, <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 5. 从 Redis 加载</span></span><br><span class="line">data, _ := rdb.Get(ctx, <span class="string">&quot;bloomfilter:users&quot;</span>).Bytes()</span><br><span class="line">bf := bloom.New(<span class="number">1</span>, <span class="number">1</span>)</span><br><span class="line">bf.GobDecode(data)</span><br></pre></td></tr></table></figure>
+
+<h3 id="应用场景-4"><a href="#应用场景-4" class="headerlink" title="应用场景"></a>应用场景</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. 防止缓存穿透</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetUser</span><span class="params">(uid <span class="type">string</span>)</span></span> (*User, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 先查 BloomFilter</span></span><br><span class="line">    <span class="keyword">if</span> !bloomFilter.Test([]<span class="type">byte</span>(uid)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, ErrUserNotFound  <span class="comment">// 一定不存在</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 再查缓存和 DB</span></span><br><span class="line">    <span class="keyword">return</span> getUserFromCacheOrDB(uid)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 去重（爬虫 URL）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ShouldCrawl</span><span class="params">(url <span class="type">string</span>)</span></span> <span class="type">bool</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> bloomFilter.Test([]<span class="type">byte</span>(url)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>  <span class="comment">// 可能已爬取</span></span><br><span class="line">    &#125;</span><br><span class="line">    bloomFilter.Add([]<span class="type">byte</span>(url))</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 推荐系统去重</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">FilterRecommendations</span><span class="params">(userID <span class="type">string</span>, items []<span class="type">string</span>)</span></span> []<span class="type">string</span> &#123;</span><br><span class="line">    <span class="keyword">var</span> result []<span class="type">string</span></span><br><span class="line">    <span class="keyword">for</span> _, item := <span class="keyword">range</span> items &#123;</span><br><span class="line">        key := userID + <span class="string">&quot;:&quot;</span> + item</span><br><span class="line">        <span class="keyword">if</span> !viewedBF.Test([]<span class="type">byte</span>(key)) &#123;</span><br><span class="line">            result = <span class="built_in">append</span>(result, item)  <span class="comment">// 未看过</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="秒杀系统设计"><a href="#秒杀系统设计" class="headerlink" title="秒杀系统设计"></a>秒杀系统设计</h2><h3 id="核心问题"><a href="#核心问题" class="headerlink" title="核心问题"></a>核心问题</h3><ol>
+<li><strong>超卖问题</strong>：库存为 10，卖出 100 单</li>
+<li><strong>高并发问题</strong>：瞬时 10w+ QPS</li>
+<li><strong>恶意刷单</strong>：机器人刷单</li>
+</ol>
+<h3 id="方案设计"><a href="#方案设计" class="headerlink" title="方案设计"></a>方案设计</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. 预热库存到 Redis</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">PreloadStock</span><span class="params">(productID <span class="type">string</span>, stock <span class="type">int</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    key := fmt.Sprintf(<span class="string">&quot;seckill:stock:%s&quot;</span>, productID)</span><br><span class="line">    <span class="keyword">return</span> rdb.Set(ctx, key, stock, <span class="number">0</span>).Err()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. Lua 脚本保证原子性扣库存</span></span><br><span class="line"><span class="keyword">var</span> decrStockScript = redis.NewScript(<span class="string">`</span></span><br><span class="line"><span class="string">    local key = KEYS[1]</span></span><br><span class="line"><span class="string">    local stock = tonumber(redis.call(&#x27;GET&#x27;, key))</span></span><br><span class="line"><span class="string">    if stock &lt;= 0 then</span></span><br><span class="line"><span class="string">        return -1  -- 库存不足</span></span><br><span class="line"><span class="string">    end</span></span><br><span class="line"><span class="string">    redis.call(&#x27;DECR&#x27;, key)</span></span><br><span class="line"><span class="string">    return stock - 1</span></span><br><span class="line"><span class="string">`</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">DecrStock</span><span class="params">(productID <span class="type">string</span>)</span></span> (<span class="type">int</span>, <span class="type">error</span>) &#123;</span><br><span class="line">    key := fmt.Sprintf(<span class="string">&quot;seckill:stock:%s&quot;</span>, productID)</span><br><span class="line">    result, err := decrStockScript.Run(ctx, rdb, []<span class="type">string</span>&#123;key&#125;).Int()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> result &lt; <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>, ErrStockNotEnough</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 限流 + 队列削峰</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">HandleSeckill</span><span class="params">(userID, productID <span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 3.1 用户级限流</span></span><br><span class="line">    limitKey := fmt.Sprintf(<span class="string">&quot;limit:user:%s&quot;</span>, userID)</span><br><span class="line">    count := rdb.Incr(ctx, limitKey).Val()</span><br><span class="line">    <span class="keyword">if</span> count == <span class="number">1</span> &#123;</span><br><span class="line">        rdb.Expire(ctx, limitKey, <span class="number">60</span>*time.Second)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> count &gt; <span class="number">5</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> ErrTooManyRequests  <span class="comment">// 1分钟最多5次</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3.2 扣库存</span></span><br><span class="line">    stock, err := DecrStock(productID)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3.3 异步创建订单（放入队列）</span></span><br><span class="line">    order := Order&#123;</span><br><span class="line">        UserID:    userID,</span><br><span class="line">        ProductID: productID,</span><br><span class="line">        CreatedAt: time.Now(),</span><br><span class="line">    &#125;</span><br><span class="line">    rdb.LPush(ctx, <span class="string">&quot;queue:orders&quot;</span>, json.Marshal(order))</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 4. 消费订单队列</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ProcessOrders</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        data, err := rdb.BRPop(ctx, <span class="number">5</span>*time.Second, <span class="string">&quot;queue:orders&quot;</span>).Result()</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">var</span> order Order</span><br><span class="line">        json.Unmarshal([]<span class="type">byte</span>(data[<span class="number">1</span>]), &amp;order)</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 写入 MySQL</span></span><br><span class="line">        db.CreateOrder(&amp;order)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="排行榜实现"><a href="#排行榜实现" class="headerlink" title="排行榜实现"></a>排行榜实现</h2><h3 id="实时排行榜"><a href="#实时排行榜" class="headerlink" title="实时排行榜"></a>实时排行榜</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. 更新分数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">UpdateScore</span><span class="params">(userID <span class="type">string</span>, score <span class="type">int64</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> rdb.ZAdd(ctx, <span class="string">&quot;rank:realtime&quot;</span>, &amp;redis.Z&#123;</span><br><span class="line">        Score:  <span class="type">float64</span>(score),</span><br><span class="line">        Member: userID,</span><br><span class="line">    &#125;).Err()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 获取排行榜</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetTopN</span><span class="params">(n <span class="type">int</span>)</span></span> ([]User, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 获取前 N 名（分数从高到低）</span></span><br><span class="line">    result, err := rdb.ZRevRangeWithScores(ctx, <span class="string">&quot;rank:realtime&quot;</span>, <span class="number">0</span>, <span class="type">int64</span>(n<span class="number">-1</span>)).Result()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">var</span> users []User</span><br><span class="line">    <span class="keyword">for</span> _, z := <span class="keyword">range</span> result &#123;</span><br><span class="line">        users = <span class="built_in">append</span>(users, User&#123;</span><br><span class="line">            ID:    z.Member.(<span class="type">string</span>),</span><br><span class="line">            Score: <span class="type">int64</span>(z.Score),</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> users, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 获取用户排名</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetUserRank</span><span class="params">(userID <span class="type">string</span>)</span></span> (<span class="type">int64</span>, <span class="type">error</span>) &#123;</span><br><span class="line">    rank, err := rdb.ZRevRank(ctx, <span class="string">&quot;rank:realtime&quot;</span>, userID).Result()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> rank + <span class="number">1</span>, <span class="literal">nil</span>  <span class="comment">// 排名从 1 开始</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 4. 获取用户分数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetUserScore</span><span class="params">(userID <span class="type">string</span>)</span></span> (<span class="type">int64</span>, <span class="type">error</span>) &#123;</span><br><span class="line">    score, err := rdb.ZScore(ctx, <span class="string">&quot;rank:realtime&quot;</span>, userID).Result()</span><br><span class="line">    <span class="keyword">return</span> <span class="type">int64</span>(score), err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 5. 获取我的附近排名（前后各5名）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetNearbyRank</span><span class="params">(userID <span class="type">string</span>)</span></span> ([]User, <span class="type">error</span>) &#123;</span><br><span class="line">    rank, err := rdb.ZRevRank(ctx, <span class="string">&quot;rank:realtime&quot;</span>, userID).Result()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    start := rank - <span class="number">5</span></span><br><span class="line">    <span class="keyword">if</span> start &lt; <span class="number">0</span> &#123;</span><br><span class="line">        start = <span class="number">0</span></span><br><span class="line">    &#125;</span><br><span class="line">    end := rank + <span class="number">5</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> rdb.ZRevRangeWithScores(ctx, <span class="string">&quot;rank:realtime&quot;</span>, start, end).Result()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="每日排行榜（自动过期）"><a href="#每日排行榜（自动过期）" class="headerlink" title="每日排行榜（自动过期）"></a>每日排行榜（自动过期）</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">UpdateDailyScore</span><span class="params">(userID <span class="type">string</span>, score <span class="type">int64</span>, date time.Time)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    key := fmt.Sprintf(<span class="string">&quot;rank:daily:%s&quot;</span>, date.Format(<span class="string">&quot;2006-01-02&quot;</span>))</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 更新分数</span></span><br><span class="line">    pipe := rdb.Pipeline()</span><br><span class="line">    pipe.ZAdd(ctx, key, &amp;redis.Z&#123;Score: <span class="type">float64</span>(score), Member: userID&#125;)</span><br><span class="line">    pipe.Expire(ctx, key, <span class="number">7</span>*<span class="number">24</span>*time.Hour)  <span class="comment">// 7天后过期</span></span><br><span class="line">    _, err := pipe.Exec(ctx)</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="SDK-推荐"><a href="#SDK-推荐" class="headerlink" title="SDK 推荐"></a>SDK 推荐</h2><h3 id="Go-Client"><a href="#Go-Client" class="headerlink" title="Go Client"></a>Go Client</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. go-redis（推荐）</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;github.com/redis/go-redis/v9&quot;</span></span><br><span class="line"></span><br><span class="line">rdb := redis.NewClient(&amp;redis.Options&#123;</span><br><span class="line">    Addr:     <span class="string">&quot;localhost:6379&quot;</span>,</span><br><span class="line">    Password: <span class="string">&quot;&quot;</span>,</span><br><span class="line">    DB:       <span class="number">0</span>,</span><br><span class="line">    PoolSize: <span class="number">100</span>,</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. redigo</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;github.com/gomodule/redigo/redis&quot;</span></span><br><span class="line"></span><br><span class="line">pool := &amp;redis.Pool&#123;</span><br><span class="line">    MaxIdle:     <span class="number">10</span>,</span><br><span class="line">    MaxActive:   <span class="number">100</span>,</span><br><span class="line">    IdleTimeout: <span class="number">300</span> * time.Second,</span><br><span class="line">    Dial: <span class="function"><span class="keyword">func</span><span class="params">()</span></span> (redis.Conn, <span class="type">error</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> redis.Dial(<span class="string">&quot;tcp&quot;</span>, <span class="string">&quot;localhost:6379&quot;</span>)</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="核心知识点总结"><a href="#核心知识点总结" class="headerlink" title="核心知识点总结"></a>核心知识点总结</h2><h3 id="关键数字记忆"><a href="#关键数字记忆" class="headerlink" title="关键数字记忆"></a>关键数字记忆</h3><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>数值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>性能</strong></td>
+<td>10w+ QPS</td>
+<td>单机 Redis 性能</td>
+</tr>
+<tr>
+<td><strong>延迟</strong></td>
+<td>1ms</td>
+<td>内存操作平均延迟</td>
+</tr>
+<tr>
+<td><strong>ziplist 阈值</strong></td>
+<td>512 entries, 64B</td>
+<td>Hash&#x2F;List 默认阈值</td>
+</tr>
+<tr>
+<td><strong>zset ziplist</strong></td>
+<td>128 entries, 64B</td>
+<td>ZSet 默认阈值</td>
+</tr>
+<tr>
+<td><strong>大 Key</strong></td>
+<td>&gt; 10KB or &gt; 10000</td>
+<td>需要拆分</td>
+</tr>
+<tr>
+<td><strong>慢查询</strong></td>
+<td>&gt; 10ms</td>
+<td>需要优化</td>
+</tr>
+<tr>
+<td><strong>内存碎片率</strong></td>
+<td>1.0 - 1.5</td>
+<td>正常范围</td>
+</tr>
+<tr>
+<td><strong>主从延迟</strong></td>
+<td>&lt; 1s</td>
+<td>健康状态</td>
+</tr>
+</tbody></table>
+<h3 id="数据结构选择决策树"><a href="#数据结构选择决策树" class="headerlink" title="数据结构选择决策树"></a>数据结构选择决策树</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">需求：存储用户信息</span><br><span class="line">├─ 只需要简单的 key-value？</span><br><span class="line">│  └─ 是 → String（JSON）</span><br><span class="line">├─ 需要部分字段更新？</span><br><span class="line">│  ├─ 字段数 &lt; 500 → Hash（ziplist）</span><br><span class="line">│  └─ 字段数 &gt; 500 → Hash（hashtable）</span><br><span class="line">├─ 需要按顺序存储？</span><br><span class="line">│  ├─ 消息队列 → List（quicklist）</span><br><span class="line">│  ├─ 去重集合 → Set（intset/hashtable）</span><br><span class="line">│  └─ 有序集合 → ZSet（ziplist/skiplist）</span><br></pre></td></tr></table></figure>
+
+<h3 id="缓存设计检查清单"><a href="#缓存设计检查清单" class="headerlink" title="缓存设计检查清单"></a>缓存设计检查清单</h3><ul>
+<li><input disabled="" type="checkbox"> 是否设置了过期时间（TTL）？</li>
+<li><input disabled="" type="checkbox"> 是否有缓存更新策略（写穿&#x2F;写回&#x2F;旁路）？</li>
+<li><input disabled="" type="checkbox"> 是否处理了缓存穿透（BloomFilter）？</li>
+<li><input disabled="" type="checkbox"> 是否处理了缓存击穿（分布式锁&#x2F;singleflight）？</li>
+<li><input disabled="" type="checkbox"> 是否处理了缓存雪崩（随机TTL）？</li>
+<li><input disabled="" type="checkbox"> 是否监控了大 Key 和热 Key？</li>
+<li><input disabled="" type="checkbox"> 是否设置了内存淘汰策略？</li>
+<li><input disabled="" type="checkbox"> 是否配置了持久化（RDB&#x2F;AOF）？</li>
+<li><input disabled="" type="checkbox"> 是否考虑了主从&#x2F;集群高可用？</li>
+</ul>
+<h3 id="最佳实践速查"><a href="#最佳实践速查" class="headerlink" title="最佳实践速查"></a>最佳实践速查</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ✅ 推荐做法</span></span><br><span class="line"><span class="number">1.</span> 设置过期时间：rdb.Set(ctx, key, val, <span class="number">1</span>*time.Hour)</span><br><span class="line"><span class="number">2.</span> 使用 Pipeline 批量操作：pipe.HSet(ctx, key, field, val)</span><br><span class="line"><span class="number">3.</span> 避免 KEYS 命令：使用 SCAN 替代</span><br><span class="line"><span class="number">4.</span> 使用 Lua 保证原子性：script.Run(ctx, rdb, keys, args)</span><br><span class="line"><span class="number">5.</span> 大 Key 拆分：按哈希分片或按时间分段</span><br><span class="line"><span class="number">6.</span> 热 Key 本地缓存：localCache + Redis 二级缓存</span><br><span class="line"><span class="number">7.</span> 使用连接池：PoolSize: <span class="number">100</span></span><br><span class="line"><span class="number">8.</span> 设置超时：DialTimeout/ReadTimeout/WriteTimeout</span><br><span class="line"></span><br><span class="line"><span class="comment">// ❌ 避免做法</span></span><br><span class="line"><span class="number">1.</span> 不设置过期时间（内存泄漏）</span><br><span class="line"><span class="number">2.</span> 单次操作大量数据（阻塞）</span><br><span class="line"><span class="number">3.</span> 在循环中发送命令（网络 RTT）</span><br><span class="line"><span class="number">4.</span> 使用 KEYS * 命令（阻塞）</span><br><span class="line"><span class="number">5.</span> 单个 Key 过大（&gt; <span class="number">10</span>MB）</span><br><span class="line"><span class="number">6.</span> 频繁创建连接（性能差）</span><br><span class="line"><span class="number">7.</span> 无监控告警（问题发现慢）</span><br><span class="line"><span class="number">8.</span> 不做持久化（数据丢失）</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="可视化图表索引"><a href="#可视化图表索引" class="headerlink" title="可视化图表索引"></a>可视化图表索引</h2><p>本文包含详细的数据结构可视化图表，详见：</p>
+<h3 id="Hash-相关"><a href="#Hash-相关" class="headerlink" title="Hash 相关"></a>Hash 相关</h3><ul>
+<li><a href="/diagrams/mermaid/redis-hashtable.mmd">redis-hashtable.mmd</a> - Dict 和 Hashtable 结构</li>
+<li><a href="/diagrams/mermaid/redis-rehash-process.mmd">redis-rehash-process.mmd</a> - 渐进式 Rehash 流程</li>
+<li><a href="/diagrams/mermaid/redis-hash-encoding.mmd">redis-hash-encoding.mmd</a> - ziplist vs hashtable 对比</li>
+<li><a href="/diagrams/mermaid/redis-hashtable-preview.md">redis-hashtable-preview.md</a> - 完整预览</li>
+</ul>
+<h3 id="Ziplist-相关"><a href="#Ziplist-相关" class="headerlink" title="Ziplist 相关"></a>Ziplist 相关</h3><ul>
+<li><a href="/diagrams/mermaid/redis-ziplist-detail.mmd">redis-ziplist-detail.mmd</a> - Ziplist 详细结构</li>
+<li><a href="/diagrams/mermaid/redis-ziplist-memory.mmd">redis-ziplist-memory.mmd</a> - 内存布局实例</li>
+<li><a href="/diagrams/mermaid/redis-ziplist-hash-visual.mmd">redis-ziplist-hash-visual.mmd</a> - Hash 实战可视化</li>
+<li><a href="/diagrams/mermaid/redis-ziplist-hash-preview.md">redis-ziplist-hash-preview.md</a> - 实战预览 ⭐</li>
+</ul>
+<h3 id="实战案例"><a href="#实战案例" class="headerlink" title="实战案例"></a>实战案例</h3><ul>
+<li><a href="/diagrams/mermaid/redis-ziplist-hash-example.md">redis-ziplist-hash-example.md</a> - Hash <code>&#123;name:&quot;iPhone&quot;, price:5999&#125;</code> 完整分析（字节级）</li>
+</ul>
+<h3 id="数据结构对比"><a href="#数据结构对比" class="headerlink" title="数据结构对比"></a>数据结构对比</h3><ul>
+<li><a href="/diagrams/mermaid/redis-datastructure-comparison.mmd">redis-datastructure-comparison.mmd</a> - ziplist vs linkedlist vs hashtable</li>
+</ul>
+<hr>
+<h2 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h2><h3 id="官方文档"><a href="#官方文档" class="headerlink" title="官方文档"></a>官方文档</h3><ol>
+<li><a href="https://redis.io/docs/">Redis 官方文档</a></li>
+<li><a href="https://redis.io/commands/">Redis 命令参考</a></li>
+<li><a href="https://redis.io/docs/data-types/">Redis 数据类型</a></li>
+</ol>
+<h3 id="深度文章"><a href="#深度文章" class="headerlink" title="深度文章"></a>深度文章</h3><ol>
+<li><a href="http://redisbook.com/">Redis 设计与实现（黄健宏）</a> - 深入源码级别</li>
+<li><a href="https://juejin.cn/book/6844733724618129422">Redis 深度历险（钱文品）</a> - 实战进阶</li>
+<li><a href="https://tech.meituan.com/2017/03/17/cache-about.html">美团技术团队 - 缓存那些事</a></li>
+<li><a href="http://kaito-kidd.com/categories/#Redis">Kaito’s Blog - Redis 系列</a><ul>
+<li><a href="http://kaito-kidd.com/2020/06/29/redis-persistence-rdb-aof/">Redis持久化是如何做的？</a></li>
+<li><a href="http://kaito-kidd.com/2020/06/28/why-redis-so-fast/">单线程Redis为什么快？</a></li>
+<li><a href="http://kaito-kidd.com/2020/07/07/redis-cluster-codis-twemproxy/">Redis集群化方案对比</a></li>
+<li><a href="http://kaito-kidd.com/2021/09/08/how-to-keep-cache-and-consistency-of-db/">如何保持缓存与数据库的一致性？</a></li>
+<li><a href="http://kaito-kidd.com/2021/03/04/redis-best-practice-optimization-road/">Redis最佳实践：7个维度+43条规范</a></li>
+<li><a href="http://kaito-kidd.com/2021/03/14/redis-trap/">Redis的15个坑</a></li>
+</ul>
+</li>
+</ol>
+<h3 id="实战案例-1"><a href="#实战案例-1" class="headerlink" title="实战案例"></a>实战案例</h3><ol>
+<li><a href="https://gongfukangee.github.io/2019/06/09/SecondsKill/">秒杀系统设计</a></li>
+<li><a href="https://www.cnblogs.com/zwwhnly/p/13041641.html">微信步数排行榜实现</a></li>
+<li><a href="https://juejin.cn/post/6936956908007850014">分布式锁实现</a></li>
+<li><a href="https://juejin.cn/post/6844903862072000526">BloomFilter应用</a></li>
+</ol>
+<h3 id="性能优化"><a href="#性能优化" class="headerlink" title="性能优化"></a>性能优化</h3><ol>
+<li><a href="https://cloud.tencent.com/developer/article/1724076">你的 Redis 为什么变慢了？</a></li>
+<li><a href="https://help.aliyun.com/zh/redis/user-guide/suggestions-for-handling-common-latency-events">阿里云 Redis 延迟事件处理建议</a></li>
+<li><a href="http://blog.caoxl.com/2018/11/28/Redis-Time-Complexity/">Redis 常用命令时间复杂度</a></li>
+</ol>
+<h3 id="面试题库"><a href="#面试题库" class="headerlink" title="面试题库"></a>面试题库</h3><ol>
+<li><a href="https://blog.csdn.net/ThinkWon/article/details/103522351">Redis 面试题汇总</a></li>
+<li><a href="https://juejin.cn/post/6868409018151337991">一不小心肝出了4W字的Redis面试教程</a></li>
+</ol>
+<hr>
+<h2 id="更新日志"><a href="#更新日志" class="headerlink" title="更新日志"></a>更新日志</h2><ul>
+<li><p><strong>2026-01-08</strong>: 重大更新</p>
+<ul>
+<li>✅ 新增 Hash 底层实现详解（ziplist 字节级分析 + hashtable 渐进式 rehash）</li>
+<li>✅ 新增 String&#x2F;List&#x2F;Set&#x2F;ZSet 底层实现说明</li>
+<li>✅ 新增性能优化章节（大Key&#x2F;热Key 处理）</li>
+<li>✅ 新增监控告警方案</li>
+<li>✅ 新增实战案例（秒杀、排行榜、BloomFilter）</li>
+<li>✅ 新增可视化图表索引</li>
+<li>✅ 优化文章结构，增加目录导航</li>
+</ul>
+</li>
+<li><p><strong>2024-03-06</strong>: 初始版本</p>
+<ul>
+<li>基础内容：数据类型、缓存策略、持久化、分布式方案</li>
+</ul>
+</li>
+</ul>
+<hr>
+<p><strong>持续更新中，欢迎收藏！</strong> 🚀</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" rel="tag"># 数据结构</a>
+              <a href="/tags/Redis/" rel="tag"># Redis</a>
+              <a href="/tags/%E7%BC%93%E5%AD%98/" rel="tag"># 缓存</a>
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" rel="tag"># 分布式系统</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/03/04/system-design/7-storage-desgin/" rel="prev" title="中间件 - 存储与Mysql数据库">
+                  <i class="fa fa-angle-left"></i> 中间件 - 存储与Mysql数据库
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/03/07/system-design/10-elasticsearch/" rel="next" title="中间件 - 搜索和Elasticsearch">
+                  中间件 - 搜索和Elasticsearch <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

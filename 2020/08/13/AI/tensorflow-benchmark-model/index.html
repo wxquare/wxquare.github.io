@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="深度学习模型落地需要考虑决定推理（inference）过程所需的计算资源（成本）和效率（系统的吞吐量和延时），有时甚至需要进行适当的模型裁剪和压缩工作。理论上说，模型结构一旦确定是可以计算它的复杂度和计算量，但这有些繁琐。实际中可以借助一些工具帮助预估模型实际的性能，比较模型优化前后的差别，主要使用到的是benchmark_model和summarize_graph。 一、benchmark_">
+<meta property="og:type" content="article">
+<meta property="og:title" content="了解tensorflow中的模型基准测试工具">
+<meta property="og:url" content="http://yoursite.com/2020/08/13/AI/tensorflow-benchmark-model/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="深度学习模型落地需要考虑决定推理（inference）过程所需的计算资源（成本）和效率（系统的吞吐量和延时），有时甚至需要进行适当的模型裁剪和压缩工作。理论上说，模型结构一旦确定是可以计算它的复杂度和计算量，但这有些繁琐。实际中可以借助一些工具帮助预估模型实际的性能，比较模型优化前后的差别，主要使用到的是benchmark_model和summarize_graph。 一、benchmark_">
+<meta property="og:locale">
+<meta property="article:published_time" content="2020-08-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-12-08T15:55:23.482Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2020/08/13/AI/tensorflow-benchmark-model/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2020/08/13/AI/tensorflow-benchmark-model/","path":"2020/08/13/AI/tensorflow-benchmark-model/","title":"了解tensorflow中的模型基准测试工具"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>了解tensorflow中的模型基准测试工具 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81benchmark-model%E6%A8%A1%E5%9E%8B%E6%8E%A8%E7%90%86%E9%80%9F%E5%BA%A6%E5%88%86%E6%9E%90"><span class="nav-number">1.</span> <span class="nav-text">一、benchmark_model模型推理速度分析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%A2%84%E4%BC%B0FLOPs"><span class="nav-number">1.0.1.</span> <span class="nav-text">预估FLOPs</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E4%B8%8D%E5%90%8C%E7%B1%BB%E5%9E%8B%E8%8A%82%E7%82%B9%E6%B6%88%E8%80%97%E7%9A%84%E6%97%B6%E9%97%B4%EF%BC%9A"><span class="nav-number">1.0.2.</span> <span class="nav-text">查看不同类型节点消耗的时间：</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81summarize-graph-%E6%A8%A1%E5%9E%8B%E5%A4%A7%E5%B0%8F%E5%88%86%E6%9E%90"><span class="nav-number">2.</span> <span class="nav-text">二、summarize_graph 模型大小分析</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tensorflow-benchmark-model/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="了解tensorflow中的模型基准测试工具 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          了解tensorflow中的模型基准测试工具
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>　　深度学习模型落地需要考虑决定推理（inference）过程所需的计算资源（成本）和效率（系统的吞吐量和延时），有时甚至需要进行适当的模型裁剪和压缩工作。理论上说，模型结构一旦确定是可以计算它的复杂度和计算量，但这有些繁琐。实际中可以借助一些工具帮助预估模型实际的性能，比较模型优化前后的差别，主要使用到的是benchmark_model和summarize_graph。</p>
+<h2 id="一、benchmark-model模型推理速度分析"><a href="#一、benchmark-model模型推理速度分析" class="headerlink" title="一、benchmark_model模型推理速度分析"></a>一、benchmark_model模型推理速度分析</h2><p>　　在深度学习模型工程落地时，我们追求在成本可控的前提下提高良好的用户体验，因此模型的推理效率和计算代价是重要的衡量指标。通常用FLOPs（floating point operations）描述模型的计算力消耗，它表示浮点运算计算量，用来衡量算法&#x2F;模型的复杂度。我们是可以从原理上计算出模型需要的FLOPs，参考：<a href="https://www.zhihu.com/question/65305385%E3%80%82">https://www.zhihu.com/question/65305385。</a> 除了从理论计算之外，还可以使用tensorflow中的 benchmark_model 工具来进行粗略估计，它可以帮助估算出模型所需的浮点操作数(FLOPS)，然后你就可以使用这些信息来确定你的模型在你的目标设备上运行的可行性。除此之外，比较容易混淆的概念是FLOPS（floating point operations per second），意指每秒浮点运算次数，理解为计算速度，它是衡量硬件性能的指标对于来说TESLA P40可以每秒处理12T个FLOP，普通单核CPU每秒大概处理100亿次的FLOP。当有了计算操作消耗的估计之后，它就对你计划的目标设备上有所帮助，如果模型的计算操作太多，那么就需要优化模型减小FLOP数量。</p>
+<p>　　例如下面的例子中，我们通过benchmark_model分析resetNet20-cifar10，大概有82.15M的FLOPs，该机器每秒执行21.89B，因此该模型大概需要4ms的计算时间。在使用benchmark_model之前，需要使用tensorflow源码进行编译。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">编译benchmark_model</span><br><span class="line">$ bazel build -c opt tensorflow/tools/benchmark:benchmark_model</span><br><span class="line">$ bazel-bin/tensorflow/tools/benchmark/benchmark_model \</span><br><span class="line">--graph=model_original.pb \</span><br><span class="line">--input_layer=&quot;net_input&quot; \</span><br><span class="line">--input_layer_shape=&quot;1,32,32,3&quot; \</span><br><span class="line">--input_layer_type=&quot;float&quot; \</span><br><span class="line">--output_layer=&quot;net_output&quot; \</span><br><span class="line">--show_flops=true \</span><br><span class="line">--show_run_order=false \</span><br><span class="line">--show_time=false \</span><br><span class="line">--num_threads=1</span><br></pre></td></tr></table></figure>
+
+
+<h4 id="预估FLOPs"><a href="#预估FLOPs" class="headerlink" title="预估FLOPs"></a>预估FLOPs</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">2019-10-11 21:30:31.288678: I tensorflow/tools/benchmark/benchmark_model.cc:636] FLOPs estimate: 82.15M</span><br><span class="line">2019-10-11 21:30:31.288744: I tensorflow/tools/benchmark/benchmark_model.cc:638] FLOPs/second: 21.89B</span><br></pre></td></tr></table></figure>
+
+
+<h4 id="查看不同类型节点消耗的时间："><a href="#查看不同类型节点消耗的时间：" class="headerlink" title="查看不同类型节点消耗的时间："></a>查看不同类型节点消耗的时间：</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">========================= Summary by node type ==========================================</span><br><span class="line"> [Node type]	  [count]	  [avg ms]	    [avg %]	    [cdf %]	  [mem KB]	[times called]</span><br><span class="line">          &lt;&gt;	       65	     4.110	    47.269%	    47.269%	     0.000	       65</span><br><span class="line">FusedBatchNorm	       19	     2.028	    23.324%	    70.592%	   240.384	       19</span><br><span class="line">      Conv2D	       22	     2.003	    23.036%	    93.629%	   868.352	       22</span><br><span class="line">         Pad	        2	     0.239	     2.749%	    96.377%	   115.456	        2</span><br><span class="line">        Relu	       19	     0.082	     0.943%	    97.320%	     0.000	       19</span><br><span class="line">       Const	       65	     0.071	     0.817%	    98.137%	     0.000	       65</span><br><span class="line">        NoOp	        1	     0.066	     0.759%	    98.896%	     0.000	        1</span><br><span class="line">         Add	        9	     0.059	     0.679%	    99.574%	     0.000	        9</span><br><span class="line">        Mean	        1	     0.010	     0.115%	    99.689%	     0.256	        1</span><br><span class="line">     Softmax	        1	     0.008	     0.092%	    99.781%	     0.000	        1</span><br><span class="line">_FusedMatMul	        1	     0.007	     0.081%	    99.862%	     0.040	        1</span><br><span class="line">     _Retval	        1	     0.005	     0.058%	    99.919%	     0.000	        1</span><br><span class="line">     Squeeze	        1	     0.005	     0.058%	    99.977%	     0.000	        1</span><br><span class="line">        _Arg	        1	     0.002	     0.023%	   100.000%	     0.000	        1</span><br><span class="line"></span><br><span class="line">Timings (microseconds): count=1000 first=7287 curr=7567 min=7198 max=18864 avg=8794.03 std=1249</span><br><span class="line">Memory (bytes): count=1000 curr=1224488(all same)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>node type：进行操作的节点类型。</li>
+<li>start：运算符的启动时间，展示了其在操作顺序中的位置。</li>
+<li>first: 以毫秒为单位。默认情况下 TensorFlow 会执行 20 次运行结果来获得统计数据，这个字段则表示第一次运行基准测试所需的操作时间。</li>
+<li>avg ms：以毫秒为单位。表示整个运行的平均操作时间。</li>
+<li>%：一次运行占总运行时间的百分比。这对理解密集计算区域非常有用。</li>
+<li>cdf%：整个过程中表格中当前运算符及上方全部运算符的累积计算时间。这对理解神经网络不同层之间的性能分布非常重要，有助于查看是否只有少数节点占用大部分时间。</li>
+<li>mem KB：当前层消耗的内存大小。</li>
+<li>Name：节点名称。</li>
+</ul>
+<h2 id="二、summarize-graph-模型大小分析"><a href="#二、summarize-graph-模型大小分析" class="headerlink" title="二、summarize_graph 模型大小分析"></a>二、summarize_graph 模型大小分析</h2><p>　　服务端深度模型落地时主要关注模型的预测效率，移动端模型落地需要考虑模型的大小。通过summarize_graph工具可以帮助我们简要分析模型的参数量和包含哪些op。设置–print_structure&#x3D;true可以观察到模型的结构，这也可以通过tensorboard来可视化实现。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">tensorflow-1.14.0编译summarize_graph工具</span><br><span class="line">$ bazel build -c opt tensorflow/tools/graph_transforms:summarize_graph</span><br><span class="line">$ bazel-bin/tensorflow/tools/graph_transforms/summarize_graph \</span><br><span class="line">--in_graph=reset20_cifar10_original.pb \</span><br><span class="line">--print_structure=true</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Found 1 possible inputs: (name=net_input, type=float(1), shape=[?,32,32,3]) </span><br><span class="line">No variables spotted.</span><br><span class="line">Found 1 possible outputs: (name=net_output, op=Softmax) </span><br><span class="line">Found 272572 (272.57k) const parameters, 0 (0) variable parameters, and 0 control_edges</span><br><span class="line">Op types used: 194 Const, 77 Identity, 22 Conv2D, 19 Relu, 19 FusedBatchNorm, 11 Add, 6 Slice, 5 Pad, 5 Reshape, 4 Sub, 4 MatchingFiles, 3 Switch, 2 Squeeze, 2 ShuffleDataset, 2 ShuffleAndRepeatDataset, 2 StridedSlice, 2 Shape, 2 TensorSliceDataset, 2 RealDiv, 2 PrefetchDataset, 2 ParallelMapDataset, 2 ParallelInterleaveDataset, 2 Transpose, 2 OneHot, 2 BatchDatasetV2, 2 Cast, 2 Maximum, 2 DecodeRaw, 1 GreaterEqual, 1 All, 1 Assert, 1 BiasAdd, 1 Softmax, 1 ExpandDims, 1 FixedLengthRecordDataset, 1 FloorMod, 1 Mul, 1 ReverseV2, 1 Less, 1 MatMul, 1 RandomUniformInt, 1 RandomUniform, 1 Mean, 1 Placeholder, 1 Merge</span><br></pre></td></tr></table></figure>
+
+
+<p><a href="https://tensorflow.juejin.im/mobile/optimizing.html">https://tensorflow.juejin.im/mobile/optimizing.html</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/TVM-tutorial/" rel="prev" title="TVM 学习资料整理（持续更新）">
+                  <i class="fa fa-angle-left"></i> TVM 学习资料整理（持续更新）
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/TVM-quantization/" rel="next" title="TVM学习笔记--模型量化(int8)及其测试数据">
+                  TVM学习笔记--模型量化(int8)及其测试数据 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

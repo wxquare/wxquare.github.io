@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="最近在做深度学习模型加速的工作，先后尝试了模型权重量化(quantization)、模型权重稀疏（sparsification）和模型通道剪枝(channel pruning)等压缩方法，但效果都不明显。权重量化和稀疏属于非结构化的压缩，需要推理引擎和硬件的优化才能实现推理加速，通道剪枝能直接减少FLOPs，确实能卷积网络的效率，在ResNet56网络中能大概提升卷积50%的速度。在工程实">
+<meta property="og:type" content="article">
+<meta property="og:title" content="初识TVM，相比于tensorflow的2倍性能提升">
+<meta property="og:url" content="http://yoursite.com/2020/08/13/AI/TVM-hello/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="最近在做深度学习模型加速的工作，先后尝试了模型权重量化(quantization)、模型权重稀疏（sparsification）和模型通道剪枝(channel pruning)等压缩方法，但效果都不明显。权重量化和稀疏属于非结构化的压缩，需要推理引擎和硬件的优化才能实现推理加速，通道剪枝能直接减少FLOPs，确实能卷积网络的效率，在ResNet56网络中能大概提升卷积50%的速度。在工程实">
+<meta property="og:locale">
+<meta property="article:published_time" content="2020-08-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-12-08T15:55:23.482Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2020/08/13/AI/TVM-hello/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2020/08/13/AI/TVM-hello/","path":"2020/08/13/AI/TVM-hello/","title":"初识TVM，相比于tensorflow的2倍性能提升"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>初识TVM，相比于tensorflow的2倍性能提升 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%80%89%E6%8B%A9TVM"><span class="nav-number">1.</span> <span class="nav-text">为什么选择TVM</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9D%E6%AC%A1%E4%BD%93%E9%AA%8CTVM%EF%BC%8C%E7%9B%B8%E6%AF%94%E4%BA%8Etensorflow2%E5%80%8D%E7%9A%84%E6%80%A7%E8%83%BD%E6%8F%90%E5%8D%87"><span class="nav-number">2.</span> <span class="nav-text">初次体验TVM，相比于tensorflow2倍的性能提升</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%AA%E5%A1%AB%E7%9A%84%E5%9D%91"><span class="nav-number"></span> <span class="nav-text">未填的坑</span></a></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/TVM-hello/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="初识TVM，相比于tensorflow的2倍性能提升 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          初识TVM，相比于tensorflow的2倍性能提升
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>　　<br>　　最近在做深度学习模型加速的工作，先后尝试了模型权重量化(quantization)、模型权重稀疏（sparsification）和模型通道剪枝(channel pruning)等压缩方法，但效果都不明显。权重量化和稀疏属于非结构化的压缩，需要推理引擎和硬件的优化才能实现推理加速，通道剪枝能直接减少FLOPs，确实能卷积网络的效率，在ResNet56网络中能大概提升卷积50%的速度。在工程实践中，除了通过模型压缩提升推理性能，还可以通过优化推理引擎提高推理效率。目前存在多种开源的推理引擎，我首先尝试了TVM。</p>
+<h3 id="为什么选择TVM"><a href="#为什么选择TVM" class="headerlink" title="为什么选择TVM"></a>为什么选择TVM</h3><p>　　为提升深度学习模型的推理效率，设备平台制造商针对自己的平台推出优化的推理引擎，例如NAVIDA的tensorRT，Intel的OpenVINO，Tencent针对移动端应用推出NCNN等。目前，深度学习模型应用广泛，在服务端和移动端都有应用，甚至于特殊的嵌入式场景想，它们都有加速模型推理的需求。个人感觉针对不同平台选择不同的推理引擎，学习成本太高。我这里选择尝试TVM，主要有以下几个原因：</p>
+<ul>
+<li>尝试了过一些模型压缩方法，效率提升有限</li>
+<li>有些是模型压缩方法需要推理引擎和硬件的支持的，例如量化</li>
+<li>tensorflow推理效率有限，需要更好的推理引擎</li>
+<li>针对平台选择不同推理引擎，学习成本太高</li>
+<li>需要能支持跨平台的推理引擎，未来可能在定制的嵌入式芯片上运行深度学习模型</li>
+<li>除了TVM之外，还存在XLA之类方案，选择TVM也是因为tianqi等大佬主导的项目，相信大佬！</li>
+</ul>
+<h3 id="初次体验TVM，相比于tensorflow2倍的性能提升"><a href="#初次体验TVM，相比于tensorflow2倍的性能提升" class="headerlink" title="初次体验TVM，相比于tensorflow2倍的性能提升"></a>初次体验TVM，相比于tensorflow2倍的性能提升</h3><p>　　看了几篇TVM介绍文章后，了解到它是从深度学习编译器的角度来做推理引擎，目前技术领域还比较新，具体技术细节以后有机会会深入学习，这里主要想体验一下使用TVM做深度模型推理，重点是推理效率的提升，因为是骡子还是马得拉出来遛遛。参考官方文档进行编译安装，整个过程还是比较简单的，结果显示相比于tensorflow大概100%的性能提升。实验环境是ubuntu 19.04，x86_64架构。</p>
+<ol>
+<li>安装llvm,也可源码编译<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ sudo apt-get install llvm</span><br></pre></td></tr></table></figure></li>
+<li>编译TVM<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ git clone --recursive https://github.com/dmlc/tvm.git</span><br><span class="line">$ cd tvm $$ mkdir build</span><br><span class="line">$ cp cmake/config.cmake build</span><br><span class="line"># 编辑config.cmake 然后将USE_LLVM OFF 改为 set(USE_LLVM /usr/bin/llvm-config)</span><br><span class="line">$ cd build</span><br><span class="line">$ cmake ..</span><br><span class="line">$ cmake -j4</span><br></pre></td></tr></table></figure></li>
+<li>编辑.bashrc配置Python环境<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">export TVM_HOME=/home/xxxx/code/tvm</span><br><span class="line">export PYTHONPATH=$TVM_HOME/python:$TVM_HOME/topi/python:$TVM_HOME/nnvm/python</span><br></pre></td></tr></table></figure></li>
+<li>官方<a href="https://docs.tvm.ai/tutorials/frontend/from_tensorflow.html#sphx-glr-tutorials-frontend-from-tensorflow-py">Compile Tensorflow Models</a><br>直接运行出现了两个问题，下载文件时和SSL相关，另外一个是缺少antlr<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># install antlr</span><br><span class="line">$ pip install antlr4-python3-runtime</span><br><span class="line"># debug ssl</span><br><span class="line">import ssl</span><br><span class="line">ssl._create_default_https_context = ssl._create_unverified_context</span><br><span class="line"># run demo</span><br><span class="line">$ python from_tensorflow.py</span><br></pre></td></tr></table></figure></li>
+<li>在代码中加入时间测试，实验测试结果。TVM与测试时间为0.277s，tensorflow为0.586s。<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">============ TVM ============ 0.2770531177520752</span><br><span class="line">African elephant, Loxodonta africana (score = 0.58335)</span><br><span class="line">tusker (score = 0.33901)</span><br><span class="line">Indian elephant, Elephas maximus (score = 0.02391)</span><br><span class="line">banana (score = 0.00025)</span><br><span class="line">vault (score = 0.00021)</span><br><span class="line">============= Tensorflow ===== 0.58619508743286133</span><br><span class="line">===== TENSORFLOW RESULTS =======</span><br><span class="line">African elephant, Loxodonta africana (score = 0.58394)</span><br><span class="line">tusker (score = 0.33909)</span><br><span class="line">Indian elephant, Elephas maximus (score = 0.03186)</span><br><span class="line">banana (score = 0.00022)</span><br><span class="line">desk (score = 0.00019)</span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
+</ol>
+<h2 id="未填的坑"><a href="#未填的坑" class="headerlink" title="未填的坑"></a>未填的坑</h2><p>　　过程遇到一个坑，查了TVM社区，没有很好的解答，看起来好像会和性能有关，希望路过的大佬能帮忙解决。<a href="https://discuss.tvm.ai/t/cannot-find-config-for-target-llvm-when-using-autotvm-in-tensorflow-example-for-cpu/1544">https://discuss.tvm.ai/t/cannot-find-config-for-target-llvm-when-using-autotvm-in-tensorflow-example-for-cpu/1544</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">WARNING:autotvm:Cannot find config for target=llvm, workload=(&#x27;conv2d&#x27;, (1, 8, 8, 2048, &#x27;float32&#x27;), (1, 1, 2048, 384, &#x27;float32&#x27;), (1, 1), (0, 0), (1, 1), &#x27;NHWC&#x27;, &#x27;float32&#x27;). A fallback configuration is used, which may bring great performance regression.</span><br><span class="line">WARNING:autotvm:Cannot find config for target=llvm, workload=(&#x27;conv2d&#x27;, (1, 8, 8, 2048, &#x27;float32&#x27;), (1, 1, 2048, 448, &#x27;float32&#x27;), (1, 1), (0, 0), (1, 1), &#x27;NHWC&#x27;, &#x27;float32&#x27;). A fallback configuration is used, which may bring great performance regression.</span><br><span class="line">WARNING:autotvm:Cannot find config for target=llvm, workload=(&#x27;conv2d&#x27;, (1, 8, 8, 2048, &#x27;float32&#x27;), (1, 1, 2048, 192, &#x27;float32&#x27;), (1, 1), (0, 0), (1, 1), &#x27;NHWC&#x27;, &#x27;float32&#x27;). A fallback configuration is used, which may bring great performance regression.</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<ol>
+<li>tvm install: <a href="https://docs.tvm.ai/install/from_source.html">https://docs.tvm.ai/install/from_source.html</a></li>
+<li>tvm tutorial: <a href="https://docs.tvm.ai/tutorials/frontend/from_tensorflow.html#sphx-glr-tutorials-frontend-from-tensorflow-py">Compile Tensorflow Models</a></li>
+<li>未填的坑：<a href="https://discuss.tvm.ai/t/cannot-find-config-for-target-llvm-when-using-autotvm-in-tensorflow-example-for-cpu/1544">https://discuss.tvm.ai/t/cannot-find-config-for-target-llvm-when-using-autotvm-in-tensorflow-example-for-cpu/1544</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/TVM-quantization/" rel="prev" title="TVM学习笔记--模型量化(int8)及其测试数据">
+                  <i class="fa fa-angle-left"></i> TVM学习笔记--模型量化(int8)及其测试数据
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/TVM-code-generation/" rel="next" title="TVM学习笔记--代码生成">
+                  TVM学习笔记--代码生成 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

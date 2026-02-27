@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="一、背景与挑战1.1 现状痛点在数字电商&#x2F;本地生活平台中，商品上架的数据来源和审核策略差异极大： 1.1.1 数据来源分类   数据来源 触发方式 数据可信度 审核策略 典型场景    供应商 Push 供应商实时推送 MQ 消息 高（合作方） 自动审核（快速通道） 电影票场次变更   供应商 Pull 定时任务主动拉取 API 高（合作方） 自动审核（快速通道） 酒店房型价格同步">
+<meta property="og:type" content="article">
+<meta property="og:title" content="多品类统一商品上架系统设计：电商·虚拟商品·本地生活">
+<meta property="og:url" content="http://yoursite.com/2025/06/28/system-design/19-listing-upload-system-design/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="一、背景与挑战1.1 现状痛点在数字电商&#x2F;本地生活平台中，商品上架的数据来源和审核策略差异极大： 1.1.1 数据来源分类   数据来源 触发方式 数据可信度 审核策略 典型场景    供应商 Push 供应商实时推送 MQ 消息 高（合作方） 自动审核（快速通道） 电影票场次变更   供应商 Pull 定时任务主动拉取 API 高（合作方） 自动审核（快速通道） 酒店房型价格同步">
+<meta property="og:locale">
+<meta property="article:published_time" content="2025-06-27T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-02-12T15:26:24.760Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="系统设计">
+<meta property="article:tag" content="商品上架">
+<meta property="article:tag" content="电商">
+<meta property="article:tag" content="状态机">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2025/06/28/system-design/19-listing-upload-system-design/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2025/06/28/system-design/19-listing-upload-system-design/","path":"2025/06/28/system-design/19-listing-upload-system-design/","title":"多品类统一商品上架系统设计：电商·虚拟商品·本地生活"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>多品类统一商品上架系统设计：电商·虚拟商品·本地生活 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E8%83%8C%E6%99%AF%E4%B8%8E%E6%8C%91%E6%88%98"><span class="nav-number">1.</span> <span class="nav-text">一、背景与挑战</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E7%8E%B0%E7%8A%B6%E7%97%9B%E7%82%B9"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 现状痛点</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-1-%E6%95%B0%E6%8D%AE%E6%9D%A5%E6%BA%90%E5%88%86%E7%B1%BB"><span class="nav-number">1.1.1.</span> <span class="nav-text">1.1.1 数据来源分类</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-2-%E5%93%81%E7%B1%BB%E4%B8%8A%E6%9E%B6%E6%B5%81%E7%A8%8B%E5%AF%B9%E6%AF%94"><span class="nav-number">1.1.2.</span> <span class="nav-text">1.1.2 品类上架流程对比</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E8%AE%BE%E8%AE%A1%E7%9B%AE%E6%A0%87"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 设计目标</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%95%B4%E4%BD%93%E6%9E%B6%E6%9E%84"><span class="nav-number">2.</span> <span class="nav-text">二、整体架构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%88%86%E5%B1%82%E6%9E%B6%E6%9E%84"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 分层架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E6%A0%B8%E5%BF%83%E8%AE%BE%E8%AE%A1%E6%80%9D%E6%83%B3"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 核心设计思想</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E7%8A%B6%E6%80%81%E6%9C%BA%E8%AE%BE%E8%AE%A1"><span class="nav-number">3.</span> <span class="nav-text">三、状态机设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E7%8A%B6%E6%80%81%E6%B5%81%E8%BD%AC%E5%9B%BE"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 状态流转图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E7%8A%B6%E6%80%81%E6%9E%9A%E4%B8%BE"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 状态枚举</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B"><span class="nav-number">4.</span> <span class="nav-text">四、数据模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E4%B8%8A%E6%9E%B6%E4%BB%BB%E5%8A%A1%E8%A1%A8%EF%BC%88listing-task-tab%EF%BC%89"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 上架任务表（listing_task_tab）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E6%89%B9%E9%87%8F%E4%BB%BB%E5%8A%A1%E8%A1%A8%EF%BC%88listing-batch-task-tab%EF%BC%89"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 批量任务表（listing_batch_task_tab）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%89%B9%E9%87%8F%E4%BB%BB%E5%8A%A1%E6%98%8E%E7%BB%86%E8%A1%A8%EF%BC%88listing-batch-item-tab%EF%BC%89"><span class="nav-number">4.3.</span> <span class="nav-text">4.3 批量任务明细表（listing_batch_item_tab）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E5%AE%A1%E6%A0%B8%E6%97%A5%E5%BF%97%E8%A1%A8-%E7%8A%B6%E6%80%81%E5%8F%98%E6%9B%B4%E5%8E%86%E5%8F%B2%E8%A1%A8"><span class="nav-number">4.4.</span> <span class="nav-text">4.4 审核日志表 &amp; 状态变更历史表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-5-%E5%AE%A1%E6%A0%B8%E7%AD%96%E7%95%A5%E9%85%8D%E7%BD%AE%E8%A1%A8"><span class="nav-number">4.5.</span> <span class="nav-text">4.5 审核策略配置表</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E6%A0%B8%E5%BF%83%E6%B5%81%E7%A8%8B%E8%AE%BE%E8%AE%A1"><span class="nav-number">5.</span> <span class="nav-text">五、核心流程设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E5%AE%A1%E6%A0%B8%E7%AD%96%E7%95%A5%E5%86%B3%E7%AD%96%E6%B5%81%E7%A8%8B"><span class="nav-number">5.1.</span> <span class="nav-text">5.1 审核策略决策流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E5%8D%95%E5%93%81%E4%B8%8A%E6%9E%B6%E6%B5%81%E7%A8%8B"><span class="nav-number">5.2.</span> <span class="nav-text">5.2 单品上架流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-%E6%89%B9%E9%87%8F%E4%B8%8A%E6%9E%B6%E6%B5%81%E7%A8%8B%EF%BC%88Excel%EF%BC%89"><span class="nav-number">5.3.</span> <span class="nav-text">5.3 批量上架流程（Excel）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-4-%E4%BE%9B%E5%BA%94%E5%95%86%E6%8E%A8%E9%80%81%E5%90%8C%E6%AD%A5%E6%B5%81%E7%A8%8B%EF%BC%88Movie-%E2%80%94-%E5%AE%9E%E6%97%B6%EF%BC%89"><span class="nav-number">5.4.</span> <span class="nav-text">5.4 供应商推送同步流程（Movie — 实时）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-5-%E4%BE%9B%E5%BA%94%E5%95%86%E5%AE%9A%E6%97%B6%E6%8B%89%E5%8F%96%E6%B5%81%E7%A8%8B%EF%BC%88Hotel-%E2%80%94-%E6%89%B9%E9%87%8F%EF%BC%89"><span class="nav-number">5.5.</span> <span class="nav-text">5.5 供应商定时拉取流程（Hotel — 批量）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81%E4%BE%9B%E5%BA%94%E5%95%86%E5%AF%B9%E6%8E%A5%E5%8F%8C%E6%A8%A1%E5%BC%8F%E8%AE%BE%E8%AE%A1"><span class="nav-number">6.</span> <span class="nav-text">六、供应商对接双模式设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-%E6%8E%A8%E9%80%81-vs-%E6%8B%89%E5%8F%96%E5%AF%B9%E6%AF%94"><span class="nav-number">6.1.</span> <span class="nav-text">6.1 推送 vs 拉取对比</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-%E9%80%89%E5%9E%8B%E5%BB%BA%E8%AE%AE"><span class="nav-number">6.2.</span> <span class="nav-text">6.2 选型建议</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-%E5%90%8C%E6%AD%A5%E7%8A%B6%E6%80%81%E7%AE%A1%E7%90%86"><span class="nav-number">6.3.</span> <span class="nav-text">6.3 同步状态管理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%83%E3%80%81%E5%85%B3%E9%94%AE%E6%8A%80%E6%9C%AF%E6%96%B9%E6%A1%88"><span class="nav-number">7.</span> <span class="nav-text">七、关键技术方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#7-1-%E4%B9%90%E8%A7%82%E9%94%81-%E7%89%88%E6%9C%AC%E5%8F%B7%EF%BC%88%E5%B9%B6%E5%8F%91%E5%AE%89%E5%85%A8%EF%BC%89"><span class="nav-number">7.1.</span> <span class="nav-text">7.1 乐观锁 + 版本号（并发安全）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-2-%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95%E4%BF%9D%E8%AF%81%E5%B9%82%E7%AD%89"><span class="nav-number">7.2.</span> <span class="nav-text">7.2 唯一索引保证幂等</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-3-%E7%9C%8B%E9%97%A8%E7%8B%97%E6%9C%BA%E5%88%B6%EF%BC%88Watchdog%EF%BC%89"><span class="nav-number">7.3.</span> <span class="nav-text">7.3 看门狗机制（Watchdog）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-4-%E6%95%B0%E6%8D%AE%E6%A0%A1%E9%AA%8C%E5%BC%95%E6%93%8E%EF%BC%88%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F%EF%BC%89"><span class="nav-number">7.4.</span> <span class="nav-text">7.4 数据校验引擎（策略模式）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-5-Worker-Pool-%E5%B9%B6%E5%8F%91%E5%A4%84%E7%90%86"><span class="nav-number">7.5.</span> <span class="nav-text">7.5 Worker Pool 并发处理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AB%E3%80%81Kafka-%E4%BA%8B%E4%BB%B6%E8%AE%BE%E8%AE%A1"><span class="nav-number">8.</span> <span class="nav-text">八、Kafka 事件设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#8-1-Topic-%E8%AE%BE%E8%AE%A1"><span class="nav-number">8.1.</span> <span class="nav-text">8.1 Topic 设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-2-%E6%B6%88%E6%81%AF%E6%A0%BC%E5%BC%8F"><span class="nav-number">8.2.</span> <span class="nav-text">8.2 消息格式</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B9%9D%E3%80%81%E4%B8%9A%E7%95%8C%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5%E5%8F%82%E8%80%83"><span class="nav-number">9.</span> <span class="nav-text">九、业界最佳实践参考</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#9-1-%E6%B7%98%E5%AE%9D-%E5%A4%A9%E7%8C%AB"><span class="nav-number">9.1.</span> <span class="nav-text">9.1 淘宝&#x2F;天猫</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-2-%E4%BA%AC%E4%B8%9C"><span class="nav-number">9.2.</span> <span class="nav-text">9.2 京东</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-3-Amazon"><span class="nav-number">9.3.</span> <span class="nav-text">9.3 Amazon</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-4-%E6%9C%AC%E8%AE%BE%E8%AE%A1%E5%80%9F%E9%89%B4%E7%82%B9"><span class="nav-number">9.4.</span> <span class="nav-text">9.4 本设计借鉴点</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E3%80%81%E7%9B%91%E6%8E%A7%E4%B8%8E%E5%91%8A%E8%AD%A6"><span class="nav-number">10.</span> <span class="nav-text">十、监控与告警</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#10-1-%E5%85%B3%E9%94%AE%E6%8C%87%E6%A0%87"><span class="nav-number">10.1.</span> <span class="nav-text">10.1 关键指标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#10-2-Prometheus-Metrics"><span class="nav-number">10.2.</span> <span class="nav-text">10.2 Prometheus Metrics</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E4%B8%80%E3%80%81%E6%96%B0%E5%93%81%E7%B1%BB%E6%8E%A5%E5%85%A5%E6%8C%87%E5%8D%97"><span class="nav-number">11.</span> <span class="nav-text">十一、新品类接入指南</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E4%BA%8C%E3%80%81%E8%AE%BE%E8%AE%A1%E6%80%BB%E7%BB%93"><span class="nav-number">12.</span> <span class="nav-text">十二、设计总结</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E8%AE%BE%E8%AE%A1%E5%86%B3%E7%AD%96"><span class="nav-number">12.1.</span> <span class="nav-text">核心设计决策</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2025/06/28/system-design/19-listing-upload-system-design/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="多品类统一商品上架系统设计：电商·虚拟商品·本地生活 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          多品类统一商品上架系统设计：电商·虚拟商品·本地生活
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2025-06-28 00:00:00" itemprop="dateCreated datePublished" datetime="2025-06-28T00:00:00+08:00">2025-06-28</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-02-12 23:26:24" itemprop="dateModified" datetime="2026-02-12T23:26:24+08:00">2026-02-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><!-- toc -->
+
+<h2 id="一、背景与挑战"><a href="#一、背景与挑战" class="headerlink" title="一、背景与挑战"></a>一、背景与挑战</h2><h3 id="1-1-现状痛点"><a href="#1-1-现状痛点" class="headerlink" title="1.1 现状痛点"></a>1.1 现状痛点</h3><p>在数字电商&#x2F;本地生活平台中，商品上架的数据来源和审核策略差异极大：</p>
+<h4 id="1-1-1-数据来源分类"><a href="#1-1-1-数据来源分类" class="headerlink" title="1.1.1 数据来源分类"></a>1.1.1 数据来源分类</h4><table>
+<thead>
+<tr>
+<th>数据来源</th>
+<th>触发方式</th>
+<th>数据可信度</th>
+<th>审核策略</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>供应商 Push</strong></td>
+<td>供应商实时推送 MQ 消息</td>
+<td>高（合作方）</td>
+<td>自动审核（快速通道）</td>
+<td>电影票场次变更</td>
+</tr>
+<tr>
+<td><strong>供应商 Pull</strong></td>
+<td>定时任务主动拉取 API</td>
+<td>高（合作方）</td>
+<td>自动审核（快速通道）</td>
+<td>酒店房型价格同步</td>
+</tr>
+<tr>
+<td><strong>运营上传</strong></td>
+<td>运营后台单品&#x2F;批量</td>
+<td>高（内部）</td>
+<td>免审核或自动审核</td>
+<td>话费充值面额配置</td>
+</tr>
+<tr>
+<td><strong>商家上传</strong></td>
+<td>Merchant App&#x2F;Portal</td>
+<td>低（需审核）</td>
+<td>人工审核</td>
+<td>商家自营电子券</td>
+</tr>
+<tr>
+<td><strong>API 接口</strong></td>
+<td>第三方系统调用</td>
+<td>中（看调用方）</td>
+<td>根据来源配置</td>
+<td>批量导入工具</td>
+</tr>
+</tbody></table>
+<h4 id="1-1-2-品类上架流程对比"><a href="#1-1-2-品类上架流程对比" class="headerlink" title="1.1.2 品类上架流程对比"></a>1.1.2 品类上架流程对比</h4><table>
+<thead>
+<tr>
+<th>品类</th>
+<th>主要数据来源</th>
+<th>对接方式</th>
+<th>审核策略</th>
+<th>特殊处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>酒店 (Hotel)</strong></td>
+<td>供应商 Pull &#x2F; 运营批量</td>
+<td>定时拉取 API (Cron)</td>
+<td>自动审核</td>
+<td>价格日历校验</td>
+</tr>
+<tr>
+<td><strong>电影票 (Movie)</strong></td>
+<td>供应商 Push</td>
+<td>实时推送 (MQ)</td>
+<td>自动审核（快速通道）</td>
+<td>场次时间校验</td>
+</tr>
+<tr>
+<td><strong>话费充值 (TopUp)</strong></td>
+<td>运营上传</td>
+<td>单品表单 &#x2F; Excel 批量</td>
+<td>免审核</td>
+<td>面额范围校验</td>
+</tr>
+<tr>
+<td><strong>电子券 (E-voucher)</strong></td>
+<td>商家上传 &#x2F; 供应商 Pull</td>
+<td>Portal + 券码池 &#x2F; API</td>
+<td>人工审核</td>
+<td>券码池异步导入</td>
+</tr>
+<tr>
+<td><strong>礼品卡 (Giftcard)</strong></td>
+<td>运营上传 &#x2F; 商家上传</td>
+<td>单品表单 &#x2F; Merchant App</td>
+<td>商家需审核，运营免审</td>
+<td>库存校验</td>
+</tr>
+</tbody></table>
+<p><strong>核心痛点</strong>：</p>
+<ol>
+<li><strong>流程不统一</strong>：每个品类上架流程各异，代码无法复用。</li>
+<li><strong>状态管理混乱</strong>：草稿、审核、上线、下线等状态散落在不同表中。</li>
+<li><strong>批量上传困难</strong>：Excel 批量上传缺乏统一处理机制。</li>
+<li><strong>数据一致性差</strong>：并发上架时数据冲突频发，缺乏乐观锁保护。</li>
+<li><strong>审核策略不灵活</strong>：无法根据数据来源（供应商&#x2F;运营&#x2F;商家）动态调整审核策略。</li>
+<li><strong>供应商对接方式不统一</strong>：有的推送、有的拉取，各自实现，缺乏标准化。</li>
+</ol>
+<h3 id="1-2-设计目标"><a href="#1-2-设计目标" class="headerlink" title="1.2 设计目标"></a>1.2 设计目标</h3><table>
+<thead>
+<tr>
+<th>目标</th>
+<th>说明</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>统一上架流程</strong></td>
+<td>所有品类共享统一状态机和流程</td>
+<td>P0</td>
+</tr>
+<tr>
+<td><strong>异步化处理</strong></td>
+<td>上传、审核、发布异步化，提升响应速度</td>
+<td>P0</td>
+</tr>
+<tr>
+<td><strong>批量上传</strong></td>
+<td>支持 Excel&#x2F;CSV 批量上传</td>
+<td>P0</td>
+</tr>
+<tr>
+<td><strong>状态可追溯</strong></td>
+<td>完整的状态变更历史记录</td>
+<td>P0</td>
+</tr>
+<tr>
+<td><strong>并发安全</strong></td>
+<td>乐观锁 + 唯一索引保证一致性</td>
+<td>P1</td>
+</tr>
+<tr>
+<td><strong>故障自愈</strong></td>
+<td>看门狗机制监控超时任务，自动重试</td>
+<td>P1</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="二、整体架构"><a href="#二、整体架构" class="headerlink" title="二、整体架构"></a>二、整体架构</h2><h3 id="2-1-分层架构"><a href="#2-1-分层架构" class="headerlink" title="2.1 分层架构"></a>2.1 分层架构</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────────┐</span><br><span class="line">│  上架入口层 (Entry Layer)                                    │</span><br><span class="line">│  ┌────────┬────────┬────────┬────────┬────────┬────────┐   │</span><br><span class="line">│  │运营上传│商家上传│ 批量导入│供应商  │供应商  │ API接口│   │</span><br><span class="line">│  │ (Form) │(Portal)│ (Excel)│ Push   │ Pull   │ (RPC)  │   │</span><br><span class="line">│  │        │  (App) │        │ (MQ)   │ (Cron) │        │   │</span><br><span class="line">│  └────────┴────────┴────────┴────────┴────────┴────────┘   │</span><br><span class="line">│           ↓                                      │</span><br><span class="line">│  ┌───────────────────────────────────────────┐  │</span><br><span class="line">│  │       Listing Upload Service              │  │</span><br><span class="line">│  │  • 数据校验  • 格式转换  • 任务创建       │  │</span><br><span class="line">│  └───────────────────────────────────────────┘  │</span><br><span class="line">│           ↓                                      │</span><br><span class="line">│  ┌───────────────────────────────────────────┐  │</span><br><span class="line">│  │       Async Task Queue (Kafka)            │  │</span><br><span class="line">│  │  • listing.upload.created                 │  │</span><br><span class="line">│  │  • listing.audit.pending                  │  │</span><br><span class="line">│  │  • listing.publish.ready                  │  │</span><br><span class="line">│  └───────────────────────────────────────────┘  │</span><br><span class="line">│           ↓                                      │</span><br><span class="line">│  ┌───────────────────────────────────────────┐  │</span><br><span class="line">│  │       Async Workers                       │  │</span><br><span class="line">│  │  ┌──────────┬──────────┬──────────┐      │  │</span><br><span class="line">│  │  │ 数据处理  │ 审核引擎  │ 发布引擎 │      │  │</span><br><span class="line">│  │  │ Worker   │ Worker   │ Worker   │      │  │</span><br><span class="line">│  │  └──────────┴──────────┴──────────┘      │  │</span><br><span class="line">│  └───────────────────────────────────────────┘  │</span><br><span class="line">│           ↓                                      │</span><br><span class="line">│  ┌───────────────────────────────────────────┐  │</span><br><span class="line">│  │       状态机引擎 (State Machine)           │  │</span><br><span class="line">│  │  DRAFT → Pending → Approved → Online      │  │</span><br><span class="line">│  └───────────────────────────────────────────┘  │</span><br><span class="line">│           ↓                                      │</span><br><span class="line">│  ┌───────────────────────────────────────────┐  │</span><br><span class="line">│  │       数据持久化层                         │  │</span><br><span class="line">│  │  MySQL / Redis / ES / OSS                 │  │</span><br><span class="line">│  └───────────────────────────────────────────┘  │</span><br><span class="line">└─────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-核心设计思想"><a href="#2-2-核心设计思想" class="headerlink" title="2.2 核心设计思想"></a>2.2 核心设计思想</h3><ol>
+<li><strong>统一状态机</strong>：所有品类共享同一套状态流转（DRAFT → Pending → Approved → Online），通过审核规则引擎适配不同品类的校验逻辑。</li>
+<li><strong>策略模式</strong>：不同品类的校验规则、供应商对接方式通过策略模式实现，新品类只需注册校验规则即可接入。</li>
+<li><strong>数据来源驱动审核</strong>：根据数据来源（供应商&#x2F;运营&#x2F;商家）自动选择审核策略（快速通道&#x2F;免审核&#x2F;人工审核）。</li>
+<li><strong>异步化</strong>：所有耗时操作（文件解析、审核、发布）通过 Kafka + Worker 异步处理，API 层只负责创建任务和返回 task_code。</li>
+<li><strong>事件驱动</strong>：每个状态变更都发送 Kafka 事件，下游消费者（ES 同步、缓存刷新、通知）解耦处理。</li>
+</ol>
+<hr>
+<h2 id="三、状态机设计"><a href="#三、状态机设计" class="headerlink" title="三、状态机设计"></a>三、状态机设计</h2><h3 id="3-1-状态流转图"><a href="#3-1-状态流转图" class="headerlink" title="3.1 状态流转图"></a>3.1 状态流转图</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">┌──────────┐</span><br><span class="line">│  DRAFT   │  草稿（0）</span><br><span class="line">│          │  • 运营创建/编辑商品</span><br><span class="line">└─────┬────┘</span><br><span class="line">      │ submit()</span><br><span class="line">      ▼</span><br><span class="line">┌──────────────┐</span><br><span class="line">│Pending Audit │  待审核（10）</span><br><span class="line">│              │  • 提交后不可编辑</span><br><span class="line">└──────┬───────┘</span><br><span class="line"> ┌─────┴─────┐</span><br><span class="line"> │           │</span><br><span class="line"> │ approve() │ reject()</span><br><span class="line"> ▼           ▼</span><br><span class="line">┌────────┐ ┌────────┐</span><br><span class="line">│Approved│ │Rejected│  审核拒绝（12）→ 可重新提交</span><br><span class="line">│  (11)  │ │  (12)  │</span><br><span class="line">└───┬────┘ └────────┘</span><br><span class="line">    │ publish()</span><br><span class="line">    ▼</span><br><span class="line">┌────────┐</span><br><span class="line">│ Online │  已上线（20）→ 商品可售</span><br><span class="line">│  (20)  │</span><br><span class="line">└───┬────┘</span><br><span class="line">    │</span><br><span class="line">    ├── offline()      → Offline (21)    下线</span><br><span class="line">    ├── maintain()     → Maintain (22)   维护中</span><br><span class="line">    └── outOfStock()   → OutOfStock (23) 缺货</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-状态枚举"><a href="#3-2-状态枚举" class="headerlink" title="3.2 状态枚举"></a>3.2 状态枚举</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> (</span><br><span class="line">    StatusDraft         = <span class="number">0</span>   <span class="comment">// 草稿</span></span><br><span class="line">    StatusPendingAudit  = <span class="number">10</span>  <span class="comment">// 待审核</span></span><br><span class="line">    StatusApproved      = <span class="number">11</span>  <span class="comment">// 审核通过</span></span><br><span class="line">    StatusRejected      = <span class="number">12</span>  <span class="comment">// 审核拒绝</span></span><br><span class="line">    StatusOnline        = <span class="number">20</span>  <span class="comment">// 已上线</span></span><br><span class="line">    StatusOffline       = <span class="number">21</span>  <span class="comment">// 已下线</span></span><br><span class="line">    StatusMaintain      = <span class="number">22</span>  <span class="comment">// 维护中</span></span><br><span class="line">    StatusOutOfStock    = <span class="number">23</span>  <span class="comment">// 缺货</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="四、数据模型"><a href="#四、数据模型" class="headerlink" title="四、数据模型"></a>四、数据模型</h2><h3 id="4-1-上架任务表（listing-task-tab）"><a href="#4-1-上架任务表（listing-task-tab）" class="headerlink" title="4.1 上架任务表（listing_task_tab）"></a>4.1 上架任务表（listing_task_tab）</h3><p>每次上架操作对应一条任务记录，是整个流程的核心载体：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> listing_task_tab (</span><br><span class="line">  id              <span class="type">BIGINT</span> <span class="keyword">PRIMARY</span> KEY AUTO_INCREMENT,</span><br><span class="line">  task_code       <span class="type">VARCHAR</span>(<span class="number">64</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;任务编码(唯一)&#x27;</span>,</span><br><span class="line">  task_type       <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;single_create/batch_import/supplier_sync/api_import&#x27;</span>,</span><br><span class="line">  category_id     <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;类目ID&#x27;</span>,</span><br><span class="line">  item_id         <span class="type">BIGINT</span> COMMENT <span class="string">&#x27;商品ID(创建成功后关联)&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="comment">-- 状态</span></span><br><span class="line">  status          TINYINT <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span> COMMENT <span class="string">&#x27;主状态(状态机)&#x27;</span>,</span><br><span class="line">  sub_status      <span class="type">VARCHAR</span>(<span class="number">50</span>) COMMENT <span class="string">&#x27;子状态: processing/waiting_retry/failed&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="comment">-- 任务数据</span></span><br><span class="line">  source_type     <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;operator_form/merchant_portal/merchant_app/excel_batch/supplier_push/supplier_pull/api&#x27;</span>,</span><br><span class="line">  source_file     <span class="type">VARCHAR</span>(<span class="number">500</span>) COMMENT <span class="string">&#x27;源文件路径(Excel时)&#x27;</span>,</span><br><span class="line">  source_user_id  <span class="type">BIGINT</span> COMMENT <span class="string">&#x27;来源用户ID（商家上传时）&#x27;</span>,</span><br><span class="line">  source_user_type <span class="type">VARCHAR</span>(<span class="number">50</span>) COMMENT <span class="string">&#x27;来源用户类型: operator/merchant/system&#x27;</span>,</span><br><span class="line">  item_data       JSON <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;商品数据(待处理)&#x27;</span>,</span><br><span class="line">  validation_result JSON COMMENT <span class="string">&#x27;校验结果&#x27;</span>,</span><br><span class="line">  error_message   TEXT COMMENT <span class="string">&#x27;错误信息&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="comment">-- 审核信息</span></span><br><span class="line">  audit_type      <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">DEFAULT</span> <span class="string">&#x27;auto&#x27;</span> COMMENT <span class="string">&#x27;auto/manual&#x27;</span>,</span><br><span class="line">  auditor_id      <span class="type">BIGINT</span> COMMENT <span class="string">&#x27;审核人&#x27;</span>,</span><br><span class="line">  audit_time      <span class="type">TIMESTAMP</span> <span class="keyword">NULL</span>,</span><br><span class="line">  audit_comment   TEXT COMMENT <span class="string">&#x27;审核意见&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="comment">-- 重试与超时</span></span><br><span class="line">  retry_count     <span class="type">INT</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  max_retry       <span class="type">INT</span> <span class="keyword">DEFAULT</span> <span class="number">3</span>,</span><br><span class="line">  timeout_at      <span class="type">TIMESTAMP</span> <span class="keyword">NULL</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="comment">-- 乐观锁</span></span><br><span class="line">  version         <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  </span><br><span class="line">  created_by      <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  created_at      <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  updated_at      <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span> <span class="keyword">ON</span> <span class="keyword">UPDATE</span> <span class="built_in">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">UNIQUE</span> KEY uk_task_code (task_code),</span><br><span class="line">  KEY idx_category_status (category_id, status),</span><br><span class="line">  KEY idx_timeout (timeout_at, status)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-批量任务表（listing-batch-task-tab）"><a href="#4-2-批量任务表（listing-batch-task-tab）" class="headerlink" title="4.2 批量任务表（listing_batch_task_tab）"></a>4.2 批量任务表（listing_batch_task_tab）</h3><p>Excel 批量导入时，一个文件对应一条批量任务，下挂多条 listing_task：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> listing_batch_task_tab (</span><br><span class="line">  id              <span class="type">BIGINT</span> <span class="keyword">PRIMARY</span> KEY AUTO_INCREMENT,</span><br><span class="line">  batch_code      <span class="type">VARCHAR</span>(<span class="number">64</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;批次编码&#x27;</span>,</span><br><span class="line">  category_id     <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  task_type       <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;excel_import/api_batch&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="comment">-- 文件信息</span></span><br><span class="line">  file_name       <span class="type">VARCHAR</span>(<span class="number">255</span>),</span><br><span class="line">  file_path       <span class="type">VARCHAR</span>(<span class="number">500</span>),</span><br><span class="line">  file_size       <span class="type">BIGINT</span>,</span><br><span class="line">  file_md5        <span class="type">VARCHAR</span>(<span class="number">64</span>),</span><br><span class="line">  </span><br><span class="line">  <span class="comment">-- 进度统计</span></span><br><span class="line">  total_count     <span class="type">INT</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  success_count   <span class="type">INT</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  failed_count    <span class="type">INT</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  processing_count <span class="type">INT</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  </span><br><span class="line">  status          <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">DEFAULT</span> <span class="string">&#x27;created&#x27;</span> COMMENT <span class="string">&#x27;created/processing/completed/failed&#x27;</span>,</span><br><span class="line">  progress        <span class="type">INT</span> <span class="keyword">DEFAULT</span> <span class="number">0</span> COMMENT <span class="string">&#x27;0-100&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  result_file     <span class="type">VARCHAR</span>(<span class="number">500</span>) COMMENT <span class="string">&#x27;结果文件(含成功/失败明细)&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  start_time      <span class="type">TIMESTAMP</span> <span class="keyword">NULL</span>,</span><br><span class="line">  end_time        <span class="type">TIMESTAMP</span> <span class="keyword">NULL</span>,</span><br><span class="line">  created_by      <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  created_at      <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  updated_at      <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span> <span class="keyword">ON</span> <span class="keyword">UPDATE</span> <span class="built_in">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">UNIQUE</span> KEY uk_batch_code (batch_code),</span><br><span class="line">  KEY idx_status (status)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-批量任务明细表（listing-batch-item-tab）"><a href="#4-3-批量任务明细表（listing-batch-item-tab）" class="headerlink" title="4.3 批量任务明细表（listing_batch_item_tab）"></a>4.3 批量任务明细表（listing_batch_item_tab）</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> listing_batch_item_tab (</span><br><span class="line">  id              <span class="type">BIGINT</span> <span class="keyword">PRIMARY</span> KEY AUTO_INCREMENT,</span><br><span class="line">  batch_id        <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  task_id         <span class="type">BIGINT</span> COMMENT <span class="string">&#x27;关联的 listing_task_id&#x27;</span>,</span><br><span class="line">  item_id         <span class="type">BIGINT</span> COMMENT <span class="string">&#x27;关联的商品ID&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  row_number      <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;Excel行号&#x27;</span>,</span><br><span class="line">  row_data        JSON <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;行数据(原始)&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  status          <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">DEFAULT</span> <span class="string">&#x27;pending&#x27;</span> COMMENT <span class="string">&#x27;pending/processing/success/failed&#x27;</span>,</span><br><span class="line">  error_message   TEXT,</span><br><span class="line">  </span><br><span class="line">  created_at      <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  </span><br><span class="line">  KEY idx_batch_status (batch_id, status)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-4-审核日志表-状态变更历史表"><a href="#4-4-审核日志表-状态变更历史表" class="headerlink" title="4.4 审核日志表 &amp; 状态变更历史表"></a>4.4 审核日志表 &amp; 状态变更历史表</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 审核日志</span></span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> listing_audit_log_tab (</span><br><span class="line">  id              <span class="type">BIGINT</span> <span class="keyword">PRIMARY</span> KEY AUTO_INCREMENT,</span><br><span class="line">  task_id         <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  item_id         <span class="type">BIGINT</span>,</span><br><span class="line">  audit_type      <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;auto/manual&#x27;</span>,</span><br><span class="line">  audit_action    <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;approve/reject&#x27;</span>,</span><br><span class="line">  audit_reason    TEXT,</span><br><span class="line">  rules_applied   JSON COMMENT <span class="string">&#x27;应用的审核规则&#x27;</span>,</span><br><span class="line">  rule_results    JSON COMMENT <span class="string">&#x27;规则执行结果&#x27;</span>,</span><br><span class="line">  auditor_id      <span class="type">BIGINT</span>,</span><br><span class="line">  audit_time      <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  KEY idx_task (task_id)</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 状态变更历史</span></span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> listing_state_history_tab (</span><br><span class="line">  id              <span class="type">BIGINT</span> <span class="keyword">PRIMARY</span> KEY AUTO_INCREMENT,</span><br><span class="line">  task_id         <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  item_id         <span class="type">BIGINT</span>,</span><br><span class="line">  from_status     TINYINT <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  to_status       TINYINT <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  action          <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;submit/approve/reject/publish/offline&#x27;</span>,</span><br><span class="line">  reason          <span class="type">VARCHAR</span>(<span class="number">500</span>),</span><br><span class="line">  operator_id     <span class="type">BIGINT</span>,</span><br><span class="line">  changed_at      <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  KEY idx_task (task_id)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-5-审核策略配置表"><a href="#4-5-审核策略配置表" class="headerlink" title="4.5 审核策略配置表"></a>4.5 审核策略配置表</h3><p>根据数据来源自动选择审核策略：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> listing_audit_config_tab (</span><br><span class="line">  id              <span class="type">BIGINT</span> <span class="keyword">PRIMARY</span> KEY AUTO_INCREMENT,</span><br><span class="line">  category_id     <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;类目ID&#x27;</span>,</span><br><span class="line">  source_type     <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;数据来源类型&#x27;</span>,</span><br><span class="line">  source_user_type <span class="type">VARCHAR</span>(<span class="number">50</span>) COMMENT <span class="string">&#x27;用户类型: operator/merchant/system&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="comment">-- 审核策略</span></span><br><span class="line">  audit_strategy  <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;skip/auto/manual/fast_track&#x27;</span>,</span><br><span class="line">  skip_audit      <span class="type">BOOLEAN</span> <span class="keyword">DEFAULT</span> <span class="literal">FALSE</span> COMMENT <span class="string">&#x27;是否跳过审核&#x27;</span>,</span><br><span class="line">  fast_track      <span class="type">BOOLEAN</span> <span class="keyword">DEFAULT</span> <span class="literal">FALSE</span> COMMENT <span class="string">&#x27;是否快速通道&#x27;</span>,</span><br><span class="line">  require_manual  <span class="type">BOOLEAN</span> <span class="keyword">DEFAULT</span> <span class="literal">FALSE</span> COMMENT <span class="string">&#x27;是否需要人工审核&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="comment">-- 审核规则</span></span><br><span class="line">  validation_rules JSON COMMENT <span class="string">&#x27;校验规则配置&#x27;</span>,</span><br><span class="line">  auto_approve_conditions JSON COMMENT <span class="string">&#x27;自动通过条件&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  is_active       <span class="type">BOOLEAN</span> <span class="keyword">DEFAULT</span> <span class="literal">TRUE</span>,</span><br><span class="line">  created_at      <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  updated_at      <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span> <span class="keyword">ON</span> <span class="keyword">UPDATE</span> <span class="built_in">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">UNIQUE</span> KEY uk_category_source (category_id, source_type, source_user_type),</span><br><span class="line">  KEY idx_category (category_id)</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 示例配置数据</span></span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> listing_audit_config_tab (category_id, source_type, source_user_type, audit_strategy, skip_audit, fast_track) <span class="keyword">VALUES</span></span><br><span class="line">  (<span class="number">1</span>, <span class="string">&#x27;supplier_push&#x27;</span>, <span class="string">&#x27;system&#x27;</span>, <span class="string">&#x27;fast_track&#x27;</span>, <span class="literal">FALSE</span>, <span class="literal">TRUE</span>),      <span class="comment">-- 供应商推送：快速通道</span></span><br><span class="line">  (<span class="number">1</span>, <span class="string">&#x27;supplier_pull&#x27;</span>, <span class="string">&#x27;system&#x27;</span>, <span class="string">&#x27;fast_track&#x27;</span>, <span class="literal">FALSE</span>, <span class="literal">TRUE</span>),      <span class="comment">-- 供应商拉取：快速通道</span></span><br><span class="line">  (<span class="number">1</span>, <span class="string">&#x27;operator_form&#x27;</span>, <span class="string">&#x27;operator&#x27;</span>, <span class="string">&#x27;skip&#x27;</span>, <span class="literal">TRUE</span>, <span class="literal">FALSE</span>),          <span class="comment">-- 运营上传：免审核</span></span><br><span class="line">  (<span class="number">1</span>, <span class="string">&#x27;merchant_portal&#x27;</span>, <span class="string">&#x27;merchant&#x27;</span>, <span class="string">&#x27;manual&#x27;</span>, <span class="literal">FALSE</span>, <span class="literal">FALSE</span>),     <span class="comment">-- 商家上传：人工审核</span></span><br><span class="line">  (<span class="number">1</span>, <span class="string">&#x27;merchant_app&#x27;</span>, <span class="string">&#x27;merchant&#x27;</span>, <span class="string">&#x27;manual&#x27;</span>, <span class="literal">FALSE</span>, <span class="literal">FALSE</span>);        <span class="comment">-- 商家App：人工审核</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="五、核心流程设计"><a href="#五、核心流程设计" class="headerlink" title="五、核心流程设计"></a>五、核心流程设计</h2><h3 id="5-1-审核策略决策流程"><a href="#5-1-审核策略决策流程" class="headerlink" title="5.1 审核策略决策流程"></a>5.1 审核策略决策流程</h3><p>根据数据来源自动选择审核策略：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">创建上架任务</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">识别数据来源 (source_type + source_user_type)</span><br><span class="line">  │</span><br><span class="line">  ├─ 供应商 Push/Pull (system) ────→ 快速通道（自动审核）</span><br><span class="line">  │                                   • 仅校验必填项和格式</span><br><span class="line">  │                                   • 秒级完成</span><br><span class="line">  │</span><br><span class="line">  ├─ 运营上传 (operator) ──────────→ 免审核</span><br><span class="line">  │                                   • 跳过审核环节</span><br><span class="line">  │                                   • 直接发布</span><br><span class="line">  │</span><br><span class="line">  ├─ 商家上传 (merchant) ──────────→ 人工审核</span><br><span class="line">  │                                   • 完整校验规则</span><br><span class="line">  │                                   • 推送审核队列</span><br><span class="line">  │                                   • 人工审批</span><br><span class="line">  │</span><br><span class="line">  └─ API 接口 (根据调用方配置) ────→ 按配置决策</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-单品上架流程"><a href="#5-2-单品上架流程" class="headerlink" title="5.2 单品上架流程"></a>5.2 单品上架流程</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">用户提交表单</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">1. ListingUploadService.createSingle()</span><br><span class="line">   • 数据校验（必填项、格式、范围）</span><br><span class="line">   • 业务规则校验（价格、库存、属性）</span><br><span class="line">   • 创建 listing_task (status=DRAFT)</span><br><span class="line">   • 返回 task_code</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">2. 用户确认 → submit()</span><br><span class="line">   • 状态: DRAFT → Pending (10)</span><br><span class="line">   • 发送 Kafka: listing.audit.pending</span><br><span class="line">   • 启动看门狗（超时 30 分钟）</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">3. AuditWorker 消费处理</span><br><span class="line">   • 获取任务（乐观锁 + version 校验）</span><br><span class="line">   • 执行审核规则引擎</span><br><span class="line">   •   - 自动审核：价格/库存/属性校验</span><br><span class="line">   •   - 人工审核：推送审核队列</span><br><span class="line">   • 状态: Pending → Approved (11)</span><br><span class="line">   • 记录审核日志</span><br><span class="line">   • 发送 Kafka: listing.publish.ready</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">4. PublishWorker 消费处理</span><br><span class="line">   • 创建 item_tab / sku_tab 记录</span><br><span class="line">   • 创建关联实体和属性</span><br><span class="line">   • 状态: Approved → Online (20)</span><br><span class="line">   • 清除缓存 + 同步 ES</span><br><span class="line">   • 发送 Kafka: listing.published</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">5. 商品上线成功</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-3-批量上架流程（Excel）"><a href="#5-3-批量上架流程（Excel）" class="headerlink" title="5.3 批量上架流程（Excel）"></a>5.3 批量上架流程（Excel）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">用户上传 Excel</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">1. 上传文件到 OSS → 创建 listing_batch_task → 返回 batch_code</span><br><span class="line">   • 发送 Kafka: listing.batch.created</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">2. ExcelParseWorker</span><br><span class="line">   • 从 OSS 下载文件 → 逐行解析</span><br><span class="line">   • 数据格式校验 → 为每行创建 listing_task + listing_batch_item</span><br><span class="line">   • 更新 batch_task 统计 → 发送 Kafka: listing.batch.parsed</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">3. BatchAuditWorker</span><br><span class="line">   • 获取 batch 下所有 tasks → 并行审核（goroutine pool）</span><br><span class="line">   • 自动审核: Approved / 审核失败: Rejected</span><br><span class="line">   • 更新 batch_item 状态和 batch_task 进度</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">4. BatchPublishWorker</span><br><span class="line">   • 获取所有 Approved tasks → 分批处理（每批 100 条）</span><br><span class="line">   • 批量创建 item/sku 记录（事务保证）</span><br><span class="line">   • 批量清缓存 + 同步 ES</span><br><span class="line">   • 生成结果文件（含失败明细）→ 上传 OSS</span><br><span class="line">   • batch_task 状态 → completed</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">5. 用户下载结果文件</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-4-供应商推送同步流程（Movie-—-实时）"><a href="#5-4-供应商推送同步流程（Movie-—-实时）" class="headerlink" title="5.4 供应商推送同步流程（Movie — 实时）"></a>5.4 供应商推送同步流程（Movie — 实时）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">供应商发送影片/场次变更消息 (MQ)</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">1. SupplierPushConsumer 消费消息</span><br><span class="line">   • 解析供应商数据格式 → 数据映射转换</span><br><span class="line">   • 创建 listing_task (source_type=supplier_push, status=DRAFT)</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">2. 自动审核（快速通道）</span><br><span class="line">   • 供应商数据可信，仅校验必填项</span><br><span class="line">   • 状态: DRAFT → Approved → 自动发布</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">3. PublishWorker</span><br><span class="line">   • 创建 item (Film+Cinema+Session)</span><br><span class="line">   • 创建 sku (票种)</span><br><span class="line">   • 状态: Approved → Online</span><br><span class="line">   • 同步缓存和 ES</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">4. 电影票自动上线</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-5-供应商定时拉取流程（Hotel-—-批量）"><a href="#5-5-供应商定时拉取流程（Hotel-—-批量）" class="headerlink" title="5.5 供应商定时拉取流程（Hotel — 批量）"></a>5.5 供应商定时拉取流程（Hotel — 批量）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">定时任务触发（每小时 / 每 30 分钟）</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">1. SupplierPullScheduler</span><br><span class="line">   • 读取 last_sync_time</span><br><span class="line">   • 调用供应商 API: GET /api/hotels/changes?since=xxx</span><br><span class="line">   • 获取增量酒店+房型+价格数据</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">2. SupplierPullProcessor</span><br><span class="line">   • 数据转换: 供应商 Hotel → 平台 Item / 供应商 Room Type → 平台 SKU</span><br><span class="line">   • 价格日历生成</span><br><span class="line">   • 批量创建 listing_task (source_type=supplier_pull)</span><br><span class="line">   • 创建 listing_batch_task → 发送批量审核消息</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">3. BatchAutoAuditWorker</span><br><span class="line">   • 校验价格日历合法性（价格 &gt; 0、日期连续、库存 &gt;= 0）</span><br><span class="line">   • 审核失败记录错误日志</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">4. BatchPublishWorker</span><br><span class="line">   • 批量创建 item (Hotel + Room Type) / sku (产品包)</span><br><span class="line">   • 批量创建价格日历记录</span><br><span class="line">   • 批量更新缓存和 ES</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">5. 更新 last_sync_time，等待下次定时任务</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="六、供应商对接双模式设计"><a href="#六、供应商对接双模式设计" class="headerlink" title="六、供应商对接双模式设计"></a>六、供应商对接双模式设计</h2><h3 id="6-1-推送-vs-拉取对比"><a href="#6-1-推送-vs-拉取对比" class="headerlink" title="6.1 推送 vs 拉取对比"></a>6.1 推送 vs 拉取对比</h3><table>
+<thead>
+<tr>
+<th>对比项</th>
+<th>推送模式 (Push)</th>
+<th>拉取模式 (Pull)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>代表品类</strong></td>
+<td>Movie（电影票）</td>
+<td>Hotel（酒店）、E-voucher</td>
+</tr>
+<tr>
+<td><strong>触发方式</strong></td>
+<td>供应商主动推送 MQ 消息</td>
+<td>定时任务周期性拉取</td>
+</tr>
+<tr>
+<td><strong>实时性</strong></td>
+<td>高（毫秒级）</td>
+<td>中（分钟级）</td>
+</tr>
+<tr>
+<td><strong>数据完整性</strong></td>
+<td>依赖 MQ 可靠性</td>
+<td>主动拉取保证完整</td>
+</tr>
+<tr>
+<td><strong>系统耦合度</strong></td>
+<td>供应商需感知平台</td>
+<td>平台主动拉取，供应商无感知</td>
+</tr>
+<tr>
+<td><strong>适用场景</strong></td>
+<td>高频变更、实时性要求高、单次数据量小</td>
+<td>低频变更、可接受延迟、单次数据量大</td>
+</tr>
+</tbody></table>
+<h3 id="6-2-选型建议"><a href="#6-2-选型建议" class="headerlink" title="6.2 选型建议"></a>6.2 选型建议</h3><ul>
+<li><strong>推送模式</strong>：实时性要求 &lt; 1s、变更频率高、供应商支持 MQ 推送。</li>
+<li><strong>拉取模式</strong>：可接受分钟级延迟、数据量大、需保证不丢失。</li>
+<li><strong>混合模式</strong>：E-voucher 等品类可同时支持两种 — 推送处理实时变更，拉取做每日全量对账。</li>
+</ul>
+<h3 id="6-3-同步状态管理"><a href="#6-3-同步状态管理" class="headerlink" title="6.3 同步状态管理"></a>6.3 同步状态管理</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> supplier_sync_state_tab (</span><br><span class="line">  id              <span class="type">BIGINT</span> <span class="keyword">PRIMARY</span> KEY AUTO_INCREMENT,</span><br><span class="line">  supplier_id     <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;供应商ID&#x27;</span>,</span><br><span class="line">  category_id     <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;类目ID&#x27;</span>,</span><br><span class="line">  last_sync_time  <span class="type">TIMESTAMP</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;上次同步时间&#x27;</span>,</span><br><span class="line">  sync_count      <span class="type">INT</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  last_success_time <span class="type">TIMESTAMP</span> <span class="keyword">NULL</span>,</span><br><span class="line">  last_error      TEXT,</span><br><span class="line">  created_at      <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  updated_at      <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span> <span class="keyword">ON</span> <span class="keyword">UPDATE</span> <span class="built_in">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  <span class="keyword">UNIQUE</span> KEY uk_supplier_category (supplier_id, category_id)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="七、关键技术方案"><a href="#七、关键技术方案" class="headerlink" title="七、关键技术方案"></a>七、关键技术方案</h2><h3 id="7-1-乐观锁-版本号（并发安全）"><a href="#7-1-乐观锁-版本号（并发安全）" class="headerlink" title="7.1 乐观锁 + 版本号（并发安全）"></a>7.1 乐观锁 + 版本号（并发安全）</h3><p>所有状态变更使用乐观锁，防止并发冲突：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">UpdateStatus</span><span class="params">(taskID <span class="type">int64</span>, fromStatus, toStatus <span class="type">int</span>, action <span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    result, err := db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        UPDATE listing_task_tab</span></span><br><span class="line"><span class="string">        SET status = ?, version = version + 1, updated_at = NOW()</span></span><br><span class="line"><span class="string">        WHERE id = ? AND status = ? AND version = ?</span></span><br><span class="line"><span class="string">    `</span>, toStatus, taskID, fromStatus, currentVersion)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> result.RowsAffected() == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> errors.New(<span class="string">&quot;concurrent modification or status changed&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 记录状态变更历史</span></span><br><span class="line">    recordStateHistory(taskID, fromStatus, toStatus, action)</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="7-2-唯一索引保证幂等"><a href="#7-2-唯一索引保证幂等" class="headerlink" title="7.2 唯一索引保证幂等"></a>7.2 唯一索引保证幂等</h3><p>task_code 唯一索引保证同一上架操作不会重复创建：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateTask</span><span class="params">(req *CreateTaskRequest)</span></span> (*ListingTask, <span class="type">error</span>) &#123;</span><br><span class="line">    taskCode := generateTaskCode(req.CategoryID, req.CreatedBy, time.Now())</span><br><span class="line"></span><br><span class="line">    err := db.Create(&amp;ListingTask&#123;TaskCode: taskCode, ...&#125;)</span><br><span class="line">    <span class="keyword">if</span> isDuplicateKeyError(err) &#123;</span><br><span class="line">        <span class="keyword">return</span> db.GetByTaskCode(taskCode) <span class="comment">// 幂等返回已存在任务</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> task, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="7-3-看门狗机制（Watchdog）"><a href="#7-3-看门狗机制（Watchdog）" class="headerlink" title="7.3 看门狗机制（Watchdog）"></a>7.3 看门狗机制（Watchdog）</h3><p>监控超时和卡住的任务，自动重试或告警：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(w *WatchdogService)</span></span> Start() &#123;</span><br><span class="line">    ticker := time.NewTicker(<span class="number">1</span> * time.Minute)</span><br><span class="line">    <span class="keyword">for</span> <span class="keyword">range</span> ticker.C &#123;</span><br><span class="line">        w.checkTimeoutTasks()  <span class="comment">// 超时 → 重试或标记失败</span></span><br><span class="line">        w.checkStuckTasks()    <span class="comment">// 卡住 2 小时 → 告警</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(w *WatchdogService)</span></span> checkTimeoutTasks() &#123;</span><br><span class="line">    tasks := queryTimeoutTasks(time.Now())</span><br><span class="line">    <span class="keyword">for</span> _, task := <span class="keyword">range</span> tasks &#123;</span><br><span class="line">        <span class="keyword">if</span> task.RetryCount &lt; task.MaxRetry &#123;</span><br><span class="line">            task.RetryCount++</span><br><span class="line">            task.TimeoutAt = time.Now().Add(<span class="number">30</span> * time.Minute)</span><br><span class="line">            requeueTask(task) <span class="comment">// 重新发送 Kafka 消息</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            markTaskFailed(task, <span class="string">&quot;timeout after max retries&quot;</span>)</span><br><span class="line">            sendAlert(<span class="string">&quot;task_timeout&quot;</span>, task.ID)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="7-4-数据校验引擎（策略模式）"><a href="#7-4-数据校验引擎（策略模式）" class="headerlink" title="7.4 数据校验引擎（策略模式）"></a>7.4 数据校验引擎（策略模式）</h3><p>不同品类注册不同校验规则，通过规则引擎统一执行：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> ValidationEngine <span class="keyword">struct</span> &#123;</span><br><span class="line">    rules <span class="keyword">map</span>[<span class="type">string</span>][]ValidationRule <span class="comment">// category → rules</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> ValidationRule <span class="keyword">interface</span> &#123;</span><br><span class="line">    Validate(ctx context.Context, data <span class="keyword">interface</span>&#123;&#125;) *ValidationError</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 注册品类规则</span></span><br><span class="line">engine.RegisterRule(<span class="string">&quot;hotel&quot;</span>, &amp;HotelPriceValidationRule&#123;&#125;)    <span class="comment">// 价格 &gt; 0, 日历连续</span></span><br><span class="line">engine.RegisterRule(<span class="string">&quot;movie&quot;</span>, &amp;MovieSessionValidationRule&#123;&#125;)   <span class="comment">// 场次在未来, 票价 &gt; 0</span></span><br><span class="line">engine.RegisterRule(<span class="string">&quot;topup&quot;</span>, &amp;TopUpDenominationRule&#123;&#125;)        <span class="comment">// 面额范围校验</span></span><br><span class="line">engine.RegisterRule(<span class="string">&quot;evoucher&quot;</span>, &amp;VoucherCodePoolRule&#123;&#125;)       <span class="comment">// 券码池完整性</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 统一执行</span></span><br><span class="line">errors := engine.Validate(ctx, categoryID, itemData)</span><br></pre></td></tr></table></figure>
+
+<h3 id="7-5-Worker-Pool-并发处理"><a href="#7-5-Worker-Pool-并发处理" class="headerlink" title="7.5 Worker Pool 并发处理"></a>7.5 Worker Pool 并发处理</h3><p>批量上架使用 Worker Pool 控制并发度：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">PublishBatch</span><span class="params">(batchID <span class="type">int64</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    tasks := getApprovedTasks(batchID)</span><br><span class="line"></span><br><span class="line">    pool := &amp;WorkerPool&#123;</span><br><span class="line">        workerCount: <span class="number">20</span>,</span><br><span class="line">        taskChan:    <span class="built_in">make</span>(<span class="keyword">chan</span> *ListingTask, <span class="number">100</span>),</span><br><span class="line">    &#125;</span><br><span class="line">    pool.Start()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> _, task := <span class="keyword">range</span> tasks &#123;</span><br><span class="line">        pool.Submit(task) <span class="comment">// 分发到 worker</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    pool.Stop() <span class="comment">// 等待全部完成</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="八、Kafka-事件设计"><a href="#八、Kafka-事件设计" class="headerlink" title="八、Kafka 事件设计"></a>八、Kafka 事件设计</h2><h3 id="8-1-Topic-设计"><a href="#8-1-Topic-设计" class="headerlink" title="8.1 Topic 设计"></a>8.1 Topic 设计</h3><table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>触发时机</th>
+<th>消费者</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>listing.batch.created</code></td>
+<td>Excel 上传完成</td>
+<td>ExcelParseWorker</td>
+</tr>
+<tr>
+<td><code>listing.audit.pending</code></td>
+<td>提交审核</td>
+<td>AuditWorker</td>
+</tr>
+<tr>
+<td><code>listing.publish.ready</code></td>
+<td>审核通过</td>
+<td>PublishWorker</td>
+</tr>
+<tr>
+<td><code>listing.published</code></td>
+<td>发布成功</td>
+<td>ES 同步、缓存刷新、通知</td>
+</tr>
+<tr>
+<td><code>listing.batch.parsed</code></td>
+<td>Excel 解析完成</td>
+<td>BatchAuditWorker</td>
+</tr>
+<tr>
+<td><code>listing.batch.audited</code></td>
+<td>批量审核完成</td>
+<td>BatchPublishWorker</td>
+</tr>
+</tbody></table>
+<h3 id="8-2-消息格式"><a href="#8-2-消息格式" class="headerlink" title="8.2 消息格式"></a>8.2 消息格式</h3><figure class="highlight protobuf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">message </span><span class="title class_">ListingEvent</span> &#123;</span><br><span class="line">    <span class="type">string</span> event_id     = <span class="number">1</span>;  <span class="comment">// UUID</span></span><br><span class="line">    <span class="type">string</span> event_type   = <span class="number">2</span>;  <span class="comment">// created/audited/published/rejected</span></span><br><span class="line">    <span class="type">int64</span>  timestamp    = <span class="number">3</span>;</span><br><span class="line"></span><br><span class="line">    <span class="type">int64</span>  task_id      = <span class="number">10</span>;</span><br><span class="line">    <span class="type">string</span> task_code    = <span class="number">11</span>;</span><br><span class="line">    <span class="type">int64</span>  category_id  = <span class="number">12</span>;</span><br><span class="line">    <span class="type">int64</span>  batch_id     = <span class="number">13</span>; <span class="comment">// 批量任务时</span></span><br><span class="line"></span><br><span class="line">    <span class="type">int64</span>  item_id      = <span class="number">20</span>; <span class="comment">// 发布成功后</span></span><br><span class="line">    <span class="type">string</span> source_type  = <span class="number">21</span>; <span class="comment">// operator_form/merchant_portal/excel_batch/supplier_push/supplier_pull</span></span><br><span class="line"></span><br><span class="line">    <span class="type">int32</span>  from_status  = <span class="number">30</span>;</span><br><span class="line">    <span class="type">int32</span>  to_status    = <span class="number">31</span>;</span><br><span class="line">    <span class="type">string</span> action       = <span class="number">32</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="九、业界最佳实践参考"><a href="#九、业界最佳实践参考" class="headerlink" title="九、业界最佳实践参考"></a>九、业界最佳实践参考</h2><h3 id="9-1-淘宝-天猫"><a href="#9-1-淘宝-天猫" class="headerlink" title="9.1 淘宝&#x2F;天猫"></a>9.1 淘宝&#x2F;天猫</h3><ul>
+<li><strong>强模板约束</strong>：不同类目不同发布模板，必填项严格校验。</li>
+<li><strong>分阶段发布</strong>：草稿 → 待审核 → 审核通过 → 定时上架 → 已上线。</li>
+<li><strong>AI 图片审核</strong>：AI + 人工双重审核，识别违规图片。</li>
+<li><strong>定时上架</strong>：支持定时自动上架，营销活动同步上线。</li>
+</ul>
+<h3 id="9-2-京东"><a href="#9-2-京东" class="headerlink" title="9.2 京东"></a>9.2 京东</h3><ul>
+<li><strong>三级审核</strong>：自动审核 → 算法审核（价格异常检测、重复商品识别） → 人工审核。</li>
+<li><strong>商品池概念</strong>：草稿池 → 待审核池 → 在售池 → 下架池。</li>
+<li><strong>快速通道</strong>：VIP 商家快速审核通道。</li>
+<li><strong>实时监控</strong>：异常自动下架。</li>
+</ul>
+<h3 id="9-3-Amazon"><a href="#9-3-Amazon" class="headerlink" title="9.3 Amazon"></a>9.3 Amazon</h3><ul>
+<li><strong>ASIN 去重</strong>：自动生成全球唯一商品标识，防止重复上架。</li>
+<li><strong>商品质量评分</strong>：图片&#x2F;标题&#x2F;描述完整度评分，引导商家优化。</li>
+<li><strong>Buy Box 算法</strong>：多卖家同一商品，算法决定展示归属。</li>
+<li><strong>API 接入</strong>：Seller Central 表单 + MWS&#x2F;SP-API 双通道。</li>
+</ul>
+<h3 id="9-4-本设计借鉴点"><a href="#9-4-本设计借鉴点" class="headerlink" title="9.4 本设计借鉴点"></a>9.4 本设计借鉴点</h3><table>
+<thead>
+<tr>
+<th>借鉴来源</th>
+<th>应用方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>淘宝：强模板 + 定时上架</td>
+<td>品类校验规则引擎 + 定时发布</td>
+</tr>
+<tr>
+<td>京东：三级审核 + 商品池</td>
+<td>自动&#x2F;人工审核 + 状态机管理</td>
+</tr>
+<tr>
+<td>Amazon：质量评分 + API 接入</td>
+<td>数据完整度校验 + 供应商&#x2F;API 双模式</td>
+</tr>
+<tr>
+<td>Shopee：本地化 + 快速上架</td>
+<td>多国家模板 + 供应商快速通道</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="十、监控与告警"><a href="#十、监控与告警" class="headerlink" title="十、监控与告警"></a>十、监控与告警</h2><h3 id="10-1-关键指标"><a href="#10-1-关键指标" class="headerlink" title="10.1 关键指标"></a>10.1 关键指标</h3><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>目标值</th>
+<th>告警阈值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>上架成功率</strong></td>
+<td>&gt; 95%</td>
+<td>&lt; 90%</td>
+</tr>
+<tr>
+<td><strong>平均上架时长</strong></td>
+<td>&lt; 5 分钟</td>
+<td>&gt; 10 分钟</td>
+</tr>
+<tr>
+<td><strong>批量处理速度</strong></td>
+<td>&gt; 100 条&#x2F;分钟</td>
+<td>&lt; 50 条&#x2F;分钟</td>
+</tr>
+<tr>
+<td><strong>审核通过率</strong></td>
+<td>&gt; 90%</td>
+<td>&lt; 80%</td>
+</tr>
+<tr>
+<td><strong>Worker 处理延迟</strong></td>
+<td>&lt; 1 分钟</td>
+<td>&gt; 5 分钟</td>
+</tr>
+<tr>
+<td><strong>Kafka 消息积压</strong></td>
+<td>&lt; 1000 条</td>
+<td>&gt; 5000 条</td>
+</tr>
+</tbody></table>
+<h3 id="10-2-Prometheus-Metrics"><a href="#10-2-Prometheus-Metrics" class="headerlink" title="10.2 Prometheus Metrics"></a>10.2 Prometheus Metrics</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">listing_task_total&#123;type=&quot;single|batch|supplier&quot;, status=&quot;success|fail&quot;&#125;</span><br><span class="line">listing_task_duration_seconds&#123;stage=&quot;audit|publish&quot;&#125;</span><br><span class="line">listing_batch_progress&#123;batch_id&#125;</span><br><span class="line">listing_worker_queue_size&#123;worker=&quot;audit|publish|parse&quot;&#125;</span><br><span class="line">listing_supplier_sync_lag_seconds&#123;category, supplier_id, mode=&quot;push|pull&quot;&#125;</span><br><span class="line">listing_audit_strategy_total&#123;source_type, audit_strategy&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="十一、新品类接入指南"><a href="#十一、新品类接入指南" class="headerlink" title="十一、新品类接入指南"></a>十一、新品类接入指南</h2><p><strong>四步接入</strong>：</p>
+<ol>
+<li><strong>定义品类模板</strong>：确定必填字段、可选字段、校验规则。</li>
+<li><strong>注册校验规则</strong>：实现 <code>ValidationRule</code> 接口，注册到校验引擎。</li>
+<li><strong>配置审核策略</strong>：根据数据来源配置（运营免审&#x2F;商家人工审&#x2F;供应商快速通道）。</li>
+<li><strong>配置供应商对接</strong>（可选）：推送模式注册 Consumer，拉取模式配置 Cron。</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 示例：接入新品类&quot;演唱会门票&quot;</span></span><br><span class="line"><span class="comment">// 1. 注册校验规则</span></span><br><span class="line">engine.RegisterRule(<span class="string">&quot;concert&quot;</span>, &amp;ConcertValidationRule&#123;&#125;)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 配置审核策略</span></span><br><span class="line">INSERT INTO listing_audit_config_tab (category_id, source_type, source_user_type, audit_strategy) VALUES</span><br><span class="line">  (<span class="number">10</span>, <span class="string">&#x27;supplier_push&#x27;</span>, <span class="string">&#x27;system&#x27;</span>, <span class="string">&#x27;fast_track&#x27;</span>),      -- 供应商推送：快速通道</span><br><span class="line">  (<span class="number">10</span>, <span class="string">&#x27;operator_form&#x27;</span>, <span class="string">&#x27;operator&#x27;</span>, <span class="string">&#x27;skip&#x27;</span>),          -- 运营上传：免审核</span><br><span class="line">  (<span class="number">10</span>, <span class="string">&#x27;merchant_portal&#x27;</span>, <span class="string">&#x27;merchant&#x27;</span>, <span class="string">&#x27;manual&#x27;</span>);      -- 商家上传：人工审核</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 配置供应商拉取（如需要）</span></span><br><span class="line">supplierPullScheduler.Register(<span class="string">&quot;concert&quot;</span>, &amp;SupplierPullConfig&#123;</span><br><span class="line">    SupplierID: <span class="number">123</span>,</span><br><span class="line">    Interval:   <span class="number">30</span> * time.Minute,</span><br><span class="line">    API:        <span class="string">&quot;/api/concerts/changes&quot;</span>,</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="十二、设计总结"><a href="#十二、设计总结" class="headerlink" title="十二、设计总结"></a>十二、设计总结</h2><h3 id="核心设计决策"><a href="#核心设计决策" class="headerlink" title="核心设计决策"></a>核心设计决策</h3><table>
+<thead>
+<tr>
+<th>决策</th>
+<th>选择</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>统一 vs 独立流程</strong></td>
+<td>统一状态机 + 策略模式</td>
+<td>复用流程，新品类零代码接入</td>
+</tr>
+<tr>
+<td><strong>同步 vs 异步</strong></td>
+<td>API 层同步创建任务，审核&#x2F;发布异步 Worker</td>
+<td>快速响应 + 后台可靠处理</td>
+</tr>
+<tr>
+<td><strong>供应商对接</strong></td>
+<td>Push + Pull 双模式</td>
+<td>适配不同供应商实时性需求</td>
+</tr>
+<tr>
+<td><strong>审核策略</strong></td>
+<td>数据来源驱动（供应商&#x2F;运营&#x2F;商家）</td>
+<td>灵活控制审核流程</td>
+</tr>
+<tr>
+<td><strong>并发控制</strong></td>
+<td>乐观锁 + 唯一索引</td>
+<td>轻量级，无分布式锁开销</td>
+</tr>
+<tr>
+<td><strong>故障恢复</strong></td>
+<td>看门狗 + 自动重试</td>
+<td>超时&#x2F;卡住任务自动恢复</td>
+</tr>
+<tr>
+<td><strong>批量处理</strong></td>
+<td>Worker Pool + 分批事务</td>
+<td>控制并发 + 保证一致性</td>
+</tr>
+</tbody></table>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" rel="tag"># 系统设计</a>
+              <a href="/tags/%E5%95%86%E5%93%81%E4%B8%8A%E6%9E%B6/" rel="tag"># 商品上架</a>
+              <a href="/tags/%E7%94%B5%E5%95%86/" rel="tag"># 电商</a>
+              <a href="/tags/%E7%8A%B6%E6%80%81%E6%9C%BA/" rel="tag"># 状态机</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/06/28/system-design/18-inventory-system-design/" rel="prev" title="多品类统一库存系统设计：电商·虚拟商品·本地生活">
+                  <i class="fa fa-angle-left"></i> 多品类统一库存系统设计：电商·虚拟商品·本地生活
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2026/01/15/system-design/21-pricing/" rel="next" title="多品类统一价格管理与计价系统设计：电商·虚拟商品·本地生活">
+                  多品类统一价格管理与计价系统设计：电商·虚拟商品·本地生活 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

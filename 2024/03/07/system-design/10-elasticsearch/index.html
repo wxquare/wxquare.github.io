@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="基本使用创建index，setting和mapping1curl -XPUT -H&#x27;Content-Type: application&#x2F;json&#x27;  host&#x2F;index_name?pretty&#x3D;true -d@index_mapping.json      es index example   12345678910111213141516171819202122232425">
+<meta property="og:type" content="article">
+<meta property="og:title" content="中间件 - 搜索和Elasticsearch">
+<meta property="og:url" content="http://yoursite.com/2024/03/07/system-design/10-elasticsearch/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="基本使用创建index，setting和mapping1curl -XPUT -H&#x27;Content-Type: application&#x2F;json&#x27;  host&#x2F;index_name?pretty&#x3D;true -d@index_mapping.json      es index example   12345678910111213141516171819202122232425">
+<meta property="og:locale">
+<meta property="article:published_time" content="2024-03-06T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-12-08T15:55:23.484Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2024/03/07/system-design/10-elasticsearch/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2024/03/07/system-design/10-elasticsearch/","path":"2024/03/07/system-design/10-elasticsearch/","title":"中间件 - 搜索和Elasticsearch"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>中间件 - 搜索和Elasticsearch | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8"><span class="nav-number">1.</span> <span class="nav-text">基本使用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BAindex%EF%BC%8Csetting%E5%92%8Cmapping"><span class="nav-number">1.1.</span> <span class="nav-text">创建index，setting和mapping</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8Bindex-cat-%E5%9F%BA%E6%9C%AC%E4%BF%A1%E6%81%AF"><span class="nav-number">1.2.</span> <span class="nav-text">查看index,_cat 基本信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E7%B4%A2%E5%BC%95mapping%E4%BF%A1%E6%81%AF"><span class="nav-number">1.3.</span> <span class="nav-text">查看索引mapping信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E7%B4%A2%E5%BC%95%E7%9A%84setting%E4%BF%A1%E6%81%AF"><span class="nav-number">1.4.</span> <span class="nav-text">查看索引的setting信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E8%BF%87doc-id-%E6%AD%A3%E5%90%91%E6%9F%A5%E8%AF%A2"><span class="nav-number">1.5.</span> <span class="nav-text">通过doc id 正向查询</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#query-search%EF%BC%8C%E5%80%92%E6%8E%92%E6%9F%A5%E8%AF%A2"><span class="nav-number">1.6.</span> <span class="nav-text">query,search，倒排查询</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#update"><span class="nav-number">1.7.</span> <span class="nav-text">update</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%81%9A%E5%90%88count%E6%9F%A5%E8%AF%A2"><span class="nav-number">1.8.</span> <span class="nav-text">聚合count查询</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A2%9E%E5%8A%A0%E5%AD%97%E6%AE%B5"><span class="nav-number">1.9.</span> <span class="nav-text">增加字段</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#analyzer"><span class="nav-number">1.10.</span> <span class="nav-text">analyzer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#normalizer"><span class="nav-number">1.11.</span> <span class="nav-text">normalizer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#alias"><span class="nav-number">1.12.</span> <span class="nav-text">alias</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#query-DSL"><span class="nav-number">1.13.</span> <span class="nav-text">query DSL</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8E%9F%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text">原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="nav-number">2.1.</span> <span class="nav-text">基本概念</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%99%E5%8D%95%E4%B8%AA%E6%96%87%E6%A1%A3%E7%9A%84%E6%B5%81%E7%A8%8B"><span class="nav-number">2.2.</span> <span class="nav-text">写单个文档的流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%BB%E5%8F%96%E5%8D%95%E4%B8%AA%E6%96%87%E6%A1%A3%E7%9A%84%E6%B5%81%E7%A8%8B"><span class="nav-number">2.3.</span> <span class="nav-text">读取单个文档的流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Search%E6%B5%81%E7%A8%8B"><span class="nav-number">2.4.</span> <span class="nav-text">Search流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#es-%E6%9B%B4%E6%96%B0%E5%92%8C%E4%B9%90%E8%A7%82%E9%94%81%E6%8E%A7%E5%88%B6"><span class="nav-number">2.5.</span> <span class="nav-text">es 更新和乐观锁控制</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96"><span class="nav-number">3.</span> <span class="nav-text">性能优化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B3%E6%B3%A8%E5%93%AA%E4%BA%9B%E6%80%A7%E8%83%BD%E6%8C%87%E6%A0%87"><span class="nav-number">3.1.</span> <span class="nav-text">关注哪些性能指标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9B%86%E7%BE%A4%E8%A7%84%E5%88%92"><span class="nav-number">3.2.</span> <span class="nav-text">集群规划</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#settings-%E7%B4%A2%E5%BC%95%E4%BC%98%E5%8C%96%E5%AE%9E%E8%B7%B5"><span class="nav-number">3.3.</span> <span class="nav-text">settings 索引优化实践</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#mapping-%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B%E4%BC%98%E5%8C%96"><span class="nav-number">3.4.</span> <span class="nav-text">mapping 数据模型优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E5%86%99%E5%85%A5%E4%BC%98%E5%8C%96"><span class="nav-number">3.5.</span> <span class="nav-text">数据写入优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%BB%E4%BC%98%E5%8C%96"><span class="nav-number">3.6.</span> <span class="nav-text">读优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%9A%E5%8A%A1%E4%BC%98%E5%8C%96"><span class="nav-number">3.7.</span> <span class="nav-text">业务优化</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SDK-%E4%BD%BF%E7%94%A8"><span class="nav-number">4.</span> <span class="nav-text">SDK 使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#es-migrate-tools"><span class="nav-number">5.</span> <span class="nav-text">es migrate tools</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8B%93%E5%B1%95%E9%98%85%E8%AF%BB"><span class="nav-number">6.</span> <span class="nav-text">拓展阅读</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2024/03/07/system-design/10-elasticsearch/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="中间件 - 搜索和Elasticsearch | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          中间件 - 搜索和Elasticsearch
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2024-03-07 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-07T00:00:00+08:00">2024-03-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h2><h3 id="创建index，setting和mapping"><a href="#创建index，setting和mapping" class="headerlink" title="创建index，setting和mapping"></a>创建index，setting和mapping</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -XPUT -H&#x27;Content-Type: application/json&#x27;  host/index_name?pretty=true -d@index_mapping.json </span><br></pre></td></tr></table></figure>
+
+<details>
+  <summary>es index example</summary>
+  <figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br></pre></td><td class="code"><pre><span class="line"> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;settings&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;index&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;number_of_shards&quot;</span><span class="punctuation">:</span> <span class="string">&quot;5&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;number_of_replicas&quot;</span><span class="punctuation">:</span> <span class="string">&quot;2&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;analysis&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;filter&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;t2sconvert&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;convert_type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;t2s&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;stconvert&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;traditional_chinese_analyzer&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;filter&quot;</span><span class="punctuation">:</span> <span class="string">&quot;t2sconvert&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;custom&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;tokenizer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_smart&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;normalizer&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;lowercase&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;custom&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;filter&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">                        <span class="string">&quot;lowercase&quot;</span></span><br><span class="line">                    <span class="punctuation">]</span></span><br><span class="line">                <span class="punctuation">&#125;</span></span><br><span class="line">            <span class="punctuation">&#125;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;mappings&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;_doc&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;properties&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;key_type&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;integer&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;country&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;language_code&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;level&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;integer&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;code&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;is_available&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;boolean&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;is_popular&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;boolean&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;pop_rank&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;integer&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;properties&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;value_in_chinese&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_max_word&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;search_analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_smart&quot;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                        <span class="attr">&quot;value_in_english&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span><span class="punctuation">,</span></span><br><span class="line">                                    <span class="attr">&quot;normalizer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;lowercase&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;display_name&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;properties&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;value_in_chinese&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_max_word&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;search_analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_smart&quot;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                        <span class="attr">&quot;value_in_english&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span><span class="punctuation">,</span></span><br><span class="line">                                    <span class="attr">&quot;normalizer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;lowercase&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;address&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;properties&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;value_in_chinese&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_max_word&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;search_analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_smart&quot;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                        <span class="attr">&quot;value_in_english&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span><span class="punctuation">,</span></span><br><span class="line">                                    <span class="attr">&quot;normalizer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;lowercase&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;city_code&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;city_name&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;properties&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;value_in_chinese&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_max_word&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;search_analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_smart&quot;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                        <span class="attr">&quot;value_in_english&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                                    <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span><span class="punctuation">,</span></span><br><span class="line">                                    <span class="attr">&quot;normalizer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;lowercase&quot;</span></span><br><span class="line">                                <span class="punctuation">&#125;</span></span><br><span class="line">                            <span class="punctuation">&#125;</span></span><br><span class="line">                        <span class="punctuation">&#125;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;updated&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;date&quot;</span><span class="punctuation">,</span></span><br><span class="line">                        <span class="attr">&quot;format&quot;</span><span class="punctuation">:</span> <span class="string">&quot;strict_date_optional_time||epoch_millis&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span></span><br><span class="line">            <span class="punctuation">&#125;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+</details>
+
+<h3 id="查看index-cat-基本信息"><a href="#查看index-cat-基本信息" class="headerlink" title="查看index,_cat 基本信息"></a>查看index,_cat 基本信息</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -XGET &#x27;host/_cat/indices/*hotel_basic_info_v2_live*(支持正则表达式）?v=true&amp;pretty=true&#x27;</span><br></pre></td></tr></table></figure>
+
+<h3 id="查看索引mapping信息"><a href="#查看索引mapping信息" class="headerlink" title="查看索引mapping信息"></a>查看索引mapping信息</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -XGET &#x27;host/index_name/_mapping?pretty=true&#x27;</span><br></pre></td></tr></table></figure>
+
+<h3 id="查看索引的setting信息"><a href="#查看索引的setting信息" class="headerlink" title="查看索引的setting信息"></a>查看索引的setting信息</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -XGET &#x27;host/index_name/_settings?pretty=true&#x27;</span><br></pre></td></tr></table></figure>
+
+<h3 id="通过doc-id-正向查询"><a href="#通过doc-id-正向查询" class="headerlink" title="通过doc id 正向查询"></a>通过doc id 正向查询</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -XGET  &#x27;host/index/_doc/doc_id?pretty=true&#x27;</span><br></pre></td></tr></table></figure>
+
+<h3 id="query-search，倒排查询"><a href="#query-search，倒排查询" class="headerlink" title="query,search，倒排查询"></a>query,search，倒排查询</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">curl -XPOST -H&#x27;Content-Type: application/json&#x27; &#x27;host/index_name/_search?pretty=true&#x27; -d &#x27;&#123;</span><br><span class="line">&quot;query&quot;:&#123;&#125;&#125;&#x27;</span><br></pre></td></tr></table></figure>
+
+
+<h3 id="update"><a href="#update" class="headerlink" title="update"></a>update</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">curl -XPOST  -H&#x27;Content-Type: application/json&#x27; &#x27;host/index/_doc/doc_id/_update&#x27; -d &#x27;&#123;</span><br><span class="line">&quot;doc&quot;: &#123;</span><br><span class="line">    &quot;price&quot;: &quot;6500000001&quot;</span><br><span class="line">&#125;</span><br><span class="line">&#125;&#x27;</span><br></pre></td></tr></table></figure>
+
+<h3 id="聚合count查询"><a href="#聚合count查询" class="headerlink" title="聚合count查询"></a>聚合count查询</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">curl -XPOST -H&#x27;Content-Type: application/json&#x27; &#x27;host/index_name/_count&#x27; -d &#x27;&#123;</span><br><span class="line">    &quot;query&quot;: &#123;</span><br><span class="line">        &quot;term&quot;: &#123;</span><br><span class="line">            &quot;city_name.value_in_english.keyword&quot;: &quot;Jakarta&quot;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;&#x27;</span><br></pre></td></tr></table></figure>
+
+<h3 id="增加字段"><a href="#增加字段" class="headerlink" title="增加字段"></a>增加字段</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">curl -XPOST -H&#x27;Content-Type: application/json&#x27; &#x27;host/index_name/_doc/_mapping&#x27; -d &#x27;&#123;</span><br><span class="line">    &quot;properties&quot;: &#123;</span><br><span class="line">        &quot;facility_codes&quot;: &#123;</span><br><span class="line">            &quot;type&quot;:&quot;keyword&quot;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;&#x27;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+<h3 id="analyzer"><a href="#analyzer" class="headerlink" title="analyzer"></a>analyzer</h3><ul>
+<li><p>参考：<a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html</a></p>
+<p>  Elastic Search 在处理 Text 类型数据的时候，会把数据交给分词器处理。然后根据分词器给的词，建立倒排索引，通常一句话都由若干词语组成，分词结果会极大的影响到查询结果的质量</p>
+</li>
+</ul>
+<p>在 Elastic Search 中，分词器起到了非常重要的作用，在定义文档结构、录入和更新文档、查询文档的时候都会用到它。例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">武汉市长江大桥欢迎您</span><br><span class="line"></span><br><span class="line">默认分词器：</span><br><span class="line">[武, 汉, 市, 长, 江, 大, 桥, 欢, 迎, 您]</span><br><span class="line"></span><br><span class="line">普通分词器：</span><br><span class="line">[武汉, 市, 武汉市, 长江, 大桥,长江大桥, 欢迎, 您, 欢迎您]</span><br><span class="line"></span><br><span class="line">二哈分词器：</span><br><span class="line">[武汉, 市长, 江大桥, 欢迎, 您]</span><br></pre></td></tr></table></figure>
+
+<h3 id="normalizer"><a href="#normalizer" class="headerlink" title="normalizer"></a>normalizer</h3><ul>
+<li>参考：<a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-index-search-time.html</a></li>
+</ul>
+<h3 id="alias"><a href="#alias" class="headerlink" title="alias"></a>alias</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">POST /_aliases</span><br><span class="line">&#123;</span><br><span class="line">  &quot;actions&quot;: [</span><br><span class="line">    &#123;&quot;remove&quot;: &#123;&quot;index&quot;: &quot;l1&quot;, &quot;alias&quot;: &quot;a1&quot;&#125;&#125;,</span><br><span class="line">    &#123;&quot;add&quot;: &#123;&quot;index&quot;: &quot;l1&quot;, &quot;alias&quot;: &quot;a2&quot;&#125;&#125;</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -XPUT  host/index_nane/_alias/index_alias_name</span><br></pre></td></tr></table></figure>
+<h3 id="query-DSL"><a href="#query-DSL" class="headerlink" title="query DSL"></a>query DSL</h3><ul>
+<li><p>term level queries</p>
+<ul>
+<li>keyword term</li>
+<li><a href="https://www.elastic.co/guide/en/elasticsearch/reference/6.7/term-level-queries.html">https://www.elastic.co/guide/en/elasticsearch/reference/6.7/term-level-queries.html</a></li>
+</ul>
+</li>
+<li><p>full text queries</p>
+<ul>
+<li>Match Phrase Query</li>
+<li>Mathc Query</li>
+</ul>
+</li>
+<li><p>compound queries</p>
+<ul>
+<li>dismax</li>
+<li>bool</li>
+<li>function score</li>
+<li>boosting query</li>
+</ul>
+</li>
+<li><p><a href="https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl.html">https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl.html</a></p>
+</li>
+</ul>
+<details>
+  <summary>es query dsl</summary>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;query&quot;: &#123;</span><br><span class="line">        &quot;function_score&quot;: &#123;</span><br><span class="line">            &quot;functions&quot;: [</span><br><span class="line">                &#123;</span><br><span class="line">                    &quot;filter&quot;: &#123;</span><br><span class="line">                        &quot;term&quot;: &#123;</span><br><span class="line">                            &quot;key_type&quot;: 1</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;,</span><br><span class="line">                    &quot;weight&quot;: 3</span><br><span class="line">                &#125;,</span><br><span class="line">                &#123;</span><br><span class="line">                    &quot;filter&quot;: &#123;</span><br><span class="line">                        &quot;term&quot;: &#123;</span><br><span class="line">                            &quot;key_type&quot;: 2</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;,</span><br><span class="line">                    &quot;weight&quot;: 2</span><br><span class="line">                &#125;</span><br><span class="line">            ],</span><br><span class="line">            &quot;min_score&quot;: 0,</span><br><span class="line">            &quot;query&quot;: &#123;</span><br><span class="line">                &quot;dis_max&quot;: &#123;</span><br><span class="line">                    &quot;queries&quot;: [</span><br><span class="line">                        &#123;</span><br><span class="line">                            &quot;function_score&quot;: &#123;</span><br><span class="line">                                &quot;functions&quot;: [</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;filter&quot;: &#123;</span><br><span class="line">                                            &quot;term&quot;: &#123;</span><br><span class="line">                                                &quot;search_key.filed1.keyword&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;,</span><br><span class="line">                                        &quot;weight&quot;: 100</span><br><span class="line">                                    &#125;,</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;filter&quot;: &#123;</span><br><span class="line">                                            &quot;term&quot;: &#123;</span><br><span class="line">                                                &quot;search_key.filed2.keyword&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;,</span><br><span class="line">                                        &quot;weight&quot;: 100</span><br><span class="line">                                    &#125;</span><br><span class="line">                                ],</span><br><span class="line">                                &quot;score_mode&quot;: &quot;max&quot;</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;,</span><br><span class="line">                        &#123;</span><br><span class="line">                            &quot;dis_max&quot;: &#123;</span><br><span class="line">                                &quot;queries&quot;: [</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;match_phrase&quot;: &#123;</span><br><span class="line">                                            &quot;search_key.filed1&quot;: &#123;</span><br><span class="line">                                                &quot;boost&quot;: 50,</span><br><span class="line">                                                &quot;query&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;</span><br><span class="line">                                    &#125;,</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;match_phrase&quot;: &#123;</span><br><span class="line">                                            &quot;search_key.field2&quot;: &#123;</span><br><span class="line">                                                &quot;boost&quot;: 50,</span><br><span class="line">                                                &quot;query&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;</span><br><span class="line">                                    &#125;</span><br><span class="line">                                ]</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;,</span><br><span class="line">                        &#123;</span><br><span class="line">                            &quot;dis_max&quot;: &#123;</span><br><span class="line">                                &quot;queries&quot;: [</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;prefix&quot;: &#123;</span><br><span class="line">                                            &quot;search_key.filed1.keyword&quot;: &#123;</span><br><span class="line">                                                &quot;boost&quot;: 30,</span><br><span class="line">                                                &quot;value&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;</span><br><span class="line">                                    &#125;,</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;prefix&quot;: &#123;</span><br><span class="line">                                            &quot;search_key.field2.keyword&quot;: &#123;</span><br><span class="line">                                                &quot;boost&quot;: 30,</span><br><span class="line">                                                &quot;value&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;</span><br><span class="line">                                    &#125;</span><br><span class="line">                                ]</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;,</span><br><span class="line">                        &#123;</span><br><span class="line">                            &quot;dis_max&quot;: &#123;</span><br><span class="line">                                &quot;queries&quot;: [</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;match&quot;: &#123;</span><br><span class="line">                                            &quot;search_key.field1&quot;: &#123;</span><br><span class="line">                                                &quot;boost&quot;: 10,</span><br><span class="line">                                                &quot;fuzziness&quot;: &quot;auto:6,20&quot;,</span><br><span class="line">                                                &quot;minimum_should_match&quot;: &quot;3&gt;75%&quot;,</span><br><span class="line">                                                &quot;query&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;</span><br><span class="line">                                    &#125;,</span><br><span class="line">                                    &#123;</span><br><span class="line">                                        &quot;match&quot;: &#123;</span><br><span class="line">                                            &quot;search_key.field2&quot;: &#123;</span><br><span class="line">                                                &quot;boost&quot;: 10,</span><br><span class="line">                                                &quot;fuzziness&quot;: &quot;auto:6,20&quot;,</span><br><span class="line">                                                &quot;minimum_should_match&quot;: &quot;3&gt;75%&quot;,</span><br><span class="line">                                                &quot;query&quot;: &quot;querywords&quot;</span><br><span class="line">                                            &#125;</span><br><span class="line">                                        &#125;</span><br><span class="line">                                    &#125;</span><br><span class="line">                                ]</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;</span><br><span class="line">                    ]</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    &quot;size&quot;: 30,</span><br><span class="line">    &quot;sort&quot;: [</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;_score&quot;: &#123;</span><br><span class="line">                &quot;order&quot;: &quot;desc&quot;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;key_type&quot;: &#123;</span><br><span class="line">                &quot;order&quot;: &quot;asc&quot;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">            &quot;others&quot;: &#123;</span><br><span class="line">                &quot;order&quot;: &quot;desc&quot;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</details>
+
+<h2 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h2><h3 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h3><ul>
+<li>节点：分布系统都有的master节点和普通节点。类似于kafka集群都会存在的一种节点</li>
+<li>master节点:用于管理索引（创建索引、删除索引）、分配分片，维护元数据</li>
+<li>协调节点：ES的特殊性，需要由一个节点汇总多个分片的query结果。节点是否担任协调节点可通过配置文件配置。例如某个节点只想做协调节点：node.master&#x3D;false，node.data&#x3D;false</li>
+<li>ES的读写流程主要是协调节点，主分片节点、副分片节点间的相互协调。</li>
+<li>ES的读取分为GET和Search两种操作。GET根据文档id从正排索引中获取内容；Search不指定id，根据关键字从倒排索引中获取内容。</li>
+</ul>
+<h3 id="写单个文档的流程"><a href="#写单个文档的流程" class="headerlink" title="写单个文档的流程"></a>写单个文档的流程</h3><ol>
+<li>客户端向集群中的某个节点发送写请求，该节点就作为本次请求的协调节点</li>
+<li>协调节点使用文档ID来确定文档属于某个分片，再通过集群状态中的内容路由表信息获知该分片的主分片位置，将请求转发到主分片所在节点；</li>
+<li>主分片节点上的主分片执行写操作。如果写入成功，则它将请求并行转发到副分片所在的节点，等待副分片写入成功。所有副分片写入成功后，主分片节点向协调节点报告成功，协调节点向客户端报告成功。</li>
+</ol>
+<h3 id="读取单个文档的流程"><a href="#读取单个文档的流程" class="headerlink" title="读取单个文档的流程"></a>读取单个文档的流程</h3><ol>
+<li>客户端向集群中的某个节点发送读取请求，该节点就作为本次请求的协调节点；</li>
+<li>协调节点使用文档ID来确定文档属于某个分片，再通过集群状态中的内容路由表信息获知该分片的副本信息，此时它可以把请求转发到有副分片的任意节点读取数据。</li>
+<li>协调节点会将客户端请求轮询发送到集群的所有副本来实现负载均衡。</li>
+<li>收到读请求的节点将文档返回给协调节点，协调节点将文档返回给客户端</li>
+</ol>
+<h3 id="Search流程"><a href="#Search流程" class="headerlink" title="Search流程"></a>Search流程</h3><p>ES的Search操作分为两个阶段：query then fetch。需要两阶段完成搜索的原因是：在查询时不知道文档位于哪个分片，因此索引的所有分片都要参与搜索，然后协调节点将结果合并，在根据文档ID获取文档内容。</p>
+<p><strong>Query查询阶段</strong> </p>
+<ol>
+<li>客户端向集群中的某个节点发送Search请求，该节点就作为本次请求的协调节点；</li>
+<li>协调节点将查询请求转发到索引的每个主分片或者副分片中；</li>
+<li>每个分片在本地执行查询，并使用本地的Term&#x2F;Document Frequency信息进行打分，添加结果到大小为from+size的本地有序优先队列中；</li>
+<li>每个分片返回各自优先队列中所有文档的ID和排序值给协调节点，协调节点合并这些值到自己的优先队列中，产生一个全局排序后的列表。</li>
+</ol>
+<p><strong>Fetch拉取阶段</strong><br>query节点知道了要获取哪些信息，但是没有具体的数据，fetch阶段要去拉取具体的数据。相当于执行多次上面的GET流程</p>
+<ol>
+<li>协调节点向相关的节点发送GET请求；</li>
+<li>分片所在节点向协调节点返回数据；</li>
+<li>协调阶段等待所有的文档被取得，然后返回给客户端。</li>
+</ol>
+<h3 id="es-更新和乐观锁控制"><a href="#es-更新和乐观锁控制" class="headerlink" title="es 更新和乐观锁控制"></a>es 更新和乐观锁控制</h3><ul>
+<li>“_version” : 1,</li>
+<li>“_seq_no” : 426,</li>
+<li>“_primary_term” : 1,</li>
+</ul>
+<h2 id="性能优化"><a href="#性能优化" class="headerlink" title="性能优化"></a>性能优化</h2><h3 id="关注哪些性能指标"><a href="#关注哪些性能指标" class="headerlink" title="关注哪些性能指标"></a>关注哪些性能指标</h3><ul>
+<li>（读）query latency 1-2ms，复杂的查询可能到几十ms</li>
+<li>（读）fetch latency ，QPS，读数据量，延时</li>
+<li>（写）index rate，QPS，数据量，延时</li>
+<li>（写）index latency</li>
+<li>存储数据量</li>
+<li>集群读写QPS，CPU、内存、存储、网络IO的监控</li>
+<li>节点维度的监控</li>
+<li>index维度的监控</li>
+</ul>
+<h3 id="集群规划"><a href="#集群规划" class="headerlink" title="集群规划"></a>集群规划</h3><ul>
+<li>业务存储量，期望的SLA指标</li>
+<li>节点数量、内存、CPU数量，是否需要SSD等</li>
+<li>预留buffer,磁盘使用率达到85%、90%、95%</li>
+<li>CPU使用率</li>
+<li>内存使用率</li>
+<li>冷热数据，灾备方案</li>
+</ul>
+<h3 id="settings-索引优化实践"><a href="#settings-索引优化实践" class="headerlink" title="settings 索引优化实践"></a>settings 索引优化实践</h3><ul>
+<li>分片数量：number_of_shards，经验值：建议每个分片大小不要超过30GB。建议根据集群节点的个数规模，分片个数建议&gt;&#x3D;集群节点的个数。5节点的集群，5个分片就比较合理。注意：除非reindex操作，分片数是不可以修改的</li>
+<li>副本数量：number_of_replicas。除非你对系统的健壮性有异常高的要求，比如：银行系统。可以考虑2个副本以上。否则，1个副本足够。注意：副本数是可以通过配置随时修改的</li>
+<li>refresh_interval 是一个参数，用于配置 Elasticsearch 中的索引刷新间隔。索引刷新是将内存中的数据写入磁盘以使其可搜索的过程。刷新操作会将新的文档和更新的文档写入磁盘，并使其在搜索结果中可见。默认值表示每秒执行一次刷新操作</li>
+<li>按照日期规划索引是个很好的习惯</li>
+<li>务必使用别名，ES不像mysql方面的更改索引名称。使用别名就是一个相对灵活的选择</li>
+<li>setting中定义繁体全文检索时的traditional_chinese_analyzer以及一个名为lowercase的normalizer，常用于keyword类型的匹配</li>
+<li>结合profile、explain api 分析query慢的原因。<a href="https://www.elastic.co/guide/en/elasticsearch/reference/7.17/search-profile.html">search profile api</a></li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;hotel_index_20220810&quot;: &#123;</span><br><span class="line">        &quot;settings&quot;: &#123;</span><br><span class="line">            &quot;index&quot;: &#123;</span><br><span class="line">                &quot;refresh_interval&quot;: &quot;1s&quot;,</span><br><span class="line">                &quot;number_of_shards&quot;: &quot;5&quot;,</span><br><span class="line">                &quot;provided_name&quot;: &quot;hotel_index_20220810&quot;,</span><br><span class="line">                &quot;creation_date&quot;: &quot;1660127508475&quot;,</span><br><span class="line">                &quot;analysis&quot;: &#123;</span><br><span class="line">                    &quot;filter&quot;: &#123;</span><br><span class="line">                        &quot;t2sconvert&quot;: &#123;</span><br><span class="line">                            &quot;convert_type&quot;: &quot;t2s&quot;,</span><br><span class="line">                            &quot;type&quot;: &quot;stconvert&quot;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;,</span><br><span class="line">                    &quot;normalizer&quot;: &#123;</span><br><span class="line">                        &quot;lowercase&quot;: &#123;</span><br><span class="line">                            &quot;filter&quot;: [</span><br><span class="line">                                &quot;lowercase&quot;</span><br><span class="line">                            ],</span><br><span class="line">                            &quot;type&quot;: &quot;custom&quot;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;,</span><br><span class="line">                    &quot;analyzer&quot;: &#123;</span><br><span class="line">                        &quot;traditional_chinese_analyzer&quot;: &#123;</span><br><span class="line">                            &quot;filter&quot;: &quot;t2sconvert&quot;,</span><br><span class="line">                            &quot;type&quot;: &quot;custom&quot;,</span><br><span class="line">                            &quot;tokenizer&quot;: &quot;ik_smart&quot;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;,</span><br><span class="line">                &quot;number_of_replicas&quot;: &quot;2&quot;,</span><br><span class="line">                &quot;uuid&quot;: &quot;afdjafkdlaf&quot;,</span><br><span class="line">                &quot;version&quot;: &#123;</span><br><span class="line">                    &quot;created&quot;: &quot;6080599&quot;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="mapping-数据模型优化"><a href="#mapping-数据模型优化" class="headerlink" title="mapping 数据模型优化"></a>mapping 数据模型优化</h3><ul>
+<li>不要使用默认的mapping.默认Mapping的字段类型是系统自动识别的。其中：string类型默认分成：text和keyword两种类型。如果你的业务中不需要分词、检索，仅需要精确匹配，仅设置为keyword即可。根据业务需要选择合适的类型，有利于节省空间和提升精度，如：浮点型的选择.</li>
+<li>Mapping各字段的选型流程</li>
+<li>选择合理的分词器。常见的开源中文分词器包括：ik分词器、ansj分词器、hanlp分词器、结巴分词器、海量分词器、“ElasticSearch最全分词器比较及使用方法” 搜索可查看对比效果。如果选择ik，建议使用ik_max_word。因为：粗粒度的分词结果基本包含细粒度ik_smart的结果。</li>
+<li>一个字段包含多种语言：分别设置了不同的分词器。中文：ik_max_word，英语：english等</li>
+<li>analyzer：表示文档写入时的分词，search_analyzer表示检索时query的分词</li>
+<li>type:text，type:keyword，不分词</li>
+<li>normalizer 表示英文keyword判断时不区分大小写</li>
+<li>“dynamic” : “strict”</li>
+<li><a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html</a></li>
+</ul>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">&quot;properties&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;accommodation&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;properties&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;value_in_chinese&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_max_word&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;search_analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ik_smart&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;value_in_english&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span><span class="punctuation">,</span></span><br><span class="line">                        <span class="attr">&quot;normalizer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;lowercase&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;english&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;value_in_filipino&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;standard&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;value_in_indonesian&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;indonesian&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;value_in_malay&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;standard&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;value_in_thai&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;thai&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;value_in_tw_chinese&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;traditional_chinese_analyzer&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;value_in_vietnamese&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;text&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">                        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                    <span class="punctuation">&#125;</span></span><br><span class="line">                <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;analyzer&quot;</span><span class="punctuation">:</span> <span class="string">&quot;standard&quot;</span></span><br><span class="line">            <span class="punctuation">&#125;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+<h3 id="数据写入优化"><a href="#数据写入优化" class="headerlink" title="数据写入优化"></a>数据写入优化</h3><ol>
+<li>要不要秒级响应？Elasticsearch近实时的本质是：最快1s写入的数据可以被查询到。如果refresh_interval设置为1s，势必会产生大量的segment，检索性能会受到影响。所以，非实时的场景可以调大，设置为30s，甚至-1</li>
+<li>能批量就不单条写入</li>
+<li>减少副本，提升写入性能。写入前，副本数设置为0，写入后，副本数设置为原来值</li>
+</ol>
+<h3 id="读优化"><a href="#读优化" class="headerlink" title="读优化"></a>读优化</h3><ol>
+<li>分析dsl</li>
+<li>禁用 wildcard模糊匹配,通过match_phrase和slop结合查询。</li>
+<li>极小的概率使用match匹配</li>
+<li>结合业务场景，大量使用filter过滤器</li>
+<li>控制返回字段和结果,同理，ES中，_source 返回全部字段也是非必须的。要通过_source 控制字段的返回，只返回业务相关的字段。</li>
+<li>分页深度查询和遍历.分页查询使用：from+size;遍历使用：scroll；并行遍历使用：scroll+slice</li>
+</ol>
+<h3 id="业务优化"><a href="#业务优化" class="headerlink" title="业务优化"></a>业务优化</h3><ol>
+<li>字段抽取、倾向性分析、分类&#x2F;聚类、相关性判定放在写入ES之前的ETL阶段进行</li>
+<li>产品经理基于各种奇葩业务场景可能会提各种无理需求</li>
+</ol>
+<h2 id="SDK-使用"><a href="#SDK-使用" class="headerlink" title="SDK 使用"></a>SDK 使用</h2><ul>
+<li>github.com&#x2F;olivere&#x2F;elastic</li>
+<li><a href="https://github.com/elastic/go-elasticsearch">https://github.com/elastic/go-elasticsearch</a></li>
+</ul>
+<h2 id="es-migrate-tools"><a href="#es-migrate-tools" class="headerlink" title="es migrate tools"></a>es migrate tools</h2><ul>
+<li><a href="https://github.com/medcl/esm">https://github.com/medcl/esm</a></li>
+<li><a href="https://github.com/medcl/esm/tree/0.1.0">https://github.com/medcl/esm/tree/0.1.0</a></li>
+</ul>
+<h2 id="拓展阅读"><a href="#拓展阅读" class="headerlink" title="拓展阅读"></a>拓展阅读</h2><ul>
+<li><a href="https://blog.csdn.net/weixin_40601534/article/details/122435858?spm=1001.2014.3001.5501">普通搜索和向量搜索介绍</a></li>
+<li><a href="https://www.cnblogs.com/chenny7/p/14765412.html">广告索引（定向）的布尔表达式</a></li>
+<li><a href="https://www.elastic.co/guide/en/elasticsearch/reference/8.3/index.html">official document</a></li>
+<li><a href="https://www.jianshu.com/p/eb7f11e178b3">scroll使用和Elasticsearch的深度翻页问题</a></li>
+<li><a href="https://www.jianshu.com/p/d4da0182a67a">ES 更新并发控制问题</a></li>
+<li><a href="https://www.cnblogs.com/upupfeng/p/13488120.html">ES 读写流程</a></li>
+<li><a href="http://www.datagrand.com/blog/search-query.html">达观数据搜索引擎的Query自动纠错技术和架构</a></li>
+<li><a href="https://donggeitnote.com/2021/09/19/elasticsearch-tfidf/">Elasticsearch基础之相关性介绍</a></li>
+<li><a href="https://donggeitnote.com/2022/01/02/elasticsearch-typo/">ElasticSearch进阶之拼写错误</a></li>
+<li><a href="https://donggeitnote.com/2021/11/06/elasticsearch-typematch/">ElasticSearch进阶之输入匹配</a></li>
+<li><a href="https://donggeitnote.com/2021/10/02/elasticsearch-multiplesearch/">ElasticSearch进阶之多域搜索</a></li>
+<li><a href="https://donggeitnote.com/2021/09/29/elasticsearch-shard/">ElasticSearch进阶之Shard&#x2F;segment内部原理</a></li>
+<li>analysizer,normalizer,常用分词器介绍和评估。<a href="https://blog.csdn.net/Q176782/article/details/119054132">https://blog.csdn.net/Q176782/article/details/119054132</a></li>
+<li><a href="https://juejin.cn/post/6844904008432402440">Kafka VS ElasticSearch 的相似性和比较</a></li>
+<li><a href="https://blog.csdn.net/weixin_37692493/article/details/108182161">理解ES的refresh、flush、merge</a><ul>
+<li>节点</li>
+<li>index&#x2F;topic</li>
+<li>shard&#x2F;partiion</li>
+<li>副本机制</li>
+</ul>
+</li>
+<li><a href="https://developer.aliyun.com/article/706990">让Elasticsearch飞起来!——性能优化实践干货</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/03/06/system-design/8-cache-redis/" rel="prev" title="中间件 - Redis 原理与实践">
+                  <i class="fa fa-angle-left"></i> 中间件 - Redis 原理与实践
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/03/10/system-design/9-kafka-MQ/" rel="next" title="中间件 - 异步和消息队列">
+                  中间件 - 异步和消息队列 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

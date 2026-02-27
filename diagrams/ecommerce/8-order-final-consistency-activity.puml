@@ -1,0 +1,35 @@
+@startuml
+start
+fork
+    :同步处理结果\n用户主动创单，支付等;
+fork again
+    :异步处理结果\n外部系统回调支付、履约结果等;
+fork again
+    :定时查询补单（兜底策略）\n任务补偿;
+fork again
+    :对账 \n清算文件恢复;
+end fork
+
+:接收请求\n 从数据库加载单据信息;
+
+:做状态推进\n（状态机一定要设计好）;
+
+if (推进失败?) then (Yes)
+    :打印日志;
+    stop
+else (No)
+    :正常推进;
+    :锁行记录\n(select for update);
+
+    :更新数据\n(set ... , version=+1 where id=#id & version=#version);
+    if (更新失败?) then (Yes)
+        :抛回消息队列\n（等待下次消费重试）;
+        stop
+    else (No)
+        :更新成功;
+        :其它业务处理\n(比如发消息);
+    endif
+endif
+
+stop
+@enduml

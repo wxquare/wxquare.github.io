@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="最近在做kcf算法在移动端优化的相关工作，由于kcf算法计算量太大，而移动端计算性能有限，因此打算将kcf部分耗时操作通过GPU计算进行提升算法的性能。由于接触GPU和OpenCL的时间比较短，原理性的东西理解得也不深刻，本文主要在移动端测试了一些GPU和OpenCL的数据，无法分析内在原因，方便后续移动端算法优化。主要工作如下：  编译了OpenCL的opencv版本sdk，测试了mat到u">
+<meta property="og:type" content="article">
+<meta property="og:title" content="初识OpenCL及在移动端的一些测试数据">
+<meta property="og:url" content="http://yoursite.com/2020/08/13/AI/%E5%88%9D%E5%A7%8BOpenCL%E5%8F%8A%E5%9C%A8%E7%9A%84%E7%A7%BB%E5%8A%A8%E7%AB%AF%E7%9A%84%E4%B8%80%E4%BA%9B%E6%B5%8B%E8%AF%95%E6%95%B0%E6%8D%AE/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="最近在做kcf算法在移动端优化的相关工作，由于kcf算法计算量太大，而移动端计算性能有限，因此打算将kcf部分耗时操作通过GPU计算进行提升算法的性能。由于接触GPU和OpenCL的时间比较短，原理性的东西理解得也不深刻，本文主要在移动端测试了一些GPU和OpenCL的数据，无法分析内在原因，方便后续移动端算法优化。主要工作如下：  编译了OpenCL的opencv版本sdk，测试了mat到u">
+<meta property="og:locale">
+<meta property="article:published_time" content="2020-08-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-12-08T15:55:23.483Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2020/08/13/AI/%E5%88%9D%E5%A7%8BOpenCL%E5%8F%8A%E5%9C%A8%E7%9A%84%E7%A7%BB%E5%8A%A8%E7%AB%AF%E7%9A%84%E4%B8%80%E4%BA%9B%E6%B5%8B%E8%AF%95%E6%95%B0%E6%8D%AE/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2020/08/13/AI/%E5%88%9D%E5%A7%8BOpenCL%E5%8F%8A%E5%9C%A8%E7%9A%84%E7%A7%BB%E5%8A%A8%E7%AB%AF%E7%9A%84%E4%B8%80%E4%BA%9B%E6%B5%8B%E8%AF%95%E6%95%B0%E6%8D%AE/","path":"2020/08/13/AI/初始OpenCL及在的移动端的一些测试数据/","title":"初识OpenCL及在移动端的一些测试数据"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>初识OpenCL及在移动端的一些测试数据 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81opencv-OpenCL"><span class="nav-number">1.</span> <span class="nav-text">一、opencv+OpenCL</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E7%BC%96%E8%AF%91opencv-OpenCL%E7%9A%84sdk"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 编译opencv+OpenCL的sdk</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E6%B5%8B%E8%AF%95mat%E5%88%B0umat%E7%9A%84%E7%9B%B8%E4%BA%92%E8%BD%AC%E6%8D%A2%E7%9A%84%E6%80%A7%E8%83%BD"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 测试mat到umat的相互转换的性能</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E6%B5%8B%E8%AF%95OpenCL-cvtcolor%E5%87%BD%E6%95%B0%E6%80%A7%E8%83%BD"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 测试OpenCL cvtcolor函数性能</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81OpenCL%E6%A0%B8%E5%BF%83API%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95"><span class="nav-number">2.</span> <span class="nav-text">二、OpenCL核心API性能测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81-%E6%B5%8B%E8%AF%95OpenCL-work-item%E6%95%B0%E9%87%8F%E4%B8%8E%E6%95%88%E7%8E%87%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="nav-number">3.</span> <span class="nav-text">三、 测试OpenCL work_item数量与效率的关系</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1%E5%BE%AA%E7%8E%AF%E6%8B%B7%E8%B4%9D"><span class="nav-number">3.1.</span> <span class="nav-text">3.1循环拷贝</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2memcpy%E6%8B%B7%E8%B4%9D"><span class="nav-number">3.2.</span> <span class="nav-text">3.2memcpy拷贝</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-opencl%E6%8B%B7%E8%B4%9D"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 opencl拷贝</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E5%A4%9Acommandqueue%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95"><span class="nav-number">4.</span> <span class="nav-text">四、多commandqueue性能测试</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/%E5%88%9D%E5%A7%8BOpenCL%E5%8F%8A%E5%9C%A8%E7%9A%84%E7%A7%BB%E5%8A%A8%E7%AB%AF%E7%9A%84%E4%B8%80%E4%BA%9B%E6%B5%8B%E8%AF%95%E6%95%B0%E6%8D%AE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="初识OpenCL及在移动端的一些测试数据 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          初识OpenCL及在移动端的一些测试数据
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>　　最近在做kcf算法在移动端优化的相关工作，由于kcf算法计算量太大，而移动端计算性能有限，因此打算将kcf部分耗时操作通过GPU计算进行提升算法的性能。由于接触GPU和OpenCL的时间比较短，原理性的东西理解得也不深刻，本文主要在移动端测试了一些GPU和OpenCL的数据，无法分析内在原因，方便后续移动端算法优化。主要工作如下：</p>
+<ol>
+<li>编译了OpenCL的opencv版本sdk，测试了mat到umat相互内存拷贝和cvtcolor函数的性能。</li>
+<li>测试了OpenCL核心API的性能</li>
+<li>以内存拷贝核函数为例，测试OpenCL work_item数量与效率的关系。</li>
+<li>测试OpenCL多commandqueue的性能</li>
+</ol>
+<h2 id="一、opencv-OpenCL"><a href="#一、opencv-OpenCL" class="headerlink" title="一、opencv+OpenCL"></a>一、opencv+OpenCL</h2><h3 id="1-1-编译opencv-OpenCL的sdk"><a href="#1-1-编译opencv-OpenCL的sdk" class="headerlink" title="1.1 编译opencv+OpenCL的sdk"></a>1.1 编译opencv+OpenCL的sdk</h3><p>　　KCF算法总使用了不少的opencv函数，开始想的是编译一个包含OpenCL的opencv的sdk，然后通过调用该sdk从而实现使用GPU加速算法的目的。编译opencv+OpenCL的sdk当时踩了不少坑，多番尝试之后，使用下面的命令是可以成功编译。分别下载opencv-3.4.6、android-ndk-r16b、opencv_contrib-3.4.6,在opencv中建build目录，运行下面命令，命令中使用一些路径相关的参数要根据环境适当修改。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cmake -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON -DCMAKE_TOOLCHAIN_FILE=&quot;/home/xxx/code/mobile/third_party/ opencv-3.4.6/platforms/android/android.toolchain.cmake&quot; -DANDROID_NDK=&quot;/home/xxx/code/mobile/tools/android-ndk-r16b&quot; -DANDROID_SDK=&quot;/home/xxx/code/mobile/tools/android_sdk/tools&quot; -DANDROID_NATIVE_API_LEVEL=19 -DANDROID_ABI=&quot;arm64-v8a&quot; -DANDROID_ARM_NEON=TRUE -DANDROID_STL=gnustl_static -DCMAKE_BUILD_TYPE=Release -DOPENCV_EXTRA_MODULES_PATH=&quot;/home/xxx/code/mobile/third_party/opencv_contrib-3.4.6/modules&quot; -DCMAKE_INSTALL_PREFIX=&quot;/home/xxx/code/mobile/third_party/opencv-3.4.6/install_20190623_OpenCL&quot; -DBUILD_opencv_java=ON -DBUILD_ANDROID_PROJECTS=OFF -DBUILD_ANDROID_EXAMPLES=OFF -DBUILD_DOCS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_TESTS=OFF -DBUILD_FAT_JAVA_LIB=OFF -DWITH_OpenCL=ON -DWITH_CUDA=OFF -DWITH_MATLAB=OFF -DBUILD_opencv_aruco=OFF -DBUILD_opencv_calib3d=OFF -DBUILD_opencv_features2d=OFF .. </span><br></pre></td></tr></table></figure>
+<h3 id="1-2-测试mat到umat的相互转换的性能"><a href="#1-2-测试mat到umat的相互转换的性能" class="headerlink" title="1.2 测试mat到umat的相互转换的性能"></a>1.2 测试mat到umat的相互转换的性能</h3><p>　　在编译好opencv sdk之后，首先简单测试了一下sdk是否使用到了GPU资源。测试图片从CPU拷贝到GPU的的性能，opencv提供两组API。UMat::copyTo(OutputArray dst)和Mat::getMat(int access_flags)，实际测试中发现copyto那组性能比get的性能更好些，mat.getUmat函数会报错，还不知道什么原因。  </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">void testMatCopyToUmat(const char* img, int times) &#123;</span><br><span class="line">    cv::Mat image = cv::imread(img, cv::IMREAD_UNCHANGED);</span><br><span class="line">    cv::Mat out;</span><br><span class="line">    cv::UMat u_img;</span><br><span class="line">    if (u_img.empty())&#123;</span><br><span class="line">        //</span><br><span class="line">    &#125;</span><br><span class="line">    struct timeval start, end;</span><br><span class="line">    struct timeval last_time;</span><br><span class="line">    gettimeofday(&amp;start, NULL);</span><br><span class="line">    last_time = start;</span><br><span class="line">    for (int i = 0; i &lt; times; i++) &#123;</span><br><span class="line">        image.copyTo(u_img);</span><br><span class="line">        //cv::cvtColor(image, out, cv::COLOR_BGR2GRAY);</span><br><span class="line">        gettimeofday(&amp;end, NULL);</span><br><span class="line">        P(&quot;mat.copyToUmat:%d,run times:%d, spend:%d us&quot;, i,times, (end.tv_sec - last_time.tv_sec) * 1000000 + </span><br><span class="line">                                       (end.tv_usec - last_time.tv_usec));</span><br><span class="line">        last_time = end;</span><br><span class="line">    &#125;</span><br><span class="line">    gettimeofday(&amp;end, NULL);</span><br><span class="line">    P(&quot;mat.copyToUmat: run times:%d, spend:%d ms&quot;, times, (end.tv_sec - start.tv_sec) * 1000 + </span><br><span class="line">                                       (end.tv_usec - start.tv_usec)/1000);</span><br><span class="line">&#125;</span><br><span class="line">void testUMatCopyToMat(const char* img, int times) &#123;</span><br><span class="line">    cv::Mat image = cv::imread(img, cv::IMREAD_UNCHANGED);</span><br><span class="line">    cv::Mat out;</span><br><span class="line">    struct timeval start, end,last_time;</span><br><span class="line">    cv::UMat u_img;</span><br><span class="line">    image.copyTo(u_img);</span><br><span class="line"></span><br><span class="line">    gettimeofday(&amp;start, NULL);</span><br><span class="line">    last_time = start;</span><br><span class="line">    for (int i = 0; i &lt; times; i++) &#123;</span><br><span class="line">        u_img.copyTo(out);</span><br><span class="line">        gettimeofday(&amp;end, NULL);</span><br><span class="line">        P(&quot;mat.copyToUmat:%d,run times:%d, spend:%d us&quot;, i,times, (end.tv_sec - last_time.tv_sec) * 1000000 + </span><br><span class="line">                                       (end.tv_usec - last_time.tv_usec));</span><br><span class="line">        last_time = end;</span><br><span class="line">    &#125;</span><br><span class="line">    gettimeofday(&amp;end, NULL);</span><br><span class="line">    P(&quot;mat.copyToUmat: run times:%d, spend:%d ms&quot;, times, (end.tv_sec - start.tv_sec) * 1000 + </span><br><span class="line">                                       (end.tv_usec - start.tv_usec)/1000);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<p>| 手机型号 | CPU型号 | GPU型号 | OpenCL版本 | 首次mat拷贝umat | mat拷贝umat | 首次umat拷贝mat | umat拷贝mat | 图片格式 | 上行带宽 | 下行带宽 |<br>| —— | —— | —— | —— | —— | —— | —— | —— | —— | —— | —— | —— | —— | —— | —— |<br>|三星GALAXY On7|高通 骁龙410 MSM8916|	Adreno306|	2|	25.2ms|	0.8ms|	1.5ms|	0.8ms|	720<em>480 159KB|	运行1000次，221M&#x2F;s|	运行1000次，258M&#x2F;s|<br>|三星GALAXY On7|高通 骁龙410 MSM8916|	Adreno306|	2|	30.18ms|	2.88ms|	5.5ms|	2.9ms|	1920</em>1080 6MB|	运行1000次，2.14G&#x2F;s|	运行1000次，2.14G&#x2F;s|<br>|小米6 MI6|	骁龙 835|	高通 Adreno540|	2|16.602ms|	0.754ms|	2.85ms|	0.795ms|	1920<em>1080 6MB|	运行1000次，7.9G&#x2F;s|	运行1000次，8.06G&#x2F;s|<br>|小米6 MI6|	骁龙 835|	高通 Adreno540|	2|17.010ms|	0.332ms|	1ms|0.265ms|	720</em>480 159KB|	运行1000次，632M&#x2F;S|	运行1000次，898.2M&#x2F;s|	<br>|小米mix2s|	骁龙 845|	高通 Adreno630|	2|8.7ms|	2.1ms|	6.1ms|0.9ms|	1920<em>1080 6MB|	运行1000次，6.6G&#x2F;S|	运行1000次，6.62G&#x2F;s|	<br>|小米mix2s|	骁龙 845|	高通 Adreno630|	2|3.3ms|	0.5ms|	2.2ms|0.4ms|	720</em>480 1579KB|	运行1000次，654M&#x2F;S|	运行1000次，682M&#x2F;s|																</p>
+<h3 id="1-3-测试OpenCL-cvtcolor函数性能"><a href="#1-3-测试OpenCL-cvtcolor函数性能" class="headerlink" title="1.3 测试OpenCL cvtcolor函数性能"></a>1.3 测试OpenCL cvtcolor函数性能</h3><p>　　在测试完CPU和GPU内存拷贝的性能之外，之后测试了cvtcolor函数的性能，由于动态加载，OpenCL函数首次加载时特别耗时，大概需要200ms。除此之外，在不同规格的图片上，OpenCL的计算性能大概是cpu的2到3倍。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">void cpu(const char* img, int times) &#123;</span><br><span class="line">    cv::Mat image; </span><br><span class="line">    cv::Mat out;</span><br><span class="line">    struct timeval start, end,last;</span><br><span class="line">    for (int i = 0; i &lt; times; i++) &#123;</span><br><span class="line">        image = cv::imread(img, cv::IMREAD_UNCHANGED);</span><br><span class="line">        gettimeofday(&amp;start, NULL);</span><br><span class="line">        cv::cvtColor(image, out, cv::COLOR_BGR2GRAY);</span><br><span class="line">        gettimeofday(&amp;end, NULL);</span><br><span class="line">        P(&quot;run times:%d, spend:%d us&quot;, i, (end.tv_sec - start.tv_sec) * 1000000 +</span><br><span class="line">                                       (end.tv_usec - start.tv_usec));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">void OpenCL(const char* img, int times) &#123;</span><br><span class="line">    cv::UMat u_img;</span><br><span class="line">    cv::Mat image; </span><br><span class="line">    cv::UMat out;</span><br><span class="line">    cv::Mat out1;</span><br><span class="line"></span><br><span class="line">    std::vector&lt;cv::UMat&gt; v;</span><br><span class="line">    for(int i=0;i&lt;times;i++)&#123;</span><br><span class="line">      image = cv::imread(img, cv::IMREAD_UNCHANGED);</span><br><span class="line">      cv::UMat u_img;</span><br><span class="line">      image.copyTo(u_img);</span><br><span class="line">      v.push_back(u_img);</span><br><span class="line">    &#125;</span><br><span class="line">    struct timeval start, end,last;</span><br><span class="line">    for (int i = 0; i &lt; times; i++) &#123;</span><br><span class="line">        gettimeofday(&amp;start, NULL);</span><br><span class="line">        cv::cvtColor(v[i], out, cv::COLOR_BGR2GRAY);</span><br><span class="line">        gettimeofday(&amp;end, NULL);</span><br><span class="line">        P(&quot;run times:%d, spend:%d us&quot;, i, (end.tv_sec - start.tv_sec) * 1000000 +</span><br><span class="line">                                       (end.tv_usec - start.tv_usec));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>测试数据：</p>
+<table>
+<thead>
+<tr>
+<th>手机型号</th>
+<th>cpu&#x2F;gpu</th>
+<th>图片格式</th>
+<th>首次运行时间</th>
+<th>平均时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>三星GALAXY On7</td>
+<td>cpu</td>
+<td>1920x1080</td>
+<td>3.2ms</td>
+<td>1.8ms</td>
+</tr>
+<tr>
+<td>三星GALAXY On7</td>
+<td>OpenCL</td>
+<td>1920x1080</td>
+<td>273ms</td>
+<td>0.6ms</td>
+</tr>
+<tr>
+<td>三星GALAXY On7</td>
+<td>cpu</td>
+<td>720x480</td>
+<td>1.2ms</td>
+<td>0.62ms</td>
+</tr>
+<tr>
+<td>三星GALAXY On7</td>
+<td>OpenCL</td>
+<td>720x480</td>
+<td>274ms</td>
+<td>0.25ms</td>
+</tr>
+<tr>
+<td>小米mix2s</td>
+<td>cpu</td>
+<td>1920x1080</td>
+<td>3ms</td>
+<td>1.3ms</td>
+</tr>
+<tr>
+<td>小米mix2s</td>
+<td>OpenCL</td>
+<td>1920x1080</td>
+<td>154ms</td>
+<td>0.36ms</td>
+</tr>
+<tr>
+<td>小米mix2s</td>
+<td>cpu</td>
+<td>720x480</td>
+<td>0.5ms</td>
+<td>0.21ms</td>
+</tr>
+<tr>
+<td>小米mix2s</td>
+<td>OpenCL</td>
+<td>720x480</td>
+<td>80.5ms</td>
+<td>0.09ms</td>
+</tr>
+</tbody></table>
+<h2 id="二、OpenCL核心API性能测试"><a href="#二、OpenCL核心API性能测试" class="headerlink" title="二、OpenCL核心API性能测试"></a>二、OpenCL核心API性能测试</h2><table>
+<thead>
+<tr>
+<th>手机型号</th>
+<th>cpux型号</th>
+<th>GPU型号</th>
+<th>OpenCL版本</th>
+<th>API</th>
+<th>测试数据</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>小米6 MI6</td>
+<td>骁龙 835</td>
+<td>高通 Adreno540</td>
+<td>2</td>
+<td>gpu内存分配(clCreateBuffer)</td>
+<td>1M 430us,5M 1000us,10M 2000us</td>
+</tr>
+<tr>
+<td>小米6 MI6</td>
+<td>骁龙 835</td>
+<td>高通 Adreno540</td>
+<td>2</td>
+<td>cpu到gpu内存拷贝(writeBuffer)</td>
+<td>1M 105us,5M 400us,10M 700us</td>
+</tr>
+<tr>
+<td>小米6 MI6</td>
+<td>骁龙 835</td>
+<td>高通 Adreno540</td>
+<td>2</td>
+<td>gpu到cpu内存拷贝(ReadBuffer)</td>
+<td>1M 60us,5M 400us,10M 600us</td>
+</tr>
+<tr>
+<td>小米6 MI6</td>
+<td>骁龙 835</td>
+<td>高通 Adreno540</td>
+<td>2</td>
+<td>核函数编译clBuildProgram</td>
+<td>69682 us</td>
+</tr>
+<tr>
+<td>小米6 MI6</td>
+<td>骁龙 835</td>
+<td>高通 Adreno540</td>
+<td>2</td>
+<td>创建核对象clCreateKernel</td>
+<td>50us</td>
+</tr>
+<tr>
+<td>小米6 MI6</td>
+<td>骁龙 835</td>
+<td>高通 Adreno540</td>
+<td>2</td>
+<td>核函数clEnqueueNDRangeKernel</td>
+<td>首次运行5000us，之后大概800us</td>
+</tr>
+</tbody></table>
+<h2 id="三、-测试OpenCL-work-item数量与效率的关系"><a href="#三、-测试OpenCL-work-item数量与效率的关系" class="headerlink" title="三、 测试OpenCL work_item数量与效率的关系"></a>三、 测试OpenCL work_item数量与效率的关系</h2><p>　　在OpenCL编程中，work_item和work_group的设置对程序的性能有较大的影响。这里以内存拷贝为例测试OpenCL中work_item数量与效率的关系。通过一张3840x2160的图片拷贝，分别测试了CPU和GPU内存拷贝的性能，测试了在不同work_item条件下GPU内存拷贝性能的性能。从测试结果来看，不同work_item对opencl的性能有较大的影响。测试结果显示，最开始时work_item数量曾倍数关系，之后会在100ms抖动，最好的情况是work_item数量与bmpsize大小相同。测试机器为小米mix2s。</p>
+<h3 id="3-1循环拷贝"><a href="#3-1循环拷贝" class="headerlink" title="3.1循环拷贝"></a>3.1循环拷贝</h3><p>bmpsize &#x3D; 3840x2160x3,运行时间13ms</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">char* out = new char[bmp_size];</span><br><span class="line"> for(int i=0;i&lt;bmp_size;i++)&#123;</span><br><span class="line">   // P(&quot;%d&quot;,i);</span><br><span class="line">   out[i] = bmp_data[i];</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2memcpy拷贝"><a href="#3-2memcpy拷贝" class="headerlink" title="3.2memcpy拷贝"></a>3.2memcpy拷贝</h3><p>bmpsize &#x3D; 3840x2160x3,运行时间3ms</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">memcpy(out,bmp_data,bmp_size);</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-3-opencl拷贝"><a href="#3-3-opencl拷贝" class="headerlink" title="3.3 opencl拷贝"></a>3.3 opencl拷贝</h3><p>核函数：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">__kernel void convert_image(__global const uchar* in, </span><br><span class="line">            __global uchar* out，const int channel,</span><br><span class="line">            const int width, const int height)&#123;</span><br><span class="line">    int thread_count = get_global_size(0);</span><br><span class="line">    int size = width * height * channel;</span><br><span class="line">    int each_thread = size / thread_count;</span><br><span class="line">    int tid = get_global_id(0);</span><br><span class="line">    ; out[tid] = in[tid];</span><br><span class="line">    for(int i=tid*each_thread;i&lt;(tid+1)*each_thread;i++)&#123;</span><br><span class="line">        out[i] = in[i];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>关键代码与work_item的设置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">P(&quot;thread_count=%d&quot;, thread_count);</span><br><span class="line">gettimeofday(&amp;start,NULL);</span><br><span class="line">err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(thread_count, 1),</span><br><span class="line">                           cl::NullRange, NULL, &amp;event);</span><br><span class="line">event.wait();</span><br><span class="line">gettimeofday(&amp;end,NULL);</span><br><span class="line">P(&quot;opecl wait:%d ms&quot;, (end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec)/1000);</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th>work_item数量</th>
+<th>运行时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>2972ms</td>
+</tr>
+<tr>
+<td>2</td>
+<td>1526ms</td>
+</tr>
+<tr>
+<td>4</td>
+<td>792ms</td>
+</tr>
+<tr>
+<td>8</td>
+<td>418ms</td>
+</tr>
+<tr>
+<td>16</td>
+<td>252ms</td>
+</tr>
+<tr>
+<td>32</td>
+<td>166ms</td>
+</tr>
+<tr>
+<td>64</td>
+<td>122ms</td>
+</tr>
+<tr>
+<td>128</td>
+<td>104ms</td>
+</tr>
+<tr>
+<td>256</td>
+<td>64ms</td>
+</tr>
+<tr>
+<td>512</td>
+<td>60ms</td>
+</tr>
+<tr>
+<td>1024</td>
+<td>92ms</td>
+</tr>
+<tr>
+<td>2048</td>
+<td>662ms</td>
+</tr>
+<tr>
+<td>4096</td>
+<td>237ms</td>
+</tr>
+<tr>
+<td>10240</td>
+<td>180ms</td>
+</tr>
+<tr>
+<td>102400</td>
+<td>171ms</td>
+</tr>
+<tr>
+<td>248832</td>
+<td>167ms</td>
+</tr>
+<tr>
+<td>2488320</td>
+<td>16ms</td>
+</tr>
+<tr>
+<td>24883200</td>
+<td>15ms</td>
+</tr>
+</tbody></table>
+<p><strong>疑问:当work_item为256或者512是个较好的值，但是不明白为什么2488320和24883200值效果会更好。</strong></p>
+<h2 id="四、多commandqueue性能测试"><a href="#四、多commandqueue性能测试" class="headerlink" title="四、多commandqueue性能测试"></a>四、多commandqueue性能测试</h2><p>　　在学习和测试OpenCL的过程中，有一个疑问能否使用多个commandqueue来做任务的并行。假设有n个任务，每个任务包含CPU到GPU内存拷贝，核函数执行，和GPU到CPU的内存拷贝。分别测试了使用一个commandqueue和n个commandqueue的性能，测试结果显示多个commandqueue会比使用单个commandqueue性能略好一些，但是差别不大。除此之外，与work_item的设置有关，多个commandqueue可能比单个commandqueue性能性能提升15%。从GPU利用率来说，单个commandqueuGPU曲线呈锯齿形状，而多个commandque呈梯形。部分代码如下：<br>单个commandqueue：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br></pre></td><td class="code"><pre><span class="line">void test(const char* cl_file, const char* name, </span><br><span class="line">      const char* bmp_data, const int bmp_size, </span><br><span class="line">      const int width, const int height, const int channels,</span><br><span class="line">      const int line_size, const int thread_count,</span><br><span class="line">      const int run_times) </span><br><span class="line">&#123;</span><br><span class="line">  cl::Platform platforms = cl::Platform::getDefault();</span><br><span class="line">  //P(&quot;platform count:%d&quot;, platforms.size());</span><br><span class="line">  cl::Context context(CL_DEVICE_TYPE_GPU, NULL);</span><br><span class="line">  std::vector&lt;cl::Device&gt; devices = context.getInfo&lt;CL_CONTEXT_DEVICES&gt;();</span><br><span class="line">  P(&quot;Device count:%d&quot;, devices.size());</span><br><span class="line">  std::ifstream in(cl_file, std::ios::in);</span><br><span class="line">  std::stringstream buffer;</span><br><span class="line">  buffer &lt;&lt; in.rdbuf();</span><br><span class="line">  cl_int err = CL_SUCCESS;</span><br><span class="line">  cl::Program program_ = cl::Program(context, buffer.str());</span><br><span class="line">  err = program_.build(devices);</span><br><span class="line">  if (err != CL_SUCCESS) &#123;</span><br><span class="line">    P(&quot;build error&quot;);</span><br><span class="line">    return;</span><br><span class="line">  &#125;  </span><br><span class="line">  cl::Kernel kernel(program_, name, &amp;err);</span><br><span class="line">  if (err != CL_SUCCESS) &#123;</span><br><span class="line">    P(&quot;build error&quot;);</span><br><span class="line">    return;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  cl::CommandQueue queue(context, devices[0], 0, &amp;err);</span><br><span class="line">  if (err != CL_SUCCESS) &#123;</span><br><span class="line">    P(&quot;CommandQueue create error&quot;);</span><br><span class="line">    return;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  struct timeval start, end;</span><br><span class="line">  cl::Event event;</span><br><span class="line">  err = CL_SUCCESS;</span><br><span class="line">  for(int i = 0;i&lt;run_times;i++)&#123;</span><br><span class="line">  &#123;</span><br><span class="line">   </span><br><span class="line">    //see: https://github.khronos.org/OpenCL-CLHPP/classcl_1_1_buffer.html</span><br><span class="line">    cl::Buffer in_buf(context, CL_MEM_WRITE_ONLY, bmp_size);</span><br><span class="line">    cl::Buffer out_buf(context, CL_MEM_READ_ONLY, bmp_size);</span><br><span class="line">    err = queue.enqueueWriteBuffer(in_buf, true, 0, bmp_size, bmp_data, NULL, &amp;event);</span><br><span class="line"></span><br><span class="line">    kernel.setArg(0, in_buf);</span><br><span class="line">    kernel.setArg(1, out_buf);</span><br><span class="line">    kernel.setArg(2, line_size);</span><br><span class="line">    kernel.setArg(3, channels);</span><br><span class="line">    kernel.setArg(4, width);</span><br><span class="line">    kernel.setArg(5, height);</span><br><span class="line"></span><br><span class="line">    P(&quot;thread_count=%d&quot;, thread_count);</span><br><span class="line">    gettimeofday(&amp;start,NULL);</span><br><span class="line">    err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(thread_count, 1),</span><br><span class="line">                               cl::NullRange, NULL, &amp;event);</span><br><span class="line">    event.wait();</span><br><span class="line">    gettimeofday(&amp;end,NULL);</span><br><span class="line">    P(&quot;opecl wait:%d ms&quot;, (end.tv_sec - start.tv_sec) * 1000 + </span><br><span class="line">                                         (end.tv_usec - start.tv_usec)/1000);</span><br><span class="line"></span><br><span class="line">  </span><br><span class="line">    char* h_out_buf = new char[bmp_size];</span><br><span class="line">    err = queue.enqueueReadBuffer(out_buf, true, 0, bmp_size, h_out_buf, NULL, &amp;event);</span><br><span class="line">    if(0!=memcmp(h_out_buf, bmp_data, bmp_size))&#123;</span><br><span class="line">      P(&quot;data not same&quot;);</span><br><span class="line">      return;</span><br><span class="line">    &#125;else&#123;</span><br><span class="line">      P(&quot;data same&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<p>多个commandqueue：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br></pre></td><td class="code"><pre><span class="line">void test_mutil_command_queue(const char* cl_file, const char* name, </span><br><span class="line">      const char* bmp_data, int bmp_size, </span><br><span class="line">      const int width, const int height, const int channels,</span><br><span class="line">      const int line_size, const int thread_count,</span><br><span class="line">      const int run_times) </span><br><span class="line">&#123;</span><br><span class="line">  cl::Platform platforms = cl::Platform::getDefault();</span><br><span class="line">  //P(&quot;platform count:%d&quot;, platforms.size());</span><br><span class="line">  cl::Context context(CL_DEVICE_TYPE_GPU, NULL);</span><br><span class="line">  std::vector&lt;cl::Device&gt; devices = context.getInfo&lt;CL_CONTEXT_DEVICES&gt;();</span><br><span class="line">  P(&quot;Device count:%d&quot;, devices.size());</span><br><span class="line">  // cl::CommandQueue queue(context, devices[0], 0);</span><br><span class="line">  //</span><br><span class="line">  std::ifstream in(cl_file, std::ios::in);</span><br><span class="line">  std::stringstream buffer;</span><br><span class="line">  buffer &lt;&lt; in.rdbuf();</span><br><span class="line">  //</span><br><span class="line">  //cl::Program::Sources source&#123;</span><br><span class="line">  //    std::make_pair(buffer.str().c_str(), buffer.str().size()) &#125;;</span><br><span class="line">  cl_int err = CL_SUCCESS;</span><br><span class="line">  cl::Program program_ = cl::Program(context, buffer.str());</span><br><span class="line">  err = program_.build(devices);</span><br><span class="line">  if (err != CL_SUCCESS) &#123;</span><br><span class="line">    P(&quot;build error %d&quot;,err);</span><br><span class="line">    return;</span><br><span class="line">  &#125;  </span><br><span class="line"></span><br><span class="line">  struct timeval start, end,end2;</span><br><span class="line">  cl::Event event;</span><br><span class="line">  err = CL_SUCCESS;</span><br><span class="line">  gettimeofday(&amp;start, NULL);</span><br><span class="line">  std::vector&lt;cl::CommandQueue&gt; vQueue;</span><br><span class="line">  std::vector&lt;cl::Event&gt; vEvents;</span><br><span class="line">  std::vector&lt;cl::Buffer&gt; vInBuffers;</span><br><span class="line">  std::vector&lt;cl::Buffer&gt; vOutBuffers;</span><br><span class="line">  std::vector&lt;char*&gt; vHostOutBuf;</span><br><span class="line">  std::vector&lt;cl::Kernel&gt; vKernels;</span><br><span class="line">  std::vector&lt;char*&gt; vBmpdatas;</span><br><span class="line"></span><br><span class="line">  for(int i=0;i&lt;run_times;i++)&#123;</span><br><span class="line">    cl::Event event;</span><br><span class="line">    cl::CommandQueue queue(context, devices[0], 0, &amp;err);</span><br><span class="line">      if (err != CL_SUCCESS) &#123;</span><br><span class="line">      P(&quot;CommandQueue create error&quot;);</span><br><span class="line">      return;</span><br><span class="line">    &#125;</span><br><span class="line">    vQueue.push_back(queue);</span><br><span class="line">    vEvents.push_back(event);</span><br><span class="line">    cl::Buffer in_buf(context, CL_MEM_WRITE_ONLY, bmp_size);</span><br><span class="line">    cl::Buffer out_buf(context, CL_MEM_READ_ONLY, bmp_size);</span><br><span class="line">    vInBuffers.push_back(in_buf);</span><br><span class="line">    vOutBuffers.push_back(out_buf);</span><br><span class="line">    char* h_out_buf = new char[bmp_size];</span><br><span class="line">    vHostOutBuf.push_back(h_out_buf);</span><br><span class="line"></span><br><span class="line">    cl::Kernel kernel(program_, name, &amp;err);</span><br><span class="line">    if (err != CL_SUCCESS) &#123;</span><br><span class="line">      P(&quot;build error&quot;);</span><br><span class="line">      return;</span><br><span class="line">    &#125;</span><br><span class="line">    kernel.setArg(0, vInBuffers[i]);</span><br><span class="line">    kernel.setArg(1, vOutBuffers[i]);</span><br><span class="line">    kernel.setArg(2, line_size);</span><br><span class="line">    kernel.setArg(3, channels);</span><br><span class="line">    kernel.setArg(4, width);</span><br><span class="line">    kernel.setArg(5, height);</span><br><span class="line">    vKernels.push_back(kernel);</span><br><span class="line"></span><br><span class="line">  &#125;</span><br><span class="line">  gettimeofday(&amp;end, NULL);</span><br><span class="line">  P(&quot;opecl create queue: spend:%d ms&quot;, (end.tv_sec - start.tv_sec) * 1000 + </span><br><span class="line">                                       (end.tv_usec - start.tv_usec)/1000);</span><br><span class="line"></span><br><span class="line">  for(int i=0;i&lt;run_times;i++)&#123;</span><br><span class="line">    err = vQueue[i].enqueueWriteBuffer(vInBuffers[i], false, 0, bmp_size, bmp_data, NULL, &amp;vEvents[i]);</span><br><span class="line">  &#125;</span><br><span class="line">  for(int i=0;i&lt;run_times;i++)&#123;</span><br><span class="line">    vEvents[i].wait();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  for(int i=0;i&lt;run_times;i++)&#123;</span><br><span class="line">    err = vQueue[i].enqueueNDRangeKernel(vKernels[i], cl::NullRange, cl::NDRange(thread_count, 1),</span><br><span class="line">                                 cl::NullRange, NULL, &amp;vEvents[i]);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  for (int i = 0; i &lt; run_times; ++i)&#123; </span><br><span class="line">    vEvents[i].wait();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  for(int i=0;i&lt;run_times;i++)&#123;</span><br><span class="line">    err = vQueue[i].enqueueReadBuffer(vOutBuffers[i], false, 0, bmp_size, vHostOutBuf[i], NULL, &amp;vEvents[i]);</span><br><span class="line">  &#125;</span><br><span class="line">  for(int i=0;i&lt;run_times;i++)&#123;</span><br><span class="line">    vEvents[i].wait();</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  for(int i=0;i&lt;run_times;i++)&#123;</span><br><span class="line">    if (0!=memcmp(vHostOutBuf[i], bmp_data, bmp_size))&#123;</span><br><span class="line">      P(&quot;data not same&quot;);</span><br><span class="line">    &#125;else&#123;</span><br><span class="line">      P(&quot;data same&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/tensorflow-model-quantization/" rel="next" title="tensorflow模型权重量化(weight quantization)实战">
+                  tensorflow模型权重量化(weight quantization)实战 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

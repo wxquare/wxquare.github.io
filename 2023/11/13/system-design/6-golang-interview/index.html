@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="Go 和 C++ 语言对比Go and C++ are two different programming languages with different design goals, syntax, and feature sets. Here’s a brief comparison of the two: Syntax: Go has a simpler syntax than C++. I">
+<meta property="og:type" content="article">
+<meta property="og:title" content="编程语言：Go 实践">
+<meta property="og:url" content="http://yoursite.com/2023/11/13/system-design/6-golang-interview/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="Go 和 C++ 语言对比Go and C++ are two different programming languages with different design goals, syntax, and feature sets. Here’s a brief comparison of the two: Syntax: Go has a simpler syntax than C++. I">
+<meta property="og:locale">
+<meta property="og:image" content="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/threelayer.jpg">
+<meta property="og:image" content="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/threadheap.gif">
+<meta property="og:image" content="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/pageheap.gif">
+<meta property="og:image" content="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/gc_setGCPercent.jpg">
+<meta property="og:image" content="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/images/runtime.png">
+<meta property="article:published_time" content="2023-11-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-12-08T15:55:23.487Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/threelayer.jpg">
+
+
+<link rel="canonical" href="http://yoursite.com/2023/11/13/system-design/6-golang-interview/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2023/11/13/system-design/6-golang-interview/","path":"2023/11/13/system-design/6-golang-interview/","title":"编程语言：Go 实践"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>编程语言：Go 实践 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Go-%E5%92%8C-C-%E8%AF%AD%E8%A8%80%E5%AF%B9%E6%AF%94"><span class="nav-number">1.</span> <span class="nav-text">Go 和 C++ 语言对比</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go%E8%AF%AD%E6%B3%95%E4%BB%8B%E7%BB%8D"><span class="nav-number">2.</span> <span class="nav-text">Go语法介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#string-byte"><span class="nav-number">2.1.</span> <span class="nav-text">string&#x2F;[]byte</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#array"><span class="nav-number">2.2.</span> <span class="nav-text">array</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#slice"><span class="nav-number">2.3.</span> <span class="nav-text">slice</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#map"><span class="nav-number">2.4.</span> <span class="nav-text">map</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sync-map"><span class="nav-number">2.5.</span> <span class="nav-text">sync.map</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#struct"><span class="nav-number">2.6.</span> <span class="nav-text">struct</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#interface"><span class="nav-number">2.7.</span> <span class="nav-text">interface</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#channel"><span class="nav-number">2.8.</span> <span class="nav-text">channel</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%B1%BB%E5%9E%8B%E5%92%8C%E6%8B%B7%E8%B4%9D%E6%96%B9%E5%BC%8F"><span class="nav-number">2.9.</span> <span class="nav-text">类型和拷贝方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%92%8C%E6%96%B9%E6%B3%95%EF%BC%8C%E5%8C%BF%E5%90%8D%E5%87%BD%E6%95%B0"><span class="nav-number">2.10.</span> <span class="nav-text">函数和方法，匿名函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8C%87%E9%92%88%E5%92%8Cunsafe-Pointer"><span class="nav-number">2.11.</span> <span class="nav-text">指针和unsafe.Pointer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9B%86%E5%90%88set"><span class="nav-number">2.12.</span> <span class="nav-text">集合set</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#defer"><span class="nav-number">2.13.</span> <span class="nav-text">defer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Go-%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86-error%E3%80%81panic"><span class="nav-number">2.14.</span> <span class="nav-text">Go 错误处理 error、panic</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go-channel%E9%80%9A%E9%81%93"><span class="nav-number">3.</span> <span class="nav-text">Go channel通道</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#channel-1"><span class="nav-number">3.1.</span> <span class="nav-text">channel</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95"><span class="nav-number">3.2.</span> <span class="nav-text">基本用法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B-Goroutine-channel-GMP"><span class="nav-number">4.</span> <span class="nav-text">Go并发模型  (Goroutine&#x2F;channel&#x2F;GMP)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#what%E2%80%99s-CSP"><span class="nav-number">4.1.</span> <span class="nav-text">what’s CSP?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Which-is-Goroutine"><span class="nav-number">4.2.</span> <span class="nav-text">Which is Goroutine ?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AF%94%E8%BE%83Goroutine%E3%80%81thread%E3%80%81process"><span class="nav-number">4.3.</span> <span class="nav-text">比较Goroutine、thread、process</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Why-is-Goroutine-lighter-and-more-efficient-than-thread-or-process"><span class="nav-number">4.4.</span> <span class="nav-text">Why is Goroutine lighter and more efficient than thread or process?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#How-are-goroutines-scheduled-by-runtime"><span class="nav-number">4.5.</span> <span class="nav-text">How are goroutines scheduled by runtime?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#What-are-the-states-of-Goroutine-and-how-do-they-flow"><span class="nav-number">4.6.</span> <span class="nav-text">What are the states of Goroutine and how do they flow?</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E5%92%8C%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%EF%BC%88memory-and-gc%EF%BC%89"><span class="nav-number">5.</span> <span class="nav-text">Go 内存管理和垃圾回收（memory and gc）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E5%9F%BA%E6%9C%AC%E7%AD%96%E7%95%A5"><span class="nav-number">5.1.</span> <span class="nav-text">内存管理基本策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#golang%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86"><span class="nav-number">5.2.</span> <span class="nav-text">golang内存管理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#What-are-the-memory-leak-scenarios-in-Go-language"><span class="nav-number">5.3.</span> <span class="nav-text">What are the memory leak scenarios in Go language?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#gc-%E7%9A%84%E8%BF%87%E7%A8%8B"><span class="nav-number">5.4.</span> <span class="nav-text">gc 的过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E7%AE%97%E6%B3%95%E6%A6%82%E8%BF%B0"><span class="nav-number">5.5.</span> <span class="nav-text">垃圾回收算法概述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#golang%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6"><span class="nav-number">5.6.</span> <span class="nav-text">golang垃圾回收</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#golang-gc%E8%B0%83%E4%BC%98%E5%AE%9E%E4%BE%8B"><span class="nav-number">5.7.</span> <span class="nav-text">golang gc调优实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#What%E2%80%99s-Go-closure"><span class="nav-number">6.</span> <span class="nav-text">What’s Go closure?</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Encapsulating-State"><span class="nav-number">6.1.</span> <span class="nav-text">Encapsulating State</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Implementing-Callbacks"><span class="nav-number">6.2.</span> <span class="nav-text">Implementing Callbacks</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Fibonacci"><span class="nav-number">6.3.</span> <span class="nav-text">Fibonacci</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Factorial"><span class="nav-number">6.4.</span> <span class="nav-text">Factorial</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Event-Handling"><span class="nav-number">6.5.</span> <span class="nav-text">Event Handling</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go-http-client-%E5%AE%9E%E8%B7%B5"><span class="nav-number">7.</span> <span class="nav-text">Go http client 实践</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#http%E5%AE%A2%E6%88%B7%E7%AB%AF%E8%87%AA%E5%8A%A8%E5%A4%8D%E7%94%A8%E8%BF%9E%E6%8E%A5"><span class="nav-number">7.1.</span> <span class="nav-text">http客户端自动复用连接</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%BB%E5%8F%96%E5%92%8C%E5%85%B3%E9%97%ADResponse-Body"><span class="nav-number">7.2.</span> <span class="nav-text">读取和关闭Response.Body</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go-sync-Pool"><span class="nav-number">8.</span> <span class="nav-text">Go sync.Pool</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8"><span class="nav-number">8.1.</span> <span class="nav-text">基本使用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sync-Pool-%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81%E5%A4%9A%E5%8D%8F%E7%A8%8B%E5%85%B1%E4%BA%AB%EF%BC%9F"><span class="nav-number">8.2.</span> <span class="nav-text">sync.Pool 如何支持多协程共享？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E4%BD%BF%E7%94%A8sync-pool%E5%AE%9E%E7%8E%B0%E8%BF%9E%E6%8E%A5%E6%B1%A0%EF%BC%9F"><span class="nav-number">8.3.</span> <span class="nav-text">为什么不使用sync.pool实现连接池？</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go%E6%8C%87%E9%92%88%E5%92%8Cunsafe-pointer"><span class="nav-number">9.</span> <span class="nav-text">Go指针和unsafe.pointer</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#nil"><span class="nav-number">9.1.</span> <span class="nav-text">nil</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E5%99%A8%E4%BC%98%E5%8C%96%E5%92%8C%E9%80%83%E9%80%B8%E5%88%86%E6%9E%90"><span class="nav-number">10.</span> <span class="nav-text">编译器优化和逃逸分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%83%E9%80%B8%E5%88%86%E6%9E%90%EF%BC%88Escape-analysis%EF%BC%89"><span class="nav-number">10.1.</span> <span class="nav-text">逃逸分析（Escape analysis）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%85%E6%95%9B%EF%BC%88Inlining%EF%BC%89"><span class="nav-number">10.2.</span> <span class="nav-text">内敛（Inlining）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Dead-code-elimination-Branch-elimination"><span class="nav-number">10.3.</span> <span class="nav-text">Dead code elimination&#x2F;Branch elimination</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go-runtime-%E4%BB%8B%E7%BB%8D"><span class="nav-number">11.</span> <span class="nav-text">Go runtime 介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#What-is-the-Go-runtime"><span class="nav-number">11.1.</span> <span class="nav-text">What is the Go runtime?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A8%8B%E5%BA%8F%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B"><span class="nav-number">11.2.</span> <span class="nav-text">程序启动流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%89%B9%E6%AE%8A%E7%9A%84init%E5%87%BD%E6%95%B0"><span class="nav-number">11.3.</span> <span class="nav-text">特殊的init函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A8%8B%E5%BA%8Fbootstrap%E8%BF%87%E7%A8%8B"><span class="nav-number">11.4.</span> <span class="nav-text">程序bootstrap过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#runtime%C2%B7schedinit"><span class="nav-number">11.5.</span> <span class="nav-text">runtime·schedinit</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#stack"><span class="nav-number">11.6.</span> <span class="nav-text">stack</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#newproc-%E9%9C%80%E8%A6%81%E4%B8%80%E4%B8%AA%E5%88%9D%E5%A7%8B%E7%9A%84stack"><span class="nav-number">11.7.</span> <span class="nav-text">newproc 需要一个初始的stack</span></a></li><li class="nav-item nav-level-3"><a class="nav-link"><span class="nav-number">11.8.</span> <span class="nav-text"></span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#runtime-main"><span class="nav-number">11.9.</span> <span class="nav-text">runtime.main</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E5%92%8C%E7%AE%A1%E7%90%86%E7%AD%96%E7%95%A5mallocgc"><span class="nav-number">11.10.</span> <span class="nav-text">内存分配和管理策略mallocgc</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6garbage-collector"><span class="nav-number">11.11.</span> <span class="nav-text">垃圾回收garbage collector</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A8%8B%E5%BA%8F%E5%B9%B6%E5%8F%91Goroutine%E8%B0%83%E5%BA%A6"><span class="nav-number">11.12.</span> <span class="nav-text">程序并发Goroutine调度</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go-%E5%8F%AF%E6%B5%8B%E8%AF%95%E7%BC%96%E7%A8%8B%E3%80%81%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%E5%92%8C%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96"><span class="nav-number">12.</span> <span class="nav-text">Go 可测试编程、单元测试和性能优化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%EF%BC%8C%E6%B5%8B%E8%AF%95%E6%AD%A3%E7%A1%AE%E6%80%A7"><span class="nav-number">12.1.</span> <span class="nav-text">单元测试，测试正确性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95%EF%BC%8Cbenchmark"><span class="nav-number">12.2.</span> <span class="nav-text">性能测试，benchmark</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#pprof%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90"><span class="nav-number">12.3.</span> <span class="nav-text">pprof性能分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E9%99%85%E6%93%8D%E4%BD%9C"><span class="nav-number">12.4.</span> <span class="nav-text">实际操作</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go%E5%AE%9E%E8%B7%B5%EF%BC%9AGoroutine%E5%90%8C%E6%AD%A5%E6%96%B9%E5%BC%8F"><span class="nav-number">13.</span> <span class="nav-text">Go实践：Goroutine同步方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go%E5%AE%9E%E8%B7%B5%EF%BC%9A%E7%94%9F%E4%BA%A7%E8%80%85%E3%80%81%E6%B6%88%E8%B4%B9%E8%80%85%E6%A8%A1%E5%9E%8B%EF%BC%8C%E5%B9%B6%E8%A1%8C%E8%AE%A1%E7%AE%97%E7%B4%AF%E5%8A%A0%E6%B1%82%E5%92%8C"><span class="nav-number">14.</span> <span class="nav-text">Go实践：生产者、消费者模型，并行计算累加求和</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go-%E5%AE%9E%E8%B7%B5%EF%BC%9Ainterface-base-derive"><span class="nav-number">15.</span> <span class="nav-text">Go 实践：interface&#x2F;base&#x2F;derive</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go%E5%AE%9E%E8%B7%B5%EF%BC%9A%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-number">16.</span> <span class="nav-text">Go实践：设计模式的实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go-1-12-%E5%8E%8B%E6%B5%8B%E5%90%8Erss%E5%86%85%E5%AD%98%E4%B8%80%E7%9B%B4%E6%97%A0%E6%B3%95%E9%87%8A%E6%94%BE%E9%97%AE%E9%A2%98"><span class="nav-number">17.</span> <span class="nav-text">Go 1.12 压测后rss内存一直无法释放问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8C%85%E5%92%8C%E5%BA%93%EF%BC%88package"><span class="nav-number">18.</span> <span class="nav-text">包和库（package)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83"><span class="nav-number">19.</span> <span class="nav-text">参考</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2023/11/13/system-design/6-golang-interview/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="编程语言：Go 实践 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          编程语言：Go 实践
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2023-11-13 00:00:00" itemprop="dateCreated datePublished" datetime="2023-11-13T00:00:00+08:00">2023-11-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="Go-和-C-语言对比"><a href="#Go-和-C-语言对比" class="headerlink" title="Go 和 C++ 语言对比"></a>Go 和 C++ 语言对比</h2><p>Go and C++ are two different programming languages with different design goals, syntax, and feature sets. Here’s a brief comparison of the two:</p>
+<p>Syntax: Go has a simpler syntax than C++. It uses indentation for block structure and has fewer keywords and symbols. C++ has a more complex syntax with a lot of features that can make it harder to learn and use effectively.</p>
+<p>Memory Management: C++ gives the programmer more control over memory management through its support for pointers, manual memory allocation, and deallocation. Go, on the other hand, uses a garbage collector to automatically manage memory, making it less error-prone.</p>
+<p>Concurrency: Go has built-in support for concurrency through goroutines and channels, which make it easier to write concurrent code. C++ has a thread library that can be used to write concurrent code, but it requires more manual management of threads and locks.</p>
+<p>Performance: C++ is often considered a high-performance language, and it can be used for system-level programming and performance-critical applications. Go is also fast but may not be as fast as C++ in some cases.</p>
+<p>Libraries and Frameworks: C++ has a vast ecosystem of libraries and frameworks that can be used for a variety of applications, from game development to machine learning. Go’s ecosystem is smaller, but it has good support for web development and distributed systems.</p>
+<p>Overall, the choice of programming language depends on the project requirements, the available resources, and the developer’s expertise. Both Go and C++ have their strengths and weaknesses, and the best choice depends on the specific needs of the project.</p>
+<h2 id="Go语法介绍"><a href="#Go语法介绍" class="headerlink" title="Go语法介绍"></a>Go语法介绍</h2><h3 id="string-byte"><a href="#string-byte" class="headerlink" title="string&#x2F;[]byte"></a>string&#x2F;[]byte</h3><ul>
+<li>string是golang的基本数组类型，s :&#x3D; “hello,world”，一旦初始化后不允许修改其内容</li>
+<li><a href="https://draveness.me/golang/docs/part2-foundation/ch03-datastructure/golang-string/">内部实现结构</a>，指向数据的指针data和表示长度的len</li>
+<li>字符串拼接和格式化四种方式，+&#x3D;，strings.join,buffer.writestring,fmt.sprintf</li>
+<li><a href="https://www.cnblogs.com/shuiyuejiangnan/p/9707066.html">string 与 []byte的类型转换</a></li>
+<li>标准库strings提供了许多字符串操作的函数,例如Split、HasPrefix,Trim。</li>
+</ul>
+<h3 id="array"><a href="#array" class="headerlink" title="array"></a>array</h3><ul>
+<li>数组array: [3]int{1,2,3}</li>
+<li><font color=red><strong>数组是值类型</strong></font>，数组传参发生拷贝</li>
+<li>定长</li>
+<li>数组的创建、初始化、访问和遍历range，len(arr)求数组的长度</li>
+</ul>
+<h3 id="slice"><a href="#slice" class="headerlink" title="slice"></a>slice</h3><ul>
+<li>切片slice初始化: make([]int,len,cap)</li>
+<li><font color=red><strong>slice是引用类型</strong></font></li>
+<li>变长，用容量和长度的区别，分别使用cap和len函数获取</li>
+<li>内存结构和实现：指针、cap、size共24字节</li>
+<li>常用函数，append，cap，len</li>
+<li>切片动态扩容</li>
+<li>深拷贝copy和浅拷贝“&#x3D;”的区别</li>
+<li>copy(slice1,slice2)</li>
+</ul>
+<h3 id="map"><a href="#map" class="headerlink" title="map"></a>map</h3><ul>
+<li>引用类型，需要初始化 make(map[string]int,5) </li>
+<li><a href="https://draveness.me/golang/docs/part2-foundation/ch03-datastructure/golang-hashmap/">内部实现的数据结构，hmap、bmap等</a></li>
+<li>链地址法解决冲突</li>
+<li>hashmap中buckets为什么为通常2的幂次方</li>
+<li>访问流程，先用低位确定bucket，再用高8位粗选</li>
+<li>增量扩容，迁移</li>
+<li>使用map[interface{}]struct{}作为set</li>
+<li><a href="https://blog.csdn.net/slvher/article/details/44779081">map遍历是无序且随机的，如何实现顺序遍历？</a></li>
+<li><a href="https://ninokop.github.io/2017/10/24/Go-Hashmap%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E5%92%8C%E5%AE%9E%E7%8E%B0/">内部hashmap的实现原理</a>。内部结构（bucket），扩容与迁移，删除。</li>
+</ul>
+<h3 id="sync-map"><a href="#sync-map" class="headerlink" title="sync.map"></a>sync.map</h3><ul>
+<li>双map,read 和 dirty</li>
+<li>以空间换效率，通过read和dirty两个map来提高读取效率</li>
+<li>优先从read map中读取(无锁)，否则再从dirty map中读取(加锁)</li>
+<li>动态调整，当misses次数过多时，将dirty map提升为read map</li>
+<li>延迟删除，删除只是为value打一个标记，在dirty map提升时才执行真正的删除</li>
+<li><a href="https://colobu.com/2017/07/11/dive-into-sync-Map/">sync.map 揭秘</a></li>
+<li><a href="https://segmentfault.com/a/1190000020946989">sync.map读写流程图</a></li>
+<li><a href="https://wudaijun.com/2018/02/go-sync-map-implement/">https://wudaijun.com/2018/02/go-sync-map-implement/</a></li>
+</ul>
+<h3 id="struct"><a href="#struct" class="headerlink" title="struct"></a>struct</h3><ul>
+<li>空结构体struct{}的用途，节省内存。</li>
+<li>不支持继承，使用结构体嵌套组合</li>
+<li>struct 可以比较吗？普通struct可以比较，带引用的struc不可比较，需要使用reflect.DeepEqual</li>
+<li>struct没有slice和map类型时可直接判断</li>
+<li>slice和map本身不可比较，需要使用reflect.DeepEqual()。</li>
+<li>struct中包含slice和map等字段时，也要使用reflect.DeepEqual().</li>
+<li><a href="https://stackoverflow.com/questions/24534072/how-to-compare-struct-slice-map-are-equal">https://stackoverflow.com/questions/24534072/how-to-compare-struct-slice-map-are-equal</a></li>
+</ul>
+<h3 id="interface"><a href="#interface" class="headerlink" title="interface"></a>interface</h3><ul>
+<li><a href="https://draveness.me/golang/docs/part2-foundation/ch04-basic/golang-interface/">https://draveness.me/golang/docs/part2-foundation/ch04-basic/golang-interface/</a></li>
+<li><strong>隐式接口</strong>，实现接口的所有方法就隐式地实现了接口；不需要显示申明实现某接口</li>
+<li><strong>接口也是 Go 语言中的一种类型</strong>，它能够出现在变量的定义、函数的入参和返回值中并对它们进行约束，不过 Go 语言中有两种略微不同的接口，一种是带有一组方法的接口，另一种是不带任何方法的 interface{}：</li>
+<li>interface{} 类型不是任意类型，而是将类型转换成了 interface{} 类型</li>
+<li>结构体实现接口 vs 结构体指针实现接口 区别？</li>
+<li>runtime.eface 和 runtime.iface 结构？</li>
+<li><strong>结构体类型转化为接口的类型相互变换，interface类型断言为struct类型</strong> 过程</li>
+<li><strong>动态派发与多态</strong>。动态派发（Dynamic dispatch）是在运行期间选择具体多态操作（方法或者函数）执行的过程，它是面向对象语言中的常见特性6。Go 语言虽然不是严格意义上的面向对象语言，但是接口的引入为它带来了动态派发这一特性，调用接口类型的方法时，如果编译期间不能确认接口的类型，Go 语言会在运行期间决定具体调用该方法的哪个实现。</li>
+<li>Golang没有泛型，通过interface可以实现简单泛型编程，例如的sort的实现</li>
+<li>接口实现的源码</li>
+</ul>
+<h3 id="channel"><a href="#channel" class="headerlink" title="channel"></a>channel</h3><ul>
+<li>Go鼓励CSP模型(communicating sequential processes),Goroutin之间通过channel传递数据</li>
+<li>非缓冲的同步channel和带缓冲的异步channel</li>
+<li><a href="https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-channel/#642-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84">内部实现结构，带锁的循环队列runtime.hchan</a></li>
+<li>channel创建make</li>
+<li>chan &lt;- i</li>
+<li><strong>向channel发送数据</strong>。在发送数据的逻辑执行之前会先为当前 Channel 加锁，防止多个线程并发修改数据。如果 Channel 已经关闭，那么向该 Channel 发送数据时会报 “send on closed channel” 错误并中止程序。分为的三个部分：<br>当存在等待的接收者时，通过 runtime.send 直接将数据发送给阻塞的接收者；<br>当缓冲区存在空余空间时，将发送的数据写入 Channel 的缓冲区；<br>当不存在缓冲区或者缓冲区已满时，等待其他 Goroutine 从 Channel 接收数据；</li>
+<li>i &lt;- ch，i, ok &lt;- ch</li>
+<li><strong>从channel接收数据</strong>的五种情况:<ul>
+<li>如果 Channel 为空，那么会直接调用 runtime.gopark 挂起当前 Goroutine；</li>
+<li>如果 Channel 已经关闭并且缓冲区没有任何数据，runtime.chanrecv 会直接返回；</li>
+<li>如果 Channel 的 sendq 队列中存在挂起的 Goroutine，会将 recvx 索引所在的数据拷贝到接收变量所在的内存空间上并将 sendq 队列中 Goroutine 的数据拷贝到缓冲区；</li>
+<li>如果 Channel 的缓冲区中包含数据，那么直接读取 recvx 索引对应的数据；</li>
+<li>在默认情况下会挂起当前的 Goroutine，将 runtime.sudog 结构加入 recvq 队列并陷入休眠等待调度器的唤醒；</li>
+</ul>
+</li>
+<li><strong>关闭channel</strong></li>
+<li>如何优雅的关闭channel？<a href="https://www.jianshu.com/p/d24dfbb33781">https://www.jianshu.com/p/d24dfbb33781</a>, channel关闭后读操作会发生什么？写操作会发生什么？</li>
+</ul>
+<h3 id="类型和拷贝方式"><a href="#类型和拷贝方式" class="headerlink" title="类型和拷贝方式"></a>类型和拷贝方式</h3><ul>
+<li>值类型 ：String，Array，Int，Struct，Float，Bool，pointer（深拷贝）</li>
+<li>引用类型：Slice，Map （浅拷贝）</li>
+</ul>
+<h3 id="函数和方法，匿名函数"><a href="#函数和方法，匿名函数" class="headerlink" title="函数和方法，匿名函数"></a>函数和方法，匿名函数</h3><ul>
+<li>init函数</li>
+<li>值接收和指针接收的区别</li>
+<li>匿名函数？闭包？闭包延时绑定问题？用闭包写fibonacci数列？</li>
+</ul>
+<h3 id="指针和unsafe-Pointer"><a href="#指针和unsafe-Pointer" class="headerlink" title="指针和unsafe.Pointer"></a>指针和unsafe.Pointer</h3><ul>
+<li>相比C&#x2F;C++，为了安全性考虑，Go指针弱化。不同类型的指针不能相互转化，指针变量不支持运算，不支持c&#x2F;c++中的++，需要借助unsafe包</li>
+<li>任何类型的指针都可以被转换成unsafe.Pointer类型，通过unsafe.Pointer实现不同类型指针的转化</li>
+<li>uintptr值可以被转换成unsafe.Pointer类型，通过uintptr实现指针的运算</li>
+<li>unsafe.Pointer是一个指针类型，指向的值不能被解析，类似于C&#x2F;C++里面的(void *)，只说明这是一个指针，但是指向什么的不知道。</li>
+<li>uintptr 是一个整数类型，这个整数的宽度足以用来存储一个指针类型数据；那既然是整数类类型，当然就可以对其进行运算了</li>
+<li>nil</li>
+<li><a href="https://www.cnblogs.com/shuiyuejiangnan/p/9707066.html">实践string和[]byte的高效转换</a></li>
+<li>在业务场景中，使用指针虽然方便，但是要注意深拷贝和浅拷贝，这种错误还是比较常见的</li>
+<li>当你对象是结构体对象的指针时，你想要获取字段属性时，可以直接使用’.’，而不需要解引用</li>
+</ul>
+<h3 id="集合set"><a href="#集合set" class="headerlink" title="集合set"></a>集合set</h3><ol>
+<li>golang中本身没有提供set，但可以通过map自己实现</li>
+<li>利用map键值不可重复的特性实现set，value为空结构体。 map[interface{}]struct{} </li>
+<li><a href="https://studygolang.com/articles/11179">如何自己实现set？</a></li>
+</ol>
+<h3 id="defer"><a href="#defer" class="headerlink" title="defer"></a>defer</h3><ul>
+<li>defer定义的延迟函数参数在defer语句出时就已经确定下来了</li>
+<li>defer定义顺序与实际执行顺序相反</li>
+<li>return不是原子操作，执行过程是: 保存返回值(若有)–&gt;执行defer（若有）–&gt;执行ret跳转</li>
+<li>申请资源后立即使用defer关闭资源是好习惯</li>
+<li>golang中的defer用途？调用时机？调用顺序？预计算值？</li>
+<li><a href="https://blog.csdn.net/Tybyqi/article/details/83827140">defer 实现原理？</a></li>
+</ul>
+<h3 id="Go-错误处理-error、panic"><a href="#Go-错误处理-error、panic" class="headerlink" title="Go 错误处理 error、panic"></a>Go 错误处理 error、panic</h3><ul>
+<li>在Go 语言中，错误被认为是一种可以预期的结果；而异常则是一种非预期的结果，发生异常可能表示程序中存在BUG 或发生了其它不可控的问题。 </li>
+<li>Go 语言推荐使用 recover 函数将内部异常转为错误处理，这使得用户可以真正的关心业务相关的错误处理。</li>
+<li>在Go服务中通常需要自定义粗错误类型，最好能有效区分业务逻辑错误和系统错误，同时需要捕获panic，将panic转化为error，避免某个错误影响server重启</li>
+<li>panic 时需要保留runtime stack<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"> defer func() &#123;</span><br><span class="line">	if x := recover(); x != nil &#123;</span><br><span class="line">		panicReason := fmt.Sprintf(&quot;I&#x27;m panic because of: %v\n&quot;, x)</span><br><span class="line">		logger.LogError(panicReason)</span><br><span class="line">		stk := make([]byte, 10240)</span><br><span class="line">		stkLen := runtime.Stack(stk, false)</span><br><span class="line">		logger.LogErrorf(&quot;%s\n&quot;, string(stk[:stkLen]))</span><br><span class="line">	&#125;</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="Go-channel通道"><a href="#Go-channel通道" class="headerlink" title="Go channel通道"></a>Go channel通道</h2><h3 id="channel-1"><a href="#channel-1" class="headerlink" title="channel"></a>channel</h3><p>  channel是golang中的csp并发模型非常重要组成部分，使用起来非常像阻塞队列。</p>
+<ul>
+<li>通道channel变量本身就是指针，可用“&#x3D;&#x3D;”操作符判断是否为同一对象</li>
+<li>未初始化的channel为nil，需要使用make初始化</li>
+<li>理解初始化的channel和nil channel的区别？读写nil channel都会阻塞，关闭nil channel会出现panic；可以读关闭的channel，写关闭的channel会发出panic，close关闭了的channel会发出panic</li>
+<li>同步模式的channel必须有配对操作的goroutine出现，否则会一直阻塞，而异步模式在缓冲区未满或者数据未读完前，不会阻塞。</li>
+<li>内置的cap和len函数返回channel缓冲区大小和当前已缓冲的数量，而对于同步通道则返回0</li>
+<li>除了使用”&lt;-“发送和接收操作符外，还可以用ok-idom或者range模式处理chanel中的数据。</li>
+<li>重复关闭和关闭nil channel都会导致pannic</li>
+<li>make可以创建单项通道，但那没有意义，通产使用类型转换来获取单向通道，并分别赋予给操作方</li>
+<li>无法将单向通道转换成双向通道</li>
+</ul>
+<h3 id="基本用法"><a href="#基本用法" class="headerlink" title="基本用法"></a>基本用法</h3><ol>
+<li>协程之间传递数据</li>
+<li>用作事件通知，经常使用空结构体channel作为某个事件通知</li>
+<li>select帮助同时多个通道channel，它会随机选择一个可用的通道做收发操作</li>
+<li>使用异步channel（带有缓冲）实现信号量semaphore</li>
+<li>标准库提供了timeout和tick的channel实现。</li>
+<li>通道并非用来取代锁的，通道和锁有各自不同的使用场景，通道倾向于解决逻辑层次的并发处理架构，而锁则用来保护数据的安全性。</li>
+<li>channel队列本质上还是使用锁同步机制，单次获取更多的数据（批处理），减少收发的次数，可改善因为频繁加锁造成的性能问题。</li>
+<li>channel可能会导致goroutine leak问题，是指goroutine处于发送或者接收阻塞状态，但一直未被唤醒，垃圾回收器并不收集此类资源，造成资源的泄露。    <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">func main() &#123;</span><br><span class="line">	done := make(chan struct&#123;&#125;)</span><br><span class="line">	s := make(chan int)</span><br><span class="line">	go func() &#123;</span><br><span class="line">		s &lt;- 1</span><br><span class="line">		close(done)</span><br><span class="line">	&#125;()</span><br><span class="line">	fmt.Println(&lt;-s)</span><br><span class="line">	&lt;-done</span><br><span class="line">&#125;</span><br><span class="line">		</span><br><span class="line">func main() &#123;</span><br><span class="line">	sem := make(chan struct&#123;&#125;, 2) //two groutine</span><br><span class="line">	var wg sync.WaitGroup</span><br><span class="line">	for i := 0; i &lt; 10; i++ &#123;</span><br><span class="line">		wg.Add(1)</span><br><span class="line">		go func(id int) &#123;</span><br><span class="line">			defer wg.Done()</span><br><span class="line">			defer func() &#123; &lt;-sem &#125;()</span><br><span class="line">			sem &lt;- struct&#123;&#125;&#123;&#125;</span><br><span class="line">			time.Sleep(1 * time.Second)</span><br><span class="line">			fmt.Println(&quot;id=&quot;, id)</span><br><span class="line">		&#125;(i)</span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line">&#125;</span><br><span class="line">		</span><br><span class="line">		</span><br><span class="line">func main() &#123;</span><br><span class="line">	go func() &#123;</span><br><span class="line">		tick := time.Tick(1 * time.Second)</span><br><span class="line">		for &#123;</span><br><span class="line">			select &#123;</span><br><span class="line">			case &lt;-time.After(5 * time.Second):</span><br><span class="line">				fmt.Println(&quot;time out&quot;)</span><br><span class="line">			case &lt;-tick:</span><br><span class="line">				fmt.Println(&quot;time tick 1s&quot;)</span><br><span class="line">			default:</span><br><span class="line">				fmt.Println(&quot;default&quot;)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">	&lt;-(chan struct&#123;&#125;)(nil)</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
+</ol>
+<h2 id="Go并发模型-Goroutine-channel-GMP"><a href="#Go并发模型-Goroutine-channel-GMP" class="headerlink" title="Go并发模型  (Goroutine&#x2F;channel&#x2F;GMP)"></a>Go并发模型  (Goroutine&#x2F;channel&#x2F;GMP)</h2><h3 id="what’s-CSP"><a href="#what’s-CSP" class="headerlink" title="what’s CSP?"></a>what’s CSP?</h3><p>The <strong>Communicating Sequential Processes (CSP) model</strong> is a theoretical model of concurrent programming that was first introduced by Tony Hoare in 1978. The CSP model is based on the idea of concurrent processes that communicate with each other by sending and receiving messages through channels.The Go programming language provides support for the CSP model through its built-in concurrency features, such as goroutines and channels. In Go, concurrent processes are represented by goroutines, which are lightweight threads of execution. The communication between goroutines is achieved through channels, which provide a mechanism for passing values between goroutines in a safe and synchronized manner.</p>
+<h3 id="Which-is-Goroutine"><a href="#Which-is-Goroutine" class="headerlink" title="Which is Goroutine ?"></a>Which is Goroutine ?</h3><ul>
+<li>Goroutines are lightweight, user-level threads of execution that run concurrently with other goroutines within the same process.</li>
+<li>Unlike traditional threads, goroutines are managed by the Go runtime, which automatically schedules and balances their execution across multiple CPUs and makes efficient use of available system resources.</li>
+</ul>
+<h3 id="比较Goroutine、thread、process"><a href="#比较Goroutine、thread、process" class="headerlink" title="比较Goroutine、thread、process"></a>比较Goroutine、thread、process</h3><ul>
+<li>比较进程、线程和Goroutine。进程是资源分配的单位，有独立的地址空间，线程是操作系统调度的单位，协程是更细力度的执行单元，需要程序自身调度。Go语言原生支持Goroutine，并提供高效的协程调度模型。</li>
+<li>Goroutines, threads, and processes are all mechanisms for writing concurrent and parallel code, but they have some important differences:</li>
+<li>Goroutines: A goroutine is a lightweight, user-level thread of execution that runs concurrently with other goroutines within the same process. Goroutines are managed by the Go runtime, which automatically schedules and balances their execution across multiple CPUs. Goroutines require much less memory and have much lower overhead compared to threads, allowing for many goroutines to run simultaneously within a single process.</li>
+<li>Threads: A thread is a basic unit of execution within a process. Threads are independent units of execution that share the same address space as the process that created them. This allows threads to share data and communicate with each other, but also introduces the need for explicit synchronization to prevent race conditions and other synchronization issues.</li>
+<li>Processes: A process is a self-contained execution environment that runs in its own address space. Processes are independent of each other, meaning that they do not share memory or other resources. Communication between processes requires inter-process communication mechanisms, such as pipes, sockets, or message queues.</li>
+<li>In general, goroutines provide a more flexible and scalable approach to writing concurrent code compared to threads, as they are much lighter and more efficient, and allow for many more concurrent units of execution within a single process. Processes provide a more secure and isolated execution environment, but have higher overhead and require more explicit communication mechanisms.</li>
+</ul>
+<h3 id="Why-is-Goroutine-lighter-and-more-efficient-than-thread-or-process"><a href="#Why-is-Goroutine-lighter-and-more-efficient-than-thread-or-process" class="headerlink" title="Why is Goroutine lighter and more efficient than thread or process?"></a>Why is Goroutine lighter and more efficient than thread or process?</h3><ul>
+<li>Stack size: Goroutines have a much smaller stack size compared to threads. The stack size of a goroutine is dynamically adjusted by the Go runtime, based on the needs of the goroutine. This allows for many more goroutines to exist simultaneously within a single process, as they require much less memory.</li>
+<li>Scheduling: Goroutines are scheduled by the Go runtime, which automatically balances and schedules their execution across multiple CPUs. This eliminates the need for explicit thread management and synchronization, reducing overhead.</li>
+<li>Context switching: Context switching is the process of saving and restoring the state of a running thread in order to switch to a different thread. Goroutines have a much lower overhead for context switching compared to threads, as they are much lighter and require less state to be saved and restored.</li>
+<li>Resource sharing: Goroutines share resources with each other and with the underlying process, eliminating the need for explicit resource allocation and deallocation. This reduces overhead and allows for more efficient use of system resources.</li>
+<li>Overall, the combination of a small stack size, efficient scheduling, low overhead context switching, and efficient resource sharing makes goroutines much lighter and more efficient than threads or processes, and allows for many more concurrent units of execution within a single process.</li>
+<li>Goroutine 上下文切换只涉及到三个寄存器（PC &#x2F; SP &#x2F; DX）的值修改；而对比线程的上下文切换则需要涉及模式切换（从用户态切换到内核态）、以及 16 个寄存器、PC、SP…等寄存器的刷新；内存占用少：线程栈空间通常是 2M，Goroutine 栈空间最小 2K；Golang 程序中可以轻松支持10w 级别的 Goroutine 运行，而线程数量达到 1k 时，内存占用就已经达到 2G。</li>
+<li>理解G、P、M的含义以及调度模型</li>
+</ul>
+<h3 id="How-are-goroutines-scheduled-by-runtime"><a href="#How-are-goroutines-scheduled-by-runtime" class="headerlink" title="How are goroutines scheduled by runtime?"></a>How are goroutines scheduled by runtime?</h3><ul>
+<li><strong>Cooperative</strong> (协作式). The scheduler uses a <strong>cooperative</strong> scheduling model, which means that goroutines voluntarily yield control to the runtime when they are blocked or waiting for an event. </li>
+<li><strong>Timer-based preemption</strong>. The scheduler uses a technique called <strong>timer-based preemption</strong> to interrupt the execution of a running goroutine and switch to another goroutine if it exceeds its time slice</li>
+<li><strong>Work-stealing</strong>. The scheduler uses a work-stealing algorithm, where each CPU has its own local run queue, and goroutines are dynamically moved between run queues to balance the o balance the load and improve performance.</li>
+<li><strong>no explicit prioritization</strong>. The Go runtime scheduler does not provide explicit support for prioritizing goroutines. Instead, it relies on the cooperative nature of goroutines to ensure that all goroutines make progress. In a well-designed Go program, the program should be designed such that all goroutines make progress in a fair and balanced manner.</li>
+<li><a href="https://blog.csdn.net/sinat_34715587/article/details/124990458">https://blog.csdn.net/sinat_34715587/article/details/124990458</a></li>
+<li>G 的数量可以远远大于 M 的数量，换句话说，Go 程序可以利用少量的内核级线程来支撑大量 Goroutine 的并发。多个 Goroutine 通过用户级别的上下文切换来共享内核线程 M 的计算资源，但对于操作系统来说并没有线程上下文切换产生的性能损耗，支持任务窃取（work-stealing）策略：为了提高 Go 并行处理能力，调高整体处理效率，当每个 P 之间的 G 任务不均衡时，调度器允许从 GRQ，或者其他 P 的 LRQ 中获取 G 执行。</li>
+<li>减少因Goroutine创建大量M：<ul>
+<li>由于原子、互斥量或通道操作调用导致 Goroutine 阻塞，调度器将把当前阻塞的 Goroutine 切换出去，重新调度 LRQ 上的其他 Goroutine；</li>
+<li>由于网络请求和 IO 操作导致 Goroutine 阻塞，通过使用 NetPoller 进行网络系统调用，调度器可以防止 Goroutine 在进行这些系统调用时阻塞 M。这可以让 M 执行 P 的 LRQ 中其他的 Goroutines，而不需要创建新的 M。有助于减少操作系统上的调度负载。</li>
+<li>当调用一些系统方法的时候，如果系统方法调用的时候发生阻塞，这种情况下，网络轮询器（NetPoller）无法使用，而进行系统调用的 Goroutine 将阻塞当前 M，则创建新的M。阻塞的系统调用完成后：M1 将被放在旁边以备将来重复使用</li>
+<li>如果在 Goroutine 去执行一个 sleep 操作，导致 M 被阻塞了。Go 程序后台有一个监控线程 sysmon，它监控那些长时间运行的 G 任务然后设置可以强占的标识符，别的 Goroutine 就可以抢先进来执行。</li>
+</ul>
+</li>
+</ul>
+<h3 id="What-are-the-states-of-Goroutine-and-how-do-they-flow"><a href="#What-are-the-states-of-Goroutine-and-how-do-they-flow" class="headerlink" title="What are the states of Goroutine and how do they flow?"></a>What are the states of Goroutine and how do they flow?</h3><ul>
+<li>协程的状态流转？Grunnable、Grunning、Gwaiting</li>
+<li>In Go, a Goroutine can be in one of several states during its lifetime. The states are:</li>
+<li>New: The Goroutine is created but has not started executing yet.</li>
+<li>Running: The Goroutine is executing on a machine-level thread.</li>
+<li>Waiting: The Goroutine is waiting for some external event, such as I&#x2F;O, channel communication, or a timer.</li>
+<li>Sleeping: The Goroutine is sleeping, or waiting for a specified amount of time.</li>
+<li>Dead: The Goroutine has completed its execution and is no longer running.</li>
+</ul>
+<p>In summary, the lifetime of a Goroutine in Go starts when it is created and ends when it completes its execution or encounters a panic, and can be influenced by synchronization mechanisms such as channels and wait groups.</p>
+<ul>
+<li>Golang context 用于在树形goroutine结构中，通过信号减少资源的消耗，包含Deadline、Done、Error、Value四个接口</li>
+<li>常用的同步原语：channel、sync.mutex、sync.RWmutex、sync.WaitGroup、sync.Once、atomic</li>
+<li>协程的状态流转？Grunnable、Grunning、Gwaiting</li>
+<li>sync.Mutex 和 sync.RWMutex 互斥锁和读写锁的使用场景？</li>
+<li><a href="http://km.oa.com/articles/show/502088">sync.Mutex: “锁”实现背后那些事</a></li>
+<li><a href="https://segmentfault.com/a/1190000017251049">Golang 协程优雅的退出？</a></li>
+<li>深入理解协程gmp调度模型，以及其发展历史</li>
+<li>理解操作系统是怎么调度的，golang协程调度的优势，切换代价低，goroutine开销低，并发度高。</li>
+<li>Golang IO 模型和网络轮训器</li>
+</ul>
+<h2 id="Go-内存管理和垃圾回收（memory-and-gc）"><a href="#Go-内存管理和垃圾回收（memory-and-gc）" class="headerlink" title="Go 内存管理和垃圾回收（memory and gc）"></a>Go 内存管理和垃圾回收（memory and gc）</h2><h3 id="内存管理基本策略"><a href="#内存管理基本策略" class="headerlink" title="内存管理基本策略"></a>内存管理基本策略</h3><p>为了兼顾内存分配的速度和内存利用率，大多数都采用以下策略进行内存管理：</p>
+<ol>
+<li><strong>申请</strong>：每次从操作系统申请一大块内存（比如1MB），以减少系统调用</li>
+<li><strong>切分</strong>：为了兼顾大小不同的对象，将申请到的内存按照一定的策略切分成小块，使用链接相连</li>
+<li><strong>分配</strong>：为对象分配内存时，只需从大小合适的链表中提取一块即可。</li>
+<li><strong>回收复用</strong>: 对象不再使用时，将该小块内存归还到原链表</li>
+<li><strong>释放</strong>： 如果闲置内存过多，则尝试归凡部分内存给操作系统，减少内存开销。</li>
+</ol>
+<h3 id="golang内存管理"><a href="#golang内存管理" class="headerlink" title="golang内存管理"></a>golang内存管理</h3><p>　golang内存管理基本继承了tcmolloc成熟的架构，因此也符合内存管理的基本策略。</p>
+<ol>
+<li>分三级管理，线程级的thread cache，中央center cache，和管理span的center heap。</li>
+<li>每一级都采用链表管理不同size空闲内存，提高内存利用率</li>
+<li>线程级的tread local cache能够减少竞争和加锁操作，提高效率。中央center cache为所有线程共享。</li>
+<li>小对象直接从本地cache获取，大对象从center heap获取，提高内存利用率</li>
+<li>每一级内存不足时，尝试从下一级内存获取<br><img src="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/threelayer.jpg" alt="内存三级管理"><br><img src="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/threadheap.gif" alt="线程cache"><br><img src="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/pageheap.gif" alt="大对象span管理"></li>
+</ol>
+<ul>
+<li><strong>多级缓存</strong>：内存分配器不仅会区别对待大小不同的对象，还会将内存分成不同的级别分别管理，TCMalloc 和 Go 运行时分配器都会引入线程缓存（Thread Cache）、中心缓存（Central Cache）和页堆（Page Heap）三个组件分级管理内存</li>
+<li><strong>对象大小</strong>：Go 语言的内存分配器会根据申请分配的内存大小选择不同的处理逻辑，运行时根据对象的大小将对象分成微对象、小对象和大对象三种，tiny,small,large</li>
+<li>mspan、mcache、mcentral、mheap</li>
+</ul>
+<h3 id="What-are-the-memory-leak-scenarios-in-Go-language"><a href="#What-are-the-memory-leak-scenarios-in-Go-language" class="headerlink" title="What are the memory leak scenarios in Go language?"></a>What are the memory leak scenarios in Go language?</h3><ul>
+<li><p>Goroutine leaks: If a goroutine is created and never terminated, it can result in a memory leak. This can occur when a program creates a goroutine to perform a task but fails to provide a mechanism for the goroutine to terminate, such as a channel to receive a signal to stop.</p>
+</li>
+<li><p>Leaked closures: Closures are anonymous functions that capture variables from their surrounding scope. If a closure is created and assigned to a global variable, it can result in a memory leak, as the closure will continue to hold onto the captured variables even after they are no longer needed.</p>
+</li>
+<li><p>Incorrect use of channels: Channels are a mechanism for communicating between goroutines. If a program creates a channel but never closes it, it can result in a memory leak. Additionally, if a program receives values from a channel but never discards them, they will accumulate in memory and result in a leak.</p>
+</li>
+<li><p>Unclosed resources: In Go, it’s important to close resources, such as files and network connections, when they are no longer needed. Failure to do so can result in a memory leak, as the resources and their associated memory will continue to be held by the program.</p>
+</li>
+<li><p>Unreferenced objects: In Go, unreferenced objects are objects that are no longer being used by the program but still exist in memory. This can occur when an object is created and never explicitly deleted or when an object is assigned a new value and the old object is not properly disposed of.<br>By following best practices and being mindful of these common scenarios, you can help to avoid memory leaks in your Go programs. Additionally, you can use tools such as the Go runtime profiler to detect and diagnose memory leaks in your programs.</p>
+</li>
+<li><p><a href="https://go101.org/article/memory-leaking.html">Memory Leaking Scenarios</a></p>
+<ul>
+<li>hanging goroutine</li>
+<li>cgo</li>
+<li>substring&#x2F;slice</li>
+<li>ticker</li>
+</ul>
+</li>
+</ul>
+<p>golang支持垃圾回收，gc能减少编程的负担，但与此同时也可能造成程序的性能问题。那么如何测量golang程序使用的内存，以及如何减少golang gc的负担呢？经历了许多版本的迭代，golang gc 沿着低延迟和高吞吐的目标在进化，相比早起版本，目前有了很大的改善，但仍然有可能是程序的瓶颈。因此要学会分析golang 程序的内存和垃圾回收问题。</p>
+<p>如何查看程序的gc信息？</p>
+<ol>
+<li>通过设置环境变量？env GODEBUG&#x3D;gctrace&#x3D;1<br>例如： env GODEBUG&#x3D;gctrace&#x3D;1 godoc -http&#x3D;:8080</li>
+<li>import _ “net&#x2F;http&#x2F;pprof”，查看&#x2F;debug&#x2F;pprof</li>
+</ol>
+<p>tips：</p>
+<ol>
+<li>减少内存分配，优先使用第二种APIs<br> func (r *Reader) Read() ([]byte, error)<br> func (r *Reader) Read(buf []byte) (int, error)</li>
+<li>尽量避免string 和 []byte之间的转换</li>
+<li>尽量减少两个字符串的合并</li>
+<li>对slice预先分配大小</li>
+<li>尽量不要使用cgo，因为c和go毕竟是两种语言。cgo是个high overhead的操作，调用cgo相当于阻塞IO，消耗一个线程</li>
+<li>defer is expensive？在性能要求较高的时候，考虑少用</li>
+<li>对IO操作设置超时机制是个好习惯SetDeadline, SetReadDeadline, SetWriteDeadline</li>
+<li>当数据量很大的时候，考虑使用流式IO(streaming IO)。io.ReaderFrom &#x2F; io.WriterTo</li>
+</ol>
+<h3 id="gc-的过程"><a href="#gc-的过程" class="headerlink" title="gc 的过程"></a>gc 的过程</h3><ul>
+<li>Marking phase: In this phase, the Go runtime identifies all objects that are accessible by the program and marks them as reachable. Objects that are not marked as reachable are considered unreachable and eligible for collection.</li>
+<li>Sweeping phase: In this phase, the Go runtime scans the memory heap and frees all objects that are marked as unreachable. The memory space occupied by these objects is now available for future allocation.</li>
+<li>Compacting phase: In this phase, the Go runtime rearranges the remaining objects on the heap to reduce fragmentation and minimize the impact of future allocations and deallocations.</li>
+</ul>
+<h3 id="垃圾回收算法概述"><a href="#垃圾回收算法概述" class="headerlink" title="垃圾回收算法概述"></a>垃圾回收算法概述</h3><p>　　golang是近几年出现的带有垃圾回收的现代语言，其垃圾回收算法自然也相互借鉴。因此在学习golang gc之前有必要了解目前主流的垃圾回收方法。</p>
+<ol>
+<li><strong>引用计数</strong>：熟悉C++智能指针应该了解引用计数方法。它对每一个分配的对象增加一个计数的域，当对象被创建时其值为1。每次有指针指向该对象时，其引用计数增加1，引用该对象的对象被析构时，其引用计数减1。当该对象的引用计数为0时，该对象也会被析构回收。引用对象对于C++这类没有垃圾回收器，对于便于对象管理的是不错的工具，但是维护引用计数会造成程序运行效率下降。</li>
+<li><strong>标记-清扫</strong>： 标记清扫是古老的垃圾回收算法，出现在70年代。通过指定每个内存阈值或者时间长度，垃圾回收器会挂起用户程序，也称为STW（stop the world）。垃圾回收器gc会对程序所涉及的所有对象进行一次遍历以确定哪些内存单元可以回收，因此分为标记（mark）和清扫（sweep），标记阶段标明哪些内存在使用不能回收，清扫阶段将不需要的内存单元释放回收。标记清扫法最大的问题是需要STW，当程序使用的内存较多时，其性能会比较差，延时较高。</li>
+<li><strong>三色标记法</strong>： 三色标记法是对标记清扫的改进，也是golang gc的主要算法，其最大的的优点是能够让部分gc和用户程序并发进行。它将对象分为白色、灰色和黑色：<ul>
+<li>开始时所有的对象都是白色</li>
+<li>从根出发，将所有可到达对象标记为灰色，放入待处理队列</li>
+<li>从待处理队列中取出灰色对象，并将其引用的对象标记为灰色放入队列中，其自身标记为黑色。</li>
+<li>重复步骤3，直到灰色对象队列为空。最终只剩下白色对象和黑色对象，对白色对象尽心gc。</li>
+</ul>
+</li>
+<li>另外，还有一些在此基础上进行优化改进的gc算法，例如分代收集，节点复制等，它会考虑到对象的生命周期的长度，减少扫描标记的操作，相对来说效率会高一些。</li>
+</ol>
+<h3 id="golang垃圾回收"><a href="#golang垃圾回收" class="headerlink" title="golang垃圾回收"></a>golang垃圾回收</h3><p>　　<strong>golang gc是使用三色标记清理法</strong>，为了对用户对象进行标记需要将用户程序所有线程全部冻结（STW），当程序中包含很多对象时，暂停时间会很长，用户逻辑对用户的反应就会中止。那么如何缩短这个过程呢?一种自然的想法，在三色标记法扫描之后，只会存在黑色和白色两种对象，黑色是程序正在使用的对象不可回收，白色对象是此时不会被程序的对象，也是gc的要清理的对象。那么回收白色对象肯定不会和用户程序造成竞争冲突，因此回收操作和用户程序是可以并发的，这样可以缩短STW的时间。</p>
+<p>　　<strong>写屏障</strong>使得扫描操作和回收操作都可以和用户程序并发。我们试想一下，刚把一个对象标记为白色，用户程序突然又引用了它，这种扫描操作就比较麻烦，于是引入了屏障技术。内存扫描和用户逻辑也可以并发执行，用户新建的对象认为是黑色的，已经扫描过的对象有可能因为用户逻辑造成对象状态发生改变。所以**对扫描过后的对象使用操作系统写屏障功能用来监控用户逻辑这段内存，一旦这段内存发生变化写屏障会发生一个信号，gc捕获到这个信号会重新扫描改对象，查看它的引用或者被引用是否发生改变，从而判断该对象是否应该被清理。因此通过写屏障技术，是的扫描操作也可以合用户程序并发执行。</p>
+<p>　　<strong>gc控制器</strong>：gc算法并不万能的，针对不同的场景可能需要适当的设置。例如大数据密集计算可能不在乎内存使用量，甚至可以将gc关闭。golang 通过百分比来控制gc触发的时机，设置的百分比指的是程序新分配的内存与上一次gc之后剩余的内存量，例如上次gc之后程序占有2MB，那么下一次gc触发的时机是程序又新分配了2MB的内存。我们可以通过<em>SetGCPercent</em>函数动态设置，默认值为100，当百分比设置为负数时例如-1，表明关闭gc。<br><img src="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/photos/gc_setGCPercent.jpg" alt="SetGCPercent"></p>
+<h3 id="golang-gc调优实例"><a href="#golang-gc调优实例" class="headerlink" title="golang gc调优实例"></a>golang gc调优实例</h3><p>gc 是golang程序性能优化非常重要的一部分，建议依照下面两个实例实践golang程序优化。</p>
+<ul>
+<li><a href="https://tonybai.com/2015/08/25/go-debugging-profiling-optimization/">https://tonybai.com/2015/08/25/go-debugging-profiling-optimization/</a></li>
+<li><a href="https://blog.golang.org/profiling-go-programs">https://blog.golang.org/profiling-go-programs</a></li>
+</ul>
+<p>　</p>
+<h2 id="What’s-Go-closure"><a href="#What’s-Go-closure" class="headerlink" title="What’s Go closure?"></a>What’s Go closure?</h2><p>In Go, a closure is a function that has access to variables from its outer (enclosing) function’s scope. The closure “closes over” the variables, meaning that it retains access to them even after the outer function has returned. This makes closures a powerful tool for encapsulating data and functionality and for creating reusable code.</p>
+<h3 id="Encapsulating-State"><a href="#Encapsulating-State" class="headerlink" title="Encapsulating State"></a>Encapsulating State</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">counter</span><span class="params">()</span></span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="type">int</span> &#123;</span><br><span class="line">    i := <span class="number">0</span></span><br><span class="line">    <span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="type">int</span> &#123;</span><br><span class="line">        i++</span><br><span class="line">        <span class="keyword">return</span> i</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    c := counter()</span><br><span class="line"></span><br><span class="line">    fmt.Println(c()) <span class="comment">// Output: 1</span></span><br><span class="line">    fmt.Println(c()) <span class="comment">// Output: 2</span></span><br><span class="line">    fmt.Println(c()) <span class="comment">// Output: 3</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="Implementing-Callbacks"><a href="#Implementing-Callbacks" class="headerlink" title="Implementing Callbacks"></a>Implementing Callbacks</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">forEach</span><span class="params">(numbers []<span class="type">int</span>, callback <span class="keyword">func</span>(<span class="type">int</span>)</span></span>) &#123;</span><br><span class="line">    <span class="keyword">for</span> _, n := <span class="keyword">range</span> numbers &#123;</span><br><span class="line">        callback(n)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    numbers := []<span class="type">int</span>&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Define a callback function to apply to each element of the numbers slice.</span></span><br><span class="line">    callback := <span class="function"><span class="keyword">func</span><span class="params">(n <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">        fmt.Println(n * <span class="number">2</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Use the forEach function to apply the callback function to each element of the numbers slice.</span></span><br><span class="line">    forEach(numbers, callback)</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="Fibonacci"><a href="#Fibonacci" class="headerlink" title="Fibonacci"></a>Fibonacci</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">memoize</span><span class="params">(f <span class="keyword">func</span>(<span class="type">int</span>)</span></span> <span class="type">int</span>) <span class="function"><span class="keyword">func</span><span class="params">(<span class="type">int</span>)</span></span> <span class="type">int</span> &#123;</span><br><span class="line">    cache := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="type">int</span>]<span class="type">int</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(n <span class="type">int</span>)</span></span> <span class="type">int</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> val, ok := cache[n]; ok &#123;</span><br><span class="line">            <span class="keyword">return</span> val</span><br><span class="line">        &#125;</span><br><span class="line">        result := f(n)</span><br><span class="line">        cache[n] = result</span><br><span class="line">        <span class="keyword">return</span> result</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">fibonacci</span><span class="params">(n <span class="type">int</span>)</span></span> <span class="type">int</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> n &lt;= <span class="number">1</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> n</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> fibonacci(n<span class="number">-1</span>) + fibonacci(n<span class="number">-2</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fib := memoize(fibonacci)</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">        fmt.Println(fib(i))</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h3 id="Factorial"><a href="#Factorial" class="headerlink" title="Factorial"></a>Factorial</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    factorial := <span class="function"><span class="keyword">func</span><span class="params">(n <span class="type">int</span>)</span></span> <span class="type">int</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> n &lt;= <span class="number">1</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> n * factorial(n<span class="number">-1</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    fmt.Println(factorial(<span class="number">5</span>)) <span class="comment">// Output: 120</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+<h3 id="Event-Handling"><a href="#Event-Handling" class="headerlink" title="Event Handling"></a>Event Handling</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Button <span class="keyword">struct</span> &#123;</span><br><span class="line">	onClick <span class="function"><span class="keyword">func</span><span class="params">()</span></span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewButton</span><span class="params">()</span></span> *Button &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Button&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *Button)</span></span> SetOnClick(f <span class="function"><span class="keyword">func</span><span class="params">()</span></span>) &#123;</span><br><span class="line">	b.onClick = f</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *Button)</span></span> Click() &#123;</span><br><span class="line">	<span class="keyword">if</span> b.onClick != <span class="literal">nil</span> &#123;</span><br><span class="line">		b.onClick()</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	button := NewButton()</span><br><span class="line">	button.SetOnClick(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		fmt.Println(<span class="string">&quot;Button Clicked!&quot;</span>)</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			button.Click()</span><br><span class="line">			time.Sleep(<span class="number">1</span> * time.Second)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	fmt.Scanln()</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Go-http-client-实践"><a href="#Go-http-client-实践" class="headerlink" title="Go http client 实践"></a>Go http client 实践</h2><p>最近在项目开发中使用http服务与第三方服务交互，感觉golang的http封装得很好，很方便使用但是也有一些坑需要注意，一是自动复用连接，二是Response.Body的读取和关闭</p>
+<h3 id="http客户端自动复用连接"><a href="#http客户端自动复用连接" class="headerlink" title="http客户端自动复用连接"></a>http客户端自动复用连接</h3><p>首先用代码直观的体验http客户端自动复用连接特点<br>server.go</p>
+<pre><code>func main() &#123;
+    http.HandleFunc(&quot;/&quot;, func(w http.ResponseWriter, r *http.Request) &#123;
+        fmt.Fprintf(w, &quot;hello!&quot;)
+    &#125;)
+    http.ListenAndServe(&quot;:8848&quot;, nil)
+&#125;
+</code></pre>
+<p>client.go</p>
+<pre><code>func doReq() &#123;
+    resp, err := http.Get(&quot;http://127.0.0.1:8848/test&quot;)
+    if err != nil &#123;
+        fmt.Println(err)
+        return
+    &#125;
+    io.Copy(os.Stdout, resp.Body)
+    defer resp.Body.Close()
+&#125;
+
+func main() &#123;
+    //http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = 10
+    for &#123;
+        go doReq()
+        go doReq()
+        //	go doReq()
+        time.Sleep(300 * time.Millisecond)
+    &#125;
+&#125;
+</code></pre>
+<p>测试1：执行<code>netstat | grep &quot;8848&quot; | wc -l</code>  结果：一直都是4<br>测试2：增加一个go doReq(),继续测试，结果：是一直增大<br>测试3：在测试2的基础上设置MaxIdleConnsPerHost &#x3D; 10，结果：一直都是6</p>
+<p>测试1已经能说明golang的http会自动复用连接<br>测试2为什么连接数量会一直增加呢？原因是golang中默认只保持两条持久连接，http.Transport没有设置MaxIdleConnPerHost，于是便采用了默认的DefaultMaxIdleConnsPerHost，这个值是2。<br>测试3通过加大MaxIdleConnPerHost的值，就能高效的利用http的自动复用机制。</p>
+<h3 id="读取和关闭Response-Body"><a href="#读取和关闭Response-Body" class="headerlink" title="读取和关闭Response.Body"></a>读取和关闭Response.Body</h3><p>将Resonse.Body的读取的代码屏蔽，继续测试。</p>
+<pre><code>func doReq() &#123;
+    resp, err := http.Get(&quot;http://127.0.0.1:8848/test&quot;)
+    if err != nil &#123;
+        fmt.Println(err)
+        return
+    &#125;
+    //io.Copy(os.Stdout, resp.Body)
+    defer resp.Body.Close()
+&#125;  
+</code></pre>
+<p>测试结果发现，连接数一直增加。<br>产生的原因：body实际上是一个嵌套了多层的net.TCPConn，当body没有被完全读取，也没有被关闭是，那么这次的http事物就没有完成，除非连接因为超时终止了，否则相关资源无法被回收。<br>从实现上看只要body被读完，连接就能被回收，只有需要抛弃body时才需要close，似乎不关闭也可以。但那些正常情况能读完的body，即第一种情况，在出现错误时就不会被读完，即转为第二种情况。而分情况处理则增加了维护者的心智负担，所以始终close body是最佳选择。</p>
+<h2 id="Go-sync-Pool"><a href="#Go-sync-Pool" class="headerlink" title="Go sync.Pool"></a>Go sync.Pool</h2><h3 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h3><p><a href="https://golang.org/pkg/sync/">https://golang.org/pkg/sync/</a><br>sync.Pool的使用非常简单，它具有以下几个特点：</p>
+<ul>
+<li>sync.Pool设计目的是存放已经分配但暂时不用的对象，供以后使用，以减轻gc的代价，提高效率  </li>
+<li>存储在Pool中的对象会随时被gc自动回收，Pool中对象的缓存期限为两次gc之间  </li>
+<li>用户无法定义sync.Pool的大小，其大小仅仅受限于内存的大小     </li>
+<li>sync.Pool支持多协程之间共享</li>
+</ul>
+<p>sync.Pool的使用非常简单，定义一个Pool对象池时，需要提供一个New函数，表示当池中没有对象时，如何生成对象。对象池Pool提供Get和Put函数从Pool中取和存放对象。</p>
+<p>下面有一个简单的实例，直接运行是会打印两次“new an object”,注释掉runtime.GC(),发现只会调用一次New函数，表示实现了对象重用。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">package main</span><br><span class="line"></span><br><span class="line">import (</span><br><span class="line">	&quot;fmt&quot;</span><br><span class="line">	&quot;runtime&quot;</span><br><span class="line">	&quot;sync&quot;</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">func main() &#123;</span><br><span class="line">	p := &amp;sync.Pool&#123;</span><br><span class="line">		New: func() interface&#123;&#125; &#123;</span><br><span class="line">			fmt.Println(&quot;new an object&quot;)</span><br><span class="line">			return 0</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	a := p.Get().(int)</span><br><span class="line">	a = 100</span><br><span class="line">	p.Put(a)</span><br><span class="line">	runtime.GC()</span><br><span class="line">	b := p.Get().(int)</span><br><span class="line">	fmt.Println(a, b)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="sync-Pool-如何支持多协程共享？"><a href="#sync-Pool-如何支持多协程共享？" class="headerlink" title="sync.Pool 如何支持多协程共享？"></a>sync.Pool 如何支持多协程共享？</h3><p>sync.Pool支持多协程共享，为了尽量减少竞争和加锁的操作，golang在设计的时候为每个P（核）都分配了一个子池，每个子池包含一个私有对象和共享列表。 私有对象只有对应的和核P能够访问，而共享列表是与其它P共享的。  </p>
+<p>在golang的GMP调度模型中，我们知道协程G最终会被调度到某个固定的核P上。当一个协程在执行Pool的get或者put方法时，首先对改核P上的子池进行操作，然后对其它核的子池进行操作。因为一个P同一时间只能执行一个goroutine，所以对私有对象存取操作是不需要加锁的，而共享列表是和其他P分享的，因此需要加锁操作。  </p>
+<p>一个协程希望从某个Pool中获取对象，它包含以下几个步骤：  </p>
+<ol>
+<li>判断协程所在的核P中的私有对象是否为空，如果非常则返回，并将改核P的私有对象置为空    </li>
+<li>如果协程所在的核P中的私有对象为空，就去改核P的共享列表中获取对象（需要加锁）  </li>
+<li>如果协程所在的核P中的共享列表为空，就去其它核的共享列表中获取对象（需要加锁）  </li>
+<li>如果所有的核的共享列表都为空，就会通过New函数产生一个新的对象</li>
+</ol>
+<p>在sync.Pool的源码中，每个核P的子池的结构如下所示：   </p>
+<pre><code>// Local per-P Pool appendix.
+type poolLocalInternal struct &#123;
+    private interface&#123;&#125;   // Can be used only by the respective P.
+    shared  []interface&#123;&#125; // Can be used by any P.
+    Mutex                 // Protects shared.
+&#125;
+</code></pre>
+<p>更加细致的sync.Pool源码分析，可参考<a href="http://jack-nie.github.io/go/golang-sync-pool.html">http://jack-nie.github.io/go/golang-sync-pool.html</a></p>
+<h3 id="为什么不使用sync-pool实现连接池？"><a href="#为什么不使用sync-pool实现连接池？" class="headerlink" title="为什么不使用sync.pool实现连接池？"></a>为什么不使用sync.pool实现连接池？</h3><p>刚开始接触到sync.pool时，很容易让人联想到连接池的概念，但是经过仔细分析后发现sync.pool并不是适合作为连接池，主要有以下两个原因： </p>
+<ul>
+<li>连接池的大小通常是固定且受限制的，而sync.Pool是无法控制缓存对象的数量，只受限于内存大小，不符合连接池的目标  </li>
+<li>sync.Pool对象缓存的期限在两次gc之间,这点也和连接池非常不符合</li>
+</ul>
+<p>golang中连接池通常利用channel的缓存特性实现。当需要连接时，从channel中获取，如果池中没有连接时，将阻塞或者新建连接，新建连接的数量不能超过某个限制。</p>
+<p><a href="https://github.com/goctx/generic-pool">https://github.com/goctx/generic-pool</a>基于channel提供了一个通用连接池的实现</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br></pre></td><td class="code"><pre><span class="line">package pool</span><br><span class="line"></span><br><span class="line">import (</span><br><span class="line">	&quot;errors&quot;</span><br><span class="line">	&quot;io&quot;</span><br><span class="line">	&quot;sync&quot;</span><br><span class="line">	&quot;time&quot;</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">var (</span><br><span class="line">	ErrInvalidConfig = errors.New(&quot;invalid pool config&quot;)</span><br><span class="line">	ErrPoolClosed    = errors.New(&quot;pool closed&quot;)</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">type Poolable interface &#123;</span><br><span class="line">	io.Closer</span><br><span class="line">	GetActiveTime() time.Time</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type factory func() (Poolable, error)</span><br><span class="line"></span><br><span class="line">type Pool interface &#123;</span><br><span class="line">	Acquire() (Poolable, error) // 获取资源</span><br><span class="line">	Release(Poolable) error     // 释放资源</span><br><span class="line">	Close(Poolable) error       // 关闭资源</span><br><span class="line">	Shutdown() error            // 关闭池</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type GenericPool struct &#123;</span><br><span class="line">	sync.Mutex</span><br><span class="line">	pool        chan Poolable</span><br><span class="line">	maxOpen     int  // 池中最大资源数</span><br><span class="line">	numOpen     int  // 当前池中资源数</span><br><span class="line">	minOpen     int  // 池中最少资源数</span><br><span class="line">	closed      bool // 池是否已关闭</span><br><span class="line">	maxLifetime time.Duration</span><br><span class="line">	factory     factory // 创建连接的方法</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func NewGenericPool(minOpen, maxOpen int, maxLifetime time.Duration, factory factory) (*GenericPool, error) &#123;</span><br><span class="line">	if maxOpen &lt;= 0 || minOpen &gt; maxOpen &#123;</span><br><span class="line">		return nil, ErrInvalidConfig</span><br><span class="line">	&#125;</span><br><span class="line">	p := &amp;GenericPool&#123;</span><br><span class="line">		maxOpen:     maxOpen,</span><br><span class="line">		minOpen:     minOpen,</span><br><span class="line">		maxLifetime: maxLifetime,</span><br><span class="line">		factory:     factory,</span><br><span class="line">		pool:        make(chan Poolable, maxOpen),</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	for i := 0; i &lt; minOpen; i++ &#123;</span><br><span class="line">		closer, err := factory()</span><br><span class="line">		if err != nil &#123;</span><br><span class="line">			continue</span><br><span class="line">		&#125;</span><br><span class="line">		p.numOpen++</span><br><span class="line">		p.pool &lt;- closer</span><br><span class="line">	&#125;</span><br><span class="line">	return p, nil</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func (p *GenericPool) Acquire() (Poolable, error) &#123;</span><br><span class="line">	if p.closed &#123;</span><br><span class="line">		return nil, ErrPoolClosed</span><br><span class="line">	&#125;</span><br><span class="line">	for &#123;</span><br><span class="line">		closer, err := p.getOrCreate()</span><br><span class="line">		if err != nil &#123;</span><br><span class="line">			return nil, err</span><br><span class="line">		&#125;</span><br><span class="line">		// 如果设置了超时且当前连接的活跃时间+超时时间早于现在，则当前连接已过期</span><br><span class="line">		if p.maxLifetime &gt; 0 &amp;&amp; closer.GetActiveTime().Add(time.Duration(p.maxLifetime)).Before(time.Now()) &#123;</span><br><span class="line">			p.Close(closer)</span><br><span class="line">			continue</span><br><span class="line">		&#125;</span><br><span class="line">		return closer, nil</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func (p *GenericPool) getOrCreate() (Poolable, error) &#123;</span><br><span class="line">	select &#123;</span><br><span class="line">	case closer := &lt;-p.pool:</span><br><span class="line">		return closer, nil</span><br><span class="line">	default:</span><br><span class="line">	&#125;</span><br><span class="line">	p.Lock()</span><br><span class="line">	if p.numOpen &gt;= p.maxOpen &#123;</span><br><span class="line">		closer := &lt;-p.pool</span><br><span class="line">		p.Unlock()</span><br><span class="line">		return closer, nil</span><br><span class="line">	&#125;</span><br><span class="line">	// 新建连接</span><br><span class="line">	closer, err := p.factory()</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		p.Unlock()</span><br><span class="line">		return nil, err</span><br><span class="line">	&#125;</span><br><span class="line">	p.numOpen++</span><br><span class="line">	p.Unlock()</span><br><span class="line">	return closer, nil</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 释放单个资源到连接池</span><br><span class="line">func (p *GenericPool) Release(closer Poolable) error &#123;</span><br><span class="line">	if p.closed &#123;</span><br><span class="line">		return ErrPoolClosed</span><br><span class="line">	&#125;</span><br><span class="line">	p.Lock()</span><br><span class="line">	p.pool &lt;- closer</span><br><span class="line">	p.Unlock()</span><br><span class="line">	return nil</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 关闭单个资源</span><br><span class="line">func (p *GenericPool) Close(closer Poolable) error &#123;</span><br><span class="line">	p.Lock()</span><br><span class="line">	closer.Close()</span><br><span class="line">	p.numOpen--</span><br><span class="line">	p.Unlock()</span><br><span class="line">	return nil</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 关闭连接池，释放所有资源</span><br><span class="line">func (p *GenericPool) Shutdown() error &#123;</span><br><span class="line">	if p.closed &#123;</span><br><span class="line">		return ErrPoolClosed</span><br><span class="line">	&#125;</span><br><span class="line">	p.Lock()</span><br><span class="line">	close(p.pool)</span><br><span class="line">	for closer := range p.pool &#123;</span><br><span class="line">		closer.Close()</span><br><span class="line">		p.numOpen--</span><br><span class="line">	&#125;</span><br><span class="line">	p.closed = true</span><br><span class="line">	p.Unlock()</span><br><span class="line">	return nil</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Go指针和unsafe-pointer"><a href="#Go指针和unsafe-pointer" class="headerlink" title="Go指针和unsafe.pointer"></a>Go指针和unsafe.pointer</h2><ol>
+<li>不同类型的指针不能相互转化  </li>
+<li>指针变量不能进行运算，不支持c&#x2F;c++中的++，–运算  </li>
+<li>任何类型的指针都可以被转换成unsafe.Pointer类型，反之也是  </li>
+<li>uintptr值可以被转换成unsafe.Pointer类型，反之也是</li>
+<li>对unsafe.Pointer和uintptr两种类型单独解释两句：  <ul>
+<li>unsafe.Pointer是一个指针类型，指向的值不能被解析，类似于C&#x2F;C++里面的(void *)，只说明这是一个指针，但是指向什么的不知道。</li>
+<li>uintptr 是一个整数类型，这个整数的宽度足以用来存储一个指针类型数据；那既然是整数类类型，当然就可以对其进行运算了<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">package main</span><br><span class="line">import (</span><br><span class="line">	&quot;fmt&quot;</span><br><span class="line">	&quot;unsafe&quot;</span><br><span class="line">)</span><br><span class="line">func main() &#123;</span><br><span class="line">	var ii [4]int = [4]int&#123;11, 22, 33, 44&#125;</span><br><span class="line">	px := &amp;ii[0]</span><br><span class="line">	fmt.Println(&amp;ii[0], px, *px)</span><br><span class="line">	//compile error</span><br><span class="line">	//pf32 := (*float32)(px)</span><br><span class="line"></span><br><span class="line">	//compile error</span><br><span class="line">	// px = px + 8</span><br><span class="line">	// px++</span><br><span class="line"></span><br><span class="line">	var pointer1 unsafe.Pointer = unsafe.Pointer(px)</span><br><span class="line">	var pf32 *float32 = (*float32)(pointer1)</span><br><span class="line"></span><br><span class="line">	var p2 uintptr = uintptr(pointer1)</span><br><span class="line">	print(p2)</span><br><span class="line">	p2 = p2 + 8</span><br><span class="line">	var pointer2 unsafe.Pointer = unsafe.Pointer(p2)</span><br><span class="line">	var pi32 *int = (*int)(pointer2)</span><br><span class="line"></span><br><span class="line">	fmt.Println(*px, *pf32, *pi32)</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ol>
+<h3 id="nil"><a href="#nil" class="headerlink" title="nil"></a>nil</h3><p>引用类型声明而没有初始化赋值时，其值为nil。golang需要经常判断nil,防止出现panic错误。  </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">bool  -&gt; false  </span><br><span class="line">numbers -&gt; 0 </span><br><span class="line">string-&gt; &quot;&quot;  </span><br><span class="line"></span><br><span class="line">pointers -&gt; nil</span><br><span class="line">slices -&gt; nil</span><br><span class="line">maps -&gt; nil</span><br><span class="line">channels -&gt; nil</span><br><span class="line">functions -&gt; nil</span><br><span class="line">interfaces -&gt; nil</span><br><span class="line"></span><br><span class="line">package main</span><br><span class="line"></span><br><span class="line">import (</span><br><span class="line">	&quot;fmt&quot;</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">type Person struct &#123;</span><br><span class="line">	AgeYears int</span><br><span class="line">	Name string</span><br><span class="line">	Friends  []Person</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func main() &#123;</span><br><span class="line">	var p Person</span><br><span class="line">	fmt.Printf(&quot;%v\n&quot;, p)</span><br><span class="line"></span><br><span class="line">	var slice1 []int</span><br><span class="line">	fmt.Println(slice1)</span><br><span class="line">	if slice1 == nil &#123;</span><br><span class="line">		fmt.Println(&quot;slice1 is nil&quot;)</span><br><span class="line">	&#125;</span><br><span class="line">	// fmt.Println(slice1[0])  panic</span><br><span class="line"></span><br><span class="line">	// var c chan int</span><br><span class="line">	// close(c)  panic</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="编译器优化和逃逸分析"><a href="#编译器优化和逃逸分析" class="headerlink" title="编译器优化和逃逸分析"></a>编译器优化和逃逸分析</h2><h3 id="逃逸分析（Escape-analysis）"><a href="#逃逸分析（Escape-analysis）" class="headerlink" title="逃逸分析（Escape analysis）"></a>逃逸分析（Escape analysis）</h3><pre><code>golang在内存分配的时候没有堆(heap)和栈(stack)的区别，由编译器决定是否需要将对象逃逸到堆中。例如：
+</code></pre>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">	func Sum() int &#123;</span><br><span class="line">	const count = 100</span><br><span class="line">	numbers := make([]int, count)</span><br><span class="line">	for i := range numbers &#123;</span><br><span class="line">		numbers[i] = i + 1</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	var sum int</span><br><span class="line">	for _, i := range numbers &#123;</span><br><span class="line">		sum += i</span><br><span class="line">	&#125;</span><br><span class="line">	return sum</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func main() &#123;</span><br><span class="line">	answer := Sum()</span><br><span class="line">	fmt.Println(answer)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<pre><code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ go build -gcflags=-m test_esc.go </span><br><span class="line">command-line-arguments</span><br><span class="line">./test_esc.go:9:17: Sum make([]int, count) does not escape</span><br><span class="line">./test_esc.go:23:13: answer escapes to heap</span><br><span class="line">./test_esc.go:23:13: main ... argument does not escape</span><br></pre></td></tr></table></figure>
+</code></pre>
+<h3 id="内敛（Inlining）"><a href="#内敛（Inlining）" class="headerlink" title="内敛（Inlining）"></a>内敛（Inlining）</h3><p>   了解C&#x2F;C++的应该知道内敛，golang编译器同样支持函数内敛，对于较短且重复调用的函数可以考虑使用内敛</p>
+<h3 id="Dead-code-elimination-Branch-elimination"><a href="#Dead-code-elimination-Branch-elimination" class="headerlink" title="Dead code elimination&#x2F;Branch elimination"></a>Dead code elimination&#x2F;Branch elimination</h3><pre><code>编译器会将代码中一些无用的分支进行优化，分支判断，提高效率。例如下面一段代码由于a和b是常量，编译器也可以推导出Max(a,b)，因此最终F函数为空
+</code></pre>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">func Max(a, b int) int &#123;</span><br><span class="line">	if a &gt; b &#123;</span><br><span class="line">		return a</span><br><span class="line">	&#125;</span><br><span class="line">	return b</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func F() &#123;</span><br><span class="line">	const a, b = 100, 20</span><br><span class="line">	if Max(a, b) == b &#123;</span><br><span class="line">		panic(b)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>常用的编译器选项： go build -gcflags&#x3D;”-lN” xxx.go</p>
+<ul>
+<li>“-S”,编译时查看汇编代码</li>
+<li>“-l”,关闭内敛优化</li>
+<li>“-m”,打印编译优化的细节</li>
+<li>“-l -N”,关闭所有的优化</li>
+</ul>
+<h2 id="Go-runtime-介绍"><a href="#Go-runtime-介绍" class="headerlink" title="Go runtime 介绍"></a>Go runtime 介绍</h2><p>　　为了避开直接通过系统调用分配内存而导致的性能开销，通常会通过预分配、内存池等操作自主管理内存。golang由运行时runtime管理内存，完成初始化、分配、回收和释放操作。目前主流的内存管理器有glibc和tcmolloc，tcmolloc由Google开发，具有更好的性能，兼顾内存分配的速度和内存利用率。golang也是使用类似tcmolloc的方法进行内存管理。建议参考下面链接学习tcmalloc的原理，其内存管理的方法也是golang内存分配的方法。另外一个原因，golang自主管理也是为了更好的配合垃圾回收。<br>【1】.<a href="https://zhuanlan.zhihu.com/p/29216091">https://zhuanlan.zhihu.com/p/29216091</a><br>【2】.<a href="http://goog-perftools.sourceforge.net/doc/tcmalloc.html">http://goog-perftools.sourceforge.net/doc/tcmalloc.html</a> </p>
+<h3 id="What-is-the-Go-runtime"><a href="#What-is-the-Go-runtime" class="headerlink" title="What is the Go runtime?"></a>What is the Go runtime?</h3><p>  The Go runtime is a collection of software components that provide essential services for Go programs, including memory management, garbage collection, scheduling, and low-level system interaction. The runtime is responsible for managing the execution of Go programs and for providing a consistent, predictable environment for Go code to run in.</p>
+<p>At a high level, the Go runtime is responsible for several core tasks:</p>
+<ul>
+<li>Memory management: The runtime manages the allocation and deallocation of memory used by Go programs, including the stack, heap, and other data structures.</li>
+<li>Garbage collection: The runtime automatically identifies and frees memory that is no longer needed by a program, preventing memory leaks and other related issues.</li>
+<li>Scheduling: The runtime manages the scheduling of Goroutines, the lightweight threads used by Go programs, to ensure that they are executed efficiently and fairly.</li>
+<li>Low-level system interaction: The runtime provides an interface for Go programs to interact with low-level system resources, including system calls, I&#x2F;O operations, and other low-level functionality.</li>
+</ul>
+<p>The Go runtime is an essential component of the Go programming language, and it is responsible for many of the language’s unique features and capabilities. By providing a consistent, efficient environment for Go code to run in, the runtime enables developers to write high-performance, scalable software that can run on a wide range of platforms and architectures.</p>
+<div align='center'>
+<img src="https://github.com/wxquare/wxquare.github.io/raw/hexo/source/images/runtime.png" width="500" height="500">
+</div >
+
+<h3 id="程序启动流程"><a href="#程序启动流程" class="headerlink" title="程序启动流程"></a>程序启动流程</h3><p>　　在golang中，可执行文件的入口函数并不是我们写的main函数，编译器在编译go代码时会插入一段起引导作用的汇编代码，它引导程序进行命令行参数、运行时的初始化，例如内存分配器初始化、垃圾回收器初始化、协程调度器的初始化。golang引导初始化之后就会进入用户逻辑，因为存在特殊的init函数，main函数也不是程序最开始执行的函数。</p>
+<p>　　golang可执行程序由于运行时runtime的存在，其启动过程还是非常复杂的，这里通过gdb调试工具简单查看其启动流程：  </p>
+<ol>
+<li>找一个golang编译的可执行程序test，info file查看其入口地址：gdb test，info files<br>(gdb) info files<br>Symbols from “&#x2F;home&#x2F;terse&#x2F;code&#x2F;go&#x2F;src&#x2F;learn_golang&#x2F;test_init&#x2F;main”.<br>Local exec file:<br> &#x2F;home&#x2F;terse&#x2F;code&#x2F;go&#x2F;src&#x2F;learn_golang&#x2F;test_init&#x2F;main’,<br> file type elf64-x86-64.<br> <strong>Entry point: 0x452110</strong><br> …..</li>
+<li>利用断点信息找到目标文件信息：<br>(gdb) b *0x452110<br>Breakpoint 1 at 0x452110: file &#x2F;usr&#x2F;local&#x2F;go&#x2F;src&#x2F;runtime&#x2F;rt0_linux_amd64.s, line 8.</li>
+<li>依次找到对应的文件对应的行数，设置断点，调到指定的行，查看具体的内容：<br>(gdb) b _rt0_amd64<br>(gdb) b b runtime.rt0_go<br>至此，由汇编代码针对特定平台实现的引导过程就全部完成了，后续的代码都是用Go实现的。分别实现命令行参数初始化，内存分配器初始化、垃圾回收器初始化、协程调度器的初始化等功能。<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">CALL	runtime·args(SB)</span><br><span class="line">CALL	runtime·osinit(SB)</span><br><span class="line">CALL	runtime·schedinit(SB)</span><br><span class="line"></span><br><span class="line">CALL	runtime·newproc(SB)</span><br><span class="line"></span><br><span class="line">CALL	runtime·mstart(SB)</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h3 id="特殊的init函数"><a href="#特殊的init函数" class="headerlink" title="特殊的init函数"></a>特殊的init函数</h3><ol>
+<li>init函数先于main函数自动执行，不能被其他函数调用</li>
+<li>init函数没有输入参数、没有返回值</li>
+<li>每个包可以含有多个同名的init函数，每个源文件也可以有多个同名的init函数</li>
+<li><strong>执行顺序</strong> 变量初始化 &gt; init函数 &gt; main函数。在复杂项目中，初始化的顺序如下：<ul>
+<li>先初始化import包的变量，然后先初始化import的包中的init函数，，再初始化main包变量，最后执行main包的init函数</li>
+<li>从上到下初始化导入的包（执行init函数），遇到依赖关系，先初始化没有依赖的包</li>
+<li>从上到下初始化导入包中的变量，遇到依赖，先执行没有依赖的变量初始化</li>
+<li>main包本身变量的初始化，main包本身的init函数</li>
+<li>同一个包中不同源文件的初始化是按照源文件名称的字典序</li>
+</ul>
+</li>
+</ol>
+<p>　　</p>
+<h3 id="程序bootstrap过程"><a href="#程序bootstrap过程" class="headerlink" title="程序bootstrap过程"></a>程序bootstrap过程</h3><p>如上图所示，Go程序启动大致分为一下一个部分：</p>
+<ul>
+<li>参数处理，runtime·args(SB)</li>
+<li>操作系统初始化，runtime·osinit(SB)</li>
+<li>调度器初始化，runtime·schedinit(SB)</li>
+<li>运行runtime.main函数，装载用户main函数并运行，runtime.main()<br>参数处理和osinit逻辑比较简单，代码也较少，这里主要记录下调度器初始化和runtime.main函数两个部分</li>
+</ul>
+<h3 id="runtime·schedinit"><a href="#runtime·schedinit" class="headerlink" title="runtime·schedinit"></a>runtime·schedinit</h3><p>  schedinit内容比较多，主要包含：</p>
+<ul>
+<li>栈初始化 stackinit() </li>
+<li>堆初始化 mallocinit()</li>
+<li>gc初始化 gcinit()</li>
+<li>初始化resize allp []*p procresize()</li>
+</ul>
+<h3 id="stack"><a href="#stack" class="headerlink" title="stack"></a>stack</h3><p>stackinit() 核心代码用于初始化全局的stackpool和stackLarge两个结构</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> stackpool [_NumStackOrders]<span class="keyword">struct</span> &#123;</span><br><span class="line">	item stackpoolItem</span><br><span class="line">	_    [cpu.CacheLinePadSize - unsafe.Sizeof(stackpoolItem&#123;&#125;)%cpu.CacheLinePadSize]<span class="type">byte</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//go:notinheap</span></span><br><span class="line"><span class="keyword">type</span> stackpoolItem <span class="keyword">struct</span> &#123;</span><br><span class="line">	mu   mutex</span><br><span class="line">	span mSpanList</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Global pool of large stack spans.</span></span><br><span class="line"><span class="keyword">var</span> stackLarge <span class="keyword">struct</span> &#123;</span><br><span class="line">	lock mutex</span><br><span class="line">	free [heapAddrBits - pageShift]mSpanList <span class="comment">// free lists by log_2(s.npages)</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">stackinit</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> _StackCacheSize&amp;_PageMask != <span class="number">0</span> &#123;</span><br><span class="line">		throw(<span class="string">&quot;cache size must be a multiple of page size&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="keyword">range</span> stackpool &#123;</span><br><span class="line">		stackpool[i].item.span.init()</span><br><span class="line">		lockInit(&amp;stackpool[i].item.mu, lockRankStackpool)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="keyword">range</span> stackLarge.free &#123;</span><br><span class="line">		stackLarge.free[i].init()</span><br><span class="line">		lockInit(&amp;stackLarge.lock, lockRankStackLarge)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="newproc-需要一个初始的stack"><a href="#newproc-需要一个初始的stack" class="headerlink" title="newproc 需要一个初始的stack"></a>newproc 需要一个初始的stack</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> gp.stack.lo == <span class="number">0</span> &#123;</span><br><span class="line">	<span class="comment">// Stack was deallocated in gfput or just above. Allocate a new one.</span></span><br><span class="line">	systemstack(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		gp.stack = stackalloc(startingStackSize)</span><br><span class="line">	&#125;)</span><br><span class="line">	gp.stackguard0 = gp.stack.lo + _StackGuard</span><br></pre></td></tr></table></figure>
+<p>goroutine 运行时需要把stack 地址传给m</p>
+<h3 id=""><a href="#" class="headerlink" title=""></a></h3><h3 id="runtime-main"><a href="#runtime-main" class="headerlink" title="runtime.main"></a>runtime.main</h3><h3 id="内存分配和管理策略mallocgc"><a href="#内存分配和管理策略mallocgc" class="headerlink" title="内存分配和管理策略mallocgc"></a>内存分配和管理策略mallocgc</h3><h3 id="垃圾回收garbage-collector"><a href="#垃圾回收garbage-collector" class="headerlink" title="垃圾回收garbage collector"></a>垃圾回收garbage collector</h3><h3 id="程序并发Goroutine调度"><a href="#程序并发Goroutine调度" class="headerlink" title="程序并发Goroutine调度"></a>程序并发Goroutine调度</h3><h2 id="Go-可测试编程、单元测试和性能优化"><a href="#Go-可测试编程、单元测试和性能优化" class="headerlink" title="Go 可测试编程、单元测试和性能优化"></a>Go 可测试编程、单元测试和性能优化</h2><p>　　Golang非常注重工程化，提供了非常好用单元测试、性能测试（benchmark）和调优工具（pprof），它们对提高代码的质量和服务的性能非常有帮助。<a href="https://tonybai.com/2015/08/25/go-debugging-profiling-optimization">参考链接</a>中通过一段http代码非常详细的介绍了golang程序优化的步骤和方便之处。实际工作中，我们很难每次都对代码都有那么高的要求，但是能使用一些工具对程序进行优化程序性能也是golang程序员必备的技能。<br>dave它通过几个case非常清晰的介绍了golang性能分析与优化的技术，非常值得学习。<a href="https://dave.cheney.net/high-performance-go-workshop/dotgo-paris.html">https://dave.cheney.net/high-performance-go-workshop/dotgo-paris.html</a>。</p>
+<ul>
+<li>testing 标准库 </li>
+<li>go test 测试工具</li>
+<li>go tool pprof 分析 profile数据</li>
+</ul>
+<h3 id="单元测试，测试正确性"><a href="#单元测试，测试正确性" class="headerlink" title="单元测试，测试正确性"></a>单元测试，测试正确性</h3><ol>
+<li><p>为了测试某个文件中的某个函数的性能，在相同目录下定义xxx_test.go文件，使用go build命令编译程序时会忽略测试文件</p>
+</li>
+<li><p>在测试文件中定义测试某函数的代码，以TestXxxx方式命名，例如TestAdd</p>
+</li>
+<li><p>在相同目录下运行 go test -v 即可观察代码的测试结果</p>
+<pre><code> func TestAdd(t *testing.T) &#123;
+     if add(1, 3) != 4 &#123;
+         t.FailNow()
+     &#125;
+ &#125;
+</code></pre>
+</li>
+</ol>
+<h3 id="性能测试，benchmark"><a href="#性能测试，benchmark" class="headerlink" title="性能测试，benchmark"></a>性能测试，benchmark</h3><ol>
+<li>单元测试，测试程序的正确性。benchmark 用户测试代码的效率，执行的时间</li>
+<li>benchmark测试以BenchMark开头，例如BenchmarkAdd</li>
+<li>运行 go test -v -bench&#x3D;. 程序会运行到一定的测试，直到有比较准备的测试结果<br> func BenchmarkAdd(b *testing.B) {<br>     for i :&#x3D; 0; i &lt; b.N; i++ {<br>         _ &#x3D; add(1, 2)<br>     }<br> }<br><br> BenchmarkAdd-4  	2000000000	 0.26 ns&#x2F;op</li>
+</ol>
+<h3 id="pprof性能分析"><a href="#pprof性能分析" class="headerlink" title="pprof性能分析"></a>pprof性能分析</h3><ol>
+<li>除了使用使用testing进行单元测试和benchanmark性能测试，golang能非常方便捕获或者监控程序运行状态数据，它包括cpu、内存、和阻塞等，并且非常的直观和易于分析。</li>
+<li>有两种捕获方式： a、在测试时输出并保存相关数据；b、在运行阶段，在线采集，通过web接口获得实时数据。</li>
+<li>Benchamark时输出profile数据：go test -v -bench&#x3D;. -memprofile&#x3D;mem.out -cpuprofile&#x3D;cpu.out</li>
+<li>使用go tool pprof xxx.test mem.out 进行交互式查看，例如top5。同理，可以分析其它profile文件。</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">(pprof) top5</span><br><span class="line">Showing nodes accounting for 1994.93MB, 63.62% of 3135.71MB total</span><br><span class="line">Dropped 28 nodes (cum &lt;= 15.68MB)</span><br><span class="line">Showing top 5 nodes out of 46</span><br><span class="line">      flat  flat%   sum%        cum   cum%</span><br><span class="line">  475.10MB 15.15% 15.15%   475.10MB 15.15%  regexp/syntax.(*compiler).inst</span><br><span class="line">  455.58MB 14.53% 29.68%   455.58MB 14.53%  regexp.progMachine</span><br><span class="line">  421.55MB 13.44% 43.12%   421.55MB 13.44%  regexp/syntax.(*parser).newRegexp</span><br><span class="line">  328.61MB 10.48% 53.60%   328.61MB 10.48%  regexp.onePassCopy</span><br><span class="line">  314.09MB 10.02% 63.62%   314.09MB 10.02%  net/http/httptest.cloneHeader</span><br><span class="line"></span><br><span class="line">- flat：仅当前函数，不包括它调用的其它函数</span><br><span class="line">- cum： 当前函数调用堆栈的累计</span><br><span class="line">- sum： 列表前几行所占百分比的总和</span><br></pre></td></tr></table></figure>
+<h3 id="实际操作"><a href="#实际操作" class="headerlink" title="实际操作"></a>实际操作</h3><ul>
+<li>登录容器，查看pprof监听的端口,例如</li>
+<li>curl -o cpu.out <a href="http://localhost:6606/debug/pprof/profile%E3%80%82%E8%8E%B7%E5%8F%96pprof%E6%96%87%E4%BB%B6%E6%95%B0%E6%8D%AE">http://localhost:6606/debug/pprof/profile。获取pprof文件数据</a></li>
+<li>用浏览器分析。curl -o go tool pprof -http&#x3D;:8084 ~&#x2F;Downloads&#x2F;cpu.out</li>
+</ul>
+<h2 id="Go实践：Goroutine同步方式"><a href="#Go实践：Goroutine同步方式" class="headerlink" title="Go实践：Goroutine同步方式"></a>Go实践：Goroutine同步方式</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;context&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">//sync package</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sync1</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		wg.Add(<span class="number">1</span>) <span class="comment">//设置协程等待的个数</span></span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(x <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">				wg.Done()</span><br><span class="line">			&#125;()</span><br><span class="line">			fmt.Println(<span class="string">&quot;I&#x27;m&quot;</span>, x)</span><br><span class="line">		&#125;(i)</span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//chan</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sync2</span><span class="params">()</span></span> &#123;</span><br><span class="line">	chanSync := <span class="built_in">make</span>([]<span class="keyword">chan</span> <span class="type">bool</span>, <span class="number">10</span>)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		chanSync[i] = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">bool</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(x <span class="type">int</span>, ch <span class="keyword">chan</span> <span class="type">bool</span>)</span></span> &#123;</span><br><span class="line">			fmt.Println(<span class="string">&quot;I&#x27;m &quot;</span>, x)</span><br><span class="line">			ch &lt;- <span class="literal">true</span></span><br><span class="line">		&#125;(i, chanSync[i])</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> _, ch := <span class="keyword">range</span> chanSync &#123;</span><br><span class="line">		&lt;-ch</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//context</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sync3</span><span class="params">()</span></span> &#123;</span><br><span class="line">	ctx, cancelFunc := context.WithCancel(context.Background())</span><br><span class="line">	<span class="keyword">defer</span> cancelFunc()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context, i <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">			<span class="keyword">for</span> &#123;</span><br><span class="line">				<span class="keyword">select</span> &#123;</span><br><span class="line">				<span class="keyword">case</span> &lt;-ctx.Done():</span><br><span class="line">					fmt.Println(ctx.Err(), i)</span><br><span class="line">					<span class="keyword">return</span></span><br><span class="line">				<span class="keyword">case</span> &lt;-time.After(<span class="number">2</span> * time.Second):</span><br><span class="line">					fmt.Println(<span class="string">&quot;time out&quot;</span>, i)</span><br><span class="line">					<span class="keyword">return</span></span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;(ctx, i)</span><br><span class="line">	&#125;</span><br><span class="line">	time.Sleep(<span class="number">5</span> * time.Second)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	sync1()</span><br><span class="line">	sync2()</span><br><span class="line">	sync3()</span><br><span class="line">	time.Sleep(<span class="number">10</span> * time.Second)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+<h2 id="Go实践：生产者、消费者模型，并行计算累加求和"><a href="#Go实践：生产者、消费者模型，并行计算累加求和" class="headerlink" title="Go实践：生产者、消费者模型，并行计算累加求和"></a>Go实践：生产者、消费者模型，并行计算累加求和</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;math/rand&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">	<span class="string">&quot;sync/atomic&quot;</span></span><br><span class="line"></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> total <span class="type">int32</span> = <span class="number">100000</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> producerLimit <span class="type">int32</span> = <span class="number">3</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> consumerLimit <span class="type">int32</span> = <span class="number">4</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> Q <span class="keyword">chan</span> <span class="type">int32</span></span><br><span class="line"><span class="keyword">var</span> SumQ <span class="keyword">chan</span> <span class="type">int32</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> AtomicSum <span class="type">int32</span> = <span class="number">0</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	Q = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int32</span>, <span class="number">10</span>)</span><br><span class="line">	SumQ = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">int32</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">produce</span><span class="params">()</span></span> &#123;</span><br><span class="line">	a := total / producerLimit</span><br><span class="line">	b := total % producerLimit</span><br><span class="line">	<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="type">int</span>(producerLimit); i++ &#123;</span><br><span class="line">		batch := a</span><br><span class="line">		<span class="keyword">if</span> i &lt; <span class="type">int</span>(b) &#123;</span><br><span class="line">			batch += <span class="number">1</span></span><br><span class="line">		&#125;</span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(x <span class="type">int32</span>)</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> wg.Done()</span><br><span class="line">			<span class="keyword">for</span> j := <span class="number">0</span>; j &lt; <span class="type">int</span>(x); j++ &#123;</span><br><span class="line">				num := rand.Intn(<span class="number">10</span>)</span><br><span class="line">				atomic.AddInt32(&amp;AtomicSum, <span class="type">int32</span>(num))</span><br><span class="line">				Q &lt;- <span class="type">int32</span>(num)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;(batch)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		wg.Wait()</span><br><span class="line">		<span class="built_in">close</span>(Q)</span><br><span class="line">	&#125;()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">consumer</span><span class="params">()</span></span> <span class="type">int32</span> &#123;</span><br><span class="line">	<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="type">int</span>(consumerLimit); i++ &#123;</span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> wg.Done()</span><br><span class="line">			<span class="keyword">var</span> batchSum <span class="type">int32</span> = <span class="number">0</span></span><br><span class="line">			<span class="keyword">for</span> num := <span class="keyword">range</span> Q &#123;</span><br><span class="line">				batchSum += num</span><br><span class="line">			&#125;</span><br><span class="line">			SumQ &lt;- batchSum</span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		wg.Wait()</span><br><span class="line">		<span class="built_in">close</span>(SumQ)</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> ans <span class="type">int32</span> = <span class="number">0</span></span><br><span class="line">	<span class="keyword">for</span> sum := <span class="keyword">range</span> SumQ &#123;</span><br><span class="line">		ans += sum</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> ans</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	produce()</span><br><span class="line">	fmt.Printf(<span class="string">&quot;%d,%d\n&quot;</span>, consumer(), atomic.LoadInt32(&amp;AtomicSum))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="Go-实践：interface-base-derive"><a href="#Go-实践：interface-base-derive" class="headerlink" title="Go 实践：interface&#x2F;base&#x2F;derive"></a>Go 实践：interface&#x2F;base&#x2F;derive</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> service <span class="keyword">interface</span> &#123;</span><br><span class="line">	foo1()</span><br><span class="line">	foo2()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> baseService <span class="keyword">struct</span> &#123;</span><br><span class="line">	name <span class="type">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewBaseService</span><span class="params">(name <span class="type">string</span>)</span></span> *baseService &#123;</span><br><span class="line">	b := baseService&#123;&#125;</span><br><span class="line">	b.name = name</span><br><span class="line">	<span class="keyword">return</span> &amp;b</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *baseService)</span></span> foo1() &#123;</span><br><span class="line">	fmt.Println(b.name)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *baseService)</span></span> foo2() &#123;</span><br><span class="line">	fmt.Println(b.name)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> AService <span class="keyword">struct</span> &#123;</span><br><span class="line">	*baseService</span><br><span class="line">	name <span class="type">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewAService</span><span class="params">(name <span class="type">string</span>, b *baseService)</span></span> *AService &#123;</span><br><span class="line">	s := AService&#123;&#125;</span><br><span class="line">	s.baseService = b</span><br><span class="line">	s.name = name</span><br><span class="line">	<span class="keyword">return</span> &amp;s</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *AService)</span></span> foo1() &#123;</span><br><span class="line">	fmt.Println(a.name)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">foo</span><span class="params">(s service)</span></span> &#123;</span><br><span class="line">	s.foo1()</span><br><span class="line">	s.foo2()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	b := NewBaseService(<span class="string">&quot;baseService&quot;</span>)</span><br><span class="line">	s := NewAService(<span class="string">&quot;AService&quot;</span>, b)</span><br><span class="line">	foo(s)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="Go实践：设计模式的实现"><a href="#Go实践：设计模式的实现" class="headerlink" title="Go实践：设计模式的实现"></a>Go实践：设计模式的实现</h2><p><a href="https://refactoringguru.cn/design-patterns/chain-of-responsibility/go/example">https://refactoringguru.cn/design-patterns/chain-of-responsibility/go/example</a></p>
+<h2 id="Go-1-12-压测后rss内存一直无法释放问题"><a href="#Go-1-12-压测后rss内存一直无法释放问题" class="headerlink" title="Go 1.12 压测后rss内存一直无法释放问题"></a>Go 1.12 压测后rss内存一直无法释放问题</h2><ul>
+<li><a href="https://github.com/golang/go/issues/41818">https://github.com/golang/go/issues/41818</a></li>
+<li><a href="https://www.shouxicto.com/article/138.html">https://www.shouxicto.com/article/138.html</a></li>
+<li><a href="https://www.glean.com/blog/how-we-analyzed-and-fixed-a-golang-memory-leak">https://www.glean.com/blog/how-we-analyzed-and-fixed-a-golang-memory-leak</a></li>
+</ul>
+<h2 id="包和库（package"><a href="#包和库（package" class="headerlink" title="包和库（package)"></a>包和库（package)</h2><ul>
+<li>github.com&#x2F;gin-gonic&#x2F;gin</li>
+<li>github.com&#x2F;go-xorm&#x2F;xorm</li>
+<li>github.com&#x2F;go-redis&#x2F;redis</li>
+<li>github.com&#x2F;olivere&#x2F;elastic</li>
+<li>google.golang.org&#x2F;protobuf</li>
+<li>github.com&#x2F;Shopify&#x2F;sarama</li>
+<li>github.com&#x2F;cenk&#x2F;backoff</li>
+<li>json</li>
+<li><a href="https://segmentfault.com/a/1190000020086816">Go Http包解析：为什么需要response.Body.Close()</a></li>
+<li><a href="https://studygolang.com/articles/9887">为什么Response.Body需要被关闭</a></li>
+<li>[译]Go文件操作大全](<a href="https://colobu.com/2016/10/12/go-file-operations/">https://colobu.com/2016/10/12/go-file-operations/</a>)</li>
+<li><a href="https://zhuanlan.zhihu.com/p/323271088">Golang调度器GPM原理与调度全分析</a></li>
+<li><a href="https://www.zhihu.com/question/21409296/answer/1040884859">为什么要使用 Go 语言？Go 语言的优势在哪里？</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/341945051">Go内置数据结构原理</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/352589023">从 bug 中学习：六大开源项目告诉你 go 并发编程的那些坑</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/323915446">Go runtime剖析系列（一）：内存管理</a></li>
+<li><a href="http://km.oa.com/group/19253/articles/show/460278?kmref=home_headline">Go 内存泄露三宗罪</a></li>
+<li><a href="https://www.zhihu.com/org/teng-xun-ji-zhu-gong-cheng">Go 与 C 的桥梁：cgo 入门，剖析与实践</a>,警惕cgo引入导致的性能问题比如线程数量过多，内存泄漏问题</li>
+<li><a href="http://km.oa.com/group/35228/articles/show/461981?kmref=discovery">一次 go 服务大量连接 time_wait 问题排查</a>.一般解决思路：TIME_WAIT排查是不是短链接，即频繁create and close socket CLOSE_WAIT排查自己代码BUG，socket没有close</li>
+<li><a href="https://www.zhihu.com/question/21409296/answer/1040884859">为什么要使用 Go 语言？Go 语言的优势在哪里？</a></li>
+</ul>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li><a href="https://my.oschina.net/hebaodan/blog/1609245">https://my.oschina.net/hebaodan/blog/1609245</a>  </li>
+<li><a href="https://www.jianshu.com/p/407fada3cc9d">https://www.jianshu.com/p/407fada3cc9d</a>  </li>
+<li><a href="https://serholiu.com/go-http-client-keepalive">https://serholiu.com/go-http-client-keepalive</a></li>
+<li><a href="https://blog.csdn.net/yongjian_lian/article/details/42058893">https://blog.csdn.net/yongjian_lian&#x2F;article&#x2F;details&#x2F;42058893</a>  </li>
+<li><a href="https://segmentfault.com/a/1190000013089363">https://segmentfault.com/a/1190000013089363</a>  </li>
+<li><a href="http://jack-nie.github.io/go/golang-sync-pool.html">http://jack-nie.github.io/go/golang-sync-pool.html</a>参考：</li>
+<li><a href="http://legendtkl.com/2017/04/28/golang-gc/">http://legendtkl.com/2017/04/28/golang-gc/</a></li>
+<li><a href="https://www.jianshu.com/p/9c8e56314164">https://www.jianshu.com/p/9c8e56314164</a></li>
+<li><a href="https://blog.golang.org/ismmkeynote">https://blog.golang.org/ismmkeynote</a></li>
+<li><a href="http://goog-perftools.sourceforge.net/doc/tcmalloc.html">http://goog-perftools.sourceforge.net/doc/tcmalloc.html</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/29216091">https://zhuanlan.zhihu.com/p/29216091</a></li>
+<li><a href="https://draveness.me/golang/">《Go 语言设计和实现》</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2023/11/01/system-design/5-cpp-interview/" rel="prev" title="编程语言：C/C++ 实践">
+                  <i class="fa fa-angle-left"></i> 编程语言：C/C++ 实践
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/01/01/system-design/20-ad-realtime-pricing-optimization/" rel="next" title="广告实时调价数据流优化：从10分钟到1分钟">
+                  广告实时调价数据流优化：从10分钟到1分钟 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

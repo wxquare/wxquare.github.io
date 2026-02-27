@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="一、背景与挑战1.1 多品类库存差异在数字电商&#x2F;本地生活平台中，不同品类的库存特性差异极大：    品类 库存特点 扣减时机 典型示例    电子券 (Deal) 券码制，每个券码唯一 下单预订 星巴克电子券   虚拟服务券 (OPV) 数量制，分平台统计 下单预订 美甲&#x2F;按摩服务券   酒店 时间维度，按日期管理 支付成功 Agoda 酒店房间   机票&#x2F;票务">
+<meta property="og:type" content="article">
+<meta property="og:title" content="多品类统一库存系统设计：电商·虚拟商品·本地生活">
+<meta property="og:url" content="http://yoursite.com/2025/06/28/system-design/18-inventory-system-design/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="一、背景与挑战1.1 多品类库存差异在数字电商&#x2F;本地生活平台中，不同品类的库存特性差异极大：    品类 库存特点 扣减时机 典型示例    电子券 (Deal) 券码制，每个券码唯一 下单预订 星巴克电子券   虚拟服务券 (OPV) 数量制，分平台统计 下单预订 美甲&#x2F;按摩服务券   酒店 时间维度，按日期管理 支付成功 Agoda 酒店房间   机票&#x2F;票务">
+<meta property="og:locale">
+<meta property="article:published_time" content="2025-06-27T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-02-12T15:26:22.854Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="系统设计">
+<meta property="article:tag" content="高并发">
+<meta property="article:tag" content="电商">
+<meta property="article:tag" content="库存系统">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2025/06/28/system-design/18-inventory-system-design/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2025/06/28/system-design/18-inventory-system-design/","path":"2025/06/28/system-design/18-inventory-system-design/","title":"多品类统一库存系统设计：电商·虚拟商品·本地生活"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>多品类统一库存系统设计：电商·虚拟商品·本地生活 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E8%83%8C%E6%99%AF%E4%B8%8E%E6%8C%91%E6%88%98"><span class="nav-number">1.</span> <span class="nav-text">一、背景与挑战</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E5%A4%9A%E5%93%81%E7%B1%BB%E5%BA%93%E5%AD%98%E5%B7%AE%E5%BC%82"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 多品类库存差异</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E6%A0%B8%E5%BF%83%E7%97%9B%E7%82%B9"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 核心痛点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E8%AE%BE%E8%AE%A1%E7%9B%AE%E6%A0%87"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 设计目标</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%BA%93%E5%AD%98%E5%88%86%E7%B1%BB%E4%BD%93%E7%B3%BB"><span class="nav-number">2.</span> <span class="nav-text">二、库存分类体系</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E4%B8%A4%E4%B8%AA%E6%A0%B8%E5%BF%83%E7%BB%B4%E5%BA%A6"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 两个核心维度</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%93%81%E7%B1%BB%E5%88%86%E7%B1%BB%E7%9F%A9%E9%98%B5"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 品类分类矩阵</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E7%BB%9F%E4%B8%80%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B"><span class="nav-number">3.</span> <span class="nav-text">三、统一数据模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E5%BA%93%E5%AD%98%E9%85%8D%E7%BD%AE%E8%A1%A8%EF%BC%88inventory-config%EF%BC%89"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 库存配置表（inventory_config）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E6%A0%B8%E5%BF%83%E5%BA%93%E5%AD%98%E8%A1%A8%EF%BC%88inventory%EF%BC%89"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 核心库存表（inventory）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E5%88%B8%E7%A0%81%E6%B1%A0%E8%A1%A8%EF%BC%88inventory-code-pool%EF%BC%8C%E5%88%86-100-%E5%BC%A0%E8%A1%A8%EF%BC%89"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 券码池表（inventory_code_pool，分 100 张表）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E5%BA%93%E5%AD%98%E6%93%8D%E4%BD%9C%E6%97%A5%E5%BF%97%E8%A1%A8%EF%BC%88inventory-operation-log%EF%BC%89"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 库存操作日志表（inventory_operation_log）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F%EF%BC%9A%E6%A0%B8%E5%BF%83%E6%9E%B6%E6%9E%84"><span class="nav-number">4.</span> <span class="nav-text">四、策略模式：核心架构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E6%95%B4%E4%BD%93%E6%9E%B6%E6%9E%84"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 整体架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E7%AD%96%E7%95%A5%E6%8E%A5%E5%8F%A3%E5%AE%9A%E4%B9%89"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 策略接口定义</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E8%87%AA%E7%AE%A1%E7%90%86%E7%AD%96%E7%95%A5%EF%BC%9A%E5%88%B8%E7%A0%81%E5%88%B6%EF%BC%88Deal-Giftcard%EF%BC%89"><span class="nav-number">5.</span> <span class="nav-text">五、自管理策略：券码制（Deal &#x2F; Giftcard）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-Redis-%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84"><span class="nav-number">5.1.</span> <span class="nav-text">5.1 Redis 存储结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E6%A0%B8%E5%BF%83%E6%B5%81%E7%A8%8B%EF%BC%9A%E5%87%BA%E8%B4%A7-%E8%A1%A5%E8%B4%A7"><span class="nav-number">5.2.</span> <span class="nav-text">5.2 核心流程：出货 + 补货</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81%E8%87%AA%E7%AE%A1%E7%90%86%E7%AD%96%E7%95%A5%EF%BC%9A%E6%95%B0%E9%87%8F%E5%88%B6%EF%BC%88OPV-%E6%9C%AC%E5%9C%B0%E6%9C%8D%E5%8A%A1%EF%BC%89"><span class="nav-number">6.</span> <span class="nav-text">六、自管理策略：数量制（OPV &#x2F; 本地服务）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-Redis-%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84"><span class="nav-number">6.1.</span> <span class="nav-text">6.1 Redis 存储结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-%E9%A2%84%E8%AE%A2-Lua-%E8%84%9A%E6%9C%AC"><span class="nav-number">6.2.</span> <span class="nav-text">6.2 预订 Lua 脚本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-%E6%94%AF%E4%BB%98%E6%88%90%E5%8A%9F-%E5%8F%96%E6%B6%88%E8%AE%A2%E5%8D%95"><span class="nav-number">6.3.</span> <span class="nav-text">6.3 支付成功 &#x2F; 取消订单</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%83%E3%80%81%E4%BE%9B%E5%BA%94%E5%95%86%E7%AE%A1%E7%90%86%E7%AD%96%E7%95%A5%EF%BC%88%E9%85%92%E5%BA%97-%E6%9C%BA%E7%A5%A8%EF%BC%89"><span class="nav-number">7.</span> <span class="nav-text">七、供应商管理策略（酒店 &#x2F; 机票）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#7-1-%E5%90%8C%E6%AD%A5%E7%AD%96%E7%95%A5"><span class="nav-number">7.1.</span> <span class="nav-text">7.1 同步策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-2-%E5%AE%9E%E6%97%B6%E6%9F%A5%E8%AF%A2%E6%B5%81%E7%A8%8B"><span class="nav-number">7.2.</span> <span class="nav-text">7.2 实时查询流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-3-%E9%A2%84%E8%AE%A2%E6%B5%81%E7%A8%8B%EF%BC%88%E4%BE%9B%E5%BA%94%E5%95%86%E7%AE%A1%E7%90%86%EF%BC%89"><span class="nav-number">7.3.</span> <span class="nav-text">7.3 预订流程（供应商管理）</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#7-3-1-%E5%90%8C%E6%AD%A5%E9%A2%84%E8%AE%A2%EF%BC%88%E7%90%86%E6%83%B3%E6%83%85%E5%86%B5%EF%BC%89"><span class="nav-number">7.3.1.</span> <span class="nav-text">7.3.1 同步预订（理想情况）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#7-3-2-%E5%BC%82%E6%AD%A5%E9%A2%84%E8%AE%A2%EF%BC%88%E4%BE%9B%E5%BA%94%E5%95%86%E7%B3%BB%E7%BB%9F%E8%BE%83%E5%B7%AE%EF%BC%89"><span class="nav-number">7.3.2.</span> <span class="nav-text">7.3.2 异步预订（供应商系统较差）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#7-3-3-%E7%94%A8%E6%88%B7%E4%BD%93%E9%AA%8C%E4%BC%98%E5%8C%96"><span class="nav-number">7.3.3.</span> <span class="nav-text">7.3.3 用户体验优化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#7-3-4-%E5%BC%82%E5%B8%B8%E5%9C%BA%E6%99%AF%E5%A4%84%E7%90%86"><span class="nav-number">7.3.4.</span> <span class="nav-text">7.3.4 异常场景处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#7-3-5-%E7%9B%91%E6%8E%A7%E6%8C%87%E6%A0%87"><span class="nav-number">7.3.5.</span> <span class="nav-text">7.3.5 监控指标</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AB%E3%80%81%E6%97%A0%E9%99%90%E5%BA%93%E5%AD%98%E7%AD%96%E7%95%A5%EF%BC%88TopUp-%E4%BF%9D%E9%99%A9%EF%BC%89"><span class="nav-number">8.</span> <span class="nav-text">八、无限库存策略（TopUp &#x2F; 保险）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B9%9D%E3%80%81%E6%A0%B8%E5%BF%83%E6%B5%81%E7%A8%8B%E6%B1%87%E6%80%BB"><span class="nav-number">9.</span> <span class="nav-text">九、核心流程汇总</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#9-1-%E7%BB%9F%E4%B8%80%E9%A2%84%E8%AE%A2%E6%B5%81%E7%A8%8B"><span class="nav-number">9.1.</span> <span class="nav-text">9.1 统一预订流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-2-%E6%94%AF%E4%BB%98%E6%88%90%E5%8A%9F%E6%B5%81%E7%A8%8B"><span class="nav-number">9.2.</span> <span class="nav-text">9.2 支付成功流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-3-%E5%8F%96%E6%B6%88-%E8%B6%85%E6%97%B6%E9%87%8A%E6%94%BE%E6%B5%81%E7%A8%8B"><span class="nav-number">9.3.</span> <span class="nav-text">9.3 取消&#x2F;超时释放流程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E3%80%81%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7%E4%BF%9D%E9%9A%9C"><span class="nav-number">10.</span> <span class="nav-text">十、数据一致性保障</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#10-1-Redis-%E4%B8%8E-MySQL-%E5%8F%8C%E5%86%99%E7%AD%96%E7%95%A5"><span class="nav-number">10.1.</span> <span class="nav-text">10.1 Redis 与 MySQL 双写策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#10-2-%E5%AE%9A%E6%97%B6%E5%AF%B9%E8%B4%A6%EF%BC%88%E6%AF%8F%E5%B0%8F%E6%97%B6%EF%BC%89"><span class="nav-number">10.2.</span> <span class="nav-text">10.2 定时对账（每小时）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#10-3-%E9%99%8D%E7%BA%A7%E6%96%B9%E6%A1%88"><span class="nav-number">10.3.</span> <span class="nav-text">10.3 降级方案</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E4%B8%80%E3%80%81Kafka-%E4%BA%8B%E4%BB%B6%E8%AE%BE%E8%AE%A1"><span class="nav-number">11.</span> <span class="nav-text">十一、Kafka 事件设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E4%BA%8C%E3%80%81Giftcard-%E7%89%B9%E6%AE%8A%E8%AE%BE%E8%AE%A1"><span class="nav-number">12.</span> <span class="nav-text">十二、Giftcard 特殊设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E4%B8%89%E3%80%81%E7%9B%91%E6%8E%A7%E4%B8%8E%E5%91%8A%E8%AD%A6"><span class="nav-number">13.</span> <span class="nav-text">十三、监控与告警</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#13-1-%E5%85%B3%E9%94%AE%E6%8C%87%E6%A0%87"><span class="nav-number">13.1.</span> <span class="nav-text">13.1 关键指标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#13-2-Prometheus-Metrics"><span class="nav-number">13.2.</span> <span class="nav-text">13.2 Prometheus Metrics</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E5%9B%9B%E3%80%81%E6%96%B0%E5%93%81%E7%B1%BB%E6%8E%A5%E5%85%A5%E6%8C%87%E5%8D%97"><span class="nav-number">14.</span> <span class="nav-text">十四、新品类接入指南</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E4%BA%94%E3%80%81%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E5%AE%9E%E6%88%98%E6%95%B0%E6%8D%AE"><span class="nav-number">15.</span> <span class="nav-text">十五、生产环境实战数据</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#15-1-%E4%B8%9A%E5%8A%A1%E8%A7%84%E6%A8%A1"><span class="nav-number">15.1.</span> <span class="nav-text">15.1 业务规模</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#15-2-%E9%9B%86%E7%BE%A4%E9%85%8D%E7%BD%AE"><span class="nav-number">15.2.</span> <span class="nav-text">15.2 集群配置</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Redis-%E9%9B%86%E7%BE%A4"><span class="nav-number">15.2.1.</span> <span class="nav-text">Redis 集群</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BA%94%E7%94%A8%E6%9C%8D%E5%8A%A1"><span class="nav-number">15.2.2.</span> <span class="nav-text">应用服务</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#MySQL-%E9%9B%86%E7%BE%A4"><span class="nav-number">15.2.3.</span> <span class="nav-text">MySQL 集群</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Kafka-%E9%9B%86%E7%BE%A4"><span class="nav-number">15.2.4.</span> <span class="nav-text">Kafka 集群</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#15-3-%E6%80%A7%E8%83%BD%E6%8C%87%E6%A0%87%E5%AE%9E%E6%B5%8B"><span class="nav-number">15.3.</span> <span class="nav-text">15.3 性能指标实测</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#15-4-%E7%9C%9F%E5%AE%9E%E6%A1%88%E4%BE%8B%E4%B8%8E%E4%BC%98%E5%8C%96"><span class="nav-number">15.4.</span> <span class="nav-text">15.4 真实案例与优化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A1%88%E4%BE%8B-1%EF%BC%9A%E7%A7%92%E6%9D%80-2w-QPS-%E7%83%AD%E7%82%B9-Key-%E7%93%B6%E9%A2%88"><span class="nav-number">15.4.1.</span> <span class="nav-text">案例 1：秒杀 2w QPS 热点 Key 瓶颈</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A1%88%E4%BE%8B-2%EF%BC%9A%E5%88%B8%E7%A0%81%E8%A1%A5%E8%B4%A7%E9%94%81%E8%B6%85%E6%97%B6"><span class="nav-number">15.4.2.</span> <span class="nav-text">案例 2：券码补货锁超时</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A1%88%E4%BE%8B-3%EF%BC%9AKafka-%E6%B6%88%E8%B4%B9%E7%A7%AF%E5%8E%8B"><span class="nav-number">15.4.3.</span> <span class="nav-text">案例 3：Kafka 消费积压</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A1%88%E4%BE%8B-4%EF%BC%9A%E5%AF%B9%E8%B4%A6%E5%8F%91%E7%8E%B0%E7%9A%84%E5%85%B8%E5%9E%8B%E9%97%AE%E9%A2%98"><span class="nav-number">15.4.4.</span> <span class="nav-text">案例 4：对账发现的典型问题</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#15-5-%E6%88%90%E6%9C%AC%E5%88%86%E6%9E%90"><span class="nav-number">15.5.</span> <span class="nav-text">15.5 成本分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#15-6-%E6%A0%B8%E5%BF%83%E8%AE%BE%E8%AE%A1%E5%86%B3%E7%AD%96"><span class="nav-number">15.6.</span> <span class="nav-text">15.6 核心设计决策</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#15-7-%E4%B8%9A%E7%95%8C%E5%AF%B9%E6%AF%94"><span class="nav-number">15.7.</span> <span class="nav-text">15.7 业界对比</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2025/06/28/system-design/18-inventory-system-design/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="多品类统一库存系统设计：电商·虚拟商品·本地生活 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          多品类统一库存系统设计：电商·虚拟商品·本地生活
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2025-06-28 00:00:00" itemprop="dateCreated datePublished" datetime="2025-06-28T00:00:00+08:00">2025-06-28</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-02-12 23:26:22" itemprop="dateModified" datetime="2026-02-12T23:26:22+08:00">2026-02-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><!-- toc -->
+
+<h2 id="一、背景与挑战"><a href="#一、背景与挑战" class="headerlink" title="一、背景与挑战"></a>一、背景与挑战</h2><h3 id="1-1-多品类库存差异"><a href="#1-1-多品类库存差异" class="headerlink" title="1.1 多品类库存差异"></a>1.1 多品类库存差异</h3><p>在数字电商&#x2F;本地生活平台中，不同品类的库存特性差异极大：</p>
+<table>
+<thead>
+<tr>
+<th>品类</th>
+<th>库存特点</th>
+<th>扣减时机</th>
+<th>典型示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>电子券 (Deal)</strong></td>
+<td>券码制，每个券码唯一</td>
+<td>下单预订</td>
+<td>星巴克电子券</td>
+</tr>
+<tr>
+<td><strong>虚拟服务券 (OPV)</strong></td>
+<td>数量制，分平台统计</td>
+<td>下单预订</td>
+<td>美甲&#x2F;按摩服务券</td>
+</tr>
+<tr>
+<td><strong>酒店</strong></td>
+<td>时间维度，按日期管理</td>
+<td>支付成功</td>
+<td>Agoda 酒店房间</td>
+</tr>
+<tr>
+<td><strong>机票&#x2F;票务</strong></td>
+<td>座位&#x2F;场次制</td>
+<td>支付成功</td>
+<td>航班座位、电影票</td>
+</tr>
+<tr>
+<td><strong>礼品卡 (Giftcard)</strong></td>
+<td>实时生成或预采购卡密</td>
+<td>支付成功</td>
+<td>Google Play 充值卡</td>
+</tr>
+<tr>
+<td><strong>话费充值 (TopUp)</strong></td>
+<td>无限库存</td>
+<td>无需扣减</td>
+<td>手机话费</td>
+</tr>
+<tr>
+<td><strong>本地生活套餐</strong></td>
+<td>组合型，多子项联动</td>
+<td>下单预订</td>
+<td>火锅双人套餐</td>
+</tr>
+</tbody></table>
+<h3 id="1-2-核心痛点"><a href="#1-2-核心痛点" class="headerlink" title="1.2 核心痛点"></a>1.2 核心痛点</h3><ol>
+<li><strong>模型割裂</strong>：每个品类独立设计库存逻辑，无法复用。</li>
+<li><strong>数据不一致</strong>：Redis 与 MySQL 之间、预订数量 (booking) 与实际状态脱节。</li>
+<li><strong>供应商策略不统一</strong>：有的实时查询，有的定时同步，有的无需管理。</li>
+<li><strong>缺乏统一服务</strong>：各业务方直接操作 DB&#x2F;Redis，维护成本高。</li>
+<li><strong>监控缺失</strong>：超卖、库存差异、供应商同步延迟难以发现。</li>
+</ol>
+<h3 id="1-3-设计目标"><a href="#1-3-设计目标" class="headerlink" title="1.3 设计目标"></a>1.3 设计目标</h3><table>
+<thead>
+<tr>
+<th>目标</th>
+<th>说明</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>统一模型</strong></td>
+<td>多品类共用一套库存模型</td>
+<td>P0</td>
+</tr>
+<tr>
+<td><strong>高性能</strong></td>
+<td>支持万级 QPS 秒杀场景</td>
+<td>P0</td>
+</tr>
+<tr>
+<td><strong>灵活扩展</strong></td>
+<td>新品类接入无需修改核心代码</td>
+<td>P0</td>
+</tr>
+<tr>
+<td><strong>最终一致</strong></td>
+<td>Redis 与 MySQL 数据最终一致</td>
+<td>P0</td>
+</tr>
+<tr>
+<td><strong>供应商集成</strong></td>
+<td>支持实时&#x2F;定时&#x2F;推送多种同步策略</td>
+<td>P1</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="二、库存分类体系"><a href="#二、库存分类体系" class="headerlink" title="二、库存分类体系"></a>二、库存分类体系</h2><h3 id="2-1-两个核心维度"><a href="#2-1-两个核心维度" class="headerlink" title="2.1 两个核心维度"></a>2.1 两个核心维度</h3><p>设计统一库存模型的关键是将所有品类抽象为 <strong>两个正交维度</strong>：</p>
+<p><strong>维度一：谁管库存？（Management Type）</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> (</span><br><span class="line">    SelfManaged     = <span class="number">1</span> <span class="comment">// 自管理：平台维护库存数据</span></span><br><span class="line">    SupplierManaged = <span class="number">2</span> <span class="comment">// 供应商管理：第三方维护，平台定期同步</span></span><br><span class="line">    Unlimited       = <span class="number">3</span> <span class="comment">// 无限库存：无需库存管理</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p><strong>维度二：库存长什么样？（Unit Type）</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> (</span><br><span class="line">    CodeBased     = <span class="number">1</span> <span class="comment">// 券码制：每个库存是唯一券码（Deal、Giftcard）</span></span><br><span class="line">    QuantityBased = <span class="number">2</span> <span class="comment">// 数量制：库存是一个数字（OPV、本地服务）</span></span><br><span class="line">    TimeBased     = <span class="number">3</span> <span class="comment">// 时间维度：按日期/时段管理（酒店、票务）</span></span><br><span class="line">    BundleBased   = <span class="number">4</span> <span class="comment">// 组合型：多子项联动扣减（套餐）</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-品类分类矩阵"><a href="#2-2-品类分类矩阵" class="headerlink" title="2.2 品类分类矩阵"></a>2.2 品类分类矩阵</h3><table>
+<thead>
+<tr>
+<th>品类</th>
+<th>管理类型</th>
+<th>单元类型</th>
+<th>扣减时机</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>电子券 (Deal)</td>
+<td>Self</td>
+<td>Code</td>
+<td>下单</td>
+</tr>
+<tr>
+<td>虚拟服务券 (OPV)</td>
+<td>Self</td>
+<td>Quantity</td>
+<td>下单</td>
+</tr>
+<tr>
+<td>本地服务</td>
+<td>Self</td>
+<td>Quantity</td>
+<td>下单</td>
+</tr>
+<tr>
+<td>酒店</td>
+<td>Supplier</td>
+<td>Time</td>
+<td>支付</td>
+</tr>
+<tr>
+<td>机票</td>
+<td>Supplier</td>
+<td>Quantity</td>
+<td>支付</td>
+</tr>
+<tr>
+<td>话费充值</td>
+<td>Unlimited</td>
+<td>-</td>
+<td>无</td>
+</tr>
+<tr>
+<td>礼品卡(预采购)</td>
+<td>Self</td>
+<td>Code</td>
+<td>下单</td>
+</tr>
+<tr>
+<td>礼品卡(实时生成)</td>
+<td>Supplier</td>
+<td>Code</td>
+<td>支付</td>
+</tr>
+<tr>
+<td>套餐组合</td>
+<td>Self</td>
+<td>Bundle</td>
+<td>下单</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>核心洞察</strong>：任何新品类接入时，只需确定它属于哪个 <code>(ManagementType, UnitType)</code> 组合，即可复用对应的库存策略，无需修改核心代码。</p>
+</blockquote>
+<hr>
+<h2 id="三、统一数据模型"><a href="#三、统一数据模型" class="headerlink" title="三、统一数据模型"></a>三、统一数据模型</h2><h3 id="3-1-库存配置表（inventory-config）"><a href="#3-1-库存配置表（inventory-config）" class="headerlink" title="3.1 库存配置表（inventory_config）"></a>3.1 库存配置表（inventory_config）</h3><p>每个 SKU 一条配置，决定该商品使用哪种库存策略：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> inventory_config (</span><br><span class="line">  id              <span class="type">BIGINT</span> <span class="keyword">PRIMARY</span> KEY AUTO_INCREMENT,</span><br><span class="line">  item_id         <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  sku_id          <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="comment">-- 库存分类（核心）</span></span><br><span class="line">  management_type <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;1=自管理,2=供应商,3=无限&#x27;</span>,</span><br><span class="line">  unit_type       <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;1=券码,2=数量,3=时间,4=组合&#x27;</span>,</span><br><span class="line">  deduct_timing   <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">1</span> COMMENT <span class="string">&#x27;1=下单,2=支付,3=发货&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="comment">-- 供应商配置</span></span><br><span class="line">  supplier_id     <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  sync_strategy   <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span> COMMENT <span class="string">&#x27;1=定时,2=实时,3=推送&#x27;</span>,</span><br><span class="line">  sync_interval   <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">300</span> COMMENT <span class="string">&#x27;同步间隔(秒)&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="comment">-- 风控配置</span></span><br><span class="line">  oversell_allowed TINYINT <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  low_stock_threshold <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">100</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">UNIQUE</span> KEY uk_item_sku (item_id, sku_id)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-核心库存表（inventory）"><a href="#3-2-核心库存表（inventory）" class="headerlink" title="3.2 核心库存表（inventory）"></a>3.2 核心库存表（inventory）</h3><p>所有品类共用一张库存表，通过不同字段组合适配不同场景：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> inventory (</span><br><span class="line">  id              <span class="type">BIGINT</span> <span class="keyword">PRIMARY</span> KEY AUTO_INCREMENT,</span><br><span class="line">  item_id         <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  sku_id          <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  batch_id        <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span> COMMENT <span class="string">&#x27;批次(券码制)&#x27;</span>,</span><br><span class="line">  calendar_date   <span class="type">DATE</span> <span class="keyword">DEFAULT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;日期(时间维度)&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="comment">-- 核心库存字段</span></span><br><span class="line">  total_stock     <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span> COMMENT <span class="string">&#x27;总库存&#x27;</span>,</span><br><span class="line">  available_stock <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span> COMMENT <span class="string">&#x27;可售库存&#x27;</span>,</span><br><span class="line">  booking_stock   <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span> COMMENT <span class="string">&#x27;预订(已下单未支付)&#x27;</span>,</span><br><span class="line">  locked_stock    <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span> COMMENT <span class="string">&#x27;锁定(营销活动)&#x27;</span>,</span><br><span class="line">  sold_stock      <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span> COMMENT <span class="string">&#x27;已售&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="comment">-- 供应商同步</span></span><br><span class="line">  supplier_stock     <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  supplier_sync_time <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  </span><br><span class="line">  status <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">1</span> COMMENT <span class="string">&#x27;1=正常,2=缺货,3=停售&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">UNIQUE</span> KEY uk_sku_batch_date (sku_id, batch_id, calendar_date)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p><strong>库存恒等式</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">total_stock = available_stock + booking_stock + locked_stock + sold_stock</span><br></pre></td></tr></table></figure>
+
+<p><strong>可售库存计算</strong>（不同管理类型计算方式不同）：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CalcAvailable</span><span class="params">(inv *Inventory, cfg *Config)</span></span> <span class="type">int32</span> &#123;</span><br><span class="line">    <span class="keyword">switch</span> cfg.ManagementType &#123;</span><br><span class="line">    <span class="keyword">case</span> SelfManaged:</span><br><span class="line">        <span class="keyword">return</span> inv.TotalStock - inv.SoldStock - inv.BookingStock - inv.LockedStock</span><br><span class="line">    <span class="keyword">case</span> SupplierManaged:</span><br><span class="line">        <span class="keyword">return</span> inv.SupplierStock - inv.BookingStock - inv.LockedStock</span><br><span class="line">    <span class="keyword">case</span> Unlimited:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">999999</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-3-券码池表（inventory-code-pool，分-100-张表）"><a href="#3-3-券码池表（inventory-code-pool，分-100-张表）" class="headerlink" title="3.3 券码池表（inventory_code_pool，分 100 张表）"></a>3.3 券码池表（inventory_code_pool，分 100 张表）</h3><p>仅用于券码制商品（Deal、Giftcard 预采购模式）：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> inventory_code_pool_00 (</span><br><span class="line">  id           <span class="type">BIGINT</span> <span class="keyword">PRIMARY</span> KEY COMMENT <span class="string">&#x27;雪花算法&#x27;</span>,</span><br><span class="line">  item_id      <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  sku_id       <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  batch_id     <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  </span><br><span class="line">  code         <span class="type">VARCHAR</span>(<span class="number">255</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;券码(唯一)&#x27;</span>,</span><br><span class="line">  serial_number <span class="type">VARCHAR</span>(<span class="number">255</span>) <span class="keyword">DEFAULT</span> <span class="string">&#x27;&#x27;</span> COMMENT <span class="string">&#x27;序列号/PIN&#x27;</span>,</span><br><span class="line">  code_url     <span class="type">VARCHAR</span>(<span class="number">500</span>) <span class="keyword">DEFAULT</span> <span class="string">&#x27;&#x27;</span> COMMENT <span class="string">&#x27;兑换链接&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  status       <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">1</span> COMMENT <span class="string">&#x27;1=可用,2=预订,3=已售,4=已核销,5=退款,6=过期&#x27;</span>,</span><br><span class="line">  order_id     <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  </span><br><span class="line">  booking_time  <span class="type">BIGINT</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  purchase_time <span class="type">BIGINT</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  expire_time   <span class="type">BIGINT</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">UNIQUE</span> KEY uk_code (code),</span><br><span class="line">  KEY idx_status (status)</span><br><span class="line">);</span><br><span class="line"><span class="comment">-- 分表规则：item_id % 100</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-4-库存操作日志表（inventory-operation-log）"><a href="#3-4-库存操作日志表（inventory-operation-log）" class="headerlink" title="3.4 库存操作日志表（inventory_operation_log）"></a>3.4 库存操作日志表（inventory_operation_log）</h3><p>所有库存变更留痕，用于对账和审计：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> inventory_operation_log (</span><br><span class="line">  id              <span class="type">BIGINT</span> <span class="keyword">PRIMARY</span> KEY AUTO_INCREMENT,</span><br><span class="line">  item_id         <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  sku_id          <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  operation_type  <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;book/unbook/sell/refund/lock/unlock&#x27;</span>,</span><br><span class="line">  quantity        <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  order_id        <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  before_available <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  after_available  <span class="type">INT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  create_time     <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  </span><br><span class="line">  KEY idx_order_id (order_id),</span><br><span class="line">  KEY idx_create_time (create_time)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="四、策略模式：核心架构"><a href="#四、策略模式：核心架构" class="headerlink" title="四、策略模式：核心架构"></a>四、策略模式：核心架构</h2><h3 id="4-1-整体架构"><a href="#4-1-整体架构" class="headerlink" title="4.1 整体架构"></a>4.1 整体架构</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────┐</span><br><span class="line">│  业务层 (Order Service / Promotion Service)     │</span><br><span class="line">└──────────────────┬──────────────────────────────┘</span><br><span class="line">                   ▼</span><br><span class="line">┌─────────────────────────────────────────────────┐</span><br><span class="line">│  统一库存管理器 (InventoryManager)               │</span><br><span class="line">│  BookStock / UnbookStock / SellStock / Refund   │</span><br><span class="line">└──────────────────┬──────────────────────────────┘</span><br><span class="line">                   ▼</span><br><span class="line">┌─────────────────────────────────────────────────┐</span><br><span class="line">│  策略路由器 (StrategyRouter)                     │</span><br><span class="line">│  根据 inventory_config 选择策略                  │</span><br><span class="line">├────────┬────────┬────────┬──────────────────────┤</span><br><span class="line">│ Self   │Supplier│Unlimit │Estimated             │</span><br><span class="line">│Managed │Managed │Strategy│Strategy              │</span><br><span class="line">│Strategy│Strategy│        │                      │</span><br><span class="line">└────┬───┴────┬───┴────┬───┴──────────────────────┘</span><br><span class="line">     ▼        ▼        ▼</span><br><span class="line">┌─────────┐┌─────────┐┌──────────────┐</span><br><span class="line">│  Redis  ││  MySQL  ││ Kafka Events │</span><br><span class="line">│  (Hot)  ││  (Cold) ││   (Async)    │</span><br><span class="line">└─────────┘└─────────┘└──────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-策略接口定义"><a href="#4-2-策略接口定义" class="headerlink" title="4.2 策略接口定义"></a>4.2 策略接口定义</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// InventoryStrategy 库存管理策略接口</span></span><br><span class="line"><span class="keyword">type</span> InventoryStrategy <span class="keyword">interface</span> &#123;</span><br><span class="line">    CheckStock(ctx context.Context, req *CheckStockReq) (*CheckStockResp, <span class="type">error</span>)</span><br><span class="line">    BookStock(ctx context.Context, req *BookStockReq) (*BookStockResp, <span class="type">error</span>)</span><br><span class="line">    UnbookStock(ctx context.Context, req *UnbookStockReq) <span class="type">error</span></span><br><span class="line">    SellStock(ctx context.Context, req *SellStockReq) <span class="type">error</span></span><br><span class="line">    RefundStock(ctx context.Context, req *RefundStockReq) <span class="type">error</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// StrategyFactory 策略工厂</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetStrategy</span><span class="params">(mgmtType <span class="type">int</span>)</span></span> InventoryStrategy &#123;</span><br><span class="line">    <span class="keyword">switch</span> mgmtType &#123;</span><br><span class="line">    <span class="keyword">case</span> SelfManaged:</span><br><span class="line">        <span class="keyword">return</span> &amp;SelfManagedStrategy&#123;&#125;</span><br><span class="line">    <span class="keyword">case</span> SupplierManaged:</span><br><span class="line">        <span class="keyword">return</span> &amp;SupplierManagedStrategy&#123;&#125;</span><br><span class="line">    <span class="keyword">case</span> Unlimited:</span><br><span class="line">        <span class="keyword">return</span> &amp;UnlimitedStrategy&#123;&#125;</span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">        <span class="keyword">return</span> &amp;UnlimitedStrategy&#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="五、自管理策略：券码制（Deal-Giftcard）"><a href="#五、自管理策略：券码制（Deal-Giftcard）" class="headerlink" title="五、自管理策略：券码制（Deal &#x2F; Giftcard）"></a>五、自管理策略：券码制（Deal &#x2F; Giftcard）</h2><h3 id="5-1-Redis-存储结构"><a href="#5-1-Redis-存储结构" class="headerlink" title="5.1 Redis 存储结构"></a>5.1 Redis 存储结构</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Key:   inventory:code:pool:&#123;itemID&#125;:&#123;skuID&#125;:&#123;batchID&#125;</span><br><span class="line">Type:  LIST</span><br><span class="line">Value: [codeID_1, codeID_2, codeID_3, ...]</span><br><span class="line">说明:  券码池，LPOP 出货，RPUSH 补货/退还</span><br><span class="line"></span><br><span class="line">Key:   inventory:code:cursor:&#123;itemID&#125;:&#123;skuID&#125;:&#123;batchID&#125;</span><br><span class="line">Type:  STRING</span><br><span class="line">Value: &quot;lastCodeID:lockCount&quot;</span><br><span class="line">说明:  补货游标，记录上次补到哪里</span><br><span class="line"></span><br><span class="line">Key:   inventory:empty:&#123;itemID&#125;:&#123;skuID&#125;:&#123;batchID&#125;</span><br><span class="line">Type:  STRING (TTL 1h)</span><br><span class="line">Value: &quot;1&quot;</span><br><span class="line">说明:  库存空标志，避免重复查库</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-核心流程：出货-补货"><a href="#5-2-核心流程：出货-补货" class="headerlink" title="5.2 核心流程：出货 + 补货"></a>5.2 核心流程：出货 + 补货</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">用户下单</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">1. 检查库存空标志 ──── 命中 → 返回缺货</span><br><span class="line">  │ 未命中</span><br><span class="line">  ▼</span><br><span class="line">2. 从 Redis LIST 原子出货 (Lua: LRANGE + LTRIM)</span><br><span class="line">  │</span><br><span class="line">  ├── 出货成功 → 步骤 4</span><br><span class="line">  │</span><br><span class="line">  └── 库存不足 → 3. 补货 (从 MySQL 查可用券码 → RPUSH 到 Redis)</span><br><span class="line">                       │</span><br><span class="line">                       ├── 补货成功 → 再次出货 → 步骤 4</span><br><span class="line">                       └── DB 也无库存 → 设置空标志(1h) → 返回缺货</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">4. 更新 MySQL 券码状态: AVAILABLE → BOOKING (绑定 order_id)</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">5. 同步更新 MySQL inventory 表: booking_stock += quantity</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">6. 发送 Kafka 事件 (异步)</span><br></pre></td></tr></table></figure>
+
+<p><strong>出货 Lua 脚本</strong>（原子性保证）：</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 原子取出 N 个券码</span></span><br><span class="line"><span class="keyword">local</span> result = redis.call(<span class="string">&#x27;LRANGE&#x27;</span>, KEYS[<span class="number">1</span>], <span class="number">0</span>, ARGV[<span class="number">1</span>] - <span class="number">1</span>)</span><br><span class="line">redis.call(<span class="string">&#x27;LTRIM&#x27;</span>, KEYS[<span class="number">1</span>], ARGV[<span class="number">1</span>], <span class="number">-1</span>)</span><br><span class="line"><span class="keyword">return</span> result</span><br></pre></td></tr></table></figure>
+
+<p><strong>补货流程</strong>（加分布式锁防并发）：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *SelfManagedStrategy)</span></span> replenish(ctx context.Context, itemID, skuID, batchID <span class="type">uint64</span>) <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 1. 获取分布式锁（10s 超时）</span></span><br><span class="line">    lockKey := fmt.Sprintf(<span class="string">&quot;inventory:lock:replenish:%d:%d:%d&quot;</span>, itemID, skuID, batchID)</span><br><span class="line">    <span class="keyword">if</span> !acquireLock(lockKey, <span class="number">10</span>*time.Second) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span> <span class="comment">// 其他进程正在补货，等待即可</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">defer</span> releaseLock(lockKey)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2. 读取补货游标（上次补到哪个 codeID）</span></span><br><span class="line">    lastCodeID := getCursor(itemID, skuID, batchID)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3. 从 MySQL 查 3000 个可用券码</span></span><br><span class="line">    codes, err := db.Query(<span class="string">`</span></span><br><span class="line"><span class="string">        SELECT id FROM inventory_code_pool_xx</span></span><br><span class="line"><span class="string">        WHERE item_id=? AND sku_id=? AND batch_id=? AND status=1 AND id &gt; ?</span></span><br><span class="line"><span class="string">        ORDER BY id LIMIT 3000</span></span><br><span class="line"><span class="string">    `</span>, itemID, skuID, batchID, lastCodeID)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(codes) == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="comment">// DB 也无库存，设置空标志</span></span><br><span class="line">        redis.Set(emptyKey, <span class="string">&quot;1&quot;</span>, <span class="number">1</span>*time.Hour)</span><br><span class="line">        <span class="keyword">return</span> ErrStockNotEnough</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 4. 原子写入 Redis LIST + 更新游标</span></span><br><span class="line">    redis.Eval(replenishScript, stockKey, cursorKey, codeIDs, newCursor)</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="六、自管理策略：数量制（OPV-本地服务）"><a href="#六、自管理策略：数量制（OPV-本地服务）" class="headerlink" title="六、自管理策略：数量制（OPV &#x2F; 本地服务）"></a>六、自管理策略：数量制（OPV &#x2F; 本地服务）</h2><h3 id="6-1-Redis-存储结构"><a href="#6-1-Redis-存储结构" class="headerlink" title="6.1 Redis 存储结构"></a>6.1 Redis 存储结构</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Key:   inventory:qty:stock:&#123;itemID&#125;:&#123;skuID&#125;</span><br><span class="line">Type:  HASH</span><br><span class="line">Fields:</span><br><span class="line">  &quot;available&quot;   : 10000       # 可售库存</span><br><span class="line">  &quot;booking&quot;     : 50          # Shopee 预订中</span><br><span class="line">  &quot;issued&quot;      : 5000        # 已售</span><br><span class="line">  &quot;locked&quot;      : 500         # 营销锁定</span><br><span class="line">  &quot;&#123;promotionID&#125;&quot;: 200        # 营销活动独立库存（动态字段）</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-2-预订-Lua-脚本"><a href="#6-2-预订-Lua-脚本" class="headerlink" title="6.2 预订 Lua 脚本"></a>6.2 预订 Lua 脚本</h3><figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">local</span> key = KEYS[<span class="number">1</span>]</span><br><span class="line"><span class="keyword">local</span> book_num = <span class="built_in">tonumber</span>(ARGV[<span class="number">1</span>])</span><br><span class="line"><span class="keyword">local</span> promotion_id = ARGV[<span class="number">2</span>]  <span class="comment">-- 空字符串表示普通库存</span></span><br><span class="line"></span><br><span class="line"><span class="comment">-- 1. 获取可用库存</span></span><br><span class="line"><span class="keyword">local</span> available = <span class="built_in">tonumber</span>(redis.call(<span class="string">&#x27;HGET&#x27;</span>, key, <span class="string">&#x27;available&#x27;</span>) <span class="keyword">or</span> <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 2. 如果有营销活动，合并计算</span></span><br><span class="line"><span class="keyword">local</span> promo_stock = <span class="number">0</span></span><br><span class="line"><span class="keyword">if</span> promotion_id ~= <span class="string">&#x27;&#x27;</span> <span class="keyword">then</span></span><br><span class="line">    promo_stock = <span class="built_in">tonumber</span>(redis.call(<span class="string">&#x27;HGET&#x27;</span>, key, promotion_id) <span class="keyword">or</span> <span class="number">0</span>)</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"><span class="keyword">local</span> total_available = available + promo_stock</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 3. 检查库存</span></span><br><span class="line"><span class="keyword">if</span> book_num &gt; total_available <span class="keyword">then</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">-1</span>  <span class="comment">-- 库存不足</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="comment">-- 4. 优先扣营销库存，不足时扣普通库存</span></span><br><span class="line"><span class="keyword">if</span> promo_stock &gt; <span class="number">0</span> <span class="keyword">then</span></span><br><span class="line">    <span class="keyword">if</span> book_num &lt;= promo_stock <span class="keyword">then</span></span><br><span class="line">        redis.call(<span class="string">&#x27;HINCRBY&#x27;</span>, key, promotion_id, -book_num)</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        redis.call(<span class="string">&#x27;HSET&#x27;</span>, key, promotion_id, <span class="number">0</span>)</span><br><span class="line">        redis.call(<span class="string">&#x27;HINCRBY&#x27;</span>, key, <span class="string">&#x27;available&#x27;</span>, -(book_num - promo_stock))</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">    redis.call(<span class="string">&#x27;HINCRBY&#x27;</span>, key, <span class="string">&#x27;available&#x27;</span>, -book_num)</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="comment">-- 5. 增加预订数</span></span><br><span class="line">redis.call(<span class="string">&#x27;HINCRBY&#x27;</span>, key, <span class="string">&#x27;booking&#x27;</span>, book_num)</span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> total_available - book_num</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-3-支付成功-取消订单"><a href="#6-3-支付成功-取消订单" class="headerlink" title="6.3 支付成功 &#x2F; 取消订单"></a>6.3 支付成功 &#x2F; 取消订单</h3><figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 支付成功：booking → issued</span></span><br><span class="line"><span class="keyword">local</span> booking = <span class="built_in">tonumber</span>(redis.call(<span class="string">&#x27;HGET&#x27;</span>, key, <span class="string">&#x27;booking&#x27;</span>) <span class="keyword">or</span> <span class="number">0</span>)</span><br><span class="line"><span class="keyword">if</span> stock &gt; booking <span class="keyword">then</span> <span class="keyword">return</span> <span class="number">-1</span> <span class="keyword">end</span>  <span class="comment">-- 异常保护</span></span><br><span class="line">redis.call(<span class="string">&#x27;HINCRBY&#x27;</span>, key, <span class="string">&#x27;booking&#x27;</span>, -stock)</span><br><span class="line">redis.call(<span class="string">&#x27;HINCRBY&#x27;</span>, key, <span class="string">&#x27;issued&#x27;</span>, stock)</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 取消订单：booking → available</span></span><br><span class="line">redis.call(<span class="string">&#x27;HINCRBY&#x27;</span>, key, <span class="string">&#x27;booking&#x27;</span>, -stock)</span><br><span class="line">redis.call(<span class="string">&#x27;HINCRBY&#x27;</span>, key, <span class="string">&#x27;available&#x27;</span>, stock)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="七、供应商管理策略（酒店-机票）"><a href="#七、供应商管理策略（酒店-机票）" class="headerlink" title="七、供应商管理策略（酒店 &#x2F; 机票）"></a>七、供应商管理策略（酒店 &#x2F; 机票）</h2><h3 id="7-1-同步策略"><a href="#7-1-同步策略" class="headerlink" title="7.1 同步策略"></a>7.1 同步策略</h3><table>
+<thead>
+<tr>
+<th>策略</th>
+<th>适用场景</th>
+<th>实时性</th>
+<th>实现方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>实时查询</strong></td>
+<td>库存变化快（机票）</td>
+<td>高</td>
+<td>每次请求调供应商 API（30s 缓存）</td>
+</tr>
+<tr>
+<td><strong>定时同步</strong></td>
+<td>库存变化中等（酒店）</td>
+<td>中</td>
+<td>定时任务每 5 分钟拉取</td>
+</tr>
+<tr>
+<td><strong>Webhook</strong></td>
+<td>供应商主动推送</td>
+<td>高</td>
+<td>接收推送更新本地缓存</td>
+</tr>
+</tbody></table>
+<h3 id="7-2-实时查询流程"><a href="#7-2-实时查询流程" class="headerlink" title="7.2 实时查询流程"></a>7.2 实时查询流程</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *SupplierManagedStrategy)</span></span> CheckStock(ctx context.Context, req *CheckStockReq) (*CheckStockResp, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 1. 查 Redis 缓存（30s TTL）</span></span><br><span class="line">    cacheKey := fmt.Sprintf(<span class="string">&quot;inventory:supplier:%d:%d:%s&quot;</span>, req.ItemID, req.SKUID, req.Date)</span><br><span class="line">    <span class="keyword">if</span> stock, err := redis.Get(cacheKey).Int(); err == <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> &amp;CheckStockResp&#123;Available: stock, FromCache: <span class="literal">true</span>&#125;, <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2. 缓存未命中，调供应商 API</span></span><br><span class="line">    resp, err := supplierClient.QueryStock(ctx, req.SupplierID, req.ProductID, req.Date)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3. 写入 Redis 缓存（30s）+ 异步写快照表</span></span><br><span class="line">    redis.Set(cacheKey, resp.Stock, <span class="number">30</span>*time.Second)</span><br><span class="line">    <span class="keyword">go</span> saveSnapshot(req.ItemID, resp.Stock, <span class="string">&quot;api&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> &amp;CheckStockResp&#123;Available: resp.Stock, FromCache: <span class="literal">false</span>&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="7-3-预订流程（供应商管理）"><a href="#7-3-预订流程（供应商管理）" class="headerlink" title="7.3 预订流程（供应商管理）"></a>7.3 预订流程（供应商管理）</h3><h4 id="7-3-1-同步预订（理想情况）"><a href="#7-3-1-同步预订（理想情况）" class="headerlink" title="7.3.1 同步预订（理想情况）"></a>7.3.1 同步预订（理想情况）</h4><p>供应商 API 质量好，预订接口同步返回结果：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *SupplierManagedStrategy)</span></span> BookStock(ctx context.Context, req *BookStockReq) (*BookStockResp, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 1. 调供应商预订接口（同步返回成功/失败）</span></span><br><span class="line">    resp, err := supplierClient.Book(ctx, req.SupplierID, req.ProductID, req.OrderID)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2. 保存供应商订单号映射</span></span><br><span class="line">    saveOrderMapping(req.OrderID, resp.SupplierOrderID)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3. 更新本地库存表（记录 booking）</span></span><br><span class="line">    updateInventoryBooking(req.ItemID, req.SKUID, req.Quantity, +<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 4. 发送事件</span></span><br><span class="line">    publishEvent(&amp;InventoryEvent&#123;Type: <span class="string">&quot;book&quot;</span>, OrderID: req.OrderID, SupplierOrderID: resp.SupplierOrderID&#125;)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> &amp;BookStockResp&#123;Success: <span class="literal">true</span>, SupplierOrderID: resp.SupplierOrderID&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="7-3-2-异步预订（供应商系统较差）"><a href="#7-3-2-异步预订（供应商系统较差）" class="headerlink" title="7.3.2 异步预订（供应商系统较差）"></a>7.3.2 异步预订（供应商系统较差）</h4><p><strong>场景</strong>：部分供应商系统不稳定，预订流程为：</p>
+<ol>
+<li>创建 booking 单 → 立即返回 <code>booking_id</code>（状态 <code>PENDING</code>）</li>
+<li>轮询查询 booking 状态 → 最终返回 <code>CONFIRMED</code> &#x2F; <code>FAILED</code></li>
+<li>只有 <code>CONFIRMED</code> 后才能继续下单</li>
+</ol>
+<p><strong>挑战</strong>：</p>
+<ul>
+<li>用户不能等待轮询完成（可能需要 10-30 秒）。</li>
+<li>需要异步处理 + 状态机 + 补偿机制。</li>
+</ul>
+<p><strong>状态机设计</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">用户下单</span><br><span class="line">  ↓</span><br><span class="line">BOOKING_INIT (初始化)</span><br><span class="line">  ↓</span><br><span class="line">调供应商创建 booking → 返回 booking_id</span><br><span class="line">  ↓</span><br><span class="line">BOOKING_PENDING (等待确认)</span><br><span class="line">  ↓</span><br><span class="line">异步轮询 booking 状态（每 2s 查询一次，最多 30s）</span><br><span class="line">  ↓</span><br><span class="line">  ├─ CONFIRMED → BOOKING_SUCCESS</span><br><span class="line">  ├─ FAILED    → BOOKING_FAILED (释放库存)</span><br><span class="line">  └─ TIMEOUT   → BOOKING_TIMEOUT (人工介入)</span><br></pre></td></tr></table></figure>
+
+<p><strong>数据库表设计</strong>：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> supplier_booking (</span><br><span class="line">  id                <span class="type">BIGINT</span> <span class="keyword">PRIMARY</span> KEY AUTO_INCREMENT,</span><br><span class="line">  order_id          <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;平台订单ID&#x27;</span>,</span><br><span class="line">  item_id           <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  supplier_id       <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  </span><br><span class="line">  booking_id        <span class="type">VARCHAR</span>(<span class="number">100</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;供应商 booking ID&#x27;</span>,</span><br><span class="line">  booking_status    <span class="type">VARCHAR</span>(<span class="number">50</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;PENDING/CONFIRMED/FAILED/TIMEOUT&#x27;</span>,</span><br><span class="line">  </span><br><span class="line">  create_time       <span class="type">BIGINT</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  confirm_time      <span class="type">BIGINT</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  query_count       <span class="type">INT</span> <span class="keyword">DEFAULT</span> <span class="number">0</span> COMMENT <span class="string">&#x27;轮询次数&#x27;</span>,</span><br><span class="line">  last_query_time   <span class="type">BIGINT</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">  </span><br><span class="line">  error_msg         TEXT,</span><br><span class="line">  </span><br><span class="line">  KEY idx_order_id (order_id),</span><br><span class="line">  KEY idx_booking_id (booking_id),</span><br><span class="line">  KEY idx_status_time (booking_status, create_time)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p><strong>实现流程</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. 用户下单时：创建 booking 单，立即返回&quot;处理中&quot;</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *SupplierManagedStrategy)</span></span> BookStock(ctx context.Context, req *BookStockReq) (*BookStockResp, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 调供应商创建 booking</span></span><br><span class="line">    resp, err := supplierClient.CreateBooking(ctx, req.SupplierID, req.ProductID)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 保存 booking 记录（状态 PENDING）</span></span><br><span class="line">    saveSupplierBooking(&amp;SupplierBooking&#123;</span><br><span class="line">        OrderID:       req.OrderID,</span><br><span class="line">        ItemID:        req.ItemID,</span><br><span class="line">        SupplierID:    req.SupplierID,</span><br><span class="line">        BookingID:     resp.BookingID,</span><br><span class="line">        BookingStatus: <span class="string">&quot;PENDING&quot;</span>,</span><br><span class="line">        CreateTime:    time.Now().Unix(),</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 发送到 MQ 异步轮询</span></span><br><span class="line">    publishToMQ(&amp;BookingPollTask&#123;</span><br><span class="line">        OrderID:    req.OrderID,</span><br><span class="line">        BookingID:  resp.BookingID,</span><br><span class="line">        SupplierID: req.SupplierID,</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 立即返回给用户（告知&quot;预订处理中&quot;）</span></span><br><span class="line">    <span class="keyword">return</span> &amp;BookStockResp&#123;</span><br><span class="line">        Success:       <span class="literal">false</span>, <span class="comment">// 尚未确认</span></span><br><span class="line">        Status:        <span class="string">&quot;PROCESSING&quot;</span>,</span><br><span class="line">        BookingID:     resp.BookingID,</span><br><span class="line">        EstimateTime:  <span class="number">30</span>, <span class="comment">// 预计 30 秒内确认</span></span><br><span class="line">    &#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 异步 Consumer：轮询 booking 状态</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">PollBookingStatus</span><span class="params">(task *BookingPollTask)</span></span> &#123;</span><br><span class="line">    ticker := time.NewTicker(<span class="number">2</span> * time.Second)</span><br><span class="line">    <span class="keyword">defer</span> ticker.Stop()</span><br><span class="line">    </span><br><span class="line">    timeout := time.After(<span class="number">30</span> * time.Second)</span><br><span class="line">    queryCount := <span class="number">0</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> &lt;-ticker.C:</span><br><span class="line">            queryCount++</span><br><span class="line">            </span><br><span class="line">            <span class="comment">// 调供应商查询接口</span></span><br><span class="line">            status, err := supplierClient.QueryBookingStatus(task.SupplierID, task.BookingID)</span><br><span class="line">            </span><br><span class="line">            updateQueryRecord(task.OrderID, queryCount, time.Now().Unix())</span><br><span class="line">            </span><br><span class="line">            <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                log.Error(<span class="string">&quot;query booking failed&quot;</span>, err)</span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">switch</span> status &#123;</span><br><span class="line">            <span class="keyword">case</span> <span class="string">&quot;CONFIRMED&quot;</span>:</span><br><span class="line">                <span class="comment">// 预订成功</span></span><br><span class="line">                handleBookingSuccess(task.OrderID, task.BookingID)</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">                </span><br><span class="line">            <span class="keyword">case</span> <span class="string">&quot;FAILED&quot;</span>:</span><br><span class="line">                <span class="comment">// 预订失败</span></span><br><span class="line">                handleBookingFailed(task.OrderID, task.BookingID, <span class="string">&quot;supplier rejected&quot;</span>)</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">                </span><br><span class="line">            <span class="keyword">case</span> <span class="string">&quot;PENDING&quot;</span>:</span><br><span class="line">                <span class="comment">// 继续等待</span></span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">case</span> &lt;-timeout:</span><br><span class="line">            <span class="comment">// 超时未确认</span></span><br><span class="line">            handleBookingTimeout(task.OrderID, task.BookingID)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 预订成功回调</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">handleBookingSuccess</span><span class="params">(orderID <span class="type">uint64</span>, bookingID <span class="type">string</span>)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 更新状态</span></span><br><span class="line">    updateSupplierBooking(orderID, <span class="string">&quot;CONFIRMED&quot;</span>, time.Now().Unix())</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 更新本地库存</span></span><br><span class="line">    updateInventoryBooking(orderID, +<span class="number">1</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 通知用户（Push / SMS / Email）</span></span><br><span class="line">    notifyUser(orderID, <span class="string">&quot;您的订单预订成功，请尽快支付&quot;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 设置支付超时（15 分钟）</span></span><br><span class="line">    setPaymentTimeout(orderID, <span class="number">15</span>*time.Minute)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 4. 预订失败回调</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">handleBookingFailed</span><span class="params">(orderID <span class="type">uint64</span>, bookingID <span class="type">string</span>, reason <span class="type">string</span>)</span></span> &#123;</span><br><span class="line">    updateSupplierBooking(orderID, <span class="string">&quot;FAILED&quot;</span>, time.Now().Unix())</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 释放本地库存（如果有预扣）</span></span><br><span class="line">    releaseInventoryBooking(orderID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 关闭订单</span></span><br><span class="line">    closeOrder(orderID, <span class="string">&quot;supplier booking failed: &quot;</span> + reason)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 通知用户</span></span><br><span class="line">    notifyUser(orderID, <span class="string">&quot;抱歉，预订失败，请重新下单&quot;</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 5. 预订超时回调</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">handleBookingTimeout</span><span class="params">(orderID <span class="type">uint64</span>, bookingID <span class="type">string</span>)</span></span> &#123;</span><br><span class="line">    updateSupplierBooking(orderID, <span class="string">&quot;TIMEOUT&quot;</span>, time.Now().Unix())</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 记录异常，人工介入</span></span><br><span class="line">    alert(<span class="string">&quot;Booking timeout: order=%d, booking=%s&quot;</span>, orderID, bookingID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 继续在后台轮询（降低频率：每 1 分钟查询一次，最多 24 小时）</span></span><br><span class="line">    scheduleBackgroundPoll(orderID, bookingID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 暂不关闭订单，等待人工处理</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="7-3-3-用户体验优化"><a href="#7-3-3-用户体验优化" class="headerlink" title="7.3.3 用户体验优化"></a>7.3.3 用户体验优化</h4><p><strong>问题</strong>：用户下单后看到”预订处理中”，体验不佳。</p>
+<p><strong>优化方案</strong>：</p>
+<ol>
+<li><strong>前端轮询展示进度</strong>：</li>
+</ol>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 用户下单后，前端每 2 秒轮询订单状态</span></span><br><span class="line"><span class="keyword">function</span> <span class="title function_">pollOrderStatus</span>(<span class="params">orderId</span>) &#123;</span><br><span class="line">    <span class="keyword">const</span> interval = <span class="built_in">setInterval</span>(<span class="keyword">async</span> () =&gt; &#123;</span><br><span class="line">        <span class="keyword">const</span> resp = <span class="keyword">await</span> <span class="title function_">fetch</span>(<span class="string">`/api/order/<span class="subst">$&#123;orderId&#125;</span>/status`</span>);</span><br><span class="line">        <span class="keyword">const</span> data = <span class="keyword">await</span> resp.<span class="title function_">json</span>();</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> (data.<span class="property">status</span> === <span class="string">&#x27;BOOKING_SUCCESS&#x27;</span>) &#123;</span><br><span class="line">            <span class="title function_">showMessage</span>(<span class="string">&#x27;预订成功！请在 15 分钟内完成支付&#x27;</span>);</span><br><span class="line">            <span class="built_in">clearInterval</span>(interval);</span><br><span class="line">            <span class="title function_">redirectToPayment</span>(orderId);</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (data.<span class="property">status</span> === <span class="string">&#x27;BOOKING_FAILED&#x27;</span>) &#123;</span><br><span class="line">            <span class="title function_">showMessage</span>(<span class="string">&#x27;预订失败，库存不足&#x27;</span>);</span><br><span class="line">            <span class="built_in">clearInterval</span>(interval);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 继续等待</span></span><br><span class="line">            <span class="title function_">updateProgress</span>(data.<span class="property">queryCount</span>, <span class="number">15</span>); <span class="comment">// 进度条：已查询 X/15 次</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, <span class="number">2000</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 30 秒后停止轮询</span></span><br><span class="line">    <span class="built_in">setTimeout</span>(<span class="function">() =&gt;</span> <span class="built_in">clearInterval</span>(interval), <span class="number">30000</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li><strong>WebSocket &#x2F; SSE 推送</strong>：</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 服务端：booking 确认后推送消息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">handleBookingSuccess</span><span class="params">(orderID <span class="type">uint64</span>)</span></span> &#123;</span><br><span class="line">    <span class="comment">// ... 更新状态 ...</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 推送给前端</span></span><br><span class="line">    websocketHub.Push(orderID, &amp;Message&#123;</span><br><span class="line">        Type: <span class="string">&quot;BOOKING_CONFIRMED&quot;</span>,</span><br><span class="line">        Data: <span class="keyword">map</span>[<span class="type">string</span>]<span class="keyword">interface</span>&#123;&#125;&#123;</span><br><span class="line">            <span class="string">&quot;order_id&quot;</span>: orderID,</span><br><span class="line">            <span class="string">&quot;status&quot;</span>:   <span class="string">&quot;SUCCESS&quot;</span>,</span><br><span class="line">        &#125;,</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li><strong>短信&#x2F;Push 通知</strong>：</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 预订成功后 1 分钟内发送通知</span></span><br><span class="line">notifyUser(orderID, <span class="string">&quot;您的【泰国普吉岛酒店】预订成功，请尽快支付&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="7-3-4-异常场景处理"><a href="#7-3-4-异常场景处理" class="headerlink" title="7.3.4 异常场景处理"></a>7.3.4 异常场景处理</h4><p><strong>场景 1：轮询期间用户取消订单</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">PollBookingStatus</span><span class="params">(task *BookingPollTask)</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="comment">// 每次轮询前检查订单状态</span></span><br><span class="line">        order := getOrder(task.OrderID)</span><br><span class="line">        <span class="keyword">if</span> order.Status == <span class="string">&quot;CANCELLED&quot;</span> &#123;</span><br><span class="line">            <span class="comment">// 调供应商取消接口</span></span><br><span class="line">            supplierClient.CancelBooking(task.SupplierID, task.BookingID)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// ... 继续轮询 ...</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>场景 2：供应商 API 持续超时</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 连续 3 次查询超时 → 降级到人工处理</span></span><br><span class="line"><span class="keyword">if</span> queryCount &gt;= <span class="number">3</span> &amp;&amp; allTimeout &#123;</span><br><span class="line">    handleBookingTimeout(task.OrderID, task.BookingID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 发送企业微信/钉钉告警</span></span><br><span class="line">    alertOps(<span class="string">&quot;供应商 API 异常: supplier_id=%d, booking_id=%s&quot;</span>, </span><br><span class="line">             task.SupplierID, task.BookingID)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>场景 3：供应商确认后用户未支付</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// booking 成功后设置 15 分钟支付超时</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">handleBookingSuccess</span><span class="params">(orderID <span class="type">uint64</span>, bookingID <span class="type">string</span>)</span></span> &#123;</span><br><span class="line">    <span class="comment">// ... 更新状态 ...</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 15 分钟后自动取消</span></span><br><span class="line">    scheduleTask(&amp;CancelBookingTask&#123;</span><br><span class="line">        OrderID:   orderID,</span><br><span class="line">        BookingID: bookingID,</span><br><span class="line">        Delay:     <span class="number">15</span> * time.Minute,</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 超时后调供应商取消接口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CancelExpiredBooking</span><span class="params">(task *CancelBookingTask)</span></span> &#123;</span><br><span class="line">    order := getOrder(task.OrderID)</span><br><span class="line">    <span class="keyword">if</span> order.Status != <span class="string">&quot;PAID&quot;</span> &#123;</span><br><span class="line">        <span class="comment">// 调供应商取消</span></span><br><span class="line">        supplierClient.CancelBooking(order.SupplierID, task.BookingID)</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 关闭订单</span></span><br><span class="line">        closeOrder(task.OrderID, <span class="string">&quot;payment timeout&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="7-3-5-监控指标"><a href="#7-3-5-监控指标" class="headerlink" title="7.3.5 监控指标"></a>7.3.5 监控指标</h4><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>阈值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>booking 成功率</strong></td>
+<td>&gt; 95%</td>
+<td>供应商库存准确性</td>
+</tr>
+<tr>
+<td><strong>平均确认时长</strong></td>
+<td>&lt; 10s</td>
+<td>P99 &lt; 30s</td>
+</tr>
+<tr>
+<td><strong>超时率</strong></td>
+<td>&lt; 1%</td>
+<td>需要人工介入的比例</td>
+</tr>
+<tr>
+<td><strong>取消率</strong></td>
+<td>&lt; 5%</td>
+<td>用户等待期间取消订单</td>
+</tr>
+</tbody></table>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Prometheus Metrics</span></span><br><span class="line">bookingConfirmDuration := prometheus.NewHistogram(...)</span><br><span class="line">bookingSuccessRate := prometheus.NewCounter(...)</span><br><span class="line">bookingTimeoutCount := prometheus.NewCounter(...)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="八、无限库存策略（TopUp-保险）"><a href="#八、无限库存策略（TopUp-保险）" class="headerlink" title="八、无限库存策略（TopUp &#x2F; 保险）"></a>八、无限库存策略（TopUp &#x2F; 保险）</h2><p>最简单的策略，只记录操作日志：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> UnlimitedStrategy <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *UnlimitedStrategy)</span></span> CheckStock(ctx context.Context, req *CheckStockReq) (*CheckStockResp, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> &amp;CheckStockResp&#123;Available: <span class="number">999999</span>, IsUnlimited: <span class="literal">true</span>&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *UnlimitedStrategy)</span></span> BookStock(ctx context.Context, req *BookStockReq) (*BookStockResp, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 仅记录日志（用于统计销量）</span></span><br><span class="line">    logOperation(<span class="string">&quot;book&quot;</span>, req.ItemID, req.Quantity, req.OrderID)</span><br><span class="line">    <span class="keyword">return</span> &amp;BookStockResp&#123;Success: <span class="literal">true</span>&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *UnlimitedStrategy)</span></span> UnbookStock(ctx context.Context, req *UnbookStockReq) <span class="type">error</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span> <span class="comment">// 无操作</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="九、核心流程汇总"><a href="#九、核心流程汇总" class="headerlink" title="九、核心流程汇总"></a>九、核心流程汇总</h2><h3 id="9-1-统一预订流程"><a href="#9-1-统一预订流程" class="headerlink" title="9.1 统一预订流程"></a>9.1 统一预订流程</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">用户下单</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">1. 查 inventory_config → 获取 management_type + unit_type</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">2. StrategyFactory.GetStrategy(management_type)</span><br><span class="line">  │</span><br><span class="line">  ├─ Self + Code     → 券码出货 (Redis LIST LPOP)</span><br><span class="line">  ├─ Self + Quantity  → 数量扣减 (Redis HASH Lua 原子)</span><br><span class="line">  ├─ Supplier + Time  → 调供应商预订 API</span><br><span class="line">  ├─ Unlimited        → 直接成功</span><br><span class="line">  └─ Self + Bundle    → 遍历子项，逐一扣减</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">3. 更新 inventory 表: booking_stock += quantity</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">4. 发送 Kafka 事件 → 异步消费写操作日志</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">5. 返回结果（券码制返回 codeIDs，供应商返回 supplierOrderID）</span><br></pre></td></tr></table></figure>
+
+<h3 id="9-2-支付成功流程"><a href="#9-2-支付成功流程" class="headerlink" title="9.2 支付成功流程"></a>9.2 支付成功流程</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">支付回调</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">1. 路由到对应策略</span><br><span class="line">  │</span><br><span class="line">  ├─ 券码制: code status BOOKING → SOLD, 设置 purchase_time/expire_time</span><br><span class="line">  ├─ 数量制: Redis booking--, sold++</span><br><span class="line">  ├─ 供应商: 调供应商确认接口（可选）</span><br><span class="line">  └─ Giftcard(实时生成): 调供应商 API 生成卡密 → 保存到 code_pool</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">2. 更新 inventory: booking_stock -= qty, sold_stock += qty</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">3. 发送事件</span><br></pre></td></tr></table></figure>
+
+<h3 id="9-3-取消-超时释放流程"><a href="#9-3-取消-超时释放流程" class="headerlink" title="9.3 取消&#x2F;超时释放流程"></a>9.3 取消&#x2F;超时释放流程</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">订单取消 / 超时未支付</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">1. 路由到对应策略</span><br><span class="line">  │</span><br><span class="line">  ├─ 券码制: code status BOOKING → AVAILABLE, RPUSH 回 Redis LIST</span><br><span class="line">  ├─ 数量制: Redis booking--, available++</span><br><span class="line">  └─ 供应商: 调供应商取消接口</span><br><span class="line">  │</span><br><span class="line">  ▼</span><br><span class="line">2. 更新 inventory: booking_stock -= qty, available_stock += qty</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="十、数据一致性保障"><a href="#十、数据一致性保障" class="headerlink" title="十、数据一致性保障"></a>十、数据一致性保障</h2><h3 id="10-1-Redis-与-MySQL-双写策略"><a href="#10-1-Redis-与-MySQL-双写策略" class="headerlink" title="10.1 Redis 与 MySQL 双写策略"></a>10.1 Redis 与 MySQL 双写策略</h3><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>Redis</th>
+<th>MySQL</th>
+<th>一致性保障</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>预订 (Book)</strong></td>
+<td>同步扣减（Lua 原子）</td>
+<td>Kafka 异步更新</td>
+<td>最终一致</td>
+</tr>
+<tr>
+<td><strong>支付 (Sell)</strong></td>
+<td>同步更新</td>
+<td>Kafka 异步更新</td>
+<td>最终一致</td>
+</tr>
+<tr>
+<td><strong>营销锁定 (Lock)</strong></td>
+<td>同步</td>
+<td>同步（DB 事务）</td>
+<td>强一致</td>
+</tr>
+<tr>
+<td><strong>补货 (Replenish)</strong></td>
+<td>同步写入</td>
+<td>不变</td>
+<td>-</td>
+</tr>
+</tbody></table>
+<p><strong>核心原则</strong>：</p>
+<ul>
+<li><strong>Redis 是热路径</strong>：所有高频读写走 Redis，保证毫秒级响应。</li>
+<li><strong>MySQL 是权威数据源</strong>：故障恢复以 MySQL 为准。</li>
+<li><strong>Kafka 异步持久化</strong>：Book&#x2F;Sell 等操作通过 MQ 异步落库，不阻塞主流程。</li>
+</ul>
+<h3 id="10-2-定时对账（每小时）"><a href="#10-2-定时对账（每小时）" class="headerlink" title="10.2 定时对账（每小时）"></a>10.2 定时对账（每小时）</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Reconcile</span><span class="params">()</span></span> &#123;</span><br><span class="line">    configs := queryAllSelfManagedConfigs()</span><br><span class="line">    <span class="keyword">for</span> _, cfg := <span class="keyword">range</span> configs &#123;</span><br><span class="line">        redisStock := getRedisAvailable(cfg.ItemID, cfg.SKUID)</span><br><span class="line">        mysqlStock := getMySQLAvailable(cfg.ItemID, cfg.SKUID)</span><br><span class="line">        diff := redisStock - mysqlStock</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 恒等式校验：total = available + booking + locked + sold</span></span><br><span class="line">        mysqlTotal := getMySQLTotal(cfg.ItemID, cfg.SKUID)</span><br><span class="line">        mysqlCalc := mysqlStock + mysqlBooking + mysqlLocked + mysqlSold</span><br><span class="line">        <span class="keyword">if</span> mysqlCalc != mysqlTotal &#123;</span><br><span class="line">            alert(<span class="string">&quot;MySQL 数据不一致: item=%d, total=%d, calc=%d&quot;</span>, cfg.ItemID, mysqlTotal, mysqlCalc)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Redis vs MySQL 差异</span></span><br><span class="line">        <span class="keyword">if</span> abs(diff) &gt; <span class="number">100</span> || abs(diff) &gt; mysqlStock/<span class="number">10</span> &#123;</span><br><span class="line">            alert(<span class="string">&quot;库存差异过大: item=%d, redis=%d, mysql=%d&quot;</span>, cfg.ItemID, redisStock, mysqlStock)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 自动修复（可选，以 MySQL 为准）</span></span><br><span class="line">        <span class="keyword">if</span> cfg.AutoReconcile &#123;</span><br><span class="line">            syncRedisFromMySQL(cfg.ItemID, cfg.SKUID)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="10-3-降级方案"><a href="#10-3-降级方案" class="headerlink" title="10.3 降级方案"></a>10.3 降级方案</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Redis 可用 → 正常读写 Redis</span><br><span class="line">     │</span><br><span class="line">Redis 不可用</span><br><span class="line">     │</span><br><span class="line">     ▼</span><br><span class="line">降级到 MySQL 直接操作（性能下降但业务不中断）</span><br><span class="line">     │</span><br><span class="line">     ├─ 券码制: SELECT ... FOR UPDATE + 状态更新</span><br><span class="line">     ├─ 数量制: UPDATE available_stock = available_stock - ? WHERE available_stock &gt;= ?</span><br><span class="line">     └─ 记录降级日志，Redis 恢复后全量同步</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="十一、Kafka-事件设计"><a href="#十一、Kafka-事件设计" class="headerlink" title="十一、Kafka 事件设计"></a>十一、Kafka 事件设计</h2><figure class="highlight protobuf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">message </span><span class="title class_">InventoryEvent</span> &#123;</span><br><span class="line">    <span class="type">string</span> event_id    = <span class="number">1</span>;  <span class="comment">// UUID</span></span><br><span class="line">    <span class="type">string</span> event_type  = <span class="number">2</span>;  <span class="comment">// book/unbook/sell/refund/lock/sync</span></span><br><span class="line">    <span class="type">int64</span>  timestamp   = <span class="number">3</span>;</span><br><span class="line"></span><br><span class="line">    <span class="type">int64</span>  item_id     = <span class="number">10</span>;</span><br><span class="line">    <span class="type">int64</span>  sku_id      = <span class="number">11</span>;</span><br><span class="line">    <span class="type">int64</span>  batch_id    = <span class="number">12</span>;</span><br><span class="line">    <span class="type">string</span> calendar_date = <span class="number">13</span>; <span class="comment">// 时间维度库存</span></span><br><span class="line"></span><br><span class="line">    <span class="type">int32</span>  quantity    = <span class="number">20</span>;</span><br><span class="line">    <span class="keyword">repeated</span> <span class="type">int64</span> code_ids = <span class="number">21</span>; <span class="comment">// 券码制</span></span><br><span class="line"></span><br><span class="line">    <span class="type">int64</span>  order_id    = <span class="number">30</span>;</span><br><span class="line">    <span class="type">string</span> supplier_order_id = <span class="number">31</span>;</span><br><span class="line"></span><br><span class="line">    <span class="type">int32</span>  before_available = <span class="number">40</span>; <span class="comment">// 操作前快照</span></span><br><span class="line">    <span class="type">int32</span>  after_available  = <span class="number">41</span>; <span class="comment">// 操作后快照</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>Topic 设计</strong>：</p>
+<ul>
+<li><code>inventory.book</code> — 预订</li>
+<li><code>inventory.unbook</code> — 释放</li>
+<li><code>inventory.sell</code> — 售出</li>
+<li><code>inventory.refund</code> — 退款</li>
+<li><code>inventory.sync</code> — 供应商同步</li>
+</ul>
+<hr>
+<h2 id="十二、Giftcard-特殊设计"><a href="#十二、Giftcard-特殊设计" class="headerlink" title="十二、Giftcard 特殊设计"></a>十二、Giftcard 特殊设计</h2><p>Giftcard 横跨三种库存模式，是统一模型的最佳验证：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>管理类型</th>
+<th>流程</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>预采购卡密</strong></td>
+<td>Self + Code</td>
+<td>批量导入 → Redis 出货</td>
+<td>高频热销卡</td>
+</tr>
+<tr>
+<td><strong>实时生成</strong></td>
+<td>Supplier + Code</td>
+<td>支付成功 → 调 API 生成 → 存入 code_pool</td>
+<td>长尾低频卡</td>
+</tr>
+<tr>
+<td><strong>无限库存</strong></td>
+<td>Unlimited</td>
+<td>直接成功</td>
+<td>供应商保证库存</td>
+</tr>
+</tbody></table>
+<p><strong>卡密安全</strong>：</p>
+<ul>
+<li>存储时 AES-256 加密卡号和 PIN。</li>
+<li>管理后台脱敏显示（<code>XXXX-XXXX-XXXX-1234</code>）。</li>
+<li>所有访问记录审计日志。</li>
+</ul>
+<p><strong>供应商 API 超时处理</strong>：</p>
+<ul>
+<li>支付成功后异步生成，完成后推送通知用户。</li>
+<li>指数退避重试（1s, 2s, 4s），3 次失败后人工补发。</li>
+</ul>
+<hr>
+<h2 id="十三、监控与告警"><a href="#十三、监控与告警" class="headerlink" title="十三、监控与告警"></a>十三、监控与告警</h2><h3 id="13-1-关键指标"><a href="#13-1-关键指标" class="headerlink" title="13.1 关键指标"></a>13.1 关键指标</h3><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>阈值</th>
+<th>告警级别</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>超卖次数</strong></td>
+<td>&gt; 0</td>
+<td>P0</td>
+</tr>
+<tr>
+<td><strong>Redis vs MySQL 差异</strong></td>
+<td>&gt; 100</td>
+<td>P1</td>
+</tr>
+<tr>
+<td><strong>库存服务错误率</strong></td>
+<td>&gt; 1%</td>
+<td>P1</td>
+</tr>
+<tr>
+<td><strong>库存扣减 P99</strong></td>
+<td>&gt; 200ms</td>
+<td>P2</td>
+</tr>
+<tr>
+<td><strong>补货失败率</strong></td>
+<td>&gt; 5%</td>
+<td>P2</td>
+</tr>
+<tr>
+<td><strong>供应商同步延迟</strong></td>
+<td>&gt; 10min</td>
+<td>P2</td>
+</tr>
+<tr>
+<td><strong>低库存商品数</strong></td>
+<td>&gt; 100</td>
+<td>P3</td>
+</tr>
+</tbody></table>
+<h3 id="13-2-Prometheus-Metrics"><a href="#13-2-Prometheus-Metrics" class="headerlink" title="13.2 Prometheus Metrics"></a>13.2 Prometheus Metrics</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"># 操作计数</span><br><span class="line">inventory_operation_total&#123;op=&quot;book|sell|refund&quot;, mgmt=&quot;self|supplier&quot;, status=&quot;ok|fail&quot;&#125;</span><br><span class="line"></span><br><span class="line"># 操作延迟</span><br><span class="line">inventory_operation_duration_seconds&#123;op=&quot;book|sell&quot;&#125;</span><br><span class="line"></span><br><span class="line"># 库存差异</span><br><span class="line">inventory_reconcile_diff&#123;item_id, sku_id&#125;</span><br><span class="line"></span><br><span class="line"># 缺货次数</span><br><span class="line">inventory_out_of_stock_total&#123;item_id&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="十四、新品类接入指南"><a href="#十四、新品类接入指南" class="headerlink" title="十四、新品类接入指南"></a>十四、新品类接入指南</h2><p><strong>三步接入</strong>：</p>
+<ol>
+<li><strong>评估分类</strong>：确定 <code>(ManagementType, UnitType, DeductTiming)</code>。</li>
+<li><strong>写配置</strong>：在 <code>inventory_config</code> 表插入一条记录。</li>
+<li><strong>调接口</strong>：使用统一 <code>InventoryManager.BookStock()</code> 即可。</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 示例：接入新品类&quot;演唱会门票&quot;</span></span><br><span class="line"><span class="comment">// 1. 评估：供应商管理 + 时间维度 + 支付成功扣减</span></span><br><span class="line"><span class="comment">// 2. 写配置</span></span><br><span class="line">INSERT INTO inventory_config (item_id, management_type, unit_type, deduct_timing, supplier_id, sync_strategy)</span><br><span class="line">VALUES (<span class="number">900001</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">2</span>, <span class="number">700001</span>, <span class="number">2</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 调用统一接口</span></span><br><span class="line">inventoryManager.BookStock(ctx, &amp;BookStockReq&#123;</span><br><span class="line">    ItemID:   <span class="number">900001</span>,</span><br><span class="line">    SKUID:    <span class="number">0</span>,</span><br><span class="line">    Quantity: <span class="number">2</span>,</span><br><span class="line">    OrderID:  orderID,</span><br><span class="line">    CalendarDate: <span class="string">&quot;2025-08-15&quot;</span>,</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="十五、生产环境实战数据"><a href="#十五、生产环境实战数据" class="headerlink" title="十五、生产环境实战数据"></a>十五、生产环境实战数据</h2><h3 id="15-1-业务规模"><a href="#15-1-业务规模" class="headerlink" title="15.1 业务规模"></a>15.1 业务规模</h3><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>数值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>秒杀峰值 QPS</strong></td>
+<td>20,000</td>
+<td>单个爆款商品，持续 5-10 分钟</td>
+</tr>
+<tr>
+<td><strong>日均 QPS</strong></td>
+<td>50</td>
+<td>常态流量</td>
+</tr>
+<tr>
+<td><strong>日均订单量</strong></td>
+<td>2,000,000</td>
+<td>支付成功订单</td>
+</tr>
+<tr>
+<td><strong>日均库存扣减</strong></td>
+<td>6,700,000</td>
+<td>含预订、支付、取消等操作</td>
+</tr>
+<tr>
+<td><strong>峰值&#x2F;日均比</strong></td>
+<td>870:1</td>
+<td>流量极度不均匀</td>
+</tr>
+</tbody></table>
+<p><strong>容量规划推算</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">日均订单 2M / 86400s ≈ 23 TPS</span><br><span class="line">秒杀峰值 20k QPS = 日均的 870 倍</span><br><span class="line"></span><br><span class="line">假设订单转化率 30%（下单 → 支付成功）</span><br><span class="line">日均扣减请求 = 2M / 0.3 ≈ 6.7M 次</span><br><span class="line">Kafka 异步落库 MySQL TPS = 6.7M / 86400 ≈ 80 TPS（日均）</span><br><span class="line">秒杀峰值 MySQL TPS ≈ 300-500 TPS（批量写入优化后）</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="15-2-集群配置"><a href="#15-2-集群配置" class="headerlink" title="15.2 集群配置"></a>15.2 集群配置</h3><h4 id="Redis-集群"><a href="#Redis-集群" class="headerlink" title="Redis 集群"></a>Redis 集群</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">拓扑: Redis Cluster (3 主 3 从)</span><br><span class="line">分片: 按 item_id Hash 分片</span><br><span class="line">单分片配置: 32GB 内存, 16 核</span><br><span class="line">持久化: AOF + RDB 混合模式</span><br></pre></td></tr></table></figure>
+
+<p><strong>容量规划</strong>：</p>
+<ul>
+<li>券码池：100 万张券码 × 8 字节 ≈ <strong>8 MB</strong>（单商品）</li>
+<li>热点商品预热：10 个商品 × 8MB &#x3D; <strong>80 MB</strong></li>
+<li>数量制商品：1 万个 SKU × 1 KB ≈ <strong>10 MB</strong></li>
+<li>总计：**&lt; 200 MB**（核心数据），32GB 绰绰有余</li>
+</ul>
+<h4 id="应用服务"><a href="#应用服务" class="headerlink" title="应用服务"></a>应用服务</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">实例数: 10 台 (Kubernetes Pod)</span><br><span class="line">单实例配置: 4 核 8GB</span><br><span class="line">线程池: 每实例 500 线程（IO 密集型，2N 配置）</span><br><span class="line">单实例承载: 2,000 QPS（秒杀峰值）</span><br></pre></td></tr></table></figure>
+
+<p><strong>为什么 10 台能抗 2w QPS？</strong></p>
+<ul>
+<li>Redis 操作 RT &lt; 5ms，单线程 QPS &#x3D; 1000&#x2F;5 &#x3D; 200</li>
+<li>500 线程 × 200 QPS &#x3D; 100k QPS 理论上限（实际 2k QPS，留足余量）</li>
+</ul>
+<h4 id="MySQL-集群"><a href="#MySQL-集群" class="headerlink" title="MySQL 集群"></a>MySQL 集群</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">架构: 1 主 2 从（半同步复制）</span><br><span class="line">主库配置: 16 核 64GB, SSD</span><br><span class="line">从库: 读流量（对账、报表）</span><br><span class="line">分表: inventory_code_pool 分 100 张表</span><br></pre></td></tr></table></figure>
+
+<p><strong>容量规划</strong>：</p>
+<ul>
+<li>券码池：1 亿张券码 × 500 字节 ≈ <strong>50 GB</strong>（分 100 张表，单表 500 MB）</li>
+<li>inventory 表：10 万条记录 × 1 KB ≈ <strong>100 MB</strong></li>
+<li>operation_log：日增 670 万条 × 200 字节 ≈ <strong>1.3 GB&#x2F;天</strong>（保留 30 天 ≈ 40 GB）</li>
+</ul>
+<h4 id="Kafka-集群"><a href="#Kafka-集群" class="headerlink" title="Kafka 集群"></a>Kafka 集群</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Broker: 3 台</span><br><span class="line">Topic: inventory.events (6 分区)</span><br><span class="line">消费者组: 6 个 Consumer（并发消费）</span><br></pre></td></tr></table></figure>
+
+<p><strong>吞吐量验证</strong>：</p>
+<ul>
+<li>秒杀峰值写入 Kafka: 20k TPS × 500 字节 &#x3D; <strong>10 MB&#x2F;s</strong></li>
+<li>Kafka 单分区吞吐 &gt; 50 MB&#x2F;s，6 分区 &#x3D; <strong>300 MB&#x2F;s</strong> 理论上限</li>
+<li>实际使用 **&lt; 5%**，非常充裕</li>
+</ul>
+<hr>
+<h3 id="15-3-性能指标实测"><a href="#15-3-性能指标实测" class="headerlink" title="15.3 性能指标实测"></a>15.3 性能指标实测</h3><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>P50</th>
+<th>P99</th>
+<th>P999</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>券码制预订</strong></td>
+<td>15ms</td>
+<td>50ms</td>
+<td>150ms</td>
+<td>含 Redis + MySQL 同步更新</td>
+</tr>
+<tr>
+<td><strong>数量制预订</strong></td>
+<td>8ms</td>
+<td>30ms</td>
+<td>100ms</td>
+<td>仅 Redis Lua 脚本</td>
+</tr>
+<tr>
+<td><strong>供应商库存查询</strong></td>
+<td>200ms</td>
+<td>500ms</td>
+<td>2s</td>
+<td>第三方 API，30s 缓存</td>
+</tr>
+<tr>
+<td><strong>Redis 单次操作</strong></td>
+<td>1ms</td>
+<td>5ms</td>
+<td>10ms</td>
+<td>LIST&#x2F;HASH 操作</td>
+</tr>
+<tr>
+<td><strong>MySQL 券码状态更新</strong></td>
+<td>10ms</td>
+<td>50ms</td>
+<td>200ms</td>
+<td>主库写入</td>
+</tr>
+<tr>
+<td><strong>Kafka 异步消费延迟</strong></td>
+<td>50ms</td>
+<td>200ms</td>
+<td>1s</td>
+<td>非秒杀场景</td>
+</tr>
+</tbody></table>
+<p><strong>秒杀场景优化后</strong>：</p>
+<ul>
+<li>券码<strong>提前预热</strong>到 Redis（活动前 1 小时）</li>
+<li>P99 降至 <strong>30ms</strong>（无 DB 补货开销）</li>
+</ul>
+<hr>
+<h3 id="15-4-真实案例与优化"><a href="#15-4-真实案例与优化" class="headerlink" title="15.4 真实案例与优化"></a>15.4 真实案例与优化</h3><h4 id="案例-1：秒杀-2w-QPS-热点-Key-瓶颈"><a href="#案例-1：秒杀-2w-QPS-热点-Key-瓶颈" class="headerlink" title="案例 1：秒杀 2w QPS 热点 Key 瓶颈"></a>案例 1：秒杀 2w QPS 热点 Key 瓶颈</h4><p><strong>问题</strong>：</p>
+<ul>
+<li>单个爆款商品，所有请求打到同一个 Redis Key。</li>
+<li>Redis 单线程模型，QPS 上限 <strong>10 万</strong>（理论值），但 <strong>网卡带宽</strong> 先打满。</li>
+<li>实测单 Key 极限 <strong>5 万 QPS</strong>（1KB 数据 × 5w &#x3D; 50 MB&#x2F;s，接近千兆网卡上限）。</li>
+</ul>
+<p><strong>解决方案</strong>：</p>
+<ol>
+<li><p>**本地缓存 (Caffeine)**：</p>
+<ul>
+<li>应用层缓存库存数（非强一致，允许轻微超卖）。</li>
+<li>本地缓存拦截 80% 读请求，Redis 只承担 <strong>4k QPS</strong>。</li>
+</ul>
+</li>
+<li><p><strong>Key 分散</strong>（适用于读多写少）：</p>
+<ul>
+<li>将热点 Key 复制 10 份：<code>stock:item_123:0 ~ stock:item_123:9</code>。</li>
+<li>读请求随机路由，写请求同步更新所有副本。</li>
+</ul>
+</li>
+<li><p><strong>限流前置</strong>：</p>
+<ul>
+<li>网关层按 <code>item_id</code> 限流，单商品最大 <strong>2.5w QPS</strong>（留 20% 余量）。</li>
+<li>超出部分直接返回”繁忙”，避免击穿 Redis。</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h4 id="案例-2：券码补货锁超时"><a href="#案例-2：券码补货锁超时" class="headerlink" title="案例 2：券码补货锁超时"></a>案例 2：券码补货锁超时</h4><p><strong>问题</strong>：</p>
+<ul>
+<li>补货时加分布式锁（10s 超时），从 MySQL 查 3000 张券码。</li>
+<li>DB 慢查询导致补货耗时 <strong>12s</strong>，锁提前过期。</li>
+<li>另一个进程拿到锁，重复补货，导致 <strong>券码重复出货</strong>。</li>
+</ul>
+<p><strong>根因</strong>：</p>
+<ul>
+<li>MySQL <code>inventory_code_pool_xx</code> 表数据量大（千万级），<code>status=1</code> 索引选择性差。</li>
+<li>执行计划走了全表扫描。</li>
+</ul>
+<p><strong>解决方案</strong>：</p>
+<ol>
+<li><p><strong>优化 SQL</strong>：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 增加复合索引</span></span><br><span class="line">KEY idx_item_status_id (item_id, status, id)</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 查询改为游标分页</span></span><br><span class="line"><span class="keyword">SELECT</span> id <span class="keyword">FROM</span> inventory_code_pool_xx</span><br><span class="line"><span class="keyword">WHERE</span> item_id<span class="operator">=</span>? <span class="keyword">AND</span> status<span class="operator">=</span><span class="number">1</span> <span class="keyword">AND</span> id <span class="operator">&gt;</span> ?</span><br><span class="line"><span class="keyword">ORDER</span> <span class="keyword">BY</span> id LIMIT <span class="number">3000</span></span><br></pre></td></tr></table></figure>
+<p>耗时从 12s 降至 <strong>50ms</strong>。</p>
+</li>
+<li><p><strong>锁续期</strong>：</p>
+<ul>
+<li>补货时启动守护线程，每 5s 检查锁是否需要续期。</li>
+<li>避免长事务导致锁过期。</li>
+</ul>
+</li>
+<li><p><strong>异步补货</strong>：</p>
+<ul>
+<li>检测库存低于阈值（1000 张）时，<strong>提前异步补货</strong>。</li>
+<li>避免用户请求阻塞在补货逻辑。</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h4 id="案例-3：Kafka-消费积压"><a href="#案例-3：Kafka-消费积压" class="headerlink" title="案例 3：Kafka 消费积压"></a>案例 3：Kafka 消费积压</h4><p><strong>问题</strong>：</p>
+<ul>
+<li>秒杀活动结束后，Kafka 积压 <strong>50 万条消息</strong>（2.5 万 QPS × 20s）。</li>
+<li>6 个 Consumer 消费速度跟不上，MySQL 写入成为瓶颈。</li>
+</ul>
+<p><strong>瓶颈分析</strong>：</p>
+<ul>
+<li>Consumer 逐条更新 MySQL：<code>UPDATE inventory SET booking_stock = booking_stock + 1</code></li>
+<li>MySQL 单线程提交，TPS <strong>&lt; 5000</strong>（主从半同步复制延迟）。</li>
+</ul>
+<p><strong>解决方案</strong>：</p>
+<ol>
+<li><p><strong>批量写入</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 攒批 100 条，批量 INSERT</span></span><br><span class="line">INSERT INTO inventory_operation_log (item_id, operation_type, quantity, ...)</span><br><span class="line">VALUES (?, ?, ?), (?, ?, ?), ...  -- <span class="number">100</span> rows</span><br></pre></td></tr></table></figure>
+<p>TPS 从 5k 提升至 <strong>8 万</strong>（提升 16 倍）。</p>
+</li>
+<li><p><strong>降低一致性要求</strong>：</p>
+<ul>
+<li><code>inventory_operation_log</code> 日志表改为<strong>异步从库写入</strong>。</li>
+<li>主库只更新 <code>inventory</code> 核心表。</li>
+</ul>
+</li>
+<li><p><strong>削峰</strong>：</p>
+<ul>
+<li>Kafka 设置 <code>linger.ms=100ms</code>，Producer 端攒批发送。</li>
+<li>减少消息数量。</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h4 id="案例-4：对账发现的典型问题"><a href="#案例-4：对账发现的典型问题" class="headerlink" title="案例 4：对账发现的典型问题"></a>案例 4：对账发现的典型问题</h4><p><strong>统计数据</strong>（3 个月）：</p>
+<ul>
+<li>对账次数：<strong>2160 次</strong>（每小时 1 次）</li>
+<li>发现差异：<strong>87 次</strong>（4% 频率）</li>
+<li>差异 &gt; 100：<strong>3 次</strong>（严重）</li>
+</ul>
+<p><strong>主要根因</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>原因</th>
+<th>占比</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Kafka 消费延迟</td>
+<td>60%</td>
+<td>秒杀后消费积压，MySQL 未及时更新</td>
+</tr>
+<tr>
+<td>Redis 补货未同步 MySQL</td>
+<td>25%</td>
+<td>券码补货只更新 Redis，DB 未记录</td>
+</tr>
+<tr>
+<td>人工后台操作</td>
+<td>10%</td>
+<td>运营手动修改 DB 库存</td>
+</tr>
+<tr>
+<td>Redis 重启丢数据</td>
+<td>5%</td>
+<td>AOF 未及时刷盘（<code>appendfsync everysec</code>）</td>
+</tr>
+</tbody></table>
+<p><strong>优化措施</strong>：</p>
+<ol>
+<li><strong>Kafka 消费延迟告警</strong>：lag &gt; 1000 立即告警。</li>
+<li><strong>Redis 补货同步</strong>：补货时同步更新 MySQL <code>total_stock</code>。</li>
+<li><strong>后台操作审计</strong>：所有库存修改必须通过 API，禁止直接改 DB。</li>
+<li><strong>Redis 持久化增强</strong>：改为 <code>appendfsync always</code>（性能下降 30%，换取强一致）。</li>
+</ol>
+<hr>
+<h3 id="15-5-成本分析"><a href="#15-5-成本分析" class="headerlink" title="15.5 成本分析"></a>15.5 成本分析</h3><table>
+<thead>
+<tr>
+<th>资源</th>
+<th>配置</th>
+<th>数量</th>
+<th>月成本（美元）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Redis Cluster</td>
+<td>32GB × 6 节点</td>
+<td>1 套</td>
+<td>$800</td>
+</tr>
+<tr>
+<td>MySQL</td>
+<td>64GB 主库 + 32GB × 2 从库</td>
+<td>1 套</td>
+<td>$1,200</td>
+</tr>
+<tr>
+<td>应用服务</td>
+<td>4C8G Pod</td>
+<td>10 台</td>
+<td>$600</td>
+</tr>
+<tr>
+<td>Kafka</td>
+<td>8C16G Broker</td>
+<td>3 台</td>
+<td>$900</td>
+</tr>
+<tr>
+<td><strong>总计</strong></td>
+<td>-</td>
+<td>-</td>
+<td><strong>$3,500&#x2F;月</strong></td>
+</tr>
+</tbody></table>
+<p><strong>日均订单成本</strong>：$3,500 &#x2F; 2,000,000 &#x3D; <strong>$0.00175&#x2F;单</strong>（0.175 美分）</p>
+<hr>
+<h3 id="15-6-核心设计决策"><a href="#15-6-核心设计决策" class="headerlink" title="15.6 核心设计决策"></a>15.6 核心设计决策</h3><table>
+<thead>
+<tr>
+<th>决策</th>
+<th>选择</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>统一 vs 独立</strong></td>
+<td>统一模型 + 策略模式</td>
+<td>复用逻辑，新品类零代码接入</td>
+</tr>
+<tr>
+<td><strong>Redis vs MySQL</strong></td>
+<td>Redis 优先，MySQL 持久化</td>
+<td>高并发性能 + 数据可靠</td>
+</tr>
+<tr>
+<td><strong>同步 vs 异步</strong></td>
+<td>扣减同步，落库异步</td>
+<td>热路径极速，冷路径可靠</td>
+</tr>
+<tr>
+<td><strong>券码出货方式</strong></td>
+<td>Lazy Loading（按需补货）</td>
+<td>节省内存，避免一次性加载全量</td>
+</tr>
+<tr>
+<td><strong>对账策略</strong></td>
+<td>每小时自动对账，MySQL 为准</td>
+<td>兜底一致性</td>
+</tr>
+<tr>
+<td><strong>降级策略</strong></td>
+<td>Redis 宕机切 MySQL</td>
+<td>性能下降 10 倍，但业务不中断</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="15-7-业界对比"><a href="#15-7-业界对比" class="headerlink" title="15.7 业界对比"></a>15.7 业界对比</h3><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>淘宝&#x2F;京东</th>
+<th>Amazon</th>
+<th>本设计</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>库存单元</td>
+<td>SKU 数量</td>
+<td>ASIN + FBA</td>
+<td>SKU + 批次&#x2F;日期</td>
+</tr>
+<tr>
+<td>扣减时机</td>
+<td>下单预订</td>
+<td>支付成功</td>
+<td><strong>可配置</strong></td>
+</tr>
+<tr>
+<td>虚拟商品</td>
+<td>部分支持</td>
+<td>完善</td>
+<td><strong>核心场景</strong></td>
+</tr>
+<tr>
+<td>时间维度</td>
+<td>不支持</td>
+<td>不支持</td>
+<td><strong>支持</strong></td>
+</tr>
+<tr>
+<td>券码管理</td>
+<td>部分</td>
+<td>完善</td>
+<td><strong>核心能力</strong></td>
+</tr>
+<tr>
+<td>供应商集成</td>
+<td>少量</td>
+<td>FBA 模式</td>
+<td><strong>多策略</strong></td>
+</tr>
+<tr>
+<td>峰值 QPS</td>
+<td>100 万+</td>
+<td>50 万+</td>
+<td><strong>2 万</strong>（中型平台）</td>
+</tr>
+</tbody></table>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" rel="tag"># 系统设计</a>
+              <a href="/tags/%E9%AB%98%E5%B9%B6%E5%8F%91/" rel="tag"># 高并发</a>
+              <a href="/tags/%E7%94%B5%E5%95%86/" rel="tag"># 电商</a>
+              <a href="/tags/%E5%BA%93%E5%AD%98%E7%B3%BB%E7%BB%9F/" rel="tag"># 库存系统</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/06/25/system-design/17-high-frequency-system-design/" rel="prev" title="高频系统设计面试题速查手册">
+                  <i class="fa fa-angle-left"></i> 高频系统设计面试题速查手册
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/06/28/system-design/19-listing-upload-system-design/" rel="next" title="多品类统一商品上架系统设计：电商·虚拟商品·本地生活">
+                  多品类统一商品上架系统设计：电商·虚拟商品·本地生活 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

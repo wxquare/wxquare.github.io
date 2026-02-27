@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="广告实时调价数据流优化一、背景1.1 业务场景在 oCPM（Optimized Cost Per Mille）智能出价场景中，广告系统需要根据实时转化效果动态调整出价。核心公式为： 1eCPM &#x3D; Target_CPA × pCTR × pCVR × 校准因子 × 成本控制因子 × 1000  其中：  Target_CPA：广告主设定的目标转化成本 pCTR &#x2F; pCVR：模型预估">
+<meta property="og:type" content="article">
+<meta property="og:title" content="广告实时调价数据流优化：从10分钟到1分钟">
+<meta property="og:url" content="http://yoursite.com/2024/01/01/system-design/20-ad-realtime-pricing-optimization/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="广告实时调价数据流优化一、背景1.1 业务场景在 oCPM（Optimized Cost Per Mille）智能出价场景中，广告系统需要根据实时转化效果动态调整出价。核心公式为： 1eCPM &#x3D; Target_CPA × pCTR × pCVR × 校准因子 × 成本控制因子 × 1000  其中：  Target_CPA：广告主设定的目标转化成本 pCTR &#x2F; pCVR：模型预估">
+<meta property="og:locale">
+<meta property="article:published_time" content="2023-12-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-02-12T15:26:27.158Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="广告系统">
+<meta property="article:tag" content="实时计算">
+<meta property="article:tag" content="性能优化">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2024/01/01/system-design/20-ad-realtime-pricing-optimization/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2024/01/01/system-design/20-ad-realtime-pricing-optimization/","path":"2024/01/01/system-design/20-ad-realtime-pricing-optimization/","title":"广告实时调价数据流优化：从10分钟到1分钟"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>广告实时调价数据流优化：从10分钟到1分钟 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B9%BF%E5%91%8A%E5%AE%9E%E6%97%B6%E8%B0%83%E4%BB%B7%E6%95%B0%E6%8D%AE%E6%B5%81%E4%BC%98%E5%8C%96"><span class="nav-number">1.</span> <span class="nav-text">广告实时调价数据流优化</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E8%83%8C%E6%99%AF"><span class="nav-number">1.1.</span> <span class="nav-text">一、背景</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E4%B8%9A%E5%8A%A1%E5%9C%BA%E6%99%AF"><span class="nav-number">1.1.1.</span> <span class="nav-text">1.1 业务场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E6%A0%B8%E5%BF%83%E6%8C%91%E6%88%98"><span class="nav-number">1.1.2.</span> <span class="nav-text">1.2 核心挑战</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E4%BC%98%E5%8C%96%E7%9B%AE%E6%A0%87"><span class="nav-number">1.1.3.</span> <span class="nav-text">1.3 优化目标</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E8%B0%83%E4%BB%B7%E6%95%B0%E6%8D%AE%E6%B5%81%E5%85%A8%E6%99%AF"><span class="nav-number">1.2.</span> <span class="nav-text">二、调价数据流全景</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E7%AB%AF%E5%88%B0%E7%AB%AF%E6%95%B0%E6%8D%AE%E6%B5%81"><span class="nav-number">1.2.1.</span> <span class="nav-text">2.1 端到端数据流</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%85%B3%E9%94%AE%E4%B8%8A%E6%B8%B8%E6%9C%8D%E5%8A%A1"><span class="nav-number">1.2.2.</span> <span class="nav-text">2.2 关键上游服务</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BD%92%E5%9B%A0%E6%9C%8D%E5%8A%A1-Attribution-Service"><span class="nav-number">1.2.2.1.</span> <span class="nav-text">归因服务 (Attribution Service)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%8D%E4%BD%9C%E5%BC%8A%E8%BF%87%E6%BB%A4-Anti-Fraud-Filter"><span class="nav-number">1.2.2.2.</span> <span class="nav-text">反作弊过滤 (Anti-Fraud Filter)</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E8%B0%83%E4%BB%B7%E6%89%80%E9%9C%80%E6%95%B0%E6%8D%AE"><span class="nav-number">1.3.</span> <span class="nav-text">三、调价所需数据</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E5%AE%9E%E9%99%85%E6%95%88%E6%9E%9C%E6%95%B0%E6%8D%AE%EF%BC%88%E5%BD%92%E5%9B%A0-%E5%8F%8D%E4%BD%9C%E5%BC%8A%E5%90%8E%EF%BC%89"><span class="nav-number">1.3.1.</span> <span class="nav-text">3.1 实际效果数据（归因+反作弊后）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E6%A8%A1%E5%9E%8B%E9%A2%84%E4%BC%B0%E6%95%B0%E6%8D%AE%EF%BC%88%E7%94%A8%E4%BA%8E%E8%AE%A1%E7%AE%97%E6%A0%A1%E5%87%86%E5%9B%A0%E5%AD%90%EF%BC%89"><span class="nav-number">1.3.2.</span> <span class="nav-text">3.2 模型预估数据（用于计算校准因子）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E6%A0%A1%E5%87%86%E5%9B%A0%E5%AD%90%E8%AE%A1%E7%AE%97"><span class="nav-number">1.3.3.</span> <span class="nav-text">3.3 校准因子计算</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E5%A4%9A%E6%97%B6%E9%97%B4%E7%AA%97%E5%8F%A3%E5%A4%84%E7%90%86%E7%AD%96%E7%95%A5"><span class="nav-number">1.4.</span> <span class="nav-text">四、多时间窗口处理策略</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E5%A4%9A%E6%97%B6%E9%97%B4%E7%AA%97%E5%8F%A3%EF%BC%9F"><span class="nav-number">1.4.1.</span> <span class="nav-text">4.1 为什么需要多时间窗口？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E7%AA%97%E5%8F%A3%E9%80%89%E6%8B%A9%E7%AD%96%E7%95%A5"><span class="nav-number">1.4.2.</span> <span class="nav-text">4.2 窗口选择策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E5%A4%9A%E7%AA%97%E5%8F%A3%E8%9E%8D%E5%90%88%E7%AD%96%E7%95%A5"><span class="nav-number">1.4.3.</span> <span class="nav-text">4.3 多窗口融合策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E5%88%86%E5%B1%82%E8%AE%A1%E7%AE%97%E7%AD%96%E7%95%A5%EF%BC%88%E8%BF%9B%E9%98%B6%E4%BC%98%E5%8C%96%EF%BC%89"><span class="nav-number">1.4.4.</span> <span class="nav-text">4.4 分层计算策略（进阶优化）</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%86%E5%B1%82%E8%AE%A1%E7%AE%97%E7%9A%84%E4%BC%98%E5%8A%BF"><span class="nav-number">1.4.4.1.</span> <span class="nav-text">分层计算的优势</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E7%A4%BA%E4%BE%8B"><span class="nav-number">1.4.4.2.</span> <span class="nav-text">实现示例</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%B0%83%E5%BA%A6%E9%85%8D%E7%BD%AE"><span class="nav-number">1.4.4.3.</span> <span class="nav-text">调度配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E6%B5%81%E7%A4%BA%E6%84%8F"><span class="nav-number">1.4.4.4.</span> <span class="nav-text">数据流示意</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%8E-V2-%E5%86%85%E5%AD%98%E6%96%B9%E6%A1%88%E7%9A%84%E5%AF%B9%E6%AF%94"><span class="nav-number">1.4.4.5.</span> <span class="nav-text">与 V2 内存方案的对比</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81V1-%E6%96%B9%E6%A1%88%EF%BC%9A%E6%9F%A5%E8%AF%A2%E6%97%B6%E8%AE%A1%E7%AE%97"><span class="nav-number">1.5.</span> <span class="nav-text">五、V1 方案：查询时计算</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E6%9E%B6%E6%9E%84"><span class="nav-number">1.5.1.</span> <span class="nav-text">5.1 架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E5%90%84%E7%BB%84%E4%BB%B6%E8%81%8C%E8%B4%A3"><span class="nav-number">1.5.2.</span> <span class="nav-text">5.2 各组件职责</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-AdProfile-%E5%A4%84%E7%90%86%E9%80%BB%E8%BE%91"><span class="nav-number">1.5.3.</span> <span class="nav-text">5.3 AdProfile 处理逻辑</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-4-%E5%BB%B6%E8%BF%9F%E5%88%86%E6%9E%90"><span class="nav-number">1.5.4.</span> <span class="nav-text">5.4 延迟分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-5-%E6%A0%B8%E5%BF%83%E9%97%AE%E9%A2%98"><span class="nav-number">1.5.5.</span> <span class="nav-text">5.5 核心问题</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81V2-%E6%96%B9%E6%A1%88%EF%BC%9A%E5%86%99%E5%85%A5%E6%97%B6%E8%AE%A1%E7%AE%97"><span class="nav-number">1.6.</span> <span class="nav-text">六、V2 方案：写入时计算</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-%E6%A0%B8%E5%BF%83%E6%80%9D%E8%B7%AF"><span class="nav-number">1.6.1.</span> <span class="nav-text">6.1 核心思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-%E6%9E%B6%E6%9E%84"><span class="nav-number">1.6.2.</span> <span class="nav-text">6.2 架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6%E8%AE%BE%E8%AE%A1"><span class="nav-number">1.6.3.</span> <span class="nav-text">6.3 核心组件设计</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%BB%E8%BF%9B%E7%A8%8B-SparkStreaming"><span class="nav-number">1.6.3.1.</span> <span class="nav-text">主进程 (SparkStreaming)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#accu-class%EF%BC%9A%E5%A2%9E%E9%87%8F%E6%95%B0%E6%8D%AE-%E6%8C%81%E4%B9%85%E5%8C%96"><span class="nav-number">1.6.3.2.</span> <span class="nav-text">accu_class：增量数据 + 持久化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#all-class%EF%BC%9A%E5%85%A8%E9%87%8F%E6%95%B0%E6%8D%AE-%E5%AE%9E%E6%97%B6%E6%8C%87%E6%A0%87%E8%AE%A1%E7%AE%97"><span class="nav-number">1.6.3.3.</span> <span class="nav-text">all_class：全量数据 + 实时指标计算</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-4-%E4%B8%BA%E4%BB%80%E4%B9%88%E5%BF%AB%E4%BA%86%EF%BC%9F"><span class="nav-number">1.6.4.</span> <span class="nav-text">6.4 为什么快了？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-5-%E5%AE%B9%E9%94%99%E6%9C%BA%E5%88%B6"><span class="nav-number">1.6.5.</span> <span class="nav-text">6.5 容错机制</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%83%E3%80%81%E4%B8%9A%E7%95%8C%E6%96%B9%E6%A1%88%E5%AF%B9%E6%AF%94"><span class="nav-number">1.7.</span> <span class="nav-text">七、业界方案对比</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#7-1-%E4%B8%BB%E6%B5%81%E6%9E%B6%E6%9E%84"><span class="nav-number">1.7.1.</span> <span class="nav-text">7.1 主流架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-2-Lambda-vs-Kappa-%E6%9E%B6%E6%9E%84"><span class="nav-number">1.7.2.</span> <span class="nav-text">7.2 Lambda vs Kappa 架构</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AB%E3%80%81%E6%9C%80%E7%BB%88%E6%95%88%E6%9E%9C"><span class="nav-number">1.8.</span> <span class="nav-text">八、最终效果</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#8-1-%E6%80%A7%E8%83%BD%E6%8F%90%E5%8D%87"><span class="nav-number">1.8.1.</span> <span class="nav-text">8.1 性能提升</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-2-%E4%B8%9A%E5%8A%A1%E6%94%B6%E7%9B%8A"><span class="nav-number">1.8.2.</span> <span class="nav-text">8.2 业务收益</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-3-%E7%B3%BB%E7%BB%9F%E7%A8%B3%E5%AE%9A%E6%80%A7"><span class="nav-number">1.8.3.</span> <span class="nav-text">8.3 系统稳定性</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B9%9D%E3%80%81%E9%9D%A2%E8%AF%95%E8%A6%81%E7%82%B9%E6%80%BB%E7%BB%93"><span class="nav-number">1.9.</span> <span class="nav-text">九、面试要点总结</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#9-1-%E4%B8%80%E5%8F%A5%E8%AF%9D%E6%A6%82%E6%8B%AC"><span class="nav-number">1.9.1.</span> <span class="nav-text">9.1 一句话概括</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-2-%E6%A0%B8%E5%BF%83%E4%BC%98%E5%8C%96%E6%80%9D%E8%B7%AF"><span class="nav-number">1.9.2.</span> <span class="nav-text">9.2 核心优化思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-3-%E5%BB%B6%E4%BC%B8%E9%97%AE%E9%A2%98"><span class="nav-number">1.9.3.</span> <span class="nav-text">9.3 延伸问题</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E3%80%81%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">1.10.</span> <span class="nav-text">十、参考资料</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2024/01/01/system-design/20-ad-realtime-pricing-optimization/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="广告实时调价数据流优化：从10分钟到1分钟 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          广告实时调价数据流优化：从10分钟到1分钟
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2024-01-01 00:00:00" itemprop="dateCreated datePublished" datetime="2024-01-01T00:00:00+08:00">2024-01-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-02-12 23:26:27" itemprop="dateModified" datetime="2026-02-12T23:26:27+08:00">2026-02-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><!-- toc -->
+
+<h1 id="广告实时调价数据流优化"><a href="#广告实时调价数据流优化" class="headerlink" title="广告实时调价数据流优化"></a>广告实时调价数据流优化</h1><h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><h3 id="1-1-业务场景"><a href="#1-1-业务场景" class="headerlink" title="1.1 业务场景"></a>1.1 业务场景</h3><p>在 oCPM（Optimized Cost Per Mille）智能出价场景中，广告系统需要根据实时转化效果动态调整出价。核心公式为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">eCPM = Target_CPA × pCTR × pCVR × 校准因子 × 成本控制因子 × 1000</span><br></pre></td></tr></table></figure>
+
+<p>其中：</p>
+<ul>
+<li><strong>Target_CPA</strong>：广告主设定的目标转化成本</li>
+<li><strong>pCTR &#x2F; pCVR</strong>：模型预估的点击率&#x2F;转化率</li>
+<li><strong>校准因子</strong>：修正模型预估偏差，<code>calibration = 实际CVR / 预估CVR</code></li>
+<li><strong>成本控制因子</strong>：根据实际 CPA 与目标 CPA 的偏差调整出价</li>
+</ul>
+<h3 id="1-2-核心挑战"><a href="#1-2-核心挑战" class="headerlink" title="1.2 核心挑战"></a>1.2 核心挑战</h3><table>
+<thead>
+<tr>
+<th>挑战</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>时效性</strong></td>
+<td>数据越新，调价越精准；但实时处理成本高</td>
+</tr>
+<tr>
+<td><strong>准确性</strong></td>
+<td>需要归因服务确定转化归属，反作弊过滤虚假转化</td>
+</tr>
+<tr>
+<td><strong>稳定性</strong></td>
+<td>高 QPS 场景下，数据系统必须高可用</td>
+</tr>
+<tr>
+<td><strong>多窗口</strong></td>
+<td>需要同时维护 2h&#x2F;24h&#x2F;7d 等多个时间窗口的指标</td>
+</tr>
+</tbody></table>
+<h3 id="1-3-优化目标"><a href="#1-3-优化目标" class="headerlink" title="1.3 优化目标"></a>1.3 优化目标</h3><p><strong>将数据上线时间从 10 分钟级提升到 1 分钟级</strong>，提升调价引擎的响应速度和准确性。</p>
+<hr>
+<h2 id="二、调价数据流全景"><a href="#二、调价数据流全景" class="headerlink" title="二、调价数据流全景"></a>二、调价数据流全景</h2><h3 id="2-1-端到端数据流"><a href="#2-1-端到端数据流" class="headerlink" title="2.1 端到端数据流"></a>2.1 端到端数据流</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                           广告调价数据流                                     │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐              │</span><br><span class="line">│  │ 曝光/点击 │    │  转化回传  │    │  归因服务  │    │ 反作弊过滤 │              │</span><br><span class="line">│  └────┬─────┘    └────┬─────┘    └────┬─────┘    └────┬─────┘              │</span><br><span class="line">│       │               │               │               │                    │</span><br><span class="line">│       └───────────────┴───────────────┴───────────────┘                    │</span><br><span class="line">│                               │                                            │</span><br><span class="line">│                               ▼                                            │</span><br><span class="line">│  ┌─────────────────────────────────────────────────────────────────────┐   │</span><br><span class="line">│  │                    消息队列 (Kafka/Tdbank)                           │   │</span><br><span class="line">│  └─────────────────────────────────────────────────────────────────────┘   │</span><br><span class="line">│                               │                                            │</span><br><span class="line">│                               ▼                                            │</span><br><span class="line">│  ┌─────────────────────────────────────────────────────────────────────┐   │</span><br><span class="line">│  │                    流处理引擎 (Spark/Flink)                          │   │</span><br><span class="line">│  │                    聚合计算 + 多时间窗口                              │   │</span><br><span class="line">│  └─────────────────────────────────────────────────────────────────────┘   │</span><br><span class="line">│                               │                                            │</span><br><span class="line">│                               ▼                                            │</span><br><span class="line">│  ┌─────────────────────────────────────────────────────────────────────┐   │</span><br><span class="line">│  │                    特征存储 (Redis/TPG)                              │   │</span><br><span class="line">│  │                    多时间窗口聚合指标                                 │   │</span><br><span class="line">│  └─────────────────────────────────────────────────────────────────────┘   │</span><br><span class="line">│                               │                                            │</span><br><span class="line">│                               ▼                                            │</span><br><span class="line">│  ┌─────────────────────────────────────────────────────────────────────┐   │</span><br><span class="line">│  │                    调价引擎 (Bidding Engine)                         │   │</span><br><span class="line">│  │                    计算校准因子 + 成本控制                            │   │</span><br><span class="line">│  └─────────────────────────────────────────────────────────────────────┘   │</span><br><span class="line">│                                                                             │</span><br><span class="line">└─────────────────────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-关键上游服务"><a href="#2-2-关键上游服务" class="headerlink" title="2.2 关键上游服务"></a>2.2 关键上游服务</h3><h4 id="归因服务-Attribution-Service"><a href="#归因服务-Attribution-Service" class="headerlink" title="归因服务 (Attribution Service)"></a>归因服务 (Attribution Service)</h4><p><strong>核心问题</strong>：一个转化应该归功于哪次广告曝光&#x2F;点击？</p>
+<p>常见归因模型：</p>
+<ul>
+<li><strong>Last Click</strong>：归因到最后一次点击</li>
+<li><strong>Last Touch</strong>：点击优先于曝光，归因到最后一次触达</li>
+<li><strong>Time Decay</strong>：时间衰减加权</li>
+</ul>
+<h4 id="反作弊过滤-Anti-Fraud-Filter"><a href="#反作弊过滤-Anti-Fraud-Filter" class="headerlink" title="反作弊过滤 (Anti-Fraud Filter)"></a>反作弊过滤 (Anti-Fraud Filter)</h4><p><strong>核心问题</strong>：过滤虚假转化，防止脏数据污染调价</p>
+<p>检测维度：</p>
+<ul>
+<li><strong>设备维度</strong>：模拟器、Root设备、设备农场</li>
+<li><strong>行为维度</strong>：点击到安装时间异常短（点击注入）</li>
+<li><strong>网络维度</strong>：机房IP、代理IP</li>
+</ul>
+<hr>
+<h2 id="三、调价所需数据"><a href="#三、调价所需数据" class="headerlink" title="三、调价所需数据"></a>三、调价所需数据</h2><h3 id="3-1-实际效果数据（归因-反作弊后）"><a href="#3-1-实际效果数据（归因-反作弊后）" class="headerlink" title="3.1 实际效果数据（归因+反作弊后）"></a>3.1 实际效果数据（归因+反作弊后）</h3><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>说明</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Impressions</td>
+<td>有效曝光数</td>
+<td>曝光日志</td>
+</tr>
+<tr>
+<td>Clicks</td>
+<td>有效点击数</td>
+<td>点击日志</td>
+</tr>
+<tr>
+<td>Conversions</td>
+<td>有效转化数</td>
+<td>转化日志（归因后）</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>实际消耗</td>
+<td>计费系统</td>
+</tr>
+<tr>
+<td>CTR</td>
+<td>点击率 &#x3D; Click&#x2F;Impression</td>
+<td>计算</td>
+</tr>
+<tr>
+<td>CVR</td>
+<td>转化率 &#x3D; Conversion&#x2F;Click</td>
+<td>计算</td>
+</tr>
+<tr>
+<td>CPA</td>
+<td>转化成本 &#x3D; Cost&#x2F;Conversion</td>
+<td>计算</td>
+</tr>
+</tbody></table>
+<h3 id="3-2-模型预估数据（用于计算校准因子）"><a href="#3-2-模型预估数据（用于计算校准因子）" class="headerlink" title="3.2 模型预估数据（用于计算校准因子）"></a>3.2 模型预估数据（用于计算校准因子）</h3><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>说明</th>
+<th>采集点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Σ pCTR</td>
+<td>每次曝光时的 pCTR 累加</td>
+<td>曝光时记录</td>
+</tr>
+<tr>
+<td>Σ pCVR</td>
+<td>每次曝光时的 pCVR 累加</td>
+<td>曝光时记录</td>
+</tr>
+<tr>
+<td>Σ pCVR|click</td>
+<td>每次点击时的 pCVR 累加</td>
+<td>点击时记录</td>
+</tr>
+</tbody></table>
+<h3 id="3-3-校准因子计算"><a href="#3-3-校准因子计算" class="headerlink" title="3.3 校准因子计算"></a>3.3 校准因子计算</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">CTR 校准因子 = 实际点击数 / Σ pCTR</span><br><span class="line">CVR 校准因子 = 实际转化数 / Σ pCVR</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="四、多时间窗口处理策略"><a href="#四、多时间窗口处理策略" class="headerlink" title="四、多时间窗口处理策略"></a>四、多时间窗口处理策略</h2><h3 id="4-1-为什么需要多时间窗口？"><a href="#4-1-为什么需要多时间窗口？" class="headerlink" title="4.1 为什么需要多时间窗口？"></a>4.1 为什么需要多时间窗口？</h3><table>
+<thead>
+<tr>
+<th>窗口</th>
+<th>样本量</th>
+<th>时效性</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>2h</strong></td>
+<td>少</td>
+<td>高</td>
+<td>捕捉突发变化（素材衰退、竞争加剧）</td>
+</tr>
+<tr>
+<td><strong>24h</strong></td>
+<td>中</td>
+<td>中</td>
+<td>日常调价主力，平衡稳定性和响应速度</td>
+</tr>
+<tr>
+<td><strong>7d&#x2F;10d</strong></td>
+<td>多</td>
+<td>低</td>
+<td>提供基准线，防止短期波动误判</td>
+</tr>
+</tbody></table>
+<h3 id="4-2-窗口选择策略"><a href="#4-2-窗口选择策略" class="headerlink" title="4.2 窗口选择策略"></a>4.2 窗口选择策略</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetCalibration</span><span class="params">(adID <span class="type">string</span>)</span></span> *CalibrationData &#123;</span><br><span class="line">    <span class="comment">// 优先用短窗口（时效性高），样本不足时回退到长窗口</span></span><br><span class="line">    <span class="keyword">for</span> _, window := <span class="keyword">range</span> []<span class="type">string</span>&#123;<span class="string">&quot;2h&quot;</span>, <span class="string">&quot;24h&quot;</span>, <span class="string">&quot;7d&quot;</span>&#125; &#123;</span><br><span class="line">        data := queryData(adID, window)</span><br><span class="line">        <span class="keyword">if</span> data.Clicks &gt;= minClickThreshold[window] &amp;&amp;</span><br><span class="line">           data.Conversions &gt;= minConvThreshold[window] &#123;</span><br><span class="line">            <span class="keyword">return</span> calculateCalibration(data)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> defaultCalibration  <span class="comment">// 样本不足，不校准</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-多窗口融合策略"><a href="#4-3-多窗口融合策略" class="headerlink" title="4.3 多窗口融合策略"></a>4.3 多窗口融合策略</h3><p><strong>方案1：样本量加权</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">weightedCVR = (cvr_2h × clicks_2h + cvr_24h × clicks_24h × <span class="number">0.8</span> + cvr_7d × clicks_7d × <span class="number">0.5</span>) </span><br><span class="line">            / (clicks_2h + clicks_24h × <span class="number">0.8</span> + clicks_7d × <span class="number">0.5</span>)</span><br></pre></td></tr></table></figure>
+
+<p><strong>方案2：置信度阈值切换</strong></p>
+<ul>
+<li>2h 样本 &gt; 100 clicks → 用 2h 窗口</li>
+<li>否则用 24h 窗口</li>
+<li>24h 也不足 → 用 7d 窗口</li>
+</ul>
+<h3 id="4-4-分层计算策略（进阶优化）"><a href="#4-4-分层计算策略（进阶优化）" class="headerlink" title="4.4 分层计算策略（进阶优化）"></a>4.4 分层计算策略（进阶优化）</h3><p>不同时间窗口对时效性要求不同，可以采用<strong>分层并行计算</strong>，平衡计算成本和数据新鲜度：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                        分层计算架构                                          │</span><br><span class="line">│                                                                             │</span><br><span class="line">│   ┌─────────────────────────────────────────────────────────────────────┐  │</span><br><span class="line">│   │                     实时层 (Real-time)                              │  │</span><br><span class="line">│   │                                                                     │  │</span><br><span class="line">│   │   窗口: 2h                                                          │  │</span><br><span class="line">│   │   计算: 内存实时聚合 (Flink/Spark Streaming)                         │  │</span><br><span class="line">│   │   更新: 秒级/分钟级                                                  │  │</span><br><span class="line">│   │   存储: Redis                                                       │  │</span><br><span class="line">│   │                                                                     │  │</span><br><span class="line">│   │   适用: 对时效性要求高，需要快速响应效果变化                           │  │</span><br><span class="line">│   └─────────────────────────────────────────────────────────────────────┘  │</span><br><span class="line">│                                                                             │</span><br><span class="line">│   ┌─────────────────────────────────────────────────────────────────────┐  │</span><br><span class="line">│   │                     近实时层 (Near Real-time)                       │  │</span><br><span class="line">│   │                                                                     │  │</span><br><span class="line">│   │   窗口: 24h                                                         │  │</span><br><span class="line">│   │   计算: 离线任务 (Spark Batch)                                       │  │</span><br><span class="line">│   │   更新: 小时级 (每小时跑一次)                                        │  │</span><br><span class="line">│   │   存储: Redis / HBase                                               │  │</span><br><span class="line">│   │                                                                     │  │</span><br><span class="line">│   │   适用: 作为调价主力，1小时延迟可接受                                 │  │</span><br><span class="line">│   └─────────────────────────────────────────────────────────────────────┘  │</span><br><span class="line">│                                                                             │</span><br><span class="line">│   ┌─────────────────────────────────────────────────────────────────────┐  │</span><br><span class="line">│   │                     离线层 (Batch)                                  │  │</span><br><span class="line">│   │                                                                     │  │</span><br><span class="line">│   │   窗口: 7d / 10d                                                    │  │</span><br><span class="line">│   │   计算: 离线任务 (Hive/Spark)                                        │  │</span><br><span class="line">│   │   更新: 天级 (每天凌晨跑一次)                                        │  │</span><br><span class="line">│   │   存储: HBase / MySQL                                               │  │</span><br><span class="line">│   │                                                                     │  │</span><br><span class="line">│   │   适用: 提供基准线，天级延迟完全可接受                                │  │</span><br><span class="line">│   └─────────────────────────────────────────────────────────────────────┘  │</span><br><span class="line">│                                                                             │</span><br><span class="line">└─────────────────────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h4 id="分层计算的优势"><a href="#分层计算的优势" class="headerlink" title="分层计算的优势"></a>分层计算的优势</h4><table>
+<thead>
+<tr>
+<th>优势</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>资源高效</strong></td>
+<td>只有短窗口需要实时计算，长窗口用离线资源</td>
+</tr>
+<tr>
+<td><strong>成本优化</strong></td>
+<td>实时计算资源贵，离线资源便宜</td>
+</tr>
+<tr>
+<td><strong>并行处理</strong></td>
+<td>三层独立运行，互不阻塞</td>
+</tr>
+<tr>
+<td><strong>容错隔离</strong></td>
+<td>实时层故障不影响离线层，反之亦然</td>
+</tr>
+</tbody></table>
+<h4 id="实现示例"><a href="#实现示例" class="headerlink" title="实现示例"></a>实现示例</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 分层数据源</span></span><br><span class="line"><span class="keyword">type</span> MultiLayerMetricsStore <span class="keyword">struct</span> &#123;</span><br><span class="line">    realtime   *RedisClient    <span class="comment">// 2h 窗口，实时更新</span></span><br><span class="line">    nearRT     *RedisClient    <span class="comment">// 24h 窗口，小时更新  </span></span><br><span class="line">    batch      *HBaseClient    <span class="comment">// 7d 窗口，天级更新</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 查询时合并三层数据</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *MultiLayerMetricsStore)</span></span> GetMetrics(adID <span class="type">string</span>) *MultiWindowMetrics &#123;</span><br><span class="line">    <span class="keyword">return</span> &amp;MultiWindowMetrics&#123;</span><br><span class="line">        Hour2:  s.realtime.Get(adID),   <span class="comment">// 实时层</span></span><br><span class="line">        Hour24: s.nearRT.Get(adID),     <span class="comment">// 近实时层</span></span><br><span class="line">        Day7:   s.batch.Get(adID),      <span class="comment">// 离线层</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="调度配置"><a href="#调度配置" class="headerlink" title="调度配置"></a>调度配置</h4><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 实时层 - Flink Job (常驻)</span></span><br><span class="line"><span class="attr">realtime_job:</span></span><br><span class="line">  <span class="attr">window:</span> <span class="string">2h</span></span><br><span class="line">  <span class="attr">trigger:</span> <span class="string">continuous</span></span><br><span class="line">  <span class="attr">sink:</span> <span class="string">redis</span></span><br><span class="line">  </span><br><span class="line"><span class="comment"># 近实时层 - Spark 定时任务</span></span><br><span class="line"><span class="attr">nearrt_job:</span></span><br><span class="line">  <span class="attr">window:</span> <span class="string">24h</span></span><br><span class="line">  <span class="attr">schedule:</span> <span class="string">&quot;0 * * * *&quot;</span>  <span class="comment"># 每小时执行</span></span><br><span class="line">  <span class="attr">source:</span> <span class="string">hive</span></span><br><span class="line">  <span class="attr">sink:</span> <span class="string">redis</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 离线层 - Hive 定时任务  </span></span><br><span class="line"><span class="attr">batch_job:</span></span><br><span class="line">  <span class="attr">window:</span> <span class="string">7d</span></span><br><span class="line">  <span class="attr">schedule:</span> <span class="string">&quot;0 3 * * *&quot;</span>  <span class="comment"># 每天凌晨3点执行</span></span><br><span class="line">  <span class="attr">source:</span> <span class="string">hive</span></span><br><span class="line">  <span class="attr">sink:</span> <span class="string">hbase</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="数据流示意"><a href="#数据流示意" class="headerlink" title="数据流示意"></a>数据流示意</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">                 实时数据流</span><br><span class="line">                     │</span><br><span class="line">     ┌───────────────┼───────────────┐</span><br><span class="line">     ▼               ▼               ▼</span><br><span class="line">┌─────────┐    ┌─────────┐    ┌─────────┐</span><br><span class="line">│  Kafka  │    │  Kafka  │    │  Hive   │</span><br><span class="line">└────┬────┘    └────┬────┘    └────┬────┘</span><br><span class="line">     │               │               │</span><br><span class="line">     ▼               │               │</span><br><span class="line">┌─────────┐          │               │</span><br><span class="line">│  Flink  │          │               │</span><br><span class="line">│ (常驻)  │          │               │</span><br><span class="line">└────┬────┘          │               │</span><br><span class="line">     │               ▼               ▼</span><br><span class="line">     │         ┌─────────┐    ┌─────────┐</span><br><span class="line">     │         │  Spark  │    │  Spark  │</span><br><span class="line">     │         │ (每小时) │    │ (每天)  │</span><br><span class="line">     │         └────┬────┘    └────┬────┘</span><br><span class="line">     │               │               │</span><br><span class="line">     ▼               ▼               ▼</span><br><span class="line">┌─────────┐    ┌─────────┐    ┌─────────┐</span><br><span class="line">│  Redis  │    │  Redis  │    │  HBase  │</span><br><span class="line">│  (2h)   │    │  (24h)  │    │  (7d)   │</span><br><span class="line">└────┬────┘    └────┬────┘    └────┬────┘</span><br><span class="line">     │               │               │</span><br><span class="line">     └───────────────┼───────────────┘</span><br><span class="line">                     │</span><br><span class="line">                     ▼</span><br><span class="line">               ┌───────────┐</span><br><span class="line">               │ 调价引擎  │</span><br><span class="line">               │ 合并查询  │</span><br><span class="line">               └───────────┘</span><br></pre></td></tr></table></figure>
+
+<h4 id="与-V2-内存方案的对比"><a href="#与-V2-内存方案的对比" class="headerlink" title="与 V2 内存方案的对比"></a>与 V2 内存方案的对比</h4><table>
+<thead>
+<tr>
+<th>对比项</th>
+<th>V2 全内存方案</th>
+<th>分层计算方案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>2h 窗口</strong></td>
+<td>内存计算</td>
+<td>内存计算</td>
+</tr>
+<tr>
+<td><strong>24h 窗口</strong></td>
+<td>内存计算</td>
+<td>离线小时级</td>
+</tr>
+<tr>
+<td><strong>7d 窗口</strong></td>
+<td>内存计算</td>
+<td>离线天级</td>
+</tr>
+<tr>
+<td><strong>内存压力</strong></td>
+<td>高 (存全量)</td>
+<td>低 (只存短窗口)</td>
+</tr>
+<tr>
+<td><strong>计算成本</strong></td>
+<td>高</td>
+<td>低</td>
+</tr>
+<tr>
+<td><strong>延迟</strong></td>
+<td>全部分钟级</td>
+<td>2h分钟级&#x2F;24h小时级&#x2F;7d天级</td>
+</tr>
+<tr>
+<td><strong>适用场景</strong></td>
+<td>全窗口高时效性要求</td>
+<td>短窗口高时效，长窗口可接受延迟</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>选择建议</strong>：如果业务对 24h&#x2F;7d 窗口的时效性要求不高（小时&#x2F;天级延迟可接受），分层计算方案更经济；如果全部窗口都需要分钟级时效，则选择 V2 全内存方案。</p>
+</blockquote>
+<hr>
+<h2 id="五、V1-方案：查询时计算"><a href="#五、V1-方案：查询时计算" class="headerlink" title="五、V1 方案：查询时计算"></a>五、V1 方案：查询时计算</h2><h3 id="5-1-架构"><a href="#5-1-架构" class="headerlink" title="5.1 架构"></a>5.1 架构</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                          V1 架构                                            │</span><br><span class="line">│                                                                             │</span><br><span class="line">│   Tdbank ──► SparkStreaming ──► TPG ──► AdProfile ──► SnsMixer ──► 出价     │</span><br><span class="line">│                 (1min)        (存储)     (8min)       (5min)                │</span><br><span class="line">│                                                                             │</span><br><span class="line">└─────────────────────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-各组件职责"><a href="#5-2-各组件职责" class="headerlink" title="5.2 各组件职责"></a>5.2 各组件职责</h3><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>职责</th>
+<th>延迟</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SparkStreaming</td>
+<td>处理 Tdbank 3路数据流，聚合到 aid 维度，增量写入 TPG</td>
+<td>1 min</td>
+</tr>
+<tr>
+<td>TPG</td>
+<td>存储 oCPM 广告全量明细数据</td>
+<td>-</td>
+</tr>
+<tr>
+<td>AdProfile</td>
+<td>每分钟执行多个 SQL，生成多时间窗口指标</td>
+<td>8 min</td>
+</tr>
+<tr>
+<td>SnsMixer</td>
+<td>缓存 AdProfile 数据，响应出价引擎查询</td>
+<td>5 min TTL</td>
+</tr>
+</tbody></table>
+<h3 id="5-3-AdProfile-处理逻辑"><a href="#5-3-AdProfile-处理逻辑" class="headerlink" title="5.3 AdProfile 处理逻辑"></a>5.3 AdProfile 处理逻辑</h3><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 串行执行多个 SQL</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">refreshMetrics</span></span>() &#123;</span><br><span class="line">    query10DayMetrics()   <span class="comment">// 2 min - 全量扫描 TPG</span></span><br><span class="line">    query24HourMetrics()  <span class="comment">// 2 min</span></span><br><span class="line">    query2HourMetrics()   <span class="comment">// 1.5 min  </span></span><br><span class="line">    queryFlowback()       <span class="comment">// 2.5 min</span></span><br><span class="line">    <span class="comment">// 总计 8 min</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-4-延迟分析"><a href="#5-4-延迟分析" class="headerlink" title="5.4 延迟分析"></a>5.4 延迟分析</h3><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>延迟</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SparkStreaming</td>
+<td>1 min</td>
+<td>微批处理 batch interval</td>
+</tr>
+<tr>
+<td>AdProfile SQL</td>
+<td>8 min</td>
+<td>串行执行，全量扫描 TPG</td>
+</tr>
+<tr>
+<td>SnsMixer 缓存</td>
+<td>0-5 min</td>
+<td>TTL 导致数据滞后</td>
+</tr>
+<tr>
+<td><strong>总计</strong></td>
+<td><strong>10-14 min</strong></td>
+<td>-</td>
+</tr>
+</tbody></table>
+<h3 id="5-5-核心问题"><a href="#5-5-核心问题" class="headerlink" title="5.5 核心问题"></a>5.5 核心问题</h3><ol>
+<li><strong>串行 SQL</strong>：4 个 SQL 串行执行，最大瓶颈</li>
+<li><strong>全量扫描</strong>：每次查询都扫描全量数据，无增量计算</li>
+<li><strong>多层缓存</strong>：SnsMixer 5min TTL 额外增加延迟</li>
+</ol>
+<hr>
+<h2 id="六、V2-方案：写入时计算"><a href="#六、V2-方案：写入时计算" class="headerlink" title="六、V2 方案：写入时计算"></a>六、V2 方案：写入时计算</h2><h3 id="6-1-核心思路"><a href="#6-1-核心思路" class="headerlink" title="6.1 核心思路"></a>6.1 核心思路</h3><p><strong>把”查询时聚合”变成”写入时聚合”，用空间换时间</strong></p>
+<h3 id="6-2-架构"><a href="#6-2-架构" class="headerlink" title="6.2 架构"></a>6.2 架构</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                          V2 架构                                            │</span><br><span class="line">│                                                                             │</span><br><span class="line">│   Tdbank ──► SparkStreaming ──► 内存全量计算 ──► 实时指标 ──► 出价引擎       │</span><br><span class="line">│                 (1min)           (20s更新)       (毫秒级)                   │</span><br><span class="line">│                                     │                                       │</span><br><span class="line">│                                     ▼                                       │</span><br><span class="line">│                                   TPG                                       │</span><br><span class="line">│                               (持久化+容错)                                  │</span><br><span class="line">│                                                                             │</span><br><span class="line">└─────────────────────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-3-核心组件设计"><a href="#6-3-核心组件设计" class="headerlink" title="6.3 核心组件设计"></a>6.3 核心组件设计</h3><h4 id="主进程-SparkStreaming"><a href="#主进程-SparkStreaming" class="headerlink" title="主进程 (SparkStreaming)"></a>主进程 (SparkStreaming)</h4><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 读取配置</span></span><br><span class="line">readParams()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 初始化</span></span><br><span class="line"><span class="keyword">new</span> processor          <span class="comment">// 自定义实时数据解析</span></span><br><span class="line">configSparkStreaming() <span class="comment">// 配置 SparkStreaming</span></span><br><span class="line">accu_class.init()      <span class="comment">// 初始化增量数据线程</span></span><br><span class="line">all_class.init()       <span class="comment">// 初始化全量数据线程</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 订阅数据</span></span><br><span class="line">foreachRdd &#123;</span><br><span class="line">    data = getRealData()         <span class="comment">// 获取最近1min实时数据</span></span><br><span class="line">    accu_class.merge(data)       <span class="comment">// 增量数据合并</span></span><br><span class="line">    all_class.merge(data)        <span class="comment">// 全局数据合并</span></span><br><span class="line">    index = all_class.getIndex() <span class="comment">// 获取实时指标</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="accu-class：增量数据-持久化"><a href="#accu-class：增量数据-持久化" class="headerlink" title="accu_class：增量数据 + 持久化"></a>accu_class：增量数据 + 持久化</h4><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> map  <span class="comment">// 存储增量数据（内存）</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">init</span> </span>&#123;</span><br><span class="line">    <span class="keyword">new</span> thread &#123;</span><br><span class="line">        writeToTpg()          <span class="comment">// 数据写入 TPG，同时清空 map</span></span><br><span class="line">        checkNeedRestore()    <span class="comment">// 需要时基于 TPG 修复数据</span></span><br><span class="line">        thread.sleep(<span class="type">N</span>分钟)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">merge</span></span>()  <span class="comment">// 将最近 1min 数据归并入 map</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="all-class：全量数据-实时指标计算"><a href="#all-class：全量数据-实时指标计算" class="headerlink" title="all_class：全量数据 + 实时指标计算"></a>all_class：全量数据 + 实时指标计算</h4><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> map    <span class="comment">// 存储全量数据（内存）</span></span><br><span class="line"><span class="keyword">val</span> index  <span class="comment">// 存储最新的实时指标</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">init</span> </span>&#123;</span><br><span class="line">    restoreData()  <span class="comment">// 启动时从 TPG 恢复全量数据</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">new</span> thread &#123;</span><br><span class="line">        calculateIndex()      <span class="comment">// 基于全量数据计算实时指标</span></span><br><span class="line">        removeOldData()       <span class="comment">// 清除过期数据</span></span><br><span class="line">        writeCheckpoint()     <span class="comment">// 可选：写入 checkpoint</span></span><br><span class="line">        thread.sleep(<span class="number">20</span>s)     <span class="comment">// 20秒计算一次</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">getIndex</span></span>()  <span class="comment">// 返回最新的 index</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">merge</span></span>()     <span class="comment">// 将最近 1min 数据归并入 map</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="6-4-为什么快了？"><a href="#6-4-为什么快了？" class="headerlink" title="6.4 为什么快了？"></a>6.4 为什么快了？</h3><table>
+<thead>
+<tr>
+<th>优化点</th>
+<th>V1</th>
+<th>V2</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>数据存储</strong></td>
+<td>TPG (磁盘)</td>
+<td>内存 map</td>
+<td>查询：秒级 → 毫秒级</td>
+</tr>
+<tr>
+<td><strong>计算方式</strong></td>
+<td>每次 SQL 全量扫描</td>
+<td>增量 merge + 后台计算</td>
+<td>8分钟 → 20秒</td>
+</tr>
+<tr>
+<td><strong>指标更新</strong></td>
+<td>串行阻塞</td>
+<td>后台线程异步</td>
+<td>非阻塞</td>
+</tr>
+<tr>
+<td><strong>缓存层</strong></td>
+<td>5min TTL</td>
+<td>无需额外缓存</td>
+<td>减少 0-5min</td>
+</tr>
+</tbody></table>
+<h3 id="6-5-容错机制"><a href="#6-5-容错机制" class="headerlink" title="6.5 容错机制"></a>6.5 容错机制</h3><ol>
+<li><strong>checkpoint</strong>：定期将内存数据写入 TPG</li>
+<li><strong>restore</strong>：故障重启时从 TPG 恢复全量数据</li>
+<li><strong>离线对账</strong>：定期比对实时数据与离线数据，不一致时修复</li>
+</ol>
+<hr>
+<h2 id="七、业界方案对比"><a href="#七、业界方案对比" class="headerlink" title="七、业界方案对比"></a>七、业界方案对比</h2><h3 id="7-1-主流架构"><a href="#7-1-主流架构" class="headerlink" title="7.1 主流架构"></a>7.1 主流架构</h3><table>
+<thead>
+<tr>
+<th>公司</th>
+<th>技术栈</th>
+<th>延迟</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Meta</strong></td>
+<td>Scribe → Spark&#x2F;Flink → TAO</td>
+<td>秒级</td>
+</tr>
+<tr>
+<td><strong>Google</strong></td>
+<td>Pub&#x2F;Sub → Dataflow → Bigtable</td>
+<td>秒级</td>
+</tr>
+<tr>
+<td><strong>字节</strong></td>
+<td>BMQ → Flink → Abase</td>
+<td>秒级</td>
+</tr>
+<tr>
+<td><strong>腾讯广告 V1</strong></td>
+<td>Tdbank → Spark → TPG → AdProfile</td>
+<td>10分钟级</td>
+</tr>
+<tr>
+<td><strong>腾讯广告 V2</strong></td>
+<td>Tdbank → Spark + 内存计算</td>
+<td>1分钟级</td>
+</tr>
+</tbody></table>
+<h3 id="7-2-Lambda-vs-Kappa-架构"><a href="#7-2-Lambda-vs-Kappa-架构" class="headerlink" title="7.2 Lambda vs Kappa 架构"></a>7.2 Lambda vs Kappa 架构</h3><table>
+<thead>
+<tr>
+<th>架构</th>
+<th>特点</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Lambda</strong></td>
+<td>批流分离，离线修正实时</td>
+<td>数据一致性要求高</td>
+</tr>
+<tr>
+<td><strong>Kappa</strong></td>
+<td>纯流处理，Kafka 作为 source of truth</td>
+<td>追求低延迟</td>
+</tr>
+<tr>
+<td><strong>V2 方案</strong></td>
+<td>类 Lambda，实时计算 + 离线对账</td>
+<td>平衡延迟和一致性</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="八、最终效果"><a href="#八、最终效果" class="headerlink" title="八、最终效果"></a>八、最终效果</h2><h3 id="8-1-性能提升"><a href="#8-1-性能提升" class="headerlink" title="8.1 性能提升"></a>8.1 性能提升</h3><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>V1</th>
+<th>V2</th>
+<th>提升</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>数据上线延迟</strong></td>
+<td>10-14 分钟</td>
+<td>&lt; 1 分钟</td>
+<td><strong>10x</strong></td>
+</tr>
+<tr>
+<td><strong>指标计算频率</strong></td>
+<td>1 分钟&#x2F;次</td>
+<td>20 秒&#x2F;次</td>
+<td>3x</td>
+</tr>
+<tr>
+<td><strong>查询响应时间</strong></td>
+<td>秒级</td>
+<td>毫秒级</td>
+<td>1000x</td>
+</tr>
+</tbody></table>
+<h3 id="8-2-业务收益"><a href="#8-2-业务收益" class="headerlink" title="8.2 业务收益"></a>8.2 业务收益</h3><ol>
+<li><strong>调价更精准</strong>：数据更新更快，校准因子更准确</li>
+<li><strong>成本控制更及时</strong>：快速响应超成本情况，压低出价</li>
+<li><strong>广告主 ROI 提升</strong>：首批上线的 15 个大广告主均有 <strong>10%+ ROI 提升</strong></li>
+</ol>
+<h3 id="8-3-系统稳定性"><a href="#8-3-系统稳定性" class="headerlink" title="8.3 系统稳定性"></a>8.3 系统稳定性</h3><ol>
+<li><strong>容错能力</strong>：checkpoint + restore 机制保障数据不丢失</li>
+<li><strong>可运维性</strong>：离线对账机制，发现问题可快速修复</li>
+<li><strong>可扩展性</strong>：内存计算模式可水平扩展</li>
+</ol>
+<hr>
+<h2 id="九、面试要点总结"><a href="#九、面试要点总结" class="headerlink" title="九、面试要点总结"></a>九、面试要点总结</h2><h3 id="9-1-一句话概括"><a href="#9-1-一句话概括" class="headerlink" title="9.1 一句话概括"></a>9.1 一句话概括</h3><blockquote>
+<p><strong>通过将”查询时聚合”变成”写入时聚合”，在内存中维护全量数据并增量更新，将数据上线延迟从 10 分钟优化到 1 分钟。</strong></p>
+</blockquote>
+<h3 id="9-2-核心优化思路"><a href="#9-2-核心优化思路" class="headerlink" title="9.2 核心优化思路"></a>9.2 核心优化思路</h3><ol>
+<li><strong>计算前置</strong>：把聚合计算从查询时移到写入时</li>
+<li><strong>空间换时间</strong>：内存存储全量数据，避免磁盘 IO</li>
+<li><strong>增量计算</strong>：新数据 merge，不重复扫描历史数据</li>
+<li><strong>异步处理</strong>：后台线程计算指标，不阻塞主流程</li>
+</ol>
+<h3 id="9-3-延伸问题"><a href="#9-3-延伸问题" class="headerlink" title="9.3 延伸问题"></a>9.3 延伸问题</h3><p><strong>Q: 内存不够怎么办？</strong><br>A: 按广告 ID 分片，每个节点只存部分数据；冷数据落盘或淘汰。</p>
+<p><strong>Q: 如何保证数据一致性？</strong><br>A: checkpoint 持久化 + 离线对账修复。</p>
+<p><strong>Q: 时间窗口怎么选择？</strong><br>A: 优先短窗口（时效性高），样本不足时回退到长窗口；或样本量加权融合。</p>
+<p><strong>Q: 校准因子的作用？</strong><br>A: 修正模型预估偏差。模型预估 CVR&#x3D;3%，实际 CVR&#x3D;2.4%，校准因子&#x3D;0.8，压低出价。</p>
+<hr>
+<h2 id="十、参考资料"><a href="#十、参考资料" class="headerlink" title="十、参考资料"></a>十、参考资料</h2><ol>
+<li>腾讯广告实时数据系统设计文档</li>
+<li>Flink 官方文档 - State Management</li>
+<li>《广告算法》- 刘鹏</li>
+<li>Meta Engineering Blog - Real-time Data Infrastructure</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%B9%BF%E5%91%8A%E7%B3%BB%E7%BB%9F/" rel="tag"># 广告系统</a>
+              <a href="/tags/%E5%AE%9E%E6%97%B6%E8%AE%A1%E7%AE%97/" rel="tag"># 实时计算</a>
+              <a href="/tags/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" rel="tag"># 性能优化</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2023/11/13/system-design/6-golang-interview/" rel="prev" title="编程语言：Go 实践">
+                  <i class="fa fa-angle-left"></i> 编程语言：Go 实践
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/03/04/system-design/7-storage-desgin/" rel="next" title="中间件 - 存储与Mysql数据库">
+                  中间件 - 存储与Mysql数据库 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

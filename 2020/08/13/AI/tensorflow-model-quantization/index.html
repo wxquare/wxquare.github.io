@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="最近在尝试深度学习模型加速的工作，查了一些资料，发现模型推理加速的研究还挺多的，主要从四个方面进行，从头开始构建轻量高效的模型，例如mobileNets、squeezenet等；通过量化(quantization)、裁剪(pruning)和压缩(compression)来降低模型的尺寸；通过高效的计算平台加速推理(inference)的效率，例如Nvidia TensorRT、GEMMLO">
+<meta property="og:type" content="article">
+<meta property="og:title" content="tensorflow模型权重量化(weight quantization)实战">
+<meta property="og:url" content="http://yoursite.com/2020/08/13/AI/tensorflow-model-quantization/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="最近在尝试深度学习模型加速的工作，查了一些资料，发现模型推理加速的研究还挺多的，主要从四个方面进行，从头开始构建轻量高效的模型，例如mobileNets、squeezenet等；通过量化(quantization)、裁剪(pruning)和压缩(compression)来降低模型的尺寸；通过高效的计算平台加速推理(inference)的效率，例如Nvidia TensorRT、GEMMLO">
+<meta property="og:locale">
+<meta property="article:published_time" content="2020-08-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-12-08T15:55:23.483Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2020/08/13/AI/tensorflow-model-quantization/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2020/08/13/AI/tensorflow-model-quantization/","path":"2020/08/13/AI/tensorflow-model-quantization/","title":"tensorflow模型权重量化(weight quantization)实战"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>tensorflow模型权重量化(weight quantization)实战 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E6%A8%A1%E5%9E%8B%E9%87%8F%E5%8C%96"><span class="nav-number">1.</span> <span class="nav-text">一、为什么要模型量化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E4%BB%80%E4%B9%88%E6%98%AF%E9%87%8F%E5%8C%96"><span class="nav-number">2.</span> <span class="nav-text">二、什么是量化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%AE%9E%E6%95%B0%E9%87%8F%E5%8C%96"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 实数量化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E7%9F%A9%E9%98%B5%E4%B9%98%E6%B3%95%E9%87%8F%E5%8C%96"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 矩阵乘法量化</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81tensorflow%E6%A8%A1%E5%9E%8B%E9%87%8F%E5%8C%96%E6%96%B9%E6%A1%88"><span class="nav-number">3.</span> <span class="nav-text">三、tensorflow模型量化方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81tensorflow%E6%A8%A1%E5%9E%8B%E6%9D%83%E9%87%8D%E9%87%8F%E5%8C%96%E5%AE%9E%E9%AA%8C"><span class="nav-number">4.</span> <span class="nav-text">四、tensorflow模型权重量化实验</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81-%E4%B8%BA%E4%BB%80%E4%B9%88%E6%A8%A1%E5%9E%8B%E9%87%8F%E5%8C%96%E6%B2%A1%E6%9C%89%E4%BD%BF%E6%8E%A8%E7%90%86%E5%8A%A0%E9%80%9F"><span class="nav-number">5.</span> <span class="nav-text">五、 为什么模型量化没有使推理加速</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tensorflow-model-quantization/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="tensorflow模型权重量化(weight quantization)实战 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          tensorflow模型权重量化(weight quantization)实战
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>　　<br>　　最近在尝试深度学习模型加速的工作，查了一些资料，发现模型推理加速的研究还挺多的，主要从四个方面进行，从头开始构建轻量高效的模型，例如mobileNets、squeezenet等；通过量化(quantization)、裁剪(pruning)和压缩(compression)来降低模型的尺寸；通过高效的计算平台加速推理(inference)的效率，例如Nvidia TensorRT、GEMMLOWP、Intel MKL-DNN等以及硬件定制。考虑到自身的能力，遵循从简单到复杂、通用到专用的原则，选择从模型量化(model quantization)入手，之后会陆续尝试其他优化手段。在一番尝试之后，挺遗憾的，因为tensorflow模型量化并没有使模型预测(inference)加速，根据tf成员在issue的回复，tf的模型量化主要针对移动端的优化，目前还没有针对x86和gpu环境的优化。<strong>有成功通过模型量化加速推理过程的同学欢迎打脸留言</strong>。</p>
+<h2 id="一、为什么要模型量化"><a href="#一、为什么要模型量化" class="headerlink" title="一、为什么要模型量化"></a>一、为什么要模型量化</h2><p>　　为了尽可能保证深度学习模型的准确度(precision)，在训练和推理时候通常使用float32格式的数据。然而在实际商用中，有些模型由于层数和参数都比较多，推理预测需要很大计算量，导致推理(inference)的效率很低。模型量化(model quantization)是通用的深度学习优化的手段之一，它通过将float32格式的数据转变为int8格式，一方面降低内存和存储的开销，同时在一定的条件下(8-bit低精度运算 low-precision)也能提升预测的效率。目前还不太理解8-bit低精度运算，猜测这是模型量化没有实现推理加速的原因。模型量化适用于绝大数模型和使用场景，对于训练后的量化，不需要重新训练模型，可以很快将其量化为定点模型，而且几乎不会有精度损失，因此模型量化追求更小的模型和更快的推理速度。<strong>实验中量化确实时模型下降为原来的1&#x2F;4，但在推理效率并没有提升，甚至略有下降</strong>。</p>
+<h2 id="二、什么是量化"><a href="#二、什么是量化" class="headerlink" title="二、什么是量化"></a>二、什么是量化</h2><h3 id="2-1-实数量化"><a href="#2-1-实数量化" class="headerlink" title="2.1 实数量化"></a>2.1 实数量化</h3><p>　　网络上关于模型量化的内容挺多的，量化本质上是一种仿射图(affine map)，它以表达式(1)将实数值表示映射为量化的uint8，当然也可以等效为表示式(2): </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">real_value = A * quantized_value + B             (1) </span><br><span class="line">real_value = C * (quantized_value + D)           (2) </span><br></pre></td></tr></table></figure>
+
+<p>　　除此之外，深度学习模型量化中有一个<strong>约束条件，0必须准确的表示，不能有误差</strong>。因为对于某些神经网络层，实数0精确表示对于优化实现非常有用，例如在具有填充的卷积层或池化层中，长度对输入数组进行零填充(zero-padding)来实现填充是有用的。实数值0对应的量化值称之为零点(zero-point)。实际上，如果0不能完全表示，当我们用0对应的量化值进行填充时，因为这与实际值0不完全对应，会导致结果不准确，引入偏差。因此有：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">　　0=A∗zero_point+B</span><br><span class="line">　　zero_point=−B/A</span><br><span class="line">　　0=C∗(zero_point+D)</span><br><span class="line">　　0=zero_point+D</span><br><span class="line">　　D=−zero_point</span><br></pre></td></tr></table></figure>
+
+
+
+<p>　　结合上述条件，可以得出量化的最终表达式为(3)，它能做到0值的准确表示，zero_point是0对应的量化值。表示式(3)中有两个常量，zero_point是量化值，通常是uint8值，scale是一个正实数，通常为float32。<br>$$real\_value &#x3D; scale * (quantized\_value - zero\_point)　　(3)$$</p>
+<h3 id="2-2-矩阵乘法量化"><a href="#2-2-矩阵乘法量化" class="headerlink" title="2.2 矩阵乘法量化"></a>2.2 矩阵乘法量化</h3><p>　　根据表达式(3)，我们可以将实数值(通常为float32)用量化值(通常为uint8)表示，下面将介绍怎么把它应用到矩阵乘法当中。假设有两个实数矩阵$lhs\_real\_matrix, rhs\_real\_matrix$，量化之后就会有对应的$lhs\_scale, rhs\_scale, lhs\_zero\_point, rhs\_zero\_point$，矩阵中的实数值可以用其量化值表示为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">lhs_real_value[i] = lhs_scale * (lhs_quantized_value[i] - lhs_zero_point)</span><br><span class="line">rhs_real_value[i] = rhs_scale * (rhs_quantized_value[i] - rhs_zero_point)</span><br></pre></td></tr></table></figure>
+<p>　　在矩阵乘法中，每个值($result\_real\_value$)都由对应的ｉ个值相乘累加得到，根据表达式(4)和(5)很容易得到表示式(6),它表示$result\_quantized\_value$可由$lhs\_quantized\_value、rhs\_quantized\_value$计算得出。注意这里面有几个问题需要解决，如何减小式(6)中与zero_point减法的开销(overhead)？如何将(lhs_scale * rhs_scale &#x2F; result_scale)实数运算用整数运算处理？这部分的内容参考gemmlowp的实现。<br>　　<a href="https://github.com/google/gemmlowp/blob/master/doc/quantization.md">https://github.com/google/gemmlowp/blob/master/doc/quantization.md</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">result_real_value</span><br><span class="line">  = Sum_over_i(lhs_real_value[i] * rhs_real_value[i])</span><br><span class="line">  = Sum_over_i(</span><br><span class="line">        lhs_scale * (lhs_quantized_value[i] - lhs_zero_point) *</span><br><span class="line">        rhs_scale * (rhs_quantized_value[i] - rhs_zero_point)</span><br><span class="line">    )</span><br><span class="line">  = lhs_scale * rhs_scale * Sum_over_i(</span><br><span class="line">        (lhs_quantized_value[i] - lhs_zero_point) *</span><br><span class="line">        (rhs_quantized_value[i] - rhs_zero_point)</span><br><span class="line">    )                    (4)</span><br><span class="line"></span><br><span class="line">result_real_value = result_scale * (result_quantized_value - result_zero_point)</span><br><span class="line">result_quantized_value = result_zero_point + result_real_value / result_scale  (5)</span><br><span class="line"></span><br><span class="line">result_quantized_value = result_zero_point +</span><br><span class="line">    (lhs_scale * rhs_scale / result_scale) *</span><br><span class="line">        Sum_over_i(</span><br><span class="line">            (lhs_quantized_value[i] - lhs_zero_point) *</span><br><span class="line">            (rhs_quantized_value[i] - rhs_zero_point)</span><br><span class="line">        )          (6)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="三、tensorflow模型量化方案"><a href="#三、tensorflow模型量化方案" class="headerlink" title="三、tensorflow模型量化方案"></a>三、tensorflow模型量化方案</h2><p>　　**训练后量化(post training Quantization)**。在许多情况下，我们希望在不重新训练模型的前提下，只是通过压缩权重或量化权重和激活输出来缩减模型大小，从而加快预测速度。“训练后量化”就是这种使用简单，而且在有限的数据条件下就可以完成量化的技术。训练后量化操作简单，只需要使用量化工具将训练好的模型执行量化类型，即可实现模型的量化。训练后量化包括“只对权重量化”和“对权重和激活输出都量化”，对于很多网络而言，都可以产生和浮点型很接近的精度。</p>
+<p>　　**只对权重量化(weight only quantization)**。一个简单的方法是只将权重的精度从浮点型减低为8bit整型。由于只有权重进行量化，所以无需验证数据集就可以实现。一个简单的命令行工具就可以将权重从浮点型转换为8bit整型。如果只是想为了方便传输和存储而减小模型大小，而不考虑在预测时浮点型计算的性能开销的话，这种量化方法是很有用的。</p>
+<p>　　<strong>量化权重和激活输出（Quantizing weights and activations）</strong>。我们可以通过计算所有将要被量化的数据的量化参数，来将一个浮点型模型量化为一个8bit精度的整型模型。由于激活输出需要量化，这时我们就得需要标定数据了，并且需要计算激活输出的动态范围，一般使用100个小批量数据就足够估算出激活输出的动态范围了。</p>
+<p>　　**训练时量化（Quantization Aware Training)**。训练时量化方法相比于训练后量化，能够得到更高的精度。训练时量化方案可以利用Tensorflow的量化库，在训练和预测时在模型图中自动插入模拟量化操作来实现。由于训练时量化相对麻烦，加上权重量化没有实现加速的期望，所以没有尝试训练时量化，根据文档显示，其大概包括以下几个步骤：</p>
+<ol>
+<li>可以在预训练好的模型基础上继续训练或者重新训练，建议在保存好的浮点型模型的基础上精调</li>
+<li>修改估计器，添加量化运算，利用tf.contrib.quantize中的量化rewriter向模型中添加假的量化运算</li>
+<li>训练模型，输出对于权重和激活输出都带有各自量化信息（尺度、零点）的模型</li>
+<li>转换模型，利用tf.contrib.lite.toco convert定义的转换器，将带有量化参数的模型被转化成flatbuffer文件，该文件会将权重转换成int整型，同时包含了激活输出用于量化计算的信息</li>
+<li>执行模型，转换后的带有整型权重的模型可以利用TFLite interpreter来执行，也可以在CPU上运行模型</li>
+</ol>
+<h2 id="四、tensorflow模型权重量化实验"><a href="#四、tensorflow模型权重量化实验" class="headerlink" title="四、tensorflow模型权重量化实验"></a>四、tensorflow模型权重量化实验</h2><p>　　一开始尝试模型量化是因为有个复杂的视频分割模型推理效率很低，期望通过模型量化实现加速，在复杂模型上尝试失败之后，我用label_image的例子再次验证，结果显示也没有加速的效果。这里主要试验了训练后量化，尝试了只对权重量化和权重和激活量化，发现后者比前者性能更差，这里描述权重量化的过程。整个过程是比较简单的，tensorflow有两种量化方式，推荐使用第二种，编译命令行工具进行量化。</p>
+<ol>
+<li><p>在tensorflow r1.0的版本中有个量化的脚本可以提供量化的功能：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$wget &quot;https://storage.googleapis.com/download.tensorflow.org/models/inception_v3_2016_08_28_frozen.pb.tar.gz&quot;</span><br><span class="line">$tar -xzf tensorflow/examples/label_image/data</span><br><span class="line">$ work_dir=/home/terse/code/programming/tensorflow/quantization</span><br><span class="line">$ python tensorflow/tools/quantization/quantize_graph.py \</span><br><span class="line">--input=$work_dir/inception_v3_2016_08_28_frozen.pb \</span><br><span class="line">--output=$work_dir/inception_quantized0.pb \</span><br><span class="line">--output_node_names=InceptionV3/Predictions/Reshape_1 \</span><br><span class="line">--mode=weights </span><br></pre></td></tr></table></figure>
+</li>
+<li><p>在较新版本的tf中，quantize_graph.py量化的脚本已经废弃了需要编译tensorflow的源码生成</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">tensorflow-1.14.0编译transform_graph工具</span><br><span class="line">$ bazel build tensorflow/tools/graph_transforms:transform_graph</span><br><span class="line">$ bazel-bin/tensorflow/tools/graph_transforms/transform_graph \</span><br><span class="line">--in_graph=$work_dir/inception_v3_2016_08_28_frozen.pb \</span><br><span class="line">--out_graph=$work_dir/inception_quantized1.pb \</span><br><span class="line">--outputs=InceptionV3/Predictions/Reshape_1 \</span><br><span class="line">--transforms=&#x27;quantize_weights&#x27;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>使用summarize_graph分析量化前后的模型区别，权重量化、模型减小、增加了一些和量化和反量化的节点。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">tensorflow-1.14.0编译transform_graph工具</span><br><span class="line">$ bazel build tensorflow/tools/graph_transforms:summarize_graph</span><br><span class="line">$ bazel-bin/tensorflow/tools/graph_transforms/summarize_graph \</span><br><span class="line">--in_graph=$work_dir/inception_quantized1.pb \</span><br><span class="line">--print_structure=true</span><br></pre></td></tr></table></figure></li>
+<li><p>使用权重量化的模型做推理验证</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ bazel build tensorflow/examples/label_image：label_image</span><br><span class="line">$ bazel-bin/tensorflow/examples/label_image/label_image \</span><br><span class="line">--image=$work_dir/grace_hopper.jpg \</span><br><span class="line">--labels=$work_dir/imagenet_slim_labels.txt \</span><br><span class="line">--graph=$work_dir/inception_quantized1.pb</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h2 id="五、-为什么模型量化没有使推理加速"><a href="#五、-为什么模型量化没有使推理加速" class="headerlink" title="五、 为什么模型量化没有使推理加速"></a>五、 为什么模型量化没有使推理加速</h2><p>　　关于tensorflow模型量化没有实现模型加速的，我查了一些资料，发现出现类似的问题不在少数。根据tensorflow团队成员的回复，截了几个member的答复，大意是目前量化目前针对移动端的优化，当然也有一些移动端的人说速度下降了。tensorflow未来有可能针对intel x86，gpu量化优化，但不知道什么时候支持。</p>
+<p>　　The quantization is aimed at mobile performance, so most of the optimizations are for ARM not x86. We’re hoping to get good quantization on Intel eventually, but we don’t have anyone actively working on it yet.</p>
+<p>　　Quantized ops currently only work on the CPU, because most GPUs don’t support eight-bit matrix multiplications natively. I have just seen that the latest TitanX Pascal cards offer eight-bit support though, so I’m hoping we will be able to use that in the future.</p>
+<p>参考：</p>
+<ol>
+<li><a href="https://zhuanlan.zhihu.com/p/33535898">https://zhuanlan.zhihu.com/p/33535898</a></li>
+<li><a href="https://arxiv.org/abs/1806.08342">https://arxiv.org/abs/1806.08342</a></li>
+<li><a href="https://github.com/google/gemmlowp/blob/master/doc/quantization.md">https://github.com/google/gemmlowp/blob/master/doc/quantization.md</a></li>
+<li><a href="https://github.com/tensorflow/tensorflow/issues/2807">https://github.com/tensorflow/tensorflow/issues/2807</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/%E5%88%9D%E5%A7%8BOpenCL%E5%8F%8A%E5%9C%A8%E7%9A%84%E7%A7%BB%E5%8A%A8%E7%AB%AF%E7%9A%84%E4%B8%80%E4%BA%9B%E6%B5%8B%E8%AF%95%E6%95%B0%E6%8D%AE/" rel="prev" title="初识OpenCL及在移动端的一些测试数据">
+                  <i class="fa fa-angle-left"></i> 初识OpenCL及在移动端的一些测试数据
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/visp-template-tracker/" rel="next" title="了解模板追踪算法和高斯牛顿迭代法">
+                  了解模板追踪算法和高斯牛顿迭代法 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="一、概述　　最近在做模型压缩(model compress)相关工作，之前分别尝试了权重量化(weight quantization)【1】和权重稀疏(weight sparsification)【2】，遗憾的是它们都需要推理引擎和硬件的特定优化才能实现推理加速，而tensorflow在x86架构的CPU下并没有没有针对量化和稀疏矩阵的优化，因此效果一般。吸取前两次的经验，这次尝试了结构化压缩通道">
+<meta property="og:type" content="article">
+<meta property="og:title" content="tensorflow模型通道剪枝(channel pruning)实战">
+<meta property="og:url" content="http://yoursite.com/2020/08/13/AI/tensorflow-model-channel-pruning/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="一、概述　　最近在做模型压缩(model compress)相关工作，之前分别尝试了权重量化(weight quantization)【1】和权重稀疏(weight sparsification)【2】，遗憾的是它们都需要推理引擎和硬件的特定优化才能实现推理加速，而tensorflow在x86架构的CPU下并没有没有针对量化和稀疏矩阵的优化，因此效果一般。吸取前两次的经验，这次尝试了结构化压缩通道">
+<meta property="og:locale">
+<meta property="og:image" content="http://yoursite.com/images/channel_pruning.jpg">
+<meta property="og:image" content="http://yoursite.com/images/channel_pruning2.jpg">
+<meta property="og:image" content="http://yoursite.com/images/channel_pruning3.jpg">
+<meta property="article:published_time" content="2020-08-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-12-08T15:55:23.483Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/images/channel_pruning.jpg">
+
+
+<link rel="canonical" href="http://yoursite.com/2020/08/13/AI/tensorflow-model-channel-pruning/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2020/08/13/AI/tensorflow-model-channel-pruning/","path":"2020/08/13/AI/tensorflow-model-channel-pruning/","title":"tensorflow模型通道剪枝(channel pruning)实战"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>tensorflow模型通道剪枝(channel pruning)实战 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%A6%82%E8%BF%B0"><span class="nav-number">1.</span> <span class="nav-text">一、概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81channel-pruning-%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text">二、channel pruning 基本原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E4%BB%80%E4%B9%88%E6%98%AF%E9%80%9A%E9%81%93%E5%89%AA%E6%9E%9D"><span class="nav-number">2.1.</span> <span class="nav-text">1. 什么是通道剪枝</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E9%80%9A%E9%81%93%E5%89%AA%E6%9E%9D%E6%95%B0%E5%AD%A6%E6%8F%8F%E8%BF%B0"><span class="nav-number">2.2.</span> <span class="nav-text">2. 通道剪枝数学描述</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81PocketFlow"><span class="nav-number">3.</span> <span class="nav-text">三、PocketFlow</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E5%AE%9E%E9%AA%8C%E5%87%86%E5%A4%87"><span class="nav-number">3.1.</span> <span class="nav-text">1.实验准备:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E5%87%86%E5%A4%87%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6path-conf"><span class="nav-number">3.2.</span> <span class="nav-text">2.准备配置文件path.conf</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%9C%A8%E6%9C%AC%E5%9C%B0%E8%BF%90%E8%A1%8C%E9%80%9A%E9%81%93%E5%89%AA%E6%9E%9D%E7%9A%84learner"><span class="nav-number">3.3.</span> <span class="nav-text">3.在本地运行通道剪枝的learner</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E6%A8%A1%E5%9E%8B%E8%BD%AC%E6%8D%A2"><span class="nav-number">3.4.</span> <span class="nav-text">4. 模型转换</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E5%89%AA%E6%9E%9D%E5%89%8D%E5%90%8E%E6%A8%A1%E5%9E%8B%E5%88%86%E6%9E%90"><span class="nav-number">4.</span> <span class="nav-text">四、剪枝前后模型分析</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tensorflow-model-channel-pruning/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="tensorflow模型通道剪枝(channel pruning)实战 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          tensorflow模型通道剪枝(channel pruning)实战
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="一、概述"><a href="#一、概述" class="headerlink" title="一、概述"></a>一、概述</h2><p>　　最近在做模型压缩(model compress)相关工作，之前分别尝试了权重量化(weight quantization)【1】和权重稀疏(weight sparsification)【2】，遗憾的是它们都需要推理引擎和硬件的特定优化才能实现推理加速，而tensorflow在x86架构的CPU下并没有没有针对量化和稀疏矩阵的优化，因此效果一般。吸取前两次的经验，这次尝试了结构化压缩通道剪枝(channel pruning)，它通过删减模型中冗余通道channel，减少的模型前向计算所需的FLOPs。通道剪枝来自论文ICCV2017论文 Channel Pruning for Accelerating Very Deep Neural Networks。 这里会首先简单介绍channel pruning的原理，然后通过PocketFlow压缩工具对ResNet56进行通道剪枝，结果显示channel pruning在精度不怎么损失的基础上，减小接近50%的FLOPs。由于剪枝后模型中增加了许多的conv2d 1x1卷积，实际提升推理效率大概20%。</p>
+<h2 id="二、channel-pruning-基本原理"><a href="#二、channel-pruning-基本原理" class="headerlink" title="二、channel pruning 基本原理"></a>二、channel pruning 基本原理</h2><h3 id="1-什么是通道剪枝"><a href="#1-什么是通道剪枝" class="headerlink" title="1. 什么是通道剪枝"></a>1. 什么是通道剪枝</h3><p>　　虽然论文末尾谈到channel pruning可以应用到模型训练中，但是文章的核心内容还是对训练好的模型进行channel pruning，也就是文章中说的inference time。通道剪枝正如其名字channel pruning核心思想是移除一些冗余的channel简化模型。下图是从论文中截取的通道剪枝的示意图，它表示的网络模型中某一层的channel pruning。<strong>B</strong>表示输入feature map，<strong>C</strong>表示输出的feature map；c表示输入B的通道数量，n表示输出C的通道数量；<strong>W</strong>表示卷积核，卷积核的数量是n，每个卷积核的维度是c<em>kh</em>kw，kh和kw表示卷积核的size。通道剪枝的目的就是要把<strong>B</strong>中的某些通道剪掉，但是剪掉后的<strong>B</strong>和<strong>W</strong>的卷积结果能尽可能和<strong>C</strong>接近。当删减<strong>B</strong>中的某些通道时，同时也裁剪了<strong>W</strong>中与这些通道的对应的卷积核，因此通过通过剪枝能减小卷积的运算量。  </p>
+<p><img src="/images/channel_pruning.jpg" alt="channel-pruning示意图"></p>
+<h3 id="2-通道剪枝数学描述"><a href="#2-通道剪枝数学描述" class="headerlink" title="2. 通道剪枝数学描述"></a>2. 通道剪枝数学描述</h3><p>　　通道剪枝的思想是简单的，难点是怎么选择要裁剪的通道，同时要保证输出feature map误差尽可能得小，这也是文章的主要内容。channel pruning总体分为两个步骤，首先是channel selection，它是采用LASSO regression来做的，通过添加L1范数来约束权重，因为L1范数可以使得权重中大部分值为0，所以能使权重更加稀疏，这样就可以把那些稀疏的channel剪掉；第二步是reconstruction，这一步是基于linear least优化，使输出特征图变化尽可能的小。  </p>
+<p>　　接下来通过数学表达式描述了通道剪枝。Ｘ($N*c* k_h*k_w$)表示输入feature map，W($n * c * k_h * k_w$)表示卷积核，Y($N*n$)表示输出feature map。$\beta_i$表示通道系数，如果等于0，表示该通道可以被删除。我们期望将输入feature map的channel从c压缩为c’($0&lt;&#x3D;c’&lt;&#x3D; c$)，同时要使得构造误差(reconstruction error)尽可能的小。通过下面的优化表达式，就可以选择哪些通道被删除。文章中详细介绍了怎么用算法解决下面的数据问题，这里就不赘述了。另外文章还考虑分支情况下的通道剪枝，例如ResNet和GoogleNet，感兴趣的可以仔细研读该论文【3】。</p>
+<p><img src="/images/channel_pruning2.jpg" alt="channel-pruning示意图"></p>
+<h2 id="三、PocketFlow"><a href="#三、PocketFlow" class="headerlink" title="三、PocketFlow"></a>三、PocketFlow</h2><p>　　PocketFlow是腾讯AI Lab开源的自动化深度学习模型压缩框架，它集成了腾讯自己研发的和来自其他同行的主流的模型压缩与训练算法，还引入了自研的超参数优化组件，实现了自动托管式模型压缩与加速。PocketFlow能够自动选择模型压缩的超参，极大的方便了算法人员的调参。这里主要使用里面的channel pruning算法（learner）进行通道剪枝。【4】</p>
+<h3 id="1-实验准备"><a href="#1-实验准备" class="headerlink" title="1.实验准备:"></a>1.实验准备:</h3><p>1.cifar10数据集： <a href="https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz">https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz</a><br>2.ResNet56预训练模型：<a href="https://share.weiyun.com/5610f11d61dfb733db1f2c77a9f34531">https://share.weiyun.com/5610f11d61dfb733db1f2c77a9f34531</a><br>3.下载Pocketflow: <a href="https://github.com/wxquare/PocketFlow.git">https://github.com/wxquare/PocketFlow.git</a></p>
+<h3 id="2-准备配置文件path-conf"><a href="#2-准备配置文件path-conf" class="headerlink" title="2.准备配置文件path.conf"></a>2.准备配置文件path.conf</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># data files</span><br><span class="line">data_dir_local_cifar10 = ./cifar-10-binary/cifar-10-batches-bin #cifar10数据集解压的位置</span><br><span class="line"></span><br><span class="line"># model files </span><br><span class="line"># 这里模型文件用wget下载不下来，要登录下载，解压到PocketFlow根目录的model目录下面</span><br><span class="line">model_http_url = https://share.weiyun.com/5610f11d61dfb733db1f2c77a9f34531</span><br><span class="line">   </span><br></pre></td></tr></table></figure>
+<h3 id="3-在本地运行通道剪枝的learner"><a href="#3-在本地运行通道剪枝的learner" class="headerlink" title="3.在本地运行通道剪枝的learner"></a>3.在本地运行通道剪枝的learner</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ ./scripts/run_local.sh nets/resnet_at_cifar10_run.py \</span><br><span class="line">--learner=channel \</span><br><span class="line">--cp_uniform_preserve_ratio=0.5 \</span><br><span class="line">--cp_prune_option=uniform \</span><br><span class="line">--resnet_size=56</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h3 id="4-模型转换"><a href="#4-模型转换" class="headerlink" title="4. 模型转换"></a>4. 模型转换</h3><p>步骤3之后会在models产生ckpt文件，需要通过进行模型转化,最终会生成model_original.pb，model_transformed.pb，同时也会生成移动端对应的tflite文件。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ python tools/conversion/export_chn_pruned_tflite_model.py \</span><br><span class="line">--model_dir=models/pruned_model </span><br><span class="line">--input_coll=train_images</span><br><span class="line">--output_coll=logits</span><br></pre></td></tr></table></figure>
+
+<h2 id="四、剪枝前后模型分析"><a href="#四、剪枝前后模型分析" class="headerlink" title="四、剪枝前后模型分析"></a>四、剪枝前后模型分析</h2><p>　　我们可以通过之前介绍的模型基准测试工具benchmark_model分别测试剪枝前后的模型。可以很清楚看到通道剪枝大大减少了模型前向计算的FLOPs的变化，以及各阶段、算子的耗时和内存消耗情况。可以发现模型下降为原来的1&#x2F;2，卷积耗时下降接近50%。除此之外通过netron工具可以直观的看到模型通道剪枝前后结构发生的变化，通道剪枝之后的模型中明显增加了许多conv1*1的卷积。这里主要利用1x1卷积先降维，然后升维度，达到减少计算量的目的。1x1卷积还有多种用途，可以参考【5】。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ bazel-bin/tensorflow/tools/benchmark/benchmark_model \ </span><br><span class="line">--graph=model_original.pb \</span><br><span class="line">--input_layer=&quot;net_input&quot; \</span><br><span class="line">--input_layer_shape=&quot;1,32,32,3&quot; \</span><br><span class="line">--input_layer_type=&quot;float&quot; \</span><br><span class="line">--output_layer=&quot;net_output&quot; \</span><br><span class="line">--show_flops=true \</span><br><span class="line">--show_run_order=false \</span><br><span class="line">--show_time=true \</span><br><span class="line">--num_threads=1</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p><img src="/images/channel_pruning3.jpg" alt="channel-pruning 1x1 convolution"></p>
+<p>参考：<br>[1]. <a href="https://wxquare.github.io/2019/09/16/other/tensorflow-model-quantization/">tensorflow模型权重量化(weight quantization)实战</a><br>[2]. <a href="https://wxquare.github.io/2019/09/27/other/tensorflow-model-no-structural-pruning">tensorflow模型权重稀疏(weight sparsification)实战</a><br>[3].<a href="https://arxiv.org/abs/1707.06168">Channel Pruning for Accelerating Very Deep Neural Networks</a><br>[4].<a href="https://github.com/wxquare/PocketFlow">PocketFLow</a><br>[5].1x1卷积：<a href="https://www.zhihu.com/question/56024942">https://www.zhihu.com/question/56024942</a> </p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/tensorflow-model-no-structural-pruning/" rel="prev" title="tensorflow模型权重稀疏(weight sparsification)实战">
+                  <i class="fa fa-angle-left"></i> tensorflow模型权重稀疏(weight sparsification)实战
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/tensorflow-how-to-freeze-model/" rel="next" title="了解tensorflow不同格式的模型及其转换方法">
+                  了解tensorflow不同格式的模型及其转换方法 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

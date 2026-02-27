@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="k8s 网络linux 虚拟网络 veth pair 和 bridge Network namespace 实现网络隔离 Veth pair提供了一种连接两个network namespace的方法 Bridge 实现同一网络中多个namespace的连接 添加路由信息，查看路由信息 iptabels 和 NAT 实战练习  123456789101112131415161718192021222">
+<meta property="og:type" content="article">
+<meta property="og:title" content="互联网基础设施：k8s 与 docker 实践">
+<meta property="og:url" content="http://yoursite.com/2024/12/20/system-design/11-k8s-docker/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="k8s 网络linux 虚拟网络 veth pair 和 bridge Network namespace 实现网络隔离 Veth pair提供了一种连接两个network namespace的方法 Bridge 实现同一网络中多个namespace的连接 添加路由信息，查看路由信息 iptabels 和 NAT 实战练习  123456789101112131415161718192021222">
+<meta property="og:locale">
+<meta property="og:image" content="http://yoursite.com/images/k8s_services_background.png">
+<meta property="og:image" content="http://yoursite.com/images/k8s_services.png">
+<meta property="og:image" content="http://yoursite.com/images/k8s_services_name_space_load_balacing.png">
+<meta property="og:image" content="http://yoursite.com/images/k8s_ingress_background.png">
+<meta property="og:image" content="http://yoursite.com/images/k8s_ingress.png">
+<meta property="article:published_time" content="2024-12-19T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-12-08T15:55:23.485Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/images/k8s_services_background.png">
+
+
+<link rel="canonical" href="http://yoursite.com/2024/12/20/system-design/11-k8s-docker/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2024/12/20/system-design/11-k8s-docker/","path":"2024/12/20/system-design/11-k8s-docker/","title":"互联网基础设施：k8s 与 docker 实践"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>互联网基础设施：k8s 与 docker 实践 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#k8s-%E7%BD%91%E7%BB%9C"><span class="nav-number">1.</span> <span class="nav-text">k8s 网络</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#linux-%E8%99%9A%E6%8B%9F%E7%BD%91%E7%BB%9C-veth-pair-%E5%92%8C-bridge"><span class="nav-number">1.1.</span> <span class="nav-text">linux 虚拟网络 veth pair 和 bridge</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#docker-%E7%BD%91%E7%BB%9C-%E5%92%8C-docker0"><span class="nav-number">1.2.</span> <span class="nav-text">docker 网络 和 docker0</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#pod-%E7%BD%91%E7%BB%9C"><span class="nav-number">1.3.</span> <span class="nav-text">pod 网络</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#pause"><span class="nav-number">1.3.1.</span> <span class="nav-text">pause</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#CNI-%E6%A0%87%E5%87%86%E5%92%8C%E6%8F%92%E4%BB%B6"><span class="nav-number">1.3.2.</span> <span class="nav-text">CNI 标准和插件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#service-%E7%BD%91%E7%BB%9C"><span class="nav-number">1.4.</span> <span class="nav-text">service 网络</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%83%8C%E6%99%AF"><span class="nav-number">1.4.1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86"><span class="nav-number">1.4.2.</span> <span class="nav-text">实现原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#kube-proxy-%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1"><span class="nav-number">1.4.3.</span> <span class="nav-text">kube-proxy 服务发现和负载均衡</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#service-%E7%B1%BB%E5%9E%8B"><span class="nav-number">1.4.4.</span> <span class="nav-text">service 类型</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ingress-%E7%BD%91%E7%BB%9C"><span class="nav-number">1.5.</span> <span class="nav-text">ingress 网络</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%83%8C%E6%99%AF-1"><span class="nav-number">1.5.1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86-1"><span class="nav-number">1.5.2.</span> <span class="nav-text">实现原理</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#docker-k8s-%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4"><span class="nav-number">2.</span> <span class="nav-text">docker k8s 常用命令</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2024/12/20/system-design/11-k8s-docker/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="互联网基础设施：k8s 与 docker 实践 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          互联网基础设施：k8s 与 docker 实践
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2024-12-20 00:00:00" itemprop="dateCreated datePublished" datetime="2024-12-20T00:00:00+08:00">2024-12-20</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="k8s-网络"><a href="#k8s-网络" class="headerlink" title="k8s 网络"></a>k8s 网络</h1><h2 id="linux-虚拟网络-veth-pair-和-bridge"><a href="#linux-虚拟网络-veth-pair-和-bridge" class="headerlink" title="linux 虚拟网络 veth pair 和 bridge"></a>linux 虚拟网络 veth pair 和 bridge</h2><ul>
+<li>Network namespace 实现网络隔离</li>
+<li>Veth pair提供了一种连接两个network namespace的方法</li>
+<li>Bridge 实现同一网络中多个namespace的连接</li>
+<li>添加路由信息，查看路由信息</li>
+<li>iptabels 和 NAT</li>
+<li>实战练习</li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line">sudo ip netns add ns1</span><br><span class="line">sudo ip netns add ns2</span><br><span class="line">sudo ip netns add ns3</span><br><span class="line"></span><br><span class="line">sudo brctl addbr virtual-bridge</span><br><span class="line"></span><br><span class="line">sudo ip <span class="built_in">link</span> add veth-ns1 <span class="built_in">type</span> veth peer name veth-ns1-br</span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> veth-ns1 netns ns1</span><br><span class="line">sudo brctl addif virtual-bridge veth-ns1-br</span><br><span class="line"></span><br><span class="line">sudo ip <span class="built_in">link</span> add veth-ns2 <span class="built_in">type</span> veth peer name veth-ns2-br</span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> veth-ns2 netns ns2</span><br><span class="line">sudo brctl addif virtual-bridge veth-ns2-br</span><br><span class="line"></span><br><span class="line">sudo ip <span class="built_in">link</span> add veth-ns3 <span class="built_in">type</span> veth peer name veth-ns3-br</span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> veth-ns3 netns ns3</span><br><span class="line">sudo brctl addif virtual-bridge veth-ns3-br</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">sudo ip -n ns1 addr add <span class="built_in">local</span> 192.168.1.1/24 dev veth-ns1</span><br><span class="line">sudo ip -n ns2 addr add <span class="built_in">local</span> 192.168.1.2/24 dev veth-ns2</span><br><span class="line">sudo ip -n ns3 addr add <span class="built_in">local</span> 192.168.1.3/24 dev veth-ns3</span><br><span class="line"></span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> virtual-bridge up</span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> veth-ns1-br up</span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> veth-ns2-br up</span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> veth-ns3-br up</span><br><span class="line">sudo ip -n ns1 <span class="built_in">link</span> <span class="built_in">set</span> veth-ns1 up</span><br><span class="line">sudo ip -n ns2 <span class="built_in">link</span> <span class="built_in">set</span> veth-ns2 up</span><br><span class="line">sudo ip -n ns3 <span class="built_in">link</span> <span class="built_in">set</span> veth-ns3 up</span><br><span class="line"></span><br><span class="line">sudo ip netns delete ns1</span><br><span class="line">sudo ip netns delete ns2</span><br><span class="line">sudo ip netns delete ns3</span><br><span class="line">sudo ip <span class="built_in">link</span> <span class="built_in">set</span> virtual-bridge down</span><br><span class="line">sudo brctl delbr virtual-bridge</span><br><span class="line"></span><br><span class="line">$ sudo ip netns <span class="built_in">exec</span> ns1 ping 192.168.1.2</span><br><span class="line">PING 192.168.1.2 (192.168.1.2): 56 data bytes</span><br><span class="line">64 bytes from 192.168.1.2: <span class="built_in">seq</span>=0 ttl=64 time=0.068 ms</span><br><span class="line">--- 192.168.1.2 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 packets received, 0% packet loss</span><br><span class="line">round-trip min/avg/max = 0.060/0.064/0.068 ms</span><br><span class="line">$ sudo ip netns <span class="built_in">exec</span> ns1 ping 192.168.1.3</span><br><span class="line">PING 192.168.1.3 (192.168.1.3): 56 data bytes</span><br><span class="line">64 bytes from 192.168.1.3: <span class="built_in">seq</span>=0 ttl=64 time=0.055 ms</span><br><span class="line">--- 192.168.1.3 ping statistics ---</span><br><span class="line">3 packets transmitted, 3 packets received, 0% packet loss</span><br><span class="line">round-trip min/avg/max = 0.055/0.378/1.016 ms</span><br></pre></td></tr></table></figure>
+
+<h2 id="docker-网络-和-docker0"><a href="#docker-网络-和-docker0" class="headerlink" title="docker 网络 和 docker0"></a>docker 网络 和 docker0</h2><ul>
+<li>docker0网桥和缺省路由</li>
+<li>docker0</li>
+<li>route</li>
+<li>iptables 和 nat</li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看网桥</span></span><br><span class="line">$ brctl show</span><br><span class="line">bridge name	bridge <span class="built_in">id</span>		STP enabled	interfaces</span><br><span class="line">docker0		8000.02421557ce52	no		veth91e1730</span><br><span class="line">							            vethc858a6a</span><br><span class="line"><span class="comment"># 查看docker 网络</span></span><br><span class="line">docker network inspect bridge</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看container route信息</span></span><br><span class="line"><span class="comment"># 目的地址为172.17的网络不走route，其它走默认的172.17.0.1 route</span></span><br><span class="line">$ docker <span class="built_in">exec</span> busybox1 route -n</span><br><span class="line">Kernel IP routing table</span><br><span class="line">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface</span><br><span class="line">0.0.0.0         172.17.0.1      0.0.0.0         UG    0      0        0 eth0</span><br><span class="line">172.17.0.0      0.0.0.0         255.255.0.0     U     0      0        0 eth0</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看iptables</span></span><br><span class="line"><span class="comment"># 出口不为0docker的流量都使用SNAT</span></span><br><span class="line">$ sudo iptables -t nat -S | grep docker</span><br><span class="line">-A POSTROUTING -s 172.17.0.0/16 ! -o docker0 -j MASQUERADE</span><br><span class="line">-A DOCKER -i docker0 -j RETURN</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="pod-网络"><a href="#pod-网络" class="headerlink" title="pod 网络"></a>pod 网络</h2><h3 id="pause"><a href="#pause" class="headerlink" title="pause"></a>pause</h3><ul>
+<li>pause容器实现1个pod中多个container的网络共享</li>
+<li>Pause 用于实现容器之间共享网络，如果其中部分容器挂掉，其余容器网路正常工作</li>
+<li><a href="https://github.com/kubernetes/kubernetes/blob/master/build/pause/linux/pause.c">https://github.com/kubernetes/kubernetes/blob/master/build/pause/linux/pause.c</a></li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ docker ps | grep etcd</span><br><span class="line">8fd1337b0bf2   73deb9a3f702                <span class="string">&quot;etcd --advertise-cl…&quot;</span>   3 hours ago      Up 3 hours                k8s_etcd_etcd-minikube_kube-system_94aa022caf543792dfcddf4a2ca05a30_0</span><br><span class="line">1202ef34af2b   registry.k8s.io/pause:3.9   <span class="string">&quot;/pause&quot;</span>                 3 hours ago      Up 3 hours                k8s_POD_etcd-minikube_kube-system_94aa022caf543792dfcddf4a2ca05a30_0</span><br><span class="line"></span><br><span class="line">$ docker inspect 8fd1337b0bf2 | grep -i networkMode</span><br><span class="line">$ docker inspect 8fd1337b0bf2 | grep -i networkMode</span><br><span class="line">            <span class="string">&quot;NetworkMode&quot;</span>: <span class="string">&quot;container:1202ef34af2b155e938cbe770870ba6c8edd3a57c88545a697816c340a6ce320&quot;</span>,</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h3 id="CNI-标准和插件"><a href="#CNI-标准和插件" class="headerlink" title="CNI 标准和插件"></a>CNI 标准和插件</h3><ul>
+<li>CNI标准: <a href="https://github.com/containernetworking/cni">https://github.com/containernetworking/cni</a></li>
+<li>CNI 插件:<a href="https://github.com/containernetworking/plugins">https://github.com/containernetworking/plugins</a></li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">ls</span> -l /opt/cni/bin/</span><br><span class="line">-rwxr-xr-x 1 root root 2660408 Nov  7  2023 bandwidth</span><br><span class="line">-rwxr-xr-x 1 root root 3018552 Nov  7  2023 bridge</span><br><span class="line">-rwxr-xr-x 1 root root 1984728 Nov  7  2023 cnitool</span><br><span class="line">-rwxr-xr-x 1 root root 7432152 Nov  7  2023 dhcp</span><br><span class="line">-rwxr-xr-x 1 root root 3096120 Nov  7  2023 firewall</span><br><span class="line">-rwxr-xr-x 1 root root 2250104 Nov  7  2023 host-local</span><br><span class="line">-rwxr-xr-x 1 root root 2775128 Nov  7  2023 ipvlan</span><br><span class="line">-rwxr-xr-x 1 root root 2305848 Nov  7  2023 loopback</span><br><span class="line">-rwxr-xr-x 1 root root 2799704 Nov  7  2023 macvlan</span><br><span class="line">-rwxr-xr-x 1 root root 2615256 Nov  7  2023 portmap</span><br><span class="line">-rwxr-xr-x 1 root root 2891096 Nov  7  2023 ptp</span><br><span class="line">-rwxr-xr-x 1 root root 2367288 Nov  7  2023 tuning</span><br><span class="line">-rwxr-xr-x 1 root root 2771032 Nov  7  2023 vlan</span><br></pre></td></tr></table></figure>
+
+<h2 id="service-网络"><a href="#service-网络" class="headerlink" title="service 网络"></a>service 网络</h2><h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><ul>
+<li>Zookeeper提供名字服务，pod自身实现负载均衡，RPC框架实现负载均衡</li>
+<li>Service 为 Pods 提供的固定 IP，其他服务可以通过 Service IP 找到提供服务的Endpoints。</li>
+<li>Service提供负载均衡。Service 由多个 Endpoints 组成，kubernetes 对组成 Service 的 Pods 提供的负载均衡方案，例如随机访问、robin 轮询等。</li>
+<li>暂时将Pod等同于Endpoint</li>
+</ul>
+<p align="center">
+  <img src="/images/k8s_services_background.png" width=600 height=350>
+  <br/>
+</p>
+
+<h3 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h3><ul>
+<li>Service IP IP 由API server分配，写入etcd</li>
+<li>Etcd 中存储service和endpoints</li>
+<li>Controllermanager watch etcd的变换生成endpoints</li>
+<li>node 中的kube-proxy watch service 和 endpoints的变化</li>
+</ul>
+<p align="center">
+  <img src="/images/k8s_services.png" width=600 height=350>
+  <br/>
+</p>
+
+
+<h3 id="kube-proxy-服务发现和负载均衡"><a href="#kube-proxy-服务发现和负载均衡" class="headerlink" title="kube-proxy 服务发现和负载均衡"></a>kube-proxy 服务发现和负载均衡</h3><ul>
+<li>Order -&gt; item 的流程</li>
+<li>服务发现：<a href="https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/#environment-variables">环境变量和DNS</a></li>
+<li>servicename.namespace.svc.cluster.local</li>
+<li>kub-proxy 通过watch etcd中service和endpoint的变更，维护本地的iptables&#x2F;ipvs</li>
+<li>kub-proxy 通过转发规则实现service ip 到 pod ip的转发，通过规则实现负载均衡</li>
+</ul>
+<p align="center">
+  <img src="/images/k8s_services_name_space_load_balacing.png" width=600 height=350>
+  <br/>
+</p>
+
+<h3 id="service-类型"><a href="#service-类型" class="headerlink" title="service 类型"></a><a href="https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/#loadbalancer">service 类型</a></h3><ul>
+<li>ClusterIP</li>
+<li>NodePort</li>
+<li>LoadBalancer</li>
+</ul>
+<h2 id="ingress-网络"><a href="#ingress-网络" class="headerlink" title="ingress 网络"></a>ingress 网络</h2><h3 id="背景-1"><a href="#背景-1" class="headerlink" title="背景"></a>背景</h3><ul>
+<li>集群外部访问集群内部资源？nodeport,loadbalancer。一个服务一个port或者一个外网IP，一个域名</li>
+<li>Ingress 是 Kubernetes 中的一种 API 对象，用于管理入站网络流量，基于域名和URL路径把用户的请求转发到对应的service</li>
+<li>ingress相当于七层负载均衡器，是k8s对反向代理的抽象</li>
+<li>ingress负载均衡，将请求自动负载到后端的pod</li>
+</ul>
+<p align="center">
+  <img src="/images/k8s_ingress_background.png" width=600 height=600>
+  <br/>
+</p>
+
+<h3 id="实现原理-1"><a href="#实现原理-1" class="headerlink" title="实现原理"></a>实现原理</h3><ul>
+<li>ingress 资源对象用于编写资源配置规则</li>
+<li>Ingress-controller 监听apiserver感知集群中service和pod的变化动态更新配置规则，并重载proxy反向代理的配置</li>
+<li>proxy反向代理负载均衡器，例如ngnix，接收并按照ingress定义的规则进行转发，常用的是ingress-nginx等，直接转发到pod中<p align="center">
+<img src="/images/k8s_ingress.png" width=600 height=350>
+<br/>
+</p></li>
+</ul>
+<p>支持的路由方式</p>
+<ul>
+<li>通过使用路径规则。例如： &#x2F;app1 路径映射到一个服务，将 &#x2F;app2 路径映射到另一个服务。路径匹配支持精确匹配和前缀匹配两种方式。</li>
+<li>基于主机的路由匹配。例如，可以将 app1.example.com 主机名映射到一个服务，将 app2.example.com 主机名映射到另一个服务。主机匹配也可以与路径匹配结合使用，实现更细粒度的路由控制。</li>
+<li>其他条件的路由匹配：：请求方法（如 GET、POST）、请求头（如 Content-Type）、查询参数等。</li>
+</ul>
+<h1 id="docker-k8s-常用命令"><a href="#docker-k8s-常用命令" class="headerlink" title="docker k8s 常用命令"></a>docker k8s 常用命令</h1><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">minikube</span></span><br><span class="line">minikube start</span><br><span class="line">minikube status</span><br><span class="line">minikube ssh</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">docker</span></span><br><span class="line">docker ps  # 查看所有正在运行的容器</span><br><span class="line">docker ps -a # 查看所有的容器，包括正在运行的和停止的</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">用交互式的方式启动容器</span></span><br><span class="line">docker start -ai &lt;容器名或容器ID&gt;</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">打开容器进行交互式终端对话框</span></span><br><span class="line">docker exec -it &lt;容器名或容器ID&gt; bash</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">容器中执行命令</span></span><br><span class="line">docker exec &lt;容器名或容器ID&gt; ls</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>参考资料</p>
+<ul>
+<li><a href="https://github.com/wxquare/effective-resourses/blob/master/share/k8s%20%E7%BD%91%E7%BB%9C%E5%85%A5%E9%97%A8.pdf">分享PPT</a></li>
+<li><a href="https://github.com/caicloud/kube-ladder/blob/master/tutorials/lab1-installation.md">Minikube 环境安装</a></li>
+<li><a href="https://github.com/caicloud/kube-ladder/blob/master/tutorials/lab2-application-and-service.md">Kubectl 命令和集群体验</a></li>
+<li><a href="https://www.zhaohuabing.com/post/2020-03-12-linux-network-virtualization/">Linux network namespace,veth,bridge 和 路由</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/199298498">从0到1搭建linux虚拟网络</a></li>
+<li><a href="https://morningspace.github.io/tech/k8s-net-mimic-docker/">Docker 网络：模拟docker网络</a></li>
+<li><a href="https://morningspace.github.io/tech/k8s-net-docker0/">Docker 网络：从docker0开始</a></li>
+<li><a href="https://morningspace.github.io/tech/k8s-net-pod-1/">Pod网络和pause容器</a></li>
+<li><a href="https://morningspace.github.io/tech/k8s-net-cni/">认识CNI插件</a></li>
+<li><a href="https://mp.weixin.qq.com/s/_nzbZYpKlpw4jKd5MFpuzw">深度解读CNI：容器网络接口</a></li>
+<li><a href="https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/1">官方文档：服务service</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/677236869">创建service之后，k8s会发生什么</a></li>
+<li><a href="https://luckymrwang.github.io/2021/02/20/%E6%8E%A2%E7%A9%B6K8S-Service%E5%86%85%E9%83%A8iptables%E8%B7%AF%E7%94%B1%E8%A7%84%E5%88%99/">探究k8s service iptables 路由规则</a></li>
+<li><a href="https://kubernetes.io/zh-cn/docs/tasks/access-application-cluster/ingress-minikube/">官方文档：在minikube中使用nginx ingress 控制配置ingress</a></li>
+<li><a href="https://kubernetes.io/zh-cn/docs/concepts/services-networking/ingress/">官方文档：ingress</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/10/16/other/programmer-survival-guide/" rel="prev" title="程序员生成指南">
+                  <i class="fa fa-angle-left"></i> 程序员生成指南
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/04/01/system-design/12-tech-design/" rel="next" title="互联网系统设计 - 概述和技术方案写作">
+                  互联网系统设计 - 概述和技术方案写作 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

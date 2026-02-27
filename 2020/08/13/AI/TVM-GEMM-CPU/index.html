@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="在《初识TVM，相比于tensorflow的2倍性能提升》之后，最近花了一点业余时间了解TVM及其周边，并进行相应的性能测试。整体感受是计算优化(GEMM)是非常繁杂的工程工作，需要花费大量的时间和精力才能有比较好的效果。numpy非常优秀，大矩阵乘法硬件利用率在90%以上。TVM在GEMM优化上能实现和numpy相当的效果，重要的是它能大大简化工作量。参考了一些文章，这里简单罗列了几个知识点">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TVM学习笔记--GEMM优化及测试数据">
+<meta property="og:url" content="http://yoursite.com/2020/08/13/AI/TVM-GEMM-CPU/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="在《初识TVM，相比于tensorflow的2倍性能提升》之后，最近花了一点业余时间了解TVM及其周边，并进行相应的性能测试。整体感受是计算优化(GEMM)是非常繁杂的工程工作，需要花费大量的时间和精力才能有比较好的效果。numpy非常优秀，大矩阵乘法硬件利用率在90%以上。TVM在GEMM优化上能实现和numpy相当的效果，重要的是它能大大简化工作量。参考了一些文章，这里简单罗列了几个知识点">
+<meta property="og:locale">
+<meta property="article:published_time" content="2020-08-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-12-08T15:55:23.482Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2020/08/13/AI/TVM-GEMM-CPU/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2020/08/13/AI/TVM-GEMM-CPU/","path":"2020/08/13/AI/TVM-GEMM-CPU/","title":"TVM学习笔记--GEMM优化及测试数据"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>TVM学习笔记--GEMM优化及测试数据 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%8E%E4%B9%88%E8%AF%84%E4%BC%B0%E7%A1%AC%E4%BB%B6%E7%9A%84%E8%AE%A1%E7%AE%97%E6%80%A7%E8%83%BD"><span class="nav-number">1.</span> <span class="nav-text">怎么评估硬件的计算性能</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95numpy-GEMM%E7%A1%AC%E4%BB%B6%E5%88%A9%E7%94%A8%E7%8E%87"><span class="nav-number">2.</span> <span class="nav-text">测试numpy GEMM硬件利用率</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%8E%E4%B9%88%E4%BC%98%E5%8C%96GEMM%EF%BC%9F"><span class="nav-number">3.</span> <span class="nav-text">怎么优化GEMM？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TVM-GEMM%E4%BC%98%E5%8C%96%E4%B8%8Enumpy%E6%80%A7%E8%83%BD%E6%AF%94%E8%BE%83"><span class="nav-number">4.</span> <span class="nav-text">TVM GEMM优化与numpy性能比较</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/TVM-GEMM-CPU/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="TVM学习笔记--GEMM优化及测试数据 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          TVM学习笔记--GEMM优化及测试数据
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>　　在<a href="https://zhuanlan.zhihu.com/p/88369758">《初识TVM，相比于tensorflow的2倍性能提升》</a>之后，最近花了一点业余时间了解TVM及其周边，并进行相应的性能测试。整体感受是计算优化(GEMM)是非常繁杂的工程工作，需要花费大量的时间和精力才能有比较好的效果。numpy非常优秀，大矩阵乘法硬件利用率在90%以上。TVM在GEMM优化上能实现和numpy相当的效果，重要的是它能大大简化工作量。参考了一些文章，这里简单罗列了几个知识点和测试数据。</p>
+<ol>
+<li>怎么评估硬件的理论性能？浮点峰值？</li>
+<li>简单测试一下numpy的性能数据，硬件利用率</li>
+<li>怎么做GEMM优化？</li>
+<li>TVM怎么做GEMM的优化？及其与numpy性能的比较</li>
+</ol>
+<h3 id="怎么评估硬件的计算性能"><a href="#怎么评估硬件的计算性能" class="headerlink" title="怎么评估硬件的计算性能"></a>怎么评估硬件的计算性能</h3><p>　　对于性能优化来说，了解硬件的性能指标是非常有必要的。在Linux系统上可以通过&#x2F;proc&#x2F;cpuinfo文件看看机器的配置。比如CPU主频、CPU核数core、cache大小、是否支持向量指令SSE、AVX2、AVX512等，这些对于计算性能有非常大的影响。<a href="https://zhuanlan.zhihu.com/p/28226956">浮点峰值那些事儿</a>。通常我们使用浮点计算能力来衡量硬件的性能，对于多核服务器来说，频率为2.4G，支持AVX2，FMA向量指令，单核性能如下：<br>    对于float32理论峰值为2.4G * （8+8） * 2  &#x3D; 76.8 GFLOPS<br>    对于float64理论峰值为2.4G * （4+4） * 2  &#x3D; 38.4 GFLOPS</p>
+<h3 id="测试numpy-GEMM硬件利用率"><a href="#测试numpy-GEMM硬件利用率" class="headerlink" title="测试numpy GEMM硬件利用率"></a>测试numpy GEMM硬件利用率</h3><p>　　numpy非常优秀，我们通过矩阵乘法了解其性能数据。测试机器为一台多核的服务器，主频是2.4G，支持FMA和AVX2向量指令。测试了不同size矩阵相乘的性能数据。分别测试了单核和四核状态下对float32和float64的不同size(32,128,1024,2048等）矩阵相乘的性能数据。测试结果显示numpy在大矩阵相乘中，硬件利用率大概在90%左右。</p>
+<p>name | 32 | 128|1024|2048|4096|10240|硬件利用率|<br>-|-|-|<br>单核float32|1.82|36.16|67.99|67.94|68.88|69.88|91.0%<br>单核float64|1.67|19.49|35.56|35.40|36.11|36.90|96.1%<br>四核float32|6.6|52.2|225.42|246.2|244.2|256.0|83.8%<br>四核float64|5.56|37.62|116.42|120.39|127.03|141.15|91.9%<br><a href="https://github.com/wxquare/programming/blob/master/blog/TVM_CPU_schedule/test_numpy_gemm_performance.py">测试代码</a></p>
+<h3 id="怎么优化GEMM？"><a href="#怎么优化GEMM？" class="headerlink" title="怎么优化GEMM？"></a>怎么优化GEMM？</h3><p>　　通用矩阵乘(GEMM)是计算领域非常基础且核心的工作，目前已有大量的工作，这里就不赘述了。大体上通过<strong>分块来减少访存次数、存储顺序、提高cache命中率、利用寄存器提高效率、利用SSE等向量指令提高计算效率</strong>等方法。<a href="https://github.com/flame/how-to-optimize-gemm/wiki">https://github.com/flame/how-to-optimize-gemm/wiki</a> 一步一步详细介绍了GEMM优化的过程，这里在此基础上增加FMA指令的使用，测试了其在1024*1204矩阵相乘的硬件利用率：</p>
+<p>name | 64 | 256 |512|1024|硬件利用率|主要优化点|<br>-|-|-|<br>MMult0|1.51|0.79|0.66|0.65|1.69%|base<br>MMult_1x4_5|2.15|1.08|0.72|0.716|2.6%|一次计算1x4个数<br>MMult_1x4_9|4.90|3.15|3.10|3.14|8.18%|1x4，寄存器<br>MMult_4x4_5|2.76|1.53|1.26|1.26|3.28%|一次计算4x4个数<br>MMult_4x4_9|5.19|2.92|2.88|2.87|7.47%|4x4，寄存器<br>MMult_4x4_10|5.95|4.16|4.04|4.01|10.4%|4x4，寄存器，SSE<br>MMult_4x4_10_1|10.0|6.6|6.35|6.4|16.7%|4x4，寄存器，FMA<br>MMult_4x4_11_1|14.5|8.95|7.16|7.08|18.4%|4x4，寄存器，FMA，分块(缓存)<br>MMult_4x4_15_1|11.3|11.6|11.7|11.7|30.4%|4x4，寄存器，FMA，分块，内存顺序</p>
+<p><a href="https://github.com/wxquare/programming/tree/master/blog/TVM_CPU_schedule/HowToOptimizeGemm">测试代码</a></p>
+<h3 id="TVM-GEMM优化与numpy性能比较"><a href="#TVM-GEMM优化与numpy性能比较" class="headerlink" title="TVM GEMM优化与numpy性能比较"></a>TVM GEMM优化与numpy性能比较</h3><p>　　TVM官网上有关于其针对GEMM的优化的schedule，这里也不赘述了，感兴趣的可以参考后面的参考文章进一步学习，这里测试了在1024*1024矩阵乘法的效率以及其和numpy的比较，可以看出TVM在简单编码的基础上能达到和numpy相当的性能。</p>
+<p>  | TVM运行时间 | numpy运行时间 |<br>-|-|-|<br>baseline|2.49s|0.0135s<br>blocking|1.73s|0.012s<br>vectorization|0.411s|0.0117s<br>loop permutaion|0.104s|0.0116s<br>packing|0.0987s|0.0103s<br>write_cache|0.0926s|0.01158s<br>parallel|0.018s|0.012s<br>auto-tvm|0.014s|0.0112s<br><a href="https://github.com/wxquare/programming/tree/master/blog/TVM_CPU_schedule/TVM_GEMM">每个阶段测试代码</a></p>
+<p>参考学习链接：<br>1、浮点峰值那些事儿<a href="https://zhuanlan.zhihu.com/p/28226956">https://zhuanlan.zhihu.com/p/28226956</a><br>2、通用矩阵乘（GEMM）优化算法，<a href="https://jackwish.net/gemm-optimization.html">https://jackwish.net/gemm-optimization.html</a><br>3、如何利用TVM快速实现超越Numpy(MKL)的GEMM。<a href="https://zhuanlan.zhihu.com/p/75203171">https://zhuanlan.zhihu.com/p/75203171</a><br>4、tutorial：<a href="https://docs.tvm.ai/tutorials/optimize/opt_gemm.html">https://docs.tvm.ai/tutorials/optimize/opt_gemm.html</a><br>5、d2ltvm:<a href="http://tvm.d2l.ai/chapter_cpu_schedules/index.html">http://tvm.d2l.ai/chapter_cpu_schedules/index.html</a><br>6、<a href="https://github.com/flame/how-to-optimize-gemm">https://github.com/flame/how-to-optimize-gemm</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/TVM-code-generation/" rel="prev" title="TVM学习笔记--代码生成">
+                  <i class="fa fa-angle-left"></i> TVM学习笔记--代码生成
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/TVM-Graph-optimization/" rel="next" title="TVM学习笔记--了解Relay和图优化">
+                  TVM学习笔记--了解Relay和图优化 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="Python程序为什么慢？　　不同的场景下，代码是有不同的要求，大体有三个等级，“管用、更好、更快”。相比C&#x2F;C++，Python具有较好的开发系效率，但是程序的性能运行速度会差一些。究其原因是Python为了灵活性，牺牲了效率。  动态类型。对于C&#x2F;C++等静态类型语言，由于变量的类型固定，变量之间的运算很容易指定特定的函数。而动态类型在运行的时间需要大量if else判断处">
+<meta property="og:type" content="article">
+<meta property="og:title" content="编程语言：Python实践记录">
+<meta property="og:url" content="http://yoursite.com/2023/10/20/system-design/4-python-experience/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="Python程序为什么慢？　　不同的场景下，代码是有不同的要求，大体有三个等级，“管用、更好、更快”。相比C&#x2F;C++，Python具有较好的开发系效率，但是程序的性能运行速度会差一些。究其原因是Python为了灵活性，牺牲了效率。  动态类型。对于C&#x2F;C++等静态类型语言，由于变量的类型固定，变量之间的运算很容易指定特定的函数。而动态类型在运行的时间需要大量if else判断处">
+<meta property="og:locale">
+<meta property="article:published_time" content="2023-10-19T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-12-08T15:55:23.487Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2023/10/20/system-design/4-python-experience/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2023/10/20/system-design/4-python-experience/","path":"2023/10/20/system-design/4-python-experience/","title":"编程语言：Python实践记录"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>编程语言：Python实践记录 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Python%E7%A8%8B%E5%BA%8F%E4%B8%BA%E4%BB%80%E4%B9%88%E6%85%A2%EF%BC%9F"><span class="nav-number">1.</span> <span class="nav-text">Python程序为什么慢？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Python%E7%A8%8B%E5%BA%8F%E4%BC%98%E5%8C%96%E7%9A%84%E6%80%9D%E8%B7%AF%EF%BC%9F"><span class="nav-number">2.</span> <span class="nav-text">Python程序优化的思路？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#title-Python%E9%80%9A%E8%BF%87swig%E8%B0%83%E7%94%A8%E5%A4%8D%E6%9D%82C-%E5%BA%93categories-Python"><span class="nav-number">3.</span> <span class="nav-text">title: Python通过swig调用复杂C++库categories:- Python</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9D%99%E6%80%81%E7%BC%96%E8%AF%91opencv%E5%BA%93"><span class="nav-number">3.1.</span> <span class="nav-text">静态编译opencv库</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9D%99%E6%80%81%E7%BC%96%E8%AF%91visp%E5%BA%93"><span class="nav-number">3.2.</span> <span class="nav-text">静态编译visp库</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%90%E5%8F%96%E6%A8%A1%E6%9D%BF%E8%BF%BD%E8%B8%AA%E7%AE%97%E6%B3%95-%E5%B0%81%E8%A3%85%E6%88%90C-%E7%B1%BB"><span class="nav-number">3.3.</span> <span class="nav-text">提取模板追踪算法,封装成C++类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%87%87%E7%94%A8swig%E5%AE%9E%E7%8E%B0python%E8%B0%83%E7%94%A8C"><span class="nav-number">3.4.</span> <span class="nav-text">采用swig实现python调用C++</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E5%AE%9A%E4%B9%89%E6%8E%A5%E5%8F%A3%E6%96%87%E4%BB%B6%EF%BC%9Avisp-i"><span class="nav-number">3.4.1.</span> <span class="nav-text">1. 定义接口文件：visp.i</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-swig-%E7%BC%96%E8%AF%91visp-i-%E6%96%87%E4%BB%B6%E7%94%9F%E6%88%90C-%E5%92%8Cpy%E4%BB%A3%E7%A0%81%EF%BC%8C%E7%94%9F%E6%88%90visp-wrap-cxx-visp-py"><span class="nav-number">3.4.2.</span> <span class="nav-text">2. swig 编译visp.i 文件生成C++和py代码，生成visp_wrap.cxx,visp.py</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E5%88%86%E5%88%AB%E7%BC%96%E8%AF%91visp-cc%E5%92%8Cvisp-wrap-cxx%E4%BB%A3%E7%A0%81"><span class="nav-number">3.4.3.</span> <span class="nav-text">3. 分别编译visp.cc和visp_wrap.cxx代码</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-%E9%93%BE%E6%8E%A5%E7%94%9F%E6%88%90-visp-so%E6%96%87%E4%BB%B6"><span class="nav-number">3.4.4.</span> <span class="nav-text">4. 链接生成_visp.so文件</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AE%80%E5%8D%95%E6%B5%8B%E8%AF%95"><span class="nav-number">3.5.</span> <span class="nav-text">简单测试</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#title-Python-%E5%A4%9A%E7%BA%BF%E7%A8%8B%E5%92%8C%E5%A4%9A%E8%BF%9B%E7%A8%8Bcategories-Python"><span class="nav-number">4.</span> <span class="nav-text">title: Python 多线程和多进程categories:- Python</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Python%E4%B8%AD%E7%9A%84%E5%B9%B6%E8%A1%8C%E8%AE%A1%E7%AE%97%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E4%BD%BF%E7%94%A8%E5%A4%9A%E8%BF%9B%E7%A8%8B%EF%BC%9F"><span class="nav-number">5.</span> <span class="nav-text">Python中的并行计算为什么要使用多进程？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Python%E5%A4%9A%E7%BA%BF%E7%A8%8B%E5%92%8C%E5%A4%9A%E8%BF%9B%E7%A8%8B%E7%AE%80%E5%8D%95%E6%B5%8B%E8%AF%95"><span class="nav-number">6.</span> <span class="nav-text">Python多线程和多进程简单测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#multiprocessing%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="nav-number">7.</span> <span class="nav-text">multiprocessing的使用</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2023/10/20/system-design/4-python-experience/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="编程语言：Python实践记录 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          编程语言：Python实践记录
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2023-10-20 00:00:00" itemprop="dateCreated datePublished" datetime="2023-10-20T00:00:00+08:00">2023-10-20</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="Python程序为什么慢？"><a href="#Python程序为什么慢？" class="headerlink" title="Python程序为什么慢？"></a>Python程序为什么慢？</h2><p>　　不同的场景下，代码是有不同的要求，大体有三个等级，“管用、更好、更快”。相比C&#x2F;C++，Python具有较好的开发系效率，但是程序的性能运行速度会差一些。究其原因是Python为了灵活性，牺牲了效率。</p>
+<ol>
+<li><p><strong>动态类型</strong>。对于C&#x2F;C++等静态类型语言，由于变量的类型固定，变量之间的运算很容易指定特定的函数。而动态类型在运行的时间需要大量if else判断处理，直到找到符合条件的函数。<strong>动态类型增加语言的易用性，但是牺牲了程序的运行效率</strong>。</p>
+</li>
+<li><p>GIL(Global Interpreter Lock)全局解释锁，CPython在解释执行任何Python代码的时候，首先都需要<strong>they acquire GIL when running，release GIL when blocking for I&#x2F;O</strong>。如果没有涉及I&#x2F;O操作，只有CPU密集型操作时，解释器每隔100一段时间（100ticks）就会释放GIL。GIL是实现Python解释器的（Cython)时所引入的一个概念，不是Python的特性。<br>由于GIL的存在，使得Python对于计算密集型任务，多线程threading模块形同虚设，因为线程在实际运行的时候必须获得GIL，而GIL只有一个，因此无法发挥多核的优势。为了绕过GIL的限制，只能使用multiprocessing等多进程模块，每个进程各有一个CPython解释器，也就各有一个GIL。</p>
+</li>
+<li><p>CPython不支持JIL（Just-In-Time Compiler),JIL 能充分利用程序运行时信息，进行类型推导等优化，对于重复执行的代码段来说加速效果明显。对于CPython如果想使用JIT对计算密集型任务进行优化，可以尝试使用JIT包numba，它能使得相应的函数变成JIT编译。</p>
+</li>
+</ol>
+<h2 id="Python程序优化的思路？"><a href="#Python程序优化的思路？" class="headerlink" title="Python程序优化的思路？"></a>Python程序优化的思路？</h2><p>　　最近在做一些算法优化方面的工作,简单总结一下思路:</p>
+<ol>
+<li>熟悉算法的整体流程，对于算法代码，最开始尽可能不要使用多线程和多进程方法，</li>
+<li>在1的基础上跑出算法的CPU profile，整体了解算法耗时分布和瓶颈。Python提供的cProfile模块灵活的针对特定函数或者文件产生profile文件，根据profile数据进行代码性能优化。</li>
+</ol>
+<ul>
+<li>可以直接将生成profile代码写在Python脚本</li>
+<li>使用命名行方式生成profile</li>
+<li>分析工具pstats</li>
+<li>图形化工具<a href="https://github.com/jrfonseca/gprof2dot">Gprof2Dot</a>。python gprof2dot.py -f pstats result.out | dot -Tpng -o result.png<br> <a href="https://blog.csdn.net/asukasmallriver/article/details/74356771">https://blog.csdn.net/asukasmallriver/article/details/74356771</a></li>
+</ul>
+<ol start="3">
+<li>程序（算法）本身的剪枝。比如视频追踪中，考虑是否让每个像素点都参与计算？优化后选择梯度变化最大的1w个像素点参与计算，能提高分辨率大的视频追踪效率。</li>
+<li>使用矩阵操作代替循环操作。(get_values())</li>
+<li>任务分解，在理解算法的基础上寻找并行机会，利用多线程或者多进程充分利用机器资源。生产者消费者模型，专门的线程负责图像获取和图形变换，专门的线程负责特征提取和追踪。</li>
+<li>使用C&#x2F;C++重写效率低的瓶颈部分</li>
+<li>使用GPU计算</li>
+</ol>
+<hr>
+<h2 id="title-Python通过swig调用复杂C-库categories-Python"><a href="#title-Python通过swig调用复杂C-库categories-Python" class="headerlink" title="title: Python通过swig调用复杂C++库categories:- Python"></a>title: Python通过swig调用复杂C++库<br>categories:<br>- Python</h2><p>　　<br>　　最近项目中需要用到visp库中的模板追踪算法，visp库用C++编写的，代码多，功能丰富。但是，对于项目来说直接调visp库并不方便，因此我们摘取visp库中的所需代码，提供python调用的接口，并根据项目需求进行优化和扩展。开源项目越来越多，以后工作也可能会遇到提取复杂库中部分功能，然后提供python调用的接口，因此这里总结一下，过程并不复杂，但是也遇到一些坑。主要注意以下几点：</p>
+<ol>
+<li><strong>依赖库采用静态方式编译</strong>。最开始的时候采用默认的动态编译，导致项目依赖复杂，部署起来非常不方便。要注意的是，visp库依赖opencv库，两个库都要采用静态方式编译。</li>
+<li><strong>提取所需代码，封装成类</strong>。提取visp库中的模板追踪算法，封装成类。为了便于后续的优化工作，接口扩展性尽可能好。</li>
+<li>**swig实现python调用C++**。有很多方法实现python调用C++，我这里采用swig，适合懒人。</li>
+</ol>
+<h3 id="静态编译opencv库"><a href="#静态编译opencv库" class="headerlink" title="静态编译opencv库"></a>静态编译opencv库</h3><p>　　opencv采用cmake项目管理，通过ccmake可以很方便的设置静态编译选项。BUILD_SHARED_LIBS设置为OFF即为静态编译。另外,为了保持系统整洁，避免安装到系统路径,设置了安装路径，CMAKE_INSTALL_PREFIX&#x3D;&#x2F;home&#x2F;terse&#x2F;code&#x2F;terse-visp&#x2F;opencv-3.4.6&#x2F;build</p>
+<ol>
+<li>git clone <a href="https://github.com/opencv/opencv.git">https://github.com/opencv/opencv.git</a></li>
+<li>cd opencv-3.4.6 </li>
+<li>mkdir build &amp;&amp; cd build</li>
+<li>ccmake ..(关闭动态编译选项，设置安装路径），cmake ..</li>
+<li>make -j4</li>
+<li>make install</li>
+</ol>
+<h3 id="静态编译visp库"><a href="#静态编译visp库" class="headerlink" title="静态编译visp库"></a>静态编译visp库</h3><p>　　visp库<a href="https://github.com/lagadic/visp.git">https://github.com/lagadic/visp.git</a> 和opencv库一样都采用cmake管理，编译过程和opencv一样，这里只需要设置静态编译和设置安装路径：<br>关闭动态编译选项：BUILD_SHARED_LIBS&#x3D;OFF<br>设置安装路径： CMAKE_INSTALL_PREFIX&#x3D;&#x2F;home&#x2F;terse&#x2F;code&#x2F;terse-visp&#x2F;visp&#x2F;build</p>
+<ol>
+<li>git clone <a href="https://github.com/lagadic/visp.git">https://github.com/lagadic/visp.git</a></li>
+<li>cd visp</li>
+<li>mkdir build &amp;&amp; cd build</li>
+<li>ccmake ..(关闭动态编译选项，设置安装路径），cmake ..</li>
+<li>make -j4</li>
+<li>make install</li>
+</ol>
+<h3 id="提取模板追踪算法-封装成C-类"><a href="#提取模板追踪算法-封装成C-类" class="headerlink" title="提取模板追踪算法,封装成C++类"></a>提取模板追踪算法,封装成C++类</h3><p>　　visp库中提供了模板追踪算法，但是它不能解决遮挡的情况，参考区域很大的时候，追踪速度也很慢，因此在项目中针对这些问题做了一些优化，这个不是本文的重点就不赘述了。下面从visp中摘取的代码，封装成C++类，say_hello成员函数，没有实际用途，只是为了后续的验证python代码的正确性。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">#ifndef VISP_H_</span><br><span class="line">#define VISP_H_</span><br><span class="line"></span><br><span class="line">#include &lt;visp3/io/vpImageIo.h&gt;</span><br><span class="line">#include &lt;visp3/tt/vpTemplateTrackerSSDInverseCompositional.h&gt;</span><br><span class="line">#include &lt;visp3/tt/vpTemplateTrackerWarpHomography.h&gt;</span><br><span class="line">#include &lt;visp3/core/vpException.h&gt;  </span><br><span class="line">#include &lt;opencv2/opencv.hpp&gt;</span><br><span class="line">#include &lt;fstream&gt;</span><br><span class="line"></span><br><span class="line">class TemplateTracker</span><br><span class="line">&#123;</span><br><span class="line">public:</span><br><span class="line">    TemplateTracker();</span><br><span class="line"></span><br><span class="line">    void SetSampling(unsigned int sample_i, unsigned int sample_j);</span><br><span class="line">    void SetLambda(double lamda);</span><br><span class="line">    void SetIterationMax(unsigned int n);</span><br><span class="line">    void SetPyramidal(unsigned int nlevels, unsigned int level_to_stop);</span><br><span class="line">    void SetUseTemplateSelect(bool bselect);</span><br><span class="line">    void SetThresholdGradient(float threshold);</span><br><span class="line"></span><br><span class="line">    int Init(unsigned char* imgData, unsigned int h, unsigned int w, int* ref, unsigned int points_num, bool bshow);</span><br><span class="line">    int InitWithMask(unsigned char* imgData, unsigned int h, unsigned int w, int* ref, unsigned int points_num, bool bshow, unsigned char* mask_data,int h2,int w2);</span><br><span class="line"></span><br><span class="line">    int ComputeH(unsigned char* imgData, unsigned int h,unsigned int w,float* H_matrix,int num);</span><br><span class="line">    int ComputeHWithMask(unsigned char* imgData, unsigned int h,unsigned int w,float* H_matrix,int num,unsigned char* mask_data,int h2,int w2);</span><br><span class="line">    </span><br><span class="line">    void Reset();</span><br><span class="line">    ~TemplateTracker();</span><br><span class="line">    void say_hello();</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">private:</span><br><span class="line">    vpTemplateTrackerWarpHomography warp_;</span><br><span class="line">    vpTemplateTrackerSSDInverseCompositional tracker_;</span><br><span class="line">    int height_, width_;</span><br><span class="line">    vpImage&lt;unsigned char&gt; I_;</span><br><span class="line">    bool bshow_;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">#endif /* VISP_H_ */</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br></pre></td><td class="code"><pre><span class="line">#include &quot;visp.h&quot;  </span><br><span class="line"></span><br><span class="line"></span><br><span class="line">TemplateTracker::TemplateTracker() :</span><br><span class="line">    tracker_(&amp;warp_),</span><br><span class="line">    bshow_(false)</span><br><span class="line">&#123;&#125;;</span><br><span class="line"></span><br><span class="line">void TemplateTracker::SetSampling(unsigned int sample_i, unsigned int sample_j)</span><br><span class="line">&#123;</span><br><span class="line">    tracker_.setSampling(sample_i, sample_j);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">void TemplateTracker::SetLambda(double lamda)</span><br><span class="line">&#123;</span><br><span class="line">    tracker_.setLambda(lamda);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">void TemplateTracker::SetIterationMax(unsigned int n)</span><br><span class="line">&#123;</span><br><span class="line">    tracker_.setIterationMax(n);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">void TemplateTracker::SetPyramidal(unsigned int nlevels, unsigned int level_to_stop)</span><br><span class="line">&#123;</span><br><span class="line">    tracker_.setPyramidal(nlevels, level_to_stop);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">void TemplateTracker::SetUseTemplateSelect(bool bselect)</span><br><span class="line">&#123;</span><br><span class="line">    tracker_.setUseTemplateSelect(bselect);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">void TemplateTracker::SetThresholdGradient(float threshold)</span><br><span class="line">&#123;</span><br><span class="line">    tracker_.setThresholdGradient(threshold);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">int TemplateTracker::Init(unsigned char* imgData, unsigned int h, unsigned int w, int* ref, unsigned int points_num, bool bshow)</span><br><span class="line">&#123;</span><br><span class="line">    cv::Mat img_gray(h, w, CV_8UC1, (unsigned char*)(imgData));  //浅拷贝</span><br><span class="line">    I_.init(imgData, h, w, true);</span><br><span class="line">    height_ = h;</span><br><span class="line">    width_ = w;</span><br><span class="line">    bshow_ = bshow;</span><br><span class="line">    std::vector&lt;vpImagePoint&gt; v_ip;</span><br><span class="line">    for (int i = 0; i &lt; points_num/2; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        vpImagePoint ip(ref[i * 2], ref[i * 2 + 1]);</span><br><span class="line">        v_ip.push_back(ip);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    try&#123;</span><br><span class="line">        tracker_.initFromPoints(I_, v_ip);</span><br><span class="line">    &#125;catch(vpException &amp;e)&#123;</span><br><span class="line">        return e.getCode();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">int TemplateTracker::InitWithMask(unsigned char* imgData, unsigned int h, unsigned int w, int* ref, unsigned int points_num, bool bshow, unsigned char* mask_data,int h2,int w2)</span><br><span class="line">&#123;</span><br><span class="line">    cv::Mat img_gray(h, w, CV_8UC1, (unsigned char*)(imgData));  //浅拷贝</span><br><span class="line">    I_.init(imgData, h, w, true);</span><br><span class="line">    height_ = h;</span><br><span class="line">    width_ = w;</span><br><span class="line">    bshow_ = bshow;</span><br><span class="line">    if (NULL != mask_data)</span><br><span class="line">    &#123;</span><br><span class="line">        cv::Mat mask_gray(h, w, CV_8UC1, (unsigned char*)(mask_data));  //浅拷贝</span><br><span class="line">        I_.SetMask(mask_gray);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    std::vector&lt;vpImagePoint&gt; v_ip;</span><br><span class="line">    for (int i = 0; i &lt; points_num/2; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        vpImagePoint ip(ref[i * 2], ref[i * 2 + 1]);</span><br><span class="line">        v_ip.push_back(ip);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    try&#123;</span><br><span class="line">        tracker_.initFromPoints(I_, v_ip);</span><br><span class="line">    &#125;catch(vpException &amp;e)&#123;</span><br><span class="line">        return e.getCode();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">int TemplateTracker::ComputeH(unsigned char* imgData, unsigned int h,unsigned int w,float* H_matrix,int num)</span><br><span class="line">&#123;</span><br><span class="line">    I_.init(imgData, height_, width_, true);</span><br><span class="line">    try&#123;</span><br><span class="line">        tracker_.track(I_);</span><br><span class="line">    &#125;catch(vpTrackingException &amp;e)&#123;</span><br><span class="line">        std::cout &lt;&lt; e.getMessage() &lt;&lt; std::endl;</span><br><span class="line">        return e.getCode();</span><br><span class="line">    &#125;</span><br><span class="line">    vpColVector p = tracker_.getp();</span><br><span class="line">    vpHomography H = warp_.getHomography(p);</span><br><span class="line">    for (int m = 0; m &lt; 3; m++)</span><br><span class="line">    &#123;</span><br><span class="line">        for (int n = 0; n &lt; 3; n++)</span><br><span class="line">        &#123;</span><br><span class="line">            H_matrix[m * 3 + n] = H[m][n];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">int TemplateTracker::ComputeHWithMask(unsigned char* imgData, unsigned int h,unsigned int w,float* H_matrix,int num,unsigned char* mask_data,int h2,int w2)</span><br><span class="line">&#123;</span><br><span class="line">    I_.init(imgData, height_, width_, true);</span><br><span class="line">    if (NULL != mask_data)</span><br><span class="line">    &#123;</span><br><span class="line">        cv::Mat mask_gray(height_, width_, CV_8UC1, (unsigned char*)(mask_data));  //浅拷贝</span><br><span class="line">        I_.SetMask(mask_gray);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    try&#123;</span><br><span class="line">        tracker_.track(I_);</span><br><span class="line">    &#125;catch(vpTrackingException &amp;e)&#123;</span><br><span class="line">        std::cout &lt;&lt; e.getMessage() &lt;&lt; std::endl;</span><br><span class="line">        return e.getCode();</span><br><span class="line">    &#125;</span><br><span class="line">    vpColVector p = tracker_.getp();</span><br><span class="line">    vpHomography H = warp_.getHomography(p);</span><br><span class="line">    for (int m = 0; m &lt; 3; m++)</span><br><span class="line">    &#123;</span><br><span class="line">        for (int n = 0; n &lt; 3; n++)</span><br><span class="line">        &#123;</span><br><span class="line">            H_matrix[m * 3 + n] = H[m][n];</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">void TemplateTracker::Reset()</span><br><span class="line">&#123;</span><br><span class="line">    tracker_.resetTracker();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">TemplateTracker::~TemplateTracker()&#123;&#125;;</span><br><span class="line"></span><br><span class="line">void TemplateTracker::say_hello()&#123;</span><br><span class="line">    std::cout &lt;&lt; &quot;hello&quot; &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h3 id="采用swig实现python调用C"><a href="#采用swig实现python调用C" class="headerlink" title="采用swig实现python调用C++"></a>采用swig实现python调用C++</h3><p>　　python调用C++的方法有很多，例如ctypes、PyObject、Boost.python,采用了swig方法，使用之后感觉确挺方便的。为了给追踪功能提供numpy参数的输入和输出，这里需要引入numpy.i文件。<br>参考：<a href="http://www.swig.org/Doc1.3/Python.html#Python">http://www.swig.org/Doc1.3/Python.html#Python</a></p>
+<h4 id="1-定义接口文件：visp-i"><a href="#1-定义接口文件：visp-i" class="headerlink" title="1. 定义接口文件：visp.i"></a>1. 定义接口文件：visp.i</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">/* File: visp.i */</span><br><span class="line">%module visp</span><br><span class="line"></span><br><span class="line">%&#123;</span><br><span class="line">  #define SWIG_FILE_WITH_INIT</span><br><span class="line">  #include &quot;visp.h&quot;</span><br><span class="line">%&#125;</span><br><span class="line"></span><br><span class="line">%include &quot;numpy.i&quot;</span><br><span class="line"></span><br><span class="line">%init %&#123;</span><br><span class="line">    import_array();</span><br><span class="line">%&#125;</span><br><span class="line"></span><br><span class="line">%apply (unsigned char* IN_ARRAY2, int DIM1, int DIM2) &#123;(unsigned char* imgData, unsigned int h, unsigned int w)&#125;</span><br><span class="line">%apply (unsigned char* IN_ARRAY2, int DIM1, int DIM2) &#123;(unsigned char* mask_data, int h2, int w2)&#125;</span><br><span class="line">%apply (int* IN_ARRAY1, int DIM1) &#123;(int* ref, unsigned int points_num)&#125;</span><br><span class="line">%apply (float* INPLACE_ARRAY1, int DIM1) &#123;(float* H_matrix,int num)&#125;</span><br><span class="line"></span><br><span class="line">%include &quot;visp.h&quot;</span><br></pre></td></tr></table></figure>
+<h4 id="2-swig-编译visp-i-文件生成C-和py代码，生成visp-wrap-cxx-visp-py"><a href="#2-swig-编译visp-i-文件生成C-和py代码，生成visp-wrap-cxx-visp-py" class="headerlink" title="2. swig 编译visp.i 文件生成C++和py代码，生成visp_wrap.cxx,visp.py"></a>2. swig 编译visp.i 文件生成C++和py代码，生成visp_wrap.cxx,visp.py</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">swig -c++ -python -py3 visp.i //python3</span><br></pre></td></tr></table></figure>
+<h4 id="3-分别编译visp-cc和visp-wrap-cxx代码"><a href="#3-分别编译visp-cc和visp-wrap-cxx代码" class="headerlink" title="3. 分别编译visp.cc和visp_wrap.cxx代码"></a>3. 分别编译visp.cc和visp_wrap.cxx代码</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">g++  -O2 -fPIC  -c visp.cc -I/home/terse/code/terse-visp/VispSource/build/include</span><br><span class="line">g++ -O2 -fPIC -c visp_wrap.cxx -I/home/terse/anaconda3/include/python3.6m -I/home/terse/code/terse-visp/VispSource/build/include -I//home/terse/anaconda3/lib/python3.6/site-packages/numpy/core/include/</span><br></pre></td></tr></table></figure>
+<h4 id="4-链接生成-visp-so文件"><a href="#4-链接生成-visp-so文件" class="headerlink" title="4. 链接生成_visp.so文件"></a>4. 链接生成_visp.so文件</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">g++ -shared visp_wrap.o visp.o -L/home/terse/code/terse-visp/VispSource/build/lib -lvisp_ar -lvisp_blob -lvisp_core -lvisp_detection -lvisp_core -lvisp_gui -lvisp_imgproc -lvisp_io -lvisp_klt -lvisp_mbt -lvisp_me -lvisp_robot -lvisp_sensor -lvisp_tt -lvisp_tt_mi -lvisp_vision -lvisp_visual_features -lvisp_vs -lvisp_tt  -lvisp_ar -lvisp_blob -lvisp_core -lvisp_detection -lvisp_core -lvisp_gui -lvisp_imgproc -lvisp_io -lvisp_klt -lvisp_mbt -lvisp_me -lvisp_robot -lvisp_sensor -lvisp_tt -lvisp_tt_mi -lvisp_vision -lvisp_visual_features -lvisp_vs -Wl,-Bstatic -L/home/terse/code/terse-visp/opencv-3.4.6/build/lib -lopencv_dnn -lopencv_ml -lopencv_objdetect -lopencv_shape -lopencv_stitching -lopencv_superres -lopencv_videostab -lopencv_calib3d -lopencv_features2d -lopencv_highgui -lopencv_videoio -lopencv_imgcodecs -lopencv_video -lopencv_photo -lopencv_imgproc -lopencv_flann -lopencv_core -Wl,-Bstatic -L/home/terse/code/terse-visp/opencv-3.4.6/build/share/OpenCV/3rdparty/lib -littnotify -llibprotobuf -llibjasper -lquirc -lippiw -lippicv -Wl,-Bdynamic -lpython3.7m -Wl,-Bdynamic  -llapack  -fopenmp -ldl  -lz -lrt -ltiff -o _visp.so</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>　　这里有个坑纠结了挺久了，最开始生成的_visp.so文件中通过ldd -r 查看一直有几个未定义的符号。排查后发现来自opencv_core库中，通过nm查看，发现libopencv_core.a中是未定义的，而libopencv_sore.so是正常的。最后发现那几个未定义的符号在&#x2F;home&#x2F;terse&#x2F;code&#x2F;terse-visp&#x2F;opencv-3.4.6&#x2F;build&#x2F;3rdparty&#x2F;lib&#x2F;libittnotify.a库中，链接时加入这个库就将未定义的符号解决了。这个链接文件中有许多依赖的库是不需要的，这里就没有仔细排查了，只要没少就能链接成功。</p>
+<h3 id="简单测试"><a href="#简单测试" class="headerlink" title="简单测试"></a>简单测试</h3><p>　　通过ldd -r 检查_visp.so文件没有问题，理论上就没什么问题里，这里通过代码中故意遗留的函数测试一下。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">import visp</span><br><span class="line">import cv2</span><br><span class="line">import numpy as np</span><br><span class="line"></span><br><span class="line">def get_frame(cap, frame_index):</span><br><span class="line">    pos = cap.get(cv2.CAP_PROP_POS_FRAMES)</span><br><span class="line">    if pos != frame_index:</span><br><span class="line">        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_index)</span><br><span class="line">    ret, frame = cap.read()</span><br><span class="line">    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)</span><br><span class="line">    return gray</span><br><span class="line"></span><br><span class="line">if __name__ == &#x27;__main__&#x27;:</span><br><span class="line">    video_name = &quot;./test_data/1166/input.mp4&quot;</span><br><span class="line"></span><br><span class="line">    ref_area = [105, 73, 479, 62, 126, 309, 120, 297, 471, 57, 457, 291]</span><br><span class="line">    key_frame = 5520</span><br><span class="line"></span><br><span class="line">    cap = cv2.VideoCapture(video_name) #video name</span><br><span class="line">    tracker = visp.TemplateTracker()</span><br><span class="line">    tracker.SetLambda(0.001)</span><br><span class="line">    tracker.SetPyramidal(3,0)</span><br><span class="line">    tracker.SetIterationMax(200)</span><br><span class="line">    tracker.SetSampling(1,1)  #x和y方向的降采样率</span><br><span class="line">    tracker.say_hello()</span><br><span class="line">    img = get_frame(cap, key_frame)</span><br><span class="line">    ret_code = tracker.Init(img,ref_area,True)</span><br><span class="line"></span><br><span class="line">    H_array = np.empty(9,dtype=np.float32)</span><br><span class="line">    img = get_frame(cap, key_frame+1)</span><br><span class="line">    ret_code = tracker.ComputeH(img,H_array)</span><br><span class="line">    print(ret_code,H_array)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<hr>
+<h2 id="title-Python-多线程和多进程categories-Python"><a href="#title-Python-多线程和多进程categories-Python" class="headerlink" title="title: Python 多线程和多进程categories:- Python"></a>title: Python 多线程和多进程<br>categories:<br>- Python</h2><p>　　<br>　　最近在做一些算法优化的工作，由于对Python认识不够，开始的入坑使用了多线程。发现在一个四核机器，即使使用多线程，CPU使用率始终在100%左右（一个核）。后来发现Python中并行计算要使用多进程，改成多进程模式后，CPU使用率达到340%，也提升了算法的效率。另外multiprocessing对多线程和多进程做了很好的封装，需要掌握。这里总结下面两个问题：</p>
+<ol>
+<li>Python中的并行计算为什么要使用多进程？</li>
+<li>Python多线程和多进程简单测试</li>
+<li>multiprocessing库的使用</li>
+</ol>
+<h2 id="Python中的并行计算为什么要使用多进程？"><a href="#Python中的并行计算为什么要使用多进程？" class="headerlink" title="Python中的并行计算为什么要使用多进程？"></a>Python中的并行计算为什么要使用多进程？</h2><p>　　Python在并行计算中必须使用多进程的原因是GIL(Global Interpreter Lock，全局解释器锁)。GIL使得在解释执行Python代码时，会产生互斥锁来限制线程对共享资源的访问，直到解释器遇到I&#x2F;O操作或者操作次数达到一定数目时才会释放GIL。这使得<strong>Python一个进程内同一时间只能允许一个线程进行运算</strong>”，也就是说多线程无法利用多核CPU。因此：</p>
+<ol>
+<li>对于CPU密集型任务（循环、计算等），由于多线程触发GIL的释放与在竞争，多个线程来回切换损耗资源，因此多线程不但不会提高效率，反而会降低效率。所以<strong>计算密集型程序，要使用多进程</strong>。</li>
+<li>对于I&#x2F;O密集型代码（文件处理、网络爬虫、sleep等待),开启多线程实际上是**并发(不是并行)**，线程A在IO等待时，会切换到线程B，从而提升效率。</li>
+<li>大多数程序包含CPU和IO操作，但不考虑进程的资源开销，<strong>多进程通常都是优于多线程的</strong>。</li>
+<li>由于Python多线程的问题，因此通常情况下都使用多进程，使用多进程需要注意进程间变量的共享。</li>
+</ol>
+<h2 id="Python多线程和多进程简单测试"><a href="#Python多线程和多进程简单测试" class="headerlink" title="Python多线程和多进程简单测试"></a>Python多线程和多进程简单测试</h2><ul>
+<li>job1是一个完成CPU没有任务IO的死循环，观察CPU使用率，无论使用多少线程数量num，CPU使用率始终在100%左右，也就是说只能利用核的资源。而多进程则可以使用多核资源，num为1时CPU使用率为100%，num为2时CPU使用率接近200%。</li>
+<li>job2是一个IO密集型的程序，主要的耗时在print系统调用。num&#x3D;4时，多线程跑了10.81s，cpu使用率93%；多进程只用了3.23s，CPU使用率130%。</li>
+</ul>
+<p>　</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">import multiprocessing</span><br><span class="line">import threading</span><br><span class="line"></span><br><span class="line">def job1():</span><br><span class="line">    &#x27;&#x27;&#x27;</span><br><span class="line">        full cpu</span><br><span class="line">    &#x27;&#x27;&#x27;</span><br><span class="line">    while True:</span><br><span class="line">        continue</span><br><span class="line"></span><br><span class="line">NUMS = 100000</span><br><span class="line">def job2():</span><br><span class="line">    &#x27;&#x27;&#x27;</span><br><span class="line">        cpu and io</span><br><span class="line">    &#x27;&#x27;&#x27;</span><br><span class="line">    for i in range(NUMS):</span><br><span class="line">        print(&quot;hello,world&quot;)</span><br><span class="line"></span><br><span class="line">def multi_threads(num,job):</span><br><span class="line">    threads = []</span><br><span class="line">    for i in range(num):</span><br><span class="line">        t = threading.Thread(target=job,args=())</span><br><span class="line">        threads.append(t)</span><br><span class="line">    for t in threads:</span><br><span class="line">        t.start()</span><br><span class="line">    for t in threads:</span><br><span class="line">        t.join()</span><br><span class="line"></span><br><span class="line">def multi_process(num,job):</span><br><span class="line">    process = []</span><br><span class="line">    for i in range(num):</span><br><span class="line">        p = multiprocessing.Process(target=job,args=())</span><br><span class="line">        process.append(p)</span><br><span class="line">    for p in process:</span><br><span class="line">        p.start()</span><br><span class="line">    for p in process:</span><br><span class="line">        p.join()</span><br><span class="line"></span><br><span class="line">if __name__ == &#x27;__main__&#x27;:</span><br><span class="line">    # multi_threads(4,job1)</span><br><span class="line">    # multi_process(4,job1)</span><br><span class="line">    # multi_threads(4,job2)</span><br><span class="line">    multi_process(4,job2)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="multiprocessing的使用"><a href="#multiprocessing的使用" class="headerlink" title="multiprocessing的使用"></a><a href="https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing">multiprocessing的使用</a></h2><p>参考：<a href="https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing">https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing</a></p>
+<ol>
+<li>单个进程multiprocessing.Process对象，和threading.Thread的API完全一样，start(),join(),参考上文中的测试代码。</li>
+<li>进程池</li>
+<li>进程间对象共享队列multiprocessing.Queue()</li>
+<li>进程同步multiprocessing.Lock()</li>
+<li>进程间状态共享multiprocessing.Value,multiprocessing.Array</li>
+<li>multiprocessing.Manager()</li>
+<li>进程池：multiprocessing.Pool()</li>
+</ol>
+<ul>
+<li>pool.map</li>
+<li>pool.imap_unordered</li>
+<li>pool.apply_async</li>
+<li></li>
+</ul>
+<p>　　Python多线程和多进程的使用非常方面，因为multiprocessing提供了非常好的封装。为了方便设置线程和进程的数量，通常都会使用池pool技术。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">from multiprocessing.dummy import Pool as DummyPool   # thread pool</span><br><span class="line">from multiprocessing import Pool                      # process pool</span><br></pre></td></tr></table></figure>
+<p>multilprocessing包的使用可参考：</p>
+<ul>
+<li><a href="https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing">https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing</a></li>
+<li><a href="https://thief.one/2016/11/24/Multiprocessing-Pool/">https://thief.one/2016/11/24/Multiprocessing-Pool/</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2023/10/13/system-design/3-bash-shell/" rel="prev" title="编程语言：bash shell实践">
+                  <i class="fa fa-angle-left"></i> 编程语言：bash shell实践
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2023/11/01/system-design/5-cpp-interview/" rel="next" title="编程语言：C/C++ 实践">
+                  编程语言：C/C++ 实践 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

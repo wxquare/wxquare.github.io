@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="DaSiamRPN是2018年在追踪领域的深度学习模型，公开测试结果都非常好，可以说是目前最好的追踪算法，公开的部分代码是使用Pytorch的预测部分，还没有公开训练部分代码。我们需求是将其移植到终端，初步方案是通过将其转为tensorfl lite，然后在移动端部署。由于接触深度学习时间短，对pytorch和tensorflow框架不熟悉，加上DaSiamRPN模型本身比较复杂，在模型转换过">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DaSiamRPN pytorch转tflite模型">
+<meta property="og:url" content="http://yoursite.com/to_post/DaSiamRPN.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="DaSiamRPN是2018年在追踪领域的深度学习模型，公开测试结果都非常好，可以说是目前最好的追踪算法，公开的部分代码是使用Pytorch的预测部分，还没有公开训练部分代码。我们需求是将其移植到终端，初步方案是通过将其转为tensorfl lite，然后在移动端部署。由于接触深度学习时间短，对pytorch和tensorflow框架不熟悉，加上DaSiamRPN模型本身比较复杂，在模型转换过">
+<meta property="og:locale">
+<meta property="article:published_time" content="2025-12-08T15:55:23.805Z">
+<meta property="article:modified_time" content="2025-12-08T15:55:23.805Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/to_post/DaSiamRPN">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":false,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/to_post/DaSiamRPN.html","path":"to_post/DaSiamRPN.html","title":"DaSiamRPN pytorch转tflite模型"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>DaSiamRPN pytorch转tflite模型 | wxquare's Blogs
+</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%B8%BB%E6%B5%81%E6%A8%A1%E5%9E%8B%E8%BD%AC%E6%8D%A2%E6%96%B9%E6%B3%95"><span class="nav-number">1.</span> <span class="nav-text">一、主流模型转换方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81pytorch%E8%BD%ACtensorflow"><span class="nav-number">2.</span> <span class="nav-text">二、pytorch转tensorflow</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81tensorflow%E8%BD%ACtensorflow-lite"><span class="nav-number">3.</span> <span class="nav-text">三、tensorflow转tensorflow lite</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E6%B5%8B%E8%AF%95%E4%BD%BF%E7%94%A8tflite%E6%A8%A1%E5%9E%8B%E6%96%87%E4%BB%B6"><span class="nav-number">4.</span> <span class="nav-text">四、测试使用tflite模型文件</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner page posts-expand">
+
+
+    
+    
+    
+    <div class="post-block" lang="zh-Hans"><header class="post-header">
+
+<h1 class="post-title" itemprop="name headline">DaSiamRPN pytorch转tflite模型
+</h1>
+
+<div class="post-meta-container">
+</div>
+
+</header>
+
+      
+      
+      
+      <div class="post-body">
+          <p>　　DaSiamRPN是2018年在追踪领域的深度学习模型，公开测试结果都非常好，可以说是目前最好的追踪算法，公开的部分代码是使用Pytorch的预测部分，还没有公开训练部分代码。我们需求是将其移植到终端，初步方案是通过将其转为tensorfl lite，然后在移动端部署。由于接触深度学习时间短，对pytorch和tensorflow框架不熟悉，加上DaSiamRPN模型本身比较复杂，在模型转换过程中遇到不少的问题，目前我们已经完成了DaSiamRPN tflite 的python版本。</p>
+<h2 id="一、主流模型转换方法"><a href="#一、主流模型转换方法" class="headerlink" title="一、主流模型转换方法"></a>一、主流模型转换方法</h2><p>两种模型转换的方法：</p>
+<ol>
+<li>pytorch转keras，然后转tensorflow lite<br><a href="https://heartbeat.fritz.ai/deploying-pytorch-and-keras-models-to-android-with-tensorflow-mobile-a16a1fb83f2">https://heartbeat.fritz.ai/deploying-pytorch-and-keras-models-to-android-with-tensorflow-mobile-a16a1fb83f2</a>  </li>
+<li>onnx，pytorch转onnx，onnx转tensorflow，tensorflow转tensorflow lite。<br><a href="https://github.com/onnx/tutorials/blob/master/tutorials/PytorchTensorflowMnist.ipynb">https://github.com/onnx/tutorials/blob/master/tutorials/PytorchTensorflowMnist.ipynb</a><br>最开始是用第一种方法的，但是转出来的结果不对，失败原因可能是因为自己定义相同kera参数有些不同导致失败，最终放弃。最终，通过第二种方法onnx做中转，验证可行。</li>
+</ol>
+<h2 id="二、pytorch转tensorflow"><a href="#二、pytorch转tensorflow" class="headerlink" title="二、pytorch转tensorflow"></a>二、pytorch转tensorflow</h2><p>用onnx做模型转换需要注意下面三点：  </p>
+<ol>
+<li>forward函数决定从原模型导出模型数据的哪些部分。DaSiamRPN模型比较复杂，通过定义不同的forward我们导出了三个tflite模型。  </li>
+<li>确定导出模型的输入格式  </li>
+<li>导出的tensorflow模型文件是frozen graph格式<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br></pre></td><td class="code"><pre><span class="line">from os.path import realpath, dirname, join</span><br><span class="line">import torch</span><br><span class="line">import torch.nn as nn</span><br><span class="line">import torch.nn.functional as F</span><br><span class="line">from torch.autograd import Variable</span><br><span class="line">import tensorflow as tf</span><br><span class="line">import onnx</span><br><span class="line">from onnx_tf.backend import prepare</span><br><span class="line"></span><br><span class="line">class SiamRPN(nn.Module):             </span><br><span class="line">    def __init__(self, size=2, feature_out=512, anchor=5):</span><br><span class="line">        configs = [3, 96, 256, 384, 384, 256]</span><br><span class="line">        configs = list(map(lambda x: 3 if x==3 else x*size, configs))</span><br><span class="line">        feat_in = configs[-1]</span><br><span class="line">        super(SiamRPN, self).__init__()</span><br><span class="line">        </span><br><span class="line">        self.featureExtract = nn.Sequential(</span><br><span class="line">            nn.Conv2d(configs[0], configs[1] , kernel_size=11, stride=2),</span><br><span class="line">            nn.BatchNorm2d(configs[1]),</span><br><span class="line">            nn.MaxPool2d(kernel_size=3, stride=2),</span><br><span class="line">            nn.ReLU(inplace=True),</span><br><span class="line"></span><br><span class="line">            nn.Conv2d(configs[1], configs[2], kernel_size=5),</span><br><span class="line">            nn.BatchNorm2d(configs[2]),</span><br><span class="line">            nn.MaxPool2d(kernel_size=3, stride=2),</span><br><span class="line">            nn.ReLU(inplace=True),</span><br><span class="line"></span><br><span class="line">            nn.Conv2d(configs[2], configs[3], kernel_size=3),</span><br><span class="line">            nn.BatchNorm2d(configs[3]),</span><br><span class="line">            nn.ReLU(inplace=True),</span><br><span class="line"></span><br><span class="line">            nn.Conv2d(configs[3], configs[4], kernel_size=3),</span><br><span class="line">            nn.BatchNorm2d(configs[4]),</span><br><span class="line">            nn.ReLU(inplace=True),</span><br><span class="line">            </span><br><span class="line">            nn.Conv2d(configs[4], configs[5], kernel_size=3),</span><br><span class="line">            nn.BatchNorm2d(configs[5]),</span><br><span class="line">        )</span><br><span class="line">        </span><br><span class="line">        self.anchor = anchor</span><br><span class="line">        self.feature_out = feature_out</span><br><span class="line">        self.conv_r1 = nn.Conv2d(feat_in, feature_out*4*anchor, 3)</span><br><span class="line">        self.conv_r2 = nn.Conv2d(feat_in, feature_out, 3)</span><br><span class="line">        self.conv_cls1 = nn.Conv2d(feat_in, feature_out*2*anchor, 3)</span><br><span class="line">        self.conv_cls2 = nn.Conv2d(feat_in, feature_out, 3)</span><br><span class="line">        self.regress_adjust = nn.Conv2d(4*anchor, 4*anchor, 1)</span><br><span class="line">        self.r1_kernel = []</span><br><span class="line">        self.cls1_kernel = []</span><br><span class="line">        self.cfg = &#123;&#125;</span><br><span class="line">    # pytorch forward</span><br><span class="line">    def forward(self, x):</span><br><span class="line">        x_f = self.featureExtract(x)</span><br><span class="line">        r1_kernel_raw = self.conv_r1(x_f)</span><br><span class="line">        cls1_kernel_raw = self.conv_cls1(x_f)</span><br><span class="line">        return r1_kernel_raw,cls1_kernel_raw</span><br><span class="line">  </span><br><span class="line">class SiamRPNvot(SiamRPN):</span><br><span class="line">    def __init__(self):</span><br><span class="line">        super(SiamRPNvot, self).__init__(size=1, feature_out=256)</span><br><span class="line">        self.cfg = &#123;&#x27;lr&#x27;:0.45, &#x27;window_influence&#x27;: 0.44, &#x27;penalty_k&#x27;: 0.04, &#x27;instance_size&#x27;: 271, &#x27;adaptive&#x27;: False&#125; # 0.355</span><br><span class="line"></span><br><span class="line"># load net</span><br><span class="line">net = SiamRPNvot()</span><br><span class="line">net.load_state_dict(torch.load(join(realpath(dirname(__file__)), &#x27;SiamRPNVOT.model&#x27;)))</span><br><span class="line"></span><br><span class="line"># export temple_model.onnx and temple_model_pb</span><br><span class="line">dummy_input = Variable(torch.randn(1, 3, 127, 127)) # one black and white 28 x 28 picture will be the input to the model</span><br><span class="line">torch.onnx.export(net, dummy_input, &quot;temple_model.onnx&quot;)</span><br><span class="line">onnx_model = onnx.load(&quot;temple_model.onnx&quot;)</span><br><span class="line">tf_rep = prepare(onnx_model)</span><br><span class="line">print(tf_rep.inputs,tf_rep.outputs)</span><br><span class="line">print(tf_rep.tensor_dict)</span><br><span class="line">tf_rep.export_graph(&quot;temple_model.pb&quot;)</span><br><span class="line">outputs = [node for node in tf_rep.outputs]</span><br><span class="line">print(outputs)</span><br><span class="line"></span><br><span class="line">#命令行将tensorflow模型转tensorflow lite模型</span><br><span class="line">#toco --output_file=temple_model.tflite   --graph_def_file=temple_model.pb  --input_arrays=0  --output_arrays=transpose_21,transpose_24</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h2 id="三、tensorflow转tensorflow-lite"><a href="#三、tensorflow转tensorflow-lite" class="headerlink" title="三、tensorflow转tensorflow lite"></a>三、tensorflow转tensorflow lite</h2><p>理论上tenforflow转tensorflow lite是简单的，实践中也遇到一些问题  </p>
+<ol>
+<li>tensorflow官网针对不同的场景提供四种tensorflow转tensorflow lite的方法，onnx导出的模型文件格式是frozen_graph。<br><a href="https://www.tensorflow.org/api_docs/python/tf/lite/TFLiteConverter">https://www.tensorflow.org/api_docs/python/tf/lite/TFLiteConverter</a>  </li>
+<li>frozen_graph文件转tensorflow lite需要提供input_arrays和output_arrays参数，这里是试出来的。在导出模型的时候打印tf_rep.inputs,tf_rep.outputs，tf_rep.tensor_dict，通过这里得出input_array是0,output_arrays是62和63，但是要写对应的名字，transpose_21，transpose_24。<br>我是使用toco命令行进行模型转换：<br>toco –output_file&#x3D;temple_model.tflite   –graph_def_file&#x3D;temple_model.pb  –input_arrays&#x3D;0  –output_arrays&#x3D;transpose_21,transpose_24</li>
+</ol>
+<h2 id="四、测试使用tflite模型文件"><a href="#四、测试使用tflite模型文件" class="headerlink" title="四、测试使用tflite模型文件"></a>四、测试使用tflite模型文件</h2><p>　经过上面的几个步骤就可以得到tflite模型文件，在移植到终端之前，我们先写了一些python代码进行正确性的验证。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">temple_interpreter = tf.contrib.lite.Interpreter(model_path=&quot;temple_model.tflite&quot;)</span><br><span class="line">temple_interpreter.allocate_tensors()</span><br><span class="line">input_details = self.temple_interpreter.get_input_details()</span><br><span class="line">output_details = self.temple_interpreter.get_output_details()</span><br><span class="line">input_shape = input_details[0][&#x27;shape&#x27;]</span><br><span class="line">input_data = x.data.numpy() #输出数据的numpy格式</span><br><span class="line">self.temple_interpreter.set_tensor(input_details[0][&#x27;index&#x27;], input_data)</span><br><span class="line">self.temple_interpreter.invoke()</span><br><span class="line">y1 = temple_interpreter.get_tensor(output_details[0][&#x27;index&#x27;])</span><br><span class="line">y2 = temple_interpreter.get_tensor(output_details[1][&#x27;index&#x27;])</span><br></pre></td></tr></table></figure>
+
+<p> 通过分析输入x和输出y1和y2即可判断tflite模型文件的正确性</p>
+<p>以上记录刚接触深度学习模型和框架时遇到的坑！</p>
+
+      </div>
+      
+      
+      
+    </div>
+
+    
+    
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

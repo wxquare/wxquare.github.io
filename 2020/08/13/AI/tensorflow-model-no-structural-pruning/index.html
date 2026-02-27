@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="一、概述　　深度模型通常会有更好的预测精度，但是它面临计算开销过大的问题。模型压缩(model compress)是提高深度模型推理效率的一种解决方案，它期望在不损失精度或者精度损失可控的范围内，加速推理效率，减低内存开销。目前，模型压缩算法主要包括权重量化(quantization)、剪枝(pruning)、低秩分解等。上周尝试了tensorflow中的模型量化，发现量化需要硬件或者推理引擎的对">
+<meta property="og:type" content="article">
+<meta property="og:title" content="tensorflow模型权重稀疏(weight sparsification)实战">
+<meta property="og:url" content="http://yoursite.com/2020/08/13/AI/tensorflow-model-no-structural-pruning/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="一、概述　　深度模型通常会有更好的预测精度，但是它面临计算开销过大的问题。模型压缩(model compress)是提高深度模型推理效率的一种解决方案，它期望在不损失精度或者精度损失可控的范围内，加速推理效率，减低内存开销。目前，模型压缩算法主要包括权重量化(quantization)、剪枝(pruning)、低秩分解等。上周尝试了tensorflow中的模型量化，发现量化需要硬件或者推理引擎的对">
+<meta property="og:locale">
+<meta property="article:published_time" content="2020-08-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-12-08T15:55:23.483Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2020/08/13/AI/tensorflow-model-no-structural-pruning/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2020/08/13/AI/tensorflow-model-no-structural-pruning/","path":"2020/08/13/AI/tensorflow-model-no-structural-pruning/","title":"tensorflow模型权重稀疏(weight sparsification)实战"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>tensorflow模型权重稀疏(weight sparsification)实战 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%A6%82%E8%BF%B0"><span class="nav-number">1.</span> <span class="nav-text">一、概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81tensorflow-contrib-model-pruning%E5%8E%9F%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text">二、tensorflow&#x2F;contrib&#x2F;model_pruning原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81tensorflow%E4%B8%AD%E7%9A%84model-pruning%E5%AE%9E%E8%B7%B5"><span class="nav-number">3.</span> <span class="nav-text">三、tensorflow中的model_pruning实践</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81model-pruning%E6%BA%90%E7%A0%81%E7%AE%80%E5%8D%95%E5%88%86%E6%9E%90"><span class="nav-number">4.</span> <span class="nav-text">四、model_pruning源码简单分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E6%80%BB%E7%BB%93%E5%92%8C%E6%9C%AA%E8%A7%A3%E5%86%B3%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">5.</span> <span class="nav-text">五、总结和未解决的问题</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tensorflow-model-no-structural-pruning/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="tensorflow模型权重稀疏(weight sparsification)实战 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          tensorflow模型权重稀疏(weight sparsification)实战
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="一、概述"><a href="#一、概述" class="headerlink" title="一、概述"></a>一、概述</h2><p>　　深度模型通常会有更好的预测精度，但是它面临计算开销过大的问题。模型压缩(model compress)是提高深度模型推理效率的一种解决方案，它期望在不损失精度或者精度损失可控的范围内，加速推理效率，减低内存开销。目前，模型压缩算法主要包括权<strong>重量化(quantization)、剪枝(pruning)、低秩分解等</strong>。上周尝试了<a href="https://wxquare.github.io/2019/09/16/other/tensorflow-model-quantization/">tensorflow中的模型量化</a>，发现量化需要硬件或者推理引擎的对低精度8-bit计算支持，目前tensorflow在x86和gpu环境下还没有很好的支持，因此量化只帮助实现了模型大小下降，没有实现推理的加速。model pruning学习的材料是tensorflow repo中的tensorflow&#x2F;contrib&#x2F;model_pruning，实际了解后发现它属于pruning中no-structural pruning，其加速效果依赖具体的硬件实现，加速效果一般，tensorflow 中对稀疏矩阵运算没有特别好的优化（依赖于底层的 SparseBLAS 实现，目前还没有特别好的）。model pruning中还有一种structural pruning 则不改变计算方式，可以直接使用，加速效果相对较好，之后也会继续尝试。</p>
+<h2 id="二、tensorflow-contrib-model-pruning原理"><a href="#二、tensorflow-contrib-model-pruning原理" class="headerlink" title="二、tensorflow&#x2F;contrib&#x2F;model_pruning原理"></a>二、tensorflow&#x2F;contrib&#x2F;model_pruning原理</h2><p>　　<a href="https://arxiv.org/pdf/1710.01878.pdf">Michael Zhu and Suyog Gupta, “To prune, or not to prune: exploring the efficacy of pruning for model compression”, 2017 NIPS </a><br>　　tensorflow中model_pruning理论来自上面这篇文章。文章中指出目前有些深度学习网络模型是过度设计（over-parameterized）。为了使其在资源受限的环境下高效的进行推理预测，要么减少网络的隐藏单元（hidden unit）同时保持模型密集连接结构，要么采用针对大模型进行模型剪枝（model pruning）。文章中的模型行剪枝是一种非结构化的剪枝（no-structural pruning），它在深度神经网络的各种连接矩阵中引入稀疏性（sparsity），从而减少模型中非零值参数的数量。文章比较了大而稀疏（large-sparse）和较小密集（small-dense）这两种模型，认为前者是优于后者的。除此之外，文章提出了一种新的渐进剪枝技术（gradual pruning technique），它能比较方便的融入到模型训练的过程中，使其调整比较小。</p>
+<p>　　tensorflow中的模型剪枝是一种训练时剪枝。对于需要被剪枝的网络模型，对于网络中每个需要被剪枝的层（layer)添加一个二进制掩码变量（binary mask variable ），该变量的大小和形状和改层的权重张量（weight tensor）相同。在训练图中加入一些ops，它负责对该层的权重值（weights）的绝对值进行排序，通过mask将最小的权重值屏蔽为0。在前向传播时该掩模的对应位与选中权重进行相与输出feature map，如果该掩模对应位为0则对应的权重相与后则为0，在反向传播时掩模对应位为0的权重参数则不参与更新。除此之外，文章提出了一种新的自动逐步修剪算法（automated gradual pruning），它实际上是定义了一种稀疏度变化的规则，初始时刻，稀疏度提升较快，而越到后面，稀疏度提升速度会逐渐放缓，这个主要是基于冗余度的考虑。因为初始时有大量冗余的权值，而越到后面保留的权值数量越少，不能再“大刀阔斧”地修剪，而需要更谨慎些，避免“误伤无辜”。其表达式如下，官方文档中列出了一些的剪枝超参数，主要的有下面几个。<br>$$s_{t}&#x3D;s_{f}+\left(s_{i}-s_{f}\right)\left(1-\frac{t-t_{0}}{n\Delta t}\right)^{3}  $$</p>
+<ul>
+<li>initial_sparsity：初始稀疏值$s_i$</li>
+<li>target_sparsity：目标稀疏值$s_f$</li>
+<li>sparsity_function_begin_step：开始剪枝的step $t_0$</li>
+<li>sparsity_function_end_step: 剪枝停止的step</li>
+<li>pruning_frequency：剪枝的频率$\Delta t$，文章提出在100到1000之间通常比较好</li>
+<li>sparsity_function_exponent: 剪枝函数的指数，表示式中已描述为默认的3，表示由快到慢，为1时表示线性剪枝</li>
+</ul>
+<h2 id="三、tensorflow中的model-pruning实践"><a href="#三、tensorflow中的model-pruning实践" class="headerlink" title="三、tensorflow中的model_pruning实践"></a>三、tensorflow中的model_pruning实践</h2><p>　　tensorflow中model_pruning的源码位于tensorflow&#x2F;contrib&#x2F;model_pruning。</p>
+<ol>
+<li><p>准备tensorflow-1.14.0源码</p>
+</li>
+<li><p>编译model_pruning</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$bazel build -c opt tensorflow/contrib/model_pruning/examples/cifar10:cifar10_train</span><br></pre></td></tr></table></figure></li>
+<li><p>通过设置一些参数，开始针对cifar10剪枝</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$bazel-out/k8-py2-opt/bin/tensorflow/contrib/model_pruning/examples/cifar10/cifar10_train \</span><br><span class="line">--train_dir=/home/terse/code/programming/tensorflow/model_pruning/train \</span><br><span class="line">--pruning_hparams=name=cifar10_pruning,\</span><br><span class="line">initial_sparsity=0.3,\</span><br><span class="line">target_sparsity=0.9,\</span><br><span class="line">sparsity_function_begin_step=100,\</span><br><span class="line">sparsity_function_end_step=10000</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>可通过tensorboard查看剪枝过程。可以清楚的看出随着训练步骤的增加，conv1和conv2的sparsity在不断的增长。 在GRAPHS 页面，双击conv节点，可以看到在原有计算图基础上新增了mask和threshold节点用来做 model pruning</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$tensorboard --logdir=/home/terse/code/programming/tensorflow/model_pruning/train</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>模型剪枝之后将剪枝的ops从训练图中删除。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$bazel build -c opt tensorflow/contrib/model_pruning:strip_pruning_vars</span><br><span class="line">$bazel-out/k8-py2-opt/bin/tensorflow/contrib/model_pruning/strip_pruning_vars \</span><br><span class="line">--checkpoint_dir=/home/terse/code/programming/tensorflow/model_pruning/train \</span><br><span class="line">--output_node_names=softmax_linear/softmax_linear_2 \</span><br><span class="line">--output_dir=/home/terse/code/programming/tensorflow/model_pruning \</span><br><span class="line">--filename=pruning_stripped.pb</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h2 id="四、model-pruning源码简单分析"><a href="#四、model-pruning源码简单分析" class="headerlink" title="四、model_pruning源码简单分析"></a>四、model_pruning源码简单分析</h2><p>　　使用tensorflow的model_pruning进行模型剪枝，主要包括两方面的工作，一是apply_mask，二是在训练图中增加剪枝的节点（pruning ops）。这里分别截取了其中的两段代码。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"># cifar10_pruning.py  apply_mask to the graph</span><br><span class="line">with tf.variable_scope(&#x27;conv1&#x27;) as scope:</span><br><span class="line">  kernel = _variable_with_weight_decay(</span><br><span class="line">      &#x27;weights&#x27;, shape=[5, 5, 3, 64], stddev=5e-2, wd=0.0)</span><br><span class="line"></span><br><span class="line">  conv = tf.nn.conv2d(</span><br><span class="line">      images, pruning.apply_mask(kernel, scope), [1, 1, 1, 1], padding=&#x27;SAME&#x27;)</span><br><span class="line">  </span><br><span class="line">  biases = _variable_on_cpu(&#x27;biases&#x27;, [64], tf.constant_initializer(0.0))</span><br><span class="line">  pre_activation = tf.nn.bias_add(conv, biases)</span><br><span class="line">  conv1 = tf.nn.relu(pre_activation, name=scope.name)</span><br><span class="line">  _activation_summary(conv1)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"> #Adding pruning ops to the training graph</span><br><span class="line">with tf.graph.as_default():</span><br><span class="line"></span><br><span class="line">  # Create global step variable</span><br><span class="line">  global_step = tf.train.get_or_create_global_step()</span><br><span class="line"></span><br><span class="line">  # Parse pruning hyperparameters</span><br><span class="line">  pruning_hparams = pruning.get_pruning_hparams().parse(FLAGS.pruning_hparams)</span><br><span class="line"></span><br><span class="line">  # Create a pruning object using the pruning specification</span><br><span class="line">  p = pruning.Pruning(pruning_hparams, global_step=global_step)</span><br><span class="line"></span><br><span class="line">  # Add conditional mask update op. Executing this op will update all</span><br><span class="line">  # the masks in the graph if the current global step is in the range</span><br><span class="line">  # [begin_pruning_step, end_pruning_step] as specified by the pruning spec</span><br><span class="line">  mask_update_op = p.conditional_mask_update_op()</span><br><span class="line"></span><br><span class="line">  # Add summaries to keep track of the sparsity in different layers during training</span><br><span class="line">  p.add_pruning_summaries()</span><br><span class="line"></span><br><span class="line">  with tf.train.MonitoredTrainingSession(...) as mon_sess:</span><br><span class="line">    # Run the usual training op in the tf session</span><br><span class="line">    mon_sess.run(train_op)</span><br><span class="line"></span><br><span class="line">    # Update the masks by running the mask_update_op</span><br><span class="line">    mon_sess.run(mask_update_op)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="五、总结和未解决的问题"><a href="#五、总结和未解决的问题" class="headerlink" title="五、总结和未解决的问题"></a>五、总结和未解决的问题</h2><ol>
+<li>tensorflow中的模型剪枝属于no-structral，本质上是使权重稀疏化(weight sparsification),实践中发现它没有使推理加速，据其加速效果依赖具体的硬件实现，加速效果一般，tensorflow 中对稀疏矩阵运算没有特别好的优化（依赖于底层的 SparseBLAS 实现，目前还没有特别好的）</li>
+<li>实践中发现不管稀疏度为多少，其剪枝后的模型大小都是相同的，是不是tensorflow对稀疏的模型也是按照非稀疏格式存储的？</li>
+<li>issue:<a href="https://github.com/tensorflow/tensorflow/issues/32805">model_pruning: Why 50% and 90% zeros of the stripped models are the same size? #32805</a></li>
+<li>issue: [CNN.Model pruning: no gain in speeding up of inference #22732](CNN.Model pruning: no gain in speeding up of inference #22732)</li>
+</ol>
+<p>参考：</p>
+<ol>
+<li><a href="https://github.com/tensorflow/tensorflow/tree/r2.0/tensorflow/contrib/model_pruning">https://github.com/tensorflow/tensorflow/tree/r2.0/tensorflow/contrib/model_pruning</a></li>
+<li><a href="https://arxiv.org/pdf/1710.01878.pdf">Michael Zhu and Suyog Gupta, “To prune, or not to prune: exploring the efficacy of pruning for model compression”, 2017 NIPS </a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/48069799">https://zhuanlan.zhihu.com/p/48069799</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/visp-template-tracker/" rel="prev" title="了解模板追踪算法和高斯牛顿迭代法">
+                  <i class="fa fa-angle-left"></i> 了解模板追踪算法和高斯牛顿迭代法
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/tensorflow-model-channel-pruning/" rel="next" title="tensorflow模型通道剪枝(channel pruning)实战">
+                  tensorflow模型通道剪枝(channel pruning)实战 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

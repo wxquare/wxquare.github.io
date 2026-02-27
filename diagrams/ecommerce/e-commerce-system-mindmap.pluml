@@ -1,0 +1,251 @@
+@startmindmap
+* 电商系统后台
+
+** 首页homepage
+*** 模型
+**** entrance
+***** fe_group
+***** fe_category
+***** fe_carrier
+**** 流量运营、whitelist白名单、user group等
+*** 核心流程
+**** admin 配置: edit/release
+**** api: entrance
+**** api: entrance/search
+
+**: <b> <size:30><color:red>商品listing</color><size:20>
+  1. 为类目、品牌、商品资料、价格、tag等提供系统和工具
+  2. 负责商品库的质量、存储、快照
+  3. listing upload 负责商品的录入和auto sync
+  4. 负责商品的搜索和推荐等功能
+  5. 负责商品详情的读取
+;
+
+
+*** 模型
+
+**** 类目item classification
+***** 类目category
+****** be_category：后台类目树，多级类目
+****** fe_category: 基于后台类目构建前端首页的类目树
+****** 前后台类目分离，后台类目相对稳定，前台类目灵活多变
+***** 品牌brand
+****** carrier_tab
+****** brand_tab
+******[#Red] 品牌和类目可以1对1、1对多，多对1
+
+***** attribute属性 & spu
+****** core entity SPU
+****** spu_tab : standard product unit，基于attribute/category/brand等构建的商品的聚合
+****** spu_attr_tab：商品组成的公共数据，例如面额，颜色等
+****** spu_attr_value_tab：属性的值，50，红色等
+****** spu/item relation
+
+**** 商品 item info (item+sku)
+***** item_name,item_title、basic_info、description info
+***** 图片信息 image_tab
+***** 商品状态 state control
+*****[#Lightgreen] price
+****** 一个model 存在多个price
+****** supplier_price
+****** original_price
+****** discount_price
+****** promotion_price
+****** flashsale_price
+****** bound_price
+*****[#Orange] stock
+****** 无限库存，infinite stock
+****** 创单库存
+****** 支付扣减库存
+****** 营销库存 promotion_stock
+*****[#Cyan] 商品快照 snapshot
+*****[#Yellow] 统计信息statistics info
+
+**** 标签Tagging System
+***** value、purpose、Support Product Selection Capabilities
+***** tag_tab
+***** product_tag_binding_tab,tag/target relation
+***** Tagging Rule Engine
+
+*** 核心流程
+**** B端listing upload
+***** mass/single upload
+***** mass/single edit
+***** verify
+***** upload
+***** 虚拟商品的创建和更新
+***** item fetch pull
+***** openapi
+
+*****[#Yellow] 批量更新如何保证不要产生死锁？
+****** 获取锁的顺序是一致的
+****** timeout 检测
+***** item sync
+***** admin listing
+*****[#Red] snapshot
+*****[#Red] listing QC 质量监控和保障
+
+**** C端
+***** 搜索列表list
+****** entrance/search
+****** hotel/search
+****** recommend quickbuy
+****** 商品详情detail
+
+
+** 订单
+*** 购物车cart
+**** 用户购物车
+**** cart_tab
+
+*** 订单模型
+**** pay_order_tab shard by user_id % 10
+**** order_tab shard by user_id % 10
+**** order_item_tab shard by user_id % 10
+*****[#Yellow] 订单商品是否支持分批发货
+**** refund_tab
+*****[#Yellow] 订单是否支持多次退款
+****[#Lightgreen] 订单拆单 pay_order->order_tab 根据shop_id
+****[#Lightgreen] refund 可以和order关联也可以和item关联
+
+
+*** 状态机模型
+**** 订单状态
+**** 支付状态
+**** 履约状态
+**** Refund & Return 状态
+
+*** 技术挑战
+**** 全表扫描，
+***** 订单定时任务，状态机补偿；
+***** 报表和对账
+***** admin 查询订单，走ES
+***** 考虑分布式数据库例如TiDB
+**** 历史订单归档
+**** 主从架构中如何获取订单最新数据？
+**** 订单状态一致性
+***** 内部表transaction + 乐观锁
+***** 外部系统
+****** coin tcc。支付时已经扣了coin，支付失败退还coin
+****** 支付系统
+******* 支付初始化init
+******* 支付结果回调，回调可以重试，幂等
+******* 支付结果查询
+
+
+*** 核心流程
+**** 创单checkout
+**** 支付paynow
+**** 支付回调pay callback
+***** 成功
+***** 失败
+***** 过期
+**** 履约fulfillment
+***** fulfillment/order
+***** fulfillment/status 
+****** 成功
+****** 失败
+**** refund & refund 
+***** return 
+****** return 
+****** return callback
+***** refund
+****** refund
+****** refund callback
+
+** 营销
+*** 圈品
+**** 圈品模型
+***** group
+***** scope
+**** 圈品核心流程
+***** 在线匹配
+
+*** flashsale
+**** 虚拟商品
+***** 模型
+****** 核心流程
+**** 普通商品
+
+*** voucher
+*** coin
+**** 扣积分
+**** 赚积分
+
+
+** 履约(供应链)
+*** 库存管理
+*** 供应商管理
+*** 履约
+
+left side
+
+** 挑战和应对措施
+*** 不同品类商品模型和订单差异性怎么解决？
+**** 多商品系统
+***** 业务隔离、通用和特殊商品
+***** 不同的模型、通用模型和特殊模型
+**** 多订单系统
+***** 不同的状态机
+***** 不同的service
+**** 统一订单平台
+***** 统一订单模型、状态机可编辑、业务流可配置
+
+*** 商品批量编辑怎么避免死锁？
+**** 获取锁的顺序是一致的
+**** 拆分API，比如更新状态单读设置api
+**** 更新price，单读表等
+
+*** 商品质量保障？
+**** 商品上传、编辑、校验、管控
+**** 商品实时数据同步、价格库存同步
+**** 在线检索，检验
+**** 每日商品质量报告
+
+***[#lightyellow] 价格和库存服务的挑战
+**** 灵活性，支持多种价格和库存
+**** 性能优化
+**** V1：XLock in PlaceOrder API （5/s)
+**** V2: XLock on item stock  (100/s) 优化锁的力度，从表锁到行锁
+**** TCC(1K)，10K
+**** 分库、分表，优化DB
+**** 缓存、异步
+**** 比秒超卖
+**** 秒杀系统，库存问题：mysql和redis数据一致性问题，乐观锁更新mysql，然后更新redis，设置过期时间
+**** 限流，redis + mysql，库存缓存，乐观锁
+**** 12306的异步机制，接受请求，异步创单
+**** https://gongfukangee.github.io/2019/06/09/SecondsKill/
+
+
+***[#lightyellow] iteminfo 是怎么做缓存的
+**** 见下面缓存价格
+**** 当前只有localcache，缓存命中率80%，qps 100
+**** 如果流量非常的高的情况下，理想的缓存架构
+**** 缓存和DB的一致性问题。过期策略+版本策略
+
+*** 订单系统数据一致性？
+**** 梳理哪些存在数据一致性风险
+**** 内部系统、外部系统
+**** 履约：幂等设计、状态查询、任务补偿最终一致性
+**** 支付：幂等设计、状态查询、任务补偿最终一致性
+**** coin：tcc机制
+
+** 系统稳定性建设
+*** 监控体系
+*** 资损体系
+*** 大促保障
+*** 风控体系
+*** 全链路压测
+*** 性能优化
+**** 首页性能优化
+**** 订单历史数据归档
+
+** 常见问题
+*** 快照问题、商品快照、订单快照
+*** 流水表、操作日志
+*** 秒杀系统、库存管理
+*** 并发aba问题
+*** 购物车问题
+** 技术
+
+@endmindmap

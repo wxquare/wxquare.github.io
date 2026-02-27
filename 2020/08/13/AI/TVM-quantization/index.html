@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="坚持了接近一年的视频算法相关的项目，老板最终还是喊停了。并没有感到特别意外，只是在对一个东西突然有些兴趣或者说入门的时候，戛然而止，多少有些不甘心和遗憾，但是以后会在业余继续学习的，也希望自己在2020年能把工作逐渐聚焦到这块吧。 　　接触TVM到有两个原因。一是需要支持多种优化手段的推理引擎，例如量化、图优化、稀疏优化、模型压缩剪枝等。尝试过在tensorflow的quantization和">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TVM学习笔记--模型量化(int8)及其测试数据">
+<meta property="og:url" content="http://yoursite.com/2020/08/13/AI/TVM-quantization/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="坚持了接近一年的视频算法相关的项目，老板最终还是喊停了。并没有感到特别意外，只是在对一个东西突然有些兴趣或者说入门的时候，戛然而止，多少有些不甘心和遗憾，但是以后会在业余继续学习的，也希望自己在2020年能把工作逐渐聚焦到这块吧。 　　接触TVM到有两个原因。一是需要支持多种优化手段的推理引擎，例如量化、图优化、稀疏优化、模型压缩剪枝等。尝试过在tensorflow的quantization和">
+<meta property="og:locale">
+<meta property="article:published_time" content="2020-08-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-12-08T15:55:23.482Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2020/08/13/AI/TVM-quantization/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2020/08/13/AI/TVM-quantization/","path":"2020/08/13/AI/TVM-quantization/","title":"TVM学习笔记--模型量化(int8)及其测试数据"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>TVM学习笔记--模型量化(int8)及其测试数据 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-overview-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/TVM-quantization/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="TVM学习笔记--模型量化(int8)及其测试数据 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          TVM学习笔记--模型量化(int8)及其测试数据
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 23:55:23" itemprop="dateModified" datetime="2025-12-08T23:55:23+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>　　坚持了接近一年的视频算法相关的项目，老板最终还是喊停了。并没有感到特别意外，只是在对一个东西突然有些兴趣或者说入门的时候，戛然而止，多少有些不甘心和遗憾，但是以后会在业余继续学习的，也希望自己在2020年能把工作逐渐聚焦到这块吧。</p>
+<p>　　接触TVM到有两个原因。一是需要支持多种优化手段的推理引擎，例如量化、图优化、稀疏优化、模型压缩剪枝等。尝试过在tensorflow的quantization和非结构性剪枝(no-structural pruning)，加速效果非常一般，因为这些优化手段需要推理引擎的支持，但是当时我们都是纯后台出身，也没人掌握这个内容。再之后尝试channel pruning，终于取得了一些进展，但是30%的提升leader并不满意。二是需要支持多种平台的推理引擎，例如NV GPU&#x2F;x86&#x2F;ARM GPU等。由于组内业务迟迟没有好的落地场景，尝试了多种手段，需要的把深度模型部署在不同的平台上。记得有次，花了两周的时间把DaSiamRPN模型移植到终端上。从零开始pytorch、onnx、tflite、android，期间踩了许多的坑，结果在移动端运行需要4秒时间来处理一帧图像。。。期间同事也曾通过tensorRT部署模型，效率反而下降。一次偶然的机会了解到TVM，当时感觉它可能是比较适合我们团队的需求的。</p>
+<p>　　由于我之前学习信号处理的，比较容易理解量化。模型量化quantization也在深度学习在部署落地时提高效率的常用的方法。之前有写过关于<a href="https://zhuanlan.zhihu.com/p/86440423">tensorflow模型量化</a>的方法，写得不好，对于想学习模型量化知识的可以参考下面链接进行学习：</p>
+<p><strong>模型量化相关：</strong><br>【1】<a href="https://jackwish.net/2019/neural-network-quantization-introduction-chn.html">神经网络量化简介</a><br>【2】<a href="http://on-demand.gputechconf.com/gtc/2017/presentation/s7310-8-bit-inference-with-tensorrt.pdf">Tensort量化:8-bit-inference-with-tensort</a><br>【3】<a href="http://www.ruanyifeng.com/blog/2010/06/ieee_floating-point_representation.html">阮一峰：浮点数的二进制表示</a><br>【4】<a href="https://arxiv.org/pdf/1806.08342.pdf">Quantizing deep convolutional networks for efficient inference</a></p>
+<p><strong>TVM量化相关RFC</strong><br>【INT8 quantization proposal】：<a href="https://discuss.tvm.ai/t/int8-quantization-proposal/516%EF%BC%882018.02.02%EF%BC%89">https://discuss.tvm.ai/t/int8-quantization-proposal/516（2018.02.02）</a><br>【TVM quantizationRFC】 <a href="https://github.com/apache/incubator-tvm/issues/2259(2018.12.09)">https://github.com/apache/incubator-tvm/issues/2259(2018.12.09)</a></p>
+<p>　　目前，官网上还没有关于模型量化的教程和文档，对于刚接触新手来说可能有些麻烦，这里提供提供一个参考代码，方便新手学习。除此之外，也测试了TVM的int8量化性能，结果显示TVM的量化加速效果不是很好，甚至略有下降，需要配合autotvm一起使用。<a href="https://github.com/wxquare/programming/tree/master/blog/TVM_quantization">测试代码地址</a>。测试结果如下，希望对大家了解TVM有帮助。</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>原始框架</th>
+<th>原始框架运行时间</th>
+<th>TVM FP32</th>
+<th>TVM int8</th>
+<th>TVM int8+AutoTVM</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>resnet18v1</td>
+<td>mxnet 1.5.1</td>
+<td>27.8ms</td>
+<td>46.9ms</td>
+<td>51.10ms</td>
+<td>25.83ms</td>
+</tr>
+<tr>
+<td>Inceptionv1</td>
+<td>tensorflow 1.13</td>
+<td>560ms</td>
+<td>164ms</td>
+<td>185ms</td>
+<td>116ms</td>
+</tr>
+</tbody></table>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/tensorflow-benchmark-model/" rel="prev" title="了解tensorflow中的模型基准测试工具">
+                  <i class="fa fa-angle-left"></i> 了解tensorflow中的模型基准测试工具
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/TVM-hello/" rel="next" title="初识TVM，相比于tensorflow的2倍性能提升">
+                  初识TVM，相比于tensorflow的2倍性能提升 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
