@@ -4101,7 +4101,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-03-02 00:27:12" itemprop="dateModified" datetime="2026-03-02T00:27:12+08:00">2026-03-02</time>
+      <time title="Modified: 2026-03-02 23:58:53" itemprop="dateModified" datetime="2026-03-02T23:58:53+08:00">2026-03-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4679,8 +4679,8 @@
 </li>
 <li><strong>多源 BFS (Multi-source BFS)</strong><ul>
 <li><a href="https://leetcode.cn/problems/find-the-safest-path-in-a-grid">2812. 找出最安全路径</a> 【模式：预处理所有起点距离】</li>
-<li><a href="https://leetcode.cn/problems/escape-the-spreading-fire/">2258. 逃离火灾</a></li>
-<li><a href="https://leetcode.cn/problems/minimum-fuel-cost-to-report-to-the-capital">2477. 到达首都的最少油耗</a></li>
+<li><a href="https://leetcode.cn/problems/escape-the-spreading-fire/">2258. 逃离火灾</a>【模式：二分答案 + 多源 BFS；核心：二分停留时间，BFS 判断是否能在火势蔓延前到达安全屋】</li>
+<li><a href="https://leetcode.cn/problems/minimum-fuel-cost-to-report-to-the-capital">2477. 到达首都的最少油耗</a>【模式：拓扑排序 BFS；核心：从叶子节点开始，维护度数数组，度数为 1 的节点入队，逐层向首都合并人数并计算油耗；也可用后序 DFS 自底向上聚合（见 DFS 章节）】</li>
 </ul>
 </li>
 <li><strong>双向 BFS (Bi-directional BFS)</strong><ul>
@@ -4693,64 +4693,73 @@
 </ul>
 </li>
 </ul>
-<h3 id="31-DFS-与回溯：全量枚举与约束满足-DFS-Backtracking"><a href="#31-DFS-与回溯：全量枚举与约束满足-DFS-Backtracking" class="headerlink" title="31. DFS 与回溯：全量枚举与约束满足 (DFS &amp; Backtracking)"></a>31. DFS 与回溯：全量枚举与约束满足 (DFS &amp; Backtracking)</h3><h4 id="💡-回溯四阶梯与去重口诀"><a href="#💡-回溯四阶梯与去重口诀" class="headerlink" title="💡 回溯四阶梯与去重口诀"></a>💡 回溯四阶梯与去重口诀</h4><pre><code>| 阶梯 | 核心场景 | 去重/控制逻辑 | 关键代码 |
-| :--- | :--- | :--- | :--- |
-| **1. 基础回溯** | 简单组合 (17题) | 递归深度控制索引 | `dfs(i + 1)` |
-| **2. 组合去重** | 选 k 个数 (77题) | `start` 索引控制单向搜索 | `for (int i = start; ...)` |
-| **3. 状态压缩** | 全排列 (46题) | `Bitmask` 替代 `visited` 数组 | `if (!(mask &amp; (1 &lt;&lt; j)))` |
-| **4. 排列去重** | 有重全排列 (47题) | **排序 + 相邻状态校验** | `if (j &gt; 0 &amp;&amp; nums[j] == nums[j-1] &amp;&amp; !used[j-1])` |
-| **5. 复杂约束** | 棋盘/皇后 (52题) | **空间换时间 (哈希标记)** | `if (!cols[c] &amp;&amp; !diag[r+c])` |
-| **6. 余额控制** | 括号生成 (22题) | **动态维护待匹配余额** | `if (remain &gt; 0) dfs(..., remain-1)` |
-| **7. 矩阵回溯** | 单词搜索 (79题) | **原地标记 + 字符还原** | `board[r][c] = &#39;#&#39;; dfs(); board[r][c] = tmp;` |
-</code></pre>
-<blockquote>
-<p><strong>去重口诀</strong>：</p>
+<h3 id="31-DFS-与回溯：全量枚举与约束满足-DFS-Backtracking"><a href="#31-DFS-与回溯：全量枚举与约束满足-DFS-Backtracking" class="headerlink" title="31. DFS 与回溯：全量枚举与约束满足 (DFS &amp; Backtracking)"></a>31. DFS 与回溯：全量枚举与约束满足 (DFS &amp; Backtracking)</h3><blockquote>
+<p><strong>核心区别</strong>：</p>
+<ul>
+<li><strong>DFS（深度优先搜索）</strong>：遍历所有状态，通常用于连通性判断、路径查找、拓扑排序</li>
+<li><strong>回溯（Backtracking）</strong>：在 DFS 基础上增加”撤销选择”，用于求解组合优化问题（排列、组合、子集）</li>
+</ul>
+</blockquote>
+<h4 id="A-基础-DFS：遍历与连通性-Traversal-Connectivity"><a href="#A-基础-DFS：遍历与连通性-Traversal-Connectivity" class="headerlink" title="A. 基础 DFS：遍历与连通性 (Traversal &amp; Connectivity)"></a>A. 基础 DFS：遍历与连通性 (Traversal &amp; Connectivity)</h4><blockquote>
+<p>场景：图&#x2F;树的遍历、连通分量统计、环检测</p>
+</blockquote>
+<ul>
+<li><a href="https://leetcode.cn/problems/number-of-islands">200. 岛屿数量</a>【模式：连通分量统计；核心：DFS 标记连通区域，原地修改避免 visited 数组】</li>
+<li><a href="https://leetcode.cn/problems/clone-graph">133. 克隆图</a>【模式：哈希表 + DFS；核心：用 Map 存储 <code>[原节点 -&gt; 新节点]</code> 防止死循环】</li>
+<li><a href="https://leetcode.cn/problems/detonate-the-maximum-bombs">2101. 引爆最多的炸弹</a>【模式：有向图 DFS；核心：枚举起点，DFS 统计可达节点数】</li>
+</ul>
+<h4 id="B-树上-DFS：路径与状态聚合-Tree-DFS"><a href="#B-树上-DFS：路径与状态聚合-Tree-DFS" class="headerlink" title="B. 树上 DFS：路径与状态聚合 (Tree DFS)"></a>B. 树上 DFS：路径与状态聚合 (Tree DFS)</h4><blockquote>
+<p>场景：路径和、路径记录、子树信息聚合</p>
+</blockquote>
+<ul>
+<li><a href="https://leetcode.cn/problems/path-sum">112. 路径总和</a>【模式：DFS 递归；核心：判断是否存在根到叶子路径和等于目标值，叶子节点定义为左右子树均为空】</li>
+<li><a href="https://leetcode.cn/problems/path-sum-ii">113. 路径总和 II</a>【模式：回溯 + 路径记录；核心：DFS 遍历时维护 <code>path</code> 数组，到达叶子节点且路径和等于目标值时保存当前路径的副本，回溯时弹出节点】</li>
+<li><a href="https://leetcode.cn/problems/path-sum-iii/">437. 路径总和 III</a>【模式：前缀和 + 哈希表；核心：路径不必从根开始，利用 <code>prefixSum - targetSum</code> 统计满足条件的路径数，类似 560 题】</li>
+<li><a href="https://leetcode.cn/problems/minimum-fuel-cost-to-report-to-the-capital">2477. 到达首都的最少油耗</a>【模式：后序 DFS &#x2F; 树形 DP；核心：从根节点开始后序遍历，递归返回子树总人数，每个节点计算 <code>⌈人数/seats⌉</code> 辆车的油耗；也可用拓扑排序 BFS 从叶子向根逐层合并（见 BFS 章节）】</li>
+</ul>
+<h4 id="C-回溯：组合与排列-Backtracking-Combinations-Permutations"><a href="#C-回溯：组合与排列-Backtracking-Combinations-Permutations" class="headerlink" title="C. 回溯：组合与排列 (Backtracking - Combinations &amp; Permutations)"></a>C. 回溯：组合与排列 (Backtracking - Combinations &amp; Permutations)</h4><blockquote>
+<p>场景：求所有方案、排列组合、子集生成</p>
+</blockquote>
+<h5 id="💡-回溯去重口诀"><a href="#💡-回溯去重口诀" class="headerlink" title="💡 回溯去重口诀"></a>💡 回溯去重口诀</h5><blockquote>
 <ul>
 <li><strong>组合</strong>靠 <code>start</code>：不回头看，一路向右。</li>
 <li><strong>排列</strong>靠 <code>used</code>：全员参与，位掩码标记。</li>
 <li><strong>重复</strong>靠<strong>排序</strong>：前人未用，后人莫入（<code>!used[i-1]</code>）。</li>
+</ul>
+</blockquote>
+<ul>
+<li><a href="https://leetcode.cn/problems/letter-combinations-of-a-phone-number">17. 电话号码的字母组合</a>【模式：基础回溯；核心：递归深度控制数字索引，for 循环遍历字母映射】</li>
+<li><a href="https://leetcode.cn/problems/combine">77. 组合</a>【模式：组合回溯；核心：【口诀】组合靠 <code>start</code>：不回头看，一路向右】</li>
+<li><a href="https://leetcode.cn/problems/combination-sum">39. 组合总和</a>【模式：重复选组合；核心：【原理】传递当前索引 <code>i</code> 而非 <code>i+1</code> 实现元素可重复选取】</li>
+<li><a href="https://leetcode.cn/problems/permutations">46. 全排列</a>【模式：排列回溯；核心：【口诀】排列靠 <code>used</code>：全员参与，位掩码标记】</li>
+<li><a href="https://leetcode.cn/problems/permutations-ii">47. 全排列 II</a>【模式：有重排列；核心：【原理】重复靠排序：前人未用，后人莫入（<code>!used[i-1]</code>）】</li>
+<li><a href="https://leetcode.cn/problems/M99OJA">LCR 086. 分割回文串</a>【模式：子串划分；核心：枚举分割点，预处理回文表优化判断】</li>
+</ul>
+<h4 id="D-回溯：约束满足问题-Constraint-Satisfaction-Problems"><a href="#D-回溯：约束满足问题-Constraint-Satisfaction-Problems" class="headerlink" title="D. 回溯：约束满足问题 (Constraint Satisfaction Problems)"></a>D. 回溯：约束满足问题 (Constraint Satisfaction Problems)</h4><blockquote>
+<p>场景：棋盘问题、数独、复杂约束条件</p>
+</blockquote>
+<h5 id="💡-约束优化口诀"><a href="#💡-约束优化口诀" class="headerlink" title="💡 约束优化口诀"></a>💡 约束优化口诀</h5><blockquote>
+<ul>
 <li><strong>棋盘</strong>靠标记：列号、和、差，三位一体定乾坤。</li>
 <li><strong>括号</strong>看余额：左括号不超标，右括号不透支。</li>
 <li><strong>矩阵</strong>靠沉岛：先占位再递归，事后记得还原。</li>
 </ul>
 </blockquote>
-<h4 id="组合、排列与路径"><a href="#组合、排列与路径" class="headerlink" title="组合、排列与路径"></a>组合、排列与路径</h4><ul>
-<li><p><a href="https://leetcode.cn/problems/letter-combinations-of-a-phone-number">17. 电话号码的字母组合</a> 【模式：基础回溯；核心：递归深度控制数字索引，for 循环遍历字母映射】</p>
-</li>
-<li><p><a href="https://leetcode.cn/problems/combine">77. 组合</a> 【模式：组合回溯；核心：【口诀】组合靠 <code>start</code>：不回头看，一路向右】</p>
-</li>
-<li><p><a href="https://leetcode.cn/problems/combination-sum">39. 组合总和</a> 【模式：重复选组合；核心：【原理】传递当前索引 <code>i</code> 而非 <code>i+1</code> 实现元素可重复选取】</p>
-</li>
-<li><p><a href="https://leetcode.cn/problems/permutations">46. 全排列</a> 【模式：排列回溯；核心：【口诀】排列靠 <code>used</code>：全员参与，位掩码标记】</p>
-</li>
-<li><p><a href="https://leetcode.cn/problems/permutations-ii">47. 全排列 II</a> 【模式：有重排列；核心：【原理】重复靠排序：前人未用，后人莫入（<code>!used[i-1]</code>）】</p>
-</li>
-<li><p><a href="https://leetcode.cn/problems/n-queens-ii">52. N 皇后 II</a> 【模式：棋盘回溯；核心：【口诀】棋盘靠标记：列号、和、差，三位一体定乾坤】</p>
-</li>
-<li><p><a href="https://leetcode.cn/problems/generate-parentheses">22. 括号生成</a> 【模式：配对回溯；核心：【口诀】括号看余额：左括号不超标，右括号不透支】</p>
-</li>
-<li><p><a href="https://leetcode.cn/problems/word-search">79. 单词搜索</a> 【模式：矩阵回溯；核心：【口诀】矩阵靠沉岛：先占位再递归，事后记得还原】</p>
-</li>
-<li><p><a href="https://leetcode.cn/problems/M99OJA">LCR 086. 分割回文串</a></p>
-</li>
-<li><p><strong>树&#x2F;图中的深度搜索</strong></p>
 <ul>
-<li><a href="https://leetcode.cn/problems/path-sum">112. 路径总和</a></li>
-<li><a href="https://leetcode.cn/problems/path-sum-ii">113. 路径总和 II</a></li>
-<li><a href="https://leetcode.cn/problems/path-sum-iii/">437. 路径总和 III</a></li>
-<li><a href="https://leetcode.cn/problems/clone-graph">133. 克隆图</a> 【模式：哈希表防止死循环】</li>
-<li><a href="https://leetcode.cn/problems/detonate-the-maximum-bombs">2101. 引爆最多的炸弹</a></li>
+<li><a href="https://leetcode.cn/problems/n-queens">51. N 皇后</a>【模式：棋盘回溯；核心：【口诀】棋盘靠标记：列号、和、差，三位一体定乾坤】</li>
+<li><a href="https://leetcode.cn/problems/n-queens-ii">52. N 皇后 II</a>【模式：棋盘回溯；核心：利用 <code>cols[c]</code>、<code>diag1[r+c]</code>、<code>diag2[r-c+n]</code> 三个数组实现 O(1) 冲突检测】</li>
+<li><a href="https://leetcode.cn/problems/generate-parentheses">22. 括号生成</a>【模式：配对回溯；核心：【口诀】括号看余额：左括号不超标，右括号不透支】</li>
+<li><a href="https://leetcode.cn/problems/word-search">79. 单词搜索</a>【模式：矩阵回溯；核心：【口诀】矩阵靠沉岛：先占位再递归，事后记得还原】</li>
 </ul>
-</li>
-<li><p><strong>复杂约束与剪枝</strong></p>
+<h4 id="E-记忆化搜索-Memoization-DFS"><a href="#E-记忆化搜索-Memoization-DFS" class="headerlink" title="E. 记忆化搜索 (Memoization DFS)"></a>E. 记忆化搜索 (Memoization DFS)</h4><blockquote>
+<p>场景：重叠子问题、状态空间搜索、自顶向下 DP</p>
+</blockquote>
 <ul>
-<li><a href="https://leetcode.cn/problems/n-queens">51. N 皇后</a>【回溯】</li>
-<li><a href="https://leetcode.cn/problems/minimize-malware-spread-ii">928. 尽量减少恶意软件的传播 II</a></li>
-<li><a href="https://leetcode.cn/problems/minimum-moves-to-spread-stones-over-grid">2850. 将石头分散到网格图的最少移动次数</a></li>
-<li><a href="https://leetcode.cn/problems/find-the-punishment-number-of-an-integer">2698. 求一个整数的惩罚数</a></li>
-<li><a href="https://leetcode.cn/problems/generate-binary-strings-without-adjacent-zeros">3211. 生成不含相邻零的二进制字符串</a></li>
-</ul>
-</li>
+<li><a href="https://leetcode.cn/problems/can-i-win">464. 我能赢吗</a>【模式：记忆化搜索 + 状压；核心：利用二进制 mask 记录数字使用状态，博弈论必胜态判断】</li>
+<li><a href="https://leetcode.cn/problems/minimize-malware-spread-ii">928. 尽量减少恶意软件的传播 II</a>【模式：枚举 + DFS；核心：枚举删除节点，DFS 统计感染范围】</li>
+<li><a href="https://leetcode.cn/problems/minimum-moves-to-spread-stones-over-grid">2850. 将石头分散到网格图的最少移动次数</a>【模式：状态压缩 + 记忆化；核心：枚举石头移动方案，记忆化剪枝】</li>
+<li><a href="https://leetcode.cn/problems/find-the-punishment-number-of-an-integer">2698. 求一个整数的惩罚数</a>【模式：数字拆分 + DFS；核心：递归枚举分割点，判断子段和是否等于目标值】</li>
+<li><a href="https://leetcode.cn/problems/generate-binary-strings-without-adjacent-zeros">3211. 生成不含相邻零的二进制字符串</a>【模式：状态约束回溯；核心：记录上一位是否为 0，剪枝非法状态】</li>
 </ul>
 <h3 id="32-逆向思维与启发式搜索-Advanced-Search"><a href="#32-逆向思维与启发式搜索-Advanced-Search" class="headerlink" title="32. 逆向思维与启发式搜索 (Advanced Search)"></a>32. 逆向思维与启发式搜索 (Advanced Search)</h3><ul>
 <li><strong>逆向搜索</strong><ul>
