@@ -1,6 +1,240 @@
-<h1 id="Redis-Ziplist-详细结构可视化"><a href="#Redis-Ziplist-详细结构可视化" class="headerlink" title="Redis Ziplist 详细结构可视化"></a>Redis Ziplist 详细结构可视化</h1><h2 id="1-Ziplist-整体结构和-Entry-节点详解"><a href="#1-Ziplist-整体结构和-Entry-节点详解" class="headerlink" title="1. Ziplist 整体结构和 Entry 节点详解"></a>1. Ziplist 整体结构和 Entry 节点详解</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br></pre></td><td class="code"><pre><span class="line">graph TB</span><br><span class="line">    subgraph overview [&quot;ziplist 整体结构 - 连续内存块&quot;]</span><br><span class="line">        direction LR</span><br><span class="line">        </span><br><span class="line">        zlbytes[&quot;zlbytes&lt;br/&gt;4字节&lt;br/&gt;整个ziplist占用字节数&quot;]</span><br><span class="line">        zltail[&quot;zltail&lt;br/&gt;4字节&lt;br/&gt;到尾节点的偏移量&quot;]</span><br><span class="line">        zllen[&quot;zllen&lt;br/&gt;2字节&lt;br/&gt;节点数量&lt;br/&gt;最大65535&quot;]</span><br><span class="line">        </span><br><span class="line">        entry1[&quot;entry 1&quot;]</span><br><span class="line">        entry2[&quot;entry 2&quot;]</span><br><span class="line">        entry3[&quot;entry 3&quot;]</span><br><span class="line">        entryn[&quot;entry N&quot;]</span><br><span class="line">        </span><br><span class="line">        zlend[&quot;zlend&lt;br/&gt;1字节&lt;br/&gt;0xFF&lt;br/&gt;结束标记&quot;]</span><br><span class="line">        </span><br><span class="line">        zlbytes --&gt; zltail --&gt; zllen --&gt; entry1 --&gt; entry2 --&gt; entry3 --&gt; entryn --&gt; zlend</span><br><span class="line">    end</span><br><span class="line">    </span><br><span class="line">    subgraph entry_struct [&quot;Entry 节点详细结构 - 三部分&quot;]</span><br><span class="line">        direction TB</span><br><span class="line">        </span><br><span class="line">        subgraph prevlen [&quot;1. prevlen - 前一节点长度&quot;]</span><br><span class="line">            prevlen_desc[&quot;记录前一个节点的长度&lt;br/&gt;用于从后向前遍历&quot;]</span><br><span class="line">            </span><br><span class="line">            prevlen_1byte[&quot;&lt; 254字节:&lt;br/&gt;用 1 字节存储&lt;br/&gt;直接存长度值&quot;]</span><br><span class="line">            prevlen_5byte[&quot;&gt;= 254字节:&lt;br/&gt;用 5 字节存储&lt;br/&gt;第1字节=0xFE&lt;br/&gt;后4字节=实际长度&quot;]</span><br><span class="line">            </span><br><span class="line">            prevlen_desc --&gt; prevlen_1byte</span><br><span class="line">            prevlen_desc --&gt; prevlen_5byte</span><br><span class="line">        end</span><br><span class="line">        </span><br><span class="line">        subgraph encoding [&quot;2. encoding - 编码类型&quot;]</span><br><span class="line">            encoding_desc[&quot;记录 content 的类型和长度&quot;]</span><br><span class="line">            </span><br><span class="line">            subgraph string_enc [&quot;字符串编码&quot;]</span><br><span class="line">                enc_00[&quot;00pppppp&lt;br/&gt;长度&lt;=63字节&lt;br/&gt;后6位存长度&quot;]</span><br><span class="line">                enc_01[&quot;01pppppp qqqqqqqq&lt;br/&gt;长度&lt;=16383字节&lt;br/&gt;14位存长度&quot;]</span><br><span class="line">                enc_10[&quot;10______ [4字节]&lt;br/&gt;长度&gt;16383字节&lt;br/&gt;后续4字节存长度&quot;]</span><br><span class="line">            end</span><br><span class="line">            </span><br><span class="line">            subgraph int_enc [&quot;整数编码&quot;]</span><br><span class="line">                enc_11_00[&quot;11000000&lt;br/&gt;int16_t&lt;br/&gt;2字节整数&quot;]</span><br><span class="line">                enc_11_01[&quot;11010000&lt;br/&gt;int32_t&lt;br/&gt;4字节整数&quot;]</span><br><span class="line">                enc_11_10[&quot;11100000&lt;br/&gt;int64_t&lt;br/&gt;8字节整数&quot;]</span><br><span class="line">                enc_11_11[&quot;1111xxxx&lt;br/&gt;0-12的整数&lt;br/&gt;直接存在编码中&quot;]</span><br><span class="line">            end</span><br><span class="line">            </span><br><span class="line">            encoding_desc --&gt; string_enc</span><br><span class="line">            encoding_desc --&gt; int_enc</span><br><span class="line">        end</span><br><span class="line">        </span><br><span class="line">        subgraph content [&quot;3. content - 实际数据&quot;]</span><br><span class="line">            content_desc[&quot;存储实际的数据&lt;br/&gt;根据 encoding 解析&quot;]</span><br><span class="line">            </span><br><span class="line">            content_string[&quot;字符串:&lt;br/&gt;原始字节数组&quot;]</span><br><span class="line">            content_int[&quot;整数:&lt;br/&gt;二进制整数&quot;]</span><br><span class="line">            </span><br><span class="line">            content_desc --&gt; content_string</span><br><span class="line">            content_desc --&gt; content_int</span><br><span class="line">        end</span><br><span class="line">    end</span><br><span class="line">    </span><br><span class="line">    subgraph example1 [&quot;示例1: Hash 存储 name=iPhone&quot;]</span><br><span class="line">        direction LR</span><br><span class="line">        </span><br><span class="line">        ex1_field[&quot;Entry (field)&lt;br/&gt;----&lt;br/&gt;prevlen: 0&lt;br/&gt;encoding: 00000100&lt;br/&gt;content: &#x27;name&#x27;&quot;]</span><br><span class="line">        </span><br><span class="line">        ex1_value[&quot;Entry (value)&lt;br/&gt;----&lt;br/&gt;prevlen: 9&lt;br/&gt;encoding: 00000110&lt;br/&gt;content: &#x27;iPhone&#x27;&quot;]</span><br><span class="line">        </span><br><span class="line">        ex1_field --&gt; ex1_value</span><br><span class="line">        </span><br><span class="line">        ex1_note[&quot;解释:&lt;br/&gt;prevlen=0: 第一个节点&lt;br/&gt;00000100: 字符串长度4&lt;br/&gt;prevlen=9: 前一节点9字节&quot;]</span><br><span class="line">    end</span><br><span class="line">    </span><br><span class="line">    subgraph example2 [&quot;示例2: List 存储整数 [100, 200, 12]&quot;]</span><br><span class="line">        direction LR</span><br><span class="line">        </span><br><span class="line">        ex2_1[&quot;Entry 1&lt;br/&gt;----&lt;br/&gt;prevlen: 0&lt;br/&gt;encoding: 11000000&lt;br/&gt;content: 100&lt;br/&gt;int16&quot;]</span><br><span class="line">        </span><br><span class="line">        ex2_2[&quot;Entry 2&lt;br/&gt;----&lt;br/&gt;prevlen: 7&lt;br/&gt;encoding: 11000000&lt;br/&gt;content: 200&lt;br/&gt;int16&quot;]</span><br><span class="line">        </span><br><span class="line">        ex2_3[&quot;Entry 3&lt;br/&gt;----&lt;br/&gt;prevlen: 7&lt;br/&gt;encoding: 11111100&lt;br/&gt;整数12直接编码&quot;]</span><br><span class="line">        </span><br><span class="line">        ex2_1 --&gt; ex2_2 --&gt; ex2_3</span><br><span class="line">    end</span><br><span class="line">    </span><br><span class="line">    subgraph cascade [&quot;连锁更新问题 Cascade Update&quot;]</span><br><span class="line">        direction TB</span><br><span class="line">        </span><br><span class="line">        cascade_desc[&quot;问题: 插入/删除节点导致后续节点的 prevlen 字段变化&quot;]</span><br><span class="line">        </span><br><span class="line">        before[&quot;更新前:&lt;br/&gt;[253B] [253B] [253B]&lt;br/&gt;每个 prevlen 占 1 字节&quot;]</span><br><span class="line">        </span><br><span class="line">        after[&quot;插入大节点后:&lt;br/&gt;[253B] [260B] [?B] [?B]&lt;br/&gt;后续节点 prevlen 需扩展为 5 字节&quot;]</span><br><span class="line">        </span><br><span class="line">        impact[&quot;影响:&lt;br/&gt;最坏情况: O(n²) 时间复杂度&lt;br/&gt;需要连续重新分配内存&lt;br/&gt;实际中很少发生&quot;]</span><br><span class="line">        </span><br><span class="line">        cascade_desc --&gt; before --&gt; after --&gt; impact</span><br><span class="line">    end</span><br><span class="line">    </span><br><span class="line">    subgraph traverse [&quot;遍历方式&quot;]</span><br><span class="line">        direction LR</span><br><span class="line">        </span><br><span class="line">        forward[&quot;正向遍历:&lt;br/&gt;zllen 获取长度&lt;br/&gt;从第一个 entry 开始&lt;br/&gt;根据 encoding 计算节点大小&lt;br/&gt;跳到下一个节点&quot;]</span><br><span class="line">        </span><br><span class="line">        backward[&quot;反向遍历:&lt;br/&gt;zltail 直接定位尾节点&lt;br/&gt;根据 prevlen 跳到前一节点&lt;br/&gt;实现双向遍历能力&quot;]</span><br><span class="line">    end</span><br><span class="line">    </span><br><span class="line">    subgraph memory [&quot;内存优化特点&quot;]</span><br><span class="line">        direction TB</span><br><span class="line">        </span><br><span class="line">        opt1[&quot;✅ 连续内存分配&lt;br/&gt;CPU缓存友好&quot;]</span><br><span class="line">        opt2[&quot;✅ 无指针开销&lt;br/&gt;节省内存&quot;]</span><br><span class="line">        opt3[&quot;✅ 变长编码&lt;br/&gt;小数据压缩存储&quot;]</span><br><span class="line">        opt4[&quot;❌ 插入/删除需内存重分配&lt;br/&gt;可能触发连锁更新&quot;]</span><br><span class="line">        opt5[&quot;❌ 查找是 O(n)&lt;br/&gt;不适合大量数据&quot;]</span><br><span class="line">    end</span><br><span class="line">    </span><br><span class="line">    classDef headerStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px</span><br><span class="line">    classDef entryStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px</span><br><span class="line">    classDef exampleStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px</span><br><span class="line">    classDef warnStyle fill:#fce4ec,stroke:#880e4f,stroke-width:2px</span><br><span class="line">    </span><br><span class="line">    class zlbytes,zltail,zllen,zlend headerStyle</span><br><span class="line">    class prevlen_1byte,prevlen_5byte,enc_00,enc_01,enc_10,enc_11_00,enc_11_01,enc_11_10,enc_11_11 entryStyle</span><br><span class="line">    class ex1_field,ex1_value,ex2_1,ex2_2,ex2_3 exampleStyle</span><br><span class="line">    class cascade_desc,before,after,impact,opt4,opt5 warnStyle</span><br></pre></td></tr></table></figure>
+<h1 id="Redis-Ziplist-详细结构可视化"><a href="#Redis-Ziplist-详细结构可视化" class="headerlink" title="Redis Ziplist 详细结构可视化"></a>Redis Ziplist 详细结构可视化</h1><h2 id="1-Ziplist-整体结构和-Entry-节点详解"><a href="#1-Ziplist-整体结构和-Entry-节点详解" class="headerlink" title="1. Ziplist 整体结构和 Entry 节点详解"></a>1. Ziplist 整体结构和 Entry 节点详解</h2><pre class="mermaid">graph TB
+    subgraph overview ["ziplist 整体结构 - 连续内存块"]
+        direction LR
+        
+        zlbytes["zlbytes<br/>4字节<br/>整个ziplist占用字节数"]
+        zltail["zltail<br/>4字节<br/>到尾节点的偏移量"]
+        zllen["zllen<br/>2字节<br/>节点数量<br/>最大65535"]
+        
+        entry1["entry 1"]
+        entry2["entry 2"]
+        entry3["entry 3"]
+        entryn["entry N"]
+        
+        zlend["zlend<br/>1字节<br/>0xFF<br/>结束标记"]
+        
+        zlbytes --> zltail --> zllen --> entry1 --> entry2 --> entry3 --> entryn --> zlend
+    end
+    
+    subgraph entry_struct ["Entry 节点详细结构 - 三部分"]
+        direction TB
+        
+        subgraph prevlen ["1. prevlen - 前一节点长度"]
+            prevlen_desc["记录前一个节点的长度<br/>用于从后向前遍历"]
+            
+            prevlen_1byte["< 254字节:<br/>用 1 字节存储<br/>直接存长度值"]
+            prevlen_5byte[">= 254字节:<br/>用 5 字节存储<br/>第1字节=0xFE<br/>后4字节=实际长度"]
+            
+            prevlen_desc --> prevlen_1byte
+            prevlen_desc --> prevlen_5byte
+        end
+        
+        subgraph encoding ["2. encoding - 编码类型"]
+            encoding_desc["记录 content 的类型和长度"]
+            
+            subgraph string_enc ["字符串编码"]
+                enc_00["00pppppp<br/>长度<=63字节<br/>后6位存长度"]
+                enc_01["01pppppp qqqqqqqq<br/>长度<=16383字节<br/>14位存长度"]
+                enc_10["10______ [4字节]<br/>长度>16383字节<br/>后续4字节存长度"]
+            end
+            
+            subgraph int_enc ["整数编码"]
+                enc_11_00["11000000<br/>int16_t<br/>2字节整数"]
+                enc_11_01["11010000<br/>int32_t<br/>4字节整数"]
+                enc_11_10["11100000<br/>int64_t<br/>8字节整数"]
+                enc_11_11["1111xxxx<br/>0-12的整数<br/>直接存在编码中"]
+            end
+            
+            encoding_desc --> string_enc
+            encoding_desc --> int_enc
+        end
+        
+        subgraph content ["3. content - 实际数据"]
+            content_desc["存储实际的数据<br/>根据 encoding 解析"]
+            
+            content_string["字符串:<br/>原始字节数组"]
+            content_int["整数:<br/>二进制整数"]
+            
+            content_desc --> content_string
+            content_desc --> content_int
+        end
+    end
+    
+    subgraph example1 ["示例1: Hash 存储 name=iPhone"]
+        direction LR
+        
+        ex1_field["Entry (field)<br/>----<br/>prevlen: 0<br/>encoding: 00000100<br/>content: 'name'"]
+        
+        ex1_value["Entry (value)<br/>----<br/>prevlen: 9<br/>encoding: 00000110<br/>content: 'iPhone'"]
+        
+        ex1_field --> ex1_value
+        
+        ex1_note["解释:<br/>prevlen=0: 第一个节点<br/>00000100: 字符串长度4<br/>prevlen=9: 前一节点9字节"]
+    end
+    
+    subgraph example2 ["示例2: List 存储整数 [100, 200, 12]"]
+        direction LR
+        
+        ex2_1["Entry 1<br/>----<br/>prevlen: 0<br/>encoding: 11000000<br/>content: 100<br/>int16"]
+        
+        ex2_2["Entry 2<br/>----<br/>prevlen: 7<br/>encoding: 11000000<br/>content: 200<br/>int16"]
+        
+        ex2_3["Entry 3<br/>----<br/>prevlen: 7<br/>encoding: 11111100<br/>整数12直接编码"]
+        
+        ex2_1 --> ex2_2 --> ex2_3
+    end
+    
+    subgraph cascade ["连锁更新问题 Cascade Update"]
+        direction TB
+        
+        cascade_desc["问题: 插入/删除节点导致后续节点的 prevlen 字段变化"]
+        
+        before["更新前:<br/>[253B] [253B] [253B]<br/>每个 prevlen 占 1 字节"]
+        
+        after["插入大节点后:<br/>[253B] [260B] [?B] [?B]<br/>后续节点 prevlen 需扩展为 5 字节"]
+        
+        impact["影响:<br/>最坏情况: O(n²) 时间复杂度<br/>需要连续重新分配内存<br/>实际中很少发生"]
+        
+        cascade_desc --> before --> after --> impact
+    end
+    
+    subgraph traverse ["遍历方式"]
+        direction LR
+        
+        forward["正向遍历:<br/>zllen 获取长度<br/>从第一个 entry 开始<br/>根据 encoding 计算节点大小<br/>跳到下一个节点"]
+        
+        backward["反向遍历:<br/>zltail 直接定位尾节点<br/>根据 prevlen 跳到前一节点<br/>实现双向遍历能力"]
+    end
+    
+    subgraph memory ["内存优化特点"]
+        direction TB
+        
+        opt1["✅ 连续内存分配<br/>CPU缓存友好"]
+        opt2["✅ 无指针开销<br/>节省内存"]
+        opt3["✅ 变长编码<br/>小数据压缩存储"]
+        opt4["❌ 插入/删除需内存重分配<br/>可能触发连锁更新"]
+        opt5["❌ 查找是 O(n)<br/>不适合大量数据"]
+    end
+    
+    classDef headerStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef entryStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef exampleStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef warnStyle fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    
+    class zlbytes,zltail,zllen,zlend headerStyle
+    class prevlen_1byte,prevlen_5byte,enc_00,enc_01,enc_10,enc_11_00,enc_11_01,enc_11_10,enc_11_11 entryStyle
+    class ex1_field,ex1_value,ex2_1,ex2_2,ex2_3 exampleStyle
+    class cascade_desc,before,after,impact,opt4,opt5 warnStyle</pre>
 
-<h2 id="2-实际内存布局示例"><a href="#2-实际内存布局示例" class="headerlink" title="2. 实际内存布局示例"></a>2. 实际内存布局示例</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br></pre></td><td class="code"><pre><span class="line">graph TB</span><br><span class="line">    subgraph memory_layout [&quot;ziplist 内存布局实例 - Hash存储 &#123;name:iPhone, price:5999&#125;&quot;]</span><br><span class="line">        direction TB</span><br><span class="line">        </span><br><span class="line">        subgraph header [&quot;头部信息 10字节&quot;]</span><br><span class="line">            byte0_3[&quot;字节 0-3: zlbytes&lt;br/&gt;0x00 0x00 0x00 0x3F&lt;br/&gt;总大小 = 63字节&quot;]</span><br><span class="line">            byte4_7[&quot;字节 4-7: zltail&lt;br/&gt;0x00 0x00 0x00 0x35&lt;br/&gt;尾节点偏移 = 53&quot;]</span><br><span class="line">            byte8_9[&quot;字节 8-9: zllen&lt;br/&gt;0x00 0x04&lt;br/&gt;节点数 = 4个&lt;br/&gt;2 field + 2 value&quot;]</span><br><span class="line">        end</span><br><span class="line">        </span><br><span class="line">        subgraph entry1 [&quot;Entry 1: field &#x27;name&#x27; - 9字节&quot;]</span><br><span class="line">            e1_prevlen[&quot;prevlen: 0x00&lt;br/&gt;1字节&lt;br/&gt;前一节点长度=0&lt;br/&gt;是第一个节点&quot;]</span><br><span class="line">            e1_encoding[&quot;encoding: 0x04&lt;br/&gt;1字节&lt;br/&gt;00000100&lt;br/&gt;字符串长度=4&quot;]</span><br><span class="line">            e1_content[&quot;content: &#x27;name&#x27;&lt;br/&gt;4字节&lt;br/&gt;0x6E 0x61 0x6D 0x65&quot;]</span><br><span class="line">            </span><br><span class="line">            e1_prevlen --&gt; e1_encoding --&gt; e1_content</span><br><span class="line">        end</span><br><span class="line">        </span><br><span class="line">        subgraph entry2 [&quot;Entry 2: value &#x27;iPhone&#x27; - 11字节&quot;]</span><br><span class="line">            e2_prevlen[&quot;prevlen: 0x09&lt;br/&gt;1字节&lt;br/&gt;前一节点长度=9&quot;]</span><br><span class="line">            e2_encoding[&quot;encoding: 0x06&lt;br/&gt;1字节&lt;br/&gt;00000110&lt;br/&gt;字符串长度=6&quot;]</span><br><span class="line">            e2_content[&quot;content: &#x27;iPhone&#x27;&lt;br/&gt;6字节&lt;br/&gt;0x69 0x50 0x68...&quot;]</span><br><span class="line">            </span><br><span class="line">            e2_prevlen --&gt; e2_encoding --&gt; e2_content</span><br><span class="line">        end</span><br><span class="line">        </span><br><span class="line">        subgraph entry3 [&quot;Entry 3: field &#x27;price&#x27; - 10字节&quot;]</span><br><span class="line">            e3_prevlen[&quot;prevlen: 0x0B&lt;br/&gt;1字节&lt;br/&gt;前一节点长度=11&quot;]</span><br><span class="line">            e3_encoding[&quot;encoding: 0x05&lt;br/&gt;1字节&lt;br/&gt;00000101&lt;br/&gt;字符串长度=5&quot;]</span><br><span class="line">            e3_content[&quot;content: &#x27;price&#x27;&lt;br/&gt;5字节&lt;br/&gt;0x70 0x72 0x69...&quot;]</span><br><span class="line">            </span><br><span class="line">            e3_prevlen --&gt; e3_encoding --&gt; e3_content</span><br><span class="line">        end</span><br><span class="line">        </span><br><span class="line">        subgraph entry4 [&quot;Entry 4: value 5999 - 7字节&quot;]</span><br><span class="line">            e4_prevlen[&quot;prevlen: 0x0A&lt;br/&gt;1字节&lt;br/&gt;前一节点长度=10&quot;]</span><br><span class="line">            e4_encoding[&quot;encoding: 0xC0&lt;br/&gt;1字节&lt;br/&gt;11000000&lt;br/&gt;int16_t 整数&quot;]</span><br><span class="line">            e4_content[&quot;content: 5999&lt;br/&gt;2字节&lt;br/&gt;0x17 0x6F&lt;br/&gt;整数存储&quot;]</span><br><span class="line">            </span><br><span class="line">            e4_prevlen --&gt; e4_encoding --&gt; e4_content</span><br><span class="line">        end</span><br><span class="line">        </span><br><span class="line">        subgraph tail [&quot;尾部标记 1字节&quot;]</span><br><span class="line">            zlend_byte[&quot;字节 62: zlend&lt;br/&gt;0xFF&lt;br/&gt;结束标记&quot;]</span><br><span class="line">        end</span><br><span class="line">        </span><br><span class="line">        header --&gt; entry1 --&gt; entry2 --&gt; entry3 --&gt; entry4 --&gt; tail</span><br><span class="line">    end</span><br><span class="line">    </span><br><span class="line">    subgraph calculation [&quot;内存计算&quot;]</span><br><span class="line">        direction LR</span><br><span class="line">        </span><br><span class="line">        calc_header[&quot;头部: 10字节&lt;br/&gt;4+4+2&quot;]</span><br><span class="line">        calc_entry1[&quot;Entry1: 9字节&lt;br/&gt;1+1+4+3&quot;]</span><br><span class="line">        calc_entry2[&quot;Entry2: 11字节&lt;br/&gt;1+1+6+3&quot;]</span><br><span class="line">        calc_entry3[&quot;Entry3: 10字节&lt;br/&gt;1+1+5+3&quot;]</span><br><span class="line">        calc_entry4[&quot;Entry4: 7字节&lt;br/&gt;1+1+2+3&quot;]</span><br><span class="line">        calc_tail[&quot;尾部: 1字节&quot;]</span><br><span class="line">        calc_total[&quot;总计: 48字节&quot;]</span><br><span class="line">        </span><br><span class="line">        calc_header --&gt; calc_entry1 --&gt; calc_entry2 --&gt; calc_entry3 --&gt; calc_entry4 --&gt; calc_tail --&gt; calc_total</span><br><span class="line">    end</span><br><span class="line">    </span><br><span class="line">    subgraph encoding_detail [&quot;编码类型详解&quot;]</span><br><span class="line">        direction TB</span><br><span class="line">        </span><br><span class="line">        subgraph str_encoding [&quot;字符串编码 - 根据长度选择&quot;]</span><br><span class="line">            str1[&quot;00pppppp&lt;br/&gt;1字节header&lt;br/&gt;长度 0-63&quot;]</span><br><span class="line">            str2[&quot;01pppppp qqqqqqqq&lt;br/&gt;2字节header&lt;br/&gt;长度 64-16383&quot;]</span><br><span class="line">            str3[&quot;10000000 [4字节长度]&lt;br/&gt;5字节header&lt;br/&gt;长度 &gt; 16383&quot;]</span><br><span class="line">            </span><br><span class="line">            str_example[&quot;例: &#x27;iPhone&#x27; 长度=6&lt;br/&gt;encoding = 00000110&quot;]</span><br><span class="line">        end</span><br><span class="line">        </span><br><span class="line">        subgraph int_encoding [&quot;整数编码 - 根据范围优化&quot;]</span><br><span class="line">            int1[&quot;11000000 [2字节]&lt;br/&gt;int16: -32768~32767&quot;]</span><br><span class="line">            int2[&quot;11010000 [4字节]&lt;br/&gt;int32: -2^31~2^31-1&quot;]</span><br><span class="line">            int3[&quot;11100000 [8字节]&lt;br/&gt;int64: 大整数&quot;]</span><br><span class="line">            int4[&quot;11110000&lt;br/&gt;24位整数&quot;]</span><br><span class="line">            int5[&quot;11111110&lt;br/&gt;8位整数&quot;]</span><br><span class="line">            int6[&quot;1111xxxx&lt;br/&gt;0-12 直接编码&lt;br/&gt;无需content字段&quot;]</span><br><span class="line">            </span><br><span class="line">            int_example[&quot;例: 5999&lt;br/&gt;encoding = 11000000&lt;br/&gt;content = 0x17 0x6F&quot;]</span><br><span class="line">        end</span><br><span class="line">    end</span><br><span class="line">    </span><br><span class="line">    subgraph advantages [&quot;ziplist 的优势&quot;]</span><br><span class="line">        adv1[&quot;💾 内存高效&lt;br/&gt;无指针开销&lt;br/&gt;紧凑存储&quot;]</span><br><span class="line">        adv2[&quot;🚀 缓存友好&lt;br/&gt;连续内存&lt;br/&gt;预读优化&quot;]</span><br><span class="line">        adv3[&quot;🔢 智能编码&lt;br/&gt;整数压缩&lt;br/&gt;变长存储&quot;]</span><br><span class="line">        adv4[&quot;↔️ 双向遍历&lt;br/&gt;支持从头到尾&lt;br/&gt;支持从尾到头&quot;]</span><br><span class="line">    end</span><br><span class="line">    </span><br><span class="line">    subgraph limitations [&quot;ziplist 的限制&quot;]</span><br><span class="line">        lim1[&quot;⚠️ O(n) 查找&lt;br/&gt;不适合大数据&quot;]</span><br><span class="line">        lim2[&quot;⚠️ 连锁更新&lt;br/&gt;最坏 O(n²)&quot;]</span><br><span class="line">        lim3[&quot;⚠️ 内存重分配&lt;br/&gt;插入删除开销大&quot;]</span><br><span class="line">        lim4[&quot;📊 默认阈值&lt;br/&gt;Hash: 512 entries&lt;br/&gt;List: 512 entries&lt;br/&gt;ZSet: 128 entries&quot;]</span><br><span class="line">    end</span><br><span class="line">    </span><br><span class="line">    classDef headerStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px</span><br><span class="line">    classDef entryStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px</span><br><span class="line">    classDef advStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px</span><br><span class="line">    classDef warnStyle fill:#fce4ec,stroke:#880e4f,stroke-width:2px</span><br><span class="line">    </span><br><span class="line">    class byte0_3,byte4_7,byte8_9,zlend_byte headerStyle</span><br><span class="line">    class e1_prevlen,e1_encoding,e1_content,e2_prevlen,e2_encoding,e2_content,e3_prevlen,e3_encoding,e3_content,e4_prevlen,e4_encoding,e4_content entryStyle</span><br><span class="line">    class adv1,adv2,adv3,adv4 advStyle</span><br><span class="line">    class lim1,lim2,lim3,lim4 warnStyle</span><br></pre></td></tr></table></figure>
+<h2 id="2-实际内存布局示例"><a href="#2-实际内存布局示例" class="headerlink" title="2. 实际内存布局示例"></a>2. 实际内存布局示例</h2><pre class="mermaid">graph TB
+    subgraph memory_layout ["ziplist 内存布局实例 - Hash存储 {name:iPhone, price:5999}"]
+        direction TB
+        
+        subgraph header ["头部信息 10字节"]
+            byte0_3["字节 0-3: zlbytes<br/>0x00 0x00 0x00 0x3F<br/>总大小 = 63字节"]
+            byte4_7["字节 4-7: zltail<br/>0x00 0x00 0x00 0x35<br/>尾节点偏移 = 53"]
+            byte8_9["字节 8-9: zllen<br/>0x00 0x04<br/>节点数 = 4个<br/>2 field + 2 value"]
+        end
+        
+        subgraph entry1 ["Entry 1: field 'name' - 9字节"]
+            e1_prevlen["prevlen: 0x00<br/>1字节<br/>前一节点长度=0<br/>是第一个节点"]
+            e1_encoding["encoding: 0x04<br/>1字节<br/>00000100<br/>字符串长度=4"]
+            e1_content["content: 'name'<br/>4字节<br/>0x6E 0x61 0x6D 0x65"]
+            
+            e1_prevlen --> e1_encoding --> e1_content
+        end
+        
+        subgraph entry2 ["Entry 2: value 'iPhone' - 11字节"]
+            e2_prevlen["prevlen: 0x09<br/>1字节<br/>前一节点长度=9"]
+            e2_encoding["encoding: 0x06<br/>1字节<br/>00000110<br/>字符串长度=6"]
+            e2_content["content: 'iPhone'<br/>6字节<br/>0x69 0x50 0x68..."]
+            
+            e2_prevlen --> e2_encoding --> e2_content
+        end
+        
+        subgraph entry3 ["Entry 3: field 'price' - 10字节"]
+            e3_prevlen["prevlen: 0x0B<br/>1字节<br/>前一节点长度=11"]
+            e3_encoding["encoding: 0x05<br/>1字节<br/>00000101<br/>字符串长度=5"]
+            e3_content["content: 'price'<br/>5字节<br/>0x70 0x72 0x69..."]
+            
+            e3_prevlen --> e3_encoding --> e3_content
+        end
+        
+        subgraph entry4 ["Entry 4: value 5999 - 7字节"]
+            e4_prevlen["prevlen: 0x0A<br/>1字节<br/>前一节点长度=10"]
+            e4_encoding["encoding: 0xC0<br/>1字节<br/>11000000<br/>int16_t 整数"]
+            e4_content["content: 5999<br/>2字节<br/>0x17 0x6F<br/>整数存储"]
+            
+            e4_prevlen --> e4_encoding --> e4_content
+        end
+        
+        subgraph tail ["尾部标记 1字节"]
+            zlend_byte["字节 62: zlend<br/>0xFF<br/>结束标记"]
+        end
+        
+        header --> entry1 --> entry2 --> entry3 --> entry4 --> tail
+    end
+    
+    subgraph calculation ["内存计算"]
+        direction LR
+        
+        calc_header["头部: 10字节<br/>4+4+2"]
+        calc_entry1["Entry1: 9字节<br/>1+1+4+3"]
+        calc_entry2["Entry2: 11字节<br/>1+1+6+3"]
+        calc_entry3["Entry3: 10字节<br/>1+1+5+3"]
+        calc_entry4["Entry4: 7字节<br/>1+1+2+3"]
+        calc_tail["尾部: 1字节"]
+        calc_total["总计: 48字节"]
+        
+        calc_header --> calc_entry1 --> calc_entry2 --> calc_entry3 --> calc_entry4 --> calc_tail --> calc_total
+    end
+    
+    subgraph encoding_detail ["编码类型详解"]
+        direction TB
+        
+        subgraph str_encoding ["字符串编码 - 根据长度选择"]
+            str1["00pppppp<br/>1字节header<br/>长度 0-63"]
+            str2["01pppppp qqqqqqqq<br/>2字节header<br/>长度 64-16383"]
+            str3["10000000 [4字节长度]<br/>5字节header<br/>长度 > 16383"]
+            
+            str_example["例: 'iPhone' 长度=6<br/>encoding = 00000110"]
+        end
+        
+        subgraph int_encoding ["整数编码 - 根据范围优化"]
+            int1["11000000 [2字节]<br/>int16: -32768~32767"]
+            int2["11010000 [4字节]<br/>int32: -2^31~2^31-1"]
+            int3["11100000 [8字节]<br/>int64: 大整数"]
+            int4["11110000<br/>24位整数"]
+            int5["11111110<br/>8位整数"]
+            int6["1111xxxx<br/>0-12 直接编码<br/>无需content字段"]
+            
+            int_example["例: 5999<br/>encoding = 11000000<br/>content = 0x17 0x6F"]
+        end
+    end
+    
+    subgraph advantages ["ziplist 的优势"]
+        adv1["💾 内存高效<br/>无指针开销<br/>紧凑存储"]
+        adv2["🚀 缓存友好<br/>连续内存<br/>预读优化"]
+        adv3["🔢 智能编码<br/>整数压缩<br/>变长存储"]
+        adv4["↔️ 双向遍历<br/>支持从头到尾<br/>支持从尾到头"]
+    end
+    
+    subgraph limitations ["ziplist 的限制"]
+        lim1["⚠️ O(n) 查找<br/>不适合大数据"]
+        lim2["⚠️ 连锁更新<br/>最坏 O(n²)"]
+        lim3["⚠️ 内存重分配<br/>插入删除开销大"]
+        lim4["📊 默认阈值<br/>Hash: 512 entries<br/>List: 512 entries<br/>ZSet: 128 entries"]
+    end
+    
+    classDef headerStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef entryStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef advStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef warnStyle fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    
+    class byte0_3,byte4_7,byte8_9,zlend_byte headerStyle
+    class e1_prevlen,e1_encoding,e1_content,e2_prevlen,e2_encoding,e2_content,e3_prevlen,e3_encoding,e3_content,e4_prevlen,e4_encoding,e4_content entryStyle
+    class adv1,adv2,adv3,adv4 advStyle
+    class lim1,lim2,lim3,lim4 warnStyle</pre>
 
 <h2 id="关键要点总结"><a href="#关键要点总结" class="headerlink" title="关键要点总结"></a>关键要点总结</h2><h3 id="Ziplist-的三层结构"><a href="#Ziplist-的三层结构" class="headerlink" title="Ziplist 的三层结构"></a>Ziplist 的三层结构</h3><ol>
 <li><strong>整体结构</strong>：zlbytes + zltail + zllen + entries + zlend</li>
