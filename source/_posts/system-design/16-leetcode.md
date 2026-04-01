@@ -18,6 +18,7 @@ toc: true
 ### 1. 序列、子序列与子数组 (核心模式归类)
 
 #### A. 子数组 (Subarray - 连续性)
+  - <font color="red">[128. 最长连续序列](https://leetcode.cn/problems/longest-consecutive-sequence)【模式：哈希集合 + 贪心；核心：只从序列起点（`num-1` 不在集合中）开始向后查找，避免重复计算】</font>
   - [53. 最大子数组和](https://leetcode.cn/problems/maximum-subarray/)【模式：Kadane 算法；核心：`dp[i] = max(nums[i], dp[i-1] + nums[i])`】
   - [152. 乘积最大子数组](https://leetcode.cn/problems/maximum-product-subarray)【模式：维护双极值；核心：同时保存 max 和 min 应对负负得正】
   - [918. 环形子数组的最大和](https://leetcode.cn/problems/maximum-sum-circular-subarray)【模式：Kadane 变体；核心：`max(最大子数组和, 总和 - 最小子数组和)`】
@@ -38,7 +39,8 @@ toc: true
   - [5. 最长回文子串](https://leetcode.cn/problems/longest-palindromic-substring)【模式：中心扩展法；核心：枚举中心向两边扩散，空间 $O(1)$】
   - [647. 回文子串](https://leetcode.cn/problems/palindromic-substrings)【模式：中心扩展法；核心：统计回文中心扩展过程中的有效回文数】
   - [28. 找出字符串中第一个匹配项的下标](https://leetcode.cn/problems/find-the-index-of-the-first-occurrence-in-a-string)【模式：KMP；核心：利用 `next` 数组实现 $O(m+n)$ 匹配】
-  - [139. 单词拆分](https://leetcode.cn/problems/word-break)【模式：完全背包 / 线性 DP；核心：判断字符串能否由字典构成】
+  - <font color="red">[139. 单词拆分](https://leetcode.cn/problems/word-break)【模式：完全背包 / 线性 DP；核心：判断字符串能否由字典构成】</font>
+  - <font color="red">[140. 单词拆分 II](https://leetcode.cn/problems/word-break-ii)【模式：回溯 + 记忆化搜索；核心：在 139 基础上记录所有可行分割方案】</font>
   - [91. 解码方法](https://leetcode.cn/problems/decode-ways)【模式：爬楼梯变体；核心：判断单字符和双字符是否有效，`dp[i] += dp[i-1] + dp[i-2]`】
 
 #### C. 子序列 (Subsequence - 相对顺序)
@@ -83,61 +85,88 @@ toc: true
   - [53. 最大子数组和](https://leetcode.cn/problems/maximum-subarray/)【模式：Kadane 算法；动态规划基础题】
   - [152. 乘积最大子数组](https://leetcode.cn/problems/maximum-product-subarray)【模式：维护双极值；同时保存 max 和 min 应对负负得正】
 
-#### E. 区间处理 (排序 + 贪心)
+### 3. 排列与字典序 (Permutations & Lexicographical Order)
+> **核心思想**：处理元素的顺序变换。从“下一个排列”的局部演变，到“全排列”的全局搜索，再到“第 K 个排列”的数学定位。
+
+#### A. 下一个排列 (标准字典序算法)
+- [31. 下一个排列](https://leetcode.cn/problems/next-permutation)【模式：双指针+局部反转；核心：找 pivot -> 找更大数 -> 交换并反转；$O(n)$ 时间 $O(1)$ 空间】
+- [556. 下一个更大元素 III](https://leetcode.cn/problems/next-greater-element-iii)【模式：31 题应用；核心：将整数转为字符数组，应用 `nextPermutation` 逻辑，注意 32 位溢出】
+- [1850. 邻位交换的第 K 个最小妙数](https://leetcode.cn/problems/minimum-adjacent-swaps-to-reach-the-kth-smallest-number)【模式：31 题 + 贪心交换；核心：执行 K 次 `nextPermutation` 后，计算最少邻位交换次数】
+
+#### B. 全排列生成 (回溯搜索)
+- [46. 全排列](https://leetcode.cn/problems/permutations)【模式：基础回溯；核心：【口诀】排列靠 `used`：全员参与，位掩码标记】
+- <font color="red">[47. 全排列 II](https://leetcode.cn/problems/permutations-ii)【模式：去重回溯；核心：排序 + 剪枝；【口诀】重复靠排序：前人未用，后人莫入】</font>
+
+#### C. 排列数学定位 (阶乘计数法)
+- [60. 第 K 个排列](https://leetcode.cn/problems/permutation-sequence)【模式：数学构造；核心：利用阶乘分桶原理，逐位确定数字，时间 $O(n^2)$】
+
+### 4. 区间与扫描线 (Intervals & Sweep Line)
+
+#### A. 区间合并与插入 (Merge & Insert)
   - [56. 合并区间](https://leetcode.cn/problems/merge-intervals)【模式：区间合并；核心：按起点排序，维护 `[L, R]`，利用 `l <= cur_right` 动态扩展右边界】
   - [57. 插入区间](https://leetcode.cn/problems/insert-interval)【模式：分类讨论；核心：将区间分为“左侧不重叠”、“中间重叠合并”、“右侧不重叠”三部分处理】
-  - [452. 用最少数量的箭引爆气球](https://leetcode.cn/problems/minimum-number-of-arrows-to-burst-balloons)【模式：区间交集；核心：按终点排序，贪心选择重叠区域的边缘】
-  - [435. 无重叠区间](https://leetcode.cn/problems/non-overlapping-intervals)【模式：贪心留空；核心：按终点排序，尽量保留先结束的区间，以给后续留出更多空间】
-  - [646. 最长数对链](https://leetcode.cn/problems/maximum-length-of-pair-chain)【模式：贪心；核心：按第二个数排序，贪心选择结束最早的区间，同 435 题】
-  - [253. 会议室 II](https://leetcode.cn/problems/meeting-rooms-ii)【模式：上下车/差分思想；核心：将起点看作 +1，终点看作 -1，求最大并发数；或利用小顶堆维护当前结束时间】
-  - [228. 汇总区间](https://leetcode.cn/problems/summary-ranges)【模式：分组循环 / 双指针；核心：识别连续数字序列的断点】
+  - [228. 汇总区间](https://leetcode.cn/problems/summary-ranges)【模式：分组循环 / 双指针；核心：通过 `nums[j+1] != nums[j]+1` 识别连续区间断点】
   - [2580. 统计将重叠区间合并成组的方案数](https://leetcode.cn/problems/count-ways-to-group-overlapping-ranges)【模式：区间合并 + 组合数学；核心：合并后得到 m 个独立连通块，结果为 $2^m$】
 
-#### F. 查找、排序与二分
-  - [4. 寻找两个正序数组的中位数](https://leetcode.cn/problems/median-of-two-sorted-arrays)【模式：二分划分；寻找切割点平衡左右数量】
-  - [268. 丢失的数字](https://leetcode.cn/problems/missing-number)【模式：异或运算；利用成对抵消性质】
-  - [2028. 找出缺失的观测数据](https://leetcode.cn/problems/find-missing-observations)【模式：余数分配；平均分配的思想】
-  - [88. 合并两个有序数组](https://leetcode.cn/problems/merge-sorted-array)【原地 $O(1)$ 空间合并】
-  - [136/137/260. 只出现一次的数字](https://leetcode.cn/problems/single-number)【模式：位运算异或；核心在于消除成对出现的位】
+#### B. 区间重叠与贪心 (Non-overlapping & Greedy)
+  - [435. 无重叠区间](https://leetcode.cn/problems/non-overlapping-intervals)【模式：贪心留空；核心：按终点排序，尽量保留先结束的区间，以给后续留出更多空间】
+  - [452. 用最少数量的箭引爆气球](https://leetcode.cn/problems/minimum-number-of-arrows-to-burst-balloons)【模式：区间交集；核心：按终点排序，贪心选择重叠区域的边缘】
+  - [646. 最长数对链](https://leetcode.cn/problems/maximum-length-of-pair-chain)【模式：贪心；核心：按第二个数排序，贪心选择结束最早的区间，同 435 题】
+  - [253. 会议室 II](https://leetcode.cn/problems/meeting-rooms-ii)【模式：上下车/差分思想；核心：将起点看作 +1，终点看作 -1，求最大并发数；或利用小顶堆维护当前结束时间】
+  - [218. 天际线问题](https://leetcode.cn/problems/the-skyline-problem)【模式：区间更新 + 单点查询；核心：区间范围大且稀疏，需要动态开点 + 懒标记】
+  - [1851. 包含每个查询的最小区间](https://leetcode.cn/problems/minimum-interval-to-include-each-query)【模式：离线查询 + 扫描线；核心：将区间和查询排序，利用优先队列维护当前覆盖的区间】
 
-#### G. 哈希计数与频率统计 (利用数组或 Map 记录状态)
-  - [1. 两数之和](https://leetcode.cn/problems/two-sum)【模式：在线哈希查找；核心：在一次遍历中同时进行“查找”与“存入”，实现 $O(n)$ 时间复杂度】
-  - [128. 最长连续序列](https://leetcode.cn/problems/longest-consecutive-sequence)【模式：哈希集合 + 智能起点；核心：利用 `unordered_set` 实现 $O(1)$ 查找，仅从序列起点 `(x-1 不存在)` 开始计数，确保 $O(n)$ 复杂度】
-  - [217. 存在重复元素](https://leetcode.cn/problems/contains-duplicate)【模式：哈希集合；核心：利用 `unordered_set` 实现 $O(n)$ 频率检测，最基础的去重思想】
-  - [219. 存在重复元素 II](https://leetcode.cn/problems/contains-duplicate-ii)【模式：固定窗口哈希；核心：维护大小为 k 的 `unordered_set`】
-  - [220. 存在重复元素 III](https://leetcode.cn/problems/contains-duplicate-iii)【模式：滑动窗口 + 有序集合；核心：利用 `std::set::lower_bound` 寻找满足范围条件的元素】
-  - [202. 快乐数](https://leetcode.cn/problems/happy-number)【模式：循环检测；核心：利用 `unordered_set` 记录历史值或使用“快慢指针”在 $O(1)$ 空间内检测无限循环】
-  - [383. 赎金信](https://leetcode.cn/problems/ransom-note)【模式：字符计数；利用 `int[26]` 数组实现 $O(n)$ 时间 $O(1)$ 空间的高性能频率校验】
-  - [242. 有效的字母异位词](https://leetcode.cn/problems/valid-anagram)【模式：频率对比；核心：利用 `int[26]` 计数，通过“先加后减”配合“负数早期退出”实现 $O(n)$ 校验】
-  - [49. 字母异位词分组](https://leetcode.cn/problems/group-anagrams)【模式：等类规约；核心：利用“排序后的字符串”或“字符频次”作为 Map 的 Key 进行归一化分类】
-  - [387. 字符串中的第一个唯一字符](https://leetcode.cn/problems/first-unique-character-in-a-string)【模式：两次遍历；先统计频次，再找第一个频次为 1 的索引】
-  - [205. 同构字符串](https://leetcode.cn/problems/isomorphic-strings)【模式：索引映射；通过 `mapS[s[i]] == mapT[t[i]]` 校验字符映射的一致性】
-  - [290. 单词规律](https://leetcode.cn/problems/word-pattern)【模式：双向哈希；核心：利用双 Map 或 Map+Set 建立 char 与 string 的双射关系，注意利用 `stringstream` 处理单词拆分】
-  - [266. 判断一个字符串是否是回文排列](https://leetcode.cn/problems/palindrome-permutation)【模式：奇偶计数；回文排列最多只能有一个字符出现奇数次】
-  - [409. 最长回文串](https://leetcode.cn/problems/longest-palindrome)【模式：贪心构造；统计成对出现的字符，最后可选加一个奇数项作为中心】
+#### C. 区间查询与更新 (Range Query & Update - 线段树/树状数组)
+> **核心思想**：高效处理区间操作的数据结构家族。从静态的前缀和到动态的线段树，根据问题的查询/更新需求选择合适的工具。
+> 
+> **技术演进路径**：前缀和（静态查询）→ 差分（批量更新）→ 树状数组（动态单点）→ 线段树（动态区间）
 
-#### H. 缺失/重复/只出现一次的数字 (标记为负数/原地置换/位运算)
-  - [268. 丢失的数字](https://leetcode.cn/problems/missing-number)【模式：索引异或；将 `0~n` 的索引与 `nums` 元素一起异或，缺失的索引会被剩下】
-  - [389. 找不同](https://leetcode.cn/problems/find-the-difference)【模式：字符异或；将两个字符串所有字符异或，剩下的就是多出来的字符】
-  - [448. 找到所有数组中消失的数字](https://leetcode.cn/problems/find-all-numbers-disappeared-in-an-array)【模式：负号标记；遍历 `val`，将 `nums[abs(val)-1]` 变为负数；最后仍为正数的索引即为缺失值】
-  - [41. 缺失的第一个正数](https://leetcode.cn/problems/first-missing-positive)【模式：原地置换；将数值 `x` 放到下标 `x-1` 的位置；遍历找第一个 `nums[i] != i+1` 的位置】
-  - [442. 数组中重复的数据](https://leetcode.cn/problems/find-all-duplicates-in-an-array)【模式：负号标记；遍历 `val`，若 `nums[abs(val)-1]` 已经是负数，说明 `val` 重复出现】
-  - [剑指 Offer 03. 数组中重复的数字](https://leetcode.cn/problems/shu-zu-zhong-zhong-fu-de-shu-zi-lcof)【模式：交换检测；在交换归位过程中，如果目标位置已经有了正确的值，则发现重复】
-  - [287. 寻找重复数](https://leetcode.cn/problems/find-the-duplicate-number)【模式：快慢指针；不可修改数组；将数组视为链表 `i -> nums[i]`，转化为“环形链表找入口”问题】
-  - [136. 只出现一次的数字](https://leetcode.cn/problems/single-number)【模式：异或消消乐；全员异或，成对抵消，剩者为王】
-  - [137. 只出现一次的数字 II](https://leetcode.cn/problems/single-number-ii)【模式：状态机位运算；其余出现 3 次；设计逻辑电路统计位信息】
-  - [260. 只出现一次的数字 III](https://leetcode.cn/problems/single-number-iii)【模式：异或分组；利用 `x & -x` (lowbit) 将数组分为两组，每组转化回 136 题】
+##### 1. 前缀和与后缀和 (Prefix Sum & Suffix Sum)
+> 场景：静态数组的快速区间查询；预处理 $O(n)$，查询 $O(1)$
+> 核心：`sum[l, r] = prefix[r+1] - prefix[l]`，支持一维/二维/前缀积等变体
+  - [1423. 可获得的最大点数](https://leetcode.cn/problems/maximum-points-you-can-obtain-from-cards)【模式：前缀和 + 后缀和；核心：转化为求中间连续子数组的最小和】
+  - [3152. 特殊数组 II](https://leetcode.cn/problems/special-array-ii)【模式：前缀和判断；核心：预处理奇偶性变化的累计次数】
+  - [238. 除了自身以外数组的乘积](https://leetcode.cn/problems/product-of-array-except-self)【模式：前缀积 × 后缀积；核心：两次遍历，$O(1)$ 空间优化】
+  - [1671. 得到山形数组的最少删除次数](https://leetcode.cn/problems/minimum-number-of-removals-to-make-mountain-array)【模式：前后缀 LIS；核心：计算每个点作为山顶的最长山形】
+  - [2132. 用邮票贴满网格图](https://leetcode.cn/problems/stamping-the-grid/description/)【模式：二维前缀和 + 二维差分；核心：快速判断矩形区域是否可贴邮票】
+  - [3212. 统计 X 和 Y 频数相等的子矩阵数量](https://leetcode.cn/problems/count-submatrices-with-equal-frequency-of-x-and-y/description/)【模式：二维前缀和；核心：预处理后 $O(1)$ 查询子矩阵统计】
+  - [3127. 构造相同颜色的正方形](https://leetcode.cn/problems/make-a-square-with-the-same-color)【模式：二维区间和；核心：枚举所有 2×2 正方形】
 
-### 3. 栈与单调栈 (核心模式归类)
+##### 2. 差分数组 (Difference Array)
+> 场景：多次区间更新 + 一次性查询；时间 $O(n + q)$，空间 $O(n)$
+> 核心：`diff[l] += val, diff[r+1] -= val`，最后前缀和还原；是前缀和的"逆运算"
+  - [1109. 航班预订统计](https://leetcode.cn/problems/corporate-flight-bookings)【模式：一维差分；核心：区间 `[l, r]` 加值转化为差分数组两个端点操作】
+  - [1094. 拼车](https://leetcode.cn/problems/car-pooling/)【模式：差分 + 前缀和；核心：模拟乘客上下车，检查是否超载】
+  - [2132. 用邮票贴满网格图](https://leetcode.cn/problems/stamping-the-grid/description/)【模式：二维差分 + 二维前缀和；核心：矩形区域更新转化为四个角点操作】
+  - [995. K 连续位的最小翻转次数](https://leetcode.cn/problems/minimum-number-of-k-consecutive-bit-flips)【模式：差分 + 贪心；核心：用差分数组记录翻转次数，避免重复翻转】
+
+##### 3. 树状数组 (Binary Indexed Tree / Fenwick Tree)
+> 场景：单点更新 + 区间查询（前缀和）；时间 $O(\log n)$，空间 $O(n)$
+> 核心：利用 `lowbit(x) = x & -x` 实现树状结构，是动态版本的前缀和
+  - [307. 区域和检索 - 数组可修改](https://leetcode.cn/problems/range-sum-query-mutable)【模式：树状数组基础；单点更新 + 区间求和】
+
+##### 4. 线段树 (Segment Tree)
+> 场景：区间更新 + 区间查询（最大/最小/和）；时间 $O(\log n)$，空间 $O(n)$ 或动态开点
+> 核心：完全二叉树结构，支持懒标记（Lazy Propagation）批量更新，是最通用的区间数据结构
+  - **手撕线段树**：支持区间 update 和区间聚合值（最大、最小、和）等
+  - [699. 掉落的方块](https://leetcode.cn/problems/falling-squares)【模式：区间最大值查询 + 区间更新；核心：动态开点线段树 + 懒标记】
+  - [2276. 统计区间中的整数数目](https://leetcode.cn/problems/count-integers-in-intervals)【模式：区间合并 + 动态开点；核心：维护区间覆盖情况】
+  - [2916. 子数组不同元素数目的平方和 II](https://leetcode.cn/problems/subarrays-distinct-element-sum-of-squares-ii)【模式：线段树 + 离线查询；核心：维护区间平方和】
+  - [3479. 将水果装入篮子 III](https://leetcode.cn/problems/fruits-into-baskets-iii/description/)【模式：单点更新 + 区间最大值；核心：在无序数组中找第一个大于某个值的 index】
+
+### 4. 栈与单调栈 (核心模式归类)
 
 #### A. 基础栈应用与模拟 (处理嵌套、撤销与状态存取)
   - [20. 有效的括号](https://leetcode.cn/problems/valid-parentheses)【模式：括号匹配；核心：利用栈的 LIFO 特性处理嵌套关系】
   - [150. 逆波兰表达式求值](https://leetcode.cn/problems/evaluate-reverse-polish-notation)【模式：后缀表达式计算；核心：遇到运算符弹出两数计算，注意减/除顺序】
-  - [224. 基本计算器](https://leetcode.cn/problems/basic-calculator)【模式：符号栈模拟；核心：利用栈维护当前括号层级的“全局正负号”，实现 $O(n)$ 一次遍历展开括号】
+  - [71. 简化路径](https://leetcode.cn/problems/simplify-path)【模式：路径模拟；核心：遇到 `..` 执行出栈，配合 `stringstream` 拆分单词】
   - [155. 最小栈](https://leetcode.cn/problems/min-stack)【模式：双栈/辅助栈；核心：同步维护一个“当前的最小值”栈】
   - [232. 用栈实现队列](https://leetcode.cn/problems/implement-queue-using-stacks)【模式：双栈翻转；核心：利用入栈和出栈两个容器实现 FIFO】
   - [394. 字符串解码](https://leetcode.cn/problems/decode-string)【模式：多栈状态存取；核心：分别用栈存储当前的倍数 `cnt` 和已拼出的 `string`】
-  - [71. 简化路径](https://leetcode.cn/problems/simplify-path)【模式：路径模拟；核心：遇到 `..` 执行出栈，配合 `stringstream` 拆分单词】
+  - [224. 基本计算器](https://leetcode.cn/problems/basic-calculator)【模式：符号栈模拟；核心：利用栈维护当前括号层级的“全局正负号”，实现 $O(n)$ 一次遍历展开括号】
+  - [227. 基本计算器 II](https://leetcode.cn/problems/basic-calculator-ii)【模式：栈模拟 / 优先级处理；核心：遇到乘除立即运算，加减则入栈最后求和】
+  - [772. 基本计算器 III](https://leetcode.cn/problems/basic-calculator-iii)【模式：通用表达式求值；核心：结合 224 和 227，利用递归或双栈处理括号与四则运算优先级】
+  
 
 #### B. 单调栈基础 (在线性时间内寻找左右最近的极值)
   - [496. 下一个更大元素 I](https://leetcode-cn.com/problems/next-greater-element-i/)【模式：单调递减栈；核心：在栈中保留尚未找到“下一个更大数”的元素】
@@ -171,6 +200,7 @@ toc: true
   - [23. 合并 K 个升序链表](https://leetcode.cn/problems/merge-k-sorted-lists)【模式：分治归并 / 最小堆；核心：方法1：维护 K 个链表头的最小堆，每次取出最小节点；方法2：两两分治合并，实现 $O(N \log k)$ 复杂度；见排序章节】
   - [最大平均通过率](https://leetcode-cn.com/problems/maximum-average-pass-ratio/)
   - [单线程 CPU](https://leetcode-cn.com/problems/single-threaded-cpu/)
+  - <font color="red">[347. 前 K 个高频元素](https://leetcode.cn/problems/top-k-frequent-elements)【最小堆，两次遍历桶排序】</font>
 
 #### B. 反悔贪心 (Regret Greedy - 核心模式)
   - [630. 课程表 III](https://leetcode.cn/problems/course-schedule-iii)【模式：大顶堆维护耗时；遇到冲突时“反悔”替换掉耗时最长的课程】
@@ -203,7 +233,7 @@ toc: true
 #### B. 快慢指针与环形检测
   - [141. 环形链表](https://leetcode.cn/problems/linked-list-cycle)【模式：快慢指针；核心：利用步长差 $(2-1=1)$，在 $O(n)$ 时间 $O(1)$ 空间内检测链表是否有环】
   - [142. 环形链表 II](https://leetcode.cn/problems/linked-list-cycle-ii)【模式：双指针追赶；核心：相遇后将一指针归零，同步慢走寻找环入口】
-  - [19. 删除链表的倒数第 N 个结点](https://leetcode.cn/problems/remove-nth-node-from-end-of-list)【模式：快慢指针；核心：利用 $n$ 步位移差定位倒数第 $n+1$ 个节点（前驱节点）】
+  - <font color="red">[19. 删除链表的倒数第 N 个结点](https://leetcode.cn/problems/remove-nth-node-from-end-of-list)【模式：快慢指针；核心：利用 $n$ 步位移差定位倒数第 $n+1$ 个节点（前驱节点）】</font>
   - [61. 旋转链表](https://leetcode.cn/problems/rotate-list)【模式：成环解环；核心：先连成环再在 $n-(k\%n)$ 处断开，简化指针操作】
   - [876. 链表的中间结点](https://leetcode.cn/problems/middle-of-the-linked-list)【模式：快慢指针；核心：`fast` 走两步 `slow` 走一步，`fast` 到头时 `slow` 在中点】
   - [287. 寻找重复数](https://leetcode.cn/problems/find-the-duplicate-number)【模式：映射找环；将数组索引视为链表指针，转化为环入口问题】
@@ -458,12 +488,14 @@ toc: true
 
 ### 20. 二分搜索：从"查找"到"答案空间"的跨越 (Binary Search)
 - **一维二分 (1D Binary Search)**
+  - 手写low_bound
   - [704. 二分查找](https://leetcode.cn/problems/binary-search/) 【模式：标准模板；左闭右闭 `[l, r]` 或左闭右开 `[l, r)`】
-  - [34. 在排序数组中查找元素的第一个和最后一个位置](https://leetcode.cn/problems/find-first-and-last-position-of-element-in-sorted-array/) 【模式：边界查找；寻找第一个 `>= target` 的位置】
+  - <font color="red">[34. 在排序数组中查找元素的第一个和最后一个位置](https://leetcode.cn/problems/find-first-and-last-position-of-element-in-sorted-array/) 【模式：边界查找；寻找第一个 `>= target` 的位置，手写low_bound】</font>
   - [33. 搜索旋转排序数组](https://leetcode.cn/problems/search-in-rotated-sorted-array/) 【模式：分类讨论；利用局部单调性缩小区间】
   - [81. 搜索旋转排序数组 II](https://leetcode.cn/problems/search-in-rotated-sorted-array-ii/) 【模式：去重处理；含重复元素时，通过 `l++, r--` 恢复单调性，最坏 $O(n)$】
   - [153. 寻找旋转排序数组中的最小值](https://leetcode.cn/problems/find-minimum-in-rotated-sorted-array/) 【模式：旋转点查找；比较 `mid` 与 `right` 确定最小值所在半区】
   - [162. 寻找峰值](https://leetcode.cn/problems/find-peak-element) 【模式：局部单调性二分；核心：比较 `mid` 与 `mid+1` 确定爬坡方向，在无序数组中实现 $O(\log n)$ 查找】
+    - **Follow-up (含重复元素)**：当 `nums[mid] == nums[mid+1]` 时无法确定方向，需线性收缩边界或分治，最坏复杂度退化至 $O(n)$。
 
 - **二维矩阵二分 (2D Matrix Search)**
   - [74. 搜索二维矩阵](https://leetcode.cn/problems/search-a-2d-matrix) 【模式：一维化二分；整个矩阵严格单调，映射为一维处理】
@@ -779,6 +811,9 @@ toc: true
   - [17. 电话号码的字母组合](https://leetcode.cn/problems/letter-combinations-of-a-phone-number)【模式：基础回溯；核心：递归深度控制数字索引，for 循环遍历字母映射】
   - [77. 组合](https://leetcode.cn/problems/combine)【模式：组合回溯；核心：【口诀】组合靠 `start`：不回头看，一路向右】
   - [39. 组合总和](https://leetcode.cn/problems/combination-sum)【模式：重复选组合；核心：【原理】传递当前索引 `i` 而非 `i+1` 实现元素可重复选取】
+  - [40. 组合总和 II](https://leetcode.cn/problems/combination-sum-ii)【模式：有重复元素的组合；核心：排序去重，【口诀】重复靠排序：前人未用，后人莫入（`!used[i-1]`）】
+  - [216. 组合总和 III](https://leetcode.cn/problems/combination-sum-iii)【模式：限定范围组合；核心：1-9 数字中选 k 个数和为 n，剪枝优化】
+  - [377. 组合总和 Ⅳ](https://leetcode.cn/problems/combination-sum-iv)【模式：排列数 DP；核心：求和为 target 的排列个数，`dp[i] = sum(dp[i - num])`，完全背包求排列问题】
   - [46. 全排列](https://leetcode.cn/problems/permutations)【模式：排列回溯；核心：【口诀】排列靠 `used`：全员参与，位掩码标记】
   - [47. 全排列 II](https://leetcode.cn/problems/permutations-ii)【模式：有重排列；核心：【原理】重复靠排序：前人未用，后人莫入（`!used[i-1]`）】
   - [LCR 086. 分割回文串](https://leetcode.cn/problems/M99OJA)【模式：子串划分；核心：枚举分割点，预处理回文表优化判断】
@@ -795,6 +830,7 @@ toc: true
   - [52. N 皇后 II](https://leetcode.cn/problems/n-queens-ii)【模式：棋盘回溯；核心：利用 `cols[c]`、`diag1[r+c]`、`diag2[r-c+n]` 三个数组实现 O(1) 冲突检测】
   - [22. 括号生成](https://leetcode.cn/problems/generate-parentheses)【模式：配对回溯；核心：【口诀】括号看余额：左括号不超标，右括号不透支】
   - [79. 单词搜索](https://leetcode.cn/problems/word-search)【模式：矩阵回溯；核心：【口诀】矩阵靠沉岛：先占位再递归，事后记得还原】
+  - [212. 单词搜索 II](https://leetcode.cn/problems/word-search-ii)【模式：Trie + 回溯；核心：将词典建模为 Trie，在网格回溯中同步移动 Trie 指针，实现多模式高效匹配】
 
 #### E. 记忆化搜索 (Memoization DFS)
 > 场景：重叠子问题、状态空间搜索、自顶向下 DP
@@ -935,22 +971,32 @@ toc: true
   - [1043. 分隔数组以得到最大和](https://leetcode.cn/problems/partition-array-for-maximum-sum)
 
 ### 37. 背包 DP (Knapsack)
-> *组合优化问题，关注容量与价值*
+> **核心思想**：给定一组物品（有重量和价值），在限定的总容量内，如何选择物品使得总价值最大。
+> 
+> **解题三部曲**：
+> 1. **状态定义**：`dp[i][j]` 表示前 `i` 个物品，在容量为 `j` 时的最优解。
+> 2. **转移方程**：`dp[i][j] = max(不选, 选)`。
+>    - 不选：`dp[i-1][j]`
+>    - 选（容量够）：`dp[i-1][j - weight[i]] + value[i]`
+> 3. **空间优化**：利用**滚动数组**将二维压缩至一维 `dp[j]`。
+>    - **0/1 背包**：`j` 必须**从大到小（倒序）**遍历，防止同一物品被重复计算。
+>    - **完全背包**：`j` 必须**从小到大（正序）**遍历，允许同一物品多次选取。
 
-#### A. 0/1 背包
-  - [416. 分割等和子集](https://leetcode.cn/problems/partition-equal-subset-sum)
-  - [494. 目标和](https://leetcode.cn/problems/target-sum)
-  - [474. 一和零](https://leetcode.cn/problems/ones-and-zeroes)
+#### A. 0/1 背包 (每个物品仅 1 件)
+  - [416. 分割等和子集](https://leetcode.cn/problems/partition-equal-subset-sum)【模式：转化为容量为 `sum/2` 的 0/1 背包是否能装满】
+  - [494. 目标和](https://leetcode.cn/problems/target-sum)【模式：转化为 0/1 背包组合数问题】
+  - [474. 一和零](https://leetcode.cn/problems/ones-and-zeroes)【模式：二维费用背包；`dp[i][j]` 表示 `i` 个 0 和 `j` 个 1 的最大字符串数】
 
-#### B. 完全背包
-  - [322. 零钱兑换](https://leetcode.cn/problems/coin-change)【模式：完全背包；求凑成总金额的最少硬币数】
-  - [518. 零钱兑换 II](https://leetcode.cn/problems/coin-change-ii)【模式：完全背包；求凑成总金额的组合数】
-  - [279. 完全平方数](https://leetcode.cn/problems/perfect-squares)
+#### B. 完全背包 (每个物品无限件)
+  - [322. 零钱兑换](https://leetcode.cn/problems/coin-change)【模式：完全背包；求凑成总金额的最少硬币数；`dp[j] = min(dp[j], dp[j-coin] + 1)`】
+  - [518. 零钱兑换 II](https://leetcode.cn/problems/coin-change-ii)【模式：完全背包；求凑成总金额的组合数；`dp[j] += dp[j-coin]`】
+  - [279. 完全平方数](https://leetcode.cn/problems/perfect-squares)【模式：完全背包；物品是平方数，容量是 `n`】
   - [139. 单词拆分](https://leetcode.cn/problems/word-break)【模式：完全背包 / 线性 DP；判断字符串能否由字典构成】
   - [1449. 数位成本和为目标值的最大数字](https://leetcode.cn/problems/form-largest-integer-with-digits-that-add-up-to-target)
+  - [377. 组合总和 Ⅳ](https://leetcode.cn/problems/combination-sum-iv)【模式：排列数 DP；核心：求和为 target 的排列个数，`dp[i] = sum(dp[i - num])`，完全背包求排列问题】
 
 #### C. 多重/分组背包
-  - [1155. 掷骰子等于目标和的方法数](https://leetcode.cn/problems/number-of-dice-rolls-with-target-sum)
+  - [1155. 掷骰子等于目标和的方法数](https://leetcode.cn/problems/number-of-dice-rolls-with-target-sum)【模式：分组背包；每颗骰子是一组物品，每组只能选一个面】
 
 ### 38. 区间 DP (Interval)
 > *从小区间合并到大区间，枚举分割点 k*
