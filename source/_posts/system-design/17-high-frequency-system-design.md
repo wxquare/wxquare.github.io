@@ -664,6 +664,524 @@ inventoryManager.BookStock(ctx, &BookStockReq{
 
 ---
 
+#### 1.1 本地消息表（Outbox Pattern）深度解析
+
+**核心问题**：如何保证数据库操作和消息发送的原子性？
+
+```
+经典场景：订单支付成功
+├─ 更新订单状态（MySQL）
+└─ 发送支付成功消息（Kafka）
+
+问题：
+❌ 先更新DB，再发Kafka → Kafka发送失败，下游收不到消息
+❌ 先发Kafka，再更新DB → DB更新失败，下游收到错误消息
+```
+
+---
+
+##### 1.1.1 为什么需要本地消息表？
+
+**不使用本地消息表的问题**：
+
+```go
+// ❌ 错误方案1：先写DB，后发MQ
+func ProcessPayment(orderID string) error {
+    // 1. 更新数据库
+    db.Exec("UPDATE orders SET status='PAID' WHERE id=?", orderID)
+    
+    // 2. 发送消息
+    kafka.Send("order.paid", orderID)  // 如果这里失败？
+    // 问题：DB已更新，但消息没发出去，下游系统不知道
+}
+
+// ❌ 错误方案2：先发MQ，后写DB
+func ProcessPayment(orderID string) error {
+    // 1. 发送消息
+    kafka.Send("order.paid", orderID)
+    
+    // 2. 更新数据库
+    db.Exec("UPDATE orders SET status='PAID' WHERE id=?", orderID)  // 如果这里失败？
+    // 问题：消息已发出，但DB没更新，数据不一致
+}
+```
+
+**✅ 本地消息表方案**：
+
+```
+核心思想：将"发消息"这个动作转化为"写数据库"，利用数据库事务保证原子性
+
+业务操作 + 插入消息记录 → 在同一个事务中
+异步扫描消息表 → 发送到MQ → 标记已发送
+```
+
+---
+
+##### 1.1.2 表结构设计
+
+```sql
+-- 本地消息表（Outbox）
+CREATE TABLE outbox_message_tab (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    
+    -- 消息标识
+    message_id VARCHAR(64) NOT NULL UNIQUE,      -- 消息唯一ID（幂等键）
+    event_type VARCHAR(100) NOT NULL,            -- 事件类型：order.paid, inventory.deducted
+    
+    -- 消息内容
+    event_payload JSON NOT NULL,                 -- 事件数据（JSON格式）
+    
+    -- 发送状态
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',  -- pending/published/failed
+    retry_count INT DEFAULT 0,                    -- 重试次数
+    max_retry INT DEFAULT 3,                      -- 最大重试次数
+    
+    -- 时间管理
+    next_retry_at DATETIME,                       -- 下次重试时间
+    created_at DATETIME NOT NULL,                 -- 创建时间
+    published_at DATETIME,                        -- 发送成功时间
+    
+    -- 查询索引
+    INDEX idx_status_retry (status, next_retry_at),
+    INDEX idx_created (created_at)
+);
+```
+
+---
+
+##### 1.1.3 完整实现流程
+
+**Step 1: 业务代码 - 在事务中写入消息**
+
+```go
+func ProcessPayment(orderID string, amount int64) error {
+    return db.Transaction(func(tx *gorm.DB) error {
+        // 1. 更新订单状态
+        result := tx.Exec(`
+            UPDATE orders 
+            SET status = 'PAID', paid_amount = ? 
+            WHERE id = ? AND status = 'PENDING'
+        `, amount, orderID)
+        
+        if result.RowsAffected == 0 {
+            return errors.New("order not found or already paid")
+        }
+        
+        // 2. 插入本地消息表 ⭐ 关键：在同一个事务中
+        message := &OutboxMessage{
+            MessageID:   generateMessageID(orderID),
+            EventType:   "order.paid",
+            EventPayload: json.Marshal(map[string]interface{}{
+                "order_id": orderID,
+                "amount":   amount,
+                "paid_at":  time.Now(),
+            }),
+            Status:      "pending",
+            MaxRetry:    3,
+            CreatedAt:   time.Now(),
+        }
+        
+        if err := tx.Create(message).Error; err != nil {
+            return err
+        }
+        
+        // 3. 两个操作要么都成功，要么都失败
+        return nil
+    })
+}
+```
+
+**Step 2: 后台任务 - 扫描并发送消息**
+
+```go
+type OutboxPublisher struct {
+    db    *gorm.DB
+    kafka *kafka.Producer
+}
+
+// 启动定时任务（每5秒扫描一次）
+func (p *OutboxPublisher) Start() {
+    ticker := time.NewTicker(5 * time.Second)
+    
+    for range ticker.C {
+        p.publishPendingMessages()
+    }
+}
+
+func (p *OutboxPublisher) publishPendingMessages() {
+    // 1. 查询待发送的消息（含重试）
+    var messages []OutboxMessage
+    p.db.Where(`
+        status = 'pending' 
+        AND (next_retry_at IS NULL OR next_retry_at <= NOW())
+    `).Limit(100).Find(&messages)
+    
+    log.Infof("Found %d pending messages", len(messages))
+    
+    for _, msg := range messages {
+        // 2. 发送到Kafka
+        err := p.kafka.Send(msg.EventType, msg.EventPayload)
+        
+        if err == nil {
+            // 2.1 发送成功 → 更新状态
+            p.db.Model(&OutboxMessage{}).Where("id = ?", msg.ID).
+                Updates(map[string]interface{}{
+                    "status":       "published",
+                    "published_at": time.Now(),
+                })
+            
+            log.Infof("Message published: %s", msg.MessageID)
+            
+        } else {
+            // 2.2 发送失败 → 增加重试（指数退避）
+            msg.RetryCount++
+            
+            if msg.RetryCount >= msg.MaxRetry {
+                // 超过最大重试次数 → 标记失败 → 告警
+                p.db.Model(&OutboxMessage{}).Where("id = ?", msg.ID).
+                    Update("status", "failed")
+                
+                sendAlert("outbox_publish_failed", msg.MessageID, err.Error())
+                
+            } else {
+                // 指数退避：2^n 分钟后重试
+                nextRetry := time.Now().Add(
+                    time.Duration(math.Pow(2, float64(msg.RetryCount))) * time.Minute,
+                )
+                
+                p.db.Model(&OutboxMessage{}).Where("id = ?", msg.ID).
+                    Updates(map[string]interface{}{
+                        "retry_count":   msg.RetryCount,
+                        "next_retry_at": nextRetry,
+                    })
+                
+                log.Warnf("Message send failed, retry %d/%d at %s", 
+                    msg.RetryCount, msg.MaxRetry, nextRetry)
+            }
+        }
+    }
+}
+```
+
+---
+
+##### 1.1.4 使用场景
+
+| 场景 | 描述 | 示例 |
+|------|------|------|
+| **订单系统** | 订单状态变更需通知下游 | 支付成功 → 通知库存、物流 |
+| **库存系统** | 库存扣减需同步缓存 | 扣减库存 → 更新Redis、发送通知 |
+| **账户系统** | 余额变更需记录流水 | 充值成功 → 发送积分、优惠券 |
+| **审核系统** | 审核结果需通知用户 | 商品审核通过 → 发送站内信 |
+
+**场景1：订单支付成功**
+
+```go
+// 订单服务
+func HandlePaymentCallback(callback *PaymentCallback) error {
+    return db.Transaction(func(tx *gorm.DB) error {
+        // 1. 更新订单状态
+        tx.Model(&Order{}).Where("order_id = ?", callback.OrderID).
+            Update("status", "PAID")
+        
+        // 2. 记录支付流水
+        tx.Create(&PaymentRecord{
+            OrderID:       callback.OrderID,
+            TransactionID: callback.TransactionID,
+            Amount:        callback.Amount,
+        })
+        
+        // 3. 插入消息表（在同一事务中）⭐
+        tx.Create(&OutboxMessage{
+            MessageID:    fmt.Sprintf("order:paid:%s", callback.OrderID),
+            EventType:    "order.paid",
+            EventPayload: json.Marshal(callback),
+            Status:       "pending",
+        })
+        
+        return nil
+    })
+}
+
+// 下游服务消费消息
+func ConsumeOrderPaid(msg *OrderPaidEvent) error {
+    // 库存服务：扣减库存
+    inventoryService.DeductStock(msg.OrderID, msg.Items)
+    
+    // 积分服务：增加积分
+    pointService.AddPoints(msg.UserID, msg.Amount * 0.01)
+    
+    // 通知服务：发送短信
+    notificationService.SendSMS(msg.UserID, "订单支付成功")
+    
+    return nil
+}
+```
+
+**场景2：库存扣减同步缓存**
+
+```go
+func DeductStock(itemID, skuID int64, quantity int) error {
+    return db.Transaction(func(tx *gorm.DB) error {
+        // 1. 扣减数据库库存
+        result := tx.Exec(`
+            UPDATE inventory_tab 
+            SET available_stock = available_stock - ?,
+                booking_stock = booking_stock + ?
+            WHERE item_id = ? AND sku_id = ? AND available_stock >= ?
+        `, quantity, quantity, itemID, skuID, quantity)
+        
+        if result.RowsAffected == 0 {
+            return errors.New("insufficient stock")
+        }
+        
+        // 2. 记录库存变更日志
+        tx.Create(&InventoryChangeLog{
+            ItemID:         itemID,
+            SKUID:          skuID,
+            ChangeQuantity: -quantity,
+            ChangeType:     "deduct",
+        })
+        
+        // 3. 插入消息表（同步Redis缓存）⭐
+        tx.Create(&OutboxMessage{
+            MessageID:    fmt.Sprintf("inventory:changed:%d:%d:%d", itemID, skuID, time.Now().Unix()),
+            EventType:    "inventory.changed",
+            EventPayload: json.Marshal(map[string]interface{}{
+                "item_id":  itemID,
+                "sku_id":   skuID,
+                "quantity": -quantity,
+            }),
+            Status: "pending",
+        })
+        
+        return nil
+    })
+}
+
+// 消费者：同步Redis
+func ConsumInventoryChanged(msg *InventoryChangedEvent) error {
+    // 更新Redis缓存
+    redis.HIncrBy(
+        fmt.Sprintf("inventory:qty:stock:%d:%d", msg.ItemID, msg.SKUID),
+        "available",
+        msg.Quantity,
+    )
+    return nil
+}
+```
+
+---
+
+##### 1.1.5 关键设计点
+
+**1. 消息幂等性**
+
+```go
+// 消费端必须做幂等处理
+func ConsumeMessage(msg *kafka.Message) error {
+    var event OutboxEvent
+    json.Unmarshal(msg.Value, &event)
+    
+    // 方案1：基于message_id去重（Redis）
+    messageID := event.MessageID
+    if redis.SetNX(messageID, 1, 24*time.Hour).Val() == false {
+        log.Infof("Duplicate message: %s", messageID)
+        return nil  // 已处理过
+    }
+    
+    // 方案2：基于业务唯一性（数据库唯一索引）
+    // 业务逻辑自带幂等保证
+    processBusinessLogic(event)
+    
+    return nil
+}
+```
+
+**2. 消息清理**
+
+```go
+// 定期清理已发送的消息（保留7天）
+func CleanupPublishedMessages() {
+    db.Where("status = 'published' AND published_at < ?", 
+        time.Now().AddDate(0, 0, -7)).
+        Delete(&OutboxMessage{})
+}
+
+// 失败消息人工处理
+func ListFailedMessages() []OutboxMessage {
+    var messages []OutboxMessage
+    db.Where("status = 'failed'").Find(&messages)
+    return messages
+}
+```
+
+**3. 性能优化**
+
+```go
+// 批量发送（减少数据库交互）
+func (p *OutboxPublisher) publishBatch(messages []OutboxMessage) error {
+    // 1. 批量发送到Kafka
+    batch := p.kafka.NewBatch()
+    for _, msg := range messages {
+        batch.Add(msg.EventType, msg.EventPayload)
+    }
+    batch.Send()
+    
+    // 2. 批量更新状态
+    messageIDs := extractIDs(messages)
+    db.Model(&OutboxMessage{}).
+        Where("id IN ?", messageIDs).
+        Update("status", "published")
+    
+    return nil
+}
+```
+
+---
+
+##### 1.1.6 常见问题与追问
+
+**Q1：本地消息表 vs 事务消息（RocketMQ）有什么区别？**
+
+| 维度 | 本地消息表 | RocketMQ 事务消息 |
+|------|-----------|-------------------|
+| **原理** | 数据库事务 + 异步发送 | Half消息 + 回查机制 |
+| **侵入性** | 中（需建表） | 低（MQ原生支持） |
+| **可靠性** | 高（数据库保证） | 高（MQ保证） |
+| **复杂度** | 低 | 中（需实现回查接口） |
+| **性能** | 中（依赖数据库） | 高（MQ专业） |
+| **适用场景** | 通用场景 | 使用RocketMQ的系统 |
+
+**Q2：消息表会不会无限增长？**
+
+```go
+// 解决方案1：定期清理（推荐）
+// 保留已发送消息7天，失败消息永久保留
+DELETE FROM outbox_message_tab 
+WHERE status = 'published' AND published_at < DATE_SUB(NOW(), INTERVAL 7 DAY);
+
+// 解决方案2：按月分表
+CREATE TABLE outbox_message_202401 LIKE outbox_message_template;
+CREATE TABLE outbox_message_202402 LIKE outbox_message_template;
+
+// 解决方案3：归档到对象存储
+// 导出旧数据 → 上传OSS → 删除数据库记录
+```
+
+**Q3：如果OutboxPublisher挂了怎么办？**
+
+```
+保证机制：
+1. ✅ 消息已持久化到数据库，不会丢失
+2. ✅ OutboxPublisher重启后继续扫描发送
+3. ✅ 部署多个Publisher实例（分布式锁防重复）
+4. ✅ 监控告警：pending消息超过阈值告警
+```
+
+**Q4：如何保证消息顺序？**
+
+```go
+// 方案1：按业务KEY分区（Kafka）
+func (p *OutboxPublisher) send(msg *OutboxMessage) error {
+    // 同一订单的消息发送到同一分区
+    key := extractOrderID(msg.EventPayload)
+    
+    return p.kafka.SendWithKey(msg.EventType, key, msg.EventPayload)
+}
+
+// 方案2：在消息中加序列号
+type OrderEvent struct {
+    OrderID  string `json:"order_id"`
+    Sequence int    `json:"sequence"`  // 1, 2, 3...
+    EventType string `json:"event_type"`
+}
+
+// 消费端按sequence排序处理
+func ConsumeOrderEvent(msg *OrderEvent) error {
+    // 检查序列号，乱序则暂存
+    if !isExpectedSequence(msg.OrderID, msg.Sequence) {
+        bufferMessage(msg)
+        return nil
+    }
+    
+    processMessage(msg)
+    processBufferedMessages(msg.OrderID)
+    return nil
+}
+```
+
+**Q5：消息发送失败，但业务已执行，如何补偿？**
+
+```go
+// 解决方案：允许业务回滚 or 记录失败重新发起
+
+// 方案1：失败消息人工补发
+func RetryFailedMessage(messageID string) error {
+    var msg OutboxMessage
+    db.Where("message_id = ?", messageID).First(&msg)
+    
+    // 重置状态
+    msg.Status = "pending"
+    msg.RetryCount = 0
+    msg.NextRetryAt = nil
+    
+    db.Save(&msg)
+    return nil
+}
+
+// 方案2：补偿事务（如果业务支持）
+func CompensateOrder(orderID string) error {
+    // 回滚订单状态
+    db.Model(&Order{}).Where("order_id = ?", orderID).
+        Update("status", "PENDING")
+    
+    // 释放库存
+    inventoryService.ReleaseStock(orderID)
+    
+    return nil
+}
+```
+
+---
+
+##### 1.1.7 灵魂拷问
+
+**面试官：为什么不直接在业务代码里同步发送Kafka？**
+
+```
+回答要点：
+1. ❌ 不可靠：Kafka发送失败，但DB已提交，数据不一致
+2. ❌ 性能差：同步等待Kafka响应，阻塞业务线程
+3. ❌ 耦合：业务代码依赖MQ，MQ故障导致业务不可用
+
+✅ 本地消息表：
+1. 业务和消息在同一事务，保证原子性
+2. 异步发送，不阻塞业务
+3. 解耦，MQ临时故障不影响业务
+```
+
+**面试官：本地消息表如何保证高可用？**
+
+```
+1. 数据库高可用：主从复制、双主
+2. Publisher多实例部署：分布式锁防重复
+3. 监控告警：pending消息超过阈值告警
+4. 降级策略：允许短暂延迟，保证最终一致性
+```
+
+**面试官：你们系统哪些场景用了本地消息表？**
+
+```
+实际案例：
+1. 订单支付成功：通知库存、积分、物流
+2. 商品上架成功：同步Redis、ES、发送通知
+3. 库存扣减：同步缓存、记录日志
+4. 用户注册：发送欢迎邮件、赠送优惠券
+```
+
+---
+
 ### 2. Redis 与 MySQL 双写一致性
 
 | 方案 | 流程 | 优缺点 |
@@ -680,15 +1198,300 @@ inventoryManager.BookStock(ctx, &BookStockReq{
 
 ### 3. 接口幂等性
 
-**场景**：网络抖动重复提交、支付回调重复通知。
+**定义**：同一个请求执行多次，结果与执行一次相同。
 
-| 方案 | 实现 | 适用 |
-|------|------|------|
-| **数据库唯一索引** | `INSERT IGNORE` 或 `UNIQUE KEY` | 写操作去重 |
-| **Token 机制** | 请求前获取 Token，提交时 Redis Lua 原子校验+删除 | 表单防重复提交 |
-| **状态机** | `UPDATE SET status='PAID' WHERE id=? AND status='UNPAID'` | 状态流转类 |
+**场景**：网络抖动重复提交、支付回调重复通知、MQ 消息重复消费、前端重复点击。
 
-**支付回调幂等**：支付平台传唯一 `transaction_id` → `INSERT IGNORE INTO payment_records (txn_id)`，已存在则跳过。
+---
+
+#### 3.1 幂等方案对比
+
+| 方案 | 实现 | 优点 | 缺点 | 适用场景 |
+|------|------|------|------|----------|
+| **唯一索引** | `UNIQUE KEY(order_id)` | 简单、可靠 | 需提前设计字段 | 创建订单、支付 |
+| **Token 机制** | 获取 Token → 提交时校验+删除 | 严格防重 | 多一次请求 | 表单提交 |
+| **状态机** | `WHERE status='UNPAID'` | 业务语义强 | 需设计状态流转 | 订单、物流状态 |
+| **乐观锁** | `WHERE version=?` | 并发控制 | 失败需重试 | 库存扣减、余额更新 |
+| **分布式锁** | Redis `SET NX EX` | 防并发 | 性能损耗 | 高并发抢购 |
+| **幂等表** | 独立表记录处理结果 | 最严格 | 存储成本高 | 支付、退款 |
+
+---
+
+#### 3.2 调用方与被调方职责
+
+**核心原则**：调用方生成幂等键，被调方实现幂等逻辑。
+
+| 维度 | 调用方职责 | 被调方职责 |
+|------|-----------|-----------|
+| **幂等键生成** | ✅ 生成全局唯一ID（业务ID/UUID） | ❌ 不生成，仅验证 |
+| **幂等键传递** | ✅ HTTP Header 或请求体 | ✅ 强制要求传递 |
+| **重试处理** | ✅ 保持幂等键不变 | ✅ 识别重复请求 |
+| **幂等逻辑** | ❌ 不实现 | ✅ 去重+返回一致结果 |
+
+**调用方示例**：
+
+```go
+func CreateOrder(req *OrderRequest) error {
+    // 1. 生成幂等键（只生成一次）
+    idempotencyKey := fmt.Sprintf("order:%d:%d", req.UserID, time.Now().Unix())
+    
+    // 2. 重试时保持幂等键不变
+    for i := 0; i < 3; i++ {
+        resp, err := client.Post("/orders", &CreateOrderReq{
+            IdempotencyKey: idempotencyKey,  // ⭐ 关键
+            UserID:         req.UserID,
+            Items:          req.Items,
+        })
+        
+        if err == nil {
+            return nil
+        }
+        
+        // 仅网络错误重试
+        if isRetryableError(err) {
+            time.Sleep(time.Duration(i+1) * time.Second)
+            continue
+        }
+        return err
+    }
+}
+```
+
+**被调方示例（唯一索引方案）**：
+
+```go
+func (s *OrderService) CreateOrder(req *CreateOrderRequest) (*Order, error) {
+    order := &Order{
+        OrderID:  req.IdempotencyKey,  // 幂等键作为业务主键
+        UserID:   req.UserID,
+        Amount:   req.Amount,
+    }
+    
+    // INSERT 依赖 UNIQUE KEY(order_id) 保证幂等
+    err := db.Create(order).Error
+    
+    if isDuplicateKeyError(err) {
+        // 重复请求 → 查询并返回已存在的订单
+        db.Where("order_id = ?", req.IdempotencyKey).First(&order)
+        return order, nil  // 幂等返回
+    }
+    
+    return order, err
+}
+```
+
+---
+
+#### 3.3 高级方案：幂等表
+
+**适用场景**：支付、退款等核心金融操作，需最强保证。
+
+**表结构**：
+
+```sql
+CREATE TABLE idempotency_record_tab (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    idempotency_key VARCHAR(64) NOT NULL UNIQUE,  -- 幂等键
+    request_hash VARCHAR(64) NOT NULL,            -- 请求参数哈希（防篡改）
+    response_body TEXT,                           -- 首次响应结果
+    status VARCHAR(20) NOT NULL,                  -- processing/completed/failed
+    created_at DATETIME NOT NULL,
+    completed_at DATETIME,
+    INDEX idx_key_status (idempotency_key, status)
+);
+```
+
+**实现逻辑**：
+
+```go
+func (s *PaymentService) ProcessPayment(req *PaymentRequest) (*PaymentResult, error) {
+    idempotencyKey := req.IdempotencyKey
+    requestHash := md5(req)  // 请求参数哈希
+    
+    return db.Transaction(func(tx *gorm.DB) (*PaymentResult, error) {
+        // 1. 尝试插入幂等记录
+        record := &IdempotencyRecord{
+            IdempotencyKey: idempotencyKey,
+            RequestHash:    requestHash,
+            Status:         "processing",
+        }
+        
+        err := tx.Create(record).Error
+        if isDuplicateKeyError(err) {
+            // 2. 幂等键已存在 → 查询历史结果
+            var existingRecord IdempotencyRecord
+            tx.Where("idempotency_key = ?", idempotencyKey).First(&existingRecord)
+            
+            // 2.1 验证请求参数是否一致（防篡改）
+            if existingRecord.RequestHash != requestHash {
+                return nil, errors.New("request mismatch")
+            }
+            
+            // 2.2 根据状态返回
+            switch existingRecord.Status {
+            case "completed":
+                // 已完成 → 返回历史结果
+                var result PaymentResult
+                json.Unmarshal([]byte(existingRecord.ResponseBody), &result)
+                return &result, nil
+                
+            case "processing":
+                // 正在处理 → 返回错误，让调用方稍后重试
+                return nil, errors.New("processing, retry later")
+            }
+        }
+        
+        // 3. 首次请求 → 执行支付逻辑
+        result := executePayment(req)
+        
+        // 4. 保存响应结果
+        responseBody, _ := json.Marshal(result)
+        tx.Model(&record).Updates(map[string]interface{}{
+            "status":        "completed",
+            "response_body": string(responseBody),
+            "completed_at":  time.Now(),
+        })
+        
+        return result, nil
+    })
+}
+```
+
+---
+
+#### 3.4 常见问题与追问
+
+**Q1：幂等键的生命周期？**
+- 保留 7-30 天（覆盖业务重试窗口期）。
+- 定时清理：`DELETE FROM idempotency_record WHERE created_at < NOW() - INTERVAL 30 DAY`。
+
+**Q2：如何防止幂等键被篡改？**
+- 请求参数哈希：记录 `request_hash = MD5(JSON(request))`。
+- 重复请求时校验：`if existingRecord.RequestHash != currentHash { return error }`。
+
+**Q3：Redis 实现幂等 vs 数据库？**
+
+| 方案 | 性能 | 可靠性 | 适用 |
+|------|------|--------|------|
+| **Redis SET NX** | 高（ms级） | 中（持久化风险） | 高并发、短期防重（1小时内） |
+| **数据库唯一索引** | 中（10ms级） | 高 | 长期防重、金融场景 |
+
+**Q4：支付回调如何保证幂等？**
+
+```go
+// 支付平台回调（可能重复通知）
+func HandlePaymentCallback(callback *PaymentCallback) error {
+    // 1. 验证签名（防伪造）
+    if !verifySign(callback.Sign) {
+        return errors.New("invalid sign")
+    }
+    
+    // 2. 幂等处理（唯一索引）
+    record := &PaymentRecord{
+        TransactionID: callback.TransactionID,  // 第三方交易号（唯一）
+        OrderID:       callback.OrderID,
+        Amount:        callback.Amount,
+        Status:        "SUCCESS",
+    }
+    
+    err := db.Create(record).Error
+    if isDuplicateKeyError(err) {
+        // 重复回调 → 直接返回成功（幂等）
+        log.Infof("Duplicate callback: %s", callback.TransactionID)
+        return nil
+    }
+    
+    // 3. 首次回调 → 更新订单状态
+    db.Model(&Order{}).Where("order_id = ?", callback.OrderID).
+        Update("status", "PAID")
+    
+    return nil
+}
+```
+
+**数据库表结构**：
+
+```sql
+CREATE TABLE payment_record_tab (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    transaction_id VARCHAR(64) NOT NULL UNIQUE,  -- ⭐ 唯一索引保证幂等
+    order_id VARCHAR(64) NOT NULL,
+    amount BIGINT NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    created_at DATETIME NOT NULL,
+    INDEX idx_order (order_id)
+);
+```
+
+**Q5：MQ 消息重复消费如何幂等？**
+
+```go
+func ConsumeOrderPaidEvent(msg *kafka.Message) error {
+    var event OrderPaidEvent
+    json.Unmarshal(msg.Value, &event)
+    
+    // 方案1：基于消息ID去重（Redis）
+    msgID := fmt.Sprintf("msg:%s", msg.Offset)
+    if redis.SetNX(msgID, 1, 24*time.Hour).Val() == false {
+        log.Infof("Duplicate message: %s", msgID)
+        return nil  // 已处理过
+    }
+    
+    // 方案2：基于业务唯一性（推荐）
+    // 使用订单ID作为幂等键，扣库存操作基于唯一索引
+    err := inventoryService.DeductStock(&DeductStockReq{
+        OrderID:  event.OrderID,  // 订单ID保证唯一性
+        ItemID:   event.ItemID,
+        Quantity: event.Quantity,
+    })
+    
+    return err
+}
+```
+
+---
+
+#### 3.5 灵魂拷问
+
+**面试官：你们系统哪些接口需要幂等？**
+
+回答要点：
+- ✅ **所有写操作**：创建订单、支付、退款、库存扣减。
+- ✅ **外部回调**：支付回调、物流回调。
+- ✅ **MQ 消费**：所有消息消费逻辑。
+- ❌ **查询接口**：天然幂等，无需特殊处理。
+
+**面试官：Token 机制为什么要用 Redis Lua 而不是两次调用？**
+
+```go
+// ❌ 错误：非原子操作
+if redis.Exists(token) {
+    redis.Del(token)
+    // 问题：并发情况下，两个请求可能都通过检查
+}
+
+// ✅ 正确：Lua 原子操作
+lua := `
+if redis.call('exists', KEYS[1]) == 1 then
+    redis.call('del', KEYS[1])
+    return 1
+else
+    return 0
+end
+`
+result := redis.Eval(lua, []string{token})
+if result == 0 {
+    return errors.New("duplicate request")
+}
+```
+
+**面试官：幂等设计的最佳实践？**
+
+1. **唯一标识由调用方生成**：调用方最了解业务语义。
+2. **优先使用业务主键**：订单号、交易流水号等天然唯一。
+3. **被调方强制校验**：没有幂等键直接拒绝（400 Bad Request）。
+4. **幂等响应保持一致**：相同请求返回相同结果（包括响应码）。
+5. **设置合理过期时间**：既要防重复，又要避免存储爆炸。
 
 ---
 

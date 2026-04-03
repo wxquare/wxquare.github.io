@@ -63,7 +63,87 @@ toc: true
 
 ## 二、整体架构
 
+> **📊 可视化架构图**：
+> - [Excalidraw 架构图](./listing-upload-architecture.excalidraw)（可在 [Excalidraw](https://excalidraw.com) 中打开编辑）
+> - [Mermaid 流程图](./listing-upload-architecture.mmd)（可直接在支持 Mermaid 的编辑器中渲染）
+
 ### 2.1 分层架构
+
+#### 架构流程图（Mermaid）
+
+```mermaid
+graph TB
+    subgraph 数据入口层
+        A1[运营上传<br/>表单/Excel<br/>免审核]
+        A2[商家上传<br/>Portal/App<br/>人工审核+限流]
+        A3[批量导入<br/>Excel/CSV<br/>流式解析]
+        A4[供应商Push<br/>MQ实时推送<br/>快速通道]
+        A5[供应商Pull<br/>定时拉取<br/>增量同步]
+        A6[API接口<br/>RPC/REST<br/>幂等保证]
+    end
+
+    subgraph Service层
+        B[ListingUploadService<br/>数据校验+业务规则<br/>雪花算法生成task_code<br/>审核策略路由<br/>乐观锁+唯一索引]
+    end
+
+    subgraph Kafka异步队列
+        C1[listing.batch.created]
+        C2[listing.audit.pending]
+        C3[listing.publish.ready]
+        C4[listing.published]
+        C5[*.dlq 死信队列]
+    end
+
+    subgraph Worker层
+        D1[ExcelParseWorker<br/>流式解析]
+        D2[AuditWorker<br/>规则引擎]
+        D3[PublishWorker<br/>Saga事务]
+        D4[WatchdogWorker<br/>超时监控]
+        D5[OutboxPublisher<br/>可靠发布]
+    end
+
+    subgraph 状态机
+        E1[DRAFT] --> E2[Pending]
+        E2 --> E3[Approved]
+        E2 --> E4[Rejected]
+        E3 --> E5[Online]
+    end
+
+    subgraph 数据层
+        G1[MySQL分库分表<br/>16张表+归档]
+        G2[Redis缓存<br/>L1+L2双层]
+        G3[Elasticsearch<br/>搜索+统计]
+        G4[OSS文件存储]
+        G5[Outbox本地消息表]
+    end
+
+    A1 --> B
+    A2 --> B
+    A3 --> B
+    A4 --> B
+    A5 --> B
+    A6 --> B
+
+    B --> C1
+    B --> C2
+
+    C1 --> D1
+    C2 --> D2
+    C3 --> D3
+
+    D1 --> C2
+    D2 --> C3
+    D3 --> C4
+
+    D3 --> G1
+    D5 --> G5
+    G5 --> C4
+
+    C4 -.-> G3
+    C4 -.-> G2
+```
+
+#### 文字描述
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -348,6 +428,226 @@ INSERT INTO listing_audit_config_tab (category_id, source_type, source_user_type
   (1, 'operator_form', 'operator', 'skip', TRUE, FALSE),          -- 运营上传：免审核
   (1, 'merchant_portal', 'merchant', 'manual', FALSE, FALSE),     -- 商家上传：人工审核
   (1, 'merchant_app', 'merchant', 'manual', FALSE, FALSE);        -- 商家App：人工审核
+```
+
+### 4.6 分库分表策略
+
+当商品量达到千万级时，单表会成为性能瓶颈，需要采用分库分表策略。
+
+#### 4.6.1 分表策略
+
+**方案一：按时间分表（推荐用于历史任务）**
+
+```sql
+-- 按月分表，适合历史数据查询
+listing_task_tab_202601
+listing_task_tab_202602
+listing_task_tab_202603
+...
+
+-- 路由规则
+func GetTableName(createdAt time.Time) string {
+    return fmt.Sprintf("listing_task_tab_%s", createdAt.Format("200601"))
+}
+```
+
+**方案二：按品类 ID 取模分表（推荐用于活跃数据）**
+
+```sql
+-- 按 category_id 取模分 16 张表
+listing_task_tab_0
+listing_task_tab_1
+...
+listing_task_tab_15
+
+-- 路由规则
+func GetTableName(categoryID int64) string {
+    shardIndex := categoryID % 16
+    return fmt.Sprintf("listing_task_tab_%d", shardIndex)
+}
+```
+
+**方案三：混合分表（推荐）**
+
+```sql
+-- 先按品类分表，再按时间归档
+-- 活跃表（近 30 天）
+listing_task_tab_0   -- 品类 0, 4, 8, 12...
+listing_task_tab_1   -- 品类 1, 5, 9, 13...
+...
+listing_task_tab_15
+
+-- 归档表（按月）
+listing_task_archive_202601
+listing_task_archive_202602
+```
+
+#### 4.6.2 分库策略
+
+按业务维度垂直分库：
+
+```
+listing_db_core      -- 核心任务表（listing_task_tab, listing_batch_task_tab）
+listing_db_log       -- 日志表（audit_log, state_history）
+listing_db_config    -- 配置表（audit_config, supplier_sync_state）
+```
+
+#### 4.6.3 全局唯一 ID 生成
+
+分表后需要保证 task_code 全局唯一：
+
+```go
+// 雪花算法生成 task_code
+type SnowflakeIDGenerator struct {
+    workerID   int64  // 机器ID（0-1023）
+    datacenter int64  // 数据中心ID（0-31）
+    sequence   int64  // 序列号（0-4095）
+    lastTime   int64
+    mu         sync.Mutex
+}
+
+func (g *SnowflakeIDGenerator) GenerateTaskCode(categoryID int64) string {
+    id := g.NextID()
+    return fmt.Sprintf("TASK%d%013d", categoryID, id)
+    // 示例: TASK100001234567890123
+}
+```
+
+### 4.7 软删除与数据归档
+
+#### 4.7.1 软删除设计
+
+所有核心表增加软删除字段，避免误删和支持数据恢复：
+
+```sql
+-- 为核心表添加软删除字段
+ALTER TABLE listing_task_tab ADD COLUMN deleted_at TIMESTAMP NULL COMMENT '软删除时间';
+ALTER TABLE listing_batch_task_tab ADD COLUMN deleted_at TIMESTAMP NULL;
+ALTER TABLE listing_batch_item_tab ADD COLUMN deleted_at TIMESTAMP NULL;
+
+-- 软删除索引优化
+CREATE INDEX idx_deleted_at ON listing_task_tab(deleted_at);
+
+-- 查询时排除已删除数据
+SELECT * FROM listing_task_tab WHERE deleted_at IS NULL;
+
+-- 软删除操作
+UPDATE listing_task_tab 
+SET deleted_at = NOW() 
+WHERE id = ? AND deleted_at IS NULL;
+
+-- 恢复删除
+UPDATE listing_task_tab 
+SET deleted_at = NULL 
+WHERE id = ? AND deleted_at IS NOT NULL;
+```
+
+#### 4.7.2 数据归档策略
+
+**归档规则**：
+
+| 表名 | 归档条件 | 归档周期 | 保留时长 |
+|------|----------|----------|----------|
+| listing_task_tab | 已完成/已失败且创建时间 > 30天 | 每天凌晨 2 点 | 活跃表保留 30 天 |
+| listing_batch_task_tab | 状态=completed/failed 且创建时间 > 60天 | 每周一次 | 活跃表保留 60 天 |
+| listing_audit_log_tab | 创建时间 > 90天 | 每月一次 | 活跃表保留 90 天 |
+| listing_state_history_tab | 创建时间 > 90天 | 每月一次 | 活跃表保留 90 天 |
+
+**归档表设计**：
+
+```sql
+-- 归档表（按月分表）
+CREATE TABLE listing_task_archive_202601 LIKE listing_task_tab;
+CREATE TABLE listing_task_archive_202602 LIKE listing_task_tab;
+
+-- 归档表增加索引优化历史查询
+ALTER TABLE listing_task_archive_202601 
+ADD INDEX idx_task_code (task_code),
+ADD INDEX idx_category_created (category_id, created_at);
+```
+
+**归档流程**：
+
+```go
+type ArchiveService struct {
+    db *gorm.DB
+}
+
+// 归档 30 天前的已完成任务
+func (s *ArchiveService) ArchiveOldTasks() error {
+    cutoffTime := time.Now().AddDate(0, 0, -30)
+    archiveTable := fmt.Sprintf("listing_task_archive_%s", 
+        cutoffTime.Format("200601"))
+    
+    // 1. 创建归档表（如不存在）
+    s.createArchiveTableIfNotExists(archiveTable)
+    
+    // 2. 迁移数据
+    result := s.db.Exec(fmt.Sprintf(`
+        INSERT INTO %s 
+        SELECT * FROM listing_task_tab
+        WHERE (status IN (20, 21, 23) OR status = 12)  -- Online/Offline/Failed/Rejected
+        AND created_at < ?
+        AND deleted_at IS NULL
+    `, archiveTable), cutoffTime)
+    
+    log.Infof("Archived %d tasks to %s", result.RowsAffected, archiveTable)
+    
+    // 3. 删除原表数据（软删除）
+    s.db.Exec(`
+        UPDATE listing_task_tab
+        SET deleted_at = NOW()
+        WHERE (status IN (20, 21, 23) OR status = 12)
+        AND created_at < ?
+        AND deleted_at IS NULL
+    `, cutoffTime)
+    
+    // 4. 定期物理删除软删除数据（90天后）
+    s.db.Exec(`
+        DELETE FROM listing_task_tab
+        WHERE deleted_at < ?
+    `, time.Now().AddDate(0, 0, -90))
+    
+    return nil
+}
+
+// 跨表查询（活跃表 + 归档表）
+func (s *ArchiveService) QueryTaskByCode(taskCode string) (*ListingTask, error) {
+    var task ListingTask
+    
+    // 1. 先查活跃表
+    err := s.db.Where("task_code = ? AND deleted_at IS NULL", taskCode).
+        First(&task).Error
+    if err == nil {
+        return &task, nil
+    }
+    
+    // 2. 查归档表（最近 6 个月）
+    for i := 0; i < 6; i++ {
+        month := time.Now().AddDate(0, -i, 0)
+        archiveTable := fmt.Sprintf("listing_task_archive_%s", 
+            month.Format("200601"))
+        
+        err = s.db.Table(archiveTable).
+            Where("task_code = ?", taskCode).
+            First(&task).Error
+        if err == nil {
+            return &task, nil
+        }
+    }
+    
+    return nil, errors.New("task not found")
+}
+```
+
+**归档监控**：
+
+```go
+// Prometheus 指标
+listing_archive_total{table, month}           // 归档记录数
+listing_archive_duration_seconds{table}       // 归档耗时
+listing_active_table_size_bytes{table}        // 活跃表大小
+listing_archive_query_total{table, found}     // 归档查询次数
 ```
 
 ---
@@ -664,6 +964,425 @@ func PublishBatch(batchID int64) error {
     pool.Stop() // 等待全部完成
     return nil
 }
+```
+
+### 7.6 分布式事务处理
+
+商品发布流程涉及多表写入（item_tab、sku_tab、属性表、价格表等），需要保证分布式事务一致性。
+
+#### 7.6.1 Saga 模式设计
+
+采用 Saga 编排模式（Orchestration），每个步骤可独立回滚：
+
+```go
+type PublishSaga struct {
+    taskID    int64
+    steps     []SagaStep
+    completed []SagaStep  // 已完成步骤（用于回滚）
+}
+
+type SagaStep interface {
+    Execute(ctx context.Context) error      // 执行
+    Compensate(ctx context.Context) error   // 补偿（回滚）
+    GetName() string
+}
+
+// 定义发布流程的各个步骤
+func NewPublishSaga(taskID int64) *PublishSaga {
+    return &PublishSaga{
+        taskID: taskID,
+        steps: []SagaStep{
+            &CreateItemStep{taskID: taskID},           // 步骤1: 创建商品主体
+            &CreateSKUStep{taskID: taskID},            // 步骤2: 创建SKU
+            &CreateAttributesStep{taskID: taskID},     // 步骤3: 创建属性
+            &CreatePriceStep{taskID: taskID},          // 步骤4: 创建价格
+            &UpdateStatusStep{taskID: taskID},         // 步骤5: 更新任务状态
+            &PublishEventStep{taskID: taskID},         // 步骤6: 发送事件
+            &UpdateCacheStep{taskID: taskID},          // 步骤7: 更新缓存
+            &SyncESStep{taskID: taskID},               // 步骤8: 同步ES
+        },
+    }
+}
+
+func (s *PublishSaga) Execute(ctx context.Context) error {
+    for i, step := range s.steps {
+        log.Infof("Saga[%d] executing step %d: %s", s.taskID, i+1, step.GetName())
+        
+        if err := step.Execute(ctx); err != nil {
+            log.Errorf("Saga[%d] step %s failed: %v", s.taskID, step.GetName(), err)
+            
+            // 执行失败，开始补偿（回滚已完成的步骤）
+            s.compensate(ctx)
+            return fmt.Errorf("saga failed at step %s: %w", step.GetName(), err)
+        }
+        
+        s.completed = append(s.completed, step)
+    }
+    
+    log.Infof("Saga[%d] completed successfully", s.taskID)
+    return nil
+}
+
+func (s *PublishSaga) compensate(ctx context.Context) {
+    log.Warnf("Saga[%d] starting compensation, rolling back %d steps", 
+        s.taskID, len(s.completed))
+    
+    // 逆序回滚已完成的步骤
+    for i := len(s.completed) - 1; i >= 0; i-- {
+        step := s.completed[i]
+        log.Infof("Saga[%d] compensating step: %s", s.taskID, step.GetName())
+        
+        if err := step.Compensate(ctx); err != nil {
+            log.Errorf("Saga[%d] compensation failed for %s: %v", 
+                s.taskID, step.GetName(), err)
+            // 补偿失败记录告警，需人工介入
+            sendAlert("saga_compensation_failed", s.taskID, step.GetName())
+        }
+    }
+}
+```
+
+#### 7.6.2 具体步骤实现
+
+```go
+// 步骤1: 创建商品主体
+type CreateItemStep struct {
+    taskID int64
+    itemID int64  // 执行后记录，用于补偿
+}
+
+func (s *CreateItemStep) Execute(ctx context.Context) error {
+    task := getTask(s.taskID)
+    
+    item := &Item{
+        CategoryID:  task.CategoryID,
+        Title:       task.ItemData["title"].(string),
+        Description: task.ItemData["description"].(string),
+        Status:      ItemStatusDraft,  // 先创建草稿状态
+    }
+    
+    if err := db.Create(item).Error; err != nil {
+        return err
+    }
+    
+    s.itemID = item.ID
+    
+    // 更新 task 关联
+    db.Model(&ListingTask{}).Where("id = ?", s.taskID).
+        Update("item_id", item.ID)
+    
+    return nil
+}
+
+func (s *CreateItemStep) Compensate(ctx context.Context) error {
+    if s.itemID == 0 {
+        return nil
+    }
+    
+    // 软删除商品
+    return db.Model(&Item{}).Where("id = ?", s.itemID).
+        Update("deleted_at", time.Now()).Error
+}
+
+func (s *CreateItemStep) GetName() string {
+    return "CreateItem"
+}
+
+// 步骤2: 创建SKU
+type CreateSKUStep struct {
+    taskID int64
+    skuIDs []int64
+}
+
+func (s *CreateSKUStep) Execute(ctx context.Context) error {
+    task := getTask(s.taskID)
+    skus := parseSkusFromItemData(task.ItemData)
+    
+    for _, sku := range skus {
+        if err := db.Create(sku).Error; err != nil {
+            return err
+        }
+        s.skuIDs = append(s.skuIDs, sku.ID)
+    }
+    
+    return nil
+}
+
+func (s *CreateSKUStep) Compensate(ctx context.Context) error {
+    if len(s.skuIDs) == 0 {
+        return nil
+    }
+    
+    // 批量软删除SKU
+    return db.Model(&SKU{}).Where("id IN ?", s.skuIDs).
+        Update("deleted_at", time.Now()).Error
+}
+
+func (s *CreateSKUStep) GetName() string {
+    return "CreateSKU"
+}
+
+// 步骤5: 更新任务状态（最后提交）
+type UpdateStatusStep struct {
+    taskID int64
+}
+
+func (s *UpdateStatusStep) Execute(ctx context.Context) error {
+    // 所有数据创建成功后，才更新商品和任务状态为 Online
+    
+    task := getTask(s.taskID)
+    
+    // 开启事务，同时更新商品状态和任务状态
+    return db.Transaction(func(tx *gorm.DB) error {
+        // 更新商品状态: Draft → Online
+        if err := tx.Model(&Item{}).Where("id = ?", task.ItemID).
+            Update("status", ItemStatusOnline).Error; err != nil {
+            return err
+        }
+        
+        // 更新任务状态: Approved → Online
+        if err := tx.Model(&ListingTask{}).
+            Where("id = ? AND status = ?", s.taskID, StatusApproved).
+            Updates(map[string]interface{}{
+                "status":     StatusOnline,
+                "version":    gorm.Expr("version + 1"),
+                "updated_at": time.Now(),
+            }).Error; err != nil {
+            return err
+        }
+        
+        // 记录状态变更历史
+        return tx.Create(&ListingStateHistory{
+            TaskID:     s.taskID,
+            ItemID:     task.ItemID,
+            FromStatus: StatusApproved,
+            ToStatus:   StatusOnline,
+            Action:     "publish",
+            ChangedAt:  time.Now(),
+        }).Error
+    })
+}
+
+func (s *UpdateStatusStep) Compensate(ctx context.Context) error {
+    task := getTask(s.taskID)
+    
+    return db.Transaction(func(tx *gorm.DB) error {
+        // 回滚商品状态: Online → Draft
+        tx.Model(&Item{}).Where("id = ?", task.ItemID).
+            Update("status", ItemStatusDraft)
+        
+        // 回滚任务状态: Online → Approved
+        return tx.Model(&ListingTask{}).
+            Where("id = ?", s.taskID).
+            Updates(map[string]interface{}{
+                "status":     StatusApproved,
+                "version":    gorm.Expr("version + 1"),
+                "updated_at": time.Now(),
+            }).Error
+    })
+}
+
+func (s *UpdateStatusStep) GetName() string {
+    return "UpdateStatus"
+}
+```
+
+#### 7.6.3 Saga 状态持久化
+
+为了支持断点恢复和故障排查，将 Saga 执行状态持久化：
+
+```sql
+CREATE TABLE listing_saga_log_tab (
+  id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+  task_id         BIGINT NOT NULL,
+  saga_id         VARCHAR(64) NOT NULL COMMENT 'Saga实例ID',
+  step_name       VARCHAR(100) NOT NULL,
+  step_order      INT NOT NULL,
+  status          VARCHAR(50) NOT NULL COMMENT 'pending/success/failed/compensated',
+  action          VARCHAR(50) NOT NULL COMMENT 'execute/compensate',
+  error_message   TEXT,
+  started_at      TIMESTAMP NOT NULL,
+  completed_at    TIMESTAMP NULL,
+  duration_ms     INT,
+  
+  KEY idx_task_id (task_id),
+  KEY idx_saga_id (saga_id)
+);
+```
+
+```go
+// 记录 Saga 步骤执行
+func (s *PublishSaga) recordStepExecution(step SagaStep, status string, err error) {
+    log := &SagaLog{
+        TaskID:    s.taskID,
+        SagaID:    s.sagaID,
+        StepName:  step.GetName(),
+        StepOrder: s.getCurrentStepOrder(),
+        Status:    status,
+        Action:    "execute",
+        StartedAt: time.Now(),
+    }
+    
+    if err != nil {
+        log.ErrorMessage = err.Error()
+    }
+    
+    db.Create(log)
+}
+
+// 支持断点恢复
+func (s *PublishSaga) Resume(ctx context.Context) error {
+    // 查询已完成的步骤
+    var logs []SagaLog
+    db.Where("task_id = ? AND status = 'success'", s.taskID).
+        Order("step_order ASC").Find(&logs)
+    
+    // 跳过已完成的步骤
+    startIndex := len(logs)
+    
+    for i := startIndex; i < len(s.steps); i++ {
+        step := s.steps[i]
+        if err := step.Execute(ctx); err != nil {
+            s.compensate(ctx)
+            return err
+        }
+        s.completed = append(s.completed, step)
+    }
+    
+    return nil
+}
+```
+
+#### 7.6.4 本地消息表方案（可靠事件发布）
+
+对于 Kafka 事件发布，使用本地消息表保证最终一致性：
+
+```sql
+CREATE TABLE listing_outbox_tab (
+  id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+  task_id         BIGINT NOT NULL,
+  event_type      VARCHAR(50) NOT NULL,
+  event_payload   JSON NOT NULL,
+  status          VARCHAR(50) DEFAULT 'pending' COMMENT 'pending/published/failed',
+  retry_count     INT DEFAULT 0,
+  max_retry       INT DEFAULT 3,
+  next_retry_at   TIMESTAMP NULL,
+  published_at    TIMESTAMP NULL,
+  created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  KEY idx_status_retry (status, next_retry_at)
+);
+```
+
+```go
+// 步骤6: 发送事件（本地消息表）
+type PublishEventStep struct {
+    taskID    int64
+    outboxID  int64
+}
+
+func (s *PublishEventStep) Execute(ctx context.Context) error {
+    task := getTask(s.taskID)
+    
+    event := &ListingEvent{
+        EventType:  "listing.published",
+        TaskID:     s.taskID,
+        ItemID:     task.ItemID,
+        CategoryID: task.CategoryID,
+        SourceType: task.SourceType,
+        ToStatus:   StatusOnline,
+    }
+    
+    payload, _ := json.Marshal(event)
+    
+    // 1. 先写本地消息表（与业务数据在同一事务）
+    outbox := &OutboxMessage{
+        TaskID:       s.taskID,
+        EventType:    "listing.published",
+        EventPayload: payload,
+        Status:       "pending",
+    }
+    
+    if err := db.Create(outbox).Error; err != nil {
+        return err
+    }
+    
+    s.outboxID = outbox.ID
+    
+    // 2. 异步发送到 Kafka（由独立的 Publisher 轮询处理）
+    // 这里不阻塞，保证本地事务快速提交
+    
+    return nil
+}
+
+func (s *PublishEventStep) Compensate(ctx context.Context) error {
+    // 标记消息为已取消，不再发送
+    if s.outboxID > 0 {
+        db.Model(&OutboxMessage{}).Where("id = ?", s.outboxID).
+            Update("status", "cancelled")
+    }
+    return nil
+}
+
+// Outbox Publisher（独立 Worker）
+type OutboxPublisher struct {
+    kafka *kafka.Producer
+}
+
+func (p *OutboxPublisher) Start() {
+    ticker := time.NewTicker(5 * time.Second)
+    for range ticker.C {
+        p.publishPendingMessages()
+    }
+}
+
+func (p *OutboxPublisher) publishPendingMessages() {
+    var messages []OutboxMessage
+    
+    // 查询待发送消息（含重试）
+    db.Where("status = 'pending' AND (next_retry_at IS NULL OR next_retry_at <= NOW())").
+        Limit(100).Find(&messages)
+    
+    for _, msg := range messages {
+        err := p.kafka.Publish("listing.events", msg.EventPayload)
+        
+        if err == nil {
+            // 发送成功，标记已发布
+            db.Model(&OutboxMessage{}).Where("id = ?", msg.ID).
+                Updates(map[string]interface{}{
+                    "status":       "published",
+                    "published_at": time.Now(),
+                })
+        } else {
+            // 发送失败，增加重试
+            msg.RetryCount++
+            if msg.RetryCount >= msg.MaxRetry {
+                db.Model(&OutboxMessage{}).Where("id = ?", msg.ID).
+                    Update("status", "failed")
+                sendAlert("outbox_publish_failed", msg.ID)
+            } else {
+                // 指数退避重试
+                nextRetry := time.Now().Add(time.Duration(math.Pow(2, float64(msg.RetryCount))) * time.Minute)
+                db.Model(&OutboxMessage{}).Where("id = ?", msg.ID).
+                    Updates(map[string]interface{}{
+                        "retry_count":   msg.RetryCount,
+                        "next_retry_at": nextRetry,
+                    })
+            }
+        }
+    }
+}
+```
+
+#### 7.6.5 分布式事务监控
+
+```go
+// Prometheus 指标
+saga_execution_total{status="success|failed"}
+saga_step_duration_seconds{step_name}
+saga_compensation_total{step_name}
+outbox_pending_count                           // 待发送消息数
+outbox_publish_success_rate                    // 发送成功率
 ```
 
 ---
