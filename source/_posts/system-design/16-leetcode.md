@@ -217,7 +217,9 @@ toc: true
   - [3112. 访问消失节点的最少时间](https://leetcode.cn/problems/minimum-time-to-visit-disappearing-nodes)【模式：Dijkstra 带时间限制】
 
 #### D. 区间与会议室 (扫描线 / 堆优化)
+  - [252. 会议室](https://leetcode.cn/problems/meeting-rooms)【模式：贪心排序；按开始时间排序后判断是否存在时间重叠】
   - [253. 会议室 II](https://leetcode.cn/problems/meeting-rooms-ii)【模式：小顶堆；堆顶存储最早结束的会议时间，判断是否需开新房】
+  - [2402. 会议室 III](https://leetcode.cn/problems/meeting-rooms-iii)【模式：双堆模拟；小顶堆分别维护空闲会议室和占用会议室，带编号分配策略】
 
 ### 5. 链表 (核心模式归类)
 
