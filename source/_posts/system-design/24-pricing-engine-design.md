@@ -4786,1124 +4786,130 @@ supplier_pricing:
 
 ---
 
-## 五、DDD领域模型设计
-
-### 5.1 价格领域的统一语言（Ubiquitous Language）
-
-在价格计算领域中，建立统一的术语体系至关重要。这不仅能提升团队沟通效率，还能让代码更具表达力。
-
-#### 5.1.1 价格术语字典
-
-| 中文术语 | 英文术语 | 定义 | 示例 |
-|---------|---------|------|------|
-| **原价/市场价** | Market Price | 商品的原始标价，未经任何折扣 | ¥100 |
-| **划线价** | Strike Price | 展示给用户的原价（可能与市场价不同） | ¥120（展示用） |
-| **折扣价** | Discount Price | 应用商家折扣后的价格 | ¥90 |
-| **营销价** | Promotion Price | 应用营销活动后的价格（如限时抢购） | ¥80 |
-| **售卖价** | Selling Price | 用户实际购买的价格（可抵扣前） | ¥80 |
-| **应付金额** | Payable Amount | 扣除优惠券、积分后的应付金额 | ¥70 |
-| **最终价格** | Final Price | 加上手续费后的最终支付金额 | ¥72 |
-| | | | |
-| **促销折扣** | Promotion Discount | 营销活动带来的折扣金额 | ¥10 |
-| **优惠券抵扣** | Voucher Deduction | 优惠券抵扣的金额 | ¥8 |
-| **积分抵扣** | Coin Deduction | 积分抵扣的金额 | ¥2 |
-| **渠道折扣** | Channel Discount | 支付渠道优惠金额 | ¥5 |
-| | | | |
-| **手续费** | Handling Fee | 支付渠道手续费 | ¥2 |
-| **服务费** | Service Fee | 平台服务费 | ¥1 |
-| **管理费** | Admin Fee | 管理手续费（特定品类） | ¥3 |
-| **附加费** | Additional Charge | 其他附加费用（如碎屏险） | ¥50 |
-| | | | |
-| **面额** | Face Value | 充值卡、礼品卡的面值 | ¥100 |
-| **折扣率** | Discount Rate | 折扣比例 | 95% |
-| **佣金率** | Commission Rate | 平台佣金比例 | 5% |
-
-#### 5.1.2 价格计算公式（统一术语）
-
-```
-标准计算公式：
-Final Price = Selling Price - Deductions + Additional Charges
-
-展开：
-Final Price = 
-    (Market Price → Discount Price → Promotion Price → Selling Price)
-    - (Voucher Deduction + Coin Deduction)
-    + (Handling Fee + Service Fee + Admin Fee + Additional Charges)
-
-具体示例：
-最终价格 = 
-    (市场价 ¥100 → 折扣价 ¥90 → 营销价 ¥80 → 售卖价 ¥80)
-    - (优惠券 ¥8 + 积分 ¥2)
-    + (手续费 ¥2 + 碎屏险 ¥50)
-    = ¥122
-```
-
-### 5.2 价格领域模型
-
-#### 5.2.1 核心领域概念
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Pricing Domain Model                     │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  Price (聚合根)                                       │  │
-│  │  ├─ PriceID (价格唯一标识)                            │  │
-│  │  ├─ PriceComponents (价格组成部分)                    │  │
-│  │  │   ├─ BasePrice (基础价格)                         │  │
-│  │  │   ├─ Promotions (营销活动集合)                    │  │
-│  │  │   ├─ Deductions (抵扣集合)                        │  │
-│  │  │   └─ Charges (费用集合)                           │  │
-│  │  ├─ Breakdown (价格明细)                              │  │
-│  │  └─ CalculationContext (计算上下文)                  │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  Money (值对象)                                       │  │
-│  │  ├─ Amount (金额，分为单位)                           │  │
-│  │  ├─ Currency (货币类型)                               │  │
-│  │  └─ 不可变对象，封装货币运算                           │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  PriceComponent (价格组成部分 - 值对象)               │  │
-│  │  ├─ Type (类型：Base/Promotion/Deduction/Charge)     │  │
-│  │  ├─ Name (名称)                                       │  │
-│  │  ├─ Amount (金额)                                     │  │
-│  │  ├─ Order (计算顺序)                                  │  │
-│  │  └─ Metadata (元数据)                                │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  PriceCalculator (领域服务)                          │  │
-│  │  ├─ Calculate(context, components)                   │  │
-│  │  ├─ Validate(price)                                  │  │
-│  │  └─ Compare(price1, price2)                          │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
-```
-
-#### 5.2.2 价格领域模型实现
-
-##### Money 值对象
-
-```go
-package domain
-
-import (
-    "fmt"
-)
-
-// Money 金额值对象
-// 不可变对象，封装货币运算，避免浮点数精度问题
-type Money struct {
-    amount   int64  // 金额，以分为单位
-    currency string // 货币类型：CNY, USD, SGD, etc.
-}
-
-// NewMoney 创建金额对象
-func NewMoney(amount int64, currency string) Money {
-    if amount < 0 {
-        panic(fmt.Sprintf("amount cannot be negative: %d", amount))
-    }
-    return Money{
-        amount:   amount,
-        currency: currency,
-    }
-}
-
-// NewMoneyFromYuan 从元创建金额（避免浮点数）
-func NewMoneyFromYuan(yuan int64, currency string) Money {
-    return NewMoney(yuan*100, currency)
-}
-
-// Amount 获取金额（分）
-func (m Money) Amount() int64 {
-    return m.amount
-}
-
-// Yuan 获取金额（元）
-func (m Money) Yuan() float64 {
-    return float64(m.amount) / 100
-}
-
-// Currency 获取货币类型
-func (m Money) Currency() string {
-    return m.currency
-}
-
-// Add 加法（返回新对象）
-func (m Money) Add(other Money) Money {
-    m.ensureSameCurrency(other)
-    return Money{
-        amount:   m.amount + other.amount,
-        currency: m.currency,
-    }
-}
-
-// Subtract 减法（返回新对象）
-func (m Money) Subtract(other Money) Money {
-    m.ensureSameCurrency(other)
-    if m.amount < other.amount {
-        panic(fmt.Sprintf("insufficient amount: %d - %d", m.amount, other.amount))
-    }
-    return Money{
-        amount:   m.amount - other.amount,
-        currency: m.currency,
-    }
-}
-
-// Multiply 乘法（数量）
-func (m Money) Multiply(quantity int64) Money {
-    return Money{
-        amount:   m.amount * quantity,
-        currency: m.currency,
-    }
-}
-
-// MultiplyRate 乘以比例
-func (m Money) MultiplyRate(rate float64) Money {
-    return Money{
-        amount:   int64(float64(m.amount) * rate),
-        currency: m.currency,
-    }
-}
-
-// IsZero 是否为零
-func (m Money) IsZero() bool {
-    return m.amount == 0
-}
-
-// IsPositive 是否为正
-func (m Money) IsPositive() bool {
-    return m.amount > 0
-}
-
-// GreaterThan 大于
-func (m Money) GreaterThan(other Money) bool {
-    m.ensureSameCurrency(other)
-    return m.amount > other.amount
-}
-
-// LessThan 小于
-func (m Money) LessThan(other Money) bool {
-    m.ensureSameCurrency(other)
-    return m.amount < other.amount
-}
-
-// Equal 相等
-func (m Money) Equal(other Money) bool {
-    return m.currency == other.currency && m.amount == other.amount
-}
-
-// String 字符串表示
-func (m Money) String() string {
-    return fmt.Sprintf("%s %.2f", m.currency, m.Yuan())
-}
-
-// ensureSameCurrency 确保货币类型相同
-func (m Money) ensureSameCurrency(other Money) {
-    if m.currency != other.currency {
-        panic(fmt.Sprintf("currency mismatch: %s vs %s", m.currency, other.currency))
-    }
-}
-
-// Zero 零值
-func Zero(currency string) Money {
-    return Money{amount: 0, currency: currency}
-}
-```
-
-##### PriceComponent 价格组成部分
-
-```go
-package domain
-
-// ComponentType 组成部分类型
-type ComponentType string
-
-const (
-    ComponentTypeBase       ComponentType = "base"        // 基础价格
-    ComponentTypePromotion  ComponentType = "promotion"   // 营销折扣
-    ComponentTypeDeduction  ComponentType = "deduction"   // 优惠抵扣
-    ComponentTypeCharge     ComponentType = "charge"      // 附加费用
-)
-
-// PriceComponent 价格组成部分（值对象）
-type PriceComponent struct {
-    typ      ComponentType      // 类型
-    name     string             // 名称
-    amount   Money              // 金额
-    order    int                // 计算顺序
-    metadata map[string]string  // 元数据
-}
-
-// NewPriceComponent 创建价格组成部分
-func NewPriceComponent(typ ComponentType, name string, amount Money, order int) PriceComponent {
-    return PriceComponent{
-        typ:      typ,
-        name:     name,
-        amount:   amount,
-        order:    order,
-        metadata: make(map[string]string),
-    }
-}
-
-// Type 获取类型
-func (pc PriceComponent) Type() ComponentType {
-    return pc.typ
-}
-
-// Name 获取名称
-func (pc PriceComponent) Name() string {
-    return pc.name
-}
-
-// Amount 获取金额
-func (pc PriceComponent) Amount() Money {
-    return pc.amount
-}
-
-// Order 获取顺序
-func (pc PriceComponent) Order() int {
-    return pc.order
-}
-
-// WithMetadata 添加元数据（返回新对象）
-func (pc PriceComponent) WithMetadata(key, value string) PriceComponent {
-    newMetadata := make(map[string]string)
-    for k, v := range pc.metadata {
-        newMetadata[k] = v
-    }
-    newMetadata[key] = value
-    
-    return PriceComponent{
-        typ:      pc.typ,
-        name:     pc.name,
-        amount:   pc.amount,
-        order:    pc.order,
-        metadata: newMetadata,
-    }
-}
-
-// GetMetadata 获取元数据
-func (pc PriceComponent) GetMetadata(key string) (string, bool) {
-    val, ok := pc.metadata[key]
-    return val, ok
-}
-
-// IsDiscount 是否为折扣/抵扣
-func (pc PriceComponent) IsDiscount() bool {
-    return pc.typ == ComponentTypePromotion || pc.typ == ComponentTypeDeduction
-}
-
-// IsCharge 是否为费用
-func (pc PriceComponent) IsCharge() bool {
-    return pc.typ == ComponentTypeCharge
-}
-```
-
-##### Price 聚合根
-
-```go
-package domain
-
-import (
-    "fmt"
-    "sort"
-    "time"
-)
-
-// Price 价格聚合根
-type Price struct {
-    id         string              // 价格唯一标识
-    basePrice  Money               // 基础价格
-    components []PriceComponent    // 价格组成部分
-    finalPrice Money               // 最终价格
-    breakdown  *PriceBreakdown     // 价格拆解
-    context    *CalculationContext // 计算上下文
-    calculatedAt time.Time         // 计算时间
-}
-
-// NewPrice 创建价格对象
-func NewPrice(id string, basePrice Money, ctx *CalculationContext) *Price {
-    return &Price{
-        id:         id,
-        basePrice:  basePrice,
-        components: make([]PriceComponent, 0),
-        context:    ctx,
-    }
-}
-
-// AddComponent 添加价格组成部分
-func (p *Price) AddComponent(component PriceComponent) {
-    p.components = append(p.components, component)
-    
-    // 按顺序排序
-    sort.Slice(p.components, func(i, j int) bool {
-        return p.components[i].Order() < p.components[j].Order()
-    })
-}
-
-// Calculate 计算最终价格
-func (p *Price) Calculate() error {
-    // 从基础价格开始
-    current := p.basePrice
-    
-    breakdown := &PriceBreakdown{
-        BaseAmount: p.basePrice,
-        Steps:      make([]BreakdownStep, 0),
-    }
-    
-    // 依次应用各个组成部分
-    for _, component := range p.components {
-        before := current
-        
-        if component.IsDiscount() {
-            // 折扣/抵扣：减少金额
-            current = current.Subtract(component.Amount())
-        } else if component.IsCharge() {
-            // 费用：增加金额
-            current = current.Add(component.Amount())
-        }
-        
-        // 记录每一步
-        breakdown.Steps = append(breakdown.Steps, BreakdownStep{
-            Name:   component.Name(),
-            Before: before,
-            Amount: component.Amount(),
-            After:  current,
-            Type:   component.Type(),
-        })
-    }
-    
-    // 价格不能为负
-    if !current.IsPositive() && !current.IsZero() {
-        return fmt.Errorf("final price cannot be negative: %v", current)
-    }
-    
-    p.finalPrice = current
-    p.breakdown = breakdown
-    p.calculatedAt = time.Now()
-    
-    return nil
-}
-
-// FinalPrice 获取最终价格
-func (p *Price) FinalPrice() Money {
-    return p.finalPrice
-}
-
-// Breakdown 获取价格拆解
-func (p *Price) Breakdown() *PriceBreakdown {
-    return p.breakdown
-}
-
-// GetComponentsByType 按类型获取组成部分
-func (p *Price) GetComponentsByType(typ ComponentType) []PriceComponent {
-    result := make([]PriceComponent, 0)
-    for _, c := range p.components {
-        if c.Type() == typ {
-            result = append(result, c)
-        }
-    }
-    return result
-}
-
-// TotalDiscount 总折扣金额
-func (p *Price) TotalDiscount() Money {
-    total := Zero(p.basePrice.Currency())
-    for _, c := range p.components {
-        if c.IsDiscount() {
-            total = total.Add(c.Amount())
-        }
-    }
-    return total
-}
-
-// TotalCharge 总费用金额
-func (p *Price) TotalCharge() Money {
-    total := Zero(p.basePrice.Currency())
-    for _, c := range p.components {
-        if c.IsCharge() {
-            total = total.Add(c.Amount())
-        }
-    }
-    return total
-}
-
-// Validate 验证价格
-func (p *Price) Validate() error {
-    // 1. 基础价格必须为正
-    if !p.basePrice.IsPositive() {
-        return fmt.Errorf("base price must be positive")
-    }
-    
-    // 2. 最终价格不能为负
-    if p.finalPrice.IsPositive() || p.finalPrice.IsZero() {
-        // OK
-    } else {
-        return fmt.Errorf("final price cannot be negative")
-    }
-    
-    // 3. 折扣不能超过基础价格
-    totalDiscount := p.TotalDiscount()
-    if totalDiscount.GreaterThan(p.basePrice) {
-        return fmt.Errorf("total discount exceeds base price")
-    }
-    
-    return nil
-}
-
-// CalculationContext 计算上下文
-type CalculationContext struct {
-    Scene      string            // 场景
-    UserID     int64             // 用户ID
-    Region     string            // 地区
-    CategoryID int64             // 品类ID
-    Metadata   map[string]string // 其他元数据
-}
-
-// PriceBreakdown 价格拆解
-type PriceBreakdown struct {
-    BaseAmount Money           // 基础金额
-    Steps      []BreakdownStep // 计算步骤
-}
-
-// BreakdownStep 拆解步骤
-type BreakdownStep struct {
-    Name   string        // 步骤名称
-    Before Money         // 之前金额
-    Amount Money         // 变化金额
-    After  Money         // 之后金额
-    Type   ComponentType // 类型
-}
-
-// ToFormula 转换为公式
-func (pb *PriceBreakdown) ToFormula() string {
-    if len(pb.Steps) == 0 {
-        return fmt.Sprintf("%v", pb.BaseAmount)
-    }
-    
-    formula := fmt.Sprintf("%v", pb.BaseAmount)
-    for _, step := range pb.Steps {
-        operator := "+"
-        if step.Type == ComponentTypePromotion || step.Type == ComponentTypeDeduction {
-            operator = "-"
-        }
-        formula += fmt.Sprintf(" %s %v(%s)", operator, step.Amount, step.Name)
-    }
-    formula += fmt.Sprintf(" = %v", pb.Steps[len(pb.Steps)-1].After)
-    
-    return formula
-}
-```
-
-##### PriceCalculator 领域服务
-
-```go
-package domain
-
-import (
-    "context"
-    "fmt"
-)
-
-// PriceCalculator 价格计算器（领域服务）
-type PriceCalculator struct {
-    // 策略工厂
-    strategyFactory *StrategyFactory
-    
-    // 规则引擎
-    ruleEngine *RuleEngine
-    
-    // 验证器
-    validator *PriceValidator
-}
-
-// NewPriceCalculator 创建价格计算器
-func NewPriceCalculator(strategyFactory *StrategyFactory, ruleEngine *RuleEngine) *PriceCalculator {
-    return &PriceCalculator{
-        strategyFactory: strategyFactory,
-        ruleEngine:      ruleEngine,
-        validator:       NewPriceValidator(),
-    }
-}
-
-// Calculate 计算价格
-func (pc *PriceCalculator) Calculate(ctx context.Context, req *PriceCalculationRequest) (*Price, error) {
-    // 1. 创建价格对象
-    price := NewPrice(
-        generatePriceID(),
-        req.BasePrice,
-        req.Context,
-    )
-    
-    // 2. 获取计算策略
-    strategy := pc.strategyFactory.GetStrategy(req.Context.CategoryID)
-    
-    // 3. 应用基础价格组件
-    baseComponent := NewPriceComponent(
-        ComponentTypeBase,
-        "base_price",
-        req.BasePrice,
-        0,
-    )
-    price.AddComponent(baseComponent)
-    
-    // 4. 应用营销策略
-    promotions, err := strategy.ApplyPromotions(ctx, req)
-    if err != nil {
-        return nil, fmt.Errorf("apply promotions failed: %w", err)
-    }
-    for _, promo := range promotions {
-        price.AddComponent(promo)
-    }
-    
-    // 5. 应用抵扣策略
-    deductions, err := strategy.ApplyDeductions(ctx, req)
-    if err != nil {
-        return nil, fmt.Errorf("apply deductions failed: %w", err)
-    }
-    for _, deduction := range deductions {
-        price.AddComponent(deduction)
-    }
-    
-    // 6. 应用费用策略
-    charges, err := strategy.ApplyCharges(ctx, req)
-    if err != nil {
-        return nil, fmt.Errorf("apply charges failed: %w", err)
-    }
-    for _, charge := range charges {
-        price.AddComponent(charge)
-    }
-    
-    // 7. 执行计算
-    if err := price.Calculate(); err != nil {
-        return nil, fmt.Errorf("calculate failed: %w", err)
-    }
-    
-    // 8. 验证结果
-    if err := pc.validator.Validate(price); err != nil {
-        return nil, fmt.Errorf("validation failed: %w", err)
-    }
-    
-    return price, nil
-}
-
-// Compare 比较两个价格
-func (pc *PriceCalculator) Compare(price1, price2 *Price) *PriceComparison {
-    comparison := &PriceComparison{
-        Price1:     price1,
-        Price2:     price2,
-        HasDiff:    false,
-        Diffs:      make([]ComponentDiff, 0),
-    }
-    
-    // 比较最终价格
-    if !price1.FinalPrice().Equal(price2.FinalPrice()) {
-        comparison.HasDiff = true
-        comparison.FinalPriceDiff = price1.FinalPrice().Subtract(price2.FinalPrice())
-    }
-    
-    // 比较各个组成部分
-    components1 := pc.groupComponents(price1)
-    components2 := pc.groupComponents(price2)
-    
-    for name, amount1 := range components1 {
-        amount2, exists := components2[name]
-        if !exists || !amount1.Equal(amount2) {
-            comparison.HasDiff = true
-            diff := ComponentDiff{
-                Name:    name,
-                Amount1: amount1,
-                Amount2: amount2,
-            }
-            if exists {
-                diff.Diff = amount1.Subtract(amount2)
-            }
-            comparison.Diffs = append(comparison.Diffs, diff)
-        }
-    }
-    
-    return comparison
-}
-
-// groupComponents 按名称分组组成部分
-func (pc *PriceCalculator) groupComponents(price *Price) map[string]Money {
-    result := make(map[string]Money)
-    for _, c := range price.components {
-        if existing, ok := result[c.Name()]; ok {
-            result[c.Name()] = existing.Add(c.Amount())
-        } else {
-            result[c.Name()] = c.Amount()
-        }
-    }
-    return result
-}
-
-// PriceCalculationRequest 价格计算请求
-type PriceCalculationRequest struct {
-    BasePrice Money               // 基础价格
-    Context   *CalculationContext // 计算上下文
-    Items     []ItemInfo          // 商品信息
-    Options   *CalculationOptions // 计算选项
-}
-
-// CalculationOptions 计算选项
-type CalculationOptions struct {
-    ApplyPromotions bool   // 是否应用营销
-    ApplyVoucher    bool   // 是否应用优惠券
-    ApplyCoin       bool   // 是否应用积分
-    VoucherCode     string // 优惠券码
-    CoinAmount      int64  // 积分数量
-    ChannelID       int64  // 支付渠道
-}
-
-// PriceComparison 价格比较结果
-type PriceComparison struct {
-    Price1         *Price          // 价格1
-    Price2         *Price          // 价格2
-    HasDiff        bool            // 是否有差异
-    FinalPriceDiff Money           // 最终价格差异
-    Diffs          []ComponentDiff // 组成部分差异
-}
-
-// ComponentDiff 组成部分差异
-type ComponentDiff struct {
-    Name    string // 组件名称
-    Amount1 Money  // 金额1
-    Amount2 Money  // 金额2
-    Diff    Money  // 差异
-}
-
-// PriceValidator 价格验证器
-type PriceValidator struct {
-    rules []ValidationRule
-}
-
-func NewPriceValidator() *PriceValidator {
-    return &PriceValidator{
-        rules: []ValidationRule{
-            &PositivePriceRule{},
-            &DiscountLimitRule{},
-            &PriceRangeRule{},
-        },
-    }
-}
-
-func (pv *PriceValidator) Validate(price *Price) error {
-    for _, rule := range pv.rules {
-        if err := rule.Validate(price); err != nil {
-            return err
-        }
-    }
-    return nil
-}
-
-// ValidationRule 验证规则接口
-type ValidationRule interface {
-    Validate(price *Price) error
-}
-
-// PositivePriceRule 正价验证规则
-type PositivePriceRule struct{}
-
-func (r *PositivePriceRule) Validate(price *Price) error {
-    if !price.FinalPrice().IsPositive() && !price.FinalPrice().IsZero() {
-        return fmt.Errorf("final price must be non-negative")
-    }
-    return nil
-}
-
-// DiscountLimitRule 折扣限制规则
-type DiscountLimitRule struct{}
-
-func (r *DiscountLimitRule) Validate(price *Price) error {
-    totalDiscount := price.TotalDiscount()
-    if totalDiscount.GreaterThan(price.basePrice) {
-        return fmt.Errorf("total discount exceeds base price")
-    }
-    return nil
-}
-
-// PriceRangeRule 价格范围规则
-type PriceRangeRule struct{}
-
-func (r *PriceRangeRule) Validate(price *Price) error {
-    // 可以从配置中获取价格范围
-    // 这里简化处理
-    return nil
-}
-
-func generatePriceID() string {
-    return fmt.Sprintf("price_%d", time.Now().UnixNano())
-}
-```
-
-### 5.3 价格字典服务
-
-#### 5.3.1 价格字典领域模型
-
-```go
-package domain
-
-// PriceDictionary 价格字典（聚合根）
-type PriceDictionary struct {
-    terms map[string]*PriceTerm // 术语映射
-}
-
-// PriceTerm 价格术语
-type PriceTerm struct {
-    Key         string            // 术语Key
-    NameZh      string            // 中文名称
-    NameEn      string            // 英文名称
-    Definition  string            // 定义
-    Category    string            // 分类
-    Examples    []string          // 示例
-    Aliases     []string          // 别名
-    RelatedTerms []string         // 相关术语
-    Metadata    map[string]string // 元数据
-}
-
-// NewPriceDictionary 创建价格字典
-func NewPriceDictionary() *PriceDictionary {
-    pd := &PriceDictionary{
-        terms: make(map[string]*PriceTerm),
-    }
-    pd.initializeTerms()
-    return pd
-}
-
-// initializeTerms 初始化术语
-func (pd *PriceDictionary) initializeTerms() {
-    // 基础价格术语
-    pd.AddTerm(&PriceTerm{
-        Key:        "market_price",
-        NameZh:     "市场价",
-        NameEn:     "Market Price",
-        Definition: "商品的原始标价，未经任何折扣",
-        Category:   "base_price",
-        Examples:   []string{"¥100"},
-        Aliases:    []string{"原价", "标价", "list_price"},
-    })
-    
-    pd.AddTerm(&PriceTerm{
-        Key:        "discount_price",
-        NameZh:     "折扣价",
-        NameEn:     "Discount Price",
-        Definition: "应用商家折扣后的价格",
-        Category:   "base_price",
-        Examples:   []string{"¥90 (9折)"},
-        Aliases:    []string{"现价"},
-        RelatedTerms: []string{"market_price", "discount_rate"},
-    })
-    
-    pd.AddTerm(&PriceTerm{
-        Key:        "selling_price",
-        NameZh:     "售卖价",
-        NameEn:     "Selling Price",
-        Definition: "用户实际购买的价格（抵扣前）",
-        Category:   "base_price",
-        Examples:   []string{"¥80 (限时抢购后)"},
-    })
-    
-    pd.AddTerm(&PriceTerm{
-        Key:        "final_price",
-        NameZh:     "最终价格",
-        NameEn:     "Final Price",
-        Definition: "加上手续费后的最终支付金额",
-        Category:   "final",
-        Examples:   []string{"¥72 (扣除优惠+手续费)"},
-    })
-    
-    // 折扣术语
-    pd.AddTerm(&PriceTerm{
-        Key:        "promotion_discount",
-        NameZh:     "促销折扣",
-        NameEn:     "Promotion Discount",
-        Definition: "营销活动带来的折扣金额",
-        Category:   "discount",
-        Examples:   []string{"¥10 (Flash Sale)"},
-    })
-    
-    pd.AddTerm(&PriceTerm{
-        Key:        "voucher_deduction",
-        NameZh:     "优惠券抵扣",
-        NameEn:     "Voucher Deduction",
-        Definition: "优惠券抵扣的金额",
-        Category:   "deduction",
-        Examples:   []string{"¥8"},
-    })
-    
-    pd.AddTerm(&PriceTerm{
-        Key:        "coin_deduction",
-        NameZh:     "积分抵扣",
-        NameEn:     "Coin Deduction",
-        Definition: "积分抵扣的金额",
-        Category:   "deduction",
-        Examples:   []string{"¥2 (200积分)"},
-    })
-    
-    // 费用术语
-    pd.AddTerm(&PriceTerm{
-        Key:        "handling_fee",
-        NameZh:     "手续费",
-        NameEn:     "Handling Fee",
-        Definition: "支付渠道手续费",
-        Category:   "charge",
-        Examples:   []string{"¥2 (2%)"},
-    })
-    
-    pd.AddTerm(&PriceTerm{
-        Key:        "admin_fee",
-        NameZh:     "管理费",
-        NameEn:     "Admin Fee",
-        Definition: "管理手续费（特定品类）",
-        Category:   "charge",
-        Examples:   []string{"¥3"},
-    })
-}
-
-// AddTerm 添加术语
-func (pd *PriceDictionary) AddTerm(term *PriceTerm) {
-    pd.terms[term.Key] = term
-}
-
-// GetTerm 获取术语
-func (pd *PriceDictionary) GetTerm(key string) (*PriceTerm, bool) {
-    term, ok := pd.terms[key]
-    return term, ok
-}
-
-// GetTermsByCategory 按分类获取术语
-func (pd *PriceDictionary) GetTermsByCategory(category string) []*PriceTerm {
-    result := make([]*PriceTerm, 0)
-    for _, term := range pd.terms {
-        if term.Category == category {
-            result = append(result, term)
-        }
-    }
-    return result
-}
-
-// SearchTerms 搜索术语
-func (pd *PriceDictionary) SearchTerms(keyword string) []*PriceTerm {
-    result := make([]*PriceTerm, 0)
-    for _, term := range pd.terms {
-        if containsKeyword(term, keyword) {
-            result = append(result, term)
-        }
-    }
-    return result
-}
-
-func containsKeyword(term *PriceTerm, keyword string) bool {
-    // 简化实现，实际可以用更复杂的搜索算法
-    return term.NameZh == keyword || term.NameEn == keyword || term.Key == keyword
-}
-
-// TranslateToEnglish 翻译为英文术语
-func (pd *PriceDictionary) TranslateToEnglish(zhName string) (string, bool) {
-    for _, term := range pd.terms {
-        if term.NameZh == zhName {
-            return term.NameEn, true
-        }
-        for _, alias := range term.Aliases {
-            if alias == zhName {
-                return term.NameEn, true
-            }
-        }
-    }
-    return "", false
-}
-
-// ValidateTerm 验证术语是否存在
-func (pd *PriceDictionary) ValidateTerm(key string) error {
-    if _, ok := pd.terms[key]; !ok {
-        return fmt.Errorf("term not found: %s", key)
-    }
-    return nil
-}
-```
-
-#### 5.3.2 价格字典API
-
-```go
-package api
-
-import (
-    "context"
-    "encoding/json"
-    "net/http"
-)
-
-// PriceDictionaryHandler 价格字典API处理器
-type PriceDictionaryHandler struct {
-    dictionary *domain.PriceDictionary
-}
-
-func NewPriceDictionaryHandler(dictionary *domain.PriceDictionary) *PriceDictionaryHandler {
-    return &PriceDictionaryHandler{
-        dictionary: dictionary,
-    }
-}
-
-// GetTerm 获取术语详情
-// GET /api/v1/pricing/dictionary/terms/{key}
-func (h *PriceDictionaryHandler) GetTerm(w http.ResponseWriter, r *http.Request) {
-    key := r.URL.Query().Get("key")
-    
-    term, ok := h.dictionary.GetTerm(key)
-    if !ok {
-        http.Error(w, "term not found", http.StatusNotFound)
-        return
-    }
-    
-    response := map[string]interface{}{
-        "key":           term.Key,
-        "name_zh":       term.NameZh,
-        "name_en":       term.NameEn,
-        "definition":    term.Definition,
-        "category":      term.Category,
-        "examples":      term.Examples,
-        "aliases":       term.Aliases,
-        "related_terms": term.RelatedTerms,
-    }
-    
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(response)
-}
-
-// ListTerms 列出所有术语
-// GET /api/v1/pricing/dictionary/terms
-func (h *PriceDictionaryHandler) ListTerms(w http.ResponseWriter, r *http.Request) {
-    category := r.URL.Query().Get("category")
-    
-    var terms []*domain.PriceTerm
-    if category != "" {
-        terms = h.dictionary.GetTermsByCategory(category)
-    } else {
-        // 返回所有术语
-        terms = make([]*domain.PriceTerm, 0)
-        // ... 实现获取所有术语
-    }
-    
-    response := make([]map[string]interface{}, 0, len(terms))
-    for _, term := range terms {
-        response = append(response, map[string]interface{}{
-            "key":       term.Key,
-            "name_zh":   term.NameZh,
-            "name_en":   term.NameEn,
-            "category":  term.Category,
-            "definition": term.Definition,
-        })
-    }
-    
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(response)
-}
-
-// SearchTerms 搜索术语
-// GET /api/v1/pricing/dictionary/search?q=keyword
-func (h *PriceDictionaryHandler) SearchTerms(w http.ResponseWriter, r *http.Request) {
-    keyword := r.URL.Query().Get("q")
-    if keyword == "" {
-        http.Error(w, "keyword required", http.StatusBadRequest)
-        return
-    }
-    
-    terms := h.dictionary.SearchTerms(keyword)
-    
-    response := make([]map[string]interface{}, 0, len(terms))
-    for _, term := range terms {
-        response = append(response, map[string]interface{}{
-            "key":       term.Key,
-            "name_zh":   term.NameZh,
-            "name_en":   term.NameEn,
-            "definition": term.Definition,
-        })
-    }
-    
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(response)
-}
-```
-
-### 5.4 DDD架构分层
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                   Presentation Layer (展示层)                 │
-│  ├─ REST API (HTTP Handler)                                 │
-│  ├─ GraphQL API                                             │
-│  └─ RPC Interface                                           │
-└─────────────────────────────────────────────────────────────┘
-                              │
-┌─────────────────────────────────────────────────────────────┐
-│                   Application Layer (应用层)                  │
-│  ├─ PricingApplicationService (价格应用服务)                 │
-│  │   ├─ CalculatePrice()                                    │
-│  │   ├─ CalculateWithDryRun()                               │
-│  │   └─ BatchCalculate()                                    │
-│  ├─ GrayReleaseService (灰度发布服务)                        │
-│  └─ DryRunCompareService (空跑比对服务)                      │
-└─────────────────────────────────────────────────────────────┘
-                              │
-┌─────────────────────────────────────────────────────────────┐
-│                    Domain Layer (领域层)                      │
-│  ├─ Entities (实体)                                          │
-│  │   └─ Price (价格聚合根)                                   │
-│  ├─ Value Objects (值对象)                                   │
-│  │   ├─ Money (金额)                                        │
-│  │   ├─ PriceComponent (价格组成部分)                       │
-│  │   └─ PriceBreakdown (价格拆解)                           │
-│  ├─ Domain Services (领域服务)                               │
-│  │   ├─ PriceCalculator (价格计算器)                        │
-│  │   ├─ PriceValidator (价格验证器)                         │
-│  │   └─ PriceComparator (价格比较器)                        │
-│  ├─ Domain Events (领域事件)                                 │
-│  │   ├─ PriceCalculated (价格已计算)                        │
-│  │   └─ PriceDiffDetected (价格差异已检测)                  │
-│  └─ Repositories (仓储接口)                                  │
-│      ├─ PriceRepository                                     │
-│      └─ PriceDictionaryRepository                           │
-└─────────────────────────────────────────────────────────────┘
-                              │
-┌─────────────────────────────────────────────────────────────┐
-│                Infrastructure Layer (基础设施层)               │
-│  ├─ Persistence (持久化)                                     │
-│  │   ├─ MySQL Repository Implementation                    │
-│  │   └─ Redis Cache Implementation                         │
-│  ├─ External Services (外部服务)                             │
-│  │   ├─ ItemServiceClient                                  │
-│  │   ├─ PromotionServiceClient                             │
-│  │   └─ VoucherServiceClient                               │
-│  └─ Messaging (消息)                                         │
-│      ├─ Kafka Producer                                      │
-│      └─ Event Publisher                                     │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 5.5 DDD带来的收益
-
-| 维度 | 改进前 | 引入DDD后 | 提升 |
-|------|--------|----------|------|
-| **代码可读性** | 价格字段分散，难以理解 | Money、PriceComponent等值对象，语义清晰 | ↑ 80% |
-| **可维护性** | 修改一处影响多处 | 领域模型封装，修改影响范围小 | ↑ 70% |
-| **团队沟通** | 术语不统一，理解困难 | 统一语言，沟通高效 | ↑ 60% |
-| **业务扩展** | 新增逻辑到处修改 | 新增策略/规则即可 | ↑ 5x |
-| **测试性** | 依赖复杂，难以测试 | 领域对象独立，易于测试 | ↑ 3x |
+## 五、DDD 领域模型设计
+
+> 本章内容已独立为专题文章，详见：[领域驱动设计在电商计价系统中的实践](./25-ddd-pricing-engine-practice.md)
+>
+> 该文章涵盖：战略设计（统一语言、概念模型、子域划分、上下文映射）、战术设计（实体与值对象、聚合根、领域服务）、六边形架构实践、价格快照与一致性保障等内容。
 
 ---
 
-## 六、性能优化
+## 六、业界价格模型演进与对比
+
+### 6.1 价格模型演进史
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  价格引擎技术演进路径                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Phase 1: 单一价格时代（2000年前）                               │
+│  ┌─────────────────────────────┐                               │
+│  │ 商品一口价，总价 = 单价 × 数量 │                               │
+│  │ 代表: 早期零售 ERP            │                               │
+│  └─────────────────────────────┘                               │
+│               ↓                                                  │
+│  Phase 2: 促销价格分离（2000-2010）                              │
+│  ┌─────────────────────────────┐                               │
+│  │ original_price + sale_price │                               │
+│  │ 简单时间段促销              │                               │
+│  │ 代表: 早期淘宝、eBay        │                               │
+│  └─────────────────────────────┘                               │
+│               ↓                                                  │
+│  Phase 3: 规则引擎化（2010-2015）                                │
+│  ┌─────────────────────────────┐                               │
+│  │ 促销规则独立成表            │                               │
+│  │ 优先级 & 互斥机制          │                               │
+│  │ 独立优惠券系统              │                               │
+│  │ 代表: 淘宝天猫、京东        │                               │
+│  └─────────────────────────────┘                               │
+│               ↓                                                  │
+│  Phase 4: 智能定价（2015-2020）                                  │
+│  ┌─────────────────────────────┐                               │
+│  │ 动态定价（供需、库存、竞品）│                               │
+│  │ 个性化定价（用户画像）      │                               │
+│  │ 价格快照 & 审计             │                               │
+│  │ 代表: Uber、Airbnb、Amazon  │                               │
+│  └─────────────────────────────┘                               │
+│               ↓                                                  │
+│  Phase 5: AI 赋能（2020至今）                                    │
+│  ┌─────────────────────────────┐                               │
+│  │ ML 定价模型（需求预测）     │                               │
+│  │ 实时竞品监控                │                               │
+│  │ A/B 测试自动化              │                               │
+│  │ 代表: Amazon ML、阿里智能   │                               │
+│  └─────────────────────────────┘                               │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 6.2 各阶段对比
+
+| 维度 | Phase 1 | Phase 2 | Phase 3 | Phase 4 | Phase 5 |
+|------|---------|---------|---------|---------|---------|
+| **计算方式** | 硬编码 | 配置化 | 规则引擎 | ML 模型 | 在线学习 |
+| **响应时间** | <10ms | <50ms | <100ms | <200ms | <100ms |
+| **扩展性** | 差 | 中 | 好 | 好 | 优秀 |
+| **维护成本** | 高 | 中 | 中 | 中 | 低 |
+| **智能程度** | 无 | 低 | 中 | 高 | 极高 |
+| **代表企业** | 早期电商 | 淘宝/京东 | 天猫/Amazon | Uber/Airbnb | Amazon/阿里 |
+
+### 6.3 主流电商平台对比
+
+#### 淘宝/天猫
+
+```
+价格计算链路: 商品价格 → 营销活动 → 优惠券 → 积分 → 红包
+技术栈: Drools 规则引擎 + Tair 分布式缓存 + HSF/Dubbo RPC
+性能: P99 < 50ms
+特色: 双11 大促复杂叠加规则（店铺券 + 品类券 + 跨店券 + 红包 + 津贴）
+```
+
+#### 京东
+
+```
+价格计算链路: 基础价 → 会员价(Plus) → 活动 → 优惠券 → 京豆 → 运费
+技术栈: 自研规则引擎 + Redis 集群
+性能: P99 < 80ms
+特色: Plus 会员价体系 + 京豆积分深度融合
+```
+
+#### Amazon
+
+```
+价格计算链路: 基础价 → ML 动态定价 → Prime 折扣 → Lightning Deal → Subscribe & Save
+技术栈: 自研 ML Pipeline + ElastiCache
+性能: P99 < 100ms
+特色: ML 驱动定价（需求弹性 × 竞品价格 × 库存水平）
+```
+
+#### Uber（动态定价）
+
+```
+定价逻辑: base_price = distance × rate + duration × rate → surge_multiplier
+技术栈: 实时供需计算 + ML 预测 + 平滑处理
+特色: 供需比驱动 Surge Pricing，平滑处理避免价格突变
+```
+
+### 6.4 我们的定位与对比
+
+| 特性 | 我们的设计 | 淘宝天猫 | 京东 | Amazon |
+|------|-----------|---------|------|--------|
+| **分层架构** | 4层（Base/Promo/Fee/Voucher） | 5层（含积分/红包） | 5层（含京豆） | 3层（简化） |
+| **规则引擎** | DB 配置 + JSON | Drools + 自研 | 自研 | 自研 |
+| **动态定价** | 规则驱动 | ML 驱动 | 规则驱动 | ML 驱动 |
+| **价格快照** | ✅ 完整支持 | ✅ 支持 | ✅ 支持 | ✅ 支持 |
+| **费用拆分** | ✅ 详细 | ✅ 详细 | ✅ 详细 | ✅ 详细 |
+| **降级策略** | ✅ 5级降级 | ✅ 完善 | ✅ 完善 | ✅ 完善 |
+| **ML 定价** | ❌ 待规划 | ✅ 深度应用 | ⚠️ 部分 | ✅ 核心能力 |
+
+---
+
+## 七、性能优化
 
 不同场景对性能的要求不同，需要采取差异化的优化策略。
 
-### 6.1 场景驱动的性能目标
+### 7.1 场景驱动的性能目标
 
 | 场景 | P99目标 | 关键优化策略 | 缓存策略 | 并发策略 |
 |------|---------|-------------|---------|---------|
@@ -5928,11 +4934,11 @@ func (h *PriceDictionaryHandler) SearchTerms(w http.ResponseWriter, r *http.Requ
 
 ---
 
-### 6.2 缓存策略（已在4.1.3详细说明）
+### 7.2 缓存策略（已在4.1.3详细说明）
 
 参见第4.1.3节"场景驱动的缓存策略"，这里补充缓存管理器实现。
 
-#### 6.2.1 L1 本地缓存 + L2 Redis 缓存
+#### 7.2.1 L1 本地缓存 + L2 Redis 缓存
 
 ```go
 package pricing
@@ -6026,7 +5032,7 @@ func hashItems(items []ItemInfo) uint64 {
 
 ---
 
-### 6.3 批量计算优化（批量查询场景）
+### 7.3 批量计算优化（批量查询场景）
 
 针对列表页、推荐页等批量查询场景，采用并发计算优化。
 
@@ -6087,11 +5093,11 @@ func (e *engine) BatchCalculate(ctx context.Context, reqs []*PricingRequest) ([]
 
 ---
 
-### 6.4 并发优化（Checkout/Order场景）
+### 7.4 并发优化（Checkout/Order场景）
 
 针对需要查询多个依赖服务的场景（Checkout、Order），采用并发调用优化。
 
-#### 6.4.1 依赖服务并发调用
+#### 7.4.1 依赖服务并发调用
 
 ```go
 package pricing
@@ -6171,9 +5177,9 @@ type fetchResult struct {
 
 ---
 
-## 七、部署与运维
+## 八、部署与运维
 
-### 7.1 部署架构
+### 8.1 部署架构
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -6202,9 +5208,9 @@ type fetchResult struct {
                       └─────────────┘
 ```
 
-### 7.2 监控指标
+### 8.2 监控指标
 
-#### 7.2.1 核心指标
+#### 8.2.1 核心指标
 
 ```go
 package pricing
@@ -6248,7 +5254,7 @@ const (
 )
 ```
 
-#### 7.2.2 Grafana Dashboard 配置
+#### 8.2.2 Grafana Dashboard 配置
 
 ```yaml
 # Grafana Dashboard 配置示例
@@ -6287,7 +5293,7 @@ dashboard:
         - expr: "rate(pricing_gray_old_logic[1m])"
 ```
 
-### 7.3 告警配置
+### 8.3 告警配置
 
 ```yaml
 # Prometheus Alert Rules
@@ -6341,11 +5347,11 @@ groups:
 
 ---
 
-## 八、最佳实践
+## 九、最佳实践
 
-### 8.1 迁移策略
+### 9.1 迁移策略
 
-#### 8.1.1 三阶段迁移
+#### 9.1.1 三阶段迁移
 
 ```
 阶段一：空跑期（2-4周）
@@ -6382,7 +5388,7 @@ groups:
     └── 代码完全切换
 ```
 
-#### 8.1.2 灰度流程
+#### 9.1.2 灰度流程
 
 ```mermaid
 graph TB
@@ -6407,9 +5413,9 @@ graph TB
     O --> P[完成迁移]
 ```
 
-### 8.2 资损防控
+### 9.2 资损防控
 
-#### 8.2.1 多重保护机制
+#### 9.2.1 多重保护机制
 
 ```go
 package pricing
@@ -6464,7 +5470,7 @@ func (sc *SafetyChecker) Check(req *PricingRequest, resp *PricingResponse) error
 }
 ```
 
-### 8.3 性能优化清单
+### 9.3 性能优化清单
 
 | 优化项 | 方案 | 收益 |
 |--------|------|------|
@@ -6475,7 +5481,7 @@ func (sc *SafetyChecker) Check(req *PricingRequest, resp *PricingResponse) error
 | **熔断降级** | 非核心服务降级 | 可用性 99.9% |
 | **异步化** | 非实时任务异步 | RT降低 60% |
 
-### 8.4 常见问题
+### 9.4 常见问题
 
 #### Q1: 如何保证新老逻辑价格一致？
 
@@ -6520,9 +5526,9 @@ func (sc *SafetyChecker) Check(req *PricingRequest, resp *PricingResponse) error
 
 ---
 
-## 九、总结
+## 十、总结
 
-### 9.1 核心价值
+### 10.1 核心价值
 
 通过建设统一的价格计算引擎并引入DDD设计思想，我们实现了：
 
@@ -6537,7 +5543,7 @@ func (sc *SafetyChecker) Check(req *PricingRequest, resp *PricingResponse) error
 | **团队协作** | 术语不统一，沟通成本高 | 价格字典 + 统一语言 | ↑ 60% |
 | **测试性** | 依赖复杂，难以单元测试 | 领域对象独立，易于测试 | ↑ 3x |
 
-### 9.2 技术亮点
+### 10.2 技术亮点
 
 1. **DDD领域驱动设计**：引入统一语言、值对象、聚合根、领域服务，代码可读性提升80%
 2. **价格字典体系**：建立完整的价格术语字典，统一团队沟通语言，降低理解成本
@@ -6550,7 +5556,7 @@ func (sc *SafetyChecker) Check(req *PricingRequest, resp *PricingResponse) error
 9. **Money值对象**：封装金额运算，避免浮点数精度问题，提升安全性
 10. **领域模型封装**：业务逻辑内聚，修改影响范围可控
 
-### 9.3 未来演进
+### 10.3 未来演进
 
 1. **AI 定价**：引入机器学习，动态调整定价策略
 2. **实时营销**：基于用户行为实时调整优惠
@@ -6560,13 +5566,17 @@ func (sc *SafetyChecker) Check(req *PricingRequest, resp *PricingResponse) error
 
 ---
 
+## 相关文章
+
+- [领域驱动设计在电商计价系统中的实践](./25-ddd-pricing-engine-practice.md) — DDD 战略/战术设计、六边形架构、价格快照一致性
+- [多品类统一商品运营管理系统设计](./23-b-side-operations-system.md)
+
 ## 参考资料
 
-1. [多品类统一商品运营管理系统设计](./23-b-side-operations-system.md)
-2. Martin Fowler - *策略模式*
-3. *高性能 MySQL* - 缓存优化
-4. *微服务设计* - 服务拆分与治理
-5. *领域驱动设计* - DDD核心概念与实践
+1. Martin Fowler - *策略模式*
+2. *高性能 MySQL* - 缓存优化
+3. *微服务设计* - 服务拆分与治理
+4. *领域驱动设计* - Eric Evans
 
 ---
 

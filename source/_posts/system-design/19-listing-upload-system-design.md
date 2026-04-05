@@ -64,8 +64,8 @@ toc: true
 ## 二、整体架构
 
 > **📊 可视化架构图**：
-> - [Excalidraw 架构图](./listing-upload-architecture.excalidraw)（可在 [Excalidraw](https://excalidraw.com) 中打开编辑）
-> - [Mermaid 流程图](./listing-upload-architecture.mmd)（可直接在支持 Mermaid 的编辑器中渲染）
+> - [Excalidraw 架构图](../../diagrams/Excalidraw/listing-upload-architecture.excalidraw)（可在 [Excalidraw](https://excalidraw.com) 中打开编辑）
+> - [Mermaid 流程图](../../diagrams/mermaid/listing-upload-architecture.mmd)（可直接在支持 Mermaid 的编辑器中渲染）
 
 ### 2.1 分层架构
 
