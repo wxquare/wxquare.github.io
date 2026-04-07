@@ -17,7 +17,7 @@ toc: true
 - Veth pair提供了一种连接两个network namespace的方法
 - Bridge 实现同一网络中多个namespace的连接
 - 添加路由信息，查看路由信息
-- iptabels 和 NAT
+- iptables 和 NAT
 -  实战练习
 
 ``` sh
