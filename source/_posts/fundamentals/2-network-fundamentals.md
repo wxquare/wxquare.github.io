@@ -1,8 +1,14 @@
 ---
 title: 计算机基础：计算机网络实践
-date: 2023-09-13
-categories: 
-- 系统设计
+date: 2024-03-02
+categories:
+- 计算机基础
+tags:
+- 计算机网络
+- TCP
+- HTTP
+- 面试
+toc: true
 ---
 
 

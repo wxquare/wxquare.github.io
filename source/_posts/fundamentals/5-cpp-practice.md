@@ -1,8 +1,14 @@
 ---
 title: 编程语言：C/C++ 实践
-date: 2023-11-01
-categories: 
-- 系统设计
+date: 2024-03-05
+categories:
+- 编程语言
+tags:
+- C++
+- STL
+- 内存管理
+- 面试
+toc: true
 ---
 
 ## 基础语法与关键字

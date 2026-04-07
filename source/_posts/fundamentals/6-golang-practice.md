@@ -1,9 +1,15 @@
-
 ---
 title: 编程语言：Go 实践
-date: 2023-11-13
+date: 2024-03-06
 categories:
-- 系统设计
+- 编程语言
+tags:
+- golang
+- 并发
+- GMP
+- 内存管理
+- 面试
+toc: true
 ---
 
 ## Go 和 C++ 语言对比

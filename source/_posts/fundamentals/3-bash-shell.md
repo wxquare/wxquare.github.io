@@ -1,8 +1,14 @@
 ---
-title: 编程语言：bash shell实践
-date: 2023-10-13
+title: 编程语言：bash shell 实践
+date: 2024-03-03
 categories:
-- 系统设计
+- 编程语言
+tags:
+- bash
+- linux
+- shell
+- 运维
+toc: true
 ---
 
 ## 1、linux基础命令

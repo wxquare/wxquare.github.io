@@ -1,8 +1,14 @@
 ---
 title: 计算机基础：操作系统
-date: 2023-08-13
-categories: 
-- 系统设计
+date: 2024-03-01
+categories:
+- 计算机基础
+tags:
+- 操作系统
+- 进程
+- 内存管理
+- 面试
+toc: true
 ---
 
 
