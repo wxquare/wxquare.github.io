@@ -6372,32 +6372,826 @@ func CalculatePrice(order *Order) int64 {
 
 ## 十、重构实战案例
 
-### 10.1 案例1：千行函数重构为 Pipeline
-### 10.2 案例2：if-else 地狱重构为策略模式
-### 10.3 案例3：上下文爆炸重构为 Context Pattern
+下面三个案例均来自电商域（下单、计价、库存），用 Go 示意「如何从坏味道走向可测、可扩展的结构」。代码为教学浓缩版，重点在思路而非生产完备性。
+
+### 10.1 案例 1：千行函数重构为 Pipeline
+
+#### 重构前
+
+历史上存在一个约 1500 行的 `CreateOrder`，下面是其**逻辑骨架**（约 40 行），用注释标出 8 个步骤；真实代码每步内含大量 SQL、RPC 与分支——属于典型的「上帝函数」。
+
+```go
+// ❌ 反例：单函数承载全流程，圈复杂度与认知负荷极高
+func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
+	// 1. 校验
+	if err := s.validateRequest(req); err != nil {
+		return nil, err
+	}
+	// 2. 用户验证
+	user, err := s.userClient.Verify(ctx, req.UserID)
+	if err != nil {
+		return nil, err
+	}
+	// 3. 库存检查
+	if err := s.inventory.Reserve(ctx, req.SKUs); err != nil {
+		return nil, err
+	}
+	// 4. 价格计算
+	price, err := s.pricing.Calc(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	// 5. 营销活动
+	discount, err := s.promo.Apply(ctx, user, req, price)
+	if err != nil {
+		return nil, err
+	}
+	// 6. 风控
+	if err := s.risk.Check(ctx, user, req, price, discount); err != nil {
+		return nil, err
+	}
+	// 7. 保存订单
+	order, err := s.repo.InsertOrder(ctx, buildOrder(user, req, price, discount))
+	if err != nil {
+		return nil, err
+	}
+	// 8. 通知
+	_ = s.notify.Send(ctx, order)
+	return order, nil
+}
+```
+
+#### 问题分析
+
+| 维度 | 表现 |
+|------|------|
+| **SRP** | 一个函数同时负责校验、外部依赖编排、持久化与通知，修改任一环节都可能波及其他步骤。 |
+| **圈复杂度** | 各步内部大量 `if/switch` 与错误分支，整体约 **45**，难以穷举路径。 |
+| **测试** | 必须 mock 整条依赖链，单测脆弱；**覆盖率约 15%**，多为集成测试碰运气。 |
+| **认知负荷** | 新人必须「读懂整个函数」才能安全改一行，Code Review 成本极高。 |
+
+#### 重构步骤
+
+1. **识别步骤边界**  
+   将上述 8 步各自视为独立「处理器」，命名清晰、顺序固定：`ValidateProcessor`、`UserVerifyProcessor`、`InventoryReserveProcessor`、`PriceCalcProcessor`、`PromoProcessor`、`RiskProcessor`、`PersistOrderProcessor`、`NotifyProcessor`。
+
+2. **定义 `OrderContext`**  
+   用上下文承载输入、中间态与输出，避免在 Pipeline 里散落一堆局部变量。
+
+```go
+type OrderContext struct {
+	Input struct {
+		Req *CreateOrderRequest
+	}
+	Intermediate struct {
+		User     *User
+		Price    Money
+		Discount Money
+	}
+	Output struct {
+		Order *Order
+	}
+	Err error
+}
+```
+
+3. **提取 Processor（示例：校验一步）**  
+   每个 Processor 只做一件事，签名统一，便于单测与替换顺序。
+
+```go
+type OrderProcessor interface {
+	Name() string
+	Process(ctx context.Context, oc *OrderContext) error
+}
+
+type ValidateProcessor struct{}
+
+func (ValidateProcessor) Name() string { return "validate" }
+
+func (ValidateProcessor) Process(ctx context.Context, oc *OrderContext) error {
+	if oc.Input.Req == nil || len(oc.Input.Req.SKUs) == 0 {
+		return ErrInvalidRequest
+	}
+	return nil
+}
+```
+
+4. **组装 Pipeline**  
+   将处理器按业务顺序注册；执行时逐个 `Process`，出错即短路。
+
+```go
+func NewOrderCreatePipeline(
+	v ValidateProcessor,
+	u UserVerifyProcessor,
+	inv InventoryReserveProcessor,
+	p PriceCalcProcessor,
+	pr PromoProcessor,
+	r RiskProcessor,
+	ps PersistOrderProcessor,
+	n NotifyProcessor,
+) *Pipeline {
+	return &Pipeline{
+		steps: []OrderProcessor{v, u, inv, p, pr, r, ps, n},
+	}
+}
+
+type Pipeline struct {
+	steps []OrderProcessor
+}
+
+func (p *Pipeline) Run(ctx context.Context, oc *OrderContext) error {
+	for _, step := range p.steps {
+		if err := step.Process(ctx, oc); err != nil {
+			oc.Err = err
+			return err
+		}
+	}
+	return nil
+}
+```
+
+#### 重构后效果
+
+| 指标 | 重构前 | 重构后 |
+|------|--------|--------|
+| 圈复杂度（单函数/单步） | 约 45（整函数） | 典型每步 **≤5** |
+| 测试覆盖率 | 约 **15%** | 可达 **85%**（每 Processor 独立 mock） |
+| 新增业务步骤成本 | 改千行函数、牵一发而动全身 | **新增 1 个文件（Processor）+ Pipeline 注册 1 行** |
+| 认知负荷 | 读懂整个 `CreateOrder` | **读懂单个 Processor** 即可安全修改 |
+
+### 10.2 案例 2：if-else 地狱重构为策略模式
+
+#### 重构前
+
+计价逻辑按商品品类分支堆砌，每来一个新品类就要改这个函数，违反开闭原则。
+
+```go
+// ❌ 反例：品类分支集中在一处，OCP 受损
+type CategoryID string
+
+const (
+	CatTopup   CategoryID = "topup"
+	CatHotel   CategoryID = "hotel"
+	CatFlight  CategoryID = "flight"
+	CatDeal    CategoryID = "deal"
+	CatVoucher CategoryID = "voucher"
+)
+
+func (s *PricingService) CalculatePrice(ctx context.Context, order *Order) (Money, error) {
+	if order.Category == CatTopup {
+		return s.calcTopup(ctx, order)
+	} else if order.Category == CatHotel {
+		return s.calcHotel(ctx, order)
+	} else if order.Category == CatFlight {
+		return s.calcFlight(ctx, order)
+	} else if order.Category == CatDeal {
+		return s.calcDeal(ctx, order)
+	} else if order.Category == CatVoucher {
+		return s.calcVoucher(ctx, order)
+	}
+	return Zero, ErrUnsupportedCategory
+}
+```
+
+（真实代码里每个 `calcXxx` 前往往还有一层 `if` 做子类型与币种，此处省略。）
+
+#### 问题分析
+
+- **OCP**：每增加一个 `CategoryID`，必须修改 `CalculatePrice` 的 `if-else` 链，合并冲突与回归风险集中。  
+- **可测性**：要对「酒店」计价做单测，仍需构造能走进该分支链的完整订单，边界用例与 mock 成本高。  
+- **团队协作**：不同业务线改同一文件，Review 粒度粗，容易误伤其他品类。
+
+#### 重构步骤
+
+1. **定义策略接口**  
+   统一入口：`Calculate(ctx, order) (Money, error)`。
+
+```go
+type PriceCalculator interface {
+	Calculate(ctx context.Context, order *Order) (Money, error)
+}
+```
+
+2. **具体实现（示例：酒店）**  
+   酒店可单独测，不依赖其他品类的分支。
+
+```go
+type HotelPriceCalculator struct {
+	rateAPI HotelRateClient
+}
+
+func (h HotelPriceCalculator) Calculate(ctx context.Context, order *Order) (Money, error) {
+	nights := order.Nights
+	base, err := h.rateAPI.NightlyRate(ctx, order.HotelID, order.CheckIn)
+	if err != nil {
+		return Zero, err
+	}
+	return base.MulInt(nights), nil
+}
+```
+
+3. **构建注册表**  
+   用 `map[CategoryID]PriceCalculator` 做查找，初始化时在 composition root 注入。
+
+```go
+func NewPricingService(calcs map[CategoryID]PriceCalculator) *PricingService {
+	return &PricingService{calcs: calcs}
+}
+
+type PricingService struct {
+	calcs map[CategoryID]PriceCalculator
+}
+```
+
+4. **用注册表替代 if-else 链**
+
+```go
+func (s *PricingService) CalculatePrice(ctx context.Context, order *Order) (Money, error) {
+	calc, ok := s.calcs[order.Category]
+	if !ok {
+		return Zero, ErrUnsupportedCategory
+	}
+	return calc.Calculate(ctx, order)
+}
+```
+
+#### 重构后效果
+
+**新增品类 = 1 个新文件（实现 `PriceCalculator`）+ 注册表处增加 1 行**（例如 `calcs[CatNewThing] = NewThingCalculator(...)`）。`CalculatePrice` 本身不再随品类膨胀，符合对扩展开放、对修改关闭。
+
+### 10.3 案例 3：上下文爆炸重构为 Context Pattern
+
+#### 重构前
+
+参数在调用链上层层透传，函数签名冗长，任何一层增参都会波及上下游。
+
+```go
+// ❌ 反例：4 层调用链，每层都要带齐 8+ 个参数
+func (s *CheckoutService) PlaceOrder(
+	ctx context.Context,
+	userID string,
+	cartID string,
+	region string,
+	currency string,
+	clientIP string,
+	deviceID string,
+	requestID string,
+	traceID string,
+) error {
+	return s.orchestrator.RunCheckout(ctx, userID, cartID, region, currency, clientIP, deviceID, requestID, traceID)
+}
+
+func (o *Orchestrator) RunCheckout(
+	ctx context.Context,
+	userID, cartID, region, currency, clientIP, deviceID, requestID, traceID string,
+) error {
+	return o.reserveInventory(ctx, userID, cartID, region, currency, clientIP, deviceID, requestID, traceID)
+}
+
+func (o *Orchestrator) reserveInventory(
+	ctx context.Context,
+	userID, cartID, region, currency, clientIP, deviceID, requestID, traceID string,
+) error {
+	return o.payment.Charge(ctx, userID, cartID, region, currency, clientIP, deviceID, requestID, traceID)
+}
+```
+
+#### 重构步骤
+
+1. **按职责分组参数**  
+   - **Input**：请求侧不变量（`UserID`、`CartID`、`Region`、`Currency` 等）。  
+   - **Intermediate**：流程中写入的库存预留 ID、支付单号等（可在各阶段填充）。  
+   - **Output**：最终订单 ID、错误等。
+
+2. **定义 `ProcessContext`**
+
+```go
+type ProcessContext struct {
+	Input struct {
+		UserID     string
+		CartID     string
+		Region     string
+		Currency   string
+		ClientIP   string
+		DeviceID   string
+		RequestID  string
+		TraceID    string
+	}
+	Intermediate struct {
+		ReservationID string
+		PaymentID     string
+	}
+	Output struct {
+		OrderID string
+	}
+}
+```
+
+3. **各层只接受 `*ProcessContext`**  
+   新增观测字段或中间态时，多数情况只改 struct 字段，不改每层函数签名。
+
+```go
+func (s *CheckoutService) PlaceOrder(ctx context.Context, pc *ProcessContext) error {
+	return s.orchestrator.RunCheckout(ctx, pc)
+}
+
+func (o *Orchestrator) RunCheckout(ctx context.Context, pc *ProcessContext) error {
+	return o.reserveInventory(ctx, pc)
+}
+
+func (o *Orchestrator) reserveInventory(ctx context.Context, pc *ProcessContext) error {
+	return o.payment.Charge(ctx, pc)
+}
+```
+
+#### 重构后效果
+
+- **参数数量**：从调用链上累计 **12+ 个标量参数**（每层重复罗列）收敛为 **1 个 `*ProcessContext`**。  
+- **扩展性**：加字段优先在 struct 上完成，避免「改签名雪崩」。  
+- **注意**：Context Pattern 这里是**流程上下文 struct**，不要与 `context.Context` 混淆；两者可并存（第一个参数仍可保留 `ctx context.Context`）。
 
 ---
 
 ## 十一、性能优化与监控
 
+Pipeline 与 Context Pattern 把业务拆清楚之后，下一关是**在高 QPS 下仍保持稳定延迟**，以及**出问题能秒级定位**。本节从「减分配、提并行、控超时、批写」到指标、链路、日志与告警，给出一套可落地的 Go 侧做法。
+
 ### 11.1 性能优化策略
+
+#### 1. sync.Pool 复用 ProcessContext
+
+高频路径里若每次 `Run` 都 `new(ProcessContext)`，小对象会推高 **allocation rate** 与 **GC 压力**。`sync.Pool` 适合**生命周期短、可重置**的缓冲区或上下文载体：在 `Get` 后清零字段，在 `Put` 前再次归零，避免脏数据泄漏。
+
+```go
+import (
+	"context"
+	"sync"
+)
+
+var processContextPool = sync.Pool{
+	New: func() any {
+		return &ProcessContext{}
+	},
+}
+
+func acquireProcessContext() *ProcessContext {
+	pc := processContextPool.Get().(*ProcessContext)
+	*pc = ProcessContext{} // reset before use
+	return pc
+}
+
+func releaseProcessContext(pc *ProcessContext) {
+	if pc == nil {
+		return
+	}
+	*pc = ProcessContext{}
+	processContextPool.Put(pc)
+}
+
+func (p *Pipeline) RunPooled(ctx context.Context, seed *ProcessContext) error {
+	pc := acquireProcessContext()
+	defer releaseProcessContext(pc)
+	if seed != nil {
+		*pc = *seed // shallow copy seed fields as needed
+	}
+	for _, proc := range p.processors {
+		if err := proc.Process(ctx, pc); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+```
+
+要点：**Pool 不保证对象存活**；只用于性能优化，不能当缓存存业务唯一态。重置用值赋值 `*pc = ProcessContext{}` 比逐字段置零更不容易漏字段。
+
+#### 2. 并行 Stage：errgroup 扇出 / 扇入
+
+当多个 Processor **彼此无数据依赖**（例如并行读用户、优惠券、库存快照），可用 `errgroup` 限制并发并统一错误处理。下面示意三个独立处理器并行执行，再合并结果到共享的 `*OrderContext`（与上文 Pipeline 示例一致；若你使用 `ProcessContext`，替换类型即可）。
+
+```go
+import (
+	"context"
+
+	"golang.org/x/sync/errgroup"
+)
+
+type ParallelBundle struct {
+	userProc   OrderProcessor
+	couponProc OrderProcessor
+	stockProc  OrderProcessor
+}
+
+func (b *ParallelBundle) Process(ctx context.Context, pc *OrderContext) error {
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return b.userProc.Process(ctx, pc)
+	})
+	g.Go(func() error {
+		return b.couponProc.Process(ctx, pc)
+	})
+	g.Go(func() error {
+		return b.stockProc.Process(ctx, pc)
+	})
+
+	return g.Wait()
+}
+```
+
+`errgroup.WithContext` 在任一 `Go` 返回错误时会取消 `ctx`，避免其余 goroutine 白跑；若某步**不应因兄弟失败而取消**，应使用独立 `context` 或拆阶段设计。
+
+#### 3. 超时：按 Stage 包裹与优雅降级
+
+对外 SLA 常体现为「整链 P99」，对内则需要**每一跳的预算**。用 `context.WithTimeout`（或 `WithDeadline`）包住单个 `Process`，超时后返回 `context.DeadlineExceeded`，上层可选择重试、熔断或返回降级结果。
+
+```go
+import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+)
+
+func (p *Pipeline) RunWithTimeout(ctx context.Context, pc *ProcessContext, perStage time.Duration) error {
+	for _, proc := range p.processors {
+		stageCtx, cancel := context.WithTimeout(ctx, perStage)
+		err := proc.Process(stageCtx, pc)
+		cancel()
+		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				return fmt.Errorf("stage %s exceeded %s: %w", proc.Name(), perStage, err)
+			}
+			return fmt.Errorf("stage %s: %w", proc.Name(), err)
+		}
+	}
+	return nil
+}
+```
+
+优雅降级示例：计价超时则使用缓存价或默认折扣（业务允许的前提下），并打标 `pc.Degraded = true` 供监控与对账。
+
+#### 4. 批处理写库：聚合再 Flush
+
+N 次单行 `INSERT` 会放大 RTT 与事务开销。Repository 层可做**按条数或时间窗口**批量 `INSERT`，用 `sync.Mutex` 或 channel 单协程刷盘，避免竞态。
+
+```go
+import (
+	"context"
+	"database/sql"
+	"sync"
+	"time"
+)
+
+type OrderEvent struct {
+	OrderID int64
+	Payload []byte
+}
+
+type BatchedOrderRepo struct {
+	db     *sql.DB
+	mu     sync.Mutex
+	buf    []OrderEvent
+	maxN   int
+	flushD time.Duration
+}
+
+func (r *BatchedOrderRepo) Add(ctx context.Context, ev OrderEvent) error {
+	r.mu.Lock()
+	r.buf = append(r.buf, ev)
+	needFlush := len(r.buf) >= r.maxN
+	r.mu.Unlock()
+	if needFlush {
+		return r.Flush(ctx)
+	}
+	return nil
+}
+
+func (r *BatchedOrderRepo) Flush(ctx context.Context) error {
+	r.mu.Lock()
+	if len(r.buf) == 0 {
+		r.mu.Unlock()
+		return nil
+	}
+	batch := r.buf
+	r.buf = nil
+	r.mu.Unlock()
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, `INSERT INTO order_events(order_id, payload) VALUES (?, ?)`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, ev := range batch {
+		if _, err := stmt.ExecContext(ctx, ev.OrderID, ev.Payload); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+```
+
+生产环境还需：**定时 Flush**、`Flush` 失败重试、背压（队列满则阻塞或拒绝）以及与优雅关停（`drain`）结合。
+
 ### 11.2 监控与可观测性
+
+#### 1. Metrics：Stage 耗时与成功 / 失败计数
+
+Prometheus 侧用 **Histogram** 看 P50/P99，用 **Counter** 看吞吐与错误率。下面在 Pipeline 外包一层中间件，统一注册与打点。
+
+```go
+import (
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	stageDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "pipeline_stage_duration_seconds",
+			Help:    "Wall time per pipeline stage",
+			Buckets: prometheus.ExponentialBuckets(0.001, 2, 16),
+		},
+		[]string{"stage"},
+	)
+	stageOutcome = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "pipeline_stage_total",
+			Help: "Pipeline stage outcomes",
+		},
+		[]string{"stage", "result"},
+	)
+)
+
+type MetricsProcessor struct {
+	inner OrderProcessor
+}
+
+func (m MetricsProcessor) Name() string { return m.inner.Name() }
+
+func (m MetricsProcessor) Process(ctx context.Context, pc *OrderContext) error {
+	start := time.Now()
+	err := m.inner.Process(ctx, pc)
+	stageDuration.WithLabelValues(m.inner.Name()).Observe(time.Since(start).Seconds())
+	if err != nil {
+		stageOutcome.WithLabelValues(m.inner.Name(), "error").Inc()
+		return err
+	}
+	stageOutcome.WithLabelValues(m.inner.Name(), "ok").Inc()
+	return nil
+}
+```
+
+#### 2. 分布式追踪：每 Stage 一个 Span
+
+OpenTelemetry 将「Pipeline 第几步」映射为 span，便于在 Jaeger / Tempo 里看瀑布图。`tracer.Start` 务必 `defer span.End()`，并用 `span.RecordError` 记录错误。
+
+```go
+import (
+	"context"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+)
+
+var tracer = otel.Tracer("order/pipeline")
+
+type TraceProcessor struct {
+	inner OrderProcessor
+}
+
+func (t TraceProcessor) Name() string { return t.inner.Name() }
+
+func (t TraceProcessor) Process(ctx context.Context, pc *OrderContext) error {
+	ctx, span := tracer.Start(ctx, "pipeline."+t.inner.Name())
+	defer span.End()
+
+	err := t.inner.Process(ctx, pc)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return err
+	}
+	return nil
+}
+```
+
+#### 3. 结构化日志：trace_id、stage、duration
+
+`slog` 与 `context` 中的 `trace_id`（由 OTel 或网关注入）结合，可在日志平台按链路检索。中间件统一打一条「阶段结束」日志。
+
+```go
+import (
+	"context"
+	"log/slog"
+	"time"
+)
+
+type LogProcessor struct {
+	inner OrderProcessor
+	log   *slog.Logger
+}
+
+func (l LogProcessor) Name() string { return l.inner.Name() }
+
+func (l LogProcessor) Process(ctx context.Context, pc *OrderContext) error {
+	start := time.Now()
+	err := l.inner.Process(ctx, pc)
+	traceID, _ := ctx.Value("trace_id").(string)
+	l.log.InfoContext(ctx, "pipeline_stage",
+		slog.String("trace_id", traceID),
+		slog.String("stage_name", l.inner.Name()),
+		slog.Duration("duration", time.Since(start)),
+		slog.String("result", resultString(err)),
+	)
+	return err
+}
+
+func resultString(err error) string {
+	if err != nil {
+		return "error"
+	}
+	return "ok"
+}
+```
+
+#### 4. 告警规则（示例）
+
+| 告警项 | 条件（示例） | 含义 |
+|--------|----------------|------|
+| Stage P99 过高 | `histogram_quantile(0.99, rate(pipeline_stage_duration_seconds_bucket[5m])) > 0.5` | 单阶段 P99 超过 **500ms** |
+| 错误率 | `sum(rate(pipeline_stage_total{result="error"}[5m])) / sum(rate(pipeline_stage_total[5m])) > 0.05` | 错误率超过 **5%** |
+| Goroutine 泄漏 | `go_goroutines > 10000` | 协程数异常，可能阻塞或泄漏 |
+
+阈值需按业务与实例规格调优；错误率告警建议排除已知降级路径或配合 burn rate。
 
 ---
 
 ## 十二、团队落地建议
 
+Clean Code 与 Pipeline 重构不仅是个人习惯，更是**团队契约**：Review 标准、说服资源、控制风险，三者缺一就容易「一次热情、长期回潮」。
+
 ### 12.1 Code Review Checklist
+
+下面是一份**紧凑版**清单，适合贴在 MR 模板或团队 Wiki；完整维度（架构边界、聚合、CQRS 等）见专文。
+
+**编码层（5 条）**
+
+1. 函数主体是否在 **80 行**以内（含分支），超过是否已拆分或有充分理由？  
+2. 命名是否**反映业务语义**（动词 + 领域对象），而非实现细节？  
+3. 错误是否**包装上下文**（`fmt.Errorf("...: %w", err)`），避免裸返回？  
+4. 修改是否违背 **SOLID** 中与本改动最相关的一条（尤其是 SRP、DIP）？  
+5. 嵌套是否控制在 **3 层**以内，能否用早返回或小函数压平？
+
+**设计层（5 条）**
+
+1. 新增依赖是否**指向内侧抽象**（接口在调用方 / 领域侧），而非 concrete 泄漏？  
+2. 是否尊重 **聚合边界**（不变式、事务范围、ID 引用而非对象图乱连）？  
+3. **读写 / 领域 / 基础设施**是否仍分离，是否出现「为了省事」的跨层调用？  
+4. 选用的模式（Pipeline、策略、规则引擎）是否**与复杂度匹配**，没有过度设计？  
+5. 是否**可测**：关键路径能否用 fake / mock 在单测覆盖，而不必起全栈？
+
+完整版检查清单见 [架构与编码 Code Review Checklist](/system-design/27-architecture-checklist/)。
+
 ### 12.2 如何说服团队重构
+
+#### ROI 量化
+
+用「缺陷密度下降 × 单次修复成本」估算节省。示意（数字为教学假设）：
+
+| 指标 | 重构前 | 重构后（目标） | 说明 |
+|------|--------|----------------|------|
+| 生产缺陷 / 千行 / 年 | 8 | 4 | 流水线 + 小函数后，回归面缩小 |
+| 年均相关缺陷数 | 40 | 20 | 50 万行业务代码量级示意 |
+| 单次修复成本（人日） | 0.5 | 0.5 | 含定位、修复、发布 |
+| **年节省人日** | — | **10** | \((40-20) \times 0.5\) |
+
+再叠加 **需求交付周期**、**新人上手周数**，用表格对齐管理层语言，比「代码很臭」有效得多。
+
+#### Boy Scout Rule（童子军规则）
+
+约定：**每个 PR 顺带改善一小块**——命名、抽一个函数、补两条测试——不单独开「大重构项目」也能复利。
+
+#### Before / After 指标表（示例）
+
+| 维度 | Before | After |
+|------|--------|-------|
+| 月均与订单域相关的线上 bug | 12 | 6 |
+| 中等需求从开发到上线的平均人日 | 9 | 6 |
+| 新人读懂下单主路径所需时间 | 10 天 | 4 天 |
+
 ### 12.3 重构的风险控制
+
+#### Feature flag：按配置切换实现
+
+```go
+type RuntimeFlags struct {
+	UsePipelineV2 bool
+}
+
+type CheckoutService struct {
+	flags    RuntimeFlags
+	pipelineV1 *Pipeline
+	pipelineV2 *Pipeline
+}
+
+func (s *CheckoutService) Run(ctx context.Context, pc *ProcessContext) error {
+	if s.flags.UsePipelineV2 {
+		return s.pipelineV2.Run(ctx, pc)
+	}
+	return s.pipelineV1.Run(ctx, pc)
+}
+```
+
+配置来自远程配置中心或环境变量，**默认关闭新路径**，观察指标后再放量。
+
+#### Canary：双跑比对结果
+
+对关键输出（金额、库存预占结果）可同时跑旧逻辑与新逻辑，**以旧为准对外**，差异写日志或指标，用于发现语义漂移。
+
+```go
+func (s *PricingService) Quote(ctx context.Context, req *QuoteRequest) (Money, error) {
+	if !s.flags.CanaryNewPricing {
+		return s.legacy.Quote(ctx, req)
+	}
+	newVal, newErr := s.modern.Quote(ctx, req)
+	oldVal, oldErr := s.legacy.Quote(ctx, req)
+	// For decimal money, use tolerant compare instead of !=
+	if newVal != oldVal || (newErr == nil) != (oldErr == nil) {
+		s.log.Warn("pricing_canary_mismatch", "new", newVal, "old", oldVal)
+	}
+	// Still serve legacy until shadow period proves parity
+	return oldVal, oldErr
+}
+```
+
+（生产上可逐步改为新逻辑为主，此处强调**比对与观测**优先。）
+
+#### 测试覆盖率门禁
+
+约定：**本轮重构触及的包**行覆盖率 **> 80%**（或与基线 + 增量策略），CI 失败则禁止合并；避免「结构漂亮了、行为悄悄变了」。
+
+#### 回滚程序（Checklist）
+
+1. **关闭 Feature flag** 或切回旧 Deployment，确认流量已回到旧版本（Ingress / 配置中心 / 发布平台二次确认）。  
+2. **验证核心监控**：错误率、P99、业务成功率恢复至发布前基线 ± 阈值。  
+3. **记录事故单**：保留时间线、diff、指标截图，复盘是数据问题、边界遗漏还是发布节奏问题，再决定是否二次上线。
 
 ---
 
 ## 十三、总结与展望
 
 ### 13.1 核心要点回顾
+
+| 章 | 一句话带走 |
+|----|------------|
+| 一、痛点画像 | 复杂业务之苦在认知负荷、变更成本与线上风险的三重叠加。 |
+| 二、Clean Code 标准 | 可读性优先，命名与结构服务于读者而非作者。 |
+| 三、核心原则 | SRP、OCP、LSP、ISP、DIP 是拆模块与依赖方向的罗盘。 |
+| 四、Pipeline | 顺序阶段 + 统一上下文，是编排长流程的首选骨架。 |
+| 五、Context Pattern | 用显式上下文对象收拢参数与中间态，消灭长参数列表。 |
+| 六、设计模式 | 在真实分支与扩展点上用模式，而不是为了「像教科书」。 |
+| 七、规则引擎 | 规则与代码解耦，适合高频变更的策略与活动逻辑。 |
+| 八、代码组织 | 按领域与层次分包，依赖单向向内。 |
+| 九、其他实践 | 注释、错误码、测试与风格细节决定长期可维护性。 |
+| 十、重构案例 | 大函数 → Pipeline / Context，是电商域最常见的落地路径。 |
+| 十一、性能与可观测 | 池化、并行、超时、批写 + 指标追踪日志告警，闭环运维。 |
+| 十二、团队落地 | Review 清单、ROI 叙事与 flag / canary / 覆盖率 / 回滚控风险。 |
+
 ### 13.2 学习路径建议
-### 13.3 参考资料
+
+- **Junior（0–2 年）**  
+  顺序建议：**命名 → 函数分解 → 错误处理与边界**。  
+  书目：《Clean Code》（Robert C. Martin）
+
+- **Mid（2–5 年）**  
+  **SOLID → 设计模式 → Pipeline / 重构手法**。  
+  书目：《设计模式》（GoF）、《Refactoring》（Martin Fowler）
+
+- **Senior（5 年+）**  
+  **DDD → Clean Architecture → CQRS / 事件驱动**。  
+  书目：《Domain-Driven Design》（Eric Evans）、《Clean Architecture》（Robert C. Martin）
+
+```mermaid
+flowchart LR
+  J[Junior<br/>Naming / Functions / Errors] --> M[Mid<br/>SOLID / Patterns / Pipeline]
+  M --> S[Senior<br/>DDD / Clean Arch / CQRS]
+```
+
+### 13.3 从 Clean Code 到 Clean Architecture
+
+认知升级可以概括为三层：**代码级**（函数与命名）、**模块级**（边界、依赖方向、聚合）、**系统级**（上下文映射、限界上下文、读写分离与演进式架构）。Clean Code 解决「这一行好不好懂」；Clean Architecture 与 DDD 回答「这一块该不该存在、跟谁说话、如何独立演进」。
+
+若你希望把本篇的 Pipeline、Context 与团队实践，衔接到更系统的架构方法论，请继续阅读 [Clean Architecture、DDD 与 CQRS：三位一体的架构方法论](/system-design/26-clean-architecture-ddd-cqrs/)。
 
 ---
 
