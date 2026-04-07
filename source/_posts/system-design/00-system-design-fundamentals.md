@@ -154,7 +154,7 @@ graph TB
 10. **[可靠性工程](/2025/05/15/system-design/14-system-reliability/)** - 容错设计
 
 ### 面试阶段（建议2周）
-11. **[Clean Code实践](/2025/06/20/system-design/15-clean-code/)** - 代码质量
+11. **[Clean Code实践](/2025/06/20/system-design/31-clean-code/)** - 代码质量
 12. **[LeetCode系统设计](/2025/06/20/system-design/16-leetcode/)** - 面试真题
 13. **[程序员生存指南](/2024/10/16/other/programmer-survival-guide/)** - 职业发展
 

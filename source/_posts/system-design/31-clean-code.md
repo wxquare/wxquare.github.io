@@ -7060,7 +7060,7 @@ Clean Code 与 Pipeline 重构不仅是个人习惯，更是**团队契约**：R
 4. 选用的模式（Pipeline、策略、规则引擎）是否**与复杂度匹配**，没有过度设计？  
 5. 是否**可测**：关键路径能否用 fake / mock 在单测覆盖，而不必起全栈？
 
-完整版检查清单见 [架构与编码 Code Review Checklist](/system-design/27-architecture-checklist/)。
+完整版检查清单见 [架构与编码 Code Review Checklist](/system-design/32-architecture-checklist/)。
 
 ### 12.2 如何说服团队重构
 
@@ -7191,7 +7191,7 @@ flowchart LR
 
 认知升级可以概括为三层：**代码级**（函数与命名）、**模块级**（边界、依赖方向、聚合）、**系统级**（上下文映射、限界上下文、读写分离与演进式架构）。Clean Code 解决「这一行好不好懂」；Clean Architecture 与 DDD 回答「这一块该不该存在、跟谁说话、如何独立演进」。
 
-若你希望把本篇的 Pipeline、Context 与团队实践，衔接到更系统的架构方法论，请继续阅读 [Clean Architecture、DDD 与 CQRS：三位一体的架构方法论](/system-design/26-clean-architecture-ddd-cqrs/)。
+若你希望把本篇的 Pipeline、Context 与团队实践，衔接到更系统的架构方法论，请继续阅读 [Clean Architecture、DDD 与 CQRS：三位一体的架构方法论](/system-design/30-clean-architecture-ddd-cqrs/)。
 
 ---
 
