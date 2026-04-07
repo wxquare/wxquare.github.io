@@ -21,16 +21,16 @@ toc: true
 - 动态显示文本最新信息，常用于查看日志： tail -f xxx.log
 - 软连接/硬链接： ln cc ccAgain 和 ln -s cc ccAgain
 - command1 && command2
-- comamand1 || command2
-- <font color=red >查找txt和pdf文件：find . \( -name "*.txt" -o -name "*.pdf" \) -print </font>
+- command1 || command2
+- **查找txt和pdf文件：find . \( -name "*.txt" -o -name "*.pdf" \) -print**
 - find查找文件时指定深度：find . -maxdepth 1 -type f
 - find只查找目录：find . -type d -print 
 - [文本处理](https://linuxtools-rst.readthedocs.io/zh_CN/latest/base/03_text_processing.html)
-- 打包：taf -cvf xxx.tar .  解包： tar -xvf xxx.tar 
+- 打包：tar -cvf xxx.tar .  解包： tar -xvf xxx.tar 
 - 压缩与解压：-z 解压gz文件；-j解压bz2；-J解压xz文件
 - grep 查找文件中指定字符出现的次数
 
-```
+```bash
 cat Temp\ Query\ 1_20230914-171937.csv | grep  "\"sop_v3_user" | grep -v "xxxx" | awk -F ',' '{print $2,$5,$6}' | sort | uniq -c | sort -rk 2
 ```
 

@@ -20,26 +20,26 @@ toc: true
 5. 死锁：产生的四个条件、四个解决方法,死锁检测
 6. 守护进程，linux系统编程实现守护进程
 7. 在Linux上，对于多进程，子进程继承了父进程的下列哪些？堆栈、文件描述符、进程组、会话、环境变量、共享内存 
-7. 僵尸进程和孤儿进程。孤儿进程：一个父进程退出，而它的一个或多个子进程还在运行，那么那些子进程将成为孤儿进程。孤儿进程将被init进程(进程号为1)所收养，并由init进程对它们完成状态收集工作。僵尸进程：一个进程使用fork创建子进程，如果子进程退出，而父进程并没有调用wait或waitpid获取子进程的状态信息，那么子进程的进程描述符仍然保存在系统中。这种进程称之为僵死进程。
-8. 进程的状态。
-	- TASK_RUNNING（运行态）：进bai程是可执行du的；或者正在执行，zhi或者在运行队列中等待执行。
+8. 僵尸进程和孤儿进程。孤儿进程：一个父进程退出，而它的一个或多个子进程还在运行，那么那些子进程将成为孤儿进程。孤儿进程将被init进程(进程号为1)所收养，并由init进程对它们完成状态收集工作。僵尸进程：一个进程使用fork创建子进程，如果子进程退出，而父进程并没有调用wait或waitpid获取子进程的状态信息，那么子进程的进程描述符仍然保存在系统中。这种进程称之为僵死进程。
+9. 进程的状态。
+	- TASK_RUNNING（运行态）：进程是可执行du的；或者正在执行，zhi或者在运行队列中等待执行。
 	- TASK_INTERRUPTIBLE（可中断睡眠态）：进程被阻塞，等待某些条件的完成。一旦完成这些条件，内核就会将该进程的状态设置为运行态。
 	- TASK_UNINTERRUPTIBLE（不可中断睡眠态）：进程被阻塞，等待某些条件的完成。与可中断睡眠态不同的是，该状态进程不可被信号唤醒。
 	- TASK_ZOMBIE（僵死态）：该进程已经结束，但是其父进程还没有将其回收。
 	- TASK_STOP（终止态）：进程停止执行。通常进程在收到SIGSTOP、SIGTTIN、SIGTTOU等信号的时候会进入该状态。
-9. linux的CFS调度机制是什么？时间片/policy（进程类别）/priority（优先级）/counter。linux的任务调度机制是什么？在每个进程的task_struct结构中有以下四项：policy、priority、counter、rt_priority。这四项是选择进程的依据。其中，policy是进程的调度策略，用来区分实时进程和普通进程，实时进程优先于普通进程运行；priority是进程(包括实时和普通)的静态优先级；counter是进程剩余的时间片，它的起始值就是priority的值；由于counter在后面计算一个处于可运行状态的进程值得运行的程度goodness时起重要作用，因此，counter 也可以看作是进程的动态优先级。rt_priority是实时进程特有的，用于实时进程间的选择。 Linux用函数goodness()来衡量一个处于可运行状态的进程值得运行的程度。该函数综合了以上提到的四项，还结合了一些其他的因素，给每个处于可运行状态的进程赋予一个权值(weight)，调度程序以这个权值作为选择进程的唯一依据。
-10. goroutine的GPM，没有时间片和优先级的概念，但也支持“抢占式调度”。 goroutine的主要状态grunnable、grunning、gwaiting
-11. 线程的状态
+10. linux的CFS调度机制是什么？时间片/policy（进程类别）/priority（优先级）/counter。linux的任务调度机制是什么？在每个进程的task_struct结构中有以下四项：policy、priority、counter、rt_priority。这四项是选择进程的依据。其中，policy是进程的调度策略，用来区分实时进程和普通进程，实时进程优先于普通进程运行；priority是进程(包括实时和普通)的静态优先级；counter是进程剩余的时间片，它的起始值就是priority的值；由于counter在后面计算一个处于可运行状态的进程值得运行的程度goodness时起重要作用，因此，counter 也可以看作是进程的动态优先级。rt_priority是实时进程特有的，用于实时进程间的选择。 Linux用函数goodness()来衡量一个处于可运行状态的进程值得运行的程度。该函数综合了以上提到的四项，还结合了一些其他的因素，给每个处于可运行状态的进程赋予一个权值(weight)，调度程序以这个权值作为选择进程的唯一依据。
+11. goroutine的GPM，没有时间片和优先级的概念，但也支持“抢占式调度”。 goroutine的主要状态grunnable、grunning、gwaiting
+12. 线程的状态
 	- runnable
 	- running
 	- blocked
 	- dead
-12. 进程、线程与协程的区别
-13. 操作系统写时复制:https://juejin.cn/post/6844903702373859335
-14. [操作系统为什么设计用户态和内核态，用户态和内核态的权限不同？怎么解决IO频繁发生内核和用户态的态的切换（缓存）？](https://imageslr.github.io/2020/07/07/user-mode-kernel-mode.html)
-15. [select、epoll的监听回调机制，红黑树？](https://www.jianshu.com/p/31cdfd6f5a48)
-16. [从一道面试题谈linux下fork的运行机制](https://www.cnblogs.com/leoo2sk/archive/2009/12/11/talk-about-fork-in-linux.html)
-17. malloc分配多少内存：http://fallincode.com/blog/2020/01/malloc%e6%9c%80%e5%a4%9a%e8%83%bd%e5%88%86%e9%85%8d%e5%a4%9a%e5%b0%91%e5%86%85%e5%ad%98/
+13. 进程、线程与协程的区别
+14. 操作系统写时复制:https://juejin.cn/post/6844903702373859335
+15. [操作系统为什么设计用户态和内核态，用户态和内核态的权限不同？怎么解决IO频繁发生内核和用户态的态的切换（缓存）？](https://imageslr.github.io/2020/07/07/user-mode-kernel-mode.html)
+16. [select、epoll的监听回调机制，红黑树？](https://www.jianshu.com/p/31cdfd6f5a48)
+17. [从一道面试题谈linux下fork的运行机制](https://www.cnblogs.com/leoo2sk/archive/2009/12/11/talk-about-fork-in-linux.html)
+18. malloc分配多少内存：http://fallincode.com/blog/2020/01/malloc%e6%9c%80%e5%a4%9a%e8%83%bd%e5%88%86%e9%85%8d%e5%a4%9a%e5%b0%91%e5%86%85%e5%ad%98/
 
 
 ## 存储系统，内存和存储

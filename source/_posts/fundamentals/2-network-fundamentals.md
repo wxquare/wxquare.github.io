@@ -48,7 +48,7 @@ toc: true
 	- 根据序列号调整顺序
 	
 8. **[TCP流量控制和滑动窗口](https://www.cnblogs.com/xiaolincoding/p/12732052.html)**
-	- 为了提高数据传输的小路，tcp避免了一问一答式的消息传输策略
+	- 为了提高数据传输的效率，tcp避免了一问一答式的消息传输策略
 	- 通过累积确认ACK的方式提高效率
 	- 在累积确认时通过接收窗口进行流量控制	
 	
@@ -71,7 +71,7 @@ toc: true
 14. **udp协议怎么做可靠传输？**
 	由于在传输层UDP已经是不可靠的连接，那就要在应用层自己实现一些保障可靠传输的机制，简单来讲，要使用UDP来构建可靠的面向连接的数据传输，就要实现类似于TCP协议的，超时重传（定时器），有序接受 （添加包序号），应答确认 （Seq/Ack应答机制），滑动窗口流量控制等机制 （滑动窗口协议），等于说要在传输层的上一层（或者直接在应用层）实现TCP协议的可靠数据传输机制，比如使用UDP数据包+序列号，UDP数据包+时间戳等方法。目前已经有一些实现UDP可靠传输的机制，比如UDT（UDP-based Data Transfer Protocol）基于UDP的数据传输协议（UDP-based Data Transfer Protocol，简称UDT）是一种互联网数据传输协议。UDT的主要目的是支持高速广域网上的海量数据传输，而互联网上的标准数据传输协议TCP在高带宽长距离网络上性能很差。 顾名思义，UDT建于UDP之上，并引入新的拥塞控制和数据可靠性控制机制。UDT是面向连接的双向的应用层协议。它同时支持可靠的数据流传输和部分可靠的数据报传输。 由于UDT完全在UDP上实现，它也可以应用在除了高速数据传输之外的其它应用领域，例如点到点技术（P2P），防火墙穿透，多媒体数据传输等等
 	
-14. **TCP 保活机制KeepAlive？其局限性？Http的keep-alive？为什么应用层也经常做心跳检查？**
+15. **TCP 保活机制KeepAlive？其局限性？Http的keep-alive？为什么应用层也经常做心跳检查？**
 	- TCP KeepAlive 的基本原理是，隔一段时间给连接对端发送一个探测包，如果收到对方回应的 ACK，则认为连接还是存活的，在超过一定重试次数之后还是没有收到对方的回应，则丢弃该 TCP 连接。TCP-Keepalive-HOWTO 有对 TCP KeepAlive 特性的详细介绍，有兴趣的同学可以参考。
 	- TCP KeepAlive 的局限。首先 TCP KeepAlive 监测的方式是发送一个 probe 包，会给网络带来额外的流量，另外 TCP KeepAlive 只能在内核层级监测连接的存活与否，而连接的存活不一定代表服务的可用。例如当一个服务器 CPU 进程服务器占用达到 100%，已经卡死不能响应请求了，此时 TCP KeepAlive 依然会认为连接是存活的。因此 TCP KeepAlive 对于应用层程序的价值是相对较小的。需要做连接保活的应用层程序，例如 QQ，往往会在应用层实现自己的心跳功能。
 除了TCP自带的Keeplive机制，实现业务中经常在业务层面定制**“心跳”**功能，主要有以下几点考虑：
@@ -82,14 +82,14 @@ toc: true
 在 HTTP 1.0 时期，每个 TCP 连接只会被一个 HTTP Transaction（请求加响应）使用，请求时建立，请求完成释放连接。当网页内容越来越复杂，包含大量图片、CSS 等资源之后，这种模式效率就显得太低了。所以，在 HTTP 1.1 中，引入了 HTTP persistent connection 的概念，也称为 HTTP keep-alive，目的是复用TCP连接，在一个TCP连接上进行多次的HTTP请求从而提高性能。HTTP1.0中默认是关闭的，需要在HTTP头加入"Connection: Keep-Alive"，才能启用Keep-Alive；HTTP1.1中默认启用Keep-Alive，加入"Connection: close "，才关闭。两者在写法上不同，http keep-alive 中间有个"-"符号。 **HTTP协议的keep-alive 意图在于连接复用**，同一个连接上串行方式传递请求-响应数据。**TCP的keepalive机制意图在于保活、心跳，检测连接错误。**
 
 
-15. [TCP 协议性能问题分析？](https://draveness.me/whys-the-design-tcp-performance/)
+16. [TCP 协议性能问题分析？](https://draveness.me/whys-the-design-tcp-performance/)
 	- TCP 的拥塞控制在发生丢包时会进行退让，减少能够发送的数据段数量，但是丢包并不一定意味着网络拥塞，更多的可能是网络状况较差；
 	- TCP 的三次握手带来了额外开销，这些开销不只包括需要传输更多的数据，还增加了首次传输数据的网络延迟；
 	- TCP 的重传机制在数据包丢失时可能会重新传输已经成功接收的数据段，造成带宽的浪费；
 
-16. [QUIC 是如何解决TCP 性能瓶颈的？](https://blog.csdn.net/m0_37621078/article/details/106506532)
-17. [科普：QUIC协议原理分析](https://zhuanlan.zhihu.com/p/32553477)
-18. 
+17. [QUIC 是如何解决TCP 性能瓶颈的？](https://blog.csdn.net/m0_37621078/article/details/106506532)
+18. [科普：QUIC协议原理分析](https://zhuanlan.zhihu.com/p/32553477)
+19. 
 
 ## http和https
 1. [HTTP协议协议格式详解](https://www.jianshu.com/p/8fe93a14754c)
@@ -258,7 +258,7 @@ RPC 是一个“请求-响应”协议：
 
 RPC 调用示例：
 
-```
+```http
 GET /someoperation?data=anId
 
 POST /anotheroperation
@@ -300,7 +300,7 @@ RESTful 接口有四条规则：
 
 REST 请求的例子：
 
-```
+```http
 GET /someresources/anId
 
 PUT /someresources/anId

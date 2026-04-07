@@ -38,13 +38,13 @@ Overall, the choice of programming language depends on the project requirements,
 
 ### array 
 - 数组array: [3]int{1,2,3}
-- <font color=red>**数组是值类型**</font>，数组传参发生拷贝
+- **数组是值类型**，数组传参发生拷贝
 - 定长
 - 数组的创建、初始化、访问和遍历range，len(arr)求数组的长度
   
 ### slice
 - 切片slice初始化: make([]int,len,cap)
-- <font color=red>**slice是引用类型**</font>
+- **slice是引用类型**
 - 变长，用容量和长度的区别，分别使用cap和len函数获取
 - 内存结构和实现：指针、cap、size共24字节
 - 常用函数，append，cap，len
