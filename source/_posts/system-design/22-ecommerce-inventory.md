@@ -1,17 +1,28 @@
 ---
-title: 多品类统一库存系统设计：电商·虚拟商品·本地生活
+title: 电商系统设计（三）：库存系统
 date: 2025-06-28
 categories:
 - 系统设计
 tags:
-- 库存系统
-- 电商
-- 系统设计
-- 高并发
+- e-commerce
+- system-design
+- inventory
+- redis
+- strategy-pattern
 toc: true
 ---
 
 <!-- toc -->
+
+> **电商系统设计系列**
+> - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
+> - [（二）商品上架系统](/system-design/21-ecommerce-listing/)
+> - **（三）库存系统**（本文）
+> - [（四）计价引擎](/system-design/23-ecommerce-pricing-engine/)
+> - [（五）计价系统 DDD 实践](/system-design/24-ecommerce-pricing-ddd/)
+> - [（六）B 端运营系统](/system-design/25-ecommerce-b-side-ops/)
+
+本文是电商系统设计系列的第三篇，聚焦库存系统的设计与实现。
 
 ## 一、背景与挑战
 
@@ -1353,3 +1364,8 @@ Topic: inventory.events (6 分区)
 | 券码管理 | 部分 | 完善 | **核心能力** |
 | 供应商集成 | 少量 | FBA 模式 | **多策略** |
 | 峰值 QPS | 100 万+ | 50 万+ | **2 万**（中型平台）|
+
+---
+
+> **系列导航**
+> 库存与价格在下单时的协作流程，详见[（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)中的 C 端用户旅程章节。

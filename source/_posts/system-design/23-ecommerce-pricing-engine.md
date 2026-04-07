@@ -1,18 +1,28 @@
 ---
-title: 电商系统价格计算引擎设计与实现
+title: 电商系统设计（四）：计价引擎
 date: 2026-02-27
 categories:
 - 系统设计
 tags:
-- 价格引擎
-- 电商系统
-- 计价中心
-- 营销优惠
-- 系统设计
+- e-commerce
+- system-design
+- pricing
+- multi-level-cache
+- degradation
 toc: true
 ---
 
 <!-- toc -->
+
+> **电商系统设计系列**
+> - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
+> - [（二）商品上架系统](/system-design/21-ecommerce-listing/)
+> - [（三）库存系统](/system-design/22-ecommerce-inventory/)
+> - **（四）计价引擎**（本文）
+> - [（五）计价系统 DDD 实践](/system-design/24-ecommerce-pricing-ddd/)
+> - [（六）B 端运营系统](/system-design/25-ecommerce-b-side-ops/)
+
+本文是电商系统设计系列的第四篇，详述计价引擎的设计与实现。
 
 ## 一、背景与挑战
 
@@ -5582,3 +5592,8 @@ func (sc *SafetyChecker) Check(req *PricingRequest, resp *PricingResponse) error
 
 > **日期**：2026-02-27  
 > **标签**：#价格引擎 #电商系统 #计价中心 #系统设计
+
+---
+
+> **系列导航**
+> 计价系统的领域建模和 DDD 实践，详见[（五）计价系统 DDD 实践](/system-design/24-ecommerce-pricing-ddd/)。

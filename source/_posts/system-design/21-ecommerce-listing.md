@@ -1,17 +1,28 @@
 ---
-title: 多品类统一商品上架系统设计：电商·虚拟商品·本地生活
+title: 电商系统设计（二）：商品上架系统
 date: 2025-06-28
 categories:
 - 系统设计
 tags:
-- 商品上架
-- 电商
-- 系统设计
-- 状态机
+- e-commerce
+- system-design
+- listing
+- state-machine
+- saga
 toc: true
 ---
 
 <!-- toc -->
+
+> **电商系统设计系列**
+> - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
+> - **（二）商品上架系统**（本文）
+> - [（三）库存系统](/system-design/22-ecommerce-inventory/)
+> - [（四）计价引擎](/system-design/23-ecommerce-pricing-engine/)
+> - [（五）计价系统 DDD 实践](/system-design/24-ecommerce-pricing-ddd/)
+> - [（六）B 端运营系统](/system-design/25-ecommerce-b-side-ops/)
+
+本文是电商系统设计系列的第二篇，建议先阅读[（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)了解整体架构。
 
 ## 一、背景与挑战
 
@@ -1527,3 +1538,8 @@ supplierPullScheduler.Register("concert", &SupplierPullConfig{
 | **并发控制** | 乐观锁 + 唯一索引 | 轻量级，无分布式锁开销 |
 | **故障恢复** | 看门狗 + 自动重试 | 超时/卡住任务自动恢复 |
 | **批量处理** | Worker Pool + 分批事务 | 控制并发 + 保证一致性 |
+
+---
+
+> **系列导航**
+> 上架完成后，商品的库存管理详见[（三）库存系统](/system-design/22-ecommerce-inventory/)，价格配置详见[（四）计价引擎](/system-design/23-ecommerce-pricing-engine/)。

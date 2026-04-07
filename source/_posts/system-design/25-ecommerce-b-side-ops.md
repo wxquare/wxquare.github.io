@@ -1,19 +1,28 @@
 ---
-title: 多品类统一商品运营管理系统设计
+title: 电商系统设计（六）：B 端运营系统
 date: 2026-02-26
 categories:
 - 系统设计
 tags:
-- B端运营系统
-- 多品类商品管理
-- 统一上架系统
-- 策略模式
-- 电商
-- 系统设计
+- e-commerce
+- system-design
+- b-side
+- operations
+- observability
 toc: true
 ---
 
 <!-- toc -->
+
+> **电商系统设计系列**
+> - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
+> - [（二）商品上架系统](/system-design/21-ecommerce-listing/)
+> - [（三）库存系统](/system-design/22-ecommerce-inventory/)
+> - [（四）计价引擎](/system-design/23-ecommerce-pricing-engine/)
+> - [（五）计价系统 DDD 实践](/system-design/24-ecommerce-pricing-ddd/)
+> - **（六）B 端运营系统**（本文）
+
+本文是电商系统设计系列的第六篇，聚焦 B 端运营系统的设计。
 
 ## 一、背景与挑战
 
@@ -6744,4 +6753,9 @@ func TestConcertTicketFlow(t *testing.T) {
 2. [多品类统一价格管理与计价系统设计](./21-pricing.md)
 3. [统一商品·库存·价格管理系统设计](./22-unified-product-inventory-pricing-system.md)
 4. [电商系统设计全景](./13-e-commerce.md)
+
+---
+
+> **系列导航**
+> 本系列全部文章索引，详见[（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)。
 

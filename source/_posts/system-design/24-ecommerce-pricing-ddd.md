@@ -1,17 +1,28 @@
 ---
-title: 领域驱动设计在电商计价系统中的实践
+title: 电商系统设计（五）：计价系统 DDD 实践
 date: 2026-03-14
 categories:
 - 系统设计
 tags:
-- DDD
-- 领域驱动设计
-- 计价系统
-- 架构设计
+- e-commerce
+- system-design
+- ddd
+- hexagonal-architecture
+- aggregate-root
 toc: true
 ---
 
 <!-- toc -->
+
+> **电商系统设计系列**
+> - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
+> - [（二）商品上架系统](/system-design/21-ecommerce-listing/)
+> - [（三）库存系统](/system-design/22-ecommerce-inventory/)
+> - [（四）计价引擎](/system-design/23-ecommerce-pricing-engine/)
+> - **（五）计价系统 DDD 实践**（本文）
+> - [（六）B 端运营系统](/system-design/25-ecommerce-b-side-ops/)
+
+本文是电商系统设计系列的第五篇，是[（四）计价引擎](/system-design/23-ecommerce-pricing-engine/)的姊妹篇，从 DDD 视角重新审视计价系统的建模。
 
 > 本文是计价引擎系列的方法论篇，聚焦 DDD 在计价系统中的战略/战术设计实践。系统架构与实现细节详见：[电商系统价格计算引擎设计与实现](./24-pricing-engine-design.md)。
 
@@ -2311,3 +2322,8 @@ DDD是团队工作，不是个人英雄主义：
 **作者：后端架构师**
 
 *领域驱动设计：让软件真正反映业务*
+
+---
+
+> **系列导航**
+> 计价引擎的工程实现细节（多级缓存、降级策略等），详见[（四）计价引擎](/system-design/23-ecommerce-pricing-engine/)。
