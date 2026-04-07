@@ -1,8 +1,14 @@
 ---
-title: 中间件 - 搜索和Elasticsearch
+title: 中间件 - 搜索和 Elasticsearch
 date: 2024-03-07
 categories:
 - 系统设计
+tags:
+- Elasticsearch
+- 搜索引擎
+- 倒排索引
+- DSL
+toc: true
 ---
 
 

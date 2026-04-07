@@ -3,6 +3,12 @@ title: 中间件 - 异步和消息队列
 date: 2024-03-10
 categories:
 - 系统设计
+tags:
+- Kafka
+- 消息队列
+- 异步
+- 分布式
+toc: true
 ---
 
 ## kafka 特点和使用场景

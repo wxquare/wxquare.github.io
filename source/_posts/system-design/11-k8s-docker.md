@@ -1,8 +1,14 @@
 ---
-title: 互联网基础设施：k8s 与 docker 实践
+title: 互联网基础设施：Kubernetes 与 Docker 实践
 date: 2024-12-20
-categories: 
+categories:
 - 系统设计
+tags:
+- kubernetes
+- docker
+- 容器化
+- 云原生
+toc: true
 ---
 
 # k8s 网络

@@ -1,8 +1,15 @@
 ---
-title: 中间件 - 存储与Mysql数据库
+title: 中间件 - 存储与 MySQL 数据库
 date: 2024-03-04
 categories:
 - 系统设计
+tags:
+- MySQL
+- 数据库
+- 索引
+- 分库分表
+- 存储设计
+toc: true
 ---
 
 多查看文档
