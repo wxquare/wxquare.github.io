@@ -1,6 +1,6 @@
 ---
 title: 高频系统设计面试题速查手册
-date: 2025-06-25
+date: 2026-04-07
 categories:
 - 系统设计
 tags:
@@ -12,6 +12,10 @@ toc: true
 ---
 
 <!-- toc -->
+
+本文汇总了系统设计面试中最高频的题目，覆盖高并发、海量数据、分布式一致性、中间件选型、安全、可观测性等 11 个核心领域。适合有 2-5 年经验的后端工程师面试前快速复习。
+
+**使用建议**：每个小节独立成题，可直接跳转到目标章节按需查阅。
 
 ## 一、高并发与流量治理
 
@@ -101,7 +105,7 @@ toc: true
 
 | 方案 | 空间 | 精确度 | 支持删除 |
 |------|------|--------|----------|
-| **Bitmap** | 40亿 ≈ 500MB | 精确 | 否 |
+| **Bitmap** | 40亿 ≈ 512MB | 精确 | 否 |
 | **Bloom Filter** | 极小（几十 MB） | 有误判 | 否（Counting BF 可以，但空间 ×4） |
 | **HyperLogLog** | 12KB | 误差 0.81% | 否 |
 
@@ -116,7 +120,7 @@ toc: true
 
 **Redis ZSet 方案**：
 
-```
+```redis
 ZADD rank 5000 "player_1"
 ZREVRANGE rank 0 9  -- Top 10
 ZRANK rank "player_1" -- 查排名
@@ -148,7 +152,7 @@ ZRANK rank "player_1" -- 查排名
 
 **Bitmap**：1 bit 表示 1 个用户的在线/离线。1亿用户仅 12MB，10 亿用户约 120MB。
 
-```
+```redis
 SETBIT online 123456 1   -- 用户123456上线
 GETBIT online 123456     -- 查询是否在线
 BITCOUNT online          -- 统计在线人数
@@ -274,7 +278,7 @@ BITCOUNT online          -- 统计在线人数
 
 **两个正交维度分类**：
 
-```
+```text
 维度一：谁管库存？
   - 自管理 (SelfManaged)：平台维护（Deal、OPV）
   - 供应商管理 (SupplierManaged)：第三方维护（酒店、机票）
@@ -298,7 +302,7 @@ BITCOUNT online          -- 统计在线人数
 
 **架构设计（策略模式）**：
 
-```
+```text
 业务层 (Order Service)
     ↓
 库存管理器 (InventoryManager)
@@ -320,7 +324,7 @@ BITCOUNT online          -- 统计在线人数
 
 **Redis 存储结构**：
 
-```
+```text
 Key:   inventory:code:pool:{itemID}:{skuID}:{batchID}
 Type:  LIST
 Value: [codeID_1, codeID_2, ...]
@@ -334,7 +338,7 @@ TTL:   1h  (库存空标志，避免重复查 DB)
 
 **出货流程**（核心）：
 
-```
+```text
 1. 检查库存空标志 → 命中则直接返回缺货
 2. Redis LIST 原子出货 (Lua: LRANGE + LTRIM)
 3. 如果库存不足 → 补货 (从 MySQL 查 3000 个可用券码 → RPUSH 到 Redis)
@@ -362,7 +366,7 @@ return result
 
 **Redis HASH 设计**：
 
-```
+```text
 Key:   inventory:qty:stock:{itemID}:{skuID}
 Type:  HASH
 Fields:
@@ -473,7 +477,7 @@ if abs(diff) > 100 || abs(diff) > mysqlStock*0.1 {
 
 **降级方案**：
 
-```
+```text
 Redis 可用
   ↓
 正常走 Redis（< 10ms）
@@ -500,7 +504,7 @@ Redis 不可用
 
 **解决方案（异步生成 + 重试补偿）**：
 
-```
+```text
 支付成功
   ↓
 1. 订单状态更新为"处理中"
@@ -540,7 +544,7 @@ Redis 不可用
 
 **Redis 设计**：
 
-```
+```text
 Key:   inventory:time:stock:{itemID}:{skuID}:{date}
 Type:  HASH
 Fields:
@@ -668,7 +672,7 @@ inventoryManager.BookStock(ctx, &BookStockReq{
 
 **核心问题**：如何保证数据库操作和消息发送的原子性？
 
-```
+```text
 经典场景：订单支付成功
 ├─ 更新订单状态（MySQL）
 └─ 发送支付成功消息（Kafka）
@@ -708,7 +712,7 @@ func ProcessPayment(orderID string) error {
 
 **✅ 本地消息表方案**：
 
-```
+```text
 核心思想：将"发消息"这个动作转化为"写数据库"，利用数据库事务保证原子性
 
 业务操作 + 插入消息记录 → 在同一个事务中
@@ -1071,7 +1075,7 @@ CREATE TABLE outbox_message_202402 LIKE outbox_message_template;
 
 **Q3：如果OutboxPublisher挂了怎么办？**
 
-```
+```text
 保证机制：
 1. ✅ 消息已持久化到数据库，不会丢失
 2. ✅ OutboxPublisher重启后继续扫描发送
@@ -1149,7 +1153,7 @@ func CompensateOrder(orderID string) error {
 
 **面试官：为什么不直接在业务代码里同步发送Kafka？**
 
-```
+```text
 回答要点：
 1. ❌ 不可靠：Kafka发送失败，但DB已提交，数据不一致
 2. ❌ 性能差：同步等待Kafka响应，阻塞业务线程
@@ -1163,7 +1167,7 @@ func CompensateOrder(orderID string) error {
 
 **面试官：本地消息表如何保证高可用？**
 
-```
+```text
 1. 数据库高可用：主从复制、双主
 2. Publisher多实例部署：分布式锁防重复
 3. 监控告警：pending消息超过阈值告警
@@ -1172,7 +1176,7 @@ func CompensateOrder(orderID string) error {
 
 **面试官：你们系统哪些场景用了本地消息表？**
 
-```
+```text
 实际案例：
 1. 订单支付成功：通知库存、积分、物流
 2. 商品上架成功：同步Redis、ES、发送通知
@@ -1196,7 +1200,57 @@ func CompensateOrder(orderID string) error {
 
 ---
 
-### 3. 接口幂等性
+### 3. 分布式锁
+
+**场景**：防止多个节点同时操作共享资源（库存扣减、订单创建、定时任务防重）。
+
+**方案对比**：
+
+| 方案 | 实现 | 优点 | 缺点 |
+|------|------|------|------|
+| **Redis SET NX EX** | `SET lock_key uuid EX 30 NX` | 简单、高性能（ms 级） | 主从切换可能丢锁 |
+| **RedLock** | N 个独立 Redis 实例多数派加锁 | 比单节点更可靠 | 争议大（Kleppmann 批评）、部署成本高 |
+| **ZooKeeper** | 临时有序节点 + Watch | CP 模型，锁可靠 | 性能较低（~100ms） |
+| **Etcd** | Lease + Revision | 强一致、高可用 | 实现复杂 |
+
+**Redis 分布式锁核心实现**：
+
+```go
+// 加锁：SET NX EX + UUID 防误删
+func TryLock(key string, ttl time.Duration) (string, bool) {
+    uuid := generateUUID()
+    ok := redis.SetNX(key, uuid, ttl).Val()
+    return uuid, ok
+}
+
+// 解锁：Lua 脚本保证原子性（只删自己的锁）
+func Unlock(key, uuid string) bool {
+    lua := `
+    if redis.call('get', KEYS[1]) == ARGV[1] then
+        return redis.call('del', KEYS[1])
+    else
+        return 0
+    end`
+    return redis.Eval(lua, []string{key}, uuid).Val().(int64) == 1
+}
+```
+
+**高频追问**：
+
+**Q：锁过期了但业务没执行完怎么办？**
+- **Watchdog 续期**（Redisson 方案）：后台线程每 TTL/3 续期一次，持有锁的线程异常退出则停止续期，锁自动过期释放。
+
+**Q：Redis 主从切换导致锁丢失怎么办？**
+- **RedLock**：向 N（≥5）个独立 Redis 实例加锁，多数派（≥N/2+1）成功才算加锁成功。
+- **替代方案**：对强一致要求高的场景（如金融），改用 ZooKeeper 或 Etcd。
+
+**Q：分布式锁 vs 数据库行锁？**
+- 分布式锁：跨服务、跨数据源的资源互斥。
+- 数据库行锁（`SELECT ... FOR UPDATE`）：单库内的行级互斥，更简单但不跨库。
+
+---
+
+### 4. 接口幂等性
 
 **定义**：同一个请求执行多次，结果与执行一次相同。
 
@@ -1204,7 +1258,7 @@ func CompensateOrder(orderID string) error {
 
 ---
 
-#### 3.1 幂等方案对比
+#### 4.1 幂等方案对比
 
 | 方案 | 实现 | 优点 | 缺点 | 适用场景 |
 |------|------|------|------|----------|
@@ -1217,7 +1271,7 @@ func CompensateOrder(orderID string) error {
 
 ---
 
-#### 3.2 调用方与被调方职责
+#### 4.2 调用方与被调方职责
 
 **核心原则**：调用方生成幂等键，被调方实现幂等逻辑。
 
@@ -1282,7 +1336,7 @@ func (s *OrderService) CreateOrder(req *CreateOrderRequest) (*Order, error) {
 
 ---
 
-#### 3.3 高级方案：幂等表
+#### 4.3 高级方案：幂等表
 
 **适用场景**：支付、退款等核心金融操作，需最强保证。
 
@@ -1359,7 +1413,7 @@ func (s *PaymentService) ProcessPayment(req *PaymentRequest) (*PaymentResult, er
 
 ---
 
-#### 3.4 常见问题与追问
+#### 4.4 常见问题与追问
 
 **Q1：幂等键的生命周期？**
 - 保留 7-30 天（覆盖业务重试窗口期）。
@@ -1451,7 +1505,7 @@ func ConsumeOrderPaidEvent(msg *kafka.Message) error {
 
 ---
 
-#### 3.5 灵魂拷问
+#### 4.5 灵魂拷问
 
 **面试官：你们系统哪些接口需要幂等？**
 
@@ -1711,6 +1765,40 @@ if result == 0 {
 
 ---
 
+## 速查索引
+
+| 题目 | 核心方案 | 一句话总结 |
+|------|---------|-----------|
+| 秒杀系统 | Redis Lua + MQ | 预热缓存 + 异步扣减 + 限流防刷 |
+| 分布式限流 | 令牌桶 + Redis Lua | 允许突发，分布式用 Redis |
+| 热点发现 | 本地缓存 + Key 分散 | 探测 → 拦截 → 分散 → 隔离 |
+| 40 亿去重 | Bitmap | 512MB 精确去重 |
+| 排行榜 | Redis ZSet | 分桶 + 归并解决大 Key |
+| 海量排序 | 外部排序 + 多路归并 | 分块排序 → 小顶堆归并 |
+| 订单超时取消 | 延迟消息 / ZSet | 长延迟用 MQ，短延迟用时间轮 |
+| 分布式 ID | Snowflake | 1+41+10+12 = 64bit，4096/ms |
+| 短链接 | 发号器 + Base62 | 6 位可表示 568 亿 |
+| Feed 流 | 推拉结合 | 普通用户推，大 V 拉 |
+| 红包算法 | 二倍均值法 | 预分配 + LPOP 原子弹出 |
+| 分布式事务 | 事务消息 / TCC | 电商用事务消息，金融用 TCC |
+| 分布式锁 | Redis SET NX EX | Lua 原子解锁 + Watchdog 续期 |
+| 缓存一致性 | Cache Aside | 先更新 DB，再删 Cache |
+| 接口幂等 | 唯一索引 / Token | 调用方生成 Key，被调方校验 |
+
+---
+
 ## 参考
+
+### 相关文章
+
+- [系统设计完全指南：从零基础到面试高手](/system-design/00-system-design-fundamentals/)
+- [Redis 原理与实践](/system-design/8-cache-redis/)
+- [异步和消息队列](/system-design/9-kafka-MQ/)
+- [搜索和 Elasticsearch](/system-design/10-elasticsearch/)
+- [电商系统设计](/system-design/13-e-commerce/)
+- [系统稳定性建设：方法论与实践](/system-design/14-system-reliability/)
+- [多品类统一库存系统设计](/system-design/18-inventory-system-design/)
+
+### 外部参考
 
 - [大厂面试真题 - Fox爱分享](https://juejin.cn/column/7566818477114490926)

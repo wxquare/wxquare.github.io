@@ -43,6 +43,50 @@ categories:
 3. 主题设置：https://theme-next.js.org/docs/theme-settings/
 
 
+## 启用 LaTeX 数学公式渲染
+
+NexT 主题内置了 MathJax 支持，按以下步骤启用：
+
+### 1. 安装服务端渲染插件
+
+```bash
+npm install hexo-filter-mathjax --save
+```
+
+该插件在服务端完成公式渲染，无需更换默认的 `hexo-renderer-marked` 渲染器。
+
+### 2. 启用 MathJax
+
+在 `themes/next/_config.yml` 中找到 `math` 配置段，将 `mathjax.enable` 设为 `true`：
+
+```yaml
+math:
+  every_page: false
+  mathjax:
+    enable: true
+    tags: none
+```
+
+`every_page: false` 表示按需加载，只有文章 Front Matter 中声明了 `mathjax: true` 的页面才会加载 MathJax 脚本。
+
+### 3. 在文章中使用
+
+在需要公式的文章 Front Matter 中添加 `mathjax: true`：
+
+```yaml
+---
+title: 文章标题
+date: 2026-04-07
+mathjax: true
+---
+```
+
+然后在正文中使用 LaTeX 语法：
+- 行内公式：`$E = mc^2$`
+- 块级公式：`$$Agent = Model + Harness$$`
+
+参考文档：https://theme-next.js.org/docs/third-party-services/math-equations.html
+
 ## 其它
 1. 增加分类
 2. hexo 增加支持markdown公式：http://stevenshi.me/2017/06/26/hexo-insert-formula/
