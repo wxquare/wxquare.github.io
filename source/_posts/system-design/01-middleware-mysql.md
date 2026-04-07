@@ -12,6 +12,22 @@ tags:
 toc: true
 ---
 
+## 速查导航
+
+**阅读时间**: 60 分钟 | **难度**: ⭐⭐⭐⭐⭐ | **面试频率**: 极高
+
+**核心考点速查**:
+- [数据建模](#数据建模) - ER 图、范式、反范式
+- [基本使用](#基本使用) - 建表规范、类型选择、索引设计
+- [索引深度解析](#索引) - B+ 树 vs 红黑树、覆盖索引、联合索引、最左匹配
+- [事务与并发控制](#事务和并发控制) - MVCC 深度解析、ReadView、undo log、Next-Key Lock
+- [悲观锁与乐观锁](#悲观锁) - SELECT FOR UPDATE、版本号机制、死锁排查
+- [分库分表](#分表分库历史数据归档和路由) - 水平分表、垂直分库、分片策略
+- [MySQL 架构扩展](#mysql架构扩展) - 主从复制、读写分离、高可用
+- [线上 DDL 变更](#mysql-线上ddl表结构变更注意事项) - Online DDL、gh-ost
+
+---
+
 多查看文档
 [MySQL 5.7 Reference Manual](https://dev.mysql.com/doc/refman/5.7/en/null-values.html)
 
@@ -284,6 +300,104 @@ https://www.digitalocean.com/community/tutorials/understanding-database-sharding
   ```
 - [索引的数据结构，红黑树、B树、B+树的比较](https://mp.weixin.qq.com/s?__biz=MzUxNTQyOTIxNA==&mid=2247484041&idx=1&sn=76d3bf1772f9e3c796ad3d8a089220fa&chksm=f9b784b8cec00dae3d52318f6cb2bdee39ad975bf79469b72a499ceca1c5d57db5cbbef914ea&token=2025456560&lang=zh_CN#rd)
 - [面试题：InnoDB中一棵B+树能存多少行数据？计算innob的高度](https://cloud.tencent.com/developer/article/1443681)
+
+#### 面试必问：B+ 树 vs 红黑树 vs B 树
+
+| 维度 | B+ 树 | 红黑树 | B 树 |
+|------|-------|--------|------|
+| **高度** | 3-4 层（千万级数据） | 20+ 层 | 3-4 层 |
+| **磁盘 IO** | 3-4 次 | 20+ 次 | 4-5 次 |
+| **范围查询** | 高效（叶子节点链表） | 低效（中序遍历） | 低效（需回溯） |
+| **数据存储** | 仅叶子节点存数据 | 每个节点存数据 | 每个节点存数据 |
+| **稳定性** | 高（所有查询深度一致） | 中（查询深度不一致） | 中 |
+
+**面试标准答案（30 秒）**：
+> MySQL 使用 B+ 树而非红黑树的原因：1）B+ 树高度低（3-4 层），磁盘 IO 少；2）叶子节点有序链表，支持高效范围查询；3）所有数据在叶子节点，非叶子节点只存 key，可以存更多索引，进一步降低高度。
+
+**详细对比**：
+
+**1. 为什么不用红黑树？**
+
+- **高度问题**：红黑树是二叉树，100 万条数据约需 20 层，意味着 **20 次磁盘 IO**
+- **范围查询慢**：需要中序遍历，无法利用顺序结构
+- **数据分散**：数据分散在各个节点，无法批量读取
+
+**示例**：
+
+```
+红黑树（100 万数据）：
+                   50
+                 /    \
+               25      75
+              /  \    /  \
+            ...    ...    ...
+           ↓ 需要遍历 20 层才能找到叶子节点
+```
+
+**2. 为什么不用 B 树？**
+
+- **数据分散**：B 树的数据分布在所有节点，而 B+ 树只在叶子节点存数据
+- **范围查询慢**：B 树需要"中序遍历"整棵树，B+ 树只需遍历叶子节点链表
+- **缓存效率低**：非叶子节点存数据，导致索引占用空间大，缓存命中率低
+
+**B 树 vs B+ 树**：
+
+```
+B 树（每个节点存数据）：
+    ┌───────────┐
+    │  10  30   │  ← 非叶子节点也存数据
+    └─┬───┬───┬─┘
+      │   │   │
+     ...  │  ...
+      ↓
+  ┌─────┐
+  │ 20  │  ← 叶子节点
+  └─────┘
+
+B+ 树（只有叶子节点存数据）：
+    ┌───────────┐
+    │  10  30   │  ← 非叶子节点只存 key
+    └─┬───┬───┬─┘
+      │   │   │
+     ...  │  ...
+      ↓
+  ┌─────┐ → ┌─────┐ → ┌─────┐  ← 叶子节点有序链表
+  │ 10  │   │ 20  │   │ 30  │
+  └─────┘   └─────┘   └─────┘
+```
+
+**3. B+ 树的优势**：
+
+- **更矮的树**：非叶子节点不存数据，只存 key，一个页可以存更多索引，树更矮
+- **高效范围查询**：叶子节点有序链表，扫描连续数据只需顺序读取
+- **稳定查询性能**：所有查询都到达叶子节点，深度一致
+
+**示例：B+ 树能存多少数据？**
+
+假设：
+- InnoDB 页大小：16KB
+- 主键 bigint：8 字节
+- 指针：6 字节
+- 每行数据：1KB
+
+**非叶子节点（只存 key + 指针）**：
+- 每个索引项：8 + 6 = 14 字节
+- 每页可存：16KB / 14B ≈ 1170 个索引
+
+**叶子节点（存完整数据）**：
+- 每页可存：16KB / 1KB = 16 行数据
+
+**3 层 B+ 树可存数据**：
+- 第 1 层（根）：1 页，1170 个索引
+- 第 2 层：1170 页，1170 × 1170 个索引
+- 第 3 层（叶子）：1170 × 1170 页，每页 16 行
+- **总计**：1170 × 1170 × 16 ≈ **2000 万行**
+
+**面试追问：为什么 MySQL 查询最多 3-4 次磁盘 IO？**
+- 根节点常驻内存（热数据），只需 1 次内存访问
+- 第 2 层可能在内存，也可能 1 次磁盘 IO
+- 第 3 层（叶子节点）必定 1 次磁盘 IO
+- **总计**：1-2 次磁盘 IO（根节点在内存）+ 1 次叶子节点读取
 - 列出索引失效的几种场景？
     - 条件中包含or
     - 条件中包含%like
@@ -412,6 +526,173 @@ city:  VARCHAR(50) ≈ 50 bytes
   -  SERIALIZABLE(可串行化)
 - **事务的隔离属性底层实现原理**，关于锁和mvcc
   - 可以先阐述四种隔离级别，再阐述它们的实现原理。隔离级别就是依赖锁和MVCC实现的
+
+
+### MVCC（多版本并发控制）深度解析
+
+**面试高频追问：MVCC 是如何实现的？**
+
+MVCC（Multi-Version Concurrency Control）是 MySQL InnoDB 实现**读已提交（RC）**和**可重复读（RR）**隔离级别的核心机制，通过维护数据的多个版本，实现**读不加锁**，大幅提升并发性能。
+
+#### MVCC 三大核心组件
+
+| 组件 | 作用 | 面试话术 |
+|------|------|---------|
+| **隐藏列** | 每行记录包含 trx_id（事务 ID）和 roll_pointer（回滚指针） | "记录谁修改的、怎么回滚" |
+| **undo log** | 存储旧版本数据，形成版本链 | "历史快照链" |
+| **ReadView** | 判断哪些版本对当前事务可见 | "可见性规则" |
+
+#### 1. 隐藏列
+
+每行记录实际包含 3 个隐藏列：
+
+```
+| DB_TRX_ID（6字节） | DB_ROLL_PTR（7字节） | DB_ROW_ID（6字节） |
+| 最后修改的事务ID    | 回滚指针(指向undo log) | 隐藏主键(无主键时) |
+```
+
+**示例**：
+
+```sql
+-- 逻辑表结构
+CREATE TABLE user (
+    id INT PRIMARY KEY,
+    name VARCHAR(50),
+    age INT
+);
+
+-- 实际物理存储（包含隐藏列）
+| id | name  | age | DB_TRX_ID | DB_ROLL_PTR | DB_ROW_ID |
+|----|-------|-----|-----------|-------------|-----------|
+| 1  | Alice | 25  | 100       | 0x7f3a...  | NULL      |
+```
+
+#### 2. undo log 版本链
+
+每次 UPDATE 操作都会生成一条 undo log，通过 `DB_ROLL_PTR` 形成**版本链**。
+
+**示例**：
+
+```sql
+-- 初始数据
+INSERT INTO user (id, name, age) VALUES (1, 'Alice', 25);  -- trx_id=100
+
+-- 事务 101 修改
+UPDATE user SET age = 26 WHERE id = 1;  -- trx_id=101
+
+-- 事务 102 修改
+UPDATE user SET age = 27 WHERE id = 1;  -- trx_id=102
+```
+
+**版本链**：
+
+```
+当前版本（id=1, age=27, trx_id=102）
+    ↓ DB_ROLL_PTR
+undo log（id=1, age=26, trx_id=101）
+    ↓ DB_ROLL_PTR
+undo log（id=1, age=25, trx_id=100）
+    ↓
+NULL
+```
+
+#### 3. ReadView（可见性判断）
+
+**ReadView 是事务开启快照读时创建的"可见性规则"**，包含 4 个关键字段：
+
+| 字段 | 含义 |
+|------|------|
+| `m_ids` | 当前活跃事务 ID 列表 |
+| `min_trx_id` | 活跃事务中最小的事务 ID |
+| `max_trx_id` | 系统下一个将要分配的事务 ID |
+| `creator_trx_id` | 当前事务 ID |
+
+**可见性判断规则**：
+
+```go
+func IsVisible(trx_id int64, readView *ReadView) bool {
+    // 规则1：如果记录的 trx_id == 当前事务ID，说明是自己修改的，可见
+    if trx_id == readView.creator_trx_id {
+        return true
+    }
+    
+    // 规则2：如果 trx_id < min_trx_id，说明事务已提交，可见
+    if trx_id < readView.min_trx_id {
+        return true
+    }
+    
+    // 规则3：如果 trx_id >= max_trx_id，说明事务在ReadView创建后才开启，不可见
+    if trx_id >= readView.max_trx_id {
+        return false
+    }
+    
+    // 规则4：如果 trx_id 在 m_ids 中，说明事务未提交，不可见
+    if contains(readView.m_ids, trx_id) {
+        return false
+    }
+    
+    // 规则5：否则可见
+    return true
+}
+```
+
+#### RC vs RR 的 ReadView 差异
+
+| 隔离级别 | ReadView 创建时机 | 现象 |
+|---------|-----------------|------|
+| **RC** | 每次 SELECT 都创建新 ReadView | 能读到其他事务已提交的修改（不可重复读） |
+| **RR** | 事务第一次 SELECT 创建 ReadView | 只能读到事务开始时的快照（可重复读） |
+
+**示例（RR 隔离级别）**：
+
+```sql
+-- 时间线
+T1: BEGIN; -- trx_id=100
+T2: BEGIN; -- trx_id=101
+T3: 
+T4: T1: SELECT * FROM user WHERE id = 1; -- 读到 age=25, 创建ReadView(min=100, max=102, m_ids=[100,101])
+T5: T2: UPDATE user SET age = 26 WHERE id = 1; COMMIT; -- trx_id=101 提交
+T6: T1: SELECT * FROM user WHERE id = 1; -- 仍然读到 age=25（因为ReadView不变）
+```
+
+**面试追问：为什么 T6 还是读到 age=25？**
+- T1 的 ReadView 在 T4 时创建，`m_ids=[100,101]`
+- T6 读取时，记录的 `trx_id=101` 仍在 `m_ids` 中
+- 根据规则 4，`trx_id=101` 不可见，沿着 undo log 版本链找到 `trx_id=100` 的版本（age=25）
+
+#### Next-Key Lock 与幻读
+
+**幻读**：同一事务中，前后两次查询到的**行数不一致**。
+
+**示例**：
+
+```sql
+-- 事务 A
+BEGIN;
+SELECT * FROM user WHERE age > 20;  -- 查到 3 条记录
+-- 此时事务 B 插入一条 age=22 的记录并提交
+SELECT * FROM user WHERE age > 20;  -- 查到 4 条记录（幻读！）
+COMMIT;
+```
+
+**Next-Key Lock = Record Lock + Gap Lock**：
+- **Record Lock**：锁定记录本身
+- **Gap Lock**：锁定记录之间的"间隙"，防止插入
+
+**示例**：
+
+```sql
+-- 假设索引值：10, 20, 30
+SELECT * FROM user WHERE age = 20 FOR UPDATE;
+
+-- 锁定范围：
+-- Record Lock：age=20
+-- Gap Lock：(10, 20) 和 (20, 30)
+-- 即 Next-Key Lock：(10, 30]
+```
+
+**面试话术**：
+> RR 隔离级别通过 MVCC 解决**不可重复读**，通过 **Next-Key Lock** 解决**幻读**。
 
 
 ### 悲观锁

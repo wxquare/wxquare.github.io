@@ -11,6 +11,26 @@ tags:
 toc: true
 ---
 
+## 速查导航
+
+**阅读时间**: 90 分钟（分多次阅读）| **难度**: ⭐⭐⭐⭐⭐ | **面试频率**: 极高
+
+**核心考点速查**:
+- [秒杀系统](#1-秒杀系统设计) - 库存超卖、流量削峰、限流降级 ⭐⭐⭐⭐⭐
+- [库存系统](#2-电商库存系统) - 分布式锁、预扣/实扣、最终一致性 ⭐⭐⭐⭐⭐
+- [短链接系统](#8-短链接服务-tinyurl) - Base62 编码、布隆过滤器、重定向 ⭐⭐⭐⭐
+- [微博/Twitter](#9-微博twitter-feed-流) - 推拉结合、大 V 问题、时间线 ⭐⭐⭐⭐⭐
+- [分布式事务](#5-分布式事务) - 2PC/TCC/Saga/本地消息表 ⭐⭐⭐⭐
+- [分布式 ID](#7-分布式-id-生成) - Snowflake/数据库号段/UUID ⭐⭐⭐
+- [监控告警](#10-监控告警系统) - 指标采集、异常检测、通知路由 ⭐⭐⭐⭐
+
+**使用建议**: 
+- **面试冲刺**: 重点看秒杀、库存、短链接、微博 4 道题（⭐⭐⭐⭐⭐）
+- **查缺补漏**: 按标签快速定位相关知识点
+- **完整学习**: 建议分 3 次阅读（每次 30 分钟）
+
+---
+
 <!-- toc -->
 
 本文汇总了系统设计面试中最高频的题目，覆盖高并发、海量数据、分布式一致性、中间件选型、安全、可观测性等 11 个核心领域。适合有 2-5 年经验的后端工程师面试前快速复习。
@@ -1791,12 +1811,12 @@ if result == 0 {
 
 ### 相关文章
 
-- [系统设计完全指南：从零基础到面试高手](/system-design/00-system-design-fundamentals/)
-- [Redis 原理与实践](/system-design/8-cache-redis/)
-- [异步和消息队列](/system-design/9-kafka-MQ/)
-- [搜索和 Elasticsearch](/system-design/10-elasticsearch/)
+- [系统设计完全指南：从零基础到面试高手](/system-design/00-system-design-overview/)
+- [Redis 原理与实践](/system-design/02-middleware-redis/)
+- [异步和消息队列](/system-design/03-middleware-kafka/)
+- [搜索和 Elasticsearch](/system-design/04-middleware-elasticsearch/)
 - [电商系统设计](/system-design/13-e-commerce/)
-- [系统稳定性建设：方法论与实践](/system-design/14-system-reliability/)
+- [系统稳定性建设：方法论与实践](/system-design/07-system-reliability-engineering/)
 - [多品类统一库存系统设计](/system-design/18-inventory-system-design/)
 
 ### 外部参考

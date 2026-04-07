@@ -11,6 +11,20 @@ tags:
 toc: true
 ---
 
+## 速查导航
+
+**阅读时间**: 35 分钟 | **难度**: ⭐⭐⭐⭐ | **面试频率**: 中高
+
+**核心考点速查**:
+- [技术方案写作](#前言) - 为什么要写技术方案？
+- [背景与目标](#背景和目标) - 问题定义、业务目标
+- [容量评估](#容量评估) - QPS 计算、存储容量
+- [方案设计](#方案设计) - 架构图、技术选型、权衡
+- [API 设计](#api-设计) - RESTful 规范、接口定义
+- [SOLID 原则](#solid-原则) - 面向对象设计原则
+- [分布式谬误](#分布式系统的-8-个谬误) - 网络可靠性、延迟、带宽
+
+---
 
 ## 前言 
 ### 为什么要做设计方案
@@ -917,11 +931,11 @@ HTTP/1.1 400
 
 ### 各中间件详细专题
 
-- [存储与 MySQL 数据库](/2024/03/04/system-design/07-storage-mysql/) - 建表规范、索引优化、分库分表
-- [Redis 原理与实践](/2024/03/06/system-design/8-cache-redis/) - 数据结构、缓存策略、分布式锁
-- [异步和消息队列](/2024/03/10/system-design/09-kafka-mq/) - Kafka 架构、消息语义、性能调优
-- [搜索和 Elasticsearch](/2024/03/07/system-design/10-elasticsearch/) - 索引设计、DSL 查询、性能优化
-- [Kubernetes 与 Docker](/2024/12/20/system-design/11-k8s-docker/) - 容器网络、Pod/Service、运维实践
+- [存储与 MySQL 数据库](/2024/03/04/system-design/01-middleware-mysql/) - 建表规范、索引优化、分库分表
+- [Redis 原理与实践](/2024/03/06/system-design/02-middleware-redis/) - 数据结构、缓存策略、分布式锁
+- [异步和消息队列](/2024/03/10/system-design/03-middleware-kafka/) - Kafka 架构、消息语义、性能调优
+- [搜索和 Elasticsearch](/2024/03/07/system-design/04-middleware-elasticsearch/) - 索引设计、DSL 查询、性能优化
+- [Kubernetes 与 Docker](/2024/12/20/system-design/05-infrastructure-k8s-docker/) - 容器网络、Pod/Service、运维实践
 
 ## 框架和引擎
 ### 工作流引擎与任务编排

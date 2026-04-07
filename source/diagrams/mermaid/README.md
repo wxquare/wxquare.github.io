@@ -183,7 +183,7 @@ graph TB
 
 ## 📚 相关文章
 
-- 📝 `/source/_posts/system-design/8-cache-redis.md`
+- 📝 `/source/_posts/system-design/02-middleware-redis.md`
   - Hash 底层实现原理详解
   - ziplist 详细结构说明
   - 电商场景最佳实践
