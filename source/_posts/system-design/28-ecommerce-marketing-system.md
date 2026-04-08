@@ -2421,5 +2421,200 @@ func (s *MarketingService) ApplyNewUserDiscount(ctx context.Context, userID int6
 	return discount, nil
 }
 ```
+
+## 9. 工程实践
+
+### 9.1 营销活动 ID 生成
+
+分布式场景下使用 **Snowflake** 生成趋势递增、全局唯一的活动 / 批次 ID（需统一时钟与 workerId 分配）。
+
+```go
+type SnowflakeIDGenerator struct {
+	mu            sync.Mutex
+	epoch         int64
+	workerID      int64
+	sequence      int64
+	lastTimestamp int64
+}
+
+const (
+	workerIDBits  = 10
+	sequenceBits  = 12
+	maxWorkerID   = -1 ^ (-1 << workerIDBits)
+	maxSequence   = -1 ^ (-1 << sequenceBits)
+	timeShift     = workerIDBits + sequenceBits
+	workerIDShift = sequenceBits
+)
+
+func NewSnowflakeIDGenerator(workerID int64) *SnowflakeIDGenerator {
+	if workerID < 0 || workerID > maxWorkerID {
+		panic("worker ID out of range")
+	}
+
+	return &SnowflakeIDGenerator{
+		epoch:    1609459200000,
+		workerID: workerID,
+	}
+}
+
+func (g *SnowflakeIDGenerator) NextID() int64 {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	timestamp := time.Now().UnixMilli()
+
+	if timestamp < g.lastTimestamp {
+		panic("clock moved backwards")
+	}
+
+	if timestamp == g.lastTimestamp {
+		g.sequence = (g.sequence + 1) & maxSequence
+		if g.sequence == 0 {
+			for timestamp <= g.lastTimestamp {
+				timestamp = time.Now().UnixMilli()
+			}
+		}
+	} else {
+		g.sequence = 0
+	}
+
+	g.lastTimestamp = timestamp
+
+	id := ((timestamp - g.epoch) << timeShift) |
+		(g.workerID << workerIDShift) |
+		g.sequence
+
+	return id
+}
+```
+
+### 9.2 监控告警
+
+**业务指标**：发券量、核销率、积分进出、活动参与与转化、营销 ROI。**应用指标**：QPS、RT、成功率、缓存命中率、MQ 积压。**系统指标**：CPU、内存、DB / Redis 连接。
+
+```go
+func (s *MarketingService) RecordMetrics(ctx context.Context, metricName string, value float64, tags map[string]string) {
+	metric := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: metricName,
+			Help: fmt.Sprintf("Marketing metric: %s", metricName),
+		},
+		[]string{"tag_key"},
+	)
+
+	prometheus.MustRegister(metric)
+
+	for key, val := range tags {
+		metric.WithLabelValues(val).Set(value)
+	}
+}
+
+// 示例：记录优惠券发放量（在 ReceiveCoupon 成功路径调用）
+func (s *CouponService) recordCouponReceivedMetric(ctx context.Context, couponID int64) {
+	s.metrics.RecordMetrics(ctx, "coupon_received_total", 1, map[string]string{
+		"coupon_id": fmt.Sprintf("%d", couponID),
+	})
+}
+```
+
+### 9.3 性能优化
+
+| 场景 | 优化前 | 优化后 | 优化手段 |
+|------|-------|-------|---------|
+| 优惠券查询 | 100ms | 10ms | Redis 缓存 + 本地缓存 |
+| 秒杀库存扣减 | RT 500ms | RT 50ms | Redis 预扣 + 异步落 DB |
+| 营销计算 | 200ms | 50ms | 规则缓存 + 并行计算 |
+| 优惠券发放 | 1000 QPS | 10000 QPS | 库存预热 + 锁粒度优化 |
+
+```go
+type CouponCache struct {
+	localCache  *cache.Cache
+	redisClient *redis.Client
+	db          *gorm.DB
+}
+
+func (c *CouponCache) GetCoupon(ctx context.Context, couponID int64) (*Coupon, error) {
+	key := fmt.Sprintf("coupon:%d", couponID)
+	if val, found := c.localCache.Get(key); found {
+		return val.(*Coupon), nil
+	}
+
+	redisKey := fmt.Sprintf("coupon:%d", couponID)
+	data, err := c.redisClient.Get(ctx, redisKey).Bytes()
+	if err == nil {
+		var coupon Coupon
+		if err := json.Unmarshal(data, &coupon); err == nil {
+			c.localCache.Set(key, &coupon, 5*time.Minute)
+			return &coupon, nil
+		}
+	}
+
+	var coupon Coupon
+	if err := c.db.Where("coupon_id = ?", couponID).First(&coupon).Error; err != nil {
+		return nil, err
+	}
+
+	couponData, _ := json.Marshal(coupon)
+	c.redisClient.Set(ctx, redisKey, couponData, 1*time.Hour)
+	c.localCache.Set(key, &coupon, 5*time.Minute)
+
+	return &coupon, nil
+}
+```
+
+### 9.4 容量规划与压测
+
+结合历史 GMV 与大促目标预估峰值 QPS；全链路压测验证网关、营销、库存、下单链路。**目标参考**：发券 1 万 QPS、秒杀 5 万 QPS；P99 RT 小于 200ms；错误率低于 0.1%。
+
+### 9.5 故障处理与降级
+
+| 故障类型 | 现象 | 处理方案 | 降级策略 |
+|---------|------|---------|---------|
+| Redis 故障 | 缓存失效 | 降级 DB 查询 | 关闭部分营销能力，按原价下单 |
+| 营销服务不可用 | 试算失败 | 熔断 | 0 优惠下单或排队重试 |
+| Kafka 积压 | 消息延迟 | 扩容消费者 | 异步场景可容忍延迟 |
+| 秒杀超卖 | 销量大于库存 | 补偿退款 | 实时监控与下架 |
+| 预算超支 | 实际补贴超预算 | 紧急下线活动 | 实时预算 Redis / 对账 |
+
+```go
+import "github.com/sony/gobreaker"
+
+var cb *gobreaker.CircuitBreaker
+
+func init() {
+	cb = gobreaker.NewCircuitBreaker(gobreaker.Settings{
+		Name:        "marketing-service",
+		MaxRequests: 3,
+		Timeout:     10 * time.Second,
+		ReadyToTrip: func(counts gobreaker.Counts) bool {
+			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
+			return counts.Requests >= 3 && failureRatio >= 0.6
+		},
+	})
+}
+
+func (s *OrderService) CalculateMarketing(ctx context.Context, req *CalculateRequest) (*CalculateResponse, error) {
+	result, err := cb.Execute(func() (interface{}, error) {
+		return s.marketingClient.Calculate(ctx, req)
+	})
+
+	if err != nil {
+		original := decimal.Zero
+		for _, item := range req.Items {
+			original = original.Add(item.Amount)
+		}
+		return &CalculateResponse{
+			OriginalAmount:   original,
+			CouponDiscount:   decimal.Zero,
+			ActivityDiscount: decimal.Zero,
+			PointsDiscount:   decimal.Zero,
+			TotalDiscount:    decimal.Zero,
+			FinalAmount:      original,
+		}, nil
+	}
+
+	return result.(*CalculateResponse), nil
+}
+```
 ```
 ```
