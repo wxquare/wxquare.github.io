@@ -1837,5 +1837,157 @@ func (s *OrderService) CancelOrder(ctx context.Context, orderID int64) error {
 	return saga.Execute(ctx)
 }
 ```
+
+## 6. 跨系统全链路集成
+
+### 6.1 与商品系统集成（圈品规则）
+
+商品中心提供**类目、价格、标签**；营销侧据此做圈品、券适用范围与活动价展示。
+
+```go
+func (s *MarketingService) GetProductMarketingInfo(ctx context.Context, productID int64) (*ProductMarketingInfo, error) {
+	product, err := s.productClient.GetProduct(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+
+	availableCoupons, err := s.couponService.GetAvailableCouponsForProduct(ctx, productID, product.CategoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	availableActivities, err := s.activityService.GetActivitiesForProduct(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ProductMarketingInfo{
+		ProductID:           productID,
+		AvailableCoupons:    availableCoupons,
+		AvailableActivities: availableActivities,
+		MarketingTags:       product.MarketingTags,
+	}, nil
+}
+```
+
+### 6.2 与计价中心集成（价格计算）
+
+计价中心聚合**基础价 + 活动价 + 券后价**试算结果，供详情页、购物车、结算页一致展示。
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Frontend as 前端
+    participant Pricing as 计价中心
+    participant Marketing as 营销服务
+    participant Product as 商品服务
+
+    User->>Frontend: 查看商品详情
+    Frontend->>Pricing: 获取价格信息
+
+    Pricing->>Product: 获取商品基础价
+    Product-->>Pricing: 商品价格
+
+    Pricing->>Marketing: 获取可用优惠
+    Marketing-->>Pricing: 优惠券列表、活动列表
+
+    Pricing->>Pricing: 计算券后价、活动价
+    Pricing-->>Frontend: 返回价格信息
+
+    Frontend-->>User: 显示原价、券后价
+```
+
+### 6.3 与用户系统集成（用户画像）
+
+基于**注册时长、等级、订单、标签**做定向发券与触达，注意频控与隐私合规。
+
+```go
+type UserProfile struct {
+	UserID      int64
+	UserLevel   string
+	IsNewUser   bool
+	TotalOrders int64
+	TotalGMV    decimal.Decimal
+	LastOrderAt time.Time
+	Tags        []string
+}
+
+func (s *MarketingService) SendTargetedCoupons(ctx context.Context) {
+	profiles, err := s.userClient.GetUserProfiles(ctx, &UserProfileQuery{
+		IsNewUser: true,
+		Limit:     1000,
+	})
+	if err != nil {
+		return
+	}
+
+	for _, profile := range profiles {
+		couponID := int64(100001)
+
+		if err := s.couponService.IssueCouponToUser(ctx, profile.UserID, couponID); err != nil {
+			s.logger.Error("issue coupon failed", zap.Int64("user_id", profile.UserID), zap.Error(err))
+			continue
+		}
+
+		s.notificationClient.SendMessage(ctx, profile.UserID, "您有新人专享券待领取")
+	}
+}
+```
+
+### 6.4 与支付系统集成（补贴核算）
+
+支付完成后，按**平台 / 商家承担比例**拆分营销成本，支撑结算与对账。
+
+```go
+type MarketingCostSettlement struct {
+	OrderID          int64
+	PlatformSubsidy  decimal.Decimal
+	MerchantDiscount decimal.Decimal
+	CouponCost       decimal.Decimal
+	ActivityCost     decimal.Decimal
+	PointsCost       decimal.Decimal
+}
+
+func (s *MarketingService) SettleMarketingCost(ctx context.Context, orderID int64) (*MarketingCostSettlement, error) {
+	order, err := s.orderClient.GetOrder(ctx, orderID)
+	if err != nil {
+		return nil, err
+	}
+
+	settlement := &MarketingCostSettlement{OrderID: orderID}
+
+	if len(order.UsedCouponID) > 0 {
+		coupon, _ := s.couponService.GetCoupon(ctx, order.UsedCouponID[0])
+
+		if coupon.CouponType == "platform" {
+			settlement.PlatformSubsidy = settlement.PlatformSubsidy.Add(coupon.DiscountValue)
+		} else {
+			settlement.MerchantDiscount = settlement.MerchantDiscount.Add(coupon.DiscountValue)
+		}
+
+		settlement.CouponCost = coupon.DiscountValue
+	}
+
+	activities, _ := s.activityService.GetActivitiesByOrder(ctx, orderID)
+	for _, activity := range activities {
+		activityCost := activity.DiscountAmount
+
+		platformRatio := activity.PlatformSubsidyRatio
+		settlement.PlatformSubsidy = settlement.PlatformSubsidy.Add(activityCost.Mul(decimal.NewFromFloat(platformRatio)))
+		settlement.MerchantDiscount = settlement.MerchantDiscount.Add(activityCost.Mul(decimal.NewFromFloat(1 - platformRatio)))
+		settlement.ActivityCost = settlement.ActivityCost.Add(activityCost)
+	}
+
+	if order.UsedPoints > 0 {
+		pointsCost := decimal.NewFromInt(order.UsedPoints).Div(decimal.NewFromInt(100))
+		settlement.PointsCost = pointsCost
+		settlement.PlatformSubsidy = settlement.PlatformSubsidy.Add(pointsCost)
+	}
+
+	s.db.InsertMarketingCostSettlement(ctx, settlement)
+
+	return settlement, nil
+}
+```
 ```
 ```
