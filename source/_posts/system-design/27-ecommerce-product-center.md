@@ -294,3 +294,462 @@ erDiagram
         string content
     }
 ```
+
+## 2. 商品创建和上架流程
+
+商品上架需要区分三种角色：商家（Merchant）、供应商（Partner）、运营（Ops）。不同角色的入口、审核策略与幂等要求不同，但底层都落在统一的 SPU/SKU 模型与状态机上。
+
+### 2.1 商家上传（Merchant）
+
+商家通过 Portal 或 App 上传商品，通常需要人工审核，并配合限流与风控，降低虚假商品与刷单风险。
+
+**业务流程：**
+
+1. 商家在 Portal/App 填写商品信息
+2. 提交后进入「待审核」状态
+3. 审核通过后才能上架
+4. 需要人工审核（防止虚假商品）
+
+**技术要点：**
+
+- 表单验证（前后端双重校验）
+- 限流（防止恶意刷单）
+- 审核队列（异步处理）
+- 审核历史可追溯
+
+**流程图：**
+
+```mermaid
+sequenceDiagram
+    participant M as 商家
+    participant API as 商品 API
+    participant DB as 数据库
+    participant MQ as Kafka
+    participant Audit as 审核服务
+
+    M->>API: 创建商品
+    API->>API: 身份验证
+    API->>API: 限流检查
+    API->>DB: 保存商品（草稿）
+    API->>MQ: 发布审核事件
+    API-->>M: 返回商品 ID
+
+    MQ->>Audit: 消费审核事件
+    Audit->>Audit: 人工审核
+    Audit->>DB: 更新状态
+    Audit->>MQ: 发布审核结果
+```
+
+```go
+// 商家创建商品
+func MerchantCreateProduct(ctx context.Context, req *MerchantProductRequest) (*Product, error) {
+    merchant, err := ValidateMerchant(ctx, req.MerchantID)
+    if err != nil {
+        return nil, ErrUnauthorized
+    }
+
+    limiterKey := fmt.Sprintf("merchant_create:%d", req.MerchantID)
+    if !rateLimiter.Allow(limiterKey, 10, time.Minute) {
+        return nil, ErrRateLimitExceeded
+    }
+
+    if err := ValidateProductRequest(req); err != nil {
+        return nil, err
+    }
+
+    product := &Product{
+        SPUID:      GenerateSPUID(),
+        Title:      req.Title,
+        CategoryID: req.CategoryID,
+        Status:     ProductStatusDraft,
+        Source:     SourceMerchant,
+        MerchantID: req.MerchantID,
+        Version:    1,
+        CreatedAt:  time.Now(),
+    }
+
+    if err := db.InsertProduct(ctx, product); err != nil {
+        return nil, err
+    }
+
+    audit := &AuditTask{
+        TaskID:    GenerateAuditID(),
+        ProductID: product.SPUID,
+        Type:      AuditTypeMerchant,
+        Priority:  AuditPriorityNormal,
+        Status:    AuditStatusPending,
+    }
+
+    if err := db.InsertAuditTask(ctx, audit); err != nil {
+        return nil, err
+    }
+
+    event := &AuditEvent{
+        TaskID:    audit.TaskID,
+        ProductID: product.SPUID,
+        EventType: "audit.created",
+    }
+    PublishAuditEvent(ctx, event)
+
+    RecordProductLog(ctx, product.SPUID, "商家创建商品", merchant.Name)
+
+    return product, nil
+}
+
+// 审核服务处理（示意：规则引擎 + 人工兜底）
+func HandleAudit(ctx context.Context, event *AuditEvent) error {
+    task, err := db.GetAuditTask(ctx, event.TaskID)
+    if err != nil {
+        return err
+    }
+
+    product, _ := db.GetProduct(ctx, task.ProductID)
+
+    var approved bool
+    if ContainsSensitiveWords(product.Title) {
+        approved = false
+    } else {
+        approved = true
+    }
+
+    if approved {
+        task.Status = AuditStatusApproved
+        product.Status = ProductStatusApproved
+    } else {
+        task.Status = AuditStatusRejected
+        product.Status = ProductStatusRejected
+    }
+
+    db.UpdateAuditTask(ctx, task)
+    db.UpdateProduct(ctx, product)
+
+    resultEvent := &AuditResultEvent{
+        ProductID: product.SPUID,
+        Approved:  approved,
+    }
+    PublishAuditResultEvent(ctx, resultEvent)
+
+    return nil
+}
+```
+
+### 2.2 供应商同步（Partner）
+
+供应商侧数据可通过 **Push**（供应商推送到平台 MQ）或 **Pull**（平台定时拉取）进入商品中心。自动审核可走快速通道，同时必须用幂等与版本控制避免重复写入与乱序覆盖。
+
+**技术要点：**
+
+- 幂等性（重复推送去重）
+- 字段映射（供应商模型 → 平台模型）
+- 同步监控与告警
+- 热门商品可配合更积极的缓存刷新策略（见第 5 章）
+
+**Push 模式流程图：**
+
+```mermaid
+sequenceDiagram
+    participant P as 供应商
+    participant MQ as Kafka
+    participant Sync as 同步服务
+    participant DB as 数据库
+
+    P->>MQ: 推送商品数据
+    MQ->>Sync: 消费消息
+    Sync->>Sync: 幂等性检查
+    Sync->>Sync: 数据映射
+    Sync->>Sync: 自动审核
+    Sync->>DB: Upsert 商品
+    Sync->>MQ: 发布变更事件
+```
+
+```go
+// 供应商 Push 模式
+func PartnerPushProduct(ctx context.Context, msg *PartnerProductMessage) error {
+    idempotentKey := fmt.Sprintf("partner_push:%s:%s", msg.PartnerID, msg.ProductID)
+
+    record := &IdempotentRecord{
+        Key:      idempotentKey,
+        Status:   IdempotentProcessing,
+        ExpireAt: time.Now().Add(10 * time.Minute),
+    }
+
+    if err := db.InsertIdempotentRecord(ctx, record); err != nil {
+        return nil
+    }
+
+    product := MapPartnerProduct(msg)
+    product.Source = SourcePartner
+    product.PartnerID = msg.PartnerID
+
+    if AutoAudit(product) {
+        product.Status = ProductStatusOnline
+    } else {
+        product.Status = ProductStatusPendingAudit
+    }
+
+    existing, _ := db.GetProductByPartnerID(ctx, msg.PartnerID, msg.ProductID)
+    if existing != nil {
+        product.SPUID = existing.SPUID
+        product.Version = existing.Version + 1
+        if err := db.UpdateProductWithVersion(ctx, product, existing.Version); err != nil {
+            return err
+        }
+    } else {
+        product.SPUID = GenerateSPUID()
+        product.Version = 1
+        if err := db.InsertProduct(ctx, product); err != nil {
+            return err
+        }
+    }
+
+    changed := &ProductChangedEvent{
+        SPUID:      product.SPUID,
+        ChangeType: "partner_sync",
+    }
+    PublishProductChangedEvent(ctx, changed)
+
+    db.UpdateIdempotentStatus(ctx, idempotentKey, IdempotentSuccess)
+
+    return nil
+}
+
+// 供应商 Pull 模式
+func PartnerPullProducts(ctx context.Context, partnerID string) error {
+    lastSyncTime := GetLastSyncTime(partnerID)
+
+    products, err := partnerClient.GetProducts(partnerID, lastSyncTime)
+    if err != nil {
+        return err
+    }
+
+    for _, p := range products {
+        msg := ConvertToMessage(p)
+        if err := PartnerPushProduct(ctx, msg); err != nil {
+            log.Error("failed to sync product", "partnerID", partnerID, "productID", p.ID, "error", err)
+            continue
+        }
+    }
+
+    UpdateLastSyncTime(partnerID, time.Now())
+    return nil
+}
+
+func AutoAudit(product *Product) bool {
+    if ContainsSensitiveWords(product.Title) {
+        return false
+    }
+    if product.Price < 0 || product.Price > 1000000 {
+        return false
+    }
+    if !CategoryExists(product.CategoryID) {
+        return false
+    }
+    if product.Title == "" || product.CategoryID == 0 {
+        return false
+    }
+    return true
+}
+```
+
+### 2.3 运营上传（Ops）
+
+运营在后台可单品录入或批量导入（如 Excel）。通常免人工审核或仅做抽检，要求批量任务可观测、单行失败可定位。
+
+**技术要点：**
+
+- Excel 流式解析，控制内存
+- 行级校验与错误汇总
+- 写库与发事件的一致策略（必要时按批次事务）
+- 操作审计日志
+
+**批量上传流程图：**
+
+```mermaid
+sequenceDiagram
+    participant Ops as 运营
+    participant API as 商品 API
+    participant Parser as Excel 解析器
+    participant DB as 数据库
+    participant MQ as Kafka
+
+    Ops->>API: 上传 Excel 文件
+    API->>Parser: 流式解析
+    loop 每行数据
+        Parser->>Parser: 验证数据
+        Parser->>DB: 保存商品
+        Parser->>MQ: 发布事件
+    end
+    API-->>Ops: 返回结果
+```
+
+```go
+// 运营批量上传
+func OpsBatchUpload(ctx context.Context, file *ExcelFile) (*UploadResult, error) {
+    result := &UploadResult{
+        Success: []string{},
+        Failed:  []UploadError{},
+    }
+
+    parser := NewExcelParser(file)
+    rowNum := 0
+    for row := range parser.Parse() {
+        rowNum++
+
+        product, err := ValidateRow(row)
+        if err != nil {
+            result.Failed = append(result.Failed, UploadError{Row: rowNum, Error: err.Error()})
+            continue
+        }
+
+        product.SPUID = GenerateSPUID()
+        product.Status = ProductStatusOnline
+        product.Source = SourceOps
+        product.Version = 1
+
+        if err := db.InsertProduct(ctx, product); err != nil {
+            result.Failed = append(result.Failed, UploadError{Row: rowNum, Error: err.Error()})
+            continue
+        }
+
+        evt := &ProductCreatedEvent{SPUID: product.SPUID}
+        PublishProductCreatedEvent(ctx, evt)
+
+        result.Success = append(result.Success, product.SPUID)
+    }
+
+    RecordBatchUploadLog(ctx, result)
+    return result, nil
+}
+
+type ExcelParser struct {
+    file *ExcelFile
+}
+
+func (p *ExcelParser) Parse() <-chan *ExcelRow {
+    ch := make(chan *ExcelRow, 100)
+    go func() {
+        defer close(ch)
+        f, err := excelize.OpenFile(p.file.Path)
+        if err != nil {
+            return
+        }
+        defer f.Close()
+
+        rows, _ := f.GetRows("Sheet1")
+        for i, row := range rows {
+            if i == 0 {
+                continue
+            }
+            ch <- &ExcelRow{RowNum: i + 1, Data: row}
+        }
+    }()
+    return ch
+}
+```
+
+### 2.4 上架状态机与审核策略
+
+商品状态驱动上架生命周期：草稿 → 待审核 → 通过/拒绝 → 上线/下线。转换规则应集中配置，写库时使用乐观锁或状态条件更新，避免并发覆盖。
+
+```go
+const (
+    ProductStatusDraft        = 0
+    ProductStatusPendingAudit = 1
+    ProductStatusApproved     = 2
+    ProductStatusRejected     = 3
+    ProductStatusOnline       = 4
+    ProductStatusOffline      = 5
+)
+
+var allowedTransitions = map[int]map[int]bool{
+    ProductStatusDraft: {ProductStatusPendingAudit: true},
+    ProductStatusPendingAudit: {
+        ProductStatusApproved: true,
+        ProductStatusRejected: true,
+    },
+    ProductStatusApproved: {ProductStatusOnline: true},
+    ProductStatusOnline:   {ProductStatusOffline: true},
+    ProductStatusOffline:  {ProductStatusOnline: true},
+}
+
+func TransitionProductStatus(ctx context.Context, spuID string, from, to int) error {
+    if !allowedTransitions[from][to] {
+        return ErrIllegalTransition
+    }
+
+    product, err := db.GetProduct(ctx, spuID)
+    if err != nil {
+        return err
+    }
+    if product.Status != from {
+        return ErrStatusMismatch
+    }
+
+    if err := db.UpdateProductStatus(ctx, spuID, to, product.Version); err != nil {
+        return err
+    }
+
+    RecordProductLog(ctx, spuID, fmt.Sprintf("状态变更: %d -> %d", from, to), "system")
+    return nil
+}
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> 草稿
+    草稿 --> 待审核: 提交审核
+    待审核 --> 已拒绝: 审核不通过
+    待审核 --> 已通过: 审核通过
+    已通过 --> 已上线: 上架
+    已上线 --> 已下线: 下架
+    已下线 --> 已上线: 重新上架
+    已拒绝 --> [*]
+```
+
+```go
+type AuditStrategy interface {
+    ShouldAudit(product *Product) bool
+    GetPriority() int
+}
+
+type MerchantAuditStrategy struct{}
+
+func (s *MerchantAuditStrategy) ShouldAudit(product *Product) bool {
+    return product.Source == SourceMerchant
+}
+
+func (s *MerchantAuditStrategy) GetPriority() int {
+    return AuditPriorityNormal
+}
+
+type PartnerAuditStrategy struct{}
+
+func (s *PartnerAuditStrategy) ShouldAudit(product *Product) bool {
+    return product.Source == SourcePartner && !AutoAudit(product)
+}
+
+func (s *PartnerAuditStrategy) GetPriority() int {
+    return AuditPriorityHigh
+}
+
+type OpsAuditStrategy struct{}
+
+func (s *OpsAuditStrategy) ShouldAudit(product *Product) bool {
+    return false
+}
+
+var strategies = []AuditStrategy{
+    &MerchantAuditStrategy{},
+    &PartnerAuditStrategy{},
+    &OpsAuditStrategy{},
+}
+
+func RouteAuditStrategy(product *Product) AuditStrategy {
+    for _, strategy := range strategies {
+        if strategy.ShouldAudit(product) {
+            return strategy
+        }
+    }
+    return nil
+}
+```
