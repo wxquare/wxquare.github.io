@@ -230,3 +230,320 @@ erDiagram
 | 分布式锁 | Redisson | 秒杀库存扣减 | 基于 Redis、支持可重入 |
 | 限流 | Sentinel | 接口限流、降级 | 实时监控、规则灵活 |
 | ID 生成 | Snowflake | 营销活动 ID | 分布式、时间有序 |
+
+## 2. 营销工具体系
+
+### 2.1 优惠券系统
+
+#### 2.1.1 优惠券类型与数据模型
+
+优惠券按**平台券 / 商家券**、**满减 / 折扣 / 包邮**等维度组合配置；用户侧以 `CouponUser` 记录领取与核销生命周期，`CouponLog` 用于审计与对账。
+
+```go
+// 优惠券主表
+type Coupon struct {
+	CouponID       int64           `json:"coupon_id"`
+	CouponName     string          `json:"coupon_name"`
+	CouponType     string          `json:"coupon_type"`    // platform/merchant
+	DiscountType   string          `json:"discount_type"`  // amount/percentage/free_ship
+	DiscountValue  decimal.Decimal `json:"discount_value"` // 20元 或 0.8（8折）
+	MinOrderAmount decimal.Decimal `json:"min_order_amount"`
+	MaxDiscountAmt decimal.Decimal `json:"max_discount_amount"` // 折扣券最高抵扣
+
+	TotalQuantity  int64 `json:"total_quantity"`
+	UsedQuantity   int64 `json:"used_quantity"`
+	RemainQuantity int64 `json:"remain_quantity"`
+
+	PerUserLimit int       `json:"per_user_limit"`
+	ValidDays    int       `json:"valid_days"`
+	StartTime    time.Time `json:"start_time"`
+	EndTime      time.Time `json:"end_time"`
+
+	ApplyScope    string  `json:"apply_scope"`     // all/category/product
+	ApplyScopeIDs []int64 `json:"apply_scope_ids"`
+
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// 用户优惠券表
+type CouponUser struct {
+	ID         int64      `json:"id"`
+	CouponID   int64      `json:"coupon_id"`
+	UserID     int64      `json:"user_id"`
+	Status     string     `json:"status"` // unused/used/expired
+	ReceivedAt time.Time  `json:"received_at"`
+	UsedAt     *time.Time `json:"used_at"`
+	OrderID    *int64     `json:"order_id"`
+	ExpireAt   time.Time  `json:"expire_at"`
+}
+
+// 优惠券操作日志
+type CouponLog struct {
+	ID           int64     `json:"id"`
+	CouponUserID int64     `json:"coupon_user_id"`
+	CouponID     int64     `json:"coupon_id"`
+	UserID       int64     `json:"user_id"`
+	Action       string    `json:"action"` // receive/use/expire/rollback
+	OrderID      *int64    `json:"order_id"`
+	BeforeStatus string    `json:"before_status"`
+	AfterStatus  string    `json:"after_status"`
+	Reason       string    `json:"reason"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+```
+
+#### 2.1.2 优惠券发放策略
+
+常见发放方式包括：**公开领取**（先到先得）、**定向推送**（画像圈人）、**裂变发券**（邀请达标）、**订单赠送**（履约后发放）。
+
+公开领券链路强调：Redis 控频次与库存、DB 落库、消息异步刷新与通知。
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Gateway as 营销网关
+    participant Coupon as 优惠券服务
+    participant Redis as Redis
+    participant DB as 数据库
+    participant Kafka as Kafka
+
+    User->>Gateway: 领取优惠券
+    Gateway->>Gateway: 身份验证
+
+    Gateway->>Coupon: ReceiveCoupon(userID, couponID)
+
+    Coupon->>Redis: 检查用户领取次数
+    alt 超过限制
+        Redis-->>Coupon: 超过限制
+        Coupon-->>Gateway: ErrExceedLimit
+        Gateway-->>User: 领取失败：已达上限
+    end
+
+    Coupon->>Redis: DECR coupon:stock:{couponID}
+    alt 库存不足
+        Redis-->>Coupon: 库存为0
+        Coupon-->>Gateway: ErrStockInsufficient
+        Gateway-->>User: 领取失败：已抢光
+    end
+
+    Coupon->>DB: 插入 coupon_user 记录
+    Coupon->>Redis: INCR user:coupon:count:{userID}:{couponID}
+
+    Coupon->>Kafka: 发送领券事件
+    Note over Kafka: 异步更新库存、发送通知
+
+    Coupon-->>Gateway: Success
+    Gateway-->>User: 领取成功
+```
+
+```go
+func (s *CouponService) ReceiveCoupon(ctx context.Context, userID, couponID int64) (*CouponUser, error) {
+	// 1. 检查优惠券是否有效
+	coupon, err := s.getCouponByID(ctx, couponID)
+	if err != nil {
+		return nil, err
+	}
+
+	if coupon.Status != StatusActive {
+		return nil, ErrCouponNotActive
+	}
+
+	if time.Now().Before(coupon.StartTime) || time.Now().After(coupon.EndTime) {
+		return nil, ErrCouponExpired
+	}
+
+	// 2. 检查用户领取次数（Redis）
+	userReceiveKey := fmt.Sprintf("user:coupon:count:%d:%d", userID, couponID)
+	receivedCount, err := s.redis.Get(ctx, userReceiveKey).Int64()
+	if err != nil && err != redis.Nil {
+		return nil, err
+	}
+
+	if receivedCount >= int64(coupon.PerUserLimit) {
+		return nil, ErrExceedReceiveLimit
+	}
+
+	// 3. Redis 库存扣减（原子操作）
+	stockKey := fmt.Sprintf("coupon:stock:%d", couponID)
+	remainStock, err := s.redis.Decr(ctx, stockKey).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	if remainStock < 0 {
+		// 回滚库存
+		s.redis.Incr(ctx, stockKey)
+		return nil, ErrCouponStockInsufficient
+	}
+
+	// 4. 数据库插入用户优惠券记录
+	expireAt := time.Now().Add(time.Duration(coupon.ValidDays) * 24 * time.Hour)
+	couponUser := &CouponUser{
+		CouponID:   couponID,
+		UserID:     userID,
+		Status:     CouponStatusUnused,
+		ReceivedAt: time.Now(),
+		ExpireAt:   expireAt,
+	}
+
+	if err := s.db.InsertCouponUser(ctx, couponUser); err != nil {
+		// 回滚库存
+		s.redis.Incr(ctx, stockKey)
+		return nil, err
+	}
+
+	// 5. Redis 用户领取次数 +1
+	s.redis.Incr(ctx, userReceiveKey)
+	s.redis.Expire(ctx, userReceiveKey, 7*24*time.Hour)
+
+	// 6. 记录日志
+	s.recordCouponLog(ctx, couponUser.ID, couponID, userID, "receive", "", CouponStatusUnused, "用户领取")
+
+	// 7. 发送 Kafka 事件（异步）
+	event := &CouponReceivedEvent{
+		CouponUserID: couponUser.ID,
+		CouponID:     couponID,
+		UserID:       userID,
+		ReceivedAt:   time.Now(),
+	}
+	s.publishCouponEvent(ctx, "coupon.received", event)
+
+	return couponUser, nil
+}
+```
+
+#### 2.1.3 优惠券核销流程
+
+下单阶段通常先**冻结**，支付成功后再**核销**；取消 / 支付失败则解冻或回退。状态机如下。
+
+```mermaid
+stateDiagram-v2
+    [*] --> Unused: 用户领取
+    Unused --> Frozen: 下单冻结
+    Frozen --> Used: 订单支付成功
+    Frozen --> Unused: 订单取消/支付失败
+    Unused --> Expired: 过期
+    Frozen --> Expired: 过期
+    Used --> [*]
+    Expired --> [*]
+```
+
+```go
+func (s *CouponService) UseCoupon(ctx context.Context, userID, couponUserID, orderID int64) error {
+	// 1. 查询用户优惠券
+	couponUser, err := s.db.GetCouponUser(ctx, couponUserID)
+	if err != nil {
+		return err
+	}
+
+	if couponUser.UserID != userID {
+		return ErrCouponNotBelongToUser
+	}
+
+	if couponUser.Status != CouponStatusUnused && couponUser.Status != CouponStatusFrozen {
+		return ErrCouponAlreadyUsed
+	}
+
+	if time.Now().After(couponUser.ExpireAt) {
+		return ErrCouponExpired
+	}
+
+	// 2. 查询优惠券详情（校验适用范围）
+	coupon, err := s.getCouponByID(ctx, couponUser.CouponID)
+	if err != nil {
+		return err
+	}
+
+	// 3. 分布式锁（防止并发使用）
+	lockKey := fmt.Sprintf("lock:coupon:use:%d", couponUserID)
+	lock := s.redisson.GetLock(lockKey)
+	if err := lock.Lock(ctx, 3*time.Second); err != nil {
+		return ErrCouponLockFailed
+	}
+	defer lock.Unlock(ctx)
+
+	// 4. 更新优惠券状态为已使用
+	now := time.Now()
+	if err := s.db.UpdateCouponUserStatus(ctx, couponUserID, CouponStatusUsed, orderID, &now); err != nil {
+		return err
+	}
+
+	// 5. 优惠券主表已使用数量 +1
+	if err := s.db.IncrCouponUsedQuantity(ctx, couponUser.CouponID); err != nil {
+		s.logger.Error("increment coupon used quantity failed", zap.Error(err))
+	}
+
+	// 6. 记录日志
+	s.recordCouponLog(ctx, couponUserID, couponUser.CouponID, userID, "use", CouponStatusFrozen, CouponStatusUsed, fmt.Sprintf("订单%d使用", orderID))
+
+	// 7. 发送 Kafka 事件
+	event := &CouponUsedEvent{
+		CouponUserID: couponUserID,
+		CouponID:     couponUser.CouponID,
+		UserID:       userID,
+		OrderID:      orderID,
+		UsedAt:       now,
+	}
+	s.publishCouponEvent(ctx, "coupon.used", event)
+
+	return nil
+}
+```
+
+#### 2.1.4 优惠券回退（订单取消 / 退款）
+
+订单取消或全额退款时，需将用户券恢复为可用（若已过期则标记过期），并同步主表已使用量、写审计日志。
+
+```go
+func (s *CouponService) RollbackCoupon(ctx context.Context, userID, couponUserID int64, reason string) error {
+	couponUser, err := s.db.GetCouponUser(ctx, couponUserID)
+	if err != nil {
+		return err
+	}
+
+	if couponUser.UserID != userID {
+		return ErrCouponNotBelongToUser
+	}
+
+	if couponUser.Status != CouponStatusUsed && couponUser.Status != CouponStatusFrozen {
+		return ErrCouponCannotRollback
+	}
+
+	lockKey := fmt.Sprintf("lock:coupon:rollback:%d", couponUserID)
+	lock := s.redisson.GetLock(lockKey)
+	if err := lock.Lock(ctx, 3*time.Second); err != nil {
+		return ErrCouponLockFailed
+	}
+	defer lock.Unlock(ctx)
+
+	newStatus := CouponStatusUnused
+	if time.Now().After(couponUser.ExpireAt) {
+		newStatus = CouponStatusExpired
+	}
+
+	if err := s.db.UpdateCouponUserStatus(ctx, couponUserID, newStatus, nil, nil); err != nil {
+		return err
+	}
+
+	if couponUser.Status == CouponStatusUsed {
+		if err := s.db.DecrCouponUsedQuantity(ctx, couponUser.CouponID); err != nil {
+			s.logger.Error("decrement coupon used quantity failed", zap.Error(err))
+		}
+	}
+
+	s.recordCouponLog(ctx, couponUserID, couponUser.CouponID, userID, "rollback", couponUser.Status, newStatus, reason)
+
+	event := &CouponRolledBackEvent{
+		CouponUserID: couponUserID,
+		CouponID:     couponUser.CouponID,
+		UserID:       userID,
+		Reason:       reason,
+		RolledBackAt: time.Now(),
+	}
+	s.publishCouponEvent(ctx, "coupon.rolled_back", event)
+
+	return nil
+}
+```
