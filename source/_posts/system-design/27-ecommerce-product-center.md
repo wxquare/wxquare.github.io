@@ -1176,3 +1176,414 @@ func contains(arr []string, v string) bool {
     return false
 }
 ```
+## 5. 商品搜索与多级缓存
+
+导购链路读多写少，典型优化是 **Elasticsearch 承担检索与排序**，**Redis + 本地缓存承担热点详情**。写入路径发布变更事件，异步刷新索引与失效缓存，接受短暂最终一致。
+
+### 5.1 Elasticsearch 索引设计
+
+索引文档应同时满足：**关键词检索、类目/品牌筛选、价格区间、标签过滤、排序**（销量、上架时间、相关性得分）。`sku_list` 可用 nested 或扁平化子文档，视查询复杂度权衡。
+
+```go
+type ProductSearchDoc struct {
+    SPUID       string            `json:"spu_id"`
+    Title       string            `json:"title"`
+    CategoryID  int64             `json:"category_id"`
+    BrandID     int64             `json:"brand_id"`
+    Tags        []string          `json:"tags"`
+    PriceMin    int64             `json:"price_min"`
+    PriceMax    int64             `json:"price_max"`
+    Status      int               `json:"status"`
+    Sales30d    int64             `json:"sales_30d"`
+    OnShelfAt   int64             `json:"on_shelf_at"`
+    ExtraTags   []string          `json:"extra_tags"`
+    SKUs        []SearchSKUInline `json:"skus"`
+}
+
+type SearchSKUInline struct {
+    SKUID   string            `json:"sku_id"`
+    Specs   map[string]string `json:"specs"`
+    Price   int64             `json:"price"`
+    InStock bool              `json:"in_stock"`
+}
+```
+
+**Mapping 要点**：`title` 使用 `text` + `keyword` 子字段；筛选字段 `keyword`；价格 `long`；`skus` 使用 `nested` 以便按规格价查询。
+
+```json
+{
+  "mappings": {
+    "properties": {
+      "spu_id": { "type": "keyword" },
+      "title": {
+        "type": "text",
+        "fields": { "kw": { "type": "keyword", "ignore_above": 256 } }
+      },
+      "category_id": { "type": "long" },
+      "brand_id": { "type": "long" },
+      "tags": { "type": "keyword" },
+      "price_min": { "type": "long" },
+      "price_max": { "type": "long" },
+      "status": { "type": "integer" },
+      "sales_30d": { "type": "long" },
+      "on_shelf_at": { "type": "long" },
+      "extra_tags": { "type": "keyword" },
+      "skus": {
+        "type": "nested",
+        "properties": {
+          "sku_id": { "type": "keyword" },
+          "specs": { "type": "flattened" },
+          "price": { "type": "long" },
+          "in_stock": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}
+```
+
+```go
+import (
+    "context"
+    "encoding/json"
+)
+
+type SearchRequest struct {
+    Keyword    string
+    CategoryID int64
+    BrandID    int64
+    PriceMin   int64
+    PriceMax   int64
+    Page       int
+    PageSize   int
+    Sort       string
+}
+
+func SearchProducts(ctx context.Context, es *ESClient, req *SearchRequest) ([]ProductSearchDoc, int, error) {
+    must := []map[string]interface{}{
+        {"term": map[string]interface{}{"status": 4}},
+    }
+    if req.Keyword != "" {
+        must = append(must, map[string]interface{}{
+            "multi_match": map[string]interface{}{
+                "query":  req.Keyword,
+                "fields": []string{"title^2", "title.kw"},
+            },
+        })
+    }
+
+    filters := []map[string]interface{}{}
+    if req.CategoryID > 0 {
+        filters = append(filters, map[string]interface{}{
+            "term": map[string]interface{}{"category_id": req.CategoryID},
+        })
+    }
+    if req.BrandID > 0 {
+        filters = append(filters, map[string]interface{}{
+            "term": map[string]interface{}{"brand_id": req.BrandID},
+        })
+    }
+    if req.PriceMin > 0 || req.PriceMax > 0 {
+        rng := map[string]interface{}{}
+        if req.PriceMin > 0 {
+            rng["gte"] = req.PriceMin
+        }
+        if req.PriceMax > 0 {
+            rng["lte"] = req.PriceMax
+        }
+        filters = append(filters, map[string]interface{}{
+            "range": map[string]interface{}{"price_min": rng},
+        })
+    }
+
+    boolQ := map[string]interface{}{"must": must}
+    if len(filters) > 0 {
+        boolQ["filter"] = filters
+    }
+    body := map[string]interface{}{
+        "query": map[string]interface{}{"bool": boolQ},
+        "from":  (req.Page - 1) * req.PageSize,
+        "size":  req.PageSize,
+    }
+    payload, err := json.Marshal(body)
+    if err != nil {
+        return nil, 0, err
+    }
+    return es.Search(ctx, "product_index", payload)
+}
+```
+
+### 5.2 多级缓存策略
+
+```mermaid
+flowchart TB
+    Client[详情/列表请求] --> L1[L1 本地缓存 Caffeine]
+    L1 -->|miss| L2[L2 Redis 集群]
+    L2 -->|miss| L3[L3 MySQL 主从]
+    L3 --> L2
+    L2 --> L1
+    MQ[Kafka 变更事件] -.->|失效/异步回填| L2
+    MQ -.-> L1
+```
+
+```go
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+    "time"
+)
+
+type ProductDetailDTO struct {
+    SPU  *SPU
+    SKUs []*SKU
+}
+
+func cacheKeyDetail(spuID string) string {
+    return fmt.Sprintf("pd:%s", spuID)
+}
+
+func GetProductDetail(ctx context.Context, spuID string) (*ProductDetailDTO, error) {
+    if v, ok := localCache.Get(spuID); ok {
+        return v.(*ProductDetailDTO), nil
+    }
+
+    raw, err := redis.Get(ctx, cacheKeyDetail(spuID))
+    if err == nil && raw != "" {
+        var dto ProductDetailDTO
+        if json.Unmarshal([]byte(raw), &dto) == nil {
+            localCache.Set(spuID, &dto, 5*time.Second)
+            return &dto, nil
+        }
+    }
+
+    spu, err := db.GetSPU(ctx, spuID)
+    if err != nil {
+        return nil, err
+    }
+    skus, err := db.ListSKUBySPU(ctx, spuID)
+    if err != nil {
+        return nil, err
+    }
+    dto := &ProductDetailDTO{SPU: spu, SKUs: skus}
+
+    b, _ := json.Marshal(dto)
+    _ = redis.Set(ctx, cacheKeyDetail(spuID), string(b), 10*time.Minute)
+    localCache.Set(spuID, dto, 5*time.Second)
+
+    return dto, nil
+}
+
+func InvalidateProductCaches(ctx context.Context, spuID string) {
+    _ = redis.Del(ctx, cacheKeyDetail(spuID))
+    localCache.Invalidate(spuID)
+}
+```
+
+### 5.3 智能刷新规则
+
+热门商品变更后应更快可见；长尾商品可降低刷新频率以节省 ES 与 Redis 成本。可结合 **近实时销量、搜索曝光、运营打标** 计算刷新间隔。
+
+```go
+func CalculateRefreshInterval(spuID string, score float64) time.Duration {
+    if score > 1000 {
+        return 5 * time.Second
+    }
+    if score > 100 {
+        return 30 * time.Second
+    }
+    if score > 10 {
+        return 2 * time.Minute
+    }
+    return 10 * time.Minute
+}
+
+func HotnessScore(expose1h, cart1h, sales30d int64) float64 {
+    return float64(expose1h)*0.1 + float64(cart1h)*2 + float64(sales30d)*0.01
+}
+```
+
+## 6. 特殊商品类型（黄金案例）
+
+以下四个案例覆盖多数面试与工程追问：**规格矩阵、虚拟履约、日历库存、组合约束**。
+
+### 6.1 标准实物商品
+
+**场景**：T 恤，颜色 {红, 蓝, 黑}，尺码 {S, M, L, XL}，共 12 个 SKU。列表价可一致，也可按颜色区分。
+
+```go
+func ExampleTShirtSPU() *SPU {
+    return &SPU{
+        SPUID:       "SPU_TSHIRT_DEMO",
+        Title:       "纯棉圆领 T 恤",
+        CategoryID:  5001,
+        ProductType: "standard",
+        SpecDefs: []SpecDef{
+            {Name: "颜色", Values: []string{"红", "蓝", "黑"}},
+            {Name: "尺码", Values: []string{"S", "M", "L", "XL"}},
+        },
+    }
+}
+
+// 12 个 SKU：CartesianSKUs("SPU_TSHIRT_DEMO", specDefs)
+```
+
+```mermaid
+graph LR
+    subgraph SKUs["12 x SKU"]
+        R1[红-S] --- R2[红-M]
+        B1[蓝-S] --- B2[黑-XL]
+    end
+    SPU[T 恤 SPU] --> SKUs
+```
+
+### 6.2 虚拟商品
+
+**场景**：话费充值，SKU 对应面额；库存来自 **卡密池** 或 **直充渠道额度**。下单后即时履约，无需物流。
+
+```go
+type TopUpSKU struct {
+    SKUID     string
+    FaceValue int64
+    Channel   string
+}
+
+type CardPool struct {
+    PoolID string
+    SKUID  string
+}
+
+type CardSecret struct {
+    CardID string
+    SKUID  string
+    Secret string
+    Status int
+}
+
+func IssueCard(ctx context.Context, skuID string) (*CardSecret, error) {
+    card, err := db.AcquireOneCard(ctx, skuID)
+    if err != nil {
+        return nil, err
+    }
+    if err := db.MarkCardIssued(ctx, card.CardID); err != nil {
+        return nil, err
+    }
+    return card, nil
+}
+```
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant O as 订单
+    participant P as 商品/卡密
+    U->>O: 下单支付成功
+    O->>P: 申请卡密
+    P-->>O: 返回卡密/直充结果
+    O-->>U: 展示履约结果
+```
+
+### 6.3 服务类商品
+
+**场景**：酒店房型，价格随 **日期** 波动，库存为 **每日可售间夜**。搜索与下单需传入住离店日期。
+
+```go
+type HotelRoomSKU struct {
+    SKUID    string
+    RoomType string
+    HotelID  string
+}
+
+type PriceCalendar struct {
+    SKUID string
+    Date  string
+    Price int64
+}
+
+type StockCalendar struct {
+    SKUID string
+    Date  string
+    Stock int64
+}
+
+func CalculateHotelPrice(ctx context.Context, skuID, checkIn, checkOut string) (int64, error) {
+    nights := NightsBetween(checkIn, checkOut)
+    var total int64
+    for d := range EachNight(checkIn, nights) {
+        p, err := db.GetDailyPrice(ctx, skuID, d)
+        if err != nil {
+            return 0, err
+        }
+        total += p
+    }
+    return total, nil
+}
+
+func NightsBetween(checkIn, checkOut string) int { return 1 }
+func EachNight(checkIn string, n int) []string   { return []string{checkIn} }
+```
+
+### 6.4 组合商品
+
+**场景**：电影票 + 小食套餐，子商品各自有 SKU 与库存，下单需 **联合校验** 与 **打包售价分摊**（可固定价或按比例）。
+
+```go
+import "fmt"
+
+type BundleItem struct {
+    ChildSPUID string
+    ChildSKUID string
+    Quantity   int
+}
+
+type BundleProduct struct {
+    SPUID string
+    Items []BundleItem
+    Price int64
+}
+
+func CheckBundleStock(ctx context.Context, b *BundleProduct) error {
+    for _, it := range b.Items {
+        n, err := inventory.GetStock(ctx, it.ChildSKUID, "")
+        if err != nil {
+            return err
+        }
+        if n < int64(it.Quantity) {
+            return fmt.Errorf("insufficient stock for %s", it.ChildSKUID)
+        }
+    }
+    return nil
+}
+
+func AllocateBundlePrice(items []BundleItem, total int64) map[string]int64 {
+    out := make(map[string]int64)
+    var units int64
+    for _, it := range items {
+        units += int64(it.Quantity)
+    }
+    if units == 0 {
+        return out
+    }
+    var allocated int64
+    for i, it := range items {
+        var share int64
+        if i == len(items)-1 {
+            share = total - allocated
+        } else {
+            share = total * int64(it.Quantity) / units
+        }
+        out[it.ChildSKUID] = share
+        allocated += share
+    }
+    return out
+}
+```
+
+```mermaid
+flowchart TB
+    B[组合 SPU] --> M1[子 SKU 电影票]
+    B --> M2[子 SKU 爆米花]
+    M1 --> INV1[影厅座位库存]
+    M2 --> INV2[卖品库存]
+```
+
