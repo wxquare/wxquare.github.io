@@ -771,3 +771,339 @@ func OutboxMessageSender() {
     }
 }
 ```
+
+### 2.2 订单支付
+
+订单支付是订单流程的关键环节，需要对接第三方支付平台，处理支付回调，确保资金安全。支付场景下需要使用TCC模式保证强一致性。
+
+#### 业务流程
+
+1. **发起支付**：调用支付网关，传递订单信息和支付金额
+2. **用户支付**：跳转到第三方支付页面（微信/支付宝等）
+3. **支付回调**：支付平台异步回调订单系统，通知支付结果
+4. **更新订单状态**：支付成功后，订单状态从"待支付"变为"已支付"
+5. **发布事件**：发布OrderPaidEvent，触发履约流程
+
+#### TCC分布式事务
+
+支付涉及资金操作，需要保证强一致性，使用TCC模式：
+
+- **Try**：冻结用户账户资金（或向支付平台发起预授权）
+- **Confirm**：支付平台回调成功，扣款并更新订单状态为"已支付"
+- **Cancel**：支付失败或超时，解冻资金并更新订单状态为"支付失败"
+
+```go
+// TCC支付接口
+type PaymentTCC interface {
+    Try(ctx context.Context, req *PaymentRequest) (*PaymentResource, error)
+    Confirm(ctx context.Context, resource *PaymentResource) error
+    Cancel(ctx context.Context, resource *PaymentResource) error
+}
+
+// TCC资源
+type PaymentResource struct {
+    PaymentID string // 支付单号
+    OrderID   string // 订单ID
+    Amount    int64  // 支付金额
+    Status    int    // 状态：1-Try成功 2-Confirm成功 3-Cancel成功
+}
+
+// Try：冻结资金
+func (p *PaymentService) Try(ctx context.Context, req *PaymentRequest) (*PaymentResource, error) {
+    // 1. 调用支付平台预授权接口
+    authResp, err := paymentGateway.PreAuth(ctx, &PreAuthRequest{
+        OrderID: req.OrderID,
+        Amount:  req.Amount,
+        UserID:  req.UserID,
+    })
+    if err != nil {
+        return nil, fmt.Errorf("pre-auth failed: %w", err)
+    }
+    
+    // 2. 创建支付单（状态=Try成功）
+    payment := &Payment{
+        PaymentID:   authResp.PaymentID,
+        OrderID:     req.OrderID,
+        Amount:      req.Amount,
+        Status:      PaymentStatusTrySuccess,
+        AuthCode:    authResp.AuthCode, // 预授权码
+    }
+    if err := db.InsertPayment(ctx, payment); err != nil {
+        // 插入失败，取消预授权
+        paymentGateway.CancelPreAuth(ctx, authResp.AuthCode)
+        return nil, err
+    }
+    
+    return &PaymentResource{
+        PaymentID: payment.PaymentID,
+        OrderID:   req.OrderID,
+        Amount:    req.Amount,
+        Status:    PaymentStatusTrySuccess,
+    }, nil
+}
+
+// Confirm：扣款
+func (p *PaymentService) Confirm(ctx context.Context, resource *PaymentResource) error {
+    // 1. 查询支付单
+    payment, err := db.GetPayment(ctx, resource.PaymentID)
+    if err != nil {
+        return err
+    }
+    
+    if payment.Status == PaymentStatusConfirmSuccess {
+        return nil // 幂等：已经Confirm成功
+    }
+    
+    // 2. 调用支付平台扣款接口
+    if err := paymentGateway.Confirm(ctx, payment.AuthCode); err != nil {
+        return fmt.Errorf("payment confirm failed: %w", err)
+    }
+    
+    // 3. 更新支付单状态
+    if err := db.UpdatePaymentStatus(ctx, payment.PaymentID, PaymentStatusConfirmSuccess); err != nil {
+        return err
+    }
+    
+    // 4. 更新订单状态为"已支付"
+    if err := UpdateOrderStatus(ctx, payment.OrderID, OrderStatusPending, OrderStatusPaid); err != nil {
+        return err
+    }
+    
+    // 5. 发布事件
+    PublishOrderPaidEvent(ctx, payment.OrderID)
+    
+    return nil
+}
+
+// Cancel：解冻资金
+func (p *PaymentService) Cancel(ctx context.Context, resource *PaymentResource) error {
+    // 1. 查询支付单
+    payment, err := db.GetPayment(ctx, resource.PaymentID)
+    if err != nil {
+        return err
+    }
+    
+    if payment.Status == PaymentStatusCancelSuccess {
+        return nil // 幂等：已经Cancel成功
+    }
+    
+    // 2. 调用支付平台取消预授权
+    if err := paymentGateway.CancelPreAuth(ctx, payment.AuthCode); err != nil {
+        log.Error("cancel pre-auth failed", "error", err)
+        // 取消预授权失败，记录告警
+        alert.Send("cancel_pre_auth_failed", payment.PaymentID, err)
+    }
+    
+    // 3. 更新支付单状态
+    if err := db.UpdatePaymentStatus(ctx, payment.PaymentID, PaymentStatusCancelSuccess); err != nil {
+        return err
+    }
+    
+    // 4. 更新订单状态为"支付失败"
+    UpdateOrderStatus(ctx, payment.OrderID, OrderStatusPending, OrderStatusPaymentFailed)
+    
+    return nil
+}
+```
+
+#### 支付流程图
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Order as 订单系统
+    participant Payment as 支付网关
+    participant ThirdParty as 第三方支付
+    participant DB as 数据库
+    
+    User->>Order: 点击支付
+    Order->>Payment: TCC Try: 预授权
+    Payment->>ThirdParty: PreAuth(orderID, amount)
+    ThirdParty-->>Payment: authCode
+    Payment->>DB: 创建支付单(状态=Try成功)
+    Payment-->>Order: PaymentResource
+    Order-->>User: 跳转支付页面
+    
+    User->>ThirdParty: 输入密码/扫码支付
+    ThirdParty->>ThirdParty: 用户支付
+    
+    ThirdParty->>Payment: 支付回调(paymentID, status=success)
+    Payment->>Payment: 验证签名
+    Payment->>Payment: 幂等性检查
+    
+    Payment->>Payment: TCC Confirm
+    Payment->>ThirdParty: Confirm(authCode)
+    ThirdParty-->>Payment: Success
+    Payment->>DB: 更新支付单(状态=Confirm成功)
+    Payment->>DB: 更新订单(状态=已支付)
+    Payment->>Kafka: 发布OrderPaidEvent
+    Payment-->>ThirdParty: 回调成功响应
+    
+    Note over Payment: 如果支付失败或超时
+    Payment->>Payment: TCC Cancel
+    Payment->>ThirdParty: CancelPreAuth(authCode)
+    Payment->>DB: 更新支付单(状态=Cancel成功)
+    Payment->>DB: 更新订单(状态=支付失败)
+```
+
+#### 支付状态机
+
+```mermaid
+stateDiagram-v2
+    [*] --> 待支付: 订单创建成功
+    待支付 --> 支付中: 发起支付(Try)
+    支付中 --> 已支付: 支付成功(Confirm)
+    支付中 --> 支付失败: 支付失败(Cancel)
+    支付中 --> 支付失败: 支付超时(Cancel)
+    待支付 --> 已取消: 超时未支付
+    支付失败 --> 已取消: 自动取消
+    已支付 --> [*]
+    已取消 --> [*]
+```
+
+#### 支付回调幂等性
+
+第三方支付平台可能多次回调，需要保证幂等性：
+
+```go
+// 支付回调处理
+func HandlePaymentCallback(ctx context.Context, callbackReq *PaymentCallbackRequest) error {
+    // 1. 验证签名
+    if !verifySignature(callbackReq) {
+        return ErrInvalidSignature
+    }
+    
+    // 2. 幂等性检查：基于支付平台订单号
+    idempotentKey := fmt.Sprintf("payment_callback_%s", callbackReq.ThirdPartyOrderID)
+    
+    record := &IdempotentRecord{
+        IdempotentKey: idempotentKey,
+        BizType:       "payment_callback",
+        BizID:         callbackReq.PaymentID,
+        Status:        IdempotentProcessing,
+        ExpireAt:      time.Now().Add(24 * time.Hour),
+    }
+    
+    if err := db.InsertIdempotentRecord(ctx, record); err != nil {
+        // 已处理过，直接返回成功
+        existing, _ := db.GetIdempotentRecord(ctx, idempotentKey)
+        if existing.Status == IdempotentSuccess {
+            return nil // 幂等：已处理成功
+        }
+        return ErrRequestProcessing
+    }
+    
+    // 3. 查询支付单
+    payment, err := db.GetPayment(ctx, callbackReq.PaymentID)
+    if err != nil {
+        db.UpdateIdempotentStatus(ctx, idempotentKey, IdempotentFailed)
+        return err
+    }
+    
+    // 4. 状态机检查：只有"支付中"状态才能处理回调
+    if payment.Status != PaymentStatusTrying {
+        db.UpdateIdempotentStatus(ctx, idempotentKey, IdempotentSuccess)
+        return nil // 幂等：状态已变更，不需要重复处理
+    }
+    
+    // 5. 根据回调结果执行TCC Confirm或Cancel
+    if callbackReq.Status == "success" {
+        resource := &PaymentResource{
+            PaymentID: payment.PaymentID,
+            OrderID:   payment.OrderID,
+            Amount:    payment.Amount,
+        }
+        if err := paymentTCC.Confirm(ctx, resource); err != nil {
+            db.UpdateIdempotentStatus(ctx, idempotentKey, IdempotentFailed)
+            return err
+        }
+    } else {
+        resource := &PaymentResource{
+            PaymentID: payment.PaymentID,
+            OrderID:   payment.OrderID,
+            Amount:    payment.Amount,
+        }
+        paymentTCC.Cancel(ctx, resource)
+    }
+    
+    // 6. 更新幂等记录
+    db.UpdateIdempotentStatus(ctx, idempotentKey, IdempotentSuccess)
+    
+    return nil
+}
+```
+
+**幂等性保证的三重机制**：
+1. **幂等表**：基于第三方订单号的唯一索引，防止并发重复处理
+2. **状态机**：只有"支付中"状态才能变更为"已支付"，重复回调会被状态机拦截
+3. **TCC Confirm幂等**：Confirm方法内部检查支付单状态，已Confirm成功直接返回
+
+#### 支付超时处理
+
+订单创建后，用户可能不支付，需要定时扫描并取消超时订单：
+
+```go
+// 支付超时定时任务
+func PaymentTimeoutScanner() {
+    ticker := time.NewTicker(1 * time.Minute)
+    for range ticker.C {
+        ctx := context.Background()
+        
+        // 1. 查询超时未支付订单（创建时间 > 30分钟，状态=待支付）
+        timeout := time.Now().Add(-30 * time.Minute)
+        orders, err := db.GetTimeoutOrders(ctx, OrderStatusPending, timeout, 1000)
+        if err != nil {
+            log.Error("failed to get timeout orders", "error", err)
+            continue
+        }
+        
+        // 2. 批量取消订单
+        for _, order := range orders {
+            if err := CancelTimeoutOrder(ctx, order.OrderID); err != nil {
+                log.Error("failed to cancel timeout order", 
+                    "orderID", order.OrderID, 
+                    "error", err)
+                continue
+            }
+        }
+    }
+}
+
+// 取消超时订单
+func CancelTimeoutOrder(ctx context.Context, orderID string) error {
+    // 1. 悲观锁查询订单（防止并发）
+    order, err := db.GetOrderForUpdate(ctx, orderID)
+    if err != nil {
+        return err
+    }
+    
+    // 2. 状态检查：只有"待支付"状态才能取消
+    if order.Status != OrderStatusPending {
+        return nil // 已被其他流程处理
+    }
+    
+    // 3. 更新订单状态为"已取消"
+    if err := UpdateOrderStatus(ctx, orderID, OrderStatusPending, OrderStatusCancelled); err != nil {
+        return err
+    }
+    
+    // 4. 回退库存、优惠券、积分（Saga补偿）
+    if err := CompensateOrderResources(ctx, order); err != nil {
+        log.Error("failed to compensate order resources", 
+            "orderID", orderID, 
+            "error", err)
+        // 补偿失败，发送告警，人工介入
+        alert.Send("order_compensation_failed", orderID, err)
+    }
+    
+    // 5. 发布事件
+    PublishOrderCancelledEvent(ctx, orderID)
+    
+    return nil
+}
+```
+
+**超时时间设置**：
+- 物理订单：30分钟（给用户充足时间选择支付方式）
+- 虚拟订单：15分钟（无需物流，时效性更强）
+- O2O订单：10分钟（即时性要求高）
