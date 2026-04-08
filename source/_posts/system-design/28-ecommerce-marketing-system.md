@@ -546,4 +546,437 @@ func (s *CouponService) RollbackCoupon(ctx context.Context, userID, couponUserID
 
 	return nil
 }
+
+### 2.2 积分系统
+
+#### 2.2.1 积分账户模型
+
+积分账户采用**可用 / 冻结**余额与**乐观锁版本号**；流水表支撑对账与审计，`PointsExpire` 供定时任务批量过期。
+
+```go
+// 积分账户表
+type PointsAccount struct {
+	UserID          int64     `json:"user_id"`
+	AvailablePoints int64     `json:"available_points"`
+	FrozenPoints    int64     `json:"frozen_points"`
+	TotalEarned     int64     `json:"total_earned"`
+	TotalSpent      int64     `json:"total_spent"`
+	Version         int64     `json:"version"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+// 积分流水表
+type PointsLog struct {
+	ID            int64      `json:"id"`
+	UserID        int64      `json:"user_id"`
+	ChangeType    string     `json:"change_type"` // earn/spend/freeze/unfreeze/expire
+	ChangeAmount  int64      `json:"change_amount"`
+	BeforeBalance int64      `json:"before_balance"`
+	AfterBalance  int64      `json:"after_balance"`
+	BizType       string     `json:"biz_type"`
+	BizID         string     `json:"biz_id"`
+	Reason        string     `json:"reason"`
+	ExpireAt      *time.Time `json:"expire_at"`
+	CreatedAt     time.Time  `json:"created_at"`
+}
+
+// 积分过期记录表（用于定时任务扫描）
+type PointsExpire struct {
+	ID          int64      `json:"id"`
+	UserID      int64      `json:"user_id"`
+	Points      int64      `json:"points"`
+	ExpireAt    time.Time  `json:"expire_at"`
+	Status      string     `json:"status"` // pending/expired
+	ProcessedAt *time.Time `json:"processed_at"`
+}
+```
+
+#### 2.2.2 积分发放
+
+典型来源：**订单完成返利**、**签到 / 任务**、**邀请好友**、**评价晒单**等。
+
+```go
+type EarnPointsRequest struct {
+	UserID    int64
+	Points    int64
+	ValidDays int
+	BizType   string
+	BizID     string
+	Reason    string
+}
+
+func (s *PointsService) EarnPoints(ctx context.Context, req *EarnPointsRequest) error {
+	if req.Points <= 0 {
+		return ErrInvalidPoints
+	}
+
+	maxRetries := 3
+	for i := 0; i < maxRetries; i++ {
+		account, err := s.db.GetPointsAccount(ctx, req.UserID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				account = &PointsAccount{
+					UserID: req.UserID, AvailablePoints: 0, FrozenPoints: 0,
+					TotalEarned: 0, TotalSpent: 0, Version: 0,
+				}
+				if err := s.db.InsertPointsAccount(ctx, account); err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		}
+
+		newAvailable := account.AvailablePoints + req.Points
+		newTotalEarned := account.TotalEarned + req.Points
+
+		affected, err := s.db.UpdatePointsAccountWithVersion(ctx, req.UserID, account.Version, newAvailable, account.FrozenPoints, newTotalEarned, account.TotalSpent)
+		if err != nil {
+			return err
+		}
+
+		if affected > 0 {
+			expireAt := time.Now().Add(time.Duration(req.ValidDays) * 24 * time.Hour)
+			log := &PointsLog{
+				UserID: req.UserID, ChangeType: "earn", ChangeAmount: req.Points,
+				BeforeBalance: account.AvailablePoints, AfterBalance: newAvailable,
+				BizType: req.BizType, BizID: req.BizID, Reason: req.Reason,
+				ExpireAt: &expireAt, CreatedAt: time.Now(),
+			}
+			s.db.InsertPointsLog(ctx, log)
+
+			expire := &PointsExpire{UserID: req.UserID, Points: req.Points, ExpireAt: expireAt, Status: "pending"}
+			s.db.InsertPointsExpire(ctx, expire)
+
+			s.publishPointsEvent(ctx, "points.earned", &PointsEarnedEvent{
+				UserID: req.UserID, Points: req.Points, BizType: req.BizType, BizID: req.BizID, EarnedAt: time.Now(),
+			})
+			return nil
+		}
+
+		time.Sleep(time.Duration(i*10) * time.Millisecond)
+	}
+
+	return ErrPointsUpdateConflict
+}
+```
+
+#### 2.2.3 积分扣减（订单侧调用）
+
+```go
+func (s *PointsService) SpendPoints(ctx context.Context, userID int64, points int64, orderID int64) error {
+	if points <= 0 {
+		return ErrInvalidPoints
+	}
+
+	maxRetries := 3
+	for i := 0; i < maxRetries; i++ {
+		account, err := s.db.GetPointsAccount(ctx, userID)
+		if err != nil {
+			return err
+		}
+
+		if account.AvailablePoints < points {
+			return ErrPointsInsufficient
+		}
+
+		newAvailable := account.AvailablePoints - points
+		newTotalSpent := account.TotalSpent + points
+
+		affected, err := s.db.UpdatePointsAccountWithVersion(ctx, userID, account.Version, newAvailable, account.FrozenPoints, account.TotalEarned, newTotalSpent)
+		if err != nil {
+			return err
+		}
+
+		if affected > 0 {
+			log := &PointsLog{
+				UserID: userID, ChangeType: "spend", ChangeAmount: -points,
+				BeforeBalance: account.AvailablePoints, AfterBalance: newAvailable,
+				BizType: "order", BizID: fmt.Sprintf("%d", orderID),
+				Reason: fmt.Sprintf("订单%d抵扣", orderID), CreatedAt: time.Now(),
+			}
+			s.db.InsertPointsLog(ctx, log)
+
+			s.publishPointsEvent(ctx, "points.spent", &PointsSpentEvent{
+				UserID: userID, Points: points, OrderID: orderID, SpentAt: time.Now(),
+			})
+			return nil
+		}
+
+		time.Sleep(time.Duration(i*10) * time.Millisecond)
+	}
+
+	return ErrPointsUpdateConflict
+}
+```
+
+#### 2.2.4 积分退还（订单取消 / 退款）
+
+```go
+func (s *PointsService) RefundPoints(ctx context.Context, userID int64, points int64, orderID int64) error {
+	if points <= 0 {
+		return ErrInvalidPoints
+	}
+
+	maxRetries := 3
+	for i := 0; i < maxRetries; i++ {
+		account, err := s.db.GetPointsAccount(ctx, userID)
+		if err != nil {
+			return err
+		}
+
+		newAvailable := account.AvailablePoints + points
+		newTotalSpent := account.TotalSpent - points
+
+		affected, err := s.db.UpdatePointsAccountWithVersion(ctx, userID, account.Version, newAvailable, account.FrozenPoints, account.TotalEarned, newTotalSpent)
+		if err != nil {
+			return err
+		}
+
+		if affected > 0 {
+			log := &PointsLog{
+				UserID: userID, ChangeType: "refund", ChangeAmount: points,
+				BeforeBalance: account.AvailablePoints, AfterBalance: newAvailable,
+				BizType: "order", BizID: fmt.Sprintf("%d", orderID),
+				Reason: fmt.Sprintf("订单%d取消/退款", orderID), CreatedAt: time.Now(),
+			}
+			s.db.InsertPointsLog(ctx, log)
+
+			s.publishPointsEvent(ctx, "points.refunded", &PointsRefundedEvent{
+				UserID: userID, Points: points, OrderID: orderID, RefundedAt: time.Now(),
+			})
+			return nil
+		}
+
+		time.Sleep(time.Duration(i*10) * time.Millisecond)
+	}
+
+	return ErrPointsUpdateConflict
+}
+```
+
+#### 2.2.5 积分过期机制
+
+定时扫描 `PointsExpire` 表中到期且 `pending` 的记录，按乐观锁扣减可用余额并写流水。
+
+```go
+func (s *PointsService) ExpirePointsScanner(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.processExpiredPoints(ctx)
+		}
+	}
+}
+
+func (s *PointsService) processExpiredPoints(ctx context.Context) {
+	expireList, err := s.db.GetPendingExpirePoints(ctx, time.Now())
+	if err != nil {
+		s.logger.Error("get pending expire points failed", zap.Error(err))
+		return
+	}
+
+	for _, expire := range expireList {
+		if err := s.expirePoints(ctx, expire); err != nil {
+			s.logger.Error("expire points failed", zap.Int64("user_id", expire.UserID), zap.Error(err))
+		}
+	}
+}
+```
+
+```go
+func (s *PointsService) expirePoints(ctx context.Context, expire *PointsExpire) error {
+	maxRetries := 3
+	for i := 0; i < maxRetries; i++ {
+		account, err := s.db.GetPointsAccount(ctx, expire.UserID)
+		if err != nil {
+			return err
+		}
+
+		expireAmount := expire.Points
+		if account.AvailablePoints < expireAmount {
+			expireAmount = account.AvailablePoints
+		}
+
+		if expireAmount <= 0 {
+			s.db.UpdatePointsExpireStatus(ctx, expire.ID, "expired")
+			return nil
+		}
+
+		newAvailable := account.AvailablePoints - expireAmount
+
+		affected, err := s.db.UpdatePointsAccountWithVersion(ctx, expire.UserID, account.Version, newAvailable, account.FrozenPoints, account.TotalEarned, account.TotalSpent)
+		if err != nil {
+			return err
+		}
+
+		if affected > 0 {
+			log := &PointsLog{
+				UserID: expire.UserID, ChangeType: "expire", ChangeAmount: -expireAmount,
+				BeforeBalance: account.AvailablePoints, AfterBalance: newAvailable,
+				BizType: "system", BizID: fmt.Sprintf("expire_%d", expire.ID),
+				Reason: "积分过期", CreatedAt: time.Now(),
+			}
+			s.db.InsertPointsLog(ctx, log)
+
+			now := time.Now()
+			s.db.UpdatePointsExpireStatusWithTime(ctx, expire.ID, "expired", &now)
+			return nil
+		}
+
+		time.Sleep(time.Duration(i*10) * time.Millisecond)
+	}
+
+	return ErrPointsUpdateConflict
+}
+```
+
+### 2.3 活动引擎
+
+#### 2.3.1 活动类型
+
+| 活动类型 | 业务逻辑 | 技术挑战 | 适用场景 |
+|---------|---------|---------|---------|
+| 满减 | 订单满 X 元减 Y 元 | 跨店铺叠加规则 | 提升客单价 |
+| 折扣 | 商品打 X 折 | 与优惠券叠加规则 | 清库存 |
+| 秒杀 | 限时限量特价 | 高并发、库存扣减 | 引流、造热点 |
+| 拼团 | N 人成团享优惠 | 成团判断、超时取消 | 社交裂变 |
+| N 元购 | 固定价格购买 | 限购、防刷 | 拉新、促活 |
+| 买赠 | 买 A 送 B | 库存联动扣减 | 关联销售 |
+
+#### 2.3.2 活动数据模型
+
+```go
+// 活动主表
+type Activity struct {
+	ActivityID   int64           `json:"activity_id"`
+	ActivityName string          `json:"activity_name"`
+	ActivityType string          `json:"activity_type"`
+	RuleConfig   json.RawMessage `json:"rule_config"`
+	ApplyScope   string          `json:"apply_scope"`
+	StartTime    time.Time       `json:"start_time"`
+	EndTime      time.Time       `json:"end_time"`
+	TotalStock   int64           `json:"total_stock"`
+	UsedStock    int64           `json:"used_stock"`
+	Status       string          `json:"status"`
+	CreatedBy    int64           `json:"created_by"`
+	CreatedAt    time.Time       `json:"created_at"`
+	UpdatedAt    time.Time       `json:"updated_at"`
+}
+
+// 活动圈品表
+type ActivityProduct struct {
+	ID            int64           `json:"id"`
+	ActivityID    int64           `json:"activity_id"`
+	ProductID     int64           `json:"product_id"`
+	SKUID         int64           `json:"sku_id"`
+	OriginalPrice decimal.Decimal `json:"original_price"`
+	ActivityPrice decimal.Decimal `json:"activity_price"`
+	ActivityStock int64           `json:"activity_stock"`
+	SoldCount     int64           `json:"sold_count"`
+	CreatedAt     time.Time       `json:"created_at"`
+}
+
+// 满减规则示例
+type FullReductionRule struct {
+	Tiers []FullReductionTier `json:"tiers"`
+}
+
+type FullReductionTier struct {
+	MinAmount      decimal.Decimal `json:"min_amount"`
+	DiscountAmount decimal.Decimal `json:"discount_amount"`
+}
+
+// 秒杀规则示例
+type FlashSaleRule struct {
+	PerUserLimit int  `json:"per_user_limit"`
+	NeedVerify   bool `json:"need_verify"`
+}
+```
+
+#### 2.3.3 活动状态机
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft: 创建活动
+    Draft --> Pending: 提交审核
+    Pending --> Approved: 审核通过
+    Pending --> Rejected: 审核拒绝
+    Rejected --> Draft: 修改后重新提交
+    Approved --> Active: 到达开始时间
+    Active --> Expired: 到达结束时间
+    Active --> Canceled: 手动取消
+    Approved --> Canceled: 手动取消
+    Expired --> [*]
+    Canceled --> [*]
+```
+
+#### 2.3.4 圈品规则
+
+支持**全场**、**指定类目**、**指定商品 / SKU**，并可扩展**排除规则**（例如已参加互斥活动的商品）。
+
+```go
+func (s *ActivityService) IsProductEligible(ctx context.Context, activityID, productID, skuID int64) (bool, error) {
+	activity, err := s.getActivityByID(ctx, activityID)
+	if err != nil {
+		return false, err
+	}
+
+	if activity.Status != StatusActive {
+		return false, nil
+	}
+
+	now := time.Now()
+	if now.Before(activity.StartTime) || now.After(activity.EndTime) {
+		return false, nil
+	}
+
+	switch activity.ApplyScope {
+	case "all":
+		return true, nil
+
+	case "category":
+		product, err := s.productClient.GetProduct(ctx, productID)
+		if err != nil {
+			return false, err
+		}
+
+		categories, err := s.db.GetActivityCategories(ctx, activityID)
+		if err != nil {
+			return false, err
+		}
+
+		for _, catID := range categories {
+			if product.CategoryID == catID {
+				return true, nil
+			}
+		}
+		return false, nil
+
+	case "product":
+		activityProduct, err := s.db.GetActivityProduct(ctx, activityID, productID, skuID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return false, nil
+			}
+			return false, err
+		}
+
+		if activityProduct.SoldCount >= activityProduct.ActivityStock {
+			return false, nil
+		}
+
+		return true, nil
+
+	default:
+		return false, nil
+	}
+}
+```
 ```
