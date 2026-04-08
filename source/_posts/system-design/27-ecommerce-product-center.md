@@ -753,3 +753,426 @@ func RouteAuditStrategy(product *Product) AuditStrategy {
     return nil
 }
 ```
+
+## 3. 商品数据模型设计专题
+
+本章从 SPU/SKU、类目属性、动态字段存储到订单快照，串起商品中心最核心的数据面设计。
+
+### 3.1 SPU/SKU 模型设计
+
+**SPU（Standard Product Unit）** 描述「卖的是什么」：标题、类目、图文、共用属性。**SKU（Stock Keeping Unit）** 描述「可售卖的最小单元」：规格组合、价格、可售状态。一笔下单通常指向 SKU，搜索与列表常聚合在 SPU 维度展示。
+
+```go
+type SPU struct {
+    SPUID       string
+    Title       string
+    CategoryID  int64
+    BrandID     int64
+    MainImages  []string
+    Description string
+    SpecDefs    []SpecDef // 规格维度定义，如颜色、尺码
+    ProductType string    // standard/virtual/service/bundle
+    Status      int
+    Version     int64
+}
+
+type SpecDef struct {
+    Name   string
+    Values []string // 可选值集合
+}
+
+type SKU struct {
+    SKUID      string
+    SPUID      string
+    SpecValues map[string]string // 如 {"颜色":"黑","存储":"256G"}
+    Price      int64
+    Status     int
+}
+```
+
+**规格组合（笛卡尔积）**：给定多个规格维度及其取值，生成所有合法 SKU。实务中常加规则表剔除无效组合（例如某颜色不提供某尺码）。
+
+```go
+func CartesianSKUs(spuID string, defs []SpecDef) []*SKU {
+    if len(defs) == 0 {
+        return []*SKU{{SPUID: spuID, SKUID: GenerateSKUID(spuID, nil), SpecValues: map[string]string{}}}
+    }
+    var out []*SKU
+    var dfs func(i int, cur map[string]string)
+    dfs = func(i int, cur map[string]string) {
+        if i == len(defs) {
+            m := make(map[string]string, len(cur))
+            for k, v := range cur {
+                m[k] = v
+            }
+            out = append(out, &SKU{
+                SPUID:      spuID,
+                SKUID:      GenerateSKUID(spuID, m),
+                SpecValues: m,
+            })
+            return
+        }
+        d := defs[i]
+        for _, val := range d.Values {
+            cur[d.Name] = val
+            dfs(i+1, cur)
+            delete(cur, d.Name)
+        }
+    }
+    dfs(0, map[string]string{})
+    return out
+}
+```
+
+**示例（手机）**：颜色 {黑, 白} × 存储 {128G, 256G} → 4 个 SKU；若再 × 版本 {标准, Pro} → 8 个 SKU。服装类目常见「颜色 × 尺码」，SKU 数量更易膨胀，需要规格模板与批量编辑工具。
+
+```mermaid
+flowchart LR
+    SPU[SPU 商品主体] --> SK1[SKU 规格组合 A]
+    SPU --> SK2[SKU 规格组合 B]
+    SPU --> SK3[SKU 规格组合 C]
+    SK1 --> INV[库存单元]
+    SK2 --> INV
+    SK3 --> INV
+```
+
+### 3.2 类目与属性系统
+
+类目树支持前台导航、属性继承与搜索筛选维度配置。叶子类目绑定「销售属性」与「关键属性」，非叶子类目可定义通用属性并由子类目继承或覆盖。
+
+```go
+type Category struct {
+    CategoryID int64
+    ParentID   int64
+    Name       string
+    Level      int
+    Path       string // 物化路径，如 "1/10/1005"
+    IsLeaf     bool
+}
+
+type Attribute struct {
+    AttributeID   int64
+    Name          string
+    InputType     string // text/select/multi/date
+    Required      bool
+    CategoryIDs   []int64 // 绑定类目
+}
+
+type ProductAttribute struct {
+    SPUID       string
+    AttributeID int64
+    Value       string
+}
+
+func BuildCategoryTree(nodes []*Category) map[int64][]*Category {
+    children := make(map[int64][]*Category)
+    for _, n := range nodes {
+        children[n.ParentID] = append(children[n.ParentID], n)
+    }
+    return children
+}
+
+func GetCategoryPath(children map[int64][]*Category, leafID int64) []*Category {
+    // 简化：假设有 parent 指针或通过 map 反查
+    var path []*Category
+    return path
+}
+```
+
+```mermaid
+graph TD
+    ROOT[根类目] --> A[服饰]
+    ROOT --> B[数码]
+    A --> A1[男装]
+    A --> A2[女装]
+    B --> B1[手机]
+    B1 --> B1L[智能手机 叶子]
+```
+
+### 3.3 动态属性与 EAV 模型
+
+不同类目字段差异大：服装要「材质、版型」，手机要「CPU、屏幕」。直接用超宽表会导致大量稀疏列；全 EAV 查询与索引压力大。**工程上常见混合方案**：高频筛选字段进主表或 JSON 索引，长尾属性走 EAV 或文档库。
+
+| 方案 | 优点 | 缺点 | 适用 |
+|------|------|------|------|
+| 宽表 | 查询简单、性能好 |  schema 僵化、稀疏列浪费 | 属性稳定的标品类 |
+| EAV | 扩展灵活 | 多表 Join、索引复杂 | 长尾属性、运营可配字段 |
+| 混合 | 平衡性能与扩展 | 需要治理与同步策略 | 大型平台主流选择 |
+
+```go
+type ProductBase struct {
+    SPUID      string
+    Title      string
+    CategoryID int64
+    BrandID    int64
+    PriceMin   int64 // 列表价展示用
+    PriceMax   int64
+}
+
+// MongoDB / JSON 存非强筛选扩展
+type ProductExt struct {
+    SPUID   string
+    Payload map[string]interface{}
+}
+
+func LoadProductFull(ctx context.Context, spuID string) (*SPU, map[int64]string, *ProductExt, error) {
+    spu, err := db.GetSPU(ctx, spuID)
+    if err != nil {
+        return nil, nil, nil, err
+    }
+    eav, _ := db.ListProductAttributes(ctx, spuID)
+    ext, _ := extStore.Get(ctx, spuID)
+    return spu, eav, ext, nil
+}
+```
+
+### 3.4 商品快照生成与复用
+
+订单需要固化「下单瞬间」的商品展示信息与价格依据，避免后续改价改图引发纠纷。快照内容建议与计价结果、税费规则版本等一并由订单域引用。
+
+```go
+import (
+    "context"
+    "crypto/md5"
+    "encoding/hex"
+    "encoding/json"
+    "fmt"
+    "time"
+)
+
+type ProductSnapshot struct {
+    SnapshotID string
+    SPUID      string
+    SKUID      string
+    Title      string
+    Price      int64
+    Image      string
+    SpecsJSON  string
+    AttrsJSON  string
+    CreatedAt  time.Time
+}
+
+func SnapshotContentKey(spu *SPU, sku *SKU) string {
+    b, _ := json.Marshal(sku.SpecValues)
+    return fmt.Sprintf("%s|%s|%s|%d|%s", spu.SPUID, sku.SKUID, spu.Title, sku.Price, string(b))
+}
+
+func FindOrCreateSnapshot(ctx context.Context, spu *SPU, sku *SKU) (string, error) {
+    key := SnapshotContentKey(spu, sku)
+    sum := md5.Sum([]byte(key))
+    snapshotID := hex.EncodeToString(sum[:])
+
+    if snap, _ := db.GetSnapshot(ctx, snapshotID); snap != nil {
+        return snapshotID, nil
+    }
+
+    specsJSON, _ := json.Marshal(sku.SpecValues)
+    snap := &ProductSnapshot{
+        SnapshotID: snapshotID,
+        SPUID:      spu.SPUID,
+        SKUID:      sku.SKUID,
+        Title:      spu.Title,
+        Price:      sku.Price,
+        Image:      spu.MainImages[0],
+        SpecsJSON:  string(specsJSON),
+        CreatedAt:  time.Now(),
+    }
+    if err := db.InsertSnapshot(ctx, snap); err != nil {
+        return "", err
+    }
+    return snapshotID, nil
+}
+```
+
+## 4. 异构商品治理
+
+实物、虚拟、服务、组合在 SKU 形态、库存维度、价格与履约链路上差异显著。治理目标是：**统一生命周期与检索体验**，又允许品类在扩展点上替换实现。
+
+### 4.1 异构商品的挑战
+
+| 维度 | 标准实物 | 虚拟商品 | 服务商品 | 组合商品 |
+|------|----------|----------|----------|----------|
+| SKU 模型 | 多规格 SKU | 常单 SKU 或无 SKU | 房型/时段颗粒度 | 子 SKU 组合 |
+| 库存 | 数量库存 | 卡密池/核销码 | 日历房态/座位图 | 子品库存联合约束 |
+| 价格 | 标价 + 促销 | 面值/折扣规则 | 日历价、动态溢价 | 打包价、分摊规则 |
+| 履约 | 物流发货 | 直充/发码 | 预约/入住/出行 | 分履约合并展示 |
+
+核心矛盾：**一套核心表与流程** vs **品类特有字段与规则**。解法是把「共性」沉到内核，把「差异」关进扩展点（适配器/策略/配置）。
+
+### 4.2 统一抽象与适配器模式
+
+```go
+import "errors"
+
+// 与第 5 章搜索文档对齐的简化结构
+type ProductSearchDoc struct {
+    SPUID     string
+    Title     string
+    Category  int64
+    ExtraTags []string
+}
+
+type ProductType string
+
+const (
+    ProductTypeStandard ProductType = "standard"
+    ProductTypeVirtual  ProductType = "virtual"
+    ProductTypeService  ProductType = "service"
+    ProductTypeBundle   ProductType = "bundle"
+)
+
+type ProductAdapter interface {
+    Type() ProductType
+    Validate(spu *SPU, skus []*SKU) error
+    NormalizeForSearch(doc *ProductSearchDoc) error
+    StockDimensions() []string
+}
+
+type StandardProductAdapter struct{}
+
+func (a *StandardProductAdapter) Type() ProductType { return ProductTypeStandard }
+
+func (a *StandardProductAdapter) Validate(spu *SPU, skus []*SKU) error {
+    if len(skus) == 0 {
+        return errors.New("standard product requires skus")
+    }
+    return nil
+}
+
+func (a *StandardProductAdapter) NormalizeForSearch(doc *ProductSearchDoc) error {
+    return nil
+}
+
+func (a *StandardProductAdapter) StockDimensions() []string {
+    return []string{"warehouse_sku"}
+}
+
+type ServiceProductAdapter struct{}
+
+func (a *ServiceProductAdapter) Type() ProductType { return ProductTypeService }
+
+func (a *ServiceProductAdapter) Validate(spu *SPU, skus []*SKU) error {
+    // 服务类可允许「按日库存」在扩展表维护
+    return nil
+}
+
+func (a *ServiceProductAdapter) NormalizeForSearch(doc *ProductSearchDoc) error {
+    doc.ExtraTags = append(doc.ExtraTags, "service")
+    return nil
+}
+
+func (a *ServiceProductAdapter) StockDimensions() []string {
+    return []string{"date", "room_type"}
+}
+
+var adapterRegistry = map[ProductType]ProductAdapter{
+    ProductTypeStandard: &StandardProductAdapter{},
+    ProductTypeService:  &ServiceProductAdapter{},
+}
+
+func RouteAdapter(spu *SPU) ProductAdapter {
+    t := ProductType(spu.ProductType)
+    if a, ok := adapterRegistry[t]; ok {
+        return a
+    }
+    return adapterRegistry[ProductTypeStandard]
+}
+```
+
+```mermaid
+classDiagram
+    class ProductAdapter {
+        <<interface>>
+        +Type() ProductType
+        +Validate()
+        +NormalizeForSearch()
+        +StockDimensions()
+    }
+    class StandardProductAdapter
+    class ServiceProductAdapter
+    ProductAdapter <|.. StandardProductAdapter
+    ProductAdapter <|.. ServiceProductAdapter
+```
+
+### 4.3 配置化与低代码平台
+
+将「表单字段、校验规则、上架步骤、审核模板」配置化，新品类主要工作是配置 + 少量插件，而不是复制一套后台。
+
+```go
+type FormField struct {
+    Key        string
+    Label      string
+    Widget     string // input/select/date/city
+    Required   bool
+    Validator  string // 正则或规则名
+    DataSource string // 枚举接口
+}
+
+type FormConfig struct {
+    ProductType ProductType
+    Fields      []FormField
+    Steps       []string
+}
+
+var HotelSPUForm = FormConfig{
+    ProductType: ProductTypeService,
+    Fields: []FormField{
+        {Key: "hotel.star", Label: "星级", Widget: "select", Required: true, DataSource: "/meta/stars"},
+        {Key: "hotel.city", Label: "城市", Widget: "city", Required: true},
+        {Key: "hotel.address", Label: "地址", Widget: "input", Required: true},
+    },
+    Steps: []string{"basic", "room", "policy", "media"},
+}
+```
+
+### 4.4 多维度库存管理
+
+库存可分层：**平台库存网关** 统一对外，`GetStock` 根据 `ProductType` 与维度路由到仓库库存、卡密池、房态服务等。
+
+```mermaid
+graph LR
+    API[下单/详情] --> GW[库存网关]
+    GW --> W[仓配库存]
+    GW --> C[卡密池]
+    GW --> R[房态/日历库存]
+```
+
+```go
+type StockQuery struct {
+    SKUID     string
+    Date      string
+    Warehouse string
+}
+
+type InventoryGateway struct {
+    warehouse StockProvider
+    cardPool  StockProvider
+    roomState StockProvider
+}
+
+type StockProvider interface {
+    Name() string
+    Available(ctx context.Context, q StockQuery) (int64, error)
+}
+
+func (g *InventoryGateway) GetStock(ctx context.Context, adapter ProductAdapter, q StockQuery) (int64, error) {
+    dims := adapter.StockDimensions()
+    switch {
+    case contains(dims, "warehouse_sku"):
+        return g.warehouse.Available(ctx, q)
+    case contains(dims, "date"):
+        return g.roomState.Available(ctx, q)
+    default:
+        return g.cardPool.Available(ctx, q)
+    }
+}
+
+func contains(arr []string, v string) bool {
+    for _, x := range arr {
+        if x == v {
+            return true
+        }
+    }
+    return false
+}
+```
