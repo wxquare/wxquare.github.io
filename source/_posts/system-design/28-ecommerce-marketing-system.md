@@ -2649,5 +2649,3 @@ func (s *OrderService) CalculateMarketing(ctx context.Context, req *CalculateReq
 - [电商系统设计：商品中心深度解析](/2026/04/07/system-design/27-ecommerce-product-center/)
 
 源码路径：`source/_posts/system-design/26-ecommerce-order-system.md`、`27-ecommerce-product-center.md`。
-```
-```
