@@ -1107,3 +1107,367 @@ func CancelTimeoutOrder(ctx context.Context, orderID string) error {
 - 物理订单：30分钟（给用户充足时间选择支付方式）
 - 虚拟订单：15分钟（无需物流，时效性更强）
 - O2O订单：10分钟（即时性要求高）
+
+### 2.3 订单履约
+
+订单履约是订单支付成功后的下一个环节，负责将商品配送给用户。履约过程需要对接物流系统，跟踪物流状态，并在适当时候自动确认收货。
+
+#### 业务流程
+
+1. **触发履约**：监听OrderPaidEvent，订单支付成功后自动触发履约
+2. **创建物流单**：调用物流系统创建物流单，获取物流单号
+3. **发货**：仓库发货，更新订单状态为"已发货"
+4. **物流跟踪**：订阅物流状态变更，更新订单状态（运输中 → 已送达）
+5. **自动确认收货**：超过N天自动确认收货，订单状态变为"已完成"
+
+#### 履约状态机
+
+```mermaid
+stateDiagram-v2
+    [*] --> 待发货: 支付成功
+    待发货 --> 已发货: 仓库发货
+    已发货 --> 运输中: 物流揽件
+    运输中 --> 已送达: 物流签收
+    已送达 --> 已完成: 确认收货/超时自动确认
+    已完成 --> [*]
+```
+
+#### 异步履约处理
+
+使用Kafka事件驱动，异步处理履约任务：
+
+```go
+// Kafka消费者：监听订单支付事件
+func FulfillmentWorker() {
+    consumer := kafka.NewConsumer("order.paid", "fulfillment-group")
+    
+    for msg := range consumer.Messages() {
+        event := &OrderPaidEvent{}
+        if err := json.Unmarshal(msg.Value, event); err != nil {
+            log.Error("failed to unmarshal event", "error", err)
+            continue
+        }
+        
+        // 处理履约
+        if err := ProcessFulfillment(context.Background(), event.OrderID); err != nil {
+            log.Error("failed to process fulfillment", 
+                "orderID", event.OrderID, 
+                "error", err)
+            // 失败后重试（Kafka会重新投递）
+            continue
+        }
+        
+        // 提交offset
+        consumer.CommitMessage(msg)
+    }
+}
+
+// 履约处理主流程
+func ProcessFulfillment(ctx context.Context, orderID string) error {
+    // 1. 查询订单
+    order, err := db.GetOrder(ctx, orderID)
+    if err != nil {
+        return err
+    }
+    
+    // 2. 状态检查：只有"已支付"状态才能履约
+    if order.Status != OrderStatusPaid {
+        return nil // 已被处理
+    }
+    
+    // 3. 创建物流单
+    logisticsResp, err := logisticsClient.CreateShipment(ctx, &CreateShipmentRequest{
+        OrderID:      orderID,
+        ReceiverName: order.ReceiverName,
+        ReceiverAddr: order.ReceiverAddress,
+        Items:        order.Items,
+    })
+    if err != nil {
+        return fmt.Errorf("create shipment failed: %w", err)
+    }
+    
+    // 4. 更新订单状态为"待发货"
+    if err := UpdateOrderStatus(ctx, orderID, OrderStatusPaid, OrderStatusPendingShipment); err != nil {
+        return err
+    }
+    
+    // 5. 保存物流单号
+    if err := db.UpdateOrderLogistics(ctx, orderID, logisticsResp.ShipmentID); err != nil {
+        return err
+    }
+    
+    // 6. 发布事件
+    PublishFulfillmentCreatedEvent(ctx, orderID, logisticsResp.ShipmentID)
+    
+    return nil
+}
+```
+
+#### 物流状态回调处理
+
+物流系统会主动推送物流状态变更：
+
+```go
+// 物流状态回调处理
+func HandleLogisticsCallback(ctx context.Context, callback *LogisticsCallbackRequest) error {
+    // 1. 幂等性检查
+    idempotentKey := fmt.Sprintf("logistics_callback_%s_%s", 
+        callback.ShipmentID, callback.Status)
+    
+    if err := db.InsertIdempotentRecord(ctx, &IdempotentRecord{
+        IdempotentKey: idempotentKey,
+        BizType:       "logistics_callback",
+        BizID:         callback.OrderID,
+        Status:        IdempotentProcessing,
+    }); err != nil {
+        return nil // 已处理
+    }
+    
+    // 2. 根据物流状态更新订单
+    switch callback.Status {
+    case "SHIPPED":
+        // 已发货
+        UpdateOrderStatus(ctx, callback.OrderID, OrderStatusPendingShipment, OrderStatusShipped)
+    case "IN_TRANSIT":
+        // 运输中
+        UpdateOrderStatus(ctx, callback.OrderID, OrderStatusShipped, OrderStatusInTransit)
+    case "DELIVERED":
+        // 已送达
+        UpdateOrderStatus(ctx, callback.OrderID, OrderStatusInTransit, OrderStatusDelivered)
+        // 发布事件，触发自动确认收货定时器
+        PublishOrderDeliveredEvent(ctx, callback.OrderID)
+    default:
+        log.Warn("unknown logistics status", "status", callback.Status)
+    }
+    
+    // 3. 更新幂等记录
+    db.UpdateIdempotentStatus(ctx, idempotentKey, IdempotentSuccess)
+    
+    return nil
+}
+```
+
+#### 自动确认收货
+
+订单送达后，超过N天自动确认收货：
+
+```go
+// 自动确认收货定时任务
+func AutoConfirmReceiptScanner() {
+    ticker := time.NewTicker(1 * time.Hour)
+    for range ticker.C {
+        ctx := context.Background()
+        
+        // 查询已送达超过7天的订单
+        timeout := time.Now().Add(-7 * 24 * time.Hour)
+        orders, err := db.GetDeliveredOrders(ctx, timeout, 1000)
+        if err != nil {
+            log.Error("failed to get delivered orders", "error", err)
+            continue
+        }
+        
+        // 批量确认收货
+        for _, order := range orders {
+            if err := ConfirmReceipt(ctx, order.OrderID); err != nil {
+                log.Error("failed to confirm receipt", 
+                    "orderID", order.OrderID, 
+                    "error", err)
+            }
+        }
+    }
+}
+
+// 确认收货
+func ConfirmReceipt(ctx context.Context, orderID string) error {
+    // 1. 更新订单状态为"已完成"
+    if err := UpdateOrderStatus(ctx, orderID, OrderStatusDelivered, OrderStatusCompleted); err != nil {
+        return err
+    }
+    
+    // 2. 发布事件
+    PublishOrderCompletedEvent(ctx, orderID)
+    
+    return nil
+}
+```
+
+### 2.4 订单售后
+
+订单售后处理用户的退款退货请求，需要协调库存回补、优惠退还、资金退回等多个系统。售后场景下使用Saga模式保证最终一致性。
+
+#### 业务流程
+
+1. **售后申请**：用户发起退款退货申请
+2. **售后审核**：系统自动审核或人工审核
+3. **退货物流**：用户寄回商品（退货场景）
+4. **退款处理**：Saga事务：回退库存 → 退还优惠券 → 退还积分 → 退款
+5. **完成售后**：售后单状态变为"已完成"
+
+#### 售后状态机
+
+```mermaid
+stateDiagram-v2
+    [*] --> 售后申请: 用户发起
+    售后申请 --> 审核中: 提交审核
+    审核中 --> 已拒绝: 审核不通过
+    审核中 --> 已同意: 审核通过
+    已同意 --> 退货中: 用户寄回商品
+    退货中 --> 退款中: 商品已收到
+    已同意 --> 退款中: 仅退款
+    退款中 --> 已完成: 退款成功
+    已拒绝 --> [*]
+    已完成 --> [*]
+```
+
+#### Saga退款事务
+
+使用Saga模式协调退款流程：
+
+```go
+// 退款Saga
+func RefundSaga(ctx context.Context, refundReq *RefundRequest) error {
+    saga := &SagaOrchestrator{
+        steps: []*SagaStep{
+            {
+                Name: "创建售后单",
+                TryFunc: func(ctx context.Context) error {
+                    refund := &Refund{
+                        RefundID: generateRefundID(),
+                        OrderID:  refundReq.OrderID,
+                        Amount:   refundReq.Amount,
+                        Status:   RefundStatusProcessing,
+                    }
+                    return db.InsertRefund(ctx, refund)
+                },
+                CancelFunc: func(ctx context.Context) error {
+                    return db.DeleteRefund(ctx, refundReq.RefundID)
+                },
+            },
+            {
+                Name: "回退库存",
+                TryFunc: func(ctx context.Context) error {
+                    return inventoryClient.RestoreStock(ctx, refundReq.Items)
+                },
+                CancelFunc: func(ctx context.Context) error {
+                    // 回退库存失败，记录日志
+                    log.Error("restore stock compensation failed")
+                    return nil // 允许继续
+                },
+            },
+            {
+                Name: "退还优惠券",
+                TryFunc: func(ctx context.Context) error {
+                    if refundReq.CouponID == "" {
+                        return nil // 无优惠券
+                    }
+                    return marketingClient.RestoreCoupon(ctx, refundReq.CouponID)
+                },
+                CancelFunc: func(ctx context.Context) error {
+                    log.Error("restore coupon compensation failed")
+                    return nil
+                },
+            },
+            {
+                Name: "退还积分",
+                TryFunc: func(ctx context.Context) error {
+                    if refundReq.Points == 0 {
+                        return nil // 无积分抵扣
+                    }
+                    return marketingClient.RestorePoints(ctx, refundReq.UserID, refundReq.Points)
+                },
+                CancelFunc: func(ctx context.Context) error {
+                    log.Error("restore points compensation failed")
+                    return nil
+                },
+            },
+            {
+                Name: "退款",
+                TryFunc: func(ctx context.Context) error {
+                    return paymentClient.Refund(ctx, &RefundPaymentRequest{
+                        OrderID: refundReq.OrderID,
+                        Amount:  refundReq.Amount,
+                    })
+                },
+                CancelFunc: func(ctx context.Context) error {
+                    // 退款失败，人工介入
+                    alert.Send("refund_failed", refundReq.OrderID, nil)
+                    return nil
+                },
+            },
+        },
+    }
+    
+    // 执行Saga
+    if err := saga.Execute(ctx); err != nil {
+        // 任一步骤失败，记录售后单状态为"失败"
+        db.UpdateRefundStatus(ctx, refundReq.RefundID, RefundStatusFailed)
+        return err
+    }
+    
+    // 所有步骤成功，更新售后单状态为"已完成"
+    db.UpdateRefundStatus(ctx, refundReq.RefundID, RefundStatusCompleted)
+    
+    // 发布事件
+    PublishRefundCompletedEvent(ctx, refundReq.RefundID)
+    
+    return nil
+}
+```
+
+#### 补偿机制
+
+售后流程中的补偿需要特别处理：
+
+```go
+// 库存回补补偿
+func CompensateInventory(ctx context.Context, order *Order) error {
+    // 重试3次
+    for i := 0; i < 3; i++ {
+        if err := inventoryClient.RestoreStock(ctx, order.Items); err == nil {
+            return nil
+        }
+        time.Sleep(time.Duration(i+1) * time.Second)
+    }
+    
+    // 重试失败，创建补偿任务
+    task := &CompensationTask{
+        TaskID:   uuid.New().String(),
+        BizType:  "inventory_restore",
+        BizID:    order.OrderID,
+        Status:   CompensationPending,
+        RetryCount: 0,
+    }
+    db.InsertCompensationTask(ctx, task)
+    
+    // 发送告警
+    alert.Send("inventory_restore_failed", order.OrderID, nil)
+    
+    return fmt.Errorf("inventory restore failed after retries")
+}
+
+// 补偿任务定时处理
+func CompensationTaskWorker() {
+    ticker := time.NewTicker(5 * time.Minute)
+    for range ticker.C {
+        ctx := context.Background()
+        
+        // 查询待补偿任务
+        tasks, _ := db.GetPendingCompensationTasks(ctx, 100)
+        for _, task := range tasks {
+            if err := ProcessCompensation(ctx, task); err != nil {
+                // 更新重试次数
+                db.IncrementTaskRetryCount(ctx, task.TaskID)
+                
+                // 超过最大重试次数，标记为失败
+                if task.RetryCount >= 10 {
+                    db.UpdateTaskStatus(ctx, task.TaskID, CompensationFailed)
+                    alert.Send("compensation_task_failed", task.TaskID, nil)
+                }
+            } else {
+                // 补偿成功
+                db.UpdateTaskStatus(ctx, task.TaskID, CompensationCompleted)
+            }
+        }
+    }
+}
+```
