@@ -978,5 +978,361 @@ func (s *ActivityService) IsProductEligible(ctx context.Context, activityID, pro
 		return false, nil
 	}
 }
+
+## 3. 营销计算引擎
+
+### 3.1 优惠计算流程
+
+营销计算在购物车 / 结算页被高频调用：需要聚合用户券、活动、积分，应用叠加与互斥规则，输出**最优方案**并**分摊到行**。
+
+```mermaid
+graph TD
+    Start[开始计算] --> FetchOrder[获取订单信息]
+    FetchOrder --> FetchCoupon[获取用户优惠券]
+    FetchOrder --> FetchPoints[获取用户积分]
+    FetchOrder --> FetchActivity[获取适用活动]
+
+    FetchCoupon --> FilterCoupon[筛选可用优惠券]
+    FetchActivity --> FilterActivity[筛选可用活动]
+
+    FilterCoupon --> CalcCoupon[计算优惠券优惠]
+    FilterActivity --> CalcActivity[计算活动优惠]
+    FetchPoints --> CalcPoints[计算积分抵扣]
+
+    CalcCoupon --> ApplyRules[应用叠加/互斥规则]
+    CalcActivity --> ApplyRules
+    CalcPoints --> ApplyRules
+
+    ApplyRules --> SelectBest[选择最优方案]
+    SelectBest --> AllocDiscount[优惠分摊到商品]
+    AllocDiscount --> CalcFinal[计算最终应付金额]
+    CalcFinal --> End[返回结果]
+```
+
+```go
+type MarketingCalculationEngine struct {
+	couponService   *CouponService
+	pointsService   *PointsService
+	activityService *ActivityService
+	ruleEngine      *RuleEngine
+}
+
+type CalculateRequest struct {
+	UserID    int64        `json:"user_id"`
+	Items     []*OrderItem `json:"items"`
+	CouponIDs []int64      `json:"coupon_ids"`
+	UsePoints int64        `json:"use_points"`
+}
+
+type OrderItem struct {
+	ProductID int64           `json:"product_id"`
+	SKUID     int64           `json:"sku_id"`
+	Quantity  int             `json:"quantity"`
+	Price     decimal.Decimal `json:"price"`
+	Amount    decimal.Decimal `json:"amount"`
+}
+
+type CalculateResponse struct {
+	OriginalAmount   decimal.Decimal `json:"original_amount"`
+	CouponDiscount   decimal.Decimal `json:"coupon_discount"`
+	ActivityDiscount decimal.Decimal `json:"activity_discount"`
+	PointsDiscount   decimal.Decimal `json:"points_discount"`
+	TotalDiscount    decimal.Decimal `json:"total_discount"`
+	FinalAmount      decimal.Decimal `json:"final_amount"`
+
+	ItemDiscounts  []*ItemDiscount `json:"item_discounts"`
+	UsedCoupons    []*UsedCoupon   `json:"used_coupons"`
+	UsedActivities []*UsedActivity `json:"used_activities"`
+	UsedPoints     int64           `json:"used_points"`
+}
+
+func (e *MarketingCalculationEngine) Calculate(ctx context.Context, req *CalculateRequest) (*CalculateResponse, error) {
+	originalAmount := decimal.Zero
+	for _, item := range req.Items {
+		originalAmount = originalAmount.Add(item.Amount)
+	}
+
+	availableCoupons, err := e.getAvailableCoupons(ctx, req.UserID, req.CouponIDs, req.Items)
+	if err != nil {
+		return nil, err
+	}
+
+	availableActivities, err := e.getAvailableActivities(ctx, req.Items)
+	if err != nil {
+		return nil, err
+	}
+
+	pointsDiscount := decimal.NewFromInt(req.UsePoints).Div(decimal.NewFromInt(100))
+
+	bestPlan, err := e.ruleEngine.FindBestCombination(ctx, originalAmount, availableCoupons, availableActivities, pointsDiscount)
+	if err != nil {
+		return nil, err
+	}
+
+	itemDiscounts := e.allocateDiscountToItems(req.Items, bestPlan)
+
+	totalDiscount := bestPlan.CouponDiscount.Add(bestPlan.ActivityDiscount).Add(pointsDiscount)
+	finalAmount := originalAmount.Sub(totalDiscount)
+	if finalAmount.LessThan(decimal.Zero) {
+		finalAmount = decimal.Zero
+	}
+
+	return &CalculateResponse{
+		OriginalAmount:   originalAmount,
+		CouponDiscount:   bestPlan.CouponDiscount,
+		ActivityDiscount: bestPlan.ActivityDiscount,
+		PointsDiscount:   pointsDiscount,
+		TotalDiscount:    totalDiscount,
+		FinalAmount:      finalAmount,
+		ItemDiscounts:    itemDiscounts,
+		UsedCoupons:      bestPlan.UsedCoupons,
+		UsedActivities:   bestPlan.UsedActivities,
+		UsedPoints:       req.UsePoints,
+	}, nil
+}
+```
+
+### 3.2 优惠叠加与互斥规则
+
+常见规则：**同一订单一张券**；**活动与券可叠加**（示例实现为**先活动后券**）；**积分可与券、活动叠加**；**跨店铺**需单独策略（不同店铺优惠不可简单合并）。
+
+```go
+type RuleEngine struct{}
+
+type PromotionPlan struct {
+	CouponDiscount   decimal.Decimal
+	ActivityDiscount decimal.Decimal
+	UsedCoupons      []*UsedCoupon
+	UsedActivities   []*UsedActivity
+	TotalDiscount    decimal.Decimal
+}
+
+type UsedCoupon struct {
+	CouponID       int64
+	CouponUserID   int64
+	DiscountAmount decimal.Decimal
+}
+
+type UsedActivity struct {
+	ActivityID     int64
+	DiscountAmount decimal.Decimal
+}
+
+func (r *RuleEngine) FindBestCombination(
+	ctx context.Context,
+	originalAmount decimal.Decimal,
+	availableCoupons []*Coupon,
+	availableActivities []*Activity,
+	pointsDiscount decimal.Decimal,
+) (*PromotionPlan, error) {
+
+	var bestPlan *PromotionPlan
+	maxDiscount := decimal.Zero
+
+	for _, coupon := range availableCoupons {
+		activityCombinations := r.generateActivityCombinations(availableActivities)
+
+		for _, activityCombo := range activityCombinations {
+			plan := r.calculatePlan(originalAmount, coupon, activityCombo)
+
+			if plan.TotalDiscount.GreaterThan(maxDiscount) {
+				maxDiscount = plan.TotalDiscount
+				bestPlan = plan
+			}
+		}
+	}
+
+	if bestPlan == nil {
+		activityCombinations := r.generateActivityCombinations(availableActivities)
+		for _, activityCombo := range activityCombinations {
+			plan := r.calculatePlan(originalAmount, nil, activityCombo)
+			if plan.TotalDiscount.GreaterThan(maxDiscount) {
+				maxDiscount = plan.TotalDiscount
+				bestPlan = plan
+			}
+		}
+	}
+
+	if bestPlan == nil {
+		bestPlan = &PromotionPlan{
+			CouponDiscount:   decimal.Zero,
+			ActivityDiscount: decimal.Zero,
+			TotalDiscount:    decimal.Zero,
+		}
+	}
+
+	return bestPlan, nil
+}
+```
+
+```go
+func (r *RuleEngine) calculatePlan(
+	originalAmount decimal.Decimal,
+	coupon *Coupon,
+	activities []*Activity,
+) *PromotionPlan {
+	plan := &PromotionPlan{
+		CouponDiscount:   decimal.Zero,
+		ActivityDiscount: decimal.Zero,
+		UsedCoupons:      []*UsedCoupon{},
+		UsedActivities:   []*UsedActivity{},
+	}
+
+	currentAmount := originalAmount
+
+	for _, activity := range activities {
+		activityDiscount := r.calculateActivityDiscount(currentAmount, activity)
+		if activityDiscount.GreaterThan(decimal.Zero) {
+			plan.ActivityDiscount = plan.ActivityDiscount.Add(activityDiscount)
+			plan.UsedActivities = append(plan.UsedActivities, &UsedActivity{
+				ActivityID:     activity.ActivityID,
+				DiscountAmount: activityDiscount,
+			})
+			currentAmount = currentAmount.Sub(activityDiscount)
+		}
+	}
+
+	if coupon != nil {
+		couponDiscount := r.calculateCouponDiscount(currentAmount, coupon)
+		if couponDiscount.GreaterThan(decimal.Zero) {
+			plan.CouponDiscount = couponDiscount
+			plan.UsedCoupons = append(plan.UsedCoupons, &UsedCoupon{
+				CouponID:       coupon.CouponID,
+				DiscountAmount: couponDiscount,
+			})
+		}
+	}
+
+	plan.TotalDiscount = plan.ActivityDiscount.Add(plan.CouponDiscount)
+
+	return plan
+}
+```
+
+```go
+func (r *RuleEngine) calculateCouponDiscount(amount decimal.Decimal, coupon *Coupon) decimal.Decimal {
+	if amount.LessThan(coupon.MinOrderAmount) {
+		return decimal.Zero
+	}
+
+	switch coupon.DiscountType {
+	case DiscountTypeAmount:
+		return coupon.DiscountValue
+
+	case DiscountTypePercentage:
+		discount := amount.Mul(decimal.NewFromInt(1).Sub(coupon.DiscountValue))
+		if coupon.MaxDiscountAmt.GreaterThan(decimal.Zero) && discount.GreaterThan(coupon.MaxDiscountAmt) {
+			return coupon.MaxDiscountAmt
+		}
+		return discount
+
+	default:
+		return decimal.Zero
+	}
+}
+```
+
+```go
+func (r *RuleEngine) calculateActivityDiscount(amount decimal.Decimal, activity *Activity) decimal.Decimal {
+	switch activity.ActivityType {
+	case ActivityTypeFlashSale:
+		return decimal.Zero
+
+	case "full_reduction":
+		var rule FullReductionRule
+		if err := json.Unmarshal(activity.RuleConfig, &rule); err != nil {
+			return decimal.Zero
+		}
+
+		var maxTier *FullReductionTier
+		for i := range rule.Tiers {
+			tier := &rule.Tiers[i]
+			if amount.GreaterThanOrEqual(tier.MinAmount) {
+				if maxTier == nil || tier.MinAmount.GreaterThan(maxTier.MinAmount) {
+					maxTier = tier
+				}
+			}
+		}
+
+		if maxTier != nil {
+			return maxTier.DiscountAmount
+		}
+		return decimal.Zero
+
+	default:
+		return decimal.Zero
+	}
+}
+
+func (r *RuleEngine) generateActivityCombinations(activities []*Activity) [][]*Activity {
+	if len(activities) == 0 {
+		return [][]*Activity{{}}
+	}
+	return [][]*Activity{activities}
+}
+```
+
+### 3.3 优惠分摊到商品
+
+按**商品行金额占比**分摊券 / 活动 / 积分优惠，并对**尾差**做最后一行兜底，避免舍入导致总额不平。
+
+```go
+type ItemDiscount struct {
+	ProductID        int64           `json:"product_id"`
+	SKUID            int64           `json:"sku_id"`
+	OriginalAmount   decimal.Decimal `json:"original_amount"`
+	CouponDiscount   decimal.Decimal `json:"coupon_discount"`
+	ActivityDiscount decimal.Decimal `json:"activity_discount"`
+	PointsDiscount   decimal.Decimal `json:"points_discount"`
+	FinalAmount      decimal.Decimal `json:"final_amount"`
+}
+
+func (e *MarketingCalculationEngine) allocateDiscountToItems(
+	items []*OrderItem,
+	plan *PromotionPlan,
+) []*ItemDiscount {
+
+	itemDiscounts := make([]*ItemDiscount, len(items))
+
+	totalAmount := decimal.Zero
+	for _, item := range items {
+		totalAmount = totalAmount.Add(item.Amount)
+	}
+
+	allocatedCouponDiscount := decimal.Zero
+	for i, item := range items {
+		ratio := item.Amount.Div(totalAmount)
+		discount := plan.CouponDiscount.Mul(ratio).Round(2)
+
+		itemDiscounts[i] = &ItemDiscount{
+			ProductID:        item.ProductID,
+			SKUID:            item.SKUID,
+			OriginalAmount:   item.Amount,
+			CouponDiscount:   discount,
+			ActivityDiscount: decimal.Zero,
+			PointsDiscount:   decimal.Zero,
+		}
+
+		allocatedCouponDiscount = allocatedCouponDiscount.Add(discount)
+	}
+
+	couponDiff := plan.CouponDiscount.Sub(allocatedCouponDiscount)
+	if len(itemDiscounts) > 0 && couponDiff.Abs().GreaterThan(decimal.NewFromFloat(0.01)) {
+		last := itemDiscounts[len(itemDiscounts)-1]
+		last.CouponDiscount = last.CouponDiscount.Add(couponDiff)
+	}
+
+	// 活动优惠、积分抵扣可按同样比例分摊（此处省略类似代码）
+
+	for i := range itemDiscounts {
+		itemDiscounts[i].FinalAmount = itemDiscounts[i].OriginalAmount.
+			Sub(itemDiscounts[i].CouponDiscount).
+			Sub(itemDiscounts[i].ActivityDiscount).
+			Sub(itemDiscounts[i].PointsDiscount)
+	}
+
+	return itemDiscounts
+}
+```
 ```
 ```
