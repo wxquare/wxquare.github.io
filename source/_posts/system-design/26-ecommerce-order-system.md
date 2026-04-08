@@ -34,14 +34,37 @@ tags:
   - [2.3 订单履约](#23-订单履约)
   - [2.4 订单售后](#24-订单售后)
 - [3. 状态机设计专题](#3-状态机设计专题)
+  - [3.1 状态机设计原则](#31-状态机设计原则)
+  - [3.2 全局状态机视图](#32-全局状态机视图)
+  - [3.3 状态转换约束](#33-状态转换约束)
+  - [3.4 状态机实现模式](#34-状态机实现模式)
+  - [3.5 状态变更历史](#35-状态变更历史)
 - [4. 分布式事务与一致性](#4-分布式事务与一致性)
+  - [4.1 TCC 模式](#41-tcc-模式)
+  - [4.2 Saga 模式](#42-saga-模式)
+  - [4.3 TCC vs Saga 选型](#43-tcc-vs-saga-选型)
+  - [4.4 补偿机制设计](#44-补偿机制设计)
+  - [4.5 数据一致性保证](#45-数据一致性保证)
 - [5. 幂等性与去重](#5-幂等性与去重)
+  - [5.1 幂等性设计原则](#51-幂等性设计原则)
+  - [5.2 幂等性实现方案](#52-幂等性实现方案)
+  - [5.3 各场景幂等实现](#53-各场景幂等实现)
+  - [5.4 幂等性监控告警](#54-幂等性监控告警)
 - [6. 特殊订单类型](#6-特殊订单类型)
   - [6.1 虚拟订单](#61-虚拟订单)
-  - [6.2 O2O订单](#62-o2o订单)
+  - [6.2 O2O 订单](#62-o2o-订单)
   - [6.3 预售订单](#63-预售订单)
 - [7. 订单类型扩展设计](#7-订单类型扩展设计)
+  - [7.1 扩展点识别](#71-扩展点识别)
+  - [7.2 策略模式应用](#72-策略模式应用)
+  - [7.3 新订单类型接入指南](#73-新订单类型接入指南)
+  - [7.4 扩展性设计原则](#74-扩展性设计原则)
 - [8. 工程实践要点](#8-工程实践要点)
+  - [8.1 订单 ID 生成](#81-订单-id-生成)
+  - [8.2 异步处理和削峰](#82-异步处理和削峰)
+  - [8.3 监控告警体系](#83-监控告警体系)
+  - [8.4 性能优化](#84-性能优化)
+  - [8.5 故障处理](#85-故障处理)
 - [总结](#总结)
 - [参考资料](#参考资料)
 
@@ -1471,3 +1494,726 @@ func CompensationTaskWorker() {
     }
 }
 ```
+
+前两章已经串起「创建 → 支付 → 履约 → 售后」的通用链路。从本章起，我们把**状态机、分布式事务、幂等性**从流程中抽离出来系统讲清楚；第 6 章再回到特殊订单类型的差异。
+
+## 3. 状态机设计专题
+
+### 3.1 状态机设计原则
+
+**状态定义**要满足三点：**明确**（每个状态有清晰业务含义）、**互斥**（同一时刻只属于一个主状态）、**完备**（覆盖所有合法业务阶段，避免“无处可去”）。
+
+**转换规则**要：**显式**（只允许白名单转换）、**可追溯**（每次转换有原因与操作者）、**幂等**（重复触发相同事件不应产生副作用）。
+
+**职责边界**建议划分如下：
+
+- **领域层 / 订单服务**：定义状态枚举、合法迁移、业务事件（支付成功、发货完成等）。
+- **基础设施层**：持久化、乐观锁、消息投递、定时任务扫描；不承载业务规则判断外的分支爆炸。
+
+### 3.2 全局状态机视图
+
+实践中常用「**订单主状态** + **支付 / 履约 / 售后子状态**」协同：主状态面向用户与报表；子状态承载与外部系统对齐的细粒度过程。
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    state "订单主状态机" as M {
+        [*] --> 待支付
+        待支付 --> 已支付: 支付成功
+        待支付 --> 已取消: 超时/用户取消
+        已支付 --> 履约中: 进入履约
+        履约中 --> 已完成: 履约结束
+        已支付 --> 售后中: 发起售后
+        售后中 --> 履约中: 售后关闭继续履约
+        售后中 --> 已取消: 全额退款关闭
+    }
+    state "支付子状态机" as P {
+        [*] --> 待发起
+        待发起 --> 支付中: Try
+        支付中 --> 已确认: Confirm
+        支付中 --> 已撤销: Cancel
+    }
+    state "履约子状态机" as F {
+        [*] --> 待发货
+        待发货 --> 已发货
+        已发货 --> 运输中
+        运输中 --> 已送达
+        已送达 --> 已完成
+    }
+    state "售后子状态机" as A {
+        [*] --> 申请
+        申请 --> 审核中
+        审核中 --> 已同意
+        审核中 --> 已拒绝
+        已同意 --> 退款中
+        退款中 --> 已完成
+    }
+    已支付 --> P: 绑定支付单
+    履约中 --> F: 绑定履约单
+    售后中 --> A: 绑定售后单
+```
+
+**协同要点**：主状态迁移前，先校验子状态是否允许（例如「已支付」要求支付子状态为已确认）；子状态回滚或超时，要通过**领域事件**驱动主状态纠偏（例如支付撤销 → 主单回到待支付或已取消）。
+
+### 3.3 状态转换约束
+
+**合法转换矩阵（示例，行 → 列）**：
+
+| 从 \\ 到 | 待支付 | 已支付 | 履约中 | 已完成 | 已取消 | 售后中 |
+|---------|--------|--------|--------|--------|--------|--------|
+| 待支付 | — | ✓ | ✗ | ✗ | ✓ | ✗ |
+| 已支付 | ✗ | — | ✓ | ✗ | ✗ | ✓ |
+| 履约中 | ✗ | ✗ | — | ✓ | ✗ | ✓ |
+| 已完成 | ✗ | ✗ | ✗ | — | ✗ | ✓（仅部分业务） |
+| 已取消 | ✗ | ✗ | ✗ | ✗ | — | ✗ |
+| 售后中 | ✗ | ✗ | ✓ | ✓ | ✓ | — |
+
+**非法转换拦截**：统一走 `Transition(orderID, from, to, event)`，在内存 map 或数据表驱动的规则引擎中校验；不通过则返回业务错误并记审计日志。
+
+**状态回退**：默认**禁止随意回退**（如「已支付 → 待支付」）；若业务需要（支付风控失败），必须走**补偿事务 + 显式事件**（`PaymentReversed`），并限制来源（仅支付域）。
+
+```go
+var allowed = map[int]map[int]struct{}{
+    OrderPending: {OrderPaid: {}, OrderCancelled: {}},
+    OrderPaid:    {OrderFulfilling: {}, OrderAfterSale: {}},
+    // ...
+}
+
+func Transition(ctx context.Context, orderID string, from, to int, reason string) error {
+    if _, ok := allowed[from][to]; !ok {
+        metrics.IncStateIllegalTransition(from, to)
+        return ErrIllegalTransition
+    }
+    if err := db.UpdateOrderStatusCAS(ctx, orderID, from, to); err != nil {
+        return err
+    }
+    return AppendStateLog(ctx, orderID, from, to, reason)
+}
+```
+
+### 3.4 状态机实现模式
+
+**方案 1：if-else / switch** —— 适合状态少、规则稳定的 MVP。
+
+```go
+func OnEvent(o *Order, e Event) error {
+    switch o.Status {
+    case OrderPending:
+        if e == EventPayOK {
+            o.Status = OrderPaid
+            return nil
+        }
+    case OrderPaid:
+        if e == EventShip {
+            o.Status = OrderFulfilling
+            return nil
+        }
+    }
+    return ErrIllegalTransition
+}
+```
+
+**优点**：直观；**缺点**：分支膨胀、难以单元测试组合爆炸。
+
+**方案 2：状态模式（State Pattern）** —— 每个状态一个类型，迁移表驱动。
+
+```go
+type OrderState interface {
+    OnEvent(ctx context.Context, o *Order, e Event) (OrderState, error)
+}
+
+type PendingState struct{}
+func (PendingState) OnEvent(ctx context.Context, o *Order, e Event) (OrderState, error) {
+    if e == EventPayOK {
+        o.Status = OrderPaid
+        return PaidState{}, nil
+    }
+    return nil, ErrIllegalTransition
+}
+
+type StateMachine struct{ cur OrderState }
+func (sm *StateMachine) Fire(ctx context.Context, o *Order, e Event) error {
+    next, err := sm.cur.OnEvent(ctx, o, e)
+    if err != nil {
+        return err
+    }
+    sm.cur = next
+    return nil
+}
+```
+
+**方案 3：状态机引擎 / 规则表** —— 适合多团队扩展、可视化配置（业界有 Spring State Machine、自研 JSON 规则等）。用**迁移表**描述 `(from, event) -> to`：
+
+```go
+type TransitionRule struct {
+    From  int
+    Event Event
+    To    int
+}
+
+var rules = []TransitionRule{
+    {OrderPending, EventPayOK, OrderPaid},
+    {OrderPaid, EventShip, OrderFulfilling},
+}
+
+func EngineTransition(o *Order, e Event) error {
+    for _, r := range rules {
+        if r.From == o.Status && r.Event == e {
+            o.Status = r.To
+            return nil
+        }
+    }
+    return ErrIllegalTransition
+}
+```
+
+| 维度 | if-else | 状态模式 | 规则表 / 引擎 |
+|------|---------|----------|----------------|
+| 可读性 | 高（小规模） | 中 | 中高（表驱动） |
+| 扩展性 | 低 | 中 | 高 |
+| 测试性 | 中 | 高 | 高 |
+| 运维可视化 | 差 | 中 | 高 |
+
+**选型建议**：核心路径先用**表驱动 + 单测覆盖矩阵**；超复杂 UI 配置需求再引入完整引擎。
+
+### 3.5 状态变更历史
+
+在 [1.4 数据模型设计](#14-数据模型设计) 中的 `order_state_log` 基础上，建议补充：
+
+- **关联单据**：`payment_id` / `fulfillment_id` / `refund_id`（可选字段），便于联查子状态机。
+- **事件名**：`event` 字段存储 `PaySuccess`、`Shipped` 等，避免仅依赖「数值前后状态」推断意图。
+- **发布领域事件**：写入日志与更新订单在同一事务；再通过 Outbox 发 `OrderStateChanged`，供风控、推荐、BI 订阅。
+
+```go
+func AppendStateLog(ctx context.Context, orderID string, from, to int, operator, reason, event string) error {
+    tx, _ := db.Begin(ctx)
+    defer tx.Rollback()
+    if err := tx.InsertStateLog(ctx, &OrderStateLog{
+        OrderID: orderID, FromStatus: from, ToStatus: to,
+        Operator: operator, Reason: reason, Event: event,
+    }); err != nil {
+        return err
+    }
+    if err := tx.InsertOutbox(ctx, "order.state_changed", mustJSON(map[string]any{
+        "order_id": orderID, "from": from, "to": to, "event": event,
+    })); err != nil {
+        return err
+    }
+    return tx.Commit()
+}
+```
+
+**审计追溯**：按 `order_id` + 时间序即可复盘；与支付对账、客诉系统对接时，导出 `event` 与第三方流水号。
+
+---
+
+## 4. 分布式事务与一致性
+
+第 [2.1](#21-订单创建)、[2.2](#22-订单支付)、[2.4](#24-订单售后) 节已分别出现 Saga 与 TCC 的实例，本章做系统化对比与落地要点。
+
+### 4.1 TCC 模式
+
+**原理**：`Try` 预留资源 → `Confirm` 确认提交 → `Cancel` 释放预留；要求参与方实现三个接口且**业务可补偿**。
+
+**支付场景**：Try 预授权、Confirm 扣款、Cancel 撤销预授权（见 [2.2](#22-订单支付)）。
+
+**典型坑**：
+
+1. **空回滚（Empty Rollback）**：Try 未执行成功，Cancel 仍可能被调用；参与方需记录「是否已 Try」，未 Try 则 Cancel 直接成功。
+2. **幂等性**：Confirm / Cancel 可能重试，必须基于**业务单号 + 状态**幂等。
+3. **悬挂（Suspend）**：Try 超时后业务认为失败，但晚到的 Try 成功落库，导致资源被预留；需**超时撤销**与**对账任务**对齐支付渠道状态。
+
+```go
+func (p *InventoryTCC) Cancel(ctx context.Context, rid string) error {
+    rec, err := db.GetReserve(ctx, rid)
+    if err == ErrNotFound {
+        return nil // 空回滚
+    }
+    if rec.Phase == PhaseCanceled {
+        return nil
+    }
+    if rec.Phase != PhaseTried {
+        return ErrInvalidPhaseForCancel
+    }
+    return db.MarkCanceled(ctx, rid)
+}
+```
+
+### 4.2 Saga 模式
+
+**原理**：长事务拆为本地事务序列；任一步失败则**逆序补偿**已成功的步骤。
+
+**订单创建 / 售后**：正向扣库存、券、积分、写单；失败则回滚库存与营销资源（见 [2.1](#21-订单创建)、[2.4](#24-订单售后)）。
+
+**编排（Orchestration）**：中心化协调器调用各服务，易治理、易观测；**协同（Choreography）**：各服务监听事件各自推进，耦合低但排查难。订单域多数用**编排 + 异步事件**混合。
+
+**挑战**：补偿必须**可重试、可告警**；用户可见状态可能是**中间态**（最终一致），需产品文案与查询接口解释「处理中」。
+
+```go
+// 协同式（示意）：库存服务订阅 OrderCreated，失败则发 InventoryRollbackRequested
+func OnOrderCreated(evt OrderCreatedEvent) {
+    if err := inventory.Commit(evt.Items); err != nil {
+        bus.Publish(InventoryRollbackRequested{OrderID: evt.OrderID})
+    }
+}
+```
+
+### 4.3 TCC vs Saga 选型
+
+| 维度 | TCC | Saga |
+|------|-----|------|
+| 一致性强度 | 偏强（资源预留 + 明确确认） | 最终一致 |
+| 参与方改造 | 高（Try/Confirm/Cancel） | 中（正向 + 补偿） |
+| 适用场景 | 支付、强一致资金/库存预留 | 多步骤下单、售后、跨团队长流程 |
+| 失败处理 | Confirm/Cancel + 对账 | 补偿链 + 人工兜底 |
+| 实现复杂度 | 高 | 中 |
+
+```mermaid
+flowchart TD
+    A[需要与外部支付/银行强一致?] -->|是| B[TCC 或 直接对接渠道两阶段]
+    A -->|否| C[步骤>3 且允许中间态?]
+    C -->|是| D[Saga 编排 + 补偿表]
+    C -->|否| E[本地事务 + Outbox 单步事件]
+```
+
+### 4.4 补偿机制设计
+
+- **时机**：**实时补偿**（请求链路内逆序）与**异步补偿**（失败写入补偿表，Worker 重试）结合；支付回调等入口避免阻塞过长。
+- **策略**：可自动（重试、退券、回补库存）与**人工工单**（退款失败、渠道差异）分级。
+- **优先级**：建议 **资金相关 > 库存 > 营销权益**，避免「钱已退但券未退」类客诉。
+- **监控**：补偿成功率、滞留时长、单号重复尝试次数；超过阈值 P0 告警。
+
+```go
+func EnqueueCompensation(ctx context.Context, task *CompensationTask) error {
+    task.Priority = priorityFor(task.BizType) // payment > inventory > marketing
+    return db.InsertCompensationTask(ctx, task)
+}
+```
+
+### 4.5 数据一致性保证
+
+**乐观锁**：适合读多写少、冲突可重试（订单状态 CAS，见 [2.1](#21-订单创建)）。
+
+**悲观锁**：`SELECT ... FOR UPDATE` 防并发支付、超时关单（见 [2.2](#22-订单支付)）；注意事务尽量短，避免死锁。
+
+**Redis / MySQL 双写**：推荐 **先写 MySQL 提交成功，再删缓存或异步写 Redis**；失败用 **重试队列** 修正缓存；定时 **对账任务** 抽样比对热点单。
+
+```go
+func WriteThroughCache(ctx context.Context, o *Order) error {
+    if err := db.SaveOrder(ctx, o); err != nil {
+        return err
+    }
+    if err := redis.Del(ctx, cacheKey(o.OrderID)); err != nil {
+        mq.Publish(CacheInvalidate{OrderID: o.OrderID})
+    }
+    return nil
+}
+```
+
+**本地消息表 + 事件**：Outbox 与订单同事务（见 [2.1](#21-订单创建)），保证 **「订单落库 ⇒ 消息必达」** 的可靠投递语义。
+
+---
+
+## 5. 幂等性与去重
+
+### 5.1 幂等性设计原则
+
+**幂等**：同一操作执行多次，**结果与执行一次等价**（业务上不退款多次、不重复发货）。
+
+**需要幂等的原因**：外部回调重试、网络抖动导致客户端重发、用户多次点击。
+
+**边界**：**技术幂等**（HTTP 安全重试、唯一约束） vs **业务幂等**（「再点一次」返回同一业务结果而非报错）；订单系统两者都要。
+
+### 5.2 幂等性实现方案
+
+**Token 机制**：创建订单前由服务端下发 `Idempotency-Token`，客户端携带；服务端 `INSERT` 唯一记录抢占处理权。
+
+```go
+func WithIdempotencyToken(ctx context.Context, token string, fn func() error) error {
+    ok, err := redis.SetNX(ctx, "idem:"+token, "1", 30*time.Minute)
+    if err != nil {
+        return err
+    }
+    if !ok {
+        return ErrDuplicateRequest
+    }
+    return fn()
+}
+```
+
+**业务唯一键**：支付回调、物流回调用 **第三方单号 + 事件类型** 做唯一索引（见 [2.2](#22-订单支付)、[2.3](#23-订单履约)）。
+
+**分布式锁**：`SET key NX EX ttl` 保护「券 / 积分扣减」临界区；**锁粒度要小、TTL 要合理**，避免热点单长期阻塞。
+
+**状态机防重**：非法状态迁移直接返回成功或明确错误，配合 **「处理中」** 状态避免双写（见支付回调一节）。
+
+### 5.3 各场景幂等实现
+
+| 场景 | 推荐键 | 实现要点 |
+|------|--------|----------|
+| 订单创建 | `user_id + request_id` | 唯一索引 + 返回首单 |
+| 支付回调 | `platform_order_id` 或 `payment_id + callback_seq` | 唯一索引 + 状态机 |
+| 履约发货 | `shipment_id + ship_event` | 物流消息去重 |
+| 售后退款 | `refund_id` / `after_sale_id + step` | 分步幂等表 |
+| 营销扣减 | `order_id + promo_type + promo_id` | 分布式锁或唯一扣减记录 |
+
+```go
+func DeductCouponIdempotent(ctx context.Context, orderID, couponID string) error {
+    key := fmt.Sprintf("deduct:%s:%s", orderID, couponID)
+    ok, _ := redis.SetNX(ctx, key, "1", 10*time.Minute)
+    if !ok {
+        return nil // 已扣过，幂等返回
+    }
+    return marketing.Deduct(ctx, couponID)
+}
+```
+
+### 5.4 幂等性监控告警
+
+- **指标**：幂等命中率、重复请求占比、按 `biz_type` 聚合。
+- **追踪**：日志中带 `idempotent_key`、链路 ID，定位是用户重试还是渠道重放。
+- **告警**：短时间同一键大量失败、或「应幂等却双写」的校验报警（例如库存双扣）。
+
+---
+
+第 [3](#3-状态机设计专题)–[5](#5-幂等性与去重) 章偏「横切能力」，下面三章把能力落到**特殊类型**与**扩展与运维**上。
+
+## 6. 特殊订单类型
+
+### 6.1 虚拟订单
+
+**业务场景**：电子书、音视频会员、软件订阅、游戏点卡等**无物流**交付的数字商品或服务。
+
+**特点与挑战**：支付后要**即时履约**；权益发放失败需可补偿；重复发放会造成资损或客诉，因此**幂等要求高于普通发货**。
+
+**与通用流程差异**：创建、支付与通用一致；**履约链路极短**：无仓配与在途物流。
+
+**状态机对比**：
+
+- 通用（简化）：待支付 → 已支付 → 待发货 → … → 已完成
+- 虚拟：待支付 → 已支付 → **已完成**（中间可插入「发放中」便于重试）
+
+```mermaid
+stateDiagram-v2
+    [*] --> 待支付
+    待支付 --> 已支付: 支付成功
+    已支付 --> 发放中: 触发履约
+    发放中 --> 已完成: 权益到账
+    发放中 --> 发放失败: 下游失败
+    发放失败 --> 发放中: 重试/人工重放
+    待支付 --> 已取消: 超时/取消
+```
+
+**技术要点**：调用虚拟商品中心 `GrantEntitlement`；**发放流水表**唯一约束 `(order_id, sku_id)`；失败入补偿队列。
+
+```go
+func FulfillVirtual(ctx context.Context, orderID string) error {
+    key := fmt.Sprintf("grant:%s", orderID)
+    if err := db.InsertGrantRecord(ctx, key); err != nil {
+        return nil // 已发放，幂等返回
+    }
+    if err := virtualSvc.Grant(ctx, orderID); err != nil {
+        db.MarkGrantFailed(ctx, key)
+        return err
+    }
+    return db.UpdateOrderStatusCAS(ctx, orderID, OrderPaid, OrderCompleted)
+}
+```
+
+### 6.2 O2O 订单
+
+**业务场景**：外卖、即时零售、酒店、电影票等到店 / 即时服务。
+
+**特点与挑战**：**LBS** 匹配门店与运力；**超时取消**（商家未接单、骑手未到店）；履约轨迹需**近实时**可观测。
+
+**与通用流程差异**：创建阶段要写入 `lat/lng`、门店 ID；履约增加**接单、分配骑手、取货、配送**等节点。
+
+**状态机对比**：
+
+- 通用：… 待发货 → 已发货 → 运输中 → 已送达 …
+- O2O：已支付 → **待接单** → **商家已接单** → **骑手已接单** → **配送中** → 已送达 → 已完成
+
+```mermaid
+stateDiagram-v2
+    [*] --> 待支付
+    待支付 --> 已支付
+    已支付 --> 待接单
+    待接单 --> 商家已接单: 商家确认
+    待接单 --> 已取消: 超时未接单
+    商家已接单 --> 骑手已接单: 调度成功
+    商家已接单 --> 已取消: 商家撤单/异常
+    骑手已接单 --> 配送中
+    配送中 --> 已送达
+    已送达 --> 已完成
+```
+
+**技术要点**：门店匹配（GeoHash / 距离排序）；配送系统 `AssignRider`；**超时扫描**关单并 Saga 回补库存与券。
+
+```go
+func CreateO2OOrder(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
+    storeID, err := lbs.NearestStore(ctx, req.Lat, req.Lng, req.SKUs)
+    if err != nil {
+        return nil, err
+    }
+    req.StoreID = storeID
+    return CreateOrderSaga(ctx, req)
+}
+
+func ScanMerchantAcceptTimeout(ctx context.Context) {
+    orders, _ := db.ListPendingAccept(ctx, time.Now().Add(-5*time.Minute))
+    for _, o := range orders {
+        _ = CancelWithCompensation(ctx, o.OrderID, ReasonMerchantTimeout)
+    }
+}
+```
+
+### 6.3 预售订单
+
+**业务场景**：新品预售、众筹、大促锁单。
+
+**特点与挑战**：**定金 + 尾款**两阶段资金；**库存预留**与尾款超时释放；售后要区分「仅退定金」与「退全款」。
+
+**与通用流程差异**：支付被拆成**定金支付单**与**尾款支付单**；**尾款支付成功后**才进入与普通单相同的履约链路。
+
+**状态机对比**：
+
+- 通用：待支付 → 已支付 → …
+- 预售：**待付定金** → **定金已付** → **待付尾款** → **尾款已付** → 待发货 → …
+
+```mermaid
+stateDiagram-v2
+    [*] --> 待付定金
+    待付定金 --> 定金已付: 定金成功
+    待付定金 --> 已取消: 未付超时
+    定金已付 --> 待付尾款: 开启尾款期
+    待付尾款 --> 尾款已付: 尾款成功
+    待付尾款 --> 已取消: 尾款超时
+    尾款已付 --> 待发货: 进入履约
+```
+
+**技术要点**：`payment` 表多子单关联同一 `order_id`；定金成功调用 `ReserveStock`；尾款超时 `ReleaseReservation`。
+
+```go
+func OnDepositPaid(ctx context.Context, orderID string) error {
+    if err := inventory.Reserve(ctx, orderID); err != nil {
+        return err
+    }
+    return db.UpdateOrderStatusCAS(ctx, orderID, OrderPendingDeposit, OrderDepositPaid)
+}
+
+func OnFinalPaymentTimeout(ctx context.Context, orderID string) error {
+    if err := inventory.ReleaseReserve(ctx, orderID); err != nil {
+        return err
+    }
+    return db.UpdateOrderStatusCAS(ctx, orderID, OrderPendingBalance, OrderCancelled)
+}
+```
+
+---
+
+## 7. 订单类型扩展设计
+
+### 7.1 扩展点识别
+
+典型扩展点：
+
+- **创建**：校验规则、拆单、定价、地址与门店解析。
+- **支付**：支付方式、多阶段支付、风控拦截。
+- **履约**：发货 / 履约流水线、外部履约系统对接。
+- **售后**：可退范围、退货运费、部分退策略。
+- **状态机**：各类型在「主状态 + 子状态」上的差异（见 [3.2](#32-全局状态机视图)）。
+
+```mermaid
+mindmap
+  root((订单扩展))
+    创建
+      校验
+      拆单
+    支付
+      多阶段
+      风控
+    履约
+      物流
+      O2O
+    售后
+      规则引擎
+```
+
+### 7.2 策略模式应用
+
+**策略接口**聚合扩展点；**通用实现**覆盖默认路径；各类型只覆写差异方法。
+
+```go
+type OrderTypeStrategy interface {
+    Type() OrderType
+    ValidateCreate(ctx context.Context, req *CreateOrderRequest) error
+    OnPaid(ctx context.Context, o *Order) error
+    FulfillmentPipeline(ctx context.Context, o *Order) error
+}
+
+type DefaultPhysicalStrategy struct{}
+
+func (DefaultPhysicalStrategy) Type() OrderType { return OrderTypePhysical }
+func (DefaultPhysicalStrategy) OnPaid(ctx context.Context, o *Order) error {
+    return PublishOrderPaidEvent(ctx, o.OrderID)
+}
+
+type VirtualStrategy struct{ DefaultPhysicalStrategy }
+
+func (VirtualStrategy) Type() OrderType { return OrderTypeVirtual }
+func (VirtualStrategy) FulfillmentPipeline(ctx context.Context, o *Order) error {
+    return FulfillVirtual(ctx, o.OrderID)
+}
+```
+
+**注册与路由**：服务启动时注册到 `map[OrderType]OrderTypeStrategy`，创建订单时按 `order_type` 选取。
+
+```go
+var registry = map[OrderType]OrderTypeStrategy{}
+
+func Register(s OrderTypeStrategy) {
+    registry[s.Type()] = s
+}
+
+func StrategyFor(t OrderType) OrderTypeStrategy {
+    if s, ok := registry[t]; ok {
+        return s
+    }
+    return DefaultPhysicalStrategy{}
+}
+```
+
+### 7.3 新订单类型接入指南
+
+1. **分析差异**：对照通用流程，列出创建 / 支付 / 履约 / 售后与状态的差异（可复用 [6](#6-特殊订单类型) 的对比表思路）。
+2. **设计状态机**：画出主单与子单状态，标出超时与补偿边。
+3. **实现策略**：嵌入 `OrderTypeStrategy`，优先**组合**通用策略而非复制粘贴。
+4. **配置路由**：注册 `order_type` → 策略 Bean；配置中心可灰度开关。
+5. **测试验证**：单测覆盖状态矩阵；集成测试跑通支付回调与履约回调；回归核心类型。
+
+```mermaid
+flowchart LR
+    A[差异分析] --> B[状态机]
+    B --> C[策略实现]
+    C --> D[注册路由]
+    D --> E[测试与灰度]
+```
+
+### 7.4 扩展性设计原则
+
+- **开闭原则**：新增类型通过策略与配置完成，避免修改核心 `switch`。
+- **单一职责**：一类型一策略文件，复杂逻辑再拆子模块（支付、履约）。
+- **依赖倒置**：核心编排依赖 `OrderTypeStrategy` 抽象，而非具体 O2O / 预售实现。
+
+---
+
+## 8. 工程实践要点
+
+### 8.1 订单 ID 生成
+
+| 方案 | 优点 | 缺点 | 适用 |
+|------|------|------|------|
+| Snowflake | 趋势递增、高性能、全局唯一 | 时钟回拨风险、需分配 workerId | **推荐**（见 [2.1](#21-订单创建)） |
+| UUID v4 | 实现简单、无协调 | 无序、索引碎片化、存储较长 | 中小流量或仅内部关联键 |
+| DB 自增 | 简单 | 分库分表难、热点、泄露业务量 | 单库早期 |
+
+```mermaid
+block-beta
+    columns 1
+    block:snow["Snowflake（64bit）"]
+    columns 3
+        t["时间戳 41b"] m["机器 10b"] s["序列 12b"]
+    end
+```
+
+### 8.2 异步处理和削峰
+
+- **Kafka 主题划分**：`order.created`、`order.paid`、`order.shipped`、`order.completed` 等，消费者按域隔离。
+- **Worker 池**：多实例同组消费；批量拉取 + 有限并发；失败进 **DLQ** 并带原始 offset 信息。
+- **削峰**：网关限流 + 队列缓冲 + 非关键路径异步化（见 [2.3](#23-订单履约)）。
+
+```go
+func PaidConsumerGroup(ctx context.Context, workers int) {
+    sem := make(chan struct{}, workers)
+    for evt := range kafka.Subscribe("order.paid") {
+        sem <- struct{}{}
+        go func(e OrderPaidEvent) {
+            defer func() { <-sem }()
+            if err := ProcessFulfillment(ctx, e.OrderID); err != nil {
+                kafka.SendDLQ("order.paid.dlq", e, err)
+            }
+        }(evt)
+    }
+}
+```
+
+### 8.3 监控告警体系
+
+- **业务**：下单量、支付成功率、履约时效、售后率、各状态分布、超时关单量。
+- **应用**：接口 P99、错误码占比、Saga / TCC 成功率、**幂等命中**、补偿队列深度。
+- **依赖**：库存 / 支付 / 物流可用率，Kafka lag，DB 慢查询。
+- **系统**：CPU、内存、磁盘、网络；容器重启次数。
+- **告警**：分级 P0/P1/P2，**同根因收敛**，夜间升级策略与值班表。
+
+### 8.4 性能优化
+
+- **数据库**：合理联合索引 `(user_id, created_at)`、`(status, updated_at)`；分库分表按 `user_id` 或 `order_id` 哈希；读写分离注意延迟读。
+- **缓存**：详情缓存 + **短 TTL**；更新走 **先 DB 后删缓存**；防穿透用布隆或空值缓存。
+- **接口**：批量查询、字段裁剪；非关键字段异步补全；核心写路径限流 + 熔断下游。
+
+### 8.5 故障处理
+
+**常见故障与预案**：
+
+| 故障 | 处理思路 |
+|------|----------|
+| 库存不一致 | 对账任务 + 人工调账 + 冻结异常 SKU |
+| 支付超时 | 关单 + 释放预占资源 + 渠道对账 |
+| 履约失败 | 重试 + 换承运商 + 人工介入 |
+| 消息积压 | 扩容消费者、降级非核心订阅、限流入口 |
+| 缓存雪崩 | TTL 随机化、热点永不过期 + 异步重建 |
+
+**灾备演练**：定期演练 **主从切换、机房切换、Kafka 集群故障、支付不可用**，验证 RTO/RPO 与降级开关。
+
+---
+
+## 总结
+
+**核心要点回顾**：订单系统是**状态机 + 分布式事务（TCC/Saga）+ 幂等**的交汇点；主单与子单（支付 / 履约 / 售后）协同；特殊类型通过**策略与扩展点**接入而不污染核心链路。
+
+**面试要点**（可结合画图）：
+
+1. 画「创建 Saga」与「支付 TCC」各参与方与补偿方向。
+2. 解释支付回调三重防重：**幂等表 + 状态机 + Confirm 幂等**。
+3. 说明 Outbox 如何解决 **DB 与消息** 的一致性。
+4. 对比虚拟 / O2O / 预售与通用状态机的差异与原因。
+
+**扩展阅读**：分布式事务语义、事件溯源与 CQRS、订单域 DDD 边界（商品 / 库存 / 计价拆分）。
+
+---
+
+## 参考资料
+
+### 业界最佳实践与文章
+
+1. [Seata](https://seata.io/) — 分布式事务（AT/TCC/Saga）参考实现  
+2. [Sagas 论文（Hector Garcia-Molina）](https://www.cs.cornell.edu/andru/cs711/2002fa/reading/sagas.pdf)  
+3. [Martin Fowler - Event Sourcing](https://martinfowler.com/eaaDev/EventSourcing.html)  
+4. Chris Richardson — *Microservices Patterns*（Saga、事务消息等模式）  
+5. 大厂技术博客中「订单中心 / 交易链路」架构演进类文章（检索关键词：订单、状态机、Outbox、Saga）
+
+### 开源项目
+
+1. [Apache Kafka](https://kafka.apache.org/) — 日志型消息队列与事件骨干  
+2. [Spring State Machine](https://spring.io/projects/spring-statemachine) — 状态机引擎参考（Java 生态）  
+3. [seata/seata](https://github.com/seata/seata) — 分布式事务协调器  
+4. [ByteTCC](https://github.com/liuyangming/ByteTCC) — TCC 框架参考实现
+
+### 系列文章（同仓库电商系统设计）
+
+1. `20-ecommerce-overview.md` — 电商总览  
+2. `21-ecommerce-listing.md` — 商品与导购  
+3. `22-ecommerce-inventory.md` — 库存  
+4. `24-ecommerce-pricing-ddd.md` — 计价与 DDD  
+
+设计过程与章节拆解可参考仓库内 `docs/superpowers/specs/ecommerce-order-system.md`。
