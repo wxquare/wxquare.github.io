@@ -1989,5 +1989,209 @@ func (s *MarketingService) SettleMarketingCost(ctx context.Context, orderID int6
 	return settlement, nil
 }
 ```
+
+## 7. 数据一致性保障
+
+### 7.1 分布式事务（Saga 模式）
+
+Saga 将长事务拆为多个**本地事务**，每步配套**补偿**；任一步失败则**逆序**执行已成功的补偿。第 5 章订单创建即典型编排；本章补充**异步补偿**与**对账**。
+
+### 7.2 补偿任务与重试
+
+补偿任务表持久化待执行动作，Worker 定时拉取，失败按**指数退避**重试，超过阈值**告警人工介入**。
+
+```go
+type CompensationTask struct {
+	TaskID      int64     `json:"task_id"`
+	BizType     string    `json:"biz_type"`
+	BizID       string    `json:"biz_id"`
+	Action      string    `json:"action"`
+	Payload     string    `json:"payload"`
+	Status      string    `json:"status"`
+	RetryCount  int       `json:"retry_count"`
+	MaxRetries  int       `json:"max_retries"`
+	NextRetryAt time.Time `json:"next_retry_at"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+func (s *CompensationService) CompensationWorker(ctx context.Context) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.processCompensationTasks(ctx)
+		}
+	}
+}
+```
+
+```go
+func (s *CompensationService) processCompensationTasks(ctx context.Context) {
+	tasks, err := s.db.GetPendingCompensationTasks(ctx, time.Now(), 100)
+	if err != nil {
+		s.logger.Error("get pending compensation tasks failed", zap.Error(err))
+		return
+	}
+
+	for _, task := range tasks {
+		if err := s.executeCompensation(ctx, task); err != nil {
+			task.RetryCount++
+
+			if task.RetryCount >= task.MaxRetries {
+				s.db.UpdateCompensationTaskStatus(ctx, task.TaskID, "failed")
+				s.alertClient.SendAlert(ctx, fmt.Sprintf("补偿任务失败: %d", task.TaskID))
+			} else {
+				nextRetryAt := time.Now().Add(time.Duration(math.Pow(2, float64(task.RetryCount))) * time.Minute)
+				s.db.UpdateCompensationTaskRetry(ctx, task.TaskID, task.RetryCount, nextRetryAt)
+			}
+		} else {
+			s.db.UpdateCompensationTaskStatus(ctx, task.TaskID, "success")
+		}
+	}
+}
+```
+
+```go
+func (s *CompensationService) executeCompensation(ctx context.Context, task *CompensationTask) error {
+	switch task.Action {
+	case "rollback_coupon":
+		var payload struct {
+			UserID       int64 `json:"user_id"`
+			CouponUserID int64 `json:"coupon_user_id"`
+		}
+		if err := json.Unmarshal([]byte(task.Payload), &payload); err != nil {
+			return err
+		}
+		return s.marketingClient.RollbackCoupon(ctx, payload.UserID, payload.CouponUserID, "补偿回滚")
+
+	case "refund_points":
+		var payload struct {
+			UserID  int64 `json:"user_id"`
+			Points  int64 `json:"points"`
+			OrderID int64 `json:"order_id"`
+		}
+		if err := json.Unmarshal([]byte(task.Payload), &payload); err != nil {
+			return err
+		}
+		return s.marketingClient.RefundPoints(ctx, payload.UserID, payload.Points, payload.OrderID)
+
+	default:
+		return fmt.Errorf("unknown compensation action: %s", task.Action)
+	}
+}
+```
+
+### 7.3 最终一致性方案
+
+通过 **Kafka** 广播券核销、积分变动等事件，下游订单、报表、风控等系统**异步更新**；配合**幂等消费**与**死信队列**。
+
+```go
+func (s *MarketingService) publishMarketingEvent(ctx context.Context, topic string, event interface{}) error {
+	eventData, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	msg := &kafka.Message{
+		Topic: topic,
+		Key:   []byte(fmt.Sprintf("%d", time.Now().UnixNano())),
+		Value: eventData,
+	}
+
+	return s.kafkaProducer.WriteMessages(ctx, msg)
+}
+```
+
+```go
+func (s *OrderService) consumeMarketingEvents(ctx context.Context) {
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers: []string{"localhost:9092"},
+		Topic:   "marketing.coupon.used",
+		GroupID: "order-service",
+	})
+	defer reader.Close()
+
+	for {
+		msg, err := reader.ReadMessage(ctx)
+		if err != nil {
+			s.logger.Error("read message failed", zap.Error(err))
+			continue
+		}
+
+		var event CouponUsedEvent
+		if err := json.Unmarshal(msg.Value, &event); err != nil {
+			s.logger.Error("unmarshal event failed", zap.Error(err))
+			continue
+		}
+
+		s.updateOrderMarketingInfo(ctx, event.OrderID, &event)
+	}
+}
+```
+
+### 7.4 数据对账
+
+按日聚合**营销侧核销**与**订单侧记录**，比对金额与笔数，差异入库并告警。
+
+```go
+func (s *ReconciliationService) ReconcileMarketingData(ctx context.Context, date time.Time) error {
+	marketingCouponUsage, err := s.marketingClient.GetCouponUsageByDate(ctx, date)
+	if err != nil {
+		return err
+	}
+
+	orderCouponUsage, err := s.orderClient.GetOrderCouponUsageByDate(ctx, date)
+	if err != nil {
+		return err
+	}
+
+	marketingMap := make(map[int64]*CouponUsageRecord)
+	for _, record := range marketingCouponUsage {
+		marketingMap[record.OrderID] = record
+	}
+
+	var discrepancies []*Discrepancy
+
+	for _, orderRecord := range orderCouponUsage {
+		marketingRecord, exists := marketingMap[orderRecord.OrderID]
+
+		if !exists {
+			discrepancies = append(discrepancies, &Discrepancy{
+				OrderID: orderRecord.OrderID,
+				Type:    "missing_in_marketing",
+				Detail:  fmt.Sprintf("订单%d的优惠券使用记录在营销系统中缺失", orderRecord.OrderID),
+			})
+			continue
+		}
+
+		if !orderRecord.DiscountAmount.Equal(marketingRecord.DiscountAmount) {
+			discrepancies = append(discrepancies, &Discrepancy{
+				OrderID: orderRecord.OrderID,
+				Type:    "amount_mismatch",
+				Detail: fmt.Sprintf("订单%d的优惠金额不一致：订单=%s, 营销=%s",
+					orderRecord.OrderID,
+					orderRecord.DiscountAmount.String(),
+					marketingRecord.DiscountAmount.String()),
+			})
+		}
+	}
+
+	if len(discrepancies) > 0 {
+		s.logger.Warn("found discrepancies in marketing data", zap.Int("count", len(discrepancies)))
+
+		for _, d := range discrepancies {
+			s.db.InsertDiscrepancy(ctx, d)
+		}
+
+		s.alertClient.SendAlert(ctx, fmt.Sprintf("营销数据对账发现%d条差异", len(discrepancies)))
+	}
+
+	return nil
+}
+```
 ```
 ```
