@@ -1334,5 +1334,269 @@ func (e *MarketingCalculationEngine) allocateDiscountToItems(
 	return itemDiscounts
 }
 ```
+
+## 4. 高并发场景设计
+
+### 4.1 秒杀 / 抢券设计
+
+#### 4.1.1 秒杀系统架构
+
+秒杀链路强调：**边缘削峰**（CDN、验证码、网关限流）、**热点库存**（Redis 预扣 + 分布式锁）、**异步落单**（消息队列 + Worker），并与库存 DB **最终一致**同步。
+
+```mermaid
+graph TB
+    User[用户] --> CDN[CDN静态资源]
+    User --> Gateway[API网关]
+
+    Gateway --> Captcha[验证码服务]
+    Gateway --> RateLimit[限流组件 Sentinel]
+
+    RateLimit --> SecKill[秒杀服务]
+
+    SecKill --> RedisCluster[Redis集群 分布式锁]
+    SecKill --> LocalCache[本地缓存 Caffeine]
+    SecKill --> MQ[消息队列 Kafka]
+
+    MQ --> OrderWorker[订单处理Worker]
+    OrderWorker --> OrderDB[(订单DB)]
+
+    SecKill -.异步扣减.-> InventoryDB[(库存DB)]
+```
+
+#### 4.1.2 流量削峰
+
+常用手段：**CDN 加速**静态资源、**验证码 / 答题**延缓脚本、**排队**或**令牌桶**在网关侧削峰。
+
+```go
+func (s *SeckillService) VerifyCaptcha(ctx context.Context, userID int64, captchaID, captchaCode string) error {
+	key := fmt.Sprintf("captcha:%s", captchaID)
+	correctCode, err := s.redis.Get(ctx, key).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return ErrCaptchaExpired
+		}
+		return err
+	}
+
+	if correctCode != captchaCode {
+		return ErrCaptchaInvalid
+	}
+
+	s.redis.Del(ctx, key)
+
+	return nil
+}
+```
+
+#### 4.1.3 分布式锁
+
+```go
+import (
+	"github.com/go-redsync/redsync/v4"
+	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
+)
+
+func (s *SeckillService) SecKillProduct(ctx context.Context, req *SeckillRequest) error {
+	if err := s.VerifyCaptcha(ctx, req.UserID, req.CaptchaID, req.CaptchaCode); err != nil {
+		return err
+	}
+
+	userPurchaseKey := fmt.Sprintf("seckill:user:%d:activity:%d", req.UserID, req.ActivityID)
+	count, err := s.redis.Get(ctx, userPurchaseKey).Int()
+	if err != nil && err != redis.Nil {
+		return err
+	}
+
+	activity, _ := s.getActivity(ctx, req.ActivityID)
+	if count >= activity.PerUserLimit {
+		return ErrExceedPurchaseLimit
+	}
+
+	stockKey := fmt.Sprintf("seckill:stock:%d", req.ActivityID)
+	lockKey := fmt.Sprintf("lock:seckill:stock:%d", req.ActivityID)
+
+	pool := goredis.NewPool(s.redisClient)
+	rs := redsync.New(pool)
+	mutex := rs.NewMutex(lockKey, redsync.WithExpiry(3*time.Second))
+
+	if err := mutex.Lock(); err != nil {
+		return ErrSecKillBusy
+	}
+	defer mutex.Unlock()
+
+	stock, err := s.redis.Get(ctx, stockKey).Int64()
+	if err != nil {
+		return err
+	}
+
+	if stock <= 0 {
+		return ErrSecKillStockOut
+	}
+
+	newStock, err := s.redis.Decr(ctx, stockKey).Result()
+	if err != nil {
+		return err
+	}
+
+	if newStock < 0 {
+		s.redis.Incr(ctx, stockKey)
+		return ErrSecKillStockOut
+	}
+
+	orderMsg := &SeckillOrderMessage{
+		UserID: req.UserID, ActivityID: req.ActivityID, ProductID: req.ProductID,
+		SKUID: req.SKUID, Quantity: 1, Timestamp: time.Now(),
+	}
+
+	if err := s.publishSeckillOrder(ctx, orderMsg); err != nil {
+		s.redis.Incr(ctx, stockKey)
+		return err
+	}
+
+	s.redis.Incr(ctx, userPurchaseKey)
+	s.redis.Expire(ctx, userPurchaseKey, 24*time.Hour)
+
+	return nil
+}
+```
+
+#### 4.1.4 库存预扣与异步确认
+
+Redis **预扣**保证热点路径低延迟；**Kafka** 异步创单与落库；定时任务校准 Redis 与 DB 库存。
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Seckill as 秒杀服务
+    participant Redis as Redis
+    participant Kafka as Kafka
+    participant Worker as 订单Worker
+    participant DB as 数据库
+
+    User->>Seckill: 秒杀请求
+    Seckill->>Seckill: 验证码验证
+    Seckill->>Redis: 获取分布式锁
+    Redis-->>Seckill: 锁获取成功
+
+    Seckill->>Redis: DECR stock
+    alt 库存充足
+        Redis-->>Seckill: 扣减成功
+        Seckill->>Kafka: 发送订单消息
+        Seckill-->>User: 抢购成功，订单生成中
+
+        Kafka->>Worker: 消费订单消息
+        Worker->>DB: 创建订单
+        Worker->>DB: 扣减DB库存
+        Worker-->>User: 推送订单创建成功
+    else 库存不足
+        Redis-->>Seckill: 库存为0
+        Seckill-->>User: 商品已抢光
+    end
+```
+
+### 4.2 防刷防薅
+
+#### 4.2.1 用户行为风控
+
+结合**设备指纹**、**IP 限流**、**行为序列分析**与**黑名单**；接口侧用**滑动窗口**限制单用户调用频率。
+
+```go
+func (s *MarketingService) CheckRateLimit(ctx context.Context, userID int64, action string) error {
+	blacklistKey := fmt.Sprintf("blacklist:user:%d", userID)
+	exists, err := s.redis.Exists(ctx, blacklistKey).Result()
+	if err != nil {
+		return err
+	}
+	if exists > 0 {
+		return ErrUserInBlacklist
+	}
+
+	key := fmt.Sprintf("ratelimit:%s:%d", action, userID)
+
+	now := time.Now().Unix()
+	windowStart := now - 60
+
+	pipe := s.redis.Pipeline()
+
+	pipe.ZRemRangeByScore(ctx, key, "0", fmt.Sprintf("%d", windowStart))
+
+	countCmd := pipe.ZCount(ctx, key, fmt.Sprintf("%d", windowStart), fmt.Sprintf("%d", now))
+
+	pipe.ZAdd(ctx, key, redis.Z{Score: float64(now), Member: fmt.Sprintf("%d", now)})
+
+	pipe.Expire(ctx, key, 2*time.Minute)
+
+	_, err = pipe.Exec(ctx)
+	if err != nil {
+		return err
+	}
+
+	count := countCmd.Val()
+	if count >= 10 {
+		return ErrRateLimitExceeded
+	}
+
+	return nil
+}
+```
+
+#### 4.2.2 营销预算控制
+
+活动维度维护**剩余预算**，下单 / 核销前校验；扣减建议用 **Lua** 保证原子性。
+
+```go
+type BudgetController struct {
+	redis *redis.Client
+}
+
+func (c *BudgetController) CheckBudget(ctx context.Context, activityID int64, amount decimal.Decimal) error {
+	budgetKey := fmt.Sprintf("activity:budget:%d", activityID)
+
+	remainBudget, err := c.redis.Get(ctx, budgetKey).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return ErrBudgetExhausted
+		}
+		return err
+	}
+
+	remain, _ := decimal.NewFromString(remainBudget)
+	if remain.LessThan(amount) {
+		return ErrBudgetInsufficient
+	}
+
+	return nil
+}
+```
+
+```go
+func (c *BudgetController) DeductBudget(ctx context.Context, activityID int64, amount decimal.Decimal) error {
+	budgetKey := fmt.Sprintf("activity:budget:%d", activityID)
+
+	luaScript := `
+        local budget_key = KEYS[1]
+        local amount = tonumber(ARGV[1])
+        local remain = tonumber(redis.call('GET', budget_key) or 0)
+
+        if remain >= amount then
+            redis.call('DECRBY', budget_key, amount)
+            return 1
+        else
+            return 0
+        end
+    `
+
+	result, err := c.redis.Eval(ctx, luaScript, []string{budgetKey}, amount.String()).Int()
+	if err != nil {
+		return err
+	}
+
+	if result == 0 {
+		return ErrBudgetInsufficient
+	}
+
+	return nil
+}
+```
 ```
 ```
