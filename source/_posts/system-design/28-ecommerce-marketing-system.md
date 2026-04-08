@@ -1598,5 +1598,244 @@ func (c *BudgetController) DeductBudget(ctx context.Context, activityID int64, a
 	return nil
 }
 ```
+
+## 5. 营销与订单集成
+
+### 5.1 下单时的营销扣减（Saga 模式）
+
+下单链路中，**试算**与**冻结 / 扣减**需与库存、订单落库编排一致；失败时按逆序补偿。典型实现可采用 **Saga**（每步 Try + Cancel）。
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Order as 订单服务
+    participant Marketing as 营销服务
+    participant Inventory as 库存服务
+    participant Payment as 支付服务
+
+    User->>Order: 创建订单
+
+    Order->>Marketing: Try: 计算营销优惠
+    Marketing-->>Order: 优惠金额
+
+    Order->>Marketing: Try: 冻结优惠券
+    alt 优惠券可用
+        Marketing-->>Order: Success
+    else 优惠券不可用
+        Marketing-->>Order: Failure
+        Order-->>User: 订单创建失败
+    end
+
+    Order->>Marketing: Try: 扣减积分
+    alt 积分充足
+        Marketing-->>Order: Success
+    else 积分不足
+        Marketing-->>Order: Failure
+        Order->>Marketing: Cancel: 回滚优惠券
+        Order-->>User: 订单创建失败
+    end
+
+    Order->>Inventory: Try: 扣减库存
+    alt 库存充足
+        Inventory-->>Order: Success
+    else 库存不足
+        Inventory-->>Order: Failure
+        Order->>Marketing: Cancel: 回滚优惠券
+        Order->>Marketing: Cancel: 回滚积分
+        Order-->>User: 订单创建失败
+    end
+
+    Order->>Order: 创建订单记录
+    Order-->>User: 订单创建成功
+
+    User->>Payment: 发起支付
+    Payment-->>Order: 支付成功回调
+
+    Order->>Marketing: Confirm: 确认使用优惠券
+    Order->>Marketing: Confirm: 确认扣减积分
+    Order->>Inventory: Confirm: 确认扣减库存
+```
+
+```go
+// MarketingCalculationResult 与营销试算返回结构一致（字段示意）
+type MarketingCalculationResult struct {
+	OriginalAmount decimal.Decimal
+	TotalDiscount  decimal.Decimal
+	FinalAmount    decimal.Decimal
+}
+
+func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
+	saga := NewSaga()
+
+	var marketingResult *MarketingCalculationResult
+	var order *Order
+
+	saga.AddStep(&SagaStep{
+		Name: "计算营销优惠",
+		TryFunc: func(ctx context.Context) error {
+			calcReq := &CalculateRequest{
+				UserID: req.UserID, Items: req.Items,
+				CouponIDs: req.CouponIDs, UsePoints: req.UsePoints,
+			}
+			result, err := s.marketingClient.Calculate(ctx, calcReq)
+			if err != nil {
+				return err
+			}
+			marketingResult = &MarketingCalculationResult{
+				OriginalAmount: result.OriginalAmount,
+				TotalDiscount:  result.TotalDiscount,
+				FinalAmount:    result.FinalAmount,
+			}
+			return nil
+		},
+		CancelFunc: func(ctx context.Context) error { return nil },
+	})
+
+	saga.AddStep(&SagaStep{
+		Name: "冻结优惠券",
+		TryFunc: func(ctx context.Context) error {
+			if len(req.CouponIDs) == 0 {
+				return nil
+			}
+			return s.marketingClient.FreezeCoupon(ctx, req.UserID, req.CouponIDs[0])
+		},
+		CancelFunc: func(ctx context.Context) error {
+			if len(req.CouponIDs) == 0 {
+				return nil
+			}
+			return s.marketingClient.UnfreezeCoupon(ctx, req.UserID, req.CouponIDs[0])
+		},
+	})
+
+	saga.AddStep(&SagaStep{
+		Name: "扣减积分",
+		TryFunc: func(ctx context.Context) error {
+			if req.UsePoints <= 0 {
+				return nil
+			}
+			return s.marketingClient.SpendPoints(ctx, req.UserID, req.UsePoints, 0)
+		},
+		CancelFunc: func(ctx context.Context) error {
+			if req.UsePoints <= 0 {
+				return nil
+			}
+			return s.marketingClient.RefundPoints(ctx, req.UserID, req.UsePoints, 0)
+		},
+	})
+
+	saga.AddStep(&SagaStep{
+		Name: "扣减库存",
+		TryFunc: func(ctx context.Context) error {
+			for _, item := range req.Items {
+				if err := s.inventoryClient.DeductStock(ctx, item.SKUID, item.Quantity); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		CancelFunc: func(ctx context.Context) error {
+			for _, item := range req.Items {
+				s.inventoryClient.RestoreStock(ctx, item.SKUID, item.Quantity)
+			}
+			return nil
+		},
+	})
+
+	saga.AddStep(&SagaStep{
+		Name: "创建订单记录",
+		TryFunc: func(ctx context.Context) error {
+			order = &Order{
+				OrderID:        GenerateOrderID(),
+				UserID:         req.UserID,
+				Status:         OrderStatusPending,
+				OriginalAmount: marketingResult.OriginalAmount,
+				DiscountAmount: marketingResult.TotalDiscount,
+				FinalAmount:    marketingResult.FinalAmount,
+				UsedCouponID:   req.CouponIDs,
+				UsedPoints:     req.UsePoints,
+				CreatedAt:      time.Now(),
+			}
+			return s.db.InsertOrder(ctx, order)
+		},
+		CancelFunc: func(ctx context.Context) error {
+			if order != nil {
+				return s.db.DeleteOrder(ctx, order.OrderID)
+			}
+			return nil
+		},
+	})
+
+	if err := saga.Execute(ctx); err != nil {
+		return nil, err
+	}
+
+	return order, nil
+}
+```
+
+### 5.2 取消订单时的营销回退
+
+取消待支付 / 已支付订单（按业务规则）时，需**解冻或回滚券**、**退还积分**、**回补库存**，同样可用 Saga 编排。
+
+```go
+func (s *OrderService) CancelOrder(ctx context.Context, orderID int64) error {
+	order, err := s.db.GetOrder(ctx, orderID)
+	if err != nil {
+		return err
+	}
+
+	if order.Status != OrderStatusPending && order.Status != OrderStatusPaid {
+		return ErrOrderCannotCancel
+	}
+
+	saga := NewSaga()
+
+	saga.AddStep(&SagaStep{
+		Name: "更新订单状态",
+		TryFunc: func(ctx context.Context) error {
+			return s.db.UpdateOrderStatus(ctx, orderID, OrderStatusCanceled)
+		},
+		CancelFunc: func(ctx context.Context) error {
+			return s.db.UpdateOrderStatus(ctx, orderID, order.Status)
+		},
+	})
+
+	saga.AddStep(&SagaStep{
+		Name: "回滚优惠券",
+		TryFunc: func(ctx context.Context) error {
+			if len(order.UsedCouponID) == 0 {
+				return nil
+			}
+			return s.marketingClient.RollbackCoupon(ctx, order.UserID, order.UsedCouponID[0], "订单取消")
+		},
+		CancelFunc: func(ctx context.Context) error { return nil },
+	})
+
+	saga.AddStep(&SagaStep{
+		Name: "退还积分",
+		TryFunc: func(ctx context.Context) error {
+			if order.UsedPoints <= 0 {
+				return nil
+			}
+			return s.marketingClient.RefundPoints(ctx, order.UserID, order.UsedPoints, orderID)
+		},
+		CancelFunc: func(ctx context.Context) error { return nil },
+	})
+
+	saga.AddStep(&SagaStep{
+		Name: "回滚库存",
+		TryFunc: func(ctx context.Context) error {
+			items, _ := s.db.GetOrderItems(ctx, orderID)
+			for _, item := range items {
+				s.inventoryClient.RestoreStock(ctx, item.SKUID, item.Quantity)
+			}
+			return nil
+		},
+		CancelFunc: func(ctx context.Context) error { return nil },
+	})
+
+	return saga.Execute(ctx)
+}
+```
 ```
 ```
