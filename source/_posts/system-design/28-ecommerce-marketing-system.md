@@ -35,4 +35,198 @@ tags:
 
 ---
 
-（待补充具体内容）
+## 1. 系统概览
+
+### 1.1 营销系统的定位
+
+营销系统在电商平台中承担**增长引擎**角色：通过优惠券、积分、活动与精准投放，支撑用户拉新、促活、留存与 GMV 提升。它与订单、商品、计价、用户、支付等系统紧密协作：订单侧负责扣减与回退的编排，商品与计价侧提供圈品与价格试算输入，用户侧提供画像与风控维度，支付侧完成补贴与分账核算。
+
+**核心价值**可概括为：在**成本可控**前提下实现**精准营销**，并通过数据闭环让效果**可衡量、可优化**。
+
+### 1.2 核心业务场景
+
+典型业务场景包括：
+
+- **用户拉新**：新人专享券、首单立减
+- **用户促活**：签到积分、任务奖励
+- **用户留存**：会员积分、等级权益
+- **GMV 提升**：满减活动、限时折扣、秒杀
+- **清库存**：N 元购、买赠活动
+
+**B2C 与 B2B2C 营销差异**对比如下。
+
+| 维度 | B2C（自营） | B2B2C（平台） |
+|------|------------|--------------|
+| 营销主体 | 平台 | 平台 + 商家 |
+| 成本承担 | 平台全额 | 平台补贴 + 商家承担 |
+| 活动审核 | 无需审核 | 商家活动需平台审核 |
+| 优惠叠加 | 平台规则统一 | 需考虑跨店铺规则 |
+| 结算复杂度 | 简单 | 需分账（平台 / 商家） |
+
+### 1.3 核心挑战
+
+1. **高并发**：秒杀、抢券等场景 QPS 峰值可达 10 万+
+2. **复杂规则**：优惠叠加、互斥、优先级与「最优解」求解
+3. **数据一致性**：营销扣减与订单创建的原子性与补偿
+4. **防刷防薅**：黑产、批量注册、恶意套现
+5. **成本控制**：营销预算、ROI 监控
+6. **实时性**：库存实时扣减、优惠实时生效
+
+### 1.4 系统架构
+
+整体采用**接入层 → 服务层 → 数据层**分层：接入层统一鉴权与路由；服务层拆分优惠券、积分、活动与营销计算；数据层以 MySQL 为主存储，Redis 承担缓存与分布式锁，Kafka 做事件驱动，Elasticsearch 支撑活动检索与画像类查询。
+
+**系统架构总览**如下。
+
+```mermaid
+graph LR
+    User[用户] --> WebApp[Web/App]
+    WebApp --> MarketingGateway[营销网关]
+
+    MarketingGateway --> CouponService[优惠券服务]
+    MarketingGateway --> PointsService[积分服务]
+    MarketingGateway --> ActivityService[活动引擎]
+    MarketingGateway --> CalculationEngine[营销计算引擎]
+
+    CouponService --> CouponDB[(优惠券DB)]
+    CouponService --> Redis[(Redis)]
+
+    PointsService --> PointsDB[(积分DB)]
+    PointsService --> Redis
+
+    ActivityService --> ActivityDB[(活动DB)]
+    ActivityService --> Elasticsearch[(ES)]
+
+    CalculationEngine --> RuleEngine[规则引擎]
+
+    MarketingGateway --> OrderService[订单服务]
+    MarketingGateway --> ProductService[商品服务]
+    MarketingGateway --> PricingService[计价中心]
+    MarketingGateway --> UserService[用户服务]
+
+    CouponService --> Kafka[Kafka]
+    PointsService --> Kafka
+    ActivityService --> Kafka
+```
+
+**核心模块协作**可概括为：网关编排，各工具服务自治，计算引擎读多源数据并调用规则引擎；异步事件通过 Kafka 广播给下游（通知、对账、报表等）。
+
+```mermaid
+graph LR
+    Gateway[营销网关] --> Calc[营销计算引擎]
+    Calc --> Rule[规则引擎]
+    Calc --> Coupon[优惠券服务]
+    Calc --> Points[积分服务]
+    Calc --> Activity[活动引擎]
+    Order[订单服务] --> Gateway
+    Product[商品服务] --> Activity
+    Pricing[计价中心] --> Calc
+```
+
+**核心常量定义**（类型与状态枚举，便于各服务对齐语义）：
+
+```go
+// 营销工具类型
+const (
+	ToolTypeCoupon   = "coupon"   // 优惠券
+	ToolTypePoints   = "points"   // 积分
+	ToolTypeActivity = "activity" // 活动
+)
+
+// 优惠类型
+const (
+	DiscountTypeAmount     = "amount"     // 满减（满100减20）
+	DiscountTypePercentage = "percentage" // 折扣（8折）
+	DiscountTypeFreeShip   = "free_ship"  // 包邮
+	DiscountTypeGift       = "gift"       // 赠品
+)
+
+// 活动类型
+const (
+	ActivityTypeFlashSale = "flash_sale" // 秒杀
+	ActivityTypeGroupBuy  = "group_buy"  // 拼团
+	ActivityTypeSeckill   = "seckill"    // 限时抢购
+	ActivityTypeNYuanGou  = "n_yuan_gou" // N元购
+)
+
+// 营销状态
+const (
+	StatusDraft    = "draft"    // 草稿
+	StatusPending  = "pending"  // 待审核
+	StatusApproved = "approved" // 已通过
+	StatusRejected = "rejected" // 已拒绝
+	StatusActive   = "active"   // 进行中
+	StatusExpired  = "expired"  // 已过期
+	StatusCanceled = "canceled" // 已取消
+)
+```
+
+### 1.5 核心数据模型概览
+
+以下为优惠券、积分、活动相关核心表关系的**逻辑 ER 示意**（实际分库分表与字段以线上为准）。
+
+```mermaid
+erDiagram
+    COUPON ||--o{ COUPON_USER : "发放"
+    COUPON ||--o{ COUPON_LOG : "记录"
+    COUPON_USER ||--o{ ORDER : "使用"
+
+    USER ||--o{ POINTS_ACCOUNT : "拥有"
+    POINTS_ACCOUNT ||--o{ POINTS_LOG : "记录"
+
+    ACTIVITY ||--o{ ACTIVITY_PRODUCT : "圈品"
+    ACTIVITY ||--o{ ACTIVITY_LOG : "记录"
+    ORDER ||--o{ ACTIVITY : "使用"
+
+    COUPON {
+        bigint coupon_id PK
+        string coupon_name
+        string discount_type
+        decimal discount_value
+        decimal min_order_amount
+        int total_quantity
+        int used_quantity
+        datetime start_time
+        datetime end_time
+        string status
+    }
+
+    COUPON_USER {
+        bigint id PK
+        bigint coupon_id FK
+        bigint user_id FK
+        string status
+        datetime received_at
+        datetime used_at
+    }
+
+    POINTS_ACCOUNT {
+        bigint user_id PK
+        bigint available_points
+        bigint frozen_points
+        bigint total_earned
+        bigint total_spent
+    }
+
+    ACTIVITY {
+        bigint activity_id PK
+        string activity_name
+        string activity_type
+        json rule_config
+        datetime start_time
+        datetime end_time
+        string status
+    }
+```
+
+### 1.6 技术选型
+
+| 组件 | 技术选型 | 用途 | 理由 |
+|------|---------|------|------|
+| 数据库 | MySQL 8.0 | 主存储 | ACID 保证、成熟稳定 |
+| 缓存 | Redis 6.0 | 热数据缓存、分布式锁 | 高性能、丰富数据结构 |
+| 消息队列 | Kafka | 事件驱动、异步解耦 | 高吞吐、持久化 |
+| 搜索引擎 | Elasticsearch | 活动搜索、用户画像 | 全文检索、聚合分析 |
+| 分布式锁 | Redisson | 秒杀库存扣减 | 基于 Redis、支持可重入 |
+| 限流 | Sentinel | 接口限流、降级 | 实时监控、规则灵活 |
+| ID 生成 | Snowflake | 营销活动 ID | 分布式、时间有序 |
