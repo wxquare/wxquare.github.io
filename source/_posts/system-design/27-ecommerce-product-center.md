@@ -872,9 +872,24 @@ func BuildCategoryTree(nodes []*Category) map[int64][]*Category {
     return children
 }
 
-func GetCategoryPath(children map[int64][]*Category, leafID int64) []*Category {
-    // 简化：假设有 parent 指针或通过 map 反查
+func IndexCategoriesByID(nodes []*Category) map[int64]*Category {
+    m := make(map[int64]*Category, len(nodes))
+    for _, n := range nodes {
+        m[n.CategoryID] = n
+    }
+    return m
+}
+
+func GetCategoryPath(byID map[int64]*Category, leafID int64) []*Category {
     var path []*Category
+    cur, ok := byID[leafID]
+    for ok && cur != nil {
+        path = append([]*Category{cur}, path...)
+        if cur.ParentID == 0 {
+            break
+        }
+        cur, ok = byID[cur.ParentID]
+    }
     return path
 }
 ```
@@ -887,6 +902,12 @@ graph TD
     A --> A2[女装]
     B --> B1[手机]
     B1 --> B1L[智能手机 叶子]
+```
+
+```go
+func ExampleCategoryPath(nodes []*Category, leafID int64) []*Category {
+    return GetCategoryPath(IndexCategoriesByID(nodes), leafID)
+}
 ```
 
 ### 3.3 动态属性与 EAV 模型
@@ -1004,12 +1025,12 @@ func FindOrCreateSnapshot(ctx context.Context, spu *SPU, sku *SKU) (string, erro
 ```go
 import "errors"
 
-// 与第 5 章搜索文档对齐的简化结构
+// 与第 5 章搜索文档对齐的简化结构（完整字段见 5.1）
 type ProductSearchDoc struct {
-    SPUID     string
-    Title     string
-    Category  int64
-    ExtraTags []string
+    SPUID      string
+    Title      string
+    CategoryID int64
+    ExtraTags  []string
 }
 
 type ProductType string
@@ -1587,3 +1608,418 @@ flowchart TB
     M2 --> INV2[卖品库存]
 ```
 
+## 7. 商品版本管理与快照
+
+商品变更频繁，需要 **可追溯的版本历史** 与 **面向订单的不可变快照**。版本表支撑审计与回滚；快照表支撑下单展示与纠纷处理；Kafka 将变更广播给搜索与缓存等消费者。
+
+### 7.1 版本控制
+
+**目标**：记录每次变更、支持回滚、满足合规审计。
+
+```go
+import (
+    "context"
+    "encoding/json"
+    "time"
+)
+
+type ProductVersion struct {
+    VersionID  string
+    SPUID      string
+    Version    int64
+    Content    string
+    ChangeType string
+    Operator   string
+    CreatedAt  time.Time
+}
+
+func CreateProductVersion(ctx context.Context, product *Product, operator string) error {
+    content, _ := json.Marshal(product)
+    version := &ProductVersion{
+        VersionID:  GenerateVersionID(),
+        SPUID:      product.SPUID,
+        Version:    product.Version,
+        Content:    string(content),
+        ChangeType: "update",
+        Operator:   operator,
+        CreatedAt:  time.Now(),
+    }
+    return db.InsertProductVersion(ctx, version)
+}
+
+func RollbackToVersion(ctx context.Context, spuID string, targetVersion int64) error {
+    ver, err := db.GetProductVersion(ctx, spuID, targetVersion)
+    if err != nil {
+        return err
+    }
+    product := &Product{}
+    if err := json.Unmarshal([]byte(ver.Content), product); err != nil {
+        return err
+    }
+    current, _ := db.GetProduct(ctx, spuID)
+    product.Version = current.Version + 1
+    if err := db.UpdateProduct(ctx, product); err != nil {
+        return err
+    }
+    return CreateProductVersion(ctx, product, "system_rollback")
+}
+```
+
+### 7.2 快照机制
+
+订单创建时引用快照 ID，即使商品改价改图，订单详情仍展示下单时内容。内容 Hash 相同则复用一条快照记录，节省存储。
+
+```go
+import (
+    "context"
+    "crypto/md5"
+    "encoding/hex"
+    "encoding/json"
+    "fmt"
+    "time"
+)
+
+type ProductSnapshotOrder struct {
+    SnapshotID string
+    SPUID      string
+    SKUID      string
+    Title      string
+    Price      int64
+    Image      string
+    Specs      string
+    Attributes string
+    CreatedAt  time.Time
+}
+
+func CreateSnapshot(ctx context.Context, sku *SKU) (string, error) {
+    spu, err := db.GetSPU(ctx, sku.SPUID)
+    if err != nil {
+        return "", err
+    }
+    content := fmt.Sprintf("%s_%s_%s_%d_%s",
+        spu.SPUID, sku.SKUID, spu.Title, sku.Price, encodeSpecs(sku.SpecValues))
+    sum := md5.Sum([]byte(content))
+    snapshotID := hex.EncodeToString(sum[:])
+
+    if existing, _ := db.GetSnapshot(ctx, snapshotID); existing != nil {
+        return snapshotID, nil
+    }
+
+    snap := &ProductSnapshotOrder{
+        SnapshotID: snapshotID,
+        SPUID:      spu.SPUID,
+        SKUID:      sku.SKUID,
+        Title:      spu.Title,
+        Price:      sku.Price,
+        Image:      spu.MainImages[0],
+        Specs:      encodeSpecs(sku.SpecValues),
+        CreatedAt:  time.Now(),
+    }
+    if err := db.InsertSnapshot(ctx, snap); err != nil {
+        return "", err
+    }
+    return snapshotID, nil
+}
+
+func encodeSpecs(m map[string]string) string {
+    b, _ := json.Marshal(m)
+    return string(b)
+}
+```
+
+### 7.3 变更事件与最终一致性
+
+```go
+import (
+    "encoding/json"
+    "time"
+)
+
+type ProductChangedEvent struct {
+    SPUID      string
+    ChangeType string
+    Version    int64
+    Timestamp  time.Time
+}
+
+func PublishProductChangedEvent(ctx context.Context, event *ProductChangedEvent) error {
+    data, _ := json.Marshal(event)
+    msg := &KafkaMessage{
+        Topic: "product.changed",
+        Key:   event.SPUID,
+        Value: data,
+    }
+    return kafkaProducer.Send(msg)
+}
+
+func ConsumeProductChangedEvent() {
+    consumer := kafka.NewConsumer("product.changed", "search-sync-group")
+    for msg := range consumer.Messages() {
+        event := &ProductChangedEvent{}
+        if err := json.Unmarshal(msg.Value, event); err != nil {
+            continue
+        }
+        if err := UpdateSearchIndex(event.SPUID); err != nil {
+            log.Error("failed to update search index", "error", err)
+            continue
+        }
+        InvalidateCache(event.SPUID)
+        consumer.CommitMessage(msg)
+    }
+}
+```
+
+```mermaid
+flowchart LR
+    W[商品写库] --> E[发布 product.changed]
+    E --> S[搜索同步 Worker]
+    E --> C[缓存失效]
+    E --> O[下游对账/监控]
+```
+
+## 8. 商品类型扩展设计
+
+### 8.1 扩展点识别
+
+1. **商品模型扩展**：品类特有属性与扩展存储（MongoDB / JSON / EAV）
+2. **上架流程扩展**：审核模板、必填项、校验插件
+3. **库存扩展**：库存维度与网关路由（见第 4 章）
+4. **价格扩展**：计价参数、日历价、动态溢价
+5. **搜索与展示扩展**：索引字段、列表卡片模板、筛选器组件
+
+### 8.2 策略模式应用
+
+```go
+type ProductTypeStrategy interface {
+    Validate(product *Product) error
+    GenerateSKUs(spu *SPU) []*SKU
+    GetStock(skuID string) (int, error)
+    CalculatePrice(sku *SKU, params map[string]interface{}) (int64, error)
+    GetExtAttributes(spu *SPU) map[string]interface{}
+}
+
+// 具体策略按品类实现，注册到表；与第 4 章 ProductAdapter 可合并或分层（适配器偏写模型，策略偏业务规则）
+```
+
+### 8.3 新品类接入指南
+
+```mermaid
+flowchart LR
+    A[1. 分析差异] --> B[2. 定义模型]
+    B --> C[3. 实现策略]
+    C --> D[4. 注册路由]
+    D --> E[5. 测试验证]
+```
+
+1. **分析差异**：相对标准实物，列出 SKU、库存、价格、履约差异
+2. **定义模型**：SPU/SKU 扩展字段、Ext 文档 schema
+3. **实现策略**：实现 `ProductTypeStrategy`（或 `ProductAdapter`）并补单测
+4. **注册路由**：在注册表挂载 `ProductType` → 实现，并配置表单/索引
+5. **测试验证**：集成测试覆盖上架、搜索、下单快照全链路
+
+### 8.4 扩展性设计原则
+
+- **开闭原则**：新增品类以注册策略为主，避免修改核心状态机主干
+- **单一职责**：每个策略只处理一个品类或一族相似品类
+- **依赖倒置**：上层依赖 `ProductTypeStrategy` 接口，而非具体类
+
+## 9. 工程实践要点
+
+### 9.1 商品 ID 生成
+
+| 方案 | 优点 | 缺点 | 适用 |
+|------|------|------|------|
+| Snowflake | 趋势递增、高性能、全局唯一 | 时钟回拨需治理 | 大规模推荐 |
+| UUID | 实现简单 | 无序、索引碎片化 | 中小流量 |
+| DB 自增 | 简单 | 分库分表扩展难 | 单库早期 |
+
+```mermaid
+flowchart LR
+    ID[64 bit ID] --> T[41 bit 时间戳]
+    ID --> M[10 bit 机器号]
+    ID --> S[12 bit 序列]
+```
+
+```go
+import (
+    "fmt"
+    "sync"
+    "time"
+)
+
+type SnowflakeGenerator struct {
+    machineID int64
+    sequence  int64
+    lastTime  int64
+    mu        sync.Mutex
+}
+
+func (g *SnowflakeGenerator) NextID() string {
+    g.mu.Lock()
+    defer g.mu.Unlock()
+
+    now := time.Now().UnixMilli()
+    if now < g.lastTime {
+        time.Sleep(time.Duration(g.lastTime-now) * time.Millisecond)
+        now = time.Now().UnixMilli()
+    }
+    if now == g.lastTime {
+        g.sequence = (g.sequence + 1) & 0xFFF
+        if g.sequence == 0 {
+            for now <= g.lastTime {
+                now = time.Now().UnixMilli()
+            }
+        }
+    } else {
+        g.sequence = 0
+    }
+    g.lastTime = now
+    id := ((now - 1609459200000) << 22) | (g.machineID << 12) | g.sequence
+    return fmt.Sprintf("SP%d", id)
+}
+```
+
+### 9.2 商品同步任务治理
+
+```go
+import "time"
+
+func FullSync(ctx context.Context, partnerID string) error {
+    products, err := partnerClient.GetAllProducts(partnerID)
+    if err != nil {
+        return err
+    }
+    for _, p := range products {
+        msg := ConvertToMessage(p)
+        if err := PartnerPushProduct(ctx, msg); err != nil {
+            log.Error("full sync row failed", "err", err)
+        }
+    }
+    return nil
+}
+
+func IncrementalSync(ctx context.Context, partnerID string) error {
+    last := GetLastSyncTime(partnerID)
+    products, err := partnerClient.GetChangedProducts(partnerID, last)
+    if err != nil {
+        return err
+    }
+    for _, p := range products {
+        msg := ConvertToMessage(p)
+        if err := PartnerPushProduct(ctx, msg); err != nil {
+            log.Error("incr sync row failed", "err", err)
+        }
+    }
+    UpdateLastSyncTime(partnerID, time.Now())
+    return nil
+}
+```
+
+热门商品刷新间隔见第 5.3 节 `CalculateRefreshInterval`。
+
+### 9.3 监控告警体系
+
+- **业务**：上架量、审核通过率、搜索 QPS、缓存命中率
+- **应用**：核心接口 P99、错误率、同步成功率
+- **依赖**：MySQL 慢查询、Redis 连接、ES 查询延迟
+- **系统**：CPU、内存、磁盘、网络
+
+```go
+import "time"
+
+func RecordMetrics(spuID string, operation string, latency time.Duration) {
+    metrics.IncrCounter("product_operation_total", "operation", operation)
+    metrics.ObserveHistogram("product_operation_latency", latency.Milliseconds(), "operation", operation)
+    if latency > 100*time.Millisecond {
+        metrics.IncrCounter("product_operation_slow", "operation", operation)
+    }
+}
+```
+
+### 9.4 性能优化
+
+- **数据库**：按 SPU ID 哈希分表；组合索引如 `(category_id, status)`；读写分离
+- **缓存**：多级缓存、预热 TOP N、布隆过滤器防穿透、空值短 TTL
+- **搜索**：合理分片与副本、避免深分页、聚合用近似算法
+
+```go
+func ShardIndex(spuID string, shards int) int {
+    return int(fnv32(spuID) % uint32(shards))
+}
+
+func fnv32(s string) uint32 {
+    var h uint32 = 2166136261
+    for i := 0; i < len(s); i++ {
+        h ^= uint32(s[i])
+        h *= 16777619
+    }
+    return h
+}
+```
+
+```go
+// 缓存穿透：布隆过滤器判断「一定不存在」时再短路，避免打穿 DB
+func MaybeProductExists(bloom *BloomFilter, spuID string) bool {
+    return bloom.MightContain(spuID)
+}
+```
+
+### 9.5 故障处理
+
+| 故障 | 处理思路 |
+|------|----------|
+| 缓存雪崩 | TTL 加随机抖动、热点 key 独立策略 |
+| 缓存穿透 | 布隆过滤器、空值缓存 |
+| 数据不一致 | 定时对账、修复任务、人工兜底 |
+| 同步失败 | 重试队列、死信告警 |
+| ES 慢查询 | 优化 mapping、查询裁剪、冷热索引 |
+
+## 总结
+
+**核心要点回顾：**
+
+商品中心是电商平台的「商品库」，核心技术要点包括：
+
+1. **SPU/SKU 模型**：标准产品单元 + 库存单位，规格组合与笛卡尔积生成 SKU
+2. **多角色上架**：商家、供应商、运营三条链路，配合状态机与审核策略
+3. **异构商品治理**：适配器 + 配置化 + 库存网关，隔离品类差异
+4. **多级缓存与搜索**：Elasticsearch 负责检索，L1/L2 缓存扛热点读
+5. **版本与快照**：版本审计与回滚，快照 Hash 复用服务订单域
+6. **事件驱动**：`product.changed` 串联搜索、缓存与下游
+
+**面试要点：**
+
+1. 画出 SPU/SKU 关系，说明规格组合如何生成与如何剔除无效组合
+2. 说明异构商品的挑战与适配器、策略模式如何落地
+3. 描述多级缓存与热点刷新策略，以及接受怎样的最终一致窗口
+4. 对比宽表、EAV、混合存储的取舍
+5. 说明订单为何引用商品快照，以及 Hash 复用如何做
+
+**扩展阅读：**
+
+- DDD 在商品域的建模与限界上下文划分
+- 商品中台演进与多租户隔离
+- 搜索排序：相关性、商业化、个性化权重
+
+## 参考资料
+
+### 业界文章与分享
+
+1. 淘宝商品中心技术演进相关分享
+2. 京东商品系统架构实践
+3. 亚马逊商品目录（Catalog）设计公开资料
+
+### 开源项目
+
+1. [Elasticsearch](https://www.elastic.co/) — 搜索引擎
+2. [Caffeine](https://github.com/ben-manes/caffeine) — 本地缓存
+3. [Excelize](https://github.com/qax-os/excelize) — Excel 处理
+
+### 系列文章（本仓库）
+
+1. `20-ecommerce-overview.md` — 电商总览
+2. `21-ecommerce-listing.md` — 商品上架系统
+3. `22-ecommerce-inventory.md` — 库存系统
+4. `26-ecommerce-order-system.md` — 订单系统
+
+设计过程与章节拆解见仓库内 `docs/superpowers/specs/2026-04-07-product-center-design.md`。
