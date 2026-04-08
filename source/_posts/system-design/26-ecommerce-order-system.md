@@ -346,3 +346,428 @@ erDiagram
         timestamp expire_at
     }
 ```
+
+## 2. 通用订单流程
+
+本章讲解标准订单从创建到完成的完整流程，覆盖大部分订单类型的通用逻辑（约占50%内容）。特殊订单类型的差异将在第6章详细讲解。
+
+### 2.1 订单创建
+
+订单创建是整个订单流程的起点，需要协调多个系统完成库存扣减、优惠计算、积分扣减等操作。由于涉及多个系统，需要使用分布式事务保证一致性。
+
+#### 业务流程
+
+1. **参数校验**：验证商品是否存在、库存是否充足、优惠券是否可用等
+2. **生成订单ID**：使用Snowflake算法生成全局唯一的订单ID
+3. **创建订单快照**：保存下单时的商品信息（价格、标题、图片等）
+4. **分布式事务编排**：
+   - Try阶段：预扣库存、预扣优惠券、预扣积分、创建订单（状态为"草稿"）
+   - Confirm阶段：所有Try成功后，订单状态变为"待支付"
+   - Cancel阶段：任何Try失败，执行补偿回滚
+
+#### 订单ID生成策略
+
+使用Snowflake算法生成订单ID：
+
+```go
+// Snowflake算法：64位long型
+// [0] [1-41时间戳] [42-51机器ID] [52-63序列号]
+
+type SnowflakeGenerator struct {
+    machineID int64  // 机器ID（10位，0-1023）
+    sequence  int64  // 序列号（12位，0-4095）
+    lastTime  int64  // 上次生成时间戳
+    mu        sync.Mutex
+}
+
+func (s *SnowflakeGenerator) NextID() string {
+    s.mu.Lock()
+    defer s.mu.Unlock()
+    
+    now := time.Now().UnixMilli()
+    
+    // 如果时间戳相同，序列号递增
+    if now == s.lastTime {
+        s.sequence = (s.sequence + 1) & 4095
+        if s.sequence == 0 {
+            // 序列号溢出，等待下一毫秒
+            for now <= s.lastTime {
+                now = time.Now().UnixMilli()
+            }
+        }
+    } else {
+        s.sequence = 0
+    }
+    
+    s.lastTime = now
+    
+    // 组装：时间戳(41位) + 机器ID(10位) + 序列号(12位)
+    id := ((now - 1640995200000) << 22) | (s.machineID << 12) | s.sequence
+    return strconv.FormatInt(id, 10)
+}
+```
+
+**优点**：
+- 全局唯一：机器ID + 时间戳 + 序列号保证唯一性
+- 趋势递增：按时间递增，对数据库索引友好
+- 高性能：无需数据库交互，本地生成
+
+**缺点**：
+- 依赖时钟：时钟回拨会导致ID重复（需要拒绝服务并告警）
+- 需要机器ID分配：在分布式环境下需要全局唯一的机器ID
+
+#### 订单快照管理
+
+订单快照保存下单时的商品信息，防止商品信息变更影响订单：
+
+```go
+// 生成快照ID（基于Hash，支持复用）
+func GenerateSnapshotID(productID, skuID int64, price int64, spec string) string {
+    data := fmt.Sprintf("%d_%d_%d_%s", productID, skuID, price, spec)
+    hash := sha256.Sum256([]byte(data))
+    return hex.EncodeToString(hash[:16]) // 使用前16字节
+}
+
+// 创建或复用快照
+func CreateOrReuseSnapshot(snapshot *OrderSnapshot) (string, error) {
+    snapshotID := GenerateSnapshotID(
+        snapshot.ProductID,
+        snapshot.SkuID,
+        snapshot.Price,
+        snapshot.Specifications,
+    )
+    
+    // 尝试查询是否已存在
+    existing, err := db.GetSnapshotByID(snapshotID)
+    if err == nil && existing != nil {
+        return snapshotID, nil // 复用现有快照
+    }
+    
+    // 不存在，创建新快照
+    snapshot.SnapshotID = snapshotID
+    if err := db.InsertSnapshot(snapshot); err != nil {
+        return "", err
+    }
+    
+    return snapshotID, nil
+}
+```
+
+**快照复用的好处**：
+- 节省存储空间：相同商品信息的快照只存储一份
+- 提高查询性能：减少数据量，加快查询速度
+
+#### 订单创建流程图
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant API as 订单API
+    participant Order as 订单服务
+    participant Inventory as 库存服务
+    participant Marketing as 营销服务
+    participant DB as 数据库
+    participant Kafka as Kafka
+    
+    User->>API: 提交订单
+    API->>Order: CreateOrder(request)
+    
+    Note over Order: 1. 参数校验
+    Order->>Order: ValidateRequest()
+    
+    Note over Order: 2. 生成订单ID
+    Order->>Order: GenerateOrderID()
+    
+    Note over Order: 3. 创建快照
+    Order->>Order: CreateSnapshot()
+    
+    Note over Order: 4. Saga事务开始
+    Order->>Inventory: Try: 预扣库存
+    Inventory-->>Order: Success
+    
+    Order->>Marketing: Try: 预扣优惠券
+    Marketing-->>Order: Success
+    
+    Order->>Marketing: Try: 预扣积分
+    Marketing-->>Order: Success
+    
+    Order->>DB: 创建订单（状态=草稿）
+    DB-->>Order: Success
+    
+    Note over Order: 5. 所有Try成功，Confirm
+    Order->>DB: 更新订单状态=待支付
+    DB-->>Order: Success
+    
+    Order->>DB: 写入本地消息表
+    Order->>Kafka: 发布OrderCreatedEvent
+    
+    Order-->>API: Success(orderID)
+    API-->>User: 订单创建成功
+    
+    Note over Order: 如果任一步骤失败
+    Order->>Inventory: Cancel: 回滚库存
+    Order->>Marketing: Cancel: 回滚优惠券
+    Order->>Marketing: Cancel: 回滚积分
+    Order-->>API: Failure
+    API-->>User: 订单创建失败
+```
+
+#### 订单创建状态机
+
+```mermaid
+stateDiagram-v2
+    [*] --> 草稿: 创建订单
+    草稿 --> 待支付: Try全部成功
+    草稿 --> 已取消: Try失败/超时
+    待支付 --> 支付中: 发起支付
+    待支付 --> 已取消: 超时未支付
+    支付中 --> 已支付: 支付成功
+    支付中 --> 支付失败: 支付失败
+    支付失败 --> 已取消: 自动取消
+    已取消 --> [*]
+```
+
+#### Saga分布式事务
+
+订单创建涉及多个系统，使用Saga模式保证最终一致性：
+
+```go
+// Saga步骤定义
+type SagaStep struct {
+    Name       string
+    TryFunc    func(ctx context.Context) error    // 正向操作
+    CancelFunc func(ctx context.Context) error    // 补偿操作
+}
+
+// Saga协调器
+type SagaOrchestrator struct {
+    steps []*SagaStep
+}
+
+func (s *SagaOrchestrator) Execute(ctx context.Context) error {
+    executed := make([]*SagaStep, 0)
+    
+    // 顺序执行Try
+    for _, step := range s.steps {
+        if err := step.TryFunc(ctx); err != nil {
+            // 失败，执行补偿
+            s.compensate(ctx, executed)
+            return fmt.Errorf("saga step %s failed: %w", step.Name, err)
+        }
+        executed = append(executed, step)
+    }
+    
+    return nil
+}
+
+func (s *SagaOrchestrator) compensate(ctx context.Context, executed []*SagaStep) {
+    // 逆序执行Cancel
+    for i := len(executed) - 1; i >= 0; i-- {
+        step := executed[i]
+        if err := step.CancelFunc(ctx); err != nil {
+            // 补偿失败，记录日志并告警
+            log.Error("saga compensation failed", 
+                "step", step.Name, 
+                "error", err)
+            // 发送告警，人工介入
+            alert.Send("saga_compensation_failed", step.Name, err)
+        }
+    }
+}
+
+// 订单创建Saga
+func CreateOrderSaga(ctx context.Context, req *CreateOrderRequest) error {
+    saga := &SagaOrchestrator{
+        steps: []*SagaStep{
+            {
+                Name: "扣减库存",
+                TryFunc: func(ctx context.Context) error {
+                    return inventoryClient.DeductStock(ctx, req.Items)
+                },
+                CancelFunc: func(ctx context.Context) error {
+                    return inventoryClient.RollbackStock(ctx, req.Items)
+                },
+            },
+            {
+                Name: "扣减优惠券",
+                TryFunc: func(ctx context.Context) error {
+                    return marketingClient.DeductCoupon(ctx, req.CouponID)
+                },
+                CancelFunc: func(ctx context.Context) error {
+                    return marketingClient.RollbackCoupon(ctx, req.CouponID)
+                },
+            },
+            {
+                Name: "扣减积分",
+                TryFunc: func(ctx context.Context) error {
+                    return marketingClient.DeductPoints(ctx, req.UserID, req.Points)
+                },
+                CancelFunc: func(ctx context.Context) error {
+                    return marketingClient.RollbackPoints(ctx, req.UserID, req.Points)
+                },
+            },
+            {
+                Name: "创建订单",
+                TryFunc: func(ctx context.Context) error {
+                    order := buildOrder(req)
+                    order.Status = OrderStatusDraft // 草稿状态
+                    return db.InsertOrder(ctx, order)
+                },
+                CancelFunc: func(ctx context.Context) error {
+                    return db.DeleteOrder(ctx, req.OrderID)
+                },
+            },
+        },
+    }
+    
+    // 执行Saga
+    if err := saga.Execute(ctx); err != nil {
+        return err
+    }
+    
+    // 所有Try成功，更新订单状态为"待支付"
+    return db.UpdateOrderStatus(ctx, req.OrderID, OrderStatusPending)
+}
+```
+
+**Saga vs TCC对比**：
+- Saga适合订单创建场景：步骤多、允许最终一致性
+- TCC适合支付场景：步骤少、需要强一致性（下一节详述）
+
+#### 幂等性设计
+
+防止用户重复提交订单：
+
+```go
+// 基于请求ID的幂等性
+func CreateOrderIdempotent(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
+    // 1. 幂等键：用户ID + 请求ID
+    idempotentKey := fmt.Sprintf("order_create_%d_%s", req.UserID, req.RequestID)
+    
+    // 2. 尝试插入幂等记录（唯一索引保证原子性）
+    record := &IdempotentRecord{
+        IdempotentKey: idempotentKey,
+        BizType:       "order_create",
+        Status:        IdempotentProcessing,
+        ExpireAt:      time.Now().Add(24 * time.Hour),
+    }
+    
+    if err := db.InsertIdempotentRecord(ctx, record); err != nil {
+        // 插入失败，说明已经处理过
+        existing, _ := db.GetIdempotentRecord(ctx, idempotentKey)
+        if existing.Status == IdempotentSuccess {
+            // 已成功，返回之前的订单
+            order, _ := db.GetOrder(ctx, existing.BizID)
+            return order, nil
+        }
+        // 处理中，返回错误提示稍后重试
+        return nil, ErrRequestProcessing
+    }
+    
+    // 3. 执行订单创建
+    order, err := CreateOrderSaga(ctx, req)
+    if err != nil {
+        // 失败，更新幂等记录状态
+        db.UpdateIdempotentStatus(ctx, idempotentKey, IdempotentFailed)
+        return nil, err
+    }
+    
+    // 4. 成功，更新幂等记录
+    db.UpdateIdempotentRecord(ctx, idempotentKey, IdempotentSuccess, order.OrderID)
+    
+    return order, nil
+}
+```
+
+#### 数据一致性保证
+
+**乐观锁更新订单状态**：
+
+```go
+// 使用CAS版本号防止并发冲突
+func UpdateOrderStatus(ctx context.Context, orderID string, oldStatus, newStatus int) error {
+    query := `
+        UPDATE orders 
+        SET status = ?, cas_version = cas_version + 1, updated_at = ?
+        WHERE order_id = ? AND status = ? AND cas_version = ?
+    `
+    
+    // 先查询当前版本号
+    order, err := db.GetOrder(ctx, orderID)
+    if err != nil {
+        return err
+    }
+    
+    if order.Status != oldStatus {
+        return ErrInvalidStatusTransition
+    }
+    
+    // CAS更新
+    result, err := db.Exec(ctx, query, newStatus, time.Now(), orderID, oldStatus, order.CASVersion)
+    if err != nil {
+        return err
+    }
+    
+    if result.RowsAffected == 0 {
+        // 更新失败，可能被其他请求修改了
+        return ErrConcurrentUpdate
+    }
+    
+    return nil
+}
+```
+
+**本地消息表 + Kafka事件发布**：
+
+```go
+// Outbox Pattern：保证消息一定发送
+func PublishOrderCreatedEvent(ctx context.Context, order *Order) error {
+    // 1. 在同一事务中：插入订单 + 插入本地消息
+    tx, err := db.Begin(ctx)
+    if err != nil {
+        return err
+    }
+    defer tx.Rollback()
+    
+    // 插入订单
+    if err := tx.InsertOrder(ctx, order); err != nil {
+        return err
+    }
+    
+    // 插入本地消息
+    msg := &OutboxMessage{
+        MessageID: uuid.New().String(),
+        Topic:     "order.created",
+        Payload:   json.Marshal(order),
+        Status:    OutboxPending,
+    }
+    if err := tx.InsertOutboxMessage(ctx, msg); err != nil {
+        return err
+    }
+    
+    // 提交事务
+    if err := tx.Commit(); err != nil {
+        return err
+    }
+    
+    // 2. 异步发送Kafka消息（定时任务扫描本地消息表）
+    // 这里只是插入，实际发送由后台任务完成
+    return nil
+}
+
+// 后台任务：扫描本地消息表并发送
+func OutboxMessageSender() {
+    ticker := time.NewTicker(1 * time.Second)
+    for range ticker.C {
+        messages, _ := db.GetPendingOutboxMessages(context.Background(), 100)
+        for _, msg := range messages {
+            if err := kafkaProducer.Send(msg.Topic, msg.Payload); err != nil {
+                log.Error("failed to send kafka message", "error", err)
+                continue
+            }
+            // 发送成功，更新状态
+            db.UpdateOutboxMessageStatus(context.Background(), msg.MessageID, OutboxSent)
+        }
+    }
+}
+```
