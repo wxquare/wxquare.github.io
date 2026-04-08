@@ -2193,5 +2193,233 @@ func (s *ReconciliationService) ReconcileMarketingData(ctx context.Context, date
 	return nil
 }
 ```
+
+## 8. 特殊营销场景
+
+### 8.1 跨店铺满减
+
+用户购物车跨多店时，按**订单总金额**命中平台级满减阶梯，再按**各店金额占比**分摊优惠，注意尾差。
+
+```go
+func (s *MarketingService) CalculateCrossShopFullReduction(
+	ctx context.Context,
+	userID int64,
+	shopOrders map[int64]*ShopOrder,
+) (*CrossShopDiscountResult, error) {
+
+	activity, err := s.activityService.GetCrossShopActivity(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var rule FullReductionRule
+	if err := json.Unmarshal(activity.RuleConfig, &rule); err != nil {
+		return nil, err
+	}
+
+	totalAmount := decimal.Zero
+	for _, shopOrder := range shopOrders {
+		totalAmount = totalAmount.Add(shopOrder.Amount)
+	}
+
+	var matchedTier *FullReductionTier
+	for i := range rule.Tiers {
+		tier := &rule.Tiers[i]
+		if totalAmount.GreaterThanOrEqual(tier.MinAmount) {
+			if matchedTier == nil || tier.MinAmount.GreaterThan(matchedTier.MinAmount) {
+				matchedTier = tier
+			}
+		}
+	}
+
+	if matchedTier == nil {
+		return &CrossShopDiscountResult{
+			TotalDiscount: decimal.Zero,
+			ShopDiscounts: map[int64]decimal.Decimal{},
+		}, nil
+	}
+
+	shopDiscounts := make(map[int64]decimal.Decimal)
+	allocatedDiscount := decimal.Zero
+
+	shopIDs := make([]int64, 0, len(shopOrders))
+	for shopID := range shopOrders {
+		shopIDs = append(shopIDs, shopID)
+	}
+
+	for i, shopID := range shopIDs {
+		shopOrder := shopOrders[shopID]
+		ratio := shopOrder.Amount.Div(totalAmount)
+		discount := matchedTier.DiscountAmount.Mul(ratio).Round(2)
+
+		if i == len(shopIDs)-1 {
+			discount = matchedTier.DiscountAmount.Sub(allocatedDiscount)
+		}
+
+		shopDiscounts[shopID] = discount
+		allocatedDiscount = allocatedDiscount.Add(discount)
+	}
+
+	return &CrossShopDiscountResult{
+		ActivityID:    activity.ActivityID,
+		TotalDiscount: matchedTier.DiscountAmount,
+		ShopDiscounts: shopDiscounts,
+	}, nil
+}
+```
+
+### 8.2 阶梯优惠
+
+购买件数越多折扣越大，命中**最高满足阶梯**后计算减免额。
+
+```go
+type TieredDiscountRule struct {
+	Tiers []TieredDiscountTier `json:"tiers"`
+}
+
+type TieredDiscountTier struct {
+	MinQuantity int             `json:"min_quantity"`
+	Discount    decimal.Decimal `json:"discount"`
+}
+
+func (s *MarketingService) CalculateTieredDiscount(
+	ctx context.Context,
+	productID int64,
+	quantity int,
+	unitPrice decimal.Decimal,
+) decimal.Decimal {
+
+	activity, err := s.activityService.GetTieredDiscountActivity(ctx, productID)
+	if err != nil {
+		return decimal.Zero
+	}
+
+	var rule TieredDiscountRule
+	if err := json.Unmarshal(activity.RuleConfig, &rule); err != nil {
+		return decimal.Zero
+	}
+
+	var matchedTier *TieredDiscountTier
+	for i := range rule.Tiers {
+		tier := &rule.Tiers[i]
+		if quantity >= tier.MinQuantity {
+			if matchedTier == nil || tier.MinQuantity > matchedTier.MinQuantity {
+				matchedTier = tier
+			}
+		}
+	}
+
+	if matchedTier == nil {
+		return decimal.Zero
+	}
+
+	originalAmount := unitPrice.Mul(decimal.NewFromInt(int64(quantity)))
+	discountedAmount := originalAmount.Mul(matchedTier.Discount)
+	discount := originalAmount.Sub(discountedAmount)
+
+	return discount
+}
+```
+
+### 8.3 组合优惠（买 A 送 B）
+
+订单行满足买赠规则时，追加**赠品行**（价为 0），履约侧需同步扣减赠品库存。
+
+```go
+type BundleGiftRule struct {
+	BuyProductID  int64 `json:"buy_product_id"`
+	BuyQuantity   int   `json:"buy_quantity"`
+	GiftProductID int64 `json:"gift_product_id"`
+	GiftQuantity  int   `json:"gift_quantity"`
+}
+
+func (s *MarketingService) ApplyBundleGiftActivity(
+	ctx context.Context,
+	orderItems []*OrderItem,
+) ([]*OrderItem, error) {
+
+	activities, err := s.activityService.GetBundleGiftActivities(ctx)
+	if err != nil {
+		return orderItems, err
+	}
+
+	giftItems := []*OrderItem{}
+
+	for _, activity := range activities {
+		var rule BundleGiftRule
+		if err := json.Unmarshal(activity.RuleConfig, &rule); err != nil {
+			continue
+		}
+
+		for _, item := range orderItems {
+			if item.ProductID == rule.BuyProductID && item.Quantity >= rule.BuyQuantity {
+				giftCount := item.Quantity / rule.BuyQuantity
+				totalGiftQty := giftCount * rule.GiftQuantity
+
+				giftItem := &OrderItem{
+					ProductID: rule.GiftProductID,
+					Quantity:  totalGiftQty,
+					Price:     decimal.Zero,
+					Amount:    decimal.Zero,
+					IsGift:    true,
+				}
+
+				giftItems = append(giftItems, giftItem)
+			}
+		}
+	}
+
+	allItems := append(orderItems, giftItems...)
+
+	return allItems, nil
+}
+```
+
+### 8.4 新人专享
+
+结合**注册时间窗口**与**历史订单数**判断是否新人；优惠金额**封顶订单实付**。
+
+```go
+func (s *MarketingService) IsNewUserEligible(ctx context.Context, userID int64) (bool, error) {
+	user, err := s.userClient.GetUser(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	if time.Since(user.RegisteredAt) > 7*24*time.Hour {
+		return false, nil
+	}
+
+	orderCount, err := s.orderClient.GetUserOrderCount(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	if orderCount > 0 {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (s *MarketingService) ApplyNewUserDiscount(ctx context.Context, userID int64, amount decimal.Decimal) (decimal.Decimal, error) {
+	isEligible, err := s.IsNewUserEligible(ctx, userID)
+	if err != nil {
+		return decimal.Zero, err
+	}
+
+	if !isEligible {
+		return decimal.Zero, nil
+	}
+
+	discount := decimal.NewFromInt(20)
+
+	if discount.GreaterThan(amount) {
+		discount = amount
+	}
+
+	return discount, nil
+}
+```
 ```
 ```
