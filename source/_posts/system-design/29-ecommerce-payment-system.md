@@ -389,3 +389,158 @@ graph LR
 2. **幂等检查**：第三方交易号去重
 3. **乐观锁**：version 字段防止并发
 4. **事件驱动**：发布到 Kafka，解耦订单服务
+
+## 四、状态机设计
+
+状态机是支付系统的核心设计之一，清晰的状态定义和转换规则能够保证系统的稳定性。
+
+### 4.1 支付单状态机
+
+#### 4.1.1 状态定义
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: 创建支付单
+    PENDING --> PAYING: 用户发起支付
+    PAYING --> SUCCESS: 第三方回调成功
+    PAYING --> FAILED: 第三方回调失败
+    PAYING --> CANCELED: 用户取消支付
+    SUCCESS --> REFUNDING: 用户申请退款
+    REFUNDING --> REFUNDED: 退款成功
+    FAILED --> [*]
+    CANCELED --> [*]
+    REFUNDED --> [*]
+```
+
+#### 4.1.2 状态转换表
+
+| 当前状态 | 允许的下一状态 | 触发条件 | 备注 |
+|---------|--------------|---------|-----|
+| PENDING | PAYING | 用户发起支付 | - |
+| PAYING | SUCCESS | 第三方回调成功 | - |
+| PAYING | FAILED | 第三方回调失败 | 可重新发起支付 |
+| PAYING | CANCELED | 用户取消支付 | 超时自动取消 |
+| SUCCESS | REFUNDING | 用户申请退款 | - |
+| REFUNDING | REFUNDED | 退款成功 | 支持部分退款 |
+
+**非法状态转换示例**：
+
+- PENDING → SUCCESS（跳过 PAYING 状态）
+- FAILED → REFUNDING（失败的支付单不能退款）
+- REFUNDED → SUCCESS（已退款不能恢复）
+
+### 4.2 退款单状态机
+
+#### 4.2.1 状态定义
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: 创建退款单
+    PENDING --> PROCESSING: 调用第三方退款
+    PROCESSING --> SUCCESS: 退款成功
+    PROCESSING --> FAILED: 退款失败
+    SUCCESS --> [*]
+    FAILED --> [*]
+```
+
+#### 4.2.2 与支付单状态联动
+
+- **前置条件**：支付单必须是 `SUCCESS` 状态才能发起退款
+- **状态同步**：退款成功后，支付单状态变为 `REFUNDED`
+- **部分退款**：第一次退款成功后，支付单状态变为 `PARTIAL_REFUNDED`
+
+### 4.3 状态机实现
+
+#### 4.3.1 状态转换校验
+
+```go
+// 状态转换规则
+var stateTransitionRules = map[string][]string{
+    "PENDING":   {"PAYING"},
+    "PAYING":    {"SUCCESS", "FAILED", "CANCELED"},
+    "SUCCESS":   {"REFUNDING"},
+    "REFUNDING": {"REFUNDED"},
+}
+
+// 校验状态转换是否合法
+func isValidTransition(currentState, targetState string) bool {
+    allowedStates, exists := stateTransitionRules[currentState]
+    if !exists {
+        return false
+    }
+    
+    for _, state := range allowedStates {
+        if state == targetState {
+            return true
+        }
+    }
+    return false
+}
+```
+
+#### 4.3.2 状态转换（乐观锁）
+
+```go
+// 状态转换函数
+func TransitState(paymentID int64, targetState string, version int) error {
+    // 1. 查询当前状态
+    current := queryPaymentOrder(paymentID)
+    
+    // 2. 校验状态转换是否合法
+    if !isValidTransition(current.PaymentStatus, targetState) {
+        return errors.New(fmt.Sprintf(
+            "invalid state transition: %s -> %s",
+            current.PaymentStatus, targetState))
+    }
+    
+    // 3. 乐观锁更新
+    affected := db.Exec(`
+        UPDATE payment_order 
+        SET payment_status = ?,
+            updated_at = ?,
+            version = version + 1
+        WHERE payment_id = ? AND version = ?
+    `, targetState, time.Now(), paymentID, version)
+    
+    if affected == 0 {
+        return errors.New("concurrent update conflict, please retry")
+    }
+    
+    // 4. 发布状态变更事件
+    publishStateChangeEvent(paymentID, current.PaymentStatus, targetState)
+    
+    return nil
+}
+```
+
+#### 4.3.3 状态变更事件
+
+```go
+// 状态变更事件
+type PaymentStateChangeEvent struct {
+    PaymentID    int64  `json:"payment_id"`
+    OrderID      int64  `json:"order_id"`
+    OldState     string `json:"old_state"`
+    NewState     string `json:"new_state"`
+    ChangeTime   time.Time `json:"change_time"`
+}
+
+// 发布事件到 Kafka
+func publishStateChangeEvent(paymentID int64, oldState, newState string) {
+    event := &PaymentStateChangeEvent{
+        PaymentID:  paymentID,
+        OrderID:    getOrderIDByPaymentID(paymentID),
+        OldState:   oldState,
+        NewState:   newState,
+        ChangeTime: time.Now(),
+    }
+    
+    kafka.Publish("payment_state_change", event)
+}
+```
+
+**面试要点**：
+
+1. **为什么需要状态机**：确保状态转换的合法性，防止业务逻辑错误
+2. **如何保证并发安全**：乐观锁（version 字段）
+3. **如何与其他系统协作**：通过 Kafka 事件驱动
