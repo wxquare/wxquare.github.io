@@ -2,8 +2,7 @@
 title: Karpathy 的自我进化知识库：LLM 时代的知识管理范式
 date: 2026-04-05
 categories:
-  - AI
-  - 知识管理
+  - AI 与 Agent
 tags:
   - llm
   - knowledge-management

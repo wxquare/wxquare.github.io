@@ -2,8 +2,7 @@
 title: AI Agent 系统设计完整指南：从思考到实践
 date: 2026-04-03
 categories:
-  - AI
-  - 系统设计
+  - AI 与 Agent
 tags:
   - AI Agent
   - 系统架构

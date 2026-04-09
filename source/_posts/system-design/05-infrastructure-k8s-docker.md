@@ -2,7 +2,7 @@
 title: 互联网基础设施：Kubernetes 与 Docker 实践
 date: 2024-12-20
 categories:
-- 系统设计
+  - 系统设计基础
 tags:
 - kubernetes
 - docker

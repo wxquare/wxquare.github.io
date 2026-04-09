@@ -2,7 +2,7 @@
 title: 中间件 - 异步和消息队列
 date: 2024-03-10
 categories:
-- 系统设计
+  - 系统设计基础
 tags:
 - Kafka
 - 消息队列

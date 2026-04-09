@@ -2,8 +2,7 @@
 title: 复杂业务中的 Clean Code 实践指南
 date: 2025-06-20
 categories:
-- 系统设计
-- Clean Code
+  - 系统设计基础
 tags:
 - 架构设计
 - 设计模式

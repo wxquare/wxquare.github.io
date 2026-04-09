@@ -2,7 +2,7 @@
 title: LeetCode 核心题型分类与解题模式速查手册
 date: 2025-06-20
 categories:
-- 系统设计
+  - 系统设计基础
 tags:
 - 算法
 - 数据结构

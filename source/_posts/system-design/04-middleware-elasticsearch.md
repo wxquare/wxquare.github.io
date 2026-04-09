@@ -2,7 +2,7 @@
 title: 中间件 - 搜索和 Elasticsearch
 date: 2024-03-07
 categories:
-- 系统设计
+  - 系统设计基础
 tags:
 - Elasticsearch
 - 搜索引擎

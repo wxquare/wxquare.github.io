@@ -2,7 +2,7 @@
 title: 中间件 - 存储与 MySQL 数据库
 date: 2024-03-04
 categories:
-- 系统设计
+  - 系统设计基础
 tags:
 - MySQL
 - 数据库

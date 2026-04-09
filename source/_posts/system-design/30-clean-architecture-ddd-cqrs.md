@@ -2,7 +2,7 @@
 title: Clean Architecture、DDD 与 CQRS：三位一体的架构方法论
 date: 2026-04-07
 categories:
-- 系统设计
+  - 系统设计基础
 tags:
 - 架构设计
 - clean-architecture

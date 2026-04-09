@@ -2,7 +2,7 @@
 title: tensorflow模型通道剪枝(channel pruning)实战
 date: 2020-08-13
 categories:
-- AI
+  - AI 与 Agent
 mathjax: true
 ---
 

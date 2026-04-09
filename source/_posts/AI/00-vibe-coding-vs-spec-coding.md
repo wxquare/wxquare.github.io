@@ -2,7 +2,7 @@
 title: 从 Vibe Coding 到 Spec Coding：AI 编程范式的演进与实践
 date: 2026-04-03
 categories:
-  - AI
+  - AI 与 Agent
 tags:
   - ai-programming
   - cursor

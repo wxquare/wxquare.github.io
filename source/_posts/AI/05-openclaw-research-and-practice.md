@@ -2,8 +2,7 @@
 title: OpenClaw 调研与实践：从搭建到应用的完整体验
 date: 2026-03-07 22:15:00
 categories:
-- AI工具
-- 技术实践
+  - AI 与 Agent
 tags:
 - OpenClaw
 - AI助手

@@ -2,7 +2,7 @@
 title: Harness Engineering：从驾驭 Prompt 到驾驭 Agent 的范式革命
 date: 2026-04-07
 categories:
-  - AI
+  - AI 与 Agent
 tags:
   - harness-engineering
   - ai-agent

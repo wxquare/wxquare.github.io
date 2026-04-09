@@ -2,8 +2,7 @@
 title: Claude Code：AI编程工具的革命性进化
 date: 2026-04-02
 categories:
-  - AI
-  - 开发工具
+  - AI 与 Agent
 tags:
   - Claude Code
   - AI编程

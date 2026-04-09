@@ -2,7 +2,7 @@
 title: 编程语言：Go 实践
 date: 2024-03-06
 categories:
-- 编程语言
+  - 计算机基础
 tags:
 - golang
 - 并发

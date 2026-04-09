@@ -3,7 +3,7 @@ title: 中间件 - Redis 原理与实践
 date: 2024-03-06
 updated: 2026-01-08
 categories:
-- 系统设计
+  - 系统设计基础
 tags:
 - Redis
 - 缓存

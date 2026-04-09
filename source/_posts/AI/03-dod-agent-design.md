@@ -2,8 +2,7 @@
 title: DoD Agent 完整设计文档：电商告警自动处理系统
 date: 2026-04-03
 categories:
-- 系统设计
-- AI
+  - AI 与 Agent
 tags:
 - AI Agent
 - DevOps

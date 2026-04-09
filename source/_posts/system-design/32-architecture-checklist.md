@@ -2,7 +2,7 @@
 title: 架构与编码 Code Review Checklist
 date: 2026-04-07
 categories:
-- 系统设计
+  - 系统设计基础
 tags:
 - code-review
 - 架构设计

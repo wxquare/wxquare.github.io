@@ -2,7 +2,7 @@
 title: 编程语言：bash shell 实践
 date: 2024-03-03
 categories:
-- 编程语言
+  - 计算机基础
 tags:
 - bash
 - linux

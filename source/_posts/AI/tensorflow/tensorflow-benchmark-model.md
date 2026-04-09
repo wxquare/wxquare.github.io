@@ -2,7 +2,7 @@
 title: 了解tensorflow中的模型基准测试工具
 date: 2020-08-13
 categories:
-- AI
+  - AI 与 Agent
 mathjax: true
 ---
 
