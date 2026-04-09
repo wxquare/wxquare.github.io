@@ -1020,3 +1020,489 @@ func ReconcilePaymentTransaction() {
 1. **一致性方案**: Redis + MySQL 双写 + 定时对账
 2. **原子性保证**: Lua 脚本
 3. **数据源优先级**: MySQL 为准，Redis 为辅
+
+## 六、扩展模块
+
+本章简要介绍支付系统的扩展模块，这些模块在面试中通常不是重点，但了解基本概念有助于建立完整的知识体系。
+
+### 6.1 清结算系统
+
+#### 6.1.1 核心概念
+
+清结算系统负责将支付金额按规则分配给平台、商家、营销补贴等各方。
+
+**分账规则示例**：
+
+假设一笔订单实付 100 元，分账如下：
+
+| 角色 | 比例 | 金额 |
+|-----|------|-----|
+| 平台佣金 | 5% | 5 元 |
+| 商家收益 | 95% | 95 元 |
+| 营销补贴 | - | 由平台承担 |
+
+#### 6.1.2 结算周期
+
+- **T+1**：次日结算（快速到账，适合小商家）
+- **T+7**：7 日后结算（标准周期）
+- **账期结算**：按月结算（企业客户）
+
+#### 6.1.3 提现管理
+
+```go
+// 提现限额控制
+func WithdrawRequest(merchantID int64, amount decimal.Decimal) error {
+    // 1. 单笔限额检查
+    if amount.GreaterThan(decimal.NewFromInt(50000)) {
+        return errors.New("single withdraw limit exceeded: 50,000")
+    }
+    
+    // 2. 每日限额检查
+    todayWithdrawn := db.QueryRow(`
+        SELECT SUM(amount) FROM withdraw_order 
+        WHERE merchant_id = ? AND DATE(created_at) = CURDATE()
+    `, merchantID)
+    
+    if todayWithdrawn.Add(amount).GreaterThan(decimal.NewFromInt(200000)) {
+        return errors.New("daily withdraw limit exceeded: 200,000")
+    }
+    
+    // 3. 风控校验
+    if isRiskMerchant(merchantID) {
+        return errors.New("risk merchant, withdraw suspended")
+    }
+    
+    // 4. 创建提现单
+    withdraw := &WithdrawOrder{
+        WithdrawID: snowflake.Generate(),
+        MerchantID: merchantID,
+        Amount:     amount,
+        Status:     "PENDING",
+    }
+    
+    db.Insert(withdraw)
+    return nil
+}
+```
+
+#### 6.1.4 清结算流程
+
+```mermaid
+graph LR
+    A[T 日交易] --> B[T+1 日凌晨定时任务]
+    B --> C[计算分账金额]
+    C --> D[生成结算单]
+    D --> E[商家确认]
+    E --> F[提现申请]
+    F --> G[打款到银行账户]
+    G --> H[更新账户余额]
+```
+
+### 6.2 对账系统
+
+#### 6.2.1 为什么需要对账
+
+系统与第三方的交易数据可能存在以下问题：
+
+- **长款**：第三方有，本地无（用户已支付，但系统未记录）
+- **短款**：本地有，第三方无（系统记录已支付，但第三方未收到）
+- **金额不符**：订单号一致，但金额不一致
+
+#### 6.2.2 对账维度
+
+| 对账维度 | 对账内容 | 数据来源 |
+|---------|---------|---------|
+| **交易对账** | 订单号、金额、状态 | 第三方对账文件 vs 本地支付流水 |
+| **资金对账** | 入账金额、手续费 | 第三方结算单 vs 本地账户流水 |
+
+#### 6.2.3 对账流程
+
+```mermaid
+graph LR
+    A[每日凌晨 2:00] --> B[拉取第三方对账文件]
+    B --> C[解析对账文件]
+    C --> D[与本地流水对比]
+    D --> E[生成差错报告]
+    E --> F{有差错?}
+    F -->|是| G[人工复核]
+    F -->|否| H[记录对账结果]
+    G --> I[差错处理]
+```
+
+#### 6.2.4 差错处理
+
+```go
+// 对账差错分类
+type ReconciliationError struct {
+    Type          string // LONG_PAYMENT, SHORT_PAYMENT, AMOUNT_MISMATCH
+    OrderID       int64
+    LocalAmount   decimal.Decimal
+    RemoteAmount  decimal.Decimal
+    Description   string
+}
+
+// 对账任务
+func ReconcileTransactions(date time.Time) ([]*ReconciliationError, error) {
+    var errors []*ReconciliationError
+    
+    // 1. 拉取第三方对账文件
+    remoteRecords := fetchRemoteReconciliationFile(date)
+    
+    // 2. 查询本地流水
+    localRecords := db.Query(`
+        SELECT order_id, amount FROM payment_transaction 
+        WHERE DATE(created_at) = ?
+    `, date)
+    
+    // 3. 对比（本地有，第三方无 - 短款）
+    for _, local := range localRecords {
+        if !existsInRemote(local.OrderID, remoteRecords) {
+            errors = append(errors, &ReconciliationError{
+                Type:        "SHORT_PAYMENT",
+                OrderID:     local.OrderID,
+                LocalAmount: local.Amount,
+                Description: "本地有记录，第三方无",
+            })
+        }
+    }
+    
+    // 4. 对比（第三方有，本地无 - 长款）
+    for _, remote := range remoteRecords {
+        if !existsInLocal(remote.OrderID, localRecords) {
+            errors = append(errors, &ReconciliationError{
+                Type:         "LONG_PAYMENT",
+                OrderID:      remote.OrderID,
+                RemoteAmount: remote.Amount,
+                Description:  "第三方有记录，本地无",
+            })
+        }
+    }
+    
+    // 5. 对比（金额不符）
+    for _, local := range localRecords {
+        remote := findRemoteRecord(local.OrderID, remoteRecords)
+        if remote != nil && !local.Amount.Equal(remote.Amount) {
+            errors = append(errors, &ReconciliationError{
+                Type:         "AMOUNT_MISMATCH",
+                OrderID:      local.OrderID,
+                LocalAmount:  local.Amount,
+                RemoteAmount: remote.Amount,
+                Description:  "金额不一致",
+            })
+        }
+    }
+    
+    return errors, nil
+}
+```
+
+### 6.3 风控系统
+
+#### 6.3.1 三个阶段
+
+| 阶段 | 风控手段 | 示例 |
+|-----|---------|-----|
+| **事前风控** | 支付前验证 | 支付密码、指纹、人脸识别 |
+| **事中风控** | 交易实时监控 | 短时间大额、异地登录、限额控制 |
+| **事后风控** | 对账差错分析 | 资金流向追踪、异常模式识别 |
+
+#### 6.3.2 常见风控规则
+
+```go
+// 风控规则配置
+var riskRules = []RiskRule{
+    {
+        Name:        "单笔大额",
+        Condition:   "amount > 10000",
+        Action:      "二次验证",
+        Description: "单笔支付超过 10,000 元需要二次验证",
+    },
+    {
+        Name:        "短时间高频",
+        Condition:   "count_in_1h > 5",
+        Action:      "触发风控审核",
+        Description: "1 小时内支付超过 5 次",
+    },
+    {
+        Name:        "异地登录",
+        Condition:   "ip_city_change",
+        Action:      "短信验证码",
+        Description: "IP 地址城市变更",
+    },
+}
+
+// 风控检查
+func RiskCheck(userID int64, amount decimal.Decimal) error {
+    // 1. 单笔大额检查
+    if amount.GreaterThan(decimal.NewFromInt(10000)) {
+        return errors.New("need second verification for large amount")
+    }
+    
+    // 2. 短时间高频检查
+    count := redis.Incr(fmt.Sprintf("payment_count:%d", userID))
+    redis.Expire(fmt.Sprintf("payment_count:%d", userID), 1*time.Hour)
+    
+    if count > 5 {
+        return errors.New("too many payments in 1 hour")
+    }
+    
+    // 3. 异地登录检查
+    lastCity := redis.Get(fmt.Sprintf("last_city:%d", userID))
+    currentCity := getIPCity()
+    
+    if lastCity != "" && lastCity != currentCity {
+        return errors.New("city changed, need SMS verification")
+    }
+    
+    redis.Set(fmt.Sprintf("last_city:%d", userID), currentCity)
+    
+    return nil
+}
+```
+
+#### 6.3.3 黑名单机制
+
+```go
+// 黑名单检查
+func IsBlacklisted(userID int64) bool {
+    return redis.SIsMember("user_blacklist", userID)
+}
+
+// 加入黑名单
+func AddToBlacklist(userID int64, reason string) {
+    redis.SAdd("user_blacklist", userID)
+    
+    // 记录黑名单原因
+    db.Exec(`
+        INSERT INTO blacklist_record (user_id, reason, created_at)
+        VALUES (?, ?, NOW())
+    `, userID, reason)
+}
+```
+
+**面试要点**：
+
+- 清结算：分账规则、结算周期、提现限额
+- 对账：长款、短款、差错处理
+- 风控：事前、事中、事后三阶段
+
+## 七、面试问答锦囊
+
+本章总结支付系统面试中最常被问到的问题，并给出简洁的回答要点，便于考前快速复习。
+
+### 7.1 架构设计类
+
+#### Q1: 如何设计一个支付系统？⭐⭐⭐
+
+**回答框架**（3 分钟讲清楚）：
+
+1. **分层架构**：
+   - 接入层（C 端/B 端/Open API）
+   - 应用服务层（订单、支付、对账服务）
+   - 核心业务层（账户、支付网关、清结算、风控）
+   - 基础设施层（MySQL、Redis、Kafka、XXL-Job）
+   - 第三方服务层（微信支付、支付宝、银行网关）
+
+2. **核心子系统**：
+   - 账户系统：余额管理、冻结/解冻
+   - 支付网关：渠道抽象、路由策略
+   - 清结算引擎：分账计算、结算管理
+   - 风控系统：支付验证、异常监控
+
+3. **关键技术**：
+   - 分布式事务：Saga/TCC
+   - 幂等性设计：分布式锁 + 唯一索引
+   - 状态机：支付单/退款单状态流转
+
+**白板画图要点**：
+
+```
+┌─────────────────────────────────┐
+│    接入层（C/B 端）              │
+├─────────────────────────────────┤
+│    应用层（订单/支付/对账）      │
+├─────────────────────────────────┤
+│    核心层（账户/网关/清结算）    │
+├─────────────────────────────────┤
+│    基础设施（MySQL/Redis/Kafka） │
+├─────────────────────────────────┤
+│    第三方（微信/支付宝）         │
+└─────────────────────────────────┘
+```
+
+**详见**：第 2 章
+
+---
+
+#### Q2: 支付系统如何保证高可用？⭐⭐
+
+**回答要点**（5 个维度）：
+
+1. **多机房部署**：异地容灾，主备切换
+2. **Redis 主从 + 哨兵**：缓存高可用，故障自动切换
+3. **Kafka 集群**：消息高可用，分区副本机制
+4. **限流降级**：大促期间保护核心服务
+5. **熔断机制**：第三方支付故障时切换备用渠道
+
+**详见**：第 1.3 章
+
+---
+
+### 7.2 技术方案类
+
+#### Q3: 支付成功后如何保证订单状态同步更新？⭐⭐⭐
+
+**回答要点**：
+
+1. **Saga 模式** + **本地消息表** + **最终一致性**
+
+2. **实现步骤**：
+   - 支付服务更新支付状态 + 插入本地消息表（同一事务）
+   - 定时任务扫描本地消息表，发送到 Kafka
+   - 订单服务消费 Kafka 消息，更新订单状态
+
+3. **补偿机制**：
+   - 支付失败 → 订单服务取消订单
+
+**详见**：第 5.1.2 章
+
+---
+
+#### Q4: 如何保证支付幂等性？⭐⭐⭐
+
+**回答要点**（三个场景）：
+
+| 场景 | 幂等键 | 实现手段 |
+|-----|-------|---------|
+| 支付单创建 | order_id + user_id | Redis 分布式锁 + DB 唯一索引 |
+| 支付回调 | channel_trade_no | DB 唯一索引 |
+| 退款 | refund_id | DB 唯一索引 |
+
+**核心思想**：
+
+1. **防并发**：Redis 分布式锁
+2. **防重复**：数据库唯一索引
+3. **防并发更新**：乐观锁（version 字段）
+
+**详见**：第 5.2 章
+
+---
+
+#### Q5: 第三方支付回调失败怎么办？⭐⭐
+
+**回答要点**（三层保障）：
+
+1. **主动重试**：最多 3 次，指数退避（1s, 2s, 4s）
+2. **定时补偿**：每分钟扫描超时支付单，主动查询第三方状态
+3. **人工介入**：超过重试次数，进入人工复核队列
+
+**详见**：第 3.3 章
+
+---
+
+#### Q6: 如何处理部分退款？⭐⭐
+
+**回答要点**：
+
+1. **可退金额计算**：实付金额 - 已退金额
+2. **多次退款支持**：累计退款金额 ≤ 实付金额
+3. **营销优惠处理**：按比例退款
+
+**示例**：
+- 实付 100 元（原价 120，优惠 20）
+- 退款 50 元 → 退实付 41.67，营销优惠退 8.33
+
+**详见**：第 3.2.2 章
+
+---
+
+### 7.3 场景题类
+
+#### Q7: 大促期间支付峰值如何应对？⭐⭐
+
+**回答要点**（4 个维度）：
+
+| 维度 | 方案 | 说明 |
+|-----|------|-----|
+| **缓存** | Redis 缓存热点数据 | 账户余额、支付单状态 |
+| **限流** | 令牌桶限流 | 单用户 QPS 限制 |
+| **降级** | 关闭非核心功能 | 账单查询、历史记录 |
+| **异步化** | Kafka 异步处理 | 支付回调、状态同步 |
+
+**详见**：第 1.3 章
+
+---
+
+#### Q8: 如何防止恶意刷单？⭐
+
+**回答要点**（风控规则）：
+
+| 规则 | 阈值 | 动作 |
+|-----|------|-----|
+| 短时间大额 | 单笔 > 10,000 元 | 二次验证 |
+| 短时间高频 | 1 小时内 > 5 笔 | 触发风控审核 |
+| 异地登录 | IP 城市变更 | 短信验证码 |
+| 限额控制 | 单日 > 200,000 元 | 暂停支付 |
+
+**详见**：第 6.3.2 章
+
+---
+
+### 7.4 面试技巧
+
+**1. 架构设计题**
+
+- 快速画出分层架构图（30 秒）
+- 说明核心子系统职责（1 分钟）
+- 讲解关键技术方案（2 分钟）
+
+**2. 技术方案题**
+
+- 先说核心思想（10 秒）
+- 再讲实现步骤（1 分钟）
+- 最后补充边界情况（30 秒）
+
+**3. 场景题**
+
+- 先识别核心问题（10 秒）
+- 提出多个解决方案（1 分钟）
+- 对比优劣并推荐（30 秒）
+
+**4. 常见追问**
+
+- "如果第三方支付挂了怎么办？" → 渠道降级、备用渠道
+- "如何保证资金安全？" → 分布式事务、幂等性、审计日志
+- "支付系统的瓶颈在哪？" → 数据库写入、第三方支付 QPS
+
+---
+
+## 总结
+
+本文从系统设计面试的角度，深入解析了电商支付系统的核心知识点：
+
+1. **整体架构**：分层架构、核心子系统、设计原则
+2. **核心流程**：支付流程、退款流程、异步回调
+3. **状态机设计**：支付单/退款单状态流转、状态转换规则
+4. **高频考点**：
+   - 分布式事务（Saga/TCC）
+   - 幂等性设计（三个场景）
+   - 一致性保证（账户余额、支付流水）
+5. **扩展模块**：清结算、对账、风控
+6. **面试锦囊**：8 个高频面试题及回答要点
+
+**面试建议**：
+
+- 熟练掌握分层架构图，能够在白板上快速画出
+- 深入理解分布式事务（Saga/TCC）的实现原理
+- 掌握幂等性设计的三个关键场景
+- 了解清结算、对账、风控的基本概念
+
+**参考资料**：
+
+- [26-电商订单系统](./26-ecommerce-order-system.md)
+- [22-电商库存系统](./22-ecommerce-inventory.md)
+- [28-电商营销系统](./28-ecommerce-marketing-system.md)
+
+---
+
+**全文完**
