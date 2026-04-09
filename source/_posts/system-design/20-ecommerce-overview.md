@@ -14,13 +14,27 @@ toc: true
 
 <!-- toc -->
 
-> **电商系统设计系列**
+> **电商系统设计系列** —— 推荐阅读顺序
+> 
+> 本系列按照**系统依赖层级**组织，从基础到应用，循序渐进：
+> 
+> **📚 第一层：基础数据层**
 > - **（一）全景概览与领域划分**（本文）
-> - [（二）商品上架系统](/system-design/21-ecommerce-listing/)
+> - [（二）商品中心系统](/system-design/27-ecommerce-product-center/)
+> 
+> **📊 第二层：业务规则层**
 > - [（三）库存系统](/system-design/22-ecommerce-inventory/)
-> - [（四）计价引擎](/system-design/23-ecommerce-pricing-engine/)
-> - [（五）计价系统 DDD 实践](/system-design/24-ecommerce-pricing-ddd/)
-> - [（六）B 端运营系统](/system-design/25-ecommerce-b-side-ops/)
+> - [（四）营销系统深度解析](/system-design/28-ecommerce-marketing-system/)
+> - [（五）计价引擎](/system-design/23-ecommerce-pricing-engine/)
+> - [（六）计价系统 DDD 实践](/system-design/24-ecommerce-pricing-ddd/)
+> 
+> **💰 第三层：核心交易流程**
+> - [（七）订单系统](/system-design/26-ecommerce-order-system/)
+> - [（八）支付系统深度解析](/system-design/29-ecommerce-payment-system/)
+> 
+> **🔧 第四层：运营管理层**
+> - [（九）商品上架系统](/system-design/21-ecommerce-listing/)
+> - [（十）B 端运营系统](/system-design/25-ecommerce-b-side-ops/)
 
 ## 一、背景与挑战
 

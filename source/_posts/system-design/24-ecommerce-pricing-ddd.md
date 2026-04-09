@@ -1,6 +1,6 @@
 ---
-title: 电商系统设计（五）：计价系统 DDD 实践
-date: 2025-06-26
+title: 电商系统设计（六）：计价系统 DDD 实践
+date: 2025-07-10
 categories:
   - 电商系统设计
 tags:
