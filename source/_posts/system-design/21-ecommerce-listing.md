@@ -1,8 +1,8 @@
 ---
 title: 电商系统设计（二）：商品上架系统
-date: 2025-06-28
+date: 2025-05-15
 categories:
-- 系统设计
+  - 电商系统设计
 tags:
 - e-commerce
 - system-design

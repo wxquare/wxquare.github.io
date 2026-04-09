@@ -2,7 +2,7 @@
 title: 电商系统设计（一）：全景概览与领域划分
 date: 2025-05-01
 categories:
-- 系统设计
+  - 电商系统设计
 tags:
 - e-commerce
 - system-design

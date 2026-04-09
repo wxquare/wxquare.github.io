@@ -1,8 +1,8 @@
 ---
 title: 电商系统设计（六）：B 端运营系统
-date: 2026-02-26
+date: 2025-07-10
 categories:
-- 系统设计
+  - 电商系统设计
 tags:
 - e-commerce
 - system-design

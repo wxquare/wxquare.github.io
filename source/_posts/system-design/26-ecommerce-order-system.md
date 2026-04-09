@@ -1,9 +1,8 @@
 ---
-title: 电商系统设计：订单系统
-date: 2026-04-07
+title: 电商系统设计（七）：订单系统
+date: 2025-07-24
 categories:
-  - system-design
-  - e-commerce
+  - 电商系统设计
 tags:
   - order-system
   - state-machine

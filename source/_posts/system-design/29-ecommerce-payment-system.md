@@ -1,6 +1,6 @@
 ---
-title: 电商支付系统深度解析
-date: 2026-04-09
+title: 电商系统设计（十）：支付系统深度解析
+date: 2025-09-04
 categories:
   - system-design
 tags:

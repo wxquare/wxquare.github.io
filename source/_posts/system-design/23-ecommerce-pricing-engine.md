@@ -1,8 +1,8 @@
 ---
 title: 电商系统设计（四）：计价引擎
-date: 2026-02-27
+date: 2025-06-12
 categories:
-- 系统设计
+  - 电商系统设计
 tags:
 - e-commerce
 - system-design

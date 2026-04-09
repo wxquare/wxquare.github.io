@@ -1,8 +1,8 @@
 ---
-title: 电商系统设计：营销系统深度解析
-date: 2026-04-07
+title: 电商系统设计（九）：营销系统深度解析
+date: 2025-08-21
 categories:
-  - system-design
+  - 电商系统设计
 tags:
   - system-design
   - ecommerce

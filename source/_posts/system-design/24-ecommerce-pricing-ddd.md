@@ -1,8 +1,8 @@
 ---
 title: 电商系统设计（五）：计价系统 DDD 实践
-date: 2026-03-14
+date: 2025-06-26
 categories:
-- 系统设计
+  - 电商系统设计
 tags:
 - e-commerce
 - system-design

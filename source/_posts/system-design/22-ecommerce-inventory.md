@@ -1,8 +1,8 @@
 ---
 title: 电商系统设计（三）：库存系统
-date: 2025-06-28
+date: 2025-05-29
 categories:
-- 系统设计
+  - 电商系统设计
 tags:
 - e-commerce
 - system-design
