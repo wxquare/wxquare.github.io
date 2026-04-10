@@ -12,6 +12,550 @@ tags:
   - data-consistency
 ---
 
+## 引言：为什么需要区分三种操作场景
+
+在实际电商系统中，商品数据的变更有多种来源和触发方式。作为系统设计者，我们经常会遇到这样的困惑：
+
+- **"商品上架系统"和"B端运营系统"的商品编辑有什么区别？** 它们看起来都是在修改商品数据，为什么要设计成两套流程？
+- **供应商定时同步数据，对于已存在的商品应该走上架流程还是编辑流程？** 如果供应商的商品ID在平台已存在，是创建新商品还是更新现有商品？
+- **为什么有些变更需要审核，有些不需要？** 价格调整10%需要审核吗？库存调整呢？商品标题修改呢？
+
+这些问题看似简单，但如果不深入思考，很容易设计出混乱的系统架构：所有操作都混在一起，审核流程不清晰，幂等性无法保证，并发冲突频发。
+
+### 三种场景的本质区别
+
+本文将深入分析电商商品生命周期管理中的三种核心操作场景：
+
+1. **商品上架（从无到有）**：新商品首次进入平台，需要完整的审核流程
+2. **供应商同步（Upsert 场景）**：供应商数据变更，需要同步到平台（商品可能存在，也可能不存在）
+3. **运营编辑（日常维护）**：已上线商品的日常维护和批量管理
+
+这三种场景的本质区别在于：**数据来源、业务语义、风险等级、审核策略**。
+
+| 维度 | 商品上架 | 供应商同步 | 运营编辑 |
+|------|----------|------------|----------|
+| **数据来源** | 运营后台、商家Portal | 供应商系统 | 运营后台 |
+| **业务语义** | 新商品首次进入平台 | 供应商数据变更 | 已上线商品维护 |
+| **触发方式** | 手动上传、批量导入 | 定时拉取、实时推送 | 手动编辑、批量操作 |
+| **处理逻辑** | Create（创建） | Upsert（创建或更新） | Update（更新） |
+| **风险等级** | 高（需完整审核） | 中（差异化审核） | 中（差异化审核） |
+
+### 文章内容组织
+
+本文将从以下几个方面深入讲解：
+
+1. **核心场景对比分析**（第二章）：详细对比三种场景的处理逻辑、幂等性设计、审核策略
+2. **商品审核系统设计**（第三章）：差异化审核策略、风险评估引擎、审核流程编排
+3. **商品生命周期管理**（第四章）：完整生命周期状态机、状态流转规则、生命周期事件
+4. **批量操作的幂等性设计**（第五章）：幂等性关键设计、唯一标识符设计、并发控制策略
+5. **跨系统协调设计**（第六章）：商品中心的职责边界、与定价引擎和库存系统的协作
+6. **核心数据模型**（第七章）：商品表、变更审批单表、同步状态表
+7. **性能优化与监控**（第八章）：性能优化策略、监控指标
+8. **最佳实践总结**（第九章）：场景识别 Checklist、常见陷阱
+
+让我们开始深入探讨这些核心问题。
+
+
+## 第二章：核心场景对比分析
+
+### 2.1 商品上架（从无到有）
+
+商品上架是指新商品首次进入平台的过程，这是商品生命周期的起点。
+
+#### 业务语义
+
+新商品首次进入平台，需要经过完整的审核流程。这个阶段的核心目标是：
+- 确保商品信息的完整性和合规性
+- 建立商品在平台的唯一身份（item_id）
+- 初始化商品的生命周期状态
+
+#### 触发方式
+
+```mermaid
+graph LR
+    A[运营后台上传] --> D[商品上架系统]
+    B[商家Portal上传] --> D
+    C[Excel批量导入] --> D
+    D --> E[创建上架任务]
+```
+
+#### 处理逻辑：Create（创建商品记录）
+
+商品上架的核心逻辑是创建一条新的商品记录。关键设计要点：
+
+1. **生成平台商品ID**：使用雪花算法生成全局唯一的 `item_id`
+2. **初始化生命周期状态**：`status = DRAFT`（草稿状态）
+3. **创建上架任务**：使用 `task_code` 保证幂等性
+
+```go
+// CreateListingTask 创建商品上架任务（幂等性保证）
+func (s *ListingService) CreateListingTask(req *ListingRequest) (*ListingTask, error) {
+    // 1. 生成幂等性标识符
+    taskCode := generateTaskCode(req.CategoryID, req.CreatedBy, time.Now())
+    
+    // 2. 尝试创建任务（唯一索引保证幂等性）
+    task := &ListingTask{
+        TaskCode:   taskCode,
+        ItemInfo:   req.ItemInfo,
+        Status:     StatusDraft,
+        CreatedBy:  req.CreatedBy,
+        CreatedAt:  time.Now(),
+    }
+    
+    // 3. 插入数据库（如果 task_code 已存在，返回已有记录）
+    result := s.db.Where("task_code = ?", taskCode).FirstOrCreate(task)
+    if result.Error != nil {
+        return nil, fmt.Errorf("create listing task failed: %w", result.Error)
+    }
+    
+    // 4. 如果是首次创建，触发审核流程
+    if result.RowsAffected > 0 {
+        s.eventPublisher.Publish(&ListingTaskCreatedEvent{
+            TaskCode: taskCode,
+            ItemInfo: req.ItemInfo,
+        })
+    }
+    
+    return task, nil
+}
+
+// generateTaskCode 生成上架任务唯一标识符
+func generateTaskCode(categoryID, createdBy int64, timestamp time.Time) string {
+    data := fmt.Sprintf("%d-%d-%d", categoryID, createdBy, timestamp.Unix())
+    hash := sha256.Sum256([]byte(data))
+    return hex.EncodeToString(hash[:8]) // 取前16个字符
+}
+```
+
+#### 幂等性保证：task_code 唯一索引
+
+- **唯一标识符**：`task_code = hash(category_id + created_by + timestamp)`
+- **数据库唯一索引**：`UNIQUE KEY uk_task_code (task_code)`
+- **幂等性语义**：同一个上架任务多次提交，只创建一次记录
+
+#### 审核策略：完整审核流程
+
+商品上架需要经过完整的审核流程，确保商品信息的合规性。
+
+```mermaid
+stateDiagram-v2
+    [*] --> DRAFT: 创建草稿
+    DRAFT --> PENDING: 提交审核
+    PENDING --> APPROVED: 审核通过
+    PENDING --> REJECTED: 审核驳回
+    REJECTED --> DRAFT: 修改后重新提交
+    APPROVED --> PUBLISHED: 发布上架
+    PUBLISHED --> ONLINE: 商品上线
+    ONLINE --> OFFLINE: 商品下线
+    OFFLINE --> ONLINE: 重新上线
+    ONLINE --> ARCHIVED: 归档
+    OFFLINE --> ARCHIVED: 归档
+```
+
+#### 状态机：完整的上架状态机
+
+上架流程包含以下核心状态：
+
+| 状态 | 说明 | 可流转到的状态 |
+|------|------|----------------|
+| **DRAFT** | 草稿，商品信息未完善 | PENDING |
+| **PENDING** | 待审核 | APPROVED, REJECTED |
+| **APPROVED** | 已审核通过 | PUBLISHED |
+| **REJECTED** | 审核驳回 | DRAFT |
+| **PUBLISHED** | 已发布 | ONLINE |
+| **ONLINE** | 在售 | OFFLINE, ARCHIVED |
+| **OFFLINE** | 已下架 | ONLINE, ARCHIVED |
+| **ARCHIVED** | 已归档 | [*] |
+
+---
+
+### 2.2 供应商同步（Upsert 场景）
+
+供应商同步是指供应商系统的商品数据变更后，需要同步到平台的过程。这是一个典型的 **Upsert** 场景（不存在则创建，存在则更新）。
+
+#### 业务语义
+
+供应商数据变更，需要同步到平台。关键特点：
+- **商品可能存在，也可能不存在**：需要先判断商品是否已在平台
+- **变更类型多样**：价格变动、库存变动、商品信息变动、商品下线
+- **风险等级不同**：不同类型的变更需要不同的审核策略
+
+#### 触发方式
+
+```mermaid
+graph LR
+    A[定时拉取 Pull] --> C[供应商同步服务]
+    B[实时推送 Push] --> C
+    C --> D{商品是否存在?}
+    D -->|不存在| E[创建新商品]
+    D -->|存在| F[计算差异]
+    F --> G[差异化审核]
+```
+
+#### 处理逻辑：Upsert（创建或更新）
+
+供应商同步的核心逻辑是 Upsert：根据供应商ID和外部商品ID判断商品是否存在，不存在则创建，存在则更新。
+
+```go
+// ProcessSupplierData 处理供应商商品数据同步
+func (s *SupplierSyncService) ProcessSupplierData(supplierID int64, externalItems []*ExternalItem) error {
+    for _, extItem := range externalItems {
+        // 1. 根据 (supplier_id, external_id) 查询商品是否存在
+        item, err := s.repo.GetItemByExternalID(supplierID, extItem.ExternalID)
+        
+        if err == ErrItemNotFound {
+            // 2. 商品不存在，创建新商品（类似上架流程）
+            if err := s.createItemFromSupplier(supplierID, extItem); err != nil {
+                return fmt.Errorf("create item failed: %w", err)
+            }
+        } else if err == nil {
+            // 3. 商品已存在，计算差异并决定审核策略
+            diff := s.calculateDiff(item, extItem)
+            if err := s.applyChanges(item, diff); err != nil {
+                return fmt.Errorf("apply changes failed: %w", err)
+            }
+        } else {
+            return fmt.Errorf("query item failed: %w", err)
+        }
+    }
+    return nil
+}
+
+// calculateDiff 计算商品数据差异
+func (s *SupplierSyncService) calculateDiff(current *Item, external *ExternalItem) *ItemDiff {
+    diff := &ItemDiff{
+        ItemID:     current.ItemID,
+        SupplierID: current.SupplierID,
+        ExternalID: current.ExternalID,
+        Changes:    make(map[string]*FieldChange),
+    }
+    
+    // 价格变动
+    if current.Price != external.Price {
+        diff.Changes["price"] = &FieldChange{
+            Field:      "price",
+            OldValue:   current.Price,
+            NewValue:   external.Price,
+            ChangeRate: (external.Price - current.Price) / current.Price,
+        }
+    }
+    
+    // 库存变动
+    if current.Stock != external.Stock {
+        diff.Changes["stock"] = &FieldChange{
+            Field:      "stock",
+            OldValue:   current.Stock,
+            NewValue:   external.Stock,
+            ChangeRate: float64(external.Stock-current.Stock) / float64(current.Stock),
+        }
+    }
+    
+    // 商品标题变动
+    if current.Title != external.Title {
+        diff.Changes["title"] = &FieldChange{
+            Field:    "title",
+            OldValue: current.Title,
+            NewValue: external.Title,
+        }
+    }
+    
+    return diff
+}
+```
+
+#### 幂等性保证：(supplier_id, external_id) 唯一索引
+
+- **唯一标识符**：`(supplier_id, external_id)` 联合唯一索引
+- **数据库设计**：`UNIQUE KEY uk_supplier_external (supplier_id, external_id)`
+- **幂等性语义**：同一个供应商的同一个商品，多次同步只创建一次记录
+
+#### 审核策略：差异化审核
+
+供应商同步的关键设计是 **差异化审核**：根据变更类型和风险等级，决定是否需要审核。
+
+| 变更类型 | 变更幅度 | 审核策略 | 说明 |
+|----------|----------|----------|------|
+| **价格变动** | < 30% | 直接更新，无需审核 | 小幅价格调整，风险低 |
+| **价格变动** | >= 30% | 人工审核 | 大幅价格变动，可能是错误数据 |
+| **库存变动** | 任意 | 直接更新，无需审核 | 库存变动频繁，无需审核 |
+| **商品标题** | 任意 | 自动审核或人工审核 | 根据敏感词规则决定 |
+| **类目变更** | 任意 | 严格审核 | 类目变更影响搜索和推荐 |
+| **商品下线** | 任意 | 人工审核 | 可能影响在售订单 |
+
+```go
+// applyChanges 应用变更并根据风险等级决定审核策略
+func (s *SupplierSyncService) applyChanges(item *Item, diff *ItemDiff) error {
+    // 1. 评估审核策略
+    strategy := s.evaluateApprovalStrategy(diff)
+    
+    switch strategy {
+    case ApprovalStrategyNone:
+        // 直接更新，无需审核（例如库存变动、小幅价格调整）
+        return s.repo.UpdateItem(item, diff)
+        
+    case ApprovalStrategyAuto:
+        // 自动审核（规则引擎快速验证）
+        if s.autoApprove(diff) {
+            return s.repo.UpdateItem(item, diff)
+        } else {
+            return s.createChangeRequest(item, diff, ApprovalStrategyManual)
+        }
+        
+    case ApprovalStrategyManual:
+        // 人工审核（推送审核队列）
+        return s.createChangeRequest(item, diff, ApprovalStrategyManual)
+        
+    case ApprovalStrategyStrict:
+        // 严格审核（多级审核）
+        return s.createChangeRequest(item, diff, ApprovalStrategyStrict)
+    }
+    
+    return nil
+}
+
+// evaluateApprovalStrategy 评估审核策略
+func (s *SupplierSyncService) evaluateApprovalStrategy(diff *ItemDiff) ApprovalStrategy {
+    for _, change := range diff.Changes {
+        switch change.Field {
+        case "price":
+            if math.Abs(change.ChangeRate) >= 0.3 { // 价格变动 >= 30%
+                return ApprovalStrategyManual
+            }
+            return ApprovalStrategyNone
+            
+        case "stock":
+            return ApprovalStrategyNone // 库存变动无需审核
+            
+        case "title", "description":
+            return ApprovalStrategyAuto // 自动审核（敏感词过滤）
+            
+        case "category_id":
+            return ApprovalStrategyStrict // 类目变更需严格审核
+        }
+    }
+    return ApprovalStrategyNone
+}
+```
+
+#### 状态机：简化状态机
+
+供应商同步的状态机相对简化，因为部分变更可以跳过审核直接生效。
+
+```mermaid
+graph LR
+    A[接收供应商数据] --> B{商品存在?}
+    B -->|否| C[创建新商品 - 走上架流程]
+    B -->|是| D[计算差异]
+    D --> E{需要审核?}
+    E -->|否| F[直接更新]
+    E -->|是| G[创建变更审批单]
+    G --> H[推送审核队列]
+    H --> I{审核结果}
+    I -->|通过| F
+    I -->|驳回| J[记录驳回原因]
+```
+
+---
+
+### 2.3 运营编辑（日常维护）
+
+运营编辑是指运营人员对已上线商品进行日常维护和批量管理的过程。
+
+#### 业务语义
+
+已上线商品的日常维护，包括：
+- **单品编辑**：修改商品标题、描述、价格、库存等
+- **批量操作**：批量调价、批量上下架、批量修改类目
+
+#### 触发方式
+
+```mermaid
+graph LR
+    A[运营后台手动操作] --> C[批量操作服务]
+    B[批量Excel导入] --> C
+    C --> D[生成操作批次ID]
+    D --> E[流式解析数据]
+    E --> F[Worker Pool 并发处理]
+```
+
+#### 处理逻辑：Update（更新已存在商品）
+
+运营编辑的核心逻辑是更新已存在的商品记录。关键设计要点：
+
+1. **批量操作框架**：统一的批量操作处理框架
+2. **流式解析**：大文件流式解析，避免 OOM
+3. **并发控制**：Worker Pool 并发处理，提升性能
+
+```go
+// BatchUpdateItems 批量更新商品
+func (s *OperationService) BatchUpdateItems(req *BatchUpdateRequest) (*BatchOperationResult, error) {
+    // 1. 生成操作批次ID（幂等性保证）
+    batchID := s.idGenerator.Generate()
+    
+    // 2. 创建批量操作记录
+    batch := &BatchOperation{
+        BatchID:    batchID,
+        Type:       req.OperationType,
+        Status:     BatchStatusPending,
+        TotalCount: len(req.Items),
+        CreatedBy:  req.OperatorID,
+        CreatedAt:  time.Now(),
+    }
+    if err := s.repo.CreateBatchOperation(batch); err != nil {
+        return nil, fmt.Errorf("create batch operation failed: %w", err)
+    }
+    
+    // 3. 使用 Worker Pool 并发处理
+    results := make(chan *ItemUpdateResult, len(req.Items))
+    wp := NewWorkerPool(10) // 10个并发 Worker
+    
+    for _, itemReq := range req.Items {
+        wp.Submit(func() {
+            result := s.processItemUpdate(batchID, itemReq)
+            results <- result
+        })
+    }
+    
+    // 4. 收集结果
+    wp.Wait()
+    close(results)
+    
+    return s.summarizeBatchResult(batchID, results), nil
+}
+
+// processItemUpdate 处理单个商品更新
+func (s *OperationService) processItemUpdate(batchID string, req *ItemUpdateRequest) *ItemUpdateResult {
+    // 1. 获取当前商品信息
+    item, err := s.repo.GetItemByID(req.ItemID)
+    if err != nil {
+        return &ItemUpdateResult{ItemID: req.ItemID, Success: false, Error: err}
+    }
+    
+    // 2. 计算差异
+    diff := s.calculateDiff(item, req.Changes)
+    
+    // 3. 应用变更（差异化审核）
+    if err := s.applyChangesByType(item, diff, batchID); err != nil {
+        return &ItemUpdateResult{ItemID: req.ItemID, Success: false, Error: err}
+    }
+    
+    return &ItemUpdateResult{ItemID: req.ItemID, Success: true}
+}
+```
+
+#### 幂等性保证：operation_batch_id 唯一索引
+
+- **唯一标识符**：`operation_batch_id` (雪花算法生成)
+- **数据库设计**：`UNIQUE KEY uk_batch_id (operation_batch_id)`
+- **幂等性语义**：同一个批量操作多次提交，只创建一次记录
+
+#### 审核策略：差异化审核
+
+运营编辑的审核策略与供应商同步类似，但审核规则可能不同。
+
+| 变更类型 | 审核策略 | 说明 |
+|----------|----------|------|
+| **价格调整** | 根据幅度决定 | < 30% 直接生效，>= 30% 需审核 |
+| **库存调整** | 直接生效 | 无需审核 |
+| **商品标题** | 人工审核 | 标题变更需要审核 |
+| **商品描述** | 可能免审核 | 根据配置决定 |
+| **类目变更** | 严格审核 | 类目变更影响搜索 |
+| **批量上下架** | 根据数量决定 | < 100个直接生效，>= 100个需审核 |
+
+```go
+// applyChangesByType 根据变更类型应用不同的审核策略
+func (s *OperationService) applyChangesByType(item *Item, diff *ItemDiff, batchID string) error {
+    // 1. 评估审核策略
+    strategy := s.evaluateApprovalStrategy(diff)
+    
+    // 2. 记录操作日志
+    log := &OperationLog{
+        BatchID:    batchID,
+        ItemID:     item.ItemID,
+        ChangeType: diff.ChangeType,
+        OldValue:   diff.OldValue,
+        NewValue:   diff.NewValue,
+        Strategy:   strategy,
+        CreatedAt:  time.Now(),
+    }
+    s.repo.CreateOperationLog(log)
+    
+    // 3. 根据策略处理
+    switch strategy {
+    case ApprovalStrategyNone:
+        // 直接更新
+        return s.repo.UpdateItemWithVersion(item, diff)
+        
+    case ApprovalStrategyManual:
+        // 创建审批单
+        return s.createChangeRequest(item, diff, batchID)
+    }
+    
+    return nil
+}
+```
+
+#### 状态机：简化状态机
+
+运营编辑的状态机主要关注变更审批流程，不涉及完整的商品生命周期。
+
+```mermaid
+graph TD
+    A[批量操作提交] --> B[解析数据]
+    B --> C[Worker Pool 并发处理]
+    C --> D{需要审核?}
+    D -->|否| E[直接更新]
+    D -->|是| F[创建变更审批单]
+    F --> G[审核流程]
+    G --> H{审核结果}
+    H -->|通过| E
+    H -->|驳回| I[记录失败原因]
+    E --> J[更新批量操作状态]
+    I --> J
+```
+
+---
+
+### 2.4 三种场景的核心差异对比
+
+通过前面的详细分析，我们可以总结出三种场景的核心差异：
+
+#### 综合对比表格
+
+| 维度 | 商品上架 | 供应商同步 | 运营编辑 |
+|------|----------|------------|----------|
+| **业务语义** | 新商品首次进入平台 | 供应商数据变更同步 | 已上线商品日常维护 |
+| **触发方式** | 运营后台上传、商家Portal、Excel导入 | 定时拉取（Pull）、实时推送（Push） | 运营后台手动操作、批量Excel导入 |
+| **处理逻辑** | **Create**（创建商品记录） | **Upsert**（不存在则创建，存在则更新） | **Update**（更新已存在商品） |
+| **幂等性设计** | `task_code` 唯一索引 | `(supplier_id, external_id)` 唯一索引 | `operation_batch_id` 唯一索引 |
+| **审核策略** | **完整审核流程**（DRAFT → PENDING → APPROVED → PUBLISHED） | **差异化审核**（根据变更类型和风险等级决定） | **差异化审核**（审核规则可能不同） |
+| **状态机复杂度** | **完整状态机**（包含审核、发布、回退等状态） | **简化状态机**（部分变更跳过审核） | **简化状态机**（变更审批流程） |
+| **并发场景** | 多个运营同时上架同一类目商品 | 供应商同步 + 运营编辑冲突 | 批量操作 + 单品操作冲突 |
+| **典型场景** | 新品上架、新供应商接入 | 供应商价格变动、库存补货 | 批量调价、批量上下架 |
+
+#### 设计原则总结
+
+为什么要这样设计？核心原则：
+
+1. **单一职责原则（SRP）**：每种场景有明确的职责边界，避免混淆
+2. **风险分级管理**：根据风险等级设计不同的审核策略，提升效率
+3. **幂等性保证**：通过唯一标识符保证操作的幂等性，避免重复数据
+4. **状态机复杂度匹配业务需求**：上架需要完整状态机，编辑只需简化状态机
+5. **差异化处理**：不同场景的变更有不同的审核规则，避免一刀切
+
+#### 设计原则 Checklist
+
+在设计商品生命周期管理系统时，应该遵循以下 Checklist：
+
+- [ ] **是否明确区分了三种场景？** 避免将所有操作混在一起
+- [ ] **是否为每种场景设计了合适的幂等性标识符？** task_code / (supplier_id, external_id) / operation_batch_id
+- [ ] **是否根据风险等级设计了差异化审核策略？** 避免所有变更都走人工审核
+- [ ] **是否设计了合适的状态机？** 上架需要完整状态机，编辑需要简化状态机
+- [ ] **是否考虑了并发冲突场景？** 运营编辑 + 供应商同步的冲突处理
+- [ ] **是否设计了完整的日志和审计？** 记录所有变更历史
+
+---
+
 ## 第三章：商品审核系统设计
 
 在前面的章节中，我们多次提到"差异化审核"这个概念。在本章中，我们将深入探讨商品审核系统的设计，包括审核策略、风险评估引擎、审核流程编排。
@@ -460,9 +1004,10 @@ func (s *ApprovalService) CheckSLA() error {
 
 ---
 
+
 ## 第四章：商品生命周期管理
 
-商品从创建到归档，需要经过多个生命周期阶段。在本章中,我们将深入探讨完整的生命周期状态机、状态流转规则和生命周期事件。
+商品从创建到归档，需要经过多个生命周期阶段。在本章中，我们将深入探讨完整的生命周期状态机、状态流转规则和生命周期事件。
 
 ### 4.1 完整生命周期状态机
 
@@ -537,8 +1082,9 @@ stateDiagram-v2
 ```go
 // StateMachine 商品生命周期状态机
 type StateMachine struct {
-    // 状态转换规则
     transitions map[ItemStatus][]ItemStatus
+    repo        ItemRepository
+    logRepo     LogRepository
 }
 
 // NewStateMachine 创建状态机
@@ -552,7 +1098,6 @@ func NewStateMachine() *StateMachine {
             StatusPublished: {StatusOnline},
             StatusOnline:    {StatusOffline, StatusArchived},
             StatusOffline:   {StatusOnline, StatusArchived},
-            // StatusArchived 是终态，不能转换到其他状态
         },
     }
 }
@@ -591,7 +1136,7 @@ func (sm *StateMachine) Transition(item *Item, to ItemStatus, operator int64) er
     item.Status = to
     item.UpdatedAt = time.Now()
     item.UpdatedBy = operator
-    item.Version++ // 乐观锁版本号
+    item.Version++
     
     // 5. 保存到数据库（带乐观锁）
     if err := sm.repo.UpdateItemWithVersion(item); err != nil {
@@ -611,25 +1156,21 @@ func (sm *StateMachine) Transition(item *Item, to ItemStatus, operator int64) er
 func (sm *StateMachine) checkPreconditions(item *Item, to ItemStatus) error {
     switch to {
     case StatusPending:
-        // 提交审核前，需要确保商品信息完整
         if item.Title == "" || item.CategoryID == 0 {
             return errors.New("item info incomplete")
         }
         
     case StatusPublished:
-        // 发布前，需要确保价格已设置
         if item.Price <= 0 {
             return errors.New("price not set")
         }
         
     case StatusOnline:
-        // 上线前，需要确保有库存
         if item.Stock <= 0 {
             return errors.New("stock is zero")
         }
         
     case StatusArchived:
-        // 归档前，需要确保没有在售订单
         if item.Status == StatusOnline {
             orderCount, _ := sm.orderRepo.CountPendingOrders(item.ItemID)
             if orderCount > 0 {
@@ -674,11 +1215,9 @@ func (sm *StateMachine) checkPreconditions(item *Item, to ItemStatus) error {
 func (sm *StateMachine) checkPermission(item *Item, to ItemStatus, operator *Operator) error {
     switch operator.Role {
     case RoleOperator:
-        // 运营有所有权限
         return nil
         
     case RoleMerchant:
-        // 商家只能进行有限的状态变更
         allowedTransitions := map[ItemStatus][]ItemStatus{
             StatusDraft:   {StatusPending},
             StatusOffline: {StatusOnline},
@@ -696,17 +1235,15 @@ func (sm *StateMachine) checkPermission(item *Item, to ItemStatus, operator *Ope
         return errors.New("permission denied")
         
     case RoleSystem:
-        // 系统只能进行自动化操作
         if to == StatusOffline && item.Stock == 0 {
-            return nil // 库存为0自动下架
+            return nil
         }
         if to == StatusApproved && item.ApprovalStrategy == ApprovalStrategyAuto {
-            return nil // 自动审核通过
+            return nil
         }
         return errors.New("permission denied")
         
     case RoleApprover:
-        // 审核员只能审核
         if item.Status == StatusPending && (to == StatusApproved || to == StatusRejected) {
             return nil
         }
@@ -724,14 +1261,14 @@ func (sm *StateMachine) checkPermission(item *Item, to ItemStatus, operator *Ope
 ```go
 // ItemStatusLog 商品状态变更日志
 type ItemStatusLog struct {
-    LogID      int64      `json:"log_id"`
-    ItemID     int64      `json:"item_id"`
-    OldStatus  ItemStatus `json:"old_status"`
-    NewStatus  ItemStatus `json:"new_status"`
-    Operator   int64      `json:"operator"`
-    OperatorRole string   `json:"operator_role"`
-    Reason     string     `json:"reason"`
-    CreatedAt  time.Time  `json:"created_at"`
+    LogID        int64      `json:"log_id"`
+    ItemID       int64      `json:"item_id"`
+    OldStatus    ItemStatus `json:"old_status"`
+    NewStatus    ItemStatus `json:"new_status"`
+    Operator     int64      `json:"operator"`
+    OperatorRole string     `json:"operator_role"`
+    Reason       string     `json:"reason"`
+    CreatedAt    time.Time  `json:"created_at"`
 }
 
 // logStatusChange 记录状态变更日志
@@ -817,7 +1354,6 @@ func (sm *StateMachine) publishLifecycleEvent(item *Item, oldStatus, newStatus I
         },
     }
     
-    // 发布到 Kafka
     sm.eventPublisher.Publish("product.lifecycle", event)
 }
 
@@ -847,8 +1383,6 @@ func (sm *StateMachine) mapEventType(oldStatus, newStatus ItemStatus) string {
 
 #### 事件消费者示例
 
-**搜索引擎消费者**：
-
 ```go
 // SearchEngineConsumer 搜索引擎消费者
 type SearchEngineConsumer struct {
@@ -859,15 +1393,12 @@ type SearchEngineConsumer struct {
 func (c *SearchEngineConsumer) Consume(event *LifecycleEvent) error {
     switch event.EventType {
     case "ProductOnline":
-        // 商品上线，添加到搜索索引
         return c.addToIndex(event.ItemID)
         
     case "ProductOffline", "ProductArchived":
-        // 商品下线或归档，从搜索索引中删除
         return c.removeFromIndex(event.ItemID)
         
     case "ProductPriceChanged", "ProductStockChanged":
-        // 价格或库存变更，更新搜索索引
         return c.updateIndex(event.ItemID, event.Payload)
     }
     
@@ -879,14 +1410,9 @@ func (c *SearchEngineConsumer) Consume(event *LifecycleEvent) error {
 
 为了保证事件的可靠发布，使用 Outbox 模式：
 
-1. **状态变更和事件写入在同一个事务中**
-2. **后台 Worker 轮询 Outbox 表，发布事件到 Kafka**
-3. **发布成功后标记事件为已发布**
-
 ```go
 // TransitionWithOutbox 使用 Outbox 模式进行状态转换
 func (sm *StateMachine) TransitionWithOutbox(item *Item, to ItemStatus, operator int64) error {
-    // 1. 开启数据库事务
     tx := sm.db.Begin()
     defer func() {
         if r := recover(); r != nil {
@@ -894,7 +1420,7 @@ func (sm *StateMachine) TransitionWithOutbox(item *Item, to ItemStatus, operator
         }
     }()
     
-    // 2. 更新商品状态
+    // 更新商品状态
     oldStatus := item.Status
     item.Status = to
     if err := tx.Save(item).Error; err != nil {
@@ -902,7 +1428,7 @@ func (sm *StateMachine) TransitionWithOutbox(item *Item, to ItemStatus, operator
         return err
     }
     
-    // 3. 写入 Outbox 表
+    // 写入 Outbox 表
     event := &LifecycleEvent{
         EventID:   sm.generateEventID(),
         EventType: sm.mapEventType(oldStatus, to),
@@ -923,55 +1449,11 @@ func (sm *StateMachine) TransitionWithOutbox(item *Item, to ItemStatus, operator
         return err
     }
     
-    // 4. 提交事务
     return tx.Commit().Error
 }
 ```
 
 ---
-
-## 引言：为什么需要区分三种操作场景
-
-在实际电商系统中，商品数据的变更有多种来源和触发方式。作为系统设计者，我们经常会遇到这样的困惑：
-
-- **"商品上架系统"和"B端运营系统"的商品编辑有什么区别？** 它们看起来都是在修改商品数据，为什么要设计成两套流程？
-- **供应商定时同步数据，对于已存在的商品应该走上架流程还是编辑流程？** 如果供应商的商品ID在平台已存在，是创建新商品还是更新现有商品？
-- **为什么有些变更需要审核，有些不需要？** 价格调整10%需要审核吗？库存调整呢？商品标题修改呢？
-
-这些问题看似简单，但如果不深入思考，很容易设计出混乱的系统架构：所有操作都混在一起，审核流程不清晰，幂等性无法保证，并发冲突频发。
-
-### 三种场景的本质区别
-
-本文将深入分析电商商品生命周期管理中的三种核心操作场景：
-
-1. **商品上架（从无到有）**：新商品首次进入平台，需要完整的审核流程
-2. **供应商同步（Upsert 场景）**：供应商数据变更，需要同步到平台（商品可能存在，也可能不存在）
-3. **运营编辑（日常维护）**：已上线商品的日常维护和批量管理
-
-这三种场景的本质区别在于：**数据来源、业务语义、风险等级、审核策略**。
-
-| 维度 | 商品上架 | 供应商同步 | 运营编辑 |
-|------|----------|------------|----------|
-| **数据来源** | 运营后台、商家Portal | 供应商系统 | 运营后台 |
-| **业务语义** | 新商品首次进入平台 | 供应商数据变更 | 已上线商品维护 |
-| **触发方式** | 手动上传、批量导入 | 定时拉取、实时推送 | 手动编辑、批量操作 |
-| **处理逻辑** | Create（创建） | Upsert（创建或更新） | Update（更新） |
-| **风险等级** | 高（需完整审核） | 中（差异化审核） | 中（差异化审核） |
-
-### 文章内容组织
-
-本文将从以下几个方面深入讲解：
-
-1. **核心场景对比分析**（第二章）：详细对比三种场景的处理逻辑、幂等性设计、审核策略
-2. **商品审核系统设计**（第三章）：差异化审核策略、风险评估引擎、审核流程编排
-3. **商品生命周期管理**（第四章）：完整生命周期状态机、状态流转规则、生命周期事件
-4. **批量操作的幂等性设计**（第五章）：幂等性关键设计、唯一标识符设计、并发控制策略
-5. **跨系统协调设计**（第六章）：商品中心的职责边界、与定价引擎和库存系统的协作
-6. **核心数据模型**（第七章）：商品表、变更审批单表、同步状态表
-7. **性能优化与监控**（第八章）：性能优化策略、监控指标
-8. **最佳实践总结**（第九章）：场景识别 Checklist、常见陷阱
-
-让我们开始深入探讨这些核心问题。
 
 ## 第五章：批量操作的幂等性设计
 
@@ -1069,9 +1551,8 @@ func (g *SnowflakeIDGenerator) Generate() int64 {
     now := time.Now().UnixMilli()
     
     if now == g.lastTime {
-        g.sequence = (g.sequence + 1) & 0xFFF // 12位序列号
+        g.sequence = (g.sequence + 1) & 0xFFF
         if g.sequence == 0 {
-            // 序列号用尽，等待下一毫秒
             for now <= g.lastTime {
                 now = time.Now().UnixMilli()
             }
@@ -1082,7 +1563,6 @@ func (g *SnowflakeIDGenerator) Generate() int64 {
     
     g.lastTime = now
     
-    // 组合ID：41位时间戳 + 10位机器ID + 12位序列号
     id := ((now - 1640995200000) << 22) | (g.machineID << 12) | g.sequence
     return id
 }
@@ -1095,7 +1575,7 @@ func (g *SnowflakeIDGenerator) Generate() int64 {
 func generateTaskCode(categoryID, createdBy int64, timestamp time.Time) string {
     data := fmt.Sprintf("%d-%d-%d", categoryID, createdBy, timestamp.Unix())
     hash := sha256.Sum256([]byte(data))
-    return hex.EncodeToString(hash[:8]) // 取前16个字符
+    return hex.EncodeToString(hash[:8])
 }
 ```
 
@@ -1111,17 +1591,13 @@ func generateTaskCode(categoryID, createdBy int64, timestamp time.Time) string {
 ```go
 // CreateOrGetListingTask 创建或获取上架任务（幂等性保证）
 func (s *ListingService) CreateOrGetListingTask(req *ListingRequest) (*ListingTask, bool, error) {
-    // 1. 生成唯一标识符
     taskCode := generateTaskCode(req.CategoryID, req.CreatedBy, time.Now())
     
-    // 2. 尝试查询已存在的任务
     existingTask, err := s.repo.GetTaskByCode(taskCode)
     if err == nil {
-        // 任务已存在，直接返回
         return existingTask, false, nil
     }
     
-    // 3. 任务不存在，创建新任务
     task := &ListingTask{
         TaskCode:  taskCode,
         ItemInfo:  req.ItemInfo,
@@ -1130,9 +1606,7 @@ func (s *ListingService) CreateOrGetListingTask(req *ListingRequest) (*ListingTa
         CreatedAt: time.Now(),
     }
     
-    // 4. 插入数据库（依赖唯一索引保证幂等性）
     if err := s.repo.CreateTask(task); err != nil {
-        // 如果是唯一索引冲突，说明并发创建，重新查询
         if isDuplicateKeyError(err) {
             existingTask, _ = s.repo.GetTaskByCode(taskCode)
             return existingTask, false, nil
@@ -1140,42 +1614,7 @@ func (s *ListingService) CreateOrGetListingTask(req *ListingRequest) (*ListingTa
         return nil, false, fmt.Errorf("create task failed: %w", err)
     }
     
-    // 5. 返回新创建的任务
     return task, true, nil
-}
-
-// CreateOrGetItemByExternal 根据供应商外部ID创建或获取商品（幂等性保证）
-func (s *SupplierSyncService) CreateOrGetItemByExternal(supplierID int64, externalID string, extItem *ExternalItem) (*Item, bool, error) {
-    // 1. 尝试查询已存在的商品
-    item, err := s.repo.GetItemByExternalID(supplierID, externalID)
-    if err == nil {
-        // 商品已存在，直接返回
-        return item, false, nil
-    }
-    
-    // 2. 商品不存在，创建新商品
-    newItem := &Item{
-        ItemID:             s.idGenerator.Generate(),
-        SupplierID:         supplierID,
-        ExternalID:         externalID,
-        Title:              extItem.Title,
-        Price:              extItem.Price,
-        Stock:              extItem.Stock,
-        Status:             StatusDraft,
-        ExternalSyncTime:   time.Now(),
-        CreatedAt:          time.Now(),
-    }
-    
-    // 3. 插入数据库
-    if err := s.repo.CreateItem(newItem); err != nil {
-        if isDuplicateKeyError(err) {
-            item, _ = s.repo.GetItemByExternalID(supplierID, externalID)
-            return item, false, nil
-        }
-        return nil, false, fmt.Errorf("create item failed: %w", err)
-    }
-    
-    return newItem, true, nil
 }
 ```
 
@@ -1206,19 +1645,13 @@ func (s *SupplierSyncService) CreateOrGetItemByExternal(supplierID int64, extern
 
 #### 乐观锁实现
 
-乐观锁通过 `version` 字段实现，每次更新时检查版本号是否变化。
-
 ```go
 // UpdateItemWithVersion 使用乐观锁更新商品
 func (r *ItemRepository) UpdateItemWithVersion(item *Item) error {
-    // 1. 保存当前版本号
     currentVersion := item.Version
-    
-    // 2. 增加版本号
     item.Version++
     item.UpdatedAt = time.Now()
     
-    // 3. 更新数据库（WHERE version = current_version）
     result := r.db.Model(&Item{}).
         Where("item_id = ? AND version = ?", item.ItemID, currentVersion).
         Updates(map[string]interface{}{
@@ -1230,13 +1663,11 @@ func (r *ItemRepository) UpdateItemWithVersion(item *Item) error {
             "updated_at": item.UpdatedAt,
         })
     
-    // 4. 检查是否更新成功
     if result.Error != nil {
         return fmt.Errorf("update item failed: %w", result.Error)
     }
     
     if result.RowsAffected == 0 {
-        // 版本号冲突，说明有其他并发更新
         return ErrVersionConflict
     }
     
@@ -1246,23 +1677,19 @@ func (r *ItemRepository) UpdateItemWithVersion(item *Item) error {
 // UpdateItemWithRetry 乐观锁更新失败时重试
 func (s *OperationService) UpdateItemWithRetry(itemID int64, updateFn func(*Item) error, maxRetries int) error {
     for i := 0; i < maxRetries; i++ {
-        // 1. 获取最新数据
         item, err := s.repo.GetItemByID(itemID)
         if err != nil {
             return err
         }
         
-        // 2. 应用更新函数
         if err := updateFn(item); err != nil {
             return err
         }
         
-        // 3. 使用乐观锁更新
         if err := s.repo.UpdateItemWithVersion(item); err == nil {
-            return nil // 更新成功
+            return nil
         } else if err == ErrVersionConflict {
-            // 版本冲突，重试
-            time.Sleep(time.Duration(i*10) * time.Millisecond) // 指数退避
+            time.Sleep(time.Duration(i*10) * time.Millisecond)
             continue
         } else {
             return err
@@ -1270,47 +1697,6 @@ func (s *OperationService) UpdateItemWithRetry(itemID int64, updateFn func(*Item
     }
     
     return errors.New("update failed after max retries")
-}
-```
-
-#### 悲观锁实现
-
-悲观锁通过 `SELECT ... FOR UPDATE` 实现，在事务中锁定记录。
-
-```go
-// UpdateItemWithLock 使用悲观锁更新商品
-func (s *OperationService) UpdateItemWithLock(itemID int64, updateFn func(*Item) error) error {
-    // 1. 开启事务
-    tx := s.db.Begin()
-    defer func() {
-        if r := recover(); r != nil {
-            tx.Rollback()
-        }
-    }()
-    
-    // 2. 锁定记录（SELECT FOR UPDATE）
-    var item Item
-    if err := tx.Where("item_id = ?", itemID).
-        Set("gorm:query_option", "FOR UPDATE").
-        First(&item).Error; err != nil {
-        tx.Rollback()
-        return err
-    }
-    
-    // 3. 应用更新函数
-    if err := updateFn(&item); err != nil {
-        tx.Rollback()
-        return err
-    }
-    
-    // 4. 保存更新
-    if err := tx.Save(&item).Error; err != nil {
-        tx.Rollback()
-        return err
-    }
-    
-    // 5. 提交事务
-    return tx.Commit().Error
 }
 ```
 
@@ -1328,7 +1714,6 @@ func (s *OperationService) UpdateItemWithLock(itemID int64, updateFn func(*Item)
 ```go
 // resolveConflict 解决并发冲突
 func (s *ConflictResolver) resolveConflict(item *Item, updateA, updateB *ItemUpdate) (*ItemUpdate, error) {
-    // 1. 判断操作优先级
     priorityA := s.getOperatorPriority(updateA.Operator)
     priorityB := s.getOperatorPriority(updateB.Operator)
     
@@ -1338,7 +1723,6 @@ func (s *ConflictResolver) resolveConflict(item *Item, updateA, updateB *ItemUpd
         return updateB, nil
     }
     
-    // 2. 优先级相同，使用最后写入胜出
     if updateA.Timestamp.After(updateB.Timestamp) {
         return updateA, nil
     } else {
@@ -1349,11 +1733,11 @@ func (s *ConflictResolver) resolveConflict(item *Item, updateA, updateB *ItemUpd
 // getOperatorPriority 获取操作者优先级
 func (s *ConflictResolver) getOperatorPriority(operator *Operator) int {
     switch operator.Type {
-    case OperatorTypeManual: // 运营手动操作
+    case OperatorTypeManual:
         return 100
-    case OperatorTypeSupplier: // 供应商同步
+    case OperatorTypeSupplier:
         return 50
-    case OperatorTypeSystem: // 系统自动操作
+    case OperatorTypeSystem:
         return 10
     default:
         return 0
@@ -2714,11 +3098,12 @@ groups:
 
 ---
 
+
 ## 第九章：最佳实践总结
 
 在本章中，我们将总结商品生命周期管理系统的最佳实践，帮助你快速判断应该走哪个流程，如何设计幂等性，以及如何避免常见陷阱。
 
-### 场景识别 Checklist
+### 9.1 场景识别 Checklist
 
 面对一个商品数据变更需求时，如何快速判断应该走哪个流程？
 
@@ -2778,6 +3163,7 @@ graph TD
 | **商品标题** | 中 | 自动审核或人工审核 | 敏感词过滤 |
 | **类目变更** | 高 | 严格审核 | 影响搜索和推荐 |
 | **商品下线** | 高 | 人工审核 | 可能影响在售订单 |
+| **批量上下架** | 根据数量决定 | < 100个直接生效，>= 100个需审核 |
 
 **审核策略设计原则**：
 - [ ] 根据风险等级设计差异化审核策略
@@ -2808,7 +3194,7 @@ graph TD
 
 ---
 
-### 常见陷阱
+### 9.2 常见陷阱
 
 在实际项目中，有哪些常见的设计陷阱需要避免？
 
@@ -2891,7 +3277,7 @@ graph TD
 
 ---
 
-### 最佳实践对照表
+### 9.3 最佳实践对照表
 
 | 维度 | 最佳实践 | 常见陷阱 |
 |------|----------|----------|
