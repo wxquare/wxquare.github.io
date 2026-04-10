@@ -460,6 +460,476 @@ func (s *ApprovalService) CheckSLA() error {
 
 ---
 
+## 第四章：商品生命周期管理
+
+商品从创建到归档，需要经过多个生命周期阶段。在本章中,我们将深入探讨完整的生命周期状态机、状态流转规则和生命周期事件。
+
+### 4.1 完整生命周期状态机
+
+#### 生命周期阶段
+
+商品的完整生命周期包括以下阶段：
+
+1. **初始阶段**：DRAFT（草稿）
+2. **审核阶段**：PENDING（待审核）→ APPROVED（已审核）
+3. **在售阶段**：PUBLISHED（已发布）→ ONLINE（在售）
+4. **下架阶段**：OFFLINE（已下架）
+5. **归档阶段**：ARCHIVED（已归档）
+
+```mermaid
+stateDiagram-v2
+    [*] --> DRAFT: 创建草稿
+    
+    DRAFT --> PENDING: 提交审核
+    DRAFT --> ARCHIVED: 直接归档
+    
+    PENDING --> APPROVED: 审核通过
+    PENDING --> REJECTED: 审核驳回
+    
+    REJECTED --> DRAFT: 修改后重新提交
+    REJECTED --> ARCHIVED: 放弃上架
+    
+    APPROVED --> PUBLISHED: 发布商品
+    
+    PUBLISHED --> ONLINE: 商品上线
+    
+    ONLINE --> OFFLINE: 手动下架
+    ONLINE --> ARCHIVED: 直接归档
+    
+    OFFLINE --> ONLINE: 重新上线
+    OFFLINE --> ARCHIVED: 归档
+    
+    ARCHIVED --> [*]: 终态
+```
+
+#### 状态说明
+
+| 状态 | 英文 | 说明 | 可进行的操作 |
+|------|------|------|--------------|
+| **草稿** | DRAFT | 商品信息未完善或审核驳回后的状态 | 编辑、提交审核、归档 |
+| **待审核** | PENDING | 已提交审核，等待审核员审核 | 撤回、查看进度 |
+| **已驳回** | REJECTED | 审核未通过 | 修改后重新提交、归档 |
+| **已审核** | APPROVED | 审核通过，可以发布 | 发布、编辑 |
+| **已发布** | PUBLISHED | 已发布但未上线（预发布状态） | 上线、编辑、下架 |
+| **在售** | ONLINE | 商品在售，用户可见可购买 | 编辑、下架、归档 |
+| **已下架** | OFFLINE | 商品已下架，用户不可见 | 重新上线、编辑、归档 |
+| **已归档** | ARCHIVED | 商品已归档，不再使用 | 无（终态） |
+
+#### 状态流转规则表
+
+| 当前状态 | 可流转到的状态 | 前置条件 |
+|----------|----------------|----------|
+| DRAFT | PENDING | 商品信息完整 |
+| DRAFT | ARCHIVED | 无 |
+| PENDING | APPROVED | 审核通过 |
+| PENDING | REJECTED | 审核驳回 |
+| REJECTED | DRAFT | 无 |
+| REJECTED | ARCHIVED | 无 |
+| APPROVED | PUBLISHED | 价格已设置 |
+| PUBLISHED | ONLINE | 库存 > 0 |
+| ONLINE | OFFLINE | 无 |
+| ONLINE | ARCHIVED | 无在售订单 |
+| OFFLINE | ONLINE | 库存 > 0 |
+| OFFLINE | ARCHIVED | 无 |
+
+#### 状态机实现
+
+```go
+// StateMachine 商品生命周期状态机
+type StateMachine struct {
+    // 状态转换规则
+    transitions map[ItemStatus][]ItemStatus
+}
+
+// NewStateMachine 创建状态机
+func NewStateMachine() *StateMachine {
+    return &StateMachine{
+        transitions: map[ItemStatus][]ItemStatus{
+            StatusDraft:     {StatusPending, StatusArchived},
+            StatusPending:   {StatusApproved, StatusRejected},
+            StatusRejected:  {StatusDraft, StatusArchived},
+            StatusApproved:  {StatusPublished},
+            StatusPublished: {StatusOnline},
+            StatusOnline:    {StatusOffline, StatusArchived},
+            StatusOffline:   {StatusOnline, StatusArchived},
+            // StatusArchived 是终态，不能转换到其他状态
+        },
+    }
+}
+
+// CanTransition 检查是否可以进行状态转换
+func (sm *StateMachine) CanTransition(from, to ItemStatus) bool {
+    allowedStates, ok := sm.transitions[from]
+    if !ok {
+        return false
+    }
+    
+    for _, allowed := range allowedStates {
+        if allowed == to {
+            return true
+        }
+    }
+    return false
+}
+
+// Transition 执行状态转换
+func (sm *StateMachine) Transition(item *Item, to ItemStatus, operator int64) error {
+    // 1. 检查状态转换是否合法
+    if !sm.CanTransition(item.Status, to) {
+        return fmt.Errorf("invalid transition from %s to %s", item.Status, to)
+    }
+    
+    // 2. 检查前置条件
+    if err := sm.checkPreconditions(item, to); err != nil {
+        return fmt.Errorf("precondition check failed: %w", err)
+    }
+    
+    // 3. 记录状态变更前的快照
+    oldStatus := item.Status
+    
+    // 4. 更新状态
+    item.Status = to
+    item.UpdatedAt = time.Now()
+    item.UpdatedBy = operator
+    item.Version++ // 乐观锁版本号
+    
+    // 5. 保存到数据库（带乐观锁）
+    if err := sm.repo.UpdateItemWithVersion(item); err != nil {
+        return fmt.Errorf("update item failed: %w", err)
+    }
+    
+    // 6. 记录状态变更日志
+    sm.logStatusChange(item.ItemID, oldStatus, to, operator)
+    
+    // 7. 发布生命周期事件
+    sm.publishLifecycleEvent(item, oldStatus, to)
+    
+    return nil
+}
+
+// checkPreconditions 检查状态转换的前置条件
+func (sm *StateMachine) checkPreconditions(item *Item, to ItemStatus) error {
+    switch to {
+    case StatusPending:
+        // 提交审核前，需要确保商品信息完整
+        if item.Title == "" || item.CategoryID == 0 {
+            return errors.New("item info incomplete")
+        }
+        
+    case StatusPublished:
+        // 发布前，需要确保价格已设置
+        if item.Price <= 0 {
+            return errors.New("price not set")
+        }
+        
+    case StatusOnline:
+        // 上线前，需要确保有库存
+        if item.Stock <= 0 {
+            return errors.New("stock is zero")
+        }
+        
+    case StatusArchived:
+        // 归档前，需要确保没有在售订单
+        if item.Status == StatusOnline {
+            orderCount, _ := sm.orderRepo.CountPendingOrders(item.ItemID)
+            if orderCount > 0 {
+                return errors.New("has pending orders")
+            }
+        }
+    }
+    
+    return nil
+}
+```
+
+---
+
+### 4.2 状态流转规则
+
+#### 状态前置条件检查
+
+不同的状态转换有不同的前置条件，需要在状态转换前进行检查。
+
+| 目标状态 | 前置条件 | 检查逻辑 |
+|----------|----------|----------|
+| **PENDING** | 商品信息完整 | title != "" && category_id > 0 |
+| **APPROVED** | 审核通过 | 审核员审核结果 = 通过 |
+| **PUBLISHED** | 价格已设置 | price > 0 |
+| **ONLINE** | 库存 > 0 | stock > 0 |
+| **ARCHIVED** | 无在售订单 | pending_orders_count = 0 |
+
+#### 状态变更权限控制
+
+不同角色对状态变更有不同的权限。
+
+| 角色 | 可执行的状态变更 | 说明 |
+|------|------------------|------|
+| **运营** | 所有状态变更 | 最高权限 |
+| **商家** | DRAFT → PENDING<br>OFFLINE → ONLINE<br>ONLINE → OFFLINE | 不能强制上线（需要审核） |
+| **系统** | ONLINE → OFFLINE（库存为0）<br>PENDING → APPROVED（自动审核） | 自动化操作 |
+| **审核员** | PENDING → APPROVED<br>PENDING → REJECTED | 审核权限 |
+
+```go
+// checkPermission 检查状态变更权限
+func (sm *StateMachine) checkPermission(item *Item, to ItemStatus, operator *Operator) error {
+    switch operator.Role {
+    case RoleOperator:
+        // 运营有所有权限
+        return nil
+        
+    case RoleMerchant:
+        // 商家只能进行有限的状态变更
+        allowedTransitions := map[ItemStatus][]ItemStatus{
+            StatusDraft:   {StatusPending},
+            StatusOffline: {StatusOnline},
+            StatusOnline:  {StatusOffline},
+        }
+        allowed, ok := allowedTransitions[item.Status]
+        if !ok {
+            return errors.New("permission denied")
+        }
+        for _, s := range allowed {
+            if s == to {
+                return nil
+            }
+        }
+        return errors.New("permission denied")
+        
+    case RoleSystem:
+        // 系统只能进行自动化操作
+        if to == StatusOffline && item.Stock == 0 {
+            return nil // 库存为0自动下架
+        }
+        if to == StatusApproved && item.ApprovalStrategy == ApprovalStrategyAuto {
+            return nil // 自动审核通过
+        }
+        return errors.New("permission denied")
+        
+    case RoleApprover:
+        // 审核员只能审核
+        if item.Status == StatusPending && (to == StatusApproved || to == StatusRejected) {
+            return nil
+        }
+        return errors.New("permission denied")
+    }
+    
+    return errors.New("unknown role")
+}
+```
+
+#### 状态变更日志
+
+所有状态变更都需要记录完整的变更历史，用于审计和问题排查。
+
+```go
+// ItemStatusLog 商品状态变更日志
+type ItemStatusLog struct {
+    LogID      int64      `json:"log_id"`
+    ItemID     int64      `json:"item_id"`
+    OldStatus  ItemStatus `json:"old_status"`
+    NewStatus  ItemStatus `json:"new_status"`
+    Operator   int64      `json:"operator"`
+    OperatorRole string   `json:"operator_role"`
+    Reason     string     `json:"reason"`
+    CreatedAt  time.Time  `json:"created_at"`
+}
+
+// logStatusChange 记录状态变更日志
+func (sm *StateMachine) logStatusChange(itemID int64, oldStatus, newStatus ItemStatus, operator int64) {
+    log := &ItemStatusLog{
+        ItemID:    itemID,
+        OldStatus: oldStatus,
+        NewStatus: newStatus,
+        Operator:  operator,
+        CreatedAt: time.Now(),
+    }
+    sm.logRepo.CreateStatusLog(log)
+}
+```
+
+---
+
+### 4.3 生命周期事件
+
+#### 事件驱动架构
+
+商品生命周期的状态变更会触发领域事件，下游系统监听这些事件并做出响应。
+
+```mermaid
+graph LR
+    A[商品状态变更] --> B[发布生命周期事件]
+    B --> C[Kafka Topic]
+    C --> D[搜索引擎 ES]
+    C --> E[缓存系统 Redis]
+    C --> F[推荐系统]
+    C --> G[通知系统]
+    
+    D --> H[同步商品索引]
+    E --> I[更新热点商品缓存]
+    F --> J[更新推荐池]
+    G --> K[发送商家通知]
+```
+
+#### 生命周期事件类型
+
+| 事件类型 | 触发时机 | 下游消费者 |
+|----------|----------|------------|
+| `ProductListed` | 商品上架（DRAFT → PENDING） | 审核系统 |
+| `ProductApproved` | 审核通过（PENDING → APPROVED） | 商家通知 |
+| `ProductPublished` | 商品发布（APPROVED → PUBLISHED） | 搜索引擎（预加载索引） |
+| `ProductOnline` | 商品上线（PUBLISHED → ONLINE） | 搜索引擎、缓存系统、推荐系统 |
+| `ProductPriceChanged` | 价格变更 | 搜索引擎、缓存系统、定价引擎 |
+| `ProductStockChanged` | 库存变更 | 搜索引擎、缓存系统 |
+| `ProductOffline` | 商品下线（ONLINE → OFFLINE） | 搜索引擎、缓存系统、推荐系统 |
+| `ProductArchived` | 商品归档（→ ARCHIVED） | 搜索引擎、数据归档系统 |
+
+#### 事件定义
+
+```go
+// LifecycleEvent 生命周期事件
+type LifecycleEvent struct {
+    EventID   string     `json:"event_id"`
+    EventType string     `json:"event_type"`
+    ItemID    int64      `json:"item_id"`
+    OldStatus ItemStatus `json:"old_status"`
+    NewStatus ItemStatus `json:"new_status"`
+    Operator  int64      `json:"operator"`
+    Timestamp time.Time  `json:"timestamp"`
+    Payload   map[string]interface{} `json:"payload"`
+}
+
+// publishLifecycleEvent 发布生命周期事件
+func (sm *StateMachine) publishLifecycleEvent(item *Item, oldStatus, newStatus ItemStatus) {
+    eventType := sm.mapEventType(oldStatus, newStatus)
+    
+    event := &LifecycleEvent{
+        EventID:   sm.generateEventID(),
+        EventType: eventType,
+        ItemID:    item.ItemID,
+        OldStatus: oldStatus,
+        NewStatus: newStatus,
+        Timestamp: time.Now(),
+        Payload: map[string]interface{}{
+            "title":       item.Title,
+            "category_id": item.CategoryID,
+            "price":       item.Price,
+            "stock":       item.Stock,
+        },
+    }
+    
+    // 发布到 Kafka
+    sm.eventPublisher.Publish("product.lifecycle", event)
+}
+
+// mapEventType 根据状态转换映射事件类型
+func (sm *StateMachine) mapEventType(oldStatus, newStatus ItemStatus) string {
+    if oldStatus == StatusDraft && newStatus == StatusPending {
+        return "ProductListed"
+    }
+    if oldStatus == StatusPending && newStatus == StatusApproved {
+        return "ProductApproved"
+    }
+    if oldStatus == StatusApproved && newStatus == StatusPublished {
+        return "ProductPublished"
+    }
+    if oldStatus == StatusPublished && newStatus == StatusOnline {
+        return "ProductOnline"
+    }
+    if newStatus == StatusOffline {
+        return "ProductOffline"
+    }
+    if newStatus == StatusArchived {
+        return "ProductArchived"
+    }
+    return "ProductStatusChanged"
+}
+```
+
+#### 事件消费者示例
+
+**搜索引擎消费者**：
+
+```go
+// SearchEngineConsumer 搜索引擎消费者
+type SearchEngineConsumer struct {
+    esClient *elasticsearch.Client
+}
+
+// Consume 消费生命周期事件
+func (c *SearchEngineConsumer) Consume(event *LifecycleEvent) error {
+    switch event.EventType {
+    case "ProductOnline":
+        // 商品上线，添加到搜索索引
+        return c.addToIndex(event.ItemID)
+        
+    case "ProductOffline", "ProductArchived":
+        // 商品下线或归档，从搜索索引中删除
+        return c.removeFromIndex(event.ItemID)
+        
+    case "ProductPriceChanged", "ProductStockChanged":
+        // 价格或库存变更，更新搜索索引
+        return c.updateIndex(event.ItemID, event.Payload)
+    }
+    
+    return nil
+}
+```
+
+#### 事件可靠性保证：Outbox 模式
+
+为了保证事件的可靠发布，使用 Outbox 模式：
+
+1. **状态变更和事件写入在同一个事务中**
+2. **后台 Worker 轮询 Outbox 表，发布事件到 Kafka**
+3. **发布成功后标记事件为已发布**
+
+```go
+// TransitionWithOutbox 使用 Outbox 模式进行状态转换
+func (sm *StateMachine) TransitionWithOutbox(item *Item, to ItemStatus, operator int64) error {
+    // 1. 开启数据库事务
+    tx := sm.db.Begin()
+    defer func() {
+        if r := recover(); r != nil {
+            tx.Rollback()
+        }
+    }()
+    
+    // 2. 更新商品状态
+    oldStatus := item.Status
+    item.Status = to
+    if err := tx.Save(item).Error; err != nil {
+        tx.Rollback()
+        return err
+    }
+    
+    // 3. 写入 Outbox 表
+    event := &LifecycleEvent{
+        EventID:   sm.generateEventID(),
+        EventType: sm.mapEventType(oldStatus, to),
+        ItemID:    item.ItemID,
+        OldStatus: oldStatus,
+        NewStatus: to,
+        Timestamp: time.Now(),
+    }
+    outbox := &EventOutbox{
+        EventID:   event.EventID,
+        EventType: event.EventType,
+        Payload:   event.ToJSON(),
+        Status:    OutboxStatusPending,
+        CreatedAt: time.Now(),
+    }
+    if err := tx.Create(outbox).Error; err != nil {
+        tx.Rollback()
+        return err
+    }
+    
+    // 4. 提交事务
+    return tx.Commit().Error
+}
+```
+
+---
+
 ## 引言：为什么需要区分三种操作场景
 
 在实际电商系统中，商品数据的变更有多种来源和触发方式。作为系统设计者，我们经常会遇到这样的困惑：
