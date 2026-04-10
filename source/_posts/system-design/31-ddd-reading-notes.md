@@ -779,3 +779,1432 @@ graph LR
 - 客户-供应商模式最常用
 
 ---
+
+## 三、战略设计
+
+战略设计回答的是「边界在哪里、团队如何协作、集成关系如何表达」——在写聚合与仓储之前，先把子域类型、限界上下文与上下文映射说清楚，战术设计才有落点。本节仍以电商订单链路为主线，说明如何从业务中识别子域、如何划分上下文，以及如何把防腐层、共享内核与客户-供应商关系落到代码与 API 上。
+
+---
+
+### 3.1 如何识别和划分子域
+
+子域（Subdomain）分类（核心域 / 支撑域 / 通用域）不是贴标签比赛，而是**投资策略**：决定把最优秀的人力和设计精力投在哪里，哪里可以「够用即可」，哪里应外采或开源。判断时建议同时看四个维度，而不是只看「是否赚钱」。
+
+#### 识别方法：四维度评估
+
+每个子域从以下四个维度评估：
+
+1. **业务价值（Business Value）**
+   - 高：直接影响核心竞争力和收入
+   - 中：支撑业务运转，但不是差异化优势
+   - 低：通用功能，不产生业务价值
+
+2. **复杂度（Complexity）**
+   - 高：业务规则复杂，需要深度领域建模
+   - 中：有一定业务逻辑
+   - 低：简单 CRUD
+
+3. **变化频率（Change Frequency）**
+   - 高：业务规则频繁变化
+   - 中：偶尔调整
+   - 低：基本稳定
+
+4. **差异化（Differentiation）**
+   - 高：行业独有，竞争优势所在
+   - 中：行业通用做法，但有特色
+   - 低：行业标准，无差异化
+
+#### 判断标准矩阵
+
+| 子域类型 | 业务价值 | 复杂度 | 变化频率 | 差异化 | 投资策略 |
+|---------|---------|--------|---------|--------|---------|
+| **核心域** | 高 | 高 | 高/中 | 高 | 自研，精心设计，持续投入 |
+| **支撑域** | 中 | 中 | 中/低 | 中/低 | 自研，简单设计，够用即可 |
+| **通用域** | 低 | 低/中 | 低 | 低 | 外采/开源，不要重复造轮子 |
+
+#### 电商平台子域完整分析
+
+以下用星级（⭐）做相对刻度，便于工作坊对齐口径；重点是**相对比较**与**结论**，而非绝对分数。
+
+**核心域候选**：
+
+1. **订单履约**
+   - 业务价值：⭐⭐⭐⭐⭐（直接影响 GMV）
+   - 复杂度：⭐⭐⭐⭐（状态机、工作流、异常处理）
+   - 变化频率：⭐⭐⭐⭐（业务规则频繁调整）
+   - 差异化：⭐⭐⭐⭐（履约效率是竞争力）
+   - **结论：核心域**
+
+2. **库存管理**
+   - 业务价值：⭐⭐⭐⭐⭐（防止超卖、保障可售）
+   - 复杂度：⭐⭐⭐⭐⭐（分布式、高并发）
+   - 变化频率：⭐⭐⭐（库存策略调整）
+   - 差异化：⭐⭐⭐⭐（库存周转与准确性影响效率）
+   - **结论：核心域**
+
+3. **推荐算法**
+   - 业务价值：⭐⭐⭐⭐⭐（提升转化率）
+   - 复杂度：⭐⭐⭐⭐⭐（机器学习、实时计算）
+   - 变化频率：⭐⭐⭐⭐（算法持续优化）
+   - 差异化：⭐⭐⭐⭐⭐（推荐质量是核心竞争力）
+   - **结论：核心域**
+
+**支撑域候选**：
+
+4. **优惠券系统**
+   - 业务价值：⭐⭐⭐（支撑营销活动）
+   - 复杂度：⭐⭐⭐（规则引擎、计算逻辑）
+   - 变化频率：⭐⭐⭐（营销策略调整）
+   - 差异化：⭐⭐（大部分平台都有）
+   - **结论：支撑域**
+
+5. **用户管理**
+   - 业务价值：⭐⭐⭐（必需但不是竞争力）
+   - 复杂度：⭐⭐（标准用户 CRUD）
+   - 变化频率：⭐⭐（较稳定）
+   - 差异化：⭐（行业标准）
+   - **结论：支撑域**
+
+6. **地址管理**
+   - 业务价值：⭐⭐（辅助功能）
+   - 复杂度：⭐⭐（地址解析、验证）
+   - 变化频率：⭐（很少变化）
+   - 差异化：⭐（无差异）
+   - **结论：支撑域**
+
+**通用域候选**：
+
+7. **消息通知（短信、邮件）**
+   - 业务价值：⭐⭐（必需但通用）
+   - 复杂度：⭐（调用第三方 API）
+   - 变化频率：⭐（基本不变）
+   - 差异化：⭐（完全无差异）
+   - **结论：通用域** → 建议使用云厂商短信、SendGrid 等服务
+
+8. **文件存储**
+   - 业务价值：⭐（基础设施）
+   - 复杂度：⭐（标准存储）
+   - 变化频率：⭐（不变）
+   - 差异化：⭐（无差异）
+   - **结论：通用域** → 建议使用 OSS、S3 等服务
+
+9. **日志系统**
+   - 业务价值：⭐（运维必需）
+   - 复杂度：⭐⭐（日志采集、聚合）
+   - 变化频率：⭐（不变）
+   - 差异化：⭐（无差异）
+   - **结论：通用域** → 建议使用 ELK、Splunk 等
+
+#### 决策工作坊方法（团队协作识别子域）
+
+**步骤 1：列出所有子域**
+
+- 全员头脑风暴
+- 列出系统的所有功能模块
+
+**步骤 2：四维度打分**
+
+- 每个子域从业务价值、复杂度、变化频率、差异化四个维度打分（例如 1～5 分）
+- 团队投票，取平均值或讨论收敛
+
+**步骤 3：分类决策**
+
+- 根据矩阵判断子域类型
+- 边界情况必须团队讨论，避免「默认核心域」
+
+**步骤 4：投资策略确定**
+
+- 核心域：分配最优秀的人力，精心设计
+- 支撑域：够用即可，不过度设计
+- 通用域：评估外采方案
+
+**电商案例的投资策略（示意）**：
+
+```text
+核心域（60% 人力）:
+- 订单履约：20 人
+- 库存管理：15 人
+- 推荐算法：15 人
+
+支撑域（30% 人力）:
+- 优惠券：5 人
+- 用户管理：5 人
+- 地址/支付/物流：5 人
+
+通用域（10% 人力）:
+- 消息通知：外采（云短信）
+- 文件存储：外采（OSS）
+- 日志：外采（ELK）
+- 运维人力：5 人
+```
+
+#### 常见错误
+
+**错误 1：把所有功能都当核心域**
+
+- 表现：每个模块都精心设计，过度投入
+- 后果：资源分散，真正的核心域得不到足够重视
+- 解决：强制排序，**最多 3～5 个核心域**
+
+**错误 2：低估支撑域的重要性**
+
+- 表现：支撑域设计太粗糙，成为瓶颈
+- 后果：核心域被支撑域拖累（性能、可用性、数据质量）
+- 解决：支撑域也要有基本的设计质量与 SLO
+
+**错误 3：自研通用域**
+
+- 表现：重复造轮子（自建消息平台、日志栈）
+- 后果：大量人力花在非差异化能力上
+- 解决：优先考虑外采和开源方案
+
+**错误 4：子域划分过于静态**
+
+- 表现：子域类型一成不变
+- 后果：业务战略变化后，投资与组织仍按旧地图走路
+- 解决：定期（例如每年）重新评估，与业务战略对齐
+
+#### 决策检查清单
+
+- [ ] 是否从业务价值、复杂度、变化频率、差异化四个维度评估？
+- [ ] 核心域数量是否控制在 3～5 个？
+- [ ] 核心域是否分配了最优秀的人力？
+- [ ] 通用域是否优先考虑了外采/开源？
+- [ ] 投资策略是否与业务战略对齐？
+
+---
+
+### 3.2 如何划分限界上下文
+
+限界上下文（Bounded Context）是模型的**一致性边界**与**语言边界**：在边界内术语含义稳定、规则可推敲；跨边界则通过映射与集成协作。划分不是一次性的「微服务切分」，而是对业务能力与协作现实的建模。
+
+#### 划分原则
+
+1. **基于业务能力**
+   - 识别核心业务流程
+   - 按业务能力聚合功能
+   - 电商案例：浏览商品、下单、支付、发货是不同的业务能力
+
+2. **基于团队结构（康威定律）**
+   - 系统架构反映组织结构
+   - 每个团队负责一个或少数上下文
+   - 电商案例：订单团队、商品团队、支付团队
+
+3. **基于数据一致性边界**
+   - 强一致性要求通常落在同一上下文内
+   - 最终一致性可以跨上下文
+   - 电商案例：订单与订单项必须强一致；订单与库存可最终一致
+
+4. **基于语言边界**
+   - 不同的业务术语体系
+   - 术语含义发生变化的地方往往是边界
+   - 电商案例：「商品」在商品上下文与库存上下文中的含义不同
+
+#### 实战：电商平台的上下文演进
+
+**阶段 1：单体架构**
+
+```text
+[单一应用]
+- 所有功能在一个代码库
+- 共享数据库
+- 问题: 耦合严重，难以扩展
+```
+
+**阶段 2：初步拆分（按功能模块）**
+
+```text
+[用户服务] [商品服务] [订单服务] [库存服务]
+- 按功能垂直拆分
+- 每个服务有独立数据库
+- 问题: 边界不清晰，职责混乱，易出现「按表拆分」
+```
+
+**阶段 3：DDD 上下文拆分（目标形态）**
+
+```text
+[用户上下文]
+  - 用户管理、地址管理
+
+[商品上下文]
+  - SPU/SKU、商品详情、分类
+
+[订单上下文]（核心域）
+  - 订单生命周期管理
+  - 订单聚合设计
+
+[库存上下文]（核心域）
+  - 可售库存、锁定库存
+  - 库存扣减策略
+
+[支付上下文]
+  - 支付单管理
+  - 对接第三方支付
+
+[物流上下文]
+  - 物流单管理
+  - 物流轨迹跟踪
+
+[营销上下文]（支撑域）
+  - 优惠券、促销活动
+```
+
+#### 各限界上下文一览（电商示例）
+
+将「阶段 3」中的上下文落到可评审的表格，便于工作坊对齐语言与责任边界；下表为示意，实际项目需替换为你们自己的统一语言与聚合名。
+
+| 限界上下文 | 子域倾向 | 核心聚合（示例） | 主要职责 | 典型对外能力 | 与周边关系（示例） |
+|------------|----------|------------------|----------|----------------|---------------------|
+| 用户上下文 | 支撑域 | User、Address | 账户、认证、地址簿 | 查询用户与地址、地址校验与清洗 | 订单通过 API 拉取收货人与地址 |
+| 商品上下文 | 视战略而定 | Product（SPU/SKU）、Category | 类目、商品详情、上下架 | 批量查询基础信息、按 ID 拉取售价与标题快照 | 订单 Customer-Supplier；库存可能共享极小内核 |
+| 订单上下文 | 核心域 | Order、OrderLine | 下单、改单、取消、状态机 | 创建订单命令、订单查询、领域事件（已下单/已支付） | 依赖商品、库存、支付、物流、营销 |
+| 库存上下文 | 核心域 | Stock、Reservation | 可售量、预留、扣减与释放 | 预留、确认扣减、释放预留 | 订阅订单事件；对商品信息需谨慎共享 |
+| 支付上下文 | 支撑域 | Payment、Channel | 支付单、渠道路由、对账配合 | 创建支付、查单、回调处理 | 订单经 ACL 对接三方；内部可再分防腐 |
+| 物流上下文 | 支撑域 | Shipment、Tracking | 运单、轨迹、承运商对接 | 创建运单、查询轨迹 | 订单 Customer-Supplier |
+| 营销上下文 | 支撑域 | Coupon、Promotion | 券实例、活动规则 | 试算优惠、核销资格校验 | 订单在算价阶段调用 |
+
+**使用方式**：把表格当作「上下文清单 v0.1」，在评审中不断改列名与关系，直到与团队口语一致；不要在第一次工作坊就追求填满每个单元格。
+
+#### 从单体走向限界上下文的评审问题
+
+在画架构图之前，先用下面一组问题压一遍假设，能减少「按表拆微服务」式的假边界：
+
+1. **语言是否分叉**：同一词在两个模块是否含义不同？（如「商品」在售前与在库存中）
+2. **一致性边界**：哪些不变量必须同事务、哪些可异步最终一致？
+3. **变更主体**：谁有权修改这条业务数据？跨团队改同一表往往是边界没划清。
+4. **发布节奏**：两侧是否必须独立部署；若永远一起发，拆分紧迫性要重新评估。
+5. **失败隔离**：一侧故障时，另一侧能否降级；若不能，是否应暂时同上下文或强化契约。
+6. **集成形态**：更适合同步 API、异步事件，还是批量对账；这会反过来约束边界。
+7. **测试策略**：能否为单上下文写可重复的领域测试，而不必起全链路集成环境。
+8. **数据所有权**：每个业务表是否有唯一写入所有者；读模型若非所有者，是否走明确定义的查询 API。
+
+**落地建议**：选 3～5 个最痛的跨模块需求，把它们从「谁改哪张表」还原成「哪两个上下文在协作、用哪种映射」，往往比一次性画全图更有效。
+
+**每个上下文建议写清四件事**（可放进架构决策记录 ADR）：
+
+- **核心聚合**：谁是聚合根，哪些不变量必须在同事务内成立
+- **主要职责**：对外承诺的业务能力（用统一语言写）
+- **对外 API**：查询、命令、事件的契约形态
+- **与其他上下文的关系**：客户-供应商、防腐层、共享内核等
+
+#### 架构图：电商平台上下文与协作（C4 风格示意）
+
+```mermaid
+graph TB
+    subgraph "用户上下文"
+        U1[用户/地址]
+    end
+
+    subgraph "商品上下文"
+        P1[SPU/SKU/类目]
+    end
+
+    subgraph "订单上下文"
+        O1[Order 聚合]
+    end
+
+    subgraph "库存上下文"
+        I1[库存扣减/预留]
+    end
+
+    subgraph "支付上下文"
+        PY1[支付单/渠道]
+    end
+
+    subgraph "物流上下文"
+        L1[运单/轨迹]
+    end
+
+    subgraph "营销上下文"
+        M1[券/活动]
+    end
+
+    O1 -->|Customer-Supplier| P1
+    O1 -->|Customer-Supplier| I1
+    O1 -->|ACL| PY1
+    O1 -->|Customer-Supplier| L1
+    O1 -->|Customer-Supplier| M1
+    U1 -->|Customer-Supplier| O1
+    I1 -.->|Shared Kernel 慎用| P1
+```
+
+#### 拆分决策树
+
+```mermaid
+flowchart TD
+    A[是否有明确的业务边界？]
+    A -->|是| B[倾向独立上下文]
+    A -->|否| C[是否有不同的一致性要求？]
+    C -->|是| D[倾向拆分上下文]
+    C -->|否| E[是否有不同的团队负责？]
+    E -->|是| F[倾向拆分，并校对接口与发布节奏]
+    E -->|否| G[可暂时保留在同一上下文或模块化单体]
+```
+
+#### 拆分的代价与收益
+
+- **何时拆分**：边界清晰、不同团队主责、不同发布节奏或技术栈诉求强、调用关系可治理
+- **何时合并或暂缓拆分**：分布式复杂性（运维、一致性、排障）明显超过拆分收益
+- **判断参考**：团队认知负荷、调用链复杂度、数据一致性成本、故障爆炸半径
+
+---
+
+### 3.3 上下文映射的落地
+
+上下文映射（Context Mapping）把「谁依赖谁、如何集成」说清楚。下面三类在电商集成中最常落地：**防腐层**、**共享内核**、**客户-供应商**。
+
+#### 防腐层（ACL）的设计
+
+**场景**：订单上下文对接第三方支付（微信支付、支付宝等）。
+
+**问题**：
+
+- 第三方 API 经常变化
+- 不同支付渠道的模型不同
+- 不希望外部变化渗透进领域模型
+
+**解决方案**：在基础设施层建立**防腐层**，把外部模型与协议隔离在适配器内。
+
+**架构示意**：
+
+```mermaid
+graph LR
+    OC[订单上下文<br/>领域模型] --> IF[PaymentGateway<br/>领域接口]
+    IF --> ACL[防腐层适配器]
+    ACL --> WX[微信支付 API]
+    ACL --> ALI[支付宝 API]
+```
+
+**代码示例**：
+
+```go
+// 领域层：统一的支付接口
+type PaymentGateway interface {
+    CreatePayment(order *Order, amount Money) (*PaymentResult, error)
+    QueryPaymentStatus(paymentID string) (PaymentStatus, error)
+}
+
+// 基础设施层：防腐层实现
+type WechatPaymentAdapter struct {
+    wechatClient *wechat.Client
+}
+
+func (a *WechatPaymentAdapter) CreatePayment(order *Order, amount Money) (*PaymentResult, error) {
+    // 将领域模型转换为微信支付的请求格式
+    wechatReq := a.toWechatRequest(order, amount)
+    wechatResp, err := a.wechatClient.CreateOrder(wechatReq)
+    if err != nil {
+        return nil, err
+    }
+    // 将微信响应转换回领域模型
+    return a.toPaymentResult(wechatResp), nil
+}
+```
+
+**关键设计原则**：
+
+- 领域层定义接口（依赖倒置）
+- 防腐层在基础设施层实现
+- 只暴露领域需要的抽象，隐藏第三方细节
+- 不同支付渠道实现同一接口，订单领域只依赖接口
+
+#### 共享内核的适用场景和风险
+
+**适用场景**：
+
+- 两个团队紧密协作
+- 有共同且稳定的概念（变化频率低）
+- 共享范围可被文档与测试严格约束
+
+**电商案例**：订单与库存共享**极小**的商品基础信息（如 SKU ID、商品名称快照策略的约定）——注意：共享的是「契约与少量类型」，不是把两个上下文的数据库绑在一起。
+
+**风险**：
+
+- 修改需要双方协调
+- 容易产生隐式耦合
+- 团队自治性降低
+
+**最佳实践**：
+
+- 共享内核应该**非常小**
+- 明确共享范围与演进规则（版本、兼容策略）
+- 建立清晰的协调机制（RFC、联合评审）
+
+#### 客户-供应商关系的 API 设计
+
+**场景**：订单上下文（客户）依赖商品上下文（供应商）。
+
+**API 设计原则**：
+
+1. 供应商提供明确的 API 契约
+2. 考虑客户的需求（批量查询、缓存策略、限流与降级）
+3. 版本管理和兼容性
+4. 性能与可用性保障（与 SLO 对齐）
+
+**电商案例**：
+
+```go
+// 商品上下文提供的 API（供应商）
+type ProductQueryService interface {
+    // 批量查询（考虑订单可能有多个商品）
+    GetProductsByIDs(ids []ProductID) ([]Product, error)
+
+    // 简化模型（订单只需要基本信息）
+    GetProductBasicInfo(id ProductID) (*ProductBasicInfo, error)
+}
+
+// ProductBasicInfo 只包含订单需要的字段
+type ProductBasicInfo struct {
+    ID    string
+    Name  string
+    Price Money
+    // 不包含商品详情、图片等订单不需要的信息
+}
+```
+
+**关键点**：
+
+- 下游明确表达需求（需要哪些字段、怎样的批量接口）
+- 上游设计**面向客户**的 API，而不是暴露内部表结构
+- 避免把内部实现细节泄漏为「公共契约」
+
+---
+
+### 3.4 战略设计中的常见问题
+
+#### 问题 1：过度拆分 vs 拆分不足
+
+**过度拆分的表现**：
+
+- 微服务数量远超团队数量
+- 简单功能需要跨多个服务
+- 分布式事务或补偿到处都是
+- 调用链路复杂，难以排障
+
+**电商反例**：将订单拆成订单头服务、订单项服务、订单状态服务——下单路径被迫多次远程调用，**一致性边界被人为打碎**。
+
+**拆分不足的表现**：
+
+- 单个上下文职责过多
+- 团队无法独立演进
+- 代码库过大，变更冲突频繁
+
+**电商反例**：订单、库存、支付、物流混在一个部署单元里却**没有模块化边界**，最终变成大泥球。
+
+**判断标准**：
+
+- 团队能否相对独立演进
+- 是否有清晰的业务边界与统一语言
+- 调用复杂度与故障半径是否可控
+
+#### 问题 2：上下文边界不清晰
+
+**表现**：
+
+- 职责混乱：订单服务直接操作库存表
+- 数据泄露：对外暴露内部存储形态
+- 循环依赖：订单依赖库存，库存又依赖订单
+
+**解决方案**：
+
+- 明确每个上下文的职责边界（写进文档与代码门禁）
+- 使用领域事件解耦协作路径
+- **禁止**跨上下文直接共享数据库
+
+**电商案例**：
+
+- 错误做法：订单服务直接扣减库存表
+- 正确做法：订单发布 `OrderPlaced` / `OrderPaid` 等事件，库存上下文监听并执行预留或扣减（配合幂等与重试）
+
+#### 问题 3：团队结构与技术架构不匹配
+
+**康威定律**：系统架构倾向于反映组织的沟通结构。
+
+**问题场景**：
+
+- 组织按技术栈分层（前端团队、后端团队、DBA 团队）
+- 系统却按业务垂直拆分（订单、商品、支付）
+- 结果：任何业务功能都要跨多团队排队
+
+**解决方案**：
+
+- 调整团队结构与架构对齐（业务全栈团队）
+- 每个团队覆盖一个或少数上下文的端到端交付
+- 明确接口负责人与 SLI/SLO
+
+**电商案例**：
+
+- 订单团队负责订单上下文的前后端、数据与运维协作界面
+- 商品团队负责商品上下文全栈
+- 避免「一个需求要拉五个团队开工会」成为常态
+
+#### 问题 4：忽略上下文映射，直接共享数据库
+
+**问题**：多个服务直接读写同一张业务表。
+
+**后果**：
+
+- 隐式依赖，难以演进与重构
+- 数据一致性与并发语义不清晰
+- 无法独立部署与扩缩
+
+**解决方案**：
+
+- 每个上下文优先**独立数据库**（或至少独立 schema 与明确所有权）
+- 通过 API 或事件集成
+- 把映射关系画出来：客户-供应商、防腐层、开放主机服务等
+
+---
+
+**本节小结**：
+
+- 子域分类服务于投资策略：先四维度评估，再用矩阵与工作坊收敛
+- 限界上下文划分同时尊重业务能力、一致性、语言与团队现实
+- 上下文映射要落地到接口与适配器：ACL 隔离外部，共享内核极度克制，客户-供应商要「面向客户设计 API」
+- 常见问题的根因多是边界、组织与数据所有权没有对齐
+
+---
+
+## 四、战术设计
+
+战术设计回答的是「领域模型在代码里长什么样」：如何用实体与值对象表达概念，如何用聚合画出一致性边界，如何用仓储隐藏持久化，以及何时引入领域服务与领域事件。本节仍以**电商订单**为主线，给出可直接对照实现的 Go 示例（为可读性会省略部分工程细节，如错误包装与日志）。
+
+---
+
+### 4.1 实体（Entity）
+
+#### 概念与特征
+
+**实体（Entity）**是有**唯一标识（Identity）**且在时间上延续的对象：同一个订单在状态从「待支付」变为「已支付」之后，仍然是**同一张订单**。与标识相比，属性值可以变化。
+
+| 特征 | 说明 |
+|------|------|
+| 唯一标识 | 用 ID 区分实例，而不是靠属性组合 |
+| 生命周期 | 创建、变更、归档或删除 |
+| 可变状态 | 业务操作会改变状态，但身份不变 |
+| 封装规则 | 状态转换应由实体方法约束，避免「随处改字段」 |
+
+#### 贫血模型 vs 充血模型
+
+**贫血模型（Anemic Domain Model）**：`struct` 只有字段，业务规则散落在 `Service` 的 `if-else` 中。优点是上手快；缺点是规则分散、难以测试、模型无法表达「订单知道自己能做什么」。
+
+**充血模型（Rich Domain Model）**：实体持有**与身份强相关**的行为与不变量，应用层只做编排。DDD 鼓励在复杂核心域采用后者——不是每个 CRUD 模块都要「充血」，但订单、账户、合同这类对象通常值得。
+
+#### 反例：贫血的 Order
+
+```go
+// 仅数据载体，业务规则在 Service 中散落
+type Order struct {
+	ID         string
+	UserID     string
+	Status     string
+	TotalPrice float64
+	Items      []OrderItem
+	CreatedAt  time.Time
+}
+
+func (s *OrderService) CancelOrder(orderID string) error {
+	order, err := s.repo.FindByID(orderID)
+	if err != nil {
+		return err
+	}
+	if order.Status == "paid" {
+		order.Status = "cancelled"
+		if err := s.repo.Save(order); err != nil {
+			return err
+		}
+		return s.refundService.Refund(order.ID)
+	}
+	return errors.New("cannot cancel")
+}
+```
+
+问题一眼可见：`Status` 是裸字符串，取消规则与退款编排挤在应用服务里，**订单自身不保证合法状态机**。
+
+#### 正例：充血 Order 与状态值对象
+
+```go
+type OrderID string
+type UserID string
+
+type OrderStatus string
+
+const (
+	OrderStatusPending   OrderStatus = "pending"
+	OrderStatusPaid      OrderStatus = "paid"
+	OrderStatusShipped   OrderStatus = "shipped"
+	OrderStatusCancelled OrderStatus = "cancelled"
+)
+
+func (s OrderStatus) CanCancel() bool {
+	return s == OrderStatusPaid || s == OrderStatusPending
+}
+
+// 实体：封装标识、状态与领域行为
+type Order struct {
+	id         OrderID
+	userID     UserID
+	status     OrderStatus
+	items      []OrderItem
+	totalPrice Money
+	createdAt  time.Time
+	events     []DomainEvent
+}
+
+func (o *Order) Cancel(reason string) error {
+	if !o.status.CanCancel() {
+		return errors.New("order cannot be cancelled")
+	}
+	o.status = OrderStatusCancelled
+	o.addEvent(OrderCancelledEvent{
+		OrderID:     o.id,
+		Reason:      reason,
+		CancelledAt: time.Now(),
+	})
+	return nil
+}
+
+func (o *Order) addEvent(e DomainEvent) {
+	o.events = append(o.events, e)
+}
+```
+
+#### 实体的关键设计原则
+
+1. **封装业务规则**：哪些状态可以互转，由实体（或值对象）表达，而不是由调用方猜。
+2. **保证不变性**：禁止外部绕过方法直接改关键字段；在 Go 中常用小写字段 + 构造/工厂 + 业务方法。
+3. **与值对象组合**：金额用 `Money`，状态用 `OrderStatus`，避免魔法字符串与 `float64` 金额。
+4. **领域事件（可选但常见）**：状态变更时记录事件，供基础设施在事务成功后发布（详见 4.4）。
+
+#### 生命周期（简图）
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pending: CreateOrder
+    Pending --> Paid: Pay
+    Pending --> Cancelled: Cancel
+    Paid --> Shipped: Ship
+    Paid --> Cancelled: Cancel
+    Shipped --> [*]
+    Cancelled --> [*]
+```
+
+---
+
+### 4.2 值对象（Value Object）
+
+#### 概念与特征
+
+**值对象（Value Object）**没有独立身份，靠**属性值**描述事物；通常**不可变**，用整体替换表示变更。相等语义是**值相等**而非引用相等。
+
+| 特征 | 说明 |
+|------|------|
+| 无标识 | 不需要 `OrderID` 这类独立 ID |
+| 不可变 | 修改返回新实例，不原地改字段 |
+| 可替换 | `addr2 := addr1.WithStreet("…")` |
+| 自验证 | 构造失败即非法，避免「无效值对象在系统里传递」 |
+
+#### 何时使用值对象
+
+- 描述性概念：`Money`、`Address`、`DateRange`、`Email`。
+- 需要值语义：两个「100 CNY」在业务上相等。
+- 希望减少无效状态：构造时校验，方法内不破坏不变量。
+
+#### 电商示例：Money
+
+金额用**整数分**存储，避免浮点误差；运算返回新 `Money`，不修改接收者。
+
+```go
+import "errors"
+
+type Money struct {
+	amount   int64  // 分
+	currency string // 如 CNY
+}
+
+// AmountCents / Currency 供仓储等外层只读映射，避免跨包访问未导出字段。
+func (m Money) AmountCents() int64 { return m.amount }
+func (m Money) Currency() string   { return m.currency }
+
+func NewMoneyFromYuan(yuan float64, currency string) Money {
+	return Money{amount: int64(yuan * 100), currency: currency}
+}
+
+func (m Money) Add(other Money) (Money, error) {
+	if m.currency != other.currency {
+		return Money{}, errors.New("currency mismatch")
+	}
+	return Money{amount: m.amount + other.amount, currency: m.currency}, nil
+}
+
+func (m Money) Subtract(other Money) (Money, error) {
+	if m.currency != other.currency {
+		return Money{}, errors.New("currency mismatch")
+	}
+	if m.amount < other.amount {
+		return Money{}, errors.New("insufficient amount")
+	}
+	return Money{amount: m.amount - other.amount, currency: m.currency}, nil
+}
+
+func (m Money) Multiply(qty int) Money {
+	if qty < 0 {
+		return Money{amount: 0, currency: m.currency}
+	}
+	return Money{amount: m.amount * int64(qty), currency: m.currency}
+}
+
+func (m Money) Equals(other Money) bool {
+	return m.amount == other.amount && m.currency == other.currency
+}
+```
+
+#### 电商示例：Address
+
+```go
+type Address struct {
+	province string
+	city     string
+	district string
+	street   string
+	zipCode  string
+}
+
+func (a Address) WithStreet(newStreet string) Address {
+	return Address{
+		province: a.province,
+		city:     a.city,
+		district: a.district,
+		street:   newStreet,
+		zipCode:  a.zipCode,
+	}
+}
+
+func (a Address) IsValid() bool {
+	return a.province != "" && a.city != "" && a.street != ""
+}
+```
+
+#### 电商示例：OrderItem（作为值对象）
+
+订单行通常**不单独生命周期**：外部不引用「第 3 行」的持久化 ID，而是由订单聚合统一修改。典型做法是 `ProductID` + 下单**快照**（名称、单价）。字段导出便于仓储映射；业务不变量仍由聚合根方法守护。
+
+```go
+type ProductID string
+
+type OrderItem struct {
+	ProductID   ProductID
+	ProductName string
+	Quantity    int
+	UnitPrice   Money
+}
+
+func (item OrderItem) Subtotal() Money {
+	return item.UnitPrice.Multiply(item.Quantity)
+}
+```
+
+#### 值对象 vs 实体：判断口诀
+
+> 「若两个对象属性完全相同，业务上是否仍要区分成两个东西？」
+
+- **是** → 实体（两张订单即使金额相同也是不同订单）。
+- **否** → 值对象（两张 100 元纸币在记账语义下可互换）。
+
+---
+
+### 4.3 聚合（Aggregate）
+
+#### 概念
+
+**聚合（Aggregate）**是一组具有**一致性边界**的领域对象：**聚合根（Aggregate Root）**是对外唯一入口，外部只能通过根来修改内部；根负责维护边界内不变量。聚合也常被视为**一个事务边界**（在单体或同一数据库内）。
+
+#### 设计原则（摘自《实现领域驱动设计》）
+
+1. **在边界内保护业务规则不变量**。
+2. **设计小聚合**（Small Aggregates），降低锁竞争与并发冲突。
+3. **通过 ID 引用其他聚合**（Reference by ID），不直接持有其他根的对象图。
+4. **边界外接受最终一致性**：跨聚合用领域事件等方式同步。
+
+#### 聚合结构示意（Order）
+
+```mermaid
+flowchart TB
+    subgraph OrderAggregate["Order 聚合"]
+        Root[Order 聚合根]
+        OI[OrderItem 值对象集合]
+        SA[ShippingAddress 值对象]
+        ST[OrderStatus 值对象]
+        TP[Money 总价]
+        Root --> OI
+        Root --> SA
+        Root --> ST
+        Root --> TP
+    end
+    UserAgg[User 聚合]
+    ProductAgg[Product 聚合]
+    Root -.->|仅 UserID| UserAgg
+    OI -.->|仅 ProductID + 快照| ProductAgg
+```
+
+#### 完整示例：Order 聚合根
+
+```go
+package example
+
+import (
+	"errors"
+	"fmt"
+	"time"
+)
+
+type Payment struct {
+	Method PaymentMethod
+	PaidAt time.Time
+	Amount Money
+}
+
+type PaymentMethod string
+
+// Order 聚合根：外部只能通过它的方法改变状态
+type Order struct {
+	id              OrderID
+	userID          UserID
+	status          OrderStatus
+	items           []OrderItem
+	shippingAddress Address
+	paymentInfo     Payment
+	totalPrice      Money
+	createdAt       time.Time
+	updatedAt       time.Time
+	events          []DomainEvent
+}
+
+func CreateOrder(userID UserID, items []OrderItem, address Address) (*Order, error) {
+	if len(items) == 0 {
+		return nil, errors.New("order must have at least one item")
+	}
+	if !address.IsValid() {
+		return nil, errors.New("invalid shipping address")
+	}
+
+	total := Money{amount: 0, currency: "CNY"}
+	for _, it := range items {
+		var err error
+		total, err = total.Add(it.Subtotal())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	now := time.Now()
+	order := &Order{
+		id:              GenerateOrderID(),
+		userID:          userID,
+		status:          OrderStatusPending,
+		items:           append([]OrderItem(nil), items...),
+		shippingAddress: address,
+		totalPrice:      total,
+		createdAt:       now,
+		updatedAt:       now,
+	}
+	order.addEvent(OrderCreatedEvent{
+		OrderID:    order.id,
+		UserID:     order.userID,
+		TotalPrice: order.totalPrice,
+		OccurredOn: now,
+	})
+	return order, nil
+}
+
+func (o *Order) Pay(method PaymentMethod) error {
+	if o.status != OrderStatusPending {
+		return errors.New("only pending orders can be paid")
+	}
+	now := time.Now()
+	o.status = OrderStatusPaid
+	o.paymentInfo = Payment{Method: method, PaidAt: now, Amount: o.totalPrice}
+	o.updatedAt = now
+	o.addEvent(OrderPaidEvent{
+		OrderID:    o.id,
+		UserID:     o.userID,
+		Amount:     o.totalPrice,
+		PaidAt:     now,
+		Items:      append([]OrderItem(nil), o.items...),
+		OccurredOn: now,
+	})
+	return nil
+}
+
+func (o *Order) Cancel(reason string) error {
+	if !o.status.CanCancel() {
+		return errors.New("order cannot be cancelled")
+	}
+	o.status = OrderStatusCancelled
+	o.updatedAt = time.Now()
+	o.addEvent(OrderCancelledEvent{
+		OrderID:     o.id,
+		Reason:      reason,
+		CancelledAt: o.updatedAt,
+	})
+	return nil
+}
+
+func (o *Order) GetEvents() []DomainEvent {
+	return o.events
+}
+
+func (o *Order) ClearEvents() {
+	o.events = nil
+}
+
+func (o *Order) addEvent(e DomainEvent) {
+	o.events = append(o.events, e)
+}
+
+// 访问器：供基础设施层持久化，避免直接暴露可变字段
+func (o *Order) ID() OrderID                  { return o.id }
+func (o *Order) UserID() UserID                { return o.userID }
+func (o *Order) Status() OrderStatus           { return o.status }
+func (o *Order) Items() []OrderItem            { return append([]OrderItem(nil), o.items...) }
+func (o *Order) TotalPrice() Money            { return o.totalPrice }
+func (o *Order) CreatedAt() time.Time          { return o.createdAt }
+func (o *Order) ShippingAddress() Address     { return o.shippingAddress }
+func (o *Order) PaymentInfo() Payment          { return o.paymentInfo }
+
+func GenerateOrderID() OrderID {
+	return OrderID(fmt.Sprintf("ORD-%d", time.Now().UnixNano()))
+}
+```
+
+> 说明：`GenerateOrderID` 仅为示例；生产环境应使用发号器、UUID 或数据库序列，并处理时钟回拨与冲突。
+
+#### 关键设计决策
+
+1. **`userID` 而非 `*User`**：用户是另一聚合，订单事务不应加载整张用户对象图。
+2. **`OrderItem` 用快照**：价格、名称在下单时刻固化，避免商品改价影响历史订单。
+3. **不持有 `*Product`**：跨聚合引用用 ID + 快照，而不是 ORM 式「关联对象」。
+
+#### 常见错误
+
+**错误 1：聚合过大**
+
+```go
+// 将库存、支付细节全部塞进 Order —— 事务臃肿、并发差、职责混乱
+type Order struct {
+	id        OrderID
+	items     []OrderItem
+	inventory *Inventory // 通常是另一聚合
+}
+```
+
+**错误 2：跨聚合直接修改**
+
+```go
+// 支付时直接扣库存：破坏边界，难以拆分服务
+func (o *Order) PayBad(inventory *Inventory) error {
+	// ...
+	_ = inventory.Deduct(o.items)
+	return nil
+}
+
+// 更好：发布领域事件，由库存上下文订阅处理
+func (o *Order) PayGood(method PaymentMethod) error {
+	// ...
+	o.addEvent(OrderPaidEvent{ /* ... */ })
+	return nil
+}
+```
+
+**错误 3：绕过聚合根修改内部集合**
+
+```go
+// 外部直接改行项目——不变量失守
+order.Items()[0] = OrderItem{} // 若 Items 返回切片底层可被改，风险更高
+```
+
+正确做法：由 `Order` 提供 `ChangeItemQuantity` 等方法，在根内校验「已支付不可改件数」等规则。
+
+#### 聚合设计检查清单
+
+- [ ] 该边界是否需要**强一致**一起提交？
+- [ ] 聚合是否足够小，避免「大锁」？
+- [ ] 是否只通过 **ID** 连接其他聚合？
+- [ ] 外部是否**只能**通过根操作内部对象？
+- [ ] 跨聚合协作是否首选**最终一致**（事件、Saga）？
+
+---
+
+### 4.4 仓储（Repository）+ 领域服务（Domain Service）+ 领域事件（Domain Event）
+
+#### 4.4.1 仓储（Repository）
+
+**仓储**是**面向聚合**的持久化抽象：领域层声明「需要什么」，基础设施层决定「怎么存」。它不同于面向表的 DAO：查询方法宜带**业务语义**，如「待支付超时订单」。
+
+| 对比 | DAO | Repository |
+|------|-----|------------|
+| 视角 | 表与行 | 聚合与不变量 |
+| 方法 | `Insert` / `Update` | `Save` / `FindByID` |
+| 查询 | 通用 CRUD | 语义化查询 + 重建对象图 |
+| 依赖方向 | 常泄漏到领域 | 接口在领域，实现在基础设施 |
+
+**领域层接口示例**：
+
+```go
+import "time"
+
+type OrderRepository interface {
+	Save(order *Order) error
+	FindByID(id OrderID) (*Order, error)
+	Remove(id OrderID) error
+
+	FindPendingOrdersByUser(userID UserID) ([]*Order, error)
+	FindOrdersNeedingPayment(before time.Time) ([]*Order, error)
+}
+```
+
+**PostgreSQL 实现（示意）**：以聚合为单位事务写入订单头与行表，`FindByID` 负责**重建**完整 `Order`。
+
+```go
+import (
+	"database/sql"
+	"time"
+)
+
+type PostgresOrderRepository struct {
+	db *sql.DB
+}
+
+func (r *PostgresOrderRepository) Save(order *Order) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	_, err = tx.Exec(`
+INSERT INTO orders (id, user_id, status, total_amount_cents, currency, created_at, updated_at)
+VALUES ($1,$2,$3,$4,$5,$6,$7)
+ON CONFLICT (id) DO UPDATE SET
+  user_id = EXCLUDED.user_id,
+  status = EXCLUDED.status,
+  total_amount_cents = EXCLUDED.total_amount_cents,
+  currency = EXCLUDED.currency,
+  updated_at = EXCLUDED.updated_at`,
+		string(order.ID()),
+		string(order.UserID()),
+		string(order.Status()),
+		order.TotalPrice().AmountCents(),
+		order.TotalPrice().Currency(),
+		order.CreatedAt(),
+		time.Now(),
+	)
+	if err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(`DELETE FROM order_items WHERE order_id = $1`, string(order.ID())); err != nil {
+		return err
+	}
+	for _, it := range order.Items() {
+		_, err := tx.Exec(`
+INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price_cents, currency)
+VALUES ($1,$2,$3,$4,$5,$6)`,
+			string(order.ID()),
+			string(it.ProductID),
+			it.ProductName,
+			it.Quantity,
+			it.UnitPrice.AmountCents(),
+			it.UnitPrice.Currency(),
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func (r *PostgresOrderRepository) FindByID(id OrderID) (*Order, error) {
+	row := r.db.QueryRow(`
+SELECT user_id, status, total_amount_cents, currency, created_at, updated_at
+FROM orders WHERE id = $1`, string(id))
+
+	var (
+		userID       string
+		status       string
+		amountCents  int64
+		currency     string
+		createdAt    time.Time
+		updatedAt    time.Time
+	)
+	if err := row.Scan(&userID, &status, &amountCents, &currency, &createdAt, &updatedAt); err != nil {
+		return nil, err
+	}
+
+	itemRows, err := r.db.Query(`
+SELECT product_id, product_name, quantity, unit_price_cents, currency
+FROM order_items WHERE order_id = $1`, string(id))
+	if err != nil {
+		return nil, err
+	}
+	defer itemRows.Close()
+
+	var items []OrderItem
+	for itemRows.Next() {
+		var (
+			pid, pname string
+			qty        int
+			ucents     int64
+			ccy        string
+		)
+		if err := itemRows.Scan(&pid, &pname, &qty, &ucents, &ccy); err != nil {
+			return nil, err
+		}
+		items = append(items, OrderItem{
+			ProductID:   ProductID(pid),
+			ProductName: pname,
+			Quantity:    qty,
+			UnitPrice:   Money{amount: ucents, currency: ccy},
+		})
+	}
+
+	// 通过非导出字段重建聚合：实际项目中可用包内工厂或重建函数
+	o := &Order{
+		id:         id,
+		userID:     UserID(userID),
+		status:     OrderStatus(status),
+		items:      items,
+		totalPrice: Money{amount: amountCents, currency: currency},
+		createdAt:  createdAt,
+		updatedAt:  updatedAt,
+	}
+	return o, nil
+}
+```
+
+> 注意：`Order` 若字段未导出，重建逻辑应放在 `domain` 包内的 `RehydrateOrder(...)` 工厂中，避免仓储跨包写入私有字段。上文为讲解方便采用同包示意。
+
+#### 4.4.2 领域服务（Domain Service）
+
+**领域服务**承载**不属于单一实体或值对象**、但又**纯粹属于领域**的逻辑：通常无状态、不直接依赖数据库。典型场景：**跨多个聚合**的规则、或需要多种输入对象的计算。
+
+与**应用服务**分工：
+
+| 层次 | 职责 | 依赖 |
+|------|------|------|
+| 领域服务 | 领域规则与计算 | 其他领域对象、接口（由外层实现） |
+| 应用服务 | 用例编排、事务、调用仓储与消息 | 基础设施 |
+
+**示例：订单计价（Promotion + User + Items）**
+
+价格计算依赖促销、用户等级等，放在 `Order` 上往往臃肿，可下沉为 `PricingService`：
+
+```go
+type Promotion struct {
+	Code   string
+	Active bool
+}
+
+type User struct {
+	ID    UserID
+	Level int
+}
+
+type PricingService interface {
+	CalculateOrderPrice(items []OrderItem, user User, promotions []Promotion) (Money, error)
+}
+
+type OrderPricingService struct{}
+
+func (OrderPricingService) CalculateOrderPrice(
+	items []OrderItem,
+	user User,
+	promotions []Promotion,
+) (Money, error) {
+	subtotal := NewMoneyFromYuan(0, "CNY")
+	for _, it := range items {
+		var err error
+		subtotal, err = subtotal.Add(it.Subtotal())
+		if err != nil {
+			return Money{}, err
+		}
+	}
+
+	discount := estimateDiscount(subtotal, user, promotions)
+	return subtotal.Subtract(discount)
+}
+
+func estimateDiscount(subtotal Money, user User, promotions []Promotion) Money {
+	// 示意：会员折扣 + 促销标签；真实系统会有规则引擎、券模板等
+	_ = promotions
+	if user.Level >= 3 && subtotal.AmountCents() > 10_000 {
+		return NewMoneyFromYuan(10, subtotal.Currency()) // 减 10 元
+	}
+	return NewMoneyFromYuan(0, subtotal.Currency())
+}
+```
+
+其他常见领域服务：**转账**（两端账户聚合）、**库存分配策略**、**运费计算器**等。
+
+#### 4.4.3 领域事件（Domain Event）
+
+**领域事件**表示**已发生**的重要业务事实：命名多用过去时（`OrderPaid`），**不可变**，携带订阅方所需的**最小充分信息**，用于解耦聚合与上下文。
+
+**价值**：
+
+1. 解耦聚合：不直接调用另一上下文的 `Service`。
+2. 最终一致性：支付成功后异步扣库存、发通知。
+3. 审计与分析：事件流即事实记录（是否做完整事件溯源另当别论）。
+
+**接口与事件定义**：
+
+```go
+type DomainEvent interface {
+	EventType() string
+	OccurredOn() time.Time
+}
+
+type OrderCreatedEvent struct {
+	OrderID    OrderID
+	UserID     UserID
+	TotalPrice Money
+	OccurredOn time.Time
+}
+
+func (e OrderCreatedEvent) EventType() string   { return "OrderCreated" }
+func (e OrderCreatedEvent) OccurredOn() time.Time { return e.OccurredOn }
+
+type OrderPaidEvent struct {
+	OrderID    OrderID
+	UserID     UserID
+	Amount     Money
+	PaidAt     time.Time
+	Items      []OrderItem
+	OccurredOn time.Time
+}
+
+func (e OrderPaidEvent) EventType() string     { return "OrderPaid" }
+func (e OrderPaidEvent) OccurredOn() time.Time { return e.OccurredOn }
+
+type OrderCancelledEvent struct {
+	OrderID     OrderID
+	Reason      string
+	CancelledAt time.Time
+}
+
+func (e OrderCancelledEvent) EventType() string     { return "OrderCancelled" }
+func (e OrderCancelledEvent) OccurredOn() time.Time { return e.CancelledAt }
+```
+
+**应用服务内：事务与发布协调（示意）**
+
+```go
+type EventBus interface {
+	Publish(events ...DomainEvent)
+}
+
+type UnitOfWork interface {
+	Begin() UnitOfWork
+	Commit() error
+	Rollback()
+	OnCommit(fn func())
+}
+
+type OrderApplicationService struct {
+	orderRepo OrderRepository
+	eventBus  EventBus
+	uow       UnitOfWork
+}
+
+func (s *OrderApplicationService) PayOrder(id OrderID, method PaymentMethod) error {
+	tx := s.uow.Begin()
+	defer tx.Rollback()
+
+	order, err := s.orderRepo.FindByID(id)
+	if err != nil {
+		return err
+	}
+	if err := order.Pay(method); err != nil {
+		return err
+	}
+	if err := s.orderRepo.Save(order); err != nil {
+		return err
+	}
+
+	events := append([]DomainEvent(nil), order.GetEvents()...)
+	order.ClearEvents()
+
+	tx.OnCommit(func() {
+		s.eventBus.Publish(events...)
+	})
+	return tx.Commit()
+}
+```
+
+**订阅方（其他上下文）**：处理器应**幂等**（至少一次投递）。
+
+```go
+type InventoryService interface {
+	DeductForPaidOrder(orderID OrderID, items []OrderItem) error
+}
+
+type OrderPaidInventoryHandler struct {
+	svc InventoryService
+}
+
+func (h OrderPaidInventoryHandler) Handle(e OrderPaidEvent) error {
+	return h.svc.DeductForPaidOrder(e.OrderID, e.Items)
+}
+
+type NotificationService interface {
+	SendPaymentSuccess(userID UserID, orderID OrderID)
+}
+
+type OrderPaidNotificationHandler struct {
+	svc NotificationService
+}
+
+func (h OrderPaidNotificationHandler) Handle(e OrderPaidEvent) error {
+	h.svc.SendPaymentSuccess(e.UserID, e.OrderID)
+	return nil
+}
+```
+
+#### 下单—支付链路的事件编排（Saga / 进程管理器思路）
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant OrderBC as 订单上下文
+    participant InvBC as 库存上下文
+    participant ShipBC as 物流上下文
+    participant Notify as 通知上下文
+
+    User->>OrderBC: 下单
+    OrderBC-->>InvBC: OrderPlaced / Created
+    InvBC-->>InvBC: 预留库存
+    User->>OrderBC: 支付
+    OrderBC-->>InvBC: OrderPaid
+    InvBC-->>InvBC: 扣减库存
+    OrderBC-->>ShipBC: OrderPaid
+    ShipBC-->>ShipBC: 创建运单
+    OrderBC-->>Notify: OrderPaid
+    Notify-->>User: 支付成功通知
+```
+
+#### 事件设计原则小结
+
+1. **不可变**：发布后不改写事件内容；纠错用补偿事件。
+2. **过去时命名**：表达「已经发生」。
+3. **自足性**：订阅者尽量少打回源系统；必要字段写在事件里。
+4. **投递语义**：消息中间件上实现**至少一次**时，消费者必须**幂等**。
+5. **与事务**：常见做法是**事务提交成功后再发布**（事务外发箱 Outbox 等模式可进一步保证一致性，此处不展开）。
+
+**本节小结**：
+
+- **实体**标识生命周期，封装状态机与不变量；避免贫血模型在核心域泛滥。
+- **值对象**描述属性、不可变、值相等；金额与地址等应用值对象可显著减少 bug。
+- **聚合**定义一致性边界，小聚合 + ID 引用 + 事件协作是实践主基调。
+- **仓储**以聚合为读写单位；**领域服务**补齐跨对象规则；**领域事件**支撑解耦与最终一致。
+
+---
