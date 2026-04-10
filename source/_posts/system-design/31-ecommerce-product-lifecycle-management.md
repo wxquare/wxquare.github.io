@@ -2357,3 +2357,360 @@ func (s *SupplierSyncService) IncrementalSync(supplierID int64) error {
 
 ---
 
+## 第八章：性能优化与监控
+
+在生产环境中，商品生命周期管理系统需要处理大量的数据和高并发请求。本章将讲解性能优化策略和监控指标。
+
+### 8.1 性能优化策略
+
+#### 批量操作优化
+
+批量操作是商品生命周期管理中的高频场景，需要特别关注性能优化。
+
+**优化前的问题**：
+- 大文件一次性加载到内存，导致 OOM
+- 单线程串行处理，效率低下
+- 单条插入数据库，DB 压力大
+
+**优化后的方案**：
+
+| 优化点 | 优化前 | 优化后 | 效果 |
+|--------|--------|--------|------|
+| **文件解析** | 一次性加载到内存 | 流式解析（Scanner） | 内存占用降低 90% |
+| **并发处理** | 单线程串行 | Worker Pool（10个并发） | 吞吐量提升 10倍 |
+| **数据库写入** | 单条 INSERT | BATCH INSERT（1000条/批） | DB 压力降低 90% |
+| **处理时间** | 10万商品需 2小时 | 10万商品需 10分钟 | 时间缩短 12倍 |
+
+**流式解析大文件**：
+
+```go
+// BatchImportFromFile 从文件批量导入商品（流式解析）
+func (s *OperationService) BatchImportFromFile(filePath string) error {
+    // 1. 打开文件
+    file, err := os.Open(filePath)
+    if err != nil {
+        return err
+    }
+    defer file.Close()
+    
+    // 2. 创建 Worker Pool
+    wp := NewWorkerPool(10) // 10个并发 Worker
+    defer wp.Close()
+    
+    // 3. 流式解析文件（避免 OOM）
+    scanner := bufio.NewScanner(file)
+    scanner.Buffer(make([]byte, 1024*1024), 1024*1024) // 1MB buffer
+    
+    batch := make([]*ItemImportRequest, 0, 1000)
+    lineNum := 0
+    
+    for scanner.Scan() {
+        lineNum++
+        line := scanner.Text()
+        
+        // 解析一行数据
+        req, err := s.parseImportLine(line)
+        if err != nil {
+            log.Errorf("parse line %d failed: %v", lineNum, err)
+            continue
+        }
+        
+        batch = append(batch, req)
+        
+        // 批量处理（1000条/批）
+        if len(batch) >= 1000 {
+            s.processBatch(wp, batch)
+            batch = make([]*ItemImportRequest, 0, 1000)
+        }
+    }
+    
+    // 处理剩余数据
+    if len(batch) > 0 {
+        s.processBatch(wp, batch)
+    }
+    
+    return scanner.Err()
+}
+
+// processBatch 批量处理一批数据
+func (s *OperationService) processBatch(wp *WorkerPool, batch []*ItemImportRequest) {
+    wp.Submit(func() {
+        // 批量插入数据库
+        if err := s.repo.BatchCreateItems(batch); err != nil {
+            log.Errorf("batch create items failed: %v", err)
+        }
+    })
+}
+```
+
+#### 供应商同步优化
+
+供应商同步是定时任务，需要优化同步效率。
+
+**优化方案**：
+
+| 优化点 | 说明 | 效果 |
+|--------|------|------|
+| **增量同步** | 只同步 last_sync_time 之后变更的数据 | 数据量减少 95% |
+| **批量处理** | 1000条/批次，避免频繁数据库交互 | DB 压力降低 90% |
+| **并发控制** | 限制并发数（10个供应商并发同步） | 避免打爆下游系统 |
+| **失败重试** | 失败后延迟30分钟重试，避免频繁失败 | 成功率提升至 99% |
+
+**增量同步实现**：
+
+```go
+// IncrementalSyncAllSuppliers 增量同步所有供应商
+func (s *SupplierSyncService) IncrementalSyncAllSuppliers() error {
+    // 1. 获取需要同步的供应商列表
+    now := time.Now()
+    suppliers, err := s.repo.GetSuppliersToSync(now)
+    if err != nil {
+        return err
+    }
+    
+    // 2. 并发同步（限制并发数为10）
+    semaphore := make(chan struct{}, 10)
+    var wg sync.WaitGroup
+    
+    for _, supplier := range suppliers {
+        wg.Add(1)
+        semaphore <- struct{}{} // 获取信号量
+        
+        go func(supplierID int64) {
+            defer wg.Done()
+            defer func() { <-semaphore }() // 释放信号量
+            
+            if err := s.IncrementalSync(supplierID); err != nil {
+                log.Errorf("sync supplier %d failed: %v", supplierID, err)
+            }
+        }(supplier.SupplierID)
+    }
+    
+    wg.Wait()
+    return nil
+}
+```
+
+#### 缓存策略
+
+**缓存层次**：
+
+```mermaid
+graph TD
+    A[用户请求] --> B{本地缓存}
+    B -->|命中| C[返回结果]
+    B -->|未命中| D{Redis 缓存}
+    D -->|命中| E[写入本地缓存]
+    E --> C
+    D -->|未命中| F[查询数据库]
+    F --> G[写入 Redis]
+    G --> E
+```
+
+**缓存策略设计**：
+
+| 缓存层次 | 场景 | TTL | 失效策略 |
+|----------|------|-----|----------|
+| **本地缓存** | 热点商品（Top 1000） | 1分钟 | LRU 淘汰 |
+| **Redis 缓存** | 在售商品 | 10分钟 | 事件驱动失效 |
+| **数据库** | 所有商品 | 永久 | - |
+
+**缓存实现**：
+
+```go
+// GetItemWithCache 获取商品（带缓存）
+func (s *ItemService) GetItemWithCache(itemID int64) (*Item, error) {
+    // 1. 尝试从本地缓存获取
+    if item, ok := s.localCache.Get(itemID); ok {
+        return item.(*Item), nil
+    }
+    
+    // 2. 尝试从 Redis 获取
+    cacheKey := fmt.Sprintf("item:%d", itemID)
+    if cached, err := s.redisClient.Get(cacheKey).Result(); err == nil {
+        var item Item
+        if err := json.Unmarshal([]byte(cached), &item); err == nil {
+            // 写入本地缓存
+            s.localCache.Set(itemID, &item, 1*time.Minute)
+            return &item, nil
+        }
+    }
+    
+    // 3. 从数据库查询
+    item, err := s.repo.GetItemByID(itemID)
+    if err != nil {
+        return nil, err
+    }
+    
+    // 4. 写入 Redis 缓存
+    itemJSON, _ := json.Marshal(item)
+    s.redisClient.Set(cacheKey, itemJSON, 10*time.Minute)
+    
+    // 5. 写入本地缓存
+    s.localCache.Set(itemID, item, 1*time.Minute)
+    
+    return item, nil
+}
+
+// InvalidateItemCache 缓存失效
+func (s *ItemService) InvalidateItemCache(itemID int64) {
+    // 本地缓存失效
+    s.localCache.Delete(itemID)
+    
+    // Redis 缓存失效
+    cacheKey := fmt.Sprintf("item:%d", itemID)
+    s.redisClient.Del(cacheKey)
+}
+```
+
+---
+
+### 8.2 监控指标
+
+#### 业务指标
+
+监控业务指标，及时发现业务异常。
+
+| 指标 | 说明 | 告警阈值 | 告警级别 |
+|------|------|----------|----------|
+| **上架成功率** | 成功上架商品数 / 总上架请求数 | < 90% 持续5分钟 | P0 |
+| **平均上架时长** | 从提交到上线的平均时间 | > 10分钟 | P1 |
+| **审核通过率** | 审核通过数 / 总审核数 | < 80% 持续10分钟 | P1 |
+| **供应商同步延迟** | 当前时间 - 最后同步成功时间 | > 15分钟 | P1 |
+| **供应商同步失败率** | 失败次数 / 总同步次数 | > 10% 持续5分钟 | P0 |
+| **商品下线率** | 下线商品数 / 在售商品数 | > 5% 在1小时内 | P1 |
+
+**业务指标采集**：
+
+```go
+// RecordListingMetrics 记录上架指标
+func (s *ListingService) RecordListingMetrics(success bool, duration time.Duration) {
+    // 1. 记录成功率
+    if success {
+        metrics.IncrCounter("listing.success", 1)
+    } else {
+        metrics.IncrCounter("listing.failure", 1)
+    }
+    
+    // 2. 记录上架时长
+    metrics.RecordDuration("listing.duration", duration)
+    
+    // 3. 计算成功率
+    successRate := s.calculateSuccessRate()
+    metrics.SetGauge("listing.success_rate", successRate)
+}
+```
+
+#### 系统指标
+
+监控系统资源使用情况，及时发现性能瓶颈。
+
+| 指标 | 说明 | 告警阈值 | 说明 |
+|------|------|----------|------|
+| **Worker 处理速度** | 每秒处理的商品数 | < 100/s | Worker Pool 性能下降 |
+| **Kafka 消息积压** | 未消费的消息数量 | > 10000 | 消费速度跟不上生产速度 |
+| **数据库慢查询** | 查询时间 > 1s 的 SQL 数量 | > 10 条/分钟 | 需要优化 SQL |
+| **Redis 命中率** | 缓存命中数 / 总请求数 | < 80% | 缓存策略需优化 |
+| **API 响应时间** | P99 响应时间 | > 500ms | 接口性能下降 |
+| **系统 CPU 使用率** | CPU 使用率 | > 80% 持续5分钟 | 需要扩容 |
+| **系统内存使用率** | 内存使用率 | > 85% | 可能存在内存泄漏 |
+
+**系统指标采集**：
+
+```go
+// MonitorWorkerPool Worker Pool 监控
+func (wp *WorkerPool) MonitorWorkerPool() {
+    ticker := time.NewTicker(10 * time.Second)
+    defer ticker.Stop()
+    
+    for range ticker.C {
+        // 1. 监控队列长度
+        queueSize := len(wp.taskQueue)
+        metrics.SetGauge("worker_pool.queue_size", float64(queueSize))
+        
+        // 2. 监控处理速度
+        processingRate := wp.getProcessingRate()
+        metrics.SetGauge("worker_pool.processing_rate", processingRate)
+        
+        // 3. 监控活跃 Worker 数量
+        activeWorkers := wp.getActiveWorkers()
+        metrics.SetGauge("worker_pool.active_workers", float64(activeWorkers))
+    }
+}
+```
+
+#### 告警规则
+
+| 告警场景 | 告警条件 | 告警内容 | 处理措施 |
+|----------|----------|----------|----------|
+| **上架失败率高** | 失败率 > 10% 持续5分钟 | "商品上架失败率 {value}% 超过阈值" | 检查数据库、审核服务、定价引擎、库存系统 |
+| **供应商同步延迟** | 延迟 > 15分钟 | "供应商 {supplier_id} 同步延迟 {value} 分钟" | 检查供应商接口、网络、Worker 状态 |
+| **Kafka 消息积压** | 积压 > 10000 | "Kafka topic {topic} 积压 {value} 条消息" | 扩容 Consumer、排查慢消费问题 |
+| **数据库慢查询** | 慢查询 > 10 条/分钟 | "数据库慢查询 {value} 条/分钟" | 分析慢查询 SQL，优化索引 |
+| **Redis 命中率低** | 命中率 < 80% | "Redis 命中率 {value}% 低于阈值" | 检查缓存策略、缓存失效逻辑 |
+
+**告警配置示例**（Prometheus + Alertmanager）：
+
+```yaml
+groups:
+  - name: product_lifecycle_alerts
+    rules:
+      # 上架失败率告警
+      - alert: HighListingFailureRate
+        expr: rate(listing_failure_total[5m]) / rate(listing_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          team: product
+        annotations:
+          summary: "商品上架失败率过高"
+          description: "商品上架失败率 {{ $value | humanizePercentage }} 超过 10%"
+      
+      # 供应商同步延迟告警
+      - alert: SupplierSyncDelay
+        expr: time() - supplier_last_sync_time > 900
+        for: 5m
+        labels:
+          severity: warning
+          team: product
+        annotations:
+          summary: "供应商同步延迟"
+          description: "供应商 {{ $labels.supplier_id }} 同步延迟超过 15 分钟"
+      
+      # Kafka 消息积压告警
+      - alert: KafkaLag
+        expr: kafka_consumer_lag > 10000
+        for: 5m
+        labels:
+          severity: warning
+          team: infra
+        annotations:
+          summary: "Kafka 消息积压"
+          description: "Topic {{ $labels.topic }} 积压 {{ $value }} 条消息"
+```
+
+#### 监控大盘
+
+建议使用 Grafana 搭建监控大盘，可视化展示关键指标：
+
+**大盘1：商品上架监控**
+- 上架成功率（折线图）
+- 上架失败数（柱状图）
+- 平均上架时长（折线图）
+- 审核通过率（仪表盘）
+
+**大盘2：供应商同步监控**
+- 供应商同步延迟（表格）
+- 同步成功率（折线图）
+- 每小时同步商品数（柱状图）
+- 同步失败 Top10（表格）
+
+**大盘3：系统性能监控**
+- API 响应时间 P99（折线图）
+- Worker Pool 处理速度（折线图）
+- Kafka 消息积压（折线图）
+- Redis 命中率（折线图）
+- 数据库慢查询数（折线图）
+
+---
+
