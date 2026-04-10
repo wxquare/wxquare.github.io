@@ -1619,3 +1619,403 @@ func (s *PriceService) GetFinalPrice(itemID int64, userID int64) (float64, error
 
 ---
 
+### 6.3 与库存系统的协作
+
+#### 协作场景
+
+商品中心与库存系统的协作场景包括：
+
+1. **商品上架时初始化库存**：新商品上架时，需要在库存系统中创建库存记录
+2. **运营批量设库存**：运营批量修改商品库存
+3. **供应商同步库存变更**：供应商同步库存变更
+4. **订单下单时扣减库存**：用户下单时需要扣减库存
+5. **库存为0自动下架**：库存不足时自动下架商品
+
+#### 协作模式
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant PC as 商品中心
+    participant IS as 库存系统
+    participant Kafka as Kafka
+    participant Cache as Redis缓存
+    
+    Note over User,Cache: 场景1：商品上架时初始化库存
+    PC->>IS: 1. 同步调用：初始化库存
+    IS->>IS: 2. 创建库存记录
+    IS-->>PC: 3. 返回成功
+    
+    Note over User,Cache: 场景2：库存变更
+    IS->>IS: 1. 更新库存（扣减/补货）
+    IS->>Kafka: 2. 发布 StockChanged 事件
+    Kafka->>PC: 3. 商品中心消费事件
+    PC->>Cache: 4. 更新缓存中的库存快照
+    alt 库存为0
+        PC->>PC: 5a. 自动下架商品
+        PC->>Kafka: 6a. 发布 ProductOffline 事件
+    end
+    
+    Note over User,Cache: 场景3：订单下单扣减库存
+    User->>PC: 1. 查询商品详情
+    PC->>Cache: 2. 查询库存缓存
+    Cache-->>PC: 3. 返回库存快照
+    PC-->>User: 4. 展示商品（含库存）
+    User->>IS: 5. 下单（扣减库存）
+    IS->>IS: 6. 扣减库存（分布式锁）
+    IS->>Kafka: 7. 发布 StockChanged 事件
+    Kafka->>PC: 8. 商品中心更新缓存
+```
+
+#### 协作模式说明
+
+1. **同步调用**：下单时扣减库存（RPC + 分布式锁）
+   - 场景：下单扣减库存需要强一致性，必须同步调用
+   - 实现：订单服务调用库存系统的 `DeductStock` RPC 接口
+   - 错误处理：库存不足时返回错误，订单创建失败
+
+2. **异步事件**：库存变更后发送事件
+   - 场景：库存变更是高频操作，商品中心只需要知道库存快照
+   - 实现：库存系统发布 `StockChanged` 事件，商品中心监听更新缓存
+   - 最终一致性：商品中心的库存快照允许短暂不一致
+
+3. **库存为0自动下架**：商品中心监听库存事件，库存为0时自动下架
+   - 场景：避免用户购买库存为0的商品
+   - 实现：商品中心消费 `StockChanged` 事件，判断库存是否为0
+
+#### 数据一致性保证
+
+**数据分层存储**：
+
+| 系统 | 存储内容 | 说明 |
+|------|----------|------|
+| **库存系统** | `available_stock`, `reserved_stock` | 库存的 Single Source of Truth |
+| **商品中心** | `stock_snapshot`（库存快照） | 仅用于列表展示，允许短暂不一致 |
+| **Redis 缓存** | `stock_snapshot`（库存快照） | 热点商品库存缓存 |
+
+**数据一致性保证机制**：
+
+1. **库存系统是唯一数据源**：所有库存扣减必须通过库存系统
+2. **商品中心缓存库存快照**：用于列表展示，不用于下单判断
+3. **定期对账**：后台 Worker 定期对比商品中心和库存系统的数据
+
+#### 对账策略
+
+| 对账维度 | 对账频率 | 不一致处理 |
+|----------|----------|------------|
+| **库存快照** | 每小时 | 更新商品中心的库存快照 |
+| **商品状态** | 每10分钟 | 库存为0但未下架的商品，自动下架 |
+| **库存记录** | 每天 | 商品中心有记录但库存系统无记录，告警 |
+
+#### 代码示例
+
+```go
+// StockService 库存服务
+type StockService struct {
+    itemRepo       ItemRepository
+    stockClient    StockSystemClient
+    eventPublisher EventPublisher
+    cache          *redis.Client
+}
+
+// InitializeStock 初始化商品库存
+func (s *StockService) InitializeStock(itemID int64, initialStock int) error {
+    // 同步调用库存系统
+    if err := s.stockClient.CreateStock(itemID, initialStock); err != nil {
+        return fmt.Errorf("initialize stock failed: %w", err)
+    }
+    
+    // 更新商品表的库存快照
+    if err := s.itemRepo.UpdateStockSnapshot(itemID, initialStock); err != nil {
+        return fmt.Errorf("update stock snapshot failed: %w", err)
+    }
+    
+    return nil
+}
+
+// HandleStockChangedEvent 处理库存变更事件
+func (s *StockService) HandleStockChangedEvent(event *StockChangedEvent) error {
+    // 1. 更新商品表的库存快照
+    if err := s.itemRepo.UpdateStockSnapshot(event.ItemID, event.NewStock); err != nil {
+        return fmt.Errorf("update stock snapshot failed: %w", err)
+    }
+    
+    // 2. 更新缓存
+    cacheKey := fmt.Sprintf("item:stock:%d", event.ItemID)
+    s.cache.Set(cacheKey, event.NewStock, 10*time.Minute)
+    
+    // 3. 如果库存为0，自动下架商品
+    if event.NewStock == 0 {
+        item, _ := s.itemRepo.GetItemByID(event.ItemID)
+        if item.Status == StatusOnline {
+            if err := s.offlineItem(item, "库存为0自动下架"); err != nil {
+                return fmt.Errorf("offline item failed: %w", err)
+            }
+        }
+    }
+    
+    return nil
+}
+
+// ReconcileStock 库存对账
+func (s *StockService) ReconcileStock() error {
+    // 1. 获取所有在售商品
+    items, err := s.itemRepo.GetOnlineItems()
+    if err != nil {
+        return err
+    }
+    
+    // 2. 批量查询库存系统
+    itemIDs := make([]int64, len(items))
+    for i, item := range items {
+        itemIDs[i] = item.ItemID
+    }
+    stocks, err := s.stockClient.BatchGetStock(itemIDs)
+    if err != nil {
+        return err
+    }
+    
+    // 3. 对比库存快照
+    for _, item := range items {
+        actualStock := stocks[item.ItemID]
+        if item.StockSnapshot != actualStock {
+            // 库存不一致，更新快照
+            s.itemRepo.UpdateStockSnapshot(item.ItemID, actualStock)
+            
+            // 如果库存为0，自动下架
+            if actualStock == 0 && item.Status == StatusOnline {
+                s.offlineItem(item, "对账发现库存为0，自动下架")
+            }
+        }
+    }
+    
+    return nil
+}
+```
+
+---
+
+### 6.4 分布式事务处理
+
+#### 分布式事务场景
+
+在商品生命周期管理中，常见的分布式事务场景包括：
+
+1. **商品上架**：商品中心创建商品 + 定价引擎初始化价格 + 库存系统初始化库存
+2. **商品下线**：商品中心下线商品 + 营销系统关闭促销 + 搜索引擎删除索引
+3. **价格调整**：商品中心更新价格 + 定价引擎更新价格 + 缓存系统清理缓存
+
+如果不处理分布式事务，会导致：
+- **数据不一致**：商品中心创建成功，但定价引擎初始化失败
+- **孤岛数据**：商品下线后，搜索引擎仍然有索引
+- **用户体验差**：商品已上架，但查询不到价格
+
+#### 分布式事务方案对比
+
+| 方案 | 说明 | 优点 | 缺点 | 适用场景 |
+|------|------|------|------|----------|
+| **Saga 模式** | 将事务拆分为多个本地事务，通过补偿机制保证一致性 | 高性能，支持长事务 | 最终一致性，需要设计补偿逻辑 | 推荐，适合大部分场景 |
+| **Outbox 模式** | 本地消息表 + 最终一致性 | 简单可靠 | 需要额外的消息表 | 事件驱动场景 |
+| **TCC 模式** | Try-Confirm-Cancel 三阶段提交 | 强一致性 | 复杂度高，性能差 | 不推荐，除非需要强一致性 |
+
+#### Saga 模式实现
+
+Saga 模式将商品上架拆分为多个步骤，每个步骤都是一个本地事务。如果某个步骤失败，执行补偿操作回滚之前的步骤。
+
+```mermaid
+stateDiagram-v2
+    [*] --> CreateItem: 1. 创建商品
+    CreateItem --> InitPrice: 成功
+    CreateItem --> [*]: 失败
+    
+    InitPrice --> InitStock: 成功
+    InitPrice --> CompensateCreateItem: 失败（补偿：删除商品）
+    
+    InitStock --> PublishEvent: 成功
+    InitStock --> CompensateInitPrice: 失败（补偿：删除价格）
+    
+    CompensateInitPrice --> CompensateCreateItem: 补偿完成
+    
+    PublishEvent --> [*]: 完成
+    CompensateCreateItem --> [*]: 补偿完成
+```
+
+#### Saga 状态机实现
+
+```go
+// ListingSaga 商品上架的 Saga 编排器
+type ListingSaga struct {
+    itemRepo       ItemRepository
+    priceClient    PriceEngineClient
+    stockClient    StockSystemClient
+    eventPublisher EventPublisher
+}
+
+// Execute 执行 Saga
+func (s *ListingSaga) Execute(req *ListingRequest) error {
+    // 1. 创建 Saga 状态记录
+    saga := &SagaState{
+        SagaID:    generateSagaID(),
+        Type:      "ProductListing",
+        Status:    SagaStatusPending,
+        CreatedAt: time.Now(),
+    }
+    
+    // 2. 步骤1：创建商品
+    item, err := s.createItem(saga, req)
+    if err != nil {
+        saga.Status = SagaStatusFailed
+        s.saveSagaState(saga)
+        return err
+    }
+    saga.Steps = append(saga.Steps, &SagaStep{
+        StepName: "CreateItem",
+        Status:   SagaStepStatusCompleted,
+        Data:     map[string]interface{}{"item_id": item.ItemID},
+    })
+    
+    // 3. 步骤2：初始化价格
+    if err := s.initPrice(saga, item.ItemID, req.Price); err != nil {
+        // 失败，执行补偿
+        s.compensate(saga)
+        saga.Status = SagaStatusFailed
+        s.saveSagaState(saga)
+        return err
+    }
+    saga.Steps = append(saga.Steps, &SagaStep{
+        StepName: "InitPrice",
+        Status:   SagaStepStatusCompleted,
+    })
+    
+    // 4. 步骤3：初始化库存
+    if err := s.initStock(saga, item.ItemID, req.Stock); err != nil {
+        // 失败，执行补偿
+        s.compensate(saga)
+        saga.Status = SagaStatusFailed
+        s.saveSagaState(saga)
+        return err
+    }
+    saga.Steps = append(saga.Steps, &SagaStep{
+        StepName: "InitStock",
+        Status:   SagaStepStatusCompleted,
+    })
+    
+    // 5. 步骤4：发布事件
+    s.eventPublisher.Publish("product.listed", &ProductListedEvent{
+        ItemID: item.ItemID,
+    })
+    
+    // 6. Saga 完成
+    saga.Status = SagaStatusCompleted
+    s.saveSagaState(saga)
+    
+    return nil
+}
+
+// compensate 执行补偿操作
+func (s *ListingSaga) compensate(saga *SagaState) {
+    // 从后往前补偿
+    for i := len(saga.Steps) - 1; i >= 0; i-- {
+        step := saga.Steps[i]
+        
+        switch step.StepName {
+        case "CreateItem":
+            // 补偿：删除商品
+            itemID := step.Data["item_id"].(int64)
+            s.itemRepo.DeleteItem(itemID)
+            step.Status = SagaStepStatusCompensated
+            
+        case "InitPrice":
+            // 补偿：删除价格
+            itemID := step.Data["item_id"].(int64)
+            s.priceClient.DeletePrice(itemID)
+            step.Status = SagaStepStatusCompensated
+            
+        case "InitStock":
+            // 补偿：删除库存
+            itemID := step.Data["item_id"].(int64)
+            s.stockClient.DeleteStock(itemID)
+            step.Status = SagaStepStatusCompensated
+        }
+    }
+}
+
+// createItem 创建商品
+func (s *ListingSaga) createItem(saga *SagaState, req *ListingRequest) (*Item, error) {
+    item := &Item{
+        ItemID:     s.idGenerator.Generate(),
+        Title:      req.Title,
+        CategoryID: req.CategoryID,
+        Status:     StatusDraft,
+        CreatedAt:  time.Now(),
+    }
+    
+    if err := s.itemRepo.CreateItem(item); err != nil {
+        return nil, fmt.Errorf("create item failed: %w", err)
+    }
+    
+    return item, nil
+}
+
+// initPrice 初始化价格
+func (s *ListingSaga) initPrice(saga *SagaState, itemID int64, price float64) error {
+    if err := s.priceClient.CreatePrice(itemID, price); err != nil {
+        return fmt.Errorf("init price failed: %w", err)
+    }
+    return nil
+}
+
+// initStock 初始化库存
+func (s *ListingSaga) initStock(saga *SagaState, itemID int64, stock int) error {
+    if err := s.stockClient.CreateStock(itemID, stock); err != nil {
+        return fmt.Errorf("init stock failed: %w", err)
+    }
+    return nil
+}
+```
+
+#### Outbox 模式实现
+
+Outbox 模式在前面的章节（4.3）已经讲解过，这里总结其核心思想：
+
+1. **状态变更和事件写入在同一个事务中**：保证原子性
+2. **后台 Worker 轮询 Outbox 表，发布事件到 Kafka**：保证可靠性
+3. **发布成功后标记事件为已发布**：避免重复发布
+
+#### 失败补偿机制
+
+| 失败场景 | 补偿策略 | 说明 |
+|----------|----------|------|
+| **商品创建失败** | 无需补偿 | 第一步失败，无副作用 |
+| **价格初始化失败** | 删除已创建的商品 | 补偿第一步 |
+| **库存初始化失败** | 删除价格 + 删除商品 | 补偿前两步 |
+| **事件发布失败** | 重试3次，失败则告警 | 不影响主流程，后台重试 |
+
+#### 超时处理
+
+Saga 执行过程中可能出现超时，需要设置超时处理机制：
+
+```go
+// ExecuteWithTimeout 执行 Saga（带超时）
+func (s *ListingSaga) ExecuteWithTimeout(req *ListingRequest, timeout time.Duration) error {
+    ctx, cancel := context.WithTimeout(context.Background(), timeout)
+    defer cancel()
+    
+    errChan := make(chan error, 1)
+    
+    go func() {
+        errChan <- s.Execute(req)
+    }()
+    
+    select {
+    case err := <-errChan:
+        return err
+    case <-ctx.Done():
+        // 超时，执行补偿
+        return errors.New("saga execution timeout")
+    }
+}
+```
+
+---
+
