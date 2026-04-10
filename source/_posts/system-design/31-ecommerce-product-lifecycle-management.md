@@ -973,3 +973,393 @@ func (sm *StateMachine) TransitionWithOutbox(item *Item, to ItemStatus, operator
 
 让我们开始深入探讨这些核心问题。
 
+## 第五章：批量操作的幂等性设计
+
+幂等性是分布式系统中的核心设计原则之一。在商品生命周期管理中，幂等性设计尤为重要，因为涉及网络重试、重复提交、定时任务重复执行等场景。
+
+### 5.1 幂等性关键设计
+
+#### 为什么需要幂等性
+
+在实际系统中，以下场景会导致操作的重复执行：
+
+1. **网络重试**：客户端请求超时，重试导致重复请求
+2. **用户重复提交**：用户在前端连续点击提交按钮
+3. **定时任务重复执行**：定时任务执行失败后重试，或者因为系统时钟问题重复执行
+4. **消息队列重复消费**：Kafka 消息重复投递
+
+如果没有幂等性设计，会导致：
+- 商品重复创建
+- 价格重复调整
+- 库存重复扣减
+- 审批单重复提交
+
+#### 幂等性的三个层次
+
+```mermaid
+graph TD
+    A[幂等性设计] --> B[请求层幂等]
+    A --> C[任务层幂等]
+    A --> D[数据层幂等]
+    
+    B --> B1[HTTP 幂等性 Key]
+    B --> B2[API 限流]
+    
+    C --> C1[唯一任务标识符]
+    C --> C2[任务状态判断]
+    
+    D --> D1[唯一索引]
+    D --> D2[乐观锁 version]
+    D --> D3[状态机校验]
+```
+
+1. **请求层幂等**：同一个请求多次提交，只处理一次（HTTP 层面）
+   - 实现方式：客户端生成请求ID（Request-ID header），服务端基于 Redis 去重
+   - 适用场景：防止用户重复点击
+
+2. **任务层幂等**：同一个任务多次创建，只创建一次（业务层面）
+   - 实现方式：唯一任务标识符（task_code、batch_id）+ 数据库唯一索引
+   - 适用场景：上架任务、批量操作任务
+
+3. **数据层幂等**：同一条数据多次更新，结果一致（数据层面）
+   - 实现方式：乐观锁（version 字段）、状态机校验
+   - 适用场景：并发更新商品信息
+
+#### 幂等性实现策略对比
+
+| 策略 | 实现方式 | 优点 | 缺点 | 适用场景 |
+|------|----------|------|------|----------|
+| **唯一索引** | 数据库 UNIQUE KEY | 简单可靠，数据库层面保证 | 无法返回详细错误信息 | 创建操作（上架、同步） |
+| **分布式锁** | Redis SETNX | 灵活，可控制锁超时 | 需要处理锁释放、死锁问题 | 高并发场景 |
+| **乐观锁** | version 字段 | 无锁，性能高 | 冲突重试逻辑复杂 | 更新操作（编辑） |
+| **状态机** | 业务状态判断 | 业务语义清晰 | 需要设计完整状态机 | 状态流转 |
+
+---
+
+### 5.2 唯一标识符设计
+
+#### 三种场景的唯一标识符
+
+不同场景需要不同的唯一标识符设计：
+
+| 场景 | 唯一标识符 | 生成规则 | 数据库设计 |
+|------|------------|----------|------------|
+| **商品上架** | `task_code` | hash(category_id + created_by + timestamp) | UNIQUE KEY uk_task_code (task_code) |
+| **供应商同步** | `(supplier_id, external_id)` | 供应商ID + 外部商品ID | UNIQUE KEY uk_supplier_external (supplier_id, external_id) |
+| **批量操作** | `operation_batch_id` | snowflake_id() | UNIQUE KEY uk_batch_id (operation_batch_id) |
+
+#### 唯一标识符生成规则
+
+**1. 雪花算法（Snowflake ID）**
+
+```go
+// SnowflakeIDGenerator 雪花算法ID生成器
+type SnowflakeIDGenerator struct {
+    machineID int64
+    sequence  int64
+    lastTime  int64
+    mu        sync.Mutex
+}
+
+// Generate 生成雪花ID
+func (g *SnowflakeIDGenerator) Generate() int64 {
+    g.mu.Lock()
+    defer g.mu.Unlock()
+    
+    now := time.Now().UnixMilli()
+    
+    if now == g.lastTime {
+        g.sequence = (g.sequence + 1) & 0xFFF // 12位序列号
+        if g.sequence == 0 {
+            // 序列号用尽，等待下一毫秒
+            for now <= g.lastTime {
+                now = time.Now().UnixMilli()
+            }
+        }
+    } else {
+        g.sequence = 0
+    }
+    
+    g.lastTime = now
+    
+    // 组合ID：41位时间戳 + 10位机器ID + 12位序列号
+    id := ((now - 1640995200000) << 22) | (g.machineID << 12) | g.sequence
+    return id
+}
+```
+
+**2. 业务字段组合哈希**
+
+```go
+// generateTaskCode 生成上架任务唯一标识符
+func generateTaskCode(categoryID, createdBy int64, timestamp time.Time) string {
+    data := fmt.Sprintf("%d-%d-%d", categoryID, createdBy, timestamp.Unix())
+    hash := sha256.Sum256([]byte(data))
+    return hex.EncodeToString(hash[:8]) // 取前16个字符
+}
+```
+
+**3. UUID（不推荐）**
+
+- 优点：生成简单，保证全局唯一
+- 缺点：无序，不适合作为数据库主键（索引性能差）
+
+#### 幂等性验证：CreateOrGet 模式
+
+所有创建操作都应该使用 CreateOrGet 模式，保证幂等性。
+
+```go
+// CreateOrGetListingTask 创建或获取上架任务（幂等性保证）
+func (s *ListingService) CreateOrGetListingTask(req *ListingRequest) (*ListingTask, bool, error) {
+    // 1. 生成唯一标识符
+    taskCode := generateTaskCode(req.CategoryID, req.CreatedBy, time.Now())
+    
+    // 2. 尝试查询已存在的任务
+    existingTask, err := s.repo.GetTaskByCode(taskCode)
+    if err == nil {
+        // 任务已存在，直接返回
+        return existingTask, false, nil
+    }
+    
+    // 3. 任务不存在，创建新任务
+    task := &ListingTask{
+        TaskCode:  taskCode,
+        ItemInfo:  req.ItemInfo,
+        Status:    StatusDraft,
+        CreatedBy: req.CreatedBy,
+        CreatedAt: time.Now(),
+    }
+    
+    // 4. 插入数据库（依赖唯一索引保证幂等性）
+    if err := s.repo.CreateTask(task); err != nil {
+        // 如果是唯一索引冲突，说明并发创建，重新查询
+        if isDuplicateKeyError(err) {
+            existingTask, _ = s.repo.GetTaskByCode(taskCode)
+            return existingTask, false, nil
+        }
+        return nil, false, fmt.Errorf("create task failed: %w", err)
+    }
+    
+    // 5. 返回新创建的任务
+    return task, true, nil
+}
+
+// CreateOrGetItemByExternal 根据供应商外部ID创建或获取商品（幂等性保证）
+func (s *SupplierSyncService) CreateOrGetItemByExternal(supplierID int64, externalID string, extItem *ExternalItem) (*Item, bool, error) {
+    // 1. 尝试查询已存在的商品
+    item, err := s.repo.GetItemByExternalID(supplierID, externalID)
+    if err == nil {
+        // 商品已存在，直接返回
+        return item, false, nil
+    }
+    
+    // 2. 商品不存在，创建新商品
+    newItem := &Item{
+        ItemID:             s.idGenerator.Generate(),
+        SupplierID:         supplierID,
+        ExternalID:         externalID,
+        Title:              extItem.Title,
+        Price:              extItem.Price,
+        Stock:              extItem.Stock,
+        Status:             StatusDraft,
+        ExternalSyncTime:   time.Now(),
+        CreatedAt:          time.Now(),
+    }
+    
+    // 3. 插入数据库
+    if err := s.repo.CreateItem(newItem); err != nil {
+        if isDuplicateKeyError(err) {
+            item, _ = s.repo.GetItemByExternalID(supplierID, externalID)
+            return item, false, nil
+        }
+        return nil, false, fmt.Errorf("create item failed: %w", err)
+    }
+    
+    return newItem, true, nil
+}
+```
+
+---
+
+### 5.3 并发控制策略
+
+#### 并发场景
+
+在商品生命周期管理中，常见的并发场景包括：
+
+1. **运营同时编辑同一商品**：两个运营同时修改商品标题
+2. **供应商同步 + 运营编辑冲突**：供应商同步价格的同时，运营手动调整价格
+3. **批量操作 + 单品操作冲突**：批量调价的同时，运营编辑单个商品价格
+
+如果没有并发控制，会导致：
+- **丢失更新**：后提交的操作覆盖先提交的操作
+- **数据不一致**：不同系统看到的数据不一致
+- **竞态条件**：状态判断和状态更新不是原子操作
+
+#### 并发控制方案对比
+
+| 方案 | 实现方式 | 适用场景 | 优点 | 缺点 |
+|------|----------|----------|------|------|
+| **乐观锁** | version 字段 | 低冲突场景（< 10% 冲突率） | 无锁，性能高 | 冲突时需要重试 |
+| **悲观锁** | SELECT FOR UPDATE | 高冲突场景（> 50% 冲突率） | 避免冲突 | 性能低，可能死锁 |
+| **分布式锁** | Redis SETNX | 跨服务场景 | 灵活，可设置超时 | 需要处理锁释放 |
+
+#### 乐观锁实现
+
+乐观锁通过 `version` 字段实现，每次更新时检查版本号是否变化。
+
+```go
+// UpdateItemWithVersion 使用乐观锁更新商品
+func (r *ItemRepository) UpdateItemWithVersion(item *Item) error {
+    // 1. 保存当前版本号
+    currentVersion := item.Version
+    
+    // 2. 增加版本号
+    item.Version++
+    item.UpdatedAt = time.Now()
+    
+    // 3. 更新数据库（WHERE version = current_version）
+    result := r.db.Model(&Item{}).
+        Where("item_id = ? AND version = ?", item.ItemID, currentVersion).
+        Updates(map[string]interface{}{
+            "title":      item.Title,
+            "price":      item.Price,
+            "stock":      item.Stock,
+            "status":     item.Status,
+            "version":    item.Version,
+            "updated_at": item.UpdatedAt,
+        })
+    
+    // 4. 检查是否更新成功
+    if result.Error != nil {
+        return fmt.Errorf("update item failed: %w", result.Error)
+    }
+    
+    if result.RowsAffected == 0 {
+        // 版本号冲突，说明有其他并发更新
+        return ErrVersionConflict
+    }
+    
+    return nil
+}
+
+// UpdateItemWithRetry 乐观锁更新失败时重试
+func (s *OperationService) UpdateItemWithRetry(itemID int64, updateFn func(*Item) error, maxRetries int) error {
+    for i := 0; i < maxRetries; i++ {
+        // 1. 获取最新数据
+        item, err := s.repo.GetItemByID(itemID)
+        if err != nil {
+            return err
+        }
+        
+        // 2. 应用更新函数
+        if err := updateFn(item); err != nil {
+            return err
+        }
+        
+        // 3. 使用乐观锁更新
+        if err := s.repo.UpdateItemWithVersion(item); err == nil {
+            return nil // 更新成功
+        } else if err == ErrVersionConflict {
+            // 版本冲突，重试
+            time.Sleep(time.Duration(i*10) * time.Millisecond) // 指数退避
+            continue
+        } else {
+            return err
+        }
+    }
+    
+    return errors.New("update failed after max retries")
+}
+```
+
+#### 悲观锁实现
+
+悲观锁通过 `SELECT ... FOR UPDATE` 实现，在事务中锁定记录。
+
+```go
+// UpdateItemWithLock 使用悲观锁更新商品
+func (s *OperationService) UpdateItemWithLock(itemID int64, updateFn func(*Item) error) error {
+    // 1. 开启事务
+    tx := s.db.Begin()
+    defer func() {
+        if r := recover(); r != nil {
+            tx.Rollback()
+        }
+    }()
+    
+    // 2. 锁定记录（SELECT FOR UPDATE）
+    var item Item
+    if err := tx.Where("item_id = ?", itemID).
+        Set("gorm:query_option", "FOR UPDATE").
+        First(&item).Error; err != nil {
+        tx.Rollback()
+        return err
+    }
+    
+    // 3. 应用更新函数
+    if err := updateFn(&item); err != nil {
+        tx.Rollback()
+        return err
+    }
+    
+    // 4. 保存更新
+    if err := tx.Save(&item).Error; err != nil {
+        tx.Rollback()
+        return err
+    }
+    
+    // 5. 提交事务
+    return tx.Commit().Error
+}
+```
+
+#### 冲突解决策略
+
+当多个操作同时修改同一商品时，需要定义冲突解决策略：
+
+| 场景 | 策略 | 说明 |
+|------|------|------|
+| **运营 vs 运营** | 最后写入胜出（Last Write Wins） | 通过版本号判断，后提交的覆盖先提交的 |
+| **运营 vs 供应商** | 运营优先 | 运营手动操作优先级高于自动同步 |
+| **运营 vs 系统** | 运营优先 | 运营手动操作优先级高于系统自动操作 |
+| **供应商 vs 供应商** | 时间戳新者胜出 | 根据 external_sync_time 判断 |
+
+```go
+// resolveConflict 解决并发冲突
+func (s *ConflictResolver) resolveConflict(item *Item, updateA, updateB *ItemUpdate) (*ItemUpdate, error) {
+    // 1. 判断操作优先级
+    priorityA := s.getOperatorPriority(updateA.Operator)
+    priorityB := s.getOperatorPriority(updateB.Operator)
+    
+    if priorityA > priorityB {
+        return updateA, nil
+    } else if priorityB > priorityA {
+        return updateB, nil
+    }
+    
+    // 2. 优先级相同，使用最后写入胜出
+    if updateA.Timestamp.After(updateB.Timestamp) {
+        return updateA, nil
+    } else {
+        return updateB, nil
+    }
+}
+
+// getOperatorPriority 获取操作者优先级
+func (s *ConflictResolver) getOperatorPriority(operator *Operator) int {
+    switch operator.Type {
+    case OperatorTypeManual: // 运营手动操作
+        return 100
+    case OperatorTypeSupplier: // 供应商同步
+        return 50
+    case OperatorTypeSystem: // 系统自动操作
+        return 10
+    default:
+        return 0
+    }
+}
+```
+
+---
+
