@@ -2208,3 +2208,771 @@ sequenceDiagram
 - **仓储**以聚合为读写单位；**领域服务**补齐跨对象规则；**领域事件**支撑解耦与最终一致。
 
 ---
+
+## 五、架构落地
+
+战略设计与战术设计解决「边界与模型」；**架构落地**则回答「目录怎么摆、分层怎么切、和 CQRS / 消息怎么配合」。本节给出经典四层、Go 目录示例、CQRS 读写分离思路，以及 Kafka 等消息设施上的事件驱动集成要点，可与 [30-clean-architecture-ddd-cqrs.md](./30-clean-architecture-ddd-cqrs.md) 对照阅读。
+
+---
+
+### 5.1 DDD 的分层架构
+
+#### 经典四层
+
+```text
+┌─────────────────────────────────┐
+│   表现层 (Presentation Layer)    │  ← HTTP/gRPC 接口、序列化
+├─────────────────────────────────┤
+│   应用层 (Application Layer)     │  ← 用例编排、事务边界
+├─────────────────────────────────┤
+│   领域层 (Domain Layer)          │  ← 实体、值对象、聚合、领域服务
+├─────────────────────────────────┤
+│  基础设施层 (Infrastructure)     │  ← 数据库、消息队列、第三方服务
+└─────────────────────────────────┘
+```
+
+```mermaid
+flowchart TB
+  subgraph layers["DDD 经典四层（依赖向内）"]
+    P["表现层<br/>Presentation / Interfaces"]
+    A["应用层<br/>Application"]
+    D["领域层<br/>Domain"]
+    I["基础设施层<br/>Infrastructure"]
+  end
+  P --> A
+  A --> D
+  I -.->|"实现仓储、消息等接口<br/>（依赖倒置）"| D
+```
+
+#### 各层职责与代码形态
+
+**1. 表现层（Interfaces / Presentation）**
+
+- **职责**：接入协议（HTTP、gRPC、消息消费者），解析输入、调用应用层、组装响应。
+- **不应包含**：业务规则与不变量（只做适配与校验边界）。
+
+```go
+// HTTP Handler 示例
+type OrderHandler struct {
+	orderAppService *OrderApplicationService
+}
+
+func (h *OrderHandler) PlaceOrder(c *gin.Context) {
+	var req PlaceOrderRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	orderID, err := h.orderAppService.PlaceOrder(
+		req.UserID,
+		req.Items,
+		req.ShippingAddress,
+	)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"orderID": orderID})
+}
+```
+
+**2. 应用层（Application）**
+
+- **职责**：编排用例、控制事务、在提交后发布领域事件；**薄薄一层**。
+- **包含**：Application Service、DTO、应用级事件处理器（若团队这样划分）。
+
+```go
+type OrderApplicationService struct {
+	orderRepo    OrderRepository
+	inventoryAPI InventoryAPIClient
+	eventBus     EventBus
+	uow          UnitOfWork
+}
+
+func (s *OrderApplicationService) PlaceOrder(
+	userID UserID,
+	items []OrderItem,
+	address Address,
+) (OrderID, error) {
+	if err := s.inventoryAPI.CheckInventory(items); err != nil {
+		return "", err
+	}
+	order, err := NewOrder(userID, items, address)
+	if err != nil {
+		return "", err
+	}
+	tx := s.uow.Begin()
+	defer tx.Rollback()
+	if err := s.orderRepo.Save(order); err != nil {
+		return "", err
+	}
+	events := append([]DomainEvent(nil), order.GetEvents()...)
+	order.ClearEvents()
+	tx.OnCommit(func() {
+		s.eventBus.Publish(events...)
+	})
+	if err := tx.Commit(); err != nil {
+		return "", err
+	}
+	return order.ID(), nil
+}
+```
+
+**3. 领域层（Domain）**
+
+- **职责**：核心业务逻辑与不变量。
+- **包含**：实体、值对象、聚合、领域服务、仓储**接口**、领域事件。
+- **特点**：不依赖具体数据库、框架或消息 SDK。
+
+```go
+type Order struct {
+	id     OrderID
+	status OrderStatus
+}
+
+func (o *Order) Pay(payment PaymentMethod) error {
+	if o.status != OrderStatusPending {
+		return errors.New("only pending orders can be paid")
+	}
+	o.status = OrderStatusPaid
+	o.addEvent(OrderPaidEvent{
+		OrderID: o.id,
+		Method:  payment,
+	})
+	return nil
+}
+```
+
+**4. 基础设施层（Infrastructure）**
+
+- **职责**：技术细节实现。
+- **包含**：仓储实现、Outbox、Kafka Producer、缓存、第三方 HTTP 客户端等。
+
+```go
+type PostgresOrderRepository struct {
+	db *sql.DB
+}
+
+func (r *PostgresOrderRepository) Save(order *Order) error {
+	// INSERT / UPDATE，映射聚合根与持久化模型
+	return nil
+}
+```
+
+#### 依赖方向与 Clean Architecture 对照
+
+```text
+表现层 ──→ 应用层 ──→ 领域层 ←── 基础设施层
+                         ↑
+                         │
+                    （依赖倒置）
+```
+
+- **依赖向内**：越外层越「面向用例与交付」，越内层越稳定。
+- **依赖倒置**：基础设施实现领域层定义的端口（接口）。
+
+| DDD 分层 | Clean Architecture | 说明 |
+|---------|-------------------|------|
+| 表现层 | Interface Adapters | HTTP / gRPC / 消息适配 |
+| 应用层 | Use Cases | 用例编排与事务 |
+| 领域层 | Entities（核心企业规则） | 与框架无关的领域模型 |
+| 基础设施层 | Frameworks & Drivers | DB、MQ、外部系统 |
+
+更系统的对照与 CQRS 分层变体见 [30-clean-architecture-ddd-cqrs.md](./30-clean-architecture-ddd-cqrs.md) 第四、五部分。
+
+---
+
+### 5.2 目录结构设计
+
+下面给出一个典型的 **Go 单体服务内按 DDD 分层 + 按聚合分包** 的目录骨架（可按团队规范微调 `internal` 与 `pkg` 的边界）。
+
+```text
+order-service/
+├── cmd/
+│   └── server/
+│       └── main.go                    # 入口
+├── internal/
+│   ├── domain/                        # 领域层
+│   │   ├── order/                     # Order 聚合
+│   │   │   ├── order.go               # 聚合根
+│   │   │   ├── order_item.go          # 实体或值对象
+│   │   │   ├── order_status.go        # 值对象 / 枚举
+│   │   │   ├── order_repository.go    # 仓储接口
+│   │   │   └── order_test.go
+│   │   ├── pricing/
+│   │   │   └── pricing_service.go     # 领域服务
+│   │   ├── events/
+│   │   │   ├── order_placed.go
+│   │   │   ├── order_paid.go
+│   │   │   └── order_cancelled.go
+│   │   └── shared/
+│   │       ├── money.go
+│   │       ├── address.go
+│   │       └── user_id.go
+│   ├── application/
+│   │   ├── service/
+│   │   │   └── order_service.go
+│   │   ├── dto/
+│   │   │   ├── place_order_request.go
+│   │   │   └── order_response.go
+│   │   └── eventhandler/
+│   │       └── order_paid_handler.go
+│   ├── infrastructure/
+│   │   ├── persistence/
+│   │   │   ├── postgres_order_repo.go
+│   │   │   └── migrations/
+│   │   ├── messaging/
+│   │   │   └── kafka_event_bus.go
+│   │   └── api/
+│   │       └── inventory_client.go
+│   └── interfaces/
+│       ├── http/
+│       │   ├── handler/
+│       │   │   └── order_handler.go
+│       │   └── router.go
+│       └── grpc/
+│           └── order_service.go
+├── pkg/                               # 可被外部模块稳定引用的库（谨慎暴露）
+│   └── eventbus/
+│       └── event_bus.go
+├── configs/
+│   └── config.yaml
+├── go.mod
+└── go.sum
+```
+
+**目录原则小结**：
+
+1. **按层分**：`domain` / `application` / `infrastructure` / `interfaces` 一目了然。
+2. **按聚合分**：`domain/order`、`domain/inventory` 等，避免「一个大 package 装所有实体」。
+3. **依赖方向**：`domain` 不 import 其他层；外层依赖内层。
+4. **测试贴近源码**：`order_test.go` 与 `order.go` 同目录，降低阅读成本。
+
+**命名习惯（示例）**：
+
+- 领域对象：`order.go`、`order_item.go`
+- 仓储接口：`order_repository.go`；实现：`postgres_order_repo.go`
+- 应用服务：`order_service.go`；领域服务：`pricing_service.go`
+
+**与 Java / Spring Boot 常见布局对照**（概念等价，语法不同）：
+
+```text
+order-service/
+└── src/main/java/com/example/order/
+    ├── domain/
+    │   ├── model/
+    │   ├── service/
+    │   └── repository/          # 仓储接口
+    ├── application/
+    │   └── service/
+    ├── infrastructure/
+    │   ├── persistence/
+    │   └── messaging/
+    └── interfaces/
+        └── rest/
+```
+
+---
+
+### 5.3 DDD + CQRS
+
+**CQRS（Command Query Responsibility Segregation）**把「改状态的写模型」和「查数据的读模型」在模型与存储上拆开，常与事件驱动的读模型投影结合。
+
+#### 何时引入
+
+**适合**：
+
+- 读写比例悬殊（读多写少）或 SLA 不同。
+- 查询要跨聚合、跨上下文拼宽表，直接在写库上 join 成本高。
+- 需要独立扩展读路径（缓存、搜索、物化视图）。
+
+**谨慎**：
+
+- 典型 CRUD、读写都简单且一致性强需求集中在单表。
+- 团队尚无「最终一致」运维与监控经验时，不要一上来全站 CQRS。
+
+#### 电商订单：写模型规范化、读模型宽表
+
+**矛盾**：
+
+- **写**：下单要保证 `Order` 与 `OrderItem` 等同聚合（或同一事务边界）内强一致。
+- **读**：订单列表要展示用户昵称、商品主图、物流摘要等，来自多上下文；写库范式化则查询痛苦。
+
+**思路**：写侧维持聚合与事务；读侧用事件增量维护投影（Elasticsearch、Redis、专用读库均可）。
+
+```text
+写模型（订单上下文）
+├── Order 聚合（规范化存储）
+├── OrderRepository → PostgreSQL
+└── 发布 OrderPlaced、OrderPaid 等事件
+
+读模型（查询侧）
+├── 订阅领域事件
+├── 构建 OrderListView 等宽表 / 文档
+└── 查询走 ES / 只读副本 / 缓存
+```
+
+**写模型（示意）**：
+
+```go
+type Order struct {
+	ID     string
+	UserID string
+	Status string
+}
+
+func (s *OrderApplicationService) PlaceOrder(/* ... */) error {
+	order := /* 构建聚合 */
+	if err := s.orderRepo.Save(order); err != nil {
+		return err
+	}
+	s.eventBus.Publish(OrderPlacedEvent{OrderID: order.ID, /* ... */})
+	return nil
+}
+```
+
+**读模型（投影构建示意）**：
+
+```go
+type OrderListView struct {
+	OrderID       string
+	UserName      string
+	UserAvatar    string
+	ProductNames  []string
+	ProductImages []string
+	TotalPrice    float64
+	Status        string
+	CreatedAt     time.Time
+}
+
+type OrderListViewBuilder struct {
+	searchClient SearchClient
+	userRepo     UserLookup
+	productRepo  ProductLookup
+}
+
+func (b *OrderListViewBuilder) OnOrderPlaced(event OrderPlacedEvent) {
+	user := b.userRepo.FindByID(event.UserID)
+	products := b.productRepo.FindByIDs(event.ProductIDs)
+	view := OrderListView{
+		OrderID:      event.OrderID,
+		UserName:     user.Name,
+		ProductNames: extractNames(products),
+		TotalPrice:   event.TotalPrice,
+		Status:       "Pending",
+		CreatedAt:    event.OccurredOn,
+	}
+	_ = b.searchClient.IndexOrderListView(view)
+}
+```
+
+```mermaid
+flowchart LR
+  WR[写请求] --> BC[订单上下文]
+  BC --> PG[(PostgreSQL<br/>规范化写库)]
+  BC --> EVT[发布领域事件]
+  EVT --> PROJ[读模型投影器]
+  PROJ --> IDX[(Elasticsearch / 读库 / 缓存)]
+  QR[查询请求] --> QRY[查询 API]
+  QRY --> IDX
+```
+
+**设计要点**：
+
+1. **写模型**负责事务与不变量；**读模型**可滞后，但要可观测（延迟、积压）。
+2. 同一业务可有**多套读模型**（列表、详情、运营报表）。
+3. 读写可**独立扩缩**与选型（OLTP + 搜索 / 分析引擎）。
+
+更多分层与 CQRS 变体仍推荐对照 [30-clean-architecture-ddd-cqrs.md](./30-clean-architecture-ddd-cqrs.md) 第五部分。
+
+---
+
+### 5.4 DDD + 事件驱动架构
+
+领域事件在**限界上下文之间**传递「已发生的事实」；落地时通常配合 **Kafka**（高吞吐、持久化、可回放）、**RabbitMQ**（灵活路由）、**NATS**（轻量）等中间件。选型取决于顺序性、投递语义、运维形态，这里不展开产品对比。
+
+#### 下单—支付链路的逻辑视图
+
+```mermaid
+flowchart TB
+  U[用户下单] --> O1[订单上下文：创建 Pending 订单]
+  O1 --> K1[OrderPlacedEvent → Kafka]
+  K1 --> I1[库存上下文：锁定库存]
+  I1 --> K2[InventoryReservedEvent]
+  P[用户支付] --> O2[订单上下文：支付成功]
+  O2 --> K3[OrderPaidEvent → Kafka]
+  K3 --> I2[库存：扣减]
+  K3 --> S[物流：创建运单]
+  K3 --> N[通知：触达用户]
+  K3 --> A[分析：行为流水]
+```
+
+#### 发布与订阅（接口 + Kafka 示意）
+
+```go
+type EventBus interface {
+	Publish(topic string, event DomainEvent) error
+}
+
+type KafkaEventBus struct {
+	producer sarama.SyncProducer
+}
+
+func (bus *KafkaEventBus) Publish(topic string, event DomainEvent) error {
+	data, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	msg := &sarama.ProducerMessage{
+		Topic: topic,
+		Key:   sarama.StringEncoder(event.AggregateID()),
+		Value: sarama.ByteEncoder(data),
+	}
+	_, _, err = bus.producer.SendMessage(msg)
+	return err
+}
+```
+
+```go
+type OrderPaidEventHandler struct {
+	inventoryService InventoryService
+	processed        ProcessedEventStore
+}
+
+func (h *OrderPaidEventHandler) Handle(event OrderPaidEvent) error {
+	if h.processed.Exists(event.EventID) {
+		return nil
+	}
+	if err := h.inventoryService.DeductInventory(event.OrderID, event.Items); err != nil {
+		return err
+	}
+	return h.processed.Mark(event.EventID)
+}
+```
+
+#### 长流程与 Saga（补偿）
+
+事件编排实现**最终一致**；若需要显式「多步远程调用 + 补偿」，可引入 **Saga / 流程管理器**（与消息驱动可并存）。
+
+```text
+订单已创建 → 锁定库存 → 支付 → 扣减库存 → 创建运单
+                ↓ 失败           ↓ 失败
+            释放库存         释放库存 + 退款
+```
+
+```go
+type OrderSaga struct {
+	orderRepo    OrderRepository
+	inventoryAPI InventoryAPIClient
+	paymentAPI   PaymentAPIClient
+	logisticsAPI LogisticsAPIClient
+}
+
+func (s *OrderSaga) Execute(orderID string) error {
+	if err := s.inventoryAPI.Reserve(orderID); err != nil {
+		return err
+	}
+	if err := s.paymentAPI.Pay(orderID); err != nil {
+		_ = s.inventoryAPI.Release(orderID)
+		return err
+	}
+	if err := s.inventoryAPI.Deduct(orderID); err != nil {
+		_ = s.paymentAPI.Refund(orderID)
+		_ = s.inventoryAPI.Release(orderID)
+		return err
+	}
+	if err := s.logisticsAPI.CreateShipment(orderID); err != nil {
+		// 示例：物流失败策略依业务而定，可记录待人工处理
+		log.Printf("shipment failed: %v", err)
+	}
+	return nil
+}
+```
+
+#### 关键工程要点
+
+1. **消费者幂等**：至少一次投递下，重复消息不得破坏不变量。
+2. **顺序与分区键**：同一聚合或业务流程使用稳定 `key` 映射到分区，避免乱序破坏状态机假设。
+3. **重试与死信**：可重试错误与不可重试错误要区分； poison message 要隔离。
+4. **补偿与对账**：跨上下文失败路径要可观测、可人工介入。
+
+**本节小结**：
+
+- **四层架构**划定职责与依赖方向，**依赖倒置**把技术细节挡在领域之外。
+- **目录**按层 + 按聚合组织，有利于演进与代码导航。
+- **CQRS**分离写模型与读模型，读侧多用**事件投影**换查询性能与扩展性。
+- **事件驱动**用中间件连接上下文，配合**幂等、顺序、重试、Saga** 才能长期运维。
+
+---
+
+## 六、实施指南
+
+从书本概念到团队日常交付，还需要回答：**要不要上 DDD**、**遗留系统怎么迁**、**工作坊怎么开**、**哪些坑别踩**。本节给出一套偏工程落地的 checklist 与阶段化路径，仍以电商为叙事背景。
+
+---
+
+### 6.1 何时使用 DDD
+
+#### 往往值得投入的场景
+
+1. **业务复杂**：规则多、变更多，状态机 / 促销 / 履约链路长。
+2. **长生命周期**：系统会持续迭代，模型需要可演进、可讨论。
+3. **多团队协作**：需要清晰的上下文边界与接口契约，降低「口口相传」成本。
+4. **领域专家可参与**：能共建**统一语言**与验收示例（哪怕从简版术语表开始）。
+
+#### 不太划算的场景
+
+1. **简单 CRUD**：后台配置、纯表单管理，战术 DDD 全套易过度。
+2. **短周期交付**：例如小于 3 个月的工具型项目，学习曲线摊不薄。
+3. **技术主导、领域稀薄**：日志管道、纯基础设施类系统，DDD 核心收益有限。
+4. **团队零铺垫硬上**：没有教练或共读，容易学成「伪 DDD」。
+
+#### 决策矩阵（业务复杂度 × 周期）
+
+| 业务复杂度 / 项目周期 | 短期（少于 6 个月） | 中期（6～18 个月） | 长期（大于 18 个月） |
+|----------------------|-------------------|-------------------|---------------------|
+| **简单**（CRUD 为主） | 不必强行 DDD | 不必强行 DDD | 可在核心域**轻量**战术 DDD |
+| **中等**（有明显规则） | 以战术设计为主，边界先行 | 推荐 DDD | 推荐 DDD |
+| **复杂**（状态机、工作流） | 推荐 DDD | 强烈推荐 | 强烈推荐 |
+
+#### 快速自检（满足 3 条以上可认真考虑 DDD）
+
+- [ ] 业务规则超出「单表 CRUD + if-else」可维护范围  
+- [ ] 系统预期持续演进而非一次性交付  
+- [ ] 能拉到业务方定期评审模型与术语  
+- [ ] 团队规模与模块边界需要显式治理（通常多于 3 人协作同一产品）  
+- [ ] 未来会有多个子系统 / 上下文集成（支付、库存、营销等）
+
+---
+
+### 6.2 从既有系统迁移到 DDD
+
+遗留**单体 + 贫血服务 + 共享大库**是常见起点。建议采用**绞杀者模式（Strangler Fig）**：新能力用新结构承接，旧能力渐进搬迁，全程保持可发布。
+
+#### 阶段 0：现状（典型问题）
+
+```text
+[单体应用]
+├── UserService
+├── ProductService
+├── OrderService（贫血模型，规则散在 Service）
+└── 共享数据库
+```
+
+- 业务规则散落、难以单测；团队不敢改「核心路径」。
+
+#### 阶段 1：识别边界（少改代码，多对齐认知）
+
+**目标**：用统一语言描述「聚合、上下文、事件」，形成共识图纸。
+
+**行动**：
+
+1. 组织 **Event Storming**（见 6.3），先事件后命令再聚合。
+2. 标出核心聚合（如 `Order` + `OrderItem`）与上下文（订单、库存、支付、商品）。
+3. 画**上下文映射**（客户-供应商、防腐层、开放主机服务等）。
+
+**产出**：领域草图、上下文边界说明、聚合设计备忘。  
+**周期感**：约 1～2 周（视领域规模与参与人可用性）。
+
+#### 阶段 2：在代码里「收口」到聚合
+
+**目标**：把订单相关不变量迁回 `Order` 聚合，服务层变薄。
+
+**之前（贫血）**：
+
+```go
+func (s *OrderService) CancelOrder(orderID string) error {
+	order := s.db.QueryOrder(orderID)
+	if order.Status == "paid" {
+		s.db.Exec("UPDATE orders SET status = 'cancelled' WHERE id = ?", orderID)
+		return s.refundService.Refund(orderID)
+	}
+	return nil
+}
+```
+
+**之后（充血 + 应用服务编排）**：
+
+```go
+func (o *Order) Cancel(reason string) error {
+	if !o.status.CanCancel() {
+		return errors.New("order cannot be cancelled")
+	}
+	o.status = OrderStatusCancelled
+	o.addEvent(OrderCancelledEvent{OrderID: o.id, Reason: reason})
+	return nil
+}
+
+func (s *OrderApplicationService) CancelOrder(orderID string) error {
+	order, err := s.orderRepo.FindByID(orderID)
+	if err != nil {
+		return err
+	}
+	if err := order.Cancel("user requested"); err != nil {
+		return err
+	}
+	return s.orderRepo.Save(order)
+}
+```
+
+**周期感**：2～4 周（取决于测试防护与耦合程度）。
+
+#### 阶段 3：引入领域事件，拆掉直连
+
+**之前**：订单服务直接调用库存、退款接口，失败策略缠在一起。
+
+```go
+func (s *OrderService) CancelOrder(orderID string) {
+	// ...
+	s.inventoryService.ReleaseInventory(orderID)
+	s.refundService.Refund(orderID)
+}
+```
+
+**之后**：聚合内产生事件，提交后发布；库存 / 支付上下文各自订阅。
+
+```go
+func (s *OrderApplicationService) CancelOrder(orderID string) error {
+	order, err := s.orderRepo.FindByID(orderID)
+	if err != nil {
+		return err
+	}
+	if err := order.Cancel("user requested"); err != nil {
+		return err
+	}
+	if err := s.orderRepo.Save(order); err != nil {
+		return err
+	}
+	s.eventBus.Publish(order.GetEvents()...)
+	return nil
+}
+```
+
+**周期感**：2～3 周（含幂等、重试与监控）。
+
+#### 阶段 4：服务化 / 数据库拆分（在边界验证之后）
+
+**目标**：订单上下文独立部署、独立数据存储，通过 API + 事件集成。
+
+```text
+[单体]
+   ↓
+[单体 + 订单服务]（可能经历双写 / 数据迁移）
+   ↓
+[订单服务] + [剩余单体] → 继续拆分其他上下文
+```
+
+**周期感**：4～6 周起，高度依赖数据一致性与流量迁移策略。
+
+#### 阶段 5：持续演进
+
+- 继续按上下文拆分；为读路径引入 CQRS / 投影；完善可观测性与对账工具。
+
+#### 成功要素与风险
+
+- **渐进**：禁止「停机半年重写」。  
+- **可运行**：每个迭代都可发布、可回滚。  
+- **对齐**：产品、研发、测试对术语与边界一致。  
+- **价值优先**：从**核心域**下手，支撑域允许简单模式。  
+- **风险**：双写期要有对账；灰度与特性开关；保留回滚剧本。
+
+---
+
+### 6.3 团队协作
+
+#### Event Storming（事件风暴）简版流程
+
+**参与者**：领域专家、开发、产品、测试（可选运维）。
+
+1. **橙贴：领域事件** —— 「订单已创建」「库存已锁定」「订单已支付」。  
+2. **蓝贴：命令** —— 谁触发？来自用户还是策略？  
+3. **黄贴：聚合 / 策略** —— 哪个模型负责执行命令、维护不变量？  
+4. **边界与上下文** —— 在哪里术语含义变化、事务必须切开？  
+5. **关系** —— 客户-供应商、防腐层、发布语言等。
+
+**产出**：端到端流程墙、候选聚合列表、上下文地图草稿。
+
+```text
+[下单] → OrderPlaced → [锁定库存] → InventoryReserved → [支付] → OrderPaid → ...
+```
+
+**工具**：实体墙 + 便利贴；远程可用 Miro、FigJam 等白板。
+
+#### 与领域专家共建统一语言
+
+- 维护**术语表（Glossary）**：中英文、禁用同义词混用。  
+- **代码即文档**：类型名、方法名尽量用业务词（`PlaceOrder` 而非 `SubmitData`）。  
+- **定期 Review**：新需求先问「改的是哪个上下文、哪个聚合」。  
+- **可视化**：上下文图、核心序列图挂在团队可见处。
+
+**电商术语表示例**：
+
+| 术语 | 含义 |
+|------|------|
+| 下单（PlaceOrder） | 用户提交购买意图，生成待支付订单 |
+| 锁库存（ReserveInventory） | 为订单预留可售库存，防超卖 |
+| 订单已支付（OrderPaid） | 支付成功后的领域事实，触发履约链路 |
+
+---
+
+### 6.4 常见陷阱
+
+#### 陷阱 1：为 DDD 而 DDD（过度设计）
+
+**现象**：简单配置模块也硬拆聚合、事件、六边形，团队抱怨「样板比业务还多」。  
+**对策**：用**子域分类**投资；核心域厚建模，支撑域允许贫血或事务脚本。
+
+#### 陷阱 2：贫血模型回潮
+
+**现象**：实体只有 getter/setter，所有规则在 `*Service`；领域层名存实亡。
+
+```go
+type Order struct {
+	ID     string
+	Status string
+}
+
+func (s *OrderService) Cancel(order *Order) {
+	if order.Status == "paid" {
+		order.Status = "cancelled"
+	}
+}
+```
+
+**对策**：反复问「这条规则属于哪个对象的生命周期？」；把状态机放进聚合；服务只做编排。
+
+#### 陷阱 3：聚合切错（过大或互相践踏）
+
+**过大**：把订单、库存、支付塞进同一聚合，事务与并发锁灾难。  
+**跨聚合直接改**：`order.Inventory.Deduct()` 破坏边界。
+
+```go
+// 不推荐：库存不应作为订单聚合的内部可变部分
+type Order struct {
+	Items     []OrderItem
+	Inventory *Inventory
+}
+```
+
+**对策**：小聚合、**ID 引用**、跨聚合用**领域事件**或显式应用层编排 + 反腐蚀。
+
+#### 陷阱 4：忽略上下文映射与数据所有权
+
+**现象**：多服务读写同表、隐式依赖、无法独立部署。  
+**对策**：一上下文优先**一库**；集成只走 API / 事件；把映射关系画成团队契约。
+
+#### 陷阱 5：过早微服务化
+
+**现象**：边界未验证就拆十几个服务，分布式事务与运维成本爆炸。  
+**对策**：**模块化单体**先固化上下文；验证协作与数据边界后，再拆部署单元。
+
+**本节小结**：
+
+- **是否采用 DDD** 看复杂度、周期、团队与演进预期，用矩阵与 checklist 收敛决策。  
+- **迁移**用绞杀者模式分阶段：认清边界 → 聚合收口 → 事件解耦 → 服务与数据拆分 → 持续演进。  
+- **协作**靠 Event Storming 与术语表，让模型可讨论、可验收。  
+- **避坑**的核心是：别过度、别贫血、别大聚合、别共享数据库、别过早拆分。
+
+---
+
+---
