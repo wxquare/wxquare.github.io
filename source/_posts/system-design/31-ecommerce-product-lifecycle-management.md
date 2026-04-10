@@ -1363,3 +1363,259 @@ func (s *ConflictResolver) getOperatorPriority(operator *Operator) int {
 
 ---
 
+## 第六章：跨系统协调设计
+
+在电商系统中，商品中心不是孤立存在的，它需要与定价引擎、库存系统、搜索引擎、推荐系统等多个系统协作。本章将深入探讨跨系统协调的设计原则和实践。
+
+### 6.1 商品中心的职责边界
+
+#### 商品中心的核心职责
+
+遵循单一职责原则（SRP），商品中心应该专注于：
+
+1. **商品主数据管理**：
+   - SPU（Standard Product Unit）管理：商品标准单元
+   - SKU（Stock Keeping Unit）管理：库存单元
+   - 商品属性管理：类目、品牌、规格参数
+
+2. **商品生命周期管理**：
+   - 商品上架流程
+   - 商品审核流程
+   - 商品状态流转（上线、下线、归档）
+
+3. **商品审核流程**：
+   - 差异化审核策略
+   - 风险评估引擎
+   - 审核流程编排
+
+4. **商品数据分发**：
+   - 发布领域事件
+   - 同步商品变更到下游系统
+   - 保证数据最终一致性
+
+#### 不属于商品中心的职责
+
+以下职责应该由其他专业系统负责：
+
+1. **价格计算**（定价引擎）：
+   - 促销价格计算
+   - 阶梯价格计算
+   - 会员价格计算
+   - 动态定价策略
+
+2. **库存扣减**（库存系统）：
+   - 库存预占
+   - 库存扣减
+   - 库存回补
+   - 库存对账
+
+3. **促销活动**（营销系统）：
+   - 满减活动
+   - 优惠券
+   - 拼团活动
+   - 秒杀活动
+
+4. **商品搜索**（搜索引擎）：
+   - 全文检索
+   - 相关性排序
+   - 个性化搜索
+
+#### 职责边界图
+
+```mermaid
+graph TD
+    A[商品中心] --> A1[商品主数据管理]
+    A --> A2[生命周期管理]
+    A --> A3[审核流程]
+    A --> A4[数据分发]
+    
+    B[定价引擎] --> B1[促销价格计算]
+    B --> B2[阶梯价格计算]
+    B --> B3[动态定价]
+    
+    C[库存系统] --> C1[库存扣减]
+    C --> C2[库存预占]
+    C --> C3[库存对账]
+    
+    D[营销系统] --> D1[满减活动]
+    D --> D2[优惠券]
+    D --> D3[拼团活动]
+    
+    E[搜索引擎] --> E1[全文检索]
+    E --> E2[相关性排序]
+    
+    A -.事件.-> B
+    A -.事件.-> C
+    A -.事件.-> D
+    A -.事件.-> E
+```
+
+#### 职责边界划分原则
+
+1. **单一数据源（Single Source of Truth）**：
+   - 商品基础信息：商品中心
+   - 价格信息：定价引擎
+   - 库存信息：库存系统
+   - 促销信息：营销系统
+
+2. **避免职责重叠**：
+   - 商品中心只存储商品基础价格（base_price），不负责促销价格计算
+   - 商品中心只缓存库存快照，不负责库存扣减
+
+3. **通过事件解耦**：
+   - 商品中心发布事件，下游系统监听并更新本地数据
+   - 避免直接调用下游系统的修改接口
+
+---
+
+### 6.2 与定价引擎的协作
+
+#### 协作场景
+
+商品中心与定价引擎的协作场景包括：
+
+1. **商品上架时初始化价格**：新商品上架时，需要在定价引擎中创建价格记录
+2. **运营批量调价**：运营批量修改商品价格，需要同步到定价引擎
+3. **供应商同步价格变更**：供应商同步价格变更，需要通知定价引擎
+4. **查询最终价格**：用户浏览商品时，需要查询促销后的最终价格
+
+#### 协作模式
+
+```mermaid
+sequenceDiagram
+    participant OP as 运营系统
+    participant PC as 商品中心
+    participant PE as 定价引擎
+    participant Kafka as Kafka
+    participant Cache as Redis缓存
+    
+    Note over OP,Cache: 场景1：商品上架时初始化价格
+    OP->>PC: 1. 创建商品（含基础价格）
+    PC->>PC: 2. 保存商品到数据库
+    PC->>PE: 3. 同步调用：初始化价格
+    PE->>PE: 4. 创建价格记录
+    PE-->>PC: 5. 返回成功
+    PC->>Kafka: 6. 发布 ProductCreated 事件
+    
+    Note over OP,Cache: 场景2：价格变更
+    OP->>PC: 1. 修改商品基础价格
+    PC->>PC: 2. 更新商品表
+    PC->>Kafka: 3. 发布 ProductPriceChanged 事件
+    Kafka->>PE: 4. 定价引擎消费事件
+    PE->>PE: 5. 更新价格记录
+    PE->>Kafka: 6. 发布 PriceUpdated 事件
+    Kafka->>Cache: 7. 缓存系统更新缓存
+    
+    Note over OP,Cache: 场景3：查询最终价格
+    OP->>PC: 1. 查询商品详情
+    PC->>Cache: 2. 查询缓存
+    alt 缓存命中
+        Cache-->>PC: 3a. 返回缓存数据
+    else 缓存未命中
+        PC->>PE: 3b. RPC 调用：查询最终价格
+        PE-->>PC: 4b. 返回促销价格
+        PC->>Cache: 5b. 更新缓存
+    end
+    PC-->>OP: 6. 返回商品详情（含最终价格）
+```
+
+#### 协作模式说明
+
+1. **同步调用**：商品创建时初始化价格（RPC）
+   - 场景：商品上架时必须初始化价格，否则商品无法上线
+   - 实现：商品中心调用定价引擎的 `CreatePrice` RPC 接口
+   - 错误处理：如果定价引擎调用失败，商品创建回滚
+
+2. **异步事件**：价格变更后发送事件
+   - 场景：价格变更是高频操作，异步处理提升性能
+   - 实现：商品中心发布 `ProductPriceChanged` 事件，定价引擎监听更新
+   - 最终一致性：通过定期对账保证数据一致性
+
+3. **查询时计算**：查询商品时通过定价引擎计算最终价格
+   - 场景：用户浏览商品时需要看到促销后的价格
+   - 实现：商品中心调用定价引擎的 `GetFinalPrice` RPC 接口
+   - 缓存优化：热点商品的最终价格缓存在 Redis
+
+#### 数据一致性保证
+
+**数据分层存储**：
+
+| 系统 | 存储内容 | 说明 |
+|------|----------|------|
+| **商品中心** | `base_price`（基础价格） | 商品的原价 |
+| **定价引擎** | `base_price`, `promo_price`, `final_price` | 完整定价规则 |
+| **Redis 缓存** | `final_price`（最终价格） | 热点商品缓存 |
+
+**数据一致性保证机制**：
+
+1. **事件驱动更新**：商品中心价格变更后发布事件，定价引擎监听更新
+2. **缓存失效**：定价引擎价格变更后，发布事件使 Redis 缓存失效
+3. **定期对账**：后台 Worker 定期对比商品中心和定价引擎的价格数据，发现不一致则告警
+
+#### 代码示例
+
+```go
+// PriceService 价格服务
+type PriceService struct {
+    itemRepo      ItemRepository
+    priceClient   PriceEngineClient
+    eventPublisher EventPublisher
+    cache         *redis.Client
+}
+
+// UpdateItemPrice 更新商品价格
+func (s *PriceService) UpdateItemPrice(itemID int64, newPrice float64, operator int64) error {
+    // 1. 获取商品
+    item, err := s.itemRepo.GetItemByID(itemID)
+    if err != nil {
+        return err
+    }
+    
+    // 2. 更新商品基础价格
+    oldPrice := item.Price
+    item.Price = newPrice
+    item.UpdatedAt = time.Now()
+    
+    if err := s.itemRepo.UpdateItem(item); err != nil {
+        return fmt.Errorf("update item price failed: %w", err)
+    }
+    
+    // 3. 发布价格变更事件（异步）
+    event := &PriceChangedEvent{
+        ItemID:    itemID,
+        OldPrice:  oldPrice,
+        NewPrice:  newPrice,
+        Operator:  operator,
+        Timestamp: time.Now(),
+    }
+    s.eventPublisher.Publish("product.price.changed", event)
+    
+    // 4. 清除缓存
+    s.cache.Del(fmt.Sprintf("item:price:%d", itemID))
+    
+    return nil
+}
+
+// GetFinalPrice 获取商品最终价格（含促销）
+func (s *PriceService) GetFinalPrice(itemID int64, userID int64) (float64, error) {
+    // 1. 尝试从缓存获取
+    cacheKey := fmt.Sprintf("item:price:%d", itemID)
+    if cachedPrice, err := s.cache.Get(cacheKey).Float64(); err == nil {
+        return cachedPrice, nil
+    }
+    
+    // 2. 调用定价引擎计算最终价格
+    finalPrice, err := s.priceClient.CalculateFinalPrice(itemID, userID)
+    if err != nil {
+        return 0, fmt.Errorf("calculate final price failed: %w", err)
+    }
+    
+    // 3. 缓存最终价格（TTL 5分钟）
+    s.cache.Set(cacheKey, finalPrice, 5*time.Minute)
+    
+    return finalPrice, nil
+}
+```
+
+---
+
