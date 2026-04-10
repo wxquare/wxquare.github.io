@@ -2019,3 +2019,341 @@ func (s *ListingSaga) ExecuteWithTimeout(req *ListingRequest, timeout time.Durat
 
 ---
 
+## 第七章：核心数据模型
+
+在本章中，我们将详细讲解商品生命周期管理系统的核心数据模型，包括商品表、变更审批单表和同步状态表。
+
+### 7.1 商品表设计（含 external_id）
+
+#### 商品表结构
+
+商品表是整个系统的核心表，需要包含以下信息：
+- 商品基础信息
+- 供应商映射
+- 生命周期状态
+- 乐观锁版本号
+
+```sql
+CREATE TABLE item_tab (
+    -- 商品基础信息
+    item_id BIGINT PRIMARY KEY COMMENT '商品ID（雪花算法生成）',
+    spu_id BIGINT COMMENT 'SPU ID（商品标准单元）',
+    sku_id BIGINT COMMENT 'SKU ID（库存单元）',
+    title VARCHAR(256) NOT NULL COMMENT '商品标题',
+    description TEXT COMMENT '商品描述',
+    category_id BIGINT NOT NULL COMMENT '类目ID',
+    brand_id BIGINT COMMENT '品牌ID',
+    
+    -- 价格与库存快照（只用于展示，不用于业务逻辑）
+    base_price DECIMAL(10,2) NOT NULL COMMENT '基础价格（原价）',
+    stock_snapshot INT DEFAULT 0 COMMENT '库存快照（从库存系统同步）',
+    
+    -- 供应商映射
+    supplier_id BIGINT COMMENT '供应商ID',
+    external_id VARCHAR(128) COMMENT '供应商外部商品ID',
+    external_sync_time TIMESTAMP COMMENT '最后同步时间',
+    
+    -- 生命周期状态
+    status VARCHAR(32) NOT NULL DEFAULT 'DRAFT' COMMENT '商品状态：DRAFT/PENDING/APPROVED/PUBLISHED/ONLINE/OFFLINE/ARCHIVED',
+    
+    -- 审核信息
+    approval_strategy VARCHAR(32) COMMENT '审核策略：auto/manual/strict',
+    approved_at TIMESTAMP COMMENT '审核通过时间',
+    approver_id BIGINT COMMENT '审核员ID',
+    
+    -- 乐观锁版本号
+    version INT NOT NULL DEFAULT 0 COMMENT '版本号（乐观锁）',
+    
+    -- 元数据
+    created_by BIGINT NOT NULL COMMENT '创建人ID',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_by BIGINT COMMENT '更新人ID',
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    
+    -- 索引
+    UNIQUE KEY uk_supplier_external (supplier_id, external_id) COMMENT '供应商同步幂等性保证',
+    INDEX idx_status (status) COMMENT '按状态查询',
+    INDEX idx_category (category_id) COMMENT '按类目查询',
+    INDEX idx_created_at (created_at) COMMENT '按创建时间查询',
+    INDEX idx_external_sync_time (external_sync_time) COMMENT '供应商同步查询'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品表';
+```
+
+#### 关键字段说明
+
+| 字段 | 类型 | 说明 | 设计要点 |
+|------|------|------|----------|
+| `item_id` | BIGINT | 商品ID | 雪花算法生成，全局唯一 |
+| `supplier_id + external_id` | BIGINT + VARCHAR | 供应商映射 | 联合唯一索引，保证供应商同步的幂等性 |
+| `base_price` | DECIMAL | 基础价格 | 商品中心只存储基础价格，不存储促销价格 |
+| `stock_snapshot` | INT | 库存快照 | 仅用于列表展示，不用于下单判断 |
+| `status` | VARCHAR | 商品状态 | 枚举值，建议使用 ENUM 或 VARCHAR |
+| `version` | INT | 版本号 | 乐观锁，每次更新自增 |
+| `external_sync_time` | TIMESTAMP | 最后同步时间 | 用于增量同步 |
+
+#### Go 数据模型
+
+```go
+// Item 商品模型
+type Item struct {
+    // 商品基础信息
+    ItemID      int64     `gorm:"primaryKey;column:item_id" json:"item_id"`
+    SPUID       int64     `gorm:"column:spu_id" json:"spu_id"`
+    SKUID       int64     `gorm:"column:sku_id" json:"sku_id"`
+    Title       string    `gorm:"column:title;size:256" json:"title"`
+    Description string    `gorm:"column:description;type:text" json:"description"`
+    CategoryID  int64     `gorm:"column:category_id" json:"category_id"`
+    BrandID     int64     `gorm:"column:brand_id" json:"brand_id"`
+    
+    // 价格与库存
+    BasePrice     float64 `gorm:"column:base_price;type:decimal(10,2)" json:"base_price"`
+    StockSnapshot int     `gorm:"column:stock_snapshot" json:"stock_snapshot"`
+    
+    // 供应商映射
+    SupplierID       int64     `gorm:"column:supplier_id" json:"supplier_id"`
+    ExternalID       string    `gorm:"column:external_id;size:128" json:"external_id"`
+    ExternalSyncTime time.Time `gorm:"column:external_sync_time" json:"external_sync_time"`
+    
+    // 生命周期状态
+    Status ItemStatus `gorm:"column:status;size:32" json:"status"`
+    
+    // 审核信息
+    ApprovalStrategy ApprovalStrategy `gorm:"column:approval_strategy;size:32" json:"approval_strategy"`
+    ApprovedAt       *time.Time       `gorm:"column:approved_at" json:"approved_at"`
+    ApproverID       *int64           `gorm:"column:approver_id" json:"approver_id"`
+    
+    // 乐观锁
+    Version int `gorm:"column:version" json:"version"`
+    
+    // 元数据
+    CreatedBy int64     `gorm:"column:created_by" json:"created_by"`
+    CreatedAt time.Time `gorm:"column:created_at" json:"created_at"`
+    UpdatedBy *int64    `gorm:"column:updated_by" json:"updated_by"`
+    UpdatedAt time.Time `gorm:"column:updated_at" json:"updated_at"`
+}
+
+// ItemStatus 商品状态
+type ItemStatus string
+
+const (
+    StatusDraft     ItemStatus = "DRAFT"     // 草稿
+    StatusPending   ItemStatus = "PENDING"   // 待审核
+    StatusApproved  ItemStatus = "APPROVED"  // 已审核
+    StatusPublished ItemStatus = "PUBLISHED" // 已发布
+    StatusOnline    ItemStatus = "ONLINE"    // 在售
+    StatusOffline   ItemStatus = "OFFLINE"   // 已下架
+    StatusArchived  ItemStatus = "ARCHIVED"  // 已归档
+)
+```
+
+---
+
+### 7.2 变更审批单表
+
+在第三章（3.3）中，我们已经详细讲解了变更审批单表的设计。这里再次总结其核心要点：
+
+#### 变更审批单表结构
+
+```sql
+CREATE TABLE item_change_request_tab (
+    -- 审批单基础信息
+    request_code VARCHAR(64) PRIMARY KEY COMMENT '审批单唯一标识',
+    item_id BIGINT NOT NULL COMMENT '商品ID',
+    change_type VARCHAR(32) NOT NULL COMMENT '变更类型：price/stock/title/category/status',
+    
+    -- 变更内容
+    change_fields JSON NOT NULL COMMENT '变更字段：{"price": {"old": 100, "new": 120}}',
+    before_snapshot JSON COMMENT '变更前快照',
+    after_snapshot JSON COMMENT '变更后快照',
+    
+    -- 审批信息
+    status VARCHAR(32) NOT NULL DEFAULT 'pending_approval' COMMENT '状态：pending_approval/auto_approved/manual_approved/rejected',
+    approval_strategy VARCHAR(32) NOT NULL COMMENT '审核策略：auto/manual/strict',
+    approver_id BIGINT COMMENT '审核员ID',
+    approved_at TIMESTAMP COMMENT '审核时间',
+    reject_reason VARCHAR(512) COMMENT '驳回原因',
+    
+    -- 风险评估
+    risk_score DECIMAL(10,2) NOT NULL COMMENT '风险分数',
+    impact_analysis TEXT COMMENT '影响分析',
+    
+    -- 元数据
+    created_by BIGINT NOT NULL COMMENT '创建人ID',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_item_id (item_id),
+    INDEX idx_status (status),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品变更审批单表';
+```
+
+#### Go 数据模型
+
+```go
+// ChangeRequest 变更审批单
+type ChangeRequest struct {
+    RequestCode      string           `gorm:"primaryKey;column:request_code" json:"request_code"`
+    ItemID           int64            `gorm:"column:item_id" json:"item_id"`
+    ChangeType       string           `gorm:"column:change_type" json:"change_type"`
+    ChangeFields     JSON             `gorm:"column:change_fields;type:json" json:"change_fields"`
+    BeforeSnapshot   JSON             `gorm:"column:before_snapshot;type:json" json:"before_snapshot"`
+    AfterSnapshot    JSON             `gorm:"column:after_snapshot;type:json" json:"after_snapshot"`
+    Status           string           `gorm:"column:status" json:"status"`
+    ApprovalStrategy ApprovalStrategy `gorm:"column:approval_strategy" json:"approval_strategy"`
+    ApproverID       *int64           `gorm:"column:approver_id" json:"approver_id"`
+    ApprovedAt       *time.Time       `gorm:"column:approved_at" json:"approved_at"`
+    RejectReason     string           `gorm:"column:reject_reason" json:"reject_reason"`
+    RiskScore        float64          `gorm:"column:risk_score" json:"risk_score"`
+    ImpactAnalysis   string           `gorm:"column:impact_analysis;type:text" json:"impact_analysis"`
+    CreatedBy        int64            `gorm:"column:created_by" json:"created_by"`
+    CreatedAt        time.Time        `gorm:"column:created_at" json:"created_at"`
+    UpdatedAt        time.Time        `gorm:"column:updated_at" json:"updated_at"`
+}
+```
+
+---
+
+### 7.3 同步状态表
+
+同步状态表用于记录每个供应商的同步状态，用于增量同步和监控告警。
+
+#### 同步状态表结构
+
+```sql
+CREATE TABLE supplier_sync_state_tab (
+    -- 主键
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '自增主键',
+    
+    -- 供应商信息
+    supplier_id BIGINT NOT NULL COMMENT '供应商ID',
+    category_id BIGINT COMMENT '类目ID（可选，用于按类目同步）',
+    
+    -- 同步时间
+    last_sync_time TIMESTAMP NOT NULL COMMENT '最后同步时间',
+    last_success_time TIMESTAMP COMMENT '最后成功时间',
+    next_sync_time TIMESTAMP COMMENT '下次同步时间',
+    
+    -- 同步统计
+    sync_count INT DEFAULT 0 COMMENT '同步次数',
+    success_count INT DEFAULT 0 COMMENT '成功次数',
+    failure_count INT DEFAULT 0 COMMENT '失败次数',
+    last_sync_item_count INT DEFAULT 0 COMMENT '最后一次同步商品数量',
+    last_error TEXT COMMENT '最后一次错误信息',
+    
+    -- 同步策略
+    sync_strategy VARCHAR(32) DEFAULT 'full' COMMENT '同步策略：full/incremental',
+    sync_interval INT DEFAULT 3600 COMMENT '同步间隔（秒）',
+    
+    -- 元数据
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    UNIQUE KEY uk_supplier_category (supplier_id, category_id),
+    INDEX idx_next_sync_time (next_sync_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商同步状态表';
+```
+
+#### 关键字段说明
+
+| 字段 | 类型 | 说明 | 用途 |
+|------|------|------|------|
+| `supplier_id + category_id` | BIGINT + BIGINT | 供应商+类目 | 联合唯一索引，支持按类目同步 |
+| `last_sync_time` | TIMESTAMP | 最后同步时间 | 用于增量同步 |
+| `next_sync_time` | TIMESTAMP | 下次同步时间 | 定时任务调度 |
+| `sync_count` | INT | 同步次数 | 监控统计 |
+| `last_error` | TEXT | 最后一次错误 | 问题排查 |
+| `sync_strategy` | VARCHAR | 同步策略 | full（全量）/ incremental（增量） |
+
+#### Go 数据模型
+
+```go
+// SupplierSyncState 供应商同步状态
+type SupplierSyncState struct {
+    ID                 int64      `gorm:"primaryKey;column:id;autoIncrement" json:"id"`
+    SupplierID         int64      `gorm:"column:supplier_id" json:"supplier_id"`
+    CategoryID         *int64     `gorm:"column:category_id" json:"category_id"`
+    LastSyncTime       time.Time  `gorm:"column:last_sync_time" json:"last_sync_time"`
+    LastSuccessTime    *time.Time `gorm:"column:last_success_time" json:"last_success_time"`
+    NextSyncTime       *time.Time `gorm:"column:next_sync_time" json:"next_sync_time"`
+    SyncCount          int        `gorm:"column:sync_count" json:"sync_count"`
+    SuccessCount       int        `gorm:"column:success_count" json:"success_count"`
+    FailureCount       int        `gorm:"column:failure_count" json:"failure_count"`
+    LastSyncItemCount  int        `gorm:"column:last_sync_item_count" json:"last_sync_item_count"`
+    LastError          string     `gorm:"column:last_error;type:text" json:"last_error"`
+    SyncStrategy       string     `gorm:"column:sync_strategy" json:"sync_strategy"`
+    SyncInterval       int        `gorm:"column:sync_interval" json:"sync_interval"`
+    CreatedAt          time.Time  `gorm:"column:created_at" json:"created_at"`
+    UpdatedAt          time.Time  `gorm:"column:updated_at" json:"updated_at"`
+}
+
+// UpdateSyncState 更新同步状态
+func (r *SupplierSyncRepository) UpdateSyncState(supplierID int64, success bool, itemCount int, err error) error {
+    state, _ := r.GetSyncState(supplierID, nil)
+    if state == nil {
+        state = &SupplierSyncState{
+            SupplierID:   supplierID,
+            SyncStrategy: "full",
+            SyncInterval: 3600,
+        }
+    }
+    
+    // 更新同步时间
+    now := time.Now()
+    state.LastSyncTime = now
+    state.SyncCount++
+    state.LastSyncItemCount = itemCount
+    
+    if success {
+        state.SuccessCount++
+        state.LastSuccessTime = &now
+        nextSync := now.Add(time.Duration(state.SyncInterval) * time.Second)
+        state.NextSyncTime = &nextSync
+    } else {
+        state.FailureCount++
+        if err != nil {
+            state.LastError = err.Error()
+        }
+        // 失败后延迟重试
+        nextSync := now.Add(30 * time.Minute)
+        state.NextSyncTime = &nextSync
+    }
+    
+    return r.db.Save(state).Error
+}
+```
+
+#### 使用示例
+
+**增量同步**：
+
+```go
+// IncrementalSync 增量同步
+func (s *SupplierSyncService) IncrementalSync(supplierID int64) error {
+    // 1. 获取同步状态
+    state, err := s.repo.GetSyncState(supplierID, nil)
+    if err != nil {
+        return err
+    }
+    
+    // 2. 拉取供应商增量数据（从 last_sync_time 开始）
+    items, err := s.supplierClient.FetchIncrementalData(supplierID, state.LastSyncTime)
+    if err != nil {
+        s.repo.UpdateSyncState(supplierID, false, 0, err)
+        return err
+    }
+    
+    // 3. 处理数据
+    for _, item := range items {
+        s.ProcessSupplierData(supplierID, item)
+    }
+    
+    // 4. 更新同步状态
+    s.repo.UpdateSyncState(supplierID, true, len(items), nil)
+    
+    return nil
+}
+```
+
+---
+
