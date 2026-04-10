@@ -14,6 +14,18 @@ tags:
   - distributed-system
 ---
 
+> **电商系统设计系列**（篇次与[（一）推荐阅读顺序](/system-design/20-ecommerce-overview/)一致）
+> - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
+> - [（二）商品中心系统](/system-design/27-ecommerce-product-center/)
+> - [（三）库存系统](/system-design/22-ecommerce-inventory/)
+> - **（四）营销系统深度解析**（本文）
+> - [（五）计价引擎](/system-design/23-ecommerce-pricing-engine/)
+> - [（六）计价系统 DDD 实践](/system-design/24-ecommerce-pricing-ddd/)
+> - [（七）订单系统](/system-design/26-ecommerce-order-system/)
+> - [（八）支付系统深度解析](/system-design/29-ecommerce-payment-system/)
+> - [（九）商品上架系统](/system-design/21-ecommerce-listing/)
+> - [（十）B 端运营系统](/system-design/25-ecommerce-b-side-ops/)
+
 # 电商系统设计：营销系统深度解析
 
 营销系统是电商平台的增长引擎，通过优惠券、积分、活动等手段实现用户拉新、促活、留存和 GMV 提升。本文深入解析营销系统的架构设计、核心模块、高并发场景处理和工程实践，适合系统设计面试和电商后端工程师阅读。

@@ -1,8 +1,8 @@
 ---
-title: 电商商品生命周期管理：上架、同步与编辑的技术设计
+title: 电商系统设计（十一）：商品生命周期管理（上架、同步与运营编辑）
 date: 2026-04-10
 categories:
-  - system-design
+  - 电商系统设计
 tags:
   - product-management
   - lifecycle-management
@@ -11,6 +11,8 @@ tags:
   - supplier-integration
   - data-consistency
 ---
+
+> **电商系统设计（十一）**（衔接[（九）商品上架系统](/system-design/21-ecommerce-listing/)与[（十）B 端运营系统](/system-design/25-ecommerce-b-side-ops/)，总索引见[（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)）
 
 ## 引言：为什么需要区分三种操作场景
 

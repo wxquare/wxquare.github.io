@@ -1,10 +1,10 @@
 ---
-title: 领域驱动设计读书笔记：从概念到架构实践
-date: 2026-04-10
+title: 架构与整洁代码（三）：领域驱动设计读书笔记——从概念到架构实践
+date: 2026-04-03
 categories:
-  - system-design
-  - architecture
+  - 系统设计基础
 tags:
+  - architecture-and-clean-code
   - ddd
   - domain-driven-design
   - clean-architecture
@@ -126,7 +126,7 @@ DDD（领域驱动设计）正是为了解决这些问题而生。
    - 落地时不必一次上齐所有模式：先稳定上下文边界与聚合不变量，再逐步引入事件与集成方式。
 
 **与 30 号文章的关系**：
-本文专注于 DDD 本身，而 [30-clean-architecture-ddd-cqrs.md](./30-clean-architecture-ddd-cqrs.md) 讲解了 DDD 与 Clean Architecture、CQRS 的关系。两篇文章互为补充：
+本文专注于 DDD 本身，而 [41-acc-clean-arch-ddd-cqrs.md](./41-acc-clean-arch-ddd-cqrs.md) 讲解了 DDD 与 Clean Architecture、CQRS 的关系。两篇文章互为补充：
 - 30 号文章：架构模式的对比和组合
 - 本文：DDD 的深入讲解和实践
 - 若你关心「分层是否必须」「CQRS 是否与 DDD 绑定」这类问题，可先在 30 号文中看模式对比与取舍，再回到本文把**领域模型与上下文**讨论清楚，避免把架构风格误当成领域本身。
@@ -2211,7 +2211,7 @@ sequenceDiagram
 
 ## 五、架构落地
 
-战略设计与战术设计解决「边界与模型」；**架构落地**则回答「目录怎么摆、分层怎么切、和 CQRS / 消息怎么配合」。本节给出经典四层、Go 目录示例、CQRS 读写分离思路，以及 Kafka 等消息设施上的事件驱动集成要点，可与 [30-clean-architecture-ddd-cqrs.md](./30-clean-architecture-ddd-cqrs.md) 对照阅读。
+战略设计与战术设计解决「边界与模型」；**架构落地**则回答「目录怎么摆、分层怎么切、和 CQRS / 消息怎么配合」。本节给出经典四层、Go 目录示例、CQRS 读写分离思路，以及 Kafka 等消息设施上的事件驱动集成要点，可与 [41-acc-clean-arch-ddd-cqrs.md](./41-acc-clean-arch-ddd-cqrs.md) 对照阅读。
 
 ---
 
@@ -2378,7 +2378,7 @@ func (r *PostgresOrderRepository) Save(order *Order) error {
 | 领域层 | Entities（核心企业规则） | 与框架无关的领域模型 |
 | 基础设施层 | Frameworks & Drivers | DB、MQ、外部系统 |
 
-更系统的对照与 CQRS 分层变体见 [30-clean-architecture-ddd-cqrs.md](./30-clean-architecture-ddd-cqrs.md) 第四、五部分。
+更系统的对照与 CQRS 分层变体见 [41-acc-clean-arch-ddd-cqrs.md](./41-acc-clean-arch-ddd-cqrs.md) 第四、五部分。
 
 ---
 
@@ -2583,7 +2583,7 @@ flowchart LR
 2. 同一业务可有**多套读模型**（列表、详情、运营报表）。
 3. 读写可**独立扩缩**与选型（OLTP + 搜索 / 分析引擎）。
 
-更多分层与 CQRS 变体仍推荐对照 [30-clean-architecture-ddd-cqrs.md](./30-clean-architecture-ddd-cqrs.md) 第五部分。
+更多分层与 CQRS 变体仍推荐对照 [41-acc-clean-arch-ddd-cqrs.md](./41-acc-clean-arch-ddd-cqrs.md) 第五部分。
 
 ---
 
@@ -3407,7 +3407,7 @@ func main() {
 
 #### 小结
 
-- **接口归属领域**，**实现归属基础设施**；这是 Clean Architecture 与 DDD 常见的结合点（详见本文 **第五部分** 与 [30-clean-architecture-ddd-cqrs.md](./30-clean-architecture-ddd-cqrs.md)）。
+- **接口归属领域**，**实现归属基础设施**；这是 Clean Architecture 与 DDD 常见的结合点（详见本文 **第五部分** 与 [41-acc-clean-arch-ddd-cqrs.md](./41-acc-clean-arch-ddd-cqrs.md)）。
 
 ---
 
@@ -3556,7 +3556,7 @@ public class OrderJpaEntity {
 
 **提升工程质量**：充血模型带来更高**内聚**；领域事件削弱模块间**耦合**；分层 + 依赖倒置让核心逻辑**可单测**、可替换基础设施。
 
-**电商叙事收束**：战略上划分订单、库存、支付等上下文；战术上用 `Order` 聚合承载生命周期；架构上用四层、CQRS、事件驱动落地——这与 [30-clean-architecture-ddd-cqrs.md](./30-clean-architecture-ddd-cqrs.md) 中的实践相互印证。
+**电商叙事收束**：战略上划分订单、库存、支付等上下文；战术上用 `Order` 聚合承载生命周期；架构上用四层、CQRS、事件驱动落地——这与 [41-acc-clean-arch-ddd-cqrs.md](./41-acc-clean-arch-ddd-cqrs.md) 中的实践相互印证。
 
 ---
 
@@ -3603,12 +3603,14 @@ public class OrderJpaEntity {
 
 ### 8.4 与其他架构模式的关系
 
-- **DDD + Clean Architecture**：DDD 回答「**模型如何表达业务**」；Clean Architecture 回答「**依赖如何向内收敛**」。领域层大致对应最内圈的实体与用例规则。详见 [30-clean-architecture-ddd-cqrs.md](./30-clean-architecture-ddd-cqrs.md)。
+- **DDD + Clean Architecture**：DDD 回答「**模型如何表达业务**」；Clean Architecture 回答「**依赖如何向内收敛**」。领域层大致对应最内圈的实体与用例规则。详见 [41-acc-clean-arch-ddd-cqrs.md](./41-acc-clean-arch-ddd-cqrs.md)。
 - **DDD + CQRS**：写模型由聚合守护不变量；读模型可旁路优化；领域事件常用于投影。见本文 **5.3**。
 - **DDD + 事件驱动**：事件既是**业务事实**的载体，也是上下文之间**解耦集成**的手段。见本文 **5.4**。
 - **DDD + 微服务**：**限界上下文**提供拆分依据；**上下文映射**指导集成与治理。见本文 **6.2**。
 
 **收束建议**：DDD 不是银弹；从**小范围、可验证**的改进开始；坚持**统一语言**与**持续重构**，模型会随业务一起演进。
+
+**本专题衔接**：建议先读 [架构与整洁代码（一）](./41-acc-clean-arch-ddd-cqrs.md) 与 [（二）](./42-acc-clean-code.md)；落地评审可配合 [架构与整洁代码（四）：Code Review Checklist](./44-acc-code-review.md)。
 
 ---
 
@@ -3617,7 +3619,7 @@ public class OrderJpaEntity {
 1. Eric Evans, *Domain-Driven Design: Tackling Complexity in the Heart of Software*, Addison-Wesley, 2003（中文版：《领域驱动设计：软件核心复杂性应对之道》，清华大学出版社，2006）。
 2. Vaughn Vernon, *Implementing Domain-Driven Design*, Addison-Wesley, 2013（中文版：《实现领域驱动设计》，电子工业出版社，2014）。
 3. Martin Fowler, *Patterns of Enterprise Application Architecture*, Addison-Wesley, 2002.
-4. 本站：[Clean Architecture + DDD + CQRS](./30-clean-architecture-ddd-cqrs.md)。
+4. 本站：[Clean Architecture + DDD + CQRS](./41-acc-clean-arch-ddd-cqrs.md)。
 5. 本站：[电商系统概览](./20-ecommerce-overview.md)。
 6. 本站：[电商商品列表 / 订单相关](./21-ecommerce-listing.md)。
 7. 本站：[电商库存系统](./22-ecommerce-inventory.md)。

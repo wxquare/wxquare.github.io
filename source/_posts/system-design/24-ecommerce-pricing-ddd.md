@@ -14,17 +14,21 @@ toc: true
 
 <!-- toc -->
 
-> **电商系统设计系列**
+> **电商系统设计系列**（与[（一）推荐阅读顺序](/system-design/20-ecommerce-overview/)一致）
 > - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
-> - [（二）商品上架系统](/system-design/21-ecommerce-listing/)
+> - [（二）商品中心系统](/system-design/27-ecommerce-product-center/)
 > - [（三）库存系统](/system-design/22-ecommerce-inventory/)
-> - [（四）计价引擎](/system-design/23-ecommerce-pricing-engine/)
-> - **（五）计价系统 DDD 实践**（本文）
-> - [（六）B 端运营系统](/system-design/25-ecommerce-b-side-ops/)
+> - [（四）营销系统深度解析](/system-design/28-ecommerce-marketing-system/)
+> - [（五）计价引擎](/system-design/23-ecommerce-pricing-engine/)
+> - **（六）计价系统 DDD 实践**（本文）
+> - [（七）订单系统](/system-design/26-ecommerce-order-system/)
+> - [（八）支付系统深度解析](/system-design/29-ecommerce-payment-system/)
+> - [（九）商品上架系统](/system-design/21-ecommerce-listing/)
+> - [（十）B 端运营系统](/system-design/25-ecommerce-b-side-ops/)
 
-本文是电商系统设计系列的第五篇，是[（四）计价引擎](/system-design/23-ecommerce-pricing-engine/)的姊妹篇，从 DDD 视角重新审视计价系统的建模。
+本文是电商系统设计系列的第六篇，是[（五）计价引擎](/system-design/23-ecommerce-pricing-engine/)的姊妹篇，从 DDD 视角重新审视计价系统的建模。
 
-> 本文是计价引擎系列的方法论篇，聚焦 DDD 在计价系统中的战略/战术设计实践。系统架构与实现细节详见：[电商系统价格计算引擎设计与实现](./24-pricing-engine-design.md)。
+> 本文是计价引擎系列的方法论篇，聚焦 DDD 在计价系统中的战略/战术设计实践。系统架构与实现细节详见：[电商系统设计（五）：计价引擎](/system-design/23-ecommerce-pricing-engine/)。
 
 ## 一、背景与挑战
 
@@ -2326,4 +2330,4 @@ DDD是团队工作，不是个人英雄主义：
 ---
 
 > **系列导航**
-> 计价引擎的工程实现细节（多级缓存、降级策略等），详见[（四）计价引擎](/system-design/23-ecommerce-pricing-engine/)。
+> 计价引擎的工程实现细节（多级缓存、降级策略等），详见[（五）计价引擎](/system-design/23-ecommerce-pricing-engine/)。

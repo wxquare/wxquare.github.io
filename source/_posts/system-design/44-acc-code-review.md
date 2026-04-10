@@ -1,9 +1,10 @@
 ---
-title: 架构与编码 Code Review Checklist
-date: 2026-04-07
+title: 架构与整洁代码（四）：架构与编码 Code Review Checklist
+date: 2026-04-04
 categories:
   - 系统设计基础
 tags:
+- architecture-and-clean-code
 - code-review
 - 架构设计
 - checklist
@@ -27,17 +28,20 @@ toc: true
 3. **代码评审**：日常 PR，用 SOLID、函数质量、命名、错误处理与依赖方向守住实现细节。
 4. **上线前检查**：合并发布窗口，补齐性能、并发、可观测性、测试、回滚与文档。
 
-### 三篇文章如何配合使用
+### 四篇文章如何配合使用
+
+**专题入口**：侧边栏「架构与整洁代码」或标签聚合页 [/tags/architecture-and-clean-code/](/tags/architecture-and-clean-code/) 可集中浏览本系列四篇。
 
 本仓库里与「架构 + 编码」相关的文章可以形成一条学习与实践链路：
 
 | 文章 | 角色 |
 |------|------|
-| **本文（27）** | **查什么**：各阶段 Review 要问什么、反例长什么样 |
-| [复杂业务中的 Clean Code 实践指南](/system-design/31-clean-code/)（15） | **怎么写**：函数、Pipeline、策略、规则引擎等战术 |
-| [Clean Architecture、DDD 与 CQRS：三位一体的架构方法论](/system-design/30-clean-architecture-ddd-cqrs/)（26） | **怎么设计**：分层、BC、聚合、CQRS、事件与反模式 |
+| [架构与整洁代码（一）：Clean Architecture、DDD 与 CQRS——三位一体的架构方法论](/system-design/41-acc-clean-arch-ddd-cqrs/)（41） | **怎么定架构**：分层、依赖方向、BC、聚合、CQRS、事件与反模式 |
+| [架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南](/system-design/42-acc-clean-code/)（42） | **怎么写**：函数、Pipeline、策略、规则引擎等战术 |
+| [架构与整洁代码（三）：领域驱动设计读书笔记——从概念到架构实践](/system-design/43-acc-ddd-notes/)（43） | **怎么建模**：战略 / 战术 DDD、通用语言；可与（一）对照阅读 |
+| **本文（44）** | **查什么**：各阶段 Review 要问什么、反例长什么样 |
 
-读 26 建立地图，读 15 练手法，读 27 在评审时逐项打勾——三者互为索引，而不是重复堆砌。
+建议顺序：**41** 建立地图 → **42** 练实现手法 → **43** 把领域语言与模型讲透（可与 41 穿插）→ **44** 在评审与上线前逐项打勾。四篇互为索引，而不是重复堆砌。
 
 从心理学角度，Checklist 的价值在于**降低认知负荷**：评审者在疲劳、时间压力或上下文切换时，仍有一个外部脚手架防止遗漏。它并不替代经验与判断力——遇到清单未覆盖的灰区，恰恰说明团队应该把新教训**反哺**进清单或 ADR。实践中建议：
 
@@ -112,7 +116,7 @@ func (h *PlaceOrderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 **评审追问**：若团队暂时未引入完整四层，是否至少在包级约定 **adapter 不得被 domain import**，并在 CI 用 `grep` / 自定义 linter 守护？
 
-**参考**：[Clean Architecture、DDD 与 CQRS：三位一体的架构方法论](/system-design/30-clean-architecture-ddd-cqrs/) §1（分层与依赖规则）。
+**参考**：[架构与整洁代码（一）](/system-design/41-acc-clean-arch-ddd-cqrs/) §1（分层与依赖规则）。
 
 ---
 
@@ -152,7 +156,7 @@ type inventory.StockUnit struct {
 
 **评审追问**：若两个 BC 必须共享标识符，是共享 **ID** 还是共享 **富模型**？前者常见且可接受，后者往往是边界溃缩的信号。
 
-**参考**：[30-架构方法论](/system-design/30-clean-architecture-ddd-cqrs/) §2.1（限界上下文）。
+**参考**：[41-架构方法论](/system-design/41-acc-clean-arch-ddd-cqrs/) §2.1（限界上下文）。
 
 ---
 
@@ -173,7 +177,7 @@ func SaveOrderAndDeductStock(ctx context.Context, tx *sql.Tx, o *Order, inv *Inv
 }
 ```
 
-**参考**：[30-架构方法论](/system-design/30-clean-architecture-ddd-cqrs/) §2.5（聚合）。
+**参考**：[41-架构方法论](/system-design/41-acc-clean-arch-ddd-cqrs/) §2.5（聚合）。
 
 ---
 
@@ -205,7 +209,7 @@ func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCommand) er
 
 **评审追问**：是否测量过 **p99 写延迟** 与 **读 QPS**？若读是写的两个数量级以上，独立读模型往往是经济解。
 
-**参考**：[30-架构方法论](/system-design/30-clean-architecture-ddd-cqrs/) §3（CQRS 与读写分离）。
+**参考**：[41-架构方法论](/system-design/41-acc-clean-arch-ddd-cqrs/) §3（CQRS 与读写分离）。
 
 ---
 
@@ -231,7 +235,7 @@ func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCommand) er
 
 **合规**：从 **Transaction Script + 清晰模块边界** 起步，在出现明确痛点时再引入战术模式；每引入一层，同步引入 **测试与运维** 能力。
 
-**参考**：[30-架构方法论](/system-design/30-clean-architecture-ddd-cqrs/) §5.3（反模式与 YAGNI）。
+**参考**：[41-架构方法论](/system-design/41-acc-clean-arch-ddd-cqrs/) §5.3（反模式与 YAGNI）。
 
 ---
 
@@ -381,7 +385,7 @@ type PlaceOrderCommand struct {
 }
 ```
 
-**参考**：[31-clean-code](/system-design/31-clean-code/) 中与「意图命名」相关的章节（配合 §4 Pipeline 组织用例）。
+**参考**：[42-acc-clean-code](/system-design/42-acc-clean-code/) 中与「意图命名」相关的章节（配合 §4 Pipeline 组织用例）。
 
 **评审追问**：命令是否携带 **幂等键**、**版本/乐观锁**、**操作者身份** 等横切要素？失败时是否可映射为明确的业务结果（而非一律 500）？
 
@@ -432,7 +436,7 @@ type OrderPlaced struct {
 }
 ```
 
-**参考**：[30-架构方法论](/system-design/30-clean-architecture-ddd-cqrs/) §2.7（领域事件与集成）。
+**参考**：[41-架构方法论](/system-design/41-acc-clean-arch-ddd-cqrs/) §2.7（领域事件与集成）。
 
 ---
 
@@ -442,10 +446,10 @@ type OrderPlaced struct {
 
 | 场景特征 | 推荐模式 | 参考 |
 |----------|----------|------|
-| 多步骤顺序流程 | Pipeline（管道） | [31-clean-code §4](/system-design/31-clean-code/) |
-| 同一接口多种实现 | 策略模式 | [31-clean-code §6.1](/system-design/31-clean-code/) |
-| 频繁变化的业务规则 | 规则引擎 / 规则表驱动 | [31-clean-code §7](/system-design/31-clean-code/) |
-| 跨聚合协作 | 领域事件 + Outbox | [30-架构方法论 §2.7](/system-design/30-clean-architecture-ddd-cqrs/) |
+| 多步骤顺序流程 | Pipeline（管道） | [42-acc-clean-code §4](/system-design/42-acc-clean-code/) |
+| 同一接口多种实现 | 策略模式 | [42-acc-clean-code §6.1](/system-design/42-acc-clean-code/) |
+| 频繁变化的业务规则 | 规则引擎 / 规则表驱动 | [42-acc-clean-code §7](/system-design/42-acc-clean-code/) |
+| 跨聚合协作 | 领域事件 + Outbox | [41-架构方法论 §2.7](/system-design/41-acc-clean-arch-ddd-cqrs/) |
 
 **标准**：选型是否写清 **触发条件、失败语义、测试策略**？是否避免把本应稳定的领域规则埋在 JSON 配置里却无人审核？
 
@@ -608,7 +612,7 @@ func main() {
 1. **函数长度 < 80 行**  
    **检查**：单函数是否可在一屏内理解？超长函数是否可拆为私有步骤函数或 Pipeline 阶段？
 
-**反例**：一个 `Handle` 内顺序完成：鉴权、解析、校验、调用下游、重试、日志、指标、错误映射——应拆为 **小函数** 或 **Pipeline 阶段**（参见 [31-clean-code §4](/system-design/31-clean-code/)）。
+**反例**：一个 `Handle` 内顺序完成：鉴权、解析、校验、调用下游、重试、日志、指标、错误映射——应拆为 **小函数** 或 **Pipeline 阶段**（参见 [42-acc-clean-code §4](/system-design/42-acc-clean-code/)）。
 
 ```go
 // GOOD: named steps keep the orchestration readable
@@ -1012,8 +1016,9 @@ func TestPlaceOrder_OutOfStock(t *testing.T) {
 
 ### 站内文章
 
-- [复杂业务中的 Clean Code 实践指南](/system-design/31-clean-code/)
-- [Clean Architecture、DDD 与 CQRS：三位一体的架构方法论](/system-design/30-clean-architecture-ddd-cqrs/)
+- [架构与整洁代码（一）：Clean Architecture、DDD 与 CQRS——三位一体的架构方法论](/system-design/41-acc-clean-arch-ddd-cqrs/)
+- [架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南](/system-design/42-acc-clean-code/)
+- [架构与整洁代码（三）：领域驱动设计读书笔记——从概念到架构实践](/system-design/43-acc-ddd-notes/)
 
 ### 外部资料
 
@@ -1025,4 +1030,4 @@ func TestPlaceOrder_OutOfStock(t *testing.T) {
 
 ## 总结
 
-系统化的 Code Review 不是挑剔，而是**把重构前移到成本最低的阶段**。按 **架构 → 设计 → 代码 → 上线前** 四段清单推进，并与 [31-clean-code](/system-design/31-clean-code/)、[30-架构方法论](/system-design/30-clean-architecture-ddd-cqrs/) 交叉引用，团队可以在一致的语言下讨论分层、边界与实现细节。建议把本文的「附录快速参考」嵌入 MR 模板，并在复盘时根据失效案例**增补你们自己的第 21 条**——最好的 Checklist 永远是活文档。
+系统化的 Code Review 不是挑剔，而是**把重构前移到成本最低的阶段**。按 **架构 → 设计 → 代码 → 上线前** 四段清单推进，并与 [42-acc-clean-code](/system-design/42-acc-clean-code/)、[43-acc-ddd-notes](/system-design/43-acc-ddd-notes/)、[41-架构方法论](/system-design/41-acc-clean-arch-ddd-cqrs/) 交叉引用，团队可以在一致的语言下讨论分层、边界与实现细节。建议把本文的「附录快速参考」嵌入 MR 模板，并在复盘时根据失效案例**增补你们自己的第 21 条**——最好的 Checklist 永远是活文档。

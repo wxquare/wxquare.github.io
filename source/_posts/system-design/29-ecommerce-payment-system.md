@@ -2,7 +2,7 @@
 title: 电商系统设计（八）：支付系统深度解析
 date: 2025-08-07
 categories:
-  - system-design
+  - 电商系统设计
 tags:
   - payment
   - distributed-transaction
@@ -12,6 +12,18 @@ tags:
   - tcc
   - reconciliation
 ---
+
+> **电商系统设计系列**（篇次与[（一）推荐阅读顺序](/system-design/20-ecommerce-overview/)一致）
+> - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
+> - [（二）商品中心系统](/system-design/27-ecommerce-product-center/)
+> - [（三）库存系统](/system-design/22-ecommerce-inventory/)
+> - [（四）营销系统深度解析](/system-design/28-ecommerce-marketing-system/)
+> - [（五）计价引擎](/system-design/23-ecommerce-pricing-engine/)
+> - [（六）计价系统 DDD 实践](/system-design/24-ecommerce-pricing-ddd/)
+> - [（七）订单系统](/system-design/26-ecommerce-order-system/)
+> - **（八）支付系统深度解析**（本文）
+> - [（九）商品上架系统](/system-design/21-ecommerce-listing/)
+> - [（十）B 端运营系统](/system-design/25-ecommerce-b-side-ops/)
 
 ## 引言
 

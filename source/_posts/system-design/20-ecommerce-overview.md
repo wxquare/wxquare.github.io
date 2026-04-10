@@ -35,6 +35,9 @@ toc: true
 > **🔧 第四层：运营管理层**
 > - [（九）商品上架系统](/system-design/21-ecommerce-listing/)
 > - [（十）B 端运营系统](/system-design/25-ecommerce-b-side-ops/)
+>
+> **📎 （十一）生命周期与操作语义**
+> - [电商系统设计（十一）：商品生命周期管理（上架、同步与运营编辑）](/system-design/30-ecommerce-product-lifecycle-management/) — 与（九）（十）对照阅读
 
 ## 一、系统全景架构（EA + 4A 视角）
 
@@ -1442,7 +1445,7 @@ func (s *CartService) CheckPriceChange(ctx context.Context, snapshotCode string)
 ## 商品管理 Product Center
 
 
-> 商品上架系统的完整设计（状态机、审核策略、Saga 事务），详见[（二）商品上架系统](/system-design/21-ecommerce-listing/)。
+> 商品上架系统的完整设计（状态机、审核策略、Saga 事务），详见[（九）商品上架系统](/system-design/21-ecommerce-listing/)。
 > 库存系统的完整设计（二维分类模型、策略模式、Redis/MySQL 双写），详见[（三）库存系统](/system-design/22-ecommerce-inventory/)。
 
 
@@ -3727,12 +3730,17 @@ func TestConcertTicketFlow(t *testing.T) {
 
 ---
 
-> **系列导航**
-> - [（二）商品上架系统](/system-design/21-ecommerce-listing/) — 上架流程、状态机、审核策略、Saga 事务
-> - [（三）库存系统](/system-design/22-ecommerce-inventory/) — 多品类库存模型、策略模式、Redis/MySQL 双写
-> - [（四）计价引擎](/system-design/23-ecommerce-pricing-engine/) — 四层计价架构、多级缓存、降级策略
-> - [（五）计价系统 DDD 实践](/system-design/24-ecommerce-pricing-ddd/) — 战略/战术设计、六边形架构、价格快照
-> - [（六）B 端运营系统](/system-design/25-ecommerce-b-side-ops/) — 运营管理、监控告警、系统稳定性
+> **系列导航**（与文首「推荐阅读顺序」一致）
+> - [（二）商品中心系统](/system-design/27-ecommerce-product-center/)
+> - [（三）库存系统](/system-design/22-ecommerce-inventory/)
+> - [（四）营销系统深度解析](/system-design/28-ecommerce-marketing-system/)
+> - [（五）计价引擎](/system-design/23-ecommerce-pricing-engine/)
+> - [（六）计价系统 DDD 实践](/system-design/24-ecommerce-pricing-ddd/)
+> - [（七）订单系统](/system-design/26-ecommerce-order-system/)
+> - [（八）支付系统深度解析](/system-design/29-ecommerce-payment-system/)
+> - [（九）商品上架系统](/system-design/21-ecommerce-listing/)
+> - [（十）B 端运营系统](/system-design/25-ecommerce-b-side-ops/)
+> - [（十一）商品生命周期管理](/system-design/30-ecommerce-product-lifecycle-management/) — 上架 / 同步 / 运营编辑边界
 
 
 ## 参考:
