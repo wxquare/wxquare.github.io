@@ -233,13 +233,13 @@ mjx-container[display="true"] + br {
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">56</span>
+          <span class="site-state-item-count">57</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
           <a href="/categories/">
-        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-count">6</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
@@ -1622,6 +1622,335 @@ mjx-container[display="true"] + br {
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/computer-vision/%E5%88%9D%E5%A7%8BOpenCL%E5%8F%8A%E5%9C%A8%E7%9A%84%E7%A7%BB%E5%8A%A8%E7%AB%AF%E7%9A%84%E4%B8%80%E4%BA%9B%E6%B5%8B%E8%AF%95%E6%95%B0%E6%8D%AE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/08/13/AI/computer-vision/%E5%88%9D%E5%A7%8BOpenCL%E5%8F%8A%E5%9C%A8%E7%9A%84%E7%A7%BB%E5%8A%A8%E7%AB%AF%E7%9A%84%E4%B8%80%E4%BA%9B%E6%B5%8B%E8%AF%95%E6%95%B0%E6%8D%AE/" class="post-title-link" itemprop="url">初识OpenCL及在移动端的一些测试数据</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-04-11 15:45:34" itemprop="dateModified" datetime="2026-04-11T15:45:34+08:00">2026-04-11</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI-%E4%B8%8E-Agent/" itemprop="url" rel="index"><span itemprop="name">AI 与 Agent</span></a>
+        </span>
+          , 
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI-%E4%B8%8E-Agent/AI/" itemprop="url" rel="index"><span itemprop="name">AI</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>　　最近在做kcf算法在移动端优化的相关工作，由于kcf算法计算量太大，而移动端计算性能有限，因此打算将kcf部分耗时操作通过GPU计算进行提升算法的性能。由于接触GPU和OpenCL的时间比较短，原理性的东西理解得也不深刻，本文主要在移动端测试了一些GPU和OpenCL的数据，无法分析内在原因，方便后续移动端算法优化。主要工作如下：</p>
+<ol>
+<li>编译了OpenCL的opencv版本sdk，测试了mat到umat相互内存拷贝和cvtcolor函数的性能。</li>
+<li>测试了OpenCL核心API的性能</li>
+<li>以内存拷贝核函数为例，测试OpenCL work_item数量与效率的关系。</li>
+<li>测试OpenCL多commandqueue的性能</li>
+</ol>
+<h2 id="一、opencv-OpenCL"><a href="#一、opencv-OpenCL" class="headerlink" title="一、opencv+OpenCL"></a>一、opencv+OpenCL</h2><h3 id="1-1-编译opencv-OpenCL的sdk"><a href="#1-1-编译opencv-OpenCL的sdk" class="headerlink" title="1.1 编译opencv+OpenCL的sdk"></a>1.1 编译opencv+OpenCL的sdk</h3><p>　　KCF算法总使用了不少的opencv函数，开始想的是编译一个包含OpenCL的opencv的sdk，然后通过调用该sdk从而实现使用GPU加速算法的目的。编译opencv+OpenCL的sdk当时踩了不少坑，多番尝试之后，使用下面的命令是可以成功编译。分别下载opencv-3.4.6、android-ndk-r16b、opencv_contrib-3.4.6,在opencv中建build目录，运行下面命令，命令中使用一些路径相关的参数要根据环境适当修改。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cmake -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON -DCMAKE_TOOLCHAIN_FILE=&quot;/home/xxx/code/mobile/third_party/ opencv-3.4.6/platforms/android/android.toolchain.cmake&quot; -DANDROID_NDK=&quot;/home/xxx/code/mobile/tools/android-ndk-r16b&quot; -DANDROID_SDK=&quot;/home/xxx/code/mobile/tools/android_sdk/tools&quot; -DANDROID_NATIVE_API_LEVEL=19 -DANDROID_ABI=&quot;arm64-v8a&quot; -DANDROID_ARM_NEON=TRUE -DANDROID_STL=gnustl_static -DCMAKE_BUILD_TYPE=Release -DOPENCV_EXTRA_MODULES_PATH=&quot;/home/xxx/code/mobile/third_party/opencv_contrib-3.4.6/modules&quot; -DCMAKE_INSTALL_PREFIX=&quot;/home/xxx/code/mobile/third_party/opencv-3.4.6/install_20190623_OpenCL&quot; -DBUILD_opencv_java=ON -DBUILD_ANDROID_PROJECTS=OFF -DBUILD_ANDROID_EXAMPLES=OFF -DBUILD_DOCS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_TESTS=OFF -DBUILD_FAT_JAVA_LIB=OFF -DWITH_OpenCL=ON -DWITH_CUDA=OFF -DWITH_MATLAB=OFF -DBUILD_opencv_aruco=OFF -DBUILD_opencv_calib3d=OFF -DBUILD_opencv_features2d=OFF .. </span><br></pre></td></tr></table></figure>
+<h3 id="1-2-测试mat到umat的相互转换的性能"><a href="#1-2-测试mat到umat的相互转换的性能" class="headerlink" title="1.2 测试mat到umat的相互转换的性能"></a>1.2 测试mat到umat的相互转换的性能</h3><p>　　在编译好opencv sdk之后，首先简单测试了一下sdk是否使用到了GPU资源。测试图片从CPU拷贝到GPU的的性能，opencv提供两组API。UMat::copyTo(OutputArray dst)和Mat::getMat(int access_flags)，实际测试中发现copyto那组性能比get的性能更好些，mat.getUmat函数会报错，还不知道什么原因。  </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">void testMatCopyToUmat(const char* img, int times) &#123;</span><br><span class="line">    cv::Mat image = cv::imread(img, cv::IMREAD_UNCHANGED);</span><br><span class="line">    cv::Mat out;</span><br><span class="line">    cv::UMat u_img;</span><br><span class="line">    if (u_img.empty())&#123;</span><br><span class="line">        //</span><br><span class="line">    &#125;</span><br><span class="line">    struct timeval start, end;</span><br><span class="line">    struct timeval last_time;</span><br><span class="line">    gettimeofday(&amp;start, NULL);</span><br><span class="line">    last_time = start;</span><br><span class="line">    for (int i = 0; i &lt; times; i++) &#123;</span><br><span class="line">        image.copyTo(u_img);</span><br><span class="line">        //cv::cvtColor(image, out, cv::COLOR_BGR2GRAY);</span><br><span class="line">        gettimeofday(&amp;end, NULL);</span><br><span class="line">        P(&quot;mat.copyToUmat:%d,run times:%d, spend:%d us&quot;, i,times, (end.tv_sec - last_time.tv_sec) * 1000000 + </span><br><span class="line">                                       (end.tv_usec - last_time.tv_usec));</span><br><span class="line">        last_time = end;</span><br><span class="line">    &#125;</span><br><span class="line">    gettimeofday(&amp;end, NULL);</span><br><span class="line">    P(&quot;mat.copyToUmat: run times:%d, spend:%d ms&quot;, times, (end.tv_sec - start.tv_sec) * 1000 + </span><br><span class="line">                                       (end.tv_usec - start.tv_usec)/1000);</span><br><span class="line">&#125;</span><br><span class="line">void testUMatCopyToMat(const char* img, int times) &#123;</span><br><span class="line">    cv::Mat image = cv::imread(img, cv::IMREAD_UNCHANGED);</span><br><span class="line">    cv::Mat out;</span><br><span class="line">    struct timeval start, end,last_time;</span><br><span class="line">    cv::UMat u_img;</span><br><span class="line">    image.copyTo(u_img);</span><br><span class="line"></span><br><span class="line">    gettimeofday(&amp;start, NULL);</span><br><span class="line">    last_time = start;</span><br><span class="line">    for (int i = 0; i &lt; times; i++) &#123;</span><br><span class="line">        u_img.copyTo(out);</span><br><span class="line">        gettimeofday(&amp;end, NULL);</span><br><span class="line">        P(&quot;mat.copyToUmat:%d,run times:%d, spend:%d us&quot;, i,times, (end.tv_sec - last_time.tv_sec) * 1000000 + </span><br><span class="line">                                       (end.tv_usec - last_time.tv_usec));</span><br><span class="line">        last_time = end;</span><br><span class="line">    &#125;</span><br><span class="line">    gettimeofday(&amp;end, NULL);</span><br><span class="line">    P(&quot;mat.copyToUmat: run times:%d, spend:%d ms&quot;, times, (end.tv_sec - start.tv_sec) * 1000 + </span><br><span class="line">                                       (end.tv_usec - start.tv_usec)/1000);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<p>| 手机型号 | CPU型号 | GPU型号 | OpenCL版本 | 首次mat拷贝umat | mat拷贝umat | 首次umat拷贝mat | umat拷贝mat | 图片格式 | 上行带宽 | 下行带宽 |<br>| —— | —— | —— | —— | —— | —— | —— | —— | —— | —— | —— | —— | —— | —— | —— |<br>|三星GALAXY On7|高通 骁龙410 MSM8916|	Adreno306|	2|	25.2ms|	0.8ms|	1.5ms|	0.8ms|	720<em>480 159KB|	运行1000次，221M&#x2F;s|	运行1000次，258M&#x2F;s|<br>|三星GALAXY On7|高通 骁龙410 MSM8916|	Adreno306|	2|	30.18ms|	2.88ms|	5.5ms|	2.9ms|	1920</em>1080 6MB|	运行1000次，2.14G&#x2F;s|	运行1000次，2.14G&#x2F;s|<br>|小米6 MI6|	骁龙 835|	高通 Adreno540|	2|16.602ms|	0.754ms|	2.85ms|	0.795ms|	1920<em>1080 6MB|	运行1000次，7.9G&#x2F;s|	运行1000次，8.06G&#x2F;s|<br>|小米6 MI6|	骁龙 835|	高通 Adreno540|	2|17.010ms|	0.332ms|	1ms|0.265ms|	720</em>480 159KB|	运行1000次，632M&#x2F;S|	运行1000次，898.2M&#x2F;s|	<br>|小米mix2s|	骁龙 845|	高通 Adreno630|	2|8.7ms|	2.1ms|	6.1ms|0.9ms|	1920<em>1080 6MB|	运行1000次，6.6G&#x2F;S|	运行1000次，6.62G&#x2F;s|	<br>|小米mix2s|	骁龙 845|	高通 Adreno630|	2|3.3ms|	0.5ms|	2.2ms|0.4ms|	720</em>480 1579KB|	运行1000次，654M&#x2F;S|	运行1000次，682M&#x2F;s|																</p>
+<h3 id="1-3-测试OpenCL-cvtcolor函数性能"><a href="#1-3-测试OpenCL-cvtcolor函数性能" class="headerlink" title="1.3 测试OpenCL cvtcolor函数性能"></a>1.3 测试OpenCL cvtcolor函数性能</h3><p>　　在测试完CPU和GPU内存拷贝的性能之外，之后测试了cvtcolor函数的性能，由于动态加载，OpenCL函数首次加载时特别耗时，大概需要200ms。除此之外，在不同规格的图片上，OpenCL的计算性能大概是cpu的2到3倍。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">void cpu(const char* img, int times) &#123;</span><br><span class="line">    cv::Mat image; </span><br><span class="line">    cv::Mat out;</span><br><span class="line">    struct timeval start, end,last;</span><br><span class="line">    for (int i = 0; i &lt; times; i++) &#123;</span><br><span class="line">        image = cv::imread(img, cv::IMREAD_UNCHANGED);</span><br><span class="line">        gettimeofday(&amp;start, NULL);</span><br><span class="line">        cv::cvtColor(image, out, cv::COLOR_BGR2GRAY);</span><br><span class="line">        gettimeofday(&amp;end, NULL);</span><br><span class="line">        P(&quot;run times:%d, spend:%d us&quot;, i, (end.tv_sec - start.tv_sec) * 1000000 +</span><br><span class="line">                                       (end.tv_usec - start.tv_usec));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">void OpenCL(const char* img, int times) &#123;</span><br><span class="line">    cv::UMat u_img;</span><br><span class="line">    cv::Mat image; </span><br><span class="line">    cv::UMat out;</span><br><span class="line">    cv::Mat out1;</span><br><span class="line"></span><br><span class="line">    std::vector&lt;cv::UMat&gt; v;</span><br><span class="line">    for(int i=0;i&lt;times;i++)&#123;</span><br><span class="line">      image = cv::imread(img, cv::IMREAD_UNCHANGED);</span><br><span class="line">      cv::UMat u_img;</span><br><span class="line">      image.copyTo(u_img);</span><br><span class="line">      v.push_back(u_img);</span><br><span class="line">    &#125;</span><br><span class="line">    struct timeval start, end,last;</span><br><span class="line">    for (int i = 0; i &lt; times; i++) &#123;</span><br><span class="line">        gettimeofday(&amp;start, NULL);</span><br><span class="line">        cv::cvtColor(v[i], out, cv::COLOR_BGR2GRAY);</span><br><span class="line">        gettimeofday(&amp;end, NULL);</span><br><span class="line">        P(&quot;run times:%d, spend:%d us&quot;, i, (end.tv_sec - start.tv_sec) * 1000000 +</span><br><span class="line">                                       (end.tv_usec - start.tv_usec));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>测试数据：</p>
+<table>
+<thead>
+<tr>
+<th>手机型号</th>
+<th>cpu&#x2F;gpu</th>
+<th>图片格式</th>
+<th>首次运行时间</th>
+<th>平均时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>三星GALAXY On7</td>
+<td>cpu</td>
+<td>1920x1080</td>
+<td>3.2ms</td>
+<td>1.8ms</td>
+</tr>
+<tr>
+<td>三星GALAXY On7</td>
+<td>OpenCL</td>
+<td>1920x1080</td>
+<td>273ms</td>
+<td>0.6ms</td>
+</tr>
+<tr>
+<td>三星GALAXY On7</td>
+<td>cpu</td>
+<td>720x480</td>
+<td>1.2ms</td>
+<td>0.62ms</td>
+</tr>
+<tr>
+<td>三星GALAXY On7</td>
+<td>OpenCL</td>
+<td>720x480</td>
+<td>274ms</td>
+<td>0.25ms</td>
+</tr>
+<tr>
+<td>小米mix2s</td>
+<td>cpu</td>
+<td>1920x1080</td>
+<td>3ms</td>
+<td>1.3ms</td>
+</tr>
+<tr>
+<td>小米mix2s</td>
+<td>OpenCL</td>
+<td>1920x1080</td>
+<td>154ms</td>
+<td>0.36ms</td>
+</tr>
+<tr>
+<td>小米mix2s</td>
+<td>cpu</td>
+<td>720x480</td>
+<td>0.5ms</td>
+<td>0.21ms</td>
+</tr>
+<tr>
+<td>小米mix2s</td>
+<td>OpenCL</td>
+<td>720x480</td>
+<td>80.5ms</td>
+<td>0.09ms</td>
+</tr>
+</tbody></table>
+<h2 id="二、OpenCL核心API性能测试"><a href="#二、OpenCL核心API性能测试" class="headerlink" title="二、OpenCL核心API性能测试"></a>二、OpenCL核心API性能测试</h2><table>
+<thead>
+<tr>
+<th>手机型号</th>
+<th>cpux型号</th>
+<th>GPU型号</th>
+<th>OpenCL版本</th>
+<th>API</th>
+<th>测试数据</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>小米6 MI6</td>
+<td>骁龙 835</td>
+<td>高通 Adreno540</td>
+<td>2</td>
+<td>gpu内存分配(clCreateBuffer)</td>
+<td>1M 430us,5M 1000us,10M 2000us</td>
+</tr>
+<tr>
+<td>小米6 MI6</td>
+<td>骁龙 835</td>
+<td>高通 Adreno540</td>
+<td>2</td>
+<td>cpu到gpu内存拷贝(writeBuffer)</td>
+<td>1M 105us,5M 400us,10M 700us</td>
+</tr>
+<tr>
+<td>小米6 MI6</td>
+<td>骁龙 835</td>
+<td>高通 Adreno540</td>
+<td>2</td>
+<td>gpu到cpu内存拷贝(ReadBuffer)</td>
+<td>1M 60us,5M 400us,10M 600us</td>
+</tr>
+<tr>
+<td>小米6 MI6</td>
+<td>骁龙 835</td>
+<td>高通 Adreno540</td>
+<td>2</td>
+<td>核函数编译clBuildProgram</td>
+<td>69682 us</td>
+</tr>
+<tr>
+<td>小米6 MI6</td>
+<td>骁龙 835</td>
+<td>高通 Adreno540</td>
+<td>2</td>
+<td>创建核对象clCreateKernel</td>
+<td>50us</td>
+</tr>
+<tr>
+<td>小米6 MI6</td>
+<td>骁龙 835</td>
+<td>高通 Adreno540</td>
+<td>2</td>
+<td>核函数clEnqueueNDRangeKernel</td>
+<td>首次运行5000us，之后大概800us</td>
+</tr>
+</tbody></table>
+<h2 id="三、-测试OpenCL-work-item数量与效率的关系"><a href="#三、-测试OpenCL-work-item数量与效率的关系" class="headerlink" title="三、 测试OpenCL work_item数量与效率的关系"></a>三、 测试OpenCL work_item数量与效率的关系</h2><p>　　在OpenCL编程中，work_item和work_group的设置对程序的性能有较大的影响。这里以内存拷贝为例测试OpenCL中work_item数量与效率的关系。通过一张3840x2160的图片拷贝，分别测试了CPU和GPU内存拷贝的性能，测试了在不同work_item条件下GPU内存拷贝性能的性能。从测试结果来看，不同work_item对opencl的性能有较大的影响。测试结果显示，最开始时work_item数量曾倍数关系，之后会在100ms抖动，最好的情况是work_item数量与bmpsize大小相同。测试机器为小米mix2s。</p>
+<h3 id="3-1循环拷贝"><a href="#3-1循环拷贝" class="headerlink" title="3.1循环拷贝"></a>3.1循环拷贝</h3><p>bmpsize &#x3D; 3840x2160x3,运行时间13ms</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">char* out = new char[bmp_size];</span><br><span class="line"> for(int i=0;i&lt;bmp_size;i++)&#123;</span><br><span class="line">   // P(&quot;%d&quot;,i);</span><br><span class="line">   out[i] = bmp_data[i];</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2memcpy拷贝"><a href="#3-2memcpy拷贝" class="headerlink" title="3.2memcpy拷贝"></a>3.2memcpy拷贝</h3><p>bmpsize &#x3D; 3840x2160x3,运行时间3ms</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">memcpy(out,bmp_data,bmp_size);</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-3-opencl拷贝"><a href="#3-3-opencl拷贝" class="headerlink" title="3.3 opencl拷贝"></a>3.3 opencl拷贝</h3><p>核函数：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">__kernel void convert_image(__global const uchar* in, </span><br><span class="line">            __global uchar* out，const int channel,</span><br><span class="line">            const int width, const int height)&#123;</span><br><span class="line">    int thread_count = get_global_size(0);</span><br><span class="line">    int size = width * height * channel;</span><br><span class="line">    int each_thread = size / thread_count;</span><br><span class="line">    int tid = get_global_id(0);</span><br><span class="line">    ; out[tid] = in[tid];</span><br><span class="line">    for(int i=tid*each_thread;i&lt;(tid+1)*each_thread;i++)&#123;</span><br><span class="line">        out[i] = in[i];</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>关键代码与work_item的设置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">P(&quot;thread_count=%d&quot;, thread_count);</span><br><span class="line">gettimeofday(&amp;start,NULL);</span><br><span class="line">err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(thread_count, 1),</span><br><span class="line">                           cl::NullRange, NULL, &amp;event);</span><br><span class="line">event.wait();</span><br><span class="line">gettimeofday(&amp;end,NULL);</span><br><span class="line">P(&quot;opecl wait:%d ms&quot;, (end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec)/1000);</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th>work_item数量</th>
+<th>运行时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>2972ms</td>
+</tr>
+<tr>
+<td>2</td>
+<td>1526ms</td>
+</tr>
+<tr>
+<td>4</td>
+<td>792ms</td>
+</tr>
+<tr>
+<td>8</td>
+<td>418ms</td>
+</tr>
+<tr>
+<td>16</td>
+<td>252ms</td>
+</tr>
+<tr>
+<td>32</td>
+<td>166ms</td>
+</tr>
+<tr>
+<td>64</td>
+<td>122ms</td>
+</tr>
+<tr>
+<td>128</td>
+<td>104ms</td>
+</tr>
+<tr>
+<td>256</td>
+<td>64ms</td>
+</tr>
+<tr>
+<td>512</td>
+<td>60ms</td>
+</tr>
+<tr>
+<td>1024</td>
+<td>92ms</td>
+</tr>
+<tr>
+<td>2048</td>
+<td>662ms</td>
+</tr>
+<tr>
+<td>4096</td>
+<td>237ms</td>
+</tr>
+<tr>
+<td>10240</td>
+<td>180ms</td>
+</tr>
+<tr>
+<td>102400</td>
+<td>171ms</td>
+</tr>
+<tr>
+<td>248832</td>
+<td>167ms</td>
+</tr>
+<tr>
+<td>2488320</td>
+<td>16ms</td>
+</tr>
+<tr>
+<td>24883200</td>
+<td>15ms</td>
+</tr>
+</tbody></table>
+<p><strong>疑问:当work_item为256或者512是个较好的值，但是不明白为什么2488320和24883200值效果会更好。</strong></p>
+<h2 id="四、多commandqueue性能测试"><a href="#四、多commandqueue性能测试" class="headerlink" title="四、多commandqueue性能测试"></a>四、多commandqueue性能测试</h2><p>　　在学习和测试OpenCL的过程中，有一个疑问能否使用多个commandqueue来做任务的并行。假设有n个任务，每个任务包含CPU到GPU内存拷贝，核函数执行，和GPU到CPU的内存拷贝。分别测试了使用一个commandqueue和n个commandqueue的性能，测试结果显示多个commandqueue会比使用单个commandqueue性能略好一些，但是差别不大。除此之外，与work_item的设置有关，多个commandqueue可能比单个commandqueue性能性能提升15%。从GPU利用率来说，单个commandqueuGPU曲线呈锯齿形状，而多个commandque呈梯形。部分代码如下：<br>单个commandqueue：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br></pre></td><td class="code"><pre><span class="line">void test(const char* cl_file, const char* name, </span><br><span class="line">      const char* bmp_data, const int bmp_size, </span><br><span class="line">      const int width, const int height, const int channels,</span><br><span class="line">      const int line_size, const int thread_count,</span><br><span class="line">      const int run_times) </span><br><span class="line">&#123;</span><br><span class="line">  cl::Platform platforms = cl::Platform::getDefault();</span><br><span class="line">  //P(&quot;platform count:%d&quot;, platforms.size());</span><br><span class="line">  cl::Context context(CL_DEVICE_TYPE_GPU, NULL);</span><br><span class="line">  std::vector&lt;cl::Device&gt; devices = context.getInfo&lt;CL_CONTEXT_DEVICES&gt;();</span><br><span class="line">  P(&quot;Device count:%d&quot;, devices.size());</span><br><span class="line">  std::ifstream in(cl_file, std::ios::in);</span><br><span class="line">  std::stringstream buffer;</span><br><span class="line">  buffer &lt;&lt; in.rdbuf();</span><br><span class="line">  cl_int err = CL_SUCCESS;</span><br><span class="line">  cl::Program program_ = cl::Program(context, buffer.str());</span><br><span class="line">  err = program_.build(devices);</span><br><span class="line">  if (err != CL_SUCCESS) &#123;</span><br><span class="line">    P(&quot;build error&quot;);</span><br><span class="line">    return;</span><br><span class="line">  &#125;  </span><br><span class="line">  cl::Kernel kernel(program_, name, &amp;err);</span><br><span class="line">  if (err != CL_SUCCESS) &#123;</span><br><span class="line">    P(&quot;build error&quot;);</span><br><span class="line">    return;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  cl::CommandQueue queue(context, devices[0], 0, &amp;err);</span><br><span class="line">  if (err != CL_SUCCESS) &#123;</span><br><span class="line">    P(&quot;CommandQueue create error&quot;);</span><br><span class="line">    return;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  struct timeval start, end;</span><br><span class="line">  cl::Event event;</span><br><span class="line">  err = CL_SUCCESS;</span><br><span class="line">  for(int i = 0;i&lt;run_times;i++)&#123;</span><br><span class="line">  &#123;</span><br><span class="line">   </span><br><span class="line">    //see: https://github.khronos.org/OpenCL-CLHPP/classcl_1_1_buffer.html</span><br><span class="line">    cl::Buffer in_buf(context, CL_MEM_WRITE_ONLY, bmp_size);</span><br><span class="line">    cl::Buffer out_buf(context, CL_MEM_READ_ONLY, bmp_size);</span><br><span class="line">    err = queue.enqueueWriteBuffer(in_buf, true, 0, bmp_size, bmp_data, NULL, &amp;event);</span><br><span class="line"></span><br><span class="line">    kernel.setArg(0, in_buf);</span><br><span class="line">    kernel.setArg(1, out_buf);</span><br><span class="line">    kernel.setArg(2, line_size);</span><br><span class="line">    kernel.setArg(3, channels);</span><br><span class="line">    kernel.setArg(4, width);</span><br><span class="line">    kernel.setArg(5, height);</span><br><span class="line"></span><br><span class="line">    P(&quot;thread_count=%d&quot;, thread_count);</span><br><span class="line">    gettimeofday(&amp;start,NULL);</span><br><span class="line">    err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(thread_count, 1),</span><br><span class="line">                               cl::NullRange, NULL, &amp;event);</span><br><span class="line">    event.wait();</span><br><span class="line">    gettimeofday(&amp;end,NULL);</span><br><span class="line">    P(&quot;opecl wait:%d ms&quot;, (end.tv_sec - start.tv_sec) * 1000 + </span><br><span class="line">                                         (end.tv_usec - start.tv_usec)/1000);</span><br><span class="line"></span><br><span class="line">  </span><br><span class="line">    char* h_out_buf = new char[bmp_size];</span><br><span class="line">    err = queue.enqueueReadBuffer(out_buf, true, 0, bmp_size, h_out_buf, NULL, &amp;event);</span><br><span class="line">    if(0!=memcmp(h_out_buf, bmp_data, bmp_size))&#123;</span><br><span class="line">      P(&quot;data not same&quot;);</span><br><span class="line">      return;</span><br><span class="line">    &#125;else&#123;</span><br><span class="line">      P(&quot;data same&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<p>多个commandqueue：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br></pre></td><td class="code"><pre><span class="line">void test_mutil_command_queue(const char* cl_file, const char* name, </span><br><span class="line">      const char* bmp_data, int bmp_size, </span><br><span class="line">      const int width, const int height, const int channels,</span><br><span class="line">      const int line_size, const int thread_count,</span><br><span class="line">      const int run_times) </span><br><span class="line">&#123;</span><br><span class="line">  cl::Platform platforms = cl::Platform::getDefault();</span><br><span class="line">  //P(&quot;platform count:%d&quot;, platforms.size());</span><br><span class="line">  cl::Context context(CL_DEVICE_TYPE_GPU, NULL);</span><br><span class="line">  std::vector&lt;cl::Device&gt; devices = context.getInfo&lt;CL_CONTEXT_DEVICES&gt;();</span><br><span class="line">  P(&quot;Device count:%d&quot;, devices.size());</span><br><span class="line">  // cl::CommandQueue queue(context, devices[0], 0);</span><br><span class="line">  //</span><br><span class="line">  std::ifstream in(cl_file, std::ios::in);</span><br><span class="line">  std::stringstream buffer;</span><br><span class="line">  buffer &lt;&lt; in.rdbuf();</span><br><span class="line">  //</span><br><span class="line">  //cl::Program::Sources source&#123;</span><br><span class="line">  //    std::make_pair(buffer.str().c_str(), buffer.str().size()) &#125;;</span><br><span class="line">  cl_int err = CL_SUCCESS;</span><br><span class="line">  cl::Program program_ = cl::Program(context, buffer.str());</span><br><span class="line">  err = program_.build(devices);</span><br><span class="line">  if (err != CL_SUCCESS) &#123;</span><br><span class="line">    P(&quot;build error %d&quot;,err);</span><br><span class="line">    return;</span><br><span class="line">  &#125;  </span><br><span class="line"></span><br><span class="line">  struct timeval start, end,end2;</span><br><span class="line">  cl::Event event;</span><br><span class="line">  err = CL_SUCCESS;</span><br><span class="line">  gettimeofday(&amp;start, NULL);</span><br><span class="line">  std::vector&lt;cl::CommandQueue&gt; vQueue;</span><br><span class="line">  std::vector&lt;cl::Event&gt; vEvents;</span><br><span class="line">  std::vector&lt;cl::Buffer&gt; vInBuffers;</span><br><span class="line">  std::vector&lt;cl::Buffer&gt; vOutBuffers;</span><br><span class="line">  std::vector&lt;char*&gt; vHostOutBuf;</span><br><span class="line">  std::vector&lt;cl::Kernel&gt; vKernels;</span><br><span class="line">  std::vector&lt;char*&gt; vBmpdatas;</span><br><span class="line"></span><br><span class="line">  for(int i=0;i&lt;run_times;i++)&#123;</span><br><span class="line">    cl::Event event;</span><br><span class="line">    cl::CommandQueue queue(context, devices[0], 0, &amp;err);</span><br><span class="line">      if (err != CL_SUCCESS) &#123;</span><br><span class="line">      P(&quot;CommandQueue create error&quot;);</span><br><span class="line">      return;</span><br><span class="line">    &#125;</span><br><span class="line">    vQueue.push_back(queue);</span><br><span class="line">    vEvents.push_back(event);</span><br><span class="line">    cl::Buffer in_buf(context, CL_MEM_WRITE_ONLY, bmp_size);</span><br><span class="line">    cl::Buffer out_buf(context, CL_MEM_READ_ONLY, bmp_size);</span><br><span class="line">    vInBuffers.push_back(in_buf);</span><br><span class="line">    vOutBuffers.push_back(out_buf);</span><br><span class="line">    char* h_out_buf = new char[bmp_size];</span><br><span class="line">    vHostOutBuf.push_back(h_out_buf);</span><br><span class="line"></span><br><span class="line">    cl::Kernel kernel(program_, name, &amp;err);</span><br><span class="line">    if (err != CL_SUCCESS) &#123;</span><br><span class="line">      P(&quot;build error&quot;);</span><br><span class="line">      return;</span><br><span class="line">    &#125;</span><br><span class="line">    kernel.setArg(0, vInBuffers[i]);</span><br><span class="line">    kernel.setArg(1, vOutBuffers[i]);</span><br><span class="line">    kernel.setArg(2, line_size);</span><br><span class="line">    kernel.setArg(3, channels);</span><br><span class="line">    kernel.setArg(4, width);</span><br><span class="line">    kernel.setArg(5, height);</span><br><span class="line">    vKernels.push_back(kernel);</span><br><span class="line"></span><br><span class="line">  &#125;</span><br><span class="line">  gettimeofday(&amp;end, NULL);</span><br><span class="line">  P(&quot;opecl create queue: spend:%d ms&quot;, (end.tv_sec - start.tv_sec) * 1000 + </span><br><span class="line">                                       (end.tv_usec - start.tv_usec)/1000);</span><br><span class="line"></span><br><span class="line">  for(int i=0;i&lt;run_times;i++)&#123;</span><br><span class="line">    err = vQueue[i].enqueueWriteBuffer(vInBuffers[i], false, 0, bmp_size, bmp_data, NULL, &amp;vEvents[i]);</span><br><span class="line">  &#125;</span><br><span class="line">  for(int i=0;i&lt;run_times;i++)&#123;</span><br><span class="line">    vEvents[i].wait();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  for(int i=0;i&lt;run_times;i++)&#123;</span><br><span class="line">    err = vQueue[i].enqueueNDRangeKernel(vKernels[i], cl::NullRange, cl::NDRange(thread_count, 1),</span><br><span class="line">                                 cl::NullRange, NULL, &amp;vEvents[i]);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  for (int i = 0; i &lt; run_times; ++i)&#123; </span><br><span class="line">    vEvents[i].wait();</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  for(int i=0;i&lt;run_times;i++)&#123;</span><br><span class="line">    err = vQueue[i].enqueueReadBuffer(vOutBuffers[i], false, 0, bmp_size, vHostOutBuf[i], NULL, &amp;vEvents[i]);</span><br><span class="line">  &#125;</span><br><span class="line">  for(int i=0;i&lt;run_times;i++)&#123;</span><br><span class="line">    vEvents[i].wait();</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  for(int i=0;i&lt;run_times;i++)&#123;</span><br><span class="line">    if (0!=memcmp(vHostOutBuf[i], bmp_data, bmp_size))&#123;</span><br><span class="line">      P(&quot;data not same&quot;);</span><br><span class="line">    &#125;else&#123;</span><br><span class="line">      P(&quot;data same&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tensorflow/tensorflow-model-channel-pruning/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1697,132 +2026,6 @@ mjx-container[display="true"] + br {
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ bazel-bin/tensorflow/tools/benchmark/benchmark_model \ </span><br><span class="line">--graph=model_original.pb \</span><br><span class="line">--input_layer="net_input" \</span><br><span class="line">--input_layer_shape="1,32,32,3" \</span><br><span class="line">--input_layer_type="float" \</span><br><span class="line">--output_layer="net_output" \</span><br><span class="line">--show_flops=true \</span><br><span class="line">--show_run_order=false \</span><br><span class="line">--show_time=true \</span><br><span class="line">--num_threads=1</span><br><span class="line"></span><br></pre></td></tr></table></figure>
 <p><img src="/images/channel_pruning3.jpg" alt="channel-pruning 1x1 convolution"></p>
 <p>参考：<br>[1]. <a href="https://wxquare.github.io/2019/09/16/other/tensorflow-model-quantization/">tensorflow模型权重量化(weight quantization)实战</a><br>[2]. <a href="https://wxquare.github.io/2019/09/27/other/tensorflow-model-no-structural-pruning">tensorflow模型权重稀疏(weight sparsification)实战</a><br>[3].<a href="https://arxiv.org/abs/1707.06168">Channel Pruning for Accelerating Very Deep Neural Networks</a><br>[4].<a href="https://github.com/wxquare/PocketFlow">PocketFLow</a><br>[5].1x1卷积：<a href="https://www.zhihu.com/question/56024942">https://www.zhihu.com/question/56024942</a> </p>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tensorflow/tensorflow-model-no-structural-pruning/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="wxquare">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="undefined | wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/08/13/AI/tensorflow/tensorflow-model-no-structural-pruning/" class="post-title-link" itemprop="url">tensorflow模型权重稀疏(weight sparsification)实战</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-04-09 09:59:40" itemprop="dateModified" datetime="2026-04-09T09:59:40+08:00">2026-04-09</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/AI-%E4%B8%8E-Agent/" itemprop="url" rel="index"><span itemprop="name">AI 与 Agent</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h2 id="一、概述"><a href="#一、概述" class="headerlink" title="一、概述"></a>一、概述</h2><p>　　深度模型通常会有更好的预测精度，但是它面临计算开销过大的问题。模型压缩(model compress)是提高深度模型推理效率的一种解决方案，它期望在不损失精度或者精度损失可控的范围内，加速推理效率，减低内存开销。目前，模型压缩算法主要包括权<strong>重量化(quantization)、剪枝(pruning)、低秩分解等</strong>。上周尝试了<a href="https://wxquare.github.io/2019/09/16/other/tensorflow-model-quantization/">tensorflow中的模型量化</a>，发现量化需要硬件或者推理引擎的对低精度8-bit计算支持，目前tensorflow在x86和gpu环境下还没有很好的支持，因此量化只帮助实现了模型大小下降，没有实现推理的加速。model pruning学习的材料是tensorflow repo中的tensorflow/contrib/model_pruning，实际了解后发现它属于pruning中no-structural pruning，其加速效果依赖具体的硬件实现，加速效果一般，tensorflow 中对稀疏矩阵运算没有特别好的优化（依赖于底层的 SparseBLAS 实现，目前还没有特别好的）。model pruning中还有一种structural pruning 则不改变计算方式，可以直接使用，加速效果相对较好，之后也会继续尝试。</p>
-<h2 id="二、tensorflow-contrib-model-pruning原理"><a href="#二、tensorflow-contrib-model-pruning原理" class="headerlink" title="二、tensorflow/contrib/model_pruning原理"></a>二、tensorflow/contrib/model_pruning原理</h2><p>　　<a href="https://arxiv.org/pdf/1710.01878.pdf">Michael Zhu and Suyog Gupta, “To prune, or not to prune: exploring the efficacy of pruning for model compression”, 2017 NIPS </a><br>　　tensorflow中model_pruning理论来自上面这篇文章。文章中指出目前有些深度学习网络模型是过度设计（over-parameterized）。为了使其在资源受限的环境下高效的进行推理预测，要么减少网络的隐藏单元（hidden unit）同时保持模型密集连接结构，要么采用针对大模型进行模型剪枝（model pruning）。文章中的模型行剪枝是一种非结构化的剪枝（no-structural pruning），它在深度神经网络的各种连接矩阵中引入稀疏性（sparsity），从而减少模型中非零值参数的数量。文章比较了大而稀疏（large-sparse）和较小密集（small-dense）这两种模型，认为前者是优于后者的。除此之外，文章提出了一种新的渐进剪枝技术（gradual pruning technique），它能比较方便的融入到模型训练的过程中，使其调整比较小。</p>
-<p>　　tensorflow中的模型剪枝是一种训练时剪枝。对于需要被剪枝的网络模型，对于网络中每个需要被剪枝的层（layer)添加一个二进制掩码变量（binary mask variable ），该变量的大小和形状和改层的权重张量（weight tensor）相同。在训练图中加入一些ops，它负责对该层的权重值（weights）的绝对值进行排序，通过mask将最小的权重值屏蔽为0。在前向传播时该掩模的对应位与选中权重进行相与输出feature map，如果该掩模对应位为0则对应的权重相与后则为0，在反向传播时掩模对应位为0的权重参数则不参与更新。除此之外，文章提出了一种新的自动逐步修剪算法（automated gradual pruning），它实际上是定义了一种稀疏度变化的规则，初始时刻，稀疏度提升较快，而越到后面，稀疏度提升速度会逐渐放缓，这个主要是基于冗余度的考虑。因为初始时有大量冗余的权值，而越到后面保留的权值数量越少，不能再“大刀阔斧”地修剪，而需要更谨慎些，避免“误伤无辜”。其表达式如下，官方文档中列出了一些的剪枝超参数，主要的有下面几个。<br><mjx-container class="MathJax" jax="SVG" display="true"><svg style="vertical-align: -2.148ex;" xmlns="http://www.w3.org/2000/svg" width="32.791ex" height="5.874ex" role="img" focusable="false" viewBox="0 -1646.8 14493.5 2596.3"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="msub"><g data-mml-node="mi"><path data-c="1D460" d="M131 289Q131 321 147 354T203 415T300 442Q362 442 390 415T419 355Q419 323 402 308T364 292Q351 292 340 300T328 326Q328 342 337 354T354 372T367 378Q368 378 368 379Q368 382 361 388T336 399T297 405Q249 405 227 379T204 326Q204 301 223 291T278 274T330 259Q396 230 396 163Q396 135 385 107T352 51T289 7T195 -10Q118 -10 86 19T53 87Q53 126 74 143T118 160Q133 160 146 151T160 120Q160 94 142 76T111 58Q109 57 108 57T107 55Q108 52 115 47T146 34T201 27Q237 27 263 38T301 66T318 97T323 122Q323 150 302 164T254 181T195 196T148 231Q131 256 131 289Z"></path></g><g data-mml-node="TeXAtom" transform="translate(502,-150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g></g></g><g data-mml-node="mo" transform="translate(1085,0)"><path data-c="3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path></g><g data-mml-node="msub" transform="translate(2140.8,0)"><g data-mml-node="mi"><path data-c="1D460" d="M131 289Q131 321 147 354T203 415T300 442Q362 442 390 415T419 355Q419 323 402 308T364 292Q351 292 340 300T328 326Q328 342 337 354T354 372T367 378Q368 378 368 379Q368 382 361 388T336 399T297 405Q249 405 227 379T204 326Q204 301 223 291T278 274T330 259Q396 230 396 163Q396 135 385 107T352 51T289 7T195 -10Q118 -10 86 19T53 87Q53 126 74 143T118 160Q133 160 146 151T160 120Q160 94 142 76T111 58Q109 57 108 57T107 55Q108 52 115 47T146 34T201 27Q237 27 263 38T301 66T318 97T323 122Q323 150 302 164T254 181T195 196T148 231Q131 256 131 289Z"></path></g><g data-mml-node="TeXAtom" transform="translate(502,-150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D453" d="M118 -162Q120 -162 124 -164T135 -167T147 -168Q160 -168 171 -155T187 -126Q197 -99 221 27T267 267T289 382V385H242Q195 385 192 387Q188 390 188 397L195 425Q197 430 203 430T250 431Q298 431 298 432Q298 434 307 482T319 540Q356 705 465 705Q502 703 526 683T550 630Q550 594 529 578T487 561Q443 561 443 603Q443 622 454 636T478 657L487 662Q471 668 457 668Q445 668 434 658T419 630Q412 601 403 552T387 469T380 433Q380 431 435 431Q480 431 487 430T498 424Q499 420 496 407T491 391Q489 386 482 386T428 385H372L349 263Q301 15 282 -47Q255 -132 212 -173Q175 -205 139 -205Q107 -205 81 -186T55 -132Q55 -95 76 -78T118 -61Q162 -61 162 -103Q162 -122 151 -136T127 -157L118 -162Z"></path></g></g></g><g data-mml-node="mo" transform="translate(3304,0)"><path data-c="2B" d="M56 237T56 250T70 270H369V420L370 570Q380 583 389 583Q402 583 409 568V270H707Q722 262 722 250T707 230H409V-68Q401 -82 391 -82H389H387Q375 -82 369 -68V230H70Q56 237 56 250Z"></path></g><g data-mml-node="mrow" transform="translate(4304.2,0)"><g data-mml-node="mo"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="msub" transform="translate(389,0)"><g data-mml-node="mi"><path data-c="1D460" d="M131 289Q131 321 147 354T203 415T300 442Q362 442 390 415T419 355Q419 323 402 308T364 292Q351 292 340 300T328 326Q328 342 337 354T354 372T367 378Q368 378 368 379Q368 382 361 388T336 399T297 405Q249 405 227 379T204 326Q204 301 223 291T278 274T330 259Q396 230 396 163Q396 135 385 107T352 51T289 7T195 -10Q118 -10 86 19T53 87Q53 126 74 143T118 160Q133 160 146 151T160 120Q160 94 142 76T111 58Q109 57 108 57T107 55Q108 52 115 47T146 34T201 27Q237 27 263 38T301 66T318 97T323 122Q323 150 302 164T254 181T195 196T148 231Q131 256 131 289Z"></path></g><g data-mml-node="TeXAtom" transform="translate(502,-150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D456" d="M184 600Q184 624 203 642T247 661Q265 661 277 649T290 619Q290 596 270 577T226 557Q211 557 198 567T184 600ZM21 287Q21 295 30 318T54 369T98 420T158 442Q197 442 223 419T250 357Q250 340 236 301T196 196T154 83Q149 61 149 51Q149 26 166 26Q175 26 185 29T208 43T235 78T260 137Q263 149 265 151T282 153Q302 153 302 143Q302 135 293 112T268 61T223 11T161 -11Q129 -11 102 10T74 74Q74 91 79 106T122 220Q160 321 166 341T173 380Q173 404 156 404H154Q124 404 99 371T61 287Q60 286 59 284T58 281T56 279T53 278T49 278T41 278H27Q21 284 21 287Z"></path></g></g></g><g data-mml-node="mo" transform="translate(1407.2,0)"><path data-c="2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path></g><g data-mml-node="msub" transform="translate(2407.4,0)"><g data-mml-node="mi"><path data-c="1D460" d="M131 289Q131 321 147 354T203 415T300 442Q362 442 390 415T419 355Q419 323 402 308T364 292Q351 292 340 300T328 326Q328 342 337 354T354 372T367 378Q368 378 368 379Q368 382 361 388T336 399T297 405Q249 405 227 379T204 326Q204 301 223 291T278 274T330 259Q396 230 396 163Q396 135 385 107T352 51T289 7T195 -10Q118 -10 86 19T53 87Q53 126 74 143T118 160Q133 160 146 151T160 120Q160 94 142 76T111 58Q109 57 108 57T107 55Q108 52 115 47T146 34T201 27Q237 27 263 38T301 66T318 97T323 122Q323 150 302 164T254 181T195 196T148 231Q131 256 131 289Z"></path></g><g data-mml-node="TeXAtom" transform="translate(502,-150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D453" d="M118 -162Q120 -162 124 -164T135 -167T147 -168Q160 -168 171 -155T187 -126Q197 -99 221 27T267 267T289 382V385H242Q195 385 192 387Q188 390 188 397L195 425Q197 430 203 430T250 431Q298 431 298 432Q298 434 307 482T319 540Q356 705 465 705Q502 703 526 683T550 630Q550 594 529 578T487 561Q443 561 443 603Q443 622 454 636T478 657L487 662Q471 668 457 668Q445 668 434 658T419 630Q412 601 403 552T387 469T380 433Q380 431 435 431Q480 431 487 430T498 424Q499 420 496 407T491 391Q489 386 482 386T428 385H372L349 263Q301 15 282 -47Q255 -132 212 -173Q175 -205 139 -205Q107 -205 81 -186T55 -132Q55 -95 76 -78T118 -61Q162 -61 162 -103Q162 -122 151 -136T127 -157L118 -162Z"></path></g></g></g><g data-mml-node="mo" transform="translate(3348.3,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g></g><g data-mml-node="msup" transform="translate(8041.5,0)"><g data-mml-node="mrow"><g data-mml-node="mo" transform="translate(0 -0.5)"><path data-c="28" d="M701 -940Q701 -943 695 -949H664Q662 -947 636 -922T591 -879T537 -818T475 -737T412 -636T350 -511T295 -362T250 -186T221 17T209 251Q209 962 573 1361Q596 1386 616 1405T649 1437T664 1450H695Q701 1444 701 1441Q701 1436 681 1415T629 1356T557 1261T476 1118T400 927T340 675T308 359Q306 321 306 250Q306 -139 400 -430T690 -924Q701 -936 701 -940Z"></path></g><g data-mml-node="mn" transform="translate(736,0)"><path data-c="31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path></g><g data-mml-node="mo" transform="translate(1458.2,0)"><path data-c="2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path></g><g data-mml-node="mfrac" transform="translate(2458.4,0)"><g data-mml-node="mrow" transform="translate(220,676)"><g data-mml-node="mi"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g><g data-mml-node="mo" transform="translate(583.2,0)"><path data-c="2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path></g><g data-mml-node="msub" transform="translate(1583.4,0)"><g data-mml-node="mi"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g><g data-mml-node="TeXAtom" transform="translate(394,-150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mn"><path data-c="30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path></g></g></g></g><g data-mml-node="mrow" transform="translate(513.5,-686)"><g data-mml-node="mi"><path data-c="1D45B" d="M21 287Q22 293 24 303T36 341T56 388T89 425T135 442Q171 442 195 424T225 390T231 369Q231 367 232 367L243 378Q304 442 382 442Q436 442 469 415T503 336T465 179T427 52Q427 26 444 26Q450 26 453 27Q482 32 505 65T540 145Q542 153 560 153Q580 153 580 145Q580 144 576 130Q568 101 554 73T508 17T439 -10Q392 -10 371 17T350 73Q350 92 386 193T423 345Q423 404 379 404H374Q288 404 229 303L222 291L189 157Q156 26 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 112 180T152 343Q153 348 153 366Q153 405 129 405Q91 405 66 305Q60 285 60 284Q58 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(600,0)"><path data-c="394" d="M51 0Q46 4 46 7Q46 9 215 357T388 709Q391 716 416 716Q439 716 444 709Q447 705 616 357T786 7Q786 4 781 0H51ZM507 344L384 596L137 92L383 91H630Q630 93 507 344Z"></path></g><g data-mml-node="mi" transform="translate(1433,0)"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g></g><rect width="2581" height="60" x="120" y="220"></rect></g><g data-mml-node="mo" transform="translate(5279.4,0) translate(0 -0.5)"><path data-c="29" d="M34 1438Q34 1446 37 1448T50 1450H56H71Q73 1448 99 1423T144 1380T198 1319T260 1238T323 1137T385 1013T440 864T485 688T514 485T526 251Q526 134 519 53Q472 -519 162 -860Q139 -885 119 -904T86 -936T71 -949H56Q43 -949 39 -947T34 -937Q88 -883 140 -813Q428 -430 428 251Q428 453 402 628T338 922T245 1146T145 1309T46 1425Q44 1427 42 1429T39 1433T36 1436L34 1438Z"></path></g></g><g data-mml-node="TeXAtom" transform="translate(6048.4,1176.6) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mn"><path data-c="33" d="M127 463Q100 463 85 480T69 524Q69 579 117 622T233 665Q268 665 277 664Q351 652 390 611T430 522Q430 470 396 421T302 350L299 348Q299 347 308 345T337 336T375 315Q457 262 457 175Q457 96 395 37T238 -22Q158 -22 100 21T42 130Q42 158 60 175T105 193Q133 193 151 175T169 130Q169 119 166 110T159 94T148 82T136 74T126 70T118 67L114 66Q165 21 238 21Q293 21 321 74Q338 107 338 175V195Q338 290 274 322Q259 328 213 329L171 330L168 332Q166 335 166 348Q166 366 174 366Q202 366 232 371Q266 376 294 413T322 525V533Q322 590 287 612Q265 626 240 626Q208 626 181 615T143 592T132 580H135Q138 579 143 578T153 573T165 566T175 555T183 540T186 520Q186 498 172 481T127 463Z"></path></g></g></g></g></g></svg></mjx-container></p>
-<ul>
-<li>initial_sparsity：初始稀疏值<mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.357ex;" xmlns="http://www.w3.org/2000/svg" width="1.801ex" height="1.357ex" role="img" focusable="false" viewBox="0 -442 796 599.8"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="msub"><g data-mml-node="mi"><path data-c="1D460" d="M131 289Q131 321 147 354T203 415T300 442Q362 442 390 415T419 355Q419 323 402 308T364 292Q351 292 340 300T328 326Q328 342 337 354T354 372T367 378Q368 378 368 379Q368 382 361 388T336 399T297 405Q249 405 227 379T204 326Q204 301 223 291T278 274T330 259Q396 230 396 163Q396 135 385 107T352 51T289 7T195 -10Q118 -10 86 19T53 87Q53 126 74 143T118 160Q133 160 146 151T160 120Q160 94 142 76T111 58Q109 57 108 57T107 55Q108 52 115 47T146 34T201 27Q237 27 263 38T301 66T318 97T323 122Q323 150 302 164T254 181T195 196T148 231Q131 256 131 289Z"></path></g><g data-mml-node="mi" transform="translate(502,-150) scale(0.707)"><path data-c="1D456" d="M184 600Q184 624 203 642T247 661Q265 661 277 649T290 619Q290 596 270 577T226 557Q211 557 198 567T184 600ZM21 287Q21 295 30 318T54 369T98 420T158 442Q197 442 223 419T250 357Q250 340 236 301T196 196T154 83Q149 61 149 51Q149 26 166 26Q175 26 185 29T208 43T235 78T260 137Q263 149 265 151T282 153Q302 153 302 143Q302 135 293 112T268 61T223 11T161 -11Q129 -11 102 10T74 74Q74 91 79 106T122 220Q160 321 166 341T173 380Q173 404 156 404H154Q124 404 99 371T61 287Q60 286 59 284T58 281T56 279T53 278T49 278T41 278H27Q21 284 21 287Z"></path></g></g></g></g></svg></mjx-container></li>
-<li>target_sparsity：目标稀疏值<mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.667ex;" xmlns="http://www.w3.org/2000/svg" width="2.129ex" height="1.667ex" role="img" focusable="false" viewBox="0 -442 940.9 737"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="msub"><g data-mml-node="mi"><path data-c="1D460" d="M131 289Q131 321 147 354T203 415T300 442Q362 442 390 415T419 355Q419 323 402 308T364 292Q351 292 340 300T328 326Q328 342 337 354T354 372T367 378Q368 378 368 379Q368 382 361 388T336 399T297 405Q249 405 227 379T204 326Q204 301 223 291T278 274T330 259Q396 230 396 163Q396 135 385 107T352 51T289 7T195 -10Q118 -10 86 19T53 87Q53 126 74 143T118 160Q133 160 146 151T160 120Q160 94 142 76T111 58Q109 57 108 57T107 55Q108 52 115 47T146 34T201 27Q237 27 263 38T301 66T318 97T323 122Q323 150 302 164T254 181T195 196T148 231Q131 256 131 289Z"></path></g><g data-mml-node="mi" transform="translate(502,-150) scale(0.707)"><path data-c="1D453" d="M118 -162Q120 -162 124 -164T135 -167T147 -168Q160 -168 171 -155T187 -126Q197 -99 221 27T267 267T289 382V385H242Q195 385 192 387Q188 390 188 397L195 425Q197 430 203 430T250 431Q298 431 298 432Q298 434 307 482T319 540Q356 705 465 705Q502 703 526 683T550 630Q550 594 529 578T487 561Q443 561 443 603Q443 622 454 636T478 657L487 662Q471 668 457 668Q445 668 434 658T419 630Q412 601 403 552T387 469T380 433Q380 431 435 431Q480 431 487 430T498 424Q499 420 496 407T491 391Q489 386 482 386T428 385H372L349 263Q301 15 282 -47Q255 -132 212 -173Q175 -205 139 -205Q107 -205 81 -186T55 -132Q55 -95 76 -78T118 -61Q162 -61 162 -103Q162 -122 151 -136T127 -157L118 -162Z"></path></g></g></g></g></svg></mjx-container></li>
-<li>sparsity_function_begin_step：开始剪枝的step <mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.375ex;" xmlns="http://www.w3.org/2000/svg" width="1.804ex" height="1.791ex" role="img" focusable="false" viewBox="0 -626 797.6 791.6"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="msub"><g data-mml-node="mi"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g><g data-mml-node="mn" transform="translate(394,-150) scale(0.707)"><path data-c="30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path></g></g></g></g></svg></mjx-container></li>
-<li>sparsity_function_end_step: 剪枝停止的step</li>
-<li>pruning_frequency：剪枝的频率<mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.025ex;" xmlns="http://www.w3.org/2000/svg" width="2.701ex" height="1.645ex" role="img" focusable="false" viewBox="0 -716 1194 727"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="394" d="M51 0Q46 4 46 7Q46 9 215 357T388 709Q391 716 416 716Q439 716 444 709Q447 705 616 357T786 7Q786 4 781 0H51ZM507 344L384 596L137 92L383 91H630Q630 93 507 344Z"></path></g><g data-mml-node="mi" transform="translate(833,0)"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g></g></g></svg></mjx-container>，文章提出在100到1000之间通常比较好</li>
-<li>sparsity_function_exponent: 剪枝函数的指数，表示式中已描述为默认的3，表示由快到慢，为1时表示线性剪枝</li>
-</ul>
-<h2 id="三、tensorflow中的model-pruning实践"><a href="#三、tensorflow中的model-pruning实践" class="headerlink" title="三、tensorflow中的model_pruning实践"></a>三、tensorflow中的model_pruning实践</h2><p>　　tensorflow中model_pruning的源码位于tensorflow/contrib/model_pruning。</p>
-<ol>
-<li><p>准备tensorflow-1.14.0源码</p>
-</li>
-<li><p>编译model_pruning</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$bazel build -c opt tensorflow/contrib/model_pruning/examples/cifar10:cifar10_train</span><br></pre></td></tr></table></figure></li>
-<li><p>通过设置一些参数，开始针对cifar10剪枝</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$bazel-out/k8-py2-opt/bin/tensorflow/contrib/model_pruning/examples/cifar10/cifar10_train \</span><br><span class="line">--train_dir=/home/terse/code/programming/tensorflow/model_pruning/train \</span><br><span class="line">--pruning_hparams=name=cifar10_pruning,\</span><br><span class="line">initial_sparsity=0.3,\</span><br><span class="line">target_sparsity=0.9,\</span><br><span class="line">sparsity_function_begin_step=100,\</span><br><span class="line">sparsity_function_end_step=10000</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>可通过tensorboard查看剪枝过程。可以清楚的看出随着训练步骤的增加，conv1和conv2的sparsity在不断的增长。 在GRAPHS 页面，双击conv节点，可以看到在原有计算图基础上新增了mask和threshold节点用来做 model pruning</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$tensorboard --logdir=/home/terse/code/programming/tensorflow/model_pruning/train</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>模型剪枝之后将剪枝的ops从训练图中删除。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$bazel build -c opt tensorflow/contrib/model_pruning:strip_pruning_vars</span><br><span class="line">$bazel-out/k8-py2-opt/bin/tensorflow/contrib/model_pruning/strip_pruning_vars \</span><br><span class="line">--checkpoint_dir=/home/terse/code/programming/tensorflow/model_pruning/train \</span><br><span class="line">--output_node_names=softmax_linear/softmax_linear_2 \</span><br><span class="line">--output_dir=/home/terse/code/programming/tensorflow/model_pruning \</span><br><span class="line">--filename=pruning_stripped.pb</span><br></pre></td></tr></table></figure></li>
-</ol>
-<h2 id="四、model-pruning源码简单分析"><a href="#四、model-pruning源码简单分析" class="headerlink" title="四、model_pruning源码简单分析"></a>四、model_pruning源码简单分析</h2><p>　　使用tensorflow的model_pruning进行模型剪枝，主要包括两方面的工作，一是apply_mask，二是在训练图中增加剪枝的节点（pruning ops）。这里分别截取了其中的两段代码。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"># cifar10_pruning.py  apply_mask to the graph</span><br><span class="line">with tf.variable_scope('conv1') as scope:</span><br><span class="line">  kernel = _variable_with_weight_decay(</span><br><span class="line">      'weights', shape=[5, 5, 3, 64], stddev=5e-2, wd=0.0)</span><br><span class="line"></span><br><span class="line">  conv = tf.nn.conv2d(</span><br><span class="line">      images, pruning.apply_mask(kernel, scope), [1, 1, 1, 1], padding='SAME')</span><br><span class="line">  </span><br><span class="line">  biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.0))</span><br><span class="line">  pre_activation = tf.nn.bias_add(conv, biases)</span><br><span class="line">  conv1 = tf.nn.relu(pre_activation, name=scope.name)</span><br><span class="line">  _activation_summary(conv1)</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"> #Adding pruning ops to the training graph</span><br><span class="line">with tf.graph.as_default():</span><br><span class="line"></span><br><span class="line">  # Create global step variable</span><br><span class="line">  global_step = tf.train.get_or_create_global_step()</span><br><span class="line"></span><br><span class="line">  # Parse pruning hyperparameters</span><br><span class="line">  pruning_hparams = pruning.get_pruning_hparams().parse(FLAGS.pruning_hparams)</span><br><span class="line"></span><br><span class="line">  # Create a pruning object using the pruning specification</span><br><span class="line">  p = pruning.Pruning(pruning_hparams, global_step=global_step)</span><br><span class="line"></span><br><span class="line">  # Add conditional mask update op. Executing this op will update all</span><br><span class="line">  # the masks in the graph if the current global step is in the range</span><br><span class="line">  # [begin_pruning_step, end_pruning_step] as specified by the pruning spec</span><br><span class="line">  mask_update_op = p.conditional_mask_update_op()</span><br><span class="line"></span><br><span class="line">  # Add summaries to keep track of the sparsity in different layers during training</span><br><span class="line">  p.add_pruning_summaries()</span><br><span class="line"></span><br><span class="line">  with tf.train.MonitoredTrainingSession(...) as mon_sess:</span><br><span class="line">    # Run the usual training op in the tf session</span><br><span class="line">    mon_sess.run(train_op)</span><br><span class="line"></span><br><span class="line">    # Update the masks by running the mask_update_op</span><br><span class="line">    mon_sess.run(mask_update_op)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h2 id="五、总结和未解决的问题"><a href="#五、总结和未解决的问题" class="headerlink" title="五、总结和未解决的问题"></a>五、总结和未解决的问题</h2><ol>
-<li>tensorflow中的模型剪枝属于no-structral，本质上是使权重稀疏化(weight sparsification),实践中发现它没有使推理加速，据其加速效果依赖具体的硬件实现，加速效果一般，tensorflow 中对稀疏矩阵运算没有特别好的优化（依赖于底层的 SparseBLAS 实现，目前还没有特别好的）</li>
-<li>实践中发现不管稀疏度为多少，其剪枝后的模型大小都是相同的，是不是tensorflow对稀疏的模型也是按照非稀疏格式存储的？</li>
-<li>issue:<a href="https://github.com/tensorflow/tensorflow/issues/32805">model_pruning: Why 50% and 90% zeros of the stripped models are the same size? #32805</a></li>
-<li>issue: [CNN.Model pruning: no gain in speeding up of inference #22732](CNN.Model pruning: no gain in speeding up of inference #22732)</li>
-</ol>
-<p>参考：</p>
-<ol>
-<li><a href="https://github.com/tensorflow/tensorflow/tree/r2.0/tensorflow/contrib/model_pruning">https://github.com/tensorflow/tensorflow/tree/r2.0/tensorflow/contrib/model_pruning</a></li>
-<li><a href="https://arxiv.org/pdf/1710.01878.pdf">Michael Zhu and Suyog Gupta, “To prune, or not to prune: exploring the efficacy of pruning for model compression”, 2017 NIPS </a></li>
-<li><a href="https://zhuanlan.zhihu.com/p/48069799">https://zhuanlan.zhihu.com/p/48069799</a></li>
-</ol>
 
       
     </div>
@@ -2083,118 +2286,6 @@ mjx-container[display="true"] + br {
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tvm/TVM-Graph-optimization/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="wxquare">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="undefined | wxquare's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2020/08/13/AI/tvm/TVM-Graph-optimization/" class="post-title-link" itemprop="url">TVM学习笔记--了解Relay和图优化</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-04-09 09:59:40" itemprop="dateModified" datetime="2026-04-09T09:59:40+08:00">2026-04-09</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/AI-%E4%B8%8E-Agent/" itemprop="url" rel="index"><span itemprop="name">AI 与 Agent</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <p>　　TVM主要包括两个部分，一个是Relay和图优化(graph-level)，另一个就是算子（operator）级别优化，这里简单写最近了解到的关于relay和图优化方面的东西。我们都知道深度学习网络通常都是通过计算图来描述的，计算图中的节点表示各种同的算子(opertor),边表示算子之间的依赖关系。Relay可以理解为一种可以描述深度学习网络的函数式编程语言，通过relay可以描述复杂的深度网络，文中提到了control flow。最近一段时间的时间学习直观的感受的Relay编写网络模型和其它框架没什么太多的区别，但是提供的文本形式的中间表示，对开发和调试有很大的帮助。另外，它提供了许多用于图优化的pass，供大家学习和参考。测试代码都在0.6版本上调试通过。<br>    代码地址：<a href="https://github.com/wxquare/programming/tree/master/blog/TVM_graph_optimization">https://github.com/wxquare/programming/tree/master/blog/TVM_graph_optimization</a></p>
-<h2 id="一、Hello-Relay"><a href="#一、Hello-Relay" class="headerlink" title="一、Hello Relay"></a>一、Hello Relay</h2><p>既然Relay是一种可以描述计算的函数式语言，逛社区的发现一段代码，可以当作Relay的第一个程序。<br>API参考:<a href="https://docs.tvm.ai/api/python/relay/index.html">https://docs.tvm.ai/api/python/relay/index.html</a></p>
-<pre><code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">from tvm import relay</span><br><span class="line">import tvm.relay.op</span><br><span class="line"></span><br><span class="line">x = relay.expr.var('x', relay.scalar_type('int64'), dtype = 'int64')</span><br><span class="line">one = relay.expr.const(1, dtype = 'int64')</span><br><span class="line">add = relay.op.tensor.add(x, one)    </span><br><span class="line">func = relay.expr.Function([x], add, relay.scalar_type('int64'))</span><br><span class="line"></span><br><span class="line">mod = relay.Module.from_expr(func)  # note this API</span><br><span class="line">print("Relay module function:\n", mod.astext(show_meta_data=False))</span><br><span class="line">graph, lib, params = tvm.relay.build(mod, 'llvm', params={})</span><br><span class="line">print("TVM graph:\n", graph)</span><br><span class="line">print("TVM parameters:\n", params)</span><br><span class="line">print("TVM compiled target function:\n", lib.get_source())</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-</code></pre>
-<h2 id="二、使用Relay定义卷积单元"><a href="#二、使用Relay定义卷积单元" class="headerlink" title="二、使用Relay定义卷积单元"></a>二、使用Relay定义卷积单元</h2><p>在学习Relay的时候参考了<a href="https://zhuanlan.zhihu.com/p/91283238">https://zhuanlan.zhihu.com/p/91283238</a> 这篇文章。但是可能因为版本的问题，很多API多不兼容了，因此修改了一些地方，建议读者也可以去看一下。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><span class="line">import tvm</span><br><span class="line">from tvm.relay import transform</span><br><span class="line">import tvm.relay as relay</span><br><span class="line">import numpy as np</span><br><span class="line">from tvm.contrib import graph_runtime</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">def batch_norm_infer(data,</span><br><span class="line">                    gamma=None,</span><br><span class="line">                    beta=None,</span><br><span class="line">                    moving_mean=None,</span><br><span class="line">                    moving_var=None,</span><br><span class="line">                    **kwargs):</span><br><span class="line">    name = kwargs.get("name")</span><br><span class="line">    kwargs.pop("name")</span><br><span class="line">    if not gamma:</span><br><span class="line">        gamma = relay.var(name + "_gamma")</span><br><span class="line">    if not beta:</span><br><span class="line">        beta = relay.var(name + "_beta")</span><br><span class="line">    if not moving_mean:</span><br><span class="line">        moving_mean = relay.var(name + "_moving_mean")</span><br><span class="line">    if not moving_var:</span><br><span class="line">        moving_var = relay.var(name + "_moving_var")</span><br><span class="line">    return relay.nn.batch_norm(data,</span><br><span class="line">                            gamma=gamma,</span><br><span class="line">                            beta=beta,</span><br><span class="line">                            moving_mean=moving_mean,</span><br><span class="line">                            moving_var=moving_var,</span><br><span class="line">                            **kwargs)[0]</span><br><span class="line"></span><br><span class="line">def conv2d(data, weight=None, **kwargs):</span><br><span class="line">    name = kwargs.get("name")</span><br><span class="line">    kwargs.pop("name")</span><br><span class="line">    if not weight:</span><br><span class="line">        weight = relay.var(name + "_weight")</span><br><span class="line">    return relay.nn.conv2d(data, weight, **kwargs)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">def conv_block(data, name, channels, kernel_size=(3, 3), strides=(1, 1),</span><br><span class="line">            padding=(1, 1), epsilon=1e-5):</span><br><span class="line">    conv = conv2d(</span><br><span class="line">        data=data,</span><br><span class="line">        channels=channels,</span><br><span class="line">        kernel_size=kernel_size,</span><br><span class="line">        strides=strides,</span><br><span class="line">        padding=padding,</span><br><span class="line">        data_layout='NCHW',</span><br><span class="line">        name=name+'_conv')</span><br><span class="line">    bn = batch_norm_infer(data=conv, epsilon=epsilon, name=name + '_bn')</span><br><span class="line">    act = relay.nn.relu(data=bn)</span><br><span class="line">    return act</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">data_shape = (1, 3, 224, 224)</span><br><span class="line">kernel_shape = (32, 3, 3, 3)</span><br><span class="line">dtype = "float32"</span><br><span class="line">data = relay.var("data", shape=data_shape, dtype=dtype)</span><br><span class="line">act = conv_block(data, "graph", 32, strides=(2, 2))</span><br><span class="line">func = relay.Function(relay.analysis.free_vars(act),act)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">mod = relay.Module.from_expr(func)</span><br><span class="line">mod = relay.transform.InferType()(mod)</span><br><span class="line">shape_dict = {</span><br><span class="line">    v.name_hint : v.checked_type for v in mod["main"].params}</span><br><span class="line">np.random.seed(0)</span><br><span class="line">params = {}</span><br><span class="line">for k, v in shape_dict.items():</span><br><span class="line">    if k == "data":</span><br><span class="line">        continue</span><br><span class="line">    init_value = np.random.uniform(-1, 1, v.concrete_shape).astype(v.dtype)</span><br><span class="line">    params[k] = tvm.nd.array(init_value, ctx=tvm.cpu(0))</span><br><span class="line"></span><br><span class="line">target = "llvm"</span><br><span class="line">ctx = tvm.context(target, 0)</span><br><span class="line">print("Relay module function:\n", mod.astext(show_meta_data=False))</span><br><span class="line">print("TVM parameters:\n", params.keys())</span><br><span class="line"></span><br><span class="line">with relay.build_config(opt_level=3):</span><br><span class="line">    graph, lib, params = relay.build(mod, target, params=params)</span><br><span class="line"></span><br><span class="line">print("TVM graph:\n", graph)</span><br><span class="line">print("TVM parameters:\n", params.keys())</span><br><span class="line"># print("TVM compiled target function:\n", lib.get_source())</span><br><span class="line">module = graph_runtime.create(graph, lib, ctx)</span><br><span class="line">data_tvm = tvm.nd.array((np.random.uniform(-1, 1, size=data_shape)).astype(dtype))</span><br><span class="line">module.set_input('data', data_tvm)</span><br><span class="line">module.set_input(**params)</span><br><span class="line">module.run()</span><br><span class="line">output = module.get_output(0)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h2 id="三、Relay-Graph-Optimization"><a href="#三、Relay-Graph-Optimization" class="headerlink" title="三、Relay Graph Optimization"></a>三、Relay Graph Optimization</h2><p>前面两个例子介绍了怎么使用relay构建网络，这个部分介绍怎么使用relay做图优化。上面例子代码中没有直接图优化的代码，而是包含在relay.build中。通过追踪代码，我们这部分的逻辑集中在 <a href="https://github.com/apache/incubator-tvm/blob/v0.6/src/relay/backend/build_module.cc">https://github.com/apache/incubator-tvm/blob/v0.6/src/relay/backend/build_module.cc</a> 这个文件的optimize函数中。这里罗列了代码用到的pass，relay提供了方便的的文本形式中间描述，感兴趣的可以自己试一下每个pass之后，发生了哪些变化。</p>
-<ul>
-<li>relay::qnn::transform::Legalize())，这个pass和qnn有关</li>
-<li>transform::Legalize()，我理解的这个是和目标有关的优化，一个表达式虽然在语义上等效于另一个，但可以在目标上具有更好的性能。这个在需要在异构环境下生效。</li>
-<li>transform::SimplifyInference() 。<br>简化推理阶段的数据流图。在语义上等于输入表达式的简化表达式将被返回。例如将BatchNorm展开以及去掉 dropout。</li>
-<li>transform::EliminateCommonSubexpr(fskip))，去除公共子表达式。</li>
-<li>transform::CombineParallelConv2D(3)，将多个conv2d运算符合并为一个，这部分优化会将具有相同输入的卷积合并成一个大的卷积运算。</li>
-<li>transform::CombineParallelDense(3))，将多个dense运算符组合为一个</li>
-<li>transform::FoldConstant()，常量传播优化。</li>
-<li>transform::FoldScaleAxis()</li>
-<li>transform::CanonicalizeCast()，<br>将特殊运算符规范化为基本运算符。这样可以简化后续分析，例如将bias_add扩展为expand_dims和broadcast_add</li>
-<li>transform::CanonicalizeOps()</li>
-<li>transform::AlterOpLayout()，layout 变换</li>
-<li>transform::FuseOps()，算子融合，根据一些规则，将expr中的运算符融合为较大的运算符。</li>
-</ul>
-<h2 id="四、使用Python-API-Relay-图优化"><a href="#四、使用Python-API-Relay-图优化" class="headerlink" title="四、使用Python API Relay 图优化"></a>四、使用Python API Relay 图优化</h2><p> TVM核心代码是采用C++编写的，但是也提供了Python接口，这方面初学者体验的使用。Relay图优化核心功能都提供了对应的API，因此可以尝试一下，非常简单。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">def my_optimize(func,params=None):</span><br><span class="line"></span><br><span class="line">    if params:</span><br><span class="line">        graph = _bind_params(func, params)</span><br><span class="line"></span><br><span class="line">    # https://docs.tvm.ai/api/python/relay/transform.html</span><br><span class="line">    optimize = relay.transform.Sequential([relay.transform.SimplifyInference(),</span><br><span class="line">                                      relay.transform.FoldConstant(),</span><br><span class="line">                                      relay.transform.FoldScaleAxis(),</span><br><span class="line">                                      relay.transform.CanonicalizeOps(),</span><br><span class="line">                                      relay.transform.FoldConstant()])</span><br><span class="line"></span><br><span class="line">    mod = relay.Module.from_expr(graph)</span><br><span class="line">    mod = optimize(mod)</span><br><span class="line">    return mod["main"]</span><br><span class="line"></span><br><span class="line">mod['main'] = my_optimize(mod['main'], params)</span><br><span class="line">print("Relay module function:\n", mod.astext(show_meta_data=False))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>这里可以对比优化前后的IR.</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">Relay module function:</span><br><span class="line"> v0.0.4</span><br><span class="line">def @main(%data: Tensor[(1, 3, 224, 224), float32], %graph_conv_weight: Tensor[(32, 3, 3, 3), float32], %graph_bn_gamma: Tensor[(32), float32], %graph_bn_beta: Tensor[(32), float32], %graph_bn_moving_mean: Tensor[(32), float32], %graph_bn_moving_var: Tensor[(32), float32]) -&gt; Tensor[(1, 32, 112, 112), float32] {</span><br><span class="line">  %0 = nn.conv2d(%data, %graph_conv_weight, strides=[2, 2], padding=[1, 1], channels=32, kernel_size=[3, 3]) /* ty=Tensor[(1, 32, 112, 112), float32] */;</span><br><span class="line">  %1 = nn.batch_norm(%0, %graph_bn_gamma, %graph_bn_beta, %graph_bn_moving_mean, %graph_bn_moving_var) /* ty=(Tensor[(1, 32, 112, 112), float32], Tensor[(32), float32], Tensor[(32), float32]) */;</span><br><span class="line">  %2 = %1.0;</span><br><span class="line">  nn.relu(%2) /* ty=Tensor[(1, 32, 112, 112), float32] */</span><br><span class="line">}</span><br><span class="line"># =====================================</span><br><span class="line">Relay module function:</span><br><span class="line"> v0.0.4</span><br><span class="line">def @main(%data: Tensor[(1, 3, 224, 224), float32]) -&gt; Tensor[(1, 32, 112, 112), float32] {</span><br><span class="line">  %0 = nn.conv2d(%data, meta[relay.Constant][0] /* ty=Tensor[(32, 3, 3, 3), float32] */ /* ty=Tensor[(32, 3, 3, 3), float32] */, strides=[2, 2], padding=[1, 1], channels=32, kernel_size=[3, 3]) /* ty=Tensor[(1, 32, 112, 112), float32] */;</span><br><span class="line">  %1 = multiply(%0, meta[relay.Constant][1] /* ty=Tensor[(32, 1, 1), float32] */ /* ty=Tensor[(32, 1, 1), float32] */) /* ty=Tensor[(1, 32, 112, 112), float32] */;</span><br><span class="line">  %2 = add(%1, meta[relay.Constant][2] /* ty=Tensor[(32, 1, 1), float32] */ /* ty=Tensor[(32, 1, 1), float32] */) /* ty=Tensor[(1, 32, 112, 112), float32] */;</span><br><span class="line">  nn.relu(%2) /* ty=Tensor[(1, 32, 112, 112), float32] */</span><br><span class="line">}</span><br><span class="line"></span><br><span class="line">// meta data omitted. you can use show_meta_data=True to include meta data</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-<p>参考与进阶学习：<br>[1]. <a href="https://www.zhihu.com/question/331611341/answer/875630325">https://www.zhihu.com/question/331611341/answer/875630325</a><br>[2]. <a href="https://zhuanlan.zhihu.com/p/91283238">https://zhuanlan.zhihu.com/p/91283238</a><br>[3]. <a href="https://docs.tvm.ai/dev/relay_intro.html">https://docs.tvm.ai/dev/relay_intro.html</a><br>[4]. <a href="https://docs.tvm.ai/dev/relay_add_op.html">https://docs.tvm.ai/dev/relay_add_op.html</a><br>[5]. <a href="https://docs.tvm.ai/dev/relay_add_pass.html">https://docs.tvm.ai/dev/relay_add_pass.html</a><br>[6]. <a href="https://arxiv.org/pdf/1810.00952.pdf">https://arxiv.org/pdf/1810.00952.pdf</a></p>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tvm/TVM-code-generation/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -2347,6 +2438,118 @@ print(resnet18_lib.get_source())
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tvm/TVM-Graph-optimization/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/08/13/AI/tvm/TVM-Graph-optimization/" class="post-title-link" itemprop="url">TVM学习笔记--了解Relay和图优化</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-04-09 09:59:40" itemprop="dateModified" datetime="2026-04-09T09:59:40+08:00">2026-04-09</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI-%E4%B8%8E-Agent/" itemprop="url" rel="index"><span itemprop="name">AI 与 Agent</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>　　TVM主要包括两个部分，一个是Relay和图优化(graph-level)，另一个就是算子（operator）级别优化，这里简单写最近了解到的关于relay和图优化方面的东西。我们都知道深度学习网络通常都是通过计算图来描述的，计算图中的节点表示各种同的算子(opertor),边表示算子之间的依赖关系。Relay可以理解为一种可以描述深度学习网络的函数式编程语言，通过relay可以描述复杂的深度网络，文中提到了control flow。最近一段时间的时间学习直观的感受的Relay编写网络模型和其它框架没什么太多的区别，但是提供的文本形式的中间表示，对开发和调试有很大的帮助。另外，它提供了许多用于图优化的pass，供大家学习和参考。测试代码都在0.6版本上调试通过。<br>    代码地址：<a href="https://github.com/wxquare/programming/tree/master/blog/TVM_graph_optimization">https://github.com/wxquare/programming/tree/master/blog/TVM_graph_optimization</a></p>
+<h2 id="一、Hello-Relay"><a href="#一、Hello-Relay" class="headerlink" title="一、Hello Relay"></a>一、Hello Relay</h2><p>既然Relay是一种可以描述计算的函数式语言，逛社区的发现一段代码，可以当作Relay的第一个程序。<br>API参考:<a href="https://docs.tvm.ai/api/python/relay/index.html">https://docs.tvm.ai/api/python/relay/index.html</a></p>
+<pre><code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">from tvm import relay</span><br><span class="line">import tvm.relay.op</span><br><span class="line"></span><br><span class="line">x = relay.expr.var('x', relay.scalar_type('int64'), dtype = 'int64')</span><br><span class="line">one = relay.expr.const(1, dtype = 'int64')</span><br><span class="line">add = relay.op.tensor.add(x, one)    </span><br><span class="line">func = relay.expr.Function([x], add, relay.scalar_type('int64'))</span><br><span class="line"></span><br><span class="line">mod = relay.Module.from_expr(func)  # note this API</span><br><span class="line">print("Relay module function:\n", mod.astext(show_meta_data=False))</span><br><span class="line">graph, lib, params = tvm.relay.build(mod, 'llvm', params={})</span><br><span class="line">print("TVM graph:\n", graph)</span><br><span class="line">print("TVM parameters:\n", params)</span><br><span class="line">print("TVM compiled target function:\n", lib.get_source())</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+</code></pre>
+<h2 id="二、使用Relay定义卷积单元"><a href="#二、使用Relay定义卷积单元" class="headerlink" title="二、使用Relay定义卷积单元"></a>二、使用Relay定义卷积单元</h2><p>在学习Relay的时候参考了<a href="https://zhuanlan.zhihu.com/p/91283238">https://zhuanlan.zhihu.com/p/91283238</a> 这篇文章。但是可能因为版本的问题，很多API多不兼容了，因此修改了一些地方，建议读者也可以去看一下。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><span class="line">import tvm</span><br><span class="line">from tvm.relay import transform</span><br><span class="line">import tvm.relay as relay</span><br><span class="line">import numpy as np</span><br><span class="line">from tvm.contrib import graph_runtime</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">def batch_norm_infer(data,</span><br><span class="line">                    gamma=None,</span><br><span class="line">                    beta=None,</span><br><span class="line">                    moving_mean=None,</span><br><span class="line">                    moving_var=None,</span><br><span class="line">                    **kwargs):</span><br><span class="line">    name = kwargs.get("name")</span><br><span class="line">    kwargs.pop("name")</span><br><span class="line">    if not gamma:</span><br><span class="line">        gamma = relay.var(name + "_gamma")</span><br><span class="line">    if not beta:</span><br><span class="line">        beta = relay.var(name + "_beta")</span><br><span class="line">    if not moving_mean:</span><br><span class="line">        moving_mean = relay.var(name + "_moving_mean")</span><br><span class="line">    if not moving_var:</span><br><span class="line">        moving_var = relay.var(name + "_moving_var")</span><br><span class="line">    return relay.nn.batch_norm(data,</span><br><span class="line">                            gamma=gamma,</span><br><span class="line">                            beta=beta,</span><br><span class="line">                            moving_mean=moving_mean,</span><br><span class="line">                            moving_var=moving_var,</span><br><span class="line">                            **kwargs)[0]</span><br><span class="line"></span><br><span class="line">def conv2d(data, weight=None, **kwargs):</span><br><span class="line">    name = kwargs.get("name")</span><br><span class="line">    kwargs.pop("name")</span><br><span class="line">    if not weight:</span><br><span class="line">        weight = relay.var(name + "_weight")</span><br><span class="line">    return relay.nn.conv2d(data, weight, **kwargs)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">def conv_block(data, name, channels, kernel_size=(3, 3), strides=(1, 1),</span><br><span class="line">            padding=(1, 1), epsilon=1e-5):</span><br><span class="line">    conv = conv2d(</span><br><span class="line">        data=data,</span><br><span class="line">        channels=channels,</span><br><span class="line">        kernel_size=kernel_size,</span><br><span class="line">        strides=strides,</span><br><span class="line">        padding=padding,</span><br><span class="line">        data_layout='NCHW',</span><br><span class="line">        name=name+'_conv')</span><br><span class="line">    bn = batch_norm_infer(data=conv, epsilon=epsilon, name=name + '_bn')</span><br><span class="line">    act = relay.nn.relu(data=bn)</span><br><span class="line">    return act</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">data_shape = (1, 3, 224, 224)</span><br><span class="line">kernel_shape = (32, 3, 3, 3)</span><br><span class="line">dtype = "float32"</span><br><span class="line">data = relay.var("data", shape=data_shape, dtype=dtype)</span><br><span class="line">act = conv_block(data, "graph", 32, strides=(2, 2))</span><br><span class="line">func = relay.Function(relay.analysis.free_vars(act),act)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">mod = relay.Module.from_expr(func)</span><br><span class="line">mod = relay.transform.InferType()(mod)</span><br><span class="line">shape_dict = {</span><br><span class="line">    v.name_hint : v.checked_type for v in mod["main"].params}</span><br><span class="line">np.random.seed(0)</span><br><span class="line">params = {}</span><br><span class="line">for k, v in shape_dict.items():</span><br><span class="line">    if k == "data":</span><br><span class="line">        continue</span><br><span class="line">    init_value = np.random.uniform(-1, 1, v.concrete_shape).astype(v.dtype)</span><br><span class="line">    params[k] = tvm.nd.array(init_value, ctx=tvm.cpu(0))</span><br><span class="line"></span><br><span class="line">target = "llvm"</span><br><span class="line">ctx = tvm.context(target, 0)</span><br><span class="line">print("Relay module function:\n", mod.astext(show_meta_data=False))</span><br><span class="line">print("TVM parameters:\n", params.keys())</span><br><span class="line"></span><br><span class="line">with relay.build_config(opt_level=3):</span><br><span class="line">    graph, lib, params = relay.build(mod, target, params=params)</span><br><span class="line"></span><br><span class="line">print("TVM graph:\n", graph)</span><br><span class="line">print("TVM parameters:\n", params.keys())</span><br><span class="line"># print("TVM compiled target function:\n", lib.get_source())</span><br><span class="line">module = graph_runtime.create(graph, lib, ctx)</span><br><span class="line">data_tvm = tvm.nd.array((np.random.uniform(-1, 1, size=data_shape)).astype(dtype))</span><br><span class="line">module.set_input('data', data_tvm)</span><br><span class="line">module.set_input(**params)</span><br><span class="line">module.run()</span><br><span class="line">output = module.get_output(0)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="三、Relay-Graph-Optimization"><a href="#三、Relay-Graph-Optimization" class="headerlink" title="三、Relay Graph Optimization"></a>三、Relay Graph Optimization</h2><p>前面两个例子介绍了怎么使用relay构建网络，这个部分介绍怎么使用relay做图优化。上面例子代码中没有直接图优化的代码，而是包含在relay.build中。通过追踪代码，我们这部分的逻辑集中在 <a href="https://github.com/apache/incubator-tvm/blob/v0.6/src/relay/backend/build_module.cc">https://github.com/apache/incubator-tvm/blob/v0.6/src/relay/backend/build_module.cc</a> 这个文件的optimize函数中。这里罗列了代码用到的pass，relay提供了方便的的文本形式中间描述，感兴趣的可以自己试一下每个pass之后，发生了哪些变化。</p>
+<ul>
+<li>relay::qnn::transform::Legalize())，这个pass和qnn有关</li>
+<li>transform::Legalize()，我理解的这个是和目标有关的优化，一个表达式虽然在语义上等效于另一个，但可以在目标上具有更好的性能。这个在需要在异构环境下生效。</li>
+<li>transform::SimplifyInference() 。<br>简化推理阶段的数据流图。在语义上等于输入表达式的简化表达式将被返回。例如将BatchNorm展开以及去掉 dropout。</li>
+<li>transform::EliminateCommonSubexpr(fskip))，去除公共子表达式。</li>
+<li>transform::CombineParallelConv2D(3)，将多个conv2d运算符合并为一个，这部分优化会将具有相同输入的卷积合并成一个大的卷积运算。</li>
+<li>transform::CombineParallelDense(3))，将多个dense运算符组合为一个</li>
+<li>transform::FoldConstant()，常量传播优化。</li>
+<li>transform::FoldScaleAxis()</li>
+<li>transform::CanonicalizeCast()，<br>将特殊运算符规范化为基本运算符。这样可以简化后续分析，例如将bias_add扩展为expand_dims和broadcast_add</li>
+<li>transform::CanonicalizeOps()</li>
+<li>transform::AlterOpLayout()，layout 变换</li>
+<li>transform::FuseOps()，算子融合，根据一些规则，将expr中的运算符融合为较大的运算符。</li>
+</ul>
+<h2 id="四、使用Python-API-Relay-图优化"><a href="#四、使用Python-API-Relay-图优化" class="headerlink" title="四、使用Python API Relay 图优化"></a>四、使用Python API Relay 图优化</h2><p> TVM核心代码是采用C++编写的，但是也提供了Python接口，这方面初学者体验的使用。Relay图优化核心功能都提供了对应的API，因此可以尝试一下，非常简单。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">def my_optimize(func,params=None):</span><br><span class="line"></span><br><span class="line">    if params:</span><br><span class="line">        graph = _bind_params(func, params)</span><br><span class="line"></span><br><span class="line">    # https://docs.tvm.ai/api/python/relay/transform.html</span><br><span class="line">    optimize = relay.transform.Sequential([relay.transform.SimplifyInference(),</span><br><span class="line">                                      relay.transform.FoldConstant(),</span><br><span class="line">                                      relay.transform.FoldScaleAxis(),</span><br><span class="line">                                      relay.transform.CanonicalizeOps(),</span><br><span class="line">                                      relay.transform.FoldConstant()])</span><br><span class="line"></span><br><span class="line">    mod = relay.Module.from_expr(graph)</span><br><span class="line">    mod = optimize(mod)</span><br><span class="line">    return mod["main"]</span><br><span class="line"></span><br><span class="line">mod['main'] = my_optimize(mod['main'], params)</span><br><span class="line">print("Relay module function:\n", mod.astext(show_meta_data=False))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>这里可以对比优化前后的IR.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">Relay module function:</span><br><span class="line"> v0.0.4</span><br><span class="line">def @main(%data: Tensor[(1, 3, 224, 224), float32], %graph_conv_weight: Tensor[(32, 3, 3, 3), float32], %graph_bn_gamma: Tensor[(32), float32], %graph_bn_beta: Tensor[(32), float32], %graph_bn_moving_mean: Tensor[(32), float32], %graph_bn_moving_var: Tensor[(32), float32]) -&gt; Tensor[(1, 32, 112, 112), float32] {</span><br><span class="line">  %0 = nn.conv2d(%data, %graph_conv_weight, strides=[2, 2], padding=[1, 1], channels=32, kernel_size=[3, 3]) /* ty=Tensor[(1, 32, 112, 112), float32] */;</span><br><span class="line">  %1 = nn.batch_norm(%0, %graph_bn_gamma, %graph_bn_beta, %graph_bn_moving_mean, %graph_bn_moving_var) /* ty=(Tensor[(1, 32, 112, 112), float32], Tensor[(32), float32], Tensor[(32), float32]) */;</span><br><span class="line">  %2 = %1.0;</span><br><span class="line">  nn.relu(%2) /* ty=Tensor[(1, 32, 112, 112), float32] */</span><br><span class="line">}</span><br><span class="line"># =====================================</span><br><span class="line">Relay module function:</span><br><span class="line"> v0.0.4</span><br><span class="line">def @main(%data: Tensor[(1, 3, 224, 224), float32]) -&gt; Tensor[(1, 32, 112, 112), float32] {</span><br><span class="line">  %0 = nn.conv2d(%data, meta[relay.Constant][0] /* ty=Tensor[(32, 3, 3, 3), float32] */ /* ty=Tensor[(32, 3, 3, 3), float32] */, strides=[2, 2], padding=[1, 1], channels=32, kernel_size=[3, 3]) /* ty=Tensor[(1, 32, 112, 112), float32] */;</span><br><span class="line">  %1 = multiply(%0, meta[relay.Constant][1] /* ty=Tensor[(32, 1, 1), float32] */ /* ty=Tensor[(32, 1, 1), float32] */) /* ty=Tensor[(1, 32, 112, 112), float32] */;</span><br><span class="line">  %2 = add(%1, meta[relay.Constant][2] /* ty=Tensor[(32, 1, 1), float32] */ /* ty=Tensor[(32, 1, 1), float32] */) /* ty=Tensor[(1, 32, 112, 112), float32] */;</span><br><span class="line">  nn.relu(%2) /* ty=Tensor[(1, 32, 112, 112), float32] */</span><br><span class="line">}</span><br><span class="line"></span><br><span class="line">// meta data omitted. you can use show_meta_data=True to include meta data</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+<p>参考与进阶学习：<br>[1]. <a href="https://www.zhihu.com/question/331611341/answer/875630325">https://www.zhihu.com/question/331611341/answer/875630325</a><br>[2]. <a href="https://zhuanlan.zhihu.com/p/91283238">https://zhuanlan.zhihu.com/p/91283238</a><br>[3]. <a href="https://docs.tvm.ai/dev/relay_intro.html">https://docs.tvm.ai/dev/relay_intro.html</a><br>[4]. <a href="https://docs.tvm.ai/dev/relay_add_op.html">https://docs.tvm.ai/dev/relay_add_op.html</a><br>[5]. <a href="https://docs.tvm.ai/dev/relay_add_pass.html">https://docs.tvm.ai/dev/relay_add_pass.html</a><br>[6]. <a href="https://arxiv.org/pdf/1810.00952.pdf">https://arxiv.org/pdf/1810.00952.pdf</a></p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tvm/TVM-hello/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -2431,6 +2634,132 @@ print(resnet18_lib.get_source())
 <li>tvm install: <a href="https://docs.tvm.ai/install/from_source.html">https://docs.tvm.ai/install/from_source.html</a></li>
 <li>tvm tutorial: <a href="https://docs.tvm.ai/tutorials/frontend/from_tensorflow.html#sphx-glr-tutorials-frontend-from-tensorflow-py">Compile Tensorflow Models</a></li>
 <li>未填的坑：<a href="https://discuss.tvm.ai/t/cannot-find-config-for-target-llvm-when-using-autotvm-in-tensorflow-example-for-cpu/1544">https://discuss.tvm.ai/t/cannot-find-config-for-target-llvm-when-using-autotvm-in-tensorflow-example-for-cpu/1544</a></li>
+</ol>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tensorflow/tensorflow-model-no-structural-pruning/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="undefined | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2020/08/13/AI/tensorflow/tensorflow-model-no-structural-pruning/" class="post-title-link" itemprop="url">tensorflow模型权重稀疏(weight sparsification)实战</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-04-09 09:59:40" itemprop="dateModified" datetime="2026-04-09T09:59:40+08:00">2026-04-09</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI-%E4%B8%8E-Agent/" itemprop="url" rel="index"><span itemprop="name">AI 与 Agent</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="一、概述"><a href="#一、概述" class="headerlink" title="一、概述"></a>一、概述</h2><p>　　深度模型通常会有更好的预测精度，但是它面临计算开销过大的问题。模型压缩(model compress)是提高深度模型推理效率的一种解决方案，它期望在不损失精度或者精度损失可控的范围内，加速推理效率，减低内存开销。目前，模型压缩算法主要包括权<strong>重量化(quantization)、剪枝(pruning)、低秩分解等</strong>。上周尝试了<a href="https://wxquare.github.io/2019/09/16/other/tensorflow-model-quantization/">tensorflow中的模型量化</a>，发现量化需要硬件或者推理引擎的对低精度8-bit计算支持，目前tensorflow在x86和gpu环境下还没有很好的支持，因此量化只帮助实现了模型大小下降，没有实现推理的加速。model pruning学习的材料是tensorflow repo中的tensorflow/contrib/model_pruning，实际了解后发现它属于pruning中no-structural pruning，其加速效果依赖具体的硬件实现，加速效果一般，tensorflow 中对稀疏矩阵运算没有特别好的优化（依赖于底层的 SparseBLAS 实现，目前还没有特别好的）。model pruning中还有一种structural pruning 则不改变计算方式，可以直接使用，加速效果相对较好，之后也会继续尝试。</p>
+<h2 id="二、tensorflow-contrib-model-pruning原理"><a href="#二、tensorflow-contrib-model-pruning原理" class="headerlink" title="二、tensorflow/contrib/model_pruning原理"></a>二、tensorflow/contrib/model_pruning原理</h2><p>　　<a href="https://arxiv.org/pdf/1710.01878.pdf">Michael Zhu and Suyog Gupta, “To prune, or not to prune: exploring the efficacy of pruning for model compression”, 2017 NIPS </a><br>　　tensorflow中model_pruning理论来自上面这篇文章。文章中指出目前有些深度学习网络模型是过度设计（over-parameterized）。为了使其在资源受限的环境下高效的进行推理预测，要么减少网络的隐藏单元（hidden unit）同时保持模型密集连接结构，要么采用针对大模型进行模型剪枝（model pruning）。文章中的模型行剪枝是一种非结构化的剪枝（no-structural pruning），它在深度神经网络的各种连接矩阵中引入稀疏性（sparsity），从而减少模型中非零值参数的数量。文章比较了大而稀疏（large-sparse）和较小密集（small-dense）这两种模型，认为前者是优于后者的。除此之外，文章提出了一种新的渐进剪枝技术（gradual pruning technique），它能比较方便的融入到模型训练的过程中，使其调整比较小。</p>
+<p>　　tensorflow中的模型剪枝是一种训练时剪枝。对于需要被剪枝的网络模型，对于网络中每个需要被剪枝的层（layer)添加一个二进制掩码变量（binary mask variable ），该变量的大小和形状和改层的权重张量（weight tensor）相同。在训练图中加入一些ops，它负责对该层的权重值（weights）的绝对值进行排序，通过mask将最小的权重值屏蔽为0。在前向传播时该掩模的对应位与选中权重进行相与输出feature map，如果该掩模对应位为0则对应的权重相与后则为0，在反向传播时掩模对应位为0的权重参数则不参与更新。除此之外，文章提出了一种新的自动逐步修剪算法（automated gradual pruning），它实际上是定义了一种稀疏度变化的规则，初始时刻，稀疏度提升较快，而越到后面，稀疏度提升速度会逐渐放缓，这个主要是基于冗余度的考虑。因为初始时有大量冗余的权值，而越到后面保留的权值数量越少，不能再“大刀阔斧”地修剪，而需要更谨慎些，避免“误伤无辜”。其表达式如下，官方文档中列出了一些的剪枝超参数，主要的有下面几个。<br><mjx-container class="MathJax" jax="SVG" display="true"><svg style="vertical-align: -2.148ex;" xmlns="http://www.w3.org/2000/svg" width="32.791ex" height="5.874ex" role="img" focusable="false" viewBox="0 -1646.8 14493.5 2596.3"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="msub"><g data-mml-node="mi"><path data-c="1D460" d="M131 289Q131 321 147 354T203 415T300 442Q362 442 390 415T419 355Q419 323 402 308T364 292Q351 292 340 300T328 326Q328 342 337 354T354 372T367 378Q368 378 368 379Q368 382 361 388T336 399T297 405Q249 405 227 379T204 326Q204 301 223 291T278 274T330 259Q396 230 396 163Q396 135 385 107T352 51T289 7T195 -10Q118 -10 86 19T53 87Q53 126 74 143T118 160Q133 160 146 151T160 120Q160 94 142 76T111 58Q109 57 108 57T107 55Q108 52 115 47T146 34T201 27Q237 27 263 38T301 66T318 97T323 122Q323 150 302 164T254 181T195 196T148 231Q131 256 131 289Z"></path></g><g data-mml-node="TeXAtom" transform="translate(502,-150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g></g></g><g data-mml-node="mo" transform="translate(1085,0)"><path data-c="3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path></g><g data-mml-node="msub" transform="translate(2140.8,0)"><g data-mml-node="mi"><path data-c="1D460" d="M131 289Q131 321 147 354T203 415T300 442Q362 442 390 415T419 355Q419 323 402 308T364 292Q351 292 340 300T328 326Q328 342 337 354T354 372T367 378Q368 378 368 379Q368 382 361 388T336 399T297 405Q249 405 227 379T204 326Q204 301 223 291T278 274T330 259Q396 230 396 163Q396 135 385 107T352 51T289 7T195 -10Q118 -10 86 19T53 87Q53 126 74 143T118 160Q133 160 146 151T160 120Q160 94 142 76T111 58Q109 57 108 57T107 55Q108 52 115 47T146 34T201 27Q237 27 263 38T301 66T318 97T323 122Q323 150 302 164T254 181T195 196T148 231Q131 256 131 289Z"></path></g><g data-mml-node="TeXAtom" transform="translate(502,-150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D453" d="M118 -162Q120 -162 124 -164T135 -167T147 -168Q160 -168 171 -155T187 -126Q197 -99 221 27T267 267T289 382V385H242Q195 385 192 387Q188 390 188 397L195 425Q197 430 203 430T250 431Q298 431 298 432Q298 434 307 482T319 540Q356 705 465 705Q502 703 526 683T550 630Q550 594 529 578T487 561Q443 561 443 603Q443 622 454 636T478 657L487 662Q471 668 457 668Q445 668 434 658T419 630Q412 601 403 552T387 469T380 433Q380 431 435 431Q480 431 487 430T498 424Q499 420 496 407T491 391Q489 386 482 386T428 385H372L349 263Q301 15 282 -47Q255 -132 212 -173Q175 -205 139 -205Q107 -205 81 -186T55 -132Q55 -95 76 -78T118 -61Q162 -61 162 -103Q162 -122 151 -136T127 -157L118 -162Z"></path></g></g></g><g data-mml-node="mo" transform="translate(3304,0)"><path data-c="2B" d="M56 237T56 250T70 270H369V420L370 570Q380 583 389 583Q402 583 409 568V270H707Q722 262 722 250T707 230H409V-68Q401 -82 391 -82H389H387Q375 -82 369 -68V230H70Q56 237 56 250Z"></path></g><g data-mml-node="mrow" transform="translate(4304.2,0)"><g data-mml-node="mo"><path data-c="28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path></g><g data-mml-node="msub" transform="translate(389,0)"><g data-mml-node="mi"><path data-c="1D460" d="M131 289Q131 321 147 354T203 415T300 442Q362 442 390 415T419 355Q419 323 402 308T364 292Q351 292 340 300T328 326Q328 342 337 354T354 372T367 378Q368 378 368 379Q368 382 361 388T336 399T297 405Q249 405 227 379T204 326Q204 301 223 291T278 274T330 259Q396 230 396 163Q396 135 385 107T352 51T289 7T195 -10Q118 -10 86 19T53 87Q53 126 74 143T118 160Q133 160 146 151T160 120Q160 94 142 76T111 58Q109 57 108 57T107 55Q108 52 115 47T146 34T201 27Q237 27 263 38T301 66T318 97T323 122Q323 150 302 164T254 181T195 196T148 231Q131 256 131 289Z"></path></g><g data-mml-node="TeXAtom" transform="translate(502,-150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D456" d="M184 600Q184 624 203 642T247 661Q265 661 277 649T290 619Q290 596 270 577T226 557Q211 557 198 567T184 600ZM21 287Q21 295 30 318T54 369T98 420T158 442Q197 442 223 419T250 357Q250 340 236 301T196 196T154 83Q149 61 149 51Q149 26 166 26Q175 26 185 29T208 43T235 78T260 137Q263 149 265 151T282 153Q302 153 302 143Q302 135 293 112T268 61T223 11T161 -11Q129 -11 102 10T74 74Q74 91 79 106T122 220Q160 321 166 341T173 380Q173 404 156 404H154Q124 404 99 371T61 287Q60 286 59 284T58 281T56 279T53 278T49 278T41 278H27Q21 284 21 287Z"></path></g></g></g><g data-mml-node="mo" transform="translate(1407.2,0)"><path data-c="2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path></g><g data-mml-node="msub" transform="translate(2407.4,0)"><g data-mml-node="mi"><path data-c="1D460" d="M131 289Q131 321 147 354T203 415T300 442Q362 442 390 415T419 355Q419 323 402 308T364 292Q351 292 340 300T328 326Q328 342 337 354T354 372T367 378Q368 378 368 379Q368 382 361 388T336 399T297 405Q249 405 227 379T204 326Q204 301 223 291T278 274T330 259Q396 230 396 163Q396 135 385 107T352 51T289 7T195 -10Q118 -10 86 19T53 87Q53 126 74 143T118 160Q133 160 146 151T160 120Q160 94 142 76T111 58Q109 57 108 57T107 55Q108 52 115 47T146 34T201 27Q237 27 263 38T301 66T318 97T323 122Q323 150 302 164T254 181T195 196T148 231Q131 256 131 289Z"></path></g><g data-mml-node="TeXAtom" transform="translate(502,-150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mi"><path data-c="1D453" d="M118 -162Q120 -162 124 -164T135 -167T147 -168Q160 -168 171 -155T187 -126Q197 -99 221 27T267 267T289 382V385H242Q195 385 192 387Q188 390 188 397L195 425Q197 430 203 430T250 431Q298 431 298 432Q298 434 307 482T319 540Q356 705 465 705Q502 703 526 683T550 630Q550 594 529 578T487 561Q443 561 443 603Q443 622 454 636T478 657L487 662Q471 668 457 668Q445 668 434 658T419 630Q412 601 403 552T387 469T380 433Q380 431 435 431Q480 431 487 430T498 424Q499 420 496 407T491 391Q489 386 482 386T428 385H372L349 263Q301 15 282 -47Q255 -132 212 -173Q175 -205 139 -205Q107 -205 81 -186T55 -132Q55 -95 76 -78T118 -61Q162 -61 162 -103Q162 -122 151 -136T127 -157L118 -162Z"></path></g></g></g><g data-mml-node="mo" transform="translate(3348.3,0)"><path data-c="29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></g></g><g data-mml-node="msup" transform="translate(8041.5,0)"><g data-mml-node="mrow"><g data-mml-node="mo" transform="translate(0 -0.5)"><path data-c="28" d="M701 -940Q701 -943 695 -949H664Q662 -947 636 -922T591 -879T537 -818T475 -737T412 -636T350 -511T295 -362T250 -186T221 17T209 251Q209 962 573 1361Q596 1386 616 1405T649 1437T664 1450H695Q701 1444 701 1441Q701 1436 681 1415T629 1356T557 1261T476 1118T400 927T340 675T308 359Q306 321 306 250Q306 -139 400 -430T690 -924Q701 -936 701 -940Z"></path></g><g data-mml-node="mn" transform="translate(736,0)"><path data-c="31" d="M213 578L200 573Q186 568 160 563T102 556H83V602H102Q149 604 189 617T245 641T273 663Q275 666 285 666Q294 666 302 660V361L303 61Q310 54 315 52T339 48T401 46H427V0H416Q395 3 257 3Q121 3 100 0H88V46H114Q136 46 152 46T177 47T193 50T201 52T207 57T213 61V578Z"></path></g><g data-mml-node="mo" transform="translate(1458.2,0)"><path data-c="2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path></g><g data-mml-node="mfrac" transform="translate(2458.4,0)"><g data-mml-node="mrow" transform="translate(220,676)"><g data-mml-node="mi"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g><g data-mml-node="mo" transform="translate(583.2,0)"><path data-c="2212" d="M84 237T84 250T98 270H679Q694 262 694 250T679 230H98Q84 237 84 250Z"></path></g><g data-mml-node="msub" transform="translate(1583.4,0)"><g data-mml-node="mi"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g><g data-mml-node="TeXAtom" transform="translate(394,-150) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mn"><path data-c="30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path></g></g></g></g><g data-mml-node="mrow" transform="translate(513.5,-686)"><g data-mml-node="mi"><path data-c="1D45B" d="M21 287Q22 293 24 303T36 341T56 388T89 425T135 442Q171 442 195 424T225 390T231 369Q231 367 232 367L243 378Q304 442 382 442Q436 442 469 415T503 336T465 179T427 52Q427 26 444 26Q450 26 453 27Q482 32 505 65T540 145Q542 153 560 153Q580 153 580 145Q580 144 576 130Q568 101 554 73T508 17T439 -10Q392 -10 371 17T350 73Q350 92 386 193T423 345Q423 404 379 404H374Q288 404 229 303L222 291L189 157Q156 26 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 112 180T152 343Q153 348 153 366Q153 405 129 405Q91 405 66 305Q60 285 60 284Q58 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(600,0)"><path data-c="394" d="M51 0Q46 4 46 7Q46 9 215 357T388 709Q391 716 416 716Q439 716 444 709Q447 705 616 357T786 7Q786 4 781 0H51ZM507 344L384 596L137 92L383 91H630Q630 93 507 344Z"></path></g><g data-mml-node="mi" transform="translate(1433,0)"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g></g><rect width="2581" height="60" x="120" y="220"></rect></g><g data-mml-node="mo" transform="translate(5279.4,0) translate(0 -0.5)"><path data-c="29" d="M34 1438Q34 1446 37 1448T50 1450H56H71Q73 1448 99 1423T144 1380T198 1319T260 1238T323 1137T385 1013T440 864T485 688T514 485T526 251Q526 134 519 53Q472 -519 162 -860Q139 -885 119 -904T86 -936T71 -949H56Q43 -949 39 -947T34 -937Q88 -883 140 -813Q428 -430 428 251Q428 453 402 628T338 922T245 1146T145 1309T46 1425Q44 1427 42 1429T39 1433T36 1436L34 1438Z"></path></g></g><g data-mml-node="TeXAtom" transform="translate(6048.4,1176.6) scale(0.707)" data-mjx-texclass="ORD"><g data-mml-node="mn"><path data-c="33" d="M127 463Q100 463 85 480T69 524Q69 579 117 622T233 665Q268 665 277 664Q351 652 390 611T430 522Q430 470 396 421T302 350L299 348Q299 347 308 345T337 336T375 315Q457 262 457 175Q457 96 395 37T238 -22Q158 -22 100 21T42 130Q42 158 60 175T105 193Q133 193 151 175T169 130Q169 119 166 110T159 94T148 82T136 74T126 70T118 67L114 66Q165 21 238 21Q293 21 321 74Q338 107 338 175V195Q338 290 274 322Q259 328 213 329L171 330L168 332Q166 335 166 348Q166 366 174 366Q202 366 232 371Q266 376 294 413T322 525V533Q322 590 287 612Q265 626 240 626Q208 626 181 615T143 592T132 580H135Q138 579 143 578T153 573T165 566T175 555T183 540T186 520Q186 498 172 481T127 463Z"></path></g></g></g></g></g></svg></mjx-container></p>
+<ul>
+<li>initial_sparsity：初始稀疏值<mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.357ex;" xmlns="http://www.w3.org/2000/svg" width="1.801ex" height="1.357ex" role="img" focusable="false" viewBox="0 -442 796 599.8"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="msub"><g data-mml-node="mi"><path data-c="1D460" d="M131 289Q131 321 147 354T203 415T300 442Q362 442 390 415T419 355Q419 323 402 308T364 292Q351 292 340 300T328 326Q328 342 337 354T354 372T367 378Q368 378 368 379Q368 382 361 388T336 399T297 405Q249 405 227 379T204 326Q204 301 223 291T278 274T330 259Q396 230 396 163Q396 135 385 107T352 51T289 7T195 -10Q118 -10 86 19T53 87Q53 126 74 143T118 160Q133 160 146 151T160 120Q160 94 142 76T111 58Q109 57 108 57T107 55Q108 52 115 47T146 34T201 27Q237 27 263 38T301 66T318 97T323 122Q323 150 302 164T254 181T195 196T148 231Q131 256 131 289Z"></path></g><g data-mml-node="mi" transform="translate(502,-150) scale(0.707)"><path data-c="1D456" d="M184 600Q184 624 203 642T247 661Q265 661 277 649T290 619Q290 596 270 577T226 557Q211 557 198 567T184 600ZM21 287Q21 295 30 318T54 369T98 420T158 442Q197 442 223 419T250 357Q250 340 236 301T196 196T154 83Q149 61 149 51Q149 26 166 26Q175 26 185 29T208 43T235 78T260 137Q263 149 265 151T282 153Q302 153 302 143Q302 135 293 112T268 61T223 11T161 -11Q129 -11 102 10T74 74Q74 91 79 106T122 220Q160 321 166 341T173 380Q173 404 156 404H154Q124 404 99 371T61 287Q60 286 59 284T58 281T56 279T53 278T49 278T41 278H27Q21 284 21 287Z"></path></g></g></g></g></svg></mjx-container></li>
+<li>target_sparsity：目标稀疏值<mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.667ex;" xmlns="http://www.w3.org/2000/svg" width="2.129ex" height="1.667ex" role="img" focusable="false" viewBox="0 -442 940.9 737"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="msub"><g data-mml-node="mi"><path data-c="1D460" d="M131 289Q131 321 147 354T203 415T300 442Q362 442 390 415T419 355Q419 323 402 308T364 292Q351 292 340 300T328 326Q328 342 337 354T354 372T367 378Q368 378 368 379Q368 382 361 388T336 399T297 405Q249 405 227 379T204 326Q204 301 223 291T278 274T330 259Q396 230 396 163Q396 135 385 107T352 51T289 7T195 -10Q118 -10 86 19T53 87Q53 126 74 143T118 160Q133 160 146 151T160 120Q160 94 142 76T111 58Q109 57 108 57T107 55Q108 52 115 47T146 34T201 27Q237 27 263 38T301 66T318 97T323 122Q323 150 302 164T254 181T195 196T148 231Q131 256 131 289Z"></path></g><g data-mml-node="mi" transform="translate(502,-150) scale(0.707)"><path data-c="1D453" d="M118 -162Q120 -162 124 -164T135 -167T147 -168Q160 -168 171 -155T187 -126Q197 -99 221 27T267 267T289 382V385H242Q195 385 192 387Q188 390 188 397L195 425Q197 430 203 430T250 431Q298 431 298 432Q298 434 307 482T319 540Q356 705 465 705Q502 703 526 683T550 630Q550 594 529 578T487 561Q443 561 443 603Q443 622 454 636T478 657L487 662Q471 668 457 668Q445 668 434 658T419 630Q412 601 403 552T387 469T380 433Q380 431 435 431Q480 431 487 430T498 424Q499 420 496 407T491 391Q489 386 482 386T428 385H372L349 263Q301 15 282 -47Q255 -132 212 -173Q175 -205 139 -205Q107 -205 81 -186T55 -132Q55 -95 76 -78T118 -61Q162 -61 162 -103Q162 -122 151 -136T127 -157L118 -162Z"></path></g></g></g></g></svg></mjx-container></li>
+<li>sparsity_function_begin_step：开始剪枝的step <mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.375ex;" xmlns="http://www.w3.org/2000/svg" width="1.804ex" height="1.791ex" role="img" focusable="false" viewBox="0 -626 797.6 791.6"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="msub"><g data-mml-node="mi"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g><g data-mml-node="mn" transform="translate(394,-150) scale(0.707)"><path data-c="30" d="M96 585Q152 666 249 666Q297 666 345 640T423 548Q460 465 460 320Q460 165 417 83Q397 41 362 16T301 -15T250 -22Q224 -22 198 -16T137 16T82 83Q39 165 39 320Q39 494 96 585ZM321 597Q291 629 250 629Q208 629 178 597Q153 571 145 525T137 333Q137 175 145 125T181 46Q209 16 250 16Q290 16 318 46Q347 76 354 130T362 333Q362 478 354 524T321 597Z"></path></g></g></g></g></svg></mjx-container></li>
+<li>sparsity_function_end_step: 剪枝停止的step</li>
+<li>pruning_frequency：剪枝的频率<mjx-container class="MathJax" jax="SVG"><svg style="vertical-align: -0.025ex;" xmlns="http://www.w3.org/2000/svg" width="2.701ex" height="1.645ex" role="img" focusable="false" viewBox="0 -716 1194 727"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="394" d="M51 0Q46 4 46 7Q46 9 215 357T388 709Q391 716 416 716Q439 716 444 709Q447 705 616 357T786 7Q786 4 781 0H51ZM507 344L384 596L137 92L383 91H630Q630 93 507 344Z"></path></g><g data-mml-node="mi" transform="translate(833,0)"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g></g></g></svg></mjx-container>，文章提出在100到1000之间通常比较好</li>
+<li>sparsity_function_exponent: 剪枝函数的指数，表示式中已描述为默认的3，表示由快到慢，为1时表示线性剪枝</li>
+</ul>
+<h2 id="三、tensorflow中的model-pruning实践"><a href="#三、tensorflow中的model-pruning实践" class="headerlink" title="三、tensorflow中的model_pruning实践"></a>三、tensorflow中的model_pruning实践</h2><p>　　tensorflow中model_pruning的源码位于tensorflow/contrib/model_pruning。</p>
+<ol>
+<li><p>准备tensorflow-1.14.0源码</p>
+</li>
+<li><p>编译model_pruning</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$bazel build -c opt tensorflow/contrib/model_pruning/examples/cifar10:cifar10_train</span><br></pre></td></tr></table></figure></li>
+<li><p>通过设置一些参数，开始针对cifar10剪枝</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$bazel-out/k8-py2-opt/bin/tensorflow/contrib/model_pruning/examples/cifar10/cifar10_train \</span><br><span class="line">--train_dir=/home/terse/code/programming/tensorflow/model_pruning/train \</span><br><span class="line">--pruning_hparams=name=cifar10_pruning,\</span><br><span class="line">initial_sparsity=0.3,\</span><br><span class="line">target_sparsity=0.9,\</span><br><span class="line">sparsity_function_begin_step=100,\</span><br><span class="line">sparsity_function_end_step=10000</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>可通过tensorboard查看剪枝过程。可以清楚的看出随着训练步骤的增加，conv1和conv2的sparsity在不断的增长。 在GRAPHS 页面，双击conv节点，可以看到在原有计算图基础上新增了mask和threshold节点用来做 model pruning</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$tensorboard --logdir=/home/terse/code/programming/tensorflow/model_pruning/train</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>模型剪枝之后将剪枝的ops从训练图中删除。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$bazel build -c opt tensorflow/contrib/model_pruning:strip_pruning_vars</span><br><span class="line">$bazel-out/k8-py2-opt/bin/tensorflow/contrib/model_pruning/strip_pruning_vars \</span><br><span class="line">--checkpoint_dir=/home/terse/code/programming/tensorflow/model_pruning/train \</span><br><span class="line">--output_node_names=softmax_linear/softmax_linear_2 \</span><br><span class="line">--output_dir=/home/terse/code/programming/tensorflow/model_pruning \</span><br><span class="line">--filename=pruning_stripped.pb</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h2 id="四、model-pruning源码简单分析"><a href="#四、model-pruning源码简单分析" class="headerlink" title="四、model_pruning源码简单分析"></a>四、model_pruning源码简单分析</h2><p>　　使用tensorflow的model_pruning进行模型剪枝，主要包括两方面的工作，一是apply_mask，二是在训练图中增加剪枝的节点（pruning ops）。这里分别截取了其中的两段代码。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"># cifar10_pruning.py  apply_mask to the graph</span><br><span class="line">with tf.variable_scope('conv1') as scope:</span><br><span class="line">  kernel = _variable_with_weight_decay(</span><br><span class="line">      'weights', shape=[5, 5, 3, 64], stddev=5e-2, wd=0.0)</span><br><span class="line"></span><br><span class="line">  conv = tf.nn.conv2d(</span><br><span class="line">      images, pruning.apply_mask(kernel, scope), [1, 1, 1, 1], padding='SAME')</span><br><span class="line">  </span><br><span class="line">  biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.0))</span><br><span class="line">  pre_activation = tf.nn.bias_add(conv, biases)</span><br><span class="line">  conv1 = tf.nn.relu(pre_activation, name=scope.name)</span><br><span class="line">  _activation_summary(conv1)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"> #Adding pruning ops to the training graph</span><br><span class="line">with tf.graph.as_default():</span><br><span class="line"></span><br><span class="line">  # Create global step variable</span><br><span class="line">  global_step = tf.train.get_or_create_global_step()</span><br><span class="line"></span><br><span class="line">  # Parse pruning hyperparameters</span><br><span class="line">  pruning_hparams = pruning.get_pruning_hparams().parse(FLAGS.pruning_hparams)</span><br><span class="line"></span><br><span class="line">  # Create a pruning object using the pruning specification</span><br><span class="line">  p = pruning.Pruning(pruning_hparams, global_step=global_step)</span><br><span class="line"></span><br><span class="line">  # Add conditional mask update op. Executing this op will update all</span><br><span class="line">  # the masks in the graph if the current global step is in the range</span><br><span class="line">  # [begin_pruning_step, end_pruning_step] as specified by the pruning spec</span><br><span class="line">  mask_update_op = p.conditional_mask_update_op()</span><br><span class="line"></span><br><span class="line">  # Add summaries to keep track of the sparsity in different layers during training</span><br><span class="line">  p.add_pruning_summaries()</span><br><span class="line"></span><br><span class="line">  with tf.train.MonitoredTrainingSession(...) as mon_sess:</span><br><span class="line">    # Run the usual training op in the tf session</span><br><span class="line">    mon_sess.run(train_op)</span><br><span class="line"></span><br><span class="line">    # Update the masks by running the mask_update_op</span><br><span class="line">    mon_sess.run(mask_update_op)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="五、总结和未解决的问题"><a href="#五、总结和未解决的问题" class="headerlink" title="五、总结和未解决的问题"></a>五、总结和未解决的问题</h2><ol>
+<li>tensorflow中的模型剪枝属于no-structral，本质上是使权重稀疏化(weight sparsification),实践中发现它没有使推理加速，据其加速效果依赖具体的硬件实现，加速效果一般，tensorflow 中对稀疏矩阵运算没有特别好的优化（依赖于底层的 SparseBLAS 实现，目前还没有特别好的）</li>
+<li>实践中发现不管稀疏度为多少，其剪枝后的模型大小都是相同的，是不是tensorflow对稀疏的模型也是按照非稀疏格式存储的？</li>
+<li>issue:<a href="https://github.com/tensorflow/tensorflow/issues/32805">model_pruning: Why 50% and 90% zeros of the stripped models are the same size? #32805</a></li>
+<li>issue: [CNN.Model pruning: no gain in speeding up of inference #22732](CNN.Model pruning: no gain in speeding up of inference #22732)</li>
+</ol>
+<p>参考：</p>
+<ol>
+<li><a href="https://github.com/tensorflow/tensorflow/tree/r2.0/tensorflow/contrib/model_pruning">https://github.com/tensorflow/tensorflow/tree/r2.0/tensorflow/contrib/model_pruning</a></li>
+<li><a href="https://arxiv.org/pdf/1710.01878.pdf">Michael Zhu and Suyog Gupta, “To prune, or not to prune: exploring the efficacy of pruning for model compression”, 2017 NIPS </a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/48069799">https://zhuanlan.zhihu.com/p/48069799</a></li>
 </ol>
 
       
