@@ -1,0 +1,100 @@
+graph TD
+    %% 用户接入层
+    subgraph Client_Layer ["1. 端侧接入层 Client Side"]
+        App["Shopee App - Android & iOS"]
+        Web["PC - H5 Web"]
+        OpenAPI["Partner - Open API"]
+    end
+
+    %% 流量网关层
+    subgraph Gateway_Layer ["2. 网关接入层 Access Layer"]
+        CDN["CDN - DNS"]
+        LB["Load Balancer - Nginx"]
+        APIGW["Web API Gateway<br/>Go/Gin, 限流熔断"]
+        Auth["鉴权服务 Auth"]
+    end
+
+    %% 业务聚合层
+    subgraph BFF_Layer ["3. 业务聚合层 BFF / Aggregation"]
+        BFF_Search["导购/搜索聚合"]
+        BFF_Trade["交易/收银台聚合"]
+    end
+
+    %% 核心领域服务层
+    subgraph Domain_Services ["4. 核心领域服务层 Domain Microservices"]
+        
+        subgraph Listing_Domain ["商品域 Listing System"]
+            Listing["Listing Service<br/>商品主数据/异构模型"]
+            Stock["Inventory Service<br/>库存管理"]
+            Search["Search Service<br/>ES索引/检索"]
+        end
+
+        subgraph Trade_Domain ["交易域 Order System"]
+            Order["Order Service<br/>订单状态机/核心交易"]
+            Price["Price Center<br/>计价引擎/资损风控"]
+        end
+
+        subgraph Supply_Domain ["履约域 Hub & Fulfillment"]
+            Hub["Hub Center<br/>供应商集成/路由"]
+            Fulfill["Fulfillment Service<br/>履约/发货"]
+            Recon["Reconciliation<br/>对账/核算"]
+        end
+
+        subgraph Mkt_Domain ["营销域 Marketing"]
+            Promo["Promotion Engine<br/>优惠券/活动"]
+            Coins["Coins Service<br/>TCC资产扣减"]
+        end
+    end
+
+    %% 基础设施与存储层
+    subgraph Infra_Layer ["5. 数据与基础设施层 Data & Infrastructure"]
+        MySQL[("MySQL Sharding<br/>订单/商品核心")]
+        Redis[("Redis Cluster<br/>热点缓存/分布式锁")]
+        ES[("ElasticSearch<br/>商品搜索/日志")]
+        HBase[("HBase<br/>历史报价/归档")]
+        Kafka["Kafka - RabbitMQ<br/>消息队列/削峰"]
+        ZK["Zookeeper - Spex<br/>注册中心"]
+    end
+
+    %% 外部依赖
+    subgraph External ["6. 外部依赖 External Systems"]
+        SPM["SPM Shopee Pay<br/>支付网关"]
+        Suppliers["外部供应商<br/>Agoda/Telcos/Billers"]
+        Risk["Risk Control<br/>风控系统"]
+    end
+
+    %% 连线关系
+    App --> CDN
+    Web --> CDN
+    CDN --> LB
+    LB --> APIGW
+    APIGW --> Auth
+    APIGW --> BFF_Search
+    APIGW --> BFF_Trade
+    
+    BFF_Search --> Search
+    BFF_Search --> Listing
+    BFF_Trade --> Order
+    
+    Order --> Price
+    Order --> Promo
+    Order --> Stock
+    Order --> Hub
+    Order --> SPM
+    Order --> Risk
+    
+    Hub --> Suppliers
+    
+    Listing -.-> MySQL
+    Listing -.-> Redis
+    Listing -.-> ES
+    Order -.-> MySQL
+    Order -.-> Kafka
+    
+    classDef domain fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef infra fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef gateway fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px;
+    
+    class Listing,Order,Hub,Price,Promo domain;
+    class MySQL,Redis,ES,Kafka,HBase infra;
+    class APIGW,LB,Auth gateway;

@@ -1,0 +1,210 @@
+<h1 id="Redis-数据结构可视化文档"><a href="#Redis-数据结构可视化文档" class="headerlink" title="Redis 数据结构可视化文档"></a>Redis 数据结构可视化文档</h1><p>本目录包含了 Redis 内部数据结构的详细可视化 Mermaid 图表。</p>
+<h2 id="📁-文件清单"><a href="#📁-文件清单" class="headerlink" title="📁 文件清单"></a>📁 文件清单</h2><h3 id="电商系统架构"><a href="#电商系统架构" class="headerlink" title="电商系统架构"></a>电商系统架构</h3><ul>
+<li><strong><code>1.mmd</code></strong> - 电商系统整体架构图（6层架构）</li>
+</ul>
+<h3 id="Redis-Hash-相关"><a href="#Redis-Hash-相关" class="headerlink" title="Redis Hash 相关"></a>Redis Hash 相关</h3><ul>
+<li><strong><code>redis-hashtable.mmd</code></strong> - Dict 和 Hashtable 基础结构</li>
+<li><strong><code>redis-rehash-process.mmd</code></strong> - 渐进式 Rehash 流程（4个阶段）</li>
+<li><strong><code>redis-hash-encoding.mmd</code></strong> - ziplist vs hashtable 编码对比</li>
+</ul>
+<h3 id="Redis-Ziplist-相关"><a href="#Redis-Ziplist-相关" class="headerlink" title="Redis Ziplist 相关"></a>Redis Ziplist 相关</h3><ul>
+<li><strong><code>redis-ziplist-detail.mmd</code></strong> - Ziplist 详细结构（entry 三部分）</li>
+<li><strong><code>redis-ziplist-memory.mmd</code></strong> - 内存布局实例（含编码详解）</li>
+<li><strong><code>redis-ziplist-hash-visual.mmd</code></strong> - Hash 实战可视化 <code>&#123;name:&quot;iPhone&quot;, price:5999&#125;</code></li>
+<li><strong><code>redis-ziplist-hash-example.md</code></strong> - Hash 实战详细分析（字节级）</li>
+</ul>
+<h3 id="数据结构对比"><a href="#数据结构对比" class="headerlink" title="数据结构对比"></a>数据结构对比</h3><ul>
+<li><strong><code>redis-datastructure-comparison.mmd</code></strong> - ziplist vs linkedlist vs hashtable 对比</li>
+</ul>
+<h3 id="预览文件"><a href="#预览文件" class="headerlink" title="预览文件"></a>预览文件</h3><ul>
+<li><strong><code>redis-hashtable-preview.md</code></strong> - Hashtable 图表预览</li>
+<li><strong><code>redis-ziplist-preview.md</code></strong> - Ziplist 图表预览</li>
+<li><strong><code>redis-ziplist-hash-preview.md</code></strong> - Hash 实战预览（推荐！）</li>
+</ul>
+<hr>
+<h2 id="🌟-推荐：实战案例"><a href="#🌟-推荐：实战案例" class="headerlink" title="🌟 推荐：实战案例"></a>🌟 推荐：实战案例</h2><h3 id="Hash-name-iPhone-price-5999-完整分析-⭐"><a href="#Hash-name-iPhone-price-5999-完整分析-⭐" class="headerlink" title="Hash {name: &quot;iPhone&quot;, price: 5999} 完整分析 ⭐"></a>Hash <code>&#123;name: &quot;iPhone&quot;, price: 5999&#125;</code> 完整分析 ⭐</h3><p>这是一个<strong>超详细的实战案例</strong>，完整展示了 Redis Hash 在 ziplist 编码下的字节级内存布局。</p>
+<p><strong>包含内容</strong>：</p>
+<ul>
+<li>✅ 完整的 36 字节内存映射（十六进制）</li>
+<li>✅ 4 个 entry 的详细解析（prevlen + encoding + content）</li>
+<li>✅ 整数优化示例（5999 只用 2 字节！）</li>
+<li>✅ 与 hashtable、JSON 的内存对比（节省 83%）</li>
+<li>✅ HGET、HINCRBY、HSET 操作演示</li>
+</ul>
+<p><strong>快速预览</strong>：</p>
+<ul>
+<li>📄 <code>redis-ziplist-hash-example.md</code> - 详细文字说明</li>
+<li>📊 <code>redis-ziplist-hash-preview.md</code> - 可视化图表（<strong>推荐先看这个！</strong>）</li>
+</ul>
+<p><strong>内存对比结果</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ziplist:     36 字节  ✅ 最优</span><br><span class="line">String JSON: 50 字节  (+39%)</span><br><span class="line">hashtable:  214 字节  (+494%)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="🎯-快速导航"><a href="#🎯-快速导航" class="headerlink" title="🎯 快速导航"></a>🎯 快速导航</h2><h3 id="1-Redis-Hash-底层原理"><a href="#1-Redis-Hash-底层原理" class="headerlink" title="1. Redis Hash 底层原理"></a>1. Redis Hash 底层原理</h3><h4 id="双编码策略"><a href="#双编码策略" class="headerlink" title="双编码策略"></a>双编码策略</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">小对象（&lt;512 entries） → ziplist（节省内存）</span><br><span class="line">大对象（≥512 entries） → hashtable（快速查找）</span><br></pre></td></tr></table></figure>
+
+<p><strong>核心文件</strong>：</p>
+<ul>
+<li>📊 <code>redis-hash-encoding.mmd</code> - 编码选择和转换</li>
+<li>🏗️ <code>redis-hashtable.mmd</code> - Hashtable 结构</li>
+<li>🔄 <code>redis-rehash-process.mmd</code> - Rehash 机制</li>
+</ul>
+<p><strong>关键知识点</strong>：</p>
+<ul>
+<li>Dict 包含 2 个 hashtable（<code>ht[0]</code> 和 <code>ht[1]</code>）</li>
+<li>渐进式 rehash 避免阻塞</li>
+<li>拉链法解决哈希冲突</li>
+<li>MurmurHash2 哈希函数</li>
+</ul>
+<hr>
+<h3 id="2-Redis-Ziplist-压缩列表"><a href="#2-Redis-Ziplist-压缩列表" class="headerlink" title="2. Redis Ziplist 压缩列表"></a>2. Redis Ziplist 压缩列表</h3><h4 id="三层结构"><a href="#三层结构" class="headerlink" title="三层结构"></a>三层结构</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">1. 整体: zlbytes + zltail + zllen + entries + zlend</span><br><span class="line">2. 节点: prevlen + encoding + content</span><br><span class="line">3. 编码: 字符串3种 + 整数6种</span><br></pre></td></tr></table></figure>
+
+<p><strong>核心文件</strong>：</p>
+<ul>
+<li>📐 <code>redis-ziplist-detail.mmd</code> - 详细结构图</li>
+<li>💾 <code>redis-ziplist-memory.mmd</code> - 内存布局示例</li>
+</ul>
+<p><strong>关键知识点</strong>：</p>
+<ul>
+<li>连续内存，无指针开销</li>
+<li>变长编码（0-12 直接编码）</li>
+<li>双向遍历（zltail + prevlen）</li>
+<li>连锁更新问题（O(n²) 最坏情况）</li>
+</ul>
+<p><strong>内存对比</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">3个键值对存储：</span><br><span class="line">- ziplist:     32 字节</span><br><span class="line">- linkedlist:  69 字节 (+115%)</span><br><span class="line">- hashtable:  160 字节 (+400%)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="3-数据结构选型指南"><a href="#3-数据结构选型指南" class="headerlink" title="3. 数据结构选型指南"></a>3. 数据结构选型指南</h3><h4 id="使用-ziplist-的场景-✅"><a href="#使用-ziplist-的场景-✅" class="headerlink" title="使用 ziplist 的场景 ✅"></a>使用 ziplist 的场景 ✅</h4><ul>
+<li>✅ 数据量小（&lt; 512 个元素）</li>
+<li>✅ 单个数据小（&lt; 64 字节）</li>
+<li>✅ 顺序访问为主（<code>LRANGE</code>、<code>HGETALL</code>）</li>
+<li>✅ 内存敏感场景</li>
+</ul>
+<p><strong>典型应用</strong>：</p>
+<ul>
+<li>Hash: Session、商品基础信息</li>
+<li>List: 浏览历史、消息队列（小）</li>
+<li>ZSet: TOP10 排行榜</li>
+</ul>
+<h4 id="使用-hashtable-的场景-✅"><a href="#使用-hashtable-的场景-✅" class="headerlink" title="使用 hashtable 的场景 ✅"></a>使用 hashtable 的场景 ✅</h4><ul>
+<li>✅ 需要快速查找（<code>HGET</code>、<code>HEXISTS</code>）</li>
+<li>✅ 数据量大（&gt; 512 个字段）</li>
+<li>✅ 随机访问为主</li>
+<li>✅ 字段独立更新（<code>HINCRBY</code>）</li>
+</ul>
+<p><strong>典型应用</strong>：</p>
+<ul>
+<li>Hash: 用户画像、复杂对象</li>
+<li>Set: 大集合去重</li>
+<li>ZSet: 全站排行榜</li>
+</ul>
+<p><strong>详细对比</strong>：</p>
+<ul>
+<li>📊 <code>redis-datastructure-comparison.mmd</code></li>
+</ul>
+<hr>
+<h2 id="🖥️-如何使用"><a href="#🖥️-如何使用" class="headerlink" title="🖥️ 如何使用"></a>🖥️ 如何使用</h2><h3 id="方法-1-在-Cursor-中预览"><a href="#方法-1-在-Cursor-中预览" class="headerlink" title="方法 1: 在 Cursor 中预览"></a>方法 1: 在 Cursor 中预览</h3><ol>
+<li><p>打开预览文件：</p>
+<ul>
+<li><code>redis-hashtable-preview.md</code></li>
+<li><code>redis-ziplist-preview.md</code></li>
+</ul>
+</li>
+<li><p>按快捷键：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">macOS: Cmd + Shift + V</span><br><span class="line">Windows/Linux: Ctrl + Shift + V</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>如果图表未渲染，安装插件：</p>
+<ul>
+<li>打开扩展：<code>Cmd + Shift + X</code></li>
+<li>搜索：<code>Markdown Preview Mermaid Support</code></li>
+<li>安装并重启预览</li>
+</ul>
+</li>
+</ol>
+<h3 id="方法-2-在线预览"><a href="#方法-2-在线预览" class="headerlink" title="方法 2: 在线预览"></a>方法 2: 在线预览</h3><p>访问 <a href="https://mermaid.live,粘贴/">https://mermaid.live，粘贴</a> <code>.mmd</code> 文件内容查看效果。</p>
+<h3 id="方法-3-在博客中引用"><a href="#方法-3-在博客中引用" class="headerlink" title="方法 3: 在博客中引用"></a>方法 3: 在博客中引用</h3><p>在 Markdown 文章中直接嵌入：</p>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="language-xml"><span class="tag">&lt;<span class="name">pre</span> <span class="attr">class</span>=<span class="string">&quot;mermaid&quot;</span>&gt;</span></span>graph TB</span><br><span class="line"><span class="code">    A[开始] --&gt; B[处理]</span></span><br><span class="line"><span class="code">    B --&gt; C[结束]&lt;/pre&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>或引用文件：</p>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">详见架构图：[<span class="string">redis-hashtable</span>](<span class="link">/diagrams/mermaid/redis-hashtable.mmd</span>)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="📚-相关文章"><a href="#📚-相关文章" class="headerlink" title="📚 相关文章"></a>📚 相关文章</h2><ul>
+<li>📝 <code>/source/_posts/system-design/02-middleware-redis.md</code><ul>
+<li>Hash 底层实现原理详解</li>
+<li>ziplist 详细结构说明</li>
+<li>电商场景最佳实践</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="🔑-核心概念速查"><a href="#🔑-核心概念速查" class="headerlink" title="🔑 核心概念速查"></a>🔑 核心概念速查</h2><h3 id="Hashtable-关键点"><a href="#Hashtable-关键点" class="headerlink" title="Hashtable 关键点"></a>Hashtable 关键点</h3><ul>
+<li><strong>双哈希表</strong>：ht[0] 正常使用，ht[1] 用于 rehash</li>
+<li><strong>渐进式 rehash</strong>：每次操作迁移一个桶，避免阻塞</li>
+<li><strong>负载因子</strong>：used &#x2F; size，触发扩容&#x2F;缩容</li>
+<li><strong>拉链法</strong>：解决哈希冲突</li>
+</ul>
+<h3 id="Ziplist-关键点"><a href="#Ziplist-关键点" class="headerlink" title="Ziplist 关键点"></a>Ziplist 关键点</h3><ul>
+<li><strong>prevlen</strong>：1 或 5 字节，记录前一节点长度</li>
+<li><strong>encoding</strong>：变长编码，标识类型和长度</li>
+<li><strong>连锁更新</strong>：254 字节边界，最坏 O(n²)</li>
+<li><strong>阈值</strong>：512 entries（Hash&#x2F;List），128 entries（ZSet）</li>
+</ul>
+<h3 id="性能对比"><a href="#性能对比" class="headerlink" title="性能对比"></a>性能对比</h3><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>ziplist</th>
+<th>hashtable</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>查找</td>
+<td>O(n)</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td>插入</td>
+<td>O(n)</td>
+<td>O(1) 平均</td>
+</tr>
+<tr>
+<td>删除</td>
+<td>O(n)</td>
+<td>O(1) 平均</td>
+</tr>
+<tr>
+<td>内存</td>
+<td>极低</td>
+<td>高（指针开销）</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="🛠️-配置参数参考"><a href="#🛠️-配置参数参考" class="headerlink" title="🛠️ 配置参数参考"></a>🛠️ 配置参数参考</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"># Redis 配置文件 redis.conf</span><br><span class="line"></span><br><span class="line"># Hash 编码阈值</span><br><span class="line">hash-max-ziplist-entries 512</span><br><span class="line">hash-max-ziplist-value 64</span><br><span class="line"></span><br><span class="line"># List 编码阈值</span><br><span class="line">list-max-ziplist-entries 512</span><br><span class="line">list-max-ziplist-value 64</span><br><span class="line"></span><br><span class="line"># ZSet 编码阈值</span><br><span class="line">zset-max-ziplist-entries 128</span><br><span class="line">zset-max-ziplist-value 64</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="📖-推荐阅读顺序"><a href="#📖-推荐阅读顺序" class="headerlink" title="📖 推荐阅读顺序"></a>📖 推荐阅读顺序</h2><h3 id="初学者路径-🌟"><a href="#初学者路径-🌟" class="headerlink" title="初学者路径 🌟"></a>初学者路径 🌟</h3><ol>
+<li><code>redis-datastructure-comparison.mmd</code> - 整体对比</li>
+<li><code>redis-hash-encoding.mmd</code> - 编码选择</li>
+<li><code>redis-ziplist-detail.mmd</code> - Ziplist 基础</li>
+<li><code>redis-hashtable.mmd</code> - Hashtable 基础</li>
+</ol>
+<h3 id="进阶路径-🚀"><a href="#进阶路径-🚀" class="headerlink" title="进阶路径 🚀"></a>进阶路径 🚀</h3><ol>
+<li><code>redis-ziplist-memory.mmd</code> - 内存布局细节</li>
+<li><code>redis-rehash-process.mmd</code> - Rehash 流程</li>
+<li>阅读博客文章的详细说明</li>
+<li>实践：查看线上 Redis 的编码类型</li>
+</ol>
+<hr>
+<h2 id="🔍-监控命令"><a href="#🔍-监控命令" class="headerlink" title="🔍 监控命令"></a>🔍 监控命令</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看数据类型</span></span><br><span class="line">redis&gt; TYPE mykey</span><br><span class="line"><span class="string">&quot;hash&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看编码方式</span></span><br><span class="line">redis&gt; OBJECT ENCODING mykey</span><br><span class="line"><span class="string">&quot;ziplist&quot;</span>  <span class="comment"># 或 &quot;hashtable&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看内存占用</span></span><br><span class="line">redis&gt; MEMORY USAGE mykey</span><br><span class="line">(<span class="built_in">integer</span>) 184</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查找大 key</span></span><br><span class="line">redis-cli --bigkeys</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看详细信息（调试用）</span></span><br><span class="line">redis&gt; DEBUG OBJECT mykey</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="📝-更新日志"><a href="#📝-更新日志" class="headerlink" title="📝 更新日志"></a>📝 更新日志</h2><ul>
+<li>2026-01-08: 创建完整的 Redis 数据结构可视化文档<ul>
+<li>新增 Hash 底层实现（hashtable + ziplist）</li>
+<li>新增 ziplist 详细结构说明</li>
+<li>新增数据结构对比分析</li>
+<li>新增内存布局实例</li>
+</ul>
+</li>
+</ul>

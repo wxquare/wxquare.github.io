@@ -1,0 +1,388 @@
+<h1 id="Redis-Ziplist-实战：Hash-name-“iPhone”-price-5999"><a href="#Redis-Ziplist-实战：Hash-name-“iPhone”-price-5999" class="headerlink" title="Redis Ziplist 实战：Hash {name: “iPhone”, price: 5999}"></a>Redis Ziplist 实战：Hash {name: “iPhone”, price: 5999}</h1><h2 id="完整内存布局可视化"><a href="#完整内存布局可视化" class="headerlink" title="完整内存布局可视化"></a>完整内存布局可视化</h2><pre class="mermaid">graph TB
+    subgraph overview ["Hash {name: iPhone, price: 5999} 的 ziplist 内存布局"]
+        direction TB
+        
+        subgraph header ["头部 10 字节"]
+            h1["zlbytes<br/>0x0000002C<br/>44字节"]
+            h2["zltail<br/>0x00000023<br/>尾节点@35"]
+            h3["zllen<br/>0x0004<br/>4个节点"]
+        end
+        
+        subgraph entries ["数据区域 25 字节 - field/value 交替存储"]
+            direction TB
+            
+            subgraph e1 ["Entry 1: field name - 6字节"]
+                e1_p["prevlen: 0x00<br/>前一节点 0B"]
+                e1_e["encoding: 0x04<br/>00000100<br/>字符串长度4"]
+                e1_c["content: name<br/>0x6E616D65"]
+                
+                e1_p --> e1_e --> e1_c
+            end
+            
+            subgraph e2 ["Entry 2: value iPhone - 8字节"]
+                e2_p["prevlen: 0x06<br/>前一节点 6B"]
+                e2_e["encoding: 0x06<br/>00000110<br/>字符串长度6"]
+                e2_c["content: iPhone<br/>0x69506F6E65"]
+                
+                e2_p --> e2_e --> e2_c
+            end
+            
+            subgraph e3 ["Entry 3: field price - 7字节"]
+                e3_p["prevlen: 0x08<br/>前一节点 8B"]
+                e3_e["encoding: 0x05<br/>00000101<br/>字符串长度5"]
+                e3_c["content: price<br/>0x7072696365"]
+                
+                e3_p --> e3_e --> e3_c
+            end
+            
+            subgraph e4 ["Entry 4: value 5999 - 4字节 ⭐整数优化"]
+                e4_p["prevlen: 0x07<br/>前一节点 7B"]
+                e4_e["encoding: 0xC0<br/>11000000<br/>int16_t"]
+                e4_c["content: 5999<br/>0x176F 小端序<br/>节省2字节!"]
+                
+                e4_p --> e4_e --> e4_c
+            end
+            
+            e1 -.->|prevlen| e2
+            e2 -.->|prevlen| e3
+            e3 -.->|prevlen| e4
+        end
+        
+        subgraph tail ["尾部 1 字节"]
+            zlend["zlend: 0xFF<br/>结束标记"]
+        end
+        
+        header --> entries --> tail
+    end
+    
+    subgraph memory_map ["完整内存映射图"]
+        direction LR
+        
+        m0["[0-3]<br/>zlbytes<br/>4B"]
+        m1["[4-7]<br/>zltail<br/>4B"]
+        m2["[8-9]<br/>zllen<br/>2B"]
+        m3["[10-15]<br/>name<br/>6B"]
+        m4["[16-23]<br/>iPhone<br/>8B"]
+        m5["[24-30]<br/>price<br/>7B"]
+        m6["[31-34]<br/>5999<br/>4B"]
+        m7["[35]<br/>0xFF<br/>1B"]
+        
+        m0 ~~~ m1 ~~~ m2 ~~~ m3 ~~~ m4 ~~~ m5 ~~~ m6 ~~~ m7
+        
+        total["总计: 36 字节"]
+    end
+    
+    subgraph encoding_types ["编码类型解析"]
+        direction TB
+        
+        subgraph str_enc ["字符串编码 - Entry 1/2/3"]
+            s1["00000100 = 长度4<br/>name"]
+            s2["00000110 = 长度6<br/>iPhone"]
+            s3["00000101 = 长度5<br/>price"]
+        end
+        
+        subgraph int_enc ["整数编码 - Entry 4 ⭐"]
+            i1["11000000 = int16<br/>5999 用 2 字节"]
+            i2["如果是字符串:<br/>需要 4+2=6 字节<br/>节省 2 字节!"]
+        end
+    end
+    
+    subgraph comparison ["内存对比分析"]
+        direction LR
+        
+        subgraph zl ["ziplist 方案"]
+            zl1["头部: 10B"]
+            zl2["name: 6B<br/>iPhone: 8B<br/>price: 7B<br/>5999: 4B"]
+            zl3["尾部: 1B"]
+            zl_total["总计: 36B"]
+            
+            zl1 --> zl2 --> zl3 --> zl_total
+        end
+        
+        subgraph ht ["hashtable 方案"]
+            ht1["dictht: 24B<br/>table[8]: 64B"]
+            ht2["4个dictEntry<br/>每个24B = 96B"]
+            ht3["字符串SDS<br/>约30B"]
+            ht_total["总计: ~214B<br/>❌ 5.9倍"]
+            
+            ht1 --> ht2 --> ht3 --> ht_total
+        end
+        
+        subgraph json ["String JSON 方案"]
+            json1["JSON字符串<br/>32B"]
+            json2["Redis开销<br/>~18B"]
+            json_total["总计: ~50B<br/>❌ 1.4倍"]
+            
+            json1 --> json2 --> json_total
+        end
+    end
+    
+    subgraph operations ["操作演示"]
+        direction TB
+        
+        subgraph op_get ["HGET product:1001 name"]
+            get1["1. 从偏移10开始"]
+            get2["2. 读取 prevlen+encoding"]
+            get3["3. 对比 content = name?"]
+            get4["4. 是! 读取下一个entry"]
+            get5["5. 返回 iPhone"]
+            get6["时间复杂度: O(n)<br/>需遍历"]
+            
+            get1 --> get2 --> get3 --> get4 --> get5 --> get6
+        end
+        
+        subgraph op_incr ["HINCRBY product:1001 price 1"]
+            incr1["1. 找到 price → 5999"]
+            incr2["2. 解析 int16: 5999"]
+            incr3["3. 加1 → 6000"]
+            incr4["4. 仍在 int16 范围"]
+            incr5["5. 原地更新 0x7017"]
+            incr6["无需 realloc!<br/>高效!"]
+            
+            incr1 --> incr2 --> incr3 --> incr4 --> incr5 --> incr6
+        end
+        
+        subgraph op_set ["HSET product:1001 stock 100"]
+            set1["1. 检查 zllen < 512"]
+            set2["2. realloc 扩展内存"]
+            set3["3. 写入 stock field"]
+            set4["4. 写入 100 整数"]
+            set5["5. 更新 zlbytes等"]
+            set6["可能触发连锁更新<br/>概率低"]
+            
+            set1 --> set2 --> set3 --> set4 --> set5 --> set6
+        end
+    end
+    
+    subgraph advantages ["ziplist 优势分析"]
+        adv1["💾 内存极致优化<br/>36B vs 214B<br/>节省 83%"]
+        adv2["🔢 整数压缩<br/>5999 仅用 2B<br/>智能编码"]
+        adv3["🚀 CPU缓存友好<br/>连续内存<br/>预读优化"]
+        adv4["↔️ 双向遍历<br/>prevlen反向<br/>zltail定位"]
+    end
+    
+    subgraph limitations ["ziplist 限制"]
+        lim1["⚠️ O(n) 查找<br/>不适合大量字段<br/>阈值 512"]
+        lim2["⚠️ realloc 开销<br/>插入删除需<br/>内存重分配"]
+        lim3["⚠️ 连锁更新<br/>254B边界<br/>概率低"]
+        lim4["📊 适用场景<br/>小对象<br/>< 64B value"]
+    end
+    
+    subgraph transition ["编码转换"]
+        t1["条件1: entries > 512"]
+        t2["条件2: value > 64B"]
+        t3["触发转换<br/>ziplist → hashtable<br/>不可逆"]
+        
+        t1 --> t3
+        t2 --> t3
+    end
+    
+    classDef headerStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef entryStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef intStyle fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    classDef advStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef warnStyle fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    
+    class h1,h2,h3,zlend,m0,m1,m2,m7 headerStyle
+    class e1,e2,e3,e1_p,e1_e,e1_c,e2_p,e2_e,e2_c,e3_p,e3_e,e3_c,m3,m4,m5 entryStyle
+    class e4,e4_p,e4_e,e4_c,m6,i1,i2 intStyle
+    class adv1,adv2,adv3,adv4,zl,zl1,zl2,zl3,zl_total advStyle
+    class lim1,lim2,lim3,lim4,ht,json,ht_total,json_total warnStyle</pre>
+
+<hr>
+<h2 id="字节级详细表格"><a href="#字节级详细表格" class="headerlink" title="字节级详细表格"></a>字节级详细表格</h2><table>
+<thead>
+<tr>
+<th>偏移</th>
+<th>字段</th>
+<th>十六进制</th>
+<th>十进制</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0-3</td>
+<td>zlbytes</td>
+<td>0x0000002C</td>
+<td>44</td>
+<td>总大小</td>
+</tr>
+<tr>
+<td>4-7</td>
+<td>zltail</td>
+<td>0x00000023</td>
+<td>35</td>
+<td>尾节点偏移</td>
+</tr>
+<tr>
+<td>8-9</td>
+<td>zllen</td>
+<td>0x0004</td>
+<td>4</td>
+<td>4个节点</td>
+</tr>
+<tr>
+<td><strong>10</strong></td>
+<td><strong>Entry 1: “name”</strong></td>
+<td></td>
+<td></td>
+<td><strong>field</strong></td>
+</tr>
+<tr>
+<td>10</td>
+<td>prevlen</td>
+<td>0x00</td>
+<td>0</td>
+<td>第一个节点</td>
+</tr>
+<tr>
+<td>11</td>
+<td>encoding</td>
+<td>0x04</td>
+<td>4</td>
+<td>字符串长度4</td>
+</tr>
+<tr>
+<td>12-15</td>
+<td>content</td>
+<td>0x6E616D65</td>
+<td>“name”</td>
+<td>n-a-m-e</td>
+</tr>
+<tr>
+<td><strong>16</strong></td>
+<td><strong>Entry 2: “iPhone”</strong></td>
+<td></td>
+<td></td>
+<td><strong>value</strong></td>
+</tr>
+<tr>
+<td>16</td>
+<td>prevlen</td>
+<td>0x06</td>
+<td>6</td>
+<td>前一节点6B</td>
+</tr>
+<tr>
+<td>17</td>
+<td>encoding</td>
+<td>0x06</td>
+<td>6</td>
+<td>字符串长度6</td>
+</tr>
+<tr>
+<td>18-23</td>
+<td>content</td>
+<td>0x69506F6E65</td>
+<td>“iPhone”</td>
+<td>i-P-h-o-n-e</td>
+</tr>
+<tr>
+<td><strong>24</strong></td>
+<td><strong>Entry 3: “price”</strong></td>
+<td></td>
+<td></td>
+<td><strong>field</strong></td>
+</tr>
+<tr>
+<td>24</td>
+<td>prevlen</td>
+<td>0x08</td>
+<td>8</td>
+<td>前一节点8B</td>
+</tr>
+<tr>
+<td>25</td>
+<td>encoding</td>
+<td>0x05</td>
+<td>5</td>
+<td>字符串长度5</td>
+</tr>
+<tr>
+<td>26-30</td>
+<td>content</td>
+<td>0x7072696365</td>
+<td>“price”</td>
+<td>p-r-i-c-e</td>
+</tr>
+<tr>
+<td><strong>31</strong></td>
+<td><strong>Entry 4: 5999</strong></td>
+<td></td>
+<td></td>
+<td><strong>value 整数</strong></td>
+</tr>
+<tr>
+<td>31</td>
+<td>prevlen</td>
+<td>0x07</td>
+<td>7</td>
+<td>前一节点7B</td>
+</tr>
+<tr>
+<td>32</td>
+<td>encoding</td>
+<td>0xC0</td>
+<td>11000000</td>
+<td>int16_t</td>
+</tr>
+<tr>
+<td>33-34</td>
+<td>content</td>
+<td>0x6F17</td>
+<td>5999</td>
+<td>小端序</td>
+</tr>
+<tr>
+<td><strong>35</strong></td>
+<td><strong>zlend</strong></td>
+<td><strong>0xFF</strong></td>
+<td><strong>255</strong></td>
+<td><strong>结束标记</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="编码详解"><a href="#编码详解" class="headerlink" title="编码详解"></a>编码详解</h2><h3 id="字符串编码（前2位-00）"><a href="#字符串编码（前2位-00）" class="headerlink" title="字符串编码（前2位 &#x3D; 00）"></a>字符串编码（前2位 &#x3D; 00）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Entry 1: 0x04 = 00000100</span><br><span class="line">  → 前2位 00 = 字符串</span><br><span class="line">  → 后6位 000100 = 4 = 长度</span><br><span class="line"></span><br><span class="line">Entry 2: 0x06 = 00000110</span><br><span class="line">  → 前2位 00 = 字符串</span><br><span class="line">  → 后6位 000110 = 6 = 长度</span><br><span class="line"></span><br><span class="line">Entry 3: 0x05 = 00000101</span><br><span class="line">  → 前2位 00 = 字符串</span><br><span class="line">  → 后6位 000101 = 5 = 长度</span><br></pre></td></tr></table></figure>
+
+<h3 id="整数编码（前2位-11）⭐"><a href="#整数编码（前2位-11）⭐" class="headerlink" title="整数编码（前2位 &#x3D; 11）⭐"></a>整数编码（前2位 &#x3D; 11）⭐</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Entry 4: 0xC0 = 11000000</span><br><span class="line">  → 前2位 11 = 整数</span><br><span class="line">  → 后6位 000000 = int16_t (2字节)</span><br><span class="line">  </span><br><span class="line">Content: 0x6F17</span><br><span class="line">  → 小端序: [0x6F] [0x17]</span><br><span class="line">  → 计算: 0x17 * 256 + 0x6F = 23 * 256 + 111 = 5999</span><br><span class="line">  </span><br><span class="line">优化效果:</span><br><span class="line">  - 整数编码: 1B encoding + 2B content = 3B</span><br><span class="line">  - 字符串编码: 1B encoding + 4B &quot;5999&quot; = 5B</span><br><span class="line">  - 节省: 2 字节!</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="内存对比总结"><a href="#内存对比总结" class="headerlink" title="内存对比总结"></a>内存对比总结</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>总字节数</th>
+<th>相对 ziplist</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>ziplist</strong></td>
+<td><strong>36</strong></td>
+<td><strong>1.0x</strong></td>
+<td>✅ 最优</td>
+</tr>
+<tr>
+<td>String JSON</td>
+<td>50</td>
+<td>1.4x</td>
+<td>❌ 无法部分更新</td>
+</tr>
+<tr>
+<td>hashtable</td>
+<td>214</td>
+<td>5.9x</td>
+<td>❌ 内存开销大</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="关键要点"><a href="#关键要点" class="headerlink" title="关键要点"></a>关键要点</h2><h3 id="为什么这么省内存？"><a href="#为什么这么省内存？" class="headerlink" title="为什么这么省内存？"></a>为什么这么省内存？</h3><ol>
+<li><strong>无指针开销</strong>：linkedlist 每节点 16B 指针，hashtable 每节点 8B 指针</li>
+<li><strong>紧凑存储</strong>：连续内存，无碎片</li>
+<li><strong>整数优化</strong>：5999 用 2B，不是 4B 字符串</li>
+<li><strong>变长编码</strong>：小数据用小空间</li>
+</ol>
+<h3 id="适用场景"><a href="#适用场景" class="headerlink" title="适用场景"></a>适用场景</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ✅ 推荐：小对象</span></span><br><span class="line">rdb.HSet(ctx, <span class="string">&quot;session:123&quot;</span>, <span class="keyword">map</span>[<span class="type">string</span>]<span class="keyword">interface</span>&#123;&#125;&#123;</span><br><span class="line">    <span class="string">&quot;uid&quot;</span>:   <span class="number">88888</span>,</span><br><span class="line">    <span class="string">&quot;name&quot;</span>:  <span class="string">&quot;alice&quot;</span>,</span><br><span class="line">    <span class="string">&quot;role&quot;</span>:  <span class="string">&quot;buyer&quot;</span>,</span><br><span class="line">    <span class="string">&quot;login&quot;</span>: time.Now().Unix(),</span><br><span class="line">&#125;)</span><br><span class="line"><span class="comment">// → ziplist 编码，内存极省</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// ❌ 不推荐：大对象或大量字段</span></span><br><span class="line">rdb.HSet(ctx, <span class="string">&quot;user:123&quot;</span>, <span class="string">&quot;profile&quot;</span>, longJSON)  <span class="comment">// &gt; 64B</span></span><br><span class="line"><span class="comment">// → 会转换为 hashtable</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="监控命令"><a href="#监控命令" class="headerlink" title="监控命令"></a>监控命令</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">redis&gt; HSET product:1001 name <span class="string">&quot;iPhone&quot;</span> price 5999</span><br><span class="line">redis&gt; OBJECT ENCODING product:1001</span><br><span class="line"><span class="string">&quot;ziplist&quot;</span></span><br><span class="line"></span><br><span class="line">redis&gt; MEMORY USAGE product:1001</span><br><span class="line">(<span class="built_in">integer</span>) 64  <span class="comment"># 包括 Redis 对象开销</span></span><br><span class="line"></span><br><span class="line">redis&gt; HLEN product:1001</span><br><span class="line">(<span class="built_in">integer</span>) 2</span><br></pre></td></tr></table></figure>
+

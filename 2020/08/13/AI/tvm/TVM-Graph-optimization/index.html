@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="TVM主要包括两个部分，一个是Relay和图优化(graph-level)，另一个就是算子（operator）级别优化，这里简单写最近了解到的关于relay和图优化方面的东西。我们都知道深度学习网络通常都是通过计算图来描述的，计算图中的节点表示各种同的算子(opertor),边表示算子之间的依赖关系。Relay可以理解为一种可以描述深度学习网络的函数式编程语言，通过relay可以描述复杂的深度">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TVM学习笔记--了解Relay和图优化">
+<meta property="og:url" content="http://yoursite.com/2020/08/13/AI/tvm/TVM-Graph-optimization/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="TVM主要包括两个部分，一个是Relay和图优化(graph-level)，另一个就是算子（operator）级别优化，这里简单写最近了解到的关于relay和图优化方面的东西。我们都知道深度学习网络通常都是通过计算图来描述的，计算图中的节点表示各种同的算子(opertor),边表示算子之间的依赖关系。Relay可以理解为一种可以描述深度学习网络的函数式编程语言，通过relay可以描述复杂的深度">
+<meta property="og:locale">
+<meta property="article:published_time" content="2020-08-12T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-04-09T01:59:40.672Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2020/08/13/AI/tvm/TVM-Graph-optimization/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2020/08/13/AI/tvm/TVM-Graph-optimization/","path":"2020/08/13/AI/tvm/TVM-Graph-optimization/","title":"TVM学习笔记--了解Relay和图优化"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>TVM学习笔记--了解Relay和图优化 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<style>mjx-container[jax="SVG"] {
+  direction: ltr;
+}
+
+mjx-container[jax="SVG"] > svg {
+  overflow: visible;
+}
+
+mjx-container[jax="SVG"][display="true"] {
+  display: block;
+  text-align: center;
+  margin: 1em 0;
+}
+
+mjx-container[jax="SVG"][justify="left"] {
+  text-align: left;
+}
+
+mjx-container[jax="SVG"][justify="right"] {
+  text-align: right;
+}
+
+g[data-mml-node="merror"] > g {
+  fill: red;
+  stroke: red;
+}
+
+g[data-mml-node="merror"] > rect[data-background] {
+  fill: yellow;
+  stroke: none;
+}
+
+g[data-mml-node="mtable"] > line[data-line] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > rect[data-frame] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > .mjx-dashed {
+  stroke-dasharray: 140;
+}
+
+g[data-mml-node="mtable"] > .mjx-dotted {
+  stroke-linecap: round;
+  stroke-dasharray: 0,140;
+}
+
+g[data-mml-node="mtable"] > svg {
+  overflow: visible;
+}
+
+[jax="SVG"] mjx-tool {
+  display: inline-block;
+  position: relative;
+  width: 0;
+  height: 0;
+}
+
+[jax="SVG"] mjx-tool > mjx-tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+mjx-tool > mjx-tip {
+  display: inline-block;
+  padding: .2em;
+  border: 1px solid #888;
+  font-size: 70%;
+  background-color: #F8F8F8;
+  color: black;
+  box-shadow: 2px 2px 5px #AAAAAA;
+}
+
+g[data-mml-node="maction"][data-toggle] {
+  cursor: pointer;
+}
+
+mjx-status {
+  display: block;
+  position: fixed;
+  left: 1em;
+  bottom: 1em;
+  min-width: 25%;
+  padding: .2em .4em;
+  border: 1px solid #888;
+  font-size: 90%;
+  background-color: #F8F8F8;
+  color: black;
+}
+
+foreignObject[data-mjx-xml] {
+  font-family: initial;
+  line-height: normal;
+  overflow: visible;
+}
+
+.MathJax path {
+  stroke-width: 3;
+}
+
+mjx-container[display="true"] {
+  overflow: auto hidden;
+}
+
+mjx-container[display="true"] + br {
+  display: none;
+}
+</style></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81Hello-Relay"><span class="nav-number">1.</span> <span class="nav-text">一、Hello Relay</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E4%BD%BF%E7%94%A8Relay%E5%AE%9A%E4%B9%89%E5%8D%B7%E7%A7%AF%E5%8D%95%E5%85%83"><span class="nav-number">2.</span> <span class="nav-text">二、使用Relay定义卷积单元</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81Relay-Graph-Optimization"><span class="nav-number">3.</span> <span class="nav-text">三、Relay Graph Optimization</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E4%BD%BF%E7%94%A8Python-API-Relay-%E5%9B%BE%E4%BC%98%E5%8C%96"><span class="nav-number">4.</span> <span class="nav-text">四、使用Python API Relay 图优化</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">56</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">152</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">11篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">21篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">14篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">6篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/08/13/AI/tvm/TVM-Graph-optimization/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="TVM学习笔记--了解Relay和图优化 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          TVM学习笔记--了解Relay和图优化
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-13 00:00:00" itemprop="dateCreated datePublished" datetime="2020-08-13T00:00:00+08:00">2020-08-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-04-09 09:59:40" itemprop="dateModified" datetime="2026-04-09T09:59:40+08:00">2026-04-09</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI-%E4%B8%8E-Agent/" itemprop="url" rel="index"><span itemprop="name">AI 与 Agent</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>　　TVM主要包括两个部分，一个是Relay和图优化(graph-level)，另一个就是算子（operator）级别优化，这里简单写最近了解到的关于relay和图优化方面的东西。我们都知道深度学习网络通常都是通过计算图来描述的，计算图中的节点表示各种同的算子(opertor),边表示算子之间的依赖关系。Relay可以理解为一种可以描述深度学习网络的函数式编程语言，通过relay可以描述复杂的深度网络，文中提到了control flow。最近一段时间的时间学习直观的感受的Relay编写网络模型和其它框架没什么太多的区别，但是提供的文本形式的中间表示，对开发和调试有很大的帮助。另外，它提供了许多用于图优化的pass，供大家学习和参考。测试代码都在0.6版本上调试通过。<br>    代码地址：<a href="https://github.com/wxquare/programming/tree/master/blog/TVM_graph_optimization">https://github.com/wxquare/programming/tree/master/blog/TVM_graph_optimization</a></p>
+<h2 id="一、Hello-Relay"><a href="#一、Hello-Relay" class="headerlink" title="一、Hello Relay"></a>一、Hello Relay</h2><p>既然Relay是一种可以描述计算的函数式语言，逛社区的发现一段代码，可以当作Relay的第一个程序。<br>API参考:<a href="https://docs.tvm.ai/api/python/relay/index.html">https://docs.tvm.ai/api/python/relay/index.html</a></p>
+<pre><code><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">from tvm import relay</span><br><span class="line">import tvm.relay.op</span><br><span class="line"></span><br><span class="line">x = relay.expr.var('x', relay.scalar_type('int64'), dtype = 'int64')</span><br><span class="line">one = relay.expr.const(1, dtype = 'int64')</span><br><span class="line">add = relay.op.tensor.add(x, one)    </span><br><span class="line">func = relay.expr.Function([x], add, relay.scalar_type('int64'))</span><br><span class="line"></span><br><span class="line">mod = relay.Module.from_expr(func)  # note this API</span><br><span class="line">print("Relay module function:\n", mod.astext(show_meta_data=False))</span><br><span class="line">graph, lib, params = tvm.relay.build(mod, 'llvm', params={})</span><br><span class="line">print("TVM graph:\n", graph)</span><br><span class="line">print("TVM parameters:\n", params)</span><br><span class="line">print("TVM compiled target function:\n", lib.get_source())</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+</code></pre>
+<h2 id="二、使用Relay定义卷积单元"><a href="#二、使用Relay定义卷积单元" class="headerlink" title="二、使用Relay定义卷积单元"></a>二、使用Relay定义卷积单元</h2><p>在学习Relay的时候参考了<a href="https://zhuanlan.zhihu.com/p/91283238">https://zhuanlan.zhihu.com/p/91283238</a> 这篇文章。但是可能因为版本的问题，很多API多不兼容了，因此修改了一些地方，建议读者也可以去看一下。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><span class="line">import tvm</span><br><span class="line">from tvm.relay import transform</span><br><span class="line">import tvm.relay as relay</span><br><span class="line">import numpy as np</span><br><span class="line">from tvm.contrib import graph_runtime</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">def batch_norm_infer(data,</span><br><span class="line">                    gamma=None,</span><br><span class="line">                    beta=None,</span><br><span class="line">                    moving_mean=None,</span><br><span class="line">                    moving_var=None,</span><br><span class="line">                    **kwargs):</span><br><span class="line">    name = kwargs.get("name")</span><br><span class="line">    kwargs.pop("name")</span><br><span class="line">    if not gamma:</span><br><span class="line">        gamma = relay.var(name + "_gamma")</span><br><span class="line">    if not beta:</span><br><span class="line">        beta = relay.var(name + "_beta")</span><br><span class="line">    if not moving_mean:</span><br><span class="line">        moving_mean = relay.var(name + "_moving_mean")</span><br><span class="line">    if not moving_var:</span><br><span class="line">        moving_var = relay.var(name + "_moving_var")</span><br><span class="line">    return relay.nn.batch_norm(data,</span><br><span class="line">                            gamma=gamma,</span><br><span class="line">                            beta=beta,</span><br><span class="line">                            moving_mean=moving_mean,</span><br><span class="line">                            moving_var=moving_var,</span><br><span class="line">                            **kwargs)[0]</span><br><span class="line"></span><br><span class="line">def conv2d(data, weight=None, **kwargs):</span><br><span class="line">    name = kwargs.get("name")</span><br><span class="line">    kwargs.pop("name")</span><br><span class="line">    if not weight:</span><br><span class="line">        weight = relay.var(name + "_weight")</span><br><span class="line">    return relay.nn.conv2d(data, weight, **kwargs)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">def conv_block(data, name, channels, kernel_size=(3, 3), strides=(1, 1),</span><br><span class="line">            padding=(1, 1), epsilon=1e-5):</span><br><span class="line">    conv = conv2d(</span><br><span class="line">        data=data,</span><br><span class="line">        channels=channels,</span><br><span class="line">        kernel_size=kernel_size,</span><br><span class="line">        strides=strides,</span><br><span class="line">        padding=padding,</span><br><span class="line">        data_layout='NCHW',</span><br><span class="line">        name=name+'_conv')</span><br><span class="line">    bn = batch_norm_infer(data=conv, epsilon=epsilon, name=name + '_bn')</span><br><span class="line">    act = relay.nn.relu(data=bn)</span><br><span class="line">    return act</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">data_shape = (1, 3, 224, 224)</span><br><span class="line">kernel_shape = (32, 3, 3, 3)</span><br><span class="line">dtype = "float32"</span><br><span class="line">data = relay.var("data", shape=data_shape, dtype=dtype)</span><br><span class="line">act = conv_block(data, "graph", 32, strides=(2, 2))</span><br><span class="line">func = relay.Function(relay.analysis.free_vars(act),act)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">mod = relay.Module.from_expr(func)</span><br><span class="line">mod = relay.transform.InferType()(mod)</span><br><span class="line">shape_dict = {</span><br><span class="line">    v.name_hint : v.checked_type for v in mod["main"].params}</span><br><span class="line">np.random.seed(0)</span><br><span class="line">params = {}</span><br><span class="line">for k, v in shape_dict.items():</span><br><span class="line">    if k == "data":</span><br><span class="line">        continue</span><br><span class="line">    init_value = np.random.uniform(-1, 1, v.concrete_shape).astype(v.dtype)</span><br><span class="line">    params[k] = tvm.nd.array(init_value, ctx=tvm.cpu(0))</span><br><span class="line"></span><br><span class="line">target = "llvm"</span><br><span class="line">ctx = tvm.context(target, 0)</span><br><span class="line">print("Relay module function:\n", mod.astext(show_meta_data=False))</span><br><span class="line">print("TVM parameters:\n", params.keys())</span><br><span class="line"></span><br><span class="line">with relay.build_config(opt_level=3):</span><br><span class="line">    graph, lib, params = relay.build(mod, target, params=params)</span><br><span class="line"></span><br><span class="line">print("TVM graph:\n", graph)</span><br><span class="line">print("TVM parameters:\n", params.keys())</span><br><span class="line"># print("TVM compiled target function:\n", lib.get_source())</span><br><span class="line">module = graph_runtime.create(graph, lib, ctx)</span><br><span class="line">data_tvm = tvm.nd.array((np.random.uniform(-1, 1, size=data_shape)).astype(dtype))</span><br><span class="line">module.set_input('data', data_tvm)</span><br><span class="line">module.set_input(**params)</span><br><span class="line">module.run()</span><br><span class="line">output = module.get_output(0)</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="三、Relay-Graph-Optimization"><a href="#三、Relay-Graph-Optimization" class="headerlink" title="三、Relay Graph Optimization"></a>三、Relay Graph Optimization</h2><p>前面两个例子介绍了怎么使用relay构建网络，这个部分介绍怎么使用relay做图优化。上面例子代码中没有直接图优化的代码，而是包含在relay.build中。通过追踪代码，我们这部分的逻辑集中在 <a href="https://github.com/apache/incubator-tvm/blob/v0.6/src/relay/backend/build_module.cc">https://github.com/apache/incubator-tvm/blob/v0.6/src/relay/backend/build_module.cc</a> 这个文件的optimize函数中。这里罗列了代码用到的pass，relay提供了方便的的文本形式中间描述，感兴趣的可以自己试一下每个pass之后，发生了哪些变化。</p>
+<ul>
+<li>relay::qnn::transform::Legalize())，这个pass和qnn有关</li>
+<li>transform::Legalize()，我理解的这个是和目标有关的优化，一个表达式虽然在语义上等效于另一个，但可以在目标上具有更好的性能。这个在需要在异构环境下生效。</li>
+<li>transform::SimplifyInference() 。<br>简化推理阶段的数据流图。在语义上等于输入表达式的简化表达式将被返回。例如将BatchNorm展开以及去掉 dropout。</li>
+<li>transform::EliminateCommonSubexpr(fskip))，去除公共子表达式。</li>
+<li>transform::CombineParallelConv2D(3)，将多个conv2d运算符合并为一个，这部分优化会将具有相同输入的卷积合并成一个大的卷积运算。</li>
+<li>transform::CombineParallelDense(3))，将多个dense运算符组合为一个</li>
+<li>transform::FoldConstant()，常量传播优化。</li>
+<li>transform::FoldScaleAxis()</li>
+<li>transform::CanonicalizeCast()，<br>将特殊运算符规范化为基本运算符。这样可以简化后续分析，例如将bias_add扩展为expand_dims和broadcast_add</li>
+<li>transform::CanonicalizeOps()</li>
+<li>transform::AlterOpLayout()，layout 变换</li>
+<li>transform::FuseOps()，算子融合，根据一些规则，将expr中的运算符融合为较大的运算符。</li>
+</ul>
+<h2 id="四、使用Python-API-Relay-图优化"><a href="#四、使用Python-API-Relay-图优化" class="headerlink" title="四、使用Python API Relay 图优化"></a>四、使用Python API Relay 图优化</h2><p> TVM核心代码是采用C++编写的，但是也提供了Python接口，这方面初学者体验的使用。Relay图优化核心功能都提供了对应的API，因此可以尝试一下，非常简单。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">def my_optimize(func,params=None):</span><br><span class="line"></span><br><span class="line">    if params:</span><br><span class="line">        graph = _bind_params(func, params)</span><br><span class="line"></span><br><span class="line">    # https://docs.tvm.ai/api/python/relay/transform.html</span><br><span class="line">    optimize = relay.transform.Sequential([relay.transform.SimplifyInference(),</span><br><span class="line">                                      relay.transform.FoldConstant(),</span><br><span class="line">                                      relay.transform.FoldScaleAxis(),</span><br><span class="line">                                      relay.transform.CanonicalizeOps(),</span><br><span class="line">                                      relay.transform.FoldConstant()])</span><br><span class="line"></span><br><span class="line">    mod = relay.Module.from_expr(graph)</span><br><span class="line">    mod = optimize(mod)</span><br><span class="line">    return mod["main"]</span><br><span class="line"></span><br><span class="line">mod['main'] = my_optimize(mod['main'], params)</span><br><span class="line">print("Relay module function:\n", mod.astext(show_meta_data=False))</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>这里可以对比优化前后的IR.</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">Relay module function:</span><br><span class="line"> v0.0.4</span><br><span class="line">def @main(%data: Tensor[(1, 3, 224, 224), float32], %graph_conv_weight: Tensor[(32, 3, 3, 3), float32], %graph_bn_gamma: Tensor[(32), float32], %graph_bn_beta: Tensor[(32), float32], %graph_bn_moving_mean: Tensor[(32), float32], %graph_bn_moving_var: Tensor[(32), float32]) -&gt; Tensor[(1, 32, 112, 112), float32] {</span><br><span class="line">  %0 = nn.conv2d(%data, %graph_conv_weight, strides=[2, 2], padding=[1, 1], channels=32, kernel_size=[3, 3]) /* ty=Tensor[(1, 32, 112, 112), float32] */;</span><br><span class="line">  %1 = nn.batch_norm(%0, %graph_bn_gamma, %graph_bn_beta, %graph_bn_moving_mean, %graph_bn_moving_var) /* ty=(Tensor[(1, 32, 112, 112), float32], Tensor[(32), float32], Tensor[(32), float32]) */;</span><br><span class="line">  %2 = %1.0;</span><br><span class="line">  nn.relu(%2) /* ty=Tensor[(1, 32, 112, 112), float32] */</span><br><span class="line">}</span><br><span class="line"># =====================================</span><br><span class="line">Relay module function:</span><br><span class="line"> v0.0.4</span><br><span class="line">def @main(%data: Tensor[(1, 3, 224, 224), float32]) -&gt; Tensor[(1, 32, 112, 112), float32] {</span><br><span class="line">  %0 = nn.conv2d(%data, meta[relay.Constant][0] /* ty=Tensor[(32, 3, 3, 3), float32] */ /* ty=Tensor[(32, 3, 3, 3), float32] */, strides=[2, 2], padding=[1, 1], channels=32, kernel_size=[3, 3]) /* ty=Tensor[(1, 32, 112, 112), float32] */;</span><br><span class="line">  %1 = multiply(%0, meta[relay.Constant][1] /* ty=Tensor[(32, 1, 1), float32] */ /* ty=Tensor[(32, 1, 1), float32] */) /* ty=Tensor[(1, 32, 112, 112), float32] */;</span><br><span class="line">  %2 = add(%1, meta[relay.Constant][2] /* ty=Tensor[(32, 1, 1), float32] */ /* ty=Tensor[(32, 1, 1), float32] */) /* ty=Tensor[(1, 32, 112, 112), float32] */;</span><br><span class="line">  nn.relu(%2) /* ty=Tensor[(1, 32, 112, 112), float32] */</span><br><span class="line">}</span><br><span class="line"></span><br><span class="line">// meta data omitted. you can use show_meta_data=True to include meta data</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+<p>参考与进阶学习：<br>[1]. <a href="https://www.zhihu.com/question/331611341/answer/875630325">https://www.zhihu.com/question/331611341/answer/875630325</a><br>[2]. <a href="https://zhuanlan.zhihu.com/p/91283238">https://zhuanlan.zhihu.com/p/91283238</a><br>[3]. <a href="https://docs.tvm.ai/dev/relay_intro.html">https://docs.tvm.ai/dev/relay_intro.html</a><br>[4]. <a href="https://docs.tvm.ai/dev/relay_add_op.html">https://docs.tvm.ai/dev/relay_add_op.html</a><br>[5]. <a href="https://docs.tvm.ai/dev/relay_add_pass.html">https://docs.tvm.ai/dev/relay_add_pass.html</a><br>[6]. <a href="https://arxiv.org/pdf/1810.00952.pdf">https://arxiv.org/pdf/1810.00952.pdf</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/tvm/TVM-code-generation/" rel="prev" title="TVM学习笔记--代码生成">
+                  <i class="fa fa-angle-left"></i> TVM学习笔记--代码生成
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/08/13/AI/tvm/TVM-GEMM-CPU/" rel="next" title="TVM学习笔记--GEMM优化及测试数据">
+                  TVM学习笔记--GEMM优化及测试数据 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>

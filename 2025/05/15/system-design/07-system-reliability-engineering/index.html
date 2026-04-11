@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="速查导航阅读时间: 45 分钟 | 难度: ⭐⭐⭐⭐ | 面试频率: 中高 核心考点速查:  SRE 层次结构 - Dickerson 层级模型 监控与告警 - 监控指标体系、告警策略 高可用架构 - 多活部署、异地容灾 保护性机制 - 熔断&#x2F;降级&#x2F;限流&#x2F;重试 容量规划 - 容量评估、压测方案 SLI&#x2F;SLO&#x2F;SLA - 服务等级定义 故障应急 -">
+<meta property="og:type" content="article">
+<meta property="og:title" content="互联网系统稳定性建设：方法论与实践">
+<meta property="og:url" content="http://yoursite.com/2025/05/15/system-design/07-system-reliability-engineering/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="速查导航阅读时间: 45 分钟 | 难度: ⭐⭐⭐⭐ | 面试频率: 中高 核心考点速查:  SRE 层次结构 - Dickerson 层级模型 监控与告警 - 监控指标体系、告警策略 高可用架构 - 多活部署、异地容灾 保护性机制 - 熔断&#x2F;降级&#x2F;限流&#x2F;重试 容量规划 - 容量评估、压测方案 SLI&#x2F;SLO&#x2F;SLA - 服务等级定义 故障应急 -">
+<meta property="og:locale">
+<meta property="og:image" content="http://yoursite.com/images/service-reliability-hierarchy.png">
+<meta property="og:image" content="http://yoursite.com/images/system-stability.png">
+<meta property="og:image" content="http://yoursite.com/images/6-reliability-steps.png">
+<meta property="og:image" content="http://yoursite.com/images/how-to-monitor.png">
+<meta property="og:image" content="http://yoursite.com/images/primary-secondary.png">
+<meta property="og:image" content="http://yoursite.com/images/realtime-verify.webp">
+<meta property="og:image" content="http://yoursite.com/images/performance.png">
+<meta property="article:published_time" content="2025-05-14T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-04-09T01:59:40.651Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="稳定性">
+<meta property="article:tag" content="SRE">
+<meta property="article:tag" content="高可用">
+<meta property="article:tag" content="监控">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/images/service-reliability-hierarchy.png">
+
+
+<link rel="canonical" href="http://yoursite.com/2025/05/15/system-design/07-system-reliability-engineering/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2025/05/15/system-design/07-system-reliability-engineering/","path":"2025/05/15/system-design/07-system-reliability-engineering/","title":"互联网系统稳定性建设：方法论与实践"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>互联网系统稳定性建设：方法论与实践 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9F%E6%9F%A5%E5%AF%BC%E8%88%AA"><span class="nav-number">1.</span> <span class="nav-text">速查导航</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E8%A8%80%EF%BC%9A%E6%80%8E%E6%A0%B7%E7%9A%84%E7%B3%BB%E7%BB%9F%E7%AE%97%E6%98%AF%E7%A8%B3%E5%AE%9A%E9%AB%98%E5%8F%AF%E7%94%A8%E7%9A%84"><span class="nav-number">2.</span> <span class="nav-text">前言：怎样的系统算是稳定高可用的</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%B3%BB%E7%BB%9F%E7%A8%B3%E5%AE%9A%E6%80%A7%E5%BB%BA%E8%AE%BE%E6%A6%82%E8%BF%B0"><span class="nav-number">2.1.</span> <span class="nav-text">系统稳定性建设概述</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%91%E6%8E%A7-%E5%91%8A%E8%AD%A6%E6%A2%B3%E7%90%86-%E2%80%93-Monitoring"><span class="nav-number">3.</span> <span class="nav-text">监控&amp;告警梳理 – Monitoring</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9B%91%E6%8E%A7"><span class="nav-number">3.1.</span> <span class="nav-text">监控</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%91%8A%E8%AD%A6"><span class="nav-number">3.2.</span> <span class="nav-text">告警</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BA%94%E4%BA%A7%E5%87%BA%E6%95%B0%E6%8D%AE"><span class="nav-number">3.2.1.</span> <span class="nav-text">应产出数据</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%AB%98%E5%8F%AF%E7%94%A8%E7%9A%84%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1"><span class="nav-number">4.</span> <span class="nav-text">高可用的架构设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AB%98%E5%8F%AF%E7%94%A8%E6%9E%B6%E6%9E%84%E6%A0%B8%E5%BF%83%E5%8E%9F%E5%88%99"><span class="nav-number">4.1.</span> <span class="nav-text">高可用架构核心原则</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E5%86%97%E4%BD%99%E8%AE%BE%E8%AE%A1%EF%BC%88Redundancy%EF%BC%89"><span class="nav-number">4.1.1.</span> <span class="nav-text">1. 冗余设计（Redundancy）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E8%A7%A3%E8%80%A6%E8%AE%BE%E8%AE%A1%EF%BC%88Decoupling%EF%BC%89"><span class="nav-number">4.1.2.</span> <span class="nav-text">2. 解耦设计（Decoupling）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E9%9A%94%E7%A6%BB%E8%AE%BE%E8%AE%A1%EF%BC%88Isolation%EF%BC%89"><span class="nav-number">4.1.3.</span> <span class="nav-text">3. 隔离设计（Isolation）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-%E6%97%A0%E7%8A%B6%E6%80%81%E8%AE%BE%E8%AE%A1%EF%BC%88Stateless%EF%BC%89"><span class="nav-number">4.1.4.</span> <span class="nav-text">4. 无状态设计（Stateless）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AB%98%E5%8F%AF%E7%94%A8%E6%9E%B6%E6%9E%84%E6%A8%A1%E5%BC%8F"><span class="nav-number">4.2.</span> <span class="nav-text">高可用架构模式</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E4%B8%BB%E4%BB%8E%E6%A8%A1%E5%BC%8F%EF%BC%88Primary-Secondary%EF%BC%89"><span class="nav-number">4.2.1.</span> <span class="nav-text">1. 主从模式（Primary-Secondary）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E9%9B%86%E7%BE%A4%E6%A8%A1%E5%BC%8F%EF%BC%88Cluster%EF%BC%89"><span class="nav-number">4.2.2.</span> <span class="nav-text">2. 集群模式（Cluster）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E5%90%8C%E5%9F%8E%E5%8F%8C%E6%B4%BB%E6%9E%B6%E6%9E%84"><span class="nav-number">4.2.3.</span> <span class="nav-text">3. 同城双活架构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-%E5%BC%82%E5%9C%B0%E5%A4%9A%E6%B4%BB%E6%9E%B6%E6%9E%84"><span class="nav-number">4.2.4.</span> <span class="nav-text">4. 异地多活架构</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AB%98%E5%8F%AF%E7%94%A8%E4%BF%9D%E6%8A%A4%E6%9C%BA%E5%88%B6"><span class="nav-number">4.3.</span> <span class="nav-text">高可用保护机制</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E9%99%90%E6%B5%81%EF%BC%88Rate-Limiting%EF%BC%89"><span class="nav-number">4.3.1.</span> <span class="nav-text">1. 限流（Rate Limiting）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E7%86%94%E6%96%AD%EF%BC%88Circuit-Breaker%EF%BC%89"><span class="nav-number">4.3.2.</span> <span class="nav-text">2. 熔断（Circuit Breaker）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E9%99%8D%E7%BA%A7%EF%BC%88Degradation%EF%BC%89"><span class="nav-number">4.3.3.</span> <span class="nav-text">3. 降级（Degradation）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-%E8%B6%85%E6%97%B6%E6%8E%A7%E5%88%B6"><span class="nav-number">4.3.4.</span> <span class="nav-text">4. 超时控制</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%B3%BB%E7%BB%9F%E9%93%BE%E8%B7%AF%E6%A2%B3%E7%90%86%E5%92%8C%E7%BB%B4%E6%8A%A4-System-Biz-Profiling"><span class="nav-number">5.</span> <span class="nav-text">系统链路梳理和维护 System &amp; Biz Profiling</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%A5%E5%8F%A3%E6%A2%B3%E7%90%86%E7%9B%98%E7%82%B9"><span class="nav-number">5.1.</span> <span class="nav-text">入口梳理盘点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%8A%82%E7%82%B9%E5%88%86%E5%B1%82%E5%88%A4%E6%96%AD"><span class="nav-number">5.2.</span> <span class="nav-text">节点分层判断</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BA%94%E4%BA%A7%E5%87%BA%E6%95%B0%E6%8D%AE-1"><span class="nav-number">5.3.</span> <span class="nav-text">应产出数据</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%9A%E5%8A%A1%E7%AD%96%E7%95%A5-%E5%AE%B9%E9%87%8F%E8%A7%84%E5%88%92-Capacity-Planning-%E5%AE%B9%E9%87%8F%E8%A7%84%E5%88%92"><span class="nav-number">6.</span> <span class="nav-text">业务策略&amp;容量规划 Capacity Planning - 容量规划</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%9A%E5%8A%A1%E7%AD%96%E7%95%A5"><span class="nav-number">6.1.</span> <span class="nav-text">业务策略</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%85%A8%E5%B1%80%E8%AF%84%E4%BC%B0"><span class="nav-number">6.1.1.</span> <span class="nav-text">全局评估</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BA%94%E6%80%A5%E7%AD%96%E7%95%A5"><span class="nav-number">6.1.2.</span> <span class="nav-text">应急策略</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%81%E9%87%8F%E6%A8%A1%E5%9E%8B%E8%AF%84%E4%BC%B0"><span class="nav-number">6.2.</span> <span class="nav-text">流量模型评估</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%B9%E9%87%8F%E8%BD%AC%E5%8C%96"><span class="nav-number">6.3.</span> <span class="nav-text">容量转化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%A8%E9%93%BE%E8%B7%AF%E5%8E%8B%E6%B5%8B-TODO"><span class="nav-number">6.4.</span> <span class="nav-text">全链路压测(TODO)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BA%94%E4%BA%A7%E5%87%BA%E6%95%B0%E6%8D%AE-2"><span class="nav-number">6.5.</span> <span class="nav-text">应产出数据</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%A7%E4%BF%83%E4%BF%9D%E9%9A%9C"><span class="nav-number">7.</span> <span class="nav-text">大促保障</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Incident-Response-%E7%B4%A7%E6%80%A5-%E5%89%8D%E7%BD%AE%E9%A2%84%E6%A1%88%E6%A2%B3%E7%90%86"><span class="nav-number">7.1.</span> <span class="nav-text">Incident Response - 紧急&amp;前置预案梳理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BA%94%E4%BA%A7%E5%87%BA%E6%95%B0%E6%8D%AE-3"><span class="nav-number">7.2.</span> <span class="nav-text">应产出数据</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Incident-Response-%E4%BD%9C%E6%88%98%E6%89%8B%E5%86%8C%E6%A2%B3%E7%90%86"><span class="nav-number">7.2.1.</span> <span class="nav-text">Incident Response - 作战手册梳理</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B2%99%E7%9B%98%E6%8E%A8%E6%BC%94%E5%92%8C%E6%BC%94%E7%BB%83-Incident-Response"><span class="nav-number">7.3.</span> <span class="nav-text">沙盘推演和演练 Incident Response</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B5%84%E6%8D%9F%E4%BD%93%E7%B3%BB"><span class="nav-number">8.</span> <span class="nav-text">资损体系</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B5%84%E6%8D%9F%E5%9C%BA%E6%99%AF%E5%88%86%E7%B1%BB"><span class="nav-number">8.1.</span> <span class="nav-text">资损场景分类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8B%E5%89%8D%EF%BC%9A%E8%B5%84%E6%8D%9F%E9%A3%8E%E9%99%A9%E8%AF%86%E5%88%AB%E4%B8%8E%E9%A2%84%E9%98%B2"><span class="nav-number">8.2.</span> <span class="nav-text">事前：资损风险识别与预防</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E8%B5%84%E6%8D%9F%E9%A3%8E%E9%99%A9%E7%82%B9%E8%AF%86%E5%88%AB"><span class="nav-number">8.2.1.</span> <span class="nav-text">1. 资损风险点识别</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E8%B5%84%E6%8D%9F%E9%98%B2%E6%8E%A7-Checklist"><span class="nav-number">8.2.2.</span> <span class="nav-text">2. 资损防控 Checklist</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E9%98%B2%E9%87%8D%E8%AE%BE%E8%AE%A1"><span class="nav-number">8.2.3.</span> <span class="nav-text">3. 防重设计</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8B%E4%B8%AD%EF%BC%9A%E5%AE%9E%E6%97%B6%E8%B5%84%E6%8D%9F%E5%8F%91%E7%8E%B0"><span class="nav-number">8.3.</span> <span class="nav-text">事中：实时资损发现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E5%AE%9E%E6%97%B6%E5%AF%B9%E8%B4%A6%E7%B3%BB%E7%BB%9F"><span class="nav-number">8.3.1.</span> <span class="nav-text">1. 实时对账系统</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E5%AF%B9%E8%B4%A6%E8%A7%84%E5%88%99%E5%BC%95%E6%93%8E"><span class="nav-number">8.3.2.</span> <span class="nav-text">2. 对账规则引擎</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E5%BC%82%E5%B8%B8%E5%91%8A%E8%AD%A6%E5%88%86%E7%BA%A7"><span class="nav-number">8.3.3.</span> <span class="nav-text">3. 异常告警分级</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8B%E5%90%8E%EF%BC%9A%E6%AD%A2%E8%A1%80%E4%B8%8E%E5%A4%8D%E7%9B%98"><span class="nav-number">8.4.</span> <span class="nav-text">事后：止血与复盘</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E8%B5%84%E6%8D%9F%E6%AD%A2%E8%A1%80-SOP"><span class="nav-number">8.4.1.</span> <span class="nav-text">1. 资损止血 SOP</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E8%B5%84%E6%8D%9F%E4%BF%AE%E5%A4%8D%E7%AD%96%E7%95%A5"><span class="nav-number">8.4.2.</span> <span class="nav-text">2. 资损修复策略</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B5%84%E6%8D%9F%E9%98%B2%E6%8E%A7%E5%BA%A6%E9%87%8F%E6%8C%87%E6%A0%87"><span class="nav-number">8.5.</span> <span class="nav-text">资损防控度量指标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E5%AD%A6%E4%B9%A0"><span class="nav-number">8.6.</span> <span class="nav-text">参考学习</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A3%8E%E6%8E%A7%E4%BD%93%E7%B3%BB"><span class="nav-number">9.</span> <span class="nav-text">风控体系</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A3%8E%E6%8E%A7%E5%9C%BA%E6%99%AF%E5%88%86%E7%B1%BB"><span class="nav-number">9.1.</span> <span class="nav-text">风控场景分类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A3%8E%E6%8E%A7%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84"><span class="nav-number">9.2.</span> <span class="nav-text">风控系统架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E6%97%B6%E9%A3%8E%E6%8E%A7%E5%BC%95%E6%93%8E%E8%AE%BE%E8%AE%A1"><span class="nav-number">9.3.</span> <span class="nav-text">实时风控引擎设计</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E8%A7%84%E5%88%99%E5%BC%95%E6%93%8E"><span class="nav-number">9.3.1.</span> <span class="nav-text">1. 规则引擎</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E7%89%B9%E5%BE%81%E5%B7%A5%E7%A8%8B"><span class="nav-number">9.3.2.</span> <span class="nav-text">2. 特征工程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E6%A8%A1%E5%9E%8B"><span class="nav-number">9.3.3.</span> <span class="nav-text">3. 机器学习模型</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A3%8E%E6%8E%A7%E5%86%B3%E7%AD%96%E6%B5%81%E7%A8%8B"><span class="nav-number">9.4.</span> <span class="nav-text">风控决策流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A3%8E%E6%8E%A7%E8%BF%90%E8%90%A5"><span class="nav-number">9.5.</span> <span class="nav-text">风控运营</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E5%A4%84%E7%BD%AE%E5%8A%A8%E4%BD%9C"><span class="nav-number">9.5.1.</span> <span class="nav-text">1. 处置动作</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E6%95%88%E6%9E%9C%E5%BA%A6%E9%87%8F"><span class="nav-number">9.5.2.</span> <span class="nav-text">2. 效果度量</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E7%AD%96%E7%95%A5%E8%BF%AD%E4%BB%A3"><span class="nav-number">9.5.3.</span> <span class="nav-text">3. 策略迭代</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A3%8E%E6%8E%A7%E4%BD%93%E7%B3%BB%E5%BB%BA%E8%AE%BE%E5%8F%82%E8%80%83"><span class="nav-number">9.6.</span> <span class="nav-text">风控体系建设参考</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96"><span class="nav-number">10.</span> <span class="nav-text">性能优化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E6%96%B9%E6%B3%95%E8%AE%BA"><span class="nav-number">10.1.</span> <span class="nav-text">性能优化方法论</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%8E%9F%E5%88%99"><span class="nav-number">10.1.1.</span> <span class="nav-text">1. 性能优化原则</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90%E5%A5%97%E8%B7%AF"><span class="nav-number">10.1.2.</span> <span class="nav-text">2. 性能分析套路</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%90%84%E5%B1%82%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E7%AD%96%E7%95%A5"><span class="nav-number">10.2.</span> <span class="nav-text">各层性能优化策略</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E7%BD%91%E7%BB%9C%E5%B1%82%E4%BC%98%E5%8C%96"><span class="nav-number">10.2.1.</span> <span class="nav-text">1. 网络层优化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E5%BA%94%E7%94%A8%E5%B1%82%E4%BC%98%E5%8C%96"><span class="nav-number">10.2.2.</span> <span class="nav-text">2. 应用层优化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E6%95%B0%E6%8D%AE%E5%BA%93%E4%BC%98%E5%8C%96"><span class="nav-number">10.2.3.</span> <span class="nav-text">3. 数据库优化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-JVM-GC-%E4%BC%98%E5%8C%96%EF%BC%88Java%EF%BC%89"><span class="nav-number">10.2.4.</span> <span class="nav-text">4. JVM&#x2F;GC 优化（Java）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-Go-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96"><span class="nav-number">10.2.5.</span> <span class="nav-text">5. Go 性能优化</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95%E4%B8%8E%E7%9B%91%E6%8E%A7"><span class="nav-number">10.3.</span> <span class="nav-text">性能测试与监控</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E5%8E%8B%E6%B5%8B%E7%B1%BB%E5%9E%8B"><span class="nav-number">10.3.1.</span> <span class="nav-text">1. 压测类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E6%80%A7%E8%83%BD%E6%8C%87%E6%A0%87"><span class="nav-number">10.3.2.</span> <span class="nav-text">2. 性能指标</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E6%A1%88%E4%BE%8B"><span class="nav-number">10.4.</span> <span class="nav-text">性能优化案例</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A1%88%E4%BE%8B%EF%BC%9A%E6%8E%A5%E5%8F%A3-RT-%E4%BB%8E-500ms-%E4%BC%98%E5%8C%96%E5%88%B0-50ms"><span class="nav-number">10.4.1.</span> <span class="nav-text">案例：接口 RT 从 500ms 优化到 50ms</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SLI-SLO-SLA-%E4%BD%93%E7%B3%BB"><span class="nav-number">11.</span> <span class="nav-text">SLI&#x2F;SLO&#x2F;SLA 体系</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A6%82%E5%BF%B5%E5%AE%9A%E4%B9%89"><span class="nav-number">11.1.</span> <span class="nav-text">概念定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8-SLI-%E6%8C%87%E6%A0%87"><span class="nav-number">11.2.</span> <span class="nav-text">常用 SLI 指标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Error-Budget%EF%BC%88%E9%94%99%E8%AF%AF%E9%A2%84%E7%AE%97%EF%BC%89"><span class="nav-number">11.3.</span> <span class="nav-text">Error Budget（错误预算）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B7%B7%E6%B2%8C%E5%B7%A5%E7%A8%8B"><span class="nav-number">12.</span> <span class="nav-text">混沌工程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B7%B7%E6%B2%8C%E5%B7%A5%E7%A8%8B%E5%8E%9F%E5%88%99"><span class="nav-number">12.1.</span> <span class="nav-text">混沌工程原则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%85%E9%9A%9C%E6%B3%A8%E5%85%A5%E7%B1%BB%E5%9E%8B"><span class="nav-number">12.2.</span> <span class="nav-text">故障注入类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B7%B7%E6%B2%8C%E5%AE%9E%E9%AA%8C%E6%B5%81%E7%A8%8B"><span class="nav-number">12.3.</span> <span class="nav-text">混沌实验流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B7%B7%E6%B2%8C%E5%B7%A5%E7%A8%8B%E5%B7%A5%E5%85%B7"><span class="nav-number">12.4.</span> <span class="nav-text">混沌工程工具</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%98%E6%9B%B4%E7%AE%A1%E7%90%86"><span class="nav-number">13.</span> <span class="nav-text">变更管理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%98%E6%9B%B4%E7%B1%BB%E5%9E%8B"><span class="nav-number">13.1.</span> <span class="nav-text">变更类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%89%E5%85%A8%E5%8F%98%E6%9B%B4%E5%8E%9F%E5%88%99"><span class="nav-number">13.2.</span> <span class="nav-text">安全变更原则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%81%B0%E5%BA%A6%E5%8F%91%E5%B8%83%E7%AD%96%E7%95%A5"><span class="nav-number">13.3.</span> <span class="nav-text">灰度发布策略</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#On-Call-%E5%AE%9E%E8%B7%B5"><span class="nav-number">14.</span> <span class="nav-text">On-Call 实践</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#On-Call-%E8%BD%AE%E5%80%BC%E8%AE%BE%E8%AE%A1"><span class="nav-number">14.1.</span> <span class="nav-text">On-Call 轮值设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#On-Call-%E5%93%8D%E5%BA%94%E6%B5%81%E7%A8%8B"><span class="nav-number">14.2.</span> <span class="nav-text">On-Call 响应流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#On-Call-%E5%87%8F%E8%B4%9F%E6%8E%AA%E6%96%BD"><span class="nav-number">14.3.</span> <span class="nav-text">On-Call 减负措施</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%A6%E4%B9%A0%E8%B5%84%E6%96%99"><span class="nav-number">15.</span> <span class="nav-text">学习资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">56</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">152</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">11篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">21篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">14篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">6篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2025/05/15/system-design/07-system-reliability-engineering/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="互联网系统稳定性建设：方法论与实践 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          互联网系统稳定性建设：方法论与实践
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2025-05-15 00:00:00" itemprop="dateCreated datePublished" datetime="2025-05-15T00:00:00+08:00">2025-05-15</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-04-09 09:59:40" itemprop="dateModified" datetime="2026-04-09T09:59:40+08:00">2026-04-09</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">系统设计基础</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="速查导航"><a href="#速查导航" class="headerlink" title="速查导航"></a>速查导航</h2><p><strong>阅读时间</strong>: 45 分钟 | <strong>难度</strong>: ⭐⭐⭐⭐ | <strong>面试频率</strong>: 中高</p>
+<p><strong>核心考点速查</strong>:</p>
+<ul>
+<li><a href="#%E5%89%8D%E8%A8%80%E6%80%8E%E6%A0%B7%E7%9A%84%E7%B3%BB%E7%BB%9F%E7%AE%97%E6%98%AF%E7%A8%B3%E5%AE%9A%E9%AB%98%E5%8F%AF%E7%94%A8%E7%9A%84">SRE 层次结构</a> - Dickerson 层级模型</li>
+<li><a href="#%E7%9B%91%E6%8E%A7%E4%B8%8E%E5%91%8A%E8%AD%A6">监控与告警</a> - 监控指标体系、告警策略</li>
+<li><a href="#%E9%AB%98%E5%8F%AF%E7%94%A8%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1">高可用架构</a> - 多活部署、异地容灾</li>
+<li><a href="#%E4%BF%9D%E6%8A%A4%E6%80%A7%E6%9C%BA%E5%88%B6">保护性机制</a> - 熔断&#x2F;降级&#x2F;限流&#x2F;重试</li>
+<li><a href="#%E5%AE%B9%E9%87%8F%E8%A7%84%E5%88%92%E4%B8%8E%E5%8E%8B%E6%B5%8B">容量规划</a> - 容量评估、压测方案</li>
+<li><a href="#sre-%E6%A0%B8%E5%BF%83%E6%8C%87%E6%A0%87%E4%BD%93%E7%B3%BB">SLI&#x2F;SLO&#x2F;SLA</a> - 服务等级定义</li>
+<li><a href="#%E6%95%85%E9%9A%9C%E5%BA%94%E6%80%A5%E5%93%8D%E5%BA%94">故障应急</a> - 故障等级、应急流程</li>
+</ul>
+<hr>
+<!-- toc -->
+
+<h2 id="前言：怎样的系统算是稳定高可用的"><a href="#前言：怎样的系统算是稳定高可用的" class="headerlink" title="前言：怎样的系统算是稳定高可用的"></a>前言：怎样的系统算是稳定高可用的</h2><p>首先回答另一个问题，怎样的系统算是稳定的？</p>
+<p>Google SRE中(SRE三部曲[1])有一个层级模型来描述系统可靠性基础和高层次需求(Dickerson’s Hierarchy of Service Reliability)，如下图：</p>
+<p align="center">
+  <img src="/images/service-reliability-hierarchy.png" width=600 height=500>
+  <br/>
+</p>
+
+
+<p>该模型由Google SRE工程师Mikey Dickerson在2013年提出，将系统稳定性需求按照基础程度进行了不同层次的体系化区分，形成稳定性标准金字塔模型:</p>
+<ul>
+<li>金字塔的底座是监控(Monitoring)，这是一个系统对于稳定性最基础的要求，缺少监控的系统，如同蒙上眼睛狂奔的野马，无从谈及可控性，更遑论稳定性。</li>
+<li>更上层是应急响应(Incident Response)，从一个问题被监控发现到最终解决，这期间的耗时直接取决于应急响应机制的成熟度。合理的应急策略能保证当故障发生时，所有问题能得到有序且妥善的处理，而不是慌乱成一锅粥。</li>
+<li>事后总结以及根因分析(Postmortem&amp;Root Caue Analysis)，即我们平时谈到的“复盘”，虽然很多人都不太喜欢这项活动，但是不得不承认这是避免我们下次犯同样错误的最有效手段，只有当摸清故障的根因以及对应的缺陷，我们才能对症下药，合理进行规避。</li>
+<li>测试和发布管控(Testing&amp;Release procedures),大大小小的应用都离不开不断的变更与发布,有效的测试与发布策略能保障系统所有新增变量都处于可控稳定区间内，从而达到整体服务终态稳定</li>
+<li>容量规划(Capacity Planning)则是针对于这方面变化进行的保障策略。现有系统体量是否足够支撑新的流量需求，整体链路上是否存在不对等的薄弱节点，都是容量规划需要考虑的问题。</li>
+<li>位于金字塔模型最顶端的是产品设计(Product)与软件研发(Development)，即通过优秀的产品设计与软件设计使系统具备更高的可靠性，构建高可用产品架构体系，从而提升用户体验</li>
+</ul>
+<h3 id="系统稳定性建设概述"><a href="#系统稳定性建设概述" class="headerlink" title="系统稳定性建设概述"></a>系统稳定性建设概述</h3><p align="center">
+  <img src="/images/system-stability.png" width=800 height=800>
+  <br/>
+</p>
+
+<p>从金字塔模型我们可以看到构建维护一个高可用服务所需要做到的几方面工作：</p>
+<ul>
+<li>产品、技术、架构的设计，高可用的架构体系</li>
+<li>系统链路&amp;业务策略梳理和维护（System &amp; Biz Profiling）</li>
+<li>容量规划（Capacity Planning）</li>
+<li>应急响应（Incident Response）</li>
+<li>测试</li>
+<li>事后总结（Testing &amp; Postmortem）</li>
+<li>监控（Monitoring）</li>
+<li>资损体系</li>
+<li>风控体系</li>
+<li>大促保障</li>
+<li>性能优化</li>
+</ul>
+<p align="center">
+  <img src="/images/6-reliability-steps.png" width=600 height=500>
+  <br/>
+</p>
+
+
+<h2 id="监控-告警梳理-–-Monitoring"><a href="#监控-告警梳理-–-Monitoring" class="headerlink" title="监控&amp;告警梳理 – Monitoring"></a>监控&amp;告警梳理 – Monitoring</h2><p>站在监控的角度看，我们的系统从上到下一般可以分为三层：业务（Biz）、应用（Application）、系统（System）。系统层为最下层基础，表示操作系统相关状态；应用层为JVM层，涵盖主应用进程与中间件运行状态；业务层为最上层，为业务视角下服务对外运行状态。因此进行大促稳定性监控梳理时，可以先脱离现有监控，先从核心、资损链路开始，按照业务、应用（中间件、JVM、DB）、系统三个层次梳理需要哪些监控，再从根据这些索引找到对应的监控告警，如果不存在，则相应补上；如果存在则检查阈值、时间、告警人是否合理。</p>
+<h3 id="监控"><a href="#监控" class="headerlink" title="监控"></a>监控</h3><p>监控系统一般有四项黄金指标：延时（Latency）, 错误（Error）,流量（Traffic）, 饱和度（Situation），各层的关键性监控同样也可以按照这四项指标来进行归类，具体如下：</p>
+<p align="center">
+  <img src="/images/how-to-monitor.png" width=900 height=500>
+  <br/>
+</p>
+
+
+<h3 id="告警"><a href="#告警" class="headerlink" title="告警"></a>告警</h3><p>是不是每项监控都需要告警？答案当然是否定的。建议优先设置Biz层告警，因为Biz层我们对外服务最直观业务表现，最贴切用户感受。Application&amp;System层指标主要用于监控，部分关键&amp;高风险指标可设置告警，用于问题排查定位以及故障提前发现。对于一项告警，我们一般需要关注级别、阈值、通知人等几个点。</p>
+<ol>
+<li>级别<br>即当前告警被触发时，问题的严重程度，一般来说有几个衡量点：</li>
+</ol>
+<ul>
+<li>是否关联NOC</li>
+<li>是否产生严重业务影响</li>
+<li>是否产生资损</li>
+</ul>
+<ol start="2">
+<li>阈值</li>
+</ol>
+<ul>
+<li>即一项告警的触发条件&amp;时间，需根据具体场景合理制定。一般遵循以下原则：</li>
+<li>不可过于迟钝。一个合理的监控体系中，任何异常发生后都应触发相关告警。</li>
+<li>不可过于敏感。过于敏感的阈值会造成频繁告警，从而导致响应人员疲劳应对，无法筛选真实异常。若一个告警频繁出现，一般是两个原因：系统设计不合理 or 阈值设置不合理。</li>
+<li>若单一指标无法反馈覆盖整体业务场景，可结合多项指标关联构建。</li>
+<li>需符合业务波动曲线，不同时段可设置不同条件&amp;通知策略。</li>
+</ul>
+<ol start="3">
+<li>通知人&amp;方式</li>
+</ol>
+<ul>
+<li>若为业务指标异常(Biz层告警)，通知人应为问题处理人员(开发、运维同学)与业务关注人员(TL、业务同学)的集合，通知方式较为实时，比如电话通知。</li>
+<li>若为应用 &amp; 系统层告警，主要用于定位异常原因，通知人设置问题排查处理人员即可，通知方式可考虑钉钉、短信等低干扰方式。</li>
+<li>除了关联层次，对于不同级别的告警，通知人范围也可适当扩大，尤其是关联GOC故障的告警指标，应适当放宽范围，通知方式也应更为实时直接</li>
+</ul>
+<h4 id="应产出数据"><a href="#应产出数据" class="headerlink" title="应产出数据"></a>应产出数据</h4><p>完成该项梳理工作后，我们应该产出以下数据：</p>
+<ol>
+<li>系统监控模型，格式同表1</li>
+</ol>
+<ul>
+<li>Biz、Application、System 分别存在哪些待监控点</li>
+<li>监控点是否已全部存在指标，仍有哪些待补充</li>
+</ul>
+<ol start="2">
+<li>系统告警模型列表，需包含以下数据</li>
+</ol>
+<ul>
+<li>关联监控指标（链接）</li>
+<li>告警关键级别</li>
+<li>是否推送GOC</li>
+<li>是否产生资损</li>
+<li>是否关联故障</li>
+<li>是否关联预案</li>
+</ul>
+<ol start="3">
+<li>业务指标大盘，包含Biz层重点监控指标数据</li>
+<li>系统&amp;应用指标大盘，包含核心系统关键系统指标，可用于白盒监控定位问题。</li>
+</ol>
+<h2 id="高可用的架构设计"><a href="#高可用的架构设计" class="headerlink" title="高可用的架构设计"></a>高可用的架构设计</h2><p>高可用架构是系统稳定性的基石。一个好的架构设计能够从根本上减少故障发生的概率，并在故障发生时将影响范围降到最低。</p>
+<h3 id="高可用架构核心原则"><a href="#高可用架构核心原则" class="headerlink" title="高可用架构核心原则"></a>高可用架构核心原则</h3><h4 id="1-冗余设计（Redundancy）"><a href="#1-冗余设计（Redundancy）" class="headerlink" title="1. 冗余设计（Redundancy）"></a>1. 冗余设计（Redundancy）</h4><p>冗余是实现高可用的基础手段，通过部署多个相同的组件来消除单点故障。</p>
+<table>
+<thead>
+<tr>
+<th>冗余层级</th>
+<th>实现方式</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>应用层冗余</strong></td>
+<td>多实例部署 + 负载均衡</td>
+<td>Web 服务、API 网关</td>
+</tr>
+<tr>
+<td><strong>数据层冗余</strong></td>
+<td>主从复制、多副本</td>
+<td>MySQL 主从、Redis Cluster</td>
+</tr>
+<tr>
+<td><strong>机房冗余</strong></td>
+<td>同城双活、异地多活</td>
+<td>核心交易系统</td>
+</tr>
+<tr>
+<td><strong>网络冗余</strong></td>
+<td>多运营商、多链路</td>
+<td>CDN、DNS</td>
+</tr>
+</tbody></table>
+<p><strong>冗余度计算</strong>：<br>假设单节点可用性为 99%，双节点冗余后可用性 &#x3D; 1 - (1-0.99)² &#x3D; 99.99%</p>
+<h4 id="2-解耦设计（Decoupling）"><a href="#2-解耦设计（Decoupling）" class="headerlink" title="2. 解耦设计（Decoupling）"></a>2. 解耦设计（Decoupling）</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">紧耦合架构                    解耦架构</span><br><span class="line">┌─────────────────┐          ┌─────────────────┐</span><br><span class="line">│   服务 A        │          │   服务 A        │</span><br><span class="line">│      ↓          │          │      ↓          │</span><br><span class="line">│   服务 B        │    →     │   消息队列      │</span><br><span class="line">│      ↓          │          │      ↓          │</span><br><span class="line">│   服务 C        │          │   服务 B/C      │</span><br><span class="line">└─────────────────┘          └─────────────────┘</span><br><span class="line">  任一服务故障                  服务故障不传导</span><br><span class="line">  导致整体不可用                其他服务正常运行</span><br></pre></td></tr></table></figure>
+
+<p><strong>解耦手段</strong>：</p>
+<ul>
+<li><strong>异步化</strong>：同步调用改为消息队列异步处理</li>
+<li><strong>服务化</strong>：单体拆分为微服务，故障隔离</li>
+<li><strong>接口抽象</strong>：依赖抽象而非实现，便于替换</li>
+</ul>
+<h4 id="3-隔离设计（Isolation）"><a href="#3-隔离设计（Isolation）" class="headerlink" title="3. 隔离设计（Isolation）"></a>3. 隔离设计（Isolation）</h4><table>
+<thead>
+<tr>
+<th>隔离维度</th>
+<th>实现方式</th>
+<th>目的</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>线程池隔离</strong></td>
+<td>核心业务独立线程池</td>
+<td>防止非核心业务拖垮核心链路</td>
+</tr>
+<tr>
+<td><strong>进程隔离</strong></td>
+<td>独立部署、容器化</td>
+<td>资源隔离，故障不传导</td>
+</tr>
+<tr>
+<td><strong>集群隔离</strong></td>
+<td>按业务&#x2F;用户分集群</td>
+<td>大客户&#x2F;VIP 用户独立资源</td>
+</tr>
+<tr>
+<td><strong>机房隔离</strong></td>
+<td>单元化部署</td>
+<td>机房级故障隔离</td>
+</tr>
+</tbody></table>
+<h4 id="4-无状态设计（Stateless）"><a href="#4-无状态设计（Stateless）" class="headerlink" title="4. 无状态设计（Stateless）"></a>4. 无状态设计（Stateless）</h4><p>无状态服务是水平扩展和快速故障恢复的前提。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 有状态设计（不推荐）</span></span><br><span class="line"><span class="keyword">type</span> OrderService <span class="keyword">struct</span> &#123;</span><br><span class="line">    userSession <span class="keyword">map</span>[<span class="type">string</span>]*Session  <span class="comment">// 状态存在内存</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 无状态设计（推荐）</span></span><br><span class="line"><span class="keyword">type</span> OrderService <span class="keyword">struct</span> &#123;</span><br><span class="line">    sessionStore SessionStore  <span class="comment">// 状态外置到 Redis</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>状态外置方案</strong>：</p>
+<ul>
+<li>Session → Redis&#x2F;Memcached</li>
+<li>文件上传 → 对象存储（S3&#x2F;OSS）</li>
+<li>定时任务状态 → 数据库&#x2F;ZooKeeper</li>
+</ul>
+<h3 id="高可用架构模式"><a href="#高可用架构模式" class="headerlink" title="高可用架构模式"></a>高可用架构模式</h3><h4 id="1-主从模式（Primary-Secondary）"><a href="#1-主从模式（Primary-Secondary）" class="headerlink" title="1. 主从模式（Primary-Secondary）"></a>1. 主从模式（Primary-Secondary）</h4><p align="center">
+  <img src="/images/primary-secondary.png" width=500 height=300>
+</p>
+
+<ul>
+<li><strong>适用场景</strong>：数据库、缓存、消息队列</li>
+<li><strong>故障切换</strong>：主节点故障后，从节点提升为主节点</li>
+<li><strong>数据一致性</strong>：同步复制（强一致）vs 异步复制（最终一致）</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">MySQL 主从架构：</span><br><span class="line">┌──────────┐    Binlog同步    ┌──────────┐</span><br><span class="line">│  Master  │ ───────────────→ │  Slave1  │</span><br><span class="line">│  (写)    │                  │  (读)    │</span><br><span class="line">└──────────┘                  └──────────┘</span><br><span class="line">     │                              ↑</span><br><span class="line">     │          Binlog同步          │</span><br><span class="line">     └──────────────────────────────┘</span><br><span class="line">                                    ↓</span><br><span class="line">                              ┌──────────┐</span><br><span class="line">                              │  Slave2  │</span><br><span class="line">                              │  (读)    │</span><br><span class="line">                              └──────────┘</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-集群模式（Cluster）"><a href="#2-集群模式（Cluster）" class="headerlink" title="2. 集群模式（Cluster）"></a>2. 集群模式（Cluster）</h4><ul>
+<li><strong>对等集群</strong>：所有节点地位相等，如 Redis Cluster</li>
+<li><strong>分片集群</strong>：数据按规则分布到不同节点，如 Elasticsearch</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">Redis Cluster 架构（16384 槽位）：</span><br><span class="line">┌─────────────────────────────────────────────┐</span><br><span class="line">│  槽位 0-5460    槽位 5461-10922   槽位 10923-16383  │</span><br><span class="line">│  ┌─────────┐   ┌─────────┐      ┌─────────┐ │</span><br><span class="line">│  │ Node 1  │   │ Node 2  │      │ Node 3  │ │</span><br><span class="line">│  │ Master  │   │ Master  │      │ Master  │ │</span><br><span class="line">│  └────┬────┘   └────┬────┘      └────┬────┘ │</span><br><span class="line">│       │             │                │      │</span><br><span class="line">│  ┌────▼────┐   ┌────▼────┐      ┌────▼────┐ │</span><br><span class="line">│  │ Node 1&#x27; │   │ Node 2&#x27; │      │ Node 3&#x27; │ │</span><br><span class="line">│  │ Slave   │   │ Slave   │      │ Slave   │ │</span><br><span class="line">│  └─────────┘   └─────────┘      └─────────┘ │</span><br><span class="line">└─────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-同城双活架构"><a href="#3-同城双活架构" class="headerlink" title="3. 同城双活架构"></a>3. 同城双活架构</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">             ┌─────────────┐</span><br><span class="line">             │   用户请求   │</span><br><span class="line">             └──────┬──────┘</span><br><span class="line">                    │</span><br><span class="line">             ┌──────▼──────┐</span><br><span class="line">             │  DNS/GSLB   │</span><br><span class="line">             └──────┬──────┘</span><br><span class="line">       ┌────────────┴────────────┐</span><br><span class="line">       │                         │</span><br><span class="line">┌──────▼──────┐          ┌──────▼──────┐</span><br><span class="line">│  机房 A      │          │  机房 B      │</span><br><span class="line">│  ┌────────┐ │          │ ┌────────┐  │</span><br><span class="line">│  │ App    │ │          │ │ App    │  │</span><br><span class="line">│  └───┬────┘ │          │ └───┬────┘  │</span><br><span class="line">│  ┌───▼────┐ │  同步     │ ┌───▼────┐  │</span><br><span class="line">│  │ MySQL  │◄├──────────┤►│ MySQL  │  │</span><br><span class="line">│  │ Master │ │          │ │ Slave  │  │</span><br><span class="line">│  └────────┘ │          │ └────────┘  │</span><br><span class="line">└─────────────┘          └─────────────┘</span><br></pre></td></tr></table></figure>
+
+<p><strong>关键设计点</strong>：</p>
+<ul>
+<li>流量调度：DNS&#x2F;GSLB 按比例分配流量</li>
+<li>数据同步：MySQL 半同步复制，延迟 &lt; 100ms</li>
+<li>故障切换：机房 A 故障时，流量全部切到机房 B</li>
+</ul>
+<h4 id="4-异地多活架构"><a href="#4-异地多活架构" class="headerlink" title="4. 异地多活架构"></a>4. 异地多活架构</h4><p>异地多活是最复杂也是可用性最高的架构模式，核心挑战是<strong>数据一致性</strong>。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">      北京                      上海                     广州</span><br><span class="line">┌─────────────┐          ┌─────────────┐         ┌─────────────┐</span><br><span class="line">│  单元 Cell1  │          │  单元 Cell2  │         │  单元 Cell3  │</span><br><span class="line">│ ┌─────────┐ │          │ ┌─────────┐ │         │ ┌─────────┐ │</span><br><span class="line">│ │ App     │ │          │ │ App     │ │         │ │ App     │ │</span><br><span class="line">│ └────┬────┘ │          │ └────┬────┘ │         │ └────┬────┘ │</span><br><span class="line">│ ┌────▼────┐ │          │ ┌────▼────┐ │         │ ┌────▼────┐ │</span><br><span class="line">│ │ MySQL   │ │◄────────►│ │ MySQL   │ │◄───────►│ │ MySQL   │ │</span><br><span class="line">│ └─────────┘ │  DTS同步  │ └─────────┘ │ DTS同步  │ └─────────┘ │</span><br><span class="line">└─────────────┘          └─────────────┘         └─────────────┘</span><br><span class="line">      │                        │                       │</span><br><span class="line">      └────────────────────────┼───────────────────────┘</span><br><span class="line">                               │</span><br><span class="line">                      ┌────────▼────────┐</span><br><span class="line">                      │   全局路由层     │</span><br><span class="line">                      │ (按用户ID路由)   │</span><br><span class="line">                      └─────────────────┘</span><br></pre></td></tr></table></figure>
+
+<p><strong>单元化设计要点</strong>：</p>
+<ul>
+<li><strong>分片键选择</strong>：通常按用户 ID 分片，保证同一用户请求落到同一单元</li>
+<li><strong>全局服务</strong>：库存、支付等需要全局一致的服务单独部署</li>
+<li><strong>数据同步</strong>：DTS&#x2F;Canal 异步同步，解决跨单元数据查询</li>
+</ul>
+<h3 id="高可用保护机制"><a href="#高可用保护机制" class="headerlink" title="高可用保护机制"></a>高可用保护机制</h3><h4 id="1-限流（Rate-Limiting）"><a href="#1-限流（Rate-Limiting）" class="headerlink" title="1. 限流（Rate Limiting）"></a>1. 限流（Rate Limiting）</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 令牌桶限流器实现</span></span><br><span class="line"><span class="keyword">type</span> TokenBucket <span class="keyword">struct</span> &#123;</span><br><span class="line">    rate       <span class="type">float64</span>    <span class="comment">// 令牌生成速率</span></span><br><span class="line">    capacity   <span class="type">float64</span>    <span class="comment">// 桶容量</span></span><br><span class="line">    tokens     <span class="type">float64</span>    <span class="comment">// 当前令牌数</span></span><br><span class="line">    lastUpdate time.Time</span><br><span class="line">    mu         sync.Mutex</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(tb *TokenBucket)</span></span> Allow() <span class="type">bool</span> &#123;</span><br><span class="line">    tb.mu.Lock()</span><br><span class="line">    <span class="keyword">defer</span> tb.mu.Unlock()</span><br><span class="line">    </span><br><span class="line">    now := time.Now()</span><br><span class="line">    elapsed := now.Sub(tb.lastUpdate).Seconds()</span><br><span class="line">    tb.tokens = math.Min(tb.capacity, tb.tokens+elapsed*tb.rate)</span><br><span class="line">    tb.lastUpdate = now</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> tb.tokens &gt;= <span class="number">1</span> &#123;</span><br><span class="line">        tb.tokens--</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-熔断（Circuit-Breaker）"><a href="#2-熔断（Circuit-Breaker）" class="headerlink" title="2. 熔断（Circuit Breaker）"></a>2. 熔断（Circuit Breaker）</h4><p>熔断器三状态：关闭（正常）→ 打开（熔断）→ 半开（探测）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">                错误率 &gt; 阈值</span><br><span class="line">┌─────────┐  ──────────────────→  ┌─────────┐</span><br><span class="line">│  关闭   │                       │  打开   │</span><br><span class="line">│ CLOSED  │  ←──────────────────  │  OPEN   │</span><br><span class="line">└─────────┘    探测成功            └────┬────┘</span><br><span class="line">     ↑                                  │</span><br><span class="line">     │          超时后                   │</span><br><span class="line">     │    ┌─────────────────────────────┘</span><br><span class="line">     │    │</span><br><span class="line">     │    ▼</span><br><span class="line">┌────┴────────┐</span><br><span class="line">│   半开       │</span><br><span class="line">│  HALF-OPEN  │</span><br><span class="line">└─────────────┘</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-降级（Degradation）"><a href="#3-降级（Degradation）" class="headerlink" title="3. 降级（Degradation）"></a>3. 降级（Degradation）</h4><table>
+<thead>
+<tr>
+<th>降级类型</th>
+<th>触发条件</th>
+<th>降级策略</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>自动降级</strong></td>
+<td>错误率&#x2F;RT 超阈值</td>
+<td>返回缓存数据或默认值</td>
+</tr>
+<tr>
+<td><strong>手动降级</strong></td>
+<td>大促前&#x2F;故障时</td>
+<td>关闭非核心功能</td>
+</tr>
+<tr>
+<td><strong>读降级</strong></td>
+<td>主库压力大</td>
+<td>读走从库或缓存</td>
+</tr>
+<tr>
+<td><strong>写降级</strong></td>
+<td>下游不可用</td>
+<td>写入 MQ 异步重试</td>
+</tr>
+</tbody></table>
+<h4 id="4-超时控制"><a href="#4-超时控制" class="headerlink" title="4. 超时控制"></a>4. 超时控制</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 超时控制最佳实践</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CallDownstream</span><span class="params">(ctx context.Context)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 1. 设置合理超时</span></span><br><span class="line">    ctx, cancel := context.WithTimeout(ctx, <span class="number">500</span>*time.Millisecond)</span><br><span class="line">    <span class="keyword">defer</span> cancel()</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2. 调用下游</span></span><br><span class="line">    result, err := downstream.Call(ctx, req)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3. 超时处理</span></span><br><span class="line">    <span class="keyword">if</span> ctx.Err() == context.DeadlineExceeded &#123;</span><br><span class="line">        <span class="comment">// 降级逻辑</span></span><br><span class="line">        <span class="keyword">return</span> getFromCache()</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>超时设置原则</strong>：</p>
+<ul>
+<li>上游超时 &gt; 下游超时（避免上游已超时，下游还在执行）</li>
+<li>预留 Buffer：下游 RT P99 + 20%</li>
+<li>级联超时：A→B→C，A 超时 &#x3D; B 超时 + C 超时 + Buffer</li>
+</ul>
+<hr>
+<h2 id="系统链路梳理和维护-System-Biz-Profiling"><a href="#系统链路梳理和维护-System-Biz-Profiling" class="headerlink" title="系统链路梳理和维护 System &amp; Biz Profiling"></a>系统链路梳理和维护 System &amp; Biz Profiling</h2><p>系统链路梳理是所有保障工作的基础，如同对整体应用系统进行一次全面体检，从流量入口开始，按照链路轨迹，逐级分层节点，得到系统全局画像与核心保障点。</p>
+<h3 id="入口梳理盘点"><a href="#入口梳理盘点" class="headerlink" title="入口梳理盘点"></a>入口梳理盘点</h3><p>一个系统往往存在十几个甚至更多流量入口，包含HTTP、RPC、消息等都多种来源。如果无法覆盖所有所有链路，可以从以下三类入口开始进行梳理：</p>
+<ul>
+<li>核心重保流量入口<ul>
+<li>用户承诺服务SLI较高，对数据准确性、服务响应时间、可靠度具有明确要求。</li>
+<li>业务核心链路，浏览、下单、支付、履约</li>
+<li>面向企业级用户</li>
+</ul>
+</li>
+<li>资损事件对应入口<ul>
+<li>关联到公司资金收入或者客户资金收入收费服务</li>
+</ul>
+</li>
+<li>大流量入口<ul>
+<li>系统TPS&amp;QPS TOP5~10</li>
+<li>该类入口虽然不涉及较高SLI与资损要求，但是流量较高，对整体系统负载有较大影响</li>
+</ul>
+</li>
+</ul>
+<h3 id="节点分层判断"><a href="#节点分层判断" class="headerlink" title="节点分层判断"></a>节点分层判断</h3><p>对于复杂场景可以做节点分层判断</p>
+<p>流量入口就如同线团中的线头，挑出线头后就可按照流量轨迹对链路上的节点(HSF\DB\Tair\HBase等一切外部依赖)按照依赖程度、可用性、可靠性进行初级分层区分。</p>
+<ol>
+<li>强弱依赖节点判断</li>
+</ol>
+<ul>
+<li>若节点不可用，链路业务逻辑被中断 or 高级别有损(存在一定耐受阈值)，则为业务强依赖；反之为弱依赖。</li>
+<li>若节点不可用，链路执行逻辑被中断(return error)，则为系统强依赖；反之为弱依赖。</li>
+<li>若节点不可用，系统性能受影响，则为系统强依赖；反之为弱依赖。</li>
+<li>按照快速失败设计逻辑，该类节点不应存在，但是在不变更应用代码前提下，如果出现该类节点，应作为强依赖看待。</li>
+<li>若节点无感可降级 or 存在业务轻微损伤替换方案，则为弱依赖。</li>
+</ul>
+<ol start="2">
+<li>低可用依赖节点判断</li>
+</ol>
+<ul>
+<li>节点服务日常超时严重</li>
+<li>节点对应系统资源不足</li>
+</ul>
+<ol start="3">
+<li>高风险节点判断</li>
+</ol>
+<ul>
+<li>上次大促后，节点存在大版本系统改造</li>
+<li>新上线未经历过大促的节点</li>
+<li>节点对应系统是否曾经出现高级别故障</li>
+<li>节点故障后存在资损风险</li>
+</ul>
+<h3 id="应产出数据-1"><a href="#应产出数据-1" class="headerlink" title="应产出数据"></a>应产出数据</h3><ul>
+<li>识别核心接口（流程）调用拓扑图或者时序图（借用分布式链路追踪系统获得调用拓扑图）</li>
+<li>调用比</li>
+<li>识别资损风险</li>
+<li>识别内外部依赖</li>
+</ul>
+<p>完成该项梳理工作后，我们应该产出以下数据：对应业务域所有核心链路分析，技术&amp;业务强依赖、核心上游、下游系统、资损风险应明确标注。</p>
+<h2 id="业务策略-容量规划-Capacity-Planning-容量规划"><a href="#业务策略-容量规划-Capacity-Planning-容量规划" class="headerlink" title="业务策略&amp;容量规划 Capacity Planning - 容量规划"></a>业务策略&amp;容量规划 Capacity Planning - 容量规划</h2><h3 id="业务策略"><a href="#业务策略" class="headerlink" title="业务策略"></a>业务策略</h3><p>不同于高可用系统建设体系，大促稳定性保障体系与面向特定业务活动的针对性保障建设，因此，业务策略与数据是我们进行保障前不可或缺的数据。<br>一般大促业务数据可分为两类，全局业务形态评估以及应急策略&amp;玩法。</p>
+<h4 id="全局评估"><a href="#全局评估" class="headerlink" title="全局评估"></a>全局评估</h4><p>该类数据从可以帮助我们进行精准流量评估、峰值预测、大促人力排班等等，一般包含下面几类：</p>
+<ul>
+<li>业务量预估体量（日常X倍）</li>
+<li>预估峰值日期</li>
+<li>大促业务时长（XX日-XX日）</li>
+<li>业务场景预估流量分配</li>
+</ul>
+<h4 id="应急策略"><a href="#应急策略" class="headerlink" title="应急策略"></a>应急策略</h4><ul>
+<li>该类数据指相较于往年大促活动，本次大促业务变量，可用于应急响应预案与高风险节点评估等，一般包含下面两类：</li>
+<li>特殊业务玩法</li>
+</ul>
+<p>容量规划的本质是追求计算风险最小化和计算成本最小化之间的平衡，只追求任意其一都不是合理的。为了达到这两者的最佳平衡点，需尽量精准计算系统峰值负载流量，再将流量根据单点资源负载上限换算成相应容量，得到最终容量规划模型。</p>
+<h3 id="流量模型评估"><a href="#流量模型评估" class="headerlink" title="流量模型评估"></a>流量模型评估</h3><ol>
+<li>入口流量</li>
+</ol>
+<p>对于一次大促，系统峰值入口流量一般由常规业务流量与非常规增量（比如容灾预案&amp;业务营销策略变化带来的流量模型配比变化）叠加拟合而成。</p>
+<ul>
+<li>常规业务流量一般有两类计算方式：<ul>
+<li>历史流量算法：该类算法假设当年大促增幅完全符合历史流量模型，根据当前&amp;历年日常流量，计算整体业务体量同比增量模型；然后根据历年大促-日常对比，计算预估流量环比增量模型；最后二者拟合得到最终评估数据。</li>
+<li>由于计算时无需依赖任何业务信息输入，该类算法可用于保障工作初期业务尚未给出业务总量评估时使用，得到初估业务流量。</li>
+<li>业务量-流量转化算法(GMV\DAU\订单量)：该类算法一般以业务预估总量（GMV\DAU\订单量）为输入，根据历史大促&amp;日常业务量-流量转化模型（比如经典漏洞模型）换算得到对应子域业务体量评估。- 该种方式强依赖业务总量预估，可在保障工作中后期使用，在初估业务流量基础上纳入业务评估因素考虑。</li>
+</ul>
+</li>
+<li>非常规增量一般指前台业务营销策略变更或系统应急预案执行后流量模型变化造成的增量流量。例如，NA61机房故障时，流量100%切换到NA62后，带来的增量变化.考虑到成本最小化，非常规增量P计算时一般无需与常规业务流量W一起，全量纳入叠加入口流量K，一般会将非常规策略发生概率λ作为权重</li>
+</ul>
+<ol start="2">
+<li>节点流量<br>节点流量由入口流量根据流量分支模型，按比例转化而来。分支流量模型以系统链路为计算基础，遵循以下原则：</li>
+</ol>
+<ul>
+<li>同一入口，不同链路占比流量独立计算。</li>
+<li>针对同一链路上同一节点，若存在多次调用，需计算按倍数同比放大（比如DB\Tair等）。</li>
+<li>DB写流量重点关注，可能出现热点造成DB HANG死。</li>
+</ul>
+<h3 id="容量转化"><a href="#容量转化" class="headerlink" title="容量转化"></a>容量转化</h3><p>节点容量是指一个节点在运行过程中，能够<strong>同时处理的最大请求数</strong>。它反映了系统的瞬时负载能力。</p>
+<p>1）Little Law衍生法则<br>不同类型资源节点(应用容器、Tair、DB、HBASE等)流量-容量转化比各不相同，但都服从Little Law衍生法则，即：<br>  节点容量&#x3D;节点吞吐率×平均响应时间</p>
+<p>2）N + X 冗余原则</p>
+<p>在满足目标流量所需要的最小容量基础上，冗余保留X单位冗余能力<br>X与目标成本与资源节点故障概率成正相关，不可用概率越高，X越高<br>对于一般应用容器集群，可考虑X &#x3D; 0.2N</p>
+<h3 id="全链路压测-TODO"><a href="#全链路压测-TODO" class="headerlink" title="全链路压测(TODO)"></a>全链路压测(TODO)</h3><ul>
+<li>上述法则只能用于容量初估(大促压测前&amp;新依赖)，最终精准系统容量还是需要结合系统周期性压力测试得出。</li>
+</ul>
+<h3 id="应产出数据-2"><a href="#应产出数据-2" class="headerlink" title="应产出数据"></a>应产出数据</h3><ul>
+<li>基于模型评估的入口流量模型 &amp; 集群自身容量转化结果（若为非入口应用，则为限流点梳理）。</li>
+<li>基于链路梳理的分支流量模型 &amp; 外部依赖容量转化结果。</li>
+</ul>
+<h2 id="大促保障"><a href="#大促保障" class="headerlink" title="大促保障"></a>大促保障</h2><h3 id="Incident-Response-紧急-前置预案梳理"><a href="#Incident-Response-紧急-前置预案梳理" class="headerlink" title="Incident Response - 紧急&amp;前置预案梳理"></a>Incident Response - 紧急&amp;前置预案梳理</h3><p>要想在大促高并发流量场景下快速对线上紧急事故进行响应处理，仅仅依赖值班同学临场发挥是远远不够的。争分夺秒的情况下，无法给处理人员留有充足的策略思考空间，而错误的处理决策，往往会导致更为失控严重的业务&amp;系统影响。因此，要想在大促现场快速而正确的响应问题，值班同学需要做的是选择题(Which)，而不是陈述题(What)。而选项的构成，便是我们的业务&amp;系统预案。从执行时机与解决问题属性来划分，预案可分为技术应急预案、技术前置预案、业务应急预案、业务前置预案等四大类。结合之前的链路梳理和业务评估结果，我们可以快速分析出链路中需要的预案，遵循以下原则：</p>
+<ul>
+<li>技术应急预案：该类预案用于处理系统链路中，某层次节点不可用的情况，例如技术&#x2F;业务强依赖、弱稳定性、高风险等节点不可用等异常场景。</li>
+<li>技术前置预案：该类预案用于平衡整体系统风险与单节点服务可用性，通过熔断等策略保障全局服务可靠。例如弱稳定性&amp;弱依赖服务提前降级、与峰值流量时间冲突的离线任务提前暂定等。</li>
+<li>业务应急预案：该类预案用于应对业务变更等非系统性异常带来的需应急处理问题，例如业务数据错误（数据正确性敏感节点）、务策略调整（配合业务应急策略）等</li>
+<li>业务前置预案：该类预案用于配和业务全局策略进行的前置服务调整（非系统性需求）</li>
+</ul>
+<h3 id="应产出数据-3"><a href="#应产出数据-3" class="headerlink" title="应产出数据"></a>应产出数据</h3><p>完成该项梳理工作后，我们应该产出以下数据：</p>
+<ul>
+<li>执行&amp;关闭时间（前置预案）</li>
+<li>触发阈值（紧急预案，须关联相关告警）</li>
+<li>关联影响（系统&amp;业务）</li>
+<li>决策&amp;执行&amp;验证人员</li>
+<li>开启验证方式</li>
+<li>关闭阈值（紧急预案）</li>
+<li>关闭验证方式</li>
+</ul>
+<p>阶段性产出-全链路作战地图</p>
+<p>进行完上述几项保障工作，我们基本可得到全局链路作战地图，包含链路分支流量模型、强弱依赖节点、资损评估、对应预案&amp;处理策略等信息。大促期间可凭借该地图快速从全局视角查看应急事件相关影响，同时也可根据地图反向评估预案、容量等梳理是否完善合理。</p>
+<h4 id="Incident-Response-作战手册梳理"><a href="#Incident-Response-作战手册梳理" class="headerlink" title="Incident Response - 作战手册梳理"></a>Incident Response - 作战手册梳理</h4><p>作战手册是整个大促保障的行动依据，贯穿于整个大促生命周期，可从事前、事中、事后三个阶段展开考虑。整体梳理应本着精准化、精细化的原则，理想状态下，即便是对业务、系统不熟悉的轮班同学，凭借手册也能快速响应处理线上问题。<br><strong>事前</strong><br>1）前置检查事项清单</p>
+<ul>
+<li>大促前必须执行事项checklist,通常包含以下事项：</li>
+<li>集群机器重启 or 手动FGC</li>
+<li>影子表数据清理</li>
+<li>检查上下游机器权限</li>
+<li>检查限流值</li>
+<li>检查机器开关一致性</li>
+<li>检查数据库配置</li>
+<li>检查中间件容量、配置(DB\缓存\NoSQL等)</li>
+<li>检查监控有效性（业务大盘、技术大盘、核心告警）</li>
+<li>每个事项都需包含具体执行人、检查方案、检查结果三列数据<br>2）前置预案</li>
+<li>域内所有业务&amp;技术前置预案。</li>
+</ul>
+<p><strong>事中</strong></p>
+<ol>
+<li>紧急技术&amp;业务预案<br>需要包含的内容基本同前置预案，差异点如下：</li>
+</ol>
+<ul>
+<li>执行条件&amp;恢复条件：具体触发阈值，对应监控告警项。</li>
+<li>通知决策人。</li>
+</ul>
+<ol start="2">
+<li>应急工具&amp;脚本<br>常见故障排查方式、核心告警止血方式(强弱依赖不可用等)，业务相关日志捞取脚本等。</li>
+<li>告警&amp;大盘</li>
+</ol>
+<ul>
+<li>应包含业务、系统集群及中间件告警监控梳理结果，核心业务以及系统大盘，对应日志数据源明细等数据：</li>
+<li>日志数据源明细：数据源名称、文件位置、样例、切分格式。</li>
+<li>业务、系统集群及中间件告警监控梳理结果：关联监控指标（链接）、告警关键级别、是否推送GOC、是否产生资损、是否关联故障、是否关联预案。</li>
+<li>核心业务&amp;系统大盘：大盘地址、包含指标明细(含义、是否关联告警、对应日志)。</li>
+</ul>
+<ol start="4">
+<li>上下游机器分组</li>
+</ol>
+<ul>
+<li>应包含核心系统、上下游系统，在不同机房、单元集群分组、应用名，可用于事前-机器权限检查、事中-应急问题排查黑屏处理。</li>
+</ul>
+<ol start="5">
+<li>值班注意事项</li>
+</ol>
+<ul>
+<li>包含每班轮班同学值班必做事项、应急变更流程、核心大盘链接等。</li>
+</ul>
+<ol start="6">
+<li>核心播报指标</li>
+</ol>
+<ul>
+<li>包含核心系统&amp;服务指标(CPU\LOAD\RT)、业务关注指标等，每项指标应明确具体监控地址、采集方式。</li>
+</ul>
+<ol start="7">
+<li>域内&amp;关联域人员通讯录、值班</li>
+</ol>
+<ul>
+<li>包含域内技术、TL、业务方对应排班情况、联系方式(电话)，相关上下游、基础组件(DB、中间件等)对应值班情况。</li>
+</ul>
+<ol start="8">
+<li>值班问题记录</li>
+</ol>
+<ul>
+<li>作战记录，记录工单、业务问题、预案(前置\紧急)（至少包含：时间、问题描述（截图）、影响分析、决策&amp;解决过程等）。值班同学在值班结束前，进行记录。<br><strong>事后</strong></li>
+</ul>
+<ol>
+<li>系统恢复设置事项清单(限流、缩容)<br>一般与事前检查事项清单对应，包含限流阈值调整、集群缩容等大促后恢复操作。</li>
+<li>大促问题复盘记录</li>
+</ol>
+<ul>
+<li>应包含大促遇到的核心事件总结梳理。</li>
+</ul>
+<h3 id="沙盘推演和演练-Incident-Response"><a href="#沙盘推演和演练-Incident-Response" class="headerlink" title="沙盘推演和演练 Incident Response"></a>沙盘推演和演练 Incident Response</h3><p>实战沙盘演练是应急响应方面的最后一项保障工作，以历史真实故障CASE作为应急场景输入，模拟大促期间紧急状况，旨在考验值班同学们对应急问题处理的响应情况。<br>一般来说，一个线上问题从发现到解决，中间需要经历定位&amp;排查&amp;诊断&amp;修复等过程，总体遵循以下几点原则：</p>
+<ul>
+<li>尽最大可能让系统先恢复服务，同时为根源调查保护现场（机器、日志、水位记录）。</li>
+<li>避免盲目搜索，依据白盒监控针对性诊断定位。</li>
+<li>有序分工，各司其职，避免一窝蜂失控乱象。</li>
+<li>依据现场情况实时评估影响范围，实在无法通过技术手段挽救的情况(例如强依赖不可用)，转化为业务问题思考（影响范围、程度、是否有资损、如何协同业务方）。</li>
+<li>沙盘演练旨在检验值班同学故障处理能力，着重关注止血策略、分工安排、问题定位等三个方面：<br>国际化中台双11买家域演练<br>根据故障类型，常见止血策略有以下解决思路：</li>
+<li>入口限流：调低对应Provider服务来源限流值</li>
+<li>应对突发流量过高导致自身系统、下游强依赖负载被打满。</li>
+<li>下游降级：降级对应下游服务</li>
+<li>下游弱依赖不可用。</li>
+<li>下游业务强依赖经业务同意后降级（业务部分有损）。</li>
+<li>单点失败移除：摘除不可用节点</li>
+<li>单机水位飙高时，先下线不可用单机服务（无需下线机器，保留现场）。</li>
+<li>应对集群单点不可用、性能差。</li>
+<li>切换：单元切流或者切换备份</li>
+</ul>
+<p>应对单库或某单元依赖因为自身原因（宿主机或网络），造成局部流量成功率下跌下跌。<br>Google SRE中，对于紧急事故管理有以下几点要素：</p>
+<ul>
+<li>嵌套式职责分离，即分确的职能分工安排</li>
+<li>控制中心\作战室</li>
+<li>实时事故状态文档</li>
+<li>明确公开的职责交接</li>
+<li>其中嵌套式职责分离，即分确的职能分工安排，达到各司其职，有序处理的效果，一般可分为下列几个角色：<br>事故总控：负责协调分工以及未分配事务兜底工作，掌握全局概要信息，一般为PM&#x2F;TL担任。<br>事务处理团队：事故真正处理人员，可根据具体业务场景&amp;系统特性分为多个小团队。团队内部存在域内负责人，与事故总控人员进行沟通。<br>发言人：事故对外联络人员，负责对事故处理内部成员以及外部关注人员信息做周期性信息同步，同时需要实时维护更新事故文档。<br>规划负责人：负责外部持续性支持工作，比如当大型故障出现，多轮排班轮转时，负责组织职责交接记录</li>
+</ul>
+<h2 id="资损体系"><a href="#资损体系" class="headerlink" title="资损体系"></a>资损体系</h2><p>资损（资金损失）是互联网业务中最严重的故障类型之一，尤其在金融、电商、支付等领域。资损防控体系需要覆盖事前预防、事中发现、事后止血的全生命周期。</p>
+<h3 id="资损场景分类"><a href="#资损场景分类" class="headerlink" title="资损场景分类"></a>资损场景分类</h3><table>
+<thead>
+<tr>
+<th>资损类型</th>
+<th>场景举例</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>多扣</strong></td>
+<td>重复扣款、金额计算错误</td>
+<td>用户资金损失，客诉赔付</td>
+</tr>
+<tr>
+<td><strong>少扣</strong></td>
+<td>优惠券超发、折扣计算错误</td>
+<td>公司资金损失</td>
+</tr>
+<tr>
+<td><strong>错付</strong></td>
+<td>付款到错误账户</td>
+<td>资金追回困难</td>
+</tr>
+<tr>
+<td><strong>漏扣</strong></td>
+<td>订单状态异常导致未收款</td>
+<td>应收账款损失</td>
+</tr>
+<tr>
+<td><strong>数据不一致</strong></td>
+<td>账务与实际资金不符</td>
+<td>财务风险</td>
+</tr>
+</tbody></table>
+<h3 id="事前：资损风险识别与预防"><a href="#事前：资损风险识别与预防" class="headerlink" title="事前：资损风险识别与预防"></a>事前：资损风险识别与预防</h3><h4 id="1-资损风险点识别"><a href="#1-资损风险点识别" class="headerlink" title="1. 资损风险点识别"></a>1. 资损风险点识别</h4><p>通过链路梳理识别所有资损风险点：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">订单链路资损风险点：</span><br><span class="line">┌─────────────────────────────────────────────────────────┐</span><br><span class="line">│  下单 → 计价 → 优惠 → 支付 → 扣库存 → 发货 → 结算      │</span><br><span class="line">│   │      │      │      │       │       │      │        │</span><br><span class="line">│   ▼      ▼      ▼      ▼       ▼       ▼      ▼        │</span><br><span class="line">│ 重复   价格   优惠券  重复    超卖    错发   结算       │</span><br><span class="line">│ 下单   篡改   超发    扣款           漏发   金额错     │</span><br><span class="line">└─────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-资损防控-Checklist"><a href="#2-资损防控-Checklist" class="headerlink" title="2. 资损防控 Checklist"></a>2. 资损防控 Checklist</h4><table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>防控措施</th>
+<th>责任人</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>接口幂等</td>
+<td>唯一索引 + 状态机</td>
+<td>开发</td>
+</tr>
+<tr>
+<td>金额计算</td>
+<td>Decimal 类型，禁用浮点</td>
+<td>开发</td>
+</tr>
+<tr>
+<td>参数校验</td>
+<td>金额上下限、业务规则校验</td>
+<td>开发</td>
+</tr>
+<tr>
+<td>权限控制</td>
+<td>敏感操作二次确认</td>
+<td>产品</td>
+</tr>
+<tr>
+<td>配置变更</td>
+<td>双人复核、灰度发布</td>
+<td>运维</td>
+</tr>
+<tr>
+<td>代码审查</td>
+<td>资损相关代码强制 Review</td>
+<td>Tech Lead</td>
+</tr>
+</tbody></table>
+<h4 id="3-防重设计"><a href="#3-防重设计" class="headerlink" title="3. 防重设计"></a>3. 防重设计</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 幂等性设计 - 数据库唯一索引</span></span><br><span class="line">CREATE UNIQUE INDEX uk_order_pay ON payment_records (order_id, pay_type);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 幂等性设计 - 状态机控制</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ProcessPayment</span><span class="params">(orderID <span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 1. 加分布式锁</span></span><br><span class="line">    lock := redis.Lock(fmt.Sprintf(<span class="string">&quot;pay:%s&quot;</span>, orderID), <span class="number">30</span>*time.Second)</span><br><span class="line">    <span class="keyword">if</span> !lock.Acquire() &#123;</span><br><span class="line">        <span class="keyword">return</span> ErrProcessing</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">defer</span> lock.Release()</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2. 检查状态</span></span><br><span class="line">    order := db.GetOrder(orderID)</span><br><span class="line">    <span class="keyword">if</span> order.Status != OrderStatusUnpaid &#123;</span><br><span class="line">        <span class="keyword">return</span> ErrAlreadyPaid  <span class="comment">// 幂等返回</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3. 执行支付</span></span><br><span class="line">    <span class="keyword">if</span> err := doPayment(order); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 4. 更新状态（乐观锁）</span></span><br><span class="line">    affected := db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        UPDATE orders SET status = &#x27;PAID&#x27; </span></span><br><span class="line"><span class="string">        WHERE id = ? AND status = &#x27;UNPAID&#x27;</span></span><br><span class="line"><span class="string">    `</span>, orderID)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> affected == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> ErrConcurrentModify</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="事中：实时资损发现"><a href="#事中：实时资损发现" class="headerlink" title="事中：实时资损发现"></a>事中：实时资损发现</h3><h4 id="1-实时对账系统"><a href="#1-实时对账系统" class="headerlink" title="1. 实时对账系统"></a>1. 实时对账系统</h4><p align="center">
+  <img src="/images/realtime-verify.webp" width=800 height=600>
+  <br/>
+  <strong><a href="https://segmentfault.com/a/1190000040286146">【得物技术】浅谈资损防控</a></strong>
+</p>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">实时对账架构：</span><br><span class="line">┌─────────────┐     ┌─────────────┐     ┌─────────────┐</span><br><span class="line">│  交易系统   │     │  支付系统   │     │  账务系统   │</span><br><span class="line">└──────┬──────┘     └──────┬──────┘     └──────┬──────┘</span><br><span class="line">       │                   │                   │</span><br><span class="line">       ▼                   ▼                   ▼</span><br><span class="line">┌──────────────────────────────────────────────────────┐</span><br><span class="line">│                     Kafka                            │</span><br><span class="line">└───────────────────────────┬──────────────────────────┘</span><br><span class="line">                            │</span><br><span class="line">                     ┌──────▼──────┐</span><br><span class="line">                     │  Flink 实时 │</span><br><span class="line">                     │  对账引擎   │</span><br><span class="line">                     └──────┬──────┘</span><br><span class="line">                            │</span><br><span class="line">              ┌─────────────┼─────────────┐</span><br><span class="line">              ▼             ▼             ▼</span><br><span class="line">        ┌─────────┐   ┌─────────┐   ┌─────────┐</span><br><span class="line">        │ 告警    │   │ 拦截    │   │ 报表    │</span><br><span class="line">        └─────────┘   └─────────┘   └─────────┘</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-对账规则引擎"><a href="#2-对账规则引擎" class="headerlink" title="2. 对账规则引擎"></a>2. 对账规则引擎</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 对账规则定义</span></span><br><span class="line"><span class="keyword">type</span> ReconcileRule <span class="keyword">struct</span> &#123;</span><br><span class="line">    Name        <span class="type">string</span></span><br><span class="line">    LeftSource  <span class="type">string</span>  <span class="comment">// 左数据源（如：订单表）</span></span><br><span class="line">    RightSource <span class="type">string</span>  <span class="comment">// 右数据源（如：支付表）</span></span><br><span class="line">    JoinKey     <span class="type">string</span>  <span class="comment">// 关联键</span></span><br><span class="line">    CheckItems  []CheckItem</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> CheckItem <span class="keyword">struct</span> &#123;</span><br><span class="line">    LeftField  <span class="type">string</span></span><br><span class="line">    RightField <span class="type">string</span></span><br><span class="line">    Operator   <span class="type">string</span>  <span class="comment">// =, !=, &gt;, &lt;, range</span></span><br><span class="line">    Threshold  <span class="type">float64</span> <span class="comment">// 允许误差</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 示例：订单金额与支付金额一致性校验</span></span><br><span class="line"><span class="keyword">var</span> orderPaymentRule = ReconcileRule&#123;</span><br><span class="line">    Name:        <span class="string">&quot;订单支付金额一致性&quot;</span>,</span><br><span class="line">    LeftSource:  <span class="string">&quot;orders&quot;</span>,</span><br><span class="line">    RightSource: <span class="string">&quot;payments&quot;</span>,</span><br><span class="line">    JoinKey:     <span class="string">&quot;order_id&quot;</span>,</span><br><span class="line">    CheckItems: []CheckItem&#123;</span><br><span class="line">        &#123;LeftField: <span class="string">&quot;total_amount&quot;</span>, RightField: <span class="string">&quot;pay_amount&quot;</span>, Operator: <span class="string">&quot;=&quot;</span>, Threshold: <span class="number">0</span>&#125;,</span><br><span class="line">        &#123;LeftField: <span class="string">&quot;status&quot;</span>, RightField: <span class="string">&quot;status&quot;</span>, Operator: <span class="string">&quot;mapping&quot;</span>&#125;,</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-异常告警分级"><a href="#3-异常告警分级" class="headerlink" title="3. 异常告警分级"></a>3. 异常告警分级</h4><table>
+<thead>
+<tr>
+<th>告警级别</th>
+<th>触发条件</th>
+<th>处理方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>P0 紧急</strong></td>
+<td>金额差异 &gt; 10万 或 差异笔数 &gt; 100</td>
+<td>立即电话 + 自动熔断</td>
+</tr>
+<tr>
+<td><strong>P1 严重</strong></td>
+<td>金额差异 &gt; 1万 或 差异笔数 &gt; 10</td>
+<td>钉钉 + 短信</td>
+</tr>
+<tr>
+<td><strong>P2 一般</strong></td>
+<td>金额差异 &gt; 1000 或 差异笔数 &gt; 1</td>
+<td>钉钉通知</td>
+</tr>
+<tr>
+<td><strong>P3 提醒</strong></td>
+<td>存在差异记录</td>
+<td>日报汇总</td>
+</tr>
+</tbody></table>
+<h3 id="事后：止血与复盘"><a href="#事后：止血与复盘" class="headerlink" title="事后：止血与复盘"></a>事后：止血与复盘</h3><h4 id="1-资损止血-SOP"><a href="#1-资损止血-SOP" class="headerlink" title="1. 资损止血 SOP"></a>1. 资损止血 SOP</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">资损事件处理流程：</span><br><span class="line">┌────────────────────────────────────────────────────────┐</span><br><span class="line">│  1. 发现告警（&lt; 1 min）                                │</span><br><span class="line">│     ↓                                                  │</span><br><span class="line">│  2. 确认资损（&lt; 5 min）                                │</span><br><span class="line">│     - 查看监控大盘                                     │</span><br><span class="line">│     - 确认影响范围                                     │</span><br><span class="line">│     ↓                                                  │</span><br><span class="line">│  3. 止血操作（&lt; 10 min）                               │</span><br><span class="line">│     - 关闭入口（下单/支付）                            │</span><br><span class="line">│     - 下线问题节点                                     │</span><br><span class="line">│     - 回滚变更                                         │</span><br><span class="line">│     ↓                                                  │</span><br><span class="line">│  4. 影响评估（&lt; 30 min）                               │</span><br><span class="line">│     - 统计资损金额                                     │</span><br><span class="line">│     - 统计影响用户数                                   │</span><br><span class="line">│     ↓                                                  │</span><br><span class="line">│  5. 数据修复（视情况）                                 │</span><br><span class="line">│     - 自动修复脚本                                     │</span><br><span class="line">│     - 人工核对修复                                     │</span><br><span class="line">│     ↓                                                  │</span><br><span class="line">│  6. 复盘总结（24h 内）                                 │</span><br><span class="line">│     - 根因分析                                         │</span><br><span class="line">│     - 改进措施                                         │</span><br><span class="line">└────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-资损修复策略"><a href="#2-资损修复策略" class="headerlink" title="2. 资损修复策略"></a>2. 资损修复策略</h4><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>修复策略</th>
+<th>注意事项</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>多扣用户</strong></td>
+<td>原路退款 + 补偿</td>
+<td>需财务审批</td>
+</tr>
+<tr>
+<td><strong>少扣用户</strong></td>
+<td>评估是否追缴</td>
+<td>金额较小可放弃</td>
+</tr>
+<tr>
+<td><strong>优惠券超发</strong></td>
+<td>标记失效 + 用户通知</td>
+<td>已使用的认亏</td>
+</tr>
+<tr>
+<td><strong>数据不一致</strong></td>
+<td>以权威数据源为准修复</td>
+<td>保留修复日志</td>
+</tr>
+</tbody></table>
+<h3 id="资损防控度量指标"><a href="#资损防控度量指标" class="headerlink" title="资损防控度量指标"></a>资损防控度量指标</h3><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>计算方式</th>
+<th>目标值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>资损发现率</strong></td>
+<td>发现资损笔数 &#x2F; 实际资损笔数</td>
+<td>&gt; 99%</td>
+</tr>
+<tr>
+<td><strong>发现时效</strong></td>
+<td>从发生到发现的平均时间</td>
+<td>&lt; 5 分钟</td>
+</tr>
+<tr>
+<td><strong>止血时效</strong></td>
+<td>从发现到止血的平均时间</td>
+<td>&lt; 10 分钟</td>
+</tr>
+<tr>
+<td><strong>修复率</strong></td>
+<td>已修复金额 &#x2F; 资损总金额</td>
+<td>&gt; 95%</td>
+</tr>
+<tr>
+<td><strong>资损率</strong></td>
+<td>资损金额 &#x2F; 交易总金额</td>
+<td>&lt; 0.001%</td>
+</tr>
+</tbody></table>
+<h3 id="参考学习"><a href="#参考学习" class="headerlink" title="参考学习"></a>参考学习</h3><ul>
+<li><a href="https://tech.dewu.com/article?id=73">资损防控技术体系简介及实践</a></li>
+<li><a href="https://segmentfault.com/a/1190000040286146">浅谈资损防控</a></li>
+<li><a href="https://tech.meituan.com/2022/06/09/meituan-delivery-fund-security-governance.html">美团配送资金安全治理实践</a></li>
+</ul>
+<h2 id="风控体系"><a href="#风控体系" class="headerlink" title="风控体系"></a>风控体系</h2><p>风控体系是保障业务安全的重要防线，主要应对欺诈、薅羊毛、恶意攻击等风险场景。一个完善的风控体系需要覆盖事前、事中、事后全链路。</p>
+<h3 id="风控场景分类"><a href="#风控场景分类" class="headerlink" title="风控场景分类"></a>风控场景分类</h3><table>
+<thead>
+<tr>
+<th>风险类型</th>
+<th>典型场景</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>账户风险</strong></td>
+<td>盗号、撞库、虚假注册</td>
+<td>用户资产损失、平台信誉受损</td>
+</tr>
+<tr>
+<td><strong>交易风险</strong></td>
+<td>刷单、套现、恶意退款</td>
+<td>资金损失、数据失真</td>
+</tr>
+<tr>
+<td><strong>营销风险</strong></td>
+<td>薅羊毛、优惠券滥用、黄牛</td>
+<td>营销成本浪费</td>
+</tr>
+<tr>
+<td><strong>内容风险</strong></td>
+<td>垃圾信息、违规内容</td>
+<td>合规风险、用户体验差</td>
+</tr>
+<tr>
+<td><strong>信用风险</strong></td>
+<td>恶意欠款、信用违约</td>
+<td>坏账损失</td>
+</tr>
+</tbody></table>
+<h3 id="风控系统架构"><a href="#风控系统架构" class="headerlink" title="风控系统架构"></a>风控系统架构</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">                      ┌─────────────────┐</span><br><span class="line">                      │   业务系统      │</span><br><span class="line">                      │ (订单/支付/营销) │</span><br><span class="line">                      └────────┬────────┘</span><br><span class="line">                               │ 风控请求</span><br><span class="line">                      ┌────────▼────────┐</span><br><span class="line">                      │   风控网关      │</span><br><span class="line">                      │  (统一接入)     │</span><br><span class="line">                      └────────┬────────┘</span><br><span class="line">                               │</span><br><span class="line">         ┌─────────────────────┼─────────────────────┐</span><br><span class="line">         │                     │                     │</span><br><span class="line">┌────────▼────────┐   ┌────────▼────────┐   ┌────────▼────────┐</span><br><span class="line">│   实时风控引擎   │   │   准实时引擎    │   │   离线分析      │</span><br><span class="line">│   (毫秒级)      │   │   (秒级)        │   │   (小时/天级)   │</span><br><span class="line">│                 │   │                 │   │                 │</span><br><span class="line">│ - 规则引擎      │   │ - 特征计算      │   │ - 模型训练      │</span><br><span class="line">│ - 模型推理      │   │ - 风险画像      │   │ - 策略挖掘      │</span><br><span class="line">│ - 黑白名单      │   │ - 关联分析      │   │ - 报表统计      │</span><br><span class="line">└─────────────────┘   └─────────────────┘   └─────────────────┘</span><br><span class="line">         │                     │                     │</span><br><span class="line">         └─────────────────────┼─────────────────────┘</span><br><span class="line">                               │</span><br><span class="line">                      ┌────────▼────────┐</span><br><span class="line">                      │   数据平台       │</span><br><span class="line">                      │ (特征/画像/日志) │</span><br><span class="line">                      └─────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="实时风控引擎设计"><a href="#实时风控引擎设计" class="headerlink" title="实时风控引擎设计"></a>实时风控引擎设计</h3><h4 id="1-规则引擎"><a href="#1-规则引擎" class="headerlink" title="1. 规则引擎"></a>1. 规则引擎</h4><p>规则引擎是风控系统的核心组件，支持灵活配置和动态更新。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 规则定义示例</span></span><br><span class="line"><span class="keyword">type</span> Rule <span class="keyword">struct</span> &#123;</span><br><span class="line">    ID          <span class="type">string</span></span><br><span class="line">    Name        <span class="type">string</span></span><br><span class="line">    Priority    <span class="type">int</span></span><br><span class="line">    Conditions  []Condition</span><br><span class="line">    Action      Action</span><br><span class="line">    Enabled     <span class="type">bool</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Condition <span class="keyword">struct</span> &#123;</span><br><span class="line">    Field    <span class="type">string</span>      <span class="comment">// 字段名</span></span><br><span class="line">    Operator <span class="type">string</span>      <span class="comment">// 操作符: =, !=, &gt;, &lt;, in, regex</span></span><br><span class="line">    Value    <span class="keyword">interface</span>&#123;&#125; <span class="comment">// 比较值</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Action <span class="keyword">struct</span> &#123;</span><br><span class="line">    Type   <span class="type">string</span>  <span class="comment">// PASS, REJECT, REVIEW, CHALLENGE</span></span><br><span class="line">    Score  <span class="type">float64</span> <span class="comment">// 风险分数</span></span><br><span class="line">    Reason <span class="type">string</span>  <span class="comment">// 拒绝原因</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 示例规则：同一设备24小时内注册超过5个账号</span></span><br><span class="line"><span class="keyword">var</span> deviceRegisterRule = Rule&#123;</span><br><span class="line">    Name:     <span class="string">&quot;设备注册频率限制&quot;</span>,</span><br><span class="line">    Priority: <span class="number">100</span>,</span><br><span class="line">    Conditions: []Condition&#123;</span><br><span class="line">        &#123;Field: <span class="string">&quot;event_type&quot;</span>, Operator: <span class="string">&quot;=&quot;</span>, Value: <span class="string">&quot;register&quot;</span>&#125;,</span><br><span class="line">        &#123;Field: <span class="string">&quot;device_register_count_24h&quot;</span>, Operator: <span class="string">&quot;&gt;&quot;</span>, Value: <span class="number">5</span>&#125;,</span><br><span class="line">    &#125;,</span><br><span class="line">    Action: Action&#123;Type: <span class="string">&quot;REJECT&quot;</span>, Reason: <span class="string">&quot;设备注册频率异常&quot;</span>&#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-特征工程"><a href="#2-特征工程" class="headerlink" title="2. 特征工程"></a>2. 特征工程</h4><table>
+<thead>
+<tr>
+<th>特征类型</th>
+<th>示例</th>
+<th>计算方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>实时特征</strong></td>
+<td>用户当前IP、设备指纹</td>
+<td>请求参数直接获取</td>
+</tr>
+<tr>
+<td><strong>滑动窗口特征</strong></td>
+<td>5分钟内登录次数</td>
+<td>Redis ZSET 滑动窗口</td>
+</tr>
+<tr>
+<td><strong>累计特征</strong></td>
+<td>历史消费总额、注册天数</td>
+<td>用户画像服务</td>
+</tr>
+<tr>
+<td><strong>关联特征</strong></td>
+<td>同设备关联账号数</td>
+<td>图数据库查询</td>
+</tr>
+<tr>
+<td><strong>模型特征</strong></td>
+<td>欺诈概率分数</td>
+<td>ML 模型实时推理</td>
+</tr>
+</tbody></table>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 滑动窗口特征计算</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetLoginCount5Min</span><span class="params">(userID <span class="type">string</span>)</span></span> <span class="type">int</span> &#123;</span><br><span class="line">    key := fmt.Sprintf(<span class="string">&quot;login:count:%s&quot;</span>, userID)</span><br><span class="line">    now := time.Now().Unix()</span><br><span class="line">    windowStart := now - <span class="number">300</span>  <span class="comment">// 5分钟窗口</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 清理过期数据</span></span><br><span class="line">    redis.ZRemRangeByScore(key, <span class="string">&quot;-inf&quot;</span>, windowStart)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 获取窗口内计数</span></span><br><span class="line">    count := redis.ZCount(key, windowStart, now)</span><br><span class="line">    <span class="keyword">return</span> count</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 记录登录事件</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">RecordLogin</span><span class="params">(userID <span class="type">string</span>)</span></span> &#123;</span><br><span class="line">    key := fmt.Sprintf(<span class="string">&quot;login:count:%s&quot;</span>, userID)</span><br><span class="line">    now := time.Now().Unix()</span><br><span class="line">    redis.ZAdd(key, now, fmt.Sprintf(<span class="string">&quot;%d&quot;</span>, now))</span><br><span class="line">    redis.Expire(key, <span class="number">10</span>*time.Minute)  <span class="comment">// 双倍窗口 TTL</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-机器学习模型"><a href="#3-机器学习模型" class="headerlink" title="3. 机器学习模型"></a>3. 机器学习模型</h4><table>
+<thead>
+<tr>
+<th>模型类型</th>
+<th>适用场景</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>规则模型</strong></td>
+<td>明确特征的欺诈行为</td>
+<td>可解释性强，快速上线</td>
+</tr>
+<tr>
+<td><strong>有监督模型</strong></td>
+<td>有标签数据的场景</td>
+<td>XGBoost、LightGBM</td>
+</tr>
+<tr>
+<td><strong>无监督模型</strong></td>
+<td>异常检测、新型欺诈</td>
+<td>Isolation Forest</td>
+</tr>
+<tr>
+<td><strong>图模型</strong></td>
+<td>团伙欺诈、关联分析</td>
+<td>GNN、社区发现</td>
+</tr>
+</tbody></table>
+<h3 id="风控决策流程"><a href="#风控决策流程" class="headerlink" title="风控决策流程"></a>风控决策流程</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">用户请求 → 数据采集 → 特征计算 → 规则引擎 → 模型推理 → 决策聚合 → 返回结果</span><br><span class="line">                                    │           │           │</span><br><span class="line">                                    ▼           ▼           ▼</span><br><span class="line">                               规则命中      模型分数     最终决策</span><br><span class="line">                               (布尔值)     (0-100)      PASS/REJECT/REVIEW</span><br></pre></td></tr></table></figure>
+
+<p><strong>决策聚合策略</strong>：</p>
+<ul>
+<li><strong>串行策略</strong>：规则先行，命中则直接返回</li>
+<li><strong>并行策略</strong>：规则 + 模型并行执行，综合评分</li>
+<li><strong>熔断策略</strong>：风控服务超时&#x2F;异常时，根据业务重要性决定放行或拒绝</li>
+</ul>
+<h3 id="风控运营"><a href="#风控运营" class="headerlink" title="风控运营"></a>风控运营</h3><h4 id="1-处置动作"><a href="#1-处置动作" class="headerlink" title="1. 处置动作"></a>1. 处置动作</h4><table>
+<thead>
+<tr>
+<th>处置动作</th>
+<th>适用场景</th>
+<th>用户体验</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>直接通过</strong></td>
+<td>低风险用户</td>
+<td>无感知</td>
+</tr>
+<tr>
+<td><strong>人工审核</strong></td>
+<td>中风险，需人工判断</td>
+<td>延迟处理</td>
+</tr>
+<tr>
+<td><strong>验证码挑战</strong></td>
+<td>疑似机器行为</td>
+<td>轻度打扰</td>
+</tr>
+<tr>
+<td><strong>短信验证</strong></td>
+<td>账户安全验证</td>
+<td>中度打扰</td>
+</tr>
+<tr>
+<td><strong>直接拒绝</strong></td>
+<td>高风险&#x2F;黑名单</td>
+<td>阻断</td>
+</tr>
+<tr>
+<td><strong>静默观察</strong></td>
+<td>采集数据不阻断</td>
+<td>无感知</td>
+</tr>
+</tbody></table>
+<h4 id="2-效果度量"><a href="#2-效果度量" class="headerlink" title="2. 效果度量"></a>2. 效果度量</h4><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>定义</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>拦截率</strong></td>
+<td>拦截的风险事件 &#x2F; 实际风险事件</td>
+<td>&gt; 95%</td>
+</tr>
+<tr>
+<td><strong>误杀率</strong></td>
+<td>误拦正常用户 &#x2F; 正常用户总数</td>
+<td>&lt; 0.1%</td>
+</tr>
+<tr>
+<td><strong>响应时间</strong></td>
+<td>风控请求 RT P99</td>
+<td>&lt; 50ms</td>
+</tr>
+<tr>
+<td><strong>覆盖率</strong></td>
+<td>接入风控的业务场景比例</td>
+<td>100%</td>
+</tr>
+</tbody></table>
+<h4 id="3-策略迭代"><a href="#3-策略迭代" class="headerlink" title="3. 策略迭代"></a>3. 策略迭代</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">数据驱动的风控策略迭代闭环：</span><br><span class="line">┌─────────────────────────────────────────────────────┐</span><br><span class="line">│                                                     │</span><br><span class="line">│  ┌─────────┐    ┌─────────┐    ┌─────────┐        │</span><br><span class="line">│  │ 日志采集 │ →  │ 案例标注 │ →  │ 特征分析 │        │</span><br><span class="line">│  └─────────┘    └─────────┘    └─────────┘        │</span><br><span class="line">│       ↑                              │             │</span><br><span class="line">│       │                              ▼             │</span><br><span class="line">│  ┌─────────┐    ┌─────────┐    ┌─────────┐        │</span><br><span class="line">│  │ 效果评估 │ ←  │ 灰度发布 │ ←  │ 策略优化 │        │</span><br><span class="line">│  └─────────┘    └─────────┘    └─────────┘        │</span><br><span class="line">│                                                     │</span><br><span class="line">└─────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="风控体系建设参考"><a href="#风控体系建设参考" class="headerlink" title="风控体系建设参考"></a>风控体系建设参考</h3><ul>
+<li><a href="https://tech.meituan.com/2020/02/27/risk-control-practice.html">美团风控系统实践</a></li>
+<li><a href="https://developer.aliyun.com/article/714927">蚂蚁金服风控架构</a></li>
+<li><a href="https://www.infoq.cn/article/jd-risk-control-platform">京东风控平台建设</a></li>
+</ul>
+<hr>
+<h2 id="性能优化"><a href="#性能优化" class="headerlink" title="性能优化"></a>性能优化</h2><p>性能优化是稳定性建设的重要组成部分。高性能不仅带来更好的用户体验，也能在流量高峰时提供更大的容量 Buffer，降低系统压力。</p>
+<p align="center">
+  <img src="/images/performance.png" width=800 height=800>
+</p>
+
+<h3 id="性能优化方法论"><a href="#性能优化方法论" class="headerlink" title="性能优化方法论"></a>性能优化方法论</h3><h4 id="1-性能优化原则"><a href="#1-性能优化原则" class="headerlink" title="1. 性能优化原则"></a>1. 性能优化原则</h4><ul>
+<li><strong>先测量，后优化</strong>：没有数据支撑的优化是盲目的</li>
+<li><strong>抓大放小</strong>：优先优化瓶颈点，遵循 80&#x2F;20 法则</li>
+<li><strong>空间换时间</strong>：缓存、预计算、冗余存储</li>
+<li><strong>串行改并行</strong>：利用多核、异步化</li>
+<li><strong>减少 IO</strong>：批量处理、连接复用、数据压缩</li>
+</ul>
+<h4 id="2-性能分析套路"><a href="#2-性能分析套路" class="headerlink" title="2. 性能分析套路"></a>2. 性能分析套路</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">性能问题定位流程：</span><br><span class="line">┌─────────────────────────────────────────────────────┐</span><br><span class="line">│  1. 现象收集                                        │</span><br><span class="line">│     - 接口 RT 多少？P99/P95/AVG？                   │</span><br><span class="line">│     - CPU/内存/IO 占用？                            │</span><br><span class="line">│     - 哪些时段出现？                                │</span><br><span class="line">│                                                     │</span><br><span class="line">│  2. 瓶颈定位                                        │</span><br><span class="line">│     - 链路追踪：哪一跳耗时最长？                    │</span><br><span class="line">│     - 火焰图：CPU 消耗在哪些函数？                  │</span><br><span class="line">│     - 慢查询日志：哪些 SQL 耗时长？                 │</span><br><span class="line">│                                                     │</span><br><span class="line">│  3. 根因分析                                        │</span><br><span class="line">│     - 是计算密集还是 IO 密集？                      │</span><br><span class="line">│     - 是代码问题还是资源问题？                      │</span><br><span class="line">│     - 是配置问题还是架构问题？                      │</span><br><span class="line">│                                                     │</span><br><span class="line">│  4. 方案制定与验证                                  │</span><br><span class="line">│     - 制定优化方案                                  │</span><br><span class="line">│     - 压测验证效果                                  │</span><br><span class="line">│     - 灰度上线                                      │</span><br><span class="line">└─────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="各层性能优化策略"><a href="#各层性能优化策略" class="headerlink" title="各层性能优化策略"></a>各层性能优化策略</h3><h4 id="1-网络层优化"><a href="#1-网络层优化" class="headerlink" title="1. 网络层优化"></a>1. 网络层优化</h4><table>
+<thead>
+<tr>
+<th>优化点</th>
+<th>方案</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>减少 RTT</strong></td>
+<td>CDN 加速、边缘计算</td>
+<td>降低用户感知延迟</td>
+</tr>
+<tr>
+<td><strong>连接复用</strong></td>
+<td>HTTP&#x2F;2、连接池</td>
+<td>减少建连开销</td>
+</tr>
+<tr>
+<td><strong>数据压缩</strong></td>
+<td>Gzip、Brotli</td>
+<td>减少传输数据量</td>
+</tr>
+<tr>
+<td><strong>协议优化</strong></td>
+<td>HTTP&#x2F;3(QUIC)</td>
+<td>减少队头阻塞</td>
+</tr>
+</tbody></table>
+<h4 id="2-应用层优化"><a href="#2-应用层优化" class="headerlink" title="2. 应用层优化"></a>2. 应用层优化</h4><p><strong>a) 缓存优化</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">缓存层级：</span><br><span class="line">┌─────────────────────────────────────────────────────┐</span><br><span class="line">│  L1: 本地缓存（进程内）                             │</span><br><span class="line">│      - 容量小、速度快（纳秒级）                     │</span><br><span class="line">│      - 适合热点数据、配置数据                       │</span><br><span class="line">│      - 工具：Caffeine、Guava Cache                  │</span><br><span class="line">│                                                     │</span><br><span class="line">│  L2: 分布式缓存                                     │</span><br><span class="line">│      - 容量大、速度快（毫秒级）                     │</span><br><span class="line">│      - 适合共享数据                                 │</span><br><span class="line">│      - 工具：Redis、Memcached                       │</span><br><span class="line">│                                                     │</span><br><span class="line">│  L3: 数据库                                         │</span><br><span class="line">│      - 容量最大、速度较慢（10ms+）                  │</span><br><span class="line">│      - 持久化存储                                   │</span><br><span class="line">└─────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 多级缓存读取示例</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetUserProfile</span><span class="params">(userID <span class="type">string</span>)</span></span> (*UserProfile, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// L1: 本地缓存</span></span><br><span class="line">    <span class="keyword">if</span> profile := localCache.Get(userID); profile != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> profile.(*UserProfile), <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// L2: Redis</span></span><br><span class="line">    profile, err := redis.Get(fmt.Sprintf(<span class="string">&quot;user:%s&quot;</span>, userID))</span><br><span class="line">    <span class="keyword">if</span> err == <span class="literal">nil</span> &amp;&amp; profile != <span class="literal">nil</span> &#123;</span><br><span class="line">        localCache.Set(userID, profile, <span class="number">5</span>*time.Minute)</span><br><span class="line">        <span class="keyword">return</span> profile, <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// L3: 数据库</span></span><br><span class="line">    profile, err = db.GetUserProfile(userID)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 回填缓存</span></span><br><span class="line">    redis.Set(fmt.Sprintf(<span class="string">&quot;user:%s&quot;</span>, userID), profile, <span class="number">30</span>*time.Minute)</span><br><span class="line">    localCache.Set(userID, profile, <span class="number">5</span>*time.Minute)</span><br><span class="line">    <span class="keyword">return</span> profile, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>b) 并发优化</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 串行调用 → 并行调用</span></span><br><span class="line"><span class="comment">// Before: RT = T1 + T2 + T3 = 300ms</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetOrderDetail_Before</span><span class="params">(orderID <span class="type">string</span>)</span></span> (*OrderDetail, <span class="type">error</span>) &#123;</span><br><span class="line">    order, _ := getOrder(orderID)           <span class="comment">// 100ms</span></span><br><span class="line">    user, _ := getUser(order.UserID)        <span class="comment">// 100ms</span></span><br><span class="line">    products, _ := getProducts(order.Items) <span class="comment">// 100ms</span></span><br><span class="line">    <span class="keyword">return</span> &amp;OrderDetail&#123;order, user, products&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// After: RT = max(T1, T2, T3) = 100ms</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetOrderDetail_After</span><span class="params">(ctx context.Context, orderID <span class="type">string</span>)</span></span> (*OrderDetail, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="keyword">var</span> (</span><br><span class="line">        order    *Order</span><br><span class="line">        user     *User</span><br><span class="line">        products []*Product</span><br><span class="line">    )</span><br><span class="line">    </span><br><span class="line">    g, ctx := errgroup.WithContext(ctx)</span><br><span class="line">    </span><br><span class="line">    g.Go(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="type">error</span> &#123;</span><br><span class="line">        <span class="keyword">var</span> err <span class="type">error</span></span><br><span class="line">        order, err = getOrder(orderID)</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;)</span><br><span class="line">    </span><br><span class="line">    g.Go(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="type">error</span> &#123;</span><br><span class="line">        <span class="keyword">var</span> err <span class="type">error</span></span><br><span class="line">        user, err = getUser(order.UserID)</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;)</span><br><span class="line">    </span><br><span class="line">    g.Go(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="type">error</span> &#123;</span><br><span class="line">        <span class="keyword">var</span> err <span class="type">error</span></span><br><span class="line">        products, err = getProducts(order.Items)</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> err := g.Wait(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> &amp;OrderDetail&#123;order, user, products&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>c) 批量处理</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 单条查询 → 批量查询</span></span><br><span class="line"><span class="comment">// Before: 100 次网络往返</span></span><br><span class="line"><span class="keyword">for</span> _, id := <span class="keyword">range</span> userIDs &#123;</span><br><span class="line">    user, _ := redis.Get(fmt.Sprintf(<span class="string">&quot;user:%s&quot;</span>, id))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// After: 1 次网络往返</span></span><br><span class="line">keys := <span class="built_in">make</span>([]<span class="type">string</span>, <span class="built_in">len</span>(userIDs))</span><br><span class="line"><span class="keyword">for</span> i, id := <span class="keyword">range</span> userIDs &#123;</span><br><span class="line">    keys[i] = fmt.Sprintf(<span class="string">&quot;user:%s&quot;</span>, id)</span><br><span class="line">&#125;</span><br><span class="line">users, _ := redis.MGet(keys...)</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-数据库优化"><a href="#3-数据库优化" class="headerlink" title="3. 数据库优化"></a>3. 数据库优化</h4><p><strong>a) SQL 优化</strong></p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>优化方案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>无索引&#x2F;索引失效</strong></td>
+<td>添加合适索引，避免索引失效场景</td>
+</tr>
+<tr>
+<td>**SELECT ***</td>
+<td>只查需要的字段</td>
+</tr>
+<tr>
+<td><strong>大事务</strong></td>
+<td>拆分小事务，减少锁持有时间</td>
+</tr>
+<tr>
+<td><strong>深分页</strong></td>
+<td>游标分页（<code>WHERE id &gt; last_id LIMIT 10</code>）</td>
+</tr>
+<tr>
+<td><strong>N+1 查询</strong></td>
+<td>JOIN 或批量查询</td>
+</tr>
+</tbody></table>
+<p><strong>b) 索引优化原则</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 联合索引最左前缀</span></span><br><span class="line"><span class="keyword">CREATE</span> INDEX idx_user_status_time <span class="keyword">ON</span> orders(user_id, status, create_time);</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 以下查询可以使用索引</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> orders <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">123</span>;</span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> orders <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">123</span> <span class="keyword">AND</span> status <span class="operator">=</span> <span class="string">&#x27;PAID&#x27;</span>;</span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> orders <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">123</span> <span class="keyword">AND</span> status <span class="operator">=</span> <span class="string">&#x27;PAID&#x27;</span> <span class="keyword">AND</span> create_time <span class="operator">&gt;</span> <span class="string">&#x27;2025-01-01&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 以下查询无法使用索引</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> orders <span class="keyword">WHERE</span> status <span class="operator">=</span> <span class="string">&#x27;PAID&#x27;</span>;  <span class="comment">-- 缺少最左字段</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> orders <span class="keyword">WHERE</span> user_id <span class="operator">=</span> <span class="number">123</span> <span class="keyword">OR</span> status <span class="operator">=</span> <span class="string">&#x27;PAID&#x27;</span>;  <span class="comment">-- OR 导致失效</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>c) 读写分离</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">             ┌─────────────┐</span><br><span class="line">             │   应用服务   │</span><br><span class="line">             └──────┬──────┘</span><br><span class="line">                    │</span><br><span class="line">             ┌──────▼──────┐</span><br><span class="line">             │  数据源路由  │</span><br><span class="line">             └──────┬──────┘</span><br><span class="line">       ┌────────────┴────────────┐</span><br><span class="line">       │ 写操作                   │ 读操作</span><br><span class="line">       ▼                          ▼</span><br><span class="line">┌─────────────┐          ┌─────────────┐</span><br><span class="line">│   Master    │  ──────→ │   Slave     │</span><br><span class="line">│   (写库)    │   同步   │   (读库)    │</span><br><span class="line">└─────────────┘          └─────────────┘</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-JVM-GC-优化（Java）"><a href="#4-JVM-GC-优化（Java）" class="headerlink" title="4. JVM&#x2F;GC 优化（Java）"></a>4. JVM&#x2F;GC 优化（Java）</h4><table>
+<thead>
+<tr>
+<th>优化点</th>
+<th>方案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>堆内存</strong></td>
+<td>根据业务特点设置合理大小</td>
+</tr>
+<tr>
+<td><strong>GC 算法</strong></td>
+<td>G1&#x2F;ZGC 替代 CMS</td>
+</tr>
+<tr>
+<td><strong>对象池</strong></td>
+<td>复用大对象，减少 GC 压力</td>
+</tr>
+<tr>
+<td><strong>逃逸分析</strong></td>
+<td>栈上分配，减少堆分配</td>
+</tr>
+</tbody></table>
+<h4 id="5-Go-性能优化"><a href="#5-Go-性能优化" class="headerlink" title="5. Go 性能优化"></a>5. Go 性能优化</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. sync.Pool 复用对象</span></span><br><span class="line"><span class="keyword">var</span> bufferPool = sync.Pool&#123;</span><br><span class="line">    New: <span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="keyword">interface</span>&#123;&#125; &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">make</span>([]<span class="type">byte</span>, <span class="number">1024</span>)</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ProcessRequest</span><span class="params">()</span></span> &#123;</span><br><span class="line">    buf := bufferPool.Get().([]<span class="type">byte</span>)</span><br><span class="line">    <span class="keyword">defer</span> bufferPool.Put(buf)</span><br><span class="line">    <span class="comment">// 使用 buf</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 减少内存分配</span></span><br><span class="line"><span class="comment">// Before: 每次拼接都分配新内存</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">buildString_Before</span><span class="params">(items []<span class="type">string</span>)</span></span> <span class="type">string</span> &#123;</span><br><span class="line">    result := <span class="string">&quot;&quot;</span></span><br><span class="line">    <span class="keyword">for</span> _, item := <span class="keyword">range</span> items &#123;</span><br><span class="line">        result += item</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// After: 预分配</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">buildString_After</span><span class="params">(items []<span class="type">string</span>)</span></span> <span class="type">string</span> &#123;</span><br><span class="line">    <span class="keyword">var</span> builder strings.Builder</span><br><span class="line">    builder.Grow(<span class="number">1024</span>)  <span class="comment">// 预分配</span></span><br><span class="line">    <span class="keyword">for</span> _, item := <span class="keyword">range</span> items &#123;</span><br><span class="line">        builder.WriteString(item)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> builder.String()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 避免 defer 在热路径</span></span><br><span class="line"><span class="comment">// defer 有一定开销，在极端性能敏感场景可手动管理</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="性能测试与监控"><a href="#性能测试与监控" class="headerlink" title="性能测试与监控"></a>性能测试与监控</h3><h4 id="1-压测类型"><a href="#1-压测类型" class="headerlink" title="1. 压测类型"></a>1. 压测类型</h4><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>目的</th>
+<th>场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>基准测试</strong></td>
+<td>获取单接口性能基线</td>
+<td>新接口上线前</td>
+</tr>
+<tr>
+<td><strong>负载测试</strong></td>
+<td>验证目标 QPS 下表现</td>
+<td>常规压测</td>
+</tr>
+<tr>
+<td><strong>压力测试</strong></td>
+<td>找到系统极限</td>
+<td>容量评估</td>
+</tr>
+<tr>
+<td><strong>稳定性测试</strong></td>
+<td>长时间运行是否稳定</td>
+<td>内存泄漏排查</td>
+</tr>
+<tr>
+<td><strong>全链路压测</strong></td>
+<td>真实场景模拟</td>
+<td>大促前</td>
+</tr>
+</tbody></table>
+<h4 id="2-性能指标"><a href="#2-性能指标" class="headerlink" title="2. 性能指标"></a>2. 性能指标</h4><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+<th>目标参考</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>QPS&#x2F;TPS</strong></td>
+<td>每秒请求&#x2F;事务数</td>
+<td>根据业务目标</td>
+</tr>
+<tr>
+<td><strong>RT(P50&#x2F;P95&#x2F;P99)</strong></td>
+<td>响应时间分位值</td>
+<td>P99 &lt; 500ms</td>
+</tr>
+<tr>
+<td><strong>错误率</strong></td>
+<td>失败请求占比</td>
+<td>&lt; 0.1%</td>
+</tr>
+<tr>
+<td><strong>CPU 使用率</strong></td>
+<td>计算资源占用</td>
+<td>&lt; 70%（留 Buffer）</td>
+</tr>
+<tr>
+<td><strong>内存使用率</strong></td>
+<td>内存资源占用</td>
+<td>&lt; 80%</td>
+</tr>
+<tr>
+<td><strong>GC 频率&#x2F;耗时</strong></td>
+<td>垃圾回收影响</td>
+<td>Full GC &lt; 1次&#x2F;天</td>
+</tr>
+</tbody></table>
+<h3 id="性能优化案例"><a href="#性能优化案例" class="headerlink" title="性能优化案例"></a>性能优化案例</h3><h4 id="案例：接口-RT-从-500ms-优化到-50ms"><a href="#案例：接口-RT-从-500ms-优化到-50ms" class="headerlink" title="案例：接口 RT 从 500ms 优化到 50ms"></a>案例：接口 RT 从 500ms 优化到 50ms</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">问题：商品详情接口 P99 RT = 500ms</span><br><span class="line"></span><br><span class="line">分析：</span><br><span class="line">1. 链路追踪发现：</span><br><span class="line">   - 数据库查询：200ms</span><br><span class="line">   - 价格计算服务：150ms</span><br><span class="line">   - 库存服务：100ms</span><br><span class="line">   - 其他：50ms</span><br><span class="line"></span><br><span class="line">2. 深入分析：</span><br><span class="line">   - 数据库：缺少索引，全表扫描</span><br><span class="line">   - 价格计算：串行调用 5 个下游</span><br><span class="line">   - 库存服务：无缓存，每次查 DB</span><br><span class="line"></span><br><span class="line">优化方案：</span><br><span class="line">1. 数据库添加索引：200ms → 10ms</span><br><span class="line">2. 价格计算并行化：150ms → 50ms（max(5个下游)）</span><br><span class="line">3. 库存增加缓存：100ms → 5ms</span><br><span class="line"></span><br><span class="line">优化后：P99 RT = 50ms（10倍提升）</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="SLI-SLO-SLA-体系"><a href="#SLI-SLO-SLA-体系" class="headerlink" title="SLI&#x2F;SLO&#x2F;SLA 体系"></a>SLI&#x2F;SLO&#x2F;SLA 体系</h2><h3 id="概念定义"><a href="#概念定义" class="headerlink" title="概念定义"></a>概念定义</h3><table>
+<thead>
+<tr>
+<th>概念</th>
+<th>全称</th>
+<th>定义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SLI</strong></td>
+<td>Service Level Indicator</td>
+<td>服务质量指标，可量化的度量值</td>
+</tr>
+<tr>
+<td><strong>SLO</strong></td>
+<td>Service Level Objective</td>
+<td>服务质量目标，SLI 的目标值</td>
+</tr>
+<tr>
+<td><strong>SLA</strong></td>
+<td>Service Level Agreement</td>
+<td>服务等级协议，对外承诺</td>
+</tr>
+</tbody></table>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">关系：SLI（指标）→ SLO（目标）→ SLA（协议）</span><br><span class="line">      可用性     &gt;99.9%      合同条款</span><br></pre></td></tr></table></figure>
+
+<h3 id="常用-SLI-指标"><a href="#常用-SLI-指标" class="headerlink" title="常用 SLI 指标"></a>常用 SLI 指标</h3><table>
+<thead>
+<tr>
+<th>指标类型</th>
+<th>SLI 定义</th>
+<th>SLO 示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>可用性</strong></td>
+<td>成功请求数 &#x2F; 总请求数</td>
+<td>&gt; 99.9%</td>
+</tr>
+<tr>
+<td><strong>延迟</strong></td>
+<td>请求耗时分位值</td>
+<td>P99 &lt; 200ms</td>
+</tr>
+<tr>
+<td><strong>吞吐量</strong></td>
+<td>单位时间处理请求数</td>
+<td>&gt; 10000 QPS</td>
+</tr>
+<tr>
+<td><strong>正确性</strong></td>
+<td>返回正确结果的比例</td>
+<td>&gt; 99.99%</td>
+</tr>
+<tr>
+<td><strong>新鲜度</strong></td>
+<td>数据更新延迟</td>
+<td>&lt; 5 分钟</td>
+</tr>
+</tbody></table>
+<h3 id="Error-Budget（错误预算）"><a href="#Error-Budget（错误预算）" class="headerlink" title="Error Budget（错误预算）"></a>Error Budget（错误预算）</h3><p>Error Budget 是 SRE 的核心概念，用于平衡可靠性与迭代速度。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Error Budget = 1 - SLO</span><br><span class="line"></span><br><span class="line">示例：SLO = 99.9%</span><br><span class="line">Error Budget = 0.1% = 每月约 43 分钟停机时间</span><br><span class="line"></span><br><span class="line">如果本月已用 30 分钟：</span><br><span class="line">- 剩余 13 分钟，可以继续发布</span><br><span class="line">- 用完后应暂停非紧急发布，专注稳定性</span><br></pre></td></tr></table></figure>
+
+<p><strong>Error Budget 策略</strong>：</p>
+<ul>
+<li>Budget 充足：允许激进发布，快速迭代</li>
+<li>Budget 紧张：减缓发布节奏，增加测试</li>
+<li>Budget 耗尽：冻结发布，全力修复</li>
+</ul>
+<hr>
+<h2 id="混沌工程"><a href="#混沌工程" class="headerlink" title="混沌工程"></a>混沌工程</h2><p>混沌工程是一种通过主动注入故障来验证系统韧性的实践方法。</p>
+<h3 id="混沌工程原则"><a href="#混沌工程原则" class="headerlink" title="混沌工程原则"></a>混沌工程原则</h3><ol>
+<li><strong>建立稳态假设</strong>：定义系统正常运行的指标</li>
+<li><strong>多样化真实事件</strong>：模拟生产环境的各种故障</li>
+<li><strong>在生产环境运行</strong>：测试环境无法完全模拟生产</li>
+<li><strong>自动化持续运行</strong>：纳入 CI&#x2F;CD 流水线</li>
+<li><strong>最小化爆炸半径</strong>：从小范围开始，逐步扩大</li>
+</ol>
+<h3 id="故障注入类型"><a href="#故障注入类型" class="headerlink" title="故障注入类型"></a>故障注入类型</h3><table>
+<thead>
+<tr>
+<th>故障类型</th>
+<th>注入方式</th>
+<th>验证目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>进程故障</strong></td>
+<td>Kill 进程、OOM</td>
+<td>服务自愈、故障切换</td>
+</tr>
+<tr>
+<td><strong>网络故障</strong></td>
+<td>延迟、丢包、断网</td>
+<td>超时处理、重试机制</td>
+</tr>
+<tr>
+<td><strong>依赖故障</strong></td>
+<td>Mock 下游返回错误</td>
+<td>降级策略、熔断机制</td>
+</tr>
+<tr>
+<td><strong>资源耗尽</strong></td>
+<td>CPU 打满、磁盘填满</td>
+<td>限流、告警</td>
+</tr>
+<tr>
+<td><strong>时钟偏移</strong></td>
+<td>NTP 故障模拟</td>
+<td>时间敏感逻辑</td>
+</tr>
+</tbody></table>
+<h3 id="混沌实验流程"><a href="#混沌实验流程" class="headerlink" title="混沌实验流程"></a>混沌实验流程</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────┐</span><br><span class="line">│  1. 定义稳态                                        │</span><br><span class="line">│     - 确定关键 SLI（可用性、RT）                    │</span><br><span class="line">│     - 记录当前基线值                                │</span><br><span class="line">│                                                     │</span><br><span class="line">│  2. 假设                                            │</span><br><span class="line">│     - 注入 XX 故障后，系统应能在 XX 秒内恢复        │</span><br><span class="line">│                                                     │</span><br><span class="line">│  3. 设计实验                                        │</span><br><span class="line">│     - 故障类型、注入时长                            │</span><br><span class="line">│     - 影响范围（单机/单机房/全局）                  │</span><br><span class="line">│     - 回滚方案                                      │</span><br><span class="line">│                                                     │</span><br><span class="line">│  4. 执行实验                                        │</span><br><span class="line">│     - 从最小范围开始                                │</span><br><span class="line">│     - 实时监控 SLI                                  │</span><br><span class="line">│     - 随时准备回滚                                  │</span><br><span class="line">│                                                     │</span><br><span class="line">│  5. 分析结果                                        │</span><br><span class="line">│     - 系统表现是否符合预期？                        │</span><br><span class="line">│     - 发现了哪些薄弱点？                            │</span><br><span class="line">│                                                     │</span><br><span class="line">│  6. 改进                                            │</span><br><span class="line">│     - 修复发现的问题                                │</span><br><span class="line">│     - 扩大实验范围                                  │</span><br><span class="line">└─────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="混沌工程工具"><a href="#混沌工程工具" class="headerlink" title="混沌工程工具"></a>混沌工程工具</h3><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>适用场景</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>ChaosBlade</strong></td>
+<td>多平台通用</td>
+<td>阿里开源，支持丰富故障场景</td>
+</tr>
+<tr>
+<td><strong>Chaos Monkey</strong></td>
+<td>AWS&#x2F;云环境</td>
+<td>Netflix 开源，随机终止实例</td>
+</tr>
+<tr>
+<td><strong>LitmusChaos</strong></td>
+<td>Kubernetes</td>
+<td>CNCF 项目，云原生</td>
+</tr>
+<tr>
+<td><strong>Gremlin</strong></td>
+<td>企业级</td>
+<td>商业产品，功能全面</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="变更管理"><a href="#变更管理" class="headerlink" title="变更管理"></a>变更管理</h2><p>变更是系统故障的主要来源。Google SRE 统计显示，70% 的故障与变更相关。</p>
+<h3 id="变更类型"><a href="#变更类型" class="headerlink" title="变更类型"></a>变更类型</h3><table>
+<thead>
+<tr>
+<th>变更类型</th>
+<th>风险等级</th>
+<th>审批要求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>代码发布</strong></td>
+<td>高</td>
+<td>CR + 灰度</td>
+</tr>
+<tr>
+<td><strong>配置变更</strong></td>
+<td>中-高</td>
+<td>双人审批</td>
+</tr>
+<tr>
+<td><strong>DB Schema 变更</strong></td>
+<td>高</td>
+<td>DBA 审批</td>
+</tr>
+<tr>
+<td><strong>基础设施变更</strong></td>
+<td>高</td>
+<td>架构组审批</td>
+</tr>
+<tr>
+<td><strong>依赖升级</strong></td>
+<td>中</td>
+<td>兼容性测试</td>
+</tr>
+</tbody></table>
+<h3 id="安全变更原则"><a href="#安全变更原则" class="headerlink" title="安全变更原则"></a>安全变更原则</h3><ol>
+<li><strong>可回滚</strong>：任何变更必须有回滚方案</li>
+<li><strong>可观测</strong>：变更前后有明确的监控指标</li>
+<li><strong>渐进式</strong>：灰度发布，逐步放量</li>
+<li><strong>自动化</strong>：减少人工操作失误</li>
+<li><strong>时间窗口</strong>：避开业务高峰期</li>
+</ol>
+<h3 id="灰度发布策略"><a href="#灰度发布策略" class="headerlink" title="灰度发布策略"></a>灰度发布策略</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">灰度发布流程：</span><br><span class="line">┌─────────────────────────────────────────────────────┐</span><br><span class="line">│  1%  →  5%  →  10%  →  30%  →  50%  →  100%        │</span><br><span class="line">│   │      │      │       │       │       │          │</span><br><span class="line">│   └──────┴──────┴───────┴───────┴───────┘          │</span><br><span class="line">│         每个阶段观察 10-30 分钟                      │</span><br><span class="line">│         确认无异常后进入下一阶段                     │</span><br><span class="line">│         发现问题立即回滚                             │</span><br><span class="line">└─────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="On-Call-实践"><a href="#On-Call-实践" class="headerlink" title="On-Call 实践"></a>On-Call 实践</h2><p>On-Call 是 SRE&#x2F;运维团队的核心职责，负责生产环境的故障响应。</p>
+<h3 id="On-Call-轮值设计"><a href="#On-Call-轮值设计" class="headerlink" title="On-Call 轮值设计"></a>On-Call 轮值设计</h3><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>最佳实践</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>轮值周期</strong></td>
+<td>一周为单位，避免过长导致疲劳</td>
+</tr>
+<tr>
+<td><strong>人员配置</strong></td>
+<td>主备双人制，避免单点</td>
+</tr>
+<tr>
+<td><strong>交接</strong></td>
+<td>详细的 Handoff 文档</td>
+</tr>
+<tr>
+<td><strong>补偿</strong></td>
+<td>调休或补贴</td>
+</tr>
+</tbody></table>
+<h3 id="On-Call-响应流程"><a href="#On-Call-响应流程" class="headerlink" title="On-Call 响应流程"></a>On-Call 响应流程</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">告警触发</span><br><span class="line">    │</span><br><span class="line">    ▼</span><br><span class="line">┌─────────────┐     5 分钟内</span><br><span class="line">│ 确认告警    │───────────────→ 未响应？升级到 Backup</span><br><span class="line">└──────┬──────┘</span><br><span class="line">       │</span><br><span class="line">       ▼</span><br><span class="line">┌─────────────┐     15 分钟内</span><br><span class="line">│ 初步诊断    │───────────────→ 无法定位？拉群协作</span><br><span class="line">└──────┬──────┘</span><br><span class="line">       │</span><br><span class="line">       ▼</span><br><span class="line">┌─────────────┐</span><br><span class="line">│ 止血操作    │───────────────→ 优先恢复服务</span><br><span class="line">└──────┬──────┘</span><br><span class="line">       │</span><br><span class="line">       ▼</span><br><span class="line">┌─────────────┐</span><br><span class="line">│ 根因分析    │───────────────→ 可后续进行</span><br><span class="line">└──────┬──────┘</span><br><span class="line">       │</span><br><span class="line">       ▼</span><br><span class="line">┌─────────────┐</span><br><span class="line">│ 事后复盘    │───────────────→ 24-48 小时内完成</span><br><span class="line">└─────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="On-Call-减负措施"><a href="#On-Call-减负措施" class="headerlink" title="On-Call 减负措施"></a>On-Call 减负措施</h3><ul>
+<li><strong>消除噪音告警</strong>：合并重复告警，优化阈值</li>
+<li><strong>自动化修复</strong>：常见问题自动处理（如磁盘清理）</li>
+<li><strong>完善 Runbook</strong>：标准化处理流程</li>
+<li><strong>定期演练</strong>：保持团队能力</li>
+</ul>
+<hr>
+<h2 id="学习资料"><a href="#学习资料" class="headerlink" title="学习资料"></a>学习资料</h2><p><strong>书籍</strong>：</p>
+<ul>
+<li><a href="https://sre.google/sre-book/table-of-contents/">Site Reliability Engineering</a></li>
+<li><a href="https://sre.google/workbook/table-of-contents/">The Site Reliability Workbook</a></li>
+<li><a href="https://sre.google/books/">Building Secure &amp; Reliable Systems</a></li>
+</ul>
+<p><strong>文章</strong>：</p>
+<ul>
+<li><a href="https://mp.weixin.qq.com/s/w2tOXR6rcTmUHGsJKJilzg">阿里巴巴大规模应用 Flink 的实践</a></li>
+<li><a href="https://tech.meituan.com/">美团技术年货：稳定性治理实践</a></li>
+<li>字节跳动 SRE 实践（原始链接已失效，可搜索”字节跳动 SRE”获取相关文章）</li>
+</ul>
+<p><strong>工具</strong>：</p>
+<ul>
+<li><a href="https://prometheus.io/">Prometheus</a> - 监控系统</li>
+<li><a href="https://grafana.com/">Grafana</a> - 可视化</li>
+<li><a href="https://www.pagerduty.com/">PagerDuty</a> - 告警管理</li>
+<li><a href="https://chaosblade.io/">ChaosBlade</a> - 混沌工程</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E7%A8%B3%E5%AE%9A%E6%80%A7/" rel="tag"># 稳定性</a>
+              <a href="/tags/SRE/" rel="tag"># SRE</a>
+              <a href="/tags/%E9%AB%98%E5%8F%AF%E7%94%A8/" rel="tag"># 高可用</a>
+              <a href="/tags/%E7%9B%91%E6%8E%A7/" rel="tag"># 监控</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/05/15/system-design/27-ecommerce-product-center/" rel="prev" title="电商系统设计（二）：商品中心系统">
+                  <i class="fa fa-angle-left"></i> 电商系统设计（二）：商品中心系统
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/05/29/system-design/22-ecommerce-inventory/" rel="next" title="电商系统设计（三）：库存系统">
+                  电商系统设计（三）：库存系统 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>

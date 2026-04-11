@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="引言Clean Architecture、DDD 和 CQRS 这三个概念经常被一起提及，甚至被误认为是一回事。但实际上，它们关注的维度完全不同：  Clean Architecture 关注分层与解耦 DDD 关注业务建模 CQRS 关注数据读写的路径优化  如果把开发一套复杂的软件比作经营一家餐厅：    概念 餐厅类比 核心关注点    Clean Architecture 餐厅的平面布">
+<meta property="og:type" content="article">
+<meta property="og:title" content="架构与整洁代码（一）：Clean Architecture、DDD 与 CQRS——三位一体的架构方法论">
+<meta property="og:url" content="http://yoursite.com/2026/04/01/system-design/41-acc-clean-arch-ddd-cqrs/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="引言Clean Architecture、DDD 和 CQRS 这三个概念经常被一起提及，甚至被误认为是一回事。但实际上，它们关注的维度完全不同：  Clean Architecture 关注分层与解耦 DDD 关注业务建模 CQRS 关注数据读写的路径优化  如果把开发一套复杂的软件比作经营一家餐厅：    概念 餐厅类比 核心关注点    Clean Architecture 餐厅的平面布">
+<meta property="og:locale">
+<meta property="article:published_time" content="2026-03-31T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-04-10T16:23:46.240Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="架构设计">
+<meta property="article:tag" content="ddd">
+<meta property="article:tag" content="architecture-and-clean-code">
+<meta property="article:tag" content="clean-architecture">
+<meta property="article:tag" content="cqrs">
+<meta property="article:tag" content="设计模式">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2026/04/01/system-design/41-acc-clean-arch-ddd-cqrs/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2026/04/01/system-design/41-acc-clean-arch-ddd-cqrs/","path":"2026/04/01/system-design/41-acc-clean-arch-ddd-cqrs/","title":"架构与整洁代码（一）：Clean Architecture、DDD 与 CQRS——三位一体的架构方法论"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>架构与整洁代码（一）：Clean Architecture、DDD 与 CQRS——三位一体的架构方法论 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%95%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">引言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81Clean-Architecture%EF%BC%88%E6%95%B4%E6%B4%81%E6%9E%B6%E6%9E%84%EF%BC%89%E2%80%94-%E6%A0%B8%E5%BF%83%E6%98%AF%E2%80%9D%E4%BE%9D%E8%B5%96%E8%A7%84%E5%88%99%E2%80%9D"><span class="nav-number">2.</span> <span class="nav-text">一、Clean Architecture（整洁架构）— 核心是”依赖规则”</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E4%BE%9D%E8%B5%96%E8%A7%84%E5%88%99"><span class="nav-number">2.1.</span> <span class="nav-text">1.1 依赖规则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E5%9B%9B%E5%B1%82%E6%A8%A1%E5%9E%8B"><span class="nav-number">2.2.</span> <span class="nav-text">1.2 四层模型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-Go-%E9%A1%B9%E7%9B%AE%E4%B8%AD%E7%9A%84%E5%85%B8%E5%9E%8B%E7%9B%AE%E5%BD%95%E6%98%A0%E5%B0%84"><span class="nav-number">2.3.</span> <span class="nav-text">1.3 Go 项目中的典型目录映射</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-%E6%A0%B8%E5%BF%83%E4%BB%B7%E5%80%BC"><span class="nav-number">2.4.</span> <span class="nav-text">1.4 核心价值</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-5-%E6%9E%B6%E6%9E%84%E9%A3%8E%E6%A0%BC%E5%AF%B9%E6%AF%94%EF%BC%9AClean-vs-%E5%85%AD%E8%BE%B9%E5%BD%A2-vs-%E6%B4%8B%E8%91%B1"><span class="nav-number">2.5.</span> <span class="nav-text">1.5 架构风格对比：Clean vs 六边形 vs 洋葱</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Port-Adapter-%E6%A8%A1%E5%BC%8F%E7%9A%84-Go-%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.5.1.</span> <span class="nav-text">Port &amp; Adapter 模式的 Go 实现</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-6-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5%E7%9A%84-Go-%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.6.</span> <span class="nav-text">1.6 依赖注入的 Go 实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%89%8B%E5%8A%A8%E6%B3%A8%E5%85%A5%EF%BC%88%E6%8E%A8%E8%8D%90%EF%BC%8C%E9%80%82%E5%90%88%E4%B8%AD%E5%B0%8F%E9%A1%B9%E7%9B%AE%EF%BC%89"><span class="nav-number">2.6.1.</span> <span class="nav-text">手动注入（推荐，适合中小项目）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Wire%EF%BC%88%E9%80%82%E5%90%88%E5%A4%A7%E5%9E%8B%E9%A1%B9%E7%9B%AE%EF%BC%89"><span class="nav-number">2.6.2.</span> <span class="nav-text">Wire（适合大型项目）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-7-Anti-pattern%EF%BC%9A%E5%B8%B8%E8%A7%81%E8%BF%9D%E8%A7%84%E6%A1%88%E4%BE%8B"><span class="nav-number">2.7.</span> <span class="nav-text">1.7 Anti-pattern：常见违规案例</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Anti-pattern-1%EF%BC%9A%E8%B7%A8%E5%B1%82%E8%B0%83%E7%94%A8"><span class="nav-number">2.7.1.</span> <span class="nav-text">Anti-pattern 1：跨层调用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Anti-pattern-2%EF%BC%9A%E5%9F%BA%E7%A1%80%E8%AE%BE%E6%96%BD%E6%B3%84%E6%BC%8F%E5%88%B0%E9%A2%86%E5%9F%9F%E5%B1%82"><span class="nav-number">2.7.2.</span> <span class="nav-text">Anti-pattern 2：基础设施泄漏到领域层</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Anti-pattern-3%EF%BC%9A%E5%BE%AA%E7%8E%AF%E4%BE%9D%E8%B5%96"><span class="nav-number">2.7.3.</span> <span class="nav-text">Anti-pattern 3：循环依赖</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81DDD%EF%BC%88%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1%EF%BC%89%E2%80%94-%E6%A0%B8%E5%BF%83%E6%98%AF%E2%80%9D%E5%BA%94%E5%AF%B9%E5%A4%8D%E6%9D%82%E6%80%A7%E2%80%9D"><span class="nav-number">3.</span> <span class="nav-text">二、DDD（领域驱动设计）— 核心是”应对复杂性”</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E6%88%98%E7%95%A5%E8%AE%BE%E8%AE%A1%EF%BC%9A%E6%9E%B6%E6%9E%84%E5%B1%82%E9%9D%A2"><span class="nav-number">3.1.</span> <span class="nav-text">2.1 战略设计：架构层面</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-1-%E9%A2%86%E5%9F%9F%E5%88%86%E5%B1%82%E4%B8%8E%E6%8A%95%E8%B5%84%E7%AD%96%E7%95%A5"><span class="nav-number">3.1.1.</span> <span class="nav-text">2.1.1 领域分层与投资策略</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E4%B8%89%E7%A7%8D%E9%A2%86%E5%9F%9F%E7%9A%84%E5%AE%9A%E4%B9%89%E4%B8%8E%E7%89%B9%E5%BE%81"><span class="nav-number">3.1.1.1.</span> <span class="nav-text">三种领域的定义与特征</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E9%A2%86%E5%9F%9F%E5%88%92%E5%88%86%E6%96%B9%E6%B3%95%E8%AE%BA"><span class="nav-number">3.1.1.2.</span> <span class="nav-text">领域划分方法论</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link" href="#%E5%88%A4%E6%96%AD%E7%BB%B4%E5%BA%A6%E4%B8%8E%E8%AF%84%E5%88%86%E6%A8%A1%E5%9E%8B"><span class="nav-number">3.1.1.2.1.</span> <span class="nav-text">判断维度与评分模型</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#%E5%86%B3%E7%AD%96%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="nav-number">3.1.1.2.2.</span> <span class="nav-text">决策流程图</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA%E4%B8%8E%E8%BE%B9%E7%95%8C%E6%A1%88%E4%BE%8B"><span class="nav-number">3.1.1.2.3.</span> <span class="nav-text">常见误区与边界案例</span></a></li></ol></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E6%96%B9%E6%B3%95%E8%AE%BA%E5%BA%94%E7%94%A8%EF%BC%9A%E7%94%B5%E5%95%86%E7%B3%BB%E7%BB%9F%E5%AE%9E%E6%88%98%E5%88%86%E6%9E%90"><span class="nav-number">3.1.1.3.</span> <span class="nav-text">方法论应用：电商系统实战分析</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link" href="#%E6%A1%88%E4%BE%8B-1%EF%BC%9A%E8%AE%A2%E5%8D%95%E5%9F%9F%EF%BC%88%E6%A0%B8%E5%BF%83%E5%9F%9F%EF%BC%89"><span class="nav-number">3.1.1.3.1.</span> <span class="nav-text">案例 1：订单域（核心域）</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#%E6%A1%88%E4%BE%8B-2%EF%BC%9A%E5%95%86%E5%93%81%E5%9F%9F%EF%BC%88%E6%94%AF%E6%92%91%E5%9F%9F%EF%BC%89"><span class="nav-number">3.1.1.3.2.</span> <span class="nav-text">案例 2：商品域（支撑域）</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#%E6%A1%88%E4%BE%8B-3%EF%BC%9A%E7%94%A8%E6%88%B7%E5%9F%9F%EF%BC%88%E9%80%9A%E7%94%A8%E5%9F%9F%EF%BC%89"><span class="nav-number">3.1.1.3.3.</span> <span class="nav-text">案例 3：用户域（通用域）</span></a></li></ol></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E8%B7%A8%E8%A1%8C%E4%B8%9A%E5%AF%B9%E6%AF%94%EF%BC%9A%E6%96%B9%E6%B3%95%E8%AE%BA%E7%9A%84%E9%80%9A%E7%94%A8%E6%80%A7"><span class="nav-number">3.1.1.4.</span> <span class="nav-text">跨行业对比：方法论的通用性</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%AE%9E%E6%96%BD%E7%AD%96%E7%95%A5%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5"><span class="nav-number">3.1.1.5.</span> <span class="nav-text">实施策略与最佳实践</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link" href="#%E4%B8%8D%E5%90%8C%E9%98%B6%E6%AE%B5%E7%9A%84%E5%85%AC%E5%8F%B8%E7%AD%96%E7%95%A5"><span class="nav-number">3.1.1.5.1.</span> <span class="nav-text">不同阶段的公司策略</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#%E5%9F%9F%E7%9A%84%E5%8A%A8%E6%80%81%E6%BC%94%E8%BF%9B"><span class="nav-number">3.1.1.5.2.</span> <span class="nav-text">域的动态演进</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#%E7%BB%84%E7%BB%87%E6%9E%B6%E6%9E%84%E4%B8%8E%E5%9F%9F%E7%9A%84%E6%98%A0%E5%B0%84"><span class="nav-number">3.1.1.5.3.</span> <span class="nav-text">组织架构与域的映射</span></a></li></ol></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-2-Bounded-Context%EF%BC%88%E9%99%90%E7%95%8C%E4%B8%8A%E4%B8%8B%E6%96%87%EF%BC%89"><span class="nav-number">3.1.2.</span> <span class="nav-text">2.1.2 Bounded Context（限界上下文）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-3-Context-Map%EF%BC%88%E4%B8%8A%E4%B8%8B%E6%96%87%E6%98%A0%E5%B0%84%EF%BC%89"><span class="nav-number">3.1.3.</span> <span class="nav-text">2.1.3 Context Map（上下文映射）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E6%88%98%E6%9C%AF%E8%AE%BE%E8%AE%A1%EF%BC%9A%E4%BB%A3%E7%A0%81%E5%B1%82%E9%9D%A2"><span class="nav-number">3.2.</span> <span class="nav-text">2.2 战术设计：代码层面</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-1-%E6%88%98%E6%9C%AF%E8%AE%BE%E8%AE%A1%E6%A6%82%E8%BF%B0"><span class="nav-number">3.2.1.</span> <span class="nav-text">2.2.1 战术设计概述</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Go-%E4%BB%A3%E7%A0%81%E7%A4%BA%E4%BE%8B%EF%BC%9AOrder-%E8%81%9A%E5%90%88"><span class="nav-number">3.2.2.</span> <span class="nav-text">Go 代码示例：Order 聚合</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-Ubiquitous-Language%EF%BC%88%E9%80%9A%E7%94%A8%E8%AF%AD%E8%A8%80%EF%BC%89"><span class="nav-number">3.3.</span> <span class="nav-text">2.3 Ubiquitous Language（通用语言）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E6%A0%B8%E5%BF%83%E4%BB%B7%E5%80%BC"><span class="nav-number">3.4.</span> <span class="nav-text">2.4 核心价值</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-Aggregate-%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99"><span class="nav-number">3.5.</span> <span class="nav-text">2.5 Aggregate 设计原则</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8E%9F%E5%88%99%E4%B8%80%EF%BC%9A%E4%B8%80%E4%B8%AA%E4%BA%8B%E5%8A%A1%E5%8F%AA%E4%BF%AE%E6%94%B9%E4%B8%80%E4%B8%AA%E8%81%9A%E5%90%88"><span class="nav-number">3.5.1.</span> <span class="nav-text">原则一：一个事务只修改一个聚合</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8E%9F%E5%88%99%E4%BA%8C%EF%BC%9A%E5%B0%8F%E8%81%9A%E5%90%88%E4%BC%98%E4%BA%8E%E5%A4%A7%E8%81%9A%E5%90%88"><span class="nav-number">3.5.2.</span> <span class="nav-text">原则二：小聚合优于大聚合</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8E%9F%E5%88%99%E4%B8%89%EF%BC%9A%E9%80%9A%E8%BF%87-ID-%E5%BC%95%E7%94%A8%E5%85%B6%E4%BB%96%E8%81%9A%E5%90%88"><span class="nav-number">3.5.3.</span> <span class="nav-text">原则三：通过 ID 引用其他聚合</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6-Repository-%E6%B7%B1%E5%85%A5%EF%BC%9AUnit-of-Work-%E6%A8%A1%E5%BC%8F"><span class="nav-number">3.6.</span> <span class="nav-text">2.6 Repository 深入：Unit of Work 模式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-7-%E9%A2%86%E5%9F%9F%E4%BA%8B%E4%BB%B6%E5%BC%82%E6%AD%A5%E5%8C%96%EF%BC%9AOutbox-Pattern"><span class="nav-number">3.7.</span> <span class="nav-text">2.7 领域事件异步化：Outbox Pattern</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Outbox-%E8%A1%A8%E8%AE%BE%E8%AE%A1"><span class="nav-number">3.7.1.</span> <span class="nav-text">Outbox 表设计</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Relay-%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.7.2.</span> <span class="nav-text">Relay 实现</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81CQRS%EF%BC%88%E5%91%BD%E4%BB%A4%E6%9F%A5%E8%AF%A2%E8%81%8C%E8%B4%A3%E5%88%86%E7%A6%BB%EF%BC%89%E2%80%94-%E6%A0%B8%E5%BF%83%E6%98%AF%E2%80%9D%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB%E2%80%9D"><span class="nav-number">4.</span> <span class="nav-text">三、CQRS（命令查询职责分离）— 核心是”读写分离”</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%88%86%EF%BC%9F"><span class="nav-number">4.1.</span> <span class="nav-text">3.1 为什么要分？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E6%9E%B6%E6%9E%84%E5%85%A8%E6%99%AF"><span class="nav-number">4.2.</span> <span class="nav-text">3.2 架构全景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-Command-%E4%B8%8E-Query-%E7%9A%84%E8%AE%BE%E8%AE%A1"><span class="nav-number">4.3.</span> <span class="nav-text">3.3 Command 与 Query 的设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E6%A0%B8%E5%BF%83%E4%BB%B7%E5%80%BC"><span class="nav-number">4.4.</span> <span class="nav-text">3.4 核心价值</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-Event-Sourcing%EF%BC%9A%E4%BA%8B%E4%BB%B6%E6%BA%AF%E6%BA%90"><span class="nav-number">4.5.</span> <span class="nav-text">3.5 Event Sourcing：事件溯源</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E6%80%9D%E6%83%B3"><span class="nav-number">4.5.1.</span> <span class="nav-text">核心思想</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%8E-CQRS-%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="nav-number">4.5.2.</span> <span class="nav-text">与 CQRS 的关系</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%80%82%E7%94%A8%E4%B8%8E%E4%B8%8D%E9%80%82%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">4.5.3.</span> <span class="nav-text">适用与不适用场景</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-6-%E6%9C%80%E7%BB%88%E4%B8%80%E8%87%B4%E6%80%A7%E5%A4%84%E7%90%86%E7%AD%96%E7%95%A5"><span class="nav-number">4.6.</span> <span class="nav-text">3.6 最终一致性处理策略</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9E%B6%E6%9E%84%E5%B1%82%E9%9D%A2"><span class="nav-number">4.6.1.</span> <span class="nav-text">架构层面</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E4%BD%93%E9%AA%8C%E5%B1%82%E9%9D%A2"><span class="nav-number">4.6.2.</span> <span class="nav-text">用户体验层面</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-7-%E6%8A%95%E5%BD%B1%E5%99%A8%EF%BC%88Projector%EF%BC%89%E5%AE%9E%E7%8E%B0%E6%A8%A1%E5%BC%8F"><span class="nav-number">4.7.</span> <span class="nav-text">3.7 投影器（Projector）实现模式</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E5%AE%9E%E7%8E%B0"><span class="nav-number">4.7.1.</span> <span class="nav-text">完整实现</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8A%95%E5%BD%B1%E5%99%A8%E7%9A%84%E8%BF%90%E8%A1%8C%E6%A8%A1%E5%BC%8F"><span class="nav-number">4.7.2.</span> <span class="nav-text">投影器的运行模式</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E4%B8%89%E8%80%85%E5%A6%82%E4%BD%95%E8%81%94%E6%89%8B%EF%BC%9F"><span class="nav-number">5.</span> <span class="nav-text">四、三者如何联手？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%8D%8F%E4%BD%9C%E5%85%B3%E7%B3%BB"><span class="nav-number">5.1.</span> <span class="nav-text">4.1 协作关系</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%9C%A8-Go-%E9%A1%B9%E7%9B%AE%E4%B8%AD%E7%9A%84%E8%90%BD%E5%9C%B0%E7%BB%93%E6%9E%84"><span class="nav-number">5.2.</span> <span class="nav-text">4.2 在 Go 项目中的落地结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%95%B0%E6%8D%AE%E6%B5%81%E5%85%A8%E6%99%AF"><span class="nav-number">5.3.</span> <span class="nav-text">4.3 数据流全景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E5%AE%8C%E6%95%B4%E9%93%BE%E8%B7%AF-Walk-through%EF%BC%9A%E4%B8%8B%E5%8D%95%E8%AF%B7%E6%B1%82"><span class="nav-number">5.4.</span> <span class="nav-text">4.4 完整链路 Walk-through：下单请求</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA%E4%B8%8E%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5"><span class="nav-number">6.</span> <span class="nav-text">五、常见误区与最佳实践</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E5%B8%B8%E8%A7%81%E8%AF%AF%E5%8C%BA"><span class="nav-number">6.1.</span> <span class="nav-text">5.1 常见误区</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E4%BD%95%E6%97%B6%E9%87%87%E7%94%A8%EF%BC%9F"><span class="nav-number">6.2.</span> <span class="nav-text">5.2 何时采用？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-%E8%BF%87%E5%BA%A6%E8%AE%BE%E8%AE%A1%E7%9A%84%E8%AF%86%E5%88%AB%E6%96%B9%E6%B3%95"><span class="nav-number">6.3.</span> <span class="nav-text">5.3 过度设计的识别方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-4-%E5%9B%A2%E9%98%9F%E8%83%BD%E5%8A%9B%E8%AF%84%E4%BC%B0"><span class="nav-number">6.4.</span> <span class="nav-text">5.4 团队能力评估</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81%E6%B8%90%E8%BF%9B%E5%BC%8F%E9%87%87%E7%94%A8%E6%8C%87%E5%8D%97"><span class="nav-number">7.</span> <span class="nav-text">六、渐进式采用指南</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%98%B6%E6%AE%B5-0%EF%BC%9A%E6%A0%87%E5%87%86%E4%B8%89%E5%B1%82%E6%9E%B6%E6%9E%84"><span class="nav-number">7.1.</span> <span class="nav-text">阶段 0：标准三层架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%98%B6%E6%AE%B5-1%EF%BC%9A%E5%BC%95%E5%85%A5-Clean-Architecture"><span class="nav-number">7.2.</span> <span class="nav-text">阶段 1：引入 Clean Architecture</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%98%B6%E6%AE%B5-2%EF%BC%9A%E5%BC%95%E5%85%A5-DDD"><span class="nav-number">7.3.</span> <span class="nav-text">阶段 2：引入 DDD</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%98%B6%E6%AE%B5-3%EF%BC%9A%E5%BC%95%E5%85%A5-CQRS"><span class="nav-number">7.4.</span> <span class="nav-text">阶段 3：引入 CQRS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BC%94%E8%BF%9B%E5%86%B3%E7%AD%96%E6%A0%91"><span class="nav-number">7.5.</span> <span class="nav-text">演进决策树</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%83%E3%80%81%E6%80%BB%E7%BB%93"><span class="nav-number">8.</span> <span class="nav-text">七、总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">9.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">56</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">152</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">11篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">21篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">14篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">6篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2026/04/01/system-design/41-acc-clean-arch-ddd-cqrs/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="架构与整洁代码（一）：Clean Architecture、DDD 与 CQRS——三位一体的架构方法论 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          架构与整洁代码（一）：Clean Architecture、DDD 与 CQRS——三位一体的架构方法论
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2026-04-01 00:00:00" itemprop="dateCreated datePublished" datetime="2026-04-01T00:00:00+08:00">2026-04-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-04-11 00:23:46" itemprop="dateModified" datetime="2026-04-11T00:23:46+08:00">2026-04-11</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">系统设计基础</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><!-- toc -->
+
+<h2 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h2><p>Clean Architecture、DDD 和 CQRS 这三个概念经常被一起提及，甚至被误认为是一回事。但实际上，它们关注的维度完全不同：</p>
+<ul>
+<li><strong>Clean Architecture</strong> 关注分层与解耦</li>
+<li><strong>DDD</strong> 关注业务建模</li>
+<li><strong>CQRS</strong> 关注数据读写的路径优化</li>
+</ul>
+<p>如果把开发一套复杂的软件比作经营一家餐厅：</p>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>餐厅类比</th>
+<th>核心关注点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Clean Architecture</td>
+<td>餐厅的<strong>平面布局图</strong>（前台、后厨、仓库界限清晰）</td>
+<td>依赖方向与边界</td>
+</tr>
+<tr>
+<td>DDD</td>
+<td><strong>菜单的设计和后厨的工作流程</strong>（怎么定义招牌菜，主厨和二厨怎么分工）</td>
+<td>业务建模与通用语言</td>
+</tr>
+<tr>
+<td>CQRS</td>
+<td><strong>点餐和上菜的通道设计</strong>（点餐走前台系统，上菜走传菜电梯，互不干扰）</td>
+<td>读写路径分离</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="一、Clean-Architecture（整洁架构）—-核心是”依赖规则”"><a href="#一、Clean-Architecture（整洁架构）—-核心是”依赖规则”" class="headerlink" title="一、Clean Architecture（整洁架构）— 核心是”依赖规则”"></a>一、Clean Architecture（整洁架构）— 核心是”依赖规则”</h2><p>由 Robert C. Martin（Uncle Bob）提出，其核心思想是：<strong>业务逻辑应该独立于 UI、数据库、框架或任何外部代理</strong>。</p>
+<h3 id="1-1-依赖规则"><a href="#1-1-依赖规则" class="headerlink" title="1.1 依赖规则"></a>1.1 依赖规则</h3><p>源代码的依赖方向<strong>只能向内</strong>。外层（如数据库、Web 框架）可以依赖内层，但<strong>内层绝不能知道外层的存在</strong>。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">┌──────────────────────────────────────────────────────────────┐</span><br><span class="line">│  Frameworks &amp; Drivers  (Web, DB, External APIs)              │</span><br><span class="line">│  ┌──────────────────────────────────────────────────────┐    │</span><br><span class="line">│  │  Interface Adapters  (Controllers, Gateways, Repos)  │    │</span><br><span class="line">│  │  ┌──────────────────────────────────────────────┐    │    │</span><br><span class="line">│  │  │  Application Business Rules  (Use Cases)     │    │    │</span><br><span class="line">│  │  │  ┌──────────────────────────────────────┐    │    │    │</span><br><span class="line">│  │  │  │  Enterprise Business Rules (Entities) │    │    │    │</span><br><span class="line">│  │  │  └──────────────────────────────────────┘    │    │    │</span><br><span class="line">│  │  └──────────────────────────────────────────────┘    │    │</span><br><span class="line">│  └──────────────────────────────────────────────────────┘    │</span><br><span class="line">└──────────────────────────────────────────────────────────────┘</span><br><span class="line"></span><br><span class="line">                   依赖方向 ──────→ 向内</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-2-四层模型"><a href="#1-2-四层模型" class="headerlink" title="1.2 四层模型"></a>1.2 四层模型</h3><table>
+<thead>
+<tr>
+<th>层级</th>
+<th>职责</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Entity（实体）</strong></td>
+<td>最核心的业务规则，与应用无关</td>
+<td><code>Order</code>, <code>Product</code> 的领域模型</td>
+</tr>
+<tr>
+<td><strong>Use Cases（用例）</strong></td>
+<td>特定于应用的业务逻辑</td>
+<td>“处理订单”、”计算运费”</td>
+</tr>
+<tr>
+<td><strong>Interface Adapters（接口适配器）</strong></td>
+<td>数据格式转换，连接内外层</td>
+<td>Controller, Presenter, Repository 接口实现</td>
+</tr>
+<tr>
+<td><strong>Frameworks &amp; Drivers（框架和驱动）</strong></td>
+<td>具体技术实现</td>
+<td>MySQL, Redis, Gin, gRPC</td>
+</tr>
+</tbody></table>
+<h3 id="1-3-Go-项目中的典型目录映射"><a href="#1-3-Go-项目中的典型目录映射" class="headerlink" title="1.3 Go 项目中的典型目录映射"></a>1.3 Go 项目中的典型目录映射</h3><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">myapp/</span><br><span class="line">├── domain/           # Entity 层：纯业务模型和接口定义</span><br><span class="line">│   ├── order.go</span><br><span class="line">│   └── repository.go # 接口（Port），不含实现</span><br><span class="line">├── usecase/          # Use Case 层：应用业务逻辑</span><br><span class="line">│   └── place_order.go</span><br><span class="line">├── adapter/          # Interface Adapter 层</span><br><span class="line">│   ├── handler/      #   HTTP/gRPC handler</span><br><span class="line">│   └── persistence/  #   数据库实现（实现 domain 接口）</span><br><span class="line">├── infra/            # Frameworks &amp; Drivers 层</span><br><span class="line">│   ├── mysql/</span><br><span class="line">│   └── redis/</span><br><span class="line">└── main.go           # 组装（依赖注入）</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-4-核心价值"><a href="#1-4-核心价值" class="headerlink" title="1.4 核心价值"></a>1.4 核心价值</h3><p>当你决定从 MySQL 换到 MongoDB，或者把 Web 框架从 Gin 换到 Echo 时，核心的业务逻辑（Use Cases 和 Entities）<strong>不需要改动一行代码</strong>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// domain/repository.go — 内层只定义接口</span></span><br><span class="line"><span class="keyword">type</span> OrderRepository <span class="keyword">interface</span> &#123;</span><br><span class="line">    Save(ctx context.Context, order *Order) <span class="type">error</span></span><br><span class="line">    FindByID(ctx context.Context, id <span class="type">string</span>) (*Order, <span class="type">error</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// adapter/persistence/mysql_order_repo.go — 外层实现接口</span></span><br><span class="line"><span class="keyword">type</span> MySQLOrderRepo <span class="keyword">struct</span>&#123; db *sql.DB &#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *MySQLOrderRepo)</span></span> Save(ctx context.Context, order *domain.Order) <span class="type">error</span> &#123; <span class="comment">/* ... */</span> &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// adapter/persistence/mongo_order_repo.go — 换存储只需新增实现</span></span><br><span class="line"><span class="keyword">type</span> MongoOrderRepo <span class="keyword">struct</span>&#123; col *mongo.Collection &#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *MongoOrderRepo)</span></span> Save(ctx context.Context, order *domain.Order) <span class="type">error</span> &#123; <span class="comment">/* ... */</span> &#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-5-架构风格对比：Clean-vs-六边形-vs-洋葱"><a href="#1-5-架构风格对比：Clean-vs-六边形-vs-洋葱" class="headerlink" title="1.5 架构风格对比：Clean vs 六边形 vs 洋葱"></a>1.5 架构风格对比：Clean vs 六边形 vs 洋葱</h3><p>三种架构风格经常被混用，它们的核心共识都是<strong>依赖反转</strong>，但切入角度不同：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Clean Architecture</th>
+<th>六边形架构 (Hexagonal)</th>
+<th>洋葱架构 (Onion)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>提出者</strong></td>
+<td>Robert C. Martin (2012)</td>
+<td>Alistair Cockburn (2005)</td>
+<td>Jeffrey Palermo (2008)</td>
+</tr>
+<tr>
+<td><strong>核心隐喻</strong></td>
+<td>同心圆，层层向内</td>
+<td>六边形，端口与适配器</td>
+<td>洋葱，层层剥开</td>
+</tr>
+<tr>
+<td><strong>关键概念</strong></td>
+<td>Entity, Use Case, Adapter</td>
+<td>Port（接口）, Adapter（实现）</td>
+<td>Domain Model, Domain Service, App Service</td>
+</tr>
+<tr>
+<td><strong>外部交互方式</strong></td>
+<td>通过 Interface Adapter 层</td>
+<td>通过 Port + Adapter 对</td>
+<td>通过 Infrastructure 层</td>
+</tr>
+<tr>
+<td><strong>核心共识</strong></td>
+<td>依赖方向向内，业务逻辑不依赖外部技术</td>
+<td>同左</td>
+<td>同左</td>
+</tr>
+</tbody></table>
+<pre class="mermaid">graph TB
+    subgraph "Clean Architecture"
+        direction TB
+        CA_E[Entity] 
+        CA_U[Use Case] --> CA_E
+        CA_A[Adapter] --> CA_U
+        CA_F[Framework] --> CA_A
+    end
+    
+    subgraph "Hexagonal"
+        direction TB
+        H_D[Domain Core]
+        H_PI[Inbound Port] --> H_D
+        H_PO[Outbound Port] --> H_D
+        H_AI[Driving Adapter] --> H_PI
+        H_AO[Driven Adapter] --> H_PO
+    end
+
+    subgraph "Onion"
+        direction TB
+        O_DM[Domain Model]
+        O_DS[Domain Service] --> O_DM
+        O_AS[App Service] --> O_DS
+        O_IF[Infrastructure] --> O_AS
+    end</pre>
+
+<p><strong>实际差异很小</strong>，三者在 Go 项目中的落地几乎一样——关键是守住一条线：<strong>内层定义接口，外层实现接口</strong>。</p>
+<h4 id="Port-Adapter-模式的-Go-实现"><a href="#Port-Adapter-模式的-Go-实现" class="headerlink" title="Port &amp; Adapter 模式的 Go 实现"></a>Port &amp; Adapter 模式的 Go 实现</h4><p>六边形架构中，Port 是接口，Adapter 是实现。在 Go 中天然契合：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// domain/port.go — Outbound Port（领域层定义）</span></span><br><span class="line"><span class="keyword">type</span> PaymentGateway <span class="keyword">interface</span> &#123;</span><br><span class="line">    Charge(ctx context.Context, orderID <span class="type">string</span>, amount Money) (*PaymentResult, <span class="type">error</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// adapter/payment/stripe_adapter.go — Driven Adapter（基础设施层实现）</span></span><br><span class="line"><span class="keyword">type</span> StripeAdapter <span class="keyword">struct</span> &#123;</span><br><span class="line">    client *stripe.Client</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *StripeAdapter)</span></span> Charge(ctx context.Context, orderID <span class="type">string</span>, amount Money) (*PaymentResult, <span class="type">error</span>) &#123;</span><br><span class="line">    resp, err := a.client.Charges.New(&amp;stripe.ChargeParams&#123;</span><br><span class="line">        Amount:   stripe.Int64(amount.Amount),</span><br><span class="line">        Currency: stripe.String(amount.Currency),</span><br><span class="line">    &#125;)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">&quot;stripe charge failed: %w&quot;</span>, err)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> &amp;PaymentResult&#123;TransactionID: resp.ID, Status: <span class="string">&quot;success&quot;</span>&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// adapter/payment/mock_adapter.go — 测试时可替换为 Mock</span></span><br><span class="line"><span class="keyword">type</span> MockPaymentAdapter <span class="keyword">struct</span> &#123;</span><br><span class="line">    ShouldFail <span class="type">bool</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *MockPaymentAdapter)</span></span> Charge(ctx context.Context, orderID <span class="type">string</span>, amount Money) (*PaymentResult, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> a.ShouldFail &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">&quot;mock payment failure&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> &amp;PaymentResult&#123;TransactionID: <span class="string">&quot;mock-txn-001&quot;</span>, Status: <span class="string">&quot;success&quot;</span>&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-6-依赖注入的-Go-实现"><a href="#1-6-依赖注入的-Go-实现" class="headerlink" title="1.6 依赖注入的 Go 实现"></a>1.6 依赖注入的 Go 实现</h3><p>在 Clean Architecture 中，<strong>组装</strong>（将接口与实现绑定）发生在最外层——通常是 <code>main.go</code>。</p>
+<h4 id="手动注入（推荐，适合中小项目）"><a href="#手动注入（推荐，适合中小项目）" class="headerlink" title="手动注入（推荐，适合中小项目）"></a>手动注入（推荐，适合中小项目）</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// cmd/server/main.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// Infrastructure</span></span><br><span class="line">    db := mysql.NewConnection(cfg.DSN)</span><br><span class="line">    producer := kafka.NewProducer(cfg.Kafka)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Adapters（实现 domain 接口）</span></span><br><span class="line">    orderRepo := persistence.NewMySQLOrderRepo(db)</span><br><span class="line">    eventBus := messaging.NewKafkaEventBus(producer)</span><br><span class="line">    paymentGW := payment.NewStripeAdapter(cfg.StripeKey)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Use Cases（注入依赖）</span></span><br><span class="line">    placeOrderUC := command.NewPlaceOrderHandler(orderRepo, eventBus, paymentGW)</span><br><span class="line">    orderQueryUC := query.NewOrderDetailHandler(readmodel.NewESOrderReader(esClient))</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Inbound Adapters</span></span><br><span class="line">    httpHandler := http.NewOrderHandler(placeOrderUC, orderQueryUC)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Start server</span></span><br><span class="line">    server := gin.Default()</span><br><span class="line">    httpHandler.RegisterRoutes(server)</span><br><span class="line">    server.Run(<span class="string">&quot;:8080&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>优点：零依赖、编译时检查、调试直观。<br>缺点：当依赖超过 20 个时，<code>main.go</code> 变得冗长。</p>
+<h4 id="Wire（适合大型项目）"><a href="#Wire（适合大型项目）" class="headerlink" title="Wire（适合大型项目）"></a>Wire（适合大型项目）</h4><p>Google 的 <a href="https://github.com/google/wire">Wire</a> 通过代码生成实现依赖注入：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// wire.go</span></span><br><span class="line"><span class="comment">//go:build wireinject</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InitializeOrderHandler</span><span class="params">()</span></span> *http.OrderHandler &#123;</span><br><span class="line">    wire.Build(</span><br><span class="line">        mysql.NewConnection,</span><br><span class="line">        persistence.NewMySQLOrderRepo,</span><br><span class="line">        messaging.NewKafkaEventBus,</span><br><span class="line">        command.NewPlaceOrderHandler,</span><br><span class="line">        http.NewOrderHandler,</span><br><span class="line">    )</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>运行 <code>wire ./...</code> 生成 <code>wire_gen.go</code>，编译时完成所有连接。</p>
+<h3 id="1-7-Anti-pattern：常见违规案例"><a href="#1-7-Anti-pattern：常见违规案例" class="headerlink" title="1.7 Anti-pattern：常见违规案例"></a>1.7 Anti-pattern：常见违规案例</h3><h4 id="Anti-pattern-1：跨层调用"><a href="#Anti-pattern-1：跨层调用" class="headerlink" title="Anti-pattern 1：跨层调用"></a>Anti-pattern 1：跨层调用</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ❌ Handler 直接引用了 MySQL 包（跳过了 domain 和 usecase 层）</span></span><br><span class="line"><span class="keyword">package</span> handler</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">&quot;database/sql&quot;</span></span><br><span class="line">    <span class="string">&quot;net/http&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetOrder</span><span class="params">(db *sql.DB)</span></span> http.HandlerFunc &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(w http.ResponseWriter, r *http.Request)</span></span> &#123;</span><br><span class="line">        row := db.QueryRow(<span class="string">&quot;SELECT * FROM orders WHERE id = ?&quot;</span>, r.URL.Query().Get(<span class="string">&quot;id&quot;</span>))</span><br><span class="line">        <span class="comment">// 直接在 handler 里写 SQL...</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ✅ Handler 只依赖 Use Case 接口</span></span><br><span class="line"><span class="keyword">package</span> handler</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> OrderQuerier <span class="keyword">interface</span> &#123;</span><br><span class="line">    GetOrderDetail(ctx context.Context, id <span class="type">string</span>) (*OrderDetailDTO, <span class="type">error</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewGetOrderHandler</span><span class="params">(q OrderQuerier)</span></span> http.HandlerFunc &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(w http.ResponseWriter, r *http.Request)</span></span> &#123;</span><br><span class="line">        dto, err := q.GetOrderDetail(r.Context(), r.URL.Query().Get(<span class="string">&quot;id&quot;</span>))</span><br><span class="line">        <span class="comment">// ...</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="Anti-pattern-2：基础设施泄漏到领域层"><a href="#Anti-pattern-2：基础设施泄漏到领域层" class="headerlink" title="Anti-pattern 2：基础设施泄漏到领域层"></a>Anti-pattern 2：基础设施泄漏到领域层</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ❌ 领域实体中使用了 sql.NullString（基础设施类型侵入领域）</span></span><br><span class="line"><span class="keyword">package</span> domain</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;database/sql&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Order <span class="keyword">struct</span> &#123;</span><br><span class="line">    ID       <span class="type">string</span></span><br><span class="line">    Remark   sql.NullString  <span class="comment">// ← 领域层不应该知道 SQL 的存在</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ✅ 领域层使用纯 Go 类型，转换在 adapter 层完成</span></span><br><span class="line"><span class="keyword">package</span> domain</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Order <span class="keyword">struct</span> &#123;</span><br><span class="line">    ID     <span class="type">string</span></span><br><span class="line">    Remark <span class="type">string</span>  <span class="comment">// 空字符串表示无备注</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// adapter/persistence/converter.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">toDomain</span><span class="params">(po *OrderPO)</span></span> *domain.Order &#123;</span><br><span class="line">    remark := <span class="string">&quot;&quot;</span></span><br><span class="line">    <span class="keyword">if</span> po.Remark.Valid &#123;</span><br><span class="line">        remark = po.Remark.String</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> &amp;domain.Order&#123;ID: po.ID, Remark: remark&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="Anti-pattern-3：循环依赖"><a href="#Anti-pattern-3：循环依赖" class="headerlink" title="Anti-pattern 3：循环依赖"></a>Anti-pattern 3：循环依赖</h4><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">❌ domain/order.go imports adapter/notification</span><br><span class="line">   adapter/notification imports domain/order</span><br><span class="line">   → 编译失败：import cycle</span><br></pre></td></tr></table></figure>
+
+<p>解法：在 domain 层定义 <code>Notifier</code> 接口，adapter 层实现它。方向始终<strong>向内</strong>。</p>
+<hr>
+<h2 id="二、DDD（领域驱动设计）—-核心是”应对复杂性”"><a href="#二、DDD（领域驱动设计）—-核心是”应对复杂性”" class="headerlink" title="二、DDD（领域驱动设计）— 核心是”应对复杂性”"></a>二、DDD（领域驱动设计）— 核心是”应对复杂性”</h2><p>DDD 不是一种架构，而是一套<strong>方法论</strong>。它认为软件的灵魂在于其解决的业务问题（即”领域”）。</p>
+<h3 id="2-1-战略设计：架构层面"><a href="#2-1-战略设计：架构层面" class="headerlink" title="2.1 战略设计：架构层面"></a>2.1 战略设计：架构层面</h3><p>DDD 的战略设计关注的是架构层面的决策：如何划分领域、如何确定投资策略、如何划分上下文边界。</p>
+<h4 id="2-1-1-领域分层与投资策略"><a href="#2-1-1-领域分层与投资策略" class="headerlink" title="2.1.1 领域分层与投资策略"></a>2.1.1 领域分层与投资策略</h4><p><strong>为什么需要领域分层？</strong></p>
+<p>一个中大型系统往往包含十几个甚至几十个子系统。假设你是一家电商平台的 CTO，面对以下子系统：</p>
+<ul>
+<li>订单系统、支付系统、商品管理、库存管理</li>
+<li>用户系统、搜索系统、推荐系统、评价系统</li>
+<li>消息通知、物流跟踪、风控系统、数据报表</li>
+</ul>
+<p><strong>核心问题</strong>：资源有限（人力、预算、时间），不可能对所有子系统投入同等精力。如何决定：</p>
+<ul>
+<li>哪些系统必须自研，投入最好的团队？</li>
+<li>哪些系统可以定制开发，用常规团队？</li>
+<li>哪些系统直接买现成方案或用开源？</li>
+</ul>
+<p>如果投资决策错误：</p>
+<ul>
+<li>❌ 把资源浪费在通用能力上（如自研消息队列），错失核心业务创新</li>
+<li>❌ 在核心竞争力上妥协（如用低质量的订单系统），导致业务受限</li>
+</ul>
+<p><strong>DDD 的答案</strong>：按照<strong>业务价值</strong>对领域分层，实施<strong>差异化投资策略</strong>。这就是核心域（Core Domain）、支撑域（Supporting Domain）、通用域（Generic Domain）的由来。</p>
+<h5 id="三种领域的定义与特征"><a href="#三种领域的定义与特征" class="headerlink" title="三种领域的定义与特征"></a>三种领域的定义与特征</h5><table>
+<thead>
+<tr>
+<th>域类型</th>
+<th>定义</th>
+<th>业务价值</th>
+<th>竞争差异化</th>
+<th>投资策略</th>
+<th>组织形式</th>
+<th>技术选型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>核心域<br/>Core Domain</strong></td>
+<td>平台的核心竞争力，创造差异化价值</td>
+<td>最高，决定平台成败</td>
+<td>高度差异化，竞品难模仿</td>
+<td>重点投入，自研</td>
+<td>最优秀团队，独立编制</td>
+<td>自主可控，完全掌握</td>
+</tr>
+<tr>
+<td><strong>支撑域<br/>Supporting Domain</strong></td>
+<td>支撑核心业务的必要能力</td>
+<td>中等，必须有但不差异化</td>
+<td>有一定特色但可被超越</td>
+<td>适度投入，可定制</td>
+<td>常规团队，共享资源</td>
+<td>定制开发，参考业界</td>
+</tr>
+<tr>
+<td><strong>通用域<br/>Generic Domain</strong></td>
+<td>通用基础能力，行业共性</td>
+<td>低，无差异化</td>
+<td>行业标准，无竞争优势</td>
+<td>最小投入，采购</td>
+<td>外包&#x2F;工具团队</td>
+<td>开源&#x2F;SaaS&#x2F;采购</td>
+</tr>
+</tbody></table>
+<p><strong>核心域（Core Domain）</strong>：</p>
+<ul>
+<li><strong>什么是”核心竞争力”？</strong> 直接影响营收、用户体验、留存率的能力，是公司在市场中胜出的关键</li>
+<li><strong>特点</strong>：频繁变化（紧跟业务创新）、技术复杂、需要领域专家</li>
+<li><strong>识别标志</strong>：如果这个域做不好，公司会输；如果做得特别好，会赢</li>
+<li><strong>案例</strong>：电商的订单系统、金融的交易系统、SaaS 的租户管理</li>
+</ul>
+<p><strong>支撑域（Supporting Domain）</strong>：</p>
+<ul>
+<li><strong>为什么”必须有但不差异化”？</strong> 业务依赖但不产生竞争优势，做到 80 分和 95 分对业务影响不大</li>
+<li><strong>特点</strong>：相对稳定、有一定复杂度、需要理解业务</li>
+<li><strong>识别标志</strong>：缺了不行，但不是赢的关键</li>
+<li><strong>案例</strong>：电商的商品管理、金融的账户系统、SaaS 的权限系统</li>
+</ul>
+<p><strong>通用域（Generic Domain）</strong>：</p>
+<ul>
+<li><strong>为什么可以采购？</strong> 行业已有成熟方案，无需重复造轮子，自研的投入产出比很低</li>
+<li><strong>特点</strong>：标准化、变化少、技术成熟</li>
+<li><strong>识别标志</strong>：市面上有多个成熟产品可选</li>
+<li><strong>风险</strong>：过度依赖外部服务，但可通过多供应商策略缓解</li>
+<li><strong>案例</strong>：用户认证（Auth0&#x2F;Keycloak）、消息推送（Twilio）、存储（AWS S3）</li>
+</ul>
+<h5 id="领域划分方法论"><a href="#领域划分方法论" class="headerlink" title="领域划分方法论"></a>领域划分方法论</h5><p><strong>如何判断一个子域属于哪一类？</strong> 下面提供一套可操作的评分框架。</p>
+<h6 id="判断维度与评分模型"><a href="#判断维度与评分模型" class="headerlink" title="判断维度与评分模型"></a>判断维度与评分模型</h6><table>
+<thead>
+<tr>
+<th>判断维度</th>
+<th>核心域（8-10分）</th>
+<th>支撑域（4-7分）</th>
+<th>通用域（1-3分）</th>
+<th>评分问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>业务价值</strong></td>
+<td>直接影响收入&#x2F;利润&#x2F;核心指标</td>
+<td>间接影响业务，必需但不关键</td>
+<td>不影响业务差异化</td>
+<td>这个域对营收&#x2F;留存的影响有多大？</td>
+</tr>
+<tr>
+<td><strong>竞争差异化</strong></td>
+<td>独特能力，竞品难以模仿</td>
+<td>有特色但可被超越</td>
+<td>行业标准，无差异</td>
+<td>竞品能轻易复制这个能力吗？</td>
+</tr>
+<tr>
+<td><strong>变化频率</strong></td>
+<td>频繁变化，紧跟业务创新</td>
+<td>定期调整优化</td>
+<td>稳定，很少大改</td>
+<td>多久需要大改一次？</td>
+</tr>
+<tr>
+<td><strong>技术复杂度</strong></td>
+<td>高度复杂，需要领域专家</td>
+<td>中等复杂，需要业务理解</td>
+<td>成熟方案可解决</td>
+<td>普通团队能否 hold 住？</td>
+</tr>
+</tbody></table>
+<p><strong>评分方法</strong>：</p>
+<ul>
+<li>每个维度打分 1-10 分</li>
+<li>总分 &#x3D; 四个维度分数相加（满分 40 分）</li>
+</ul>
+<p><strong>总分判断标准</strong>：</p>
+<ul>
+<li><strong>32-40 分</strong> → 核心域（Core Domain）</li>
+<li><strong>16-31 分</strong> → 支撑域（Supporting Domain）</li>
+<li><strong>4-15 分</strong> → 通用域（Generic Domain）</li>
+</ul>
+<p><strong>注意事项</strong>：</p>
+<ul>
+<li>边界分数（如 31-32 分）需要结合公司战略、团队能力综合判断</li>
+<li>初创公司可以适当放宽核心域标准（28 分以上即可），聚焦资源</li>
+<li>成熟公司标准更严格，避免核心域过多导致资源分散</li>
+</ul>
+<h6 id="决策流程图"><a href="#决策流程图" class="headerlink" title="决策流程图"></a>决策流程图</h6><p>除了评分模型，还可以用决策树快速判断：</p>
+<pre class="mermaid">flowchart TD
+    A[识别子域] --> B{直接影响收入/利润/核心指标?}
+    B -->|是| C{竞品难以模仿?}
+    B -->|否| D{业务必需?}
+
+    C -->|是| E[核心域候选]
+    C -->|否| F{变化频繁?}
+
+    D -->|是| G{有业务特色?}
+    D -->|否| H[通用域]
+
+    F -->|是| I[支撑域]
+    F -->|否| H
+
+    G -->|是| I
+    G -->|否| H
+
+    E --> J{团队投入意愿高?}
+    J -->|是| K[确认：核心域]
+    J -->|否| L[降级：支撑域]
+
+    style K fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+    style I fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style H fill:#bbdefb,stroke:#1565c0,stroke-width:2px</pre>
+
+<p><strong>使用说明</strong>：</p>
+<ol>
+<li>从顶部”识别子域”开始</li>
+<li>依次回答每个判断问题（是&#x2F;否）</li>
+<li>沿着路径走到终点得出初步结论</li>
+<li>结合评分模型验证（两个工具互相补充）</li>
+</ol>
+<h6 id="常见误区与边界案例"><a href="#常见误区与边界案例" class="headerlink" title="常见误区与边界案例"></a>常见误区与边界案例</h6><p><strong>误区 1：把技术复杂度高的当核心域</strong></p>
+<p>❌ <strong>错误示例</strong>：自研分布式存储系统</p>
+<ul>
+<li>技术复杂度：10 分（确实很难）</li>
+<li>业务价值：3 分（存储本身不产生业务差异）</li>
+<li>竞争差异化：2 分（用户不关心底层存储）</li>
+<li>变化频率：2 分（相对稳定）</li>
+<li><strong>总分 17 分 → 支撑域，甚至应该考虑用成熟方案（通用域）</strong></li>
+</ul>
+<p>✅ <strong>正确理解</strong>：技术难度不等于业务价值，除非你是做存储产品的公司。</p>
+<hr>
+<p><strong>误区 2：把所有自研系统当核心域</strong></p>
+<p>❌ <strong>错误示例</strong>：自研消息队列</p>
+<ul>
+<li>很多公司自研 MQ 是因为早期没有好的开源方案</li>
+<li>但 MQ 本身不是核心竞争力（除非你是 Kafka&#x2F;RabbitMQ）</li>
+<li>现在 Kafka 已成熟，继续维护自研 MQ 是资源浪费</li>
+</ul>
+<p>✅ <strong>正确理解</strong>：自研 ≠ 核心域，要看是否产生业务差异化。</p>
+<hr>
+<p><strong>误区 3：忽略核心域的动态性</strong></p>
+<p><strong>案例</strong>：推荐系统的演进</p>
+<ul>
+<li>2010 年：推荐算法是电商核心域（个性化推荐是差异化竞争力）</li>
+<li>2020 年：推荐已成为支撑域（算法已成熟，大家都在用）</li>
+<li>现在：推荐仍重要，但不再是核心竞争力</li>
+</ul>
+<p>✅ <strong>正确理解</strong>：核心域会随行业发展逐渐”标准化”，需要定期重新评估。</p>
+<hr>
+<p><strong>边界案例 1：搜索系统的分类取决于公司类型</strong></p>
+<table>
+<thead>
+<tr>
+<th>公司类型</th>
+<th>搜索系统分类</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Google&#x2F;百度</td>
+<td>核心域</td>
+<td>搜索就是产品本身</td>
+</tr>
+<tr>
+<td>电商平台</td>
+<td>支撑域</td>
+<td>搜索影响转化，但不是核心竞争力</td>
+</tr>
+<tr>
+<td>内部工具</td>
+<td>通用域</td>
+<td>可以直接用 Elasticsearch</td>
+</tr>
+</tbody></table>
+<p>✅ <strong>正确理解</strong>：域的分类是相对的，取决于公司的业务模式和战略定位。</p>
+<hr>
+<p><strong>边界案例 2：支付系统在不同公司的分类</strong></p>
+<table>
+<thead>
+<tr>
+<th>公司类型</th>
+<th>支付系统分类</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>支付宝&#x2F;微信支付</td>
+<td>核心域</td>
+<td>支付就是产品</td>
+</tr>
+<tr>
+<td>电商平台</td>
+<td>核心域</td>
+<td>支付流程影响转化和体验</td>
+</tr>
+<tr>
+<td>SaaS 平台</td>
+<td>支撑域</td>
+<td>可以接入 Stripe，自研价值不大</td>
+</tr>
+<tr>
+<td>内容平台</td>
+<td>通用域</td>
+<td>直接用第三方支付</td>
+</tr>
+</tbody></table>
+<h5 id="方法论应用：电商系统实战分析"><a href="#方法论应用：电商系统实战分析" class="headerlink" title="方法论应用：电商系统实战分析"></a>方法论应用：电商系统实战分析</h5><p>下面选择电商系统的 3 个典型域，应用评分模型进行深度分析。</p>
+<h6 id="案例-1：订单域（核心域）"><a href="#案例-1：订单域（核心域）" class="headerlink" title="案例 1：订单域（核心域）"></a>案例 1：订单域（核心域）</h6><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>评分</th>
+<th>详细分析</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>业务价值</strong></td>
+<td>10</td>
+<td>订单流程直接影响 GMV（成交总额），每提升 1% 转化率就是百万级营收</td>
+</tr>
+<tr>
+<td><strong>竞争差异化</strong></td>
+<td>9</td>
+<td>拼团、秒杀、预售、分期等玩法是核心竞争力，竞品难以完全模仿</td>
+</tr>
+<tr>
+<td><strong>变化频率</strong></td>
+<td>9</td>
+<td>每个大促（618、双11）都会调整订单流程，支持新的营销玩法</td>
+</tr>
+<tr>
+<td><strong>技术复杂度</strong></td>
+<td>9</td>
+<td>分布式事务（Saga）、状态机、高并发、幂等性、最终一致性</td>
+</tr>
+<tr>
+<td><strong>总分</strong></td>
+<td><strong>37</strong></td>
+<td><strong>核心域</strong></td>
+</tr>
+</tbody></table>
+<p><strong>为什么是核心域？</strong></p>
+<ul>
+<li>订单流程的流畅度直接影响用户下单转化率</li>
+<li>支持的营销玩法越丰富，平台竞争力越强</li>
+<li>每个促销活动都可能需要调整订单逻辑</li>
+<li>技术上涉及多个复杂的分布式系统问题</li>
+</ul>
+<p><strong>投资建议</strong>：</p>
+<ul>
+<li><strong>团队配置</strong>：最优秀的架构师 + 3-5 名资深后端开发，独立团队</li>
+<li><strong>技术选型</strong>：自研，完全掌控，不依赖外部服务</li>
+<li><strong>质量要求</strong>：99.99% 可用性，全链路监控，灰度发布</li>
+<li><strong>迭代策略</strong>：快速响应业务需求，2 周一个迭代</li>
+<li><strong>文档要求</strong>：完整的设计文档、接口文档、故障预案</li>
+</ul>
+<h6 id="案例-2：商品域（支撑域）"><a href="#案例-2：商品域（支撑域）" class="headerlink" title="案例 2：商品域（支撑域）"></a>案例 2：商品域（支撑域）</h6><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>评分</th>
+<th>详细分析</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>业务价值</strong></td>
+<td>7</td>
+<td>商品管理是必需的，但 SPU&#x2F;SKU 模型本身不产生差异化</td>
+</tr>
+<tr>
+<td><strong>竞争差异化</strong></td>
+<td>5</td>
+<td>各家电商的商品模型大同小异，主要差异在类目和属性配置</td>
+</tr>
+<tr>
+<td><strong>变化频率</strong></td>
+<td>6</td>
+<td>新品类上线时需要调整，但不频繁（季度级别）</td>
+</tr>
+<tr>
+<td><strong>技术复杂度</strong></td>
+<td>6</td>
+<td>有一定复杂度（EAV 模型、搜索索引），但方案成熟</td>
+</tr>
+<tr>
+<td><strong>总分</strong></td>
+<td><strong>24</strong></td>
+<td><strong>支撑域</strong></td>
+</tr>
+</tbody></table>
+<p><strong>为什么是支撑域？</strong></p>
+<ul>
+<li>商品管理做到 80 分和 95 分，对用户体验影响不大</li>
+<li>SPU&#x2F;SKU 模型是行业通用方案，没有太多创新空间</li>
+<li>但又不能没有（缺了商品管理，电商就玩不转）</li>
+</ul>
+<p><strong>投资建议</strong>：</p>
+<ul>
+<li><strong>团队配置</strong>：常规开发团队 2-3 人，可以与其他支撑域共享资源</li>
+<li><strong>技术选型</strong>：参考业界成熟方案（如有赞、Shopify 的商品模型），适度定制</li>
+<li><strong>质量要求</strong>：99.9% 可用性，降级策略</li>
+<li><strong>迭代策略</strong>：稳定为主，谨慎迭代，充分测试后再上线</li>
+<li><strong>文档要求</strong>：基础设计文档和接口文档</li>
+</ul>
+<h6 id="案例-3：用户域（通用域）"><a href="#案例-3：用户域（通用域）" class="headerlink" title="案例 3：用户域（通用域）"></a>案例 3：用户域（通用域）</h6><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>评分</th>
+<th>详细分析</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>业务价值</strong></td>
+<td>3</td>
+<td>用户注册登录是基础能力，但不产生差异化（用户不会因为注册流程选择平台）</td>
+</tr>
+<tr>
+<td><strong>竞争差异化</strong></td>
+<td>2</td>
+<td>注册登录是行业标准（手机号、邮箱、第三方登录），无差异</td>
+</tr>
+<tr>
+<td><strong>变化频率</strong></td>
+<td>2</td>
+<td>很少变化，除非监管要求（如实名认证）</td>
+</tr>
+<tr>
+<td><strong>技术复杂度</strong></td>
+<td>3</td>
+<td>SSO、OAuth 2.0 都有成熟方案（Auth0、Keycloak）</td>
+</tr>
+<tr>
+<td><strong>总分</strong></td>
+<td><strong>10</strong></td>
+<td><strong>通用域</strong></td>
+</tr>
+</tbody></table>
+<p><strong>为什么是通用域？</strong></p>
+<ul>
+<li>注册登录不会成为平台的竞争优势</li>
+<li>市面上有大量成熟的身份认证服务</li>
+<li>自研的投入产出比很低</li>
+</ul>
+<p><strong>投资建议</strong>：</p>
+<ul>
+<li><strong>团队配置</strong>：外包或使用 SaaS 服务，内部只需 1 人对接</li>
+<li><strong>技术选型</strong>：采购（Auth0、Keycloak、AWS Cognito）</li>
+<li><strong>质量要求</strong>：依赖服务商 SLA（通常 99.95%+）</li>
+<li><strong>迭代策略</strong>：按需对接新的认证方式（如生物识别），最小投入</li>
+<li><strong>文档要求</strong>：对接文档即可</li>
+</ul>
+<h5 id="跨行业对比：方法论的通用性"><a href="#跨行业对比：方法论的通用性" class="headerlink" title="跨行业对比：方法论的通用性"></a>跨行业对比：方法论的通用性</h5><p>同样的方法论在不同行业如何应用？下表展示三个典型行业的域划分：</p>
+<table>
+<thead>
+<tr>
+<th>行业</th>
+<th>核心域（差异化竞争力）</th>
+<th>支撑域（业务必需）</th>
+<th>通用域（行业标准）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>电商</strong></td>
+<td>• 订单系统（交易流程）<br/>• 支付系统（资金安全）</td>
+<td>• 商品管理<br/>• 库存管理<br/>• 计价引擎<br/>• 营销系统</td>
+<td>• 用户认证<br/>• 搜索<br/>• 消息推送<br/>• 物流跟踪<br/>• 风控</td>
+</tr>
+<tr>
+<td><strong>金融</strong></td>
+<td>• 交易系统（买卖撮合）<br/>• 风控系统（反欺诈）</td>
+<td>• 账户系统<br/>• 清结算<br/>• 合规报送</td>
+<td>• 用户认证<br/>• 消息通知<br/>• 报表系统<br/>• 存储</td>
+</tr>
+<tr>
+<td><strong>SaaS</strong></td>
+<td>• 租户管理（多租户隔离）<br/>• 计费系统（订阅模式）</td>
+<td>• 权限系统（RBAC）<br/>• 审计日志<br/>• 集成中心（API）</td>
+<td>• 用户认证<br/>• 消息<br/>• 存储<br/>• 监控告警</td>
+</tr>
+</tbody></table>
+<p><strong>关键洞察</strong>：</p>
+<ol>
+<li><p><strong>核心域因行业而异</strong>：</p>
+<ul>
+<li>电商的核心是「交易流程」和「资金安全」</li>
+<li>金融的核心是「买卖撮合」和「风控合规」</li>
+<li>SaaS 的核心是「多租户」和「订阅计费」</li>
+<li>→ 核心域反映了行业的本质和竞争焦点</li>
+</ul>
+</li>
+<li><p><strong>通用域高度相似</strong>：</p>
+<ul>
+<li>用户、消息、存储在各行业都是通用域</li>
+<li>这些能力已经高度标准化，有大量成熟方案</li>
+<li>→ 通用域是「不需要重新发明轮子」的领域</li>
+</ul>
+</li>
+<li><p><strong>支撑域体现业务特点</strong>：</p>
+<ul>
+<li>电商的商品、库存、计价有一定特色，但不是核心竞争力</li>
+<li>金融的账户、清结算是必需的，但各家差异不大</li>
+<li>SaaS 的权限、审计是基础能力，但实现相对标准</li>
+<li>→ 支撑域是「需要理解业务，但可以参考业界实践」的领域</li>
+</ul>
+</li>
+</ol>
+<h5 id="实施策略与最佳实践"><a href="#实施策略与最佳实践" class="headerlink" title="实施策略与最佳实践"></a>实施策略与最佳实践</h5><h6 id="不同阶段的公司策略"><a href="#不同阶段的公司策略" class="headerlink" title="不同阶段的公司策略"></a>不同阶段的公司策略</h6><p><strong>初创公司（0-50 人）</strong>：</p>
+<ul>
+<li><strong>原则</strong>：极致聚焦核心域，其他全部采购&#x2F;开源</li>
+<li><strong>策略</strong>：<ul>
+<li>核心域：只自研 1-2 个最关键的（如电商的订单）</li>
+<li>支撑域：先用简单实现（如商品管理用 Excel 导入），快速验证商业模式</li>
+<li>通用域：全部采购（用户用 Auth0，消息用 Twilio，支付接 Stripe）</li>
+</ul>
+</li>
+<li><strong>避坑</strong>：不要陷入「造轮子」陷阱，技术实现不是早期核心竞争力</li>
+<li><strong>案例</strong>：Airbnb 早期只自研订单流程，其他全用第三方服务</li>
+</ul>
+<p><strong>成长期公司（50-500 人）</strong>：</p>
+<ul>
+<li><strong>原则</strong>：逐步替换通用域中的瓶颈，支撑域开始定制化</li>
+<li><strong>策略</strong>：<ul>
+<li>核心域：持续投入，保持技术领先</li>
+<li>支撑域：根据业务需求定制开发（如商品管理加入多品类支持）</li>
+<li>通用域：评估 ROI，替换成本高或限制业务的服务（如自建用户系统支持千万级用户）</li>
+</ul>
+</li>
+<li><strong>判断标准</strong>：第三方服务的成本 &gt; 自研成本，或功能无法满足需求</li>
+<li><strong>案例</strong>：用户量到 100 万后自建用户系统，但仍用第三方消息和支付</li>
+</ul>
+<p><strong>成熟公司（500+ 人）</strong>：</p>
+<ul>
+<li><strong>原则</strong>：核心域持续投入，支撑域定期优化，通用域评估自研 vs 采购</li>
+<li><strong>策略</strong>：<ul>
+<li>核心域：组建专家团队，引领行业创新</li>
+<li>支撑域：定期重构和性能优化</li>
+<li>通用域：当规模达到一定程度，某些通用域自研更划算（如 IM、推送）</li>
+</ul>
+</li>
+<li><strong>动态调整</strong>：支撑域可能升级为核心域（如推荐系统）</li>
+<li><strong>案例</strong>：淘宝自研了旺旺（IM），因为 IM 成为电商的差异化能力</li>
+</ul>
+<h6 id="域的动态演进"><a href="#域的动态演进" class="headerlink" title="域的动态演进"></a>域的动态演进</h6><p><strong>核心域可能降级</strong>：</p>
+<ul>
+<li>早期的核心创新逐渐变成行业标准</li>
+<li>案例：电商早期的「在线支付」是核心域（支付宝），现在是支撑域（各家都有）</li>
+</ul>
+<p><strong>支撑域可能升级</strong>：</p>
+<ul>
+<li>随着业务深入，某些支撑域变成核心竞争力</li>
+<li>案例：电商的「推荐系统」从支撑域升级为核心域（个性化推荐成为差异化）</li>
+</ul>
+<p><strong>通用域可能「去商品化」</strong>：</p>
+<ul>
+<li>某些通用域在特定场景下需要深度定制</li>
+<li>案例：SaaS 平台的「消息系统」，如果涉及大量自定义通知规则，可能需要自研</li>
+</ul>
+<p><strong>重新评估周期</strong>：</p>
+<ul>
+<li>初创公司：每 6 个月</li>
+<li>成长期公司：每年</li>
+<li>成熟公司：每 1-2 年</li>
+</ul>
+<h6 id="组织架构与域的映射"><a href="#组织架构与域的映射" class="headerlink" title="组织架构与域的映射"></a>组织架构与域的映射</h6><table>
+<thead>
+<tr>
+<th>域类型</th>
+<th>团队形式</th>
+<th>汇报关系</th>
+<th>优先级</th>
+<th>考核指标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>核心域</strong></td>
+<td>独立团队，最优秀的人</td>
+<td>直接向 CTO 汇报</td>
+<td>P0</td>
+<td>业务指标（GMV、转化率）</td>
+</tr>
+<tr>
+<td><strong>支撑域</strong></td>
+<td>共享团队，按项目分配</td>
+<td>向技术负责人汇报</td>
+<td>P1</td>
+<td>稳定性、响应速度</td>
+</tr>
+<tr>
+<td><strong>通用域</strong></td>
+<td>平台团队，工具化</td>
+<td>向基础架构负责人汇报</td>
+<td>P2</td>
+<td>可用性、成本</td>
+</tr>
+</tbody></table>
+<p><strong>关键原则</strong>：</p>
+<ul>
+<li>核心域团队有最高的决策权和资源优先级</li>
+<li>支撑域团队注重稳定性和效率</li>
+<li>通用域团队追求标准化和成本优化</li>
+</ul>
+<hr>
+<p><strong>总结</strong>：领域分层不是一成不变的，它是动态的、相对的。核心域反映了公司当前的战略重点，支撑域是业务运转的基础，通用域是「不重新发明轮子」的智慧。定期重新评估领域分类，确保资源投向最有价值的地方，这就是 DDD 战略设计的核心价值。</p>
+<h4 id="2-1-2-Bounded-Context（限界上下文）"><a href="#2-1-2-Bounded-Context（限界上下文）" class="headerlink" title="2.1.2 Bounded Context（限界上下文）"></a>2.1.2 Bounded Context（限界上下文）</h4><p>同一个”商品”在不同的上下文中有完全不同的含义：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐</span><br><span class="line">│   商品上下文      │     │   订单上下文      │     │   物流上下文      │</span><br><span class="line">│                  │     │                  │     │                  │</span><br><span class="line">│  商品 = SKU +    │     │  商品 = 商品快照 + │     │  商品 = 包裹 +    │</span><br><span class="line">│  价格 + 库存     │     │  购买数量 + 金额   │     │  重量 + 体积      │</span><br><span class="line">└─────────────────┘     └─────────────────┘     └─────────────────┘</span><br></pre></td></tr></table></figure>
+
+<p>不同上下文之间通过<strong>防腐层（Anti-Corruption Layer）</strong>或<strong>领域事件</strong>通信，避免概念混淆。</p>
+<h4 id="2-1-3-Context-Map（上下文映射）"><a href="#2-1-3-Context-Map（上下文映射）" class="headerlink" title="2.1.3 Context Map（上下文映射）"></a>2.1.3 Context Map（上下文映射）</h4><pre class="mermaid">graph LR
+    A[商品上下文] -->|发布领域事件| B[订单上下文]
+    B -->|调用防腐层| C[支付上下文]
+    B -->|发布领域事件| D[物流上下文]
+    A -->|共享内核| E[库存上下文]</pre>
+
+<h3 id="2-2-战术设计：代码层面"><a href="#2-2-战术设计：代码层面" class="headerlink" title="2.2 战术设计：代码层面"></a>2.2 战术设计：代码层面</h3><p>DDD 的战术设计关注的是代码层面的实现：如何用聚合、实体、值对象等战术模式编写高质量的领域模型。</p>
+<h4 id="2-2-1-战术设计概述"><a href="#2-2-1-战术设计概述" class="headerlink" title="2.2.1 战术设计概述"></a>2.2.1 战术设计概述</h4><table>
+<thead>
+<tr>
+<th>概念</th>
+<th>定义</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Aggregate（聚合）</strong></td>
+<td>一组相关对象的集合，确保数据的一致性边界</td>
+<td><code>Order</code> 聚合包含 <code>OrderItem</code> 列表</td>
+</tr>
+<tr>
+<td><strong>Aggregate Root（聚合根）</strong></td>
+<td>聚合的入口对象，外部只能通过它访问聚合</td>
+<td><code>Order</code> 是聚合根，<code>OrderItem</code> 不能被单独访问</td>
+</tr>
+<tr>
+<td><strong>Entity（实体）</strong></td>
+<td>有唯一标识的对象，按 ID 区分</td>
+<td><code>User</code>（不同 ID &#x3D; 不同用户）</td>
+</tr>
+<tr>
+<td><strong>Value Object（值对象）</strong></td>
+<td>没有唯一标识，仅由属性定义</td>
+<td><code>Money(100, &quot;USD&quot;)</code>、<code>Address</code></td>
+</tr>
+<tr>
+<td><strong>Domain Event（领域事件）</strong></td>
+<td>领域中发生的有意义的事实</td>
+<td><code>OrderPlaced</code>、<code>PaymentCompleted</code></td>
+</tr>
+<tr>
+<td><strong>Domain Service（领域服务）</strong></td>
+<td>不属于任何实体的业务逻辑</td>
+<td>跨聚合的转账操作</td>
+</tr>
+</tbody></table>
+<h4 id="Go-代码示例：Order-聚合"><a href="#Go-代码示例：Order-聚合" class="headerlink" title="Go 代码示例：Order 聚合"></a>Go 代码示例：Order 聚合</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// domain/order.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> OrderID <span class="type">string</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Order <span class="keyword">struct</span> &#123;</span><br><span class="line">    id         OrderID</span><br><span class="line">    customerID <span class="type">string</span></span><br><span class="line">    items      []OrderItem</span><br><span class="line">    status     OrderStatus</span><br><span class="line">    totalPrice Money</span><br><span class="line">    createdAt  time.Time</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 聚合根通过方法保护业务不变量</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *Order)</span></span> AddItem(product Product, qty <span class="type">int</span>) <span class="type">error</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> o.status != OrderStatusDraft &#123;</span><br><span class="line">        <span class="keyword">return</span> ErrOrderNotEditable</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> qty &lt;= <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> ErrInvalidQuantity</span><br><span class="line">    &#125;</span><br><span class="line">    item := NewOrderItem(product, qty)</span><br><span class="line">    o.items = <span class="built_in">append</span>(o.items, item)</span><br><span class="line">    o.recalculateTotal()</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *Order)</span></span> Place() ([]DomainEvent, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(o.items) == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, ErrEmptyOrder</span><br><span class="line">    &#125;</span><br><span class="line">    o.status = OrderStatusPlaced</span><br><span class="line">    <span class="keyword">return</span> []DomainEvent&#123;</span><br><span class="line">        OrderPlacedEvent&#123;OrderID: o.id, Total: o.totalPrice, At: time.Now()&#125;,</span><br><span class="line">    &#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// domain/money.go — Value Object</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Money <span class="keyword">struct</span> &#123;</span><br><span class="line">    Amount   <span class="type">int64</span>  <span class="comment">// 分为单位，避免浮点精度问题</span></span><br><span class="line">    Currency <span class="type">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m Money)</span></span> Add(other Money) (Money, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> m.Currency != other.Currency &#123;</span><br><span class="line">        <span class="keyword">return</span> Money&#123;&#125;, ErrCurrencyMismatch</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> Money&#123;Amount: m.Amount + other.Amount, Currency: m.Currency&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-Ubiquitous-Language（通用语言）"><a href="#2-3-Ubiquitous-Language（通用语言）" class="headerlink" title="2.3 Ubiquitous Language（通用语言）"></a>2.3 Ubiquitous Language（通用语言）</h3><p>开发者和业务专家用<strong>同一套词汇</strong>交流，代码里的变量名就是业务里的术语：</p>
+<table>
+<thead>
+<tr>
+<th>业务术语</th>
+<th>代码命名</th>
+<th>反面教材</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>下单</td>
+<td><code>Order.Place()</code></td>
+<td><code>Order.SetStatus(1)</code></td>
+</tr>
+<tr>
+<td>加入购物车</td>
+<td><code>Cart.AddItem()</code></td>
+<td><code>Cart.Insert()</code></td>
+</tr>
+<tr>
+<td>发起退款</td>
+<td><code>Refund.Initiate()</code></td>
+<td><code>Refund.Create()</code></td>
+</tr>
+<tr>
+<td>库存扣减</td>
+<td><code>Stock.Deduct()</code></td>
+<td><code>Stock.Update()</code></td>
+</tr>
+</tbody></table>
+<h3 id="2-4-核心价值"><a href="#2-4-核心价值" class="headerlink" title="2.4 核心价值"></a>2.4 核心价值</h3><p>解决”代码写着写着就成了屎山”的问题。它让代码结构高度贴合业务逻辑，而不是技术实现。</p>
+<h3 id="2-5-Aggregate-设计原则"><a href="#2-5-Aggregate-设计原则" class="headerlink" title="2.5 Aggregate 设计原则"></a>2.5 Aggregate 设计原则</h3><p>聚合设计是 DDD 战术层面最难的部分。三条核心原则：</p>
+<h4 id="原则一：一个事务只修改一个聚合"><a href="#原则一：一个事务只修改一个聚合" class="headerlink" title="原则一：一个事务只修改一个聚合"></a>原则一：一个事务只修改一个聚合</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ❌ 反例：一个事务同时修改 Order 和 Inventory 两个聚合</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *OrderService)</span></span> PlaceOrder(ctx context.Context, cmd PlaceOrderCmd) <span class="type">error</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> s.txManager.RunInTx(ctx, <span class="function"><span class="keyword">func</span><span class="params">(tx *sql.Tx)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">        order := domain.NewOrder(cmd.CustomerID)</span><br><span class="line">        order.AddItem(cmd.ProductID, cmd.Qty)</span><br><span class="line">        order.Place()</span><br><span class="line">        s.orderRepo.SaveTx(tx, order)      <span class="comment">// 修改 Order 聚合</span></span><br><span class="line">        s.inventoryRepo.DeductTx(tx, cmd.ProductID, cmd.Qty) <span class="comment">// ← 同时修改 Inventory 聚合</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ✅ 正例：通过领域事件实现跨聚合协作</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *OrderService)</span></span> PlaceOrder(ctx context.Context, cmd PlaceOrderCmd) <span class="type">error</span> &#123;</span><br><span class="line">    order := domain.NewOrder(cmd.CustomerID)</span><br><span class="line">    order.AddItem(cmd.ProductID, cmd.Qty)</span><br><span class="line">    events, err := order.Place()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> err := s.orderRepo.Save(ctx, order); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    s.eventBus.Publish(ctx, events...) <span class="comment">// OrderPlacedEvent → Inventory 服务异步消费</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// inventory 服务的事件处理器</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *InventoryEventHandler)</span></span> OnOrderPlaced(ctx context.Context, e OrderPlacedEvent) <span class="type">error</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> h.stock.Deduct(ctx, e.ProductID, e.Qty)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="原则二：小聚合优于大聚合"><a href="#原则二：小聚合优于大聚合" class="headerlink" title="原则二：小聚合优于大聚合"></a>原则二：小聚合优于大聚合</h4><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>小聚合</th>
+<th>大聚合</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>并发冲突</td>
+<td>低（锁粒度小）</td>
+<td>高（整个大聚合被锁）</td>
+</tr>
+<tr>
+<td>内存占用</td>
+<td>小（按需加载）</td>
+<td>大（整棵树一次加载）</td>
+</tr>
+<tr>
+<td>一致性范围</td>
+<td>单个核心不变量</td>
+<td>多个不变量混在一起</td>
+</tr>
+<tr>
+<td>适用场景</td>
+<td>高并发写入</td>
+<td>强一致性要求的小规模数据</td>
+</tr>
+</tbody></table>
+<p><strong>判断标准</strong>：如果两个实体之间没有需要在同一个事务中保护的<strong>业务不变量</strong>，就应该拆成两个聚合。</p>
+<h4 id="原则三：通过-ID-引用其他聚合"><a href="#原则三：通过-ID-引用其他聚合" class="headerlink" title="原则三：通过 ID 引用其他聚合"></a>原则三：通过 ID 引用其他聚合</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ❌ 聚合内直接持有另一个聚合的引用</span></span><br><span class="line"><span class="keyword">type</span> Order <span class="keyword">struct</span> &#123;</span><br><span class="line">    customer *Customer  <span class="comment">// 直接引用 → 加载 Order 时被迫加载 Customer</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ✅ 通过 ID 引用</span></span><br><span class="line"><span class="keyword">type</span> Order <span class="keyword">struct</span> &#123;</span><br><span class="line">    customerID CustomerID  <span class="comment">// 只存 ID，需要时按需查询</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-6-Repository-深入：Unit-of-Work-模式"><a href="#2-6-Repository-深入：Unit-of-Work-模式" class="headerlink" title="2.6 Repository 深入：Unit of Work 模式"></a>2.6 Repository 深入：Unit of Work 模式</h3><p>标准 Repository 每个操作独立，但有时需要在一个事务中协调多个 Repository（例如保存聚合根 + 写 Outbox 表）。Unit of Work 模式解决这个问题：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// domain/uow.go — 领域层定义接口</span></span><br><span class="line"><span class="keyword">type</span> UnitOfWork <span class="keyword">interface</span> &#123;</span><br><span class="line">    OrderRepo() OrderRepository</span><br><span class="line">    OutboxRepo() OutboxRepository</span><br><span class="line">    Commit(ctx context.Context) <span class="type">error</span></span><br><span class="line">    Rollback(ctx context.Context) <span class="type">error</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// infrastructure/uow_impl.go — 基础设施层实现</span></span><br><span class="line"><span class="keyword">type</span> mysqlUnitOfWork <span class="keyword">struct</span> &#123;</span><br><span class="line">    tx        *sql.Tx</span><br><span class="line">    orderRepo *MySQLOrderRepo</span><br><span class="line">    outboxRepo *MySQLOutboxRepo</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewUnitOfWork</span><span class="params">(db *sql.DB)</span></span> (UnitOfWork, <span class="type">error</span>) &#123;</span><br><span class="line">    tx, err := db.Begin()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> &amp;mysqlUnitOfWork&#123;</span><br><span class="line">        tx:         tx,</span><br><span class="line">        orderRepo:  &amp;MySQLOrderRepo&#123;tx: tx&#125;,</span><br><span class="line">        outboxRepo: &amp;MySQLOutboxRepo&#123;tx: tx&#125;,</span><br><span class="line">    &#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *mysqlUnitOfWork)</span></span> OrderRepo() OrderRepository  &#123; <span class="keyword">return</span> u.orderRepo &#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *mysqlUnitOfWork)</span></span> OutboxRepo() OutboxRepository &#123; <span class="keyword">return</span> u.outboxRepo &#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *mysqlUnitOfWork)</span></span> Commit(ctx context.Context) <span class="type">error</span>   &#123; <span class="keyword">return</span> u.tx.Commit() &#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(u *mysqlUnitOfWork)</span></span> Rollback(ctx context.Context) <span class="type">error</span> &#123; <span class="keyword">return</span> u.tx.Rollback() &#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// application/command/place_order.go — Use Case 使用 UoW</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *PlaceOrderHandler)</span></span> Handle(ctx context.Context, cmd PlaceOrderCmd) <span class="type">error</span> &#123;</span><br><span class="line">    uow, err := h.uowFactory(ctx)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">defer</span> uow.Rollback(ctx)</span><br><span class="line"></span><br><span class="line">    order := domain.NewOrder(cmd.CustomerID)</span><br><span class="line">    events, err := order.Place()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err := uow.OrderRepo().Save(ctx, order); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> _, e := <span class="keyword">range</span> events &#123;</span><br><span class="line">        <span class="keyword">if</span> err := uow.OutboxRepo().Save(ctx, toOutboxEntry(e)); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> err</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> uow.Commit(ctx)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-7-领域事件异步化：Outbox-Pattern"><a href="#2-7-领域事件异步化：Outbox-Pattern" class="headerlink" title="2.7 领域事件异步化：Outbox Pattern"></a>2.7 领域事件异步化：Outbox Pattern</h3><p><strong>问题</strong>：保存聚合到数据库后，还要发送事件到 Kafka。这两个操作无法在一个事务中完成（双写问题）。如果先写 DB 再发 Kafka，发送失败则事件丢失；如果先发 Kafka 再写 DB，写 DB 失败则产生幽灵事件。</p>
+<p><strong>解法</strong>：Outbox Pattern——将事件写入本地数据库的 Outbox 表（与业务数据同一事务），再由独立的 Relay 进程异步发送到 Kafka。</p>
+<pre class="mermaid">sequenceDiagram
+    participant App as Application
+    participant DB as MySQL
+    participant Relay as Outbox Relay
+    participant MQ as Kafka
+
+    App->>DB: BEGIN TX
+    App->>DB: INSERT orders (聚合数据)
+    App->>DB: INSERT outbox (领域事件)
+    App->>DB: COMMIT TX
+    
+    loop 定期轮询
+        Relay->>DB: SELECT * FROM outbox WHERE status='pending'
+        Relay->>MQ: Publish(event)
+        MQ-->>Relay: ACK
+        Relay->>DB: UPDATE outbox SET status='sent'
+    end</pre>
+
+<h4 id="Outbox-表设计"><a href="#Outbox-表设计" class="headerlink" title="Outbox 表设计"></a>Outbox 表设计</h4><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> outbox (</span><br><span class="line">    id          <span class="type">BIGINT</span> AUTO_INCREMENT <span class="keyword">PRIMARY</span> KEY,</span><br><span class="line">    event_type  <span class="type">VARCHAR</span>(<span class="number">128</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">    event_key   <span class="type">VARCHAR</span>(<span class="number">128</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">    payload     JSON <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">    status      ENUM(<span class="string">&#x27;pending&#x27;</span>, <span class="string">&#x27;sent&#x27;</span>, <span class="string">&#x27;failed&#x27;</span>) <span class="keyword">DEFAULT</span> <span class="string">&#x27;pending&#x27;</span>,</span><br><span class="line">    created_at  <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span>,</span><br><span class="line">    sent_at     <span class="type">TIMESTAMP</span> <span class="keyword">NULL</span>,</span><br><span class="line">    retry_count <span class="type">INT</span> <span class="keyword">DEFAULT</span> <span class="number">0</span>,</span><br><span class="line">    INDEX idx_status_created (status, created_at)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<h4 id="Relay-实现"><a href="#Relay-实现" class="headerlink" title="Relay 实现"></a>Relay 实现</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *OutboxRelay)</span></span> Run(ctx context.Context) &#123;</span><br><span class="line">    ticker := time.NewTicker(<span class="number">500</span> * time.Millisecond)</span><br><span class="line">    <span class="keyword">defer</span> ticker.Stop()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> &lt;-ctx.Done():</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        <span class="keyword">case</span> &lt;-ticker.C:</span><br><span class="line">            entries, err := r.outboxRepo.FetchPending(ctx, <span class="number">100</span>)</span><br><span class="line">            <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                slog.Error(<span class="string">&quot;fetch outbox failed&quot;</span>, <span class="string">&quot;error&quot;</span>, err)</span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">for</span> _, entry := <span class="keyword">range</span> entries &#123;</span><br><span class="line">                <span class="keyword">if</span> err := r.producer.Publish(ctx, entry.EventType, entry.EventKey, entry.Payload); err != <span class="literal">nil</span> &#123;</span><br><span class="line">                    slog.Error(<span class="string">&quot;publish event failed&quot;</span>, <span class="string">&quot;id&quot;</span>, entry.ID, <span class="string">&quot;error&quot;</span>, err)</span><br><span class="line">                    r.outboxRepo.MarkFailed(ctx, entry.ID)</span><br><span class="line">                    <span class="keyword">continue</span></span><br><span class="line">                &#125;</span><br><span class="line">                r.outboxRepo.MarkSent(ctx, entry.ID)</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>关键保证</strong>：</p>
+<ul>
+<li><strong>At-least-once delivery</strong>：Relay 崩溃后重启会重新发送 pending 的事件，消费者必须做幂等处理</li>
+<li><strong>顺序保证</strong>：按 <code>created_at</code> 顺序拉取，同一 <code>event_key</code> 的事件保持顺序</li>
+<li><strong>死信处理</strong>：<code>retry_count &gt; 5</code> 的事件转入死信表，人工介入</li>
+</ul>
+<hr>
+<h2 id="三、CQRS（命令查询职责分离）—-核心是”读写分离”"><a href="#三、CQRS（命令查询职责分离）—-核心是”读写分离”" class="headerlink" title="三、CQRS（命令查询职责分离）— 核心是”读写分离”"></a>三、CQRS（命令查询职责分离）— 核心是”读写分离”</h2><p>CQRS 的逻辑非常直白：处理”改变数据”（Command）的逻辑和处理”读取数据”（Query）的逻辑应该<strong>完全分开</strong>。</p>
+<h3 id="3-1-为什么要分？"><a href="#3-1-为什么要分？" class="headerlink" title="3.1 为什么要分？"></a>3.1 为什么要分？</h3><p>在复杂系统中，写的逻辑和读的需求往往是<strong>矛盾的</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>写（Command）</th>
+<th>读（Query）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>关注点</td>
+<td>业务规则、校验、权限、事务</td>
+<td>跨表关联、全文搜索、分页排序</td>
+</tr>
+<tr>
+<td>数据模型</td>
+<td>范式化（3NF），保证一致性</td>
+<td>反范式化（宽表），优化查询速度</td>
+</tr>
+<tr>
+<td>性能目标</td>
+<td>保证正确性 &gt; 速度</td>
+<td>保证速度 &gt; 实时性</td>
+</tr>
+<tr>
+<td>扩展方式</td>
+<td>垂直扩展（事务安全）</td>
+<td>水平扩展（读副本、缓存）</td>
+</tr>
+<tr>
+<td>典型存储</td>
+<td>MySQL, PostgreSQL</td>
+<td>Elasticsearch, Redis, ClickHouse</td>
+</tr>
+</tbody></table>
+<h3 id="3-2-架构全景"><a href="#3-2-架构全景" class="headerlink" title="3.2 架构全景"></a>3.2 架构全景</h3><pre class="mermaid">flowchart LR
+    subgraph 写路径 Command Side
+        A[Client] -->|Command| B[Command Handler]
+        B --> C[Domain Model / Aggregate]
+        C --> D[(Write DB - MySQL)]
+        C -->|Domain Event| E[Event Bus]
+    end
+
+    subgraph 读路径 Query Side
+        E -->|同步/异步投影| F[Read Model Builder]
+        F --> G[(Read DB - ES/Redis)]
+        H[Client] -->|Query| I[Query Handler]
+        I --> G
+    end</pre>
+
+<h3 id="3-3-Command-与-Query-的设计"><a href="#3-3-Command-与-Query-的设计" class="headerlink" title="3.3 Command 与 Query 的设计"></a>3.3 Command 与 Query 的设计</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Command — 表达意图，不返回业务数据</span></span><br><span class="line"><span class="keyword">type</span> PlaceOrderCommand <span class="keyword">struct</span> &#123;</span><br><span class="line">    CustomerID <span class="type">string</span></span><br><span class="line">    Items      []OrderItemDTO</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> CommandResult <span class="keyword">struct</span> &#123;</span><br><span class="line">    Success <span class="type">bool</span></span><br><span class="line">    ID      <span class="type">string</span></span><br><span class="line">    Error   <span class="type">error</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Command Handler — 走领域模型，执行业务逻辑</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *OrderCommandHandler)</span></span> PlaceOrder(ctx context.Context, cmd PlaceOrderCommand) CommandResult &#123;</span><br><span class="line">    order := domain.NewOrder(cmd.CustomerID)</span><br><span class="line">    <span class="keyword">for</span> _, item := <span class="keyword">range</span> cmd.Items &#123;</span><br><span class="line">        <span class="keyword">if</span> err := order.AddItem(item.ProductID, item.Qty); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> CommandResult&#123;Error: err&#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    events, err := order.Place()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> CommandResult&#123;Error: err&#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> err := h.repo.Save(ctx, order); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> CommandResult&#123;Error: err&#125;</span><br><span class="line">    &#125;</span><br><span class="line">    h.eventBus.Publish(ctx, events...)</span><br><span class="line">    <span class="keyword">return</span> CommandResult&#123;Success: <span class="literal">true</span>, ID: <span class="type">string</span>(order.ID())&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Query — 直接返回展示层需要的 DTO，不触发任何业务逻辑</span></span><br><span class="line"><span class="keyword">type</span> OrderDetailQuery <span class="keyword">struct</span> &#123;</span><br><span class="line">    OrderID <span class="type">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> OrderDetailDTO <span class="keyword">struct</span> &#123;</span><br><span class="line">    OrderID     <span class="type">string</span>        <span class="string">`json:&quot;order_id&quot;`</span></span><br><span class="line">    CustomerName <span class="type">string</span>       <span class="string">`json:&quot;customer_name&quot;`</span></span><br><span class="line">    Items       []ItemDTO     <span class="string">`json:&quot;items&quot;`</span></span><br><span class="line">    TotalPrice  <span class="type">string</span>        <span class="string">`json:&quot;total_price&quot;`</span></span><br><span class="line">    Status      <span class="type">string</span>        <span class="string">`json:&quot;status&quot;`</span></span><br><span class="line">    CreatedAt   <span class="type">string</span>        <span class="string">`json:&quot;created_at&quot;`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Query Handler — 绕过领域模型，直接从读库获取</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *OrderQueryHandler)</span></span> GetOrderDetail(ctx context.Context, q OrderDetailQuery) (*OrderDetailDTO, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> h.readDB.FindOrderDetail(ctx, q.OrderID)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-4-核心价值"><a href="#3-4-核心价值" class="headerlink" title="3.4 核心价值"></a>3.4 核心价值</h3><p><strong>极致的性能优化</strong>。你可以针对写操作使用关系型数据库（保证强一致性），针对读操作使用 Elasticsearch 或 Redis（保证高并发）。读写模型可以<strong>独立扩展、独立优化</strong>。</p>
+<h3 id="3-5-Event-Sourcing：事件溯源"><a href="#3-5-Event-Sourcing：事件溯源" class="headerlink" title="3.5 Event Sourcing：事件溯源"></a>3.5 Event Sourcing：事件溯源</h3><p>Event Sourcing 经常和 CQRS 一起被提及，但它们是<strong>独立的概念</strong>，可以单独使用，也可以组合使用。</p>
+<h4 id="核心思想"><a href="#核心思想" class="headerlink" title="核心思想"></a>核心思想</h4><p>传统方式存储的是<strong>当前状态</strong>（state），Event Sourcing 存储的是<strong>导致状态变化的事件序列</strong>（events）。当前状态通过重放事件计算得出。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">传统方式：</span><br><span class="line">  orders 表: &#123;id: 1, status: &quot;paid&quot;, total: 200, updated_at: &quot;2026-04-07&quot;&#125;</span><br><span class="line"></span><br><span class="line">Event Sourcing：</span><br><span class="line">  events 表:</span><br><span class="line">    &#123;seq: 1, type: &quot;OrderCreated&quot;,  data: &#123;id: 1, customer: &quot;alice&quot;&#125;&#125;</span><br><span class="line">    &#123;seq: 2, type: &quot;ItemAdded&quot;,     data: &#123;product: &quot;shoe&quot;, price: 100, qty: 2&#125;&#125;</span><br><span class="line">    &#123;seq: 3, type: &quot;OrderPlaced&quot;,   data: &#123;total: 200&#125;&#125;</span><br><span class="line">    &#123;seq: 4, type: &quot;PaymentReceived&quot;, data: &#123;amount: 200, method: &quot;credit_card&quot;&#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="与-CQRS-的关系"><a href="#与-CQRS-的关系" class="headerlink" title="与 CQRS 的关系"></a>与 CQRS 的关系</h4><pre class="mermaid">graph LR
+    A[CQRS] --- B[可以独立使用]
+    C[Event Sourcing] --- B
+    A --- D[组合使用效果最佳]
+    C --- D
+    D --> E[写侧用事件存储<br/>读侧用物化视图]</pre>
+
+<ul>
+<li><strong>只用 CQRS 不用 ES</strong>：写侧用普通数据库，读侧用独立的读模型。最常见的方式。</li>
+<li><strong>只用 ES 不用 CQRS</strong>：事件存储 + 重放计算状态，读写用同一个模型。适合审计场景。</li>
+<li><strong>CQRS + ES</strong>：写侧用事件存储，读侧通过投影事件构建物化视图。适合金融、交易系统。</li>
+</ul>
+<h4 id="适用与不适用场景"><a href="#适用与不适用场景" class="headerlink" title="适用与不适用场景"></a>适用与不适用场景</h4><table>
+<thead>
+<tr>
+<th>适用</th>
+<th>不适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>需要完整审计追踪（金融、合规）</td>
+<td>简单 CRUD 应用</td>
+</tr>
+<tr>
+<td>需要时间旅行&#x2F;回放（调试、分析）</td>
+<td>高频更新的状态（计数器、在线人数）</td>
+</tr>
+<tr>
+<td>事件本身有业务价值</td>
+<td>数据模型频繁变更</td>
+</tr>
+<tr>
+<td>需要撤销&#x2F;补偿操作</td>
+<td>团队对 ES 没有经验且交期紧</td>
+</tr>
+</tbody></table>
+<h3 id="3-6-最终一致性处理策略"><a href="#3-6-最终一致性处理策略" class="headerlink" title="3.6 最终一致性处理策略"></a>3.6 最终一致性处理策略</h3><p>引入 CQRS 后，写模型和读模型之间存在<strong>延迟</strong>（通常毫秒到秒级）。这需要在架构层面和用户体验层面同时处理。</p>
+<h4 id="架构层面"><a href="#架构层面" class="headerlink" title="架构层面"></a>架构层面</h4><p><strong>策略一：幂等消费</strong></p>
+<p>投影器可能收到重复事件（at-least-once delivery），必须做幂等处理：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *OrderProjector)</span></span> Project(ctx context.Context, event DomainEvent) <span class="type">error</span> &#123;</span><br><span class="line">    exists, err := p.readDB.EventProcessed(ctx, event.ID())</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> exists &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span> <span class="comment">// 幂等：已处理过，跳过</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">switch</span> e := event.(<span class="keyword">type</span>) &#123;</span><br><span class="line">    <span class="keyword">case</span> OrderPlacedEvent:</span><br><span class="line">        dto := OrderDetailDTO&#123;</span><br><span class="line">            OrderID:    <span class="type">string</span>(e.OrderID),</span><br><span class="line">            Status:     <span class="string">&quot;placed&quot;</span>,</span><br><span class="line">            TotalPrice: e.Total.String(),</span><br><span class="line">            CreatedAt:  e.At.Format(time.RFC3339),</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> err := p.readDB.Upsert(ctx, dto); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> err</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> p.readDB.MarkEventProcessed(ctx, event.ID())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>策略二：补偿事务（Saga）</strong></p>
+<p>当跨服务操作中某一步失败，通过发布补偿事件回滚前面的步骤：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">正向流程：CreateOrder → ReserveStock → ChargePayment</span><br><span class="line">补偿流程：                ReleaseStock ← RefundPayment ← PaymentFailed</span><br></pre></td></tr></table></figure>
+
+<h4 id="用户体验层面"><a href="#用户体验层面" class="headerlink" title="用户体验层面"></a>用户体验层面</h4><p><strong>Optimistic UI（乐观更新）</strong>：前端在发送 Command 后立即更新 UI，不等待读模型同步。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">用户点击&quot;下单&quot; </span><br><span class="line">  → 前端立即显示&quot;订单已创建&quot;（乐观更新）</span><br><span class="line">  → 后端 Command 异步处理</span><br><span class="line">  → 读模型延迟 200ms 后更新</span><br><span class="line">  → 用户下次刷新时看到真实状态</span><br></pre></td></tr></table></figure>
+
+<p><strong>Read-your-writes</strong>：Command 成功后返回版本号，Query 时带上版本号，确保读到的是自己写入之后的数据。</p>
+<h3 id="3-7-投影器（Projector）实现模式"><a href="#3-7-投影器（Projector）实现模式" class="headerlink" title="3.7 投影器（Projector）实现模式"></a>3.7 投影器（Projector）实现模式</h3><p>投影器是 CQRS 架构中将<strong>领域事件</strong>转化为<strong>读模型</strong>的组件。</p>
+<pre class="mermaid">flowchart LR
+    A[Event Store / MQ] --> B[Projector]
+    B --> C[(Read DB)]
+    
+    B --> D{事件类型路由}
+    D -->|OrderPlaced| E[创建订单读模型]
+    D -->|ItemAdded| F[更新商品明细]
+    D -->|OrderCancelled| G[标记订单取消]</pre>
+
+<h4 id="完整实现"><a href="#完整实现" class="headerlink" title="完整实现"></a>完整实现</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// adapter/projection/projector.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Projector <span class="keyword">interface</span> &#123;</span><br><span class="line">    Handles() []<span class="type">string</span> <span class="comment">// 返回该 Projector 关心的事件类型列表</span></span><br><span class="line">    Project(ctx context.Context, event DomainEvent) <span class="type">error</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> OrderReadModelProjector <span class="keyword">struct</span> &#123;</span><br><span class="line">    readDB ReadModelRepository</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *OrderReadModelProjector)</span></span> Handles() []<span class="type">string</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> []<span class="type">string</span>&#123;<span class="string">&quot;OrderPlaced&quot;</span>, <span class="string">&quot;OrderCancelled&quot;</span>, <span class="string">&quot;ItemAdded&quot;</span>, <span class="string">&quot;PaymentCompleted&quot;</span>&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *OrderReadModelProjector)</span></span> Project(ctx context.Context, event DomainEvent) <span class="type">error</span> &#123;</span><br><span class="line">    <span class="keyword">switch</span> e := event.(<span class="keyword">type</span>) &#123;</span><br><span class="line">    <span class="keyword">case</span> OrderPlacedEvent:</span><br><span class="line">        <span class="keyword">return</span> p.readDB.Upsert(ctx, OrderReadModel&#123;</span><br><span class="line">            OrderID:   <span class="type">string</span>(e.OrderID),</span><br><span class="line">            Status:    <span class="string">&quot;placed&quot;</span>,</span><br><span class="line">            Total:     e.Total.Amount,</span><br><span class="line">            Currency:  e.Total.Currency,</span><br><span class="line">            CreatedAt: e.At,</span><br><span class="line">        &#125;)</span><br><span class="line">    <span class="keyword">case</span> OrderCancelledEvent:</span><br><span class="line">        <span class="keyword">return</span> p.readDB.UpdateStatus(ctx, <span class="type">string</span>(e.OrderID), <span class="string">&quot;cancelled&quot;</span>)</span><br><span class="line">    <span class="keyword">case</span> PaymentCompletedEvent:</span><br><span class="line">        <span class="keyword">return</span> p.readDB.UpdateStatus(ctx, <span class="type">string</span>(e.OrderID), <span class="string">&quot;paid&quot;</span>)</span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="投影器的运行模式"><a href="#投影器的运行模式" class="headerlink" title="投影器的运行模式"></a>投影器的运行模式</h4><table>
+<thead>
+<tr>
+<th>模式</th>
+<th>机制</th>
+<th>延迟</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>同步投影</strong></td>
+<td>Command Handler 执行完后同步调用 Projector</td>
+<td>零延迟</td>
+<td>读写在同一进程、低吞吐</td>
+</tr>
+<tr>
+<td><strong>异步投影</strong></td>
+<td>事件通过 MQ 传递，Projector 独立消费</td>
+<td>毫秒~秒级</td>
+<td>高吞吐、读写分离部署</td>
+</tr>
+<tr>
+<td><strong>Catch-up 投影</strong></td>
+<td>Projector 从事件存储按序号拉取事件</td>
+<td>可控</td>
+<td>重建读模型、新增投影视图</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="四、三者如何联手？"><a href="#四、三者如何联手？" class="headerlink" title="四、三者如何联手？"></a>四、三者如何联手？</h2><p>在现代大型微服务或复杂单体中，它们通常是这样组合的：</p>
+<h3 id="4-1-协作关系"><a href="#4-1-协作关系" class="headerlink" title="4.1 协作关系"></a>4.1 协作关系</h3><pre class="mermaid">graph TB
+    subgraph "Clean Architecture 提供分层骨架"
+        direction TB
+        E[Entity Layer]
+        U[Use Case Layer]
+        A[Adapter Layer]
+        F[Framework Layer]
+        F --> A --> U --> E
+    end
+
+    subgraph "DDD 填充业务建模"
+        direction TB
+        AG[Aggregate Root]
+        VO[Value Object]
+        DE[Domain Event]
+        DS[Domain Service]
+    end
+
+    subgraph "CQRS 优化数据流转"
+        direction TB
+        CMD[Command Path]
+        QRY[Query Path]
+    end
+
+    E --- AG
+    E --- VO
+    U --- CMD
+    U --- QRY
+    U --- DE
+    U --- DS</pre>
+
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Clean Architecture（架构底座）</strong></td>
+<td>定义目录结构和依赖方向，确保领域层位于中心，不依赖外部技术</td>
+</tr>
+<tr>
+<td><strong>DDD（核心建模）</strong></td>
+<td>在 Entity 和 Use Cases 层中，利用聚合根、实体和领域服务编写复杂的业务逻辑</td>
+</tr>
+<tr>
+<td><strong>CQRS（数据流转）</strong></td>
+<td>在 Use Cases 层进行读写拆分：写操作走 DDD 的领域模型（Command），读操作绕过复杂的领域模型，直接通过 DTO 投影（Query）到前端</td>
+</tr>
+</tbody></table>
+<h3 id="4-2-在-Go-项目中的落地结构"><a href="#4-2-在-Go-项目中的落地结构" class="headerlink" title="4.2 在 Go 项目中的落地结构"></a>4.2 在 Go 项目中的落地结构</h3><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">myapp/</span><br><span class="line">├── cmd/</span><br><span class="line">│   └── server/main.go              # 启动入口 &amp; 依赖注入</span><br><span class="line">│</span><br><span class="line">├── domain/                          # ← Clean Arch: Entity 层</span><br><span class="line">│   ├── order/                       # ← DDD: Order 聚合</span><br><span class="line">│   │   ├── order.go                 #   聚合根</span><br><span class="line">│   │   ├── order_item.go            #   实体</span><br><span class="line">│   │   ├── money.go                 #   值对象</span><br><span class="line">│   │   ├── events.go                #   领域事件</span><br><span class="line">│   │   └── repository.go           #   仓储接口（Port）</span><br><span class="line">│   └── inventory/                   # ← DDD: Inventory 聚合</span><br><span class="line">│       ├── stock.go</span><br><span class="line">│       └── repository.go</span><br><span class="line">│</span><br><span class="line">├── application/                     # ← Clean Arch: Use Case 层</span><br><span class="line">│   ├── command/                     # ← CQRS: 写路径</span><br><span class="line">│   │   ├── place_order.go</span><br><span class="line">│   │   └── cancel_order.go</span><br><span class="line">│   └── query/                       # ← CQRS: 读路径</span><br><span class="line">│       ├── order_detail.go</span><br><span class="line">│       └── order_list.go</span><br><span class="line">│</span><br><span class="line">├── adapter/                         # ← Clean Arch: Interface Adapter 层</span><br><span class="line">│   ├── inbound/</span><br><span class="line">│   │   ├── http/                    #   HTTP handler</span><br><span class="line">│   │   └── grpc/                    #   gRPC handler</span><br><span class="line">│   ├── outbound/</span><br><span class="line">│   │   ├── persistence/             #   Write DB 实现</span><br><span class="line">│   │   ├── readmodel/               #   Read DB 实现</span><br><span class="line">│   │   └── messaging/               #   Event Bus 实现</span><br><span class="line">│   └── projection/                  #   事件 → 读模型的投影器</span><br><span class="line">│</span><br><span class="line">└── infra/                           # ← Clean Arch: Frameworks &amp; Drivers 层</span><br><span class="line">    ├── mysql/</span><br><span class="line">    ├── elasticsearch/</span><br><span class="line">    ├── redis/</span><br><span class="line">    └── kafka/</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-数据流全景"><a href="#4-3-数据流全景" class="headerlink" title="4.3 数据流全景"></a>4.3 数据流全景</h3><pre class="mermaid">sequenceDiagram
+    participant C as Client
+    participant H as HTTP Handler<br/>(Adapter)
+    participant CMD as Command Handler<br/>(Use Case)
+    participant AGG as Aggregate Root<br/>(Domain)
+    participant WDB as Write DB<br/>(MySQL)
+    participant EB as Event Bus<br/>(Kafka)
+    participant PRJ as Projector<br/>(Adapter)
+    participant RDB as Read DB<br/>(ES/Redis)
+    participant QRY as Query Handler<br/>(Use Case)
+
+    Note over C,QRY: ── 写路径（Command）──
+    C->>H: POST /orders
+    H->>CMD: PlaceOrderCommand
+    CMD->>AGG: NewOrder() + AddItem() + Place()
+    AGG-->>CMD: DomainEvents
+    CMD->>WDB: Save(order)
+    CMD->>EB: Publish(OrderPlacedEvent)
+
+    Note over C,QRY: ── 读路径（Query）──
+    EB->>PRJ: OrderPlacedEvent
+    PRJ->>RDB: Upsert 读模型 (宽表/索引)
+
+    C->>H: GET /orders/{id}
+    H->>QRY: OrderDetailQuery
+    QRY->>RDB: 直接查询读模型
+    RDB-->>QRY: OrderDetailDTO
+    QRY-->>H: DTO
+    H-->>C: JSON Response</pre>
+
+<h3 id="4-4-完整链路-Walk-through：下单请求"><a href="#4-4-完整链路-Walk-through：下单请求" class="headerlink" title="4.4 完整链路 Walk-through：下单请求"></a>4.4 完整链路 Walk-through：下单请求</h3><p>以一个电商”下单”请求为例，完整走一遍三件套协作的全链路。每一步标注所属的<strong>架构层</strong>和<strong>概念</strong>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ① [Adapter 层 / Inbound] HTTP Handler 接收请求</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *OrderHandler)</span></span> PlaceOrder(c *gin.Context) &#123;</span><br><span class="line">    <span class="keyword">var</span> req PlaceOrderRequest</span><br><span class="line">    <span class="keyword">if</span> err := c.ShouldBindJSON(&amp;req); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        c.JSON(<span class="number">400</span>, gin.H&#123;<span class="string">&quot;error&quot;</span>: err.Error()&#125;)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 转换为 Command（DTO → Command）</span></span><br><span class="line">    cmd := command.PlaceOrderCommand&#123;</span><br><span class="line">        CustomerID: req.CustomerID,</span><br><span class="line">        Items:      toCommandItems(req.Items),</span><br><span class="line">    &#125;</span><br><span class="line">    result := h.placeOrderHandler.Handle(c.Request.Context(), cmd)</span><br><span class="line">    <span class="keyword">if</span> result.Error != <span class="literal">nil</span> &#123;</span><br><span class="line">        c.JSON(<span class="number">500</span>, gin.H&#123;<span class="string">&quot;error&quot;</span>: result.Error.Error()&#125;)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    c.JSON(<span class="number">201</span>, gin.H&#123;<span class="string">&quot;order_id&quot;</span>: result.ID&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ② [Application 层 / CQRS Command Path] Command Handler 编排业务流程</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *PlaceOrderHandler)</span></span> Handle(ctx context.Context, cmd PlaceOrderCommand) CommandResult &#123;</span><br><span class="line">    <span class="comment">// 创建 UoW（事务边界）</span></span><br><span class="line">    uow, err := h.uowFactory(ctx)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> CommandResult&#123;Error: err&#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">defer</span> uow.Rollback(ctx)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ③ [Domain 层 / DDD Aggregate] 操作聚合根</span></span><br><span class="line">    order := domain.NewOrder(domain.CustomerID(cmd.CustomerID))</span><br><span class="line">    <span class="keyword">for</span> _, item := <span class="keyword">range</span> cmd.Items &#123;</span><br><span class="line">        product, err := h.productReader.GetByID(ctx, item.ProductID)</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> CommandResult&#123;Error: err&#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> err := order.AddItem(product, item.Qty); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> CommandResult&#123;Error: err&#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    events, err := order.Place() <span class="comment">// 聚合根返回领域事件</span></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> CommandResult&#123;Error: err&#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ④ [Adapter 层 / Outbound] 持久化聚合 + Outbox</span></span><br><span class="line">    <span class="keyword">if</span> err := uow.OrderRepo().Save(ctx, order); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> CommandResult&#123;Error: err&#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> _, e := <span class="keyword">range</span> events &#123;</span><br><span class="line">        <span class="keyword">if</span> err := uow.OutboxRepo().Save(ctx, toOutboxEntry(e)); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> CommandResult&#123;Error: err&#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> err := uow.Commit(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> CommandResult&#123;Error: err&#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> CommandResult&#123;Success: <span class="literal">true</span>, ID: <span class="type">string</span>(order.ID())&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ⑤ [Adapter 层 / Projection] Outbox Relay 发送事件 → Projector 更新读模型</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *OrderProjector)</span></span> Project(ctx context.Context, event DomainEvent) <span class="type">error</span> &#123;</span><br><span class="line">    <span class="keyword">switch</span> e := event.(<span class="keyword">type</span>) &#123;</span><br><span class="line">    <span class="keyword">case</span> domain.OrderPlacedEvent:</span><br><span class="line">        <span class="keyword">return</span> p.readDB.Upsert(ctx, ReadOrderModel&#123;</span><br><span class="line">            OrderID:      <span class="type">string</span>(e.OrderID),</span><br><span class="line">            CustomerName: p.customerName(ctx, e.CustomerID),</span><br><span class="line">            Items:        p.buildItemList(ctx, e.Items),</span><br><span class="line">            TotalPrice:   e.Total.String(),</span><br><span class="line">            Status:       <span class="string">&quot;placed&quot;</span>,</span><br><span class="line">            CreatedAt:    e.At,</span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ⑥ [Application 层 / CQRS Query Path] 读请求绕过领域模型</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(h *OrderDetailHandler)</span></span> Handle(ctx context.Context, q OrderDetailQuery) (*OrderDetailDTO, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> h.readDB.FindByOrderID(ctx, q.OrderID) <span class="comment">// 直接从读库返回 DTO</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>全链路概览</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>架构层</th>
+<th>概念</th>
+<th>代码位置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① 接收 HTTP 请求</td>
+<td>Adapter (Inbound)</td>
+<td>-</td>
+<td><code>handler/order_handler.go</code></td>
+</tr>
+<tr>
+<td>② 编排业务流程</td>
+<td>Application</td>
+<td>CQRS Command</td>
+<td><code>command/place_order.go</code></td>
+</tr>
+<tr>
+<td>③ 操作聚合根</td>
+<td>Domain</td>
+<td>DDD Aggregate</td>
+<td><code>domain/order/order.go</code></td>
+</tr>
+<tr>
+<td>④ 持久化 + Outbox</td>
+<td>Adapter (Outbound)</td>
+<td>Outbox Pattern</td>
+<td><code>persistence/mysql_order_repo.go</code></td>
+</tr>
+<tr>
+<td>⑤ 投影到读模型</td>
+<td>Adapter (Projection)</td>
+<td>CQRS Projector</td>
+<td><code>projection/order_projector.go</code></td>
+</tr>
+<tr>
+<td>⑥ 读请求直查</td>
+<td>Application</td>
+<td>CQRS Query</td>
+<td><code>query/order_detail.go</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="五、常见误区与最佳实践"><a href="#五、常见误区与最佳实践" class="headerlink" title="五、常见误区与最佳实践"></a>五、常见误区与最佳实践</h2><h3 id="5-1-常见误区"><a href="#5-1-常见误区" class="headerlink" title="5.1 常见误区"></a>5.1 常见误区</h3><table>
+<thead>
+<tr>
+<th>误区</th>
+<th>澄清</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>“用了 DDD 就必须用 CQRS”</td>
+<td>两者独立，简单 CRUD 场景用 DDD 不需要 CQRS</td>
+</tr>
+<tr>
+<td>“CQRS 等于 Event Sourcing”</td>
+<td>Event Sourcing 是可选的，CQRS 可以只做读写模型分离</td>
+</tr>
+<tr>
+<td>“Clean Architecture &#x3D; 洋葱架构 &#x3D; 六边形架构”</td>
+<td>思想相似但不完全等同，核心都是<strong>依赖反转</strong></td>
+</tr>
+<tr>
+<td>“所有项目都应该用这三件套”</td>
+<td>简单的 CRUD 应用用这套是过度设计</td>
+</tr>
+<tr>
+<td>“DDD 就是 Entity + Repository”</td>
+<td>战略设计（Bounded Context 划分）比战术设计更重要</td>
+</tr>
+</tbody></table>
+<h3 id="5-2-何时采用？"><a href="#5-2-何时采用？" class="headerlink" title="5.2 何时采用？"></a>5.2 何时采用？</h3><pre class="mermaid">flowchart TD
+    A[项目复杂度评估] --> B{业务逻辑是否复杂？}
+    B -->|简单 CRUD| C[标准三层架构即可]
+    B -->|中等复杂度| D[Clean Architecture]
+    B -->|高复杂度| E{读写比例差异大？}
+    E -->|是| F[Clean Architecture + DDD + CQRS]
+    E -->|否| G[Clean Architecture + DDD]</pre>
+
+<p><strong>适用场景（适合上三件套）：</strong></p>
+<ul>
+<li>业务规则复杂且频繁变化（电商、金融、保险）</li>
+<li>读写比例悬殊（读:写 &gt; 10:1）</li>
+<li>多团队协作，需要清晰的 Bounded Context 边界</li>
+<li>需要针对读写使用不同存储引擎</li>
+</ul>
+<p><strong>不适用场景：</strong></p>
+<ul>
+<li>简单的管理后台 &#x2F; CRUD 应用</li>
+<li>原型验证（MVP）阶段</li>
+<li>团队缺乏 DDD 经验且没有时间学习</li>
+</ul>
+<h3 id="5-3-过度设计的识别方法"><a href="#5-3-过度设计的识别方法" class="headerlink" title="5.3 过度设计的识别方法"></a>5.3 过度设计的识别方法</h3><p>在实际项目中，<strong>过度设计</strong>比<strong>设计不足</strong>更常见。以下是几个危险信号：</p>
+<table>
+<thead>
+<tr>
+<th>信号</th>
+<th>说明</th>
+<th>应该怎么做</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>聚合根只有 CRUD 操作</td>
+<td>没有真正的业务不变量需要保护</td>
+<td>回退到简单的 Service + Repository</td>
+</tr>
+<tr>
+<td>读模型和写模型完全一样</td>
+<td>没有读写分离的必要</td>
+<td>去掉 CQRS，用同一个模型</td>
+</tr>
+<tr>
+<td>Bounded Context 只有一个实体</td>
+<td>过度拆分，上下文太小</td>
+<td>合并到相邻上下文</td>
+</tr>
+<tr>
+<td>领域事件没有消费者</td>
+<td>为了 DDD 而 DDD</td>
+<td>去掉事件，直接方法调用</td>
+</tr>
+<tr>
+<td>接口只有一个实现</td>
+<td>除非是为了测试或已知的未来扩展</td>
+<td>考虑直接使用具体类型</td>
+</tr>
+</tbody></table>
+<p><strong>经验法则</strong>：如果你花在架构上的时间超过了写业务逻辑的时间，大概率过度设计了。</p>
+<h3 id="5-4-团队能力评估"><a href="#5-4-团队能力评估" class="headerlink" title="5.4 团队能力评估"></a>5.4 团队能力评估</h3><p>引入架构方法论是一项<strong>投资</strong>，需要评估团队的准备程度：</p>
+<pre class="mermaid">flowchart TD
+    A[团队评估] --> B{是否有 DDD 经验的成员？}
+    B -->|有| C{项目周期是否允许学习成本？}
+    B -->|没有| D[从 Clean Architecture 开始<br/>积累经验后再引入 DDD]
+    C -->|允许| E[可以全套引入<br/>但需要架构师持续指导]
+    C -->|紧急| F[先用 Clean Architecture<br/>后续迭代引入 DDD]</pre>
+
+<hr>
+<h2 id="六、渐进式采用指南"><a href="#六、渐进式采用指南" class="headerlink" title="六、渐进式采用指南"></a>六、渐进式采用指南</h2><p>三件套不需要一步到位。从最简单的三层架构出发，<strong>在痛点出现时</strong>逐步演进。</p>
+<h3 id="阶段-0：标准三层架构"><a href="#阶段-0：标准三层架构" class="headerlink" title="阶段 0：标准三层架构"></a>阶段 0：标准三层架构</h3><p><strong>触发条件</strong>：项目启动，业务简单明确</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">myapp/</span><br><span class="line">├── handler/        # 表现层</span><br><span class="line">│   └── order.go</span><br><span class="line">├── service/        # 业务逻辑层</span><br><span class="line">│   └── order.go</span><br><span class="line">├── repository/     # 数据访问层</span><br><span class="line">│   └── order.go</span><br><span class="line">└── main.go</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// service/order.go — 典型的三层架构</span></span><br><span class="line"><span class="keyword">type</span> OrderService <span class="keyword">struct</span> &#123;</span><br><span class="line">    repo *repository.OrderRepository  <span class="comment">// 直接依赖具体实现</span></span><br><span class="line">    db   *sql.DB</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *OrderService)</span></span> CreateOrder(ctx context.Context, req CreateOrderReq) (*Order, <span class="type">error</span>) &#123;</span><br><span class="line">    order := &amp;Order&#123;CustomerID: req.CustomerID, Items: req.Items&#125;</span><br><span class="line">    order.Total = s.calculateTotal(order.Items)</span><br><span class="line">    <span class="keyword">return</span> s.repo.Save(ctx, order)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>问题浮现</strong>：当你想从 MySQL 换到 PostgreSQL 时，发现 <code>OrderService</code> 到处都是 <code>*sql.DB</code> 和 MySQL 特有的语法。</p>
+<h3 id="阶段-1：引入-Clean-Architecture"><a href="#阶段-1：引入-Clean-Architecture" class="headerlink" title="阶段 1：引入 Clean Architecture"></a>阶段 1：引入 Clean Architecture</h3><p><strong>触发条件</strong>：需要更换数据库&#x2F;框架，或需要编写不依赖基础设施的单元测试</p>
+<p><strong>改造要点</strong>：引入接口层，依赖方向反转</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">myapp/</span><br><span class="line">├── domain/</span><br><span class="line">│   ├── order.go         # 实体 + 业务规则</span><br><span class="line">│   └── repository.go    # 接口定义（Port）</span><br><span class="line">├── usecase/</span><br><span class="line">│   └── create_order.go  # 应用逻辑</span><br><span class="line">├── adapter/</span><br><span class="line">│   ├── handler/</span><br><span class="line">│   └── persistence/     # 接口实现</span><br><span class="line">└── main.go              # 依赖注入</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// domain/repository.go — 内层定义接口</span></span><br><span class="line"><span class="keyword">type</span> OrderRepository <span class="keyword">interface</span> &#123;</span><br><span class="line">    Save(ctx context.Context, order *Order) <span class="type">error</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// usecase/create_order.go — 依赖接口而非实现</span></span><br><span class="line"><span class="keyword">type</span> CreateOrderUseCase <span class="keyword">struct</span> &#123;</span><br><span class="line">    repo domain.OrderRepository  <span class="comment">// 依赖抽象</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>收益</strong>：<code>CreateOrderUseCase</code> 可以用 Mock Repository 做单元测试，不需要启动数据库。</p>
+<h3 id="阶段-2：引入-DDD"><a href="#阶段-2：引入-DDD" class="headerlink" title="阶段 2：引入 DDD"></a>阶段 2：引入 DDD</h3><p><strong>触发条件</strong>：业务规则越来越复杂，Service 层开始膨胀，同一个概念在不同模块有不同含义</p>
+<p><strong>改造要点</strong>：识别聚合根、值对象、领域事件</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 阶段 1 的 &quot;贫血模型&quot;</span></span><br><span class="line"><span class="keyword">type</span> Order <span class="keyword">struct</span> &#123;</span><br><span class="line">    ID     <span class="type">string</span></span><br><span class="line">    Status <span class="type">int</span>     <span class="comment">// 用魔数表示状态</span></span><br><span class="line">    Total  <span class="type">float64</span> <span class="comment">// 用 float 表示金额</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 阶段 2 的 &quot;充血模型&quot;</span></span><br><span class="line"><span class="keyword">type</span> Order <span class="keyword">struct</span> &#123;</span><br><span class="line">    id     OrderID</span><br><span class="line">    status OrderStatus   <span class="comment">// 值对象，枚举约束</span></span><br><span class="line">    total  Money         <span class="comment">// 值对象，精度安全</span></span><br><span class="line">    items  []OrderItem</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(o *Order)</span></span> Place() ([]DomainEvent, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(o.items) == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, ErrEmptyOrder  <span class="comment">// 聚合根保护不变量</span></span><br><span class="line">    &#125;</span><br><span class="line">    o.status = OrderStatusPlaced</span><br><span class="line">    <span class="keyword">return</span> []DomainEvent&#123;OrderPlacedEvent&#123;...&#125;&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>收益</strong>：业务规则内聚在聚合根中，不再散落在 Service 层。新成员阅读 <code>Order.Place()</code> 就能理解下单的所有约束。</p>
+<h3 id="阶段-3：引入-CQRS"><a href="#阶段-3：引入-CQRS" class="headerlink" title="阶段 3：引入 CQRS"></a>阶段 3：引入 CQRS</h3><p><strong>触发条件</strong>：读写性能矛盾突出（读 QPS 远大于写，或读需要跨聚合的宽表查询）</p>
+<p><strong>改造要点</strong>：分离 Command&#x2F;Query Handler，引入独立读模型</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">application/</span><br><span class="line">├── command/              # 写路径 → 走领域模型</span><br><span class="line">│   └── place_order.go</span><br><span class="line">└── query/                # 读路径 → 直查读库</span><br><span class="line">    └── order_detail.go</span><br><span class="line"></span><br><span class="line">adapter/outbound/</span><br><span class="line">├── persistence/          # Write DB (MySQL)</span><br><span class="line">├── readmodel/            # Read DB (ES/Redis)</span><br><span class="line">└── projection/           # Event → Read Model</span><br></pre></td></tr></table></figure>
+
+<p><strong>收益</strong>：写操作保证事务一致性，读操作针对查询优化。两者可以<strong>独立扩展</strong>。</p>
+<h3 id="演进决策树"><a href="#演进决策树" class="headerlink" title="演进决策树"></a>演进决策树</h3><pre class="mermaid">flowchart TD
+    A[当前是三层架构] --> B{测试困难？<br/>换存储/框架？}
+    B -->|是| C[阶段 1: Clean Architecture]
+    B -->|否| A
+    C --> D{业务规则复杂？<br/>Service 层膨胀？}
+    D -->|是| E[阶段 2: + DDD]
+    D -->|否| C
+    E --> F{读写矛盾？<br/>查询需要宽表？}
+    F -->|是| G[阶段 3: + CQRS]
+    F -->|否| E</pre>
+
+<p><strong>关键原则</strong>：每次只前进一步，在当前阶段的痛点确实出现后再演进。过早引入会带来不必要的复杂性。</p>
+<hr>
+<h2 id="七、总结"><a href="#七、总结" class="headerlink" title="七、总结"></a>七、总结</h2><p>一句话总结三者的关系：</p>
+<blockquote>
+<p><strong>Clean Architecture 给你的代码盖房子，DDD 决定房间里怎么住人，CQRS 给房子装了专门的入户门和逃生通道。</strong></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Clean Architecture</th>
+<th>DDD</th>
+<th>CQRS</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>提出者</strong></td>
+<td>Robert C. Martin</td>
+<td>Eric Evans</td>
+<td>Greg Young &#x2F; Bertrand Meyer</td>
+</tr>
+<tr>
+<td><strong>核心思想</strong></td>
+<td>依赖向内，业务逻辑独立于技术</td>
+<td>代码反映业务，应对复杂性</td>
+<td>读写分离，独立优化</td>
+</tr>
+<tr>
+<td><strong>关注层面</strong></td>
+<td>代码组织与依赖方向</td>
+<td>业务建模与团队沟通</td>
+<td>数据流转与性能</td>
+</tr>
+<tr>
+<td><strong>最小应用粒度</strong></td>
+<td>单个服务 &#x2F; 模块</td>
+<td>一个 Bounded Context</td>
+<td>一个 Use Case</td>
+</tr>
+<tr>
+<td><strong>学习曲线</strong></td>
+<td>中等</td>
+<td>较高（尤其战略设计）</td>
+<td>中等</td>
+</tr>
+</tbody></table>
+<p>它们不是互相替代的关系，而是在不同维度上解决不同问题。在<strong>真正复杂</strong>的业务系统中，三者组合使用能发挥最大价值。</p>
+<p><strong>本专题下一篇</strong>：<a href="/system-design/42-acc-clean-code/">架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南</a>（实现层的函数、Pipeline 与整洁习惯）。全系列阅读顺序与评审清单见 <a href="/system-design/44-acc-code-review/">架构与整洁代码（四）</a>。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li>Robert C. Martin, <em>Clean Architecture: A Craftsman’s Guide to Software Structure and Design</em>, 2017</li>
+<li>Eric Evans, <em>Domain-Driven Design: Tackling Complexity in the Heart of Software</em>, 2003（中文版：《领域驱动设计：软件核心复杂性应对之道》，2006）</li>
+<li>Vaughn Vernon, <em>Implementing Domain-Driven Design</em>, 2013（中文版：《实现领域驱动设计》，2014）</li>
+<li>Martin Fowler, <a href="https://martinfowler.com/bliki/CQRS.html">CQRS Pattern</a></li>
+<li>Microsoft, <a href="https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs">CQRS Pattern - Azure Architecture Center</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/" rel="tag"># 架构设计</a>
+              <a href="/tags/ddd/" rel="tag"># ddd</a>
+              <a href="/tags/architecture-and-clean-code/" rel="tag"># architecture-and-clean-code</a>
+              <a href="/tags/clean-architecture/" rel="tag"># clean-architecture</a>
+              <a href="/tags/cqrs/" rel="tag"># cqrs</a>
+              <a href="/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" rel="tag"># 设计模式</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2026/03/07/AI/05-openclaw-research-and-practice/" rel="prev" title="OpenClaw 调研与实践：从搭建到应用的完整体验">
+                  <i class="fa fa-angle-left"></i> OpenClaw 调研与实践：从搭建到应用的完整体验
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2026/04/02/system-design/42-acc-clean-code/" rel="next" title="架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南">
+                  架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>

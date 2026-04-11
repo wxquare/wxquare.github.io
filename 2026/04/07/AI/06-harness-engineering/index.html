@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="“Agents aren’t hard; the Harness is hard.” —— Ryan Lopopolo, OpenAI  前言你一定经历过这样的时刻：用 Cursor 或 Claude Code 让 Agent 完成一个功能，第一次跑通了，信心满满。换个场景，同样的 Agent 却莫名其妙地崩了。你开始优化 Prompt——加更多约束、给更详细的指令、甚至逐字调整措辞。效果呢？提">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Harness Engineering：从驾驭 Prompt 到驾驭 Agent 的范式革命">
+<meta property="og:url" content="http://yoursite.com/2026/04/07/AI/06-harness-engineering/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="“Agents aren’t hard; the Harness is hard.” —— Ryan Lopopolo, OpenAI  前言你一定经历过这样的时刻：用 Cursor 或 Claude Code 让 Agent 完成一个功能，第一次跑通了，信心满满。换个场景，同样的 Agent 却莫名其妙地崩了。你开始优化 Prompt——加更多约束、给更详细的指令、甚至逐字调整措辞。效果呢？提">
+<meta property="og:locale">
+<meta property="article:published_time" content="2026-04-06T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-04-09T01:59:40.666Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="cursor">
+<meta property="article:tag" content="claude-code">
+<meta property="article:tag" content="best-practices">
+<meta property="article:tag" content="harness-engineering">
+<meta property="article:tag" content="ai-agent">
+<meta property="article:tag" content="context-engineering">
+<meta property="article:tag" content="prompt-engineering">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2026/04/07/AI/06-harness-engineering/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2026/04/07/AI/06-harness-engineering/","path":"2026/04/07/AI/06-harness-engineering/","title":"Harness Engineering：从驾驭 Prompt 到驾驭 Agent 的范式革命"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Harness Engineering：从驾驭 Prompt 到驾驭 Agent 的范式革命 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<style>mjx-container[jax="SVG"] {
+  direction: ltr;
+}
+
+mjx-container[jax="SVG"] > svg {
+  overflow: visible;
+}
+
+mjx-container[jax="SVG"][display="true"] {
+  display: block;
+  text-align: center;
+  margin: 1em 0;
+}
+
+mjx-container[jax="SVG"][justify="left"] {
+  text-align: left;
+}
+
+mjx-container[jax="SVG"][justify="right"] {
+  text-align: right;
+}
+
+g[data-mml-node="merror"] > g {
+  fill: red;
+  stroke: red;
+}
+
+g[data-mml-node="merror"] > rect[data-background] {
+  fill: yellow;
+  stroke: none;
+}
+
+g[data-mml-node="mtable"] > line[data-line] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > rect[data-frame] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > .mjx-dashed {
+  stroke-dasharray: 140;
+}
+
+g[data-mml-node="mtable"] > .mjx-dotted {
+  stroke-linecap: round;
+  stroke-dasharray: 0,140;
+}
+
+g[data-mml-node="mtable"] > svg {
+  overflow: visible;
+}
+
+[jax="SVG"] mjx-tool {
+  display: inline-block;
+  position: relative;
+  width: 0;
+  height: 0;
+}
+
+[jax="SVG"] mjx-tool > mjx-tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+mjx-tool > mjx-tip {
+  display: inline-block;
+  padding: .2em;
+  border: 1px solid #888;
+  font-size: 70%;
+  background-color: #F8F8F8;
+  color: black;
+  box-shadow: 2px 2px 5px #AAAAAA;
+}
+
+g[data-mml-node="maction"][data-toggle] {
+  cursor: pointer;
+}
+
+mjx-status {
+  display: block;
+  position: fixed;
+  left: 1em;
+  bottom: 1em;
+  min-width: 25%;
+  padding: .2em .4em;
+  border: 1px solid #888;
+  font-size: 90%;
+  background-color: #F8F8F8;
+  color: black;
+}
+
+foreignObject[data-mjx-xml] {
+  font-family: initial;
+  line-height: normal;
+  overflow: visible;
+}
+
+.MathJax path {
+  stroke-width: 3;
+}
+
+mjx-container[display="true"] {
+  overflow: auto hidden;
+}
+
+mjx-container[display="true"] + br {
+  display: none;
+}
+</style></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%B8%89%E6%AC%A1%E8%8C%83%E5%BC%8F%E8%B7%83%E8%BF%81"><span class="nav-number">2.</span> <span class="nav-text">一、三次范式跃迁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-Prompt-Engineering%EF%BC%9A%E6%95%99%E4%BA%BA%E5%81%9A%E4%BA%8B%E5%8F%AA%E9%9D%A0%E5%8F%A3%E5%A4%B4%E8%AF%B4%EF%BC%882023-2024%EF%BC%89"><span class="nav-number">2.1.</span> <span class="nav-text">1.1 Prompt Engineering：教人做事只靠口头说（2023-2024）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-Context-Engineering%EF%BC%9A%E7%BB%99%E4%BA%86%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99%EF%BC%8C%E4%BD%86%E8%BF%98%E4%B8%8D%E5%A4%9F%EF%BC%882025%EF%BC%89"><span class="nav-number">2.2.</span> <span class="nav-text">1.2 Context Engineering：给了参考资料，但还不够（2025）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-Harness-Engineering%EF%BC%9A%E8%AE%BE%E8%AE%A1%E6%95%B4%E4%B8%AA%E5%B7%A5%E4%BD%9C%E7%8E%AF%E5%A2%83%EF%BC%882026%EF%BC%89"><span class="nav-number">2.3.</span> <span class="nav-text">1.3 Harness Engineering：设计整个工作环境（2026）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%89%E8%80%85%E5%AF%B9%E6%AF%94"><span class="nav-number">2.4.</span> <span class="nav-text">三者对比</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81Harness-%E7%9A%84%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6"><span class="nav-number">3.</span> <span class="nav-text">二、Harness 的核心组件</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B%EF%BC%88Context-Engineering%EF%BC%89"><span class="nav-number">3.1.</span> <span class="nav-text">2.1 上下文工程（Context Engineering）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E6%9E%B6%E6%9E%84%E7%BA%A6%E6%9D%9F%EF%BC%88Architectural-Constraints%EF%BC%89"><span class="nav-number">3.2.</span> <span class="nav-text">2.2 架构约束（Architectural Constraints）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E5%B7%A5%E5%85%B7%E7%BC%96%E6%8E%92%EF%BC%88Tools-MCP-Servers%EF%BC%89"><span class="nav-number">3.3.</span> <span class="nav-text">2.3 工具编排（Tools &amp; MCP Servers）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E9%AA%8C%E8%AF%81%E5%9B%9E%E8%B7%AF%EF%BC%88Verification-Loops%EF%BC%89"><span class="nav-number">3.4.</span> <span class="nav-text">2.4 验证回路（Verification Loops）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-%E5%AD%90%E4%BB%A3%E7%90%86%E4%B8%8E%E4%B8%8A%E4%B8%8B%E6%96%87%E9%98%B2%E7%81%AB%E5%A2%99%EF%BC%88Sub-Agents-Context-Firewalls%EF%BC%89"><span class="nav-number">3.5.</span> <span class="nav-text">2.5 子代理与上下文防火墙（Sub-Agents &amp; Context Firewalls）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6-%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%80%A7%E4%B8%8E%E7%86%B5%E7%AE%A1%E7%90%86%EF%BC%88Observability-Entropy-Management%EF%BC%89"><span class="nav-number">3.6.</span> <span class="nav-text">2.6 可观测性与熵管理（Observability &amp; Entropy Management）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E8%A1%8C%E4%B8%9A%E5%AE%9E%E8%AF%81"><span class="nav-number">4.</span> <span class="nav-text">三、行业实证</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-OpenAI%EF%BC%9A%E7%99%BE%E4%B8%87%E8%A1%8C%E9%9B%B6%E6%89%8B%E5%86%99%E4%BB%A3%E7%A0%81"><span class="nav-number">4.1.</span> <span class="nav-text">3.1 OpenAI：百万行零手写代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-LangChain%EF%BC%9ADeep-Agents-%E7%9A%84-Harness-%E4%BC%98%E5%8C%96"><span class="nav-number">4.2.</span> <span class="nav-text">3.2 LangChain：Deep Agents 的 Harness 优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-Anthropic%EF%BC%9A%E4%B8%89%E4%BB%A3%E7%90%86%E6%9E%B6%E6%9E%84"><span class="nav-number">4.3.</span> <span class="nav-text">3.3 Anthropic：三代理架构</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E5%B7%A5%E7%A8%8B%E5%B8%88%E8%A7%92%E8%89%B2%E7%9A%84%E8%BD%AC%E5%8F%98"><span class="nav-number">5.</span> <span class="nav-text">四、工程师角色的转变</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E6%80%BB%E7%BB%93%E4%B8%8E%E5%B1%95%E6%9C%9B"><span class="nav-number">6.</span> <span class="nav-text">五、总结与展望</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%80%E5%B0%8F%E5%8F%AF%E8%A1%8C-Harness-%E6%A3%80%E6%9F%A5%E6%B8%85%E5%8D%95"><span class="nav-number">6.1.</span> <span class="nav-text">最小可行 Harness 检查清单</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B1%95%E6%9C%9B"><span class="nav-number">6.2.</span> <span class="nav-text">展望</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">7.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">56</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">152</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">11篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">21篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">14篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">6篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2026/04/07/AI/06-harness-engineering/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Harness Engineering：从驾驭 Prompt 到驾驭 Agent 的范式革命 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Harness Engineering：从驾驭 Prompt 到驾驭 Agent 的范式革命
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2026-04-07 00:00:00" itemprop="dateCreated datePublished" datetime="2026-04-07T00:00:00+08:00">2026-04-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-04-09 09:59:40" itemprop="dateModified" datetime="2026-04-09T09:59:40+08:00">2026-04-09</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AI-%E4%B8%8E-Agent/" itemprop="url" rel="index"><span itemprop="name">AI 与 Agent</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><blockquote>
+<p>“Agents aren’t hard; the Harness is hard.” —— Ryan Lopopolo, OpenAI</p>
+</blockquote>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>你一定经历过这样的时刻：用 Cursor 或 Claude Code 让 Agent 完成一个功能，第一次跑通了，信心满满。换个场景，同样的 Agent 却莫名其妙地崩了。你开始优化 Prompt——加更多约束、给更详细的指令、甚至逐字调整措辞。效果呢？提升不到 3%。</p>
+<p>问题出在哪里？</p>
+<p>2026 年，行业给出了一个越来越清晰的答案：<strong>问题不在 Prompt，不在模型，而在模型周围的一切</strong>。</p>
+<p>LangChain 的 Harrison Chase 提出了一个简洁的公式：</p>
+<p><mjx-container class="MathJax" jax="SVG" display="true"><svg style="vertical-align: -0.464ex;" xmlns="http://www.w3.org/2000/svg" width="26.928ex" height="2.084ex" role="img" focusable="false" viewBox="0 -716 11902 921"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><path data-c="1D434" d="M208 74Q208 50 254 46Q272 46 272 35Q272 34 270 22Q267 8 264 4T251 0Q249 0 239 0T205 1T141 2Q70 2 50 0H42Q35 7 35 11Q37 38 48 46H62Q132 49 164 96Q170 102 345 401T523 704Q530 716 547 716H555H572Q578 707 578 706L606 383Q634 60 636 57Q641 46 701 46Q726 46 726 36Q726 34 723 22Q720 7 718 4T704 0Q701 0 690 0T651 1T578 2Q484 2 455 0H443Q437 6 437 9T439 27Q443 40 445 43L449 46H469Q523 49 533 63L521 213H283L249 155Q208 86 208 74ZM516 260Q516 271 504 416T490 562L463 519Q447 492 400 412L310 260L413 259Q516 259 516 260Z"></path></g><g data-mml-node="mi" transform="translate(750,0)"><path data-c="1D454" d="M311 43Q296 30 267 15T206 0Q143 0 105 45T66 160Q66 265 143 353T314 442Q361 442 401 394L404 398Q406 401 409 404T418 412T431 419T447 422Q461 422 470 413T480 394Q480 379 423 152T363 -80Q345 -134 286 -169T151 -205Q10 -205 10 -137Q10 -111 28 -91T74 -71Q89 -71 102 -80T116 -111Q116 -121 114 -130T107 -144T99 -154T92 -162L90 -164H91Q101 -167 151 -167Q189 -167 211 -155Q234 -144 254 -122T282 -75Q288 -56 298 -13Q311 35 311 43ZM384 328L380 339Q377 350 375 354T369 368T359 382T346 393T328 402T306 405Q262 405 221 352Q191 313 171 233T151 117Q151 38 213 38Q269 38 323 108L331 118L384 328Z"></path></g><g data-mml-node="mi" transform="translate(1227,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mi" transform="translate(1693,0)"><path data-c="1D45B" d="M21 287Q22 293 24 303T36 341T56 388T89 425T135 442Q171 442 195 424T225 390T231 369Q231 367 232 367L243 378Q304 442 382 442Q436 442 469 415T503 336T465 179T427 52Q427 26 444 26Q450 26 453 27Q482 32 505 65T540 145Q542 153 560 153Q580 153 580 145Q580 144 576 130Q568 101 554 73T508 17T439 -10Q392 -10 371 17T350 73Q350 92 386 193T423 345Q423 404 379 404H374Q288 404 229 303L222 291L189 157Q156 26 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 112 180T152 343Q153 348 153 366Q153 405 129 405Q91 405 66 305Q60 285 60 284Q58 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(2293,0)"><path data-c="1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path></g><g data-mml-node="mo" transform="translate(2931.8,0)"><path data-c="3D" d="M56 347Q56 360 70 367H707Q722 359 722 347Q722 336 708 328L390 327H72Q56 332 56 347ZM56 153Q56 168 72 173H708Q722 163 722 153Q722 140 707 133H70Q56 140 56 153Z"></path></g><g data-mml-node="mi" transform="translate(3987.6,0)"><path data-c="1D440" d="M289 629Q289 635 232 637Q208 637 201 638T194 648Q194 649 196 659Q197 662 198 666T199 671T201 676T203 679T207 681T212 683T220 683T232 684Q238 684 262 684T307 683Q386 683 398 683T414 678Q415 674 451 396L487 117L510 154Q534 190 574 254T662 394Q837 673 839 675Q840 676 842 678T846 681L852 683H948Q965 683 988 683T1017 684Q1051 684 1051 673Q1051 668 1048 656T1045 643Q1041 637 1008 637Q968 636 957 634T939 623Q936 618 867 340T797 59Q797 55 798 54T805 50T822 48T855 46H886Q892 37 892 35Q892 19 885 5Q880 0 869 0Q864 0 828 1T736 2Q675 2 644 2T609 1Q592 1 592 11Q592 13 594 25Q598 41 602 43T625 46Q652 46 685 49Q699 52 704 61Q706 65 742 207T813 490T848 631L654 322Q458 10 453 5Q451 4 449 3Q444 0 433 0Q418 0 415 7Q413 11 374 317L335 624L267 354Q200 88 200 79Q206 46 272 46H282Q288 41 289 37T286 19Q282 3 278 1Q274 0 267 0Q265 0 255 0T221 1T157 2Q127 2 95 1T58 0Q43 0 39 2T35 11Q35 13 38 25T43 40Q45 46 65 46Q135 46 154 86Q158 92 223 354T289 629Z"></path></g><g data-mml-node="mi" transform="translate(5038.6,0)"><path data-c="1D45C" d="M201 -11Q126 -11 80 38T34 156Q34 221 64 279T146 380Q222 441 301 441Q333 441 341 440Q354 437 367 433T402 417T438 387T464 338T476 268Q476 161 390 75T201 -11ZM121 120Q121 70 147 48T206 26Q250 26 289 58T351 142Q360 163 374 216T388 308Q388 352 370 375Q346 405 306 405Q243 405 195 347Q158 303 140 230T121 120Z"></path></g><g data-mml-node="mi" transform="translate(5523.6,0)"><path data-c="1D451" d="M366 683Q367 683 438 688T511 694Q523 694 523 686Q523 679 450 384T375 83T374 68Q374 26 402 26Q411 27 422 35Q443 55 463 131Q469 151 473 152Q475 153 483 153H487H491Q506 153 506 145Q506 140 503 129Q490 79 473 48T445 8T417 -8Q409 -10 393 -10Q359 -10 336 5T306 36L300 51Q299 52 296 50Q294 48 292 46Q233 -10 172 -10Q117 -10 75 30T33 157Q33 205 53 255T101 341Q148 398 195 420T280 442Q336 442 364 400Q369 394 369 396Q370 400 396 505T424 616Q424 629 417 632T378 637H357Q351 643 351 645T353 664Q358 683 366 683ZM352 326Q329 405 277 405Q242 405 210 374T160 293Q131 214 119 129Q119 126 119 118T118 106Q118 61 136 44T179 26Q233 26 290 98L298 109L352 326Z"></path></g><g data-mml-node="mi" transform="translate(6043.6,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mi" transform="translate(6509.6,0)"><path data-c="1D459" d="M117 59Q117 26 142 26Q179 26 205 131Q211 151 215 152Q217 153 225 153H229Q238 153 241 153T246 151T248 144Q247 138 245 128T234 90T214 43T183 6T137 -11Q101 -11 70 11T38 85Q38 97 39 102L104 360Q167 615 167 623Q167 626 166 628T162 632T157 634T149 635T141 636T132 637T122 637Q112 637 109 637T101 638T95 641T94 647Q94 649 96 661Q101 680 107 682T179 688Q194 689 213 690T243 693T254 694Q266 694 266 686Q266 675 193 386T118 83Q118 81 118 75T117 65V59Z"></path></g><g data-mml-node="mo" transform="translate(7029.8,0)"><path data-c="2B" d="M56 237T56 250T70 270H369V420L370 570Q380 583 389 583Q402 583 409 568V270H707Q722 262 722 250T707 230H409V-68Q401 -82 391 -82H389H387Q375 -82 369 -68V230H70Q56 237 56 250Z"></path></g><g data-mml-node="mi" transform="translate(8030,0)"><path data-c="1D43B" d="M228 637Q194 637 192 641Q191 643 191 649Q191 673 202 682Q204 683 219 683Q260 681 355 681Q389 681 418 681T463 682T483 682Q499 682 499 672Q499 670 497 658Q492 641 487 638H485Q483 638 480 638T473 638T464 637T455 637Q416 636 405 634T387 623Q384 619 355 500Q348 474 340 442T328 395L324 380Q324 378 469 378H614L615 381Q615 384 646 504Q674 619 674 627T617 637Q594 637 587 639T580 648Q580 650 582 660Q586 677 588 679T604 682Q609 682 646 681T740 680Q802 680 835 681T871 682Q888 682 888 672Q888 645 876 638H874Q872 638 869 638T862 638T853 637T844 637Q805 636 794 634T776 623Q773 618 704 340T634 58Q634 51 638 51Q646 48 692 46H723Q729 38 729 37T726 19Q722 6 716 0H701Q664 2 567 2Q533 2 504 2T458 2T437 1Q420 1 420 10Q420 15 423 24Q428 43 433 45Q437 46 448 46H454Q481 46 514 49Q520 50 522 50T528 55T534 64T540 82T547 110T558 153Q565 181 569 198Q602 330 602 331T457 332H312L279 197Q245 63 245 58Q245 51 253 49T303 46H334Q340 38 340 37T337 19Q333 6 327 0H312Q275 2 178 2Q144 2 115 2T69 2T48 1Q31 1 31 10Q31 12 34 24Q39 43 44 45Q48 46 59 46H65Q92 46 125 49Q139 52 144 61Q147 65 216 339T285 628Q285 635 228 637Z"></path></g><g data-mml-node="mi" transform="translate(8918,0)"><path data-c="1D44E" d="M33 157Q33 258 109 349T280 441Q331 441 370 392Q386 422 416 422Q429 422 439 414T449 394Q449 381 412 234T374 68Q374 43 381 35T402 26Q411 27 422 35Q443 55 463 131Q469 151 473 152Q475 153 483 153H487Q506 153 506 144Q506 138 501 117T481 63T449 13Q436 0 417 -8Q409 -10 393 -10Q359 -10 336 5T306 36L300 51Q299 52 296 50Q294 48 292 46Q233 -10 172 -10Q117 -10 75 30T33 157ZM351 328Q351 334 346 350T323 385T277 405Q242 405 210 374T160 293Q131 214 119 129Q119 126 119 118T118 106Q118 61 136 44T179 26Q217 26 254 59T298 110Q300 114 325 217T351 328Z"></path></g><g data-mml-node="mi" transform="translate(9447,0)"><path data-c="1D45F" d="M21 287Q22 290 23 295T28 317T38 348T53 381T73 411T99 433T132 442Q161 442 183 430T214 408T225 388Q227 382 228 382T236 389Q284 441 347 441H350Q398 441 422 400Q430 381 430 363Q430 333 417 315T391 292T366 288Q346 288 334 299T322 328Q322 376 378 392Q356 405 342 405Q286 405 239 331Q229 315 224 298T190 165Q156 25 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 114 189T154 366Q154 405 128 405Q107 405 92 377T68 316T57 280Q55 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(9898,0)"><path data-c="1D45B" d="M21 287Q22 293 24 303T36 341T56 388T89 425T135 442Q171 442 195 424T225 390T231 369Q231 367 232 367L243 378Q304 442 382 442Q436 442 469 415T503 336T465 179T427 52Q427 26 444 26Q450 26 453 27Q482 32 505 65T540 145Q542 153 560 153Q580 153 580 145Q580 144 576 130Q568 101 554 73T508 17T439 -10Q392 -10 371 17T350 73Q350 92 386 193T423 345Q423 404 379 404H374Q288 404 229 303L222 291L189 157Q156 26 151 16Q138 -11 108 -11Q95 -11 87 -5T76 7T74 17Q74 30 112 180T152 343Q153 348 153 366Q153 405 129 405Q91 405 66 305Q60 285 60 284Q58 278 41 278H27Q21 284 21 287Z"></path></g><g data-mml-node="mi" transform="translate(10498,0)"><path data-c="1D452" d="M39 168Q39 225 58 272T107 350T174 402T244 433T307 442H310Q355 442 388 420T421 355Q421 265 310 237Q261 224 176 223Q139 223 138 221Q138 219 132 186T125 128Q125 81 146 54T209 26T302 45T394 111Q403 121 406 121Q410 121 419 112T429 98T420 82T390 55T344 24T281 -1T205 -11Q126 -11 83 42T39 168ZM373 353Q367 405 305 405Q272 405 244 391T199 357T170 316T154 280T149 261Q149 260 169 260Q282 260 327 284T373 353Z"></path></g><g data-mml-node="mi" transform="translate(10964,0)"><path data-c="1D460" d="M131 289Q131 321 147 354T203 415T300 442Q362 442 390 415T419 355Q419 323 402 308T364 292Q351 292 340 300T328 326Q328 342 337 354T354 372T367 378Q368 378 368 379Q368 382 361 388T336 399T297 405Q249 405 227 379T204 326Q204 301 223 291T278 274T330 259Q396 230 396 163Q396 135 385 107T352 51T289 7T195 -10Q118 -10 86 19T53 87Q53 126 74 143T118 160Q133 160 146 151T160 120Q160 94 142 76T111 58Q109 57 108 57T107 55Q108 52 115 47T146 34T201 27Q237 27 263 38T301 66T318 97T323 122Q323 150 302 164T254 181T195 196T148 231Q131 256 131 289Z"></path></g><g data-mml-node="mi" transform="translate(11433,0)"><path data-c="1D460" d="M131 289Q131 321 147 354T203 415T300 442Q362 442 390 415T419 355Q419 323 402 308T364 292Q351 292 340 300T328 326Q328 342 337 354T354 372T367 378Q368 378 368 379Q368 382 361 388T336 399T297 405Q249 405 227 379T204 326Q204 301 223 291T278 274T330 259Q396 230 396 163Q396 135 385 107T352 51T289 7T195 -10Q118 -10 86 19T53 87Q53 126 74 143T118 160Q133 160 146 151T160 120Q160 94 142 76T111 58Q109 57 108 57T107 55Q108 52 115 47T146 34T201 27Q237 27 263 38T301 66T318 97T323 122Q323 150 302 164T254 181T195 196T148 231Q131 256 131 289Z"></path></g></g></g></svg></mjx-container></p>
+<p><strong>Harness</strong>（驾驭基础设施），指的是围绕 AI 模型的所有系统——上下文组装、工具编排、验证回路、架构约束、可观测性、成本控制。这个术语借用了马具的隐喻：模型是一匹强大但不可预测的马，Harness 是引导它产出正确结果的缰绳、鞍具和围栏。</p>
+<p>换模型，输出质量变化 10-15%。换 Harness，决定系统<strong>能不能用</strong>。</p>
+<p>本文将梳理从 Prompt Engineering 到 Harness Engineering 的三次范式跃迁，拆解 Harness 的核心组件，并结合行业案例和我自己使用 Cursor、Claude Code 构建 Agent 的实践经验，给出一份可落地的指南。</p>
+<span id="more"></span>
+
+<hr>
+<h2 id="一、三次范式跃迁"><a href="#一、三次范式跃迁" class="headerlink" title="一、三次范式跃迁"></a>一、三次范式跃迁</h2><p>AI 工程的核心关注点经历了三次重大转移。每一次跃迁不是否定前者，而是将其包含在更大的体系中。</p>
+<pre class="mermaid">timeline
+    title AI 工程范式演进
+    2023-2024 : Prompt Engineering
+              : 核心关注：如何措辞指令
+              : 典型产出：精心设计的 Prompt 模板
+              : 工程师角色：Prompt 调参师
+    2025 : Context Engineering
+         : 核心关注：给模型什么信息
+         : 典型产出：CLAUDE.md / AGENTS.md
+         : 工程师角色：知识策展人
+    2026 : Harness Engineering
+         : 核心关注：构建完整的驾驭基础设施
+         : 典型产出：约束、验证、工具、反馈回路
+         : 工程师角色：系统环境设计师</pre>
+
+<h3 id="1-1-Prompt-Engineering：教人做事只靠口头说（2023-2024）"><a href="#1-1-Prompt-Engineering：教人做事只靠口头说（2023-2024）" class="headerlink" title="1.1 Prompt Engineering：教人做事只靠口头说（2023-2024）"></a>1.1 Prompt Engineering：教人做事只靠口头说（2023-2024）</h3><p>Prompt Engineering（提示工程）是 AI 工程的起点。它的核心问题是：<strong>如何措辞指令，才能让模型给出正确答案？</strong></p>
+<p>这个阶段产出了大量有价值的技巧——Chain of Thought、Few-Shot、Role Prompting 等。它们在模型能力较弱时确实是关键的杠杆。</p>
+<p>但随着模型越来越强，一个趋势变得明显：<strong>Prompt 技巧的边际收益在递减</strong>。2026 年的研究数据显示，在合理的基础 Prompt 之上，进一步优化措辞的效果通常不到 3%。模型已经强大到不需要你”教它怎么想”——它需要的是正确的信息和环境。</p>
+<p>类比：教一个聪明人做事，光靠口头说明是不够的。</p>
+<h3 id="1-2-Context-Engineering：给了参考资料，但还不够（2025）"><a href="#1-2-Context-Engineering：给了参考资料，但还不够（2025）" class="headerlink" title="1.2 Context Engineering：给了参考资料，但还不够（2025）"></a>1.2 Context Engineering：给了参考资料，但还不够（2025）</h3><p>Context Engineering（上下文工程）将关注点从”说什么”升级到”知道什么”。</p>
+<p>标志性的变化是 <code>CLAUDE.md</code> 和 <code>AGENTS.md</code> 等项目级配置文件的出现。工程师不再纠结于 Prompt 的遣词造句，而是思考：<strong>Agent 需要知道哪些信息才能正确完成任务？</strong> 这包括项目结构、编码规范、架构约束、技术栈信息等。</p>
+<p>这是一个重大进步。但上下文是必要条件，不是充分条件——你给 Agent 提供了完整的项目知识，它依然可能：</p>
+<ul>
+<li>生成了正确的代码，但没跑测试就宣布完成</li>
+<li>修改了功能 A，但意外破坏了功能 B</li>
+<li>在长会话中逐渐偏离正轨（上下文退化）</li>
+<li>缺少回滚机制，一次错误操作就需要人工介入</li>
+</ul>
+<p>类比：不仅说了怎么做，还给了参考资料——但没有流程、没有检查点、没有安全栏。</p>
+<h3 id="1-3-Harness-Engineering：设计整个工作环境（2026）"><a href="#1-3-Harness-Engineering：设计整个工作环境（2026）" class="headerlink" title="1.3 Harness Engineering：设计整个工作环境（2026）"></a>1.3 Harness Engineering：设计整个工作环境（2026）</h3><p>Harness Engineering（驾驭工程）是 Context Engineering 的系统级延伸。它不只关注”给 Agent 什么信息”，而是关注<strong>构建一个让 Agent 可靠产出正确结果的完整系统</strong>。</p>
+<p>Harrison Chase 这样定义：Harness 涵盖了系统提示（System Prompt）、专用工具、文件系统抽象、中间件和自验证反馈回路。它给 LLM 赋予了在循环中运行、调用工具、管理自身上下文窗口、以及作为长时间自主助手运行的能力。</p>
+<p>LangChain 用实验数据证明了 Harness 的价值：在他们的编码 Agent <code>deepagents-cli</code> 上，<strong>不换模型（GPT-5.2-Codex），只改 Harness</strong>，Terminal Bench 2.0 的准确率从 52.8% 跳到 66.5%，排名从 30 开外直接进入前 5。</p>
+<p>类比：不只是教人做事、给参考资料，而是设计了整个工作环境——工具箱、操作流程、质检站、安全围栏、甚至自动纠错机制。</p>
+<h3 id="三者对比"><a href="#三者对比" class="headerlink" title="三者对比"></a>三者对比</h3><table>
+<thead>
+<tr>
+<th align="left">维度</th>
+<th align="left">Prompt Engineering</th>
+<th align="left">Context Engineering</th>
+<th align="left">Harness Engineering</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>核心关注</strong></td>
+<td align="left">如何措辞指令</td>
+<td align="left">给模型什么信息</td>
+<td align="left">构建完整的驾驭系统</td>
+</tr>
+<tr>
+<td align="left"><strong>核心产出</strong></td>
+<td align="left">Prompt 模板</td>
+<td align="left">CLAUDE.md / AGENTS.md</td>
+<td align="left">约束 + 验证 + 工具 + 反馈回路</td>
+</tr>
+<tr>
+<td align="left"><strong>效果上限</strong></td>
+<td align="left">~3% 提升</td>
+<td align="left">~15% 提升</td>
+<td align="left">28-64% 提升</td>
+</tr>
+<tr>
+<td align="left"><strong>工程师角色</strong></td>
+<td align="left">Prompt 调参师</td>
+<td align="left">知识策展人</td>
+<td align="left">系统环境设计师</td>
+</tr>
+<tr>
+<td align="left"><strong>关注层次</strong></td>
+<td align="left">单次输入</td>
+<td align="left">信息供给</td>
+<td align="left">生产基础设施</td>
+</tr>
+<tr>
+<td align="left"><strong>包含关系</strong></td>
+<td align="left">最内层</td>
+<td align="left">包含 Prompt</td>
+<td align="left">包含 Context + Prompt</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>关键洞察：Context Engineering 和 Prompt Engineering 并没有消失，它们都成为了 Harness 的组成部分。Harness 是最外层的包裹，是让一切生效的生产基础设施。</p>
+</blockquote>
+<hr>
+<h2 id="二、Harness-的核心组件"><a href="#二、Harness-的核心组件" class="headerlink" title="二、Harness 的核心组件"></a>二、Harness 的核心组件</h2><p>一个完整的 Agent Harness 包含六大核心组件。它们共同构成了围绕模型的”驾驭层”。</p>
+<pre class="mermaid">graph TB
+    subgraph Harness["Agent Harness"]
+        CE["上下文工程<br>Context Engineering"]
+        AC["架构约束<br>Architectural Constraints"]
+        TO["工具编排<br>Tools &amp; MCP"]
+        VL["验证回路<br>Verification Loops"]
+        SA["子代理与上下文防火墙<br>Sub-Agents &amp; Firewalls"]
+        OE["可观测性与熵管理<br>Observability &amp; Entropy"]
+    end
+    
+    User["用户请求"] --&gt; CE
+    CE --&gt; Model["LLM 模型"]
+    Model --&gt; TO
+    TO --&gt; VL
+    VL --&gt;|通过| Output["可靠输出"]
+    VL --&gt;|未通过| Model
+    AC -.-&gt;|约束| Model
+    SA -.-&gt;|隔离| Model
+    OE -.-&gt;|监控| Output</pre>
+
+<h3 id="2-1-上下文工程（Context-Engineering）"><a href="#2-1-上下文工程（Context-Engineering）" class="headerlink" title="2.1 上下文工程（Context Engineering）"></a>2.1 上下文工程（Context Engineering）</h3><p>上下文工程是 Harness 的信息层，负责回答一个关键问题：<strong>Agent 需要知道什么？</strong></p>
+<p><strong>OpenAI 的做法</strong>：他们的 <code>AGENTS.md</code> 文件控制在约 100 行以内，作为<strong>目录</strong>而非百科全书。顶层文件指向 <code>docs/</code> 目录中更深层的文档，Agent 按需检索。过长的上下文反而会让 Agent 迷失焦点。</p>
+<p><strong>我的实践</strong>：在我的博客项目中，我维护了两个层次的上下文文件：</p>
+<ul>
+<li><code>CLAUDE.md</code>（~50 行）：项目级全局配置，涵盖项目概述、目录结构、开发命令和常见陷阱</li>
+<li><code>.cursorrules</code>（~180 行）：更详细的写作规范、审查清单和协作流程</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># CLAUDE.md 的结构（精简示例）</span><br><span class="line">├── 项目概述（4 行：技术栈、主题、部署方式）</span><br><span class="line">├── 目录结构（6 行：核心目录映射）</span><br><span class="line">├── 开发命令（4 行：server/build/clean/deploy）</span><br><span class="line">├── 写作规范（7 行：Front Matter、命名、格式）</span><br><span class="line">├── 常见陷阱（5 行：避免的操作）</span><br><span class="line">└── 不要做（5 行：硬性禁止项）</span><br></pre></td></tr></table></figure>
+
+<p>踩过的坑：最初我把所有规范塞进一个文件（超过 300 行），结果 Agent 反而频繁忽略关键规则。精简到 50 行后，规则遵从率显著提升。这印证了 OpenAI 的经验——<strong>上下文不是越多越好，精准比全面更重要</strong>。</p>
+<p>核心原则：<strong>仓库即唯一真理来源（Repository as the system of record）</strong>。所有 Agent 需要的知识都应该推入代码仓库，而不是存在某个人的脑子里或者散落在 Confluence 文档中。</p>
+<h3 id="2-2-架构约束（Architectural-Constraints）"><a href="#2-2-架构约束（Architectural-Constraints）" class="headerlink" title="2.2 架构约束（Architectural Constraints）"></a>2.2 架构约束（Architectural Constraints）</h3><p>这是 Harness 中最反直觉的组件：<strong>限制 Agent 的自由度，反而提高它的产出质量</strong>。</p>
+<p>为什么？因为 LLM 在开放空间中容易做出”创造性”但错误的决策。通过机械化的约束缩小解决方案空间，Agent 更容易命中正确答案。</p>
+<p><strong>OpenAI 的做法</strong>：在他们用 Codex 生成百万行代码的项目中，强制执行严格的依赖分层：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Types → Config → Repo → Service → Runtime → UI</span><br></pre></td></tr></table></figure>
+
+<p>任何违反依赖方向的代码都会被 linter 拦截。这不是文档建议，而是 CI 中的硬性检查——Agent 的代码如果违反约束，直接构建失败。</p>
+<p><strong>Stripe 的做法</strong>：他们的编码 Agent “Minions” 每周生成超过 1,000 个已合并的 Pull Request。关键不是模型多强，而是 Harness 的约束体系：pre-commit hook 自动检查代码风格、linter 执行架构规范、CI 流水线运行完整测试套件。</p>
+<p><strong>我的实践</strong>：在我的博客项目中，<code>.cursorrules</code> 定义了一系列”不要做”的硬约束：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 硬约束示例（摘自 .cursorrules）</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">❌</span> <span class="string">不要修改</span> <span class="string">themes/</span> <span class="string">目录下的文件</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">❌</span> <span class="string">不要直接编辑</span> <span class="string">db.json</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">❌</span> <span class="string">不要在文章中使用绝对路径引用图片</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">❌</span> <span class="string">Front</span> <span class="string">Matter</span> <span class="string">的</span> <span class="string">date</span> <span class="string">字段必须是字符串格式</span></span><br></pre></td></tr></table></figure>
+
+<p>这些看似简单的规则，实际上是从 Agent 犯错中总结出来的。每次 Agent 犯了一个新错误，我就加一条约束。这和 OpenAI 的理念一致——<strong>CLAUDE.md 从护栏开始，每次 Agent 犯错就加一条规则</strong>。</p>
+<h3 id="2-3-工具编排（Tools-MCP-Servers）"><a href="#2-3-工具编排（Tools-MCP-Servers）" class="headerlink" title="2.3 工具编排（Tools & MCP Servers）"></a>2.3 工具编排（Tools &amp; MCP Servers）</h3><p>Agent 通过工具与外界交互。工具不仅决定了 Agent 的能力边界，也决定了它的可靠性边界。</p>
+<p><strong>MCP（Model Context Protocol，模型上下文协议）</strong> 的出现统一了工具接口，让不同的 AI 工具可以通过标准化的方式访问外部服务——数据库、API、文件系统、CLI 工具等。</p>
+<p><strong>最佳实践</strong>：</p>
+<ul>
+<li><strong>优先使用标准工具</strong>（git、docker、npm）而非自定义 CLI。LLM 在标准工具上有海量训练数据，执行可靠性远高于自定义工具</li>
+<li><strong>工具文档化</strong>：每个工具都应该有清晰的输入/输出规范，Agent 才能正确调用</li>
+<li><strong>最小权限原则</strong>：只给 Agent 完成任务所需的最少工具权限</li>
+</ul>
+<p><strong>我的实践</strong>：在 Cursor 中，我配置了多个 MCP Server 来扩展 Agent 的能力——Confluence 知识库访问、内部框架文档查询、代码仓库搜索等。关键经验是：不是接入越多工具越好，而是每个工具都要有明确的使用场景和清晰的文档。Agent 面对模糊的工具描述时，调用准确率会大幅下降。</p>
+<h3 id="2-4-验证回路（Verification-Loops）"><a href="#2-4-验证回路（Verification-Loops）" class="headerlink" title="2.4 验证回路（Verification Loops）"></a>2.4 验证回路（Verification Loops）</h3><p>验证回路是 Harness 中最关键的组件，也是 Prompt Engineering 时代最缺失的部分。</p>
+<p>核心问题：<strong>Agent 不能自我评估——它会给自己打高分。</strong> 如果你让一个 Agent 评价自己的输出质量，它几乎总是说”做得很好”。必须有外部的、客观的验证机制。</p>
+<p>三层验证体系：</p>
+<p><strong>第一层：确定性验证</strong>（零容忍）</p>
+<ul>
+<li>单元测试、集成测试</li>
+<li>Linter、类型检查</li>
+<li>架构约束检查（依赖方向、命名规范等）</li>
+<li>构建是否通过</li>
+</ul>
+<p><strong>第二层：AI 驱动验证</strong>（辅助判断）</p>
+<ul>
+<li>用另一个 Agent 审查代码质量</li>
+<li>自验证回路：让 Agent 对比输出与原始需求</li>
+<li>LangChain 的”完成前检查表”模式</li>
+</ul>
+<p><strong>第三层：人工审核</strong>（关键决策）</p>
+<ul>
+<li>架构决策的最终审批</li>
+<li>涉及安全或资金的操作</li>
+<li>Agent 置信度低于阈值时的升级</li>
+</ul>
+<p><strong>我的实践</strong>：在我设计的 <a href="/2026/04/03/03-dod-agent-design/">DoD Agent（电商告警处理系统）</a> 中，验证机制是核心设计要素。Agent 的每次操作都经过三级风险评估：</p>
+<ul>
+<li><strong>低风险操作</strong>（查询日志、读取监控）：自动执行，事后审计</li>
+<li><strong>中风险操作</strong>（重启服务、调整配置）：需要 Agent 生成操作计划并自我检验后执行</li>
+<li><strong>高风险操作</strong>（数据库变更、流量切换）：必须经过人工审批</li>
+</ul>
+<p>这种分级验证的设计思路，和 Harness Engineering 的核心理念完全一致——<strong>不是要控制 Agent 做什么，而是确保它做对</strong>。</p>
+<h3 id="2-5-子代理与上下文防火墙（Sub-Agents-Context-Firewalls）"><a href="#2-5-子代理与上下文防火墙（Sub-Agents-Context-Firewalls）" class="headerlink" title="2.5 子代理与上下文防火墙（Sub-Agents & Context Firewalls）"></a>2.5 子代理与上下文防火墙（Sub-Agents &amp; Context Firewalls）</h3><p>长时间运行的 Agent 会话有一个隐蔽的陷阱：<strong>上下文退化（Context Rot）</strong>。</p>
+<p>随着对话轮数增加，早期的指令被稀释，错误信息被累积，Agent 的行为逐渐偏离预期。这就像一个人连续工作 20 小时后，判断力和注意力都会严重下降。</p>
+<p>解决方案：<strong>上下文防火墙</strong>——为每个独立子任务创建新的子代理，而不是在一个持续膨胀的会话中完成所有工作。</p>
+<p><strong>LangChain 的做法</strong>：他们的 Deep Agents 架构中，每个子任务都在独立的上下文窗口中执行。主代理负责任务分解和结果汇总，子代理在干净的上下文中执行具体工作。</p>
+<p><strong>我的实践</strong>：在使用 Claude Code 时，我严格遵循 <strong>Plan → 新会话执行</strong> 的工作流：</p>
+<ol>
+<li>在第一个会话中使用 Plan 模式充分讨论方案，来回迭代直到满意</li>
+<li>把最终方案整理成详细的执行指令</li>
+<li><strong>开一个全新的会话</strong>执行，避免讨论过程的上下文污染执行阶段</li>
+</ol>
+<p>这和直觉相反——你可能觉得保持上下文连贯性更好。但实践表明，干净的上下文 + 明确的指令，远比”带着一堆历史包袱”执行要可靠得多。这正是 Boris Cherny（Claude Code 创建者）反复强调的最佳实践。</p>
+<h3 id="2-6-可观测性与熵管理（Observability-Entropy-Management）"><a href="#2-6-可观测性与熵管理（Observability-Entropy-Management）" class="headerlink" title="2.6 可观测性与熵管理（Observability & Entropy Management）"></a>2.6 可观测性与熵管理（Observability &amp; Entropy Management）</h3><p>Agent 产出的代码会随时间积累技术债——这是一个被低估的问题。单次任务看起来没问题，但 Agent 生成的代码在不同会话之间缺乏统一的架构愿景，<strong>代码熵</strong>会持续增长。</p>
+<p><strong>OpenAI 的做法</strong>：他们在 Codex 项目中建立了持续的”垃圾回收”机制：</p>
+<ul>
+<li><strong>依赖审计 Agent</strong>：定期检查依赖关系是否违反架构分层</li>
+<li><strong>模式执行 Agent</strong>：确保新代码遵循已建立的设计模式</li>
+<li><strong>文档一致性 Agent</strong>：检查代码变更后文档是否同步更新</li>
+</ul>
+<p>可观测性的核心不是传统的日志和监控，而是<strong>Agent 行为的可追踪性</strong>：</p>
+<ul>
+<li>每次 Agent 调用了什么工具？</li>
+<li>决策路径是什么？</li>
+<li>在哪个步骤偏离了预期？</li>
+<li>什么样的输入导致了失败？</li>
+</ul>
+<p>当 Agent 产出错误时，工程师需要回答的核心问题从”代码哪里写错了”变成了”<strong>Harness 的哪个环节失效了，如何修改系统使 Agent 永远不再犯这个错</strong>“。</p>
+<hr>
+<h2 id="三、行业实证"><a href="#三、行业实证" class="headerlink" title="三、行业实证"></a>三、行业实证</h2><h3 id="3-1-OpenAI：百万行零手写代码"><a href="#3-1-OpenAI：百万行零手写代码" class="headerlink" title="3.1 OpenAI：百万行零手写代码"></a>3.1 OpenAI：百万行零手写代码</h3><p>2026 年初，OpenAI 公开了一个令人震撼的内部实验：一个 3-7 人的团队，在约 5 个月内，构建了一个超过 <strong>100 万行代码</strong>的生产应用——<strong>零行手写代码</strong>，全部由 Codex Agent 生成。开发效率约为传统方式的 <strong>10 倍</strong>。</p>
+<p>但这里的关键信息不是”模型多强”，而是他们在 Harness 上的投入：</p>
+<ul>
+<li><strong>AGENTS.md 作为目录</strong>：~100 行的入口文件，指向深层文档，而不是试图在一个文件里描述所有</li>
+<li><strong>机械化架构约束</strong>：自定义 linter + 结构化测试，任何违反依赖分层的代码自动失败</li>
+<li><strong>Agent 可访问可观测性工具</strong>：让 Agent 自己查看日志、指标和 trace，自主调试而非依赖人工</li>
+<li><strong>持续的熵回收</strong>：专门的 Agent 定期清理架构偏移、废弃代码和不一致的模式</li>
+</ul>
+<p>关键启示：<strong>这不是一个”模型足够强就能做到”的成就。换一个同等水平的模型但没有这套 Harness，结果会完全不同。</strong></p>
+<h3 id="3-2-LangChain：Deep-Agents-的-Harness-优化"><a href="#3-2-LangChain：Deep-Agents-的-Harness-优化" class="headerlink" title="3.2 LangChain：Deep Agents 的 Harness 优化"></a>3.2 LangChain：Deep Agents 的 Harness 优化</h3><p>Harrison Chase 的团队提供了最干净的 A/B 测试：在 Terminal Bench 2.0 上，使用<strong>完全相同的模型</strong>（GPT-5.2-Codex），只改变 Harness 设计。</p>
+<table>
+<thead>
+<tr>
+<th align="left">指标</th>
+<th align="left">优化前</th>
+<th align="left">优化后</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">准确率</td>
+<td align="left">52.8%</td>
+<td align="left">66.5%</td>
+</tr>
+<tr>
+<td align="left">排名</td>
+<td align="left">30 名开外</td>
+<td align="left">前 5</td>
+</tr>
+<tr>
+<td align="left">模型变更</td>
+<td align="left">无</td>
+<td align="left">无</td>
+</tr>
+</tbody></table>
+<p>他们具体改了什么：</p>
+<ul>
+<li><strong>自验证回路（Self-Verification Loops）</strong>：Agent 在提交结果前，先运行测试验证自己的输出</li>
+<li><strong>循环检测中间件（Loop Detection Middleware）</strong>：当 Agent 陷入重复尝试同一个失败策略时，自动打断并换策略</li>
+<li><strong>主动上下文工程（Proactive Context Engineering）</strong>：不是一次性给 Agent 所有信息，而是在执行过程中按需注入相关上下文</li>
+<li><strong>完成前检查表（Pre-Completion Checklist）</strong>：在 Agent 宣布”完成”之前，强制执行一个检查清单</li>
+</ul>
+<p>这组数据是 Harness Engineering 最有说服力的证据：<strong>同一匹马，不同的驾驭方式，表现天差地别。</strong></p>
+<h3 id="3-3-Anthropic：三代理架构"><a href="#3-3-Anthropic：三代理架构" class="headerlink" title="3.3 Anthropic：三代理架构"></a>3.3 Anthropic：三代理架构</h3><p>Anthropic 展示了 Harness 在创意和质量方面的价值。他们使用了一个三代理协作架构：</p>
+<pre class="mermaid">graph LR
+    P["Planner 规划代理"] --&gt;|需求规格| G["Generator 生成代理"]
+    G --&gt;|代码产出| E["Evaluator 评估代理"]
+    E --&gt;|反馈意见| G
+    E --&gt;|质量达标| Output["最终交付"]</pre>
+
+<ul>
+<li><strong>Planner（规划代理）</strong>：将用户需求展开为完整的规格说明</li>
+<li><strong>Generator（生成代理）</strong>：按规格实现具体功能</li>
+<li><strong>Evaluator（评估代理）</strong>：用明确的评分标准（设计质量、原创性、工艺、功能性）评估输出，未达标则反馈给 Generator 重做</li>
+</ul>
+<p>代价是成本提升了约 22 倍。但在需要高质量输出的场景下，这种 Harness 设计实现了单 Agent 无法达到的功能完整度和代码质量。</p>
+<hr>
+<h2 id="四、工程师角色的转变"><a href="#四、工程师角色的转变" class="headerlink" title="四、工程师角色的转变"></a>四、工程师角色的转变</h2><p>Harness Engineering 正在重新定义软件工程师的工作。</p>
+<p>传统模式下，工程师的核心产出是<strong>代码</strong>。在 Harness Engineering 时代，核心产出变成了<strong>环境</strong>——让 Agent 能可靠产出正确代码的环境。</p>
+<p>这不是一个”AI 取代工程师”的故事。恰恰相反，它要求工程师具备更高层次的能力：</p>
+<table>
+<thead>
+<tr>
+<th align="left">传统能力</th>
+<th align="left">Harness 时代的新能力</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">编写业务逻辑代码</td>
+<td align="left">设计架构约束和验证规则</td>
+</tr>
+<tr>
+<td align="left">手动调试 Bug</td>
+<td align="left">分析 Agent 行为模式，修复 Harness 缺陷</td>
+</tr>
+<tr>
+<td align="left">阅读文档学习 API</td>
+<td align="left">编写高质量的上下文文档供 Agent 消费</td>
+</tr>
+<tr>
+<td align="left">代码评审</td>
+<td align="left">设计自动化评审回路</td>
+</tr>
+<tr>
+<td align="left">性能优化</td>
+<td align="left">成本控制和 Agent 效率优化</td>
+</tr>
+</tbody></table>
+<p>回顾我这个 AI 系列的写作历程：</p>
+<ul>
+<li><a href="/2026/04/03/00-vibe-coding-vs-spec-coding/">00-Vibe Coding vs Spec Coding</a>：从”即兴编程”到”规范驱动编程”——这是思维方式的第一次升级</li>
+<li><a href="/2026/04/02/01-claude-code-practices/">01-Claude Code</a>：学习与 Agent 协作的具体技巧——这是工具使用的升级</li>
+<li><a href="/2026/04/03/02-agent-system-design-guid/">02-Agent 系统设计</a>：学习如何设计 Agent 架构——这是设计能力的升级</li>
+</ul>
+<p><strong>Harness Engineering 是这条线的自然延伸</strong>：不只是设计单个 Agent，而是设计让 Agent 可靠运行的整个系统。Spec Coding 中强调的”先写规范再执行”，本质上就是 Harness 思维的雏形——规范就是最基础的约束和验证标准。</p>
+<hr>
+<h2 id="五、总结与展望"><a href="#五、总结与展望" class="headerlink" title="五、总结与展望"></a>五、总结与展望</h2><p>Harness Engineering 的核心洞察可以浓缩为一句话：</p>
+<blockquote>
+<p><strong>模型是动力，Harness 是方向盘。没有方向盘的引擎，跑得越快越危险。</strong></p>
+</blockquote>
+<h3 id="最小可行-Harness-检查清单"><a href="#最小可行-Harness-检查清单" class="headerlink" title="最小可行 Harness 检查清单"></a>最小可行 Harness 检查清单</h3><p>如果你今天就想开始构建自己的 Agent Harness，从这 7 条开始：</p>
+<ul>
+<li><input disabled="" type="checkbox"> <strong>精简的入口文件</strong>：<code>CLAUDE.md</code> 或 <code>AGENTS.md</code> 控制在 100 行以内，作为目录指向深层文档</li>
+<li><input disabled="" type="checkbox"> <strong>可复现的开发环境</strong>：一键启动，per-worktree 隔离，Agent 和人类用相同的环境</li>
+<li><input disabled="" type="checkbox"> <strong>机械化的架构约束</strong>：用 linter、pre-commit hook、CI 检查来执行规范，而非依赖文档</li>
+<li><input disabled="" type="checkbox"> <strong>自验证回路</strong>：Agent 提交前必须通过测试和构建，失败自动反馈</li>
+<li><input disabled="" type="checkbox"> <strong>上下文防火墙</strong>：长任务拆分为子任务，每个子任务在干净的上下文中执行</li>
+<li><input disabled="" type="checkbox"> <strong>最小权限与回滚能力</strong>：Agent 只拥有必要的操作权限，关键操作可回滚</li>
+<li><input disabled="" type="checkbox"> <strong>定期的代码熵清理</strong>：定期审计 Agent 产出的代码，防止架构偏移和技术债累积</li>
+</ul>
+<h3 id="展望"><a href="#展望" class="headerlink" title="展望"></a>展望</h3><p>2026 年正在形成一个共识：<strong>模型已经是商品，Harness 才是竞争护城河</strong>。</p>
+<p>当所有团队都可以接入同等水平的 LLM 时，决定 Agent 产出质量的不再是模型选择，而是 Harness 的设计水平——上下文策略有多精准、约束体系有多严格、验证回路有多完善、可观测性有多透明。</p>
+<p>对于工程师来说，这反而是一个好消息：<strong>我们积累多年的系统设计、架构思维、工程实践经验，在 Harness Engineering 时代比以往任何时候都更有价值。</strong> 不同的是，我们设计的系统服务的对象，从人类开发者扩展到了 AI Agent。</p>
+<hr>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><a href="https://harness-engineering.ai/blog/what-is-harness-engineering/">What Is Harness Engineering? The Discipline That Makes AI Agents Reliable</a></li>
+<li><a href="https://www.engineering.fyi/article/harness-engineering-leveraging-codex-in-an-agent-first-world">Harness engineering: leveraging Codex in an agent-first world — OpenAI Engineering Blog</a></li>
+<li><a href="https://blog.langchain.dev/improving-deep-agents-with-harness-engineering/">Improving Deep Agents with harness engineering — LangChain Blog</a></li>
+<li><a href="https://blog.langchain.com/the-anatomy-of-an-agent-harness/">The Anatomy of an Agent Harness — LangChain Blog</a></li>
+<li><a href="https://www.techbuddies.io/2026/03/08/why-better-llms-arent-enough-langchains-harrison-chase-on-harness-engineering-and-deep-agents/">Why Better LLMs Aren’t Enough: Harrison Chase on Harness Engineering and Deep Agents</a></li>
+<li><a href="https://dev.to/ljhao/prompt-engineering-vs-context-engineering-vs-harness-engineering-whats-the-difference-in-2026-37pb">Prompt Engineering vs Context Engineering vs Harness Engineering — dev.to</a></li>
+<li><a href="https://dev.to/codesoda/beyond-agentsmd-harness-engineering-loop-based-delivery-and-context-aware-prompting-ec9">Beyond AGENTS.md: Harness Engineering, Loop-Based Delivery — dev.to</a></li>
+<li><a href="https://gtcode.com/articles/harness-engineering/">Harness Engineering: The Discipline of Building Systems That… — gtcode.com</a></li>
+<li><a href="http://infoq.com/news/2026/02/openai-harness-engineering-codex/">OpenAI Introduces Harness Engineering — InfoQ</a></li>
+<li><a href="https://cloud.tencent.com/developer/article/2647887">Agent 系列（三）：Harness Engineering — 腾讯云</a></li>
+<li><a href="https://www.mornai.cn/news/ai-agent/harness-engineering/">Harness Engineering：从驾驭百万行 AI 代码到软件工程的范式革命 — 晨涧云</a></li>
+<li><a href="https://haiai.world/beyond-prompting-why-harness-engineering-is-the-most-important-ai-skill-of-2026/">Beyond Prompting: Why Harness Engineering is the Most Important AI Skill of 2026</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/cursor/" rel="tag"># cursor</a>
+              <a href="/tags/claude-code/" rel="tag"># claude-code</a>
+              <a href="/tags/best-practices/" rel="tag"># best-practices</a>
+              <a href="/tags/harness-engineering/" rel="tag"># harness-engineering</a>
+              <a href="/tags/ai-agent/" rel="tag"># ai-agent</a>
+              <a href="/tags/context-engineering/" rel="tag"># context-engineering</a>
+              <a href="/tags/prompt-engineering/" rel="tag"># prompt-engineering</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2026/04/07/system-design/08-system-design-interview/" rel="prev" title="高频系统设计面试题速查手册">
+                  <i class="fa fa-angle-left"></i> 高频系统设计面试题速查手册
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2026/04/10/system-design/30-ecommerce-product-lifecycle-management/" rel="next" title="电商系统设计（十一）：商品生命周期管理（上架、同步与运营编辑）">
+                  电商系统设计（十一）：商品生命周期管理（上架、同步与运营编辑） <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>

@@ -1,0 +1,70 @@
+graph TB
+    subgraph phase1 ["阶段1: 正常状态 - 负载因子 = 5/8 = 0.625"]
+        dict1["dict<br/>rehashidx = -1"]
+        ht0_1["ht[0]<br/>size=8, used=5"]
+        ht1_1["ht[1]<br/>NULL 未使用"]
+        
+        dict1 --> ht0_1
+        dict1 --> ht1_1
+    end
+    
+    subgraph phase2 ["阶段2: 触发扩容 - 负载因子 >= 1"]
+        dict2["dict<br/>rehashidx = -1 → 0"]
+        ht0_2["ht[0]<br/>size=8, used=6<br/>开始迁移"]
+        ht1_2["ht[1]<br/>size=16, used=0<br/>新分配空间"]
+        
+        dict2 --> ht0_2
+        dict2 --> ht1_2
+        
+        note1["分配 ht[1] 空间<br/>size = 下一个 2^n<br/>= 16"]
+    end
+    
+    subgraph phase3 ["阶段3: 渐进式 Rehash - 每次操作迁移一个桶"]
+        dict3["dict<br/>rehashidx = 0 → 1 → 2..."]
+        
+        subgraph migration ["迁移过程"]
+            ht0_3["ht[0]<br/>[0]已空 [1]已空<br/>[2]待迁移<br/>used=4"]
+            arrow["逐个桶迁移 →"]
+            ht1_3["ht[1]<br/>接收数据<br/>used=2"]
+        end
+        
+        dict3 --> ht0_3
+        dict3 --> ht1_3
+        
+        note2["每次操作时<br/>顺带迁移<br/>rehashidx 位置的桶"]
+        note3["新增操作<br/>直接写 ht[1]"]
+        note4["查询操作<br/>先查 ht[0]<br/>再查 ht[1]"]
+    end
+    
+    subgraph phase4 ["阶段4: 完成 Rehash"]
+        dict4["dict<br/>rehashidx = -1"]
+        ht0_4["ht[0]<br/>← ht[1] 替换<br/>size=16, used=6"]
+        ht1_4["ht[1]<br/>清空<br/>准备下次使用"]
+        
+        dict4 --> ht0_4
+        dict4 --> ht1_4
+        
+        note5["释放旧 ht[0]<br/>ht[1] 成为新 ht[0]<br/>创建空白 ht[1]"]
+    end
+    
+    phase1 ==> phase2
+    phase2 ==> phase3
+    phase3 ==> phase4
+    
+    subgraph legend ["哈希函数与索引计算"]
+        hash_func["hash = MurmurHash2 key"]
+        index_calc["index = hash & sizemask<br/>sizemask = size - 1<br/>例: hash & 15 = hash % 16"]
+        
+        hash_func --> index_calc
+    end
+    
+    classDef normalStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef rehashStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef completeStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef noteStyle fill:#fce4ec,stroke:#880e4f,stroke-width:1px
+    
+    class dict1,ht0_1,ht1_1 normalStyle
+    class dict2,ht0_2,ht1_2,dict3,ht0_3,ht1_3 rehashStyle
+    class dict4,ht0_4,ht1_4 completeStyle
+    class note1,note2,note3,note4,note5 noteStyle
+

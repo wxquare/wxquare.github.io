@@ -1,0 +1,130 @@
+graph TB
+    subgraph 数据入口层
+        A1[运营上传<br/>表单/Excel<br/>免审核]
+        A2[商家上传<br/>Portal/App<br/>人工审核+限流]
+        A3[批量导入<br/>Excel/CSV<br/>流式解析]
+        A4[供应商Push<br/>MQ实时推送<br/>快速通道]
+        A5[供应商Pull<br/>定时拉取<br/>增量同步]
+        A6[API接口<br/>RPC/REST<br/>幂等保证]
+    end
+
+    subgraph Service层
+        B[ListingUploadService<br/>• 数据校验+业务规则<br/>• 雪花算法生成task_code<br/>• 审核策略路由<br/>• 乐观锁+唯一索引]
+    end
+
+    subgraph Kafka异步队列
+        C1[listing.batch.created]
+        C2[listing.audit.pending]
+        C3[listing.publish.ready]
+        C4[listing.published]
+        C5[*.dlq 死信队列]
+    end
+
+    subgraph Worker层
+        D1[ExcelParseWorker<br/>流式解析/100条批]
+        D2[AuditWorker<br/>规则引擎/策略路由]
+        D3[PublishWorker<br/>Saga事务/补偿机制]
+        D4[WatchdogWorker<br/>超时监控/自动重试]
+        D5[OutboxPublisher<br/>可靠事件发布]
+        D6[SupplierSyncWorker<br/>定时拉取/增量同步]
+    end
+
+    subgraph 状态机
+        E1[DRAFT]
+        E2[Pending]
+        E3[Approved]
+        E4[Rejected]
+        E5[Online]
+    end
+
+    subgraph Saga事务
+        F1[1.CreateItem]
+        F2[2.CreateSKU]
+        F3[3.CreateAttributes]
+        F4[4.CreatePrice]
+        F5[5.UpdateStatus]
+        F6[6.PublishEvent<br/>Outbox]
+        F7[7.UpdateCache]
+        F8[8.SyncES]
+    end
+
+    subgraph 数据层
+        G1[MySQL分库分表<br/>16张表+按月归档]
+        G2[Redis缓存<br/>L1+L2双层]
+        G3[Elasticsearch<br/>搜索+统计]
+        G4[OSS<br/>文件存储]
+        G5[Outbox表<br/>本地消息]
+    end
+
+    subgraph 监控
+        H1[Prometheus<br/>指标采集]
+        H2[Grafana<br/>可视化]
+        H3[告警<br/>成功率/耗时]
+    end
+
+    A1 --> B
+    A2 --> B
+    A3 --> B
+    A4 --> B
+    A5 --> B
+    A6 --> B
+
+    B --> C1
+    B --> C2
+
+    C1 --> D1
+    C2 --> D2
+    C3 --> D3
+    C4 -.-> G3
+    C4 -.-> G2
+
+    D1 --> C2
+    D2 --> C3
+    D3 --> C4
+    D4 -.监控.-> C2
+    D5 -.发布.-> C4
+
+    E1 --> E2
+    E2 --> E3
+    E2 --> E4
+    E3 --> E5
+
+    D3 --> F1
+    F1 --> F2
+    F2 --> F3
+    F3 --> F4
+    F4 --> F5
+    F5 --> F6
+    F6 --> F7
+    F7 --> F8
+
+    D1 --> G1
+    D2 --> G1
+    D3 --> G1
+    D5 --> G5
+
+    G5 --> C4
+
+    G1 -.备份.-> G3
+    G2 -.缓存.-> G1
+
+    H1 -.采集.-> D1
+    H1 -.采集.-> D2
+    H1 -.采集.-> D3
+    H2 -.展示.-> H1
+    H3 -.触发.-> H2
+
+    style A1 fill:#d3f9d8
+    style A2 fill:#ffe8cc
+    style A3 fill:#f3d9fa
+    style A4 fill:#ffe3e3
+    style A5 fill:#ffe3e3
+    style A6 fill:#c5f6fa
+    style B fill:#d0ebff
+    style C1 fill:#fff3bf
+    style C2 fill:#fff3bf
+    style C3 fill:#fff3bf
+    style C4 fill:#fff3bf
+    style C5 fill:#ffe3e3
+    style E5 fill:#b2f2bb
+    style G5 fill:#d3f9d8

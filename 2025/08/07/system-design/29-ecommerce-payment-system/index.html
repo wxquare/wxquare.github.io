@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="电商系统设计系列（篇次与（一）推荐阅读顺序一致）  （一）全景概览与领域划分 （二）商品中心系统 （三）库存系统 （四）营销系统深度解析 （五）计价引擎 （六）计价系统 DDD 实践 （七）订单系统 （八）支付系统深度解析（本文） （九）商品上架系统 （十）B 端运营系统   引言支付系统是电商平台的资金流枢纽，连接用户、平台、商家、第三方支付等多方角色。本文从系统设计面试的角度，深入解析支付系">
+<meta property="og:type" content="article">
+<meta property="og:title" content="电商系统设计（八）：支付系统深度解析">
+<meta property="og:url" content="http://yoursite.com/2025/08/07/system-design/29-ecommerce-payment-system/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="电商系统设计系列（篇次与（一）推荐阅读顺序一致）  （一）全景概览与领域划分 （二）商品中心系统 （三）库存系统 （四）营销系统深度解析 （五）计价引擎 （六）计价系统 DDD 实践 （七）订单系统 （八）支付系统深度解析（本文） （九）商品上架系统 （十）B 端运营系统   引言支付系统是电商平台的资金流枢纽，连接用户、平台、商家、第三方支付等多方角色。本文从系统设计面试的角度，深入解析支付系">
+<meta property="og:locale">
+<meta property="article:published_time" content="2025-08-06T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-04-10T16:00:35.819Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="state-machine">
+<meta property="article:tag" content="saga">
+<meta property="article:tag" content="distributed-transaction">
+<meta property="article:tag" content="idempotency">
+<meta property="article:tag" content="tcc">
+<meta property="article:tag" content="payment">
+<meta property="article:tag" content="reconciliation">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2025/08/07/system-design/29-ecommerce-payment-system/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2025/08/07/system-design/29-ecommerce-payment-system/","path":"2025/08/07/system-design/29-ecommerce-payment-system/","title":"电商系统设计（八）：支付系统深度解析"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>电商系统设计（八）：支付系统深度解析 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%95%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">引言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%B8%9A%E5%8A%A1%E8%83%8C%E6%99%AF%E4%B8%8E%E6%8C%91%E6%88%98"><span class="nav-number">2.</span> <span class="nav-text">一、业务背景与挑战</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E6%94%AF%E4%BB%98%E7%B3%BB%E7%BB%9F%E7%9A%84%E5%AE%9A%E4%BD%8D"><span class="nav-number">2.1.</span> <span class="nav-text">1.1 支付系统的定位</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E6%A0%B8%E5%BF%83%E4%B8%9A%E5%8A%A1%E5%9C%BA%E6%99%AF"><span class="nav-number">2.2.</span> <span class="nav-text">1.2 核心业务场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E6%A0%B8%E5%BF%83%E6%8C%91%E6%88%98"><span class="nav-number">2.3.</span> <span class="nav-text">1.3 核心挑战</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%95%B4%E4%BD%93%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1"><span class="nav-number">3.</span> <span class="nav-text">二、整体架构设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%88%86%E5%B1%82%E6%9E%B6%E6%9E%84"><span class="nav-number">3.1.</span> <span class="nav-text">2.1 分层架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E6%A0%B8%E5%BF%83%E5%AD%90%E7%B3%BB%E7%BB%9F"><span class="nav-number">3.2.</span> <span class="nav-text">2.2 核心子系统</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99"><span class="nav-number">3.3.</span> <span class="nav-text">2.3 设计原则</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E6%A0%B8%E5%BF%83%E4%B8%9A%E5%8A%A1%E6%B5%81%E7%A8%8B"><span class="nav-number">4.</span> <span class="nav-text">三、核心业务流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E6%94%AF%E4%BB%98%E6%B5%81%E7%A8%8B"><span class="nav-number">4.1.</span> <span class="nav-text">3.1 支付流程</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-1-%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="nav-number">4.1.1.</span> <span class="nav-text">3.1.1 时序图</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1-2-%E5%85%B3%E9%94%AE%E6%AD%A5%E9%AA%A4"><span class="nav-number">4.1.2.</span> <span class="nav-text">3.1.2 关键步骤</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E9%80%80%E6%AC%BE%E6%B5%81%E7%A8%8B"><span class="nav-number">4.2.</span> <span class="nav-text">3.2 退款流程</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-1-%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="nav-number">4.2.1.</span> <span class="nav-text">3.2.1 时序图</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-2-%E5%8F%AF%E9%80%80%E9%87%91%E9%A2%9D%E8%AE%A1%E7%AE%97"><span class="nav-number">4.2.2.</span> <span class="nav-text">3.2.2 可退金额计算</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2-3-%E9%83%A8%E5%88%86%E9%80%80%E6%AC%BE"><span class="nav-number">4.2.3.</span> <span class="nav-text">3.2.3 部分退款</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E5%BC%82%E6%AD%A5%E5%9B%9E%E8%B0%83%E5%A4%84%E7%90%86"><span class="nav-number">4.3.</span> <span class="nav-text">3.3 异步回调处理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E7%8A%B6%E6%80%81%E6%9C%BA%E8%AE%BE%E8%AE%A1"><span class="nav-number">5.</span> <span class="nav-text">四、状态机设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E6%94%AF%E4%BB%98%E5%8D%95%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="nav-number">5.1.</span> <span class="nav-text">4.1 支付单状态机</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-1-%E7%8A%B6%E6%80%81%E5%AE%9A%E4%B9%89"><span class="nav-number">5.1.1.</span> <span class="nav-text">4.1.1 状态定义</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-2-%E7%8A%B6%E6%80%81%E8%BD%AC%E6%8D%A2%E8%A1%A8"><span class="nav-number">5.1.2.</span> <span class="nav-text">4.1.2 状态转换表</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E9%80%80%E6%AC%BE%E5%8D%95%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="nav-number">5.2.</span> <span class="nav-text">4.2 退款单状态机</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-1-%E7%8A%B6%E6%80%81%E5%AE%9A%E4%B9%89"><span class="nav-number">5.2.1.</span> <span class="nav-text">4.2.1 状态定义</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-2-%E4%B8%8E%E6%94%AF%E4%BB%98%E5%8D%95%E7%8A%B6%E6%80%81%E8%81%94%E5%8A%A8"><span class="nav-number">5.2.2.</span> <span class="nav-text">4.2.2 与支付单状态联动</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E7%8A%B6%E6%80%81%E6%9C%BA%E5%AE%9E%E7%8E%B0"><span class="nav-number">5.3.</span> <span class="nav-text">4.3 状态机实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-3-1-%E7%8A%B6%E6%80%81%E8%BD%AC%E6%8D%A2%E6%A0%A1%E9%AA%8C"><span class="nav-number">5.3.1.</span> <span class="nav-text">4.3.1 状态转换校验</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-3-2-%E7%8A%B6%E6%80%81%E8%BD%AC%E6%8D%A2%EF%BC%88%E4%B9%90%E8%A7%82%E9%94%81%EF%BC%89"><span class="nav-number">5.3.2.</span> <span class="nav-text">4.3.2 状态转换（乐观锁）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-3-3-%E7%8A%B6%E6%80%81%E5%8F%98%E6%9B%B4%E4%BA%8B%E4%BB%B6"><span class="nav-number">5.3.3.</span> <span class="nav-text">4.3.3 状态变更事件</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E9%AB%98%E9%A2%91%E8%80%83%E7%82%B9%E6%B7%B1%E5%85%A5"><span class="nav-number">6.</span> <span class="nav-text">五、高频考点深入</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1"><span class="nav-number">6.1.</span> <span class="nav-text">5.1 分布式事务</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#5-1-1-%E9%97%AE%E9%A2%98%E5%9C%BA%E6%99%AF"><span class="nav-number">6.1.1.</span> <span class="nav-text">5.1.1 问题场景</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-1-2-Saga-%E6%A8%A1%E5%BC%8F"><span class="nav-number">6.1.2.</span> <span class="nav-text">5.1.2 Saga 模式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-1-3-TCC-%E6%A8%A1%E5%BC%8F"><span class="nav-number">6.1.3.</span> <span class="nav-text">5.1.3 TCC 模式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-1-4-Saga-vs-TCC"><span class="nav-number">6.1.4.</span> <span class="nav-text">5.1.4 Saga vs TCC</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E5%B9%82%E7%AD%89%E6%80%A7%E8%AE%BE%E8%AE%A1"><span class="nav-number">6.2.</span> <span class="nav-text">5.2 幂等性设计</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#5-2-1-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E5%B9%82%E7%AD%89"><span class="nav-number">6.2.1.</span> <span class="nav-text">5.2.1 为什么需要幂等</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-2-2-%E4%B8%89%E4%B8%AA%E5%85%B3%E9%94%AE%E5%9C%BA%E6%99%AF"><span class="nav-number">6.2.2.</span> <span class="nav-text">5.2.2 三个关键场景</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-2-3-%E5%AE%9E%E7%8E%B0%E6%89%8B%E6%AE%B5%E6%80%BB%E7%BB%93"><span class="nav-number">6.2.3.</span> <span class="nav-text">5.2.3 实现手段总结</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-%E4%B8%80%E8%87%B4%E6%80%A7%E4%BF%9D%E8%AF%81"><span class="nav-number">6.3.</span> <span class="nav-text">5.3 一致性保证</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#5-3-1-%E8%B4%A6%E6%88%B7%E4%BD%99%E9%A2%9D%E4%B8%80%E8%87%B4%E6%80%A7"><span class="nav-number">6.3.1.</span> <span class="nav-text">5.3.1 账户余额一致性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-3-2-%E6%94%AF%E4%BB%98%E6%B5%81%E6%B0%B4%E4%B8%80%E8%87%B4%E6%80%A7"><span class="nav-number">6.3.2.</span> <span class="nav-text">5.3.2 支付流水一致性</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81%E6%89%A9%E5%B1%95%E6%A8%A1%E5%9D%97"><span class="nav-number">7.</span> <span class="nav-text">六、扩展模块</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-%E6%B8%85%E7%BB%93%E7%AE%97%E7%B3%BB%E7%BB%9F"><span class="nav-number">7.1.</span> <span class="nav-text">6.1 清结算系统</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#6-1-1-%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5"><span class="nav-number">7.1.1.</span> <span class="nav-text">6.1.1 核心概念</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#6-1-2-%E7%BB%93%E7%AE%97%E5%91%A8%E6%9C%9F"><span class="nav-number">7.1.2.</span> <span class="nav-text">6.1.2 结算周期</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#6-1-3-%E6%8F%90%E7%8E%B0%E7%AE%A1%E7%90%86"><span class="nav-number">7.1.3.</span> <span class="nav-text">6.1.3 提现管理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#6-1-4-%E6%B8%85%E7%BB%93%E7%AE%97%E6%B5%81%E7%A8%8B"><span class="nav-number">7.1.4.</span> <span class="nav-text">6.1.4 清结算流程</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-%E5%AF%B9%E8%B4%A6%E7%B3%BB%E7%BB%9F"><span class="nav-number">7.2.</span> <span class="nav-text">6.2 对账系统</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#6-2-1-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E5%AF%B9%E8%B4%A6"><span class="nav-number">7.2.1.</span> <span class="nav-text">6.2.1 为什么需要对账</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#6-2-2-%E5%AF%B9%E8%B4%A6%E7%BB%B4%E5%BA%A6"><span class="nav-number">7.2.2.</span> <span class="nav-text">6.2.2 对账维度</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#6-2-3-%E5%AF%B9%E8%B4%A6%E6%B5%81%E7%A8%8B"><span class="nav-number">7.2.3.</span> <span class="nav-text">6.2.3 对账流程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#6-2-4-%E5%B7%AE%E9%94%99%E5%A4%84%E7%90%86"><span class="nav-number">7.2.4.</span> <span class="nav-text">6.2.4 差错处理</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-%E9%A3%8E%E6%8E%A7%E7%B3%BB%E7%BB%9F"><span class="nav-number">7.3.</span> <span class="nav-text">6.3 风控系统</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#6-3-1-%E4%B8%89%E4%B8%AA%E9%98%B6%E6%AE%B5"><span class="nav-number">7.3.1.</span> <span class="nav-text">6.3.1 三个阶段</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#6-3-2-%E5%B8%B8%E8%A7%81%E9%A3%8E%E6%8E%A7%E8%A7%84%E5%88%99"><span class="nav-number">7.3.2.</span> <span class="nav-text">6.3.2 常见风控规则</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#6-3-3-%E9%BB%91%E5%90%8D%E5%8D%95%E6%9C%BA%E5%88%B6"><span class="nav-number">7.3.3.</span> <span class="nav-text">6.3.3 黑名单机制</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%83%E3%80%81%E9%9D%A2%E8%AF%95%E9%97%AE%E7%AD%94%E9%94%A6%E5%9B%8A"><span class="nav-number">8.</span> <span class="nav-text">七、面试问答锦囊</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#7-1-%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E7%B1%BB"><span class="nav-number">8.1.</span> <span class="nav-text">7.1 架构设计类</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Q1-%E5%A6%82%E4%BD%95%E8%AE%BE%E8%AE%A1%E4%B8%80%E4%B8%AA%E6%94%AF%E4%BB%98%E7%B3%BB%E7%BB%9F%EF%BC%9F%E2%AD%90%E2%AD%90%E2%AD%90"><span class="nav-number">8.1.1.</span> <span class="nav-text">Q1: 如何设计一个支付系统？⭐⭐⭐</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Q2-%E6%94%AF%E4%BB%98%E7%B3%BB%E7%BB%9F%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E9%AB%98%E5%8F%AF%E7%94%A8%EF%BC%9F%E2%AD%90%E2%AD%90"><span class="nav-number">8.1.2.</span> <span class="nav-text">Q2: 支付系统如何保证高可用？⭐⭐</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-2-%E6%8A%80%E6%9C%AF%E6%96%B9%E6%A1%88%E7%B1%BB"><span class="nav-number">8.2.</span> <span class="nav-text">7.2 技术方案类</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Q3-%E6%94%AF%E4%BB%98%E6%88%90%E5%8A%9F%E5%90%8E%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E8%AE%A2%E5%8D%95%E7%8A%B6%E6%80%81%E5%90%8C%E6%AD%A5%E6%9B%B4%E6%96%B0%EF%BC%9F%E2%AD%90%E2%AD%90%E2%AD%90"><span class="nav-number">8.2.1.</span> <span class="nav-text">Q3: 支付成功后如何保证订单状态同步更新？⭐⭐⭐</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Q4-%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%94%AF%E4%BB%98%E5%B9%82%E7%AD%89%E6%80%A7%EF%BC%9F%E2%AD%90%E2%AD%90%E2%AD%90"><span class="nav-number">8.2.2.</span> <span class="nav-text">Q4: 如何保证支付幂等性？⭐⭐⭐</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Q5-%E7%AC%AC%E4%B8%89%E6%96%B9%E6%94%AF%E4%BB%98%E5%9B%9E%E8%B0%83%E5%A4%B1%E8%B4%A5%E6%80%8E%E4%B9%88%E5%8A%9E%EF%BC%9F%E2%AD%90%E2%AD%90"><span class="nav-number">8.2.3.</span> <span class="nav-text">Q5: 第三方支付回调失败怎么办？⭐⭐</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Q6-%E5%A6%82%E4%BD%95%E5%A4%84%E7%90%86%E9%83%A8%E5%88%86%E9%80%80%E6%AC%BE%EF%BC%9F%E2%AD%90%E2%AD%90"><span class="nav-number">8.2.4.</span> <span class="nav-text">Q6: 如何处理部分退款？⭐⭐</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-3-%E5%9C%BA%E6%99%AF%E9%A2%98%E7%B1%BB"><span class="nav-number">8.3.</span> <span class="nav-text">7.3 场景题类</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Q7-%E5%A4%A7%E4%BF%83%E6%9C%9F%E9%97%B4%E6%94%AF%E4%BB%98%E5%B3%B0%E5%80%BC%E5%A6%82%E4%BD%95%E5%BA%94%E5%AF%B9%EF%BC%9F%E2%AD%90%E2%AD%90"><span class="nav-number">8.3.1.</span> <span class="nav-text">Q7: 大促期间支付峰值如何应对？⭐⭐</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Q8-%E5%A6%82%E4%BD%95%E9%98%B2%E6%AD%A2%E6%81%B6%E6%84%8F%E5%88%B7%E5%8D%95%EF%BC%9F%E2%AD%90"><span class="nav-number">8.3.2.</span> <span class="nav-text">Q8: 如何防止恶意刷单？⭐</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-4-%E9%9D%A2%E8%AF%95%E6%8A%80%E5%B7%A7"><span class="nav-number">8.4.</span> <span class="nav-text">7.4 面试技巧</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">9.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">56</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">152</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">11篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">21篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">14篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">6篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2025/08/07/system-design/29-ecommerce-payment-system/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="电商系统设计（八）：支付系统深度解析 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          电商系统设计（八）：支付系统深度解析
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2025-08-07 00:00:00" itemprop="dateCreated datePublished" datetime="2025-08-07T00:00:00+08:00">2025-08-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-04-11 00:00:35" itemprop="dateModified" datetime="2026-04-11T00:00:35+08:00">2026-04-11</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%94%B5%E5%95%86%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">电商系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><blockquote>
+<p><strong>电商系统设计系列</strong>（篇次与<a href="/system-design/20-ecommerce-overview/">（一）推荐阅读顺序</a>一致）</p>
+<ul>
+<li><a href="/system-design/20-ecommerce-overview/">（一）全景概览与领域划分</a></li>
+<li><a href="/system-design/27-ecommerce-product-center/">（二）商品中心系统</a></li>
+<li><a href="/system-design/22-ecommerce-inventory/">（三）库存系统</a></li>
+<li><a href="/system-design/28-ecommerce-marketing-system/">（四）营销系统深度解析</a></li>
+<li><a href="/system-design/23-ecommerce-pricing-engine/">（五）计价引擎</a></li>
+<li><a href="/system-design/24-ecommerce-pricing-ddd/">（六）计价系统 DDD 实践</a></li>
+<li><a href="/system-design/26-ecommerce-order-system/">（七）订单系统</a></li>
+<li><strong>（八）支付系统深度解析</strong>（本文）</li>
+<li><a href="/system-design/21-ecommerce-listing/">（九）商品上架系统</a></li>
+<li><a href="/system-design/25-ecommerce-b-side-ops/">（十）B 端运营系统</a></li>
+</ul>
+</blockquote>
+<h2 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h2><p>支付系统是电商平台的资金流枢纽，连接用户、平台、商家、第三方支付等多方角色。本文从系统设计面试的角度，深入解析支付系统的核心流程、状态机设计、分布式事务等高频考点。</p>
+<p><strong>适合读者</strong>：准备系统设计面试的候选人</p>
+<p><strong>阅读时长</strong>：30-40 分钟</p>
+<p><strong>核心内容</strong>：</p>
+<ul>
+<li>支付系统整体架构</li>
+<li>支付和退款流程</li>
+<li>状态机设计</li>
+<li>分布式事务（Saga&#x2F;TCC）</li>
+<li>幂等性设计</li>
+<li>一致性保证</li>
+</ul>
+<h2 id="一、业务背景与挑战"><a href="#一、业务背景与挑战" class="headerlink" title="一、业务背景与挑战"></a>一、业务背景与挑战</h2><h3 id="1-1-支付系统的定位"><a href="#1-1-支付系统的定位" class="headerlink" title="1.1 支付系统的定位"></a>1.1 支付系统的定位</h3><p>支付系统是电商平台的<strong>资金流枢纽</strong>，承担以下职责：</p>
+<ul>
+<li><strong>C 端</strong>：用户支付、退款、余额管理</li>
+<li><strong>B 端</strong>：商家结算、提现、对账</li>
+<li><strong>平台</strong>：分账、风控、审计</li>
+</ul>
+<p>支付系统与其他系统的协作关系：</p>
+<pre class="mermaid">graph LR
+    A[用户] -->|支付| B[支付系统]
+    B -->|状态同步| C[订单系统]
+    B -->|优惠计算| D[营销系统]
+    B -->|扣减库存| E[库存系统]
+    B -->|触发发货| F[物流系统]</pre>
+
+<h3 id="1-2-核心业务场景"><a href="#1-2-核心业务场景" class="headerlink" title="1.2 核心业务场景"></a>1.2 核心业务场景</h3><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>说明</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>标准支付</td>
+<td>用户使用余额、微信、支付宝支付订单</td>
+<td>组合支付、渠道路由</td>
+</tr>
+<tr>
+<td>退款</td>
+<td>全额退款、部分退款、营销优惠退款</td>
+<td>可退金额计算、多次退款</td>
+</tr>
+<tr>
+<td>清结算</td>
+<td>平台佣金、商家收益、营销补贴分账</td>
+<td>T+N 结算、提现管理</td>
+</tr>
+<tr>
+<td>对账</td>
+<td>交易对账、资金对账、差错处理</td>
+<td>长款、短款、人工复核</td>
+</tr>
+</tbody></table>
+<h3 id="1-3-核心挑战"><a href="#1-3-核心挑战" class="headerlink" title="1.3 核心挑战"></a>1.3 核心挑战</h3><p>支付系统面临的核心挑战及对应技术方案：</p>
+<table>
+<thead>
+<tr>
+<th>挑战维度</th>
+<th>具体问题</th>
+<th>技术方案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>资金安全</strong></td>
+<td>强一致性、防重防篡改、审计追溯</td>
+<td>分布式事务、幂等性、操作日志</td>
+</tr>
+<tr>
+<td><strong>高并发</strong></td>
+<td>大促期间支付峰值（如双 11）</td>
+<td>Redis 缓存、限流、降级、异步化</td>
+</tr>
+<tr>
+<td><strong>分布式事务</strong></td>
+<td>支付成功后订单状态同步</td>
+<td>Saga、TCC、本地消息表</td>
+</tr>
+<tr>
+<td><strong>多渠道接入</strong></td>
+<td>微信、支付宝、银行等渠道差异</td>
+<td>支付网关、策略模式、适配器模式</td>
+</tr>
+<tr>
+<td><strong>对账复杂度</strong></td>
+<td>多方对账、差错处理</td>
+<td>定时任务、对账算法、人工复核</td>
+</tr>
+</tbody></table>
+<p><strong>面试重点</strong>：</p>
+<p>在系统设计面试中，面试官通常会从以下角度考察：</p>
+<ol>
+<li><strong>如何保证支付与订单的最终一致性？</strong> → 分布式事务</li>
+<li><strong>如何防止用户重复支付？</strong> → 幂等性设计</li>
+<li><strong>支付系统如何应对高并发？</strong> → 缓存、限流、降级</li>
+<li><strong>第三方支付回调失败怎么办？</strong> → 重试机制、补偿</li>
+</ol>
+<h2 id="二、整体架构设计"><a href="#二、整体架构设计" class="headerlink" title="二、整体架构设计"></a>二、整体架构设计</h2><h3 id="2-1-分层架构"><a href="#2-1-分层架构" class="headerlink" title="2.1 分层架构"></a>2.1 分层架构</h3><p>支付系统采用经典的分层架构，每层职责清晰：</p>
+<pre class="mermaid">graph TB
+    subgraph 接入层
+        A1[C 端小程序/APP]
+        A2[B 端运营后台]
+        A3[Open API]
+    end
+    
+    subgraph 应用服务层
+        B1[订单服务]
+        B2[支付服务]
+        B3[对账服务]
+    end
+    
+    subgraph 核心业务层
+        C1[账户系统]
+        C2[支付网关]
+        C3[清结算引擎]
+        C4[风控系统]
+    end
+    
+    subgraph 基础设施层
+        D1[MySQL]
+        D2[Redis]
+        D3[Kafka]
+        D4[XXL-Job]
+    end
+    
+    subgraph 第三方服务层
+        E1[微信支付]
+        E2[支付宝]
+        E3[银行网关]
+    end
+    
+    A1 --> B2
+    A2 --> B2
+    A3 --> B2
+    B1 --> C2
+    B2 --> C1
+    B2 --> C2
+    B2 --> C3
+    B2 --> C4
+    C1 --> D1
+    C1 --> D2
+    C2 --> D3
+    C3 --> D4
+    C2 --> E1
+    C2 --> E2
+    C2 --> E3</pre>
+
+<h3 id="2-2-核心子系统"><a href="#2-2-核心子系统" class="headerlink" title="2.2 核心子系统"></a>2.2 核心子系统</h3><table>
+<thead>
+<tr>
+<th>子系统</th>
+<th>核心职责</th>
+<th>关键技术</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>账户系统</strong></td>
+<td>管理用户账户、商家账户、平台账户<br>- 余额查询、冻结&#x2F;解冻<br>- 充值、提现<br>- 账户流水</td>
+<td>- Redis + MySQL 双写<br>- 账户流水表<br>- 定时对账</td>
+</tr>
+<tr>
+<td><strong>支付网关</strong></td>
+<td>统一支付入口，屏蔽第三方差异<br>- 渠道抽象（适配器模式）<br>- 路由策略（余额优先、组合支付）<br>- 重试补偿</td>
+<td>- 策略模式<br>- 适配器模式<br>- 异步回调</td>
+</tr>
+<tr>
+<td><strong>清结算引擎</strong></td>
+<td>分账计算和结算管理<br>- 分账规则（平台佣金、商家收益）<br>- 结算周期（T+1、T+7）<br>- 提现管理</td>
+<td>- 定时任务<br>- 分账算法<br>- 限额控制</td>
+</tr>
+<tr>
+<td><strong>风控系统</strong></td>
+<td>保障资金安全<br>- 支付密码验证<br>- 异常交易监控<br>- 限额控制</td>
+<td>- 规则引擎<br>- 实时监控<br>- 黑名单</td>
+</tr>
+</tbody></table>
+<h3 id="2-3-设计原则"><a href="#2-3-设计原则" class="headerlink" title="2.3 设计原则"></a>2.3 设计原则</h3><p>在架构设计中，遵循以下原则：</p>
+<p><strong>1. 领域边界清晰</strong></p>
+<p>账户、支付、清结算、对账等各司其职，通过明确的接口交互。</p>
+<p><strong>2. 事件驱动解耦</strong></p>
+<p>系统间通过 Kafka 事件解耦，支付服务发布”支付成功”事件，订单服务订阅并更新状态。</p>
+<p><strong>3. 可扩展性</strong></p>
+<ul>
+<li>支持新支付渠道接入（如数字货币）</li>
+<li>支持新支付方式（如分期付款）</li>
+<li>支持新业务场景（如预售、拼团）</li>
+</ul>
+<p><strong>4. 可观测性</strong></p>
+<ul>
+<li>结构化日志（JSON 格式）</li>
+<li>全链路追踪（TraceID）</li>
+<li>实时监控告警（Prometheus + Grafana）</li>
+</ul>
+<p><strong>面试加分项</strong>：</p>
+<p>能够在白板上快速画出以上架构图，并说明各层职责，会给面试官留下深刻印象。</p>
+<h2 id="三、核心业务流程"><a href="#三、核心业务流程" class="headerlink" title="三、核心业务流程"></a>三、核心业务流程</h2><h3 id="3-1-支付流程"><a href="#3-1-支付流程" class="headerlink" title="3.1 支付流程"></a>3.1 支付流程</h3><h4 id="3-1-1-时序图"><a href="#3-1-1-时序图" class="headerlink" title="3.1.1 时序图"></a>3.1.1 时序图</h4><pre class="mermaid">sequenceDiagram
+    participant 用户
+    participant 订单服务
+    participant 支付服务
+    participant 支付网关
+    participant 第三方支付
+
+    用户->>订单服务: 1. 下单
+    订单服务->>支付服务: 2. 创建支付单
+    支付服务->>支付服务: 3. 幂等性检查
+    支付服务->>支付网关: 4. 渠道路由
+    支付网关->>第三方支付: 5. 调用支付接口
+    第三方支付-->>支付网关: 6. 同步返回
+    支付网关-->>用户: 7. 返回支付页面
+    用户->>第三方支付: 8. 完成支付
+    第三方支付->>支付网关: 9. 异步回调
+    支付网关->>支付服务: 10. 更新支付状态
+    支付服务->>订单服务: 11. 通知订单状态变更
+    支付服务->>用户: 12. 推送支付成功通知</pre>
+
+<h4 id="3-1-2-关键步骤"><a href="#3-1-2-关键步骤" class="headerlink" title="3.1.2 关键步骤"></a>3.1.2 关键步骤</h4><p><strong>Step 1: 创建支付单（幂等性保证）</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 支付单创建接口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreatePaymentOrder</span><span class="params">(req *CreatePaymentRequest)</span></span> (*PaymentOrder, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 1. 生成幂等键（order_id + user_id）</span></span><br><span class="line">    idempotencyKey := fmt.Sprintf(<span class="string">&quot;%d_%d&quot;</span>, req.OrderID, req.UserID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2. Redis 分布式锁（防并发）</span></span><br><span class="line">    lock := redis.Lock(idempotencyKey, <span class="number">10</span>*time.Second)</span><br><span class="line">    <span class="keyword">if</span> !lock.TryLock() &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">&quot;concurrent request, please retry&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">defer</span> lock.Unlock()</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3. 检查是否已存在</span></span><br><span class="line">    existing := queryPaymentByIdempotencyKey(idempotencyKey)</span><br><span class="line">    <span class="keyword">if</span> existing != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> existing, <span class="literal">nil</span>  <span class="comment">// 幂等返回</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 4. 创建支付单</span></span><br><span class="line">    payment := &amp;PaymentOrder&#123;</span><br><span class="line">        PaymentID:      snowflake.Generate(),</span><br><span class="line">        OrderID:        req.OrderID,</span><br><span class="line">        UserID:         req.UserID,</span><br><span class="line">        PaymentAmount:  req.Amount,</span><br><span class="line">        PaymentStatus:  <span class="string">&quot;PENDING&quot;</span>,</span><br><span class="line">        IdempotencyKey: idempotencyKey,</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 5. 插入数据库（唯一索引保证幂等）</span></span><br><span class="line">    <span class="keyword">if</span> err := db.Insert(payment); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> isDuplicateKeyError(err) &#123;</span><br><span class="line">            <span class="keyword">return</span> queryPaymentByIdempotencyKey(idempotencyKey), <span class="literal">nil</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> payment, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>Step 2: 渠道路由</strong></p>
+<p>支付网关根据策略选择支付渠道：</p>
+<ol>
+<li><strong>余额优先策略</strong>：用户余额足够则优先使用余额</li>
+<li><strong>组合支付</strong>：余额不足时，余额 + 第三方支付</li>
+<li><strong>渠道降级</strong>：主渠道不可用时切换备用渠道</li>
+</ol>
+<p><strong>Step 3: 异步回调处理（幂等性保证）</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 处理第三方支付回调</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">HandlePaymentCallback</span><span class="params">(callbackData *CallbackData)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 1. 验签</span></span><br><span class="line">    <span class="keyword">if</span> !verifySignature(callbackData) &#123;</span><br><span class="line">        <span class="keyword">return</span> errors.New(<span class="string">&quot;invalid signature&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2. 幂等检查（第三方交易号）</span></span><br><span class="line">    existing := queryPaymentByChannelTradeNo(callbackData.ChannelTradeNo)</span><br><span class="line">    <span class="keyword">if</span> existing != <span class="literal">nil</span> &amp;&amp; existing.PaymentStatus == <span class="string">&quot;SUCCESS&quot;</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>  <span class="comment">// 已处理过，直接返回</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3. 更新支付状态（乐观锁）</span></span><br><span class="line">    affected := db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        UPDATE payment_order </span></span><br><span class="line"><span class="string">        SET payment_status = &#x27;SUCCESS&#x27;,</span></span><br><span class="line"><span class="string">            channel_trade_no = ?,</span></span><br><span class="line"><span class="string">            callback_time = ?,</span></span><br><span class="line"><span class="string">            version = version + 1</span></span><br><span class="line"><span class="string">        WHERE payment_id = ? AND version = ?</span></span><br><span class="line"><span class="string">    `</span>, callbackData.ChannelTradeNo, time.Now(), </span><br><span class="line">       callbackData.PaymentID, callbackData.Version)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> affected == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> errors.New(<span class="string">&quot;concurrent update conflict&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 4. 发布支付成功事件（Saga）</span></span><br><span class="line">    publishPaymentSuccessEvent(callbackData.PaymentID, callbackData.OrderID)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>Step 4: 重试机制</strong></p>
+<p>第三方回调可能失败，需要重试机制：</p>
+<ul>
+<li><strong>主动重试</strong>：最多 3 次，指数退避（1s, 2s, 4s）</li>
+<li><strong>定时补偿</strong>：每分钟扫描超时支付单，主动查询第三方状态</li>
+<li><strong>人工介入</strong>：超过重试次数，进入人工复核</li>
+</ul>
+<h3 id="3-2-退款流程"><a href="#3-2-退款流程" class="headerlink" title="3.2 退款流程"></a>3.2 退款流程</h3><h4 id="3-2-1-时序图"><a href="#3-2-1-时序图" class="headerlink" title="3.2.1 时序图"></a>3.2.1 时序图</h4><pre class="mermaid">sequenceDiagram
+    participant 用户
+    participant 订单服务
+    participant 支付服务
+    participant 第三方支付
+    participant 账户系统
+
+    用户->>订单服务: 1. 申请退款
+    订单服务->>支付服务: 2. 创建退款单
+    支付服务->>支付服务: 3. 校验可退金额
+    支付服务->>第三方支付: 4. 调用退款接口
+    第三方支付-->>支付服务: 5. 退款成功
+    支付服务->>账户系统: 6. 账户入账
+    支付服务->>订单服务: 7. 通知退款成功
+    支付服务->>用户: 8. 推送退款通知</pre>
+
+<h4 id="3-2-2-可退金额计算"><a href="#3-2-2-可退金额计算" class="headerlink" title="3.2.2 可退金额计算"></a>3.2.2 可退金额计算</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 计算可退金额</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CalculateRefundableAmount</span><span class="params">(paymentID <span class="type">int64</span>)</span></span> (*RefundableAmount, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 1. 查询支付单</span></span><br><span class="line">    payment := queryPaymentOrder(paymentID)</span><br><span class="line">    <span class="keyword">if</span> payment.PaymentStatus != <span class="string">&quot;SUCCESS&quot;</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">&quot;payment not success&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2. 查询已退款金额</span></span><br><span class="line">    refundedAmount := sumRefundedAmount(paymentID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3. 可退金额 = 实付金额 - 已退金额</span></span><br><span class="line">    refundable := payment.PaymentAmount.Sub(refundedAmount)</span><br><span class="line">    <span class="keyword">if</span> refundable.LessThanOrEqual(decimal.Zero) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">&quot;no refundable amount&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 4. 营销优惠按比例退款</span></span><br><span class="line">    <span class="comment">// 例如：实付 100（原价 120，优惠 20），退款 50</span></span><br><span class="line">    <span class="comment">// 则退实付 50，营销优惠退 10</span></span><br><span class="line">    result := &amp;RefundableAmount&#123;</span><br><span class="line">        TotalRefundable: refundable,</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> payment.PromotionAmount.GreaterThan(decimal.Zero) &#123;</span><br><span class="line">        ratio := refundable.Div(payment.PaymentAmount)</span><br><span class="line">        result.PromotionRefund = payment.PromotionAmount.Mul(ratio)</span><br><span class="line">        result.ActualRefund = refundable.Sub(result.PromotionRefund)</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        result.ActualRefund = refundable</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> result, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-2-3-部分退款"><a href="#3-2-3-部分退款" class="headerlink" title="3.2.3 部分退款"></a>3.2.3 部分退款</h4><p>支持多次部分退款：</p>
+<ul>
+<li><strong>累计限制</strong>：所有退款金额之和 ≤ 实付金额</li>
+<li><strong>退款记录</strong>：每次退款都生成独立的退款单</li>
+<li><strong>状态联动</strong>：全额退款后，支付单状态变为 <code>REFUNDED</code></li>
+</ul>
+<h3 id="3-3-异步回调处理"><a href="#3-3-异步回调处理" class="headerlink" title="3.3 异步回调处理"></a>3.3 异步回调处理</h3><pre class="mermaid">graph LR
+    A[第三方回调] --> B{签名校验}
+    B -->|失败| C[拒绝并记录]
+    B -->|成功| D{幂等检查}
+    D -->|已处理| E[直接返回 SUCCESS]
+    D -->|未处理| F[更新支付状态]
+    F --> G[发布事件到 Kafka]
+    G --> H[返回 SUCCESS]</pre>
+
+<p><strong>回调要点</strong>：</p>
+<ol>
+<li><strong>签名校验</strong>：防止伪造回调</li>
+<li><strong>幂等检查</strong>：第三方交易号去重</li>
+<li><strong>乐观锁</strong>：version 字段防止并发</li>
+<li><strong>事件驱动</strong>：发布到 Kafka，解耦订单服务</li>
+</ol>
+<h2 id="四、状态机设计"><a href="#四、状态机设计" class="headerlink" title="四、状态机设计"></a>四、状态机设计</h2><p>状态机是支付系统的核心设计之一，清晰的状态定义和转换规则能够保证系统的稳定性。</p>
+<h3 id="4-1-支付单状态机"><a href="#4-1-支付单状态机" class="headerlink" title="4.1 支付单状态机"></a>4.1 支付单状态机</h3><h4 id="4-1-1-状态定义"><a href="#4-1-1-状态定义" class="headerlink" title="4.1.1 状态定义"></a>4.1.1 状态定义</h4><pre class="mermaid">stateDiagram-v2
+    [*] --> PENDING: 创建支付单
+    PENDING --> PAYING: 用户发起支付
+    PAYING --> SUCCESS: 第三方回调成功
+    PAYING --> FAILED: 第三方回调失败
+    PAYING --> CANCELED: 用户取消支付
+    SUCCESS --> REFUNDING: 用户申请退款
+    REFUNDING --> REFUNDED: 退款成功
+    FAILED --> [*]
+    CANCELED --> [*]
+    REFUNDED --> [*]</pre>
+
+<h4 id="4-1-2-状态转换表"><a href="#4-1-2-状态转换表" class="headerlink" title="4.1.2 状态转换表"></a>4.1.2 状态转换表</h4><table>
+<thead>
+<tr>
+<th>当前状态</th>
+<th>允许的下一状态</th>
+<th>触发条件</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PENDING</td>
+<td>PAYING</td>
+<td>用户发起支付</td>
+<td>-</td>
+</tr>
+<tr>
+<td>PAYING</td>
+<td>SUCCESS</td>
+<td>第三方回调成功</td>
+<td>-</td>
+</tr>
+<tr>
+<td>PAYING</td>
+<td>FAILED</td>
+<td>第三方回调失败</td>
+<td>可重新发起支付</td>
+</tr>
+<tr>
+<td>PAYING</td>
+<td>CANCELED</td>
+<td>用户取消支付</td>
+<td>超时自动取消</td>
+</tr>
+<tr>
+<td>SUCCESS</td>
+<td>REFUNDING</td>
+<td>用户申请退款</td>
+<td>-</td>
+</tr>
+<tr>
+<td>REFUNDING</td>
+<td>REFUNDED</td>
+<td>退款成功</td>
+<td>支持部分退款</td>
+</tr>
+</tbody></table>
+<p><strong>非法状态转换示例</strong>：</p>
+<ul>
+<li>PENDING → SUCCESS（跳过 PAYING 状态）</li>
+<li>FAILED → REFUNDING（失败的支付单不能退款）</li>
+<li>REFUNDED → SUCCESS（已退款不能恢复）</li>
+</ul>
+<h3 id="4-2-退款单状态机"><a href="#4-2-退款单状态机" class="headerlink" title="4.2 退款单状态机"></a>4.2 退款单状态机</h3><h4 id="4-2-1-状态定义"><a href="#4-2-1-状态定义" class="headerlink" title="4.2.1 状态定义"></a>4.2.1 状态定义</h4><pre class="mermaid">stateDiagram-v2
+    [*] --> PENDING: 创建退款单
+    PENDING --> PROCESSING: 调用第三方退款
+    PROCESSING --> SUCCESS: 退款成功
+    PROCESSING --> FAILED: 退款失败
+    SUCCESS --> [*]
+    FAILED --> [*]</pre>
+
+<h4 id="4-2-2-与支付单状态联动"><a href="#4-2-2-与支付单状态联动" class="headerlink" title="4.2.2 与支付单状态联动"></a>4.2.2 与支付单状态联动</h4><ul>
+<li><strong>前置条件</strong>：支付单必须是 <code>SUCCESS</code> 状态才能发起退款</li>
+<li><strong>状态同步</strong>：退款成功后，支付单状态变为 <code>REFUNDED</code></li>
+<li><strong>部分退款</strong>：第一次退款成功后，支付单状态变为 <code>PARTIAL_REFUNDED</code></li>
+</ul>
+<h3 id="4-3-状态机实现"><a href="#4-3-状态机实现" class="headerlink" title="4.3 状态机实现"></a>4.3 状态机实现</h3><h4 id="4-3-1-状态转换校验"><a href="#4-3-1-状态转换校验" class="headerlink" title="4.3.1 状态转换校验"></a>4.3.1 状态转换校验</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 状态转换规则</span></span><br><span class="line"><span class="keyword">var</span> stateTransitionRules = <span class="keyword">map</span>[<span class="type">string</span>][]<span class="type">string</span>&#123;</span><br><span class="line">    <span class="string">&quot;PENDING&quot;</span>:   &#123;<span class="string">&quot;PAYING&quot;</span>&#125;,</span><br><span class="line">    <span class="string">&quot;PAYING&quot;</span>:    &#123;<span class="string">&quot;SUCCESS&quot;</span>, <span class="string">&quot;FAILED&quot;</span>, <span class="string">&quot;CANCELED&quot;</span>&#125;,</span><br><span class="line">    <span class="string">&quot;SUCCESS&quot;</span>:   &#123;<span class="string">&quot;REFUNDING&quot;</span>&#125;,</span><br><span class="line">    <span class="string">&quot;REFUNDING&quot;</span>: &#123;<span class="string">&quot;REFUNDED&quot;</span>&#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 校验状态转换是否合法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">isValidTransition</span><span class="params">(currentState, targetState <span class="type">string</span>)</span></span> <span class="type">bool</span> &#123;</span><br><span class="line">    allowedStates, exists := stateTransitionRules[currentState]</span><br><span class="line">    <span class="keyword">if</span> !exists &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> _, state := <span class="keyword">range</span> allowedStates &#123;</span><br><span class="line">        <span class="keyword">if</span> state == targetState &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-3-2-状态转换（乐观锁）"><a href="#4-3-2-状态转换（乐观锁）" class="headerlink" title="4.3.2 状态转换（乐观锁）"></a>4.3.2 状态转换（乐观锁）</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 状态转换函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TransitState</span><span class="params">(paymentID <span class="type">int64</span>, targetState <span class="type">string</span>, version <span class="type">int</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 1. 查询当前状态</span></span><br><span class="line">    current := queryPaymentOrder(paymentID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2. 校验状态转换是否合法</span></span><br><span class="line">    <span class="keyword">if</span> !isValidTransition(current.PaymentStatus, targetState) &#123;</span><br><span class="line">        <span class="keyword">return</span> errors.New(fmt.Sprintf(</span><br><span class="line">            <span class="string">&quot;invalid state transition: %s -&gt; %s&quot;</span>,</span><br><span class="line">            current.PaymentStatus, targetState))</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3. 乐观锁更新</span></span><br><span class="line">    affected := db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        UPDATE payment_order </span></span><br><span class="line"><span class="string">        SET payment_status = ?,</span></span><br><span class="line"><span class="string">            updated_at = ?,</span></span><br><span class="line"><span class="string">            version = version + 1</span></span><br><span class="line"><span class="string">        WHERE payment_id = ? AND version = ?</span></span><br><span class="line"><span class="string">    `</span>, targetState, time.Now(), paymentID, version)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> affected == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> errors.New(<span class="string">&quot;concurrent update conflict, please retry&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 4. 发布状态变更事件</span></span><br><span class="line">    publishStateChangeEvent(paymentID, current.PaymentStatus, targetState)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-3-3-状态变更事件"><a href="#4-3-3-状态变更事件" class="headerlink" title="4.3.3 状态变更事件"></a>4.3.3 状态变更事件</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 状态变更事件</span></span><br><span class="line"><span class="keyword">type</span> PaymentStateChangeEvent <span class="keyword">struct</span> &#123;</span><br><span class="line">    PaymentID    <span class="type">int64</span>  <span class="string">`json:&quot;payment_id&quot;`</span></span><br><span class="line">    OrderID      <span class="type">int64</span>  <span class="string">`json:&quot;order_id&quot;`</span></span><br><span class="line">    OldState     <span class="type">string</span> <span class="string">`json:&quot;old_state&quot;`</span></span><br><span class="line">    NewState     <span class="type">string</span> <span class="string">`json:&quot;new_state&quot;`</span></span><br><span class="line">    ChangeTime   time.Time <span class="string">`json:&quot;change_time&quot;`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 发布事件到 Kafka</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">publishStateChangeEvent</span><span class="params">(paymentID <span class="type">int64</span>, oldState, newState <span class="type">string</span>)</span></span> &#123;</span><br><span class="line">    event := &amp;PaymentStateChangeEvent&#123;</span><br><span class="line">        PaymentID:  paymentID,</span><br><span class="line">        OrderID:    getOrderIDByPaymentID(paymentID),</span><br><span class="line">        OldState:   oldState,</span><br><span class="line">        NewState:   newState,</span><br><span class="line">        ChangeTime: time.Now(),</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    kafka.Publish(<span class="string">&quot;payment_state_change&quot;</span>, event)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>面试要点</strong>：</p>
+<ol>
+<li><strong>为什么需要状态机</strong>：确保状态转换的合法性，防止业务逻辑错误</li>
+<li><strong>如何保证并发安全</strong>：乐观锁（version 字段）</li>
+<li><strong>如何与其他系统协作</strong>：通过 Kafka 事件驱动</li>
+</ol>
+<h2 id="五、高频考点深入"><a href="#五、高频考点深入" class="headerlink" title="五、高频考点深入"></a>五、高频考点深入</h2><h3 id="5-1-分布式事务"><a href="#5-1-分布式事务" class="headerlink" title="5.1 分布式事务"></a>5.1 分布式事务</h3><h4 id="5-1-1-问题场景"><a href="#5-1-1-问题场景" class="headerlink" title="5.1.1 问题场景"></a>5.1.1 问题场景</h4><p><strong>面试问题</strong>：支付成功后，如何保证订单状态同步更新？</p>
+<p>这是一个典型的分布式事务问题：</p>
+<ul>
+<li>支付服务：更新支付单状态为 <code>SUCCESS</code></li>
+<li>订单服务：更新订单状态为 <code>PAID</code></li>
+</ul>
+<p>两个操作在不同的服务和数据库中，无法使用传统的 ACID 事务保证一致性。</p>
+<h4 id="5-1-2-Saga-模式"><a href="#5-1-2-Saga-模式" class="headerlink" title="5.1.2 Saga 模式"></a>5.1.2 Saga 模式</h4><p>Saga 模式是微服务架构下常用的分布式事务解决方案，通过一系列本地事务和补偿机制实现最终一致性。</p>
+<p><strong>Saga 流程图</strong>：</p>
+<pre class="mermaid">sequenceDiagram
+    participant 订单服务
+    participant 支付服务
+    participant 本地消息表
+    participant Kafka
+
+    订单服务->>订单服务: 1. 创建订单
+    订单服务->>支付服务: 2. 请求支付
+    支付服务->>支付服务: 3. 更新支付状态 SUCCESS
+    支付服务->>本地消息表: 4. 插入"订单已支付"事件
+    支付服务->>支付服务: 5. 提交本地事务
+    本地消息表->>Kafka: 6. 定时任务扫描并发送
+    Kafka->>订单服务: 7. 订单服务消费事件
+    订单服务->>订单服务: 8. 更新订单状态 PAID</pre>
+
+<p><strong>本地消息表实现</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 本地消息表结构</span></span><br><span class="line"><span class="keyword">type</span> LocalMessage <span class="keyword">struct</span> &#123;</span><br><span class="line">    ID          <span class="type">int64</span>     <span class="string">`db:&quot;id&quot;`</span></span><br><span class="line">    OrderID     <span class="type">int64</span>     <span class="string">`db:&quot;order_id&quot;`</span></span><br><span class="line">    PaymentID   <span class="type">int64</span>     <span class="string">`db:&quot;payment_id&quot;`</span></span><br><span class="line">    Event       <span class="type">string</span>    <span class="string">`db:&quot;event&quot;`</span></span><br><span class="line">    Status      <span class="type">string</span>    <span class="string">`db:&quot;status&quot;`</span>  <span class="comment">// PENDING, SENT, FAILED</span></span><br><span class="line">    RetryCount  <span class="type">int</span>       <span class="string">`db:&quot;retry_count&quot;`</span></span><br><span class="line">    CreatedAt   time.Time <span class="string">`db:&quot;created_at&quot;`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 支付成功后插入本地消息表</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">OnPaymentSuccess</span><span class="params">(paymentID <span class="type">int64</span>, orderID <span class="type">int64</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 开启本地事务</span></span><br><span class="line">    tx, _ := db.Begin()</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 1. 更新支付状态</span></span><br><span class="line">    tx.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        UPDATE payment_order </span></span><br><span class="line"><span class="string">        SET payment_status = &#x27;SUCCESS&#x27;</span></span><br><span class="line"><span class="string">        WHERE payment_id = ?</span></span><br><span class="line"><span class="string">    `</span>, paymentID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2. 插入本地消息表</span></span><br><span class="line">    tx.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        INSERT INTO local_message (order_id, payment_id, event, status, retry_count)</span></span><br><span class="line"><span class="string">        VALUES (?, ?, &#x27;ORDER_PAID&#x27;, &#x27;PENDING&#x27;, 0)</span></span><br><span class="line"><span class="string">    `</span>, orderID, paymentID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3. 提交本地事务</span></span><br><span class="line">    <span class="keyword">return</span> tx.Commit()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 定时任务扫描并发送消息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ScanAndSendMessages</span><span class="params">()</span></span> &#123;</span><br><span class="line">    messages := db.Query(<span class="string">`</span></span><br><span class="line"><span class="string">        SELECT * FROM local_message </span></span><br><span class="line"><span class="string">        WHERE status = &#x27;PENDING&#x27; AND retry_count &lt; 3</span></span><br><span class="line"><span class="string">        ORDER BY created_at ASC</span></span><br><span class="line"><span class="string">        LIMIT 100</span></span><br><span class="line"><span class="string">    `</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> _, msg := <span class="keyword">range</span> messages &#123;</span><br><span class="line">        <span class="comment">// 发送到 Kafka</span></span><br><span class="line">        <span class="keyword">if</span> err := kafka.Publish(<span class="string">&quot;order_paid&quot;</span>, msg); err == <span class="literal">nil</span> &#123;</span><br><span class="line">            db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">                UPDATE local_message </span></span><br><span class="line"><span class="string">                SET status = &#x27;SENT&#x27; </span></span><br><span class="line"><span class="string">                WHERE id = ?</span></span><br><span class="line"><span class="string">            `</span>, msg.ID)</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">                UPDATE local_message </span></span><br><span class="line"><span class="string">                SET retry_count = retry_count + 1 </span></span><br><span class="line"><span class="string">                WHERE id = ?</span></span><br><span class="line"><span class="string">            `</span>, msg.ID)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>补偿机制</strong>：</p>
+<p>如果支付失败，订单服务需要取消订单：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 支付失败补偿</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">OnPaymentFailed</span><span class="params">(paymentID <span class="type">int64</span>, orderID <span class="type">int64</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 1. 更新支付状态</span></span><br><span class="line">    db.Exec(<span class="string">`UPDATE payment_order SET payment_status = &#x27;FAILED&#x27; WHERE payment_id = ?`</span>, paymentID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2. 发布支付失败事件</span></span><br><span class="line">    kafka.Publish(<span class="string">&quot;payment_failed&quot;</span>, &amp;PaymentFailedEvent&#123;</span><br><span class="line">        PaymentID: paymentID,</span><br><span class="line">        OrderID:   orderID,</span><br><span class="line">    &#125;)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 订单服务消费事件并取消订单</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="5-1-3-TCC-模式"><a href="#5-1-3-TCC-模式" class="headerlink" title="5.1.3 TCC 模式"></a>5.1.3 TCC 模式</h4><p>TCC（Try-Confirm-Cancel）模式适用于对一致性要求较高的场景，如退款流程。</p>
+<p><strong>TCC 三阶段</strong>：</p>
+<pre class="mermaid">sequenceDiagram
+    participant 订单服务
+    participant 支付服务
+    participant 账户系统
+
+    订单服务->>账户系统: Try: 冻结账户余额
+    订单服务->>支付服务: Try: 创建退款单
+    
+    alt 全部成功
+        订单服务->>账户系统: Confirm: 解冻并扣减
+        订单服务->>支付服务: Confirm: 退款成功
+    else 任一失败
+        订单服务->>账户系统: Cancel: 直接解冻
+        订单服务->>支付服务: Cancel: 取消退款
+    end</pre>
+
+<p><strong>TCC 实现示例</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Try 阶段：冻结账户余额</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TryFreezeBalance</span><span class="params">(userID <span class="type">int64</span>, amount decimal.Decimal)</span></span> (<span class="type">string</span>, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 生成冻结记录 ID</span></span><br><span class="line">    freezeID := uuid.New().String()</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 冻结余额</span></span><br><span class="line">    affected := db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        UPDATE account </span></span><br><span class="line"><span class="string">        SET balance = balance - ?,</span></span><br><span class="line"><span class="string">            frozen_balance = frozen_balance + ?</span></span><br><span class="line"><span class="string">        WHERE user_id = ? AND balance &gt;= ?</span></span><br><span class="line"><span class="string">    `</span>, amount, amount, userID, amount)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> affected == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;&quot;</span>, errors.New(<span class="string">&quot;insufficient balance&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 记录冻结记录</span></span><br><span class="line">    db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        INSERT INTO account_freeze (freeze_id, user_id, amount, status)</span></span><br><span class="line"><span class="string">        VALUES (?, ?, ?, &#x27;FROZEN&#x27;)</span></span><br><span class="line"><span class="string">    `</span>, freezeID, userID, amount)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> freezeID, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Confirm 阶段：解冻并扣减</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ConfirmFreezeBalance</span><span class="params">(freezeID <span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 查询冻结记录</span></span><br><span class="line">    freeze := db.QueryRow(<span class="string">`</span></span><br><span class="line"><span class="string">        SELECT user_id, amount FROM account_freeze </span></span><br><span class="line"><span class="string">        WHERE freeze_id = ? AND status = &#x27;FROZEN&#x27;</span></span><br><span class="line"><span class="string">    `</span>, freezeID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 更新冻结记录状态</span></span><br><span class="line">    db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        UPDATE account_freeze </span></span><br><span class="line"><span class="string">        SET status = &#x27;CONFIRMED&#x27; </span></span><br><span class="line"><span class="string">        WHERE freeze_id = ?</span></span><br><span class="line"><span class="string">    `</span>, freezeID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 扣减冻结余额</span></span><br><span class="line">    db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        UPDATE account </span></span><br><span class="line"><span class="string">        SET frozen_balance = frozen_balance - ?</span></span><br><span class="line"><span class="string">        WHERE user_id = ?</span></span><br><span class="line"><span class="string">    `</span>, freeze.Amount, freeze.UserID)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Cancel 阶段：直接解冻</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CancelFreezeBalance</span><span class="params">(freezeID <span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 查询冻结记录</span></span><br><span class="line">    freeze := db.QueryRow(<span class="string">`</span></span><br><span class="line"><span class="string">        SELECT user_id, amount FROM account_freeze </span></span><br><span class="line"><span class="string">        WHERE freeze_id = ? AND status = &#x27;FROZEN&#x27;</span></span><br><span class="line"><span class="string">    `</span>, freezeID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 解冻余额</span></span><br><span class="line">    db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        UPDATE account </span></span><br><span class="line"><span class="string">        SET balance = balance + ?,</span></span><br><span class="line"><span class="string">            frozen_balance = frozen_balance - ?</span></span><br><span class="line"><span class="string">        WHERE user_id = ?</span></span><br><span class="line"><span class="string">    `</span>, freeze.Amount, freeze.Amount, freeze.UserID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 更新冻结记录状态</span></span><br><span class="line">    db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        UPDATE account_freeze </span></span><br><span class="line"><span class="string">        SET status = &#x27;CANCELED&#x27; </span></span><br><span class="line"><span class="string">        WHERE freeze_id = ?</span></span><br><span class="line"><span class="string">    `</span>, freezeID)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="5-1-4-Saga-vs-TCC"><a href="#5-1-4-Saga-vs-TCC" class="headerlink" title="5.1.4 Saga vs TCC"></a>5.1.4 Saga vs TCC</h4><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Saga</th>
+<th>TCC</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>一致性</strong></td>
+<td>最终一致性</td>
+<td>强一致性</td>
+</tr>
+<tr>
+<td><strong>实现复杂度</strong></td>
+<td>低</td>
+<td>高</td>
+</tr>
+<tr>
+<td><strong>性能</strong></td>
+<td>高（异步）</td>
+<td>中（同步）</td>
+</tr>
+<tr>
+<td><strong>适用场景</strong></td>
+<td>支付流程</td>
+<td>退款流程</td>
+</tr>
+<tr>
+<td><strong>回滚方式</strong></td>
+<td>补偿操作</td>
+<td>Cancel 操作</td>
+</tr>
+</tbody></table>
+<p><strong>面试建议</strong>：</p>
+<ul>
+<li>Saga 适合长事务、跨服务场景</li>
+<li>TCC 适合短事务、强一致性场景</li>
+</ul>
+<h3 id="5-2-幂等性设计"><a href="#5-2-幂等性设计" class="headerlink" title="5.2 幂等性设计"></a>5.2 幂等性设计</h3><h4 id="5-2-1-为什么需要幂等"><a href="#5-2-1-为什么需要幂等" class="headerlink" title="5.2.1 为什么需要幂等"></a>5.2.1 为什么需要幂等</h4><ul>
+<li><strong>第三方回调重复</strong>：网络抖动导致重复回调</li>
+<li><strong>用户重复点击</strong>：前端未防抖，用户多次点击</li>
+<li><strong>系统重试</strong>：超时重试导致重复请求</li>
+</ul>
+<h4 id="5-2-2-三个关键场景"><a href="#5-2-2-三个关键场景" class="headerlink" title="5.2.2 三个关键场景"></a>5.2.2 三个关键场景</h4><p><strong>场景 1: 支付单创建幂等</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 幂等键：order_id + user_id</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreatePaymentOrder</span><span class="params">(orderID <span class="type">int64</span>, userID <span class="type">int64</span>, amount decimal.Decimal)</span></span> (*PaymentOrder, <span class="type">error</span>) &#123;</span><br><span class="line">    idempotencyKey := fmt.Sprintf(<span class="string">&quot;payment_%d_%d&quot;</span>, orderID, userID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// Redis 分布式锁（防并发）</span></span><br><span class="line">    lock := redis.Lock(idempotencyKey, <span class="number">10</span>*time.Second)</span><br><span class="line">    <span class="keyword">if</span> !lock.TryLock() &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">&quot;concurrent request&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">defer</span> lock.Unlock()</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 检查是否已存在</span></span><br><span class="line">    existing := db.QueryRow(<span class="string">`</span></span><br><span class="line"><span class="string">        SELECT * FROM payment_order </span></span><br><span class="line"><span class="string">        WHERE order_id = ? AND user_id = ?</span></span><br><span class="line"><span class="string">    `</span>, orderID, userID)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> existing != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> existing, <span class="literal">nil</span>  <span class="comment">// 幂等返回</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 创建支付单（数据库唯一索引保证幂等）</span></span><br><span class="line">    payment := &amp;PaymentOrder&#123;</span><br><span class="line">        PaymentID: snowflake.Generate(),</span><br><span class="line">        OrderID:   orderID,</span><br><span class="line">        UserID:    userID,</span><br><span class="line">        Amount:    amount,</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> err := db.Insert(payment); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> isDuplicateKeyError(err) &#123;</span><br><span class="line">            <span class="keyword">return</span> db.QueryRow(<span class="string">`SELECT * FROM payment_order WHERE order_id = ? AND user_id = ?`</span>, orderID, userID), <span class="literal">nil</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> payment, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>场景 2: 支付回调幂等</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 幂等键：channel_trade_no（第三方交易号）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">HandlePaymentCallback</span><span class="params">(channelTradeNo <span class="type">string</span>, status <span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 检查是否已处理</span></span><br><span class="line">    existing := db.QueryRow(<span class="string">`</span></span><br><span class="line"><span class="string">        SELECT * FROM payment_order </span></span><br><span class="line"><span class="string">        WHERE channel_trade_no = ?</span></span><br><span class="line"><span class="string">    `</span>, channelTradeNo)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> existing != <span class="literal">nil</span> &amp;&amp; existing.PaymentStatus == <span class="string">&quot;SUCCESS&quot;</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>  <span class="comment">// 已处理，直接返回</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 更新支付状态</span></span><br><span class="line">    db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        UPDATE payment_order </span></span><br><span class="line"><span class="string">        SET payment_status = ?, channel_trade_no = ?</span></span><br><span class="line"><span class="string">        WHERE payment_id = ?</span></span><br><span class="line"><span class="string">    `</span>, status, channelTradeNo, existing.PaymentID)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>场景 3: 退款幂等</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 幂等键：refund_id</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateRefundOrder</span><span class="params">(paymentID <span class="type">int64</span>, amount decimal.Decimal)</span></span> (*RefundOrder, <span class="type">error</span>) &#123;</span><br><span class="line">    refundID := snowflake.Generate()</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 检查是否已存在</span></span><br><span class="line">    existing := db.QueryRow(<span class="string">`</span></span><br><span class="line"><span class="string">        SELECT * FROM refund_order </span></span><br><span class="line"><span class="string">        WHERE payment_id = ? AND amount = ?</span></span><br><span class="line"><span class="string">    `</span>, paymentID, amount)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> existing != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> existing, <span class="literal">nil</span>  <span class="comment">// 幂等返回</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 创建退款单</span></span><br><span class="line">    refund := &amp;RefundOrder&#123;</span><br><span class="line">        RefundID:  refundID,</span><br><span class="line">        PaymentID: paymentID,</span><br><span class="line">        Amount:    amount,</span><br><span class="line">        Status:    <span class="string">&quot;PENDING&quot;</span>,</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    db.Insert(refund)</span><br><span class="line">    <span class="keyword">return</span> refund, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="5-2-3-实现手段总结"><a href="#5-2-3-实现手段总结" class="headerlink" title="5.2.3 实现手段总结"></a>5.2.3 实现手段总结</h4><table>
+<thead>
+<tr>
+<th>手段</th>
+<th>使用场景</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Redis 分布式锁</strong></td>
+<td>高并发场景</td>
+<td>性能好，防并发</td>
+<td>需要考虑锁超时</td>
+</tr>
+<tr>
+<td><strong>数据库唯一索引</strong></td>
+<td>防重复插入</td>
+<td>可靠，数据库保证</td>
+<td>性能略低</td>
+</tr>
+<tr>
+<td><strong>乐观锁</strong></td>
+<td>防并发更新</td>
+<td>无锁开销</td>
+<td>需要重试</td>
+</tr>
+</tbody></table>
+<h3 id="5-3-一致性保证"><a href="#5-3-一致性保证" class="headerlink" title="5.3 一致性保证"></a>5.3 一致性保证</h3><h4 id="5-3-1-账户余额一致性"><a href="#5-3-1-账户余额一致性" class="headerlink" title="5.3.1 账户余额一致性"></a>5.3.1 账户余额一致性</h4><p><strong>问题</strong>：Redis 缓存和 MySQL 数据不一致</p>
+<p><strong>方案</strong>：Redis + MySQL 双写 + Lua 脚本 + 定时对账</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- Redis Lua 脚本（原子操作）</span></span><br><span class="line"><span class="keyword">local</span> balance_key = KEYS[<span class="number">1</span>]</span><br><span class="line"><span class="keyword">local</span> amount = <span class="built_in">tonumber</span>(ARGV[<span class="number">1</span>])</span><br><span class="line"></span><br><span class="line"><span class="keyword">local</span> balance = <span class="built_in">tonumber</span>(redis.call(<span class="string">&#x27;GET&#x27;</span>, balance_key) <span class="keyword">or</span> <span class="string">&#x27;0&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> balance &gt;= amount <span class="keyword">then</span></span><br><span class="line">    redis.call(<span class="string">&#x27;DECRBY&#x27;</span>, balance_key, amount)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 扣减余额</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">DeductBalance</span><span class="params">(userID <span class="type">int64</span>, amount decimal.Decimal)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 1. Redis 扣减（Lua 脚本保证原子性）</span></span><br><span class="line">    result := redis.Eval(luaScript, []<span class="type">string</span>&#123;fmt.Sprintf(<span class="string">&quot;balance:%d&quot;</span>, userID)&#125;, amount.String())</span><br><span class="line">    <span class="keyword">if</span> result == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> errors.New(<span class="string">&quot;insufficient balance&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2. MySQL 扣减</span></span><br><span class="line">    affected := db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        UPDATE account </span></span><br><span class="line"><span class="string">        SET balance = balance - ?</span></span><br><span class="line"><span class="string">        WHERE user_id = ? AND balance &gt;= ?</span></span><br><span class="line"><span class="string">    `</span>, amount, userID, amount)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> affected == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="comment">// 回滚 Redis</span></span><br><span class="line">        redis.IncrBy(fmt.Sprintf(<span class="string">&quot;balance:%d&quot;</span>, userID), amount.IntPart())</span><br><span class="line">        <span class="keyword">return</span> errors.New(<span class="string">&quot;insufficient balance&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3. 记录流水</span></span><br><span class="line">    db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        INSERT INTO account_transaction (user_id, amount, type, created_at)</span></span><br><span class="line"><span class="string">        VALUES (?, ?, &#x27;DEDUCT&#x27;, NOW())</span></span><br><span class="line"><span class="string">    `</span>, userID, amount)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 定时对账任务</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ReconcileAccountBalance</span><span class="params">()</span></span> &#123;</span><br><span class="line">    users := db.Query(<span class="string">&quot;SELECT user_id FROM account&quot;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> _, user := <span class="keyword">range</span> users &#123;</span><br><span class="line">        <span class="comment">// 查询 MySQL 余额</span></span><br><span class="line">        mysqlBalance := db.QueryRow(<span class="string">`SELECT balance FROM account WHERE user_id = ?`</span>, user.ID)</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 查询 Redis 余额</span></span><br><span class="line">        redisBalance := redis.Get(fmt.Sprintf(<span class="string">&quot;balance:%d&quot;</span>, user.ID))</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 对比</span></span><br><span class="line">        <span class="keyword">if</span> mysqlBalance != redisBalance &#123;</span><br><span class="line">            log.Error(<span class="string">&quot;balance mismatch&quot;</span>, <span class="string">&quot;user_id&quot;</span>, user.ID, <span class="string">&quot;mysql&quot;</span>, mysqlBalance, <span class="string">&quot;redis&quot;</span>, redisBalance)</span><br><span class="line">            </span><br><span class="line">            <span class="comment">// 以 MySQL 为准，修复 Redis</span></span><br><span class="line">            redis.Set(fmt.Sprintf(<span class="string">&quot;balance:%d&quot;</span>, user.ID), mysqlBalance)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="5-3-2-支付流水一致性"><a href="#5-3-2-支付流水一致性" class="headerlink" title="5.3.2 支付流水一致性"></a>5.3.2 支付流水一致性</h4><p><strong>问题</strong>：支付单金额与流水表汇总金额不一致</p>
+<p><strong>方案</strong>：</p>
+<ol>
+<li>每笔支付&#x2F;退款都记录流水</li>
+<li>流水表不可更新，只能插入</li>
+<li>定时任务校验：支付单金额 &#x3D; 流水表汇总金额</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 定时对账任务</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ReconcilePaymentTransaction</span><span class="params">()</span></span> &#123;</span><br><span class="line">    payments := db.Query(<span class="string">&quot;SELECT payment_id, payment_amount FROM payment_order WHERE payment_status = &#x27;SUCCESS&#x27;&quot;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> _, payment := <span class="keyword">range</span> payments &#123;</span><br><span class="line">        <span class="comment">// 查询流水表汇总金额</span></span><br><span class="line">        transactionAmount := db.QueryRow(<span class="string">`</span></span><br><span class="line"><span class="string">            SELECT SUM(amount) FROM payment_transaction </span></span><br><span class="line"><span class="string">            WHERE payment_id = ?</span></span><br><span class="line"><span class="string">        `</span>, payment.PaymentID)</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 对比</span></span><br><span class="line">        <span class="keyword">if</span> payment.PaymentAmount != transactionAmount &#123;</span><br><span class="line">            log.Error(<span class="string">&quot;amount mismatch&quot;</span>, <span class="string">&quot;payment_id&quot;</span>, payment.PaymentID, </span><br><span class="line">                      <span class="string">&quot;payment&quot;</span>, payment.PaymentAmount, <span class="string">&quot;transaction&quot;</span>, transactionAmount)</span><br><span class="line">            </span><br><span class="line">            <span class="comment">// 人工介入</span></span><br><span class="line">            notifyAdmin(payment.PaymentID)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>面试要点</strong>：</p>
+<ol>
+<li><strong>一致性方案</strong>: Redis + MySQL 双写 + 定时对账</li>
+<li><strong>原子性保证</strong>: Lua 脚本</li>
+<li><strong>数据源优先级</strong>: MySQL 为准，Redis 为辅</li>
+</ol>
+<h2 id="六、扩展模块"><a href="#六、扩展模块" class="headerlink" title="六、扩展模块"></a>六、扩展模块</h2><p>本章简要介绍支付系统的扩展模块，这些模块在面试中通常不是重点，但了解基本概念有助于建立完整的知识体系。</p>
+<h3 id="6-1-清结算系统"><a href="#6-1-清结算系统" class="headerlink" title="6.1 清结算系统"></a>6.1 清结算系统</h3><h4 id="6-1-1-核心概念"><a href="#6-1-1-核心概念" class="headerlink" title="6.1.1 核心概念"></a>6.1.1 核心概念</h4><p>清结算系统负责将支付金额按规则分配给平台、商家、营销补贴等各方。</p>
+<p><strong>分账规则示例</strong>：</p>
+<p>假设一笔订单实付 100 元，分账如下：</p>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>比例</th>
+<th>金额</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>平台佣金</td>
+<td>5%</td>
+<td>5 元</td>
+</tr>
+<tr>
+<td>商家收益</td>
+<td>95%</td>
+<td>95 元</td>
+</tr>
+<tr>
+<td>营销补贴</td>
+<td>-</td>
+<td>由平台承担</td>
+</tr>
+</tbody></table>
+<h4 id="6-1-2-结算周期"><a href="#6-1-2-结算周期" class="headerlink" title="6.1.2 结算周期"></a>6.1.2 结算周期</h4><ul>
+<li><strong>T+1</strong>：次日结算（快速到账，适合小商家）</li>
+<li><strong>T+7</strong>：7 日后结算（标准周期）</li>
+<li><strong>账期结算</strong>：按月结算（企业客户）</li>
+</ul>
+<h4 id="6-1-3-提现管理"><a href="#6-1-3-提现管理" class="headerlink" title="6.1.3 提现管理"></a>6.1.3 提现管理</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 提现限额控制</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithdrawRequest</span><span class="params">(merchantID <span class="type">int64</span>, amount decimal.Decimal)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 1. 单笔限额检查</span></span><br><span class="line">    <span class="keyword">if</span> amount.GreaterThan(decimal.NewFromInt(<span class="number">50000</span>)) &#123;</span><br><span class="line">        <span class="keyword">return</span> errors.New(<span class="string">&quot;single withdraw limit exceeded: 50,000&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2. 每日限额检查</span></span><br><span class="line">    todayWithdrawn := db.QueryRow(<span class="string">`</span></span><br><span class="line"><span class="string">        SELECT SUM(amount) FROM withdraw_order </span></span><br><span class="line"><span class="string">        WHERE merchant_id = ? AND DATE(created_at) = CURDATE()</span></span><br><span class="line"><span class="string">    `</span>, merchantID)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> todayWithdrawn.Add(amount).GreaterThan(decimal.NewFromInt(<span class="number">200000</span>)) &#123;</span><br><span class="line">        <span class="keyword">return</span> errors.New(<span class="string">&quot;daily withdraw limit exceeded: 200,000&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3. 风控校验</span></span><br><span class="line">    <span class="keyword">if</span> isRiskMerchant(merchantID) &#123;</span><br><span class="line">        <span class="keyword">return</span> errors.New(<span class="string">&quot;risk merchant, withdraw suspended&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 4. 创建提现单</span></span><br><span class="line">    withdraw := &amp;WithdrawOrder&#123;</span><br><span class="line">        WithdrawID: snowflake.Generate(),</span><br><span class="line">        MerchantID: merchantID,</span><br><span class="line">        Amount:     amount,</span><br><span class="line">        Status:     <span class="string">&quot;PENDING&quot;</span>,</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    db.Insert(withdraw)</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="6-1-4-清结算流程"><a href="#6-1-4-清结算流程" class="headerlink" title="6.1.4 清结算流程"></a>6.1.4 清结算流程</h4><pre class="mermaid">graph LR
+    A[T 日交易] --> B[T+1 日凌晨定时任务]
+    B --> C[计算分账金额]
+    C --> D[生成结算单]
+    D --> E[商家确认]
+    E --> F[提现申请]
+    F --> G[打款到银行账户]
+    G --> H[更新账户余额]</pre>
+
+<h3 id="6-2-对账系统"><a href="#6-2-对账系统" class="headerlink" title="6.2 对账系统"></a>6.2 对账系统</h3><h4 id="6-2-1-为什么需要对账"><a href="#6-2-1-为什么需要对账" class="headerlink" title="6.2.1 为什么需要对账"></a>6.2.1 为什么需要对账</h4><p>系统与第三方的交易数据可能存在以下问题：</p>
+<ul>
+<li><strong>长款</strong>：第三方有，本地无（用户已支付，但系统未记录）</li>
+<li><strong>短款</strong>：本地有，第三方无（系统记录已支付，但第三方未收到）</li>
+<li><strong>金额不符</strong>：订单号一致，但金额不一致</li>
+</ul>
+<h4 id="6-2-2-对账维度"><a href="#6-2-2-对账维度" class="headerlink" title="6.2.2 对账维度"></a>6.2.2 对账维度</h4><table>
+<thead>
+<tr>
+<th>对账维度</th>
+<th>对账内容</th>
+<th>数据来源</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>交易对账</strong></td>
+<td>订单号、金额、状态</td>
+<td>第三方对账文件 vs 本地支付流水</td>
+</tr>
+<tr>
+<td><strong>资金对账</strong></td>
+<td>入账金额、手续费</td>
+<td>第三方结算单 vs 本地账户流水</td>
+</tr>
+</tbody></table>
+<h4 id="6-2-3-对账流程"><a href="#6-2-3-对账流程" class="headerlink" title="6.2.3 对账流程"></a>6.2.3 对账流程</h4><pre class="mermaid">graph LR
+    A[每日凌晨 2:00] --> B[拉取第三方对账文件]
+    B --> C[解析对账文件]
+    C --> D[与本地流水对比]
+    D --> E[生成差错报告]
+    E --> F{有差错?}
+    F -->|是| G[人工复核]
+    F -->|否| H[记录对账结果]
+    G --> I[差错处理]</pre>
+
+<h4 id="6-2-4-差错处理"><a href="#6-2-4-差错处理" class="headerlink" title="6.2.4 差错处理"></a>6.2.4 差错处理</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 对账差错分类</span></span><br><span class="line"><span class="keyword">type</span> ReconciliationError <span class="keyword">struct</span> &#123;</span><br><span class="line">    Type          <span class="type">string</span> <span class="comment">// LONG_PAYMENT, SHORT_PAYMENT, AMOUNT_MISMATCH</span></span><br><span class="line">    OrderID       <span class="type">int64</span></span><br><span class="line">    LocalAmount   decimal.Decimal</span><br><span class="line">    RemoteAmount  decimal.Decimal</span><br><span class="line">    Description   <span class="type">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 对账任务</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ReconcileTransactions</span><span class="params">(date time.Time)</span></span> ([]*ReconciliationError, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="keyword">var</span> errors []*ReconciliationError</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 1. 拉取第三方对账文件</span></span><br><span class="line">    remoteRecords := fetchRemoteReconciliationFile(date)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2. 查询本地流水</span></span><br><span class="line">    localRecords := db.Query(<span class="string">`</span></span><br><span class="line"><span class="string">        SELECT order_id, amount FROM payment_transaction </span></span><br><span class="line"><span class="string">        WHERE DATE(created_at) = ?</span></span><br><span class="line"><span class="string">    `</span>, date)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3. 对比（本地有，第三方无 - 短款）</span></span><br><span class="line">    <span class="keyword">for</span> _, local := <span class="keyword">range</span> localRecords &#123;</span><br><span class="line">        <span class="keyword">if</span> !existsInRemote(local.OrderID, remoteRecords) &#123;</span><br><span class="line">            errors = <span class="built_in">append</span>(errors, &amp;ReconciliationError&#123;</span><br><span class="line">                Type:        <span class="string">&quot;SHORT_PAYMENT&quot;</span>,</span><br><span class="line">                OrderID:     local.OrderID,</span><br><span class="line">                LocalAmount: local.Amount,</span><br><span class="line">                Description: <span class="string">&quot;本地有记录，第三方无&quot;</span>,</span><br><span class="line">            &#125;)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 4. 对比（第三方有，本地无 - 长款）</span></span><br><span class="line">    <span class="keyword">for</span> _, remote := <span class="keyword">range</span> remoteRecords &#123;</span><br><span class="line">        <span class="keyword">if</span> !existsInLocal(remote.OrderID, localRecords) &#123;</span><br><span class="line">            errors = <span class="built_in">append</span>(errors, &amp;ReconciliationError&#123;</span><br><span class="line">                Type:         <span class="string">&quot;LONG_PAYMENT&quot;</span>,</span><br><span class="line">                OrderID:      remote.OrderID,</span><br><span class="line">                RemoteAmount: remote.Amount,</span><br><span class="line">                Description:  <span class="string">&quot;第三方有记录，本地无&quot;</span>,</span><br><span class="line">            &#125;)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 5. 对比（金额不符）</span></span><br><span class="line">    <span class="keyword">for</span> _, local := <span class="keyword">range</span> localRecords &#123;</span><br><span class="line">        remote := findRemoteRecord(local.OrderID, remoteRecords)</span><br><span class="line">        <span class="keyword">if</span> remote != <span class="literal">nil</span> &amp;&amp; !local.Amount.Equal(remote.Amount) &#123;</span><br><span class="line">            errors = <span class="built_in">append</span>(errors, &amp;ReconciliationError&#123;</span><br><span class="line">                Type:         <span class="string">&quot;AMOUNT_MISMATCH&quot;</span>,</span><br><span class="line">                OrderID:      local.OrderID,</span><br><span class="line">                LocalAmount:  local.Amount,</span><br><span class="line">                RemoteAmount: remote.Amount,</span><br><span class="line">                Description:  <span class="string">&quot;金额不一致&quot;</span>,</span><br><span class="line">            &#125;)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> errors, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-3-风控系统"><a href="#6-3-风控系统" class="headerlink" title="6.3 风控系统"></a>6.3 风控系统</h3><h4 id="6-3-1-三个阶段"><a href="#6-3-1-三个阶段" class="headerlink" title="6.3.1 三个阶段"></a>6.3.1 三个阶段</h4><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>风控手段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>事前风控</strong></td>
+<td>支付前验证</td>
+<td>支付密码、指纹、人脸识别</td>
+</tr>
+<tr>
+<td><strong>事中风控</strong></td>
+<td>交易实时监控</td>
+<td>短时间大额、异地登录、限额控制</td>
+</tr>
+<tr>
+<td><strong>事后风控</strong></td>
+<td>对账差错分析</td>
+<td>资金流向追踪、异常模式识别</td>
+</tr>
+</tbody></table>
+<h4 id="6-3-2-常见风控规则"><a href="#6-3-2-常见风控规则" class="headerlink" title="6.3.2 常见风控规则"></a>6.3.2 常见风控规则</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 风控规则配置</span></span><br><span class="line"><span class="keyword">var</span> riskRules = []RiskRule&#123;</span><br><span class="line">    &#123;</span><br><span class="line">        Name:        <span class="string">&quot;单笔大额&quot;</span>,</span><br><span class="line">        Condition:   <span class="string">&quot;amount &gt; 10000&quot;</span>,</span><br><span class="line">        Action:      <span class="string">&quot;二次验证&quot;</span>,</span><br><span class="line">        Description: <span class="string">&quot;单笔支付超过 10,000 元需要二次验证&quot;</span>,</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        Name:        <span class="string">&quot;短时间高频&quot;</span>,</span><br><span class="line">        Condition:   <span class="string">&quot;count_in_1h &gt; 5&quot;</span>,</span><br><span class="line">        Action:      <span class="string">&quot;触发风控审核&quot;</span>,</span><br><span class="line">        Description: <span class="string">&quot;1 小时内支付超过 5 次&quot;</span>,</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        Name:        <span class="string">&quot;异地登录&quot;</span>,</span><br><span class="line">        Condition:   <span class="string">&quot;ip_city_change&quot;</span>,</span><br><span class="line">        Action:      <span class="string">&quot;短信验证码&quot;</span>,</span><br><span class="line">        Description: <span class="string">&quot;IP 地址城市变更&quot;</span>,</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 风控检查</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">RiskCheck</span><span class="params">(userID <span class="type">int64</span>, amount decimal.Decimal)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 1. 单笔大额检查</span></span><br><span class="line">    <span class="keyword">if</span> amount.GreaterThan(decimal.NewFromInt(<span class="number">10000</span>)) &#123;</span><br><span class="line">        <span class="keyword">return</span> errors.New(<span class="string">&quot;need second verification for large amount&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2. 短时间高频检查</span></span><br><span class="line">    count := redis.Incr(fmt.Sprintf(<span class="string">&quot;payment_count:%d&quot;</span>, userID))</span><br><span class="line">    redis.Expire(fmt.Sprintf(<span class="string">&quot;payment_count:%d&quot;</span>, userID), <span class="number">1</span>*time.Hour)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> count &gt; <span class="number">5</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> errors.New(<span class="string">&quot;too many payments in 1 hour&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3. 异地登录检查</span></span><br><span class="line">    lastCity := redis.Get(fmt.Sprintf(<span class="string">&quot;last_city:%d&quot;</span>, userID))</span><br><span class="line">    currentCity := getIPCity()</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> lastCity != <span class="string">&quot;&quot;</span> &amp;&amp; lastCity != currentCity &#123;</span><br><span class="line">        <span class="keyword">return</span> errors.New(<span class="string">&quot;city changed, need SMS verification&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    redis.Set(fmt.Sprintf(<span class="string">&quot;last_city:%d&quot;</span>, userID), currentCity)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="6-3-3-黑名单机制"><a href="#6-3-3-黑名单机制" class="headerlink" title="6.3.3 黑名单机制"></a>6.3.3 黑名单机制</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 黑名单检查</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">IsBlacklisted</span><span class="params">(userID <span class="type">int64</span>)</span></span> <span class="type">bool</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> redis.SIsMember(<span class="string">&quot;user_blacklist&quot;</span>, userID)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 加入黑名单</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AddToBlacklist</span><span class="params">(userID <span class="type">int64</span>, reason <span class="type">string</span>)</span></span> &#123;</span><br><span class="line">    redis.SAdd(<span class="string">&quot;user_blacklist&quot;</span>, userID)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 记录黑名单原因</span></span><br><span class="line">    db.Exec(<span class="string">`</span></span><br><span class="line"><span class="string">        INSERT INTO blacklist_record (user_id, reason, created_at)</span></span><br><span class="line"><span class="string">        VALUES (?, ?, NOW())</span></span><br><span class="line"><span class="string">    `</span>, userID, reason)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>面试要点</strong>：</p>
+<ul>
+<li>清结算：分账规则、结算周期、提现限额</li>
+<li>对账：长款、短款、差错处理</li>
+<li>风控：事前、事中、事后三阶段</li>
+</ul>
+<h2 id="七、面试问答锦囊"><a href="#七、面试问答锦囊" class="headerlink" title="七、面试问答锦囊"></a>七、面试问答锦囊</h2><p>本章总结支付系统面试中最常被问到的问题，并给出简洁的回答要点，便于考前快速复习。</p>
+<h3 id="7-1-架构设计类"><a href="#7-1-架构设计类" class="headerlink" title="7.1 架构设计类"></a>7.1 架构设计类</h3><h4 id="Q1-如何设计一个支付系统？⭐⭐⭐"><a href="#Q1-如何设计一个支付系统？⭐⭐⭐" class="headerlink" title="Q1: 如何设计一个支付系统？⭐⭐⭐"></a>Q1: 如何设计一个支付系统？⭐⭐⭐</h4><p><strong>回答框架</strong>（3 分钟讲清楚）：</p>
+<ol>
+<li><p><strong>分层架构</strong>：</p>
+<ul>
+<li>接入层（C 端&#x2F;B 端&#x2F;Open API）</li>
+<li>应用服务层（订单、支付、对账服务）</li>
+<li>核心业务层（账户、支付网关、清结算、风控）</li>
+<li>基础设施层（MySQL、Redis、Kafka、XXL-Job）</li>
+<li>第三方服务层（微信支付、支付宝、银行网关）</li>
+</ul>
+</li>
+<li><p><strong>核心子系统</strong>：</p>
+<ul>
+<li>账户系统：余额管理、冻结&#x2F;解冻</li>
+<li>支付网关：渠道抽象、路由策略</li>
+<li>清结算引擎：分账计算、结算管理</li>
+<li>风控系统：支付验证、异常监控</li>
+</ul>
+</li>
+<li><p><strong>关键技术</strong>：</p>
+<ul>
+<li>分布式事务：Saga&#x2F;TCC</li>
+<li>幂等性设计：分布式锁 + 唯一索引</li>
+<li>状态机：支付单&#x2F;退款单状态流转</li>
+</ul>
+</li>
+</ol>
+<p><strong>白板画图要点</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────────────────────┐</span><br><span class="line">│    接入层（C/B 端）              │</span><br><span class="line">├─────────────────────────────────┤</span><br><span class="line">│    应用层（订单/支付/对账）      │</span><br><span class="line">├─────────────────────────────────┤</span><br><span class="line">│    核心层（账户/网关/清结算）    │</span><br><span class="line">├─────────────────────────────────┤</span><br><span class="line">│    基础设施（MySQL/Redis/Kafka） │</span><br><span class="line">├─────────────────────────────────┤</span><br><span class="line">│    第三方（微信/支付宝）         │</span><br><span class="line">└─────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<p><strong>详见</strong>：第 2 章</p>
+<hr>
+<h4 id="Q2-支付系统如何保证高可用？⭐⭐"><a href="#Q2-支付系统如何保证高可用？⭐⭐" class="headerlink" title="Q2: 支付系统如何保证高可用？⭐⭐"></a>Q2: 支付系统如何保证高可用？⭐⭐</h4><p><strong>回答要点</strong>（5 个维度）：</p>
+<ol>
+<li><strong>多机房部署</strong>：异地容灾，主备切换</li>
+<li><strong>Redis 主从 + 哨兵</strong>：缓存高可用，故障自动切换</li>
+<li><strong>Kafka 集群</strong>：消息高可用，分区副本机制</li>
+<li><strong>限流降级</strong>：大促期间保护核心服务</li>
+<li><strong>熔断机制</strong>：第三方支付故障时切换备用渠道</li>
+</ol>
+<p><strong>详见</strong>：第 1.3 章</p>
+<hr>
+<h3 id="7-2-技术方案类"><a href="#7-2-技术方案类" class="headerlink" title="7.2 技术方案类"></a>7.2 技术方案类</h3><h4 id="Q3-支付成功后如何保证订单状态同步更新？⭐⭐⭐"><a href="#Q3-支付成功后如何保证订单状态同步更新？⭐⭐⭐" class="headerlink" title="Q3: 支付成功后如何保证订单状态同步更新？⭐⭐⭐"></a>Q3: 支付成功后如何保证订单状态同步更新？⭐⭐⭐</h4><p><strong>回答要点</strong>：</p>
+<ol>
+<li><p><strong>Saga 模式</strong> + <strong>本地消息表</strong> + <strong>最终一致性</strong></p>
+</li>
+<li><p><strong>实现步骤</strong>：</p>
+<ul>
+<li>支付服务更新支付状态 + 插入本地消息表（同一事务）</li>
+<li>定时任务扫描本地消息表，发送到 Kafka</li>
+<li>订单服务消费 Kafka 消息，更新订单状态</li>
+</ul>
+</li>
+<li><p><strong>补偿机制</strong>：</p>
+<ul>
+<li>支付失败 → 订单服务取消订单</li>
+</ul>
+</li>
+</ol>
+<p><strong>详见</strong>：第 5.1.2 章</p>
+<hr>
+<h4 id="Q4-如何保证支付幂等性？⭐⭐⭐"><a href="#Q4-如何保证支付幂等性？⭐⭐⭐" class="headerlink" title="Q4: 如何保证支付幂等性？⭐⭐⭐"></a>Q4: 如何保证支付幂等性？⭐⭐⭐</h4><p><strong>回答要点</strong>（三个场景）：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>幂等键</th>
+<th>实现手段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>支付单创建</td>
+<td>order_id + user_id</td>
+<td>Redis 分布式锁 + DB 唯一索引</td>
+</tr>
+<tr>
+<td>支付回调</td>
+<td>channel_trade_no</td>
+<td>DB 唯一索引</td>
+</tr>
+<tr>
+<td>退款</td>
+<td>refund_id</td>
+<td>DB 唯一索引</td>
+</tr>
+</tbody></table>
+<p><strong>核心思想</strong>：</p>
+<ol>
+<li><strong>防并发</strong>：Redis 分布式锁</li>
+<li><strong>防重复</strong>：数据库唯一索引</li>
+<li><strong>防并发更新</strong>：乐观锁（version 字段）</li>
+</ol>
+<p><strong>详见</strong>：第 5.2 章</p>
+<hr>
+<h4 id="Q5-第三方支付回调失败怎么办？⭐⭐"><a href="#Q5-第三方支付回调失败怎么办？⭐⭐" class="headerlink" title="Q5: 第三方支付回调失败怎么办？⭐⭐"></a>Q5: 第三方支付回调失败怎么办？⭐⭐</h4><p><strong>回答要点</strong>（三层保障）：</p>
+<ol>
+<li><strong>主动重试</strong>：最多 3 次，指数退避（1s, 2s, 4s）</li>
+<li><strong>定时补偿</strong>：每分钟扫描超时支付单，主动查询第三方状态</li>
+<li><strong>人工介入</strong>：超过重试次数，进入人工复核队列</li>
+</ol>
+<p><strong>详见</strong>：第 3.3 章</p>
+<hr>
+<h4 id="Q6-如何处理部分退款？⭐⭐"><a href="#Q6-如何处理部分退款？⭐⭐" class="headerlink" title="Q6: 如何处理部分退款？⭐⭐"></a>Q6: 如何处理部分退款？⭐⭐</h4><p><strong>回答要点</strong>：</p>
+<ol>
+<li><strong>可退金额计算</strong>：实付金额 - 已退金额</li>
+<li><strong>多次退款支持</strong>：累计退款金额 ≤ 实付金额</li>
+<li><strong>营销优惠处理</strong>：按比例退款</li>
+</ol>
+<p><strong>示例</strong>：</p>
+<ul>
+<li>实付 100 元（原价 120，优惠 20）</li>
+<li>退款 50 元 → 退实付 41.67，营销优惠退 8.33</li>
+</ul>
+<p><strong>详见</strong>：第 3.2.2 章</p>
+<hr>
+<h3 id="7-3-场景题类"><a href="#7-3-场景题类" class="headerlink" title="7.3 场景题类"></a>7.3 场景题类</h3><h4 id="Q7-大促期间支付峰值如何应对？⭐⭐"><a href="#Q7-大促期间支付峰值如何应对？⭐⭐" class="headerlink" title="Q7: 大促期间支付峰值如何应对？⭐⭐"></a>Q7: 大促期间支付峰值如何应对？⭐⭐</h4><p><strong>回答要点</strong>（4 个维度）：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>方案</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>缓存</strong></td>
+<td>Redis 缓存热点数据</td>
+<td>账户余额、支付单状态</td>
+</tr>
+<tr>
+<td><strong>限流</strong></td>
+<td>令牌桶限流</td>
+<td>单用户 QPS 限制</td>
+</tr>
+<tr>
+<td><strong>降级</strong></td>
+<td>关闭非核心功能</td>
+<td>账单查询、历史记录</td>
+</tr>
+<tr>
+<td><strong>异步化</strong></td>
+<td>Kafka 异步处理</td>
+<td>支付回调、状态同步</td>
+</tr>
+</tbody></table>
+<p><strong>详见</strong>：第 1.3 章</p>
+<hr>
+<h4 id="Q8-如何防止恶意刷单？⭐"><a href="#Q8-如何防止恶意刷单？⭐" class="headerlink" title="Q8: 如何防止恶意刷单？⭐"></a>Q8: 如何防止恶意刷单？⭐</h4><p><strong>回答要点</strong>（风控规则）：</p>
+<table>
+<thead>
+<tr>
+<th>规则</th>
+<th>阈值</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>短时间大额</td>
+<td>单笔 &gt; 10,000 元</td>
+<td>二次验证</td>
+</tr>
+<tr>
+<td>短时间高频</td>
+<td>1 小时内 &gt; 5 笔</td>
+<td>触发风控审核</td>
+</tr>
+<tr>
+<td>异地登录</td>
+<td>IP 城市变更</td>
+<td>短信验证码</td>
+</tr>
+<tr>
+<td>限额控制</td>
+<td>单日 &gt; 200,000 元</td>
+<td>暂停支付</td>
+</tr>
+</tbody></table>
+<p><strong>详见</strong>：第 6.3.2 章</p>
+<hr>
+<h3 id="7-4-面试技巧"><a href="#7-4-面试技巧" class="headerlink" title="7.4 面试技巧"></a>7.4 面试技巧</h3><p><strong>1. 架构设计题</strong></p>
+<ul>
+<li>快速画出分层架构图（30 秒）</li>
+<li>说明核心子系统职责（1 分钟）</li>
+<li>讲解关键技术方案（2 分钟）</li>
+</ul>
+<p><strong>2. 技术方案题</strong></p>
+<ul>
+<li>先说核心思想（10 秒）</li>
+<li>再讲实现步骤（1 分钟）</li>
+<li>最后补充边界情况（30 秒）</li>
+</ul>
+<p><strong>3. 场景题</strong></p>
+<ul>
+<li>先识别核心问题（10 秒）</li>
+<li>提出多个解决方案（1 分钟）</li>
+<li>对比优劣并推荐（30 秒）</li>
+</ul>
+<p><strong>4. 常见追问</strong></p>
+<ul>
+<li>“如果第三方支付挂了怎么办？” → 渠道降级、备用渠道</li>
+<li>“如何保证资金安全？” → 分布式事务、幂等性、审计日志</li>
+<li>“支付系统的瓶颈在哪？” → 数据库写入、第三方支付 QPS</li>
+</ul>
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文从系统设计面试的角度，深入解析了电商支付系统的核心知识点：</p>
+<ol>
+<li><strong>整体架构</strong>：分层架构、核心子系统、设计原则</li>
+<li><strong>核心流程</strong>：支付流程、退款流程、异步回调</li>
+<li><strong>状态机设计</strong>：支付单&#x2F;退款单状态流转、状态转换规则</li>
+<li><strong>高频考点</strong>：<ul>
+<li>分布式事务（Saga&#x2F;TCC）</li>
+<li>幂等性设计（三个场景）</li>
+<li>一致性保证（账户余额、支付流水）</li>
+</ul>
+</li>
+<li><strong>扩展模块</strong>：清结算、对账、风控</li>
+<li><strong>面试锦囊</strong>：8 个高频面试题及回答要点</li>
+</ol>
+<p><strong>面试建议</strong>：</p>
+<ul>
+<li>熟练掌握分层架构图，能够在白板上快速画出</li>
+<li>深入理解分布式事务（Saga&#x2F;TCC）的实现原理</li>
+<li>掌握幂等性设计的三个关键场景</li>
+<li>了解清结算、对账、风控的基本概念</li>
+</ul>
+<p><strong>参考资料</strong>：</p>
+<ul>
+<li><a href="./26-ecommerce-order-system.md">26-电商订单系统</a></li>
+<li><a href="./22-ecommerce-inventory.md">22-电商库存系统</a></li>
+<li><a href="./28-ecommerce-marketing-system.md">28-电商营销系统</a></li>
+</ul>
+<hr>
+<p><strong>全文完</strong></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/state-machine/" rel="tag"># state-machine</a>
+              <a href="/tags/saga/" rel="tag"># saga</a>
+              <a href="/tags/distributed-transaction/" rel="tag"># distributed-transaction</a>
+              <a href="/tags/idempotency/" rel="tag"># idempotency</a>
+              <a href="/tags/tcc/" rel="tag"># tcc</a>
+              <a href="/tags/payment/" rel="tag"># payment</a>
+              <a href="/tags/reconciliation/" rel="tag"># reconciliation</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/07/24/system-design/26-ecommerce-order-system/" rel="prev" title="电商系统设计（七）：订单系统">
+                  <i class="fa fa-angle-left"></i> 电商系统设计（七）：订单系统
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/08/21/system-design/21-ecommerce-listing/" rel="next" title="电商系统设计（九）：商品上架系统">
+                  电商系统设计（九）：商品上架系统 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>

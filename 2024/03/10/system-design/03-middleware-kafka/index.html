@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="速查导航阅读时间: 45 分钟 | 难度: ⭐⭐⭐⭐ | 面试频率: 极高 核心考点速查:  一、Kafka 核心特性 - 3 分钟掌握使用场景与 Kafka vs Redis 二、核心概念 - Topic&#x2F;Partition&#x2F;ISR&#x2F;ZooKeeper vs KRaft 三、数据流与架构 - Producer → Broker → Consumer 完整流程 四、为">
+<meta property="og:type" content="article">
+<meta property="og:title" content="中间件 - 异步和消息队列">
+<meta property="og:url" content="http://yoursite.com/2024/03/10/system-design/03-middleware-kafka/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="速查导航阅读时间: 45 分钟 | 难度: ⭐⭐⭐⭐ | 面试频率: 极高 核心考点速查:  一、Kafka 核心特性 - 3 分钟掌握使用场景与 Kafka vs Redis 二、核心概念 - Topic&#x2F;Partition&#x2F;ISR&#x2F;ZooKeeper vs KRaft 三、数据流与架构 - Producer → Broker → Consumer 完整流程 四、为">
+<meta property="og:locale">
+<meta property="article:published_time" content="2024-03-09T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-04-09T01:59:40.649Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="Kafka">
+<meta property="article:tag" content="消息队列">
+<meta property="article:tag" content="异步">
+<meta property="article:tag" content="分布式">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2024/03/10/system-design/03-middleware-kafka/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2024/03/10/system-design/03-middleware-kafka/","path":"2024/03/10/system-design/03-middleware-kafka/","title":"中间件 - 异步和消息队列"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>中间件 - 异步和消息队列 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9F%E6%9F%A5%E5%AF%BC%E8%88%AA"><span class="nav-number">1.</span> <span class="nav-text">速查导航</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81Kafka-%E6%A0%B8%E5%BF%83%E7%89%B9%E6%80%A7%EF%BC%88%E9%9D%A2%E8%AF%95%E5%BF%85%E7%AD%94%EF%BC%89"><span class="nav-number">2.</span> <span class="nav-text">一、Kafka 核心特性（面试必答）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E4%B8%89%E5%8F%A5%E8%AF%9D%E4%BB%8B%E7%BB%8D-Kafka"><span class="nav-number">2.1.</span> <span class="nav-text">1.1 三句话介绍 Kafka</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF%EF%BC%88%E5%B8%A6%E7%9C%9F%E5%AE%9E%E6%A1%88%E4%BE%8B%EF%BC%89"><span class="nav-number">2.2.</span> <span class="nav-text">1.2 使用场景（带真实案例）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E9%9D%A2%E8%AF%95%E8%BF%BD%E9%97%AE%EF%BC%9A%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E7%94%A8-Redis-%E5%81%9A%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%EF%BC%9F"><span class="nav-number">2.3.</span> <span class="nav-text">1.3 面试追问：为什么不用 Redis 做消息队列？</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%EF%BC%885-%E5%88%86%E9%92%9F%E9%80%9F%E8%AE%B0%EF%BC%89"><span class="nav-number">3.</span> <span class="nav-text">二、核心概念（5 分钟速记）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6%E9%80%9F%E6%9F%A5%E8%A1%A8"><span class="nav-number">3.1.</span> <span class="nav-text">2.1 核心组件速查表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%89%AF%E6%9C%AC%E6%9C%BA%E5%88%B6%EF%BC%88%E9%AB%98%E5%8F%AF%E7%94%A8%E6%A0%B8%E5%BF%83%EF%BC%89"><span class="nav-number">3.2.</span> <span class="nav-text">2.2 副本机制（高可用核心）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-Partition-%E4%B8%8E%E9%A1%BA%E5%BA%8F%E6%80%A7"><span class="nav-number">3.3.</span> <span class="nav-text">2.3 Partition 与顺序性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-ZooKeeper-vs-KRaft"><span class="nav-number">3.4.</span> <span class="nav-text">2.4 ZooKeeper vs KRaft</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E6%95%B0%E6%8D%AE%E6%B5%81%E4%B8%8E%E6%9E%B6%E6%9E%84%EF%BC%88%E9%AB%98%E9%A2%91%E8%80%83%E7%82%B9%EF%BC%89"><span class="nav-number">4.</span> <span class="nav-text">三、数据流与架构（高频考点）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-Producer-%E2%86%92-Broker-%E2%86%92-Consumer-%E5%AE%8C%E6%95%B4%E6%B5%81%E7%A8%8B"><span class="nav-number">4.1.</span> <span class="nav-text">3.1 Producer → Broker → Consumer 完整流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-Consumer-Group-%E4%B8%8E-Rebalance"><span class="nav-number">4.2.</span> <span class="nav-text">3.2 Consumer Group 与 Rebalance</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-Controller-%E4%B8%8E%E5%8D%8F%E8%B0%83"><span class="nav-number">4.3.</span> <span class="nav-text">3.3 Controller 与协调</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E4%B8%BA%E4%BB%80%E4%B9%88-Kafka-%E8%BF%99%E4%B9%88%E5%BF%AB%EF%BC%9F%EF%BC%88%E9%9D%A2%E8%AF%95%E5%BF%85%E9%97%AE%EF%BC%89"><span class="nav-number">5.</span> <span class="nav-text">四、为什么 Kafka 这么快？（面试必问）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E9%A1%BA%E5%BA%8F%E5%86%99%E7%A3%81%E7%9B%98"><span class="nav-number">5.1.</span> <span class="nav-text">4.1 顺序写磁盘</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-Page-Cache%EF%BC%88%E9%A1%B5%E7%BC%93%E5%AD%98%EF%BC%89"><span class="nav-number">5.2.</span> <span class="nav-text">4.2 Page Cache（页缓存）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E9%9B%B6%E6%8B%B7%E8%B4%9D%EF%BC%88Zero-Copy%EF%BC%89"><span class="nav-number">5.3.</span> <span class="nav-text">4.3 零拷贝（Zero Copy）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%89%B9%E9%87%8F%E8%AF%BB%E5%86%99%E4%B8%8E%E5%8E%8B%E7%BC%A9"><span class="nav-number">5.4.</span> <span class="nav-text">4.4 批量读写与压缩</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-5-%E5%88%86%E5%8C%BA%E5%B9%B6%E8%A1%8C"><span class="nav-number">5.5.</span> <span class="nav-text">4.5 分区并行</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E6%B6%88%E6%81%AF%E4%B8%8D%E4%B8%A2%E5%A4%B1%E5%85%A8%E9%93%BE%E8%B7%AF%E4%BF%9D%E9%9A%9C"><span class="nav-number">6.</span> <span class="nav-text">五、消息不丢失全链路保障</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E5%8F%AF%E9%9D%A0%E6%80%A7%E8%AF%AD%E4%B9%89"><span class="nav-number">6.1.</span> <span class="nav-text">5.1 可靠性语义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E7%94%9F%E4%BA%A7%E7%AB%AF%E9%85%8D%E7%BD%AE"><span class="nav-number">6.2.</span> <span class="nav-text">5.2 生产端配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-Broker-%E7%AB%AF%E9%85%8D%E7%BD%AE"><span class="nav-number">6.3.</span> <span class="nav-text">5.3 Broker 端配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-4-%E6%B6%88%E8%B4%B9%E7%AB%AF%E9%85%8D%E7%BD%AE"><span class="nav-number">6.4.</span> <span class="nav-text">5.4 消费端配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-5-Exactly-once-%E5%AE%9E%E7%8E%B0"><span class="nav-number">6.5.</span> <span class="nav-text">5.5 Exactly-once 实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-6-%E6%A3%80%E6%9F%A5%E6%B8%85%E5%8D%95%EF%BC%88%E8%90%BD%E5%9C%B0%E6%8E%92%E6%9F%A5%EF%BC%89"><span class="nav-number">6.6.</span> <span class="nav-text">5.6 检查清单（落地排查）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81Rebalance-%E6%9C%BA%E5%88%B6%E5%8F%8A%E5%BD%B1%E5%93%8D"><span class="nav-number">7.</span> <span class="nav-text">六、Rebalance 机制及影响</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-%E4%BB%80%E4%B9%88%E6%98%AF-Rebalance%EF%BC%9F"><span class="nav-number">7.1.</span> <span class="nav-text">6.1 什么是 Rebalance？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-Rebalance-%E7%9A%84%E5%BD%B1%E5%93%8D"><span class="nav-number">7.2.</span> <span class="nav-text">6.2 Rebalance 的影响</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-%E5%A6%82%E4%BD%95%E5%87%8F%E5%B0%91-Rebalance%EF%BC%9F"><span class="nav-number">7.3.</span> <span class="nav-text">6.3 如何减少 Rebalance？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-4-%E7%9B%91%E6%8E%A7-Lag-%E6%83%85%E5%86%B5"><span class="nav-number">7.4.</span> <span class="nav-text">6.4 监控 Lag 情况</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%83%E3%80%81%E6%96%87%E4%BB%B6%E5%AD%98%E5%82%A8%E6%9C%BA%E5%88%B6"><span class="nav-number">8.</span> <span class="nav-text">七、文件存储机制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#7-1-%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84"><span class="nav-number">8.1.</span> <span class="nav-text">7.1 存储结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-2-Segment-%E6%BB%9A%E5%8A%A8%E7%AD%96%E7%95%A5"><span class="nav-number">8.2.</span> <span class="nav-text">7.2 Segment 滚动策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-3-%E7%B4%A2%E5%BC%95%E6%9C%BA%E5%88%B6"><span class="nav-number">8.3.</span> <span class="nav-text">7.3 索引机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-4-HW-%E4%B8%8E-LEO"><span class="nav-number">8.4.</span> <span class="nav-text">7.4 HW 与 LEO</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AB%E3%80%81%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98%E5%AE%9E%E8%B7%B5"><span class="nav-number">9.</span> <span class="nav-text">八、性能调优实践</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#8-1-%E6%B6%88%E8%B4%B9%E7%A7%AF%E5%8E%8B%E6%8E%92%E6%9F%A5%E6%AD%A5%E9%AA%A4"><span class="nav-number">9.1.</span> <span class="nav-text">8.1 消费积压排查步骤</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-2-%E7%94%9F%E4%BA%A7%E8%80%85%E4%BE%A7%E8%B0%83%E4%BC%98"><span class="nav-number">9.2.</span> <span class="nav-text">8.2 生产者侧调优</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-3-Broker-%E4%B8%8E%E7%B3%BB%E7%BB%9F%E5%B1%82%E4%BC%98%E5%8C%96"><span class="nav-number">9.3.</span> <span class="nav-text">8.3 Broker 与系统层优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-4-Go-%E7%94%9F%E4%BA%A7%E7%BA%A7%E5%88%AB-Producer-%E7%A4%BA%E4%BE%8B"><span class="nav-number">9.4.</span> <span class="nav-text">8.4 Go 生产级别 Producer 示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-5-Go-%E7%94%9F%E4%BA%A7%E7%BA%A7%E5%88%AB-Consumer-%E7%A4%BA%E4%BE%8B"><span class="nav-number">9.5.</span> <span class="nav-text">8.5 Go 生产级别 Consumer 示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-6-%E5%B8%B8%E7%94%A8%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0%E6%80%BB%E7%BB%93"><span class="nav-number">9.6.</span> <span class="nav-text">8.6 常用配置参数总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B9%9D%E3%80%81%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E8%B8%A9%E5%9D%91%E5%AE%9E%E5%BD%95"><span class="nav-number">10.</span> <span class="nav-text">九、生产环境踩坑实录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#9-1-%E6%A1%88%E4%BE%8B1%EF%BC%9A%E6%B6%88%E8%B4%B9%E8%80%85-Rebalance-%E5%AF%BC%E8%87%B4%E5%A4%A7%E9%87%8F%E9%87%8D%E5%A4%8D%E6%B6%88%E8%B4%B9"><span class="nav-number">10.1.</span> <span class="nav-text">9.1 案例1：消费者 Rebalance 导致大量重复消费</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-2-%E6%A1%88%E4%BE%8B2%EF%BC%9APartition-%E6%95%B0%E9%87%8F%E4%B8%8D%E8%B6%B3%E5%AF%BC%E8%87%B4%E6%89%A9%E5%AE%B9%E6%97%A0%E6%95%88"><span class="nav-number">10.2.</span> <span class="nav-text">9.2 案例2：Partition 数量不足导致扩容无效</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-3-%E6%A1%88%E4%BE%8B3%EF%BC%9Aacks-1-%E5%AF%BC%E8%87%B4%E6%95%B0%E6%8D%AE%E4%B8%A2%E5%A4%B1"><span class="nav-number">10.3.</span> <span class="nav-text">9.3 案例3：acks&#x3D;1 导致数据丢失</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-4-%E6%A1%88%E4%BE%8B4%EF%BC%9APage-Cache-%E4%B8%8D%E8%B6%B3%E5%AF%BC%E8%87%B4%E6%80%A7%E8%83%BD%E4%B8%8B%E9%99%8D"><span class="nav-number">10.4.</span> <span class="nav-text">9.4 案例4：Page Cache 不足导致性能下降</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-5-%E6%A1%88%E4%BE%8B5%EF%BC%9A%E6%9C%AA%E8%AE%BE%E7%BD%AE-retention-%E5%AF%BC%E8%87%B4%E7%A3%81%E7%9B%98%E7%88%86%E6%BB%A1"><span class="nav-number">10.5.</span> <span class="nav-text">9.5 案例5：未设置 retention 导致磁盘爆满</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E3%80%81%E9%9D%A2%E8%AF%95%E9%AB%98%E9%A2%91-20-%E9%A2%98"><span class="nav-number">11.</span> <span class="nav-text">十、面试高频 20 题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E4%BB%8B%E7%BB%8D%E4%B8%80%E4%B8%8B-Kafka%EF%BC%9F"><span class="nav-number">11.1.</span> <span class="nav-text">1. 介绍一下 Kafka？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Kafka-%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E4%B8%8D%E4%B8%A2%E5%A4%B1%EF%BC%9F"><span class="nav-number">11.2.</span> <span class="nav-text">2. Kafka 如何保证消息不丢失？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Kafka-%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E9%A1%BA%E5%BA%8F%EF%BC%9F"><span class="nav-number">11.3.</span> <span class="nav-text">3. Kafka 如何保证消息顺序？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Kafka-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%BF%99%E4%B9%88%E5%BF%AB%EF%BC%9F"><span class="nav-number">11.4.</span> <span class="nav-text">4. Kafka 为什么这么快？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E4%BB%80%E4%B9%88%E6%98%AF-ISR%EF%BC%9F"><span class="nav-number">11.5.</span> <span class="nav-text">5. 什么是 ISR？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E4%BB%80%E4%B9%88%E6%98%AF-Rebalance%EF%BC%9F%E5%A6%82%E4%BD%95%E9%81%BF%E5%85%8D%EF%BC%9F"><span class="nav-number">11.6.</span> <span class="nav-text">6. 什么是 Rebalance？如何避免？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-Kafka-%E7%9A%84%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84%E6%98%AF%E6%80%8E%E6%A0%B7%E7%9A%84%EF%BC%9F"><span class="nav-number">11.7.</span> <span class="nav-text">7. Kafka 的存储结构是怎样的？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-HW-%E5%92%8C-LEO-%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-number">11.8.</span> <span class="nav-text">8. HW 和 LEO 是什么？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-Kafka-%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E9%AB%98%E5%8F%AF%E7%94%A8%EF%BC%9F"><span class="nav-number">11.9.</span> <span class="nav-text">9. Kafka 如何实现高可用？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#10-Kafka-%E5%92%8C-RabbitMQ-%E6%9C%89%E4%BB%80%E4%B9%88%E5%8C%BA%E5%88%AB%EF%BC%9F"><span class="nav-number">11.10.</span> <span class="nav-text">10. Kafka 和 RabbitMQ 有什么区别？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-Kafka-%E6%B6%88%E8%B4%B9%E8%80%85%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%EF%BC%9F"><span class="nav-number">11.11.</span> <span class="nav-text">11. Kafka 消费者如何实现负载均衡？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#12-Kafka-%E5%A6%82%E4%BD%95%E5%A4%84%E7%90%86%E6%B6%88%E8%B4%B9%E7%A7%AF%E5%8E%8B%EF%BC%9F"><span class="nav-number">11.12.</span> <span class="nav-text">12. Kafka 如何处理消费积压？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#13-Kafka-%E7%9A%84-offset-%E5%AD%98%E5%82%A8%E5%9C%A8%E5%93%AA%E9%87%8C%EF%BC%9F"><span class="nav-number">11.13.</span> <span class="nav-text">13. Kafka 的 offset 存储在哪里？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-Kafka-%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E5%B9%82%E7%AD%89%E6%80%A7%EF%BC%9F"><span class="nav-number">11.14.</span> <span class="nav-text">14. Kafka 如何保证幂等性？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#15-Kafka-%E7%9A%84%E5%88%86%E5%8C%BA%E7%AD%96%E7%95%A5%E6%9C%89%E5%93%AA%E4%BA%9B%EF%BC%9F"><span class="nav-number">11.15.</span> <span class="nav-text">15. Kafka 的分区策略有哪些？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#16-Kafka-%E7%9A%84%E5%8E%8B%E7%BC%A9%E7%AE%97%E6%B3%95%E6%9C%89%E5%93%AA%E4%BA%9B%EF%BC%9F"><span class="nav-number">11.16.</span> <span class="nav-text">16. Kafka 的压缩算法有哪些？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#17-Kafka-%E7%9A%84-acks-%E5%8F%82%E6%95%B0%E6%9C%89%E5%93%AA%E4%BA%9B%E5%80%BC%EF%BC%9F"><span class="nav-number">11.17.</span> <span class="nav-text">17. Kafka 的 acks 参数有哪些值？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#18-Kafka-%E7%9A%84%E4%BA%8B%E5%8A%A1%E6%98%AF%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E7%9A%84%EF%BC%9F"><span class="nav-number">11.18.</span> <span class="nav-text">18. Kafka 的事务是如何实现的？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#19-Kafka-%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E6%B6%88%E6%81%AF%E5%8E%BB%E9%87%8D%EF%BC%9F"><span class="nav-number">11.19.</span> <span class="nav-text">19. Kafka 如何实现消息去重？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#20-Kafka-%E7%9A%84%E7%9B%91%E6%8E%A7%E6%8C%87%E6%A0%87%E6%9C%89%E5%93%AA%E4%BA%9B%EF%BC%9F"><span class="nav-number">11.20.</span> <span class="nav-text">20. Kafka 的监控指标有哪些？</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4"><span class="nav-number">12.</span> <span class="nav-text">常用命令</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA-Topic"><span class="nav-number">12.1.</span> <span class="nav-text">创建 Topic</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B-Topic-%E8%AF%A6%E6%83%85"><span class="nav-number">12.2.</span> <span class="nav-text">查看 Topic 详情</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E6%B6%88%E8%B4%B9%E7%BB%84%E6%83%85%E5%86%B5"><span class="nav-number">12.3.</span> <span class="nav-text">查看消费组情况</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%87%8D%E7%BD%AE%E6%B6%88%E8%B4%B9-offset"><span class="nav-number">12.4.</span> <span class="nav-text">重置消费 offset</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%9F%E4%BA%A7%E6%B6%88%E6%81%AF%EF%BC%88%E6%B5%8B%E8%AF%95%EF%BC%89"><span class="nav-number">12.5.</span> <span class="nav-text">生产消息（测试）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B6%88%E8%B4%B9%E6%B6%88%E6%81%AF%EF%BC%88%E6%B5%8B%E8%AF%95%EF%BC%89"><span class="nav-number">12.6.</span> <span class="nav-text">消费消息（测试）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">13.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">56</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">152</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">11篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">21篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">14篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">6篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2024/03/10/system-design/03-middleware-kafka/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="中间件 - 异步和消息队列 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          中间件 - 异步和消息队列
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2024-03-10 00:00:00" itemprop="dateCreated datePublished" datetime="2024-03-10T00:00:00+08:00">2024-03-10</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-04-09 09:59:40" itemprop="dateModified" datetime="2026-04-09T09:59:40+08:00">2026-04-09</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">系统设计基础</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="速查导航"><a href="#速查导航" class="headerlink" title="速查导航"></a>速查导航</h2><p><strong>阅读时间</strong>: 45 分钟 | <strong>难度</strong>: ⭐⭐⭐⭐ | <strong>面试频率</strong>: 极高</p>
+<p><strong>核心考点速查</strong>:</p>
+<ul>
+<li><a href="#%E4%B8%80kafka-%E6%A0%B8%E5%BF%83%E7%89%B9%E6%80%A7%E9%9D%A2%E8%AF%95%E5%BF%85%E7%AD%94">一、Kafka 核心特性</a> - 3 分钟掌握使用场景与 Kafka vs Redis</li>
+<li><a href="#%E4%BA%8C%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B55-%E5%88%86%E9%92%9F%E9%80%9F%E8%AE%B0">二、核心概念</a> - Topic&#x2F;Partition&#x2F;ISR&#x2F;ZooKeeper vs KRaft</li>
+<li><a href="#%E4%B8%89%E6%95%B0%E6%8D%AE%E6%B5%81%E4%B8%8E%E6%9E%B6%E6%9E%84%E9%AB%98%E9%A2%91%E8%80%83%E7%82%B9">三、数据流与架构</a> - Producer → Broker → Consumer 完整流程</li>
+<li><a href="#%E5%9B%9B%E4%B8%BA%E4%BB%80%E4%B9%88-kafka-%E8%BF%99%E4%B9%88%E5%BF%AB%E9%9D%A2%E8%AF%95%E5%BF%85%E9%97%AE">四、为什么 Kafka 这么快</a> - 顺序写 + 零拷贝 + Page Cache 三板斧</li>
+<li><a href="#%E4%BA%94%E6%B6%88%E6%81%AF%E4%B8%8D%E4%B8%A2%E5%A4%B1%E5%85%A8%E9%93%BE%E8%B7%AF%E4%BF%9D%E9%9A%9C">五、消息不丢失全链路保障</a> - At-least-once&#x2F;Exactly-once 配置清单</li>
+<li><a href="#%E5%85%ADrebalance-%E6%9C%BA%E5%88%B6%E5%8F%8A%E5%BD%B1%E5%93%8D">六、Rebalance 机制</a> - 触发条件与优化方案</li>
+<li><a href="#%E4%B8%83%E6%96%87%E4%BB%B6%E5%AD%98%E5%82%A8%E6%9C%BA%E5%88%B6">七、文件存储机制</a> - Segment&#x2F;Index&#x2F;HW&#x2F;LEO</li>
+<li><a href="#%E5%85%AB%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98%E5%AE%9E%E8%B7%B5">八、性能调优实践</a> - 消费积压&#x2F;参数调优&#x2F;Go 代码示例</li>
+<li><a href="#%E4%B9%9D%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E8%B8%A9%E5%9D%91%E5%AE%9E%E5%BD%95">九、生产踩坑实录</a> - 5 个真实案例</li>
+<li><a href="#%E5%8D%81%E9%9D%A2%E8%AF%95%E9%AB%98%E9%A2%91-20-%E9%A2%98">十、面试高频 20 题</a> - 标准答案 + 追问应对</li>
+</ul>
+<hr>
+<h2 id="一、Kafka-核心特性（面试必答）"><a href="#一、Kafka-核心特性（面试必答）" class="headerlink" title="一、Kafka 核心特性（面试必答）"></a>一、Kafka 核心特性（面试必答）</h2><h3 id="1-1-三句话介绍-Kafka"><a href="#1-1-三句话介绍-Kafka" class="headerlink" title="1.1 三句话介绍 Kafka"></a>1.1 三句话介绍 Kafka</h3><p><strong>标准回答</strong>（45 秒内说完）：<br>Kafka 是分布式流式消息队列，具有<strong>高吞吐</strong>（百万 TPS）、<strong>低延迟</strong>（ms 级）、<strong>持久化</strong>的特点。采用发布-订阅模式，常用于异步解耦、削峰填谷、日志采集。</p>
+<p><strong>加分项</strong>：提到”顺序写磁盘 + 零拷贝 + Page Cache”性能三板斧。</p>
+<h3 id="1-2-使用场景（带真实案例）"><a href="#1-2-使用场景（带真实案例）" class="headerlink" title="1.2 使用场景（带真实案例）"></a>1.2 使用场景（带真实案例）</h3><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>痛点</th>
+<th>Kafka 方案</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>订单处理</strong></td>
+<td>同步调用慢</td>
+<td>异步解耦</td>
+<td>下单 → MQ → 库存&#x2F;物流并行处理</td>
+</tr>
+<tr>
+<td><strong>秒杀</strong></td>
+<td>瞬时流量打垮 DB</td>
+<td>削峰填谷</td>
+<td>请求入队 → 匀速消费</td>
+</tr>
+<tr>
+<td><strong>日志采集</strong></td>
+<td>海量日志</td>
+<td>高吞吐</td>
+<td>Filebeat → Kafka → ES</td>
+</tr>
+<tr>
+<td><strong>风控系统</strong></td>
+<td>实时流计算</td>
+<td>流式数据源</td>
+<td>Kafka → Flink&#x2F;Storm → 实时告警</td>
+</tr>
+<tr>
+<td><strong>数据同步</strong></td>
+<td>异构系统集成</td>
+<td>数据管道</td>
+<td>MySQL Binlog → Kafka → 数仓</td>
+</tr>
+</tbody></table>
+<h3 id="1-3-面试追问：为什么不用-Redis-做消息队列？"><a href="#1-3-面试追问：为什么不用-Redis-做消息队列？" class="headerlink" title="1.3 面试追问：为什么不用 Redis 做消息队列？"></a>1.3 面试追问：为什么不用 Redis 做消息队列？</h3><p><strong>对比表格</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Kafka</th>
+<th>Redis</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>吞吐量</strong></td>
+<td>百万级 TPS</td>
+<td>十万级</td>
+</tr>
+<tr>
+<td><strong>持久化</strong></td>
+<td>强（磁盘）</td>
+<td>弱（RDB&#x2F;AOF 有丢失风险）</td>
+</tr>
+<tr>
+<td><strong>消息回溯</strong></td>
+<td>支持（offset）</td>
+<td>不支持</td>
+</tr>
+<tr>
+<td><strong>集群</strong></td>
+<td>原生支持</td>
+<td>Cluster 模式复杂</td>
+</tr>
+<tr>
+<td><strong>消息大小</strong></td>
+<td>支持 MB 级</td>
+<td>推荐 KB 级</td>
+</tr>
+</tbody></table>
+<p><strong>结论</strong>：核心业务用 Kafka，轻量级任务可用 Redis List。</p>
+<hr>
+<h2 id="二、核心概念（5-分钟速记）"><a href="#二、核心概念（5-分钟速记）" class="headerlink" title="二、核心概念（5 分钟速记）"></a>二、核心概念（5 分钟速记）</h2><h3 id="2-1-核心组件速查表"><a href="#2-1-核心组件速查表" class="headerlink" title="2.1 核心组件速查表"></a>2.1 核心组件速查表</h3><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>面试关键点</th>
+<th>记忆口诀</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Broker</strong></td>
+<td>消息代理服务器，负责存储和转发</td>
+<td>“银行柜台”，存取消息</td>
+</tr>
+<tr>
+<td><strong>Topic</strong></td>
+<td>消息主题&#x2F;分类，类似数据库表</td>
+<td>按业务分类</td>
+</tr>
+<tr>
+<td><strong>Partition</strong></td>
+<td>Topic 物理分片，实现并行与扩展</td>
+<td><strong>分区内有序，全局无序</strong></td>
+</tr>
+<tr>
+<td><strong>Offset</strong></td>
+<td>消费位点，每条消息的唯一编号</td>
+<td>类似数组下标</td>
+</tr>
+<tr>
+<td><strong>Producer</strong></td>
+<td>消息生产者</td>
+<td>往银行存钱</td>
+</tr>
+<tr>
+<td><strong>Consumer</strong></td>
+<td>消息消费者</td>
+<td>从银行取钱</td>
+</tr>
+<tr>
+<td><strong>Consumer Group</strong></td>
+<td>消费者组，<strong>一个分区只能被组内一个消费者消费</strong></td>
+<td>多人共同分账单</td>
+</tr>
+</tbody></table>
+<h3 id="2-2-副本机制（高可用核心）"><a href="#2-2-副本机制（高可用核心）" class="headerlink" title="2.2 副本机制（高可用核心）"></a>2.2 副本机制（高可用核心）</h3><p><strong>面试必问点：</strong></p>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>解释</th>
+<th>面试话术</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Leader</strong></td>
+<td>负责读写的主副本</td>
+<td>“所有读写请求都打在 Leader 上”</td>
+</tr>
+<tr>
+<td><strong>Follower</strong></td>
+<td>从 Leader 同步的备份副本</td>
+<td>“只负责同步，不对外服务”</td>
+</tr>
+<tr>
+<td><strong>ISR</strong></td>
+<td>In-Sync Replicas，同步副本集合</td>
+<td>“能跟上 Leader 的副本才能入选”</td>
+</tr>
+<tr>
+<td><strong>AR</strong></td>
+<td>Assigned Replicas，所有副本</td>
+<td>AR &#x3D; ISR + OSR</td>
+</tr>
+<tr>
+<td><strong>OSR</strong></td>
+<td>Out-of-Sync Replicas，落后的副本</td>
+<td>“掉队的副本会被踢出 ISR”</td>
+</tr>
+</tbody></table>
+<p><strong>追问：Leader 挂了怎么办？</strong></p>
+<ul>
+<li>从 <strong>ISR 中选举</strong>新 Leader（保证数据不丢）</li>
+<li>如果 ISR 为空，是否允许从 OSR 选举？取决于 <code>unclean.leader.election.enable</code>（默认 false，不允许）</li>
+</ul>
+<h3 id="2-3-Partition-与顺序性"><a href="#2-3-Partition-与顺序性" class="headerlink" title="2.3 Partition 与顺序性"></a>2.3 Partition 与顺序性</h3><p><strong>面试标准答案（30 秒）：</strong></p>
+<ol>
+<li><strong>同一 Partition 内严格有序</strong>（按 offset 递增）</li>
+<li><strong>不同 Partition 之间无序</strong></li>
+<li><strong>需要全局有序？</strong> 设置 Partition &#x3D; 1（牺牲并行度）</li>
+<li><strong>常见方案</strong>：按业务 key（如订单 ID）Hash 到同一分区</li>
+</ol>
+<p><strong>代码示例（Partition 策略）：</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 自定义分区器：按订单 ID 保证同订单消息有序</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;hash/crc32&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">OrderPartitioner</span><span class="params">(key []<span class="type">byte</span>, numPartitions <span class="type">int</span>)</span></span> <span class="type">int</span> &#123;</span><br><span class="line">    orderID := <span class="type">string</span>(key)</span><br><span class="line">    <span class="keyword">return</span> <span class="type">int</span>(crc32.ChecksumIEEE([]<span class="type">byte</span>(orderID))) % numPartitions</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-4-ZooKeeper-vs-KRaft"><a href="#2-4-ZooKeeper-vs-KRaft" class="headerlink" title="2.4 ZooKeeper vs KRaft"></a>2.4 ZooKeeper vs KRaft</h3><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>ZooKeeper 模式（旧）</th>
+<th>KRaft 模式（新）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>元数据存储</strong></td>
+<td>外部 ZK 集群</td>
+<td>Kafka 内部 Raft 日志</td>
+</tr>
+<tr>
+<td><strong>Controller 选举</strong></td>
+<td>ZK 选举</td>
+<td>Raft 协议选举</td>
+</tr>
+<tr>
+<td><strong>部署复杂度</strong></td>
+<td>高（需额外维护 ZK）</td>
+<td>低（无外部依赖）</td>
+</tr>
+<tr>
+<td><strong>启动速度</strong></td>
+<td>慢（ZK session 超时）</td>
+<td>快</td>
+</tr>
+<tr>
+<td><strong>生产可用</strong></td>
+<td>稳定（旧版默认）</td>
+<td>Kafka 3.3+ 推荐</td>
+</tr>
+</tbody></table>
+<p><strong>面试加分项</strong>：新项目推荐 KRaft，减少外部依赖，简化运维。</p>
+<hr>
+<h2 id="三、数据流与架构（高频考点）"><a href="#三、数据流与架构（高频考点）" class="headerlink" title="三、数据流与架构（高频考点）"></a>三、数据流与架构（高频考点）</h2><h3 id="3-1-Producer-→-Broker-→-Consumer-完整流程"><a href="#3-1-Producer-→-Broker-→-Consumer-完整流程" class="headerlink" title="3.1 Producer → Broker → Consumer 完整流程"></a>3.1 Producer → Broker → Consumer 完整流程</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────┐                ┌─────────────┐                ┌─────────────┐</span><br><span class="line">│  Producer   │──①发送消息───→│   Broker    │──③消费拉取───→│  Consumer   │</span><br><span class="line">│             │                │  (Leader)   │                │             │</span><br><span class="line">└─────────────┘                └─────────────┘                └─────────────┘</span><br><span class="line">                                     │②同步</span><br><span class="line">                                     ↓</span><br><span class="line">                              ┌─────────────┐</span><br><span class="line">                              │  Follower   │</span><br><span class="line">                              │   副本集    │</span><br><span class="line">                              └─────────────┘</span><br></pre></td></tr></table></figure>
+
+<p><strong>详细步骤：</strong></p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>操作</th>
+<th>关键配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>① Producer 发送</strong></td>
+<td>序列化 → 分区路由 → 批量打包 → 发送</td>
+<td><code>acks</code>, <code>batch.size</code>, <code>linger.ms</code></td>
+</tr>
+<tr>
+<td><strong>② Broker 写入</strong></td>
+<td>追加到 log → Follower 拉取同步 → 返回 ack</td>
+<td><code>min.insync.replicas</code></td>
+</tr>
+<tr>
+<td><strong>③ Consumer 消费</strong></td>
+<td>Fetch 请求 → 反序列化 → 业务处理 → 提交 offset</td>
+<td><code>enable.auto.commit</code></td>
+</tr>
+</tbody></table>
+<h3 id="3-2-Consumer-Group-与-Rebalance"><a href="#3-2-Consumer-Group-与-Rebalance" class="headerlink" title="3.2 Consumer Group 与 Rebalance"></a>3.2 Consumer Group 与 Rebalance</h3><p>消费者组内的消费者共同消费一个 Topic，每个 Partition 只能被组内一个消费者消费。</p>
+<p><strong>Rebalance 触发条件：</strong></p>
+<ul>
+<li>消费者加入或离开消费者组</li>
+<li>订阅的 Topic Partition 数量变化</li>
+<li>消费者心跳超时（<code>session.timeout.ms</code>）</li>
+</ul>
+<p><strong>Rebalance 的影响：</strong></p>
+<ul>
+<li>数据重复消费：未提交的 offset 导致消息重新投递</li>
+<li>消费暂停：Rebalance 期间所有消费者停止消费</li>
+<li>扩散效应：一个消费者退出可能触发整个 Group 的 Rebalance</li>
+</ul>
+<p><strong>减少不必要 Rebalance 的方法：</strong></p>
+<ul>
+<li>合理设置 <code>session.timeout.ms</code> 和 <code>heartbeat.interval.ms</code></li>
+<li>增大 <code>max.poll.interval.ms</code>，避免消费逻辑超时</li>
+<li>使用 Static Membership（<code>group.instance.id</code>）减少重启引起的 Rebalance</li>
+</ul>
+<h3 id="3-3-Controller-与协调"><a href="#3-3-Controller-与协调" class="headerlink" title="3.3 Controller 与协调"></a>3.3 Controller 与协调</h3><p>Kafka 集群中会选举出一个 <strong>Controller Broker</strong>，负责 Partition Leader 选举、副本管理、集群元数据变更等。</p>
+<ul>
+<li>早期依赖 ZooKeeper 存储 controller 与部分元数据</li>
+<li><strong>KRaft</strong> 模式下，元数据以 Raft 日志形式在 controller 节点间复制，去掉外部 ZK，部署与扩缩容更简单</li>
+</ul>
+<p>客户端通过 <strong>Bootstrap Server</strong> 列表首次连接后，会拉取集群元数据（Topic、Partition Leader、ISR 等），后续生产与消费都尽量直连对应 Leader Broker，避免所有读写流量经过单点代理。</p>
+<hr>
+<h2 id="四、为什么-Kafka-这么快？（面试必问）"><a href="#四、为什么-Kafka-这么快？（面试必问）" class="headerlink" title="四、为什么 Kafka 这么快？（面试必问）"></a>四、为什么 Kafka 这么快？（面试必问）</h2><p>Kafka 虽然是基于磁盘的消息队列，但吞吐量可达<strong>百万 TPS</strong>，延迟低至 <strong>ms 级别</strong>。核心原因是以下三大优化：</p>
+<h3 id="4-1-顺序写磁盘"><a href="#4-1-顺序写磁盘" class="headerlink" title="4.1 顺序写磁盘"></a>4.1 顺序写磁盘</h3><p><strong>原理</strong>：</p>
+<ul>
+<li>Kafka 的消息追加到 log 文件<strong>末尾</strong>，是<strong>顺序写</strong>（Sequential Write）</li>
+<li>顺序写避免了磁盘寻道时间，性能接近内存写入（磁盘顺序写 &gt; 内存随机写）</li>
+</ul>
+<p><strong>对比</strong>：</p>
+<ul>
+<li>顺序写：600 MB&#x2F;s（SSD）</li>
+<li>随机写：100 MB&#x2F;s（SSD）</li>
+</ul>
+<p><strong>面试话术</strong>：</p>
+<blockquote>
+<p>“Kafka 将消息顺序追加到磁盘，避免随机 IO，磁盘顺序写性能甚至优于内存随机写。”</p>
+</blockquote>
+<h3 id="4-2-Page-Cache（页缓存）"><a href="#4-2-Page-Cache（页缓存）" class="headerlink" title="4.2 Page Cache（页缓存）"></a>4.2 Page Cache（页缓存）</h3><p><strong>原理</strong>：</p>
+<ul>
+<li>Kafka <strong>不使用 JVM 堆内存</strong>管理缓存，而是依赖操作系统的 <strong>Page Cache</strong></li>
+<li>操作系统会自动将热点数据缓存到内存，读写操作直接命中缓存</li>
+</ul>
+<p><strong>优势</strong>：</p>
+<ul>
+<li>减少 GC 压力（无大对象在堆内存）</li>
+<li>操作系统级别的缓存管理更高效</li>
+<li>重启 Kafka 后 Page Cache 依然存在（操作系统管理）</li>
+</ul>
+<p><strong>面试话术</strong>：</p>
+<blockquote>
+<p>“Kafka 依赖操作系统 Page Cache，避免 JVM GC，热数据读写基本都是内存操作。”</p>
+</blockquote>
+<h3 id="4-3-零拷贝（Zero-Copy）"><a href="#4-3-零拷贝（Zero-Copy）" class="headerlink" title="4.3 零拷贝（Zero Copy）"></a>4.3 零拷贝（Zero Copy）</h3><p><strong>传统方式（4 次拷贝）</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">磁盘 → 内核缓冲区 → 用户空间 → Socket 缓冲区 → 网卡</span><br></pre></td></tr></table></figure>
+
+<p><strong>零拷贝方式（sendfile 系统调用）</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">磁盘 → Page Cache → 网卡（DMA 直接传输）</span><br></pre></td></tr></table></figure>
+
+<p><strong>优势</strong>：</p>
+<ul>
+<li>减少 2 次 CPU 拷贝（内核 → 用户空间，用户空间 → Socket 缓冲区）</li>
+<li>减少 2 次上下文切换（用户态 ↔ 内核态）</li>
+</ul>
+<p><strong>Go 代码示例（模拟零拷贝）</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Go 标准库的 io.Copy 内部会使用 sendfile（Linux）或 TransmitFile（Windows）</span></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">&quot;io&quot;</span></span><br><span class="line">    <span class="string">&quot;net&quot;</span></span><br><span class="line">    <span class="string">&quot;os&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SendFileWithZeroCopy</span><span class="params">(conn net.Conn, filePath <span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    file, err := os.Open(filePath)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">defer</span> file.Close()</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// io.Copy 在 Linux 下会自动使用 sendfile 系统调用</span></span><br><span class="line">    _, err = io.Copy(conn, file)</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>面试话术</strong>：</p>
+<blockquote>
+<p>“Kafka 使用 sendfile 系统调用，数据从磁盘通过 DMA 直接传输到网卡，减少 CPU 拷贝和上下文切换。”</p>
+</blockquote>
+<h3 id="4-4-批量读写与压缩"><a href="#4-4-批量读写与压缩" class="headerlink" title="4.4 批量读写与压缩"></a>4.4 批量读写与压缩</h3><p><strong>批量发送</strong>：</p>
+<ul>
+<li>Producer 会将多条消息打包成一个 batch 发送</li>
+<li>配置 <code>batch.size</code>（批量大小）和 <code>linger.ms</code>（等待时间）</li>
+</ul>
+<p><strong>批量压缩</strong>：</p>
+<ul>
+<li>Kafka 支持 <code>gzip</code>、<code>snappy</code>、<code>lz4</code>、<code>zstd</code> 压缩</li>
+<li>压缩后网络传输量减少，提高吞吐量</li>
+</ul>
+<p><strong>面试话术</strong>：</p>
+<blockquote>
+<p>“Kafka 通过批量发送和压缩，减少网络 IO 次数，提高吞吐量。”</p>
+</blockquote>
+<h3 id="4-5-分区并行"><a href="#4-5-分区并行" class="headerlink" title="4.5 分区并行"></a>4.5 分区并行</h3><p><strong>原理</strong>：</p>
+<ul>
+<li>一个 Topic 可以有多个 Partition</li>
+<li>多个 Partition 可以并行写入&#x2F;读取，充分利用多核 CPU</li>
+</ul>
+<p><strong>面试话术</strong>：</p>
+<blockquote>
+<p>“Kafka 的 Partition 机制实现了水平扩展，多个 Partition 并行处理，提高吞吐量。”</p>
+</blockquote>
+<hr>
+<h2 id="五、消息不丢失全链路保障"><a href="#五、消息不丢失全链路保障" class="headerlink" title="五、消息不丢失全链路保障"></a>五、消息不丢失全链路保障</h2><h3 id="5-1-可靠性语义"><a href="#5-1-可靠性语义" class="headerlink" title="5.1 可靠性语义"></a>5.1 可靠性语义</h3><p><strong>三种语义</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>语义</th>
+<th>生产端配置</th>
+<th>消费端配置</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>At-most-once</strong></td>
+<td>acks&#x3D;0</td>
+<td>自动提交 offset</td>
+<td>日志采集（允许丢失）</td>
+</tr>
+<tr>
+<td><strong>At-least-once</strong></td>
+<td>acks&#x3D;all + 重试</td>
+<td>手动提交 offset</td>
+<td>订单处理（不允许丢失）</td>
+</tr>
+<tr>
+<td><strong>Exactly-once</strong></td>
+<td>幂等 + 事务</td>
+<td>事务性消费</td>
+<td>金融场景</td>
+</tr>
+</tbody></table>
+<h3 id="5-2-生产端配置"><a href="#5-2-生产端配置" class="headerlink" title="5.2 生产端配置"></a>5.2 生产端配置</h3><table>
+<thead>
+<tr>
+<th>配置项</th>
+<th>推荐值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>acks</code></td>
+<td><code>all</code> (-1)</td>
+<td>等待所有 ISR 副本确认</td>
+</tr>
+<tr>
+<td><code>retries</code></td>
+<td><code>≥3</code></td>
+<td>发送失败重试次数</td>
+</tr>
+<tr>
+<td><code>max.in.flight.requests.per.connection</code></td>
+<td><code>1</code></td>
+<td>配合重试保证消息顺序</td>
+</tr>
+<tr>
+<td><code>enable.idempotence</code></td>
+<td><code>true</code></td>
+<td>开启幂等性，防止重复发送</td>
+</tr>
+</tbody></table>
+<h3 id="5-3-Broker-端配置"><a href="#5-3-Broker-端配置" class="headerlink" title="5.3 Broker 端配置"></a>5.3 Broker 端配置</h3><table>
+<thead>
+<tr>
+<th>配置项</th>
+<th>推荐值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>min.insync.replicas</code></td>
+<td><code>2</code></td>
+<td>至少 2 个副本同步才允许写入</td>
+</tr>
+<tr>
+<td><code>unclean.leader.election.enable</code></td>
+<td><code>false</code></td>
+<td>禁止非 ISR 副本成为 Leader</td>
+</tr>
+<tr>
+<td><code>default.replication.factor</code></td>
+<td><code>3</code></td>
+<td>默认副本数</td>
+</tr>
+</tbody></table>
+<h3 id="5-4-消费端配置"><a href="#5-4-消费端配置" class="headerlink" title="5.4 消费端配置"></a>5.4 消费端配置</h3><ul>
+<li>关闭自动提交：<code>enable.auto.commit=false</code></li>
+<li>消费成功后手动提交 offset</li>
+<li>消费逻辑实现幂等（唯一键&#x2F;状态机&#x2F;版本号）</li>
+</ul>
+<h3 id="5-5-Exactly-once-实现"><a href="#5-5-Exactly-once-实现" class="headerlink" title="5.5 Exactly-once 实现"></a>5.5 Exactly-once 实现</h3><p><strong>Exactly-once 的两个维度</strong>：</p>
+<ol>
+<li><strong>Broker 内部</strong>：Producer 幂等性 + 事务</li>
+<li><strong>端到端</strong>：消费逻辑幂等</li>
+</ol>
+<p><strong>Producer 幂等性配置</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Go kafka-go 示例</span></span><br><span class="line">writer := &amp;kafka.Writer&#123;</span><br><span class="line">    Addr:         kafka.TCP(<span class="string">&quot;localhost:9092&quot;</span>),</span><br><span class="line">    Topic:        <span class="string">&quot;orders&quot;</span>,</span><br><span class="line">    RequiredAcks: kafka.RequireAll,  <span class="comment">// acks=all</span></span><br><span class="line">    Idempotent:   <span class="literal">true</span>,               <span class="comment">// 开启幂等性</span></span><br><span class="line">    MaxAttempts:  <span class="number">3</span>,                  <span class="comment">// 重试 3 次</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>事务性写入</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Go Sarama 示例（kafka-go 不支持事务）</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;github.com/Shopify/sarama&quot;</span></span><br><span class="line"></span><br><span class="line">config := sarama.NewConfig()</span><br><span class="line">config.Producer.Idempotent = <span class="literal">true</span></span><br><span class="line">config.Producer.RequiredAcks = sarama.WaitForAll</span><br><span class="line">config.Producer.Return.Errors = <span class="literal">true</span></span><br><span class="line">config.Producer.Transaction.ID = <span class="string">&quot;my-transaction-id&quot;</span>  <span class="comment">// 事务 ID</span></span><br><span class="line"></span><br><span class="line">producer, _ := sarama.NewAsyncProducer(brokers, config)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 开始事务</span></span><br><span class="line">producer.BeginTxn()</span><br><span class="line">producer.Input() &lt;- &amp;sarama.ProducerMessage&#123;Topic: <span class="string">&quot;orders&quot;</span>, Value: sarama.StringEncoder(<span class="string">&quot;msg1&quot;</span>)&#125;</span><br><span class="line">producer.Input() &lt;- &amp;sarama.ProducerMessage&#123;Topic: <span class="string">&quot;orders&quot;</span>, Value: sarama.StringEncoder(<span class="string">&quot;msg2&quot;</span>)&#125;</span><br><span class="line">producer.CommitTxn()  <span class="comment">// 提交事务</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="5-6-检查清单（落地排查）"><a href="#5-6-检查清单（落地排查）" class="headerlink" title="5.6 检查清单（落地排查）"></a>5.6 检查清单（落地排查）</h3><ul>
+<li><strong>写进日志才算数</strong>：Producer 未收到成功 ack 前，业务层是否错误地当作「已发送成功」并更新状态？</li>
+<li><strong>ISR 是否退化</strong>：Broker 或副本故障后 ISR 可能暂时只剩 Leader，此时 <code>acks=all</code> 在语义上会退化为弱一致场景，需结合副本监控与告警。</li>
+<li><strong>提交时机</strong>：手动提交 offset 是否在业务落库、调用下游成功之后执行？先提交再处理会导致宕机丢消息。</li>
+<li><strong>重试与顺序</strong>：提高 <code>max.in.flight.requests.per.connection</code> 有利于吞吐，但与 Producer 重试组合时可能影响同分区内消息顺序，需按业务是否强依赖顺序做取舍。</li>
+</ul>
+<hr>
+<h2 id="六、Rebalance-机制及影响"><a href="#六、Rebalance-机制及影响" class="headerlink" title="六、Rebalance 机制及影响"></a>六、Rebalance 机制及影响</h2><h3 id="6-1-什么是-Rebalance？"><a href="#6-1-什么是-Rebalance？" class="headerlink" title="6.1 什么是 Rebalance？"></a>6.1 什么是 Rebalance？</h3><p>Rebalance 是 Kafka 消费者组内 Partition 重新分配的过程。</p>
+<p><strong>触发条件：</strong></p>
+<ol>
+<li>消费者加入或离开消费者组</li>
+<li>订阅的 Topic Partition 数量变化</li>
+<li>消费者心跳超时（<code>session.timeout.ms</code>）</li>
+</ol>
+<h3 id="6-2-Rebalance-的影响"><a href="#6-2-Rebalance-的影响" class="headerlink" title="6.2 Rebalance 的影响"></a>6.2 Rebalance 的影响</h3><p><strong>面试标准答案</strong>：</p>
+<ol>
+<li><strong>数据重复消费</strong>：未提交的 offset 导致消息重新投递</li>
+<li><strong>消费暂停</strong>：Rebalance 期间所有消费者停止消费（Stop-the-world）</li>
+<li><strong>扩散效应</strong>：一个消费者退出可能触发整个 Group 的 Rebalance</li>
+</ol>
+<h3 id="6-3-如何减少-Rebalance？"><a href="#6-3-如何减少-Rebalance？" class="headerlink" title="6.3 如何减少 Rebalance？"></a>6.3 如何减少 Rebalance？</h3><p><strong>配置优化</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>配置项</th>
+<th>推荐值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>session.timeout.ms</code></td>
+<td><code>30000</code>（30 秒）</td>
+<td>心跳超时时间（过短易误判）</td>
+</tr>
+<tr>
+<td><code>heartbeat.interval.ms</code></td>
+<td><code>3000</code>（3 秒）</td>
+<td>心跳间隔（建议为 session.timeout 的 1&#x2F;3）</td>
+</tr>
+<tr>
+<td><code>max.poll.interval.ms</code></td>
+<td><code>300000</code>（5 分钟）</td>
+<td>两次 poll 之间的最大间隔</td>
+</tr>
+<tr>
+<td><code>group.instance.id</code></td>
+<td>设置静态成员 ID</td>
+<td>避免重启时触发 Rebalance</td>
+</tr>
+</tbody></table>
+<p><strong>代码优化</strong>：</p>
+<ul>
+<li>消费逻辑异步化：消费时直接返回，启动异步线程处理</li>
+<li>避免长时间阻塞：确保业务逻辑在 <code>max.poll.interval.ms</code> 内完成</li>
+</ul>
+<h3 id="6-4-监控-Lag-情况"><a href="#6-4-监控-Lag-情况" class="headerlink" title="6.4 监控 Lag 情况"></a>6.4 监控 Lag 情况</h3><p><strong>查看消费积压</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kafka-consumer-groups.sh --describe --group &lt;group-name&gt; --bootstrap-server &lt;broker&gt;</span><br></pre></td></tr></table></figure>
+
+<p><strong>关键指标</strong>：</p>
+<ul>
+<li><code>CURRENT-OFFSET</code>：当前消费位点</li>
+<li><code>LOG-END-OFFSET</code>：Partition 最新 offset</li>
+<li><code>LAG</code>：积压消息数（LOG-END-OFFSET - CURRENT-OFFSET）</li>
+</ul>
+<p><strong>告警策略</strong>：</p>
+<ul>
+<li>核心业务 Topic（如订单）：LAG &gt; 1000 告警</li>
+<li>日志类 Topic：LAG &gt; 10000 告警</li>
+</ul>
+<hr>
+<h2 id="七、文件存储机制"><a href="#七、文件存储机制" class="headerlink" title="七、文件存储机制"></a>七、文件存储机制</h2><h3 id="7-1-存储结构"><a href="#7-1-存储结构" class="headerlink" title="7.1 存储结构"></a>7.1 存储结构</h3><p><strong>逻辑上</strong>：Topic 分为多个 Partition<br><strong>物理上</strong>：每个 Partition 是一个目录，包含多个 Segment 文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">/kafka-logs/orders-0/</span><br><span class="line">├── 00000000000000000000.index  # 索引文件</span><br><span class="line">├── 00000000000000000000.log    # 数据文件</span><br><span class="line">├── 00000000000000000000.timeindex  # 时间索引</span><br><span class="line">├── 00000000000000368769.index</span><br><span class="line">├── 00000000000000368769.log</span><br><span class="line">└── 00000000000000368769.timeindex</span><br></pre></td></tr></table></figure>
+
+<h3 id="7-2-Segment-滚动策略"><a href="#7-2-Segment-滚动策略" class="headerlink" title="7.2 Segment 滚动策略"></a>7.2 Segment 滚动策略</h3><p><strong>触发条件</strong>：</p>
+<ul>
+<li>文件大小达到 <code>log.segment.bytes</code>（默认 1GB）</li>
+<li>时间达到 <code>log.roll.ms</code>（默认 7 天）</li>
+</ul>
+<p><strong>文件命名</strong>：文件名为该 Segment 起始 offset（如 <code>00000000000000368769.log</code>）</p>
+<h3 id="7-3-索引机制"><a href="#7-3-索引机制" class="headerlink" title="7.3 索引机制"></a>7.3 索引机制</h3><p><strong>稀疏索引</strong>：</p>
+<ul>
+<li><code>.index</code> 文件不是为每条消息建索引，而是按间隔记录（默认每 4KB 建一条索引）</li>
+<li>查找时先在索引中<strong>二分查找</strong>区间，再在 <code>.log</code> 中顺序扫描</li>
+</ul>
+<p><strong>示例</strong>：查找 offset&#x3D;368800 的消息</p>
+<ol>
+<li>通过文件名定位到 <code>00000000000000368769.log</code></li>
+<li>在 <code>.index</code> 文件中二分查找，找到最接近的索引项（如 offset&#x3D;368790, position&#x3D;1024）</li>
+<li>从 <code>.log</code> 文件的 position&#x3D;1024 开始顺序扫描，找到 offset&#x3D;368800</li>
+</ol>
+<h3 id="7-4-HW-与-LEO"><a href="#7-4-HW-与-LEO" class="headerlink" title="7.4 HW 与 LEO"></a>7.4 HW 与 LEO</h3><table>
+<thead>
+<tr>
+<th>概念</th>
+<th>解释</th>
+<th>面试话术</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>LEO</strong></td>
+<td>Log End Offset，副本本地 log 末尾的 offset</td>
+<td>“副本最新写到哪里”</td>
+</tr>
+<tr>
+<td><strong>HW</strong></td>
+<td>High Watermark，ISR 中所有副本都复制到的 offset</td>
+<td>“消费者能读到哪里”</td>
+</tr>
+</tbody></table>
+<p><strong>面试追问：为什么消费者只能读到 HW 之前的数据？</strong></p>
+<ul>
+<li>保证消息已被多个副本确认，避免读到未充分复制、可能丢失的数据</li>
+</ul>
+<hr>
+<h2 id="八、性能调优实践"><a href="#八、性能调优实践" class="headerlink" title="八、性能调优实践"></a>八、性能调优实践</h2><h3 id="8-1-消费积压排查步骤"><a href="#8-1-消费积压排查步骤" class="headerlink" title="8.1 消费积压排查步骤"></a>8.1 消费积压排查步骤</h3><p><strong>1. 确认 lag 情况</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kafka-consumer-groups.sh --describe --group &lt;group-name&gt; --bootstrap-server &lt;broker&gt;</span><br></pre></td></tr></table></figure>
+
+<p><strong>2. 定位原因</strong></p>
+<ul>
+<li>消费逻辑慢：查看消费端 DB&#x2F;网络&#x2F;外部服务耗时</li>
+<li>Partition 数不够：消费者数超过 Partition 数时多余的消费者空闲</li>
+<li>消费线程阻塞：检查是否有死锁或长时间 GC</li>
+</ul>
+<p><strong>3. 应急方案</strong></p>
+<ul>
+<li>临时增加消费者实例（不超过 Partition 数）</li>
+<li>消费逻辑异步化：消费时直接返回，启动异步线程处理</li>
+<li>跳过非关键消息：重置 offset 到最新位置</li>
+</ul>
+<h3 id="8-2-生产者侧调优"><a href="#8-2-生产者侧调优" class="headerlink" title="8.2 生产者侧调优"></a>8.2 生产者侧调优</h3><p><strong>批量发送</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">writer := &amp;kafka.Writer&#123;</span><br><span class="line">    Addr:         kafka.TCP(<span class="string">&quot;localhost:9092&quot;</span>),</span><br><span class="line">    Topic:        <span class="string">&quot;orders&quot;</span>,</span><br><span class="line">    BatchSize:    <span class="number">100</span>,              <span class="comment">// 批量大小 100 条</span></span><br><span class="line">    BatchTimeout: <span class="number">10</span> * time.Millisecond,  <span class="comment">// 最多等待 10ms</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>压缩</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">writer := &amp;kafka.Writer&#123;</span><br><span class="line">    Compression: kafka.Lz4,  <span class="comment">// 使用 lz4 压缩</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>分区策略</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 无顺序要求：轮询</span></span><br><span class="line">writer := &amp;kafka.Writer&#123;</span><br><span class="line">    Balancer: &amp;kafka.RoundRobin&#123;&#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 需要顺序：按 key Hash</span></span><br><span class="line">writer := &amp;kafka.Writer&#123;</span><br><span class="line">    Balancer: &amp;kafka.Hash&#123;&#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="8-3-Broker-与系统层优化"><a href="#8-3-Broker-与系统层优化" class="headerlink" title="8.3 Broker 与系统层优化"></a>8.3 Broker 与系统层优化</h3><p><strong>页缓存</strong>：</p>
+<ul>
+<li>Broker 依赖 OS page cache 做热读热写，机器内存应留足给文件系统缓存</li>
+<li>JVM 堆过大可能与 page cache 争用，需按官方建议调优</li>
+</ul>
+<p><strong>磁盘与 IO</strong>：</p>
+<ul>
+<li>数据目录尽量使用高性能 SSD</li>
+<li>避免与高 IO 的其他服务混用同一盘</li>
+</ul>
+<h3 id="8-4-Go-生产级别-Producer-示例"><a href="#8-4-Go-生产级别-Producer-示例" class="headerlink" title="8.4 Go 生产级别 Producer 示例"></a>8.4 Go 生产级别 Producer 示例</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">&quot;context&quot;</span></span><br><span class="line">    <span class="string">&quot;log&quot;</span></span><br><span class="line">    <span class="string">&quot;time&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="string">&quot;github.com/segmentio/kafka-go&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewProducer 创建生产者</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewProducer</span><span class="params">(brokers []<span class="type">string</span>, topic <span class="type">string</span>)</span></span> *kafka.Writer &#123;</span><br><span class="line">    <span class="keyword">return</span> &amp;kafka.Writer&#123;</span><br><span class="line">        Addr:                   kafka.TCP(brokers...),</span><br><span class="line">        Topic:                  topic,</span><br><span class="line">        Balancer:               &amp;kafka.Hash&#123;&#125;,        <span class="comment">// 按 key Hash 分区</span></span><br><span class="line">        RequiredAcks:           kafka.RequireAll,     <span class="comment">// acks=all</span></span><br><span class="line">        MaxAttempts:            <span class="number">3</span>,                    <span class="comment">// 重试 3 次</span></span><br><span class="line">        BatchSize:              <span class="number">100</span>,                  <span class="comment">// 批量 100 条</span></span><br><span class="line">        BatchTimeout:           <span class="number">10</span> * time.Millisecond,</span><br><span class="line">        Compression:            kafka.Lz4,            <span class="comment">// lz4 压缩</span></span><br><span class="line">        ReadTimeout:            <span class="number">10</span> * time.Second,</span><br><span class="line">        WriteTimeout:           <span class="number">10</span> * time.Second,</span><br><span class="line">        Idempotent:             <span class="literal">true</span>,                 <span class="comment">// 幂等性</span></span><br><span class="line">        AllowAutoTopicCreation: <span class="literal">false</span>,                <span class="comment">// 禁止自动创建 Topic</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ProduceMessage 发送消息（带重试和错误处理）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ProduceMessage</span><span class="params">(w *kafka.Writer, key, value <span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    ctx, cancel := context.WithTimeout(context.Background(), <span class="number">30</span>*time.Second)</span><br><span class="line">    <span class="keyword">defer</span> cancel()</span><br><span class="line"></span><br><span class="line">    err := w.WriteMessages(ctx, kafka.Message&#123;</span><br><span class="line">        Key:   []<span class="type">byte</span>(key),</span><br><span class="line">        Value: []<span class="type">byte</span>(value),</span><br><span class="line">        Time:  time.Now(),  <span class="comment">// 消息时间戳</span></span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Printf(<span class="string">&quot;Failed to send message: key=%s, error=%v&quot;</span>, key, err)</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    log.Printf(<span class="string">&quot;Message sent successfully: key=%s&quot;</span>, key)</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    producer := NewProducer([]<span class="type">string</span>&#123;<span class="string">&quot;localhost:9092&quot;</span>&#125;, <span class="string">&quot;orders&quot;</span>)</span><br><span class="line">    <span class="keyword">defer</span> producer.Close()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 发送消息</span></span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">100</span>; i++ &#123;</span><br><span class="line">        key := fmt.Sprintf(<span class="string">&quot;order-%d&quot;</span>, i)</span><br><span class="line">        value := fmt.Sprintf(<span class="string">`&#123;&quot;order_id&quot;:&quot;%s&quot;,&quot;amount&quot;:100&#125;`</span>, key)</span><br><span class="line">        <span class="keyword">if</span> err := ProduceMessage(producer, key, value); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            log.Printf(<span class="string">&quot;Error: %v&quot;</span>, err)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="8-5-Go-生产级别-Consumer-示例"><a href="#8-5-Go-生产级别-Consumer-示例" class="headerlink" title="8.5 Go 生产级别 Consumer 示例"></a>8.5 Go 生产级别 Consumer 示例</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">&quot;context&quot;</span></span><br><span class="line">    <span class="string">&quot;log&quot;</span></span><br><span class="line">    <span class="string">&quot;time&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="string">&quot;github.com/segmentio/kafka-go&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// NewConsumer 创建消费者</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewConsumer</span><span class="params">(brokers []<span class="type">string</span>, topic, groupID <span class="type">string</span>)</span></span> *kafka.Reader &#123;</span><br><span class="line">    <span class="keyword">return</span> kafka.NewReader(kafka.ReaderConfig&#123;</span><br><span class="line">        Brokers:        brokers,</span><br><span class="line">        GroupID:        groupID,</span><br><span class="line">        Topic:          topic,</span><br><span class="line">        MinBytes:       <span class="number">10e3</span>,   <span class="comment">// 10KB</span></span><br><span class="line">        MaxBytes:       <span class="number">10e6</span>,   <span class="comment">// 10MB</span></span><br><span class="line">        MaxWait:        <span class="number">500</span> * time.Millisecond,</span><br><span class="line">        CommitInterval: <span class="number">0</span>,      <span class="comment">// 手动提交</span></span><br><span class="line">        StartOffset:    kafka.LastOffset,  <span class="comment">// 从最新位置开始</span></span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// processMessage 业务处理逻辑（需保证幂等性）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">processMessage</span><span class="params">(msg kafka.Message)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    log.Printf(<span class="string">&quot;Received: partition=%d, offset=%d, key=%s, value=%s&quot;</span>,</span><br><span class="line">        msg.Partition, msg.Offset, <span class="type">string</span>(msg.Key), <span class="type">string</span>(msg.Value))</span><br><span class="line"></span><br><span class="line">    <span class="comment">// <span class="doctag">TODO:</span> 业务逻辑（写 DB、调用下游服务等）</span></span><br><span class="line">    <span class="comment">// 注意：必须实现幂等性！</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ConsumeLoop 消费循环</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ConsumeLoop</span><span class="params">(r *kafka.Reader)</span></span> &#123;</span><br><span class="line">    ctx := context.Background()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="comment">// 拉取消息</span></span><br><span class="line">        msg, err := r.FetchMessage(ctx)</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            log.Printf(<span class="string">&quot;Fetch error: %v&quot;</span>, err)</span><br><span class="line">            time.Sleep(<span class="number">1</span> * time.Second)</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 业务处理</span></span><br><span class="line">        <span class="keyword">if</span> err := processMessage(msg); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            log.Printf(<span class="string">&quot;Process error: %v&quot;</span>, err)</span><br><span class="line">            <span class="comment">// 注意：根据业务决定是否重试或跳过</span></span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 处理成功后手动提交 offset</span></span><br><span class="line">        <span class="keyword">if</span> err := r.CommitMessages(ctx, msg); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            log.Printf(<span class="string">&quot;Commit error: %v&quot;</span>, err)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    consumer := NewConsumer([]<span class="type">string</span>&#123;<span class="string">&quot;localhost:9092&quot;</span>&#125;, <span class="string">&quot;orders&quot;</span>, <span class="string">&quot;order-consumer-group&quot;</span>)</span><br><span class="line">    <span class="keyword">defer</span> consumer.Close()</span><br><span class="line"></span><br><span class="line">    log.Println(<span class="string">&quot;Start consuming...&quot;</span>)</span><br><span class="line">    ConsumeLoop(consumer)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="8-6-常用配置参数总结"><a href="#8-6-常用配置参数总结" class="headerlink" title="8.6 常用配置参数总结"></a>8.6 常用配置参数总结</h3><p><strong>Producer 配置</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">c.Producer.MaxMessageBytes = <span class="number">1000000</span>  <span class="comment">// 1MB</span></span><br><span class="line">c.Producer.RequiredAcks = WaitForLocal  <span class="comment">// acks=1（默认）</span></span><br><span class="line">c.Producer.Timeout = <span class="number">10</span> * time.Second</span><br><span class="line">c.Producer.Partitioner = NewHashPartitioner</span><br><span class="line">c.Producer.Retry.Max = <span class="number">3</span></span><br><span class="line">c.Producer.Retry.Backoff = <span class="number">100</span> * time.Millisecond</span><br><span class="line">c.Producer.Return.Errors = <span class="literal">true</span></span><br><span class="line">c.Producer.CompressionLevel = CompressionLevelDefault</span><br></pre></td></tr></table></figure>
+
+<p><strong>Consumer 配置</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">c.Consumer.Fetch.Min = <span class="number">1</span></span><br><span class="line">c.Consumer.Fetch.Default = <span class="number">1024</span> * <span class="number">1024</span>  <span class="comment">// 1MB</span></span><br><span class="line">c.Consumer.Retry.Backoff = <span class="number">2</span> * time.Second</span><br><span class="line">c.Consumer.MaxWaitTime = <span class="number">500</span> * time.Millisecond</span><br><span class="line">c.Consumer.MaxProcessingTime = <span class="number">100</span> * time.Millisecond</span><br><span class="line">c.Consumer.Return.Errors = <span class="literal">false</span></span><br><span class="line">c.Consumer.Offsets.AutoCommit.Enable = <span class="literal">true</span>  <span class="comment">// 自动提交</span></span><br><span class="line">c.Consumer.Offsets.AutoCommit.Interval = <span class="number">1</span> * time.Second</span><br><span class="line">c.Consumer.Offsets.Initial = OffsetNewest  <span class="comment">// 从最新位置开始</span></span><br><span class="line">c.Consumer.Offsets.Retry.Max = <span class="number">3</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="九、生产环境踩坑实录"><a href="#九、生产环境踩坑实录" class="headerlink" title="九、生产环境踩坑实录"></a>九、生产环境踩坑实录</h2><h3 id="9-1-案例1：消费者-Rebalance-导致大量重复消费"><a href="#9-1-案例1：消费者-Rebalance-导致大量重复消费" class="headerlink" title="9.1 案例1：消费者 Rebalance 导致大量重复消费"></a>9.1 案例1：消费者 Rebalance 导致大量重复消费</h3><p><strong>现象</strong>：</p>
+<ul>
+<li>消费者频繁 Rebalance，导致同一批消息被重复消费 3-5 次</li>
+<li>数据库出现大量重复订单记录</li>
+</ul>
+<p><strong>原因分析</strong>：</p>
+<ul>
+<li>消费逻辑耗时长（调用外部 API 3-5 秒），超过 <code>max.poll.interval.ms</code>（默认 5 分钟）</li>
+<li>消费者被 Coordinator 认为”假死”，触发 Rebalance</li>
+</ul>
+<p><strong>解决方案</strong>：</p>
+<ol>
+<li>将 <code>max.poll.interval.ms</code> 调整为 10 分钟</li>
+<li>消费逻辑异步化：消费时直接返回，启动 goroutine 处理</li>
+<li>业务层实现幂等性：使用订单 ID 作为唯一键</li>
+</ol>
+<h3 id="9-2-案例2：Partition-数量不足导致扩容无效"><a href="#9-2-案例2：Partition-数量不足导致扩容无效" class="headerlink" title="9.2 案例2：Partition 数量不足导致扩容无效"></a>9.2 案例2：Partition 数量不足导致扩容无效</h3><p><strong>现象</strong>：</p>
+<ul>
+<li>消费积压严重（LAG &gt; 10 万），增加消费者实例后 LAG 依然不降</li>
+</ul>
+<p><strong>原因分析</strong>：</p>
+<ul>
+<li>Topic 只有 3 个 Partition，但启动了 10 个消费者实例</li>
+<li>只有 3 个消费者在工作，其他 7 个空闲</li>
+</ul>
+<p><strong>解决方案</strong>：</p>
+<ol>
+<li>增加 Partition 数量到 10（<strong>注意：Partition 只能增加不能减少</strong>）</li>
+<li>重启消费者，触发 Rebalance 重新分配 Partition</li>
+</ol>
+<h3 id="9-3-案例3：acks-1-导致数据丢失"><a href="#9-3-案例3：acks-1-导致数据丢失" class="headerlink" title="9.3 案例3：acks&#x3D;1 导致数据丢失"></a>9.3 案例3：acks&#x3D;1 导致数据丢失</h3><p><strong>现象</strong>：</p>
+<ul>
+<li>生产环境发现部分订单消息丢失（约 0.1%）</li>
+</ul>
+<p><strong>原因分析</strong>：</p>
+<ul>
+<li>Producer 配置 <code>acks=1</code>，只等待 Leader 确认</li>
+<li>Leader 写入成功后，Follower 尚未同步，Leader 宕机</li>
+<li>新选举的 Leader 没有这条消息</li>
+</ul>
+<p><strong>解决方案</strong>：</p>
+<ol>
+<li>修改 Producer 配置：<code>acks=all</code></li>
+<li>修改 Broker 配置：<code>min.insync.replicas=2</code>（至少 2 个副本）</li>
+<li>开启 Producer 幂等性：<code>enable.idempotence=true</code></li>
+</ol>
+<h3 id="9-4-案例4：Page-Cache-不足导致性能下降"><a href="#9-4-案例4：Page-Cache-不足导致性能下降" class="headerlink" title="9.4 案例4：Page Cache 不足导致性能下降"></a>9.4 案例4：Page Cache 不足导致性能下降</h3><p><strong>现象</strong>：</p>
+<ul>
+<li>Broker 机器内存 32GB，JVM 堆设置为 24GB</li>
+<li>Kafka 读写性能低，大量磁盘 IO</li>
+</ul>
+<p><strong>原因分析</strong>：</p>
+<ul>
+<li>JVM 堆占用过多内存，导致 OS Page Cache 不足（只剩 8GB）</li>
+<li>热数据无法完全缓存在内存，大量磁盘读</li>
+</ul>
+<p><strong>解决方案</strong>：</p>
+<ol>
+<li>将 JVM 堆调整为 6GB（Kafka 官方推荐 6-8GB）</li>
+<li>留出 26GB 给 OS Page Cache</li>
+<li>性能提升 5 倍</li>
+</ol>
+<h3 id="9-5-案例5：未设置-retention-导致磁盘爆满"><a href="#9-5-案例5：未设置-retention-导致磁盘爆满" class="headerlink" title="9.5 案例5：未设置 retention 导致磁盘爆满"></a>9.5 案例5：未设置 retention 导致磁盘爆满</h3><p><strong>现象</strong>：</p>
+<ul>
+<li>Broker 磁盘使用率达到 100%，无法写入新消息</li>
+</ul>
+<p><strong>原因分析</strong>：</p>
+<ul>
+<li>Topic 未设置 <code>retention.ms</code>（保留时间），消息永久保留</li>
+<li>日志类 Topic 每天产生 100GB 数据，积累半年后磁盘爆满</li>
+</ul>
+<p><strong>解决方案</strong>：</p>
+<ol>
+<li>设置 Topic 级别的 <code>retention.ms=604800000</code>（7 天）</li>
+<li>手动删除旧数据：<code>kafka-delete-records.sh</code></li>
+<li>增加磁盘容量</li>
+</ol>
+<hr>
+<h2 id="十、面试高频-20-题"><a href="#十、面试高频-20-题" class="headerlink" title="十、面试高频 20 题"></a>十、面试高频 20 题</h2><h3 id="1-介绍一下-Kafka？"><a href="#1-介绍一下-Kafka？" class="headerlink" title="1. 介绍一下 Kafka？"></a>1. 介绍一下 Kafka？</h3><p><strong>标准答案</strong>（30 秒）：<br>Kafka 是分布式流式消息队列，具有高吞吐（百万 TPS）、低延迟（ms 级）、持久化的特点。采用发布-订阅模式，常用于异步解耦、削峰填谷、日志采集。核心组件包括 Producer、Broker、Consumer、Topic、Partition。</p>
+<p><strong>追问应对</strong>：</p>
+<ul>
+<li><strong>为什么快？</strong> 顺序写磁盘 + Page Cache + 零拷贝</li>
+<li><strong>如何保证高可用？</strong> 副本机制（ISR）+ Leader 选举</li>
+</ul>
+<h3 id="2-Kafka-如何保证消息不丢失？"><a href="#2-Kafka-如何保证消息不丢失？" class="headerlink" title="2. Kafka 如何保证消息不丢失？"></a>2. Kafka 如何保证消息不丢失？</h3><p><strong>标准答案</strong>：<br>分三个环节保障：</p>
+<ol>
+<li><strong>Producer</strong>：<code>acks=all</code> + 重试 + 幂等性</li>
+<li><strong>Broker</strong>：<code>min.insync.replicas=2</code> + 禁止非 ISR 选举</li>
+<li><strong>Consumer</strong>：手动提交 offset + 业务幂等</li>
+</ol>
+<p><strong>追问应对</strong>：</p>
+<ul>
+<li><strong>acks&#x3D;all 就一定不丢吗？</strong> 不一定，如果 ISR 只剩一个 Leader，依然可能丢</li>
+<li><strong>如何实现 Exactly-once？</strong> Producer 幂等性 + 事务 + Consumer 幂等</li>
+</ul>
+<h3 id="3-Kafka-如何保证消息顺序？"><a href="#3-Kafka-如何保证消息顺序？" class="headerlink" title="3. Kafka 如何保证消息顺序？"></a>3. Kafka 如何保证消息顺序？</h3><p><strong>标准答案</strong>：</p>
+<ol>
+<li><strong>同一 Partition 内严格有序</strong></li>
+<li><strong>不同 Partition 之间无序</strong></li>
+<li><strong>全局有序方案</strong>：设置 Partition&#x3D;1（牺牲并行度）</li>
+<li><strong>常见方案</strong>：按业务 key Hash 到同一分区</li>
+</ol>
+<p><strong>追问应对</strong>：</p>
+<ul>
+<li><strong>如何保证同一订单的消息有序？</strong> 使用订单 ID 作为 message key</li>
+</ul>
+<h3 id="4-Kafka-为什么这么快？"><a href="#4-Kafka-为什么这么快？" class="headerlink" title="4. Kafka 为什么这么快？"></a>4. Kafka 为什么这么快？</h3><p><strong>标准答案</strong>（3 点必答）：</p>
+<ol>
+<li><strong>顺序写磁盘</strong>：避免随机 IO，性能接近内存写入</li>
+<li><strong>Page Cache</strong>：依赖 OS 缓存，避免 JVM GC</li>
+<li><strong>零拷贝</strong>：sendfile 系统调用，减少 CPU 拷贝和上下文切换</li>
+</ol>
+<p><strong>追问应对</strong>：</p>
+<ul>
+<li><strong>零拷贝具体原理？</strong> 磁盘 → Page Cache → 网卡（DMA），避免内核态 ↔ 用户态拷贝</li>
+</ul>
+<h3 id="5-什么是-ISR？"><a href="#5-什么是-ISR？" class="headerlink" title="5. 什么是 ISR？"></a>5. 什么是 ISR？</h3><p><strong>标准答案</strong>：<br>ISR（In-Sync Replicas）是同步副本集合，包含与 Leader 保持同步的所有副本。</p>
+<p><strong>追问应对</strong>：</p>
+<ul>
+<li><strong>副本如何被踢出 ISR？</strong> 同步落后超过 <code>replica.lag.time.max.ms</code>（默认 10 秒）</li>
+<li><strong>ISR 为空怎么办？</strong> 取决于 <code>unclean.leader.election.enable</code>（默认 false，不允许从 OSR 选举）</li>
+</ul>
+<h3 id="6-什么是-Rebalance？如何避免？"><a href="#6-什么是-Rebalance？如何避免？" class="headerlink" title="6. 什么是 Rebalance？如何避免？"></a>6. 什么是 Rebalance？如何避免？</h3><p><strong>标准答案</strong>：<br>Rebalance 是消费者组内 Partition 重新分配的过程。触发条件包括消费者加入&#x2F;离开、Partition 数量变化、心跳超时。</p>
+<p><strong>如何避免</strong>：</p>
+<ol>
+<li>合理设置 <code>session.timeout.ms</code> 和 <code>max.poll.interval.ms</code></li>
+<li>消费逻辑异步化，避免长时间阻塞</li>
+<li>使用 Static Membership（<code>group.instance.id</code>）</li>
+</ol>
+<p><strong>追问应对</strong>：</p>
+<ul>
+<li><strong>Rebalance 的影响？</strong> 消费暂停 + 重复消费 + 扩散效应</li>
+</ul>
+<h3 id="7-Kafka-的存储结构是怎样的？"><a href="#7-Kafka-的存储结构是怎样的？" class="headerlink" title="7. Kafka 的存储结构是怎样的？"></a>7. Kafka 的存储结构是怎样的？</h3><p><strong>标准答案</strong>：</p>
+<ul>
+<li><strong>逻辑上</strong>：Topic → Partition → Message</li>
+<li><strong>物理上</strong>：Partition → Segment（.log + .index + .timeindex）</li>
+</ul>
+<p><strong>追问应对</strong>：</p>
+<ul>
+<li><strong>如何查找某个 offset 的消息？</strong> 通过文件名定位 Segment → 在 .index 中二分查找 → 在 .log 中顺序扫描</li>
+</ul>
+<h3 id="8-HW-和-LEO-是什么？"><a href="#8-HW-和-LEO-是什么？" class="headerlink" title="8. HW 和 LEO 是什么？"></a>8. HW 和 LEO 是什么？</h3><p><strong>标准答案</strong>：</p>
+<ul>
+<li><strong>LEO</strong>：Log End Offset，副本本地 log 末尾的 offset</li>
+<li><strong>HW</strong>：High Watermark，ISR 中所有副本都复制到的 offset</li>
+</ul>
+<p><strong>追问应对</strong>：</p>
+<ul>
+<li><strong>为什么消费者只能读到 HW 之前的数据？</strong> 保证消息已被多个副本确认，避免读到未复制、可能丢失的数据</li>
+</ul>
+<h3 id="9-Kafka-如何实现高可用？"><a href="#9-Kafka-如何实现高可用？" class="headerlink" title="9. Kafka 如何实现高可用？"></a>9. Kafka 如何实现高可用？</h3><p><strong>标准答案</strong>：</p>
+<ol>
+<li><strong>副本机制</strong>：每个 Partition 有多个副本（Leader + Follower）</li>
+<li><strong>ISR 机制</strong>：只有 ISR 中的副本才能参与选举</li>
+<li><strong>Controller</strong>：负责 Leader 选举和元数据管理</li>
+</ol>
+<p><strong>追问应对</strong>：</p>
+<ul>
+<li><strong>Controller 挂了怎么办？</strong> 从其他 Broker 中重新选举 Controller</li>
+</ul>
+<h3 id="10-Kafka-和-RabbitMQ-有什么区别？"><a href="#10-Kafka-和-RabbitMQ-有什么区别？" class="headerlink" title="10. Kafka 和 RabbitMQ 有什么区别？"></a>10. Kafka 和 RabbitMQ 有什么区别？</h3><p><strong>对比表格</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Kafka</th>
+<th>RabbitMQ</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>吞吐量</strong></td>
+<td>百万级 TPS</td>
+<td>十万级</td>
+</tr>
+<tr>
+<td><strong>延迟</strong></td>
+<td>ms 级</td>
+<td>us 级（更低）</td>
+</tr>
+<tr>
+<td><strong>消息顺序</strong></td>
+<td>分区内有序</td>
+<td>队列内有序</td>
+</tr>
+<tr>
+<td><strong>消息回溯</strong></td>
+<td>支持（offset）</td>
+<td>不支持</td>
+</tr>
+<tr>
+<td><strong>适用场景</strong></td>
+<td>大数据、日志、流式计算</td>
+<td>实时任务、RPC、微服务</td>
+</tr>
+</tbody></table>
+<h3 id="11-Kafka-消费者如何实现负载均衡？"><a href="#11-Kafka-消费者如何实现负载均衡？" class="headerlink" title="11. Kafka 消费者如何实现负载均衡？"></a>11. Kafka 消费者如何实现负载均衡？</h3><p><strong>标准答案</strong>：<br>通过 <strong>Consumer Group</strong> 实现：</p>
+<ul>
+<li>同一 Consumer Group 内的消费者共同消费一个 Topic</li>
+<li>每个 Partition 只能被组内一个消费者消费</li>
+<li>多个消费者并行消费不同 Partition，实现负载均衡</li>
+</ul>
+<h3 id="12-Kafka-如何处理消费积压？"><a href="#12-Kafka-如何处理消费积压？" class="headerlink" title="12. Kafka 如何处理消费积压？"></a>12. Kafka 如何处理消费积压？</h3><p><strong>标准答案</strong>：</p>
+<ol>
+<li><strong>确认原因</strong>：消费逻辑慢 &#x2F; Partition 数不够 &#x2F; 消费者阻塞</li>
+<li><strong>临时方案</strong>：增加消费者实例（不超过 Partition 数）&#x2F; 消费逻辑异步化</li>
+<li><strong>长期方案</strong>：优化消费逻辑 &#x2F; 增加 Partition 数 &#x2F; 调整 <code>max.poll.records</code></li>
+</ol>
+<h3 id="13-Kafka-的-offset-存储在哪里？"><a href="#13-Kafka-的-offset-存储在哪里？" class="headerlink" title="13. Kafka 的 offset 存储在哪里？"></a>13. Kafka 的 offset 存储在哪里？</h3><p><strong>标准答案</strong>：</p>
+<ul>
+<li><strong>旧版本（0.9 之前）</strong>：存储在 ZooKeeper</li>
+<li><strong>新版本（0.9 之后）</strong>：存储在 Kafka 内部 Topic（<code>__consumer_offsets</code>）</li>
+</ul>
+<p><strong>追问应对</strong>：</p>
+<ul>
+<li><strong>为什么从 ZK 迁移到 Kafka？</strong> 减少 ZK 压力，提高性能</li>
+</ul>
+<h3 id="14-Kafka-如何保证幂等性？"><a href="#14-Kafka-如何保证幂等性？" class="headerlink" title="14. Kafka 如何保证幂等性？"></a>14. Kafka 如何保证幂等性？</h3><p><strong>标准答案</strong>：</p>
+<ol>
+<li><strong>Producer 幂等性</strong>：开启 <code>enable.idempotence=true</code>，Kafka 会为每条消息分配唯一 ID（PID + Sequence Number）</li>
+<li><strong>Consumer 幂等性</strong>：业务层实现（唯一键 &#x2F; 状态机 &#x2F; 版本号）</li>
+</ol>
+<h3 id="15-Kafka-的分区策略有哪些？"><a href="#15-Kafka-的分区策略有哪些？" class="headerlink" title="15. Kafka 的分区策略有哪些？"></a>15. Kafka 的分区策略有哪些？</h3><p><strong>标准答案</strong>：</p>
+<ol>
+<li><strong>轮询（Round-Robin）</strong>：依次分配到不同 Partition</li>
+<li><strong>Hash</strong>：按 message key 的 Hash 值分配</li>
+<li><strong>自定义</strong>：实现 <code>Partitioner</code> 接口</li>
+</ol>
+<h3 id="16-Kafka-的压缩算法有哪些？"><a href="#16-Kafka-的压缩算法有哪些？" class="headerlink" title="16. Kafka 的压缩算法有哪些？"></a>16. Kafka 的压缩算法有哪些？</h3><p><strong>标准答案</strong>：<br>支持 <code>gzip</code>、<code>snappy</code>、<code>lz4</code>、<code>zstd</code> 四种。</p>
+<p><strong>推荐</strong>：</p>
+<ul>
+<li><strong>高吞吐</strong>：<code>lz4</code>（压缩比中等，速度最快）</li>
+<li><strong>高压缩比</strong>：<code>zstd</code>（压缩比最高，速度较慢）</li>
+</ul>
+<h3 id="17-Kafka-的-acks-参数有哪些值？"><a href="#17-Kafka-的-acks-参数有哪些值？" class="headerlink" title="17. Kafka 的 acks 参数有哪些值？"></a>17. Kafka 的 acks 参数有哪些值？</h3><p><strong>标准答案</strong>：</p>
+<ul>
+<li><strong>acks&#x3D;0</strong>：不等待确认，性能最高，可能丢失</li>
+<li><strong>acks&#x3D;1</strong>：等待 Leader 确认，可能丢失（Leader 挂掉）</li>
+<li><strong>acks&#x3D;all（-1）</strong>：等待所有 ISR 确认，最可靠</li>
+</ul>
+<h3 id="18-Kafka-的事务是如何实现的？"><a href="#18-Kafka-的事务是如何实现的？" class="headerlink" title="18. Kafka 的事务是如何实现的？"></a>18. Kafka 的事务是如何实现的？</h3><p><strong>标准答案</strong>：<br>Kafka 事务基于 <strong>事务协调器（Transaction Coordinator）</strong> 实现，支持：</p>
+<ol>
+<li><strong>原子性写入</strong>：多个消息要么全部成功，要么全部失败</li>
+<li><strong>跨分区事务</strong>：可以跨多个 Topic&#x2F;Partition</li>
+</ol>
+<p><strong>追问应对</strong>：</p>
+<ul>
+<li><strong>如何开启事务？</strong> 设置 <code>transactional.id</code> + 调用 <code>beginTransaction()</code> &#x2F; <code>commitTransaction()</code></li>
+</ul>
+<h3 id="19-Kafka-如何实现消息去重？"><a href="#19-Kafka-如何实现消息去重？" class="headerlink" title="19. Kafka 如何实现消息去重？"></a>19. Kafka 如何实现消息去重？</h3><p><strong>标准答案</strong>：</p>
+<ol>
+<li><strong>Producer 幂等性</strong>：开启 <code>enable.idempotence=true</code></li>
+<li><strong>事务</strong>：使用事务性发送</li>
+<li><strong>Consumer 去重</strong>：业务层实现（Redis 缓存消息 ID &#x2F; 数据库唯一键）</li>
+</ol>
+<h3 id="20-Kafka-的监控指标有哪些？"><a href="#20-Kafka-的监控指标有哪些？" class="headerlink" title="20. Kafka 的监控指标有哪些？"></a>20. Kafka 的监控指标有哪些？</h3><p><strong>标准答案</strong>：</p>
+<ol>
+<li><strong>吞吐量</strong>：<code>MessagesInPerSec</code> &#x2F; <code>BytesInPerSec</code></li>
+<li><strong>延迟</strong>：<code>RequestLatencyAvg</code></li>
+<li><strong>消费积压</strong>：<code>ConsumerLag</code></li>
+<li><strong>副本同步</strong>：<code>UnderReplicatedPartitions</code>（未完全同步的 Partition 数）</li>
+<li><strong>ISR 变化</strong>：<code>IsrShrinksPerSec</code> &#x2F; <code>IsrExpandsPerSec</code></li>
+</ol>
+<hr>
+<h2 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h2><h3 id="创建-Topic"><a href="#创建-Topic" class="headerlink" title="创建 Topic"></a>创建 Topic</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kafka-topics.sh --create --topic orders --replication-factor 3 --partitions 10 --bootstrap-server localhost:9092</span><br></pre></td></tr></table></figure>
+
+<h3 id="查看-Topic-详情"><a href="#查看-Topic-详情" class="headerlink" title="查看 Topic 详情"></a>查看 Topic 详情</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kafka-topics.sh --describe --topic orders --bootstrap-server localhost:9092</span><br></pre></td></tr></table></figure>
+
+<h3 id="查看消费组情况"><a href="#查看消费组情况" class="headerlink" title="查看消费组情况"></a>查看消费组情况</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kafka-consumer-groups.sh --describe --group order-group --bootstrap-server localhost:9092</span><br></pre></td></tr></table></figure>
+
+<h3 id="重置消费-offset"><a href="#重置消费-offset" class="headerlink" title="重置消费 offset"></a>重置消费 offset</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 重置到最新位置</span></span><br><span class="line">kafka-consumer-groups.sh --group order-group --bootstrap-server localhost:9092 --reset-offsets --all-topics --to-latest --execute</span><br><span class="line"></span><br><span class="line"><span class="comment"># 重置到指定时间</span></span><br><span class="line">kafka-consumer-groups.sh --group order-group --bootstrap-server localhost:9092 --reset-offsets --all-topics --to-datetime 2024-03-10T00:00:00.000 --execute</span><br></pre></td></tr></table></figure>
+
+<h3 id="生产消息（测试）"><a href="#生产消息（测试）" class="headerlink" title="生产消息（测试）"></a>生产消息（测试）</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kafka-console-producer.sh --topic orders --bootstrap-server localhost:9092</span><br></pre></td></tr></table></figure>
+
+<h3 id="消费消息（测试）"><a href="#消费消息（测试）" class="headerlink" title="消费消息（测试）"></a>消费消息（测试）</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kafka-console-consumer.sh --topic orders --from-beginning --bootstrap-server localhost:9092</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><a href="https://zhuanlan.zhihu.com/p/46963810">Kafka Consumer Rebalance 机制与影响（知乎）</a></li>
+<li><a href="https://blog.csdn.net/kzadmxz/article/details/101576401">Kafka 为什么吞吐量大、速度快？（CSDN）</a></li>
+<li><a href="https://blog.csdn.net/u013256816/article/details/71091774">Kafka 数据可靠性深度解读 &#x2F; ISR 与副本（CSDN）</a></li>
+<li><a href="https://github.com/Shopify/sarama/blob/v1.37.2/config.go">Shopify Sarama 客户端配置参考（config.go）</a></li>
+<li><a href="https://juejin.im/post/6844903846297206797">Kafka 选举机制（掘金）</a></li>
+<li><a href="https://cloud.tencent.com/developer/article/1752150">简单理解 Kafka 的消息可靠性策略（腾讯云）</a></li>
+<li><a href="https://stackoverflow.com/questions/46173003/bootstrap-server-vs-zookeeper-in-kafka">Bootstrap server vs zookeeper in kafka?（StackOverflow）</a></li>
+<li><a href="https://blog.csdn.net/java_atguigu/article/details/123920233">Kafka 如何保证顺序消费（CSDN）</a></li>
+<li><a href="https://kafka.apache.org/documentation/">Kafka 官方文档</a></li>
+<li><a href="https://github.com/segmentio/kafka-go">Kafka-go GitHub</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Kafka/" rel="tag"># Kafka</a>
+              <a href="/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/" rel="tag"># 消息队列</a>
+              <a href="/tags/%E5%BC%82%E6%AD%A5/" rel="tag"># 异步</a>
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag"># 分布式</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/03/07/system-design/04-middleware-elasticsearch/" rel="prev" title="中间件 - 搜索和 Elasticsearch">
+                  <i class="fa fa-angle-left"></i> 中间件 - 搜索和 Elasticsearch
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/10/16/other/programmer-survival-guide/" rel="next" title="程序员生成指南">
+                  程序员生成指南 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>
