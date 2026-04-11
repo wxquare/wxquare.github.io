@@ -8,6 +8,8 @@
 
 **Tech Stack:** Hexo 7、Markdown、Front Matter（`toc: true`）。
 
+**站内链接（重要）：** `系统设计基础` 分类下的文章在 `public/` 中实际路径为 `/:year/:month/:day/system-design/:slug/`（中间含 **`system-design`** 段）。Markdown 中根相对链接须写为 `/2026/04/01/system-design/41-acc-clean-arch-ddd-cqrs/` 等形式，而非省略分类段。
+
 **规格覆盖自检:** 引言四域定义、总览表、六步流程、电商绑定、反例、ACC 对照表、四域清单（40–70 条）、结尾复盘、扩展阅读、非功能约束（不写 themes/ 等）均有对应任务。
 
 ---
