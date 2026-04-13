@@ -14,7 +14,7 @@ tags:
   - consistency
 ---
 
-> **电商系统设计（十二）**（读路径专题；总索引见[（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)）
+> **电商系统设计（十二）**（读路径专题；总索引见[（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)；续篇：[（十三）购物车与结算域](/system-design/32-ecommerce-cart-checkout/)）
 > - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
 > - [（二）商品中心系统](/system-design/27-ecommerce-product-center/)（索引与同步见第 5 章）
 > - [（三）库存系统](/system-design/22-ecommerce-inventory/)
