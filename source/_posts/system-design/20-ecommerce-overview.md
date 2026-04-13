@@ -338,6 +338,904 @@ sequenceDiagram
 2. **再看应用架构**（1.2）：理解系统如何分层实现业务
 3. **按文章顺序学习**：从基础数据层 → 业务规则层 → 交易流程 → 运营管理
 
+---
+
+## 1.6 系统边界与交互详解（重点章节）
+
+> **本章为系统边界核心**，详细说明电商系统中各模块的职责边界、依赖关系、接口契约与数据流向。
+
+### 1.6.1 系统边界全景架构
+
+下图展示电商系统中所有核心模块的边界、依赖关系与数据流向：
+
+```mermaid
+graph TB
+    subgraph 用户层["👤 用户层 (User Layer)"]
+        C端用户[C端用户<br/>Web/App]
+        B端用户[B端用户<br/>商家/运营]
+    end
+    
+    subgraph 接入层["🚪 接入层 (Gateway Layer)"]
+        APIGateway[API Gateway<br/>鉴权/限流/路由]
+    end
+    
+    subgraph 读路径域["📖 读路径域 (Read Path)"]
+        Search[搜索与导购 12<br/>Query/Recall/Rank]
+        Cart[购物车 13<br/>暂存/展示/合并]
+    end
+    
+    subgraph 基础数据层["📦 基础数据层 (Data Layer)"]
+        Product[商品中心 2<br/>SPU/SKU/类目/属性]
+    end
+    
+    subgraph 业务规则层["💰 业务规则层 (Business Rule Layer)"]
+        Inventory[库存系统 3<br/>预占/扣减/对账]
+        Marketing[营销系统 4<br/>优惠券/活动/补贴]
+        Pricing[计价引擎 5-6<br/>价格/费用/快照]
+    end
+    
+    subgraph 核心交易层["💳 核心交易层 (Transaction Layer)"]
+        Checkout[结算域 13<br/>Saga编排/预占]
+        Order[订单系统 7<br/>创建/状态机/拆单]
+        Payment[支付系统 8<br/>支付/退款/对账]
+    end
+    
+    subgraph B端管理层["🔧 B端管理层 (Admin Layer)"]
+        Listing[商品上架 9<br/>审核/发布/状态机]
+        OPS[B端运营 10<br/>批量管理/配置]
+        Lifecycle[生命周期管理 11<br/>同步/编辑/下架]
+    end
+    
+    subgraph 基础设施层["🔨 基础设施层 (Infrastructure)"]
+        ES[Elasticsearch<br/>商品索引]
+        Redis[Redis Cluster<br/>缓存/购物车]
+        MySQL[MySQL<br/>主数据]
+        Kafka[Kafka<br/>事件总线]
+    end
+    
+    %% 读路径
+    C端用户 -->|浏览/搜索| APIGateway
+    APIGateway -->|Query| Search
+    Search -->|查ES索引| ES
+    Search -.->|批量查商品| Product
+    Search -.->|库存状态| Inventory
+    
+    C端用户 -->|加购/查看| Cart
+    Cart -->|HSET/HGET| Redis
+    Cart -.->|商品信息| Product
+    
+    %% 写路径（下单）
+    C端用户 -->|结算/下单| Checkout
+    Checkout -->|试算| Pricing
+    Checkout -->|预占| Inventory
+    Checkout -->|校验券| Marketing
+    Checkout -->|创建订单| Order
+    
+    Order -->|确认库存| Inventory
+    Order -->|扣券| Marketing
+    Order -->|order_id| Payment
+    
+    %% B端写路径
+    B端用户 -->|上架| Listing
+    Listing -->|创建SPU/SKU| Product
+    Listing -->|初始化库存| Inventory
+    Listing -->|配置价格| Pricing
+    
+    B端用户 -->|批量编辑| OPS
+    OPS -->|更新商品| Product
+    OPS -->|调整库存| Inventory
+    OPS -->|配置活动| Marketing
+    
+    Lifecycle -->|同步/编辑| Product
+    Lifecycle -->|状态管理| Listing
+    
+    %% 基础设施依赖
+    Product -->|写入| MySQL
+    Product -->|同步| ES
+    Product -->|缓存| Redis
+    Product -->|事件| Kafka
+    
+    Inventory -->|主存储| Redis
+    Inventory -->|备份| MySQL
+    Inventory -->|事件| Kafka
+    
+    Order -->|创建事件| Kafka
+    Kafka -->|消费| Cart
+    
+    %% 样式
+    classDef readPath fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    classDef baseData fill:#e8f5e9,stroke:#4caf50,stroke-width:3px
+    classDef bizRule fill:#fff3e0,stroke:#f57c00,stroke-width:3px
+    classDef transaction fill:#ffebee,stroke:#d32f2f,stroke-width:3px
+    classDef admin fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    classDef infra fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    
+    class Search,Cart readPath
+    class Product baseData
+    class Inventory,Marketing,Pricing bizRule
+    class Checkout,Order,Payment transaction
+    class Listing,OPS,Lifecycle admin
+    class ES,Redis,MySQL,Kafka infra
+```
+
+### 1.6.2 系统职责边界总表
+
+| 系统 | 核心职责 | 不做什么 | 文章编号 | 依赖的上游 | 提供给下游 |
+|------|----------|----------|---------|------------|------------|
+| **商品中心（2）** | SPU/SKU 数据服务、类目属性、商品快照 | ❌ 不做库存扣减<br>❌ 不做价格计算<br>❌ 不做审核流程 | （二） | - | 商品信息、快照 ID |
+| **库存系统（3）** | 库存预占/扣减、对账、供应商同步 | ❌ 不做价格校验<br>❌ 不做营销规则 | （三） | 商品中心 | 库存状态、预占 ID |
+| **营销系统（4）** | 优惠券、活动、补贴、圈品规则 | ❌ 不做价格计算（由计价引擎应用）<br>❌ 不做库存校验 | （四） | - | 券可用性、活动标签 |
+| **计价引擎（5-6）** | 价格计算、费用、快照、DDD 实践 | ❌ 不做库存扣减<br>❌ 不做订单创建 | （五）（六） | 商品中心、营销系统 | 价格明细、快照 ID |
+| **订单系统（7）** | 订单创建、状态机、拆单、履约编排 | ❌ 不做支付（调支付接口）<br>❌ 不做计价（使用快照） | （七） | 商品中心、库存、计价、营销 | 订单 ID、订单状态 |
+| **支付系统（8）** | 支付流程、退款、清结算、对账 | ❌ 不做订单管理<br>❌ 不做库存管理 | （八） | 订单系统 | 支付结果、退款状态 |
+| **商品上架（9）** | 审核流程、发布、状态机编排 | ❌ 不存储商品数据（写入商品中心）<br>❌ 不做价格计算 | （九） | 商品中心、库存、计价 | 上架任务状态 |
+| **B端运营（10）** | 批量管理、配置工具、数据看板 | ❌ 不实现业务规则（调用各系统接口）<br>❌ 不做审核流程 | （十） | 商品中心、库存、营销、计价 | 操作日志 |
+| **生命周期管理（11）** | 同步、编辑、下架、操作语义 | ❌ 不做审核（引用上架系统）<br>❌ 不做真正拆单 | （十一） | 商品中心、上架、运营 | 同步状态 |
+| **搜索与导购（12）** | Query 理解、召回、排序、列表 | ❌ 不存储主数据（查 ES 索引）<br>❌ 不做价格计算（hydrate 调计价） | （十二） | 商品中心、库存、计价 | 商品列表 |
+| **购物车（13）** | 暂存商品、登录合并、展示 | ❌ 不锁定库存<br>❌ 不锁定价格 | （十三） | 商品中心 | 购物车项 |
+| **结算域（13）** | 价格试算、库存预占、Saga 编排 | ❌ 不实现计价规则<br>❌ 不扣券（校验可用） | （十三） | 商品中心、计价、库存、营销 | 预占 ID、快照 ID |
+
+### 1.6.3 各系统边界详细说明
+
+#### （1）搜索与导购系统（12）边界
+
+**系统定位**：电商平台读流量主入口，提供关键词搜索、类目导购、店铺内搜索能力。
+
+```mermaid
+graph TB
+    subgraph 用户层["用户层"]
+        User[用户 Web/App]
+    end
+    
+    subgraph 接入层["接入层"]
+        Gateway[API Gateway<br/>鉴权/限流/路由]
+    end
+    
+    subgraph 搜索导购域["🔍 搜索与导购系统 (12)<br/>Query/Recall/Rank/Hydrate"]
+        QueryParser[Query理解<br/>归一化/改写]
+        RecallEngine[召回引擎<br/>ES查询/多路召回]
+        RankEngine[排序引擎<br/>粗排/精排/重排]
+        HydrateOrch[Hydrate编排<br/>批量补充信息]
+        IndexWorker[索引Worker<br/>消费Kafka/更新ES]
+    end
+    
+    subgraph 写入依赖["写入数据来源"]
+        Product[商品中心 2<br/>主数据/状态]
+        Listing[商品上架 9<br/>上架状态]
+        Lifecycle[生命周期 11<br/>审核/下架]
+        OPS[B端运营 10<br/>批量编辑]
+    end
+    
+    subgraph 读取依赖["读取数据依赖"]
+        PriceRead[计价引擎 5<br/>展示价/试算]
+        InvRead[库存系统 3<br/>库存状态]
+        MktRead[营销系统 4<br/>活动标签]
+    end
+    
+    subgraph 存储层["存储层"]
+        ES[Elasticsearch<br/>商品索引]
+        Redis[Redis<br/>热点缓存]
+    end
+    
+    subgraph 消息层["消息层"]
+        Kafka[Kafka<br/>product.listing<br/>product.updated]
+    end
+    
+    %% 用户查询路径
+    User -->|搜索/浏览| Gateway
+    Gateway -->|Query| QueryParser
+    QueryParser -->|标准Query| RecallEngine
+    RecallEngine -->|查询ES| ES
+    RecallEngine -->|DocIDs| RankEngine
+    RankEngine -->|排序后DocIDs| HydrateOrch
+    
+    %% Hydrate 批量补充信息
+    HydrateOrch -.->|批量查商品| Product
+    HydrateOrch -.->|批量计价| PriceRead
+    HydrateOrch -.->|批量查库存| InvRead
+    HydrateOrch -.->|圈品命中| MktRead
+    HydrateOrch -->|完整列表| Gateway
+    
+    %% 索引同步路径（异步）
+    Product -->|商品事件| Kafka
+    Listing -->|上架事件| Kafka
+    Lifecycle -->|状态变更| Kafka
+    OPS -->|批量编辑| Kafka
+    Kafka -->|消费| IndexWorker
+    IndexWorker -->|更新文档| ES
+    
+    %% 热点缓存
+    HydrateOrch -.->|缓存热点Query| Redis
+    
+    %% 样式
+    classDef searchDomain fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    classDef writeDep fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef readDep fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    
+    class QueryParser,RecallEngine,RankEngine,HydrateOrch,IndexWorker searchDomain
+    class Product,Listing,Lifecycle,OPS writeDep
+    class PriceRead,InvRead,MktRead readDep
+```
+
+**关键边界**：
+
+| 边界类型 | 说明 | 实现 |
+|---------|------|------|
+| **索引写入** | 搜索系统 **不直接写主数据**；通过 Kafka 消费商品事件更新 ES | Worker 消费 `product.created/updated/delisted` |
+| **Hydrate 编排** | 搜索系统 **只读批量查询**；不实现计价/库存规则 | 调用计价展示价接口、库存状态接口 |
+| **降级策略** | 计价/库存超时 **可降级**；不影响列表返回 | 展示索引价、不展示库存状态 |
+| **一致性要求** | **最终一致**（索引滞后可接受）；产品话术配合"价格以详情为准" | Kafka 异步 + 定时全量对账 |
+
+#### （2）购物车与结算域（13）边界
+
+**系统定位**：转化漏斗关键卡点，购物车负责暂存展示，结算域负责预占与 Saga 编排。
+
+```mermaid
+graph TB
+    subgraph 用户层["用户层"]
+        User[用户 Web/App]
+    end
+    
+    subgraph 接入层["接入层"]
+        Gateway[API Gateway<br/>鉴权/限流/路由]
+    end
+    
+    subgraph 购物车域["🛒 购物车域 (13-A)<br/>暂存/展示/合并"]
+        CartService[购物车服务<br/>加购/查看/合并]
+        CartWorker[清理Worker<br/>消费order.created]
+    end
+    
+    subgraph 结算域["💳 结算域 (13-B)<br/>Saga编排/预占/校验"]
+        CheckoutOrch[结算编排器<br/>试算/预占/校验]
+        IdempotencyCheck[幂等判断<br/>Redis SET NX]
+    end
+    
+    subgraph 读依赖["只读依赖<br/>(购物车展示)"]
+        ProductRead[商品中心 2<br/>标题/图片/状态]
+        PriceDisplay[计价引擎 5<br/>展示价可选]
+        InvStatus[库存系统 3<br/>有货/售罄]
+    end
+    
+    subgraph 强一致依赖["强一致依赖<br/>(结算页编排)"]
+        PriceTrial[计价引擎 5<br/>试算price_snapshot_id]
+        InvReserve[库存系统 3<br/>预占reserve_ids]
+        MktValidate[营销系统 4<br/>券可用性]
+        AddressServ[地址服务<br/>地址/运费]
+    end
+    
+    subgraph 下游系统["下游系统"]
+        Order[订单系统 7<br/>创建订单/真正拆单]
+        Payment[支付系统 8<br/>支付流程]
+    end
+    
+    subgraph 存储层["存储层"]
+        Redis[Redis<br/>购物车主存储]
+        CartDB[MySQL<br/>购物车备份]
+    end
+    
+    subgraph 消息层["消息层"]
+        Kafka[Kafka<br/>order.created]
+    end
+    
+    %% 购物车路径（弱一致）
+    User -->|加购/查看| Gateway
+    Gateway -->|路由| CartService
+    CartService -->|HSET/HGETALL| Redis
+    CartService -.->|异步同步| CartDB
+    CartService -.->|批量查商品<br/>超时降级| ProductRead
+    CartService -.->|可选| PriceDisplay
+    CartService -.->|可选| InvStatus
+    CartService -->|响应| Gateway
+    
+    %% 结算页路径（强一致 + 预占）
+    User -->|进入结算| Gateway
+    Gateway -->|路由| CheckoutOrch
+    CheckoutOrch -->|试算<br/>不锁价| PriceTrial
+    CheckoutOrch -->|预占15min<br/>超时释放| InvReserve
+    CheckoutOrch -->|校验<br/>不扣券| MktValidate
+    CheckoutOrch -->|查询| AddressServ
+    
+    %% 提交订单路径
+    User -->|提交订单| CheckoutOrch
+    CheckoutOrch -->|幂等判断| IdempotencyCheck
+    IdempotencyCheck -->|Redis SET NX| Redis
+    CheckoutOrch -->|创建订单<br/>传snapshot_id<br/>+reserve_ids| Order
+    Order -->|确认预占| InvReserve
+    Order -->|扣券| MktValidate
+    Order -->|order_id| CheckoutOrch
+    CheckoutOrch -->|跳转支付| Payment
+    
+    %% 异步清理
+    Order -->|order.created| Kafka
+    Kafka -->|消费| CartWorker
+    CartWorker -->|清理已下单SKU| CartService
+    
+    %% 样式
+    classDef cartDomain fill:#e1f5ff,stroke:#0288d1,stroke-width:3px
+    classDef checkoutDomain fill:#fff3e0,stroke:#f57c00,stroke-width:3px
+    classDef readDep fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef strongDep fill:#ffebee,stroke:#d32f2f,stroke-width:2px
+    
+    class CartService,CartWorker cartDomain
+    class CheckoutOrch,IdempotencyCheck checkoutDomain
+    class ProductRead,PriceDisplay,InvStatus readDep
+    class PriceTrial,InvReserve,MktValidate,AddressServ strongDep
+```
+
+**关键边界**：
+
+| 边界类型 | 购物车域 | 结算域 |
+|---------|---------|--------|
+| **资源锁定** | ❌ 不锁定任何资源 | ✅ 预占库存 15 分钟 |
+| **一致性** | 弱一致（展示可滞后） | 强一致（实时校验） |
+| **与订单关系** | 独立生命周期（可长期保留） | 订单前置状态（用完即焚） |
+| **计价调用** | 可选（展示价仅供参考） | 必须（试算生成快照） |
+| **库存调用** | 可选（展示有货/售罄） | 必须（预占 reserve_id） |
+| **营销调用** | ❌ 不查询优惠 | ✅ 校验可用（不扣券） |
+| **拆单责任** | ❌ 无 | ✅ 预览拆单（轻量） |
+
+#### （3）商品中心（2）边界
+
+**系统定位**：电商基础数据层核心，提供 SPU/SKU 数据服务、商品快照、搜索索引同步。
+
+**关键边界**：
+
+| 依赖方向 | 系统 | 调用接口 | 边界说明 |
+|---------|------|---------|---------|
+| **被调用** | 搜索导购（12） | `POST /product/batch-get`（批量查商品） | 返回标题、图片、状态；**不返回价格**（由计价提供） |
+| **被调用** | 购物车（13） | `POST /product/batch-get`（购物车展示） | 返回商品基础信息；**不做库存校验** |
+| **被调用** | 结算域（13） | `GET /product/snapshot/{id}`（查询快照） | 返回商品快照；**不做价格计算** |
+| **被调用** | 订单系统（7） | `POST /product/create-snapshot`（创建快照） | 生成快照 ID；**快照只读**，订单持有 ID |
+| **被调用** | 上架系统（9） | `POST /product/create`（创建商品） | 创建 SPU/SKU；**不做审核**（由上架系统管理状态） |
+| **被调用** | B端运营（10） | `POST /product/batch-update`（批量编辑） | 更新商品信息；**不做价格库存更新**（调用各自系统） |
+| **主动调用** | Elasticsearch | 发布 `product.created/updated` 事件 → Kafka | 搜索系统消费事件更新索引 |
+| **主动调用** | Redis 缓存 | 写入多级缓存 | L1 本地 + L2 Redis + L3 MySQL |
+
+**商品中心不做什么**：
+- ❌ 不做库存扣减（由库存系统负责）
+- ❌ 不做价格计算（由计价引擎负责）
+- ❌ 不做审核流程（由上架系统负责）
+- ❌ 不做搜索索引维护（发事件，由搜索系统消费）
+
+### 1.6.4 数据流向与事件总线
+
+#### Kafka 事件发布与订阅关系
+
+| 事件 Topic | 发布者 | 订阅者 | 事件内容 | 用途 |
+|-----------|--------|--------|---------|------|
+| `product.created` | 商品中心（2） | 搜索导购（12） | `{spu_id, sku_id, title, category_id, status}` | 新建商品索引 |
+| `product.updated` | 商品中心（2）<br/>生命周期（11） | 搜索导购（12） | `{sku_id, updated_fields}` | 更新商品索引 |
+| `product.delisted` | 生命周期（11） | 搜索导购（12） | `{sku_id, reason}` | 下架商品（更新 status） |
+| `listing.approved` | 商品上架（9） | 商品中心（2）<br/>搜索导购（12） | `{task_id, sku_id, status}` | 上架成功，创建商品+索引 |
+| `order.created` | 订单系统（7） | 购物车（13）<br/>库存系统（3） | `{order_id, user_id, items[]}` | 清理购物车、确认库存 |
+| `order.paid` | 支付系统（8） | 订单系统（7）<br/>营销系统（4） | `{order_id, payment_id}` | 更新订单状态、核销券 |
+| `inventory.reserved` | 库存系统（3） | 订单系统（7） | `{reserve_id, sku_id, quantity, expires_at}` | 库存预占成功 |
+| `inventory.insufficient` | 库存系统（3） | 结算域（13） | `{sku_id, requested, available}` | 库存不足通知 |
+
+#### 同步调用 vs 异步事件
+
+| 场景 | 实现方式 | 原因 |
+|------|---------|------|
+| **结算页试算价格** | 同步 RPC | 用户等待结果，需要立即返回 |
+| **结算页预占库存** | 同步 RPC | 必须确认预占成功才能进入下一步 |
+| **订单创建成功** | 异步 Kafka | 清理购物车可延迟，不阻塞订单返回 |
+| **商品信息变更** | 异步 Kafka | 索引更新可最终一致，不阻塞商品编辑 |
+| **支付成功回调** | 同步 RPC + 异步补偿 | 支付回调需立即更新订单状态；补偿任务异步处理 |
+
+### 1.6.5 系统集成反模式（避免常见错误）
+
+| 反模式 | 为什么错 | 正确做法 |
+|--------|----------|----------|
+| 购物车预占库存 | 用户可能长期不结算，预占资源浪费 | 购物车只读展示；预占在结算页 |
+| 搜索系统存储商品主数据 | 数据重复，不一致风险高 | 搜索系统只存 ES 索引；查商品调商品中心 |
+| 结算页实现计价规则 | 规则散落多处，难以统一 | 调用计价引擎接口；结算页只编排 |
+| 结算页直接扣券 | 订单创建失败时难以回滚 | 结算页只校验可用；扣券在订单创建 |
+| 商品中心做审核 | 审核流程与数据存储耦合 | 审核由上架系统负责；商品中心只存数据 |
+| 搜索系统同步调用计价 | 列表页性能差（N 次 RPC） | 批量 hydrate；超时可降级展示索引价 |
+| 订单系统管理购物车 | 职责不清，购物车可独立存在 | 订单系统只创建订单；购物车独立服务 |
+
+### 1.6.6 各系统详细边界矩阵
+
+#### 商品中心系统（2）
+
+| 维度 | 详细说明 |
+|------|----------|
+| **核心职责** | SPU/SKU 数据模型、类目树、属性管理、商品快照、多级缓存 |
+| **上游依赖** | 无（基础数据层） |
+| **下游调用方** | 搜索（12）、购物车（13）、结算域（13）、订单（7）、上架（9）、运营（10）、生命周期（11） |
+| **提供的接口** | `GET /product/{id}` 单个查询<br>`POST /product/batch-get` 批量查询<br>`POST /product/create-snapshot` 创建快照<br>`GET /product/snapshot/{id}` 查询快照 |
+| **发布的事件** | `product.created`、`product.updated`、`product.delisted` |
+| **存储** | MySQL（主数据）+ Redis（缓存）+ ES（索引，由搜索系统维护） |
+| **一致性** | 强一致（主数据写入）；缓存最终一致 |
+| **不做什么** | ❌ 不做库存扣减<br>❌ 不做价格计算<br>❌ 不做审核流程<br>❌ 不维护 ES 索引 |
+
+#### 库存系统（3）
+
+| 维度 | 详细说明 |
+|------|----------|
+| **核心职责** | 库存预占/扣减/回补、对账、供应商同步、(ManagementType, UnitType) 策略 |
+| **上游依赖** | 商品中心（2）查询商品信息 |
+| **下游调用方** | 结算域（13）、订单（7）、搜索（12，可选）、购物车（13，可选） |
+| **提供的接口** | `POST /inventory/reserve` 预占库存（15 分钟）<br>`POST /inventory/confirm-reserve` 确认扣减<br>`POST /inventory/release-reserve` 释放预占<br>`POST /inventory/batch-status` 批量查状态 |
+| **订阅的事件** | `order.created`（确认扣减）、`order.cancelled`（回补库存） |
+| **发布的事件** | `inventory.reserved`、`inventory.insufficient`、`inventory.sold` |
+| **存储** | Redis（主，热路径）+ MySQL（备，权威数据） |
+| **一致性** | 强一致（预占与扣减）；Redis ↔ MySQL 最终一致 |
+| **不做什么** | ❌ 不做价格校验<br>❌ 不做营销规则<br>❌ 不管理商品主数据 |
+
+#### 计价引擎（5-6）
+
+| 维度 | 详细说明 |
+|------|----------|
+| **核心职责** | 价格计算（Base + Promotion + Fee + Voucher）、价格快照、DDD 实践 |
+| **上游依赖** | 商品中心（2）查商品基础价、营销系统（4）查活动规则 |
+| **下游调用方** | 搜索（12）、购物车（13，可选）、结算域（13）、订单（7） |
+| **提供的接口** | `POST /pricing/calculate` 单个计价<br>`POST /pricing/batch-calculate` 批量计价（列表页）<br>`POST /pricing/trial-calculate` 结算页试算<br>`GET /pricing/snapshot/{id}` 查询快照 |
+| **订阅的事件** | `product.updated`（价格变更）、`marketing.activity-updated`（活动变更） |
+| **发布的事件** | `pricing.snapshot-created` |
+| **存储** | MySQL（价格配置 + 快照）+ Redis（缓存） |
+| **一致性** | 强一致（试算时）；展示价可最终一致 |
+| **不做什么** | ❌ 不做库存扣减<br>❌ 不做订单创建<br>❌ 不管理快照过期（调用方校验） |
+
+#### 营销系统（4）
+
+| 维度 | 详细说明 |
+|------|----------|
+| **核心职责** | 优惠券、活动管理、圈品规则、补贴、配额管理 |
+| **上游依赖** | 商品中心（2）查商品类目（圈品判断） |
+| **下游调用方** | 结算域（13）、订单（7）、搜索（12，圈品标签） |
+| **提供的接口** | `POST /marketing/validate-coupons` 校验券可用<br>`POST /marketing/deduct-coupons` 扣券<br>`GET /marketing/activity-tags` 活动标签（列表页） |
+| **订阅的事件** | `order.created`（扣券）、`order.cancelled`（回退券） |
+| **发布的事件** | `marketing.coupon-deducted`、`marketing.activity-updated` |
+| **存储** | MySQL（券配置 + 用户券）+ Redis（配额） |
+| **一致性** | 强一致（扣券时）；活动标签可最终一致 |
+| **不做什么** | ❌ 不做价格计算（提供规则给计价引擎）<br>❌ 不做库存校验 |
+
+#### 订单系统（7）
+
+| 维度 | 详细说明 |
+|------|----------|
+| **核心职责** | 订单创建、状态机、拆单、履约编排、订单查询 |
+| **上游依赖** | 商品中心（2）快照、计价（5）快照 ID、库存（3）确认预占、营销（4）扣券 |
+| **下游调用方** | 支付系统（8）、结算域（13）调用创建接口 |
+| **提供的接口** | `POST /order/create` 创建订单<br>`GET /order/{id}` 查询订单<br>`POST /order/cancel` 取消订单<br>`POST /order/split-preview` 拆单预览 |
+| **订阅的事件** | `payment.paid`（更新订单状态）、`inventory.sold`（确认履约） |
+| **发布的事件** | `order.created`、`order.paid`、`order.cancelled` |
+| **存储** | MySQL（订单主表 + 子订单 + 订单项） |
+| **一致性** | 强一致（订单创建事务）；与库存/营销通过 Saga 补偿 |
+| **不做什么** | ❌ 不做支付（调支付接口）<br>❌ 不做计价（使用快照 ID）<br>❌ 不管理购物车 |
+
+#### 支付系统（8）
+
+| 维度 | 详细说明 |
+|------|----------|
+| **核心职责** | 支付流程、退款、清结算、对账、多渠道路由 |
+| **上游依赖** | 订单系统（7）查订单金额 |
+| **下游调用方** | 结算域（13）跳转支付、订单（7）查询支付状态 |
+| **提供的接口** | `POST /payment/create` 创建支付单<br>`GET /payment/{id}` 查询支付状态<br>`POST /payment/refund` 退款 |
+| **订阅的事件** | `order.created`（创建支付单）、`order.cancelled`（取消支付） |
+| **发布的事件** | `payment.paid`、`payment.refunded` |
+| **存储** | MySQL（支付单 + 支付流水） |
+| **一致性** | 强一致（支付事务）；与第三方支付通过异步回调 + 补偿 |
+| **不做什么** | ❌ 不做订单管理<br>❌ 不做库存管理<br>❌ 不做价格计算 |
+
+#### 商品上架系统（9）
+
+| 维度 | 详细说明 |
+|------|----------|
+| **核心职责** | 审核流程、发布、状态机编排、供应商对接 |
+| **上游依赖** | 无（B 端入口） |
+| **下游调用方** | 商品中心（2）创建商品、库存（3）初始化、计价（5）配置价格 |
+| **提供的接口** | `POST /listing/create-task` 创建上架任务<br>`POST /listing/approve` 审核通过<br>`GET /listing/task/{id}` 查询任务状态 |
+| **订阅的事件** | 无 |
+| **发布的事件** | `listing.approved`、`listing.rejected` |
+| **存储** | MySQL（上架任务表 + 审核记录） |
+| **一致性** | 强一致（状态机流转） |
+| **不做什么** | ❌ 不存储商品数据（写入商品中心）<br>❌ 不做价格计算<br>❌ 不管理库存 |
+
+#### B端运营系统（10）
+
+| 维度 | 详细说明 |
+|------|----------|
+| **核心职责** | 批量管理界面、配置工具、数据看板、操作日志 |
+| **上游依赖** | 商品中心（2）、库存（3）、营销（4）、计价（5） |
+| **下游调用方** | 无（管理界面） |
+| **提供的接口** | `POST /ops/batch-update-product` 批量编辑商品<br>`POST /ops/batch-adjust-inventory` 批量调整库存<br>`POST /ops/batch-adjust-price` 批量调价 |
+| **订阅的事件** | 无 |
+| **发布的事件** | `ops.batch-updated`（触发索引更新） |
+| **存储** | MySQL（操作日志） |
+| **一致性** | 调用各系统接口，继承各系统一致性 |
+| **不做什么** | ❌ 不实现业务规则（调用各系统接口）<br>❌ 不做审核流程 |
+
+#### 生命周期管理（11）
+
+| 维度 | 详细说明 |
+|------|----------|
+| **核心职责** | 同步管理、编辑权限、下架原因、操作语义 |
+| **上游依赖** | 商品中心（2）、上架（9）状态、运营（10）操作 |
+| **下游调用方** | 商品中心（2）更新状态 |
+| **提供的接口** | `POST /lifecycle/sync` 触发同步<br>`POST /lifecycle/delist` 下架商品<br>`GET /lifecycle/status/{id}` 查询状态 |
+| **订阅的事件** | `listing.approved`（上架成功） |
+| **发布的事件** | `product.delisted`、`product.updated` |
+| **存储** | MySQL（状态记录 + 操作历史） |
+| **一致性** | 强一致（状态更新） |
+| **不做什么** | ❌ 不做审核（引用上架系统）<br>❌ 不做真正拆单 |
+
+### 1.6.7 系统集成调用链路图（C 端下单全流程）
+
+下图展示用户从 **浏览商品 → 加购 → 结算 → 下单 → 支付** 的完整系统调用链路：
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant G as API Gateway
+    participant S as 搜索导购 12
+    participant C as 购物车 13
+    participant CH as 结算域 13
+    participant PR as 商品中心 2
+    participant PC as 计价引擎 5
+    participant IN as 库存系统 3
+    participant MK as 营销系统 4
+    participant OR as 订单系统 7
+    participant PA as 支付系统 8
+    participant K as Kafka
+    
+    Note over U,K: Phase 1: 浏览与搜索（读路径）
+    U->>G: 搜索"无线耳机"
+    G->>S: Query
+    S->>S: Query理解（归一化）
+    S->>S: ES召回 + 排序
+    S->>PR: 批量查商品（DocIDs）
+    S->>PC: 批量计价（可选）
+    S->>IN: 批量查库存（可选）
+    S-->>U: 商品列表
+    
+    Note over U,K: Phase 2: 加购（弱一致）
+    U->>G: 加入购物车
+    G->>C: POST /cart/add
+    C->>C: Redis HSET
+    C -.->PR: 查商品信息
+    C-->>U: 加购成功
+    
+    Note over U,K: Phase 3: 结算页（强一致 + 预占）
+    U->>G: 进入结算页
+    G->>CH: GET /checkout/init
+    
+    par 并发调用（独立超时）
+        CH->>PC: 试算价格（800ms）
+        PC-->>CH: price_snapshot_id
+        CH->>IN: 预占库存（500ms）
+        IN-->>CH: reserve_ids
+        CH->>MK: 校验优惠（300ms）
+        MK-->>CH: 可用券列表
+    end
+    
+    CH-->>U: 结算页（含价格/库存/优惠）
+    
+    Note over U,K: Phase 4: 提交订单（Saga编排）
+    U->>G: 提交订单（idempotency_key）
+    G->>CH: POST /checkout/submit
+    CH->>CH: Redis SET NX 去重
+    CH->>OR: POST /order/create<br/>(snapshot_id + reserve_ids)
+    
+    OR->>IN: 确认预占
+    IN-->>OR: 扣减成功
+    OR->>MK: 扣券
+    MK-->>OR: 扣券成功
+    OR->>OR: 创建订单记录
+    OR->>K: 发布 order.created
+    OR-->>CH: order_id
+    CH-->>U: 跳转支付
+    
+    Note over U,K: Phase 5: 支付（异步通知）
+    U->>PA: 扫码支付
+    PA-->>OR: 支付回调 payment.paid
+    OR->>K: 发布 order.paid
+    
+    K-->>C: 消费 order.created
+    C->>C: 清理购物车已下单 SKU
+```
+
+**关键调用约束**：
+
+| 调用方 | 被调用方 | 超时时间 | 重试策略 | 失败降级 |
+|--------|----------|----------|----------|----------|
+| 搜索 → 商品中心 | 批量查商品 | 200ms | 0 次 | 展示"商品已失效" |
+| 搜索 → 计价引擎 | 批量计价 | 300ms | 0 次 | 展示索引价或不展示价格 |
+| 购物车 → 商品中心 | 批量查商品 | 500ms | 0 次 | 标记"商品已失效" |
+| 结算域 → 计价引擎 | 试算价格 | 800ms | 0 次 | **不可降级**，返回错误 |
+| 结算域 → 库存系统 | 预占库存 | 500ms | 1 次 | **不可降级**，返回错误 |
+| 结算域 → 营销系统 | 校验券 | 300ms | 0 次 | 可降级，隐藏优惠 |
+| 订单 → 库存系统 | 确认预占 | 1000ms | 3 次 | 重试失败则订单创建失败 |
+| 订单 → 营销系统 | 扣券 | 1000ms | 3 次 | 失败则回滚库存 |
+
+### 1.6.8 B 端管理链路图（供给与运营）
+
+下图展示 B 端 **商品供给 → 日常运营** 的系统调用链路：
+
+```mermaid
+sequenceDiagram
+    participant M as 商家/运营
+    participant G as API Gateway
+    participant L as 商品上架 9
+    participant PR as 商品中心 2
+    participant IN as 库存系统 3
+    participant PC as 计价引擎 5
+    participant LC as 生命周期 11
+    participant OP as B端运营 10
+    participant K as Kafka
+    participant S as 搜索导购 12
+    
+    Note over M,S: 阶段 1: 商品供给（从无到有）
+    M->>G: 提交上架任务
+    G->>L: POST /listing/create-task
+    L->>L: 状态机：DRAFT → PENDING_AUDIT
+    L->>L: 审核通过：AUDIT_APPROVED
+    
+    L->>PR: POST /product/create<br/>(创建 SPU/SKU)
+    PR-->>L: spu_id, sku_id
+    L->>IN: POST /inventory/init<br/>(初始化库存)
+    L->>PC: POST /pricing/config<br/>(配置基础价格)
+    
+    L->>L: 状态机：ONLINE
+    L->>K: 发布 listing.approved
+    K-->>S: 消费事件
+    S->>S: 创建 ES 索引文档
+    L-->>M: 上架成功
+    
+    Note over M,S: 阶段 2: 商品管理（日常维护）
+    M->>G: 商品信息编辑
+    G->>OP: POST /ops/batch-update
+    OP->>PR: 更新商品信息
+    OP->>K: 发布 product.updated
+    K-->>S: 消费事件
+    S->>S: 更新 ES 索引
+    
+    M->>G: 价格调整
+    G->>OP: POST /ops/adjust-price
+    OP->>PC: 更新价格配置
+    
+    M->>G: 库存调整
+    G->>OP: POST /ops/adjust-inventory
+    OP->>IN: 调整库存数量
+    
+    Note over M,S: 阶段 3: 下架管理
+    M->>G: 下架商品
+    G->>LC: POST /lifecycle/delist
+    LC->>PR: 更新 status=OFFLINE
+    LC->>K: 发布 product.delisted
+    K-->>S: 消费事件
+    S->>S: 更新 ES status 或删除文档
+```
+
+### 1.6.9 系统间数据流向总表
+
+| 数据类型 | 权威系统 | 同步到 | 同步方式 | 延迟 | 一致性 |
+|---------|---------|--------|----------|------|--------|
+| **商品主数据** | 商品中心（2） | ES（搜索）、Redis（缓存） | Kafka 异步 | 秒级 | 最终一致 |
+| **库存数量** | 库存系统（3） | Redis、MySQL | 双写 | 实时 | 强一致 |
+| **价格配置** | 计价引擎（5） | Redis（缓存） | 主动写入 | 实时 | 强一致 |
+| **价格快照** | 计价引擎（5） | 订单（7）持有快照 ID | RPC 同步 | 实时 | 强一致 |
+| **商品快照** | 商品中心（2） | 订单（7）持有快照 ID | RPC 同步 | 实时 | 强一致 |
+| **库存预占** | 库存系统（3） | 订单（7）持有 reserve_id | RPC 同步 | 实时 | 强一致 |
+| **优惠券状态** | 营销系统（4） | Redis、MySQL | 双写 | 实时 | 强一致 |
+| **订单状态** | 订单系统（7） | MySQL | 主动写入 | 实时 | 强一致 |
+| **购物车数据** | 购物车（13） | Redis（主）、MySQL（备） | 主动写 + 异步同步 | 秒级 | 最终一致 |
+
+### 1.6.10 系统边界设计原则（Six Principles）
+
+**1. 职责单一原则（Single Responsibility）**
+
+每个系统只负责一个核心领域：
+- 商品中心：只管 SPU/SKU 数据
+- 库存系统：只管库存数量
+- 计价引擎：只管价格计算
+- 订单系统：只管订单状态机
+
+**2. 数据所有权原则（Data Ownership）**
+
+每个数据实体只有一个 **权威系统**：
+- 商品主数据 → 商品中心
+- 库存数量 → 库存系统
+- 价格配置 → 计价引擎
+- 订单记录 → 订单系统
+
+**3. 编排不实现原则（Orchestration Not Implementation）**
+
+编排器（结算域、上架系统）**只调用接口**，不实现业务规则：
+- 结算域调用计价接口，不实现计价规则
+- 上架系统调用商品接口，不存储商品数据
+
+**4. 同步查询异步写入原则（Sync Read Async Write）**
+
+- **同步调用**：用户等待的读操作（查商品、试算价格、预占库存）
+- **异步事件**：不阻塞用户的写操作（索引更新、购物车清理）
+
+**5. 快照与引用原则（Snapshot By Reference）**
+
+不复制完整数据，只持有 **快照 ID**：
+- 订单持有 `price_snapshot_id`（不复制价格明细）
+- 订单持有 `reserve_id`（不复制库存记录）
+
+**6. 补偿优于事务原则（Compensation Over Transaction）**
+
+跨系统操作用 **Saga 补偿** 而非分布式事务：
+- 结算页预占失败 → 释放已锁定资源
+- 订单创建失败 → 回滚库存与营销
+
+### 1.6.11 读路径 vs 写路径对比
+
+| 维度 | 读路径（搜索/购物车） | 写路径（结算/订单） |
+|------|---------------------|-------------------|
+| **典型系统** | 搜索导购（12）、购物车（13-A） | 结算域（13-B）、订单（7）、支付（8） |
+| **QPS 特点** | 高（10k～100k） | 相对低（1k～10k） |
+| **一致性要求** | 最终一致（索引滞后可接受） | 强一致（库存/价格实时） |
+| **超时容忍** | 高（部分降级可接受） | 低（不允许降级） |
+| **缓存策略** | 多级缓存（L1 + L2 + L3） | 直查权威数据 |
+| **资源锁定** | ❌ 不锁定 | ✅ 预占库存、锁价格 |
+| **依赖外部系统** | 批量查询（可降级） | 同步 RPC（不可降级） |
+| **数据来源** | ES 索引 + Redis 缓存 | MySQL 主库 + Redis |
+| **失败重试** | 0 次（返回部分结果） | 3 次（重试 + 补偿） |
+
+**核心差异**：
+- **读路径追求吞吐**：用缓存、降级、异步换性能
+- **写路径追求准确**：用同步、重试、补偿保证一致
+
+### 1.6.12 常见集成陷阱与避免方案
+
+| 陷阱 | 场景 | 后果 | 避免方案 |
+|------|------|------|----------|
+| **循环依赖** | 商品中心 ↔ 库存系统互相调用 | 启动死锁、级联故障 | 明确依赖方向；库存只依赖商品，不反向调用 |
+| **同步调用超时** | 搜索系统同步调用计价计算列表价 | 列表页 P99 > 1s | 批量 hydrate；超时降级 |
+| **数据重复存储** | 搜索系统存储商品全量字段 | 数据不一致；存储成本高 | 搜索只存索引；查详情调商品中心 |
+| **跨库事务** | 订单创建时开启跨商品/库存/营销的分布式事务 | 死锁、性能差 | 用 Saga 补偿；本地事务 + 消息 |
+| **缓存穿透** | 商品不存在时仍查 MySQL | 缓存击穿；DB 压力大 | 缓存空值（5 分钟 TTL） |
+| **热点商品** | 秒杀商品库存查询集中 | Redis 单 Key 热点 | 库存分片；本地缓存 |
+| **未幂等接口** | 支付回调重复处理 | 重复扣券、重复扣库存 | Redis SET NX 去重；DB 唯一索引 |
+| **慢查询拖累** | 订单详情查询关联 10 张表 | 单个慢查询拖垮整个服务 | 异步补全；查询超时熔断 |
+| **依赖方雪崩** | 计价引擎故障 → 结算页不可用 → 订单下跌 | 级联故障 | 熔断降级；返回缓存价格 |
+| **事件乱序** | Kafka 消费 product.updated 乱序到达 | 索引版本错乱 | 事件带 version；消费端去重 |
+
+### 1.6.13 系统边界落地检查清单（Code Review 必查）
+
+**1. 接口定义检查**
+
+- [ ] 接口是否明确 **职责边界**？（不做本系统不该做的事）
+- [ ] 接口是否 **幂等**？（支持重复调用）
+- [ ] 接口是否有 **超时配置**？（避免无限等待）
+- [ ] 接口是否有 **降级策略**？（失败时的后备方案）
+- [ ] 接口文档是否包含 **失败场景**？（不只写成功 case）
+
+**2. 数据依赖检查**
+
+- [ ] 是否直接存储 **其他系统的主数据**？（应只持有 ID 或快照 ID）
+- [ ] 是否有 **循环依赖**？（A 依赖 B，B 又依赖 A）
+- [ ] 是否有 **未授权的跨库查询**？（直接查其他系统的 DB）
+- [ ] 缓存失效是否会 **雪崩**？（应有多级缓存 + 降级）
+- [ ] 数据同步是否 **异步**？（不阻塞主流程）
+
+**3. 事务与一致性检查**
+
+- [ ] 跨系统操作是否用 **Saga 补偿**？（不用分布式事务）
+- [ ] 失败是否有 **回滚逻辑**？（释放预占资源）
+- [ ] 是否有 **补偿任务**？（处理极端失败场景）
+- [ ] 消息消费是否 **幂等**？（Kafka 重复消费）
+- [ ] 状态流转是否 **原子**？（用数据库事务 + 乐观锁）
+
+**4. 性能与可观测性检查**
+
+- [ ] 批量接口是否有 **数量上限**？（防止单次查询过大）
+- [ ] 慢查询是否有 **索引**？（explain 分析）
+- [ ] 关键路径是否有 **Trace ID**？（链路追踪）
+- [ ] 是否埋点 **业务指标**？（成功率、P99、零结果率）
+- [ ] 是否有 **降级开关**？（线上可动态调整）
+
+### 1.6.14 面试高频问答：系统边界
+
+**Q1: 商品中心和商品上架系统有什么区别？**
+
+A: 
+- **商品中心**（2）：存储 SPU/SKU **数据**（标题、属性、类目、快照）
+- **商品上架系统**（9）：管理上架 **流程**（审核、状态机、供应商对接）
+- **边界**：上架系统不存储商品数据，审核通过后调用商品中心接口创建商品
+
+**Q2: 价格存在哪个系统？商品中心存价格吗？**
+
+A:
+- **价格配置** → 计价引擎（5）存储
+- **商品中心** → ❌ 不存价格（避免不一致）
+- **展示价** → 搜索系统调用计价引擎批量计算；订单持有 `price_snapshot_id`
+
+**Q3: 购物车和结算页有什么本质区别？**
+
+A:
+
+| 维度 | 购物车（13-A） | 结算页（13-B） |
+|------|---------------|---------------|
+| **职责** | 暂存商品，方便用户选购 | 编排下单前的预占与校验 |
+| **一致性** | 弱一致（展示可滞后） | 强一致（实时校验） |
+| **资源锁定** | ❌ 不锁库存、不锁价格 | ✅ 预占库存 15 分钟 |
+| **生命周期** | 长期保留（跨设备） | 用完即焚（订单创建后失效） |
+| **计价调用** | 可选（仅供参考） | 必须（生成快照） |
+
+**Q4: 结算页为什么不直接扣券？**
+
+A:
+- **原因**：订单创建可能失败（库存不足、系统异常），扣券后难以回滚
+- **正确做法**：
+  - 结算页：**校验券可用**（调用 `validate-coupons`）
+  - 订单创建时：**真正扣券**（调用 `deduct-coupons`）
+  - 失败时：**自动回退**（营销系统内部处理）
+
+**Q5: 搜索系统存储商品数据吗？**
+
+A:
+- ❌ 不存主数据（只存 ES 索引）
+- 索引包含：`sku_id, title, price_range, category_id, status`（搜索必要字段）
+- 详细信息：批量调用商品中心 `POST /product/batch-get`
+- **边界**：搜索系统 **不是** 商品数据源，只是索引服务
+
+**Q6: 订单系统如何获取价格？为什么不自己计算？**
+
+A:
+- **不自己计算**：避免计价规则散落多处（促销、费用、券的计算逻辑复杂）
+- **使用快照 ID**：结算页调用计价引擎生成 `price_snapshot_id`，订单持有 ID
+- **快照内容**：完整价格明细（Base、Promotion、Fee、Voucher、Final）
+- **查询快照**：`GET /pricing/snapshot/{id}`（30 分钟有效期）
+
+**Q7: 库存预占在哪个系统？谁调用预占接口？**
+
+A:
+- **预占接口** → 库存系统（3）`POST /inventory/reserve`
+- **调用方** → 结算域（13）在结算页调用
+- **确认接口** → 订单系统（7）创建订单时调用 `POST /inventory/confirm-reserve`
+- **超时释放** → 库存系统内部定时任务，15 分钟未确认自动释放
+
+**Q8: 商品信息变更如何同步到搜索？**
+
+A:
+1. 商品中心发布 `product.updated` 事件 → Kafka
+2. 搜索系统消费事件 → 更新 ES 索引
+3. **异步延迟**：秒级（可接受）
+4. **产品话术**："价格以详情页为准"（索引价仅供参考）
+5. **对账机制**：定时全量比对商品中心与 ES 差异
+
+**Q9: 为什么要有生命周期管理系统（11）？**
+
+A:
+- **背景**：商品数据（商品中心）与流程（上架系统）分离，需要协调
+- **职责**：
+  - 统一管理 **同步、编辑、下架** 的语义（谁能改、如何改）
+  - 处理 **供应商同步** vs **运营编辑** 的冲突
+  - 管理 **下架原因**（售罄、审核、违规）
+- **边界**：不存储商品数据，只管理 **操作权限** 与 **状态流转**
+
+**Q10: 跨系统调用失败怎么办？**
+
+A:
+
+| 系统 | 调用 | 失败策略 | 原因 |
+|------|------|----------|------|
+| 搜索 → 计价 | 批量计价 | 降级：展示索引价 | 不影响列表返回 |
+| 购物车 → 商品 | 查商品 | 降级：标记"商品失效" | 不阻塞购物车展示 |
+| 结算 → 计价 | 试算 | **不降级**：返回错误 | 价格错误不允许下单 |
+| 结算 → 库存 | 预占 | **不降级**：返回错误 | 库存不足不允许下单 |
+| 订单 → 库存 | 确认 | **重试 3 次**：失败则订单失败 | 必须扣减库存 |
+
+**Q11: 系统边界设计有哪些反模式？**
+
+A:
+
+| 反模式 | 错在哪里 | 正确做法 |
+|--------|----------|----------|
+| 购物车预占库存 | 资源浪费（用户可能长期不结算） | 预占在结算页（15 分钟） |
+| 结算页实现计价规则 | 规则散落多处（难以统一） | 调用计价引擎 |
+| 结算页直接扣券 | 订单失败时难以回滚 | 结算页校验可用；订单创建时扣 |
+| 搜索系统存主数据 | 数据重复、不一致 | 只存索引；查详情调商品中心 |
+| 订单管理购物车 | 职责不清 | 购物车独立服务 |
+
+---
+
 ### 1.5 B端商品生命周期操作全景
 
 **关键问题**：商品上架、商品信息编辑、价格编辑、上传库存、库存修改，这些操作属于什么模块？
