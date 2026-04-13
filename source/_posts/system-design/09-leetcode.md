@@ -990,12 +990,11 @@ toc: true
   - [474. 一和零](https://leetcode.cn/problems/ones-and-zeroes)【模式：二维费用背包；`dp[i][j]` 表示 `i` 个 0 和 `j` 个 1 的最大字符串数】
 
 #### B. 完全背包 (每个物品无限件)
-  - [322. 零钱兑换](https://leetcode.cn/problems/coin-change)【模式：完全背包；求凑成总金额的最少硬币数；`dp[j] = min(dp[j], dp[j-coin] + 1)`】
-  - [518. 零钱兑换 II](https://leetcode.cn/problems/coin-change-ii)【模式：完全背包；求凑成总金额的组合数；`dp[j] += dp[j-coin]`】
-  - [279. 完全平方数](https://leetcode.cn/problems/perfect-squares)【模式：完全背包；物品是平方数，容量是 `n`】
-  - [139. 单词拆分](https://leetcode.cn/problems/word-break)【模式：完全背包 / 线性 DP；判断字符串能否由字典构成】
-  - [1449. 数位成本和为目标值的最大数字](https://leetcode.cn/problems/form-largest-integer-with-digits-that-add-up-to-target)
-  - [377. 组合总和 Ⅳ](https://leetcode.cn/problems/combination-sum-iv)【模式：排列数 DP；核心：求和为 target 的排列个数，`dp[i] = sum(dp[i - num])`，完全背包求排列问题】
+  - [322. 零钱兑换](https://leetcode.cn/problems/coin-change)【模式：完全背包（最值问题）；求凑成总金额的最少硬币数；`dp[j] = min(dp[j], dp[j-coin] + 1)`】
+  - [518. 零钱兑换 II](https://leetcode.cn/problems/coin-change-ii)【模式：完全背包（组合问题）；求凑成总金额的组合数；`dp[j] += dp[j-coin]`】
+  - [279. 完全平方数](https://leetcode.cn/problems/perfect-squares)【模式：完全背包（最值问题）；物品是平方数，容量是 `n`】
+  - [139. 单词拆分](https://leetcode.cn/problems/word-break)【模式：完全背包（排列问题） / 线性 DP；判断字符串能否由字典构成】
+  - [377. 组合总和 Ⅳ](https://leetcode.cn/problems/combination-sum-iv)【模式：完全背包（排列问题）；核心：求和为 target 的排列个数，`dp[i] = sum(dp[i - num])`】
 
 #### C. 多重/分组背包
   - [1155. 掷骰子等于目标和的方法数](https://leetcode.cn/problems/number-of-dice-rolls-with-target-sum)【模式：分组背包；每颗骰子是一组物品，每组只能选一个面】
