@@ -12,7 +12,7 @@ tags:
   - data-consistency
 ---
 
-> **电商系统设计（十一）**（衔接[（九）商品上架系统](/system-design/21-ecommerce-listing/)与[（十）B 端运营系统](/system-design/25-ecommerce-b-side-ops/)，总索引见[（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)）
+> **电商系统设计（十一）**（衔接[（九）商品上架系统](/system-design/21-ecommerce-listing/)与[（十）B 端运营系统](/system-design/25-ecommerce-b-side-ops/)，总索引见[（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)；续篇：[（十二）搜索与导购](/system-design/31-ecommerce-search-discovery/)）
 
 ## 引言：为什么需要区分三种操作场景
 
