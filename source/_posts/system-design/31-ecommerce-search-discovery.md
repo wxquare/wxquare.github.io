@@ -49,6 +49,7 @@ tags:
 ## 目录
 
 - [1. 系统定位、范围与非目标](#1-系统定位范围与非目标)
+  - [1.5 系统边界与交互全景](#15-系统边界与交互全景)
 - [2. 统一导购查询服务（方案 1）](#2-统一导购查询服务方案-1)
 - [3. 主链路：Query → Recall → Rank → Hydrate](#3-主链路query--recall--rank--hydrate)
 - [4. Elasticsearch 专题（方案 3）](#4-elasticsearch-专题方案-3)
@@ -99,6 +100,90 @@ tags:
 | **深分页** | `from/size` 成本指数上升 | `search_after` + 产品限制 |
 | **跨系统编排** | hydrate 依赖多、尾延迟叠加 | 并发上限、超时、部分降级 |
 | **索引与主数据漂移** | 异步链路、至少一次消费 | 幂等 version、对账与补偿任务 |
+
+### 1.5 系统边界与交互全景
+
+下图展示 **搜索与导购系统** 在电商全局架构中的位置、与其他系统的边界、以及读写路径的分离：
+
+```mermaid
+graph TB
+    subgraph UserLayer["用户层"]
+        User[商城用户 Web/App]
+    end
+    
+    subgraph Gateway["接入层"]
+        APIGateway[API Gateway<br/>鉴权/限流/路由]
+    end
+    
+    subgraph SearchDiscovery["🔍 搜索与导购系统<br/>(本文重点)"]
+        MQS[导购查询服务<br/>Query/Recall/Rank/Hydrate]
+        IndexWorker[索引构建 Worker<br/>消费事件/幂等更新]
+    end
+    
+    subgraph CoreStorage["核心存储"]
+        ES[(Elasticsearch<br/>商品索引)]
+    end
+    
+    subgraph WriteServices["写入侧系统<br/>(索引数据来源)"]
+        ProductCenter[商品中心<br/>27-商品主数据]
+        ListingService[上架系统<br/>21-状态与审核]
+        LifecycleService[生命周期管理<br/>30-风控标/下架]
+        BOpsPlatform[B端运营<br/>25-批量管理/配置]
+    end
+    
+    subgraph ReadServices["读取侧系统<br/>(Hydrate 依赖)"]
+        PricingRead[计价只读接口<br/>23-列表价]
+        InventoryRead[库存摘要接口<br/>22-可售信号]
+        MarketingRead[营销只读接口<br/>28-活动标/圈品]
+        OpConfig[运营配置服务<br/>加权/置顶/资源位]
+    end
+    
+    subgraph MessageBus["消息总线"]
+        Kafka[Kafka/消息队列<br/>product.*<br/>listing.*]
+    end
+    
+    %% 用户请求路径
+    User -->|搜索/列表请求| APIGateway
+    APIGateway -->|路由| MQS
+    MQS -->|召回查询| ES
+    MQS -.->|批量 hydrate<br/>超时降级| PricingRead
+    MQS -.->|批量 hydrate<br/>超时降级| InventoryRead
+    MQS -.->|批量 hydrate<br/>超时降级| MarketingRead
+    MQS -.->|重排合并| OpConfig
+    MQS -->|响应| APIGateway
+    APIGateway -->|结果| User
+    
+    %% 索引更新路径 (异步/弱一致)
+    ProductCenter -->|商品变更事件| Kafka
+    ListingService -->|上架状态事件| Kafka
+    LifecycleService -->|审核/风控事件| Kafka
+    BOpsPlatform -->|批量操作事件| Kafka
+    
+    Kafka -->|至少一次投递| IndexWorker
+    IndexWorker -->|幂等更新<br/>version 比较| ES
+    
+    %% 样式
+    classDef searchSystem fill:#e1f5ff,stroke:#0288d1,stroke-width:3px
+    classDef writeSystem fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef readSystem fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef storage fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef message fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    
+    class MQS,IndexWorker searchSystem
+    class ProductCenter,ListingService,LifecycleService,BOpsPlatform writeSystem
+    class PricingRead,InventoryRead,MarketingRead,OpConfig readSystem
+    class ES storage
+    class Kafka message
+```
+
+**关键边界与设计原则**：
+
+| 维度 | 职责边界 | 一致性保证 |
+|------|----------|------------|
+| **写入路径** | 搜索不拥有商品主数据；仅通过 **事件** 消费并维护 **派生索引** | 异步 + 最终一致；幂等 Worker + version 比较 |
+| **读取路径** | 搜索只提供 **召回与排序**；卡片字段由 hydrate **编排多系统** | 弱一致为主；单次失败不阻断整页 |
+| **ES 索引** | 商品状态、类目、SKU 属性等 **相对静态** 字段；价格/库存/营销等 **易变字段** 走 hydrate | 索引滞后可接受（秒级～分钟级） |
+| **配置与加权** | 运营配置、实验分桶通过 **独立服务** 注入到重排阶段；不进 ES | 配置变更实时生效；与索引刷新解耦 |
 
 ---
 
