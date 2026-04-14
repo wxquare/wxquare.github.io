@@ -22,28 +22,28 @@
     <meta name="description" content="电商系统设计系列（篇次与（一）推荐阅读顺序一致）  （一）全景概览与领域划分 （二）商品中心系统 （三）库存系统 （四）营销系统深度解析 （五）计价引擎 （六）计价系统 DDD 实践 （七）订单系统 （八）支付系统深度解析（本文） （九）商品上架系统 （十）B 端运营系统   引言支付系统是电商平台的资金流枢纽，连接用户、平台、商家、第三方支付等多方角色。本文从系统设计面试的角度，深入解析支付系">
 <meta property="og:type" content="article">
 <meta property="og:title" content="电商系统设计（八）：支付系统深度解析">
-<meta property="og:url" content="http://yoursite.com/2025/08/07/system-design/29-ecommerce-payment-system/index.html">
+<meta property="og:url" content="http://yoursite.com/2025/08/07/system-design/27-ecommerce-payment-system/index.html">
 <meta property="og:site_name" content="wxquare&#39;s Blogs">
 <meta property="og:description" content="电商系统设计系列（篇次与（一）推荐阅读顺序一致）  （一）全景概览与领域划分 （二）商品中心系统 （三）库存系统 （四）营销系统深度解析 （五）计价引擎 （六）计价系统 DDD 实践 （七）订单系统 （八）支付系统深度解析（本文） （九）商品上架系统 （十）B 端运营系统   引言支付系统是电商平台的资金流枢纽，连接用户、平台、商家、第三方支付等多方角色。本文从系统设计面试的角度，深入解析支付系">
 <meta property="og:locale">
 <meta property="article:published_time" content="2025-08-06T16:00:00.000Z">
-<meta property="article:modified_time" content="2026-04-10T16:00:35.819Z">
+<meta property="article:modified_time" content="2026-04-14T02:44:40.730Z">
 <meta property="article:author" content="wxquare">
-<meta property="article:tag" content="state-machine">
-<meta property="article:tag" content="saga">
+<meta property="article:tag" content="payment">
 <meta property="article:tag" content="distributed-transaction">
 <meta property="article:tag" content="idempotency">
+<meta property="article:tag" content="state-machine">
+<meta property="article:tag" content="saga">
 <meta property="article:tag" content="tcc">
-<meta property="article:tag" content="payment">
 <meta property="article:tag" content="reconciliation">
 <meta name="twitter:card" content="summary">
 
 
-<link rel="canonical" href="http://yoursite.com/2025/08/07/system-design/29-ecommerce-payment-system/">
+<link rel="canonical" href="http://yoursite.com/2025/08/07/system-design/27-ecommerce-payment-system/">
 
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2025/08/07/system-design/29-ecommerce-payment-system/","path":"2025/08/07/system-design/29-ecommerce-payment-system/","title":"电商系统设计（八）：支付系统深度解析"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2025/08/07/system-design/27-ecommerce-payment-system/","path":"2025/08/07/system-design/27-ecommerce-payment-system/","title":"电商系统设计（八）：支付系统深度解析"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
 <title>电商系统设计（八）：支付系统深度解析 | wxquare's Blogs</title>
@@ -166,7 +166,7 @@
       <a href="/categories/电商系统设计/">
         <i class="fa fa-shopping-cart"></i>
         <span class="series-name">电商系统设计</span>
-        <span class="series-count">16篇</span>
+        <span class="series-count">13篇</span>
       </a>
     </li>
     <li class="series-item architecture-clean-code">
@@ -221,7 +221,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2025/08/07/system-design/29-ecommerce-payment-system/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2025/08/07/system-design/27-ecommerce-payment-system/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpeg">
@@ -257,7 +257,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-04-11 00:00:35" itemprop="dateModified" datetime="2026-04-11T00:00:35+08:00">2026-04-11</time>
+      <time title="Modified: 2026-04-14 10:44:40" itemprop="dateModified" datetime="2026-04-14T10:44:40+08:00">2026-04-14</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -282,15 +282,15 @@
 <p><strong>电商系统设计系列</strong>（篇次与<a href="/system-design/20-ecommerce-overview/">（一）推荐阅读顺序</a>一致）</p>
 <ul>
 <li><a href="/system-design/20-ecommerce-overview/">（一）全景概览与领域划分</a></li>
-<li><a href="/system-design/27-ecommerce-product-center/">（二）商品中心系统</a></li>
+<li><a href="/system-design/21-ecommerce-product-center/">（二）商品中心系统</a></li>
 <li><a href="/system-design/22-ecommerce-inventory/">（三）库存系统</a></li>
-<li><a href="/system-design/28-ecommerce-marketing-system/">（四）营销系统深度解析</a></li>
-<li><a href="/system-design/23-ecommerce-pricing-engine/">（五）计价引擎</a></li>
-<li><a href="/system-design/24-ecommerce-pricing-ddd/">（六）计价系统 DDD 实践</a></li>
+<li><a href="/system-design/23-ecommerce-marketing-system/">（四）营销系统深度解析</a></li>
+<li><a href="/system-design/24-ecommerce-pricing-engine/">（五）计价引擎</a></li>
+<li><a href="/system-design/25-ecommerce-pricing-ddd/">（六）计价系统 DDD 实践</a></li>
 <li><a href="/system-design/26-ecommerce-order-system/">（七）订单系统</a></li>
 <li><strong>（八）支付系统深度解析</strong>（本文）</li>
-<li><a href="/system-design/21-ecommerce-listing/">（九）商品上架系统</a></li>
-<li><a href="/system-design/25-ecommerce-b-side-ops/">（十）B 端运营系统</a></li>
+<li><a href="/system-design/28-ecommerce-listing/">（九）商品上架系统</a></li>
+<li><a href="/system-design/29-ecommerce-b-side-ops/">（十）B 端运营系统</a></li>
 </ul>
 </blockquote>
 <h2 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h2><p>支付系统是电商平台的资金流枢纽，连接用户、平台、商家、第三方支付等多方角色。本文从系统设计面试的角度，深入解析支付系统的核心流程、状态机设计、分布式事务等高频考点。</p>
@@ -1171,12 +1171,12 @@
 
     <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/state-machine/" rel="tag"># state-machine</a>
-              <a href="/tags/saga/" rel="tag"># saga</a>
+              <a href="/tags/payment/" rel="tag"># payment</a>
               <a href="/tags/distributed-transaction/" rel="tag"># distributed-transaction</a>
               <a href="/tags/idempotency/" rel="tag"># idempotency</a>
+              <a href="/tags/state-machine/" rel="tag"># state-machine</a>
+              <a href="/tags/saga/" rel="tag"># saga</a>
               <a href="/tags/tcc/" rel="tag"># tcc</a>
-              <a href="/tags/payment/" rel="tag"># payment</a>
               <a href="/tags/reconciliation/" rel="tag"># reconciliation</a>
           </div>
 
@@ -1189,7 +1189,7 @@
                 </a>
             </div>
             <div class="post-nav-item">
-                <a href="/2025/08/21/system-design/21-ecommerce-listing/" rel="next" title="电商系统设计（九）：商品上架系统">
+                <a href="/2025/08/21/system-design/28-ecommerce-listing/" rel="next" title="电商系统设计（九）：商品上架系统">
                   电商系统设计（九）：商品上架系统 <i class="fa fa-angle-right"></i>
                 </a>
             </div>

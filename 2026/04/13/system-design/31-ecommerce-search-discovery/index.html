@@ -27,12 +27,12 @@
 <meta property="og:description" content="电商系统设计（十二）（读路径专题；总索引见（一）全景概览与领域划分；续篇：（十三）购物车与结算域）  （一）全景概览与领域划分 （二）商品中心系统（索引与同步见第 5 章） （三）库存系统 （四）营销系统深度解析 （五）计价引擎 （六）计价系统 DDD 实践 （七）订单系统 （八）支付系统深度解析 （九）商品上架系统 （十）B 端运营系统 （十一）商品生命周期管理 （十二）搜索与导购（本文）">
 <meta property="og:locale">
 <meta property="article:published_time" content="2026-04-13T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-04-13T07:13:41.215Z">
+<meta property="article:modified_time" content="2026-04-14T02:44:40.933Z">
 <meta property="article:author" content="wxquare">
+<meta property="article:tag" content="search">
 <meta property="article:tag" content="e-commerce">
 <meta property="article:tag" content="system-design">
 <meta property="article:tag" content="consistency">
-<meta property="article:tag" content="search">
 <meta property="article:tag" content="elasticsearch">
 <meta property="article:tag" content="browse">
 <meta property="article:tag" content="ranking">
@@ -167,7 +167,7 @@
       <a href="/categories/电商系统设计/">
         <i class="fa fa-shopping-cart"></i>
         <span class="series-name">电商系统设计</span>
-        <span class="series-count">16篇</span>
+        <span class="series-count">13篇</span>
       </a>
     </li>
     <li class="series-item architecture-clean-code">
@@ -250,9 +250,15 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">Posted on</span>
-      
 
-      <time title="Created: 2026-04-13 08:00:00 / Modified: 15:13:41" itemprop="dateCreated datePublished" datetime="2026-04-13T08:00:00+08:00">2026-04-13</time>
+      <time title="Created: 2026-04-13 08:00:00" itemprop="dateCreated datePublished" datetime="2026-04-13T08:00:00+08:00">2026-04-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-04-14 10:44:40" itemprop="dateModified" datetime="2026-04-14T10:44:40+08:00">2026-04-14</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -277,21 +283,21 @@
 <p><strong>电商系统设计（十二）</strong>（读路径专题；总索引见<a href="/system-design/20-ecommerce-overview/">（一）全景概览与领域划分</a>；续篇：<a href="/system-design/32-ecommerce-cart-checkout/">（十三）购物车与结算域</a>）</p>
 <ul>
 <li><a href="/system-design/20-ecommerce-overview/">（一）全景概览与领域划分</a></li>
-<li><a href="/system-design/27-ecommerce-product-center/">（二）商品中心系统</a>（索引与同步见第 5 章）</li>
+<li><a href="/system-design/21-ecommerce-product-center/">（二）商品中心系统</a>（索引与同步见第 5 章）</li>
 <li><a href="/system-design/22-ecommerce-inventory/">（三）库存系统</a></li>
-<li><a href="/system-design/28-ecommerce-marketing-system/">（四）营销系统深度解析</a></li>
-<li><a href="/system-design/23-ecommerce-pricing-engine/">（五）计价引擎</a></li>
-<li><a href="/system-design/24-ecommerce-pricing-ddd/">（六）计价系统 DDD 实践</a></li>
+<li><a href="/system-design/23-ecommerce-marketing-system/">（四）营销系统深度解析</a></li>
+<li><a href="/system-design/24-ecommerce-pricing-engine/">（五）计价引擎</a></li>
+<li><a href="/system-design/25-ecommerce-pricing-ddd/">（六）计价系统 DDD 实践</a></li>
 <li><a href="/system-design/26-ecommerce-order-system/">（七）订单系统</a></li>
-<li><a href="/system-design/29-ecommerce-payment-system/">（八）支付系统深度解析</a></li>
-<li><a href="/system-design/21-ecommerce-listing/">（九）商品上架系统</a></li>
-<li><a href="/system-design/25-ecommerce-b-side-ops/">（十）B 端运营系统</a></li>
+<li><a href="/system-design/27-ecommerce-payment-system/">（八）支付系统深度解析</a></li>
+<li><a href="/system-design/28-ecommerce-listing/">（九）商品上架系统</a></li>
+<li><a href="/system-design/29-ecommerce-b-side-ops/">（十）B 端运营系统</a></li>
 <li><a href="/system-design/30-ecommerce-product-lifecycle-management/">（十一）商品生命周期管理</a></li>
 <li><strong>（十二）搜索与导购（本文）</strong></li>
 </ul>
 </blockquote>
 <h2 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h2><p>搜索与结构化导购（类目列表、店铺内浏览）是电商平台最主要的 <strong>读流量入口</strong> 之一，直接影响转化与 GMV。与订单、支付等 <strong>写路径</strong> 不同，导购链路往往 <strong>QPS 高、容忍短暂最终一致</strong>，但必须处理好 <strong>相关性、价格与库存展示口径、营销露出、以及索引滞后</strong> 带来的用户预期落差。</p>
-<p>本文面向 <strong>系统设计面试（A）</strong> 与 <strong>工程落地（B）</strong>：用 <strong>统一导购查询服务</strong> 串起关键词搜索、类目导购、店铺内搜索；用 <strong>Elasticsearch 查询侧专题</strong> 补齐分析链、DSL 模式、深分页与性能要点。索引文档长什么样、如何从商品中心同步进 ES，仍以 <a href="/system-design/27-ecommerce-product-center/">商品中心第 5 章</a> 为准，本篇不重复展开大段 mapping。</p>
+<p>本文面向 <strong>系统设计面试（A）</strong> 与 <strong>工程落地（B）</strong>：用 <strong>统一导购查询服务</strong> 串起关键词搜索、类目导购、店铺内搜索；用 <strong>Elasticsearch 查询侧专题</strong> 补齐分析链、DSL 模式、深分页与性能要点。索引文档长什么样、如何从商品中心同步进 ES，仍以 <a href="/system-design/21-ecommerce-product-center/">商品中心第 5 章</a> 为准，本篇不重复展开大段 mapping。</p>
 <p><strong>适合读者</strong>：准备电商 &#x2F; 高并发读路径面试的候选人；负责搜索与列表的工程同学。</p>
 <p><strong>阅读时长</strong>：约 35～45 分钟。</p>
 <p><strong>核心内容</strong>：</p>
@@ -344,8 +350,8 @@
 </tbody></table>
 <h3 id="1-2-显式非目标"><a href="#1-2-显式非目标" class="headerlink" title="1.2 显式非目标"></a>1.2 显式非目标</h3><ul>
 <li><strong>首页 &#x2F; 频道个性化 feed、重推荐系统</strong>：不在正文展开（与「搜索召回」相邻但产品目标不同）；文末给扩展阅读方向即可。</li>
-<li><strong>营销优惠叠加计算</strong>：见<a href="/system-design/28-ecommerce-marketing-system/">营销系统</a>，本篇只写列表读侧 <strong>标签 &#x2F; 圈品命中展示</strong> 与失败降级。</li>
-<li><strong>索引全量建模与多级缓存同步细节</strong>：见<a href="/system-design/27-ecommerce-product-center/">商品中心 5. 商品搜索与多级缓存</a>。</li>
+<li><strong>营销优惠叠加计算</strong>：见<a href="/system-design/23-ecommerce-marketing-system/">营销系统</a>，本篇只写列表读侧 <strong>标签 &#x2F; 圈品命中展示</strong> 与失败降级。</li>
+<li><strong>索引全量建模与多级缓存同步细节</strong>：见<a href="/system-design/21-ecommerce-product-center/">商品中心 5. 商品搜索与多级缓存</a>。</li>
 </ul>
 <h3 id="1-3-与系列文章的分工"><a href="#1-3-与系列文章的分工" class="headerlink" title="1.3 与系列文章的分工"></a>1.3 与系列文章的分工</h3><table>
 <thead>
@@ -667,7 +673,7 @@
 
 <hr>
 <h2 id="4-Elasticsearch-专题（方案-3）"><a href="#4-Elasticsearch-专题（方案-3）" class="headerlink" title="4. Elasticsearch 专题（方案 3）"></a>4. Elasticsearch 专题（方案 3）</h2><blockquote>
-<p><strong>再次强调</strong>：索引字段清单、nested 取舍、商品变更如何进索引，请以 <a href="/system-design/27-ecommerce-product-center/">商品中心 §5.1</a> 为准。本节只写 <strong>查询侧契约与反模式</strong>。</p>
+<p><strong>再次强调</strong>：索引字段清单、nested 取舍、商品变更如何进索引，请以 <a href="/system-design/21-ecommerce-product-center/">商品中心 §5.1</a> 为准。本节只写 <strong>查询侧契约与反模式</strong>。</p>
 </blockquote>
 <h3 id="4-1-分析链与中文分词"><a href="#4-1-分析链与中文分词" class="headerlink" title="4.1 分析链与中文分词"></a>4.1 分析链与中文分词</h3><ul>
 <li><strong>索引与查询使用同一分析链</strong>（或查询链为索引链的有意子集），避免「索引分词与查询分词不一致」导致召回漂移。</li>
@@ -854,7 +860,7 @@
 <td>TTL 极短，防击穿用 singleflight</td>
 </tr>
 </tbody></table>
-<p>计价只读接口建议支持 <strong>批量 + 站点 + 会员等级</strong> 维度，减少网络往返；与 <a href="/system-design/23-ecommerce-pricing-engine/">计价引擎</a> 的「展示价场景」对齐命名，避免客户端混用「下单价」与「列表价」字段。</p>
+<p>计价只读接口建议支持 <strong>批量 + 站点 + 会员等级</strong> 维度，减少网络往返；与 <a href="/system-design/24-ecommerce-pricing-engine/">计价引擎</a> 的「展示价场景」对齐命名，避免客户端混用「下单价」与「列表价」字段。</p>
 <h3 id="5-5-幂等与乱序事件"><a href="#5-5-幂等与乱序事件" class="headerlink" title="5.5 幂等与乱序事件"></a>5.5 幂等与乱序事件</h3><p>索引 Worker 在 <strong>至少一次</strong> 消费下必须 <strong>幂等</strong>：</p>
 <ul>
 <li>使用 <strong><code>spu_id</code>（或主键）+ 领域 version</strong> 做 compare-and-skip：旧版本事件直接丢弃。</li>
@@ -977,7 +983,7 @@
 <hr>
 <h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
 <li><a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html">Elasticsearch 官方文档</a> — 查询 DSL、分页与 profile。  </li>
-<li>本系列：<a href="/system-design/27-ecommerce-product-center/">商品中心</a> · <a href="/system-design/21-ecommerce-listing/">上架系统</a> · <a href="/system-design/30-ecommerce-product-lifecycle-management/">生命周期管理</a> · <a href="/system-design/28-ecommerce-marketing-system/">营销系统</a> · <a href="/system-design/23-ecommerce-pricing-engine/">计价引擎</a> · <a href="/system-design/22-ecommerce-inventory/">库存系统</a>。</li>
+<li>本系列：<a href="/system-design/21-ecommerce-product-center/">商品中心</a> · <a href="/system-design/28-ecommerce-listing/">上架系统</a> · <a href="/system-design/30-ecommerce-product-lifecycle-management/">生命周期管理</a> · <a href="/system-design/23-ecommerce-marketing-system/">营销系统</a> · <a href="/system-design/24-ecommerce-pricing-engine/">计价引擎</a> · <a href="/system-design/22-ecommerce-inventory/">库存系统</a>。</li>
 </ol>
 
     </div>
@@ -988,10 +994,10 @@
 
     <footer class="post-footer">
           <div class="post-tags">
+              <a href="/tags/search/" rel="tag"># search</a>
               <a href="/tags/e-commerce/" rel="tag"># e-commerce</a>
               <a href="/tags/system-design/" rel="tag"># system-design</a>
               <a href="/tags/consistency/" rel="tag"># consistency</a>
-              <a href="/tags/search/" rel="tag"># search</a>
               <a href="/tags/elasticsearch/" rel="tag"># elasticsearch</a>
               <a href="/tags/browse/" rel="tag"># browse</a>
               <a href="/tags/ranking/" rel="tag"># ranking</a>
