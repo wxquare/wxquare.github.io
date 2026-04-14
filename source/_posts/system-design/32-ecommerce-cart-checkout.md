@@ -16,12 +16,12 @@ tags:
 
 > **电商系统设计（十三）**（转化链路专题；总索引见[（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)）
 > - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
-> - [（二）商品中心系统](/system-design/27-ecommerce-product-center/)
+> - [（二）商品中心系统](/system-design/21-ecommerce-product-center/)
 > - [（三）库存系统](/system-design/22-ecommerce-inventory/)
-> - [（四）营销系统深度解析](/system-design/28-ecommerce-marketing-system/)
-> - [（五）计价引擎](/system-design/23-ecommerce-pricing-engine/)
+> - [（四）营销系统深度解析](/system-design/23-ecommerce-marketing-system/)
+> - [（五）计价引擎](/system-design/24-ecommerce-pricing-engine/)
 > - [（七）订单系统](/system-design/26-ecommerce-order-system/)
-> - [（八）支付系统深度解析](/system-design/29-ecommerce-payment-system/)
+> - [（八）支付系统深度解析](/system-design/27-ecommerce-payment-system/)
 > - [（十二）搜索与导购](/system-design/31-ecommerce-search-discovery/)
 > - **（十三）购物车与结算域（本文）**
 
@@ -73,7 +73,7 @@ tags:
 
 ### 1.2 显式非目标
 
-- **支付流程实现**：见[支付系统](/system-design/29-ecommerce-payment-system/)，本篇只写"提交订单成功 → 跳转支付"的衔接点。
+- **支付流程实现**：见[支付系统](/system-design/27-ecommerce-payment-system/)，本篇只写"提交订单成功 → 跳转支付"的衔接点。
 - **订单状态机全展开**：见[订单系统](/system-design/26-ecommerce-order-system/)，本篇只写"结算页创建订单"的调用契约。
 - **秒杀专题**：库存预占在高并发下的极端优化可作为扩展阅读，正文不展开。
 
@@ -1680,13 +1680,13 @@ func (s *SeckillCheckoutService) InitCheckout(ctx context.Context, req SeckillCh
 - 预占 **有限时长**（15 分钟过期，提高资源利用率）。
 - 补偿 **被动为主**（库存自动过期，结算页仅在订单失败时显式释放）。
 
-**系列扩展阅读（不在本文展开）**：履约与物流（订单拆单后的仓库路由与物流追踪）、商家结算与对账（平台抽佣与结算周期）；若你正在补齐支付链路，可接续阅读[支付系统](/system-design/29-ecommerce-payment-system/)与[订单系统](/system-design/26-ecommerce-order-system/)。
+**系列扩展阅读（不在本文展开）**：履约与物流（订单拆单后的仓库路由与物流追踪）、商家结算与对账（平台抽佣与结算周期）；若你正在补齐支付链路，可接续阅读[支付系统](/system-design/27-ecommerce-payment-system/)与[订单系统](/system-design/26-ecommerce-order-system/)。
 
 ---
 
 ## 参考资料
 
-1. 本系列：[订单系统](/system-design/26-ecommerce-order-system/) · [计价引擎](/system-design/23-ecommerce-pricing-engine/) · [库存系统](/system-design/22-ecommerce-inventory/) · [营销系统](/system-design/28-ecommerce-marketing-system/) · [商品中心](/system-design/27-ecommerce-product-center/) · [支付系统](/system-design/29-ecommerce-payment-system/)。
+1. 本系列：[订单系统](/system-design/26-ecommerce-order-system/) · [计价引擎](/system-design/24-ecommerce-pricing-engine/) · [库存系统](/system-design/22-ecommerce-inventory/) · [营销系统](/system-design/23-ecommerce-marketing-system/) · [商品中心](/system-design/21-ecommerce-product-center/) · [支付系统](/system-design/27-ecommerce-payment-system/)。
 2. Saga 模式：[Microsoft - Saga Pattern](https://docs.microsoft.com/en-us/azure/architecture/reference-architectures/saga/saga)
 3. Redis HASH 最佳实践：[Redis 官方文档](https://redis.io/docs/data-types/hashes/)
 4. 电商转化漏斗优化：[Google Analytics - Ecommerce Funnel](https://support.google.com/analytics/answer/6014872)
