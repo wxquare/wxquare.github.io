@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="电商系统设计（十二）（读路径专题；总索引见（一）全景概览与领域划分；续篇：（十三）购物车与结算域）  （一）全景概览与领域划分 （二）商品中心系统（索引与同步见第 5 章） （三）库存系统 （四）营销系统深度解析 （五）计价引擎 （六）计价系统 DDD 实践 （七）订单系统 （八）支付系统深度解析 （九）商品上架系统 （十）B 端运营系统 （十一）商品生命周期管理 （十二）搜索与导购（本文）">
+<meta property="og:type" content="article">
+<meta property="og:title" content="电商系统设计（十二）：搜索与导购（Search &amp; Discovery）">
+<meta property="og:url" content="http://yoursite.com/2026/04/13/system-design/31-ecommerce-search-discovery/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="电商系统设计（十二）（读路径专题；总索引见（一）全景概览与领域划分；续篇：（十三）购物车与结算域）  （一）全景概览与领域划分 （二）商品中心系统（索引与同步见第 5 章） （三）库存系统 （四）营销系统深度解析 （五）计价引擎 （六）计价系统 DDD 实践 （七）订单系统 （八）支付系统深度解析 （九）商品上架系统 （十）B 端运营系统 （十一）商品生命周期管理 （十二）搜索与导购（本文）">
+<meta property="og:locale">
+<meta property="article:published_time" content="2026-04-13T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-04-13T07:13:41.215Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="e-commerce">
+<meta property="article:tag" content="system-design">
+<meta property="article:tag" content="consistency">
+<meta property="article:tag" content="search">
+<meta property="article:tag" content="elasticsearch">
+<meta property="article:tag" content="browse">
+<meta property="article:tag" content="ranking">
+<meta property="article:tag" content="read-path">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2026/04/13/system-design/31-ecommerce-search-discovery/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2026/04/13/system-design/31-ecommerce-search-discovery/","path":"2026/04/13/system-design/31-ecommerce-search-discovery/","title":"电商系统设计（十二）：搜索与导购（Search & Discovery）"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>电商系统设计（十二）：搜索与导购（Search & Discovery） | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%95%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">引言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%AE%E5%BD%95"><span class="nav-number">2.</span> <span class="nav-text">目录</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%B3%BB%E7%BB%9F%E5%AE%9A%E4%BD%8D%E3%80%81%E8%8C%83%E5%9B%B4%E4%B8%8E%E9%9D%9E%E7%9B%AE%E6%A0%87"><span class="nav-number">3.</span> <span class="nav-text">1. 系统定位、范围与非目标</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E6%9C%AC%E6%96%87%E8%A6%86%E7%9B%96%EF%BC%88A-B%EF%BC%89"><span class="nav-number">3.1.</span> <span class="nav-text">1.1 本文覆盖（A + B）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E6%98%BE%E5%BC%8F%E9%9D%9E%E7%9B%AE%E6%A0%87"><span class="nav-number">3.2.</span> <span class="nav-text">1.2 显式非目标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E4%B8%8E%E7%B3%BB%E5%88%97%E6%96%87%E7%AB%A0%E7%9A%84%E5%88%86%E5%B7%A5"><span class="nav-number">3.3.</span> <span class="nav-text">1.3 与系列文章的分工</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-%E6%A0%B8%E5%BF%83%E6%8C%91%E6%88%98%EF%BC%88%E9%9D%A2%E8%AF%95%E5%B8%B8%E9%97%AE%E3%80%8C%E9%9A%BE%E7%82%B9%E5%9C%A8%E5%93%AA%E3%80%8D%EF%BC%89"><span class="nav-number">3.4.</span> <span class="nav-text">1.4 核心挑战（面试常问「难点在哪」）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-5-%E7%B3%BB%E7%BB%9F%E8%BE%B9%E7%95%8C%E4%B8%8E%E4%BA%A4%E4%BA%92%E5%85%A8%E6%99%AF"><span class="nav-number">3.5.</span> <span class="nav-text">1.5 系统边界与交互全景</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E7%BB%9F%E4%B8%80%E5%AF%BC%E8%B4%AD%E6%9F%A5%E8%AF%A2%E6%9C%8D%E5%8A%A1%EF%BC%88%E6%96%B9%E6%A1%88-1%EF%BC%89"><span class="nav-number">4.</span> <span class="nav-text">2. 统一导购查询服务（方案 1）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%8D%95%E4%B8%80%E4%B8%BB%E5%8F%99%E4%BA%8B%EF%BC%9A%E4%B8%80%E4%B8%AA%E6%9C%8D%E5%8A%A1%EF%BC%8C%E5%A4%9A%E7%A7%8D-scene"><span class="nav-number">4.1.</span> <span class="nav-text">2.1 单一主叙事：一个服务，多种 scene</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-scene-%E5%AF%B9%E6%AF%94"><span class="nav-number">4.2.</span> <span class="nav-text">2.2 scene 对比</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E9%80%BB%E8%BE%91%E6%9E%B6%E6%9E%84"><span class="nav-number">4.3.</span> <span class="nav-text">2.3 逻辑架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E6%BC%94%E8%BF%9B%E6%B3%A8%E8%AE%B0%EF%BC%9A%E4%BD%95%E6%97%B6%E6%8B%86-BFF"><span class="nav-number">4.4.</span> <span class="nav-text">2.4 演进注记：何时拆 BFF</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%B8%BB%E9%93%BE%E8%B7%AF%EF%BC%9AQuery-%E2%86%92-Recall-%E2%86%92-Rank-%E2%86%92-Hydrate"><span class="nav-number">5.</span> <span class="nav-text">3. 主链路：Query → Recall → Rank → Hydrate</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-Query-%E7%90%86%E8%A7%A3%EF%BC%88%E5%88%BB%E6%84%8F%E4%BF%9D%E6%8C%81%E8%BD%BB%E9%87%8F%EF%BC%89"><span class="nav-number">5.1.</span> <span class="nav-text">3.1 Query 理解（刻意保持轻量）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E5%8F%AC%E5%9B%9E%EF%BC%9A%E4%BB%A5-ES-%E4%B8%BA%E4%B8%BB"><span class="nav-number">5.2.</span> <span class="nav-text">3.2 召回：以 ES 为主</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E6%8E%92%E5%BA%8F%E5%88%86%E5%B1%82%EF%BC%9A%E7%B2%97%E6%8E%92-%E2%86%92-%E7%B2%BE%E6%8E%92-%E2%86%92-%E9%87%8D%E6%8E%92"><span class="nav-number">5.3.</span> <span class="nav-text">3.3 排序分层：粗排 → 精排 → 重排</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#AB-%E4%B8%8E%E9%85%8D%E7%BD%AE%E7%89%88%E6%9C%AC%EF%BC%88%E5%B7%A5%E7%A8%8B%E8%90%BD%E5%9C%B0%E6%9C%80%E5%B0%8F%E9%9B%86%EF%BC%89"><span class="nav-number">5.3.1.</span> <span class="nav-text">AB 与配置版本（工程落地最小集）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-Hydrate%EF%BC%9A%E6%89%B9%E9%87%8F%E3%80%81%E9%99%90%E6%97%B6%E3%80%81%E5%8F%AF%E9%99%8D%E7%BA%A7"><span class="nav-number">5.4.</span> <span class="nav-text">3.4 Hydrate：批量、限时、可降级</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-Elasticsearch-%E4%B8%93%E9%A2%98%EF%BC%88%E6%96%B9%E6%A1%88-3%EF%BC%89"><span class="nav-number">6.</span> <span class="nav-text">4. Elasticsearch 专题（方案 3）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%88%86%E6%9E%90%E9%93%BE%E4%B8%8E%E4%B8%AD%E6%96%87%E5%88%86%E8%AF%8D"><span class="nav-number">6.1.</span> <span class="nav-text">4.1 分析链与中文分词</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-mapping-%E8%A6%81%E7%82%B9%EF%BC%88%E6%9F%A5%E8%AF%A2%E8%A7%86%E8%A7%92%EF%BC%89"><span class="nav-number">6.2.</span> <span class="nav-text">4.2 mapping 要点（查询视角）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E5%85%B8%E5%9E%8B%E6%9F%A5%E8%AF%A2%E6%A8%A1%E5%BC%8F%EF%BC%88bool-filter-sort%EF%BC%89"><span class="nav-number">6.3.</span> <span class="nav-text">4.3 典型查询模式（bool + filter + sort）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%B7%B1%E5%88%86%E9%A1%B5%E4%B8%8E-search-after"><span class="nav-number">6.4.</span> <span class="nav-text">4.4 深分页与 search_after</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-5-%E6%85%A2%E6%9F%A5%E8%AF%A2%E4%B8%8E%E5%AE%B9%E9%87%8F%E6%B8%85%E5%8D%95%EF%BC%88%E8%87%AA%E6%A3%80%E8%A1%A8%EF%BC%89"><span class="nav-number">6.5.</span> <span class="nav-text">4.5 慢查询与容量清单（自检表）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-6-function-score%EF%BC%9A%E7%B2%97%E6%8E%92%E9%98%B6%E6%AE%B5%E7%9A%84%E4%B8%9A%E5%8A%A1%E5%8A%A0%E6%9D%83%EF%BC%88%E7%A4%BA%E4%BE%8B%EF%BC%89"><span class="nav-number">6.6.</span> <span class="nav-text">4.6 function_score：粗排阶段的业务加权（示例）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-7-%E8%81%9A%E5%90%88%E4%B8%8E%E5%AF%BC%E8%88%AA%EF%BC%9A%E7%AD%9B%E9%80%89%E6%9D%A1%EF%BC%88facets%EF%BC%89"><span class="nav-number">6.7.</span> <span class="nav-text">4.7 聚合与导航：筛选条（facets）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-8-Suggest%EF%BC%9A%E5%89%8D%E7%BC%80%E4%B8%8E%E7%BA%A0%E9%94%99%EF%BC%88%E6%8E%A5%E5%8F%A3%E5%BD%A2%E6%80%81%EF%BC%89"><span class="nav-number">6.8.</span> <span class="nav-text">4.8 Suggest：前缀与纠错（接口形态）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E4%B8%8E%E4%B8%8A%E4%B8%8B%E6%B8%B8%E7%B3%BB%E7%BB%9F%E7%9A%84%E9%9B%86%E6%88%90%E4%B8%8E%E5%A5%91%E7%BA%A6"><span class="nav-number">7.</span> <span class="nav-text">5. 与上下游系统的集成与契约</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E8%B4%A3%E4%BB%BB%E8%BE%B9%E7%95%8C%E8%A1%A8"><span class="nav-number">7.1.</span> <span class="nav-text">5.1 责任边界表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E7%B4%A2%E5%BC%95%E6%9B%B4%E6%96%B0%E8%B7%AF%E5%BE%84%EF%BC%88%E5%BA%8F%E5%88%97%E5%9B%BE%EF%BC%89"><span class="nav-number">7.2.</span> <span class="nav-text">5.2 索引更新路径（序列图）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-%E5%88%97%E8%A1%A8%E8%AF%B7%E6%B1%82%E8%B7%AF%E5%BE%84%EF%BC%88%E5%BA%8F%E5%88%97%E5%9B%BE%EF%BC%89"><span class="nav-number">7.3.</span> <span class="nav-text">5.3 列表请求路径（序列图）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-4-%E5%88%97%E8%A1%A8-hydrate-%E7%9A%84%E6%89%B9%E9%87%8F%E5%A5%91%E7%BA%A6%EF%BC%88%E5%BB%BA%E8%AE%AE%E5%86%99%E8%BF%9B%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3%EF%BC%89"><span class="nav-number">7.4.</span> <span class="nav-text">5.4 列表 hydrate 的批量契约（建议写进接口文档）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-5-%E5%B9%82%E7%AD%89%E4%B8%8E%E4%B9%B1%E5%BA%8F%E4%BA%8B%E4%BB%B6"><span class="nav-number">7.5.</span> <span class="nav-text">5.5 幂等与乱序事件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E4%B8%80%E8%87%B4%E6%80%A7%E3%80%81%E9%99%8D%E7%BA%A7%E4%B8%8E%E9%9F%A7%E6%80%A7"><span class="nav-number">8.</span> <span class="nav-text">6. 一致性、降级与韧性</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-%E7%B4%A2%E5%BC%95%E6%BB%9E%E5%90%8E"><span class="nav-number">8.1.</span> <span class="nav-text">6.1 索引滞后</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-Hydrate-%E9%83%A8%E5%88%86%E5%A4%B1%E8%B4%A5"><span class="nav-number">8.2.</span> <span class="nav-text">6.2 Hydrate 部分失败</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-ES-%E9%9B%86%E7%BE%A4%E6%95%85%E9%9A%9C%EF%BC%9A%E6%8E%A8%E8%8D%90%E9%BB%98%E8%AE%A4%E4%B8%8E%E5%A4%87%E9%80%89"><span class="nav-number">8.3.</span> <span class="nav-text">6.3 ES 集群故障：推荐默认与备选</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-4-%E9%99%90%E6%B5%81%E4%B8%8E%E9%98%B2%E5%88%B7"><span class="nav-number">8.4.</span> <span class="nav-text">6.4 限流与防刷</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%80%A7%E4%B8%8E%E5%AE%9E%E9%AA%8C"><span class="nav-number">9.</span> <span class="nav-text">7. 可观测性与实验</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#7-1-%E5%85%B3%E9%94%AE%E6%8C%87%E6%A0%87"><span class="nav-number">9.1.</span> <span class="nav-text">7.1 关键指标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-2-%E6%97%A5%E5%BF%97%E4%B8%8E%E8%BF%BD%E8%B8%AA"><span class="nav-number">9.2.</span> <span class="nav-text">7.2 日志与追踪</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-3-%E5%AE%B9%E9%87%8F%E4%B8%8E%E5%8E%8B%E6%B5%8B%E5%85%B3%E6%B3%A8%E7%82%B9%EF%BC%88%E9%9D%A2%E8%AF%95%E3%80%8C%E5%A6%82%E4%BD%95%E4%BC%B0%E6%9C%BA%E5%99%A8%E3%80%8D%EF%BC%89"><span class="nav-number">9.3.</span> <span class="nav-text">7.3 容量与压测关注点（面试「如何估机器」）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5%E6%B8%85%E5%8D%95%EF%BC%88%E5%8F%91%E5%B8%83%E5%89%8D%E8%87%AA%E6%A3%80%EF%BC%89"><span class="nav-number">10.</span> <span class="nav-text">8. 工程实践清单（发布前自检）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#9-%E9%9D%A2%E8%AF%95%E9%97%AE%E7%AD%94%E9%94%A6%E5%9B%8A"><span class="nav-number">11.</span> <span class="nav-text">9. 面试问答锦囊</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#10-%E6%80%BB%E7%BB%93"><span class="nav-number">12.</span> <span class="nav-text">10. 总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">13.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">59</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">159</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">16篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">7篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">15篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">7篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2026/04/13/system-design/31-ecommerce-search-discovery/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="电商系统设计（十二）：搜索与导购（Search & Discovery） | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          电商系统设计（十二）：搜索与导购（Search & Discovery）
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2026-04-13 08:00:00 / Modified: 15:13:41" itemprop="dateCreated datePublished" datetime="2026-04-13T08:00:00+08:00">2026-04-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%94%B5%E5%95%86%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">电商系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><blockquote>
+<p><strong>电商系统设计（十二）</strong>（读路径专题；总索引见<a href="/system-design/20-ecommerce-overview/">（一）全景概览与领域划分</a>；续篇：<a href="/system-design/32-ecommerce-cart-checkout/">（十三）购物车与结算域</a>）</p>
+<ul>
+<li><a href="/system-design/20-ecommerce-overview/">（一）全景概览与领域划分</a></li>
+<li><a href="/system-design/27-ecommerce-product-center/">（二）商品中心系统</a>（索引与同步见第 5 章）</li>
+<li><a href="/system-design/22-ecommerce-inventory/">（三）库存系统</a></li>
+<li><a href="/system-design/28-ecommerce-marketing-system/">（四）营销系统深度解析</a></li>
+<li><a href="/system-design/23-ecommerce-pricing-engine/">（五）计价引擎</a></li>
+<li><a href="/system-design/24-ecommerce-pricing-ddd/">（六）计价系统 DDD 实践</a></li>
+<li><a href="/system-design/26-ecommerce-order-system/">（七）订单系统</a></li>
+<li><a href="/system-design/29-ecommerce-payment-system/">（八）支付系统深度解析</a></li>
+<li><a href="/system-design/21-ecommerce-listing/">（九）商品上架系统</a></li>
+<li><a href="/system-design/25-ecommerce-b-side-ops/">（十）B 端运营系统</a></li>
+<li><a href="/system-design/30-ecommerce-product-lifecycle-management/">（十一）商品生命周期管理</a></li>
+<li><strong>（十二）搜索与导购（本文）</strong></li>
+</ul>
+</blockquote>
+<h2 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h2><p>搜索与结构化导购（类目列表、店铺内浏览）是电商平台最主要的 <strong>读流量入口</strong> 之一，直接影响转化与 GMV。与订单、支付等 <strong>写路径</strong> 不同，导购链路往往 <strong>QPS 高、容忍短暂最终一致</strong>，但必须处理好 <strong>相关性、价格与库存展示口径、营销露出、以及索引滞后</strong> 带来的用户预期落差。</p>
+<p>本文面向 <strong>系统设计面试（A）</strong> 与 <strong>工程落地（B）</strong>：用 <strong>统一导购查询服务</strong> 串起关键词搜索、类目导购、店铺内搜索；用 <strong>Elasticsearch 查询侧专题</strong> 补齐分析链、DSL 模式、深分页与性能要点。索引文档长什么样、如何从商品中心同步进 ES，仍以 <a href="/system-design/27-ecommerce-product-center/">商品中心第 5 章</a> 为准，本篇不重复展开大段 mapping。</p>
+<p><strong>适合读者</strong>：准备电商 &#x2F; 高并发读路径面试的候选人；负责搜索与列表的工程同学。</p>
+<p><strong>阅读时长</strong>：约 35～45 分钟。</p>
+<p><strong>核心内容</strong>：</p>
+<ul>
+<li>统一导购查询服务与 <code>scene</code> 设计</li>
+<li>Query 理解、召回、粗精重排序与 AB 实验位点</li>
+<li>Elasticsearch：查询契约、典型 DSL、深分页、反模式与调优清单</li>
+<li>与商品中心、上架、生命周期、运营、计价、库存、营销的 <strong>集成与契约</strong></li>
+<li>一致性、降级、可观测与面试问答锦囊</li>
+</ul>
+<h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><ul>
+<li><a href="#1-%E7%B3%BB%E7%BB%9F%E5%AE%9A%E4%BD%8D%E8%8C%83%E5%9B%B4%E4%B8%8E%E9%9D%9E%E7%9B%AE%E6%A0%87">1. 系统定位、范围与非目标</a><ul>
+<li><a href="#15-%E7%B3%BB%E7%BB%9F%E8%BE%B9%E7%95%8C%E4%B8%8E%E4%BA%A4%E4%BA%92%E5%85%A8%E6%99%AF">1.5 系统边界与交互全景</a></li>
+</ul>
+</li>
+<li><a href="#2-%E7%BB%9F%E4%B8%80%E5%AF%BC%E8%B4%AD%E6%9F%A5%E8%AF%A2%E6%9C%8D%E5%8A%A1%E6%96%B9%E6%A1%88-1">2. 统一导购查询服务（方案 1）</a></li>
+<li><a href="#3-%E4%B8%BB%E9%93%BE%E8%B7%AFquery--recall--rank--hydrate">3. 主链路：Query → Recall → Rank → Hydrate</a></li>
+<li><a href="#4-elasticsearch-%E4%B8%93%E9%A2%98%E6%96%B9%E6%A1%88-3">4. Elasticsearch 专题（方案 3）</a></li>
+<li><a href="#5-%E4%B8%8E%E4%B8%8A%E4%B8%8B%E6%B8%B8%E7%B3%BB%E7%BB%9F%E7%9A%84%E9%9B%86%E6%88%90%E4%B8%8E%E5%A5%91%E7%BA%A6">5. 与上下游系统的集成与契约</a></li>
+<li><a href="#6-%E4%B8%80%E8%87%B4%E6%80%A7%E9%99%8D%E7%BA%A7%E4%B8%8E%E9%9F%A7%E6%80%A7">6. 一致性、降级与韧性</a></li>
+<li><a href="#7-%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%80%A7%E4%B8%8E%E5%AE%9E%E9%AA%8C">7. 可观测性与实验</a></li>
+<li><a href="#8-%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5%E6%B8%85%E5%8D%95%E5%8F%91%E5%B8%83%E5%89%8D%E8%87%AA%E6%A3%80">8. 工程实践清单（发布前自检）</a></li>
+<li><a href="#9-%E9%9D%A2%E8%AF%95%E9%97%AE%E7%AD%94%E9%94%A6%E5%9B%8A">9. 面试问答锦囊</a></li>
+<li><a href="#10-%E6%80%BB%E7%BB%93">10. 总结</a></li>
+</ul>
+<hr>
+<h2 id="1-系统定位、范围与非目标"><a href="#1-系统定位、范围与非目标" class="headerlink" title="1. 系统定位、范围与非目标"></a>1. 系统定位、范围与非目标</h2><h3 id="1-1-本文覆盖（A-B）"><a href="#1-1-本文覆盖（A-B）" class="headerlink" title="1.1 本文覆盖（A + B）"></a>1.1 本文覆盖（A + B）</h3><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>覆盖内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>场景 B：结构化导购</strong></td>
+<td>类目树导航、类目 &#x2F; 品牌列表、多维筛选与默认排序</td>
+</tr>
+<tr>
+<td><strong>场景 A：站内搜索闭环</strong></td>
+<td>Query 归一化、召回、排序、聚合、suggest、高亮（点到为止）</td>
+</tr>
+<tr>
+<td><strong>店铺内</strong></td>
+<td>限定 <code>shop_id</code>（或等价租户维度）的检索与列表</td>
+</tr>
+<tr>
+<td><strong>工程</strong></td>
+<td>编排、批量 hydrate、超时、限流、幂等与观测</td>
+</tr>
+</tbody></table>
+<h3 id="1-2-显式非目标"><a href="#1-2-显式非目标" class="headerlink" title="1.2 显式非目标"></a>1.2 显式非目标</h3><ul>
+<li><strong>首页 &#x2F; 频道个性化 feed、重推荐系统</strong>：不在正文展开（与「搜索召回」相邻但产品目标不同）；文末给扩展阅读方向即可。</li>
+<li><strong>营销优惠叠加计算</strong>：见<a href="/system-design/28-ecommerce-marketing-system/">营销系统</a>，本篇只写列表读侧 <strong>标签 &#x2F; 圈品命中展示</strong> 与失败降级。</li>
+<li><strong>索引全量建模与多级缓存同步细节</strong>：见<a href="/system-design/27-ecommerce-product-center/">商品中心 5. 商品搜索与多级缓存</a>。</li>
+</ul>
+<h3 id="1-3-与系列文章的分工"><a href="#1-3-与系列文章的分工" class="headerlink" title="1.3 与系列文章的分工"></a>1.3 与系列文章的分工</h3><table>
+<thead>
+<tr>
+<th>文章</th>
+<th>本篇边界</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>27</code> 商品中心 §5</td>
+<td><strong>索引文档、nested&#x2F;扁平化、缓存、同步</strong> 的权威叙述；本篇只引用 <strong>查询侧字段契约</strong>。</td>
+</tr>
+<tr>
+<td><code>21</code> &#x2F; <code>25</code> 上架与 B 端</td>
+<td><strong>可搜可见</strong> 与状态机语义；本篇写 <strong>对 ES 文档生命周期的影响</strong>，不复制 Worker 表结构。</td>
+</tr>
+<tr>
+<td><code>30</code> 生命周期 &#x2F; 审核</td>
+<td><strong>风控标、下架原因</strong> → filter 或降权；本篇给出 <strong>默认推荐位点</strong>（见 §5）。</td>
+</tr>
+<tr>
+<td><code>23</code> &#x2F; <code>24</code> 计价</td>
+<td><strong>列表价</strong>：索引价 vs hydrate；不展开计价引擎实现。</td>
+</tr>
+<tr>
+<td><code>22</code> 库存</td>
+<td><strong>可售信号</strong> 进索引粒度 vs 详情强一致；不展开 Lua 与供应商策略。</td>
+</tr>
+<tr>
+<td><code>28</code> 营销</td>
+<td>列表上 <strong>只读</strong> 应用活动标 &#x2F; 圈品结果。</td>
+</tr>
+</tbody></table>
+<h3 id="1-4-核心挑战（面试常问「难点在哪」）"><a href="#1-4-核心挑战（面试常问「难点在哪」）" class="headerlink" title="1.4 核心挑战（面试常问「难点在哪」）"></a>1.4 核心挑战（面试常问「难点在哪」）</h3><table>
+<thead>
+<tr>
+<th>挑战</th>
+<th>根因</th>
+<th>设计方向</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>相关性</strong></td>
+<td>用户表达含糊、同义词多、类目错挂</td>
+<td>词典 + 可控改写 + 埋点驱动迭代</td>
+</tr>
+<tr>
+<td><strong>列表价与索引不一致</strong></td>
+<td>促销、会员、渠道价变化快于索引</td>
+<td>hydrate + 产品话术 + 结算强一致</td>
+</tr>
+<tr>
+<td><strong>高并发读</strong></td>
+<td>大促与热搜集中</td>
+<td>ES 扩展、缓存、限流、降级</td>
+</tr>
+<tr>
+<td><strong>深分页</strong></td>
+<td><code>from/size</code> 成本指数上升</td>
+<td><code>search_after</code> + 产品限制</td>
+</tr>
+<tr>
+<td><strong>跨系统编排</strong></td>
+<td>hydrate 依赖多、尾延迟叠加</td>
+<td>并发上限、超时、部分降级</td>
+</tr>
+<tr>
+<td><strong>索引与主数据漂移</strong></td>
+<td>异步链路、至少一次消费</td>
+<td>幂等 version、对账与补偿任务</td>
+</tr>
+</tbody></table>
+<h3 id="1-5-系统边界与交互全景"><a href="#1-5-系统边界与交互全景" class="headerlink" title="1.5 系统边界与交互全景"></a>1.5 系统边界与交互全景</h3><p>下图展示 <strong>搜索与导购系统</strong> 在电商全局架构中的位置、与其他系统的边界、以及读写路径的分离：</p>
+<pre class="mermaid">graph TB
+    subgraph UserLayer["用户层"]
+        User[商城用户 Web/App]
+    end
+    
+    subgraph Gateway["接入层"]
+        APIGateway[API Gateway<br/>鉴权/限流/路由]
+    end
+    
+    subgraph SearchDiscovery["🔍 搜索与导购系统<br/>(本文重点)"]
+        MQS[导购查询服务<br/>Query/Recall/Rank/Hydrate]
+        IndexWorker[索引构建 Worker<br/>消费事件/幂等更新]
+    end
+    
+    subgraph CoreStorage["核心存储"]
+        ES[(Elasticsearch<br/>商品索引)]
+    end
+    
+    subgraph WriteServices["写入侧系统<br/>(索引数据来源)"]
+        ProductCenter[商品中心<br/>27-商品主数据]
+        ListingService[上架系统<br/>21-状态与审核]
+        LifecycleService[生命周期管理<br/>30-风控标/下架]
+        BOpsPlatform[B端运营<br/>25-批量管理/配置]
+    end
+    
+    subgraph ReadServices["读取侧系统<br/>(Hydrate 依赖)"]
+        PricingRead[计价只读接口<br/>23-列表价]
+        InventoryRead[库存摘要接口<br/>22-可售信号]
+        MarketingRead[营销只读接口<br/>28-活动标/圈品]
+        OpConfig[运营配置服务<br/>加权/置顶/资源位]
+    end
+    
+    subgraph MessageBus["消息总线"]
+        Kafka[Kafka/消息队列<br/>product.*<br/>listing.*]
+    end
+    
+    %% 用户请求路径
+    User -->|搜索/列表请求| APIGateway
+    APIGateway -->|路由| MQS
+    MQS -->|召回查询| ES
+    MQS -.->|批量 hydrate<br/>超时降级| PricingRead
+    MQS -.->|批量 hydrate<br/>超时降级| InventoryRead
+    MQS -.->|批量 hydrate<br/>超时降级| MarketingRead
+    MQS -.->|重排合并| OpConfig
+    MQS -->|响应| APIGateway
+    APIGateway -->|结果| User
+    
+    %% 索引更新路径 (异步/弱一致)
+    ProductCenter -->|商品变更事件| Kafka
+    ListingService -->|上架状态事件| Kafka
+    LifecycleService -->|审核/风控事件| Kafka
+    BOpsPlatform -->|批量操作事件| Kafka
+    
+    Kafka -->|至少一次投递| IndexWorker
+    IndexWorker -->|幂等更新<br/>version 比较| ES
+    
+    %% 样式
+    classDef searchSystem fill:#e1f5ff,stroke:#0288d1,stroke-width:3px
+    classDef writeSystem fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef readSystem fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef storage fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef message fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    
+    class MQS,IndexWorker searchSystem
+    class ProductCenter,ListingService,LifecycleService,BOpsPlatform writeSystem
+    class PricingRead,InventoryRead,MarketingRead,OpConfig readSystem
+    class ES storage
+    class Kafka message</pre>
+
+<p><strong>关键边界与设计原则</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>职责边界</th>
+<th>一致性保证</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>写入路径</strong></td>
+<td>搜索不拥有商品主数据；仅通过 <strong>事件</strong> 消费并维护 <strong>派生索引</strong></td>
+<td>异步 + 最终一致；幂等 Worker + version 比较</td>
+</tr>
+<tr>
+<td><strong>读取路径</strong></td>
+<td>搜索只提供 <strong>召回与排序</strong>；卡片字段由 hydrate <strong>编排多系统</strong></td>
+<td>弱一致为主；单次失败不阻断整页</td>
+</tr>
+<tr>
+<td><strong>ES 索引</strong></td>
+<td>商品状态、类目、SKU 属性等 <strong>相对静态</strong> 字段；价格&#x2F;库存&#x2F;营销等 <strong>易变字段</strong> 走 hydrate</td>
+<td>索引滞后可接受（秒级～分钟级）</td>
+</tr>
+<tr>
+<td><strong>配置与加权</strong></td>
+<td>运营配置、实验分桶通过 <strong>独立服务</strong> 注入到重排阶段；不进 ES</td>
+<td>配置变更实时生效；与索引刷新解耦</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="2-统一导购查询服务（方案-1）"><a href="#2-统一导购查询服务（方案-1）" class="headerlink" title="2. 统一导购查询服务（方案 1）"></a>2. 统一导购查询服务（方案 1）</h2><h3 id="2-1-单一主叙事：一个服务，多种-scene"><a href="#2-1-单一主叙事：一个服务，多种-scene" class="headerlink" title="2.1 单一主叙事：一个服务，多种 scene"></a>2.1 单一主叙事：一个服务，多种 scene</h3><p>为降低面试叙述与运维心智负担，推荐对外的 <strong>主叙事</strong> 为：<strong>导购查询服务（Merchandising Query Service）</strong> 暴露统一查询接口，用 <code>scene</code> 区分业务语义；内部共享 <strong>召回 → 排序 → hydrate</strong> 流水线。网关可做鉴权、限流与字段裁剪，但 <strong>不把排序规则散落在多个 BFF</strong> 中。</p>
+<p>若组织演进后存在 <strong>搜索网关 + 列表 BFF</strong> 两个 HTTP 入口，应保证二者调用 <strong>同一排序内核与同一套实验配置</strong>，避免出现「同一批商品在搜索与列表排序不一致」的线上问题。</p>
+<h3 id="2-2-scene-对比"><a href="#2-2-scene-对比" class="headerlink" title="2.2 scene 对比"></a>2.2 scene 对比</h3><table>
+<thead>
+<tr>
+<th>scene</th>
+<th>用户输入</th>
+<th>典型 filter</th>
+<th>召回主索引</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>keyword</code></td>
+<td>关键词 + 可选类目 &#x2F; 品牌</td>
+<td>上架可售、合规、店铺黑名单等</td>
+<td>全站商品索引（或按站点分片）</td>
+</tr>
+<tr>
+<td><code>category</code></td>
+<td>无关键词或空 query</td>
+<td>固定 <code>category_id</code> + 同上</td>
+<td>同上</td>
+</tr>
+<tr>
+<td><code>shop</code></td>
+<td>可选关键词</td>
+<td>固定 <code>shop_id</code> + 同上</td>
+<td>店铺子索引或全索引加 filter</td>
+</tr>
+</tbody></table>
+<p>店铺维度实现二选一即可：<strong>独立索引别名</strong>（写入侧按 shop 路由，查询简单）或 <strong>单索引 + 强 filter</strong>（运维简单，超大店需关注分片热点）。</p>
+<h3 id="2-3-逻辑架构"><a href="#2-3-逻辑架构" class="headerlink" title="2.3 逻辑架构"></a>2.3 逻辑架构</h3><pre class="mermaid">flowchart TB
+  subgraph Client
+    U[商城 Web / App]
+  end
+  subgraph Edge
+    G[API Gateway]
+  end
+  subgraph MerchandisingQuery["导购查询服务"]
+    Q[Query 理解]
+    R[Recall / ES]
+    P[Rank: 粗排 / 精排 / 重排]
+    H[Hydrate 编排]
+  end
+  subgraph ReadDeps["读依赖（弱一致为主）"]
+    PC[商品读服务 / 批量详情]
+    PR[计价只读接口]
+    INV[库存摘要接口]
+    MK[营销圈品与标签只读]
+    CFG[运营配置 / 加权]
+  end
+  ES[(Elasticsearch)]
+  U --> G --> Q --> R
+  R --> ES
+  R --> P --> H
+  H --> PC
+  H --> PR
+  H --> INV
+  H --> MK
+  P --> CFG</pre>
+
+<h3 id="2-4-演进注记：何时拆-BFF"><a href="#2-4-演进注记：何时拆-BFF" class="headerlink" title="2.4 演进注记：何时拆 BFF"></a>2.4 演进注记：何时拆 BFF</h3><p>当 <strong>列表卡片组装</strong> 与 <strong>搜索实验</strong> 发布节奏强耦合不同团队时，可将 <strong>Hydrate 结果组装</strong> 下沉到独立 BFF，但 <strong>排序分数与实验桶</strong> 仍应由导购查询内核产出并通过版本化字段下发，避免「实验只在搜索生效」的割裂。</p>
+<hr>
+<h2 id="3-主链路：Query-→-Recall-→-Rank-→-Hydrate"><a href="#3-主链路：Query-→-Recall-→-Rank-→-Hydrate" class="headerlink" title="3. 主链路：Query → Recall → Rank → Hydrate"></a>3. 主链路：Query → Recall → Rank → Hydrate</h2><h3 id="3-1-Query-理解（刻意保持轻量）"><a href="#3-1-Query-理解（刻意保持轻量）" class="headerlink" title="3.1 Query 理解（刻意保持轻量）"></a>3.1 Query 理解（刻意保持轻量）</h3><p>目标不是做通用 NLP 搜索引擎，而是 <strong>可控、可解释、可回归</strong>：</p>
+<ul>
+<li><strong>归一化</strong>：全半角、大小写、去噪字符、重复空格。</li>
+<li><strong>同义词 &#x2F; 类目词典</strong>：运营可配表驱动；变更走版本号，与排序实验解耦。</li>
+<li><strong>拼写纠错</strong>：可选；需 <strong>限流 + 白名单</strong>，避免纠错引入合规或品牌风险。</li>
+</ul>
+<p>输出物建议固定为：<code>normalized_query</code>、<code>intent_tags</code>（如类目意图）、<code>rewrites[]</code>（有限条数），供后续 DSL 组装与埋点。</p>
+<h3 id="3-2-召回：以-ES-为主"><a href="#3-2-召回：以-ES-为主" class="headerlink" title="3.2 召回：以 ES 为主"></a>3.2 召回：以 ES 为主</h3><p>召回阶段输出 <strong>候选 doc 列表</strong>（通常为 SPU 或「展示单元」ID）及 ES 内已可用的排序分量（<code>_score</code>、字段排序值）。<strong>不要在召回阶段做重 CPU 的跨系统调用</strong>。</p>
+<p><strong>可选扩展（压缩叙述）</strong>：关键词 BM25 + <strong>向量召回</strong> 做双路 merge 时，必须面对 <strong>双路 quota、去重、延迟翻倍</strong> 与向量索引运维成本。MVP 与多数面试场景 <strong>单路 ES + hydrate</strong> 已足够；向量可作为「演进」一句带过。</p>
+<h3 id="3-3-排序分层：粗排-→-精排-→-重排"><a href="#3-3-排序分层：粗排-→-精排-→-重排" class="headerlink" title="3.3 排序分层：粗排 → 精排 → 重排"></a>3.3 排序分层：粗排 → 精排 → 重排</h3><pre class="mermaid">flowchart LR
+  subgraph Recall["召回 (ES)"]
+    A[候选集 N]
+  end
+  subgraph Coarse["粗排"]
+    B[截断 M]
+  end
+  subgraph Fine["精排"]
+    C[Top K]
+  end
+  subgraph Rerank["重排"]
+    D[Top P 返回页]
+  end
+  A --> B --> C --> D</pre>
+
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>典型输入</th>
+<th>典型输出</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>粗排</strong></td>
+<td>ES 召回前 N（如 500～2000）</td>
+<td>截断到 M（如 200）</td>
+<td>主要用 <code>_score</code> + 简单线性特征（销量、上架时间）可在 ES <code>function_score</code> 或应用内完成</td>
+</tr>
+<tr>
+<td><strong>精排</strong></td>
+<td>M 条 doc id</td>
+<td>有序列表 K（如 50）</td>
+<td>可解释加权：转化率预估、价格带、店铺分等；<strong>LTR 模型</strong>可在此替换，面试一笔带过即可</td>
+</tr>
+<tr>
+<td><strong>重排</strong></td>
+<td>K 条</td>
+<td>最终页大小 P</td>
+<td>多样性、类目打散、疲劳度、<strong>合规与风控过滤</strong>、运营强插合并</td>
+</tr>
+</tbody></table>
+<p><strong>合规 &#x2F; 风控默认建议</strong>：在 <strong>重排后、返回前</strong> 做最终过滤（避免 ES 已排序商品在最后一环被剔除导致空洞位）；对 <strong>明确违法禁售</strong> 商品应在 <strong>索引写入侧</strong> 即不可召回。审核中的「灰区」商品更适合 <strong>召回阶段 filter</strong>（见 <code>30</code> 与 <code>27</code> 状态定义）。</p>
+<h4 id="AB-与配置版本（工程落地最小集）"><a href="#AB-与配置版本（工程落地最小集）" class="headerlink" title="AB 与配置版本（工程落地最小集）"></a>AB 与配置版本（工程落地最小集）</h4><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>exp_id</code></td>
+<td>实验桶标识，贯穿日志与报表</td>
+</tr>
+<tr>
+<td><code>rank_version</code></td>
+<td>绑定一套权重 &#x2F; 规则 &#x2F; 模型版本，可快速回滚</td>
+</tr>
+<tr>
+<td><code>query_id</code></td>
+<td>单次请求追踪，关联 ES 与 hydrate 子调用</td>
+</tr>
+</tbody></table>
+<p>发布流程建议：<strong>先空跑双写日志对比（shadow traffic）</strong>，再按桶放量；与计价、营销大促窗口 <strong>错峰改排序</strong>，避免归因困难。</p>
+<h3 id="3-4-Hydrate：批量、限时、可降级"><a href="#3-4-Hydrate：批量、限时、可降级" class="headerlink" title="3.4 Hydrate：批量、限时、可降级"></a>3.4 Hydrate：批量、限时、可降级</h3><p>列表卡片常需要：<strong>展示价、原价划线、库存状态（有货 &#x2F; 紧张 &#x2F; 无货）、营销标、店铺名</strong>。这些字段 <strong>变化快于索引刷新</strong> 时，必须在 hydrate 阶段补齐。</p>
+<p><strong>契约建议</strong>：</p>
+<ul>
+<li>入参：<code>doc_ids[]</code>（长度上限，如 50）、<code>user_id</code>（可选，用于会员价）、<code>scene</code>、<code>rank_version</code>。</li>
+<li>出参：与卡片一一对应的 <strong>结构体 map</strong>，缺失键表示该 doc hydrate 失败。</li>
+<li><strong>并发上限 + 单请求超时</strong>（如 80ms～120ms 可调）；部分失败 <strong>不阻断整页</strong>：缺失字段走保守展示（见 §8）。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 伪代码：hydrate 编排（示意）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *MerchandisingQuery)</span></span> Hydrate(ctx context.Context, req HydrateRequest) (<span class="keyword">map</span>[<span class="type">int64</span>]CardEnrichment, <span class="type">error</span>) &#123;</span><br><span class="line">    g, ctx := errgroup.WithContext(ctx)</span><br><span class="line">    g.SetLimit(<span class="number">8</span>)</span><br><span class="line">    out := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="type">int64</span>]CardEnrichment)</span><br><span class="line">    <span class="keyword">var</span> mu sync.Mutex</span><br><span class="line">    <span class="keyword">for</span> _, id := <span class="keyword">range</span> req.DocIDs &#123;</span><br><span class="line">        id := id</span><br><span class="line">        g.Go(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="type">error</span> &#123;</span><br><span class="line">            cctx, cancel := context.WithTimeout(ctx, <span class="number">100</span>*time.Millisecond)</span><br><span class="line">            <span class="keyword">defer</span> cancel()</span><br><span class="line">            card, err := s.deps.FetchCard(cctx, id, req.UserID, req.Scene)</span><br><span class="line">            <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">nil</span> <span class="comment">// 降级：单卡失败不失败整页</span></span><br><span class="line">            &#125;</span><br><span class="line">            mu.Lock()</span><br><span class="line">            out[id] = card</span><br><span class="line">            mu.Unlock()</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">        &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">    _ = g.Wait()</span><br><span class="line">    <span class="keyword">return</span> out, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="4-Elasticsearch-专题（方案-3）"><a href="#4-Elasticsearch-专题（方案-3）" class="headerlink" title="4. Elasticsearch 专题（方案 3）"></a>4. Elasticsearch 专题（方案 3）</h2><blockquote>
+<p><strong>再次强调</strong>：索引字段清单、nested 取舍、商品变更如何进索引，请以 <a href="/system-design/27-ecommerce-product-center/">商品中心 §5.1</a> 为准。本节只写 <strong>查询侧契约与反模式</strong>。</p>
+</blockquote>
+<h3 id="4-1-分析链与中文分词"><a href="#4-1-分析链与中文分词" class="headerlink" title="4.1 分析链与中文分词"></a>4.1 分析链与中文分词</h3><ul>
+<li><strong>索引与查询使用同一分析链</strong>（或查询链为索引链的有意子集），避免「索引分词与查询分词不一致」导致召回漂移。</li>
+<li>中文场景常见：<strong>IK &#x2F; smartcn 等</strong>；需配置 <strong>synonym filter 更新策略</strong>（文件热更 vs 索引重建），与发布流程对齐。</li>
+</ul>
+<h3 id="4-2-mapping-要点（查询视角）"><a href="#4-2-mapping-要点（查询视角）" class="headerlink" title="4.2 mapping 要点（查询视角）"></a>4.2 mapping 要点（查询视角）</h3><table>
+<thead>
+<tr>
+<th>实践</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>筛选 &#x2F; 聚合 &#x2F; 排序字段</strong></td>
+<td>优先 <code>keyword</code> 或数值类型，保证 <code>doc_values</code> 可用</td>
+</tr>
+<tr>
+<td><strong>全文检索字段</strong></td>
+<td><code>text</code> + 子字段 <code>keyword</code>（如 <code>title.keyword</code>）用于精确匹配或排序时要谨慎评估</td>
+</tr>
+<tr>
+<td><strong>nested</strong></td>
+<td>仅当 <strong>SKU 级属性必须在查询中与父文档联合约束</strong> 时使用；滥用 nested 会显著放大查询与索引成本</td>
+</tr>
+<tr>
+<td><strong>禁止</strong></td>
+<td>对大文本字段做无意义排序；对高基数字段做深度聚合默认全开</td>
+</tr>
+</tbody></table>
+<h3 id="4-3-典型查询模式（bool-filter-sort）"><a href="#4-3-典型查询模式（bool-filter-sort）" class="headerlink" title="4.3 典型查询模式（bool + filter + sort）"></a>4.3 典型查询模式（bool + filter + sort）</h3><p><code>filter</code> 上下文 <strong>不参与评分</strong> 且可走缓存，适合 <strong>上架状态、类目、店铺、价格区间</strong> 等硬条件：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;query&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;bool&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;must&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">          <span class="attr">&quot;multi_match&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;query&quot;</span><span class="punctuation">:</span> <span class="string">&quot;无线耳机&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span><span class="string">&quot;title^3&quot;</span><span class="punctuation">,</span> <span class="string">&quot;brand^2&quot;</span><span class="punctuation">,</span> <span class="string">&quot;attrs.searchable&quot;</span><span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;best_fields&quot;</span></span><br><span class="line">          <span class="punctuation">&#125;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">      <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;filter&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span> <span class="attr">&quot;term&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span> <span class="attr">&quot;site_id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;SG&quot;</span> <span class="punctuation">&#125;</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span> <span class="attr">&quot;term&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span> <span class="attr">&quot;listing_status&quot;</span><span class="punctuation">:</span> <span class="string">&quot;ONLINE&quot;</span> <span class="punctuation">&#125;</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span> <span class="attr">&quot;term&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span> <span class="attr">&quot;category_id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;cat-3c-audio&quot;</span> <span class="punctuation">&#125;</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span> <span class="attr">&quot;range&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span> <span class="attr">&quot;list_price&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span> <span class="attr">&quot;gte&quot;</span><span class="punctuation">:</span> <span class="number">50</span><span class="punctuation">,</span> <span class="attr">&quot;lte&quot;</span><span class="punctuation">:</span> <span class="number">500</span> <span class="punctuation">&#125;</span> <span class="punctuation">&#125;</span> <span class="punctuation">&#125;</span></span><br><span class="line">      <span class="punctuation">]</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line">  <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;sort&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">    <span class="punctuation">&#123;</span> <span class="attr">&quot;_score&quot;</span><span class="punctuation">:</span> <span class="string">&quot;desc&quot;</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="punctuation">&#123;</span> <span class="attr">&quot;sales_30d&quot;</span><span class="punctuation">:</span> <span class="string">&quot;desc&quot;</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="punctuation">&#123;</span> <span class="attr">&quot;spu_id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;asc&quot;</span> <span class="punctuation">&#125;</span></span><br><span class="line">  <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;highlight&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span> <span class="attr">&quot;title&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span><span class="punctuation">&#125;</span> <span class="punctuation">&#125;</span></span><br><span class="line">  <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;_source&quot;</span><span class="punctuation">:</span> <span class="literal"><span class="keyword">false</span></span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;stored_fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span><span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;docvalue_fields&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span><span class="string">&quot;spu_id&quot;</span><span class="punctuation">,</span> <span class="string">&quot;list_price&quot;</span><span class="punctuation">,</span> <span class="string">&quot;shop_id&quot;</span><span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>实际生产中会结合 <code>_source</code> 裁剪与 <code>docvalue_fields</code> 权衡包大小；面试可强调：<strong>列表页不要在 ES 返回大字段正文</strong>。</p>
+<h3 id="4-4-深分页与-search-after"><a href="#4-4-深分页与-search-after" class="headerlink" title="4.4 深分页与 search_after"></a>4.4 深分页与 <code>search_after</code></h3><table>
+<thead>
+<tr>
+<th>方式</th>
+<th>适用</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>from + size</code></td>
+<td>前若干页</td>
+<td><code>from</code> 过大时 ES 需全局排序，<strong>内存与延迟爆炸</strong></td>
+</tr>
+<tr>
+<td><code>search_after</code></td>
+<td>深度翻页 &#x2F; 实时滚动</td>
+<td>需稳定 sort key；不适合随机跳页</td>
+</tr>
+<tr>
+<td><code>scroll</code></td>
+<td>离线导出、对账</td>
+<td>不适合用户请求</td>
+</tr>
+</tbody></table>
+<p>面试标准答法：<strong>C 端列表深分页用 <code>search_after</code>；随机跳页用产品约束（最多翻到第 N 页）或改写交互。</strong></p>
+<h3 id="4-5-慢查询与容量清单（自检表）"><a href="#4-5-慢查询与容量清单（自检表）" class="headerlink" title="4.5 慢查询与容量清单（自检表）"></a>4.5 慢查询与容量清单（自检表）</h3><ul>
+<li><strong>Profile</strong>：定位是评分、聚合还是 <code>function_score</code> 过重。</li>
+<li><strong>分片与副本</strong>：分片数与数据量、查询并发匹配；副本提升读吞吐但增加写入放大。</li>
+<li><strong>强制合并与段数</strong>：写入高峰后观察段合并策略；避免不当 force merge 影响写入。</li>
+<li><strong>冷热索引</strong>：长尾类目或历史大促索引降副本或迁移冷节点（一句话与运维协作点）。</li>
+</ul>
+<h3 id="4-6-function-score：粗排阶段的业务加权（示例）"><a href="#4-6-function-score：粗排阶段的业务加权（示例）" class="headerlink" title="4.6 function_score：粗排阶段的业务加权（示例）"></a>4.6 <code>function_score</code>：粗排阶段的业务加权（示例）</h3><p>在 ES 内完成 <strong>销量、上新、店铺分</strong> 等可解释加权，可减少应用内精排压力；注意 <strong>权重爆炸</strong> 与 debug 难度，建议 <strong>版本化脚本</strong> 与离线回放数据集。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;query&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;function_score&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;query&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span> <span class="attr">&quot;bool&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span> <span class="attr">&quot;must&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span><span class="punctuation">]</span><span class="punctuation">,</span> <span class="attr">&quot;filter&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span><span class="punctuation">]</span> <span class="punctuation">&#125;</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;functions&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">          <span class="attr">&quot;field_value_factor&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;field&quot;</span><span class="punctuation">:</span> <span class="string">&quot;sales_30d&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;modifier&quot;</span><span class="punctuation">:</span> <span class="string">&quot;log1p&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;missing&quot;</span><span class="punctuation">:</span> <span class="number">1</span></span><br><span class="line">          <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="attr">&quot;weight&quot;</span><span class="punctuation">:</span> <span class="number">1.2</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">          <span class="attr">&quot;gauss&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;listed_at&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">              <span class="attr">&quot;origin&quot;</span><span class="punctuation">:</span> <span class="string">&quot;now&quot;</span><span class="punctuation">,</span></span><br><span class="line">              <span class="attr">&quot;scale&quot;</span><span class="punctuation">:</span> <span class="string">&quot;30d&quot;</span><span class="punctuation">,</span></span><br><span class="line">              <span class="attr">&quot;decay&quot;</span><span class="punctuation">:</span> <span class="number">0.5</span></span><br><span class="line">            <span class="punctuation">&#125;</span></span><br><span class="line">          <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="attr">&quot;weight&quot;</span><span class="punctuation">:</span> <span class="number">0.8</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">      <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;score_mode&quot;</span><span class="punctuation">:</span> <span class="string">&quot;sum&quot;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;boost_mode&quot;</span><span class="punctuation">:</span> <span class="string">&quot;multiply&quot;</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line">  <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-7-聚合与导航：筛选条（facets）"><a href="#4-7-聚合与导航：筛选条（facets）" class="headerlink" title="4.7 聚合与导航：筛选条（facets）"></a>4.7 聚合与导航：筛选条（facets）</h3><p>类目列表页常在侧边栏展示 <strong>品牌、价格带、属性</strong> 分布。注意：</p>
+<ul>
+<li><strong>聚合桶数上限</strong> 与 **<code>min_doc_count</code>**，避免长尾拖垮查询。</li>
+<li><strong>筛选与聚合的 query 范围一致</strong>：用户已选 <code>brand=A</code> 后，其他 facet 应基于子集重算（「带条件的聚合」），否则出现 <strong>互斥筛选仍显示有货计数</strong> 的体验问题。</li>
+<li>大流量下可用 <strong>近似聚合</strong> 或 <strong>异步加载 facet</strong>（首屏商品列表优先）。</li>
+</ul>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;size&quot;</span><span class="punctuation">:</span> <span class="number">20</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;aggs&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;by_brand&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;terms&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span> <span class="attr">&quot;field&quot;</span><span class="punctuation">:</span> <span class="string">&quot;brand_id&quot;</span><span class="punctuation">,</span> <span class="attr">&quot;size&quot;</span><span class="punctuation">:</span> <span class="number">30</span> <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;price_ranges&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;range&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;field&quot;</span><span class="punctuation">:</span> <span class="string">&quot;list_price&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;ranges&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">          <span class="punctuation">&#123;</span> <span class="attr">&quot;to&quot;</span><span class="punctuation">:</span> <span class="number">100</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="punctuation">&#123;</span> <span class="attr">&quot;from&quot;</span><span class="punctuation">:</span> <span class="number">100</span><span class="punctuation">,</span> <span class="attr">&quot;to&quot;</span><span class="punctuation">:</span> <span class="number">300</span> <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">          <span class="punctuation">&#123;</span> <span class="attr">&quot;from&quot;</span><span class="punctuation">:</span> <span class="number">300</span> <span class="punctuation">&#125;</span></span><br><span class="line">        <span class="punctuation">]</span></span><br><span class="line">      <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line">  <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-8-Suggest：前缀与纠错（接口形态）"><a href="#4-8-Suggest：前缀与纠错（接口形态）" class="headerlink" title="4.8 Suggest：前缀与纠错（接口形态）"></a>4.8 Suggest：前缀与纠错（接口形态）</h3><ul>
+<li><strong>Completion suggester</strong> 或 <strong>search_as_you_type</strong> 字段适合前缀补全；需单独控制 <strong>QPS</strong> 与 <strong>字典更新延迟</strong>。</li>
+<li><strong>phrase suggester</strong> 可做「您是否要找」；与 Query 理解的纠错策略 <strong>二选一主路径</strong>，避免重复调用放大延迟。</li>
+</ul>
+<hr>
+<h2 id="5-与上下游系统的集成与契约"><a href="#5-与上下游系统的集成与契约" class="headerlink" title="5. 与上下游系统的集成与契约"></a>5. 与上下游系统的集成与契约</h2><h3 id="5-1-责任边界表"><a href="#5-1-责任边界表" class="headerlink" title="5.1 责任边界表"></a>5.1 责任边界表</h3><table>
+<thead>
+<tr>
+<th>系统</th>
+<th>导购侧职责</th>
+<th>典型交互</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>商品中心</strong></td>
+<td>主数据与 <strong>读模型版本</strong>；batch 取标题、主图、类目</td>
+<td>同步 REST &#x2F; gRPC；hydrate 批量接口</td>
+</tr>
+<tr>
+<td><strong>上架系统</strong></td>
+<td><strong>可搜可见</strong> 状态驱动索引增删改</td>
+<td>消息或任务驱动索引 Worker</td>
+</tr>
+<tr>
+<td><strong>生命周期 &#x2F; 审核</strong></td>
+<td>风控标、下架原因 → filter 或降权</td>
+<td>与 <code>30</code> 风险评估结果字段对齐</td>
+</tr>
+<tr>
+<td><strong>B 端运营</strong></td>
+<td>置顶、加权、资源位</td>
+<td>配置服务在 <strong>重排</strong> 合并；配置带 <code>version</code></td>
+</tr>
+<tr>
+<td><strong>计价</strong></td>
+<td>列表展示价、会员价</td>
+<td>只读接口；超时降级</td>
+</tr>
+<tr>
+<td><strong>库存</strong></td>
+<td>列表级「有货摘要」</td>
+<td>与 <code>22</code> 弱一致约定</td>
+</tr>
+<tr>
+<td><strong>营销</strong></td>
+<td>活动标、圈品是否命中</td>
+<td>只读；不算价</td>
+</tr>
+</tbody></table>
+<h3 id="5-2-索引更新路径（序列图）"><a href="#5-2-索引更新路径（序列图）" class="headerlink" title="5.2 索引更新路径（序列图）"></a>5.2 索引更新路径（序列图）</h3><pre class="mermaid">sequenceDiagram
+  participant L as 上架 / 商品领域服务
+  participant MQ as 消息总线 (如 Kafka)
+  participant W as 索引构建 Worker
+  participant ES as Elasticsearch
+  L->>MQ: 商品或上架状态变更事件
+  MQ->>W: 至少一次投递
+  W->>W: 幂等：比较 version / updated_at
+  W->>ES: bulk index / update / delete
+  ES-->>W: ack</pre>
+
+<h3 id="5-3-列表请求路径（序列图）"><a href="#5-3-列表请求路径（序列图）" class="headerlink" title="5.3 列表请求路径（序列图）"></a>5.3 列表请求路径（序列图）</h3><pre class="mermaid">sequenceDiagram
+  participant U as 用户
+  participant G as Gateway
+  participant M as 导购查询服务
+  participant ES as Elasticsearch
+  participant H as 计价 / 库存 / 营销只读
+  U->>G: 搜索 / 列表请求 + query_id
+  G->>M: 鉴权、限流、透传实验桶
+  M->>M: Query 理解
+  M->>ES: DSL 召回 + 粗排字段
+  ES-->>M: hits + sort keys
+  M->>M: 精排 / 重排
+  M->>H: batch hydrate（限时）
+  H-->>M: 部分成功
+  M-->>G: 列表 DTO + rank_version
+  G-->>U: 响应</pre>
+
+<h3 id="5-4-列表-hydrate-的批量契约（建议写进接口文档）"><a href="#5-4-列表-hydrate-的批量契约（建议写进接口文档）" class="headerlink" title="5.4 列表 hydrate 的批量契约（建议写进接口文档）"></a>5.4 列表 hydrate 的批量契约（建议写进接口文档）</h3><table>
+<thead>
+<tr>
+<th>项</th>
+<th>建议值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>doc_ids</code> 上限</td>
+<td>20～60</td>
+<td>与一页条数、卡片字段体积匹配</td>
+</tr>
+<tr>
+<td>单次并行度</td>
+<td>4～16</td>
+<td>避免把计价 &#x2F; 库存打爆</td>
+</tr>
+<tr>
+<td>单依赖超时</td>
+<td>30～120ms</td>
+<td>独立超时，合并用 deadline</td>
+</tr>
+<tr>
+<td>返回缺省策略</td>
+<td>显式 <code>partial=true</code></td>
+<td>前端可展示占位符或刷新提示</td>
+</tr>
+<tr>
+<td>缓存</td>
+<td>短时本地缓存热门 SPU</td>
+<td>TTL 极短，防击穿用 singleflight</td>
+</tr>
+</tbody></table>
+<p>计价只读接口建议支持 <strong>批量 + 站点 + 会员等级</strong> 维度，减少网络往返；与 <a href="/system-design/23-ecommerce-pricing-engine/">计价引擎</a> 的「展示价场景」对齐命名，避免客户端混用「下单价」与「列表价」字段。</p>
+<h3 id="5-5-幂等与乱序事件"><a href="#5-5-幂等与乱序事件" class="headerlink" title="5.5 幂等与乱序事件"></a>5.5 幂等与乱序事件</h3><p>索引 Worker 在 <strong>至少一次</strong> 消费下必须 <strong>幂等</strong>：</p>
+<ul>
+<li>使用 <strong><code>spu_id</code>（或主键）+ 领域 version</strong> 做 compare-and-skip：旧版本事件直接丢弃。</li>
+<li><strong>删除事件</strong> 需带明确语义：<code>HARD_DELETE</code>（物理删文档）vs <code>UNSEARCHABLE</code>（保留文档但 <code>listing_status</code> 过滤）。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 伪代码：索引更新幂等（示意）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ApplyProductEvent</span><span class="params">(doc ProductDoc, evt ProductEvent)</span></span> (<span class="type">bool</span>, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> evt.Version &lt; doc.Version &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>, <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>, UpsertES(doc.Merge(evt))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="6-一致性、降级与韧性"><a href="#6-一致性、降级与韧性" class="headerlink" title="6. 一致性、降级与韧性"></a>6. 一致性、降级与韧性</h2><h3 id="6-1-索引滞后"><a href="#6-1-索引滞后" class="headerlink" title="6.1 索引滞后"></a>6.1 索引滞后</h3><ul>
+<li><strong>现象</strong>：商品已上架，搜索短暂搜不到；价格已改，列表仍显示旧价。</li>
+<li><strong>产品与技术组合</strong>：详情页 <strong>强一致读商品中心</strong>；列表页展示 <strong>数据时间戳</strong> 或「价格以结算为准」提示；关键运营活动可走 <strong>强制刷新队列</strong>（与 <code>27</code> 智能刷新策略呼应）。</li>
+</ul>
+<h3 id="6-2-Hydrate-部分失败"><a href="#6-2-Hydrate-部分失败" class="headerlink" title="6.2 Hydrate 部分失败"></a>6.2 Hydrate 部分失败</h3><ul>
+<li><strong>计价超时</strong>：隐藏会员价差、展示索引价或「登录看价」。</li>
+<li><strong>库存服务降级</strong>：默认「有货」或「库存紧张」需业务拍板；<strong>更保守</strong> 策略有利于避免超卖客诉，但可能损失转化。</li>
+<li><strong>营销标签失败</strong>：不展示活动标，不影响下单资格判定（资格仍以结算页为准）。</li>
+</ul>
+<h3 id="6-3-ES-集群故障：推荐默认与备选"><a href="#6-3-ES-集群故障：推荐默认与备选" class="headerlink" title="6.3 ES 集群故障：推荐默认与备选"></a>6.3 ES 集群故障：推荐默认与备选</h3><table>
+<thead>
+<tr>
+<th>策略</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>默认推荐：返回缓存快照 &#x2F; 上一成功列表</strong>（短时）</td>
+<td>体验连续、保护下游</td>
+<td>结果新鲜度差；需缓存 key 设计（query + filter hash）</td>
+</tr>
+<tr>
+<td><strong>备选：受限 DB LIKE &#x2F; 关键字查询</strong></td>
+<td>数据相对新</td>
+<td>延迟高、难支撑复杂筛选；必须 <strong>强限流</strong></td>
+</tr>
+</tbody></table>
+<p>面试可答：<strong>优先保护核心交易链路，导购读路径可短时降级为缓存或简化查询。</strong></p>
+<h3 id="6-4-限流与防刷"><a href="#6-4-限流与防刷" class="headerlink" title="6.4 限流与防刷"></a>6.4 限流与防刷</h3><ul>
+<li>网关按 <strong>用户、IP、设备指纹</strong> 维度限流；搜索 suggest 与列表 <strong>不同配额</strong>。</li>
+<li>异常模式（零结果率骤降、同一 query QPS 飙升）对接 <strong>风控与验证码</strong>（细节见营销与运营体系，本篇只列位点）。</li>
+</ul>
+<hr>
+<h2 id="7-可观测性与实验"><a href="#7-可观测性与实验" class="headerlink" title="7. 可观测性与实验"></a>7. 可观测性与实验</h2><h3 id="7-1-关键指标"><a href="#7-1-关键指标" class="headerlink" title="7.1 关键指标"></a>7.1 关键指标</h3><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>零结果率</strong></td>
+<td>无 hits 的 query 占比；驱动同义词与运营类目配置</td>
+</tr>
+<tr>
+<td><strong>P99 端到端延迟</strong></td>
+<td>含 hydrate；拆分 ES 与下游占比</td>
+</tr>
+<tr>
+<td><strong>hydrate 成功率 &#x2F; 超时率</strong></td>
+<td>按依赖方拆分</td>
+</tr>
+<tr>
+<td><strong>ES 慢查询计数</strong></td>
+<td>阈值告警 + profile 采样</td>
+</tr>
+<tr>
+<td><strong>实验分桶 CTR &#x2F; CVR</strong></td>
+<td>与 <code>rank_version</code> 关联</td>
+</tr>
+</tbody></table>
+<h3 id="7-2-日志与追踪"><a href="#7-2-日志与追踪" class="headerlink" title="7.2 日志与追踪"></a>7.2 日志与追踪</h3><ul>
+<li>全链路携带 **<code>query_id</code><strong>（或 <code>request_id</code>）、</strong><code>scene</code><strong>、</strong><code>exp_id</code><strong>、</strong><code>rank_version</code>**。</li>
+<li>ES 查询日志记录 <strong>归一化后 query</strong>（注意隐私脱敏与合规）。</li>
+</ul>
+<h3 id="7-3-容量与压测关注点（面试「如何估机器」）"><a href="#7-3-容量与压测关注点（面试「如何估机器」）" class="headerlink" title="7.3 容量与压测关注点（面试「如何估机器」）"></a>7.3 容量与压测关注点（面试「如何估机器」）</h3><ul>
+<li><strong>峰值 QPS</strong>：按大促系数 × 日常峰值；区分 <strong>搜索 suggest</strong> 与 <strong>列表主请求</strong>。</li>
+<li><strong>ES 数据量与分片</strong>：单分片建议控制在 <strong>几十 GB 内</strong>（视版本与硬件调整），避免单分片过大导致恢复慢。</li>
+<li><strong>hydrate 扇出</strong>：<code>QPS × 每页条数 × 下游 RPC 数</code> 估算连接池与超时；<strong>失败重试</strong> 需指数退避并合并到 <strong>单用户维度熔断</strong>。</li>
+<li><strong>缓存命中率</strong>：热门 query 或类目前缀可走 CDN &#x2F; 边缘缓存（注意 <strong>个性化价</strong> 与缓存 key 设计冲突）。</li>
+</ul>
+<hr>
+<h2 id="8-工程实践清单（发布前自检）"><a href="#8-工程实践清单（发布前自检）" class="headerlink" title="8. 工程实践清单（发布前自检）"></a>8. 工程实践清单（发布前自检）</h2><ul>
+<li><input disabled="" type="checkbox"> <strong>索引别名切换</strong>：蓝绿 reindex 后一次性切 <code>read_alias</code>，避免双写读不一致窗口过长。</li>
+<li><input disabled="" type="checkbox"> <strong>mapping 变更评审</strong>：是否需 reindex；是否影响排序字段 <code>doc_values</code>。</li>
+<li><input disabled="" type="checkbox"> <strong>压测脚本</strong>：覆盖「大 filter + 多排序键 + search_after」与「hydrate 下游一半超时」。</li>
+<li><input disabled="" type="checkbox"> <strong>降级开关</strong>：ES 故障、hydrate 超时、实验回滚的 <strong>配置中心</strong> 位点与演练记录。</li>
+<li><input disabled="" type="checkbox"> <strong>与商品中心版本字段</strong> 在 DTO 中对外可见，便于客诉定位。</li>
+</ul>
+<hr>
+<h2 id="9-面试问答锦囊"><a href="#9-面试问答锦囊" class="headerlink" title="9. 面试问答锦囊"></a>9. 面试问答锦囊</h2><ol>
+<li><strong>搜索与商品中心边界？</strong> 商品中心是主数据真相源；搜索是 <strong>派生读模型</strong>，优化检索与排序特征。  </li>
+<li><strong>为什么列表价不永远信任 ES？</strong> 价格受会员、渠道、动态规则影响，索引有滞后；列表允许弱一致、结算强一致。  </li>
+<li><strong>深分页怎么做？</strong> <code>search_after</code> + 稳定 sort key；限制最大页或改交互。  </li>
+<li><strong><code>filter</code> 与 <code>must</code> 区别？</strong> filter 不计分、可缓存；硬条件放 filter。  </li>
+<li><strong>如何避免慢查询？</strong> mapping 合理、避免深分页、控制聚合、<code>_source</code> 裁剪、profile 驱动迭代。  </li>
+<li><strong>nested 何时用？</strong> SKU 级联合约束且无法扁平化时；否则优先扁平化 + 查询拆分。  </li>
+<li><strong>索引更新至少一次怎么幂等？</strong> 主键 + version 比较；删除语义显式建模。  </li>
+<li><strong>hydrate 部分失败怎么办？</strong> 单卡降级，不拖死整页；监控超时率。  </li>
+<li><strong>相关性 vs 商业化冲突？</strong> 分层排序 + 重排打散 + 实验评估 CTR&#x2F;CVR，不是二选一拍脑袋。  </li>
+<li><strong>合规商品过滤放哪？</strong> 禁售类应在索引不可见；灰区审核在召回 filter；最后一道在重排后。  </li>
+<li><strong>ES 挂了还能搜吗？</strong> 缓存快照 &#x2F; 简化查询 &#x2F; 降级提示，三选一讲清权衡。  </li>
+<li><strong>店铺搜索如何实现？</strong> 子索引或强 filter；大店热点单独治理。  </li>
+<li><strong>类目列表没有 query 和搜索有何不同？</strong> 同一流水线，<code>scene=category</code>，DSL 以 filter 为主。  </li>
+<li><strong>如何做 AB？</strong> 实验桶进请求上下文；<code>rank_version</code> 绑定配置；指标按桶对比。  </li>
+<li><strong>向量检索要加吗？</strong> 双路成本与收益评估；多数业务 ES + 同义词足够 MVP。  </li>
+<li><strong>列表库存与详情不一致？</strong> 预期内弱一致；下单前以库存服务校验为准（见订单与库存篇）。  </li>
+<li><strong>运营强插会破坏相关性吗？</strong> 在重排阶段合并并限制强插条数与位置，可观测 CTR。  </li>
+<li><strong>为什么不用 scroll 做用户翻页？</strong> scroll 为离线设计，占用集群资源不适合高并发 C 端。  </li>
+<li><strong>高亮字段过大怎么办？</strong> 仅对 title 等高亮；正文摘要另接口。  </li>
+<li><strong>如何防刷搜索接口？</strong> 网关限流 + 行为异常检测 + 验证码联动。  </li>
+<li><strong>多语言站点？</strong> 分析链 per locale；索引分片或 alias 按站点隔离。  </li>
+<li><strong>排序用 ES 还是应用内？</strong> 简单规则可 ES；复杂特征与业务规则应用内更可测。  </li>
+<li><strong>如何验证索引与 DB 一致？</strong> 定时抽样对账 + 版本号比对 + 差异修复任务。  </li>
+<li><strong>导购服务需要事务吗？</strong> 读路径通常无跨系统强事务；以超时、降级与最终一致为主。  </li>
+<li><strong>与推荐系统关系？</strong> 推荐偏个性化 feed；搜索偏意图检索；可共享特征与埋点，架构上仍建议服务解耦。</li>
+</ol>
+<hr>
+<h2 id="10-总结"><a href="#10-总结" class="headerlink" title="10. 总结"></a>10. 总结</h2><p>搜索与导购是电商 <strong>读模型工程化</strong> 的主战场：<strong>统一 scene 流水线</strong> 便于演进与面试叙述；<strong>Elasticsearch</strong> 承担召回与部分粗排，但必须与 <strong>商品中心、上架与生命周期、计价、库存、营销</strong> 的契约清晰划分；<strong>一致性</strong> 上承认列表弱一致，用 hydrate 超时策略与索引版本化兜底；<strong>可观测性</strong> 用 <code>query_id</code> + <code>rank_version</code> + 分桶指标闭环优化。</p>
+<p><strong>系列扩展阅读（不在本文展开）</strong>：首页与 discovery feed 的推荐系统、Learning-to-Rank 在线学习、图搜与多模态检索；若你正在补齐交易链路，可接续阅读<a href="/system-design/26-ecommerce-order-system/">订单系统</a>与<a href="/system-design/22-ecommerce-inventory/">库存系统</a>。</p>
+<hr>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ol>
+<li><a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html">Elasticsearch 官方文档</a> — 查询 DSL、分页与 profile。  </li>
+<li>本系列：<a href="/system-design/27-ecommerce-product-center/">商品中心</a> · <a href="/system-design/21-ecommerce-listing/">上架系统</a> · <a href="/system-design/30-ecommerce-product-lifecycle-management/">生命周期管理</a> · <a href="/system-design/28-ecommerce-marketing-system/">营销系统</a> · <a href="/system-design/23-ecommerce-pricing-engine/">计价引擎</a> · <a href="/system-design/22-ecommerce-inventory/">库存系统</a>。</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/e-commerce/" rel="tag"># e-commerce</a>
+              <a href="/tags/system-design/" rel="tag"># system-design</a>
+              <a href="/tags/consistency/" rel="tag"># consistency</a>
+              <a href="/tags/search/" rel="tag"># search</a>
+              <a href="/tags/elasticsearch/" rel="tag"># elasticsearch</a>
+              <a href="/tags/browse/" rel="tag"># browse</a>
+              <a href="/tags/ranking/" rel="tag"># ranking</a>
+              <a href="/tags/read-path/" rel="tag"># read-path</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2026/04/13/system-design/32-ecommerce-cart-checkout/" rel="prev" title="电商系统设计（十三）：购物车与结算域（Cart & Checkout）">
+                  <i class="fa fa-angle-left"></i> 电商系统设计（十三）：购物车与结算域（Cart & Checkout）
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>
