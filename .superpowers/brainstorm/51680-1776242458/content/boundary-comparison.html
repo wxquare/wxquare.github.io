@@ -1,0 +1,319 @@
+<h2>系统交互边界设计：三种方案详细对比</h2>
+<p class="subtitle">已确认：营销库存与商品库存独立设计</p>
+
+<div class="section">
+  <h3>方案 A：库存系统主导（Smart Service）</h3>
+  <div class="mockup">
+    <div class="mockup-header">架构示意</div>
+    <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.6;">
+      <pre style="margin: 0; white-space: pre;">
+┌─────────────────────────────────────────────────────────────┐
+│                      订单系统                                │
+│  - 订单创建                                                  │
+│  - 支付回调处理                                              │
+│  - 取消/退款                                                 │
+└────────┬────────────────────────────────────────────────────┘
+         │ 调用高级 API
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    库存系统 (Facade)                        │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  CheckAndReserveInventory(orderItems, timeout)       │  │
+│  │  • 校验商品库存                                       │  │
+│  │  • 校验营销库存                                       │  │
+│  │  • 原子预扣（带超时）                                 │  │
+│  │  • 内部重试逻辑                                       │  │
+│  │  • 返回 reservation_id                               │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  ConfirmReservation(reservation_id)                  │  │
+│  │  • 确认扣减                                           │  │
+│  │  • 事务保证                                           │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  CancelReservation(reservation_id, reason)           │  │
+│  │  • 超时自动取消                                       │  │
+│  │  • 手动取消支持                                       │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                             │
+│  ┌─────────────────┐  ┌──────────────────┐                │
+│  │ 商品库存服务    │  │  营销库存服务    │                │
+│  │ Redis + MySQL   │  │  Redis + MySQL   │                │
+│  └─────────────────┘  └──────────────────┘                │
+└─────────────────────────────────────────────────────────────┘
+      </pre>
+    </div>
+  </div>
+  
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>优势</h4>
+      <ul>
+        <li><strong>单一职责清晰</strong>：订单系统专注订单逻辑，库存复杂度封装在库存侧</li>
+        <li><strong>原子性保证</strong>：CheckAndReserve 一次调用完成商品+营销双重校验和预扣</li>
+        <li><strong>超时管理内聚</strong>：库存系统统一管理预扣超时（如 15 分钟），订单侧无需关心</li>
+        <li><strong>重试逻辑封装</strong>：库存侧内部处理瞬时失败（如 Redis 抖动）</li>
+        <li><strong>易于测试</strong>：库存系统可独立测试各种边界条件</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>劣势</h4>
+      <ul>
+        <li><strong>库存系统变重</strong>：需要维护 reservation 状态机</li>
+        <li><strong>跨服务事务</strong>：如果营销库存在独立服务，需要分布式事务协调</li>
+        <li><strong>API 设计复杂</strong>：需要支持各种业务场景（秒杀、拼团、预售等）</li>
+        <li><strong>单点瓶颈</strong>：库存系统成为核心依赖，需要高可用保障</li>
+      </ul>
+    </div>
+  </div>
+  
+  <div class="label" style="margin-top: 1rem;">适用场景</div>
+  <ul>
+    <li>库存规则复杂（如：多仓协调、分级预扣）</li>
+    <li>需要统一的库存管控策略</li>
+    <li>订单系统需要保持轻量</li>
+  </ul>
+</div>
+
+<div class="section" style="margin-top: 3rem;">
+  <h3>方案 B：订单系统编排（Orchestration）</h3>
+  <div class="mockup">
+    <div class="mockup-header">架构示意</div>
+    <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.6;">
+      <pre style="margin: 0; white-space: pre;">
+┌─────────────────────────────────────────────────────────────┐
+│                    订单系统 (Saga Orchestrator)              │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  CreateOrder Saga:                                   │  │
+│  │    1. CheckProductStock(sku, qty) ────┐             │  │
+│  │    2. CheckCampaignStock(activity_id)  │             │  │
+│  │    3. ReserveProductStock(sku, qty) ◄──┘             │  │
+│  │    4. ReserveCampaignStock(activity_id)              │  │
+│  │    5. CreateOrderRecord()                            │  │
+│  │    6. 等待支付...                                     │  │
+│  │                                                       │  │
+│  │  Compensate:                                         │  │
+│  │    - ReleaseProductStock()                           │  │
+│  │    - ReleaseCampaignStock()                          │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                             │
+│  • 管理预扣超时（定时任务扫描）                             │
+│  • 协调多个库存服务调用                                     │
+│  • 实现补偿逻辑                                             │
+└────┬────────────────────────────────────────────┬───────────┘
+     │                                            │
+     ▼                                            ▼
+┌─────────────────┐                    ┌──────────────────┐
+│ 商品库存服务    │                    │  营销库存服务    │
+│                 │                    │                  │
+│ API:            │                    │ API:             │
+│ • CheckStock    │                    │ • CheckQuota     │
+│ • ReserveStock  │                    │ • ReserveQuota   │
+│ • ReleaseStock  │                    │ • ReleaseQuota   │
+│ • SellStock     │                    │ • ConsumeQuota   │
+│                 │                    │                  │
+│ (纯数据操作)   │                    │ (纯数据操作)    │
+└─────────────────┘                    └──────────────────┘
+      </pre>
+    </div>
+  </div>
+  
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>优势</h4>
+      <ul>
+        <li><strong>库存服务纯粹</strong>：只提供原子操作，无业务逻辑</li>
+        <li><strong>业务流程可见</strong>：Saga 编排在订单侧，易于理解和调试</li>
+        <li><strong>灵活性高</strong>：订单侧可根据业务场景灵活调整扣减顺序和策略</li>
+        <li><strong>独立扩展</strong>：商品库存和营销库存完全解耦，各自演进</li>
+        <li><strong>测试友好</strong>：可以 mock 库存服务，测试订单 Saga</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>劣势</h4>
+      <ul>
+        <li><strong>订单系统变重</strong>：需要实现 Saga 引擎、超时管理、补偿逻辑</li>
+        <li><strong>网络开销</strong>：多次 RPC 调用（Check + Reserve * 2）</li>
+        <li><strong>一致性保证难</strong>：需要仔细处理各种失败场景（如：预扣商品成功，营销失败）</li>
+        <li><strong>重复代码</strong>：多个订单场景（秒杀、拼团）可能重复实现类似 Saga</li>
+      </ul>
+    </div>
+  </div>
+  
+  <div class="label" style="margin-top: 1rem;">适用场景</div>
+  <ul>
+    <li>库存逻辑简单，主要是数值增减</li>
+    <li>订单系统需要强控制力（如：特殊扣减顺序）</li>
+    <li>团队希望订单系统作为核心编排层</li>
+  </ul>
+</div>
+
+<div class="section" style="margin-top: 3rem;">
+  <h3>方案 C：事件驱动协作（Choreography）</h3>
+  <div class="mockup">
+    <div class="mockup-header">架构示意</div>
+    <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.6;">
+      <pre style="margin: 0; white-space: pre;">
+                        ┌──────────────────┐
+                        │      Kafka       │
+                        └────────┬─────────┘
+                                 │
+        ┌────────────────────────┼────────────────────────┐
+        │                        │                        │
+        ▼                        ▼                        ▼
+┌───────────────┐      ┌─────────────────┐      ┌──────────────────┐
+│  订单系统     │      │  商品库存服务   │      │   营销库存服务   │
+└───────┬───────┘      └────────┬────────┘      └────────┬─────────┘
+        │                       │                         │
+        │ Publish:              │ Subscribe:              │ Subscribe:
+        │ • OrderCreated        │ • OrderCreated          │ • OrderCreated
+        │                       │   ├→ ReserveStock       │   ├→ ReserveQuota
+        │                       │   └→ Publish:           │   └→ Publish:
+        │                       │      StockReserved      │      QuotaReserved
+        │                       │                         │
+        │ Subscribe:            │ • PaymentCompleted      │ • PaymentCompleted
+        │ • StockReserved       │   └→ ConfirmStock       │   └→ ConsumeQuota
+        │ • QuotaReserved       │                         │
+        │ • StockReserveFailed  │ • OrderCancelled        │ • OrderCancelled
+        │   └→ Compensate       │   └→ ReleaseStock       │   └→ ReleaseQuota
+        │                       │                         │
+        │ Publish:              │                         │
+        │ • PaymentCompleted    │                         │
+        │ • OrderCancelled      │                         │
+        │                       │                         │
+
+<strong>事件流示例（下单成功）：</strong>
+1. OrderCreated (order_id, items) → 广播
+2. StockReserved (order_id, reservation_id) ← 商品库存
+3. QuotaReserved (order_id, quota_id) ← 营销库存
+4. 订单系统收集到两个 Reserved 事件 → 更新订单状态为"待支付"
+5. PaymentCompleted (order_id) → 广播
+6. 各库存服务监听并确认扣减
+
+<strong>失败场景（商品库存预扣失败）：</strong>
+1. OrderCreated → 广播
+2. StockReserveFailed (order_id, reason) ← 商品库存
+3. 订单系统监听 → 发布 OrderCancelled
+4. 营销库存监听 OrderCancelled → ReleaseQuota（如果已预扣）
+      </pre>
+    </div>
+  </div>
+  
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>优势</h4>
+      <ul>
+        <li><strong>完全解耦</strong>：各服务独立演进，无直接依赖</li>
+        <li><strong>易于扩展</strong>：新增服务（如积分系统）只需订阅事件</li>
+        <li><strong>天然异步</strong>：不阻塞订单创建主流程</li>
+        <li><strong>容错性好</strong>：某个服务宕机不影响其他服务</li>
+        <li><strong>事件溯源</strong>：完整的事件日志，便于排查和审计</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>劣势</h4>
+      <ul>
+        <li><strong>最终一致性</strong>：无法即时知道库存是否充足（需要等待事件）</li>
+        <li><strong>调试困难</strong>：分布式追踪复杂，需要完善的 tracing 体系</li>
+        <li><strong>消息顺序问题</strong>：需要处理乱序、重复消息</li>
+        <li><strong>复杂度高</strong>：需要设计完善的事件模型、幂等性保障</li>
+        <li><strong>用户体验</strong>：下单后需要"等待库存确认"，可能体验较差</li>
+      </ul>
+    </div>
+  </div>
+  
+  <div class="label" style="margin-top: 1rem;">适用场景</div>
+  <ul>
+    <li>大型分布式系统，服务众多</li>
+    <li>可接受最终一致性</li>
+    <li>需要高度可扩展性</li>
+    <li>有成熟的事件溯源基础设施</li>
+  </ul>
+</div>
+
+<div class="section" style="margin-top: 3rem; background: #f8f9fa; padding: 2rem; border-radius: 8px;">
+  <h3>三种方案核心对比</h3>
+  <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+    <thead>
+      <tr style="background: #e9ecef;">
+        <th style="padding: 0.75rem; text-align: left; border: 1px solid #dee2e6;">维度</th>
+        <th style="padding: 0.75rem; text-align: left; border: 1px solid #dee2e6;">库存主导</th>
+        <th style="padding: 0.75rem; text-align: left; border: 1px solid #dee2e6;">订单编排</th>
+        <th style="padding: 0.75rem; text-align: left; border: 1px solid #dee2e6;">事件驱动</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;"><strong>复杂度集中</strong></td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">库存系统</td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">订单系统</td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">分散</td>
+      </tr>
+      <tr style="background: #f8f9fa;">
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;"><strong>网络调用</strong></td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">少（1-2 次）</td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">多（4-6 次）</td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">异步（MQ）</td>
+      </tr>
+      <tr>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;"><strong>一致性</strong></td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">强一致（内部）</td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">强一致（Saga）</td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">最终一致</td>
+      </tr>
+      <tr style="background: #f8f9fa;">
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;"><strong>响应时间</strong></td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">快（50-100ms）</td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">中（100-200ms）</td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">慢（秒级）</td>
+      </tr>
+      <tr>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;"><strong>调试难度</strong></td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">中</td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">低</td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">高</td>
+      </tr>
+      <tr style="background: #f8f9fa;">
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;"><strong>扩展性</strong></td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">中</td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">中</td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">高</td>
+      </tr>
+      <tr>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;"><strong>团队要求</strong></td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">库存团队强</td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">订单团队强</td>
+        <td style="padding: 0.75rem; border: 1px solid #dee2e6;">全员高水平</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section" style="margin-top: 3rem;">
+  <h3>推荐选择</h3>
+  <p class="subtitle">基于电商实践和您的架构</p>
+  
+  <div class="options">
+    <div class="option" data-choice="hybrid-ab" onclick="toggleSelect(this)">
+      <div class="letter">推荐</div>
+      <div class="content">
+        <h3>混合方案：A + B（分场景选择）</h3>
+        <ul>
+          <li><strong>常规下单</strong>：使用方案 B（订单编排），保持灵活性</li>
+          <li><strong>秒杀/大促</strong>：使用方案 A（库存主导），在库存侧做流控和限流</li>
+          <li><strong>异步场景</strong>：局部使用方案 C（事件驱动），如：库存变更通知</li>
+        </ul>
+        <div style="margin-top: 1rem; padding: 1rem; background: #e7f3ff; border-radius: 4px;">
+          <strong>理由：</strong>
+          <ul style="margin: 0.5rem 0 0 0;">
+            <li>常规场景订单编排更清晰，易于理解和维护</li>
+            <li>高并发场景库存主导可以集中防护（限流、降级）</li>
+            <li>事件驱动用于非关键路径，降低复杂度</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

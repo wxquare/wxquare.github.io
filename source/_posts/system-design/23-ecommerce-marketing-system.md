@@ -38,12 +38,13 @@ tags:
 2. [营销工具体系](#2-营销工具体系)
 3. [营销计算引擎](#3-营销计算引擎)
 4. [高并发场景设计](#4-高并发场景设计)
-5. [营销与订单集成](#5-营销与订单集成)
-6. [跨系统全链路集成](#6-跨系统全链路集成)
-7. [数据一致性保障](#7-数据一致性保障)
-8. [特殊营销场景](#8-特殊营销场景)
-9. [工程实践](#9-工程实践)
-10. [总结与参考](#10-总结与参考)
+5. [营销库存系统设计](#5-营销库存系统设计)
+6. [营销与订单集成](#6-营销与订单集成)
+7. [跨系统全链路集成](#7-跨系统全链路集成)
+8. [数据一致性保障](#8-数据一致性保障)
+9. [特殊营销场景](#9-特殊营销场景)
+10. [工程实践](#10-工程实践)
+11. [总结与参考](#11-总结与参考)
 
 ---
 
@@ -1611,7 +1612,724 @@ func (c *BudgetController) DeductBudget(ctx context.Context, activityID int64, a
 }
 ```
 
-## 5. 营销与订单集成
+---
+
+## 5. 营销库存系统设计
+
+营销库存是营销活动（秒杀、限时折扣、优惠券等）的参与配额管理，与商品库存独立设计，服务于营销预算管控和用户限购约束。
+
+### 5.1 营销库存 vs 商品库存
+
+| 维度 | 商品库存 | 营销库存 |
+|------|----------|----------|
+| **本质** | 实物/虚拟商品的可售数量 | 营销活动的参与配额 |
+| **驱动因素** | 采购成本、仓储能力 | 营销预算、活动目标 |
+| **管理维度** | SKU、仓库、批次 | 活动 ID、SKU、用户、时段 |
+| **典型场景** | 正常售卖、预售、拼团 | 秒杀、优惠券、限时折扣 |
+| **扣减单位** | 实际商品数量 | 活动参与次数/名额 |
+| **补充策略** | 采购补货 | 预算追加、时段分配 |
+| **约束类型** | 硬约束（卖完即止） | 软约束（可超卖或追加） |
+| **用户维度** | 无 | 单用户限购、防刷 |
+
+**关键差异**：
+- 商品库存关注"有没有货"，营销库存关注"能不能参与活动"
+- 商品库存扣减不可逆，营销库存可动态调整（追加预算）
+- 营销库存需要多维度管控：总配额、单用户限额、时段配额、防刷
+
+**实际案例**：某商品 SKU 有 10,000 件商品库存，但参与秒杀活动时只开放 500 件营销库存：
+- **商品库存 = 10,000**：正常售卖可买 10,000 件
+- **营销库存 = 500**：秒杀活动只能买 500 件
+- **扣减规则**：秒杀下单时需要**同时扣减**商品库存和营销库存
+
+---
+
+### 5.2 营销库存的特点与挑战
+
+**核心特点**：
+
+1. **虚拟配额**：不对应实物库存，是营销预算的数字化表达
+2. **多维度约束**：
+   - 活动维度：每个活动独立配额
+   - SKU 维度：指定商品参与，各自配额
+   - 用户维度：单用户限购次数
+   - 时段维度：按小时/天分配配额（错峰策略）
+3. **动态调整**：运营可随时追加/削减配额
+4. **防刷要求**：需要识别和拦截恶意刷单
+
+**业务场景**：
+
+| 场景 | 商品库存 | 营销库存 | 扣减规则 |
+|------|----------|----------|----------|
+| **正常购买** | 扣减 | 不扣减 | 只需商品库存充足 |
+| **秒杀活动** | 扣减 | 扣减 | 两者都必须充足 |
+| **优惠券** | 扣减 | 扣减（券配额） | 商品库存 + 券库存 |
+| **限时折扣** | 扣减 | 扣减（活动配额） | 商品库存 + 活动配额 |
+
+**挑战**：
+
+1. **并发冲突**：秒杀场景万级 QPS，需要原子性保证
+2. **防刷识别**：单用户限购、IP 限制、设备指纹
+3. **时段配额**：按小时分配，用完自动切换下一时段
+4. **跨库存协调**：商品库存和营销库存需要事务性扣减
+
+---
+
+### 5.3 数据模型设计
+
+#### 5.3.1 营销库存配置表
+
+```sql
+CREATE TABLE campaign_inventory_config (
+  id                BIGINT PRIMARY KEY AUTO_INCREMENT,
+  campaign_id       BIGINT NOT NULL COMMENT '活动ID',
+  item_id           BIGINT NOT NULL,
+  sku_id            BIGINT NOT NULL DEFAULT 0,
+  
+  -- 配额配置
+  total_quota       INT NOT NULL DEFAULT 0 COMMENT '总配额',
+  used_quota        INT NOT NULL DEFAULT 0 COMMENT '已用配额',
+  reserved_quota    INT NOT NULL DEFAULT 0 COMMENT '预占配额',
+  
+  -- 用户限制
+  user_quota_limit  INT NOT NULL DEFAULT 1 COMMENT '单用户限购',
+  user_quota_period INT NOT NULL DEFAULT 0 COMMENT '限购周期(秒,0=整个活动)',
+  
+  -- 时段配额（可选）
+  enable_hourly_quota TINYINT NOT NULL DEFAULT 0 COMMENT '是否启用时段配额',
+  hourly_quota        INT NOT NULL DEFAULT 0 COMMENT '每小时配额',
+  
+  -- 活动时间
+  start_time        BIGINT NOT NULL,
+  end_time          BIGINT NOT NULL,
+  
+  -- 风控
+  enable_anti_fraud TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用防刷',
+  oversell_ratio    DECIMAL(5,2) NOT NULL DEFAULT 0.00 COMMENT '允许超卖比例',
+  
+  status INT NOT NULL DEFAULT 1 COMMENT '1=正常,2=已满,3=已结束',
+  create_time BIGINT NOT NULL DEFAULT 0,
+  update_time BIGINT NOT NULL DEFAULT 0,
+  
+  UNIQUE KEY uk_campaign_sku (campaign_id, item_id, sku_id),
+  KEY idx_campaign_status (campaign_id, status),
+  KEY idx_time_range (start_time, end_time)
+);
+```
+
+#### 5.3.2 营销库存实时表
+
+```sql
+CREATE TABLE campaign_inventory (
+  id                BIGINT PRIMARY KEY AUTO_INCREMENT,
+  campaign_id       BIGINT NOT NULL,
+  item_id           BIGINT NOT NULL,
+  sku_id            BIGINT NOT NULL DEFAULT 0,
+  time_slot         VARCHAR(20) DEFAULT NULL COMMENT '时段标识(YYYYMMDDHH)',
+  
+  -- 实时库存
+  available_quota   INT NOT NULL DEFAULT 0 COMMENT '可用配额',
+  reserved_quota    INT NOT NULL DEFAULT 0 COMMENT '预占配额',
+  consumed_quota    INT NOT NULL DEFAULT 0 COMMENT '已消费配额',
+  
+  -- 快照时间
+  snapshot_time     BIGINT NOT NULL DEFAULT 0,
+  
+  UNIQUE KEY uk_campaign_sku_slot (campaign_id, item_id, sku_id, time_slot),
+  KEY idx_campaign_time (campaign_id, time_slot)
+);
+```
+
+#### 5.3.3 用户配额使用记录
+
+```sql
+CREATE TABLE campaign_user_quota (
+  id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+  campaign_id     BIGINT NOT NULL,
+  user_id         BIGINT NOT NULL,
+  item_id         BIGINT NOT NULL DEFAULT 0 COMMENT '0=活动级限制',
+  
+  -- 使用统计
+  used_count      INT NOT NULL DEFAULT 0 COMMENT '已使用次数',
+  last_use_time   BIGINT NOT NULL DEFAULT 0,
+  
+  -- 时间窗口（滑动窗口）
+  window_start    BIGINT NOT NULL DEFAULT 0,
+  window_end      BIGINT NOT NULL DEFAULT 0,
+  
+  create_time     BIGINT NOT NULL DEFAULT 0,
+  update_time     BIGINT NOT NULL DEFAULT 0,
+  
+  UNIQUE KEY uk_campaign_user_item (campaign_id, user_id, item_id),
+  KEY idx_campaign_user (campaign_id, user_id),
+  KEY idx_update_time (update_time)
+);
+```
+
+#### 5.3.4 营销库存操作日志
+
+```sql
+CREATE TABLE campaign_operation_log (
+  id                BIGINT PRIMARY KEY AUTO_INCREMENT,
+  campaign_id       BIGINT NOT NULL,
+  order_id          BIGINT NOT NULL,
+  user_id           BIGINT NOT NULL,
+  item_id           BIGINT NOT NULL,
+  sku_id            BIGINT NOT NULL DEFAULT 0,
+  
+  operation_type    VARCHAR(50) NOT NULL COMMENT 'reserve/release/consume',
+  quantity          INT NOT NULL DEFAULT 1,
+  
+  before_quota      INT NOT NULL DEFAULT 0,
+  after_quota       INT NOT NULL DEFAULT 0,
+  
+  -- 用户信息（防刷追踪）
+  user_ip           VARCHAR(50) DEFAULT '',
+  device_id         VARCHAR(100) DEFAULT '',
+  
+  create_time       BIGINT NOT NULL DEFAULT 0,
+  
+  KEY idx_campaign_order (campaign_id, order_id),
+  KEY idx_user_time (user_id, create_time),
+  KEY idx_create_time (create_time)
+) PARTITION BY RANGE (UNIX_TIMESTAMP(FROM_UNIXTIME(create_time/1000))) (
+  PARTITION p202601 VALUES LESS THAN (UNIX_TIMESTAMP('2026-02-01')),
+  PARTITION p202602 VALUES LESS THAN (UNIX_TIMESTAMP('2026-03-01'))
+);
+```
+
+---
+
+### 5.4 Redis 数据结构
+
+#### 5.4.1 活动配额（主 Key）
+
+```
+Key:   campaign:quota:{campaign_id}:{sku_id}
+Type:  HASH
+Fields:
+  "available"       : 10000    # 可用配额
+  "reserved"        : 50       # 预占中
+  "consumed"        : 5000     # 已消费
+  "total"           : 15050    # 总配额
+  "user_limit"      : 3        # 单用户限购
+  "start_time"      : 1704067200
+  "end_time"        : 1704153600
+```
+
+#### 5.4.2 时段配额（可选）
+
+```
+Key:   campaign:quota:{campaign_id}:{sku_id}:hour:{YYYYMMDDHH}
+Type:  STRING
+Value: "500"  # 该小时剩余配额
+
+TTL:   2小时
+
+说明: 按小时分配配额，用于错峰
+```
+
+#### 5.4.3 用户配额使用
+
+```
+Key:   campaign:user:{campaign_id}:{user_id}
+Type:  HASH
+Fields:
+  "{item_id}"       : 2        # 用户已购买该商品次数
+  "last_time"       : 1704070000
+  "window_start"    : 1704067200
+
+说明: 跟踪单用户使用次数
+```
+
+#### 5.4.4 防刷黑名单
+
+```
+Key:   campaign:blacklist:{campaign_id}
+Type:  SET
+Members: ["user_id:12345", "ip:1.2.3.4", "device:abc123"]
+
+TTL:   活动结束后 1 天
+```
+
+#### 5.4.5 预占订单映射
+
+```
+Key:   campaign:reservation:{order_id}
+Type:  HASH
+Fields:
+  "campaign_id"     : 100001
+  "sku_id"          : 50001
+  "quantity"        : 1
+  "user_id"         : 12345
+  "expire_time"     : 1704070900  # 15分钟后过期
+
+TTL:   15分钟
+```
+
+---
+
+### 5.5 核心操作 Lua 脚本
+
+#### 5.5.1 预占配额（reserve_campaign_quota.lua）
+
+```lua
+-- KEYS[1]: campaign:quota:{campaign_id}:{sku_id}
+-- KEYS[2]: campaign:user:{campaign_id}:{user_id}
+-- KEYS[3]: campaign:reservation:{order_id}
+-- ARGV[1]: quantity
+-- ARGV[2]: user_id
+-- ARGV[3]: item_id
+-- ARGV[4]: user_quota_limit
+-- ARGV[5]: current_time
+-- ARGV[6]: expire_time
+-- ARGV[7]: order_id
+
+local quota_key = KEYS[1]
+local user_key = KEYS[2]
+local reservation_key = KEYS[3]
+
+local quantity = tonumber(ARGV[1])
+local user_id = ARGV[2]
+local item_id = ARGV[3]
+local user_limit = tonumber(ARGV[4])
+local current_time = tonumber(ARGV[5])
+local expire_time = tonumber(ARGV[6])
+
+-- 1. 检查活动是否有效
+local start_time = tonumber(redis.call('HGET', quota_key, 'start_time') or 0)
+local end_time = tonumber(redis.call('HGET', quota_key, 'end_time') or 0)
+if current_time < start_time then
+    return redis.error_reply('activity_not_started')
+end
+if current_time > end_time then
+    return redis.error_reply('activity_ended')
+end
+
+-- 2. 检查配额是否充足
+local available = tonumber(redis.call('HGET', quota_key, 'available') or 0)
+if available < quantity then
+    return redis.error_reply('quota_not_enough')
+end
+
+-- 3. 检查用户限购
+if user_limit > 0 then
+    local user_used = tonumber(redis.call('HGET', user_key, item_id) or 0)
+    if user_used >= user_limit then
+        return redis.error_reply('user_quota_exceeded')
+    end
+    if user_used + quantity > user_limit then
+        return redis.error_reply('quantity_exceeds_user_limit')
+    end
+end
+
+-- 4. 原子扣减配额
+redis.call('HINCRBY', quota_key, 'available', -quantity)
+redis.call('HINCRBY', quota_key, 'reserved', quantity)
+
+-- 5. 更新用户使用次数
+redis.call('HINCRBY', user_key, item_id, quantity)
+redis.call('HSET', user_key, 'last_time', current_time)
+redis.call('EXPIRE', user_key, 86400)
+
+-- 6. 记录预占信息
+redis.call('HMSET', reservation_key,
+    'campaign_id', redis.call('HGET', quota_key, 'campaign_id') or 0,
+    'sku_id', redis.call('HGET', quota_key, 'sku_id') or 0,
+    'quantity', quantity,
+    'user_id', user_id,
+    'item_id', item_id,
+    'expire_time', expire_time
+)
+redis.call('EXPIREAT', reservation_key, expire_time)
+
+return redis.call('HGET', quota_key, 'available')
+```
+
+#### 5.5.2 释放配额（release_campaign_quota.lua）
+
+```lua
+-- KEYS[1]: campaign:quota:{campaign_id}:{sku_id}
+-- KEYS[2]: campaign:user:{campaign_id}:{user_id}
+-- KEYS[3]: campaign:reservation:{order_id}
+-- ARGV[1]: quantity
+-- ARGV[2]: user_id
+-- ARGV[3]: item_id
+
+local quota_key = KEYS[1]
+local user_key = KEYS[2]
+local reservation_key = KEYS[3]
+
+local quantity = tonumber(ARGV[1])
+
+-- 1. 检查预占记录是否存在
+if redis.call('EXISTS', reservation_key) == 0 then
+    return redis.error_reply('reservation_not_found')
+end
+
+-- 2. 释放配额
+redis.call('HINCRBY', quota_key, 'reserved', -quantity)
+redis.call('HINCRBY', quota_key, 'available', quantity)
+
+-- 3. 回滚用户使用次数
+redis.call('HINCRBY', user_key, ARGV[3], -quantity)
+
+-- 4. 删除预占记录
+redis.call('DEL', reservation_key)
+
+return 1
+```
+
+#### 5.5.3 消费配额（consume_campaign_quota.lua）
+
+```lua
+-- KEYS[1]: campaign:quota:{campaign_id}:{sku_id}
+-- KEYS[2]: campaign:reservation:{order_id}
+-- ARGV[1]: quantity
+
+local quota_key = KEYS[1]
+local reservation_key = KEYS[2]
+
+local quantity = tonumber(ARGV[1])
+
+-- 1. 验证预占记录
+if redis.call('EXISTS', reservation_key) == 0 then
+    return redis.error_reply('reservation_not_found')
+end
+
+-- 2. 从预占转为已消费
+redis.call('HINCRBY', quota_key, 'reserved', -quantity)
+redis.call('HINCRBY', quota_key, 'consumed', quantity)
+
+-- 3. 删除预占记录
+redis.call('DEL', reservation_key)
+
+return 1
+```
+
+---
+
+### 5.6 核心操作实现（Go）
+
+#### 5.6.1 预占营销配额
+
+```go
+type CampaignInventoryService struct {
+    redis  *redis.Client
+    mysql  *sqlx.DB
+    kafka  *kafka.Producer
+}
+
+func (s *CampaignInventoryService) ReserveQuota(ctx context.Context, req *ReserveQuotaReq) (*ReserveQuotaResp, error) {
+    // 1. 读取活动配置（带缓存）
+    config, err := s.getCampaignConfig(ctx, req.CampaignID, req.SKUID)
+    if err != nil {
+        return nil, err
+    }
+
+    // 2. 防刷检查
+    if config.EnableAntiFraud {
+        if err := s.checkAntiFraud(ctx, req.CampaignID, req.UserID, req.UserIP, req.DeviceID); err != nil {
+            return nil, err
+        }
+    }
+
+    // 3. 时段配额检查（如果启用）
+    if config.EnableHourlyQuota {
+        if err := s.checkHourlyQuota(ctx, req.CampaignID, req.SKUID, req.Quantity); err != nil {
+            return nil, err
+        }
+    }
+
+    // 4. 执行 Lua 脚本原子预占
+    quotaKey := fmt.Sprintf("campaign:quota:%d:%d", req.CampaignID, req.SKUID)
+    userKey := fmt.Sprintf("campaign:user:%d:%d", req.CampaignID, req.UserID)
+    reservationKey := fmt.Sprintf("campaign:reservation:%d", req.OrderID)
+
+    expireTime := time.Now().Add(15 * time.Minute).Unix()
+    currentTime := time.Now().Unix()
+
+    result, err := s.redis.Eval(ctx, reserveCampaignQuotaScript,
+        []string{quotaKey, userKey, reservationKey},
+        req.Quantity,
+        req.UserID,
+        req.ItemID,
+        config.UserQuotaLimit,
+        currentTime,
+        expireTime,
+        req.OrderID,
+    ).Result()
+
+    if err != nil {
+        if strings.Contains(err.Error(), "quota_not_enough") {
+            return nil, ErrQuotaNotEnough
+        }
+        if strings.Contains(err.Error(), "user_quota_exceeded") {
+            return nil, ErrUserQuotaExceeded
+        }
+        return nil, err
+    }
+
+    remainingQuota, _ := result.(int64)
+
+    // 5. 异步更新 MySQL（Kafka）
+    s.publishEvent(&CampaignInventoryEvent{
+        EventType:    "reserve",
+        CampaignID:   req.CampaignID,
+        OrderID:      req.OrderID,
+        UserID:       req.UserID,
+        ItemID:       req.ItemID,
+        SKUID:        req.SKUID,
+        Quantity:     req.Quantity,
+        BeforeQuota:  int32(remainingQuota) + req.Quantity,
+        AfterQuota:   int32(remainingQuota),
+        Timestamp:    time.Now().UnixMilli(),
+    })
+
+    return &ReserveQuotaResp{
+        Success:        true,
+        RemainingQuota: int32(remainingQuota),
+        ExpireTime:     expireTime,
+    }, nil
+}
+```
+
+#### 5.6.2 释放营销配额
+
+```go
+func (s *CampaignInventoryService) ReleaseQuota(ctx context.Context, req *ReleaseQuotaReq) error {
+    // 1. 获取预占信息
+    reservationKey := fmt.Sprintf("campaign:reservation:%d", req.OrderID)
+    reservation, err := s.redis.HGetAll(ctx, reservationKey).Result()
+    if err != nil || len(reservation) == 0 {
+        return ErrReservationNotFound
+    }
+
+    campaignID, _ := strconv.ParseInt(reservation["campaign_id"], 10, 64)
+    skuID, _ := strconv.ParseInt(reservation["sku_id"], 10, 64)
+    quantity, _ := strconv.ParseInt(reservation["quantity"], 10, 32)
+    userID, _ := strconv.ParseInt(reservation["user_id"], 10, 64)
+    itemID, _ := strconv.ParseInt(reservation["item_id"], 10, 64)
+
+    // 2. 执行释放 Lua 脚本
+    quotaKey := fmt.Sprintf("campaign:quota:%d:%d", campaignID, skuID)
+    userKey := fmt.Sprintf("campaign:user:%d:%d", campaignID, userID)
+
+    _, err = s.redis.Eval(ctx, releaseCampaignQuotaScript,
+        []string{quotaKey, userKey, reservationKey},
+        quantity,
+        userID,
+        itemID,
+    ).Result()
+
+    if err != nil {
+        return err
+    }
+
+    // 3. 异步更新 MySQL
+    s.publishEvent(&CampaignInventoryEvent{
+        EventType:   "release",
+        CampaignID:  campaignID,
+        OrderID:     req.OrderID,
+        UserID:      userID,
+        ItemID:      itemID,
+        SKUID:       skuID,
+        Quantity:    int32(quantity),
+        Timestamp:   time.Now().UnixMilli(),
+    })
+
+    return nil
+}
+```
+
+#### 5.6.3 消费营销配额（支付成功）
+
+```go
+func (s *CampaignInventoryService) ConsumeQuota(ctx context.Context, req *ConsumeQuotaReq) error {
+    // 1. 获取预占信息
+    reservationKey := fmt.Sprintf("campaign:reservation:%d", req.OrderID)
+    reservation, err := s.redis.HGetAll(ctx, reservationKey).Result()
+    if err != nil || len(reservation) == 0 {
+        return ErrReservationNotFound
+    }
+
+    campaignID, _ := strconv.ParseInt(reservation["campaign_id"], 10, 64)
+    skuID, _ := strconv.ParseInt(reservation["sku_id"], 10, 64)
+    quantity, _ := strconv.ParseInt(reservation["quantity"], 10, 32)
+
+    // 2. 执行消费 Lua 脚本
+    quotaKey := fmt.Sprintf("campaign:quota:%d:%d", campaignID, skuID)
+
+    _, err = s.redis.Eval(ctx, consumeCampaignQuotaScript,
+        []string{quotaKey, reservationKey},
+        quantity,
+    ).Result()
+
+    if err != nil {
+        return err
+    }
+
+    // 3. 异步更新 MySQL
+    s.publishEvent(&CampaignInventoryEvent{
+        EventType:   "consume",
+        CampaignID:  campaignID,
+        OrderID:     req.OrderID,
+        SKUID:       skuID,
+        Quantity:    int32(quantity),
+        Timestamp:   time.Now().UnixMilli(),
+    })
+
+    return nil
+}
+```
+
+---
+
+### 5.7 营销库存特有功能
+
+#### 5.7.1 动态调整配额
+
+运营可随时追加或削减活动配额：
+
+```go
+func (s *CampaignInventoryService) AdjustQuota(ctx context.Context, req *AdjustQuotaReq) error {
+    // 1. 更新 MySQL 配置表
+    err := s.mysql.ExecContext(ctx, `
+        UPDATE campaign_inventory_config
+        SET total_quota = total_quota + ?,
+            update_time = ?
+        WHERE campaign_id = ? AND sku_id = ?
+    `, req.Delta, time.Now().UnixMilli(), req.CampaignID, req.SKUID)
+    
+    if err != nil {
+        return err
+    }
+
+    // 2. 同步更新 Redis
+    quotaKey := fmt.Sprintf("campaign:quota:%d:%d", req.CampaignID, req.SKUID)
+    s.redis.HIncrBy(ctx, quotaKey, "available", int64(req.Delta))
+    s.redis.HIncrBy(ctx, quotaKey, "total", int64(req.Delta))
+
+    // 3. 记录操作日志
+    logAudit("adjust_campaign_quota", req.CampaignID, req.SKUID, req.Delta, req.OperatorID, req.Reason)
+
+    return nil
+}
+```
+
+#### 5.7.2 时段配额管理
+
+按小时分配配额，自动切换：
+
+```go
+func (s *CampaignInventoryService) checkHourlyQuota(ctx context.Context, campaignID, skuID uint64, quantity int32) error {
+    currentHour := time.Now().Format("2006010215")
+    hourKey := fmt.Sprintf("campaign:quota:%d:%d:hour:%s", campaignID, skuID, currentHour)
+
+    // 1. 检查当前小时配额
+    remaining, err := s.redis.Get(ctx, hourKey).Int()
+    if err == redis.Nil {
+        // 首次访问，初始化该小时配额
+        config, _ := s.getCampaignConfig(ctx, campaignID, skuID)
+        s.redis.Set(ctx, hourKey, config.HourlyQuota, 2*time.Hour)
+        remaining = int(config.HourlyQuota)
+    }
+
+    if int32(remaining) < quantity {
+        return ErrHourlyQuotaExceeded
+    }
+
+    // 2. 扣减小时配额
+    s.redis.Decrby(ctx, hourKey, int64(quantity))
+
+    return nil
+}
+```
+
+#### 5.7.3 用户防刷（布隆过滤器）
+
+快速识别黑名单用户：
+
+```go
+func (s *CampaignInventoryService) checkAntiFraud(ctx context.Context, campaignID, userID uint64, userIP, deviceID string) error {
+    blacklistKey := fmt.Sprintf("campaign:blacklist:%d", campaignID)
+
+    // 1. 检查用户是否在黑名单
+    checks := []string{
+        fmt.Sprintf("user_id:%d", userID),
+        fmt.Sprintf("ip:%s", userIP),
+        fmt.Sprintf("device:%s", deviceID),
+    }
+
+    for _, check := range checks {
+        if s.redis.SIsMember(ctx, blacklistKey, check).Val() {
+            return ErrUserBlacklisted
+        }
+    }
+
+    // 2. 检查用户访问频率（滑动窗口）
+    rateKey := fmt.Sprintf("campaign:rate:%d:%d", campaignID, userID)
+    count, _ := s.redis.Incr(ctx, rateKey).Result()
+    if count == 1 {
+        s.redis.Expire(ctx, rateKey, 60*time.Second)
+    }
+
+    if count > 10 {
+        // 拉黑该用户
+        s.redis.SAdd(ctx, blacklistKey, fmt.Sprintf("user_id:%d", userID))
+        s.redis.Expire(ctx, blacklistKey, 24*time.Hour)
+        return ErrTooManyRequests
+    }
+
+    return nil
+}
+```
+
+---
+
+### 5.8 营销库存预热
+
+秒杀活动开始前，将配额预热到 Redis：
+
+```go
+func (s *CampaignInventoryService) WarmupCampaign(ctx context.Context, campaignID uint64) error {
+    // 1. 查询活动配置
+    configs, err := s.mysql.SelectContext(ctx, `
+        SELECT campaign_id, item_id, sku_id, total_quota, user_quota_limit,
+               start_time, end_time, enable_hourly_quota, hourly_quota
+        FROM campaign_inventory_config
+        WHERE campaign_id = ? AND status = 1
+    `, campaignID)
+
+    if err != nil {
+        return err
+    }
+
+    // 2. 批量写入 Redis
+    pipe := s.redis.Pipeline()
+    for _, cfg := range configs {
+        quotaKey := fmt.Sprintf("campaign:quota:%d:%d", cfg.CampaignID, cfg.SKUID)
+        pipe.HMSet(ctx, quotaKey, map[string]interface{}{
+            "campaign_id":   cfg.CampaignID,
+            "sku_id":        cfg.SKUID,
+            "available":     cfg.TotalQuota,
+            "reserved":      0,
+            "consumed":      0,
+            "total":         cfg.TotalQuota,
+            "user_limit":    cfg.UserQuotaLimit,
+            "start_time":    cfg.StartTime,
+            "end_time":      cfg.EndTime,
+        })
+        pipe.Expire(ctx, quotaKey, 24*time.Hour)
+    }
+
+    _, err = pipe.Exec(ctx)
+    return err
+}
+```
+
+---
+
+## 6. 营销与订单集成
 
 ### 5.1 下单时的营销扣减（Saga 模式）
 
@@ -1850,9 +2568,9 @@ func (s *OrderService) CancelOrder(ctx context.Context, orderID int64) error {
 }
 ```
 
-## 6. 跨系统全链路集成
+## 7. 跨系统全链路集成
 
-### 6.1 与商品系统集成（圈品规则）
+### 7.1 与商品系统集成（圈品规则）
 
 商品中心提供**类目、价格、标签**；营销侧据此做圈品、券适用范围与活动价展示。
 
@@ -1882,7 +2600,7 @@ func (s *MarketingService) GetProductMarketingInfo(ctx context.Context, productI
 }
 ```
 
-### 6.2 与计价中心集成（价格计算）
+### 7.2 与计价中心集成（价格计算）
 
 计价中心聚合**基础价 + 活动价 + 券后价**试算结果，供详情页、购物车、结算页一致展示。
 
@@ -1909,7 +2627,7 @@ sequenceDiagram
     Frontend-->>User: 显示原价、券后价
 ```
 
-### 6.3 与用户系统集成（用户画像）
+### 7.3 与用户系统集成（用户画像）
 
 基于**注册时长、等级、订单、标签**做定向发券与触达，注意频控与隐私合规。
 
@@ -1946,7 +2664,7 @@ func (s *MarketingService) SendTargetedCoupons(ctx context.Context) {
 }
 ```
 
-### 6.4 与支付系统集成（补贴核算）
+### 7.4 与支付系统集成（补贴核算）
 
 支付完成后，按**平台 / 商家承担比例**拆分营销成本，支撑结算与对账。
 
@@ -2002,13 +2720,13 @@ func (s *MarketingService) SettleMarketingCost(ctx context.Context, orderID int6
 }
 ```
 
-## 7. 数据一致性保障
+## 8. 数据一致性保障
 
-### 7.1 分布式事务（Saga 模式）
+### 8.1 分布式事务（Saga 模式）
 
-Saga 将长事务拆为多个**本地事务**，每步配套**补偿**；任一步失败则**逆序**执行已成功的补偿。第 5 章订单创建即典型编排；本章补充**异步补偿**与**对账**。
+Saga 将长事务拆为多个**本地事务**，每步配套**补偿**；任一步失败则**逆序**执行已成功的补偿。第 6 章订单创建即典型编排；本章补充**异步补偿**与**对账**。
 
-### 7.2 补偿任务与重试
+### 8.2 补偿任务与重试
 
 补偿任务表持久化待执行动作，Worker 定时拉取，失败按**指数退避**重试，超过阈值**告警人工介入**。
 
@@ -2097,7 +2815,7 @@ func (s *CompensationService) executeCompensation(ctx context.Context, task *Com
 }
 ```
 
-### 7.3 最终一致性方案
+### 8.3 最终一致性方案
 
 通过 **Kafka** 广播券核销、积分变动等事件，下游订单、报表、风控等系统**异步更新**；配合**幂等消费**与**死信队列**。
 
@@ -2145,7 +2863,7 @@ func (s *OrderService) consumeMarketingEvents(ctx context.Context) {
 }
 ```
 
-### 7.4 数据对账
+### 8.4 数据对账
 
 按日聚合**营销侧核销**与**订单侧记录**，比对金额与笔数，差异入库并告警。
 
@@ -2206,9 +2924,9 @@ func (s *ReconciliationService) ReconcileMarketingData(ctx context.Context, date
 }
 ```
 
-## 8. 特殊营销场景
+## 9. 特殊营销场景
 
-### 8.1 跨店铺满减
+### 9.1 跨店铺满减
 
 用户购物车跨多店时，按**订单总金额**命中平台级满减阶梯，再按**各店金额占比**分摊优惠，注意尾差。
 
@@ -2280,7 +2998,7 @@ func (s *MarketingService) CalculateCrossShopFullReduction(
 }
 ```
 
-### 8.2 阶梯优惠
+### 9.2 阶梯优惠
 
 购买件数越多折扣越大，命中**最高满足阶梯**后计算减免额。
 
@@ -2333,7 +3051,7 @@ func (s *MarketingService) CalculateTieredDiscount(
 }
 ```
 
-### 8.3 组合优惠（买 A 送 B）
+### 9.3 组合优惠（买 A 送 B）
 
 订单行满足买赠规则时，追加**赠品行**（价为 0），履约侧需同步扣减赠品库存。
 
@@ -2387,7 +3105,7 @@ func (s *MarketingService) ApplyBundleGiftActivity(
 }
 ```
 
-### 8.4 新人专享
+### 9.4 新人专享
 
 结合**注册时间窗口**与**历史订单数**判断是否新人；优惠金额**封顶订单实付**。
 
@@ -2434,9 +3152,9 @@ func (s *MarketingService) ApplyNewUserDiscount(ctx context.Context, userID int6
 }
 ```
 
-## 9. 工程实践
+## 10. 工程实践
 
-### 9.1 营销活动 ID 生成
+### 10.1 营销活动 ID 生成
 
 分布式场景下使用 **Snowflake** 生成趋势递增、全局唯一的活动 / 批次 ID（需统一时钟与 workerId 分配）。
 
@@ -2500,7 +3218,7 @@ func (g *SnowflakeIDGenerator) NextID() int64 {
 }
 ```
 
-### 9.2 监控告警
+### 10.2 监控告警
 
 **业务指标**：发券量、核销率、积分进出、活动参与与转化、营销 ROI。**应用指标**：QPS、RT、成功率、缓存命中率、MQ 积压。**系统指标**：CPU、内存、DB / Redis 连接。
 
@@ -2529,7 +3247,7 @@ func (s *CouponService) recordCouponReceivedMetric(ctx context.Context, couponID
 }
 ```
 
-### 9.3 性能优化
+### 10.3 性能优化
 
 | 场景 | 优化前 | 优化后 | 优化手段 |
 |------|-------|-------|---------|
@@ -2574,11 +3292,11 @@ func (c *CouponCache) GetCoupon(ctx context.Context, couponID int64) (*Coupon, e
 }
 ```
 
-### 9.4 容量规划与压测
+### 10.4 容量规划与压测
 
 结合历史 GMV 与大促目标预估峰值 QPS；全链路压测验证网关、营销、库存、下单链路。**目标参考**：发券 1 万 QPS、秒杀 5 万 QPS；P99 RT 小于 200ms；错误率低于 0.1%。
 
-### 9.5 故障处理与降级
+### 10.5 故障处理与降级
 
 | 故障类型 | 现象 | 处理方案 | 降级策略 |
 |---------|------|---------|---------|
@@ -2629,18 +3347,19 @@ func (s *OrderService) CalculateMarketing(ctx context.Context, req *CalculateReq
 }
 ```
 
-## 10. 总结与参考
+## 11. 总结与参考
 
-### 10.1 核心设计要点
+### 11.1 核心设计要点
 
 1. **营销工具**：优惠券、积分、活动的数据模型、状态机与审计日志设计。
 2. **营销计算引擎**：叠加与互斥规则、最优组合求解、按行分摊与尾差处理。
 3. **高并发**：秒杀 / 抢券的削峰、Redis 预扣、分布式锁与异步落单。
-4. **数据一致性**：Saga 编排、补偿任务重试、事件驱动最终一致与定时对账。
-5. **跨系统集成**：商品圈品、计价试算、用户画像发券、支付侧补贴核算。
-6. **工程化**：Snowflake ID、监控指标、多级缓存、容量压测与熔断降级。
+4. **营销库存**：独立于商品库存的配额管理，支持多维约束和动态调整。
+5. **数据一致性**：Saga 编排、补偿任务重试、事件驱动最终一致与定时对账。
+6. **跨系统集成**：商品圈品、计价试算、用户画像发券、支付侧补贴核算。
+7. **工程化**：Snowflake ID、监控指标、多级缓存、容量压测与熔断降级。
 
-### 10.2 面试高频问题
+### 11.2 面试高频问题
 
 1. **如何设计秒杀系统？** 削峰（验证码、排队、限流）；Redis 原子扣减与分布式锁；异步消息创单；最终一致同步 DB；超卖监控与补偿。
 2. **优惠券如何防止超发？** Redis 原子扣减库存；DB 与缓存对账；关键路径加锁或乐观锁。
@@ -2648,14 +3367,14 @@ func (s *OrderService) CalculateMarketing(ctx context.Context, req *CalculateReq
 4. **营销与订单数据如何一致？** Saga 同步路径保证尽力一致；异步事件 + 幂等消费；日终对账。
 5. **多优惠如何求最优？** 规则引擎固化互斥与顺序；在合法组合上枚举或启发式搜索；选总优惠最大方案（注意业务约束）。
 
-### 10.3 扩展阅读
+### 11.3 扩展阅读
 
 - 《大规模分布式系统设计》
 - 《高并发系统设计 40 问》
 - *Designing Data-Intensive Applications*
 - 电商营销系统架构实践（行业分享与案例）
 
-### 10.4 相关系列文章
+### 11.4 相关系列文章
 
 - [电商系统设计：订单系统](/2026/04/07/system-design/26-ecommerce-order-system/)
 - [电商系统设计：商品中心深度解析](/2026/04/07/system-design/21-ecommerce-product-center/)

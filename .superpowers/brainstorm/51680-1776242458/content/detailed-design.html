@@ -1,0 +1,394 @@
+<h2>混合方案详细设计</h2>
+<p class="subtitle">商品库存与营销库存独立设计 + A/B 分场景选择</p>
+
+<div class="section">
+  <h3>整体架构</h3>
+  <div class="mockup">
+    <div class="mockup-header">系统分层与职责划分</div>
+    <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.7;">
+      <pre style="margin: 0; white-space: pre;">
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           订单系统 (Order Service)                      │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │  常规下单流程 (方案 B - 订单编排)                                 │  │
+│  │  ┌────────────────────────────────────────────────────────────┐  │  │
+│  │  │ 1. CheckProductStock(sku, qty)                             │  │  │
+│  │  │ 2. CheckCampaignStock(activity_id, user_id)                │  │  │
+│  │  │ 3. ReserveProductStock(order_id, items, ttl=15min)        │  │  │
+│  │  │ 4. ReserveCampaignStock(order_id, activity_id, user_id)   │  │  │
+│  │  │ 5. CreateOrderRecord()                                     │  │  │
+│  │  │ 6. 支付成功 → ConfirmProductStock + ConsumeCampaignStock  │  │  │
+│  │  │ 7. 超时/取消 → ReleaseProductStock + ReleaseCampaignStock │  │  │
+│  │  └────────────────────────────────────────────────────────────┘  │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │  秒杀/大促流程 (方案 A - 库存主导)                                │  │
+│  │  ┌────────────────────────────────────────────────────────────┐  │  │
+│  │  │ 1. FlashSaleInventory.CheckAndReserve(order_id, items)     │  │  │
+│  │  │    → 一次调用完成商品+营销双重扣减                         │  │  │
+│  │  │ 2. CreateOrderRecord()                                     │  │  │
+│  │  │ 3. 支付成功 → FlashSaleInventory.Confirm(reservation_id)  │  │  │
+│  │  │ 4. 超时/取消 → FlashSaleInventory.Cancel(reservation_id)  │  │  │
+│  │  └────────────────────────────────────────────────────────────┘  │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+└────────────────┬──────────────────────────────────────┬───────────────┘
+                 │                                      │
+                 ▼                                      ▼
+┌────────────────────────────────┐    ┌─────────────────────────────────┐
+│   商品库存服务                  │    │    营销库存服务                 │
+│   (Product Inventory Service)  │    │    (Campaign Inventory Service) │
+│                                │    │                                 │
+│  【数据模型】                  │    │  【数据模型】                   │
+│  • inventory_config           │    │  • campaign_inventory_config    │
+│  • inventory (quantity-based) │    │  • campaign_inventory           │
+│  • inventory_code_pool (code) │    │  • campaign_quota_usage         │
+│  • inventory_operation_log    │    │  • campaign_user_quota          │
+│                                │    │                                 │
+│  【策略】                      │    │  【特性】                       │
+│  • SelfManaged                │    │  • 活动维度库存                 │
+│  • SupplierManaged            │    │  • 用户维度限额                 │
+│  • Unlimited                  │    │  • 时段限制                     │
+│  • CodeBased / QuantityBased  │    │  • 动态补充                     │
+│                                │    │  • 预算管控                     │
+│  【API】                       │    │                                 │
+│  • CheckStock(sku, qty)       │    │  【API】                        │
+│  • ReserveStock(...)          │    │  • CheckQuota(activity, user)   │
+│  • ReleaseStock(...)          │    │  • ReserveQuota(...)            │
+│  • ConfirmStock(...)          │    │  • ReleaseQuota(...)            │
+│                                │    │  • ConsumeQuota(...)            │
+│                                │    │  • GetUserQuotaUsage(...)       │
+│                                │    │                                 │
+│  【存储】                      │    │  【存储】                       │
+│  • Redis (热点数据)           │    │  • Redis (实时扣减)             │
+│  • MySQL (持久化)             │    │  • MySQL (配置+日志)            │
+│                                │    │                                 │
+│  【高并发优化】                │    │  【高并发优化】                 │
+│  • Lua 脚本原子操作           │    │  • Lua 脚本原子操作             │
+│  • 多级缓存                   │    │  • 布隆过滤器（防刷）           │
+│  • 降级策略                   │    │  • 滑动窗口限流                 │
+└────────────────────────────────┘    └─────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│              秒杀库存服务 (Flash Sale Inventory Facade)                │
+│  • 聚合商品库存和营销库存                                              │
+│  • 提供高级 API：CheckAndReserve, Confirm, Cancel                      │
+│  • 内部协调分布式事务（2PC 或 Saga）                                   │
+│  • 集中限流、降级                                                       │
+└─────────────────────────────────────────────────────────────────────────┘
+      </pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 3rem;">
+  <h3>商品库存 vs 营销库存：核心差异</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">商品库存 (Product Inventory)</div>
+      <div class="mockup-body">
+        <div class="label">数据维度</div>
+        <ul>
+          <li><strong>主键</strong>: SKU + 仓库</li>
+          <li><strong>数量管理</strong>: 可售、已售、预扣、在途</li>
+          <li><strong>批次管理</strong>: 批次号、过期日期</li>
+        </ul>
+        
+        <div class="label">业务特点</div>
+        <ul>
+          <li>库存有限，需要采购补货</li>
+          <li>扣减不可逆（售出即消耗）</li>
+          <li>需要多仓协调（距离优先、成本优先）</li>
+          <li>支持锁定库存（预售、拼团）</li>
+        </ul>
+        
+        <div class="label">Redis 数据结构</div>
+        <pre style="background: #f6f8fa; padding: 0.5rem; font-size: 12px; margin-top: 0.5rem;">
+# 数量型
+inventory:sku:{sku_id}:warehouse:{wh}
+  → Hash {available, reserved, sold}
+
+# 码池型（优惠码、激活码）
+inventory:pool:{pool_id}
+  → List [code1, code2, ...]
+        </pre>
+        
+        <div class="label">典型操作流程</div>
+        <pre style="background: #fff3cd; padding: 0.5rem; font-size: 11px; margin-top: 0.5rem;">
+1. CheckStock(sku, qty)
+   → 查询 available >= qty
+2. ReserveStock(order_id, sku, qty, ttl)
+   → HINCRBY available -qty
+   → HINCRBY reserved +qty
+   → SETEX reserve:{order_id} ttl
+3. ConfirmStock(order_id)
+   → HINCRBY reserved -qty
+   → HINCRBY sold +qty
+   → DEL reserve:{order_id}
+4. ReleaseStock(order_id)
+   → HINCRBY reserved -qty
+   → HINCRBY available +qty
+        </pre>
+      </div>
+    </div>
+    
+    <div class="mockup">
+      <div class="mockup-header">营销库存 (Campaign Inventory)</div>
+      <div class="mockup-body">
+        <div class="label">数据维度</div>
+        <ul>
+          <li><strong>主键</strong>: 活动 ID + SKU + 用户维度</li>
+          <li><strong>配额管理</strong>: 总配额、已用配额、单用户限额</li>
+          <li><strong>时间约束</strong>: 时段配额（如每小时 1000 件）</li>
+        </ul>
+        
+        <div class="label">业务特点</div>
+        <ul>
+          <li>虚拟库存，预算驱动</li>
+          <li>可动态调整配额</li>
+          <li>用户维度限制（防刷）</li>
+          <li>时段配额（错峰）</li>
+          <li>支持多种补充策略（定时、按比例）</li>
+        </ul>
+        
+        <div class="label">Redis 数据结构</div>
+        <pre style="background: #f6f8fa; padding: 0.5rem; font-size: 12px; margin-top: 0.5rem;">
+# 活动总配额
+campaign:quota:{activity_id}:{sku}
+  → Hash {total, used, reserved}
+
+# 用户已用次数
+campaign:user:{activity_id}:{user_id}
+  → Hash {count, last_time}
+
+# 时段配额（可选）
+campaign:quota:{activity_id}:hour:{YYYYMMDDHH}
+  → String (可用数量)
+        </pre>
+        
+        <div class="label">典型操作流程</div>
+        <pre style="background: #d1ecf1; padding: 0.5rem; font-size: 11px; margin-top: 0.5rem;">
+1. CheckQuota(activity_id, user_id, sku)
+   → 检查总配额、用户限额、时段限额
+   → 布隆过滤器防刷（可选）
+2. ReserveQuota(order_id, activity, user, sku)
+   → HINCRBY quota used +1
+   → HINCRBY user count +1
+   → SETEX reserve:{order_id} ttl
+3. ConsumeQuota(order_id)
+   → HINCRBY reserved -1
+   → 更新 MySQL 日志
+4. ReleaseQuota(order_id)
+   → HINCRBY used -1
+   → HINCRBY user count -1
+        </pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 3rem;">
+  <h3>关键设计细节需要确认</h3>
+  <p class="subtitle">以下问题会影响文章的深度和代码示例</p>
+  
+  <div class="options" data-multiselect>
+    <div class="option" data-choice="marketing-tables" onclick="toggleSelect(this)">
+      <div class="letter">1</div>
+      <div class="content">
+        <h3>营销库存数据表设计</h3>
+        <p>是否需要详细展开营销库存的 MySQL 表结构？</p>
+        <ul style="font-size: 0.95em; margin-top: 0.5rem;">
+          <li><code>campaign_inventory_config</code>：活动配置表</li>
+          <li><code>campaign_inventory</code>：实时库存表</li>
+          <li><code>campaign_quota_usage</code>：用户配额使用记录</li>
+          <li><code>campaign_operation_log</code>：操作日志表</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="option" data-choice="lua-scripts" onclick="toggleSelect(this)">
+      <div class="letter">2</div>
+      <div class="content">
+        <h3>营销库存 Lua 脚本</h3>
+        <p>是否需要提供营销库存的 Redis Lua 脚本示例？</p>
+        <ul style="font-size: 0.95em; margin-top: 0.5rem;">
+          <li>原子预扣配额（含用户限额检查）</li>
+          <li>时段配额扣减</li>
+          <li>释放配额（含回滚用户计数）</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="option" data-choice="facade-service" onclick="toggleSelect(this)">
+      <div class="letter">3</div>
+      <div class="content">
+        <h3>秒杀库存 Facade 服务</h3>
+        <p>是否需要详细设计秒杀库存聚合服务？</p>
+        <ul style="font-size: 0.95em; margin-top: 0.5rem;">
+          <li>聚合 API：<code>CheckAndReserve</code>、<code>Confirm</code>、<code>Cancel</code></li>
+          <li>内部分布式事务协调（Saga / 2PC）</li>
+          <li>集中限流、降级策略</li>
+          <li>Go 代码示例</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="option" data-choice="order-saga" onclick="toggleSelect(this)">
+      <div class="letter">4</div>
+      <div class="content">
+        <h3>订单系统 Saga 编排</h3>
+        <p>是否需要详细展开订单系统的 Saga 编排代码？</p>
+        <ul style="font-size: 0.95em; margin-top: 0.5rem;">
+          <li>Saga 状态机设计</li>
+          <li>补偿逻辑实现</li>
+          <li>超时管理（定时任务扫描）</li>
+          <li>Go 代码示例</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="option" data-choice="event-design" onclick="toggleSelect(this)">
+      <div class="letter">5</div>
+      <div class="content">
+        <h3>Kafka 事件设计</h3>
+        <p>是否需要补充事件驱动部分（用于异步通知）？</p>
+        <ul style="font-size: 0.95em; margin-top: 0.5rem;">
+          <li>事件定义：<code>InventoryReserved</code>、<code>InventoryReleased</code></li>
+          <li>订阅者设计（营销系统、数据分析）</li>
+          <li>幂等性保障</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="option" data-choice="consistency" onclick="toggleSelect(this)">
+      <div class="letter">6</div>
+      <div class="content">
+        <h3>数据一致性保障</h3>
+        <p>是否需要详细说明商品库存和营销库存的一致性方案？</p>
+        <ul style="font-size: 0.95em; margin-top: 0.5rem;">
+          <li>Redis-MySQL 双写策略</li>
+          <li>定时对账任务</li>
+          <li>差异修复流程</li>
+          <li>分布式锁使用场景</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="option" data-choice="monitoring" onclick="toggleSelect(this)">
+      <div class="letter">7</div>
+      <div class="content">
+        <h3>监控与告警</h3>
+        <p>是否需要补充针对营销库存的监控指标？</p>
+        <ul style="font-size: 0.95em; margin-top: 0.5rem;">
+          <li>配额消耗速率</li>
+          <li>用户限额触发次数</li>
+          <li>预扣超时率</li>
+          <li>商品/营销库存差异告警</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="option" data-choice="edge-cases" onclick="toggleSelect(this)">
+      <div class="letter">8</div>
+      <div class="content">
+        <h3>边界场景处理</h3>
+        <p>是否需要详细说明各种异常场景？</p>
+        <ul style="font-size: 0.95em; margin-top: 0.5rem;">
+          <li>商品库存充足但营销库存不足</li>
+          <li>预扣成功但支付超时</li>
+          <li>Redis 宕机降级方案</li>
+          <li>超卖防护（最后一道防线）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 3rem; background: #f8f9fa; padding: 2rem; border-radius: 8px;">
+  <h3>文章扩写大纲（草案）</h3>
+  <p class="subtitle">基于以上设计，文章将新增以下章节</p>
+  
+  <div style="margin-top: 1.5rem;">
+    <h4>新增章节结构</h4>
+    <pre style="background: white; padding: 1rem; border-left: 4px solid #0066cc; font-size: 14px; line-height: 1.8;">
+## 一、引言（更新）
+  • 商品库存 vs 营销库存的业务场景对比
+  • 为什么需要独立设计
+
+## 二、营销库存系统设计（新增）
+  2.1 营销库存的特点与挑战
+  2.2 数据模型设计
+      • MySQL 表结构
+      • Redis 数据结构
+  2.3 核心操作实现
+      • CheckQuota（含用户限额）
+      • ReserveQuota（含时段配额）
+      • ConsumeQuota / ReleaseQuota
+      • Lua 脚本示例
+  2.4 营销库存特有功能
+      • 动态调整配额
+      • 时段限制
+      • 用户防刷（布隆过滤器）
+
+## 三、库存系统与订单系统的交互（新增）
+  3.1 交互边界设计原则
+  3.2 方案选择：混合模式（A + B）
+  3.3 常规下单流程（方案 B - 订单编排）
+      • Saga 编排流程
+      • 商品库存 + 营销库存协同扣减
+      • 补偿逻辑
+      • Go 代码示例
+  3.4 秒杀/大促流程（方案 A - 库存主导）
+      • Facade 服务设计
+      • CheckAndReserve 聚合 API
+      • 分布式事务协调
+      • Go 代码示例
+  3.5 关键操作详解
+      • 校验库存（CheckStock vs CheckQuota）
+      • 预扣库存（Reserve 的超时管理）
+      • 确认扣减（Confirm vs Consume）
+      • 释放库存（Release 的幂等性）
+
+## 四、数据一致性保障（更新）
+  4.1 商品库存一致性（已有，略微更新）
+  4.2 营销库存一致性（新增）
+  4.3 跨库存类型一致性（新增）
+      • 商品库存扣减成功，营销库存失败
+      • 分布式事务协调
+      • 对账与修复
+
+## 五、高并发优化（更新）
+  5.1 商品库存高并发（已有）
+  5.2 营销库存高并发（新增）
+      • 用户维度分片
+      • 时段配额预分配
+      • 布隆过滤器防刷
+  5.3 秒杀场景优化（新增）
+      • 集中限流
+      • 多级缓存
+      • 降级策略
+
+## 六、监控与告警（更新）
+  6.1 商品库存监控（已有）
+  6.2 营销库存监控（新增）
+  6.3 跨系统监控（新增）
+      • 库存差异告警
+      • 预扣超时监控
+
+## 七、边界场景与容错（新增）
+  7.1 商品库存充足但营销库存不足
+  7.2 预扣成功但支付超时
+  7.3 Redis 宕机降级
+  7.4 超卖防护的最后一道防线
+
+## 八、总结（更新）
+  • 商品库存 vs 营销库存的设计权衡
+  • 混合方案的适用场景
+  • 未来演进方向
+    </pre>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem;">
+  <p class="subtitle">请选择您希望在文章中详细展开的模块（可多选），然后我将开始撰写</p>
+</div>

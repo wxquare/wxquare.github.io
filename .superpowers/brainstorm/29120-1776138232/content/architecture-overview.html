@@ -1,0 +1,170 @@
+<h2>方案B：领域驱动 + 事件驱动混合架构</h2>
+<p class="subtitle">整体架构分层设计（日常200万单，大促1000万单，50+供应商）</p>
+
+<div class="mockup">
+  <div class="mockup-header">整体架构全景图</div>
+  <div class="mockup-body" style="padding: 20px; background: white;">
+    
+    <!-- 用户层 -->
+    <div style="text-align: center; padding: 10px; background: #f0f9ff; border: 2px solid #0ea5e9; border-radius: 8px; margin-bottom: 16px;">
+      <strong style="color: #0369a1;">👤 用户层 (User Layer)</strong>
+      <div style="margin-top: 8px; font-size: 0.9em; color: #64748b;">
+        C端用户 App/Web | B端商家后台 | 运营管理平台
+      </div>
+    </div>
+
+    <!-- 接入层 -->
+    <div style="text-align: center; padding: 10px; background: #f0fdf4; border: 2px solid #22c55e; border-radius: 8px; margin-bottom: 16px;">
+      <strong style="color: #166534;">🚪 接入层 (Gateway Layer)</strong>
+      <div style="margin-top: 8px; font-size: 0.9em; color: #64748b;">
+        API Gateway（鉴权/限流/路由） | BFF层（端适配）
+      </div>
+    </div>
+
+    <!-- 核心业务层 -->
+    <div style="border: 3px solid #8b5cf6; border-radius: 12px; padding: 16px; margin-bottom: 16px; background: #faf5ff;">
+      <div style="text-align: center; margin-bottom: 12px;">
+        <strong style="color: #6b21a8; font-size: 1.1em;">💼 核心业务层 (Business Layer)</strong>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px;">
+        <!-- 第一行：读路径 -->
+        <div style="padding: 12px; background: white; border: 1px solid #c4b5fd; border-radius: 6px;">
+          <div style="font-weight: bold; color: #7c3aed; margin-bottom: 6px;">📖 读路径域</div>
+          <div style="font-size: 0.85em; color: #64748b;">
+            • 搜索导购<br/>
+            • 购物车展示<br/>
+            • 商品详情
+          </div>
+        </div>
+        
+        <!-- 第二行：数据基础 -->
+        <div style="padding: 12px; background: white; border: 1px solid #c4b5fd; border-radius: 6px;">
+          <div style="font-weight: bold; color: #7c3aed; margin-bottom: 6px;">📦 基础数据层</div>
+          <div style="font-size: 0.85em; color: #64748b;">
+            • 商品中心<br/>
+            • 类目属性<br/>
+            • 商品快照
+          </div>
+        </div>
+        
+        <!-- 第三行：业务规则 -->
+        <div style="padding: 12px; background: white; border: 1px solid #c4b5fd; border-radius: 6px;">
+          <div style="font-weight: bold; color: #7c3aed; margin-bottom: 6px;">💰 业务规则层</div>
+          <div style="font-size: 0.85em; color: #64748b;">
+            • 库存系统<br/>
+            • 计价引擎<br/>
+            • 营销系统
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+        <!-- 核心交易层 -->
+        <div style="padding: 12px; background: #fef2f2; border: 2px solid #ef4444; border-radius: 6px;">
+          <div style="font-weight: bold; color: #dc2626; margin-bottom: 6px;">💳 核心交易层</div>
+          <div style="font-size: 0.85em; color: #64748b;">
+            • 结算域（预占编排）<br/>
+            • 订单系统（状态机）<br/>
+            • 支付系统（清结算）
+          </div>
+        </div>
+        
+        <!-- B端管理层 -->
+        <div style="padding: 12px; background: white; border: 1px solid #c4b5fd; border-radius: 6px;">
+          <div style="font-weight: bold; color: #7c3aed; margin-bottom: 6px;">🔧 B端管理层</div>
+          <div style="font-size: 0.85em; color: #64748b;">
+            • 商品上架<br/>
+            • 运营管理<br/>
+            • 生命周期管理
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 供应商适配层（关键） -->
+    <div style="border: 3px solid #f59e0b; border-radius: 12px; padding: 16px; margin-bottom: 16px; background: #fffbeb;">
+      <div style="text-align: center; margin-bottom: 12px;">
+        <strong style="color: #d97706; font-size: 1.1em;">🔌 供应商适配层 (Supplier Gateway) - 关键隔离</strong>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+        <div style="padding: 10px; background: white; border: 1px solid #fbbf24; border-radius: 4px; text-align: center;">
+          <div style="font-weight: bold; font-size: 0.9em; color: #92400e;">适配器管理</div>
+          <div style="font-size: 0.75em; color: #64748b; margin-top: 4px;">插件化注册</div>
+        </div>
+        <div style="padding: 10px; background: white; border: 1px solid #fbbf24; border-radius: 4px; text-align: center;">
+          <div style="font-weight: bold; font-size: 0.9em; color: #92400e;">熔断降级</div>
+          <div style="font-size: 0.75em; color: #64748b; margin-top: 4px;">Hystrix-go</div>
+        </div>
+        <div style="padding: 10px; background: white; border: 1px solid #fbbf24; border-radius: 4px; text-align: center;">
+          <div style="font-weight: bold; font-size: 0.9em; color: #92400e;">限流保护</div>
+          <div style="font-size: 0.75em; color: #64748b; margin-top: 4px;">令牌桶算法</div>
+        </div>
+        <div style="padding: 10px; background: white; border: 1px solid #fbbf24; border-radius: 4px; text-align: center;">
+          <div style="font-weight: bold; font-size: 0.9em; color: #92400e;">异步补偿</div>
+          <div style="font-size: 0.75em; color: #64748b; margin-top: 4px;">Kafka重试</div>
+        </div>
+      </div>
+      
+      <div style="margin-top: 12px; padding: 8px; background: #fef3c7; border-radius: 4px; font-size: 0.85em; text-align: center;">
+        <strong>50+供应商接入：</strong>机票 | 酒店 | 账单 | 电影票 | 充值 | 礼品卡 | ...
+      </div>
+    </div>
+
+    <!-- 基础设施层 -->
+    <div style="text-align: center; padding: 12px; background: #f8fafc; border: 2px solid #64748b; border-radius: 8px; margin-bottom: 16px;">
+      <strong style="color: #334155;">🔨 基础设施层 (Infrastructure)</strong>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px;">
+        <div style="padding: 8px; background: white; border-radius: 4px; font-size: 0.85em;">
+          <strong>MySQL</strong><br/>
+          <span style="color: #64748b; font-size: 0.9em;">分库分表</span>
+        </div>
+        <div style="padding: 8px; background: white; border-radius: 4px; font-size: 0.85em;">
+          <strong>Redis</strong><br/>
+          <span style="color: #64748b; font-size: 0.9em;">多级缓存</span>
+        </div>
+        <div style="padding: 8px; background: white; border-radius: 4px; font-size: 0.85em;">
+          <strong>Kafka</strong><br/>
+          <span style="color: #64748b; font-size: 0.9em;">事件总线</span>
+        </div>
+        <div style="padding: 8px; background: white; border-radius: 4px; font-size: 0.85em;">
+          <strong>Elasticsearch</strong><br/>
+          <span style="color: #64748b; font-size: 0.9em;">搜索索引</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 跨层能力 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+      <div style="padding: 8px; background: #f1f5f9; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 0.85em;">
+        <strong style="color: #1e40af;">🔍 可观测性</strong><br/>
+        <span style="color: #64748b;">Trace | Log | Metric</span>
+      </div>
+      <div style="padding: 8px; background: #f1f5f9; border-left: 3px solid #10b981; border-radius: 4px; font-size: 0.85em;">
+        <strong style="color: #047857;">🛡️ 稳定性</strong><br/>
+        <span style="color: #64748b;">限流 | 熔断 | 降级</span>
+      </div>
+      <div style="padding: 8px; background: #f1f5f9; border-left: 3px solid #f59e0b; border-radius: 4px; font-size: 0.85em;">
+        <strong style="color: #d97706;">🔐 安全</strong><br/>
+        <span style="color: #64748b;">认证 | 鉴权 | 审计</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div style="margin-top: 24px; padding: 16px; background: #dbeafe; border-left: 4px solid #2563eb; border-radius: 4px;">
+  <h3 style="margin-top: 0; color: #1e40af;">🎯 架构核心设计原则</h3>
+  <ol style="margin: 8px 0; color: #1e3a8a;">
+    <li><strong>供应商隔离</strong>：适配层独立，故障不扩散到核心交易链路</li>
+    <li><strong>读写分离</strong>：搜索/详情走ES+缓存，交易走强一致MySQL</li>
+    <li><strong>同步+异步混合</strong>：核心链路同步（订单/支付），非关键流程异步（搜索索引/库存对账）</li>
+    <li><strong>分品类策略</strong>：机票/酒店实时库存校验，长尾品类预占+补偿</li>
+    <li><strong>弹性扩容</strong>：无状态服务设计，K8s HPA自动扩缩容</li>
+  </ol>
+</div>
+
+<p style="margin-top: 24px; color: #64748b; text-align: center;">
+  点击下方继续查看详细的服务拆分和数据流设计 →
+</p>

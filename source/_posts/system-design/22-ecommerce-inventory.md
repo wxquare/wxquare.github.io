@@ -107,9 +107,41 @@ const (
 
 > **核心洞察**：任何新品类接入时，只需确定它属于哪个 `(ManagementType, UnitType)` 组合，即可复用对应的库存策略，无需修改核心代码。
 
+### 2.3 商品库存 vs 营销库存
+
+在实际电商场景中，除了上述的**商品库存**（Product Inventory）外，还存在**营销库存**（Campaign Inventory）的概念。两者服务于不同的业务目标，需要独立设计：
+
+| 维度 | 商品库存 | 营销库存 |
+|------|----------|----------|
+| **本质** | 实物/虚拟商品的可售数量 | 营销活动的参与配额 |
+| **驱动因素** | 采购成本、仓储能力 | 营销预算、活动目标 |
+| **管理维度** | SKU、仓库、批次 | 活动 ID、SKU、用户、时段 |
+| **典型场景** | 正常售卖、预售、拼团 | 秒杀、优惠券、限时折扣 |
+| **扣减单位** | 实际商品数量 | 活动参与次数/名额 |
+| **补充策略** | 采购补货 | 预算追加、时段分配 |
+| **约束类型** | 硬约束（卖完即止） | 软约束（可超卖或追加） |
+| **用户维度** | 无 | 单用户限购、防刷 |
+
+**关键差异点**：
+
+1. **商品库存关注"有没有货"**，营销库存关注"能不能参与活动"
+2. **商品库存扣减不可逆**（售出即消耗），营销库存可动态调整（追加预算）
+3. **营销库存需要多维度管控**：
+   - 总配额控制（活动总预算）
+   - 单用户限额（防刷）
+   - 时段配额（错峰）
+   - SKU 维度配额（指定商品参与）
+
+**实际案例**：
+
+某商品 SKU 有 10,000 件商品库存，但参与秒杀活动时只开放 500 件营销库存：
+- **商品库存 = 10,000**：正常售卖可买 10,000 件
+- **营销库存 = 500**：秒杀活动只能买 500 件
+- **扣减规则**：秒杀下单时需要**同时扣减**商品库存和营销库存，任一不足则失败
+
 ---
 
-## 三、统一数据模型
+## 三、统一数据模型（商品库存）
 
 ### 3.1 库存配置表（inventory_config）
 
@@ -239,9 +271,7 @@ CREATE TABLE inventory_operation_log (
 );
 ```
 
----
-
-## 四、策略模式：核心架构
+## 四、策略模式：核心架构（商品库存）
 
 ### 4.1 整体架构
 
@@ -941,7 +971,613 @@ func (s *UnlimitedStrategy) UnbookStock(ctx context.Context, req *UnbookStockReq
 
 ---
 
-## 十、数据一致性保障
+## 十、库存系统与订单系统的交互
+
+本章详细说明库存系统（主要以商品库存为例）如何与订单系统协作完成下单、支付、取消等核心流程。
+
+> **说明**：本章涉及商品库存和营销库存的协同，其中营销库存的详细设计请参阅[电商系统设计（四）：营销系统](/system-design/23-ecommerce-marketing-system/)第5章。本章重点展示系统交互边界和事务协调模式。
+
+### 10.1 交互边界设计原则
+
+**核心原则**：
+
+1. **单一职责**：
+   - **订单系统**：负责订单生命周期管理（创建、支付、取消、退款）
+   - **库存系统**：负责库存数据管理和原子操作（校验、预扣、确认、释放）
+   - **边界清晰**：订单系统不直接操作库存数据，库存系统不关心订单业务逻辑
+
+2. **幂等性保障**：
+   - 所有库存操作以 `order_id` 为幂等键
+   - 重复调用返回相同结果，避免重复扣减
+
+3. **超时管理**：
+   - 预扣操作带 TTL（通常 15 分钟）
+   - 超时自动释放，无需订单系统主动清理
+
+4. **最小依赖**：
+   - 库存系统故障不阻塞订单创建（降级方案）
+   - 订单系统故障不影响库存同步（事件驱动）
+
+---
+
+### 10.2 方案选择：混合模式（A + B）
+
+根据业务场景选择不同的交互模式：
+
+| 场景 | 模式 | 特点 | 原因 |
+|------|------|------|------|
+| **常规下单** | 方案 B（订单编排） | 订单系统调用库存系统多个原子 API | 流程透明，易调试，灵活性高 |
+| **秒杀/大促** | 方案 A（库存主导） | 库存系统提供聚合 API，一次调用完成双重扣减 | 减少网络开销，集中限流防护 |
+| **异步通知** | 方案 C（事件驱动） | 通过 Kafka 事件解耦 | 非关键路径，降低耦合 |
+
+---
+
+### 10.3 常规下单流程（方案 B：订单编排）
+
+#### 10.3.1 整体流程
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Order as 订单系统
+    participant ProdInv as 商品库存服务
+    participant CampInv as 营销库存服务
+    participant Payment as 支付系统
+
+    User->>Order: 1. 创建订单
+    Order->>ProdInv: 2. CheckStock(sku, qty)
+    ProdInv-->>Order: available=yes
+    Order->>CampInv: 3. CheckQuota(campaign, user, sku)
+    CampInv-->>Order: quota_ok=yes
+    
+    Note over Order: Saga 开始
+    Order->>ProdInv: 4. ReserveStock(order_id, sku, qty, ttl=15min)
+    ProdInv-->>Order: reserved
+    Order->>CampInv: 5. ReserveQuota(order_id, campaign, user, qty)
+    CampInv-->>Order: reserved
+    Order->>Order: 6. CreateOrderRecord()
+    Order-->>User: 订单创建成功，请支付
+
+    alt 支付成功
+        User->>Payment: 7a. 支付
+        Payment-->>Order: PaymentCallback
+        Order->>ProdInv: 8a. ConfirmStock(order_id)
+        Order->>CampInv: 8a. ConsumeQuota(order_id)
+        Order-->>User: 订单完成
+    else 支付超时/取消
+        Note over Order: 15分钟后或用户取消
+        Order->>ProdInv: 8b. ReleaseStock(order_id)
+        Order->>CampInv: 8b. ReleaseQuota(order_id)
+        Order-->>User: 订单已取消
+    end
+```
+
+#### 10.3.2 订单系统 Saga 实现
+
+```go
+type OrderSaga struct {
+    orderService    *OrderService
+    productInv      *ProductInventoryClient
+    campaignInv     *CampaignInventoryClient
+    sagaOrchestrator *SagaOrchestrator
+}
+
+// CreateOrderSaga 创建订单 Saga
+func (s *OrderSaga) CreateOrderSaga(ctx context.Context, req *CreateOrderReq) (*CreateOrderResp, error) {
+    saga := s.sagaOrchestrator.NewSaga("create_order", req.OrderID)
+
+    // Step 1: 校验商品库存
+    saga.AddStep("check_product_stock", 
+        func(ctx context.Context) (interface{}, error) {
+            return s.productInv.CheckStock(ctx, &CheckStockReq{
+                ItemID: req.ItemID,
+                SKUID:  req.SKUID,
+                Quantity: req.Quantity,
+            })
+        },
+        nil,  // 无需补偿（只读操作）
+    )
+
+    // Step 2: 校验营销库存（如果有）
+    if req.CampaignID > 0 {
+        saga.AddStep("check_campaign_quota",
+            func(ctx context.Context) (interface{}, error) {
+                return s.campaignInv.CheckQuota(ctx, &CheckQuotaReq{
+                    CampaignID: req.CampaignID,
+                    UserID:     req.UserID,
+                    ItemID:     req.ItemID,
+                    SKUID:      req.SKUID,
+                    Quantity:   req.Quantity,
+                })
+            },
+            nil,
+        )
+    }
+
+    // Step 3: 预扣商品库存
+    saga.AddStep("reserve_product_stock",
+        func(ctx context.Context) (interface{}, error) {
+            return s.productInv.ReserveStock(ctx, &ReserveStockReq{
+                OrderID:  req.OrderID,
+                ItemID:   req.ItemID,
+                SKUID:    req.SKUID,
+                Quantity: req.Quantity,
+                TTL:      15 * 60,  // 15分钟
+            })
+        },
+        func(ctx context.Context) error {  // 补偿：释放商品库存
+            return s.productInv.ReleaseStock(ctx, &ReleaseStockReq{
+                OrderID: req.OrderID,
+            })
+        },
+    )
+
+    // Step 4: 预扣营销库存（如果有）
+    if req.CampaignID > 0 {
+        saga.AddStep("reserve_campaign_quota",
+            func(ctx context.Context) (interface{}, error) {
+                return s.campaignInv.ReserveQuota(ctx, &ReserveQuotaReq{
+                    OrderID:    req.OrderID,
+                    CampaignID: req.CampaignID,
+                    UserID:     req.UserID,
+                    ItemID:     req.ItemID,
+                    SKUID:      req.SKUID,
+                    Quantity:   req.Quantity,
+                    UserIP:     req.UserIP,
+                    DeviceID:   req.DeviceID,
+                })
+            },
+            func(ctx context.Context) error {  // 补偿：释放营销库存
+                return s.campaignInv.ReleaseQuota(ctx, &ReleaseQuotaReq{
+                    OrderID: req.OrderID,
+                })
+            },
+        )
+    }
+
+    // Step 5: 创建订单记录
+    saga.AddStep("create_order_record",
+        func(ctx context.Context) (interface{}, error) {
+            return s.orderService.CreateOrderRecord(ctx, req)
+        },
+        func(ctx context.Context) error {  // 补偿：关闭订单
+            return s.orderService.CancelOrder(ctx, req.OrderID, "saga_rollback")
+        },
+    )
+
+    // 执行 Saga
+    result, err := saga.Execute(ctx)
+    if err != nil {
+        return nil, err
+    }
+
+    // 设置支付超时任务（15分钟）
+    s.schedulePaymentTimeout(req.OrderID, 15*time.Minute)
+
+    return &CreateOrderResp{
+        OrderID:    req.OrderID,
+        Status:     "PENDING_PAYMENT",
+        ExpireTime: time.Now().Add(15 * time.Minute).Unix(),
+    }, nil
+}
+```
+
+#### 10.3.3 Saga 状态机
+
+```go
+type SagaState int
+
+const (
+    SagaStateInit       SagaState = 0
+    SagaStateRunning    SagaState = 1
+    SagaStateCompleted  SagaState = 2
+    SagaStateCompensating SagaState = 3
+    SagaStateFailed     SagaState = 4
+)
+
+type SagaStep struct {
+    Name        string
+    Forward     func(ctx context.Context) (interface{}, error)  // 正向操作
+    Compensate  func(ctx context.Context) error                  // 补偿操作
+    Result      interface{}
+    Error       error
+}
+
+type Saga struct {
+    ID              string
+    Name            string
+    State           SagaState
+    Steps           []*SagaStep
+    CurrentStep     int
+    CompletedSteps  []int
+}
+
+func (s *Saga) Execute(ctx context.Context) (interface{}, error) {
+    s.State = SagaStateRunning
+
+    // 顺序执行所有步骤
+    for i, step := range s.Steps {
+        s.CurrentStep = i
+
+        result, err := step.Forward(ctx)
+        step.Result = result
+        step.Error = err
+
+        if err != nil {
+            log.Errorf("saga[%s] step[%s] failed: %v", s.ID, step.Name, err)
+            
+            // 失败，开始补偿
+            s.State = SagaStateCompensating
+            s.compensate(ctx)
+            
+            s.State = SagaStateFailed
+            return nil, fmt.Errorf("saga failed at step %s: %w", step.Name, err)
+        }
+
+        s.CompletedSteps = append(s.CompletedSteps, i)
+        log.Infof("saga[%s] step[%s] completed", s.ID, step.Name)
+    }
+
+    s.State = SagaStateCompleted
+    return s.Steps[len(s.Steps)-1].Result, nil
+}
+
+func (s *Saga) compensate(ctx context.Context) {
+    // 反向执行补偿操作
+    for i := len(s.CompletedSteps) - 1; i >= 0; i-- {
+        stepIndex := s.CompletedSteps[i]
+        step := s.Steps[stepIndex]
+
+        if step.Compensate == nil {
+            continue
+        }
+
+        if err := step.Compensate(ctx); err != nil {
+            log.Errorf("saga[%s] compensate step[%s] failed: %v", s.ID, step.Name, err)
+            // 补偿失败，记录告警，需要人工介入
+            alertOps("saga_compensate_failed", s.ID, step.Name, err)
+        } else {
+            log.Infof("saga[%s] compensated step[%s]", s.ID, step.Name)
+        }
+    }
+}
+```
+
+#### 10.3.4 支付成功处理
+
+```go
+func (s *OrderSaga) HandlePaymentSuccess(ctx context.Context, orderID uint64) error {
+    // 1. 确认商品库存
+    if err := s.productInv.ConfirmStock(ctx, &ConfirmStockReq{
+        OrderID: orderID,
+    }); err != nil {
+        log.Errorf("confirm product stock failed: %v", err)
+        // 重试机制
+        return s.retryConfirmStock(ctx, orderID)
+    }
+
+    // 2. 消费营销库存（如果有）
+    order, _ := s.orderService.GetOrder(ctx, orderID)
+    if order.CampaignID > 0 {
+        if err := s.campaignInv.ConsumeQuota(ctx, &ConsumeQuotaReq{
+            OrderID: orderID,
+        }); err != nil {
+            log.Errorf("consume campaign quota failed: %v", err)
+            return s.retryConsumeQuota(ctx, orderID)
+        }
+    }
+
+    // 3. 更新订单状态
+    return s.orderService.UpdateOrderStatus(ctx, orderID, "PAID")
+}
+```
+
+#### 10.3.5 超时/取消处理
+
+```go
+func (s *OrderSaga) HandleOrderTimeout(ctx context.Context, orderID uint64) error {
+    // 1. 释放商品库存
+    if err := s.productInv.ReleaseStock(ctx, &ReleaseStockReq{
+        OrderID: orderID,
+    }); err != nil {
+        log.Errorf("release product stock failed: %v", err)
+        // 超时释放是幂等的，可重试
+    }
+
+    // 2. 释放营销库存（如果有）
+    order, _ := s.orderService.GetOrder(ctx, orderID)
+    if order.CampaignID > 0 {
+        if err := s.campaignInv.ReleaseQuota(ctx, &ReleaseQuotaReq{
+            OrderID: orderID,
+        }); err != nil {
+            log.Errorf("release campaign quota failed: %v", err)
+        }
+    }
+
+    // 3. 关闭订单
+    return s.orderService.CancelOrder(ctx, orderID, "payment_timeout")
+}
+```
+
+---
+
+### 10.4 秒杀/大促流程（方案 A：库存主导）
+
+#### 10.4.1 Facade 服务设计
+
+为秒杀场景设计专门的聚合服务，提供高性能 API：
+
+```go
+type FlashSaleInventoryFacade struct {
+    productInv  *ProductInventoryService
+    campaignInv *CampaignInventoryService
+    redis       *redis.Client
+}
+
+// CheckAndReserve 一次调用完成商品+营销双重扣减
+func (f *FlashSaleInventoryFacade) CheckAndReserve(ctx context.Context, req *CheckAndReserveReq) (*CheckAndReserveResp, error) {
+    // 1. 前置限流（防止打爆后端）
+    if !f.rateLimiter.Allow(req.ItemID, req.SKUID) {
+        return nil, ErrRateLimitExceeded
+    }
+
+    // 2. 布隆过滤器拦截无效请求
+    if !f.bloomFilter.Exists(req.ItemID, req.SKUID, req.CampaignID) {
+        return nil, ErrItemNotInCampaign
+    }
+
+    // 3. 本地缓存快速失败（库存告罄）
+    if f.localCache.IsOutOfStock(req.CampaignID, req.SKUID) {
+        return nil, ErrStockNotEnough
+    }
+
+    // 4. 执行分布式事务（2PC 或 Saga）
+    return f.executeDistributedTransaction(ctx, req)
+}
+
+func (f *FlashSaleInventoryFacade) executeDistributedTransaction(ctx context.Context, req *CheckAndReserveReq) (*CheckAndReserveResp, error) {
+    // 使用 Saga 模式协调两个库存服务
+    saga := NewDistributedSaga("flash_sale_reserve", req.OrderID)
+
+    var prodResult *ReserveStockResp
+    var campResult *ReserveQuotaResp
+
+    // Step 1: 预扣商品库存
+    saga.AddStep("reserve_product",
+        func(ctx context.Context) (interface{}, error) {
+            result, err := f.productInv.ReserveStock(ctx, &ReserveStockReq{
+                OrderID:  req.OrderID,
+                ItemID:   req.ItemID,
+                SKUID:    req.SKUID,
+                Quantity: req.Quantity,
+                TTL:      15 * 60,
+            })
+            prodResult = result
+            return result, err
+        },
+        func(ctx context.Context) error {
+            return f.productInv.ReleaseStock(ctx, &ReleaseStockReq{OrderID: req.OrderID})
+        },
+    )
+
+    // Step 2: 预扣营销库存
+    saga.AddStep("reserve_campaign",
+        func(ctx context.Context) (interface{}, error) {
+            result, err := f.campaignInv.ReserveQuota(ctx, &ReserveQuotaReq{
+                OrderID:    req.OrderID,
+                CampaignID: req.CampaignID,
+                UserID:     req.UserID,
+                ItemID:     req.ItemID,
+                SKUID:      req.SKUID,
+                Quantity:   req.Quantity,
+                UserIP:     req.UserIP,
+                DeviceID:   req.DeviceID,
+            })
+            campResult = result
+            return result, err
+        },
+        func(ctx context.Context) error {
+            return f.campaignInv.ReleaseQuota(ctx, &ReleaseQuotaReq{OrderID: req.OrderID})
+        },
+    )
+
+    // 执行事务
+    if _, err := saga.Execute(ctx); err != nil {
+        // 任一库存不足，更新本地缓存
+        if err == ErrStockNotEnough || err == ErrQuotaNotEnough {
+            f.localCache.MarkOutOfStock(req.CampaignID, req.SKUID)
+        }
+        return nil, err
+    }
+
+    return &CheckAndReserveResp{
+        Success:              true,
+        RemainingProductStock: prodResult.RemainingStock,
+        RemainingCampaignQuota: campResult.RemainingQuota,
+        ReservationID:        fmt.Sprintf("%d", req.OrderID),
+        ExpireTime:           time.Now().Add(15 * time.Minute).Unix(),
+    }, nil
+}
+```
+
+#### 10.4.2 Confirm 聚合 API
+
+```go
+func (f *FlashSaleInventoryFacade) Confirm(ctx context.Context, req *ConfirmReq) error {
+    // 并发确认两个库存（使用 goroutine）
+    var wg sync.WaitGroup
+    var prodErr, campErr error
+
+    wg.Add(2)
+
+    // 确认商品库存
+    go func() {
+        defer wg.Done()
+        prodErr = f.productInv.ConfirmStock(ctx, &ConfirmStockReq{
+            OrderID: req.OrderID,
+        })
+    }()
+
+    // 确认营销库存
+    go func() {
+        defer wg.Done()
+        campErr = f.campaignInv.ConsumeQuota(ctx, &ConsumeQuotaReq{
+            OrderID: req.OrderID,
+        })
+    }()
+
+    wg.Wait()
+
+    // 任一失败都需要回滚
+    if prodErr != nil || campErr != nil {
+        // 记录告警，需要人工介入
+        alertOps("flash_sale_confirm_failed", req.OrderID, prodErr, campErr)
+        return fmt.Errorf("confirm failed: prod=%v, camp=%v", prodErr, campErr)
+    }
+
+    return nil
+}
+```
+
+#### 10.4.3 Cancel 聚合 API
+
+```go
+func (f *FlashSaleInventoryFacade) Cancel(ctx context.Context, req *CancelReq) error {
+    // 并发释放两个库存
+    var wg sync.WaitGroup
+    wg.Add(2)
+
+    go func() {
+        defer wg.Done()
+        f.productInv.ReleaseStock(ctx, &ReleaseStockReq{OrderID: req.OrderID})
+    }()
+
+    go func() {
+        defer wg.Done()
+        f.campaignInv.ReleaseQuota(ctx, &ReleaseQuotaReq{OrderID: req.OrderID})
+    }()
+
+    wg.Wait()
+    return nil
+}
+```
+
+---
+
+### 10.5 关键操作详解
+
+#### 10.5.1 校验库存 vs 预扣库存
+
+**为什么需要两步？**
+
+```go
+// ❌ 错误做法：只校验不预扣
+available := CheckStock(sku, qty)
+if available >= qty {
+    CreateOrder()  // 此时库存可能已被其他用户抢走
+}
+
+// ✅ 正确做法：预扣 = 校验 + 锁定
+reserved := ReserveStock(order_id, sku, qty, ttl)  // 原子操作
+if reserved {
+    CreateOrder()  // 库存已锁定，其他用户无法抢走
+}
+```
+
+**CheckStock 的使用场景**：
+
+1. **快速失败**：在用户点击"立即购买"前，前端调用 CheckStock 提前提示
+2. **降级方案**：ReserveStock 失败时，CheckStock 可用于兜底
+3. **只读查询**：不改变状态，可以高频调用
+
+#### 10.5.2 预扣超时管理
+
+**三种超时机制**：
+
+```go
+// 1. Redis TTL 自动过期
+func ReserveStock(orderID, sku, qty, ttl int) {
+    reservationKey := fmt.Sprintf("reservation:%d", orderID)
+    redis.Set(reservationKey, data, ttl)  // 15分钟后自动删除
+}
+
+// 2. 定时任务扫描
+func ScanExpiredReservations() {
+    // 每 1 分钟扫描一次
+    expiredOrders := db.Query(`
+        SELECT order_id FROM orders
+        WHERE status='PENDING_PAYMENT'
+          AND create_time < NOW() - INTERVAL 15 MINUTE
+    `)
+    for _, order := range expiredOrders {
+        ReleaseStock(order.ID)
+    }
+}
+
+// 3. 延时队列
+func ScheduleReleaseStock(orderID, delay time.Duration) {
+    task := &ReleaseStockTask{OrderID: orderID}
+    delayQueue.Push(task, delay)
+}
+```
+
+**推荐方案**：**Redis TTL + 延时队列**
+
+- Redis TTL 作为第一道防线（快速释放）
+- 延时队列作为兜底（防止 Redis 数据丢失）
+
+#### 10.5.3 幂等性保障
+
+所有库存操作都以 `order_id` 为幂等键：
+
+```go
+func ReserveStock(ctx context.Context, req *ReserveStockReq) (*ReserveStockResp, error) {
+    reservationKey := fmt.Sprintf("reservation:%d", req.OrderID)
+
+    // 1. 检查是否已预扣
+    if exists, _ := redis.Exists(ctx, reservationKey).Result(); exists > 0 {
+        // 已预扣，返回之前的结果
+        data, _ := redis.HGetAll(ctx, reservationKey).Result()
+        return &ReserveStockResp{
+            Success:        true,
+            RemainingStock: parseInt(data["remaining"]),
+            AlreadyReserved: true,  // 标记为重复操作
+        }, nil
+    }
+
+    // 2. 首次预扣，执行 Lua 脚本
+    // ...
+}
+```
+
+#### 10.5.4 库存服务降级
+
+当库存服务故障时，订单系统的降级策略：
+
+```go
+func (s *OrderSaga) CreateOrderSaga(ctx context.Context, req *CreateOrderReq) (*CreateOrderResp, error) {
+    // 尝试调用库存服务
+    _, err := s.productInv.ReserveStock(ctx, &ReserveStockReq{...})
+    
+    if err != nil && isServiceUnavailable(err) {
+        // 降级：允许超卖，事后补偿
+        if req.AllowOversell {
+            log.Warn("inventory service down, allow oversell")
+            return s.createOrderWithoutReservation(ctx, req)
+        }
+        
+        // 严格模式：直接失败
+        return nil, ErrInventoryServiceUnavailable
+    }
+    
+    // 正常流程
+    // ...
+}
+```
+
+---
+
+## 十一、数据一致性保障
 
 ### 10.1 Redis 与 MySQL 双写策略
 
@@ -1004,7 +1640,325 @@ Redis 不可用
 
 ---
 
-## 十一、Kafka 事件设计
+### 11.4 营销库存一致性保障
+
+#### 11.4.1 Redis-MySQL 双写策略
+
+与商品库存类似，营销库存也采用 Redis 热路径 + MySQL 持久化的架构：
+
+```go
+func (s *CampaignInventoryService) ReserveQuota(ctx context.Context, req *ReserveQuotaReq) error {
+    // 1. 同步写 Redis（Lua 原子操作）
+    err := s.reserveQuotaInRedis(ctx, req)
+    if err != nil {
+        return err
+    }
+
+    // 2. 异步写 MySQL（Kafka）
+    s.publishEvent(&CampaignInventoryEvent{
+        EventType:   "reserve",
+        CampaignID:  req.CampaignID,
+        OrderID:     req.OrderID,
+        UserID:      req.UserID,
+        Quantity:    req.Quantity,
+        Timestamp:   time.Now().UnixMilli(),
+    })
+
+    return nil
+}
+```
+
+**Kafka Consumer 批量写入**：
+
+```go
+func (c *CampaignInventoryConsumer) Consume(ctx context.Context, messages []*kafka.Message) error {
+    // 攒批 100 条
+    batch := make([]*CampaignInventoryEvent, 0, 100)
+    for _, msg := range messages {
+        event := &CampaignInventoryEvent{}
+        json.Unmarshal(msg.Value, event)
+        batch = append(batch, event)
+
+        if len(batch) >= 100 {
+            if err := c.flushBatch(ctx, batch); err != nil {
+                return err
+            }
+            batch = batch[:0]
+        }
+    }
+
+    // 刷新剩余
+    if len(batch) > 0 {
+        return c.flushBatch(ctx, batch)
+    }
+
+    return nil
+}
+
+func (c *CampaignInventoryConsumer) flushBatch(ctx context.Context, batch []*CampaignInventoryEvent) error {
+    // 1. 批量更新 campaign_inventory 表
+    tx, _ := c.mysql.BeginTx(ctx, nil)
+    defer tx.Rollback()
+
+    for _, event := range batch {
+        switch event.EventType {
+        case "reserve":
+            tx.Exec(`
+                UPDATE campaign_inventory
+                SET reserved_quota = reserved_quota + ?,
+                    available_quota = available_quota - ?,
+                    snapshot_time = ?
+                WHERE campaign_id = ? AND sku_id = ?
+            `, event.Quantity, event.Quantity, event.Timestamp, event.CampaignID, event.SKUID)
+
+        case "consume":
+            tx.Exec(`
+                UPDATE campaign_inventory
+                SET reserved_quota = reserved_quota - ?,
+                    consumed_quota = consumed_quota + ?,
+                    snapshot_time = ?
+                WHERE campaign_id = ? AND sku_id = ?
+            `, event.Quantity, event.Quantity, event.Timestamp, event.CampaignID, event.SKUID)
+
+        case "release":
+            tx.Exec(`
+                UPDATE campaign_inventory
+                SET reserved_quota = reserved_quota - ?,
+                    available_quota = available_quota + ?,
+                    snapshot_time = ?
+                WHERE campaign_id = ? AND sku_id = ?
+            `, event.Quantity, event.Quantity, event.Timestamp, event.CampaignID, event.SKUID)
+        }
+    }
+
+    // 2. 批量插入操作日志
+    values := make([]string, 0, len(batch))
+    args := make([]interface{}, 0, len(batch)*10)
+    for _, event := range batch {
+        values = append(values, "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        args = append(args,
+            event.CampaignID,
+            event.OrderID,
+            event.UserID,
+            event.ItemID,
+            event.SKUID,
+            event.EventType,
+            event.Quantity,
+            event.BeforeQuota,
+            event.AfterQuota,
+            event.Timestamp,
+        )
+    }
+
+    query := fmt.Sprintf(`
+        INSERT INTO campaign_operation_log
+        (campaign_id, order_id, user_id, item_id, sku_id, operation_type, quantity, before_quota, after_quota, create_time)
+        VALUES %s
+    `, strings.Join(values, ","))
+
+    tx.Exec(query, args...)
+
+    return tx.Commit()
+}
+```
+
+#### 11.4.2 定时对账
+
+```go
+func ReconcileCampaignInventory() {
+    campaigns := queryActiveCampaigns()
+    for _, campaign := range campaigns {
+        // 1. Redis 配额
+        redisKey := fmt.Sprintf("campaign:quota:%d:%d", campaign.ID, campaign.SKUID)
+        redisAvailable, _ := redis.HGet(redisKey, "available").Int()
+        redisReserved, _ := redis.HGet(redisKey, "reserved").Int()
+        redisConsumed, _ := redis.HGet(redisKey, "consumed").Int()
+
+        // 2. MySQL 配额
+        var mysqlData CampaignInventory
+        db.Get(&mysqlData, `
+            SELECT available_quota, reserved_quota, consumed_quota
+            FROM campaign_inventory
+            WHERE campaign_id = ? AND sku_id = ?
+        `, campaign.ID, campaign.SKUID)
+
+        // 3. 恒等式校验
+        redisTotal := redisAvailable + redisReserved + redisConsumed
+        mysqlTotal := mysqlData.AvailableQuota + mysqlData.ReservedQuota + mysqlData.ConsumedQuota
+        configTotal, _ := getConfigTotal(campaign.ID, campaign.SKUID)
+
+        if redisTotal != configTotal {
+            alert("Redis 营销库存恒等式错误: campaign=%d, redis_total=%d, config_total=%d",
+                campaign.ID, redisTotal, configTotal)
+        }
+
+        if mysqlTotal != configTotal {
+            alert("MySQL 营销库存恒等式错误: campaign=%d, mysql_total=%d, config_total=%d",
+                campaign.ID, mysqlTotal, configTotal)
+        }
+
+        // 4. Redis vs MySQL 差异
+        availableDiff := abs(redisAvailable - mysqlData.AvailableQuota)
+        if availableDiff > 50 || availableDiff > configTotal/20 {
+            alert("营销库存差异过大: campaign=%d, redis=%d, mysql=%d",
+                campaign.ID, redisAvailable, mysqlData.AvailableQuota)
+
+            // 自动修复：以 MySQL 为准
+            syncCampaignQuotaToRedis(campaign.ID, campaign.SKUID, &mysqlData)
+        }
+    }
+}
+```
+
+---
+
+### 11.5 跨库存类型一致性
+
+秒杀场景需要同时扣减商品库存和营销库存，如何保证两者的一致性？
+
+#### 11.5.1 问题场景
+
+```
+用户下单秒杀商品：
+  │
+  ├─ 商品库存预扣成功
+  │
+  └─ 营销库存预扣失败（配额已满）
+      │
+      ？如何回滚商品库存？
+```
+
+#### 11.5.2 Saga 模式协调
+
+```go
+func (s *OrderSaga) CreateFlashSaleOrder(ctx context.Context, req *CreateOrderReq) error {
+    saga := NewSaga("flash_sale_order", req.OrderID)
+
+    // Step 1: 预扣商品库存
+    saga.AddStep("reserve_product",
+        func(ctx context.Context) (interface{}, error) {
+            return s.productInv.ReserveStock(ctx, &ReserveStockReq{
+                OrderID:  req.OrderID,
+                ItemID:   req.ItemID,
+                SKUID:    req.SKUID,
+                Quantity: req.Quantity,
+            })
+        },
+        func(ctx context.Context) error {  // 补偿
+            return s.productInv.ReleaseStock(ctx, &ReleaseStockReq{
+                OrderID: req.OrderID,
+            })
+        },
+    )
+
+    // Step 2: 预扣营销库存
+    saga.AddStep("reserve_campaign",
+        func(ctx context.Context) (interface{}, error) {
+            return s.campaignInv.ReserveQuota(ctx, &ReserveQuotaReq{
+                OrderID:    req.OrderID,
+                CampaignID: req.CampaignID,
+                UserID:     req.UserID,
+                Quantity:   req.Quantity,
+            })
+        },
+        func(ctx context.Context) error {  // 补偿
+            return s.campaignInv.ReleaseQuota(ctx, &ReleaseQuotaReq{
+                OrderID: req.OrderID,
+            })
+        },
+    )
+
+    // 执行 Saga
+    _, err := saga.Execute(ctx)
+    if err != nil {
+        // 任一失败，自动触发补偿
+        return err
+    }
+
+    return nil
+}
+```
+
+#### 11.5.3 分布式锁兜底
+
+对于极端场景（如补偿失败），使用分布式锁保证最终一致性：
+
+```go
+func (s *OrderSaga) compensateWithLock(ctx context.Context, orderID uint64) error {
+    lockKey := fmt.Sprintf("order:compensate:%d", orderID)
+    lock := s.redis.SetNX(ctx, lockKey, "1", 10*time.Second)
+    if !lock.Val() {
+        // 其他进程正在补偿
+        return nil
+    }
+    defer s.redis.Del(ctx, lockKey)
+
+    // 查询预扣状态
+    prodReserved := s.checkProductReservation(ctx, orderID)
+    campReserved := s.checkCampaignReservation(ctx, orderID)
+
+    // 确保两者状态一致
+    if prodReserved && !campReserved {
+        // 商品已预扣，营销未预扣 → 释放商品库存
+        s.productInv.ReleaseStock(ctx, &ReleaseStockReq{OrderID: orderID})
+    } else if !prodReserved && campReserved {
+        // 营销已预扣，商品未预扣 → 释放营销库存
+        s.campaignInv.ReleaseQuota(ctx, &ReleaseQuotaReq{OrderID: orderID})
+    }
+
+    return nil
+}
+```
+
+#### 11.5.4 对账修复
+
+每小时对账时，检查两种库存的一致性：
+
+```go
+func ReconcileOrderInventory() {
+    // 查询预扣中的订单
+    orders := db.Query(`
+        SELECT order_id, item_id, sku_id, campaign_id, quantity
+        FROM orders
+        WHERE status = 'PENDING_PAYMENT'
+          AND create_time < NOW() - INTERVAL 20 MINUTE  -- 超时5分钟
+    `)
+
+    for _, order := range orders {
+        // 检查商品库存预扣
+        prodKey := fmt.Sprintf("reservation:%d", order.OrderID)
+        prodExists := redis.Exists(prodKey).Val() > 0
+
+        // 检查营销库存预扣
+        campKey := fmt.Sprintf("campaign:reservation:%d", order.OrderID)
+        campExists := redis.Exists(campKey).Val() > 0
+
+        // 状态不一致 → 修复
+        if prodExists != campExists {
+            alert("订单库存状态不一致: order=%d, prod=%t, camp=%t",
+                order.OrderID, prodExists, campExists)
+
+            // 统一释放（以订单状态为准）
+            if prodExists {
+                productInv.ReleaseStock(ctx, &ReleaseStockReq{OrderID: order.OrderID})
+            }
+            if campExists {
+                campaignInv.ReleaseQuota(ctx, &ReleaseQuotaReq{OrderID: order.OrderID})
+            }
+
+            // 关闭订单
+            db.Exec(`
+                UPDATE orders SET status='CANCELLED', cancel_reason='inventory_inconsistency'
+                WHERE order_id = ?
+            `, order.OrderID)
+        }
+    }
+}
+```
+
+---
+
+## 十二、Kafka 事件设计
 
 ```protobuf
 message InventoryEvent {
@@ -1037,7 +1991,7 @@ message InventoryEvent {
 
 ---
 
-## 十二、Giftcard 特殊设计
+## 十三、Giftcard 特殊设计
 
 Giftcard 横跨三种库存模式，是统一模型的最佳验证：
 
@@ -1058,9 +2012,9 @@ Giftcard 横跨三种库存模式，是统一模型的最佳验证：
 
 ---
 
-## 十三、监控与告警
+## 十四、监控与告警
 
-### 13.1 关键指标
+### 14.1 关键指标
 
 | 指标 | 阈值 | 告警级别 |
 |------|------|----------|
@@ -1088,9 +2042,451 @@ inventory_reconcile_diff{item_id, sku_id}
 inventory_out_of_stock_total{item_id}
 ```
 
+
+### 13.4 跨系统监控
+
+#### 13.4.1 库存一致性监控
+
+监控商品库存和营销库存的协同状态：
+
+| 指标 | 含义 | 阈值 | 告警级别 |
+|------|------|------|----------|
+| **双扣成功率** | 商品+营销双重扣减成功比例 | < 98% | P1 |
+| **补偿执行率** | Saga 补偿成功率 | < 99% | P1 |
+| **库存状态不一致订单数** | 商品已扣但营销未扣（或反之） | > 10 | P0 |
+| **对账修复次数** | 每小时对账发现并修复的差异数 | > 50 | P2 |
+
+**Prometheus Metrics**：
+
+```
+# 双扣成功率
+inventory_dual_reserve_total{status="both_success|product_fail|campaign_fail|both_fail"}
+
+# Saga 补偿统计
+inventory_saga_compensate_total{step, status="ok|fail"}
+
+# 库存状态不一致
+inventory_inconsistency_orders_total{type="product_only|campaign_only"}
+
+# 对账修复
+inventory_reconcile_fix_total{type="product|campaign|both"}
+```
+
+#### 13.4.2 订单与库存交互监控
+
+监控订单系统与库存系统的 API 调用：
+
+```
+# 库存API调用次数
+inventory_api_calls_total{service="order|payment|marketing", api="check|reserve|release|confirm"}
+
+# 库存API延迟分布
+inventory_api_duration_seconds{service, api, quantile="0.5|0.9|0.99"}
+
+# 库存API错误率
+inventory_api_errors_total{service, api, error_type="timeout|quota_exceeded|service_down"}
+```
+
+#### 13.4.3 秒杀场景专项监控
+
+```
+# 秒杀并发数
+flash_sale_concurrent_requests{campaign_id}
+
+# 秒杀成功率
+flash_sale_success_rate{campaign_id}  # 下单成功 / 总请求
+
+# 秒杀限流触发次数
+flash_sale_rate_limit_triggered_total{campaign_id}
+
+# 秒杀本地缓存命中率
+flash_sale_local_cache_hit_rate{campaign_id}
+
+# 秒杀Redis热Key QPS
+flash_sale_redis_hot_key_qps{campaign_id, sku_id}
+```
+
+#### 13.4.4 告警规则配置
+
+```yaml
+groups:
+  - name: inventory_alerts
+    interval: 30s
+    rules:
+      # P0告警：超卖
+      - alert: InventoryOversold
+        expr: inventory_reconcile_diff > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "库存超卖！item_id={{ $labels.item_id }}"
+          description: "Redis库存={{ $value }}，MySQL库存不足"
+
+      # P0告警：营销库存超卖
+      - alert: CampaignQuotaOversold
+        expr: campaign_quota_reconcile_diff > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "营销库存超卖！campaign_id={{ $labels.campaign_id }}"
+
+      # P1告警：库存状态不一致
+      - alert: InventoryInconsistency
+        expr: inventory_inconsistency_orders_total > 10
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "库存状态不一致订单数={{ $value }}"
+
+      # P1告警：双扣成功率低
+      - alert: DualReserveSuccessRateLow
+        expr: |
+          sum(rate(inventory_dual_reserve_total{status="both_success"}[5m])) /
+          sum(rate(inventory_dual_reserve_total[5m])) < 0.98
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "双扣成功率={{ $value }}%，低于98%"
+
+      # P2告警：库存差异过大
+      - alert: InventoryDiffTooLarge
+        expr: abs(inventory_reconcile_diff) > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "库存差异过大：{{ $labels.item_id }}，差异={{ $value }}"
+
+      # P2告警：秒杀限流触发频繁
+      - alert: FlashSaleRateLimitHigh
+        expr: rate(flash_sale_rate_limit_triggered_total[1m]) > 100
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "秒杀限流触发频繁：campaign_id={{ $labels.campaign_id }}"
+```
+
 ---
 
-## 十四、新品类接入指南
+## 十五、边界场景与容错
+
+本章详细说明各种异常场景的处理策略。
+
+### 15.1 商品库存充足但营销库存不足
+
+**场景**：用户参与秒杀，商品库存有 1000 件，但营销配额只剩 0 件。
+
+**处理流程**：
+
+```go
+func (s *OrderSaga) CreateFlashSaleOrder(ctx context.Context, req *CreateOrderReq) error {
+    // 1. 预扣商品库存（成功）
+    _, err := s.productInv.ReserveStock(ctx, &ReserveStockReq{...})
+    if err != nil {
+        return err  // 商品库存不足，直接返回
+    }
+
+    // 2. 预扣营销库存（失败）
+    _, err = s.campaignInv.ReserveQuota(ctx, &ReserveQuotaReq{...})
+    if err == ErrQuotaNotEnough {
+        // 营销库存不足，触发补偿
+        s.productInv.ReleaseStock(ctx, &ReleaseStockReq{OrderID: req.OrderID})
+        
+        // 返回友好提示
+        return ErrCampaignQuotaExhausted
+    }
+
+    // 3. 创建订单
+    return s.createOrderRecord(ctx, req)
+}
+```
+
+**用户体验优化**：
+
+前端在用户点击"立即购买"前，先调用检查接口：
+
+```go
+func CheckFlashSaleEligibility(ctx context.Context, req *CheckReq) (*CheckResp, error) {
+    // 1. 检查商品库存
+    prodOK, _ := productInv.CheckStock(ctx, req)
+    
+    // 2. 检查营销配额
+    campOK, _ := campaignInv.CheckQuota(ctx, req)
+    
+    // 3. 返回综合结果
+    if !prodOK {
+        return &CheckResp{Eligible: false, Reason: "商品已售罄"}, nil
+    }
+    if !campOK {
+        return &CheckResp{Eligible: false, Reason: "活动名额已满"}, nil
+    }
+    
+    return &CheckResp{Eligible: true}, nil
+}
+```
+
+---
+
+### 15.2 预扣成功但支付超时
+
+**场景**：用户下单后 15 分钟未支付，预扣的库存需要释放。
+
+**三重保障机制**：
+
+#### 14.2.1 Redis TTL 自动过期
+
+```go
+func ReserveStock(orderID, sku, qty, ttl int) {
+    // 预占记录带 TTL
+    reservationKey := fmt.Sprintf("reservation:%d", orderID)
+    redis.SetEX(reservationKey, data, 15*time.Minute)
+}
+
+// 后台扫描过期预占
+func ScanExpiredReservations() {
+    // 每分钟扫描一次
+    ticker := time.NewTicker(1 * time.Minute)
+    for range ticker.C {
+        // 查询所有预占 Key（带分页）
+        keys := redis.Scan("reservation:*", 100)
+        for _, key := range keys {
+            if !redis.Exists(key) {
+                // 已过期，但 MySQL 可能还有记录，需要清理
+                orderID := extractOrderID(key)
+                cleanupReservation(orderID)
+            }
+        }
+    }
+}
+```
+
+#### 14.2.2 延时队列触发释放
+
+```go
+func CreateOrder(ctx context.Context, req *CreateOrderReq) error {
+    // 1. 创建订单
+    // ...
+
+    // 2. 设置延时任务（15分钟后触发）
+    task := &ReleaseInventoryTask{
+        OrderID:   req.OrderID,
+        Trigger:   "timeout",
+        ScheduledTime: time.Now().Add(15 * time.Minute),
+    }
+    delayQueue.Push(task)
+
+    return nil
+}
+
+// 延时队列 Consumer
+func HandleReleaseInventoryTask(task *ReleaseInventoryTask) {
+    // 检查订单状态
+    order, _ := getOrder(task.OrderID)
+    if order.Status == "PAID" {
+        // 已支付，无需释放
+        return
+    }
+
+    // 释放库存
+    productInv.ReleaseStock(ctx, &ReleaseStockReq{OrderID: task.OrderID})
+    campaignInv.ReleaseQuota(ctx, &ReleaseQuotaReq{OrderID: task.OrderID})
+
+    // 关闭订单
+    closeOrder(task.OrderID, "payment_timeout")
+}
+```
+
+#### 14.2.3 定时任务兜底
+
+```go
+func ReconcileTimeoutOrders() {
+    // 每 5 分钟执行一次
+    orders := db.Query(`
+        SELECT order_id FROM orders
+        WHERE status = 'PENDING_PAYMENT'
+          AND create_time < NOW() - INTERVAL 20 MINUTE
+        LIMIT 1000
+    `)
+
+    for _, order := range orders {
+        // 强制释放
+        productInv.ReleaseStock(ctx, &ReleaseStockReq{OrderID: order.OrderID})
+        campaignInv.ReleaseQuota(ctx, &ReleaseQuotaReq{OrderID: order.OrderID})
+
+        // 更新订单状态
+        db.Exec(`
+            UPDATE orders SET status='TIMEOUT', close_time=?
+            WHERE order_id=?
+        `, time.Now().Unix(), order.OrderID)
+    }
+}
+```
+
+---
+
+### 15.3 Redis 宕机降级方案
+
+#### 14.3.1 降级策略
+
+```go
+type InventoryService struct {
+    redis  *redis.Client
+    mysql  *sqlx.DB
+    degraded atomic.Bool  // 降级标志
+}
+
+func (s *InventoryService) ReserveStock(ctx context.Context, req *ReserveStockReq) error {
+    // 1. 尝试 Redis
+    if !s.degraded.Load() {
+        err := s.reserveStockInRedis(ctx, req)
+        if err == nil {
+            return nil
+        }
+
+        // Redis 故障，切换降级
+        if isRedisUnavailable(err) {
+            s.degraded.Store(true)
+            alertOps("Redis宕机，库存服务降级到MySQL")
+        } else {
+            return err
+        }
+    }
+
+    // 2. 降级到 MySQL
+    return s.reserveStockInMySQL(ctx, req)
+}
+
+func (s *InventoryService) reserveStockInMySQL(ctx context.Context, req *ReserveStockReq) error {
+    tx, _ := s.mysql.BeginTx(ctx, nil)
+    defer tx.Rollback()
+
+    // 1. 券码制：SELECT FOR UPDATE
+    if req.UnitType == CodeBased {
+        var codes []string
+        err := tx.Select(&codes, `
+            SELECT id FROM inventory_code_pool_xx
+            WHERE item_id=? AND sku_id=? AND status=1
+            ORDER BY id LIMIT ?
+            FOR UPDATE
+        `, req.ItemID, req.SKUID, req.Quantity)
+
+        if len(codes) < int(req.Quantity) {
+            return ErrStockNotEnough
+        }
+
+        // 更新券码状态
+        tx.Exec(`
+            UPDATE inventory_code_pool_xx
+            SET status=2, order_id=?, booking_time=?
+            WHERE id IN (?)
+        `, req.OrderID, time.Now().Unix(), codes)
+    }
+
+    // 2. 数量制：CAS 更新
+    if req.UnitType == QuantityBased {
+        result := tx.Exec(`
+            UPDATE inventory
+            SET available_stock = available_stock - ?,
+                booking_stock = booking_stock + ?
+            WHERE item_id=? AND sku_id=?
+              AND available_stock >= ?
+        `, req.Quantity, req.Quantity, req.ItemID, req.SKUID, req.Quantity)
+
+        if result.RowsAffected() == 0 {
+            return ErrStockNotEnough
+        }
+    }
+
+    return tx.Commit()
+}
+```
+
+#### 14.3.2 Redis 恢复后全量同步
+
+```go
+func RecoverFromDegradation() {
+    // 1. 检测 Redis 是否恢复
+    if err := redis.Ping().Err(); err != nil {
+        return  // 仍未恢复
+    }
+
+    // 2. 全量同步库存数据
+    items := db.Query(`SELECT item_id, sku_id, available_stock, booking_stock FROM inventory`)
+    for _, item := range items {
+        key := fmt.Sprintf("inventory:qty:stock:%d:%d", item.ItemID, item.SKUID)
+        redis.HMSet(key, map[string]interface{}{
+            "available": item.AvailableStock,
+            "booking":   item.BookingStock,
+        })
+    }
+
+    // 3. 同步营销库存
+    campaigns := db.Query(`SELECT campaign_id, sku_id, available_quota FROM campaign_inventory`)
+    for _, camp := range campaigns {
+        key := fmt.Sprintf("campaign:quota:%d:%d", camp.CampaignID, camp.SKUID)
+        redis.HSet(key, "available", camp.AvailableQuota)
+    }
+
+    // 4. 恢复正常模式
+    degraded.Store(false)
+    alertOps("Redis恢复，库存服务已切回正常模式")
+}
+```
+
+---
+
+### 15.4 超卖防护的最后一道防线
+
+即使有以上所有保障，仍可能出现超卖（如 Redis 数据损坏、网络分区）。最后一道防线在支付成功确认时：
+
+```go
+func (s *InventoryService) ConfirmStock(ctx context.Context, req *ConfirmStockReq) error {
+    // 1. 执行 Redis 确认
+    err := s.confirmStockInRedis(ctx, req)
+    if err != nil {
+        return err
+    }
+
+    // 2. 双重校验：检查 MySQL 库存是否足够
+    var mysqlStock int32
+    db.Get(&mysqlStock, `
+        SELECT available_stock + booking_stock
+        FROM inventory
+        WHERE item_id=? AND sku_id=?
+    `, req.ItemID, req.SKUID)
+
+    redisStock := redis.HGet(fmt.Sprintf("inventory:qty:stock:%d:%d", req.ItemID, req.SKUID), "available").Int()
+
+    // 3. 如果 MySQL 显示库存不足，拒绝确认
+    if mysqlStock < 0 {
+        alertOps("超卖检测：item=%d, mysql_stock=%d", req.ItemID, mysqlStock)
+        
+        // 回滚 Redis
+        s.releaseStockInRedis(ctx, req.OrderID)
+        
+        // 关闭订单，退款
+        return ErrOversellDetected
+    }
+
+    // 4. 记录超卖监控指标
+    if mysqlStock != redisStock {
+        metrics.InventoryDiff.WithLabelValues(
+            fmt.Sprintf("%d", req.ItemID),
+        ).Set(float64(redisStock - mysqlStock))
+    }
+
+    return nil
+}
+```
+
+---
+
+## 十六、新品类接入指南
 
 **三步接入**：
 
@@ -1117,9 +2513,9 @@ inventoryManager.BookStock(ctx, &BookStockReq{
 
 ---
 
-## 十五、生产环境实战数据
+## 十七、生产环境实战数据
 
-### 15.1 业务规模
+### 17.1 业务规模
 
 | 指标 | 数值 | 说明 |
 |------|------|------|
@@ -1143,7 +2539,7 @@ Kafka 异步落库 MySQL TPS = 6.7M / 86400 ≈ 80 TPS（日均）
 
 ---
 
-### 15.2 集群配置
+### 17.2 集群配置
 
 #### Redis 集群
 
@@ -1202,7 +2598,7 @@ Topic: inventory.events (6 分区)
 
 ---
 
-### 15.3 性能指标实测
+### 17.3 性能指标实测
 
 | 操作 | P50 | P99 | P999 | 备注 |
 |------|-----|-----|------|------|
@@ -1219,7 +2615,7 @@ Topic: inventory.events (6 分区)
 
 ---
 
-### 15.4 真实案例与优化
+### 17.4 真实案例与优化
 
 #### 案例 1：秒杀 2w QPS 热点 Key 瓶颈
 
@@ -1371,5 +2767,52 @@ Topic: inventory.events (6 分区)
 
 ---
 
+## 十八、总结与展望
+
+### 18.1 核心设计总结
+
+本文详细介绍了电商库存系统的完整设计，重点聚焦商品库存管理：
+
+**商品库存核心设计**：
+- **统一模型**：`(ManagementType, UnitType)` 两个维度抽象所有品类（Deal、OPV、酒店、机票、TopUp等）
+- **策略模式**：自管理（券码制/数量制）、供应商管理、无限库存三种策略独立实现
+- **性能优化**：Redis 热路径 + MySQL 持久化，券码补货按需加载
+- **核心流程**：预占（Book）→ 确认（Sell）→ 释放（Unbook）→ 退款（Refund）
+
+**系统交互设计**：
+- **订单集成**：订单系统通过 Saga 模式编排库存扣减、支付、履约等步骤
+- **超时处理**：三重保障机制（Redis TTL + 延时队列 + 定时任务）确保预占超时自动释放
+- **幂等性**：使用 `order_id` 作为幂等键，防止重复扣减
+
+**一致性保障**：
+- **双写策略**：Redis 同步操作，MySQL 异步写入（通过 Kafka）
+- **定时对账**：每小时校验 Redis 与 MySQL 差异，自动修复不一致
+- **最后防线**：支付确认时 MySQL 二次校验，防止超卖
+
+**营销库存**：
+- 本文保留了商品库存与营销库存的对比（2.3 节），营销库存的详细设计请参阅[电商系统设计（四）：营销系统](/system-design/23-ecommerce-marketing-system/)
+
+---
+
+### 18.2 适用场景建议
+
+**适合采用本设计的场景**：
+1. 中大型电商平台：日订单量 > 10 万，有秒杀/大促需求
+2. 多品类支持：实物商品、虚拟商品、服务类商品混合销售
+3. 营销活动丰富：频繁的秒杀、限时折扣、优惠券活动
+4. 供应商集成需求：有第三方供应商，需要实时/定时同步库存
+
+**不适合的场景**：
+1. 单一品类小店：可简化为单一策略
+2. 无库存管理需求：如知识付费、SaaS 订阅
+3. 极简 MVP 阶段：早期创业项目
+
+---
+
 > **系列导航**
+> 
 > 库存与价格在下单时的协作流程，详见[（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)中的 C 端用户旅程章节。
+> 
+> 营销系统如何利用库存锁定实现秒杀活动，详见[（四）营销系统深度解析](/system-design/23-ecommerce-marketing-system/)。
+> 
+> 订单系统如何编排库存扣减流程，详见[（七）订单系统](/system-design/26-ecommerce-order-system/)。
