@@ -1,0 +1,942 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第12章 搜索与导购 - 电商系统架构设计与实现</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="从领域建模到工程落地：面向中大型团队的实战指南">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../index.html">书籍介绍</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">第一部分：架构方法论与设计原则</li><li class="chapter-item expanded "><a href="../../part1/chapter1.html"><strong aria-hidden="true">1.</strong> 第1章 架构设计三位一体</a></li><li class="chapter-item expanded "><a href="../../part1/chapter2.html"><strong aria-hidden="true">2.</strong> 第2章 领域驱动设计战略篇</a></li><li class="chapter-item expanded "><a href="../../part1/chapter3.html"><strong aria-hidden="true">3.</strong> 第3章 整洁代码与设计模式</a></li><li class="chapter-item expanded "><a href="../../part1/chapter4.html"><strong aria-hidden="true">4.</strong> 第4章 架构质量保障</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">第二部分：电商核心系统设计</li><li class="chapter-item expanded "><a href="../../part2/overview/chapter5.html"><strong aria-hidden="true">5.</strong> 第5章 电商系统全景图</a></li><li class="chapter-item expanded "><a href="../../part2/overview/chapter6.html"><strong aria-hidden="true">6.</strong> 第6章 系统集成与一致性设计</a></li><li class="chapter-item expanded "><a href="../../part2/supply/chapter7.html"><strong aria-hidden="true">7.</strong> 第7章 商品中心系统</a></li><li class="chapter-item expanded "><a href="../../part2/supply/chapter8.html"><strong aria-hidden="true">8.</strong> 第8章 库存系统</a></li><li class="chapter-item expanded "><a href="../../part2/supply/chapter9.html"><strong aria-hidden="true">9.</strong> 第9章 营销系统</a></li><li class="chapter-item expanded "><a href="../../part2/supply/chapter10.html"><strong aria-hidden="true">10.</strong> 第10章 商品供给与运营管理</a></li><li class="chapter-item expanded "><a href="../../part2/transaction/chapter11.html"><strong aria-hidden="true">11.</strong> 第11章 计价系统设计与实现</a></li><li class="chapter-item expanded "><a href="../../part2/transaction/chapter12.html" class="active"><strong aria-hidden="true">12.</strong> 第12章 搜索与导购</a></li><li class="chapter-item expanded "><a href="../../part2/transaction/chapter13.html"><strong aria-hidden="true">13.</strong> 第13章 购物车与结算</a></li><li class="chapter-item expanded "><a href="../../part2/transaction/chapter14.html"><strong aria-hidden="true">14.</strong> 第14章 订单系统</a></li><li class="chapter-item expanded "><a href="../../part2/transaction/chapter15.html"><strong aria-hidden="true">15.</strong> 第15章 支付系统</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">第三部分：综合案例与落地</li><li class="chapter-item expanded "><a href="../../part3/chapter16.html"><strong aria-hidden="true">16.</strong> 第16章 B2B2C平台完整架构</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">附录</li><li class="chapter-item expanded "><a href="../../appendix/tech-stack.html"><strong aria-hidden="true">17.</strong> 附录A 技术栈选型指南</a></li><li class="chapter-item expanded "><a href="../../appendix/interview.html"><strong aria-hidden="true">18.</strong> 附录B 面试题精选</a></li><li class="chapter-item expanded "><a href="../../appendix/integration.html"><strong aria-hidden="true">19.</strong> 附录C 系统集成模式速查表</a></li><li class="chapter-item expanded "><a href="../../appendix/glossary.html"><strong aria-hidden="true">20.</strong> 附录D 术语表</a></li><li class="chapter-item expanded "><a href="../../appendix/references.html"><strong aria-hidden="true">21.</strong> 附录E 参考资料</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">电商系统架构设计与实现</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter11.html">上一章</a> | <a href="./chapter13.html">下一章</a></p>
+<hr />
+<h1 id="第12章-搜索与导购"><a class="header" href="#第12章-搜索与导购">第12章 搜索与导购</a></h1>
+<blockquote>
+<p><strong>本章定位</strong>：搜索与结构化导购（类目列表、店铺内浏览）是电商平台最主要的 <strong>读流量入口</strong> 之一，直接影响转化与 GMV。本章在「统一导购查询服务」主叙事下，串起 <strong>Query → Recall → Rank → Hydrate</strong> 全链路，并以 <strong>Elasticsearch</strong> 作为召回与粗排主引擎，厘清与商品中心、计价、库存、营销、推荐等系统的 <strong>边界与契约</strong>。内容基于《电商系统设计（十二）：搜索与导购》扩展，面向中大型团队的工程落地与系统设计面试。</p>
+</blockquote>
+<p><strong>阅读提示</strong>：若你习惯把「列表页」简单等同于「查 ES 返回 JSON」，建议带着三个问题读完全章——第一，<strong>搜索与导购在产品目标上与推荐有何不同</strong>；第二，<strong>哪些字段必须进索引、哪些必须 Hydrate</strong>；第三，<strong>索引滞后与 Hydrate 超时时，列表弱一致如何不与交易强一致冲突</strong>。搞清这三点，就能把读路径工程化讲清楚，而不是停留在「调个 DSL」的层面。文中 Go 示例为教学裁剪版，落地时请补全观测、注入与错误包装。</p>
+<hr />
+<h2 id="121-系统定位"><a class="header" href="#121-系统定位">12.1 系统定位</a></h2>
+<h3 id="1211-搜索与导购的区别"><a class="header" href="#1211-搜索与导购的区别">12.1.1 搜索与导购的区别</a></h3>
+<p>在日常口语里，「搜索」「列表」「导购」常被混用；在架构文档里，建议用 <strong>用户意图</strong> 与 <strong>约束形态</strong> 区分：</p>
+<div class="table-wrapper"><table><thead><tr><th>维度</th><th>关键词搜索（Search）</th><th>结构化导购（Browse / Merchandising）</th></tr></thead><tbody>
+<tr><td>用户输入</td><td>显式 query，可能含糊、多义</td><td>通常无文本 query，或 query 为辅助</td></tr>
+<tr><td>主约束</td><td>文本相关性 + 硬 filter</td><td>类目 / 品牌 / 店铺 / 多维筛选项</td></tr>
+<tr><td>失败体验</td><td>零结果、纠错、同义词</td><td>空列表、Facet 互斥错误</td></tr>
+<tr><td>典型 scene</td><td><code>keyword</code></td><td><code>category</code>、<code>shop</code></td></tr>
+<tr><td>引擎侧重</td><td>分析链、改写、BM25 / 向量（可选）</td><td>聚合导航、稳定排序、强 filter</td></tr>
+</tbody></table>
+</div>
+<p>二者在工程上应 <strong>共享同一套流水线内核</strong>（召回 → 排序 → Hydrate），否则极易出现「同一批商品在搜索与类目列表排序不一致」的线上事故。产品层面，<strong>搜索偏意图检索</strong>：用户带着问题来，系统要回答「最相关的候选集」；<strong>导购偏可控陈列</strong>：运营希望用户在既定类目树与筛选体系内高效浏览。推荐系统（Feed）则偏 <strong>个性化发现</strong>，目标函数、特征 freshness、在线学习与搜索不同，本章在 12.5.2 单独划界。</p>
+<h3 id="1212-核心挑战"><a class="header" href="#1212-核心挑战">12.1.2 核心挑战</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>挑战</th><th>根因</th><th>设计方向</th></tr></thead><tbody>
+<tr><td>相关性</td><td>同义词多、类目错挂、拼写噪声</td><td>可控词典与改写 + 埋点闭环</td></tr>
+<tr><td>列表价与索引不一致</td><td>促销、会员、渠道价变化快于索引</td><td><strong>Hydrate</strong> + 产品话术；结算强一致</td></tr>
+<tr><td>高并发读</td><td>大促与热搜集中</td><td>ES 扩展、缓存、限流、降级</td></tr>
+<tr><td>深分页</td><td><code>from/size</code> 成本随页数上升</td><td><code>search_after</code> + 产品限制</td></tr>
+<tr><td>跨系统编排</td><td>Hydrate 依赖多、尾延迟叠加</td><td>并发上限、独立超时、部分降级</td></tr>
+<tr><td>索引与主数据漂移</td><td>异步链路、至少一次消费</td><td>幂等 version、对账与补偿任务</td></tr>
+</tbody></table>
+</div>
+<p>与订单、支付等 <strong>写路径</strong> 不同，导购链路往往 <strong>QPS 高、容忍短暂最终一致</strong>，但必须处理好 <strong>相关性、价格与库存展示口径、营销露出、以及索引滞后</strong> 带来的用户预期落差。详情页应以 <strong>商品中心读模型</strong> 为准做强一致或近实时；列表页承认 <strong>弱一致</strong>，并在创单 / 结算阶段由库存、计价、营销再次校验。</p>
+<p>从 <strong>组织协作</strong> 视角看，导购链路往往是「商品、搜索、推荐、营销、前端、数据」多条职能线的交汇点：任何一方在接口里多塞一点排序逻辑，短期能加快需求交付，长期会把 <strong>归因、回滚、实验</strong> 变成不可能任务。因此本章反复强调 <strong>统一查询内核 + 版本化 rank</strong>，并不是架构洁癖，而是把 <strong>变更半径</strong> 收敛到可治理的边界内。另一个常被低估的协作点是 <strong>口径对齐</strong>：运营口中的「到手价」、产品文档里的「列表价」、计价服务返回的字段名，若不能在数据字典层统一，Hydrate 再快也只能放大混乱。</p>
+<p>从 <strong>风险</strong> 视角看，导购事故通常不是「ES 挂了」这种单点，而是 <strong>组合型</strong>：索引滞后叠加 Hydrate 超时，再叠加前端把「展示价」当成「下单价」渲染，最终在社交媒体被放大成「平台偷偷涨价」。工程上要用 <strong>字段语义 + UI 文案 + 快照校验</strong> 三道闸兜底；单纯优化 ES 延迟并不能消灭这类问题。</p>
+<h3 id="1213-系统架构"><a class="header" href="#1213-系统架构">12.1.3 系统架构</a></h3>
+<p>下图给出 <strong>搜索与导购</strong> 在全局中的位置：<strong>写入侧</strong> 不拥有商品主数据，仅消费事件维护 <strong>派生索引</strong>；<strong>读取侧</strong> 负责召回与排序，卡片动态字段由 <strong>Hydrate 编排</strong> 多系统补齐。</p>
+<pre><code class="language-mermaid">graph TB
+    subgraph UserLayer["用户层"]
+        User[商城用户 Web/App]
+    end
+
+    subgraph Gateway["接入层"]
+        APIGateway[API Gateway&lt;br/&gt;鉴权/限流/路由]
+    end
+
+    subgraph SearchDiscovery["搜索与导购域"]
+        MQS[导购查询服务&lt;br/&gt;Query/Recall/Rank/Hydrate]
+        IndexWorker[索引构建 Worker&lt;br/&gt;消费事件/幂等更新]
+    end
+
+    subgraph CoreStorage["核心存储"]
+        ES[(Elasticsearch&lt;br/&gt;商品索引)]
+    end
+
+    subgraph WriteServices["写入侧数据来源"]
+        ProductCenter[商品中心]
+        ListingService[上架系统]
+        LifecycleService[生命周期/审核]
+        BOpsPlatform[B 端运营]
+    end
+
+    subgraph ReadServices["Hydrate 依赖"]
+        PricingRead[计价只读]
+        InventoryRead[库存摘要]
+        MarketingRead[营销标签/圈品]
+        OpConfig[运营配置/加权]
+    end
+
+    subgraph MessageBus["消息总线"]
+        Kafka[Kafka / MQ]
+    end
+
+    User --&gt; APIGateway --&gt; MQS
+    MQS --&gt; ES
+    MQS -.-&gt; PricingRead
+    MQS -.-&gt; InventoryRead
+    MQS -.-&gt; MarketingRead
+    MQS -.-&gt; OpConfig
+
+    ProductCenter --&gt; Kafka
+    ListingService --&gt; Kafka
+    LifecycleService --&gt; Kafka
+    BOpsPlatform --&gt; Kafka
+    Kafka --&gt; IndexWorker --&gt; ES
+</code></pre>
+<p><strong>关键边界</strong>：搜索索引存放 <strong>相对静态或可容忍滞后</strong> 的字段（标题、类目、上架状态、部分排序特征）；<strong>易变字段</strong>（展示价、库存紧张度、活动标）优先 <strong>Hydrate</strong>，或在索引中以「粗粒度信号 + 版本」形式存在并与 Hydrate 对齐。</p>
+<p>在 <strong>非功能需求</strong> 上，建议把导购链路的 SLO 拆成「可分别报警」的三段：<strong>ES 召回 P99</strong>、<strong>应用内排序 P99</strong>、<strong>Hydrate 端到端成功率</strong>。很多团队只监控入口延迟，结果线上表现为「整体还不慢」，但 <strong>Hydrate 超时率缓慢爬升</strong>，直到大促才被计价或库存的连接池打爆一次性暴露。更稳妥的做法是把 Hydrate 每个依赖的 <strong>超时次数、空返回比例、批量大小分布</strong> 都做成 TopN 维度，并在压测脚本里显式模拟「半数依赖降级」。</p>
+<p><strong>容量估算</strong>（面试与立项常问）可以按乘法拆解：峰值 QPS × 每页条数 ×（Hydrate 下游 RPC 数）≈ 下游扇出；再叠加 <strong>重试风暴</strong> 系数（建议保守取 1.3～1.8）。ES 侧则关注 <strong>分片热点</strong>（超大店、超级品牌）与 <strong>聚合查询</strong> 对 CPU 的抢占；必要时对 <code>shop</code> 场景做 <strong>单独索引或单独副本组</strong>，把热点从全站检索隔离出去，成本换稳定性。</p>
+<hr />
+<h2 id="122-统一导购查询服务"><a class="header" href="#122-统一导购查询服务">12.2 统一导购查询服务</a></h2>
+<h3 id="1221-场景识别scene-设计"><a class="header" href="#1221-场景识别scene-设计">12.2.1 场景识别（scene 设计）</a></h3>
+<p>对外推荐 <strong>单一主叙事</strong>：<strong>导购查询服务（Merchandising Query Service）</strong> 暴露统一查询接口，用 <code>scene</code> 区分业务语义；内部共享 <strong>Query → Recall → Rank → Hydrate</strong> 流水线。网关可做鉴权、限流与字段裁剪，但 <strong>不要把排序规则散落在多个 BFF</strong> 中。</p>
+<div class="table-wrapper"><table><thead><tr><th>scene</th><th>用户输入</th><th>典型 filter</th><th>召回主索引</th></tr></thead><tbody>
+<tr><td><code>keyword</code></td><td>关键词 + 可选类目 / 品牌</td><td>上架可售、合规、店铺黑名单</td><td>全站商品索引（或按站点分片）</td></tr>
+<tr><td><code>category</code></td><td>无关键词或空 query</td><td>固定 <code>category_id</code> + 同上</td><td>同上</td></tr>
+<tr><td><code>shop</code></td><td>可选关键词</td><td>固定 <code>shop_id</code> + 同上</td><td>店铺子索引或单索引强 filter</td></tr>
+</tbody></table>
+</div>
+<p>店铺维度实现二选一：<strong>独立索引别名</strong>（写入侧按 shop 路由，查询简单）或 <strong>单索引 + 强 filter</strong>（运维简单，超大店需关注分片热点）。scene 应进入 <strong>日志、追踪与实验分桶</strong>，与 <code>query_id</code>、<code>rank_version</code> 一并贯穿。</p>
+<pre><code class="language-go">// Scene 为导购域的稳定枚举，避免魔法字符串散落。
+type Scene string
+
+const (
+    SceneKeyword  Scene = "keyword"
+    SceneCategory Scene = "category"
+    SceneShop     Scene = "shop"
+)
+
+type UnifiedQuery struct {
+    Scene         Scene
+    SiteID        string
+    UserID        string // 可选，用于会员价 Hydrate
+    RawQuery      string // keyword 场景必填；category 可空
+    CategoryID    string
+    ShopID        string
+    Filters       []Filter // 品牌、价格带、属性等
+    Page          PageCursor
+    ExpID         string
+    RankVersion   string
+}
+
+func RouteScene(req UnifiedQuery) (Scene, error) {
+    if req.Scene != "" {
+        return req.Scene, nil
+    }
+    switch {
+    case req.ShopID != "":
+        return SceneShop, nil
+    case req.CategoryID != "" &amp;&amp; strings.TrimSpace(req.RawQuery) == "":
+        return SceneCategory, nil
+    case strings.TrimSpace(req.RawQuery) != "":
+        return SceneKeyword, nil
+    default:
+        return "", errors.New("unable to route scene: missing query/category/shop")
+    }
+}
+</code></pre>
+<h3 id="1222-查询编排"><a class="header" href="#1222-查询编排">12.2.2 查询编排</a></h3>
+<p><strong>编排（Orchestration）</strong> 负责：scene 路由 → Query 理解 → 构建 ES DSL → 执行召回 → 粗精重排 → 触发 Hydrate → 合并 DTO。编排层应保持 <strong>无业务状态的纯函数倾向</strong>：依赖通过接口注入，核心流水线可单测。</p>
+<pre><code class="language-go">type MerchandisingQueryService struct {
+    QU   QueryUnderstanding
+    ES   SearchClient
+    Rank Ranker
+    Hydr Hydrator
+    CFG  OpConfigClient
+}
+
+func (s *MerchandisingQueryService) Search(ctx context.Context, req UnifiedQuery) (*SearchResult, error) {
+    scene, err := RouteScene(req)
+    if err != nil {
+        return nil, err
+    }
+    qctx, err := s.QU.Normalize(ctx, scene, req)
+    if err != nil {
+        return nil, err
+    }
+    recall, err := s.ES.Recall(ctx, qctx)
+    if err != nil {
+        return nil, err
+    }
+    ranked := s.Rank.Score(ctx, req, recall)
+    reranked := s.Rank.Rerank(ctx, req, ranked, s.CFG) // 运营配置、打散、强插
+    cards, err := s.Hydr.Hydrate(ctx, HydrateRequest{
+        Scene:       scene,
+        UserID:      req.UserID,
+        DocIDs:      reranked.IDs(),
+        RankVersion: req.RankVersion,
+    })
+    if err != nil {
+        // Hydrate 全局失败应极少：通常部分降级
+        return nil, err
+    }
+    return AssembleResult(reranked, cards), nil
+}
+</code></pre>
+<p><strong>演进注记：何时拆 BFF</strong>。当「列表卡片组装」与「搜索实验」发布节奏被不同团队强绑定时，常见折中是把 <strong>Hydrate 后的视图组装</strong> 下沉到 BFF，但 <strong>排序分数、实验桶、rank_version</strong> 仍应由导购查询内核产出并透传。否则会出现「实验只在 App 搜索生效、H5 列表不生效」的割裂，排查时日志还对不齐。另一个反模式是把 ES DSL 拼接散落在多个网关插件里：短期看似减少了一次 RPC，长期 DSL 变更无法回归测试，<strong>零结果率</strong> 波动也无法定位是改写问题还是索引问题。</p>
+<p>编排层还应内置 <strong>最小可观测上下文</strong>：<code>query_id</code> 应在进入 <code>QU.Normalize</code> 之前生成，并注入到 ES 查询注解（如 <code>preference</code> / custom header）与下游 RPC metadata 中，保证一次用户请求能在日志系统里 <strong>串起全链路</strong>。若你们使用 OpenTelemetry，建议把 <code>scene</code>、<code>rank_version</code>、<code>exp_id</code> 作为 span attributes，而不是塞进自由文本日志。</p>
+<h3 id="1223-结果聚合"><a class="header" href="#1223-结果聚合">12.2.3 结果聚合</a></h3>
+<p><strong>结果聚合</strong> 关注三类合并：</p>
+<ol>
+<li><strong>多路召回合并</strong>（如关键词 BM25 + 可选向量）：需 <strong>quota、去重、延迟预算</strong>；MVP 常单路 ES。</li>
+<li><strong>排序分与业务字段合并</strong>：ES <code>_score</code>、销量、上新等与 Hydrate 返回的展示价、库存标合并为统一 DTO。</li>
+<li><strong>Facet 与列表一致性</strong>：侧边栏聚合必须与当前 filter 同一 query 范围，否则出现「互斥筛选仍显示有货计数」的体验问题；大流量下可 <strong>异步加载 facet</strong> 或 <strong>近似聚合</strong>。</li>
+</ol>
+<p>对外响应建议显式携带 <strong><code>partial</code></strong>、<code>index_version</code> 或 <code>price_as_of</code>**（时间戳），便于客诉定位与前端提示「价格以结算为准」。</p>
+<p><strong>多路召回合并</strong>（例如 BM25 + 向量）在工程上要提前写清 <strong>配额策略</strong>：两路各取多少、按什么键去重、合并后是否二次截断。没有配额时，最常见事故是「向量路召回大量泛化商品」把关键词路的相关性稀释掉，表现为 <strong>CTR 下降但延迟上升</strong>。若团队尚未建立向量索引运维与回放体系，MVP 阶段更建议 <strong>单路 ES + 强词典</strong>，把复杂度留给数据运营而不是平台第一天的 midnight。</p>
+<p><strong>Facet 与列表一致性</strong> 的实现细节是：用户每点击一次筛选，服务端应以 <strong>同一套 UnifiedQuery</strong> 生成 ES 请求体，其中 <code>post_filter</code> 与 <code>aggs</code> 的嵌套关系必须遵循「先算子集再聚合」的语义。很多初版实现为了省事，把 facet 请求拆成第二次查询，若不在客户端做强一致串行，会出现 <strong>列表已空但 facet 仍显示有货</strong> 的短暂撕裂。工程上更推荐 <strong>单次 ES 往返</strong>（列表 + facet）或在产品层声明「facet 异步刷新」并做骨架屏。</p>
+<p><strong>DTO 稳定性</strong>：导购接口是前台最高频契约之一，字段增删应走 <strong>版本化 JSON schema</strong> 或 protobuf 的向后兼容规则。特别是 <code>partial</code> 语义一旦上线，就不应在无迁移的情况下改变含义（例如从「仅价格缺失」扩展成「任意字段缺失」），否则前端埋点与客服话术会同时失效。</p>
+<hr />
+<h2 id="123-主链路query--recall--rank--hydrate"><a class="header" href="#123-主链路query--recall--rank--hydrate">12.3 主链路：Query → Recall → Rank → Hydrate</a></h2>
+<p>主链路是本章的「脊柱」。下图给出 <strong>端到端数据流</strong>（含实验与运营配置注入位点）：</p>
+<pre><code class="language-mermaid">flowchart TB
+    subgraph In["输入"]
+        REQ[UnifiedQuery&lt;br/&gt;scene/filters/page/exp]
+    end
+
+    subgraph Q["Query 理解"]
+        NORM[归一化/词典]
+        RW[改写与同义词]
+        TAG[intent_tags]
+    end
+
+    subgraph R["Recall 召回"]
+        DSL[ES DSL 组装]
+        ES[(Elasticsearch)]
+    end
+
+    subgraph P["Rank 排序"]
+        COARSE[粗排截断 M]
+        FINE[精排到 Top K]
+        RERANK[重排:打散/合规/强插]
+        CFG[运营配置 OpConfig]
+    end
+
+    subgraph H["Hydrate"]
+        BATCH[批量并行获取]
+        PRICE[计价只读]
+        INV[库存摘要]
+        MKT[营销标签]
+        PC[商品读/主图标题补全]
+    end
+
+    subgraph Out["输出"]
+        DTO[列表 DTO + partial 标记]
+    end
+
+    REQ --&gt; NORM --&gt; RW --&gt; TAG --&gt; DSL --&gt; ES --&gt; COARSE --&gt; FINE
+    CFG --&gt; RERANK
+    FINE --&gt; RERANK --&gt; BATCH
+    BATCH --&gt; PRICE
+    BATCH --&gt; INV
+    BATCH --&gt; MKT
+    BATCH --&gt; PC --&gt; DTO
+</code></pre>
+<h3 id="1231-query-理解"><a class="header" href="#1231-query-理解">12.3.1 Query 理解</a></h3>
+<p>目标不是通用 NLP 搜索引擎，而是 <strong>可控、可解释、可回归</strong>：</p>
+<ul>
+<li><strong>归一化</strong>：全半角、大小写、去噪字符、重复空格。</li>
+<li><strong>同义词 / 类目词典</strong>：运营可配表驱动；变更走 <strong>版本号</strong>，与排序实验解耦。</li>
+<li><strong>拼写纠错</strong>：可选；需 <strong>限流 + 白名单</strong>，避免引入合规或品牌风险。</li>
+</ul>
+<p>输出物建议固定为：<code>normalized_query</code>、<code>intent_tags</code>、<code>rewrites[]</code>（有限条数），供 DSL 组装与埋点。</p>
+<p><strong>工程落地建议</strong>：把 Query 理解的输出定义成 <strong>不可变结构体</strong>（或值对象），并在日志里同时打印 <code>raw_query</code> 与 <code>normalized_query</code>，但注意隐私合规（手机号、地址片段误入搜索框并不少见）。改写表（同义词、类目映射）应支持 <strong>灰度发布</strong>：先 shadow 记录「若启用改写将变成什么」，再按桶启用，避免运营配置错误导致大面积零结果。</p>
+<p><strong>与「大模型改写」的边界</strong>：生成式改写很诱人，但在电商场景要先回答 <strong>责任归属</strong>：改写后的 query 若召回违规商品，谁承担合规责任？更稳妥的路径通常是 <strong>受控词典 + 小模型 / 规则纠错</strong>，把 LLM 放在离线挖掘与运营辅助，而不是在线默认链路的第一跳。</p>
+<h3 id="1232-召回策略"><a class="header" href="#1232-召回策略">12.3.2 召回策略</a></h3>
+<p>召回阶段输出 <strong>候选 doc 列表</strong>（通常为 SPU 或展示单元 ID）及 ES 内已可用的排序分量。<strong>不要在召回阶段做重 CPU 的跨系统调用</strong>。硬条件（上架状态、类目、店铺、站点）应优先放在 <code>filter</code> 上下文以利用缓存与免评分。</p>
+<p><strong>bool 查询语义</strong> 是面试高频点：<code>must</code> 参与评分，适合承载关键词相关性；<code>filter</code> 不计分且可缓存，适合承载「硬门槛」。实践中常见错误是把「品牌=耐克」放在 <code>must</code> 里参与打分，导致品牌词意外影响相关性曲线；更推荐 <strong>品牌进 filter</strong>，把「品牌相关 boost」交给 <code>function_score</code> 或在精排阶段处理。另一个错误是把大量 <strong>低选择性</strong> 条件全部堆在 <code>must</code>，使 <code>_score</code> 退化为常数，精排阶段只能「白手起家」——这会放大后续服务压力。</p>
+<p><strong>召回截断</strong> 需要与后续粗排预算对齐：若 ES <code>size</code> 直接取 2000 返回全字段，网络与反序列化会先拖垮应用。更常见做法是 ES 侧 <strong>只回 id 与排序必要字段</strong>（<code>docvalue_fields</code> / <code>_source: false</code>），把重字段留给 Hydrate 或商品读服务。对于「店铺内搜索」这类可能触发热点店铺的场景，可在 DSL 增加 <strong>routing</strong> 或独立索引，把查询分散到更小分片集合上。</p>
+<p><strong>可选扩展：向量召回</strong>。若引入向量，需要同步建设 <strong>向量更新延迟、ANN 参数、召回评测集</strong> 三件事；否则极易出现「文本搜得到、向量搜不到」的双轨撕裂。多数业务在规模化前，<strong>同义词 + 类目意图 + 运营纠错</strong> 的投入产出比更高。</p>
+<h3 id="1233-粗精排序"><a class="header" href="#1233-粗精排序">12.3.3 粗精排序</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>阶段</th><th>典型输入</th><th>典型输出</th><th>说明</th></tr></thead><tbody>
+<tr><td>粗排</td><td>ES 召回前 N（如 500～2000）</td><td>截断到 M（如 200）</td><td><code>_score</code> + <code>function_score</code>（销量、上新衰减等）</td></tr>
+<tr><td>精排</td><td>M 条 doc id</td><td>Top K（如 50）</td><td>转化率预估、价格带、店铺分；LTR 可替换此阶段</td></tr>
+<tr><td>重排</td><td>K 条</td><td>页大小 P</td><td>多样性、类目打散、疲劳度、<strong>合规过滤</strong>、运营强插</td></tr>
+</tbody></table>
+</div>
+<p><strong>合规默认值</strong>：<strong>明确违法禁售</strong> 应在索引写入侧即不可召回；审核「灰区」更适合 <strong>召回 filter</strong>；最后一道 <strong>重排后、返回前</strong> 再过滤，避免已排序商品在末尾被剔除导致 <strong>空洞位</strong>。</p>
+<p><strong>AB 与配置版本（最小集）</strong>：<code>exp_id</code> 贯穿日志；<code>rank_version</code> 绑定权重 / 规则 / 模型版本可快速回滚；<code>query_id</code> 关联 ES 与 Hydrate 子调用。发布建议 <strong>shadow traffic</strong> 双写日志对比，再按桶放量；与计价、营销大促窗口 <strong>错峰改排序</strong>，避免归因困难。</p>
+<p><strong>粗排放在 ES 还是应用内</strong> 没有银弹：ES 内 <code>function_score</code> 的好处是 <strong>少一次数据搬运</strong>；坏处是调试困难、权重爆炸、且与「精排模型特征」割裂。常见折中是：ES 负责 <strong>硬过滤 + 文本相关 + 少量可解释加权</strong>；应用内精排负责 <strong>复杂特征交叉</strong> 与 <strong>业务规则解释</strong>。无论选哪条路径，都要保证 <strong>同一套 rank_version</strong> 能在离线回放数据集上复现，否则线上调参只能靠运气。</p>
+<p><strong>重排的业务含义</strong> 需要写清：多样性（同店铺打散、同品牌打散）、疲劳度（用户反复看到同一 SPU）、运营强插（置顶资源位）都属于「非相关性目标」，若不与相关性分层，就会出现「搜牙刷全是运营想卖的电器」。工程上建议把重排规则 <strong>配置化 + 可视化回归</strong>，并在报表里同时看 CTR 与 <strong>投诉率 / 零结果率</strong>。</p>
+<h3 id="1234-hydrate-编排"><a class="header" href="#1234-hydrate-编排">12.3.4 Hydrate 编排</a></h3>
+<p>列表卡片常需：<strong>展示价、原价划线、库存状态、营销标、店铺名</strong>。变化快于索引刷新时，必须由 Hydrate 补齐。<strong>契约建议</strong>：入参 <code>doc_ids[]</code>（上限如 50）、<code>user_id</code>（可选）、<code>scene</code>、<code>rank_version</code>；出参为 <code>map[id]CardEnrichment</code>，缺失键表示单卡失败。</p>
+<p><strong>Hydrate 编排</strong> 强调：批量、限时、可降级、可观测。下图描述 <strong>并行依赖</strong> 与 <strong>超时隔离</strong>（示意）：</p>
+<pre><code class="language-mermaid">flowchart LR
+    subgraph Req["HydrateRequest"]
+        IDS[doc_ids 上限 N]
+    end
+
+    subgraph Orch["编排器 Hydrator"]
+        SPL[拆分批次/限流]
+        EG[errgroup 并发池]
+        MERGE[合并 map 结果]
+        DEF[缺省策略/占位]
+    end
+
+    subgraph Deps["下游只读依赖"]
+        A[计价批量]
+        B[库存摘要批量]
+        C[营销标签批量]
+        D[商品读批量]
+    end
+
+    IDS --&gt; SPL --&gt; EG
+    EG --&gt; A
+    EG --&gt; B
+    EG --&gt; C
+    EG --&gt; D
+    A --&gt; MERGE
+    B --&gt; MERGE
+    C --&gt; MERGE
+    D --&gt; MERGE
+    MERGE --&gt; DEF
+</code></pre>
+<pre><code class="language-go">type CardEnrichment struct {
+    ListPriceCents   *int64 // 展示价（分）；nil 表示 Hydrate 未取到
+    StrikePriceCents *int64 // 划线价（分）
+    StockLevel       string // 如 IN_STOCK / LOW / UNKNOWN
+    PromoTags     []string
+    Title         string
+    MainImageURL  string
+}
+
+type HydrateRequest struct {
+    Scene       Scene
+    UserID      string
+    SiteID      string
+    DocIDs      []int64
+    RankVersion string
+}
+
+type Hydrator struct {
+    Pricing  PricingBatchClient
+    Inv      InventoryBatchClient
+    Mkt      MarketingBatchClient
+    Product  ProductBatchClient
+    Parallel int
+    PerDep   time.Duration
+}
+
+func (h *Hydrator) Hydrate(ctx context.Context, req HydrateRequest) (map[int64]CardEnrichment, error) {
+    g, ctx := errgroup.WithContext(ctx)
+    if h.Parallel &gt; 0 {
+        g.SetLimit(h.Parallel)
+    }
+
+    out := sync.Map{} // map[int64]CardEnrichment
+
+    run := func(fn func(context.Context) map[int64]CardEnrichment) {
+        g.Go(func() error {
+            cctx, cancel := context.WithTimeout(ctx, h.PerDep)
+            defer cancel()
+            partial := fn(cctx)
+            for id, card := range partial {
+                v, _ := out.LoadOrStore(id, CardEnrichment{})
+                base := v.(CardEnrichment)
+                out.Store(id, mergeCard(base, card))
+            }
+            return nil // 单依赖失败不失败整页：在 fn 内部吞错
+        })
+    }
+
+    run(func(c context.Context) map[int64]CardEnrichment {
+        m, _ := h.Pricing.BatchListPrices(c, req.SiteID, req.UserID, req.DocIDs)
+        return m
+    })
+    run(func(c context.Context) map[int64]CardEnrichment {
+        m, _ := h.Inv.BatchStockSummary(c, req.SiteID, req.DocIDs)
+        return m
+    })
+    run(func(c context.Context) map[int64]CardEnrichment {
+        m, _ := h.Mkt.BatchPromoTags(c, req.SiteID, req.UserID, req.DocIDs)
+        return m
+    })
+    run(func(c context.Context) map[int64]CardEnrichment {
+        m, _ := h.Product.BatchCardFields(c, req.SiteID, req.DocIDs)
+        return m
+    })
+
+    _ = g.Wait()
+
+    merged := make(map[int64]CardEnrichment, len(req.DocIDs))
+    for _, id := range req.DocIDs {
+        if v, ok := out.Load(id); ok {
+            merged[id] = v.(CardEnrichment)
+        }
+    }
+    return merged, nil
+}
+
+func mergeCard(a, b CardEnrichment) CardEnrichment {
+    // 教学示例：按字段非空合并
+    if b.ListPriceCents != nil {
+        a.ListPriceCents = b.ListPriceCents
+    }
+    if b.StrikePriceCents != nil {
+        a.StrikePriceCents = b.StrikePriceCents
+    }
+    if b.StockLevel != "" {
+        a.StockLevel = b.StockLevel
+    }
+    if len(b.PromoTags) &gt; 0 {
+        a.PromoTags = append(a.PromoTags, b.PromoTags...)
+    }
+    if b.Title != "" {
+        a.Title = b.Title
+    }
+    if b.MainImageURL != "" {
+        a.MainImageURL = b.MainImageURL
+    }
+    return a
+}
+</code></pre>
+<p><strong>Hydrate 与「列表一致性」</strong>：当某个 SPU 在 ES 中仍存在，但商品中心已下架或不可售时，应以 <strong>商品读返回的状态</strong> 为准做最终过滤，并在必要时 <strong>剔除该位</strong> 或 <strong>显示不可用</strong>（取决于产品策略）。这意味着 Hydrate 不只是「加字段」，也可能反向改变 <strong>可展示集合</strong>；若发生剔除，需要在前端处理 <strong>页大小不足</strong> 的补位逻辑（例如自动补拉一条），否则会出现末尾空洞。</p>
+<p><strong>连接池与超时</strong>：Hydrate 依赖往往共享连接池，若列表 QPS 高且每页 50 条，极易把下游 <strong>最大并发</strong> 顶满。除了限制 <code>Parallel</code> 与批量大小，还应对 <strong>同一用户</strong> 做轻量节流（例如滑动窗口），防止脚本或异常客户端发起「并发多页请求」放大扇出。</p>
+<hr />
+<h2 id="124-elasticsearch-专题"><a class="header" href="#124-elasticsearch-专题">12.4 Elasticsearch 专题</a></h2>
+<blockquote>
+<p><strong>与商品中心的分工</strong>：索引字段清单、nested 取舍、商品变更如何进索引，以商品中心相关章节为权威叙述。本节聚焦 <strong>查询侧契约</strong>、典型 DSL、深分页与性能调优，并给出 <strong>索引生命周期与 mapping 视角</strong> 的架构图。</p>
+</blockquote>
+<h3 id="1241-索引设计"><a class="header" href="#1241-索引设计">12.4.1 索引设计</a></h3>
+<p><strong>索引设计</strong> 要在「召回质量」「写入吞吐」「运维成本」三者间折中。下图从 <strong>写入投影</strong> 与 <strong>查询路径</strong> 两侧展示（与 IndexWorker 呼应）：</p>
+<pre><code class="language-mermaid">flowchart LR
+    subgraph Sources["领域事件源"]
+        P[商品中心]
+        L[上架状态]
+        C[生命周期/审核]
+        O[运营批量]
+    end
+
+    subgraph Pipe["索引管道"]
+        MQ[Kafka]
+        W[IndexWorker&lt;br/&gt;幂等/version]
+        BULK[Bulk Processor]
+    end
+
+    subgraph Index["ES 索引族"]
+        ALIAS[read_alias 指向物理索引]
+        IDX[(product_search_vN)]
+    end
+
+    subgraph Query["查询侧"]
+        DSL[bool + filter + sort]
+        FACET[aggs 导航]
+    end
+
+    P --&gt; MQ
+    L --&gt; MQ
+    C --&gt; MQ
+    O --&gt; MQ
+    MQ --&gt; W --&gt; BULK --&gt; IDX
+    ALIAS --&gt; IDX
+    DSL --&gt; ALIAS
+    FACET --&gt; ALIAS
+</code></pre>
+<p><strong>文档建模的两种典型切分</strong>：一是以 <strong>SPU</strong> 为展示单元（服装、标品多规格常如此），SKU 维度属性用 nested 或扁平化字段表达；二是以 <strong>SKU</strong> 为展示单元（强价格/库存差异的品类），索引文档更细但写入放大。切分没有绝对正确，关键是 <strong>列表页用户心智</strong> 与 <strong>下单单元</strong> 一致：若用户认为自己在买「一款多规格商品」，却以 SKU 文档展示，容易出现 <strong>重复占位</strong> 与 <strong>排序抖动</strong>（同一 SPU 多个 SKU 同时出现在列表）。切分确定后，Hydrate 的 <code>doc_ids</code> 语义也要固定，否则计价批量接口的入参会频繁返工。</p>
+<p><strong>nested 的决策树（落地版）</strong>：当查询必须表达「父文档条件 ∧ 子文档条件」且无法通过扁平化字段无损表达时，才引入 nested；否则优先 <strong>写入侧展开</strong>（例如把可检索属性汇总到父级 <code>attrs.searchable</code>）以降低查询成本。nested 还会让 <strong>聚合</strong> 更复杂：facet 若需要 SKU 级分布，必须清楚产品是否真的需要，很多类目列表只需要 SPU 级导航。</p>
+<p><strong>mapping 要点（查询视角）</strong>：</p>
+<div class="table-wrapper"><table><thead><tr><th>实践</th><th>说明</th></tr></thead><tbody>
+<tr><td>筛选 / 聚合 / 排序字段</td><td>优先 <code>keyword</code> 或数值类型，保证 <code>doc_values</code></td></tr>
+<tr><td>全文检索</td><td><code>text</code> + 子字段 <code>keyword</code> 谨慎用于排序</td></tr>
+<tr><td>nested</td><td>仅当 SKU 级属性必须父子联合约束时使用；滥用会放大成本</td></tr>
+<tr><td>反模式</td><td>对大文本无意义排序；高基数深度聚合默认全开</td></tr>
+</tbody></table>
+</div>
+<h3 id="1242-查询-dsl-模式"><a class="header" href="#1242-查询-dsl-模式">12.4.2 查询 DSL 模式</a></h3>
+<p><strong>分析链与中文分词</strong>：索引与查询使用 <strong>同一分析链</strong>（或查询链为索引链的有意子集）。<code>filter</code> 不参与评分且可缓存，适合 <strong>站点、上架状态、类目、店铺、价格区间</strong> 等硬条件。</p>
+<pre><code class="language-json">{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "multi_match": {
+            "query": "无线耳机",
+            "fields": ["title^3", "brand^2", "attrs.searchable"],
+            "type": "best_fields"
+          }
+        }
+      ],
+      "filter": [
+        { "term": { "site_id": "SG" } },
+        { "term": { "listing_status": "ONLINE" } },
+        { "term": { "category_id": "cat-3c-audio" } },
+        { "range": { "list_price": { "gte": 50, "lte": 500 } } }
+      ]
+    }
+  },
+  "sort": [
+    { "_score": "desc" },
+    { "sales_30d": "desc" },
+    { "spu_id": "asc" }
+  ],
+  "_source": false,
+  "docvalue_fields": ["spu_id", "list_price", "shop_id"]
+}
+</code></pre>
+<p>列表页应 <strong>裁剪 <code>_source</code></strong>，避免返回大段正文。生产可用 <code>docvalue_fields</code> 与 <code>_source</code> 组合权衡包大小。</p>
+<p><strong>高亮与摘要</strong>：高亮字段应控制在 <code>title</code> 等短字段；对大段描述开启高亮会显著增加响应体与序列化成本。若产品需要「摘要片段」，更推荐由商品中心提供 <strong>预生成摘要</strong> 或在索引中维护 <code>short_description</code> 的受控长度字段，而不是在查询时从正文动态截取。</p>
+<p><strong>聚合导航（facets）与筛选互斥</strong>：当用户选择 <code>brand=A</code> 后，其它 facet 的桶计数应基于「已选条件下的子集」重算，否则会出现互斥筛选仍显示「有库存计数」的错觉。实现上可以用 <code>filter</code> aggs、<code>post_filter</code> 组合，或在单次请求中拆成「列表 query」与「facet query」两段但由同一 <code>UnifiedQuery</code> 生成，避免前后端各自拼装 filter 造成漂移。</p>
+<pre><code class="language-go">// Go 侧可用结构体拼装 DSL（示意字段，非完整客户端）
+type BoolQuery struct {
+    Must   []any `json:"must,omitempty"`
+    Filter []any `json:"filter,omitempty"`
+}
+
+type SearchBody struct {
+    Query  map[string]any `json:"query"`
+    Sort   []any          `json:"sort,omitempty"`
+    Size   int            `json:"size"`
+    Source any            `json:"_source,omitempty"`
+}
+
+func BuildKeywordDSL(site, cat, q string, from, size int) SearchBody {
+    return SearchBody{
+        Query: map[string]any{
+            "bool": BoolQuery{
+                Must: []any{
+                    map[string]any{
+                        "multi_match": map[string]any{
+                            "query":  q,
+                            "fields": []string{"title^3", "brand^2", "attrs.searchable"},
+                            "type":   "best_fields",
+                        },
+                    },
+                },
+                Filter: []any{
+                    map[string]any{"term": map[string]any{"site_id": site}},
+                    map[string]any{"term": map[string]any{"listing_status": "ONLINE"}},
+                    map[string]any{"term": map[string]any{"category_id": cat}},
+                },
+            },
+        },
+        Sort: []any{
+            map[string]any{"_score": "desc"},
+            map[string]any{"sales_30d": "desc"},
+            map[string]any{"spu_id": "asc"},
+        },
+        Size: size,
+        Source: false,
+    }
+}
+</code></pre>
+<h3 id="1243-深分页问题"><a class="header" href="#1243-深分页问题">12.4.3 深分页问题</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>方式</th><th>适用</th><th>风险</th></tr></thead><tbody>
+<tr><td><code>from + size</code></td><td>前若干页</td><td><code>from</code> 过大时全局排序，内存与延迟陡增</td></tr>
+<tr><td><code>search_after</code></td><td>深度翻页 / 连续浏览</td><td>需稳定 sort key；不适合随机跳页</td></tr>
+<tr><td><code>scroll</code></td><td>离线导出、对账</td><td>不适合 C 端高并发</td></tr>
+</tbody></table>
+</div>
+<p><strong>面试标准答法</strong>：C 端深分页用 <code>search_after</code> + 稳定 tie-breaker（如 <code>spu_id</code>）；随机跳页用产品约束（最多第 N 页）或改写交互。</p>
+<p><strong><code>search_after</code> 的工程细节</strong>：sort 数组必须 <strong>全链路稳定</strong>，任何「仅用于展示」的字段都不应参与 tie-break，否则会出现翻页跳变。常见做法是 <code>_score</code> + 业务排序字段 + 主键升序。客户端需要缓存上一页最后一条的 sort 值；若中间发生 <strong>索引刷新</strong> 导致顺序变化，产品上要接受「轻微抖动」或通过 <strong>会话级快照</strong>（成本更高）解决。</p>
+<p><strong>随机跳页的产品替代</strong>：电商 C 端常见替代是「跳到第 N 页」改为「继续浏览 / 相似推荐 / 细化筛选」，把深分页需求转化为 <strong>更强的约束</strong> 与 <strong>更相关的子集</strong>，既保护集群也提升转化。</p>
+<h3 id="1244-性能调优"><a class="header" href="#1244-性能调优">12.4.4 性能调优</a></h3>
+<ul>
+<li><strong>Profile</strong>：区分评分、聚合、<code>function_score</code> 热点。</li>
+<li><strong>分片与副本</strong>：分片数与数据量、查询并发匹配；副本换读吞吐但写入放大。</li>
+<li><strong>段合并与冷热</strong>：写入高峰观察 merge；冷热索引降副本或迁移。</li>
+<li><strong><code>function_score</code> 粗排</strong>：销量 <code>log1p</code>、上新高斯衰减等可进 ES，注意权重爆炸与可调试性。</li>
+</ul>
+<p><strong>Facet 性能</strong>：限制桶数、<code>min_doc_count</code>；首屏列表优先，facet 可异步。Suggest（completion / search_as_you_type）应 <strong>单独限流</strong>，并与 Query 纠错 <strong>二选一主路径</strong> 以防延迟放大。</p>
+<p><strong>慢查询清单（发布前自检）</strong>：</p>
+<div class="table-wrapper"><table><thead><tr><th>症状</th><th>可能原因</th><th>处理方向</th></tr></thead><tbody>
+<tr><td>P99 随页数线性变差</td><td><code>from/size</code> 深分页</td><td><code>search_after</code> + 产品限制</td></tr>
+<tr><td>CPU 尖刺</td><td>大聚合 / 高基数 terms</td><td>降桶、采样、异步 facet</td></tr>
+<tr><td>写入延迟升高</td><td>分片过大 / merge 压力</td><td>分片再规划、冷热分层</td></tr>
+<tr><td>命中不稳定</td><td>分析链不一致 / synonym 热更</td><td>统一分析链 + 版本化词表</td></tr>
+<tr><td>结果「看起来对但排序怪」</td><td><code>function_score</code> 权重叠加</td><td>归一化与离线回放</td></tr>
+</tbody></table>
+</div>
+<p><strong>索引别名与零停机切换</strong>：大版本 mapping 变更往往需要 reindex。生产上应使用 <strong>双写 / 回填 + read_alias 原子切换</strong>，并在切换后保留旧索引一段时间用于回滚与对账。切换窗口内还要特别注意 <strong>缓存层</strong>（CDN、应用本地缓存）是否仍指向旧索引版本，否则会出现「列表已新、详情仍旧」的短暂错觉。</p>
+<p><strong>运行时字段与脚本</strong>：能用 mapping 解决的不建议长期依赖脚本字段；脚本会把成本从索引时挪到查询时，且更难做 <strong>成本预算</strong>。若必须使用脚本，务必加 <strong>采样 profile</strong> 与 <strong>熔断</strong>（例如限制每节点脚本编译频率）。</p>
+<hr />
+<h2 id="125-系统边界与职责"><a class="header" href="#125-系统边界与职责">12.5 系统边界与职责</a></h2>
+<h3 id="1251-搜索系统的职责边界"><a class="header" href="#1251-搜索系统的职责边界">12.5.1 搜索系统的职责边界</a></h3>
+<p>搜索与导购系统应负责：</p>
+<ul>
+<li><strong>派生索引的构建与查询</strong>（含增量、幂等、版本对齐）。</li>
+<li><strong>召回与（可配置）排序</strong>，以及 <strong>列表读模型的编排（Hydrate）</strong>。</li>
+<li><strong>观测与实验</strong> 位点（<code>query_id</code>、<code>rank_version</code>、<code>exp_id</code>）。</li>
+</ul>
+<p>不应负责：</p>
+<ul>
+<li>商品主数据真相源、订单事务、营销算价与券扣减、库存预占。</li>
+</ul>
+<h3 id="1252-搜索-vs-推荐边界划分"><a class="header" href="#1252-搜索-vs-推荐边界划分">12.5.2 搜索 vs 推荐：边界划分</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>维度</th><th>搜索 / 导购</th><th>推荐（Feed）</th></tr></thead><tbody>
+<tr><td>主信号</td><td>query + 筛选意图</td><td>用户行为序列与画像</td></tr>
+<tr><td>目标</td><td>相关性 + 平台规则下的转化</td><td>发现与时长 / GMV 组合目标</td></tr>
+<tr><td>失败模式</td><td>零结果、相关性差</td><td>信息茧房、疲劳</td></tr>
+<tr><td>架构</td><td>检索引擎 + 规则/LTR</td><td>特征平台 + 在线排序 + 重排</td></tr>
+</tbody></table>
+</div>
+<p>二者可 <strong>共享埋点、特征与实验平台</strong>，但服务边界建议解耦，避免「搜索里偷偷塞推荐」导致可解释性与合规审计困难。</p>
+<p><strong>落地协作模式</strong>：推荐团队常希望复用搜索召回做「候选池」，这在技术上是可行的，但要把契约写清：<strong>候选池的版本、过滤条件、以及责任边界</strong>（例如禁售过滤由谁兜底）。更推荐的方式是推荐系统维护 <strong>自己的候选生成链路</strong>，在特征层复用搜索的 <strong>类目、品牌、文本 embedding</strong> 等中间产物，而不是在运行时强耦合调用搜索 HTTP 接口——否则搜索一旦降级，推荐会被连带拖死，故障半径不可控。</p>
+<h3 id="1253-索引数据-vs-实时数据"><a class="header" href="#1253-索引数据-vs-实时数据">12.5.3 索引数据 vs 实时数据</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>数据类型</th><th>放索引</th><th>Hydrate / 实时读</th></tr></thead><tbody>
+<tr><td>标题、主图、类目、品牌</td><td>是</td><td>可选补全</td></tr>
+<tr><td>上架状态、站点</td><td>是</td><td>强一致场景再二次校验</td></tr>
+<tr><td>展示价、会员价</td><td>粗粒度 / 索引价</td><td>是（列表口径）</td></tr>
+<tr><td>可售 / 紧张</td><td>粗信号</td><td>是（更准确）</td></tr>
+<tr><td>活动标、圈品命中</td><td>可缓存只读</td><td>是（失败可降级）</td></tr>
+</tbody></table>
+</div>
+<h3 id="1254-召回-vs-排序-vs-hydrate-的职责"><a class="header" href="#1254-召回-vs-排序-vs-hydrate-的职责">12.5.4 召回 vs 排序 vs Hydrate 的职责</a></h3>
+<ul>
+<li><strong>召回</strong>：在高召回率前提下控延迟；避免跨系统调用。</li>
+<li><strong>排序</strong>：可解释、可版本化、可回滚；重排承载运营与合规。</li>
+<li><strong>Hydrate</strong>：补齐易变展示字段；<strong>单卡失败不拖死整页</strong>。</li>
+</ul>
+<p><strong>面试追问小结（边界类）</strong>：「搜索是不是商品中心的一部分？」标准回答是 <strong>否</strong>：商品中心是主数据真相源；搜索维护 <strong>派生读模型</strong> 以优化检索与排序特征。「为什么不在 ES 里算最终价？」因为价格解释依赖会员、渠道、动态规则与版本，索引天然滞后；列表允许弱一致，交易必须强一致。「推荐能否直接调用搜索接口拿候选？」不建议默认耦合：推荐候选集生成逻辑与搜索意图不同，但可以在 <strong>特征与埋点层复用</strong>。</p>
+<hr />
+<h2 id="126-与上下游系统集成"><a class="header" href="#126-与上下游系统集成">12.6 与上下游系统集成</a></h2>
+<h3 id="1261-与商品中心集成索引数据来源"><a class="header" href="#1261-与商品中心集成索引数据来源">12.6.1 与商品中心集成（索引数据来源）</a></h3>
+<p>商品中心提供 <strong>主数据与读模型版本</strong>；索引 Worker 消费 <code>product.changed</code> 等事件，比较 <strong>version / updated_at</strong> 后 bulk upsert。删除语义需显式：<code>HARD_DELETE</code> vs <code>UNSEARCHABLE</code>（保留文档但 filter 掉）。</p>
+<p><strong>批量读接口的契约</strong>：商品中心面向 Hydrate 的批量接口应返回 <strong>卡片级最小字段集</strong>（标题、主图、类目路径、店铺名等），并携带 <code>content_version</code> 便于与索引对齐。切忌让导购服务在列表场景调用「详情级大对象」接口，否则会把商品中心的 <strong>详情缓存击穿</strong> 间接变成搜索事故。</p>
+<p><strong>图片与多媒体</strong>：主图 URL 是否进索引取决于列表是否必须在 ES 故障时仍能展示基本内容；更常见是把图片放在 Hydrate，索引只存 <code>image_id</code> 或稳定 CDN key，避免 URL 频繁变更触发无意义 reindex。</p>
+<pre><code class="language-go">func ApplyProductEvent(doc ProductDoc, evt ProductEvent) (bool, error) {
+    if evt.Version &lt; doc.Version {
+        return false, nil
+    }
+    return true, UpsertES(doc.Merge(evt))
+}
+</code></pre>
+<h3 id="1262-与计价系统集成列表价-hydrate"><a class="header" href="#1262-与计价系统集成列表价-hydrate">12.6.2 与计价系统集成（列表价 Hydrate）</a></h3>
+<p>计价只读接口建议 <strong>批量 + 站点 + 会员等级</strong> 维度；字段命名与 PDP / 结算 <strong>严格区分</strong>「列表价」与「应付价」，避免客户端误用。超时策略见 12.7.2。</p>
+<p><strong>会员价与未登录态</strong>：未登录用户可能只能看到「起售价」或「公开价」，此时 Hydrate 请求不应隐式携带会员身份；登录态切换时要小心 <strong>前端缓存</strong> 造成「登录后列表仍显示旧价」，可通过 <code>price_as_of</code> 或短 TTL 缓存失效解决。对「登录看价」类降级，建议同时返回 <strong>可解释的降级原因码</strong>（如 <code>PRICING_TIMEOUT</code>），便于埋点区分转化率下降根因。</p>
+<h3 id="1263-与库存系统集成可售状态"><a class="header" href="#1263-与库存系统集成可售状态">12.6.3 与库存系统集成（可售状态）</a></h3>
+<p>列表展示 <strong>弱一致</strong> 库存摘要即可；下单前以库存服务 <strong>强校验</strong> 为准（与订单、库存章节衔接）。降级策略需业务拍板：偏保守利于防客诉，偏乐观利于转化。</p>
+<h3 id="1264-与营销系统集成活动标签"><a class="header" href="#1264-与营销系统集成活动标签">12.6.4 与营销系统集成（活动标签）</a></h3>
+<p>营销在列表侧 <strong>只读展示</strong>：活动标、圈品是否命中；<strong>不算价、不锁券</strong>。资格与叠加仍以结算与创单为准。</p>
+<p><strong>活动标与合规</strong>：列表展示「满减」「券」等文案时，要避免暗示用户已领取或已满足门槛。活动标更像 <strong>广告露出</strong>，不是 <strong>权益状态</strong>；否则容易与营销执行域产生口径冲突并引发投诉。对敏感类目（医疗、金融类比商品），活动文案可能需要额外 <strong>合规审核字段</strong> 控制展示。</p>
+<h3 id="1265-hydrate-编排与降级策略"><a class="header" href="#1265-hydrate-编排与降级策略">12.6.5 Hydrate 编排与降级策略</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>失败</th><th>建议降级</th></tr></thead><tbody>
+<tr><td>计价超时</td><td>展示索引价或「登录看价」</td></tr>
+<tr><td>库存超时</td><td>保守文案或 UNKNOWN，不断言有货</td></tr>
+<tr><td>营销标签失败</td><td>隐藏活动标，不影响下单资格判定</td></tr>
+<tr><td>ES 集群故障</td><td>短时返回缓存快照 / 简化查询 / 明确提示</td></tr>
+</tbody></table>
+</div>
+<p>批量契约建议：<code>doc_ids</code> 上限 20～60；并行度 4～16；单依赖超时 30～120ms；响应带 <code>partial=true</code>。</p>
+<p><strong>列表请求时序（典型）</strong>：</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant U as 用户
+    participant G as Gateway
+    participant M as 导购查询服务
+    participant ES as Elasticsearch
+    participant H as 计价/库存/营销只读
+
+    U-&gt;&gt;G: 搜索/列表请求 + query_id
+    G-&gt;&gt;M: 鉴权、限流、透传实验桶
+    M-&gt;&gt;M: Query 理解
+    M-&gt;&gt;ES: DSL 召回 + 粗排字段
+    ES--&gt;&gt;M: hits + sort keys
+    M-&gt;&gt;M: 精排 / 重排
+    M-&gt;&gt;H: batch hydrate（限时）
+    H--&gt;&gt;M: 部分成功 / 超时降级
+    M--&gt;&gt;G: 列表 DTO + rank_version + partial
+    G--&gt;&gt;U: 响应
+</code></pre>
+<p><strong>索引更新时序（典型）</strong>：</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant L as 上架/商品领域服务
+    participant MQ as 消息总线
+    participant W as 索引 Worker
+    participant ES as Elasticsearch
+
+    L-&gt;&gt;MQ: 商品或上架状态变更事件
+    MQ-&gt;&gt;W: 至少一次投递
+    W-&gt;&gt;W: 幂等：比较 version
+    W-&gt;&gt;ES: bulk upsert/delete
+    ES--&gt;&gt;W: ack
+</code></pre>
+<h3 id="1266-集成性能优化"><a class="header" href="#1266-集成性能优化">12.6.6 集成性能优化</a></h3>
+<ul>
+<li><strong>批量 RPC</strong> 合并网络往返；连接池按 <code>QPS × 每页条数</code> 估算。</li>
+<li><strong>热门 SPU 短 TTL 缓存</strong> + <strong>singleflight</strong> 防击穿；注意 <strong>个性化价</strong> 与缓存 key 冲突。</li>
+<li><strong>重试</strong> 指数退避 + <strong>用户维度熔断</strong>，避免拖垮计价 / 库存。</li>
+</ul>
+<p><strong>依赖拓扑与故障隔离</strong>：Hydrate 依赖建议按 <strong>关键路径分级</strong>：标题主图属于「强展示」；活动标属于「弱展示」；价格属于「强体验但可降级」。分级后可以定义 <strong>不同的超时与重试策略</strong>，避免弱依赖拖长尾。若使用服务网格，可为营销只读设置更小的超时与更激进的熔断，把尾延迟从全链路中剥离出去。</p>
+<hr />
+<h2 id="127-一致性与降级"><a class="header" href="#127-一致性与降级">12.7 一致性与降级</a></h2>
+<h3 id="1271-索引延迟处理"><a class="header" href="#1271-索引延迟处理">12.7.1 索引延迟处理</a></h3>
+<p><strong>现象</strong>：上架后短暂搜不到；改价后列表旧价。<strong>组合手段</strong>：详情强一致读商品中心；列表展示 <strong>数据时间戳</strong> 或「价格以结算为准」；大促关键池可走 <strong>强制刷新队列</strong>（与商品中心刷新策略对齐）。</p>
+<p><strong>运营活动窗口的同步策略</strong>：大促「清单商品」往往要求更高新鲜度，技术上可采用 <strong>活动商品白名单 + 更高优先级消费队列</strong>，甚至短时 <strong>双写直刷</strong>（写入路径旁路触发索引更新）。但要警惕：旁路越多，幂等与对账越复杂；因此白名单规模必须可控，并在活动结束后及时回收，避免把临时机制固化成永久债务。</p>
+<h3 id="1272-降级策略"><a class="header" href="#1272-降级策略">12.7.2 降级策略</a></h3>
+<p>与 12.6.5 呼应：Hydrate <strong>独立超时</strong>；ES 故障 <strong>缓存 / 简化查询</strong>；suggest 与主搜 <strong>配额隔离</strong>。</p>
+<h3 id="1273-缓存策略"><a class="header" href="#1273-缓存策略">12.7.3 缓存策略</a></h3>
+<ul>
+<li><strong>查询结果缓存</strong>：key 需含站点、筛选 hash、排序版本；个性化价场景慎用或细分桶。</li>
+<li><strong>Facet 缓存</strong>：更短 TTL 或异步；注意筛选变更失效。</li>
+<li><strong>索引别名切换</strong>：蓝绿 reindex 后一次性切 <code>read_alias</code>，缩短双读不一致窗口。</li>
+</ul>
+<p><strong>索引延迟的「产品 + 技术」组合拳</strong>：除了技术手段（强制刷新队列、提高消费并行、热点分片治理），还需要 <strong>产品话术与 UI 引导</strong>：例如「刚刚上架，正在全网同步」或提供 <strong>直达详情</strong> 的链接入口。否则用户会把「搜不到」理解为「平台没货」，对转化伤害更大。对价格类客诉，客服工具应能输入 <code>spu_id</code> 查到 <strong><code>index_version</code> 与 <code>price_as_of</code></strong>，否则只能复读「以结算为准」。</p>
+<p><strong>Hydrate 风暴的防护</strong>：当 ES 变慢时，应用层往往会 <strong>放大重试</strong> 或 <strong>拉长等待</strong>，进而把计价与库存拖入雪崩。防护要点是：<strong>入口限流</strong>先于下游扩容；<strong>超时短</strong>于下游默认；<strong>失败快速返回 partial</strong>；并对同一 <code>query_id</code> 的重复提交做 <strong>去重</strong>（幂等键 + 短窗缓存）。</p>
+<hr />
+<h2 id="128-工程实践"><a class="header" href="#128-工程实践">12.8 工程实践</a></h2>
+<h3 id="1281-性能优化"><a class="header" href="#1281-性能优化">12.8.1 性能优化</a></h3>
+<ul>
+<li>网关按 <strong>用户 / IP / 设备</strong> 限流；异常流量对接风控。</li>
+<li>压测覆盖：<strong>大 filter + 多排序键 + <code>search_after</code></strong>、<strong>Hydrate 半数超时</strong>。</li>
+<li>对 <strong>零结果率</strong>、<strong>P99 端到端</strong>、<strong>hydrate 超时率</strong> 建立 SLO。</li>
+</ul>
+<p><strong>热点治理</strong>：除店铺维度外，还要关注 <strong>超级品牌、超级类目、大促会场</strong> 的查询模式是否会把 ES 查询打成「同一 filter 反复出现」的形状。此类热点更适合 <strong>边缘缓存</strong> 或 <strong>查询结果短缓存</strong>，并把缓存 key 与 <code>rank_version</code> 绑定，避免实验回滚后缓存污染。对 suggest 接口要单独做 <strong>更低配额</strong>，否则 App 输入框的每个字符都会放大成 ES 压力。</p>
+<h3 id="1282-可观测性"><a class="header" href="#1282-可观测性">12.8.2 可观测性</a></h3>
+<p>日志与追踪携带 <strong><code>query_id</code>、<code>scene</code>、<code>exp_id</code>、<code>rank_version</code></strong>；ES 查询记录 <strong>归一化 query</strong>（注意隐私脱敏）。对慢查询 <strong>profile 采样</strong>。</p>
+<p><strong>「可回放」是搜索排障的生命线</strong>：建议在测试环境保存 <strong>DSL 生成器版本</strong> 与 <strong>fixture query 集</strong>，线上问题能一键回放同一 DSL（脱敏后）到预发集群对比 hits。没有回放能力时，团队只能依赖工程师记忆改写了什么，排障周期会从小时级变成天级。</p>
+<h3 id="1283-ab-实验"><a class="header" href="#1283-ab-实验">12.8.3 AB 实验</a></h3>
+<p>实验桶进请求上下文；指标按桶对比 CTR / CVR；与排序配置 <strong>版本绑定</strong>，支持快速回滚与 shadow diff。</p>
+<p><strong>发布前自检清单（摘录）</strong>：</p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+<strong>索引别名切换</strong>：reindex 完成后一次性切 <code>read_alias</code>，并验证读写两侧别名一致。</li>
+<li><input disabled="" type="checkbox"/>
+<strong>mapping 变更评审</strong>：是否需要全量重建；是否影响排序字段 <code>doc_values</code>。</li>
+<li><input disabled="" type="checkbox"/>
+<strong>压测</strong>：覆盖「大 filter + 多排序键 + <code>search_after</code>」与「Hydrate 半数超时」。</li>
+<li><input disabled="" type="checkbox"/>
+<strong>降级开关</strong>：ES 故障、hydrate 超时、实验回滚在配置中心可一键切换，并有演练记录。</li>
+<li><input disabled="" type="checkbox"/>
+<strong>对账任务</strong>：抽样对比 ES 文档版本与商品中心版本，差异进入修复队列。</li>
+</ul>
+<p><strong>指标面板建议</strong>（与稳定性并列）：零结果率、Top query 延迟、hydrate 成功率分依赖、ES 慢查询计数、实验分桶 CTR/CVR、以及 <strong>客服价格类工单占比</strong>。最后一项能把「体验问题」翻译成管理层听得懂的损失函数。</p>
+<hr />
+<h2 id="129-本章小结"><a class="header" href="#129-本章小结">12.9 本章小结</a></h2>
+<p>搜索与导购是电商 <strong>读模型工程化</strong> 的主战场：<strong>统一 scene 与编排</strong> 降低系统熵；<strong>Elasticsearch</strong> 承担召回与部分粗排，但必须与商品、上架、生命周期、计价、库存、营销的 <strong>契约</strong> 清晰划分；<strong>Query → Recall → Rank → Hydrate</strong> 主链路上，一致性与体验通过 <strong>索引版本化 + Hydrate 限时降级 + 产品话术</strong> 组合兜底。与推荐系统保持 <strong>目标与架构边界</strong> 上的解耦，在特征与实验平台上 <strong>复用能力</strong>，是多数中大型平台的务实演进路径。</p>
+<p>若你用一句话向面试官总结本章，可以这样说：<strong>搜索索引解决「找得到与排得动」，Hydrate 解决「展示得像且不太假」；交易链路再用强一致服务解决「买得对」。</strong> 三条链路各司其职，边界清晰，才能把高并发读路径做成 <strong>可演进、可回滚、可观测</strong> 的工程系统，而不是一堆 DSL 拼接技巧。</p>
+<p>从 <strong>演进路线</strong> 看，多数团队会经历「ES 直出 → 引入 Hydrate → 引入统一 scene 与 rank 版本 → 引入完整观测与对账」四阶段；每一阶段都能单独带来收益，但不要把四阶段压缩成一次「大爆炸重构」，否则会在大促窗口付出惨痛代价。最稳妥的切分是：<strong>先统一排序内核与日志字段</strong>，再逐步把易变字段迁出索引。</p>
+<hr />
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<ol>
+<li><a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/index.md">Elasticsearch 官方文档</a> — 查询 DSL、分页、<code>profile</code>、聚合。</li>
+<li>本书相关章节：商品中心（索引与缓存）、库存系统、营销系统、计价系统、商品供给与运营管理。</li>
+<li>博客原文：<a href="/system-design/31-ecommerce-search-discovery/">电商系统设计（十二）：搜索与导购（Search &amp; Discovery）</a>。</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../part2/transaction/chapter11.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../../part2/transaction/chapter13.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../part2/transaction/chapter11.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../../part2/transaction/chapter13.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

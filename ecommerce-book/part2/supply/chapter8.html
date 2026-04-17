@@ -1,0 +1,975 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第8章 库存系统 - 电商系统架构设计与实现</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="从领域建模到工程落地：面向中大型团队的实战指南">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../index.html">书籍介绍</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">第一部分：架构方法论与设计原则</li><li class="chapter-item expanded "><a href="../../part1/chapter1.html"><strong aria-hidden="true">1.</strong> 第1章 架构设计三位一体</a></li><li class="chapter-item expanded "><a href="../../part1/chapter2.html"><strong aria-hidden="true">2.</strong> 第2章 领域驱动设计战略篇</a></li><li class="chapter-item expanded "><a href="../../part1/chapter3.html"><strong aria-hidden="true">3.</strong> 第3章 整洁代码与设计模式</a></li><li class="chapter-item expanded "><a href="../../part1/chapter4.html"><strong aria-hidden="true">4.</strong> 第4章 架构质量保障</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">第二部分：电商核心系统设计</li><li class="chapter-item expanded "><a href="../../part2/overview/chapter5.html"><strong aria-hidden="true">5.</strong> 第5章 电商系统全景图</a></li><li class="chapter-item expanded "><a href="../../part2/overview/chapter6.html"><strong aria-hidden="true">6.</strong> 第6章 系统集成与一致性设计</a></li><li class="chapter-item expanded "><a href="../../part2/supply/chapter7.html"><strong aria-hidden="true">7.</strong> 第7章 商品中心系统</a></li><li class="chapter-item expanded "><a href="../../part2/supply/chapter8.html" class="active"><strong aria-hidden="true">8.</strong> 第8章 库存系统</a></li><li class="chapter-item expanded "><a href="../../part2/supply/chapter9.html"><strong aria-hidden="true">9.</strong> 第9章 营销系统</a></li><li class="chapter-item expanded "><a href="../../part2/supply/chapter10.html"><strong aria-hidden="true">10.</strong> 第10章 商品供给与运营管理</a></li><li class="chapter-item expanded "><a href="../../part2/transaction/chapter11.html"><strong aria-hidden="true">11.</strong> 第11章 计价系统设计与实现</a></li><li class="chapter-item expanded "><a href="../../part2/transaction/chapter12.html"><strong aria-hidden="true">12.</strong> 第12章 搜索与导购</a></li><li class="chapter-item expanded "><a href="../../part2/transaction/chapter13.html"><strong aria-hidden="true">13.</strong> 第13章 购物车与结算</a></li><li class="chapter-item expanded "><a href="../../part2/transaction/chapter14.html"><strong aria-hidden="true">14.</strong> 第14章 订单系统</a></li><li class="chapter-item expanded "><a href="../../part2/transaction/chapter15.html"><strong aria-hidden="true">15.</strong> 第15章 支付系统</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">第三部分：综合案例与落地</li><li class="chapter-item expanded "><a href="../../part3/chapter16.html"><strong aria-hidden="true">16.</strong> 第16章 B2B2C平台完整架构</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">附录</li><li class="chapter-item expanded "><a href="../../appendix/tech-stack.html"><strong aria-hidden="true">17.</strong> 附录A 技术栈选型指南</a></li><li class="chapter-item expanded "><a href="../../appendix/interview.html"><strong aria-hidden="true">18.</strong> 附录B 面试题精选</a></li><li class="chapter-item expanded "><a href="../../appendix/integration.html"><strong aria-hidden="true">19.</strong> 附录C 系统集成模式速查表</a></li><li class="chapter-item expanded "><a href="../../appendix/glossary.html"><strong aria-hidden="true">20.</strong> 附录D 术语表</a></li><li class="chapter-item expanded "><a href="../../appendix/references.html"><strong aria-hidden="true">21.</strong> 附录E 参考资料</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">电商系统架构设计与实现</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter7.html">上一章</a> | <a href="./chapter9.html">下一章</a></p>
+<hr />
+<h1 id="第8章-库存系统"><a class="header" href="#第8章-库存系统">第8章 库存系统</a></h1>
+<blockquote>
+<p><strong>本章定位</strong>：库存是交易链路的硬约束之一。本章在统一「商品库存」视角下，给出可扩展到多品类的二维抽象、可落地的扣减与预占策略、供应商集成模式、Redis 与 MySQL 的最终一致性方案，以及清晰的系统边界与工程实践（含 Go 与 Redis Lua）。</p>
+</blockquote>
+<hr />
+<h2 id="81-背景与挑战"><a class="header" href="#81-背景与挑战">8.1 背景与挑战</a></h2>
+<h3 id="811-多品类库存差异"><a class="header" href="#811-多品类库存差异">8.1.1 多品类库存差异</a></h3>
+<p>在数字商品、本地生活、旅行票务等场景中，<strong>库存不是单一形态</strong>：有的按数量售卖，有的按券码唯一性售卖，有的按日历房态管理，还有的由供应商实时掌握座位或房量。下表概括常见差异（与业务配置 <code>deduct_timing</code> 联动）。</p>
+<div class="table-wrapper"><table><thead><tr><th>品类</th><th>库存特点</th><th>典型扣减时机</th><th>平台侧关注点</th></tr></thead><tbody>
+<tr><td>电子券（Deal）</td><td>券码唯一</td><td>下单预占</td><td>券码池、防重复出货</td></tr>
+<tr><td>虚拟服务券（OPV）</td><td>数量制</td><td>下单预占</td><td>高并发扣减、营销叠加</td></tr>
+<tr><td>酒店</td><td>按日期房态</td><td>多为支付后确认</td><td>供应商同步延迟、日历维度</td></tr>
+<tr><td>机票 / 票务</td><td>座位 / 场次</td><td>多为支付后出票</td><td>实时查询、强一致</td></tr>
+<tr><td>礼品卡</td><td>预采购或实时生成</td><td>视模式而定</td><td>安全、异步生成补偿</td></tr>
+<tr><td>话费充值等</td><td>无限库存</td><td>无需扣减</td><td>仅审计与风控</td></tr>
+</tbody></table>
+</div>
+<p><strong>结论</strong>：若每个品类单独实现一套库存服务，短期看似更快，长期必然走向「模型割裂、接口爆炸、对账困难」。本章采用 <strong>二维分类 + 策略路由</strong> 的方式，把差异收敛到配置与策略实现层。</p>
+<h3 id="812-核心痛点"><a class="header" href="#812-核心痛点">8.1.2 核心痛点</a></h3>
+<ol>
+<li><strong>模型割裂</strong>：代码里到处 <code>if category == hotel</code> 的分支，复用性差，测试成本高。</li>
+<li><strong>数据不一致</strong>：Redis 热路径与 MySQL 权威数据、供应商快照三者之间出现漂移。</li>
+<li><strong>供应商策略不统一</strong>：实时查询、定时同步、Webhook 推送混用，缺乏统一降级语言。</li>
+<li><strong>边界不清</strong>：订单、营销、商品、供应商网关都在「顺手改库存」，故障定位困难。</li>
+<li><strong>可观测性不足</strong>：超卖、差异、同步延迟往往在用户投诉后才暴露。</li>
+</ol>
+<p><strong>容量与并发视角的补充</strong>：库存系统往往是交易洪峰的「第一扇闸门」。当创单 QPS 在短时间内抬升一个数量级时，最先暴露的通常不是 CPU，而是 <strong>热 Key、连接池、消息堆积与下游供应商配额</strong>。因此在需求阶段就要区分两类指标：对用户承诺的 <strong>创单成功率</strong>，以及对内部承诺的 <strong>库存服务自身 SLO</strong>（例如 Reserve P99、对账修复时延）。两者混谈会导致「系统看起来没挂，但用户体验崩了」。</p>
+<h3 id="813-设计目标"><a class="header" href="#813-设计目标">8.1.3 设计目标</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>目标</th><th>说明</th><th>优先级</th></tr></thead><tbody>
+<tr><td><strong>统一模型</strong></td><td>以二维属性描述品类，策略可插拔</td><td>P0</td></tr>
+<tr><td><strong>高性能</strong></td><td>热路径走内存型存储与原子脚本</td><td>P0</td></tr>
+<tr><td><strong>可扩展</strong></td><td>新品类优先改配置与策略，不改核心编排</td><td>P0</td></tr>
+<tr><td><strong>最终一致</strong></td><td>Redis、MySQL、供应商视图可异步对齐，但有对账闭环</td><td>P0</td></tr>
+<tr><td><strong>清晰边界</strong></td><td>预占、确认、释放的职责归属明确</td><td>P0</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="82-库存分类体系"><a class="header" href="#82-库存分类体系">8.2 库存分类体系</a></h2>
+<h3 id="821-二维分类模型"><a class="header" href="#821-二维分类模型">8.2.1 二维分类模型</a></h3>
+<p>统一库存的关键，是把品类差异抽象为两个<strong>正交维度</strong>：</p>
+<ul>
+<li><strong>维度一：谁管库存（Management Type）</strong>——库存的「主权」在平台还是供应商，或无需管理。</li>
+<li><strong>维度二：库存单元形态（Unit Type）</strong>——库存是可数数量、唯一券码、日历维度，还是组合型。</li>
+</ul>
+<pre><code class="language-go">// ManagementType：谁拥有库存事实来源
+const (
+	SelfManaged     = 1 // 平台自管：平台维护可用量与流水
+	SupplierManaged = 2 // 供应商管理：平台保存快照 + 同步策略
+	Unlimited       = 3 // 无限库存：不维护可用量（仍可有审计日志）
+)
+
+// UnitType：库存如何被扣减与表达
+const (
+	CodeBased     = 1 // 券码制：最小粒度为唯一 code
+	QuantityBased = 2 // 数量制：最小粒度为整数数量
+	TimeBased     = 3 // 时间维度：按日期 / 时段切片（酒店、部分票务）
+	BundleBased   = 4 // 组合型：多子项联动扣减（套餐）
+)
+</code></pre>
+<p><strong>设计要点</strong>：</p>
+<ul>
+<li>两个维度<strong>独立变化</strong>：例如「供应商管理 + 时间维度」刻画酒店房态；「自管理 + 券码制」刻画平台预采购礼品卡。</li>
+<li><strong>扣减时机（deduct_timing）</strong> 常作为第三配置轴（下单 / 支付 / 发货），与二维模型一起写入 <code>inventory_config</code>，由上层交易编排解释。</li>
+</ul>
+<p>下面的矩阵图用 Mermaid 表达「管理类型 × 单元类型」的组合空间（示意，非穷举所有业务）。</p>
+<pre><code class="language-mermaid">flowchart TB
+  subgraph D1[维度一：ManagementType]
+    M1[SelfManaged 自管理]
+    M2[SupplierManaged 供应商管理]
+    M3[Unlimited 无限]
+  end
+
+  subgraph D2[维度二：UnitType]
+    U1[CodeBased 券码制]
+    U2[QuantityBased 数量制]
+    U3[TimeBased 时间维度]
+    U4[BundleBased 组合型]
+  end
+
+  M1 --&gt; C1[Deal / OPV / 本地服务 / 预采购礼品卡等]
+  M1 --&gt; C2[典型：数量制虚拟商品]
+  M2 --&gt; C3[酒店日历房态 / 机票座位等]
+  M2 --&gt; C4[供应商券码实时生成等]
+  M3 --&gt; C5[话费、部分直充类]
+
+  U1 --&gt; C1
+  U2 --&gt; C2
+  U3 --&gt; C3
+  U4 --&gt; C6[组合套餐：子项各自路由策略]
+
+  style M1 fill:#e8f5e9
+  style M2 fill:#e3f2fd
+  style M3 fill:#fff3e0
+</code></pre>
+<p><strong>读图方式</strong>：先确定「事实来源」再走「单元形态」路径，最终在策略路由器里选择 <code>InventoryStrategy</code> 实现（见 8.8 节）。</p>
+<h3 id="822-管理类型谁管"><a class="header" href="#822-管理类型谁管">8.2.2 管理类型（谁管）</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>类型</th><th>库存事实来源</th><th>平台侧数据角色</th><th>典型风险</th></tr></thead><tbody>
+<tr><td>自管理</td><td>平台数据库 / Redis</td><td>权威 + 热缓存</td><td>热冷数据漂移、补货并发</td></tr>
+<tr><td>供应商管理</td><td>供应商系统</td><td>快照 + 预占记录 + 同步任务</td><td>同步延迟、重复预订</td></tr>
+<tr><td>无限</td><td>无</td><td>日志 / 统计</td><td>供应商侧失败、账务不一致</td></tr>
+</tbody></table>
+</div>
+<h3 id="823-单元类型什么样"><a class="header" href="#823-单元类型什么样">8.2.3 单元类型（什么样）</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>类型</th><th>数据落点</th><th>并发控制要点</th></tr></thead><tbody>
+<tr><td>券码制</td><td><code>inventory_code_pool</code> 分表 + Redis LIST</td><td>出货原子性、补货游标、空池短路</td></tr>
+<tr><td>数量制</td><td><code>inventory</code> 行 + Redis HASH</td><td>Lua 脚本保证 <code>available/booking/issued</code> 联动</td></tr>
+<tr><td>时间维度</td><td>按 <code>calendar_date</code> 切片</td><td>日期范围校验、跨日边界、时区</td></tr>
+<tr><td>组合型</td><td>子 SKU 多条配置</td><td>子项逐一成功或整体回滚（Saga）</td></tr>
+</tbody></table>
+</div>
+<p><strong>时间维度（TimeBased）落地要点</strong>：时间维度的难点不在「存日期」而在「一致性语义」。例如酒店连住多晚，可能要求 <strong>每一天都有房</strong> 才能售卖；也可能允许「部分日期升级 / 部分日期无早」等复杂包规。库存系统应优先实现 <strong>可验证的硬约束</strong>（每日可售量、最小可售窗口、闭店日），把复杂打包规则上移到商品 / 套餐域或规则引擎。技术上，<code>calendar_date</code> 常作为分片键之一，与 <code>sku_id</code> 组合唯一；查询走批量 <code>IN</code> 或区间扫描时要注意索引设计与缓存击穿。</p>
+<p><strong>组合型（BundleBased）落地要点</strong>：组合扣减建议采用「父单 + 子行」模型：父单代表用户购买的套餐实例，子行映射到真实库存 SKU。预占时按子 SKU 顺序扣减可以降低死锁概率（按字典序固定加锁顺序）；失败时按逆序释放。若子项跨越自管理与供应商管理，<strong>不要试图在库存服务内做分布式强一致</strong>——应以 Saga 编排为准，并在产品上明确「部分子项失败时整单失败」或「降级替换子项」的策略。</p>
+<h3 id="824-品类分类矩阵"><a class="header" href="#824-品类分类矩阵">8.2.4 品类分类矩阵</a></h3>
+<p>下表将常见品类映射到 <code>(ManagementType, UnitType)</code>，并给出推荐扣减时机（业务可配置）。</p>
+<div class="table-wrapper"><table><thead><tr><th>品类</th><th>管理类型</th><th>单元类型</th><th>推荐扣减时机</th></tr></thead><tbody>
+<tr><td>电子券 Deal</td><td>Self</td><td>Code</td><td>下单预占</td></tr>
+<tr><td>OPV / 本地服务</td><td>Self</td><td>Quantity</td><td>下单预占</td></tr>
+<tr><td>酒店</td><td>Supplier</td><td>Time</td><td>支付 / 供应商确认（按合同）</td></tr>
+<tr><td>机票</td><td>Supplier</td><td>Quantity / Time</td><td>支付前后组合（按供应商能力）</td></tr>
+<tr><td>话费 TopUp</td><td>Unlimited</td><td>-</td><td>无库存扣减</td></tr>
+<tr><td>礼品卡（预采购）</td><td>Self</td><td>Code</td><td>下单预占</td></tr>
+<tr><td>礼品卡（实时生成）</td><td>Supplier</td><td>Code</td><td>支付后生成</td></tr>
+<tr><td>组合套餐</td><td>Self</td><td>Bundle</td><td>下单预占（子项联动）</td></tr>
+</tbody></table>
+</div>
+<p>下面的 <strong>四象限矩阵图</strong> 用「平台是否掌握库存事实来源」与「库存单元是否强结构化」两个视角，把常见品类放到同一张图里讨论（示意，用于工作坊对齐；边界案例以合同与供应商能力为准）。</p>
+<pre><code class="language-mermaid">flowchart TB
+  subgraph Q1[象限 I：平台强主权 + 结构化数量/码池]
+    Q1a[自管理 + 数量制：OPV / 本地服务]
+    Q1b[自管理 + 券码制：Deal / 预采购礼品卡]
+  end
+
+  subgraph Q2[象限 II：平台强主权 + 组合复杂度]
+    Q2a[自管理 + 组合型：套餐（子 SKU 联动）]
+  end
+
+  subgraph Q3[象限 III：供应商主权 + 时间/座位视图]
+    Q3a[供应商 + 时间维度：酒店日历房态]
+    Q3b[供应商 + 数量/座位：机票 / 部分票务]
+  end
+
+  subgraph Q4[象限 IV：弱库存约束 / 特殊模式]
+    Q4a[无限库存：话费等直充]
+    Q4b[供应商 + 券码实时生成：支付后出码]
+  end
+
+  MT[维度一：ManagementType] --&gt; Q1
+  MT --&gt; Q2
+  MT --&gt; Q3
+  MT --&gt; Q4
+
+  UT[维度二：UnitType] --&gt; Q1
+  UT --&gt; Q2
+  UT --&gt; Q3
+  UT --&gt; Q4
+</code></pre>
+<blockquote>
+<p><strong>与营销库存的关系</strong>：商品库存回答「有没有货」，营销库存回答「活动名额 / 补贴预算够不够」。秒杀等场景往往需要 <strong>双扣减</strong>（商品 + 营销），本章在 8.7 节说明集成边界；营销细节见第 9 章。</p>
+</blockquote>
+<p><strong>统一数据模型（持久化层摘要）</strong>：二维分类解决「策略选择」，持久化层解决「数据落在哪里」。实践中常用三张核心表承载配置、数量视图与券码池（字段可按团队规范微调，但语义建议保持一致）。</p>
+<ol>
+<li><strong><code>inventory_config</code>（按 SKU 一条）</strong>：声明 <code>management_type</code>、<code>unit_type</code>、<code>deduct_timing</code>、<code>supplier_id</code>、<code>sync_strategy</code> 等，是策略路由的唯一配置源。</li>
+<li><strong><code>inventory</code>（数量 / 时间维度的聚合行）</strong>：维护 <code>total/available/booking/locked/sold</code> 与供应商快照字段（如 <code>supplier_stock</code>），并承载库存恒等式校验。</li>
+<li><strong><code>inventory_code_pool_XX</code>（券码制分表）</strong>：一码一行，状态机驱动；Redis LIST 仅存 codeId 热数据，权威仍在 MySQL。</li>
+</ol>
+<pre><code class="language-sql">CREATE TABLE inventory_config (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  item_id BIGINT NOT NULL,
+  sku_id BIGINT NOT NULL DEFAULT 0,
+  management_type INT NOT NULL COMMENT '1=自管理,2=供应商,3=无限',
+  unit_type INT NOT NULL COMMENT '1=券码,2=数量,3=时间,4=组合',
+  deduct_timing INT NOT NULL DEFAULT 1 COMMENT '1=下单,2=支付,3=发货',
+  supplier_id BIGINT NOT NULL DEFAULT 0,
+  sync_strategy INT NOT NULL DEFAULT 0 COMMENT '1=定时,2=实时,3=推送',
+  sync_interval INT NOT NULL DEFAULT 300,
+  oversell_allowed TINYINT NOT NULL DEFAULT 0,
+  low_stock_threshold INT NOT NULL DEFAULT 100,
+  UNIQUE KEY uk_item_sku (item_id, sku_id)
+);
+
+CREATE TABLE inventory (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  item_id BIGINT NOT NULL,
+  sku_id BIGINT NOT NULL,
+  batch_id BIGINT NOT NULL DEFAULT 0,
+  calendar_date DATE DEFAULT NULL,
+  total_stock INT NOT NULL DEFAULT 0,
+  available_stock INT NOT NULL DEFAULT 0,
+  booking_stock INT NOT NULL DEFAULT 0,
+  locked_stock INT NOT NULL DEFAULT 0,
+  sold_stock INT NOT NULL DEFAULT 0,
+  supplier_stock INT NOT NULL DEFAULT 0,
+  supplier_sync_time BIGINT NOT NULL DEFAULT 0,
+  status INT NOT NULL DEFAULT 1,
+  UNIQUE KEY uk_sku_batch_date (sku_id, batch_id, calendar_date)
+);
+</code></pre>
+<p><strong>库存恒等式（自管理）</strong>：</p>
+<pre><code class="language-text">total_stock = available_stock + booking_stock + locked_stock + sold_stock
+</code></pre>
+<p><strong>可售库存的计算要分管理类型</strong>：自管理用平台 <code>total/sold/booking/locked</code>；供应商管理应用 <code>supplier_stock</code> 作为外部事实输入；无限库存返回业务定义的上限或哨兵值。把这段逻辑收敛在领域服务 <code>CalcAvailable</code> 中，避免在订单、搜索、结算各自复制一份。</p>
+<hr />
+<h2 id="83-库存扣减策略"><a class="header" href="#83-库存扣减策略">8.3 库存扣减策略</a></h2>
+<h3 id="831-扣减时机"><a class="header" href="#831-扣减时机">8.3.1 扣减时机</a></h3>
+<p>扣减时机是交易体验与资损风险的权衡轴：</p>
+<ul>
+<li><strong>下单预占（Reserve / Book）</strong>：用户体验好（下单即锁货），但占用时长内库存不可用，需要可靠的超时释放。</li>
+<li><strong>支付后扣减（Sell on pay）</strong>：减少无效占用，更适合供应商成本高或确认链路长的品类。</li>
+<li><strong>发货扣减</strong>：实物电商更常见；数字商品平台多用前两者的组合。</li>
+</ul>
+<p>工程上建议把时机写入 <code>inventory_config.deduct_timing</code>，由订单 / 结算编排读取，而不是散落在订单代码的 <code>switch</code>。</p>
+<p><strong>配置值与交易编排的契约</strong>：<code>deduct_timing</code> 只是标签，真正决定行为的是订单状态机与库存 API 的组合。推荐在内部文档中固定一张「状态 × 库存动作」表，例如：<code>PENDING_PAYMENT → Release</code>、<code>PAID → Confirm</code>、<code>CLOSED → Release(幂等)</code>。当同一品类在不同国家 / 不同供应商合同中扣减时机不同，用配置驱动可以避免为每个市场复制一套订单服务。</p>
+<h3 id="832-预占与确认"><a class="header" href="#832-预占与确认">8.3.2 预占与确认</a></h3>
+<p><strong>预占（Reserve）</strong> 的本质：把「可售」迁移到「已占用（booking）」状态，并保证操作原子、可幂等、可追踪。</p>
+<p><strong>确认（Confirm / Sell）</strong> 的本质：把「占用」迁移到「已售（sold / issued）」，并与支付成功事件对齐。</p>
+<p>自管理数量制的状态迁移（Redis HASH 字段视角）：</p>
+<pre><code class="language-text">available --(reserve)--&gt; booking --(confirm)--&gt; issued
+available &lt;---(release)--- booking
+</code></pre>
+<p>券码制则是 <code>AVAILABLE → BOOKING → SOLD</code> 的状态机，失败路径需要可逆。</p>
+<p><strong>策略模式落地（路由与编排解耦）</strong>：业务层只依赖统一的 <code>InventoryManager</code>（或应用服务），由它读取 <code>inventory_config</code> 后选择策略实现。这样「新品类接入」优先体现为 <strong>配置 + 策略类</strong>，而不是修改订单核心代码。</p>
+<pre><code class="language-go">// InventoryStrategy 抽象了库存生命周期中可被统一编排的动作集合。
+type InventoryStrategy interface {
+	CheckStock(ctx context.Context, req *CheckStockReq) (*CheckStockResp, error)
+	BookStock(ctx context.Context, req *BookStockReq) (*BookStockResp, error)
+	UnbookStock(ctx context.Context, req *UnbookStockReq) error
+	SellStock(ctx context.Context, req *SellStockReq) error
+	RefundStock(ctx context.Context, req *RefundStockReq) error
+}
+
+type StrategyRouter struct{}
+
+func (StrategyRouter) MustStrategy(cfg *InventoryConfig) (InventoryStrategy, error) {
+	switch cfg.ManagementType {
+	case SelfManaged:
+		return NewSelfManagedStrategy(cfg), nil
+	case SupplierManaged:
+		return NewSupplierManagedStrategy(cfg), nil
+	case Unlimited:
+		return NewUnlimitedStrategy(), nil
+	default:
+		return nil, fmt.Errorf("unknown management_type=%d", cfg.ManagementType)
+	}
+}
+</code></pre>
+<p><strong>与「营销锁定」的关系</strong>：数量制 Redis HASH 常会增加 <code>locked</code> 以及按 <code>promotion_id</code> 维度的动态字段，用于表达「活动独占库存」。商品详情页展示的可售量，与下单强校验使用的可售量，可能不是同一个聚合口径——务必在接口契约里写清楚，避免运营配置误解导致客诉。</p>
+<h3 id="833-超时释放"><a class="header" href="#833-超时释放">8.3.3 超时释放</a></h3>
+<p>超时释放至少要回答三个问题：<strong>谁来触发？以什么为准？失败如何兜底？</strong></p>
+<p>常见实现组合：</p>
+<ol>
+<li><strong>Redis TTL / 预占记录过期</strong>：快速回收「短期锁」。</li>
+<li><strong>延时队列</strong>：在创单时投递 <code>delay=15m</code> 的任务，到点检查订单是否已支付。</li>
+<li><strong>定时扫描</strong>：扫描 <code>PENDING_PAYMENT</code> 且超时的订单，幂等调用库存释放接口。</li>
+</ol>
+<p>下面的时序图展示「下单预占 → 支付确认 / 超时释放」的主路径（商品库存服务视角）。</p>
+<pre><code class="language-mermaid">sequenceDiagram
+  autonumber
+  participant O as 订单系统
+  participant I as 库存服务
+  participant R as Redis
+  participant Q as 延时队列
+  participant P as 支付系统
+
+  O-&gt;&gt;I: ReserveStock(order_id, sku, qty, ttl=15m)
+  I-&gt;&gt;R: EVAL Lua 原子扣减 available 并增加 booking
+  R--&gt;&gt;I: OK
+  I--&gt;&gt;O: reserved
+  O-&gt;&gt;Q: schedule ReleaseStock(order_id) @T+15m
+
+  alt 用户在 TTL 内完成支付
+    P--&gt;&gt;O: PaymentSuccess
+    O-&gt;&gt;I: ConfirmStock(order_id)
+    I-&gt;&gt;R: booking -= qty; issued += qty
+    I--&gt;&gt;O: confirmed
+    Note over Q: 可选：取消延时任务（若支持精确去重）
+  else 超时未支付
+    Q--&gt;&gt;I: ReleaseStock(order_id) 幂等
+    I-&gt;&gt;R: booking -= qty; available += qty
+    I--&gt;&gt;O: released
+    O--&gt;&gt;O: CloseOrder(timeout)
+  end
+</code></pre>
+<p>与上时序图互补，建议再用 <strong>状态机</strong> 固化「预占记录」本身的生命周期（尤其是 Redis 侧 <code>reservation:{order_id}</code> 与 DB 影子行并存时）。下图把「可重复进入的幂等终态」标出，避免研发在「重复回调 / 重复释放」上各写一套语义。</p>
+<pre><code class="language-mermaid">stateDiagram-v2
+  [*] --&gt; NONE: 未创单 / 未预占
+  NONE --&gt; RESERVED: Reserve 成功\n(available↓ booking↑)
+  RESERVED --&gt; CONFIRMED: Confirm\n(booking↓ issued↑)
+  RESERVED --&gt; RELEASED: Release / 超时\n(booking↓ available↑)
+  CONFIRMED --&gt; [*]: 终态（可审计重复 Confirm）
+  RELEASED --&gt; [*]: 终态（可审计重复 Release）
+  note right of RESERVED
+    幂等键：order_id
+    并发护栏：Lua / 版本号 / 行锁择一
+  end note
+</code></pre>
+<p><strong>关键细节</strong>：</p>
+<ul>
+<li><strong>幂等键</strong>：<code>order_id</code> 贯穿 Reserve / Confirm / Release，重复调用必须安全。</li>
+<li><strong>顺序依赖</strong>：若营销与商品双预占，失败回滚顺序应与成功顺序相反（Saga 补偿语义）。</li>
+</ul>
+<h3 id="834-超卖防护"><a class="header" href="#834-超卖防护">8.3.4 超卖防护</a></h3>
+<p>超卖防护应分层：</p>
+<ol>
+<li><strong>热路径原子性</strong>：Redis Lua 或单分片事务，保证「检查 + 扣减」不可分割。</li>
+<li><strong>业务幂等</strong>：同一 <code>order_id</code> 重复确认只生效一次。</li>
+<li><strong>冷路径校验</strong>：支付回调后，在确认库存前读取 MySQL 侧汇总做二次校验（容忍更高延迟）。</li>
+<li><strong>对账兜底</strong>：周期任务发现 <code>available + booking + sold</code> 恒等式破坏或 Redis / MySQL 偏差过大，自动冻结商品并告警（见 8.5.2）。</li>
+</ol>
+<p><strong>CheckStock 与 ReserveStock 为什么要拆开？</strong> 只读 Check 适合列表页、加购前的快速失败；但它不能保证并发下的正确性。正确做法是：<strong>创单路径必须以 Reserve 这种「读改写原子操作」为准</strong>，Check 只是辅助。否则会出现「校验时还有货，下单时被抢走」的经典竞态。</p>
+<p><strong>秒杀场景的 Facade（可选优化）</strong>：当商品库存与营销库存必须同事务化编排时，常规做法是订单 Saga 两步调用；在极端 QPS 下可以引入 <code>FlashSaleInventoryFacade.CheckAndReserve</code> 聚合接口，把限流、热点治理、重复请求拦截收敛到库存域的专用入口。注意：Facade 是性能与风控的「窄接口」，不要让它反向吞噬订单领域的编排职责。</p>
+<hr />
+<h2 id="84-供应商集成"><a class="header" href="#84-供应商集成">8.4 供应商集成</a></h2>
+<p>供应商集成本质是 <strong>把「外部库存事实」映射为平台可售视图</strong>，并在预订 / 取消时调用供应商 API 对齐状态。</p>
+<h3 id="841-实时查询"><a class="header" href="#841-实时查询">8.4.1 实时查询</a></h3>
+<p><strong>适用</strong>：变化快、对超卖极度敏感（机票、部分热门票务）。</p>
+<p><strong>模式</strong>：</p>
+<ul>
+<li>读路径：短 TTL 缓存 + 超时控制 + 熔断降级。</li>
+<li>写路径：同步预订或异步预订（供应商返回 pending 时需轮询，见博客原文异步 booking 状态机）。</li>
+</ul>
+<p><strong>读路径的 Go 骨架（与第 16 章风格一致：先缓存、后供应商、再回写、可观测）</strong>：</p>
+<pre><code class="language-go">// CheckSupplierStock 演示：实时查询 + 短缓存 + 异步快照（示意代码）
+func (s *SupplierManagedStrategy) CheckStock(ctx context.Context, req *CheckStockReq) (*CheckStockResp, error) {
+	cacheKey := fmt.Sprintf("inventory:supplier:%d:%d:%s", req.ItemID, req.SKUID, req.Date)
+
+	// 1) 先读 Redis 缓存（例如 30s TTL：机票可更短，酒店可更长）
+	if v, err := s.rdb.Get(ctx, cacheKey).Int(); err == nil {
+		return &amp;CheckStockResp{Available: int32(v), FromCache: true}, nil
+	}
+
+	// 2) 供应商调用必须带超时；失败要映射为可重试/不可重试
+	ctx, cancel := context.WithTimeout(ctx, 800*time.Millisecond)
+	defer cancel()
+
+	resp, err := s.supplier.QueryStock(ctx, &amp;SupplierQuery{
+		SupplierID: req.SupplierID,
+		ProductID:  req.ExternalProductID,
+		Date:       req.Date,
+	})
+	if err != nil {
+		return nil, MapSupplierErr(err) // Retryable / Fatal / Unknown
+	}
+
+	// 3) 回写缓存 + 异步落快照（快照用于运营后台、对账与熔断时的最后成功视图）
+	_ = s.rdb.Set(ctx, cacheKey, resp.Stock, 30*time.Second).Err()
+	go func() {
+		bg, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		_ = s.snapshot.Save(bg, req.ItemID, req.SKUID, req.Date, resp.Stock, "api")
+	}()
+
+	return &amp;CheckStockResp{Available: resp.Stock, FromCache: false}, nil
+}
+</code></pre>
+<p><strong>工程要点（把「实时」变成可运营能力）</strong>：</p>
+<ul>
+<li><strong>缓存击穿</strong>：热点航线/场次在缓存过期瞬间会把供应商 QPS 顶满；需要单飞（singleflight）、随机抖动 TTL、以及网关层按 <code>supplier_id</code> 配额限流。</li>
+<li><strong>错误语义</strong>：<code>Unknown</code> 不要当作「0 库存」返回，否则会把用户引导到错误决策；应显式返回「暂不可校验」并由前端降级展示。</li>
+<li><strong>观测</strong>：必须记录 <code>from_cache</code>、<code>supplier_latency_ms</code>、<code>supplier_error_class</code>，否则线上只能看到「库存服务慢」，无法判断是供应商还是自研逻辑。</li>
+</ul>
+<h3 id="842-定时同步"><a class="header" href="#842-定时同步">8.4.2 定时同步</a></h3>
+<p><strong>适用</strong>：变化中等、可接受分钟级延迟（部分酒店库存）。</p>
+<p><strong>模式</strong>：</p>
+<ul>
+<li>定时任务拉取供应商库存，写入本地 <code>inventory</code> 快照字段（如 <code>supplier_stock</code>、<code>supplier_sync_time</code>）。</li>
+<li>读路径优先读本地快照，必要时触发「刷新任务」。</li>
+</ul>
+<h3 id="843-推送模式"><a class="header" href="#843-推送模式">8.4.3 推送模式</a></h3>
+<p><strong>适用</strong>：供应商能力较强，主动推送房态 / 价格变更。</p>
+<p><strong>要点</strong>：</p>
+<ul>
+<li>Webhook 入口必须鉴权、幂等、重放安全。</li>
+<li>推送与定时拉取可并存：推送负责快变字段，拉取负责兜底对齐。</li>
+</ul>
+<h3 id="844-降级策略"><a class="header" href="#844-降级策略">8.4.4 降级策略</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>触发条件</th><th>平台行为</th><th>用户侧体验</th></tr></thead><tbody>
+<tr><td>供应商超时</td><td>返回可重试 / 排队；读缓存则明确标注「仅供参考」</td><td>可能看到「库存紧张」</td></tr>
+<tr><td>连续失败超阈值</td><td>熔断一段时间，仅允许读取上次成功快照</td><td>可能暂停售卖</td></tr>
+<tr><td>异步预订 pending 过久</td><td>进入人工处理队列，避免盲目关单造成纠纷</td><td>「处理中」</td></tr>
+</tbody></table>
+</div>
+<p>下面的架构图对比 <strong>实时查询</strong> 与 <strong>定时同步</strong> 在读路径上的差异（简化）。</p>
+<pre><code class="language-mermaid">flowchart LR
+  subgraph RT[实时查询路径]
+    A1[用户请求] --&gt; B1[库存服务]
+    B1 --&gt; C1{Redis 缓存命中?}
+    C1 --&gt;|是| Z1[返回缓存库存]
+    C1 --&gt;|否| D1[供应商 API]
+    D1 --&gt; E1[回写 Redis 短 TTL]
+    E1 --&gt; Z1
+  end
+
+  subgraph SCH[定时同步路径]
+    J1[定时任务] --&gt; K1[供应商批量接口]
+    K1 --&gt; L1[更新 MySQL 快照字段]
+    L1 --&gt; M1[可选：刷新 Redis 视图]
+    A2[用户请求] --&gt; B2[库存服务]
+    B2 --&gt; Z2[读本地快照 / 缓存]
+  end
+</code></pre>
+<p><strong>实践建议</strong>：同一家供应商也可能混用（例如酒店：列表页用快照，下单页强刷一次实时），关键是把策略写进配置中心而非写死在代码分支。</p>
+<p><strong>礼品卡横跨多种模式的启示</strong>：预采购卡密（Self + Code）、实时生成卡密（Supplier + Code）、无限库存（Unlimited）往往并存于同一业务线。统一模型的价值在于：团队可以用同一张「策略决策表」讨论边界，而不是在三个服务里分别口述规则。</p>
+<p><strong>异步预订（pending → confirmed）的工程清单</strong>：当供应商只能异步确认时，至少补齐以下构件：<code>supplier_booking</code> 映射表、可重入的轮询 worker、超时与人工介入队列、订单侧状态机联动、对账任务对「平台已占 / 供应商未确认」的专项扫描。否则极易出现「钱扣了但供应商没单」或「供应商有单但平台没单」的双向不一致。</p>
+<hr />
+<h2 id="85-数据一致性保证"><a class="header" href="#85-数据一致性保证">8.5 数据一致性保证</a></h2>
+<h3 id="851-redis-与-mysql-同步"><a class="header" href="#851-redis-与-mysql-同步">8.5.1 Redis 与 MySQL 同步</a></h3>
+<p>典型路径是 <strong>「Redis 同步执行，MySQL 异步落库」</strong>：</p>
+<ul>
+<li><strong>同步</strong>：Lua 脚本更新 Redis 中的 <code>available/booking/issued</code> 或券码池。</li>
+<li><strong>异步</strong>：发送 <code>InventoryEvent</code> 到 Kafka，消费者批量写 <code>inventory</code> 与 <code>inventory_operation_log</code>。</li>
+</ul>
+<div class="table-wrapper"><table><thead><tr><th>操作</th><th>Redis</th><th>MySQL</th><th>一致性语义</th></tr></thead><tbody>
+<tr><td>预占</td><td>同步 Lua</td><td>异步事件</td><td>最终一致</td></tr>
+<tr><td>确认售出</td><td>同步 Lua</td><td>异步事件</td><td>最终一致</td></tr>
+<tr><td>运营强锁 / 黑名单</td><td>视场景：可同步双写 DB</td><td>强一致需求更高</td><td></td></tr>
+</tbody></table>
+</div>
+<p><strong>原则</strong>：</p>
+<ul>
+<li><strong>Redis 不是账本</strong>：故障恢复应以 MySQL + 日志为准，Redis 可重建。</li>
+<li><strong>Outbox</strong>（可选）：若要求「绝不丢事件」，在订单或库存事务内写 outbox 表，再异步投递。</li>
+</ul>
+<p><strong>双写与消息丢失的权衡</strong>：纯「先 Redis 后发 Kafka」在进程崩溃时可能丢消息。工程上常见三种增强手段（按成本从低到高）：</p>
+<ol>
+<li><strong>同步写操作日志表（简化版 outbox）</strong>：Redis 成功后同步插入 <code>inventory_operation_log</code>（或写 binlog），再由后台任务投递 MQ；代价是热路径多一次 DB 写。</li>
+<li><strong>事务消息 / Outbox</strong>：与业务状态同事务提交，确保「状态变更」与「事件」原子一致。</li>
+<li><strong>对账修复为主、消息为辅</strong>：接受短窗口不一致，用对账把差异拉回（适合容忍度稍高、但吞吐极大的场景）。</li>
+</ol>
+<p>选型没有银弹：机票酒店类强一致诉求更高，虚拟券码大促类更偏向吞吐与事后修复。</p>
+<h3 id="852-对账机制"><a class="header" href="#852-对账机制">8.5.2 对账机制</a></h3>
+<p>对账目标不是「每时每刻 Redis == MySQL」，而是 <strong>尽快发现破坏恒等式与异常漂移，并可控修复</strong>。</p>
+<p>建议对账维度：</p>
+<ol>
+<li><strong>单行恒等式</strong>：<code>total = available + booking + locked + sold</code>（字段含义以你的表结构为准）。</li>
+<li><strong>跨存储视图</strong>：Redis <code>available</code> vs MySQL <code>available_stock</code> 差值。</li>
+<li><strong>订单侧一致性</strong>：<code>PENDING_PAYMENT</code> 订单是否仍存在预占记录；是否出现「仅商品预占成功、营销失败」等半截状态。</li>
+</ol>
+<pre><code class="language-mermaid">flowchart TD
+  A[定时对账任务启动] --&gt; B[拉取自管理 SKU 配置]
+  B --&gt; C[读取 Redis 聚合视图]
+  C --&gt; D[读取 MySQL 权威行]
+  D --&gt; E{恒等式成立?}
+  E --&gt;|否| X[告警 + 冻结售卖 + 记缺陷单]
+  E --&gt;|是| F{Redis vs MySQL 差值超阈?}
+  F --&gt;|否| Z[记录健康指标]
+  F --&gt;|是| G{允许自动修复?}
+  G --&gt;|是| H[以 MySQL 为准重写 Redis]
+  G --&gt;|否| Y[仅告警 + 人工确认]
+  H --&gt; Z
+</code></pre>
+<p><strong>修复策略要谨慎</strong>：自动以 MySQL 覆盖 Redis 适合「Redis 丢数据」类问题；若根因是重复消费导致 MySQL 多减，则应阻断自动修复，先定位消息幂等缺陷。</p>
+<p><strong>对账任务的伪代码骨架（Go）</strong>：对账不仅是数值 diff，更是「缺陷驱动」的运营工具。下面示例强调阈值、恒等式与人工门闩（<code>auto_reconcile</code>）。为便于阅读，<code>abs</code> / <code>max</code> 等函数省略实现。</p>
+<pre><code class="language-go">// 伪代码骨架：abs/max/alert/rewrite 需按项目工具库实现
+func ReconcileItem(ctx context.Context, cfg InventoryConfig) error {
+	redisAvail := readRedisAvailable(ctx, cfg.ItemID, cfg.SKUID)
+	mysqlRow, err := loadInventoryRow(ctx, cfg.ItemID, cfg.SKUID)
+	if err != nil {
+		return err
+	}
+
+	if !mysqlRow.identityOK() {
+		return fmt.Errorf("mysql identity broken: item=%d sku=%d", cfg.ItemID, cfg.SKUID)
+	}
+
+	diff := redisAvail - mysqlRow.AvailableStock
+	if abs(diff) &gt; max(100, mysqlRow.AvailableStock/10) {
+		alert(ctx, "large inventory diff", cfg.ItemID, cfg.SKUID, diff)
+	}
+
+	if cfg.AutoReconcile {
+		return rewriteRedisFromMySQL(ctx, cfg.ItemID, cfg.SKUID, mysqlRow)
+	}
+	return nil
+}
+</code></pre>
+<h3 id="853-补偿任务"><a class="header" href="#853-补偿任务">8.5.3 补偿任务</a></h3>
+<p>补偿任务用于处理：</p>
+<ul>
+<li>Kafka 消费失败导致日志未落库。</li>
+<li>供应商异步预订最终态与本地订单状态不一致。</li>
+<li>Saga 补偿某一步失败后的「人 + 程序」协同修复。</li>
+</ul>
+<p>建议补偿任务具备：<strong>可观测进度、可重入、可限流、可人工跳过</strong>，并在执行前获取分布式锁或基于 <code>order_id</code> 的行级互斥，避免双写打架。</p>
+<p><strong>补偿与对账的分工</strong>：对账偏「批量、周期性、发现漂移」；补偿偏「单点、事件触发、把状态推进到合法终态」。两者叠加才能覆盖「消息乱序」「重复投递」「供应商晚到回调」等真实世界的粗糙边缘。</p>
+<p><strong>Kafka 消费者的吞吐与顺序</strong>：库存事件消费端建议「按 <code>item_id</code> 分区有序 + 批量落库」：<code>item_id</code> 分区可以保证同一商品变更串行应用，批量 <code>INSERT</code> 日志与合并更新可以降低 MySQL TPS。需要警惕的是：<strong>重试会导致重复消息</strong>，因此 MySQL 写入必须基于 <code>event_id</code> 或业务幂等键去重；否则对账会看到「日志重复 / 库存多减」。</p>
+<p><strong>跨库存类型一致性（商品 + 营销）</strong>：秒杀场景下商品预占成功但营销失败时，必须回滚商品预占。回滚失败不要把系统留在「半占用」状态：应记录缺陷单并阻塞该 <code>order_id</code> 的继续支付，直到补偿成功或人工判定。该话题与第 6 章 Saga、第 9 章营销库存紧密相关，本章强调 <strong>库存侧 API 必须可单独幂等重放</strong>，以便编排器反复补偿。</p>
+<hr />
+<h2 id="86-系统边界与职责"><a class="header" href="#86-系统边界与职责">8.6 系统边界与职责</a></h2>
+<h3 id="861-库存系统的职责边界"><a class="header" href="#861-库存系统的职责边界">8.6.1 库存系统的职责边界</a></h3>
+<p><strong>库存系统应该负责</strong>：</p>
+<ul>
+<li>SKU 维度的可售数量 / 券码 / 日历切片视图的维护。</li>
+<li>预占、确认、释放、退款相关的原子操作与审计日志。</li>
+<li>供应商库存同步策略的执行与降级。</li>
+</ul>
+<p><strong>库存系统不应该负责</strong>：</p>
+<ul>
+<li>订单优惠分摊、支付路由、用户风控评分（可读取必要参数，但不拥有规则）。</li>
+<li>商品详情文案、主图、类目属性（属于商品中心）。</li>
+</ul>
+<h3 id="862-库存-vs-商品边界划分"><a class="header" href="#862-库存-vs-商品边界划分">8.6.2 库存 vs 商品：边界划分</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>维度</th><th>商品中心</th><th>库存系统</th></tr></thead><tbody>
+<tr><td>核心聚合</td><td>SPU/SKU、属性、类目</td><td>SKU（或批次 / 日期）库存数量与码池</td></tr>
+<tr><td>上架</td><td>生成可售商品视图</td><td>根据模板初始化 <code>inventory_config</code> / 初始库存</td></tr>
+<tr><td>快照</td><td>商品快照用于订单展示</td><td>可选择是否在快照中冗余「库存展示字段」</td></tr>
+</tbody></table>
+</div>
+<p><strong>建议</strong>：商品详情页展示库存「有 / 无」可以来自搜索 / 商品聚合读模型；<strong>下单路径的强校验</strong>必须调用库存服务。</p>
+<h3 id="863-平台库存-vs-供应商库存"><a class="header" href="#863-平台库存-vs-供应商库存">8.6.3 平台库存 vs 供应商库存</a></h3>
+<ul>
+<li><strong>平台自管</strong>：平台能强约束不超卖（在自有数据正确前提下）。</li>
+<li><strong>供应商管理</strong>：平台只能「尽力而为」，必须定义 <strong>同步延迟下</strong> 的用户协议与技术降级（例如显示「库存紧张」、下单后异步确认）。</li>
+</ul>
+<p><strong>把「可售」定义成合同</strong>：供应商管理并不等于「平台不承担责任」。产品条款、详情页提示、客服话术需要与技术策略一致：例如列表页展示的是「上次同步快照」，下单页展示的是「下单瞬间强刷结果」，支付页又可能进入「供应商二次确认」。这些差异如果只靠前端临时拼接字段，极易引发纠纷；建议由商品 / 库存领域共同产出 <strong>可售声明（availability disclaimer）</strong> 的配置，并在关键触点统一渲染。</p>
+<p><strong>时间维度下的边界</strong>：酒店类库存往往以「入住日」为切片，查询与扣减都携带日期参数。库存服务应提供明确的日期合法性校验（不可售日期、最小连住、跨日边界），但不要吞掉「价格日历」职责——价格仍归计价系统，库存只回答「这一天还有没有房 / 席位」。</p>
+<h3 id="864-库存预占的归属"><a class="header" href="#864-库存预占的归属">8.6.4 库存预占的归属</a></h3>
+<p>推荐由 <strong>库存服务提供 Reserve / Confirm / Release API</strong>，订单系统编排调用。避免订单服务直接写 Redis，否则：</p>
+<ul>
+<li>权限边界模糊，排障困难；</li>
+<li>原子脚本难以复用；</li>
+<li>监控指标分散。</li>
+</ul>
+<p><strong>进一步建议</strong>：把「预占记录」视为库存域内的聚合片段（可用 Redis HASH、也可用独立表存储影子状态），对外只暴露语义化 API。订单系统持有 <code>order_id</code> 与支付超时策略；库存系统持有「这单占了多少、占在哪一批次 / 哪一天」。当两边都要保存时，必须明确 <strong>主键映射与幂等回放</strong> 规则：支付回调重复到达时，Confirm 只能执行一次；超时释放与支付成功并发时，必须以「订单最终状态」为仲裁者。</p>
+<p><strong>组合型（Bundle）扣减的边界</strong>：套餐类商品是「一个售卖单元，多个库存单元」。库存系统可以提供 <code>BundleReserve</code> 事务式 API，内部仍以子 SKU 为单位调用原子脚本，但整体成功准则由库存域定义（全成或全败）。不建议把子项拆解交给订单服务循环调用——否则补偿顺序、部分失败、日志关联都会变得脆弱。</p>
+<hr />
+<h2 id="87-与其他系统的集成"><a class="header" href="#87-与其他系统的集成">8.7 与其他系统的集成</a></h2>
+<h3 id="871-与商品中心集成商品上架时初始化库存"><a class="header" href="#871-与商品中心集成商品上架时初始化库存">8.7.1 与商品中心集成（商品上架时初始化库存）</a></h3>
+<p>商品中心在 SKU 生效时发出领域事件（或消息）是最佳挂钩点：库存服务消费事件后创建 <code>inventory_config</code>，并初始化 <code>inventory</code> 行（数量、批次、默认阈值等）。这里的关键是 <strong>幂等</strong>：同一 SKU 的重复发布 / 回滚发布不得生成重复配置行；建议使用 <code>item_id + sku_id</code> 唯一键约束，并在消费端用「版本号 / 生效时间窗」判定是否应用变更。</p>
+<p>对「供应商管理」品类，初始化阶段就要写入 <code>supplier_id</code> 与 <code>sync_strategy</code>，并创建供应商适配器所需的 <strong>外部商品编码映射</strong>（否则库存同步与预订调用会在上线后才发现无法对齐）。对于券码制，还要初始化 <code>batch_id</code> 维度与分表路由规则，避免大促时临时改路由。</p>
+<h3 id="872-与订单系统集成预占--扣减--释放"><a class="header" href="#872-与订单系统集成预占--扣减--释放">8.7.2 与订单系统集成（预占 / 扣减 / 释放）</a></h3>
+<p>创单路径建议以 <strong>Reserve</strong> 作为硬闸门：订单系统先拿到库存服务的成功回执，再写入订单主表为 <code>PENDING_PAYMENT</code>。如果顺序反过来，会出现「订单已创建但库存未占」的不可恢复窗口，除非再引入复杂补偿。</p>
+<p>支付成功后的 <strong>Confirm</strong> 应与支付回调幂等键绑定（支付单号 / 回调事件 id）。实践中常见错误是：支付重放导致库存二次加 <code>issued</code>，或支付失败却误触发 Confirm。<strong>关单 / 超时释放</strong> 应与订单状态机严格对齐：只有从可取消状态进入释放，才调用 <code>Release</code>；对于已进入履约的订单，释放必须转为退款域的逆向流程（可能涉及供应商取消接口）。</p>
+<h3 id="873-与供应商系统集成实时查询--定时同步"><a class="header" href="#873-与供应商系统集成实时查询--定时同步">8.7.3 与供应商系统集成（实时查询 / 定时同步）</a></h3>
+<p>供应商集成建议落在 <strong>供应商网关</strong> 或 <strong>库存适配器层</strong>，由库存服务调用，而不是让订单服务直连供应商：订单系统只需要知道「库存服务承诺的结果」，不需要理解每家供应商的 OAuth、签名算法与重试语义。</p>
+<p>适配器层应统一：超时、重试（仅对幂等读 / 明确幂等写）、熔断、隔离舱（bulkhead）、以及 <strong>错误码映射</strong>。强烈建议把供应商错误抽象为三类：<code>Retryable</code>（可重试）、<code>Fatal</code>（明确失败）、<code>Unknown</code>（需要人工核对）。<code>Unknown</code> 类错误不要自动重试写入路径，否则极易造成重复预订。</p>
+<h3 id="874-库存变更事件发布"><a class="header" href="#874-库存变更事件发布">8.7.4 库存变更事件发布</a></h3>
+<p>事件字段建议包含：<code>event_id</code>、<code>event_type</code>、<code>item_id</code>、<code>sku_id</code>、<code>order_id</code>、<code>quantity</code>、<code>before/after</code> 快照、时间戳。消费者可以是：搜索引擎刷新可售标签、报表、风控。</p>
+<p>事件设计要兼顾 <strong>可排序</strong> 与 <strong>可去重</strong>：<code>event_id</code> 建议全局唯一；<code>event_type</code> 建议稳定枚举；<code>before/after</code> 用于审计与对账回放。对于券码制，还应携带 <code>code_ids</code> 或哈希摘要（避免明文扩散到不该出现的下游）。如果下游是搜索索引，通常只需要「可售阈值变化」而非每一次微抖动，可增加 <strong>聚合投影</strong>（projector）把高频事件折叠为低频索引更新。</p>
+<h3 id="875-集成模式与降级策略"><a class="header" href="#875-集成模式与降级策略">8.7.5 集成模式与降级策略</a></h3>
+<ul>
+<li><strong>同步编排 + 异步对账</strong> 是默认主路径；</li>
+<li><strong>秒杀聚合接口</strong>（一次网络往返完成商品 + 营销预占）属于性能优化特例，应被清晰标记为「窄场景专用」，避免成为全局耦合点。</li>
+</ul>
+<p><strong>集成时序（常规创单：订单编排库存）</strong>：下图强调「库存服务不创建订单」，只提供原子操作；订单系统承担 Saga 与超时任务。</p>
+<pre><code class="language-mermaid">sequenceDiagram
+  autonumber
+  participant U as 用户
+  participant O as 订单系统
+  participant PI as 商品库存
+  participant CI as 营销库存
+  participant DB as MySQL
+
+  U-&gt;&gt;O: 提交订单
+  O-&gt;&gt;PI: ReserveStock(order_id)
+  PI--&gt;&gt;O: OK
+  O-&gt;&gt;CI: ReserveQuota(order_id)
+  CI--&gt;&gt;O: OK
+  O-&gt;&gt;DB: InsertOrder(PENDING_PAYMENT)
+  O--&gt;&gt;U: 创单成功
+
+  Note over O,PI: 支付成功回调路径省略；失败时按逆序补偿 Release
+</code></pre>
+<p><strong>降级策略（库存不可用）</strong>：严格模式直接失败；宽松模式允许「先创单后补扣」（极易超卖，仅适合内部试单或供应商兜底能力极强且可取消的场景）。若启用宽松模式，必须同步启用 <strong>更频繁对账 + 更强支付确认校验 + 明确法务条款</strong>。</p>
+<hr />
+<h2 id="88-工程实践"><a class="header" href="#88-工程实践">8.8 工程实践</a></h2>
+<h3 id="881-lua-脚本原子性"><a class="header" href="#881-lua-脚本原子性">8.8.1 Lua 脚本原子性</a></h3>
+<p>Redis 单线程执行 Lua，可保证脚本内多条命令原子执行，非常适合「读-判断-写」库存扣减。</p>
+<p><strong>数量制预占脚本（示例）</strong>：从 <code>available</code> 扣减并增加 <code>booking</code>，不足返回 <code>-1</code>。</p>
+<pre><code class="language-lua">-- KEYS[1]: inventory:qty:stock:{itemID}:{skuID}
+-- ARGV[1]: qty
+local key = KEYS[1]
+local qty = tonumber(ARGV[1])
+
+local available = tonumber(redis.call('HGET', key, 'available') or '0')
+if available &lt; qty then
+  return -1
+end
+
+redis.call('HINCRBY', key, 'available', -qty)
+redis.call('HINCRBY', key, 'booking', qty)
+return available - qty
+</code></pre>
+<p><strong>带幂等门的预占（强烈建议）</strong>：仅靠业务层判断「是否已预占」仍可能出现并发双调。更稳妥做法是把幂等状态写进同一个 HASH（或独立 key），让 Lua 一次完成「首次预占 / 重复预占返回成功」。</p>
+<pre><code class="language-lua">-- KEYS[1]: inventory:qty:stock:{itemID}:{skuID}
+-- KEYS[2]: inventory:qty:reservation:{orderID}
+-- ARGV[1]: qty
+-- ARGV[2]: ttlSeconds
+local stockKey = KEYS[1]
+local resKey = KEYS[2]
+local qty = tonumber(ARGV[1])
+local ttl = tonumber(ARGV[2])
+
+if redis.call('EXISTS', resKey) == 1 then
+  return 1
+end
+
+local available = tonumber(redis.call('HGET', stockKey, 'available') or '0')
+if available &lt; qty then
+  return -1
+end
+
+redis.call('HINCRBY', stockKey, 'available', -qty)
+redis.call('HINCRBY', stockKey, 'booking', qty)
+
+redis.call('HSET', resKey,
+  'qty', qty,
+  'status', 'RESERVED'
+)
+redis.call('EXPIRE', resKey, ttl)
+return 0
+</code></pre>
+<p><strong>确认与释放（与预占配对）</strong>：确认时将 <code>booking</code> 转为 <code>issued</code>；释放时退回 <code>available</code>。下面脚本演示「仅当 reservation key 仍存在且状态为 RESERVED 才确认」，用于防止重复支付回调导致二次加 <code>issued</code>。</p>
+<pre><code class="language-lua">-- KEYS[1]: inventory:qty:stock:{itemID}:{skuID}
+-- KEYS[2]: inventory:qty:reservation:{orderID}
+-- ARGV[1]: op -- CONFIRM or RELEASE
+local stockKey = KEYS[1]
+local resKey = KEYS[2]
+local op = ARGV[1]
+
+if redis.call('EXISTS', resKey) == 0 then
+  return 2
+end
+
+local qty = tonumber(redis.call('HGET', resKey, 'qty') or '0')
+local st = redis.call('HGET', resKey, 'status')
+
+if st ~= 'RESERVED' then
+  return 3
+end
+
+if op == 'CONFIRM' then
+  local booking = tonumber(redis.call('HGET', stockKey, 'booking') or '0')
+  if booking &lt; qty then return -1 end
+  redis.call('HINCRBY', stockKey, 'booking', -qty)
+  redis.call('HINCRBY', stockKey, 'issued', qty)
+  redis.call('HSET', resKey, 'status', 'CONFIRMED')
+  redis.call('PERSIST', resKey)
+  return 0
+end
+
+if op == 'RELEASE' then
+  local booking = tonumber(redis.call('HGET', stockKey, 'booking') or '0')
+  if booking &lt; qty then return -1 end
+  redis.call('HINCRBY', stockKey, 'booking', -qty)
+  redis.call('HINCRBY', stockKey, 'available', qty)
+  redis.call('DEL', resKey)
+  return 0
+end
+
+return 4
+</code></pre>
+<p><strong>Go 侧调用（go-redis v9 示例）</strong>：</p>
+<pre><code class="language-go">package inventory
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/redis/go-redis/v9"
+)
+
+const reserveQtyLua = `
+local key = KEYS[1]
+local qty = tonumber(ARGV[1])
+local available = tonumber(redis.call('HGET', key, 'available') or '0')
+if available &lt; qty then return -1 end
+redis.call('HINCRBY', key, 'available', -qty)
+redis.call('HINCRBY', key, 'booking', qty)
+return available - qty
+`
+
+type RedisInventory struct {
+	rdb redis.UniversalClient
+}
+
+func (s *RedisInventory) ReserveQuantity(ctx context.Context, itemID, skuID int64, qty int) (int64, error) {
+	key := fmt.Sprintf("inventory:qty:stock:%d:%d", itemID, skuID)
+	res, err := s.rdb.Eval(ctx, reserveQtyLua, []string{key}, qty).Int64()
+	if err != nil {
+		return 0, err
+	}
+	if res &lt; 0 {
+		return 0, ErrNotEnoughStock
+	}
+	return res, nil
+}
+</code></pre>
+<p><strong>券码池出货脚本（示例）</strong>：<code>LRANGE</code> + <code>LTRIM</code> 同事务化，避免读到数据却在截断前被并发修改。</p>
+<pre><code class="language-lua">-- KEYS[1]: inventory:code:pool:{item}:{sku}:{batch}
+-- ARGV[1]: n
+local n = tonumber(ARGV[1])
+local codes = redis.call('LRANGE', KEYS[1], 0, n - 1)
+redis.call('LTRIM', KEYS[1], n, -1)
+return codes
+</code></pre>
+<p><strong>补货并发与空池短路</strong>：券码制常见问题是 Redis LIST 空时频繁穿透数据库。应组合使用「空池标记（短 TTL）」「补货分布式锁」「MySQL 侧复合索引 + id 游标分页」，避免补货慢事务拖垮热路径。</p>
+<p><strong>脚本版本管理</strong>：生产环境建议把 SHA 载入或显式 <code>SCRIPT LOAD</code>，并对脚本变更做版本号控制，避免滚动发布期间混用旧脚本。</p>
+<h3 id="882-性能优化"><a class="header" href="#882-性能优化">8.8.2 性能优化</a></h3>
+<ul>
+<li><strong>热点 Key</strong>：本地缓存、随机副本读、网关限流、拆分活动维度字段。</li>
+<li><strong>批量落库</strong>：Kafka consumer 批量 <code>INSERT</code> 操作日志，减少 MySQL roundtrip。</li>
+<li><strong>预热</strong>：大促前把券码池批量灌入 Redis，避免冷启动补货抖动。</li>
+</ul>
+<p><strong>容量与峰值的经验法则（中型平台量级）</strong>：当峰值下单 QPS 相对日均放大两个数量级以上时，瓶颈往往不在「业务 if-else」，而在 <strong>Redis 热 Key、Kafka 消费滞后、MySQL 批量写入窗口</strong>。因此性能优化应优先围绕：热点分散、消息攒批、限流前置、以及「允许短暂最终一致」的产品与风控共识。</p>
+<p><strong>Redis 故障降级</strong>：Redis 不可用时，可短期切到 MySQL 行级锁扣减（<code>UPDATE ... WHERE available_stock &gt;= ?</code> 或 <code>SELECT ... FOR UPDATE</code>），并把实例标记为 degraded，待恢复后做一次 <strong>以 MySQL 为准的全量回填</strong>。降级期间的延迟与锁竞争上升是预期成本，需要在监控面板明确标注「降级模式」，避免误读 SLO。</p>
+<h3 id="883-监控告警"><a class="header" href="#883-监控告警">8.8.3 监控告警</a></h3>
+<p>建议至少监控：</p>
+<ul>
+<li><code>reserve/confirm/release</code> 成功率与 P99 延迟；</li>
+<li>Redis / MySQL 差异直方图；</li>
+<li>供应商调用错误率与熔断状态；</li>
+<li>对账修复次数与人工介入队列长度。</li>
+</ul>
+<p><strong>告警分级示例（可与 Prometheus 规则结合）</strong>：</p>
+<div class="table-wrapper"><table><thead><tr><th>级别</th><th>触发条件</th><th>响应目标</th></tr></thead><tbody>
+<tr><td>P0</td><td>任意 SKU 出现「已售大于总量」或恒等式破坏</td><td>立即停售 + 紧急修复</td></tr>
+<tr><td>P1</td><td>Redis / MySQL 可用量长期分叉且持续扩大</td><td>1 小时内定位根因</td></tr>
+<tr><td>P2</td><td>供应商同步延迟超阈值但未破坏交易</td><td>降级展示 + 供应商工单</td></tr>
+</tbody></table>
+</div>
+<hr />
+<h2 id="89-本章小结"><a class="header" href="#89-本章小结">8.9 本章小结</a></h2>
+<p>本章围绕「统一二维模型 + 策略实现 + 清晰系统边界」展开：</p>
+<ul>
+<li>用 <strong>ManagementType × UnitType</strong> 收敛多品类差异，并以矩阵图帮助团队建立共同语言。</li>
+<li>以 <strong>预占 / 确认 / 超时释放</strong> 为主轴设计扣减策略，并用时序图明确订单、库存、延时队列与支付的协作关系。</li>
+<li>在供应商集成上区分 <strong>实时查询与定时同步</strong> 的读路径差异，并强调降级与产品文案的一致性。</li>
+<li>在一致性上采用 <strong>Redis 同步 + MySQL 异步 + 对账修复</strong> 的组合拳，避免把 Redis 当作唯一账本。</li>
+<li>在工程层用 <strong>Go + Lua</strong> 落实热路径原子性，配合监控与补偿任务形成闭环。</li>
+</ul>
+<p><strong>落地检查清单（团队可用）</strong>：</p>
+<ol>
+<li>每个 SKU 是否都能解释其 <code>(management_type, unit_type, deduct_timing)</code>？</li>
+<li>创单路径是否以 <strong>Reserve 原子接口</strong> 为准，而不是仅 Check？</li>
+<li><code>order_id</code> 是否在 Reserve / Confirm / Release 全链路幂等？</li>
+<li>是否同时具备 <strong>TTL、延时队列、定时扫描</strong> 至少两道释放防线？</li>
+<li>是否具备 <strong>Redis / MySQL / 订单预占</strong> 三角对账与人工门闩？</li>
+<li>供应商异步确认是否有 <strong>映射表 + worker + 人工队列</strong>？</li>
+</ol>
+<p><strong>阅读建议</strong>：若读者刚完成第 7 章商品中心与第 6 章一致性章节，可按「配置初始化 → 创单预占 → 支付确认 → 对账修复」的顺序对照本章示意图走读一遍；再把自家品类的 <code>(management_type, unit_type)</code> 填入矩阵，通常能在工作坊中快速对齐产品与工程预期。建议同时准备 1～2 个真实故障案例作为讨论锚点，避免停留在抽象原则层面。</p>
+<p><strong>下一章预告</strong>：第 9 章将深入营销系统，重点讨论优惠计算与营销库存（券、活动、补贴）如何与商品库存协同，避免「算得便宜却卖超了」这类跨域问题。</p>
+<hr />
+<p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter7.html">上一章</a> | <a href="./chapter9.html">下一章</a></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../part2/supply/chapter7.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../../part2/supply/chapter9.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../part2/supply/chapter7.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../../part2/supply/chapter9.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

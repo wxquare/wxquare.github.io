@@ -1,0 +1,959 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第4章 架构质量保障 - 电商系统架构设计与实现</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="从领域建模到工程落地：面向中大型团队的实战指南">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../index.html">书籍介绍</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">第一部分：架构方法论与设计原则</li><li class="chapter-item expanded "><a href="../part1/chapter1.html"><strong aria-hidden="true">1.</strong> 第1章 架构设计三位一体</a></li><li class="chapter-item expanded "><a href="../part1/chapter2.html"><strong aria-hidden="true">2.</strong> 第2章 领域驱动设计战略篇</a></li><li class="chapter-item expanded "><a href="../part1/chapter3.html"><strong aria-hidden="true">3.</strong> 第3章 整洁代码与设计模式</a></li><li class="chapter-item expanded "><a href="../part1/chapter4.html" class="active"><strong aria-hidden="true">4.</strong> 第4章 架构质量保障</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">第二部分：电商核心系统设计</li><li class="chapter-item expanded "><a href="../part2/overview/chapter5.html"><strong aria-hidden="true">5.</strong> 第5章 电商系统全景图</a></li><li class="chapter-item expanded "><a href="../part2/overview/chapter6.html"><strong aria-hidden="true">6.</strong> 第6章 系统集成与一致性设计</a></li><li class="chapter-item expanded "><a href="../part2/supply/chapter7.html"><strong aria-hidden="true">7.</strong> 第7章 商品中心系统</a></li><li class="chapter-item expanded "><a href="../part2/supply/chapter8.html"><strong aria-hidden="true">8.</strong> 第8章 库存系统</a></li><li class="chapter-item expanded "><a href="../part2/supply/chapter9.html"><strong aria-hidden="true">9.</strong> 第9章 营销系统</a></li><li class="chapter-item expanded "><a href="../part2/supply/chapter10.html"><strong aria-hidden="true">10.</strong> 第10章 商品供给与运营管理</a></li><li class="chapter-item expanded "><a href="../part2/transaction/chapter11.html"><strong aria-hidden="true">11.</strong> 第11章 计价系统设计与实现</a></li><li class="chapter-item expanded "><a href="../part2/transaction/chapter12.html"><strong aria-hidden="true">12.</strong> 第12章 搜索与导购</a></li><li class="chapter-item expanded "><a href="../part2/transaction/chapter13.html"><strong aria-hidden="true">13.</strong> 第13章 购物车与结算</a></li><li class="chapter-item expanded "><a href="../part2/transaction/chapter14.html"><strong aria-hidden="true">14.</strong> 第14章 订单系统</a></li><li class="chapter-item expanded "><a href="../part2/transaction/chapter15.html"><strong aria-hidden="true">15.</strong> 第15章 支付系统</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">第三部分：综合案例与落地</li><li class="chapter-item expanded "><a href="../part3/chapter16.html"><strong aria-hidden="true">16.</strong> 第16章 B2B2C平台完整架构</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">附录</li><li class="chapter-item expanded "><a href="../appendix/tech-stack.html"><strong aria-hidden="true">17.</strong> 附录A 技术栈选型指南</a></li><li class="chapter-item expanded "><a href="../appendix/interview.html"><strong aria-hidden="true">18.</strong> 附录B 面试题精选</a></li><li class="chapter-item expanded "><a href="../appendix/integration.html"><strong aria-hidden="true">19.</strong> 附录C 系统集成模式速查表</a></li><li class="chapter-item expanded "><a href="../appendix/glossary.html"><strong aria-hidden="true">20.</strong> 附录D 术语表</a></li><li class="chapter-item expanded "><a href="../appendix/references.html"><strong aria-hidden="true">21.</strong> 附录E 参考资料</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">电商系统架构设计与实现</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter3.html">上一章</a> | <a href="./chapter5.html">下一部分：第5章</a></p>
+<hr />
+<h1 id="第4章-架构质量保障"><a class="header" href="#第4章-架构质量保障">第4章 架构质量保障</a></h1>
+<blockquote>
+<p>分阶段 Code Review：从架构决策到上线前检查的实战清单</p>
+</blockquote>
+<hr />
+<h2 id="41-为什么需要分阶段评审"><a class="header" href="#41-为什么需要分阶段评审">4.1 为什么需要分阶段评审</a></h2>
+<p>软件工程里有一句常被引用的话：<strong>好的代码是重构出来的，不是一次写出来的</strong>。初稿几乎必然欠打磨，真正可靠的质量来自持续、有纪律的迭代。Code Review 把这种迭代前移到合并之前——它把个人习惯拉平到团队标准，把隐性知识显性化，把缺陷拦截在扩散之前。</p>
+<p>然而，「随便看看」式的评审往往流于表面：有人只看风格，有人只看有没有明显 bug，有人被 diff 的噪声淹没。结果是：架构层面的失误晚到无法廉价修正，设计层面的模糊在代码里被放大成技术债，上线前才发现性能或可观测性缺口。</p>
+<h3 id="411-单次-pr-评审的认知陷阱"><a class="header" href="#411-单次-pr-评审的认知陷阱">4.1.1 单次 PR 评审的认知陷阱</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>陷阱</th><th>典型表现</th><th>后果</th></tr></thead><tbody>
+<tr><td><strong>问题域混杂</strong></td><td>在讨论 SQL 索引时顺便「拍板」限界上下文</td><td>决策缺少干系人与记录，后续反复</td></tr>
+<tr><td><strong>噪声淹没信号</strong></td><td>2000 行 MR 里找架构问题</td><td>高风险项被 style nitpick 挤出注意力</td></tr>
+<tr><td><strong>缺少外部脚手架</strong></td><td>依赖评审者当天状态</td><td>遗漏与团队经验强相关，不可复制</td></tr>
+</tbody></table>
+</div>
+<p><strong>Checklist 的价值</strong>在于降低认知负荷：在疲劳、时间压力或上下文切换时，仍有一个外部脚手架防止遗漏。它并不替代经验与判断力——遇到清单未覆盖的灰区，恰恰说明团队应该把新教训<strong>反哺</strong>进清单或 ADR（Architecture Decision Record）。</p>
+<h3 id="412-四阶段评审在正确时机问正确问题"><a class="header" href="#412-四阶段评审在正确时机问正确问题">4.1.2 四阶段评审：在正确时机问正确问题</a></h3>
+<p>本书建议按<strong>四个阶段</strong>组织评审，而不是在单次 PR 里眉毛胡子一把抓：</p>
+<ol>
+<li><strong>架构评审</strong>：新项目、新服务、新子域或大规模模块拆分——确认分层、边界、读写路径与技术选型。</li>
+<li><strong>设计评审</strong>：接口与模型冻结前——核对聚合、命令 / 查询、领域事件与模式选型是否与领域一致。</li>
+<li><strong>代码评审</strong>：日常 MR——用 SOLID、函数质量、命名、错误处理与依赖方向守住实现细节。</li>
+<li><strong>上线前检查</strong>：发布窗口——补齐性能、并发、可观测性、测试、回滚与文档。</li>
+</ol>
+<pre><code class="language-mermaid">flowchart LR
+  A[架构评审&lt;br/&gt;设计期] --&gt; B[设计评审&lt;br/&gt;详设期]
+  B --&gt; C[代码评审&lt;br/&gt;MR 期]
+  C --&gt; D[上线前检查&lt;br/&gt;合并期]
+  D --&gt; E[发布 / 观测 / 复盘]
+</code></pre>
+<h3 id="413-运作建议让清单活起来"><a class="header" href="#413-运作建议让清单活起来">4.1.3 运作建议：让清单「活」起来</a></h3>
+<ul>
+<li><strong>责任人明确</strong>：架构项由 Tech Lead / 架构负责人主评；设计项由领域 Owner 主评；PR 项由作者与至少一名熟悉该域的审阅者共担；上线前项与 SRE / On-call 对齐。</li>
+<li><strong>粒度分层</strong>：巨型 MR 可先要求作者附「自审清单」勾选说明，再在评论里对争议点逐条引用章节编号，避免无结构的「感觉不对」。</li>
+<li><strong>与工具链结合</strong>：复杂度、静态检查、依赖图、覆盖率门槛作为<strong>门禁</strong>；清单作为<strong>人工语义层</strong>补充（例如：覆盖率够了但测的是 happy path，仍需人眼过业务不变量）。</li>
+<li><strong>可追溯结论</strong>：架构与设计阶段的结论落在 ADR、RFC 或设计文档；Code Review 只核对「实现是否背离结论」。PR 中发现架构级问题应<strong>上升</strong>到设计讨论，而不是在局部 hack 里修掉症状。</li>
+</ul>
+<h4 id="团队实践案例"><a class="header" href="#团队实践案例">团队实践案例</a></h4>
+<p><strong>案例 1：架构评审会的标准流程</strong>（某电商团队实践）</p>
+<p><strong>时机</strong>：新服务立项、重大重构（影响 3+ 服务）、技术选型变更</p>
+<p><strong>参与者</strong>：</p>
+<ul>
+<li><strong>必需</strong>：Tech Lead、系统负责人、相关团队代表</li>
+<li><strong>可选</strong>：SRE（高可用关注）、DBA（存储关注）、安全（合规关注）</li>
+</ul>
+<p><strong>流程</strong>（60 分钟）：</p>
+<ol>
+<li><strong>背景介绍（5分钟）</strong>：系统负责人讲解业务背景、问题域、核心挑战</li>
+<li><strong>架构方案宣讲（15分钟）</strong>：分层、限界上下文、读写路径、技术选型</li>
+<li><strong>质疑与讨论（30分钟）</strong>：按 4.2 清单逐项检查，重点追问：
+<ul>
+<li>依赖方向是否违反？</li>
+<li>边界划分是否合理？（参考第 2 章战略设计）</li>
+<li>读写比假设是否量化？</li>
+<li>YAGNI 检查：是否过度设计？</li>
+</ul>
+</li>
+<li><strong>决策与记录（10分钟）</strong>：
+<ul>
+<li>通过 / 有条件通过 / 回炉重做</li>
+<li>记录到 ADR（Architecture Decision Record）</li>
+<li>指定 Follow-up 责任人</li>
+</ul>
+</li>
+</ol>
+<p><strong>输出示例</strong>（ADR-015）：</p>
+<pre><code class="language-markdown">## ADR-015: 订单域引入 CQRS
+
+### 状态
+已批准（2026-04-15）
+
+### 背景
+订单查询（订单列表、详情、搜索）QPS 是写入的 50 倍；
+当前写模型（含 JOIN）拖慢查询性能。
+
+### 决策
+引入 CQRS，读模型使用物化视图（MySQL）+ ES 索引。
+
+### 方案
+- 写模型：订单聚合 + Outbox 事件
+- 读模型：订阅 OrderPlaced / OrderPaid 事件，更新 order_view 表与 ES
+- 一致性：最终一致（可容忍 1-2 秒延迟）
+
+### 风险与对策
+- 风险：读写数据不一致
+- 对策：对账任务（每小时），差异告警
+
+### 评审结论
+通过，需在 Q2 上线前完成性能压测。
+</code></pre>
+<hr />
+<p><strong>案例 2：设计评审中发现聚合边界过大</strong></p>
+<p><strong>背景</strong>：订单团队在设计评审时提交了一个 <code>Order</code> 聚合，包含订单基础信息、明细、支付记录、履约记录、售后记录。</p>
+<p><strong>评审意见</strong>：</p>
+<ul>
+<li><strong>问题</strong>：聚合过大，任何字段变更都需要加载整个对象，性能差</li>
+<li><strong>追问</strong>：「支付记录」是否需要和订单在同一事务中修改？</li>
+<li><strong>结论</strong>：不需要——支付成功是外部事件触发，可以通过事件异步更新</li>
+</ul>
+<p><strong>重构方案</strong>：</p>
+<ul>
+<li><strong>Order 聚合</strong>：订单基础信息 + 明细（需要强一致性）</li>
+<li><strong>Payment 聚合</strong>：支付记录（独立生命周期）</li>
+<li><strong>Fulfillment 聚合</strong>：履约记录（独立生命周期）</li>
+<li><strong>集成</strong>：通过领域事件（<code>OrderPlaced</code>、<code>OrderPaid</code>）衔接</li>
+</ul>
+<p><strong>收益</strong>：订单聚合从平均 2KB 缩小到 500 字节，查询性能提升 4 倍。</p>
+<hr />
+<p><strong>案例 3：PR 评审中拦截的架构违规</strong></p>
+<p><strong>背景</strong>：开发者在 HTTP Handler 中直接写 SQL，绕过了应用层。</p>
+<p><strong>评审意见</strong>：</p>
+<pre><code class="language-go">// ❌ 违反依赖方向
+func HandleCreateOrder(w http.ResponseWriter, r *http.Request) {
+    db := mysql.Default() // Handler 直接依赖基础设施
+    _, _ = db.ExecContext(r.Context(), "INSERT INTO orders ...")
+}
+</code></pre>
+<p><strong>处理流程</strong>：</p>
+<ol>
+<li><strong>识别问题</strong>：违反 4.2.1 依赖方向检查</li>
+<li><strong>上升讨论</strong>：在 PR 中标记 <code>needs-architecture-review</code></li>
+<li><strong>解决方案</strong>：
+<ul>
+<li>定义应用层用例：<code>PlaceOrderUseCase</code></li>
+<li>定义领域层端口：<code>OrderRepository</code></li>
+<li>Handler 只依赖应用层</li>
+</ul>
+</li>
+<li><strong>后续</strong>：将此类问题补充到团队的「评审反模式」文档</li>
+</ol>
+<p><strong>经验</strong>：当 PR 中出现架构级违规时，不要在代码层面修修补补，而是<strong>叫停并重新设计</strong>。短期看延迟了交付，长期避免了技术债累积。</p>
+<h3 id="414-何时进入哪一阶段决策树"><a class="header" href="#414-何时进入哪一阶段决策树">4.1.4 何时进入哪一阶段：决策树</a></h3>
+<pre><code class="language-mermaid">flowchart TD
+  start([变更进入评审]) --&gt; q1{是否改变系统边界&lt;br/&gt;或核心数据流?}
+  q1 --&gt;|是| arch[必须先过架构评审&lt;br/&gt;必要时更新 ADR]
+  q1 --&gt;|否| q2{是否改变聚合 / 事件契约&lt;br/&gt;或对外 API 语义?}
+  q2 --&gt;|是| design[设计评审 + 契约评审]
+  q2 --&gt;|否| code[代码评审 MR]
+  arch --&gt; design
+  design --&gt; code
+  code --&gt; q3{是否进入发布窗口&lt;br/&gt;或影响关键路径 SLO?}
+  q3 --&gt;|是| ship[上线前检查]
+  q3 --&gt;|否| merge[合并后持续观测]
+  ship --&gt; merge
+</code></pre>
+<hr />
+<h2 id="42-架构评审阶段"><a class="header" href="#42-架构评审阶段">4.2 架构评审阶段</a></h2>
+<p><strong>适用时机</strong>：立项、新服务、新子域或大规模模块拆分。目标是在写大量代码之前，把<strong>分层、边界、一致性、读写特征与技术选型</strong>对齐。</p>
+<h3 id="421-分层结构检查"><a class="header" href="#421-分层结构检查">4.2.1 分层结构检查</a></h3>
+<p><strong>标准</strong>：是否明确定义 <strong>Domain / Application / Adapter / Infrastructure</strong>（或等价四层）？源代码依赖是否<strong>一律指向内层</strong>（Domain 为最内），外层通过接口向内依赖？</p>
+<p><strong>反例（违反依赖方向）</strong>：HTTP Handler 直接 <code>import</code> 具体 MySQL 驱动或 ORM 包，绕过应用服务与领域端口。</p>
+<pre><code class="language-go">// BAD: handler depends on concrete DB package
+import "github.com/org/repo/infra/mysql"
+
+func HandlePlaceOrder(w http.ResponseWriter, r *http.Request) {
+    db := mysql.Default()
+    _, _ = db.ExecContext(r.Context(), "INSERT INTO orders ...")
+}
+</code></pre>
+<p><strong>合规方向</strong>：Handler 只依赖应用层用例；持久化通过 <strong>Repository 接口</strong>在领域或应用边界声明，由 Infra 实现。</p>
+<pre><code class="language-go">// GOOD: handler -&gt; application port -&gt; domain; infra implements port
+type PlaceOrderHandler struct {
+    App *application.OrderService
+}
+
+func (h *PlaceOrderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+    cmd, err := decodePlaceOrder(r)
+    if err != nil {
+        http.Error(w, "bad request", http.StatusBadRequest)
+        return
+    }
+    if err := h.App.PlaceOrder(r.Context(), cmd); err != nil {
+        http.Error(w, err.Error(), http.StatusConflict)
+        return
+    }
+    w.WriteHeader(http.StatusCreated)
+}
+</code></pre>
+<div class="table-wrapper"><table><thead><tr><th>检查点</th><th>通过标准</th><th>常见反模式</th></tr></thead><tbody>
+<tr><td>依赖方向</td><td><code>domain</code> 不引用 <code>adapter</code> / <code>infra</code></td><td>Handler 内写 SQL</td></tr>
+<tr><td>端口归属</td><td>Repository 接口由内层拥有</td><td>接口定义在 <code>infra</code> 被 <code>domain</code> 引用</td></tr>
+<tr><td>组装根</td><td><code>main</code> / <code>cmd</code> 完成绑定</td><td>在领域 <code>New*</code> 里创建具体 DB</td></tr>
+</tbody></table>
+</div>
+<p><strong>评审追问</strong>：若团队暂时未引入完整四层，是否至少在包级约定 <strong>adapter 不得被 domain import</strong>，并在 CI 用 <code>grep</code> / 自定义 linter 守护？</p>
+<h3 id="422-限界上下文验证"><a class="header" href="#422-限界上下文验证">4.2.2 限界上下文验证</a></h3>
+<p><strong>标准</strong>：是否识别 <strong>核心域、支撑域、通用域</strong>？每个 BC 是否有清晰的 <strong>Ubiquitous Language</strong> 与对外契约（API / 事件），避免「一个大而全的领域模型」？</p>
+<p><strong>反例</strong>：订单子域与库存子域共用同一个 <code>Product</code> 结构体，字段含义在两边互相拉扯。</p>
+<pre><code class="language-go">// BAD: one struct serves two contexts with conflicting meanings
+type Product struct {
+    ID           string
+    Title        string
+    PriceCent    int64 // pricing in order context
+    WarehouseQty int   // stock in inventory context — coupling contexts
+}
+</code></pre>
+<p><strong>合规 sketch</strong>：不同 BC 使用不同模型与防腐层翻译；集成通过 API、消息或显式 ACL。</p>
+<pre><code class="language-go">// GOOD: separate models + explicit mapping at boundary
+type catalog.ProductView struct{ ID, Title string }
+
+type ordering.OrderLine struct {
+    ProductID     string
+    UnitPrice     Money
+    SnapshotTitle string
+}
+
+type inventory.StockUnit struct {
+    SKU    string
+    OnHand int
+}
+</code></pre>
+<div class="table-wrapper"><table><thead><tr><th>检查点</th><th>通过标准</th><th>评审问题</th></tr></thead><tbody>
+<tr><td>模型隔离</td><td>各 BC 有独立类型与映射层</td><td>是否共享「富模型」而非仅 ID？</td></tr>
+<tr><td>契约稳定</td><td>对外 API / 事件有版本与兼容性策略</td><td>破坏性变更如何灰度？</td></tr>
+<tr><td>语言一致</td><td><code>docs/glossary.md</code> 或等价物</td><td><code>Customer</code> 与 <code>User</code> 是否混用？</td></tr>
+</tbody></table>
+</div>
+<h3 id="423-读写路径分析"><a class="header" href="#423-读写路径分析">4.2.3 读写路径分析</a></h3>
+<p><strong>标准</strong>：是否量化 <strong>读写比</strong>、延迟与一致性要求？读路径若存在重 JOIN、宽表、复杂筛选，是否考虑 <strong>独立读模型 / 投影</strong>，而不是全部堆在写模型上？</p>
+<p><strong>反例</strong>：在命令路径（下单）同步执行多表 JOIN 报表查询，拖慢写入尾延迟。</p>
+<pre><code class="language-go">// BAD: command handler does heavy read for side UI
+func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCommand) error {
+    _ = s.db.QueryRowContext(ctx, `SELECT ... heavy join for dashboard ...`)
+    return s.persistOrder(ctx, cmd)
+}
+</code></pre>
+<pre><code class="language-go">// GOOD: split; async projection or query DB
+func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCommand) error {
+    if err := s.orders.Save(ctx, newOrderFrom(cmd)); err != nil {
+        return err
+    }
+    return s.outbox.Publish(ctx, OrderPlaced{OrderID: cmd.IdempotencyKey})
+}
+</code></pre>
+<div class="table-wrapper"><table><thead><tr><th>检查点</th><th>通过标准</th></tr></thead><tbody>
+<tr><td>写路径</td><td>只持久化命令所需最小一致性数据</td></tr>
+<tr><td>读路径</td><td>物化视图、搜索索引或专用查询服务</td></tr>
+<tr><td>指标</td><td>是否测量 <strong>p99 写延迟</strong> 与 <strong>读 QPS</strong></td></tr>
+</tbody></table>
+</div>
+<p><strong>评审追问</strong>：若读是写的两个数量级以上，独立读模型往往是经济解（与第 1 章 CQRS 呼应）。</p>
+<h3 id="424-技术选型审查"><a class="header" href="#424-技术选型审查">4.2.4 技术选型审查</a></h3>
+<p><strong>标准</strong>：存储与中间件是否与 <strong>访问模式</strong> 匹配（点查、范围扫、全文检索、图关系、流处理）？是否记录选型假设与回退方案？</p>
+<div class="table-wrapper"><table><thead><tr><th>维度</th><th>评审问题</th></tr></thead><tbody>
+<tr><td>数据量与热点</td><td>预估行数、分区键、热点键</td></tr>
+<tr><td>一致性</td><td>强一致 / 最终一致是否与业务容忍度一致</td></tr>
+<tr><td>运维成本</td><td>备份、多 AZ、升级窗口</td></tr>
+<tr><td>合规</td><td>留存周期、脱敏、跨地域</td></tr>
+</tbody></table>
+</div>
+<p><strong>反例</strong>：全文搜索需求用 <code>MySQL LIKE '%keyword%'</code> 扛流量，缺少倒排索引与相关性能力。</p>
+<h4 id="过度设计与-yagni纳入技术选型同一关口"><a class="header" href="#过度设计与-yagni纳入技术选型同一关口">过度设计与 YAGNI（纳入技术选型同一关口）</a></h4>
+<p><strong>标准</strong>：是否仅为<strong>已确认</strong>的变更点引入抽象？能否用更简单的模型先交付，再演化？</p>
+<p><strong>反例</strong>：典型 CRUD 后台强行上 <strong>DDD + CQRS + Event Sourcing</strong> 全家桶，团队无力维护投影与版本化事件。</p>
+<p><strong>评审追问</strong>：若去掉 Event Sourcing，业务是否仍成立？若答案是肯定的，则 ES 很可能是<strong>可选优化</strong>而非当前必需。CQRS 是否由<strong>观测到的读写不对称</strong>驱动，而不是由「流行架构标签」驱动？</p>
+<hr />
+<h2 id="43-设计评审阶段"><a class="header" href="#43-设计评审阶段">4.3 设计评审阶段</a></h2>
+<p><strong>适用时机</strong>：接口评审、领域模型评审、用例与事件清单冻结前。目标是让 <strong>战术设计</strong>（聚合、Repo、Command / Query、事件）与战略分层一致。</p>
+<h3 id="431-聚合边界检查"><a class="header" href="#431-聚合边界检查">4.3.1 聚合边界检查</a></h3>
+<p><strong>标准</strong>：<strong>一致性边界</strong>是否以聚合为单位设计？是否避免在单个事务中强行修改多个聚合根，除非有显式的领域规则与补偿策略？</p>
+<p><strong>反例</strong>：一个数据库事务内同时更新 <code>Order</code> 与 <code>Inventory</code> 聚合，绕过领域事件与最终一致性。</p>
+<pre><code class="language-go">// BAD: one transaction mutates two aggregates directly
+func SaveOrderAndDeductStock(ctx context.Context, tx *sql.Tx, o *Order, inv *Inventory) error {
+    if err := persistOrder(tx, o); err != nil {
+        return err
+    }
+    inv.Quantity -= o.LineItems[0].Qty
+    return persistInventory(tx, inv)
+}
+</code></pre>
+<div class="table-wrapper"><table><thead><tr><th>检查点</th><th>通过标准</th></tr></thead><tbody>
+<tr><td>聚合根入口</td><td>外部只能通过根修改状态</td></tr>
+<tr><td>一事务一根</td><td>跨聚合协作走事件 + 最终一致（或已文档化的 Saga）</td></tr>
+<tr><td>暴露集合</td><td>不返回可变内部 slice 引用</td></tr>
+</tbody></table>
+</div>
+<p><strong>聚合根识别补充</strong>：外部代码禁止绕过根直接改内部实体（如导出 <code>[]*OrderLine</code> 被外部改 <code>Qty</code>）。若根方法数量爆炸，区分是<strong>聚合过大</strong>还是缺少<strong>领域服务</strong>。</p>
+<p><strong>实体与值对象（本小节一并核对）</strong>：实体有稳定标识、状态变更走受控方法；值对象<strong>不可变</strong>、按值相等；<code>Money</code> 等禁止提供可变 setter，对外构造函数保证合法组合。</p>
+<h3 id="432-命令查询分离验证"><a class="header" href="#432-命令查询分离验证">4.3.2 命令查询分离验证</a></h3>
+<h4 id="command-设计"><a class="header" href="#command-设计">Command 设计</a></h4>
+<p><strong>标准</strong>：命令是否表达 <strong>业务意图</strong>（<code>PlaceOrder</code>、<code>CancelSubscription</code>），而不是贫血 CRUD（<code>UpdateOrder</code> + 任意 <code>map</code>）？</p>
+<pre><code class="language-go">// BAD: command is just a data bag
+type UpdateOrderCommand struct {
+    OrderID string
+    Patch   map[string]any
+}
+</code></pre>
+<pre><code class="language-go">// GOOD: explicit intent
+type PlaceOrderCommand struct {
+    CustomerID     string
+    Items          []OrderItemDTO
+    IdempotencyKey string
+}
+</code></pre>
+<div class="table-wrapper"><table><thead><tr><th>检查点</th><th>通过标准</th></tr></thead><tbody>
+<tr><td>语义</td><td>动词 + 业务名词，可映射到用例</td></tr>
+<tr><td>幂等</td><td>携带幂等键 / 乐观锁（如需要）</td></tr>
+<tr><td>失败语义</td><td>可映射为明确业务结果，而非一律 500</td></tr>
+</tbody></table>
+</div>
+<p><strong>Repository（与命令 / 查询配套检查）</strong>：接口定义在<strong>领域层</strong>；方法名表达业务需要（<code>FindActiveByCustomer</code>）而非表驱动；复杂筛选优先归入 <strong>Query 侧</strong>，避免 <code>Repository</code> 万能方法膨胀。</p>
+<h4 id="query-设计"><a class="header" href="#query-设计">Query 设计</a></h4>
+<p><strong>标准</strong>：查询是否<strong>直接返回 DTO / 读模型</strong>，<strong>不强行加载完整领域图</strong>？是否避免在查询路径上触发写模型副作用？</p>
+<pre><code class="language-go">// BAD: query returns rich aggregate for read-only UI
+func (s *QueryService) OrderForUI(ctx context.Context, id string) (*domain.Order, error) {
+    return s.orders.LoadFullGraph(ctx, id)
+}
+</code></pre>
+<pre><code class="language-go">// GOOD: dedicated read DTO
+type OrderSummaryDTO struct {
+    OrderID   string
+    Status    string
+    TotalCent int64
+    PlacedAt  time.Time
+}
+</code></pre>
+<h3 id="433-领域事件设计"><a class="header" href="#433-领域事件设计">4.3.3 领域事件设计</a></h3>
+<p><strong>标准</strong>：关键业务状态变更是否发布 <strong>领域事件</strong>？命名是否使用 <strong>过去式</strong>（<code>OrderPlaced</code>、<code>PaymentCaptured</code>）并携带必要上下文（版本、发生时间）？</p>
+<pre><code class="language-go">// BAD: imperative name
+type PlaceOrder struct{ OrderID string }
+
+// GOOD: past tense, domain vocabulary
+type OrderPlaced struct {
+    OrderID    string
+    OccurredAt time.Time
+    Version    int
+}
+</code></pre>
+<div class="table-wrapper"><table><thead><tr><th>检查点</th><th>通过标准</th></tr></thead><tbody>
+<tr><td>命名</td><td>过去式 + 领域词汇</td></tr>
+<tr><td>载荷</td><td>消费者演进所需字段（版本、关联 ID）</td></tr>
+<tr><td>投递</td><td>Outbox / 至少一次 + 消费者幂等</td></tr>
+</tbody></table>
+</div>
+<h3 id="434-模式选型审查"><a class="header" href="#434-模式选型审查">4.3.4 模式选型审查</a></h3>
+<p>详设阶段可快速对照下表，避免「每个地方都 if-else」或「每个地方都上框架」。</p>
+<div class="table-wrapper"><table><thead><tr><th>场景特征</th><th>推荐模式</th><th>说明</th></tr></thead><tbody>
+<tr><td>多步骤顺序流程</td><td>Pipeline（管道）</td><td>与第 3 章 Pipeline 呼应</td></tr>
+<tr><td>同一接口多种实现</td><td>策略模式</td><td>扩展点清晰</td></tr>
+<tr><td>频繁变化的业务规则</td><td>规则引擎 / 规则表驱动</td><td>需版本化与评审</td></tr>
+<tr><td>跨聚合协作</td><td>领域事件 + Outbox</td><td>与第 1 章 Outbox 呼应</td></tr>
+</tbody></table>
+</div>
+<p><strong>反例</strong>：全系统统一 <code>RuleEngine.Execute(ctx, ruleSetID, facts)</code>，但规则集无人版本化与评审，线上等于「可执行的配置漂移」。</p>
+<p><strong>合规</strong>：规则变更走 <strong>PR + 审计 + 影子流量</strong>；核心不变量仍保留在代码与单测中，引擎只编排<strong>可变的参数化策略</strong>。</p>
+<hr />
+<h2 id="44-代码评审阶段"><a class="header" href="#44-代码评审阶段">4.4 代码评审阶段</a></h2>
+<p><strong>适用时机</strong>：每次合并请求。把设计约束落到 <strong>Go 代码</strong>的可观察性质上。</p>
+<h3 id="441-solid-原则检查"><a class="header" href="#441-solid-原则检查">4.4.1 SOLID 原则检查</a></h3>
+<p>对每一项，用「一句检查问句」把握核心；争议点再用第 1 章分层与端口对齐。</p>
+<div class="table-wrapper"><table><thead><tr><th>原则</th><th>检查问句</th><th>典型反例</th><th>合规方向</th></tr></thead><tbody>
+<tr><td><strong>S</strong></td><td>该类型是否只有一个变化理由？</td><td><code>OrderService</code> 又发邮件又导 CSV</td><td>按职责拆服务</td></tr>
+<tr><td><strong>O</strong></td><td>扩展新行为是否无需改稳定路径？</td><td><code>switch payment</code> 无限增长</td><td><code>PaymentGateway</code> 接口 + 多实现</td></tr>
+<tr><td><strong>L</strong></td><td>实现是否可替换且不 surprise？</td><td><code>Charge</code> 静默成功</td><td>显式 Fake / 诚实错误</td></tr>
+<tr><td><strong>I</strong></td><td>客户端是否不被迫依赖不需要的方法？</td><td><code>Storage</code> 胖接口</td><td><code>Reader</code> / <code>Writer</code> 隔离</td></tr>
+<tr><td><strong>D</strong></td><td>高层是否依赖抽象？</td><td><code>NewApp</code> 内 <code>sql.Open</code></td><td>构造注入 <code>Repository</code></td></tr>
+</tbody></table>
+</div>
+<p><strong>DIP 延伸——包级依赖方向</strong>：<code>domain</code> 不 import <code>adapter</code> / <code>infra</code>；<code>application</code> 不直接引用 HTTP、ORM、消息 SDK；无循环依赖（必要时提取 <code>domain/sharedkernel</code> 最小类型）。<code>go list -deps</code> 或 IDE 依赖图可抽查。</p>
+<p><strong>LSP 反例 sketch</strong>：</p>
+<pre><code class="language-go">// BAD: implementation surprises caller
+type NoOpPaymentGateway struct{}
+func (NoOpPaymentGateway) Charge(ctx context.Context, amount int64) error {
+    return nil // silently skips payment
+}
+</code></pre>
+<h3 id="442-函数质量审查"><a class="header" href="#442-函数质量审查">4.4.2 函数质量审查</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>维度</th><th>阈值 / 标准</th><th>工具或手段</th></tr></thead><tbody>
+<tr><td>长度</td><td>单函数宜 &lt; 80 行</td><td>拆私有步骤或 Pipeline 阶段</td></tr>
+<tr><td>圈复杂度</td><td>&lt; 10（团队可校准）</td><td><code>golangci-lint</code> / <code>gocyclo</code></td></tr>
+<tr><td>嵌套深度</td><td>&lt; 3</td><td>Guard clause 早返回</td></tr>
+<tr><td>参数个数</td><td>&lt; 5</td><td>Options 结构体或 functional options</td></tr>
+</tbody></table>
+</div>
+<pre><code class="language-bash">gocyclo -over 10 ./...
+</code></pre>
+<pre><code class="language-go">// GOOD: named steps keep orchestration readable
+func (h *PlaceOrderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+    ctx := r.Context()
+    if err := h.ensureAuth(ctx, r); err != nil {
+        h.writeErr(w, err)
+        return
+    }
+    cmd, err := h.decode(r)
+    if err != nil {
+        h.writeErr(w, err)
+        return
+    }
+    if err := h.app.PlaceOrder(ctx, cmd); err != nil {
+        h.writeErr(w, err)
+        return
+    }
+    w.WriteHeader(http.StatusCreated)
+}
+</code></pre>
+<p><strong>评审追问</strong>：<code>context.Context</code> 是否作为 <strong>第一个参数</strong> 传递 I/O 边界函数，而不是塞进结构体字段隐式携带？</p>
+<h3 id="443-命名与可读性"><a class="header" href="#443-命名与可读性">4.4.3 命名与可读性</a></h3>
+<ol>
+<li><strong>变量 / 函数名反映业务术语</strong>：名称来自 <strong>Ubiquitous Language</strong>，而非数据库列名机械翻译。</li>
+<li><strong>团队内一致</strong>：同一概念只有一个词（<code>Customer</code> vs <code>User</code> 要治理）。</li>
+<li><strong>避免技术术语代替业务术语</strong>：不用 <code>SetStatus(1)</code>，而用 <code>MarkShipped()</code>。</li>
+</ol>
+<pre><code class="language-go">// BAD: magic status
+func (o *Order) SetStatus(s int) { o.status = s }
+
+// GOOD: business verb
+func (o *Order) MarkShipped(at time.Time) error {
+    if o.status != StatusPaid {
+        return ErrInvalidStateTransition
+    }
+    o.status = StatusShipped
+    o.shippedAt = at
+    return nil
+}
+</code></pre>
+<h3 id="444-错误处理验证"><a class="header" href="#444-错误处理验证">4.4.4 错误处理验证</a></h3>
+<ol>
+<li><strong>禁止静默忽略错误</strong>：是否存在 <code>_ = xxx</code> 或空白 <code>if err != nil { }</code>？</li>
+<li><strong>错误 wrap 携带上下文</strong>：跨层 <code>fmt.Errorf("place order: %w", err)</code>。</li>
+<li><strong>区分业务错误与系统错误</strong>：调用方能否区分「库存不足」与「应重试的基础设施错误」？</li>
+</ol>
+<pre><code class="language-go">var ErrOutOfStock = errors.New("out of stock")
+
+func (s *InventoryService) Reserve(ctx context.Context, sku string, qty int) error {
+    if qty &gt; available(sku) {
+        return fmt.Errorf("reserve %s: %w", sku, ErrOutOfStock)
+    }
+    return nil
+}
+</code></pre>
+<h4 id="ddd-战术与聚合不变量与错误语义一并核对"><a class="header" href="#ddd-战术与聚合不变量与错误语义一并核对">DDD 战术与聚合不变量（与错误语义一并核对）</a></h4>
+<p><strong>聚合不变量 sketch</strong>：</p>
+<pre><code class="language-go">func (o *Order) AddLine(sku string, qty int, unitCent int64) error {
+    if qty &lt;= 0 {
+        return ErrInvalidQty
+    }
+    if o.status != StatusDraft {
+        return ErrOrderNotEditable
+    }
+    lineTotal := unitCent * int64(qty)
+    if lineTotal &lt; 0 {
+        return ErrOverflow
+    }
+    o.lines = append(o.lines, OrderLine{SKU: sku, Qty: qty, UnitCent: unitCent})
+    o.totalCent += lineTotal
+    return nil
+}
+</code></pre>
+<hr />
+<h2 id="45-上线前检查"><a class="header" href="#45-上线前检查">4.5 上线前检查</a></h2>
+<p><strong>适用时机</strong>：发布分支、灰度前、重大重构合并前。与功能完成度无关的「生产就绪」项在此收敛。</p>
+<h3 id="451-性能与并发"><a class="header" href="#451-性能与并发">4.5.1 性能与并发</a></h3>
+<p><strong>性能</strong>：</p>
+<ul>
+<li>关键路径是否有 <strong>benchmark</strong> 或压测基线？</li>
+<li>是否关注 <strong>alloc/op</strong>、GC 停顿、锁竞争（<code>mutex</code> profile）？</li>
+<li>异步路径是否避免<strong>无界队列</strong>导致内存膨胀？</li>
+</ul>
+<pre><code class="language-go">func BenchmarkPlaceOrder(b *testing.B) {
+    b.ReportAllocs()
+    for i := 0; i &lt; b.N; i++ {
+        // exercise hot path
+    }
+}
+</code></pre>
+<p><strong>并发安全</strong>：</p>
+<pre><code class="language-go">// BAD: unsynchronized map writes
+var cache = map[string]int{}
+func Set(k string, v int) { go func() { cache[k] = v }() }
+
+// GOOD: mutex or single-owner goroutine
+type SafeCache struct {
+    mu sync.RWMutex
+    m  map[string]int
+}
+</code></pre>
+<div class="table-wrapper"><table><thead><tr><th>检查点</th><th>通过标准</th></tr></thead><tbody>
+<tr><td>数据竞争</td><td><code>go test -race</code> 纳入 CI 或发布前门禁</td></tr>
+<tr><td>泄漏</td><td>长测采样 <code>NumGoroutine</code>；channel 不阻塞在默认分支</td></tr>
+<tr><td>锁内 I/O</td><td>避免在持锁时调用慢外部依赖</td></tr>
+</tbody></table>
+</div>
+<h3 id="452-可观测性"><a class="header" href="#452-可观测性">4.5.2 可观测性</a></h3>
+<p><strong>标准</strong>：<strong>metrics</strong>（RED / USE）、<strong>trace</strong>（关键 span）、<strong>结构化日志</strong>（<code>request_id</code>、<code>order_id</code> 等关联字段）。</p>
+<pre><code class="language-go">logger.Info("order_placed",
+    "order_id", orderID,
+    "customer_id", customerID,
+    "duration_ms", elapsed.Milliseconds(),
+)
+</code></pre>
+<div class="table-wrapper"><table><thead><tr><th>检查点</th><th>通过标准</th></tr></thead><tbody>
+<tr><td>日志</td><td>键值字段可查询，而非仅拼接长句</td></tr>
+<tr><td>链路</td><td>跨服务传播 trace 上下文</td></tr>
+<tr><td>SLO</td><td>新路径有指标与告警阈值</td></tr>
+</tbody></table>
+</div>
+<h3 id="453-测试覆盖"><a class="header" href="#453-测试覆盖">4.5.3 测试覆盖</a></h3>
+<p><strong>标准</strong>：核心业务规则覆盖率按团队约定（例如 <strong>&gt; 80%</strong>）；<strong>集成测试</strong>覆盖仓储、消息、外部 HTTP 的 fake / 容器。</p>
+<div class="table-wrapper"><table><thead><tr><th>检查点</th><th>通过标准</th></tr></thead><tbody>
+<tr><td>边界</td><td>表格驱动覆盖错误路径</td></tr>
+<tr><td>Flaky</td><td>修复或隔离，避免 <code>t.Skip</code> 永久化</td></tr>
+<tr><td>语义</td><td>覆盖不变量，而非仅「能跑通」</td></tr>
+</tbody></table>
+</div>
+<pre><code class="language-go">func TestPlaceOrder_OutOfStock(t *testing.T) {
+    t.Parallel()
+    // arrange: 0 stock -&gt; expect ErrOutOfStock
+}
+</code></pre>
+<h3 id="454-回滚方案"><a class="header" href="#454-回滚方案">4.5.4 回滚方案</a></h3>
+<p><strong>标准</strong>：<strong>feature flag</strong> 或配置开关；<strong>数据库迁移</strong>可回滚或具备向前兼容的双写 / 双读；事件 schema <strong>向后兼容</strong>或双写新字段。</p>
+<h4 id="回滚方案检查清单"><a class="header" href="#回滚方案检查清单">回滚方案检查清单</a></h4>
+<div class="table-wrapper"><table><thead><tr><th>维度</th><th>检查项</th><th>通过标准</th></tr></thead><tbody>
+<tr><td><strong>代码回滚</strong></td><td>Feature Flag</td><td>关键功能可通过配置开关禁用，无需重新发布</td></tr>
+<tr><td><strong>数据库迁移</strong></td><td>双向脚本</td><td>UP/DOWN 脚本齐全，测试过回滚流程</td></tr>
+<tr><td><strong>事件 Schema</strong></td><td>向后兼容</td><td>新增字段可选，旧消费者不受影响</td></tr>
+<tr><td><strong>API 兼容性</strong></td><td>版本策略</td><td>新版本 API 与旧版本共存，客户端可选升级</td></tr>
+<tr><td><strong>配置变更</strong></td><td>灰度发布</td><td>配置分批推送，每批观察指标后再继续</td></tr>
+<tr><td><strong>依赖服务</strong></td><td>降级预案</td><td>下游服务故障时，上游可降级（返回默认值/缓存）</td></tr>
+</tbody></table>
+</div>
+<h4 id="feature-flag-实践"><a class="header" href="#feature-flag-实践">Feature Flag 实践</a></h4>
+<pre><code class="language-go">// 使用 Feature Flag 控制新功能
+package order
+
+import "context"
+
+type FeatureFlags interface {
+    IsEnabled(ctx context.Context, feature string) bool
+}
+
+func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCommand) error {
+    // 旧逻辑
+    if err := s.validateBasic(cmd); err != nil {
+        return err
+    }
+    
+    // 新功能：风控检查（可通过 Feature Flag 关闭）
+    if s.flags.IsEnabled(ctx, "order.fraud_detection") {
+        if err := s.fraudDetector.Check(ctx, cmd); err != nil {
+            return err
+        }
+    }
+    
+    return s.repo.Save(ctx, newOrderFrom(cmd))
+}
+</code></pre>
+<p><strong>收益</strong>：</p>
+<ul>
+<li>新功能上线后发现问题，可立即关闭 Feature Flag，无需回滚代码</li>
+<li>灰度发布：先对 5% 用户开启，观察指标后再逐步放量</li>
+<li>A/B 测试：对不同用户群开启不同策略，对比效果</li>
+</ul>
+<hr />
+<p><strong>文档与运维</strong>：架构变更（新 BC、事件契约、SLA）同步到 <strong>README / ADR / 运维手册</strong>；On-call 知道降级、重放消息、解读关键告警；新人能仅凭文档拉起本地依赖（<code>docker-compose</code> / <code>make</code> 目标）。</p>
+<p><strong>运维文档模板</strong>：</p>
+<pre><code class="language-markdown">## 服务运维手册
+
+### 关键告警
+- `order_create_latency_p99 &gt; 500ms`：订单创建延迟过高
+  - **可能原因**：数据库慢查询、库存服务超时
+  - **处理步骤**：
+    1. 查看 Grafana 面板确认瓶颈（DB/库存/计价）
+    2. 若库存服务超时，执行降级：`kubectl set env deployment/order INVENTORY_FALLBACK=true`
+    3. 通知库存团队排查
+
+### 降级开关
+- `INVENTORY_FALLBACK=true`：库存查询降级，使用本地缓存
+- `FRAUD_DETECTION=false`：关闭风控检查（紧急情况）
+- `PROMOTION_ENABLED=false`：关闭营销试算（性能问题）
+
+### 回滚流程
+1. 确认回滚目标版本：`kubectl rollout history deployment/order`
+2. 执行回滚：`kubectl rollout undo deployment/order --to-revision=N`
+3. 观察监控：关注错误率、延迟、上下游调用
+4. 数据库回滚（如需要）：执行 DOWN 脚本
+</code></pre>
+<hr />
+<h2 id="46-本章小结"><a class="header" href="#46-本章小结">4.6 本章小结</a></h2>
+<h3 id="461-全阶段总览表评审清单"><a class="header" href="#461-全阶段总览表评审清单">4.6.1 全阶段总览表（评审清单）</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>阶段</th><th>必查项（高杠杆）</th></tr></thead><tbody>
+<tr><td>架构评审</td><td>依赖向内、BC 划分、聚合边界、读写评估、YAGNI</td></tr>
+<tr><td>设计评审</td><td>聚合根入口、值对象不可变、Repo 在领域层、Command 意图、领域事件</td></tr>
+<tr><td>代码评审</td><td>SRP、函数规模与复杂度、业务命名、错误 wrap、依赖方向</td></tr>
+<tr><td>上线前</td><td>Benchmark / 压测证据、并发与 race、可观测性、测试与集成、回滚与文档</td></tr>
+</tbody></table>
+</div>
+<h3 id="462-mr-描述区模板可复制"><a class="header" href="#462-mr-描述区模板可复制">4.6.2 MR 描述区模板（可复制）</a></h3>
+<pre><code class="language-markdown">## Self review (author)
+- [ ] 4.4 SOLID: 新类型职责与扩展点合理
+- [ ] 4.4 函数长度 / 复杂度 / 嵌套 / 参数个数
+- [ ] 4.4 命名与 glossary 一致
+- [ ] 4.4 错误 wrap，无静默 `_ = err`
+- [ ] 4.4 依赖方向与 DDD 战术（不变量、VO）
+
+## Release readiness (if applicable)
+- [ ] 4.5 Benchmark 或压测链接
+- [ ] 4.5 并发 / race 检查
+- [ ] 4.5 Metrics + logs + traces
+- [ ] 4.5 核心规则测试与集成测试
+- [ ] 4.5 回滚 / 迁移 / 双写方案
+- [ ] 4.5 文档 / ADR 更新
+
+## Design links
+- ADR / RFC: ...
+</code></pre>
+<h3 id="463-实战案例与反模式"><a class="header" href="#463-实战案例与反模式">4.6.3 实战案例与反模式</a></h3>
+<h4 id="案例-a库存预占接口顺手改了聚合边界设计评审失效"><a class="header" href="#案例-a库存预占接口顺手改了聚合边界设计评审失效">案例 A：库存预占接口「顺手」改了聚合边界（设计评审失效）</a></h4>
+<p><strong>背景</strong>：结算服务在「创单前预占」需求中，直接在订单聚合的事务内更新库存行，图省事。</p>
+<p><strong>症状</strong>：大促锁竞争升高；库存与订单发布节奏耦合，回滚困难。</p>
+<p><strong>处理</strong>：设计评审阶段强制改为 <strong>OrderPlaced / ReserveStockRequested</strong> 事件驱动或显式 Saga；代码评审拦截「双聚合同一事务」。</p>
+<h4 id="案例-b营销规则-json-线上漂移模式选型--运维失守"><a class="header" href="#案例-b营销规则-json-线上漂移模式选型--运维失守">案例 B：营销规则 JSON 线上漂移（模式选型 + 运维失守）</a></h4>
+<p><strong>背景</strong>：规则引擎读取未版本化的 JSON，运营后台可直接保存到生产。</p>
+<p><strong>症状</strong>：线上行为与测试环境不一致，难以复盘。</p>
+<p><strong>处理</strong>：规则集 <strong>版本号 + PR 审核 + 审计日志</strong>；核心不变量仍在单测与代码中；影子流量验证。</p>
+<h4 id="案例-chandler-直连-db架构评审后置到-pr"><a class="header" href="#案例-chandler-直连-db架构评审后置到-pr">案例 C：Handler 直连 DB（架构评审后置到 PR）</a></h4>
+<p><strong>背景</strong>：原型代码直接进入主干，后续 MR 只在 SQL 层修修补补。</p>
+<p><strong>症状</strong>：领域规则散落在 SQL；单测必须起库。</p>
+<p><strong>处理</strong>：上升架构评审，引入 <strong>端口 + 用例</strong>；本 MR 仅允许「垂直切片」式重构到合规结构，不接受继续堆 SQL。</p>
+<hr />
+<h4 id="案例-d缺少性能测试导致的线上故障"><a class="header" href="#案例-d缺少性能测试导致的线上故障">案例 D：缺少性能测试导致的线上故障</a></h4>
+<p><strong>背景</strong>：订单服务上线了「批量取消」功能，代码评审通过，但未做性能测试。</p>
+<p><strong>线上故障</strong>：</p>
+<ul>
+<li>运营同学一次性取消 5000 个订单</li>
+<li>服务在循环中逐个发送取消事件到 Kafka，耗时 30 秒</li>
+<li>期间所有订单查询请求超时（共享同一个 goroutine 池）</li>
+<li>用户投诉量激增</li>
+</ul>
+<p><strong>根因分析</strong>：</p>
+<ul>
+<li><strong>代码评审通过</strong>：功能逻辑正确，无明显bug</li>
+<li><strong>缺失上线前检查</strong>：没有性能测试，没有评估「批量场景下的资源占用」</li>
+</ul>
+<p><strong>改进方案</strong>：</p>
+<ol>
+<li>补充 4.5.1 性能检查：批量操作必须有 Benchmark</li>
+<li>异步化：批量取消改为后台任务，分批处理（每批 100 个）</li>
+<li>限流：批量接口加频控，防止运营误操作</li>
+</ol>
+<p><strong>经验</strong>：代码评审通过≠生产就绪。上线前检查（4.5）是最后一道防线，必须覆盖性能、并发、可观测性。</p>
+<hr />
+<h4 id="案例-e聚合不变量在-pr-中被破坏"><a class="header" href="#案例-e聚合不变量在-pr-中被破坏">案例 E：聚合不变量在 PR 中被破坏</a></h4>
+<p><strong>背景</strong>：订单聚合有不变量「总价 = 各明细之和」，某次 PR 为了修复 bug，直接修改了 <code>TotalAmount</code> 字段。</p>
+<p><strong>代码变更</strong>：</p>
+<pre><code class="language-go">// BAD: 直接修改总价，破坏不变量
+func (o *Order) ApplyDiscount(amount int64) {
+    o.TotalAmount -= amount // ❌ 绕过了明细，破坏一致性
+}
+</code></pre>
+<p><strong>后果</strong>：</p>
+<ul>
+<li>订单详情页显示的小计与总价不一致</li>
+<li>财务对账时发现差异，追溯到这次变更</li>
+</ul>
+<p><strong>评审反思</strong>：</p>
+<ul>
+<li><strong>设计评审阶段</strong>应明确聚合不变量（4.3.1）</li>
+<li><strong>代码评审阶段</strong>应检查是否有直接修改聚合字段的行为</li>
+<li><strong>测试</strong>应覆盖不变量（如 <code>assert(order.Total == sum(order.Lines))</code>）</li>
+</ul>
+<p><strong>正确方案</strong>：</p>
+<pre><code class="language-go">// GOOD: 通过明细修改，自动更新总价
+func (o *Order) ApplyDiscountToLine(lineIndex int, discountAmount int64) error {
+    if lineIndex &gt;= len(o.Lines) {
+        return ErrInvalidLineIndex
+    }
+    o.Lines[lineIndex].UnitPrice -= discountAmount
+    o.recalculateTotal() // 重新计算总价，保证不变量
+    return nil
+}
+
+func (o *Order) recalculateTotal() {
+    total := int64(0)
+    for _, line := range o.Lines {
+        total += line.UnitPrice * int64(line.Qty)
+    }
+    o.TotalAmount = total
+}
+</code></pre>
+<hr />
+<h4 id="案例-f缺少回滚方案的数据库迁移"><a class="header" href="#案例-f缺少回滚方案的数据库迁移">案例 F：缺少回滚方案的数据库迁移</a></h4>
+<p><strong>背景</strong>：库存服务需要新增字段 <code>reserved_qty</code>，开发者提交了 PR 包含数据库迁移脚本。</p>
+<p><strong>问题</strong>：</p>
+<ul>
+<li><strong>只有 UP 脚本</strong>，没有 DOWN 脚本（无法回滚）</li>
+<li><strong>没有双写策略</strong>：新代码直接依赖新字段，回滚时会报错</li>
+</ul>
+<p><strong>线上故障</strong>：</p>
+<ul>
+<li>新版本上线后发现性能问题，需要回滚</li>
+<li>回滚代码后，服务启动失败（读取不存在的字段）</li>
+<li>被迫紧急修复：手动删除字段、重新上线旧版本</li>
+</ul>
+<p><strong>改进方案</strong>（4.5.4 回滚方案）：</p>
+<ol>
+<li><strong>三阶段迁移</strong>：
+<ul>
+<li>阶段 1：加字段，代码双写（写新旧两个字段），读旧字段</li>
+<li>阶段 2：代码切换为读新字段</li>
+<li>阶段 3：删除旧字段</li>
+</ul>
+</li>
+<li><strong>每阶段可独立回滚</strong>：任何一步出问题都能回到上一阶段</li>
+<li><strong>UP/DOWN 脚本齐全</strong>：迁移工具（如 migrate）强制要求两个方向</li>
+</ol>
+<p><strong>评审清单补充</strong>：</p>
+<ul>
+<li><input disabled="" type="checkbox"/>
+数据库迁移是否有 DOWN 脚本？</li>
+<li><input disabled="" type="checkbox"/>
+新字段是否通过双写 / 双读策略引入？</li>
+<li><input disabled="" type="checkbox"/>
+回滚后服务是否仍能正常启动？</li>
+</ul>
+<h3 id="464-按角色的最小阅读路径"><a class="header" href="#464-按角色的最小阅读路径">4.6.4 按角色的最小阅读路径</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>角色</th><th>建议优先阅读</th></tr></thead><tbody>
+<tr><td>作者（提 MR）</td><td>4.4 全文 + 4.6.2 模板</td></tr>
+<tr><td>审阅者（同域）</td><td>4.4.3–4.4.5 + 与 4.3 冲突点</td></tr>
+<tr><td>Tech Lead（新模块）</td><td>4.2、4.3 + 4.5</td></tr>
+<tr><td>SRE / On-call</td><td>4.5 + 事件与迁移说明</td></tr>
+</tbody></table>
+</div>
+<h3 id="465-核心要点"><a class="header" href="#465-核心要点">4.6.5 核心要点</a></h3>
+<p>系统化的 Code Review 不是挑剔，而是<strong>把重构前移到成本最低的阶段</strong>。按 <strong>架构 → 设计 → 代码 → 上线前</strong> 四段清单推进，并与第 1 章方法论、第 2 章战略设计、第 3 章战术实现交叉引用，团队可以在一致语言下讨论分层、边界与实现细节。建议将 <strong>4.6.1</strong> 嵌入 MR 模板，并在复盘时根据失效案例增补<strong>第 21 条</strong>——最好的 Checklist 永远是活文档。</p>
+<hr />
+<p><strong>导航</strong>：<a href="./TOC.html">返回目录</a> | <a href="./chapter3.html">上一章</a> | <a href="./index.html">书籍主页</a> | <a href="./chapter5.html">下一部分：第5章</a></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part1/chapter3.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../part2/overview/chapter5.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part1/chapter3.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../part2/overview/chapter5.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
