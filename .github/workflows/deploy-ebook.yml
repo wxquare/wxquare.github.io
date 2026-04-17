@@ -1,0 +1,37 @@
+name: Deploy eCommerce Book
+
+on:
+  push:
+    branches: [ hexo ]
+    paths:
+      - 'ecommerce-book/**'
+      - '.github/workflows/deploy-ebook.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup mdBook
+      uses: peaceiris/actions-mdbook@v1
+      with:
+        mdbook-version: 'latest'
+    
+    - name: Build book
+      run: |
+        cd ecommerce-book
+        mdbook build
+    
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./ecommerce-book/book
+        destination_dir: ecommerce-book
+        keep_files: true
