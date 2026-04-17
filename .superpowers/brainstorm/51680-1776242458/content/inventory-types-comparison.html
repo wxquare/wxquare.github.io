@@ -1,0 +1,239 @@
+<h2>库存系统扩展：商品库存 vs 营销库存</h2>
+<p class="subtitle">让我们先对齐概念和系统边界</p>
+
+<div class="section">
+  <h3>核心概念对比</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">商品库存 (Product Inventory)</div>
+      <div class="mockup-body">
+        <div class="label">定义</div>
+        <p>商品的实物库存，表示可售卖的商品数量</p>
+        
+        <div class="label">特点</div>
+        <ul>
+          <li>物理实体对应（如：手机、衣服）</li>
+          <li>有限资源，需要采购补货</li>
+          <li>扣减后无法恢复（售出即消耗）</li>
+          <li>仓储成本高</li>
+        </ul>
+        
+        <div class="label">管理维度</div>
+        <ul>
+          <li>SKU 级别</li>
+          <li>仓库/库位</li>
+          <li>批次号/序列号</li>
+          <li>供应商</li>
+        </ul>
+        
+        <div class="label">当前文章覆盖</div>
+        <p>✅ 已详细说明（管理类型、单位类型、策略模式）</p>
+      </div>
+    </div>
+    
+    <div class="mockup">
+      <div class="mockup-header">营销库存 (Campaign Inventory)</div>
+      <div class="mockup-body">
+        <div class="label">定义</div>
+        <p>营销活动中的虚拟库存配额，用于限制活动参与数量</p>
+        
+        <div class="label">特点</div>
+        <ul>
+          <li>虚拟概念（如：优惠券名额、秒杀配额）</li>
+          <li>预算驱动，可以动态调整</li>
+          <li>可配置补充规则（按时段、按条件）</li>
+          <li>成本低，主要是营销预算</li>
+        </ul>
+        
+        <div class="label">管理维度</div>
+        <ul>
+          <li>活动 ID</li>
+          <li>商品/SKU</li>
+          <li>用户维度（总量、单用户限额）</li>
+          <li>时间维度（按天、按时段）</li>
+        </ul>
+        
+        <div class="label">当前文章覆盖</div>
+        <p>❌ 需要补充</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 3rem;">
+  <h3>系统交互边界草图</h3>
+  <div class="mockup">
+    <div class="mockup-header">库存系统与订单系统的交互流程</div>
+    <div class="mockup-body" style="font-family: monospace; font-size: 14px; line-height: 1.8;">
+      <pre style="margin: 0; white-space: pre;">
+┌─────────────┐          ┌──────────────┐          ┌─────────────┐
+│  用户下单   │          │  订单系统    │          │  库存系统   │
+└──────┬──────┘          └──────┬───────┘          └──────┬──────┘
+       │                         │                         │
+       │  1. 创建订单            │                         │
+       ├────────────────────────>│                         │
+       │                         │                         │
+       │                         │  2. 校验库存            │
+       │                         ├────────────────────────>│
+       │                         │<────────────────────────┤
+       │                         │  3. 返回库存状态        │
+       │                         │                         │
+       │                         │  4. 预扣库存 (Book)    │
+       │                         ├────────────────────────>│
+       │                         │<────────────────────────┤
+       │                         │  5. 预扣成功/失败       │
+       │                         │                         │
+       │  6. 去支付              │                         │
+       │<────────────────────────┤                         │
+       │                         │                         │
+       │  7a. 支付成功           │                         │
+       ├────────────────────────>│                         │
+       │                         │  8a. 确认扣减 (Sell)   │
+       │                         ├────────────────────────>│
+       │                         │                         │
+       │  7b. 支付失败/超时      │                         │
+       ├────────────────────────>│                         │
+       │                         │  8b. 释放库存 (Unbook) │
+       │                         ├────────────────────────>│
+       │                         │                         │
+       │  9. 取消订单            │                         │
+       ├────────────────────────>│                         │
+       │                         │  10. 退还库存 (Refund) │
+       │                         ├────────────────────────>│
+
+<strong>关键边界问题：</strong>
+• 谁负责库存校验逻辑？（订单侧 or 库存侧）
+• 预扣超时时间由谁管理？
+• 营销库存和商品库存是一起扣还是分开扣？
+• 扣减失败时的重试策略在哪一侧？
+      </pre>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 3rem;">
+  <h3>需要明确的设计方向</h3>
+  <p class="subtitle">在开始扩写前，让我们先对齐几个关键问题</p>
+  
+  <div class="options" data-multiselect>
+    <div class="option" data-choice="unified" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>统一库存模型</h3>
+        <p>商品库存和营销库存使用统一的数据结构和策略接口，通过配置区分</p>
+        <div class="pros-cons">
+          <div class="pros">
+            <h4>优势</h4>
+            <ul>
+              <li>代码复用性高</li>
+              <li>维护成本低</li>
+              <li>易于扩展新类型</li>
+            </ul>
+          </div>
+          <div class="cons">
+            <h4>劣势</h4>
+            <ul>
+              <li>抽象层可能过重</li>
+              <li>营销特性（如时段限制）可能受限</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="option" data-choice="separate" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>独立库存模型</h3>
+        <p>商品库存和营销库存分别设计，各自优化</p>
+        <div class="pros-cons">
+          <div class="pros">
+            <h4>优势</h4>
+            <ul>
+              <li>各自针对性优化</li>
+              <li>营销库存可以有更灵活的规则</li>
+              <li>解耦，互不影响</li>
+            </ul>
+          </div>
+          <div class="cons">
+            <h4>劣势</h4>
+            <ul>
+              <li>代码重复</li>
+              <li>需要在订单侧协调两套扣减逻辑</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="option" data-choice="hybrid" onclick="toggleSelect(this)">
+      <div class="letter">C</div>
+      <div class="content">
+        <h3>混合模型</h3>
+        <p>底层操作统一（Redis/MySQL），上层服务分离（ProductInventoryService / CampaignInventoryService）</p>
+        <div class="pros-cons">
+          <div class="pros">
+            <h4>优势</h4>
+            <ul>
+              <li>平衡了复用和灵活性</li>
+              <li>基础设施共享</li>
+              <li>业务逻辑清晰</li>
+            </ul>
+          </div>
+          <div class="cons">
+            <h4>劣势</h4>
+            <ul>
+              <li>需要设计合理的分层</li>
+              <li>中等复杂度</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem;">
+  <h3>系统交互边界的设计偏好</h3>
+  
+  <div class="options">
+    <div class="option" data-choice="inventory-side" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>库存系统主导</h3>
+        <p>库存系统提供完整的校验、扣减、回滚 API，订单系统作为调用方</p>
+        <ul>
+          <li>库存规则由库存系统封装</li>
+          <li>超时、重试由库存系统处理</li>
+          <li>订单系统更轻量</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="option" data-choice="order-side" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>订单系统编排</h3>
+        <p>订单系统负责业务流程编排，库存系统只提供原子操作</p>
+        <ul>
+          <li>订单系统控制扣减时机</li>
+          <li>Saga 模式在订单侧实现</li>
+          <li>库存系统更纯粹（只管数据）</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="option" data-choice="event-driven" onclick="toggleSelect(this)">
+      <div class="letter">C</div>
+      <div class="content">
+        <h3>事件驱动协作</h3>
+        <p>通过 Kafka 事件解耦，各系统监听事件并响应</p>
+        <ul>
+          <li>异步解耦</li>
+          <li>易于扩展（如营销系统独立监听）</li>
+          <li>最终一致性</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

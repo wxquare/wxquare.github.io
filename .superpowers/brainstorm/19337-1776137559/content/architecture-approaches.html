@@ -1,0 +1,119 @@
+<h2>三种架构方案对比</h2>
+<p class="subtitle">基于你的业务场景（B2B2C聚合平台，日常200万单，大促1000万单，50+供应商）</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>经典DDD分层架构 <span style="color: #666; font-size: 0.9em;">（稳健型）</span></h3>
+      <div style="margin: 12px 0;">
+        <strong>核心思想：</strong>按领域垂直拆分 + 统一供应商适配层
+      </div>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>优势</h4>
+          <ul>
+            <li>架构清晰，团队协作边界明确</li>
+            <li>技术成熟，风险低，适合快速落地</li>
+            <li>供应商适配层统一管理，易于扩展</li>
+            <li>强一致性保证（Saga补偿模式）</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>劣势</h4>
+          <ul>
+            <li>服务间同步调用链路长，性能有瓶颈</li>
+            <li>大促时需要全链路扩容，成本较高</li>
+            <li>供应商故障时影响范围较大</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top: 12px; padding: 10px; background: #f0f9ff; border-radius: 4px; font-size: 0.9em;">
+        <strong>适用场景：</strong>团队对微服务经验不足，优先保证稳定性，可接受适度的性能妥协
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>领域驱动 + 事件驱动混合架构 <span style="color: #2563eb; font-size: 0.9em;">（推荐）</span></h3>
+      <div style="margin: 12px 0;">
+        <strong>核心思想：</strong>核心链路同步 + 非关键流程异步 + 供应商隔离
+      </div>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>优势</h4>
+          <ul>
+            <li><strong>高可用</strong>：供应商故障隔离，核心流程不受影响</li>
+            <li><strong>高性能</strong>：读写分离，热点数据本地缓存</li>
+            <li><strong>弹性扩容</strong>：异步化架构，大促时按需扩容</li>
+            <li><strong>数据一致</strong>：核心链路强一致 + Kafka补偿</li>
+            <li>供应商适配层插件化，新接入成本低</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>劣势</h4>
+          <ul>
+            <li>架构复杂度中等，需要团队有一定Kafka经验</li>
+            <li>异步链路的监控和排查相对复杂</li>
+            <li>需要完善的补偿机制和对账体系</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top: 12px; padding: 10px; background: #dbeafe; border-radius: 4px; font-size: 0.9em;">
+        <strong>适用场景：</strong>你的场景（高可用优先 + 数据一致 + 供应商容错），平衡性能与复杂度
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>CQRS + Event Sourcing架构 <span style="color: #666; font-size: 0.9em;">（激进型）</span></h3>
+      <div style="margin: 12px 0;">
+        <strong>核心思想：</strong>读写彻底分离 + 事件溯源 + 最终一致性
+      </div>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>优势</h4>
+          <ul>
+            <li>读写性能极致优化，大促扛流量能力最强</li>
+            <li>事件溯源天然支持审计和回溯</li>
+            <li>系统解耦彻底，各模块独立演进</li>
+            <li>适合复杂业务规则的演变</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>劣势</h4>
+          <ul>
+            <li><strong>复杂度高</strong>：团队学习成本大，开发周期长</li>
+            <li>最终一致性对业务有挑战（不符合你的数据一致性要求）</li>
+            <li>事件版本管理、schema演进成本高</li>
+            <li>排查问题难度大，需要强大的监控体系</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top: 12px; padding: 10px; background: #fef3c7; border-radius: 4px; font-size: 0.9em;">
+        <strong>适用场景：</strong>性能极致优先的场景，团队有丰富的事件驱动架构经验（<strong>不推荐你的场景</strong>）
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 32px; padding: 20px; background: #f0fdf4; border-left: 4px solid #22c55e; border-radius: 4px;">
+  <h3 style="margin-top: 0; color: #166534;">我的推荐：方案B（领域驱动 + 事件驱动混合架构）</h3>
+  <p style="margin-bottom: 8px;"><strong>理由：</strong></p>
+  <ul style="margin: 0;">
+    <li>完美匹配你的三大优先级（高可用 > 数据一致性 > 供应商容错）</li>
+    <li>核心品类用同步强一致（机票/酒店零容忍超卖），长尾品类用异步补偿</li>
+    <li>供应商隔离设计，50+供应商故障不影响平台核心流程</li>
+    <li>异步化架构天然支持大促5倍峰值弹性扩容</li>
+    <li>技术栈成熟（Go + Kafka），团队可控，风险适中</li>
+    <li>200+人团队规模可以支撑这个复杂度</li>
+  </ul>
+</div>
+
+<p style="margin-top: 24px; color: #64748b; font-size: 0.95em;">
+  <strong>下一步：</strong>如果你选择方案B，我会展示详细的架构分层、服务拆分、数据流和关键技术决策点。
+</p>
