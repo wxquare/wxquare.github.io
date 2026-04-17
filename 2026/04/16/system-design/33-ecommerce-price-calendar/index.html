@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="电商系统设计（十四）（价格优化专题；总索引见（一）全景概览与领域划分） 本文设计一个价格日历系统，参考 Google Flights、Booking.com、Airbnb 等业界实践，帮助用户快速找到最优惠的预订日期。适用于酒店、机票等按日期定价的商品品类。   一、需求背景1.1 业务场景在 B2B2C 电商平台（主营酒店、机票等虚拟商品）中，用户经常面临这样的困惑：  同一个酒店，不同日期价">
+<meta property="og:type" content="article">
+<meta property="og:title" content="电商系统设计（十四）：价格日历系统设计（Hotel &amp; Flight）">
+<meta property="og:url" content="http://yoursite.com/2026/04/16/system-design/33-ecommerce-price-calendar/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="电商系统设计（十四）（价格优化专题；总索引见（一）全景概览与领域划分） 本文设计一个价格日历系统，参考 Google Flights、Booking.com、Airbnb 等业界实践，帮助用户快速找到最优惠的预订日期。适用于酒店、机票等按日期定价的商品品类。   一、需求背景1.1 业务场景在 B2B2C 电商平台（主营酒店、机票等虚拟商品）中，用户经常面临这样的困惑：  同一个酒店，不同日期价">
+<meta property="og:locale">
+<meta property="article:published_time" content="2026-04-16T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-04-17T11:09:42.014Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="cache">
+<meta property="article:tag" content="system-design">
+<meta property="article:tag" content="redis">
+<meta property="article:tag" content="price-calendar">
+<meta property="article:tag" content="hotel">
+<meta property="article:tag" content="flight">
+<meta property="article:tag" content="mysql">
+<meta property="article:tag" content="performance">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2026/04/16/system-design/33-ecommerce-price-calendar/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2026/04/16/system-design/33-ecommerce-price-calendar/","path":"2026/04/16/system-design/33-ecommerce-price-calendar/","title":"电商系统设计（十四）：价格日历系统设计（Hotel & Flight）"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>电商系统设计（十四）：价格日历系统设计（Hotel & Flight） | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-book"><a href="/book/" rel="section"><i class="fa fa-book fa-fw"></i>书籍项目</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E9%9C%80%E6%B1%82%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">一、需求背景</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E4%B8%9A%E5%8A%A1%E5%9C%BA%E6%99%AF"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 业务场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E4%B8%9A%E7%95%8C%E5%8F%82%E8%80%83"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 业界参考</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-%E6%A0%B8%E5%BF%83%E9%9C%80%E6%B1%82"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 核心需求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-%E4%B8%9A%E5%8A%A1%E7%BA%A6%E6%9D%9F"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 业务约束</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%8A%80%E6%9C%AF%E6%96%B9%E6%A1%88%E9%80%89%E6%8B%A9"><span class="nav-number">2.</span> <span class="nav-text">二、技术方案选择</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%A4%87%E9%80%89%E6%96%B9%E6%A1%88%E5%AF%B9%E6%AF%94"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 备选方案对比</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E6%9C%80%E7%BB%88%E9%80%89%E6%8B%A9%EF%BC%9A%E6%96%B9%E6%A1%881%EF%BC%88MySQL-Redis%EF%BC%89%E2%AD%90"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 最终选择：方案1（MySQL + Redis）⭐</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1"><span class="nav-number">3.</span> <span class="nav-text">三、系统架构设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E6%95%B4%E4%BD%93%E6%9E%B6%E6%9E%84%E5%9B%BE"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 整体架构图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E6%A0%B8%E5%BF%83%E6%A8%A1%E5%9D%97%E8%81%8C%E8%B4%A3"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 核心模块职责</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B%E8%AE%BE%E8%AE%A1"><span class="nav-number">4.</span> <span class="nav-text">四、数据模型设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-MySQL-%E8%A1%A8%E7%BB%93%E6%9E%84"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 MySQL 表结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-Redis-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 Redis 数据结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%95%B0%E6%8D%AE%E5%AE%B9%E9%87%8F%E4%BC%B0%E7%AE%97"><span class="nav-number">4.3.</span> <span class="nav-text">4.3 数据容量估算</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81API-%E8%AE%BE%E8%AE%A1"><span class="nav-number">5.</span> <span class="nav-text">五、API 设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%9F%A5%E8%AF%A2-API"><span class="nav-number">5.1.</span> <span class="nav-text">5.1 客户端查询 API</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E9%99%90%E6%B5%81%E7%AD%96%E7%95%A5"><span class="nav-number">5.2.</span> <span class="nav-text">5.2 限流策略</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81%E6%A0%B8%E5%BF%83%E4%B8%9A%E5%8A%A1%E6%B5%81%E7%A8%8B"><span class="nav-number">6.</span> <span class="nav-text">六、核心业务流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-%E4%BB%B7%E6%A0%BC%E5%90%8C%E6%AD%A5%E6%B5%81%E7%A8%8B"><span class="nav-number">6.1.</span> <span class="nav-text">6.1 价格同步流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-%E4%BB%B7%E6%A0%BC%E6%9F%A5%E8%AF%A2%E6%B5%81%E7%A8%8B"><span class="nav-number">6.2.</span> <span class="nav-text">6.2 价格查询流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-%E7%83%AD%E7%82%B9-SKU-%E8%AF%86%E5%88%AB%E6%B5%81%E7%A8%8B"><span class="nav-number">6.3.</span> <span class="nav-text">6.3 热点 SKU 识别流程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%83%E3%80%81%E6%95%B0%E6%8D%AE%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E7%AE%A1%E7%90%86"><span class="nav-number">7.</span> <span class="nav-text">七、数据生命周期管理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#7-1-%E8%BF%87%E6%9C%9F%E6%95%B0%E6%8D%AE%E5%AE%9A%E4%B9%89"><span class="nav-number">7.1.</span> <span class="nav-text">7.1 过期数据定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-2-%E6%B8%85%E7%90%86%E7%AD%96%E7%95%A5"><span class="nav-number">7.2.</span> <span class="nav-text">7.2 清理策略</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AB%E3%80%81%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E7%AD%96%E7%95%A5"><span class="nav-number">8.</span> <span class="nav-text">八、性能优化策略</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#8-1-%E6%95%B0%E6%8D%AE%E5%BA%93%E4%BC%98%E5%8C%96"><span class="nav-number">8.1.</span> <span class="nav-text">8.1 数据库优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-2-Redis-%E4%BC%98%E5%8C%96"><span class="nav-number">8.2.</span> <span class="nav-text">8.2 Redis 优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-3-%E4%BE%9B%E5%BA%94%E5%95%86-API-%E8%B0%83%E7%94%A8%E4%BC%98%E5%8C%96"><span class="nav-number">8.3.</span> <span class="nav-text">8.3 供应商 API 调用优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-4-%E5%BA%94%E7%94%A8%E5%B1%82%E4%BC%98%E5%8C%96"><span class="nav-number">8.4.</span> <span class="nav-text">8.4 应用层优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-5-%E6%80%A7%E8%83%BD%E6%8C%87%E6%A0%87%E7%9B%AE%E6%A0%87"><span class="nav-number">8.5.</span> <span class="nav-text">8.5 性能指标目标</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B9%9D%E3%80%81%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E4%B8%8E%E5%AE%B9%E7%81%BE"><span class="nav-number">9.</span> <span class="nav-text">九、错误处理与容灾</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#9-1-%E9%99%8D%E7%BA%A7%E7%AD%96%E7%95%A5"><span class="nav-number">9.1.</span> <span class="nav-text">9.1 降级策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-2-%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7%E4%BF%9D%E8%AF%81"><span class="nav-number">9.2.</span> <span class="nav-text">9.2 数据一致性保证</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-3-%E7%9B%91%E6%8E%A7%E4%B8%8E%E5%91%8A%E8%AD%A6"><span class="nav-number">9.3.</span> <span class="nav-text">9.3 监控与告警</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E3%80%81%E6%89%A9%E5%B1%95%E6%80%A7%E8%AE%BE%E8%AE%A1"><span class="nav-number">10.</span> <span class="nav-text">十、扩展性设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#10-1-%E6%B0%B4%E5%B9%B3%E6%89%A9%E5%B1%95"><span class="nav-number">10.1.</span> <span class="nav-text">10.1 水平扩展</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#10-2-%E8%B7%A8%E5%93%81%E7%B1%BB%E6%89%A9%E5%B1%95"><span class="nav-number">10.2.</span> <span class="nav-text">10.2 跨品类扩展</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#10-3-%E4%B8%9A%E7%95%8C%E5%AF%B9%E6%AF%94"><span class="nav-number">10.3.</span> <span class="nav-text">10.3 业界对比</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E4%B8%80%E3%80%81%E6%80%BB%E7%BB%93"><span class="nav-number">11.</span> <span class="nav-text">十一、总结</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#11-1-%E6%A0%B8%E5%BF%83%E4%BA%AE%E7%82%B9"><span class="nav-number">11.1.</span> <span class="nav-text">11.1 核心亮点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-2-%E6%8A%80%E6%9C%AF%E6%A0%88"><span class="nav-number">11.2.</span> <span class="nav-text">11.2 技术栈</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-3-%E5%AE%9E%E6%96%BD%E8%AE%A1%E5%88%92"><span class="nav-number">11.3.</span> <span class="nav-text">11.3 实施计划</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-4-%E5%BE%85%E4%BC%98%E5%8C%96%E9%A1%B9%EF%BC%88%E5%90%8E%E7%BB%AD%E7%89%88%E6%9C%AC%EF%BC%89"><span class="nav-number">11.4.</span> <span class="nav-text">11.4 待优化项（后续版本）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">12.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">61</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">167</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">13篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">7篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">15篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">7篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2026/04/16/system-design/33-ecommerce-price-calendar/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="电商系统设计（十四）：价格日历系统设计（Hotel & Flight） | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          电商系统设计（十四）：价格日历系统设计（Hotel & Flight）
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2026-04-16 08:00:00" itemprop="dateCreated datePublished" datetime="2026-04-16T08:00:00+08:00">2026-04-16</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-04-17 19:09:42" itemprop="dateModified" datetime="2026-04-17T19:09:42+08:00">2026-04-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%94%B5%E5%95%86%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">电商系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><blockquote>
+<p><strong>电商系统设计（十四）</strong>（价格优化专题；总索引见<a href="/system-design/20-ecommerce-overview/">（一）全景概览与领域划分</a>）</p>
+<p>本文设计一个价格日历系统，参考 Google Flights、Booking.com、Airbnb 等业界实践，帮助用户快速找到最优惠的预订日期。适用于酒店、机票等按日期定价的商品品类。</p>
+</blockquote>
+<hr>
+<h2 id="一、需求背景"><a href="#一、需求背景" class="headerlink" title="一、需求背景"></a>一、需求背景</h2><h3 id="1-1-业务场景"><a href="#1-1-业务场景" class="headerlink" title="1.1 业务场景"></a>1.1 业务场景</h3><p>在 B2B2C 电商平台（主营酒店、机票等虚拟商品）中，用户经常面临这样的困惑：</p>
+<ul>
+<li>同一个酒店，不同日期价格差异巨大（周末 vs 工作日，旺季 vs 淡季）</li>
+<li>用户需要逐日点击查询，效率低下</li>
+<li>无法快速找到性价比最高的预订日期</li>
+</ul>
+<p><strong>价格日历</strong>就是为了解决这个问题：用户选定某个酒店或航线后，<strong>一次性展示未来 30-60 天的价格趋势</strong>，帮助用户做出最优决策。</p>
+<h3 id="1-2-业界参考"><a href="#1-2-业界参考" class="headerlink" title="1.2 业界参考"></a>1.2 业界参考</h3><p><strong>Google Flights 价格日历：</strong></p>
+<ul>
+<li>显示价格趋势图（折线图）</li>
+<li>标注”低于平均价”的日期（绿色高亮）</li>
+<li>支持灵活日期搜索（+&#x2F;-3天）</li>
+<li>价格预测功能（AI 预测未来价格走势）</li>
+</ul>
+<p><strong>Booking.com 价格日历：</strong></p>
+<ul>
+<li>Hover 显示”从¥299起，有23家酒店”</li>
+<li>售罄日期显示灰色</li>
+<li>特价日期高亮显示（红色标签）</li>
+<li>支持连住优惠提示</li>
+</ul>
+<p><strong>Airbnb 价格日历：</strong></p>
+<ul>
+<li>日历显示每晚价格</li>
+<li>周末价格通常更高（不同颜色）</li>
+<li>最少入住天数限制提示</li>
+<li>清洁费分摊显示</li>
+</ul>
+<h3 id="1-3-核心需求"><a href="#1-3-核心需求" class="headerlink" title="1.3 核心需求"></a>1.3 核心需求</h3><p><strong>用户端需求：</strong></p>
+<ul>
+<li>用户选定某个酒店或航线后，查看未来 30-60 天的价格趋势</li>
+<li>每个日期显示该日期的最低价格</li>
+<li>点击日期后跳转到该日期的搜索结果页</li>
+</ul>
+<p><strong>运营端需求：</strong></p>
+<ul>
+<li>运营团队可以查看价格同步状态</li>
+<li>支持手动刷新缓存</li>
+<li>查看同步任务的成功率和失败原因</li>
+</ul>
+<p><strong>非功能需求：</strong></p>
+<ul>
+<li>查询响应时间 P99 &lt; 200ms</li>
+<li>支持 10000 QPS（单实例）</li>
+<li>缓存命中率 &gt; 80%</li>
+<li>系统可用性 99.9%</li>
+</ul>
+<h3 id="1-4-业务约束"><a href="#1-4-业务约束" class="headerlink" title="1.4 业务约束"></a>1.4 业务约束</h3><ul>
+<li><strong>品类范围：</strong> 初期支持酒店和机票，未来扩展到其他品类</li>
+<li><strong>时间范围：</strong> 展示未来 30-60 天的价格数据</li>
+<li><strong>数据来源：</strong> 定时同步供应商价格（非实时查询，避免百万级 SKU 的实时调用）</li>
+<li><strong>数据规模：</strong> 100 万酒店 + 10 万航线，60 天数据约 6000 万条记录</li>
+</ul>
+<hr>
+<h2 id="二、技术方案选择"><a href="#二、技术方案选择" class="headerlink" title="二、技术方案选择"></a>二、技术方案选择</h2><h3 id="2-1-备选方案对比"><a href="#2-1-备选方案对比" class="headerlink" title="2.1 备选方案对比"></a>2.1 备选方案对比</h3><p>我们评估了三个技术方案：</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>核心技术栈</th>
+<th>优点</th>
+<th>缺点</th>
+<th>适用阶段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>方案1</strong></td>
+<td>MySQL + Redis</td>
+<td>技术栈成熟、快速上线、运维成本低</td>
+<td>数据量增长需分库分表</td>
+<td>初期（0-1）</td>
+</tr>
+<tr>
+<td><strong>方案2</strong></td>
+<td>MySQL 主从 + Redis + MQ</td>
+<td>读写分离、高并发、削峰填谷</td>
+<td>架构复杂、主从延迟</td>
+<td>成熟期（1-10）</td>
+</tr>
+<tr>
+<td><strong>方案3</strong></td>
+<td>TimescaleDB + Redis</td>
+<td>时序优化、高压缩率、长期存储</td>
+<td>学习成本高、运维复杂</td>
+<td>长期（10+）</td>
+</tr>
+</tbody></table>
+<h3 id="2-2-最终选择：方案1（MySQL-Redis）⭐"><a href="#2-2-最终选择：方案1（MySQL-Redis）⭐" class="headerlink" title="2.2 最终选择：方案1（MySQL + Redis）⭐"></a>2.2 最终选择：方案1（MySQL + Redis）⭐</h3><p><strong>理由：</strong></p>
+<ol>
+<li><strong>快速上线：</strong> 团队熟悉 MySQL 和 Redis，2-3 周即可完成开发</li>
+<li><strong>风险可控：</strong> 利用现有基础设施，无需引入新组件</li>
+<li><strong>渐进式演进：</strong> 后续可平滑升级到方案2或方案3</li>
+</ol>
+<p><strong>演进路径：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">阶段1（现在）：MySQL + Redis，支撑 10 万 QPS</span><br><span class="line">         ↓</span><br><span class="line">阶段2（6个月）：加入主从分离 + 消息队列</span><br><span class="line">         ↓</span><br><span class="line">阶段3（1年）：迁移到 TimescaleDB（如需长期历史数据）</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="三、系统架构设计"><a href="#三、系统架构设计" class="headerlink" title="三、系统架构设计"></a>三、系统架构设计</h2><h3 id="3-1-整体架构图"><a href="#3-1-整体架构图" class="headerlink" title="3.1 整体架构图"></a>3.1 整体架构图</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                        客户端层                                   │</span><br><span class="line">│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │</span><br><span class="line">│  │  Web前端     │  │  移动端App    │  │ 运营管理后台  │          │</span><br><span class="line">│  └──────────────┘  └──────────────┘  └──────────────┘          │</span><br><span class="line">└───────────────────────────┬─────────────────────────────────────┘</span><br><span class="line">                            │ HTTPS</span><br><span class="line">┌───────────────────────────┼─────────────────────────────────────┐</span><br><span class="line">│                    API网关层                                      │</span><br><span class="line">│         ┌──────────────────────────────────┐                     │</span><br><span class="line">│         │   API Gateway (Kong/Nginx)       │                     │</span><br><span class="line">│         │  - 限流                           │                     │</span><br><span class="line">│         │  - 鉴权                           │                     │</span><br><span class="line">│         │  - 路由                           │                     │</span><br><span class="line">│         └──────────────────────────────────┘                     │</span><br><span class="line">└───────────────────────────┼─────────────────────────────────────┘</span><br><span class="line">                            │</span><br><span class="line">┌───────────────────────────┼─────────────────────────────────────┐</span><br><span class="line">│                     应用服务层                                     │</span><br><span class="line">│  ┌─────────────────────────────────────────────────┐            │</span><br><span class="line">│  │    Price Calendar Service (Go)                  │            │</span><br><span class="line">│  │  ┌──────────────┐  ┌──────────────────────┐    │            │</span><br><span class="line">│  │  │ Query API    │  │  Admin API           │    │            │</span><br><span class="line">│  │  │ (客户查询)    │  │  (运营管理)           │    │            │</span><br><span class="line">│  │  └──────────────┘  └──────────────────────┘    │            │</span><br><span class="line">│  └─────────────────────────────────────────────────┘            │</span><br><span class="line">│                            │                                      │</span><br><span class="line">│  ┌─────────────────────────────────────────────────┐            │</span><br><span class="line">│  │    Price Sync Service (Go)                      │            │</span><br><span class="line">│  │  - 定时拉取供应商价格                             │            │</span><br><span class="line">│  │  - 批量写入MySQL                                 │            │</span><br><span class="line">│  │  - 刷新Redis缓存                                 │            │</span><br><span class="line">│  └─────────────────────────────────────────────────┘            │</span><br><span class="line">└───────────────────────────┼─────────────────────────────────────┘</span><br><span class="line">                            │</span><br><span class="line">┌───────────────────────────┼─────────────────────────────────────┐</span><br><span class="line">│                      存储层                                        │</span><br><span class="line">│  ┌──────────────────┐          ┌──────────────────┐             │</span><br><span class="line">│  │  Redis Cluster   │          │  MySQL (InnoDB)  │             │</span><br><span class="line">│  │  - 热点缓存      │          │  - 全量价格数据   │             │</span><br><span class="line">│  │  - TTL 7天       │          │  - 保留60天      │             │</span><br><span class="line">│  └──────────────────┘          └──────────────────┘             │</span><br><span class="line">└─────────────────────────────────────────────────────────────────┘</span><br><span class="line">                            │</span><br><span class="line">┌───────────────────────────┼─────────────────────────────────────┐</span><br><span class="line">│                    外部依赖层                                      │</span><br><span class="line">│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │</span><br><span class="line">│  │ 酒店供应商API │  │ 机票供应商API │  │  监控系统     │          │</span><br><span class="line">│  │ (Expedia等)  │  │ (Amadeus等)  │  │ (Prometheus) │          │</span><br><span class="line">│  └──────────────┘  └──────────────┘  └──────────────┘          │</span><br><span class="line">└─────────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-核心模块职责"><a href="#3-2-核心模块职责" class="headerlink" title="3.2 核心模块职责"></a>3.2 核心模块职责</h3><p><strong>Price Calendar Service（价格日历服务）</strong></p>
+<ul>
+<li>提供 C 端用户查询价格日历的 API</li>
+<li>提供运营后台的价格管理 API</li>
+<li>负责查询逻辑：Redis → MySQL 降级</li>
+<li>水平扩展支持（无状态服务）</li>
+</ul>
+<p><strong>Price Sync Service（价格同步服务）</strong></p>
+<ul>
+<li>定时任务拉取供应商价格数据</li>
+<li>批量写入 MySQL</li>
+<li>异步刷新 Redis 热点数据</li>
+<li>支持全量同步和增量更新</li>
+</ul>
+<p><strong>Redis 层</strong></p>
+<ul>
+<li>存储热门 SKU 的近 7 天价格</li>
+<li>Key 结构：<code>price:&#123;category&#125;:&#123;sku_id&#125;</code> (Hash 类型)</li>
+<li>自动过期（TTL 7天）</li>
+</ul>
+<p><strong>MySQL 层</strong></p>
+<ul>
+<li>主库：价格数据持久化</li>
+<li>保留 60 天数据，自动清理过期数据</li>
+<li>索引优化：(sku_id, date) 复合索引</li>
+</ul>
+<hr>
+<h2 id="四、数据模型设计"><a href="#四、数据模型设计" class="headerlink" title="四、数据模型设计"></a>四、数据模型设计</h2><h3 id="4-1-MySQL-表结构"><a href="#4-1-MySQL-表结构" class="headerlink" title="4.1 MySQL 表结构"></a>4.1 MySQL 表结构</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 价格日历主表</span></span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> price_calendar (</span><br><span class="line">  id <span class="type">BIGINT</span> UNSIGNED <span class="keyword">PRIMARY</span> KEY AUTO_INCREMENT,</span><br><span class="line">  sku_id <span class="type">VARCHAR</span>(<span class="number">64</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;商品SKU ID（酒店ID/航线ID）&#x27;</span>,</span><br><span class="line">  category ENUM(<span class="string">&#x27;hotel&#x27;</span>, <span class="string">&#x27;flight&#x27;</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;品类&#x27;</span>,</span><br><span class="line">  <span class="type">date</span> <span class="type">DATE</span> <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;日期（酒店=入住日期，机票=出发日期）&#x27;</span>,</span><br><span class="line">  min_price <span class="type">DECIMAL</span>(<span class="number">10</span>,<span class="number">2</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span> COMMENT <span class="string">&#x27;最低价格&#x27;</span>,</span><br><span class="line">  currency <span class="type">VARCHAR</span>(<span class="number">3</span>) <span class="keyword">DEFAULT</span> <span class="string">&#x27;CNY&#x27;</span> COMMENT <span class="string">&#x27;货币单位&#x27;</span>,</span><br><span class="line">  supplier_id <span class="type">VARCHAR</span>(<span class="number">32</span>) COMMENT <span class="string">&#x27;供应商ID&#x27;</span>,</span><br><span class="line">  supplier_name <span class="type">VARCHAR</span>(<span class="number">128</span>) COMMENT <span class="string">&#x27;供应商名称&#x27;</span>,</span><br><span class="line">  available_count <span class="type">INT</span> <span class="keyword">DEFAULT</span> <span class="number">0</span> COMMENT <span class="string">&#x27;可售数量（酒店=房间数，机票=座位数）&#x27;</span>,</span><br><span class="line">  created_at <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  updated_at <span class="type">TIMESTAMP</span> <span class="keyword">DEFAULT</span> <span class="built_in">CURRENT_TIMESTAMP</span> <span class="keyword">ON</span> <span class="keyword">UPDATE</span> <span class="built_in">CURRENT_TIMESTAMP</span>,</span><br><span class="line">  </span><br><span class="line">  <span class="comment">-- 索引</span></span><br><span class="line">  <span class="keyword">UNIQUE</span> KEY uk_sku_date (sku_id, <span class="type">date</span>),</span><br><span class="line">  INDEX idx_date (<span class="type">date</span>),</span><br><span class="line">  INDEX idx_category_date (category, <span class="type">date</span>),</span><br><span class="line">  INDEX idx_updated_at (updated_at)</span><br><span class="line">) ENGINE<span class="operator">=</span>InnoDB <span class="keyword">DEFAULT</span> CHARSET<span class="operator">=</span>utf8mb4 COMMENT<span class="operator">=</span><span class="string">&#x27;价格日历表&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 分区策略（数据量大时启用）</span></span><br><span class="line"><span class="keyword">ALTER</span> <span class="keyword">TABLE</span> price_calendar <span class="keyword">PARTITION</span> <span class="keyword">BY</span> <span class="keyword">RANGE</span> (TO_DAYS(<span class="type">date</span>)) (</span><br><span class="line">  <span class="keyword">PARTITION</span> p202604 <span class="keyword">VALUES</span> LESS THAN (TO_DAYS(<span class="string">&#x27;2026-05-01&#x27;</span>)),</span><br><span class="line">  <span class="keyword">PARTITION</span> p202605 <span class="keyword">VALUES</span> LESS THAN (TO_DAYS(<span class="string">&#x27;2026-06-01&#x27;</span>)),</span><br><span class="line">  <span class="keyword">PARTITION</span> p202606 <span class="keyword">VALUES</span> LESS THAN (TO_DAYS(<span class="string">&#x27;2026-07-01&#x27;</span>)),</span><br><span class="line">  <span class="keyword">PARTITION</span> pmax <span class="keyword">VALUES</span> LESS THAN MAXVALUE</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p><strong>字段说明：</strong></p>
+<ul>
+<li><code>sku_id</code>：酒店 ID（如”hotel_123456”）或航线 ID（如”flight_PEK_SHA”）</li>
+<li><code>date</code>：关键字段，酒店表示入住日期，机票表示出发日期</li>
+<li><code>min_price</code>：该日期的最低价格（跨多个供应商的最低值）</li>
+<li><code>available_count</code>：可售数量，用于判断是否售罄</li>
+</ul>
+<h3 id="4-2-Redis-数据结构"><a href="#4-2-Redis-数据结构" class="headerlink" title="4.2 Redis 数据结构"></a>4.2 Redis 数据结构</h3><p><strong>热点 SKU 价格缓存（Hash 结构）</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Key: price:hotel:&#123;sku_id&#125;</span><br><span class="line">Type: Hash</span><br><span class="line">Fields:</span><br><span class="line">  2026-04-20 → &quot;299.00|sp001|10&quot;  (价格|供应商ID|库存)</span><br><span class="line">  2026-04-21 → &quot;350.00|sp002|5&quot;</span><br><span class="line">  2026-04-22 → &quot;280.00|sp001|20&quot;</span><br><span class="line">  ...</span><br><span class="line">TTL: 7天</span><br></pre></td></tr></table></figure>
+
+<p><strong>热点 SKU 列表（用于判断哪些 SKU 需要缓存）</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Key: hotkeys:hotel</span><br><span class="line">Type: ZSet (Sorted Set)</span><br><span class="line">Members:</span><br><span class="line">  hotel_123456 score:10000 (访问次数)</span><br><span class="line">  hotel_789012 score:8500</span><br><span class="line">  ...</span><br><span class="line">TTL: 1小时</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-数据容量估算"><a href="#4-3-数据容量估算" class="headerlink" title="4.3 数据容量估算"></a>4.3 数据容量估算</h3><p><strong>数据量：</strong></p>
+<ul>
+<li>酒店：100 万个 × 60 天 &#x3D; 6000 万条记录</li>
+<li>机票：10 万条航线 × 60 天 &#x3D; 600 万条记录</li>
+<li>合计：约 6600 万条记录</li>
+</ul>
+<p><strong>存储空间：</strong></p>
+<ul>
+<li>单条记录大小：约 100 bytes（不含索引）</li>
+<li>数据大小：6600 万 × 100 bytes ≈ 6.6 GB</li>
+<li>索引大小：约 2 倍数据大小 ≈ 13 GB</li>
+<li>MySQL 总空间：约 20 GB（含冗余）</li>
+</ul>
+<p><strong>Redis 内存：</strong></p>
+<ul>
+<li>热点 SKU 数量：100 万（Top 10%）</li>
+<li>每个 SKU 7 天数据：7 × 100 bytes &#x3D; 700 bytes</li>
+<li>Hash 结构开销：约 20%</li>
+<li>总内存：100 万 × 700 × 1.2 ≈ 840 MB</li>
+<li>推荐配置：4 GB（预留 3 倍空间）</li>
+</ul>
+<hr>
+<h2 id="五、API-设计"><a href="#五、API-设计" class="headerlink" title="五、API 设计"></a>五、API 设计</h2><h3 id="5-1-客户端查询-API"><a href="#5-1-客户端查询-API" class="headerlink" title="5.1 客户端查询 API"></a>5.1 客户端查询 API</h3><p><strong>查询价格日历</strong></p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">GET /api/v1/price-calendar</span><br><span class="line"></span><br><span class="line">请求参数：</span><br><span class="line">&#123;</span><br><span class="line">  &quot;category&quot;: &quot;hotel&quot;,           // 必填，品类：hotel/flight</span><br><span class="line">  &quot;sku_id&quot;: &quot;hotel_123456&quot;,      // 必填，商品ID</span><br><span class="line">  &quot;start_date&quot;: &quot;2026-04-20&quot;,    // 必填，开始日期</span><br><span class="line">  &quot;end_date&quot;: &quot;2026-05-20&quot;,      // 必填，结束日期（最多查询60天）</span><br><span class="line">  &quot;currency&quot;: &quot;CNY&quot;              // 可选，货币单位，默认CNY</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">响应示例：</span><br><span class="line">&#123;</span><br><span class="line">  &quot;code&quot;: 0,</span><br><span class="line">  &quot;message&quot;: &quot;success&quot;,</span><br><span class="line">  &quot;data&quot;: &#123;</span><br><span class="line">    &quot;sku_id&quot;: &quot;hotel_123456&quot;,</span><br><span class="line">    &quot;category&quot;: &quot;hotel&quot;,</span><br><span class="line">    &quot;prices&quot;: [</span><br><span class="line">      &#123;</span><br><span class="line">        &quot;date&quot;: &quot;2026-04-20&quot;,</span><br><span class="line">        &quot;min_price&quot;: 299.00,</span><br><span class="line">        &quot;currency&quot;: &quot;CNY&quot;,</span><br><span class="line">        &quot;supplier_id&quot;: &quot;sp001&quot;,</span><br><span class="line">        &quot;supplier_name&quot;: &quot;Expedia&quot;,</span><br><span class="line">        &quot;available&quot;: true,</span><br><span class="line">        &quot;available_count&quot;: 10</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">        &quot;date&quot;: &quot;2026-04-21&quot;,</span><br><span class="line">        &quot;min_price&quot;: 350.00,</span><br><span class="line">        &quot;currency&quot;: &quot;CNY&quot;,</span><br><span class="line">        &quot;supplier_id&quot;: &quot;sp002&quot;,</span><br><span class="line">        &quot;supplier_name&quot;: &quot;Booking&quot;,</span><br><span class="line">        &quot;available&quot;: true,</span><br><span class="line">        &quot;available_count&quot;: 5</span><br><span class="line">      &#125;</span><br><span class="line">    ],</span><br><span class="line">    &quot;cache_hit&quot;: true,</span><br><span class="line">    &quot;total_days&quot;: 30</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-限流策略"><a href="#5-2-限流策略" class="headerlink" title="5.2 限流策略"></a>5.2 限流策略</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">客户端查询 API：</span><br><span class="line">- 单用户：100 QPS</span><br><span class="line">- 单 IP：500 QPS</span><br><span class="line">- 全局：50000 QPS</span><br><span class="line"></span><br><span class="line">运营管理 API：</span><br><span class="line">- IP 白名单</span><br><span class="line">- 刷新操作：10 次/小时</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="六、核心业务流程"><a href="#六、核心业务流程" class="headerlink" title="六、核心业务流程"></a>六、核心业务流程</h2><h3 id="6-1-价格同步流程"><a href="#6-1-价格同步流程" class="headerlink" title="6.1 价格同步流程"></a>6.1 价格同步流程</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">定时任务触发（Cron: 每小时）</span><br><span class="line">   ↓</span><br><span class="line">步骤1: 获取需要同步的SKU列表</span><br><span class="line">   ↓</span><br><span class="line">步骤2: 批量调用供应商API（并发100）</span><br><span class="line">   ↓</span><br><span class="line">步骤3: 数据标准化和聚合（取最低价）</span><br><span class="line">   ↓</span><br><span class="line">步骤4: 批量写入MySQL（1000条/批）</span><br><span class="line">   ↓</span><br><span class="line">步骤5: 异步刷新Redis缓存（热点SKU）</span><br><span class="line">   ↓</span><br><span class="line">步骤6: 记录日志和监控指标</span><br></pre></td></tr></table></figure>
+
+<p><strong>伪代码：</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SyncPriceCalendar</span><span class="params">(category <span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 1. 获取SKU列表</span></span><br><span class="line">    skus := getSKUList(category)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 2. 并发调用供应商API</span></span><br><span class="line">    results := <span class="built_in">make</span>(<span class="keyword">chan</span> *PriceResult, <span class="built_in">len</span>(skus))</span><br><span class="line">    sem := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, <span class="number">100</span>) <span class="comment">// 并发控制</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> _, sku := <span class="keyword">range</span> skus &#123;</span><br><span class="line">        sem &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">        <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(s <span class="type">string</span>)</span></span> &#123;</span><br><span class="line">            <span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; &lt;-sem &#125;()</span><br><span class="line">            priceData := callSupplierAPIWithRetry(s, <span class="number">60</span>)</span><br><span class="line">            results &lt;- priceData</span><br><span class="line">        &#125;(sku)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 3. 收集结果并聚合</span></span><br><span class="line">    <span class="keyword">var</span> records []PriceRecord</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="built_in">len</span>(skus); i++ &#123;</span><br><span class="line">        result := &lt;-results</span><br><span class="line">        <span class="keyword">if</span> result.Error != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line">        aggregated := aggregatePrices(result.Prices)</span><br><span class="line">        records = <span class="built_in">append</span>(records, aggregated...)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 4. 批量写入MySQL</span></span><br><span class="line">    batchInsertMySQL(records, <span class="number">1000</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 5. 刷新热点SKU缓存</span></span><br><span class="line">    hotSKUs := getHotSKUs(category, <span class="number">1000</span>)</span><br><span class="line">    <span class="keyword">for</span> _, sku := <span class="keyword">range</span> hotSKUs &#123;</span><br><span class="line">        updateRedisCache(sku, records)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 6. 上报监控指标</span></span><br><span class="line">    metrics.RecordSyncSuccess(<span class="built_in">len</span>(records))</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-2-价格查询流程"><a href="#6-2-价格查询流程" class="headerlink" title="6.2 价格查询流程"></a>6.2 价格查询流程</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">用户请求 → API Gateway限流 → Price Calendar Service</span><br><span class="line">   ↓</span><br><span class="line">参数校验（日期范围&lt;=60天）</span><br><span class="line">   ↓</span><br><span class="line">L1: 查询Redis（Hash HGETALL）</span><br><span class="line">   ↓ 命中？</span><br><span class="line">  Yes → 返回</span><br><span class="line">   ↓ No</span><br><span class="line">L2: 查询MySQL（WHERE sku_id AND date BETWEEN）</span><br><span class="line">   ↓</span><br><span class="line">异步写入Redis（热点SKU）</span><br><span class="line">   ↓</span><br><span class="line">返回结果</span><br></pre></td></tr></table></figure>
+
+<p><strong>伪代码：</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">QueryPriceCalendar</span><span class="params">(req *QueryRequest)</span></span> (*QueryResponse, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 参数校验</span></span><br><span class="line">    <span class="keyword">if</span> err := validateRequest(req); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// L1: Redis查询</span></span><br><span class="line">    cacheKey := fmt.Sprintf(<span class="string">&quot;price:%s:%s&quot;</span>, req.Category, req.SKUID)</span><br><span class="line">    cachedData, err := redis.HGetAll(cacheKey).Result()</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> err == <span class="literal">nil</span> &amp;&amp; isCoverDateRange(cachedData, req.StartDate, req.EndDate) &#123;</span><br><span class="line">        metrics.RecordCacheHit(<span class="string">&quot;redis&quot;</span>)</span><br><span class="line">        <span class="keyword">return</span> formatResponse(cachedData, req), <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// L2: MySQL查询</span></span><br><span class="line">    query := <span class="string">`SELECT * FROM price_calendar </span></span><br><span class="line"><span class="string">              WHERE sku_id = ? AND category = ? </span></span><br><span class="line"><span class="string">              AND date BETWEEN ? AND ? ORDER BY date`</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">var</span> records []PriceRecord</span><br><span class="line">    db.Select(&amp;records, query, req.SKUID, req.Category, req.StartDate, req.EndDate)</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 异步更新Redis</span></span><br><span class="line">    <span class="keyword">if</span> isHotSKU(req.SKUID) &#123;</span><br><span class="line">        <span class="keyword">go</span> updateRedisCache(cacheKey, records, <span class="number">7</span>*<span class="number">24</span>*time.Hour)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    metrics.RecordCacheMiss(<span class="string">&quot;redis&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> formatResponse(records, req), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-3-热点-SKU-识别流程"><a href="#6-3-热点-SKU-识别流程" class="headerlink" title="6.3 热点 SKU 识别流程"></a>6.3 热点 SKU 识别流程</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">用户每次查询</span><br><span class="line">   ↓</span><br><span class="line">Redis记录访问计数：ZINCRBY hotkeys:hotel hotel_123 1</span><br><span class="line">   ↓</span><br><span class="line">定时任务（每小时）</span><br><span class="line">   ↓</span><br><span class="line">获取Top 1000热点SKU：ZREVRANGE hotkeys:hotel 0 999</span><br><span class="line">   ↓</span><br><span class="line">预加载价格到Redis</span><br><span class="line">   ↓</span><br><span class="line">重置计数器（每天凌晨）</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="七、数据生命周期管理"><a href="#七、数据生命周期管理" class="headerlink" title="七、数据生命周期管理"></a>七、数据生命周期管理</h2><h3 id="7-1-过期数据定义"><a href="#7-1-过期数据定义" class="headerlink" title="7.1 过期数据定义"></a>7.1 过期数据定义</h3><p><strong>过期数据：</strong> 日期早于当前日期的价格记录（<code>date &lt; CURDATE()</code>）</p>
+<p>用户不会查询过去的价格，这些数据对 C 端无价值，但占用大量存储空间。</p>
+<h3 id="7-2-清理策略"><a href="#7-2-清理策略" class="headerlink" title="7.2 清理策略"></a>7.2 清理策略</h3><p><strong>MySQL 清理：</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 定时删除（每天凌晨2点）</span></span><br><span class="line"><span class="keyword">DELETE</span> <span class="keyword">FROM</span> price_calendar </span><br><span class="line"><span class="keyword">WHERE</span> <span class="type">date</span> <span class="operator">&lt;</span> DATE_SUB(CURDATE(), <span class="type">INTERVAL</span> <span class="number">3</span> <span class="keyword">DAY</span>)</span><br><span class="line">LIMIT <span class="number">10000</span>;  <span class="comment">-- 分批删除，避免锁表</span></span><br><span class="line"></span><br><span class="line"><span class="comment">-- 分区删除（每月1号删除3个月前的分区）</span></span><br><span class="line"><span class="keyword">ALTER</span> <span class="keyword">TABLE</span> price_calendar <span class="keyword">DROP</span> <span class="keyword">PARTITION</span> p202601;</span><br></pre></td></tr></table></figure>
+
+<p><strong>Redis 清理：</strong></p>
+<ul>
+<li>自动过期：所有 Key 设置 TTL&#x3D;7天，Redis 自动清理</li>
+<li>主动清理：每天凌晨 3 点清理 Hash 中的过期日期字段</li>
+</ul>
+<p><strong>监控指标：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">- price_calendar_oldest_date: 数据库中最早的日期（应该&gt;=当前日期-3天）</span><br><span class="line">- price_calendar_expired_rows_deleted: 每天删除的过期记录数</span><br></pre></td></tr></table></figure>
+
+<p><strong>告警规则：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">如果 oldest_date &lt; CURDATE() - 7天，触发告警（清理任务失败）</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="八、性能优化策略"><a href="#八、性能优化策略" class="headerlink" title="八、性能优化策略"></a>八、性能优化策略</h2><h3 id="8-1-数据库优化"><a href="#8-1-数据库优化" class="headerlink" title="8.1 数据库优化"></a>8.1 数据库优化</h3><p><strong>索引优化：</strong></p>
+<ul>
+<li>核心索引：<code>uk_sku_date (sku_id, date)</code> 覆盖 90% 查询</li>
+<li>辅助索引：<code>idx_date (date)</code> 用于清理过期数据</li>
+</ul>
+<p><strong>批量查询优化：</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 拆分为多个单SKU查询并并发执行</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> price_calendar <span class="keyword">WHERE</span> sku_id<span class="operator">=</span>? <span class="keyword">AND</span> <span class="type">date</span> <span class="keyword">BETWEEN</span> ? <span class="keyword">AND</span> ?;</span><br></pre></td></tr></table></figure>
+
+<p><strong>分库分表策略（数据量&gt;5000万时）：</strong></p>
+<ul>
+<li>分表键：sku_id（Hash 取模）</li>
+<li>分表数量：16 个表</li>
+<li>路由逻辑：<code>table_index = crc32(sku_id) % 16</code></li>
+</ul>
+<h3 id="8-2-Redis-优化"><a href="#8-2-Redis-优化" class="headerlink" title="8.2 Redis 优化"></a>8.2 Redis 优化</h3><p><strong>内存优化：</strong></p>
+<ul>
+<li>推荐配置：4 GB 内存</li>
+<li>最大内存策略：allkeys-lru（自动淘汰最少使用的 Key）</li>
+</ul>
+<p><strong>连接池配置：</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">MaxIdle:     <span class="number">100</span></span><br><span class="line">MaxActive:   <span class="number">500</span></span><br><span class="line">IdleTimeout: <span class="number">300</span>s</span><br></pre></td></tr></table></figure>
+
+<p><strong>缓存预热：</strong></p>
+<ul>
+<li>系统启动时预热 Top 1000 热点 SKU</li>
+<li>从 MySQL 加载近 7 天数据写入 Redis</li>
+</ul>
+<h3 id="8-3-供应商-API-调用优化"><a href="#8-3-供应商-API-调用优化" class="headerlink" title="8.3 供应商 API 调用优化"></a>8.3 供应商 API 调用优化</h3><p><strong>并发控制：</strong></p>
+<ul>
+<li>信号量控制并发数：最多 100 个并发请求</li>
+<li>超时控制：单个请求 3 秒超时</li>
+<li>熔断器：错误率&gt;50% 触发熔断，熔断时间 5 秒</li>
+</ul>
+<p><strong>重试策略：</strong></p>
+<ul>
+<li>最多重试 2 次</li>
+<li>指数退避：100ms, 200ms, 400ms</li>
+</ul>
+<h3 id="8-4-应用层优化"><a href="#8-4-应用层优化" class="headerlink" title="8.4 应用层优化"></a>8.4 应用层优化</h3><p><strong>连接复用：</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// HTTP客户端连接池</span></span><br><span class="line">MaxIdleConns:        <span class="number">200</span></span><br><span class="line">MaxIdleConnsPerHost: <span class="number">100</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// MySQL连接池</span></span><br><span class="line">MaxOpenConns: <span class="number">200</span></span><br><span class="line">MaxIdleConns: <span class="number">50</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>批量操作：</strong></p>
+<ul>
+<li>MySQL 批量插入：1000 条&#x2F;批</li>
+<li>使用 <code>INSERT ... ON DUPLICATE KEY UPDATE</code></li>
+</ul>
+<h3 id="8-5-性能指标目标"><a href="#8-5-性能指标目标" class="headerlink" title="8.5 性能指标目标"></a>8.5 性能指标目标</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">查询接口：</span><br><span class="line">  - P50 延迟：&lt; 50ms</span><br><span class="line">  - P99 延迟：&lt; 200ms</span><br><span class="line">  - 吞吐量：10000 QPS/实例</span><br><span class="line">  - 缓存命中率：&gt; 80%</span><br><span class="line"></span><br><span class="line">同步任务：</span><br><span class="line">  - 100万SKU同步时间：&lt; 30分钟</span><br><span class="line">  - 供应商API成功率：&gt; 95%</span><br><span class="line">  - 数据库写入速度：&gt; 5000条/秒</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="九、错误处理与容灾"><a href="#九、错误处理与容灾" class="headerlink" title="九、错误处理与容灾"></a>九、错误处理与容灾</h2><h3 id="9-1-降级策略"><a href="#9-1-降级策略" class="headerlink" title="9.1 降级策略"></a>9.1 降级策略</h3><p><strong>多级降级：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">L1: Redis故障 → 降级到MySQL查询</span><br><span class="line">L2: MySQL从库故障 → 降级到主库查询</span><br><span class="line">L3: 全部数据库故障 → 返回静态默认数据</span><br></pre></td></tr></table></figure>
+
+<p><strong>降级开关：</strong></p>
+<ul>
+<li>通过配置中心管理降级开关</li>
+<li>支持动态开启&#x2F;关闭 Redis、MySQL</li>
+</ul>
+<h3 id="9-2-数据一致性保证"><a href="#9-2-数据一致性保证" class="headerlink" title="9.2 数据一致性保证"></a>9.2 数据一致性保证</h3><p><strong>缓存一致性：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">更新流程：</span><br><span class="line">1. 更新MySQL</span><br><span class="line">2. 删除Redis缓存（Cache-Aside模式）</span><br><span class="line">3. 下次查询时重新加载</span><br><span class="line"></span><br><span class="line">防止缓存击穿：</span><br><span class="line">- 使用分布式锁</span><br><span class="line">- Double Check模式</span><br></pre></td></tr></table></figure>
+
+<h3 id="9-3-监控与告警"><a href="#9-3-监控与告警" class="headerlink" title="9.3 监控与告警"></a>9.3 监控与告警</h3><p><strong>Prometheus 指标：</strong></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="bullet">-</span> <span class="string">price_calendar_query_duration_seconds</span> <span class="string">(histogram)</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">price_calendar_query_total</span> <span class="string">(counter)</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">price_calendar_cache_hit_total</span> <span class="string">(counter)</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">price_sync_duration_seconds</span> <span class="string">(histogram)</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">price_sync_sku_total</span> <span class="string">(counter)</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">mysql_connection_pool_active</span> <span class="string">(gauge)</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">redis_memory_used_bytes</span> <span class="string">(gauge)</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>告警规则：</strong></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="bullet">-</span> <span class="string">P99</span> <span class="string">延迟</span> <span class="string">&gt;</span> <span class="string">500ms，持续</span> <span class="number">5</span> <span class="string">分钟</span> <span class="string">→</span> <span class="string">warning</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">缓存命中率</span> <span class="string">&lt;</span> <span class="number">60</span><span class="string">%，持续</span> <span class="number">10</span> <span class="string">分钟</span> <span class="string">→</span> <span class="string">warning</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">同步失败率</span> <span class="string">&gt;</span> <span class="number">100</span> <span class="string">个SKU/小时</span> <span class="string">→</span> <span class="string">critical</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">MySQL</span> <span class="string">连接数</span> <span class="string">&gt;</span> <span class="number">180</span> <span class="string">→</span> <span class="string">warning</span></span><br><span class="line"><span class="bullet">-</span> <span class="string">数据堆积</span> <span class="string">&gt;</span> <span class="number">1</span> <span class="string">亿条</span> <span class="string">→</span> <span class="string">critical</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="十、扩展性设计"><a href="#十、扩展性设计" class="headerlink" title="十、扩展性设计"></a>十、扩展性设计</h2><h3 id="10-1-水平扩展"><a href="#10-1-水平扩展" class="headerlink" title="10.1 水平扩展"></a>10.1 水平扩展</h3><p><strong>应用层扩展：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">负载均衡 → Price Calendar Service 集群（3-20实例）</span><br><span class="line">基于CPU使用率自动扩缩容（K8s HPA）</span><br><span class="line">目标CPU：60%</span><br></pre></td></tr></table></figure>
+
+<p><strong>Redis 扩展：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">单机(4GB) → 主从(读写分离) → Cluster(分片16节点)</span><br></pre></td></tr></table></figure>
+
+<p><strong>MySQL 扩展：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">单库单表 → 主从分离 → 分库分表(16表)</span><br></pre></td></tr></table></figure>
+
+<h3 id="10-2-跨品类扩展"><a href="#10-2-跨品类扩展" class="headerlink" title="10.2 跨品类扩展"></a>10.2 跨品类扩展</h3><p><strong>当前支持：</strong> 酒店 + 机票<br><strong>未来扩展：</strong> 充值、电影票、火车票</p>
+<p><strong>扩展方式：</strong></p>
+<ul>
+<li>抽象接口：<code>PriceCalendarService</code></li>
+<li>品类特定实现：<code>HotelPriceService</code>, <code>FlightPriceService</code></li>
+<li>工厂模式创建实例</li>
+</ul>
+<h3 id="10-3-业界对比"><a href="#10-3-业界对比" class="headerlink" title="10.3 业界对比"></a>10.3 业界对比</h3><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Google Flights</th>
+<th>Booking</th>
+<th>Airbnb</th>
+<th>我们的方案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>价格展示</td>
+<td>趋势图+最低价</td>
+<td>最低价</td>
+<td>每晚价</td>
+<td>最低价</td>
+</tr>
+<tr>
+<td>缓存策略</td>
+<td>BigQuery</td>
+<td>Redis</td>
+<td>Memcached</td>
+<td>Redis+MySQL</td>
+</tr>
+<tr>
+<td>价格预测</td>
+<td>✓ AI预测</td>
+<td>✗</td>
+<td>✗</td>
+<td>✗(后续可加)</td>
+</tr>
+<tr>
+<td>实时性</td>
+<td>准实时</td>
+<td>准实时</td>
+<td>准实时</td>
+<td>定时同步</td>
+</tr>
+</tbody></table>
+<p><strong>我们的优势：</strong></p>
+<ul>
+<li>架构简单，快速上线</li>
+<li>成本可控，适合初期规模</li>
+<li>扩展性好，可平滑演进</li>
+</ul>
+<hr>
+<h2 id="十一、总结"><a href="#十一、总结" class="headerlink" title="十一、总结"></a>十一、总结</h2><h3 id="11-1-核心亮点"><a href="#11-1-核心亮点" class="headerlink" title="11.1 核心亮点"></a>11.1 核心亮点</h3><ol>
+<li><strong>渐进式架构</strong>：MySQL + Redis 起步，可平滑演进到分库分表、时序数据库</li>
+<li><strong>性能优化</strong>：二级缓存（Redis → MySQL）、热点识别、批量操作</li>
+<li><strong>高可用</strong>：降级策略、重试机制、多级容灾</li>
+<li><strong>可观测性</strong>：完整的监控指标、告警规则、日志追踪</li>
+<li><strong>可扩展性</strong>：支持品类扩展、水平扩展、多区域部署</li>
+</ol>
+<h3 id="11-2-技术栈"><a href="#11-2-技术栈" class="headerlink" title="11.2 技术栈"></a>11.2 技术栈</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">语言：Go 1.21+</span><br><span class="line">数据库：MySQL 8.0</span><br><span class="line">缓存：Redis 7.0</span><br><span class="line">监控：Prometheus + Grafana</span><br><span class="line">日志：ELK Stack</span><br><span class="line">部署：Kubernetes + Docker</span><br></pre></td></tr></table></figure>
+
+<h3 id="11-3-实施计划"><a href="#11-3-实施计划" class="headerlink" title="11.3 实施计划"></a>11.3 实施计划</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">Phase 1（2周）：基础功能</span><br><span class="line">  - 数据模型设计</span><br><span class="line">  - MySQL 表结构</span><br><span class="line">  - 基础查询 API</span><br><span class="line">  </span><br><span class="line">Phase 2（2周）：缓存优化</span><br><span class="line">  - Redis 缓存层</span><br><span class="line">  - 热点识别</span><br><span class="line">  - 缓存预热</span><br><span class="line">  </span><br><span class="line">Phase 3（2周）：同步服务</span><br><span class="line">  - 供应商 API 调用</span><br><span class="line">  - 批量写入优化</span><br><span class="line">  - 定时任务调度</span><br><span class="line">  </span><br><span class="line">Phase 4（1周）：监控告警</span><br><span class="line">  - Prometheus 指标</span><br><span class="line">  - Grafana 看板</span><br><span class="line">  - 告警规则</span><br><span class="line">  </span><br><span class="line">Phase 5（1周）：压测优化</span><br><span class="line">  - 性能压测</span><br><span class="line">  - 瓶颈分析</span><br><span class="line">  - 优化调优</span><br><span class="line"></span><br><span class="line">总计：8 周</span><br></pre></td></tr></table></figure>
+
+<h3 id="11-4-待优化项（后续版本）"><a href="#11-4-待优化项（后续版本）" class="headerlink" title="11.4 待优化项（后续版本）"></a>11.4 待优化项（后续版本）</h3><ul>
+<li>价格趋势图（折线图、柱状图）</li>
+<li>AI 价格预测（需要历史数据积累）</li>
+<li>实时价格监控（WebSocket 推送）</li>
+<li>价格波动告警（用户订阅）</li>
+<li>跨品类价格对比（酒店 vs 民宿）</li>
+</ul>
+<hr>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li>Google Flights 价格日历设计分析</li>
+<li>Booking.com 技术博客</li>
+<li>Airbnb Engineering Blog</li>
+<li>Redis 官方文档：Hash 数据结构最佳实践</li>
+<li>MySQL 官方文档：分区表性能优化</li>
+</ul>
+<hr>
+<blockquote>
+<p><strong>相关文章：</strong></p>
+<ul>
+<li><a href="/system-design/20-ecommerce-overview/">（一）全景概览与领域划分</a></li>
+<li><a href="/system-design/22-ecommerce-inventory/">（三）库存系统</a></li>
+<li><a href="/system-design/24-ecommerce-pricing-engine/">（五）定价引擎（Pricing Engine）</a></li>
+<li><a href="/system-design/25-ecommerce-pricing-ddd/">（六）定价域的 DDD 建模</a></li>
+</ul>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/cache/" rel="tag"># cache</a>
+              <a href="/tags/system-design/" rel="tag"># system-design</a>
+              <a href="/tags/redis/" rel="tag"># redis</a>
+              <a href="/tags/price-calendar/" rel="tag"># price-calendar</a>
+              <a href="/tags/hotel/" rel="tag"># hotel</a>
+              <a href="/tags/flight/" rel="tag"># flight</a>
+              <a href="/tags/mysql/" rel="tag"># mysql</a>
+              <a href="/tags/performance/" rel="tag"># performance</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2026/04/14/system-design/45-acc-b2b2c-ecommerce-architecture/" rel="prev" title="B2B2C电商平台系统架构设计（200人团队、日订单200万级）">
+                  <i class="fa fa-angle-left"></i> B2B2C电商平台系统架构设计（200人团队、日订单200万级）
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>

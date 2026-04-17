@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="导航：书籍主页 | 完整目录 | 上一章 | 下一章  第11章 计价系统设计与实现 本章基于《电商系统设计（五）：计价引擎》与《电商系统设计（六）：计价系统 DDD 实践》整理扩展，聚焦交易链路中的统一计价能力：四层价格模型、场景化计算、DDD 战术建模与系统边界。  阅读提示：若你更熟悉「订单里直接存一个 total_amount」的朴素模型，可以先带着两个问题读完全章——第一，券与积分为何常">
+<meta property="og:type" content="website">
+<meta property="og:title" content="第11章 计价系统设计与实现">
+<meta property="og:url" content="http://yoursite.com/book/chapter11.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="导航：书籍主页 | 完整目录 | 上一章 | 下一章  第11章 计价系统设计与实现 本章基于《电商系统设计（五）：计价引擎》与《电商系统设计（六）：计价系统 DDD 实践》整理扩展，聚焦交易链路中的统一计价能力：四层价格模型、场景化计算、DDD 战术建模与系统边界。  阅读提示：若你更熟悉「订单里直接存一个 total_amount」的朴素模型，可以先带着两个问题读完全章——第一，券与积分为何常">
+<meta property="og:locale">
+<meta property="article:published_time" content="2026-04-16T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-04-17T05:32:42.159Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/book/chapter11">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":false,"lang":"zh-Hans","comments":"","permalink":"http://yoursite.com/book/chapter11.html","path":"book/chapter11.html","title":"第11章 计价系统设计与实现"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>第11章 计价系统设计与实现 | wxquare's Blogs
+</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-book"><a href="/book/" rel="section"><i class="fa fa-book fa-fw"></i>书籍项目</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%AC%AC11%E7%AB%A0-%E8%AE%A1%E4%BB%B7%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0"><span class="nav-number">1.</span> <span class="nav-text">第11章 计价系统设计与实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#11-1-%E8%83%8C%E6%99%AF%E4%B8%8E%E6%8C%91%E6%88%98"><span class="nav-number">1.1.</span> <span class="nav-text">11.1 背景与挑战</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#11-1-1-%E4%BB%B7%E6%A0%BC%E8%AE%A1%E7%AE%97%E7%9A%84%E5%A4%8D%E6%9D%82%E6%80%A7"><span class="nav-number">1.1.1.</span> <span class="nav-text">11.1.1 价格计算的复杂性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-1-2-%E6%A0%B8%E5%BF%83%E6%8C%91%E6%88%98"><span class="nav-number">1.1.2.</span> <span class="nav-text">11.1.2 核心挑战</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-1-3-%E8%AE%BE%E8%AE%A1%E7%9B%AE%E6%A0%87"><span class="nav-number">1.1.3.</span> <span class="nav-text">11.1.3 设计目标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-1-4-%E8%AE%A1%E4%BB%B7%E7%B3%BB%E7%BB%9F%E5%9C%A8%E4%BA%A4%E6%98%93%E9%93%BE%E8%B7%AF%E4%B8%AD%E7%9A%84%E4%BD%8D%E7%BD%AE"><span class="nav-number">1.1.4.</span> <span class="nav-text">11.1.4 计价系统在交易链路中的位置</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11-2-%E8%AE%A1%E4%BB%B7%E5%BC%95%E6%93%8E%E6%9E%B6%E6%9E%84"><span class="nav-number">1.2.</span> <span class="nav-text">11.2 计价引擎架构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#11-2-1-%E5%88%86%E5%B1%82%E6%9E%B6%E6%9E%84"><span class="nav-number">1.2.1.</span> <span class="nav-text">11.2.1 分层架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-2-2-%E5%9B%9B%E5%B1%82%E4%BB%B7%E6%A0%BC%E6%A8%A1%E5%9E%8B"><span class="nav-number">1.2.2.</span> <span class="nav-text">11.2.2 四层价格模型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-2-3-%E8%AE%A1%E7%AE%97%E6%B5%81%E7%A8%8B"><span class="nav-number">1.2.3.</span> <span class="nav-text">11.2.3 计算流程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11-3-%E6%A0%B8%E5%BF%83%E5%AE%9E%E7%8E%B0"><span class="nav-number">1.3.</span> <span class="nav-text">11.3 核心实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#11-3-1-%E4%BB%B7%E6%A0%BC%E8%AE%A1%E7%AE%97%E5%99%A8%E8%AE%BE%E8%AE%A1"><span class="nav-number">1.3.1.</span> <span class="nav-text">11.3.1 价格计算器设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-3-2-%E5%BF%AB%E7%85%A7%E7%94%9F%E6%88%90"><span class="nav-number">1.3.2.</span> <span class="nav-text">11.3.2 快照生成</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-3-3-%E8%AF%95%E7%AE%97%E6%8E%A5%E5%8F%A3"><span class="nav-number">1.3.3.</span> <span class="nav-text">11.3.3 试算接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-3-4-%E5%B9%82%E7%AD%89%E6%80%A7%E4%BF%9D%E8%AF%81"><span class="nav-number">1.3.4.</span> <span class="nav-text">11.3.4 幂等性保证</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11-4-%E5%A4%9A%E7%BA%A7%E7%BC%93%E5%AD%98%E4%B8%8E%E9%99%8D%E7%BA%A7"><span class="nav-number">1.4.</span> <span class="nav-text">11.4 多级缓存与降级</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#11-4-1-%E7%BC%93%E5%AD%98%E7%AD%96%E7%95%A5"><span class="nav-number">1.4.1.</span> <span class="nav-text">11.4.1 缓存策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-4-2-%E9%99%8D%E7%BA%A7%E6%96%B9%E6%A1%88"><span class="nav-number">1.4.2.</span> <span class="nav-text">11.4.2 降级方案</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-4-3-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E8%A6%81%E7%82%B9"><span class="nav-number">1.4.3.</span> <span class="nav-text">11.4.3 性能优化要点</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11-5-DDD-%E5%BB%BA%E6%A8%A1%E5%AE%9E%E8%B7%B5%EF%BC%88%E9%87%8D%E7%82%B9%EF%BC%89"><span class="nav-number">1.5.</span> <span class="nav-text">11.5 DDD 建模实践（重点）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#11-5-1-%E9%A2%86%E5%9F%9F%E6%A8%A1%E5%9E%8B%E8%AE%BE%E8%AE%A1"><span class="nav-number">1.5.1.</span> <span class="nav-text">11.5.1 领域模型设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-5-2-%E8%81%9A%E5%90%88%E6%A0%B9%EF%BC%9APrice%EF%BC%88%E8%A1%8C%E7%BA%A7%E6%8A%A5%E4%BB%B7%E8%81%9A%E5%90%88%EF%BC%89"><span class="nav-number">1.5.2.</span> <span class="nav-text">11.5.2 聚合根：Price（行级报价聚合）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-5-3-%E5%80%BC%E5%AF%B9%E8%B1%A1%EF%BC%9AMoney-%E4%B8%8E-PriceLayer"><span class="nav-number">1.5.3.</span> <span class="nav-text">11.5.3 值对象：Money 与 PriceLayer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-5-4-%E9%A2%86%E5%9F%9F%E6%9C%8D%E5%8A%A1"><span class="nav-number">1.5.4.</span> <span class="nav-text">11.5.4 领域服务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-5-5-%E4%BB%93%E5%82%A8%E4%B8%8E%E5%B7%A5%E5%8E%82"><span class="nav-number">1.5.5.</span> <span class="nav-text">11.5.5 仓储与工厂</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11-6-%E4%B8%8D%E5%90%8C%E5%9C%BA%E6%99%AF%E7%9A%84%E4%BB%B7%E6%A0%BC%E8%AE%A1%E7%AE%97"><span class="nav-number">1.6.</span> <span class="nav-text">11.6 不同场景的价格计算</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#11-6-1-PDP-%E5%9C%BA%E6%99%AF%EF%BC%88%E5%95%86%E5%93%81%E8%AF%A6%E6%83%85%E9%A1%B5-%E5%8A%A0%E8%B4%AD%E8%AF%95%E7%AE%97%EF%BC%89"><span class="nav-number">1.6.1.</span> <span class="nav-text">11.6.1 PDP 场景（商品详情页 &#x2F; 加购试算）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-6-2-%E8%B4%AD%E7%89%A9%E8%BD%A6%E5%9C%BA%E6%99%AF"><span class="nav-number">1.6.2.</span> <span class="nav-text">11.6.2 购物车场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-6-3-%E5%88%9B%E5%8D%95%E5%9C%BA%E6%99%AF%EF%BC%88%E8%AE%A2%E5%8D%95%E9%87%91%E9%A2%9D%E4%B8%8E%E5%BF%AB%E7%85%A7%EF%BC%89"><span class="nav-number">1.6.3.</span> <span class="nav-text">11.6.3 创单场景（订单金额与快照）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-6-4-%E6%94%AF%E4%BB%98%E5%9C%BA%E6%99%AF"><span class="nav-number">1.6.4.</span> <span class="nav-text">11.6.4 支付场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-6-5-%E5%9C%BA%E6%99%AF%E9%97%B4%E7%9A%84%E4%BB%B7%E6%A0%BC%E4%B8%80%E8%87%B4%E6%80%A7%E4%BF%9D%E8%AF%81"><span class="nav-number">1.6.5.</span> <span class="nav-text">11.6.5 场景间的价格一致性保证</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11-7-%E7%B3%BB%E7%BB%9F%E8%BE%B9%E7%95%8C%E4%B8%8E%E8%81%8C%E8%B4%A3"><span class="nav-number">1.7.</span> <span class="nav-text">11.7 系统边界与职责</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#11-7-1-%E8%AE%A1%E4%BB%B7%E7%B3%BB%E7%BB%9F%E7%9A%84%E8%81%8C%E8%B4%A3%E8%BE%B9%E7%95%8C"><span class="nav-number">1.7.1.</span> <span class="nav-text">11.7.1 计价系统的职责边界</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-7-2-%E8%AE%A1%E4%BB%B7-vs-%E8%90%A5%E9%94%80%EF%BC%9A%E8%B0%81%E7%AE%97%E4%BB%80%E4%B9%88"><span class="nav-number">1.7.2.</span> <span class="nav-text">11.7.2 计价 vs 营销：谁算什么</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-7-3-%E8%AF%95%E7%AE%97-vs-%E8%AE%A2%E5%8D%95%E4%BB%B7%E6%A0%BC%E5%BF%AB%E7%85%A7"><span class="nav-number">1.7.3.</span> <span class="nav-text">11.7.3 试算 vs 订单价格快照</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-7-4-%E5%9F%BA%E7%A1%80%E4%BB%B7-vs-%E4%BF%83%E9%94%80%E4%BB%B7-vs-%E6%94%AF%E4%BB%98%E4%BB%B7"><span class="nav-number">1.7.4.</span> <span class="nav-text">11.7.4 基础价 vs 促销价 vs 支付价</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11-8-%E4%B8%8E%E4%BA%A4%E6%98%93%E9%93%BE%E8%B7%AF%E5%90%84%E7%B3%BB%E7%BB%9F%E7%9A%84%E9%9B%86%E6%88%90"><span class="nav-number">1.8.</span> <span class="nav-text">11.8 与交易链路各系统的集成</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#11-8-1-%E4%B8%8E%E5%95%86%E5%93%81%E7%B3%BB%E7%BB%9F%E9%9B%86%E6%88%90%EF%BC%88%E5%9F%BA%E7%A1%80%E4%BB%B7%E8%AF%BB%E5%8F%96%EF%BC%89"><span class="nav-number">1.8.1.</span> <span class="nav-text">11.8.1 与商品系统集成（基础价读取）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-8-2-%E4%B8%8E%E8%90%A5%E9%94%80%E7%B3%BB%E7%BB%9F%E9%9B%86%E6%88%90%EF%BC%88%E8%90%A5%E9%94%80%E8%A7%84%E5%88%99%E5%BA%94%E7%94%A8%EF%BC%89"><span class="nav-number">1.8.2.</span> <span class="nav-text">11.8.2 与营销系统集成（营销规则应用）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-8-3-%E4%B8%8E-PDP-%E9%9B%86%E6%88%90%EF%BC%88%E5%8A%A0%E8%B4%AD%E8%AF%95%E7%AE%97%EF%BC%89"><span class="nav-number">1.8.3.</span> <span class="nav-text">11.8.3 与 PDP 集成（加购试算）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-8-4-%E4%B8%8E%E8%B4%AD%E7%89%A9%E8%BD%A6%E9%9B%86%E6%88%90%EF%BC%88%E5%AE%9E%E6%97%B6%E8%AF%95%E7%AE%97%EF%BC%89"><span class="nav-number">1.8.4.</span> <span class="nav-text">11.8.4 与购物车集成（实时试算）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-8-5-%E4%B8%8E%E7%BB%93%E7%AE%97%E7%B3%BB%E7%BB%9F%E9%9B%86%E6%88%90%EF%BC%88%E7%A1%AE%E8%AE%A4%E4%BB%B7%E6%A0%BC%EF%BC%89"><span class="nav-number">1.8.5.</span> <span class="nav-text">11.8.5 与结算系统集成（确认价格）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-8-6-%E4%B8%8E%E8%AE%A2%E5%8D%95%E7%B3%BB%E7%BB%9F%E9%9B%86%E6%88%90%EF%BC%88%E5%88%9B%E5%8D%95%E9%87%91%E9%A2%9D%E8%AE%A1%E7%AE%97%EF%BC%89"><span class="nav-number">1.8.6.</span> <span class="nav-text">11.8.6 与订单系统集成（创单金额计算）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-8-7-%E4%B8%8E%E6%94%AF%E4%BB%98%E7%B3%BB%E7%BB%9F%E9%9B%86%E6%88%90%EF%BC%88%E6%94%AF%E4%BB%98%E9%87%91%E9%A2%9D%E6%A0%A1%E9%AA%8C%EF%BC%89"><span class="nav-number">1.8.7.</span> <span class="nav-text">11.8.7 与支付系统集成（支付金额校验）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-8-8-%E9%9B%86%E6%88%90%E8%B0%83%E7%94%A8%E9%93%BE%E8%B7%AF%E4%B8%8E%E6%97%B6%E5%BA%8F"><span class="nav-number">1.8.8.</span> <span class="nav-text">11.8.8 集成调用链路与时序</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-8-9-%E9%99%8D%E7%BA%A7%E4%B8%8E%E5%AE%B9%E9%94%99%E7%AD%96%E7%95%A5"><span class="nav-number">1.8.9.</span> <span class="nav-text">11.8.9 降级与容错策略</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11-9-%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5"><span class="nav-number">1.9.</span> <span class="nav-text">11.9 工程实践</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#11-9-1-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96"><span class="nav-number">1.9.1.</span> <span class="nav-text">11.9.1 性能优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-9-2-%E7%9B%91%E6%8E%A7%E5%91%8A%E8%AD%A6"><span class="nav-number">1.9.2.</span> <span class="nav-text">11.9.2 监控告警</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#11-9-3-%E6%95%85%E9%9A%9C%E5%A4%84%E7%90%86"><span class="nav-number">1.9.3.</span> <span class="nav-text">11.9.3 故障处理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#11-10-%E6%9C%AC%E7%AB%A0%E5%B0%8F%E7%BB%93"><span class="nav-number">1.10.</span> <span class="nav-text">11.10 本章小结</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">61</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">167</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">13篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">7篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">15篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">7篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner page posts-expand">
+
+
+    
+    
+    
+    <div class="post-block" lang="zh-Hans"><header class="post-header">
+
+<h1 class="post-title" itemprop="name headline">第11章 计价系统设计与实现
+</h1>
+
+<div class="post-meta-container">
+</div>
+
+</header>
+
+      
+      
+      
+      <div class="post-body">
+          <p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter10.html">上一章</a> | <a href="./chapter12.html">下一章</a></p>
+<hr>
+<h1 id="第11章-计价系统设计与实现"><a href="#第11章-计价系统设计与实现" class="headerlink" title="第11章 计价系统设计与实现"></a>第11章 计价系统设计与实现</h1><blockquote>
+<p>本章基于《电商系统设计（五）：计价引擎》与《电商系统设计（六）：计价系统 DDD 实践》整理扩展，聚焦交易链路中的<strong>统一计价能力</strong>：四层价格模型、场景化计算、DDD 战术建模与系统边界。</p>
+</blockquote>
+<p><strong>阅读提示</strong>：若你更熟悉「订单里直接存一个 <code>total_amount</code>」的朴素模型，可以先带着两个问题读完全章——第一，<strong>券与积分为何常常不进创单快照</strong>；第二，<strong>为什么支付阶段坚持校验而不是重算</strong>。搞清这两个问题，就能理解计价中心存在的必然性，而不是把它简单看成「又一个中台服务」。文中 Go 示例为教学裁剪版，省略了错误包装、观测字段与部分依赖注入，落地时请按项目规范补全。</p>
+<hr>
+<h2 id="11-1-背景与挑战"><a href="#11-1-背景与挑战" class="headerlink" title="11.1 背景与挑战"></a>11.1 背景与挑战</h2><h3 id="11-1-1-价格计算的复杂性"><a href="#11-1-1-价格计算的复杂性" class="headerlink" title="11.1.1 价格计算的复杂性"></a>11.1.1 价格计算的复杂性</h3><p>在电商系统中，用户看到的「价格」并非单一标量，而是<strong>多因子分层叠加</strong>的结果：基础售价、营销活动、订单级抵扣、运费与增值服务、支付渠道手续费等，共同决定<strong>订单应付</strong>与<strong>最终支付</strong>。若各系统各自实现一套加减逻辑，极易出现「商详 99 元、下单 105 元」的体验问题，甚至引发<strong>重复优惠、二次扣券</strong>等资损。</p>
+<p>典型分解可概括为：</p>
+<ul>
+<li><strong>基础价格</strong>：市场价、日常折扣价、渠道价等；</li>
+<li><strong>营销价格</strong>：秒杀、新人价、满减、Bundle 等；</li>
+<li><strong>抵扣</strong>：优惠券、积分、支付立减等；</li>
+<li><strong>费用与附加</strong>：运费、碎屏险等平台服务费、跨境或信用卡手续费等。</li>
+</ul>
+<p>同一 SKU 在 <strong>PDP（商品详情页）</strong>、<strong>购物车</strong>、<strong>创单</strong>、<strong>收银台</strong>、<strong>支付</strong> 各阶段，对计算深度、一致性与性能的要求并不相同，这要求计价中心以<strong>场景驱动</strong>的方式暴露能力，而不是「一刀切」的全量重算。</p>
+<p>在传统拆分里，商品服务算「标价」、营销服务算「活动价」、订单服务在创单时再算一遍总价、支付服务为渠道优惠再算一遍——表面看各团队各管一段，实际上<strong>同一业务概念被多处隐式定义</strong>，边界一模糊就会出现「券用了两次」「满减门槛按行算还是按单算各执一词」等问题。更隐蔽的是：<strong>浮点金额</strong>、<strong>四舍五入顺序</strong>、<strong>外币汇率取整点</strong>不一致，会在大规模订单下累积成对账差异。计价中心的意义，就是把「一次购物旅程中所有与钱有关的加减」收敛到<strong>同一套编排与同一套舍入规则</strong>，让其他系统变成<strong>数据供给方或执行方</strong>，而不是第二个计算器。</p>
+<h3 id="11-1-2-核心挑战"><a href="#11-1-2-核心挑战" class="headerlink" title="11.1.2 核心挑战"></a>11.1.2 核心挑战</h3><ol>
+<li><strong>一致性</strong>：展示价、订单快照、支付金额必须可追溯、可校验；规则版本与快照版本应对齐。</li>
+<li><strong>准确性</strong>：金额以<strong>分</strong>为单位的整数运算；订单级优惠需<strong>按比例分摊</strong>到行，否则退款无法闭合。</li>
+<li><strong>性能</strong>：PDP &#x2F; 列表页高 QPS，需多级缓存与轻量路径；创单 &#x2F; 收银台可接受更高延迟但<strong>不容错算</strong>。</li>
+<li><strong>异构品类</strong>：Topup、酒店、机票等定价因子差异大，需要<strong>策略插件</strong>而非巨石 <code>if-else</code>。</li>
+<li><strong>供应商品类实时价</strong>：报价可能在浏览至支付间变化，需要 <strong>BookingToken</strong>、支付前反查等机制。</li>
+</ol>
+<p>此外有两类「软挑战」往往在事故后才被写入复盘：<strong>组织边界</strong>与<strong>产品口径</strong>。前者表现为多个团队各维护一段计算逻辑，接口文档写「参考订单域」，实际上订单域又在调另一套历史脚本；后者表现为 PRD 写「到手价」，但未定义是否含运费、是否含可叠加券的上限——技术再完美的引擎也无法收敛未定义的业务。计价项目启动时，建议把<strong>统一语言表</strong>（见 11.5 与系列第六篇）作为需求评审门禁，与 <code>SkipLayers</code> 表双签，再进入排期。</p>
+<p>从工程视角，上述挑战可以压成三条硬约束：<strong>算得对</strong>（正确性）、<strong>大家认</strong>（一致性）、<strong>扛得住</strong>（性能与可用性）。其中正确性又依赖两条底座：一是<strong>整数分</strong>与确定的舍入；二是<strong>快照</strong>——把某一刻的规则解释结果固化为事实，后续链路只解释事实，不再在暗处重算。一致性则依赖<strong>版本化</strong>：规则集、活动表、券批次、汇率表都带有业务版本或生效区间，计价请求必须携带「我按哪一版解释」的线索，否则 PDP 与创单永远可能对不齐。</p>
+<h3 id="11-1-3-设计目标"><a href="#11-1-3-设计目标" class="headerlink" title="11.1.3 设计目标"></a>11.1.3 设计目标</h3><table>
+<thead>
+<tr>
+<th>目标</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>准确性</td>
+<td>计价结果可审计，关键路径可空跑比对</td>
+</tr>
+<tr>
+<td>一致性</td>
+<td>统一入口计算，订单 &#x2F; 支付以快照为准</td>
+</tr>
+<tr>
+<td>高性能</td>
+<td>前台场景高缓存命中；交易路径少 IO、可并发</td>
+</tr>
+<tr>
+<td>可扩展</td>
+<td>新营销类型、新费用项以策略 &#x2F; 配置扩展</td>
+</tr>
+<tr>
+<td>可观测</td>
+<td>分层耗时、缓存命中、差异告警</td>
+</tr>
+</tbody></table>
+<p>上述目标之间存在天然张力：例如「极致缓存」与「强一致快照」方向相反，需要通过<strong>场景分流</strong>化解，而不是用一套参数打天下。团队 OKR 里若只写 P99 延迟而不写<strong>差异率 &#x2F; 资损事件数</strong>，很容易把系统优化成「快但不准」。建议在质量看板上同时跟踪：<strong>快照校验失败次数</strong>、<strong>空跑 diff 超标次数</strong>、<strong>客服价格类工单占比</strong>，与延迟指标并列。</p>
+<h3 id="11-1-4-计价系统在交易链路中的位置"><a href="#11-1-4-计价系统在交易链路中的位置" class="headerlink" title="11.1.4 计价系统在交易链路中的位置"></a>11.1.4 计价系统在交易链路中的位置</h3><p>计价中心位于<strong>商品、营销、库存、订单、支付</strong>之间：向上读取商品基础价与营销规则，向下为购物车、结算、创单、支付提供<strong>试算</strong>与<strong>快照</strong>服务。它是交易链路的<strong>横切基础模块</strong>，不宜承担订单状态机或支付渠道路由等非本域职责。</p>
+<pre class="mermaid">flowchart LR
+  subgraph upstream[上游依赖]
+    Item[商品中心]
+    Promo[营销系统]
+    User[用户 / 画像]
+    Supplier[供应商报价]
+  end
+  Pricing[计价中心]
+  subgraph downstream[下游消费方]
+    PDP[商详 / 导购]
+    Cart[购物车]
+    Checkout[结算收银台]
+    Order[订单系统]
+    Pay[支付系统]
+  end
+  Item --> Pricing
+  Promo --> Pricing
+  User --> Pricing
+  Supplier --> Pricing
+  Pricing --> PDP
+  Pricing --> Cart
+  Pricing --> Checkout
+  Pricing --> Order
+  Pricing --> Pay</pre>
+
+<p>把计价中心画在枢纽位置，并不是鼓励它成为「上帝服务」，而是强调其 <strong>I&#x2F;O 边界</strong>：对外是少量稳定的试算与快照 API，对内通过防腐层消化外部世界的变化。实践中常见反模式有两种：其一是计价服务直接读营销库的宽表，把对方存储模型当自己领域模型；其二是把订单状态推进、支付路由塞进计价——二者都会让团队在排障时无法回答「这一分钱到底是谁改的」。本章后续用 DDD 的聚合与 ACL 约束，正是为了避免这两种腐化。</p>
+<hr>
+<h2 id="11-2-计价引擎架构"><a href="#11-2-计价引擎架构" class="headerlink" title="11.2 计价引擎架构"></a>11.2 计价引擎架构</h2><h3 id="11-2-1-分层架构"><a href="#11-2-1-分层架构" class="headerlink" title="11.2.1 分层架构"></a>11.2.1 分层架构</h3><p>计价中心通常分为：<strong>场景入口层（API &#x2F; Handler）</strong>、<strong>编排与快照层</strong>、<strong>核心计算引擎</strong>、<strong>品类策略</strong>、<strong>防腐适配层</strong>、<strong>缓存与持久化</strong>。入口按 <code>PricingScene</code> 路由到不同 Handler，核心引擎以<strong>责任链</strong>顺序执行各 <code>Layer</code>，并结合 <code>Calculator</code> 做品类扩展。</p>
+<pre class="mermaid">flowchart TB
+  subgraph api[统一入口层]
+    GW[Pricing API / Gateway]
+    Router[SceneRouter]
+    Snap[SnapshotManager]
+    GW --> Router
+    Router --> Snap
+  end
+  subgraph engine[核心计算层]
+    L1[BasePriceLayer]
+    L2[PromotionLayer]
+    L3[DeductionLayer]
+    L4[ChargeLayer]
+    L5[FinalAssemblyLayer]
+    L1 --> L2 --> L3 --> L4 --> L5
+  end
+  subgraph strategy[品类策略]
+    C1[DealCalculator]
+    C2[TopupCalculator]
+    C3[HotelCalculator]
+  end
+  subgraph infra[基础设施]
+    ACL[防腐层适配器]
+    Cache[(L1/L2 缓存)]
+    DB[(快照 / 审计)]
+  end
+  Router --> engine
+  engine --> strategy
+  engine --> ACL
+  engine --> Cache
+  Snap --> DB</pre>
+
+<p><strong>与五层实现的关系</strong>：实现上常把「最终汇总、尾差修正、安全校验」独立为 <code>FinalAssemblyLayer</code>，于是代码里会看到五段责任链。本书在<strong>业务模型</strong>上仍称四层，是因为前四层对应「可被业务方单独讨论的价格语义」，而 Final 层是<strong>技术组装层</strong>（把四层结果折叠成响应 DTO 与快照 schema），不参与对外营销话术。团队在评审架构图时，应对业务讲四层，对研发可展开五层，避免无谓争论。</p>
+<p><strong>SceneRouter</strong> 的职责不仅是转发：它要注入 <code>PricingScene</code>、解析租户 &#x2F; 地区 &#x2F; 渠道、挂载灰度与空跑开关，并在入口完成<strong>参数校验</strong>（例如购物车行是否含失效 SKU、供应商品类是否带预订 token）。<strong>SnapshotManager</strong> 则与订单域协作：创单成功后写入订单快照，收银台基于订单行再生成支付快照；二者生命周期不同，<strong>不可混用一张表、一个过期策略</strong>。</p>
+<h3 id="11-2-2-四层价格模型"><a href="#11-2-2-四层价格模型" class="headerlink" title="11.2.2 四层价格模型"></a>11.2.2 四层价格模型</h3><p>为与业务语言对齐，本书将<strong>可叠加的价格语义</strong>归纳为四层（<strong>不含</strong>最终的汇总展示层）：<strong>基础层、营销层、抵扣层、费用层</strong>。引擎内部可再拆「最终汇总」为独立步骤，用于生成明细与快照版本。</p>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>名称</th>
+<th>典型内容</th>
+<th>出资方 &#x2F; 备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Layer 1</td>
+<td>基础价格</td>
+<td>市场价、折扣价、渠道价、供应商报价</td>
+<td>商家 &#x2F; 平台标价</td>
+</tr>
+<tr>
+<td>Layer 2</td>
+<td>营销价格</td>
+<td>秒杀、新人价、满减、活动价</td>
+<td>商家或平台营销预算</td>
+</tr>
+<tr>
+<td>Layer 3</td>
+<td>抵扣</td>
+<td>优惠券、积分、部分支付立减</td>
+<td>用户权益</td>
+</tr>
+<tr>
+<td>Layer 4</td>
+<td>费用与附加</td>
+<td>运费、增值服务费、平台服务费、支付手续费</td>
+<td>用户或平台规则</td>
+</tr>
+</tbody></table>
+<pre class="mermaid">flowchart TB
+  subgraph L1[Layer 1 基础价格]
+    M[市场价]
+    D[折扣价]
+    M --> D
+  end
+  subgraph L2[Layer 2 营销价格]
+    P[活动 / 秒杀 / 新人 / 满减]
+  end
+  subgraph L3[Layer 3 抵扣]
+    V[券 / 积分 / 立减]
+  end
+  subgraph L4[Layer 4 费用与附加]
+    F[运费 / 增值服务费 / 手续费]
+  end
+  L1 --> L2
+  L2 --> L3
+  L3 --> L4
+  L4 --> Out[应付 / 实付口径由场景定义]</pre>
+
+<p><strong>端到端走数示例（整数分）</strong>：设某 SKU 日常折扣价 98000 分，限时抢购再减 8000 分（Layer 2），创单时加运费 1000 分、碎屏险 5000 分（Layer 4 中与履约相关部分），则订单应付为 98000 − 8000 + 1000 + 5000 &#x3D; 96000 分。用户进入收银台选择满 500 减 100 的券（此处为 10000 分）与积分抵 10000 分（Layer 3），再选择会产生 2% 信用卡手续费的渠道，手续费基数若约定为「券与积分后的金额」，则应付变为 96000 − 10000 − 10000 &#x3D; 76000 分，手续费 1520 分，实付 77520 分——具体基数以公司业务规则为准，关键是 <strong>Layer 顺序与基数必须在规则文档与代码注释中一致</strong>，并在快照里记录「手续费按哪一版基数计算」。</p>
+<p><strong>口径说明</strong>：</p>
+<ul>
+<li><strong>创单（CreateOrder）</strong>：常见做法是 Layer 1 + Layer 2 + <strong>Layer 4 中与订单履约相关的费用</strong>（如运费、增值服务费），<strong>不包含</strong> Layer 3 的券与积分，也不包含<strong>支付渠道手续费</strong>（手续费依赖用户所选渠道，放在收银台）。</li>
+<li><strong>收银台（Checkout）</strong>：完整执行 Layer 1–4，生成<strong>支付快照</strong>。</li>
+<li><strong>支付（Payment）</strong>：以快照为准做<strong>校验</strong>，避免再次「全量重算」引入漂移。</li>
+</ul>
+<p>Layer 的<strong>顺序不可随意调换</strong>：必须先有「可减的基准」，再谈营销减免，再谈用户权益抵扣，最后才叠加履约与支付相关费用。若把券提前到营销之前，会出现「用券改变满减门槛」这类循环依赖，规则引擎与测试用例都会爆炸。Layer 4 内部也建议<strong>再分子阶段</strong>：先算与履约相关的运费与增值服务费，再在收银台根据用户所选支付渠道计算手续费，这样创单快照不会错误地绑定某一渠道费率。</p>
+<h3 id="11-2-3-计算流程"><a href="#11-2-3-计算流程" class="headerlink" title="11.2.3 计算流程"></a>11.2.3 计算流程</h3><p>计算流程可抽象为：构建 <code>PricingContext</code> → 按场景得到 <code>skipLayers</code> → 责任链逐层改写 <code>PricingState</code> → 品类 <code>Calculator</code> 参与行级计算 → <code>Final</code> 汇总明细 →（交易路径）<strong>持久化快照</strong>。</p>
+<pre class="mermaid">flowchart LR
+  A[请求 + Scene] --> B[加载商品 / 规则版本]
+  B --> C[初始化 PricingState]
+  C --> D{遍历 Layer}
+  D -->|未跳过| E[更新行金额 / 明细]
+  D -->|跳过| F[保持上层结果]
+  E --> G{还有 Layer?}
+  F --> G
+  G -->|是| D
+  G -->|否| H[分摊 / 取整 / 保护校验]
+  H --> I[响应 + 可选快照]</pre>
+
+<p><strong><code>PricingState</code> 建议携带的内容</strong>包括：行级中间价、已选营销命中列表、已锁定券批次、供应商报价引用 ID、舍入审计数组、以及每层产生的结构化 <code>PriceComponent</code>（类型、金额、出资方、关联业务单号）。Final 之前的各层应尽量避免「只写一个整数总价」——客服与财务追问时，只有明细才能解释<strong>为什么少了一分钱</strong>。供应商品类还要在 state 中携带 <strong>报价过期时刻</strong> 与 <strong>预订 token</strong>，以便支付校验阶段做二次确认或优雅失败。</p>
+<hr>
+<h2 id="11-3-核心实现"><a href="#11-3-核心实现" class="headerlink" title="11.3 核心实现"></a>11.3 核心实现</h2><h3 id="11-3-1-价格计算器设计"><a href="#11-3-1-价格计算器设计" class="headerlink" title="11.3.1 价格计算器设计"></a>11.3.1 价格计算器设计</h3><p>引擎对外暴露稳定接口，对内使用 <strong><code>Layer</code> 责任链 + <code>Calculator</code> 策略</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> pricing</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;context&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Engine 计价引擎对外接口。</span></span><br><span class="line"><span class="keyword">type</span> Engine <span class="keyword">interface</span> &#123;</span><br><span class="line">	CalculatePrice(ctx context.Context, req *PricingRequest) (*PricingResponse, <span class="type">error</span>)</span><br><span class="line">	CalculateWithDryRun(ctx context.Context, req *PricingRequest) (*PricingResponse, *DryRunResult, <span class="type">error</span>)</span><br><span class="line">	BatchCalculate(ctx context.Context, reqs []*PricingRequest) ([]*PricingResponse, <span class="type">error</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Layer 单层计算：可读写 PricingState。</span></span><br><span class="line"><span class="keyword">type</span> Layer <span class="keyword">interface</span> &#123;</span><br><span class="line">	Name() <span class="type">string</span></span><br><span class="line">	Order() <span class="type">int</span></span><br><span class="line">	Process(ctx context.Context, req *PricingRequest, st *PricingState) <span class="type">error</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Calculator 品类策略：在单层或多层之间参与行级公式。</span></span><br><span class="line"><span class="keyword">type</span> Calculator <span class="keyword">interface</span> &#123;</span><br><span class="line">	Support(categoryID <span class="type">int64</span>) <span class="type">bool</span></span><br><span class="line">	Priority() <span class="type">int</span></span><br><span class="line">	Calculate(ctx context.Context, req *PricingRequest, st *PricingState) <span class="type">error</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>责任链与策略的协作方式</strong>可以概括为：Layer 负责「这一类变价因子在何时进入总式」，Calculator 负责「这一品类如何解释基础输入」。例如酒店品类在 Layer 1 需要把「间夜 × 日历价 × 税费」折叠成一行基准 <code>Money</code>；Topup 在 Layer 1 只需要「面额 × 折扣率」。若把品类差异全写进 Layer 1 的 <code>switch</code>，Layer 将迅速膨胀；若把 Layer 2 的营销叠加规则写进 Calculator，又会导致营销变更需要改多个品类文件。<strong>推荐做法</strong>是：Layer 保持<strong>与品类无关的通用语义</strong>，Calculator 只处理「如何得到 Layer 1 接受的基准结构」以及少数「品类特有附加费」钩子。</p>
+<p><strong>错误语义</strong>：引擎对外错误应分层——参数非法（4xx）、依赖不可用（5xx 可重试）、规则冲突（4xx 业务码）、资损风险（4xx 拒绝 + 告警）。不要把「营销返回空列表」与「内部 panic」混用同一码，否则 SLO 统计会被污染。对创单路径，任何<strong>未分类错误</strong>都应默认 fail-close，避免生成半张快照。</p>
+<p><code>initLayers</code> 中按 <code>Order()</code> 排序注册：<code>BasePrice</code> → <code>Promotion</code> → <code>Deduction</code> → <code>Charge</code> → <code>Final</code>，与 11.2.2 的四层语义一致，<strong>Final</strong> 负责尾差、分摊与明细输出。</p>
+<p>场景到层的映射在代码里常表为「跳过列表」，与业务文档交叉对照便于测试覆盖：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SkipLayersForScene</span><span class="params">(scene PricingScene)</span></span> []<span class="type">string</span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> scene &#123;</span><br><span class="line">	<span class="keyword">case</span> ScenePDP, SceneAddToCart:</span><br><span class="line">		<span class="keyword">return</span> []<span class="type">string</span>&#123;<span class="string">&quot;deduction&quot;</span>, <span class="string">&quot;charge&quot;</span>&#125;</span><br><span class="line">	<span class="keyword">case</span> SceneCart:</span><br><span class="line">		<span class="keyword">return</span> []<span class="type">string</span>&#123;<span class="string">&quot;charge&quot;</span>&#125; <span class="comment">// 购物车可预估券；运费常缺省或按默认地址估算</span></span><br><span class="line">	<span class="keyword">case</span> SceneCreateOrder:</span><br><span class="line">		<span class="comment">// 创单：基础 + 营销 + 与订单绑定的附加费；不含券积分与支付手续费</span></span><br><span class="line">		<span class="keyword">return</span> []<span class="type">string</span>&#123;<span class="string">&quot;deduction&quot;</span>, <span class="string">&quot;payment_handling_fee&quot;</span>&#125;</span><br><span class="line">	<span class="keyword">case</span> SceneCheckout:</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	<span class="keyword">case</span> ScenePayment:</span><br><span class="line">		<span class="keyword">return</span> []<span class="type">string</span>&#123;<span class="string">&quot;base_price&quot;</span>, <span class="string">&quot;promotion&quot;</span>, <span class="string">&quot;deduction&quot;</span>, <span class="string">&quot;charge&quot;</span>, <span class="string">&quot;final&quot;</span>&#125;</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注：<code>payment_handling_fee</code> 是否从 Layer 4 拆出，取决于实现里是否将「订单附加费」与「支付渠道费」分为两个子处理器；关键是<strong>创单口径不包含随渠道变化的费率</strong>。</p>
+</blockquote>
+<h3 id="11-3-2-快照生成"><a href="#11-3-2-快照生成" class="headerlink" title="11.3.2 快照生成"></a>11.3.2 快照生成</h3><p>快照是<strong>防资损</strong>的关键：创单生成<strong>订单价格快照</strong>（含行明细、规则版本、供应商 <code>BookingToken</code> 等），收银台生成<strong>支付快照</strong>（含券积分与手续费）。快照应包含：</p>
+<ul>
+<li><code>snapshot_id</code>、<code>version</code>、<code>calculated_at</code>、<code>expire_at</code>；</li>
+<li>各层贡献的<strong>结构化明细</strong>（便于对账与客服解释）；</li>
+<li>可选：<code>rule_bundle_hash</code> 用于比对「当时用的是什么规则集」。</li>
+</ul>
+<p><strong>快照与订单数据的关系</strong>：订单表应保存 <code>snapshot_id</code> 或内嵌只读 JSON，但<strong>不建议在订单域再实现一套价格公式</strong>去「验算」——验算应回调计价或读快照服务，否则双实现又会分叉。快照表建议支持<strong>只追加</strong>：修正价格走新快照版本（<code>v2</code>），旧版本保留审计；支付失败回滚不应删除历史快照记录。<strong>TTL</strong>：订单快照常对齐库存锁定时间（如 30 分钟）；支付快照对齐收银台支付超时（如 15 分钟），二者解耦。</p>
+<h3 id="11-3-3-试算接口"><a href="#11-3-3-试算接口" class="headerlink" title="11.3.3 试算接口"></a>11.3.3 试算接口</h3><p>试算与正式计算共用同一套 <code>Layer</code>，通过 <code>Scene</code> 控制深度：PDP 试算只读展示；购物车允许<strong>预估券</strong>（标注 <code>estimated=true</code>）；创单 &#x2F; 收银台必须<strong>明确用户已选权益</strong>（券码、积分数量、渠道）。</p>
+<p>试算响应里应显式区分三类字段：<strong>事实</strong>（已锁定、写入快照）、<strong>建议</strong>（系统推荐最优券但用户未确认）、<strong>估算</strong>（缺地址导致运费按默认规则猜）。前端展示时必须用不同标签，避免用户把「估算运费」当成承诺。对于 <strong>DryRun（空跑比对）</strong>：上线新引擎时，生产流量旁路调用新旧两套，只在差异超阈值时采样上报，可在 <code>PricingResponse</code> 中附加 <code>diff_summary</code> 而不影响主路径延迟。</p>
+<h3 id="11-3-4-幂等性保证"><a href="#11-3-4-幂等性保证" class="headerlink" title="11.3.4 幂等性保证"></a>11.3.4 幂等性保证</h3><p>计价接口常被上游重试。建议：</p>
+<ul>
+<li>请求携带 <strong><code>Idempotency-Key</code></strong> 或业务侧 <code>request_id</code>；</li>
+<li>服务端以「用户 + 场景 + 关键购物车指纹」为维度短 TTL 缓存<strong>响应副本</strong>；</li>
+<li><strong>生成快照</strong>类写操作与订单号 &#x2F; 结算单号绑定，防止重复生成两套有效快照。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> SnapshotRepository <span class="keyword">interface</span> &#123;</span><br><span class="line">	Save(ctx context.Context, s *PriceSnapshot) <span class="type">error</span></span><br><span class="line">	GetByOrderID(ctx context.Context, orderID <span class="type">string</span>) (*PriceSnapshot, <span class="type">error</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *PricingAppService)</span></span> CreateOrderSnapshot(ctx context.Context, cmd CreateOrderSnapshotCmd) (*PriceSnapshot, <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">if</span> snap, err := s.repo.GetByOrderID(ctx, cmd.OrderID); err == <span class="literal">nil</span> &amp;&amp; snap != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> snap, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// ... 首次计算后落库</span></span><br><span class="line">	<span class="keyword">return</span> s.repo.SaveAndReturn(ctx, cmd)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>安全校验器（Safety Checker）</strong> 常与幂等一起出现在创单 &#x2F; 收银台路径：在返回快照前检查「总价不为负」「折扣不超过品类阈值」「优惠不超过商品应付之和」等。校验失败应<strong>拒绝生成快照</strong>而不是静默裁剪，否则会把业务错误伪装成成功交易。对于前端上送金额与后端计算金额的比对，建议以后端为准，前端金额仅作 UX 提示；若必须比对，应使用<strong>宽松阈值</strong>防浮点，或统一为整数分。</p>
+<hr>
+<h2 id="11-4-多级缓存与降级"><a href="#11-4-多级缓存与降级" class="headerlink" title="11.4 多级缓存与降级"></a>11.4 多级缓存与降级</h2><h3 id="11-4-1-缓存策略"><a href="#11-4-1-缓存策略" class="headerlink" title="11.4.1 缓存策略"></a>11.4.1 缓存策略</h3><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>是否缓存</th>
+<th>TTL 思路</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PDP &#x2F; 列表批量</td>
+<td>是</td>
+<td>L1 短 TTL + L2 较长；命中要求高于展示 SLA</td>
+</tr>
+<tr>
+<td>购物车</td>
+<td>部分</td>
+<td>自营可中等 TTL；供应商品类报价短 TTL</td>
+</tr>
+<tr>
+<td>创单 &#x2F; 收银台 &#x2F; 支付</td>
+<td>否（结果可落快照表）</td>
+<td>以强一致计算为主</td>
+</tr>
+</tbody></table>
+<p>缓存 key 设计要同时防<strong>击穿</strong>与<strong>脏读</strong>：key 中应包含 <code>item_id</code>、<code>sku_id</code>、<code>region</code>、<code>channel</code>、<code>user_segment</code>（若价随人群变化）、以及<strong>规则版本摘要</strong>。大促时热门商品可采用<strong>单飞（singleflight）</strong>合并回源。对购物车这类高 churn 场景，可缓存「行哈希 → 计价结果」短 TTL，而不是整购物车超长缓存，避免用户改数量后长期读到旧价。</p>
+<h3 id="11-4-2-降级方案"><a href="#11-4-2-降级方案" class="headerlink" title="11.4.2 降级方案"></a>11.4.2 降级方案</h3><ul>
+<li><strong>依赖超时</strong>：返回上一版本缓存并打标 <code>stale=true</code>（仅允许非交易路径）；</li>
+<li><strong>营销服务不可用</strong>：PDP 可降级为仅 Layer 1；创单路径应<strong>失败快速</strong>而非静默吞错；</li>
+<li><strong>供应商报价失败</strong>：使用 DB 缓存价并限制最大陈旧度，超阈值则拦截创单。</li>
+</ul>
+<p>降级策略要与<strong>法务与用户协议</strong>对齐：若页面上承诺了「展示价即购买价」，则任何返回陈旧价的降级路径都必须附带明确提示或干脆失败；否则可能构成虚假宣传风险。技术团队常忽略这一点，把「能卖出去」置于「合规展示」之上。<strong>开关治理</strong>上，降级与熔断配置应纳入配置中心审计，谁在什么时间打开「允许陈旧价」，需要可追溯。</p>
+<h3 id="11-4-3-性能优化要点"><a href="#11-4-3-性能优化要点" class="headerlink" title="11.4.3 性能优化要点"></a>11.4.3 性能优化要点</h3><ul>
+<li>批量场景用 <code>errgroup</code> 并发拉取多 SKU 基础价与活动；</li>
+<li>热点 SKU <strong>预热</strong>；</li>
+<li>对 Layer 内 RPC 设置<strong>独立超时与熔断</strong>，避免一层拖垮整条链。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> pricing</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;context&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> CacheManager <span class="keyword">struct</span> &#123;</span><br><span class="line">	mu   sync.Mutex</span><br><span class="line">	l1   <span class="keyword">map</span>[<span class="type">string</span>]cacheEntry</span><br><span class="line">	l1TTL time.Duration</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> cacheEntry <span class="keyword">struct</span> &#123;</span><br><span class="line">	val       *PricingResponse</span><br><span class="line">	expiresAt time.Time</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewCacheManager</span><span class="params">(l1TTL time.Duration)</span></span> *CacheManager &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;CacheManager&#123;l1: <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="type">string</span>]cacheEntry), l1TTL: l1TTL&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *CacheManager)</span></span> GetOrCompute(ctx context.Context, key <span class="type">string</span>, fn <span class="function"><span class="keyword">func</span><span class="params">(context.Context)</span></span> (*PricingResponse, <span class="type">error</span>)) (*PricingResponse, <span class="type">error</span>) &#123;</span><br><span class="line">	now := time.Now()</span><br><span class="line">	c.mu.Lock()</span><br><span class="line">	<span class="keyword">if</span> e, ok := c.l1[key]; ok &amp;&amp; now.Before(e.expiresAt) &#123;</span><br><span class="line">		c.mu.Unlock()</span><br><span class="line">		<span class="keyword">return</span> e.val, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	c.mu.Unlock()</span><br><span class="line"></span><br><span class="line">	val, err := fn(ctx)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	c.mu.Lock()</span><br><span class="line">	c.l1[key] = cacheEntry&#123;val: val, expiresAt: now.Add(c.l1TTL)&#125;</span><br><span class="line">	c.mu.Unlock()</span><br><span class="line">	<span class="keyword">return</span> val, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>生产环境可在 L1 之上再接 Redis、并接入 singleflight；此处展示「先读内存、未命中再计算回写」的最小闭环。</p>
+</blockquote>
+<hr>
+<h2 id="11-5-DDD-建模实践（重点）"><a href="#11-5-DDD-建模实践（重点）" class="headerlink" title="11.5 DDD 建模实践（重点）"></a>11.5 DDD 建模实践（重点）</h2><p>DDD 在计价系统中的价值，在于用<strong>统一语言</strong>消除 <code>originalPrice</code> &#x2F; <code>salePrice</code> &#x2F; <code>actualPay</code> 混用，并用<strong>聚合边界</strong>保证「基础价 + 选中营销 + 费用 − 抵扣」在同一事务语义内一致。</p>
+<h3 id="11-5-1-领域模型设计"><a href="#11-5-1-领域模型设计" class="headerlink" title="11.5.1 领域模型设计"></a>11.5.1 领域模型设计</h3><p><strong>限界上下文</strong>：计价上下文（Pricing Context）与营销、商品、用户、支付等上下文通过 <strong>ACL（防腐层）</strong> 交互。计价上下文中，核心概念包括：<code>Price</code>（一次可报价单元）、<code>PriceLayer</code>（单层结果）、<code>Money</code>（金额值对象）、<code>PriceSnapshot</code>（不可变结果事实）、<code>PricingPolicy</code>（来自外部的规则投影）。</p>
+<pre class="mermaid">classDiagram
+  class PriceAggregate {
+    +string LineID
+    +ReconstructFromSnapshot()
+    +ApplyLayers()
+    +ToSnapshot()
+  }
+  class Money {
+    +int64 cents
+    +string currency
+    +Add(Money) Money
+    +Sub(Money) Money
+  }
+  class PriceLayer {
+    +LayerKind kind
+    +Money delta
+    +map meta
+  }
+  class PriceSnapshot {
+    +string SnapshotID
+    +[]LineBreakdown lines
+    +string RuleVersion
+  }
+  class PricingContextVO {
+    +int64 UserID
+    +string Region
+    +PricingScene Scene
+  }
+  PriceAggregate --> Money
+  PriceAggregate --> PriceLayer : layers
+  PriceAggregate --> PricingContextVO
+  PriceSnapshot --> Money</pre>
+
+<p><strong>限界上下文关系（战略视图）</strong>：计价上下文处于<strong>下游消费位</strong>，对商品、营销、用户、支付等上下文均通过 <strong>ACL</strong> 取数；这些上下文互不直接依赖计价模型，避免「改一个 proto 全仓库编译失败」的耦合。下图省略防腐层实现类，只保留协作方向，便于与架构评审中的上下文地图对照。</p>
+<pre class="mermaid">flowchart LR
+  subgraph peers[相邻上下文]
+    IC[商品 Item Catalog]
+    MC[营销 Marketing]
+    UC[用户 User]
+    PCtx[支付 Payment]
+  end
+  subgraph pricing_ctx[计价 Pricing]
+    AR[Price 聚合 / Layer 编排]
+    SN[PriceSnapshot]
+  end
+  IC -->|基础价 DTO| pricing_ctx
+  MC -->|活动命中 / 券面额| pricing_ctx
+  UC -->|人群 / 新客标记| pricing_ctx
+  PCtx -->|渠道费率投影| pricing_ctx
+  pricing_ctx -->|试算结果 / 快照 ID| PCtx</pre>
+
+<p><strong>防腐层（ACL）</strong> 在计价落地中几乎与引擎同等重要：营销侧可能叫 <code>activity_price</code>，商品侧叫 <code>sale_price</code>，支付侧叫 <code>payable_amount</code>——计价域只接受自己的 <code>Money</code> 与 <code>PriceLayer</code>。下面是一个最小对照：应用服务只依赖计价域接口 <code>PromotionPort</code>，基础设施里实现适配器，把 RPC DTO 转成值对象。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// domain/ports.go — 由定价上下文定义，由基础设施实现。</span></span><br><span class="line"><span class="keyword">type</span> PromotionPort <span class="keyword">interface</span> &#123;</span><br><span class="line">	ActivePromotions(ctx context.Context, q PromotionQuery) ([]PromotionOffer, <span class="type">error</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// domain/promotion_offer.go — 定价上下文内的只读投影。</span></span><br><span class="line"><span class="keyword">type</span> PromotionOffer <span class="keyword">struct</span> &#123;</span><br><span class="line">	ActivityID <span class="type">int64</span></span><br><span class="line">	Kind       <span class="type">string</span></span><br><span class="line">	Price      Money</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// infra/promotion_acl.go</span></span><br><span class="line"><span class="keyword">type</span> promotionACL <span class="keyword">struct</span>&#123; <span class="comment">/* rpc client */</span> &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *promotionACL)</span></span> ActivePromotions(ctx context.Context, q PromotionQuery) ([]PromotionOffer, <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="comment">// resp := a.client.Query(...)</span></span><br><span class="line">	<span class="comment">// return toOffers(resp)，字段映射、枚举归一、金额转分，全部在此完成</span></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="11-5-2-聚合根：Price（行级报价聚合）"><a href="#11-5-2-聚合根：Price（行级报价聚合）" class="headerlink" title="11.5.2 聚合根：Price（行级报价聚合）"></a>11.5.2 聚合根：<code>Price</code>（行级报价聚合）</h3><p>以<strong>订单行 &#x2F; 购物车行</strong>为粒度定义聚合根 <code>Price</code>（本书与实现中可与 <code>PricingAggregate</code> 等价命名），保证：</p>
+<ol>
+<li>同一行上<strong>互斥营销</strong>的选择规则在一个聚合内完成；</li>
+<li><strong>行小计</strong>与<strong>层明细</strong>同步更新；</li>
+<li>对外只暴露<strong>已完成校验</strong>的结果。</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> domain</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;errors&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> LayerKind <span class="type">int</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	LayerBase LayerKind = <span class="literal">iota</span></span><br><span class="line">	LayerPromotion</span><br><span class="line">	LayerDeduction</span><br><span class="line">	LayerCharge</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Price 聚合根：表示「一行 SKU 在一次请求下」的可报价过程。</span></span><br><span class="line"><span class="keyword">type</span> Price <span class="keyword">struct</span> &#123;</span><br><span class="line">	lineID   <span class="type">string</span></span><br><span class="line">	skuID    <span class="type">int64</span></span><br><span class="line">	quantity <span class="type">int64</span></span><br><span class="line">	layers   []PriceLayer</span><br><span class="line">	ctx      PricingContext</span><br><span class="line">	version  <span class="type">int64</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewPrice</span><span class="params">(lineID <span class="type">string</span>, skuID, qty <span class="type">int64</span>, ctx PricingContext)</span></span> (*Price, <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">if</span> qty &lt;= <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">&quot;quantity must be positive&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> &amp;Price&#123;lineID: lineID, skuID: skuID, quantity: qty, ctx: ctx&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Price)</span></span> ReplaceLayer(kind LayerKind, delta Money, meta <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span>) <span class="type">error</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> delta.IsNegative() &amp;&amp; kind == LayerBase &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">&quot;base layer cannot go negative&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 同类层覆盖或追加策略由领域规则决定，此处示意「按 kind 幂等替换」</span></span><br><span class="line">	p.layers = upsertLayer(p.layers, kind, delta, meta)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">upsertLayer</span><span class="params">(existing []PriceLayer, kind LayerKind, delta Money, meta <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span>)</span></span> []PriceLayer &#123;</span><br><span class="line">	nl := <span class="built_in">make</span>([]PriceLayer, <span class="number">0</span>, <span class="built_in">len</span>(existing)+<span class="number">1</span>)</span><br><span class="line">	replaced := <span class="literal">false</span></span><br><span class="line">	<span class="keyword">for</span> _, l := <span class="keyword">range</span> existing &#123;</span><br><span class="line">		<span class="keyword">if</span> l.Kind == kind &#123;</span><br><span class="line">			nl = <span class="built_in">append</span>(nl, PriceLayer&#123;Kind: kind, Delta: delta, Meta: cloneMeta(meta)&#125;)</span><br><span class="line">			replaced = <span class="literal">true</span></span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		nl = <span class="built_in">append</span>(nl, l)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> !replaced &#123;</span><br><span class="line">		nl = <span class="built_in">append</span>(nl, PriceLayer&#123;Kind: kind, Delta: delta, Meta: cloneMeta(meta)&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> nl</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">cloneMeta</span><span class="params">(m <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span>)</span></span> <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> m == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	out := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span>, <span class="built_in">len</span>(m))</span><br><span class="line">	<span class="keyword">for</span> k, v := <span class="keyword">range</span> m &#123;</span><br><span class="line">		out[k] = v</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> out</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Price)</span></span> Subtotal() (Money, <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">var</span> sum Money</span><br><span class="line">	<span class="keyword">for</span> _, l := <span class="keyword">range</span> p.layers &#123;</span><br><span class="line">		<span class="keyword">var</span> err <span class="type">error</span></span><br><span class="line">		sum, err = sum.Add(l.Delta)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> Money&#123;&#125;, err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> sum, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>聚合边界</strong>：<code>Price</code> 内不直接修改「券库存」「活动预算」——这些属于营销聚合，由应用服务先<strong>预留 &#x2F; 锁定</strong>后再传入 <code>Price</code> 已选结果。</p>
+<p>若团队纠结「一行 SKU 是否太小」：可以从<strong>一致性边界</strong>反推——任何「必须在同一事务里决定且一起成功或失败」的价格要素，应处于同一聚合；若某些营销是平台级自动领取、失败可静默降级，则不必纳入 <code>Price</code> 聚合，而可作为 Layer 2 的只读输入。购物车多行场景下，<strong>行级 <code>Price</code> 聚合 + 订单级领域服务</strong>是常见组合：行内互斥活动放在行聚合，跨行满减分摊放在服务。</p>
+<h3 id="11-5-3-值对象：Money-与-PriceLayer"><a href="#11-5-3-值对象：Money-与-PriceLayer" class="headerlink" title="11.5.3 值对象：Money 与 PriceLayer"></a>11.5.3 值对象：<code>Money</code> 与 <code>PriceLayer</code></h3><p><strong>Money</strong>：用 <code>int64</code> 分与 <code>currency</code> 表达，<strong>不可变</strong>，所有运算返回新值，避免浮点误差。跨境时可在值对象内同时保存「展示币种金额」与「清算币种金额」，但<strong>比较与快照持久化</strong>必须指定其中一种为权威口径，另一种仅作参考字段。舍入规则（银行家舍入 vs 向上取整）应配置化，并在快照中记录 <code>rounding_mode</code>，否则三年后审计很难解释「为什么当年这样舍」。</p>
+<p><strong>PriceLayer</strong>：描述单层对金额的<strong>增量贡献</strong>（可为负表示减免），并携带 <code>meta</code>（活动 ID、费用类型、出资方 <code>source=platform|merchant|channel</code>）供对账。一个实用技巧是为每个 <code>PriceLayer</code> 分配**稳定 <code>component_id</code>**（UUID 或雪花），在退款回收、部分开票时直接引用，而不是靠数组下标——订单行重排或合并时，下标并不可靠。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 与上文 Price 同属 domain 包。</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Money <span class="keyword">struct</span> &#123;</span><br><span class="line">	cents    <span class="type">int64</span></span><br><span class="line">	currency <span class="type">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m Money)</span></span> Add(o Money) (Money, <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">if</span> m.currency != o.currency &#123;</span><br><span class="line">		<span class="keyword">return</span> Money&#123;&#125;, errors.New(<span class="string">&quot;currency mismatch&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> Money&#123;cents: m.cents + o.cents, currency: m.currency&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Multiply 单价 × 数量；若数量非法应由调用方先校验。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m Money)</span></span> Multiply(qty <span class="type">int64</span>) (Money, <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">if</span> qty &lt;= <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> Money&#123;&#125;, errors.New(<span class="string">&quot;quantity must be positive&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> Money&#123;cents: m.cents * qty, currency: m.currency&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m Money)</span></span> IsNegative() <span class="type">bool</span> &#123; <span class="keyword">return</span> m.cents &lt; <span class="number">0</span> &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> PriceLayer <span class="keyword">struct</span> &#123;</span><br><span class="line">	Kind  LayerKind</span><br><span class="line">	Delta Money</span><br><span class="line">	Meta  <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="11-5-4-领域服务"><a href="#11-5-4-领域服务" class="headerlink" title="11.5.4 领域服务"></a>11.5.4 领域服务</h3><p>当逻辑<strong>跨多行</strong>或<strong>不适合放入单一 <code>Price</code></strong> 时，使用领域服务，例如：</p>
+<ul>
+<li><strong>订单级满减分摊</strong>：余额递减法处理尾差；</li>
+<li><strong>互斥活动择优</strong>：跨多个候选活动比较用户实付；</li>
+<li><strong>Bundle 计价</strong>：买 N 享 M 折等。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> domain</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;errors&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// LineAmount 表示一行在分摊前的可参与金额（通常为 Layer1+2+4 之后的行小计，单位：分）。</span></span><br><span class="line"><span class="keyword">type</span> LineAmount <span class="keyword">struct</span> &#123;</span><br><span class="line">	LineID <span class="type">string</span></span><br><span class="line">	Cents  <span class="type">int64</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ApportionmentService：订单级优惠按行权重分摊（余额递减 + 尾差落末行）。</span></span><br><span class="line"><span class="keyword">type</span> ApportionmentService <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ApportionmentService)</span></span> Allocate(orderDiscountCents <span class="type">int64</span>, lines []LineAmount) ([]<span class="type">int64</span>, <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">if</span> orderDiscountCents &lt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">&quot;discount must be non-negative&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(lines) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">&quot;no lines&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">var</span> total <span class="type">int64</span></span><br><span class="line">	<span class="keyword">for</span> _, l := <span class="keyword">range</span> lines &#123;</span><br><span class="line">		<span class="keyword">if</span> l.Cents &lt; <span class="number">0</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">&quot;line amount cannot be negative&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		total += l.Cents</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> total == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">&quot;total weight is zero&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	out := <span class="built_in">make</span>([]<span class="type">int64</span>, <span class="built_in">len</span>(lines))</span><br><span class="line">	<span class="keyword">var</span> allocated <span class="type">int64</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="built_in">len</span>(lines)<span class="number">-1</span>; i++ &#123;</span><br><span class="line">		<span class="comment">// 按比例向下取整到分</span></span><br><span class="line">		part := orderDiscountCents * lines[i].Cents / total</span><br><span class="line">		out[i] = part</span><br><span class="line">		allocated += part</span><br><span class="line">	&#125;</span><br><span class="line">	out[<span class="built_in">len</span>(lines)<span class="number">-1</span>] = orderDiscountCents - allocated</span><br><span class="line">	<span class="keyword">return</span> out, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>领域服务<strong>无状态</strong>，入参出参均为领域对象或值对象。</p>
+<h3 id="11-5-5-仓储与工厂"><a href="#11-5-5-仓储与工厂" class="headerlink" title="11.5.5 仓储与工厂"></a>11.5.5 仓储与工厂</h3><ul>
+<li><strong>工厂</strong>：从商品 &#x2F; 营销 DTO 通过 ACL 组装 <code>Price</code> 初始状态；</li>
+<li><strong>仓储</strong>：<code>PriceSnapshotRepository</code> 持久化快照；<strong>不写</strong>聚合根运行态，避免贫血往返；</li>
+<li><strong>应用服务</strong>：开启事务、调用营销锁定、调用引擎、保存快照、发布「快照已生成」领域事件。</li>
+</ul>
+<p><strong>工厂的职责</strong>是把「外部世界的行项目」翻译成<strong>领域可计算的初始不变式</strong>：数量为正、币种一致、基础层已填入「未乘数量的单价」或「已乘数量的行基准」——二者只能选一种约定，并在团队 wiki 中写死。工厂内不做营销择优，只做<strong>数据完备性</strong>与 ACL 映射；择优属于领域服务或 Layer 2 策略，避免工厂膨胀成第二个引擎。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> domain</span><br><span class="line"></span><br><span class="line"><span class="comment">// ItemPort 由商品上下文经 ACL 实现。</span></span><br><span class="line"><span class="keyword">type</span> ItemPort <span class="keyword">interface</span> &#123;</span><br><span class="line">	BaseUnitPrice(ctx context.Context, skuID <span class="type">int64</span>) (Money, <span class="type">error</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// PriceFactory 从商品行构造聚合根（示意：仅 Layer1 基准）。</span></span><br><span class="line"><span class="keyword">type</span> PriceFactory <span class="keyword">struct</span> &#123;</span><br><span class="line">	items ItemPort</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> CartLineInput <span class="keyword">struct</span> &#123;</span><br><span class="line">	LineID <span class="type">string</span></span><br><span class="line">	SkuID  <span class="type">int64</span></span><br><span class="line">	Qty    <span class="type">int64</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *PriceFactory)</span></span> NewPriceFromLine(ctx context.Context, in CartLineInput, pc PricingContext) (*Price, <span class="type">error</span>) &#123;</span><br><span class="line">	unit, err := f.items.BaseUnitPrice(ctx, in.SkuID)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	p, err := NewPrice(in.LineID, in.SkuID, in.Qty, pc)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	lineBase, err := unit.Multiply(in.Qty)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err := p.ReplaceLayer(LayerBase, lineBase, <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span>&#123;<span class="string">&quot;source&quot;</span>: <span class="string">&quot;item_catalog&quot;</span>&#125;); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> p, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上例中 <code>Multiply</code> 可作为 <code>Money</code> 上的方法，与「单价 × 数量」语义绑定；若品类要求按「件数阶梯」重算基准，则在工厂之后交给对应 <code>Calculator</code>，而不是在工厂里写 <code>switch category</code>。</p>
+<p><strong>应用服务与领域层的调用顺序</strong>（创单示例）：校验入参 → 通过工厂构建每行 <code>Price</code> 聚合（仅含基础层）→ 调用领域服务选出互斥活动 → 各 <code>Layer</code> 在应用层编排下逐步调用 <code>ReplaceLayer</code> → <code>ApportionmentService</code> 处理订单级减免 → <code>Price</code> 聚合生成行视图 → 组装 <code>PriceSnapshot</code> 持久化。注意：<strong>券锁定</strong>属于应用层编排步骤，领域层只接收「锁定成功后的面额」作为事实输入，这样聚合不变式才不会依赖远程 RPC 的副作用。</p>
+<p><strong>充血 &#x2F; 贫血混合策略</strong>：行级 <code>Price</code> 与分摊服务采用充血模型承载规则；快照 PO、HTTP DTO 保持贫血，避免把序列化细节泄漏进领域。测试金字塔上，<strong>领域单测</strong>覆盖互斥、尾差、货币错误；<strong>契约测试</strong>覆盖 ACL 与外部服务的字段映射；<strong>端到端</strong>只保留少量黄金用例，防止全链路测试过慢导致无人运行。</p>
+<hr>
+<h2 id="11-6-不同场景的价格计算"><a href="#11-6-不同场景的价格计算" class="headerlink" title="11.6 不同场景的价格计算"></a>11.6 不同场景的价格计算</h2><h3 id="11-6-1-PDP-场景（商品详情页-加购试算）"><a href="#11-6-1-PDP-场景（商品详情页-加购试算）" class="headerlink" title="11.6.1 PDP 场景（商品详情页 &#x2F; 加购试算）"></a>11.6.1 PDP 场景（商品详情页 &#x2F; 加购试算）</h3><p>PDP 的首要 KPI 是<strong>转化</strong>，技术侧对应的是极低延迟与稳定展示。计算上通常停留在 Layer 1 与 Layer 2：用户需要知道「日常卖多少、活动卖多少、我是否命中新人&#x2F;秒杀」。券与积分如果在 PDP 就做全量最优解，RPC 扇出会爆炸，因此常见做法是：<strong>主路径同步返回展示价</strong>，券预估走异步任务或边缘计算，并在 UI 上用弱提示展示「领券最高可再减 X 元」。</p>
+<p><strong>加购（AddToCart）</strong> 与 PDP 类似，往往不锁任何资源；若要做「凑满减」提示，可在服务端维护轻量规则缓存，仍以 Layer 1–2 为主。PDP 与创单的价格差异若不可避免，必须在交互上降级为「以结算页为准」，同时在日志里记录 <code>rule_bundle_hash</code>，便于客诉时复盘。</p>
+<h3 id="11-6-2-购物车场景"><a href="#11-6-2-购物车场景" class="headerlink" title="11.6.2 购物车场景"></a>11.6.2 购物车场景</h3><p>购物车是<strong>多品聚合</strong>与<strong>用户频繁编辑</strong>的交集：行增删、数量变化、地址切换都会触发重算。技术上通常批量拉取基础价与活动，再对共享的订单级优惠做编排；Layer 3 在购物车阶段多为<strong>试算而非锁定</strong>，返回体应用 <code>estimated</code> 标记。运费若无默认地址，可返回区间或按城市模板估算，并在进入结算页时用真实地址覆盖。</p>
+<p>供应商品类在购物车仍需注意<strong>外部报价抖动</strong>：可短时缓存供应商返回，但 TTL 要显著短于自营；用户停留过久时，结算页应主动提示「价格已更新」。</p>
+<h3 id="11-6-3-创单场景（订单金额与快照）"><a href="#11-6-3-创单场景（订单金额与快照）" class="headerlink" title="11.6.3 创单场景（订单金额与快照）"></a>11.6.3 创单场景（订单金额与快照）</h3><p>创单是价格从「展示」走向「事实」的分水岭：此时应完成与履约相关的费用（运费、服务费等），并<strong>生成订单快照</strong>。不包含券与积分并非技术偷懒，而是业务上常把「用户尚未进入收银台选择的支付权益」排除在订单应付之外，避免订单应付随用户换券剧烈波动；若业务要求订单应付即含券，应在需求层显式调整 Layer 映射，而不是在代码里硬塞。</p>
+<p>创单路径还要与<strong>库存预占、营销库存锁定</strong>同事务或同 Saga 编排：计价不负责预占，但要在<strong>预占成功之后</strong>再冻结快照，否则会出现「快照有了库存没了」的僵尸数据。供应商品类在创单常同步拉取供应商报价并生成 <strong>BookingToken</strong>，写入快照供支付确认。</p>
+<h3 id="11-6-4-支付场景"><a href="#11-6-4-支付场景" class="headerlink" title="11.6.4 支付场景"></a>11.6.4 支付场景</h3><p>支付侧理想状态是 <strong>O(1) 查表校验</strong>：读取 <code>snapshot_id</code> 对应金额、币种、过期时间，与支付请求比对；供应商品类增加「预订确认」RPC。任何在支付路径重新跑全量 Layer 的做法，都应视为技术债：渠道回调重复、用户重复点击支付，都会让重算路径产生<strong>非确定性</strong>。若必须重算（极少数风控场景），应产生<strong>新快照版本</strong>并阻断旧支付单。</p>
+<h3 id="11-6-5-场景间的价格一致性保证"><a href="#11-6-5-场景间的价格一致性保证" class="headerlink" title="11.6.5 场景间的价格一致性保证"></a>11.6.5 场景间的价格一致性保证</h3><ol>
+<li><strong>规则版本对齐</strong>：请求携带 <code>rule_version</code> &#x2F; <code>activity_bundle_id</code>；</li>
+<li><strong>快照链</strong>：创单快照 → 收银台在快照之上仅计算「增量」（券、渠道费）或全量重算后对比差异；</li>
+<li><strong>强提醒</strong>：当收银台结果与创单快照差异超过业务阈值，阻断或用户确认。</li>
+</ol>
+<p>下图从<strong>同一用户旅程</strong>抽象各场景「算到哪一层、是否落快照」：箭头表示时间顺序，方框内为与本章 <code>SkipLayersForScene</code> 相呼应的语义（具体跳过列表以实现为准）。把它挂在团队 wiki 上，可减少「购物车为什么和创单差一块运费」的重复解释成本。</p>
+<pre class="mermaid">flowchart LR
+  PDP[PDP / 加购] -->|Layer1+2| A[展示价]
+  Cart[购物车] -->|Layer1+2 + 预估3| B[预估小计]
+  CO[创单] -->|Layer1+2+4履约段| C[订单快照]
+  CH[收银台] -->|Layer1-4 全量| D[支付快照]
+  Pay[支付] -->|读快照校验| E[渠道扣款]
+  A -.->|规则版本对齐| B
+  B -.->|强一致重算| C
+  C -.->|增量或 diff 门禁| D
+  D -.->|禁止全量暗算| E</pre>
+
+<p><strong>时间维度的一致性</strong>常被忽略：活动配置可能在用户浏览与创单之间切换生效状态，因此仅有「价格」数值不够，还要记录<strong>解释价格的规则时间戳</strong>。另一个角度是<strong>货币与税费</strong>：跨境场景下 PDP 可能只展示本币参考，创单必须锁定报关与税费口径，避免支付阶段因汇率刷新产生合规争议。</p>
+<p><strong>测试策略</strong>：应为每条主路径维护「黄金 JSON」——给定固定输入（商品、活动版本、用户身份、地址），期望输出快照哈希固定；任何引擎重构先跑黄金用例再灰度。对购物车预估与创单事实的差异，产品需定义<strong>可接受区间</strong>（如绝对值 ≤ 1 元或 ≤0.5%），超出即前端强提示，避免客诉升级。</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>主要 Layer</th>
+<th>是否生成快照</th>
+<th>典型 SLA 心态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PDP</td>
+<td>1 + 2</td>
+<td>否</td>
+<td>极快、可缓存</td>
+</tr>
+<tr>
+<td>购物车</td>
+<td>1 + 2（+3 预估）</td>
+<td>否</td>
+<td>快、可部分预估</td>
+</tr>
+<tr>
+<td>创单</td>
+<td>1 + 2 + 4（部分）</td>
+<td>订单快照</td>
+<td>强一致</td>
+</tr>
+<tr>
+<td>收银台</td>
+<td>1 + 2 + 3 + 4</td>
+<td>支付快照</td>
+<td>强一致</td>
+</tr>
+<tr>
+<td>支付</td>
+<td>—</td>
+<td>校验快照</td>
+<td>强一致、少 IO</td>
+</tr>
+</tbody></table>
+<p><strong>收银台与创单的时序</strong>：常见用户路径是先创单再进收银台选券，因此支付快照往往<strong>晚于</strong>订单快照生成；若业务允许「未创单先预览收银台」，则要定义预览快照不落库或落短 TTL 缓存，避免用户反复刷新产生大量孤儿快照占满存储。另一个易错点是<strong>部分失败</strong>：创单成功但写快照失败时，必须有补偿任务阻断支付或自动关单，否则会出现「订单存在却无快照」的不可恢复状态。</p>
+<hr>
+<h2 id="11-7-系统边界与职责"><a href="#11-7-系统边界与职责" class="headerlink" title="11.7 系统边界与职责"></a>11.7 系统边界与职责</h2><h3 id="11-7-1-计价系统的职责边界"><a href="#11-7-1-计价系统的职责边界" class="headerlink" title="11.7.1 计价系统的职责边界"></a>11.7.1 计价系统的职责边界</h3><p><strong>计价中心负责</strong>：</p>
+<ul>
+<li>统一编排各层价格；</li>
+<li>输出明细与快照版本；</li>
+<li>金额校验、尾差、分摊与安全阈值（如最大折扣率）。</li>
+</ul>
+<p><strong>不负责</strong>：</p>
+<ul>
+<li>营销活动配置与圈品 CRUD；</li>
+<li>券的发放与库存扣减（由营销执行），计价仅消费「已锁定 &#x2F; 已选中」结果；</li>
+<li>支付路由与渠道签约。</li>
+</ul>
+<h3 id="11-7-2-计价-vs-营销：谁算什么"><a href="#11-7-2-计价-vs-营销：谁算什么" class="headerlink" title="11.7.2 计价 vs 营销：谁算什么"></a>11.7.2 计价 vs 营销：谁算什么</h3><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>营销系统</th>
+<th>计价系统</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>规则定义</td>
+<td>✅ 活动、券模板、互斥叠加</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>最优券搜索（可选）</td>
+<td>✅ 或协同推荐服务</td>
+<td>可消费候选集</td>
+</tr>
+<tr>
+<td>金额编排</td>
+<td>提供命中规则与减免额</td>
+<td>✅ 汇总为价格事实</td>
+</tr>
+<tr>
+<td>执行扣减</td>
+<td>✅ 锁定 &#x2F; 核销</td>
+<td>❌</td>
+</tr>
+</tbody></table>
+<p>边界口诀：<strong>营销回答「能不能用、用哪条」；计价回答「用了以后多少钱」</strong>。</p>
+<p>进一步细化：<strong>「最优券推荐」</strong>可以放在营销、推荐或独立优惠参谋服务里，但「用户已勾选某张券后的应付」必须由计价统一给出，避免前端本地算法与后端不一致。<strong>支付渠道立减</strong>有时由渠道 SDK 返回，计价需约定是「事前写入快照」还是「支付回调后补记账」——两种模式都能做，但不能混用两种口径于同一报表周期。</p>
+<h3 id="11-7-3-试算-vs-订单价格快照"><a href="#11-7-3-试算-vs-订单价格快照" class="headerlink" title="11.7.3 试算 vs 订单价格快照"></a>11.7.3 试算 vs 订单价格快照</h3><ul>
+<li><strong>试算</strong>：可重复、可缓存、允许短暂不一致（需标注）；</li>
+<li><strong>快照</strong>：一次创单事实，<strong>不可变</strong>（修正走补差单、客服单等流程）。</li>
+</ul>
+<h3 id="11-7-4-基础价-vs-促销价-vs-支付价"><a href="#11-7-4-基础价-vs-促销价-vs-支付价" class="headerlink" title="11.7.4 基础价 vs 促销价 vs 支付价"></a>11.7.4 基础价 vs 促销价 vs 支付价</h3><ul>
+<li><strong>基础价</strong>：商品域维护的标价体系经 ACL 投影；</li>
+<li><strong>促销价</strong>：营销规则作用后的价格带；</li>
+<li><strong>支付价</strong>：在订单应付基础上叠加用户支付相关抵扣与手续费后的<strong>渠道实扣</strong>口径。</li>
+</ul>
+<p><strong>争议场景举例</strong>：若平台补贴在营销侧记账，但支付渠道又有「立减」，需要明确<strong>支付价是否含渠道补贴</strong>、财务对账时<strong>GMV 与实收</strong>各扣哪一段——这属于清结算域的规则，但计价必须在 <code>PriceComponent</code> 上打好 <code>source</code> 与 <code>ledger_account</code> 类标签，否则报表会对不齐。再如「部分退款是否回收满减」：这是营销与订单策略，计价提供<strong>按行分摊的实付结构</strong>即可支撑多种回收算法。</p>
+<hr>
+<h2 id="11-8-与交易链路各系统的集成"><a href="#11-8-与交易链路各系统的集成" class="headerlink" title="11.8 与交易链路各系统的集成"></a>11.8 与交易链路各系统的集成</h2><h3 id="11-8-1-与商品系统集成（基础价读取）"><a href="#11-8-1-与商品系统集成（基础价读取）" class="headerlink" title="11.8.1 与商品系统集成（基础价读取）"></a>11.8.1 与商品系统集成（基础价读取）</h3><p>商品中心提供 <strong>SPU&#x2F;SKU 主数据、规格价、渠道价</strong>；计价通过 ACL 转为 <code>Money</code> 与可选的「划线价」展示字段。约定：<strong>商品系统不实现营销价</strong>，避免双源；若商品侧已有「日常售价」字段，应在数据字典中与计价的 Layer 1 对齐命名。批量接口应支持按 <code>sku_id IN (...)</code> 拉取，减少 N+1。</p>
+<h3 id="11-8-2-与营销系统集成（营销规则应用）"><a href="#11-8-2-与营销系统集成（营销规则应用）" class="headerlink" title="11.8.2 与营销系统集成（营销规则应用）"></a>11.8.2 与营销系统集成（营销规则应用）</h3><p>营销系统输出「命中了哪些活动、互斥关系、是否可叠加、券批次剩余」等；计价把这些投影为 <code>PromotionOffer</code> 再进入 Layer 2。<strong>锁定 &#x2F; 核销</strong>仍由营销执行：创单前调用营销「预占」，失败则整单创单失败；计价只消费预占成功后的<strong>面额事实</strong>。若营销 RPC 慢，优先考虑<strong>异步刷新购物车缓存</strong>而非缩短创单超时。</p>
+<h3 id="11-8-3-与-PDP-集成（加购试算）"><a href="#11-8-3-与-PDP-集成（加购试算）" class="headerlink" title="11.8.3 与 PDP 集成（加购试算）"></a>11.8.3 与 PDP 集成（加购试算）</h3><p>PDP 网关调用 <code>GetItemPrice</code> 类接口，应带齐 <code>region</code>、<code>platform</code>、用户分群键；CDN 上只能缓存<strong>匿名价</strong>时，登录态价需回源或边缘二次请求。对 SEO 落地页，注意<strong>缓存穿透</strong>：热门失效 SKU 要有布隆过滤或空值短缓存。</p>
+<h3 id="11-8-4-与购物车集成（实时试算）"><a href="#11-8-4-与购物车集成（实时试算）" class="headerlink" title="11.8.4 与购物车集成（实时试算）"></a>11.8.4 与购物车集成（实时试算）</h3><p>购物车服务维护行表，计价侧接收「行快照 + 指纹」；指纹变化（数量、选中券）即缓存失效。购物车合并（登录前后）要以<strong>服务端合并结果</strong>为准重新试算，避免客户端本地算价。</p>
+<h3 id="11-8-5-与结算系统集成（确认价格）"><a href="#11-8-5-与结算系统集成（确认价格）" class="headerlink" title="11.8.5 与结算系统集成（确认价格）"></a>11.8.5 与结算系统集成（确认价格）</h3><p>结算编排地址、配送方式、可用券列表，调用计价生成<strong>支付快照</strong>；结算页展示的每一项优惠，都应在快照明细中有对应 <code>component_id</code>，方便客服追溯。</p>
+<h3 id="11-8-6-与订单系统集成（创单金额计算）"><a href="#11-8-6-与订单系统集成（创单金额计算）" class="headerlink" title="11.8.6 与订单系统集成（创单金额计算）"></a>11.8.6 与订单系统集成（创单金额计算）</h3><p>订单系统保存 <code>order_snapshot_id</code> 与行级分摊明细；后续改价（客服改运费）应走<strong>订单变更流程</strong>并生成新快照或差值单，而不是直接 UPDATE 金额字段。订单取消释放营销锁时，计价一般不参与，但要保证<strong>幂等释放</strong>。</p>
+<h3 id="11-8-7-与支付系统集成（支付金额校验）"><a href="#11-8-7-与支付系统集成（支付金额校验）" class="headerlink" title="11.8.7 与支付系统集成（支付金额校验）"></a>11.8.7 与支付系统集成（支付金额校验）</h3><p>支付创建时上传 <code>snapshot_id</code> 与应付总额；支付核心对比快照与渠道金额（含外币换算规则）。重复支付回调通过支付单号幂等；<strong>部分支付、合并支付</strong>等高级场景要在协议层约定快照粒度（整单 vs 子单）。</p>
+<h3 id="11-8-8-集成调用链路与时序"><a href="#11-8-8-集成调用链路与时序" class="headerlink" title="11.8.8 集成调用链路与时序"></a>11.8.8 集成调用链路与时序</h3><p>下图刻意省略了库存、地址、风控等横向调用，只保留<strong>价格相关主干</strong>，便于新人建立心智模型；真实链路可用同一 <code>trace_id</code> 把多次计价调用（结算预览、创单、支付校验）串成一棵树，观察是否出现「同一次用户操作重复计算三次」的浪费——若有，应通过<strong>快照传递</strong>减少重复扇出。</p>
+<p>以下以「用户从结算提交支付」为例展示典型同步调用（简化）：</p>
+<pre class="mermaid">sequenceDiagram
+  participant U as 用户端
+  participant Ch as 结算系统
+  participant P as 计价中心
+  participant I as 商品中心
+  participant M as 营销系统
+  participant O as 订单系统
+  participant Pay as 支付系统
+
+  U->>Ch: 确认结算页
+  Ch->>P: GetCheckoutPrice(行项目, 券, 渠道)
+  P->>I: 批量基础价
+  P->>M: 活动命中 + 券试算
+  P-->>Ch: 支付快照 snapshot_id
+  Ch->>O: 创单(带 snapshot_id)
+  O->>P: 可选：校验 / 冻结快照
+  O-->>Ch: order_id
+  Ch->>Pay: 发起支付(order_id, 金额, snapshot_id)
+  Pay->>P: GetPaymentPrice 校验
+  P-->>Pay: OK / 差额拒绝
+  Pay-->>U: 收银台支付</pre>
+
+<h3 id="11-8-9-降级与容错策略"><a href="#11-8-9-降级与容错策略" class="headerlink" title="11.8.9 降级与容错策略"></a>11.8.9 降级与容错策略</h3><ul>
+<li>计价依赖故障时，<strong>交易路径默认 fail-fast</strong>；展示路径可降级；</li>
+<li>重试需配合<strong>幂等键</strong>避免双快照；</li>
+<li>全链路 trace id 贯通，便于按 <code>snapshot_id</code> 定位规则版本与下游返回。</li>
+</ul>
+<p><strong>超时配置建议</strong>：PDP 调用链应「短超时 + 部分降级」，创单链可「较长超时 + 严格失败」。熔断打开时，要有<strong>人工开关</strong>把流量切到备用集群或旧版本引擎，而不是无限重试。对供应商报价，<strong>超时后是否允许用缓存价创单</strong>属于业务决策：机票酒店类往往不允许，实物自营类可能允许——决策应写在品类策略配置里而不是写死在代码分支。</p>
+<p><strong>审计与合规</strong>：计价日志应能重建「当时为什么是这个价」，包括各层输入输出哈希；日志中避免打印完整用户 PII，但需保留 <code>user_id</code> 与 <code>order_id</code> 关联键。对外部监管或商家对账，常导出<strong>快照明细</strong>而非实时重算结果。</p>
+<hr>
+<h2 id="11-9-工程实践"><a href="#11-9-工程实践" class="headerlink" title="11.9 工程实践"></a>11.9 工程实践</h2><h3 id="11-9-1-性能优化"><a href="#11-9-1-性能优化" class="headerlink" title="11.9.1 性能优化"></a>11.9.1 性能优化</h3><ul>
+<li>分层埋点：每层耗时、RPC 次数、跳过率；</li>
+<li>批量接口上限（如 100 SKU）与背压；</li>
+<li>大促前预热与限流按 <code>scene + category</code> 维度配置。</li>
+</ul>
+<p>除指标外，建议在引擎内建<strong>自适应批大小</strong>：当单次购物车行数超过阈值时自动拆批并发，再合并结果，防止单次请求拖垮 GC。对 Go 服务，注意 <strong><code>context</code> 超时传递</strong>：上游取消时应中断未完成的供应商调用。内存方面，<code>PricingState</code> 可能持有大切片，必要时在返回后<strong>显式重置对象池</strong>复用缓冲区，降低大促分配压力。</p>
+<h3 id="11-9-2-监控告警"><a href="#11-9-2-监控告警" class="headerlink" title="11.9.2 监控告警"></a>11.9.2 监控告警</h3><ul>
+<li>空跑 diff 金额 &#x2F; 比例阈值告警；</li>
+<li>快照校验失败率；</li>
+<li>供应商报价失败与降级占比。</li>
+</ul>
+<p>告警应区分<strong>用户可感知失败</strong>（创单失败率）与<strong>后台差异</strong>（空跑 diff）。对后者可采用采样 + 自动建 JIRA&#x2F;工单。另建议监控 <strong>「创单成功但快照写入失败」</strong> 这类罕见组合——往往来自数据库半成功状态，需要补偿任务修复。</p>
+<h3 id="11-9-3-故障处理"><a href="#11-9-3-故障处理" class="headerlink" title="11.9.3 故障处理"></a>11.9.3 故障处理</h3><ul>
+<li><strong>回滚</strong>：灰度开关切回旧引擎；快照已落库则<strong>不以新逻辑改写历史</strong>；</li>
+<li><strong>数据修复</strong>：通过补差、退款重算由<strong>财务域流程</strong>驱动，而非直接改库内金额。</li>
+</ul>
+<p>演练层面，每季度做一次<strong>「营销配置误发」桌面推演</strong>：若运营错误配置了叠加券，计价能否通过安全校验器拦截？若不能，规则引擎侧也要有<strong>发布前仿真</strong>。事故后复盘要输出「哪一层本应挡住」的改进行项，而不是只修数据。</p>
+<hr>
+<h2 id="11-10-本章小结"><a href="#11-10-本章小结" class="headerlink" title="11.10 本章小结"></a>11.10 本章小结</h2><p>本章从交易链路视角定义了<strong>计价中心</strong>的定位：以<strong>四层价格模型</strong>统一基础、营销、抵扣与费用语义，用<strong>场景驱动</strong>的责任链控制计算深度与性能，并以 <strong>DDD</strong> 将 <code>Price</code> 聚合、<code>Money</code> &#x2F; <code>PriceLayer</code> 值对象与领域服务结合，保障<strong>边界清晰</strong>与<strong>快照一致</strong>。与营销系统的分工上，应坚持「营销定义规则与执行权益，计价产出可审计的价格事实」。落地时务必配套<strong>幂等、分摊、空跑比对与可观测性</strong>，才能在复杂促销与高并发下同时满足体验与资损防控。</p>
+<p><strong>延伸阅读建议</strong>：读完本章可对照第 9 章营销系统边界与第 14 章订单价格快照设计，把「试算 → 创单 → 收银台 → 支付」四个时间点的<strong>口径表</strong>画在团队 wiki 上，作为跨团队评审的检查清单。实现上新加一层价格或一类费用时，先更新该表，再写代码，能显著降低联调返工。</p>
+<p><strong>落地检查清单（摘录）</strong>：① 各场景 <code>skipLayers</code> 与产品 PRD 是否逐条签字；② 快照表是否支持版本与只追加；③ 金额是否全链路整数分；④ 分摊单测是否覆盖「末行尾差」与「单行边界」；⑤ ACL 是否禁止领域层引用外部 proto；⑥ 空跑比对是否在灰度期全量开启；⑦ 支付校验失败是否有客服可查的 <code>snapshot_id</code> 与规则哈希。团队可在发版前用此清单做十分钟走查，把「架构上正确」落实为「发布时可控」。</p>
+<p><strong>术语说明</strong>：文中 PDP 指商品详情与导购详情类页面；创单指订单创建请求在服务端落库的关键步骤；收银台泛指用户确认支付前选择券、积分与支付方式的交互阶段。不同公司团队命名可能为 Checkout、Cashier 或 Payment Preview，本书统一以「收银台」称呼，重在<strong>语义阶段</strong>而非具体页面 URL。</p>
+<p><strong>与博客原文的映射关系</strong>：四层模型与场景跳过表对应系列第五篇中的分层示例与 <code>getSkipLayers</code> 思路；统一语言、子域划分、聚合与防腐层示例对应第六篇中的战略 &#x2F; 战术设计。本书将两篇合并为交易链路章节写法，删去了部分供应商 YAML 配置与大段业界对比，读者若需查阅更长的配置样例与演进史，可回到博客原文细读。</p>
+<p><strong>稿约说明</strong>：本章正文汉字约一万字以上（随修订浮动），配套多幅 Mermaid 图与若干 Go 代码块；若纸质排版，请注意图宽与代码等宽字体设置，以免版心溢出。引用的接口名为示例，与任何生产代码仓库无强制对应关系。</p>
+<p><strong>编辑备忘</strong>：仓库中对应原文为 <code>24-ecommerce-pricing-engine.md</code> 与 <code>25-ecommerce-pricing-ddd.md</code>（若他处写作「25-ecommerce-pricing-practice.md」，以仓库内 <code>25-ecommerce-pricing-ddd.md</code> 为准）。合并时已将 DDD 篇中的事务脚本反例与上下文映射图转写为本书叙述体例。后续若博客原文更新，请同步修订本章「走数示例」与 <code>skipLayers</code> 对照表，以免书籍与线上实现漂移。读者若在落地中遇到本章未覆盖的品类，可沿用「先补 Calculator、再补 Layer 子处理器」的扩展顺序，避免破坏四层语义的一致性。批量计价接口建议对请求体大小与 SKU 个数双限流，并在响应头返回 <code>X-Pricing-Partial: true</code> 以标记降级后的不完整结果，便于上游决定是否重试或裁剪展示。此做法在搜索 Hydrate 与推荐列表页尤为实用，可作为默认工程约定。</p>
+<hr>
+<p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter10.html">上一章</a> | <a href="./chapter12.html">下一章</a></p>
+
+      </div>
+      
+      
+      
+    </div>
+
+    
+    
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>

@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="导航：书籍主页 | 完整目录 | 上一章 | 下一章  第14章 订单系统 本章定位：订单系统是交易链路的编排中枢。本章在《电商系统设计（七）：订单系统》基础上按书籍体例重组，覆盖数据模型、状态机、创单 Saga、分布式事务（TCC &#x2F; Saga）、幂等、特殊单类型、履约与系统边界；Go 示例为教学裁剪版，落地时请补全观测、鉴权与错误包装。  阅读提示：若你已读完第 11 章计价与第 1">
+<meta property="og:type" content="website">
+<meta property="og:title" content="第14章 订单系统">
+<meta property="og:url" content="http://yoursite.com/book/chapter14.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="导航：书籍主页 | 完整目录 | 上一章 | 下一章  第14章 订单系统 本章定位：订单系统是交易链路的编排中枢。本章在《电商系统设计（七）：订单系统》基础上按书籍体例重组，覆盖数据模型、状态机、创单 Saga、分布式事务（TCC &#x2F; Saga）、幂等、特殊单类型、履约与系统边界；Go 示例为教学裁剪版，落地时请补全观测、鉴权与错误包装。  阅读提示：若你已读完第 11 章计价与第 1">
+<meta property="og:locale">
+<meta property="article:published_time" content="2026-04-16T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-04-17T06:18:03.251Z">
+<meta property="article:author" content="wxquare">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/book/chapter14">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":false,"lang":"zh-Hans","comments":"","permalink":"http://yoursite.com/book/chapter14.html","path":"book/chapter14.html","title":"第14章 订单系统"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>第14章 订单系统 | wxquare's Blogs
+</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-book"><a href="/book/" rel="section"><i class="fa fa-book fa-fw"></i>书籍项目</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%AC%AC14%E7%AB%A0-%E8%AE%A2%E5%8D%95%E7%B3%BB%E7%BB%9F"><span class="nav-number">1.</span> <span class="nav-text">第14章 订单系统</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#14-1-%E7%B3%BB%E7%BB%9F%E6%A6%82%E8%A7%88"><span class="nav-number">1.1.</span> <span class="nav-text">14.1 系统概览</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#14-1-1-%E4%B8%9A%E5%8A%A1%E5%9C%BA%E6%99%AF"><span class="nav-number">1.1.1.</span> <span class="nav-text">14.1.1 业务场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-1-2-%E6%A0%B8%E5%BF%83%E6%8C%91%E6%88%98"><span class="nav-number">1.1.2.</span> <span class="nav-text">14.1.2 核心挑战</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-1-3-%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84"><span class="nav-number">1.1.3.</span> <span class="nav-text">14.1.3 系统架构</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#14-2-%E8%AE%A2%E5%8D%95%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B"><span class="nav-number">1.2.</span> <span class="nav-text">14.2 订单数据模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#14-2-1-%E8%AE%A2%E5%8D%95%E8%A1%A8%E8%AE%BE%E8%AE%A1"><span class="nav-number">1.2.1.</span> <span class="nav-text">14.2.1 订单表设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-2-2-%E8%AE%A2%E5%8D%95%E6%98%8E%E7%BB%86"><span class="nav-number">1.2.2.</span> <span class="nav-text">14.2.2 订单明细</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-2-3-%E4%BB%B7%E6%A0%BC%E5%BF%AB%E7%85%A7"><span class="nav-number">1.2.3.</span> <span class="nav-text">14.2.3 价格快照</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-2-4-%E7%8A%B6%E6%80%81%E5%8E%86%E5%8F%B2"><span class="nav-number">1.2.4.</span> <span class="nav-text">14.2.4 状态历史</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#14-3-%E8%AE%A2%E5%8D%95%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="nav-number">1.3.</span> <span class="nav-text">14.3 订单状态机</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#14-3-1-%E5%85%A8%E5%B1%80%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="nav-number">1.3.1.</span> <span class="nav-text">14.3.1 全局状态机</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-3-2-%E7%8A%B6%E6%80%81%E8%BD%AC%E6%8D%A2%E8%A7%84%E5%88%99"><span class="nav-number">1.3.2.</span> <span class="nav-text">14.3.2 状态转换规则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-3-3-%E7%8A%B6%E6%80%81%E6%9C%BA%E5%AE%9E%E7%8E%B0"><span class="nav-number">1.3.3.</span> <span class="nav-text">14.3.3 状态机实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-3-4-%E7%8A%B6%E6%80%81%E5%8F%98%E6%9B%B4%E5%8E%86%E5%8F%B2"><span class="nav-number">1.3.4.</span> <span class="nav-text">14.3.4 状态变更历史</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#14-4-%E8%AE%A2%E5%8D%95%E5%88%9B%E5%BB%BA%E6%B5%81%E7%A8%8B"><span class="nav-number">1.4.</span> <span class="nav-text">14.4 订单创建流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#14-4-1-%E5%8F%82%E6%95%B0%E6%A0%A1%E9%AA%8C"><span class="nav-number">1.4.1.</span> <span class="nav-text">14.4.1 参数校验</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-4-2-%E5%BA%93%E5%AD%98%E6%89%A3%E5%87%8F"><span class="nav-number">1.4.2.</span> <span class="nav-text">14.4.2 库存扣减</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-4-3-%E8%90%A5%E9%94%80%E6%89%A3%E5%87%8F"><span class="nav-number">1.4.3.</span> <span class="nav-text">14.4.3 营销扣减</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-4-4-%E8%AE%A2%E5%8D%95%E6%8C%81%E4%B9%85%E5%8C%96"><span class="nav-number">1.4.4.</span> <span class="nav-text">14.4.4 订单持久化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Saga-%E7%BC%96%E6%8E%92%E6%80%BB%E8%A7%88"><span class="nav-number">1.4.4.1.</span> <span class="nav-text">Saga 编排总览</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#14-5-%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1"><span class="nav-number">1.5.</span> <span class="nav-text">14.5 分布式事务</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#14-5-1-TCC-%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.5.1.</span> <span class="nav-text">14.5.1 TCC 模式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-5-2-Saga-%E6%A8%A1%E5%BC%8F"><span class="nav-number">1.5.2.</span> <span class="nav-text">14.5.2 Saga 模式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-5-3-%E9%80%89%E5%9E%8B%E5%AF%B9%E6%AF%94"><span class="nav-number">1.5.3.</span> <span class="nav-text">14.5.3 选型对比</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-5-4-%E8%A1%A5%E5%81%BF%E6%9C%BA%E5%88%B6"><span class="nav-number">1.5.4.</span> <span class="nav-text">14.5.4 补偿机制</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#14-6-%E5%B9%82%E7%AD%89%E6%80%A7%E8%AE%BE%E8%AE%A1"><span class="nav-number">1.6.</span> <span class="nav-text">14.6 幂等性设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#14-6-1-%E5%B9%82%E7%AD%89%E6%80%A7%E5%8E%9F%E5%88%99"><span class="nav-number">1.6.1.</span> <span class="nav-text">14.6.1 幂等性原则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-6-2-%E5%AE%9E%E7%8E%B0%E6%96%B9%E6%A1%88"><span class="nav-number">1.6.2.</span> <span class="nav-text">14.6.2 实现方案</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-6-3-%E5%90%84%E5%9C%BA%E6%99%AF%E5%AE%9E%E7%8E%B0"><span class="nav-number">1.6.3.</span> <span class="nav-text">14.6.3 各场景实现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#14-7-%E7%89%B9%E6%AE%8A%E8%AE%A2%E5%8D%95%E7%B1%BB%E5%9E%8B"><span class="nav-number">1.7.</span> <span class="nav-text">14.7 特殊订单类型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#14-7-1-%E8%99%9A%E6%8B%9F%E8%AE%A2%E5%8D%95"><span class="nav-number">1.7.1.</span> <span class="nav-text">14.7.1 虚拟订单</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-7-2-O2O-%E8%AE%A2%E5%8D%95"><span class="nav-number">1.7.2.</span> <span class="nav-text">14.7.2 O2O 订单</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-7-3-%E9%A2%84%E5%94%AE%E8%AE%A2%E5%8D%95"><span class="nav-number">1.7.3.</span> <span class="nav-text">14.7.3 预售订单</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#14-8-%E8%AE%A2%E5%8D%95%E5%B1%A5%E7%BA%A6"><span class="nav-number">1.8.</span> <span class="nav-text">14.8 订单履约</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#14-8-1-%E5%B1%A5%E7%BA%A6%E6%B5%81%E7%A8%8B"><span class="nav-number">1.8.1.</span> <span class="nav-text">14.8.1 履约流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-8-2-%E4%BE%9B%E5%BA%94%E5%95%86%E5%AF%B9%E6%8E%A5"><span class="nav-number">1.8.2.</span> <span class="nav-text">14.8.2 供应商对接</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-8-3-%E7%8A%B6%E6%80%81%E5%90%8C%E6%AD%A5"><span class="nav-number">1.8.3.</span> <span class="nav-text">14.8.3 状态同步</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#14-9-%E7%B3%BB%E7%BB%9F%E8%BE%B9%E7%95%8C%E4%B8%8E%E8%81%8C%E8%B4%A3"><span class="nav-number">1.9.</span> <span class="nav-text">14.9 系统边界与职责</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#14-9-1-%E8%AE%A2%E5%8D%95%E7%B3%BB%E7%BB%9F%E7%9A%84%E8%81%8C%E8%B4%A3%E8%BE%B9%E7%95%8C"><span class="nav-number">1.9.1.</span> <span class="nav-text">14.9.1 订单系统的职责边界</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-9-2-%E8%AE%A2%E5%8D%95-vs-%E6%94%AF%E4%BB%98%EF%BC%9A%E8%BE%B9%E7%95%8C%E5%88%92%E5%88%86"><span class="nav-number">1.9.2.</span> <span class="nav-text">14.9.2 订单 vs 支付：边界划分</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-9-3-%E8%AE%A2%E5%8D%95-vs-%E7%89%A9%E6%B5%81%EF%BC%9A%E8%BE%B9%E7%95%8C%E5%88%92%E5%88%86"><span class="nav-number">1.9.3.</span> <span class="nav-text">14.9.3 订单 vs 物流：边界划分</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-9-4-%E8%AE%A2%E5%8D%95%E4%BD%9C%E4%B8%BA%E7%BC%96%E6%8E%92%E8%80%85%E7%9A%84%E8%A7%92%E8%89%B2"><span class="nav-number">1.9.4.</span> <span class="nav-text">14.9.4 订单作为编排者的角色</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-9-5-%E8%AE%A2%E5%8D%95-vs-%E5%B1%A5%E7%BA%A6%EF%BC%9A%E8%81%8C%E8%B4%A3%E5%88%92%E5%88%86"><span class="nav-number">1.9.5.</span> <span class="nav-text">14.9.5 订单 vs 履约：职责划分</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#14-10-%E4%B8%8E%E5%85%B6%E4%BB%96%E7%B3%BB%E7%BB%9F%E7%9A%84%E9%9B%86%E6%88%90"><span class="nav-number">1.10.</span> <span class="nav-text">14.10 与其他系统的集成</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#14-10-1-%E4%B8%8E%E5%95%86%E5%93%81%E4%B8%AD%E5%BF%83%E9%9B%86%E6%88%90%EF%BC%88%E5%BF%AB%E7%85%A7%E8%AF%BB%E5%8F%96%EF%BC%89"><span class="nav-number">1.10.1.</span> <span class="nav-text">14.10.1 与商品中心集成（快照读取）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-10-2-%E4%B8%8E%E5%BA%93%E5%AD%98%E7%B3%BB%E7%BB%9F%E9%9B%86%E6%88%90%EF%BC%88%E6%89%A3%E5%87%8F%E4%B8%8E%E5%9B%9E%E9%80%80%EF%BC%89"><span class="nav-number">1.10.2.</span> <span class="nav-text">14.10.2 与库存系统集成（扣减与回退）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-10-3-%E4%B8%8E%E8%AE%A1%E4%BB%B7%E7%B3%BB%E7%BB%9F%E9%9B%86%E6%88%90%EF%BC%88%E4%BB%B7%E6%A0%BC%E5%BF%AB%E7%85%A7%EF%BC%89"><span class="nav-number">1.10.3.</span> <span class="nav-text">14.10.3 与计价系统集成（价格快照）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-10-4-%E4%B8%8E%E8%90%A5%E9%94%80%E7%B3%BB%E7%BB%9F%E9%9B%86%E6%88%90%EF%BC%88%E9%94%81%E5%AE%9A%E4%B8%8E%E6%89%A3%E5%87%8F%EF%BC%89"><span class="nav-number">1.10.4.</span> <span class="nav-text">14.10.4 与营销系统集成（锁定与扣减）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-10-5-%E4%B8%8E%E6%94%AF%E4%BB%98%E7%B3%BB%E7%BB%9F%E9%9B%86%E6%88%90%EF%BC%88%E6%94%AF%E4%BB%98%E8%A7%A6%E5%8F%91%EF%BC%89"><span class="nav-number">1.10.5.</span> <span class="nav-text">14.10.5 与支付系统集成（支付触发）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-10-6-%E4%B8%8E%E4%BE%9B%E5%BA%94%E5%95%86%E7%B3%BB%E7%BB%9F%E9%9B%86%E6%88%90%EF%BC%88%E5%B1%A5%E7%BA%A6%EF%BC%89"><span class="nav-number">1.10.6.</span> <span class="nav-text">14.10.6 与供应商系统集成（履约）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-10-7-%E9%9B%86%E6%88%90%E7%BC%96%E6%8E%92%EF%BC%9ASaga-%E6%A8%A1%E5%BC%8F%E5%AE%9E%E8%B7%B5"><span class="nav-number">1.10.7.</span> <span class="nav-text">14.10.7 集成编排：Saga 模式实践</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-10-8-%E5%A4%B1%E8%B4%A5%E8%A1%A5%E5%81%BF%E4%B8%8E%E9%87%8D%E8%AF%95%E7%AD%96%E7%95%A5"><span class="nav-number">1.10.8.</span> <span class="nav-text">14.10.8 失败补偿与重试策略</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#14-11-%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5"><span class="nav-number">1.11.</span> <span class="nav-text">14.11 工程实践</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#14-11-1-%E8%AE%A2%E5%8D%95-ID-%E7%94%9F%E6%88%90"><span class="nav-number">1.11.1.</span> <span class="nav-text">14.11.1 订单 ID 生成</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-11-2-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96"><span class="nav-number">1.11.2.</span> <span class="nav-text">14.11.2 性能优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#14-11-3-%E7%9B%91%E6%8E%A7%E5%91%8A%E8%AD%A6"><span class="nav-number">1.11.3.</span> <span class="nav-text">14.11.3 监控告警</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#14-12-%E6%9C%AC%E7%AB%A0%E5%B0%8F%E7%BB%93"><span class="nav-number">1.12.</span> <span class="nav-text">14.12 本章小结</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">61</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">167</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">13篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">7篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">15篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">7篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner page posts-expand">
+
+
+    
+    
+    
+    <div class="post-block" lang="zh-Hans"><header class="post-header">
+
+<h1 class="post-title" itemprop="name headline">第14章 订单系统
+</h1>
+
+<div class="post-meta-container">
+</div>
+
+</header>
+
+      
+      
+      
+      <div class="post-body">
+          <p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter13.html">上一章</a> | <a href="./chapter15.html">下一章</a></p>
+<hr>
+<h1 id="第14章-订单系统"><a href="#第14章-订单系统" class="headerlink" title="第14章 订单系统"></a>第14章 订单系统</h1><blockquote>
+<p><strong>本章定位</strong>：订单系统是交易链路的<strong>编排中枢</strong>。本章在《电商系统设计（七）：订单系统》基础上按书籍体例重组，覆盖数据模型、状态机、创单 Saga、分布式事务（TCC &#x2F; Saga）、幂等、特殊单类型、履约与系统边界；Go 示例为教学裁剪版，落地时请补全观测、鉴权与错误包装。</p>
+</blockquote>
+<p><strong>阅读提示</strong>：若你已读完第 11 章计价与第 13 章结算，可带着三个问题阅读——第一，<strong>订单快照与计价快照如何对齐版本</strong>；第二，<strong>库存预占发生在结算还是创单，失败时谁补偿</strong>；第三，<strong>支付域与订单域的状态机如何解耦又不丢一致性</strong>。搞清边界后，订单服务才不会长成「上帝对象」。</p>
+<p><strong>与第 16 章案例的衔接</strong>：在 B2B2C 聚合平台中，订单往往还要承载 <strong>供应商订单号、供应商错误码、重试策略版本</strong> 等跨域信息；本章给出的是「平台自营电商」的主干模型，落地到机票、酒店等品类时，应把供应商差异收敛到 <strong>履约网关与扩展表</strong>，避免主表字段爆炸。第 16 章 16.5.3 从全景角度回顾订单在微服务拓扑中的位置，可与本章边界小节交叉阅读。</p>
+<hr>
+<h2 id="14-1-系统概览"><a href="#14-1-系统概览" class="headerlink" title="14.1 系统概览"></a>14.1 系统概览</h2><h3 id="14-1-1-业务场景"><a href="#14-1-1-业务场景" class="headerlink" title="14.1.1 业务场景"></a>14.1.1 业务场景</h3><p>订单系统连接用户、商品、库存、计价、营销、支付、履约与售后，典型职责包括：</p>
+<ul>
+<li><strong>创单编排</strong>：校验、拆单、落库、驱动库存 &#x2F; 营销等资源侧执行；</li>
+<li><strong>状态管理</strong>：主单状态机与子域（支付、履约、售后）协同；</li>
+<li><strong>事件发布</strong>：<code>OrderCreated</code>、<code>OrderPaid</code> 等驱动异步履约与数据分析；</li>
+<li><strong>可追溯</strong>：行级快照、金额快照、状态流水满足审计与对账。</li>
+</ul>
+<p>订单系统<strong>负责</strong>流程编排与订单事实的持久化；<strong>不负责</strong>库存原子扣减实现、支付渠道路由、物流轨迹计算——这些属于各自限界上下文。</p>
+<p>从用户旅程看，订单是「一次购买意图」在系统中的<strong>物化载体</strong>：购物车表达意图，结算页收敛约束，订单把约束写成<strong>不可抵赖的事实</strong>（谁、在什么时间、以什么价格、买了什么、用了哪些权益）。因此订单域的 API 设计应偏向<strong>命令式与幂等</strong>（<code>CreateOrder</code>、<code>CancelOrder</code>），而不是把计价规则或库存脚本再暴露一遍。否则网关层会出现大量「为了创单临时拼出来的 DTO」，后续每次改营销口径都要联动发版。</p>
+<p>在多租户或 B2B2C 场景下，订单还要携带<strong>租户、店铺、销售渠道</strong>等维度，这些字段会直接影响分库键、对账口径与发票主体。建议在模型早期就固定「主单维度集合」，避免后期把店铺 ID 塞进备注字段。对客服与风控而言，订单号是串联各系统的<strong>公共关联键</strong>，应在日志规范中强制全链路透传。</p>
+<h3 id="14-1-2-核心挑战"><a href="#14-1-2-核心挑战" class="headerlink" title="14.1.2 核心挑战"></a>14.1.2 核心挑战</h3><table>
+<thead>
+<tr>
+<th>挑战</th>
+<th>表现</th>
+<th>设计抓手</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>高并发</td>
+<td>大促创单峰值、热点用户</td>
+<td>分库分表、异步削峰、限流熔断</td>
+</tr>
+<tr>
+<td>一致性</td>
+<td>跨库存 &#x2F; 营销 &#x2F; 计价多写</td>
+<td>Saga + 补偿表 + 对账</td>
+</tr>
+<tr>
+<td>状态复杂</td>
+<td>主状态 + 子流程并行</td>
+<td>子状态机 + 显式事件 + 审计日志</td>
+</tr>
+<tr>
+<td>类型多样</td>
+<td>实物、虚拟、O2O、预售</td>
+<td>策略模式 + 扩展点</td>
+</tr>
+<tr>
+<td>幂等</td>
+<td>重试、回调、用户连点</td>
+<td>幂等表 + 状态机 + 业务唯一键</td>
+</tr>
+<tr>
+<td>可追溯</td>
+<td>客诉、风控、财务</td>
+<td>快照版本、Outbox、状态历史</td>
+</tr>
+</tbody></table>
+<p><strong>组织层面的补充</strong>：订单团队常被拉去「顺便」做营销试算或支付路由，短期能救火，长期会造成<strong>循环依赖与发布耦合</strong>。建议在架构评审中把「编排」与「计算 &#x2F; 执行」拆开画依赖图：订单只依赖<strong>稳定的 RPC 契约</strong>，不依赖对方存储模型。</p>
+<p><strong>容量视角</strong>：订单创建往往是洪峰「汇聚点」——上游购物车、结算已经做过一次编排，创单仍需在短时间内完成多次 RPC。此时瓶颈常在<strong>下游库存热键、营销锁券、DB 事务持锁时间</strong>。压测时应区分「创单接口自身 QPS」与「端到端成功率」，并单独观测 <strong>Saga 每步 P99</strong> 与 <strong>补偿队列深度</strong>，否则容易出现「接口没超时但用户看到一直转圈」的体验问题。</p>
+<p><strong>一致性视角</strong>：订单域最容易犯的错误，是把「用户看到的状态」与「内部资源状态」混在一张表里频繁互转。更稳妥的做法是：<strong>主单状态只表达对用户承诺的阶段</strong>；资源是否释放、券是否退回，由子域与补偿任务保证，主单只记录结果事件。这样客服解释成本更低，报表口径也更稳定。</p>
+<h3 id="14-1-3-系统架构"><a href="#14-1-3-系统架构" class="headerlink" title="14.1.3 系统架构"></a>14.1.3 系统架构</h3><p>订单域内部可拆为：<strong>Order Core（创单与查询）</strong>、<strong>Order State（状态机服务）</strong>、<strong>Fulfillment Orchestrator（履约编排，可与核心同进程或独立部署）</strong>、<strong>Projection Worker（读模型 &#x2F; 搜索同步）</strong>。存储上 <strong>MySQL</strong> 承载权威订单数据，<strong>Redis</strong> 做详情缓存与短时防重，<strong>Kafka</strong> 承载领域事件；搜索侧可由 <strong>Elasticsearch</strong> 异步投影。</p>
+<p><strong>安全与合规</strong>：订单表包含地址、电话等个人信息，需按最小权限原则控制导出接口；对客服脱敏展示与完整审计应分角色授权。对外部合作伙伴（如供应商、物流）同步订单数据时，应通过 <strong>网关字段级裁剪</strong> 而非直接暴露内部宽表。日志中禁止打印完整支付卡号与证件号，必要时使用 <strong>tokenization</strong> 后的引用 ID。</p>
+<p><strong>多活与容灾</strong>：订单写路径强依赖主库可用性，跨机房多活通常采用 <strong>单元化 + 用户分片路由</strong> 或 <strong>主从切换</strong> 策略；事件总线需配置跨集群复制与 <strong>消费者位点备份</strong>。演练时要验证：主库故障切换后 Outbox 是否重复投递、消费者是否幂等。</p>
+<p><strong>版本化 API</strong>：订单查询接口应对外标注 <strong>响应 schema 版本</strong>，并在字段弃用时保留兼容期；创单请求亦应携带 <strong>客户端版本号</strong>，便于回溯「哪一版 App 产生了异常参数」。在契约测试中，把 <strong>错误码表</strong> 与 <strong>幂等语义</strong> 一并纳入回归范围，可显著降低联调返工率。</p>
+<p><strong>成本与存储治理</strong>：订单明细与快照会随时间线性增长，需制定 <strong>冷热分层</strong>（热数据 SSD、冷数据归档到对象存储）与 <strong>压缩策略</strong>（对大 JSON 快照启用压缩列或拆表）。同时评估 <strong>法务保留周期</strong>，避免无限期囤积个人地址数据带来合规风险；到期匿名化应与状态机终态联动触发。</p>
+<p><strong>开发者体验</strong>：订单域建议提供 <strong>本地夹具（fixtures）</strong> 与 <strong>一键造单脚本</strong>，让前端与测试可在秒级生成处于各主状态的样例单；并在 Swagger &#x2F; Buf 文档中写清每个错误码对应的用户提示与重试建议，减少「联调靠吼」的沟通成本。</p>
+<p><strong>本章与第 6 章关系</strong>：第 6 章从全局角度归纳 Saga、事件驱动与幂等模式；本章把它们落到订单这一 busiest 的编排点上，可作为第 6 章的案例化深读材料。</p>
+<p><strong>阅读顺序建议</strong>：若时间有限，可优先精读 14.3、14.4、14.5、14.6、14.9、14.10，其余小节作为查阅索引。</p>
+<p><strong>术语提示</strong>：文中英文术语如 Saga、Outbox、Process Manager 等在团队内首次落地时，请在词汇表写明中文对照与缩写规则，避免口头沟通歧义。</p>
+<pre class="mermaid">flowchart TB
+  subgraph clients[接入层]
+    GW[API Gateway]
+    App[移动端 / Web]
+  end
+  subgraph order_bc[订单限界上下文]
+    OC[Order Core 创单与查询]
+    SM[State Machine 状态推进]
+    FO[Fulfillment Orchestrator]
+    OB[Outbox Relay]
+  end
+  subgraph deps[下游依赖]
+    Inv[库存]
+    Pr[计价]
+    Mk[营销]
+    Pay[支付]
+    Log[物流 / 供应商履约]
+  end
+  subgraph data[数据面]
+    DB[(MySQL)]
+    R[(Redis)]
+    K[Kafka]
+    ES[(Elasticsearch)]
+  end
+  App --> GW --> OC
+  OC --> Inv
+  OC --> Pr
+  OC --> Mk
+  SM --> Pay
+  FO --> Log
+  OC --> DB
+  OC --> R
+  OB --> K
+  K --> ES</pre>
+
+<p><strong>读路径与写路径分流</strong>：创单、支付回调、履约回传属于写模型；「我的订单列表」高 QPS 查询可走投影表或 ES，以 <strong>eventual lag</strong> 换取扩展性，但<strong>订单详情页强一致读</strong>仍建议回源主库或带版本号的缓存。</p>
+<p><strong>部署与弹性</strong>：订单核心通常按「有状态尽量避免」原则设计——会话态放在 Redis 或客户端 <code>request_id</code>，服务端保持无状态水平扩展。Outbox Relay 与履约 Worker 可独立扩缩容，避免与大盘创单抢 CPU。跨机房时，优先保证<strong>写主就近</strong>与 <strong>Kafka 多副本</strong>，读副本延迟通过版本号或「刷新」按钮产品化，而不是在接口层偷偷强读从库。</p>
+<hr>
+<h2 id="14-2-订单数据模型"><a href="#14-2-订单数据模型" class="headerlink" title="14.2 订单数据模型"></a>14.2 订单数据模型</h2><p>数据模型是订单域与周边系统对话的「共同语言」。表结构一旦轻率扩展，会在数年后以 <strong>报表口径漂移、对账困难、索引失效</strong> 的方式反噬团队。设计时建议坚持三条约束：第一，<strong>主表保持瘦</strong>——只放跨行、跨流程的汇总与阶段字段；行级细节、履约扩展、风控标签下沉子表。第二，<strong>金额字段语义单一</strong>——每个金额列在数据字典中绑定唯一业务定义（含税 &#x2F; 不含税、含运费 &#x2F; 不含运费），禁止复用同一列表达多种口径。第三，<strong>时间字段成体系</strong>——<code>created_at</code>、<code>paid_at</code>、<code>closed_at</code> 与状态机一一对应，避免用 <code>updated_at</code> 推断业务时刻。</p>
+<p>在国际化与多店铺场景，模型还要提前容纳 <strong>税号、发票类型、买家身份（C 端 &#x2F; B 端）</strong> 等字段，即使首期不上线，也应预留扩展位或使用 JSON 扩展表，以免后续 ALTER 大表锁死业务。与数据仓库的衔接上，建议把订单变更以 <strong>CDC 或领域事件</strong> 方式同步到 ODS，避免数仓直接扫主库大表。</p>
+<h3 id="14-2-1-订单表设计"><a href="#14-2-1-订单表设计" class="headerlink" title="14.2.1 订单表设计"></a>14.2.1 订单表设计</h3><p>主表保存订单级事实：<strong>用户、类型、主状态、金额汇总、版本号、时间戳</strong>。金额一律用<strong>分（int64）</strong>存储，避免浮点误差。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Order 主表 ORM 示意</span></span><br><span class="line"><span class="keyword">type</span> Order <span class="keyword">struct</span> &#123;</span><br><span class="line">	OrderID         <span class="type">string</span>    <span class="string">`json:&quot;order_id&quot;`</span></span><br><span class="line">	UserID          <span class="type">int64</span>     <span class="string">`json:&quot;user_id&quot;`</span></span><br><span class="line">	OrderType       <span class="type">int8</span>      <span class="string">`json:&quot;order_type&quot;`</span> <span class="comment">// 1 实物 2 虚拟 3 O2O 4 预售</span></span><br><span class="line">	Status          <span class="type">int16</span>     <span class="string">`json:&quot;status&quot;`</span></span><br><span class="line">	TotalAmount     <span class="type">int64</span>     <span class="string">`json:&quot;total_amount&quot;`</span>     <span class="comment">// 商品应付合计（含运费等按口径）</span></span><br><span class="line">	PaymentAmount   <span class="type">int64</span>     <span class="string">`json:&quot;payment_amount&quot;`</span>   <span class="comment">// 用户实付</span></span><br><span class="line">	DiscountAmount  <span class="type">int64</span>     <span class="string">`json:&quot;discount_amount&quot;`</span>  <span class="comment">// 优惠合计</span></span><br><span class="line">	FreightAmount   <span class="type">int64</span>     <span class="string">`json:&quot;freight_amount&quot;`</span></span><br><span class="line">	Currency        <span class="type">string</span>    <span class="string">`json:&quot;currency&quot;`</span></span><br><span class="line">	PricingSnapshot <span class="type">string</span>    <span class="string">`json:&quot;pricing_snapshot&quot;`</span> <span class="comment">// JSON：计价中心快照 ID / 版本</span></span><br><span class="line">	CASVersion      <span class="type">int64</span>     <span class="string">`json:&quot;cas_version&quot;`</span></span><br><span class="line">	CreatedAt       time.Time <span class="string">`json:&quot;created_at&quot;`</span></span><br><span class="line">	UpdatedAt       time.Time <span class="string">`json:&quot;updated_at&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>索引建议</strong>：</p>
+<ul>
+<li>主键：<code>order_id</code>（Snowflake 或分段号段）；</li>
+<li>查询：<code>(user_id, created_at DESC)</code> 支撑列表；</li>
+<li>运营：<code>(status, updated_at)</code> 支撑关单扫描、履约队列。</li>
+</ul>
+<p><strong>分库分表注意</strong>：若以 <code>user_id</code> 为分片键，需保证 <strong>订单号到分片的路由可逆</strong>（例如 <code>order_id</code> 内嵌分片号，或维护全局路由表）。否则仅凭 <code>order_id</code> 查询会退化为全分片广播。另一种常见做法是按 <code>order_id</code> 哈希分片、列表查询走 ES 投影表，主库只服务按单号点查与写路径。</p>
+<p><strong>软删除 vs 状态终态</strong>：交易订单通常<strong>不物理删除</strong>，以 <code>Cancelled</code>、<code>Closed</code> 等终态表达关闭；合规与审计要求下，敏感字段脱敏也应保留主键与流水。若业务误用 <code>is_deleted</code> 与状态机双轨，会出现「状态已支付但记录被软删」的灾难组合。</p>
+<h3 id="14-2-2-订单明细"><a href="#14-2-2-订单明细" class="headerlink" title="14.2.2 订单明细"></a>14.2.2 订单明细</h3><p>明细表一行对应一个 <strong>SKU 实例</strong>，保存数量、行小计、关联商品快照 ID，可选存 <strong>分摊后的优惠</strong> 以便部分退款闭合。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> OrderLine <span class="keyword">struct</span> &#123;</span><br><span class="line">	LineID       <span class="type">int64</span>  <span class="string">`json:&quot;line_id&quot;`</span></span><br><span class="line">	OrderID      <span class="type">string</span> <span class="string">`json:&quot;order_id&quot;`</span></span><br><span class="line">	ProductID    <span class="type">int64</span>  <span class="string">`json:&quot;product_id&quot;`</span></span><br><span class="line">	SkuID        <span class="type">int64</span>  <span class="string">`json:&quot;sku_id&quot;`</span></span><br><span class="line">	Quantity     <span class="type">int32</span>  <span class="string">`json:&quot;quantity&quot;`</span></span><br><span class="line">	SalePrice    <span class="type">int64</span>  <span class="string">`json:&quot;sale_price&quot;`</span>    <span class="comment">// 行单价（已含当时营销结果视口径）</span></span><br><span class="line">	LineAmount   <span class="type">int64</span>  <span class="string">`json:&quot;line_amount&quot;`</span>   <span class="comment">// sale_price * quantity - line_discount</span></span><br><span class="line">	LineDiscount <span class="type">int64</span>  <span class="string">`json:&quot;line_discount&quot;`</span></span><br><span class="line">	SnapshotID   <span class="type">string</span> <span class="string">`json:&quot;snapshot_id&quot;`</span>   <span class="comment">// 商品展示快照</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>拆单</strong>：若业务要求「不同仓 &#x2F; 不同商家」拆子单，可引入 <code>shipment_group_id</code> 或子订单表；主单与子单的支付关系需在模型层一次性说清，避免支付回调时无法定位行。</p>
+<p><strong>行级扩展字段</strong>：跨境、大宗或企业采购常在行上携带 <strong>税率、HS 编码、采购合同号</strong> 等。建议用 <code>line_extra JSON</code> 或独立扩展表，并在写入时做 schema 版本号，避免无约束 JSON 变成「第二个代码仓库」。部分退款时，需能根据行级快照与分摊规则还原「可退金额」，这与第 11 章的分摊口径强相关。</p>
+<p><strong>赠品与换购</strong>：赠品行可标记 <code>line_type=gift</code>，金额为 0 但仍占用库存与履约单元；换购行则绑定主行 <code>parent_line_id</code>。建模时务必让履约与库存识别「最小履约单元」，否则会出现赠品未发但主单已完成的口径争议。</p>
+<h3 id="14-2-3-价格快照"><a href="#14-2-3-价格快照" class="headerlink" title="14.2.3 价格快照"></a>14.2.3 价格快照</h3><p>价格快照解决<strong>事后解释</strong>问题：用户下单后商品改价，应以快照为准。实践中常并存两层：</p>
+<ol>
+<li><strong>计价中心快照</strong>（第 11 章）：规则解释结果、分层明细、舍入版本；</li>
+<li><strong>商品展示快照</strong>：标题、主图、规格文案，用于客服与纠纷处理。</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> OrderPricingSnapshot <span class="keyword">struct</span> &#123;</span><br><span class="line">	SnapshotID   <span class="type">string</span> <span class="string">`json:&quot;snapshot_id&quot;`</span></span><br><span class="line">	PricingJSON  []<span class="type">byte</span> <span class="string">`json:&quot;pricing_json&quot;`</span>  <span class="comment">// 来自计价中心</span></span><br><span class="line">	RuleVersion  <span class="type">string</span> <span class="string">`json:&quot;rule_version&quot;`</span>  <span class="comment">// 活动 / 券批次版本</span></span><br><span class="line">	CreatedAt    time.Time <span class="string">`json:&quot;created_at&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>创单事务内写入 <code>order.pricing_snapshot</code> 外键或内嵌 JSON，支付校验阶段<strong>只校验不重新全量试算</strong>（与第 11 章口径一致），避免渠道变化导致「可支付金额漂移」。</p>
+<p><strong>快照与客服工单</strong>：客服系统应能按 <code>snapshot_id</code> 拉取<strong>当时的展示文案与分层价格</strong>，而不是实时读商品中心。否则用户截图与后台看到的不一致，纠纷成本极高。若快照体积过大，可采用 <strong>对象存储 + 哈希引用</strong>，MySQL 仅存指针与版本。</p>
+<p><strong>多币种</strong>：<code>Currency</code> 与汇率快照需同事务写入；支付若支持用户切换币种，应生成新的支付上下文而不是覆盖原订单金额字段，除非业务流程明确允许改价。</p>
+<h3 id="14-2-4-状态历史"><a href="#14-2-4-状态历史" class="headerlink" title="14.2.4 状态历史"></a>14.2.4 状态历史</h3><p><code>order_state_log</code> 记录 <strong>from &#x2F; to &#x2F; operator &#x2F; reason &#x2F; event_name</strong>，可选挂 <code>payment_id</code>、<code>fulfillment_id</code>、<code>refund_id</code>。与 Outbox 同事务写入，可投影 <code>OrderStateChanged</code> 供风控与 BI。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> OrderStateLog <span class="keyword">struct</span> &#123;</span><br><span class="line">	LogID      <span class="type">int64</span>     <span class="string">`json:&quot;log_id&quot;`</span></span><br><span class="line">	OrderID    <span class="type">string</span>    <span class="string">`json:&quot;order_id&quot;`</span></span><br><span class="line">	FromStatus <span class="type">int16</span>     <span class="string">`json:&quot;from_status&quot;`</span></span><br><span class="line">	ToStatus   <span class="type">int16</span>     <span class="string">`json:&quot;to_status&quot;`</span></span><br><span class="line">	Event      <span class="type">string</span>    <span class="string">`json:&quot;event&quot;`</span> <span class="comment">// PaySuccess, Ship, Delivered...</span></span><br><span class="line">	Operator   <span class="type">string</span>    <span class="string">`json:&quot;operator&quot;`</span></span><br><span class="line">	Reason     <span class="type">string</span>    <span class="string">`json:&quot;reason&quot;`</span></span><br><span class="line">	CreatedAt  time.Time <span class="string">`json:&quot;created_at&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>幂等辅助表</strong>（可与通用幂等表合并）：<code>idempotent_record(idempotent_key UNIQUE, biz_type, biz_id, status, expire_at)</code>，支撑创单、回调、补偿。</p>
+<p><strong>事件字段规范</strong>：<code>event</code> 建议使用 <strong>过去式英文枚举</strong>（如 <code>PaySucceeded</code>）并在网关层统一大小写，避免日志检索分裂。<code>operator</code> 区分 <code>system</code>、<code>user:&#123;id&#125;</code>、<code>admin:&#123;id&#125;</code>、<code>payment_channel</code>，便于审计。若与 GDPR &#x2F; 个人信息保护法合规，展示层再脱敏，但底层链路保留可追责 ID。</p>
+<hr>
+<h2 id="14-3-订单状态机"><a href="#14-3-订单状态机" class="headerlink" title="14.3 订单状态机"></a>14.3 订单状态机</h2><h3 id="14-3-1-全局状态机"><a href="#14-3-1-全局状态机" class="headerlink" title="14.3.1 全局状态机"></a>14.3.1 全局状态机</h3><p>线上常用「<strong>主状态</strong> + <strong>子状态机</strong>」：主状态面向用户与报表；支付、履约、售后各自维护子状态，通过领域事件驱动主状态迁移。</p>
+<pre class="mermaid">stateDiagram-v2
+  direction LR
+  [*] --> PendingPay: 创单成功
+  PendingPay --> Paid: 支付成功
+  PendingPay --> Cancelled: 超时 / 用户取消
+  Paid --> Fulfilling: 进入履约
+  Fulfilling --> Completed: 履约完结
+  Paid --> AfterSale: 发起售后
+  Fulfilling --> AfterSale: 履约中售后
+  AfterSale --> Fulfilling: 售后关闭继续履约
+  AfterSale --> Cancelled: 全额退款关单
+  Cancelled --> [*]
+  Completed --> [*]</pre>
+
+<p><strong>子状态机（支付侧示意）</strong>：主单进入 <code>PendingPay</code> 后，支付域独立维护尝试次数、渠道、风控结果。主单不应细化为「微信处理中 &#x2F; 支付宝处理中」，否则订单表会被渠道维度污染；必要时用 <code>payment_sub_status</code> 扩展列或独立 <code>order_payment</code> 表承载。</p>
+<pre class="mermaid">stateDiagram-v2
+  direction LR
+  [*] --> PayInit: 创建支付单
+  PayInit --> PayTrying: Try 成功
+  PayTrying --> PayConfirmed: Confirm 成功
+  PayTrying --> PayCancelled: Cancel / 超时
+  PayConfirmed --> [*]
+  PayCancelled --> [*]</pre>
+
+<p>当 <code>PayConfirmed</code> 事件到达订单应用服务时，才触发主单 <code>PendingPay → Paid</code>，并写入状态日志 <code>event=PaySucceeded</code>。若只有主单状态没有子单记录，排障时很难解释「用户看到支付成功但订单仍待支付」的短暂不一致窗口。</p>
+<h3 id="14-3-2-状态转换规则"><a href="#14-3-2-状态转换规则" class="headerlink" title="14.3.2 状态转换规则"></a>14.3.2 状态转换规则</h3><p>用 <strong>显式白名单</strong> 表达合法迁移，禁止散落 <code>if</code> 隐式跳转。下表为示意矩阵（行：from，列：to，<code>✓</code> 合法）。</p>
+<table>
+<thead>
+<tr>
+<th>from \ to</th>
+<th>PendingPay</th>
+<th>Paid</th>
+<th>Fulfilling</th>
+<th>Completed</th>
+<th>Cancelled</th>
+<th>AfterSale</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PendingPay</td>
+<td>—</td>
+<td>✓</td>
+<td>✗</td>
+<td>✗</td>
+<td>✓</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Paid</td>
+<td>✗</td>
+<td>—</td>
+<td>✓</td>
+<td>✗</td>
+<td>✗</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Fulfilling</td>
+<td>✗</td>
+<td>✗</td>
+<td>—</td>
+<td>✓</td>
+<td>✗</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Completed</td>
+<td>✗</td>
+<td>✗</td>
+<td>✗</td>
+<td>—</td>
+<td>✗</td>
+<td>视业务</td>
+</tr>
+<tr>
+<td>Cancelled</td>
+<td>✗</td>
+<td>✗</td>
+<td>✗</td>
+<td>✗</td>
+<td>—</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>AfterSale</td>
+<td>✗</td>
+<td>✗</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<p><strong>回退约束</strong>：默认不允许 <code>Paid → PendingPay</code>；若支付风控冲正，应走 **支付域事件 <code>PaymentReversed</code>**，由订单编排显式迁移到 <code>Cancelled</code> 或特殊 <code>PaymentFailed</code> 终态，并触发资源回补 Saga。</p>
+<p><strong>并发与乱序</strong>：支付回调可能晚于用户主动取消；履约回调可能早于支付成功（脏数据）。统一策略是：<strong>任何迁移前读取当前主状态 + CAS</strong>；非法迁移记录审计并打指标，而不是「静默成功」。对疑似乱序消息可进入 <strong>延迟队列</strong> 二次投递，但要有上限避免永远悬挂。</p>
+<p><strong>超时关单</strong>：<code>PendingPay</code> 超时迁移到 <code>Cancelled</code> 时，应同时触发 <strong>库存释放与营销解锁</strong>；若关单任务与支付回调并发，必须以数据库行锁或 CAS 决定<strong>只有一个赢家</strong>，失败方进入补偿或幂等返回。</p>
+<h3 id="14-3-3-状态机实现"><a href="#14-3-3-状态机实现" class="headerlink" title="14.3.3 状态机实现"></a>14.3.3 状态机实现</h3><p>推荐 <strong>表驱动 + CAS 更新</strong>：引擎根据 <code>(from, event)</code> 查 <code>to</code>，再执行带 <code>WHERE status = ? AND cas_version = ?</code> 的更新，失败则视为并发抢占或重复事件。</p>
+<p><strong>Guard 条件</strong>：除 <code>(from, event)</code> 外，真实系统常需要额外守卫，例如「仅当 <code>pay_expire_at</code> 未到期才允许 <code>PendingPay → Paid</code>」「仅当所有子单已发货才允许 <code>Fulfilling → Completed</code>」。守卫逻辑建议写成 <strong>纯函数</strong> <code>func Guard(order *Order, ev Event) error</code>，便于单测与可视化文档同步维护。</p>
+<p><strong>批量状态推进</strong>：运营后台「批量关闭异常单」属于高危操作，应走 <strong>审批流 + 异步任务</strong>，每条订单仍执行单条 CAS 与日志，避免一条 SQL 批量 <code>UPDATE</code> 丢失审计信息。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Event <span class="type">string</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	EvtPayOK   Event = <span class="string">&quot;PaySuccess&quot;</span></span><br><span class="line">	EvtTimeout Event = <span class="string">&quot;PayTimeout&quot;</span></span><br><span class="line">	EvtShip    Event = <span class="string">&quot;Shipped&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> transitionTable = <span class="keyword">map</span>[<span class="type">int16</span>]<span class="keyword">map</span>[Event]<span class="type">int16</span>&#123;</span><br><span class="line">	StatusPendingPay: &#123;EvtPayOK: StatusPaid, EvtTimeout: StatusCancelled&#125;,</span><br><span class="line">	StatusPaid:       &#123;EvtShip: StatusFulfilling&#125;,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ApplyEvent</span><span class="params">(ctx context.Context, repo OrderRepo, orderID <span class="type">string</span>, from <span class="type">int16</span>, ev Event, actor, reason <span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	to, ok := transitionTable[from][ev]</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		<span class="keyword">return</span> ErrIllegalTransition</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err := repo.UpdateStatusCAS(ctx, orderID, from, to); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> repo.AppendStateLog(ctx, orderID, from, to, <span class="type">string</span>(ev), actor, reason)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="14-3-4-状态变更历史"><a href="#14-3-4-状态变更历史" class="headerlink" title="14.3.4 状态变更历史"></a>14.3.4 状态变更历史</h3><p>历史表与主表 CAS 同事务提交；若需 <strong>对外通知</strong>，使用 Outbox 保证「日志落库 ⇒ 消息必达」。监控上应对 <code>illegal_transition_total</code> 按 <code>from,to</code> 聚合，异常飙升多为回调乱序或重复投放。</p>
+<p><strong>回放与对账</strong>：状态日志是订单域最重要的<strong>法务与财务证据链</strong>之一。导出报表时，应能按时间序重放 <code>from → to</code> 与 <code>event</code>，并与支付流水、物流轨迹交叉验证。若仅保存终态而无过程日志，出现「用户声称未收到货」时将难以举证。</p>
+<p><strong>测试策略</strong>：为 <code>transitionTable</code> 维护单元测试矩阵，覆盖所有 <code>(from, event)</code>；对并发场景增加 <strong>模糊测试</strong>（随机交叉回调与关单任务）。生产灰度时，可短暂打开「非法迁移采样日志」定位历史脏规则。</p>
+<hr>
+<h2 id="14-4-订单创建流程"><a href="#14-4-订单创建流程" class="headerlink" title="14.4 订单创建流程"></a>14.4 订单创建流程</h2><p>创单可拆四步：<strong>参数校验 → 资源侧扣减 &#x2F; 锁定 → 订单持久化 → 异步事件</strong>。</p>
+<h3 id="14-4-1-参数校验"><a href="#14-4-1-参数校验" class="headerlink" title="14.4.1 参数校验"></a>14.4.1 参数校验</h3><ul>
+<li>用户风控、地址、发票抬头；</li>
+<li>SKU 可售、限购、黑白名单；</li>
+<li>计价快照版本与当前试算差异阈值（超限则拒绝创单提示刷新）；</li>
+<li>营销资格（券批次、人群标签）。</li>
+</ul>
+<p><strong>校验分层</strong>：建议拆为 <strong>语法校验（网关）</strong>、<strong>权限校验（用户会话）</strong>、<strong>业务不变式校验（订单域）</strong>。不变式包括：行数上限、单用户并发创单上限、敏感 SKU 需二次验证等。不要把所有校验堆在单个「上帝函数」里，可按 <strong>Pipeline</strong> 组织，便于单测与观测每步耗时。</p>
+<p><strong>与结算一致性</strong>：若用户从结算页提交，创单请求应携带 <strong>结算会话 ID 或 booking_token</strong>（第 11 章），订单域校验其未过期且未被消费。否则会出现「结算页显示可买，创单失败」的合理但体验差场景——需用明确错误码驱动前端刷新。</p>
+<p><strong>拆单预览</strong>：若创单前已展示拆单结果，创单请求应携带 <strong>拆单版本号</strong>；服务端重新计算拆单，不一致则拒绝以保护用户预期。</p>
+<h3 id="14-4-2-库存扣减"><a href="#14-4-2-库存扣减" class="headerlink" title="14.4.2 库存扣减"></a>14.4.2 库存扣减</h3><p>与第 8 章对齐：创单常用 <strong>Reserve（预占）</strong> 或 <strong>Deduct（直接扣）</strong>，取决于品类 <code>deduct_timing</code>。失败快速返回，不必进入订单落库。</p>
+<p><strong>失败语义</strong>：库存返回 <code>INSUFFICIENT_STOCK</code> 与 <code>HOTKEY_THROTTLED</code> 应对前端不同提示；后者可触发排队或重试策略。订单域不应把供应商超时简单映射为库存不足，以免误导用户。</p>
+<p><strong>跨仓</strong>：多仓 reserve 应按「子单顺序」或「固定 SKU 字典序」调用，降低死锁概率；任一子仓失败应整体失败并释放已成功部分。</p>
+<h3 id="14-4-3-营销扣减"><a href="#14-4-3-营销扣减" class="headerlink" title="14.4.3 营销扣减"></a>14.4.3 营销扣减</h3><p>营销侧提供 <strong>Lock &#x2F; Deduct + Compensate</strong> 语义；订单携带 <code>promotion_trace_id</code>，保证券与积分操作可回滚。</p>
+<p><strong>券与积分顺序</strong>：若同时用券与积分，营销接口应保证 <strong>原子锁</strong>；订单侧避免先发两次 RPC 再本地补偿。常见实现是营销提供 <code>BatchLockBenefits</code> 单接口，内部保证事务。</p>
+<p><strong>风控联动</strong>：营销返回「疑似黄牛」时，订单应快速失败并记录 <code>risk_trace_id</code>，避免进入复杂 Saga 后再被风控拦截，浪费库存预占窗口。</p>
+<h3 id="14-4-4-订单持久化"><a href="#14-4-4-订单持久化" class="headerlink" title="14.4.4 订单持久化"></a>14.4.4 订单持久化</h3><p>主单 + 明细 + 快照同事务写入；<code>PendingPay</code> 之前可存在短暂 <code>Draft</code> 态用于灰度，但对外接口应合并为一次成功语义。</p>
+<h4 id="Saga-编排总览"><a href="#Saga-编排总览" class="headerlink" title="Saga 编排总览"></a>Saga 编排总览</h4><pre class="mermaid">flowchart TD
+  A[开始 CreateOrder] --> B[校验与组装上下文]
+  B --> C[库存 Reserve / Deduct]
+  C -->|失败| Z[结束失败]
+  C --> D[营销 Lock / Deduct]
+  D -->|失败| R1[补偿: 库存释放]
+  D --> E[写订单 Draft/PendingPay]
+  E -->|失败| R2[补偿: 营销回滚]
+  E -->|失败| R3[补偿: 库存释放]
+  E --> F[提交事务 + Outbox]
+  F --> G[发布 OrderCreated]
+  G --> H[结束成功]
+  R1 --> Z
+  R2 --> Z
+  R3 --> Z</pre>
+
+<p><strong>与结算（第 13 章）边界</strong>：若结算页已预占库存，创单应携带 <code>reservation_token</code> 做 <strong>幂等转正式占</strong>，避免二次扣减。</p>
+<p><strong>完整 Saga 编排（Go 示意）</strong>：下列代码将库存、营销、落库串为编排型 Saga；<code>InsertOrder</code> 与 Outbox 应在同一数据库事务内，保证事件与订单一致。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> CreateOrderSaga <span class="keyword">struct</span> &#123;</span><br><span class="line">	Inv InventoryClient</span><br><span class="line">	Mk  MarketingClient</span><br><span class="line">	Repo OrderRepo</span><br><span class="line">	Req  *CreateRequest</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *CreateOrderSaga)</span></span> Run(ctx context.Context) <span class="type">error</span> &#123;</span><br><span class="line">	steps := []<span class="keyword">struct</span> &#123;</span><br><span class="line">		name <span class="type">string</span></span><br><span class="line">		do   <span class="function"><span class="keyword">func</span><span class="params">(context.Context)</span></span> <span class="type">error</span></span><br><span class="line">		undo <span class="function"><span class="keyword">func</span><span class="params">(context.Context)</span></span> <span class="type">error</span></span><br><span class="line">	&#125;&#123;</span><br><span class="line">		&#123;<span class="string">&quot;reserve_stock&quot;</span>, <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> s.Inv.Reserve(ctx, &amp;ReserveInput&#123;Token: s.Req.ReservationToken, Lines: s.Req.Lines&#125;)</span><br><span class="line">		&#125;, <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> s.Inv.Release(ctx, s.Req.ReservationToken)</span><br><span class="line">		&#125;&#125;,</span><br><span class="line">		&#123;<span class="string">&quot;lock_promo&quot;</span>, <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> s.Mk.Lock(ctx, &amp;LockInput&#123;OrderDraftID: s.Req.DraftID, UserID: s.Req.UserID&#125;)</span><br><span class="line">		&#125;, <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> s.Mk.Unlock(ctx, s.Req.DraftID)</span><br><span class="line">		&#125;&#125;,</span><br><span class="line">		&#123;<span class="string">&quot;persist_order&quot;</span>, <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> s.Repo.InsertOrderWithOutbox(ctx, buildOrder(s.Req))</span><br><span class="line">		&#125;, <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> s.Repo.DeleteDraft(ctx, s.Req.DraftID)</span><br><span class="line">		&#125;&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">var</span> done <span class="type">int</span></span><br><span class="line">	<span class="keyword">for</span> i, st := <span class="keyword">range</span> steps &#123;</span><br><span class="line">		<span class="keyword">if</span> err := st.do(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">for</span> j := done - <span class="number">1</span>; j &gt;= <span class="number">0</span>; j-- &#123;</span><br><span class="line">				_ = steps[j].undo(ctx)</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;step %s: %w&quot;</span>, st.name, err)</span><br><span class="line">		&#125;</span><br><span class="line">		done = i + <span class="number">1</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>Outbox 同事务</strong>：<code>InsertOrderWithOutbox</code> 内应写入 <code>outbox</code> 表，<code>relay</code> 进程异步投递 <code>OrderCreated</code>。若先写 Kafka 再写 DB，崩溃窗口会导致「消息已发但单未落库」的幽灵订单。</p>
+<p><strong>典型故障复盘（示意）</strong>：某次大促中，创单接口错误率飙升，监控显示库存 RPC P99 正常，但营销锁券出现大量超时。根因是订单线程池被 <strong>同步调用营销 + 同步写大事务</strong> 占满，健康检查仍返回 OK。改进包括：为营销调用单独 <strong>bulkhead 线程池</strong>；将非关键校验异步化；把 <code>InsertOrder</code> 事务拆小，先写主键占位再补全明细（需配合幂等与补偿）。该案例说明：<strong>编排层的背压与隔离</strong> 和下游性能同样重要。</p>
+<p><strong>灰度与压测</strong>：新营销规则上线前，应在预发环境用 <strong>影子流量</strong> 回放生产采样请求，对比新旧路径差异；创单接口要暴露 <strong>feature flag</strong> 控制是否启用新 Saga 步骤，避免一次性全量切换。</p>
+<p><strong>订单草稿（Draft）模式</strong>：高客单价或复杂 Bundling 场景，用户可能多次编辑地址与优惠券。可引入 <strong>草稿单</strong> 存储中间态，正式创单时把草稿 ID 作为幂等维度的一部分；草稿 TTL 与购物车 TTL 应协调，避免用户以为「已下单」实际草稿过期。草稿转正时仍需重新校验库存与价格，<strong>不可盲信草稿内缓存</strong>。</p>
+<p><strong>拆单与父子单支付</strong>：一次支付覆盖多子单时，支付回调需携带 <strong>平台支付单号 → 子订单列表</strong> 的映射；若映射缺失，会出现一笔支付成功但部分子单仍处于待支付。建议在支付创建阶段由支付服务持久化该映射，订单服务只消费标准化结构。</p>
+<hr>
+<h2 id="14-5-分布式事务"><a href="#14-5-分布式事务" class="headerlink" title="14.5 分布式事务"></a>14.5 分布式事务</h2><h3 id="14-5-1-TCC-模式"><a href="#14-5-1-TCC-模式" class="headerlink" title="14.5.1 TCC 模式"></a>14.5.1 TCC 模式</h3><p><strong>Try &#x2F; Confirm &#x2F; Cancel</strong> 三阶段，适合<strong>强一致资源预留</strong>，典型在<strong>支付</strong>（见第 15 章）。订单创单一般不强行 TCC 全链路，以免参与方过多拖垮可用性。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> PaymentTCC <span class="keyword">interface</span> &#123;</span><br><span class="line">	Try(ctx context.Context, req *PaymentRequest) (*PaymentResource, <span class="type">error</span>)</span><br><span class="line">	Confirm(ctx context.Context, res *PaymentResource) <span class="type">error</span></span><br><span class="line">	Cancel(ctx context.Context, res *PaymentResource) <span class="type">error</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>空回滚与幂等</strong>：Cancel 必须容忍 Try 未落地；Confirm &#x2F; Cancel 重试需基于支付单状态短路。</p>
+<p><strong>悬挂与对账</strong>：Try 超时后业务可能已判定失败并走 Cancel，但晚到的 Try 成功仍可能落库，造成资源悬挂。需要 <strong>Try 超时撤销任务</strong> 与 <strong>渠道对账</strong> 双向收敛；订单域记录 <code>try_expires_at</code> 与渠道流水号，便于夜间批处理纠偏。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *PaymentCancel)</span></span> Cancel(ctx context.Context, rid <span class="type">string</span>) <span class="type">error</span> &#123;</span><br><span class="line">	rec, err := p.store.GetReserve(ctx, rid)</span><br><span class="line">	<span class="keyword">if</span> errors.Is(err, ErrNotFound) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> rec.Phase == PhaseCanceled &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> rec.Phase != PhaseTried &#123;</span><br><span class="line">		<span class="keyword">return</span> ErrInvalidPhase</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> p.store.MarkCanceled(ctx, rid)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="14-5-2-Saga-模式"><a href="#14-5-2-Saga-模式" class="headerlink" title="14.5.2 Saga 模式"></a>14.5.2 Saga 模式</h3><p>Saga 将长事务拆为<strong>可补偿的本地事务序列</strong>。订单创单、超时关单、售后退款均适合 <strong>Orchestration（编排）</strong>：由订单服务顺序调用下游，失败则逆序补偿。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Step <span class="keyword">struct</span> &#123;</span><br><span class="line">	Name       <span class="type">string</span></span><br><span class="line">	Try        <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context)</span></span> <span class="type">error</span></span><br><span class="line">	Compensate <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context)</span></span> <span class="type">error</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Saga <span class="keyword">struct</span>&#123; steps []Step &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Saga)</span></span> Run(ctx context.Context) <span class="type">error</span> &#123;</span><br><span class="line">	<span class="keyword">var</span> done []Step</span><br><span class="line">	<span class="keyword">for</span> _, st := <span class="keyword">range</span> s.steps &#123;</span><br><span class="line">		<span class="keyword">if</span> err := st.Try(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">for</span> i := <span class="built_in">len</span>(done) - <span class="number">1</span>; i &gt;= <span class="number">0</span>; i-- &#123;</span><br><span class="line">				<span class="keyword">if</span> cerr := done[i].Compensate(ctx); cerr != <span class="literal">nil</span> &#123;</span><br><span class="line">					<span class="comment">// 记录补偿失败任务，进入异步重试</span></span><br><span class="line">					_ = cerr</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">		done = <span class="built_in">append</span>(done, st)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>编排 vs 协同</strong>：编排型 Saga 便于集中超时、重试、指标；协同型通过事件总线解耦，但排查「谁该补偿」困难。订单创建推荐 <strong>编排为主、事件为辅</strong>：同步阶段用编排保证用户得到明确成功 &#x2F; 失败；异步阶段用事件驱动履约。协同式在售后长尾流程中更常见，但仍建议有 <strong>流程实例表</strong> 记录当前步骤，避免纯粹靠消息隐式状态。</p>
+<p><strong>隔离与雪崩</strong>：Saga 每步应设置 <strong>独立超时与熔断</strong>，避免单个下游拖垮整个创单线程池。失败返回时携带 <strong>标准化错误码</strong>（库存不足、券不可用、风控拒绝），网关映射为 HTTP 4xx，避免一律 500。</p>
+<h3 id="14-5-3-选型对比"><a href="#14-5-3-选型对比" class="headerlink" title="14.5.3 选型对比"></a>14.5.3 选型对比</h3><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>TCC</th>
+<th>Saga</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一致性</td>
+<td>更强，资源预留明确</td>
+<td>最终一致</td>
+</tr>
+<tr>
+<td>改造</td>
+<td>参与方需三接口</td>
+<td>正向 + 补偿即可</td>
+</tr>
+<tr>
+<td>适用</td>
+<td>支付、金融类</td>
+<td>创单、售后、长流程</td>
+</tr>
+<tr>
+<td>复杂度</td>
+<td>高</td>
+<td>中，高在补偿治理</td>
+</tr>
+</tbody></table>
+<pre class="mermaid">flowchart TD
+  Q1{资金 / 支付渠道是否核心参与方?}
+  Q1 -->|是| TCC[TCC 或渠道原生两阶段]
+  Q1 -->|否| Q2{步骤>3 且可接受中间态?}
+  Q2 -->|是| SG[Saga 编排 + 补偿表]
+  Q2 -->|否| LOCAL[单库事务 + Outbox 单步事件]</pre>
+
+<h3 id="14-5-4-补偿机制"><a href="#14-5-4-补偿机制" class="headerlink" title="14.5.4 补偿机制"></a>14.5.4 补偿机制</h3><p>补偿分 <strong>同步逆序</strong> 与 <strong>异步重试队列</strong> 两级：同步阶段只处理可快速失败回滚；库存 &#x2F; 支付等慢 IO 失败写入 <code>compensation_task</code>，由 Worker 指数退避重试，超过阈值人工工单。</p>
+<p><strong>优先级</strong>：资金相关 &gt; 库存 &gt; 营销权益，降低「钱已退券未退」类客诉风险。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">EnqueueCompensation</span><span class="params">(ctx context.Context, store TaskStore, t *CompensationTask)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> t.BizType &#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">&quot;payment&quot;</span>:</span><br><span class="line">		t.Priority = <span class="number">1</span></span><br><span class="line">	<span class="keyword">case</span> <span class="string">&quot;inventory&quot;</span>:</span><br><span class="line">		t.Priority = <span class="number">2</span></span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		t.Priority = <span class="number">3</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> store.Insert(ctx, t)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>人工介入</strong>：补偿失败超过阈值应生成工单，附带 <strong>Saga 上下文 JSON</strong>（每步请求 &#x2F; 响应摘要、trace_id）。不要在告警里只写「补偿失败」，否则 on-call 无法快速判断是库存还是营销。</p>
+<p><strong>与消息一致性</strong>：若补偿需要发「回滚券」消息，仍建议走 Outbox，避免补偿 RPC 成功但消息丢失导致用户仍看到券被锁。</p>
+<p><strong>两阶段提交（2PC）在订单域的位置</strong>：强一致 2PC 在互联网大规模订单核心路径已较少采用，但在 <strong>与财务总账同一数据库集群</strong> 的小范围场景仍可能出现。若团队评估引入全局事务协调器，应充分评估 <strong>阻塞窗口与单点风险</strong>；多数电商场景仍以 Saga + 对账替代。</p>
+<p><strong>事务边界与领域事件</strong>：本地事务内应只包含「本聚合必须同事务成功」的最小集合。把「写订单 + 写审计 + 写 Outbox」放在同事务是合理的；把「写订单 + 调库存远程提交」放在同一本地事务则不可行。事件命名建议采用过去式领域语言（<code>OrderCreated</code>），订阅方据此触发投影或履约，而不是用命令式 <code>CreateShipment</code> 事件污染语义。</p>
+<hr>
+<h2 id="14-6-幂等性设计"><a href="#14-6-幂等性设计" class="headerlink" title="14.6 幂等性设计"></a>14.6 幂等性设计</h2><h3 id="14-6-1-幂等性原则"><a href="#14-6-1-幂等性原则" class="headerlink" title="14.6.1 幂等性原则"></a>14.6.1 幂等性原则</h3><ul>
+<li><strong>技术幂等</strong>：HTTP 重试、唯一约束防双插；</li>
+<li><strong>业务幂等</strong>：同一业务键多次提交得到同一业务结果（返回首单）。</li>
+</ul>
+<h3 id="14-6-2-实现方案"><a href="#14-6-2-实现方案" class="headerlink" title="14.6.2 实现方案"></a>14.6.2 实现方案</h3><ol>
+<li><strong>数据库唯一键</strong>：<code>idempotent_key</code>；</li>
+<li><strong>Redis SETNX</strong>：短 TTL 防抖；</li>
+<li><strong>状态机短路</strong>：非法迁移直接返回成功或明确错误码；</li>
+<li><strong>业务外键</strong>：<code>order_id + coupon_id</code> 唯一扣减记录。</li>
+</ol>
+<p><strong>处理中状态</strong>：幂等表应有 <code>processing</code> 态，防止客户端疯狂重试导致风暴；可配合 <strong>429 + Retry-After</strong>。<code>processing</code> 超时由后台任务回收或允许用户重放（需业务决策）。</p>
+<p><strong>时钟与 TTL</strong>：<code>expire_at</code> 应略大于业务 SLA（如 24h），并定期清理历史幂等记录，避免表无限膨胀。清理前需确认该键不再可能被渠道重放。</p>
+<h3 id="14-6-3-各场景实现"><a href="#14-6-3-各场景实现" class="headerlink" title="14.6.3 各场景实现"></a>14.6.3 各场景实现</h3><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>幂等键</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>创单</td>
+<td><code>user_id + client_request_id</code></td>
+<td>插入抢占，成功返回已有订单</td>
+</tr>
+<tr>
+<td>支付回调</td>
+<td><code>channel_order_id</code> 或 <code>payment_id + event</code></td>
+<td>防渠道重放</td>
+</tr>
+<tr>
+<td>物流回调</td>
+<td><code>shipment_id + logistics_status</code></td>
+<td>防状态重复推进</td>
+</tr>
+<tr>
+<td>售后退款</td>
+<td><code>refund_id</code> 分步幂等</td>
+<td>每步独立去重表</td>
+</tr>
+</tbody></table>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateOrderIdempotent</span><span class="params">(ctx context.Context, repo OrderRepo, req *CreateRequest)</span></span> (*Order, <span class="type">error</span>) &#123;</span><br><span class="line">	key := fmt.Sprintf(<span class="string">&quot;order:create:%d:%s&quot;</span>, req.UserID, req.ClientToken)</span><br><span class="line">	rec := &amp;IdempotentRecord&#123;Key: key, BizType: <span class="string">&quot;order_create&quot;</span>, Status: StatusProcessing&#125;</span><br><span class="line">	<span class="keyword">if</span> err := repo.InsertIdempotent(ctx, rec); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> existing, e := repo.GetIdempotent(ctx, key); e == <span class="literal">nil</span> &amp;&amp; existing.Status == StatusSuccess &#123;</span><br><span class="line">			<span class="keyword">return</span> repo.GetOrder(ctx, existing.BizID)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, ErrDuplicateInProgress</span><br><span class="line">	&#125;</span><br><span class="line">	order, err := runCreateSaga(ctx, repo, req)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		_ = repo.MarkIdempotent(ctx, key, StatusFailed)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	_ = repo.MarkIdempotentSuccess(ctx, key, order.OrderID)</span><br><span class="line">	<span class="keyword">return</span> order, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>支付回调三重防重</strong>（与第 15 章衔接）：幂等表 + 主状态机 + <code>Confirm</code> 内部状态短路，缺一不可。只依赖状态机会在「重复回调但状态已前进」时误报失败；只依赖幂等表会在表损坏时放大风险。</p>
+<p><strong>监控</strong>：按 <code>biz_type</code> 统计幂等命中、冲突、处理中滞留；对 <code>idem_conflict_rate</code> 设定基线告警，异常上升通常意味着客户端重试策略变更或渠道重放策略调整。</p>
+<p><strong>客户端协作</strong>：移动端在弱网下会放大重试；应在 SDK 层统一生成 <code>client_request_id</code> 并持久化到本地，直到收到明确成功响应才清理。Web 端则可用 <code>sessionStorage</code> 暂存，刷新页面不丢失。服务端返回 <strong>409 + 已有订单号</strong> 优于静默成功，便于客户端跳转「订单详情」。</p>
+<p><strong>安全视角</strong>：幂等键不应可被枚举猜测；对匿名下单场景，应绑定 <strong>设备指纹或会话令牌</strong>，防止撞库式刷接口。对公开回调接口必须 <strong>验签 + IP 白名单 + Replay window</strong>。</p>
+<hr>
+<h2 id="14-7-特殊订单类型"><a href="#14-7-特殊订单类型" class="headerlink" title="14.7 特殊订单类型"></a>14.7 特殊订单类型</h2><h3 id="14-7-1-虚拟订单"><a href="#14-7-1-虚拟订单" class="headerlink" title="14.7.1 虚拟订单"></a>14.7.1 虚拟订单</h3><p>无物流，支付后 <strong>即时履约</strong>（发券、开通权益）。状态机在 <code>Paid</code> 后可直接进入 <code>Granting → Completed</code>，失败重试必须 <strong>发放流水唯一约束</strong>。</p>
+<pre class="mermaid">stateDiagram-v2
+  [*] --> PendingPay
+  PendingPay --> Paid: 支付成功
+  Paid --> Granting: 触发履约
+  Granting --> Completed: 权益到账
+  Granting --> GrantFailed: 下游失败
+  GrantFailed --> Granting: 重试 / 人工回放
+  PendingPay --> Cancelled: 超时</pre>
+
+<p><strong>资损防控</strong>：虚拟履约接口必须具备 <strong>可查询结果</strong> 能力（<code>QueryGrantResult</code>），以便在超时后判断是「已成功未回包」还是「确实失败」。否则重试可能造成重复发放，不重试又可能用户付款无权益。</p>
+<p><strong>与会员体系</strong>：若权益挂在账号维度，订单应记录 <strong>目标账号</strong>（本人 &#x2F; 赠送人），避免客服手工改绑带来的审计缺口。</p>
+<h3 id="14-7-2-O2O-订单"><a href="#14-7-2-O2O-订单" class="headerlink" title="14.7.2 O2O 订单"></a>14.7.2 O2O 订单</h3><p>强调 <strong>门店 &#x2F; 骑手 &#x2F; 超时</strong>。支付后进入 <code>PendingAccept</code>，商家超时未接单触发关单与补偿。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">CreateO2OOrder</span><span class="params">(ctx context.Context, lbs LBS, req *CreateRequest)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	storeID, err := lbs.ResolveStore(ctx, req.Lat, req.Lng, req.SKUs)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	req.StoreID = storeID</span><br><span class="line">	<span class="keyword">return</span> runCreateSaga(ctx, orderRepo, req)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>运力与派单</strong>：订单应保存 <code>store_id</code>、<code>expected_arrival</code> 等业务字段；配送系统回写骑手位置不属于订单核心表，可进入履约扩展表或实时查询接口。</p>
+<p><strong>取消与部分退款</strong>：O2O 常出现「商家缺货部分退款」，需要行级部分退与状态机协同；主单可能仍处于履约中，财务上已发生部分结算，报表需单独建模。</p>
+<h3 id="14-7-3-预售订单"><a href="#14-7-3-预售订单" class="headerlink" title="14.7.3 预售订单"></a>14.7.3 预售订单</h3><p><strong>定金 + 尾款</strong> 拆两张支付单；库存使用 <code>Reserve</code> 锁定到尾款结束。尾款超时释放预订并关单。</p>
+<pre class="mermaid">stateDiagram-v2
+  [*] --> PendingDeposit
+  PendingDeposit --> DepositPaid: 定金成功
+  PendingDeposit --> Cancelled: 未付超时
+  DepositPaid --> PendingBalance: 开启尾款期
+  PendingBalance --> BalancePaid: 尾款成功
+  PendingBalance --> Cancelled: 尾款超时
+  BalancePaid --> Fulfilling: 进入发货流程</pre>
+
+<p><strong>财务与税务</strong>：定金可能不计入收入确认节点，尾款成功后才触发 ERP 凭证；订单模型应能区分 <strong>两笔支付子单</strong> 与 <strong>一笔主单</strong> 的映射，避免对账系统把定金当全款。</p>
+<p><strong>库存语义</strong>：定金阶段常用 <strong>软预留</strong>（不占可售库存但占名额）或 <strong>硬预留</strong>（直接减可售），需与供应链共识；尾款失败释放策略必须可观测，否则大促会出现「幽灵占用」。</p>
+<hr>
+<h2 id="14-8-订单履约"><a href="#14-8-订单履约" class="headerlink" title="14.8 订单履约"></a>14.8 订单履约</h2><h3 id="14-8-1-履约流程"><a href="#14-8-1-履约流程" class="headerlink" title="14.8.1 履约流程"></a>14.8.1 履约流程</h3><p>支付成功发布 <code>OrderPaid</code>，履约 Worker 消费后创建物流单或调用供应商 API；主单状态从 <code>Paid</code> 进入 <code>Fulfilling</code>，再随物流事件细化。</p>
+<pre class="mermaid">stateDiagram-v2
+  [*] --> PendingShipment: 支付成功
+  PendingShipment --> Shipped: 仓库发货
+  Shipped --> InTransit: 揽收
+  InTransit --> Delivered: 签收
+  Delivered --> Completed: 确认收货 / 超时自动确认</pre>
+
+<p><strong>异步 Worker 设计</strong>：消费 <code>OrderPaid</code> 时应 <strong>幂等检查主状态</strong>，避免重复创建物流单；创建失败应区分可重试与不可重试。DLQ 消息要包含 <code>order_id</code> 与 <code>attempt</code> 计数，支持人工重放。</p>
+<p><strong>拆包裹与多包裹</strong>：一单多包裹时，用子表 <code>order_shipment</code> 记录多个运单；主状态聚合规则需定义（例如全部签收才 <code>Delivered</code>，或第一件发货即 <code>PartialShipped</code> 子状态）。</p>
+<h3 id="14-8-2-供应商对接"><a href="#14-8-2-供应商对接" class="headerlink" title="14.8.2 供应商对接"></a>14.8.2 供应商对接</h3><p>对机票、酒店等供应商品类，履约即 <strong>供应商下单 &#x2F; 出票 &#x2F; 确认</strong>；需映射供应商返回码到统一 <code>FulfillmentErrorCode</code>，并支持 <strong>重试与人工工单</strong>。</p>
+<p><strong>幂等与供应商</strong>：供应商接口常「同一请求重试返回同一确认号」，订单侧应保存 <code>supplier_request_id</code> 与响应指纹，避免重复下单造成双份资源。</p>
+<p><strong>降级</strong>：供应商大面积故障时，可暂停自动履约、进入 <strong>人工队列</strong>，并在订单详情展示「处理中」与预计时间，减少进线量。</p>
+<h3 id="14-8-3-状态同步"><a href="#14-8-3-状态同步" class="headerlink" title="14.8.3 状态同步"></a>14.8.3 状态同步</h3><p>物流回调与供应商 Webhook 必须 <strong>签名验证 + 幂等表</strong>；异步链路用 Kafka 削峰，失败进 DLQ 并保留原始消息体。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">OnLogisticsEvent</span><span class="params">(ctx context.Context, repo OrderRepo, ev *LogisticsEvent)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	key := fmt.Sprintf(<span class="string">&quot;logistics:%s:%s&quot;</span>, ev.ShipmentID, ev.Status)</span><br><span class="line">	<span class="keyword">if</span> err := repo.InsertIdempotent(ctx, key); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> repo.ApplyLogisticsMapping(ctx, ev)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>时间语义</strong>：物流状态常带时间戳，订单应保存 <strong>供应商时间戳 + 接收时间</strong>，便于跨时区纠纷。自动确认收货的计时一般从 <code>Delivered</code> 事件时间起算，而非支付时间。</p>
+<p><strong>履约 SLA 与用户体验</strong>：对虚拟与 O2O，用户更敏感于「多久到账 &#x2F; 多久送达」。应在订单详情展示 <strong>预计完成时间区间</strong>，该区间由履约服务根据历史分位数计算，而不是订单域拍脑袋写死常量。超时未履约应自动触发 <strong>补偿或客服工单</strong>，并给用户明确状态而非无限「处理中」。</p>
+<p><strong>仓配一体与自提</strong>：自提点、门店自提等模式会改变履约状态机，新增 <code>ReadyForPickup</code>、<code>PickedUp</code> 等节点；主单聚合规则需重新定义「完成」含义（取货扫码 vs 离店）。这些差异最好通过 <strong>履约子状态机配置</strong> 注入，而不是复制一套订单主表。</p>
+<hr>
+<h2 id="14-9-系统边界与职责"><a href="#14-9-系统边界与职责" class="headerlink" title="14.9 系统边界与职责"></a>14.9 系统边界与职责</h2><h3 id="14-9-1-订单系统的职责边界"><a href="#14-9-1-订单系统的职责边界" class="headerlink" title="14.9.1 订单系统的职责边界"></a>14.9.1 订单系统的职责边界</h3><p><strong>负责</strong>：创单编排、主状态机、订单事实存储、领域事件、补偿编排入口。<br><strong>不负责</strong>：支付渠道协议、库存原子脚本、营销规则解释、物流路由算法。</p>
+<p><strong>反模式清单</strong>：在订单库里维护「渠道费率表」、在订单服务里直连 Elasticsearch 做商品搜索、在订单进程里跑供应商长轮询——这些都会让订单成为最难部署的巨石。应通过 <strong>防腐层 + 专门服务</strong> 吸收。</p>
+<h3 id="14-9-2-订单-vs-支付：边界划分"><a href="#14-9-2-订单-vs-支付：边界划分" class="headerlink" title="14.9.2 订单 vs 支付：边界划分"></a>14.9.2 订单 vs 支付：边界划分</h3><p>订单提供 <strong>应付金额事实与支付上下文</strong>；支付服务生成 <strong>支付单</strong> 并对接渠道。回调默认进入 <strong>支付域</strong>，由其校验签名后调用订单 <strong>Application Service</strong> 推进状态，避免订单服务直接解析多渠道报文导致膨胀。</p>
+<p><strong>金额变更</strong>：除部分业务（邮费后补、税费调整）外，支付金额应以订单快照为准；若必须改价，应走 <strong>订单变更单</strong> 或关闭旧单重建，而不是在支付回调里悄悄改 <code>payment_amount</code>。</p>
+<h3 id="14-9-3-订单-vs-物流：边界划分"><a href="#14-9-3-订单-vs-物流：边界划分" class="headerlink" title="14.9.3 订单 vs 物流：边界划分"></a>14.9.3 订单 vs 物流：边界划分</h3><p>订单保存 <strong>运单号快照</strong> 与履约状态；轨迹查询走物流查询服务。订单不应存储全量轨迹点。</p>
+<p><strong>异常协同</strong>：丢件、拒收、改址属于物流域流程，结果以事件通知订单；订单负责更新主状态与触发售后入口，而不是在订单服务内嵌物流公司客服规则。</p>
+<h3 id="14-9-4-订单作为编排者的角色"><a href="#14-9-4-订单作为编排者的角色" class="headerlink" title="14.9.4 订单作为编排者的角色"></a>14.9.4 订单作为编排者的角色</h3><p>订单是 <strong>Process Manager</strong>：定义 Saga 顺序、超时、补偿策略；各子域提供幂等 API。编排者<strong>不缓存</strong>子域权威数据副本（除快照外）。</p>
+<p><strong>可观测性</strong>：编排者应输出 <strong>结构化 Saga 日志</strong>（<code>saga_id</code>、<code>step</code>、<code>latency</code>、<code>result</code>），并在 Trace 中把下游 Span 串为子节点，否则大促排障只能看「创单慢」而无法定位瓶颈环节。</p>
+<h3 id="14-9-5-订单-vs-履约：职责划分"><a href="#14-9-5-订单-vs-履约：职责划分" class="headerlink" title="14.9.5 订单 vs 履约：职责划分"></a>14.9.5 订单 vs 履约：职责划分</h3><p><strong>订单</strong>给出「应履约什么」；<strong>履约服务</strong>决定「如何履约」：拆包裹、选承运商、对接供应商 API。虚拟品可将履约内嵌 Worker，但仍建议独立模块便于扩缩容。</p>
+<p><strong>售后交错</strong>：履约中发起售后时，应冻结部分发运或拦截未发商品；订单主状态进入 <code>AfterSale</code> 后，履约 Worker 需识别 <strong>继续履约 &#x2F; 中止</strong> 的策略位，避免「已退款仍发货」的严重事故。</p>
+<hr>
+<h2 id="14-10-与其他系统的集成"><a href="#14-10-与其他系统的集成" class="headerlink" title="14.10 与其他系统的集成"></a>14.10 与其他系统的集成</h2><h3 id="14-10-1-与商品中心集成（快照读取）"><a href="#14-10-1-与商品中心集成（快照读取）" class="headerlink" title="14.10.1 与商品中心集成（快照读取）"></a>14.10.1 与商品中心集成（快照读取）</h3><p>创单只读 <strong>商品只读视图 + 快照构建器</strong>，禁止直接 join 商品运营库。快照哈希可复用第 7 章策略。</p>
+<p><strong>变更传播</strong>：商品标题、类目变更不应反写历史订单；若发生合规下架，应通过 <strong>风控事件</strong> 拦截新创单，而不是修改已落库快照。对 SEO 友好的长描述可不入库，仅保留客服需要的最小字段集以控存储。</p>
+<h3 id="14-10-2-与库存系统集成（扣减与回退）"><a href="#14-10-2-与库存系统集成（扣减与回退）" class="headerlink" title="14.10.2 与库存系统集成（扣减与回退）"></a>14.10.2 与库存系统集成（扣减与回退）</h3><p>统一使用库存暴露的 <strong>Reserve &#x2F; Commit &#x2F; Release</strong> 或 <strong>Deduct &#x2F; Restore</strong> 语义；订单保存 <code>reservation_id</code> 便于超时释放。</p>
+<p><strong>支付后确认</strong>：若品类要求支付后才向供应商下单，创单阶段可能是 <strong>软占</strong>，支付成功后再 <code>Commit</code>；订单需记录两阶段 token，关单时只释放对应阶段。</p>
+<h3 id="14-10-3-与计价系统集成（价格快照）"><a href="#14-10-3-与计价系统集成（价格快照）" class="headerlink" title="14.10.3 与计价系统集成（价格快照）"></a>14.10.3 与计价系统集成（价格快照）</h3><p>创单请求携带 <code>pricing_token</code>，计价服务返回 <strong>不可变快照</strong>；订单落库字段与支付校验字段保持一致。</p>
+<p><strong>舍入与分摊</strong>：快照应包含 <strong>行级分摊结果</strong> 与 <strong>尾差处理规则版本</strong>（第 11 章），否则部分退款时营销与财务会对不上。支付校验只验证「渠道应付 &#x3D;&#x3D; 快照应付」在允许误差内。</p>
+<h3 id="14-10-4-与营销系统集成（锁定与扣减）"><a href="#14-10-4-与营销系统集成（锁定与扣减）" class="headerlink" title="14.10.4 与营销系统集成（锁定与扣减）"></a>14.10.4 与营销系统集成（锁定与扣减）</h3><p>先锁后付：创单锁券，支付成功转实扣；关单 &#x2F; 超时统一走营销回滚接口，携带 <code>order_id</code> 幂等。</p>
+<p><strong>平台与商家券</strong>：若一单混合出资，营销回滚需支持 <strong>按比例撤销</strong>；订单应保存 <code>subsidy_split</code> 片段，避免退款时无法拆分平台补贴与商家让利。</p>
+<h3 id="14-10-5-与支付系统集成（支付触发）"><a href="#14-10-5-与支付系统集成（支付触发）" class="headerlink" title="14.10.5 与支付系统集成（支付触发）"></a>14.10.5 与支付系统集成（支付触发）</h3><p>订单在 <code>PendingPay</code> 调用支付 <strong>创建支付单</strong> API；之后状态迁移以支付回调为准，前端轮询仅作体验辅助。</p>
+<p><strong>前端轮询</strong>：轮询间隔应指数退避并设上限；服务端对同一用户并发轮询限流，防止把订单库打挂。更优方案是 <strong>SSE &#x2F; WebSocket</strong> 推送支付结果，但仍要以回调为准。</p>
+<h3 id="14-10-6-与供应商系统集成（履约）"><a href="#14-10-6-与供应商系统集成（履约）" class="headerlink" title="14.10.6 与供应商系统集成（履约）"></a>14.10.6 与供应商系统集成（履约）</h3><p>供应商网关隔离协议差异；订单只面向网关请求 <strong>CreateSupplierOrder</strong>，不感知对方 SOAP &#x2F; REST 细节。</p>
+<p><strong>契约版本</strong>：网关应携带 <strong>供应商契约版本号</strong>，订单落库保存该版本，便于供应商升级后追溯「老单走老协议」。</p>
+<h3 id="14-10-7-集成编排：Saga-模式实践"><a href="#14-10-7-集成编排：Saga-模式实践" class="headerlink" title="14.10.7 集成编排：Saga 模式实践"></a>14.10.7 集成编排：Saga 模式实践</h3><p>下图展示创单阶段与外部系统的 <strong>时序编排</strong>（示意，省略签名与重试）。</p>
+<pre class="mermaid">sequenceDiagram
+  participant U as 用户
+  participant O as 订单服务
+  participant P as 计价
+  participant I as 库存
+  participant M as 营销
+  participant D as DB
+  participant K as Kafka
+  U->>O: CreateOrder(req)
+  O->>P: ValidatePricingToken
+  P-->>O: PricingSnapshotOK
+  O->>I: ReserveStock
+  I-->>O: reservation_id
+  O->>M: LockPromotions
+  M-->>O: lock_token
+  O->>D: Tx: Insert Order + Lines + Outbox
+  D-->>O: OK
+  O->>K: OrderCreated(event)
+  O-->>U: 201 + order_id
+  Note over O,I: 任一步失败则逆序 Release / Unlock 并返回错误码</pre>
+
+<h3 id="14-10-8-失败补偿与重试策略"><a href="#14-10-8-失败补偿与重试策略" class="headerlink" title="14.10.8 失败补偿与重试策略"></a>14.10.8 失败补偿与重试策略</h3><ul>
+<li><strong>可重试错误</strong>（网络抖动）：有限次重试 + 指数退避；</li>
+<li><strong>业务拒绝</strong>（库存不足）：立即失败，不做无意义重试；</li>
+<li><strong>补偿失败</strong>：入补偿表，<strong>定时拉升</strong> + 人工兜底；</li>
+<li><strong>监控</strong>：<code>compensation_backlog</code>、<code>saga_step_latency</code>、<code>duplicate_callback_total</code>。</li>
+</ul>
+<p><strong>跨系统对账</strong>：每日按 <strong>订单支付成功总额</strong> 与支付系统、营销补贴账、供应商结算单进行三方抽样对账；出现差异时，以支付渠道流水为资金真相，以订单行快照为业务真相，营销与库存走补偿闭环。</p>
+<p><strong>集成测试建议</strong>：在 CI 中维护 <strong>合约测试</strong>（Pact 类）对库存 &#x2F; 计价 &#x2F; 营销的关键响应做快照校验；订单编排层的集成测试应覆盖「任一步失败」与「补偿失败入队」两条主线。</p>
+<hr>
+<h2 id="14-11-工程实践"><a href="#14-11-工程实践" class="headerlink" title="14.11 工程实践"></a>14.11 工程实践</h2><h3 id="14-11-1-订单-ID-生成"><a href="#14-11-1-订单-ID-生成" class="headerlink" title="14.11.1 订单 ID 生成"></a>14.11.1 订单 ID 生成</h3><p><strong>Snowflake</strong> 为主流：趋势递增、无 DB 往返。需处理 <strong>时钟回拨</strong>（拒绝生成并告警）与 <strong>workerId 分配</strong>（etcd &#x2F; DB 租约）。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Snowflake <span class="keyword">struct</span> &#123;</span><br><span class="line">	mu        sync.Mutex</span><br><span class="line">	epochMs   <span class="type">int64</span></span><br><span class="line">	workerID  <span class="type">int64</span></span><br><span class="line">	sequence  <span class="type">int64</span></span><br><span class="line">	lastMs    <span class="type">int64</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Snowflake)</span></span> Next() (<span class="type">int64</span>, <span class="type">error</span>) &#123;</span><br><span class="line">	s.mu.Lock()</span><br><span class="line">	<span class="keyword">defer</span> s.mu.Unlock()</span><br><span class="line">	now := time.Now().UnixMilli()</span><br><span class="line">	<span class="keyword">if</span> now &lt; s.lastMs &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>, ErrClockMovedBackwards</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> now == s.lastMs &#123;</span><br><span class="line">		s.sequence = (s.sequence + <span class="number">1</span>) &amp; <span class="number">0xFFF</span></span><br><span class="line">		<span class="keyword">if</span> s.sequence == <span class="number">0</span> &#123;</span><br><span class="line">			<span class="keyword">for</span> now &lt;= s.lastMs &#123;</span><br><span class="line">				now = time.Now().UnixMilli()</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		s.sequence = <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line">	s.lastMs = now</span><br><span class="line">	id := ((now - s.epochMs) &lt;&lt; <span class="number">22</span>) | (s.workerID &lt;&lt; <span class="number">12</span>) | s.sequence</span><br><span class="line">	<span class="keyword">return</span> id, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>号段模式</strong>：部分银行或票据场景要求数字更短，可采用 DB &#x2F; Redis 号段批量领取；代价是需要容灾切换时的 <strong>跳号容忍</strong> 与对账。</p>
+<h3 id="14-11-2-性能优化"><a href="#14-11-2-性能优化" class="headerlink" title="14.11.2 性能优化"></a>14.11.2 性能优化</h3><ul>
+<li>分库分表键：优先 <code>user_id</code> 或 <code>order_id</code> 哈希；</li>
+<li>热点用户：队列合并写、缓存扇出；</li>
+<li>读多写少：详情 Redis + 短 TTL，写后删缓存；</li>
+<li>异步：Outbox relay 批量发送。</li>
+</ul>
+<p><strong>批量写与合并</strong>：秒杀场景可用 <strong>请求合并</strong>（coalesce）将短时间窗口内的创单请求排队合并调用库存；需评估公平性与尾延迟，并设最大等待时间。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">PublishOutbox</span><span class="params">(ctx context.Context, tx Tx, topic <span class="type">string</span>, payload []<span class="type">byte</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	msg := OutboxMessage&#123;Topic: topic, Payload: payload, Status: StatusPending&#125;</span><br><span class="line">	<span class="keyword">return</span> tx.InsertOutbox(ctx, &amp;msg)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="14-11-3-监控告警"><a href="#14-11-3-监控告警" class="headerlink" title="14.11.3 监控告警"></a>14.11.3 监控告警</h3><p>指标示例：<code>order_create_success_rate</code>、<code>pending_pay_timeout_count</code>、<code>pay_callback_latency</code>、<code>fulfillment_retry_count</code>、<code>idem_conflict_rate</code>。日志必须带 <code>order_id</code>、<code>trace_id</code>、<code>idempotent_key</code>。</p>
+<p><strong>告警分级</strong>：<code>compensation_backlog</code> 连续升高为 P0；<code>illegal_transition_total</code> 小量抖动可为 P2 观察。夜间告警需合并同根因，避免「短信轰炸」导致真正 P0 被忽略。</p>
+<p><strong>容量演练</strong>：定期做 <strong>限流阈值演练</strong> 与 <strong>Kafka 分区迁移演练</strong>，验证订单写路径在极端情况下的降级开关是否生效（例如暂停非核心消息投影）。</p>
+<hr>
+<h2 id="14-12-本章小结"><a href="#14-12-本章小结" class="headerlink" title="14.12 本章小结"></a>14.12 本章小结</h2><p>本章从<strong>数据模型</strong>出发，强调订单主表、明细、快照与状态历史四位一体：主表表达用户可见阶段，明细绑定商品快照与分摊信息，计价快照锁定金额解释，状态日志提供审计证据链。在<strong>状态机</strong>层面，主单与子域（支付、履约、售后）协同，所有迁移走白名单 + CAS，乱序与并发通过幂等与行级竞争消解。</p>
+<p>在<strong>创单流程</strong>中，我们以 Saga 编排库存、营销与本地落库，以 Outbox 保证事件可靠投递；<strong>分布式事务</strong>层面区分 TCC（支付资金）与 Saga（长流程资源），并配套补偿优先级与人工工单。<strong>幂等</strong>贯穿创单、回调与履约，三重防重降低资损概率。<strong>特殊订单类型</strong>通过差异化状态机与策略扩展点接入，避免污染核心路径。<strong>履约</strong>侧则强调异步、幂等与供应商契约版本。</p>
+<p>从<strong>系统边界</strong>看，订单是交易编排者而非执行者：计价解释、库存原子、支付渠道、物流轨迹各有其主；订单负责把它们的<strong>结果事实</strong>串成可审计的业务故事。掌握这些原则后，阅读第 15 章支付系统时，可重点关注 <strong>支付单状态机如何回调驱动订单</strong>、以及 <strong>清结算如何与订单快照对齐</strong>。</p>
+<p><strong>面试与答辩串联</strong>：若需要在白板前讲解订单系统，推荐顺序为：先画主状态机，再画创单 Saga 时序，再补幂等键与补偿表，最后点出「订单不直连渠道」。评委追问超卖时，回到库存 Reserve 与 CAS；追问重复支付时，回到支付幂等与订单状态机；追问消息丢失时，回到 Outbox。把四条线闭合，通常比堆技术名词更有说服力。</p>
+<p><strong>演进建议</strong>：早期团队可用「单服务 + 清晰包边界」模拟限界上下文，待调用链路过长再拆 Order &#x2F; Payment &#x2F; Fulfillment。拆分时优先把 <strong>回调入口</strong> 与 <strong>定时任务</strong> 迁出，因为它们最容易与核心创单抢资源。无论是否微服务，本章强调的 <strong>快照、状态机、Saga、幂等</strong> 四件套都仍然成立。</p>
+<p>下一章将进入支付系统，重点讨论 <strong>渠道回调、清结算与资金安全</strong>，请保持「订单事实不变，支付驱动状态」的心智模型继续阅读。</p>
+<hr>
+<p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter13.html">上一章</a> | <a href="./chapter15.html">下一章</a></p>
+
+      </div>
+      
+      
+      
+    </div>
+
+    
+    
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>
