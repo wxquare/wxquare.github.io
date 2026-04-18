@@ -15893,11 +15893,2836 @@ public Order createOrder(OrderRequest request, String token) {
 
 ---
 
-好的！我已经完成了Task 7的内容（3.2购物车后10题 + 3.3订单前5题，共15题）。让我验证并提交：
+#### 📊 题目6：订单的分布式事务设计（Saga模式）
+
+**问题描述**：
+订单创建涉及多个服务（订单服务、库存服务、优惠券服务、积分服务）。如何使用Saga模式保证分布式事务一致性？
+
+**答案**：
+
+**问题分析**：
+订单创建的分布式事务流程：
+1. 扣减库存（库存服务）
+2. 核销优惠券（营销服务）
+3. 扣减积分（会员服务）
+4. 创建订单（订单服务）
+
+任一环节失败，已执行的操作需要回滚。
+
+**Saga模式实现**（使用Go）：
+
+```go
+package saga
+
+import (
+	"context"
+	"fmt"
+)
+
+// SagaStep 定义Saga步骤
+type SagaStep struct {
+	Name         string
+	Execute      func(ctx context.Context, data interface{}) error
+	Compensate   func(ctx context.Context, data interface{}) error
+}
+
+// SagaOrchestrator Saga编排器
+type SagaOrchestrator struct {
+	steps []SagaStep
+}
+
+// Execute 执行Saga
+func (s *SagaOrchestrator) Execute(ctx context.Context, data interface{}) error {
+	executedSteps := make([]int, 0)
+	
+	// 正向执行
+	for i, step := range s.steps {
+		if err := step.Execute(ctx, data); err != nil {
+			// 执行失败，触发补偿
+			s.compensate(ctx, data, executedSteps)
+			return fmt.Errorf("步骤 %s 执行失败: %w", step.Name, err)
+		}
+		executedSteps = append(executedSteps, i)
+	}
+	
+	return nil
+}
+
+// compensate 执行补偿
+func (s *SagaOrchestrator) compensate(ctx context.Context, data interface{}, executedSteps []int) {
+	// 反向补偿
+	for i := len(executedSteps) - 1; i >= 0; i-- {
+		stepIndex := executedSteps[i]
+		step := s.steps[stepIndex]
+		
+		if err := step.Compensate(ctx, data); err != nil {
+			// 补偿失败，记录日志，转人工处理
+			log.Errorf("步骤 %s 补偿失败: %v", step.Name, err)
+		}
+	}
+}
+
+// 订单创建Saga示例
+func CreateOrderSaga(orderReq *CreateOrderRequest) error {
+	saga := &SagaOrchestrator{
+		steps: []SagaStep{
+			// 步骤1：扣减库存
+			{
+				Name: "DeductInventory",
+				Execute: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					return inventoryService.Deduct(ctx, req.Items)
+				},
+				Compensate: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					return inventoryService.Release(ctx, req.Items)
+				},
+			},
+			// 步骤2：核销优惠券
+			{
+				Name: "UseCoupon",
+				Execute: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					if req.CouponID == "" {
+						return nil // 无优惠券，跳过
+					}
+					return couponService.Use(ctx, req.UserID, req.CouponID)
+				},
+				Compensate: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					if req.CouponID == "" {
+						return nil
+					}
+					return couponService.Release(ctx, req.UserID, req.CouponID)
+				},
+			},
+			// 步骤3：扣减积分
+			{
+				Name: "DeductPoints",
+				Execute: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					if req.PointsToUse == 0 {
+						return nil
+					}
+					return pointsService.Deduct(ctx, req.UserID, req.PointsToUse)
+				},
+				Compensate: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					if req.PointsToUse == 0 {
+						return nil
+					}
+					return pointsService.Refund(ctx, req.UserID, req.PointsToUse)
+				},
+			},
+			// 步骤4：创建订单
+			{
+				Name: "CreateOrder",
+				Execute: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					order := &Order{
+						OrderID:   generateOrderID(),
+						UserID:    req.UserID,
+						Items:     req.Items,
+						Status:    OrderStatusPending,
+					}
+					return orderRepo.Create(ctx, order)
+				},
+				Compensate: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					// 订单创建失败不需要补偿（未持久化）
+					return nil
+				},
+			},
+		},
+	}
+	
+	return saga.Execute(context.Background(), orderReq)
+}
+```
+
+**优点**：
+- 逻辑清晰（正向+补偿）
+- 解耦各服务
+- 支持长事务
+
+**缺点**：
+- 实现复杂
+- 补偿可能失败（需要人工介入）
+- 中间状态可见（不是强一致性）
+
+**延伸思考**：
+1. Saga补偿失败如何处理？
+2. 如何设计Saga的可视化监控？
+3. Saga vs 2PC（两阶段提交）如何选择？
+
+---
+
+#### 🔧 题目7：订单数据的分库分表设计
+
+**问题描述**：
+订单表数据量达到亿级，单表查询性能下降。如何设计订单的分库分表方案？
+
+**答案**：
+
+**问题分析**：
+订单分库分表的核心要素：
+1. 分片键选择（user_id还是order_id）
+2. 分片数量（16、32、64、128）
+3. 跨片查询（如运营查询某时间段订单）
+4. 数据扩容
+
+**方案一：按user_id分片（推荐）**
+
+核心思想：
+同一用户的订单存储在同一分片。
+
+分片规则：
+```go
+// 分片数量
+const ShardCount = 64
+
+// 计算分片
+func GetShardIndex(userID int64) int {
+	return int(userID % ShardCount)
+}
+
+// 路由到数据源
+func GetDataSource(userID int64) *sql.DB {
+	shardIndex := GetShardIndex(userID)
+	return dataSources[shardIndex]
+}
+```
+
+表结构：
+```sql
+-- 64个库，每个库有orders表
+database_00.orders
+database_01.orders
+...
+database_63.orders
+
+订单ID生成：
+order_id = snowflake_id
+不包含分片信息（通过user_id路由）
+```
+
+优点：
+- 用户维度查询高效（"我的订单"）
+- 单用户订单聚合容易
+- 避免跨库JOIN
+
+缺点：
+- 按订单ID查询需要广播（查所有分片）
+- 数据可能不均匀（大客户订单多）
+
+**方案二：按order_id分片**
+
+核心思想：
+按订单ID散列分片。
+
+分片规则：
+```go
+func GetShardIndex(orderID int64) int {
+	return int(orderID % ShardCount)
+}
+```
+
+订单ID生成（包含分片信息）：
+```go
+// 订单ID结构：分片位 + Snowflake ID
+// 前6位：分片号（0-63）
+// 后13位：Snowflake ID
+
+func GenerateOrderID(userID int64) int64 {
+	shardIndex := GetShardIndex(userID)
+	snowflakeID := snowflake.Generate()
+	
+	// 组装：分片号（6位） + snowflake（13位）
+	return int64(shardIndex)*1e13 + snowflakeID
+}
+
+// 解析分片
+func ParseShard(orderID int64) int {
+	return int(orderID / 1e13)
+}
+```
+
+优点：
+- 按订单ID查询高效（直接定位分片）
+- 数据均匀
+
+缺点：
+- 用户维度查询需要广播
+- "我的订单"查询慢
+
+**方案三：复合分片**
+
+核心思想：
+主表按user_id分片，建立order_id到分片的映射表。
+
+设计：
+```
+主表（按user_id分片）：
+shard_00.orders
+shard_01.orders
+
+映射表（不分片，单独集群）：
+order_routing
+├── order_id（主键）
+├── shard_index（分片号）
+└── user_id
+
+查询流程：
+1. 按订单ID查询：
+   - 查询order_routing获取分片号
+   - 路由到对应分片查询
+
+2. 按用户ID查询：
+   - 直接路由到用户分片
+```
+
+优点：
+- 支持多种查询方式
+- 灵活
+
+缺点：
+- 映射表是单点
+- 实现复杂
+
+**方案对比**：
+
+| 方案 | 用户查询 | 订单查询 | 数据均匀度 | 实施难度 |
+|------|---------|---------|-----------|---------|
+| 按user_id | ★★★★★ | ★★☆☆☆ | ★★★☆☆ | ★★★★☆ |
+| 按order_id | ★★☆☆☆ | ★★★★★ | ★★★★★ | ★★★★☆ |
+| 复合分片 | ★★★★★ | ★★★★★ | ★★★★★ | ★★☆☆☆ |
+
+**推荐方案**：
+采用**按user_id分片**。
+
+实施要点（Go实现）：
+
+1. **分片路由中间件**：
+   ```go
+   package sharding
+   
+   import (
+   	"context"
+   	"database/sql"
+   )
+   
+   // ShardingManager 分片管理器
+   type ShardingManager struct {
+   	dataSources []*sql.DB
+   	shardCount  int
+   }
+   
+   // NewShardingManager 创建分片管理器
+   func NewShardingManager(dsns []string) (*ShardingManager, error) {
+   	dbs := make([]*sql.DB, len(dsns))
+   	for i, dsn := range dsns {
+   		db, err := sql.Open("mysql", dsn)
+   		if err != nil {
+   			return nil, err
+   		}
+   		dbs[i] = db
+   	}
+   	
+   	return &ShardingManager{
+   		dataSources: dbs,
+   		shardCount:  len(dsns),
+   	}, nil
+   }
+   
+   // GetDB 根据用户ID获取数据库连接
+   func (sm *ShardingManager) GetDB(userID int64) *sql.DB {
+   	shardIndex := userID % int64(sm.shardCount)
+   	return sm.dataSources[shardIndex]
+   }
+   
+   // ExecuteOnShard 在指定分片执行查询
+   func (sm *ShardingManager) ExecuteOnShard(ctx context.Context, userID int64, 
+   	fn func(*sql.DB) error) error {
+   	db := sm.GetDB(userID)
+   	return fn(db)
+   }
+   
+   // Broadcast 广播到所有分片执行
+   func (sm *ShardingManager) Broadcast(ctx context.Context, 
+   	fn func(*sql.DB) error) []error {
+   	errors := make([]error, 0)
+   	for _, db := range sm.dataSources {
+   		if err := fn(db); err != nil {
+   			errors = append(errors, err)
+   		}
+   	}
+   	return errors
+   }
+   ```
+
+2. **订单Repository实现**：
+   ```go
+   type OrderRepository struct {
+   	shardingMgr *ShardingManager
+   }
+   
+   // Create 创建订单
+   func (r *OrderRepository) Create(ctx context.Context, order *Order) error {
+   	return r.shardingMgr.ExecuteOnShard(ctx, order.UserID, func(db *sql.DB) error {
+   		query := `INSERT INTO orders (order_id, user_id, total_amount, status, created_at)
+   		          VALUES (?, ?, ?, ?, ?)`
+   		_, err := db.ExecContext(ctx, query, 
+   			order.OrderID, order.UserID, order.TotalAmount, 
+   			order.Status, time.Now())
+   		return err
+   	})
+   }
+   
+   // FindByUserID 查询用户订单（单分片）
+   func (r *OrderRepository) FindByUserID(ctx context.Context, userID int64, 
+   	page, size int) ([]*Order, error) {
+   	var orders []*Order
+   	
+   	err := r.shardingMgr.ExecuteOnShard(ctx, userID, func(db *sql.DB) error {
+   		query := `SELECT * FROM orders 
+   		          WHERE user_id=? 
+   		          ORDER BY created_at DESC 
+   		          LIMIT ? OFFSET ?`
+   		rows, err := db.QueryContext(ctx, query, userID, size, (page-1)*size)
+   		if err != nil {
+   			return err
+   		}
+   		defer rows.Close()
+   		
+   		for rows.Next() {
+   			order := &Order{}
+   			// 扫描数据...
+   			orders = append(orders, order)
+   		}
+   		return nil
+   	})
+   	
+   	return orders, err
+   }
+   
+   // FindByOrderID 按订单ID查询（需要广播）
+   func (r *OrderRepository) FindByOrderID(ctx context.Context, orderID int64) (*Order, error) {
+   	// 方案1：广播到所有分片查询（慢）
+   	for _, db := range r.shardingMgr.dataSources {
+   		order, err := queryFromDB(db, orderID)
+   		if err == nil && order != nil {
+   			return order, nil
+   		}
+   	}
+   	return nil, ErrOrderNotFound
+   	
+   	// 方案2：维护order_id -> user_id映射（推荐）
+   	// userID := r.getOrderUserMapping(orderID)
+   	// return r.FindByUserAndOrderID(ctx, userID, orderID)
+   }
+   ```
+
+3. **订单ID包含分片信息**：
+   ```go
+   // 订单ID结构：6位分片号 + 13位Snowflake
+   
+   func GenerateOrderIDWithShard(userID int64) int64 {
+   	shardIndex := userID % ShardCount
+   	snowflakeID := snowflake.NextID()
+   	
+   	// 组装：前6位是分片号
+   	return shardIndex*1e13 + snowflakeID
+   }
+   
+   // 解析分片号
+   func ParseShardFromOrderID(orderID int64) int {
+   	return int(orderID / 1e13)
+   }
+   
+   // 直接定位查询
+   func (r *OrderRepository) FindByOrderIDFast(ctx context.Context, orderID int64) (*Order, error) {
+   	shardIndex := ParseShardFromOrderID(orderID)
+   	db := r.shardingMgr.dataSources[shardIndex]
+   	
+   	query := `SELECT * FROM orders WHERE order_id=?`
+   	row := db.QueryRowContext(ctx, query, orderID)
+   	
+   	order := &Order{}
+   	err := row.Scan(&order.OrderID, &order.UserID, ...) 
+   	return order, err
+   }
+   ```
+
+4. **扩容方案**：
+   ```
+   扩容策略（64 → 128分片）：
+   
+   方案A：双写期
+   1. 新建64个分片（总共128个）
+   2. 新订单写入新分片规则
+   3. 老订单保留在老分片
+   4. 查询时先查新分片，未命中再查老分片
+   
+   方案B：一致性哈希
+   1. 使用一致性哈希算法
+   2. 扩容时只需迁移部分数据
+   3. 数据迁移期间双写
+   ```
+
+**延伸思考**：
+1. 如何设计分库分表的全局查询（如运营后台）？
+2. 订单归档如何设计（冷热数据分离）？
+3. 分库分表如何支持跨库JOIN？
+
+---
+
+#### 💡 题目8：订单履约流程的编排
+
+**问题描述**：
+订单支付成功后，需要依次执行：分配仓库、创建拣货单、打包、出库、创建运单、发货。如何设计订单履约流程的编排？
+
+**答案**：
+
+**推荐方案**：事件驱动+状态机
+
+架构（Go实现）：
+```go
+package fulfillment
+
+import (
+	"context"
+)
+
+// FulfillmentEvent 履约事件
+type FulfillmentEvent struct {
+	OrderID   int64
+	EventType string
+	Data      map[string]interface{}
+}
+
+// FulfillmentOrchestrator 履约编排器
+type FulfillmentOrchestrator struct {
+	eventBus EventBus
+}
+
+// OnOrderPaid 订单支付事件处理
+func (o *FulfillmentOrchestrator) OnOrderPaid(ctx context.Context, orderID int64) error {
+	// 1. 分配仓库
+	warehouse, err := o.allocateWarehouse(ctx, orderID)
+	if err != nil {
+		return err
+	}
+	
+	// 2. 创建拣货单
+	pickingOrder, err := o.createPickingOrder(ctx, orderID, warehouse.ID)
+	if err != nil {
+		return err
+	}
+	
+	// 3. 发布拣货事件
+	o.eventBus.Publish(&FulfillmentEvent{
+		OrderID:   orderID,
+		EventType: "PickingOrderCreated",
+		Data: map[string]interface{}{
+			"pickingOrderID": pickingOrder.ID,
+			"warehouseID":    warehouse.ID,
+		},
+	})
+	
+	return nil
+}
+
+// OnPickingCompleted 拣货完成事件处理
+func (o *FulfillmentOrchestrator) OnPickingCompleted(ctx context.Context, event *FulfillmentEvent) error {
+	orderID := event.OrderID
+	
+	// 1. 打包
+	if err := o.pack(ctx, orderID); err != nil {
+		return err
+	}
+	
+	// 2. 出库
+	if err := o.outbound(ctx, orderID); err != nil {
+		return err
+	}
+	
+	// 3. 创建物流运单
+	trackingNumber, err := o.createShipment(ctx, orderID)
+	if err != nil {
+		return err
+	}
+	
+	// 4. 发布发货事件
+	o.eventBus.Publish(&FulfillmentEvent{
+		OrderID:   orderID,
+		EventType: "OrderShipped",
+		Data: map[string]interface{}{
+			"trackingNumber": trackingNumber,
+		},
+	})
+	
+	return nil
+}
+
+// 事件监听器
+func (o *FulfillmentOrchestrator) Start() {
+	o.eventBus.Subscribe("OrderPaid", o.OnOrderPaid)
+	o.eventBus.Subscribe("PickingCompleted", o.OnPickingCompleted)
+	o.eventBus.Subscribe("PackingCompleted", o.OnPackingCompleted)
+	// ...
+}
+```
+
+**履约状态机**：
+```go
+type FulfillmentStatus int
+
+const (
+	FulfillmentPending      FulfillmentStatus = 0  // 待履约
+	FulfillmentWarehouseAllocated FulfillmentStatus = 1  // 已分配仓库
+	FulfillmentPicking      FulfillmentStatus = 2  // 拣货中
+	FulfillmentPacked       FulfillmentStatus = 3  // 已打包
+	FulfillmentOutbound     FulfillmentStatus = 4  // 已出库
+	FulfillmentShipped      FulfillmentStatus = 5  // 已发货
+	FulfillmentReceived     FulfillmentStatus = 6  // 已签收
+)
+
+// 状态流转规则
+var fulfillmentTransitions = map[FulfillmentStatus][]FulfillmentStatus{
+	FulfillmentPending:            {FulfillmentWarehouseAllocated},
+	FulfillmentWarehouseAllocated: {FulfillmentPicking},
+	FulfillmentPicking:            {FulfillmentPacked},
+	FulfillmentPacked:             {FulfillmentOutbound},
+	FulfillmentOutbound:           {FulfillmentShipped},
+	FulfillmentShipped:            {FulfillmentReceived},
+}
+
+// UpdateStatus 更新履约状态
+func (o *FulfillmentOrchestrator) UpdateStatus(ctx context.Context, 
+	orderID int64, newStatus FulfillmentStatus) error {
+	// 1. 查询当前状态
+	currentStatus, err := o.getStatus(ctx, orderID)
+	if err != nil {
+		return err
+	}
+	
+	// 2. 检查状态流转是否合法
+	allowedTransitions := fulfillmentTransitions[currentStatus]
+	if !contains(allowedTransitions, newStatus) {
+		return fmt.Errorf("不允许从%v转换到%v", currentStatus, newStatus)
+	}
+	
+	// 3. 更新状态
+	return o.updateStatusInDB(ctx, orderID, newStatus)
+}
+```
+
+**延伸思考**：
+1. 履约流程如何支持异常处理（缺货、商品损坏）？
+2. 多个发货单如何协调履约进度？
+3. 履约时效如何监控和告警？
+
+---
+
+#### 📊 题目9：订单的退款和售后流程设计
+
+**问题描述**：
+用户申请退款（仅退款、退货退款），如何设计售后流程，保证资金安全和用户体验？
+
+**答案**：
+
+**退款场景**：
+1. 仅退款（未发货）
+2. 退货退款（已发货）
+3. 部分退款（退部分商品）
+4. 售后退款（商品质量问题）
+
+**推荐方案**（Go实现）：
+
+退款状态机：
+```go
+type RefundStatus int
+
+const (
+	RefundPending   RefundStatus = 0  // 待审核
+	RefundApproved  RefundStatus = 1  // 已同意
+	RefundRejected  RefundStatus = 2  // 已拒绝
+	RefundReturning RefundStatus = 3  // 退货中
+	RefundReturned  RefundStatus = 4  // 已退货
+	RefundCompleted RefundStatus = 5  // 已退款
+)
+
+// Refund 退款单
+type Refund struct {
+	RefundID     int64
+	OrderID      int64
+	UserID       int64
+	RefundType   string  // REFUND_ONLY, RETURN_REFUND
+	RefundAmount decimal.Decimal
+	Reason       string
+	Status       RefundStatus
+	CreatedAt    time.Time
+}
+
+// RefundService 退款服务
+type RefundService struct {
+	orderRepo   OrderRepository
+	paymentSvc  PaymentService
+	inventorySvc InventoryService
+}
+
+// CreateRefund 创建退款申请
+func (s *RefundService) CreateRefund(ctx context.Context, req *RefundRequest) (*Refund, error) {
+	// 1. 校验订单状态
+	order, err := s.orderRepo.FindByID(ctx, req.OrderID)
+	if err != nil {
+		return nil, err
+	}
+	
+	if order.Status != OrderStatusPaid && order.Status != OrderStatusShipped {
+		return nil, errors.New("订单状态不允许退款")
+	}
+	
+	// 2. 校验退款金额
+	if req.RefundAmount.GreaterThan(order.PaidAmount) {
+		return nil, errors.New("退款金额超过实付金额")
+	}
+	
+	// 3. 创建退款单
+	refund := &Refund{
+		RefundID:     generateRefundID(),
+		OrderID:      req.OrderID,
+		UserID:       req.UserID,
+		RefundType:   req.RefundType,
+		RefundAmount: req.RefundAmount,
+		Reason:       req.Reason,
+		Status:       RefundPending,
+		CreatedAt:    time.Now(),
+	}
+	
+	if err := s.refundRepo.Create(ctx, refund); err != nil {
+		return nil, err
+	}
+	
+	// 4. 自动审核（部分场景）
+	if s.shouldAutoApprove(refund) {
+		return s.Approve(ctx, refund.RefundID)
+	}
+	
+	return refund, nil
+}
+
+// Approve 审核通过退款
+func (s *RefundService) Approve(ctx context.Context, refundID int64) (*Refund, error) {
+	refund, err := s.refundRepo.FindByID(ctx, refundID)
+	if err != nil {
+		return nil, err
+	}
+	
+	// 1. 更新退款状态
+	refund.Status = RefundApproved
+	if err := s.refundRepo.Update(ctx, refund); err != nil {
+		return nil, err
+	}
+	
+	// 2. 根据退款类型处理
+	if refund.RefundType == "REFUND_ONLY" {
+		// 仅退款：直接退款
+		return s.processRefund(ctx, refund)
+	} else {
+		// 退货退款：等待用户退货
+		refund.Status = RefundReturning
+		s.refundRepo.Update(ctx, refund)
+		// 生成退货地址和快递单号
+		s.generateReturnLabel(ctx, refund)
+		return refund, nil
+	}
+}
+
+// processRefund 执行退款
+func (s *RefundService) processRefund(ctx context.Context, refund *Refund) (*Refund, error) {
+	// 1. 调用支付服务退款
+	if err := s.paymentSvc.Refund(ctx, refund.OrderID, refund.RefundAmount); err != nil {
+		return nil, fmt.Errorf("退款失败: %w", err)
+	}
+	
+	// 2. 回补库存
+	order, _ := s.orderRepo.FindByID(ctx, refund.OrderID)
+	if err := s.inventorySvc.Return(ctx, order.Items); err != nil {
+		log.Errorf("回补库存失败: %v", err)
+		// 不阻塞退款流程，记录异常任务
+		s.createCompensationTask(ctx, "ReturnInventory", refund.RefundID)
+	}
+	
+	// 3. 更新退款状态
+	refund.Status = RefundCompleted
+	if err := s.refundRepo.Update(ctx, refund); err != nil {
+		return nil, err
+	}
+	
+	// 4. 更新订单状态
+	s.orderRepo.UpdateStatus(ctx, refund.OrderID, OrderStatusRefunded)
+	
+	// 5. 发送通知
+	s.notifySvc.Send(ctx, refund.UserID, "退款已到账")
+	
+	return refund, nil
+}
+```
+
+**自动审核规则**：
+```go
+func (s *RefundService) shouldAutoApprove(refund *Refund) bool {
+	// 自动同意条件：
+	// 1. 订单未发货
+	// 2. 退款金额 < 500元
+	// 3. 用户信用良好
+	
+	order, _ := s.orderRepo.FindByID(context.Background(), refund.OrderID)
+	
+	if order.Status == OrderStatusPaid &&
+		refund.RefundAmount.LessThan(decimal.NewFromInt(500)) &&
+		s.userSvc.IsTrusted(refund.UserID) {
+		return true
+	}
+	
+	return false
+}
+```
+
+**延伸思考**：
+1. 退款失败如何重试和补偿？
+2. 恶意退款如何识别和防范？
+3. 部分退款如何计算退款金额（商品价+运费分摊）？
+
+---
+
+#### 🔧 题目10：订单的异常处理（缺货、地址错误）
+
+**问题描述**：
+订单履约过程中可能出现异常（缺货、地址无法送达、商品损坏）。如何设计异常处理流程？
+
+**答案**：
+
+**异常场景及处理方案**：
+
+1. **库存不足（超卖）**：
+   ```go
+   // 发现超卖
+   func (s *FulfillmentService) HandleOutOfStock(ctx context.Context, orderID int64) error {
+   	// 1. 联系用户
+   	s.notifySvc.Send(ctx, order.UserID, "商品暂时缺货，为您申请退款")
+   	
+   	// 2. 创建退款
+   	refund := &Refund{
+   		OrderID:      orderID,
+   		RefundType:   "OUT_OF_STOCK",
+   		RefundAmount: order.PaidAmount,
+   		AutoApprove:  true,
+   	}
+   	return s.refundSvc.CreateRefund(ctx, refund)
+   }
+   ```
+
+2. **地址无法送达**：
+   ```go
+   func (s *FulfillmentService) HandleUndeliverableAddress(ctx context.Context, 
+   	orderID int64) error {
+   	// 1. 通知用户修改地址
+   	s.notifySvc.Send(ctx, order.UserID, "收货地址无法送达，请修改地址")
+   	
+   	// 2. 订单挂起
+   	s.orderRepo.UpdateStatus(ctx, orderID, OrderStatusAddressError)
+   	
+   	// 3. 用户修改地址后重新履约
+   	// 或超时自动退款
+   	s.scheduleAutoRefund(ctx, orderID, 48*time.Hour)
+   	
+   	return nil
+   }
+   ```
+
+3. **商品损坏**：
+   ```go
+   func (s *FulfillmentService) HandleDamaged(ctx context.Context, 
+   	orderID int64, itemID string) error {
+   	// 1. 记录损坏
+   	s.logDamage(ctx, orderID, itemID)
+   	
+   	// 2. 检查是否有替代品
+   	if hasReplace, err := s.inventorySvc.CheckStock(ctx, itemID); err == nil && hasReplace {
+   		// 有替代品，重新拣货
+   		return s.repick(ctx, orderID, itemID)
+   	}
+   	
+   	// 3. 无替代品，部分退款
+   	item := s.getOrderItem(ctx, orderID, itemID)
+   	return s.refundSvc.CreatePartialRefund(ctx, orderID, item.Amount)
+   }
+   ```
+
+**延伸思考**：
+1. 异常订单如何统计和分析？
+2. 如何设计异常的自动化处理规则？
+
+---
+
+#### 💡 题目11：订单的搜索和查询优化
+
+**问题描述**：
+用户需要查询历史订单（按时间、状态、商品筛选），运营需要查询全部订单。如何设计订单查询系统？
+
+**答案**：
+
+**方案一：主从分离**
+
+用户查询（读从库）：
+```go
+// 查询我的订单
+func (r *OrderRepository) FindUserOrders(ctx context.Context, 
+	userID int64, filter *OrderFilter) ([]*Order, error) {
+	// 路由到从库
+	db := r.shardingMgr.GetReadDB(userID)
+	
+	query := `SELECT * FROM orders WHERE user_id=?`
+	args := []interface{}{userID}
+	
+	// 添加筛选条件
+	if filter.Status != "" {
+		query += ` AND status=?`
+		args = append(args, filter.Status)
+	}
+	
+	if !filter.StartTime.IsZero() {
+		query += ` AND created_at >= ?`
+		args = append(args, filter.StartTime)
+	}
+	
+	query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`
+	args = append(args, filter.PageSize, filter.Offset)
+	
+	rows, err := db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	return scanOrders(rows)
+}
+```
+
+**方案二：ES同步（推荐）**
+
+架构：
+```
+订单创建/更新 → Kafka → 同步Worker → Elasticsearch
+
+ES索引设计：
+{
+  "order_id": "123",
+  "user_id": 456,
+  "status": "PAID",
+  "total_amount": 1000,
+  "created_at": "2024-04-18T10:00:00Z",
+  "items": [
+    {"sku_id": "789", "title": "iPhone 15"}
+  ]
+}
+```
+
+查询实现：
+```go
+// 复杂查询用ES
+func (r *OrderRepository) SearchOrders(ctx context.Context, 
+	query *OrderSearchQuery) (*SearchResult, error) {
+	esQuery := elastic.NewBoolQuery()
+	
+	// 用户维度
+	if query.UserID > 0 {
+		esQuery.Must(elastic.NewTermQuery("user_id", query.UserID))
+	}
+	
+	// 订单号
+	if query.OrderID != "" {
+		esQuery.Must(elastic.NewTermQuery("order_id", query.OrderID))
+	}
+	
+	// 状态
+	if len(query.Statuses) > 0 {
+		esQuery.Must(elastic.NewTermsQuery("status", query.Statuses...))
+	}
+	
+	// 时间范围
+	if !query.StartTime.IsZero() || !query.EndTime.IsZero() {
+		rangeQuery := elastic.NewRangeQuery("created_at")
+		if !query.StartTime.IsZero() {
+			rangeQuery.Gte(query.StartTime)
+		}
+		if !query.EndTime.IsZero() {
+			rangeQuery.Lte(query.EndTime)
+		}
+		esQuery.Must(rangeQuery)
+	}
+	
+	// 商品筛选（嵌套查询）
+	if query.SkuID != "" {
+		esQuery.Must(elastic.NewNestedQuery("items",
+			elastic.NewTermQuery("items.sku_id", query.SkuID)))
+	}
+	
+	// 执行查询
+	searchResult, err := r.esClient.Search().
+		Index("orders").
+		Query(esQuery).
+		From(query.From).
+		Size(query.Size).
+		Sort("created_at", false).
+		Do(ctx)
+	
+	if err != nil {
+		return nil, err
+	}
+	
+	return parseESResult(searchResult), nil
+}
+```
+
+**延伸思考**：
+1. 订单数据如何归档（如1年前的订单）？
+2. 分库分表+ES同步如何保证一致性？
+
+---
+
+#### 📊 题目12：订单的消息通知设计
+
+**问题描述**：
+订单状态变化时需要通知用户（下单成功、发货、签收）。如何设计消息通知系统？
+
+**答案**：
+
+**通知渠道**：
+1. App推送
+2. 短信
+3. 微信公众号/服务号
+4. 站内信
+5. 邮件
+
+**推荐方案**（Go实现）：
+
+```go
+package notification
+
+import (
+	"context"
+)
+
+// NotificationService 通知服务
+type NotificationService struct {
+	pushSvc     PushService     // App推送
+	smsSvc      SMSService      // 短信
+	wechatSvc   WechatService   // 微信
+	emailSvc    EmailService    // 邮件
+	inboxSvc    InboxService    // 站内信
+}
+
+// NotifyOrderStatusChanged 订单状态变更通知
+func (s *NotificationService) NotifyOrderStatusChanged(ctx context.Context, 
+	order *Order, oldStatus, newStatus OrderStatus) error {
+	
+	// 根据状态确定通知内容
+	template := s.getTemplate(newStatus)
+	
+	// 并行发送多渠道通知
+	errChan := make(chan error, 5)
+	
+	// 1. App推送（必发）
+	go func() {
+		errChan <- s.pushSvc.Push(ctx, order.UserID, PushMessage{
+			Title:   template.Title,
+			Content: template.Content,
+			Data:    map[string]interface{}{"order_id": order.OrderID},
+		})
+	}()
+	
+	// 2. 短信（重要状态才发）
+	if s.shouldSendSMS(newStatus) {
+		go func() {
+			phone := s.getUserPhone(ctx, order.UserID)
+			errChan <- s.smsSvc.Send(ctx, phone, template.SMSContent)
+		}()
+	} else {
+		errChan <- nil
+	}
+	
+	// 3. 微信（用户已绑定才发）
+	go func() {
+		if openID := s.getUserWechatOpenID(ctx, order.UserID); openID != "" {
+			errChan <- s.wechatSvc.SendTemplateMessage(ctx, openID, template.WechatTemplate)
+		} else {
+			errChan <- nil
+		}
+	}()
+	
+	// 4. 站内信（必发）
+	go func() {
+		errChan <- s.inboxSvc.Create(ctx, &InboxMessage{
+			UserID:  order.UserID,
+			Title:   template.Title,
+			Content: template.Content,
+			Type:    "ORDER_UPDATE",
+		})
+	}()
+	
+	// 5. 邮件（用户订阅才发）
+	go func() {
+		if s.userHasEmailSubscription(ctx, order.UserID) {
+			email := s.getUserEmail(ctx, order.UserID)
+			errChan <- s.emailSvc.Send(ctx, email, template.EmailContent)
+		} else {
+			errChan <- nil
+		}
+	}()
+	
+	// 收集结果（至少一个渠道成功即可）
+	successCount := 0
+	for i := 0; i < 5; i++ {
+		if err := <-errChan; err == nil {
+			successCount++
+		}
+	}
+	
+	if successCount == 0 {
+		return errors.New("所有通知渠道都失败")
+	}
+	
+	return nil
+}
+
+// 通知模板
+func (s *NotificationService) getTemplate(status OrderStatus) *NotificationTemplate {
+	templates := map[OrderStatus]*NotificationTemplate{
+		OrderStatusPaid: {
+			Title:       "订单支付成功",
+			Content:     "您的订单已支付成功，我们将尽快为您发货",
+			SMSContent:  "【京东】您的订单已支付成功，预计3天内送达",
+		},
+		OrderStatusShipped: {
+			Title:       "订单已发货",
+			Content:     "您的订单已发货，快递单号：SF1234567890",
+			SMSContent:  "【京东】您的订单已发货，单号SF1234567890",
+		},
+		OrderStatusReceived: {
+			Title:       "订单已签收",
+			Content:     "您的订单已签收，期待您的评价",
+		},
+	}
+	
+	return templates[status]
+}
+
+// 是否发送短信
+func (s *NotificationService) shouldSendSMS(status OrderStatus) bool {
+	// 只有关键状态发短信（控制成本）
+	importantStatuses := []OrderStatus{
+		OrderStatusPaid,
+		OrderStatusShipped,
+		OrderStatusRefunded,
+	}
+	
+	for _, s := range importantStatuses {
+		if s == status {
+			return true
+		}
+	}
+	return false
+}
+```
+
+**延伸思考**：
+1. 通知失败如何重试？
+2. 如何设计通知的用户偏好设置（关闭某些通知）？
+3. 大批量通知如何限流（避免骚扰）？
+
+---
+
+#### 🔧 题目13：订单数据的冷热分离
+
+**问题描述**：
+订单数据90天后很少查询，但占用大量存储。如何设计订单数据的冷热分离？
+
+**答案**：
+
+**推荐方案**：
+
+```go
+// 冷热分离策略
+type OrderArchiveService struct {
+	hotDB  *sql.DB  // 热数据库（MySQL）
+	coldDB *sql.DB  // 冷数据库（可以是低成本存储）
+	ossClient OSSClient // 对象存储
+}
+
+// 归档策略
+func (s *OrderArchiveService) ArchiveOrders(ctx context.Context) error {
+	// 1. 查询90天前已完成的订单
+	cutoffTime := time.Now().AddDate(0, 0, -90)
+	
+	query := `SELECT * FROM orders 
+	          WHERE status IN ('COMPLETED', 'CANCELLED', 'REFUNDED')
+	          AND updated_at < ?
+	          LIMIT 1000`
+	
+	rows, err := s.hotDB.QueryContext(ctx, query, cutoffTime)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	
+	orders := make([]*Order, 0)
+	for rows.Next() {
+		order := &Order{}
+		// 扫描数据...
+		orders = append(orders, order)
+	}
+	
+	// 2. 写入冷库
+	for _, order := range orders {
+		if err := s.writeToArchive(ctx, order); err != nil {
+			log.Errorf("归档订单%d失败: %v", order.OrderID, err)
+			continue
+		}
+		
+		// 3. 删除热库数据
+		if err := s.deleteFromHot(ctx, order.OrderID); err != nil {
+			log.Errorf("删除热库订单%d失败: %v", order.OrderID, err)
+		}
+	}
+	
+	return nil
+}
+
+// 查询时智能路由
+func (s *OrderArchiveService) FindByID(ctx context.Context, orderID int64) (*Order, error) {
+	// 1. 先查热库
+	order, err := s.queryFromHot(ctx, orderID)
+	if err == nil && order != nil {
+		return order, nil
+	}
+	
+	// 2. 查冷库
+	order, err = s.queryFromArchive(ctx, orderID)
+	if err == nil && order != nil {
+		return order, nil
+	}
+	
+	return nil, ErrOrderNotFound
+}
+```
+
+**延伸思考**：
+1. 归档订单如何支持查询？
+2. 冷数据恢复到热库的策略？
+
+---
+
+#### 💡 题目14：订单的限流和防刷
+
+**问题描述**：
+恶意用户频繁下单不支付，占用库存和系统资源。如何设计订单的限流和防刷机制？
+
+**答案**：
+
+**推荐方案**（Go实现）：
+
+```go
+package ratelimit
+
+import (
+	"context"
+	"fmt"
+	"time"
+	
+	"github.com/go-redis/redis/v8"
+)
+
+// OrderRateLimiter 订单限流器
+type OrderRateLimiter struct {
+	rdb *redis.Client
+}
+
+// CheckLimit 检查用户是否超过限流
+func (l *OrderRateLimiter) CheckLimit(ctx context.Context, userID int64) error {
+	// 限流规则：
+	// 1. 每分钟最多下单5次
+	// 2. 每小时最多下单20次
+	// 3. 每天最多50个待支付订单
+	
+	// 规则1：每分钟限流
+	key1 := fmt.Sprintf("order:limit:min:%d:%s", userID, time.Now().Format("200601021504"))
+	count1, err := l.rdb.Incr(ctx, key1).Result()
+	if err != nil {
+		return err
+	}
+	if count1 == 1 {
+		l.rdb.Expire(ctx, key1, time.Minute)
+	}
+	if count1 > 5 {
+		return errors.New("下单太频繁，请稍后再试")
+	}
+	
+	// 规则2：每小时限流
+	key2 := fmt.Sprintf("order:limit:hour:%d:%s", userID, time.Now().Format("2006010215"))
+	count2, err := l.rdb.Incr(ctx, key2).Result()
+	if err != nil {
+		return err
+	}
+	if count2 == 1 {
+		l.rdb.Expire(ctx, key2, time.Hour)
+	}
+	if count2 > 20 {
+		return errors.New("您今天下单次数过多，请明天再试")
+	}
+	
+	// 规则3：待支付订单数量限制
+	pendingCount, err := l.getPendingOrderCount(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if pendingCount >= 50 {
+		return errors.New("您有过多待支付订单，请先完成支付")
+	}
+	
+	return nil
+}
+
+// 用户信用评分
+type UserCreditService struct {
+	repo UserCreditRepository
+}
+
+func (s *UserCreditService) CheckCredit(ctx context.Context, userID int64) error {
+	credit := s.repo.GetCredit(ctx, userID)
+	
+	// 信用分低于60分，禁止下单
+	if credit.Score < 60 {
+		return errors.New("您的信用分过低，暂时无法下单")
+	}
+	
+	return nil
+}
+
+// 信用分扣减规则
+func (s *UserCreditService) UpdateCredit(ctx context.Context, userID int64, behavior string) {
+	switch behavior {
+	case "ORDER_TIMEOUT":
+		// 订单超时未支付：-5分
+		s.repo.DeductCredit(ctx, userID, 5, "订单超时未支付")
+	case "MALICIOUS_REFUND":
+		// 恶意退款：-10分
+		s.repo.DeductCredit(ctx, userID, 10, "恶意退款")
+	case "ORDER_COMPLETED":
+		// 订单完成：+1分
+		s.repo.AddCredit(ctx, userID, 1, "订单完成")
+	}
+}
+```
+
+**延伸思考**：
+1. 如何识别黄牛和恶意用户？
+2. 限流策略如何针对不同用户等级差异化？
+
+---
+
+#### 📊 题目15：订单的实时数据统计
+
+**问题描述**：
+运营大盘需要实时显示订单量、GMV、转化率。如何设计订单的实时统计系统？
+
+**答案**：
+
+**推荐方案**：Flink流式计算
+
+```go
+// 实时统计指标
+type OrderMetrics struct {
+	Timestamp      time.Time
+	OrderCount     int64           // 订单数
+	GMV            decimal.Decimal // 交易额
+	PaidOrderCount int64           // 已支付订单数
+	AvgOrderAmount decimal.Decimal // 客单价
+}
+
+// 指标计算Worker（消费Kafka）
+func ConsumeOrderEvents(ctx context.Context) {
+	consumer := kafka.NewConsumer(...)
+	
+	for {
+		msg, err := consumer.ReadMessage(ctx)
+		if err != nil {
+			continue
+		}
+		
+		event := parseOrderEvent(msg.Value)
+		
+		switch event.Type {
+		case "OrderCreated":
+			// 订单数+1
+			metrics.IncrOrderCount()
+			
+		case "OrderPaid":
+			// 已支付订单数+1
+			metrics.IncrPaidOrderCount()
+			// GMV累加
+			metrics.AddGMV(event.Order.PaidAmount)
+			
+		case "OrderCancelled":
+			// 订单数-1（或单独统计取消数）
+			metrics.IncrCancelledOrderCount()
+		}
+		
+		// 定期刷新到Redis
+		if time.Now().Unix()%10 == 0 {
+			metrics.FlushToRedis()
+		}
+	}
+}
+
+// 实时大盘查询
+func GetRealTimeMetrics(ctx context.Context) (*OrderMetrics, error) {
+	// 从Redis读取实时指标
+	rdb := redis.NewClient(...)
+	
+	orderCount, _ := rdb.Get(ctx, "metrics:order:count").Int64()
+	gmv, _ := rdb.Get(ctx, "metrics:order:gmv").Float64()
+	paidCount, _ := rdb.Get(ctx, "metrics:order:paid_count").Int64()
+	
+	return &OrderMetrics{
+		Timestamp:      time.Now(),
+		OrderCount:     orderCount,
+		GMV:            decimal.NewFromFloat(gmv),
+		PaidOrderCount: paidCount,
+		AvgOrderAmount: decimal.NewFromFloat(gmv).Div(decimal.NewFromInt(paidCount)),
+	}, nil
+}
+```
+
+**延伸思考**：
+1. 实时统计如何保证准确性（与离线对账）？
+2. 多维度统计（按类目、品牌）如何设计？
+
+---
 
 ### 3.4 支付系统（10题）
 
-[待补充]
+#### 📊 题目1：支付系统的整体架构设计
+
+**问题描述**：
+电商平台需要支持多种支付方式（支付宝、微信、银行卡）。如何设计支付系统的整体架构？
+
+**答案**：
+
+**问题分析**：
+支付系统的核心要素：
+1. 多渠道接入（支付宝、微信、银联）
+2. 支付安全性
+3. 异步回调处理
+4. 对账和资金安全
+
+**架构设计**（Go实现）：
+
+```go
+package payment
+
+import (
+	"context"
+	"time"
+)
+
+// PaymentChannel 支付渠道
+type PaymentChannel string
+
+const (
+	ChannelAlipay PaymentChannel = "ALIPAY"
+	ChannelWechat PaymentChannel = "WECHAT"
+	ChannelUnion  PaymentChannel = "UNION"
+)
+
+// PaymentService 支付服务
+type PaymentService struct {
+	alipayAdapter  PaymentAdapter
+	wechatAdapter  PaymentAdapter
+	unionAdapter   PaymentAdapter
+	paymentRepo    PaymentRepository
+	orderSvc       OrderService
+}
+
+// PaymentAdapter 支付适配器接口（适配器模式）
+type PaymentAdapter interface {
+	// 创建支付
+	CreatePayment(ctx context.Context, req *PaymentRequest) (*PaymentResponse, error)
+	// 查询支付状态
+	QueryPayment(ctx context.Context, paymentID string) (*PaymentStatus, error)
+	// 申请退款
+	Refund(ctx context.Context, req *RefundRequest) error
+	// 验证回调签名
+	VerifyCallback(callback *CallbackData) error
+}
+
+// Payment 支付单
+type Payment struct {
+	PaymentID       string
+	OrderID         int64
+	UserID          int64
+	Channel         PaymentChannel
+	Amount          decimal.Decimal
+	Status          PaymentStatus
+	ThirdPartyID    string  // 第三方支付单号
+	CallbackData    string  // 回调原始数据
+	CreatedAt       time.Time
+	PaidAt          *time.Time
+}
+
+// CreatePayment 创建支付
+func (s *PaymentService) CreatePayment(ctx context.Context, 
+	orderID int64, channel PaymentChannel) (*PaymentResponse, error) {
+	
+	// 1. 查询订单
+	order, err := s.orderSvc.GetOrder(ctx, orderID)
+	if err != nil {
+		return nil, err
+	}
+	
+	// 2. 校验订单状态
+	if order.Status != OrderStatusPending {
+		return nil, errors.New("订单状态不正确")
+	}
+	
+	// 3. 创建支付单
+	payment := &Payment{
+		PaymentID: generatePaymentID(),
+		OrderID:   orderID,
+		UserID:    order.UserID,
+		Channel:   channel,
+		Amount:    order.TotalAmount,
+		Status:    PaymentStatusPending,
+		CreatedAt: time.Now(),
+	}
+	
+	if err := s.paymentRepo.Create(ctx, payment); err != nil {
+		return nil, err
+	}
+	
+	// 4. 调用支付渠道
+	adapter := s.getAdapter(channel)
+	resp, err := adapter.CreatePayment(ctx, &PaymentRequest{
+		OutTradeNo:  payment.PaymentID,
+		Amount:      payment.Amount,
+		Subject:     fmt.Sprintf("订单%d支付", orderID),
+		NotifyURL:   "https://api.example.com/payment/callback",
+		ReturnURL:   "https://www.example.com/order/success",
+	})
+	
+	if err != nil {
+		return nil, err
+	}
+	
+	// 5. 保存第三方支付单号
+	payment.ThirdPartyID = resp.TradeNo
+	s.paymentRepo.Update(ctx, payment)
+	
+	return resp, nil
+}
+
+// 获取支付适配器
+func (s *PaymentService) getAdapter(channel PaymentChannel) PaymentAdapter {
+	switch channel {
+	case ChannelAlipay:
+		return s.alipayAdapter
+	case ChannelWechat:
+		return s.wechatAdapter
+	case ChannelUnion:
+		return s.unionAdapter
+	default:
+		return nil
+	}
+}
+
+// HandleCallback 处理支付回调
+func (s *PaymentService) HandleCallback(ctx context.Context, 
+	channel PaymentChannel, callback *CallbackData) error {
+	
+	// 1. 验证签名
+	adapter := s.getAdapter(channel)
+	if err := adapter.VerifyCallback(callback); err != nil {
+		return fmt.Errorf("签名验证失败: %w", err)
+	}
+	
+	// 2. 查询支付单
+	payment, err := s.paymentRepo.FindByID(ctx, callback.OutTradeNo)
+	if err != nil {
+		return err
+	}
+	
+	// 3. 幂等性检查
+	if payment.Status == PaymentStatusSuccess {
+		return nil // 已处理，直接返回
+	}
+	
+	// 4. 更新支付单状态
+	payment.Status = PaymentStatusSuccess
+	payment.PaidAt = &callback.PayTime
+	payment.CallbackData = callback.RawData
+	
+	if err := s.paymentRepo.Update(ctx, payment); err != nil {
+		return err
+	}
+	
+	// 5. 更新订单状态
+	if err := s.orderSvc.MarkAsPaid(ctx, payment.OrderID); err != nil {
+		// 支付成功但订单更新失败，记录补偿任务
+		s.createCompensationTask(ctx, payment.PaymentID)
+		return err
+	}
+	
+	// 6. 发布支付成功事件
+	s.eventBus.Publish(&PaymentSuccessEvent{
+		OrderID:   payment.OrderID,
+		PaymentID: payment.PaymentID,
+		Amount:    payment.Amount,
+	})
+	
+	return nil
+}
+```
+
+**支付宝适配器示例**：
+```go
+type AlipayAdapter struct {
+	client *alipay.Client
+}
+
+func (a *AlipayAdapter) CreatePayment(ctx context.Context, 
+	req *PaymentRequest) (*PaymentResponse, error) {
+	
+	// 调用支付宝SDK
+	payReq := alipay.TradeAppPay{
+		OutTradeNo:  req.OutTradeNo,
+		TotalAmount: req.Amount.String(),
+		Subject:     req.Subject,
+		NotifyURL:   req.NotifyURL,
+	}
+	
+	orderStr, err := a.client.TradeAppPay(payReq)
+	if err != nil {
+		return nil, err
+	}
+	
+	return &PaymentResponse{
+		PayData: orderStr, // APP端拉起支付宝所需的参数
+	}, nil
+}
+
+func (a *AlipayAdapter) VerifyCallback(callback *CallbackData) error {
+	// 验证支付宝回调签名
+	return a.client.VerifySign(callback.RawData)
+}
+```
+
+**延伸思考**：
+1. 支付系统如何实现高可用？
+2. 支付渠道故障如何降级？
+3. 支付回调丢失如何处理？
+
+---
+
+#### 🔧 题目2：支付回调的幂等性处理
+
+**问题描述**：
+支付回调可能重复发送（网络重试、第三方重推）。如何保证支付回调处理的幂等性？
+
+**答案**：
+
+**推荐方案**（Go实现）：
+
+```go
+// 幂等性处理
+func (s *PaymentService) HandleCallbackIdempotent(ctx context.Context, 
+	callback *CallbackData) error {
+	
+	paymentID := callback.OutTradeNo
+	lockKey := fmt.Sprintf("payment:callback:lock:%s", paymentID)
+	
+	// 1. 获取分布式锁
+	lock := redis.NewDistributedLock(s.rdb, lockKey)
+	acquired, err := lock.TryLock(ctx, 30*time.Second)
+	if err != nil {
+		return err
+	}
+	if !acquired {
+		// 其他请求正在处理，直接返回成功
+		return nil
+	}
+	defer lock.Unlock(ctx)
+	
+	// 2. 查询支付单
+	payment, err := s.paymentRepo.FindByID(ctx, paymentID)
+	if err != nil {
+		return err
+	}
+	
+	// 3. 状态检查（幂等性）
+	if payment.Status == PaymentStatusSuccess {
+		log.Infof("支付单%s已处理，跳过", paymentID)
+		return nil // 已成功，幂等返回
+	}
+	
+	// 4. 使用数据库行锁+版本号
+	affected, err := s.paymentRepo.UpdateStatusWithVersion(ctx, 
+		paymentID, 
+		PaymentStatusSuccess,
+		payment.Version,
+	)
+	
+	if err != nil {
+		return err
+	}
+	
+	if affected == 0 {
+		// 版本号不匹配，说明已被其他请求处理
+		log.Warnf("支付单%s已被处理，版本冲突", paymentID)
+		return nil
+	}
+	
+	// 5. 执行后续操作
+	return s.postPaymentProcess(ctx, payment)
+}
+
+// 数据库更新（带版本号）
+func (r *PaymentRepository) UpdateStatusWithVersion(ctx context.Context, 
+	paymentID string, newStatus PaymentStatus, expectedVersion int) (int64, error) {
+	
+	query := `UPDATE payments 
+	          SET status=?, version=version+1, updated_at=?
+	          WHERE payment_id=? AND version=? AND status!=?`
+	
+	result, err := r.db.ExecContext(ctx, query, 
+		newStatus, time.Now(), paymentID, expectedVersion, PaymentStatusSuccess)
+	if err != nil {
+		return 0, err
+	}
+	
+	return result.RowsAffected()
+}
+```
+
+**延伸思考**：
+1. 如何设计支付回调的重试机制？
+2. 回调处理失败如何人工介入？
+
+---
+
+#### 💡 题目3：支付的对账系统设计
+
+**问题描述**：
+每天需要与支付宝、微信对账，确保平台账和渠道账一致。如何设计支付对账系统？
+
+**答案**：
+
+**对账流程**（Go实现）：
+
+```go
+package reconciliation
+
+import (
+	"context"
+	"time"
+)
+
+// ReconciliationService 对账服务
+type ReconciliationService struct {
+	paymentRepo PaymentRepository
+	alipayClient *alipay.Client
+	wechatClient *wechat.Client
+}
+
+// DailyReconciliation 每日对账
+func (s *ReconciliationService) DailyReconciliation(ctx context.Context, date time.Time) error {
+	// 1. 下载渠道对账单
+	alipayBill, err := s.downloadAlipayBill(ctx, date)
+	if err != nil {
+		return err
+	}
+	
+	wechatBill, err := s.downloadWechatBill(ctx, date)
+	if err != nil {
+		return err
+	}
+	
+	// 2. 查询平台当日支付记录
+	platformRecords, err := s.paymentRepo.FindByDate(ctx, date)
+	if err != nil {
+		return err
+	}
+	
+	// 3. 三方对账
+	diff := s.compare(platformRecords, alipayBill, wechatBill)
+	
+	// 4. 处理差异
+	if err := s.handleDifferences(ctx, diff); err != nil {
+		return err
+	}
+	
+	// 5. 生成对账报告
+	report := s.generateReport(diff)
+	s.saveReport(ctx, report)
+	
+	return nil
+}
+
+// ReconciliationDiff 对账差异
+type ReconciliationDiff struct {
+	OnlyInPlatform   []*Payment  // 只在平台有
+	OnlyInChannel    []*ChannelRecord  // 只在渠道有
+	AmountMismatch   []*Mismatch  // 金额不一致
+	StatusMismatch   []*Mismatch  // 状态不一致
+}
+
+// compare 比对数据
+func (s *ReconciliationService) compare(platform []*Payment, 
+	alipay, wechat []*ChannelRecord) *ReconciliationDiff {
+	
+	diff := &ReconciliationDiff{}
+	
+	// 构建平台数据map
+	platformMap := make(map[string]*Payment)
+	for _, p := range platform {
+		platformMap[p.ThirdPartyID] = p
+	}
+	
+	// 构建渠道数据map
+	channelMap := make(map[string]*ChannelRecord)
+	for _, c := range alipay {
+		channelMap[c.TradeNo] = c
+	}
+	for _, c := range wechat {
+		channelMap[c.TransactionID] = c
+	}
+	
+	// 比对
+	for tradeNo, channelRecord := range channelMap {
+		platformRecord, exists := platformMap[tradeNo]
+		
+		if !exists {
+			// 只在渠道有，平台无
+			diff.OnlyInChannel = append(diff.OnlyInChannel, channelRecord)
+		} else {
+			// 金额比对
+			if !platformRecord.Amount.Equal(channelRecord.Amount) {
+				diff.AmountMismatch = append(diff.AmountMismatch, &Mismatch{
+					TradeNo:        tradeNo,
+					PlatformAmount: platformRecord.Amount,
+					ChannelAmount:  channelRecord.Amount,
+				})
+			}
+			
+			// 状态比对
+			if platformRecord.Status != channelRecord.Status {
+				diff.StatusMismatch = append(diff.StatusMismatch, &Mismatch{
+					TradeNo:       tradeNo,
+					PlatformStatus: platformRecord.Status,
+					ChannelStatus:  channelRecord.Status,
+				})
+			}
+			
+			delete(platformMap, tradeNo)
+		}
+	}
+	
+	// 只在平台有的
+	for _, p := range platformMap {
+		diff.OnlyInPlatform = append(diff.OnlyInPlatform, p)
+	}
+	
+	return diff
+}
+
+// handleDifferences 处理差异
+func (s *ReconciliationService) handleDifferences(ctx context.Context, 
+	diff *ReconciliationDiff) error {
+	
+	// 1. 只在渠道有的（平台漏单）
+	for _, record := range diff.OnlyInChannel {
+		log.Warnf("平台漏单: %s", record.TradeNo)
+		// 补单：创建支付记录
+		s.createMissingPayment(ctx, record)
+	}
+	
+	// 2. 只在平台有的（渠道无记录，可能未支付成功）
+	for _, payment := range diff.OnlyInPlatform {
+		log.Warnf("渠道无记录: %s", payment.PaymentID)
+		// 主动查询第三方状态
+		s.queryThirdPartyStatus(ctx, payment)
+	}
+	
+	// 3. 金额不一致
+	for _, mismatch := range diff.AmountMismatch {
+		log.Errorf("金额不一致: %s, 平台=%v, 渠道=%v", 
+			mismatch.TradeNo, mismatch.PlatformAmount, mismatch.ChannelAmount)
+		// 转人工处理
+		s.createManualTask(ctx, "AMOUNT_MISMATCH", mismatch)
+	}
+	
+	// 4. 状态不一致
+	for _, mismatch := range diff.StatusMismatch {
+		log.Warnf("状态不一致: %s", mismatch.TradeNo)
+		// 以渠道状态为准，更新平台状态
+		s.syncStatus(ctx, mismatch)
+	}
+	
+	return nil
+}
+```
+
+**对账报告**：
+```go
+type ReconciliationReport struct {
+	Date              time.Time
+	TotalCount        int
+	MatchCount        int
+	MismatchCount     int
+	OnlyInPlatform    int
+	OnlyInChannel     int
+	AmountMismatch    int
+	TotalAmount       decimal.Decimal
+	ChannelTotalAmount decimal.Decimal
+}
+```
+
+**延伸思考**：
+1. 对账差异如何自动修复？
+2. 对账失败如何告警和处理？
+3. 实时对账和T+1对账如何结合？
+
+---
+
+#### 📊 题目4：支付的异步回调处理
+
+**问题描述**：
+支付成功后，第三方通过回调通知平台。回调可能延迟、丢失、重复。如何设计健壮的回调处理机制？
+
+**答案**：
+
+**推荐方案**（Go实现）：
+
+```go
+// 回调处理器
+type CallbackHandler struct {
+	paymentSvc  *PaymentService
+	orderSvc    *OrderService
+	lockSvc     *DistributedLockService
+}
+
+// HandleCallback 处理回调
+func (h *CallbackHandler) HandleCallback(ctx context.Context, 
+	channel PaymentChannel, rawData []byte) error {
+	
+	// 1. 解析回调数据
+	callback, err := parseCallback(channel, rawData)
+	if err != nil {
+		return fmt.Errorf("解析回调失败: %w", err)
+	}
+	
+	// 2. 记录回调日志（用于排查问题）
+	h.logCallback(ctx, callback)
+	
+	// 3. 验证签名
+	adapter := h.paymentSvc.getAdapter(channel)
+	if err := adapter.VerifyCallback(callback); err != nil {
+		log.Errorf("回调签名验证失败: %v", err)
+		return err
+	}
+	
+	// 4. 幂等性处理（分布式锁）
+	lockKey := fmt.Sprintf("payment:callback:%s", callback.OutTradeNo)
+	acquired, err := h.lockSvc.TryLock(ctx, lockKey, 30*time.Second)
+	if err != nil {
+		return err
+	}
+	if !acquired {
+		log.Infof("回调%s正在处理中，跳过", callback.OutTradeNo)
+		return nil
+	}
+	defer h.lockSvc.Unlock(ctx, lockKey)
+	
+	// 5. 处理支付结果
+	return h.paymentSvc.HandleCallback(ctx, channel, callback)
+}
+
+// 主动查询（回调超时补偿）
+func (h *CallbackHandler) QueryPaymentStatus(ctx context.Context) {
+	// 定时任务：查询10分钟前创建但未回调的支付单
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+	
+	for range ticker.C {
+		cutoffTime := time.Now().Add(-10 * time.Minute)
+		
+		// 查询超时支付单
+		payments, err := h.paymentSvc.FindPendingPayments(ctx, cutoffTime)
+		if err != nil {
+			log.Errorf("查询超时支付单失败: %v", err)
+			continue
+		}
+		
+		for _, payment := range payments {
+			// 主动查询第三方状态
+			go func(p *Payment) {
+				adapter := h.paymentSvc.getAdapter(p.Channel)
+				status, err := adapter.QueryPayment(ctx, p.ThirdPartyID)
+				if err != nil {
+					log.Errorf("查询支付状态失败: %v", err)
+					return
+				}
+				
+				// 如果已支付，补偿处理
+				if status.Status == "SUCCESS" {
+					log.Warnf("支付单%s回调丢失，主动补偿", p.PaymentID)
+					h.paymentSvc.MarkAsPaid(ctx, p.PaymentID)
+				}
+			}(payment)
+		}
+	}
+}
+```
+
+**回调重试策略**：
+```go
+// 回调处理失败时的重试
+func (h *CallbackHandler) retryCallback(ctx context.Context, 
+	callback *CallbackData) error {
+	
+	maxRetries := 5
+	backoff := []time.Duration{
+		1 * time.Second,
+		5 * time.Second,
+		30 * time.Second,
+		2 * time.Minute,
+		10 * time.Minute,
+	}
+	
+	for i := 0; i < maxRetries; i++ {
+		err := h.HandleCallback(ctx, callback.Channel, callback.RawData)
+		if err == nil {
+			return nil // 成功
+		}
+		
+		log.Warnf("回调处理失败，第%d次重试: %v", i+1, err)
+		
+		if i < maxRetries-1 {
+			time.Sleep(backoff[i])
+		}
+	}
+	
+	// 所有重试失败，记录人工任务
+	return h.createManualTask(ctx, "CALLBACK_FAILED", callback)
+}
+```
+
+**延伸思考**：
+1. 回调接口如何防止伪造（恶意请求）？
+2. 回调处理超时如何设置？
+
+---
+
+#### 🔧 题目5：支付的分账系统设计（平台+商家）
+
+**问题描述**：
+B2B2C平台，用户支付100元，平台抽佣10%，商家获得90元。如何设计支付分账系统？
+
+**答案**：
+
+**推荐方案**（Go实现）：
+
+```go
+// Settlement 结算单
+type Settlement struct {
+	SettlementID   string
+	OrderID        int64
+	MerchantID     int64
+	TotalAmount    decimal.Decimal  // 订单总额
+	PlatformAmount decimal.Decimal  // 平台佣金
+	MerchantAmount decimal.Decimal  // 商家收入
+	Status         SettlementStatus
+	SettledAt      *time.Time
+}
+
+// SettlementService 结算服务
+type SettlementService struct {
+	settlementRepo SettlementRepository
+	paymentSvc     PaymentService
+}
+
+// CreateSettlement 创建结算单
+func (s *SettlementService) CreateSettlement(ctx context.Context, 
+	orderID int64) error {
+	
+	// 1. 查询订单
+	order := s.orderSvc.GetOrder(ctx, orderID)
+	
+	// 2. 计算佣金
+	commissionRate := s.getCommissionRate(ctx, order.MerchantID)
+	platformAmount := order.TotalAmount.Mul(commissionRate)
+	merchantAmount := order.TotalAmount.Sub(platformAmount)
+	
+	// 3. 创建结算单
+	settlement := &Settlement{
+		SettlementID:   generateSettlementID(),
+		OrderID:        orderID,
+		MerchantID:     order.MerchantID,
+		TotalAmount:    order.TotalAmount,
+		PlatformAmount: platformAmount,
+		MerchantAmount: merchantAmount,
+		Status:         SettlementPending,
+	}
+	
+	return s.settlementRepo.Create(ctx, settlement)
+}
+
+// Settle 执行结算（T+N结算）
+func (s *SettlementService) Settle(ctx context.Context, merchantID int64, date time.Time) error {
+	// 1. 查询该商家待结算的订单
+	settlements, err := s.settlementRepo.FindPendingByMerchant(ctx, merchantID, date)
+	if err != nil {
+		return err
+	}
+	
+	// 2. 汇总金额
+	totalAmount := decimal.Zero
+	for _, s := range settlements {
+		totalAmount = totalAmount.Add(s.MerchantAmount)
+	}
+	
+	// 3. 调用支付渠道分账/转账
+	if err := s.paymentSvc.Transfer(ctx, &TransferRequest{
+		ToAccount: s.getMerchantAccount(ctx, merchantID),
+		Amount:    totalAmount,
+		Remark:    fmt.Sprintf("商家%d的%s结算", merchantID, date.Format("2006-01-02")),
+	}); err != nil {
+		return err
+	}
+	
+	// 4. 更新结算单状态
+	for _, settlement := range settlements {
+		settlement.Status = SettlementCompleted
+		settlement.SettledAt = timePtr(time.Now())
+		s.settlementRepo.Update(ctx, settlement)
+	}
+	
+	return nil
+}
+
+// 佣金率配置
+func (s *SettlementService) getCommissionRate(ctx context.Context, merchantID int64) decimal.Decimal {
+	// 根据商家等级、类目等确定佣金率
+	merchant := s.merchantSvc.GetMerchant(ctx, merchantID)
+	
+	switch merchant.Level {
+	case "VIP":
+		return decimal.NewFromFloat(0.05) // 5%
+	case "GOLD":
+		return decimal.NewFromFloat(0.08) // 8%
+	default:
+		return decimal.NewFromFloat(0.10) // 10%
+	}
+}
+```
+
+**结算周期**：
+```
+T+0：实时结算（高成本，高信用商家）
+T+1：次日结算（平衡）
+T+7：周结算（标准）
+T+30：月结算（新商家）
+```
+
+**延伸思考**：
+1. 如何设计结算的对账机制？
+2. 商家提现如何设计？
+3. 结算失败如何处理？
+
+---
+
+#### 📊 题目6：支付密码和安全设计
+
+**问题描述**：
+支付环节涉及资金安全，如何设计支付密码、短信验证码等安全机制？
+
+**答案**：
+
+**推荐方案**（Go实现）：
+
+```go
+// PaymentSecurityService 支付安全服务
+type PaymentSecurityService struct {
+	rdb        *redis.Client
+	smsSvc     SMSService
+	encryptSvc EncryptService
+}
+
+// VerifyPaymentPassword 验证支付密码
+func (s *PaymentSecurityService) VerifyPaymentPassword(ctx context.Context, 
+	userID int64, password string) error {
+	
+	// 1. 获取用户存储的支付密码（加密）
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	
+	if user.PaymentPassword == "" {
+		return errors.New("请先设置支付密码")
+	}
+	
+	// 2. 验证密码
+	if !s.encryptSvc.VerifyPassword(password, user.PaymentPassword) {
+		// 记录失败次数
+		failCount := s.incrFailCount(ctx, userID)
+		
+		// 超过5次锁定账户
+		if failCount >= 5 {
+			s.lockAccount(ctx, userID, 30*time.Minute)
+			return errors.New("密码错误次数过多，账户已锁定30分钟")
+		}
+		
+		return fmt.Errorf("密码错误，还可尝试%d次", 5-failCount)
+	}
+	
+	// 3. 清除失败计数
+	s.clearFailCount(ctx, userID)
+	
+	return nil
+}
+
+// SendPaymentSMS 发送支付验证码
+func (s *PaymentSecurityService) SendPaymentSMS(ctx context.Context, 
+	userID int64, phone string) error {
+	
+	// 1. 限流检查（防止短信轰炸）
+	key := fmt.Sprintf("sms:limit:%s", phone)
+	count, err := s.rdb.Incr(ctx, key).Result()
+	if err != nil {
+		return err
+	}
+	if count == 1 {
+		s.rdb.Expire(ctx, key, time.Hour)
+	}
+	if count > 5 {
+		return errors.New("发送次数过多，请1小时后再试")
+	}
+	
+	// 2. 生成6位验证码
+	code := fmt.Sprintf("%06d", rand.Intn(1000000))
+	
+	// 3. 存储验证码（5分钟有效）
+	codeKey := fmt.Sprintf("sms:code:%s", phone)
+	s.rdb.SetEX(ctx, codeKey, code, 5*time.Minute)
+	
+	// 4. 发送短信
+	return s.smsSvc.Send(ctx, phone, fmt.Sprintf("您的支付验证码是%s，5分钟内有效", code))
+}
+
+// VerifySMSCode 验证短信验证码
+func (s *PaymentSecurityService) VerifySMSCode(ctx context.Context, 
+	phone, code string) error {
+	
+	codeKey := fmt.Sprintf("sms:code:%s", phone)
+	
+	// 查询验证码
+	storedCode, err := s.rdb.Get(ctx, codeKey).Result()
+	if err == redis.Nil {
+		return errors.New("验证码已过期")
+	}
+	if err != nil {
+		return err
+	}
+	
+	// 验证
+	if storedCode != code {
+		return errors.New("验证码错误")
+	}
+	
+	// 验证成功，删除验证码（防止重复使用）
+	s.rdb.Del(ctx, codeKey)
+	
+	return nil
+}
+
+// 风控检查
+func (s *PaymentSecurityService) RiskCheck(ctx context.Context, 
+	userID int64, amount decimal.Decimal) error {
+	
+	// 规则1：大额支付需要额外验证
+	if amount.GreaterThan(decimal.NewFromInt(5000)) {
+		// 需要短信验证码或支付密码
+		return errors.New("REQUIRE_SMS_OR_PASSWORD")
+	}
+	
+	// 规则2：新用户限额
+	user := s.userSvc.GetUser(ctx, userID)
+	if user.RegisterDays() < 7 && amount.GreaterThan(decimal.NewFromInt(1000)) {
+		return errors.New("新用户单笔限额1000元")
+	}
+	
+	// 规则3：异常IP检测
+	ip := s.getRequestIP(ctx)
+	if s.isBlacklistIP(ctx, ip) {
+		return errors.New("异常IP，禁止支付")
+	}
+	
+	// 规则4：高频支付检测
+	recentPayments := s.getRecentPaymentCount(ctx, userID, 10*time.Minute)
+	if recentPayments > 10 {
+		return errors.New("支付频率异常")
+	}
+	
+	return nil
+}
+```
+
+**延伸思考**：
+1. 支付密码如何加密存储？
+2. 如何设计支付的二次确认（大额支付）？
+3. 支付安全如何平衡用户体验？
+
+---
+
+#### 🔧 题目7：支付渠道的路由和降级
+
+**问题描述**：
+支付宝渠道故障时，如何自动切换到微信支付？如何设计支付渠道的路由和降级策略？
+
+**答案**：
+
+**推荐方案**（Go实现）：
+
+```go
+// ChannelRouter 支付渠道路由器
+type ChannelRouter struct {
+	healthChecker *ChannelHealthChecker
+	config        *RoutingConfig
+}
+
+// SelectChannel 选择支付渠道
+func (r *ChannelRouter) SelectChannel(ctx context.Context, 
+	preferredChannel PaymentChannel) (PaymentChannel, error) {
+	
+	// 1. 检查首选渠道健康状态
+	if r.healthChecker.IsHealthy(preferredChannel) {
+		return preferredChannel, nil
+	}
+	
+	log.Warnf("渠道%s不可用，尝试降级", preferredChannel)
+	
+	// 2. 降级到备用渠道
+	fallbackChannels := r.config.GetFallback(preferredChannel)
+	for _, channel := range fallbackChannels {
+		if r.healthChecker.IsHealthy(channel) {
+			log.Infof("降级到渠道%s", channel)
+			return channel, nil
+		}
+	}
+	
+	// 3. 所有渠道都不可用
+	return "", errors.New("支付渠道暂时不可用，请稍后再试")
+}
+
+// ChannelHealthChecker 渠道健康检查
+type ChannelHealthChecker struct {
+	rdb *redis.Client
+}
+
+func (c *ChannelHealthChecker) IsHealthy(channel PaymentChannel) bool {
+	key := fmt.Sprintf("payment:channel:health:%s", channel)
+	
+	// 从Redis读取健康状态
+	status, err := c.rdb.Get(context.Background(), key).Result()
+	if err != nil || status != "UP" {
+		return false
+	}
+	
+	return true
+}
+
+// 健康检查任务（心跳）
+func (c *ChannelHealthChecker) StartHealthCheck(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	
+	for range ticker.C {
+		// 对每个渠道执行健康检查
+		for _, channel := range AllChannels {
+			go c.checkChannel(ctx, channel)
+		}
+	}
+}
+
+func (c *ChannelHealthChecker) checkChannel(ctx context.Context, 
+	channel PaymentChannel) {
+	
+	adapter := getAdapter(channel)
+	
+	// 调用渠道健康检查接口（或创建1分钱订单测试）
+	err := adapter.HealthCheck(ctx)
+	
+	key := fmt.Sprintf("payment:channel:health:%s", channel)
+	if err != nil {
+		// 不健康
+		c.rdb.SetEX(ctx, key, "DOWN", 5*time.Minute)
+		log.Errorf("渠道%s健康检查失败: %v", channel, err)
+		
+		// 告警
+		c.alertSvc.Send(fmt.Sprintf("支付渠道%s故障", channel))
+	} else {
+		// 健康
+		c.rdb.SetEX(ctx, key, "UP", 5*time.Minute)
+	}
+}
+
+// 路由配置
+type RoutingConfig struct {
+	fallbacks map[PaymentChannel][]PaymentChannel
+}
+
+func NewRoutingConfig() *RoutingConfig {
+	return &RoutingConfig{
+		fallbacks: map[PaymentChannel][]PaymentChannel{
+			ChannelAlipay: {ChannelWechat, ChannelUnion},  // 支付宝 → 微信 → 银联
+			ChannelWechat: {ChannelAlipay, ChannelUnion},
+			ChannelUnion:  {ChannelAlipay, ChannelWechat},
+		},
+	}
+}
+```
+
+**延伸思考**：
+1. 如何设计支付渠道的成本优化（选择手续费低的）？
+2. 支付渠道限额如何处理？
+
+---
+
+#### 💡 题目8：支付的退款处理
+
+**问题描述**：
+用户申请退款，需要原路退回。如何设计退款流程，处理退款失败、部分退款等场景？
+
+**答案**：
+
+**推荐方案**（Go实现）：
+
+```go
+// RefundService 退款服务
+type RefundService struct {
+	paymentRepo PaymentRepository
+}
+
+// Refund 申请退款
+func (s *RefundService) Refund(ctx context.Context, req *RefundRequest) error {
+	// 1. 查询原支付记录
+	payment, err := s.paymentRepo.FindByOrderID(ctx, req.OrderID)
+	if err != nil {
+		return err
+	}
+	
+	// 2. 校验退款金额
+	if req.RefundAmount.GreaterThan(payment.Amount) {
+		return errors.New("退款金额超过支付金额")
+	}
+	
+	// 3. 检查是否已退款
+	totalRefunded, err := s.paymentRepo.GetTotalRefundedAmount(ctx, payment.PaymentID)
+	if err != nil {
+		return err
+	}
+	
+	if totalRefunded.Add(req.RefundAmount).GreaterThan(payment.Amount) {
+		return errors.New("累计退款金额超过支付金额")
+	}
+	
+	// 4. 创建退款记录
+	refund := &PaymentRefund{
+		RefundID:    generateRefundID(),
+		PaymentID:   payment.PaymentID,
+		OrderID:     req.OrderID,
+		Amount:      req.RefundAmount,
+		Reason:      req.Reason,
+		Status:      RefundStatusPending,
+		CreatedAt:   time.Now(),
+	}
+	
+	if err := s.refundRepo.Create(ctx, refund); err != nil {
+		return err
+	}
+	
+	// 5. 调用第三方退款接口
+	adapter := s.getAdapter(payment.Channel)
+	err = adapter.Refund(ctx, &ThirdPartyRefundRequest{
+		OutRefundNo:   refund.RefundID,
+		OutTradeNo:    payment.ThirdPartyID,
+		RefundAmount:  req.RefundAmount,
+		TotalAmount:   payment.Amount,
+		RefundReason:  req.Reason,
+	})
+	
+	if err != nil {
+		refund.Status = RefundStatusFailed
+		refund.FailReason = err.Error()
+		s.refundRepo.Update(ctx, refund)
+		return err
+	}
+	
+	// 6. 更新退款状态
+	refund.Status = RefundStatusSuccess
+	refund.RefundedAt = timePtr(time.Now())
+	s.refundRepo.Update(ctx, refund)
+	
+	return nil
+}
+
+// 退款重试（定时任务）
+func (s *RefundService) RetryFailedRefunds(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+	
+	for range ticker.C {
+		// 查询失败的退款（创建时间<30分钟前）
+		refunds, err := s.refundRepo.FindFailed(ctx, time.Now().Add(-30*time.Minute))
+		if err != nil {
+			log.Errorf("查询失败退款失败: %v", err)
+			continue
+		}
+		
+		for _, refund := range refunds {
+			// 重试退款
+			go func(r *PaymentRefund) {
+				if r.RetryCount >= 5 {
+					log.Errorf("退款%s重试次数过多，转人工处理", r.RefundID)
+					s.createManualTask(ctx, r.RefundID)
+					return
+				}
+				
+				payment, _ := s.paymentRepo.FindByID(ctx, r.PaymentID)
+				adapter := s.getAdapter(payment.Channel)
+				
+				err := adapter.Refund(ctx, &ThirdPartyRefundRequest{
+					OutRefundNo:  r.RefundID,
+					OutTradeNo:   payment.ThirdPartyID,
+					RefundAmount: r.Amount,
+					TotalAmount:  payment.Amount,
+				})
+				
+				if err == nil {
+					r.Status = RefundStatusSuccess
+					r.RefundedAt = timePtr(time.Now())
+				} else {
+					r.RetryCount++
+					r.FailReason = err.Error()
+				}
+				
+				s.refundRepo.Update(ctx, r)
+			}(refund)
+		}
+	}
+}
+```
+
+**部分退款处理**：
+```go
+// 部分退款（一单多件商品，退部分）
+func (s *RefundService) PartialRefund(ctx context.Context, 
+	orderID int64, items []RefundItem) error {
+	
+	// 1. 计算退款金额
+	var refundAmount decimal.Decimal
+	for _, item := range items {
+		itemAmount := item.Price.Mul(decimal.NewFromInt(int64(item.Quantity)))
+		refundAmount = refundAmount.Add(itemAmount)
+	}
+	
+	// 2. 分摊运费
+	order := s.orderSvc.GetOrder(ctx, orderID)
+	refundItemCount := len(items)
+	totalItemCount := len(order.Items)
+	
+	shippingRefund := order.ShippingFee.
+		Mul(decimal.NewFromInt(int64(refundItemCount))).
+		Div(decimal.NewFromInt(int64(totalItemCount)))
+	
+	refundAmount = refundAmount.Add(shippingRefund)
+	
+	// 3. 执行退款
+	return s.Refund(ctx, &RefundRequest{
+		OrderID:      orderID,
+		RefundAmount: refundAmount,
+		RefundItems:  items,
+		Reason:       "部分退货",
+	})
+}
+```
+
+**延伸思考**：
+1. 退款失败如何通知用户？
+2. 如何设计退款的限额控制（防止洗钱）？
+
+---
+
+#### 🔧 题目9：支付的容灾和降级
+
+**问题描述**：
+支付是核心链路，不能中断。如何设计支付系统的容灾和降级方案？
+
+**答案**：
+
+**推荐方案**（Go实现）：
+
+```go
+// PaymentFallbackService 支付降级服务
+type PaymentFallbackService struct {
+	primarySvc   *PaymentService
+	fallbackMode bool
+}
+
+// Pay 支付（带降级）
+func (s *PaymentFallbackService) Pay(ctx context.Context, 
+	req *PaymentRequest) (*PaymentResponse, error) {
+	
+	// 1. 尝试正常支付
+	resp, err := s.primarySvc.CreatePayment(ctx, req)
+	if err == nil {
+		return resp, nil
+	}
+	
+	log.Warnf("支付失败: %v，尝试降级", err)
+	
+	// 2. 降级方案
+	if s.shouldFallback(err) {
+		return s.fallbackPay(ctx, req)
+	}
+	
+	return nil, err
+}
+
+// 降级支付
+func (s *PaymentFallbackService) fallbackPay(ctx context.Context, 
+	req *PaymentRequest) (*PaymentResponse, error) {
+	
+	// 降级策略1：切换支付渠道
+	if req.Channel == ChannelAlipay {
+		req.Channel = ChannelWechat
+		return s.primarySvc.CreatePayment(ctx, req)
+	}
+	
+	// 降级策略2：使用货到付款
+	if s.isCODAvailable(req) {
+		return s.createCODOrder(ctx, req)
+	}
+	
+	// 降级策略3：延迟支付（订单保留，稍后支付）
+	return s.createDelayedPayment(ctx, req)
+}
+
+// 熔断器
+type CircuitBreaker struct {
+	failureThreshold int
+	timeout          time.Duration
+	state            CircuitState
+	failureCount     int
+	lastFailTime     time.Time
+}
+
+type CircuitState int
+
+const (
+	StateClosed CircuitState = 0  // 闭合（正常）
+	StateOpen   CircuitState = 1  // 开启（熔断）
+	StateHalfOpen CircuitState = 2  // 半开（尝试恢复）
+)
+
+func (cb *CircuitBreaker) Execute(ctx context.Context, 
+	fn func() error) error {
+	
+	// 检查熔断器状态
+	if cb.state == StateOpen {
+		// 检查是否可以尝试恢复
+		if time.Since(cb.lastFailTime) > cb.timeout {
+			cb.state = StateHalfOpen
+		} else {
+			return errors.New("熔断器开启，拒绝请求")
+		}
+	}
+	
+	// 执行函数
+	err := fn()
+	
+	if err != nil {
+		cb.onFailure()
+	} else {
+		cb.onSuccess()
+	}
+	
+	return err
+}
+
+func (cb *CircuitBreaker) onFailure() {
+	cb.failureCount++
+	cb.lastFailTime = time.Now()
+	
+	if cb.failureCount >= cb.failureThreshold {
+		cb.state = StateOpen
+		log.Warn("熔断器开启")
+	}
+}
+
+func (cb *CircuitBreaker) onSuccess() {
+	if cb.state == StateHalfOpen {
+		// 半开状态成功，恢复到闭合
+		cb.state = StateClosed
+		cb.failureCount = 0
+		log.Info("熔断器关闭，恢复正常")
+	}
+}
+```
+
+**延伸思考**：
+1. 如何设计支付系统的多机房容灾？
+2. 支付降级后如何通知用户？
+
+---
+
+#### 📊 题目10：预授权支付的设计（酒店、租车场景）
+
+**问题描述**：
+酒店预订需要预授权（冻结资金但不扣款），退房时根据实际消费扣款。如何设计预授权支付？
+
+**答案**：
+
+**推荐方案**（Go实现）：
+
+```go
+// PreAuthService 预授权服务
+type PreAuthService struct {
+	paymentAdapter PaymentAdapter
+	preAuthRepo    PreAuthRepository
+}
+
+// PreAuthorize 预授权
+func (s *PreAuthService) PreAuthorize(ctx context.Context, 
+	req *PreAuthRequest) (*PreAuthResponse, error) {
+	
+	// 1. 创建预授权记录
+	preAuth := &PreAuthorization{
+		PreAuthID:  generatePreAuthID(),
+		OrderID:    req.OrderID,
+		UserID:     req.UserID,
+		Amount:     req.Amount,  // 冻结金额
+		Status:     PreAuthStatusFrozen,
+		CreatedAt:  time.Now(),
+		ExpireAt:   time.Now().Add(30 * 24 * time.Hour), // 30天有效期
+	}
+	
+	if err := s.preAuthRepo.Create(ctx, preAuth); err != nil {
+		return nil, err
+	}
+	
+	// 2. 调用支付渠道预授权接口
+	resp, err := s.paymentAdapter.PreAuthorize(ctx, &ThirdPartyPreAuthRequest{
+		OutRequestNo: preAuth.PreAuthID,
+		Amount:       req.Amount,
+		ExpireTime:   preAuth.ExpireAt,
+	})
+	
+	if err != nil {
+		preAuth.Status = PreAuthStatusFailed
+		s.preAuthRepo.Update(ctx, preAuth)
+		return nil, err
+	}
+	
+	// 3. 保存第三方预授权号
+	preAuth.ThirdPartyID = resp.AuthNo
+	s.preAuthRepo.Update(ctx, preAuth)
+	
+	return &PreAuthResponse{
+		PreAuthID: preAuth.PreAuthID,
+		AuthNo:    resp.AuthNo,
+	}, nil
+}
+
+// Complete 完成预授权（实际扣款）
+func (s *PreAuthService) Complete(ctx context.Context, 
+	preAuthID string, actualAmount decimal.Decimal) error {
+	
+	// 1. 查询预授权
+	preAuth, err := s.preAuthRepo.FindByID(ctx, preAuthID)
+	if err != nil {
+		return err
+	}
+	
+	// 2. 校验金额
+	if actualAmount.GreaterThan(preAuth.Amount) {
+		return errors.New("实际金额超过预授权金额")
+	}
+	
+	// 3. 调用支付渠道完成预授权
+	err = s.paymentAdapter.CompletePreAuth(ctx, &CompletePreAuthRequest{
+		AuthNo: preAuth.ThirdPartyID,
+		Amount: actualAmount,
+	})
+	
+	if err != nil {
+		return err
+	}
+	
+	// 4. 更新状态
+	preAuth.Status = PreAuthStatusCompleted
+	preAuth.ActualAmount = actualAmount
+	preAuth.CompletedAt = timePtr(time.Now())
+	s.preAuthRepo.Update(ctx, preAuth)
+	
+	// 5. 多余金额解冻
+	if actualAmount.LessThan(preAuth.Amount) {
+		unfreezeAmount := preAuth.Amount.Sub(actualAmount)
+		log.Infof("解冻多余金额: %v", unfreezeAmount)
+	}
+	
+	return nil
+}
+
+// Cancel 取消预授权
+func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
+	preAuth, err := s.preAuthRepo.FindByID(ctx, preAuthID)
+	if err != nil {
+		return err
+	}
+	
+	// 调用支付渠道取消预授权
+	err = s.paymentAdapter.CancelPreAuth(ctx, preAuth.ThirdPartyID)
+	if err != nil {
+		return err
+	}
+	
+	preAuth.Status = PreAuthStatusCancelled
+	s.preAuthRepo.Update(ctx, preAuth)
+	
+	return nil
+}
+```
+
+**延伸思考**：
+1. 预授权过期如何自动解冻？
+2. 预授权场景下的对账如何设计？
+
+---
+
+好的，我已经完成Task 8的全部内容（3.3订单后10题 + 3.4支付10题，共20题）。现在验证并提交：
 
 ---
 
