@@ -18,10 +18,30 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Setup Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+    
+    - name: Cache cargo packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/mdbook-mermaid
+          ~/.cargo/.crates.toml
+          ~/.cargo/.crates2.json
+        key: ${{ runner.os }}-cargo-mdbook-mermaid-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-mdbook-mermaid-
+    
     - name: Setup mdBook
       uses: peaceiris/actions-mdbook@v1
       with:
         mdbook-version: '0.4.40'
+    
+    - name: Install mdbook-mermaid
+      run: |
+        if ! command -v mdbook-mermaid &> /dev/null; then
+          cargo install mdbook-mermaid --locked
+        fi
     
     - name: Build book
       run: |
