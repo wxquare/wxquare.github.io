@@ -35,7 +35,7 @@
             const path_to_root = "../../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../../searchindex-e9388be9.js";
+            window.path_to_searchindex_js = "../../searchindex-941fc827.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../../toc-c684b900.js"></script>
@@ -198,9 +198,9 @@
 <tbody>
 <tr><td>异构商品</td><td>实物多规格、虚拟卡密、服务日历、组合捆绑</td><td>统一内核 + 策略/适配器 + 扩展存储（7.4）</td></tr>
 <tr><td>多角色上架</td><td>商家、供应商、运营入口与审核差异</td><td>状态机 + 审核策略路由 + 幂等同步</td></tr>
-<tr><td>高并发读</td><td>详情万级 QPS、列表千级 QPS</td><td>多级缓存 + 搜索卸载 + 热点治理（7.5）</td></tr>
+<tr><td>高并发读</td><td>详情万级 QPS、列表千级 QPS</td><td>多级缓存 + 搜索卸载 + 热点治理（7.6）</td></tr>
 <tr><td>数据一致性</td><td>改价改图后搜索/缓存滞后</td><td>事件驱动 + 可接受最终一致 + 对账补偿</td></tr>
-<tr><td>订单纠纷风险</td><td>下单后商品信息变化</td><td>商品快照与版本引用（7.6）</td></tr>
+<tr><td>订单纠纷风险</td><td>下单后商品信息变化</td><td>商品快照与版本引用（7.7）</td></tr>
 </tbody>
 </table>
 </div>
@@ -642,7 +642,866 @@ func UpsertSPU(ctx context.Context, reg *StrategyRegistry, repo ProductRepositor
 <p><strong>配置化平台的边界</strong>：表单、步骤、审核模板配置能显著加快新品类接入，但不要把「强业务规则」无限制脚本化到运营可编辑，否则难以测试与回滚。建议把规则分级：<strong>L1 配置</strong>（字段/枚举/展示）运营可改；<strong>L2 规则</strong>（库存维度声明、搜索 enrich）需要发布评审；<strong>L3 代码</strong>（复杂约束、组合分摊）必须走研发变更。</p>
 <p><strong>组合商品补充</strong>：组合 SPU 的子项引用建议存「子 <code>spu_id</code> + 子 <code>sku_id</code> + 数量」，并在策略层实现 <strong>联合校验</strong>（子品任一不可售则父不可售）。组合售价分摊属于计价/订单域更合适；商品中心可提供「子品结构事实」(BOM)，但不负责最终金额计算。</p>
 <hr>
-<h2 id="75-商品搜索与缓存"><a class="header" href="#75-商品搜索与缓存">7.5 商品搜索与缓存</a></h2>
+<h2 id="75-领域模型设计ddd四层架构完整实现"><a class="header" href="#75-领域模型设计ddd四层架构完整实现">7.5 领域模型设计（DDD四层架构完整实现）</a></h2>
+<blockquote>
+<p><strong>本节定位</strong>：深入讲解商品中心的DDD四层架构实现（Domain、Application、Infrastructure、Interface），包含领域模型、聚合根、Repository模式、三级缓存、事件驱动等核心技术。与16.6.1的实战案例形成“理论 ↔ 实践“互补。</p>
+</blockquote>
+<h3 id="751-服务定位与职责"><a class="header" href="#751-服务定位与职责">7.5.1 服务定位与职责</a></h3>
+<p><strong>职责边界</strong>:</p>
+<ul>
+<li>✅ 负责:商品基础信息、类目、属性、多媒体素材</li>
+<li>✅ 负责:SPU/SKU管理、上架下架</li>
+<li>✅ 负责:商品基础价格(base_price,作为计价输入)</li>
+<li>❌ 不负责:营销价格(由Pricing Service计算)</li>
+<li>❌ 不负责:库存(由Inventory Service管理)</li>
+</ul>
+<p><strong>核心场景</strong>:</p>
+<ol>
+<li><strong>商品查询</strong>:聚合服务、详情页、搜索结果查询商品信息</li>
+<li><strong>商品创建</strong>:运营人员/供应商创建新商品</li>
+<li><strong>商品更新</strong>:修改商品信息、调整基础价格</li>
+<li><strong>上下架管理</strong>:控制商品可售状态</li>
+</ol>
+<p><strong>与其他服务的区别</strong>:</p>
+<ul>
+<li><strong>vs Search Service</strong>:Search负责ES查询返回SKU ID列表,Product Center负责根据SKU ID查询详细信息</li>
+<li><strong>vs Pricing Service</strong>:Product Center只管理base_price(成本价),Pricing Service基于base_price+营销活动计算最终售价</li>
+<li><strong>vs Inventory Service</strong>:Product Center管“商品是什么“,Inventory管“商品有多少“</li>
+</ul>
+<hr>
+<h3 id="752-领域模型设计domain-layer"><a class="header" href="#752-领域模型设计domain-layer">7.5.2 领域模型设计（Domain Layer）</a></h3>
+<p><strong>领域模型设计思想</strong>:商品域的特点是“树形结构+读多写少“,与订单域的“复杂状态机+高并发写“完全不同。</p>
+<h4 id="7521-product聚合根"><a class="header" href="#7521-product聚合根">7.5.2.1 Product聚合根</a></h4>
+<pre><code class="language-go">// Product聚合根(SKU维度)
+type Product struct {
+    // 聚合根ID
+    skuID SKU_ID  // 值对象
+    
+    // SPU信息(实体引用)
+    spu *SPU
+    
+    // SKU规格(值对象)
+    specs Specifications
+    
+    // 基础价格(值对象)
+    basePrice Price
+    
+    // 状态(值对象)
+    status ProductStatus
+    
+    // 多媒体素材
+    images []ImageURL
+    
+    // 时间戳
+    createdAt time.Time
+    updatedAt time.Time
+    
+    // 领域事件(未提交)
+    domainEvents []DomainEvent
+}
+
+// 值对象:SKU_ID
+type SKU_ID struct {
+    value int64
+}
+
+func NewSKU_ID(id int64) SKU_ID {
+    return SKU_ID{value: id}
+}
+
+func (id SKU_ID) Int64() int64 {
+    return id.value
+}
+
+// 值对象:Price(基础价格,单位:分)
+type Price struct {
+    amount int64  // 分为单位
+}
+
+func NewPrice(amount int64) (Price, error) {
+    if amount &lt; 0 {
+        return Price{}, errors.New("价格不能为负数")
+    }
+    if amount &gt; 100000000 { // 100万元上限
+        return Price{}, errors.New("价格超过上限")
+    }
+    return Price{amount: amount}, nil
+}
+
+func (p Price) Amount() int64 {
+    return p.amount
+}
+
+func (p Price) Yuan() float64 {
+    return float64(p.amount) / 100.0
+}
+
+// 值对象:Specifications(SKU规格)
+type Specifications struct {
+    attributes map[string]string  // {"颜色":"红色","尺寸":"L"}
+}
+
+func NewSpecifications(attrs map[string]string) Specifications {
+    return Specifications{attributes: attrs}
+}
+
+func (s Specifications) Get(key string) string {
+    return s.attributes[key]
+}
+
+func (s Specifications) ToJSON() string {
+    data, _ := json.Marshal(s.attributes)
+    return string(data)
+}
+
+// 值对象:ProductStatus
+type ProductStatus string
+
+const (
+    ProductDraft     ProductStatus = "DRAFT"      // 草稿
+    ProductOnShelf   ProductStatus = "ON_SHELF"   // 在架
+    ProductOffShelf  ProductStatus = "OFF_SHELF"  // 下架
+)
+
+// 实体:SPU(标准产品单元)
+type SPU struct {
+    id         SPU_ID
+    title      string
+    categoryID int64
+    brandID    int64
+    attributes map[string][]string  // 属性模板{"颜色":["红","蓝"],"尺寸":["S","M","L"]}
+    description string
+    
+    // SPU下的所有SKU(聚合内实体集合)
+    skus []*Product
+}
+
+func (spu *SPU) ID() SPU_ID {
+    return spu.id
+}
+
+func (spu *SPU) Title() string {
+    return spu.title
+}
+
+func (spu *SPU) AddSKU(sku *Product) error {
+    // 不变量检查:SKU规格必须符合SPU属性模板
+    if !spu.isValidSpecs(sku.specs) {
+        return errors.New("SKU规格不符合SPU属性模板")
+    }
+    spu.skus = append(spu.skus, sku)
+    return nil
+}
+
+func (spu *SPU) isValidSpecs(specs Specifications) bool {
+    // 检查SKU的规格是否都在SPU的属性模板中
+    for key, value := range specs.attributes {
+        allowedValues, exists := spu.attributes[key]
+        if !exists {
+            return false
+        }
+        if !contains(allowedValues, value) {
+            return false
+        }
+    }
+    return true
+}
+</code></pre>
+<h4 id="7522-聚合根方法"><a class="header" href="#7522-聚合根方法">7.5.2.2 聚合根方法</a></h4>
+<pre><code class="language-go">// 上架(状态转换)
+func (p *Product) OnShelf() error {
+    if p.status == ProductOnShelf {
+        return errors.New("商品已在架")
+    }
+    
+    // 不变量检查:必须有基础价格
+    if p.basePrice.Amount() == 0 {
+        return errors.New("商品未设置价格,不能上架")
+    }
+    
+    // 不变量检查:必须有商品图片
+    if len(p.images) == 0 {
+        return errors.New("商品未上传图片,不能上架")
+    }
+    
+    oldStatus := p.status
+    p.status = ProductOnShelf
+    p.updatedAt = time.Now()
+    
+    // 发布领域事件
+    p.addDomainEvent(&amp;ProductOnShelfEvent{
+        SKUID:      p.skuID,
+        SPUID:      p.spu.id,
+        OnShelfTime: p.updatedAt,
+    })
+    
+    return nil
+}
+
+// 下架
+func (p *Product) OffShelf(reason string) error {
+    if p.status == ProductOffShelf {
+        return errors.New("商品已下架")
+    }
+    
+    oldStatus := p.status
+    p.status = ProductOffShelf
+    p.updatedAt = time.Now()
+    
+    // 发布领域事件
+    p.addDomainEvent(&amp;ProductOffShelfEvent{
+        SKUID:       p.skuID,
+        Reason:      reason,
+        OffShelfTime: p.updatedAt,
+    })
+    
+    return nil
+}
+
+// 更新基础价格
+func (p *Product) UpdateBasePrice(newPrice Price) error {
+    if newPrice.Amount() == p.basePrice.Amount() {
+        return nil  // 价格未变化
+    }
+    
+    oldPrice := p.basePrice
+    p.basePrice = newPrice
+    p.updatedAt = time.Now()
+    
+    // 发布领域事件
+    p.addDomainEvent(&amp;PriceChangedEvent{
+        SKUID:    p.skuID,
+        OldPrice: oldPrice.Amount(),
+        NewPrice: newPrice.Amount(),
+        ChangedAt: p.updatedAt,
+    })
+    
+    return nil
+}
+
+// 领域事件管理
+func (p *Product) addDomainEvent(event DomainEvent) {
+    p.domainEvents = append(p.domainEvents, event)
+}
+
+func (p *Product) DomainEvents() []DomainEvent {
+    return p.domainEvents
+}
+
+func (p *Product) ClearDomainEvents() {
+    p.domainEvents = nil
+}
+
+// 查询方法
+func (p *Product) IsOnShelf() bool {
+    return p.status == ProductOnShelf
+}
+
+func (p *Product) BasePrice() Price {
+    return p.basePrice
+}
+
+func (p *Product) Specs() Specifications {
+    return p.specs
+}
+</code></pre>
+<h4 id="7523-repository模式防腐层"><a class="header" href="#7523-repository模式防腐层">7.5.2.3 Repository模式(防腐层)</a></h4>
+<pre><code class="language-go">// ProductRepository接口(领域层定义)
+type ProductRepository interface {
+    // 查询
+    FindBySKUID(ctx context.Context, skuID SKU_ID) (*Product, error)
+    FindBySPUID(ctx context.Context, spuID SPU_ID) ([]*Product, error)
+    BatchFindBySKUIDs(ctx context.Context, skuIDs []SKU_ID) ([]*Product, error)
+    
+    // 保存
+    Save(ctx context.Context, product *Product) error
+    Update(ctx context.Context, product *Product) error
+    
+    // 删除
+    Delete(ctx context.Context, skuID SKU_ID) error
+}
+
+// ProductRepositoryImpl实现(基础设施层)
+type ProductRepositoryImpl struct {
+    db             *gorm.DB
+    cache          cache.Cache
+    eventPublisher EventPublisher
+    sharding       ShardingStrategy
+}
+
+func (r *ProductRepositoryImpl) FindBySKUID(ctx context.Context, skuID SKU_ID) (*Product, error) {
+    // Step 1: 查询L1本地缓存
+    cacheKey := fmt.Sprintf("product:%d", skuID.Int64())
+    if cached, found := r.cache.GetLocal(cacheKey); found {
+        return cached.(*Product), nil
+    }
+    
+    // Step 2: 查询L2 Redis缓存
+    if cached, err := r.cache.Get(ctx, cacheKey); err == nil {
+        product := r.unmarshalProduct(cached)
+        r.cache.SetLocal(cacheKey, product, 1*time.Minute)
+        return product, nil
+    }
+    
+    // Step 3: 查询MySQL
+    productDO, err := r.queryFromDB(ctx, skuID)
+    if err != nil {
+        return nil, err
+    }
+    
+    // Step 4: 转换DO → Domain Model
+    product := r.toDomain(productDO)
+    
+    // Step 5: 回写缓存
+    r.cache.Set(ctx, cacheKey, r.marshalProduct(product), 30*time.Minute)
+    r.cache.SetLocal(cacheKey, product, 1*time.Minute)
+    
+    return product, nil
+}
+
+func (r *ProductRepositoryImpl) Save(ctx context.Context, product *Product) error {
+    // Step 1: 转换Domain Model → DO
+    productDO := r.toDataObject(product)
+    
+    // Step 2: 分库路由
+    db := r.sharding.Route(product.spu.categoryID)
+    
+    // Step 3: 保存到数据库
+    if err := db.WithContext(ctx).Create(productDO).Error; err != nil {
+        return fmt.Errorf("save product failed: %w", err)
+    }
+    
+    // Step 4: 发布领域事件(事务提交后)
+    for _, event := range product.DomainEvents() {
+        if err := r.eventPublisher.Publish(ctx, event); err != nil {
+            log.Errorf("publish event failed: %v", err)
+        }
+    }
+    product.ClearDomainEvents()
+    
+    // Step 5: 清除缓存
+    cacheKey := fmt.Sprintf("product:%d", product.skuID.Int64())
+    r.cache.Delete(ctx, cacheKey)
+    
+    return nil
+}
+
+func (r *ProductRepositoryImpl) BatchFindBySKUIDs(ctx context.Context, skuIDs []SKU_ID) ([]*Product, error) {
+    products := make([]*Product, 0, len(skuIDs))
+    
+    // 批量查询优化:分离缓存命中和未命中
+    var missedIDs []SKU_ID
+    
+    for _, skuID := range skuIDs {
+        cacheKey := fmt.Sprintf("product:%d", skuID.Int64())
+        if cached, err := r.cache.Get(ctx, cacheKey); err == nil {
+            products = append(products, r.unmarshalProduct(cached))
+        } else {
+            missedIDs = append(missedIDs, skuID)
+        }
+    }
+    
+    // 批量查询数据库(未命中的)
+    if len(missedIDs) &gt; 0 {
+        missedProducts, err := r.batchQueryFromDB(ctx, missedIDs)
+        if err != nil {
+            return nil, err
+        }
+        
+        // 回写缓存
+        for _, product := range missedProducts {
+            cacheKey := fmt.Sprintf("product:%d", product.skuID.Int64())
+            r.cache.Set(ctx, cacheKey, r.marshalProduct(product), 30*time.Minute)
+        }
+        
+        products = append(products, missedProducts...)
+    }
+    
+    return products, nil
+}
+</code></pre>
+<hr>
+<h3 id="753-基础设施层infrastructure-layer"><a class="header" href="#753-基础设施层infrastructure-layer">7.5.3 基础设施层(Infrastructure Layer)</a></h3>
+<h4 id="7531-核心存储设计"><a class="header" href="#7531-核心存储设计">7.5.3.1 核心存储设计</a></h4>
+<p><strong>表结构设计</strong>:</p>
+<pre><code class="language-sql">-- SPU表(标准产品单元)
+CREATE TABLE product_spu (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL COMMENT '商品标题',
+    category_id BIGINT NOT NULL COMMENT '类目ID',
+    brand_id BIGINT COMMENT '品牌ID',
+    attributes JSON COMMENT '属性模板',
+    description TEXT COMMENT '商品描述',
+    status VARCHAR(20) DEFAULT 'DRAFT' COMMENT '状态',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_category (category_id),
+    INDEX idx_brand (brand_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='SPU表';
+
+-- SKU表(库存保持单元)
+CREATE TABLE product_sku (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    spu_id BIGINT NOT NULL COMMENT 'SPU ID',
+    sku_code VARCHAR(100) UNIQUE NOT NULL COMMENT 'SKU编码',
+    specs JSON COMMENT '规格值',
+    base_price BIGINT NOT NULL COMMENT '基础价格(分)',
+    images JSON COMMENT '商品图片',
+    status VARCHAR(20) DEFAULT 'DRAFT' COMMENT '状态',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_spu (spu_id),
+    INDEX idx_code (sku_code),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='SKU表';
+
+-- 类目表
+CREATE TABLE product_category (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    parent_id BIGINT DEFAULT 0 COMMENT '父类目ID',
+    level INT DEFAULT 1 COMMENT '层级',
+    sort_order INT DEFAULT 0 COMMENT '排序',
+    status VARCHAR(20) DEFAULT 'ACTIVE',
+    INDEX idx_parent (parent_id),
+    INDEX idx_level (level)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品类目表';
+</code></pre>
+<p><strong>分库分表策略</strong>:</p>
+<pre><code class="language-sql">-- 按 category_id 分4库
+-- 理由:同品类商品通常一起查询(搜索、推荐)
+db_index = category_id % 4
+
+-- 单表不分表
+-- 理由:单品类商品数量可控(&lt; 100万),查询模式简单
+</code></pre>
+<p><strong>索引策略</strong>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>索引名</th><th>字段</th><th>类型</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td>PRIMARY</td><td>id</td><td>主键</td><td>主键查询</td></tr>
+<tr><td>idx_category</td><td>category_id</td><td>普通</td><td>类目查询</td></tr>
+<tr><td>idx_brand</td><td>brand_id</td><td>普通</td><td>品牌查询</td></tr>
+<tr><td>idx_status</td><td>status</td><td>普通</td><td>状态筛选</td></tr>
+<tr><td>idx_spu</td><td>spu_id</td><td>普通</td><td>SPU查SKU</td></tr>
+<tr><td>idx_code</td><td>sku_code</td><td>唯一</td><td>SKU编码查询</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="7532-消息中间件messaging"><a class="header" href="#7532-消息中间件messaging">7.5.3.2 消息中间件(Messaging)</a></h4>
+<p><strong>职责划分</strong>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>组件</th><th>层级</th><th>职责</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Kafka Producer</strong></td><td>Infrastructure</td><td>事件发布(技术实现)</td><td>发送消息到Kafka Topic</td></tr>
+<tr><td><strong>Kafka Consumer</strong></td><td>Infrastructure</td><td>事件消费(技术实现)</td><td>订阅Topic、接收消息、路由</td></tr>
+<tr><td><strong>Event Handler</strong></td><td>Interface</td><td>协议适配</td><td>Kafka消息 → DTO</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Topic设计</strong>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Topic</th><th>生产者</th><th>消费者</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td><code>product-domain-events</code></td><td>Product Service</td><td>Search Service, Marketing Service</td><td>商品领域事件(商品创建、上架、价格变更)</td></tr>
+<tr><td><code>supplier-product-events</code></td><td>Supplier Service</td><td>Product Service</td><td>供应商商品事件(供应商创建商品)</td></tr>
+<tr><td><code>pricing-events</code></td><td>Pricing Service</td><td>Product Service</td><td>定价事件(价格计算完成)</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h3 id="754-接口层interface-layer"><a class="header" href="#754-接口层interface-layer">7.5.4 接口层(Interface Layer)</a></h3>
+<h4 id="7541-grpc接口定义"><a class="header" href="#7541-grpc接口定义">7.5.4.1 gRPC接口定义</a></h4>
+<p><strong>核心接口</strong>(product.proto):</p>
+<pre><code class="language-protobuf">// ProductService商品服务
+service ProductService {
+    // 查询单个商品
+    rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+    
+    // 批量查询商品
+    rpc BatchGetProducts(BatchGetProductsRequest) returns (BatchGetProductsResponse);
+    
+    // 创建商品
+    rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+    
+    // 更新基础价格
+    rpc UpdateBasePrice(UpdateBasePriceRequest) returns (UpdateBasePriceResponse);
+    
+    // 上架
+    rpc OnShelf(OnShelfRequest) returns (OnShelfResponse);
+    
+    // 下架
+    rpc OffShelf(OffShelfRequest) returns (OffShelfResponse);
+}
+
+message GetProductRequest {
+    int64 sku_id = 1;
+}
+
+message GetProductResponse {
+    ProductInfo product = 1;
+}
+
+message BatchGetProductsRequest {
+    repeated int64 sku_ids = 1;  // 最多100个
+}
+
+message BatchGetProductsResponse {
+    repeated ProductInfo products = 1;
+}
+
+message ProductInfo {
+    int64 sku_id = 1;
+    int64 spu_id = 2;
+    string sku_code = 3;
+    string sku_name = 4;
+    Price base_price = 5;
+    Specifications specs = 6;
+    ProductStatus status = 7;
+}
+
+message Price {
+    int64 amount = 1;  // 金额(分)
+    string currency = 2;  // 货币(CNY)
+}
+
+message Specifications {
+    string color = 1;
+    string size = 2;
+    map&lt;string, string&gt; attrs = 3;  // 其他属性
+}
+
+enum ProductStatus {
+    DRAFT = 0;      // 草稿
+    ON_SHELF = 1;   // 上架
+    OFF_SHELF = 2;  // 下架
+}
+</code></pre>
+<h4 id="7542-http接口可选"><a class="header" href="#7542-http接口可选">7.5.4.2 HTTP接口(可选)</a></h4>
+<pre><code class="language-go">// HTTP接口(供运营后台使用)
+GET    /api/v1/products/:sku_id           # 查询商品
+POST   /api/v1/products                    # 创建商品
+PUT    /api/v1/products/:sku_id           # 更新商品
+POST   /api/v1/products/:sku_id/on-shelf  # 上架
+POST   /api/v1/products/:sku_id/off-shelf # 下架
+</code></pre>
+<h4 id="7543-event接口异步"><a class="header" href="#7543-event接口异步">7.5.4.3 Event接口(异步)</a></h4>
+<p><strong>事件订阅接口</strong>(接收外部服务事件):</p>
+<pre><code class="language-go">// ProductEventHandler 商品事件处理器(接口层)
+// 职责:适配外部事件消息 → 调用Application Service
+type ProductEventHandler struct {
+    productService *service.ProductService
+}
+
+// 处理消息入口
+func (h *ProductEventHandler) HandleMessage(ctx context.Context, messageType string, data []byte) error
+
+// 订阅的事件类型
+const (
+    SupplierProductCreated = "supplier.product.created"  // 供应商商品创建
+    PricingPriceChanged    = "pricing.price_changed"     // 定价变更
+)
+</code></pre>
+<p><strong>与HTTP/gRPC的区别</strong>:</p>
+<ul>
+<li><strong>同步接口</strong>(HTTP/gRPC):客户端等待响应</li>
+<li><strong>异步接口</strong>(Event):消息队列异步触发,无响应</li>
+</ul>
+<p><strong>职责</strong>:</p>
+<ul>
+<li>✅ 协议适配(Kafka消息 → DTO)</li>
+<li>✅ 调用Application Service</li>
+<li>❌ 不负责Kafka连接(由Infrastructure Layer的Kafka Consumer负责)</li>
+</ul>
+<hr>
+<h3 id="755-应用服务层application-layer"><a class="header" href="#755-应用服务层application-layer">7.5.5 应用服务层(Application Layer)</a></h3>
+<h4 id="7551-核心代码结构"><a class="header" href="#7551-核心代码结构">7.5.5.1 核心代码结构</a></h4>
+<pre><code>product-service/
+├── cmd/
+│   └── main.go                          # 服务入口
+├── internal/
+│   ├── domain/                          # 领域模型层
+│   │   ├── product.go                   # Product聚合根
+│   │   ├── spu.go                       # SPU实体
+│   │   ├── value_objects.go             # 值对象(SKU_ID, Price, Specifications)
+│   │   ├── events.go                    # 领域事件
+│   │   └── repository.go                # Repository接口
+│   ├── application/                     # 应用服务层
+│   │   ├── dto/
+│   │   │   ├── product_request.go       # 请求DTO
+│   │   │   └── product_response.go      # 响应DTO
+│   │   └── service/
+│   │       ├── product_service.go       # 商品应用服务
+│   │       └── product_query_service.go # 查询服务(CQRS)
+│   ├── infrastructure/                  # 基础设施层
+│   │   ├── persistence/
+│   │   │   ├── product_repository.go    # Repository实现
+│   │   │   ├── data_object.go           # 数据对象(DO)
+│   │   │   └── sharding.go              # 分库路由
+│   │   ├── cache/
+│   │   │   ├── redis_cache.go           # Redis缓存
+│   │   │   └── local_cache.go           # 本地缓存
+│   │   └── messaging/                   # 消息中间件
+│   │       ├── kafka_producer.go        # Kafka生产者(事件发布)
+│   │       └── kafka_consumer.go        # Kafka消费者(技术实现)
+│   └── interfaces/                      # 接口层
+│       ├── grpc/
+│       │   ├── product_handler.go       # gRPC处理器
+│       │   └── proto/
+│       │       └── product.proto        # Protobuf定义
+│       ├── http/
+│       │   └── product_handler.go       # HTTP处理器(可选)
+│       └── event/                       # 事件接口(异步)
+│           └── product_event_handler.go # Event Handler
+├── config/
+│   └── config.yaml                      # 配置文件
+├── migrations/                          # 数据库迁移
+│   └── 001_create_product_tables.sql
+└── go.mod
+</code></pre>
+<h4 id="7552-核心应用服务实现"><a class="header" href="#7552-核心应用服务实现">7.5.5.2 核心应用服务实现</a></h4>
+<p><strong>应用服务层</strong>(product_service.go):</p>
+<pre><code class="language-go">type ProductService struct {
+    repo           domain.ProductRepository
+    eventPublisher EventPublisher
+}
+
+// GetProduct 查询商品(三级缓存)
+func (s *ProductService) GetProduct(ctx context.Context, skuID int64) (*dto.ProductResponse, error) {
+    // Step 1: 通过Repository查询(Repository内部实现三级缓存)
+    product, err := s.repo.FindBySKUID(ctx, domain.NewSKU_ID(skuID))
+    if err != nil {
+        return nil, fmt.Errorf("product not found: %w", err)
+    }
+    
+    // Step 2: Domain Model → DTO
+    return s.toDTO(product), nil
+}
+
+// BatchGetProducts 批量查询商品
+func (s *ProductService) BatchGetProducts(ctx context.Context, skuIDs []int64) ([]*dto.ProductResponse, error) {
+    // 参数校验:限制批量大小
+    if len(skuIDs) &gt; 100 {
+        return nil, errors.New("批量查询最多100个")
+    }
+    
+    // 转换为值对象
+    domainIDs := make([]domain.SKU_ID, len(skuIDs))
+    for i, id := range skuIDs {
+        domainIDs[i] = domain.NewSKU_ID(id)
+    }
+    
+    // 批量查询
+    products, err := s.repo.BatchFindBySKUIDs(ctx, domainIDs)
+    if err != nil {
+        return nil, err
+    }
+    
+    // 转换为DTO
+    dtos := make([]*dto.ProductResponse, len(products))
+    for i, p := range products {
+        dtos[i] = s.toDTO(p)
+    }
+    
+    return dtos, nil
+}
+
+// CreateProduct 创建商品
+func (s *ProductService) CreateProduct(ctx context.Context, req *dto.CreateProductRequest) (*dto.ProductResponse, error) {
+    // Step 1: DTO → Domain Model
+    product, err := s.buildProduct(req)
+    if err != nil {
+        return nil, fmt.Errorf("build product failed: %w", err)
+    }
+    
+    // Step 2: 保存(Repository内部发布领域事件)
+    if err := s.repo.Save(ctx, product); err != nil {
+        return nil, fmt.Errorf("save product failed: %w", err)
+    }
+    
+    return s.toDTO(product), nil
+}
+
+// OnShelf 商品上架
+func (s *ProductService) OnShelf(ctx context.Context, skuID int64) error {
+    // Step 1: 查询聚合根
+    product, err := s.repo.FindBySKUID(ctx, domain.NewSKU_ID(skuID))
+    if err != nil {
+        return err
+    }
+    
+    // Step 2: 执行领域逻辑(状态转换)
+    if err := product.OnShelf(); err != nil {
+        return err
+    }
+    
+    // Step 3: 保存聚合根(自动发布领域事件)
+    return s.repo.Update(ctx, product)
+}
+
+// UpdateBasePrice 更新基础价格
+func (s *ProductService) UpdateBasePrice(ctx context.Context, skuID int64, newPrice int64) error {
+    // Step 1: 查询聚合根
+    product, err := s.repo.FindBySKUID(ctx, domain.NewSKU_ID(skuID))
+    if err != nil {
+        return err
+    }
+    
+    // Step 2: 创建价格值对象(带校验)
+    price, err := domain.NewPrice(newPrice)
+    if err != nil {
+        return fmt.Errorf("invalid price: %w", err)
+    }
+    
+    // Step 3: 执行领域逻辑
+    if err := product.UpdateBasePrice(price); err != nil {
+        return err
+    }
+    
+    // Step 4: 保存聚合根(自动发布PriceChangedEvent)
+    return s.repo.Update(ctx, product)
+}
+</code></pre>
+<h4 id="7553-领域事件"><a class="header" href="#7553-领域事件">7.5.5.3 领域事件</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>事件名</th><th>触发时机</th><th>事件数据</th><th>消费方</th><th>Topic</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>ProductCreated</strong></td><td>商品创建成功</td><td>sku_id, spu_id, title, category_id, base_price</td><td>Search Service, Recommendation</td><td>product-events</td><td>同步到ES索引</td></tr>
+<tr><td><strong>ProductUpdated</strong></td><td>商品信息更新</td><td>sku_id, changed_fields</td><td>Search Service, Cache Invalidation</td><td>product-events</td><td>更新ES、清缓存</td></tr>
+<tr><td><strong>ProductOnShelf</strong></td><td>商品上架</td><td>sku_id, spu_id, on_shelf_time</td><td>Search Service, Marketing</td><td>product-events</td><td>上架通知、活动关联</td></tr>
+<tr><td><strong>ProductOffShelf</strong></td><td>商品下架</td><td>sku_id, reason, off_shelf_time</td><td>Search Service, Order Service</td><td>product-events</td><td>从ES移除、停止接单</td></tr>
+<tr><td><strong>PriceChanged</strong></td><td>基础价格变更</td><td>sku_id, old_price, new_price</td><td>Pricing Service, Analytics</td><td>product-events</td><td>重新计算售价、价格分析</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>事件结构定义</strong>:</p>
+<pre><code class="language-go">// ProductCreatedEvent 商品创建事件
+type ProductCreatedEvent struct {
+    SKUID      int64     `json:"sku_id"`
+    SPUID      int64     `json:"spu_id"`
+    Title      string    `json:"title"`
+    CategoryID int64     `json:"category_id"`
+    BasePrice  int64     `json:"base_price"`
+    CreatedAt  time.Time `json:"created_at"`
+}
+
+func (e *ProductCreatedEvent) Type() string {
+    return "product.created"
+}
+
+// ProductOnShelfEvent 商品上架事件
+type ProductOnShelfEvent struct {
+    SKUID       int64     `json:"sku_id"`
+    SPUID       int64     `json:"spu_id"`
+    OnShelfTime time.Time `json:"on_shelf_time"`
+}
+
+func (e *ProductOnShelfEvent) Type() string {
+    return "product.on_shelf"
+}
+
+// PriceChangedEvent 价格变更事件
+type PriceChangedEvent struct {
+    SKUID     int64     `json:"sku_id"`
+    OldPrice  int64     `json:"old_price"`
+    NewPrice  int64     `json:"new_price"`
+    ChangedAt time.Time `json:"changed_at"`
+}
+
+func (e *PriceChangedEvent) Type() string {
+    return "product.price_changed"
+}
+</code></pre>
+<h4 id="7554-事件订阅者的分层设计"><a class="header" href="#7554-事件订阅者的分层设计">7.5.5.4 事件订阅者的分层设计</a></h4>
+<p><strong>核心问题</strong>:DDD架构中,事件订阅者(Event Subscriber)应该放在哪一层?</p>
+<p>这是微服务架构中的经典设计问题。不同的分层方案会影响代码的复用性、可测试性和职责清晰度。</p>
+<p><strong>方案对比</strong></p>
+<p><strong>方案A:Interface Layer(推荐)</strong></p>
+<p>事件订阅者是“异步接口“,与HTTP/gRPC同级。</p>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│              Interface Layer (接口层)                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │ HTTP Handler │  │ gRPC Handler │  │Event Subscriber│     │
+│  │  (同步接口)   │  │  (同步接口)   │  │  (异步接口)    │     │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
+│         │                  │                  │               │
+└─────────┼──────────────────┼──────────────────┼─────────────┘
+          ↓                  ↓                  ↓
+┌─────────────────────────────────────────────────────────────┐
+│    同一个 Application Service (ProductService)                │
+│    - GetProduct()     (查询)                                 │
+│    - CreateProduct()  (命令)                                 │
+│    - OnShelf()        (命令)                                 │
+│    - UpdatePrice()    (命令)                                 │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>推荐方案A的原因</strong>:</p>
+<ol>
+<li><strong>对称性</strong>:HTTP、gRPC、Event都是外部触发源,应该同级</li>
+<li><strong>复用性</strong>:Application Service被所有接口复用,业务逻辑只写一次</li>
+<li><strong>职责清晰</strong>:Interface负责协议适配,Infrastructure负责技术实现</li>
+<li><strong>易于测试</strong>:可以直接测试Application Service,不依赖Kafka</li>
+<li><strong>易于替换</strong>:更换消息队列只需修改Infrastructure Layer</li>
+</ol>
+<hr>
+<h3 id="756-三级缓存实现infrastructure-layer详细实现"><a class="header" href="#756-三级缓存实现infrastructure-layer详细实现">7.5.6 三级缓存实现(Infrastructure Layer详细实现)</a></h3>
+<p><strong>三级缓存架构</strong>:</p>
+<pre><code class="language-go">// L1: 本地缓存(1分钟)
+// 优点:延迟最低(&lt;1ms),适合热点商品
+// 缺点:容量有限,多实例不一致
+localCache.Set("product:"+skuID, product, 1*time.Minute)
+
+// L2: Redis缓存(30分钟)
+// 优点:容量大,多实例共享
+// 缺点:网络开销(1-5ms)
+redis.Set("product:"+skuID, marshal(product), 30*time.Minute)
+
+// L3: MySQL(源数据)
+// 优点:数据权威、一致
+// 缺点:延迟最高(10-50ms)
+db.QueryOne("SELECT * FROM product_sku WHERE id = ?", skuID)
+</code></pre>
+<p><strong>缓存更新策略</strong>:</p>
+<ol>
+<li><strong>商品更新时</strong>:主动删除缓存(Cache Aside模式)</li>
+<li><strong>上下架时</strong>:删除L1+L2缓存,强制下次查询走DB</li>
+<li><strong>价格变更时</strong>:删除缓存 + 发布PriceChangedEvent通知Pricing Service</li>
+</ol>
+<p><strong>缓存Key设计</strong>:</p>
+<pre><code>product:{sku_id}                    # 单个商品
+product:spu:{spu_id}                # SPU下所有SKU(Hash结构)
+product:category:{category_id}      # 类目商品列表(Set结构)
+</code></pre>
+<hr>
+<h3 id="757-完整示例代码"><a class="header" href="#757-完整示例代码">7.5.7 完整示例代码</a></h3>
+<p>本章节的完整代码实现(包含DDD四层架构、事件发布订阅、三级缓存等)详见:</p>
+<p><strong>示例代码路径</strong>:<code>/ecommerce-book/examples/product-service/</code></p>
+<p><strong>运行Demo</strong>:</p>
+<pre><code class="language-bash">cd ecommerce-book/examples/product-service
+go run cmd/main.go
+</code></pre>
+<p><strong>学习要点</strong>:</p>
+<ol>
+<li><strong>DDD分层架构</strong>:Domain、Application、Infrastructure、Interface四层</li>
+<li><strong>事件订阅者分层</strong>:Interface Layer作为异步接口(推荐阅读 <code>EVENT_SUBSCRIBER_LAYER.md</code>)</li>
+<li><strong>三级缓存实现</strong>:L1本地缓存 → L2 Redis → L3 MySQL</li>
+<li><strong>领域事件发布订阅</strong>:Domain产生事件 → Application发布 → Infrastructure投递 → Interface消费</li>
+</ol>
+<hr>
+<h2 id="76-商品搜索与缓存"><a class="header" href="#76-商品搜索与缓存">7.6 商品搜索与缓存</a></h2>
 <h3 id="751-elasticsearch-索引设计"><a class="header" href="#751-elasticsearch-索引设计">7.5.1 Elasticsearch 索引设计</a></h3>
 <p>索引文档建议同时携带 <strong>SPU 级字段</strong> 与 <strong>nested SKU 列表</strong>，以支持「按规格价区间过滤」「按 SKU 库存状态过滤」等复杂导购。<code>title</code> 建议 <code>text + keyword</code> 双字段；筛选字段尽量 <code>keyword</code> / <code>long</code>；高基数标签谨慎正排。</p>
 <p><strong>nested vs 扁平化</strong>：nested 查询语义正确但成本更高；若列表页只需要 <code>price_min/max</code> 聚合，SKU 细节仅在详情需要，可采用 <strong>SPU 文档 + SKU 侧车索引</strong>（sidecar index）或在详情回源商品中心。取舍原则是：<strong>列表查询模式</strong> 决定索引形状，而不是把 DB 表结构原样搬进 ES。</p>
@@ -665,11 +1524,11 @@ func UpsertSPU(ctx context.Context, reg *StrategyRegistry, repo ProductRepositor
 }
 </code></pre>
 <hr>
-<h2 id="76-商品快照"><a class="header" href="#76-商品快照">7.6 商品快照</a></h2>
-<h3 id="761-快照的必要性"><a class="header" href="#761-快照的必要性">7.6.1 快照的必要性</a></h3>
+<h2 id="77-商品快照"><a class="header" href="#77-商品快照">7.7 商品快照</a></h2>
+<h3 id="771-快照的必要性"><a class="header" href="#771-快照的必要性">7.7.1 快照的必要性</a></h3>
 <p>订单域需要展示 <strong>下单瞬间</strong> 的商品标题、主图、规格文本等，若直接引用实时商品，会遇到改价、换图、改标题后的纠纷。<strong>商品快照</strong>提供不可变展示材料；<strong>应付金额</strong>仍应以计价系统快照为准（第 11 章），二者不可混为一谈。</p>
 <p><strong>法务与客服视角</strong>：客服工单里最常见的问题之一是「我下单时页面明明写的是 A」。若订单只存 <code>spu_id</code> 而不存快照，团队只能凭日志猜测。快照不是为了替代审计日志，而是给 <strong>用户可见解释</strong> 提供最低成本证据链。对跨境业务，还要考虑快照是否包含 <strong>合规字段</strong>（例如能量标、成分表、警示语），这些字段若仅存在运营后台而未进入快照，纠纷时依旧说不清。</p>
-<h3 id="762-生成策略"><a class="header" href="#762-生成策略">7.6.2 生成策略</a></h3>
+<h3 id="772-生成策略"><a class="header" href="#772-生成策略">7.7.2 生成策略</a></h3>
 <p>推荐策略：</p>
 <ol>
 <li><strong>创单前</strong>：订单服务向商品中心请求 <code>CreateSnapshot(spu_id, sku_id)</code>，返回 <code>snapshot_id</code>。</li>
@@ -753,7 +1612,7 @@ func FindOrCreateSnapshot(ctx context.Context, repo SnapshotRepository, in Snaps
 	return snap, nil
 }
 </code></pre>
-<h3 id="763-复用优化"><a class="header" href="#763-复用优化">7.6.3 复用优化</a></h3>
+<h3 id="773-复用优化"><a class="header" href="#773-复用优化">7.7.3 复用优化</a></h3>
 <ul>
 <li><strong>内容寻址</strong>：相同 <code>spu + sku + 展示属性集合</code> 自然复用一条记录，极大节省存储。</li>
 <li><strong>分层快照</strong>：若属性来自模板且变化频繁，可将「模板版本号」写入快照正文，减少字段膨胀。</li>
@@ -772,12 +1631,12 @@ func FindOrCreateSnapshot(ctx context.Context, repo SnapshotRepository, in Snaps
 </pre>
 
 <hr>
-<h2 id="77-系统边界与职责"><a class="header" href="#77-系统边界与职责">7.7 系统边界与职责</a></h2>
-<h3 id="771-商品中心的职责边界"><a class="header" href="#771-商品中心的职责边界">7.7.1 商品中心的职责边界</a></h3>
+<h2 id="78-系统边界与职责"><a class="header" href="#78-系统边界与职责">7.8 系统边界与职责</a></h2>
+<h3 id="781-商品中心的职责边界"><a class="header" href="#781-商品中心的职责边界">7.8.1 商品中心的职责边界</a></h3>
 <p><strong>负责</strong>：SPU/SKU 与类目属性、商品状态与版本、导购读模型（经缓存/搜索）、商品展示快照的生成与存储、商品变更事件。</p>
 <p><strong>不负责</strong>：库存数量真相、预占扣减、实时价与促销价计算、支付、履约执行。</p>
 <p><strong>「商品可售」到底是谁说了算</strong>：前台常把「上架 + 有货 + 可售卖区域」合成一个可售状态。建议拆分为：<strong>商品中心给出上架与基础合规</strong>；<strong>库存系统给出是否有货/可预占</strong>；<strong>计价系统给出是否可成交价格</strong>；<strong>风控/合规系统给出是否允许售卖</strong>（必要时）。任何「一个字段代表一切」的聚合，最终都会在边界扩张时崩掉。</p>
-<h3 id="772-商品-vs-库存边界划分"><a class="header" href="#772-商品-vs-库存边界划分">7.7.2 商品 vs 库存：边界划分</a></h3>
+<h3 id="782-商品-vs-库存边界划分"><a class="header" href="#782-商品-vs-库存边界划分">7.8.2 商品 vs 库存:边界划分</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -793,7 +1652,7 @@ func FindOrCreateSnapshot(ctx context.Context, repo SnapshotRepository, in Snaps
 </div>
 <p>商品中心最多保留 <strong>非权威的「展示库存」投影</strong>（来自库存系统的异步同步），下单前必须以库存接口为准。</p>
 <p><strong>多仓与渠道</strong>：若同一 SKU 在多仓有库存，商品中心不应尝试计算「总可售」作为唯一真相；最多展示 <strong>汇总估算</strong> 并明确免责声明。渠道专供（例如某 SKU 仅 App 可售）属于 <strong>售卖规则</strong>，更接近营销/交易配置域，商品中心可提供绑定关系，但执行应在下单链路校验。</p>
-<h3 id="773-商品-vs-价格边界划分"><a class="header" href="#773-商品-vs-价格边界划分">7.7.3 商品 vs 价格：边界划分</a></h3>
+<h3 id="783-商品-vs-价格边界划分"><a class="header" href="#783-商品-vs-价格边界划分">7.8.3 商品 vs 价格:边界划分</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -809,7 +1668,7 @@ func FindOrCreateSnapshot(ctx context.Context, repo SnapshotRepository, in Snaps
 </div>
 <p><strong>反模式</strong>：商品中心内部「顺手算最终价」并写入订单，会导致营销规则重复实现、一致性灾难。</p>
 <p><strong>基础价与协议价</strong>：B2B2C 里常见「供应商底价 + 平台加价」。底价协议可能在供应商合同系统，商品中心只存展示标价与必要的 <strong>成本参考字段</strong>（权限严格控制）。无论如何，<strong>对用户展示价</strong> 仍应由计价试算输出，以避免前台与结算页价格不一致。</p>
-<h3 id="774-不负责的内容反模式"><a class="header" href="#774-不负责的内容反模式">7.7.4 不负责的内容（反模式）</a></h3>
+<h3 id="784-不负责的内容反模式"><a class="header" href="#784-不负责的内容反模式">7.8.4 不负责的内容(反模式)</a></h3>
 <ul>
 <li>在商品服务内直连扣减库存或调用支付。</li>
 <li>把供应商原始 JSON 不经映射直接暴露给前台（破坏防腐层）。</li>
@@ -819,14 +1678,14 @@ func FindOrCreateSnapshot(ctx context.Context, repo SnapshotRepository, in Snaps
 </ul>
 <p><strong>边界评审清单（可复用）</strong>：每次需求评审问五个问题：写入哪个系统的数据库？谁是唯一真相？失败如何补偿？读路径是否可降级？事件顺序是否可保证？商品中心相关需求，至少应画出 <strong>写事务边界</strong> 与 <strong>读权威来源</strong>。</p>
 <hr>
-<h2 id="78-与其他系统的集成"><a class="header" href="#78-与其他系统的集成">7.8 与其他系统的集成</a></h2>
-<h3 id="781-上游供应商运营商家"><a class="header" href="#781-上游供应商运营商家">7.8.1 上游：供应商、运营、商家</a></h3>
+<h2 id="79-与其他系统的集成"><a class="header" href="#79-与其他系统的集成">7.9 与其他系统的集成</a></h2>
+<h3 id="791-上游供应商运营商家"><a class="header" href="#791-上游供应商运营商家">7.9.1 上游:供应商、运营、商家</a></h3>
 <ul>
 <li><strong>供应商</strong>：Push / Pull 进入同步服务，强调幂等键、版本号与乱序保护。</li>
 <li><strong>运营/商家</strong>：经上架系统或运营后台进入，附带审核流（第 10 章）。</li>
 </ul>
 <p><strong>上游权限与审计</strong>：同一 <code>spu_id</code> 可能被供应商改价、运营改标题、商家改图同时触发。需要 <strong>来源优先级</strong> 规则（例如「运营锁定字段」）与冲突检测，否则会出现后写覆盖先写但业务上不合理的结果。审计日志应记录来源系统、操作者、trace id。</p>
-<h3 id="782-下游搜索订单营销计价"><a class="header" href="#782-下游搜索订单营销计价">7.8.2 下游：搜索、订单、营销、计价</a></h3>
+<h3 id="792-下游搜索订单营销计价"><a class="header" href="#792-下游搜索订单营销计价">7.9.2 下游:搜索、订单、营销、计价</a></h3>
 <ul>
 <li><strong>搜索</strong>：消费 <code>product.changed</code> 或 CDC，更新 ES 文档。</li>
 <li><strong>订单</strong>：创单读取快照 ID；库存/价格各自调用对应系统。</li>
@@ -834,7 +1693,7 @@ func FindOrCreateSnapshot(ctx context.Context, repo SnapshotRepository, in Snaps
 <li><strong>计价</strong>：读取商品类型、类目、基础价参数（不负责促销计算）。</li>
 </ul>
 <p><strong>Hydrate 模式的注意点</strong>：搜索列表常做「列表价、活动标签、库存状态」的 Hydrate。若 Hydrate 强依赖多个下游，商品中心不应成为 <strong>同步扇出中心</strong>；更合理的是由 <strong>导购聚合服务</strong>（第 12 章）编排，商品中心提供批量查询接口即可。</p>
-<h3 id="783-商品数据同步策略"><a class="header" href="#783-商品数据同步策略">7.8.3 商品数据同步策略</a></h3>
+<h3 id="793-商品数据同步策略"><a class="header" href="#793-商品数据同步策略">7.9.3 商品数据同步策略</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -847,11 +1706,11 @@ func FindOrCreateSnapshot(ctx context.Context, repo SnapshotRepository, in Snaps
 </tbody>
 </table>
 </div>
-<h3 id="784-商品变更事件发布"><a class="header" href="#784-商品变更事件发布">7.8.4 商品变更事件发布</a></h3>
+<h3 id="794-商品变更事件发布"><a class="header" href="#794-商品变更事件发布">7.9.4 商品变更事件发布</a></h3>
 <p>事件应携带 <strong><code>spu_id</code>、变更类型、<code>version</code>、发生时间</strong>；必要时携带 diff 摘要以减少消费者回源。分区键使用 <code>spu_id</code> 保序。</p>
 <p><strong>事件版本与兼容性</strong>：事件 schema 演进要遵循向后兼容或双写窗口。消费者（尤其外部团队维护的搜索管道）最怕「静默新增必填字段」。建议在事件头加入 <code>schema_version</code>，并在治理平台登记兼容策略。</p>
 <p><strong>重放与幂等</strong>：消费者应以 <code>spu_id + version</code> 或 <code>event_id</code> 做幂等表，避免重启消费组后重复投影导致 ES 写入放大。</p>
-<h3 id="785-集成失败处理与降级"><a class="header" href="#785-集成失败处理与降级">7.8.5 集成失败处理与降级</a></h3>
+<h3 id="795-集成失败处理与降级"><a class="header" href="#795-集成失败处理与降级">7.9.5 集成失败处理与降级</a></h3>
 <ul>
 <li><strong>搜索延迟</strong>：详情仍可由 DB/缓存提供；列表可提示「结果可能非最新」。</li>
 <li><strong>快照创建失败</strong>：创单失败快速返回，不入单；禁止「无快照先进单」。</li>
@@ -888,11 +1747,11 @@ func FindOrCreateSnapshot(ctx context.Context, repo SnapshotRepository, in Snaps
 
 <p><strong>集成模式对比（落地选型）</strong>：当下游需要强一致读最新商品字段时，优先评估是否 <strong>其实需要交易快照</strong> 而不是实时商品；多数「强一致」诉求源于边界未划清。对搜索索引，默认选 <strong>异步最终一致</strong>；对创单快照，选 <strong>同步 RPC + DB 唯一约束</strong>；对营销圈品刷新，可用延迟队列合并短时间多次变更，降低风暴。</p>
 <hr>
-<h2 id="79-工程实践要点"><a class="header" href="#79-工程实践要点">7.9 工程实践要点</a></h2>
-<h3 id="791-商品-id-生成"><a class="header" href="#791-商品-id-生成">7.9.1 商品 ID 生成</a></h3>
+<h2 id="710-工程实践要点"><a class="header" href="#710-工程实践要点">7.10 工程实践要点</a></h2>
+<h3 id="7101-商品-id-生成"><a class="header" href="#7101-商品-id-生成">7.10.1 商品 ID 生成</a></h3>
 <p>Snowflake / UUID / DB 分段取号皆可；分库分表场景优先 <strong>全局可路由 ID</strong>（如 Snowflake）。注意时钟回拨治理与跨机房时钟同步。</p>
 <p><strong>可读性与安全</strong>：对外暴露的商品编码是否可预测，会影响爬虫与撞库风险。若需要公开分享链接，建议 <code>spu_id</code> 与 <strong>公开 token</strong> 分离：内部用 Snowflake，外部用短链随机 token 映射。</p>
-<h3 id="792-性能优化"><a class="header" href="#792-性能优化">7.9.2 性能优化</a></h3>
+<h3 id="7102-性能优化"><a class="header" href="#7102-性能优化">7.10.2 性能优化</a></h3>
 <ul>
 <li><strong>读写分离</strong>：导购读走从库 + 缓存。</li>
 <li><strong>热点 SPU</strong>：单 key 拆分（本地缓存短 TTL + 单飞回源）。</li>
@@ -900,12 +1759,12 @@ func FindOrCreateSnapshot(ctx context.Context, repo SnapshotRepository, in Snaps
 </ul>
 <p><strong>数据库侧</strong>：为 <code>(category_id, status, updated_at)</code> 等常见筛选加组合索引；大文本与富文本尽量拆附属表，避免主行过宽拖慢缓存组装。对 <code>sku_tab</code> 高频按 <code>spu_id</code> 查询，确保聚簇或覆盖索引命中。</p>
 <p><strong>发布峰值</strong>：大促前供应商全量同步可能造成写入排队。应准备 <strong>限速、批处理合并、异步队列削峰</strong>，并提前扩容 Kafka 分区与消费组并行度，避免搜索投影长时间滞后引发「上架了搜不到」事故。</p>
-<h3 id="793-监控告警"><a class="header" href="#793-监控告警">7.9.3 监控告警</a></h3>
+<h3 id="7103-监控告警"><a class="header" href="#7103-监控告警">7.10.3 监控告警</a></h3>
 <p>关注：同步失败率、ES 消费滞后、<code>product.changed</code> 重试队列深度、详情接口 P99、缓存命中率、快照插入冲突率（过高可能暗示序列化不稳定）。</p>
 <p><strong>业务指标</strong>：审核通过率、供应商字段映射失败率、类目覆盖率、快照创建耗时分布。把技术指标与业务指标关联，才能判断「慢」是系统问题还是供应商数据质量问题。</p>
 <p><strong>API 契约、向后兼容与演练（纳入同一治理面）</strong>：商品中心的对外接口往往是全链路最高频依赖之一，<strong>契约治理</strong>与第 6 章「系统集成」方法天然衔接：对供应商同步接口，必须定义 <strong>幂等键</strong>、<strong>最大重试窗口</strong>、<strong>字段默认值</strong>、<strong>未知字段忽略策略</strong>；对前台导购接口，必须定义 <strong>分页稳定性</strong>（游标与 offset 的取舍）、<strong>批量上限</strong>、<strong>降级字段</strong>（例如缺图时的占位图策略）。读取接口新增字段一般向后兼容；删除或改语义字段应走版本化路径（例如 <code>/v2/products</code>）或灰度窗口。写入接口对「部分更新 PATCH」要特别谨慎：SKU 列表部分更新容易导致客户端误删未提交字段，常见做法是显式 <code>replace_skus</code> 模式或提交 <code>version</code> 乐观锁。建议每季度做一次「Kafka 消费滞后 + ES 写入失败 + 缓存大面积失效」的组合演练，验证商品详情是否仍能 <strong>降级可读</strong>、创单是否 <strong>快速失败</strong>、供应商同步是否 <strong>可暂停可恢复</strong>。</p>
 <hr>
-<h2 id="710-本章小结"><a class="header" href="#710-本章小结">7.10 本章小结</a></h2>
+<h2 id="711-本章小结"><a class="header" href="#711-本章小结">7.11 本章小结</a></h2>
 <p>商品中心的核心是 <strong>以 SPU/SKU 与类目属性为内核</strong>，用 <strong>事件驱动</strong> 连接搜索与缓存读模型，用 <strong>快照</strong> 服务订单不可变展示，用 <strong>策略与适配器</strong> 治理异构品类。与库存、计价的边界一旦模糊，就会出现超卖、错价、补偿困难等系统性风险。落地时建议团队反复使用三句话自检：<strong>商品中心只保证商品事实</strong>；<strong>库存系统保证数量真相</strong>；<strong>计价系统保证成交金额解释链</strong>。</p>
 <p><strong>与全书其他章节的衔接建议</strong>：读完本章再读第 8 章《库存系统》理解「数量真相」与预占；读第 11 章《计价系统》理解「试算与快照」；读第 12 章《搜索与导购》理解 Hydrate 与索引延迟；读第 14 章《订单系统》理解订单行如何引用商品快照并与 Saga 编排协同。这样可以把「商品写入 → 投影 → 导购 → 创单」串成一条完整的可讲解链路。</p>
 <p>下一章《库存系统》将从库存真相与预占扣减视角，继续完善交易链路拼图。</p>

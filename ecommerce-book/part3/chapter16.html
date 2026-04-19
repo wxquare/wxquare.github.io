@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e9388be9.js";
+            window.path_to_searchindex_js = "../searchindex-941fc827.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-c684b900.js"></script>
@@ -184,7 +184,7 @@
 <p><strong>综合案例</strong>：一个中大型B2B2C电商平台的完整架构设计，从品类分析到技术选型，从系统设计到团队协作，覆盖200+人团队、日订单200万级的实战经验与架构决策。</p>
 </blockquote>
 <hr>
-<h2 id="161-项目背景"><a class="header" href="#161-项目背景">16.1 项目背景</a></h2>
+<h2 id="161-项目背景business-context"><a class="header" href="#161-项目背景business-context">16.1 项目背景（Business Context）</a></h2>
 <h3 id="1611-业务模式"><a class="header" href="#1611-业务模式">16.1.1 业务模式</a></h3>
 <p><strong>核心定位</strong>：B2B2C聚合电商平台</p>
 <p>本平台采用“聚合供应商“模式，连接50+外部供应商（机票、酒店、充值、电影票等），同时支持自营业务（优惠券、礼品卡）。<strong>关键特征是「无物流场景」</strong>——所有商品均为虚拟数字商品，履约通过API调用完成，无需物流配送环节。</p>
@@ -254,7 +254,7 @@
 <li>支持新营销玩法：&lt; 3天（规则引擎）</li>
 </ul>
 <hr>
-<h2 id="162-品类业务模型分析"><a class="header" href="#162-品类业务模型分析">16.2 品类业务模型分析</a></h2>
+<h2 id="162-品类业务模型分析business-architecture"><a class="header" href="#162-品类业务模型分析business-architecture">16.2 品类业务模型分析（Business Architecture）</a></h2>
 <p>不同品类的业务模型存在显著差异，直接影响架构设计决策。理解这些差异是系统设计的基础。</p>
 <h3 id="1621-机票业务模型"><a class="header" href="#1621-机票业务模型">16.2.1 机票业务模型</a></h3>
 <p><strong>业务特点</strong>：</p>
@@ -512,9 +512,203 @@ func (f *CategoryStrategyFactory) GetStrategy(categoryType CategoryType) Categor
 <li><strong>可扩展性</strong>：新增品类只需新增策略，不影响主流程</li>
 </ol>
 <hr>
-<h2 id="163-整体架构设计"><a class="header" href="#163-整体架构设计">16.3 整体架构设计</a></h2>
-<h3 id="1631-分层架构"><a class="header" href="#1631-分层架构">16.3.1 分层架构</a></h3>
-<p>采用经典的四层架构，确保职责清晰、易于维护。</p>
+<h2 id="163-ddd战略设计与系统边界application-architecture---设计过程"><a class="header" href="#163-ddd战略设计与系统边界application-architecture---设计过程">16.3 DDD战略设计与系统边界（Application Architecture - 设计过程）</a></h2>
+<p>基于16.2的品类业务分析，本节展示如何运用DDD战略设计方法，从业务领域识别限界上下文、划分系统边界、设计服务间集成方式，最终形成16.4的整体架构全貌。</p>
+<h3 id="1631-限界上下文识别"><a class="header" href="#1631-限界上下文识别">16.3.1 限界上下文识别</a></h3>
+<p><strong>限界上下文是DDD战略设计的核心概念</strong>，它定义了一个模型的适用边界。本系统通过事件风暴识别出12个核心限界上下文。</p>
+<p><strong>识别过程</strong>（事件风暴Workshop）：</p>
+<pre><code>第1步：领域事件识别（橙色便签）
+• OrderCreated（订单创建）
+• ProductOnShelf（商品上架）
+• StockReserved（库存预占）
+• PaymentPaid（支付成功）
+• PromotionApplied（促销应用）
+...
+
+第2步：聚合命令（蓝色便签）
+• CreateOrder（创建订单）
+• ReserveStock（预占库存）
+• CalculatePrice（计算价格）
+• ApplyPromotion（应用促销）
+...
+
+第3步：聚合实体（黄色便签）
+• Order（订单）
+• Product（商品）
+• Stock（库存）
+• Payment（支付）
+• Promotion（促销）
+...
+
+第4步：限界上下文识别（用绳子圈起相关的实体/命令/事件）
+• 订单上下文：Order + CreateOrder + OrderCreated
+• 商品上下文：Product + OnShelfProduct + ProductOnShelf
+• 库存上下文：Stock + ReserveStock + StockReserved
+...
+</code></pre>
+<p><strong>识别出的12个限界上下文</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>限界上下文</th><th>核心聚合根</th><th>核心职责</th><th>数据所有权</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>订单上下文</strong></td><td>Order</td><td>订单创建、状态机、履约</td><td>orders、order_items</td></tr>
+<tr><td><strong>商品上下文</strong></td><td>Product</td><td>商品信息、类目、属性</td><td>products、categories</td></tr>
+<tr><td><strong>库存上下文</strong></td><td>Stock</td><td>库存管理、预占、扣减</td><td>stocks、stock_logs</td></tr>
+<tr><td><strong>计价上下文</strong></td><td>Price</td><td>价格计算、试算、快照</td><td>price_snapshots</td></tr>
+<tr><td><strong>营销上下文</strong></td><td>Promotion</td><td>营销规则、优惠券、活动</td><td>promotions、coupons</td></tr>
+<tr><td><strong>支付上下文</strong></td><td>Payment</td><td>支付、退款、对账</td><td>payments、refunds</td></tr>
+<tr><td><strong>搜索上下文</strong></td><td>ProductIndex</td><td>商品搜索、筛选、排序</td><td>ES索引</td></tr>
+<tr><td><strong>用户上下文</strong></td><td>User</td><td>用户信息、登录、权限</td><td>users、roles</td></tr>
+<tr><td><strong>供应商上下文</strong></td><td>Supplier</td><td>供应商对接、适配、熔断</td><td>suppliers、supplier_products</td></tr>
+<tr><td><strong>购物车上下文</strong></td><td>Cart</td><td>购物车管理、合并</td><td>carts</td></tr>
+<tr><td><strong>评价上下文</strong></td><td>Review</td><td>用户评价、晒单</td><td>reviews</td></tr>
+<tr><td><strong>消息上下文</strong></td><td>Notification</td><td>消息通知、推送</td><td>notifications</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>为什么这样划分？</strong></p>
+<ol>
+<li>
+<p><strong>订单与商品分离</strong>：</p>
+<ul>
+<li>订单关注“交易流程“（下单、支付、履约）</li>
+<li>商品关注“商品信息“（SPU/SKU、类目、属性）</li>
+<li>分离原因：变化速度不同（订单频繁变更，商品相对稳定）</li>
+</ul>
+</li>
+<li>
+<p><strong>库存独立</strong>：</p>
+<ul>
+<li>库存是“资源“，订单/商品都依赖它</li>
+<li>库存有独立的生命周期（预占 → 扣减 → 释放）</li>
+<li>独立原因：单一职责，避免库存逻辑分散</li>
+</ul>
+</li>
+<li>
+<p><strong>计价独立</strong>：</p>
+<ul>
+<li>价格计算涉及多个维度（基础价、营销、优惠券、Coin）</li>
+<li>多个场景需要试算（详情页、购物车、结算页）</li>
+<li>独立原因：统一计价逻辑，避免不一致</li>
+</ul>
+</li>
+<li>
+<p><strong>营销独立</strong>：</p>
+<ul>
+<li>营销规则复杂（满减、折扣、买赠、限时秒杀）</li>
+<li>营销活动变化频繁</li>
+<li>独立原因：灵活支持新玩法，不影响主流程</li>
+</ul>
+</li>
+</ol>
+<p><strong>上下文大小原则</strong>：</p>
+<pre><code>过小：每个实体一个上下文 ❌
+• 导致上下文过多，通信成本高
+• 事务边界不清晰
+
+合适：一个聚合根（或紧密相关的聚合根）一个上下文 ✅
+• 订单上下文：Order + OrderItem
+• 商品上下文：Product + Category
+
+过大：多个不相关的聚合根在一个上下文 ❌
+• 导致上下文职责不清晰
+• 团队协作困难
+</code></pre>
+<h3 id="1632-上下文映射关系"><a class="header" href="#1632-上下文映射关系">16.3.2 上下文映射关系</a></h3>
+<p><strong>上下文映射是限界上下文之间的关系</strong>，定义了它们如何协作、如何通信、谁主导谁跟随。</p>
+<p><strong>本系统的上下文映射图</strong>：</p>
+<pre class="mermaid">graph LR
+    Order[订单上下文&lt;br/&gt;Order Context] 
+    Product[商品上下文&lt;br/&gt;Product Context]
+    Inventory[库存上下文&lt;br/&gt;Inventory Context]
+    Pricing[计价上下文&lt;br/&gt;Pricing Context]
+    Marketing[营销上下文&lt;br/&gt;Marketing Context]
+    Payment[支付上下文&lt;br/&gt;Payment Context]
+    Search[搜索上下文&lt;br/&gt;Search Context]
+    Supplier[供应商上下文&lt;br/&gt;Supplier Context]
+    
+    Order --&gt;|Customer-Supplier| Product
+    Order --&gt;|Customer-Supplier| Inventory
+    Order --&gt;|Customer-Supplier| Pricing
+    Order --&gt;|Customer-Supplier| Marketing
+    Order --&gt;|Customer-Supplier| Payment
+    
+    Search --&gt;|Conformist| Product
+    Search --&gt;|Open Host Service| Product
+    
+    Inventory --&gt;|Anti-Corruption Layer| Supplier
+    Product --&gt;|Anti-Corruption Layer| Supplier
+    
+    Pricing --&gt;|Shared Kernel| Marketing
+</pre>
+
+<p><strong>映射关系类型</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>关系类型</th><th>说明</th><th>本系统示例</th><th>实现方式</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Customer-Supplier</strong></td><td>下游（客户）依赖上游（供应商）</td><td>订单 → 商品<br />订单 → 库存</td><td>同步RPC调用</td></tr>
+<tr><td><strong>Conformist</strong></td><td>下游完全遵循上游模型</td><td>搜索 → 商品</td><td>搜索直接使用商品模型</td></tr>
+<tr><td><strong>Anti-Corruption Layer</strong></td><td>下游用防腐层保护自己</td><td>库存 → 供应商</td><td>适配器翻译外部模型</td></tr>
+<tr><td><strong>Open Host Service</strong></td><td>上游提供公开服务</td><td>商品 → 搜索</td><td>RESTful API + Events</td></tr>
+<tr><td><strong>Shared Kernel</strong></td><td>两个上下文共享部分模型</td><td>计价 ⇄ 营销</td><td>共享折扣计算规则</td></tr>
+<tr><td><strong>Published Language</strong></td><td>上游定义标准数据格式</td><td>订单事件（Kafka）</td><td>Protobuf/JSON Schema</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>关键决策解析</strong>：</p>
+<p><strong>决策1：订单 → 商品（Customer-Supplier）</strong></p>
+<pre><code>为什么不是Conformist（遵奉者）？
+• 订单需要保存商品快照（商品模型可能变化）
+• 订单不应该被商品模型变更影响
+• 订单有自己的领域模型（OrderItem vs Product）
+
+为什么是Customer-Supplier？
+• 订单依赖商品（下游依赖上游）
+• 商品提供稳定的API（上游为下游服务）
+• 变更需要协商（商品API变更需通知订单团队）
+</code></pre>
+<p><strong>决策2：库存 → 供应商（Anti-Corruption Layer）</strong></p>
+<pre><code>为什么需要防腐层？
+• 供应商模型不稳定（50+供应商，接口各不相同）
+• 防止供应商模型污染库存域
+• 便于切换供应商（ACL隔离变化）
+
+防腐层职责：
+• 翻译外部模型 → 内部模型
+• 统一异常处理
+• 适配器模式（每个供应商一个适配器）
+</code></pre>
+<p><strong>决策3：计价 ⇄ 营销（Shared Kernel）</strong></p>
+<pre><code>为什么是Shared Kernel？
+• 折扣计算规则在两个上下文都需要
+• 规则变更需要两个上下文同步
+• 共享折扣计算代码（避免重复）
+
+Shared Kernel范围：
+• DiscountRule（折扣规则接口）
+• PriceBreakdown（价格明细结构）
+• 仅共享"计算规则"，不共享"数据存储"
+</code></pre>
+<p><strong>上下文通信机制</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>通信方式</th><th>协议</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>同步查询</strong></td><td>RPC</td><td>gRPC + Protobuf</td><td>订单查询商品信息</td></tr>
+<tr><td><strong>同步操作</strong></td><td>RPC</td><td>gRPC + Protobuf</td><td>订单预占库存</td></tr>
+<tr><td><strong>异步事件</strong></td><td>消息队列</td><td>Kafka + Protobuf</td><td>订单创建 → 搜索更新销量</td></tr>
+<tr><td><strong>批量查询</strong></td><td>RPC</td><td>gRPC + Stream</td><td>批量查询商品价格</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="1633-边界划分实践案例"><a class="header" href="#1633-边界划分实践案例">16.3.3 边界划分实践案例</a></h3>
 <pre><code>┌──────────────────────────────────────────────────────┐
 │              接入层（API Gateway）                    │
 │  • 鉴权、限流、路由、协议转换                         │
@@ -557,7 +751,7 @@ func (f *CategoryStrategyFactory) GetStrategy(categoryType CategoryType) Categor
 </tbody>
 </table>
 </div>
-<h3 id="1632-微服务拆分"><a class="header" href="#1632-微服务拆分">16.3.2 微服务拆分</a></h3>
+<h3 id="1642-微服务拆分"><a class="header" href="#1642-微服务拆分">16.4.2 微服务拆分</a></h3>
 <p><strong>拆分原则</strong>：</p>
 <ol>
 <li><strong>按业务能力拆分</strong>（而非技术层次）</li>
@@ -597,7 +791,7 @@ func (f *CategoryStrategyFactory) GetStrategy(categoryType CategoryType) Categor
 </tbody>
 </table>
 </div>
-<h3 id="1633-服务依赖关系"><a class="header" href="#1633-服务依赖关系">16.3.3 服务依赖关系</a></h3>
+<h3 id="1643-服务依赖关系"><a class="header" href="#1643-服务依赖关系">16.4.3 服务依赖关系</a></h3>
 <pre class="mermaid">graph TB
     subgraph 接入层
         Gateway[API Gateway]
@@ -659,7 +853,7 @@ func (f *CategoryStrategyFactory) GetStrategy(categoryType CategoryType) Categor
 <li><strong>异步解耦</strong>：非核心路径使用Kafka事件异步</li>
 <li><strong>降级友好</strong>：下游故障不影响上游核心功能</li>
 </ol>
-<h3 id="1634-数据流转"><a class="header" href="#1634-数据流转">16.3.4 数据流转</a></h3>
+<h3 id="1644-数据流转"><a class="header" href="#1644-数据流转">16.4.4 数据流转</a></h3>
 <p><strong>同步数据流（关键路径）</strong>：</p>
 <pre><code>用户搜索商品：
 API Gateway → Search Aggregation 
@@ -680,9 +874,203 @@ API Gateway → Search Aggregation
 
 最终一致性：&lt; 5秒
 </code></pre>
+<p><strong>16.4小结</strong>：</p>
+<p>以上展示了系统的整体架构全貌：四层架构、12个核心微服务、服务依赖关系、数据流转模式。这些是16.3战略设计的具体落地——12个限界上下文对应12个微服务，上下文映射关系决定了服务间的集成方式。</p>
+<p>接下来16.5节将讨论技术选型决策，16.6节将深入各个系统的详细设计。</p>
 <hr>
-<h2 id="164-技术选型决策"><a class="header" href="#164-技术选型决策">16.4 技术选型决策</a></h2>
-<h3 id="1641-选型原则"><a class="header" href="#1641-选型原则">16.4.1 选型原则</a></h3>
+<h2 id="164-整体架构设计application-architecture---设计结果"><a class="header" href="#164-整体架构设计application-architecture---设计结果">16.4 整体架构设计（Application Architecture - 设计结果）</a></h2>
+<p>基于16.3节识别的12个限界上下文和上下文映射关系，本节展示如何将它们落地为具体的架构设计：四层架构、微服务拆分、服务依赖关系、数据流转模式。</p>
+<p><strong>16.3 → 16.4的映射关系</strong>：</p>
+<pre><code>16.3 限界上下文           →    16.4 微服务
+├─ 订单上下文             →    Order Service
+├─ 商品上下文             →    Product Center
+├─ 库存上下文             →    Inventory Service
+├─ 计价上下文             →    Pricing Service
+├─ 营销上下文             →    Marketing Service
+├─ 支付上下文             →    Payment Service
+├─ 搜索上下文             →    Search Service
+└─ 供应商上下文           →    Supplier Gateway
+
+16.3 上下文映射           →    16.4 服务集成
+├─ Customer-Supplier      →    同步RPC调用
+├─ Anti-Corruption Layer  →    适配器模式
+└─ Published Language     →    Kafka事件
+</code></pre>
+<h3 id="1641-分层架构"><a class="header" href="#1641-分层架构">16.4.1 分层架构</a></h3>
+<p>采用经典的四层架构，确保职责清晰、易于维护。</p>
+<p>基于前面识别的限界上下文和映射关系，本节通过实际案例展示如何划分边界、重构边界。</p>
+<p><strong>案例1：计价系统的边界重构</strong></p>
+<p><strong>初始问题</strong>：</p>
+<ul>
+<li>价格计算逻辑分散在订单、营销、商品三个域</li>
+<li>购物车、订单创建、支付确认三处价格计算不一致</li>
+<li>无法支持“PDP加购试算“场景</li>
+</ul>
+<p><strong>重构方案</strong>：</p>
+<ol>
+<li><strong>新建计价上下文</strong>：职责是提供统一的试算接口</li>
+<li><strong>定义边界</strong>：
+<ul>
+<li>计价上下文<strong>不拥有</strong>商品基础价、营销规则、订单状态</li>
+<li>对外提供 <code>Calculate(items, promotions, context) -&gt; PriceBreakdown</code></li>
+<li>各场景通过统一接口获取价格</li>
+</ul>
+</li>
+<li><strong>收益</strong>：
+<ul>
+<li>价格一致性得到保证</li>
+<li>营销规则变更只需在营销域发布事件</li>
+<li>支持了试算、价格预览、价格审计等新需求</li>
+</ul>
+</li>
+</ol>
+<p><strong>案例2：库存预占的归属</strong></p>
+<p><strong>争议</strong>：库存预占应该放在订单域还是库存域？</p>
+<p><strong>决策</strong>：放在库存域</p>
+<p><strong>理由</strong>：</p>
+<ul>
+<li>库存域拥有库存数据所有权</li>
+<li>预占是库存的一种状态（可售 → 预占 → 扣减）</li>
+<li>订单域只需调用库存域的 <code>Reserve</code> 接口</li>
+<li>降低耦合：订单域不需要了解库存的存储结构</li>
+</ul>
+<h3 id="1644-集成模式选择"><a class="header" href="#1644-集成模式选择">16.4.4 集成模式选择</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>集成场景</th><th>模式</th><th>理由</th></tr>
+</thead>
+<tbody>
+<tr><td>订单 → 商品</td><td>同步RPC</td><td>需要实时获取商品信息，延迟&lt;100ms</td></tr>
+<tr><td>订单 → 库存</td><td>同步RPC</td><td>库存预占是核心路径，必须同步</td></tr>
+<tr><td>订单 → 支付</td><td>同步RPC</td><td>支付创建需要同步返回支付URL</td></tr>
+<tr><td>订单成功 → 搜索</td><td>异步事件</td><td>销量更新非核心路径，可最终一致</td></tr>
+<tr><td>订单成功 → 积分</td><td>异步事件</td><td>积分增加非核心路径</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>事件驱动示例</strong>：</p>
+<pre><code class="language-go">// 订单域发布事件
+func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
+    // 创建订单...
+    order := &amp;Order{...}
+    s.repo.Save(ctx, order)
+    
+    // 发布事件（Outbox模式）
+    event := &amp;OrderCreatedEvent{
+        OrderID:    order.ID,
+        UserID:     order.UserID,
+        TotalPrice: order.TotalPrice,
+        Items:      order.Items,
+    }
+    s.outbox.Publish(ctx, "order-events", event)
+    
+    return order, nil
+}
+
+// 搜索域订阅事件
+func (s *SearchService) HandleOrderCreated(ctx context.Context, event *OrderCreatedEvent) error {
+    // 更新商品销量（用于排序）
+    for _, item := range event.Items {
+        s.incrementSales(ctx, item.SkuID, item.Quantity)
+    }
+    return nil
+}
+</code></pre>
+<h3 id="1645-跨系统事务处理"><a class="header" href="#1645-跨系统事务处理">16.4.5 跨系统事务处理</a></h3>
+<p><strong>Saga模式（编排）</strong>：</p>
+<pre><code class="language-go">// 订单创建Saga
+type CreateOrderSaga struct {
+    inventoryClient rpc.InventoryClient
+    marketingClient rpc.MarketingClient
+    orderRepo       *OrderRepo
+}
+
+func (s *CreateOrderSaga) Execute(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
+    var reserveID string
+    var couponLockID string
+    
+    // Step 1: 库存预占
+    reserve, err := s.inventoryClient.ReserveStock(ctx, req.Items)
+    if err != nil {
+        return nil, fmt.Errorf("库存预占失败: %w", err)
+    }
+    reserveID = reserve.ReserveID
+    defer func() {
+        if err != nil {
+            // 补偿：释放库存
+            s.inventoryClient.ReleaseStock(ctx, reserveID)
+        }
+    }()
+    
+    // Step 2: 优惠券锁定
+    couponLock, err := s.marketingClient.LockCoupon(ctx, req.CouponCode, req.UserID)
+    if err != nil {
+        return nil, fmt.Errorf("优惠券锁定失败: %w", err)
+    }
+    couponLockID = couponLock.LockID
+    defer func() {
+        if err != nil {
+            // 补偿：释放优惠券
+            s.marketingClient.UnlockCoupon(ctx, couponLockID)
+        }
+    }()
+    
+    // Step 3: 创建订单
+    order := &amp;Order{
+        ID:           generateOrderID(),
+        UserID:       req.UserID,
+        Items:        req.Items,
+        ReserveID:    reserveID,
+        CouponLockID: couponLockID,
+        Status:       StatusPendingPayment,
+    }
+    err = s.orderRepo.Save(ctx, order)
+    if err != nil {
+        return nil, fmt.Errorf("订单创建失败: %w", err)
+    }
+    
+    return order, nil
+}
+</code></pre>
+<h3 id="1646-防腐层设计"><a class="header" href="#1646-防腐层设计">16.4.6 防腐层设计</a></h3>
+<p><strong>防腐层（Anti-Corruption Layer）</strong>：</p>
+<pre><code class="language-go">// 供应商响应模型（外部）
+type SupplierFlightResponse struct {
+    Code    string  `json:"code"`
+    Message string  `json:"message"`
+    Data    struct {
+        FlightNo  string  `json:"flight_no"`
+        Available int     `json:"available"`
+        Price     float64 `json:"price"`
+    } `json:"data"`
+}
+
+// 平台库存模型（内部）
+type StockResponse struct {
+    Available bool
+    Quantity  int
+    Message   string
+}
+
+// 防腐层：翻译外部模型 → 内部模型
+func (a *FlightSupplierACL) TranslateStock(supplierResp *SupplierFlightResponse) *StockResponse {
+    return &amp;StockResponse{
+        Available: supplierResp.Code == "SUCCESS" &amp;&amp; supplierResp.Data.Available &gt; 0,
+        Quantity:  supplierResp.Data.Available,
+        Message:   supplierResp.Message,
+    }
+}
+</code></pre>
+<p><strong>收益</strong>：</p>
+<ul>
+<li>领域层不被供应商模型污染</li>
+<li>供应商接口变更时，修改集中在ACL</li>
+<li>测试时可以使用Fake实现替代真实供应商</li>
+</ul>
+<hr>
+<h2 id="165-技术选型决策technology-architecture"><a class="header" href="#165-技术选型决策technology-architecture">16.5 技术选型决策（Technology Architecture）</a></h2>
+<h3 id="1651-选型原则"><a class="header" href="#1651-选型原则">16.5.1 选型原则</a></h3>
 <p><strong>原则1：成熟度优先</strong></p>
 <ul>
 <li>优先选择生产级成熟技术（避免踩坑）</li>
@@ -707,7 +1095,7 @@ API Gateway → Search Aggregation
 <li>云服务按需使用（避免自建中间件）</li>
 <li>运维成本可接受</li>
 </ul>
-<h3 id="1642-go生态选型"><a class="header" href="#1642-go生态选型">16.4.2 Go生态选型</a></h3>
+<h3 id="1652-go生态选型"><a class="header" href="#1652-go生态选型">16.5.2 Go生态选型</a></h3>
 <p><strong>语言选择：Go</strong></p>
 <div class="table-wrapper">
 <table>
@@ -843,55 +1231,1450 @@ func InitializeApp() (*App, error) {
 <li>安全：mTLS加密</li>
 </ul>
 <hr>
-<h2 id="165-核心系统设计"><a class="header" href="#165-核心系统设计">16.5 核心系统设计</a></h2>
-<h3 id="1651-商品中心设计"><a class="header" href="#1651-商品中心设计">16.5.1 商品中心设计</a></h3>
+<h2 id="166-核心系统设计application--data-architecture详细设计"><a class="header" href="#166-核心系统设计application--data-architecture详细设计">16.6 核心系统设计（Application + Data Architecture详细设计）</a></h2>
+<p>基于16.4的整体架构，本节深入每个核心系统的详细设计，包括应用层的业务逻辑设计和数据层的模型设计。</p>
+<h3 id="1661-商品中心设计"><a class="header" href="#1661-商品中心设计">16.6.1 商品中心设计</a></h3>
+<h4 id="16611-服务定位与职责"><a class="header" href="#16611-服务定位与职责">16.6.1.1 服务定位与职责</a></h4>
 <p><strong>职责边界</strong>：</p>
 <ul>
 <li>✅ 负责：商品基础信息、类目、属性、多媒体素材</li>
 <li>✅ 负责：SPU/SKU管理、上架下架</li>
-<li>❌ 不负责：价格（由Pricing Service管理）</li>
+<li>✅ 负责：商品基础价格（base_price，作为计价输入）</li>
+<li>❌ 不负责：营销价格（由Pricing Service计算）</li>
 <li>❌ 不负责：库存（由Inventory Service管理）</li>
 </ul>
-<p><strong>数据模型</strong>：</p>
-<pre><code class="language-go">// SPU（Standard Product Unit）
-type SPU struct {
-    ID          int64
-    Title       string
-    CategoryID  int64
-    BrandID     int64
-    Attributes  JSONB  // 动态属性（颜色、尺寸、...）
-    Images      []string
-    Status      string  // DRAFT/ON_SHELF/OFF_SHELF
+<p><strong>核心场景</strong>：</p>
+<ol>
+<li><strong>商品查询</strong>：聚合服务、详情页、搜索结果查询商品信息</li>
+<li><strong>商品创建</strong>：运营人员/供应商创建新商品（参见16.7.1阶段1）</li>
+<li><strong>商品更新</strong>：修改商品信息、调整基础价格</li>
+<li><strong>上下架管理</strong>：控制商品可售状态</li>
+</ol>
+<p><strong>与其他服务的区别</strong>：</p>
+<ul>
+<li><strong>vs Search Service</strong>：Search负责ES查询返回SKU ID列表，Product Center负责根据SKU ID查询详细信息</li>
+<li><strong>vs Pricing Service</strong>：Product Center只管理base_price（成本价），Pricing Service基于base_price+营销活动计算最终售价</li>
+<li><strong>vs Inventory Service</strong>：Product Center管“商品是什么“，Inventory管“商品有多少“</li>
+</ul>
+<hr>
+<h4 id="16612-领域模型设计domain-layer"><a class="header" href="#16612-领域模型设计domain-layer">16.6.1.2 领域模型设计（Domain Layer）</a></h4>
+<p><strong>领域模型设计思想</strong>：商品域的特点是“树形结构+读多写少“，与订单域的“复杂状态机+高并发写“完全不同。</p>
+<h5 id="166121-product聚合根"><a class="header" href="#166121-product聚合根">16.6.1.2.1 Product聚合根</a></h5>
+<pre><code class="language-go">// Product聚合根（SKU维度）
+type Product struct {
+    // 聚合根ID
+    skuID SKU_ID  // 值对象
+    
+    // SPU信息（实体引用）
+    spu *SPU
+    
+    // SKU规格（值对象）
+    specs Specifications
+    
+    // 基础价格（值对象）
+    basePrice Price
+    
+    // 状态（值对象）
+    status ProductStatus
+    
+    // 多媒体素材
+    images []ImageURL
+    
+    // 时间戳
+    createdAt time.Time
+    updatedAt time.Time
+    
+    // 领域事件（未提交）
+    domainEvents []DomainEvent
 }
 
-// SKU（Stock Keeping Unit）
-type SKU struct {
-    ID          int64
-    SPUID       int64
-    SkuCode     string  // 唯一编码
-    Specs       JSONB   // 规格值（{"颜色":"红色","尺寸":"L"}）
-    Status      string
+// 值对象：SKU_ID
+type SKU_ID struct {
+    value int64
+}
+
+func NewSKU_ID(id int64) SKU_ID {
+    return SKU_ID{value: id}
+}
+
+func (id SKU_ID) Int64() int64 {
+    return id.value
+}
+
+// 值对象：Price（基础价格，单位：分）
+type Price struct {
+    amount int64  // 分为单位
+}
+
+func NewPrice(amount int64) (Price, error) {
+    if amount &lt; 0 {
+        return Price{}, errors.New("价格不能为负数")
+    }
+    if amount &gt; 100000000 { // 100万元上限
+        return Price{}, errors.New("价格超过上限")
+    }
+    return Price{amount: amount}, nil
+}
+
+func (p Price) Amount() int64 {
+    return p.amount
+}
+
+func (p Price) Yuan() float64 {
+    return float64(p.amount) / 100.0
+}
+
+// 值对象：Specifications（SKU规格）
+type Specifications struct {
+    attributes map[string]string  // {"颜色":"红色","尺寸":"L"}
+}
+
+func NewSpecifications(attrs map[string]string) Specifications {
+    return Specifications{attributes: attrs}
+}
+
+func (s Specifications) Get(key string) string {
+    return s.attributes[key]
+}
+
+func (s Specifications) ToJSON() string {
+    data, _ := json.Marshal(s.attributes)
+    return string(data)
+}
+
+// 值对象：ProductStatus
+type ProductStatus string
+
+const (
+    ProductDraft     ProductStatus = "DRAFT"      // 草稿
+    ProductOnShelf   ProductStatus = "ON_SHELF"   // 在架
+    ProductOffShelf  ProductStatus = "OFF_SHELF"  // 下架
+)
+
+// 实体：SPU（标准产品单元）
+type SPU struct {
+    id         SPU_ID
+    title      string
+    categoryID int64
+    brandID    int64
+    attributes map[string][]string  // 属性模板{"颜色":["红","蓝"],"尺寸":["S","M","L"]}
+    description string
+    
+    // SPU下的所有SKU（聚合内实体集合）
+    skus []*Product
+}
+
+func (spu *SPU) ID() SPU_ID {
+    return spu.id
+}
+
+func (spu *SPU) Title() string {
+    return spu.title
+}
+
+func (spu *SPU) AddSKU(sku *Product) error {
+    // 不变量检查：SKU规格必须符合SPU属性模板
+    if !spu.isValidSpecs(sku.specs) {
+        return errors.New("SKU规格不符合SPU属性模板")
+    }
+    spu.skus = append(spu.skus, sku)
+    return nil
+}
+
+func (spu *SPU) isValidSpecs(specs Specifications) bool {
+    // 检查SKU的规格是否都在SPU的属性模板中
+    for key, value := range specs.attributes {
+        allowedValues, exists := spu.attributes[key]
+        if !exists {
+            return false
+        }
+        if !contains(allowedValues, value) {
+            return false
+        }
+    }
+    return true
 }
 </code></pre>
-<p><strong>分库策略</strong>：</p>
-<pre><code class="language-sql">-- 按 category_id 分库（4分库）
--- 理由：同品类商品通常一起查询
+<h5 id="166122-聚合根方法"><a class="header" href="#166122-聚合根方法">16.6.1.2.2 聚合根方法</a></h5>
+<pre><code class="language-go">// 上架（状态转换）
+func (p *Product) OnShelf() error {
+    if p.status == ProductOnShelf {
+        return errors.New("商品已在架")
+    }
+    
+    // 不变量检查：必须有基础价格
+    if p.basePrice.Amount() == 0 {
+        return errors.New("商品未设置价格，不能上架")
+    }
+    
+    // 不变量检查：必须有商品图片
+    if len(p.images) == 0 {
+        return errors.New("商品未上传图片，不能上架")
+    }
+    
+    oldStatus := p.status
+    p.status = ProductOnShelf
+    p.updatedAt = time.Now()
+    
+    // 发布领域事件
+    p.addDomainEvent(&amp;ProductOnShelfEvent{
+        SKUID:      p.skuID,
+        SPUID:      p.spu.id,
+        OnShelfTime: p.updatedAt,
+    })
+    
+    return nil
+}
+
+// 下架
+func (p *Product) OffShelf(reason string) error {
+    if p.status == ProductOffShelf {
+        return errors.New("商品已下架")
+    }
+    
+    oldStatus := p.status
+    p.status = ProductOffShelf
+    p.updatedAt = time.Now()
+    
+    // 发布领域事件
+    p.addDomainEvent(&amp;ProductOffShelfEvent{
+        SKUID:       p.skuID,
+        Reason:      reason,
+        OffShelfTime: p.updatedAt,
+    })
+    
+    return nil
+}
+
+// 更新基础价格
+func (p *Product) UpdateBasePrice(newPrice Price) error {
+    if newPrice.Amount() == p.basePrice.Amount() {
+        return nil  // 价格未变化
+    }
+    
+    oldPrice := p.basePrice
+    p.basePrice = newPrice
+    p.updatedAt = time.Now()
+    
+    // 发布领域事件
+    p.addDomainEvent(&amp;PriceChangedEvent{
+        SKUID:    p.skuID,
+        OldPrice: oldPrice.Amount(),
+        NewPrice: newPrice.Amount(),
+        ChangedAt: p.updatedAt,
+    })
+    
+    return nil
+}
+
+// 领域事件管理
+func (p *Product) addDomainEvent(event DomainEvent) {
+    p.domainEvents = append(p.domainEvents, event)
+}
+
+func (p *Product) DomainEvents() []DomainEvent {
+    return p.domainEvents
+}
+
+func (p *Product) ClearDomainEvents() {
+    p.domainEvents = nil
+}
+
+// 查询方法
+func (p *Product) IsOnShelf() bool {
+    return p.status == ProductOnShelf
+}
+
+func (p *Product) BasePrice() Price {
+    return p.basePrice
+}
+
+func (p *Product) Specs() Specifications {
+    return p.specs
+}
+</code></pre>
+<h5 id="166123-repository模式防腐层"><a class="header" href="#166123-repository模式防腐层">16.6.1.2.3 Repository模式（防腐层）</a></h5>
+<pre><code class="language-go">// ProductRepository接口（领域层定义）
+type ProductRepository interface {
+    // 查询
+    FindBySKUID(ctx context.Context, skuID SKU_ID) (*Product, error)
+    FindBySPUID(ctx context.Context, spuID SPU_ID) ([]*Product, error)
+    BatchFindBySKUIDs(ctx context.Context, skuIDs []SKU_ID) ([]*Product, error)
+    
+    // 保存
+    Save(ctx context.Context, product *Product) error
+    Update(ctx context.Context, product *Product) error
+    
+    // 删除
+    Delete(ctx context.Context, skuID SKU_ID) error
+}
+
+// ProductRepositoryImpl实现（基础设施层）
+type ProductRepositoryImpl struct {
+    db             *gorm.DB
+    cache          cache.Cache
+    eventPublisher EventPublisher
+    sharding       ShardingStrategy
+}
+
+func (r *ProductRepositoryImpl) FindBySKUID(ctx context.Context, skuID SKU_ID) (*Product, error) {
+    // Step 1: 查询L1本地缓存
+    cacheKey := fmt.Sprintf("product:%d", skuID.Int64())
+    if cached, found := r.cache.GetLocal(cacheKey); found {
+        return cached.(*Product), nil
+    }
+    
+    // Step 2: 查询L2 Redis缓存
+    if cached, err := r.cache.Get(ctx, cacheKey); err == nil {
+        product := r.unmarshalProduct(cached)
+        r.cache.SetLocal(cacheKey, product, 1*time.Minute)
+        return product, nil
+    }
+    
+    // Step 3: 查询MySQL
+    productDO, err := r.queryFromDB(ctx, skuID)
+    if err != nil {
+        return nil, err
+    }
+    
+    // Step 4: 转换DO → Domain Model
+    product := r.toDomain(productDO)
+    
+    // Step 5: 回写缓存
+    r.cache.Set(ctx, cacheKey, r.marshalProduct(product), 30*time.Minute)
+    r.cache.SetLocal(cacheKey, product, 1*time.Minute)
+    
+    return product, nil
+}
+
+func (r *ProductRepositoryImpl) Save(ctx context.Context, product *Product) error {
+    // Step 1: 转换Domain Model → DO
+    productDO := r.toDataObject(product)
+    
+    // Step 2: 分库路由
+    db := r.sharding.Route(product.spu.categoryID)
+    
+    // Step 3: 保存到数据库
+    if err := db.WithContext(ctx).Create(productDO).Error; err != nil {
+        return fmt.Errorf("save product failed: %w", err)
+    }
+    
+    // Step 4: 发布领域事件（事务提交后）
+    for _, event := range product.DomainEvents() {
+        if err := r.eventPublisher.Publish(ctx, event); err != nil {
+            log.Errorf("publish event failed: %v", err)
+        }
+    }
+    product.ClearDomainEvents()
+    
+    // Step 5: 清除缓存
+    cacheKey := fmt.Sprintf("product:%d", product.skuID.Int64())
+    r.cache.Delete(ctx, cacheKey)
+    
+    return nil
+}
+
+func (r *ProductRepositoryImpl) BatchFindBySKUIDs(ctx context.Context, skuIDs []SKU_ID) ([]*Product, error) {
+    products := make([]*Product, 0, len(skuIDs))
+    
+    // 批量查询优化：分离缓存命中和未命中
+    var missedIDs []SKU_ID
+    
+    for _, skuID := range skuIDs {
+        cacheKey := fmt.Sprintf("product:%d", skuID.Int64())
+        if cached, err := r.cache.Get(ctx, cacheKey); err == nil {
+            products = append(products, r.unmarshalProduct(cached))
+        } else {
+            missedIDs = append(missedIDs, skuID)
+        }
+    }
+    
+    // 批量查询数据库（未命中的）
+    if len(missedIDs) &gt; 0 {
+        missedProducts, err := r.batchQueryFromDB(ctx, missedIDs)
+        if err != nil {
+            return nil, err
+        }
+        
+        // 回写缓存
+        for _, product := range missedProducts {
+            cacheKey := fmt.Sprintf("product:%d", product.skuID.Int64())
+            r.cache.Set(ctx, cacheKey, r.marshalProduct(product), 30*time.Minute)
+        }
+        
+        products = append(products, missedProducts...)
+    }
+    
+    return products, nil
+}
+</code></pre>
+<hr>
+<h4 id="16613-基础设施层infrastructure-layer"><a class="header" href="#16613-基础设施层infrastructure-layer">16.6.1.3 基础设施层（Infrastructure Layer）</a></h4>
+<h5 id="166131-核心存储设计"><a class="header" href="#166131-核心存储设计">16.6.1.3.1 核心存储设计</a></h5>
+<p><strong>表结构设计</strong>：</p>
+<pre><code class="language-sql">-- SPU表（标准产品单元）
+CREATE TABLE product_spu (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL COMMENT '商品标题',
+    category_id BIGINT NOT NULL COMMENT '类目ID',
+    brand_id BIGINT COMMENT '品牌ID',
+    attributes JSON COMMENT '属性模板',
+    description TEXT COMMENT '商品描述',
+    status VARCHAR(20) DEFAULT 'DRAFT' COMMENT '状态',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_category (category_id),
+    INDEX idx_brand (brand_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='SPU表';
+
+-- SKU表（库存保持单元）
+CREATE TABLE product_sku (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    spu_id BIGINT NOT NULL COMMENT 'SPU ID',
+    sku_code VARCHAR(100) UNIQUE NOT NULL COMMENT 'SKU编码',
+    specs JSON COMMENT '规格值',
+    base_price BIGINT NOT NULL COMMENT '基础价格（分）',
+    images JSON COMMENT '商品图片',
+    status VARCHAR(20) DEFAULT 'DRAFT' COMMENT '状态',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_spu (spu_id),
+    INDEX idx_code (sku_code),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='SKU表';
+
+-- 类目表
+CREATE TABLE product_category (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    parent_id BIGINT DEFAULT 0 COMMENT '父类目ID',
+    level INT DEFAULT 1 COMMENT '层级',
+    sort_order INT DEFAULT 0 COMMENT '排序',
+    status VARCHAR(20) DEFAULT 'ACTIVE',
+    INDEX idx_parent (parent_id),
+    INDEX idx_level (level)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品类目表';
+</code></pre>
+<p><strong>分库分表策略</strong>：</p>
+<pre><code class="language-sql">-- 按 category_id 分4库
+-- 理由：同品类商品通常一起查询（搜索、推荐）
 db_index = category_id % 4
 
--- 商品表不分表
--- 理由：单品类商品数量可控（&lt; 100万）
+-- 单表不分表
+-- 理由：单品类商品数量可控（&lt; 100万），查询模式简单
 </code></pre>
-<p><strong>缓存策略</strong>：</p>
+<p><strong>索引策略</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>索引名</th><th>字段</th><th>类型</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td>PRIMARY</td><td>id</td><td>主键</td><td>主键查询</td></tr>
+<tr><td>idx_category</td><td>category_id</td><td>普通</td><td>类目查询</td></tr>
+<tr><td>idx_brand</td><td>brand_id</td><td>普通</td><td>品牌查询</td></tr>
+<tr><td>idx_status</td><td>status</td><td>普通</td><td>状态筛选</td></tr>
+<tr><td>idx_spu</td><td>spu_id</td><td>普通</td><td>SPU查SKU</td></tr>
+<tr><td>idx_code</td><td>sku_code</td><td>唯一</td><td>SKU编码查询</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h5 id="166132-缓存策略"><a class="header" href="#166132-缓存策略">16.6.1.3.2 缓存策略</a></h5>
+<p>详见下文“16.6.1.6 三级缓存实现“。</p>
+<hr>
+<h5 id="166133-消息中间件messaging"><a class="header" href="#166133-消息中间件messaging">16.6.1.3.3 消息中间件（Messaging）⭐️</a></h5>
+<p><strong>职责划分</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>组件</th><th>层级</th><th>职责</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Kafka Producer</strong></td><td>Infrastructure</td><td>事件发布（技术实现）</td><td>发送消息到Kafka Topic</td></tr>
+<tr><td><strong>Kafka Consumer</strong></td><td>Infrastructure</td><td>事件消费（技术实现）</td><td>订阅Topic、接收消息、路由</td></tr>
+<tr><td><strong>Event Handler</strong></td><td>Interface</td><td>协议适配</td><td>Kafka消息 → DTO</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Kafka Producer（事件发布）</strong>：</p>
+<pre><code class="language-go">// internal/infrastructure/messaging/kafka_producer.go
+
+type KafkaProducer struct {
+    producer *kafka.Producer
+}
+
+func (p *KafkaProducer) Publish(ctx context.Context, event domain.DomainEvent) error {
+    topic := p.getTopicByEventType(event.EventType())
+    
+    // 序列化事件
+    data, _ := json.Marshal(event)
+    
+    // 发送到Kafka
+    return p.producer.Produce(&amp;kafka.Message{
+        TopicPartition: kafka.TopicPartition{
+            Topic:     &amp;topic,
+            Partition: kafka.PartitionAny,
+        },
+        Key:   []byte(event.EventType()),
+        Value: data,
+        Headers: []kafka.Header{
+            {Key: "event_type", Value: []byte(event.EventType())},
+            {Key: "timestamp", Value: []byte(fmt.Sprint(event.OccurredAt().Unix()))},
+        },
+    }, nil)
+}
+</code></pre>
+<p><strong>Kafka Consumer（事件消费）</strong>：</p>
+<pre><code class="language-go">// internal/infrastructure/messaging/kafka_consumer.go
+
+type KafkaConsumer struct {
+    consumer     *kafka.Consumer
+    eventHandler *event.ProductEventHandler  // 注入Interface Layer的Handler
+}
+
+func (c *KafkaConsumer) Start(ctx context.Context) error {
+    // 订阅Topic
+    c.consumer.SubscribeTopics([]string{
+        "supplier-product-events",
+        "pricing-events",
+    }, nil)
+    
+    // 消费循环
+    for {
+        msg, err := c.consumer.ReadMessage(100 * time.Millisecond)
+        if err != nil {
+            continue
+        }
+        
+        // ⭐️ 路由到Interface Layer的Event Handler
+        messageType := string(msg.Key)
+        if err := c.eventHandler.HandleMessage(ctx, messageType, msg.Value); err != nil {
+            log.Errorf("Handle message failed: %v", err)
+        } else {
+            c.consumer.CommitMessage(msg)  // 手动提交offset
+        }
+    }
+}
+</code></pre>
+<p><strong>Topic设计</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Topic</th><th>生产者</th><th>消费者</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td><code>product-domain-events</code></td><td>Product Service</td><td>Search Service, Marketing Service</td><td>商品领域事件（商品创建、上架、价格变更）</td></tr>
+<tr><td><code>supplier-product-events</code></td><td>Supplier Service</td><td>Product Service</td><td>供应商商品事件（供应商创建商品）</td></tr>
+<tr><td><code>pricing-events</code></td><td>Pricing Service</td><td>Product Service</td><td>定价事件（价格计算完成）</td></tr>
+</tbody>
+</table>
+</div>
+<p>详见 <code>16.6.1.5.4 事件订阅者的分层设计</code>。</p>
+<hr>
+<h4 id="16614-接口层interface-layer"><a class="header" href="#16614-接口层interface-layer">16.6.1.4 接口层（Interface Layer）</a></h4>
+<h5 id="166141-grpc接口定义"><a class="header" href="#166141-grpc接口定义">16.6.1.4.1 gRPC接口定义</a></h5>
+<p><strong>核心接口</strong>（product.proto）：</p>
+<pre><code class="language-protobuf">// ProductService商品服务
+service ProductService {
+    // 查询单个商品
+    rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+    
+    // 批量查询商品
+    rpc BatchGetProducts(BatchGetProductsRequest) returns (BatchGetProductsResponse);
+    
+    // 创建商品
+    rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+    
+    // 更新基础价格
+    rpc UpdateBasePrice(UpdateBasePriceRequest) returns (UpdateBasePriceResponse);
+    
+    // 上架
+    rpc OnShelf(OnShelfRequest) returns (OnShelfResponse);
+    
+    // 下架
+    rpc OffShelf(OffShelfRequest) returns (OffShelfResponse);
+}
+
+message GetProductRequest {
+    int64 sku_id = 1;
+}
+
+message GetProductResponse {
+    ProductInfo product = 1;
+}
+
+message BatchGetProductsRequest {
+    repeated int64 sku_ids = 1;  // 最多100个
+}
+
+message BatchGetProductsResponse {
+    repeated ProductInfo products = 1;
+}
+
+message ProductInfo {
+    int64 sku_id = 1;
+    int64 spu_id = 2;
+    string sku_code = 3;
+    string sku_name = 4;
+    Price base_price = 5;
+    Specifications specs = 6;
+    ProductStatus status = 7;
+}
+
+message Price {
+    int64 amount = 1;  // 金额（分）
+    string currency = 2;  // 货币（CNY）
+}
+
+message Specifications {
+    string color = 1;
+    string size = 2;
+    map&lt;string, string&gt; attrs = 3;  // 其他属性
+}
+
+enum ProductStatus {
+    DRAFT = 0;      // 草稿
+    ON_SHELF = 1;   // 上架
+    OFF_SHELF = 2;  // 下架
+}
+</code></pre>
+<h5 id="166142-http接口可选"><a class="header" href="#166142-http接口可选">16.6.1.4.2 HTTP接口（可选）</a></h5>
+<pre><code class="language-go">// HTTP接口（供运营后台使用）
+GET    /api/v1/products/:sku_id           # 查询商品
+POST   /api/v1/products                    # 创建商品
+PUT    /api/v1/products/:sku_id           # 更新商品
+POST   /api/v1/products/:sku_id/on-shelf  # 上架
+POST   /api/v1/products/:sku_id/off-shelf # 下架
+</code></pre>
+<h5 id="166143-event接口异步"><a class="header" href="#166143-event接口异步">16.6.1.4.3 Event接口（异步）⭐️</a></h5>
+<p><strong>事件订阅接口</strong>（接收外部服务事件）：</p>
+<pre><code class="language-go">// ProductEventHandler 商品事件处理器（接口层）
+// 职责：适配外部事件消息 → 调用Application Service
+type ProductEventHandler struct {
+    productService *service.ProductService
+}
+
+// 处理消息入口
+func (h *ProductEventHandler) HandleMessage(ctx context.Context, messageType string, data []byte) error
+
+// 订阅的事件类型
+const (
+    SupplierProductCreated = "supplier.product.created"  // 供应商商品创建
+    PricingPriceChanged    = "pricing.price_changed"     // 定价变更
+)
+</code></pre>
+<p><strong>与HTTP/gRPC的区别</strong>：</p>
+<ul>
+<li><strong>同步接口</strong>（HTTP/gRPC）：客户端等待响应</li>
+<li><strong>异步接口</strong>（Event）：消息队列异步触发，无响应</li>
+</ul>
+<p><strong>职责</strong>：</p>
+<ul>
+<li>✅ 协议适配（Kafka消息 → DTO）</li>
+<li>✅ 调用Application Service</li>
+<li>❌ 不负责Kafka连接（由Infrastructure Layer的Kafka Consumer负责）</li>
+</ul>
+<p>详见 <code>16.6.1.5.4 事件订阅者的分层设计</code>。</p>
+<hr>
+<h4 id="16615-应用服务层application-layer"><a class="header" href="#16615-应用服务层application-layer">16.6.1.5 应用服务层（Application Layer）</a></h4>
+<h5 id="166151-核心代码结构"><a class="header" href="#166151-核心代码结构">16.6.1.5.1 核心代码结构</a></h5>
+<pre><code>product-service/
+├── cmd/
+│   └── main.go                          # 服务入口
+├── internal/
+│   ├── domain/                          # 领域模型层
+│   │   ├── product.go                   # Product聚合根
+│   │   ├── spu.go                       # SPU实体
+│   │   ├── value_objects.go             # 值对象（SKU_ID, Price, Specifications）
+│   │   ├── events.go                    # 领域事件
+│   │   └── repository.go                # Repository接口
+│   ├── application/                     # 应用服务层
+│   │   ├── dto/
+│   │   │   ├── product_request.go       # 请求DTO
+│   │   │   └── product_response.go      # 响应DTO
+│   │   └── service/
+│   │       ├── product_service.go       # 商品应用服务
+│   │       └── product_query_service.go # 查询服务（CQRS）
+│   ├── infrastructure/                  # 基础设施层
+│   │   ├── persistence/
+│   │   │   ├── product_repository.go    # Repository实现
+│   │   │   ├── data_object.go           # 数据对象（DO）
+│   │   │   └── sharding.go              # 分库路由
+│   │   ├── cache/
+│   │   │   ├── redis_cache.go           # Redis缓存
+│   │   │   └── local_cache.go           # 本地缓存
+│   │   └── messaging/                   # 消息中间件 ⭐️
+│   │       ├── kafka_producer.go        # Kafka生产者（事件发布）
+│   │       └── kafka_consumer.go        # Kafka消费者（技术实现）
+│   └── interfaces/                      # 接口层
+│       ├── grpc/
+│       │   ├── product_handler.go       # gRPC处理器
+│       │   └── proto/
+│       │       └── product.proto        # Protobuf定义
+│       ├── http/
+│       │   └── product_handler.go       # HTTP处理器（可选）
+│       └── event/ ⭐️                     # 事件接口（异步）
+│           └── product_event_handler.go # Event Handler
+├── config/
+│   └── config.yaml                      # 配置文件
+├── migrations/                          # 数据库迁移
+│   └── 001_create_product_tables.sql
+└── go.mod
+</code></pre>
+<hr>
+<h5 id="166152-核心应用服务实现"><a class="header" href="#166152-核心应用服务实现">16.6.1.5.2 核心应用服务实现</a></h5>
+<p><strong>应用服务层</strong>（product_service.go）：</p>
+<pre><code class="language-go">type ProductService struct {
+    repo           domain.ProductRepository
+    eventPublisher EventPublisher
+}
+
+// GetProduct 查询商品（三级缓存）
+func (s *ProductService) GetProduct(ctx context.Context, skuID int64) (*dto.ProductResponse, error) {
+    // Step 1: 通过Repository查询（Repository内部实现三级缓存）
+    product, err := s.repo.FindBySKUID(ctx, domain.NewSKU_ID(skuID))
+    if err != nil {
+        return nil, fmt.Errorf("product not found: %w", err)
+    }
+    
+    // Step 2: Domain Model → DTO
+    return s.toDTO(product), nil
+}
+
+// BatchGetProducts 批量查询商品
+func (s *ProductService) BatchGetProducts(ctx context.Context, skuIDs []int64) ([]*dto.ProductResponse, error) {
+    // 参数校验：限制批量大小
+    if len(skuIDs) &gt; 100 {
+        return nil, errors.New("批量查询最多100个")
+    }
+    
+    // 转换为值对象
+    domainIDs := make([]domain.SKU_ID, len(skuIDs))
+    for i, id := range skuIDs {
+        domainIDs[i] = domain.NewSKU_ID(id)
+    }
+    
+    // 批量查询
+    products, err := s.repo.BatchFindBySKUIDs(ctx, domainIDs)
+    if err != nil {
+        return nil, err
+    }
+    
+    // 转换为DTO
+    dtos := make([]*dto.ProductResponse, len(products))
+    for i, p := range products {
+        dtos[i] = s.toDTO(p)
+    }
+    
+    return dtos, nil
+}
+
+// CreateProduct 创建商品
+func (s *ProductService) CreateProduct(ctx context.Context, req *dto.CreateProductRequest) (*dto.ProductResponse, error) {
+    // Step 1: DTO → Domain Model
+    product, err := s.buildProduct(req)
+    if err != nil {
+        return nil, fmt.Errorf("build product failed: %w", err)
+    }
+    
+    // Step 2: 保存（Repository内部发布领域事件）
+    if err := s.repo.Save(ctx, product); err != nil {
+        return nil, fmt.Errorf("save product failed: %w", err)
+    }
+    
+    return s.toDTO(product), nil
+}
+
+// OnShelf 商品上架
+func (s *ProductService) OnShelf(ctx context.Context, skuID int64) error {
+    // Step 1: 查询聚合根
+    product, err := s.repo.FindBySKUID(ctx, domain.NewSKU_ID(skuID))
+    if err != nil {
+        return err
+    }
+    
+    // Step 2: 执行领域逻辑（状态转换）
+    if err := product.OnShelf(); err != nil {
+        return err
+    }
+    
+    // Step 3: 保存聚合根（自动发布领域事件）
+    return s.repo.Update(ctx, product)
+}
+
+// UpdateBasePrice 更新基础价格
+func (s *ProductService) UpdateBasePrice(ctx context.Context, skuID int64, newPrice int64) error {
+    // Step 1: 查询聚合根
+    product, err := s.repo.FindBySKUID(ctx, domain.NewSKU_ID(skuID))
+    if err != nil {
+        return err
+    }
+    
+    // Step 2: 创建价格值对象（带校验）
+    price, err := domain.NewPrice(newPrice)
+    if err != nil {
+        return fmt.Errorf("invalid price: %w", err)
+    }
+    
+    // Step 3: 执行领域逻辑
+    if err := product.UpdateBasePrice(price); err != nil {
+        return err
+    }
+    
+    // Step 4: 保存聚合根（自动发布PriceChangedEvent）
+    return s.repo.Update(ctx, product)
+}
+</code></pre>
+<hr>
+<h5 id="166153-领域事件"><a class="header" href="#166153-领域事件">16.6.1.5.3 领域事件</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>事件名</th><th>触发时机</th><th>事件数据</th><th>消费方</th><th>Topic</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>ProductCreated</strong></td><td>商品创建成功</td><td>sku_id, spu_id, title, category_id, base_price</td><td>Search Service, Recommendation</td><td>product-events</td><td>同步到ES索引</td></tr>
+<tr><td><strong>ProductUpdated</strong></td><td>商品信息更新</td><td>sku_id, changed_fields</td><td>Search Service, Cache Invalidation</td><td>product-events</td><td>更新ES、清缓存</td></tr>
+<tr><td><strong>ProductOnShelf</strong></td><td>商品上架</td><td>sku_id, spu_id, on_shelf_time</td><td>Search Service, Marketing</td><td>product-events</td><td>上架通知、活动关联</td></tr>
+<tr><td><strong>ProductOffShelf</strong></td><td>商品下架</td><td>sku_id, reason, off_shelf_time</td><td>Search Service, Order Service</td><td>product-events</td><td>从ES移除、停止接单</td></tr>
+<tr><td><strong>PriceChanged</strong></td><td>基础价格变更</td><td>sku_id, old_price, new_price</td><td>Pricing Service, Analytics</td><td>product-events</td><td>重新计算售价、价格分析</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>事件结构定义</strong>：</p>
+<pre><code class="language-go">// ProductCreatedEvent 商品创建事件
+type ProductCreatedEvent struct {
+    SKUID      int64     `json:"sku_id"`
+    SPUID      int64     `json:"spu_id"`
+    Title      string    `json:"title"`
+    CategoryID int64     `json:"category_id"`
+    BasePrice  int64     `json:"base_price"`
+    CreatedAt  time.Time `json:"created_at"`
+}
+
+func (e *ProductCreatedEvent) Type() string {
+    return "product.created"
+}
+
+// ProductOnShelfEvent 商品上架事件
+type ProductOnShelfEvent struct {
+    SKUID       int64     `json:"sku_id"`
+    SPUID       int64     `json:"spu_id"`
+    OnShelfTime time.Time `json:"on_shelf_time"`
+}
+
+func (e *ProductOnShelfEvent) Type() string {
+    return "product.on_shelf"
+}
+
+// PriceChangedEvent 价格变更事件
+type PriceChangedEvent struct {
+    SKUID     int64     `json:"sku_id"`
+    OldPrice  int64     `json:"old_price"`
+    NewPrice  int64     `json:"new_price"`
+    ChangedAt time.Time `json:"changed_at"`
+}
+
+func (e *PriceChangedEvent) Type() string {
+    return "product.price_changed"
+}
+</code></pre>
+<hr>
+<h5 id="166154-事件订阅者的分层设计-"><a class="header" href="#166154-事件订阅者的分层设计-">16.6.1.5.4 事件订阅者的分层设计 ⭐️</a></h5>
+<p><strong>核心问题</strong>：DDD架构中，事件订阅者（Event Subscriber）应该放在哪一层？</p>
+<p>这是微服务架构中的经典设计问题。不同的分层方案会影响代码的复用性、可测试性和职责清晰度。</p>
+<h6 id="方案对比"><a class="header" href="#方案对比">方案对比</a></h6>
+<p><strong>方案A：Interface Layer（推荐）⭐️</strong></p>
+<p>事件订阅者是“异步接口“，与HTTP/gRPC同级。</p>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│              Interface Layer (接口层)                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │ HTTP Handler │  │ gRPC Handler │  │Event Subscriber│     │
+│  │  (同步接口)   │  │  (同步接口)   │  │  (异步接口) ⭐️│     │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
+│         │                  │                  │               │
+└─────────┼──────────────────┼──────────────────┼─────────────┘
+          ↓                  ↓                  ↓
+┌─────────────────────────────────────────────────────────────┐
+│    同一个 Application Service (ProductService)                │
+│    - GetProduct()     (查询)                                 │
+│    - CreateProduct()  (命令)                                 │
+│    - OnShelf()        (命令)                                 │
+│    - UpdatePrice()    (命令)                                 │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>方案B：Infrastructure Layer（不推荐）</strong></p>
+<p>Kafka Consumer直接调用Application Service。</p>
+<p>问题：</p>
+<ul>
+<li>❌ 违反依赖倒置原则（Infrastructure依赖Application）</li>
+<li>❌ 职责不清晰（Infrastructure既是实现层又是入口层）</li>
+<li>❌ 难以替换消息队列（从Kafka切换到RabbitMQ需要大量修改）</li>
+</ul>
+<p><strong>推荐方案A的原因</strong>：</p>
+<ol>
+<li><strong>对称性</strong>：HTTP、gRPC、Event都是外部触发源，应该同级</li>
+<li><strong>复用性</strong>：Application Service被所有接口复用，业务逻辑只写一次</li>
+<li><strong>职责清晰</strong>：Interface负责协议适配，Infrastructure负责技术实现</li>
+<li><strong>易于测试</strong>：可以直接测试Application Service，不依赖Kafka</li>
+<li><strong>易于替换</strong>：更换消息队列只需修改Infrastructure Layer</li>
+</ol>
+<hr>
+<h6 id="完整调用链路"><a class="header" href="#完整调用链路">完整调用链路</a></h6>
+<p><strong>HTTP同步调用</strong>：</p>
+<pre><code>Client
+  ↓ HTTP Request
+┌─────────────────────────────────┐
+│ Interface Layer - HTTP Handler  │ ← 解析HTTP请求
+│ product_handler.go              │
+└──────────────┬──────────────────┘
+               ↓ DTO
+┌─────────────────────────────────┐
+│ Application Layer               │ ← 业务编排
+│ product_service.go              │
+└──────────────┬──────────────────┘
+               ↓ Domain Model
+┌─────────────────────────────────┐
+│ Domain Layer                    │ ← 业务规则
+│ product.go                      │
+└──────────────┬──────────────────┘
+               ↓ Repository
+┌─────────────────────────────────┐
+│ Infrastructure Layer            │ ← 数据持久化
+│ product_repository.go           │
+└─────────────────────────────────┘
+</code></pre>
+<p><strong>Kafka异步调用</strong>：</p>
+<pre><code>Kafka Topic (supplier-product-events)
+  ↓ 异步消息
+┌─────────────────────────────────┐
+│ Infrastructure Layer            │ ← 技术实现（Kafka连接、消息接收）
+│ kafka_consumer.go               │
+└──────────────┬──────────────────┘
+               ↓ 消息路由
+┌─────────────────────────────────┐
+│ Interface Layer - Event Handler │ ← 协议适配（Kafka消息 → DTO）
+│ product_event_handler.go        │
+└──────────────┬──────────────────┘
+               ↓ DTO
+┌─────────────────────────────────┐
+│ Application Layer               │ ← 业务编排（复用同一个Service）
+│ product_service.go              │
+└──────────────┬──────────────────┘
+               ↓ Domain Model
+┌─────────────────────────────────┐
+│ Domain Layer                    │ ← 业务规则
+│ product.go                      │
+└──────────────┬──────────────────┘
+               ↓ Repository
+┌─────────────────────────────────┐
+│ Infrastructure Layer            │ ← 数据持久化
+│ product_repository.go           │
+└─────────────────────────────────┘
+</code></pre>
+<p><strong>关键差异</strong>：</p>
+<ul>
+<li>HTTP: <code>Interface → Application</code></li>
+<li>Event: <code>Infrastructure → Interface → Application</code>（多一层技术实现）</li>
+</ul>
+<hr>
+<h6 id="目录结构调整"><a class="header" href="#目录结构调整">目录结构调整</a></h6>
+<pre><code class="language-diff">product-service/
+├── internal/
+│   ├── interfaces/                      # 接口层
+│   │   ├── http/
+│   │   │   └── product_handler.go       # HTTP Handler（同步）
+│   │   ├── grpc/
+│   │   │   ├── proto/product.proto      
+│   │   │   └── product_handler.go       # gRPC Handler（同步）
++│   │   └── event/ ⭐️                    # 新增：事件接口
++│   │       └── product_event_handler.go # Event Handler（异步接口）
+│   │
+│   ├── application/                     
+│   │   └── service/
+│   │       └── product_service.go       # 应用服务（被所有接口复用）
+│   │
+│   ├── infrastructure/                  
+│   │   ├── persistence/
+│   │   │   └── product_repository.go    
+-│   │   └── event/
+-│   │       └── kafka_publisher.go      # 事件发布
++│   │   └── messaging/ ⭐️                # 重命名：消息中间件
++│   │       ├── kafka_producer.go       # Kafka生产者（事件发布）
++│   │       └── kafka_consumer.go       # Kafka消费者（技术实现）
+</code></pre>
+<hr>
+<h6 id="interface-layer---event-handler实现"><a class="header" href="#interface-layer---event-handler实现">Interface Layer - Event Handler实现</a></h6>
+<p><strong>职责</strong>：协议适配（Kafka消息 → DTO → 调用Application Service）</p>
+<pre><code class="language-go">// internal/interfaces/event/product_event_handler.go
+
+package event
+
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+
+    "product-service/internal/application/dto"
+    "product-service/internal/application/service"
+)
+
+// ProductEventHandler 商品事件处理器（接口层）
+// 职责：适配外部事件消息 → 调用Application Service
+// 与HTTP/gRPC Handler同级，是"异步接口"
+type ProductEventHandler struct {
+    productService *service.ProductService
+}
+
+func NewProductEventHandler(productService *service.ProductService) *ProductEventHandler {
+    return &amp;ProductEventHandler{
+        productService: productService,
+    }
+}
+
+// HandleMessage 统一的消息处理入口
+// 由Infrastructure Layer的Kafka Consumer调用
+func (h *ProductEventHandler) HandleMessage(ctx context.Context, messageType string, data []byte) error {
+    fmt.Printf("🔔 [Interface Layer - Event] Received message: %s\n", messageType)
+
+    switch messageType {
+    case "supplier.product.created":
+        return h.handleSupplierProductCreated(ctx, data)
+
+    case "pricing.price_changed":
+        return h.handlePriceChanged(ctx, data)
+
+    default:
+        fmt.Printf("⚠️  Unknown message type: %s\n", messageType)
+        return nil
+    }
+}
+
+// handleSupplierProductCreated 处理供应商商品创建事件
+// 场景：供应商服务创建新商品后，通过Kafka通知商品服务同步
+func (h *ProductEventHandler) handleSupplierProductCreated(ctx context.Context, data []byte) error {
+    // Step 1: 反序列化Kafka消息
+    var kafkaEvent struct {
+        SupplierID  int64  `json:"supplier_id"`
+        SupplierSKU string `json:"supplier_sku"`
+        Title       string `json:"title"`
+        BasePrice   int64  `json:"base_price"`
+        CategoryID  int64  `json:"category_id"`
+    }
+    if err := json.Unmarshal(data, &amp;kafkaEvent); err != nil {
+        return fmt.Errorf("反序列化失败: %w", err)
+    }
+
+    // Step 2: Kafka消息 → DTO（协议适配）
+    req := &amp;dto.CreateProductRequest{
+        SupplierID:  kafkaEvent.SupplierID,
+        SupplierSKU: kafkaEvent.SupplierSKU,
+        Title:       kafkaEvent.Title,
+        BasePrice:   kafkaEvent.BasePrice,
+        CategoryID:  kafkaEvent.CategoryID,
+    }
+
+    // Step 3: 调用应用服务（与HTTP/gRPC调用同一个方法！）
+    resp, err := h.productService.CreateProduct(ctx, req)
+    if err != nil {
+        return fmt.Errorf("创建商品失败: %w", err)
+    }
+
+    fmt.Printf("✅ [Interface Layer - Event] Product created, SKUID=%d\n", resp.SKUID)
+    return nil
+}
+
+// handlePriceChanged 处理价格变更事件
+// 场景：定价服务计算出新价格后，通知商品服务更新基础价格
+func (h *ProductEventHandler) handlePriceChanged(ctx context.Context, data []byte) error {
+    var kafkaEvent struct {
+        SKUID    int64 `json:"sku_id"`
+        NewPrice int64 `json:"new_price"`
+    }
+    if err := json.Unmarshal(data, &amp;kafkaEvent); err != nil {
+        return fmt.Errorf("反序列化失败: %w", err)
+    }
+
+    // Kafka消息 → DTO
+    req := &amp;dto.UpdatePriceRequest{
+        SKUID:    kafkaEvent.SKUID,
+        NewPrice: kafkaEvent.NewPrice,
+    }
+
+    // 调用应用服务（复用业务逻辑）
+    _, err := h.productService.UpdateBasePrice(ctx, req)
+    if err != nil {
+        return fmt.Errorf("更新价格失败: %w", err)
+    }
+
+    fmt.Printf("✅ [Interface Layer - Event] Price updated, SKUID=%d\n", kafkaEvent.SKUID)
+    return nil
+}
+</code></pre>
+<p><strong>关键设计点</strong>：</p>
+<ol>
+<li><strong>协议适配</strong>：将Kafka特有的消息格式转换为通用的DTO</li>
+<li><strong>复用Service</strong>：调用 <code>productService.CreateProduct()</code>（与HTTP/gRPC同一个方法）</li>
+<li><strong>错误处理</strong>：返回错误给Kafka Consumer，由Consumer决定重试或DLQ</li>
+<li><strong>日志跟踪</strong>：打印日志便于调试异步流程</li>
+</ol>
+<hr>
+<h6 id="infrastructure-layer---kafka-consumer实现"><a class="header" href="#infrastructure-layer---kafka-consumer实现">Infrastructure Layer - Kafka Consumer实现</a></h6>
+<p><strong>职责</strong>：技术实现（Kafka连接、订阅Topic、接收消息、路由到Interface Layer）</p>
+<pre><code class="language-go">// internal/infrastructure/messaging/kafka_consumer.go
+
+package messaging
+
+import (
+    "context"
+    "fmt"
+    "time"
+
+    eventHandler "product-service/internal/interfaces/event"
+    "github.com/confluentinc/confluent-kafka-go/kafka"
+)
+
+// KafkaConsumer Kafka消费者（基础设施层）
+// 职责：管理Kafka连接、订阅Topic、接收消息、路由到Interface Layer
+type KafkaConsumer struct {
+    consumer     *kafka.Consumer
+    eventHandler *eventHandler.ProductEventHandler
+    topics       []string
+}
+
+func NewKafkaConsumer(eventHandler *eventHandler.ProductEventHandler) *KafkaConsumer {
+    return &amp;KafkaConsumer{
+        eventHandler: eventHandler,
+        topics: []string{
+            "supplier-product-events",  // 供应商事件
+            "pricing-events",           // 定价事件
+        },
+    }
+}
+
+// Start 启动消费者（阻塞）
+func (c *KafkaConsumer) Start(ctx context.Context) error {
+    fmt.Printf("📡 [Infrastructure - Kafka Consumer] Starting...\n")
+    
+    // 初始化Kafka Consumer
+    consumer, err := kafka.NewConsumer(&amp;kafka.ConfigMap{
+        "bootstrap.servers": "localhost:9092",
+        "group.id":          "product-service-group",
+        "auto.offset.reset": "earliest",
+        "enable.auto.commit": false,  // 手动提交offset（保证at-least-once）
+    })
+    if err != nil {
+        return fmt.Errorf("创建Kafka Consumer失败: %w", err)
+    }
+    c.consumer = consumer
+
+    // 订阅Topic
+    if err := c.consumer.SubscribeTopics(c.topics, nil); err != nil {
+        return fmt.Errorf("订阅Topic失败: %w", err)
+    }
+    
+    fmt.Printf("📡 [Infrastructure - Kafka Consumer] Subscribed to: %v\n", c.topics)
+
+    // 消费循环
+    for {
+        select {
+        case &lt;-ctx.Done():
+            fmt.Println("📡 [Infrastructure - Kafka Consumer] Stopping...")
+            return ctx.Err()
+            
+        default:
+            // 读取消息（100ms超时）
+            msg, err := c.consumer.ReadMessage(100 * time.Millisecond)
+            if err != nil {
+                continue  // 超时或临时错误，继续循环
+            }
+
+            // ⭐️ 路由消息到Interface Layer的Handler
+            messageType := string(msg.Key)
+            if err := c.routeMessage(ctx, messageType, msg.Value); err != nil {
+                fmt.Printf("❌ [Infrastructure - Kafka Consumer] Handle error: %v\n", err)
+                // 错误处理：重试或发送到DLQ (Dead Letter Queue)
+            } else {
+                // ⭐️ 手动提交offset（保证at-least-once）
+                c.consumer.CommitMessage(msg)
+            }
+        }
+    }
+}
+
+// routeMessage 路由消息到Interface Layer的Handler
+func (c *KafkaConsumer) routeMessage(ctx context.Context, messageType string, data []byte) error {
+    fmt.Printf("📬 [Infrastructure - Kafka Consumer] Routing: %s\n", messageType)
+
+    // ⭐️ 调用Interface Layer的Handler
+    if err := c.eventHandler.HandleMessage(ctx, messageType, data); err != nil {
+        return fmt.Errorf("处理消息失败: %w", err)
+    }
+
+    return nil
+}
+
+// Stop 停止消费者
+func (c *KafkaConsumer) Stop() error {
+    if c.consumer != nil {
+        return c.consumer.Close()
+    }
+    return nil
+}
+</code></pre>
+<p><strong>关键设计点</strong>：</p>
+<ol>
+<li><strong>技术实现</strong>：负责Kafka连接、消息接收等技术细节</li>
+<li><strong>消息路由</strong>：根据消息类型路由到Interface Layer的Handler</li>
+<li><strong>手动提交Offset</strong>：保证at-least-once语义（消息处理成功后才提交）</li>
+<li><strong>错误处理</strong>：失败消息可以重试或发送到DLQ</li>
+<li><strong>优雅停机</strong>：通过Context取消消费循环</li>
+</ol>
+<hr>
+<h6 id="依赖注入与启动"><a class="header" href="#依赖注入与启动">依赖注入与启动</a></h6>
+<p><strong>main.go</strong>：</p>
+<pre><code class="language-go">package main
+
+import (
+    "context"
+    "product-service/internal/application/service"
+    "product-service/internal/infrastructure/messaging"
+    "product-service/internal/infrastructure/persistence"
+    eventHandler "product-service/internal/interfaces/event"
+    httpHandler "product-service/internal/interfaces/http"
+)
+
+func main() {
+    // Infrastructure Layer - 持久化
+    repo := persistence.NewProductRepository(...)
+
+    // Infrastructure Layer - 消息发布
+    eventPublisher := messaging.NewKafkaProducer()
+
+    // Application Layer
+    productService := service.NewProductService(repo, eventPublisher)
+
+    // Interface Layer - HTTP
+    handler := httpHandler.NewProductHandler(productService)
+
+    // ⭐️ Interface Layer - Event (异步接口)
+    evtHandler := eventHandler.NewProductEventHandler(productService)
+
+    // ⭐️ Infrastructure Layer - Kafka Consumer (技术实现)
+    kafkaConsumer := messaging.NewKafkaConsumer(evtHandler)
+
+    // 启动HTTP服务器
+    go startHTTPServer(handler)
+
+    // ⭐️ 启动Kafka Consumer
+    ctx := context.Background()
+    if err := kafkaConsumer.Start(ctx); err != nil {
+        log.Fatalf("Kafka Consumer error: %v", err)
+    }
+}
+</code></pre>
+<p><strong>依赖关系</strong>：</p>
+<pre><code>Infrastructure (KafkaConsumer)
+    ↓ 调用
+Interface (ProductEventHandler)
+    ↓ 调用
+Application (ProductService)
+    ↓ 调用
+Domain (Product)
+</code></pre>
+<p>✅ 依赖方向：外层 → 内层（符合依赖倒置原则）</p>
+<hr>
+<h6 id="实际项目优化"><a class="header" href="#实际项目优化">实际项目优化</a></h6>
+<p><strong>1. 服务分离部署</strong></p>
+<pre><code>product-service-api (处理HTTP/gRPC)
+├── Deployment: 10副本
+├── 职责：对外接口
+└── 扩容依据：QPS
+
+product-service-consumer (处理Kafka事件)
+├── Deployment: 3副本
+├── Consumer Group: product-service-group
+├── 职责：消费事件
+└── 扩容依据：消息堆积
+
+共享：
+├── Application Service
+├── Domain Model
+└── Repository
+</code></pre>
+<p><strong>好处</strong>：</p>
+<ul>
+<li>API服务可以独立扩容（根据QPS）</li>
+<li>Consumer服务可以独立扩容（根据消息堆积）</li>
+<li>Consumer故障不影响API可用性</li>
+</ul>
+<p><strong>2. Outbox Pattern（保证一致性）</strong></p>
+<pre><code class="language-sql">-- 事件表（保证事务一致性）
+CREATE TABLE domain_event_outbox (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    aggregate_type VARCHAR(50) NOT NULL COMMENT '聚合类型',
+    aggregate_id BIGINT NOT NULL COMMENT '聚合ID',
+    event_type VARCHAR(100) NOT NULL COMMENT '事件类型',
+    event_data JSON NOT NULL COMMENT '事件数据',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    published_at TIMESTAMP NULL COMMENT '发布时间',
+    status ENUM('PENDING', 'PUBLISHED', 'FAILED') DEFAULT 'PENDING',
+    retry_count INT DEFAULT 0,
+    INDEX idx_status_created (status, created_at)
+) ENGINE=InnoDB COMMENT='领域事件发件箱';
+</code></pre>
+<p><strong>Outbox发送器</strong>：</p>
+<pre><code class="language-go">// 定时扫描未发布的事件
+func (s *OutboxSender) SendPendingEvents(ctx context.Context) error {
+    events, err := s.repo.FindPendingEvents(ctx, limit)
+    if err != nil {
+        return err
+    }
+
+    for _, event := range events {
+        // 发布到Kafka
+        if err := s.kafkaProducer.Publish(ctx, event); err != nil {
+            s.repo.MarkFailed(ctx, event.ID)
+            continue
+        }
+
+        // 标记为已发布
+        s.repo.MarkPublished(ctx, event.ID)
+    }
+
+    return nil
+}
+</code></pre>
+<p><strong>3. 事件幂等性处理</strong></p>
+<pre><code class="language-go">// Event Handler中的幂等性检查
+func (h *ProductEventHandler) handlePriceChanged(ctx context.Context, data []byte) error {
+    var event PriceChangedEvent
+    json.Unmarshal(data, &amp;event)
+
+    // ⭐️ 检查是否已处理（根据event_id或业务维度）
+    if h.isEventProcessed(ctx, event.EventID) {
+        fmt.Println("⏭️  Event already processed, skipping...")
+        return nil  // 幂等性：已处理，直接返回成功
+    }
+
+    // 处理业务逻辑
+    if err := h.productService.UpdateBasePrice(ctx, ...); err != nil {
+        return err
+    }
+
+    // 记录已处理
+    h.markEventProcessed(ctx, event.EventID)
+
+    return nil
+}
+
+// 使用Redis或DB记录已处理的事件
+func (h *ProductEventHandler) isEventProcessed(ctx context.Context, eventID string) bool {
+    exists, _ := h.redis.Exists(ctx, "processed:event:"+eventID).Result()
+    return exists &gt; 0
+}
+
+func (h *ProductEventHandler) markEventProcessed(ctx context.Context, eventID string) {
+    // 保存24小时（TTL根据业务重试窗口决定）
+    h.redis.SetEX(ctx, "processed:event:"+eventID, "1", 24*time.Hour)
+}
+</code></pre>
+<hr>
+<h6 id="总结"><a class="header" href="#总结">总结</a></h6>
+<p><strong>事件订阅者应该放在Interface Layer</strong>，原因：</p>
+<ol>
+<li>✅ <strong>对称性</strong>：HTTP、gRPC、Event都是外部触发源，应该同级</li>
+<li>✅ <strong>复用性</strong>：Application Service被所有接口复用，业务逻辑只写一次</li>
+<li>✅ <strong>职责清晰</strong>：Interface负责协议适配，Infrastructure负责技术实现</li>
+<li>✅ <strong>易于测试</strong>：可以直接测试Application Service，不依赖Kafka</li>
+<li>✅ <strong>易于替换</strong>：更换消息队列只需修改Infrastructure Layer</li>
+</ol>
+<p><strong>完整调用链路</strong>：</p>
+<pre><code>Kafka Topic 
+  → Infrastructure (接收消息)
+  → Interface (协议适配) 
+  → Application (业务编排)
+  → Domain (业务规则)
+  → Infrastructure (持久化)
+</code></pre>
+<p><strong>示例代码</strong>：参见 <code>/ecommerce-book/examples/product-service/</code> 完整Demo</p>
+<hr>
+<h4 id="16616-三级缓存实现infrastructure-layer详细实现"><a class="header" href="#16616-三级缓存实现infrastructure-layer详细实现">16.6.1.6 三级缓存实现（Infrastructure Layer详细实现）</a></h4>
+<p><strong>三级缓存架构</strong>：</p>
 <pre><code class="language-go">// L1: 本地缓存（1分钟）
-localCache.Set(sku_id, product, 1*time.Minute)
+// 优点：延迟最低（&lt;1ms），适合热点商品
+// 缺点：容量有限，多实例不一致
+localCache.Set("product:"+skuID, product, 1*time.Minute)
 
 // L2: Redis缓存（30分钟）
-redis.Set("product:"+sku_id, marshal(product), 30*time.Minute)
+// 优点：容量大，多实例共享
+// 缺点：网络开销（1-5ms）
+redis.Set("product:"+skuID, marshal(product), 30*time.Minute)
 
 // L3: MySQL（源数据）
-db.QueryOne("SELECT * FROM product WHERE sku_id = ?", sku_id)
+// 优点：数据权威、一致
+// 缺点：延迟最高（10-50ms）
+db.QueryOne("SELECT * FROM product_sku WHERE id = ?", skuID)
 </code></pre>
-<h3 id="1652-库存系统设计"><a class="header" href="#1652-库存系统设计">16.5.2 库存系统设计</a></h3>
+<p><strong>缓存更新策略</strong>：</p>
+<ol>
+<li><strong>商品更新时</strong>：主动删除缓存（Cache Aside模式）</li>
+<li><strong>上下架时</strong>：删除L1+L2缓存，强制下次查询走DB</li>
+<li><strong>价格变更时</strong>：删除缓存 + 发布PriceChangedEvent通知Pricing Service</li>
+</ol>
+<p><strong>缓存Key设计</strong>：</p>
+<pre><code>product:{sku_id}                    # 单个商品
+product:spu:{spu_id}                # SPU下所有SKU（Hash结构）
+product:category:{category_id}      # 类目商品列表（Set结构）
+</code></pre>
+<hr>
+<h4 id="16617-完整示例代码-"><a class="header" href="#16617-完整示例代码-">16.6.1.7 完整示例代码 ⭐️</a></h4>
+<p>本章节的完整代码实现（包含DDD四层架构、事件发布订阅、三级缓存等）详见：</p>
+<p><strong>示例代码路径</strong>：<code>/ecommerce-book/examples/product-service/</code></p>
+<p><strong>目录结构</strong>：</p>
+<pre><code>examples/product-service/
+├── README.md                              # 项目说明
+├── QUICKSTART.md                          # 快速开始指南
+├── EVENT_SUBSCRIBER_LAYER.md ⭐️            # 事件订阅者分层设计（推荐阅读）
+├── cmd/main.go                            # 程序入口
+└── internal/
+    ├── domain/                            # 领域层
+    │   ├── product.go                     # Product聚合根
+    │   ├── spu.go                         # SPU实体
+    │   ├── value_objects.go               # 值对象
+    │   ├── events.go                      # 领域事件
+    │   └── repository.go                  # Repository接口
+    ├── application/                       # 应用层
+    │   ├── dto/product_dto.go             # DTO
+    │   └── service/product_service.go     # 应用服务
+    ├── infrastructure/                    # 基础设施层
+    │   ├── persistence/
+    │   │   ├── product_repository.go      # Repository实现
+    │   │   └── data_object.go             # 数据对象
+    │   ├── cache/cache.go                 # 三级缓存
+    │   └── messaging/ ⭐️
+    │       ├── kafka_producer.go          # 事件发布
+    │       └── kafka_consumer.go          # 事件消费
+    └── interfaces/                        # 接口层
+        ├── http/product_handler.go        # HTTP接口
+        ├── grpc/product_handler.go        # gRPC接口
+        └── event/product_event_handler.go # Event接口 ⭐️
+</code></pre>
+<p><strong>运行Demo</strong>：</p>
+<pre><code class="language-bash">cd ecommerce-book/examples/product-service
+go run cmd/main.go
+</code></pre>
+<p><strong>学习要点</strong>：</p>
+<ol>
+<li><strong>DDD分层架构</strong>：Domain、Application、Infrastructure、Interface四层</li>
+<li><strong>事件订阅者分层</strong>：Interface Layer作为异步接口（推荐阅读 <code>EVENT_SUBSCRIBER_LAYER.md</code>）</li>
+<li><strong>三级缓存实现</strong>：L1本地缓存 → L2 Redis → L3 MySQL</li>
+<li><strong>领域事件发布订阅</strong>：Domain产生事件 → Application发布 → Infrastructure投递 → Interface消费</li>
+</ol>
+<hr>
+<h3 id="1662-库存系统设计"><a class="header" href="#1662-库存系统设计">16.6.2 库存系统设计</a></h3>
 <p><strong>二维库存模型</strong>（参考16.2.5）：</p>
 <pre><code class="language-go">// 库存策略接口
 type StockStrategy interface {
@@ -946,7 +2729,7 @@ func (r *StockRepo) Reserve(ctx context.Context, skuID int64, qty int, ttl time.
     return "", errors.New("库存不足")
 }
 </code></pre>
-<h3 id="1653-订单系统设计"><a class="header" href="#1653-订单系统设计">16.5.3 订单系统设计</a></h3>
+<h3 id="1663-订单系统设计"><a class="header" href="#1663-订单系统设计">16.6.3 订单系统设计</a></h3>
 <p><strong>状态机</strong>：</p>
 <pre><code class="language-go">type OrderStatus string
 
@@ -983,7 +2766,7 @@ func (o *Order) TransitionTo(newStatus OrderStatus) error {
 • 分表：按 create_time 分表（按月归档，64表）
 • 路由表：order_route（order_id → db_index, table_index）
 </code></pre>
-<h3 id="1654-支付系统设计"><a class="header" href="#1654-支付系统设计">16.5.4 支付系统设计</a></h3>
+<h3 id="1664-支付系统设计"><a class="header" href="#1664-支付系统设计">16.6.4 支付系统设计</a></h3>
 <p><strong>支付流程</strong>：</p>
 <pre><code class="language-go">// Step 1: 创建支付单
 func (s *PaymentService) CreatePayment(ctx context.Context, orderID int64, amount int64) (*Payment, error) {
@@ -1060,7 +2843,7 @@ func (s *PaymentService) ReconcileHourly(ctx context.Context, hour time.Time) er
     return nil
 }
 </code></pre>
-<h3 id="1655-供应商集成设计"><a class="header" href="#1655-供应商集成设计">16.5.5 供应商集成设计</a></h3>
+<h3 id="1665-供应商集成设计"><a class="header" href="#1665-供应商集成设计">16.6.5 供应商集成设计</a></h3>
 <p><strong>适配器模式</strong>：</p>
 <pre><code class="language-go">// 供应商接口（统一抽象）
 type SupplierAdapter interface {
@@ -1125,14 +2908,67 @@ func (c *SupplierClient) QueryStock(ctx context.Context, req *Request) (*Respons
     return parseResponse(result), nil
 }
 </code></pre>
-<h3 id="1656-商品供给与运营系统"><a class="header" href="#1656-商品供给与运营系统">16.5.6 商品供给与运营系统</a></h3>
-<p><strong>供给运营是电商平台的核心能力</strong>，决定了“商品如何进入平台“。本节展示供给侧和运营侧的完整设计。</p>
-<h4 id="商品上架系统从无到有"><a class="header" href="#商品上架系统从无到有">商品上架系统（从无到有）</a></h4>
+<hr>
+<h2 id="167-完整业务链路系统集成与数据流"><a class="header" href="#167-完整业务链路系统集成与数据流">16.7 完整业务链路（系统集成与数据流）</a></h2>
+<p><strong>从子系统到完整链路</strong>：前面章节展示了各个子系统的内部设计（商品中心、库存、订单、支付、供应商集成），本章展示这些子系统如何协作，形成端到端的业务链路。</p>
+<p><strong>两条关键链路</strong>：</p>
+<ul>
+<li><strong>B端链路</strong>（供应商 → 运营 → 平台）：商品生命周期管理，决定“商品如何进入、如何管理、如何退出“</li>
+<li><strong>C端链路</strong>（用户 → 交易 → 履约）：交易流完整路径，决定“用户如何发现、如何下单、如何完成支付“</li>
+</ul>
+<p><strong>集成视角的关键点</strong>：</p>
+<ul>
+<li><strong>数据流转</strong>：跨系统的数据传递（事件驱动、同步调用、异步任务）</li>
+<li><strong>状态同步</strong>：多系统间的状态一致性（商品状态、库存状态、订单状态）</li>
+<li><strong>异常处理</strong>：跨系统的容错与补偿（Saga、重试、降级）</li>
+</ul>
+<hr>
+<h3 id="1671-b端商品生命周期完整链路"><a class="header" href="#1671-b端商品生命周期完整链路">16.7.1 B端商品生命周期完整链路</a></h3>
+<p><strong>B端商品生命周期是平台运营的核心能力</strong>，决定了“商品如何进入、如何管理、如何退出“。本节展示从商品录入到下架归档的完整链路，涵盖供应商、运营、系统三方协作。</p>
+<p><strong>完整生命周期（7个阶段）</strong>：</p>
+<pre><code>阶段1：商品录入（手动/批量/API）
+   ↓ 录入成功率 &gt; 95%
+阶段2：审核发布（人工/自动）
+   ↓ 审核通过率 &gt; 85%
+阶段3：供应商同步（实时/定时）
+   ↓ 同步成功率 &gt; 98%
+阶段4：库存管理（同步/监控/对账）
+   ↓ 库存准确率 &gt; 99.5%
+阶段5：日常维护（单品/批量编辑）
+   ↓ 编辑成功率 &gt; 99%
+阶段6：促销配置（活动关联/价格设置）
+   ↓ 生效准时率 &gt; 99.9%
+阶段7：下架归档（临时/永久）
+   ↓ 归档成功率 &gt; 99%
+</code></pre>
+<p><strong>与C端链路的对比</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>B端链路</th><th>C端链路</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>阶段数量</strong></td><td>7个阶段</td><td>5个阶段</td></tr>
+<tr><td><strong>时间跨度</strong></td><td>数天到数月（商品生命周期）</td><td>数分钟（单次购物流程）</td></tr>
+<tr><td><strong>参与角色</strong></td><td>供应商、运营、系统</td><td>用户、系统</td></tr>
+<tr><td><strong>核心关注</strong></td><td>数据准确性、流程合规性</td><td>用户体验、转化率</td></tr>
+<tr><td><strong>关键技术</strong></td><td>幂等性、状态机、异步任务</td><td>聚合编排、快照、Saga</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h4 id="阶段1商品录入"><a class="header" href="#阶段1商品录入">阶段1：商品录入</a></h4>
 <p><strong>业务场景</strong>：</p>
 <ul>
-<li>运营人员手动上传新商品</li>
-<li>商家通过Portal批量导入</li>
-<li>Excel批量上架（节假日大促前）</li>
+<li><strong>手动录入</strong>：运营人员通过后台表单录入新商品（小批量、高质量）</li>
+<li><strong>批量导入</strong>：商家/运营通过Excel批量导入（大促前、品类扩展）</li>
+<li><strong>API推送</strong>：供应商通过OpenAPI实时推送新品（自动化、规模化）</li>
+</ul>
+<p><strong>技术难点</strong>：</p>
+<ul>
+<li><strong>幂等性保证</strong>：防止重复提交（网络超时、用户重试）</li>
+<li><strong>异步解耦</strong>：批量导入通过异步任务处理，避免阻塞用户</li>
+<li><strong>数据校验</strong>：必填字段、格式校验、业务规则校验</li>
 </ul>
 <p><strong>核心设计</strong>：</p>
 <pre><code class="language-go">// 上架任务状态机
@@ -1222,21 +3058,361 @@ func (s *ListingService) Approve(ctx context.Context, taskCode string, reviewerI
     return nil
 }
 </code></pre>
+<p><strong>批量导入</strong>：</p>
+<pre><code class="language-go">// 批量导入服务
+type BatchImportService struct {
+    taskRepo     TaskRepository
+    taskQueue    TaskQueue
+    validator    ItemValidator
+    fileParser   FileParser
+}
+
+// 批量导入（异步）
+func (s *BatchImportService) BatchImport(ctx context.Context, file io.Reader, operatorID int64) (*BatchImportTask, error) {
+    // Step 1: 解析文件（支持Excel/CSV）
+    items, parseErr := s.fileParser.Parse(file)
+    if parseErr != nil {
+        return nil, fmt.Errorf("文件解析失败: %w", parseErr)
+    }
+    
+    // Step 2: 数据校验（预检）
+    validItems := make([]*ItemInfo, 0, len(items))
+    invalidItems := make([]*ValidationError, 0)
+    
+    for _, item := range items {
+        if err := s.validator.Validate(item); err != nil {
+            invalidItems = append(invalidItems, &amp;ValidationError{
+                Item:  item,
+                Error: err.Error(),
+            })
+        } else {
+            validItems = append(validItems, item)
+        }
+    }
+    
+    // Step 3: 创建批量任务
+    batchTask := &amp;BatchImportTask{
+        TaskID:       generateTaskID(),
+        TotalCount:   len(items),
+        ValidCount:   len(validItems),
+        InvalidCount: len(invalidItems),
+        Status:       "PENDING",
+        OperatorID:   operatorID,
+        CreatedAt:    time.Now(),
+    }
+    
+    if err := s.taskRepo.Save(ctx, batchTask); err != nil {
+        return nil, err
+    }
+    
+    // Step 4: 发送到任务队列（异步处理）
+    s.taskQueue.Publish(ctx, &amp;BatchImportEvent{
+        TaskID:       batchTask.TaskID,
+        Items:        validItems,
+        InvalidItems: invalidItems,
+    })
+    
+    return batchTask, nil
+}
+
+// 批量任务处理（Consumer）
+func (s *BatchImportService) ProcessBatchTask(ctx context.Context, event *BatchImportEvent) error {
+    successCount := 0
+    failedItems := make([]*ImportFailure, 0)
+    
+    // 逐条处理（控制并发度）
+    semaphore := make(chan struct{}, 10) // 限制10并发
+    var wg sync.WaitGroup
+    var mu sync.Mutex
+    
+    for _, item := range event.Items {
+        wg.Add(1)
+        semaphore &lt;- struct{}{}
+        
+        go func(item *ItemInfo) {
+            defer wg.Done()
+            defer func() { &lt;-semaphore }()
+            
+            // 创建上架任务
+            if _, err := s.listingService.CreateListingTask(ctx, &amp;ListingRequest{
+                ItemInfo:   item,
+                SupplierID: item.SupplierID,
+            }); err != nil {
+                mu.Lock()
+                failedItems = append(failedItems, &amp;ImportFailure{
+                    Item:  item,
+                    Error: err.Error(),
+                })
+                mu.Unlock()
+            } else {
+                mu.Lock()
+                successCount++
+                mu.Unlock()
+            }
+        }(item)
+    }
+    
+    wg.Wait()
+    
+    // 更新任务状态
+    s.taskRepo.Update(ctx, event.TaskID, &amp;BatchImportResult{
+        Status:       "COMPLETED",
+        SuccessCount: successCount,
+        FailedCount:  len(failedItems),
+        FailedItems:  failedItems,
+        CompletedAt:  time.Now(),
+    })
+    
+    return nil
+}
+</code></pre>
+<p><strong>API推送</strong>：</p>
+<pre><code class="language-go">// OpenAPI Service（供应商接口）
+type OpenAPIService struct {
+    listingService *ListingService
+    rateLimiter    RateLimiter      // 限流器
+    authService    AuthService      // 鉴权
+}
+
+// API推送商品
+func (s *OpenAPIService) PushProduct(ctx context.Context, req *PushProductRequest) (*PushProductResponse, error) {
+    // Step 1: 鉴权（API Key + Signature）
+    supplierID, err := s.authService.Authenticate(ctx, req.APIKey, req.Signature)
+    if err != nil {
+        return nil, fmt.Errorf("鉴权失败: %w", err)
+    }
+    
+    // Step 2: 限流（防止刷接口）
+    if !s.rateLimiter.Allow(supplierID) {
+        return nil, fmt.Errorf("请求过于频繁，请稍后重试")
+    }
+    
+    // Step 3: 参数校验
+    if err := s.validatePushRequest(req); err != nil {
+        return nil, fmt.Errorf("参数校验失败: %w", err)
+    }
+    
+    // Step 4: 创建上架任务（幂等性）
+    task, err := s.listingService.CreateListingTask(ctx, &amp;ListingRequest{
+        ItemInfo:   req.ItemInfo,
+        SupplierID: supplierID,
+    })
+    if err != nil {
+        return nil, fmt.Errorf("创建任务失败: %w", err)
+    }
+    
+    // Step 5: 自动提交审核（API推送默认进入审核）
+    if err := s.listingService.SubmitForReview(ctx, task.TaskCode); err != nil {
+        return nil, err
+    }
+    
+    return &amp;PushProductResponse{
+        TaskCode: task.TaskCode,
+        Status:   string(task.Status),
+        Message:  "商品已提交审核，预计1-3小时内完成",
+    }, nil
+}
+</code></pre>
+<p><strong>监控指标</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>目标值</th><th>监控维度</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>录入成功率</strong></td><td>&gt; 95%</td><td>按录入方式（手动/批量/API）</td></tr>
+<tr><td><strong>批量导入耗时</strong></td><td>&lt; 10s/千条</td><td>按文件大小</td></tr>
+<tr><td><strong>API响应时间</strong></td><td>P99 &lt; 500ms</td><td>按供应商</td></tr>
+<tr><td><strong>幂等性命中率</strong></td><td>&lt; 5%</td><td>按操作类型</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h4 id="阶段2审核发布"><a class="header" href="#阶段2审核发布">阶段2：审核发布</a></h4>
+<p><strong>业务场景</strong>：</p>
+<ul>
+<li><strong>人工审核</strong>：高风险商品（特定类目、新供应商）需人工审核</li>
+<li><strong>自动审核</strong>：低风险商品通过规则引擎自动审核通过</li>
+<li><strong>审核驳回</strong>：不合规商品驳回并通知修改</li>
+</ul>
+<p><strong>技术难点</strong>：</p>
+<ul>
+<li><strong>规则引擎</strong>：多维度规则组合（合规性、完整性、准确性）</li>
+<li><strong>审核SLA</strong>：自动审核秒级响应，人工审核小时级</li>
+<li><strong>审核日志</strong>：完整记录审核决策，支持溯源</li>
+</ul>
+<p><strong>自动审核规则引擎</strong>：</p>
+<pre><code class="language-go">// 审核引擎
+type ReviewEngine struct {
+    rules []ReviewRule
+}
+
+// 审核规则接口
+type ReviewRule interface {
+    Check(ctx context.Context, task *ListingTask) *ReviewResult
+}
+
+// 自动审核
+func (e *ReviewEngine) AutoReview(ctx context.Context, task *ListingTask) (*ReviewResult, error) {
+    results := make([]*ReviewResult, 0, len(e.rules))
+    
+    // 执行所有规则
+    for _, rule := range e.rules {
+        result := rule.Check(ctx, task)
+        results = append(results, result)
+        
+        // 任何规则拒绝则直接返回
+        if result.Decision == ReviewReject {
+            return result, nil
+        }
+    }
+    
+    // 所有规则通过
+    return &amp;ReviewResult{
+        Decision: ReviewApprove,
+        Score:    e.calculateScore(results),
+    }, nil
+}
+
+// 规则1: 合规性检查
+type ComplianceRule struct {
+    sensitiveWords []string
+    bannedCategories []int64
+}
+
+func (r *ComplianceRule) Check(ctx context.Context, task *ListingTask) *ReviewResult {
+    // 违禁词检测
+    for _, word := range r.sensitiveWords {
+        if strings.Contains(task.ItemInfo.Title, word) || 
+           strings.Contains(task.ItemInfo.Description, word) {
+            return &amp;ReviewResult{
+                Decision: ReviewReject,
+                Reason:   fmt.Sprintf("包含违禁词: %s", word),
+            }
+        }
+    }
+    
+    // 禁售类目检测
+    for _, category := range r.bannedCategories {
+        if task.ItemInfo.CategoryID == category {
+            return &amp;ReviewResult{
+                Decision: ReviewReject,
+                Reason:   "该类目禁止销售",
+            }
+        }
+    }
+    
+    return &amp;ReviewResult{Decision: ReviewApprove}
+}
+
+// 规则2: 完整性检查
+type CompletenessRule struct{}
+
+func (r *CompletenessRule) Check(ctx context.Context, task *ListingTask) *ReviewResult {
+    item := task.ItemInfo
+    
+    // 必填字段检查
+    if item.Title == "" || item.Description == "" || item.BasePrice &lt;= 0 {
+        return &amp;ReviewResult{
+            Decision: ReviewReject,
+            Reason:   "缺少必填字段",
+        }
+    }
+    
+    // 图片数量检查
+    if len(item.Images) &lt; 3 {
+        return &amp;ReviewResult{
+            Decision: ReviewReject,
+            Reason:   "商品图片不足3张",
+        }
+    }
+    
+    return &amp;ReviewResult{Decision: ReviewApprove}
+}
+
+// 规则3: 准确性检查
+type AccuracyRule struct{}
+
+func (r *AccuracyRule) Check(ctx context.Context, task *ListingTask) *ReviewResult {
+    item := task.ItemInfo
+    
+    // 价格合理性检查
+    if item.BasePrice &lt; 1 || item.BasePrice &gt; 1000000 {
+        return &amp;ReviewResult{
+            Decision: ReviewManual, // 转人工审核
+            Reason:   "价格异常，需人工确认",
+        }
+    }
+    
+    // 类目匹配检查（示例：通过标题关键词）
+    if !r.isCategoryMatched(item.Title, item.CategoryID) {
+        return &amp;ReviewResult{
+            Decision: ReviewManual,
+            Reason:   "类目与标题不匹配，需人工确认",
+        }
+    }
+    
+    return &amp;ReviewResult{Decision: ReviewApprove}
+}
+</code></pre>
 <p><strong>审核策略</strong>：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>审核维度</th><th>检查项</th><th>风险等级</th></tr>
+<tr><th>审核维度</th><th>检查项</th><th>风险等级</th><th>处理策略</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>合规性</strong></td><td>违禁词检测、敏感内容</td><td>高</td></tr>
-<tr><td><strong>完整性</strong></td><td>必填字段、图片数量</td><td>中</td></tr>
-<tr><td><strong>准确性</strong></td><td>价格合理性、类目匹配</td><td>中</td></tr>
-<tr><td><strong>一致性</strong></td><td>SPU/SKU关系、属性匹配</td><td>低</td></tr>
+<tr><td><strong>合规性</strong></td><td>违禁词检测、敏感内容</td><td>高</td><td>自动拒绝</td></tr>
+<tr><td><strong>完整性</strong></td><td>必填字段、图片数量</td><td>中</td><td>自动拒绝</td></tr>
+<tr><td><strong>准确性</strong></td><td>价格合理性、类目匹配</td><td>中</td><td>转人工审核</td></tr>
+<tr><td><strong>一致性</strong></td><td>SPU/SKU关系、属性匹配</td><td>低</td><td>自动通过</td></tr>
 </tbody>
 </table>
 </div>
-<h4 id="供应商同步系统upsert场景"><a class="header" href="#供应商同步系统upsert场景">供应商同步系统（Upsert场景）</a></h4>
+<p><strong>审核流程</strong>：</p>
+<pre><code class="language-go">// 审核服务
+func (s *ListingService) ProcessReview(ctx context.Context, taskCode string) error {
+    task, _ := s.getTask(ctx, taskCode)
+    
+    // Step 1: 自动审核
+    autoResult, err := s.reviewEngine.AutoReview(ctx, task)
+    if err != nil {
+        return err
+    }
+    
+    switch autoResult.Decision {
+    case ReviewApprove:
+        // 自动通过 → 直接发布
+        return s.Approve(ctx, taskCode, SystemReviewerID)
+        
+    case ReviewReject:
+        // 自动拒绝 → 驳回
+        return s.Reject(ctx, taskCode, autoResult.Reason)
+        
+    case ReviewManual:
+        // 转人工审核 → 进入审核队列
+        return s.assignToReviewer(ctx, taskCode)
+    }
+    
+    return nil
+}
+</code></pre>
+<p><strong>监控指标</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>目标值</th><th>监控维度</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>审核通过率</strong></td><td>&gt; 85%</td><td>按供应商、按类目</td></tr>
+<tr><td><strong>自动审核占比</strong></td><td>&gt; 70%</td><td>按审核决策</td></tr>
+<tr><td><strong>人工审核SLA</strong></td><td>&lt; 4h</td><td>P99耗时</td></tr>
+<tr><td><strong>审核驳回率</strong></td><td>&lt; 15%</td><td>按驳回原因</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h4 id="阶段3供应商同步"><a class="header" href="#阶段3供应商同步">阶段3：供应商同步</a></h4>
 <p><strong>业务场景</strong>：</p>
 <ul>
 <li>供应商定时推送商品数据（每小时/每天）</li>
@@ -1335,7 +3511,254 @@ func (s *SyncService) needReview(supplierID int64) bool {
 </tbody>
 </table>
 </div>
-<h4 id="运营编辑系统日常维护"><a class="header" href="#运营编辑系统日常维护">运营编辑系统（日常维护）</a></h4>
+<p><strong>监控指标</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>目标值</th><th>监控维度</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>同步成功率</strong></td><td>&gt; 98%</td><td>按供应商、按同步类型</td></tr>
+<tr><td><strong>同步耗时</strong></td><td>P99 &lt; 5s</td><td>按数据大小</td></tr>
+<tr><td><strong>差异化审核命中率</strong></td><td>10-20%</td><td>按变更类型</td></tr>
+<tr><td><strong>供应商数据质量</strong></td><td>错误率 &lt; 5%</td><td>按供应商</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h4 id="阶段4库存管理"><a class="header" href="#阶段4库存管理">阶段4：库存管理</a></h4>
+<p><strong>业务场景</strong>：</p>
+<ul>
+<li><strong>实时同步</strong>：热卖商品库存通过WebHook实时推送（减库存事件）</li>
+<li><strong>定时同步</strong>：长尾商品库存通过定时任务批量拉取（每小时/每天）</li>
+<li><strong>水位监控</strong>：库存低于阈值时触发告警，通知供应商补货</li>
+<li><strong>日终对账</strong>：每日对账供应商库存与平台库存，发现差异自动修正</li>
+</ul>
+<p><strong>技术难点</strong>：</p>
+<ul>
+<li><strong>同步策略</strong>：实时 vs 定时的平衡（成本 vs 准确性）</li>
+<li><strong>库存准确性</strong>：多方数据源（供应商、订单系统、售后退款）一致性</li>
+<li><strong>并发控制</strong>：高并发扣减库存时的原子性保证</li>
+<li><strong>对账修正</strong>：发现差异后的自动修正 vs 人工介入</li>
+</ul>
+<p><strong>核心设计</strong>：</p>
+<pre><code class="language-go">// 库存同步策略（策略模式）
+type StockSyncStrategy interface {
+    Sync(ctx context.Context, skuID int64) (*SyncResult, error)
+}
+
+// 实时同步策略（高价值商品）
+type RealtimeStockSyncStrategy struct {
+    supplierClient SupplierClient
+    inventoryRepo  InventoryRepository
+    cache          *redis.Client
+}
+
+func (s *RealtimeStockSyncStrategy) Sync(ctx context.Context, skuID int64) (*SyncResult, error) {
+    // Step 1: 调用供应商API实时查询库存
+    supplierStock, err := s.supplierClient.GetStock(ctx, skuID)
+    if err != nil {
+        return nil, fmt.Errorf("供应商库存查询失败: %w", err)
+    }
+    
+    // Step 2: 更新库存（数据库 + 缓存）
+    if err := s.inventoryRepo.Update(ctx, skuID, supplierStock); err != nil {
+        return nil, err
+    }
+    
+    // Step 3: 更新缓存（防止穿透）
+    s.cache.Set(ctx, fmt.Sprintf("stock:%d", skuID), supplierStock, 5*time.Minute)
+    
+    return &amp;SyncResult{
+        SKUID:         skuID,
+        OldStock:      0, // 旧库存
+        NewStock:      supplierStock,
+        SyncTime:      time.Now(),
+        SyncType:      "REALTIME",
+    }, nil
+}
+
+// 定时同步策略（长尾商品）
+type ScheduledStockSyncStrategy struct {
+    supplierClient SupplierClient
+    inventoryRepo  InventoryRepository
+}
+
+func (s *ScheduledStockSyncStrategy) Sync(ctx context.Context, skuID int64) (*SyncResult, error) {
+    // Step 1: 批量拉取供应商库存（减少API调用）
+    supplierStocks, err := s.supplierClient.BatchGetStock(ctx, []int64{skuID})
+    if err != nil {
+        return nil, err
+    }
+    
+    // Step 2: 批量更新数据库
+    updates := make(map[int64]int32)
+    for _, stock := range supplierStocks {
+        updates[stock.SKUID] = stock.Quantity
+    }
+    
+    if err := s.inventoryRepo.BatchUpdate(ctx, updates); err != nil {
+        return nil, err
+    }
+    
+    return &amp;SyncResult{
+        SKUID:    skuID,
+        NewStock: supplierStocks[skuID].Quantity,
+        SyncTime: time.Now(),
+        SyncType: "SCHEDULED",
+    }, nil
+}
+
+// 库存同步服务（根据商品分级选择策略）
+type StockSyncService struct {
+    realtimeStrategy  *RealtimeStockSyncStrategy
+    scheduledStrategy *ScheduledStockSyncStrategy
+    productRepo       ProductRepository
+}
+
+func (s *StockSyncService) SyncStock(ctx context.Context, skuID int64) error {
+    // 根据商品热度选择同步策略
+    product, _ := s.productRepo.Get(ctx, skuID)
+    
+    var strategy StockSyncStrategy
+    if product.Hotness &gt; 80 { // 热卖商品
+        strategy = s.realtimeStrategy
+    } else {
+        strategy = s.scheduledStrategy
+    }
+    
+    _, err := strategy.Sync(ctx, skuID)
+    return err
+}
+</code></pre>
+<p><strong>库存水位监控</strong>：</p>
+<pre><code class="language-go">// 库存水位监控器
+type StockWatermarkMonitor struct {
+    inventoryRepo InventoryRepository
+    alertService  AlertService
+    supplierClient SupplierClient
+}
+
+// 检查库存水位（定时任务，每5分钟执行）
+func (m *StockWatermarkMonitor) CheckWatermark(ctx context.Context, skuID int64) error {
+    // Step 1: 查询当前库存
+    stock, err := m.inventoryRepo.GetStock(ctx, skuID)
+    if err != nil {
+        return err
+    }
+    
+    // Step 2: 计算水位线（根据历史销量）
+    watermark := m.calculateWatermark(ctx, skuID)
+    
+    // Step 3: 库存低于水位线 → 告警
+    if stock.Available &lt; watermark {
+        m.alertService.Send(ctx, &amp;Alert{
+            Level:   "WARNING",
+            Type:    "LOW_STOCK",
+            SKUID:   skuID,
+            Message: fmt.Sprintf("库存低于水位线（当前: %d, 水位: %d）", stock.Available, watermark),
+        })
+        
+        // Step 4: 通知供应商补货
+        m.supplierClient.RequestReplenishment(ctx, &amp;ReplenishmentRequest{
+            SKUID:        skuID,
+            RequestQty:   watermark * 2, // 建议补货量
+            UrgencyLevel: "NORMAL",
+        })
+    }
+    
+    return nil
+}
+
+// 计算水位线（基于历史销量）
+func (m *StockWatermarkMonitor) calculateWatermark(ctx context.Context, skuID int64) int32 {
+    // 查询最近7天日均销量
+    avgDailySales := m.inventoryRepo.GetAvgDailySales(ctx, skuID, 7)
+    
+    // 水位线 = 3天销量（安全库存）
+    return avgDailySales * 3
+}
+</code></pre>
+<p><strong>库存对账</strong>：</p>
+<pre><code class="language-go">// 库存对账任务（每日凌晨执行）
+type StockReconciliationJob struct {
+    inventoryRepo  InventoryRepository
+    supplierClient SupplierClient
+    diffRepo       DiffRepository
+}
+
+func (j *StockReconciliationJob) Run(ctx context.Context, date time.Time) error {
+    // Step 1: 批量拉取所有SKU的供应商库存
+    supplierStocks, err := j.supplierClient.GetAllStocks(ctx)
+    if err != nil {
+        return err
+    }
+    
+    // Step 2: 批量查询平台库存
+    platformStocks, err := j.inventoryRepo.GetAllStocks(ctx)
+    if err != nil {
+        return err
+    }
+    
+    // Step 3: 对比差异
+    diffs := make([]*StockDiff, 0)
+    for skuID, supplierQty := range supplierStocks {
+        platformQty := platformStocks[skuID]
+        
+        if supplierQty != platformQty {
+            diff := &amp;StockDiff{
+                SKUID:        skuID,
+                SupplierQty:  supplierQty,
+                PlatformQty:  platformQty,
+                Difference:   supplierQty - platformQty,
+                ReconcileDate: date,
+            }
+            diffs = append(diffs, diff)
+        }
+    }
+    
+    // Step 4: 记录差异
+    if err := j.diffRepo.BatchSave(ctx, diffs); err != nil {
+        return err
+    }
+    
+    // Step 5: 自动修正（差异 &lt; 10% 自动修正，&gt; 10% 人工介入）
+    for _, diff := range diffs {
+        if math.Abs(float64(diff.Difference)/float64(diff.PlatformQty)) &lt; 0.1 {
+            // 小差异：自动修正
+            j.inventoryRepo.Update(ctx, diff.SKUID, diff.SupplierQty)
+        } else {
+            // 大差异：告警 + 人工介入
+            j.alertService.Send(ctx, &amp;Alert{
+                Level:   "ERROR",
+                Type:    "STOCK_MISMATCH",
+                SKUID:   diff.SKUID,
+                Message: fmt.Sprintf("库存差异过大（供应商: %d, 平台: %d）", diff.SupplierQty, diff.PlatformQty),
+            })
+        }
+    }
+    
+    return nil
+}
+</code></pre>
+<p><strong>监控指标</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>目标值</th><th>监控维度</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>库存准确率</strong></td><td>&gt; 99.5%</td><td>按SKU、按供应商</td></tr>
+<tr><td><strong>实时同步成功率</strong></td><td>&gt; 98%</td><td>按供应商API可用性</td></tr>
+<tr><td><strong>定时同步耗时</strong></td><td>&lt; 10min/批次</td><td>按SKU数量</td></tr>
+<tr><td><strong>水位告警响应时间</strong></td><td>&lt; 5min</td><td>P99</td></tr>
+<tr><td><strong>日终对账差异率</strong></td><td>&lt; 2%</td><td>按供应商</td></tr>
+<tr><td><strong>自动修正覆盖率</strong></td><td>&gt; 80%</td><td>按差异范围</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h4 id="阶段5日常维护"><a class="header" href="#阶段5日常维护">阶段5：日常维护</a></h4>
 <p><strong>业务场景</strong>：</p>
 <ul>
 <li>单品编辑（修改标题、描述、图片）</li>
@@ -1425,10 +3848,410 @@ func (s *EditService) GetTaskProgress(ctx context.Context, taskID string) (*Task
     }, nil
 }
 </code></pre>
+<p><strong>监控指标</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>目标值</th><th>监控维度</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>编辑成功率</strong></td><td>&gt; 99%</td><td>按编辑类型（单品/批量）</td></tr>
+<tr><td><strong>批量编辑耗时</strong></td><td>&lt; 5s/千条</td><td>按数据大小</td></tr>
+<tr><td><strong>进度更新频率</strong></td><td>每秒</td><td>任务执行期间</td></tr>
+<tr><td><strong>部分成功占比</strong></td><td>&lt; 10%</td><td>按失败原因</td></tr>
+</tbody>
+</table>
+</div>
 <hr>
-<h2 id="1657-c端交易流完整链路"><a class="header" href="#1657-c端交易流完整链路">16.5.7 C端交易流完整链路</a></h2>
+<h4 id="阶段6促销配置"><a class="header" href="#阶段6促销配置">阶段6：促销配置</a></h4>
+<p><strong>业务场景</strong>：</p>
+<ul>
+<li><strong>活动关联</strong>：将商品关联到大促活动（618、双11）</li>
+<li><strong>价格设置</strong>：配置活动价、满减、折扣券</li>
+<li><strong>定时生效</strong>：活动开始时自动生效，结束时自动失效</li>
+<li><strong>价格验证</strong>：确保活动价 &lt; 原价，防止虚假促销</li>
+</ul>
+<p><strong>技术难点</strong>：</p>
+<ul>
+<li><strong>定时生效</strong>：活动开始/结束时间精确到秒，需要定时任务支持</li>
+<li><strong>价格一致性</strong>：促销价变更后需同步到商品中心、搜索、缓存</li>
+<li><strong>并发控制</strong>：大促开始时大量商品同时生效，避免雪崩</li>
+</ul>
+<p><strong>核心设计</strong>：</p>
+<pre><code class="language-go">// 促销配置服务
+type PromotionConfigService struct {
+    productRepo    ProductRepository
+    pricingClient  PricingClient
+    promotionRepo  PromotionRepository
+    cache          *redis.Client
+}
+
+// 配置促销（运营人员）
+func (s *PromotionConfigService) ConfigPromotion(ctx context.Context, req *ConfigPromotionRequest) error {
+    // Step 1: 参数校验
+    if err := s.validatePromotionConfig(req); err != nil {
+        return fmt.Errorf("配置校验失败: %w", err)
+    }
+    
+    // Step 2: 价格验证（活动价 &lt; 原价）
+    product, _ := s.productRepo.Get(ctx, req.SKUID)
+    if req.PromotionPrice &gt;= product.BasePrice {
+        return fmt.Errorf("促销价必须低于原价")
+    }
+    
+    // Step 3: 创建促销配置
+    promotionConfig := &amp;PromotionConfig{
+        ConfigID:       generateConfigID(),
+        SKUID:          req.SKUID,
+        ActivityID:     req.ActivityID,
+        PromotionPrice: req.PromotionPrice,
+        PromotionType:  req.PromotionType, // DISCOUNT/COUPON/FULL_REDUCTION
+        StartTime:      req.StartTime,
+        EndTime:        req.EndTime,
+        Status:         "PENDING", // 待生效
+        CreatedBy:      req.OperatorID,
+    }
+    
+    if err := s.promotionRepo.Save(ctx, promotionConfig); err != nil {
+        return err
+    }
+    
+    // Step 4: 注册定时任务（生效/失效）
+    s.scheduleActivation(ctx, promotionConfig)
+    s.scheduleDeactivation(ctx, promotionConfig)
+    
+    return nil
+}
+
+// 批量配置促销（大促场景）
+func (s *PromotionConfigService) BatchConfigPromotion(ctx context.Context, req *BatchConfigRequest) (*BatchConfigTask, error) {
+    // Step 1: 创建批量任务
+    task := &amp;BatchConfigTask{
+        TaskID:     generateTaskID(),
+        ActivityID: req.ActivityID,
+        TotalCount: len(req.Configs),
+        Status:     "PENDING",
+    }
+    
+    s.taskRepo.Save(ctx, task)
+    
+    // Step 2: 异步处理
+    s.taskQueue.Publish(ctx, &amp;BatchConfigEvent{
+        TaskID:  task.TaskID,
+        Configs: req.Configs,
+    })
+    
+    return task, nil
+}
+
+// 定时任务：促销生效
+type PromotionActivationJob struct {
+    promotionRepo  PromotionRepository
+    pricingClient  PricingClient
+    searchClient   SearchClient
+    cache          *redis.Client
+}
+
+func (j *PromotionActivationJob) Run(ctx context.Context) {
+    // Step 1: 查询即将生效的促销（未来5分钟）
+    now := time.Now()
+    upcoming := j.promotionRepo.FindUpcoming(ctx, now, now.Add(5*time.Minute))
+    
+    // Step 2: 逐个生效
+    for _, config := range upcoming {
+        if time.Now().After(config.StartTime) {
+            j.activatePromotion(ctx, config)
+        }
+    }
+}
+
+func (j *PromotionActivationJob) activatePromotion(ctx context.Context, config *PromotionConfig) error {
+    // Step 1: 更新价格服务（促销价生效）
+    if err := j.pricingClient.UpdatePromotionPrice(ctx, &amp;UpdatePriceRequest{
+        SKUID:          config.SKUID,
+        PromotionPrice: config.PromotionPrice,
+        ValidUntil:     config.EndTime,
+    }); err != nil {
+        return err
+    }
+    
+    // Step 2: 更新搜索索引（展示促销标签）
+    j.searchClient.UpdatePromotionTag(ctx, config.SKUID, config.ActivityID)
+    
+    // Step 3: 清理缓存（强制刷新）
+    j.cache.Del(ctx, fmt.Sprintf("product:%d", config.SKUID))
+    j.cache.Del(ctx, fmt.Sprintf("price:%d", config.SKUID))
+    
+    // Step 4: 更新促销配置状态
+    config.Status = "ACTIVE"
+    j.promotionRepo.Update(ctx, config)
+    
+    // Step 5: 发布促销生效事件
+    j.eventPublisher.Publish(ctx, &amp;PromotionActivatedEvent{
+        SKUID:      config.SKUID,
+        ActivityID: config.ActivityID,
+        ActiveTime: time.Now(),
+    })
+    
+    return nil
+}
+
+// 定时任务：促销失效
+type PromotionDeactivationJob struct {
+    promotionRepo  PromotionRepository
+    pricingClient  PricingClient
+    searchClient   SearchClient
+    cache          *redis.Client
+}
+
+func (j *PromotionDeactivationJob) Run(ctx context.Context) {
+    // 查询已过期的促销
+    expired := j.promotionRepo.FindExpired(ctx, time.Now())
+    
+    for _, config := range expired {
+        j.deactivatePromotion(ctx, config)
+    }
+}
+
+func (j *PromotionDeactivationJob) deactivatePromotion(ctx context.Context, config *PromotionConfig) error {
+    // Step 1: 恢复原价
+    j.pricingClient.RestoreOriginalPrice(ctx, config.SKUID)
+    
+    // Step 2: 移除促销标签
+    j.searchClient.RemovePromotionTag(ctx, config.SKUID)
+    
+    // Step 3: 清理缓存
+    j.cache.Del(ctx, fmt.Sprintf("product:%d", config.SKUID))
+    j.cache.Del(ctx, fmt.Sprintf("price:%d", config.SKUID))
+    
+    // Step 4: 更新状态
+    config.Status = "EXPIRED"
+    j.promotionRepo.Update(ctx, config)
+    
+    return nil
+}
+</code></pre>
+<p><strong>价格验证策略</strong>：</p>
+<pre><code class="language-go">// 价格验证器
+type PriceValidator struct {
+    productRepo ProductRepository
+}
+
+func (v *PriceValidator) Validate(ctx context.Context, req *ConfigPromotionRequest) error {
+    product, _ := v.productRepo.Get(ctx, req.SKUID)
+    
+    // 规则1: 促销价 &lt; 原价
+    if req.PromotionPrice &gt;= product.BasePrice {
+        return fmt.Errorf("促销价必须低于原价")
+    }
+    
+    // 规则2: 折扣不能过低（防止价格战）
+    discount := float64(product.BasePrice-req.PromotionPrice) / float64(product.BasePrice)
+    if discount &gt; 0.7 {
+        return fmt.Errorf("折扣过大（&gt; 70%%），需审批")
+    }
+    
+    // 规则3: 价格必须为整数（避免定价错误）
+    if req.PromotionPrice%100 != 0 {
+        return fmt.Errorf("价格必须为整数（单位：分）")
+    }
+    
+    return nil
+}
+</code></pre>
+<p><strong>监控指标</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>目标值</th><th>监控维度</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>生效准时率</strong></td><td>&gt; 99.9%</td><td>按活动、按SKU</td></tr>
+<tr><td><strong>失效准时率</strong></td><td>&gt; 99.9%</td><td>按活动、按SKU</td></tr>
+<tr><td><strong>价格一致性</strong></td><td>100%</td><td>商品中心、搜索、缓存</td></tr>
+<tr><td><strong>配置错误率</strong></td><td>&lt; 1%</td><td>按配置类型</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h4 id="阶段7下架归档"><a class="header" href="#阶段7下架归档">阶段7：下架归档</a></h4>
+<p><strong>业务场景</strong>：</p>
+<ul>
+<li><strong>临时下架</strong>：商品缺货、质量问题临时下架，后续可恢复</li>
+<li><strong>永久下架</strong>：商品停产、违规下架，不可恢复</li>
+<li><strong>订单检查</strong>：下架前检查是否有进行中的订单，避免影响用户</li>
+<li><strong>历史归档</strong>：永久下架商品归档到历史库，释放主库空间</li>
+</ul>
+<p><strong>技术难点</strong>：</p>
+<ul>
+<li><strong>订单安全</strong>：下架前必须检查订单状态，防止影响履约</li>
+<li><strong>数据一致性</strong>：下架需同步到商品中心、搜索、库存、价格</li>
+<li><strong>归档策略</strong>：历史数据归档到冷存储，降低成本</li>
+</ul>
+<p><strong>核心设计</strong>：</p>
+<pre><code class="language-go">// 下架服务
+type OffShelfService struct {
+    productRepo   ProductRepository
+    orderRepo     OrderRepository
+    searchClient  SearchClient
+    inventoryClient InventoryClient
+    pricingClient PricingClient
+}
+
+// 下架商品
+func (s *OffShelfService) OffShelf(ctx context.Context, req *OffShelfRequest) error {
+    // Step 1: 检查进行中的订单
+    activeOrders, err := s.orderRepo.FindActiveOrdersBySKU(ctx, req.SKUID)
+    if err != nil {
+        return err
+    }
+    
+    if len(activeOrders) &gt; 0 &amp;&amp; req.OffShelfType == "PERMANENT" {
+        return fmt.Errorf("存在进行中的订单（%d个），暂不能永久下架", len(activeOrders))
+    }
+    
+    // Step 2: 更新商品状态
+    product, _ := s.productRepo.Get(ctx, req.SKUID)
+    
+    if req.OffShelfType == "TEMPORARY" {
+        // 临时下架 → OFF_SHELF
+        product.Status = "OFF_SHELF"
+        product.OffShelfReason = req.Reason
+        product.OffShelfTime = time.Now()
+    } else {
+        // 永久下架 → ARCHIVED
+        product.Status = "ARCHIVED"
+        product.ArchivedReason = req.Reason
+        product.ArchivedTime = time.Now()
+    }
+    
+    s.productRepo.Update(ctx, product)
+    
+    // Step 3: 从搜索索引中移除
+    s.searchClient.RemoveProduct(ctx, req.SKUID)
+    
+    // Step 4: 冻结库存（防止误售）
+    s.inventoryClient.FreezeStock(ctx, req.SKUID)
+    
+    // Step 5: 移除促销配置
+    s.pricingClient.RemovePromotions(ctx, req.SKUID)
+    
+    // Step 6: 发布下架事件
+    s.eventPublisher.Publish(ctx, &amp;ProductOffShelfEvent{
+        SKUID:         req.SKUID,
+        OffShelfType:  req.OffShelfType,
+        Reason:        req.Reason,
+        OffShelfTime:  time.Now(),
+    })
+    
+    return nil
+}
+
+// 恢复上架（仅临时下架可恢复）
+func (s *OffShelfService) RestoreOnShelf(ctx context.Context, skuID int64) error {
+    product, _ := s.productRepo.Get(ctx, skuID)
+    
+    // 只有临时下架可恢复
+    if product.Status != "OFF_SHELF" {
+        return fmt.Errorf("商品状态不支持恢复（当前状态: %s）", product.Status)
+    }
+    
+    // Step 1: 恢复商品状态
+    product.Status = "ON_SHELF"
+    s.productRepo.Update(ctx, product)
+    
+    // Step 2: 恢复搜索索引
+    s.searchClient.AddProduct(ctx, product)
+    
+    // Step 3: 解冻库存
+    s.inventoryClient.UnfreezeStock(ctx, skuID)
+    
+    return nil
+}
+
+// 归档服务（永久下架商品）
+type ArchiveService struct {
+    productRepo     ProductRepository
+    archiveRepo     ArchiveRepository
+    orderRepo       OrderRepository
+    inventoryClient InventoryClient
+}
+
+// 归档商品（异步任务，每日凌晨执行）
+func (s *ArchiveService) ArchiveProduct(ctx context.Context, skuID int64) error {
+    product, _ := s.productRepo.Get(ctx, skuID)
+    
+    // 只归档永久下架的商品
+    if product.Status != "ARCHIVED" {
+        return nil
+    }
+    
+    // Step 1: 检查是否有未完成的订单（防御性检查）
+    activeOrders, _ := s.orderRepo.FindActiveOrdersBySKU(ctx, skuID)
+    if len(activeOrders) &gt; 0 {
+        return fmt.Errorf("仍有进行中的订单，暂不归档")
+    }
+    
+    // Step 2: 归档商品数据（写入历史库）
+    archiveData := &amp;ArchivedProduct{
+        SKUID:        skuID,
+        ProductData:  product.ToJSON(),
+        ArchivedTime: time.Now(),
+    }
+    s.archiveRepo.Save(ctx, archiveData)
+    
+    // Step 3: 归档订单数据
+    historicalOrders, _ := s.orderRepo.FindAllOrdersBySKU(ctx, skuID)
+    for _, order := range historicalOrders {
+        s.archiveRepo.SaveOrder(ctx, &amp;ArchivedOrder{
+            OrderID:      order.OrderID,
+            SKUID:        skuID,
+            OrderData:    order.ToJSON(),
+            ArchivedTime: time.Now(),
+        })
+    }
+    
+    // Step 4: 删除主库数据（释放空间）
+    s.productRepo.Delete(ctx, skuID)
+    s.inventoryClient.DeleteStock(ctx, skuID)
+    
+    return nil
+}
+</code></pre>
+<p><strong>监控指标</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>目标值</th><th>监控维度</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>下架成功率</strong></td><td>&gt; 99%</td><td>按下架类型（临时/永久）</td></tr>
+<tr><td><strong>订单冲突率</strong></td><td>&lt; 1%</td><td>永久下架前的订单检查</td></tr>
+<tr><td><strong>恢复成功率</strong></td><td>100%</td><td>临时下架恢复</td></tr>
+<tr><td><strong>归档耗时</strong></td><td>&lt; 5s/商品</td><td>按数据大小</td></tr>
+<tr><td><strong>归档完整性</strong></td><td>100%</td><td>商品数据、订单数据</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h3 id="1672-c端交易流完整链路"><a class="header" href="#1672-c端交易流完整链路">16.7.2 C端交易流完整链路</a></h3>
 <p><strong>交易流是电商的核心价值链</strong>，从用户搜索到完成支付的完整路径。本节展示五个阶段的设计与集成。</p>
-<h3 id="阶段1搜索与导购"><a class="header" href="#阶段1搜索与导购">阶段1：搜索与导购</a></h3>
+<p><strong>与B端链路的对比</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>B端链路（16.7.1）</th><th>C端链路（16.7.2）</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>参与方</strong></td><td>供应商、运营、系统</td><td>用户、系统</td></tr>
+<tr><td><strong>时间跨度</strong></td><td>数天到数月（商品生命周期）</td><td>数分钟（单次购物流程）</td></tr>
+<tr><td><strong>关键技术</strong></td><td>幂等性、状态机、异步任务</td><td>聚合编排、快照、Saga</td></tr>
+<tr><td><strong>核心关注</strong></td><td>数据准确性、流程合规性</td><td>用户体验、转化率</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h4 id="阶段1搜索与导购"><a class="header" href="#阶段1搜索与导购">阶段1：搜索与导购</a></h4>
 <p><strong>业务场景</strong>：用户搜索“iPhone 15“</p>
 <p><strong>系统架构</strong>：</p>
 <pre><code>用户输入关键词
@@ -1512,7 +4335,8 @@ func (a *SearchAggregation) Search(ctx context.Context, req *SearchRequest) (*Se
 <li>Hydrate并发：4个服务并发调用，总耗时 &lt; 200ms</li>
 <li>缓存策略：热门搜索词缓存5分钟</li>
 </ul>
-<h3 id="阶段2商品详情页pdp"><a class="header" href="#阶段2商品详情页pdp">阶段2：商品详情页（PDP）</a></h3>
+<hr>
+<h4 id="阶段2商品详情页pdp"><a class="header" href="#阶段2商品详情页pdp">阶段2：商品详情页（PDP）</a></h4>
 <p><strong>业务场景</strong>：用户点击商品进入详情页</p>
 <p><strong>核心设计</strong>：</p>
 <pre><code class="language-go">// 详情页聚合服务
@@ -1562,7 +4386,8 @@ func (a *DetailAggregation) GetDetail(ctx context.Context, skuID int64, userID i
     }, nil
 }
 </code></pre>
-<h3 id="阶段3购物车"><a class="header" href="#阶段3购物车">阶段3：购物车</a></h3>
+<hr>
+<h4 id="阶段3购物车"><a class="header" href="#阶段3购物车">阶段3：购物车</a></h4>
 <p><strong>业务场景</strong>：用户加购商品</p>
 <p><strong>未登录加购</strong>：</p>
 <pre><code class="language-go">// 未登录用户（Cookie存储）
@@ -1614,7 +4439,8 @@ func (c *CartService) MergeCartOnLogin(ctx context.Context, userID int64, anonym
     return nil
 }
 </code></pre>
-<h3 id="阶段4结算页试算"><a class="header" href="#阶段4结算页试算">阶段4：结算页试算</a></h3>
+<hr>
+<h4 id="阶段4结算页试算"><a class="header" href="#阶段4结算页试算">阶段4：结算页试算</a></h4>
 <p><strong>业务场景</strong>：用户点击“去结算“</p>
 <p><strong>核心设计</strong>：</p>
 <pre><code class="language-go">// 结算页聚合服务
@@ -1650,7 +4476,8 @@ func (a *CheckoutAggregation) Calculate(ctx context.Context, req *CalculateReque
     }, nil
 }
 </code></pre>
-<h3 id="阶段5下单与支付"><a class="header" href="#阶段5下单与支付">阶段5：下单与支付</a></h3>
+<hr>
+<h4 id="阶段5下单与支付"><a class="header" href="#阶段5下单与支付">阶段5：下单与支付</a></h4>
 <p><strong>完整下单流程</strong>（Saga模式）：</p>
 <pre><code class="language-go">// 订单创建Saga（编排多个服务调用）
 type CreateOrderSaga struct {
@@ -1772,7 +4599,7 @@ func (s *CreateOrderSaga) Execute(ctx context.Context, req *CreateOrderRequest) 
 </table>
 </div>
 <hr>
-<h2 id="1658-ddd战术设计实践"><a class="header" href="#1658-ddd战术设计实践">16.5.8 DDD战术设计实践</a></h2>
+<h2 id="168-ddd战术设计实践"><a class="header" href="#168-ddd战术设计实践">16.8 DDD战术设计实践</a></h2>
 <p><strong>领域模型是系统设计的核心</strong>。本节展示如何在订单域应用DDD战术模式。</p>
 <h3 id="聚合设计order聚合根"><a class="header" href="#聚合设计order聚合根">聚合设计：Order聚合根</a></h3>
 <pre><code class="language-go">// Order聚合根
@@ -2006,7 +4833,7 @@ func (w *OutboxWorker) Run() {
 }
 </code></pre>
 <hr>
-<h2 id="1656-架构决策记录adr"><a class="header" href="#1656-架构决策记录adr">16.5.6 架构决策记录（ADR）</a></h2>
+<h2 id="169-架构决策记录adr"><a class="header" href="#169-架构决策记录adr">16.9 架构决策记录（ADR）</a></h2>
 <p>本节记录系统设计过程中的关键架构决策，包括决策背景、备选方案、最终决策及理由。<strong>ADR是架构演进的重要资产，帮助团队理解「为什么这样设计」，避免重复讨论。</strong></p>
 <h3 id="adr-001-计价中心数据输入方式"><a class="header" href="#adr-001-计价中心数据输入方式">ADR-001: 计价中心数据输入方式</a></h3>
 <p><strong>决策日期</strong>：2026-04-14<br><strong>状态</strong>：已采纳 ✓</p>
@@ -2767,179 +5594,7 @@ try {
 <li>价格变化拦截率（创单价格校验触发频率）</li>
 </ul>
 <hr>
-<h2 id="166-系统边界与集成实践"><a class="header" href="#166-系统边界与集成实践">16.6 系统边界与集成实践</a></h2>
-<h3 id="1661-边界划分的实际案例"><a class="header" href="#1661-边界划分的实际案例">16.6.1 边界划分的实际案例</a></h3>
-<p><strong>案例1：计价系统的边界重构</strong></p>
-<p><strong>初始问题</strong>：</p>
-<ul>
-<li>价格计算逻辑分散在订单、营销、商品三个域</li>
-<li>购物车、订单创建、支付确认三处价格计算不一致</li>
-<li>无法支持“PDP加购试算“场景</li>
-</ul>
-<p><strong>重构方案</strong>：</p>
-<ol>
-<li><strong>新建计价上下文</strong>：职责是提供统一的试算接口</li>
-<li><strong>定义边界</strong>：
-<ul>
-<li>计价上下文<strong>不拥有</strong>商品基础价、营销规则、订单状态</li>
-<li>对外提供 <code>Calculate(items, promotions, context) -&gt; PriceBreakdown</code></li>
-<li>各场景通过统一接口获取价格</li>
-</ul>
-</li>
-<li><strong>收益</strong>：
-<ul>
-<li>价格一致性得到保证</li>
-<li>营销规则变更只需在营销域发布事件</li>
-<li>支持了试算、价格预览、价格审计等新需求</li>
-</ul>
-</li>
-</ol>
-<p><strong>案例2：库存预占的归属</strong></p>
-<p><strong>争议</strong>：库存预占应该放在订单域还是库存域？</p>
-<p><strong>决策</strong>：放在库存域</p>
-<p><strong>理由</strong>：</p>
-<ul>
-<li>库存域拥有库存数据所有权</li>
-<li>预占是库存的一种状态（可售 → 预占 → 扣减）</li>
-<li>订单域只需调用库存域的 <code>Reserve</code> 接口</li>
-<li>降低耦合：订单域不需要了解库存的存储结构</li>
-</ul>
-<h3 id="1662-集成模式选择"><a class="header" href="#1662-集成模式选择">16.6.2 集成模式选择</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>集成场景</th><th>模式</th><th>理由</th></tr>
-</thead>
-<tbody>
-<tr><td>订单 → 商品</td><td>同步RPC</td><td>需要实时获取商品信息，延迟&lt;100ms</td></tr>
-<tr><td>订单 → 库存</td><td>同步RPC</td><td>库存预占是核心路径，必须同步</td></tr>
-<tr><td>订单 → 支付</td><td>同步RPC</td><td>支付创建需要同步返回支付URL</td></tr>
-<tr><td>订单成功 → 搜索</td><td>异步事件</td><td>销量更新非核心路径，可最终一致</td></tr>
-<tr><td>订单成功 → 积分</td><td>异步事件</td><td>积分增加非核心路径</td></tr>
-</tbody>
-</table>
-</div>
-<p><strong>事件驱动示例</strong>：</p>
-<pre><code class="language-go">// 订单域发布事件
-func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
-    // 创建订单...
-    order := &amp;Order{...}
-    s.repo.Save(ctx, order)
-    
-    // 发布事件（Outbox模式）
-    event := &amp;OrderCreatedEvent{
-        OrderID:    order.ID,
-        UserID:     order.UserID,
-        TotalPrice: order.TotalPrice,
-        Items:      order.Items,
-    }
-    s.outbox.Publish(ctx, "order-events", event)
-    
-    return order, nil
-}
-
-// 搜索域订阅事件
-func (s *SearchService) HandleOrderCreated(ctx context.Context, event *OrderCreatedEvent) error {
-    // 更新商品销量（用于排序）
-    for _, item := range event.Items {
-        s.incrementSales(ctx, item.SkuID, item.Quantity)
-    }
-    return nil
-}
-</code></pre>
-<h3 id="1663-跨系统事务处理"><a class="header" href="#1663-跨系统事务处理">16.6.3 跨系统事务处理</a></h3>
-<p><strong>Saga模式（编排）</strong>：</p>
-<pre><code class="language-go">// 订单创建Saga
-type CreateOrderSaga struct {
-    inventoryClient rpc.InventoryClient
-    marketingClient rpc.MarketingClient
-    orderRepo       *OrderRepo
-}
-
-func (s *CreateOrderSaga) Execute(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
-    var reserveID string
-    var couponLockID string
-    
-    // Step 1: 库存预占
-    reserve, err := s.inventoryClient.ReserveStock(ctx, req.Items)
-    if err != nil {
-        return nil, fmt.Errorf("库存预占失败: %w", err)
-    }
-    reserveID = reserve.ReserveID
-    defer func() {
-        if err != nil {
-            // 补偿：释放库存
-            s.inventoryClient.ReleaseStock(ctx, reserveID)
-        }
-    }()
-    
-    // Step 2: 优惠券锁定
-    couponLock, err := s.marketingClient.LockCoupon(ctx, req.CouponCode, req.UserID)
-    if err != nil {
-        return nil, fmt.Errorf("优惠券锁定失败: %w", err)
-    }
-    couponLockID = couponLock.LockID
-    defer func() {
-        if err != nil {
-            // 补偿：释放优惠券
-            s.marketingClient.UnlockCoupon(ctx, couponLockID)
-        }
-    }()
-    
-    // Step 3: 创建订单
-    order := &amp;Order{
-        ID:           generateOrderID(),
-        UserID:       req.UserID,
-        Items:        req.Items,
-        ReserveID:    reserveID,
-        CouponLockID: couponLockID,
-        Status:       StatusPendingPayment,
-    }
-    err = s.orderRepo.Save(ctx, order)
-    if err != nil {
-        return nil, fmt.Errorf("订单创建失败: %w", err)
-    }
-    
-    return order, nil
-}
-</code></pre>
-<h3 id="1664-集成层设计"><a class="header" href="#1664-集成层设计">16.6.4 集成层设计</a></h3>
-<p><strong>防腐层（Anti-Corruption Layer）</strong>：</p>
-<pre><code class="language-go">// 供应商响应模型（外部）
-type SupplierFlightResponse struct {
-    Code    string  `json:"code"`
-    Message string  `json:"message"`
-    Data    struct {
-        FlightNo  string  `json:"flight_no"`
-        Available int     `json:"available"`
-        Price     float64 `json:"price"`
-    } `json:"data"`
-}
-
-// 平台库存模型（内部）
-type StockResponse struct {
-    Available bool
-    Quantity  int
-    Message   string
-}
-
-// 防腐层：翻译外部模型 → 内部模型
-func (a *FlightSupplierACL) TranslateStock(supplierResp *SupplierFlightResponse) *StockResponse {
-    return &amp;StockResponse{
-        Available: supplierResp.Code == "SUCCESS" &amp;&amp; supplierResp.Data.Available &gt; 0,
-        Quantity:  supplierResp.Data.Available,
-        Message:   supplierResp.Message,
-    }
-}
-</code></pre>
-<p><strong>收益</strong>：</p>
-<ul>
-<li>领域层不被供应商模型污染</li>
-<li>供应商接口变更时，修改集中在ACL</li>
-<li>测试时可以使用Fake实现替代真实供应商</li>
-</ul>
-<hr>
-<h2 id="167-高可用与性能优化"><a class="header" href="#167-高可用与性能优化">16.7 高可用与性能优化</a></h2>
+<h2 id="1610-高可用与性能优化infrastructure--operations"><a class="header" href="#1610-高可用与性能优化infrastructure--operations">16.10 高可用与性能优化（Infrastructure &amp; Operations）</a></h2>
 <h3 id="1671-高可用设计"><a class="header" href="#1671-高可用设计">16.7.1 高可用设计</a></h3>
 <p><strong>服务多副本部署</strong>：</p>
 <div class="table-wrapper">
@@ -3099,8 +5754,8 @@ func (s *CheckoutService) Calculate(ctx context.Context, req *CalculateRequest) 
 }
 </code></pre>
 <hr>
-<h2 id="168-团队组织与协作"><a class="header" href="#168-团队组织与协作">16.8 团队组织与协作</a></h2>
-<h3 id="1681-团队结构"><a class="header" href="#1681-团队结构">16.8.1 团队结构</a></h3>
+<h2 id="1611-团队组织与协作organization--governance"><a class="header" href="#1611-团队组织与协作organization--governance">16.11 团队组织与协作（Organization &amp; Governance）</a></h2>
+<h3 id="16111-团队结构"><a class="header" href="#16111-团队结构">16.11.1 团队结构</a></h3>
 <p><strong>康威定律实践</strong>：系统架构反映组织沟通结构。</p>
 <pre><code>订单团队（15人）
 ├─ 订单核心（5人）：订单创建、状态机
@@ -3376,8 +6031,8 @@ B. 新建拼团服务
 | P2 | 代码 | 商品中心重复代码重构 | @王五 | 3天 |
 </code></pre>
 <hr>
-<h2 id="169-上线与演进"><a class="header" href="#169-上线与演进">16.9 上线与演进</a></h2>
-<h3 id="1691-上线策略"><a class="header" href="#1691-上线策略">16.9.1 上线策略</a></h3>
+<h2 id="1612-上线与演进deployment--evolution"><a class="header" href="#1612-上线与演进deployment--evolution">16.12 上线与演进（Deployment &amp; Evolution）</a></h2>
+<h3 id="16121-上线策略"><a class="header" href="#16121-上线策略">16.12.1 上线策略</a></h3>
 <p><strong>分阶段上线</strong>：</p>
 <pre><code>阶段1：基础功能（2周）
 • 商品中心、库存服务、订单服务
@@ -3749,8 +6404,8 @@ Team Lead无法处理 → 升级到架构师
 <li>📅 区块链溯源（高端商品）</li>
 </ul>
 <hr>
-<h2 id="1610-经验总结"><a class="header" href="#1610-经验总结">16.10 经验总结</a></h2>
-<h3 id="16101-成功经验"><a class="header" href="#16101-成功经验">16.10.1 成功经验</a></h3>
+<h2 id="1613-经验总结lessons-learned"><a class="header" href="#1613-经验总结lessons-learned">16.13 经验总结（Lessons Learned）</a></h2>
+<h3 id="16131-成功经验"><a class="header" href="#16131-成功经验">16.13.1 成功经验</a></h3>
 <p><strong>1. 架构决策记录（ADR）制度</strong></p>
 <p>价值：</p>
 <ul>
@@ -4160,7 +6815,7 @@ Team Lead无法处理 → 升级到架构师
 </table>
 </div>
 <hr>
-<h2 id="1611-本章小结"><a class="header" href="#1611-本章小结">16.11 本章小结</a></h2>
+<h2 id="1614-本章小结chapter-summary"><a class="header" href="#1614-本章小结chapter-summary">16.14 本章小结（Chapter Summary）</a></h2>
 <p>本章通过一个中大型B2B2C电商平台的完整案例，展示了从业务分析到技术落地的全过程，<strong>是全书知识点的综合实践验证</strong>。本章不仅覆盖了架构方法论（第1-4章），还深入展示了**供给运营系统（第10章）<strong>和</strong>C端核心交易流（第11-15章）**的完整实现，真正做到了“理论→实践→落地“的闭环。</p>
 <hr>
 <h3 id="核心要点回顾"><a class="header" href="#核心要点回顾">核心要点回顾</a></h3>
