@@ -9,7 +9,7 @@
 
 ---
 
-## 16.1 项目背景
+## 16.1 项目背景（Business Context）
 
 ### 16.1.1 业务模式
 
@@ -71,7 +71,7 @@
 
 ---
 
-## 16.2 品类业务模型分析
+## 16.2 品类业务模型分析（Business Architecture）
 
 不同品类的业务模型存在显著差异，直接影响架构设计决策。理解这些差异是系统设计的基础。
 
@@ -336,11 +336,199 @@ func (f *CategoryStrategyFactory) GetStrategy(categoryType CategoryType) Categor
 
 ---
 
-## 16.3 整体架构设计
+## 16.3 DDD战略设计与系统边界（Application Architecture - 设计过程）
 
-### 16.3.1 分层架构
+基于16.2的品类业务分析，本节展示如何运用DDD战略设计方法，从业务领域识别限界上下文、划分系统边界、设计服务间集成方式，最终形成16.4的整体架构全貌。
 
-采用经典的四层架构，确保职责清晰、易于维护。
+### 16.3.1 限界上下文识别
+
+**限界上下文是DDD战略设计的核心概念**，它定义了一个模型的适用边界。本系统通过事件风暴识别出12个核心限界上下文。
+
+**识别过程**（事件风暴Workshop）：
+
+```
+第1步：领域事件识别（橙色便签）
+• OrderCreated（订单创建）
+• ProductOnShelf（商品上架）
+• StockReserved（库存预占）
+• PaymentPaid（支付成功）
+• PromotionApplied（促销应用）
+...
+
+第2步：聚合命令（蓝色便签）
+• CreateOrder（创建订单）
+• ReserveStock（预占库存）
+• CalculatePrice（计算价格）
+• ApplyPromotion（应用促销）
+...
+
+第3步：聚合实体（黄色便签）
+• Order（订单）
+• Product（商品）
+• Stock（库存）
+• Payment（支付）
+• Promotion（促销）
+...
+
+第4步：限界上下文识别（用绳子圈起相关的实体/命令/事件）
+• 订单上下文：Order + CreateOrder + OrderCreated
+• 商品上下文：Product + OnShelfProduct + ProductOnShelf
+• 库存上下文：Stock + ReserveStock + StockReserved
+...
+```
+
+**识别出的12个限界上下文**：
+
+| 限界上下文 | 核心聚合根 | 核心职责 | 数据所有权 |
+|---------|---------|---------|-----------|
+| **订单上下文** | Order | 订单创建、状态机、履约 | orders、order_items |
+| **商品上下文** | Product | 商品信息、类目、属性 | products、categories |
+| **库存上下文** | Stock | 库存管理、预占、扣减 | stocks、stock_logs |
+| **计价上下文** | Price | 价格计算、试算、快照 | price_snapshots |
+| **营销上下文** | Promotion | 营销规则、优惠券、活动 | promotions、coupons |
+| **支付上下文** | Payment | 支付、退款、对账 | payments、refunds |
+| **搜索上下文** | ProductIndex | 商品搜索、筛选、排序 | ES索引 |
+| **用户上下文** | User | 用户信息、登录、权限 | users、roles |
+| **供应商上下文** | Supplier | 供应商对接、适配、熔断 | suppliers、supplier_products |
+| **购物车上下文** | Cart | 购物车管理、合并 | carts |
+| **评价上下文** | Review | 用户评价、晒单 | reviews |
+| **消息上下文** | Notification | 消息通知、推送 | notifications |
+
+**为什么这样划分？**
+
+1. **订单与商品分离**：
+   - 订单关注"交易流程"（下单、支付、履约）
+   - 商品关注"商品信息"（SPU/SKU、类目、属性）
+   - 分离原因：变化速度不同（订单频繁变更，商品相对稳定）
+
+2. **库存独立**：
+   - 库存是"资源"，订单/商品都依赖它
+   - 库存有独立的生命周期（预占 → 扣减 → 释放）
+   - 独立原因：单一职责，避免库存逻辑分散
+
+3. **计价独立**：
+   - 价格计算涉及多个维度（基础价、营销、优惠券、Coin）
+   - 多个场景需要试算（详情页、购物车、结算页）
+   - 独立原因：统一计价逻辑，避免不一致
+
+4. **营销独立**：
+   - 营销规则复杂（满减、折扣、买赠、限时秒杀）
+   - 营销活动变化频繁
+   - 独立原因：灵活支持新玩法，不影响主流程
+
+**上下文大小原则**：
+
+```
+过小：每个实体一个上下文 ❌
+• 导致上下文过多，通信成本高
+• 事务边界不清晰
+
+合适：一个聚合根（或紧密相关的聚合根）一个上下文 ✅
+• 订单上下文：Order + OrderItem
+• 商品上下文：Product + Category
+
+过大：多个不相关的聚合根在一个上下文 ❌
+• 导致上下文职责不清晰
+• 团队协作困难
+```
+
+### 16.3.2 上下文映射关系
+
+**上下文映射是限界上下文之间的关系**，定义了它们如何协作、如何通信、谁主导谁跟随。
+
+**本系统的上下文映射图**：
+
+```mermaid
+graph LR
+    Order[订单上下文<br/>Order Context] 
+    Product[商品上下文<br/>Product Context]
+    Inventory[库存上下文<br/>Inventory Context]
+    Pricing[计价上下文<br/>Pricing Context]
+    Marketing[营销上下文<br/>Marketing Context]
+    Payment[支付上下文<br/>Payment Context]
+    Search[搜索上下文<br/>Search Context]
+    Supplier[供应商上下文<br/>Supplier Context]
+    
+    Order -->|Customer-Supplier| Product
+    Order -->|Customer-Supplier| Inventory
+    Order -->|Customer-Supplier| Pricing
+    Order -->|Customer-Supplier| Marketing
+    Order -->|Customer-Supplier| Payment
+    
+    Search -->|Conformist| Product
+    Search -->|Open Host Service| Product
+    
+    Inventory -->|Anti-Corruption Layer| Supplier
+    Product -->|Anti-Corruption Layer| Supplier
+    
+    Pricing -->|Shared Kernel| Marketing
+```
+
+**映射关系类型**：
+
+| 关系类型 | 说明 | 本系统示例 | 实现方式 |
+|---------|------|-----------|---------|
+| **Customer-Supplier** | 下游（客户）依赖上游（供应商） | 订单 → 商品<br/>订单 → 库存 | 同步RPC调用 |
+| **Conformist** | 下游完全遵循上游模型 | 搜索 → 商品 | 搜索直接使用商品模型 |
+| **Anti-Corruption Layer** | 下游用防腐层保护自己 | 库存 → 供应商 | 适配器翻译外部模型 |
+| **Open Host Service** | 上游提供公开服务 | 商品 → 搜索 | RESTful API + Events |
+| **Shared Kernel** | 两个上下文共享部分模型 | 计价 ⇄ 营销 | 共享折扣计算规则 |
+| **Published Language** | 上游定义标准数据格式 | 订单事件（Kafka） | Protobuf/JSON Schema |
+
+**关键决策解析**：
+
+**决策1：订单 → 商品（Customer-Supplier）**
+
+```
+为什么不是Conformist（遵奉者）？
+• 订单需要保存商品快照（商品模型可能变化）
+• 订单不应该被商品模型变更影响
+• 订单有自己的领域模型（OrderItem vs Product）
+
+为什么是Customer-Supplier？
+• 订单依赖商品（下游依赖上游）
+• 商品提供稳定的API（上游为下游服务）
+• 变更需要协商（商品API变更需通知订单团队）
+```
+
+**决策2：库存 → 供应商（Anti-Corruption Layer）**
+
+```
+为什么需要防腐层？
+• 供应商模型不稳定（50+供应商，接口各不相同）
+• 防止供应商模型污染库存域
+• 便于切换供应商（ACL隔离变化）
+
+防腐层职责：
+• 翻译外部模型 → 内部模型
+• 统一异常处理
+• 适配器模式（每个供应商一个适配器）
+```
+
+**决策3：计价 ⇄ 营销（Shared Kernel）**
+
+```
+为什么是Shared Kernel？
+• 折扣计算规则在两个上下文都需要
+• 规则变更需要两个上下文同步
+• 共享折扣计算代码（避免重复）
+
+Shared Kernel范围：
+• DiscountRule（折扣规则接口）
+• PriceBreakdown（价格明细结构）
+• 仅共享"计算规则"，不共享"数据存储"
+```
+
+**上下文通信机制**：
+
+| 场景 | 通信方式 | 协议 | 示例 |
+|------|---------|------|------|
+| **同步查询** | RPC | gRPC + Protobuf | 订单查询商品信息 |
+| **同步操作** | RPC | gRPC + Protobuf | 订单预占库存 |
+| **异步事件** | 消息队列 | Kafka + Protobuf | 订单创建 → 搜索更新销量 |
+| **批量查询** | RPC | gRPC + Stream | 批量查询商品价格 |
+
+### 16.3.3 边界划分实践案例
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -381,7 +569,7 @@ func (f *CategoryStrategyFactory) GetStrategy(categoryType CategoryType) Categor
 | **业务层** | Microservices | 单一业务领域逻辑 | 跨域数据获取 |
 | **基础层** | Infra | 存储、消息、监控 | 业务规则 |
 
-### 16.3.2 微服务拆分
+### 16.4.2 微服务拆分
 
 **拆分原则**：
 1. **按业务能力拆分**（而非技术层次）
@@ -411,7 +599,7 @@ func (f *CategoryStrategyFactory) GetStrategy(categoryType CategoryType) Categor
 | **Detail Aggregation** | 详情页聚合 | Product + Inventory + Pricing + Marketing |
 | **Checkout Aggregation** | 结算页聚合 | Product + Inventory + Pricing + Marketing |
 
-### 16.3.3 服务依赖关系
+### 16.4.3 服务依赖关系
 
 ```mermaid
 graph TB
@@ -474,7 +662,7 @@ graph TB
 3. **异步解耦**：非核心路径使用Kafka事件异步
 4. **降级友好**：下游故障不影响上游核心功能
 
-### 16.3.4 数据流转
+### 16.4.4 数据流转
 
 **同步数据流（关键路径）**：
 
@@ -502,11 +690,217 @@ API Gateway → Search Aggregation
 最终一致性：< 5秒
 ```
 
+**16.4小结**：
+
+以上展示了系统的整体架构全貌：四层架构、12个核心微服务、服务依赖关系、数据流转模式。这些是16.3战略设计的具体落地——12个限界上下文对应12个微服务，上下文映射关系决定了服务间的集成方式。
+
+接下来16.5节将讨论技术选型决策，16.6节将深入各个系统的详细设计。
+
 ---
 
-## 16.4 技术选型决策
+## 16.4 整体架构设计（Application Architecture - 设计结果）
 
-### 16.4.1 选型原则
+基于16.3节识别的12个限界上下文和上下文映射关系，本节展示如何将它们落地为具体的架构设计：四层架构、微服务拆分、服务依赖关系、数据流转模式。
+
+**16.3 → 16.4的映射关系**：
+
+```
+16.3 限界上下文           →    16.4 微服务
+├─ 订单上下文             →    Order Service
+├─ 商品上下文             →    Product Center
+├─ 库存上下文             →    Inventory Service
+├─ 计价上下文             →    Pricing Service
+├─ 营销上下文             →    Marketing Service
+├─ 支付上下文             →    Payment Service
+├─ 搜索上下文             →    Search Service
+└─ 供应商上下文           →    Supplier Gateway
+
+16.3 上下文映射           →    16.4 服务集成
+├─ Customer-Supplier      →    同步RPC调用
+├─ Anti-Corruption Layer  →    适配器模式
+└─ Published Language     →    Kafka事件
+```
+
+### 16.4.1 分层架构
+
+采用经典的四层架构，确保职责清晰、易于维护。
+
+基于前面识别的限界上下文和映射关系，本节通过实际案例展示如何划分边界、重构边界。
+
+**案例1：计价系统的边界重构**
+
+**初始问题**：
+- 价格计算逻辑分散在订单、营销、商品三个域
+- 购物车、订单创建、支付确认三处价格计算不一致
+- 无法支持"PDP加购试算"场景
+
+**重构方案**：
+1. **新建计价上下文**：职责是提供统一的试算接口
+2. **定义边界**：
+   - 计价上下文**不拥有**商品基础价、营销规则、订单状态
+   - 对外提供 `Calculate(items, promotions, context) -> PriceBreakdown`
+   - 各场景通过统一接口获取价格
+3. **收益**：
+   - 价格一致性得到保证
+   - 营销规则变更只需在营销域发布事件
+   - 支持了试算、价格预览、价格审计等新需求
+
+**案例2：库存预占的归属**
+
+**争议**：库存预占应该放在订单域还是库存域？
+
+**决策**：放在库存域
+
+**理由**：
+- 库存域拥有库存数据所有权
+- 预占是库存的一种状态（可售 → 预占 → 扣减）
+- 订单域只需调用库存域的 `Reserve` 接口
+- 降低耦合：订单域不需要了解库存的存储结构
+
+### 16.4.4 集成模式选择
+
+| 集成场景 | 模式 | 理由 |
+|---------|------|------|
+| 订单 → 商品 | 同步RPC | 需要实时获取商品信息，延迟<100ms |
+| 订单 → 库存 | 同步RPC | 库存预占是核心路径，必须同步 |
+| 订单 → 支付 | 同步RPC | 支付创建需要同步返回支付URL |
+| 订单成功 → 搜索 | 异步事件 | 销量更新非核心路径，可最终一致 |
+| 订单成功 → 积分 | 异步事件 | 积分增加非核心路径 |
+
+**事件驱动示例**：
+
+```go
+// 订单域发布事件
+func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
+    // 创建订单...
+    order := &Order{...}
+    s.repo.Save(ctx, order)
+    
+    // 发布事件（Outbox模式）
+    event := &OrderCreatedEvent{
+        OrderID:    order.ID,
+        UserID:     order.UserID,
+        TotalPrice: order.TotalPrice,
+        Items:      order.Items,
+    }
+    s.outbox.Publish(ctx, "order-events", event)
+    
+    return order, nil
+}
+
+// 搜索域订阅事件
+func (s *SearchService) HandleOrderCreated(ctx context.Context, event *OrderCreatedEvent) error {
+    // 更新商品销量（用于排序）
+    for _, item := range event.Items {
+        s.incrementSales(ctx, item.SkuID, item.Quantity)
+    }
+    return nil
+}
+```
+
+### 16.4.5 跨系统事务处理
+
+**Saga模式（编排）**：
+
+```go
+// 订单创建Saga
+type CreateOrderSaga struct {
+    inventoryClient rpc.InventoryClient
+    marketingClient rpc.MarketingClient
+    orderRepo       *OrderRepo
+}
+
+func (s *CreateOrderSaga) Execute(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
+    var reserveID string
+    var couponLockID string
+    
+    // Step 1: 库存预占
+    reserve, err := s.inventoryClient.ReserveStock(ctx, req.Items)
+    if err != nil {
+        return nil, fmt.Errorf("库存预占失败: %w", err)
+    }
+    reserveID = reserve.ReserveID
+    defer func() {
+        if err != nil {
+            // 补偿：释放库存
+            s.inventoryClient.ReleaseStock(ctx, reserveID)
+        }
+    }()
+    
+    // Step 2: 优惠券锁定
+    couponLock, err := s.marketingClient.LockCoupon(ctx, req.CouponCode, req.UserID)
+    if err != nil {
+        return nil, fmt.Errorf("优惠券锁定失败: %w", err)
+    }
+    couponLockID = couponLock.LockID
+    defer func() {
+        if err != nil {
+            // 补偿：释放优惠券
+            s.marketingClient.UnlockCoupon(ctx, couponLockID)
+        }
+    }()
+    
+    // Step 3: 创建订单
+    order := &Order{
+        ID:           generateOrderID(),
+        UserID:       req.UserID,
+        Items:        req.Items,
+        ReserveID:    reserveID,
+        CouponLockID: couponLockID,
+        Status:       StatusPendingPayment,
+    }
+    err = s.orderRepo.Save(ctx, order)
+    if err != nil {
+        return nil, fmt.Errorf("订单创建失败: %w", err)
+    }
+    
+    return order, nil
+}
+```
+
+### 16.4.6 防腐层设计
+
+**防腐层（Anti-Corruption Layer）**：
+
+```go
+// 供应商响应模型（外部）
+type SupplierFlightResponse struct {
+    Code    string  `json:"code"`
+    Message string  `json:"message"`
+    Data    struct {
+        FlightNo  string  `json:"flight_no"`
+        Available int     `json:"available"`
+        Price     float64 `json:"price"`
+    } `json:"data"`
+}
+
+// 平台库存模型（内部）
+type StockResponse struct {
+    Available bool
+    Quantity  int
+    Message   string
+}
+
+// 防腐层：翻译外部模型 → 内部模型
+func (a *FlightSupplierACL) TranslateStock(supplierResp *SupplierFlightResponse) *StockResponse {
+    return &StockResponse{
+        Available: supplierResp.Code == "SUCCESS" && supplierResp.Data.Available > 0,
+        Quantity:  supplierResp.Data.Available,
+        Message:   supplierResp.Message,
+    }
+}
+```
+
+**收益**：
+- 领域层不被供应商模型污染
+- 供应商接口变更时，修改集中在ACL
+- 测试时可以使用Fake实现替代真实供应商
+
+---
+
+## 16.5 技术选型决策（Technology Architecture）
+
+### 16.5.1 选型原则
 
 **原则1：成熟度优先**
 - 优先选择生产级成熟技术（避免踩坑）
@@ -528,7 +922,7 @@ API Gateway → Search Aggregation
 - 云服务按需使用（避免自建中间件）
 - 运维成本可接受
 
-### 16.4.2 Go生态选型
+### 16.5.2 Go生态选型
 
 **语言选择：Go**
 
@@ -649,9 +1043,11 @@ func InitializeApp() (*App, error) {
 
 ---
 
-## 16.5 核心系统设计
+## 16.6 核心系统设计（Application + Data Architecture详细设计）
 
-### 16.5.1 商品中心设计
+基于16.4的整体架构，本节深入每个核心系统的详细设计，包括应用层的业务逻辑设计和数据层的模型设计。
+
+### 16.6.1 商品中心设计
 
 **职责边界**：
 - ✅ 负责：商品基础信息、类目、属性、多媒体素材
@@ -707,7 +1103,7 @@ redis.Set("product:"+sku_id, marshal(product), 30*time.Minute)
 db.QueryOne("SELECT * FROM product WHERE sku_id = ?", sku_id)
 ```
 
-### 16.5.2 库存系统设计
+### 16.6.2 库存系统设计
 
 **二维库存模型**（参考16.2.5）：
 
@@ -769,7 +1165,7 @@ func (r *StockRepo) Reserve(ctx context.Context, skuID int64, qty int, ttl time.
 }
 ```
 
-### 16.5.3 订单系统设计
+### 16.6.3 订单系统设计
 
 **状态机**：
 
@@ -813,7 +1209,7 @@ func (o *Order) TransitionTo(newStatus OrderStatus) error {
 • 路由表：order_route（order_id → db_index, table_index）
 ```
 
-### 16.5.4 支付系统设计
+### 16.6.4 支付系统设计
 
 **支付流程**：
 
@@ -897,7 +1293,7 @@ func (s *PaymentService) ReconcileHourly(ctx context.Context, hour time.Time) er
 }
 ```
 
-### 16.5.5 供应商集成设计
+### 16.6.5 供应商集成设计
 
 **适配器模式**：
 
@@ -969,16 +1365,52 @@ func (c *SupplierClient) QueryStock(ctx context.Context, req *Request) (*Respons
 }
 ```
 
-### 16.5.6 商品供给与运营系统
+### 16.6.6 B端商品生命周期完整链路
 
-**供给运营是电商平台的核心能力**，决定了"商品如何进入平台"。本节展示供给侧和运营侧的完整设计。
+**B端商品生命周期是平台运营的核心能力**，决定了"商品如何进入、如何管理、如何退出"。本节展示从商品录入到下架归档的完整链路，涵盖供应商、运营、系统三方协作。
 
-#### 商品上架系统（从无到有）
+**完整生命周期（7个阶段）**：
+
+```
+阶段1：商品录入（手动/批量/API）
+   ↓ 录入成功率 > 95%
+阶段2：审核发布（人工/自动）
+   ↓ 审核通过率 > 85%
+阶段3：供应商同步（实时/定时）
+   ↓ 同步成功率 > 98%
+阶段4：库存管理（同步/监控/对账）
+   ↓ 库存准确率 > 99.5%
+阶段5：日常维护（单品/批量编辑）
+   ↓ 编辑成功率 > 99%
+阶段6：促销配置（活动关联/价格设置）
+   ↓ 生效准时率 > 99.9%
+阶段7：下架归档（临时/永久）
+   ↓ 归档成功率 > 99%
+```
+
+**与C端链路的对比**：
+
+| 维度 | B端链路 | C端链路 |
+|-----|--------|--------|
+| **阶段数量** | 7个阶段 | 5个阶段 |
+| **时间跨度** | 数天到数月（商品生命周期） | 数分钟（单次购物流程） |
+| **参与角色** | 供应商、运营、系统 | 用户、系统 |
+| **核心关注** | 数据准确性、流程合规性 | 用户体验、转化率 |
+| **关键技术** | 幂等性、状态机、异步任务 | 聚合编排、快照、Saga |
+
+---
+
+#### 阶段1：商品录入
 
 **业务场景**：
-- 运营人员手动上传新商品
-- 商家通过Portal批量导入
-- Excel批量上架（节假日大促前）
+- **手动录入**：运营人员通过后台表单录入新商品（小批量、高质量）
+- **批量导入**：商家/运营通过Excel批量导入（大促前、品类扩展）
+- **API推送**：供应商通过OpenAPI实时推送新品（自动化、规模化）
+
+**技术难点**：
+- **幂等性保证**：防止重复提交（网络超时、用户重试）
+- **异步解耦**：批量导入通过异步任务处理，避免阻塞用户
+- **数据校验**：必填字段、格式校验、业务规则校验
 
 **核心设计**：
 
@@ -1071,16 +1503,359 @@ func (s *ListingService) Approve(ctx context.Context, taskCode string, reviewerI
 }
 ```
 
+**批量导入**：
+
+```go
+// 批量导入服务
+type BatchImportService struct {
+    taskRepo     TaskRepository
+    taskQueue    TaskQueue
+    validator    ItemValidator
+    fileParser   FileParser
+}
+
+// 批量导入（异步）
+func (s *BatchImportService) BatchImport(ctx context.Context, file io.Reader, operatorID int64) (*BatchImportTask, error) {
+    // Step 1: 解析文件（支持Excel/CSV）
+    items, parseErr := s.fileParser.Parse(file)
+    if parseErr != nil {
+        return nil, fmt.Errorf("文件解析失败: %w", parseErr)
+    }
+    
+    // Step 2: 数据校验（预检）
+    validItems := make([]*ItemInfo, 0, len(items))
+    invalidItems := make([]*ValidationError, 0)
+    
+    for _, item := range items {
+        if err := s.validator.Validate(item); err != nil {
+            invalidItems = append(invalidItems, &ValidationError{
+                Item:  item,
+                Error: err.Error(),
+            })
+        } else {
+            validItems = append(validItems, item)
+        }
+    }
+    
+    // Step 3: 创建批量任务
+    batchTask := &BatchImportTask{
+        TaskID:       generateTaskID(),
+        TotalCount:   len(items),
+        ValidCount:   len(validItems),
+        InvalidCount: len(invalidItems),
+        Status:       "PENDING",
+        OperatorID:   operatorID,
+        CreatedAt:    time.Now(),
+    }
+    
+    if err := s.taskRepo.Save(ctx, batchTask); err != nil {
+        return nil, err
+    }
+    
+    // Step 4: 发送到任务队列（异步处理）
+    s.taskQueue.Publish(ctx, &BatchImportEvent{
+        TaskID:       batchTask.TaskID,
+        Items:        validItems,
+        InvalidItems: invalidItems,
+    })
+    
+    return batchTask, nil
+}
+
+// 批量任务处理（Consumer）
+func (s *BatchImportService) ProcessBatchTask(ctx context.Context, event *BatchImportEvent) error {
+    successCount := 0
+    failedItems := make([]*ImportFailure, 0)
+    
+    // 逐条处理（控制并发度）
+    semaphore := make(chan struct{}, 10) // 限制10并发
+    var wg sync.WaitGroup
+    var mu sync.Mutex
+    
+    for _, item := range event.Items {
+        wg.Add(1)
+        semaphore <- struct{}{}
+        
+        go func(item *ItemInfo) {
+            defer wg.Done()
+            defer func() { <-semaphore }()
+            
+            // 创建上架任务
+            if _, err := s.listingService.CreateListingTask(ctx, &ListingRequest{
+                ItemInfo:   item,
+                SupplierID: item.SupplierID,
+            }); err != nil {
+                mu.Lock()
+                failedItems = append(failedItems, &ImportFailure{
+                    Item:  item,
+                    Error: err.Error(),
+                })
+                mu.Unlock()
+            } else {
+                mu.Lock()
+                successCount++
+                mu.Unlock()
+            }
+        }(item)
+    }
+    
+    wg.Wait()
+    
+    // 更新任务状态
+    s.taskRepo.Update(ctx, event.TaskID, &BatchImportResult{
+        Status:       "COMPLETED",
+        SuccessCount: successCount,
+        FailedCount:  len(failedItems),
+        FailedItems:  failedItems,
+        CompletedAt:  time.Now(),
+    })
+    
+    return nil
+}
+```
+
+**API推送**：
+
+```go
+// OpenAPI Service（供应商接口）
+type OpenAPIService struct {
+    listingService *ListingService
+    rateLimiter    RateLimiter      // 限流器
+    authService    AuthService      // 鉴权
+}
+
+// API推送商品
+func (s *OpenAPIService) PushProduct(ctx context.Context, req *PushProductRequest) (*PushProductResponse, error) {
+    // Step 1: 鉴权（API Key + Signature）
+    supplierID, err := s.authService.Authenticate(ctx, req.APIKey, req.Signature)
+    if err != nil {
+        return nil, fmt.Errorf("鉴权失败: %w", err)
+    }
+    
+    // Step 2: 限流（防止刷接口）
+    if !s.rateLimiter.Allow(supplierID) {
+        return nil, fmt.Errorf("请求过于频繁，请稍后重试")
+    }
+    
+    // Step 3: 参数校验
+    if err := s.validatePushRequest(req); err != nil {
+        return nil, fmt.Errorf("参数校验失败: %w", err)
+    }
+    
+    // Step 4: 创建上架任务（幂等性）
+    task, err := s.listingService.CreateListingTask(ctx, &ListingRequest{
+        ItemInfo:   req.ItemInfo,
+        SupplierID: supplierID,
+    })
+    if err != nil {
+        return nil, fmt.Errorf("创建任务失败: %w", err)
+    }
+    
+    // Step 5: 自动提交审核（API推送默认进入审核）
+    if err := s.listingService.SubmitForReview(ctx, task.TaskCode); err != nil {
+        return nil, err
+    }
+    
+    return &PushProductResponse{
+        TaskCode: task.TaskCode,
+        Status:   string(task.Status),
+        Message:  "商品已提交审核，预计1-3小时内完成",
+    }, nil
+}
+```
+
+**监控指标**：
+
+| 指标 | 目标值 | 监控维度 |
+|-----|-------|---------|
+| **录入成功率** | > 95% | 按录入方式（手动/批量/API） |
+| **批量导入耗时** | < 10s/千条 | 按文件大小 |
+| **API响应时间** | P99 < 500ms | 按供应商 |
+| **幂等性命中率** | < 5% | 按操作类型 |
+
+---
+
+#### 阶段2：审核发布
+
+**业务场景**：
+- **人工审核**：高风险商品（特定类目、新供应商）需人工审核
+- **自动审核**：低风险商品通过规则引擎自动审核通过
+- **审核驳回**：不合规商品驳回并通知修改
+
+**技术难点**：
+- **规则引擎**：多维度规则组合（合规性、完整性、准确性）
+- **审核SLA**：自动审核秒级响应，人工审核小时级
+- **审核日志**：完整记录审核决策，支持溯源
+
+**自动审核规则引擎**：
+
+```go
+// 审核引擎
+type ReviewEngine struct {
+    rules []ReviewRule
+}
+
+// 审核规则接口
+type ReviewRule interface {
+    Check(ctx context.Context, task *ListingTask) *ReviewResult
+}
+
+// 自动审核
+func (e *ReviewEngine) AutoReview(ctx context.Context, task *ListingTask) (*ReviewResult, error) {
+    results := make([]*ReviewResult, 0, len(e.rules))
+    
+    // 执行所有规则
+    for _, rule := range e.rules {
+        result := rule.Check(ctx, task)
+        results = append(results, result)
+        
+        // 任何规则拒绝则直接返回
+        if result.Decision == ReviewReject {
+            return result, nil
+        }
+    }
+    
+    // 所有规则通过
+    return &ReviewResult{
+        Decision: ReviewApprove,
+        Score:    e.calculateScore(results),
+    }, nil
+}
+
+// 规则1: 合规性检查
+type ComplianceRule struct {
+    sensitiveWords []string
+    bannedCategories []int64
+}
+
+func (r *ComplianceRule) Check(ctx context.Context, task *ListingTask) *ReviewResult {
+    // 违禁词检测
+    for _, word := range r.sensitiveWords {
+        if strings.Contains(task.ItemInfo.Title, word) || 
+           strings.Contains(task.ItemInfo.Description, word) {
+            return &ReviewResult{
+                Decision: ReviewReject,
+                Reason:   fmt.Sprintf("包含违禁词: %s", word),
+            }
+        }
+    }
+    
+    // 禁售类目检测
+    for _, category := range r.bannedCategories {
+        if task.ItemInfo.CategoryID == category {
+            return &ReviewResult{
+                Decision: ReviewReject,
+                Reason:   "该类目禁止销售",
+            }
+        }
+    }
+    
+    return &ReviewResult{Decision: ReviewApprove}
+}
+
+// 规则2: 完整性检查
+type CompletenessRule struct{}
+
+func (r *CompletenessRule) Check(ctx context.Context, task *ListingTask) *ReviewResult {
+    item := task.ItemInfo
+    
+    // 必填字段检查
+    if item.Title == "" || item.Description == "" || item.BasePrice <= 0 {
+        return &ReviewResult{
+            Decision: ReviewReject,
+            Reason:   "缺少必填字段",
+        }
+    }
+    
+    // 图片数量检查
+    if len(item.Images) < 3 {
+        return &ReviewResult{
+            Decision: ReviewReject,
+            Reason:   "商品图片不足3张",
+        }
+    }
+    
+    return &ReviewResult{Decision: ReviewApprove}
+}
+
+// 规则3: 准确性检查
+type AccuracyRule struct{}
+
+func (r *AccuracyRule) Check(ctx context.Context, task *ListingTask) *ReviewResult {
+    item := task.ItemInfo
+    
+    // 价格合理性检查
+    if item.BasePrice < 1 || item.BasePrice > 1000000 {
+        return &ReviewResult{
+            Decision: ReviewManual, // 转人工审核
+            Reason:   "价格异常，需人工确认",
+        }
+    }
+    
+    // 类目匹配检查（示例：通过标题关键词）
+    if !r.isCategoryMatched(item.Title, item.CategoryID) {
+        return &ReviewResult{
+            Decision: ReviewManual,
+            Reason:   "类目与标题不匹配，需人工确认",
+        }
+    }
+    
+    return &ReviewResult{Decision: ReviewApprove}
+}
+```
+
 **审核策略**：
 
-| 审核维度 | 检查项 | 风险等级 |
-|---------|--------|---------|
-| **合规性** | 违禁词检测、敏感内容 | 高 |
-| **完整性** | 必填字段、图片数量 | 中 |
-| **准确性** | 价格合理性、类目匹配 | 中 |
-| **一致性** | SPU/SKU关系、属性匹配 | 低 |
+| 审核维度 | 检查项 | 风险等级 | 处理策略 |
+|---------|--------|---------|---------|
+| **合规性** | 违禁词检测、敏感内容 | 高 | 自动拒绝 |
+| **完整性** | 必填字段、图片数量 | 中 | 自动拒绝 |
+| **准确性** | 价格合理性、类目匹配 | 中 | 转人工审核 |
+| **一致性** | SPU/SKU关系、属性匹配 | 低 | 自动通过 |
 
-#### 供应商同步系统（Upsert场景）
+**审核流程**：
+
+```go
+// 审核服务
+func (s *ListingService) ProcessReview(ctx context.Context, taskCode string) error {
+    task, _ := s.getTask(ctx, taskCode)
+    
+    // Step 1: 自动审核
+    autoResult, err := s.reviewEngine.AutoReview(ctx, task)
+    if err != nil {
+        return err
+    }
+    
+    switch autoResult.Decision {
+    case ReviewApprove:
+        // 自动通过 → 直接发布
+        return s.Approve(ctx, taskCode, SystemReviewerID)
+        
+    case ReviewReject:
+        // 自动拒绝 → 驳回
+        return s.Reject(ctx, taskCode, autoResult.Reason)
+        
+    case ReviewManual:
+        // 转人工审核 → 进入审核队列
+        return s.assignToReviewer(ctx, taskCode)
+    }
+    
+    return nil
+}
+```
+
+**监控指标**：
+
+| 指标 | 目标值 | 监控维度 |
+|-----|-------|---------|
+| **审核通过率** | > 85% | 按供应商、按类目 |
+| **自动审核占比** | > 70% | 按审核决策 |
+| **人工审核SLA** | < 4h | P99耗时 |
+| **审核驳回率** | < 15% | 按驳回原因 |
+
+---
+
+#### 阶段3：供应商同步
 
 **业务场景**：
 - 供应商定时推送商品数据（每小时/每天）
@@ -1180,7 +1955,254 @@ func (s *SyncService) needReview(supplierID int64) bool {
 | **类目变更** | 任意 | 必须审核 | 影响搜索 |
 | **图片变更** | 任意 | 自动通过 | 低风险 |
 
-#### 运营编辑系统（日常维护）
+**监控指标**：
+
+| 指标 | 目标值 | 监控维度 |
+|-----|-------|---------|
+| **同步成功率** | > 98% | 按供应商、按同步类型 |
+| **同步耗时** | P99 < 5s | 按数据大小 |
+| **差异化审核命中率** | 10-20% | 按变更类型 |
+| **供应商数据质量** | 错误率 < 5% | 按供应商 |
+
+---
+
+#### 阶段4：库存管理
+
+**业务场景**：
+- **实时同步**：热卖商品库存通过WebHook实时推送（减库存事件）
+- **定时同步**：长尾商品库存通过定时任务批量拉取（每小时/每天）
+- **水位监控**：库存低于阈值时触发告警，通知供应商补货
+- **日终对账**：每日对账供应商库存与平台库存，发现差异自动修正
+
+**技术难点**：
+- **同步策略**：实时 vs 定时的平衡（成本 vs 准确性）
+- **库存准确性**：多方数据源（供应商、订单系统、售后退款）一致性
+- **并发控制**：高并发扣减库存时的原子性保证
+- **对账修正**：发现差异后的自动修正 vs 人工介入
+
+**核心设计**：
+
+```go
+// 库存同步策略（策略模式）
+type StockSyncStrategy interface {
+    Sync(ctx context.Context, skuID int64) (*SyncResult, error)
+}
+
+// 实时同步策略（高价值商品）
+type RealtimeStockSyncStrategy struct {
+    supplierClient SupplierClient
+    inventoryRepo  InventoryRepository
+    cache          *redis.Client
+}
+
+func (s *RealtimeStockSyncStrategy) Sync(ctx context.Context, skuID int64) (*SyncResult, error) {
+    // Step 1: 调用供应商API实时查询库存
+    supplierStock, err := s.supplierClient.GetStock(ctx, skuID)
+    if err != nil {
+        return nil, fmt.Errorf("供应商库存查询失败: %w", err)
+    }
+    
+    // Step 2: 更新库存（数据库 + 缓存）
+    if err := s.inventoryRepo.Update(ctx, skuID, supplierStock); err != nil {
+        return nil, err
+    }
+    
+    // Step 3: 更新缓存（防止穿透）
+    s.cache.Set(ctx, fmt.Sprintf("stock:%d", skuID), supplierStock, 5*time.Minute)
+    
+    return &SyncResult{
+        SKUID:         skuID,
+        OldStock:      0, // 旧库存
+        NewStock:      supplierStock,
+        SyncTime:      time.Now(),
+        SyncType:      "REALTIME",
+    }, nil
+}
+
+// 定时同步策略（长尾商品）
+type ScheduledStockSyncStrategy struct {
+    supplierClient SupplierClient
+    inventoryRepo  InventoryRepository
+}
+
+func (s *ScheduledStockSyncStrategy) Sync(ctx context.Context, skuID int64) (*SyncResult, error) {
+    // Step 1: 批量拉取供应商库存（减少API调用）
+    supplierStocks, err := s.supplierClient.BatchGetStock(ctx, []int64{skuID})
+    if err != nil {
+        return nil, err
+    }
+    
+    // Step 2: 批量更新数据库
+    updates := make(map[int64]int32)
+    for _, stock := range supplierStocks {
+        updates[stock.SKUID] = stock.Quantity
+    }
+    
+    if err := s.inventoryRepo.BatchUpdate(ctx, updates); err != nil {
+        return nil, err
+    }
+    
+    return &SyncResult{
+        SKUID:    skuID,
+        NewStock: supplierStocks[skuID].Quantity,
+        SyncTime: time.Now(),
+        SyncType: "SCHEDULED",
+    }, nil
+}
+
+// 库存同步服务（根据商品分级选择策略）
+type StockSyncService struct {
+    realtimeStrategy  *RealtimeStockSyncStrategy
+    scheduledStrategy *ScheduledStockSyncStrategy
+    productRepo       ProductRepository
+}
+
+func (s *StockSyncService) SyncStock(ctx context.Context, skuID int64) error {
+    // 根据商品热度选择同步策略
+    product, _ := s.productRepo.Get(ctx, skuID)
+    
+    var strategy StockSyncStrategy
+    if product.Hotness > 80 { // 热卖商品
+        strategy = s.realtimeStrategy
+    } else {
+        strategy = s.scheduledStrategy
+    }
+    
+    _, err := strategy.Sync(ctx, skuID)
+    return err
+}
+```
+
+**库存水位监控**：
+
+```go
+// 库存水位监控器
+type StockWatermarkMonitor struct {
+    inventoryRepo InventoryRepository
+    alertService  AlertService
+    supplierClient SupplierClient
+}
+
+// 检查库存水位（定时任务，每5分钟执行）
+func (m *StockWatermarkMonitor) CheckWatermark(ctx context.Context, skuID int64) error {
+    // Step 1: 查询当前库存
+    stock, err := m.inventoryRepo.GetStock(ctx, skuID)
+    if err != nil {
+        return err
+    }
+    
+    // Step 2: 计算水位线（根据历史销量）
+    watermark := m.calculateWatermark(ctx, skuID)
+    
+    // Step 3: 库存低于水位线 → 告警
+    if stock.Available < watermark {
+        m.alertService.Send(ctx, &Alert{
+            Level:   "WARNING",
+            Type:    "LOW_STOCK",
+            SKUID:   skuID,
+            Message: fmt.Sprintf("库存低于水位线（当前: %d, 水位: %d）", stock.Available, watermark),
+        })
+        
+        // Step 4: 通知供应商补货
+        m.supplierClient.RequestReplenishment(ctx, &ReplenishmentRequest{
+            SKUID:        skuID,
+            RequestQty:   watermark * 2, // 建议补货量
+            UrgencyLevel: "NORMAL",
+        })
+    }
+    
+    return nil
+}
+
+// 计算水位线（基于历史销量）
+func (m *StockWatermarkMonitor) calculateWatermark(ctx context.Context, skuID int64) int32 {
+    // 查询最近7天日均销量
+    avgDailySales := m.inventoryRepo.GetAvgDailySales(ctx, skuID, 7)
+    
+    // 水位线 = 3天销量（安全库存）
+    return avgDailySales * 3
+}
+```
+
+**库存对账**：
+
+```go
+// 库存对账任务（每日凌晨执行）
+type StockReconciliationJob struct {
+    inventoryRepo  InventoryRepository
+    supplierClient SupplierClient
+    diffRepo       DiffRepository
+}
+
+func (j *StockReconciliationJob) Run(ctx context.Context, date time.Time) error {
+    // Step 1: 批量拉取所有SKU的供应商库存
+    supplierStocks, err := j.supplierClient.GetAllStocks(ctx)
+    if err != nil {
+        return err
+    }
+    
+    // Step 2: 批量查询平台库存
+    platformStocks, err := j.inventoryRepo.GetAllStocks(ctx)
+    if err != nil {
+        return err
+    }
+    
+    // Step 3: 对比差异
+    diffs := make([]*StockDiff, 0)
+    for skuID, supplierQty := range supplierStocks {
+        platformQty := platformStocks[skuID]
+        
+        if supplierQty != platformQty {
+            diff := &StockDiff{
+                SKUID:        skuID,
+                SupplierQty:  supplierQty,
+                PlatformQty:  platformQty,
+                Difference:   supplierQty - platformQty,
+                ReconcileDate: date,
+            }
+            diffs = append(diffs, diff)
+        }
+    }
+    
+    // Step 4: 记录差异
+    if err := j.diffRepo.BatchSave(ctx, diffs); err != nil {
+        return err
+    }
+    
+    // Step 5: 自动修正（差异 < 10% 自动修正，> 10% 人工介入）
+    for _, diff := range diffs {
+        if math.Abs(float64(diff.Difference)/float64(diff.PlatformQty)) < 0.1 {
+            // 小差异：自动修正
+            j.inventoryRepo.Update(ctx, diff.SKUID, diff.SupplierQty)
+        } else {
+            // 大差异：告警 + 人工介入
+            j.alertService.Send(ctx, &Alert{
+                Level:   "ERROR",
+                Type:    "STOCK_MISMATCH",
+                SKUID:   diff.SKUID,
+                Message: fmt.Sprintf("库存差异过大（供应商: %d, 平台: %d）", diff.SupplierQty, diff.PlatformQty),
+            })
+        }
+    }
+    
+    return nil
+}
+```
+
+**监控指标**：
+
+| 指标 | 目标值 | 监控维度 |
+|-----|-------|---------|
+| **库存准确率** | > 99.5% | 按SKU、按供应商 |
+| **实时同步成功率** | > 98% | 按供应商API可用性 |
+| **定时同步耗时** | < 10min/批次 | 按SKU数量 |
+| **水位告警响应时间** | < 5min | P99 |
+| **日终对账差异率** | < 2% | 按供应商 |
+| **自动修正覆盖率** | > 80% | 按差异范围 |
+
+---
+
+#### 阶段5：日常维护
 
 **业务场景**：
 - 单品编辑（修改标题、描述、图片）
@@ -1276,9 +2298,388 @@ func (s *EditService) GetTaskProgress(ctx context.Context, taskID string) (*Task
 }
 ```
 
+**监控指标**：
+
+| 指标 | 目标值 | 监控维度 |
+|-----|-------|---------|
+| **编辑成功率** | > 99% | 按编辑类型（单品/批量） |
+| **批量编辑耗时** | < 5s/千条 | 按数据大小 |
+| **进度更新频率** | 每秒 | 任务执行期间 |
+| **部分成功占比** | < 10% | 按失败原因 |
+
 ---
 
-## 16.5.7 C端交易流完整链路
+#### 阶段6：促销配置
+
+**业务场景**：
+- **活动关联**：将商品关联到大促活动（618、双11）
+- **价格设置**：配置活动价、满减、折扣券
+- **定时生效**：活动开始时自动生效，结束时自动失效
+- **价格验证**：确保活动价 < 原价，防止虚假促销
+
+**技术难点**：
+- **定时生效**：活动开始/结束时间精确到秒，需要定时任务支持
+- **价格一致性**：促销价变更后需同步到商品中心、搜索、缓存
+- **并发控制**：大促开始时大量商品同时生效，避免雪崩
+
+**核心设计**：
+
+```go
+// 促销配置服务
+type PromotionConfigService struct {
+    productRepo    ProductRepository
+    pricingClient  PricingClient
+    promotionRepo  PromotionRepository
+    cache          *redis.Client
+}
+
+// 配置促销（运营人员）
+func (s *PromotionConfigService) ConfigPromotion(ctx context.Context, req *ConfigPromotionRequest) error {
+    // Step 1: 参数校验
+    if err := s.validatePromotionConfig(req); err != nil {
+        return fmt.Errorf("配置校验失败: %w", err)
+    }
+    
+    // Step 2: 价格验证（活动价 < 原价）
+    product, _ := s.productRepo.Get(ctx, req.SKUID)
+    if req.PromotionPrice >= product.BasePrice {
+        return fmt.Errorf("促销价必须低于原价")
+    }
+    
+    // Step 3: 创建促销配置
+    promotionConfig := &PromotionConfig{
+        ConfigID:       generateConfigID(),
+        SKUID:          req.SKUID,
+        ActivityID:     req.ActivityID,
+        PromotionPrice: req.PromotionPrice,
+        PromotionType:  req.PromotionType, // DISCOUNT/COUPON/FULL_REDUCTION
+        StartTime:      req.StartTime,
+        EndTime:        req.EndTime,
+        Status:         "PENDING", // 待生效
+        CreatedBy:      req.OperatorID,
+    }
+    
+    if err := s.promotionRepo.Save(ctx, promotionConfig); err != nil {
+        return err
+    }
+    
+    // Step 4: 注册定时任务（生效/失效）
+    s.scheduleActivation(ctx, promotionConfig)
+    s.scheduleDeactivation(ctx, promotionConfig)
+    
+    return nil
+}
+
+// 批量配置促销（大促场景）
+func (s *PromotionConfigService) BatchConfigPromotion(ctx context.Context, req *BatchConfigRequest) (*BatchConfigTask, error) {
+    // Step 1: 创建批量任务
+    task := &BatchConfigTask{
+        TaskID:     generateTaskID(),
+        ActivityID: req.ActivityID,
+        TotalCount: len(req.Configs),
+        Status:     "PENDING",
+    }
+    
+    s.taskRepo.Save(ctx, task)
+    
+    // Step 2: 异步处理
+    s.taskQueue.Publish(ctx, &BatchConfigEvent{
+        TaskID:  task.TaskID,
+        Configs: req.Configs,
+    })
+    
+    return task, nil
+}
+
+// 定时任务：促销生效
+type PromotionActivationJob struct {
+    promotionRepo  PromotionRepository
+    pricingClient  PricingClient
+    searchClient   SearchClient
+    cache          *redis.Client
+}
+
+func (j *PromotionActivationJob) Run(ctx context.Context) {
+    // Step 1: 查询即将生效的促销（未来5分钟）
+    now := time.Now()
+    upcoming := j.promotionRepo.FindUpcoming(ctx, now, now.Add(5*time.Minute))
+    
+    // Step 2: 逐个生效
+    for _, config := range upcoming {
+        if time.Now().After(config.StartTime) {
+            j.activatePromotion(ctx, config)
+        }
+    }
+}
+
+func (j *PromotionActivationJob) activatePromotion(ctx context.Context, config *PromotionConfig) error {
+    // Step 1: 更新价格服务（促销价生效）
+    if err := j.pricingClient.UpdatePromotionPrice(ctx, &UpdatePriceRequest{
+        SKUID:          config.SKUID,
+        PromotionPrice: config.PromotionPrice,
+        ValidUntil:     config.EndTime,
+    }); err != nil {
+        return err
+    }
+    
+    // Step 2: 更新搜索索引（展示促销标签）
+    j.searchClient.UpdatePromotionTag(ctx, config.SKUID, config.ActivityID)
+    
+    // Step 3: 清理缓存（强制刷新）
+    j.cache.Del(ctx, fmt.Sprintf("product:%d", config.SKUID))
+    j.cache.Del(ctx, fmt.Sprintf("price:%d", config.SKUID))
+    
+    // Step 4: 更新促销配置状态
+    config.Status = "ACTIVE"
+    j.promotionRepo.Update(ctx, config)
+    
+    // Step 5: 发布促销生效事件
+    j.eventPublisher.Publish(ctx, &PromotionActivatedEvent{
+        SKUID:      config.SKUID,
+        ActivityID: config.ActivityID,
+        ActiveTime: time.Now(),
+    })
+    
+    return nil
+}
+
+// 定时任务：促销失效
+type PromotionDeactivationJob struct {
+    promotionRepo  PromotionRepository
+    pricingClient  PricingClient
+    searchClient   SearchClient
+    cache          *redis.Client
+}
+
+func (j *PromotionDeactivationJob) Run(ctx context.Context) {
+    // 查询已过期的促销
+    expired := j.promotionRepo.FindExpired(ctx, time.Now())
+    
+    for _, config := range expired {
+        j.deactivatePromotion(ctx, config)
+    }
+}
+
+func (j *PromotionDeactivationJob) deactivatePromotion(ctx context.Context, config *PromotionConfig) error {
+    // Step 1: 恢复原价
+    j.pricingClient.RestoreOriginalPrice(ctx, config.SKUID)
+    
+    // Step 2: 移除促销标签
+    j.searchClient.RemovePromotionTag(ctx, config.SKUID)
+    
+    // Step 3: 清理缓存
+    j.cache.Del(ctx, fmt.Sprintf("product:%d", config.SKUID))
+    j.cache.Del(ctx, fmt.Sprintf("price:%d", config.SKUID))
+    
+    // Step 4: 更新状态
+    config.Status = "EXPIRED"
+    j.promotionRepo.Update(ctx, config)
+    
+    return nil
+}
+```
+
+**价格验证策略**：
+
+```go
+// 价格验证器
+type PriceValidator struct {
+    productRepo ProductRepository
+}
+
+func (v *PriceValidator) Validate(ctx context.Context, req *ConfigPromotionRequest) error {
+    product, _ := v.productRepo.Get(ctx, req.SKUID)
+    
+    // 规则1: 促销价 < 原价
+    if req.PromotionPrice >= product.BasePrice {
+        return fmt.Errorf("促销价必须低于原价")
+    }
+    
+    // 规则2: 折扣不能过低（防止价格战）
+    discount := float64(product.BasePrice-req.PromotionPrice) / float64(product.BasePrice)
+    if discount > 0.7 {
+        return fmt.Errorf("折扣过大（> 70%%），需审批")
+    }
+    
+    // 规则3: 价格必须为整数（避免定价错误）
+    if req.PromotionPrice%100 != 0 {
+        return fmt.Errorf("价格必须为整数（单位：分）")
+    }
+    
+    return nil
+}
+```
+
+**监控指标**：
+
+| 指标 | 目标值 | 监控维度 |
+|-----|-------|---------|
+| **生效准时率** | > 99.9% | 按活动、按SKU |
+| **失效准时率** | > 99.9% | 按活动、按SKU |
+| **价格一致性** | 100% | 商品中心、搜索、缓存 |
+| **配置错误率** | < 1% | 按配置类型 |
+
+---
+
+#### 阶段7：下架归档
+
+**业务场景**：
+- **临时下架**：商品缺货、质量问题临时下架，后续可恢复
+- **永久下架**：商品停产、违规下架，不可恢复
+- **订单检查**：下架前检查是否有进行中的订单，避免影响用户
+- **历史归档**：永久下架商品归档到历史库，释放主库空间
+
+**技术难点**：
+- **订单安全**：下架前必须检查订单状态，防止影响履约
+- **数据一致性**：下架需同步到商品中心、搜索、库存、价格
+- **归档策略**：历史数据归档到冷存储，降低成本
+
+**核心设计**：
+
+```go
+// 下架服务
+type OffShelfService struct {
+    productRepo   ProductRepository
+    orderRepo     OrderRepository
+    searchClient  SearchClient
+    inventoryClient InventoryClient
+    pricingClient PricingClient
+}
+
+// 下架商品
+func (s *OffShelfService) OffShelf(ctx context.Context, req *OffShelfRequest) error {
+    // Step 1: 检查进行中的订单
+    activeOrders, err := s.orderRepo.FindActiveOrdersBySKU(ctx, req.SKUID)
+    if err != nil {
+        return err
+    }
+    
+    if len(activeOrders) > 0 && req.OffShelfType == "PERMANENT" {
+        return fmt.Errorf("存在进行中的订单（%d个），暂不能永久下架", len(activeOrders))
+    }
+    
+    // Step 2: 更新商品状态
+    product, _ := s.productRepo.Get(ctx, req.SKUID)
+    
+    if req.OffShelfType == "TEMPORARY" {
+        // 临时下架 → OFF_SHELF
+        product.Status = "OFF_SHELF"
+        product.OffShelfReason = req.Reason
+        product.OffShelfTime = time.Now()
+    } else {
+        // 永久下架 → ARCHIVED
+        product.Status = "ARCHIVED"
+        product.ArchivedReason = req.Reason
+        product.ArchivedTime = time.Now()
+    }
+    
+    s.productRepo.Update(ctx, product)
+    
+    // Step 3: 从搜索索引中移除
+    s.searchClient.RemoveProduct(ctx, req.SKUID)
+    
+    // Step 4: 冻结库存（防止误售）
+    s.inventoryClient.FreezeStock(ctx, req.SKUID)
+    
+    // Step 5: 移除促销配置
+    s.pricingClient.RemovePromotions(ctx, req.SKUID)
+    
+    // Step 6: 发布下架事件
+    s.eventPublisher.Publish(ctx, &ProductOffShelfEvent{
+        SKUID:         req.SKUID,
+        OffShelfType:  req.OffShelfType,
+        Reason:        req.Reason,
+        OffShelfTime:  time.Now(),
+    })
+    
+    return nil
+}
+
+// 恢复上架（仅临时下架可恢复）
+func (s *OffShelfService) RestoreOnShelf(ctx context.Context, skuID int64) error {
+    product, _ := s.productRepo.Get(ctx, skuID)
+    
+    // 只有临时下架可恢复
+    if product.Status != "OFF_SHELF" {
+        return fmt.Errorf("商品状态不支持恢复（当前状态: %s）", product.Status)
+    }
+    
+    // Step 1: 恢复商品状态
+    product.Status = "ON_SHELF"
+    s.productRepo.Update(ctx, product)
+    
+    // Step 2: 恢复搜索索引
+    s.searchClient.AddProduct(ctx, product)
+    
+    // Step 3: 解冻库存
+    s.inventoryClient.UnfreezeStock(ctx, skuID)
+    
+    return nil
+}
+
+// 归档服务（永久下架商品）
+type ArchiveService struct {
+    productRepo     ProductRepository
+    archiveRepo     ArchiveRepository
+    orderRepo       OrderRepository
+    inventoryClient InventoryClient
+}
+
+// 归档商品（异步任务，每日凌晨执行）
+func (s *ArchiveService) ArchiveProduct(ctx context.Context, skuID int64) error {
+    product, _ := s.productRepo.Get(ctx, skuID)
+    
+    // 只归档永久下架的商品
+    if product.Status != "ARCHIVED" {
+        return nil
+    }
+    
+    // Step 1: 检查是否有未完成的订单（防御性检查）
+    activeOrders, _ := s.orderRepo.FindActiveOrdersBySKU(ctx, skuID)
+    if len(activeOrders) > 0 {
+        return fmt.Errorf("仍有进行中的订单，暂不归档")
+    }
+    
+    // Step 2: 归档商品数据（写入历史库）
+    archiveData := &ArchivedProduct{
+        SKUID:        skuID,
+        ProductData:  product.ToJSON(),
+        ArchivedTime: time.Now(),
+    }
+    s.archiveRepo.Save(ctx, archiveData)
+    
+    // Step 3: 归档订单数据
+    historicalOrders, _ := s.orderRepo.FindAllOrdersBySKU(ctx, skuID)
+    for _, order := range historicalOrders {
+        s.archiveRepo.SaveOrder(ctx, &ArchivedOrder{
+            OrderID:      order.OrderID,
+            SKUID:        skuID,
+            OrderData:    order.ToJSON(),
+            ArchivedTime: time.Now(),
+        })
+    }
+    
+    // Step 4: 删除主库数据（释放空间）
+    s.productRepo.Delete(ctx, skuID)
+    s.inventoryClient.DeleteStock(ctx, skuID)
+    
+    return nil
+}
+```
+
+**监控指标**：
+
+| 指标 | 目标值 | 监控维度 |
+|-----|-------|---------|
+| **下架成功率** | > 99% | 按下架类型（临时/永久） |
+| **订单冲突率** | < 1% | 永久下架前的订单检查 |
+| **恢复成功率** | 100% | 临时下架恢复 |
+| **归档耗时** | < 5s/商品 | 按数据大小 |
+| **归档完整性** | 100% | 商品数据、订单数据 |
+
+---
+
+## 16.6.7 C端交易流完整链路
 
 **交易流是电商的核心价值链**，从用户搜索到完成支付的完整路径。本节展示五个阶段的设计与集成。
 
@@ -1651,7 +3052,7 @@ func (s *CreateOrderSaga) Execute(ctx context.Context, req *CreateOrderRequest) 
 
 ---
 
-## 16.5.8 DDD战术设计实践
+## 16.6.8 DDD战术设计实践
 
 **领域模型是系统设计的核心**。本节展示如何在订单域应用DDD战术模式。
 
@@ -1897,7 +3298,7 @@ func (w *OutboxWorker) Run() {
 
 ---
 
-## 16.5.6 架构决策记录（ADR）
+## 16.6.9 架构决策记录（ADR）
 
 本节记录系统设计过程中的关键架构决策，包括决策背景、备选方案、最终决策及理由。**ADR是架构演进的重要资产，帮助团队理解「为什么这样设计」，避免重复讨论。**
 
@@ -2814,7 +4215,7 @@ func (a *FlightSupplierACL) TranslateStock(supplierResp *SupplierFlightResponse)
 
 ---
 
-## 16.7 高可用与性能优化
+## 16.7 高可用与性能优化（Infrastructure & Operations）
 
 ### 16.7.1 高可用设计
 
@@ -2995,7 +4396,7 @@ func (s *CheckoutService) Calculate(ctx context.Context, req *CalculateRequest) 
 
 ---
 
-## 16.8 团队组织与协作
+## 16.8 团队组织与协作（Organization & Governance）
 
 ### 16.8.1 团队结构
 
@@ -3295,7 +4696,7 @@ B. 新建拼团服务
 
 ---
 
-## 16.9 上线与演进
+## 16.9 上线与演进（Deployment & Evolution）
 
 ### 16.9.1 上线策略
 
@@ -3682,7 +5083,7 @@ Team Lead无法处理 → 升级到架构师
 
 ---
 
-## 16.10 经验总结
+## 16.10 经验总结（Lessons Learned）
 
 ### 16.10.1 成功经验
 
@@ -3987,7 +5388,7 @@ gantt
 
 ---
 
-## 16.11 本章小结
+## 16.11 本章小结（Chapter Summary）
 
 本章通过一个中大型B2B2C电商平台的完整案例，展示了从业务分析到技术落地的全过程，**是全书知识点的综合实践验证**。本章不仅覆盖了架构方法论（第1-4章），还深入展示了**供给运营系统（第10章）**和**C端核心交易流（第11-15章）**的完整实现，真正做到了"理论→实践→落地"的闭环。
 
