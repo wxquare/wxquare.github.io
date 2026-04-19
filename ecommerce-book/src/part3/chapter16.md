@@ -2802,7 +2802,9 @@ func (a *SearchAggregation) Search(ctx context.Context, req *SearchRequest) (*Se
 - Hydrate并发：4个服务并发调用，总耗时 < 200ms
 - 缓存策略：热门搜索词缓存5分钟
 
-### 阶段2：商品详情页（PDP）
+---
+
+#### 阶段2：商品详情页（PDP）
 
 **业务场景**：用户点击商品进入详情页
 
@@ -2857,7 +2859,9 @@ func (a *DetailAggregation) GetDetail(ctx context.Context, skuID int64, userID i
 }
 ```
 
-### 阶段3：购物车
+---
+
+#### 阶段3：购物车
 
 **业务场景**：用户加购商品
 
@@ -2917,7 +2921,9 @@ func (c *CartService) MergeCartOnLogin(ctx context.Context, userID int64, anonym
 }
 ```
 
-### 阶段4：结算页试算
+---
+
+#### 阶段4：结算页试算
 
 **业务场景**：用户点击"去结算"
 
@@ -2958,7 +2964,9 @@ func (a *CheckoutAggregation) Calculate(ctx context.Context, req *CalculateReque
 }
 ```
 
-### 阶段5：下单与支付
+---
+
+#### 阶段5：下单与支付
 
 **完整下单流程**（Saga模式）：
 
