@@ -1049,7 +1049,7 @@ func InitializeApp() (*App, error) {
 
 ### 16.6.1 商品中心设计
 
-#### 服务定位
+#### 16.6.1.1 服务定位与职责
 
 **职责边界**：
 - ✅ 负责：商品基础信息、类目、属性、多媒体素材
@@ -1071,11 +1071,11 @@ func InitializeApp() (*App, error) {
 
 ---
 
-#### DDD战术设计
+#### 16.6.1.2 领域模型设计（Domain Layer）
 
 **领域模型设计思想**：商品域的特点是"树形结构+读多写少"，与订单域的"复杂状态机+高并发写"完全不同。
 
-##### Product聚合根
+##### 16.6.1.2.1 Product聚合根
 
 ```go
 // Product聚合根（SKU维度）
@@ -1214,7 +1214,7 @@ func (spu *SPU) isValidSpecs(specs Specifications) bool {
 }
 ```
 
-##### 聚合根方法
+##### 16.6.1.2.2 聚合根方法
 
 ```go
 // 上架（状态转换）
@@ -1315,7 +1315,7 @@ func (p *Product) Specs() Specifications {
 }
 ```
 
-##### Repository模式
+##### 16.6.1.2.3 Repository模式（防腐层）
 
 ```go
 // ProductRepository接口（领域层定义）
@@ -1435,7 +1435,9 @@ func (r *ProductRepositoryImpl) BatchFindBySKUIDs(ctx context.Context, skuIDs []
 
 ---
 
-#### 核心存储设计
+#### 16.6.1.3 基础设施层（Infrastructure Layer）
+
+##### 16.6.1.3.1 核心存储设计
 
 **表结构设计**：
 
@@ -1509,7 +1511,220 @@ db_index = category_id % 4
 
 ---
 
-#### 代码结构
+##### 16.6.1.3.2 缓存策略
+
+详见下文"16.6.1.6 三级缓存实现"。
+
+---
+
+##### 16.6.1.3.3 消息中间件（Messaging）⭐️
+
+**职责划分**：
+
+| 组件 | 层级 | 职责 | 示例 |
+|-----|------|------|------|
+| **Kafka Producer** | Infrastructure | 事件发布（技术实现） | 发送消息到Kafka Topic |
+| **Kafka Consumer** | Infrastructure | 事件消费（技术实现） | 订阅Topic、接收消息、路由 |
+| **Event Handler** | Interface | 协议适配 | Kafka消息 → DTO |
+
+**Kafka Producer（事件发布）**：
+
+```go
+// internal/infrastructure/messaging/kafka_producer.go
+
+type KafkaProducer struct {
+    producer *kafka.Producer
+}
+
+func (p *KafkaProducer) Publish(ctx context.Context, event domain.DomainEvent) error {
+    topic := p.getTopicByEventType(event.EventType())
+    
+    // 序列化事件
+    data, _ := json.Marshal(event)
+    
+    // 发送到Kafka
+    return p.producer.Produce(&kafka.Message{
+        TopicPartition: kafka.TopicPartition{
+            Topic:     &topic,
+            Partition: kafka.PartitionAny,
+        },
+        Key:   []byte(event.EventType()),
+        Value: data,
+        Headers: []kafka.Header{
+            {Key: "event_type", Value: []byte(event.EventType())},
+            {Key: "timestamp", Value: []byte(fmt.Sprint(event.OccurredAt().Unix()))},
+        },
+    }, nil)
+}
+```
+
+**Kafka Consumer（事件消费）**：
+
+```go
+// internal/infrastructure/messaging/kafka_consumer.go
+
+type KafkaConsumer struct {
+    consumer     *kafka.Consumer
+    eventHandler *event.ProductEventHandler  // 注入Interface Layer的Handler
+}
+
+func (c *KafkaConsumer) Start(ctx context.Context) error {
+    // 订阅Topic
+    c.consumer.SubscribeTopics([]string{
+        "supplier-product-events",
+        "pricing-events",
+    }, nil)
+    
+    // 消费循环
+    for {
+        msg, err := c.consumer.ReadMessage(100 * time.Millisecond)
+        if err != nil {
+            continue
+        }
+        
+        // ⭐️ 路由到Interface Layer的Event Handler
+        messageType := string(msg.Key)
+        if err := c.eventHandler.HandleMessage(ctx, messageType, msg.Value); err != nil {
+            log.Errorf("Handle message failed: %v", err)
+        } else {
+            c.consumer.CommitMessage(msg)  // 手动提交offset
+        }
+    }
+}
+```
+
+**Topic设计**：
+
+| Topic | 生产者 | 消费者 | 用途 |
+|-------|--------|--------|------|
+| `product-domain-events` | Product Service | Search Service, Marketing Service | 商品领域事件（商品创建、上架、价格变更） |
+| `supplier-product-events` | Supplier Service | Product Service | 供应商商品事件（供应商创建商品） |
+| `pricing-events` | Pricing Service | Product Service | 定价事件（价格计算完成） |
+
+详见 `16.6.1.5.4 事件订阅者的分层设计`。
+
+---
+
+#### 16.6.1.4 接口层（Interface Layer）
+
+##### 16.6.1.4.1 gRPC接口定义
+
+**核心接口**（product.proto）：
+
+```protobuf
+// ProductService商品服务
+service ProductService {
+    // 查询单个商品
+    rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+    
+    // 批量查询商品
+    rpc BatchGetProducts(BatchGetProductsRequest) returns (BatchGetProductsResponse);
+    
+    // 创建商品
+    rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+    
+    // 更新基础价格
+    rpc UpdateBasePrice(UpdateBasePriceRequest) returns (UpdateBasePriceResponse);
+    
+    // 上架
+    rpc OnShelf(OnShelfRequest) returns (OnShelfResponse);
+    
+    // 下架
+    rpc OffShelf(OffShelfRequest) returns (OffShelfResponse);
+}
+
+message GetProductRequest {
+    int64 sku_id = 1;
+}
+
+message GetProductResponse {
+    ProductInfo product = 1;
+}
+
+message BatchGetProductsRequest {
+    repeated int64 sku_ids = 1;  // 最多100个
+}
+
+message BatchGetProductsResponse {
+    repeated ProductInfo products = 1;
+}
+
+message ProductInfo {
+    int64 sku_id = 1;
+    int64 spu_id = 2;
+    string sku_code = 3;
+    string sku_name = 4;
+    Price base_price = 5;
+    Specifications specs = 6;
+    ProductStatus status = 7;
+}
+
+message Price {
+    int64 amount = 1;  // 金额（分）
+    string currency = 2;  // 货币（CNY）
+}
+
+message Specifications {
+    string color = 1;
+    string size = 2;
+    map<string, string> attrs = 3;  // 其他属性
+}
+
+enum ProductStatus {
+    DRAFT = 0;      // 草稿
+    ON_SHELF = 1;   // 上架
+    OFF_SHELF = 2;  // 下架
+}
+```
+
+##### 16.6.1.4.2 HTTP接口（可选）
+
+```go
+// HTTP接口（供运营后台使用）
+GET    /api/v1/products/:sku_id           # 查询商品
+POST   /api/v1/products                    # 创建商品
+PUT    /api/v1/products/:sku_id           # 更新商品
+POST   /api/v1/products/:sku_id/on-shelf  # 上架
+POST   /api/v1/products/:sku_id/off-shelf # 下架
+```
+
+##### 16.6.1.4.3 Event接口（异步）⭐️
+
+**事件订阅接口**（接收外部服务事件）：
+
+```go
+// ProductEventHandler 商品事件处理器（接口层）
+// 职责：适配外部事件消息 → 调用Application Service
+type ProductEventHandler struct {
+    productService *service.ProductService
+}
+
+// 处理消息入口
+func (h *ProductEventHandler) HandleMessage(ctx context.Context, messageType string, data []byte) error
+
+// 订阅的事件类型
+const (
+    SupplierProductCreated = "supplier.product.created"  // 供应商商品创建
+    PricingPriceChanged    = "pricing.price_changed"     // 定价变更
+)
+```
+
+**与HTTP/gRPC的区别**：
+- **同步接口**（HTTP/gRPC）：客户端等待响应
+- **异步接口**（Event）：消息队列异步触发，无响应
+
+**职责**：
+- ✅ 协议适配（Kafka消息 → DTO）
+- ✅ 调用Application Service
+- ❌ 不负责Kafka连接（由Infrastructure Layer的Kafka Consumer负责）
+
+详见 `16.6.1.5.4 事件订阅者的分层设计`。
+
+---
+
+#### 16.6.1.5 应用服务层（Application Layer）
+
+##### 16.6.1.5.1 核心代码结构
 
 ```
 product-service/
@@ -1537,15 +1752,18 @@ product-service/
 │   │   ├── cache/
 │   │   │   ├── redis_cache.go           # Redis缓存
 │   │   │   └── local_cache.go           # 本地缓存
-│   │   └── event/
-│   │       └── kafka_publisher.go       # Kafka事件发布
+│   │   └── messaging/                   # 消息中间件 ⭐️
+│   │       ├── kafka_producer.go        # Kafka生产者（事件发布）
+│   │       └── kafka_consumer.go        # Kafka消费者（技术实现）
 │   └── interfaces/                      # 接口层
 │       ├── grpc/
 │       │   ├── product_handler.go       # gRPC处理器
 │       │   └── proto/
 │       │       └── product.proto        # Protobuf定义
-│       └── http/
-│           └── product_handler.go       # HTTP处理器（可选）
+│       ├── http/
+│       │   └── product_handler.go       # HTTP处理器（可选）
+│       └── event/ ⭐️                     # 事件接口（异步）
+│           └── product_event_handler.go # Event Handler
 ├── config/
 │   └── config.yaml                      # 配置文件
 ├── migrations/                          # 数据库迁移
@@ -1555,98 +1773,7 @@ product-service/
 
 ---
 
-#### 核心接口定义
-
-**gRPC接口**（product.proto）：
-
-```protobuf
-syntax = "proto3";
-
-package product.v1;
-
-service ProductService {
-    // 查询接口
-    rpc GetProduct(GetProductRequest) returns (GetProductResponse);
-    rpc BatchGetProducts(BatchGetRequest) returns (BatchGetResponse);
-    rpc ListProductsBySPU(ListBySPURequest) returns (ListBySPUResponse);
-    
-    // 命令接口
-    rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
-    rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
-    rpc OnShelf(OnShelfRequest) returns (OnShelfResponse);
-    rpc OffShelf(OffShelfRequest) returns (OffShelfResponse);
-    rpc UpdateBasePrice(UpdatePriceRequest) returns (UpdatePriceResponse);
-}
-
-message GetProductRequest {
-    int64 sku_id = 1;
-}
-
-message GetProductResponse {
-    Product product = 1;
-}
-
-message BatchGetRequest {
-    repeated int64 sku_ids = 1;  // 最多100个
-}
-
-message BatchGetResponse {
-    repeated Product products = 1;
-}
-
-message Product {
-    int64 sku_id = 1;
-    int64 spu_id = 2;
-    string title = 3;
-    int64 category_id = 4;
-    int64 brand_id = 5;
-    string sku_code = 6;
-    map<string, string> specs = 7;   // 规格
-    int64 base_price = 8;             // 基础价格（分）
-    repeated string images = 9;
-    string status = 10;               // DRAFT/ON_SHELF/OFF_SHELF
-    int64 created_at = 11;
-    int64 updated_at = 12;
-}
-
-message CreateProductRequest {
-    int64 spu_id = 1;
-    string sku_code = 2;
-    map<string, string> specs = 3;
-    int64 base_price = 4;
-    repeated string images = 5;
-}
-
-message OnShelfRequest {
-    int64 sku_id = 1;
-}
-
-message OffShelfRequest {
-    int64 sku_id = 1;
-    string reason = 2;
-}
-
-message UpdatePriceRequest {
-    int64 sku_id = 1;
-    int64 new_base_price = 2;
-}
-```
-
-**HTTP接口**（可选，供管理后台使用）：
-
-```
-GET    /api/v1/products/:sku_id              # 查询商品
-GET    /api/v1/products?spu_id=:spu_id       # 查询SPU下所有SKU
-POST   /api/v1/products                      # 创建商品
-PUT    /api/v1/products/:sku_id              # 更新商品
-POST   /api/v1/products/:sku_id/on-shelf     # 上架
-POST   /api/v1/products/:sku_id/off-shelf    # 下架
-PUT    /api/v1/products/:sku_id/price        # 更新基础价格
-```
-
----
-
-#### 核心实现
+##### 16.6.1.5.2 核心应用服务实现
 
 **应用服务层**（product_service.go）：
 
@@ -1755,7 +1882,7 @@ func (s *ProductService) UpdateBasePrice(ctx context.Context, skuID int64, newPr
 
 ---
 
-#### 领域事件
+##### 16.6.1.5.3 领域事件
 
 | 事件名 | 触发时机 | 事件数据 | 消费方 | Topic | 用途 |
 |-------|---------|---------|--------|-------|------|
@@ -1808,7 +1935,585 @@ func (e *PriceChangedEvent) Type() string {
 
 ---
 
-#### 缓存策略
+##### 16.6.1.5.4 事件订阅者的分层设计 ⭐️
+
+**核心问题**：DDD架构中，事件订阅者（Event Subscriber）应该放在哪一层？
+
+这是微服务架构中的经典设计问题。不同的分层方案会影响代码的复用性、可测试性和职责清晰度。
+
+###### 方案对比
+
+**方案A：Interface Layer（推荐）⭐️**
+
+事件订阅者是"异步接口"，与HTTP/gRPC同级。
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              Interface Layer (接口层)                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │ HTTP Handler │  │ gRPC Handler │  │Event Subscriber│     │
+│  │  (同步接口)   │  │  (同步接口)   │  │  (异步接口) ⭐️│     │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
+│         │                  │                  │               │
+└─────────┼──────────────────┼──────────────────┼─────────────┘
+          ↓                  ↓                  ↓
+┌─────────────────────────────────────────────────────────────┐
+│    同一个 Application Service (ProductService)                │
+│    - GetProduct()     (查询)                                 │
+│    - CreateProduct()  (命令)                                 │
+│    - OnShelf()        (命令)                                 │
+│    - UpdatePrice()    (命令)                                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**方案B：Infrastructure Layer（不推荐）**
+
+Kafka Consumer直接调用Application Service。
+
+问题：
+- ❌ 违反依赖倒置原则（Infrastructure依赖Application）
+- ❌ 职责不清晰（Infrastructure既是实现层又是入口层）
+- ❌ 难以替换消息队列（从Kafka切换到RabbitMQ需要大量修改）
+
+**推荐方案A的原因**：
+
+1. **对称性**：HTTP、gRPC、Event都是外部触发源，应该同级
+2. **复用性**：Application Service被所有接口复用，业务逻辑只写一次
+3. **职责清晰**：Interface负责协议适配，Infrastructure负责技术实现
+4. **易于测试**：可以直接测试Application Service，不依赖Kafka
+5. **易于替换**：更换消息队列只需修改Infrastructure Layer
+
+---
+
+###### 完整调用链路
+
+**HTTP同步调用**：
+
+```
+Client
+  ↓ HTTP Request
+┌─────────────────────────────────┐
+│ Interface Layer - HTTP Handler  │ ← 解析HTTP请求
+│ product_handler.go              │
+└──────────────┬──────────────────┘
+               ↓ DTO
+┌─────────────────────────────────┐
+│ Application Layer               │ ← 业务编排
+│ product_service.go              │
+└──────────────┬──────────────────┘
+               ↓ Domain Model
+┌─────────────────────────────────┐
+│ Domain Layer                    │ ← 业务规则
+│ product.go                      │
+└──────────────┬──────────────────┘
+               ↓ Repository
+┌─────────────────────────────────┐
+│ Infrastructure Layer            │ ← 数据持久化
+│ product_repository.go           │
+└─────────────────────────────────┘
+```
+
+**Kafka异步调用**：
+
+```
+Kafka Topic (supplier-product-events)
+  ↓ 异步消息
+┌─────────────────────────────────┐
+│ Infrastructure Layer            │ ← 技术实现（Kafka连接、消息接收）
+│ kafka_consumer.go               │
+└──────────────┬──────────────────┘
+               ↓ 消息路由
+┌─────────────────────────────────┐
+│ Interface Layer - Event Handler │ ← 协议适配（Kafka消息 → DTO）
+│ product_event_handler.go        │
+└──────────────┬──────────────────┘
+               ↓ DTO
+┌─────────────────────────────────┐
+│ Application Layer               │ ← 业务编排（复用同一个Service）
+│ product_service.go              │
+└──────────────┬──────────────────┘
+               ↓ Domain Model
+┌─────────────────────────────────┐
+│ Domain Layer                    │ ← 业务规则
+│ product.go                      │
+└──────────────┬──────────────────┘
+               ↓ Repository
+┌─────────────────────────────────┐
+│ Infrastructure Layer            │ ← 数据持久化
+│ product_repository.go           │
+└─────────────────────────────────┘
+```
+
+**关键差异**：
+- HTTP: `Interface → Application`
+- Event: `Infrastructure → Interface → Application`（多一层技术实现）
+
+---
+
+###### 目录结构调整
+
+```diff
+product-service/
+├── internal/
+│   ├── interfaces/                      # 接口层
+│   │   ├── http/
+│   │   │   └── product_handler.go       # HTTP Handler（同步）
+│   │   ├── grpc/
+│   │   │   ├── proto/product.proto      
+│   │   │   └── product_handler.go       # gRPC Handler（同步）
++│   │   └── event/ ⭐️                    # 新增：事件接口
++│   │       └── product_event_handler.go # Event Handler（异步接口）
+│   │
+│   ├── application/                     
+│   │   └── service/
+│   │       └── product_service.go       # 应用服务（被所有接口复用）
+│   │
+│   ├── infrastructure/                  
+│   │   ├── persistence/
+│   │   │   └── product_repository.go    
+-│   │   └── event/
+-│   │       └── kafka_publisher.go      # 事件发布
++│   │   └── messaging/ ⭐️                # 重命名：消息中间件
++│   │       ├── kafka_producer.go       # Kafka生产者（事件发布）
++│   │       └── kafka_consumer.go       # Kafka消费者（技术实现）
+```
+
+---
+
+###### Interface Layer - Event Handler实现
+
+**职责**：协议适配（Kafka消息 → DTO → 调用Application Service）
+
+```go
+// internal/interfaces/event/product_event_handler.go
+
+package event
+
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+
+    "product-service/internal/application/dto"
+    "product-service/internal/application/service"
+)
+
+// ProductEventHandler 商品事件处理器（接口层）
+// 职责：适配外部事件消息 → 调用Application Service
+// 与HTTP/gRPC Handler同级，是"异步接口"
+type ProductEventHandler struct {
+    productService *service.ProductService
+}
+
+func NewProductEventHandler(productService *service.ProductService) *ProductEventHandler {
+    return &ProductEventHandler{
+        productService: productService,
+    }
+}
+
+// HandleMessage 统一的消息处理入口
+// 由Infrastructure Layer的Kafka Consumer调用
+func (h *ProductEventHandler) HandleMessage(ctx context.Context, messageType string, data []byte) error {
+    fmt.Printf("🔔 [Interface Layer - Event] Received message: %s\n", messageType)
+
+    switch messageType {
+    case "supplier.product.created":
+        return h.handleSupplierProductCreated(ctx, data)
+
+    case "pricing.price_changed":
+        return h.handlePriceChanged(ctx, data)
+
+    default:
+        fmt.Printf("⚠️  Unknown message type: %s\n", messageType)
+        return nil
+    }
+}
+
+// handleSupplierProductCreated 处理供应商商品创建事件
+// 场景：供应商服务创建新商品后，通过Kafka通知商品服务同步
+func (h *ProductEventHandler) handleSupplierProductCreated(ctx context.Context, data []byte) error {
+    // Step 1: 反序列化Kafka消息
+    var kafkaEvent struct {
+        SupplierID  int64  `json:"supplier_id"`
+        SupplierSKU string `json:"supplier_sku"`
+        Title       string `json:"title"`
+        BasePrice   int64  `json:"base_price"`
+        CategoryID  int64  `json:"category_id"`
+    }
+    if err := json.Unmarshal(data, &kafkaEvent); err != nil {
+        return fmt.Errorf("反序列化失败: %w", err)
+    }
+
+    // Step 2: Kafka消息 → DTO（协议适配）
+    req := &dto.CreateProductRequest{
+        SupplierID:  kafkaEvent.SupplierID,
+        SupplierSKU: kafkaEvent.SupplierSKU,
+        Title:       kafkaEvent.Title,
+        BasePrice:   kafkaEvent.BasePrice,
+        CategoryID:  kafkaEvent.CategoryID,
+    }
+
+    // Step 3: 调用应用服务（与HTTP/gRPC调用同一个方法！）
+    resp, err := h.productService.CreateProduct(ctx, req)
+    if err != nil {
+        return fmt.Errorf("创建商品失败: %w", err)
+    }
+
+    fmt.Printf("✅ [Interface Layer - Event] Product created, SKUID=%d\n", resp.SKUID)
+    return nil
+}
+
+// handlePriceChanged 处理价格变更事件
+// 场景：定价服务计算出新价格后，通知商品服务更新基础价格
+func (h *ProductEventHandler) handlePriceChanged(ctx context.Context, data []byte) error {
+    var kafkaEvent struct {
+        SKUID    int64 `json:"sku_id"`
+        NewPrice int64 `json:"new_price"`
+    }
+    if err := json.Unmarshal(data, &kafkaEvent); err != nil {
+        return fmt.Errorf("反序列化失败: %w", err)
+    }
+
+    // Kafka消息 → DTO
+    req := &dto.UpdatePriceRequest{
+        SKUID:    kafkaEvent.SKUID,
+        NewPrice: kafkaEvent.NewPrice,
+    }
+
+    // 调用应用服务（复用业务逻辑）
+    _, err := h.productService.UpdateBasePrice(ctx, req)
+    if err != nil {
+        return fmt.Errorf("更新价格失败: %w", err)
+    }
+
+    fmt.Printf("✅ [Interface Layer - Event] Price updated, SKUID=%d\n", kafkaEvent.SKUID)
+    return nil
+}
+```
+
+**关键设计点**：
+
+1. **协议适配**：将Kafka特有的消息格式转换为通用的DTO
+2. **复用Service**：调用 `productService.CreateProduct()`（与HTTP/gRPC同一个方法）
+3. **错误处理**：返回错误给Kafka Consumer，由Consumer决定重试或DLQ
+4. **日志跟踪**：打印日志便于调试异步流程
+
+---
+
+###### Infrastructure Layer - Kafka Consumer实现
+
+**职责**：技术实现（Kafka连接、订阅Topic、接收消息、路由到Interface Layer）
+
+```go
+// internal/infrastructure/messaging/kafka_consumer.go
+
+package messaging
+
+import (
+    "context"
+    "fmt"
+    "time"
+
+    eventHandler "product-service/internal/interfaces/event"
+    "github.com/confluentinc/confluent-kafka-go/kafka"
+)
+
+// KafkaConsumer Kafka消费者（基础设施层）
+// 职责：管理Kafka连接、订阅Topic、接收消息、路由到Interface Layer
+type KafkaConsumer struct {
+    consumer     *kafka.Consumer
+    eventHandler *eventHandler.ProductEventHandler
+    topics       []string
+}
+
+func NewKafkaConsumer(eventHandler *eventHandler.ProductEventHandler) *KafkaConsumer {
+    return &KafkaConsumer{
+        eventHandler: eventHandler,
+        topics: []string{
+            "supplier-product-events",  // 供应商事件
+            "pricing-events",           // 定价事件
+        },
+    }
+}
+
+// Start 启动消费者（阻塞）
+func (c *KafkaConsumer) Start(ctx context.Context) error {
+    fmt.Printf("📡 [Infrastructure - Kafka Consumer] Starting...\n")
+    
+    // 初始化Kafka Consumer
+    consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
+        "bootstrap.servers": "localhost:9092",
+        "group.id":          "product-service-group",
+        "auto.offset.reset": "earliest",
+        "enable.auto.commit": false,  // 手动提交offset（保证at-least-once）
+    })
+    if err != nil {
+        return fmt.Errorf("创建Kafka Consumer失败: %w", err)
+    }
+    c.consumer = consumer
+
+    // 订阅Topic
+    if err := c.consumer.SubscribeTopics(c.topics, nil); err != nil {
+        return fmt.Errorf("订阅Topic失败: %w", err)
+    }
+    
+    fmt.Printf("📡 [Infrastructure - Kafka Consumer] Subscribed to: %v\n", c.topics)
+
+    // 消费循环
+    for {
+        select {
+        case <-ctx.Done():
+            fmt.Println("📡 [Infrastructure - Kafka Consumer] Stopping...")
+            return ctx.Err()
+            
+        default:
+            // 读取消息（100ms超时）
+            msg, err := c.consumer.ReadMessage(100 * time.Millisecond)
+            if err != nil {
+                continue  // 超时或临时错误，继续循环
+            }
+
+            // ⭐️ 路由消息到Interface Layer的Handler
+            messageType := string(msg.Key)
+            if err := c.routeMessage(ctx, messageType, msg.Value); err != nil {
+                fmt.Printf("❌ [Infrastructure - Kafka Consumer] Handle error: %v\n", err)
+                // 错误处理：重试或发送到DLQ (Dead Letter Queue)
+            } else {
+                // ⭐️ 手动提交offset（保证at-least-once）
+                c.consumer.CommitMessage(msg)
+            }
+        }
+    }
+}
+
+// routeMessage 路由消息到Interface Layer的Handler
+func (c *KafkaConsumer) routeMessage(ctx context.Context, messageType string, data []byte) error {
+    fmt.Printf("📬 [Infrastructure - Kafka Consumer] Routing: %s\n", messageType)
+
+    // ⭐️ 调用Interface Layer的Handler
+    if err := c.eventHandler.HandleMessage(ctx, messageType, data); err != nil {
+        return fmt.Errorf("处理消息失败: %w", err)
+    }
+
+    return nil
+}
+
+// Stop 停止消费者
+func (c *KafkaConsumer) Stop() error {
+    if c.consumer != nil {
+        return c.consumer.Close()
+    }
+    return nil
+}
+```
+
+**关键设计点**：
+
+1. **技术实现**：负责Kafka连接、消息接收等技术细节
+2. **消息路由**：根据消息类型路由到Interface Layer的Handler
+3. **手动提交Offset**：保证at-least-once语义（消息处理成功后才提交）
+4. **错误处理**：失败消息可以重试或发送到DLQ
+5. **优雅停机**：通过Context取消消费循环
+
+---
+
+###### 依赖注入与启动
+
+**main.go**：
+
+```go
+package main
+
+import (
+    "context"
+    "product-service/internal/application/service"
+    "product-service/internal/infrastructure/messaging"
+    "product-service/internal/infrastructure/persistence"
+    eventHandler "product-service/internal/interfaces/event"
+    httpHandler "product-service/internal/interfaces/http"
+)
+
+func main() {
+    // Infrastructure Layer - 持久化
+    repo := persistence.NewProductRepository(...)
+
+    // Infrastructure Layer - 消息发布
+    eventPublisher := messaging.NewKafkaProducer()
+
+    // Application Layer
+    productService := service.NewProductService(repo, eventPublisher)
+
+    // Interface Layer - HTTP
+    handler := httpHandler.NewProductHandler(productService)
+
+    // ⭐️ Interface Layer - Event (异步接口)
+    evtHandler := eventHandler.NewProductEventHandler(productService)
+
+    // ⭐️ Infrastructure Layer - Kafka Consumer (技术实现)
+    kafkaConsumer := messaging.NewKafkaConsumer(evtHandler)
+
+    // 启动HTTP服务器
+    go startHTTPServer(handler)
+
+    // ⭐️ 启动Kafka Consumer
+    ctx := context.Background()
+    if err := kafkaConsumer.Start(ctx); err != nil {
+        log.Fatalf("Kafka Consumer error: %v", err)
+    }
+}
+```
+
+**依赖关系**：
+
+```
+Infrastructure (KafkaConsumer)
+    ↓ 调用
+Interface (ProductEventHandler)
+    ↓ 调用
+Application (ProductService)
+    ↓ 调用
+Domain (Product)
+```
+
+✅ 依赖方向：外层 → 内层（符合依赖倒置原则）
+
+---
+
+###### 实际项目优化
+
+**1. 服务分离部署**
+
+```
+product-service-api (处理HTTP/gRPC)
+├── Deployment: 10副本
+├── 职责：对外接口
+└── 扩容依据：QPS
+
+product-service-consumer (处理Kafka事件)
+├── Deployment: 3副本
+├── Consumer Group: product-service-group
+├── 职责：消费事件
+└── 扩容依据：消息堆积
+
+共享：
+├── Application Service
+├── Domain Model
+└── Repository
+```
+
+**好处**：
+- API服务可以独立扩容（根据QPS）
+- Consumer服务可以独立扩容（根据消息堆积）
+- Consumer故障不影响API可用性
+
+**2. Outbox Pattern（保证一致性）**
+
+```sql
+-- 事件表（保证事务一致性）
+CREATE TABLE domain_event_outbox (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    aggregate_type VARCHAR(50) NOT NULL COMMENT '聚合类型',
+    aggregate_id BIGINT NOT NULL COMMENT '聚合ID',
+    event_type VARCHAR(100) NOT NULL COMMENT '事件类型',
+    event_data JSON NOT NULL COMMENT '事件数据',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    published_at TIMESTAMP NULL COMMENT '发布时间',
+    status ENUM('PENDING', 'PUBLISHED', 'FAILED') DEFAULT 'PENDING',
+    retry_count INT DEFAULT 0,
+    INDEX idx_status_created (status, created_at)
+) ENGINE=InnoDB COMMENT='领域事件发件箱';
+```
+
+**Outbox发送器**：
+
+```go
+// 定时扫描未发布的事件
+func (s *OutboxSender) SendPendingEvents(ctx context.Context) error {
+    events, err := s.repo.FindPendingEvents(ctx, limit)
+    if err != nil {
+        return err
+    }
+
+    for _, event := range events {
+        // 发布到Kafka
+        if err := s.kafkaProducer.Publish(ctx, event); err != nil {
+            s.repo.MarkFailed(ctx, event.ID)
+            continue
+        }
+
+        // 标记为已发布
+        s.repo.MarkPublished(ctx, event.ID)
+    }
+
+    return nil
+}
+```
+
+**3. 事件幂等性处理**
+
+```go
+// Event Handler中的幂等性检查
+func (h *ProductEventHandler) handlePriceChanged(ctx context.Context, data []byte) error {
+    var event PriceChangedEvent
+    json.Unmarshal(data, &event)
+
+    // ⭐️ 检查是否已处理（根据event_id或业务维度）
+    if h.isEventProcessed(ctx, event.EventID) {
+        fmt.Println("⏭️  Event already processed, skipping...")
+        return nil  // 幂等性：已处理，直接返回成功
+    }
+
+    // 处理业务逻辑
+    if err := h.productService.UpdateBasePrice(ctx, ...); err != nil {
+        return err
+    }
+
+    // 记录已处理
+    h.markEventProcessed(ctx, event.EventID)
+
+    return nil
+}
+
+// 使用Redis或DB记录已处理的事件
+func (h *ProductEventHandler) isEventProcessed(ctx context.Context, eventID string) bool {
+    exists, _ := h.redis.Exists(ctx, "processed:event:"+eventID).Result()
+    return exists > 0
+}
+
+func (h *ProductEventHandler) markEventProcessed(ctx context.Context, eventID string) {
+    // 保存24小时（TTL根据业务重试窗口决定）
+    h.redis.SetEX(ctx, "processed:event:"+eventID, "1", 24*time.Hour)
+}
+```
+
+---
+
+###### 总结
+
+**事件订阅者应该放在Interface Layer**，原因：
+
+1. ✅ **对称性**：HTTP、gRPC、Event都是外部触发源，应该同级
+2. ✅ **复用性**：Application Service被所有接口复用，业务逻辑只写一次
+3. ✅ **职责清晰**：Interface负责协议适配，Infrastructure负责技术实现
+4. ✅ **易于测试**：可以直接测试Application Service，不依赖Kafka
+5. ✅ **易于替换**：更换消息队列只需修改Infrastructure Layer
+
+**完整调用链路**：
+
+```
+Kafka Topic 
+  → Infrastructure (接收消息)
+  → Interface (协议适配) 
+  → Application (业务编排)
+  → Domain (业务规则)
+  → Infrastructure (持久化)
+```
+
+**示例代码**：参见 `/ecommerce-book/examples/product-service/` 完整Demo
+
+---
+
+#### 16.6.1.6 三级缓存实现（Infrastructure Layer详细实现）
 
 **三级缓存架构**：
 
@@ -1842,6 +2547,62 @@ product:{sku_id}                    # 单个商品
 product:spu:{spu_id}                # SPU下所有SKU（Hash结构）
 product:category:{category_id}      # 类目商品列表（Set结构）
 ```
+
+---
+
+#### 16.6.1.7 完整示例代码 ⭐️
+
+本章节的完整代码实现（包含DDD四层架构、事件发布订阅、三级缓存等）详见：
+
+**示例代码路径**：`/ecommerce-book/examples/product-service/`
+
+**目录结构**：
+
+```
+examples/product-service/
+├── README.md                              # 项目说明
+├── QUICKSTART.md                          # 快速开始指南
+├── EVENT_SUBSCRIBER_LAYER.md ⭐️            # 事件订阅者分层设计（推荐阅读）
+├── cmd/main.go                            # 程序入口
+└── internal/
+    ├── domain/                            # 领域层
+    │   ├── product.go                     # Product聚合根
+    │   ├── spu.go                         # SPU实体
+    │   ├── value_objects.go               # 值对象
+    │   ├── events.go                      # 领域事件
+    │   └── repository.go                  # Repository接口
+    ├── application/                       # 应用层
+    │   ├── dto/product_dto.go             # DTO
+    │   └── service/product_service.go     # 应用服务
+    ├── infrastructure/                    # 基础设施层
+    │   ├── persistence/
+    │   │   ├── product_repository.go      # Repository实现
+    │   │   └── data_object.go             # 数据对象
+    │   ├── cache/cache.go                 # 三级缓存
+    │   └── messaging/ ⭐️
+    │       ├── kafka_producer.go          # 事件发布
+    │       └── kafka_consumer.go          # 事件消费
+    └── interfaces/                        # 接口层
+        ├── http/product_handler.go        # HTTP接口
+        ├── grpc/product_handler.go        # gRPC接口
+        └── event/product_event_handler.go # Event接口 ⭐️
+```
+
+**运行Demo**：
+
+```bash
+cd ecommerce-book/examples/product-service
+go run cmd/main.go
+```
+
+**学习要点**：
+
+1. **DDD分层架构**：Domain、Application、Infrastructure、Interface四层
+2. **事件订阅者分层**：Interface Layer作为异步接口（推荐阅读 `EVENT_SUBSCRIBER_LAYER.md`）
+3. **三级缓存实现**：L1本地缓存 → L2 Redis → L3 MySQL
+4. **领域事件发布订阅**：Domain产生事件 → Application发布 → Infrastructure投递 → Interface消费
+
+---
 
 ### 16.6.2 库存系统设计
 
