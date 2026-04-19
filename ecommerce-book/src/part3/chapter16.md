@@ -1365,7 +1365,24 @@ func (c *SupplierClient) QueryStock(ctx context.Context, req *Request) (*Respons
 }
 ```
 
-### 16.6.6 B端商品生命周期完整链路
+---
+
+## 16.7 完整业务链路（系统集成与数据流）
+
+**从子系统到完整链路**：前面章节展示了各个子系统的内部设计（商品中心、库存、订单、支付、供应商集成），本章展示这些子系统如何协作，形成端到端的业务链路。
+
+**两条关键链路**：
+- **B端链路**（供应商 → 运营 → 平台）：商品生命周期管理，决定"商品如何进入、如何管理、如何退出"
+- **C端链路**（用户 → 交易 → 履约）：交易流完整路径，决定"用户如何发现、如何下单、如何完成支付"
+
+**集成视角的关键点**：
+- **数据流转**：跨系统的数据传递（事件驱动、同步调用、异步任务）
+- **状态同步**：多系统间的状态一致性（商品状态、库存状态、订单状态）
+- **异常处理**：跨系统的容错与补偿（Saga、重试、降级）
+
+---
+
+### 16.7.1 B端商品生命周期完整链路
 
 **B端商品生命周期是平台运营的核心能力**，决定了"商品如何进入、如何管理、如何退出"。本节展示从商品录入到下架归档的完整链路，涵盖供应商、运营、系统三方协作。
 
@@ -2679,11 +2696,22 @@ func (s *ArchiveService) ArchiveProduct(ctx context.Context, skuID int64) error 
 
 ---
 
-## 16.6.7 C端交易流完整链路
+### 16.7.2 C端交易流完整链路
 
 **交易流是电商的核心价值链**，从用户搜索到完成支付的完整路径。本节展示五个阶段的设计与集成。
 
-### 阶段1：搜索与导购
+**与B端链路的对比**：
+
+| 维度 | B端链路（16.7.1） | C端链路（16.7.2） |
+|-----|-----------------|-----------------|
+| **参与方** | 供应商、运营、系统 | 用户、系统 |
+| **时间跨度** | 数天到数月（商品生命周期） | 数分钟（单次购物流程） |
+| **关键技术** | 幂等性、状态机、异步任务 | 聚合编排、快照、Saga |
+| **核心关注** | 数据准确性、流程合规性 | 用户体验、转化率 |
+
+---
+
+#### 阶段1：搜索与导购
 
 **业务场景**：用户搜索"iPhone 15"
 
@@ -3052,7 +3080,7 @@ func (s *CreateOrderSaga) Execute(ctx context.Context, req *CreateOrderRequest) 
 
 ---
 
-## 16.6.8 DDD战术设计实践
+## 16.8 DDD战术设计实践
 
 **领域模型是系统设计的核心**。本节展示如何在订单域应用DDD战术模式。
 
@@ -3298,7 +3326,7 @@ func (w *OutboxWorker) Run() {
 
 ---
 
-## 16.6.9 架构决策记录（ADR）
+## 16.9 架构决策记录（ADR）
 
 本节记录系统设计过程中的关键架构决策，包括决策背景、备选方案、最终决策及理由。**ADR是架构演进的重要资产，帮助团队理解「为什么这样设计」，避免重复讨论。**
 
@@ -4040,182 +4068,7 @@ graph TB
 
 ---
 
-## 16.6 系统边界与集成实践
-
-### 16.6.1 边界划分的实际案例
-
-**案例1：计价系统的边界重构**
-
-**初始问题**：
-- 价格计算逻辑分散在订单、营销、商品三个域
-- 购物车、订单创建、支付确认三处价格计算不一致
-- 无法支持"PDP加购试算"场景
-
-**重构方案**：
-1. **新建计价上下文**：职责是提供统一的试算接口
-2. **定义边界**：
-   - 计价上下文**不拥有**商品基础价、营销规则、订单状态
-   - 对外提供 `Calculate(items, promotions, context) -> PriceBreakdown`
-   - 各场景通过统一接口获取价格
-3. **收益**：
-   - 价格一致性得到保证
-   - 营销规则变更只需在营销域发布事件
-   - 支持了试算、价格预览、价格审计等新需求
-
-**案例2：库存预占的归属**
-
-**争议**：库存预占应该放在订单域还是库存域？
-
-**决策**：放在库存域
-
-**理由**：
-- 库存域拥有库存数据所有权
-- 预占是库存的一种状态（可售 → 预占 → 扣减）
-- 订单域只需调用库存域的 `Reserve` 接口
-- 降低耦合：订单域不需要了解库存的存储结构
-
-### 16.6.2 集成模式选择
-
-| 集成场景 | 模式 | 理由 |
-|---------|------|------|
-| 订单 → 商品 | 同步RPC | 需要实时获取商品信息，延迟<100ms |
-| 订单 → 库存 | 同步RPC | 库存预占是核心路径，必须同步 |
-| 订单 → 支付 | 同步RPC | 支付创建需要同步返回支付URL |
-| 订单成功 → 搜索 | 异步事件 | 销量更新非核心路径，可最终一致 |
-| 订单成功 → 积分 | 异步事件 | 积分增加非核心路径 |
-
-**事件驱动示例**：
-
-```go
-// 订单域发布事件
-func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
-    // 创建订单...
-    order := &Order{...}
-    s.repo.Save(ctx, order)
-    
-    // 发布事件（Outbox模式）
-    event := &OrderCreatedEvent{
-        OrderID:    order.ID,
-        UserID:     order.UserID,
-        TotalPrice: order.TotalPrice,
-        Items:      order.Items,
-    }
-    s.outbox.Publish(ctx, "order-events", event)
-    
-    return order, nil
-}
-
-// 搜索域订阅事件
-func (s *SearchService) HandleOrderCreated(ctx context.Context, event *OrderCreatedEvent) error {
-    // 更新商品销量（用于排序）
-    for _, item := range event.Items {
-        s.incrementSales(ctx, item.SkuID, item.Quantity)
-    }
-    return nil
-}
-```
-
-### 16.6.3 跨系统事务处理
-
-**Saga模式（编排）**：
-
-```go
-// 订单创建Saga
-type CreateOrderSaga struct {
-    inventoryClient rpc.InventoryClient
-    marketingClient rpc.MarketingClient
-    orderRepo       *OrderRepo
-}
-
-func (s *CreateOrderSaga) Execute(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
-    var reserveID string
-    var couponLockID string
-    
-    // Step 1: 库存预占
-    reserve, err := s.inventoryClient.ReserveStock(ctx, req.Items)
-    if err != nil {
-        return nil, fmt.Errorf("库存预占失败: %w", err)
-    }
-    reserveID = reserve.ReserveID
-    defer func() {
-        if err != nil {
-            // 补偿：释放库存
-            s.inventoryClient.ReleaseStock(ctx, reserveID)
-        }
-    }()
-    
-    // Step 2: 优惠券锁定
-    couponLock, err := s.marketingClient.LockCoupon(ctx, req.CouponCode, req.UserID)
-    if err != nil {
-        return nil, fmt.Errorf("优惠券锁定失败: %w", err)
-    }
-    couponLockID = couponLock.LockID
-    defer func() {
-        if err != nil {
-            // 补偿：释放优惠券
-            s.marketingClient.UnlockCoupon(ctx, couponLockID)
-        }
-    }()
-    
-    // Step 3: 创建订单
-    order := &Order{
-        ID:           generateOrderID(),
-        UserID:       req.UserID,
-        Items:        req.Items,
-        ReserveID:    reserveID,
-        CouponLockID: couponLockID,
-        Status:       StatusPendingPayment,
-    }
-    err = s.orderRepo.Save(ctx, order)
-    if err != nil {
-        return nil, fmt.Errorf("订单创建失败: %w", err)
-    }
-    
-    return order, nil
-}
-```
-
-### 16.6.4 集成层设计
-
-**防腐层（Anti-Corruption Layer）**：
-
-```go
-// 供应商响应模型（外部）
-type SupplierFlightResponse struct {
-    Code    string  `json:"code"`
-    Message string  `json:"message"`
-    Data    struct {
-        FlightNo  string  `json:"flight_no"`
-        Available int     `json:"available"`
-        Price     float64 `json:"price"`
-    } `json:"data"`
-}
-
-// 平台库存模型（内部）
-type StockResponse struct {
-    Available bool
-    Quantity  int
-    Message   string
-}
-
-// 防腐层：翻译外部模型 → 内部模型
-func (a *FlightSupplierACL) TranslateStock(supplierResp *SupplierFlightResponse) *StockResponse {
-    return &StockResponse{
-        Available: supplierResp.Code == "SUCCESS" && supplierResp.Data.Available > 0,
-        Quantity:  supplierResp.Data.Available,
-        Message:   supplierResp.Message,
-    }
-}
-```
-
-**收益**：
-- 领域层不被供应商模型污染
-- 供应商接口变更时，修改集中在ACL
-- 测试时可以使用Fake实现替代真实供应商
-
----
-
-## 16.7 高可用与性能优化（Infrastructure & Operations）
+## 16.10 高可用与性能优化（Infrastructure & Operations）
 
 ### 16.7.1 高可用设计
 
@@ -4396,9 +4249,9 @@ func (s *CheckoutService) Calculate(ctx context.Context, req *CalculateRequest) 
 
 ---
 
-## 16.8 团队组织与协作（Organization & Governance）
+## 16.11 团队组织与协作（Organization & Governance）
 
-### 16.8.1 团队结构
+### 16.11.1 团队结构
 
 **康威定律实践**：系统架构反映组织沟通结构。
 
@@ -4696,9 +4549,9 @@ B. 新建拼团服务
 
 ---
 
-## 16.9 上线与演进（Deployment & Evolution）
+## 16.12 上线与演进（Deployment & Evolution）
 
-### 16.9.1 上线策略
+### 16.12.1 上线策略
 
 **分阶段上线**：
 
@@ -5083,9 +4936,9 @@ Team Lead无法处理 → 升级到架构师
 
 ---
 
-## 16.10 经验总结（Lessons Learned）
+## 16.13 经验总结（Lessons Learned）
 
-### 16.10.1 成功经验
+### 16.13.1 成功经验
 
 **1. 架构决策记录（ADR）制度**
 
@@ -5388,7 +5241,7 @@ gantt
 
 ---
 
-## 16.11 本章小结（Chapter Summary）
+## 16.14 本章小结（Chapter Summary）
 
 本章通过一个中大型B2B2C电商平台的完整案例，展示了从业务分析到技术落地的全过程，**是全书知识点的综合实践验证**。本章不仅覆盖了架构方法论（第1-4章），还深入展示了**供给运营系统（第10章）**和**C端核心交易流（第11-15章）**的完整实现，真正做到了"理论→实践→落地"的闭环。
 
