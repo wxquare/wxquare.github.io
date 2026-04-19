@@ -1049,58 +1049,798 @@ func InitializeApp() (*App, error) {
 
 ### 16.6.1 商品中心设计
 
+#### 服务定位
+
 **职责边界**：
 - ✅ 负责：商品基础信息、类目、属性、多媒体素材
 - ✅ 负责：SPU/SKU管理、上架下架
-- ❌ 不负责：价格（由Pricing Service管理）
+- ✅ 负责：商品基础价格（base_price，作为计价输入）
+- ❌ 不负责：营销价格（由Pricing Service计算）
 - ❌ 不负责：库存（由Inventory Service管理）
 
-**数据模型**：
+**核心场景**：
+1. **商品查询**：聚合服务、详情页、搜索结果查询商品信息
+2. **商品创建**：运营人员/供应商创建新商品（参见16.7.1阶段1）
+3. **商品更新**：修改商品信息、调整基础价格
+4. **上下架管理**：控制商品可售状态
+
+**与其他服务的区别**：
+- **vs Search Service**：Search负责ES查询返回SKU ID列表，Product Center负责根据SKU ID查询详细信息
+- **vs Pricing Service**：Product Center只管理base_price（成本价），Pricing Service基于base_price+营销活动计算最终售价
+- **vs Inventory Service**：Product Center管"商品是什么"，Inventory管"商品有多少"
+
+---
+
+#### DDD战术设计
+
+**领域模型设计思想**：商品域的特点是"树形结构+读多写少"，与订单域的"复杂状态机+高并发写"完全不同。
+
+##### Product聚合根
 
 ```go
-// SPU（Standard Product Unit）
-type SPU struct {
-    ID          int64
-    Title       string
-    CategoryID  int64
-    BrandID     int64
-    Attributes  JSONB  // 动态属性（颜色、尺寸、...）
-    Images      []string
-    Status      string  // DRAFT/ON_SHELF/OFF_SHELF
+// Product聚合根（SKU维度）
+type Product struct {
+    // 聚合根ID
+    skuID SKU_ID  // 值对象
+    
+    // SPU信息（实体引用）
+    spu *SPU
+    
+    // SKU规格（值对象）
+    specs Specifications
+    
+    // 基础价格（值对象）
+    basePrice Price
+    
+    // 状态（值对象）
+    status ProductStatus
+    
+    // 多媒体素材
+    images []ImageURL
+    
+    // 时间戳
+    createdAt time.Time
+    updatedAt time.Time
+    
+    // 领域事件（未提交）
+    domainEvents []DomainEvent
 }
 
-// SKU（Stock Keeping Unit）
-type SKU struct {
-    ID          int64
-    SPUID       int64
-    SkuCode     string  // 唯一编码
-    Specs       JSONB   // 规格值（{"颜色":"红色","尺寸":"L"}）
-    Status      string
+// 值对象：SKU_ID
+type SKU_ID struct {
+    value int64
+}
+
+func NewSKU_ID(id int64) SKU_ID {
+    return SKU_ID{value: id}
+}
+
+func (id SKU_ID) Int64() int64 {
+    return id.value
+}
+
+// 值对象：Price（基础价格，单位：分）
+type Price struct {
+    amount int64  // 分为单位
+}
+
+func NewPrice(amount int64) (Price, error) {
+    if amount < 0 {
+        return Price{}, errors.New("价格不能为负数")
+    }
+    if amount > 100000000 { // 100万元上限
+        return Price{}, errors.New("价格超过上限")
+    }
+    return Price{amount: amount}, nil
+}
+
+func (p Price) Amount() int64 {
+    return p.amount
+}
+
+func (p Price) Yuan() float64 {
+    return float64(p.amount) / 100.0
+}
+
+// 值对象：Specifications（SKU规格）
+type Specifications struct {
+    attributes map[string]string  // {"颜色":"红色","尺寸":"L"}
+}
+
+func NewSpecifications(attrs map[string]string) Specifications {
+    return Specifications{attributes: attrs}
+}
+
+func (s Specifications) Get(key string) string {
+    return s.attributes[key]
+}
+
+func (s Specifications) ToJSON() string {
+    data, _ := json.Marshal(s.attributes)
+    return string(data)
+}
+
+// 值对象：ProductStatus
+type ProductStatus string
+
+const (
+    ProductDraft     ProductStatus = "DRAFT"      // 草稿
+    ProductOnShelf   ProductStatus = "ON_SHELF"   // 在架
+    ProductOffShelf  ProductStatus = "OFF_SHELF"  // 下架
+)
+
+// 实体：SPU（标准产品单元）
+type SPU struct {
+    id         SPU_ID
+    title      string
+    categoryID int64
+    brandID    int64
+    attributes map[string][]string  // 属性模板{"颜色":["红","蓝"],"尺寸":["S","M","L"]}
+    description string
+    
+    // SPU下的所有SKU（聚合内实体集合）
+    skus []*Product
+}
+
+func (spu *SPU) ID() SPU_ID {
+    return spu.id
+}
+
+func (spu *SPU) Title() string {
+    return spu.title
+}
+
+func (spu *SPU) AddSKU(sku *Product) error {
+    // 不变量检查：SKU规格必须符合SPU属性模板
+    if !spu.isValidSpecs(sku.specs) {
+        return errors.New("SKU规格不符合SPU属性模板")
+    }
+    spu.skus = append(spu.skus, sku)
+    return nil
+}
+
+func (spu *SPU) isValidSpecs(specs Specifications) bool {
+    // 检查SKU的规格是否都在SPU的属性模板中
+    for key, value := range specs.attributes {
+        allowedValues, exists := spu.attributes[key]
+        if !exists {
+            return false
+        }
+        if !contains(allowedValues, value) {
+            return false
+        }
+    }
+    return true
 }
 ```
 
-**分库策略**：
+##### 聚合根方法
+
+```go
+// 上架（状态转换）
+func (p *Product) OnShelf() error {
+    if p.status == ProductOnShelf {
+        return errors.New("商品已在架")
+    }
+    
+    // 不变量检查：必须有基础价格
+    if p.basePrice.Amount() == 0 {
+        return errors.New("商品未设置价格，不能上架")
+    }
+    
+    // 不变量检查：必须有商品图片
+    if len(p.images) == 0 {
+        return errors.New("商品未上传图片，不能上架")
+    }
+    
+    oldStatus := p.status
+    p.status = ProductOnShelf
+    p.updatedAt = time.Now()
+    
+    // 发布领域事件
+    p.addDomainEvent(&ProductOnShelfEvent{
+        SKUID:      p.skuID,
+        SPUID:      p.spu.id,
+        OnShelfTime: p.updatedAt,
+    })
+    
+    return nil
+}
+
+// 下架
+func (p *Product) OffShelf(reason string) error {
+    if p.status == ProductOffShelf {
+        return errors.New("商品已下架")
+    }
+    
+    oldStatus := p.status
+    p.status = ProductOffShelf
+    p.updatedAt = time.Now()
+    
+    // 发布领域事件
+    p.addDomainEvent(&ProductOffShelfEvent{
+        SKUID:       p.skuID,
+        Reason:      reason,
+        OffShelfTime: p.updatedAt,
+    })
+    
+    return nil
+}
+
+// 更新基础价格
+func (p *Product) UpdateBasePrice(newPrice Price) error {
+    if newPrice.Amount() == p.basePrice.Amount() {
+        return nil  // 价格未变化
+    }
+    
+    oldPrice := p.basePrice
+    p.basePrice = newPrice
+    p.updatedAt = time.Now()
+    
+    // 发布领域事件
+    p.addDomainEvent(&PriceChangedEvent{
+        SKUID:    p.skuID,
+        OldPrice: oldPrice.Amount(),
+        NewPrice: newPrice.Amount(),
+        ChangedAt: p.updatedAt,
+    })
+    
+    return nil
+}
+
+// 领域事件管理
+func (p *Product) addDomainEvent(event DomainEvent) {
+    p.domainEvents = append(p.domainEvents, event)
+}
+
+func (p *Product) DomainEvents() []DomainEvent {
+    return p.domainEvents
+}
+
+func (p *Product) ClearDomainEvents() {
+    p.domainEvents = nil
+}
+
+// 查询方法
+func (p *Product) IsOnShelf() bool {
+    return p.status == ProductOnShelf
+}
+
+func (p *Product) BasePrice() Price {
+    return p.basePrice
+}
+
+func (p *Product) Specs() Specifications {
+    return p.specs
+}
+```
+
+##### Repository模式
+
+```go
+// ProductRepository接口（领域层定义）
+type ProductRepository interface {
+    // 查询
+    FindBySKUID(ctx context.Context, skuID SKU_ID) (*Product, error)
+    FindBySPUID(ctx context.Context, spuID SPU_ID) ([]*Product, error)
+    BatchFindBySKUIDs(ctx context.Context, skuIDs []SKU_ID) ([]*Product, error)
+    
+    // 保存
+    Save(ctx context.Context, product *Product) error
+    Update(ctx context.Context, product *Product) error
+    
+    // 删除
+    Delete(ctx context.Context, skuID SKU_ID) error
+}
+
+// ProductRepositoryImpl实现（基础设施层）
+type ProductRepositoryImpl struct {
+    db             *gorm.DB
+    cache          cache.Cache
+    eventPublisher EventPublisher
+    sharding       ShardingStrategy
+}
+
+func (r *ProductRepositoryImpl) FindBySKUID(ctx context.Context, skuID SKU_ID) (*Product, error) {
+    // Step 1: 查询L1本地缓存
+    cacheKey := fmt.Sprintf("product:%d", skuID.Int64())
+    if cached, found := r.cache.GetLocal(cacheKey); found {
+        return cached.(*Product), nil
+    }
+    
+    // Step 2: 查询L2 Redis缓存
+    if cached, err := r.cache.Get(ctx, cacheKey); err == nil {
+        product := r.unmarshalProduct(cached)
+        r.cache.SetLocal(cacheKey, product, 1*time.Minute)
+        return product, nil
+    }
+    
+    // Step 3: 查询MySQL
+    productDO, err := r.queryFromDB(ctx, skuID)
+    if err != nil {
+        return nil, err
+    }
+    
+    // Step 4: 转换DO → Domain Model
+    product := r.toDomain(productDO)
+    
+    // Step 5: 回写缓存
+    r.cache.Set(ctx, cacheKey, r.marshalProduct(product), 30*time.Minute)
+    r.cache.SetLocal(cacheKey, product, 1*time.Minute)
+    
+    return product, nil
+}
+
+func (r *ProductRepositoryImpl) Save(ctx context.Context, product *Product) error {
+    // Step 1: 转换Domain Model → DO
+    productDO := r.toDataObject(product)
+    
+    // Step 2: 分库路由
+    db := r.sharding.Route(product.spu.categoryID)
+    
+    // Step 3: 保存到数据库
+    if err := db.WithContext(ctx).Create(productDO).Error; err != nil {
+        return fmt.Errorf("save product failed: %w", err)
+    }
+    
+    // Step 4: 发布领域事件（事务提交后）
+    for _, event := range product.DomainEvents() {
+        if err := r.eventPublisher.Publish(ctx, event); err != nil {
+            log.Errorf("publish event failed: %v", err)
+        }
+    }
+    product.ClearDomainEvents()
+    
+    // Step 5: 清除缓存
+    cacheKey := fmt.Sprintf("product:%d", product.skuID.Int64())
+    r.cache.Delete(ctx, cacheKey)
+    
+    return nil
+}
+
+func (r *ProductRepositoryImpl) BatchFindBySKUIDs(ctx context.Context, skuIDs []SKU_ID) ([]*Product, error) {
+    products := make([]*Product, 0, len(skuIDs))
+    
+    // 批量查询优化：分离缓存命中和未命中
+    var missedIDs []SKU_ID
+    
+    for _, skuID := range skuIDs {
+        cacheKey := fmt.Sprintf("product:%d", skuID.Int64())
+        if cached, err := r.cache.Get(ctx, cacheKey); err == nil {
+            products = append(products, r.unmarshalProduct(cached))
+        } else {
+            missedIDs = append(missedIDs, skuID)
+        }
+    }
+    
+    // 批量查询数据库（未命中的）
+    if len(missedIDs) > 0 {
+        missedProducts, err := r.batchQueryFromDB(ctx, missedIDs)
+        if err != nil {
+            return nil, err
+        }
+        
+        // 回写缓存
+        for _, product := range missedProducts {
+            cacheKey := fmt.Sprintf("product:%d", product.skuID.Int64())
+            r.cache.Set(ctx, cacheKey, r.marshalProduct(product), 30*time.Minute)
+        }
+        
+        products = append(products, missedProducts...)
+    }
+    
+    return products, nil
+}
+```
+
+---
+
+#### 核心存储设计
+
+**表结构设计**：
 
 ```sql
--- 按 category_id 分库（4分库）
--- 理由：同品类商品通常一起查询
-db_index = category_id % 4
+-- SPU表（标准产品单元）
+CREATE TABLE product_spu (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL COMMENT '商品标题',
+    category_id BIGINT NOT NULL COMMENT '类目ID',
+    brand_id BIGINT COMMENT '品牌ID',
+    attributes JSON COMMENT '属性模板',
+    description TEXT COMMENT '商品描述',
+    status VARCHAR(20) DEFAULT 'DRAFT' COMMENT '状态',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_category (category_id),
+    INDEX idx_brand (brand_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='SPU表';
 
--- 商品表不分表
--- 理由：单品类商品数量可控（< 100万）
+-- SKU表（库存保持单元）
+CREATE TABLE product_sku (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    spu_id BIGINT NOT NULL COMMENT 'SPU ID',
+    sku_code VARCHAR(100) UNIQUE NOT NULL COMMENT 'SKU编码',
+    specs JSON COMMENT '规格值',
+    base_price BIGINT NOT NULL COMMENT '基础价格（分）',
+    images JSON COMMENT '商品图片',
+    status VARCHAR(20) DEFAULT 'DRAFT' COMMENT '状态',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_spu (spu_id),
+    INDEX idx_code (sku_code),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='SKU表';
+
+-- 类目表
+CREATE TABLE product_category (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    parent_id BIGINT DEFAULT 0 COMMENT '父类目ID',
+    level INT DEFAULT 1 COMMENT '层级',
+    sort_order INT DEFAULT 0 COMMENT '排序',
+    status VARCHAR(20) DEFAULT 'ACTIVE',
+    INDEX idx_parent (parent_id),
+    INDEX idx_level (level)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品类目表';
 ```
 
-**缓存策略**：
+**分库分表策略**：
+
+```sql
+-- 按 category_id 分4库
+-- 理由：同品类商品通常一起查询（搜索、推荐）
+db_index = category_id % 4
+
+-- 单表不分表
+-- 理由：单品类商品数量可控（< 100万），查询模式简单
+```
+
+**索引策略**：
+
+| 索引名 | 字段 | 类型 | 用途 |
+|-------|------|------|------|
+| PRIMARY | id | 主键 | 主键查询 |
+| idx_category | category_id | 普通 | 类目查询 |
+| idx_brand | brand_id | 普通 | 品牌查询 |
+| idx_status | status | 普通 | 状态筛选 |
+| idx_spu | spu_id | 普通 | SPU查SKU |
+| idx_code | sku_code | 唯一 | SKU编码查询 |
+
+---
+
+#### 代码结构
+
+```
+product-service/
+├── cmd/
+│   └── main.go                          # 服务入口
+├── internal/
+│   ├── domain/                          # 领域模型层
+│   │   ├── product.go                   # Product聚合根
+│   │   ├── spu.go                       # SPU实体
+│   │   ├── value_objects.go             # 值对象（SKU_ID, Price, Specifications）
+│   │   ├── events.go                    # 领域事件
+│   │   └── repository.go                # Repository接口
+│   ├── application/                     # 应用服务层
+│   │   ├── dto/
+│   │   │   ├── product_request.go       # 请求DTO
+│   │   │   └── product_response.go      # 响应DTO
+│   │   └── service/
+│   │       ├── product_service.go       # 商品应用服务
+│   │       └── product_query_service.go # 查询服务（CQRS）
+│   ├── infrastructure/                  # 基础设施层
+│   │   ├── persistence/
+│   │   │   ├── product_repository.go    # Repository实现
+│   │   │   ├── data_object.go           # 数据对象（DO）
+│   │   │   └── sharding.go              # 分库路由
+│   │   ├── cache/
+│   │   │   ├── redis_cache.go           # Redis缓存
+│   │   │   └── local_cache.go           # 本地缓存
+│   │   └── event/
+│   │       └── kafka_publisher.go       # Kafka事件发布
+│   └── interfaces/                      # 接口层
+│       ├── grpc/
+│       │   ├── product_handler.go       # gRPC处理器
+│       │   └── proto/
+│       │       └── product.proto        # Protobuf定义
+│       └── http/
+│           └── product_handler.go       # HTTP处理器（可选）
+├── config/
+│   └── config.yaml                      # 配置文件
+├── migrations/                          # 数据库迁移
+│   └── 001_create_product_tables.sql
+└── go.mod
+```
+
+---
+
+#### 核心接口定义
+
+**gRPC接口**（product.proto）：
+
+```protobuf
+syntax = "proto3";
+
+package product.v1;
+
+service ProductService {
+    // 查询接口
+    rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+    rpc BatchGetProducts(BatchGetRequest) returns (BatchGetResponse);
+    rpc ListProductsBySPU(ListBySPURequest) returns (ListBySPUResponse);
+    
+    // 命令接口
+    rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+    rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
+    rpc OnShelf(OnShelfRequest) returns (OnShelfResponse);
+    rpc OffShelf(OffShelfRequest) returns (OffShelfResponse);
+    rpc UpdateBasePrice(UpdatePriceRequest) returns (UpdatePriceResponse);
+}
+
+message GetProductRequest {
+    int64 sku_id = 1;
+}
+
+message GetProductResponse {
+    Product product = 1;
+}
+
+message BatchGetRequest {
+    repeated int64 sku_ids = 1;  // 最多100个
+}
+
+message BatchGetResponse {
+    repeated Product products = 1;
+}
+
+message Product {
+    int64 sku_id = 1;
+    int64 spu_id = 2;
+    string title = 3;
+    int64 category_id = 4;
+    int64 brand_id = 5;
+    string sku_code = 6;
+    map<string, string> specs = 7;   // 规格
+    int64 base_price = 8;             // 基础价格（分）
+    repeated string images = 9;
+    string status = 10;               // DRAFT/ON_SHELF/OFF_SHELF
+    int64 created_at = 11;
+    int64 updated_at = 12;
+}
+
+message CreateProductRequest {
+    int64 spu_id = 1;
+    string sku_code = 2;
+    map<string, string> specs = 3;
+    int64 base_price = 4;
+    repeated string images = 5;
+}
+
+message OnShelfRequest {
+    int64 sku_id = 1;
+}
+
+message OffShelfRequest {
+    int64 sku_id = 1;
+    string reason = 2;
+}
+
+message UpdatePriceRequest {
+    int64 sku_id = 1;
+    int64 new_base_price = 2;
+}
+```
+
+**HTTP接口**（可选，供管理后台使用）：
+
+```
+GET    /api/v1/products/:sku_id              # 查询商品
+GET    /api/v1/products?spu_id=:spu_id       # 查询SPU下所有SKU
+POST   /api/v1/products                      # 创建商品
+PUT    /api/v1/products/:sku_id              # 更新商品
+POST   /api/v1/products/:sku_id/on-shelf     # 上架
+POST   /api/v1/products/:sku_id/off-shelf    # 下架
+PUT    /api/v1/products/:sku_id/price        # 更新基础价格
+```
+
+---
+
+#### 核心实现
+
+**应用服务层**（product_service.go）：
+
+```go
+type ProductService struct {
+    repo           domain.ProductRepository
+    eventPublisher EventPublisher
+}
+
+// GetProduct 查询商品（三级缓存）
+func (s *ProductService) GetProduct(ctx context.Context, skuID int64) (*dto.ProductResponse, error) {
+    // Step 1: 通过Repository查询（Repository内部实现三级缓存）
+    product, err := s.repo.FindBySKUID(ctx, domain.NewSKU_ID(skuID))
+    if err != nil {
+        return nil, fmt.Errorf("product not found: %w", err)
+    }
+    
+    // Step 2: Domain Model → DTO
+    return s.toDTO(product), nil
+}
+
+// BatchGetProducts 批量查询商品
+func (s *ProductService) BatchGetProducts(ctx context.Context, skuIDs []int64) ([]*dto.ProductResponse, error) {
+    // 参数校验：限制批量大小
+    if len(skuIDs) > 100 {
+        return nil, errors.New("批量查询最多100个")
+    }
+    
+    // 转换为值对象
+    domainIDs := make([]domain.SKU_ID, len(skuIDs))
+    for i, id := range skuIDs {
+        domainIDs[i] = domain.NewSKU_ID(id)
+    }
+    
+    // 批量查询
+    products, err := s.repo.BatchFindBySKUIDs(ctx, domainIDs)
+    if err != nil {
+        return nil, err
+    }
+    
+    // 转换为DTO
+    dtos := make([]*dto.ProductResponse, len(products))
+    for i, p := range products {
+        dtos[i] = s.toDTO(p)
+    }
+    
+    return dtos, nil
+}
+
+// CreateProduct 创建商品
+func (s *ProductService) CreateProduct(ctx context.Context, req *dto.CreateProductRequest) (*dto.ProductResponse, error) {
+    // Step 1: DTO → Domain Model
+    product, err := s.buildProduct(req)
+    if err != nil {
+        return nil, fmt.Errorf("build product failed: %w", err)
+    }
+    
+    // Step 2: 保存（Repository内部发布领域事件）
+    if err := s.repo.Save(ctx, product); err != nil {
+        return nil, fmt.Errorf("save product failed: %w", err)
+    }
+    
+    return s.toDTO(product), nil
+}
+
+// OnShelf 商品上架
+func (s *ProductService) OnShelf(ctx context.Context, skuID int64) error {
+    // Step 1: 查询聚合根
+    product, err := s.repo.FindBySKUID(ctx, domain.NewSKU_ID(skuID))
+    if err != nil {
+        return err
+    }
+    
+    // Step 2: 执行领域逻辑（状态转换）
+    if err := product.OnShelf(); err != nil {
+        return err
+    }
+    
+    // Step 3: 保存聚合根（自动发布领域事件）
+    return s.repo.Update(ctx, product)
+}
+
+// UpdateBasePrice 更新基础价格
+func (s *ProductService) UpdateBasePrice(ctx context.Context, skuID int64, newPrice int64) error {
+    // Step 1: 查询聚合根
+    product, err := s.repo.FindBySKUID(ctx, domain.NewSKU_ID(skuID))
+    if err != nil {
+        return err
+    }
+    
+    // Step 2: 创建价格值对象（带校验）
+    price, err := domain.NewPrice(newPrice)
+    if err != nil {
+        return fmt.Errorf("invalid price: %w", err)
+    }
+    
+    // Step 3: 执行领域逻辑
+    if err := product.UpdateBasePrice(price); err != nil {
+        return err
+    }
+    
+    // Step 4: 保存聚合根（自动发布PriceChangedEvent）
+    return s.repo.Update(ctx, product)
+}
+```
+
+---
+
+#### 领域事件
+
+| 事件名 | 触发时机 | 事件数据 | 消费方 | Topic | 用途 |
+|-------|---------|---------|--------|-------|------|
+| **ProductCreated** | 商品创建成功 | sku_id, spu_id, title, category_id, base_price | Search Service, Recommendation | product-events | 同步到ES索引 |
+| **ProductUpdated** | 商品信息更新 | sku_id, changed_fields | Search Service, Cache Invalidation | product-events | 更新ES、清缓存 |
+| **ProductOnShelf** | 商品上架 | sku_id, spu_id, on_shelf_time | Search Service, Marketing | product-events | 上架通知、活动关联 |
+| **ProductOffShelf** | 商品下架 | sku_id, reason, off_shelf_time | Search Service, Order Service | product-events | 从ES移除、停止接单 |
+| **PriceChanged** | 基础价格变更 | sku_id, old_price, new_price | Pricing Service, Analytics | product-events | 重新计算售价、价格分析 |
+
+**事件结构定义**：
+
+```go
+// ProductCreatedEvent 商品创建事件
+type ProductCreatedEvent struct {
+    SKUID      int64     `json:"sku_id"`
+    SPUID      int64     `json:"spu_id"`
+    Title      string    `json:"title"`
+    CategoryID int64     `json:"category_id"`
+    BasePrice  int64     `json:"base_price"`
+    CreatedAt  time.Time `json:"created_at"`
+}
+
+func (e *ProductCreatedEvent) Type() string {
+    return "product.created"
+}
+
+// ProductOnShelfEvent 商品上架事件
+type ProductOnShelfEvent struct {
+    SKUID       int64     `json:"sku_id"`
+    SPUID       int64     `json:"spu_id"`
+    OnShelfTime time.Time `json:"on_shelf_time"`
+}
+
+func (e *ProductOnShelfEvent) Type() string {
+    return "product.on_shelf"
+}
+
+// PriceChangedEvent 价格变更事件
+type PriceChangedEvent struct {
+    SKUID     int64     `json:"sku_id"`
+    OldPrice  int64     `json:"old_price"`
+    NewPrice  int64     `json:"new_price"`
+    ChangedAt time.Time `json:"changed_at"`
+}
+
+func (e *PriceChangedEvent) Type() string {
+    return "product.price_changed"
+}
+```
+
+---
+
+#### 缓存策略
+
+**三级缓存架构**：
 
 ```go
 // L1: 本地缓存（1分钟）
-localCache.Set(sku_id, product, 1*time.Minute)
+// 优点：延迟最低（<1ms），适合热点商品
+// 缺点：容量有限，多实例不一致
+localCache.Set("product:"+skuID, product, 1*time.Minute)
 
 // L2: Redis缓存（30分钟）
-redis.Set("product:"+sku_id, marshal(product), 30*time.Minute)
+// 优点：容量大，多实例共享
+// 缺点：网络开销（1-5ms）
+redis.Set("product:"+skuID, marshal(product), 30*time.Minute)
 
 // L3: MySQL（源数据）
-db.QueryOne("SELECT * FROM product WHERE sku_id = ?", sku_id)
+// 优点：数据权威、一致
+// 缺点：延迟最高（10-50ms）
+db.QueryOne("SELECT * FROM product_sku WHERE id = ?", skuID)
+```
+
+**缓存更新策略**：
+
+1. **商品更新时**：主动删除缓存（Cache Aside模式）
+2. **上下架时**：删除L1+L2缓存，强制下次查询走DB
+3. **价格变更时**：删除缓存 + 发布PriceChangedEvent通知Pricing Service
+
+**缓存Key设计**：
+
+```
+product:{sku_id}                    # 单个商品
+product:spu:{spu_id}                # SPU下所有SKU（Hash结构）
+product:category:{category_id}      # 类目商品列表（Set结构）
 ```
 
 ### 16.6.2 库存系统设计
