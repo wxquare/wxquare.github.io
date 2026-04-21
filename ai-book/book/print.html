@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-746cf296.js";
+            window.path_to_searchindex_js = "searchindex-e505eac4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-9af09486.js"></script>
@@ -2939,26 +2939,639 @@ func (a *ReACTAgent) Run(input string) (string, error) {
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="第5章-工具系统与mcp协议"><a class="header" href="#第5章-工具系统与mcp协议">第5章 工具系统与MCP协议</a></h1>
 <blockquote>
-<p>本章介绍Agent工具系统的设计原则和MCP协议的应用。</p>
+<p>“Tools are the hands and eyes of an Agent.” （工具是Agent的手和眼）</p>
 </blockquote>
 <h2 id="引言-4"><a class="header" href="#引言-4">引言</a></h2>
-<p>（内容待迁移）</p>
-<h2 id="51-agent工具系统设计原则"><a class="header" href="#51-agent工具系统设计原则">5.1 Agent工具系统设计原则</a></h2>
-<p>（内容待迁移）</p>
-<h2 id="52-工具抽象与接口设计"><a class="header" href="#52-工具抽象与接口设计">5.2 工具抽象与接口设计</a></h2>
-<p>（内容待迁移）</p>
-<h2 id="53-工具发现与动态注册"><a class="header" href="#53-工具发现与动态注册">5.3 工具发现与动态注册</a></h2>
-<p>（内容待迁移）</p>
-<h2 id="54-mcp协议详解"><a class="header" href="#54-mcp协议详解">5.4 MCP协议详解</a></h2>
-<p>（内容待迁移）</p>
-<h2 id="55-工具编排与组合"><a class="header" href="#55-工具编排与组合">5.5 工具编排与组合</a></h2>
-<p>（内容待迁移）</p>
-<h2 id="56-错误处理与容错"><a class="header" href="#56-错误处理与容错">5.6 错误处理与容错</a></h2>
-<p>（内容待迁移）</p>
-<h2 id="57-工具安全与权限控制"><a class="header" href="#57-工具安全与权限控制">5.7 工具安全与权限控制</a></h2>
-<p>（内容待迁移）</p>
+<p>Agent 通过工具与外部世界交互。工具系统的设计质量，直接决定了 Agent 的能力边界和可靠性。</p>
+<p>本章将深入探讨工具系统的设计原则、MCP（Model Context Protocol）协议的核心机制，以及如何构建可靠、可扩展的工具编排系统。</p>
+<hr>
+<h2 id="51-工具系统的核心价值"><a class="header" href="#51-工具系统的核心价值">5.1 工具系统的核心价值</a></h2>
+<h3 id="为什么需要工具系统"><a class="header" href="#为什么需要工具系统">为什么需要工具系统？</a></h3>
+<p>LLM 本身只能生成文本，无法直接与外部系统交互。工具系统赋予 Agent <strong>执行能力</strong>：</p>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                 Agent 能力层次                                │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Layer 3: 执行层（Tool System）                              │
+│  ├─ 查询数据库                                              │
+│  ├─ 调用 API                                                 │
+│  ├─ 执行命令                                                │
+│  └─ 操作文件系统                                            │
+│                                                             │
+│  Layer 2: 推理层（LLM）                                      │
+│  ├─ 理解需求                                                │
+│  ├─ 规划步骤                                                │
+│  ├─ 选择工具                                                │
+│  └─ 生成参数                                                │
+│                                                             │
+│  Layer 1: 输入层（User Interface）                           │
+│  ├─ 自然语言输入                                            │
+│  ├─ 结构化输入                                              │
+│  └─ 上下文信息                                              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="工具系统的三大作用"><a class="header" href="#工具系统的三大作用">工具系统的三大作用</a></h3>
+<p><strong>1. 扩展能力边界</strong></p>
+<p>LLM 只能基于训练数据回答问题，无法访问：</p>
+<ul>
+<li>实时数据（股票价格、天气）</li>
+<li>私有数据（公司内部文档、数据库）</li>
+<li>动态信息（服务器状态、日志）</li>
+</ul>
+<p>工具系统突破这些限制。</p>
+<p><strong>2. 提供确定性保证</strong></p>
+<p>LLM 的输出是概率性的，但某些操作需要确定性：</p>
+<ul>
+<li>数学计算：LLM 可能算错，用 Calculator 工具保证准确</li>
+<li>日期查询：LLM 的训练数据有截止日期，用 API 查询实时日期</li>
+<li>数据查询：LLM 可能幻觉，用数据库查询保证真实性</li>
+</ul>
+<p><strong>3. 实现闭环反馈</strong></p>
+<pre><code>用户需求 → Agent 推理 → 调用工具 → 观察结果 → 调整策略 → 再次调用工具
+</code></pre>
+<p>工具返回的结果成为 Agent 的“观察“（Observation），形成 ReACT 循环。</p>
+<hr>
+<h2 id="52-工具设计的五大原则"><a class="header" href="#52-工具设计的五大原则">5.2 工具设计的五大原则</a></h2>
+<h3 id="原则-1单一职责"><a class="header" href="#原则-1单一职责">原则 1：单一职责</a></h3>
+<p>每个工具应该只做一件事，并且做好。</p>
+<p>❌ <strong>反例：万能工具</strong></p>
+<pre><code class="language-python">def universal_tool(action: str, **kwargs):
+    if action == "search":
+        return search(**kwargs)
+    elif action == "calculate":
+        return calculate(**kwargs)
+    elif action == "query_db":
+        return query_db(**kwargs)
+    # ... 100 种操作
+</code></pre>
+<p>问题：</p>
+<ul>
+<li>LLM 难以理解工具能力</li>
+<li>参数验证复杂</li>
+<li>错误处理困难</li>
+</ul>
+<p>✅ <strong>正例：专用工具</strong></p>
+<pre><code class="language-python">def search_web(query: str, limit: int = 10):
+    """Search the web for information.
+    
+    Args:
+        query: The search query
+        limit: Maximum number of results (default 10)
+    
+    Returns:
+        List of search results with title, url, snippet
+    """
+    # ...
+
+def calculate(expression: str):
+    """Evaluate a mathematical expression.
+    
+    Args:
+        expression: A valid math expression (e.g. "2+2", "sqrt(16)")
+    
+    Returns:
+        The result of the calculation
+    """
+    # ...
+</code></pre>
+<p>优势：</p>
+<ul>
+<li>LLM 容易理解工具用途</li>
+<li>参数清晰，不易出错</li>
+<li>易于测试和维护</li>
+</ul>
+<h3 id="原则-2明确的输入输出"><a class="header" href="#原则-2明确的输入输出">原则 2：明确的输入输出</a></h3>
+<p>工具的接口应该清晰、类型安全、有文档。</p>
+<p><strong>好的工具描述：</strong></p>
+<pre><code class="language-python">{
+    "name": "prometheus_query",
+    "description": "Query Prometheus for metrics data",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "PromQL query expression (e.g. 'rate(http_requests_total[5m])')"
+            },
+            "time_range": {
+                "type": "string",
+                "description": "Time range in format like '1h', '30m', '7d'. Default: '1h'",
+                "default": "1h"
+            }
+        },
+        "required": ["query"]
+    },
+    "returns": {
+        "type": "object",
+        "description": "Query result with timestamp and values"
+    }
+}
+</code></pre>
+<p><strong>示例输出：</strong></p>
+<pre><code class="language-json">{
+    "status": "success",
+    "data": {
+        "metric": {"__name__": "http_requests_total"},
+        "values": [
+            [1704067200, "150.5"],
+            [1704067260, "162.3"]
+        ]
+    }
+}
+</code></pre>
+<h3 id="原则-3幂等性"><a class="header" href="#原则-3幂等性">原则 3：幂等性</a></h3>
+<p>相同的输入应该产生相同的结果（对于查询类操作）。</p>
+<p><strong>幂等工具：</strong></p>
+<ul>
+<li>✅ <code>get_user_by_id(123)</code> - 每次返回相同用户</li>
+<li>✅ <code>search_documents(query)</code> - 相同查询返回相同结果（在数据不变的情况下）</li>
+</ul>
+<p><strong>非幂等工具（需要谨慎设计）：</strong></p>
+<ul>
+<li>⚠️ <code>create_order(items)</code> - 每次创建新订单</li>
+<li>⚠️ <code>send_email(to, content)</code> - 每次发送新邮件</li>
+<li>⚠️ <code>delete_file(path)</code> - 不可逆操作</li>
+</ul>
+<p>对于非幂等工具，应该：</p>
+<ul>
+<li>明确标记为“写操作“</li>
+<li>需要额外的确认机制</li>
+<li>记录完整的审计日志</li>
+</ul>
+<h3 id="原则-4错误处理"><a class="header" href="#原则-4错误处理">原则 4：错误处理</a></h3>
+<p>工具应该返回结构化的错误信息，而不是抛出异常。</p>
+<p>❌ <strong>反例：抛出异常</strong></p>
+<pre><code class="language-python">def query_database(sql: str):
+    result = db.execute(sql)  # 可能抛出异常
+    return result
+</code></pre>
+<p>✅ <strong>正例：结构化错误</strong></p>
+<pre><code class="language-python">def query_database(sql: str) -&gt; ToolResult:
+    try:
+        result = db.execute(sql)
+        return ToolResult(
+            success=True,
+            data=result,
+            message="Query executed successfully"
+        )
+    except SQLSyntaxError as e:
+        return ToolResult(
+            success=False,
+            error_code="SQL_SYNTAX_ERROR",
+            message=f"Invalid SQL syntax: {str(e)}",
+            details={"sql": sql}
+        )
+    except PermissionError as e:
+        return ToolResult(
+            success=False,
+            error_code="PERMISSION_DENIED",
+            message="Insufficient permissions to execute this query"
+        )
+</code></pre>
+<p>LLM 可以根据错误信息调整策略：</p>
+<ul>
+<li><code>SQL_SYNTAX_ERROR</code> → 修正 SQL 语句重试</li>
+<li><code>PERMISSION_DENIED</code> → 切换到其他工具或通知用户</li>
+</ul>
+<h3 id="原则-5可观测性"><a class="header" href="#原则-5可观测性">原则 5：可观测性</a></h3>
+<p>工具调用应该被完整记录，便于调试和优化。</p>
+<p><strong>记录内容：</strong></p>
+<pre><code class="language-python">{
+    "tool_name": "prometheus_query",
+    "timestamp": "2026-04-21T10:30:00Z",
+    "inputs": {
+        "query": "rate(http_requests_total[5m])",
+        "time_range": "1h"
+    },
+    "outputs": {
+        "status": "success",
+        "data_points": 12,
+        "execution_time_ms": 145
+    },
+    "agent_session_id": "sess_abc123",
+    "user_id": "user_456"
+}
+</code></pre>
+<p><strong>监控指标：</strong></p>
+<ul>
+<li>调用次数</li>
+<li>成功率</li>
+<li>平均延迟</li>
+<li>错误分布</li>
+</ul>
+<hr>
+<h2 id="53-mcpmodel-context-protocol"><a class="header" href="#53-mcpmodel-context-protocol">5.3 MCP：Model Context Protocol</a></h2>
+<h3 id="什么是-mcp"><a class="header" href="#什么是-mcp">什么是 MCP？</a></h3>
+<p>MCP（Model Context Protocol）是 Anthropic 推出的开放标准，用于统一 AI 应用与外部数据源和工具的连接方式。</p>
+<p><strong>核心理念：</strong></p>
+<pre><code>AI 应用不应该为每个工具写专门的集成代码。
+应该有一个统一的协议，让工具"即插即用"。
+</code></pre>
+<p>类比：USB 接口之于硬件设备。</p>
+<h3 id="mcp-架构"><a class="header" href="#mcp-架构">MCP 架构</a></h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                     MCP Architecture                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────────────┐                                           │
+│  │ AI Application│                                          │
+│  │  (Client)    │                                           │
+│  └──────┬───────┘                                           │
+│         │                                                    │
+│         │ MCP Protocol                                       │
+│         │                                                    │
+│         ├────────► ┌──────────────┐                         │
+│         │          │ MCP Server 1 │                         │
+│         │          │  (Slack)     │                         │
+│         │          └──────────────┘                         │
+│         │                                                    │
+│         ├────────► ┌──────────────┐                         │
+│         │          │ MCP Server 2 │                         │
+│         │          │  (GitHub)    │                         │
+│         │          └──────────────┘                         │
+│         │                                                    │
+│         └────────► ┌──────────────┐                         │
+│                    │ MCP Server 3 │                         │
+│                    │  (Database)  │                         │
+│                    └──────────────┘                         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="mcp-的三大核心能力"><a class="header" href="#mcp-的三大核心能力">MCP 的三大核心能力</a></h3>
+<p><strong>1. Resources（资源）</strong></p>
+<p>只读的数据源，如文件、数据库记录、API 响应。</p>
+<pre><code class="language-json">{
+  "resources": [
+    {
+      "uri": "slack://channel/general",
+      "name": "Slack #general channel",
+      "mimeType": "application/json",
+      "description": "Messages from the #general channel"
+    }
+  ]
+}
+</code></pre>
+<p><strong>2. Tools（工具）</strong></p>
+<p>可执行的操作，如发送消息、创建文件、查询数据库。</p>
+<pre><code class="language-json">{
+  "tools": [
+    {
+      "name": "send_slack_message",
+      "description": "Send a message to a Slack channel",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "channel": {"type": "string"},
+          "message": {"type": "string"}
+        },
+        "required": ["channel", "message"]
+      }
+    }
+  ]
+}
+</code></pre>
+<p><strong>3. Prompts（提示词模板）</strong></p>
+<p>预定义的提示词模板，便于复用。</p>
+<pre><code class="language-json">{
+  "prompts": [
+    {
+      "name": "analyze_incident",
+      "description": "Analyze a production incident",
+      "arguments": [
+        {
+          "name": "incident_id",
+          "description": "The incident ID to analyze"
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<h3 id="添加-mcp-server"><a class="header" href="#添加-mcp-server">添加 MCP Server</a></h3>
+<p><strong>命令行添加：</strong></p>
+<pre><code class="language-bash"># 添加 Slack MCP
+claude mcp add slack -- npx -y @modelcontextprotocol/server-slack
+
+# 添加 GitHub MCP
+claude mcp add github -- npx -y @modelcontextprotocol/server-github
+
+# 添加数据库 MCP
+claude mcp add postgres -- npx -y @modelcontextprotocol/server-postgres
+</code></pre>
+<p><strong>配置文件：</strong></p>
+<pre><code class="language-json">// .mcp.json
+{
+  "mcpServers": {
+    "slack": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-slack"],
+      "env": {
+        "SLACK_TOKEN": "${SLACK_TOKEN}"
+      }
+    },
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "${DATABASE_URL}"
+      ]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      }
+    }
+  }
+}
+</code></pre>
+<h3 id="实用-mcp-server-推荐"><a class="header" href="#实用-mcp-server-推荐">实用 MCP Server 推荐</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>MCP Server</th><th>能力</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Slack</strong></td><td>搜索/发送消息</td><td>团队协作，通知机制</td></tr>
+<tr><td><strong>GitHub</strong></td><td>操作仓库/Issue/PR</td><td>项目管理，代码审查</td></tr>
+<tr><td><strong>Postgres</strong></td><td>查询数据库</td><td>数据分析，报表生成</td></tr>
+<tr><td><strong>Figma</strong></td><td>读取设计稿</td><td>设计转代码</td></tr>
+<tr><td><strong>Sentry</strong></td><td>获取错误日志</td><td>错误诊断，性能分析</td></tr>
+<tr><td><strong>Confluence</strong></td><td>搜索文档</td><td>知识库检索</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="54-工具编排最佳实践"><a class="header" href="#54-工具编排最佳实践">5.4 工具编排最佳实践</a></h2>
+<h3 id="实践-1优先使用标准工具"><a class="header" href="#实践-1优先使用标准工具">实践 1：优先使用标准工具</a></h3>
+<p>LLM 在标准工具上有海量训练数据，执行可靠性远高于自定义工具。</p>
+<p><strong>标准工具：</strong></p>
+<ul>
+<li>✅ <code>git</code>、<code>docker</code>、<code>kubectl</code></li>
+<li>✅ <code>npm</code>、<code>pip</code>、<code>cargo</code></li>
+<li>✅ <code>curl</code>、<code>jq</code>、<code>grep</code></li>
+</ul>
+<p><strong>自定义工具：</strong></p>
+<ul>
+<li>⚠️ 自研的 CLI 工具</li>
+<li>⚠️ 内部 API</li>
+</ul>
+<p>如果必须使用自定义工具：</p>
+<ul>
+<li>提供详细的文档和示例</li>
+<li>保持接口简单一致</li>
+<li>模仿标准工具的风格</li>
+</ul>
+<h3 id="实践-2工具分层设计"><a class="header" href="#实践-2工具分层设计">实践 2：工具分层设计</a></h3>
+<p>将工具按抽象层次分层：</p>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                    工具层次结构                               │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Layer 3: 业务层工具（High-Level）                           │
+│  ├─ diagnose_alert: 诊断告警                                │
+│  ├─ create_incident: 创建事故单                             │
+│  └─ send_notification: 发送通知                              │
+│                                                             │
+│  Layer 2: 集成层工具（Mid-Level）                            │
+│  ├─ prometheus_query: 查询 Prometheus                       │
+│  ├─ loki_search: 搜索日志                                    │
+│  └─ kubernetes_get: 查询 K8s 资源                           │
+│                                                             │
+│  Layer 1: 基础层工具（Low-Level）                            │
+│  ├─ http_request: HTTP 请求                                 │
+│  ├─ shell_exec: 执行命令                                    │
+│  └─ file_read: 读取文件                                     │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>设计原则：</strong></p>
+<ul>
+<li>高层工具基于低层工具构建</li>
+<li>Agent 优先调用高层工具（封装复杂度）</li>
+<li>低层工具保持通用性</li>
+</ul>
+<h3 id="实践-3最小权限原则"><a class="header" href="#实践-3最小权限原则">实践 3：最小权限原则</a></h3>
+<p>只给 Agent 完成任务所需的最少权限。</p>
+<p><strong>风险分级：</strong></p>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                    工具风险分级                               │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  低风险（自动放行）                                          │
+│  ├─ 读取文件                                                │
+│  ├─ 查询数据库                                              │
+│  └─ 搜索日志                                                │
+│                                                             │
+│  中风险（需要确认）                                          │
+│  ├─ 重启服务                                                │
+│  ├─ 修改配置                                                │
+│  └─ 执行脚本                                                │
+│                                                             │
+│  高风险（人工审批）                                          │
+│  ├─ 删除数据                                                │
+│  ├─ 数据库变更                                              │
+│  └─ 生产环境部署                                            │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>实现机制：</strong></p>
+<pre><code class="language-go">type Tool struct {
+    Name        string
+    Description string
+    RiskLevel   RiskLevel  // Low / Medium / High
+    Execute     func(args map[string]interface{}) (interface{}, error)
+}
+
+func (a *Agent) executeTool(tool Tool, args map[string]interface{}) (interface{}, error) {
+    // 风险评估
+    if tool.RiskLevel == RiskHigh {
+        // 需要人工审批
+        approved := a.requestApproval(tool, args)
+        if !approved {
+            return nil, errors.New("execution not approved")
+        }
+    }
+    
+    // 执行前记录审计日志
+    a.auditLog(tool.Name, args)
+    
+    // 执行工具
+    result, err := tool.Execute(args)
+    
+    // 执行后记录结果
+    a.auditLog(tool.Name, result, err)
+    
+    return result, err
+}
+</code></pre>
+<h3 id="实践-4工具文档即代码"><a class="header" href="#实践-4工具文档即代码">实践 4：工具文档即代码</a></h3>
+<p>将工具描述写成代码，确保文档和实现同步。</p>
+<pre><code class="language-python">from typing import TypedDict, Literal
+
+class PrometheusQueryArgs(TypedDict):
+    """Arguments for prometheus_query tool."""
+    query: str  # PromQL query expression
+    time_range: str  # Time range like '1h', '30m', default '1h'
+
+def prometheus_query(args: PrometheusQueryArgs) -&gt; dict:
+    """Query Prometheus for metrics data.
+    
+    This tool allows you to query Prometheus using PromQL.
+    
+    Examples:
+        - Query CPU usage: {"query": "rate(cpu_usage[5m])", "time_range": "1h"}
+        - Query memory: {"query": "memory_usage", "time_range": "30m"}
+    
+    Returns:
+        A dict containing:
+        - status: 'success' or 'error'
+        - data: List of metric data points
+        - message: Human-readable message
+    """
+    # Implementation
+    pass
+</code></pre>
+<p>类型注解和文档字符串可以自动生成 OpenAI Function Calling 的 Schema。</p>
+<h3 id="实践-5工具链组合"><a class="header" href="#实践-5工具链组合">实践 5：工具链组合</a></h3>
+<p>将常用的工具调用序列封装成工具链。</p>
+<p><strong>示例：告警诊断工具链</strong></p>
+<pre><code class="language-python">def diagnose_alert_chain(alert_id: str):
+    """Complete alert diagnosis workflow.
+    
+    This tool chains multiple steps:
+    1. Get alert details
+    2. Query related metrics (Prometheus)
+    3. Search relevant logs (Loki)
+    4. Check service status (Kubernetes)
+    5. Find similar historical cases
+    6. Generate diagnosis report
+    """
+    # Step 1: Get alert
+    alert = get_alert(alert_id)
+    
+    # Step 2: Query metrics
+    metrics = prometheus_query({
+        "query": f"rate({alert.metric}[5m])",
+        "time_range": "1h"
+    })
+    
+    # Step 3: Search logs
+    logs = loki_search({
+        "query": f"{{service=\"{alert.service}\"}}",
+        "time_range": "30m"
+    })
+    
+    # Step 4: Check K8s status
+    k8s_status = kubernetes_get({
+        "resource": "pods",
+        "namespace": alert.namespace
+    })
+    
+    # Step 5: Find similar cases
+    similar_cases = search_similar_cases(alert)
+    
+    # Step 6: Generate report
+    return generate_diagnosis_report({
+        "alert": alert,
+        "metrics": metrics,
+        "logs": logs,
+        "k8s_status": k8s_status,
+        "similar_cases": similar_cases
+    })
+</code></pre>
+<p><strong>优势：</strong></p>
+<ul>
+<li>减少 Agent 的推理步骤</li>
+<li>确保关键步骤不被遗漏</li>
+<li>提高执行效率</li>
+</ul>
+<hr>
+<h2 id="55-工具设计检查清单"><a class="header" href="#55-工具设计检查清单">5.5 工具设计检查清单</a></h2>
+<pre><code class="language-markdown">## 工具设计检查清单
+
+### 接口设计
+- [ ] 工具名称清晰，符合命名规范
+- [ ] 功能描述简洁明确
+- [ ] 参数类型明确，有默认值
+- [ ] 返回值结构化，有文档说明
+- [ ] 包含使用示例
+
+### 可靠性
+- [ ] 实现了错误处理
+- [ ] 返回结构化的错误信息
+- [ ] 查询类操作是幂等的
+- [ ] 写操作有确认机制
+- [ ] 有超时控制
+
+### 安全性
+- [ ] 实现了权限控制
+- [ ] 敏感操作需要审批
+- [ ] 记录完整的审计日志
+- [ ] 输入参数有验证
+- [ ] 防止注入攻击
+
+### 可观测性
+- [ ] 记录工具调用日志
+- [ ] 暴露关键指标（调用次数、延迟、成功率）
+- [ ] 可以追踪到具体的 Agent 会话
+- [ ] 错误有详细的上下文信息
+
+### 文档
+- [ ] 有清晰的文档和示例
+- [ ] 文档和实现同步
+- [ ] 有错误码说明
+- [ ] 有性能特征说明
+</code></pre>
+<hr>
 <h2 id="本章小结-4"><a class="header" href="#本章小结-4">本章小结</a></h2>
-<p>（内容待迁移）</p>
+<h3 id="核心要点回顾-4"><a class="header" href="#核心要点回顾-4">核心要点回顾</a></h3>
+<p><strong>1. 工具系统的核心价值</strong></p>
+<ul>
+<li>扩展 Agent 能力边界</li>
+<li>提供确定性保证</li>
+<li>实现闭环反馈</li>
+</ul>
+<p><strong>2. 工具设计五大原则</strong></p>
+<ul>
+<li>单一职责：每个工具只做一件事</li>
+<li>明确接口：清晰的输入输出</li>
+<li>幂等性：相同输入产生相同结果</li>
+<li>错误处理：结构化错误信息</li>
+<li>可观测性：完整记录调用日志</li>
+</ul>
+<p><strong>3. MCP 协议</strong></p>
+<ul>
+<li>统一的工具连接标准</li>
+<li>三大核心能力：Resources、Tools、Prompts</li>
+<li>即插即用，易于扩展</li>
+</ul>
+<p><strong>4. 工具编排最佳实践</strong></p>
+<ul>
+<li>优先使用标准工具</li>
+<li>工具分层设计（业务层/集成层/基础层）</li>
+<li>最小权限原则（风险分级）</li>
+<li>工具文档即代码</li>
+<li>工具链组合（封装常用序列）</li>
+</ul>
+<h3 id="关键洞察-2"><a class="header" href="#关键洞察-2">关键洞察</a></h3>
+<blockquote>
+<p><strong>工具不仅决定了 Agent 的能力边界，也决定了它的可靠性边界。好的工具设计是 Agent 系统成功的基础。</strong></p>
+</blockquote>
+<h3 id="下一章预告-4"><a class="header" href="#下一章预告-4">下一章预告</a></h3>
+<p>第6章我们将探讨多 Agent 协作的设计模式，包括如何设计 Agent 团队、如何协调多个 Agent、以及如何避免常见的协作陷阱。</p>
+<hr>
+<h2 id="参考资料-4"><a class="header" href="#参考资料-4">参考资料</a></h2>
+<ol>
+<li><strong>Model Context Protocol Specification</strong> - Anthropic, 2025</li>
+<li><strong>OpenAI Function Calling Guide</strong> - https://platform.openai.com/docs/guides/function-calling</li>
+<li><strong>LangChain Tools Documentation</strong> - https://docs.langchain.com/docs/components/tools</li>
+<li><strong>MCP Server Examples</strong> - https://github.com/modelcontextprotocol/servers</li>
+<li><strong>Tool Design Best Practices</strong> - Anthropic Engineering Blog</li>
+</ol>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="第6章-多agent协作与工作流编排"><a class="header" href="#第6章-多agent协作与工作流编排">第6章 多Agent协作与工作流编排</a></h1>
 <blockquote>
