@@ -1,0 +1,442 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第 5 章 Kafka：消息队列与异步 - 程序员系统设计与面试指南：原理、工程与面试</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="从计算机基础、核心中间件到系统设计面试与算法题型；原理与工程实践并重，各章面试题不设上限。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-c29c193a.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-815249f6.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">程序员系统设计与面试指南：原理、工程与面试</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第-5-章-kafka消息队列与异步"><a class="header" href="#第-5-章-kafka消息队列与异步">第 5 章 Kafka：消息队列与异步</a></h1>
+<p>Kafka 在系统设计里的核心价值，是把同步强耦合链路改造成可缓冲、可回放、可扩展的异步数据流。它并不只是“消息中转站”，而是围绕顺序写、分区并行和副本复制构建出来的一整套高吞吐日志系统。</p>
+<h2 id="kafka-基础模型"><a class="header" href="#kafka-基础模型">Kafka 基础模型</a></h2>
+<p>Kafka 的基本对象包括 Broker、Topic、Partition、Producer、Consumer 和 Consumer Group。理解它们之间的关系，是看懂顺序性、吞吐与高可用的前提。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>组件</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td>Broker</td><td>存储和转发消息的服务节点</td></tr>
+<tr><td>Topic</td><td>业务主题，逻辑上的消息分类</td></tr>
+<tr><td>Partition</td><td>Topic 的物理分片，承载并行与扩展</td></tr>
+<tr><td>Producer</td><td>生产消息</td></tr>
+<tr><td>Consumer</td><td>消费消息</td></tr>
+<tr><td>Consumer Group</td><td>多消费者协同消费的逻辑组</td></tr>
+</tbody>
+</table>
+</div>
+<p>Kafka 的一个关键设计是“分区内有序、全局无序”。只要消息落在同一个 Partition，就会按 offset 单调递增排列；但跨 Partition 不承诺全局顺序。因此，业务若要求“同一订单内的状态变更严格有序”，通常做法不是把 Topic 只设成一个分区，而是按订单 ID 作为 key 路由到固定分区。</p>
+<p>副本模型则决定了 Kafka 的高可用边界：</p>
+<ul>
+<li>Leader：对外承担读写。</li>
+<li>Follower：从 Leader 复制数据。</li>
+<li>ISR：与 Leader 保持同步的副本集合。</li>
+</ul>
+<p>Leader 故障时，只从 ISR 中选新 Leader，才能尽量避免数据倒退。如果允许落后副本直接上位，就会提升可用性但增加丢数据风险。</p>
+<h2 id="写入消费与消费组"><a class="header" href="#写入消费与消费组">写入、消费与消费组</a></h2>
+<p><strong>写入路径。</strong> Producer 发送消息时，通常会经历序列化、分区选择、批量打包、网络发送、Broker 追加写日志、Follower 同步、返回确认这一流程。影响写入体验的几个关键参数包括：</p>
+<ul>
+<li><code>acks</code>：控制等待多少副本确认。</li>
+<li><code>batch.size</code> 与 <code>linger.ms</code>：控制批量发送效果。</li>
+<li>重试与幂等配置：决定失败重发后的可靠性和顺序风险。</li>
+</ul>
+<p><strong>消费路径。</strong> Consumer 不是被推送消息，而是主动拉取。拉取模型让消费者能按自己的节奏处理，也方便批量读取与偏移量管理。消费完成后是否提交 offset，直接决定可靠性语义。</p>
+<p><strong>Consumer Group。</strong> Consumer Group 用于实现负载均衡。一个分区在同一消费组内只能被一个消费者消费，所以：</p>
+<ul>
+<li>分区数少于消费者数时，多余消费者会空闲。</li>
+<li>要提升组内并行度，分区数必须足够。</li>
+</ul>
+<p>消费组最大的治理点在于 Rebalance。以下情况会触发重新分配：</p>
+<ol>
+<li>消费者加入或退出。</li>
+<li>Topic 分区数变化。</li>
+<li>心跳超时或消费线程长时间卡住。</li>
+</ol>
+<p>Rebalance 的代价并不小，它会导致一段时间消费暂停，还可能造成重复消费。因此要特别关注超时参数、消费逻辑时长和实例重启策略。</p>
+<h2 id="顺序性可靠性与幂等"><a class="header" href="#顺序性可靠性与幂等">顺序性、可靠性与幂等</a></h2>
+<p><strong>顺序性。</strong> Kafka 的顺序保证是分层次的：</p>
+<ul>
+<li>同一 Partition 内天然有序。</li>
+<li>多 Partition 并行时，全局无序。</li>
+<li>Producer 开启重试且允许过多飞行中的请求时，可能破坏同分区重试顺序。</li>
+</ul>
+<p>所以对顺序敏感的业务，一般要同时做三件事：</p>
+<ol>
+<li>用业务 key 固定分区。</li>
+<li>控制生产端重试配置，避免乱序重发。</li>
+<li>让消费端按分区串行处理关键链路。</li>
+</ol>
+<p><strong>可靠性语义。</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>语义</th><th>特点</th><th>常见做法</th></tr>
+</thead>
+<tbody>
+<tr><td>At-most-once</td><td>可能丢，不重复</td><td>自动提交 offset，弱确认</td></tr>
+<tr><td>At-least-once</td><td>不丢，但可能重复</td><td><code>acks=all</code> + 手动提交 offset</td></tr>
+<tr><td>Exactly-once</td><td>端到端成本最高</td><td>Producer 幂等/事务 + 消费端幂等</td></tr>
+</tbody>
+</table>
+</div>
+<p>常见的“不丢消息”配置是：</p>
+<ul>
+<li>Producer 用 <code>acks=all</code></li>
+<li>Broker 设置合理副本数和 <code>min.insync.replicas</code></li>
+<li>关闭 <code>unclean.leader.election</code></li>
+<li>Consumer 业务处理成功后再提交 offset</li>
+</ul>
+<p>但要明确，Kafka 的可靠性是链路整体属性，不是单个参数就能保证。比如 <code>acks=all</code> 如果此时 ISR 已经只剩 Leader，本质上依然是退化状态。</p>
+<p><strong>幂等。</strong> Kafka 的 Producer 幂等可以减少重试导致的重复写入，但它主要解决“Producer 到 Broker”这一段。真正的端到端幂等，仍然要靠业务侧保证，例如：</p>
+<ul>
+<li>用订单号做数据库唯一键。</li>
+<li>用状态机限制非法重复更新。</li>
+<li>用去重表或 Redis 记录已处理消息 ID。</li>
+</ul>
+<p>因此，“Kafka 开了幂等就万事大吉”是一个常见误解。</p>
+<h2 id="高吞吐设计原理"><a class="header" href="#高吞吐设计原理">高吞吐设计原理</a></h2>
+<p>Kafka 的高吞吐并不是因为它“把数据放进内存队列”，而是因为它把磁盘和网络用到了极致。</p>
+<p><strong>顺序写磁盘。</strong> Kafka 把消息追加到日志尾部，避免了随机写的磁盘寻道开销。顺序写对磁盘极其友好，这是它在持久化前提下仍能做出高吞吐的基础。</p>
+<p><strong>Page Cache。</strong> Kafka 尽量利用操作系统页缓存，而不是自己在 JVM 堆中维护大块缓存。好处是：</p>
+<ul>
+<li>热数据读写往往直接命中内存。</li>
+<li>JVM 堆不必过大，GC 压力更小。</li>
+<li>文件缓存由 OS 统一管理，更适合顺序日志场景。</li>
+</ul>
+<p>这也是为什么 Kafka 机器的内存不能被 JVM 堆吃光，否则 Page Cache 不足会让性能明显下滑。</p>
+<p><strong>零拷贝。</strong> Kafka 在发送消息给消费者时会尽量利用 <code>sendfile</code> 等能力，让数据从 Page Cache 直接进入网卡，减少用户态与内核态之间的多次拷贝和上下文切换。</p>
+<p><strong>批量与压缩。</strong> Producer 会把多条消息打成 batch，再统一发送；Broker 和网络层又能对 batch 做压缩。这意味着单条消息的协议开销和系统调用次数被均摊，从而进一步提升吞吐。</p>
+<p><strong>分区并行。</strong> Partition 把单线程日志扩展成了“多条顺序日志并行处理”的模型。它是 Kafka 横向扩容的核心手段，但也是顺序性与运维复杂度的来源。</p>
+<h2 id="积压延迟与回压处理"><a class="header" href="#积压延迟与回压处理">积压、延迟与回压处理</a></h2>
+<p>消费积压不是一个单一问题，它可能来自生产端突增、消费逻辑变慢、下游依赖超时、分区数不足，或者 Rebalance 频繁引发的停顿。</p>
+<p><strong>排查顺序。</strong></p>
+<ol>
+<li>先看 Lag，确认是哪些 Topic、哪些分区积压。</li>
+<li>再看消费端处理时长，确认是不是业务逻辑慢。</li>
+<li>检查消费者实例数与分区数的关系，避免“加了实例却没有并行收益”。</li>
+<li>检查是否频繁 Rebalance、GC、网络抖动或下游超时。</li>
+</ol>
+<p><strong>常见应对手段。</strong></p>
+<ul>
+<li>临时扩消费者实例，但不超过分区数。</li>
+<li>增加分区数以提升并行度，但要评估顺序和迁移影响。</li>
+<li>把重逻辑异步化，缩短消费线程阻塞时间。</li>
+<li>对非核心消息允许降级、丢弃或跳过。</li>
+<li>调整 <code>max.poll.interval.ms</code>、批量参数和消费线程模型。</li>
+</ul>
+<p><strong>回压思路。</strong> Kafka 自身能缓冲流量，但它不能无限吞掉下游故障。真正稳定的系统需要在 Producer、Consumer、下游服务之间形成回压闭环，例如：</p>
+<ul>
+<li>Producer 端限速或降级。</li>
+<li>Consumer 端控制并发和批量。</li>
+<li>下游数据库或搜索服务承压时主动减速。</li>
+</ul>
+<p>否则 Kafka 只是把问题从“实时失败”变成“延迟爆炸”。</p>
+<h2 id="常见线上问题与排查"><a class="header" href="#常见线上问题与排查">常见线上问题与排查</a></h2>
+<p><strong>Rebalance 频繁，导致重复消费。</strong> 当消费逻辑过慢、心跳超时或实例频繁重启时，消费组会不断重平衡。排查时重点看：</p>
+<ul>
+<li><code>session.timeout.ms</code></li>
+<li><code>max.poll.interval.ms</code></li>
+<li>消费业务是否阻塞</li>
+<li>是否缺少静态成员配置</li>
+</ul>
+<p><strong>分区数量不足，扩容无效。</strong> 很多“加机器不生效”的根因，不是消费者不够，而是 Topic 分区不够。一个分区只能被组内一个消费者处理，多加出来的实例根本拿不到任务。</p>
+<p><strong><code>acks=1</code> 或副本配置不当导致丢消息。</strong> 只等 Leader 确认时，如果 Leader 写完但 Follower 还没同步就宕机，消息就可能丢失。此类问题通常要结合 <code>acks</code>、<code>min.insync.replicas</code> 和 ISR 监控一起看。</p>
+<p><strong>Page Cache 不足，吞吐骤降。</strong> 如果把 JVM 堆设得过大，OS 没有足够内存做页缓存，Kafka 会频繁读盘，吞吐和延迟都会恶化。</p>
+<p><strong>retention 配置不合理，磁盘打满。</strong> Kafka 的本质是日志系统，不设置合理保留时间和容量上限，就等于默认“消息永久堆积”。日志类 Topic 特别容易在这件事上出事故。</p>
+<p><strong>重点监控项。</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类别</th><th>指标</th></tr>
+</thead>
+<tbody>
+<tr><td>吞吐</td><td><code>MessagesInPerSec</code>、<code>BytesInPerSec</code></td></tr>
+<tr><td>延迟</td><td>请求平均延迟、批量发送耗时</td></tr>
+<tr><td>副本</td><td><code>UnderReplicatedPartitions</code>、ISR 收缩次数</td></tr>
+<tr><td>消费</td><td>Consumer Lag、Rebalance 次数</td></tr>
+<tr><td>资源</td><td>磁盘使用率、Page Cache 压力、网络带宽</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p>Kafka 的工程价值可以总结为三层：</p>
+<ul>
+<li>用 Topic 和 Partition 把同步调用改造成可扩展的异步日志流。</li>
+<li>用副本、ISR、offset 与消费组支撑可靠性和高可用。</li>
+<li>用顺序写、Page Cache、零拷贝、批量压缩支撑高吞吐。</li>
+</ul>
+<p>真正落地时，最难的往往不是“会不会发消息”，而是能否在顺序、可靠性、吞吐、积压治理之间做清晰取舍。</p>
+<h2 id="本章面试题与追问"><a class="header" href="#本章面试题与追问">本章面试题与追问</a></h2>
+<ol>
+<li>
+<p>Kafka 的核心组件有哪些，它和普通消息队列最大的差异是什么？
+追问：为什么说 Kafka 更像分布式日志系统，而不只是消息转发器？</p>
+</li>
+<li>
+<p>为什么 Kafka 只能保证分区内有序，不能天然保证全局有序？
+追问：如果订单状态要求严格有序，你会怎么设计分区策略？</p>
+</li>
+<li>
+<p>Consumer Group 是如何实现负载均衡的？
+追问：为什么消费者数量超过分区数量后，再扩容也没有收益？</p>
+</li>
+<li>
+<p>Rebalance 是什么，为什么它会影响线上稳定性？
+追问：如果线上频繁重复消费，你会优先检查哪几个超时和消费参数？</p>
+</li>
+<li>
+<p>Kafka 如何保证消息不丢失？
+追问：为什么 <code>acks=all</code> 也不能脱离 ISR 状态单独谈可靠性？</p>
+</li>
+<li>
+<p>Producer 幂等和业务幂等有什么区别？
+追问：为什么 Kafka 自带幂等仍然不能替代数据库唯一键或状态机设计？</p>
+</li>
+<li>
+<p>Kafka 为什么这么快？
+追问：顺序写、Page Cache、零拷贝、批量压缩分别解决了什么瓶颈？</p>
+</li>
+<li>
+<p>什么是 HW 和 LEO？
+追问：为什么消费者通常只能读到 HW 之前的数据？</p>
+</li>
+<li>
+<p>Kafka 出现消费积压时，你会如何分层排查？
+追问：如果 Lag 很高，但消费者 CPU 并不高，可能说明什么问题？</p>
+</li>
+<li>
+<p>Topic 的 retention 应该如何设置？
+追问：如果日志类 Topic 把磁盘打满，除了临时清理，你会如何从治理角度避免再次发生？</p>
+</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part02/chapter04.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part02/chapter06.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part02/chapter04.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part02/chapter06.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
