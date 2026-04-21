@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e505eac4.js";
+            window.path_to_searchindex_js = "../searchindex-52ba1329.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-9af09486.js"></script>
@@ -179,24 +179,565 @@
                     <main>
                         <h1 id="第6章-多agent协作与工作流编排"><a class="header" href="#第6章-多agent协作与工作流编排">第6章 多Agent协作与工作流编排</a></h1>
 <blockquote>
-<p>本章探讨多Agent系统的协作模式和工作流编排策略。</p>
+<p>“Alone we can do so little; together we can do so much.” —— Helen Keller</p>
 </blockquote>
 <h2 id="引言"><a class="header" href="#引言">引言</a></h2>
-<p>（内容待迁移）</p>
-<h2 id="61-单agent-vs-多agent场景"><a class="header" href="#61-单agent-vs-多agent场景">6.1 单Agent vs 多Agent场景</a></h2>
-<p>（内容待迁移）</p>
-<h2 id="62-多agent协作模式"><a class="header" href="#62-多agent协作模式">6.2 多Agent协作模式</a></h2>
-<p>（内容待迁移）</p>
-<h2 id="63-agent间通信机制"><a class="header" href="#63-agent间通信机制">6.3 Agent间通信机制</a></h2>
-<p>（内容待迁移）</p>
-<h2 id="64-工作流编排策略"><a class="header" href="#64-工作流编排策略">6.4 工作流编排策略</a></h2>
-<p>（内容待迁移）</p>
-<h2 id="65-冲突解决与一致性"><a class="header" href="#65-冲突解决与一致性">6.5 冲突解决与一致性</a></h2>
-<p>（内容待迁移）</p>
-<h2 id="66-协调agent设计"><a class="header" href="#66-协调agent设计">6.6 协调Agent设计</a></h2>
-<p>（内容待迁移）</p>
+<p>单个 Agent 能力有限。复杂任务往往需要多个 Agent 协作完成——有的擅长分析，有的擅长执行，有的擅长审查。</p>
+<p>本章将深入探讨多 Agent 协作的设计模式、工作流编排策略，以及如何避免协作中的常见陷阱。</p>
+<hr>
+<h2 id="61-为什么需要多agent协作"><a class="header" href="#61-为什么需要多agent协作">6.1 为什么需要多Agent协作？</a></h2>
+<h3 id="单-agent-的局限性"><a class="header" href="#单-agent-的局限性">单 Agent 的局限性</a></h3>
+<p><strong>局限 1：上下文窗口限制</strong></p>
+<p>单个 Agent 的上下文会随着对话增长而膨胀，最终超出限制或导致性能下降。</p>
+<p><strong>局限 2：能力泛化困难</strong></p>
+<p>一个 Agent 很难同时擅长所有任务：</p>
+<ul>
+<li>分析型任务需要深度推理</li>
+<li>执行型任务需要精确操作</li>
+<li>审查型任务需要批判性思维</li>
+</ul>
+<p><strong>局限 3：缺少制衡机制</strong></p>
+<p>单个 Agent 容易陷入：</p>
+<ul>
+<li>确认偏误（只寻找支持自己观点的证据）</li>
+<li>过度自信（高估自己的判断）</li>
+<li>路径依赖（沿着最初的思路走到底）</li>
+</ul>
+<h3 id="多-agent-协作的优势"><a class="header" href="#多-agent-协作的优势">多 Agent 协作的优势</a></h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                  多 Agent 协作的价值                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. 职责分离（Separation of Concerns）                       │
+│     - 每个 Agent 专注自己的领域                              │
+│     - 减少单个 Agent 的复杂度                                │
+│                                                             │
+│  2. 并行执行（Parallel Execution）                           │
+│     - 多个 Agent 同时工作                                    │
+│     - 大幅缩短总体执行时间                                   │
+│                                                             │
+│  3. 互相审查（Peer Review）                                  │
+│     - Writer Agent 生成内容                                  │
+│     - Reviewer Agent 审查质量                                │
+│     - 形成制衡机制                                           │
+│                                                             │
+│  4. 上下文隔离（Context Isolation）                          │
+│     - 每个 Agent 在独立的上下文中工作                         │
+│     - 避免上下文污染                                         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<hr>
+<h2 id="62-多agent协作的核心模式"><a class="header" href="#62-多agent协作的核心模式">6.2 多Agent协作的核心模式</a></h2>
+<h3 id="模式-1sequential顺序执行"><a class="header" href="#模式-1sequential顺序执行">模式 1：Sequential（顺序执行）</a></h3>
+<p>最简单的协作模式，Agent 按顺序依次执行。</p>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                   Sequential Pattern                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Input → Agent 1 → Agent 2 → Agent 3 → Output               │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>适用场景：</strong></p>
+<ul>
+<li>任务有明确的先后顺序</li>
+<li>后续步骤依赖前面的结果</li>
+</ul>
+<p><strong>示例：文章写作流水线</strong></p>
+<pre><code>Outline Agent → Writer Agent → Editor Agent → Publisher Agent
+</code></pre>
+<p><strong>实现示例：</strong></p>
+<pre><code class="language-python">class SequentialWorkflow:
+    def __init__(self, agents: List[Agent]):
+        self.agents = agents
+    
+    def run(self, initial_input: str):
+        result = initial_input
+        
+        for agent in self.agents:
+            result = agent.run(result)
+        
+        return result
+
+# 使用
+workflow = SequentialWorkflow([
+    OutlineAgent(),
+    WriterAgent(),
+    EditorAgent(),
+    PublisherAgent()
+])
+
+article = workflow.run("写一篇关于 AI Agent 的文章")
+</code></pre>
+<h3 id="模式-2parallel并行执行"><a class="header" href="#模式-2parallel并行执行">模式 2：Parallel（并行执行）</a></h3>
+<p>多个 Agent 同时工作，最后汇总结果。</p>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                    Parallel Pattern                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│            ┌──────► Agent 1 ──────┐                         │
+│            │                       │                         │
+│  Input ────┼──────► Agent 2 ──────┼────► Aggregator → Output│
+│            │                       │                         │
+│            └──────► Agent 3 ──────┘                         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>适用场景：</strong></p>
+<ul>
+<li>任务可以独立执行</li>
+<li>需要从多个角度分析问题</li>
+</ul>
+<p><strong>示例：多角度代码审查</strong></p>
+<pre><code>Security Reviewer (安全审查)
+Performance Reviewer (性能审查)  → Aggregator → 综合报告
+Code Quality Reviewer (代码质量审查)
+</code></pre>
+<p><strong>实现示例：</strong></p>
+<pre><code class="language-python">import asyncio
+
+class ParallelWorkflow:
+    def __init__(self, agents: List[Agent]):
+        self.agents = agents
+    
+    async def run(self, input: str):
+        # 并行执行所有 Agent
+        tasks = [agent.run_async(input) for agent in self.agents]
+        results = await asyncio.gather(*tasks)
+        
+        # 汇总结果
+        return self.aggregate(results)
+    
+    def aggregate(self, results: List[str]) -&gt; str:
+        # 合并所有 Agent 的输出
+        return "\n\n".join(results)
+
+# 使用
+workflow = ParallelWorkflow([
+    SecurityReviewer(),
+    PerformanceReviewer(),
+    CodeQualityReviewer()
+])
+
+review = asyncio.run(workflow.run(code_snippet))
+</code></pre>
+<h3 id="模式-3writer-reviewer写作-审查"><a class="header" href="#模式-3writer-reviewer写作-审查">模式 3：Writer-Reviewer（写作-审查）</a></h3>
+<p>一个 Agent 生成内容，另一个 Agent 审查并提供反馈，形成迭代循环。</p>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                 Writer-Reviewer Pattern                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Input → Writer → Reviewer → 评估                            │
+│             ↑         │                                      │
+│             │         │ 反馈                                 │
+│             └─────────┘                                      │
+│                                                             │
+│           （迭代直到通过审查）                                │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>适用场景：</strong></p>
+<ul>
+<li>需要高质量输出</li>
+<li>可以接受多轮迭代</li>
+</ul>
+<p><strong>示例：代码生成与审查</strong></p>
+<pre><code>Code Writer Agent: 生成代码
+Code Reviewer Agent: 审查代码（bug、性能、风格）
+如果审查不通过 → Writer 根据反馈修改
+</code></pre>
+<p><strong>实现示例：</strong></p>
+<pre><code class="language-python">class WriterReviewerWorkflow:
+    def __init__(self, writer: Agent, reviewer: Agent, max_iterations: int = 3):
+        self.writer = writer
+        self.reviewer = reviewer
+        self.max_iterations = max_iterations
+    
+    def run(self, input: str):
+        content = self.writer.run(input)
+        
+        for i in range(self.max_iterations):
+            review = self.reviewer.run(content)
+            
+            # 检查是否通过审查
+            if review["approved"]:
+                return content
+            
+            # 根据反馈修改
+            feedback = review["feedback"]
+            content = self.writer.run(f"修改以下内容：\n{content}\n\n反馈：\n{feedback}")
+        
+        return content
+
+# 使用
+workflow = WriterReviewerWorkflow(
+    writer=CodeWriter(),
+    reviewer=CodeReviewer(),
+    max_iterations=3
+)
+
+code = workflow.run("实现一个快速排序算法")
+</code></pre>
+<h3 id="模式-4hierarchical层级协调"><a class="header" href="#模式-4hierarchical层级协调">模式 4：Hierarchical（层级协调）</a></h3>
+<p>有一个 Coordinator Agent 负责任务分解和结果汇总，其他 Worker Agent 执行具体任务。</p>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                  Hierarchical Pattern                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│                  ┌─────────────┐                            │
+│                  │ Coordinator │                            │
+│                  │   (协调者)  │                            │
+│                  └──────┬──────┘                            │
+│                         │                                    │
+│          ┌──────────────┼──────────────┐                    │
+│          │              │              │                    │
+│    ┌─────▼────┐   ┌────▼─────┐  ┌────▼─────┐              │
+│    │ Worker 1 │   │ Worker 2 │  │ Worker 3 │              │
+│    └──────────┘   └──────────┘  └──────────┘              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>适用场景：</strong></p>
+<ul>
+<li>复杂任务需要分解</li>
+<li>需要协调多个子任务</li>
+</ul>
+<p><strong>示例：研究报告生成</strong></p>
+<pre><code>Coordinator: 分解任务、分配给 Worker、汇总结果
+Worker 1: 搜索相关文献
+Worker 2: 分析数据
+Worker 3: 生成图表
+</code></pre>
+<p><strong>实现示例：</strong></p>
+<pre><code class="language-python">class HierarchicalWorkflow:
+    def __init__(self, coordinator: Agent, workers: List[Agent]):
+        self.coordinator = coordinator
+        self.workers = workers
+    
+    def run(self, input: str):
+        # 1. Coordinator 分解任务
+        plan = self.coordinator.run(f"分解任务：{input}")
+        tasks = self.parse_plan(plan)
+        
+        # 2. Workers 并行执行子任务
+        results = []
+        for task in tasks:
+            worker = self.assign_worker(task)
+            result = worker.run(task)
+            results.append(result)
+        
+        # 3. Coordinator 汇总结果
+        final_result = self.coordinator.run(f"汇总结果：\n{results}")
+        return final_result
+
+# 使用
+workflow = HierarchicalWorkflow(
+    coordinator=CoordinatorAgent(),
+    workers=[
+        LiteratureSearchAgent(),
+        DataAnalysisAgent(),
+        VisualizationAgent()
+    ]
+)
+
+report = workflow.run("生成AI Agent市场研究报告")
+</code></pre>
+<hr>
+<h2 id="63-git-worktrees并行工作的基础设施"><a class="header" href="#63-git-worktrees并行工作的基础设施">6.3 Git Worktrees：并行工作的基础设施</a></h2>
+<p>Claude Code 通过 Git Worktrees 实现多个 Agent 实例的并行运行。</p>
+<h3 id="为什么需要并行"><a class="header" href="#为什么需要并行">为什么需要并行？</a></h3>
+<p>单个 Claude Code session 的工作模式：</p>
+<pre><code>你给任务 → Claude 执行（2-5分钟）→ 你 review → 给下一个任务
+         等待                                等待
+</code></pre>
+<p>大量时间浪费在等待上。</p>
+<p>多个 session 并行：</p>
+<pre><code>Session 1: 执行任务 A
+Session 2: 执行任务 B    你同时 review 多个结果
+Session 3: 执行任务 C
+Session 4: 执行任务 D
+Session 5: 执行任务 E
+</code></pre>
+<p>等待时间几乎降到零。</p>
+<h3 id="worktree-操作"><a class="header" href="#worktree-操作">Worktree 操作</a></h3>
+<pre><code class="language-bash"># 启动一个在独立 worktree 中运行的 Claude session
+claude --worktree
+
+# 在 Tmux 会话中启动（可以后台运行）
+claude --worktree --tmux
+
+# 设置 shell 别名快速跳转
+alias za="tmux select-window -t claude:0"
+alias zb="tmux select-window -t claude:1"
+alias zc="tmux select-window -t claude:2"
+</code></pre>
+<p>每次运行 <code>claude --worktree</code>，Claude Code 会自动：</p>
+<ol>
+<li>创建一个新的 worktree</li>
+<li>切到一个新分支</li>
+<li>在隔离环境中工作</li>
+</ol>
+<h3 id="使用场景"><a class="header" href="#使用场景">使用场景</a></h3>
+<p><strong>场景 1：独立功能并行开发</strong></p>
+<pre><code class="language-bash"># Session A: 实现用户认证
+# Session B: 实现支付集成
+# Session C: 实现订单管理
+# Session D: 实现通知系统
+# Session E: 编写单元测试
+</code></pre>
+<p><strong>场景 2：大规模重构</strong></p>
+<pre><code class="language-bash"># 批量迁移 50 个文件from JavaScript 到 TypeScript
+for file in $(cat files-to-migrate.txt); do
+  claude -p "Migrate $file from JS to TS" \
+    --worktree &amp;
+done
+</code></pre>
+<p>50 个 Claude 实例并行运行，几分钟完成原本需要一整天的工作。</p>
+<hr>
+<h2 id="64-subagents专家协作"><a class="header" href="#64-subagents专家协作">6.4 Subagents：专家协作</a></h2>
+<h3 id="subagents-vs-并行-sessions"><a class="header" href="#subagents-vs-并行-sessions">Subagents vs 并行 Sessions</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>并行 Sessions</th><th>Subagents</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>用途</strong></td><td>互不相关的独立任务</td><td>当前任务中的子任务</td></tr>
+<tr><td><strong>上下文</strong></td><td>各自独立</td><td>继承主 Agent 的部分上下文</td></tr>
+<tr><td><strong>协调</strong></td><td>人工协调</td><td>主 Agent 自动协调</td></tr>
+<tr><td><strong>适用场景</strong></td><td>5 个独立 feature</td><td>一个复杂 feature 的 5 个环节</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="定义-subagent"><a class="header" href="#定义-subagent">定义 Subagent</a></h3>
+<pre><code class="language-markdown"># .claude/agents/security-reviewer.md
+---
+name: Security Reviewer
+tools: [Read, Grep]  # 只读权限，不能改代码
+model: opus-4.6      # 使用推理能力更强的模型
+---
+
+你是一个安全审查专家。审查代码时重点关注：
+1. 认证和授权逻辑
+2. 敏感数据处理
+3. SQL 注入风险
+4. XSS 漏洞
+5. CSRF 防护
+
+发现问题时，给出具体的修复建议和代码示例。
+</code></pre>
+<h3 id="调用-subagent"><a class="header" href="#调用-subagent">调用 Subagent</a></h3>
+<pre><code>&gt; 请审查 src/auth/ 目录下的代码，使用 security-reviewer subagent
+</code></pre>
+<p>Claude Code 会：</p>
+<ol>
+<li>启动一个新的 subagent</li>
+<li>传递必要的上下文</li>
+<li>让 subagent 执行审查</li>
+<li>将结果返回给主 Agent</li>
+</ol>
+<h3 id="subagents-的核心价值独立上下文"><a class="header" href="#subagents-的核心价值独立上下文">Subagents 的核心价值：独立上下文</a></h3>
+<p>每个 subagent 运行在自己的上下文窗口中，不消耗主 session 的上下文空间。</p>
+<p>当主 session 的对话已经很长、上下文快要满时，调用 subagent 处理子任务，相当于开了一个新的“思考空间“。</p>
+<hr>
+<h2 id="65-agent-teams自动协调"><a class="header" href="#65-agent-teams自动协调">6.5 Agent Teams：自动协调</a></h2>
+<p>Agent Teams 是 Claude Code 最强大的协作模式，核心理念：<strong>不是你来协调多个 agent，而是让 agent 自己协调</strong>。</p>
+<h3 id="writerreviewer-模式"><a class="header" href="#writerreviewer-模式">Writer/Reviewer 模式</a></h3>
+<pre><code>1. Writer Agent 写代码
+   - 负责实现功能，按照需求写代码、跑测试
+   
+2. Reviewer Agent 审代码
+   - review Writer 的输出，指出问题、建议改进
+   
+3. Writer 根据反馈修改
+   - 收到 review 意见后改进代码，形成迭代循环
+</code></pre>
+<p>这个模式比单个 agent 写代码好不少。原因和人类团队一样：写代码的人容易陷入自己的思路，审代码的人能从不同角度发现问题。</p>
+<h3 id="coordinator-mode四阶段协调"><a class="header" href="#coordinator-mode四阶段协调">Coordinator Mode：四阶段协调</a></h3>
+<p>复杂任务会自动走四个阶段：</p>
+<p><strong>1. Research（调研）</strong></p>
+<p>多个 worker 并行调查代码库：</p>
+<pre><code>Worker 1: 搜索认证相关代码
+Worker 2: 搜索数据库操作代码
+Worker 3: 搜索 API 接口定义
+</code></pre>
+<p><strong>2. Synthesis（综合）</strong></p>
+<p>Coordinator 综合发现，生成规格说明：</p>
+<pre><code>基于调研结果，这个功能需要：
+- 修改 3 个文件
+- 新增 2 个 API 端点
+- 更新 1 个数据库表
+- 编写 5 个测试用例
+</code></pre>
+<p><strong>3. Implementation（实现）</strong></p>
+<p>Worker 按规格做精准修改：</p>
+<pre><code>Worker 1: 修改 auth.go
+Worker 2: 修改 api.go
+Worker 3: 更新 schema.sql
+Worker 4: 编写测试
+</code></pre>
+<p><strong>4. Verification（验证）</strong></p>
+<p>验证结果，确保正确性：</p>
+<pre><code>- 运行测试
+- 检查 linter
+- 验证 API 响应
+</code></pre>
+<h3 id="自动判断协调模式"><a class="header" href="#自动判断协调模式">自动判断协调模式</a></h3>
+<p>你不需要手动配置协调模式，Agent Teams 会根据任务复杂度自动判断：</p>
+<ul>
+<li>简单任务：单个 Agent 直接执行</li>
+<li>中等任务：Writer/Reviewer 模式</li>
+<li>复杂任务：Coordinator Mode（四阶段）</li>
+</ul>
+<hr>
+<h2 id="66-fan-out批处理人海战术的ai版"><a class="header" href="#66-fan-out批处理人海战术的ai版">6.6 Fan-out批处理：人海战术的AI版</a></h2>
+<h3 id="非交互模式"><a class="header" href="#非交互模式">非交互模式</a></h3>
+<pre><code class="language-bash"># 非交互模式执行单个任务
+claude -p "把这个文件从 JavaScript 迁移到 TypeScript"
+
+# 批量迁移一批文件
+for file in $(cat files-to-migrate.txt); do
+  claude -p "Migrate $file from JS to TS" \
+    --allowedTools "Edit,Bash(git commit *)" &amp;
+done
+</code></pre>
+<p>注意末尾的 <code>&amp;</code>：这让每个 Claude 实例在后台并行运行。</p>
+<p>如果有 50 个文件要迁移，50 个 Claude 同时跑，可能几分钟就完成了原本需要一整天的工作。</p>
+<h3 id="batch-命令"><a class="header" href="#batch-命令">/batch 命令</a></h3>
+<pre><code>1. 交互式规划
+   告诉 Claude 你想做什么（比如"把所有 React 类组件迁移到函数组件"）
+   Claude 会分析项目，列出所有需要处理的文件
+   
+2. 确认执行
+   你 review 计划，确认后 Claude 启动数十个 agent 并行执行
+   
+3. 汇总结果
+   所有 agent 完成后，Claude 汇总成功/失败情况
+   你只需要处理少数失败的 case
+</code></pre>
+<p>这种模式特别适合：</p>
+<ul>
+<li>大规模重构</li>
+<li>代码迁移</li>
+<li>批量修复</li>
+</ul>
+<hr>
+<h2 id="67-协作模式的选择指南"><a class="header" href="#67-协作模式的选择指南">6.7 协作模式的选择指南</a></h2>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                  协作模式选择决策树                           │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Q1: 子任务之间有依赖关系吗？                                │
+│      是 → Sequential（顺序执行）                             │
+│      否 → 继续                                              │
+│                                                             │
+│  Q2: 需要从多个角度分析吗？                                  │
+│      是 → Parallel（并行执行）                               │
+│      否 → 继续                                              │
+│                                                             │
+│  Q3: 需要反复优化质量吗？                                    │
+│      是 → Writer-Reviewer（写作-审查）                       │
+│      否 → 继续                                              │
+│                                                             │
+│  Q4: 任务需要分解协调吗？                                    │
+│      是 → Hierarchical（层级协调）                           │
+│      否 → 单 Agent 足够                                     │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<hr>
+<h2 id="68-协作陷阱与最佳实践"><a class="header" href="#68-协作陷阱与最佳实践">6.8 协作陷阱与最佳实践</a></h2>
+<h3 id="陷阱-1过度协作"><a class="header" href="#陷阱-1过度协作">陷阱 1：过度协作</a></h3>
+<p>不是所有任务都需要多 Agent。</p>
+<p>❌ <strong>过度协作：</strong></p>
+<pre><code>Task: 写一个 Hello World 函数
+Agent 1: 写代码
+Agent 2: 审查
+Agent 3: 测试
+Agent 4: 文档
+</code></pre>
+<p>成本 4 倍，收益接近 0。</p>
+<p>✅ <strong>合理协作：</strong></p>
+<pre><code>Task: 实现一个完整的认证系统
+Agent 1: 实现核心逻辑
+Agent 2: 安全审查
+Agent 3: 性能测试
+</code></pre>
+<h3 id="陷阱-2上下文丢失"><a class="header" href="#陷阱-2上下文丢失">陷阱 2：上下文丢失</a></h3>
+<p>Agent 之间传递信息时，上下文容易丢失。</p>
+<p>解决方案：</p>
+<ul>
+<li>明确定义 Agent 间的接口</li>
+<li>使用结构化的数据格式</li>
+<li>记录完整的决策过程</li>
+</ul>
+<h3 id="陷阱-3无限循环"><a class="header" href="#陷阱-3无限循环">陷阱 3：无限循环</a></h3>
+<p>Writer-Reviewer 模式可能陷入无限循环：</p>
+<pre><code>Writer: 生成代码 v1
+Reviewer: 不满意，要求修改
+Writer: 生成代码 v2
+Reviewer: 还是不满意
+...
+</code></pre>
+<p>解决方案：</p>
+<ul>
+<li>设置最大迭代次数</li>
+<li>定义明确的验收标准</li>
+<li>记录每次迭代的改进点</li>
+</ul>
+<h3 id="最佳实践"><a class="header" href="#最佳实践">最佳实践</a></h3>
+<p><strong>1. 明确职责边界</strong></p>
+<p>每个 Agent 应该有清晰的职责定义。</p>
+<p><strong>2. 结构化通信</strong></p>
+<p>Agent 间通信使用结构化格式，避免自然语言歧义。</p>
+<p><strong>3. 增量验证</strong></p>
+<p>每完成一个子任务就验证，而不是等全部完成。</p>
+<p><strong>4. 成本控制</strong></p>
+<p>多 Agent 协作成本高，需要权衡收益。</p>
+<hr>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
-<p>（内容待迁移）</p>
+<h3 id="核心要点回顾"><a class="header" href="#核心要点回顾">核心要点回顾</a></h3>
+<p><strong>1. 为什么需要多 Agent</strong></p>
+<ul>
+<li>职责分离、并行执行</li>
+<li>互相审查、上下文隔离</li>
+</ul>
+<p><strong>2. 四种核心模式</strong></p>
+<ul>
+<li><strong>Sequential</strong>：顺序执行，适合有依赖的任务</li>
+<li><strong>Parallel</strong>：并行执行，适合独立的任务</li>
+<li><strong>Writer-Reviewer</strong>：迭代优化，适合需要高质量输出</li>
+<li><strong>Hierarchical</strong>：层级协调，适合复杂任务分解</li>
+</ul>
+<p><strong>3. 实现机制</strong></p>
+<ul>
+<li><strong>Git Worktrees</strong>：并行运行多个独立任务</li>
+<li><strong>Subagents</strong>：当前任务中调用专家</li>
+<li><strong>Agent Teams</strong>：自动协调（Writer/Reviewer、Coordinator）</li>
+<li><strong>Fan-out</strong>：批量处理（人海战术）</li>
+</ul>
+<p><strong>4. 协作陷阱</strong></p>
+<ul>
+<li>过度协作（成本不合理）</li>
+<li>上下文丢失（接口不清晰）</li>
+<li>无限循环（缺少退出条件）</li>
+</ul>
+<h3 id="关键洞察"><a class="header" href="#关键洞察">关键洞察</a></h3>
+<blockquote>
+<p><strong>不是你来协调多个 Agent，而是让 Agent 自己协调。好的协作架构应该让协调成本趋近于零。</strong></p>
+</blockquote>
+<h3 id="下一章预告"><a class="header" href="#下一章预告">下一章预告</a></h3>
+<p>第7章我们将探讨可观测性与成本优化，包括如何监控 Agent 行为、如何追踪成本、以及如何持续优化系统性能。</p>
+<hr>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<ol>
+<li><strong>CrewAI: Multi-Agent Framework</strong> - https://github.com/joaomdmoura/crewAI</li>
+<li><strong>LangGraph Multi-Agent Architectures</strong> - https://langchain-ai.github.io/langgraph/</li>
+<li><strong>Anthropic Claude Code Documentation</strong> - Agent Teams</li>
+<li><strong>Multi-Agent Systems: Survey</strong> - Wooldridge &amp; Jennings, 2023</li>
+<li><strong>Distributed AI: From Agents to Teams</strong> - AAAI Tutorial, 2025</li>
+</ol>
 
                     </main>
 
