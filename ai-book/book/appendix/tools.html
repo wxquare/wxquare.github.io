@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-c63c3c77.js";
+            window.path_to_searchindex_js = "../searchindex-a58513c1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-9af09486.js"></script>
@@ -178,6 +178,303 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="附录c-常用工具与框架"><a class="header" href="#附录c-常用工具与框架">附录C 常用工具与框架</a></h1>
+<p>本附录整理了AI Agent开发中常用的工具、框架和服务，方便快速查找和选择。</p>
+<hr>
+<h2 id="-llm-provider-apis"><a class="header" href="#-llm-provider-apis">🤖 LLM Provider APIs</a></h2>
+<h3 id="openai"><a class="header" href="#openai">OpenAI</a></h3>
+<p><strong>产品</strong>：GPT-4 Turbo, GPT-4, GPT-3.5 Turbo<br><strong>优势</strong>：生态完善、API稳定、工具调用成熟<br><strong>定价</strong>：$0.01-0.03/1K tokens（输入）<br><strong>链接</strong>：https://platform.openai.com/</p>
+<p><strong>推荐场景</strong>：</p>
+<ul>
+<li>复杂推理任务</li>
+<li>工具调用密集型Agent</li>
+<li>需要高稳定性的生产环境</li>
+</ul>
+<hr>
+<h3 id="anthropic"><a class="header" href="#anthropic">Anthropic</a></h3>
+<p><strong>产品</strong>：Claude 3.5 Sonnet, Claude 3 Opus<br><strong>优势</strong>：代码生成强、上下文200k、Prompt Caching<br><strong>定价</strong>：$0.003-0.015/1K tokens（输入）<br><strong>链接</strong>：https://www.anthropic.com/</p>
+<p><strong>推荐场景</strong>：</p>
+<ul>
+<li>代码生成和审查</li>
+<li>长文档处理</li>
+<li>需要Prompt Caching降低成本</li>
+</ul>
+<hr>
+<h3 id="google"><a class="header" href="#google">Google</a></h3>
+<p><strong>产品</strong>：Gemini 1.5 Pro, Gemini 1.5 Flash<br><strong>优势</strong>：上下文1M tokens、多模态、价格低<br><strong>定价</strong>：$0.00125-0.005/1K tokens<br><strong>链接</strong>：https://ai.google.dev/</p>
+<p><strong>推荐场景</strong>：</p>
+<ul>
+<li>超长文档处理</li>
+<li>多模态任务（图片+文本）</li>
+<li>成本敏感的应用</li>
+</ul>
+<hr>
+<h3 id="本地部署"><a class="header" href="#本地部署">本地部署</a></h3>
+<p><strong>Ollama</strong><br>https://ollama.ai/<br><em>本地运行Llama、Mistral等开源模型</em></p>
+<p><strong>LM Studio</strong><br>https://lmstudio.ai/<br><em>图形化界面的本地LLM工具</em></p>
+<p><strong>vLLM</strong><br>https://github.com/vllm-project/vllm<br><em>高性能LLM推理引擎</em></p>
+<hr>
+<h2 id="-开发框架"><a class="header" href="#-开发框架">🧰 开发框架</a></h2>
+<h3 id="langchain"><a class="header" href="#langchain">LangChain</a></h3>
+<p><strong>描述</strong>：最流行的LLM应用开发框架<br><strong>语言</strong>：Python, JavaScript<br><strong>链接</strong>：https://www.langchain.com/</p>
+<p><strong>核心功能</strong>：</p>
+<ul>
+<li>Prompt模板和管理</li>
+<li>Agent和工具调用</li>
+<li>RAG系统</li>
+<li>记忆和上下文管理</li>
+<li>LangSmith（可观测性平台）</li>
+</ul>
+<p><strong>适用场景</strong>：</p>
+<ul>
+<li>快速原型开发</li>
+<li>复杂的多步骤工作流</li>
+<li>需要丰富的集成生态</li>
+</ul>
+<p><strong>示例代码</strong>：</p>
+<pre><code class="language-python">from langchain.agents import create_openai_functions_agent
+from langchain_openai import ChatOpenAI
+from langchain.tools import Tool
+
+llm = ChatOpenAI(model="gpt-4")
+tools = [Tool(name="search", func=search_function, description="...")]
+agent = create_openai_functions_agent(llm, tools, prompt)
+</code></pre>
+<hr>
+<h3 id="llamaindex"><a class="header" href="#llamaindex">LlamaIndex</a></h3>
+<p><strong>描述</strong>：专注于RAG和数据索引的框架<br><strong>语言</strong>：Python, TypeScript<br><strong>链接</strong>：https://www.llamaindex.ai/</p>
+<p><strong>核心功能</strong>：</p>
+<ul>
+<li>数据加载和解析</li>
+<li>索引构建和管理</li>
+<li>查询引擎</li>
+<li>多种检索策略</li>
+</ul>
+<p><strong>适用场景</strong>：</p>
+<ul>
+<li>RAG系统</li>
+<li>企业知识库</li>
+<li>文档问答</li>
+</ul>
+<p><strong>示例代码</strong>：</p>
+<pre><code class="language-python">from llama_index import VectorStoreIndex, SimpleDirectoryReader
+
+documents = SimpleDirectoryReader('data').load_data()
+index = VectorStoreIndex.from_documents(documents)
+query_engine = index.as_query_engine()
+response = query_engine.query("What is...?")
+</code></pre>
+<hr>
+<h3 id="autogpt--autogen"><a class="header" href="#autogpt--autogen">AutoGPT / AutoGen</a></h3>
+<p><strong>AutoGPT</strong><br>https://github.com/Significant-Gravitas/AutoGPT<br><em>自主Agent实现</em></p>
+<p><strong>AutoGen (Microsoft)</strong><br>https://microsoft.github.io/autogen/<br><em>多Agent协作框架</em></p>
+<p><strong>适用场景</strong>：</p>
+<ul>
+<li>自主任务执行</li>
+<li>多Agent协作</li>
+<li>复杂工作流</li>
+</ul>
+<hr>
+<h3 id="semantic-kernel-microsoft"><a class="header" href="#semantic-kernel-microsoft">Semantic Kernel (Microsoft)</a></h3>
+<p><strong>描述</strong>：微软的LLM编排框架<br><strong>语言</strong>：C#, Python, Java<br><strong>链接</strong>：https://learn.microsoft.com/en-us/semantic-kernel/</p>
+<p><strong>适用场景</strong>：</p>
+<ul>
+<li>企业级应用</li>
+<li>.NET生态集成</li>
+<li>Azure云服务</li>
+</ul>
+<hr>
+<h2 id="-向量数据库"><a class="header" href="#-向量数据库">📊 向量数据库</a></h2>
+<h3 id="chroma"><a class="header" href="#chroma">Chroma</a></h3>
+<p><strong>类型</strong>：本地/嵌入式<br><strong>语言</strong>：Python, JavaScript<br><strong>链接</strong>：https://www.trychroma.com/</p>
+<p><strong>特点</strong>：</p>
+<ul>
+<li>轻量级、易用</li>
+<li>适合原型开发</li>
+<li>支持内存和持久化模式</li>
+</ul>
+<p><strong>使用</strong>：</p>
+<pre><code class="language-python">import chromadb
+client = chromadb.PersistentClient(path="./chroma_db")
+collection = client.create_collection("docs")
+collection.add(documents=[...], embeddings=[...])
+</code></pre>
+<hr>
+<h3 id="pinecone"><a class="header" href="#pinecone">Pinecone</a></h3>
+<p><strong>类型</strong>：云服务（托管）<br><strong>链接</strong>：https://www.pinecone.io/</p>
+<p><strong>特点</strong>：</p>
+<ul>
+<li>高性能、可扩展</li>
+<li>托管服务，无需运维</li>
+<li>付费服务</li>
+</ul>
+<p><strong>定价</strong>：Starter免费，标准版$70/月起</p>
+<hr>
+<h3 id="weaviate"><a class="header" href="#weaviate">Weaviate</a></h3>
+<p><strong>类型</strong>：本地/云<br><strong>链接</strong>：https://weaviate.io/</p>
+<p><strong>特点</strong>：</p>
+<ul>
+<li>功能丰富</li>
+<li>支持GraphQL</li>
+<li>混合检索（向量+关键词）</li>
+</ul>
+<hr>
+<h3 id="milvus--zilliz"><a class="header" href="#milvus--zilliz">Milvus / Zilliz</a></h3>
+<p><strong>类型</strong>：本地/云<br><strong>链接</strong>：https://milvus.io/</p>
+<p><strong>特点</strong>：</p>
+<ul>
+<li>高性能、分布式</li>
+<li>支持大规模数据</li>
+<li>企业级功能</li>
+</ul>
+<hr>
+<h3 id="qdrant"><a class="header" href="#qdrant">Qdrant</a></h3>
+<p><strong>类型</strong>：本地/云<br><strong>链接</strong>：https://qdrant.tech/</p>
+<p><strong>特点</strong>：</p>
+<ul>
+<li>Rust实现，高性能</li>
+<li>丰富的过滤功能</li>
+<li>支持多向量</li>
+</ul>
+<hr>
+<h3 id="pgvector"><a class="header" href="#pgvector">pgvector</a></h3>
+<p><strong>类型</strong>：PostgreSQL扩展<br><strong>链接</strong>：https://github.com/pgvector/pgvector</p>
+<p><strong>特点</strong>：</p>
+<ul>
+<li>与SQL集成</li>
+<li>适合已有PG数据库的项目</li>
+<li>开源免费</li>
+</ul>
+<hr>
+<h2 id="-embedding服务"><a class="header" href="#-embedding服务">🔍 Embedding服务</a></h2>
+<h3 id="openai-embeddings"><a class="header" href="#openai-embeddings">OpenAI Embeddings</a></h3>
+<p><strong>模型</strong>：text-embedding-3-small, text-embedding-3-large<br><strong>维度</strong>：1536, 3072<br><strong>定价</strong>：$0.02-0.13/1M tokens<br><strong>链接</strong>：https://platform.openai.com/docs/guides/embeddings</p>
+<hr>
+<h3 id="cohere-embed"><a class="header" href="#cohere-embed">Cohere Embed</a></h3>
+<p><strong>模型</strong>：embed-v3<br><strong>维度</strong>：1024<br><strong>特点</strong>：多语言支持<br><strong>链接</strong>：https://cohere.com/embed</p>
+<hr>
+<h3 id="voyage-ai"><a class="header" href="#voyage-ai">Voyage AI</a></h3>
+<p><strong>特点</strong>：专业领域优化<br><strong>链接</strong>：https://www.voyageai.com/</p>
+<hr>
+<h3 id="开源embedding模型"><a class="header" href="#开源embedding模型">开源Embedding模型</a></h3>
+<p><strong>Sentence Transformers</strong><br>https://www.sbert.net/<br><em>开源Embedding模型库</em></p>
+<p><strong>推荐模型</strong>：</p>
+<ul>
+<li><code>all-MiniLM-L6-v2</code>：轻量快速</li>
+<li><code>all-mpnet-base-v2</code>：平衡性能</li>
+<li><code>bge-large-zh-v1.5</code>：中文优化</li>
+</ul>
+<hr>
+<h2 id="-ai编程工具"><a class="header" href="#-ai编程工具">🎨 AI编程工具</a></h2>
+<h3 id="cursor"><a class="header" href="#cursor">Cursor</a></h3>
+<p><strong>描述</strong>：AI优先的代码编辑器<br><strong>基于</strong>：VS Code<br><strong>链接</strong>：https://cursor.com/</p>
+<p><strong>核心功能</strong>：</p>
+<ul>
+<li>Cmd+K 行内编辑</li>
+<li>Composer 多文件编辑</li>
+<li>Chat 对话式编程</li>
+<li>Claude Code Terminal Agent</li>
+</ul>
+<p><strong>定价</strong>：免费试用，Pro $20/月</p>
+<hr>
+<h3 id="github-copilot"><a class="header" href="#github-copilot">GitHub Copilot</a></h3>
+<p><strong>描述</strong>：GitHub官方AI编程助手<br><strong>支持</strong>：VS Code, JetBrains等<br><strong>链接</strong>：https://github.com/features/copilot</p>
+<p><strong>定价</strong>：$10/月（个人），$19/月（Pro）</p>
+<hr>
+<h3 id="cline-vs-code-extension"><a class="header" href="#cline-vs-code-extension">Cline (VS Code Extension)</a></h3>
+<p><strong>描述</strong>：开源的自主编程Agent<br><strong>链接</strong>：https://github.com/cline/cline</p>
+<p><strong>特点</strong>：</p>
+<ul>
+<li>开源免费</li>
+<li>支持多种LLM Provider</li>
+<li>自主编辑文件和执行命令</li>
+</ul>
+<hr>
+<h2 id="-知识管理工具"><a class="header" href="#-知识管理工具">📝 知识管理工具</a></h2>
+<h3 id="obsidian"><a class="header" href="#obsidian">Obsidian</a></h3>
+<p><strong>描述</strong>：本地优先的笔记软件<br><strong>特点</strong>：双向链接、Graph View、插件生态<br><strong>链接</strong>：https://obsidian.md/</p>
+<p><strong>推荐插件</strong>：</p>
+<ul>
+<li>Dataview：数据查询</li>
+<li>Templater：模板系统</li>
+<li>Excalidraw：画图</li>
+<li>Marp：幻灯片</li>
+</ul>
+<hr>
+<h3 id="notion"><a class="header" href="#notion">Notion</a></h3>
+<p><strong>描述</strong>：在线协作知识库<br><strong>特点</strong>：数据库、团队协作、AI助手<br><strong>链接</strong>：https://www.notion.so/</p>
+<hr>
+<h3 id="logseq"><a class="header" href="#logseq">Logseq</a></h3>
+<p><strong>描述</strong>：开源的双向链接笔记<br><strong>特点</strong>：本地优先、大纲式、开源<br><strong>链接</strong>：https://logseq.com/</p>
+<hr>
+<h2 id="-开发工具"><a class="header" href="#-开发工具">🔧 开发工具</a></h2>
+<h3 id="langsmith"><a class="header" href="#langsmith">LangSmith</a></h3>
+<p><strong>描述</strong>：LangChain的可观测性平台<br><strong>功能</strong>：追踪、调试、评估<br><strong>链接</strong>：https://smith.langchain.com/</p>
+<hr>
+<h3 id="helicone"><a class="header" href="#helicone">Helicone</a></h3>
+<p><strong>描述</strong>：LLM可观测性平台<br><strong>功能</strong>：日志、缓存、成本追踪<br><strong>链接</strong>：https://www.helicone.ai/</p>
+<hr>
+<h3 id="weights--biases"><a class="header" href="#weights--biases">Weights &amp; Biases</a></h3>
+<p><strong>描述</strong>：机器学习实验平台<br><strong>功能</strong>：实验追踪、超参数优化<br><strong>链接</strong>：https://wandb.ai/</p>
+<hr>
+<h2 id="-测试与评估"><a class="header" href="#-测试与评估">🧪 测试与评估</a></h2>
+<h3 id="braintrust"><a class="header" href="#braintrust">Braintrust</a></h3>
+<p><strong>描述</strong>：LLM应用评估平台<br><strong>功能</strong>：数据集管理、自动评估<br><strong>链接</strong>：https://www.braintrustdata.com/</p>
+<hr>
+<h3 id="promptfoo"><a class="header" href="#promptfoo">PromptFoo</a></h3>
+<p><strong>描述</strong>：开源Prompt测试工具<br><strong>功能</strong>：批量测试、自动评估<br><strong>链接</strong>：https://promptfoo.dev/</p>
+<hr>
+<h2 id="-模型部署"><a class="header" href="#-模型部署">📦 模型部署</a></h2>
+<h3 id="replicate"><a class="header" href="#replicate">Replicate</a></h3>
+<p><strong>描述</strong>：模型托管和API服务<br><strong>特点</strong>：按使用付费、丰富的模型库<br><strong>链接</strong>：https://replicate.com/</p>
+<hr>
+<h3 id="modal"><a class="header" href="#modal">Modal</a></h3>
+<p><strong>描述</strong>：无服务器Python运行时<br><strong>特点</strong>：GPU支持、自动扩展<br><strong>链接</strong>：https://modal.com/</p>
+<hr>
+<h3 id="together-ai"><a class="header" href="#together-ai">Together AI</a></h3>
+<p><strong>描述</strong>：开源模型推理API<br><strong>特点</strong>：多种开源模型、价格低<br><strong>链接</strong>：https://www.together.ai/</p>
+<hr>
+<h2 id="-工具选择建议"><a class="header" href="#-工具选择建议">🎯 工具选择建议</a></h2>
+<h3 id="快速原型个人项目"><a class="header" href="#快速原型个人项目">快速原型（个人项目）</a></h3>
+<ul>
+<li><strong>LLM</strong>：OpenAI GPT-4 或 Claude 3.5</li>
+<li><strong>框架</strong>：LangChain</li>
+<li><strong>向量数据库</strong>：Chroma</li>
+<li><strong>Embedding</strong>：OpenAI text-embedding-3-small</li>
+<li><strong>编程工具</strong>：Cursor</li>
+</ul>
+<h3 id="生产环境小型团队"><a class="header" href="#生产环境小型团队">生产环境（小型团队）</a></h3>
+<ul>
+<li><strong>LLM</strong>：OpenAI + Claude（双provider）</li>
+<li><strong>框架</strong>：LangChain + 自定义代码</li>
+<li><strong>向量数据库</strong>：Pinecone 或 Weaviate</li>
+<li><strong>Embedding</strong>：OpenAI 或 Voyage AI</li>
+<li><strong>可观测性</strong>：LangSmith + Helicone</li>
+</ul>
+<h3 id="企业级大型公司"><a class="header" href="#企业级大型公司">企业级（大型公司）</a></h3>
+<ul>
+<li><strong>LLM</strong>：私有部署（Llama）+ 云服务（OpenAI/Azure）</li>
+<li><strong>框架</strong>：自研框架 + Semantic Kernel</li>
+<li><strong>向量数据库</strong>：Milvus（自部署）</li>
+<li><strong>Embedding</strong>：自训练模型 + 商业API</li>
+<li><strong>可观测性</strong>：自建监控系统</li>
+</ul>
+<hr>
+<h2 id="-成本优化建议"><a class="header" href="#-成本优化建议">💡 成本优化建议</a></h2>
+<h3 id="开发阶段"><a class="header" href="#开发阶段">开发阶段</a></h3>
+<ul>
+<li>使用 GPT-3.5 Turbo 或 Gemini Flash</li>
+<li>本地向量数据库（Chroma）</li>
+<li>开源Embedding模型</li>
+</ul>
+<h3 id="生产阶段"><a class="header" href="#生产阶段">生产阶段</a></h3>
+<ul>
+<li>模型分层（简单任务用便宜模型）</li>
+<li>Prompt Caching（Claude）</li>
+<li>Batch API（OpenAI）</li>
+<li>向量数据库按需选择</li>
+</ul>
+<hr>
+<p><em>本工具清单持续更新，欢迎补充</em></p>
 
                     </main>
 
