@@ -3,14 +3,14 @@ package job
 import (
 	"context"
 
-	"order-service/internal/infra"
+	"order-service/internal/infrastructure/logger"
 )
 
 type RetryPublishJob struct {
-	logger *infra.Logger
+	logger *logger.Logger
 }
 
-func NewRetryPublishJob(logger *infra.Logger) *RetryPublishJob {
+func NewRetryPublishJob(logger *logger.Logger) *RetryPublishJob {
 	return &RetryPublishJob{logger: logger}
 }
 

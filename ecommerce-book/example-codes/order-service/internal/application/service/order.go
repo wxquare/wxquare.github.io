@@ -6,19 +6,20 @@ import (
 	"fmt"
 	"time"
 
-	"order-service/internal/infra"
+	eventbus "order-service/internal/infrastructure/event"
+	"order-service/internal/infrastructure/logger"
+	"order-service/internal/infrastructure/persistence"
 	"order-service/internal/model"
-	"order-service/internal/repository"
 )
 
 type OrderService struct {
-	repo     *repository.OrderRepository
-	tx       *repository.TransactionManager
-	eventBus *infra.EventBus
-	logger   *infra.Logger
+	repo     *persistence.OrderRepository
+	tx       *persistence.TransactionManager
+	eventBus *eventbus.EventBus
+	logger   *logger.Logger
 }
 
-func NewOrderService(repo *repository.OrderRepository, tx *repository.TransactionManager, eventBus *infra.EventBus, logger *infra.Logger) *OrderService {
+func NewOrderService(repo *persistence.OrderRepository, tx *persistence.TransactionManager, eventBus *eventbus.EventBus, logger *logger.Logger) *OrderService {
 	return &OrderService{
 		repo:     repo,
 		tx:       tx,

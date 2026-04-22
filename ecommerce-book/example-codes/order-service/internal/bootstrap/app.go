@@ -1,49 +1,51 @@
 package bootstrap
 
 import (
-	"order-service/internal/handler/consumer"
-	httphandler "order-service/internal/handler/http"
-	"order-service/internal/handler/job"
-	"order-service/internal/handler/rpc"
-	"order-service/internal/infra"
-	"order-service/internal/repository"
-	"order-service/internal/service"
+	"order-service/internal/application/service"
+	eventbus "order-service/internal/infrastructure/event"
+	"order-service/internal/infrastructure/logger"
+	"order-service/internal/infrastructure/mysql"
+	"order-service/internal/infrastructure/persistence"
+	interfaceevent "order-service/internal/interfaces/event"
+	httphandler "order-service/internal/interfaces/http"
+	"order-service/internal/interfaces/job"
+	"order-service/internal/interfaces/rpc"
 )
 
 type App struct {
-	Logger          *infra.Logger
-	DB              *infra.MySQLDB
-	EventBus        *infra.EventBus
+	Logger          *logger.Logger
+	DB              *mysql.MySQLDB
+	EventBus        *eventbus.EventBus
 	OrderService    *service.OrderService
 	HTTPHandler     *httphandler.OrderHandler
 	RPCHandler      *rpc.OrderRPCHandler
 	CloseOrderJob   *job.CloseTimeoutOrderJob
 	RetryPublishJob *job.RetryPublishJob
-	PaymentConsumer *consumer.PaymentConsumer
-	StockConsumer   *consumer.StockConsumer
+	PaymentConsumer *interfaceevent.PaymentConsumer
+	StockConsumer   *interfaceevent.StockConsumer
 }
 
 func NewApp() (*App, error) {
-	logger := infra.NewLogger()
-	db, err := infra.NewMySQLDBFromEnv(logger)
+	log := logger.NewLogger()
+	db, err := mysql.NewMySQLDBFromEnv(log)
 	if err != nil {
 		return nil, err
 	}
-	eventBus := infra.NewEventBus(logger)
-	orderRepo := repository.NewOrderRepository(db, logger)
-	tx := repository.NewTransactionManager(logger)
-	orderSvc := service.NewOrderService(orderRepo, tx, eventBus, logger)
+	eventBus := eventbus.NewEventBus(log)
+	orderRepo := persistence.NewOrderRepository(db, log)
+	tx := persistence.NewTransactionManager(log)
+	orderSvc := service.NewOrderService(orderRepo, tx, eventBus, log)
 
 	return &App{
-		Logger:          logger,
+		Logger:          log,
 		DB:              db,
 		EventBus:        eventBus,
 		OrderService:    orderSvc,
-		HTTPHandler:     httphandler.NewOrderHandler(orderSvc, logger),
-		RPCHandler:      rpc.NewOrderRPCHandler(orderSvc, logger),
-		CloseOrderJob:   job.NewCloseTimeoutOrderJob(orderSvc, logger),
-		RetryPublishJob: job.NewRetryPublishJob(logger),
-		PaymentConsumer: consumer.NewPaymentConsumer(orderSvc, logger),
-		StockConsumer:   consumer.NewStockConsumer(orderSvc, logger),
+		HTTPHandler:     httphandler.NewOrderHandler(orderSvc, log),
+		RPCHandler:      rpc.NewOrderRPCHandler(orderSvc, log),
+		CloseOrderJob:   job.NewCloseTimeoutOrderJob(orderSvc, log),
+		RetryPublishJob: job.NewRetryPublishJob(log),
+		PaymentConsumer: interfaceevent.NewPaymentConsumer(orderSvc, log),
+		StockConsumer:   interfaceevent.NewStockConsumer(orderSvc, log),
 	}, nil
 }

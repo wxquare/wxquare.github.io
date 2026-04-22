@@ -1,19 +1,20 @@
-package infra
+package event
 
 import (
 	"context"
 	"sync"
 
+	"order-service/internal/infrastructure/logger"
 	"order-service/internal/model"
 )
 
 type EventBus struct {
 	mu     sync.Mutex
-	logger *Logger
+	logger *logger.Logger
 	events []model.Event
 }
 
-func NewEventBus(logger *Logger) *EventBus {
+func NewEventBus(logger *logger.Logger) *EventBus {
 	return &EventBus{logger: logger}
 }
 

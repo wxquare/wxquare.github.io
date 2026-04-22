@@ -1,16 +1,16 @@
-package repository
+package persistence
 
 import (
 	"context"
 
-	"order-service/internal/infra"
+	"order-service/internal/infrastructure/logger"
 )
 
 type TransactionManager struct {
-	logger *infra.Logger
+	logger *logger.Logger
 }
 
-func NewTransactionManager(logger *infra.Logger) *TransactionManager {
+func NewTransactionManager(logger *logger.Logger) *TransactionManager {
 	return &TransactionManager{logger: logger}
 }
 

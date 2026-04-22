@@ -2399,11 +2399,11 @@ flowchart TD
 
 在系统设计的早期阶段，最重要的往往不是“架构是否优雅”，而是“职责是否基本清楚”。对于一个刚开始建设的 `order-service` 来说，下单、查询订单、支付后更新状态、超时关单，这些需求虽然已经涉及接口、业务逻辑和数据存储，但复杂度通常还不足以支撑更重的架构方法论。此时，**标准三层架构**往往是一个合适的起点。
 
-三层架构的核心思想很简单：**把系统按职责拆成表现层、业务逻辑层和数据访问层**。这样做的目的不是追求抽象，而是让不同类型的代码各归其位：
+三层架构的核心思想很简单：**把系统按职责拆成表现层、业务逻辑层和数据访问层**。如果用更统一的工程命名来表达，这三类职责通常会分别落在 `interfaces`、`application` 和 `infrastructure` 中。这样做的目的不是追求抽象，而是让不同类型的代码各归其位：
 
-- **表现层（Handler）**：接收 HTTP、RPC 或消息请求，完成参数解析和响应组装
-- **业务逻辑层（Service）**：承载核心业务流程，例如创建订单、计算总价、更新状态
-- **数据访问层（Repository）**：负责和数据库交互，执行查询、插入和更新操作
+- **表现层（Interfaces）**：接收 HTTP、RPC 或消息请求，完成参数解析和响应组装
+- **业务逻辑层（Application）**：承载核心业务流程，例如创建订单、计算总价、更新状态
+- **数据访问层（Infrastructure 中的 persistence）**：负责和数据库交互，执行查询、插入和更新操作
 
 对于一个订单服务，这种分层通常可以组织成如下结构：
 
@@ -2417,7 +2417,7 @@ order-service/
 │   └── order-consumer/             # 消息消费入口
 │       └── main.go
 ├── internal/
-│   ├── handler/                    # 表现层：接收外部请求
+│   ├── interfaces/                 # 表现层：接收外部请求
 │   │   ├── http/
 │   │   │   └── order.go
 │   │   ├── rpc/
@@ -2425,46 +2425,53 @@ order-service/
 │   │   ├── job/
 │   │   │   ├── close_timeout_order.go
 │   │   │   └── retry_publish.go
-│   │   └── consumer/
+│   │   └── event/
 │   │       ├── payment_paid.go
 │   │       ├── stock_reserved.go
 │   │       └── stock_failed.go
-│   ├── service/                    # 业务逻辑层：创单、支付、取消、关单
-│   │   ├── order.go
-│   │   ├── job.go
-│   │   ├── consumer.go
-│   │   └── event.go
-│   ├── repository/                 # 数据访问层：订单持久化
-│   │   ├── order.go
-│   │   └── transaction.go
-│   ├── model/                      # 共享数据结构：Order、Request、Event
+│   ├── application/                # 业务逻辑层：创单、支付、取消、关单
+│   │   ├── service/
+│   │   │   ├── order.go
+│   │   │   ├── job.go
+│   │   │   ├── consumer.go
+│   │   │   └── event.go
+│   │   └── dto/
+│   │       ├── request.go
+│   │       └── response.go
+│   ├── model/                      # 阶段 0 还没有真正的领域层，先用共享模型承载数据
 │   │   ├── order.go
 │   │   ├── request.go
 │   │   └── event.go
-│   ├── infra/                      # 基础设施：MySQL、日志、事件总线
-│   │   ├── mysql_db.go
-│   │   ├── event_bus.go
-│   │   └── logger.go
+│   ├── infrastructure/             # 基础设施：MySQL、日志、事件总线
+│   │   ├── persistence/
+│   │   │   ├── order.go
+│   │   │   └── transaction.go
+│   │   ├── event/
+│   │   │   └── event_bus.go
+│   │   ├── logger/
+│   │   │   └── logger.go
+│   │   └── mysql/
+│   │       └── mysql_db.go
 │   └── bootstrap/
 │       └── app.go                  # 程序启动与依赖组装
 └── go.mod
 ```
 
-这里要特别注意，`model` 和 `infra` 虽然不属于“三层”这个名字本身，但在实际工程中几乎总是会自然出现。`model` 用来承载系统中的共享数据结构，例如 `Order`、`CreateOrderRequest`；`infra` 用来封装具体技术组件，例如 MySQL 连接、日志组件、消息总线。因此，所谓“三层架构”并不是说项目里只能有三个目录，而是说系统的**核心职责主线**是三层：**入口、业务、持久化**。
+这里要特别注意，虽然目录名已经提前统一成了 `interfaces / application / infrastructure` 这套风格，但在阶段 0 中，它的本质仍然是三层架构。`interfaces` 对应表现层，`application` 对应业务逻辑层，`infrastructure/persistence` 对应数据访问层。额外出现的 `model` 只是为了集中承载共享数据结构，例如 `Order`、`CreateOrderRequest`，它还不是阶段 2 中那种真正承担业务规则的 `domain`。
 
 以“创建订单”接口为例，这条调用链通常是这样的：
 
 ```text
 HTTP / RPC 请求
-    -> handler.CreateOrder
-    -> service.CreateOrder
-    -> repository.Save
+    -> interfaces.CreateOrder
+    -> application.CreateOrder
+    -> infrastructure.persistence.Save
     -> MySQL
 ```
 
 在这条链路中，每一层都只做自己该做的事情。
 
-**表现层：接收请求，不承载业务规则**
+**表现层（Interfaces）：接收请求，不承载业务规则**
 
 表现层负责与外部世界打交道。它知道请求从哪里来，也知道响应该怎么返回，但它不应该承担核心业务判断。一个典型的创单 Handler 通常会做下面几件事：
 
@@ -2476,16 +2483,16 @@ HTTP / RPC 请求
 
 也就是说，表现层回答的是“**外部如何调用系统**”，而不是“**系统内部如何完成下单**”。
 
-**业务逻辑层：承载订单流程**
+**业务逻辑层（Application）：承载订单流程**
 
 业务逻辑层是三层架构的中心。它负责把“创建订单”这个业务动作真正组织起来，例如校验商品列表是否为空、计算订单总价、生成订单号、设置订单初始状态、调用 Repository 持久化订单，以及在需要时发布订单创建事件。
 
 示例代码可以写成这样：
 
 ```go
-// service/order.go — 标准三层架构中的业务逻辑层
+// application/service/order.go — 标准三层架构中的业务逻辑层
 type OrderService struct {
-    repo *repository.OrderRepository  // 直接依赖具体实现
+    repo *persistence.OrderRepository  // 直接依赖具体实现
     db   *sql.DB
 }
 
@@ -2499,9 +2506,9 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderReq) (*Or
 }
 ```
 
-这段代码很好地体现了三层架构在早期的特点：**简单、直接、上手快**。`Service` 直接依赖 `Repository` 的具体实现，不需要先设计接口、适配器、领域对象等抽象。对于一个业务规则还不复杂的系统来说，这种直接性反而能提高开发效率。
+这段代码很好地体现了三层架构在早期的特点：**简单、直接、上手快**。`Application Service` 直接依赖持久化实现，不需要先设计接口、适配器、领域对象等抽象。对于一个业务规则还不复杂的系统来说，这种直接性反而能提高开发效率。
 
-**数据访问层：隔离数据库操作**
+**数据访问层（Infrastructure/Persistence）：隔离数据库操作**
 
 数据访问层的职责是把业务层提出的“保存订单”“查询订单”这些需求，翻译成具体的数据库操作。例如，`OrderRepository` 里可能包含下面这些方法：
 
@@ -2515,8 +2522,8 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderReq) (*Or
 
 这是一个很容易产生误解的问题。在标准三层架构中，层与层之间通常**不需要**一开始就为每一层专门定义接口和适配器。更常见的做法是：
 
-- `handler` 直接调用 `service`
-- `service` 直接调用 `repository`
+- `interfaces` 直接调用 `application`
+- `application` 直接调用 `infrastructure/persistence`
 - 各层之间通过普通的函数签名和结构体协作
 
 也就是说，三层架构首先强调的是**职责分层**，而不是**接口隔离**。在项目早期，这种直接调用的方式反而更简单、更高效。只有当层间边界开始频繁变化，例如需要替换存储实现、隔离基础设施依赖、或者希望更方便地编写单元测试时，才值得进一步引入接口、协议和适配器。
@@ -2544,25 +2551,25 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderReq) (*Or
 
 三层架构的问题，通常不是一开始就出现，而是在业务逐渐变复杂时慢慢显现。最常见的几个信号是：
 
-- `Service` 层越来越大，开始同时处理业务规则、事务、SQL 细节和外部依赖
-- `Repository` 和数据库实现耦合过深，换存储成本高
-- `Model` 逐渐退化成纯数据结构，真正的业务规则散落在多个 Service 方法里
+- `Application` 层越来越大，开始同时处理业务规则、事务、SQL 细节和外部依赖
+- `Infrastructure/Persistence` 和数据库实现耦合过深，换存储成本高
+- `Model` 逐渐退化成纯数据结构，真正的业务规则散落在多个 Application Service 方法里
 - 单元测试越来越困难，因为业务逻辑强依赖数据库和基础设施
 - 同一个“订单”概念，在不同模块里开始出现不一致的含义
 
-例如，当你想把 MySQL 更换为 PostgreSQL 时，可能会发现 `Service` 层虽然没有直接操作数据库连接，但它已经对 `Repository` 的具体实现、事务组织方式，甚至某些 MySQL 特有能力形成了隐式依赖。此时，问题就不再只是“换个数据库驱动”这么简单，而是说明：**业务逻辑与基础设施实现已经纠缠在一起了**。
+例如，当你想把 MySQL 更换为 PostgreSQL 时，可能会发现 `Application` 层虽然没有直接操作数据库连接，但它已经对持久化实现、事务组织方式，甚至某些 MySQL 特有能力形成了隐式依赖。此时，问题就不再只是“换个数据库驱动”这么简单，而是说明：**业务逻辑与基础设施实现已经纠缠在一起了**。
 
-这正是三层架构的边界所在。它非常适合作为系统的起点，但当复杂度继续增长时，仅靠“表现层 / Service / Repository”这条主线，已经不足以持续控制系统复杂性。接下来，就需要进一步引入更明确的依赖边界、更强的业务模型表达，以及更清晰的读写分离策略。这也是下一阶段要引入 Clean Architecture 的原因。
+这正是三层架构的边界所在。它非常适合作为系统的起点，但当复杂度继续增长时，仅靠“Interfaces / Application / Persistence”这条主线，已经不足以持续控制系统复杂性。接下来，就需要进一步引入更明确的依赖边界、更强的业务模型表达，以及更清晰的读写分离策略。这也是下一阶段要引入 Clean Architecture 的原因。
 
 ### 1.7.2 阶段 1：引入 Clean Architecture
 
 **触发条件**：需要更换数据库或框架，或者希望为业务逻辑编写不依赖基础设施的单元测试。
 
-如果说三层架构解决的是“代码应该分成哪几层”，那么 Clean Architecture 解决的是“**核心业务到底应该依赖谁**”。它并不是简单地把目录从 `handler/service/repository` 改成 `domain/usecase/adapter`，而是把系统的依赖方向重新梳理了一遍：**业务逻辑依赖抽象，而不是依赖具体技术实现**。
+如果说三层架构解决的是“代码应该分成哪几层”，那么 Clean Architecture 解决的是“**核心业务到底应该依赖谁**”。它并不是简单地把目录从 `interfaces/application/infrastructure` 改得更复杂，而是把系统的依赖方向重新梳理了一遍：**业务逻辑依赖抽象，而不是依赖具体技术实现**。
 
 这正是它和三层架构最本质的区别。
 
-在三层架构中，`service` 往往直接依赖 `repository` 的具体实现。即使代码表面上已经分了层，业务逻辑和基础设施之间仍然存在稳定的直接耦合。换句话说，三层架构解决的是“职责分工”问题，而 Clean Architecture 进一步解决的是“依赖方向”问题。
+在三层架构中，`application/service` 往往直接依赖 `infrastructure/persistence` 的具体实现。即使代码表面上已经分了层，业务逻辑和基础设施之间仍然存在稳定的直接耦合。换句话说，三层架构解决的是“职责分工”问题，而 Clean Architecture 进一步解决的是“依赖方向”问题。
 
 引入 Clean Architecture 后，我们希望把“订单创建”这个应用动作放在系统内层，把数据库、HTTP、RPC、消息中间件这些技术实现放在外层。这样，无论外部技术如何变化，核心业务逻辑都尽量保持稳定。
 
@@ -2578,6 +2585,30 @@ order-service/
 │   └── order-consumer/
 │       └── main.go                     # 消息消费入口
 ├── internal/
+│   ├── interfaces/                     # 接口层：所有进入系统的请求入口
+│   │   ├── http/
+│   │   │   ├── order.go
+│   │   │   └── health.go
+│   │   ├── rpc/
+│   │   │   └── order.go
+│   │   ├── event/
+│   │   │   ├── payment_paid.go
+│   │   │   ├── stock_reserved.go
+│   │   │   └── stock_failed.go
+│   │   └── job/
+│   │       ├── close_timeout_order.go
+│   │       └── retry_publish.go
+│   ├── application/                    # 应用层：编排业务用例
+│   │   ├── service/
+│   │   │   ├── create_order.go
+│   │   │   ├── cancel_order.go
+│   │   │   ├── mark_order_paid.go
+│   │   │   └── close_timeout_order.go
+│   │   ├── dto/
+│   │   │   ├── request.go
+│   │   │   ├── response.go
+│   │   │   └── event.go
+│   │   └── transaction.go             # 应用层依赖的事务抽象（可选）
 │   ├── domain/                         # 最内层：业务概念与规则
 │   │   ├── order.go                    # Order 实体 / 核心业务规则
 │   │   ├── order_item.go               # OrderItem 实体 / 值对象
@@ -2585,56 +2616,27 @@ order-service/
 │   │   ├── event_publisher.go          # EventPublisher Port
 │   │   ├── event.go                    # 领域事件定义
 │   │   └── errors.go                   # 领域错误
-│   ├── usecase/                        # 应用层：编排业务用例
-│   │   ├── command/
-│   │   │   ├── create_order.go
-│   │   │   ├── cancel_order.go
-│   │   │   ├── mark_order_paid.go
-│   │   │   └── close_timeout_order.go
-│   │   ├── query/
-│   │   │   ├── get_order.go
-│   │   │   └── list_timeout_orders.go
-│   │   ├── dto/
-│   │   │   ├── request.go
-│   │   │   ├── response.go
-│   │   │   └── event.go
-│   │   └── transaction.go             # 应用层依赖的事务抽象（可选）
-│   ├── adapter/                        # 外层适配器
-│   │   ├── inbound/                    # 进入系统的适配器
-│   │   │   ├── http/
-│   │   │   │   ├── order.go
-│   │   │   │   └── health.go
-│   │   │   ├── rpc/
-│   │   │   │   └── order.go
-│   │   │   ├── consumer/
-│   │   │   │   ├── payment_paid.go
-│   │   │   │   ├── stock_reserved.go
-│   │   │   │   └── stock_failed.go
-│   │   │   └── job/
-│   │   │       ├── close_timeout_order.go
-│   │   │       └── retry_publish.go
-│   │   └── outbound/                   # 离开系统的适配器
-│   │       ├── persistence/
-│   │       │   ├── order_repo.go       # Repository Port 的 MySQL 实现
-│   │       │   ├── order_po.go         # 持久化对象 / 表映射
-│   │       │   └── transaction.go      # 事务实现
-│   │       ├── event/
-│   │       │   └── publisher.go        # EventPublisher Port 的实现
-│   │       └── cache/
-│   │           └── order_cache.go      # 可选：缓存实现
+│   ├── infrastructure/                # 基础设施层：技术实现
+│   │   ├── persistence/
+│   │   │   ├── order_repo.go          # Repository Port 的 MySQL 实现
+│   │   │   ├── order_po.go            # 持久化对象 / 表映射
+│   │   │   └── transaction.go         # 事务实现
+│   │   ├── event/
+│   │   │   └── publisher.go           # EventPublisher Port 的实现
+│   │   ├── cache/
+│   │   │   └── order_cache.go         # 可选：缓存实现
+│   │   ├── mysql/
+│   │   │   └── db.go
+│   │   ├── mq/
+│   │   │   └── producer.go
+│   │   ├── logger/
+│   │   │   └── logger.go
+│   │   └── config/
+│   │       └── config.go
 │   └── bootstrap/
 │       ├── app.go                      # 依赖注入
 │       ├── router.go                   # HTTP / RPC 路由注册
-│       └── wiring.go                   # usecase 与 adapter 组装
-│   └── infra/                          # 纯技术组件
-│       ├── mysql/
-│       │   └── db.go
-│       ├── mq/
-│       │   └── producer.go
-│       ├── logger/
-│       │   └── logger.go
-│       └── config/
-│           └── config.go
+│       └── wiring.go                   # application / interfaces / infrastructure 组装
 ├── api/
 │   ├── http/
 │   │   └── order.md
@@ -2648,14 +2650,13 @@ order-service/
 这套结构的关键不在于名字本身，而在于依赖方向：
 
 ```text
-adapter(inbound / outbound)
-        -> usecase
-        -> domain
+interfaces -> application -> domain
+infrastructure -----------^
 ```
 
-更准确地说，是外层依赖内层，内层不认识外层。`domain` 不知道 MySQL，也不知道 Gin、gRPC 或 Kafka；`usecase` 只知道“我要保存订单”，但不知道这个保存动作最终是由 MySQL、PostgreSQL 还是内存实现来完成。
+更准确地说，是外层依赖内层，内层不认识外层。`domain` 不知道 MySQL，也不知道 Gin、gRPC 或 Kafka；`application` 只知道“我要保存订单”，但不知道这个保存动作最终是由 MySQL、PostgreSQL 还是内存实现来完成。
 
-和阶段 0 相比，那些你熟悉的 HTTP、RPC、Consumer、Job 并没有消失，它们只是被重新安放到了 `adapter/inbound/` 中；而原来集中在 `repository` 目录里的数据库实现，也被拆成了两部分：`domain` 中定义 Port，`adapter/outbound/persistence/` 中提供具体实现。这种拆分会让目录看起来更长，但换来的是内层业务逻辑对外部技术的低耦合。
+和阶段 0 相比，那些你熟悉的 HTTP、RPC、Consumer、Job 并没有消失，它们只是被更系统地收纳到了 `interfaces/` 中；而原来混在一起的数据库实现，则被拆成了两部分：`domain` 中定义 Port，`infrastructure/persistence/` 中提供具体实现。这种拆分会让目录看起来更长，但换来的是内层业务逻辑对外部技术的低耦合。
 
 **三层架构与 Clean Architecture 的区别**
 
@@ -2666,7 +2667,7 @@ adapter(inbound / outbound)
 
 所以，三层架构回答的是“代码应该放在哪一层”，而 Clean Architecture 回答的是“核心业务应该依赖谁”。
 
-这也是为什么一个项目可以“已经分层”，但仍然没有真正获得可替换性和可测试性。只要 `service` 仍然依赖某个具体的 MySQL repository、具体的消息发布器、具体的框架对象，业务逻辑就还没有真正从基础设施中解耦出来。
+这也是为什么一个项目可以“已经分层”，但仍然没有真正获得可替换性和可测试性。只要 `application/service` 仍然依赖某个具体的 MySQL repository、具体的消息发布器、具体的框架对象，业务逻辑就还没有真正从基础设施中解耦出来。
 
 **改造要点：引入 Port，把实现推到外层**
 
@@ -2685,19 +2686,19 @@ type OrderRepository interface {
     Save(ctx context.Context, order *Order) error
 }
 
-// usecase/create_order.go — 应用层依赖接口而非实现
-type CreateOrderUseCase struct {
+// application/service/create_order.go — 应用层依赖接口而非实现
+type CreateOrderService struct {
     repo domain.OrderRepository
 }
 
-func (uc *CreateOrderUseCase) Execute(ctx context.Context, req CreateOrderRequest) error {
+func (svc *CreateOrderService) Execute(ctx context.Context, req CreateOrderRequest) error {
     order := domain.NewOrder(req.CustomerID)
     // ... 应用逻辑 ...
-    return uc.repo.Save(ctx, order)
+    return svc.repo.Save(ctx, order)
 }
 ```
 
-在这段代码里，`CreateOrderUseCase` 并不知道底层是不是 MySQL，也不知道外面是不是 HTTP Handler 调用它。它只关心“创建订单”这件业务本身。这种内层稳定、外层可替换的结构，就是 Clean Architecture 的核心价值。
+在这段代码里，`CreateOrderService` 并不知道底层是不是 MySQL，也不知道外面是不是 HTTP Handler 调用它。它只关心“创建订单”这件业务本身。这种内层稳定、外层可替换的结构，就是 Clean Architecture 的核心价值。
 
 **为什么这一步通常早于 DDD**
 
@@ -2713,7 +2714,7 @@ func (uc *CreateOrderUseCase) Execute(ctx context.Context, req CreateOrderReques
 
 第一，**更容易替换基础设施**。MySQL、PostgreSQL、Redis、消息中间件都变成外层实现细节，而不是业务层的一部分。
 
-第二，**更容易做单元测试**。`CreateOrderUseCase` 可以直接注入 Mock Repository 进行测试，不需要启动数据库。
+第二，**更容易做单元测试**。`CreateOrderService` 可以直接注入 Mock Repository 进行测试，不需要启动数据库。
 
 第三，**为后续演进留出空间**。当业务复杂度进一步上升时，你可以在内层继续引入更强的领域模型表达，而不必同时和框架、数据库实现纠缠。
 
@@ -2721,9 +2722,74 @@ func (uc *CreateOrderUseCase) Execute(ctx context.Context, req CreateOrderReques
 
 ### 1.7.3 阶段 2：引入 DDD
 
-**触发条件**：业务规则越来越复杂，Service 层开始膨胀，同一个概念在不同模块有不同含义
+**触发条件**：业务规则越来越复杂，应用服务开始膨胀，同一个概念在不同模块里出现不同含义。
 
-**改造要点**：识别聚合根、值对象、领域事件
+如果说阶段 1 的 Clean Architecture 解决的是“业务逻辑不要依赖技术实现”，那么阶段 2 的 DDD 解决的是另一个更深的问题：**业务逻辑本身应该如何表达**。
+
+到了这一阶段，系统的主要矛盾往往已经不再是“换数据库是否方便”，而是“业务规则到底应该放在哪里”。虽然阶段 1 已经把依赖方向梳理清楚了，但在很多项目里，`application/service` 仍然承担着大量业务判断：状态流转、金额校验、履约约束、库存预占结果处理、优惠券规则、事件触发条件……这些规则一开始可能还不多，但随着业务持续增长，应用层很快就会膨胀成一层巨大的流程脚本。
+
+这时，DDD 才真正开始发挥作用。它不是单纯把 `domain` 目录里的结构体改得更“高级”，而是要回答一个根本问题：**如何让代码中的模型真正反映业务概念，并由模型自己保护业务不变量**。
+
+这正是它和阶段 1 的关系。阶段 1 先解决“业务逻辑与技术实现的耦合”，为核心业务清出一块干净空间；阶段 2 则进一步解决“核心业务内部如何建模”的问题。没有阶段 1，DDD 往往会被外层技术细节拖住；而只有阶段 1、没有阶段 2，业务规则又容易继续堆在 `application/service` 中，形成“依赖方向正确，但模型表达很弱”的局面。
+
+对于 `order-service`，阶段 2 的结构通常会演进成这样：
+
+```text
+order-service/
+├── cmd/
+│   ├── order-server/
+│   │   └── main.go
+│   ├── order-job/
+│   │   └── main.go
+│   └── order-consumer/
+│       └── main.go
+├── internal/
+│   ├── interfaces/
+│   │   ├── http/
+│   │   ├── rpc/
+│   │   ├── event/
+│   │   └── job/
+│   ├── application/
+│   │   ├── service/
+│   │   │   ├── place_order.go
+│   │   │   ├── cancel_order.go
+│   │   │   ├── mark_order_paid.go
+│   │   │   └── close_timeout_order.go
+│   │   └── dto/
+│   │       ├── request.go
+│   │       ├── response.go
+│   │       └── event.go
+│   ├── domain/
+│   │   └── order/
+│   │       ├── aggregate.go            # Order 聚合根
+│   │       ├── entity.go               # OrderItem 等实体
+│   │       ├── value_object.go         # OrderID、Money、OrderStatus
+│   │       ├── repository.go           # OrderRepository Port
+│   │       ├── event.go                # OrderPlaced、OrderCancelled 等领域事件
+│   │       ├── service.go              # 少量无法归属聚合的领域服务
+│   │       └── errors.go               # 领域错误
+│   ├── infrastructure/
+│   │   ├── persistence/
+│   │   │   ├── order_repo.go           # 聚合的持久化实现
+│   │   │   └── order_po.go
+│   │   ├── event/
+│   │   │   └── publisher.go
+│   │   ├── mysql/
+│   │   ├── mq/
+│   │   ├── logger/
+│   │   └── config/
+│   └── bootstrap/
+│       ├── app.go
+│       ├── router.go
+│       └── wiring.go
+└── go.mod
+```
+
+和阶段 1 相比，这里的核心变化不是目录变得更深，而是 `domain` 不再只是“放接口和几个结构体的地方”，而是开始真正承载业务语义。换句话说，阶段 1 的 `domain` 更像“业务核心的边界”；阶段 2 的 `domain` 才开始成为“业务规则真正居住的地方”。
+
+**从贫血模型到充血模型**
+
+阶段 1 中，很多项目虽然已经把 `Order` 放进了 `domain`，但这个 `Order` 仍然只是一个贫血模型：它主要承担数据承载作用，真正的规则依旧写在 `application/service` 里。例如：
 
 ```go
 // 阶段 1 的 "贫血模型"
@@ -2732,7 +2798,13 @@ type Order struct {
     Status int     // 用魔数表示状态
     Total  float64 // 用 float 表示金额
 }
+```
 
+这类模型的问题在于：它看起来像“领域对象”，但实际上并没有把业务语义和不变量收进去。订单是否允许下单、是否允许取消、金额是否有效、状态能否迁移，仍然需要调用者在外面自己判断。
+
+而在阶段 2 中，`Order` 会逐渐演进成一个真正的聚合根：
+
+```go
 // 阶段 2 的 "充血模型"
 type Order struct {
     id     OrderID
@@ -2750,7 +2822,53 @@ func (o *Order) Place() ([]DomainEvent, error) {
 }
 ```
 
-**收益**：业务规则内聚在聚合根中，不再散落在 Service 层。新成员阅读 `Order.Place()` 就能理解下单的所有约束。
+这里的关键不只是把字段从公有变成私有，也不只是把 `int` 改成 `OrderStatus`。真正重要的是：**业务规则开始内聚到模型本身**。订单能否下单、状态如何流转、哪些约束必须被保护，不再由外部调用者“记得去做”，而是由聚合根主动维护。
+
+**DDD 在这一阶段具体引入什么**
+
+阶段 2 最常引入的几个战术设计元素包括：
+
+- **聚合根（Aggregate Root）**：例如 `Order`，它负责维护订单聚合内部的一致性边界
+- **实体（Entity）**：例如 `OrderItem`，有身份或生命周期，属于某个聚合的一部分
+- **值对象（Value Object）**：例如 `OrderID`、`Money`、`OrderStatus`，用来表达语义并约束非法状态
+- **领域事件（Domain Event）**：例如 `OrderPlacedEvent`、`OrderCancelledEvent`，表达“业务事实已经发生”
+- **领域服务（Domain Service）**：当某条业务规则不自然属于某个单一聚合时，再用领域服务承载
+
+需要强调的是，DDD 不是要求你“把所有东西都做成值对象和事件”。它真正的目的，是让代码结构尽可能贴近业务语言，而不是贴近数据库表结构。
+
+**应用层在这一阶段如何变化**
+
+引入 DDD 之后，`application/service` 并不会消失，但它的职责会变得更清晰：它不再自己堆满业务规则，而是更像一个应用服务，负责调度聚合根、协调事务和调用 Port。
+
+也就是说：
+
+- 在阶段 1 中，`CreateOrderService` 往往自己承担很多规则判断
+- 在阶段 2 中，`PlaceOrderService` 更像一个 orchestrator，它负责加载聚合、调用 `order.Place()`、保存聚合、发布领域事件
+
+这也是为什么 DDD 不是对 Clean Architecture 的替代，而是对其内层表达能力的增强。
+
+**为什么这一步值得做**
+
+当业务规则还很少时，把逻辑写在 `application/service` 里看起来并没有问题；但一旦规则数量和状态迁移开始增多，继续让应用层承担所有判断，很快会出现几个典型症状：
+
+- 一个 `application/service` 文件动辄数百行，充满 `if/else`
+- 状态迁移规则散落在多个命令处理器里
+- 同样的金额校验、状态校验、约束判断在多个地方重复出现
+- 新成员很难回答“订单到底有哪些业务规则”
+
+这时，引入 DDD 的最大收益，就是把这些规则收拢回业务概念本身。新成员阅读 `Order.Place()`、`Order.Cancel()`、`Order.MarkPaid()`，就能理解订单生命周期中的核心约束，而不是在多个应用服务文件之间来回跳转。
+
+**收益：模型更贴近业务，规则更容易维护**
+
+阶段 2 最直接的收益通常有三个。
+
+第一，**业务规则开始真正内聚**。规则不再散落在各个 `application/service` 中，而是集中在聚合根和相关值对象里。
+
+第二，**模型表达能力更强**。`Money` 不再只是 `float64`，`OrderStatus` 不再只是魔数，代码本身开始带有业务语义。
+
+第三，**系统更适合继续演进**。当后续要引入领域事件驱动、跨上下文协作，或者进一步拆分读写模型时，一个表达清晰的领域模型会成为非常稳固的基础。
+
+当然，代价也很现实：DDD 的学习门槛比前两阶段更高，过度使用聚合、值对象和事件，也很容易把简单业务写得过于复杂。因此，阶段 2 的关键不是“为了 DDD 而 DDD”，而是在业务规则确实已经复杂到值得建模时，再让模型承担它本来就该承担的职责。
 
 ### 1.7.4 阶段 3：引入 CQRS
 

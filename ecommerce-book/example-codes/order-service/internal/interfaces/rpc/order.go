@@ -3,17 +3,17 @@ package rpc
 import (
 	"context"
 
-	"order-service/internal/infra"
+	"order-service/internal/application/service"
+	"order-service/internal/infrastructure/logger"
 	"order-service/internal/model"
-	"order-service/internal/service"
 )
 
 type OrderRPCHandler struct {
 	svc    *service.OrderService
-	logger *infra.Logger
+	logger *logger.Logger
 }
 
-func NewOrderRPCHandler(svc *service.OrderService, logger *infra.Logger) *OrderRPCHandler {
+func NewOrderRPCHandler(svc *service.OrderService, logger *logger.Logger) *OrderRPCHandler {
 	return &OrderRPCHandler{svc: svc, logger: logger}
 }
 

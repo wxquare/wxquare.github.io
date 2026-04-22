@@ -1,20 +1,21 @@
-package repository
+package persistence
 
 import (
 	"context"
 	"fmt"
 	"time"
 
-	"order-service/internal/infra"
+	"order-service/internal/infrastructure/logger"
+	"order-service/internal/infrastructure/mysql"
 	"order-service/internal/model"
 )
 
 type OrderRepository struct {
-	db     *infra.MySQLDB
-	logger *infra.Logger
+	db     *mysql.MySQLDB
+	logger *logger.Logger
 }
 
-func NewOrderRepository(db *infra.MySQLDB, logger *infra.Logger) *OrderRepository {
+func NewOrderRepository(db *mysql.MySQLDB, logger *logger.Logger) *OrderRepository {
 	return &OrderRepository{db: db, logger: logger}
 }
 

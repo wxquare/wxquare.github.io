@@ -1,19 +1,19 @@
-package consumer
+package event
 
 import (
 	"context"
 
-	"order-service/internal/infra"
+	"order-service/internal/application/service"
+	"order-service/internal/infrastructure/logger"
 	"order-service/internal/model"
-	"order-service/internal/service"
 )
 
 type PaymentConsumer struct {
 	svc    *service.OrderService
-	logger *infra.Logger
+	logger *logger.Logger
 }
 
-func NewPaymentConsumer(svc *service.OrderService, logger *infra.Logger) *PaymentConsumer {
+func NewPaymentConsumer(svc *service.OrderService, logger *logger.Logger) *PaymentConsumer {
 	return &PaymentConsumer{svc: svc, logger: logger}
 }
 

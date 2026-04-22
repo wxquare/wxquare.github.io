@@ -3,17 +3,17 @@ package http
 import (
 	"context"
 
-	"order-service/internal/infra"
+	"order-service/internal/application/service"
+	"order-service/internal/infrastructure/logger"
 	"order-service/internal/model"
-	"order-service/internal/service"
 )
 
 type OrderHandler struct {
 	svc    *service.OrderService
-	logger *infra.Logger
+	logger *logger.Logger
 }
 
-func NewOrderHandler(svc *service.OrderService, logger *infra.Logger) *OrderHandler {
+func NewOrderHandler(svc *service.OrderService, logger *logger.Logger) *OrderHandler {
 	return &OrderHandler{svc: svc, logger: logger}
 }
 

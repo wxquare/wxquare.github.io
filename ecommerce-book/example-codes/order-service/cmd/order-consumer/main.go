@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 
+	"order-service/internal/application/service"
 	"order-service/internal/bootstrap"
 	"order-service/internal/model"
-	"order-service/internal/service"
 )
 
 func main() {

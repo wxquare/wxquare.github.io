@@ -4,17 +4,17 @@ import (
 	"context"
 	"time"
 
-	"order-service/internal/infra"
+	"order-service/internal/application/service"
+	"order-service/internal/infrastructure/logger"
 	"order-service/internal/model"
-	"order-service/internal/service"
 )
 
 type CloseTimeoutOrderJob struct {
 	svc    *service.OrderService
-	logger *infra.Logger
+	logger *logger.Logger
 }
 
-func NewCloseTimeoutOrderJob(svc *service.OrderService, logger *infra.Logger) *CloseTimeoutOrderJob {
+func NewCloseTimeoutOrderJob(svc *service.OrderService, logger *logger.Logger) *CloseTimeoutOrderJob {
 	return &CloseTimeoutOrderJob{svc: svc, logger: logger}
 }
 

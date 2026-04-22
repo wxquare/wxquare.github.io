@@ -1,4 +1,4 @@
-package infra
+package mysql
 
 import (
 	"context"
@@ -8,15 +8,16 @@ import (
 	"os"
 	"time"
 
+	"order-service/internal/infrastructure/logger"
 	"order-service/internal/model"
 )
 
 type MySQLDB struct {
 	db     *sql.DB
-	logger *Logger
+	logger *logger.Logger
 }
 
-func NewMySQLDBFromEnv(logger *Logger) (*MySQLDB, error) {
+func NewMySQLDBFromEnv(logger *logger.Logger) (*MySQLDB, error) {
 	dsn := os.Getenv("ORDER_MYSQL_DSN")
 	if dsn == "" {
 		dsn = "root:root@tcp(127.0.0.1:3306)/order_service?parseTime=true&charset=utf8mb4&loc=Local"
