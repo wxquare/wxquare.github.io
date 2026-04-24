@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第14章 订单系统 - 电商系统架构设计与实现</title>
+        <title>第15章 订单系统 - 电商系统架构设计与实现</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../../searchindex-c9c8f798.js";
+            window.path_to_searchindex_js = "../../searchindex-b1ec4468.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../../toc-c684b900.js"></script>
+        <script src="../../toc-9030796e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,14 +177,14 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter13.html">上一章</a> | <a href="./chapter15.html">下一章</a></p>
+                        <p><strong>导航</strong>：<a href="../../README.html">书籍主页</a> | <a href="../../SUMMARY.html">完整目录</a> | <a href="./chapter13.html">上一章：第14章</a> | <a href="./chapter15.html">下一章：第16章</a></p>
 <hr>
-<h1 id="第14章-订单系统"><a class="header" href="#第14章-订单系统">第14章 订单系统</a></h1>
+<h1 id="第15章-订单系统"><a class="header" href="#第15章-订单系统">第15章 订单系统</a></h1>
 <blockquote>
 <p><strong>本章定位</strong>：订单系统是交易链路的<strong>编排中枢</strong>。本章在《电商系统设计（七）：订单系统》基础上按书籍体例重组，覆盖数据模型、状态机、创单 Saga、分布式事务（TCC / Saga）、幂等、特殊单类型、履约与系统边界；Go 示例为教学裁剪版，落地时请补全观测、鉴权与错误包装。</p>
 </blockquote>
-<p><strong>阅读提示</strong>：若你已读完第 11 章计价与第 13 章结算，可带着三个问题阅读——第一，<strong>订单快照与计价快照如何对齐版本</strong>；第二，<strong>库存预占发生在结算还是创单，失败时谁补偿</strong>；第三，<strong>支付域与订单域的状态机如何解耦又不丢一致性</strong>。搞清边界后，订单服务才不会长成「上帝对象」。</p>
-<p><strong>与第 16 章案例的衔接</strong>：在 B2B2C 聚合平台中，订单往往还要承载 <strong>供应商订单号、供应商错误码、重试策略版本</strong> 等跨域信息；本章给出的是「平台自营电商」的主干模型，落地到机票、酒店等品类时，应把供应商差异收敛到 <strong>履约网关与扩展表</strong>，避免主表字段爆炸。第 16 章 16.5.3 从全景角度回顾订单在微服务拓扑中的位置，可与本章边界小节交叉阅读。</p>
+<p><strong>阅读提示</strong>：若你已读完第 12 章计价与第 14 章结算，可带着三个问题阅读——第一，<strong>订单快照与计价快照如何对齐版本</strong>；第二，<strong>库存预占发生在结算还是创单，失败时谁补偿</strong>；第三，<strong>支付域与订单域的状态机如何解耦又不丢一致性</strong>。搞清边界后，订单服务才不会长成「上帝对象」。</p>
+<p><strong>与第 17 章案例的衔接</strong>：在 B2B2C 聚合平台中，订单往往还要承载 <strong>供应商订单号、供应商错误码、重试策略版本</strong> 等跨域信息；本章给出的是「平台自营电商」的主干模型，落地到机票、酒店等品类时，应把供应商差异收敛到 <strong>履约网关与扩展表</strong>，避免主表字段爆炸。第 17 章 17.5.3 从全景角度回顾订单在微服务拓扑中的位置，可与本章边界小节交叉阅读。</p>
 <hr>
 <h2 id="141-系统概览"><a class="header" href="#141-系统概览">14.1 系统概览</a></h2>
 <h3 id="1411-业务场景"><a class="header" href="#1411-业务场景">14.1.1 业务场景</a></h3>
@@ -224,7 +224,7 @@
 <p><strong>版本化 API</strong>：订单查询接口应对外标注 <strong>响应 schema 版本</strong>，并在字段弃用时保留兼容期；创单请求亦应携带 <strong>客户端版本号</strong>，便于回溯「哪一版 App 产生了异常参数」。在契约测试中，把 <strong>错误码表</strong> 与 <strong>幂等语义</strong> 一并纳入回归范围，可显著降低联调返工率。</p>
 <p><strong>成本与存储治理</strong>：订单明细与快照会随时间线性增长，需制定 <strong>冷热分层</strong>（热数据 SSD、冷数据归档到对象存储）与 <strong>压缩策略</strong>（对大 JSON 快照启用压缩列或拆表）。同时评估 <strong>法务保留周期</strong>，避免无限期囤积个人地址数据带来合规风险；到期匿名化应与状态机终态联动触发。</p>
 <p><strong>开发者体验</strong>：订单域建议提供 <strong>本地夹具（fixtures）</strong> 与 <strong>一键造单脚本</strong>，让前端与测试可在秒级生成处于各主状态的样例单；并在 Swagger / Buf 文档中写清每个错误码对应的用户提示与重试建议，减少「联调靠吼」的沟通成本。</p>
-<p><strong>本章与第 6 章关系</strong>：第 6 章从全局角度归纳 Saga、事件驱动与幂等模式；本章把它们落到订单这一 busiest 的编排点上，可作为第 6 章的案例化深读材料。</p>
+<p><strong>本章与第 4 章关系</strong>：第 4 章从全局角度归纳 Saga、事件驱动与幂等模式；本章把它们落到订单这一 busiest 的编排点上，可作为第 4 章的案例化深读材料。</p>
 <p><strong>阅读顺序建议</strong>：若时间有限，可优先精读 14.3、14.4、14.5、14.6、14.9、14.10，其余小节作为查阅索引。</p>
 <p><strong>术语提示</strong>：文中英文术语如 Saga、Outbox、Process Manager 等在团队内首次落地时，请在词汇表写明中文对照与缩写规则，避免口头沟通歧义。</p>
 <pre class="mermaid">flowchart TB
@@ -870,7 +870,7 @@ func (s *Snowflake) Next() (int64, error) {
 <p><strong>演进建议</strong>：早期团队可用「单服务 + 清晰包边界」模拟限界上下文，待调用链路过长再拆 Order / Payment / Fulfillment。拆分时优先把 <strong>回调入口</strong> 与 <strong>定时任务</strong> 迁出，因为它们最容易与核心创单抢资源。无论是否微服务，本章强调的 <strong>快照、状态机、Saga、幂等</strong> 四件套都仍然成立。</p>
 <p>下一章将进入支付系统，重点讨论 <strong>渠道回调、清结算与资金安全</strong>，请保持「订单事实不变，支付驱动状态」的心智模型继续阅读。</p>
 <hr>
-<p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter13.html">上一章</a> | <a href="./chapter15.html">下一章</a></p>
+<p><strong>导航</strong>：<a href="../../README.html">书籍主页</a> | <a href="../../SUMMARY.html">完整目录</a> | <a href="./chapter13.html">上一章：第14章</a> | <a href="./chapter15.html">下一章：第16章</a></p>
 
                     </main>
 

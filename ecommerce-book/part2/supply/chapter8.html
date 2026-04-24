@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第8章 库存系统 - 电商系统架构设计与实现</title>
+        <title>第9章 库存系统 - 电商系统架构设计与实现</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../../searchindex-c9c8f798.js";
+            window.path_to_searchindex_js = "../../searchindex-b1ec4468.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../../toc-c684b900.js"></script>
+        <script src="../../toc-9030796e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,9 +177,9 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter7.html">上一章</a> | <a href="./chapter9.html">下一章</a></p>
+                        <p><strong>导航</strong>：<a href="../../README.html">书籍主页</a> | <a href="../../SUMMARY.html">完整目录</a> | <a href="./chapter7.html">上一章：第8章</a> | <a href="./chapter9.html">下一章：第10章</a></p>
 <hr>
-<h1 id="第8章-库存系统"><a class="header" href="#第8章-库存系统">第8章 库存系统</a></h1>
+<h1 id="第9章-库存系统"><a class="header" href="#第9章-库存系统">第9章 库存系统</a></h1>
 <blockquote>
 <p><strong>本章定位</strong>：库存是交易链路的硬约束之一。本章在统一「商品库存」视角下，给出可扩展到多品类的二维抽象、可落地的扣减与预占策略、供应商集成模式、Redis 与 MySQL 的最终一致性方案，以及清晰的系统边界与工程实践（含 Go 与 Redis Lua）。</p>
 </blockquote>
@@ -712,7 +712,7 @@ func ReconcileItem(ctx context.Context, cfg InventoryConfig) error {
 <p>建议补偿任务具备：<strong>可观测进度、可重入、可限流、可人工跳过</strong>，并在执行前获取分布式锁或基于 <code>order_id</code> 的行级互斥，避免双写打架。</p>
 <p><strong>补偿与对账的分工</strong>：对账偏「批量、周期性、发现漂移」；补偿偏「单点、事件触发、把状态推进到合法终态」。两者叠加才能覆盖「消息乱序」「重复投递」「供应商晚到回调」等真实世界的粗糙边缘。</p>
 <p><strong>Kafka 消费者的吞吐与顺序</strong>：库存事件消费端建议「按 <code>item_id</code> 分区有序 + 批量落库」：<code>item_id</code> 分区可以保证同一商品变更串行应用，批量 <code>INSERT</code> 日志与合并更新可以降低 MySQL TPS。需要警惕的是：<strong>重试会导致重复消息</strong>，因此 MySQL 写入必须基于 <code>event_id</code> 或业务幂等键去重；否则对账会看到「日志重复 / 库存多减」。</p>
-<p><strong>跨库存类型一致性（商品 + 营销）</strong>：秒杀场景下商品预占成功但营销失败时，必须回滚商品预占。回滚失败不要把系统留在「半占用」状态：应记录缺陷单并阻塞该 <code>order_id</code> 的继续支付，直到补偿成功或人工判定。该话题与第 6 章 Saga、第 9 章营销库存紧密相关，本章强调 <strong>库存侧 API 必须可单独幂等重放</strong>，以便编排器反复补偿。</p>
+<p><strong>跨库存类型一致性（商品 + 营销）</strong>：秒杀场景下商品预占成功但营销失败时，必须回滚商品预占。回滚失败不要把系统留在「半占用」状态：应记录缺陷单并阻塞该 <code>order_id</code> 的继续支付，直到补偿成功或人工判定。该话题与第 4 章 Saga、第 10 章营销库存紧密相关，本章强调 <strong>库存侧 API 必须可单独幂等重放</strong>，以便编排器反复补偿。</p>
 <hr>
 <h2 id="86-系统边界与职责"><a class="header" href="#86-系统边界与职责">8.6 系统边界与职责</a></h2>
 <h3 id="861-库存系统的职责边界"><a class="header" href="#861-库存系统的职责边界">8.6.1 库存系统的职责边界</a></h3>
@@ -979,10 +979,10 @@ return codes
 <li>是否具备 <strong>Redis / MySQL / 订单预占</strong> 三角对账与人工门闩？</li>
 <li>供应商异步确认是否有 <strong>映射表 + worker + 人工队列</strong>？</li>
 </ol>
-<p><strong>阅读建议</strong>：若读者刚完成第 7 章商品中心与第 6 章一致性章节，可按「配置初始化 → 创单预占 → 支付确认 → 对账修复」的顺序对照本章示意图走读一遍；再把自家品类的 <code>(management_type, unit_type)</code> 填入矩阵，通常能在工作坊中快速对齐产品与工程预期。建议同时准备 1～2 个真实故障案例作为讨论锚点，避免停留在抽象原则层面。</p>
+<p><strong>阅读建议</strong>：若读者刚完成第 8 章商品中心与第 4 章一致性章节，可按「配置初始化 → 创单预占 → 支付确认 → 对账修复」的顺序对照本章示意图走读一遍；再把自家品类的 <code>(management_type, unit_type)</code> 填入矩阵，通常能在工作坊中快速对齐产品与工程预期。建议同时准备 1～2 个真实故障案例作为讨论锚点，避免停留在抽象原则层面。</p>
 <p><strong>下一章预告</strong>：第 9 章将深入营销系统，重点讨论优惠计算与营销库存（券、活动、补贴）如何与商品库存协同，避免「算得便宜却卖超了」这类跨域问题。</p>
 <hr>
-<p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter7.html">上一章</a> | <a href="./chapter9.html">下一章</a></p>
+<p><strong>导航</strong>：<a href="../../README.html">书籍主页</a> | <a href="../../SUMMARY.html">完整目录</a> | <a href="./chapter7.html">上一章：第8章</a> | <a href="./chapter9.html">下一章：第10章</a></p>
 
                     </main>
 

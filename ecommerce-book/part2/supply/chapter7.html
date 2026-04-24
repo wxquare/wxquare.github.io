@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第7章 商品中心系统 - 电商系统架构设计与实现</title>
+        <title>第8章 商品中心系统 - 电商系统架构设计与实现</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../../searchindex-c9c8f798.js";
+            window.path_to_searchindex_js = "../../searchindex-b1ec4468.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../../toc-c684b900.js"></script>
+        <script src="../../toc-9030796e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,9 +177,9 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter6.html">上一章</a> | <a href="./chapter8.html">下一章</a></p>
+                        <p><strong>导航</strong>：<a href="../../README.html">书籍主页</a> | <a href="../../SUMMARY.html">完整目录</a> | <a href="../overview/chapter5.html">上一章：第7章</a> | <a href="./chapter8.html">下一章：第9章</a></p>
 <hr>
-<h1 id="第7章-商品中心系统"><a class="header" href="#第7章-商品中心系统">第7章 商品中心系统</a></h1>
+<h1 id="第8章-商品中心系统"><a class="header" href="#第8章-商品中心系统">第8章 商品中心系统</a></h1>
 <blockquote>
 <p><strong>本章定位</strong>：商品中心是电商平台的「商品库」与「商品事实源（Source of Truth）」。本章在统一 SPU/SKU 内核的前提下，讨论类目属性、异构品类治理、搜索缓存、订单侧快照，以及与库存、计价等系统的边界与集成模式。内容基于中大型平台常见实践，可直接映射到工程落地与面试追问。</p>
 </blockquote>
@@ -1526,7 +1526,7 @@ go run cmd/main.go
 <hr>
 <h2 id="77-商品快照"><a class="header" href="#77-商品快照">7.7 商品快照</a></h2>
 <h3 id="771-快照的必要性"><a class="header" href="#771-快照的必要性">7.7.1 快照的必要性</a></h3>
-<p>订单域需要展示 <strong>下单瞬间</strong> 的商品标题、主图、规格文本等，若直接引用实时商品，会遇到改价、换图、改标题后的纠纷。<strong>商品快照</strong>提供不可变展示材料；<strong>应付金额</strong>仍应以计价系统快照为准（第 11 章），二者不可混为一谈。</p>
+<p>订单域需要展示 <strong>下单瞬间</strong> 的商品标题、主图、规格文本等，若直接引用实时商品，会遇到改价、换图、改标题后的纠纷。<strong>商品快照</strong>提供不可变展示材料；<strong>应付金额</strong>仍应以计价系统快照为准（第 12 章），二者不可混为一谈。</p>
 <p><strong>法务与客服视角</strong>：客服工单里最常见的问题之一是「我下单时页面明明写的是 A」。若订单只存 <code>spu_id</code> 而不存快照，团队只能凭日志猜测。快照不是为了替代审计日志，而是给 <strong>用户可见解释</strong> 提供最低成本证据链。对跨境业务，还要考虑快照是否包含 <strong>合规字段</strong>（例如能量标、成分表、警示语），这些字段若仅存在运营后台而未进入快照，纠纷时依旧说不清。</p>
 <h3 id="772-生成策略"><a class="header" href="#772-生成策略">7.7.2 生成策略</a></h3>
 <p>推荐策略：</p>
@@ -1682,7 +1682,7 @@ func FindOrCreateSnapshot(ctx context.Context, repo SnapshotRepository, in Snaps
 <h3 id="791-上游供应商运营商家"><a class="header" href="#791-上游供应商运营商家">7.9.1 上游:供应商、运营、商家</a></h3>
 <ul>
 <li><strong>供应商</strong>：Push / Pull 进入同步服务，强调幂等键、版本号与乱序保护。</li>
-<li><strong>运营/商家</strong>：经上架系统或运营后台进入，附带审核流（第 10 章）。</li>
+<li><strong>运营/商家</strong>：经上架系统或运营后台进入，附带审核流（第 11 章）。</li>
 </ul>
 <p><strong>上游权限与审计</strong>：同一 <code>spu_id</code> 可能被供应商改价、运营改标题、商家改图同时触发。需要 <strong>来源优先级</strong> 规则（例如「运营锁定字段」）与冲突检测，否则会出现后写覆盖先写但业务上不合理的结果。审计日志应记录来源系统、操作者、trace id。</p>
 <h3 id="792-下游搜索订单营销计价"><a class="header" href="#792-下游搜索订单营销计价">7.9.2 下游:搜索、订单、营销、计价</a></h3>
@@ -1692,7 +1692,7 @@ func FindOrCreateSnapshot(ctx context.Context, repo SnapshotRepository, in Snaps
 <li><strong>营销</strong>：读取标签、类目、圈品所需属性；避免反向写入商品事实。</li>
 <li><strong>计价</strong>：读取商品类型、类目、基础价参数（不负责促销计算）。</li>
 </ul>
-<p><strong>Hydrate 模式的注意点</strong>：搜索列表常做「列表价、活动标签、库存状态」的 Hydrate。若 Hydrate 强依赖多个下游，商品中心不应成为 <strong>同步扇出中心</strong>；更合理的是由 <strong>导购聚合服务</strong>（第 12 章）编排，商品中心提供批量查询接口即可。</p>
+<p><strong>Hydrate 模式的注意点</strong>：搜索列表常做「列表价、活动标签、库存状态」的 Hydrate。若 Hydrate 强依赖多个下游，商品中心不应成为 <strong>同步扇出中心</strong>；更合理的是由 <strong>导购聚合服务</strong>（第 13 章）编排，商品中心提供批量查询接口即可。</p>
 <h3 id="793-商品数据同步策略"><a class="header" href="#793-商品数据同步策略">7.9.3 商品数据同步策略</a></h3>
 <div class="table-wrapper">
 <table>
@@ -1762,20 +1762,20 @@ func FindOrCreateSnapshot(ctx context.Context, repo SnapshotRepository, in Snaps
 <h3 id="7103-监控告警"><a class="header" href="#7103-监控告警">7.10.3 监控告警</a></h3>
 <p>关注：同步失败率、ES 消费滞后、<code>product.changed</code> 重试队列深度、详情接口 P99、缓存命中率、快照插入冲突率（过高可能暗示序列化不稳定）。</p>
 <p><strong>业务指标</strong>：审核通过率、供应商字段映射失败率、类目覆盖率、快照创建耗时分布。把技术指标与业务指标关联，才能判断「慢」是系统问题还是供应商数据质量问题。</p>
-<p><strong>API 契约、向后兼容与演练（纳入同一治理面）</strong>：商品中心的对外接口往往是全链路最高频依赖之一，<strong>契约治理</strong>与第 6 章「系统集成」方法天然衔接：对供应商同步接口，必须定义 <strong>幂等键</strong>、<strong>最大重试窗口</strong>、<strong>字段默认值</strong>、<strong>未知字段忽略策略</strong>；对前台导购接口，必须定义 <strong>分页稳定性</strong>（游标与 offset 的取舍）、<strong>批量上限</strong>、<strong>降级字段</strong>（例如缺图时的占位图策略）。读取接口新增字段一般向后兼容；删除或改语义字段应走版本化路径（例如 <code>/v2/products</code>）或灰度窗口。写入接口对「部分更新 PATCH」要特别谨慎：SKU 列表部分更新容易导致客户端误删未提交字段，常见做法是显式 <code>replace_skus</code> 模式或提交 <code>version</code> 乐观锁。建议每季度做一次「Kafka 消费滞后 + ES 写入失败 + 缓存大面积失效」的组合演练，验证商品详情是否仍能 <strong>降级可读</strong>、创单是否 <strong>快速失败</strong>、供应商同步是否 <strong>可暂停可恢复</strong>。</p>
+<p><strong>API 契约、向后兼容与演练（纳入同一治理面）</strong>：商品中心的对外接口往往是全链路最高频依赖之一，<strong>契约治理</strong>与第 4 章「系统集成」方法天然衔接：对供应商同步接口，必须定义 <strong>幂等键</strong>、<strong>最大重试窗口</strong>、<strong>字段默认值</strong>、<strong>未知字段忽略策略</strong>；对前台导购接口，必须定义 <strong>分页稳定性</strong>（游标与 offset 的取舍）、<strong>批量上限</strong>、<strong>降级字段</strong>（例如缺图时的占位图策略）。读取接口新增字段一般向后兼容；删除或改语义字段应走版本化路径（例如 <code>/v2/products</code>）或灰度窗口。写入接口对「部分更新 PATCH」要特别谨慎：SKU 列表部分更新容易导致客户端误删未提交字段，常见做法是显式 <code>replace_skus</code> 模式或提交 <code>version</code> 乐观锁。建议每季度做一次「Kafka 消费滞后 + ES 写入失败 + 缓存大面积失效」的组合演练，验证商品详情是否仍能 <strong>降级可读</strong>、创单是否 <strong>快速失败</strong>、供应商同步是否 <strong>可暂停可恢复</strong>。</p>
 <hr>
 <h2 id="711-本章小结"><a class="header" href="#711-本章小结">7.11 本章小结</a></h2>
 <p>商品中心的核心是 <strong>以 SPU/SKU 与类目属性为内核</strong>，用 <strong>事件驱动</strong> 连接搜索与缓存读模型，用 <strong>快照</strong> 服务订单不可变展示，用 <strong>策略与适配器</strong> 治理异构品类。与库存、计价的边界一旦模糊，就会出现超卖、错价、补偿困难等系统性风险。落地时建议团队反复使用三句话自检：<strong>商品中心只保证商品事实</strong>；<strong>库存系统保证数量真相</strong>；<strong>计价系统保证成交金额解释链</strong>。</p>
-<p><strong>与全书其他章节的衔接建议</strong>：读完本章再读第 8 章《库存系统》理解「数量真相」与预占；读第 11 章《计价系统》理解「试算与快照」；读第 12 章《搜索与导购》理解 Hydrate 与索引延迟；读第 14 章《订单系统》理解订单行如何引用商品快照并与 Saga 编排协同。这样可以把「商品写入 → 投影 → 导购 → 创单」串成一条完整的可讲解链路。</p>
+<p><strong>与全书其他章节的衔接建议</strong>：读完本章再读第 9 章《库存系统》理解「数量真相」与预占；读第 12 章《计价系统》理解「试算与快照」；读第 13 章《搜索与导购》理解 Hydrate 与索引延迟；读第 15 章《订单系统》理解订单行如何引用商品快照并与 Saga 编排协同。这样可以把「商品写入 → 投影 → 导购 → 创单」串成一条完整的可讲解链路。</p>
 <p>下一章《库存系统》将从库存真相与预占扣减视角，继续完善交易链路拼图。</p>
 <hr>
-<p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter6.html">上一章</a> | <a href="./chapter8.html">下一章</a></p>
+<p><strong>导航</strong>：<a href="../../README.html">书籍主页</a> | <a href="../../SUMMARY.html">完整目录</a> | <a href="../overview/chapter5.html">上一章：第7章</a> | <a href="./chapter8.html">下一章：第9章</a></p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../../part2/overview/chapter6.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../../part2/overview/chapter5.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -1789,7 +1789,7 @@ func FindOrCreateSnapshot(ctx context.Context, repo SnapshotRepository, in Snaps
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../../part2/overview/chapter6.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../../part2/overview/chapter5.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

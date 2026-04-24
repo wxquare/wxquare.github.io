@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第15章 支付系统 - 电商系统架构设计与实现</title>
+        <title>第16章 支付系统 - 电商系统架构设计与实现</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../../searchindex-c9c8f798.js";
+            window.path_to_searchindex_js = "../../searchindex-b1ec4468.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../../toc-c684b900.js"></script>
+        <script src="../../toc-9030796e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,14 +177,14 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter14.html">上一章</a> | <a href="./chapter16.html">下一章</a></p>
+                        <p><strong>导航</strong>：<a href="../../README.html">书籍主页</a> | <a href="../../SUMMARY.html">完整目录</a> | <a href="./chapter14.html">上一章：第15章</a> | <a href="../../part3/chapter16.html">下一章：第17章</a></p>
 <hr>
-<h1 id="第15章-支付系统"><a class="header" href="#第15章-支付系统">第15章 支付系统</a></h1>
+<h1 id="第16章-支付系统"><a class="header" href="#第16章-支付系统">第16章 支付系统</a></h1>
 <blockquote>
 <p><strong>本章定位</strong>：支付系统是交易链路的<strong>资金收口</strong>与<strong>外部渠道适配中心</strong>。本章在《电商系统设计（八）：支付系统深度解析》的基础上，按书籍体例展开：<strong>分层架构、主链路时序、状态机、退款与营销核算、清结算与对账、幂等与一致性、系统边界与集成</strong>。文中 Go 示例为教学裁剪版，落地时请补全观测、鉴权、错误包装与依赖注入。</p>
 </blockquote>
 <p><strong>阅读提示</strong>：读本章时建议始终带着三个问题——<strong>谁拥有支付单的真相状态</strong>、<strong>回调与主动查询以谁为准闭合</strong>、<strong>差错入账如何可审计回滚</strong>。把这三个问题回答清楚，就能把「渠道差异」与「分布式一致性」从口号落到可执行的工程清单。</p>
-<p><strong>与全书脉络的关系</strong>：第 11 章计价给出「应付金额的合理解释」，第 13 章结算完成「资源锁定」，第 14 章订单沉淀「业务承诺」，本章则把承诺兑现为<strong>外部世界的扣款事实</strong>；第 16 章会把支付放回 B2B2C 聚合场景，观察供应商履约与渠道结算如何共同挤压支付边界。</p>
+<p><strong>与全书脉络的关系</strong>：第 12 章计价给出「应付金额的合理解释」，第 14 章结算完成「资源锁定」，第 15 章订单沉淀「业务承诺」，本章则把承诺兑现为<strong>外部世界的扣款事实</strong>；第 17 章会把支付放回 B2B2C 聚合场景，观察供应商履约与渠道结算如何共同挤压支付边界。</p>
 <hr>
 <h2 id="151-业务背景"><a class="header" href="#151-业务背景">15.1 业务背景</a></h2>
 <h3 id="1511-支付系统的定位"><a class="header" href="#1511-支付系统的定位">15.1.1 支付系统的定位</a></h3>
@@ -779,7 +779,7 @@ func (s *ReconService) OpenIssue(ctx context.Context, issue ReconIssue) error {
 </table>
 </div>
 <p><strong>幂等与「恰好一次」</strong>：分布式系统里更现实的目标是<strong>效果幂等</strong>——重复执行不会产生额外副作用。消息系统通常是至少一次投递，因此消费者必须能扛重复。</p>
-<p><strong>与第6章的衔接</strong>：支付是幂等设计「压力最大的考场」，因为它同时承受用户重试、渠道重放、内部补偿三路冲击。建议把幂等键规范写成<strong>跨团队接口标准</strong>（HTTP Header 命名、长度、字符集、过期策略），否则订单、支付、营销各自发明一套键，联调阶段会指数级爆炸。</p>
+<p><strong>与第4章的衔接</strong>：支付是幂等设计「压力最大的考场」，因为它同时承受用户重试、渠道重放、内部补偿三路冲击。建议把幂等键规范写成<strong>跨团队接口标准</strong>（HTTP Header 命名、长度、字符集、过期策略），否则订单、支付、营销各自发明一套键，联调阶段会指数级爆炸。</p>
 <h3 id="1572-重试机制"><a class="header" href="#1572-重试机制">15.7.2 重试机制</a></h3>
 <p>重试划分为三类：</p>
 <ol>
@@ -968,9 +968,9 @@ func OnPaymentSuccessTx(tx *sql.Tx, paymentID, orderID int64) error {
 <h2 id="1511-本章小结"><a class="header" href="#1511-本章小结">15.11 本章小结</a></h2>
 <p>本章从<strong>业务背景</strong>出发，给出了支付平台的<strong>分层架构图</strong>，并以<strong>时序图</strong>贯穿「创单 → 路由 → 回调 → Outbox 同步订单」的主链路；用<strong>状态机图</strong>约束支付单生命周期，并补充退款单状态联动；在<strong>清结算与对账</strong>部分给出分账示例、T+N 口径区分、对账 join 思路与差错闭环流程图；在<strong>幂等与一致性</strong>部分拆分创建、回调、退款、消息消费等幂等键，并给出指数退避重试、补偿任务调度、Saga + 本地消息表与 TCC 选型边界；最后通过<strong>系统边界</strong>与<strong>对外集成</strong>回扣订单、营销、用户、渠道、财务协作中的异常分层与回调幂等清单。</p>
 <p>若把本章压缩成上线前检查表，可以只保留八条：<strong>唯一幂等键</strong>、<strong>验签先于业务</strong>、<strong>状态机集中校验</strong>、<strong>成功响应晚于提交</strong>、<strong>Outbox 同事务</strong>、<strong>消费者幂等</strong>、<strong>对账可回放</strong>、<strong>密钥与权限最小化</strong>。这八条都做到，未必能保证「永不故障」，但能保证故障<strong>可定位、可止血、可复盘</strong>。</p>
-<p>把支付系统做好，本质上是在持续回答一句话：<strong>在不可靠的网络与不可控的第三方之上，如何让用户与平台都相信「这笔钱的状态是真的」</strong>。下一章将进入全书综合案例（第16章），从平台视角回看支付在整体架构中的位置与演进路径。</p>
+<p>把支付系统做好，本质上是在持续回答一句话：<strong>在不可靠的网络与不可控的第三方之上，如何让用户与平台都相信「这笔钱的状态是真的」</strong>。下一章将进入全书综合案例（第17章），从平台视角回看支付在整体架构中的位置与演进路径。</p>
 <hr>
-<p><strong>导航</strong>：<a href="./index.html">书籍主页</a> | <a href="./TOC.html">完整目录</a> | <a href="./chapter14.html">上一章</a> | <a href="./chapter16.html">下一章</a></p>
+<p><strong>导航</strong>：<a href="../../README.html">书籍主页</a> | <a href="../../SUMMARY.html">完整目录</a> | <a href="./chapter14.html">上一章：第15章</a> | <a href="../../part3/chapter16.html">下一章：第17章</a></p>
 
                     </main>
 
