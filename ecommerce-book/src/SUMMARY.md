@@ -4,12 +4,14 @@
 
 ---
 
-# 第一部分：架构方法论与设计原则
+# 第一部分：架构设计方法论
 
-- [第1章 架构设计三位一体](part1/chapter1.md)
-- [第2章 领域驱动设计战略篇](part1/chapter2.md)
-- [第3章 整洁代码与设计模式](part1/chapter3.md)
-- [第4章 架构质量保障](part1/chapter4.md)
+- [第1章 架构师的组合拳](part1/chapter1.md)
+- [第2章 业务边界与战略设计](part1/chapter2.md)
+- [第3章 系统内部结构设计](part1/chapter3.md)
+- [第4章 系统集成与一致性设计](part1/chapter4.md)
+- [第5章 编码原则与设计模式](part1/chapter5.md)
+- [第6章 架构质量保障](part1/chapter6.md)
 
 ---
 
@@ -17,29 +19,28 @@
 
 ## Part A：全局架构
 
-- [第5章 电商系统全景图](part2/overview/chapter5.md)
-- [第6章 系统集成与一致性设计](part2/overview/chapter6.md)
+- [第7章 电商系统全景图](part2/overview/chapter5.md)
 
 ## Part B：商品供给与运营
 
-- [第7章 商品中心系统](part2/supply/chapter7.md)
-- [第8章 库存系统](part2/supply/chapter8.md)
-- [第9章 营销系统](part2/supply/chapter9.md)
-- [第10章 商品供给与运营管理](part2/supply/chapter10.md)
+- [第8章 商品中心系统](part2/supply/chapter7.md)
+- [第9章 库存系统](part2/supply/chapter8.md)
+- [第10章 营销系统](part2/supply/chapter9.md)
+- [第11章 商品供给与运营管理](part2/supply/chapter10.md)
 
 ## Part C：交易链路
 
-- [第11章 计价系统设计与实现](part2/transaction/chapter11.md)
-- [第12章 搜索与导购](part2/transaction/chapter12.md)
-- [第13章 购物车与结算](part2/transaction/chapter13.md)
-- [第14章 订单系统](part2/transaction/chapter14.md)
-- [第15章 支付系统](part2/transaction/chapter15.md)
+- [第12章 计价系统设计与实现](part2/transaction/chapter11.md)
+- [第13章 搜索与导购](part2/transaction/chapter12.md)
+- [第14章 购物车与结算](part2/transaction/chapter13.md)
+- [第15章 订单系统](part2/transaction/chapter14.md)
+- [第16章 支付系统](part2/transaction/chapter15.md)
 
 ---
 
 # 第三部分：综合案例与落地
 
-- [第16章 B2B2C平台完整架构](part3/chapter16.md)
+- [第17章 B2B2C平台完整架构](part3/chapter16.md)
 
 ---
 

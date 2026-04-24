@@ -1,888 +1,957 @@
 
-**导航**：[书籍主页](./index.md) | [完整目录](./TOC.md) | [上一章](./chapter3.md) | [下一部分：第5章](./chapter5.md)
+**导航**：[书籍主页](../README.md) | [完整目录](../SUMMARY.md) | [上一章：第3章](./chapter3.md) | [下一章：第5章](./chapter5.md)
 
 ---
 
-# 第4章 架构质量保障
+# 第4章 系统集成与一致性设计
 
-> 分阶段 Code Review：从架构决策到上线前检查的实战清单
+> 事件驱动、集成模式与最终一致性，解决系统之间的协作问题
+
+**本章定位**：前两章分别解决了业务边界与系统内部结构，本章开始讨论第三个层面的问题：**当多个上下文或多个服务开始协作时，系统应该如何集成，以及不再共享同一本地事务后如何保持一致性**。这里的方法论重点不再是分层与建模，而是事件驱动、幂等、补偿、对账、Outbox 与 Saga。
+
+**阅读提示**：若你更熟悉「一个数据库里用本地事务搞定一切」的单体思维，建议带着三个问题读完全章——第一，**分区发生时你更不愿意牺牲哪一项**（一致性、可用性、延迟）；第二，**失败是可逆还是不可逆**（决定补偿语义）；第三，**重复请求与重复消息是否已被建模为一等公民**（决定幂等与 Outbox 是否值得投资）。
+
+**章节衔接**：第 1 章给出组合拳全景，第 2 章划边界，第 3 章解决边界之内的结构设计；本章则把视角抬升到**边界之间**。后续第 7 章到第 16 章在讲商品、库存、营销、计价、购物车、订单与支付时，都会反复回到本章的词汇表与模式库。
+
+**写作约定**：文中 Go 示例为教学裁剪版，聚焦结构与语义；生产落地请补齐超时、退避、注入、鉴权、观测字段与错误码规范，并把「成功 / 业务失败 / 可重试失败」三类语义贯穿全链路。阅读时建议对照你们公司的网关规范、数据库迁移规范与消息平台手册做二次裁剪，并把示例中的表名与字段名映射到真实审计字段、合规要求与数据留存周期。
 
 ---
 
-## 4.1 为什么需要分阶段评审
+## 6.1 分布式事务挑战
 
-软件工程里有一句常被引用的话：**好的代码是重构出来的，不是一次写出来的**。初稿几乎必然欠打磨，真正可靠的质量来自持续、有纪律的迭代。Code Review 把这种迭代前移到合并之前——它把个人习惯拉平到团队标准，把隐性知识显性化，把缺陷拦截在扩散之前。
+跨服务、跨库、跨供应商的电商链路，本质上是在**没有全局锁**的前提下完成协作。讨论「分布式事务」之前，先要统一语言：我们追求的往往不是银行核心那种「强一致实时可见」，而是**用户可理解的一致性**与**财务可审计的一致性**的组合。
 
-然而，「随便看看」式的评审往往流于表面：有人只看风格，有人只看有没有明显 bug，有人被 diff 的噪声淹没。结果是：架构层面的失误晚到无法廉价修正，设计层面的模糊在代码里被放大成技术债，上线前才发现性能或可观测性缺口。
+**把一致性目标写成 SLO**：方法论章节最容易停留在概念层，落地时建议把「一致性」翻译成可监控指标。例如：「创单成功后 99.9% 用户在 1 秒内读到订单详情」「支付成功后 5 分钟内订单状态同步完成」「对账差异在 T+1 日内闭环率」。没有指标，团队就会在事故后争论「这算不算一致」。SLO 也会反向约束集成模式：如果你承诺秒级读己之所写，就不能把关键读路径绑在慢消费者之后。
 
-### 4.1.1 单次 PR 评审的认知陷阱
+**可观测性是最小一致性保障**：跨系统集成里，最大风险不是「短暂不一致」，而是「不知道不一致发生在哪」。因此链路追踪（Trace）、关联 ID（`order_id` / `payment_id` / `idempotency_key`）、以及跨系统日志检索规范，应被视为一致性基础设施的一部分，而不是「运维锦上添花」。当你能在 5 分钟内从用户投诉定位到具体参与方与具体请求，你已经把大量 P1 事故降级为 P3。
 
-| 陷阱 | 典型表现 | 后果 |
-|------|----------|------|
-| **问题域混杂** | 在讨论 SQL 索引时顺便「拍板」限界上下文 | 决策缺少干系人与记录，后续反复 |
-| **噪声淹没信号** | 2000 行 MR 里找架构问题 | 高风险项被 style nitpick 挤出注意力 |
-| **缺少外部脚手架** | 依赖评审者当天状态 | 遗漏与团队经验强相关，不可复制 |
+### 6.1.1 CAP 理论在电商中的应用
 
-**Checklist 的价值**在于降低认知负荷：在疲劳、时间压力或上下文切换时，仍有一个外部脚手架防止遗漏。它并不替代经验与判断力——遇到清单未覆盖的灰区，恰恰说明团队应该把新教训**反哺**进清单或 ADR（Architecture Decision Record）。
+CAP 指出：在**网络分区（P）**客观存在时，系统只能在 **C（线性化一致性）** 与 **A（可用性：非故障节点可继续响应）** 之间做权衡。电商里更务实的表述是：
 
-### 4.1.2 四阶段评审：在正确时机问正确问题
+- **P 不可逃避**：机架故障、运营商割接、云厂商区域抖动都会制造分区；你的系统要么承认它，要么假装它不存在（后者通常以事故收场）。
+- **C 与 A 不是 0/1**：多数业务选择的是 **延迟可接受的一致性**（例如订单创建立即可见、搜索索引秒级滞后）与 **降级后的可用性**（例如暂停个性化推荐但不阻断下单）。
 
-本书建议按**四个阶段**组织评审，而不是在单次 PR 里眉毛胡子一把抓：
-
-1. **架构评审**：新项目、新服务、新子域或大规模模块拆分——确认分层、边界、读写路径与技术选型。
-2. **设计评审**：接口与模型冻结前——核对聚合、命令 / 查询、领域事件与模式选型是否与领域一致。
-3. **代码评审**：日常 MR——用 SOLID、函数质量、命名、错误处理与依赖方向守住实现细节。
-4. **上线前检查**：发布窗口——补齐性能、并发、可观测性、测试、回滚与文档。
+下面的三角图用三个顶点表达「三者不可同时取满」的直觉（示意，非形式化证明）。
 
 ```mermaid
 flowchart LR
-  A[架构评审<br/>设计期] --> B[设计评审<br/>详设期]
-  B --> C[代码评审<br/>MR 期]
-  C --> D[上线前检查<br/>合并期]
-  D --> E[发布 / 观测 / 复盘]
+  subgraph CAP[CAP 在分区下的取舍三角]
+    C((C\n强一致 / 线性化))
+    A((A\n高可用 / 持续服务))
+    P((P\n分区容错))
+  end
+  C ---|分区下难与 A 兼得| A
+  A ---|要一致则需限制写入| P
+  P ---|承认分区| C
+
+  style C fill:#ffebee
+  style A fill:#e8f5e9
+  style P fill:#e3f2fd
 ```
 
-### 4.1.3 运作建议：让清单「活」起来
+**电商映射示例**：
 
-- **责任人明确**：架构项由 Tech Lead / 架构负责人主评；设计项由领域 Owner 主评；PR 项由作者与至少一名熟悉该域的审阅者共担；上线前项与 SRE / On-call 对齐。
-- **粒度分层**：巨型 MR 可先要求作者附「自审清单」勾选说明，再在评论里对争议点逐条引用章节编号，避免无结构的「感觉不对」。
-- **与工具链结合**：复杂度、静态检查、依赖图、覆盖率门槛作为**门禁**；清单作为**人工语义层**补充（例如：覆盖率够了但测的是 happy path，仍需人眼过业务不变量）。
-- **可追溯结论**：架构与设计阶段的结论落在 ADR、RFC 或设计文档；Code Review 只核对「实现是否背离结论」。PR 中发现架构级问题应**上升**到设计讨论，而不是在局部 hack 里修掉症状。
+| 场景 | 更偏向 | 原因 |
+|------|--------|------|
+| 支付记账、余额扣减 | CP 倾向 | 差错成本高，宁可失败重试也不要错账 |
+| 商品详情、推荐列表 | AP 倾向 | 短暂旧数据可接受，可用性影响转化 |
+| 创单 + 库存预占 | 工程上常选 **BASE + 补偿** | 同步强一致跨多服务代价大，Saga / TCC 更常见 |
 
-#### 团队实践案例
+在 CAP 之外，工程讨论里还常用 **PACELC**：在**正常（Latency）**与**分区（Partition）**两种状态下，分别在 **C 与 A**、**C 与 L（延迟）**之间权衡。电商系统的真实矛盾往往不在「选 CP 还是 AP」这种标签，而在「**把哪一类不一致暴露给用户**」：用户能容忍搜索列表晚 1 秒，但很难容忍「支付成功却订单仍待付款」这种语义断裂。于是产品与技术要共同定义 **RPO/RTO 的业务翻译**——例如「支付回调最长可延迟多久仍可被用户理解」「库存预占展示与真实可售不一致的上限是多少」。
 
-**案例 1：架构评审会的标准流程**（某电商团队实践）
+另一个常见误区是把 **「强一致」当成银弹**。跨服务的两阶段提交（2PC）与其变体在微服务规模下会放大故障域：协调者不可用、参与者长时间持锁、尾延迟抖动都会被交易洪峰放大。更稳妥的工程路径通常是：**在单个聚合 / 单个服务内用数据库事务守住硬约束**，跨边界用 **Saga / TCC / 可靠消息**组合，再用 **对账**兜住不可避免的外部异步。
 
-**时机**：新服务立项、重大重构（影响 3+ 服务）、技术选型变更
+### 6.1.2 一致性分类
 
-**参与者**：
-- **必需**：Tech Lead、系统负责人、相关团队代表
-- **可选**：SRE（高可用关注）、DBA（存储关注）、安全（合规关注）
+从工程师落地角度，建议把「一致性」从口号拆成**可见性**、**容错模型**与**经济后果**三层，再映射到技术策略。
 
-**流程**（60 分钟）：
-1. **背景介绍（5分钟）**：系统负责人讲解业务背景、问题域、核心挑战
-2. **架构方案宣讲（15分钟）**：分层、限界上下文、读写路径、技术选型
-3. **质疑与讨论（30分钟）**：按 4.2 清单逐项检查，重点追问：
-   - 依赖方向是否违反？
-   - 边界划分是否合理？（参考第 2 章战略设计）
-   - 读写比假设是否量化？
-   - YAGNI 检查：是否过度设计？
-4. **决策与记录（10分钟）**：
-   - 通过 / 有条件通过 / 回炉重做
-   - 记录到 ADR（Architecture Decision Record）
-   - 指定 Follow-up 责任人
-
-**输出示例**（ADR-015）：
-
-```markdown
-## ADR-015: 订单域引入 CQRS
-
-### 状态
-已批准（2026-04-15）
-
-### 背景
-订单查询（订单列表、详情、搜索）QPS 是写入的 50 倍；
-当前写模型（含 JOIN）拖慢查询性能。
-
-### 决策
-引入 CQRS，读模型使用物化视图（MySQL）+ ES 索引。
-
-### 方案
-- 写模型：订单聚合 + Outbox 事件
-- 读模型：订阅 OrderPlaced / OrderPaid 事件，更新 order_view 表与 ES
-- 一致性：最终一致（可容忍 1-2 秒延迟）
-
-### 风险与对策
-- 风险：读写数据不一致
-- 对策：对账任务（每小时），差异告警
-
-### 评审结论
-通过，需在 Q2 上线前完成性能压测。
+```mermaid
+flowchart TB
+  subgraph L1[用户可见一致性]
+    U1[读己之所写 Read-your-writes]
+    U2[单调读 Monotonic reads]
+    U3[因果一致 Causal]
+  end
+  subgraph L2[跨系统事实来源]
+    S1[单主库权威 Single source of truth]
+    S2[多副本异步复制]
+    S3[事件驱动物化视图]
+  end
+  subgraph L3[财务 / 履约后果]
+    F1[强一致账务]
+    F2[最终一致业务态]
+    F3[对账闭环]
+  end
+  L1 --> L2
+  L2 --> L3
 ```
+
+**谱系速查**：
+
+- **强一致（线性化 / 串行化）**：单个分片内靠数据库事务；跨分片靠分布式协调（代价高、故障域大）。
+- **会话一致 / 单调读**：常见于「用户刚下的单，列表里立刻能看到」——可用主从路由策略与 sticky 读实现。
+- **最终一致**：允许短暂漂移，但必须有**版本、水位、对账与补偿**兜住边界。
+- **因果一致**：适合「评论回复依赖发帖可见」等场景；电商里多用于协作类附属功能，主交易链路仍以订单状态机为准。
+
+为了把「一致性」从论文语言落到排障语言，建议团队在架构评审里强制区分三类问题，并把它们映射到不同手段：
+
+1. **读可见性问题**：用户「刚操作完却看不到」——多数是读写路由、缓存、投影延迟；优先查主从延迟、Outbox 堆积、消费者 lag。
+2. **跨系统事实冲突**：订单说已支付、支付说未成功——多数是回调丢失、幂等键不一致、状态机非法迁移；优先查渠道流水与平台流水对齐。
+3. **跨时间窗口的统计不一致**：GMV 看板与财务口径对不上——多数是异步汇总、时区、退款冲正口径；优先查离线任务水位与口径文档。
+
+下表给出「用户感知」与「系统手段」的对照，用于和需求方对齐预期（避免把技术极限包装成业务承诺）。
+
+| 用户感知目标 | 典型手段 | 需要额外付出的代价 |
+|--------------|----------|--------------------|
+| 下单后列表立刻出现 | 读主库 / 读己之所写路由 | 主库压力、热点风险 |
+| 全站搜索秒级更新 | Outbox + 近实时索引 | 运维复杂度、契约治理 |
+| 支付成功即刻可履约 | 同步确认 + 强校验 + 幂等 | 尾延迟、渠道配额 |
+| 大促高峰仍可下单 | 异步化、削峰、降级读 | 短暂不一致、对账压力 |
+
+### 6.1.3 典型场景分析
+
+1. **创单链路（订单、库存、营销、计价）**：跨多个限界上下文，**同步点越多尾延迟越大**；典型解法是「结算页强校验 + 创单 Saga + 异步投影」。
+2. **搜索与商品主数据**：索引滞后是常态，关键是**可观测的延迟**与**降级展示**（第 12 章）。
+3. **支付回调与渠道对账**：渠道侧状态与平台侧状态**异步收敛**；必须幂等、必须可对账（第 15 章与 6.5 呼应）。
+4. **供应商库存**：供应商为权威时，平台侧是**快照 + 同步策略**；分区时以**可解释的拒单 / 延迟确认**交换「永不超卖」承诺（第 8 章）。
+5. **退款与售后**：涉及支付渠道、营销回退、库存回冲、供应商拦截等多参与方，**不可逆节点**（已打款、已出票）会把「补偿」切换为「工单 / 人工」。这类链路更需要 **Saga 日志 + 对账批次号 + 幂等退款单号** 三件套，避免重复退款与部分成功。
+6. **秒杀与抢购**：热点 SKU 的约束是「库存单调递减」与「请求风暴」叠加。工程上通常是 **Redis 原子预减 + 异步落库对账**，而不是跨服务同步强一致；否则会把尾延迟与失败面扩散到整个站点入口。
+7. **清结算与分账**：平台、商家、渠道、营销补贴多方账本需要在 **T+N** 周期收敛。这里的「一致性」更像会计恒等式：**借贷平衡、可追溯、可审计**，而不是用户请求路径上的毫秒级一致。
+8. **跨境与多币种**：汇率快照、税费、支付路由使得「金额一致」必须显式引入 **snapshot_id / rate_version**，否则对账会把产品问题误判为技术故障。
+
+这些场景的共同点，是都要求你在架构文档里写清楚一句话：**一致性的责任边界在哪里结束**。例如库存预占由库存服务负责语义，订单只保存 `reserve_id` 凭证；支付金额以支付核心的记账为准，订单侧只保存 `pay_amount` 快照与引用号。边界写清楚，集成才不会退化成「谁都能改一笔」。
 
 ---
 
-**案例 2：设计评审中发现聚合边界过大**
+## 6.2 Saga 编排模式
 
-**背景**：订单团队在设计评审时提交了一个 `Order` 聚合，包含订单基础信息、明细、支付记录、履约记录、售后记录。
+Saga 把长事务拆为**本地事务序列**，用**补偿事务**撤销已提交步骤的可逆效果。它不要求全局锁表，也不要求所有参与方实现预留接口（对比 TCC 的 Try/Confirm/Cancel），因此在跨团队集成中最常见。
 
-**评审意见**：
-- **问题**：聚合过大，任何字段变更都需要加载整个对象，性能差
-- **追问**：「支付记录」是否需要和订单在同一事务中修改？
-- **结论**：不需要——支付成功是外部事件触发，可以通过事件异步更新
+很多团队会把「分布式事务」理解成「找一个中间件把多个数据库一次性提交」。在电商微服务里，这种理解往往会把问题推向两个极端：要么 **过度依赖全局协调**（可用性与尾延迟受损），要么 **完全回避一致性话题**（只能靠人肉修数）。Saga 的价值在于承认现实：**跨服务没有免费的全局原子性**，但可以把不确定性收敛到 **可测试的本地事务 + 可审计的补偿 + 可对账的凭证**。当你能清楚说出「哪一步失败会留下什么外部痕迹」，你就已经比大多数项目更接近可控。
 
-**重构方案**：
-- **Order 聚合**：订单基础信息 + 明细（需要强一致性）
-- **Payment 聚合**：支付记录（独立生命周期）
-- **Fulfillment 聚合**：履约记录（独立生命周期）
-- **集成**：通过领域事件（`OrderPlaced`、`OrderPaid`）衔接
+落地时还要区分 **业务失败** 与 **系统失败**：库存不足是业务失败，通常不应触发重试；渠道超时是系统失败，需要退避重试与查询对齐。把两者混在一个 `if err != nil` 里，Saga 会表现为「无意义重试放大雪崩」或「该补偿却不补偿」。建议在错误模型里显式引入 `BusinessError` 与 `TransientError`（或等价错误码），编排器据此分支。
 
-**收益**：订单聚合从平均 2KB 缩小到 500 字节，查询性能提升 4 倍。
+### 6.2.1 Saga 基础概念
 
----
+- **子事务（Local Transaction）**：在一个服务 / 一个库边界内可原子提交。
+- **补偿（Compensation）**：语义上撤销前一步业务效果；**必须幂等**，且要能处理「原操作其实失败」的空补偿。
+- **Saga 日志**：记录每一步状态，支撑断点续跑、人工介入与审计。
 
-**案例 3：PR 评审中拦截的架构违规**
+与 **TCC（Try-Confirm-Cancel）** 相比，Saga 对参与方的接口要求更低，但业务侧要承担更多「补偿语义」的设计成本。可以用下表做模式选型（不是非此即彼，很多系统会在支付子域用更严格的协议，在营销子域用 Saga）。
 
-**背景**：开发者在 HTTP Handler 中直接写 SQL，绕过了应用层。
+| 维度 | Saga | TCC |
+|------|------|-----|
+| 参与方改造 | 低：正向 + 补偿即可 | 高：三阶段接口与资源预留语义 |
+| 一致性强度 | 依赖补偿正确性与对账 | Try 成功后可更强约束提交 |
+| 失败处理 | 补偿链 + 人工兜底 | Cancel 路径必须可靠 |
+| 典型适用 | 创单、结算编排 | 支付、余额、库存强约束场景（团队成熟度高） |
 
-**评审意见**：
+### 6.2.2 编排 vs 协同
 
-```go
-// ❌ 违反依赖方向
-func HandleCreateOrder(w http.ResponseWriter, r *http.Request) {
-    db := mysql.Default() // Handler 直接依赖基础设施
-    _, _ = db.ExecContext(r.Context(), "INSERT INTO orders ...")
-}
+```mermaid
+flowchart LR
+  subgraph Orch[编排 Orchestration]
+    O[OrderOrchestrator\n集中状态机]
+    O --> I[InventorySvc]
+    O --> M[MarketingSvc]
+    O --> P[PricingSvc]
+  end
+
+  subgraph Cho[协同 Choreography]
+    E1[OrderCreated 事件]
+    E2[InventoryReserved 事件]
+    E3[MarketingLocked 事件]
+    OrdSvc[订单服务]
+    InvSvc[库存服务]
+    MktSvc[营销服务]
+    OrdSvc --> E1 --> InvSvc
+    InvSvc --> E2 --> MktSvc
+    MktSvc --> E3
+  end
 ```
 
-**处理流程**：
-1. **识别问题**：违反 4.2.1 依赖方向检查
-2. **上升讨论**：在 PR 中标记 `needs-architecture-review`
-3. **解决方案**：
-   - 定义应用层用例：`PlaceOrderUseCase`
-   - 定义领域层端口：`OrderRepository`
-   - Handler 只依赖应用层
-4. **后续**：将此类问题补充到团队的「评审反模式」文档
+**选型经验**：
 
-**经验**：当 PR 中出现架构级违规时，不要在代码层面修修补补，而是**叫停并重新设计**。短期看延迟了交付，长期避免了技术债累积。
+- **编排**：调试路径清晰，适合**强流程**（创单、退款、结算）；缺点是编排器可能成为热点与变更集中点。
+- **协同**：解耦参与者，适合**弱流程扩展**；缺点是全局可观测性与顺序约束更难，需要严格的**事件契约与版本治理**。
 
-### 4.1.4 何时进入哪一阶段：决策树
+电商创单、退款等**有严格顺序与对账要求**的链路，业界更常见的是**编排为主、事件为辅**。
+
+**混合形态**：编排器完成「强一致点的凭证收集」（试算快照、预占号、营销锁），聚合根提交后再通过 **Outbox** 广播 `OrderCreated` 给搜索、推荐、风控等读模型或旁路系统。这样既保留集中调试与审计的主线，又避免把读侧耦合进同步链路。
+
+### 6.2.3 补偿机制设计
+
+补偿不是「数据库回滚」的同义词，而是**业务语义撤销**。设计要点：
+
+1. **可逆性分级**：库存释放、券解锁可逆；已发货、已出票常不可逆，需要转入**人工 / 工单 / 财务**流程。
+2. **补偿的幂等**：网络重试会导致补偿重复执行；应用层用**业务幂等键**或**状态检查**保证安全。
+3. **失败面分类**：业务拒绝（库存不足）与基础设施故障（超时）要分流，后者才触发重试与退避。
+4. **超时与悬挂**：子调用超时后，编排器要通过**查询接口**把「未知」落成「成功 / 失败」之一，再决定前进或回滚。
+
+**Saga 持久化与恢复**：请求线程崩溃、实例重启、发布滚动都会导致「执行到一半」的外部视图。生产系统应至少落一张 `saga_instance` 表（或等价事件日志），字段建议包含：`saga_id`、`biz_key`（幂等键）、`current_step`、`status`（running/compensating/succeeded/failed）、`payload_json`、`started_at`、`updated_at`、`version`（乐观锁）。恢复线程按 `status=running` 扫描，结合每步的 **query** 结果把流程推向下一个合法状态。没有这张表，你只能依赖日志拼凑现场，事故复盘成本会指数级上升。
+
+**并发与重入**：同一个 `biz_key` 的重复请求不应启动第二个 Saga 实例。常见做法是「数据库唯一约束 + 返回进行中的 saga_id」或「Redis 分布式锁（短 TTL + 续期谨慎）」。锁方案要警惕：锁超时后另一个实例进入，会造成双轨执行；因此最终仍应以 **幂等键与 Saga 状态机** 作为真相来源。
+
+```mermaid
+sequenceDiagram
+  participant O as Orchestrator
+  participant S as StepService
+  O->>S: forward()
+  alt 成功
+    S-->>O: OK
+    O->>O: persist saga step done
+  else 明确失败
+    S-->>O: FAIL business
+    O->>S: compensate previous (idempotent)
+    S-->>O: OK
+  else 超时 / 未知
+    S-->>O: TIMEOUT
+    O->>S: query()
+    S-->>O: committed? yes/no
+    O->>O: reconcile then forward or compensate
+  end
+```
+
+### 6.2.4 订单创建的 Saga 实例
+
+下面给出一个**教学裁剪版**但**结构完整**的 Go 示例：三步正向（计价快照绑定、库存预占、营销锁定）与两步补偿（释放库存、解锁营销）。示例省略了真实 RPC、链路追踪与部分错误包装，但保留**编排骨架、幂等键透传、补偿逆序**等关键结构。
+
+**Saga 流程图**：
 
 ```mermaid
 flowchart TD
-  start([变更进入评审]) --> q1{是否改变系统边界<br/>或核心数据流?}
-  q1 -->|是| arch[必须先过架构评审<br/>必要时更新 ADR]
-  q1 -->|否| q2{是否改变聚合 / 事件契约<br/>或对外 API 语义?}
-  q2 -->|是| design[设计评审 + 契约评审]
-  q2 -->|否| code[代码评审 MR]
-  arch --> design
-  design --> code
-  code --> q3{是否进入发布窗口<br/>或影响关键路径 SLO?}
-  q3 -->|是| ship[上线前检查]
-  q3 -->|否| merge[合并后持续观测]
-  ship --> merge
+  Start([开始 CreateOrderSaga]) --> T1[Step1: AttachPriceSnapshot]
+  T1 -->|失败| X1([结束: 失败无补偿])
+  T1 -->|成功| T2[Step2: ReserveInventory]
+  T2 -->|失败| C1[Comp1: 无需库存补偿]
+  T2 -->|成功| T3[Step3: LockMarketing]
+  T3 -->|失败| C2[Comp2: ReleaseInventory]
+  T3 -->|成功| Done([持久化订单\n提交本地事务])
+  C2 --> X2([结束: 已回滚库存])
+
+  style Done fill:#e8f5e9
+  style X1 fill:#ffebee
+  style X2 fill:#fff3e0
 ```
 
----
+**Go 编排骨架**（单文件可 `go run`，将下游调用替换为真实 gRPC / HTTP SDK 即可落地）：
 
-## 4.2 架构评审阶段
+**Walk-through（对照流程图读代码）**：
 
-**适用时机**：立项、新服务、新子域或大规模模块拆分。目标是在写大量代码之前，把**分层、边界、一致性、读写特征与技术选型**对齐。
-
-### 4.2.1 分层结构检查
-
-**标准**：是否明确定义 **Domain / Application / Adapter / Infrastructure**（或等价四层）？源代码依赖是否**一律指向内层**（Domain 为最内），外层通过接口向内依赖？
-
-**反例（违反依赖方向）**：HTTP Handler 直接 `import` 具体 MySQL 驱动或 ORM 包，绕过应用服务与领域端口。
+1. `AttachSnapshot` 失败时，系统尚未占用库存与营销资源，因此直接返回错误即可，对应流程图左侧「失败无补偿」分支。
+2. `Reserve` 成功后，`reserve_id` 成为库存侧的**外部凭证**；后续任何释放都必须携带它，并在库存服务侧以幂等方式处理。
+3. `LockPromo` 失败进入补偿：只释放库存，不解锁营销（因为锁未成功）。若未来某版本 `LockPromo` 变成「部分成功」（例如锁定成功但写审计失败），必须把补偿扩展为「先查锁是否存在再解锁」，否则会出现补偿空转或补偿遗漏。
+4. `Run` 成功后，订单服务应在**单一本地事务**中写入订单主表、明细、价格快照引用、外部凭证集合，并写入 Outbox 触发下游投影。不要把「订单持久化」拆到多个没有事务边界的 RPC 里，否则你会重新发明分布式事务。
 
 ```go
-// BAD: handler depends on concrete DB package
-import "github.com/org/repo/infra/mysql"
-
-func HandlePlaceOrder(w http.ResponseWriter, r *http.Request) {
-    db := mysql.Default()
-    _, _ = db.ExecContext(r.Context(), "INSERT INTO orders ...")
-}
-```
-
-**合规方向**：Handler 只依赖应用层用例；持久化通过 **Repository 接口**在领域或应用边界声明，由 Infra 实现。
-
-```go
-// GOOD: handler -> application port -> domain; infra implements port
-type PlaceOrderHandler struct {
-    App *application.OrderService
-}
-
-func (h *PlaceOrderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-    cmd, err := decodePlaceOrder(r)
-    if err != nil {
-        http.Error(w, "bad request", http.StatusBadRequest)
-        return
-    }
-    if err := h.App.PlaceOrder(r.Context(), cmd); err != nil {
-        http.Error(w, err.Error(), http.StatusConflict)
-        return
-    }
-    w.WriteHeader(http.StatusCreated)
-}
-```
-
-| 检查点 | 通过标准 | 常见反模式 |
-|--------|----------|------------|
-| 依赖方向 | `domain` 不引用 `adapter` / `infra` | Handler 内写 SQL |
-| 端口归属 | Repository 接口由内层拥有 | 接口定义在 `infra` 被 `domain` 引用 |
-| 组装根 | `main` / `cmd` 完成绑定 | 在领域 `New*` 里创建具体 DB |
-
-**评审追问**：若团队暂时未引入完整四层，是否至少在包级约定 **adapter 不得被 domain import**，并在 CI 用 `grep` / 自定义 linter 守护？
-
-### 4.2.2 限界上下文验证
-
-**标准**：是否识别 **核心域、支撑域、通用域**？每个 BC 是否有清晰的 **Ubiquitous Language** 与对外契约（API / 事件），避免「一个大而全的领域模型」？
-
-**反例**：订单子域与库存子域共用同一个 `Product` 结构体，字段含义在两边互相拉扯。
-
-```go
-// BAD: one struct serves two contexts with conflicting meanings
-type Product struct {
-    ID           string
-    Title        string
-    PriceCent    int64 // pricing in order context
-    WarehouseQty int   // stock in inventory context — coupling contexts
-}
-```
-
-**合规 sketch**：不同 BC 使用不同模型与防腐层翻译；集成通过 API、消息或显式 ACL。
-
-```go
-// GOOD: separate models + explicit mapping at boundary
-type catalog.ProductView struct{ ID, Title string }
-
-type ordering.OrderLine struct {
-    ProductID     string
-    UnitPrice     Money
-    SnapshotTitle string
-}
-
-type inventory.StockUnit struct {
-    SKU    string
-    OnHand int
-}
-```
-
-| 检查点 | 通过标准 | 评审问题 |
-|--------|----------|----------|
-| 模型隔离 | 各 BC 有独立类型与映射层 | 是否共享「富模型」而非仅 ID？ |
-| 契约稳定 | 对外 API / 事件有版本与兼容性策略 | 破坏性变更如何灰度？ |
-| 语言一致 | `docs/glossary.md` 或等价物 | `Customer` 与 `User` 是否混用？ |
-
-### 4.2.3 读写路径分析
-
-**标准**：是否量化 **读写比**、延迟与一致性要求？读路径若存在重 JOIN、宽表、复杂筛选，是否考虑 **独立读模型 / 投影**，而不是全部堆在写模型上？
-
-**反例**：在命令路径（下单）同步执行多表 JOIN 报表查询，拖慢写入尾延迟。
-
-```go
-// BAD: command handler does heavy read for side UI
-func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCommand) error {
-    _ = s.db.QueryRowContext(ctx, `SELECT ... heavy join for dashboard ...`)
-    return s.persistOrder(ctx, cmd)
-}
-```
-
-```go
-// GOOD: split; async projection or query DB
-func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCommand) error {
-    if err := s.orders.Save(ctx, newOrderFrom(cmd)); err != nil {
-        return err
-    }
-    return s.outbox.Publish(ctx, OrderPlaced{OrderID: cmd.IdempotencyKey})
-}
-```
-
-| 检查点 | 通过标准 |
-|--------|----------|
-| 写路径 | 只持久化命令所需最小一致性数据 |
-| 读路径 | 物化视图、搜索索引或专用查询服务 |
-| 指标 | 是否测量 **p99 写延迟** 与 **读 QPS** |
-
-**评审追问**：若读是写的两个数量级以上，独立读模型往往是经济解（与第 1 章 CQRS 呼应）。
-
-### 4.2.4 技术选型审查
-
-**标准**：存储与中间件是否与 **访问模式** 匹配（点查、范围扫、全文检索、图关系、流处理）？是否记录选型假设与回退方案？
-
-| 维度 | 评审问题 |
-|------|----------|
-| 数据量与热点 | 预估行数、分区键、热点键 |
-| 一致性 | 强一致 / 最终一致是否与业务容忍度一致 |
-| 运维成本 | 备份、多 AZ、升级窗口 |
-| 合规 | 留存周期、脱敏、跨地域 |
-
-**反例**：全文搜索需求用 `MySQL LIKE '%keyword%'` 扛流量，缺少倒排索引与相关性能力。
-
-#### 过度设计与 YAGNI（纳入技术选型同一关口）
-
-**标准**：是否仅为**已确认**的变更点引入抽象？能否用更简单的模型先交付，再演化？
-
-**反例**：典型 CRUD 后台强行上 **DDD + CQRS + Event Sourcing** 全家桶，团队无力维护投影与版本化事件。
-
-**评审追问**：若去掉 Event Sourcing，业务是否仍成立？若答案是肯定的，则 ES 很可能是**可选优化**而非当前必需。CQRS 是否由**观测到的读写不对称**驱动，而不是由「流行架构标签」驱动？
-
----
-
-## 4.3 设计评审阶段
-
-**适用时机**：接口评审、领域模型评审、用例与事件清单冻结前。目标是让 **战术设计**（聚合、Repo、Command / Query、事件）与战略分层一致。
-
-### 4.3.1 聚合边界检查
-
-**标准**：**一致性边界**是否以聚合为单位设计？是否避免在单个事务中强行修改多个聚合根，除非有显式的领域规则与补偿策略？
-
-**反例**：一个数据库事务内同时更新 `Order` 与 `Inventory` 聚合，绕过领域事件与最终一致性。
-
-```go
-// BAD: one transaction mutates two aggregates directly
-func SaveOrderAndDeductStock(ctx context.Context, tx *sql.Tx, o *Order, inv *Inventory) error {
-    if err := persistOrder(tx, o); err != nil {
-        return err
-    }
-    inv.Quantity -= o.LineItems[0].Qty
-    return persistInventory(tx, inv)
-}
-```
-
-| 检查点 | 通过标准 |
-|--------|----------|
-| 聚合根入口 | 外部只能通过根修改状态 |
-| 一事务一根 | 跨聚合协作走事件 + 最终一致（或已文档化的 Saga） |
-| 暴露集合 | 不返回可变内部 slice 引用 |
-
-**聚合根识别补充**：外部代码禁止绕过根直接改内部实体（如导出 `[]*OrderLine` 被外部改 `Qty`）。若根方法数量爆炸，区分是**聚合过大**还是缺少**领域服务**。
-
-**实体与值对象（本小节一并核对）**：实体有稳定标识、状态变更走受控方法；值对象**不可变**、按值相等；`Money` 等禁止提供可变 setter，对外构造函数保证合法组合。
-
-### 4.3.2 命令查询分离验证
-
-#### Command 设计
-
-**标准**：命令是否表达 **业务意图**（`PlaceOrder`、`CancelSubscription`），而不是贫血 CRUD（`UpdateOrder` + 任意 `map`）？
-
-```go
-// BAD: command is just a data bag
-type UpdateOrderCommand struct {
-    OrderID string
-    Patch   map[string]any
-}
-```
-
-```go
-// GOOD: explicit intent
-type PlaceOrderCommand struct {
-    CustomerID     string
-    Items          []OrderItemDTO
-    IdempotencyKey string
-}
-```
-
-| 检查点 | 通过标准 |
-|--------|----------|
-| 语义 | 动词 + 业务名词，可映射到用例 |
-| 幂等 | 携带幂等键 / 乐观锁（如需要） |
-| 失败语义 | 可映射为明确业务结果，而非一律 500 |
-
-**Repository（与命令 / 查询配套检查）**：接口定义在**领域层**；方法名表达业务需要（`FindActiveByCustomer`）而非表驱动；复杂筛选优先归入 **Query 侧**，避免 `Repository` 万能方法膨胀。
-
-#### Query 设计
-
-**标准**：查询是否**直接返回 DTO / 读模型**，**不强行加载完整领域图**？是否避免在查询路径上触发写模型副作用？
-
-```go
-// BAD: query returns rich aggregate for read-only UI
-func (s *QueryService) OrderForUI(ctx context.Context, id string) (*domain.Order, error) {
-    return s.orders.LoadFullGraph(ctx, id)
-}
-```
-
-```go
-// GOOD: dedicated read DTO
-type OrderSummaryDTO struct {
-    OrderID   string
-    Status    string
-    TotalCent int64
-    PlacedAt  time.Time
-}
-```
-
-### 4.3.3 领域事件设计
-
-**标准**：关键业务状态变更是否发布 **领域事件**？命名是否使用 **过去式**（`OrderPlaced`、`PaymentCaptured`）并携带必要上下文（版本、发生时间）？
-
-```go
-// BAD: imperative name
-type PlaceOrder struct{ OrderID string }
-
-// GOOD: past tense, domain vocabulary
-type OrderPlaced struct {
-    OrderID    string
-    OccurredAt time.Time
-    Version    int
-}
-```
-
-| 检查点 | 通过标准 |
-|--------|----------|
-| 命名 | 过去式 + 领域词汇 |
-| 载荷 | 消费者演进所需字段（版本、关联 ID） |
-| 投递 | Outbox / 至少一次 + 消费者幂等 |
-
-### 4.3.4 模式选型审查
-
-详设阶段可快速对照下表，避免「每个地方都 if-else」或「每个地方都上框架」。
-
-| 场景特征 | 推荐模式 | 说明 |
-|----------|----------|------|
-| 多步骤顺序流程 | Pipeline（管道） | 与第 3 章 Pipeline 呼应 |
-| 同一接口多种实现 | 策略模式 | 扩展点清晰 |
-| 频繁变化的业务规则 | 规则引擎 / 规则表驱动 | 需版本化与评审 |
-| 跨聚合协作 | 领域事件 + Outbox | 与第 1 章 Outbox 呼应 |
-
-**反例**：全系统统一 `RuleEngine.Execute(ctx, ruleSetID, facts)`，但规则集无人版本化与评审，线上等于「可执行的配置漂移」。
-
-**合规**：规则变更走 **PR + 审计 + 影子流量**；核心不变量仍保留在代码与单测中，引擎只编排**可变的参数化策略**。
-
----
-
-## 4.4 代码评审阶段
-
-**适用时机**：每次合并请求。把设计约束落到 **Go 代码**的可观察性质上。
-
-### 4.4.1 SOLID 原则检查
-
-对每一项，用「一句检查问句」把握核心；争议点再用第 1 章分层与端口对齐。
-
-| 原则 | 检查问句 | 典型反例 | 合规方向 |
-|------|----------|----------|----------|
-| **S** | 该类型是否只有一个变化理由？ | `OrderService` 又发邮件又导 CSV | 按职责拆服务 |
-| **O** | 扩展新行为是否无需改稳定路径？ | `switch payment` 无限增长 | `PaymentGateway` 接口 + 多实现 |
-| **L** | 实现是否可替换且不 surprise？ | `Charge` 静默成功 | 显式 Fake / 诚实错误 |
-| **I** | 客户端是否不被迫依赖不需要的方法？ | `Storage` 胖接口 | `Reader` / `Writer` 隔离 |
-| **D** | 高层是否依赖抽象？ | `NewApp` 内 `sql.Open` | 构造注入 `Repository` |
-
-**DIP 延伸——包级依赖方向**：`domain` 不 import `adapter` / `infra`；`application` 不直接引用 HTTP、ORM、消息 SDK；无循环依赖（必要时提取 `domain/sharedkernel` 最小类型）。`go list -deps` 或 IDE 依赖图可抽查。
-
-**LSP 反例 sketch**：
-
-```go
-// BAD: implementation surprises caller
-type NoOpPaymentGateway struct{}
-func (NoOpPaymentGateway) Charge(ctx context.Context, amount int64) error {
-    return nil // silently skips payment
-}
-```
-
-### 4.4.2 函数质量审查
-
-| 维度 | 阈值 / 标准 | 工具或手段 |
-|------|-------------|------------|
-| 长度 | 单函数宜 < 80 行 | 拆私有步骤或 Pipeline 阶段 |
-| 圈复杂度 | < 10（团队可校准） | `golangci-lint` / `gocyclo` |
-| 嵌套深度 | < 3 | Guard clause 早返回 |
-| 参数个数 | < 5 | Options 结构体或 functional options |
-
-```bash
-gocyclo -over 10 ./...
-```
-
-```go
-// GOOD: named steps keep orchestration readable
-func (h *PlaceOrderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-    ctx := r.Context()
-    if err := h.ensureAuth(ctx, r); err != nil {
-        h.writeErr(w, err)
-        return
-    }
-    cmd, err := h.decode(r)
-    if err != nil {
-        h.writeErr(w, err)
-        return
-    }
-    if err := h.app.PlaceOrder(ctx, cmd); err != nil {
-        h.writeErr(w, err)
-        return
-    }
-    w.WriteHeader(http.StatusCreated)
-}
-```
-
-**评审追问**：`context.Context` 是否作为 **第一个参数** 传递 I/O 边界函数，而不是塞进结构体字段隐式携带？
-
-### 4.4.3 命名与可读性
-
-1. **变量 / 函数名反映业务术语**：名称来自 **Ubiquitous Language**，而非数据库列名机械翻译。
-2. **团队内一致**：同一概念只有一个词（`Customer` vs `User` 要治理）。
-3. **避免技术术语代替业务术语**：不用 `SetStatus(1)`，而用 `MarkShipped()`。
-
-```go
-// BAD: magic status
-func (o *Order) SetStatus(s int) { o.status = s }
-
-// GOOD: business verb
-func (o *Order) MarkShipped(at time.Time) error {
-    if o.status != StatusPaid {
-        return ErrInvalidStateTransition
-    }
-    o.status = StatusShipped
-    o.shippedAt = at
-    return nil
-}
-```
-
-### 4.4.4 错误处理验证
-
-1. **禁止静默忽略错误**：是否存在 `_ = xxx` 或空白 `if err != nil { }`？
-2. **错误 wrap 携带上下文**：跨层 `fmt.Errorf("place order: %w", err)`。
-3. **区分业务错误与系统错误**：调用方能否区分「库存不足」与「应重试的基础设施错误」？
-
-```go
-var ErrOutOfStock = errors.New("out of stock")
-
-func (s *InventoryService) Reserve(ctx context.Context, sku string, qty int) error {
-    if qty > available(sku) {
-        return fmt.Errorf("reserve %s: %w", sku, ErrOutOfStock)
-    }
-    return nil
-}
-```
-
-#### DDD 战术与聚合不变量（与错误语义一并核对）
-
-**聚合不变量 sketch**：
-
-```go
-func (o *Order) AddLine(sku string, qty int, unitCent int64) error {
-    if qty <= 0 {
-        return ErrInvalidQty
-    }
-    if o.status != StatusDraft {
-        return ErrOrderNotEditable
-    }
-    lineTotal := unitCent * int64(qty)
-    if lineTotal < 0 {
-        return ErrOverflow
-    }
-    o.lines = append(o.lines, OrderLine{SKU: sku, Qty: qty, UnitCent: unitCent})
-    o.totalCent += lineTotal
-    return nil
-}
-```
-
----
-
-## 4.5 上线前检查
-
-**适用时机**：发布分支、灰度前、重大重构合并前。与功能完成度无关的「生产就绪」项在此收敛。
-
-### 4.5.1 性能与并发
-
-**性能**：
-
-- 关键路径是否有 **benchmark** 或压测基线？
-- 是否关注 **alloc/op**、GC 停顿、锁竞争（`mutex` profile）？
-- 异步路径是否避免**无界队列**导致内存膨胀？
-
-```go
-func BenchmarkPlaceOrder(b *testing.B) {
-    b.ReportAllocs()
-    for i := 0; i < b.N; i++ {
-        // exercise hot path
-    }
-}
-```
-
-**并发安全**：
-
-```go
-// BAD: unsynchronized map writes
-var cache = map[string]int{}
-func Set(k string, v int) { go func() { cache[k] = v }() }
-
-// GOOD: mutex or single-owner goroutine
-type SafeCache struct {
-    mu sync.RWMutex
-    m  map[string]int
-}
-```
-
-| 检查点 | 通过标准 |
-|--------|----------|
-| 数据竞争 | `go test -race` 纳入 CI 或发布前门禁 |
-| 泄漏 | 长测采样 `NumGoroutine`；channel 不阻塞在默认分支 |
-| 锁内 I/O | 避免在持锁时调用慢外部依赖 |
-
-### 4.5.2 可观测性
-
-**标准**：**metrics**（RED / USE）、**trace**（关键 span）、**结构化日志**（`request_id`、`order_id` 等关联字段）。
-
-```go
-logger.Info("order_placed",
-    "order_id", orderID,
-    "customer_id", customerID,
-    "duration_ms", elapsed.Milliseconds(),
+package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"time"
 )
+
+// ---- 端口：生产环境应使用 gRPC / 生成代码 ----
+
+type PricingClient interface {
+	AttachSnapshot(ctx context.Context, orderID, snapshotID string) error
+}
+
+type InventoryClient interface {
+	Reserve(ctx context.Context, idempotencyKey, orderID, sku string, qty int) (reserveID string, err error)
+	Release(ctx context.Context, idempotencyKey, reserveID string) error
+}
+
+type MarketingClient interface {
+	LockPromo(ctx context.Context, idempotencyKey, orderID, promoRef string) (lockID string, err error)
+	UnlockPromo(ctx context.Context, idempotencyKey, lockID string) error
+}
+
+// ---- 编排器 ----
+
+type CreateOrderCommand struct {
+	OrderID        string
+	IdempotencyKey string
+	PriceSnapshot  string
+	SKU            string
+	Qty            int
+	PromoRef       string
+}
+
+type CreateOrderSaga struct {
+	Pricing   PricingClient
+	Inventory InventoryClient
+	Marketing MarketingClient
+}
+
+func (s *CreateOrderSaga) Run(ctx context.Context, cmd CreateOrderCommand) error {
+	if cmd.OrderID == "" || cmd.IdempotencyKey == "" {
+		return errors.New("invalid command")
+	}
+
+	// Step 1: 绑定计价快照（失败则无资源占用）
+	if err := s.Pricing.AttachSnapshot(ctx, cmd.OrderID, cmd.PriceSnapshot); err != nil {
+		return fmt.Errorf("attach snapshot: %w", err)
+	}
+
+	// Step 2: 库存预占
+	reserveID, err := s.Inventory.Reserve(ctx, cmd.IdempotencyKey+":inv", cmd.OrderID, cmd.SKU, cmd.Qty)
+	if err != nil {
+		return fmt.Errorf("reserve inventory: %w", err)
+	}
+
+	// Step 3: 营销锁定
+	lockID, err := s.Marketing.LockPromo(ctx, cmd.IdempotencyKey+":mkt", cmd.OrderID, cmd.PromoRef)
+	if err != nil {
+		// 补偿：释放库存（逆序）
+		if relErr := s.Inventory.Release(ctx, cmd.IdempotencyKey+":inv:rel", reserveID); relErr != nil {
+			return fmt.Errorf("lock promo failed: %v; release inventory failed: %w", err, relErr)
+		}
+		return fmt.Errorf("lock promo: %w", err)
+	}
+
+	log.Printf("saga ok order=%s reserve=%s lock=%s", cmd.OrderID, reserveID, lockID)
+	// Step 4（示意）：在同一服务的数据库事务里插入订单主表与明细
+	return nil
+}
+
+// ---- 内存桩：演示幂等 + 成功路径 ----
+
+type memPricing struct{}
+
+func (memPricing) AttachSnapshot(ctx context.Context, orderID, snapshotID string) error {
+	return nil
+}
+
+type memInventory struct {
+	released bool
+}
+
+func (m *memInventory) Reserve(ctx context.Context, idempotencyKey, orderID, sku string, qty int) (string, error) {
+	return "resv_123", nil
+}
+
+func (m *memInventory) Release(ctx context.Context, idempotencyKey, reserveID string) error {
+	m.released = true
+	return nil
+}
+
+type memMarketing struct{}
+
+func (memMarketing) LockPromo(ctx context.Context, idempotencyKey, orderID, promoRef string) (string, error) {
+	return "lock_456", nil
+}
+
+func (memMarketing) UnlockPromo(ctx context.Context, idempotencyKey, lockID string) error {
+	return nil
+}
+
+// 将 HTTP 客户端映射为 InventoryClient 的示例（真实项目用专用 SDK）
+type httpInventory struct {
+	client *http.Client
+	url    string
+}
+
+func (httpInventory) Reserve(ctx context.Context, idempotencyKey, orderID, sku string, qty int) (string, error) {
+	// 伪代码：构造 POST /v1/reservations，Header 携带 Idempotency-Key
+	return "", errors.New("not implemented in demo")
+}
+
+func (httpInventory) Release(ctx context.Context, idempotencyKey, reserveID string) error {
+	return errors.New("not implemented in demo")
+}
+
+func main() {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	saga := &CreateOrderSaga{
+		Pricing:   memPricing{},
+		Inventory: &memInventory{},
+		Marketing: memMarketing{},
+	}
+	err := saga.Run(ctx, CreateOrderCommand{
+		OrderID:        "ord_1",
+		IdempotencyKey: "idem_user_click_001",
+		PriceSnapshot:  "pshot_9f3c",
+		SKU:            "sku_a",
+		Qty:            1,
+		PromoRef:       "promo_x",
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 ```
 
-| 检查点 | 通过标准 |
-|--------|----------|
-| 日志 | 键值字段可查询，而非仅拼接长句 |
-| 链路 | 跨服务传播 trace 上下文 |
-| SLO | 新路径有指标与告警阈值 |
+**落地清单（从示例走向生产）**：
 
-### 4.5.3 测试覆盖
+- 为每一步引入**持久化 Saga 表**（`saga_id`、`step`、`status`、`payload`、`error_code`）。
+- 所有 outbound 调用携带**关联 ID**（`order_id`、`trace_id`、`idempotency_key`）。
+- 对「超时未知」统一走 **query + reconcile** 状态机，而不是立刻补偿。
 
-**标准**：核心业务规则覆盖率按团队约定（例如 **> 80%**）；**集成测试**覆盖仓储、消息、外部 HTTP 的 fake / 容器。
+**Saga 表结构示例（MySQL，示意）**：落地时按你们公司的审计规范补全操作者与 trace 字段。
 
-| 检查点 | 通过标准 |
-|--------|----------|
-| 边界 | 表格驱动覆盖错误路径 |
-| Flaky | 修复或隔离，避免 `t.Skip` 永久化 |
-| 语义 | 覆盖不变量，而非仅「能跑通」 |
+```sql
+CREATE TABLE saga_instance (
+  saga_id       BIGINT PRIMARY KEY AUTO_INCREMENT,
+  biz_key       VARCHAR(128) NOT NULL,
+  name          VARCHAR(64)  NOT NULL,
+  status        VARCHAR(32)  NOT NULL,
+  current_step  INT            NOT NULL,
+  payload       JSON           NOT NULL,
+  version       INT            NOT NULL DEFAULT 0,
+  created_at    DATETIME       NOT NULL,
+  updated_at    DATETIME       NOT NULL,
+  UNIQUE KEY uk_saga_biz (biz_key, name)
+);
+
+CREATE TABLE saga_step (
+  id         BIGINT PRIMARY KEY AUTO_INCREMENT,
+  saga_id    BIGINT NOT NULL,
+  step_no    INT    NOT NULL,
+  step_name  VARCHAR(64) NOT NULL,
+  status     VARCHAR(32) NOT NULL,
+  req        JSON,
+  resp       JSON,
+  err        TEXT,
+  created_at DATETIME NOT NULL,
+  KEY idx_saga (saga_id, step_no)
+);
+```
+
+---
+
+## 6.3 事件驱动架构
+
+事件驱动架构（EDA）把系统间的耦合从「知道对方的表结构」变为「订阅对方愿意公布的**事实**」。它与 DDD 的**领域事件（Domain Event）**天然契合：事件名应是业务过去式（`OrderPlaced`），而不是命令式（`PlaceOrder`）。
+
+EDA 并不自动带来解耦：如果事件载荷里塞满下游私有字段，或消费者之间隐式依赖顺序却缺乏分区策略，你只会得到「异步耦合的大泥球」。因此本章强调三件事：**契约**、**顺序边界**、**可观测的投递语义**。与第 16 章的事件发布实践结合时，请把「事件平台能力」与「领域建模能力」分开评估：Kafka 再强也替代不了你对聚合边界的判断。
+
+### 6.3.1 领域事件
+
+领域事件用于表达**聚合内已发生且不可变的事实**。好的事件：
+
+- **自描述**：携带必要标识与版本（`schema_version`）。
+- **可演进**：兼容字段新增，慎改语义。
+- **与命令分离**：命令可丢弃重试；事件一旦发布，消费者会据此做副作用。
+
+**命名与版本**：事件名建议稳定且可检索（`order.placed.v1`），避免把促销规则编码进 topic 名称。载荷里携带 `occurred_at`、`producer`、`schema_version`，消费者才能做 **向后兼容** 解析。另一个实践是把「业务关键字段」与「展示字段」分层：关键字段用于幂等与投影，展示字段允许缺失并由读模型降级。
+
+**聚合边界**：领域事件应从聚合根的**不变量**中自然产生，而不是为了通知某个下游临时「造事件」。后者会导致事件泛滥、顺序难以推理、回放成本失控。若你发现自己需要 `SomethingMaybeChanged` 这类含糊事件，通常意味着限界上下文边界需要重塑。
+
+### 6.3.2 事件的发布与订阅
+
+```mermaid
+flowchart LR
+  subgraph OrderBC[订单限界上下文]
+    AR[Order Aggregate]
+    AR -->|产生| DE[Domain Events]
+    DE --> OB[Outbox Table]
+  end
+  subgraph Infra[基础设施]
+    REL[Outbox Relay / Poller]
+    BUS[(Message Bus)]
+  end
+  subgraph Consumers[订阅方]
+    InvProj[库存读模型投影]
+    Srch[搜索索引增量]
+    Risk[风控评分任务]
+  end
+  OB --> REL --> BUS
+  BUS --> InvProj
+  BUS --> Srch
+  BUS --> Risk
+```
+
+**发布订阅的工程细节**：
+
+- **Topic 分区键**：与顺序性强相关的字段（同一 `order_id`）应映射到同一分区，避免乱序消费；但分区键过粗会造成热点分区，需要业务侧权衡。
+- **消费者组**：一组消费者共享进度，实现水平扩展；重平衡（rebalance）会带来短暂停顿，要评估是否影响实时性 SLA。
+- **至少一次投递**：因此消费者必须 **幂等**；常见实现是 `UNIQUE(consumer, event_id)` 或业务唯一键。
+- **顺序与并行**：能并行就并行（不同聚合互不相关），不能并行就必须把「会改变含义的顺序」收敛到单分区或单线程处理器。
+- **背压**：投影任务落后时，应有 lag 告警与降级读策略，避免把读路径拖死。
+
+与第 16 章「事件发布」对齐时，把「谁允许发什么事件」纳入治理：事件不是自由文本广播，而是**受版本管理的契约**。建议在仓库中维护 `events/` 目录（或 Buf Schema Registry），把破坏性变更当作发布流程的一部分。
+
+### 6.3.3 事件溯源（Event Sourcing）
+
+事件溯源（ES）把**状态还原为事件流的折叠**：`state = fold(events)`。它带来强大审计与回放能力，但也引入：
+
+- **模型复杂度**：投影、快照、版本迁移成本高。
+- **查询压力**：多数业务仍需要物化读模型（CQRS）。
+
+**电商建议**：账务、支付指令、库存流水等**强审计**子域可评估 ES；一般商品展示、搜索索引用**物化视图 + Outbox** 性价比更高（与第 1 章 CQRS 小节呼应）。
+
+**何时值得上 ES**：当你明确需要「按时间回放任意业务态」且愿意投入 **投影重建、快照策略、事件迁移工具链**；否则先用 **审计日志表 + 不可变对象存储归档 + 定期校验** 往往更划算。ES 不是银弹，它是把复杂度从数据库迁移到了事件存储与投影运维。
+
+**快照（Snapshot）**：长生命周期聚合（例如会员账户、长期预售订单）如果每次都从头折叠事件，读路径会不可接受。快照本质是「在某版本截断事件流」，需要定义 **快照写入频率** 与 **快照与事件的版本对齐规则**。
+
+### 6.3.4 实践要点与 Outbox 完整实现
+
+**Outbox 模式**解决的核心矛盾是：**数据库事务提交**与**消息发布**难以跨资源原子化。做法是：在同一本地事务中写入业务表与 `outbox` 表；由独立进程异步投递到消息总线，实现 **at-least-once** 发布且**不丢单**（消费者仍需幂等）。
+
+**Outbox 时序图**：
+
+```mermaid
+sequenceDiagram
+  participant API as Order API
+  participant DB as MySQL
+  participant R as Outbox Relay
+  participant K as Kafka
+
+  API->>DB: BEGIN
+  API->>DB: INSERT orders ...
+  API->>DB: INSERT outbox(event_type,payload,status)
+  API->>DB: COMMIT
+  loop poll
+    R->>DB: SELECT ... FOR UPDATE SKIP LOCKED
+    R->>K: produce message(idempotent key)
+    K-->>R: ack
+    R->>DB: UPDATE outbox SET status=published
+  end
+```
+
+**Go 实现骨架**（使用 `database/sql`；生产环境可替换为 `sqlx` / ORM，但保持「同事务写两张表」不变）：
 
 ```go
-func TestPlaceOrder_OutOfStock(t *testing.T) {
-    t.Parallel()
-    // arrange: 0 stock -> expect ErrOutOfStock
+package outboxdemo
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"time"
+)
+
+type OutboxEvent struct {
+	ID        int64
+	Aggregate string
+	EventType string
+	Payload   json.RawMessage
+	Status    string // pending / published / dead
+	CreatedAt time.Time
+}
+
+type OrderRepository struct {
+	DB *sql.DB
+}
+
+// CreateOrderWithOutbox 演示：订单写入与 outbox 同事务
+func (r *OrderRepository) CreateOrderWithOutbox(ctx context.Context, orderID string, evtType string, payload any) error {
+	bytes, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	tx, err := r.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.ExecContext(ctx, `INSERT INTO orders(id, status) VALUES(?, 'CREATED')`, orderID); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO outbox(aggregate_id, event_type, payload, status, created_at)
+		 VALUES(?,?,?,?,?)`,
+		orderID, evtType, bytes, "pending", time.Now().UTC(),
+	); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// Relay 轮询投递：演示 SKIP LOCKED 多实例安全
+type Relay struct {
+	DB *sql.DB
+}
+
+func (relay *Relay) PollOnce(ctx context.Context, publish func(ctx context.Context, ev OutboxEvent) error) (int, error) {
+	tx, err := relay.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	rows, err := tx.QueryContext(ctx, `
+		SELECT id, aggregate_id, event_type, payload, status, created_at
+		FROM outbox
+		WHERE status='pending'
+		ORDER BY id ASC
+		LIMIT 50
+		FOR UPDATE SKIP LOCKED`)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	var batch []OutboxEvent
+	for rows.Next() {
+		var ev OutboxEvent
+		var agg string
+		if err := rows.Scan(&ev.ID, &agg, &ev.EventType, &ev.Payload, &ev.Status, &ev.CreatedAt); err != nil {
+			return 0, err
+		}
+		ev.Aggregate = agg
+		batch = append(batch, ev)
+	}
+	if len(batch) == 0 {
+		return 0, tx.Commit()
+	}
+
+	for _, ev := range batch {
+		if err := publish(ctx, ev); err != nil {
+			return 0, err
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE outbox SET status='published' WHERE id=?`, ev.ID); err != nil {
+			return 0, err
+		}
+	}
+	return len(batch), tx.Commit()
+}
+
+func DemoDDL() string {
+	return `
+CREATE TABLE IF NOT EXISTS orders (
+  id VARCHAR(64) PRIMARY KEY,
+  status VARCHAR(32) NOT NULL
+);
+CREATE TABLE IF NOT EXISTS outbox (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  aggregate_id VARCHAR(64) NOT NULL,
+  event_type VARCHAR(128) NOT NULL,
+  payload JSON NOT NULL,
+  status VARCHAR(16) NOT NULL,
+  created_at DATETIME NOT NULL,
+  KEY idx_outbox_pending (status, id)
+);`
 }
 ```
 
-### 4.5.4 回滚方案
+**工程清单**：
 
-**标准**：**feature flag** 或配置开关；**数据库迁移**可回滚或具备向前兼容的双写 / 双读；事件 schema **向后兼容**或双写新字段。
+- Relay 进程要**独立扩容**，与 API 进程分离；发布失败应**退避重试**并将多次失败送入死信队列人工处理。
+- 消息体应携带 **`event_id` / `aggregate_id` / `causation_id`**，与消费者表上的唯一约束联合实现端到端幂等。
+- 与第 16 章「事件发布」衔接时，把**事件契约**（JSON Schema / Protobuf）纳入 CI，避免「字段悄悄改名」造成投影脏写。
 
-#### 回滚方案检查清单
+**Outbox 运维要点**：`pending` 堆积通常不是 Kafka 坏了，而是 **Relay 吞吐不足、DB 锁竞争、或下游拒绝消息**。建议把以下指标做成仪表盘：`outbox_pending_count`、`relay_lag_seconds`、`publish_fail_rate`、`dead_letter_count`。出现持续堆积时，优先扩容 Relay 与检查热点 `aggregate_id`（大单事件风暴）。
 
-| 维度 | 检查项 | 通过标准 |
-|------|--------|----------|
-| **代码回滚** | Feature Flag | 关键功能可通过配置开关禁用，无需重新发布 |
-| **数据库迁移** | 双向脚本 | UP/DOWN 脚本齐全，测试过回滚流程 |
-| **事件 Schema** | 向后兼容 | 新增字段可选，旧消费者不受影响 |
-| **API 兼容性** | 版本策略 | 新版本 API 与旧版本共存，客户端可选升级 |
-| **配置变更** | 灰度发布 | 配置分批推送，每批观察指标后再继续 |
-| **依赖服务** | 降级预案 | 下游服务故障时，上游可降级（返回默认值/缓存） |
+**顺序投递 vs 批量投递**：某些支付相关事件需要严格顺序，Relay 可以按 `aggregate_id` 分区串行投递；而搜索增量可批量合并，降低总线开销。关键是不要把「所有事件都塞进一个全局顺序」里，否则系统吞吐会被最慢的消费者绑架。
 
-#### Feature Flag 实践
+**与第 1 章 Outbox 小节的关系**：第 1 章强调「领域事件异步化」的动机与边界；本章补齐 **实现骨架、时序与运维指标**，便于你在第 7–15 章落地到具体服务时直接对照检查清单。
+
+---
+
+## 6.4 幂等性设计通用方案
+
+### 6.4.1 幂等性的本质
+
+幂等性回答的问题是：**同一个业务意图被执行多次，是否与只执行一次等价**。分布式系统里重复来源包括：用户双击、网关重试、消息重复投递、回调重放。
+
+从接口语义上，幂等还应区分两类返回：
+
+- **语义幂等**：第二次调用返回与第一次**业务等价**的结果（可能 HTTP 状态码不同，但业务码一致），典型是支付创建。
+- **严格幂等**：第二次调用应尽可能返回**同一响应体**（含错误），以便客户端无需分支处理；这通常依赖网关或应用侧的 **响应缓存**。
+
+另一个关键维度是 **时间窗口**：创单幂等键可能只需 24 小时；支付幂等键可能要跨结算周期。窗口外的重复请求应被明确拒绝还是进入人工？这属于产品策略，但必须在技术方案里写死，否则会出现「以为幂等永远有效」的误用。
+
+### 6.4.2 实现策略
+
+| 策略 | 适用 | 注意 |
+|------|------|------|
+| 天然幂等 | `SET status='CANCELLED' WHERE id=? AND status='PAID'` | 仍需防止错误状态迁移 |
+| 业务幂等键 | 支付、创单、退款 | 需要落库索引与 TTL 治理 |
+| 令牌桶 / 去重表 | 高并发写 | 定期归档，冷热分离 |
+| 唯一约束 | DB 层最终防线 | 冲突即视为重复成功需返回同一结果 |
+
+**组合策略才是常态**：接口层挡住「明显重复」；服务层用状态机挡住「非法重放」；数据库用唯一约束挡住「并发双插」。任何单层都可能被绕过（例如内部任务不经过网关），因此不要迷信「只加 Header 就安全」。
+
+**测试清单**：至少覆盖「并发双请求同一幂等键」「第一次超时后重试」「第一次失败第二次成功」「消息重复投递」四类用例；支付与退款还要覆盖「渠道侧已成功但平台超时」的对称场景（与第 15 章联动）。
+
+### 6.4.3 各层的幂等性保证
+
+```mermaid
+flowchart TB
+  subgraph Edge[接入层]
+    GW[API Gateway\nIdempotency-Key 透传 / 快速去重]
+  end
+  subgraph App[应用服务层]
+    SVC[Service\n幂等表 / 状态机守卫]
+  end
+  subgraph Data[数据层]
+    DB[(MySQL UNIQUE\n业务键 / 请求键)]
+    MQ[消息消费者\n消费位点 + 业务唯一键]
+  end
+  Client[Client] --> GW --> SVC --> DB
+  BUS[(Kafka)] --> MQ --> SVC
+```
+
+**接口层示例：幂等键落库**：
 
 ```go
-// 使用 Feature Flag 控制新功能
-package order
-
-import "context"
-
-type FeatureFlags interface {
-    IsEnabled(ctx context.Context, feature string) bool
+type IdempotencyStore interface {
+	// TryBegin 返回 true 表示首次；false 表示重复，应返回缓存响应
+	TryBegin(ctx context.Context, key, route string) (bool, error)
+	SaveResponse(ctx context.Context, key string, code int, body []byte) error
+	GetResponse(ctx context.Context, key string) (code int, body []byte, found bool, err error)
 }
 
-func (s *OrderService) PlaceOrder(ctx context.Context, cmd PlaceOrderCommand) error {
-    // 旧逻辑
-    if err := s.validateBasic(cmd); err != nil {
-        return err
-    }
-    
-    // 新功能：风控检查（可通过 Feature Flag 关闭）
-    if s.flags.IsEnabled(ctx, "order.fraud_detection") {
-        if err := s.fraudDetector.Check(ctx, cmd); err != nil {
-            return err
-        }
-    }
-    
-    return s.repo.Save(ctx, newOrderFrom(cmd))
+func WithCreateOrderIdempotency(store IdempotencyStore, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		key := r.Header.Get("Idempotency-Key")
+		if key == "" {
+			http.Error(w, "missing Idempotency-Key", http.StatusBadRequest)
+			return
+		}
+		first, err := store.TryBegin(r.Context(), key, r.URL.Path)
+		if err != nil {
+			http.Error(w, "idempotency error", http.StatusInternalServerError)
+			return
+		}
+		if !first {
+			code, body, found, err := store.GetResponse(r.Context(), key)
+			if err != nil || !found {
+				http.Error(w, "duplicate without cached response", http.StatusConflict)
+				return
+			}
+			w.WriteHeader(code)
+			_, _ = w.Write(body)
+			return
+		}
+		// TODO: 包装 ResponseWriter 捕获状态码与 body，成功后 SaveResponse
+		next.ServeHTTP(w, r)
+	})
 }
 ```
 
-**收益**：
-- 新功能上线后发现问题，可立即关闭 Feature Flag，无需回滚代码
-- 灰度发布：先对 5% 用户开启，观察指标后再逐步放量
-- A/B 测试：对不同用户群开启不同策略，对比效果
+**服务层**：把幂等键与业务键（`order_id`、`payment_id`）建立映射；对「处理中」状态设置合理超时，避免永久悬挂。
+
+**数据层**：对 `merchant_order_no`、`channel_trade_no` 等建立 **UNIQUE** 索引；冲突时读取已有行并返回**与首次一致**的结果体（支付场景极其关键，见第 15 章）。
+
+**消息消费者层**：除了业务唯一键，还要注意 **at-least-once** 带来的「处理成功但 ack 前崩溃」重复。常见做法是：业务写入与「消费记录」同事务，或采用 **幂等表 + 业务状态机** 组合。Kafka 的幂等 producer 只能保证生产端不重复，不能保证消费端。
+
+**与第 13–15 章的衔接**：购物车提交、结算创单、支付创建与回调，是幂等设计最密集的区域。请把这些链路里的 `Idempotency-Key` 来源、TTL、冲突返回码统一成一份「交易接口规范」，否则每个团队会发明一种错误语义，客户端与对账都会被拖垮。
 
 ---
 
-**文档与运维**：架构变更（新 BC、事件契约、SLA）同步到 **README / ADR / 运维手册**；On-call 知道降级、重放消息、解读关键告警；新人能仅凭文档拉起本地依赖（`docker-compose` / `make` 目标）。
+## 6.5 数据一致性保证
 
-**运维文档模板**：
+### 6.5.1 最终一致性
 
-```markdown
-## 服务运维手册
+最终一致性不是「暂时不一致然后祈祷」，而是满足三个条件：
 
-### 关键告警
-- `order_create_latency_p99 > 500ms`：订单创建延迟过高
-  - **可能原因**：数据库慢查询、库存服务超时
-  - **处理步骤**：
-    1. 查看 Grafana 面板确认瓶颈（DB/库存/计价）
-    2. 若库存服务超时，执行降级：`kubectl set env deployment/order INVENTORY_FALLBACK=true`
-    3. 通知库存团队排查
+1. **收敛性**：在无新写入时，系统应到达稳定态。
+2. **可观测性**：能度量漂移（延迟、差异条数）。
+3. **可修复性**：通过对账与补偿把漂移拉回业务可接受范围。
 
-### 降级开关
-- `INVENTORY_FALLBACK=true`：库存查询降级，使用本地缓存
-- `FRAUD_DETECTION=false`：关闭风控检查（紧急情况）
-- `PROMOTION_ENABLED=false`：关闭营销试算（性能问题）
+**最终一致的工程含义**：允许短暂不一致，但不允许「永远不一致」。因此必须定义 **最大允许漂移时间（MTTD）** 与 **修复时限（MTTR）** 的业务含义。例如「支付回调最多延迟 5 分钟，对账必须在 T+1 日内闭环」，这类指标比对程序员说「我们最终一致」更有约束力。
 
-### 回滚流程
-1. 确认回滚目标版本：`kubectl rollout history deployment/order`
-2. 执行回滚：`kubectl rollout undo deployment/order --to-revision=N`
-3. 观察监控：关注错误率、延迟、上下游调用
-4. 数据库回滚（如需要）：执行 DOWN 脚本
-```
+**与缓存的关系**：读路径缓存（商品详情、列表价）引入的是另一类一致性。原则是：**写路径更新权威，再异步失效 / 刷新缓存**；不要反过来用缓存驱动写。库存热路径若使用 Redis，必须与第 8 章一样把 **对账与回补** 当作一等能力，而不是事后补丁。
 
----
+### 6.5.2 对账机制
 
-## 4.6 本章小结
+对账回答的问题是：**两份账本是否在说同一件事**。电商常见对账维度：
 
-### 4.6.1 全阶段总览表（评审清单）
+- **平台订单 vs 支付渠道**：金额、手续费、状态、退款。
+- **库存流水 vs 实物出库**：WMS / OMS 对齐。
+- **营销预算 vs 实际核销**：防止薅羊毛与预算透支。
 
-| 阶段 | 必查项（高杠杆） |
-|------|------------------|
-| 架构评审 | 依赖向内、BC 划分、聚合边界、读写评估、YAGNI |
-| 设计评审 | 聚合根入口、值对象不可变、Repo 在领域层、Command 意图、领域事件 |
-| 代码评审 | SRP、函数规模与复杂度、业务命名、错误 wrap、依赖方向 |
-| 上线前 | Benchmark / 压测证据、并发与 race、可观测性、测试与集成、回滚与文档 |
+**设计要点**（与第 8 章库存、第 15 章支付呼应）：
 
-### 4.6.2 MR 描述区模板（可复制）
+1. **对账文件与解析**：渠道侧日终文件 + 平台侧流水导出；解析必须版本化。
+2. **三层匹配**：长款（渠道有平台无）、短款（平台有渠道无）、金额不一致。
+3. **差错工单**：自动修复仅限白名单场景；其余进入人工复核。
+4. **幂等与回放**：同一对账批次重复跑不产生重复账务分录。
 
-```markdown
-## Self review (author)
-- [ ] 4.4 SOLID: 新类型职责与扩展点合理
-- [ ] 4.4 函数长度 / 复杂度 / 嵌套 / 参数个数
-- [ ] 4.4 命名与 glossary 一致
-- [ ] 4.4 错误 wrap，无静默 `_ = err`
-- [ ] 4.4 依赖方向与 DDD 战术（不变量、VO）
+**对账批次生命周期（建议）**：`INIT` → `PARSED` → `MATCHED` → `DIFF_GENERATED` → `FIXUP_APPLIED` → `CLOSED`。每一步落审计日志，支持监管问询与内部复盘。短款与长款不要混在一个工单模板里：短款更像「钱可能丢了」，长款更像「重复记账风险」，处理 SLA 与审批链往往不同。
 
-## Release readiness (if applicable)
-- [ ] 4.5 Benchmark 或压测链接
-- [ ] 4.5 并发 / race 检查
-- [ ] 4.5 Metrics + logs + traces
-- [ ] 4.5 核心规则测试与集成测试
-- [ ] 4.5 回滚 / 迁移 / 双写方案
-- [ ] 4.5 文档 / ADR 更新
+**平台侧数据准备**：对账不只读「业务库」，还要聚合 **渠道回调日志、网关请求日志、消息投递记录**。否则你会出现「业务状态对，但财务凭证缺角」的尴尬。实践中常用 **不可变事件流水** 作为对账输入之一，因为它比业务表更抗「事后改字段」。
 
-## Design links
-- ADR / RFC: ...
-```
-
-### 4.6.3 实战案例与反模式
-
-#### 案例 A：库存预占接口「顺手」改了聚合边界（设计评审失效）
-
-**背景**：结算服务在「创单前预占」需求中，直接在订单聚合的事务内更新库存行，图省事。
-
-**症状**：大促锁竞争升高；库存与订单发布节奏耦合，回滚困难。
-
-**处理**：设计评审阶段强制改为 **OrderPlaced / ReserveStockRequested** 事件驱动或显式 Saga；代码评审拦截「双聚合同一事务」。
-
-#### 案例 B：营销规则 JSON 线上漂移（模式选型 + 运维失守）
-
-**背景**：规则引擎读取未版本化的 JSON，运营后台可直接保存到生产。
-
-**症状**：线上行为与测试环境不一致，难以复盘。
-
-**处理**：规则集 **版本号 + PR 审核 + 审计日志**；核心不变量仍在单测与代码中；影子流量验证。
-
-#### 案例 C：Handler 直连 DB（架构评审后置到 PR）
-
-**背景**：原型代码直接进入主干，后续 MR 只在 SQL 层修修补补。
-
-**症状**：领域规则散落在 SQL；单测必须起库。
-
-**处理**：上升架构评审，引入 **端口 + 用例**；本 MR 仅允许「垂直切片」式重构到合规结构，不接受继续堆 SQL。
-
----
-
-#### 案例 D：缺少性能测试导致的线上故障
-
-**背景**：订单服务上线了「批量取消」功能，代码评审通过，但未做性能测试。
-
-**线上故障**：
-- 运营同学一次性取消 5000 个订单
-- 服务在循环中逐个发送取消事件到 Kafka，耗时 30 秒
-- 期间所有订单查询请求超时（共享同一个 goroutine 池）
-- 用户投诉量激增
-
-**根因分析**：
-- **代码评审通过**：功能逻辑正确，无明显bug
-- **缺失上线前检查**：没有性能测试，没有评估「批量场景下的资源占用」
-
-**改进方案**：
-1. 补充 4.5.1 性能检查：批量操作必须有 Benchmark
-2. 异步化：批量取消改为后台任务，分批处理（每批 100 个）
-3. 限流：批量接口加频控，防止运营误操作
-
-**经验**：代码评审通过≠生产就绪。上线前检查（4.5）是最后一道防线，必须覆盖性能、并发、可观测性。
-
----
-
-#### 案例 E：聚合不变量在 PR 中被破坏
-
-**背景**：订单聚合有不变量「总价 = 各明细之和」，某次 PR 为了修复 bug，直接修改了 `TotalAmount` 字段。
-
-**代码变更**：
+**与第 8 章库存对账的衔接**：库存侧常见是 Redis 计数与 MySQL 流水、供应商快照三方对齐。支付侧则是平台支付单与渠道清算文件对齐。两者共享同一套工程套路：**差异分类 → 自动白名单修复 → 人工复核 → 复盘入库**。
 
 ```go
-// BAD: 直接修改总价，破坏不变量
-func (o *Order) ApplyDiscount(amount int64) {
-    o.TotalAmount -= amount // ❌ 绕过了明细，破坏一致性
+package recon
+
+import (
+	"context"
+	"database/sql"
+	"time"
+)
+
+type ChannelRow struct {
+	TradeNo     string
+	AmountCents int64
+	Status      string
+	OccurredAt  time.Time
+}
+
+type PlatformRow struct {
+	PaymentID   string
+	ChannelRef  string
+	AmountCents int64
+	Status      string
+}
+
+// ReconcileBatch 演示：以 channel_ref 对齐（生产需处理多币种、多清算周期）
+func ReconcileBatch(ctx context.Context, db *sql.DB, ch []ChannelRow, pf []PlatformRow) error {
+	pidx := map[string]PlatformRow{}
+	for _, p := range pf {
+		pidx[p.ChannelRef] = p
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	for _, c := range ch {
+		p, ok := pidx[c.TradeNo]
+		if !ok {
+			_, _ = tx.ExecContext(ctx, `INSERT INTO recon_diff(batch_at, kind, ref, detail) VALUES(?,?,?,?)`,
+				time.Now().UTC(), "SHORT_PLATFORM", c.TradeNo, "channel has, platform missing")
+			continue
+		}
+		if p.AmountCents != c.AmountCents || p.Status != c.Status {
+			_, _ = tx.ExecContext(ctx, `INSERT INTO recon_diff(batch_at, kind, ref, detail) VALUES(?,?,?,?)`,
+				time.Now().UTC(), "MISMATCH", c.TradeNo, "amount or status")
+		}
+	}
+	return tx.Commit()
 }
 ```
 
-**后果**：
-- 订单详情页显示的小计与总价不一致
-- 财务对账时发现差异，追溯到这次变更
+**差错分类与处理策略（支付对账视角的抽象）**：无论渠道是微信、支付宝还是银行卡收单，差异最终都会落到有限几类。
 
-**评审反思**：
-- **设计评审阶段**应明确聚合不变量（4.3.1）
-- **代码评审阶段**应检查是否有直接修改聚合字段的行为
-- **测试**应覆盖不变量（如 `assert(order.Total == sum(order.Lines))`）
+- **状态不一致但金额一致**：常见于回调丢失或延迟。处理上优先以渠道终态为准触发状态迁移，并确保迁移动作幂等。
+- **金额不一致**：高风险，通常需要冻结相关支付单与关联订单，禁止自动发货，进入财务复核；同时要回溯是否存在重复退款、重复记账或币种转换错误。
+- **手续费 / 分账字段不一致**：多见于规则变更窗口与历史数据混跑。处理上应引入 **规则版本号** 与 **生效时间**，避免用新规则解释旧交易。
+- **时间窗口不一致**：渠道文件是「清算日」，平台流水是「交易发生日」。对账前要先把口径写到 SOP：以哪个时区、哪个切分点为准。
 
-**正确方案**：
+**自动化修复的边界**：只有满足「可逆、可证明、可回放」三条件的动作才适合自动化。例如「补写缺失的支付回调记录」可以自动化；「直接给用户退款」通常需要更高等级审批与多重校验。自动化的目标是减少人工 **机械劳动**，不是替代 **风险判断**。
 
-```go
-// GOOD: 通过明细修改，自动更新总价
-func (o *Order) ApplyDiscountToLine(lineIndex int, discountAmount int64) error {
-    if lineIndex >= len(o.Lines) {
-        return ErrInvalidLineIndex
-    }
-    o.Lines[lineIndex].UnitPrice -= discountAmount
-    o.recalculateTotal() // 重新计算总价，保证不变量
-    return nil
-}
+### 6.5.3 补偿任务
 
-func (o *Order) recalculateTotal() {
-    total := int64(0)
-    for _, line := range o.Lines {
-        total += line.UnitPrice * int64(line.Qty)
-    }
-    o.TotalAmount = total
-}
+补偿任务与 Saga 补偿不同：后者在**请求生命周期**内；前者是**异步修复器**，用于：
+
+- 回调迟到导致的悬挂单；
+- 消息堆积造成的投影落后；
+- 对账发现的轻微差异批量冲正。
+
+设计清单：**可重入**、**批大小上限**、**死信隔离**、**人工止血的开关**。
+
+**任务编排建议**：补偿任务尽量 **幂等、可观测、可暂停**。出现大面积渠道故障时，最危险的是「自动修复脚本跑得比人还快」，把差错扩散成二次事故。要有 **全局开关 + 分渠道开关 + 最大自动修复笔数阈值**。
+
+**与支付补偿的差异**：Saga 补偿发生在用户请求上下文内，强调快速失败与回滚；异步补偿任务发生在分钟到小时级窗口，强调批处理、限流与审计。两者不要混用同一套重试策略。
+
+**案例化走读：支付回调迟到**（与第 15 章呼应）：用户支付成功，渠道回调因网络抖动晚到 10 分钟。期间订单可能停留在「待支付」，客服系统可能提示用户重复支付。补偿任务不应「直接改状态为成功」了事，而应执行一条可审计的状态迁移：`WAIT_PAY` → `PAID`，并触发 **履约消息、发票消息、积分入账** 等下游；每一步仍要带幂等键，避免回调重复造成重复履约。
+
+**案例化走读：库存 Redis 与 MySQL 漂移**（与第 8 章呼应）：热路径扣减在 Redis，权威在 MySQL。对账发现 Redis 小于 MySQL 的可用量，可能意味着回补丢失；反过来可能意味着 Redis 多扣。修复策略应区分「业务可自动纠正」与「需要冻结 SKU 人工介入」。自动纠正必须带 **上限** 与 **来源证据**（流水号、操作者、任务批次），否则会把数据修复变成新的数据破坏源。
+
+---
+
+## 6.6 集成模式总结
+
+### 6.6.1 同步调用模式
+
+- **适用**：强实时、需要立即失败反馈（试算、库存预占校验）。
+- **要点**：超时、重试、熔断、**幂等键**、**向后兼容的 API 版本**。
+
+**常见反模式**：把十几个同步调用串成「上帝编排」，任何一个下游抖动都会放大尾延迟；没有 **bulkhead（舱壁）** 时，还会出现「支付抖动拖垮创单」的级联故障。治理手段包括：**并发化可并行步骤**、**硬超时 + 部分降级**、**把非关键校验挪到异步**。
+
+**接口演进**：同步集成最怕破坏性变更。建议强制 `version` 字段或 URL 版本，并在网关层做 **灰度路由**；同时给客户端明确的 **错误码字典**（业务拒绝 vs 基础设施失败），否则重试风暴不可避免。
+
+### 6.6.2 异步消息模式
+
+- **适用**：解耦峰值、跨团队广播事实、最终一致投影。
+- **要点**：Outbox、**消费者幂等**、**严格有序 vs 并行**的权衡、死信队列。
+
+**典型反模式**：业务先写库再「顺手发 Kafka」，崩溃窗口会导致消息丢失；或消费者不做幂等，靠「应该不会重复」的侥幸心理。另一个反模式是 **把异步当同步用**：通过轮询消息结果阻塞用户请求，这会把消息系统的延迟特性原封不动搬进关键路径。
+
+**观测性**：异步链路必须能回答三个问题：消息**发出去了吗**、消息**被处理了吗**、处理**正确吗**。分别对应 Outbox 状态、消费者 lag、对账差异。
+
+### 6.6.3 数据同步模式
+
+- **CDC / Binlog 订阅**：近实时同步到数仓或搜索；关注 schema 变更治理。
+- **定时批量**：对账、报表、冷数据归档。
+- **双写**：高风险，仅在迁移窗口短期使用，需校验任务护航。
+
+**CDC 的边界**：它擅长复制「事实行变更」，但不自动复制「业务含义」。例如拆表、改主键、把枚举从字符串改成数字，都会让下游投影误读。需要 **契约变更流程** 与 **双读双写过渡期**。
+
+**定时批量的价值**：很多一致性不是实时问题，而是「日终必须平」。批量任务的关键是 **可重跑、可分段、可限流**，并在大促日提前做 **容量演练**。
+
+### 6.6.4 选型决策树
+
+```mermaid
+flowchart TD
+  Q1{需要立即知道\n下游成功与否?}
+  Q1 -->|是| Q2{失败是否必须\n阻断用户?}
+  Q1 -->|否| M[异步消息 +\nOutbox / 消费者幂等]
+
+  Q2 -->|是| S[同步 RPC\n+ 超时 / 熔断 / 幂等键]
+  Q2 -->|否| Q3{是否可以接受\n秒级最终一致?}
+  Q3 -->|是| M
+  Q3 -->|否| S
+
+  S --> Q4{是否广播给\n多个订阅方?}
+  Q4 -->|是| HY[同步拿到关键凭证\n+ 异步事件分发读模型]
+  Q4 -->|否| S
+
+  M --> Q5{是否需要强审计\n可回放?}
+  Q5 -->|是| ES[评估事件溯源 /\n不可变日志]
+  Q5 -->|否| P[物化视图 +\n对账修复]
+
+  style S fill:#e3f2fd
+  style M fill:#e8f5e9
+  style HY fill:#fff3e0
+  style ES fill:#f3e5f5
+  style P fill:#eceff1
 ```
 
----
+**如何使用决策树（避免误用）**：决策树的每个叶子都不是「唯一正确答案」，而是**默认起点**。真实系统往往处在叶子之间的灰区：例如创单需要同步拿到 `price_snapshot_id`，但搜索索引更新可以异步。灰区的处理原则是：**把「用户当下要看到的结果」留在同步路径**，把「世界最终会知道的结果」放到异步路径，并用对账兜底。
 
-#### 案例 F：缺少回滚方案的数据库迁移
+**与实时性相关的常见误判**：团队容易把「运营后台要立即看到」误认为「用户主链路必须同步」。后台可采用 **近实时 CDC + 物化视图**，而用户侧主链路仍应保持最小同步半径。把后台需求塞进核心交易链路，是尾延迟与大促故障的高频来源。
 
-**背景**：库存服务需要新增字段 `reserved_qty`，开发者提交了 PR 包含数据库迁移脚本。
+**与后续章节的关系（阅读地图）**：
 
-**问题**：
-- **只有 UP 脚本**，没有 DOWN 脚本（无法回滚）
-- **没有双写策略**：新代码直接依赖新字段，回滚时会报错
-
-**线上故障**：
-- 新版本上线后发现性能问题，需要回滚
-- 回滚代码后，服务启动失败（读取不存在的字段）
-- 被迫紧急修复：手动删除字段、重新上线旧版本
-
-**改进方案**（4.5.4 回滚方案）：
-1. **三阶段迁移**：
-   - 阶段 1：加字段，代码双写（写新旧两个字段），读旧字段
-   - 阶段 2：代码切换为读新字段
-   - 阶段 3：删除旧字段
-2. **每阶段可独立回滚**：任何一步出问题都能回到上一阶段
-3. **UP/DOWN 脚本齐全**：迁移工具（如 migrate）强制要求两个方向
-
-**评审清单补充**：
-- [ ] 数据库迁移是否有 DOWN 脚本？
-- [ ] 新字段是否通过双写 / 双读策略引入？
-- [ ] 回滚后服务是否仍能正常启动？
-
-### 4.6.4 按角色的最小阅读路径
-
-| 角色 | 建议优先阅读 |
-|------|----------------|
-| 作者（提 MR） | 4.4 全文 + 4.6.2 模板 |
-| 审阅者（同域） | 4.4.3–4.4.5 + 与 4.3 冲突点 |
-| Tech Lead（新模块） | 4.2、4.3 + 4.5 |
-| SRE / On-call | 4.5 + 事件与迁移说明 |
-
-### 4.6.5 核心要点
-
-系统化的 Code Review 不是挑剔，而是**把重构前移到成本最低的阶段**。按 **架构 → 设计 → 代码 → 上线前** 四段清单推进，并与第 1 章方法论、第 2 章战略设计、第 3 章战术实现交叉引用，团队可以在一致语言下讨论分层、边界与实现细节。建议将 **4.6.1** 嵌入 MR 模板，并在复盘时根据失效案例增补**第 21 条**——最好的 Checklist 永远是活文档。
+- 商品、搜索、推荐：AP + 异步投影为主，强调**延迟可观测**（第 7、12 章）。
+- 库存、营销：同步预占 / 锁定 + 异步对账（第 8、9 章）。
+- 计价、购物车：读路径可弱一致；写路径谨慎用缓存（第 11、13 章）。
+- 订单、支付：幂等 + 对账 + 补偿任务三位一体的**资金安全网**（第 14、15 章）。
 
 ---
 
-**导航**：[返回目录](./TOC.md) | [上一章](./chapter3.md) | [书籍主页](./index.md) | [下一部分：第5章](./chapter5.md)
+## 6.7 本章小结
+
+本章建立了系统集成的方法论「四件套」：
+
+1. **CAP 与一致性谱系**帮助你在分区现实下做**可解释的取舍**，而不是用「都要」掩盖矛盾。
+2. **Saga（编排优先）**给出跨服务长流程的**工程主路径**，补偿必须**可逆且幂等**。
+3. **事件驱动 + Outbox** 把「写库再发消息」变成**可验证的本地事务**，为 CQRS 投影与搜索增量提供底座。
+4. **幂等与对账** 是分布式世界的**安全带**：前者防重复，后者治漂移；补偿任务负责把系统从边角态拉回主航道。
+
+**落地检查清单（建议你复制到评审模板）**：
+
+- [ ] 每个跨服务写链路是否写明 **一致性级别**（用户可见 / 财务 / 读模型）？
+- [ ] 是否存在「先外部成功、后本地提交」的窗口？若有，是否有 **query/reconcile**？
+- [ ] 关键接口是否具备 **幂等键** 与 **冲突返回语义**？
+- [ ] 是否避免「双写」作为长期方案？若必须双写，是否有 **校验任务**？
+- [ ] 事件是否走 **Outbox**？Relay 是否有 **堆积告警**？
+- [ ] 是否定义 **对账批次** 与 **差错分级**？自动修复是否有 **阈值与开关**？
+- [ ] Saga / 异步任务是否 **可重入**？是否能在发布滚动中恢复？
+
+**给团队负责人的一句话建议**：把「集成复杂度」当作与「业务复杂度」并列的成本项。没有 Outbox、没有对账、没有幂等键的系统也能上线，但它会把成本推迟到 **大促夜、监管审计、渠道切流** 这些最难的时刻一次性兑现。本章的目的，是把这部分成本前移为 **可评审、可测试、可监控** 的工程资产。
+
+**给一线开发者的一句话建议**：写跨服务调用时，默认网络会超时、消息会重复、回调会迟到；把这三条写进单元测试与集成测试的假设里，比写一百行防御性注释更有用。
+
+带着这套语言进入第 7 章之后的各子系统，你会更容易判断：此处该同步还是异步、事件应不应该广播、失败该当场回滚还是记账异步修。下一章（第 7 章）将从**商品中心**开始，把这些模式落实到具体边界与接口之上。
+
+---
+
+**导航**：[书籍主页](../README.md) | [完整目录](../SUMMARY.md) | [上一章：第3章](./chapter3.md) | [下一章：第5章](./chapter5.md)
