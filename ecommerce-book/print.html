@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1ec4468.js";
+            window.path_to_searchindex_js = "searchindex-ac52a7d0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-9030796e.js"></script>
@@ -15223,75 +15223,94 @@ func OnPaymentSuccessTx(tx *sql.Tx, paymentID, orderID int64) error {
 <p><strong>综合案例</strong>：一个中大型B2B2C电商平台的完整架构设计，从品类分析到技术选型，从系统设计到团队协作，覆盖200+人团队、日订单200万级的实战经验与架构决策。</p>
 </blockquote>
 <hr>
-<h2 id="161-项目背景business-context"><a class="header" href="#161-项目背景business-context">16.1 项目背景（Business Context）</a></h2>
-<h3 id="1611-业务模式"><a class="header" href="#1611-业务模式">16.1.1 业务模式</a></h3>
-<p><strong>核心定位</strong>：B2B2C聚合电商平台</p>
-<p>本平台采用“聚合供应商“模式，连接50+外部供应商（机票、酒店、充值、电影票等），同时支持自营业务（优惠券、礼品卡）。<strong>关键特征是「无物流场景」</strong>——所有商品均为虚拟数字商品，履约通过API调用完成，无需物流配送环节。</p>
+<h2 id="161-项目背景与业务约束business-context"><a class="header" href="#161-项目背景与业务约束business-context">16.1 项目背景与业务约束（Business Context）</a></h2>
+<p>本章讨论的是一个中大型 B2B2C 聚合电商平台。它不是传统实物电商，也不是单一供应商商城，而是连接多类外部供应商与自营虚拟商品的平台型系统。平台侧负责商品组织、搜索导购、价格试算、营销、下单、支付和履约编排；供应商侧负责实际资源确认与数字履约。</p>
+<p>这个背景很重要。因为系统的核心复杂度不来自物流仓配，而来自<strong>多品类、多供应商、强实时交易和不一致外部接口</strong>的叠加：机票和酒店要求零超卖，充值和礼品卡允许失败后补偿，电子券又依赖本地券码池发放。不同品类背后的库存、价格、履约模型完全不同，直接决定后续的领域划分、服务边界和一致性策略。</p>
+<h3 id="1611-业务定位"><a class="header" href="#1611-业务定位">16.1.1 业务定位</a></h3>
+<p>平台采用“聚合供应商 + 自营虚拟商品”的 B2B2C 模式，连接航司/GDS、酒店 OTA/PMS、运营商、院线、券码供应商等外部系统，同时保留部分自营业务能力。</p>
 <p><strong>业务范围</strong>：</p>
-<ul>
-<li><strong>B2B2C聚合模式</strong>：对接机票（航司/GDS）、酒店（OTA/PMS）、充值（运营商）、电影票（院线）等50+供应商</li>
-<li><strong>自营模式</strong>：自有优惠券（e-voucher）、线下券、礼品卡等虚拟商品</li>
-<li><strong>数字履约</strong>：所有商品通过API调用完成履约（出票、确认、充值、发券码）</li>
-</ul>
-<p><strong>业务特点</strong>：</p>
-<ul>
-<li>供应商接口高度碎片化（实时查询 + 定时同步 + 推送混合）</li>
-<li>核心品类（机票/酒店）零超卖容忍——直接影响用户体验与平台信誉</li>
-<li>长尾品类（充值/礼品卡）可事后补偿——供应商侧库存无限</li>
-</ul>
-<h3 id="1612-团队规模"><a class="header" href="#1612-团队规模">16.1.2 团队规模</a></h3>
-<p><strong>团队组成</strong>（200+人）：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>团队</th><th>人数</th><th>职责</th></tr>
+<tr><th>业务类型</th><th>典型品类</th><th>履约方式</th><th>关键特征</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>前台团队</strong></td><td>60人</td><td>搜索、详情、购物车、结算、订单、用户中心</td></tr>
-<tr><td><strong>中台团队</strong></td><td>80人</td><td>商品中心、库存、计价、营销、支付、供应商网关</td></tr>
-<tr><td><strong>基础设施</strong></td><td>30人</td><td>DevOps、监控、中间件、数据库、安全</td></tr>
-<tr><td><strong>数据团队</strong></td><td>20人</td><td>数据仓库、BI、用户画像、推荐算法</td></tr>
-<tr><td><strong>测试团队</strong></td><td>10人</td><td>自动化测试、性能测试、安全测试</td></tr>
+<tr><td><strong>供应商聚合</strong></td><td>机票、酒店、充值、电影票</td><td>调用供应商 API 完成出票、确认、充值、锁座</td><td>接口差异大，实时性和可用性依赖外部系统</td></tr>
+<tr><td><strong>平台自营</strong></td><td>优惠券、线下券、礼品卡</td><td>平台本地发券码或调用内部发码系统</td><td>可控性更强，但需要券码池、核销和过期管理</td></tr>
+<tr><td><strong>数字履约</strong></td><td>所有品类</td><td>API 调用、异步确认、电子凭证发放</td><td>无物流链路，但交易状态和补偿链路更复杂</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>技术栈统一</strong>：</p>
-<ul>
-<li>后端语言：Go（统一技术栈，降低维护成本）</li>
-<li>数据库：MySQL（主库）+ Redis（缓存）+ Elasticsearch（搜索）</li>
-<li>消息队列：Kafka（异步解耦）</li>
-<li>服务治理：gRPC + Consul + Envoy</li>
-<li>监控：Prometheus + Grafana + Jaeger</li>
-</ul>
-<h3 id="1613-技术目标"><a class="header" href="#1613-技术目标">16.1.3 技术目标</a></h3>
-<p><strong>性能指标</strong>：</p>
+<p><strong>业务全景图</strong>：</p>
+<p><img src="../images/b2b2c-business-overview.png" alt="B2B2C 数字商品平台业务全景"></p>
+<p>这张图展示了平台业务链路的四个关键视角：供应商供给侧负责资源供给与数字履约；平台核心能力负责商品、库存、价格、营销、订单、支付、履约和售后编排；本地商家与平台运营负责商品录入、审核、维护、促销和上下架；C 端用户则围绕搜索导购、结算下单、支付、履约结果和退款售后形成完整交易闭环。</p>
+<p>本平台的一个关键前提是<strong>无物流场景</strong>。所有商品都是虚拟数字商品，履约不经过仓库、分拣、配送，而是通过 API 调用、电子票、确认单、充值结果或券码完成。因此，本章不会讨论仓配、物流轨迹、签收等实物电商问题，而是聚焦数字商品平台中更核心的四类问题：</p>
+<ol>
+<li><strong>供应商差异</strong>：50+ 外部供应商接口形态不一致，可能同时存在实时查询、定时同步和事件推送。</li>
+<li><strong>库存差异</strong>：机票/酒店依赖供应商实时库存，电子券依赖本地券码池，充值类商品近似无限库存。</li>
+<li><strong>价格差异</strong>：机票动态定价、酒店日历价、充值固定面额、优惠券固定折扣价并存。</li>
+<li><strong>履约差异</strong>：有的品类同步返回结果，有的品类需要异步确认，有的品类需要本地分配唯一券码。</li>
+</ol>
+<h3 id="1612-业务与技术目标"><a class="header" href="#1612-业务与技术目标">16.1.2 业务与技术目标</a></h3>
+<p>平台的核心目标可以概括为四句话：</p>
+<ol>
+<li><strong>交易链路要稳</strong>：订单创建、支付、履约不能丢数据，核心链路故障要快速恢复。</li>
+<li><strong>导购链路要快</strong>：搜索、详情、结算要在高并发下保持低延迟，并允许适度降级。</li>
+<li><strong>供给运营要可控</strong>：商品上架、运营编辑、供应商同步、促销配置和上下架要有明确流程、审核机制和可追溯记录。</li>
+<li><strong>品类接入要快</strong>：新增品类和供应商不能反复改造主流程。</li>
+<li><strong>团队协作要顺</strong>：服务边界、API 契约和事件契约必须足够清晰，支撑多人多团队并行开发。</li>
+</ol>
+<p><strong>性能目标</strong>：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>指标</th><th>正常值</th><th>大促峰值</th><th>说明</th></tr>
+<tr><th>指标</th><th>正常值</th><th>大促峰值</th><th>设计含义</th></tr>
 </thead>
 <tbody>
-<tr><td>日订单量</td><td>200万</td><td>1000万</td><td>大促5倍流量</td></tr>
-<tr><td>搜索QPS</td><td>3000</td><td>15000</td><td>5倍流量</td></tr>
-<tr><td>详情页QPS</td><td>5000</td><td>25000</td><td>5倍流量</td></tr>
-<tr><td>下单QPS</td><td>1000</td><td>5000</td><td>5倍流量</td></tr>
-<tr><td>P99延迟</td><td>200ms</td><td>500ms</td><td>大促允许适当降级</td></tr>
+<tr><td>日订单量</td><td>200 万</td><td>1000 万</td><td>交易链路需要支持 5 倍峰值弹性</td></tr>
+<tr><td>搜索 QPS</td><td>3000</td><td>15000</td><td>搜索与聚合层需要缓存、批量查询和降级能力</td></tr>
+<tr><td>详情页 QPS</td><td>5000</td><td>25000</td><td>商品、库存、计价、营销服务需要并发编排</td></tr>
+<tr><td>下单 QPS</td><td>1000</td><td>5000</td><td>库存预占、价格校验、订单写入必须控制事务边界</td></tr>
+<tr><td>P99 延迟</td><td>200ms</td><td>500ms</td><td>大促期间允许部分非核心能力降级</td></tr>
 </tbody>
 </table>
 </div>
 <p><strong>可用性目标</strong>：</p>
-<ul>
-<li><strong>核心链路SLA</strong>：99.95%（订单创建、支付、履约）</li>
-<li><strong>搜索/详情SLA</strong>：99.9%（可降级展示）</li>
-<li><strong>RTO</strong>（故障恢复时间）：&lt; 5分钟</li>
-<li><strong>RPO</strong>（数据丢失容忍）：0（核心交易数据零丢失）</li>
-</ul>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>目标</th><th>要求</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>核心链路 SLA</td><td>99.95%</td><td>覆盖订单创建、支付、履约等交易动作</td></tr>
+<tr><td>搜索/详情 SLA</td><td>99.9%</td><td>可通过缓存、兜底价格、隐藏营销信息等方式降级</td></tr>
+<tr><td>RTO</td><td>&lt; 5 分钟</td><td>故障后需要在 5 分钟内恢复核心能力</td></tr>
+<tr><td>RPO</td><td>0</td><td>核心交易数据不允许丢失</td></tr>
+</tbody>
+</table>
+</div>
 <p><strong>扩展性目标</strong>：</p>
-<ul>
-<li>支持新品类接入：&lt; 2周（标准化供应商适配）</li>
-<li>支持新供应商：&lt; 1周（适配器模式）</li>
-<li>支持新营销玩法：&lt; 3天（规则引擎）</li>
-</ul>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>扩展场景</th><th>目标</th><th>关键依赖</th></tr>
+</thead>
+<tbody>
+<tr><td>新品类接入</td><td>&lt; 2 周</td><td>品类策略、库存策略、履约策略可插拔</td></tr>
+<tr><td>新供应商接入</td><td>&lt; 1 周</td><td>供应商适配器、防腐层、统一错误模型</td></tr>
+<tr><td>新营销玩法</td><td>&lt; 3 天</td><td>规则引擎、计价输入标准化、活动配置平台</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="1613-本章的核心架构命题"><a class="header" href="#1613-本章的核心架构命题">16.1.3 本章的核心架构命题</a></h3>
+<p>在上述业务背景下，架构设计的难点不是“要不要拆微服务”，而是<strong>如何在品类差异、供应商不确定性和交易一致性之间找到可演进的边界</strong>。</p>
+<p>本章后续会围绕四个问题展开：</p>
+<ol>
+<li><strong>如何理解品类差异</strong>：机票、酒店、充值、电子券为什么不能用同一套库存和履约模型。</li>
+<li><strong>如何划分系统边界</strong>：订单、商品、库存、计价、营销、支付、供应商网关各自拥有怎样的数据和职责。</li>
+<li><strong>如何组织交易链路</strong>：搜索、详情、结算、下单、支付如何在性能与准确性之间取舍。</li>
+<li><strong>如何沉淀架构决策</strong>：通过 ADR 记录关键取舍，避免团队在同一问题上反复争论。</li>
+</ol>
 <hr>
 <h2 id="162-品类业务模型分析business-architecture"><a class="header" href="#162-品类业务模型分析business-architecture">16.2 品类业务模型分析（Business Architecture）</a></h2>
 <p>不同品类的业务模型存在显著差异，直接影响架构设计决策。理解这些差异是系统设计的基础。</p>
@@ -15301,14 +15320,14 @@ func OnPaymentSuccessTx(tx *sql.Tx, paymentID, orderID int64) error {
 • 价格模型：动态定价，实时波动（可能秒级变化）
 • SKU复杂度：极高（航司+航班号+舱位+日期+...组合）
 • 库存单位：座位数量（不可超卖）
-• 扣减时机：下单即扣（预占）→ 支付确认 → 出票
-• 履约流程：下单 → 支付 → 出票（调用GDS/供应商API）→ 发送电子票
+• 扣减时机：创单前向供应商实时确认并占座 → 创单待支付 → 支付确认 → 出票
+• 履约流程：查询报价/库存 → 占座/预订 → 创建订单 → 支付 → 出票（调用GDS/供应商API）→ 发送电子票
 </code></pre>
 <p><strong>架构影响</strong>：</p>
 <ul>
 <li>✓ 必须支持实时库存查询（高频调用供应商API）</li>
 <li>✓ 价格快照必须精确到秒级，防止价格变动纠纷</li>
-<li>✓ 超卖零容忍 → 下单前二次确认库存</li>
+<li>✓ 超卖零容忍 → 创建订单前必须完成供应商侧占座/预订</li>
 <li>✓ 供应商故障需快速切换到备用供应商</li>
 <li>✓ 订单状态复杂（待出票、出票中、出票失败、已出票）</li>
 </ul>
@@ -15489,7 +15508,7 @@ func (p *VoucherCodePool) AssignCode(ctx context.Context, skuID int64, orderID i
 <tr><th>类型</th><th>典型品类</th><th>库存来源</th><th>预占策略</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>实时库存</strong></td><td>机票、酒店、电影票</td><td>供应商实时查询</td><td>下单即预占，超时释放</td></tr>
+<tr><td><strong>实时库存</strong></td><td>机票、酒店、电影票</td><td>供应商实时查询</td><td>创单前确认资源，订单超时释放</td></tr>
 <tr><td><strong>池化库存</strong></td><td>优惠券、礼品卡</td><td>平台自有（券码池）</td><td>支付后扣减</td></tr>
 <tr><td><strong>无限库存</strong></td><td>充值、SaaS服务</td><td>无库存概念</td><td>无需预占</td></tr>
 </tbody>
@@ -16274,31 +16293,1102 @@ func InitializeApp() (*App, error) {
 <p>基于16.4的整体架构，本节深入每个核心系统的详细设计，包括应用层的业务逻辑设计和数据层的模型设计。</p>
 <h3 id="1661-商品中心设计"><a class="header" href="#1661-商品中心设计">16.6.1 商品中心设计</a></h3>
 <h4 id="16611-服务定位与职责"><a class="header" href="#16611-服务定位与职责">16.6.1.1 服务定位与职责</a></h4>
-<p><strong>职责边界</strong>：</p>
-<ul>
-<li>✅ 负责：商品基础信息、类目、属性、多媒体素材</li>
-<li>✅ 负责：SPU/SKU管理、上架下架</li>
-<li>✅ 负责：商品基础价格（base_price，作为计价输入）</li>
-<li>❌ 不负责：营销价格（由Pricing Service计算）</li>
-<li>❌ 不负责：库存（由Inventory Service管理）</li>
-</ul>
-<p><strong>核心场景</strong>：</p>
+<p>一句话概括，<strong>商品中心 = 商品主数据 + 供给运营 + 库存管理 + 搜索导购中心</strong>。</p>
+<p>商品中心处在供应商供给、平台运营、C 端导购和交易系统之间。它不是简单的商品表 CRUD，也不是只维护标题、图片、类目和上下架状态的 PIM 系统；在数字商品平台里，商品中心还要承接商品如何进入平台、如何被运营维护、如何保持供应商数据新鲜、如何判断可售、如何支撑搜索列表和详情页，以及如何在下单前给订单系统提供稳定的商品快照和库存校验结果。</p>
+<p>由于团队规模和系统演进阶段限制，本平台没有独立拆分库存中心和搜索中心，库存能力与搜索导购能力都由商品中心内部模块承接。这里需要特别说明：<strong>库存和搜索归商品中心，不代表商品主数据、库存状态、搜索索引混在一起</strong>。商品中心内部仍然按六个域拆分，分别管理不同的数据模型、生命周期和对外契约，避免商品定义、库存状态、搜索索引、供应商模型和交易状态互相污染。</p>
+<p>从业务链路看，商品中心主要承接三类问题：</p>
 <ol>
-<li><strong>商品查询</strong>：聚合服务、详情页、搜索结果查询商品信息</li>
-<li><strong>商品创建</strong>：运营人员/供应商创建新商品（参见16.7.1阶段1）</li>
-<li><strong>商品更新</strong>：修改商品信息、调整基础价格</li>
-<li><strong>上下架管理</strong>：控制商品可售状态</li>
+<li><strong>供给侧问题</strong>：商品从哪里来，如何上传、审核、同步、修正和下架。</li>
+<li><strong>导购侧问题</strong>：用户如何在首页、列表页、详情页看到正确、可搜索、可筛选、可展示的商品。</li>
+<li><strong>交易前问题</strong>：商品是否存在、是否上架、是否可售、库存是否满足、是否需要供应商实时确认。</li>
 </ol>
-<p><strong>与其他服务的区别</strong>：</p>
-<ul>
-<li><strong>vs Search Service</strong>：Search负责ES查询返回SKU ID列表，Product Center负责根据SKU ID查询详细信息</li>
-<li><strong>vs Pricing Service</strong>：Product Center只管理base_price（成本价），Pricing Service基于base_price+营销活动计算最终售价</li>
-<li><strong>vs Inventory Service</strong>：Product Center管“商品是什么“，Inventory管“商品有多少“</li>
-</ul>
+<p>因此，商品中心内部可以拆成六个稳定的职责域：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>职责域</th><th>解决的问题</th><th>关键输出</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>商品主数据域</strong></td><td>定义商品是什么，包括类目、SPU/SKU、属性、素材、业务实体和商品状态</td><td>标准商品模型、类目属性、商品详情、商品快照</td></tr>
+<tr><td><strong>商品供给与运营域</strong></td><td>管理商品如何进入平台、如何审核、如何编辑、如何上下架</td><td>Listing Task、审核结果、发布事件、变更日志</td></tr>
+<tr><td><strong>供应商商品同步域</strong></td><td>管理外部供应商商品如何映射、同步、刷新和补偿</td><td>供应商映射、同步任务、数据完整性报告</td></tr>
+<tr><td><strong>库存与可售域</strong></td><td>判断商品是否能卖，统一无限库存、池化库存和实时库存差异</td><td>库存查询结果、预占结果、可售状态、券码发放结果</td></tr>
+<tr><td><strong>搜索与导购域</strong></td><td>支撑首页、列表页、详情页的召回、筛选、排序、Hydrate 和缓存</td><td>ES 索引、搜索结果、详情页聚合数据、降级结果</td></tr>
+<tr><td><strong>系统集成与事件域</strong></td><td>向营销、计价、订单、履约、供应商网关和数据平台输出稳定契约</td><td>查询 API、领域事件、CDC、质量监控数据</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>商品中心内部模块划分</strong>：</p>
+<pre><code>商品中心 Product Center
+├─ 1. 商品主数据域（Product Master Data）
+│  ├─ 类目：前台类目、后台类目、类目层级、类目属性模板
+│  ├─ SPU/SKU：标准商品、销售单元、组合 SKU
+│  ├─ 商品属性：基础属性、业务属性、动态属性、扩展属性
+│  ├─ 业务实体：运营商、银行、航司、酒店、影院、商户、门店
+│  ├─ 商品素材：标题、描述、图片、Icon、展示标签
+│  └─ 商品状态：草稿、待审核、已上架、已下架、已归档
+│
+├─ 2. 商品供给与运营域（Supply &amp; Operation）
+│  ├─ 商品供给：人工上传、批量上传、模板下载、供应商导入
+│  ├─ 数据校验：字段校验、类目校验、属性校验、价格/库存预检
+│  ├─ 审核发布：新商品审核、编辑审核、高风险变更审核
+│  ├─ 商品运营：编辑、批量编辑、上下架、排序、入口配置
+│  ├─ 质量治理：缺字段检查、异常价格检查、库存异常检查
+│  └─ 操作追踪：Listing Task、审核日志、变更日志、状态流水
+│
+├─ 3. 供应商商品同步域（Supplier Sync）
+│  ├─ 商品映射：平台 SKU 与供应商 SKU、外部资源 ID、业务实体 ID 映射
+│  ├─ 静态同步：酒店基础信息、影院信息、商户门店、票务基础数据
+│  ├─ 动态同步：可缓存价格、库存水位、上下架状态
+│  ├─ 同步任务：全量同步、增量同步、供应商 Push、接入层 Push
+│  └─ 同步治理：重试、补偿、告警、数据完整性巡检
+│
+├─ 4. 库存与可售域（Stock &amp; Sellable）
+│  ├─ 库存模型：无限库存、池化库存、实时库存
+│  ├─ 库存来源：本地 DB、券码池、供应商接入层 API、供应商 API
+│  ├─ 交易动作：查询、预占、释放、扣减、回补
+│  ├─ 券码管理：券码池、发码、核销状态、过期管理
+│  └─ 可售判断：商品状态、库存状态、供应商可用性、业务规则
+│
+├─ 5. 搜索与导购域（Search &amp; Discovery）
+│  ├─ 搜索索引：ES 索引构建、索引刷新、索引回滚
+│  ├─ 召回筛选：关键词、类目、品牌/Carrier、城市、商户、标签
+│  ├─ 排序展示：运营排序、销量、价格、活动标签、库存状态
+│  ├─ Hydrate：补齐商品详情、库存状态、展示价、营销标签
+│  ├─ 页面能力：首页入口、列表页、详情页、商品缓存
+│  └─ 降级策略：缓存兜底、隐藏营销标签、库存弱展示
+│
+└─ 6. 系统集成与事件域（Integration &amp; Event）
+   ├─ 对营销：类目、Tag、商品范围、圈品能力、可营销状态
+   ├─ 对计价：基础价、类目、属性、库存上下文、能力配置
+   ├─ 对订单：商品快照、上下架状态、可售校验、库存预占结果
+   ├─ 对履约：履约类型、供应商映射、发货/出票/充值能力配置
+   ├─ 对供应商网关：查价、查库存、同步任务、履约参数映射
+   ├─ 对数据平台：CDC、商品变更日志、质量监控、经营分析
+   └─ 事件机制：商品创建、商品更新、上下架、库存变化、同步失败
+</code></pre>
+<p><strong>与其他系统的边界</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>系统</th><th>商品中心提供</th><th>对方负责</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>营销系统</strong></td><td>类目、Tag、业务实体、商品范围、可营销状态</td><td>活动配置、圈品、优惠券、满减/折扣规则</td></tr>
+<tr><td><strong>计价中心</strong></td><td>基础价、类目、属性、库存上下文、能力配置</td><td>PDP 价格、结算页试算价、下单价、支付价、结算价</td></tr>
+<tr><td><strong>订单系统</strong></td><td>商品详情、商品快照、上下架状态、库存可售性、预占结果</td><td>订单创建、订单状态机、支付前后流转</td></tr>
+<tr><td><strong>履约系统</strong></td><td>履约类型、供应商映射、商品能力配置</td><td>出票、预订确认、充值、发券、销账、履约补偿</td></tr>
+<tr><td><strong>供应商网关/供应商接入层</strong></td><td>平台 SKU、供应商映射、同步任务、商品能力配置</td><td>外部 API 适配、供应商查价查库存、供应商履约调用</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此，商品中心的定位不是“商品表 CRUD 服务”，而是数字商品平台交易前链路的核心系统。它统一商品定义、库存能力和搜索导购能力，屏蔽供应商商品模型差异，对外稳定输出商品、库存、搜索结果和能力配置，并通过事件机制驱动营销、计价、订单和履约系统协同。</p>
 <hr>
-<h4 id="16612-领域模型设计domain-layer"><a class="header" href="#16612-领域模型设计domain-layer">16.6.1.2 领域模型设计（Domain Layer）</a></h4>
+<h4 id="16612-核心设计挑战异构商品模型"><a class="header" href="#16612-核心设计挑战异构商品模型">16.6.1.2 核心设计挑战：异构商品模型</a></h4>
+<p>数字商品平台的商品中心，最大的难点不是“字段很多”，而是<strong>不同品类对交易对象的定义并不相同</strong>。实物电商的交易对象通常比较稳定：用户买的是一个 SKU，平台围绕 SKU 管库存、价格、物流和售后即可。但 OTA、O2O 和虚拟商品不是这样。它们卖的可能是一次账户余额变更、一个数字凭证、一项到店服务权益、一个特定时间窗口内的资源确认权，或者一次供应商实时返回的临时报价。</p>
+<p>所以，这里的“商品”不能简单理解为 <code>Product + SKU</code>。更准确的说法是：<strong>商品中心要统一的是交易前的经营表达，而不是所有品类的实时交易状态</strong>。</p>
+<p><strong>1. 不同品类卖的不是同一种东西</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>品类类型</th><th>用户实际购买的是什么</th><th>典型品类</th><th>核心复杂度</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>账户变更型</strong></td><td>给外部账户充值、销账或开通权益</td><td>Topup、账单缴费、流量包</td><td>下单前要校验账户，支付后要确认外部账户状态变化</td></tr>
+<tr><td><strong>数字凭证型</strong></td><td>一个可兑换、可消费或可核销的凭证</td><td>Gift Card、E-Voucher、Payment Voucher</td><td>商品定义与券码库存必须隔离，发码后状态不可随意回滚</td></tr>
+<tr><td><strong>到店服务型</strong></td><td>某商户或门店的一次服务权益</td><td>Local Service、Deal Voucher</td><td>商户、门店、核销、过期、退款规则比 SKU 字段更重要</td></tr>
+<tr><td><strong>资源确认型</strong></td><td>某个时间窗口下的稀缺资源确认权</td><td>Flight、Hotel、Movie、Train、Bus</td><td>价格和库存高度实时，通常需要供应商确认或锁定</td></tr>
+<tr><td><strong>组合套餐型</strong></td><td>多个权益或资源的组合</td><td>电影 + 小食、酒店 + 活动券</td><td>需要处理组合价、组合库存、部分履约和部分退款</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果用实物电商的思路强行套这些品类，会遇到五类问题：</p>
+<ol>
+<li><strong>SKU 爆炸</strong>：把机票、酒店、电影票的每次报价都沉淀成 SKU，会产生海量临时 SKU，而且很快过期。</li>
+<li><strong>字段污染</strong>：把所有品类字段都放进一张商品宽表，最后会变成大量空字段、重复字段和语义不清的扩展字段。</li>
+<li><strong>实时性误判</strong>：把动态价格和实时库存当成商品主数据保存，会导致列表页、详情页和下单价频繁不一致。</li>
+<li><strong>流程耦合</strong>：把账号校验、账单查询、锁座、房态确认、券码发放都写进商品 CRUD，会让商品中心变成交易系统和履约系统的混合体。</li>
+<li><strong>售后规则丢失</strong>：OTA/O2O 的退改签、取消政策、核销后不可退等规则不是普通展示字段，而是影响订单状态机和资损风险的交易规则。</li>
+</ol>
+<p><strong>2. 三种常见解决方案</strong></p>
+<p>面对异构商品，业界通常会经历三种建模方案。它们不是简单的“谁对谁错”，而是适用于不同阶段、不同品类复杂度。</p>
+<p><strong>方案A：标准 SPU/SKU + EAV/ExtInfo 扩展</strong></p>
+<p>这是最接近传统电商商品中心的方案。核心模型是：</p>
+<pre><code class="language-text">Category
+  → SPU
+  → SKU
+  → Attribute / EAV
+  → ExtInfo JSON
+</code></pre>
+<p>所有商品尽量表达为 SPU/SKU。固定字段放主表，可搜索、可筛选字段放属性表，品类专属展示字段放 <code>ExtInfo JSON</code>。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>评价</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>优点</strong></td><td>简单直观，运营后台容易实现，适合 Topup、Gift Card、E-Voucher、Local Service 等固定面额或固定券模板商品</td></tr>
+<tr><td><strong>缺点</strong></td><td>难以表达 Flight、Hotel、Movie 这类实时供给；如果把日期、舱位、房态、座位都 SKU 化，会造成 SKU 爆炸</td></tr>
+<tr><td><strong>适用阶段</strong></td><td>平台早期、品类较少、以固定数字商品为主</td></tr>
+</tbody>
+</table>
+</div>
+<p>这套方案的问题在于：它容易让团队误以为“所有东西都应该变成 SKU”。一旦把实时报价、房态、座位图、账单金额都塞进 SKU，商品中心就会从主数据系统滑向交易结果缓存系统。</p>
+<p><strong>方案B：资源中心化模型</strong></p>
+<p>OTA 和 O2O 平台常见的另一种做法，是先把业务资源标准化，再在资源上包装可售商品。</p>
+<pre><code class="language-text">Resource
+  → Product Package
+  → Offer / Rate Plan
+  → Availability
+</code></pre>
+<p>这里的 Resource 可以是酒店、房型、城市、机场、车站、影院、影厅、影片、商户、门店、账单机构等。SPU/SKU 不再是唯一核心，而是资源上的销售包装。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>评价</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>优点</strong></td><td>适合酒店、电影、本地服务、交通票务；避免把所有资源组合都沉淀成 SKU；供应商资源映射更清晰</td></tr>
+<tr><td><strong>缺点</strong></td><td>模型理解成本更高；只解决资源建模，还不能完整表达用户输入、预订锁定、履约和售后</td></tr>
+<tr><td><strong>适用阶段</strong></td><td>平台开始接入 OTA/O2O 品类，资源、门店、城市、场次、房型等成为核心数据</td></tr>
+</tbody>
+</table>
+</div>
+<p>资源中心化模型能解决“商品背后是什么资源”的问题，但还没有完整回答“这个资源在交易链路里怎么报价、怎么锁定、怎么履约、怎么退款”。</p>
+<p><strong>方案C：商品交易契约模型（推荐）</strong></p>
+<p>更完整的做法是把商品中心从“商品字段存储系统”升级为“交易前契约系统”。它不是推翻 SPU/SKU，也不是单纯资源化，而是把两者组合起来：</p>
+<pre><code class="language-text">SPU/SKU               表达平台商品定义
+Resource              表达商品背后的业务资源
+Offer / Rate Plan     表达售卖条件和报价规则
+Capability Matrix     表达类目能力差异
+Runtime Context       表达交易前运行时上下文
+</code></pre>
+<p>这套方案的核心思想是：</p>
+<blockquote>
+<p>商品中心统一的是经营表达和交易前契约，不是所有品类的实时资源状态。</p>
+</blockquote>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>评价</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>优点</strong></td><td>解释力强，能同时覆盖固定 SKU、资源型商品和实时供给商品；边界清晰，适合书籍总结和面试表达</td></tr>
+<tr><td><strong>缺点</strong></td><td>初期理解成本较高，需要治理“哪些数据稳定、哪些数据实时、哪些数据只进快照”</td></tr>
+<tr><td><strong>适用阶段</strong></td><td>多品类平台，尤其是同时覆盖 Topup、Bill、Voucher、Hotel、Flight、Movie、Local Service 的平台</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此，本章采用方案 C 作为推荐方案。它吸收方案 A 的 SPU/SKU 基础能力，也吸收方案 B 的 Resource 建模能力，再通过能力矩阵和运行时上下文把不同品类的交易差异显式表达出来。</p>
+<p><strong>3. 八层商品交易模型</strong></p>
+<p>对 OTA、O2O 和虚拟商品来说，一个可交易商品通常可以拆成八层。不是每个品类都完整使用八层，但这个分层能帮助我们判断“什么应该进商品中心，什么应该留给库存、计价、订单和履约系统”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>解决的问题</th><th>商品中心是否负责</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Product Definition</strong></td><td>平台如何运营和展示这个商品</td><td>负责</td><td>类目、标题、图片、品牌/实体、基础描述、上下架状态</td></tr>
+<tr><td><strong>Resource</strong></td><td>商品背后的资源是什么</td><td>负责稳定部分</td><td>酒店、房型、影院、场次、商户、门店、账单机构、城市站点</td></tr>
+<tr><td><strong>Offer / Rate Plan</strong></td><td>在某个上下文下如何报价</td><td>负责配置，不负责所有实时结果</td><td>面额、套餐、日历价规则、供应商报价计划、活动价输入</td></tr>
+<tr><td><strong>Availability</strong></td><td>当前是否可买</td><td>负责统一入口和可售判断</td><td>券码池库存、供应商实时库存、房态、座位、通道可用性</td></tr>
+<tr><td><strong>Input Schema</strong></td><td>下单前需要用户提供什么</td><td>负责配置</td><td>手机号、账单号、乘客证件、入住人、座位选择、邮箱</td></tr>
+<tr><td><strong>Booking / Lock</strong></td><td>支付前是否需要锁定资源</td><td>只负责能力配置和结果引用</td><td>占座、锁房、锁券码、锁账单金额、锁场次座位</td></tr>
+<tr><td><strong>Fulfillment Contract</strong></td><td>支付后如何交付</td><td>负责履约能力配置</td><td>充值、销账、发码、出票、预订确认、到店核销</td></tr>
+<tr><td><strong>Refund / After-sale Rule</strong></td><td>失败或退款时如何处理</td><td>负责规则配置和快照输入</td><td>未核销可退、已出票退改签、取消政策、失败自动退款</td></tr>
+</tbody>
+</table>
+</div>
+<p>这八层之间的关系可以理解为：</p>
+<pre><code class="language-text">Product Definition  定义平台卖什么
+  → Resource        指向背后的资源
+  → Offer           生成可展示或可购买的报价
+  → Availability    判断当前是否可买
+  → Input Schema    收集交易所需信息
+  → Booking / Lock  锁定稀缺资源或金额
+  → Fulfillment     支付后完成数字交付
+  → Refund Rule     失败或售后时决定如何回滚
+</code></pre>
+<p>这套分层的价值在于：<strong>它不要求所有品类长得一样，但要求所有品类在交易链路里说清楚自己处在哪一层、依赖哪些层、哪些数据需要实时确认</strong>。</p>
+<p><strong>4. 典型品类的八层映射</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>品类</th><th>Product Definition</th><th>Resource</th><th>Offer / Rate Plan</th><th>Availability</th><th>Input Schema</th><th>Booking / Lock</th><th>Fulfillment</th><th>Refund / After-sale</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Topup</strong></td><td>运营商、面额、套餐说明</td><td>手机号账户、区域</td><td>固定面额/套餐价</td><td>供应商通道可用性</td><td>手机号、区域</td><td>通常无需锁定</td><td>充值到账</td><td>失败退款，成功后通常不可退</td></tr>
+<tr><td><strong>Bill</strong></td><td>账单机构、账单类型</td><td>用户账单账户</td><td>查账后生成金额</td><td>账单是否可缴</td><td>账单号、用户标识</td><td>可锁定账单金额或查询流水</td><td>代缴销账</td><td>已销账通常不可退</td></tr>
+<tr><td><strong>Gift Card</strong></td><td>品牌、面额、有效期、使用说明</td><td>券码池</td><td>固定面额/折扣价</td><td>未分配券码数量</td><td>收件账号/邮箱</td><td>可在支付后分配，也可提前锁码</td><td>发码</td><td>未发码可退，已发码受限</td></tr>
+<tr><td><strong>E-Voucher / Local Service</strong></td><td>商户、门店、券模板、核销规则</td><td>门店服务能力、券码池</td><td>券售价/活动价</td><td>本地库存/券码数量</td><td>门店、购买数量</td><td>可锁库存或支付后扣减</td><td>发券 + 到店核销</td><td>未核销可退，已核销不可退</td></tr>
+<tr><td><strong>Flight / Train / Bus</strong></td><td>城市、站点、承运方、基础运营配置</td><td>班次、舱位/座位</td><td>供应商实时报价</td><td>实时座位/占座结果</td><td>乘客、证件、行李等</td><td>创单前占座/预订</td><td>出票</td><td>退改签规则复杂</td></tr>
+<tr><td><strong>Hotel</strong></td><td>酒店、房型、设施、地理位置、政策</td><td>房型 + 日期范围</td><td>Rate Plan / 日历价 / 动态价</td><td>房态确认</td><td>入住人、日期、人数</td><td>预订确认或担保锁房</td><td>预订确认</td><td>受取消政策约束</td></tr>
+<tr><td><strong>Movie</strong></td><td>影片、影院、影厅、场次基础信息</td><td>场次 + 座位</td><td>场次价/套餐价</td><td>座位图和锁座状态</td><td>座位、手机号</td><td>锁座</td><td>出票/取票码</td><td>通常不可退或限时退</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张表说明了一个关键事实：<strong>同样叫商品，但不同品类的“可售单元”可能位于不同层次</strong>。Gift Card 的可售单元很接近 SKU；Hotel 的可售单元是“房型 + 日期范围 + Rate Plan”；Flight 的可售单元是一次实时报价和占座结果；Bill 的可售单元甚至要在用户输入账单号之后才形成。</p>
+<p><strong>5. 商品中心的职责边界</strong></p>
+<p>基于八层模型，商品中心应该重点负责交易前可复用、可运营、可搜索、可配置的部分：</p>
+<pre><code class="language-text">商品中心负责：
+  Product Definition：类目、SPU/SKU、标题、图片、状态、Tag
+  Resource 稳定部分：酒店、房型、影院、商户、门店、城市、站点、账单机构
+  Offer 配置：基础价、面额、套餐、价格规则输入、供应商报价映射
+  Availability 入口：库存类型、库存来源、可售规则、查询/预占能力
+  Input Schema：手机号、账单号、乘客、入住人、座位等表单配置
+  Contract 配置：履约类型、退款规则、供应商映射、能力开关
+
+商品中心不负责：
+  实时航班报价、实时房态房价、座位锁定状态
+  用户账单金额、支付结果、订单履约状态、售后处理结果
+</code></pre>
+<p>这样划分之后，商品中心不会因为接入一个新品类就不断膨胀。新增品类时，优先回答八个问题：</p>
+<ol>
+<li>它的稳定商品定义是什么？</li>
+<li>它依赖哪些资源？</li>
+<li>报价是平台配置还是供应商实时返回？</li>
+<li>可用性由谁确认？</li>
+<li>用户下单前需要输入什么？</li>
+<li>是否需要预订、锁定或占用资源？</li>
+<li>支付后如何履约？</li>
+<li>失败、取消、退款时遵循什么规则？</li>
+</ol>
+<p>这八个问题回答清楚，商品中心、计价、库存、订单、履约和售后之间的边界也就清楚了。</p>
+<p><strong>6. 建模原则</strong></p>
+<p>最终的建模原则可以总结为六句话：</p>
+<ol>
+<li><strong>不要用一个 SKU 表硬套所有品类</strong>：SKU 是稳定可售单元，不是所有实时报价和资源组合的容器。</li>
+<li><strong>静态资源和动态资源分离</strong>：酒店资料、影院资料可以同步；房态、座位、报价必须按时效处理。</li>
+<li><strong>商品定义和交易结果分离</strong>：商品中心保存能力和规则，订单/履约系统保存每笔交易的状态。</li>
+<li><strong>用户输入配置化</strong>：不同品类的表单和校验规则要通过 Input Schema 表达，避免写死在交易代码里。</li>
+<li><strong>履约和售后契约前置</strong>：商品中心要告诉订单系统“这个商品怎么履约、怎么退”，但不处理具体订单的履约状态。</li>
+<li><strong>供应商差异通过映射和防腐层隔离</strong>：商品中心只保留平台模型和供应商映射，不让供应商字段污染主模型。</li>
+</ol>
+<p>这一节的核心结论是：<strong>商品中心真正统一的是经营表达和交易前契约，而不是统一所有品类的实时资源状态</strong>。这是数字商品平台避免商品模型失控的关键。</p>
+<hr>
+<h4 id="16613-统一商品模型设计"><a class="header" href="#16613-统一商品模型设计">16.6.1.3 统一商品模型设计</a></h4>
+<p>商品中心的统一模型目标不是把所有品类强行压成同一种 SKU，而是提供一个稳定的“商品表达框架”，让不同品类都能被运营、搜索、计价、下单和履约系统理解。</p>
+<p><strong>核心模型分层</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模型</th><th>作用</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Category</strong></td><td>统一品类层级和能力开关</td><td><code>40102</code> 机票、<code>10102</code> 话费充值、<code>70101</code> Deal Voucher</td></tr>
+<tr><td><strong>Resource</strong></td><td>表达商品背后的稳定业务资源</td><td>酒店、房型、城市、机场、影院、商户、门店、账单机构</td></tr>
+<tr><td><strong>Carrier / Brand</strong></td><td>统一业务实体、品牌、运营商、机构</td><td>某运营商、某礼品卡品牌、某酒店品牌、某银行、某影院</td></tr>
+<tr><td><strong>SPU</strong></td><td>表达平台商品或商品族</td><td>某品牌礼品卡、某酒店商品页、某商户套餐</td></tr>
+<tr><td><strong>SKU</strong></td><td>表达稳定可售单元或销售模板</td><td>100 元礼品卡、某券模板、某充值面额、某房型 + Rate Plan</td></tr>
+<tr><td><strong>Offer / Rate Plan</strong></td><td>表达报价和售卖条件</td><td>固定面额、套餐价、含早/无早、可取消/不可取消</td></tr>
+<tr><td><strong>Attribute / EAV</strong></td><td>支持可搜索、可筛选、可分析属性</td><td>面额、有效期、城市、商户类型、是否支持退款</td></tr>
+<tr><td><strong>ExtInfo JSON</strong></td><td>承接低频、展示型、品类专属字段</td><td>酒店设施、券使用说明、账单字段配置</td></tr>
+<tr><td><strong>Supplier Mapping</strong></td><td>连接平台商品与外部供应商资源</td><td>平台 SKU ↔ 供应商 SKU / 外部资源 ID / 业务实体 ID</td></tr>
+<tr><td><strong>Category Capability</strong></td><td>表达类目在交易链路中的能力差异</td><td>是否实时查价、是否需要输入账号、是否需要锁座/锁房</td></tr>
+<tr><td><strong>Runtime Context</strong></td><td>为列表、详情、结算、创单组装交易前上下文</td><td>商品定义 + 资源 + 报价 + 可售 + 输入 + 履约 + 售后</td></tr>
+</tbody>
+</table>
+</div>
+<p>这套模型可以理解为三层：</p>
+<pre><code class="language-text">第一层：稳定主数据
+  Category + Resource + SPU + SKU + Attribute
+
+第二层：交易前契约
+  Offer / Rate Plan + Capability + Input Schema + Fulfillment Rule + Refund Rule
+
+第三层：运行时上下文
+  Runtime Context = 稳定主数据 + 交易前契约 + 实时查询结果
+</code></pre>
+<p>其中第一层主要持久化在商品中心；第二层也是商品中心负责维护，但会被计价、订单、履约和售后系统消费；第三层通常不是永久主数据，而是在搜索、详情、结算、创单等场景下按需组装，并在订单创建时形成订单快照。</p>
+<p><strong>设计原则</strong>：</p>
+<ol>
+<li><strong>类目表达业务类型</strong>：不要再额外引入 <code>product_type</code> 与 <code>category_id</code> 互相重叠，类目编码本身可以表达一级、二级、三级业务含义。</li>
+<li><strong>Resource 表达稳定业务资源</strong>：酒店、房型、影院、商户、门店、城市、机场、车站等不是普通 SKU 字段，而是可以被多个商品、多个供应商和多个场景复用的资源。</li>
+<li><strong>Carrier / Brand 表达业务实体</strong>：运营商、银行、航司、影院、酒店品牌、商户都可以归入业务实体模型，再通过实体类型区分。</li>
+<li><strong>SPU/SKU 表达可运营商品</strong>：Gift Card、Voucher、Topup 面额适合沉淀 SKU；Flight 搜索结果不适合沉淀完整 SKU，只沉淀城市、站点、航司等基础资源。</li>
+<li><strong>Offer / Rate Plan 表达售卖条件</strong>：酒店的含早/无早、可取消/不可取消，电影套餐，礼品卡面额，都应该从“商品是什么”里拆出来，作为“如何售卖”的配置。</li>
+<li><strong>EAV 只放可检索属性</strong>：需要筛选、搜索、分析的字段进入属性表；仅用于展示的复杂结构进入 <code>ExtInfo</code>。</li>
+<li><strong>动态价格和实时库存不进商品主表</strong>：商品主表保存稳定定义，动态报价、房态、座位库存通过缓存、供应商查询和订单快照处理。</li>
+</ol>
+<hr>
+<h4 id="16614-商品中心核心表设计"><a class="header" href="#16614-商品中心核心表设计">16.6.1.4 商品中心核心表设计</a></h4>
+<p>商品中心的表设计要支撑三件事：稳定主数据、灵活品类差异、可追溯运营链路。下面是核心表的定位，不要求所有字段一次性设计到位，但边界要清晰。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表名</th><th>定位</th><th>关键内容</th></tr>
+</thead>
+<tbody>
+<tr><td><code>category_tab</code></td><td>类目树</td><td>类目编码、父类目、层级、名称、排序、状态、能力开关</td></tr>
+<tr><td><code>carrier_brand_tab</code></td><td>业务实体/品牌/运营商</td><td>实体类型、名称、Logo、国家/地区、状态、扩展配置</td></tr>
+<tr><td><code>resource_tab</code></td><td>统一业务资源</td><td>资源类型、资源编码、名称、父资源、国家/城市、状态、通用属性</td></tr>
+<tr><td><code>resource_ext_*_tab</code></td><td>高频资源扩展表</td><td>酒店、房型、门店、影院、航线等高频字段，避免全部塞进 JSON</td></tr>
+<tr><td><code>product_spu_tab</code></td><td>标准商品或商品族</td><td>SPU Code、类目、品牌/实体、标题、状态、素材</td></tr>
+<tr><td><code>product_sku_tab</code></td><td>可售单元</td><td>SKU Code、SPU ID、基础价、销售状态、库存类型、履约类型</td></tr>
+<tr><td><code>product_resource_mapping_tab</code></td><td>商品与资源关系</td><td>SKU/SPU 与酒店、房型、门店、影院、城市等资源的关系</td></tr>
+<tr><td><code>product_offer_tab</code></td><td>商品报价配置</td><td>固定价、套餐价、展示价、报价来源、价格生效范围</td></tr>
+<tr><td><code>rate_plan_tab</code></td><td>售卖条件计划</td><td>早餐、取消政策、支付方式、入住人数、供应商报价计划</td></tr>
+<tr><td><code>product_attr_definition_tab</code></td><td>属性定义</td><td>属性 Code、属性类型、适用类目、是否可搜索/筛选</td></tr>
+<tr><td><code>product_attr_value_tab</code></td><td>商品属性值</td><td>SKU/SPU 与属性值绑定，用于筛选、搜索、分析</td></tr>
+<tr><td><code>product_ext_info_tab</code></td><td>品类扩展信息</td><td>JSON 结构，保存低频展示型、品类专属字段</td></tr>
+<tr><td><code>supplier_product_mapping_tab</code></td><td>供应商商品映射</td><td>平台 SKU/SPU 与供应商 SKU、外部资源 ID、业务实体 ID 的映射</td></tr>
+<tr><td><code>category_capability_tab</code></td><td>类目能力矩阵</td><td>商品模型类型、报价类型、库存类型、输入 Schema、锁定模式、履约类型、售后规则</td></tr>
+<tr><td><code>input_schema_tab</code></td><td>用户输入表单配置</td><td>手机号、账单号、乘客、入住人、邮箱、座位选择等输入字段</td></tr>
+<tr><td><code>fulfillment_rule_tab</code></td><td>履约契约配置</td><td>充值、销账、发码、出票、预订确认、核销等履约模式</td></tr>
+<tr><td><code>refund_rule_tab</code></td><td>售后规则配置</td><td>是否可退、是否人工审核、取消政策、核销后限制、供应商退改规则</td></tr>
+<tr><td><code>product_stock_tab</code></td><td>库存与可售状态</td><td>库存类型、库存来源、可售状态、库存数量、更新时间</td></tr>
+<tr><td><code>voucher_code_pool_tab</code></td><td>券码池</td><td>券码、SKU、状态、有效期、分配订单、核销状态</td></tr>
+<tr><td><code>listing_task_tab</code></td><td>商品供给任务</td><td>导入批次、任务状态、操作人、成功/失败数量、错误文件</td></tr>
+<tr><td><code>product_audit_log_tab</code></td><td>审核日志</td><td>审核对象、变更内容、审核结论、审核人、驳回原因</td></tr>
+<tr><td><code>product_change_log_tab</code></td><td>变更日志</td><td>商品字段变更前后值、操作来源、TraceID、操作人</td></tr>
+<tr><td><code>product_search_index_task_tab</code></td><td>搜索索引任务</td><td>索引动作、目标 SKU、任务状态、重试次数、失败原因</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>方案 3 的核心 ER 关系</strong>：</p>
+<pre class="mermaid">erDiagram
+    CATEGORY_TAB ||--o{ PRODUCT_SPU_TAB : contains
+    PRODUCT_SPU_TAB ||--o{ PRODUCT_SKU_TAB : contains
+
+    CATEGORY_TAB ||--|| CATEGORY_CAPABILITY_TAB : configures
+    CATEGORY_TAB ||--o{ RATE_PLAN_TAB : defines
+    CATEGORY_TAB ||--o{ INPUT_SCHEMA_TAB : defines
+    CATEGORY_TAB ||--o{ FULFILLMENT_RULE_TAB : defines
+    CATEGORY_TAB ||--o{ REFUND_RULE_TAB : defines
+
+    PRODUCT_SKU_TAB ||--o{ PRODUCT_OFFER_TAB : has
+    RATE_PLAN_TAB ||--o{ PRODUCT_OFFER_TAB : applies_to
+
+    PRODUCT_SKU_TAB ||--|| PRODUCT_STOCK_TAB : has
+    PRODUCT_SKU_TAB ||--o{ VOUCHER_CODE_POOL_TAB : allocates
+
+    PRODUCT_SPU_TAB ||--o{ PRODUCT_RESOURCE_MAPPING_TAB : maps
+    PRODUCT_SKU_TAB ||--o{ PRODUCT_RESOURCE_MAPPING_TAB : maps
+    RESOURCE_TAB ||--o{ PRODUCT_RESOURCE_MAPPING_TAB : referenced_by
+
+    RESOURCE_TAB ||--o{ RESOURCE_RELATION_TAB : from_resource
+    RESOURCE_TAB ||--o{ RESOURCE_RELATION_TAB : to_resource
+
+    RESOURCE_TAB ||--o{ SUPPLIER_RESOURCE_MAPPING_TAB : maps_to_supplier
+    PRODUCT_SKU_TAB ||--o{ SUPPLIER_PRODUCT_MAPPING_TAB : maps_to_supplier
+    PRODUCT_OFFER_TAB ||--o{ SUPPLIER_PRODUCT_MAPPING_TAB : maps_to_supplier
+
+    CATEGORY_TAB {
+        bigint category_id PK
+        varchar category_code
+        bigint parent_id
+        int level
+        varchar name
+        varchar status
+    }
+
+    CATEGORY_CAPABILITY_TAB {
+        bigint capability_id PK
+        bigint category_id FK
+        varchar product_model_type
+        varchar offer_type
+        varchar availability_type
+        varchar booking_mode
+        varchar fulfillment_type
+        varchar refund_rule_id
+        varchar supplier_dependency
+    }
+
+    PRODUCT_SPU_TAB {
+        bigint spu_id PK
+        bigint category_id FK
+        varchar spu_code
+        varchar title
+        bigint brand_id
+        varchar status
+        json ext_info
+    }
+
+    PRODUCT_SKU_TAB {
+        bigint sku_id PK
+        bigint spu_id FK
+        varchar sku_code
+        varchar sku_name
+        bigint base_price
+        varchar inventory_type
+        varchar fulfillment_type
+        varchar status
+        json ext_info
+    }
+
+    RESOURCE_TAB {
+        bigint resource_id PK
+        varchar resource_type
+        varchar resource_code
+        varchar name
+        bigint parent_resource_id
+        varchar country_code
+        varchar city_code
+        varchar status
+        json attributes
+    }
+
+    PRODUCT_RESOURCE_MAPPING_TAB {
+        bigint id PK
+        bigint spu_id FK
+        bigint sku_id FK
+        bigint resource_id FK
+        varchar relation_type
+        int priority
+        varchar status
+    }
+
+    RESOURCE_RELATION_TAB {
+        bigint id PK
+        bigint from_resource_id FK
+        bigint to_resource_id FK
+        varchar relation_type
+        varchar status
+    }
+
+    PRODUCT_OFFER_TAB {
+        bigint offer_id PK
+        bigint sku_id FK
+        bigint rate_plan_id FK
+        varchar offer_type
+        bigint price
+        varchar currency
+        varchar price_rule
+        datetime valid_from
+        datetime valid_to
+        varchar status
+    }
+
+    RATE_PLAN_TAB {
+        bigint rate_plan_id PK
+        bigint category_id FK
+        varchar plan_code
+        varchar meal_type
+        varchar cancel_policy
+        varchar payment_type
+        json constraints
+        varchar status
+    }
+
+    PRODUCT_STOCK_TAB {
+        bigint stock_id PK
+        bigint sku_id FK
+        varchar stock_type
+        varchar source_type
+        int quantity
+        boolean sellable
+        datetime updated_at
+    }
+
+    VOUCHER_CODE_POOL_TAB {
+        bigint code_id PK
+        bigint sku_id FK
+        varchar code_status
+        datetime expire_at
+        bigint assigned_order_id
+        varchar redeem_status
+    }
+
+    INPUT_SCHEMA_TAB {
+        bigint schema_id PK
+        bigint category_id FK
+        varchar scene
+        json fields
+        json validation_rules
+        varchar status
+    }
+
+    FULFILLMENT_RULE_TAB {
+        bigint rule_id PK
+        bigint category_id FK
+        varchar fulfillment_type
+        varchar mode
+        int timeout_sec
+        json params
+        varchar status
+    }
+
+    REFUND_RULE_TAB {
+        bigint refund_rule_id PK
+        bigint category_id FK
+        boolean refundable
+        boolean need_review
+        json policy
+        varchar status
+    }
+
+    SUPPLIER_RESOURCE_MAPPING_TAB {
+        bigint id PK
+        bigint resource_id FK
+        bigint supplier_id
+        varchar supplier_resource_code
+        varchar supplier_resource_type
+        varchar status
+    }
+
+    SUPPLIER_PRODUCT_MAPPING_TAB {
+        bigint id PK
+        bigint sku_id FK
+        bigint offer_id FK
+        bigint supplier_id
+        varchar supplier_product_code
+        varchar mapping_status
+        json ext_ref
+    }
+</pre>
+
+<p>一个重要经验是：<strong>表结构要承认异构，而不是掩盖异构</strong>。主表保持稳定，资源表承接业务资源，Offer/Rate Plan 表承接售卖条件，能力矩阵承接流程差异，映射表连接供应商，日志表保证可追溯。这样既不会让主表无限膨胀，也不会每新增一个品类就新建一整套孤立模型。</p>
+<p>资源表建议采用“统一资源表 + 高频扩展表”的方式：</p>
+<pre><code class="language-text">resource_tab
+  保存资源身份、资源类型、名称、父子关系、状态、国家/城市等通用字段
+
+resource_ext_hotel_tab / resource_ext_room_type_tab
+  保存酒店星级、地址、经纬度、设施、房型面积、床型等高频字段
+
+resource_ext_merchant_tab / resource_ext_outlet_tab
+  保存商户、门店、营业时间、地理位置、核销能力等高频字段
+
+resource_ext_cinema_tab / resource_ext_route_tab
+  保存影院、影厅、城市站点、航线/车线等高频字段
+</code></pre>
+<p>这样设计的原因是：不是所有资源都值得单独建完整模型，但高频检索、高频展示、高频排序的资源字段不能长期躲在 JSON 里。统一 <code>resource_tab</code> 负责身份和关系，扩展表负责高频业务字段。</p>
+<hr>
+<h4 id="16615-不同品类的数据存储样例"><a class="header" href="#16615-不同品类的数据存储样例">16.6.1.5 不同品类的数据存储样例</a></h4>
+<p>不同品类进入商品中心时，关键是判断“哪些信息稳定，哪些信息动态，哪些信息不应该沉淀”。下面按典型品类说明。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>品类</th><th>SPU/SKU 存什么</th><th>Resource 存什么</th><th>Offer / Rate Plan 存什么</th><th>动态数据在哪里</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Topup</strong></td><td>运营商面额 SKU、套餐说明、基础价、可售状态</td><td>运营商、国家/地区、号码归属规则</td><td>固定面额、套餐价、手续费规则</td><td>手机号校验、供应商通道状态实时查询或短缓存</td></tr>
+<tr><td><strong>Bill</strong></td><td>账单机构商品、账单类型、缴费入口</td><td>账单机构、账单地区、账单账号类型</td><td>手续费规则、是否支持部分支付、滞纳金规则</td><td>用户账单金额、欠费明细、账单可缴状态实时查询</td></tr>
+<tr><td><strong>Gift Card</strong></td><td>品牌 + 面额 SKU、有效期、使用说明</td><td>礼品卡品牌、券码池资源</td><td>固定面额、折扣价、发码规则</td><td>券码分配结果、用户核销状态进入履约/核销链路</td></tr>
+<tr><td><strong>E-Voucher / Local Service</strong></td><td>券模板 SKU、购买限制、可用时间、核销规则摘要</td><td>商户、门店、服务项目、券码池</td><td>券售价、活动价、门店适用范围</td><td>发券、核销、过期、退款状态进入履约/售后链路</td></tr>
+<tr><td><strong>Flight / Train / Bus</strong></td><td>通常不沉淀完整行程 SKU，只存基础运营配置</td><td>城市、机场/车站、航司/车司、线路</td><td>供应商报价计划、服务费、加价规则</td><td>航班/班次报价、座位、舱位、占座结果实时查询</td></tr>
+<tr><td><strong>Hotel</strong></td><td>酒店 SPU、房型销售模板 SKU、上下架、展示素材</td><td>酒店、房型、品牌、城市、商圈、设施</td><td>Rate Plan：含早/无早、可取消/不可取消、支付方式</td><td>某日期房态房价、税费、供应商确认结果走缓存或实时查询</td></tr>
+<tr><td><strong>Movie</strong></td><td>影片/影院/套餐商品、基础场次配置</td><td>影片、影院、影厅、座位区域</td><td>场次价、套餐价、服务费规则</td><td>实时座位图、锁座状态、出票结果走供应商查询</td></tr>
+</tbody>
+</table>
+</div>
+<p>这种划分的核心标准是：<strong>稳定内容进商品中心，动态资源走缓存/供应商，交易结果进订单/履约/售后快照</strong>。</p>
+<p>以酒店为例，酒店本身是 Resource，平台上售卖的不是“酒店这一条记录”，而是围绕酒店资源包装出来的商品和售卖条件：</p>
+<pre><code class="language-text">resource_tab
+  HOTEL: Bangkok Central Hotel
+  ROOM_TYPE: Deluxe King Room
+
+product_spu_tab
+  SPU-HOTEL-90001: 平台上的 Bangkok Central Hotel 商品页
+
+product_sku_tab
+  SKU-HOTEL-90001-ROOM90002-BF-RF:
+    Deluxe King Room + 含早 + 可取消
+
+rate_plan_tab
+  BF_RF:
+    breakfast = included
+    cancel_policy = free_cancel_before_deadline
+    payment_type = prepay
+
+实时查询 / 报价缓存
+  check_in = 2026-05-01
+  nights = 2
+  adult = 2
+  price = 实时返回
+  availability = 实时确认
+</code></pre>
+<p>这个例子说明：<code>resource_tab</code> 回答“资源是什么”，<code>product_spu_tab</code> 回答“平台是否运营这个资源”，<code>product_sku_tab</code> 回答“卖哪个稳定销售模板”，<code>rate_plan_tab</code> 回答“用什么售卖条件”，实时查询回答“这个日期和人数下是否真的可以买”。</p>
+<p>再以账单缴费为例，账单机构和缴费入口可以沉淀在商品中心，但用户账单金额不能沉淀成商品主数据：</p>
+<pre><code class="language-text">resource_tab
+  BILLER: 某电力公司
+
+product_spu_tab
+  SPU-BILL-ELECTRICITY: 电费缴费
+
+product_sku_tab
+  SKU-BILL-ELECTRICITY-REGION-A: A 地区电费缴费入口
+
+input_schema_tab
+  account_no: 必填，数字，长度 10-16
+
+实时查账
+  account_no = 用户输入
+  bill_amount = 实时返回
+  due_date = 实时返回
+</code></pre>
+<p>这类商品的可售单元不是固定面额，而是“用户输入账号后形成的一次账单支付上下文”。因此商品中心只保存账单机构、输入规则、手续费规则和履约契约，具体账单金额进入计价上下文和订单快照。</p>
+<hr>
+<h4 id="16616-商品供给与运营链路"><a class="header" href="#16616-商品供给与运营链路">16.6.1.6 商品供给与运营链路</a></h4>
+<p>商品供给与运营链路解决的是“商品如何进入平台，以及上线后如何被持续维护”的问题。对于数字商品平台，B 端供给能力不是后台 CRUD，而是一条持续运行的供给流水线：它要把人工上传、批量导入、供应商同步、运营编辑统一起来，并且和前面定义的 <code>Resource</code>、<code>SPU/SKU</code>、<code>Offer / Rate Plan</code>、库存可售、搜索索引、订单快照和履约契约保持一致。</p>
+<p>如果这条链路设计不好，问题会很快暴露到 C 端交易链路：列表页搜不到、详情页价格错误、下单时库存不可用、券码发放失败、供应商映射缺失、退款规则不完整。面试时可以这样概括：</p>
+<blockquote>
+<p>商品供给链路的核心不是“把商品写进数据库”，而是“让一个商品从供给入口到可被搜索、可被下单、可被履约、可被追溯”。</p>
+</blockquote>
+<p><strong>1. 三种方案对比</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>核心思路</th><th>优点</th><th>缺点</th><th>适用阶段</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>方案A：轻量 CRUD + 审核流</strong></td><td>后台直接创建、编辑、审核、上架</td><td>实现简单，适合小团队和固定 SKU 品类</td><td>不支持大批量导入、供应商同步、发布一致性和质量治理</td><td>早期平台、少量自营商品</td></tr>
+<tr><td><strong>方案B：任务化供给流水线</strong></td><td>以 <code>Listing Task</code> 统一承接人工上传、批量导入、供应商同步和运营编辑</td><td>支持异步处理、进度追踪、失败重试和错误文件下载</td><td>只解决“怎么执行”，还缺少风险审核、发布一致性和质量闭环</td><td>中期平台、多品类导入</td></tr>
+<tr><td><strong>方案C：供给治理平台</strong></td><td>在任务化基础上加入标准化校验、差异化审核、发布快照、事件 Outbox、索引/缓存刷新、质量巡检和补偿</td><td>能支撑 OTA/O2O/虚拟商品的复杂供给和长期运营</td><td>设计复杂度更高，需要明确任务模型、审核规则和发布边界</td><td>多品类、多供应商、强运营平台</td></tr>
+</tbody>
+</table>
+</div>
+<p>本系统选择 <strong>方案C：供给治理平台</strong>。它不是否定方案B，而是在任务化流水线之上补齐治理能力。</p>
+<p><strong>2. 推荐架构：供给治理闭环</strong></p>
+<pre><code class="language-text">供给入口
+  → Listing Task
+  → 标准化校验
+  → 风险识别
+  → 审核发布
+  → 主数据/交易契约写入
+  → 搜索缓存刷新
+  → 事件通知下游
+  → 质量巡检与补偿
+</code></pre>
+<p>这条链路里的每一步都要可追踪、可重试、可审计：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th>主要职责</th><th>关键产物</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>供给入口</strong></td><td>接收人工创建、批量导入、供应商同步、运营编辑</td><td>原始输入、操作人、来源类型</td></tr>
+<tr><td><strong>Listing Task</strong></td><td>将一次供给动作任务化</td><td>任务 ID、任务状态、进度、失败明细</td></tr>
+<tr><td><strong>标准化校验</strong></td><td>把外部输入转换为平台商品模型</td><td>标准化后的 Resource、SPU/SKU、Offer、库存、履约规则</td></tr>
+<tr><td><strong>风险识别</strong></td><td>判断是否需要审核或告警</td><td>风险等级、命中规则、审核策略</td></tr>
+<tr><td><strong>审核发布</strong></td><td>控制新商品、高风险编辑、供应商变更是否生效</td><td>审核记录、发布版本、驳回原因</td></tr>
+<tr><td><strong>发布写入</strong></td><td>写入主数据和交易前契约</td><td>商品主数据、资源映射、Offer、库存、Input Schema、履约/退款规则</td></tr>
+<tr><td><strong>下游刷新</strong></td><td>保证搜索、缓存、营销、计价看到最新商品</td><td>Outbox 事件、索引任务、缓存失效任务</td></tr>
+<tr><td><strong>质量治理</strong></td><td>发现和修复供给链路异常</td><td>质量报告、补偿任务、告警记录</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>3. 四类供给入口</strong></p>
+<p>不同来源的商品，处理策略不同，但最终都应该进入统一的 Listing Task。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>入口</th><th>典型场景</th><th>设计重点</th><th>审核策略</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>人工创建</strong></td><td>运营录入本地服务券、礼品卡、活动商品</td><td>表单配置化、字段提示、实时校验</td><td>新商品完整审核</td></tr>
+<tr><td><strong>批量导入</strong></td><td>大促前批量创建券、门店、套餐、价格计划</td><td>模板下载、文件解析、预校验、异步任务、失败文件</td><td>失败不阻塞成功项，高风险项进入审核</td></tr>
+<tr><td><strong>供应商同步</strong></td><td>酒店、影院、活动、票务等外部数据同步</td><td>幂等映射、字段清洗、全量/增量、重试补偿</td><td>静态信息可自动发布，高风险差异转人工</td></tr>
+<tr><td><strong>运营编辑</strong></td><td>修改标题、图片、类目、价格、库存、退款规则、上下架</td><td>变更 Diff、批量编辑、版本化、回滚</td><td>低风险自动通过，高风险强制审核</td></tr>
+</tbody>
+</table>
+</div>
+<p>这里的关键设计是：<strong>所有入口都不要直接写商品正式表</strong>。它们先进入任务表和暂存区，经过校验、审核和发布后，再写入正式主数据和交易契约表。</p>
+<p><strong>4. Listing Task 状态机</strong></p>
+<p>供给任务要显式建状态机，避免任务执行到一半时无法判断当前处于“待校验、待审核、发布中还是已失败”。</p>
+<pre><code class="language-text">新商品/新供给：
+DRAFT
+  → VALIDATING
+  → REVIEWING
+  → APPROVED
+  → PUBLISHING
+  → PUBLISHED
+
+异常分支：
+VALIDATING / REVIEWING / PUBLISHING
+  → REJECTED / FAILED
+
+编辑链路：
+PUBLISHED
+  → EDITING
+  → VALIDATING
+  → REVIEWING
+  → PUBLISHING
+  → PUBLISHED
+
+退出链路：
+PUBLISHED
+  → OFF_SHELF
+  → ARCHIVED
+</code></pre>
+<p>状态机要配合三类表：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td><code>listing_task_tab</code></td><td>记录任务批次、来源、状态、进度、成功/失败数量</td></tr>
+<tr><td><code>listing_task_item_tab</code></td><td>记录每条商品/资源/Offer 的处理结果，便于失败重试</td></tr>
+<tr><td><code>product_audit_log_tab</code> / <code>product_change_log_tab</code></td><td>记录审核结论、字段 Diff、操作人、TraceID</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>5. 标准化校验与差异化审核</strong></p>
+<p>数字商品供给不能只做字段必填校验，还要校验交易前契约是否完整。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>校验层</th><th>检查内容</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Schema 校验</strong></td><td>字段类型、必填、枚举、长度、格式</td><td>手机号规则、账单号长度、图片 URL 格式</td></tr>
+<tr><td><strong>主数据校验</strong></td><td>类目、Resource、Brand/Carrier、供应商映射是否存在</td><td>酒店必须有关联城市，门店必须有关联商户</td></tr>
+<tr><td><strong>商品模型校验</strong></td><td>SPU/SKU、属性、ExtInfo 是否符合类目模板</td><td>Gift Card 必须有面额和有效期</td></tr>
+<tr><td><strong>交易契约校验</strong></td><td>Offer、库存类型、Input Schema、履约规则、退款规则是否完整</td><td>Hotel 必须有 Rate Plan 和取消政策</td></tr>
+<tr><td><strong>可售校验</strong></td><td>商品状态、库存来源、供应商状态、业务开关</td><td>Voucher 券码池为空不能发布</td></tr>
+<tr><td><strong>风险校验</strong></td><td>是否触发高风险规则</td><td>价格大幅变化、类目变化、退款规则变更</td></tr>
+</tbody>
+</table>
+</div>
+<p>审核策略应该差异化，而不是所有变更都人工审核：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>变更类型</th><th>风险等级</th><th>策略</th></tr>
+</thead>
+<tbody>
+<tr><td>标题、描述、普通图片修改</td><td>低</td><td>自动通过，记录变更日志</td></tr>
+<tr><td>库存水位、供应商可售状态</td><td>中</td><td>自动校验，通过后发布，异常告警</td></tr>
+<tr><td>价格变化、Offer 规则变化</td><td>中高</td><td>超过阈值进入人工审核</td></tr>
+<tr><td>类目变化、履约类型变化、退款规则变化</td><td>高</td><td>强制人工审核</td></tr>
+<tr><td>供应商映射变化、资源 ID 变化</td><td>高</td><td>强制人工审核，并触发数据巡检</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>6. 发布一致性设计</strong></p>
+<p>审核通过不代表商品已经可售。真正发布时，要保证商品主数据、资源映射、交易契约、库存可售、搜索缓存和下游系统最终一致。</p>
+<pre><code class="language-text">审核通过
+  → 开启发布事务
+  → 写入 Product Definition（SPU/SKU）
+  → 写入 Resource Mapping
+  → 写入 Offer / Rate Plan
+  → 写入 Stock / Sellable
+  → 写入 Input Schema / Fulfillment Rule / Refund Rule
+  → 生成商品发布版本和商品快照
+  → 写入 Outbox 事件
+  → 提交事务
+  → 异步刷新 ES、缓存、营销、计价、数据平台
+</code></pre>
+<p>关键点：</p>
+<ol>
+<li><strong>正式表与任务表分离</strong>：导入中的数据不能污染线上商品。</li>
+<li><strong>发布版本化</strong>：每次发布生成 <code>publish_version</code>，便于回滚、对账和排查。</li>
+<li><strong>事件 Outbox</strong>：商品更新与事件写入同事务，避免商品已变更但搜索或营销没收到事件。</li>
+<li><strong>异步刷新可重试</strong>：ES 索引、缓存失效、营销圈品、计价上下文刷新失败时进入补偿任务。</li>
+<li><strong>订单只信快照</strong>：订单创建时保存商品快照、报价快照、履约契约和退款规则快照，避免后续商品变更影响历史订单。</li>
+</ol>
+<p><strong>7. 异常治理与可观测性</strong></p>
+<p>供给运营链路需要可观测，否则运营会遇到“上传了但不知道失败在哪里”“审核通过但前台搜不到”“供应商同步成功但价格不对”等问题。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>说明</th><th>目标</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>导入成功率</strong></td><td>成功项 / 总导入项</td><td>&gt; 95%</td></tr>
+<tr><td><strong>任务完成耗时</strong></td><td>从任务创建到发布完成</td><td>P95 可控，批量任务分层统计</td></tr>
+<tr><td><strong>自动审核占比</strong></td><td>自动通过任务 / 总审核任务</td><td>持续提升，但高风险不追求自动化</td></tr>
+<tr><td><strong>发布失败率</strong></td><td>发布失败任务 / 发布任务</td><td>&lt; 1%</td></tr>
+<tr><td><strong>索引刷新成功率</strong></td><td>ES 刷新成功任务 / 总刷新任务</td><td>&gt; 99%</td></tr>
+<tr><td><strong>缓存失效成功率</strong></td><td>缓存失效任务 / 总失效任务</td><td>&gt; 99%</td></tr>
+<tr><td><strong>商品质量缺陷率</strong></td><td>缺图、缺价、无库存、映射缺失商品占比</td><td>持续下降</td></tr>
+<tr><td><strong>供应商同步延迟</strong></td><td>外部变更到平台可见的时间</td><td>按品类分级管理</td></tr>
+</tbody>
+</table>
+</div>
+<p>异常处理要形成闭环：</p>
+<pre><code class="language-text">任务失败
+  → 记录失败原因和 TraceID
+  → 可重试错误自动重试
+  → 不可重试错误生成失败文件
+  → 高风险错误告警
+  → 运营修复后重新提交
+</code></pre>
+<p>常见补偿任务包括：</p>
+<ol>
+<li>搜索索引重建任务。</li>
+<li>商品缓存失效重试任务。</li>
+<li>供应商映射缺失修复任务。</li>
+<li>库存可售状态巡检任务。</li>
+<li>商品质量日报任务。</li>
+<li>发布版本与线上索引一致性校验任务。</li>
+</ol>
+<p><strong>8. 与库存、订单、支付链路的关系</strong></p>
+<p>商品供给链路虽然发生在交易前，但它直接影响库存、订单和支付：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>交易系统</th><th>供给链路要提供什么</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>库存与可售域</strong></td><td>库存类型、库存来源、券码池、供应商实时库存能力、可售规则</td></tr>
+<tr><td><strong>搜索导购域</strong></td><td>可索引字段、图片、标题、标签、展示价、可售状态</td></tr>
+<tr><td><strong>订单系统</strong></td><td>商品快照、Resource 映射、Offer 快照、Input Schema、履约契约、退款规则</td></tr>
+<tr><td><strong>支付系统</strong></td><td>商品是否允许支付、支付前金额是否需要锁定、退款路径是否存在</td></tr>
+<tr><td><strong>履约系统</strong></td><td>履约类型、供应商映射、履约参数、超时策略</td></tr>
+</tbody>
+</table>
+</div>
+<p>所以，商品发布不是一个孤立动作，而是一次“交易前契约发布”。商品中心要保证订单系统拿到的不是半成品商品，而是一个可以被下单、支付、履约和售后的完整上下文。</p>
+<p><strong>面试总结</strong>：</p>
+<blockquote>
+<p>我不会把商品供给设计成后台 CRUD，而会设计成供给治理平台。所有人工上传、批量导入、供应商同步和运营编辑都进入 Listing Task，通过标准化校验、差异化审核、版本化发布、Outbox 事件、索引缓存刷新和质量巡检形成闭环。这样才能支撑 OTA、O2O 和虚拟商品的复杂供给，同时避免商品中心变成不可追溯的大泥球。</p>
+</blockquote>
+<hr>
+<h4 id="16617-供应商商品同步链路"><a class="header" href="#16617-供应商商品同步链路">16.6.1.7 供应商商品同步链路</a></h4>
+<p>供应商同步链路解决的是“外部商品数据如何进入平台，并保持足够新鲜”的问题。不同品类的数据同步策略不同，不能一刀切。</p>
+<p><strong>静态信息与动态信息要分离</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>数据类型</th><th>示例</th><th>同步策略</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>静态信息</strong></td><td>酒店名称、地址、设施、影院信息、城市站点、商户门店</td><td>全量 + 增量同步，允许分钟级到小时级延迟</td></tr>
+<tr><td><strong>半动态信息</strong></td><td>酒店最低价、可售状态、热门商品库存水位</td><td>定时刷新 + 热门商品加频刷新</td></tr>
+<tr><td><strong>强动态信息</strong></td><td>机票报价、座位、酒店下单前房态房价、电影座位图</td><td>查询或下单前实时请求供应商</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>同步任务治理</strong>：</p>
+<pre><code class="language-text">供应商数据源
+  → 全量同步 / 增量同步 / 供应商 Push / 接入层 Push
+  → 数据清洗与字段映射
+  → 平台商品映射
+  → 写入商品主数据或扩展表
+  → 刷新缓存与搜索索引
+  → 记录同步日志与质量指标
+</code></pre>
+<p>需要重点建设四类能力：</p>
+<ol>
+<li><strong>幂等映射</strong>：用 <code>supplier_id + supplier_product_code</code> 定位同一个外部资源，避免重复建商品。</li>
+<li><strong>失败重试</strong>：网络失败、字段缺失、供应商限流要区分处理。</li>
+<li><strong>数据巡检</strong>：定期检查供应商侧与平台侧数据是否缺失、过期或映射错误。</li>
+<li><strong>热门刷新</strong>：对高曝光、高转化、高变价品类提高刷新频率，降低 L 页到 D 页的变价率。</li>
+</ol>
+<hr>
+<h4 id="16618-库存与可售设计"><a class="header" href="#16618-库存与可售设计">16.6.1.8 库存与可售设计</a></h4>
+<p>在本平台中库存没有独立拆服务，而是由商品中心内部的库存与可售域承接。这里的关键不是把库存字段放进商品主表，而是建立统一的库存抽象，屏蔽不同品类的库存来源差异。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>库存类型</th><th>典型品类</th><th>库存来源</th><th>处理方式</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>无限库存</strong></td><td>Topup、Bill</td><td>无明确库存或供应商容量足够</td><td>只做可售规则与供应商可用性校验</td></tr>
+<tr><td><strong>池化库存</strong></td><td>Voucher、Gift Card</td><td>平台券码池或本地库存</td><td>支付后分配券码，库存不足时停止售卖</td></tr>
+<tr><td><strong>实时库存</strong></td><td>Flight、Hotel、Movie</td><td>供应商接入层 / 外部供应商实时查询</td><td>搜索展示可缓存，下单前必须实时确认</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>统一可售判断</strong>：</p>
+<pre><code class="language-text">可售 = 商品状态可售
+    + 类目/站点/渠道可售
+    + 库存满足
+    + 供应商可用
+    + 风控/业务规则允许
+</code></pre>
+<p>库存相关动作包括查询、预占、释放、扣减、回补和对账。对于 Flight/Hotel/Movie 这类实时库存，商品中心更多是统一入口和状态判断，真实资源确认仍然要通过供应商网关或供应商接入层完成。</p>
+<hr>
+<h4 id="16619-搜索与导购设计"><a class="header" href="#16619-搜索与导购设计">16.6.1.9 搜索与导购设计</a></h4>
+<p>由于搜索也由商品中心负责，商品中心不仅要管理商品数据，还要负责把商品组织成用户可浏览、可搜索、可筛选、可点击的前台体验。</p>
+<p><strong>搜索导购链路</strong>：</p>
+<pre><code class="language-text">首页入口/类目导航
+  → 列表页搜索与筛选
+  → ES 召回
+  → 排序与过滤
+  → Hydrate 商品信息、库存、展示价、营销标签
+  → 返回列表页
+  → 详情页聚合
+</code></pre>
+<p><strong>关键设计点</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>能力</th><th>设计重点</th></tr>
+</thead>
+<tbody>
+<tr><td>首页入口</td><td>入口配置、类目分组、排序、发布快照、CDN/Redis 缓存</td></tr>
+<tr><td>ES 索引</td><td>商品主数据、类目、实体、Tag、可售状态、运营排序字段</td></tr>
+<tr><td>Hydrate</td><td>搜索只返回候选 ID，详情信息、库存、价格、营销标签统一补齐</td></tr>
+<tr><td>缓存</td><td>热门商品、本地缓存、Redis、索引快照结合使用</td></tr>
+<tr><td>降级</td><td>价格不可用时展示基础价，营销不可用时隐藏标签，库存不可用时弱提示</td></tr>
+<tr><td>新鲜度</td><td>L 页允许缓存，D 页更接近实时，创单必须实时校验</td></tr>
+</tbody>
+</table>
+</div>
+<p>面试时可以这样总结：<strong>搜索导购不是单纯 ES 查询，而是“召回 + 排序 + 商品补齐 + 库存价格营销融合 + 降级”的完整读链路</strong>。</p>
+<hr>
+<h4 id="166110-跨系统集成与事件设计"><a class="header" href="#166110-跨系统集成与事件设计">16.6.1.10 跨系统集成与事件设计</a></h4>
+<p>商品中心位于交易前链路，需要向多个系统输出稳定契约。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>下游系统</th><th>商品中心输出</th><th>对方使用方式</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>营销系统</strong></td><td>类目、Tag、商品范围、业务实体、可营销状态</td><td>圈品、活动配置、券可用范围</td></tr>
+<tr><td><strong>计价中心</strong></td><td>基础价、类目、属性、库存上下文、能力配置</td><td>PDP 价格、结算试算价、下单价、结算价</td></tr>
+<tr><td><strong>订单系统</strong></td><td>商品快照、上下架状态、可售校验、库存预占结果</td><td>创建订单前校验与订单快照落库</td></tr>
+<tr><td><strong>履约系统</strong></td><td>履约类型、供应商映射、履约参数</td><td>出票、充值、发券、预订确认</td></tr>
+<tr><td><strong>供应商网关/供应商接入层</strong></td><td>平台 SKU、供应商映射、同步任务上下文</td><td>查价、查库存、同步、履约调用</td></tr>
+<tr><td><strong>数据平台</strong></td><td>CDC、商品变更日志、质量监控数据</td><td>经营分析、质量报表、异常发现</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>核心事件</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>事件</th><th>触发时机</th><th>典型消费者</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ProductCreated</code></td><td>商品创建成功</td><td>搜索索引、营销、数据平台</td></tr>
+<tr><td><code>ProductUpdated</code></td><td>商品字段变化</td><td>搜索索引、缓存刷新、质量监控</td></tr>
+<tr><td><code>ProductOnShelf</code></td><td>商品上架</td><td>搜索、营销、推荐</td></tr>
+<tr><td><code>ProductOffShelf</code></td><td>商品下架</td><td>搜索、订单前校验、运营看板</td></tr>
+<tr><td><code>StockChanged</code></td><td>库存变化</td><td>搜索导购、告警、数据平台</td></tr>
+<tr><td><code>SupplierSyncFailed</code></td><td>供应商同步失败</td><td>告警、运营后台、任务补偿</td></tr>
+</tbody>
+</table>
+</div>
+<p>事件发布建议使用 Outbox 或可靠消息机制，避免“商品已更新但事件丢失”导致搜索、营销、计价数据不一致。</p>
+<hr>
+<h4 id="166111-架构取舍与经验总结"><a class="header" href="#166111-架构取舍与经验总结">16.6.1.11 架构取舍与经验总结</a></h4>
+<p><strong>1. 为什么没有独立拆库存中心和搜索中心？</strong></p>
+<p>这是团队规模和演进阶段下的取舍。库存和搜索都与商品强相关，早期拆成独立服务会增加团队协作、接口维护和数据一致性成本。把它们放在商品中心内部，可以减少跨服务调用，提高迭代效率。但内部必须按域隔离，避免主数据、库存状态和搜索索引混成一团。</p>
+<p><strong>2. 为什么不用一张大宽表？</strong></p>
+<p>大宽表短期开发快，但会很快变成 80+ 字段、15+ 品类混杂、字段语义不清的“大泥球”。更好的做法是：稳定字段进主表，可检索字段进属性表，展示型差异进 ExtInfo，高频品类能力进入扩展表。</p>
+<p><strong>3. ExtInfo JSON、EAV、扩展表怎么取舍？</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>适合场景</th><th>不适合场景</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>ExtInfo JSON</strong></td><td>低频展示字段、品类专属配置</td><td>高频查询、筛选、排序</td></tr>
+<tr><td><strong>EAV 属性表</strong></td><td>可搜索、可筛选、可分析属性</td><td>强事务、高频更新字段</td></tr>
+<tr><td><strong>扩展表</strong></td><td>高频访问的品类核心字段</td><td>低频字段和一次性配置</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>4. 为什么 Flight 不沉淀完整 SKU？</strong></p>
+<p>机票报价由日期、航线、航班、舱位、乘客类型、供应商策略共同决定，价格和库存变化太快。如果把每次报价都沉淀成 SKU，会产生巨量临时 SKU，且数据很快过期。更合理的是商品中心维护城市、机场、航司等基础资源，搜索和创单实时请求供应商。</p>
+<p><strong>5. 为什么 Hotel 要静态信息和动态房态房价分离？</strong></p>
+<p>酒店名称、地址、设施、图片相对稳定，适合同步到商品中心并进入搜索索引；房态和房价按日期、间夜、人数实时变化，适合缓存刷新和下单前实时确认。两者分离可以兼顾搜索性能和交易准确性。</p>
+<p><strong>6. 如何避免商品中心变成“大泥球”？</strong></p>
+<p>关键是三条边界：内部按六个域拆分，数据库按主表/属性/扩展/映射/日志拆分，对外用 API 和事件契约隔离。即便物理上是一个商品中心，逻辑上也要保持清晰边界，为未来拆分成商品中台、库存中心、搜索中心留下演进空间。</p>
+<hr>
+<h4 id="166112-实现落地参考ddd-分层与代码组织"><a class="header" href="#166112-实现落地参考ddd-分层与代码组织">16.6.1.12 实现落地参考：DDD 分层与代码组织</a></h4>
+<p>前面 16.6.1.2 到 16.6.1.11 讨论的是商品中心的业务架构和数据架构。本节保留一个简化版 DDD 代码落地参考，用于说明 Product 聚合根、Repository、接口层、事件订阅和缓存如何组织。它不是上述完整商品中心的全量实现，而是帮助读者理解“架构如何落到代码”的最小示例。</p>
+<h5 id="1661121-八层模型的工程落地方式"><a class="header" href="#1661121-八层模型的工程落地方式">16.6.1.12.1 八层模型的工程落地方式</a></h5>
+<p>八层商品交易模型不建议直接落成八个服务或八组强耦合表。更合理的落地方式是：<strong>用八层模型识别品类差异，用品类能力矩阵沉淀差异，用 Runtime Context 输出交易前上下文，用 Category Strategy 执行动态差异，用供应商适配器隔离外部接口差异</strong>。</p>
+<pre><code class="language-text">八层商品交易模型
+  → Category Capability Matrix  品类能力矩阵
+  → Product Master Model        商品主模型
+  → ProductRuntimeContext       交易前运行时上下文
+  → CategoryStrategy            品类策略
+  → Supplier Adapter / ACL      供应商适配器/防腐层
+</code></pre>
+<p><strong>1. Category Capability Matrix：把八层模型变成品类配置</strong></p>
+<p>能力矩阵描述每个类目在八层模型上的行为。新增品类时，先补齐能力矩阵，再判断是否需要新增策略代码。</p>
+<pre><code class="language-text">category_capability
+├─ category_id
+├─ product_model_type       // SINGLE_SKU / RESOURCE_BASED / REALTIME_OFFER / ACCOUNT_BASED
+├─ resource_type            // NONE / HOTEL / FLIGHT / MOVIE / MERCHANT / BILLER
+├─ offer_type               // FIXED_PRICE / RATE_PLAN / REALTIME_QUOTE / BILL_QUERY
+├─ availability_type        // UNLIMITED / LOCAL_POOL / REALTIME_SUPPLIER / SEATMAP
+├─ input_schema_id
+├─ booking_mode             // NONE / PRE_LOCK / PAY_THEN_LOCK / CONFIRM_AFTER_PAY
+├─ fulfillment_type         // TOPUP / BILL_PAY / ISSUE_CODE / TICKET / BOOKING_CONFIRM
+├─ refund_rule_id
+└─ supplier_dependency      // LOW / MEDIUM / HIGH
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>品类</th><th>商品模型</th><th>报价</th><th>可用性</th><th>输入</th><th>锁定</th><th>履约</th></tr>
+</thead>
+<tbody>
+<tr><td>Topup</td><td><code>SINGLE_SKU</code></td><td><code>FIXED_PRICE</code></td><td><code>SUPPLIER_CHANNEL</code></td><td>手机号</td><td><code>NONE</code></td><td>充值</td></tr>
+<tr><td>Bill</td><td><code>ACCOUNT_BASED</code></td><td><code>BILL_QUERY</code></td><td><code>BILL_PAYABLE</code></td><td>账单号</td><td><code>LOCK_AMOUNT</code></td><td>销账</td></tr>
+<tr><td>Gift Card</td><td><code>SINGLE_SKU</code></td><td><code>FIXED_PRICE</code></td><td><code>LOCAL_POOL</code></td><td>邮箱/账号</td><td><code>LOCK_CODE</code></td><td>发码</td></tr>
+<tr><td>Hotel</td><td><code>RESOURCE_BASED</code></td><td><code>RATE_PLAN</code></td><td><code>REALTIME_SUPPLIER</code></td><td>入住人/日期</td><td><code>CONFIRM_BOOKING</code></td><td>预订确认</td></tr>
+<tr><td>Flight</td><td><code>REALTIME_OFFER</code></td><td><code>REALTIME_QUOTE</code></td><td><code>REALTIME_SUPPLIER</code></td><td>乘客证件</td><td><code>PRE_LOCK</code></td><td>出票</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>2. ProductRuntimeContext：给交易前链路统一输出</strong></p>
+<p>搜索、详情、结算、创单都需要商品信息，但需要的深度不同。因此商品中心可以输出统一的运行时上下文，再由调用方按场景读取需要的部分。</p>
+<pre><code class="language-go">type ProductRuntimeContext struct {
+    ProductDefinition   ProductDefinition
+    ResourceContext     ResourceContext
+    OfferContext        OfferContext
+    Availability        AvailabilityContext
+    InputSchema         InputSchema
+    BookingRequirement  BookingRequirement
+    FulfillmentContract FulfillmentContract
+    RefundRule          RefundRule
+}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>需要的上下文</th></tr>
+</thead>
+<tbody>
+<tr><td>首页</td><td><code>ProductDefinition</code></td></tr>
+<tr><td>列表页</td><td><code>ProductDefinition + Offer 展示价 + Availability 弱状态</code></td></tr>
+<tr><td>详情页</td><td><code>Product + Resource + Offer + Availability + RefundRule</code></td></tr>
+<tr><td>结算页</td><td><code>Product + Offer + Availability + InputSchema</code></td></tr>
+<tr><td>创单</td><td><code>Product + 实时 Offer + 实时 Availability + Booking + Fulfillment + RefundRule</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>3. CategoryStrategy：让主流程不感知品类差异</strong></p>
+<p>主流程不应该写大量 <code>if category == flight</code>、<code>if category == hotel</code>。品类差异应该进入策略接口。</p>
+<pre><code class="language-go">type CategoryStrategy interface {
+    BuildProductContext(ctx context.Context, req *RuntimeRequest) (*ProductDefinition, error)
+    ResolveOffer(ctx context.Context, req *RuntimeRequest) (*OfferContext, error)
+    CheckAvailability(ctx context.Context, req *RuntimeRequest) (*AvailabilityContext, error)
+    ValidateInput(ctx context.Context, req *RuntimeRequest) error
+    PrepareBooking(ctx context.Context, req *RuntimeRequest) (*BookingRequirement, error)
+    BuildFulfillmentContract(ctx context.Context, req *RuntimeRequest) (*FulfillmentContract, error)
+    BuildRefundRule(ctx context.Context, req *RuntimeRequest) (*RefundRule, error)
+}
+</code></pre>
+<p>不同品类实现不同策略：</p>
+<pre><code class="language-text">TopupStrategy
+BillStrategy
+GiftCardStrategy
+LocalServiceStrategy
+HotelStrategy
+FlightStrategy
+MovieStrategy
+</code></pre>
+<p><strong>4. Supplier Adapter / ACL：隔离供应商接口差异</strong></p>
+<p>供应商请求参数、响应字段、错误码和超时策略都不一致，不能让这些差异污染商品中心主模型。供应商适配器负责请求转换、响应转换、错误码统一、超时重试、熔断、幂等键和 TraceID 透传。</p>
+<pre><code class="language-text">平台统一请求
+  → Supplier Adapter
+  → 供应商 A/B/C 私有协议
+  → Supplier Adapter 归一化响应
+  → OfferContext / AvailabilityContext
+</code></pre>
+<p><strong>5. 创单场景下的完整运行流程</strong></p>
+<pre><code class="language-text">1. 订单系统请求商品中心构造 RuntimeContext
+2. 商品中心读取 category_capability
+3. 根据 category_id 找到对应 CategoryStrategy
+4. Strategy 读取商品主数据、资源、输入配置、履约配置
+5. Strategy 调供应商适配器获取实时 Offer / Availability
+6. Strategy 校验用户输入
+7. 如果需要 Booking，则执行预订、占座或锁定
+8. 商品中心返回 ProductRuntimeContext
+9. 订单系统保存商品快照、报价快照、履约契约、售后规则快照
+10. 支付成功后，履约系统按 FulfillmentContract 执行交付
+</code></pre>
+<p>这套落地方式的关键是：<strong>商品中心保存能力与规则，RuntimeContext 输出交易前上下文，订单保存交易快照，履约系统执行交付，售后系统执行退款规则</strong>。</p>
 <p><strong>领域模型设计思想</strong>：商品域的特点是“树形结构+读多写少“，与订单域的“复杂状态机+高并发写“完全不同。</p>
-<h5 id="166121-product聚合根"><a class="header" href="#166121-product聚合根">16.6.1.2.1 Product聚合根</a></h5>
+<h5 id="1661122-product-聚合根示例"><a class="header" href="#1661122-product-聚合根示例">16.6.1.12.2 Product 聚合根示例</a></h5>
 <pre><code class="language-go">// Product聚合根（SKU维度）
 type Product struct {
     // 聚合根ID
@@ -16434,7 +17524,7 @@ func (spu *SPU) isValidSpecs(specs Specifications) bool {
     return true
 }
 </code></pre>
-<h5 id="166122-聚合根方法"><a class="header" href="#166122-聚合根方法">16.6.1.2.2 聚合根方法</a></h5>
+<h5 id="1661123-聚合根方法"><a class="header" href="#1661123-聚合根方法">16.6.1.12.3 聚合根方法</a></h5>
 <pre><code class="language-go">// 上架（状态转换）
 func (p *Product) OnShelf() error {
     if p.status == ProductOnShelf {
@@ -16532,7 +17622,7 @@ func (p *Product) Specs() Specifications {
     return p.specs
 }
 </code></pre>
-<h5 id="166123-repository模式防腐层"><a class="header" href="#166123-repository模式防腐层">16.6.1.2.3 Repository模式（防腐层）</a></h5>
+<h5 id="1661124-repository-模式防腐层"><a class="header" href="#1661124-repository-模式防腐层">16.6.1.12.4 Repository 模式（防腐层）</a></h5>
 <pre><code class="language-go">// ProductRepository接口（领域层定义）
 type ProductRepository interface {
     // 查询
@@ -16648,8 +17738,8 @@ func (r *ProductRepositoryImpl) BatchFindBySKUIDs(ctx context.Context, skuIDs []
 }
 </code></pre>
 <hr>
-<h4 id="16613-基础设施层infrastructure-layer"><a class="header" href="#16613-基础设施层infrastructure-layer">16.6.1.3 基础设施层（Infrastructure Layer）</a></h4>
-<h5 id="166131-核心存储设计"><a class="header" href="#166131-核心存储设计">16.6.1.3.1 核心存储设计</a></h5>
+<h5 id="1661125-基础设施层infrastructure-layer"><a class="header" href="#1661125-基础设施层infrastructure-layer">16.6.1.12.5 基础设施层（Infrastructure Layer）</a></h5>
+<h6 id="16611251-核心存储设计"><a class="header" href="#16611251-核心存储设计">16.6.1.12.5.1 核心存储设计</a></h6>
 <p><strong>表结构设计</strong>：</p>
 <pre><code class="language-sql">-- SPU表（标准产品单元）
 CREATE TABLE product_spu (
@@ -16720,10 +17810,10 @@ db_index = category_id % 4
 </table>
 </div>
 <hr>
-<h5 id="166132-缓存策略"><a class="header" href="#166132-缓存策略">16.6.1.3.2 缓存策略</a></h5>
-<p>详见下文“16.6.1.6 三级缓存实现“。</p>
+<h6 id="16611252-缓存策略"><a class="header" href="#16611252-缓存策略">16.6.1.12.5.2 缓存策略</a></h6>
+<p>详见下文“16.6.1.12.8 三级缓存实现“。</p>
 <hr>
-<h5 id="166133-消息中间件messaging"><a class="header" href="#166133-消息中间件messaging">16.6.1.3.3 消息中间件（Messaging）⭐️</a></h5>
+<h6 id="16611253-消息中间件messaging"><a class="header" href="#16611253-消息中间件messaging">16.6.1.12.5.3 消息中间件（Messaging）⭐️</a></h6>
 <p><strong>职责划分</strong>：</p>
 <div class="table-wrapper">
 <table>
@@ -16810,10 +17900,10 @@ func (c *KafkaConsumer) Start(ctx context.Context) error {
 </tbody>
 </table>
 </div>
-<p>详见 <code>16.6.1.5.4 事件订阅者的分层设计</code>。</p>
+<p>详见 <code>16.6.1.12.7.4 事件订阅者的分层设计</code>。</p>
 <hr>
-<h4 id="16614-接口层interface-layer"><a class="header" href="#16614-接口层interface-layer">16.6.1.4 接口层（Interface Layer）</a></h4>
-<h5 id="166141-grpc接口定义"><a class="header" href="#166141-grpc接口定义">16.6.1.4.1 gRPC接口定义</a></h5>
+<h5 id="1661126-接口层interface-layer"><a class="header" href="#1661126-接口层interface-layer">16.6.1.12.6 接口层（Interface Layer）</a></h5>
+<h6 id="16611261-grpc-接口定义"><a class="header" href="#16611261-grpc-接口定义">16.6.1.12.6.1 gRPC 接口定义</a></h6>
 <p><strong>核心接口</strong>（product.proto）：</p>
 <pre><code class="language-protobuf">// ProductService商品服务
 service ProductService {
@@ -16879,7 +17969,7 @@ enum ProductStatus {
     OFF_SHELF = 2;  // 下架
 }
 </code></pre>
-<h5 id="166142-http接口可选"><a class="header" href="#166142-http接口可选">16.6.1.4.2 HTTP接口（可选）</a></h5>
+<h6 id="16611262-http-接口可选"><a class="header" href="#16611262-http-接口可选">16.6.1.12.6.2 HTTP 接口（可选）</a></h6>
 <pre><code class="language-go">// HTTP接口（供运营后台使用）
 GET    /api/v1/products/:sku_id           # 查询商品
 POST   /api/v1/products                    # 创建商品
@@ -16887,7 +17977,7 @@ PUT    /api/v1/products/:sku_id           # 更新商品
 POST   /api/v1/products/:sku_id/on-shelf  # 上架
 POST   /api/v1/products/:sku_id/off-shelf # 下架
 </code></pre>
-<h5 id="166143-event接口异步"><a class="header" href="#166143-event接口异步">16.6.1.4.3 Event接口（异步）⭐️</a></h5>
+<h6 id="16611263-event-接口异步"><a class="header" href="#16611263-event-接口异步">16.6.1.12.6.3 Event 接口（异步）⭐️</a></h6>
 <p><strong>事件订阅接口</strong>（接收外部服务事件）：</p>
 <pre><code class="language-go">// ProductEventHandler 商品事件处理器（接口层）
 // 职责：适配外部事件消息 → 调用Application Service
@@ -16915,10 +18005,10 @@ const (
 <li>✅ 调用Application Service</li>
 <li>❌ 不负责Kafka连接（由Infrastructure Layer的Kafka Consumer负责）</li>
 </ul>
-<p>详见 <code>16.6.1.5.4 事件订阅者的分层设计</code>。</p>
+<p>详见 <code>16.6.1.12.7.4 事件订阅者的分层设计</code>。</p>
 <hr>
-<h4 id="16615-应用服务层application-layer"><a class="header" href="#16615-应用服务层application-layer">16.6.1.5 应用服务层（Application Layer）</a></h4>
-<h5 id="166151-核心代码结构"><a class="header" href="#166151-核心代码结构">16.6.1.5.1 核心代码结构</a></h5>
+<h5 id="1661127-应用服务层application-layer"><a class="header" href="#1661127-应用服务层application-layer">16.6.1.12.7 应用服务层（Application Layer）</a></h5>
+<h6 id="16611271-核心代码结构"><a class="header" href="#16611271-核心代码结构">16.6.1.12.7.1 核心代码结构</a></h6>
 <pre><code>product-service/
 ├── cmd/
 │   └── main.go                          # 服务入口
@@ -16963,7 +18053,7 @@ const (
 └── go.mod
 </code></pre>
 <hr>
-<h5 id="166152-核心应用服务实现"><a class="header" href="#166152-核心应用服务实现">16.6.1.5.2 核心应用服务实现</a></h5>
+<h6 id="16611272-核心应用服务实现"><a class="header" href="#16611272-核心应用服务实现">16.6.1.12.7.2 核心应用服务实现</a></h6>
 <p><strong>应用服务层</strong>（product_service.go）：</p>
 <pre><code class="language-go">type ProductService struct {
     repo           domain.ProductRepository
@@ -17067,7 +18157,7 @@ func (s *ProductService) UpdateBasePrice(ctx context.Context, skuID int64, newPr
 }
 </code></pre>
 <hr>
-<h5 id="166153-领域事件"><a class="header" href="#166153-领域事件">16.6.1.5.3 领域事件</a></h5>
+<h6 id="16611273-领域事件"><a class="header" href="#16611273-领域事件">16.6.1.12.7.3 领域事件</a></h6>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -17121,7 +18211,7 @@ func (e *PriceChangedEvent) Type() string {
 }
 </code></pre>
 <hr>
-<h5 id="166154-事件订阅者的分层设计-"><a class="header" href="#166154-事件订阅者的分层设计-">16.6.1.5.4 事件订阅者的分层设计 ⭐️</a></h5>
+<h6 id="16611274-事件订阅者的分层设计-"><a class="header" href="#16611274-事件订阅者的分层设计-">16.6.1.12.7.4 事件订阅者的分层设计 ⭐️</a></h6>
 <p><strong>核心问题</strong>：DDD架构中，事件订阅者（Event Subscriber）应该放在哪一层？</p>
 <p>这是微服务架构中的经典设计问题。不同的分层方案会影响代码的复用性、可测试性和职责清晰度。</p>
 <h6 id="方案对比"><a class="header" href="#方案对比">方案对比</a></h6>
@@ -17638,9 +18728,9 @@ func (h *ProductEventHandler) markEventProcessed(ctx context.Context, eventID st
   → Domain (业务规则)
   → Infrastructure (持久化)
 </code></pre>
-<p><strong>示例代码</strong>：参见 <code>/ecommerce-book/examples/product-service/</code> 完整Demo</p>
+<p><strong>示例代码</strong>：参见 <code>/ecommerce-book/example-codes/product-service/</code> 完整 Demo</p>
 <hr>
-<h4 id="16616-三级缓存实现infrastructure-layer详细实现"><a class="header" href="#16616-三级缓存实现infrastructure-layer详细实现">16.6.1.6 三级缓存实现（Infrastructure Layer详细实现）</a></h4>
+<h5 id="1661128-三级缓存实现infrastructure-layer-详细实现"><a class="header" href="#1661128-三级缓存实现infrastructure-layer-详细实现">16.6.1.12.8 三级缓存实现（Infrastructure Layer 详细实现）</a></h5>
 <p><strong>三级缓存架构</strong>：</p>
 <pre><code class="language-go">// L1: 本地缓存（1分钟）
 // 优点：延迟最低（&lt;1ms），适合热点商品
@@ -17669,40 +18759,87 @@ product:spu:{spu_id}                # SPU下所有SKU（Hash结构）
 product:category:{category_id}      # 类目商品列表（Set结构）
 </code></pre>
 <hr>
-<h4 id="16617-完整示例代码-"><a class="header" href="#16617-完整示例代码-">16.6.1.7 完整示例代码 ⭐️</a></h4>
-<p>本章节的完整代码实现（包含DDD四层架构、事件发布订阅、三级缓存等）详见：</p>
-<p><strong>示例代码路径</strong>：<code>/ecommerce-book/examples/product-service/</code></p>
+<h5 id="1661129-完整示例代码-"><a class="header" href="#1661129-完整示例代码-">16.6.1.12.9 完整示例代码 ⭐️</a></h5>
+<p>本章节的完整代码实现（包含 DDD 四层架构、事件发布订阅、三级缓存等）详见：</p>
+<p><strong>示例代码路径</strong>：<code>/ecommerce-book/example-codes/product-service/</code></p>
+<p>这部分示例代码不是完整生产系统，而是为了帮助读者把前面的架构设计映射到工程结构中。它重点覆盖商品中心的 DDD 分层、聚合根、Repository、缓存、事件发布订阅和接口适配。前面讨论的供给运营、供应商同步、库存可售、搜索导购等能力，在真实项目中会继续扩展为更多应用服务和任务模块；示例工程先保留最小可读骨架，避免把主线淹没在实现细节里。</p>
 <p><strong>目录结构</strong>：</p>
-<pre><code>examples/product-service/
-├── README.md                              # 项目说明
-├── QUICKSTART.md                          # 快速开始指南
-├── EVENT_SUBSCRIBER_LAYER.md ⭐️            # 事件订阅者分层设计（推荐阅读）
-├── cmd/main.go                            # 程序入口
+<pre><code class="language-text">example-codes/product-service/
+├── README.md                               # 项目说明
+├── QUICKSTART.md                           # 快速开始指南
+├── EIGHT_LAYER_MODEL.md                    # 八层商品交易模型说明
+├── EVENT_PATTERN.md                        # 事件模式说明
+├── EVENT_SUBSCRIBER_LAYER.md               # 事件订阅者分层设计
+├── RESTORE_GUIDE.md                        # 示例恢复与排查指南
+├── go.mod
+├── cmd/
+│   └── main.go                             # 程序入口
 └── internal/
-    ├── domain/                            # 领域层
-    │   ├── product.go                     # Product聚合根
-    │   ├── spu.go                         # SPU实体
-    │   ├── value_objects.go               # 值对象
-    │   ├── events.go                      # 领域事件
-    │   └── repository.go                  # Repository接口
-    ├── application/                       # 应用层
-    │   ├── dto/product_dto.go             # DTO
-    │   └── service/product_service.go     # 应用服务
-    ├── infrastructure/                    # 基础设施层
-    │   ├── persistence/
-    │   │   ├── product_repository.go      # Repository实现
-    │   │   └── data_object.go             # 数据对象
-    │   ├── cache/cache.go                 # 三级缓存
-    │   └── messaging/ ⭐️
-    │       ├── kafka_producer.go          # 事件发布
-    │       └── kafka_consumer.go          # 事件消费
-    └── interfaces/                        # 接口层
-        ├── http/product_handler.go        # HTTP接口
-        ├── grpc/product_handler.go        # gRPC接口
-        └── event/product_event_handler.go # Event接口 ⭐️
+    ├── domain/                             # 领域层
+    │   ├── product.go                      # Product 聚合根
+    │   ├── spu.go                          # SPU 实体
+    │   ├── value_objects.go                # 值对象
+    │   ├── events.go                       # 领域事件
+    │   ├── repository.go                   # Repository 接口
+    │   ├── category_capability.go          # 品类能力矩阵
+    │   ├── runtime_context.go              # 八层运行时上下文
+    │   ├── category_strategy.go            # 品类策略接口
+    │   └── strategy/                       # Topup/GiftCard/Flight/Hotel策略
+    ├── application/                        # 应用层
+    │   ├── dto/
+    │   │   ├── product_dto.go              # 商品 DTO
+    │   │   ├── runtime_context_dto.go      # 八层上下文 DTO
+    │   │   └── category_action_dto.go      # 品类动作/垂直搜索 DTO
+    │   └── service/
+    │       ├── product_service.go          # 商品应用服务
+    │       ├── runtime_context_service.go  # 八层上下文应用服务
+    │       └── category_action_service.go  # Topup校验/Flight搜索应用服务
+    ├── infrastructure/                     # 基础设施层
+    │   ├── cache/cache.go                  # 三级缓存
+    │   ├── event/
+    │   │   ├── event_handlers.go           # 领域事件处理
+    │   │   └── event_publisher.go          # 事件发布抽象
+    │   ├── messaging/
+    │   │   ├── kafka_producer.go           # Kafka 生产者
+    │   │   └── kafka_consumer.go           # Kafka 消费者
+    │   └── persistence/
+    │       ├── product_repository.go       # Repository 实现
+    │       ├── data_object.go              # 数据对象
+    │       └── capability_repository.go    # 品类能力与示例数据
+    └── interfaces/                         # 接口层
+        ├── http/product_handler.go         # HTTP 接口
+        ├── http/runtime_context_handler.go # 八层上下文 HTTP 接口
+        ├── http/category_action_handler.go # 品类动作/垂直搜索 HTTP 接口
+        ├── grpc/product_handler.go         # gRPC 接口
+        └── event/product_event_handler.go  # Event 接口
 </code></pre>
-<p><strong>运行Demo</strong>：</p>
-<pre><code class="language-bash">cd ecommerce-book/examples/product-service
+<p><strong>章节内容与示例代码的对应关系</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>本节设计点</th><th>示例代码位置</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>DDD 分层结构</td><td><code>internal/domain</code>、<code>internal/application</code>、<code>internal/infrastructure</code>、<code>internal/interfaces</code></td><td>展示领域层、应用层、基础设施层、接口层的依赖方向</td></tr>
+<tr><td>Product 聚合根</td><td><code>internal/domain/product.go</code></td><td>承载商品状态、基础价格、上下架行为和领域事件</td></tr>
+<tr><td>SPU 与值对象</td><td><code>internal/domain/spu.go</code>、<code>internal/domain/value_objects.go</code></td><td>展示 SPU/SKU、价格、规格等核心模型</td></tr>
+<tr><td>八层商品交易模型</td><td><code>internal/domain/runtime_context.go</code>、<code>internal/domain/category_capability.go</code></td><td>展示 Product Definition、Resource、Offer、Availability、Input Schema、Booking、Fulfillment、Refund Rule</td></tr>
+<tr><td>品类差异策略</td><td><code>internal/domain/strategy</code></td><td>展示 Topup、Gift Card、Flight、Hotel 如何分别构建八层上下文</td></tr>
+<tr><td>交易前上下文编排</td><td><code>internal/application/service/runtime_context_service.go</code></td><td>根据 SKU、类目和场景选择策略并组装 <code>ProductRuntimeContext</code></td></tr>
+<tr><td>品类动作与垂直搜索</td><td><code>internal/application/service/category_action_service.go</code>、<code>internal/interfaces/http/category_action_handler.go</code></td><td>展示 Topup 账号校验和 Flight 实时搜索如何复用品类能力，但保留独立场景接口</td></tr>
+<tr><td>Repository 抽象</td><td><code>internal/domain/repository.go</code></td><td>在领域层定义仓储接口，避免领域模型依赖数据库实现</td></tr>
+<tr><td>Repository 实现</td><td><code>internal/infrastructure/persistence/product_repository.go</code></td><td>负责 DO 与 Domain Model 转换、缓存回写和持久化</td></tr>
+<tr><td>品类能力示例数据</td><td><code>internal/infrastructure/persistence/capability_repository.go</code></td><td>用内存数据模拟品类能力矩阵和商品运行时数据</td></tr>
+<tr><td>缓存策略</td><td><code>internal/infrastructure/cache/cache.go</code></td><td>演示本地缓存、Redis 缓存和源数据查询的组合方式</td></tr>
+<tr><td>HTTP/gRPC 接口</td><td><code>internal/interfaces/http</code>、<code>internal/interfaces/grpc</code></td><td>同步接口入口，负责请求协议到应用服务 DTO 的转换</td></tr>
+<tr><td>Event 接口</td><td><code>internal/interfaces/event/product_event_handler.go</code></td><td>异步接口入口，把外部事件转换为应用服务调用</td></tr>
+<tr><td>Kafka 技术实现</td><td><code>internal/infrastructure/messaging</code></td><td>负责消息队列连接、消费、生产等基础设施细节</td></tr>
+<tr><td>事件模式说明</td><td><code>EVENT_PATTERN.md</code>、<code>EVENT_SUBSCRIBER_LAYER.md</code></td><td>解释事件发布、订阅者分层和接口层定位</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>运行 Demo</strong>：</p>
+<pre><code class="language-bash">cd ecommerce-book/example-codes/product-service
 go run cmd/main.go
 </code></pre>
 <p><strong>学习要点</strong>：</p>
@@ -17711,6 +18848,7 @@ go run cmd/main.go
 <li><strong>事件订阅者分层</strong>：Interface Layer作为异步接口（推荐阅读 <code>EVENT_SUBSCRIBER_LAYER.md</code>）</li>
 <li><strong>三级缓存实现</strong>：L1本地缓存 → L2 Redis → L3 MySQL</li>
 <li><strong>领域事件发布订阅</strong>：Domain产生事件 → Application发布 → Infrastructure投递 → Interface消费</li>
+<li><strong>八层商品交易模型</strong>：通过 <code>ProductRuntimeContext</code> 展示 Topup、Gift Card、Flight、Hotel 的商品模型差异</li>
 </ol>
 <hr>
 <h3 id="1662-库存系统设计"><a class="header" href="#1662-库存系统设计">16.6.2 库存系统设计</a></h3>
