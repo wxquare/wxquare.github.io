@@ -3,7 +3,6 @@ package messaging
 import (
 	"context"
 	"fmt"
-	"time"
 
 	eventHandler "product-service/internal/interfaces/event"
 	// "github.com/confluentinc/confluent-kafka-go/kafka"

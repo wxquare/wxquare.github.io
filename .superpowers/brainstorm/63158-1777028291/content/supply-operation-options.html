@@ -1,0 +1,85 @@
+<h2>16.6.1.6 商品供给与运营链路：设计方向选择</h2>
+<p class="subtitle">目标：既能写进书里，也能作为面试时讲清楚“B 端商品供给怎么设计”的架构答案。</p>
+
+<div class="section">
+  <h3>当前章节缺口</h3>
+  <div class="mockup">
+    <div class="mockup-header">现状 → 需要补强</div>
+    <div class="mockup-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div class="label">当前 16.6.1.6</div>
+          <ul>
+            <li>有基本流程：上传、校验、Listing Task、审核、发布</li>
+            <li>偏概述，和前面的八层模型、库存、订单、支付联动不足</li>
+            <li>缺少运营、审核、发布、补偿、质量治理的架构取舍</li>
+          </ul>
+        </div>
+        <div>
+          <div class="label">建议补强</div>
+          <ul>
+            <li>把供给分为人工供给、批量导入、供应商同步、运营编辑</li>
+            <li>把流程拆成：草稿 → 校验 → 审核 → 发布 → 索引/缓存/事件</li>
+            <li>突出幂等、差异化审核、任务化、发布一致性、质量巡检</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>三种写法/设计方案</h3>
+  <div class="options">
+    <div class="option" data-choice="a" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>轻量 CRUD + 审核流</h3>
+        <p>把商品供给看成后台 CRUD：上传、编辑、审核、上下架。适合小平台，表达简单，但面试深度不够。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="b" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>任务化供给流水线</h3>
+        <p>以 Listing Task 为核心，把人工上传、批量导入、供应商同步、运营编辑都变成任务流。适合书中落地说明。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="c" onclick="toggleSelect(this)">
+      <div class="letter">C</div>
+      <div class="content">
+        <h3>供给治理平台（推荐）</h3>
+        <p>在任务化基础上加入差异化审核、发布快照、事件 Outbox、搜索/缓存刷新、质量巡检、异常补偿。最适合面试和经验总结。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>推荐结构：供给运营闭环</h3>
+  <div class="mockup">
+    <div class="mockup-header">Supply & Operation Pipeline</div>
+    <div class="mockup-body">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px">
+        <div class="placeholder" style="padding:12px 16px;min-width:110px">供给入口<br><small>人工/批量/同步/编辑</small></div>
+        <strong>→</strong>
+        <div class="placeholder" style="padding:12px 16px;min-width:110px">Listing Task<br><small>幂等 + 进度</small></div>
+        <strong>→</strong>
+        <div class="placeholder" style="padding:12px 16px;min-width:110px">标准化校验<br><small>类目/资源/Offer</small></div>
+        <strong>→</strong>
+        <div class="placeholder" style="padding:12px 16px;min-width:110px">风险审核<br><small>规则 + 人工</small></div>
+        <strong>→</strong>
+        <div class="placeholder" style="padding:12px 16px;min-width:110px">发布写入<br><small>主数据 + 契约</small></div>
+        <strong>→</strong>
+        <div class="placeholder" style="padding:12px 16px;min-width:110px">下游同步<br><small>索引/缓存/事件</small></div>
+        <strong>→</strong>
+        <div class="placeholder" style="padding:12px 16px;min-width:110px">质量治理<br><small>巡检/补偿/告警</small></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>需要你确认的方向</h3>
+  <p>我建议采用 <strong>C：供给治理平台</strong> 作为正文主线，同时保留任务化流水线的可落地细节。你可以点击一个选项，或者直接在终端回复你的偏好。</p>
+</div>

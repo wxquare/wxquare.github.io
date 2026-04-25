@@ -12,17 +12,35 @@ import (
 
 // ProductHandler HTTP处理器（接口层）
 type ProductHandler struct {
-	productService *service.ProductService
+	productService        *service.ProductService
+	runtimeContextService *service.RuntimeContextService
+	categoryActionService *service.CategoryActionService
 }
 
-func NewProductHandler(productService *service.ProductService) *ProductHandler {
+func NewProductHandler(productService *service.ProductService, optionalServices ...interface{}) *ProductHandler {
+	var runtimeContextService *service.RuntimeContextService
+	var categoryActionService *service.CategoryActionService
+	for _, optionalService := range optionalServices {
+		switch svc := optionalService.(type) {
+		case *service.RuntimeContextService:
+			runtimeContextService = svc
+		case *service.CategoryActionService:
+			categoryActionService = svc
+		}
+	}
+
 	return &ProductHandler{
-		productService: productService,
+		productService:        productService,
+		runtimeContextService: runtimeContextService,
+		categoryActionService: categoryActionService,
 	}
 }
 
 // RegisterRoutes 注册路由
 func (h *ProductHandler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("/api/v1/products/runtime-context", h.GetRuntimeContext)
+	mux.HandleFunc("/api/v1/topup/validate-account", h.ValidateTopupAccount)
+	mux.HandleFunc("/api/v1/travel/flights/search", h.SearchFlights)
 	mux.HandleFunc("/api/v1/products/", h.GetProduct)
 	mux.HandleFunc("/api/v1/products/on-shelf", h.OnShelf)
 	mux.HandleFunc("/api/v1/products/update-price", h.UpdatePrice)

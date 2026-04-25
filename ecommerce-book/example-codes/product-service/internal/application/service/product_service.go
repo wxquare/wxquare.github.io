@@ -7,16 +7,22 @@ import (
 
 	"product-service/internal/application/dto"
 	"product-service/internal/domain"
-	"product-service/internal/infrastructure/messaging"
 )
+
+// EventPublisher is owned by the application layer.
+// Infrastructure adapters such as KafkaProducer implement it.
+type EventPublisher interface {
+	Publish(ctx context.Context, event domain.DomainEvent) error
+	PublishBatch(ctx context.Context, events []domain.DomainEvent) error
+}
 
 // ProductService 应用服务（业务编排层）
 type ProductService struct {
 	repo           domain.ProductRepository
-	eventPublisher messaging.EventPublisher
+	eventPublisher EventPublisher
 }
 
-func NewProductService(repo domain.ProductRepository, eventPublisher messaging.EventPublisher) *ProductService {
+func NewProductService(repo domain.ProductRepository, eventPublisher EventPublisher) *ProductService {
 	return &ProductService{
 		repo:           repo,
 		eventPublisher: eventPublisher,
@@ -32,10 +38,10 @@ func (s *ProductService) CreateProduct(ctx context.Context, req *dto.CreateProdu
 	spu := domain.NewSPU(req.CategoryID, req.Title, req.CategoryID, 0)
 	price, _ := domain.NewPrice(req.BasePrice, "CNY")
 	specs := domain.NewSpecifications(req.Color, req.Size, nil)
-	
+
 	// 生成SKU ID（实际项目应该用分布式ID生成器）
-	skuID := domain.NewSKU_ID(time.Now().UnixNano() % 100000 + 10000)
-	
+	skuID := domain.NewSKU_ID(time.Now().UnixNano()%100000 + 10000)
+
 	product := domain.NewProduct(
 		skuID,
 		spu,
@@ -124,7 +130,7 @@ func (s *ProductService) OnShelf(ctx context.Context, req *dto.OnShelfRequest) (
 
 // UpdateBasePrice 更新基础价格（命令方法 - 展示事件发布）
 func (s *ProductService) UpdateBasePrice(ctx context.Context, req *dto.UpdatePriceRequest) (*dto.UpdatePriceResponse, error) {
-	fmt.Printf("\n🚀 [Application Layer] UpdateBasePrice called, SKUID=%d, NewPrice=%d\n", 
+	fmt.Printf("\n🚀 [Application Layer] UpdateBasePrice called, SKUID=%d, NewPrice=%d\n",
 		req.SKUID, req.NewPrice)
 
 	// Step 1: 查询商品

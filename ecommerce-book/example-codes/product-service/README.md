@@ -6,6 +6,8 @@
 
 **特别关注：** ⭐️ **事件订阅者的分层设计**（Interface Layer作为异步接口）
 
+同时，本示例新增了 **八层商品交易模型**，用于演示 Topup、Gift Card、Flight、Hotel 等异构数字商品如何通过 `ProductRuntimeContext` 统一进入详情、结算和创单前校验链路。
+
 ## 🏗️ 架构设计
 
 ### 四层架构
@@ -67,7 +69,9 @@ product-service/
 ├── internal/
 │   ├── interfaces/                      # 接口层
 │   │   ├── http/
-│   │   │   └── product_handler.go       # HTTP Handler（同步）
+│   │   │   ├── product_handler.go       # HTTP Handler（同步）
+│   │   │   ├── runtime_context_handler.go # 八层上下文接口
+│   │   │   └── category_action_handler.go # 品类动作/垂直搜索接口
 │   │   ├── grpc/
 │   │   │   ├── proto/product.proto      # Protobuf定义
 │   │   │   └── product_handler.go       # gRPC Handler（同步）
@@ -76,21 +80,30 @@ product-service/
 │   │
 │   ├── application/                     # 应用层
 │   │   ├── service/
-│   │   │   └── product_service.go       # 应用服务（业务编排）
+│   │   │   ├── product_service.go       # 商品应用服务（业务编排）
+│   │   │   ├── runtime_context_service.go # 八层上下文应用服务
+│   │   │   └── category_action_service.go # Topup校验/Flight搜索服务
 │   │   └── dto/
-│   │       └── product_dto.go           # DTO（请求/响应）
+│   │       ├── product_dto.go           # 商品 DTO（请求/响应）
+│   │       ├── runtime_context_dto.go   # 八层上下文 DTO
+│   │       └── category_action_dto.go   # 品类动作/垂直搜索 DTO
 │   │
 │   ├── domain/                          # 领域层
 │   │   ├── product.go                   # Product聚合根
 │   │   ├── spu.go                       # SPU实体
 │   │   ├── value_objects.go             # 值对象（Price, SKU_ID等）
 │   │   ├── events.go                    # 领域事件
-│   │   └── repository.go                # Repository接口
+│   │   ├── repository.go                # Repository接口
+│   │   ├── category_capability.go       # 品类能力矩阵
+│   │   ├── runtime_context.go           # 八层商品交易上下文
+│   │   ├── category_strategy.go         # 品类策略接口
+│   │   └── strategy/                    # Topup/GiftCard/Flight/Hotel策略
 │   │
 │   └── infrastructure/                  # 基础设施层
 │       ├── persistence/
 │       │   ├── data_object.go           # DO（数据对象）
-│       │   └── product_repository.go    # Repository实现
+│       │   ├── product_repository.go    # Repository实现
+│       │   └── capability_repository.go # 八层模型示例数据
 │       ├── cache/
 │       │   └── cache.go                 # 三级缓存实现
 │       └── messaging/ ⭐️
@@ -171,16 +184,34 @@ productService.CreateProduct(ctx, req) // 复用同一个方法！
 - ✅ Infrastructure Layer 实现Domain定义的接口
 - ✅ Interface Layer 调用Application Service（不直接访问Domain）
 
+### 5. 八层商品交易模型
+
+新增 `ProductRuntimeContext`，把异构数字商品拆成八层：
+
+```
+Product Definition → Resource → Offer/Rate Plan → Availability
+→ Input Schema → Booking/Lock → Fulfillment Contract → Refund Rule
+```
+
+示例覆盖：
+
+- **Topup**：固定面额、无限库存、手机号输入、支付后充值
+- **Gift Card**：固定面额、券码池库存、支付后发码
+- **Flight**：静态航线、实时报价库存、创单前占座
+- **Hotel**：酒店房型、Rate Plan、动态房态房价、支付后确认
+
+详细说明：详见 [EIGHT_LAYER_MODEL.md](EIGHT_LAYER_MODEL.md)
+
 ## 🚀 快速开始
 
 ### 运行Demo
 
 ```bash
-cd /Users/wxquare/go/src/github.com/wxquare.github.io/ecommerce-book/examples/product-service
+cd ecommerce-book/example-codes/product-service
 go run cmd/main.go
 ```
 
-### Demo包含三个场景
+### Demo包含四个场景
 
 #### Demo 1: 查询商品（三级缓存）
 
@@ -194,9 +225,36 @@ go run cmd/main.go
 
 展示如何接收供应商服务/定价服务发送的事件，并调用Application Service处理
 
+#### Demo 4: 八层商品交易模型
+
+展示 Topup、Gift Card、Flight、Hotel 如何构建不同的 `ProductRuntimeContext`
+
+#### Demo 5: 品类动作接口与垂直实时供给接口
+
+展示 Topup 账号校验和 Flight 实时搜索。它们不是 `runtime-context` 的替代，而是不同 C 端场景对同一套品类能力和运行时数据的使用。
+
+### 八层模型 API
+
+```bash
+curl "http://localhost:8080/api/v1/products/runtime-context?sku_id=10001&category_id=10102&scene=detail"
+curl "http://localhost:8080/api/v1/products/runtime-context?sku_id=40001&category_id=40102&scene=checkout"
+curl "http://localhost:8080/api/v1/products/runtime-context?sku_id=40002&category_id=40104&scene=checkout"
+```
+
+### 品类动作与垂直搜索 API
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/topup/validate-account" \
+  -H "Content-Type: application/json" \
+  -d '{"sku_id":10001,"mobile_number":"13800138000"}'
+
+curl "http://localhost:8080/api/v1/travel/flights/search?from=SHA&to=BJS&date=2026-05-01&adult=1"
+```
+
 ## 📚 详细文档
 
 - **[QUICKSTART.md](QUICKSTART.md)** - 10分钟快速上手指南
+- **[EIGHT_LAYER_MODEL.md](EIGHT_LAYER_MODEL.md)** - 八层商品交易模型 Demo
 - **[EVENT_PATTERN.md](EVENT_PATTERN.md)** - 事件发布和订阅的详细说明
 - **[EVENT_SUBSCRIBER_LAYER.md](EVENT_SUBSCRIBER_LAYER.md)** ⭐️ - **事件订阅者的分层设计**（推荐阅读）
 

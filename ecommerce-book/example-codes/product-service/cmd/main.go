@@ -10,6 +10,8 @@ import (
 
 	"product-service/internal/application/dto"
 	"product-service/internal/application/service"
+	"product-service/internal/domain"
+	"product-service/internal/domain/strategy"
 	"product-service/internal/infrastructure/cache"
 	"product-service/internal/infrastructure/messaging"
 	"product-service/internal/infrastructure/persistence"
@@ -23,14 +25,16 @@ func main() {
 	fmt.Println("===========================================")
 	fmt.Println("🚀 Product Service - DDD 四层架构 Demo")
 	fmt.Println("   事件订阅者分层设计：Interface Layer")
-	fmt.Println("===========================================\n")
+	fmt.Println("===========================================")
+	fmt.Println("")
 
 	// 初始化依赖（依赖注入）
 	dependencies := initDependencies()
 
 	// 准备测试数据
 	dependencies.repo.InitTestData()
-	fmt.Println("✅ Test data initialized\n")
+	fmt.Println("✅ Test data initialized")
+	fmt.Println("")
 
 	// 启动HTTP服务器（非阻塞）
 	go startHTTPServer(dependencies.httpHandler)
@@ -59,6 +63,9 @@ type Dependencies struct {
 	eventPublisher messaging.EventPublisher
 	repo           *persistence.ProductRepositoryImpl
 	productService *service.ProductService
+	runtimeRepo    *persistence.RuntimeContextRepository
+	runtimeService *service.RuntimeContextService
+	actionService  *service.CategoryActionService
 	httpHandler    *httpHandler.ProductHandler
 	eventHandler   *eventHandler.ProductEventHandler // ⭐️ Interface Layer
 	kafkaConsumer  *messaging.KafkaConsumer          // ⭐️ Infrastructure Layer
@@ -79,9 +86,17 @@ func initDependencies() *Dependencies {
 
 	// Application Layer
 	productService := service.NewProductService(repo, eventPublisher)
+	runtimeRepo := persistence.NewRuntimeContextRepository()
+	runtimeService := service.NewRuntimeContextService(runtimeRepo, []domain.CategoryStrategy{
+		strategy.NewTopupStrategy(),
+		strategy.NewGiftCardStrategy(),
+		strategy.NewFlightStrategy(),
+		strategy.NewHotelStrategy(),
+	})
+	actionService := service.NewCategoryActionService(runtimeRepo)
 
 	// Interface Layer - HTTP
-	handler := httpHandler.NewProductHandler(productService)
+	handler := httpHandler.NewProductHandler(productService, runtimeService, actionService)
 
 	// ⭐️ Interface Layer - Event (异步接口)
 	evtHandler := eventHandler.NewProductEventHandler(productService)
@@ -103,6 +118,9 @@ func initDependencies() *Dependencies {
 		eventPublisher: eventPublisher,
 		repo:           repo,
 		productService: productService,
+		runtimeRepo:    runtimeRepo,
+		runtimeService: runtimeService,
+		actionService:  actionService,
 		httpHandler:    handler,
 		eventHandler:   evtHandler,
 		kafkaConsumer:  kafkaConsumer,
@@ -219,6 +237,22 @@ func runCompleteDemo() {
 	fmt.Println("\n▶️  模拟接收定价事件: pricing.price_changed")
 	simulatePricingPriceChanged()
 	time.Sleep(500 * time.Millisecond)
+
+	fmt.Println("\n===========================================")
+	fmt.Println("📋 Demo 4: 八层商品交易模型（ProductRuntimeContext）")
+	fmt.Println("===========================================")
+	fmt.Println("\n【八层模型】Product Definition → Resource → Offer → Availability → Input Schema → Booking → Fulfillment → Refund")
+	fmt.Println("")
+	getRuntimeContext(baseURL, 10001, 10102, "detail")
+	getRuntimeContext(baseURL, 10002, 30105, "detail")
+	getRuntimeContext(baseURL, 40001, 40102, "checkout")
+	getRuntimeContext(baseURL, 40002, 40104, "checkout")
+
+	fmt.Println("\n===========================================")
+	fmt.Println("📋 Demo 5: 品类动作接口与垂直实时供给接口")
+	fmt.Println("===========================================")
+	validateTopupAccount(baseURL, 10001, "13800138000")
+	searchFlights(baseURL, "SHA", "BJS", "2026-05-01", 1)
 }
 
 // HTTP客户端辅助函数
@@ -272,6 +306,63 @@ func updatePrice(baseURL string, skuID int64, newPrice int64) {
 	fmt.Printf("   Response: Success=%v, Message=%s\n", result.Success, result.Message)
 }
 
+func getRuntimeContext(baseURL string, skuID int64, categoryID int64, scene string) {
+	url := fmt.Sprintf("%s/api/v1/products/runtime-context?sku_id=%d&category_id=%d&scene=%s", baseURL, skuID, categoryID, scene)
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Printf("❌ Request error: %v\n", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	var result dto.RuntimeContextResponse
+	json.NewDecoder(resp.Body).Decode(&result)
+	fmt.Printf("   SKU=%d Category=%s Offer=%s Availability=%s Booking=%s Fulfillment=%s\n",
+		result.SKUID,
+		result.CategoryName,
+		result.Offer.OfferType,
+		result.Availability.AvailabilityType,
+		result.Booking.Mode,
+		result.Fulfillment.Type,
+	)
+}
+
+func validateTopupAccount(baseURL string, skuID int64, mobileNumber string) {
+	url := fmt.Sprintf("%s/api/v1/topup/validate-account", baseURL)
+	reqBody := dto.TopupValidateAccountRequest{SKUID: skuID, MobileNumber: mobileNumber}
+	bodyBytes, _ := json.Marshal(reqBody)
+
+	resp, err := http.Post(url, "application/json", bytes.NewReader(bodyBytes))
+	if err != nil {
+		fmt.Printf("❌ Request error: %v\n", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	var result dto.TopupValidateAccountResponse
+	json.NewDecoder(resp.Body).Decode(&result)
+	fmt.Printf("   Topup Validate: SKU=%d Mobile=%s Valid=%v Operator=%s\n",
+		result.SKUID, result.MobileNumber, result.Valid, result.Operator)
+}
+
+func searchFlights(baseURL string, from string, to string, date string, adult int) {
+	url := fmt.Sprintf("%s/api/v1/travel/flights/search?from=%s&to=%s&date=%s&adult=%d", baseURL, from, to, date, adult)
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Printf("❌ Request error: %v\n", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	var result dto.FlightSearchResponse
+	json.NewDecoder(resp.Body).Decode(&result)
+	fmt.Printf("   Flight Search: Route=%s Offers=%d\n", result.RouteCode, len(result.Offers))
+	for _, offer := range result.Offers {
+		fmt.Printf("     Offer=%s Flight=%s Price=%s Booking=%s\n",
+			offer.OfferToken, offer.FlightNo, formatPrice(offer.Price.Amount), offer.BookingMode)
+	}
+}
+
 func formatPrice(amount int64) string {
 	return fmt.Sprintf("¥%.2f", float64(amount)/100)
 }
@@ -292,7 +383,7 @@ func simulateSupplierProductCreated() {
 
 	// 模拟Kafka Consumer接收消息
 	// 实际项目中这是在Kafka Consumer的循环中自动接收的
-	fmt.Println("   [Simulating] Kafka message received on topic: supplier-product-events")
+	fmt.Printf("   [Simulating] Kafka message received on topic: supplier-product-events (%d bytes)\n", len(data))
 
 	// 注意：实际项目不需要手动调用，这里为了演示
 	// dependencies.kafkaConsumer.SimulateReceiveMessage(context.Background(), "supplier.product.created", data)
@@ -306,7 +397,7 @@ func simulatePricingPriceChanged() {
 	}
 	data, _ := json.Marshal(kafkaMessage)
 
-	fmt.Println("   [Simulating] Kafka message received on topic: pricing-events")
+	fmt.Printf("   [Simulating] Kafka message received on topic: pricing-events (%d bytes)\n", len(data))
 	fmt.Println("   [Simulating] Message would be routed to Interface Layer → Application Layer")
 	// dependencies.kafkaConsumer.SimulateReceiveMessage(context.Background(), "pricing.price_changed", data)
 }
