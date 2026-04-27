@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a58513c1.js";
+            window.path_to_searchindex_js = "../searchindex-74fca7d1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-9af09486.js"></script>
+        <script src="../toc-2d76b03e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -194,14 +194,14 @@
 <h2 id="71-agent可观测性的三个层次"><a class="header" href="#71-agent可观测性的三个层次">7.1 Agent可观测性的三个层次</a></h2>
 <h3 id="层次-1基础指标metrics"><a class="header" href="#层次-1基础指标metrics">层次 1：基础指标（Metrics）</a></h3>
 <p><strong>系统级指标：</strong></p>
-<pre><code>- 请求总数
+<pre><code class="language-text">- 请求总数
 - 平均响应时间
 - 成功率 / 失败率
 - P50 / P95 / P99 延迟
 - 系统资源使用（CPU、内存）
 </code></pre>
 <p><strong>Agent 级指标：</strong></p>
-<pre><code>- LLM 调用次数
+<pre><code class="language-text">- LLM 调用次数
 - Token 消耗（input + output）
 - 工具调用次数
 - 平均迭代轮数
@@ -277,7 +277,7 @@
 }
 </code></pre>
 <p><strong>可视化：</strong></p>
-<pre><code>trace_abc123
+<pre><code class="language-text">trace_abc123
 ├─ llm_generate (2s)
 ├─ tool:prometheus_query (0.3s)
 ├─ llm_generate (1.8s)
@@ -312,7 +312,7 @@ Total: 6.5s
 <h2 id="72-成本分析与优化"><a class="header" href="#72-成本分析与优化">7.2 成本分析与优化</a></h2>
 <h3 id="token-消耗分析"><a class="header" href="#token-消耗分析">Token 消耗分析</a></h3>
 <p><strong>成本构成：</strong></p>
-<pre><code>总成本 = Input Token 成本 + Output Token 成本
+<pre><code class="language-text">总成本 = Input Token 成本 + Output Token 成本
 </code></pre>
 <p><strong>Input Token 来源：</strong></p>
 <ul>
@@ -328,7 +328,7 @@ Total: 6.5s
 <li>推理过程（Thought）</li>
 </ul>
 <p><strong>DoD Agent 的成本分析：</strong></p>
-<pre><code>单次告警诊断：
+<pre><code class="language-text">单次告警诊断：
 - System Prompt: 500 tokens
 - 告警信息: 200 tokens
 - 知识库检索结果: 2000 tokens
@@ -345,12 +345,12 @@ Output: 800 * 3 = 2400 tokens
 <h3 id="优化策略-1prompt-压缩"><a class="header" href="#优化策略-1prompt-压缩">优化策略 1：Prompt 压缩</a></h3>
 <p><strong>技巧 1：精简 System Prompt</strong></p>
 <p>❌ <strong>冗长版本（800 tokens）：</strong></p>
-<pre><code>你是一个经验丰富的运维专家，拥有 10 年以上的大型电商系统运维经验。
+<pre><code class="language-text">你是一个经验丰富的运维专家，拥有 10 年以上的大型电商系统运维经验。
 你精通 Kubernetes、Prometheus、Grafana 等工具...
 （详细描述 500 字）
 </code></pre>
 <p>✅ <strong>精简版本（100 tokens）：</strong></p>
-<pre><code>你是运维专家，分析告警并提供诊断建议。
+<pre><code class="language-text">你是运维专家，分析告警并提供诊断建议。
 </code></pre>
 <p>节省 87.5% 的 System Prompt Token。</p>
 <p><strong>技巧 2：上下文裁剪</strong></p>
@@ -573,7 +573,7 @@ class TracedAgent:
 </code></pre>
 <h3 id="方案-3实时监控面板"><a class="header" href="#方案-3实时监控面板">方案 3：实时监控面板</a></h3>
 <p><strong>核心指标面板：</strong></p>
-<pre><code>┌─────────────────────────────────────────────────────────────┐
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
 │                   Agent Monitoring Dashboard                 │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
@@ -605,35 +605,35 @@ class TracedAgent:
 <h2 id="74-成本优化实战"><a class="header" href="#74-成本优化实战">7.4 成本优化实战</a></h2>
 <h3 id="案例dod-agent-成本优化历程"><a class="header" href="#案例dod-agent-成本优化历程">案例：DoD Agent 成本优化历程</a></h3>
 <p><strong>V1：无优化版本</strong></p>
-<pre><code>月告警量: 6000 次
+<pre><code class="language-text">月告警量: 6000 次
 平均 Token: 10000 tokens/次
 月 Token 消耗: 60M tokens
 月成本: 60M * 0.00003 = $1800
 </code></pre>
 <p>成本过高，不可持续。</p>
 <p><strong>优化 1：Prompt 精简</strong></p>
-<pre><code>System Prompt: 800 → 100 tokens (-87.5%)
+<pre><code class="language-text">System Prompt: 800 → 100 tokens (-87.5%)
 检索结果: 3000 → 1000 tokens (top-3 instead of top-10)
 
 平均 Token: 10000 → 6500 tokens (-35%)
 月成本: $1800 → $1170 (-35%)
 </code></pre>
 <p><strong>优化 2：缓存相似查询</strong></p>
-<pre><code>缓存命中率: 40%
+<pre><code class="language-text">缓存命中率: 40%
 缓存命中时跳过 LLM 调用
 
 实际 LLM 调用: 6000 * 0.6 = 3600 次
 月成本: $1170 → $702 (-40%)
 </code></pre>
 <p><strong>优化 3：模型分层</strong></p>
-<pre><code>简单告警（50%）: 用 GPT-3.5 ($0.0015/1K tokens)
+<pre><code class="language-text">简单告警（50%）: 用 GPT-3.5 ($0.0015/1K tokens)
 复杂告警（50%）: 用 GPT-4 ($0.03/1K tokens)
 
 平均成本: (0.0015 * 0.5 + 0.03 * 0.5) * 6.5 = $0.10/次
 月成本: $702 → $360 (-49%)
 </code></pre>
 <p><strong>最终优化：</strong></p>
-<pre><code>V1 成本: $1800/月
+<pre><code class="language-text">V1 成本: $1800/月
 V3 成本: $360/月
 优化幅度: 80%
 
@@ -661,7 +661,7 @@ V3 成本: $360/月
 <h2 id="75-代码熵管理"><a class="header" href="#75-代码熵管理">7.5 代码熵管理</a></h2>
 <p>Agent 产出的代码会随时间积累技术债，<strong>代码熵</strong>会持续增长。</p>
 <h3 id="什么是代码熵"><a class="header" href="#什么是代码熵">什么是代码熵？</a></h3>
-<pre><code>代码熵 = 架构不一致 + 重复代码 + 废弃代码 + 文档过时
+<pre><code class="language-text">代码熵 = 架构不一致 + 重复代码 + 废弃代码 + 文档过时
 </code></pre>
 <p>单次任务看起来没问题，但 Agent 生成的代码在不同会话之间缺乏统一的架构愿景。</p>
 <h3 id="熵管理策略"><a class="header" href="#熵管理策略">熵管理策略</a></h3>
