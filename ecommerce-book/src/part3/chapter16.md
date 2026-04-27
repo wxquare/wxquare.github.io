@@ -1416,7 +1416,7 @@ Product Definition  定义平台卖什么
 | `refund_rule_tab` | 售后规则配置 | 是否可退、是否人工审核、取消政策、核销后限制、供应商退改规则 |
 | `product_stock_tab` | 库存与可售状态 | 库存类型、库存来源、可售状态、库存数量、更新时间 |
 | `voucher_code_pool_tab` | 券码池 | 券码、SKU、状态、有效期、分配订单、核销状态 |
-| `listing_task_tab` | 商品供给任务 | 导入批次、任务状态、操作人、成功/失败数量、错误文件 |
+| `product_supply_task` | 商品供给任务 | 导入批次、任务状态、操作人、成功/失败数量、错误文件 |
 | `product_audit_log_tab` | 审核日志 | 审核对象、变更内容、审核结论、审核人、驳回原因 |
 | `product_change_log_tab` | 变更日志 | 商品字段变更前后值、操作来源、TraceID、操作人 |
 | `product_search_index_task_tab` | 搜索索引任务 | 索引动作、目标 SKU、任务状态、重试次数、失败原因 |
@@ -1710,235 +1710,1028 @@ input_schema_tab
 
 #### 16.6.1.6 商品供给与运营链路
 
-商品供给与运营链路解决的是“商品如何进入平台，以及上线后如何被持续维护”的问题。对于数字商品平台，B 端供给能力不是后台 CRUD，而是一条持续运行的供给流水线：它要把人工上传、批量导入、供应商同步、运营编辑统一起来，并且和前面定义的 `Resource`、`SPU/SKU`、`Offer / Rate Plan`、库存可售、搜索索引、订单快照和履约契约保持一致。
+商品供给与运营链路解决的是“商品如何进入平台，以及上线后如何被持续维护”的问题。供应商同步本质上属于供给链路，但它不是唯一入口。更准确的划分是：
 
-如果这条链路设计不好，问题会很快暴露到 C 端交易链路：列表页搜不到、详情页价格错误、下单时库存不可用、券码发放失败、供应商映射缺失、退款规则不完整。面试时可以这样概括：
+```text
+商品供给与运营治理平台
+  ├─ 人工创建/上传：运营/商家从 0 到 1 创建商品
+  ├─ 批量导入：文件、模板、批量任务导入商品和配置
+  ├─ 运营编辑：标题、图片、类目、价格、库存、上下架、退款规则变更
+  └─ 供应商同步：外部供给数据全量/增量/Push/刷新
+```
 
-> 商品供给链路的核心不是“把商品写进数据库”，而是“让一个商品从供给入口到可被搜索、可被下单、可被履约、可被追溯”。
+这四类入口应该进入同一个“供给治理控制面”，共享任务模型、校验、审核、发布版本、Outbox、补偿和可观测性；但供应商同步因为存在长任务、Checkpoint、Raw Snapshot、Worker 租约、DLQ、数据新鲜度等复杂问题，可以单独展开成 `16.6.1.7` 和附录案例。
+
+面试时可以先给出这个判断：
+
+> 供应商同步是商品供给链路的一种入口，但不能把商品供给系统等同于供应商同步系统。商品供给平台要统一承接人工创建、批量导入、运营编辑和供应商同步；其中供应商同步是最复杂的自动化供给分支，需要独立的同步任务、Checkpoint 和数据治理链路。
+
+如果这条链路设计不好，问题会很快暴露到 C 端交易链路：列表页搜不到、详情页价格错误、下单时库存不可用、券码发放失败、供应商映射缺失、退款规则不完整。商品供给链路的核心不是“把商品写进数据库”，而是“让一个商品从供给入口到可被搜索、可被下单、可被履约、可被追溯”。
+
+这条链路的系统难点和解决方法可以先这样收敛：
+
+| 难点 | 典型表现 | 解决方法 |
+|------|----------|----------|
+| **入口多且语义不同** | 人工创建、批量导入、运营编辑、供应商同步都在改商品 | 统一进入 Supply Task 和 Staging，但按 `task_type` 路由不同策略 |
+| **半成品污染线上** | 草稿、导入半成品、同步脏数据直接写正式表 | Draft / Staging 与正式表隔离，只有发布事务能写线上版本 |
+| **品类差异大** | 酒店、话费、账单、礼品卡、电影票字段和交易规则完全不同 | 类目模板 + 能力矩阵 + Schema 驱动表单、校验和发布规则 |
+| **运营误操作风险高** | 批量改价、退款规则变更、类目迁移导致资损或投诉 | 字段级 Diff、风险评分、强审核、版本回滚和灰度发布 |
+| **供应商和运营冲突** | 供应商同步覆盖运营修正字段，线上数据反复抖动 | 字段主导权、人工覆盖保护期、冲突日志和巡检 |
+| **发布不一致** | 商品库成功，ES、缓存、营销、计价没有刷新 | 发布事务 + Outbox + 异步刷新 + 补偿重试 |
+| **失败不可运营** | 错误只在日志里，运营不知道哪一行失败、怎么修 | 行级明细、错误文件、MySQL DLQ、修复建议和重新投递 |
+| **历史订单被新配置影响** | 商品改价或退款规则变更后影响旧订单解释 | 创单保存商品快照、报价快照、履约契约和退款规则快照 |
 
 **1. 三种方案对比**
 
 | 方案 | 核心思路 | 优点 | 缺点 | 适用阶段 |
 |------|---------|------|------|---------|
-| **方案A：轻量 CRUD + 审核流** | 后台直接创建、编辑、审核、上架 | 实现简单，适合小团队和固定 SKU 品类 | 不支持大批量导入、供应商同步、发布一致性和质量治理 | 早期平台、少量自营商品 |
-| **方案B：任务化供给流水线** | 以 `Listing Task` 统一承接人工上传、批量导入、供应商同步和运营编辑 | 支持异步处理、进度追踪、失败重试和错误文件下载 | 只解决“怎么执行”，还缺少风险审核、发布一致性和质量闭环 | 中期平台、多品类导入 |
-| **方案C：供给治理平台** | 在任务化基础上加入标准化校验、差异化审核、发布快照、事件 Outbox、索引/缓存刷新、质量巡检和补偿 | 能支撑 OTA/O2O/虚拟商品的复杂供给和长期运营 | 设计复杂度更高，需要明确任务模型、审核规则和发布边界 | 多品类、多供应商、强运营平台 |
+| **方案A：后台 CRUD + 简单审核** | 运营直接编辑商品正式表，审核通过后上架 | 实现简单，适合固定 SKU、低规模自营商品 | 无法支撑批量导入、错误隔离、版本回滚、下游一致性和事故追溯 | 早期平台 |
+| **方案B：任务化上架系统** | 用 Listing Task 承接人工上传、批量导入和运营编辑 | 支持异步处理、进度追踪、错误文件、失败重试 | 只解决“任务怎么跑”，没有完整的质量治理、风险分级和发布一致性 | 中期平台 |
+| **方案C：供给治理平台** | 在任务化基础上加入暂存区、标准化、质量校验、Diff、差异化审核、发布快照、Outbox、补偿和巡检 | 能支撑 OTA、O2O、虚拟商品、多供应商、多运营角色长期演进 | 设计复杂度更高，需要明确模型边界和流程状态机 | 多品类、多来源、强运营平台 |
 
-本系统选择 **方案C：供给治理平台**。它不是否定方案B，而是在任务化流水线之上补齐治理能力。
+本系统选择 **方案C：供给治理平台**。它不是把所有入口混成一条大流程，而是提供统一控制面，让不同入口走不同策略、共享同一套发布和治理能力。
 
-**2. 推荐架构：供给治理闭环**
-
-```text
-供给入口
-  → Listing Task
-  → 标准化校验
-  → 风险识别
-  → 审核发布
-  → 主数据/交易契约写入
-  → 搜索缓存刷新
-  → 事件通知下游
-  → 质量巡检与补偿
-```
-
-这条链路里的每一步都要可追踪、可重试、可审计：
-
-| 阶段 | 主要职责 | 关键产物 |
-|------|---------|---------|
-| **供给入口** | 接收人工创建、批量导入、供应商同步、运营编辑 | 原始输入、操作人、来源类型 |
-| **Listing Task** | 将一次供给动作任务化 | 任务 ID、任务状态、进度、失败明细 |
-| **标准化校验** | 把外部输入转换为平台商品模型 | 标准化后的 Resource、SPU/SKU、Offer、库存、履约规则 |
-| **风险识别** | 判断是否需要审核或告警 | 风险等级、命中规则、审核策略 |
-| **审核发布** | 控制新商品、高风险编辑、供应商变更是否生效 | 审核记录、发布版本、驳回原因 |
-| **发布写入** | 写入主数据和交易前契约 | 商品主数据、资源映射、Offer、库存、Input Schema、履约/退款规则 |
-| **下游刷新** | 保证搜索、缓存、营销、计价看到最新商品 | Outbox 事件、索引任务、缓存失效任务 |
-| **质量治理** | 发现和修复供给链路异常 | 质量报告、补偿任务、告警记录 |
-
-**3. 四类供给入口**
-
-不同来源的商品，处理策略不同，但最终都应该进入统一的 Listing Task。
-
-| 入口 | 典型场景 | 设计重点 | 审核策略 |
-|------|---------|---------|---------|
-| **人工创建** | 运营录入本地服务券、礼品卡、活动商品 | 表单配置化、字段提示、实时校验 | 新商品完整审核 |
-| **批量导入** | 大促前批量创建券、门店、套餐、价格计划 | 模板下载、文件解析、预校验、异步任务、失败文件 | 失败不阻塞成功项，高风险项进入审核 |
-| **供应商同步** | 酒店、影院、活动、票务等外部数据同步 | 幂等映射、字段清洗、全量/增量、重试补偿 | 静态信息可自动发布，高风险差异转人工 |
-| **运营编辑** | 修改标题、图片、类目、价格、库存、退款规则、上下架 | 变更 Diff、批量编辑、版本化、回滚 | 低风险自动通过，高风险强制审核 |
-
-这里的关键设计是：**所有入口都不要直接写商品正式表**。它们先进入任务表和暂存区，经过校验、审核和发布后，再写入正式主数据和交易契约表。
-
-**4. Listing Task 状态机**
-
-供给任务要显式建状态机，避免任务执行到一半时无法判断当前处于“待校验、待审核、发布中还是已失败”。
+**2. 推荐架构：供给治理控制面**
 
 ```text
-新商品/新供给：
-DRAFT
-  → VALIDATING
-  → REVIEWING
-  → APPROVED
-  → PUBLISHING
-  → PUBLISHED
-
-异常分支：
-VALIDATING / REVIEWING / PUBLISHING
-  → REJECTED / FAILED
-
-编辑链路：
-PUBLISHED
-  → EDITING
-  → VALIDATING
-  → REVIEWING
-  → PUBLISHING
-  → PUBLISHED
-
-退出链路：
-PUBLISHED
-  → OFF_SHELF
-  → ARCHIVED
+供给入口层
+  → Draft / Staging 暂存区
+  → Listing Task / Batch / Item
+  → 标准化与类目模板适配
+  → 多层质量校验
+  → Diff 与风险识别
+  → 审核流 / 自动准入
+  → 发布事务：主数据 + 交易契约 + Outbox
+  → 搜索索引 / 缓存 / 营销 / 计价 / 订单上下文刷新
+  → DLQ / 补偿 / 巡检 / 质量报表
 ```
 
-状态机要配合三类表：
+各层职责如下：
 
-| 表 | 作用 |
-|----|------|
-| `listing_task_tab` | 记录任务批次、来源、状态、进度、成功/失败数量 |
-| `listing_task_item_tab` | 记录每条商品/资源/Offer 的处理结果，便于失败重试 |
-| `product_audit_log_tab` / `product_change_log_tab` | 记录审核结论、字段 Diff、操作人、TraceID |
+| 层级 | 职责 | 关键产物 |
+|------|------|----------|
+| **供给入口层** | 接收运营表单、批量文件、供应商同步、商家 API | 原始输入、操作者、来源、TraceID |
+| **暂存层** | 保存未发布数据，避免污染线上正式表 | Draft、Staging Snapshot、Import Row |
+| **任务编排层** | 把一次供给动作变成可恢复任务 | `product_supply_task`、`product_supply_task_item`、进度和失败明细 |
+| **标准化层** | 把入口数据转换成平台 Resource/SPU/SKU/Offer/Rule 模型 | 标准化模型、字段来源、数据 hash |
+| **校验层** | 检查字段、主数据、交易契约、可售规则 | 校验结果、错误码、质量分 |
+| **风险审核层** | 识别高风险变更并路由审核 | Diff、风险等级、审核单 |
+| **发布层** | 写正式表、生成版本、写 Outbox | `publish_version`、商品快照、事件 |
+| **下游刷新层** | 刷新搜索、缓存、营销、计价、数据平台 | 索引任务、缓存失效任务、补偿任务 |
+| **治理层** | 巡检、补偿、报表、审计 | DLQ、质量报告、操作日志 |
 
-**5. 标准化校验与差异化审核**
+这里最重要的边界是：**所有入口都不要直接写商品正式表**。人工表单、Excel 导入、供应商同步和运营批量编辑都先写暂存区和任务表，经过校验、审核和发布后，再写入正式主数据和交易契约表。
+
+**3. 四类入口的差异化设计**
+
+| 入口 | 典型场景 | 主流程 | 关键风险 | 处理策略 |
+|------|----------|--------|----------|----------|
+| **人工创建** | 运营创建本地生活券、礼品卡、话费套餐、账单缴费入口 | 表单草稿 → 实时校验 → 提交审核 → 发布 | 字段漏填、类目选错、履约规则不完整 | 表单配置化、类目模板、强校验、完整审核 |
+| **批量导入** | 大促前批量创建套餐、门店、价格计划、券码池 | 上传文件 → 预校验 → 异步解析 → 分批处理 → 错误文件 | 大批量错误、重复导入、局部失败 | 任务化、行级状态、部分成功、失败文件、幂等 key |
+| **运营编辑** | 改标题、图片、价格、库存、退款规则、上下架 | 读取线上版本 → 创建变更单 → Diff → 风险审核 → 发布 | 误操作、批量事故、覆盖供应商数据 | 字段主导权、版本锁、风险阈值、回滚 |
+| **供应商同步** | 酒店、影院、活动、票务等外部数据同步 | 同步任务 → Raw Snapshot → 标准化 → 映射 → Diff → 发布 | 接口不稳定、模型不一致、新鲜度、长任务失败 | 独立同步链路，见 `16.6.1.7` |
+
+这四类入口共享最终发布模型，但入口策略不同。人工创建强调“完整性和可解释”；批量导入强调“吞吐和错误隔离”；运营编辑强调“Diff、权限和风险”；供应商同步强调“可恢复、可追溯和自动化治理”。
+
+**4. 核心数据模型**
+
+供给治理平台的表设计不要从“一张商品表”出发，而要围绕“未发布隔离、任务可恢复、行级可定位、校验可解释、变更可审核、发布可追溯、失败可补偿”来组织。核心可以分成八组：
+
+| 表组 | 典型表 | 作用 |
+|------|--------|------|
+| **Draft 草稿表** | `product_supply_draft`、`product_supply_draft_version` | 保存单商品创建和编辑过程中的草稿，允许反复保存，不影响线上 |
+| **Task 任务表** | `product_supply_task` | 记录一次供给动作，如人工创建、批量导入、运营编辑、供应商同步后的商品变更接入 |
+| **Task Item 明细表** | `product_supply_task_item` | 记录每一行、每个商品、每个 Offer 或每条规则的处理状态，是失败定位单元 |
+| **Staging 暂存表** | `product_supply_staging`、`product_supply_staging_snapshot` | 保存已经提交、已经标准化、但未发布到正式表的数据 |
+| **Validation 校验表** | `product_validation_result` | 保存 Schema、类目模板、主数据、商品模型、交易契约、风险规则的校验结果 |
+| **Change / Audit 表** | `product_change_request`、`product_audit_log`、`product_field_ownership` | 保存字段 Diff、风险等级、审核策略、审核动作和字段主导权 |
+| **Publish / Snapshot 表** | `product_publish_record`、`product_publish_snapshot`、`product_change_log` | 保存发布批次、线上版本快照和正式变更日志，支持追溯和回滚 |
+| **Outbox / DLQ / Compensation 表** | `product_outbox_event`、`product_supply_dead_letter`、`product_compensation_task`、`product_quality_issue` | 保证下游最终一致，承接失败补偿、人工修复和质量巡检 |
+
+第一期不一定把所有可选表都建齐，最小闭环建议包括：
+
+```text
+product_supply_draft
+product_supply_task
+product_supply_task_item
+product_supply_staging
+product_validation_result
+product_change_request
+product_audit_log
+product_publish_snapshot
+product_change_log
+product_outbox_event
+product_supply_dead_letter
+```
+
+供应商同步执行层可以独立使用 `supplier_sync_task`、`supplier_sync_batch`、`supplier_sync_snapshot` 和 `supplier_sync_dead_letter`，但标准化之后要进入供给平台的 `product_supply_staging`、`product_validation_result`、`product_change_request` 和统一发布链路。
+
+`product_supply_task` 记录一次供给动作：
+
+```sql
+CREATE TABLE product_supply_task (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    task_id VARCHAR(64) NOT NULL,
+    task_type VARCHAR(32) NOT NULL COMMENT 'MANUAL_CREATE/BATCH_IMPORT/OPS_EDIT/SUPPLIER_SYNC',
+    source_type VARCHAR(32) NOT NULL COMMENT 'OPS/MERCHANT/SUPPLIER/SYSTEM',
+    source_id VARCHAR(64) DEFAULT NULL,
+    category_code VARCHAR(32) NOT NULL,
+    operator_id VARCHAR(64) DEFAULT NULL,
+    trigger_id VARCHAR(64) DEFAULT NULL COMMENT '外部幂等 ID',
+    status VARCHAR(32) NOT NULL COMMENT 'DRAFT/VALIDATING/REVIEWING/APPROVED/PUBLISHING/PUBLISHED/PARTIAL_FAILED/REJECTED/FAILED/CANCELLED',
+    total_count INT NOT NULL DEFAULT 0,
+    success_count INT NOT NULL DEFAULT 0,
+    failed_count INT NOT NULL DEFAULT 0,
+    skipped_count INT NOT NULL DEFAULT 0,
+    current_stage VARCHAR(64) DEFAULT NULL,
+    error_file_ref VARCHAR(512) DEFAULT NULL,
+    publish_version BIGINT DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    started_at DATETIME DEFAULT NULL,
+    finished_at DATETIME DEFAULT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_task_id (task_id),
+    UNIQUE KEY uk_trigger (task_type, trigger_id),
+    KEY idx_status (status),
+    KEY idx_category_status (category_code, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给任务';
+```
+
+`product_supply_task_item` 记录每个商品、资源或 Offer 的处理结果：
+
+```sql
+CREATE TABLE product_supply_task_item (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    task_id VARCHAR(64) NOT NULL,
+    item_no VARCHAR(64) NOT NULL COMMENT '文件行号或外部对象序号',
+    item_type VARCHAR(32) NOT NULL COMMENT 'RESOURCE/SPU/SKU/OFFER/STOCK/RULE',
+    idempotency_key VARCHAR(128) NOT NULL,
+    platform_resource_id BIGINT DEFAULT NULL,
+    spu_id BIGINT DEFAULT NULL,
+    sku_id BIGINT DEFAULT NULL,
+    offer_id BIGINT DEFAULT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'PENDING/VALIDATING/REVIEWING/PUBLISHING/SUCCESS/FAILED/SKIPPED',
+    risk_level VARCHAR(32) DEFAULT NULL COMMENT 'LOW/MEDIUM/HIGH',
+    error_code VARCHAR(128) DEFAULT NULL,
+    error_message VARCHAR(1024) DEFAULT NULL,
+    draft_ref VARCHAR(512) DEFAULT NULL,
+    normalized_ref VARCHAR(512) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_task_item (task_id, item_no),
+    UNIQUE KEY uk_task_idempotency (task_id, idempotency_key),
+    KEY idx_task_status (task_id, status),
+    KEY idx_platform_object (platform_resource_id, spu_id, sku_id, offer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给任务明细';
+```
+
+暂存区保存未发布的数据，不直接影响线上：
+
+```sql
+CREATE TABLE product_supply_staging (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    staging_id VARCHAR(64) NOT NULL,
+    task_id VARCHAR(64) NOT NULL,
+    item_no VARCHAR(64) NOT NULL,
+    object_type VARCHAR(32) NOT NULL COMMENT 'RESOURCE/SPU/SKU/OFFER/RATE_PLAN/STOCK/RULE',
+    object_key VARCHAR(128) NOT NULL,
+    source_type VARCHAR(32) NOT NULL,
+    raw_payload_ref VARCHAR(512) DEFAULT NULL,
+    normalized_payload JSON NOT NULL,
+    payload_hash VARCHAR(64) NOT NULL,
+    base_publish_version BIGINT DEFAULT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'DRAFT/VALIDATED/REVIEWING/APPROVED/PUBLISHED/REJECTED',
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_staging_id (staging_id),
+    UNIQUE KEY uk_task_object (task_id, object_type, object_key),
+    KEY idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给暂存数据';
+```
+
+变更日志保存 Diff、风险和审核依据：
+
+```sql
+CREATE TABLE product_change_request (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    change_id VARCHAR(64) NOT NULL,
+    task_id VARCHAR(64) NOT NULL,
+    object_type VARCHAR(32) NOT NULL,
+    object_id BIGINT DEFAULT NULL,
+    old_publish_version BIGINT DEFAULT NULL,
+    new_staging_id VARCHAR(64) NOT NULL,
+    changed_fields JSON NOT NULL,
+    risk_level VARCHAR(32) NOT NULL,
+    review_policy VARCHAR(32) NOT NULL COMMENT 'AUTO_APPROVE/MANUAL_REVIEW/BLOCK',
+    status VARCHAR(32) NOT NULL COMMENT 'PENDING/APPROVED/REJECTED/PUBLISHED',
+    reviewer_id VARCHAR(64) DEFAULT NULL,
+    review_note VARCHAR(1024) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_change_id (change_id),
+    KEY idx_task (task_id),
+    KEY idx_status_risk (status, risk_level)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给变更单';
+```
+
+**5. 人工创建链路**
+
+人工创建不是简单表单提交。它要把“类目模板、交易契约、履约契约、退款规则”一次性收齐，否则商品看似创建成功，交易时会失败。
+
+```text
+选择类目
+  → 加载类目模板和能力矩阵
+  → 填写 Resource / SPU / SKU / Offer / Rule
+  → 前端实时校验 + 后端强校验
+  → 保存 Draft
+  → 提交 Listing Task
+  → 生成 Staging Snapshot
+  → 质量校验
+  → 新商品审核
+  → 发布正式表
+```
+
+人工创建的关键设计：
+
+| 设计点 | 说明 |
+|--------|------|
+| **类目模板驱动表单** | 不同品类展示不同字段，例如酒店要地址和坐标，充值要号码规则，账单缴费要 Input Schema |
+| **Draft 与正式表隔离** | 草稿允许反复保存，不影响线上商品 |
+| **交易契约强校验** | Offer、库存来源、履约规则、退款规则、Input Schema 不完整时不能提交 |
+| **审核证据完整** | 审核员看到的是标准化后的商品快照、字段来源、风险命中和历史版本 |
+| **创建后不等于上线** | 发布成功后还要等待库存初始化、索引刷新、可售校验通过 |
+
+面试时可以强调：人工创建链路最容易被低估。真正难点不是页面表单，而是类目差异、交易契约完整性、审核证据和发布一致性。
+
+**6. 批量导入链路**
+
+批量导入要按“任务 + 行级明细 + 暂存快照 + 错误文件”设计，不能把整个 Excel 读进内存后循环写正式表。
+
+```text
+下载模板
+  → 上传文件
+  → 文件格式预检
+  → 创建 product_supply_task(status=PENDING)
+  → 流式解析文件
+  → 每行生成 product_supply_task_item
+  → 分批标准化和校验
+  → 成功项进入发布/审核
+  → 失败项生成错误文件
+  → 任务状态汇总为 PUBLISHED / PARTIAL_FAILED / FAILED
+```
+
+批量导入的关键设计：
+
+| 设计点 | 说明 |
+|--------|------|
+| **模板版本化** | 模板字段随类目演进，导入文件必须记录 `template_version` |
+| **行级幂等** | 用 `task_id + row_no` 和业务幂等 key 防止重复导入 |
+| **部分成功** | 10000 行中 9800 行成功、200 行失败时，不应该整批回滚 |
+| **错误文件下载** | 失败行要带 `error_code`、`error_message`、原始值和建议修复方式 |
+| **背压与限流** | 大文件分片处理，避免压垮商品库、库存系统和搜索刷新 |
+| **批量事故防护** | 高风险批量变更必须二次确认或抽样审核 |
+
+批量异步链路要拆成多个 Worker 阶段，而不是一个 Worker 从解析文件一路写到正式表：
+
+```text
+上传文件 / 批量提交
+  → 创建 product_supply_task(status=PENDING)
+  → Parser Worker 抢占任务并流式解析文件
+  → 批量写入 product_supply_task_item
+  → Item Worker 分批处理 item
+  → 标准化 / 校验 / Staging / Diff
+  → 低风险自动发布，高风险进入审核
+  → Publish Worker 发布正式表并写 Outbox
+  → 生成错误文件 / DLQ / 质量报告
+```
+
+**Parser Worker 只负责解析，不负责发布**。它校验文件 hash、模板版本和列结构，按行流式读取文件，每 N 行批量插入 `product_supply_task_item`，并持续更新 `parsed_count` 和 `parse_checkpoint`。如果 Worker 中途退出，下次从 checkpoint 继续；如果重复解析上一小批数据，通过 `task_id + item_no` 和 `task_id + idempotency_key` 唯一键去重。
+
+```json
+{
+  "sheet": "Sheet1",
+  "row_no": 12000,
+  "byte_offset": 8842211
+}
+```
+
+**`product_supply_task_item` 是真正的问题定位单元**。Task 只表示一次批量任务，Item 表示每一行、每一个商品对象或每一个 Offer 的处理状态。
+
+```text
+PENDING
+  → NORMALIZING
+  → VALIDATING
+  → STAGING
+  → DIFFING
+  → REVIEWING
+  → PUBLISHING
+  → SUCCESS
+
+失败分支：
+NORMALIZING / VALIDATING / STAGING / DIFFING / PUBLISHING
+  → FAILED / DLQ / SKIPPED
+```
+
+Item Worker 不按文件整批处理，而是扫描小批量 item：
+
+```sql
+SELECT *
+FROM product_supply_task_item
+WHERE task_id = ?
+  AND status IN ('PENDING', 'FAILED')
+  AND next_retry_at <= NOW()
+ORDER BY item_no ASC
+LIMIT 500;
+```
+
+每个 item 或小批次独立事务，流程是：读取原始行 → 按类目模板标准化 → 写 `normalized_ref` → 执行 Schema、主数据、交易契约校验 → 写 `product_supply_staging` → 与线上 `publish_version` 做 Diff → 生成 `product_change_request` → 按风险等级进入自动发布或人工审核。
+
+Publish Worker 只处理已经通过审核或自动准入的变更：
+
+```text
+读取 APPROVED change
+  → 开启发布事务
+  → 写 Resource / SPU / SKU / Offer / Rule
+  → 写 publish_snapshot 和 change_log
+  → 写 outbox_event
+  → 提交事务
+  → item.status = SUCCESS
+```
+
+Task 状态由 item 统计汇总，而不是 Worker 主观判断：
+
+| Item 汇总结果 | Task 状态 |
+|---------------|-----------|
+| 全部 `SUCCESS` | `PUBLISHED` |
+| 部分 `SUCCESS`，部分 `FAILED/DLQ` | `PARTIAL_FAILED` |
+| 全部失败 | `FAILED` |
+| 存在 `REVIEWING` | `REVIEWING` |
+| 存在 `PUBLISHING` | `PUBLISHING` |
+
+这里的关键原则是：**Parser Worker 只解析，Item Worker 推进行级状态，Publish Worker 只做已审核发布；Task 管整体进度，Item 管失败定位，Staging 管线上隔离，Outbox 管下游一致性**。
+
+错误文件示例：
+
+```text
+row_no, sku_code, field, error_code, error_message
+12, SKU_001, price, PRICE_TOO_LOW, price is lower than category floor price
+25, SKU_014, refund_rule, REFUND_RULE_MISSING, refund rule is required for hotel offer
+31, SKU_020, city_code, CITY_NOT_FOUND, city code cannot map to platform city
+```
+
+**7. 运营编辑链路**
+
+运营编辑不是“打开商品详情页直接保存”。一个线上商品可能同时被供应商同步、运营编辑、库存系统、风控系统影响。运营编辑必须明确字段主导权、版本锁和风险审核。
+
+```text
+读取当前 publish_version
+  → 创建编辑草稿
+  → 修改字段
+  → 与线上版本做 Diff
+  → 判断字段主导权和风险等级
+  → 自动通过 / 人工审核 / 阻断
+  → 发布新 publish_version
+  → Outbox 通知搜索、缓存、营销、计价、订单
+```
+
+字段主导权可以这样定义：
+
+| 字段 | 主导方 | 供应商同步能否覆盖 | 运营编辑策略 |
+|------|--------|-------------------|--------------|
+| 酒店名称、地址、设施 | 供应商/平台治理 | 低风险可覆盖，高风险审核 | 可人工修正并加保护期 |
+| 标题、卖点、活动标签 | 平台运营 | 不能直接覆盖 | 运营编辑为准 |
+| 基础价格、Rate Plan | 供应商/计价 | 取决于品类 | 超阈值审核 |
+| 库存水位、可售状态 | 库存域/供应商 | 可覆盖 | 异常告警，不建议人工长期覆盖 |
+| 退款规则、履约规则 | 平台/供应商契约 | 高风险覆盖 | 强制审核 |
+| 类目、Resource 映射 | 平台治理 | 不能自动覆盖 | 强制审核和巡检 |
+
+高风险运营编辑必须具备三个能力：
+
+1. **Diff 可读**：审核员看到字段级变化，而不是整段 JSON。
+2. **版本可回滚**：发布新版本后出现事故，可以回滚到上一个 `publish_version`。
+3. **覆盖可解释**：如果运营字段覆盖了供应商字段，要记录覆盖原因、有效期和责任人。
+
+**8. 标准化校验与风险审核**
 
 数字商品供给不能只做字段必填校验，还要校验交易前契约是否完整。
 
-| 校验层 | 检查内容 | 示例 |
-|--------|---------|------|
-| **Schema 校验** | 字段类型、必填、枚举、长度、格式 | 手机号规则、账单号长度、图片 URL 格式 |
-| **主数据校验** | 类目、Resource、Brand/Carrier、供应商映射是否存在 | 酒店必须有关联城市，门店必须有关联商户 |
-| **商品模型校验** | SPU/SKU、属性、ExtInfo 是否符合类目模板 | Gift Card 必须有面额和有效期 |
-| **交易契约校验** | Offer、库存类型、Input Schema、履约规则、退款规则是否完整 | Hotel 必须有 Rate Plan 和取消政策 |
-| **可售校验** | 商品状态、库存来源、供应商状态、业务开关 | Voucher 券码池为空不能发布 |
-| **风险校验** | 是否触发高风险规则 | 价格大幅变化、类目变化、退款规则变更 |
+| 校验层 | 检查内容 | 示例 | 失败处理 |
+|--------|----------|------|----------|
+| **Schema 校验** | 字段类型、必填、枚举、长度、格式 | 图片 URL、手机号规则、账单号长度 | 行级失败 |
+| **类目模板校验** | 类目要求的属性、能力、扩展字段是否完整 | Gift Card 必须有面额和有效期 | 阻断提交 |
+| **主数据校验** | Resource、Brand、Carrier、城市、商户是否存在 | 酒店必须有关联城市 | 进入人工映射 |
+| **商品模型校验** | SPU/SKU/Offer/Rate Plan 关系是否成立 | SKU 不能缺 Offer | 阻断发布 |
+| **交易契约校验** | 库存来源、Input Schema、履约规则、退款规则是否完整 | Voucher 券码池为空不能发布 | 阻断发布或告警 |
+| **风险校验** | 价格、类目、履约、退款、映射是否高风险 | 价格大幅变化、退款规则变严 | 人工审核 |
 
 审核策略应该差异化，而不是所有变更都人工审核：
 
 | 变更类型 | 风险等级 | 策略 |
-|---------|---------|------|
+|----------|----------|------|
 | 标题、描述、普通图片修改 | 低 | 自动通过，记录变更日志 |
 | 库存水位、供应商可售状态 | 中 | 自动校验，通过后发布，异常告警 |
-| 价格变化、Offer 规则变化 | 中高 | 超过阈值进入人工审核 |
-| 类目变化、履约类型变化、退款规则变化 | 高 | 强制人工审核 |
-| 供应商映射变化、资源 ID 变化 | 高 | 强制人工审核，并触发数据巡检 |
+| 展示价、Offer 规则、活动标签 | 中高 | 超过阈值进入人工审核 |
+| 类目、履约类型、退款规则 | 高 | 强制人工审核 |
+| 供应商映射、Resource ID、SPU/SKU 结构 | 高 | 强制审核，并触发巡检 |
 
-**6. 发布一致性设计**
+风险规则要配置化：
+
+```text
+risk_score =
+  field_weight
+  + change_ratio_weight
+  + category_weight
+  + operator_risk_weight
+  + product_heat_weight
+```
+
+例如同样是改价，长尾商品小幅调价可以自动通过，热门酒店或高销量礼品卡大幅降价必须人工复核。
+
+**9. 发布一致性设计**
 
 审核通过不代表商品已经可售。真正发布时，要保证商品主数据、资源映射、交易契约、库存可售、搜索缓存和下游系统最终一致。
 
 ```text
 审核通过
   → 开启发布事务
-  → 写入 Product Definition（SPU/SKU）
-  → 写入 Resource Mapping
-  → 写入 Offer / Rate Plan
-  → 写入 Stock / Sellable
+  → 写入 Resource / SPU / SKU / Offer / Rate Plan
+  → 写入 Stock Config / Sellable Rule
   → 写入 Input Schema / Fulfillment Rule / Refund Rule
-  → 生成商品发布版本和商品快照
+  → 生成 publish_version 和 product_snapshot
+  → 写入 product_change_log
   → 写入 Outbox 事件
   → 提交事务
-  → 异步刷新 ES、缓存、营销、计价、数据平台
+  → 异步刷新搜索、缓存、营销、计价、数据平台
 ```
 
-关键点：
+发布事务里只做商品中心必须强一致的事情；ES 刷新、缓存失效、营销圈品、计价上下文刷新都通过 Outbox 异步执行。
 
-1. **正式表与任务表分离**：导入中的数据不能污染线上商品。
-2. **发布版本化**：每次发布生成 `publish_version`，便于回滚、对账和排查。
-3. **事件 Outbox**：商品更新与事件写入同事务，避免商品已变更但搜索或营销没收到事件。
-4. **异步刷新可重试**：ES 索引、缓存失效、营销圈品、计价上下文刷新失败时进入补偿任务。
-5. **订单只信快照**：订单创建时保存商品快照、报价快照、履约契约和退款规则快照，避免后续商品变更影响历史订单。
+| 设计点 | 说明 |
+|--------|------|
+| **正式表与暂存表分离** | 任务处理中的半成品不能污染线上 |
+| **发布版本化** | 每次发布生成 `publish_version`，支持回滚、对账和排查 |
+| **Outbox 同事务** | 商品变更与事件写入同事务，避免“商品变了但下游不知道” |
+| **下游刷新可重试** | ES、缓存、营销、计价刷新失败进入补偿任务 |
+| **订单只信快照** | 创单保存商品快照、报价快照、履约契约和退款规则快照 |
 
-**7. 异常治理与可观测性**
+Outbox 事件示例：
 
-供给运营链路需要可观测，否则运营会遇到“上传了但不知道失败在哪里”“审核通过但前台搜不到”“供应商同步成功但价格不对”等问题。
+```text
+ProductPublished
+ProductContentChanged
+OfferChanged
+SellableRuleChanged
+FulfillmentRuleChanged
+SearchIndexRefreshRequired
+ProductCacheInvalidationRequired
+```
+
+**10. DLQ、补偿与质量巡检**
+
+人工供给和运营编辑也需要 DLQ。它们的失败不一定来自供应商接口，更多来自文件格式、字段错误、审核驳回、发布失败和下游刷新失败。
+
+| 失败类型 | 示例 | 处理 |
+|----------|------|------|
+| **输入失败** | Excel 字段非法、必填缺失 | 生成错误文件，运营修复后重新提交 |
+| **映射失败** | 城市、商户、品牌、Resource 找不到 | 进入人工映射队列 |
+| **审核失败** | 高风险变更被驳回 | 回到草稿，保留驳回原因 |
+| **发布失败** | DB 写入冲突、版本过期 | 重试或要求基于最新版本重新编辑 |
+| **下游失败** | ES 刷新失败、缓存失效失败 | Outbox 补偿 |
+| **质量失败** | 缺图、缺价、无库存、不可履约 | 质量巡检下架或告警 |
+
+补偿任务包括：
+
+1. 失败行重新投递。
+2. 审核通过但发布失败重试。
+3. 搜索索引重建。
+4. 商品缓存失效重试。
+5. 发布版本与 ES 索引一致性校验。
+6. 商品质量日报。
+7. 运营覆盖字段到期巡检。
+8. 无库存、无价格、无履约规则商品巡检。
+
+**11. 可观测性指标**
+
+供给运营链路需要可观测，否则运营会遇到“上传了但不知道失败在哪里”“审核通过但前台搜不到”“商品发布了但不能下单”等问题。
 
 | 指标 | 说明 | 目标 |
 |------|------|------|
-| **导入成功率** | 成功项 / 总导入项 | > 95% |
-| **任务完成耗时** | 从任务创建到发布完成 | P95 可控，批量任务分层统计 |
-| **自动审核占比** | 自动通过任务 / 总审核任务 | 持续提升，但高风险不追求自动化 |
-| **发布失败率** | 发布失败任务 / 发布任务 | < 1% |
-| **索引刷新成功率** | ES 刷新成功任务 / 总刷新任务 | > 99% |
-| **缓存失效成功率** | 缓存失效任务 / 总失效任务 | > 99% |
+| **任务成功率** | 成功任务 / 总任务 | 按入口拆分统计 |
+| **行级成功率** | 成功 item / 总 item | 批量导入核心指标 |
+| **任务完成耗时** | 从创建到发布完成 | P95 可控 |
+| **自动审核占比** | 自动通过 / 总审核 | 持续提升，但高风险不追求自动化 |
+| **审核驳回率** | 驳回 / 审核提交 | 反映输入质量和规则合理性 |
+| **发布失败率** | 发布失败 / 发布任务 | < 1% |
+| **索引刷新成功率** | ES 刷新成功 / 总刷新 | > 99% |
+| **缓存失效成功率** | 缓存失效成功 / 总失效 | > 99% |
 | **商品质量缺陷率** | 缺图、缺价、无库存、映射缺失商品占比 | 持续下降 |
-| **供应商同步延迟** | 外部变更到平台可见的时间 | 按品类分级管理 |
+| **人工修复耗时** | 从失败到修复完成 | 按错误类型统计 |
 
-异常处理要形成闭环：
+运营后台至少要能看到：
 
 ```text
-任务失败
-  → 记录失败原因和 TraceID
-  → 可重试错误自动重试
-  → 不可重试错误生成失败文件
-  → 高风险错误告警
-  → 运营修复后重新提交
+任务进度：总数、成功、失败、跳过、当前阶段
+失败原因：错误码、错误字段、建议修复方式、错误文件
+审核队列：风险等级、命中规则、Diff、责任人
+发布结果：publish_version、Outbox 状态、索引/缓存刷新状态
+质量看板：缺图、缺价、无库存、无履约规则、映射缺失
 ```
 
-常见补偿任务包括：
+**12. 与供应商同步链路的关系**
 
-1. 搜索索引重建任务。
-2. 商品缓存失效重试任务。
-3. 供应商映射缺失修复任务。
-4. 库存可售状态巡检任务。
-5. 商品质量日报任务。
-6. 发布版本与线上索引一致性校验任务。
+供应商同步不是被排除在供给链路之外，而是供给链路中自动化程度最高、数据治理要求最强的入口。
 
-**8. 与库存、订单、支付链路的关系**
+```text
+统一供给治理平台
+  → 统一发布模型：Resource / SPU / SKU / Offer / Rule
+  → 统一治理能力：校验 / Diff / 审核 / 发布 / Outbox / 补偿
+  → 统一观测能力：任务进度 / 失败明细 / 质量指标
 
-商品供给链路虽然发生在交易前，但它直接影响库存、订单和支付：
+供应商同步专项链路
+  → Raw Snapshot
+  → Checkpoint
+  → Worker Lease
+  → Sync Batch Version
+  → Supplier Mapping
+  → 数据新鲜度
+```
 
-| 交易系统 | 供给链路要提供什么 |
-|---------|-------------------|
-| **库存与可售域** | 库存类型、库存来源、券码池、供应商实时库存能力、可售规则 |
-| **搜索导购域** | 可索引字段、图片、标题、标签、展示价、可售状态 |
-| **订单系统** | 商品快照、Resource 映射、Offer 快照、Input Schema、履约契约、退款规则 |
-| **支付系统** | 商品是否允许支付、支付前金额是否需要锁定、退款路径是否存在 |
-| **履约系统** | 履约类型、供应商映射、履约参数、超时策略 |
-
-所以，商品发布不是一个孤立动作，而是一次“交易前契约发布”。商品中心要保证订单系统拿到的不是半成品商品，而是一个可以被下单、支付、履约和售后的完整上下文。
+所以本章采用“主链路 + 专项链路”的写法：`16.6.1.6` 讲统一商品供给与运营治理平台，完整设计见[附录G：商品供给与运营治理平台](../appendix/product-supply-ops.md)；`16.6.1.7` 专门讲供应商同步，因为它有长任务恢复、外部数据追溯和供应商质量治理等额外复杂度。
 
 **面试总结**：
 
-> 我不会把商品供给设计成后台 CRUD，而会设计成供给治理平台。所有人工上传、批量导入、供应商同步和运营编辑都进入 Listing Task，通过标准化校验、差异化审核、版本化发布、Outbox 事件、索引缓存刷新和质量巡检形成闭环。这样才能支撑 OTA、O2O 和虚拟商品的复杂供给，同时避免商品中心变成不可追溯的大泥球。
+> 我不会把商品供给设计成后台 CRUD，也不会把供应商同步和人工运营割裂成两套互不相干的系统。我的设计是统一供给治理平台：人工创建、批量导入、运营编辑和供应商同步都先进入任务和暂存区，通过标准化、质量校验、Diff、差异化审核、版本化发布、Outbox、补偿和巡检后，再写入正式商品主数据和交易契约。供应商同步属于供给链路，但因为它涉及 Raw Snapshot、Checkpoint、Worker 租约、DLQ 和数据新鲜度，所以作为专项链路单独展开。这样既能保证入口统一，又能处理不同来源的复杂度差异。
 
 ---
 
 #### 16.6.1.7 供应商商品同步链路
 
-供应商同步链路解决的是“外部商品数据如何进入平台，并保持足够新鲜”的问题。不同品类的数据同步策略不同，不能一刀切。
+供应商同步链路解决的是“外部供给数据如何进入平台，并持续保持可用、可信、足够新鲜”的问题。它不是简单的定时任务，也不是把供应商字段原样搬进商品表，而是一个完整的数据治理链路：接入外部数据、适配不同协议、完成平台模型映射、校验数据质量、生成发布版本、刷新搜索缓存、通知下游系统，并在失败时可追踪、可补偿、可人工修复。
 
-**静态信息与动态信息要分离**：
+从系统边界上看，它属于 `16.6.1.6` 里的供应商供给入口，但执行层要单独设计。统一供给平台负责发布模型、审核、Outbox 和质量治理；供应商同步专项链路负责外部协议适配、Raw Snapshot、Checkpoint、租约、批次版本、新鲜度和供应商质量治理。
 
-| 数据类型 | 示例 | 同步策略 |
-|---------|------|---------|
-| **静态信息** | 酒店名称、地址、设施、影院信息、城市站点、商户门店 | 全量 + 增量同步，允许分钟级到小时级延迟 |
-| **半动态信息** | 酒店最低价、可售状态、热门商品库存水位 | 定时刷新 + 热门商品加频刷新 |
-| **强动态信息** | 机票报价、座位、酒店下单前房态房价、电影座位图 | 查询或下单前实时请求供应商 |
+在数字商品平台中，供应商同步的复杂度来自四个方面：
 
-**同步任务治理**：
+1. **接口不稳定**：供应商可能超时、限流、重复推送、乱序推送，也可能临时修改字段含义。
+2. **模型不一致**：供应商有自己的酒店、房型、套餐、面额、场次、票种模型，平台则使用 Resource、SPU、SKU、Offer、Rate Plan 等统一抽象。
+3. **新鲜度不同**：酒店地址和设施可以小时级更新，酒店最低价需要分钟级刷新，机票报价和下单前房态房价必须实时确认。
+4. **交易风险高**：列表页展示可以允许轻微过期，但创单前如果使用过期价格或库存，就会带来资损、投诉和履约失败。
+
+因此，供应商同步链路的核心目标不是“同步成功”，而是：**正确映射、变化可追溯、错误可隔离、数据可验证、过期可感知、失败可补偿**。
+
+核心难点和解决方法如下：
+
+| 难点 | 典型表现 | 解决方法 |
+|------|----------|----------|
+| **长任务易中断** | 100 万酒店全量同步跑 10 小时，发布、重启、OOM 都可能中断 | Batch + Page/Cursor Checkpoint + Worker Lease |
+| **外部数据不可控** | 字段缺失、枚举变化、分页游标失效、重复 Push | Adapter 防腐层、Schema 校验、幂等 key、指数退避和熔断 |
+| **模型映射复杂** | 供应商酒店/房型/套餐无法直接对应平台 Resource/SPU/SKU/Offer | supplier mapping 表、标准化快照、映射失败进入人工修复 |
+| **同步成功不等于可发布** | 拉到了数据但城市映射失败、价格异常、坐标漂移 | 质量校验、Diff、风险分级、低风险自动发布，高风险审核或 DLQ |
+| **数据新鲜度不一致** | 静态信息小时级即可，房态房价下单前必须实时 | 按数据类型和交易阶段分层 TTL，列表缓存、详情刷新、创单确认 |
+| **失败需要可追溯** | 线上价格异常时不知道供应商当时返回什么 | Raw Snapshot / Normalized Snapshot / Diff / publish_version 分离 |
+| **下游最终一致** | DB 更新成功但 ES、缓存、营销、计价没有同步 | Outbox 同事务写入，索引和缓存刷新失败进入补偿 |
+
+**供应商同步架构图与 Data Flow Diagram**：
+
+![供应商数据同步链路架构图](../../images/supplier-sync-architecture.png)
+
+![供应商数据同步 Data Flow Diagram](../../images/supplier-sync-data-flow.png)
+
+完整的任务模型、Checkpoint、Worker 租约、DLQ、监控指标和面试题设计，见[附录F：供应商数据同步链路](../appendix/supplier-sync.md)。
+
+图中可以看到，供应商数据进入平台后会经过五个阶段：
 
 ```text
 供应商数据源
-  → 全量同步 / 增量同步 / 供应商 Push / 接入层 Push
-  → 数据清洗与字段映射
-  → 平台商品映射
-  → 写入商品主数据或扩展表
-  → 刷新缓存与搜索索引
-  → 记录同步日志与质量指标
+  → 接入适配与同步任务
+  → 标准化、质量校验、平台模型映射
+  → Resource / SPU / SKU / Offer / Mapping / Stock Snapshot 落库
+  → 搜索索引、缓存、营销、计价、订单、数据平台刷新
+  → 失败补偿、监控告警、数据巡检
 ```
 
-需要重点建设四类能力：
+**1. 同步对象分层**
 
-1. **幂等映射**：用 `supplier_id + supplier_product_code` 定位同一个外部资源，避免重复建商品。
-2. **失败重试**：网络失败、字段缺失、供应商限流要区分处理。
-3. **数据巡检**：定期检查供应商侧与平台侧数据是否缺失、过期或映射错误。
-4. **热门刷新**：对高曝光、高转化、高变价品类提高刷新频率，降低 L 页到 D 页的变价率。
+供应商同步首先要分清楚“同步的到底是什么”。不同数据的生命周期、新鲜度和交易风险完全不同，不能放在同一张表、使用同一个刷新策略。
+
+| 数据层 | 示例 | 平台承接模型 | 同步特点 |
+|-------|------|-------------|---------|
+| **资源数据** | 城市、机场、车站、酒店、影院、商户、门店 | `resource_tab` | 相对稳定，适合全量 + 增量同步 |
+| **商品主数据** | 标题、图片、类目、属性、可售范围 | `product_spu_tab`、`product_sku_tab` | 变化频率中等，需要审核与发布版本 |
+| **销售配置** | 面额、套餐、房价计划、票种、售卖规则 | `product_offer_tab`、`rate_plan_tab` | 直接影响展示价和可售性 |
+| **动态交易数据** | 价格、库存、座位图、房态、可售状态 | `product_stock_tab`、缓存、实时查询 | 变化快，需要 TTL 和交易前确认 |
+| **供应商映射** | 供应商酒店 ID、房型 ID、套餐 ID、票种 ID | `supplier_product_mapping_tab` | 是履约、查价、查库存的关键桥梁 |
+
+这个分层决定了同步策略：静态资源可以沉淀，动态报价可以缓存，强交易数据必须实时确认。商品中心不能为了统一而把所有数据都持久化成 SKU，也不能为了灵活而完全不沉淀基础资源。
+
+**2. 同步模式设计**
+
+供应商同步通常要同时支持五种模式：
+
+| 同步模式 | 适用场景 | 设计重点 |
+|---------|---------|---------|
+| **全量同步** | 新供应商接入、数据修复、周期校准 | 分片、断点续跑、批次版本、失败明细 |
+| **增量同步** | 日常商品、资源、状态变化 | 游标、更新时间、水位记录、乱序处理 |
+| **供应商 Push** | 供应商主动推送价格、库存、上下架变化 | 幂等、签名校验、重复消息去重 |
+| **平台主动刷新** | 热门酒店、热门影片、热门面额、活动商品 | 根据曝光、点击、转化、变价率动态调频 |
+| **交易前实时确认** | Flight、Hotel、Movie 等强实时品类 | 下单前查价、查库存、锁资源或确认可售 |
+
+实际系统中这五种模式会同时存在。比如酒店静态信息来自全量和增量同步，列表页最低价来自定时刷新，详情页房态房价来自短 TTL 缓存，下单前必须实时向供应商确认。
+
+**3. 幂等设计**
+
+供应商同步的幂等要覆盖三层：
+
+| 层级 | 幂等对象 | 幂等 Key | 目的 |
+|------|---------|---------|------|
+| **接入层** | 一次供应商 Push 或同步消息 | `supplier_id + event_id` 或 payload hash | 防止重复消费 |
+| **映射层** | 一个外部资源或商品 | `supplier_id + supplier_resource_code + supplier_product_code` | 防止重复创建 Resource/SPU/SKU |
+| **发布层** | 一次平台商品变更 | `sync_batch_id + platform_product_id + data_hash` | 防止重复发布、重复刷新索引 |
+
+其中 `supplier_resource_code` 表示供应商侧稳定资源，例如酒店 ID、影院 ID、商户 ID、机场/车站代码；`supplier_product_code` 表示供应商侧可售对象，例如房型、套餐、面额、场次、票种。
+
+```text
+供应商原始数据
+  → 生成 source_hash
+  → 查询 supplier_mapping
+  → 已存在：比较 data_hash，变化才更新
+  → 不存在：创建平台 Resource / SPU / SKU / Offer
+  → 写入 mapping，保证后续同步可定位
+```
+
+这里最容易踩坑的是供应商编码不稳定。有些供应商会复用商品编码、合并资源、拆分资源，甚至换供应商后编码体系完全变化。因此平台不能直接把供应商编码当成平台主键，而要维护独立的 `platform_resource_id`、`spu_id`、`sku_id`，供应商编码只作为映射关系存在。
+
+**4. 版本设计**
+
+版本要分清楚三类，不能混在一起：
+
+| 版本 | 含义 | 用途 |
+|------|------|------|
+| `sync_batch_version` | 本次同步任务版本 | 排查“哪次同步带来了变化” |
+| `data_snapshot_version` | 原始数据和标准化数据快照版本 | 支持回放、diff、回滚 |
+| `publish_version` | 平台正式发布版本 | 控制搜索、缓存、下游事件一致性 |
+
+推荐链路如下：
+
+```text
+Sync Batch v102
+  → Raw Snapshot v102.1
+  → Normalized Snapshot v102.1
+  → Diff: price changed / room name changed / offer disabled
+  → Publish Version p5688
+  → ProductUpdated / OfferChanged / StockChanged Event
+```
+
+版本设计的关键是：**同步版本不等于发布版本**。供应商同步可能只是拉到了数据，但经过校验后发现字段缺失，不应该发布；也可能一次同步中有 10 万条数据，只有 300 条真正变化。平台需要把“同步到了什么”和“发布了什么”分开记录。
+
+**5. 质量校验设计**
+
+质量校验不能只做字段非空，而要分成五层：
+
+| 校验层 | 校验内容 | 失败处理 |
+|-------|---------|---------|
+| **Schema 校验** | 必填字段、类型、枚举、时间格式、货币单位 | 直接拦截，进入失败明细 |
+| **主数据校验** | 城市、机场、酒店、商户、品牌、类目是否存在 | 进入待映射或人工修复 |
+| **模型校验** | 是否能映射到 Resource/SPU/SKU/Offer/Rate Plan | 阻断发布 |
+| **交易校验** | 价格是否异常、库存是否为负、可售状态是否矛盾 | 高风险拦截或降级 |
+| **业务规则校验** | 是否允许该站点、渠道、品类售卖，是否需要审核 | 进入审核或灰度发布 |
+
+质量校验要支持“部分成功”。例如酒店全量同步 100 万条房型数据，不能因为 100 条数据失败就整批失败。更合理的处理方式是：可处理数据继续写入，失败明细单独记录 `error_code`、`error_message`、`raw_payload_ref`，高风险数据不发布，进入人工修复或补偿队列。
+
+面试时可以强调：**供应商同步系统不是追求 100% 同步成功，而是要做到失败可定位、可隔离、可修复、可补偿**。
+
+**6. 新鲜度设计**
+
+不同数据的 TTL 不一样，不能使用统一缓存时间。
+
+| 数据类型 | 示例 | 新鲜度要求 | 策略 |
+|---------|------|-----------|------|
+| **静态资源** | 酒店名称、地址、设施、机场、车站 | 小时级或天级 | 全量 + 增量同步 |
+| **半动态数据** | 酒店最低价、可售状态、热门库存水位 | 分钟级 | 定时刷新 + 热门加频 |
+| **强动态数据** | 机票报价、座位图、下单前房态房价 | 秒级或实时 | 搜索缓存，详情刷新，下单实时确认 |
+| **交易契约** | 退款规则、履约参数、供应商映射 | 强一致倾向 | 发布版本控制，不随意覆盖 |
+
+新鲜度可以按三个维度决策：
+
+```text
+TTL = f(category, popularity, transaction_stage)
+```
+
+示例：
+
+| 场景 | TTL 策略 |
+|------|---------|
+| Hotel 列表页最低价 | 热门酒店 10 分钟刷新，长尾酒店 1-6 小时 |
+| Hotel 详情页房态房价 | 用户进入详情页时刷新或短 TTL 缓存 |
+| Hotel 下单前确认 | 必须实时查供应商 |
+| Flight 搜索报价 | 实时查或极短 TTL |
+| Topup 面额配置 | 小时级缓存即可 |
+| Bill 账单金额 | 用户输入账单号后实时查询 |
+
+这里的原则是：**L 页可以快，D 页要准，创单必须安全**。列表页价格允许作为导购参考，详情页价格要尽量接近实时，创单价格必须基于最新供应商状态确认。
+
+**7. 补偿设计**
+
+补偿不是“失败后重试三次”这么简单，而要按失败类型分类处理。
+
+| 失败类型 | 示例 | 处理方式 |
+|---------|------|---------|
+| **临时失败** | 网络超时、供应商 5xx、限流 | 指数退避重试 |
+| **数据失败** | 字段缺失、枚举非法、价格异常 | 不盲目重试，进入修复队列 |
+| **映射失败** | 找不到城市、酒店、影院、商户映射 | 进入人工映射或规则匹配 |
+| **发布失败** | DB 成功但 ES 刷新失败 | Outbox 重试，索引补偿 |
+| **一致性失败** | 平台数据与供应商数据长期不一致 | 对账任务 + 差异修复 |
+
+推荐处理链路：
+
+```text
+Sync Failed
+  → 判断错误类型
+  → Retryable：延迟重试
+  → NonRetryable：进入失败明细
+  → MappingRequired：进入人工修复队列
+  → PublishFailed：Outbox 补偿
+  → StaleData：巡检任务重新拉取
+```
+
+死信队列中不要只存错误信息，要存完整上下文：
+
+```text
+supplier_id
+sync_batch_id
+supplier_resource_code
+supplier_product_code
+error_code
+error_message
+raw_payload_ref
+retry_count
+next_retry_time
+owner_team
+```
+
+否则线上排查时只能看到“同步失败”，不知道失败的是哪个供应商、哪个资源、哪条商品。
+
+**8. 死信队列落地设计**
+
+死信队列（Dead Letter Queue, DLQ）不要只理解成“失败消息丢到一个 MQ Topic”。在供应商商品同步场景里，失败往往不是单纯的消息消费失败，而是字段缺失、映射失败、价格异常、发布失败、索引刷新失败等需要人工修复、状态流转和审计的问题。因此，推荐设计成 **MySQL 为主的可运营 DLQ + MQ/Redis 做调度辅助**。
+
+| 组件 | 职责 |
+|------|------|
+| **MySQL DLQ 表** | 权威问题单，支持查询、筛选、人工修复、状态流转、审计和报表 |
+| **Kafka / MQ** | 可选，用于失败事件的短期缓冲和异步投递 |
+| **Redis ZSet** | 可选，用于延迟重试调度，按 `next_retry_at` 排序 |
+| **Raw Snapshot / 对象存储** | 保存大体积原始 payload，DLQ 表只保存引用 |
+
+判断一条失败是否进入 DLQ，需要先做错误分类：
+
+| 失败类型 | 是否进入 DLQ | 处理方式 |
+|---------|-------------|---------|
+| 网络超时、供应商 5xx | 不一定 | 先自动重试，超过次数后进入 DLQ |
+| 供应商限流 | 不一定 | 延迟重试、降速、熔断 |
+| 字段缺失、枚举非法 | 是 | 需要人工或规则修复 |
+| 城市、酒店、影院、商户映射失败 | 是 | 需要补映射 |
+| 价格异常、库存异常 | 是 | 高风险数据拦截 |
+| DB 写入成功但 ES 刷新失败 | 是 | 索引补偿 |
+| 同步成功但发布失败 | 是 | 发布补偿 |
+| 重复消息 | 否 | 幂等丢弃即可 |
+
+推荐处理架构如下：
+
+```text
+同步任务失败
+  → 错误分类
+  → Retryable：进入延迟重试队列
+  → 达到最大重试次数：写入 MySQL DLQ
+  → NonRetryable：直接写入 MySQL DLQ
+  → 人工修复 / 规则修复 / 定时补偿
+  → 重新投递同步任务
+  → 成功后标记 RESOLVED
+```
+
+DLQ 主表可以这样设计：
+
+```sql
+CREATE TABLE supplier_sync_dead_letter (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+
+    -- 定位同步批次
+    sync_batch_id VARCHAR(64) NOT NULL,
+    sync_task_id VARCHAR(64) NOT NULL,
+    sync_mode VARCHAR(32) NOT NULL COMMENT 'FULL/INCREMENTAL/PUSH/REFRESH',
+    category_code VARCHAR(32) NOT NULL,
+
+    -- 定位供应商和外部对象
+    supplier_id BIGINT NOT NULL,
+    supplier_resource_code VARCHAR(128) DEFAULT NULL,
+    supplier_product_code VARCHAR(128) DEFAULT NULL,
+
+    -- 平台侧映射，可为空，因为很多失败发生在映射前
+    platform_resource_id BIGINT DEFAULT NULL,
+    spu_id BIGINT DEFAULT NULL,
+    sku_id BIGINT DEFAULT NULL,
+    offer_id BIGINT DEFAULT NULL,
+
+    -- 错误分类
+    error_stage VARCHAR(64) NOT NULL COMMENT 'ADAPTER/VALIDATION/MAPPING/PUBLISH/INDEX',
+    error_type VARCHAR(64) NOT NULL COMMENT 'RETRYABLE/NON_RETRYABLE/MAPPING_REQUIRED/RISK_BLOCKED',
+    error_code VARCHAR(128) NOT NULL,
+    error_message VARCHAR(1024) NOT NULL,
+
+    -- Payload 不建议大字段直接塞满主表
+    raw_payload_ref VARCHAR(512) DEFAULT NULL,
+    raw_payload_hash VARCHAR(64) DEFAULT NULL,
+    normalized_payload_ref VARCHAR(512) DEFAULT NULL,
+
+    -- 重试与状态
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING'
+        COMMENT 'PENDING/RETRYING/MANUAL_FIX/RESOLVED/IGNORED/FAILED',
+    retry_count INT NOT NULL DEFAULT 0,
+    max_retry_count INT NOT NULL DEFAULT 5,
+    next_retry_at DATETIME DEFAULT NULL,
+    last_retry_at DATETIME DEFAULT NULL,
+
+    -- 人工处理
+    owner_team VARCHAR(64) DEFAULT NULL,
+    assignee VARCHAR(64) DEFAULT NULL,
+    fix_note VARCHAR(1024) DEFAULT NULL,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    resolved_at DATETIME DEFAULT NULL,
+
+    UNIQUE KEY uk_dedup (
+        sync_batch_id,
+        supplier_id,
+        supplier_resource_code,
+        supplier_product_code,
+        error_stage,
+        raw_payload_hash
+    ),
+    KEY idx_status_next_retry (status, next_retry_at),
+    KEY idx_supplier_status (supplier_id, status),
+    KEY idx_category_status (category_code, status),
+    KEY idx_task (sync_task_id),
+    KEY idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商同步死信队列';
+```
+
+这个表有几个关键设计点：
+
+1. **定位外部对象**：`supplier_resource_code` 和 `supplier_product_code` 用来定位供应商侧资源和可售对象。
+2. **平台映射允许为空**：很多失败发生在映射前，所以 `platform_resource_id`、`sku_id`、`offer_id` 都不能强制非空。
+3. **Payload 存引用**：供应商原始数据可能很大，尤其是酒店图片、设施、电影座位图，不建议全部放在 DLQ 主表。
+4. **唯一键去重**：`uk_dedup` 防止同一条错误反复写入 DLQ。
+5. **补偿扫描索引**：`idx_status_next_retry` 支持补偿 Job 按状态和下次重试时间扫描。
+
+如果不想引入对象存储，也可以把 payload 放到单独快照表：
+
+```sql
+CREATE TABLE supplier_sync_payload_snapshot (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    payload_ref VARCHAR(128) NOT NULL,
+    payload_type VARCHAR(32) NOT NULL COMMENT 'RAW/NORMALIZED',
+    payload_json JSON NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_payload_ref (payload_ref)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商同步载荷快照';
+```
+
+DLQ 状态机建议保持简单：
+
+```text
+PENDING
+  → RETRYING
+  → RESOLVED
+
+PENDING
+  → MANUAL_FIX
+  → RETRYING
+  → RESOLVED
+
+PENDING
+  → IGNORED
+
+RETRYING
+  → FAILED
+```
+
+| 状态 | 含义 |
+|------|------|
+| `PENDING` | 等待系统或人工处理 |
+| `RETRYING` | 正在补偿重试 |
+| `MANUAL_FIX` | 需要人工补映射、修字段、确认风险 |
+| `RESOLVED` | 已修复成功 |
+| `IGNORED` | 确认无需处理，例如供应商下架或数据已废弃 |
+| `FAILED` | 多次补偿仍失败，需要升级 |
+
+补偿 Job 可以按 `status` 和 `next_retry_at` 扫描：
+
+```sql
+SELECT *
+FROM supplier_sync_dead_letter
+WHERE status IN ('PENDING', 'FAILED')
+  AND next_retry_at <= NOW()
+  AND retry_count < max_retry_count
+ORDER BY next_retry_at ASC
+LIMIT 100;
+```
+
+处理时要按错误类型走不同分支：
+
+```go
+func ProcessDeadLetter(ctx context.Context, dlq *DeadLetter) error {
+    if !tryLock(dlq.ID) {
+        return nil
+    }
+
+    switch dlq.ErrorType {
+    case "RETRYABLE":
+        return retryOriginalSync(ctx, dlq)
+    case "MAPPING_REQUIRED":
+        if !mappingFixed(dlq) {
+            markManualFix(dlq)
+            return nil
+        }
+        return retryOriginalSync(ctx, dlq)
+    case "RISK_BLOCKED":
+        return waitManualApproval(ctx, dlq)
+    case "PUBLISH_FAILED":
+        return retryPublish(ctx, dlq)
+    default:
+        markManualFix(dlq)
+        return nil
+    }
+}
+```
+
+重试时间建议使用指数退避，避免供应商故障时补偿任务反复打爆外部接口：
+
+```text
+next_retry_at = now + min(2^retry_count minutes, 1 hour)
+```
+
+为什么不只用 Kafka DLQ？因为 Kafka 更适合保留失败消息，不适合作为运营治理主存储。
+
+| 能力 | Kafka DLQ | MySQL DLQ |
+|------|-----------|-----------|
+| 保留失败消息 | 好 | 好 |
+| 按供应商、品类、错误码查询 | 弱 | 强 |
+| 人工修复状态流转 | 弱 | 强 |
+| 审计和报表 | 弱 | 强 |
+| 定时补偿扫描 | 一般 | 强 |
+| 高吞吐消息暂存 | 强 | 一般 |
+
+所以更推荐采用：
+
+```text
+Kafka DLQ：短期消息缓冲，可选
+MySQL DLQ：权威问题单和补偿状态
+```
+
+面试时可以这样总结：
+
+> 我会把供应商同步 DLQ 设计成 MySQL 主存储，而不是只依赖 Kafka 死信 Topic。因为同步失败往往不是单纯消息消费失败，而是字段缺失、映射失败、价格异常、发布失败这些需要人工修复、状态流转和审计的问题。Kafka 可以作为失败消息的缓冲层，但真正的死信治理要落 MySQL，记录供应商、外部编码、平台映射、错误阶段、payload 引用、重试次数、下次重试时间和处理状态。这样问题才能被查询、补偿、统计和运营化处理。
+
+**9. 监控设计**
+
+供应商同步监控要分成技术指标、数据质量指标和业务影响指标。
+
+| 指标类型 | 指标 | 说明 |
+|---------|------|------|
+| **技术指标** | 同步成功率、失败率、平均耗时、P99 耗时、重试次数 | 看任务是否健康 |
+| **数据质量** | 字段缺失率、映射失败率、重复数据率、异常价格率 | 看数据是否可信 |
+| **新鲜度** | 数据延迟、过期数据比例、热门商品刷新延迟 | 看数据是否足够新 |
+| **交易影响** | L-D 变价率、D-B 不可售率、下单前确认失败率 | 看同步对转化和交易的影响 |
+| **供应商维度** | 每个供应商成功率、超时率、字段错误率 | 支持供应商治理 |
+| **品类维度** | 每个品类同步量、失败率、变价率 | 支持品类策略优化 |
+
+核心指标可以这样定义：
+
+```text
+同步成功率 = 成功处理 item 数 / 总 item 数
+映射失败率 = 映射失败 item 数 / 总 item 数
+字段缺失率 = 缺失关键字段 item 数 / 总 item 数
+数据新鲜度延迟 = now - last_success_sync_time
+L-D 变价率 = 详情页价格 != 列表页价格 的访问占比
+D-B 不可售率 = 下单前确认不可售 / 详情页可售点击
+```
+
+这些指标不仅用于技术告警，也应该反馈到运营和供应商治理。比如某个供应商字段缺失率长期高，说明不是偶发故障，而是供应商数据质量问题；某个品类 L-D 变价率长期高，说明列表页缓存刷新策略需要调整；某个热门酒店 D-B 不可售率高，说明详情页房态刷新或下单前确认策略存在问题。
+
+**10. 不同品类的同步策略**
+
+| 品类 | 平台沉淀什么 | 实时获取什么 | 同步重点 |
+|------|-------------|-------------|---------|
+| **Flight / Train / Bus** | 城市、机场、车站、航司/车司、基础线路 | 报价、余票、座位、退改规则确认 | 少沉淀 SKU，搜索和下单前强实时 |
+| **Hotel** | 酒店、房型、设施、地理位置、图片、品牌 | 房态、房价、取消规则最终确认 | 静态资源沉淀，动态价格库存按热度刷新 |
+| **Topup** | 运营商、国家/地区、面额、套餐、号码规则 | 账号可用性、供应商可用性 | 商品配置稳定，重点是账号校验和供应商状态 |
+| **Bill** | 账单机构、账单类型、输入字段、支付规则 | 账单金额、欠费状态、是否可缴 | 低代码表单 + 实时查账单 |
+| **Movie / Event** | 影片、影院、活动、场次、票种、套餐 | 座位图、最终票态、锁座结果 | 半同步半实时，座位相关必须实时确认 |
+| **Voucher / Gift Card** | 商户、品牌、面额、有效期、核销规则 | 本地券码池库存或供应商券码状态 | 更偏平台自营库存，重点是券码池和核销状态 |
+
+**面试总结**：
+
+> 我不会把供应商同步理解成“写几个定时任务拉数据”。在 OTA、O2O 和虚拟商品平台里，供应商同步本质上是一套外部供给数据治理体系。它要解决幂等映射、版本回溯、质量校验、新鲜度控制、失败补偿和监控治理。列表页可以使用缓存提升性能，详情页要更接近实时，创单前必须实时确认。这样才能在供应商接口不稳定、商品模型不一致、价格库存频繁变化的情况下，仍然保证平台商品数据可信、交易链路安全、问题可追踪。
 
 ---
 

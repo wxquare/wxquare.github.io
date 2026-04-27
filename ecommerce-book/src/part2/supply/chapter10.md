@@ -1,1498 +1,3053 @@
-
 **导航**：[书籍主页](../../README.md) | [完整目录](../../SUMMARY.md) | [上一章：第10章](./chapter9.md) | [下一章：第12章](../transaction/chapter11.md)
 
 ---
 
-# 第11章 商品供给与运营管理
+# 第11章 商品供给与运营管理和生命周期管理
 
-> **本章定位**：承接第8章「商品中心」的主数据模型，聚焦商品如何**进入平台**、如何**被持续维护**、如何与**供应商与运营**两类角色协同。核心命题是：在同一套商品主数据之上，区分「上架（Create）」「同步（Upsert）」「运营编辑（Update）」三种语义，并用**状态机 + 差异化审核 + 异步编排**把风险、成本与时效性平衡到可运营的水平。
+> **本章定位**：承接第 8 章「商品中心」的 Resource、SPU/SKU、Offer、库存可售、搜索索引和订单快照模型，讨论商品如何进入平台、如何被审核发布、上线后如何持续运营，以及商品生命周期如何与供给任务、供应商同步、运营编辑、下游刷新保持一致。
 
-**读完本章你应能回答的关键问题**：
+商品供给与运营链路不是后台 CRUD。它是一条长期运行的供给治理流水线：
 
-1. **为什么「上架系统」不等价于商品中心？** 前者解决流程、编排与风控；后者解决主数据模型与查询契约。混写会导致状态爆炸与审计缺口。
-2. **供应商同步何时必须审核、何时可以直写？** 取决于字段敏感度、幅度、商品热度与来源可信度；应用「风险评估引擎」把策略从 if-else 中解放出来。
-3. **如何保证跨系统初始化可恢复？** 用任务状态机 + Saga/补偿 + Outbox，把「一次上架」变成可观测、可重试、可回滚的事务序列。
-4. **如何定义系统边界与数据主导权？** 外部事实与平台治理字段不同源；边界不清时优先回到「单一真源 + 明确写入入口 + 事件传播读模型」三原则。
-
-**与源材料的映射**：本章内容对齐博客《商品生命周期管理（上架、同步与运营编辑）》的方法论，并把它放回全书目录中的「商品供给与运营」位置：你既会看到熟悉的 diff/幂等/审核分层，也会看到面向落地的服务拆分、监控与集成时序。
-
-**阅读建议**：第一次阅读可顺着 10.1 → 10.4 建立语义与边界；第二次阅读建议直接跳到 10.6 与 10.11，把审核与集成事件流当作跨团队对齐的「合同条款」来审。第三次阅读可对照自家系统的监控面板，把文中指标一项项补齐或替换为等价口径，并与 10.13 本章小结对照验收，再分阶段逐步推广。
-
----
-
-## 10.1 系统定位与架构
-
-### 10.1.1 供给侧 vs 运营侧
-
-在大型电商平台中，「商品」从来不是单一系统的产物，而是一条跨组织的价值链：
-
-- **供给侧（Supply）**：负责把**外部事实**（供应商目录、库存、价格、可售状态）可靠地映射到平台主数据。典型诉求是高频、批量、可回放、可补偿。
-- **运营侧（Ops）**：负责把**平台策略**（类目治理、内容合规、活动圈品、展示排序的输入条件）落到商品上。典型诉求是可控、可审计、可灰度、可追责。
-
-如果把商品中心比作「**账本**」，那么本章讨论的系统更像「**入账与调账流程**」：它决定一笔变更以什么身份进入账本、是否需要复核、何时对下游生效。
-
-### 10.1.2 三类用户（供应商 / 运营 / 商家）
-
-| 角色 | 主要目标 | 典型操作 | 风险画像 |
-|------|----------|----------|----------|
-| **供应商** | 把真实可售商品同步到平台 | Push / Pull、批量增量 | 数据错误、接口不稳定、重复投递 |
-| **运营** | 平台治理与效率 | 批量导入、批量上下架、内容修正 | 误操作、批量事故、权限越界 |
-| **商家** | 在规则内经营 | Portal 上架、改价、改库存 | 刷单、违规内容、恶意改价 |
-
-工程上建议用**统一的操作者模型**（`Operator`）抽象三者，但在策略路由时必须保留**来源维度**（`Source = SUPPLIER|OPS|MERCHANT`），否则审核与幂等语义会被混在一起。
-
-### 10.1.3 整体架构
-
-推荐将「供给与运营」拆成**三个相互独立又可组合**的应用能力（可部署为独立服务，也可先以模块化单体落地）：
-
-1. **Listing（上架域）**：处理「从无到有」的创建语义，产出 `item_id` 与上架任务。
-2. **Supplier Ingest（供应商接入域）**：处理 Upsert、增量水位、冲突合并、同步监控。
-3. **Ops Console（运营域）**：批量任务、导入导出、权限审计、运营配置入口。
-
-它们与「商品中心（Product Catalog）」的关系应当是：**本域负责流程与决策，商品中心负责主数据存储与对外查询契约**。跨域写入尽量通过**明确 API 或领域事件**，避免运营后台直连商品库。
-
-```mermaid
-flowchart TB
-  subgraph clients[接入方]
-    SUP[供应商系统]
-    OPS[运营后台]
-    MER[商家 Portal]
-  end
-
-  subgraph supply_ops[商品供给与运营]
-    L[Listing 上架域]
-    SI[Supplier Ingest 供应商接入]
-    OC[Ops Console 运营域]
-    AP[Approval 审核域]
-    ORCH[Orchestrator 编排器]
-  end
-
-  PC[(商品中心 Product Catalog)]
-  INV[(库存系统)]
-  PRC[(计价系统)]
-  SRC[(搜索索引)]
-  BUS[(消息总线 Kafka)]
-
-  SUP --> SI
-  OPS --> OC
-  MER --> L
-
-  L --> ORCH
-  SI --> ORCH
-  OC --> ORCH
-
-  ORCH --> AP
-  AP --> PC
-
-  ORCH --> INV
-  ORCH --> PRC
-  PC --> BUS
-  BUS --> SRC
+```text
+供给入口
+  → Draft / Staging
+  → Task / Item
+  → 标准化与校验
+  → Diff 与风险识别
+  → 来源准入策略：商家 QC，本地运营自动准入
+  → 版本化发布
+  → Outbox 下游刷新
+  → DLQ / 补偿 / 质量巡检
 ```
 
-### 10.1.4 核心挑战
+本章要回答四个问题：
 
-**挑战 1：语义混叠**  
-如果把供应商同步误走「完整上架审核」，会把中低风险的高频变更拖进人工队列；如果把运营批量改价直接写主库，会失去审计与风控抓手。
+1. **商品生命周期如何设计？** Draft、Staging、QC、正式 Item、Task 状态不能混成一个字段。
+2. **供给入口如何统一？** 人工创建、批量导入、运营编辑、供应商同步都进入统一治理框架，但执行策略不同。
+3. **同步与异步如何取舍？** 单商品创建和编辑需要同步体验，批量导入、批量编辑和供应商同步必须异步任务化。
+4. **发布如何保证一致？** 商品主数据、交易契约、搜索缓存、营销计价、订单快照要通过版本和 Outbox 形成最终一致。
 
-**挑战 2：最终一致性与可观测性**  
-上架往往伴随「初始化库存 / 初始化价格 / 建索引」等多步骤。必须用 **Saga / Outbox** 明确每一步的可补偿性与可重试性。
+完整专项设计见：
 
-**挑战 3：并发与主导权**  
-同一 `item_id` 上可能同时存在：供应商改价、运营改标题、系统自动下架（库存为 0）。必须定义**冲突解决优先级**与**乐观锁版本**策略。
+- [附录G：商品供给与运营治理平台](../../appendix/product-supply-ops.md)
+- [附录F：供应商数据同步链路](../../appendix/supplier-sync.md)
 
-**挑战 4：规模化批量**  
-十万级导入若采用「一次性读入内存 + 单线程写库」，会在大促筹备期制造人为故障。需要**流式解析、分批提交、背压与隔离舱**。
+本章建议配合三张图阅读：
 
-**挑战 5：合规与可审计性并行**  
-商品内容涉及广告法、知识产权、类目资质与禁限售清单。系统层面要把「可发布」从直觉判断，拆成**可机读规则 + 可追踪证据链**：规则版本号、命中条款、模型版本、审核员决策与修改前后快照必须能关联到同一次 `trace_id`，否则事后监管问询时无法复盘。
+1. 主图用泳道流程图回答“谁在什么时候做什么”。
 
-**挑战 6：组织协作与系统边界的动态漂移**  
-业务扩张期最常出现的不是技术债，而是**职责漂移**：运营为了赶进度直连数据库改价；供应商为了抢流量绕过网关重复推送；商品中心团队被迫在库里补字段兼容历史脏数据。治理抓手应回到三件事：**写入入口单一化**（只认命令 API）、**策略配置中心化**（阈值与权重可灰度）、**变更可回放**（任务与事件双账本）。
+![商品创建到发布上线泳道流程](../../../images/product-create-publish-swimlane.png)
 
-下表给出本章讨论域与相邻系统之间「最容易踩界」的协作点，可作为架构评审的检查项（与第 7、8、11 章呼应）：
+2. 辅助图用状态机回答“商品状态怎么变”。
 
-| 协作点 | 常见误放置 | 推荐归属 | 一致性手段 |
-|--------|------------|----------|------------|
-| 基础价写入 | 运营脚本直写商品表 | 商品中心 / 计价初始化 API | 命令幂等 + Outbox |
-| 可售库存事实 | 商品中心自算库存 | 库存系统为唯一真源 | 事件投影 + 对账 |
-| 促销价 | 商品中心拼活动价 | 营销 + 计价试算 | 读路径组装，写路径分离 |
-| 搜索可见性 | 同步阻塞写 ES | 异步索引 + 可观测 SLA | 消费者幂等 + 重放 |
-| 审核策略 | 散落在各服务 if-else | 审核域统一路由 | 配置版本 + 影子对比 |
+![商品生命周期状态机](../../../images/product-lifecycle-state-machine.png)
+
+3. 辅助图用 Data Flow Diagram 回答“数据在哪些表之间流转”。
+
+![商品供给发布 Data Flow Diagram](../../../images/product-supply-data-flow.png)
+
+图源文件：
+
+- `ecommerce-book/images/product-create-publish-swimlane.svg`
+- `ecommerce-book/images/product-lifecycle-state-machine.svg`
+- `ecommerce-book/images/product-supply-data-flow.svg`
 
 ---
 
-## 10.2 商品生命周期管理
+## 11.1 系统定位与边界
 
-商品生命周期回答的是：**商品在平台内被允许处于哪些状态、谁可以驱动迁移、迁移时下游如何感知**。它与「上架任务状态机」相关但不等价：前者偏**主数据生命周期**，后者偏**流程实例**。
+### 11.1.1 为什么不是商品中心 CRUD
 
-### 10.2.1 完整生命周期状态机
+商品中心负责主数据模型和查询契约；供给与运营平台负责商品进入平台和持续维护的流程治理。
 
-下图给出中大型平台常见、且可与审核/发布解耦的主状态集合（可按业务裁剪，但不宜再合并「审核中」与「在售」）：
+| 系统 | 负责什么 | 不负责什么 |
+|------|----------|------------|
+| 商品中心 | Resource、SPU、SKU、Offer、类目、属性、正式发布版本 | 文件导入进度、审核队列、错误文件、运营任务 |
+| 供给与运营平台 | 入口、草稿、任务、暂存、校验、QC 准入、发布编排、补偿、审计 | C 端高 QPS 查询、库存扣减、计价试算 |
+| 库存系统 | 库存来源、库存预占、扣减、释放、券码池 | 商品标题、图片、类目治理 |
+| 计价系统 | 基础价、渠道价、试算、优惠叠加、结算价 | 商品上架流程和审核流 |
+| 搜索系统 | 索引、召回、排序、可检索投影 | 商品发布事务 |
+| 订单系统 | 商品快照、报价快照、履约契约快照 | 最新商品配置维护 |
+
+如果运营后台直接修改商品正式表，会快速产生几个问题：
+
+1. 导入半成品污染线上。
+2. 审核和变更原因不可追溯。
+3. 搜索、缓存、营销、计价刷新不一致。
+4. 历史订单被最新商品配置影响。
+5. 供应商同步和人工编辑互相覆盖。
+
+因此，供给与运营平台的核心不是“把商品写进数据库”，而是：
+
+> 让一个商品从供给入口到可被搜索、可被下单、可被履约、可被追溯。
+
+### 11.1.2 四类供给入口
+
+商品供给来源通常有四类：
+
+| 入口 | 典型场景 | 入口特点 | 执行方式 |
+|------|----------|----------|----------|
+| 本地运营创建 | 平台运营创建本地生活券、礼品卡、充值套餐、账单缴费入口 | 低量、强交互、可信操作源 | 同步体验 + 自动准入 + 发布治理 |
+| 商家上传 | 商家自助上传门店、套餐、服务商品、素材 | 外部操作源，质量不稳定 | 同步提交 + 默认 QC |
+| 批量导入 | 大促前批量创建商品、门店、套餐、价格计划、券码池 | 大量、行级失败、需要错误文件 | 异步任务 |
+| 运营编辑 | 修改标题、图片、类目、价格、库存、上下架、退款规则 | 基于线上版本变更，风险差异大 | 同步提交 + 审核/发布 |
+| 供应商同步 | 酒店、影院、票务、活动等外部数据全量/增量/Push/刷新 | 长任务、外部不稳定、需要断点续跑 | 专项同步链路 |
+
+这四类入口不能完全拆成四套系统。更合理的设计是：
+
+```text
+入口层分开
+  → 执行策略分开
+  → 标准化后进入统一 Staging
+  → 统一 Validation / Diff / Review / Publish / Outbox
+```
+
+### 11.1.3 主链路与专项链路
+
+供应商同步属于商品供给链路，但它不是商品供给链路的全部。
+
+```text
+商品供给与运营治理平台
+  ├─ 人工创建/上传
+  ├─ 批量导入
+  ├─ 运营编辑
+  └─ 供应商同步
+```
+
+供应商同步因为涉及 Raw Snapshot、Checkpoint、Worker Lease、Sync Batch Version、Supplier Mapping、新鲜度和供应商质量治理，所以执行层需要单独设计。
+
+但发布治理层应该合流：
+
+```text
+supplier_sync_batch
+  → Normalize
+  → product_supply_task(task_type=SUPPLIER_SYNC_IMPORT)
+  → product_supply_task_item
+  → product_supply_staging
+  → product_validation_result
+  → product_change_request
+  → Publish
+```
+
+一句话总结：
+
+> 供应商同步执行层独立，商品发布治理层复用。
+
+---
+
+## 11.2 核心难点与设计策略
+
+商品供给与运营管理的难点集中在“入口多、状态多、数据风险高、下游影响大”。
+
+| 难点 | 典型表现 | 解决策略 |
+|------|----------|----------|
+| 入口多且语义不同 | 人工创建、批量导入、运营编辑、供应商同步都在改商品 | 统一进入 Supply Task 和 Staging，按 `task_type` 路由不同策略 |
+| 同步与异步混用 | 单商品需要立即反馈，批量任务需要长时间处理 | `execution_mode=SYNC/ASYNC`，单商品同步体验，批量任务异步 Worker |
+| 未发布数据污染线上 | 草稿、导入半成品、供应商脏数据直接写正式表 | Draft / Staging 与正式表隔离，只有发布事务写正式表 |
+| 品类差异大 | 酒店、话费、账单、礼品卡、电影票字段完全不同 | 类目模板 + 能力矩阵 + Schema 驱动表单和校验 |
+| 批量导入规模大 | 一次导入 10 万行商品或价格配置 | 流式解析、行级 item、分批处理、部分成功、错误文件 |
+| 运营误操作 | 批量改价、类目迁移、退款规则变更 | Diff、风险评分、QC 审核、二次确认、回滚 |
+| 供应商与运营冲突 | 供应商同步覆盖运营修正字段 | 字段主导权、保护期、冲突日志、QC 审核 |
+| 发布不一致 | 商品库成功，ES / 缓存 / 营销 / 计价没刷新 | 发布事务 + Outbox + 异步刷新 + 补偿重试 |
+| 历史订单受影响 | 商品改价、改退款规则后影响旧订单 | 创单保存商品快照、报价快照、履约和退款规则快照 |
+| 失败不可运营 | 只在日志里记录失败 | MySQL DLQ、错误文件、修复建议、重新投递 |
+
+设计目标：
+
+1. **入口统一**：所有供给动作都有任务、来源、操作者和 TraceID。
+2. **线上隔离**：草稿、导入中数据、未审核变更不进入正式表。
+3. **质量可控**：标准化、类目模板、主数据校验、交易契约校验和风险规则形成发布门禁。
+4. **发布一致**：正式表、快照、Outbox 同事务，搜索缓存异步刷新。
+5. **失败可恢复**：任务、item、DLQ、错误文件、补偿任务形成闭环。
+6. **变更可追溯**：每次发布都有 Diff、审核记录、版本和快照。
+
+---
+
+## 11.3 商品生命周期管理
+
+### 11.3.1 状态归属原则
+
+商品供给系统最容易犯的错误，是把 Draft、Staging、QC、正式商品状态都塞进一个 `status` 字段。这样一来，状态很快会变成“大杂烩”：`DRAFT`、`QC_PENDING`、`ONLINE`、`REJECTED`、`PUBLISHING` 同时出现在同一张表里，最后没人说得清这个状态到底是在描述“编辑工作区”“提交快照”“审核工单”，还是“线上商品”。
+
+更稳的建模方式是：**谁拥有生命周期，谁拥有状态字段**。
+
+| 对象 | 表 | 状态回答的问题 | 典型状态 |
+|------|----|----------------|----------|
+| Draft | `product_supply_draft` | 这份草稿是否还能编辑 | `DRAFT/SUBMITTED/DISCARDED/ARCHIVED` |
+| Staging | `product_supply_staging` | 这份提交快照走到校验、审核、发布的哪一步 | `VALIDATED/QC_PENDING/APPROVED/PUBLISH_PENDING/PUBLISHED/REJECTED/WITHDRAWN/CANCELLED/VERSION_CONFLICT` |
+| QC Review | `product_qc_review` | 这张审核单是否被批准、驳回或撤销 | `PENDING/REVIEWING/APPROVED/REJECTED/CANCELLED/PUBLISHED` |
+| Product Item | `product_item_tab` 或商品中心正式表 | 这个正式商品在线上是否可见、可售、可归档 | `PUBLISHED/ONLINE/OFFLINE/ENDED/BANNED/ARCHIVED` |
+| Task / Task Item | `product_supply_task`、`product_supply_task_item` | 一次同步、导入、编辑任务执行到哪里 | `RUNNING/VALIDATING/QC_REVIEWING/PUBLISHING/PARTIAL_FAILED/SUCCESS` |
+
+一个商品可以同时有多套状态，但它们属于不同对象：
+
+```text
+正式商品：
+  item_id = item_80001
+  item_status = ONLINE
+  publish_version = 3
+
+编辑草稿：
+  draft_id = draft_20001
+  draft_status = DRAFT
+
+待审提交：
+  staging_id = stg_20001
+  staging_status = QC_PENDING
+
+审核单：
+  review_id = qc_20001
+  qc_status = PENDING
+```
+
+这不是重复设计，而是避免“一个字段表达四种语义”。正式 `item_tab` 不应该出现 `DRAFT`、`QC_PENDING`、`REJECTED` 这类供给流程状态；新建商品在发布前甚至还没有正式 `item_id`。
+
+### 11.3.2 四套核心状态机
+
+#### 11.3.2.1 Draft 状态机
+
+Draft 是编辑工作区，允许反复保存。它不进入审核，也不代表线上商品。
 
 ```mermaid
 stateDiagram-v2
   [*] --> DRAFT: 创建草稿
-
-  DRAFT --> PENDING: 提交审核
-  DRAFT --> ARCHIVED: 放弃并归档
-
-  PENDING --> APPROVED: 审核通过
-  PENDING --> REJECTED: 审核驳回
-
-  REJECTED --> DRAFT: 修改后再提交
-  REJECTED --> ARCHIVED: 放弃并归档
-
-  APPROVED --> PUBLISHED: 发布(预发布)
-  PUBLISHED --> ONLINE: 满足可售条件后上线
-
-  ONLINE --> OFFLINE: 下架
-  ONLINE --> ARCHIVED: 归档(需满足约束)
-
-  OFFLINE --> ONLINE: 重新上架
-  OFFLINE --> ARCHIVED: 归档
-
+  DRAFT --> DRAFT: 保存修改
+  DRAFT --> SUBMITTED: 提交生成 Staging
+  DRAFT --> DISCARDED: 放弃草稿
+  SUBMITTED --> ARCHIVED: 发布成功或历史归档
+  DISCARDED --> [*]
   ARCHIVED --> [*]
 ```
 
-**设计说明**：
+Draft 状态说明：
 
-- `PUBLISHED` 作为**预发布**态，便于在「审核通过」与「对用户可见」之间插入**价格/库存初始化、索引预热、风控抽检**等步骤。
-- `REJECTED` 必须能回到 `DRAFT`，否则运营流会被「只能重建」的坏体验拖垮。
+| 状态 | 含义 | 是否可编辑 |
+|------|------|------------|
+| `DRAFT` | 未提交草稿 | 是 |
+| `SUBMITTED` | 已提交并生成 Staging | 否 |
+| `DISCARDED` | 用户主动丢弃 | 否 |
+| `ARCHIVED` | 发布成功或历史归档 | 否 |
 
-### 10.2.2 状态流转规则
+如果 Pending 后撤回或 Rejected 后修改，推荐基于原 Staging 生成新的 Draft，而不是直接修改已提交 Draft。
 
-状态机要落地为**可执行的规则表**，并显式区分三类约束：
+#### 11.3.2.2 Staging 状态机
 
-1. **结构约束**：状态图允许的边（非法迁移直接拒绝）。
-2. **业务前置条件**：例如上线要求 `price > 0`、`available_stock > 0`、类目必填、敏感字段已审核。
-3. **权限约束**：商家能否从 `OFFLINE` 自恢复 `ONLINE`，通常取决于平台模式（POP 与自营差异极大）。
-
-| 迁移 | 前置条件（示例） | 典型操作者 |
-|------|------------------|------------|
-| `DRAFT → PENDING` | 必填字段完整、图片合规 | 商家 / 运营 |
-| `PENDING → APPROVED` | 审核通过 | 审核员 / 系统(自动) |
-| `APPROVED → PUBLISHED` | 基础价已落库、关键属性锁定 | 系统编排 |
-| `PUBLISHED → ONLINE` | 库存初始化成功、索引可用(可降级为异步) | 系统编排 |
-| `ONLINE → OFFLINE` | 无强约束 / 或存在风控拦截 | 运营 / 系统(库存0) |
-| `* → ARCHIVED` | 无未完成订单、无未结算争议(按业务) | 运营 |
-
-**权限与职责矩阵（落地提示）**  
-生命周期状态迁移不仅要「技术上可执行」，还要能回答审计问题：**谁在什么证据下推动了状态变化**。建议将权限检查拆为两层：
-
-1. **领域权限**：角色是否允许触发该边（例如商家通常不允许从 `APPROVED` 直跳 `ONLINE`）。
-2. **数据范围权限**：运营仅能操作其负责类目；供应商账号仅能操作绑定 `supplier_id` 的映射商品。
-
-对于系统自动迁移（例如库存为 0 触发 `ONLINE → OFFLINE`），必须在状态日志中记录 `operator_type=SYSTEM` 与触发规则编号，避免被误解为「后台偷偷改数据」。
-
-**与「变更审批」的关系澄清**  
-主数据生命周期状态（`DRAFT/.../ONLINE`）与「字段级变更审批单」是两条正交维度：商品可以长期处于 `ONLINE`，但某个高价差改价仍可能处于 `pending_approval`。工程上不要让 `item.status` 承担所有流程语义，否则报表、搜索与交易链路会对状态产生错误假设。
-
-**Go：状态机骨架（结构约束 + 前置条件 + 乐观锁）**
-
-```go
-package lifecycle
-
-import (
-	"context"
-	"errors"
-	"fmt"
-	"time"
-)
-
-type ItemStatus string
-
-const (
-	StatusDraft     ItemStatus = "DRAFT"
-	StatusPending   ItemStatus = "PENDING"
-	StatusRejected  ItemStatus = "REJECTED"
-	StatusApproved  ItemStatus = "APPROVED"
-	StatusPublished ItemStatus = "PUBLISHED"
-	StatusOnline    ItemStatus = "ONLINE"
-	StatusOffline   ItemStatus = "OFFLINE"
-	StatusArchived  ItemStatus = "ARCHIVED"
-)
-
-type Item struct {
-	ItemID     int64
-	Status     ItemStatus
-	Version    int64
-	Title      string
-	CategoryID int64
-	BasePrice  int64
-	Stock      int64
-}
-
-type ItemRepository interface {
-	GetByID(ctx context.Context, itemID int64) (*Item, error)
-	UpdateStatusCAS(ctx context.Context, itemID int64, from, to ItemStatus, expectedVersion int64, now time.Time) (int64, error)
-}
-
-type Preconditions interface {
-	Check(ctx context.Context, item *Item, to ItemStatus) error
-}
-
-type StateMachine struct {
-	repo    ItemRepository
-	precond Preconditions
-}
-
-func NewStateMachine(repo ItemRepository, pre Preconditions) *StateMachine {
-	return &StateMachine{repo: repo, precond: pre}
-}
-
-func (sm *StateMachine) CanTransition(from, to ItemStatus) bool {
-	allowed := map[ItemStatus][]ItemStatus{
-		StatusDraft:     {StatusPending, StatusArchived},
-		StatusPending:   {StatusApproved, StatusRejected},
-		StatusRejected:  {StatusDraft, StatusArchived},
-		StatusApproved:  {StatusPublished},
-		StatusPublished: {StatusOnline},
-		StatusOnline:    {StatusOffline, StatusArchived},
-		StatusOffline:   {StatusOnline, StatusArchived},
-	}
-	nexts, ok := allowed[from]
-	if !ok {
-		return false
-	}
-	for _, s := range nexts {
-		if s == to {
-			return true
-		}
-	}
-	return false
-}
-
-func (sm *StateMachine) Transition(ctx context.Context, itemID int64, to ItemStatus) error {
-	for attempt := 0; attempt < 3; attempt++ {
-		item, err := sm.repo.GetByID(ctx, itemID)
-		if err != nil {
-			return err
-		}
-		if !sm.CanTransition(item.Status, to) {
-			return fmt.Errorf("invalid transition: %s -> %s", item.Status, to)
-		}
-		if err := sm.precond.Check(ctx, item, to); err != nil {
-			return err
-		}
-
-		rows, err := sm.repo.UpdateStatusCAS(ctx, itemID, item.Status, to, item.Version, time.Now())
-		if err != nil {
-			return err
-		}
-		if rows == 1 {
-			return nil
-		}
-		// version conflict: retry
-	}
-	return errors.New("concurrent update: exceeded retries")
-}
-```
-
-### 10.2.3 生命周期事件
-
-状态迁移的**可观测产物**应是领域事件，而不是「下游轮询商品表」。建议事件携带：
-
-- `event_id`（幂等键）、`item_id`、`from_status`、`to_status`、`occurred_at`
-- `trace_id`（全链路）
-- `payload`（尽量小：变更摘要 + 版本号，避免把大 JSON 塞进总线）
-
-**消费者边界建议**：
-
-- **搜索**：关注 `ONLINE/OFFLINE/ARCHIVED` 与影响召回的字段变更。
-- **推荐**：关注类目、品牌、标签变更。
-- **缓存**：关注价格与可售状态变更（或统一订阅「商品变更投影」）。
-
-```go
-package lifecycle
-
-import "time"
-
-type DomainEvent struct {
-	EventID   string         `json:"event_id"`
-	EventType string         `json:"event_type"`
-	ItemID    int64          `json:"item_id"`
-	From      ItemStatus     `json:"from_status"`
-	To        ItemStatus     `json:"to_status"`
-	Occurred  time.Time      `json:"occurred_at"`
-	Payload   map[string]any `json:"payload"`
-}
-
-func MapEventType(from, to ItemStatus) string {
-	if from == StatusDraft && to == StatusPending {
-		return "product.submitted_for_review"
-	}
-	if from == StatusPending && to == StatusApproved {
-		return "product.approved"
-	}
-	if from == StatusPublished && to == StatusOnline {
-		return "product.online"
-	}
-	if to == StatusOffline {
-		return "product.offline"
-	}
-	if to == StatusArchived {
-		return "product.archived"
-	}
-	return "product.status_changed"
-}
-```
-
-**可靠性**：事件发布优先采用 **Outbox**：状态落库与 `outbox` 插入同事务，异步 Dispatcher 投递到 Kafka，消费者以 `event_id` 去重。
-
-**事件契约与版本治理**  
-生命周期事件是跨团队集成的「公共 API」，建议显式包含：
-
-- `schema_version`：事件体字段演进时用于兼容消费端。
-- `aggregate_version`：商品聚合版本号，便于投影端检测乱序或重复。
-- `causation_id` / `correlation_id`：把一次上架编排中的多步调用串起来，排障时极有用。
-
-**乱序与重复的现实处理**  
-消息系统通常只保证「至少一次」投递。消费者侧除了 `event_id` 去重，还要对「迟到事件」做策略：若收到 `product.offline` 时本地缓存仍是上架态，应以**单调版本**或**最后写入时间戳（带时钟偏移保护）**决定是否覆盖，避免旧事件把新状态回滚。
-
-**投影读模型（可选但强烈建议）**  
-前台读链路往往需要「可售 + 展示价 + 活动标签 + 库存水位」的合成视图。与其让搜索/推荐各自拼表，不如由商品域维护一份**只读投影**（可由 CDC 或消费生命周期事件构建），并把 SLA（延迟上限、允许缺失字段）写清楚。投影失败不应反向阻断主数据状态机，否则会形成分布式死锁。
-
----
-
-## 10.3 商品上架（从无到有）
-
-### 10.3.1 数据来源分类
-
-| 来源 | 输入形态 | 质量特征 | 典型治理 |
-|------|----------|----------|----------|
-| **运营后台表单** | 结构化字段 | 相对稳定 | 模板校验 + 审核 |
-| **商家 Portal** | 结构化字段 + 图片 | 波动大 | 更严格内容安全 |
-| **批量 Excel/CSV** | 半结构化 | 错误率高 | 行级错误报告、可部分成功 |
-| **供应商首批导入** | API / 文件 | 字段映射复杂 | 适配器 + 映射版本化 |
-
-### 10.3.2 上架状态机（流程实例）
-
-上架流程建议用**任务表**建模（`listing_task`），不要直接把「流程状态」与 `item.status` 混在一张表里，否则供应商 Upsert 与运营改价会把任务状态污染。
-
-推荐任务状态：
-
-`CREATED → VALIDATING → APPROVAL_PENDING → APPROVED → PROVISIONING → DONE / FAILED`
-
-其中 `PROVISIONING` 对应多系统初始化（库存、计价、索引）。
-
-**为什么需要任务状态机与主数据状态机「双层」**  
-如果只维护 `item.status`，你会被迫把「校验失败」「图片异步检测中」「库存初始化重试中」等流程态硬塞进主数据，结果是：
-
-- 报表口径混乱：运营统计「在售商品数」会把中间态算进去或漏算。
-- 搜索与交易耦合：索引系统不得不理解大量非业务态。
-- 失败恢复困难：无法只对任务重试而不触碰已发布主数据。
-
-任务状态机记录**流程实例**（`listing_task`），主数据状态机记录**业务允许态**（`item`）。失败重试应优先重放任务，而不是反复触发主数据迁移。
-
-**上架主流程（从受理到可售）**：
-
-```mermaid
-flowchart TD
-  subgraph intake[受理与校验]
-    A[提交上架] --> B[创建 listing_task]
-    B --> C[字段/类目/图片校验]
-    C -->|失败| X[FAILED + 错误明细]
-  end
-
-  subgraph gate[审核闸门]
-    C -->|通过| D{需要人工审核?}
-    D -->|是| E[进入审核队列]
-    E --> F{审核结果}
-    F -->|驳回| X
-    F -->|通过| G[APPROVED]
-    D -->|否| G
-  end
-
-  subgraph provision[供给编排]
-    G --> H[写商品中心主数据]
-    H --> I[初始化库存]
-    I --> J[初始化计价]
-    J --> K[触发索引/outbox 事件]
-    K --> L[DONE / ONLINE]
-  end
-```
-
-### 10.3.3 异步处理架构
-
-上架的长耗时环节包括：图片转码、敏感词检测、类目预测、价格合规校验、写索引。API 层应**快速受理**，把重活交给异步 Worker，并通过 Webhook / 轮询接口返回进度。
-
-```mermaid
-flowchart LR
-  API[Listing API] --> Q[(队列 / 延迟队列)]
-  API --> DB[(任务库)]
-  Q --> W1[校验 Worker]
-  Q --> W2[审核编排 Worker]
-  Q --> W3[供给编排 Worker]
-
-  W3 --> PC[商品中心写入]
-  W3 --> INV[库存初始化]
-  W3 --> PRC[计价初始化]
-  W3 --> ES[搜索索引构建]
-
-  W2 --> APQ[审核队列]
-  APQ --> W2
-
-  PC --> OB[(Outbox)]
-  OB --> BUS[Kafka]
-```
-
-**Go：受理请求（落库 + 投递 + 幂等键）**
-
-```go
-package listing
-
-import (
-	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"fmt"
-	"time"
-)
-
-type CreateListingCommand struct {
-	IdempotencyKey string
-	OperatorID     int64
-	CategoryID     int64
-	PayloadJSON    []byte
-}
-
-type ListingTask struct {
-	TaskID    int64
-	TaskCode  string
-	Status    string
-	CreatedAt time.Time
-}
-
-type Store interface {
-	InsertTaskIfAbsent(ctx context.Context, t *ListingTask) (inserted bool, err error)
-	EnqueueValidateJob(ctx context.Context, taskID int64) error
-}
-
-type Service struct {
-	store Store
-	clock func() time.Time
-}
-
-func taskCodeFrom(cmd CreateListingCommand, now time.Time) string {
-	h := sha256.Sum256([]byte(fmt.Sprintf("%s|%d|%d|%d",
-		cmd.IdempotencyKey, cmd.OperatorID, cmd.CategoryID, now.UnixNano())))
-	return hex.EncodeToString(h[:12])
-}
-
-func (s *Service) CreateTask(ctx context.Context, cmd CreateListingCommand) (*ListingTask, bool, error) {
-	now := s.clock()
-	task := &ListingTask{
-		TaskCode:  taskCodeFrom(cmd, now),
-		Status:    "CREATED",
-		CreatedAt: now,
-	}
-	inserted, err := s.store.InsertTaskIfAbsent(ctx, task)
-	if err != nil {
-		return nil, false, err
-	}
-	if !inserted {
-		// 返回已有任务：幂等语义
-		return task, false, nil
-	}
-	if err := s.store.EnqueueValidateJob(ctx, task.TaskID); err != nil {
-		return task, true, err
-	}
-	return task, true, nil
-}
-```
-
-### 10.3.4 批量上传
-
-批量上传的关键不是「快」，而是**可恢复**与**可解释**：
-
-- **流式读取**：避免 OOM。
-- **分批事务**：每批 200～2000 行（按行宽调参），批内失败可重试。
-- **错误文件回传**：失败行附带 `error_code / message / raw_line`。
-- **背压**：限制全局并发导入数，避免拖垮商品中心连接池。
-
-**运营侧体验：从「提交文件」到「可追责结果」**  
-大促筹备期的批量导入，价值不仅在于吞吐，还在于**可运营**：需要进度百分比、可暂停、可重试失败子集、以及「部分成功」的明确语义。建议任务表至少记录：`batch_id`、总行数、已处理游标、失败桶对象存储路径、以及最后一次心跳时间（用于检测 worker 假死）。
-
-**Go：流式读取 + Worker Pool（骨架）**
-
-```go
-package batchimport
-
-import (
-	"bufio"
-	"context"
-	"io"
-	"sync"
-)
-
-type RowJob struct {
-	LineNo int
-	Text   string
-}
-
-type RowHandler func(ctx context.Context, job RowJob) error
-
-type ImportRunner struct {
-	workers int
-}
-
-func NewImportRunner(workers int) *ImportRunner {
-	if workers <= 0 {
-		workers = 8
-	}
-	return &ImportRunner{workers: workers}
-}
-
-func (r *ImportRunner) Run(ctx context.Context, rd io.Reader, handle RowHandler) error {
-	sc := bufio.NewScanner(rd)
-	const max = 1024 * 1024
-	buf := make([]byte, 0, 64*1024)
-	sc.Buffer(buf, max)
-
-	jobs := make(chan RowJob, r.workers*4)
-	errCh := make(chan error, r.workers)
-
-	var wg sync.WaitGroup
-	for i := 0; i < r.workers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for job := range jobs {
-				if err := handle(ctx, job); err != nil {
-					errCh <- err
-					return
-				}
-			}
-		}()
-	}
-
-	lineNo := 0
-	for sc.Scan() {
-		if err := ctx.Err(); err != nil {
-			close(jobs)
-			wg.Wait()
-			return err
-		}
-		lineNo++
-		jobs <- RowJob{LineNo: lineNo, Text: sc.Text()}
-	}
-	close(jobs)
-	wg.Wait()
-	close(errCh)
-
-	select {
-	case err := <-errCh:
-		return err
-	default:
-	}
-	return sc.Err()
-}
-```
-
-> 说明：生产环境通常不会「首错即停」，而是把错误写入失败桶并继续；同时用独立 `semaphore` 限制写库 QPS，并把 `batch_id` 写入审计日志，便于按批次回放。
-
----
-
-## 10.4 供应商同步（Upsert 场景）
-
-### 10.4.1 实时推送 vs 定时拉取
-
-| 模式 | 优点 | 缺点 | 适用 |
-|------|------|------|------|
-| **Push（供应商回调/Webhook）** | 延迟低 | 需要签名验真、重放治理 | 价格/库存强实时品类 |
-| **Pull（定时增量拉取）** | 平台掌控节奏 | 延迟与水位设计成本高 | 供应商能力弱、批量目录 |
-
-工程上通常是 **Pull 为主、Push 为辅**，并在网关层统一：**认证、限流、幂等、审计**。
-
-**水位与游标：增量 Pull 的「正确打开方式」**  
-定时拉取最容易失败在「我以为增量了，其实漏了」：供应商侧若只提供 `updated_at`，在时钟回拨、批量修复、或「先删后建」时会制造空洞。更稳妥的组合是：
-
-- **单调游标**：优先使用供应商侧稳定的 `change_seq` / `event_id`。
-- **时间窗冗余**：拉取 `[last_cursor, now)` 时向左重叠 2～5 分钟，再用幂等消化重复。
-- **对账补偿**：每日一次按 `supplier_id` 做抽样全量校验（热点 SKU 全量），发现漂移自动修复。
-
-**Push 模式的工程清单**  
-Webhook 不是 HTTP 回调这么简单，至少要覆盖：
-
-- **签名校验**（HMAC / 公钥验签）与 **时钟偏移容忍**。
-- **重放窗口**：保存近期 `message_id` 去重表，防止攻击者重放历史回调。
-- **快速 ACK 与异步落库**：网关先 ACK，再投递内部队列；否则供应商超时重试会放大流量。
-- **乱序处理**：回调到达顺序未必与业务发生顺序一致，Upsert 必须以业务时间戳或版本号裁决。
-
-### 10.4.2 幂等性设计
-
-Upsert 的幂等主键建议稳定为：
-
-- `UNIQUE(supplier_id, external_item_id)`
-
-同步消息层再叠加：
-
-- `UNIQUE(supplier_id, message_id)` 或 `dedupe_key`（供应商若不能提供稳定 message id，则由 `(supplier_id, external_item_id, updated_at_bucket)` 退化，但要谨慎）
-
-### 10.4.3 差异化审核
-
-供应商同步不应复用「新上架全量人工审核」，否则会把运营资源烧穿。应当：
-
-- **字段级 diff**：只对高风险字段触发审批单。
-- **阈值策略**：如价格变动超过 30% 进入人工审核（阈值应可配置并按品类分层）。
-- **白名单供应商**：降低审核等级，但仍保留日志与抽检。
-
-### 10.4.4 冲突处理
-
-当供应商同步与运营编辑并发时，推荐默认策略：
-
-1. **人工运营变更优先于供应商自动同步**（在「内容类字段」上）。
-2. **供应商在「库存/可售状态」上优先**（更接近真实供给）。
-3. **价格字段**：可用「时间戳新者胜出 + 风险阈值审核」组合，避免运营锁价被无意覆盖。
-
-**字段级「锁」与合并策略（平台治理常见需求）**  
-运营有时会明确标注「标题不允许供应商覆盖」「主图允许供应商更新」。实现上建议在商品主数据或扩展表中维护 `field_locks`（bitmap 或 JSON），同步管线在 `diff` 之后执行 `merge_policy`：
-
-- `LOCKED_BY_OPS`：供应商变更到达时跳过该字段，并记录审计日志（不是静默吞掉，而是可查询）。
-- `MERGE_IF_NEWER`：比较 `external_updated_at` 与本地 `supplier_projection.updated_at`。
-- `ALWAYS_REVIEW`：字段变更永远生成审批单（适合品牌、类目、合规属性）。
-
-**Upsert 处理流程（含审核分支）**
-
-```mermaid
-flowchart TD
-  A[接收供应商变更] --> K{幂等键已处理?}
-  K -->|是| Z[ACK 返回重复]
-  K -->|否| B{按 external_id 查找 item}
-  B -->|不存在| C[创建 item + 映射 external_id]
-  B -->|存在| D[计算字段 diff]
-
-  C --> E{新创建是否需要审核?}
-  E -->|是| F[创建审批单]
-  E -->|否| G[落库 + 发布事件]
-
-  D --> H{RiskEngine 路由}
-  H -->|NONE| G
-  H -->|AUTO| I{自动规则通过?}
-  I -->|是| G
-  I -->|否| F
-  H -->|MANUAL/STRICT| F
-
-  F --> J[等待人工/多级审核]
-  J -->|通过| G
-  J -->|驳回| R[记录原因 + 同步失败指标]
-
-  G --> S[更新 supplier_sync_state]
-```
-
-**Go：Upsert 入口（展示分支，不含具体 ORM）**
-
-```go
-package supplier
-
-import (
-	"context"
-	"errors"
-	"fmt"
-)
-
-type ExternalItem struct {
-	ExternalID string
-	Title      string
-	PriceCent  int64
-	Stock      int64
-}
-
-type ItemRepository interface {
-	FindBySupplierExternal(ctx context.Context, supplierID int64, externalID string) (*Item, error)
-	CreateFromExternal(ctx context.Context, supplierID int64, ext *ExternalItem) (*Item, error)
-}
-
-type RiskRouter interface {
-	Route(ctx context.Context, item *Item, ext *ExternalItem) (Strategy, error)
-}
-
-type Strategy string
-
-const (
-	StrategyNone   Strategy = "NONE"
-	StrategyAuto   Strategy = "AUTO"
-	StrategyManual Strategy = "MANUAL"
-)
-
-type SyncService struct {
-	items ItemRepository
-	risk  RiskRouter
-}
-
-type Item struct {
-	ItemID     int64
-	SupplierID int64
-	ExternalID string
-}
-
-func (s *SyncService) Upsert(ctx context.Context, supplierID int64, ext *ExternalItem) error {
-	if ext.ExternalID == "" {
-		return errors.New("external_id required")
-	}
-
-	item, err := s.items.FindBySupplierExternal(ctx, supplierID, ext.ExternalID)
-	if errors.Is(err, ErrNotFound) {
-		_, err := s.items.CreateFromExternal(ctx, supplierID, ext)
-		return err
-	}
-	if err != nil {
-		return err
-	}
-
-	strategy, err := s.risk.Route(ctx, item, ext)
-	if err != nil {
-		return err
-	}
-
-	switch strategy {
-	case StrategyNone:
-		return s.applyDirect(ctx, item, ext)
-	case StrategyAuto:
-		return s.applyAuto(ctx, item, ext)
-	case StrategyManual:
-		return s.enqueueApproval(ctx, item, ext)
-	default:
-		return fmt.Errorf("unknown strategy: %s", strategy)
-	}
-}
-
-var ErrNotFound = errors.New("not found")
-
-func (s *SyncService) applyDirect(ctx context.Context, item *Item, ext *ExternalItem) error {
-	// TODO: txn + outbox + downstream projections
-	return nil
-}
-
-func (s *SyncService) applyAuto(ctx context.Context, item *Item, ext *ExternalItem) error { return nil }
-
-func (s *SyncService) enqueueApproval(ctx context.Context, item *Item, ext *ExternalItem) error {
-	return nil
-}
-```
-
----
-
-## 10.5 运营管理能力
-
-### 10.5.1 单品编辑
-
-单品编辑要支持：
-
-- **字段级变更预览**（diff）
-- **灰度发布**（先预览环境 / 白名单用户可见）
-- **强制备注**（高风险字段变更必须填写原因）
-
-**单品编辑的「体验细节」往往是事故分水岭**  
-很多系统只保存最新值，不保存修改意图与对比，导致客诉时无法解释「为什么昨天还能买今天不能买」。建议在 UI 层提供 diff，在服务端保存**结构化变更单**（即使最终免审直写），至少保留：变更前后摘要、策略路由结果、操作者、来源（Portal/OPS）、以及关联的 `batch_id`（若来自批量任务）。
-
-对于高敏字段（类目、品牌、主图），推荐引入**草稿预览态**：先在副本聚合上验证规则与索引影响，再一次性提交，降低「半截修改」造成的中间不一致。
-
-### 10.5.2 批量编辑
-
-批量编辑必须引入 `batch_id`：
-
-- 任务表：`batch_operation(batch_id, operator_id, type, status, total, succeeded, failed)`
-- 子任务表：`batch_operation_item(batch_id, item_id, status, error)`
-
-**批量编辑的「原子性」要面对现实**  
-十万级商品不可能在一个数据库事务里完成。工程上应承诺的是：**可追踪的最终一致性**，而不是全有或全无。常见做法是：
-
-- 子任务粒度提交，每行独立事务；批次级别记录成功/失败统计。
-- 对「强一致需求」的字段（例如统一改错类目）提供**补偿任务**：自动扫描失败子任务并支持一键重试。
-
-### 10.5.3 批量导入导出
-
-导出常用于：
-
-- 大促前核对「活动圈品清单」
-- 与供应商对账（外部 id 映射）
-
-导入导出都应**异步化**，并限制文件大小与行数。
-
-**导入模板版本化**  
-Excel 导入的最大维护成本来自列变更。建议把模板当作契约：`template_version` 随文件上传，服务端按版本选择解析器；旧版本文件在宽限期内仍可导入，避免运营同学「一列调整全员停摆」。
-
-### 10.5.4 任务编排与进度追踪
-
-推荐统一任务框架能力：
-
-- 可暂停 / 可继续（checkpoint）
-- 可重试（按错误类型区分重试策略）
-- 可取消（合作传播取消信号到 worker）
-
-### 10.5.5 权限与审计
-
-最小权限模型（RBAC + 数据范围）：
-
-- **类目负责人**只能审批本类目
-- **运营专员**可改长尾商品，但不可改「平台核心爆品」
-- **供应商账号**只能操作映射到自己的 `supplier_id`
-
-审计日志至少记录：`who/when/what/before/after/reason/trace_id`。
-
-**Go：批量子任务状态更新（减少热点行）**
-
-```go
-package opsbatch
-
-import (
-	"context"
-	"database/sql"
-	"time"
-)
-
-type BatchItemRepo struct {
-	db *sql.DB
-}
-
-func (r *BatchItemRepo) MarkProgress(ctx context.Context, batchID string, succeeded, failed int) error {
-	_, err := r.db.ExecContext(ctx, `
-UPDATE batch_operation
-SET succeeded = succeeded + ?, failed = failed + ?, updated_at = ?
-WHERE batch_id = ?
-`, succeeded, failed, time.Now(), batchID)
-	return err
-}
-```
-
-> 说明：超大批次不要把进度累计在单行上形成热点，可按 `shard = hash(item_id) % N` 分片多张进度子表，周期聚合到总表。
-
-**导入导出的安全边界**  
-导出接口是高危面：既能泄露商业数据，也能被用作 DoS（全表导出）。必须叠加：**最小权限 + 异步生成 + 下载链接短期有效 + 水印与审计**。
-
----
-
-## 10.6 商品审核系统
-
-### 10.6.1 差异化审核策略
-
-审核策略建议拆成四层，从「成本最低」到「成本最高」递进：
-
-1. **NONE（免审直写）**：低敏字段、低幅度、低影响商品。
-2. **AUTO（机审）**：敏感词、图片 OCR、价格阈值、黑白名单、供应商信誉分。
-3. **MANUAL（人审）**：中高敏字段或 AUTO 失败兜底。
-4. **STRICT（多级/会签）**：类目迁移、品牌变更、批量影响面大。
-
-**策略配置如何「可运营」**  
-审核阈值不要写死在代码里，而要沉淀为可发布配置（建议分环境：dev/stage/prod），并至少支持：
-
-- **按类目覆盖**：数码品类对标题与参数更敏感；虚拟商品对履约属性更敏感。
-- **按供应商等级覆盖**：战略供应商在库存字段上可走快速通道，但在类目字段上仍应严格。
-- **影子模式**：新策略先计算「如果生效会如何路由」，输出对比报表，再灰度放量。
-
-**与合规审核的边界**  
-商品审核通常同时包含「业务风险审核」与「合规审核」。工程上建议拆队列：业务审核关注价格毛利与经营策略；合规审核关注内容与资质。混队列会导致 SLA 互相拖累，且难以后台化统计。
-
-### 10.6.2 风险评估引擎
-
-风险评估引擎输入：`diff + item_profile + operator_profile + supplier_profile`  
-输出：`risk_score` 与 `strategy`，并附带**可解释原因**（给审核员与客诉）。
-
-可用简化公式（示例，便于实现与调参）：
-
-`risk_score = Σ_i w(field_i) × m(magnitude_i) × p(item_profile)`
-
-其中：
-
-- `w(field)`：字段权重（类目、价格、标题通常更高）
-- `m(magnitude)`：幅度函数（价格变动比例、标题相似度）
-- `p(item_profile)`：商品热度因子（热销品变更更敏感）
-
-**Go：风险路由（示意）**
-
-```go
-package approval
-
-import "math"
-
-type FieldChange struct {
-	Field      string
-	OldFloat   float64
-	NewFloat   float64
-	ChangeRate float64
-}
-
-type ItemDiff struct {
-	ItemID  int64
-	Changes []FieldChange
-}
-
-type ItemProfile struct {
-	MonthlySales int64
-	IsHot        bool
-}
-
-type RiskEvaluator struct{}
-
-func (e RiskEvaluator) Score(diff ItemDiff, prof ItemProfile) float64 {
-	var score float64
-	hot := 1.0
-	if prof.IsHot || prof.MonthlySales > 1000 {
-		hot = 1.5
-	}
-
-	for _, c := range diff.Changes {
-		switch c.Field {
-		case "price":
-			mag := 1.0
-			if math.Abs(c.ChangeRate) >= 0.5 {
-				mag = 3.0
-			} else if math.Abs(c.ChangeRate) >= 0.3 {
-				mag = 2.0
-			} else if math.Abs(c.ChangeRate) >= 0.1 {
-				mag = 1.0
-			} else {
-				mag = 0.5
-			}
-			score += 3.0 * mag * hot
-		case "category_id":
-			score += 5.0 * 2.0 * hot
-		case "title":
-			score += 3.0 * 1.0 * hot
-		case "stock":
-			score += 1.0 * 1.0 * 1.0
-		}
-	}
-	return score
-}
-
-func (e RiskEvaluator) Route(score float64) Strategy {
-	switch {
-	case score <= 3:
-		return StrategyNone
-	case score <= 6:
-		return StrategyAuto
-	case score <= 10:
-		return StrategyManual
-	default:
-		return StrategyStrict
-	}
-}
-```
-
-### 10.6.3 人工审核工作流
-
-人工审核建议 BPMN 能力最小集：
-
-- 认领（claim）避免重复审核
-- 转交（reassign）
-- 驳回理由模板化（减少「不同意」式无效信息）
-- 审核 SLA 与升级（超时升级到主管队列）
-
-**变更审批单自身的生命周期（与商品主状态解耦）**  
-为避免把「审批中」误写到 `item.status`，建议对 `change_request` 单独建状态机：
+Staging 是提交快照，进入校验、风险评估、审核和发布。它的业务 payload 应该冻结，流程字段可以变化。
 
 ```mermaid
 stateDiagram-v2
-  [*] --> OPEN: 创建审批单
-  OPEN --> AUTO_PASSED: 机审通过
-  OPEN --> MANUAL_PENDING: 需要人审
-  MANUAL_PENDING --> APPROVED: 审核通过
-  MANUAL_PENDING --> REJECTED: 审核驳回
-  OPEN --> REJECTED: 规则直接拒绝
-  APPROVED --> APPLIED: 变更已落库
-  REJECTED --> CLOSED: 关闭
-  AUTO_PASSED --> APPLIED: 自动应用
-  APPLIED --> [*]
-  CLOSED --> [*]
+  [*] --> VALIDATED: 后端强校验通过
+  VALIDATED --> QC_PENDING: 需要 QC
+  VALIDATED --> APPROVED: 自动准入
+  QC_PENDING --> QC_REVIEWING: 审核员领取
+  QC_REVIEWING --> QC_APPROVED: QC 通过
+  QC_REVIEWING --> REJECTED: QC 驳回
+  QC_PENDING --> WITHDRAWN: Merchant 撤回
+  QC_REVIEWING --> CANCELLED: QC/系统撤销
+  QC_APPROVED --> PUBLISH_PENDING: 等待发布
+  APPROVED --> PUBLISH_PENDING: 等待发布
+  PUBLISH_PENDING --> PUBLISHED: 发布成功
+  PUBLISH_PENDING --> VERSION_CONFLICT: 线上版本已变化
+  REJECTED --> [*]
+  WITHDRAWN --> [*]
+  CANCELLED --> [*]
+  VERSION_CONFLICT --> [*]
+  PUBLISHED --> [*]
 ```
 
-**SLA、升级与「可解释的排队」**  
-审核队列的产品体验，核心在**可解释**：审核员需要看到风险因子拆解（价格幅度、敏感词命中、历史违规、供应商评分），而不是只有一个「风险分」。SLA 建议与策略绑定：
+Staging 状态说明：
 
-| 策略 | 目标处理时效 | 超时动作 |
-|------|--------------|----------|
-| AUTO | 秒级 | 转 MANUAL 或自动拒绝（按业务） |
-| MANUAL | 分钟～小时级 | 升级到主管池 + 通知申请人 |
-| STRICT | 小时级 | 升级 + 限制相关商品营销投放（保护用户） |
+| 状态 | 含义 |
+|------|------|
+| `VALIDATED` | 提交快照已通过后端强校验 |
+| `QC_PENDING` | 等待 QC 审核 |
+| `QC_REVIEWING` | QC 审核中 |
+| `QC_APPROVED` | QC 通过，但还未进入发布等待区 |
+| `APPROVED` | 自动准入通过 |
+| `PUBLISH_PENDING` | 允许发布，等待自动、手动或定时发布 |
+| `PUBLISHED` | 已发布为正式商品版本 |
+| `REJECTED` | QC 驳回 |
+| `WITHDRAWN` | Merchant 主动撤回 |
+| `CANCELLED` | QC、系统或任务主动撤销 |
+| `VERSION_CONFLICT` | 编辑基于的 `base_publish_version` 已过期 |
 
-**审核流程（从变更到落库）**
+#### 11.3.2.3 QC 状态机
+
+QC Review 是审核工单，不保存完整商品正文，只保存审核对象、风险原因、审核结论、审核人和驳回原因。
 
 ```mermaid
-sequenceDiagram
-  participant S as 供给/运营服务
-  participant R as RiskEngine
-  participant DB as 审批单存储
-  participant Q as 审核队列
-  participant W as 审核员
-  participant PC as 商品中心
-
-  S->>R: evaluate(diff)
-  R-->>S: strategy + risk_score
-  alt NONE/AUTO 通过
-    S->>PC: apply change (txn)
-  else MANUAL/STRICT
-    S->>DB: create change_request
-    S->>Q: enqueue(request_id)
-    W->>Q: claim
-    W->>DB: decision(approve/reject)
-    alt approve
-      W->>PC: apply approved payload (txn)
-    else reject
-      W->>S: notify reject reason
-    end
-  end
+stateDiagram-v2
+  [*] --> PENDING: 创建审核单
+  PENDING --> REVIEWING: 审核员领取
+  REVIEWING --> APPROVED: 审核通过
+  REVIEWING --> REJECTED: 审核驳回
+  PENDING --> CANCELLED: Merchant/QC/System 撤销
+  REVIEWING --> CANCELLED: Merchant/QC/System 撤销
+  APPROVED --> PUBLISHED: 对应 Staging 发布成功
+  REJECTED --> [*]
+  CANCELLED --> [*]
+  PUBLISHED --> [*]
 ```
 
-### 10.6.4 快速通道
+QC 状态说明：
 
-快速通道（Fast Lane）用于**已建立信任**的变更：
+| 状态 | 含义 |
+|------|------|
+| `PENDING` | 等待审核 |
+| `REVIEWING` | 审核中 |
+| `APPROVED` | 审核通过，允许进入发布 |
+| `REJECTED` | 审核驳回，展示给商家或运营修复 |
+| `CANCELLED` | 审核单被撤销，不计入驳回率 |
+| `PUBLISHED` | 对应提交已发布成功 |
 
-- 旗舰供应商 + 低敏字段（库存）
-- 已通过机器学习模型打分的「低概率违规」标题微调
+`REJECTED` 和 `CANCELLED` 要严格区分：前者代表内容不合规，后者代表审核单不应该继续处理，例如重复单、任务取消、版本冲突或审核路由错误。
 
-快速通道仍要保留：
+#### 11.3.2.4 正式 Item 状态机
 
-- 抽样复核（随机 1% 进人工）
-- 事后审计（T+1 扫描）
+正式 Item 是商品中心里的线上资产。它只关心商品是否可见、可售、下架、封禁或归档，不关心草稿是否提交、QC 是否驳回。
+
+```mermaid
+stateDiagram-v2
+  [*] --> PUBLISHED: 发布正式版本
+  PUBLISHED --> ONLINE: 满足销售开始时间和可售规则
+  PUBLISHED --> OFFLINE: 发布但暂不售卖
+  ONLINE --> OFFLINE: 商家下线或运营下线
+  ONLINE --> ENDED: 销售期结束
+  ONLINE --> BANNED: 平台封禁
+  OFFLINE --> ONLINE: 重新上线
+  ENDED --> ONLINE: 修改销售期并重新发布
+  BANNED --> OFFLINE: 解封但不可售
+  OFFLINE --> ARCHIVED: 归档
+  ENDED --> ARCHIVED: 归档
+  ARCHIVED --> [*]
+```
+
+正式 Item 状态说明：
+
+| 状态 | 含义 |
+|------|------|
+| `PUBLISHED` | 已有正式版本，但还未满足上线条件 |
+| `ONLINE` | C 端可见且可下单 |
+| `OFFLINE` | 人工下线或暂不售卖 |
+| `ENDED` | 销售期结束 |
+| `BANNED` | 平台封禁，不允许商家直接上线 |
+| `ARCHIVED` | 归档，只保留历史查询和审计 |
+
+正式商品表建议把“商品生命周期状态”和“交易可售状态”拆开：
+
+```text
+product_item_tab.item_status:
+  PUBLISHED / ONLINE / OFFLINE / ENDED / BANNED / ARCHIVED
+
+product_item_tab.sellable_status:
+  SELLABLE / UNSALEABLE / NOT_STARTED / SOLD_OUT / EXPIRED / RISK_BLOCKED
+
+product_item_tab.publish_version:
+  当前正式发布版本
+```
+
+`item_status` 描述商品资产是否上线、下线、封禁、归档；`sellable_status` 描述当前是否允许交易。比如商品可以是 `ONLINE`，但因为库存为 0 而 `sellable_status=SOLD_OUT`。
+
+对于编辑已上线商品，正式 Item 通常保持 `ONLINE`，新的 Draft、Staging、QC 在供给侧流转。只有发布事务成功后，正式 Item 的 `publish_version` 才递增。
+
+### 11.3.3 状态联动规则
+
+四套状态机不是互相复制，而是通过明确动作联动。
+
+| 动作 | Draft | Staging | QC Review | 正式 Item |
+|------|-------|---------|-----------|-----------|
+| 新建草稿 | `DRAFT` | 无 | 无 | 无 |
+| 提交草稿 | `SUBMITTED` | `VALIDATED/QC_PENDING/APPROVED` | 按策略创建 `PENDING` 或不创建 | 新建商品无 `item_id`；编辑商品不变 |
+| QC 领取 | 不变 | `QC_REVIEWING` | `REVIEWING` | 不变 |
+| QC 通过 | 不变 | `QC_APPROVED` 或 `PUBLISH_PENDING` | `APPROVED` | 不变 |
+| QC 驳回 | 不变 | `REJECTED` | `REJECTED` | 新建商品仍无 `item_id`；编辑商品旧版本继续在线 |
+| Merchant 撤回 | 新建或恢复可编辑 Draft | `WITHDRAWN` | `CANCELLED` | 不变 |
+| QC/系统撤销 | 按 `cancel_action` 决定 | `CANCELLED/VERSION_CONFLICT` | `CANCELLED` | 不变 |
+| 发布成功 | `ARCHIVED` | `PUBLISHED` | `PUBLISHED` 或无 QC | 创建或更新正式 Item，递增 `publish_version` |
+| 下线 | 无关 | 无关 | 无关 | `ONLINE → OFFLINE/ENDED/BANNED` |
+
+发布前要做 CAS 校验：
+
+```text
+Staging.base_publish_version == Item.current_publish_version
+```
+
+如果不相等，说明有人已经发布了更新版本，当前 Staging 不能继续发布，应进入 `VERSION_CONFLICT`，并要求基于最新版本重新编辑。
+
+### 11.3.4 状态日志与生命周期事件
+
+每个对象都要记录自己的状态变化，但落库可以收敛到通用操作流水和正式变更日志，避免为 Draft、Staging、QC 各建一套高度相似的日志表。
+
+| 日志 | 记录什么 |
+|------|----------|
+| `product_supply_operation_log` | Draft 创建、保存、提交、丢弃、Staging 校验、进入 QC、撤回、驳回、QC 领取、撤销、发布完成 |
+| `product_publish_record` | 发布批次、发布版本、发布结果 |
+| `product_change_log` | 正式商品上线、下线、封禁、过期、归档、回滚等发布后变更 |
+
+日志至少包含：
+
+```text
+object_type
+object_id
+old_status
+new_status
+operator_type
+operator_id
+reason
+rule_code
+supply_trace_id
+operation_id
+publish_version
+created_at
+```
+
+生命周期事件也要分层：
+
+| 事件 | 触发时机 | 典型消费者 |
+|------|----------|------------|
+| `ProductDraftCreated` | Draft 创建 | 运营后台 |
+| `ProductSupplySubmitted` | Draft 提交并生成 Staging | 审核系统、通知系统 |
+| `ProductQcApproved` | QC 通过 | 发布 Worker、通知系统 |
+| `ProductQcRejected` | QC 驳回 | 商家 Portal、运营后台 |
+| `ProductPublished` | 正式版本发布成功 | 搜索、缓存、营销、计价、数据平台 |
+| `ProductOnline` | 正式商品上线 | 搜索、推荐、营销 |
+| `ProductOffline` | 正式商品下架 | 搜索、订单前校验、运营看板 |
+| `ProductArchived` | 正式商品归档 | 数据平台、审计系统 |
+
+对搜索、缓存、营销、计价这类下游系统来说，真正有交易意义的是 `ProductPublished/ProductOnline/ProductOffline`。Draft、Staging、QC 事件主要服务于 B 端运营、审核、通知和审计。
+
+事件发布建议走 Outbox：
+
+```text
+更新商品状态 / 写发布版本
+  → 同事务写 product_outbox_event
+  → Dispatcher 投递 Kafka
+  → 消费者按 event_id 幂等处理
+```
+
+消费者侧要使用 `publish_version` 或事件版本防止旧事件覆盖新状态。
+
+### 11.3.5 从 Draft 到下线的端到端流程
+
+商品生命周期可以按“供给侧对象”和“商品中心正式对象”两条线理解：
+
+```text
+供给侧对象：
+Draft
+  → Staging Ticket
+  → QC Ticket
+  → Publish Record
+  → Operation Log
+
+商品中心正式对象：
+item_id
+  → publish_version
+  → item_status / sellable_status
+```
+
+新建商品在 Draft、Staging、QC 阶段没有正式 `item_id`；编辑已有商品时，Draft 和 Staging 会指向已有 `item_id` 和 `base_publish_version`。无论创建还是编辑，`supply_trace_id` 都用于串起同一个商品生命周期，`operation_id` 用于标识一次创建、一次编辑、一次下线或一次重新上线操作。正式 `item_tab` 只保存正式商品资产状态，不保存 Draft、QC Pending、Rejected 这些供给流程状态。
+
+#### 11.3.5.1 新建商品：Create Draft
+
+Merchant 或 Local Ops 创建商品时，供给平台先创建 Draft，而不是直接创建商品中心正式商品。
+
+```text
+点击 Create
+  → 后端生成 supply_trace_id
+  → 后端生成 operation_id
+  → 后端生成 draft_id
+  → 保存 draft_payload
+  → Draft.status = DRAFT
+```
+
+新建 Draft 示例：
+
+```json
+{
+  "draft_id": "draft_10001",
+  "draft_type": "CREATE",
+  "supply_trace_id": "pst_90001",
+  "operation_id": "op_10001",
+  "item_id": null,
+  "base_publish_version": null,
+  "temporary_object_key": "tmp_item_10001",
+  "source_type": "MERCHANT",
+  "merchant_id": "merchant_001",
+  "operator_id": "user_001",
+  "category_code": "LOCAL_SERVICE",
+  "draft_payload": {
+    "item_name": "KFC Voucher 50K",
+    "market_price": 70000,
+    "discount_price": 50000,
+    "stock": 1000,
+    "redeem_methods": ["BSC", "CSB"]
+  },
+  "status": "DRAFT"
+}
+```
+
+这里最重要的是：
+
+| 字段 | 新建 Draft 的含义 |
+|------|-------------------|
+| `supply_trace_id` | 商品生命周期追踪 ID，首次创建时生成，后续编辑复用 |
+| `operation_id` | 本次创建操作 ID，每次操作新生成 |
+| `draft_id` | 草稿 ID，每份草稿新生成 |
+| `item_id` | 为空，因为还没有正式商品 |
+| `temporary_object_key` | 创建前临时对象键，用于 Staging、QC 和后续映射 |
+
+#### 11.3.5.2 商家提交：Draft 到 Staging / QC
+
+商家提交 Draft 后，系统不直接审核 Draft，而是生成一份不可随意修改的 Staging Ticket。QC Ticket 指向 Staging Ticket。
+
+Draft 是工作区，允许商家反复保存、修改、预览；Staging Ticket 是提交快照，用来承载本次审核和发布。提交之后不能直接修改 Staging 的业务 payload，否则会出现“QC 审核的是 A，最终发布的是 B”的问题。
+
+```text
+Merchant Submit Draft
+  → 后端强校验
+  → 标准化 payload
+  → 生成 staging_ticket_id
+  → 生成 change_id
+  → 判断 qc_policy
+  → 创建 qc_ticket_id
+  → Draft.status = SUBMITTED
+  → Staging.status = QC_PENDING
+  → QC.status = PENDING
+```
+
+新建商品提交后：
+
+```text
+staging_ticket_id = stg_10001
+qc_ticket_id = qc_10001
+supply_trace_id = pst_90001
+operation_id = op_10001
+item_id = NULL
+temporary_object_key = tmp_item_10001
+qc_policy = QC_REQUIRED
+```
+
+商家创建商品默认进入 QC。Local Ops 创建商品默认自动准入，但也必须经过 Staging、Validation、Publish，不允许绕过发布事务直接写正式表。
+
+```text
+MERCHANT:
+  Validation Passed
+    → QC_REQUIRED
+    → QC Ticket
+
+LOCAL_OPS:
+  Validation Passed
+    → AUTO_APPROVE
+    → Publish
+```
+
+如果同一次编辑里既有“不需要 QC”的字段，又有“需要 QC”的字段，整份 Staging 应该一起等 QC 通过后发布，不能先发布一部分字段。否则同一次操作会拆成多个线上版本，审计和用户体验都会变复杂。
+
+Staging 可以更新的是流程字段：
+
+```text
+status
+qc_status
+publish_status
+reviewer_id
+reject_reason
+published_at
+```
+
+Staging 不应该直接更新的是商品业务字段：
+
+```text
+item_name
+image_list
+price
+stock_rule
+available_store_ids
+fulfillment_rule
+refund_rule
+```
+
+如果商家在 Pending 阶段发现内容填错，不能直接编辑这份待审 Staging，而应该走“撤回后编辑”的流程。
+
+#### 11.3.5.3 QC 通过后：自动发布或等待手动 Publish
+
+QC 通过只代表“允许发布”，不一定代表“已经发布”。是否立即发布由 `publish_policy` 决定。
+
+```text
+QC APPROVED
+  → publish_policy = AUTO_PUBLISH
+      → Publish Worker 自动发布
+
+QC APPROVED
+  → publish_policy = MANUAL_PUBLISH
+      → Staging.status = PUBLISH_PENDING
+      → 等商家或运营点击 Publish
+```
+
+推荐发布策略：
+
+| 策略 | 含义 | 适用场景 |
+|------|------|----------|
+| `AUTO_PUBLISH` | QC 通过后自动进入发布事务 | 普通商家商品、低风险运营商品 |
+| `MANUAL_PUBLISH` | QC 通过后等待点击 Publish | 活动商品、需要商家确认上线窗口 |
+| `SCHEDULED_PUBLISH` | 到指定时间自动发布 | 大促、预售、定时上新 |
+
+#### 11.3.5.4 Publish 背后的实际流程
+
+Publish 是供给链路到交易链路的边界动作。它把 Staging 数据转换成商品中心正式模型，并生成版本、快照和下游刷新事件。
+
+发布前必须重新校验：
+
+```text
+1. Staging.status 是否允许发布。
+2. QC.status 是否 APPROVED，或 qc_policy 是否 AUTO_APPROVE。
+3. operation_id / staging_ticket_id 是否已经发布过。
+4. 编辑场景下 base_publish_version 是否等于线上当前版本。
+5. 商品是否被删除、冻结、封禁。
+6. 库存、券码池、门店、履约、退款、结算信息是否完整。
+```
+
+发布事务：
+
+```text
+BEGIN
+  → 新建商品：生成 item_id
+  → 编辑商品：锁定 item_id 当前版本
+  → 写 product_item
+  → 写价格、库存配置、门店映射
+  → 写履约规则、退款规则、输入 Schema
+  → 生成 new_publish_version
+  → 写 product_publish_snapshot
+  → 写 product_change_log
+  → 写 product_outbox_event
+  → 写 product_publish_record
+COMMIT
+```
+
+新建商品发布成功后：
+
+```text
+temporary_object_key = tmp_item_10001
+  → item_id = item_80001
+  → publish_version = 1
+```
+
+编辑商品发布成功后：
+
+```text
+item_id = item_80001
+publish_version: 3 → 4
+```
+
+正式 `item_id` 不变，只递增 `publish_version`。发布成功后，供给平台要把 Staging、QC、Task、Draft 状态推进到完成态：
+
+```text
+Staging.status = PUBLISHED
+QC.status = PUBLISHED
+TaskItem.status = SUCCESS
+Task.status = PUBLISHED 或 PARTIAL_FAILED
+Draft.status = ARCHIVED
+```
+
+#### 11.3.5.5 编辑在线商品：Edit Active Item
+
+商品已经在线后，商家或运营再次编辑，必须基于正式 `item_id` 和当前 `publish_version` 创建新的编辑 Draft。
+
+```text
+打开 Active 商品
+  → 读取 item_id
+  → 读取 current_publish_version
+  → 反查 supply_trace_id
+  → 新建 operation_id
+  → 新建 edit_draft_id
+  → 预填当前线上版本
+```
+
+编辑 Draft 示例：
+
+```json
+{
+  "draft_id": "draft_20001",
+  "draft_type": "EDIT",
+  "supply_trace_id": "pst_90001",
+  "operation_id": "op_20001",
+  "item_id": "item_80001",
+  "base_publish_version": 3,
+  "source_type": "MERCHANT",
+  "draft_payload": {
+    "item_name": "KFC Voucher 50K - Weekend Special",
+    "discount_price": 48000,
+    "add_stock": 200
+  },
+  "changed_fields": [
+    {
+      "field": "item_name",
+      "old": "KFC Voucher 50K",
+      "new": "KFC Voucher 50K - Weekend Special",
+      "need_qc": true
+    },
+    {
+      "field": "discount_price",
+      "old": 50000,
+      "new": 48000,
+      "need_qc": true
+    },
+    {
+      "field": "add_stock",
+      "old": null,
+      "new": 200,
+      "need_qc": false
+    }
+  ],
+  "qc_policy": "QC_REQUIRED",
+  "status": "DRAFT"
+}
+```
+
+编辑 Active 商品时的 ID 规则：
+
+| ID | 是否新建 | 说明 |
+|----|----------|------|
+| `supply_trace_id` | 否 | 复用原商品生命周期 ID |
+| `item_id` | 否 | 正式商品 ID 不变 |
+| `operation_id` | 是 | 一次编辑一个新操作 |
+| `draft_id` | 是 | 一份编辑草稿 |
+| `staging_ticket_id` | 是 | 一份待发布快照 |
+| `qc_ticket_id` | 按策略 | 商家编辑默认创建，本地运营默认不创建 |
+| `publish_version` | 发布后递增 | `3 → 4` |
+
+#### 11.3.5.6 QC 驳回、撤回和重新提交
+
+QC 驳回后，不修改正式商品。对于新建商品，因为还没有 `item_id`，只影响 Staging 和 Draft；对于编辑商品，线上旧版本继续售卖。
+
+这里要区分三种容易混淆的动作：
+
+| 动作 | 发起方 | 业务含义 | QC 状态 | Staging 状态 | Merchant 端展示 | 后续动作 |
+|------|--------|----------|---------|--------------|-----------------|----------|
+| Merchant 撤回 | 商家 | 商家主动终止本次待审提交 | `CANCELLED` | `WITHDRAWN` | 回到 Draft 或从 Pending 消失 | 修改后重新提交 |
+| QC 驳回 | 审核员 | 本次提交内容不符合平台要求 | `REJECTED` | `REJECTED` | Rejected Tab 展示驳回原因 | 点击 Revise 生成新 Draft |
+| QC 主动撤销 | 审核员/系统 | 这张审核单不应该继续审核 | `CANCELLED` | `CANCELLED` | 通常不进 Rejected Tab | 按撤销原因返回 Draft、关闭或转风险单 |
+
+QC 驳回用于表达“内容不通过”，例如图片违规、标题敏感、资质缺失、退款规则不符合平台要求。驳回必须带结构化原因，最好能落到字段级别：
+
+```text
+QC REJECTED
+  → QC.status = REJECTED
+  → Staging.status = REJECTED
+  → 写 product_qc_review_item.reject_reason
+  → 写 product_supply_operation_log(QC_REJECTED)
+  → 通知 Merchant
+  → Merchant 在 Rejected Tab 看到 Staging Ticket
+  → 点击 Revise
+  → 基于 rejected staging 生成新的 Draft 或恢复到 Draft
+  → 修改后重新提交
+```
+
+QC 驳回不应该自动生成新 Draft。原因是驳回只是审核结论，是否修改、怎么修改，应该由商家或运营确认后再创建新草稿。这样可以避免系统自动生成大量无人处理的 Draft。
+
+QC 主动撤销不是驳回。它适用于“审核单本身不应该继续走下去”的场景：
+
+| 场景 | 为什么不是驳回 | 推荐处理 |
+|------|----------------|----------|
+| 商家已发起撤回，但 QC 页面还未刷新 | 商家主动终止，不是内容不合规 | `cancel_source=MERCHANT`，Staging `WITHDRAWN` |
+| 重复提交了两张相同审核单 | 不是商品内容问题 | 保留最新单，旧单 `CANCELLED` |
+| 商家账号、门店或类目权限失效 | 审核对象前置条件已失效 | `CANCELLED`，必要时创建风险单 |
+| 任务被运营取消 | 批量任务不再执行 | 关联 TaskItem 标记 `CANCELLED` |
+| 审核策略配置错误，需要重新路由 | 原审核队列不正确 | `CANCELLED` 后重新生成 QC Ticket |
+| 线上版本已变化，当前 Staging 过期 | `base_publish_version` 不再匹配 | `CANCELLED` 或 `VERSION_CONFLICT`，要求重新编辑 |
+
+QC 主动撤销流程：
+
+```text
+QC Cancel
+  → 校验 QC.status IN (PENDING, REVIEWING)
+  → 填写 cancel_reason
+  → QC.status = CANCELLED
+  → QC.cancel_source = QC 或 SYSTEM
+  → QC.cancel_reason = ...
+  → Staging.status = CANCELLED
+  → 写 product_supply_operation_log(QC_CANCELLED)
+  → 根据 cancel_action 决定后续动作
+```
+
+`cancel_action` 可以设计成：
+
+| `cancel_action` | 含义 | 适用场景 |
+|-----------------|------|----------|
+| `RETURN_TO_DRAFT` | 回到草稿，允许修改后重新提交 | 审核策略错误、资料需补充 |
+| `CLOSE_ONLY` | 只关闭审核单，不生成草稿 | 重复单、任务取消 |
+| `CREATE_RISK_CASE` | 转成风险/合规问题单 | 商家资质失效、疑似违规 |
+| `RECREATE_QC` | 重新生成审核单并路由到正确队列 | 审核队列配置错误 |
+
+Merchant 也可以在 Pending 阶段撤回：
+
+```text
+Withdraw
+  → QC.status = CANCELLED
+  → QC.cancel_source = MERCHANT
+  → QC.cancel_reason = merchant withdraw
+  → Staging.status = WITHDRAWN
+  → 基于 Staging 生成新的 Draft，或恢复原 Draft
+  → OperationLog 记录 WITHDRAWN
+```
+
+Pending 阶段的编辑规则建议设计成：
+
+| 当前状态 | 是否直接编辑 Staging | 推荐动作 |
+|----------|----------------------|----------|
+| `DRAFT` | 不涉及 | 直接编辑 Draft，保存或提交 |
+| `QC_PENDING` | 不允许 | 查看详情、撤回、基于 Staging 生成新 Draft |
+| `REJECTED` | 不允许改原 Staging | 点击 Revise，生成新 Draft 后重新提交 |
+| `APPROVED` 但未发布 | 不建议改原 Staging | Publish、Withdraw，或创建新 Revision |
+| `PUBLISHED` | 不允许改历史 Staging | 基于正式 `item_id` 创建编辑 Draft |
+
+如果产品希望 Pending 页面也展示 `Edit` 按钮，底层语义也应该是：
+
+```text
+Edit Pending
+  = Withdraw 当前 QC Ticket
+  + Staging.status = WITHDRAWN
+  + 基于当前 Staging payload 生成 draft_new
+  + 用户编辑 draft_new
+  + Submit 后生成 stg_new 和 qc_new
+```
+
+示例：
+
+```text
+draft_10001
+  → submit
+  → stg_10001
+  → qc_10001(PENDING)
+
+用户发现内容有误
+  → withdraw qc_10001
+  → stg_10001 = WITHDRAWN
+  → draft_10002 基于 stg_10001 生成
+  → submit draft_10002
+  → stg_10002
+  → qc_10002(PENDING)
+```
+
+撤回和驳回都不影响正式商品表。对于 Active 商品编辑，Active Tab 仍然展示当前线上版本；Pending / Rejected Tab 展示 Staging Ticket 中的待审或驳回版本。
+
+#### 11.3.5.7 商品下线：Offline / Ended / Ban
+
+下线不是删除商品。下线只是让商品不再对 C 端可见或不可下单，历史订单、核销、退款、结算仍然要能查到商品快照。
+
+下线触发来源：
+
+| 触发来源 | 示例 | 处理方式 |
+|----------|------|----------|
+| Merchant 主动下线 | 商家点击 Deactivate | 校验权限，更新商品状态为 `OFFLINE` |
+| Ops Ban | 平台审核发现违规 | 更新状态为 `BANNED/OFFLINE`，记录 ban reason |
+| 系统自动过期 | 销售结束时间已过 | 系统任务更新为 `ENDED/OFFLINE` |
+| 库存不可售 | 库存为 0 或券码池为空 | 可进入 `SOLD_OUT` 或保持在线但不可下单 |
+| 风控拦截 | 敏感内容、资质问题 | 强制下线并通知商家修复 |
+
+Merchant 主动下线流程：
+
+```text
+点击 Deactivate
+  → 校验商品属于该商家
+  → 校验商品未被锁定发布中
+  → 生成 operation_id
+  → 写状态变更记录
+  → BEGIN
+      → item.status = OFFLINE
+      → 写 product_status_log
+      → 写 product_outbox_event(ProductOffline)
+    COMMIT
+  → 搜索下架 / 缓存失效 / 订单前校验不可下单
+```
+
+Ops Ban 流程：
+
+```text
+Ops Ban
+  → 选择 ban_reason
+  → item.status = BANNED
+  → sellable_status = UNSALEABLE
+  → 写 product_status_log
+  → 写 ProductOffline / ProductBanned Outbox
+  → Merchant 端展示 Ban Reason
+```
+
+自动过期流程：
+
+```text
+定时任务扫描 end_selling_at < now
+  → item.status = ENDED
+  → sellable_status = UNSALEABLE
+  → 写 ProductOffline Outbox
+```
+
+下线后是否能重新上线，要看下线原因：
+
+| 当前状态 | 是否可重新上线 | 条件 |
+|----------|----------------|------|
+| `OFFLINE` | 可以 | 商家手动下线且商品未过期 |
+| `ENDED` | 可以 | 修改销售时间并重新发布 |
+| `BANNED` | 不可直接上线 | 必须修复后提交 QC 或 Ops 解封 |
+| `ARCHIVED` | 通常不可 | 只保留历史和审计 |
+
+#### 11.3.5.8 列表读模型
+
+Merchant Portal 不能只读正式商品表。不同 Tab 的数据源不同：
+
+| Tab | 数据源 | 展示内容 |
+|-----|--------|----------|
+| Active | 正式商品表 | 当前线上版本 |
+| Ended / Offline | 正式商品表 | 已下线、过期、手动停用商品 |
+| Draft | `product_supply_draft` | 未提交草稿 |
+| Pending | `product_supply_staging + product_qc_review` | 已提交、待审核、审核中、审核通过待发布版本 |
+| Rejected | `product_supply_staging + product_qc_review` | 被驳回的提交版本和驳回原因 |
+
+Draft Tab 只读 Draft，不直接读 Staging。Rejected 或 Withdrawn 的 Staging 只有在用户点击 Revise 或 Withdraw 后，才会派生出新的 Draft，进入 Draft Tab。
+
+推荐过滤条件：
+
+```text
+Draft Tab:
+  product_supply_draft.status = DRAFT
+
+Pending Tab:
+  product_supply_staging.status IN (
+    QC_PENDING,
+    QC_REVIEWING,
+    QC_APPROVED,
+    APPROVED,
+    PUBLISH_PENDING
+  )
+
+Rejected Tab:
+  product_supply_staging.status = REJECTED
+  AND product_qc_review.status = REJECTED
+```
+
+同一个商品可以同时出现在 Active 和 Pending：
+
+```text
+Active Tab:
+  item_id = item_80001
+  展示 publish_version = 3
+
+Pending Tab:
+  staging_ticket_id = stg_20001
+  展示待审编辑版本
+  base_publish_version = 3
+```
+
+这样线上用户继续看到稳定版本，商家也能看到自己提交中的新版本。
+
+#### 11.3.5.9 全链路日志
+
+查看一个商品从 Draft 到下线的完整日志，靠 `supply_trace_id` 串联：
+
+```text
+DRAFT_CREATED
+DRAFT_SUBMITTED
+VALIDATION_PASSED
+QC_CREATED
+QC_APPROVED
+PUBLISH_STARTED
+PUBLISH_SUCCEEDED
+PRODUCT_ONLINE
+EDIT_DRAFT_CREATED
+EDIT_SUBMITTED
+QC_REJECTED
+EDIT_RESUBMITTED
+PUBLISH_SUCCEEDED
+PRODUCT_OFFLINE
+PRODUCT_REACTIVATED
+PRODUCT_ARCHIVED
+```
+
+查询方式：
+
+```sql
+SELECT *
+FROM product_supply_operation_log
+WHERE supply_trace_id = ?
+ORDER BY created_at ASC;
+```
+
+如果 Merchant 传入的是正式 `item_id`，后端先查映射表：
+
+```sql
+SELECT supply_trace_id
+FROM product_supply_object_mapping
+WHERE item_id = ?;
+```
+
+一句话总结：
+
+> Draft / Staging / QC 是供给侧流程对象，`item_id / publish_version` 是商品中心正式对象。创建商品时先没有 `item_id`，QC 通过并 Publish 后才生成；编辑商品时复用 `item_id` 和 `supply_trace_id`，新建本次操作的 Draft、Staging、QC；下线只改变正式商品可售状态，不删除历史版本和订单快照。
+
+### 11.3.6 用 Git 理解供给生命周期
+
+商品供给生命周期和 Git 的版本化协作很像。它们本质上都在解决同一个问题：**如何把一次变更变成可审核、可发布、可回滚、可追溯的版本**。
+
+| 商品供给链路 | Git 类比 | 含义 |
+|--------------|----------|------|
+| Draft | Working Tree | 本地正在编辑的工作区 |
+| Draft 保存 | 保存文件 | 只是保存工作进度，还没有进入正式历史 |
+| Staging Ticket | Commit Candidate / PR Candidate | 准备提交给系统审核和发布的一份确定内容 |
+| QC Review | Code Review / PR Review | 审核这次提交是否允许进入正式版本 |
+| Publish | Merge / Release | 正式进入线上商品版本 |
+| `publish_version` | Release Tag / Commit Version | 线上版本号 |
+| `product_publish_snapshot` | Commit Snapshot | 某个发布版本的完整内容快照 |
+| `product_change_log` | Commit Diff | 这次版本相对上个版本改了什么 |
+| `product_supply_operation_log` | Git Log / Reflog | 谁在什么时候做了什么 |
+| `base_publish_version` | Base Commit | 本次编辑基于哪个线上版本 |
+| `VERSION_CONFLICT` | Rebase Conflict / Merge Conflict | 编辑基于旧版本，但线上版本已经变化 |
+| Withdraw | Close PR | 不继续审核这次提交 |
+| Rejected | Request Changes | 审核没过，需要修改后重新提交 |
+
+最关键的类比是：
+
+```text
+Draft
+  ≈ Working Tree
+
+Staging Ticket
+  ≈ Commit / PR Candidate
+
+QC
+  ≈ Code Review
+
+Publish
+  ≈ Merge to main / Release
+```
+
+例如，一个线上商品当前是 `publish_version=3`，可以类比成主分支当前 commit 是 `C3`：
+
+```text
+线上商品 publish_version = 3
+  ≈ main 当前 commit = C3
+
+商家编辑 Draft
+  ≈ 修改 working tree
+
+提交 Draft 生成 Staging
+  ≈ create commit / create PR，base = C3
+
+QC 审核
+  ≈ code review
+
+发布成功
+  ≈ merge 到 main，生成 C4
+```
+
+如果审核期间线上商品已经被另一次操作发布到了 `publish_version=4`，当前 Staging 仍然基于 `base_publish_version=3`，就应该进入 `VERSION_CONFLICT`：
+
+```text
+Staging.base_publish_version = 3
+Item.current_publish_version = 4
+  → VERSION_CONFLICT
+  → 要求基于最新版本重新编辑
+```
+
+这和 Git 里的 rebase conflict 或 merge conflict 很像：不是简单拒绝变更，而是要求操作者基于最新版本重新生成 Diff。
+
+不过商品供给比 Git 更复杂。Git 主要管理代码文件；商品供给还会影响价格、库存、履约、退款、搜索缓存、订单快照和供应商映射。因此发布时不能只“合并内容”，还要生成交易前契约、发布快照和 Outbox 事件，确保 C 端可搜、可买、可履约、可售后。
 
 ---
 
-## 10.7 配置工具
+## 11.4 供给入口与执行方式
 
-配置工具的本质是：**把「可运营参数」从代码里拽出来**，并绑定审批与发布。
+### 11.4.1 同步与异步的取舍
 
-### 10.7.1 价格配置
+供给平台不能所有动作都异步，也不能所有动作都同步。
 
-- **基础价**：通常归属商品中心或计价的基础层（与第11章衔接）。
-- **临时锁价**：必须带生效区间与原因，避免永久锁死供应链反应。
+| 场景 | 推荐方式 | 原因 |
+|------|----------|------|
+| 单商品草稿保存 | 同步 | 运营需要立即看到保存结果 |
+| 单商品提交校验 | 同步为主 | 基础错误要即时反馈 |
+| 单商品发布 | 可同步也可异步 | 简单品类可同步，复杂品类进入发布任务 |
+| 批量导入商品 | 异步 | 文件解析、行级错误、部分成功、错误文件 |
+| 批量编辑价格 / 上下架 | 异步 | 风险高、影响面大，需要进度和审核 |
+| 供应商全量同步 | 异步 | 长任务，需要 checkpoint、lease、DLQ |
+| 供应商 Push 单条变更 | 异步优先 | 需要幂等、削峰、失败补偿 |
 
-**价格配置最容易踩的坑**是把「运营想锁价」实现成「直接改商品表里的展示价」，这会让促销试算、对账与审计全部失真。更稳妥的做法是：
+统一抽象：
 
-- 在计价系统引入**显式锁价策略对象**（带生效区间、优先级、适用范围），商品中心只保存**基础价事实**或「锁价引用 ID」。
-- 任何锁价变更走与改价类似的审核路由，但审核重点从「幅度」转向**毛利保护与合约合规**（是否违反供应商协议价）。
+```text
+product_supply_task.execution_mode = SYNC / ASYNC
+```
 
-### 10.7.2 库存配置
+单商品创建也可以生成 `product_supply_task(total_count=1)`，这样审计、审核、发布记录统一。
 
-库存配置应落到库存系统；商品侧最多是「展示阈值 / 可售开关」，避免双写库存事实。
+### 11.4.2 来源与 QC 准入策略
 
-**展示阈值与真实库存要区分语义**  
-例如「剩余 3 件以下展示为紧张」属于 UX 配置，不应写回库存真值；而「可售开关」若由运营控制，应与库存系统的渠道可售策略对齐，避免出现「库存系统仍可卖，但商品中心显示不可售」的双真源。
+商品上传是否需要 QC，不能只看字段风险，还要看来源和操作者信任等级。一个简单但实用的默认策略是：
 
-### 10.7.3 营销配置
+```text
+本地运营上传
+  → Validation 通过
+  → 自动准入
+  → 发布事务
 
-运营在商品上绑活动属于**圈品动作**，应由营销系统持有规则，商品侧保存 `campaign_tags` 类投影要谨慎：更推荐事件投影或查询时组装。
+商家上传
+  → Validation 通过
+  → 默认进入 QC
+  → QC 通过后发布
+```
 
-**圈品与商品主数据的关系**  
-实践中常见两条路线：
+也就是说，本地运营是平台内部可信操作源，默认不需要 QC；商家是外部操作源，默认需要 QC。二者都不能绕过 Validation、Staging、发布版本和 Outbox。
 
-1. **查询时组装**：PDP/列表在 Hydrate 阶段调用营销服务计算标签与活动价展示，商品中心不存活动态。
-2. **异步投影**：为降低在线 QPS，将「命中活动摘要」投影到只读字段，但必须明确投影延迟 SLA，并接受短暂不一致。
+| 来源 | 示例 | 默认 QC 策略 | 仍然必须做什么 |
+|------|------|--------------|----------------|
+| `LOCAL_OPS` | 平台本地运营创建商品、上传素材、配置套餐 | `AUTO_APPROVE`，不创建 QC 审核单 | 强校验、审计、发布版本、Outbox |
+| `MERCHANT` | 商家自助上传门店、套餐、服务商品、图片 | `QC_REQUIRED`，默认创建 QC 审核单 | 强校验、字段 Diff、QC 通过后发布 |
+| `SUPPLIER` | 供应商同步酒店、票务、活动商品 | 按风险分流，低风险自动准入，高风险 QC | Raw Snapshot、Diff、字段主导权、补偿 |
+| `SYSTEM` | 补偿任务、质量修复任务、系统迁移 | 继承原任务策略或按规则准入 | 幂等、审计、可回放 |
 
-路线 1 更干净；路线 2 更省流量。无论哪条，都要避免运营在商品后台「手填活动价」——那是计价与营销域的职责溢出。
+本地运营“不需要 QC”不等于“可以直接写正式表”。它只是跳过人工审核工单，仍然要走：
 
-### 10.7.4 首页配置
+```text
+Draft / Task
+  → Staging
+  → Validation
+  → Diff / Risk
+  → AUTO_APPROVE
+  → Publish
+```
 
-首页位属于运营配置域（CMS / 投放系统），与商品主数据解耦，通过 `slot + item_id + schedule` 引用商品即可。
+对于本地运营的超高风险动作，例如大批量改价、退款规则大范围变更、类目迁移，可以不走普通 QC，但要通过更合适的控制手段：
 
-**配置发布的灰度与回滚**  
-首页配置变更往往是高频且高风险的（错误投放会带来巨额损失）。建议：
+1. 高权限校验。
+2. 二次确认。
+3. 变更窗口。
+4. 发布后巡检。
+5. 快速回滚。
 
-- 配置版本化：`config_version` + 发布单。
-- 预演校验：引用 `item_id` 必须存在且 `ONLINE`，否则拒绝发布。
-- 一键回滚：保留上一版本快照与生效时间线。
+### 11.4.3 人工创建
 
----
+人工创建是“从 0 到 1”生成商品，核心是完整性。这里要区分本地运营创建和商家自助创建：本地运营创建默认自动准入，商家创建默认进入 QC。
 
-## 10.8 稳定性保障
+```text
+选择类目
+  → 加载类目模板
+  → 填写 Resource / SPU / SKU / Offer / Rule
+  → 前端实时校验
+  → 后端同步强校验
+  → 保存 Draft
+  → 提交生成 Staging
+  → 质量校验和风险判断
+  → 来源准入策略：LOCAL_OPS 自动准入，MERCHANT 进入 QC
+  → 发布正式表
+```
 
-### 10.8.1 限流与降级
+人工创建必须一次性收齐交易前契约：
 
-- **按供应商限流**：保护自身与供应商。
-- **按运营批量任务限流**：避免大任务挤占在线交易连接池。
-- **降级**：审核排队过长时，自动切换「更严格但可预测」的策略不如「停写只读」危险；更合理的是**阻塞新批量任务**而不是阻塞下单读链路。
+| 契约 | 示例 |
+|------|------|
+| 商品模型 | Resource、SPU、SKU、Offer、Rate Plan |
+| 库存契约 | 库存来源、券码池、供应商实时库存能力 |
+| 输入契约 | 手机号、账单号、入住人、乘客证件 |
+| 履约契约 | 充值、发券、出票、预订确认 |
+| 售后契约 | 退款规则、取消政策、过期处理 |
 
-### 10.8.2 熔断机制
+如果这些契约不完整，商品即使写入主表，也不能认为创建成功。
 
-对供应商接口熔断时：
+### 11.4.4 批量导入
 
-- Pull 同步进入 `HALF_OPEN` 试探恢复
-- Push 写入进入磁盘队列（注意顺序与背压）
+批量导入适合大促、类目迁移、商家批量上新、套餐批量配置。
 
-### 10.8.3 灰度发布
+```text
+下载模板
+  → 上传文件
+  → 文件格式预检
+  → 创建 product_supply_task(status=PENDING, execution_mode=ASYNC)
+  → Parser Worker 流式解析
+  → 每行生成 product_supply_task_item
+  → Item Worker 分批标准化和校验
+  → 按来源生成准入策略
+  → LOCAL_OPS 成功项进入发布
+  → MERCHANT 成功项进入 QC
+  → 失败项生成错误文件
+  → 汇总任务状态
+```
 
-上架与同步规则（阈值、字段权重）应支持：
+批量导入的重点不是“快”，而是：
 
-- 按供应商灰度
-- 按类目灰度
-- 按「读写分离影子模式」：只计算策略不落库，对比差异报表
+1. 可恢复。
+2. 可解释。
+3. 可部分成功。
+4. 可生成错误文件。
+5. 可控制下游压力。
 
-### 10.8.4 故障隔离
+### 11.4.5 运营编辑
 
-- **线程池/队列隔离**：大导入与实时 Push 分队列，避免相互抢 worker。
-- **Bulkhead**：商品写入与索引构建拆不同资源池。
+运营编辑是“基于线上版本的变更”，核心是 Diff、风险和主导权。
 
-**容量事故的一个典型路径（供自我对照）**  
-大促前夜运营提交「10 万行批量改价」，与供应商夜间全量同步撞车，双方共用同一消费组与同一数据库连接池，导致：
+```text
+读取 current_publish_version
+  → 创建编辑 Draft
+  → 修改字段
+  → 提交生成 Staging
+  → 与线上版本做 Diff
+  → 判断字段主导权
+  → 计算风险等级
+  → 来源准入策略 / QC 审核 / 阻断
+  → 发布新 publish_version
+```
 
-1. 消费延迟上升 → Outbox 堆积 → 搜索索引滞后；
-2. 在线交易读路径因连接池耗尽开始抖动；
-3. 团队开始「加机器」，但瓶颈在 DB 与锁竞争，扩容无效，反而放大重试风暴。
+常见风险：
 
-治理的关键不是事后加机器，而是事前把**队列、连接池、线程池**按租户/场景隔离，并把批量任务的默认并发调到「永远杀不死核心链路」。
-
----
-
-## 10.9 数据看板与监控
-
-### 10.9.1 运营指标
-
-| 指标 | 解释 | 作用 |
+| 变更 | 风险 | 策略 |
 |------|------|------|
-| 上架成功率 | `DONE / CREATED` | 发现编排失败 |
-| 审核时效 P95 | 从创建到决策 | SLA 治理 |
-| 同步延迟 | `now - last_success_time` | 供应商健康 |
-| 冲突率 | 并发写冲突次数 | 调参乐观锁/队列 |
+| 标题、描述、小图修正 | 低 | 自动准入，记录变更日志 |
+| 普通图片变更 | 低/中 | 图片质量校验后发布 |
+| 库存水位调整 | 中 | 自动校验，通过后发布，异常告警 |
+| 价格或 Offer 规则变更 | 中高 | 超阈值进入 QC |
+| 类目变更 | 高 | 强制 QC |
+| 履约类型或退款规则变更 | 高 | 强制 QC |
+| Resource / Supplier Mapping 变更 | 高 | 强制 QC 并触发巡检 |
 
-**建议补充的三类「经营向」指标（可选但高价值）**  
-技术指标能告诉你系统坏没坏，经营指标能告诉你业务卡在哪：
+### 11.4.6 供应商同步
 
-1. **上架漏斗转化率**：从创建任务到 `ONLINE` 各阶段停留时长分布，定位审核、初始化、索引哪一段最慢。
-2. **供应商数据质量分**：字段缺失率、重复推送率、价格跳变率，驱动供应商治理与合作条款。
-3. **运营批量任务失败 Top 原因**：把 `error_code` 聚类，推动模板校验、权限提示与培训材料迭代。
+供应商同步是自动化程度最高、数据治理要求最强的入口。
 
-### 10.9.2 实时监控
+它需要独立执行层：
 
-必须对接：
+```text
+supplier_sync_task
+  → supplier_sync_batch
+  → Page / Cursor Fetch
+  → Raw Snapshot
+  → Normalize
+  → Supplier Mapping
+  → Diff
+  → product_supply_staging
+  → Publish
+```
 
-- 队列堆积、消费延迟
-- Outbox 未投递计数
-- 供应商错误码分布（签名失败 / 限流 / 超时）
+供应商同步不应该直接写正式商品表。它应该先保存 Raw Snapshot，再标准化、校验、映射、Diff，然后进入统一发布治理链路。
 
-**把「可观测」嵌进领域对象**  
-除了基础设施指标，建议在任务与审批单上直接暴露业务字段到指标标签（注意基数控制）：`supplier_id`、`task_type`、`approval_strategy` 等。这样报警通知里能直接定位「哪类供应商的哪种同步在恶化」，而不是只有 CPU 曲线。
+---
 
-### 10.9.3 报警机制
+## 11.5 核心表模型
 
-报警分级建议：
+供给与运营链路的表设计要围绕十类能力组织：草稿、任务、行级处理、暂存、校验、QC 审核、Diff / Change、发布快照、下游一致性、补偿审计。
 
-- **P0**：上架编排大面积失败、Outbox 堆积导致事件断流
-- **P1**：同步失败率升高、审核队列 SLA 违约
-- **P2**：单供应商异常（可降级）
+重新 review 表模型时，要先确认每张表回答的问题：
 
-**On-call 视角：把指标映射到「可操作手册」**  
-监控的价值在于缩短 MTTR。建议为每类报警准备一页 runbook（可放在内部 wiki），至少回答四个问题：**影响面是谁**、**第一动作是什么**、**可启用哪个开关**、**如何验证恢复**。例如 `Outbox pending_count` 持续升高：先区分是 DB 写入变慢还是 Dispatcher 假死；再检查 Kafka 集群健康；最后才考虑临时扩容与降级非核心消费者。
+| 问题 | 应该由谁回答 |
+|------|--------------|
+| 用户正在编辑哪份内容 | Draft |
+| 提交给审核和发布的是哪份冻结快照 | Staging |
+| 这次变更为什么需要审核 | Change Request / Risk |
+| 审核员审核了什么、结论是什么 | QC Review |
+| 为什么不能发布 | Validation / DLQ |
+| 已经发布了哪个正式版本 | Publish Record / Publish Snapshot |
+| 搜索、缓存、营销是否收到变更 | Outbox / Compensation |
+| 从 Draft 到下线的全链路日志怎么查 | Operation Log / Object Mapping |
 
-**Prometheus 规则示例（片段）**
+### 11.5.1 表分组
 
-```yaml
-groups:
-  - name: supply_ops_slo
-    rules:
-      - alert: ListingOrchestrationFailureBurst
-        expr: increase(listing_task_failed_total[10m]) > 50
-        for: 10m
-        labels:
-          severity: critical
-        annotations:
-          summary: "上架编排失败突增"
-          description: "10 分钟内失败任务超过阈值，优先检查库存/计价初始化与供应商回调签名"
+| 表组 | 典型表 | 作用 |
+|------|--------|------|
+| Draft 草稿表 | `product_supply_draft`、`product_supply_draft_version` | 保存单商品创建和编辑过程中的草稿 |
+| Task 任务表 | `product_supply_task` | 记录一次供给动作 |
+| File 文件表 | `product_supply_file` | 保存批量导入源文件、规范化文件、错误文件和文件 hash |
+| Task Item 明细表 | `product_supply_task_item` | 记录每一行、每个商品、每个 Offer 或每条规则的处理状态 |
+| Staging 暂存表 | `product_supply_staging`、`product_supply_staging_snapshot` | 保存已提交、已标准化、但未发布的数据 |
+| Validation 校验表 | `product_validation_result` | 保存字段、类目、主数据、交易契约、风险规则的校验结果 |
+| QC Review 审核表 | `product_qc_review`、`product_qc_review_item` | 保存发布前 QC 审核单、审核项、审核结论和驳回原因 |
+| Change / Audit 表 | `product_change_request`、`product_supply_operation_log`、`product_field_ownership` | 保存 Diff、风险等级、审核策略、字段主导权和操作流水 |
+| Publish / Snapshot 表 | `product_publish_record`、`product_publish_snapshot`、`product_change_log` | 保存发布批次、商品快照和变更日志 |
+| Mapping 表 | `product_supply_object_mapping` | 串联 `supply_trace_id`、临时对象键和正式 `item_id` |
+| Outbox / DLQ / Compensation 表 | `product_outbox_event`、`product_supply_dead_letter`、`product_compensation_task`、`product_quality_issue` | 保证下游一致性和失败补偿 |
 
-      - alert: OutboxDispatchLag
-        expr: outbox_pending_rows > 100000
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Outbox 堆积"
-          description: "事件投递延迟将扩散到搜索/缓存，检查 dispatcher 与消息集群"
+第一期最小闭环建议：
+
+```text
+product_supply_draft
+product_supply_task
+product_supply_file
+product_supply_task_item
+product_supply_staging
+product_validation_result
+product_qc_review
+product_qc_review_item
+product_change_request
+product_field_ownership
+product_supply_operation_log
+product_supply_object_mapping
+product_publish_record
+product_publish_snapshot
+product_change_log
+product_outbox_event
+product_supply_dead_letter
+product_compensation_task
+product_quality_issue
+```
+
+二期再补强：
+
+```text
+product_supply_draft_version
+product_supply_staging_snapshot
+```
+
+### 11.5.2 Draft 表
+
+Draft 偏编辑态，允许反复保存，不进入审核，不影响线上。
+
+```sql
+CREATE TABLE product_supply_draft (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    draft_id VARCHAR(64) NOT NULL,
+    draft_type VARCHAR(32) NOT NULL COMMENT 'CREATE/EDIT',
+    supply_trace_id VARCHAR(64) NOT NULL COMMENT '同一商品供给生命周期追踪 ID',
+    operation_id VARCHAR(64) NOT NULL COMMENT '本次创建、编辑、撤回或重新提交操作 ID',
+    category_code VARCHAR(32) NOT NULL,
+    source_type VARCHAR(32) NOT NULL COMMENT 'LOCAL_OPS/MERCHANT/SUPPLIER/SYSTEM',
+    merchant_id VARCHAR(64) DEFAULT NULL,
+    operator_id VARCHAR(64) NOT NULL,
+    item_id VARCHAR(64) DEFAULT NULL COMMENT '正式商品 ID，新建发布前为空',
+    temporary_object_key VARCHAR(128) DEFAULT NULL COMMENT '新建商品发布前的临时对象键',
+    platform_resource_id BIGINT DEFAULT NULL,
+    spu_id BIGINT DEFAULT NULL,
+    sku_id BIGINT DEFAULT NULL,
+    offer_id BIGINT DEFAULT NULL,
+    source_staging_id VARCHAR(64) DEFAULT NULL COMMENT '从 Rejected/Withdrawn Staging 派生草稿时记录来源',
+    parent_draft_id VARCHAR(64) DEFAULT NULL,
+    draft_version INT NOT NULL DEFAULT 1,
+    base_publish_version BIGINT DEFAULT NULL,
+    draft_payload JSON NOT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'DRAFT/SUBMITTED/DISCARDED/ARCHIVED',
+    created_at DATETIME NOT NULL,
+    submitted_at DATETIME DEFAULT NULL,
+    archived_at DATETIME DEFAULT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_draft_id (draft_id),
+    KEY idx_trace (supply_trace_id),
+    KEY idx_item_status (item_id, status),
+    KEY idx_operator_status (operator_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给草稿';
+```
+
+### 11.5.3 Task 表
+
+Task 管一次供给动作的整体状态。
+
+```sql
+CREATE TABLE product_supply_task (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    task_id VARCHAR(64) NOT NULL,
+    task_type VARCHAR(32) NOT NULL
+        COMMENT 'MANUAL_CREATE/MANUAL_EDIT/BATCH_IMPORT/BATCH_EDIT/SUPPLIER_SYNC_IMPORT',
+    execution_mode VARCHAR(16) NOT NULL COMMENT 'SYNC/ASYNC',
+    source_type VARCHAR(32) NOT NULL COMMENT 'LOCAL_OPS/MERCHANT/SUPPLIER/SYSTEM',
+    source_id VARCHAR(64) DEFAULT NULL,
+    category_code VARCHAR(32) NOT NULL,
+    operator_id VARCHAR(64) DEFAULT NULL,
+    supply_trace_id VARCHAR(64) DEFAULT NULL COMMENT '单商品任务可直接关联，多商品任务为空',
+    operation_id VARCHAR(64) DEFAULT NULL COMMENT '单商品创建、编辑、上下线操作 ID',
+    draft_id VARCHAR(64) DEFAULT NULL,
+    operator_trust_level VARCHAR(32) DEFAULT NULL COMMENT 'INTERNAL/TRUSTED/EXTERNAL',
+    qc_policy VARCHAR(32) DEFAULT NULL COMMENT 'AUTO_APPROVE/QC_REQUIRED/BLOCK',
+    trigger_id VARCHAR(64) DEFAULT NULL,
+    template_version VARCHAR(64) DEFAULT NULL,
+    status VARCHAR(32) NOT NULL
+        COMMENT 'DRAFT/PENDING/PARSING/RUNNING/VALIDATING/QC_PENDING/QC_REVIEWING/QC_APPROVED/APPROVED/PUBLISHING/PUBLISHED/PARTIAL_FAILED/FAILED/CANCELLED',
+    total_count INT NOT NULL DEFAULT 0,
+    parsed_count INT NOT NULL DEFAULT 0,
+    success_count INT NOT NULL DEFAULT 0,
+    failed_count INT NOT NULL DEFAULT 0,
+    skipped_count INT NOT NULL DEFAULT 0,
+    current_stage VARCHAR(64) DEFAULT NULL,
+    input_file_ref VARCHAR(512) DEFAULT NULL,
+    parse_checkpoint VARCHAR(1024) DEFAULT NULL,
+    error_file_ref VARCHAR(512) DEFAULT NULL,
+    publish_version BIGINT DEFAULT NULL,
+    worker_id VARCHAR(64) DEFAULT NULL,
+    lease_token VARCHAR(64) DEFAULT NULL,
+    lease_until DATETIME DEFAULT NULL,
+    heartbeat_at DATETIME DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    started_at DATETIME DEFAULT NULL,
+    finished_at DATETIME DEFAULT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_task_id (task_id),
+    UNIQUE KEY uk_task_trigger (task_type, trigger_id),
+    KEY idx_trace (supply_trace_id),
+    KEY idx_status (status),
+    KEY idx_category_status (category_code, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给任务';
+```
+
+### 11.5.4 File 文件表
+
+批量导入不建议只在 Task 表里放一个 `input_file_ref`。源文件、规范化文件、错误文件、文件 hash、扫描状态都需要独立记录，方便幂等、审计、错误文件下载和重新解析。
+
+```sql
+CREATE TABLE product_supply_file (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    file_id VARCHAR(64) NOT NULL,
+    task_id VARCHAR(64) NOT NULL,
+    file_type VARCHAR(32) NOT NULL COMMENT 'INPUT/NORMALIZED/ERROR/REPORT',
+    file_name VARCHAR(256) DEFAULT NULL,
+    file_ref VARCHAR(512) NOT NULL,
+    file_hash VARCHAR(64) NOT NULL,
+    file_size BIGINT DEFAULT NULL,
+    template_version VARCHAR(64) DEFAULT NULL,
+    row_count INT DEFAULT NULL,
+    status VARCHAR(32) NOT NULL
+        COMMENT 'UPLOADED/SCANNING/READY/PARSING/PARSED/FAILED/EXPIRED',
+    error_code VARCHAR(128) DEFAULT NULL,
+    error_message VARCHAR(1024) DEFAULT NULL,
+    uploader_id VARCHAR(64) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    parsed_at DATETIME DEFAULT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_file_id (file_id),
+    UNIQUE KEY uk_task_file_type (task_id, file_type),
+    KEY idx_task (task_id),
+    KEY idx_hash (file_hash),
+    KEY idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给文件';
+```
+
+如果一个任务支持多个附件，可以把 `uk_task_file_type` 改成 `(task_id, file_type, file_id)`，并增加 `file_seq`。
+
+### 11.5.5 Task Item 表
+
+Task Item 是批量任务的核心表，也是失败定位单元。
+
+```sql
+CREATE TABLE product_supply_task_item (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    task_id VARCHAR(64) NOT NULL,
+    item_no VARCHAR(64) NOT NULL COMMENT '文件行号、对象序号或外部对象序号',
+    item_type VARCHAR(32) NOT NULL COMMENT 'RESOURCE/SPU/SKU/OFFER/RATE_PLAN/STOCK/RULE',
+    idempotency_key VARCHAR(128) NOT NULL,
+    supply_trace_id VARCHAR(64) DEFAULT NULL,
+    operation_id VARCHAR(64) DEFAULT NULL,
+    draft_id VARCHAR(64) DEFAULT NULL,
+    item_id VARCHAR(64) DEFAULT NULL,
+    platform_resource_id BIGINT DEFAULT NULL,
+    spu_id BIGINT DEFAULT NULL,
+    sku_id BIGINT DEFAULT NULL,
+    offer_id BIGINT DEFAULT NULL,
+    status VARCHAR(32) NOT NULL
+        COMMENT 'PENDING/NORMALIZING/VALIDATING/STAGING/DIFFING/QC_PENDING/QC_REVIEWING/QC_APPROVED/PUBLISHING/SUCCESS/FAILED/DLQ/SKIPPED',
+    risk_level VARCHAR(32) DEFAULT NULL COMMENT 'LOW/MEDIUM/HIGH',
+    qc_policy VARCHAR(32) DEFAULT NULL COMMENT 'AUTO_APPROVE/QC_REQUIRED/BLOCK',
+    error_code VARCHAR(128) DEFAULT NULL,
+    error_message VARCHAR(1024) DEFAULT NULL,
+    raw_row_ref VARCHAR(512) DEFAULT NULL,
+    normalized_ref VARCHAR(512) DEFAULT NULL,
+    staging_id VARCHAR(64) DEFAULT NULL,
+    change_id VARCHAR(64) DEFAULT NULL,
+    retry_count INT NOT NULL DEFAULT 0,
+    next_retry_at DATETIME DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_task_item (task_id, item_no),
+    UNIQUE KEY uk_task_idempotency (task_id, idempotency_key),
+    KEY idx_trace (supply_trace_id),
+    KEY idx_item_status (item_id, status),
+    KEY idx_task_status (task_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给任务明细';
+```
+
+### 11.5.6 Staging 表
+
+Staging 是正式表前的隔离层。
+
+```sql
+CREATE TABLE product_supply_staging (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    staging_id VARCHAR(64) NOT NULL,
+    task_id VARCHAR(64) NOT NULL,
+    item_no VARCHAR(64) NOT NULL,
+    draft_id VARCHAR(64) DEFAULT NULL,
+    supply_trace_id VARCHAR(64) NOT NULL,
+    operation_id VARCHAR(64) NOT NULL,
+    object_type VARCHAR(32) NOT NULL COMMENT 'RESOURCE/SPU/SKU/OFFER/RATE_PLAN/STOCK/RULE',
+    object_key VARCHAR(128) NOT NULL,
+    item_id VARCHAR(64) DEFAULT NULL COMMENT '正式商品 ID，新建发布前为空',
+    temporary_object_key VARCHAR(128) DEFAULT NULL COMMENT '新建商品发布前的临时对象键',
+    source_type VARCHAR(32) NOT NULL,
+    change_id VARCHAR(64) DEFAULT NULL,
+    qc_policy VARCHAR(32) DEFAULT NULL COMMENT 'AUTO_APPROVE/QC_REQUIRED/BLOCK',
+    risk_level VARCHAR(32) DEFAULT NULL COMMENT 'LOW/MEDIUM/HIGH',
+    publish_policy VARCHAR(32) DEFAULT NULL COMMENT 'AUTO_PUBLISH/MANUAL_PUBLISH/SCHEDULED_PUBLISH',
+    publish_after DATETIME DEFAULT NULL,
+    raw_payload_ref VARCHAR(512) DEFAULT NULL,
+    normalized_payload JSON NOT NULL,
+    payload_hash VARCHAR(64) NOT NULL,
+    base_publish_version BIGINT DEFAULT NULL,
+    status VARCHAR(32) NOT NULL
+        COMMENT 'VALIDATED/QC_PENDING/QC_REVIEWING/QC_APPROVED/APPROVED/PUBLISH_PENDING/PUBLISHED/REJECTED/WITHDRAWN/CANCELLED/VERSION_CONFLICT',
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_staging_id (staging_id),
+    UNIQUE KEY uk_task_object (task_id, object_type, object_key),
+    KEY idx_trace (supply_trace_id),
+    KEY idx_item_status (item_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给暂存数据';
+```
+
+`base_publish_version` 很重要。运营编辑或批量导入可能基于旧版本，如果发布时线上版本已经变化，必须识别冲突，不能静默覆盖。
+
+### 11.5.7 QC 审核表
+
+QC 审核表位于“标准化校验之后、正式发布之前”。它不是商品正式数据表，而是发布准入工单。商品数据仍然保存在 Draft、Staging、Snapshot 或正式商品表中；QC 表只记录谁审核、审核什么、为什么需要审核、审核结论是什么。
+
+```text
+Staging
+  → Validation
+  → Diff / Risk
+  → QC Review
+  → Publish
+```
+
+QC 审核要同时支持单商品和批量任务：
+
+| 场景 | QC 粒度 | 说明 |
+|------|---------|------|
+| 单商品创建 | 一个审核单对应一个商品上下文 | 审核 Resource、SPU/SKU、Offer、交易契约是否完整 |
+| 单商品编辑 | 一个审核单对应一次字段变更 | 审核字段 Diff、风险原因和历史版本 |
+| 批量导入 | 一个任务下多个审核项 | 低风险项自动准入，高风险行进入 QC |
+| 批量编辑 | 按商品、SKU、Offer 或规则生成审核项 | 避免整批等待一个高风险项 |
+| 供应商同步 | 按 Diff 风险生成审核项 | 坐标漂移、类目变化、映射变化、退款规则变化进入 QC |
+| 质量巡检 | 按问题单生成审核项 | 缺图、缺价、不可履约等问题修复后再发布 |
+
+审核主表：
+
+```sql
+CREATE TABLE product_qc_review (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    review_id VARCHAR(64) NOT NULL,
+    task_id VARCHAR(64) DEFAULT NULL,
+    source_type VARCHAR(32) NOT NULL COMMENT 'LOCAL_OPS/MERCHANT/SUPPLIER_SYNC/QUALITY_INSPECTION',
+    review_type VARCHAR(32) NOT NULL COMMENT 'CREATE/EDIT/DIFF/RISK/QUALITY_FIX',
+    category_code VARCHAR(32) NOT NULL,
+    supply_trace_id VARCHAR(64) NOT NULL,
+    operation_id VARCHAR(64) NOT NULL,
+    item_id VARCHAR(64) DEFAULT NULL,
+    platform_resource_id BIGINT DEFAULT NULL,
+    spu_id BIGINT DEFAULT NULL,
+    sku_id BIGINT DEFAULT NULL,
+    offer_id BIGINT DEFAULT NULL,
+    staging_id VARCHAR(64) DEFAULT NULL,
+    change_id VARCHAR(64) DEFAULT NULL,
+    base_publish_version BIGINT DEFAULT NULL,
+    risk_level VARCHAR(32) NOT NULL COMMENT 'LOW/MEDIUM/HIGH',
+    review_policy VARCHAR(32) NOT NULL COMMENT 'AUTO_APPROVE/QC_REQUIRED/BLOCK',
+    status VARCHAR(32) NOT NULL
+        COMMENT 'PENDING/REVIEWING/APPROVED/REJECTED/CANCELLED/PUBLISHED',
+    cancel_source VARCHAR(32) DEFAULT NULL COMMENT 'MERCHANT/QC/SYSTEM/TASK',
+    cancel_reason VARCHAR(1024) DEFAULT NULL,
+    cancel_action VARCHAR(32) DEFAULT NULL COMMENT 'RETURN_TO_DRAFT/CLOSE_ONLY/CREATE_RISK_CASE/RECREATE_QC',
+    submitter_id VARCHAR(64) DEFAULT NULL,
+    reviewer_id VARCHAR(64) DEFAULT NULL,
+    review_note VARCHAR(1024) DEFAULT NULL,
+    reject_reason VARCHAR(1024) DEFAULT NULL,
+    submitted_at DATETIME DEFAULT NULL,
+    reviewed_at DATETIME DEFAULT NULL,
+    cancelled_at DATETIME DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_review_id (review_id),
+    KEY idx_trace (supply_trace_id),
+    KEY idx_item_status (item_id, status),
+    KEY idx_task_status (task_id, status),
+    KEY idx_status_risk (status, risk_level),
+    KEY idx_object (platform_resource_id, spu_id, sku_id, offer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给 QC 审核单';
+```
+
+审核明细表：
+
+```sql
+CREATE TABLE product_qc_review_item (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    review_id VARCHAR(64) NOT NULL,
+    task_id VARCHAR(64) DEFAULT NULL,
+    item_no VARCHAR(64) DEFAULT NULL,
+    object_type VARCHAR(32) NOT NULL COMMENT 'RESOURCE/SPU/SKU/OFFER/RATE_PLAN/STOCK/RULE',
+    object_key VARCHAR(128) NOT NULL,
+    staging_id VARCHAR(64) DEFAULT NULL,
+    change_id VARCHAR(64) DEFAULT NULL,
+    changed_fields JSON NOT NULL,
+    risk_reasons JSON NOT NULL,
+    evidence_ref VARCHAR(512) DEFAULT NULL COMMENT '原始文件、供应商快照、图片质检或巡检证据',
+    status VARCHAR(32) NOT NULL COMMENT 'PENDING/APPROVED/REJECTED/CANCELLED/SKIPPED',
+    reviewer_id VARCHAR(64) DEFAULT NULL,
+    review_note VARCHAR(1024) DEFAULT NULL,
+    reject_reason VARCHAR(1024) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_review_item (review_id, object_type, object_key),
+    KEY idx_task_item (task_id, item_no),
+    KEY idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给 QC 审核明细';
+```
+
+`product_qc_review` 管一次审核工单，`product_qc_review_item` 管工单下的审核项。对于单商品，通常一张审核单只有一个或少量 item；对于批量导入，可能一个任务生成多个 QC item，QC 通过的 item 可以继续发布，驳回的 item 回到草稿、错误文件或 DLQ。
+
+QC 状态和任务状态要分开。一个 `product_supply_task` 可以处于 `QC_REVIEWING` 或 `PARTIAL_FAILED`，其中部分 `product_qc_review_item` 已经 `APPROVED` 并发布，另一些仍然 `PENDING` 或 `REJECTED`。不要把整批任务强行卡成一个大审核单。
+
+`REJECTED` 和 `CANCELLED` 也要分开统计。`REJECTED` 表示审核员认为本次提交内容不符合平台要求，应计入 QC 驳回率；`CANCELLED` 表示审核单被商家、QC、系统或任务主动终止，不应计入驳回率，而应单独看撤销率和撤销原因分布。
+
+### 11.5.8 Validation 校验结果表
+
+Validation 负责保存“为什么不能进入 Staging、QC 或 Publish”。错误文件、表单错误提示、DLQ 修复建议都应该从这里或 Task Item 中生成，而不是从日志里拼。
+
+```sql
+CREATE TABLE product_validation_result (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    validation_id VARCHAR(64) NOT NULL,
+    task_id VARCHAR(64) DEFAULT NULL,
+    item_no VARCHAR(64) DEFAULT NULL,
+    draft_id VARCHAR(64) DEFAULT NULL,
+    staging_id VARCHAR(64) DEFAULT NULL,
+    supply_trace_id VARCHAR(64) DEFAULT NULL,
+    operation_id VARCHAR(64) DEFAULT NULL,
+    item_id VARCHAR(64) DEFAULT NULL,
+    validation_layer VARCHAR(64) NOT NULL
+        COMMENT 'SCHEMA/MASTER_DATA/MODEL/TRADE_CONTRACT/SELLABLE/RISK',
+    field_path VARCHAR(256) DEFAULT NULL,
+    severity VARCHAR(32) NOT NULL COMMENT 'INFO/WARN/BLOCK',
+    error_code VARCHAR(128) NOT NULL,
+    error_message VARCHAR(1024) NOT NULL,
+    suggested_action VARCHAR(512) DEFAULT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'OPEN/RESOLVED/IGNORED',
+    created_at DATETIME NOT NULL,
+    resolved_at DATETIME DEFAULT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_validation_id (validation_id),
+    KEY idx_task_item (task_id, item_no),
+    KEY idx_staging (staging_id),
+    KEY idx_trace (supply_trace_id),
+    KEY idx_status_error (status, error_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给校验结果';
+```
+
+### 11.5.9 Change Request 表
+
+Change Request 保存字段 Diff、风险等级和准入策略。QC 审核的是 Change Request 对应的 Staging，而不是直接审核 Draft。
+
+```sql
+CREATE TABLE product_change_request (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    change_id VARCHAR(64) NOT NULL,
+    task_id VARCHAR(64) DEFAULT NULL,
+    item_no VARCHAR(64) DEFAULT NULL,
+    draft_id VARCHAR(64) DEFAULT NULL,
+    staging_id VARCHAR(64) NOT NULL,
+    supply_trace_id VARCHAR(64) NOT NULL,
+    operation_id VARCHAR(64) NOT NULL,
+    item_id VARCHAR(64) DEFAULT NULL,
+    object_type VARCHAR(32) NOT NULL COMMENT 'RESOURCE/SPU/SKU/OFFER/RATE_PLAN/STOCK/RULE',
+    object_key VARCHAR(128) NOT NULL,
+    change_type VARCHAR(32) NOT NULL COMMENT 'CREATE/EDIT/OFFLINE/ONLINE/ARCHIVE/SUPPLIER_DIFF',
+    base_publish_version BIGINT DEFAULT NULL,
+    changed_fields JSON NOT NULL,
+    risk_level VARCHAR(32) NOT NULL COMMENT 'LOW/MEDIUM/HIGH',
+    risk_reasons JSON DEFAULT NULL,
+    qc_policy VARCHAR(32) NOT NULL COMMENT 'AUTO_APPROVE/QC_REQUIRED/BLOCK',
+    publish_policy VARCHAR(32) DEFAULT NULL COMMENT 'AUTO_PUBLISH/MANUAL_PUBLISH/SCHEDULED_PUBLISH',
+    status VARCHAR(32) NOT NULL
+        COMMENT 'CREATED/VALIDATED/QC_PENDING/APPROVED/REJECTED/PUBLISHING/PUBLISHED/CANCELLED',
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_change_id (change_id),
+    KEY idx_task_item (task_id, item_no),
+    KEY idx_staging (staging_id),
+    KEY idx_trace (supply_trace_id),
+    KEY idx_item_status (item_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给变更请求';
+```
+
+### 11.5.10 发布记录与发布快照表
+
+Publish Record 记录一次发布动作，Publish Snapshot 保存发布后的正式商品上下文。订单快照、回滚、对账、问题排查都依赖发布快照。
+
+```sql
+CREATE TABLE product_publish_record (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    publish_id VARCHAR(64) NOT NULL,
+    task_id VARCHAR(64) DEFAULT NULL,
+    item_no VARCHAR(64) DEFAULT NULL,
+    staging_id VARCHAR(64) NOT NULL,
+    change_id VARCHAR(64) DEFAULT NULL,
+    review_id VARCHAR(64) DEFAULT NULL,
+    supply_trace_id VARCHAR(64) NOT NULL,
+    operation_id VARCHAR(64) NOT NULL,
+    item_id VARCHAR(64) NOT NULL,
+    old_publish_version BIGINT DEFAULT NULL,
+    new_publish_version BIGINT NOT NULL,
+    publish_type VARCHAR(32) NOT NULL COMMENT 'CREATE/EDIT/OFFLINE/ONLINE/ARCHIVE/ROLLBACK',
+    status VARCHAR(32) NOT NULL COMMENT 'PENDING/PUBLISHING/SUCCESS/FAILED/CANCELLED',
+    error_code VARCHAR(128) DEFAULT NULL,
+    error_message VARCHAR(1024) DEFAULT NULL,
+    operator_id VARCHAR(64) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    published_at DATETIME DEFAULT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_publish_id (publish_id),
+    UNIQUE KEY uk_item_version (item_id, new_publish_version),
+    KEY idx_staging (staging_id),
+    KEY idx_trace (supply_trace_id),
+    KEY idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给发布记录';
+```
+
+```sql
+CREATE TABLE product_publish_snapshot (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    snapshot_id VARCHAR(64) NOT NULL,
+    publish_id VARCHAR(64) NOT NULL,
+    item_id VARCHAR(64) NOT NULL,
+    publish_version BIGINT NOT NULL,
+    category_code VARCHAR(32) NOT NULL,
+    snapshot_type VARCHAR(32) NOT NULL COMMENT 'FULL/RESOURCE/SPU/SKU/OFFER/RULE',
+    snapshot_payload JSON NOT NULL,
+    payload_hash VARCHAR(64) NOT NULL,
+    payload_ref VARCHAR(512) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_snapshot_id (snapshot_id),
+    UNIQUE KEY uk_item_version_type (item_id, publish_version, snapshot_type),
+    KEY idx_publish (publish_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品发布快照';
+```
+
+### 11.5.11 商品变更日志表
+
+`product_change_log` 是正式发布后的变更流水，用于后台展示、审计、回滚和数据平台消费。
+
+```sql
+CREATE TABLE product_change_log (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    change_log_id VARCHAR(64) NOT NULL,
+    publish_id VARCHAR(64) NOT NULL,
+    item_id VARCHAR(64) NOT NULL,
+    old_publish_version BIGINT DEFAULT NULL,
+    new_publish_version BIGINT NOT NULL,
+    change_type VARCHAR(32) NOT NULL COMMENT 'CREATE/EDIT/OFFLINE/ONLINE/BAN/UNBAN/ARCHIVE/ROLLBACK',
+    changed_fields JSON DEFAULT NULL,
+    operator_type VARCHAR(32) NOT NULL COMMENT 'LOCAL_OPS/MERCHANT/SYSTEM/SUPPLIER',
+    operator_id VARCHAR(64) DEFAULT NULL,
+    reason VARCHAR(1024) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_change_log_id (change_log_id),
+    KEY idx_item_version (item_id, new_publish_version),
+    KEY idx_publish (publish_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品正式发布变更日志';
+```
+
+### 11.5.12 Outbox 事件表
+
+Outbox 解决“商品正式表已变更，但搜索、缓存、营销、计价没收到事件”的问题。商品正式写入、发布记录、Outbox 必须在同一个事务里完成。
+
+```sql
+CREATE TABLE product_outbox_event (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    event_id VARCHAR(64) NOT NULL,
+    aggregate_type VARCHAR(64) NOT NULL COMMENT 'PRODUCT_ITEM/SUPPLY_TASK/PUBLISH_RECORD',
+    aggregate_id VARCHAR(64) NOT NULL,
+    event_type VARCHAR(128) NOT NULL COMMENT 'ProductPublished/ProductOnline/ProductOffline/ProductQcRejected',
+    item_id VARCHAR(64) DEFAULT NULL,
+    publish_version BIGINT DEFAULT NULL,
+    payload JSON NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING'
+        COMMENT 'PENDING/SENDING/SENT/FAILED/DLQ',
+    retry_count INT NOT NULL DEFAULT 0,
+    next_retry_at DATETIME DEFAULT NULL,
+    last_error_message VARCHAR(1024) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    sent_at DATETIME DEFAULT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_event_id (event_id),
+    KEY idx_status_retry (status, next_retry_at),
+    KEY idx_item_version (item_id, publish_version)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给 Outbox 事件';
+```
+
+### 11.5.13 DLQ 表
+
+DLQ 是运营可处理的问题单，不是简单日志。它要能支持自动重试、人工分派、修复备注和重新投递。
+
+```sql
+CREATE TABLE product_supply_dead_letter (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    dead_letter_id VARCHAR(64) NOT NULL,
+    task_id VARCHAR(64) DEFAULT NULL,
+    item_no VARCHAR(64) DEFAULT NULL,
+    draft_id VARCHAR(64) DEFAULT NULL,
+    staging_id VARCHAR(64) DEFAULT NULL,
+    review_id VARCHAR(64) DEFAULT NULL,
+    publish_id VARCHAR(64) DEFAULT NULL,
+    supply_trace_id VARCHAR(64) DEFAULT NULL,
+    operation_id VARCHAR(64) DEFAULT NULL,
+    item_id VARCHAR(64) DEFAULT NULL,
+    error_stage VARCHAR(64) NOT NULL COMMENT 'PARSE/VALIDATION/STAGING/QC/PUBLISH/OUTBOX/INDEX/CACHE',
+    error_type VARCHAR(64) NOT NULL COMMENT 'RETRYABLE/NON_RETRYABLE/MANUAL_FIX/RISK_BLOCKED',
+    error_code VARCHAR(128) NOT NULL,
+    error_message VARCHAR(1024) NOT NULL,
+    payload_ref VARCHAR(512) DEFAULT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING'
+        COMMENT 'PENDING/RETRYING/MANUAL_FIX/RESOLVED/IGNORED/FAILED',
+    retry_count INT NOT NULL DEFAULT 0,
+    max_retry_count INT NOT NULL DEFAULT 5,
+    next_retry_at DATETIME DEFAULT NULL,
+    assignee VARCHAR(64) DEFAULT NULL,
+    fix_note VARCHAR(1024) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    resolved_at DATETIME DEFAULT NULL,
+    UNIQUE KEY uk_dead_letter_id (dead_letter_id),
+    KEY idx_status_retry (status, next_retry_at),
+    KEY idx_task_item (task_id, item_no),
+    KEY idx_trace (supply_trace_id),
+    KEY idx_item_status (item_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给死信问题单';
+```
+
+### 11.5.14 对象映射表
+
+`product_supply_object_mapping` 用来解决“创建前没有 `item_id`，发布后如何从 `item_id` 反查整个供给生命周期”的问题。
+
+```sql
+CREATE TABLE product_supply_object_mapping (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    mapping_id VARCHAR(64) NOT NULL,
+    supply_trace_id VARCHAR(64) NOT NULL,
+    temporary_object_key VARCHAR(128) DEFAULT NULL,
+    item_id VARCHAR(64) NOT NULL,
+    first_draft_id VARCHAR(64) DEFAULT NULL,
+    first_staging_id VARCHAR(64) DEFAULT NULL,
+    first_publish_id VARCHAR(64) DEFAULT NULL,
+    source_type VARCHAR(32) NOT NULL COMMENT 'LOCAL_OPS/MERCHANT/SUPPLIER/SYSTEM',
+    category_code VARCHAR(32) NOT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'ACTIVE/ARCHIVED',
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_mapping_id (mapping_id),
+    UNIQUE KEY uk_trace (supply_trace_id),
+    UNIQUE KEY uk_item_id (item_id),
+    KEY idx_temp_key (temporary_object_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供给对象与正式商品映射';
+```
+
+### 11.5.15 操作流水表
+
+`product_supply_operation_log` 串联 Draft、Staging、QC、Publish、Item Status，是 B 端“View Log”的主要数据源。
+
+```sql
+CREATE TABLE product_supply_operation_log (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    log_id VARCHAR(64) NOT NULL,
+    supply_trace_id VARCHAR(64) NOT NULL,
+    operation_id VARCHAR(64) DEFAULT NULL,
+    object_type VARCHAR(64) NOT NULL COMMENT 'DRAFT/STAGING/QC/PUBLISH/ITEM/TASK/DLQ',
+    object_id VARCHAR(64) NOT NULL,
+    action VARCHAR(64) NOT NULL COMMENT 'DRAFT_CREATED/SUBMITTED/QC_APPROVED/PUBLISHED/OFFLINE',
+    old_status VARCHAR(64) DEFAULT NULL,
+    new_status VARCHAR(64) DEFAULT NULL,
+    operator_type VARCHAR(32) NOT NULL COMMENT 'LOCAL_OPS/MERCHANT/SYSTEM/SUPPLIER/QC',
+    operator_id VARCHAR(64) DEFAULT NULL,
+    reason VARCHAR(1024) DEFAULT NULL,
+    ext_info JSON DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_log_id (log_id),
+    KEY idx_trace_time (supply_trace_id, created_at),
+    KEY idx_object (object_type, object_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给操作流水';
+```
+
+### 11.5.16 字段主导权表
+
+字段主导权用于解决供应商同步和人工运营编辑互相覆盖的问题。没有这张表，供应商同步很容易把运营刚修复的标题、坐标、退款规则覆盖掉。
+
+```sql
+CREATE TABLE product_field_ownership (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    ownership_id VARCHAR(64) NOT NULL,
+    item_id VARCHAR(64) NOT NULL,
+    field_path VARCHAR(256) NOT NULL,
+    owner_type VARCHAR(32) NOT NULL COMMENT 'SUPPLIER/LOCAL_OPS/MERCHANT/PLATFORM_RULE',
+    owner_id VARCHAR(64) DEFAULT NULL,
+    override_until DATETIME DEFAULT NULL,
+    override_reason VARCHAR(1024) DEFAULT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'ACTIVE/EXPIRED/CANCELLED',
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_ownership_id (ownership_id),
+    UNIQUE KEY uk_item_field (item_id, field_path),
+    KEY idx_status_until (status, override_until)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品字段主导权';
+```
+
+### 11.5.17 补偿任务表
+
+Outbox 自身可以重试事件投递，但商品供给还需要更宽的补偿任务：重建搜索索引、刷新缓存、修复发布版本和索引不一致、重新生成错误文件、重新投递质量修复结果等。这类任务不要混在业务 Task 里，否则运营看板会分不清“供给任务失败”和“下游补偿任务失败”。
+
+```sql
+CREATE TABLE product_compensation_task (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    compensation_id VARCHAR(64) NOT NULL,
+    source_type VARCHAR(64) NOT NULL COMMENT 'OUTBOX/DLQ/QUALITY_CHECK/MANUAL/SYSTEM',
+    source_id VARCHAR(64) DEFAULT NULL,
+    compensation_type VARCHAR(64) NOT NULL
+        COMMENT 'REBUILD_INDEX/INVALIDATE_CACHE/REPLAY_OUTBOX/RETRY_PUBLISH/REGENERATE_ERROR_FILE/QUALITY_FIX',
+    item_id VARCHAR(64) DEFAULT NULL,
+    publish_version BIGINT DEFAULT NULL,
+    task_id VARCHAR(64) DEFAULT NULL,
+    dead_letter_id VARCHAR(64) DEFAULT NULL,
+    payload JSON DEFAULT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING'
+        COMMENT 'PENDING/RUNNING/SUCCESS/FAILED/CANCELLED',
+    retry_count INT NOT NULL DEFAULT 0,
+    max_retry_count INT NOT NULL DEFAULT 5,
+    next_retry_at DATETIME DEFAULT NULL,
+    worker_id VARCHAR(64) DEFAULT NULL,
+    lease_token VARCHAR(64) DEFAULT NULL,
+    lease_until DATETIME DEFAULT NULL,
+    error_code VARCHAR(128) DEFAULT NULL,
+    error_message VARCHAR(1024) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    started_at DATETIME DEFAULT NULL,
+    finished_at DATETIME DEFAULT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_compensation_id (compensation_id),
+    KEY idx_status_retry (status, next_retry_at),
+    KEY idx_item_version (item_id, publish_version),
+    KEY idx_source (source_type, source_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给补偿任务';
+```
+
+### 11.5.18 质量问题表
+
+质量巡检发现的问题要变成可分派、可跟进、可统计的问题单。它和 DLQ 的区别是：DLQ 通常来自链路执行失败，质量问题表来自发布后巡检、数据对账和运营治理。
+
+```sql
+CREATE TABLE product_quality_issue (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    issue_id VARCHAR(64) NOT NULL,
+    issue_type VARCHAR(64) NOT NULL
+        COMMENT 'MISSING_IMAGE/MISSING_PRICE/NO_STOCK/MAPPING_MISSING/RULE_MISSING/INDEX_INCONSISTENT/FIELD_OWNERSHIP_EXPIRED',
+    category_code VARCHAR(32) NOT NULL,
+    item_id VARCHAR(64) NOT NULL,
+    publish_version BIGINT DEFAULT NULL,
+    object_type VARCHAR(32) DEFAULT NULL COMMENT 'RESOURCE/SPU/SKU/OFFER/RULE/INDEX',
+    object_key VARCHAR(128) DEFAULT NULL,
+    severity VARCHAR(32) NOT NULL COMMENT 'LOW/MEDIUM/HIGH/CRITICAL',
+    issue_payload JSON DEFAULT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'OPEN'
+        COMMENT 'OPEN/ASSIGNED/FIXING/FIX_SUBMITTED/RESOLVED/IGNORED',
+    owner_team VARCHAR(64) DEFAULT NULL,
+    assignee VARCHAR(64) DEFAULT NULL,
+    source_task_id VARCHAR(64) DEFAULT NULL,
+    related_dead_letter_id VARCHAR(64) DEFAULT NULL,
+    fix_staging_id VARCHAR(64) DEFAULT NULL,
+    fix_publish_id VARCHAR(64) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    resolved_at DATETIME DEFAULT NULL,
+    UNIQUE KEY uk_issue_id (issue_id),
+    KEY idx_item_status (item_id, status),
+    KEY idx_type_status (issue_type, status),
+    KEY idx_severity (severity)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品质量问题单';
+```
+
+### 11.5.19 表模型 review 结论
+
+这一组表的边界可以这样记：
+
+| 表 | 一句话定位 |
+|----|------------|
+| `product_supply_draft` | 可编辑工作区 |
+| `product_supply_task` | 一次供给动作的执行批次 |
+| `product_supply_file` | 批量导入和错误文件元数据 |
+| `product_supply_task_item` | 批量任务的行级处理单元 |
+| `product_supply_staging` | 已提交冻结快照 |
+| `product_validation_result` | 为什么不能继续流转 |
+| `product_change_request` | 改了什么、风险多高、需不需要 QC |
+| `product_qc_review` | 审核工单 |
+| `product_qc_review_item` | 审核工单里的字段或对象级审核项 |
+| `product_publish_record` | 发布动作 |
+| `product_publish_snapshot` | 发布后的正式商品上下文 |
+| `product_change_log` | 正式商品发布后的变更流水 |
+| `product_outbox_event` | 通知下游 |
+| `product_supply_dead_letter` | 可运营的问题单 |
+| `product_supply_object_mapping` | 从临时对象追到正式 `item_id` |
+| `product_supply_operation_log` | 从 Draft 到下线的完整日志 |
+| `product_field_ownership` | 防止同步覆盖人工治理字段 |
+| `product_compensation_task` | 下游刷新、重放和一致性修复任务 |
+| `product_quality_issue` | 发布后质量巡检问题单 |
+
+正式商品主数据表，例如 `resource_tab`、`product_spu_tab`、`product_sku_tab`、`product_offer_tab`、`stock_config_tab`、`fulfillment_rule_tab`、`refund_rule_tab`，仍然属于商品中心和交易前契约，不属于供给任务表。供给平台只通过发布事务写入它们。
+
+---
+
+## 11.6 单商品创建和编辑链路
+
+### 11.6.1 单商品创建
+
+单商品创建要保证运营体验，所以保存和基础校验走同步；正式发布仍然走治理链路。
+
+```text
+选择类目
+  → 加载类目模板
+  → 填写商品信息
+  → 前端实时校验
+  → 保存 Draft
+  → 提交
+  → 后端同步强校验
+  → 生成 Staging
+  → 生成 product_supply_task(total_count=1, execution_mode=SYNC)
+  → 生成 product_supply_task_item
+  → Validation
+  → Diff / Risk
+  → 自动准入 / QC 审核 / 阻断
+  → Publish
+  → Outbox
+```
+
+同步接口可以返回：
+
+```json
+{
+  "task_id": "task_001",
+  "draft_id": "draft_001",
+  "staging_id": "stg_001",
+  "status": "VALIDATED",
+  "validation_errors": []
+}
+```
+
+如果校验失败，必须返回字段级错误，而不是只说“提交失败”：
+
+```json
+{
+  "status": "FAILED",
+  "errors": [
+    {
+      "field": "refund_rule",
+      "error_code": "REFUND_RULE_MISSING",
+      "message": "hotel offer requires refund rule"
+    }
+  ]
+}
+```
+
+### 11.6.2 单商品编辑
+
+编辑比创建更复杂，因为它基于线上版本修改。
+
+```text
+打开商品详情
+  → 读取 current_publish_version
+  → 创建编辑 Draft
+  → 修改字段
+  → 保存草稿
+  → 提交编辑
+  → 同步校验
+  → 生成 Staging
+  → 与 current_publish_version 做 Diff
+  → 判断字段主导权
+  → 计算风险等级
+  → 自动准入 / 创建 QC 审核单 / 阻断
+  → 发布新 publish_version
+```
+
+单商品编辑必须具备三种能力：
+
+| 能力 | 说明 |
+|------|------|
+| 版本锁 | 编辑基于 `base_publish_version`，发布时如果线上版本已变化，要提示冲突 |
+| 字段 Diff | 审核员看到字段级变化，而不是整段 JSON |
+| 字段主导权 | 判断运营编辑是否可以覆盖供应商同步字段 |
+
+编辑示例：
+
+| 操作 | 策略 |
+|------|------|
+| 改标题 | 低风险，自动准入 |
+| 改主图 | 图片质量校验，通过后自动准入或进入 QC |
+| 改价格 | 超过阈值进入 QC |
+| 改退款规则 | 高风险，强制 QC |
+| 改供应商映射 | 高风险，强制 QC 并触发巡检 |
+
+### 11.6.3 Draft 与 Staging 的区别
+
+| 层 | 作用 | 是否影响线上 |
+|----|------|--------------|
+| Draft | 编辑中的草稿，允许反复保存 | 否 |
+| Staging | 提交后的待发布快照，进入校验、审核、发布 | 否 |
+| 正式表 | C 端、搜索、订单真正读取的数据 | 是 |
+
+```text
+Draft
+  → 用户可反复修改
+
+Staging
+  → 系统校验、审核、发布使用
+
+正式表
+  → 只有发布事务能写入
 ```
 
 ---
 
-## 10.10 系统边界与职责
+## 11.7 批量导入和批量编辑链路
 
-### 10.10.1 上架系统 vs 商品中心：边界划分
+批量链路要按“任务 + 行级明细 + 暂存快照 + 错误文件 + 补偿”设计，不能把整个 Excel 读进内存后循环写正式表。
 
-| 维度 | 上架/供给运营域 | 商品中心 |
-|------|-----------------|----------|
-| 职责 | 流程、编排、审核、任务 | 主数据存储、查询契约、版本 |
-| 数据 | 任务、审批单、同步水位 | `item/spu/sku` 及稳定属性 |
-| 一致性 | Saga / 事务边界在应用层 | 聚合内强一致 |
+### 11.7.1 异步执行总流程
 
-**反模式**：运营后台直连商品库表；短期快，长期必然审计与耦合灾难。
+```text
+上传文件 / 批量提交
+  → 写 product_supply_file(file_type=INPUT)
+  → 创建 product_supply_task(status=PENDING, execution_mode=ASYNC)
+  → Parser Worker 抢占任务并流式解析文件
+  → 批量写入 product_supply_task_item
+  → Item Worker 分批处理 item
+  → 标准化 / 校验 / Staging / Diff
+  → 低风险自动准入，高风险生成 QC item
+  → QC 通过项进入发布，驳回项进入错误文件或 DLQ
+  → Publish Worker 发布正式表并写 Outbox
+  → 生成错误文件 / DLQ / 质量报告
+```
 
-### 10.10.2 供给侧 vs 运营侧的职责
+这个拆法有三个好处：
 
-- **供给侧**：保证映射正确、增量可恢复、对供应商接口容错。
-- **运营侧**：保证平台规则落地、内容合规、经营策略可执行。
+1. 解析失败不会污染正式商品表。
+2. 行级失败不会拖垮整批任务。
+3. 发布和下游刷新可以限速、重试和补偿。
 
-### 10.10.3 数据主导权归属
+### 11.7.2 Parser Worker
 
-推荐原则：
+Parser Worker 只负责解析，不负责发布。
 
-- **外部事实**（库存、供应商可售状态）以供应商为准，平台可缓存但要有对账。
-- **平台治理字段**（类目、品牌授权、禁售标签）以平台为准，供应商不可静默覆盖。
+```text
+1. CAS 抢占 product_supply_task
+2. 读取 product_supply_file，校验 input_file_ref、文件 hash、模板版本和列结构
+3. 流式读取文件，不能一次性加载到内存
+4. 每 N 行批量插入 product_supply_task_item
+5. 更新 parsed_count、parse_checkpoint、heartbeat_at
+6. 解析完成后写 total_count
+7. task.status 从 PARSING 推进到 RUNNING
+```
 
-### 10.10.4 审核权限边界
+`parse_checkpoint` 示例：
 
-审核权属于**风险域**，不要散落在各业务服务 if-else 中。应沉淀为：
+```json
+{
+  "sheet": "Sheet1",
+  "row_no": 12000,
+  "byte_offset": 8842211
+}
+```
 
-- `Policy`（配置）
-- `RiskEvaluator`（计算）
-- `ApprovalService`（生命周期）
+Excel 不一定天然支持稳定的 `byte_offset` 恢复。工程上可以先把上传文件转换成规范化 CSV 或行级 JSONL，再按 offset 恢复；也可以按 `row_no` 从头快速跳过。
 
-**「谁能审什么」与「谁能改什么」要分开建模**  
-很多团队把审核权限与运营编辑权限混在一个 RBAC 角色里，结果要么审核权过大（普通运营也能放行高风险变更），要么审核权过小（主管也被卡在细枝末节字段）。推荐做法：
+重复解析靠唯一键兜住：
 
-- **审核权限**按风险域与类目维度授权（并可临时委派）。
-- **编辑权限**按组织与店铺维度授权。
-- 二者交叉点用「二次确认」与「双人复核」解决，而不是把字段校验堆在前端。
+```text
+UNIQUE(task_id, item_no)
+UNIQUE(task_id, idempotency_key)
+```
+
+### 11.7.3 Item Worker
+
+Item Worker 不按整个文件处理，而是扫描小批量 item。
+
+```sql
+SELECT *
+FROM product_supply_task_item
+WHERE task_id = ?
+  AND status IN ('PENDING', 'FAILED')
+  AND next_retry_at <= NOW()
+ORDER BY item_no ASC
+LIMIT 500;
+```
+
+每个 item 或小批次独立事务：
+
+```text
+读取 raw_row_ref
+  → CAS 将 item 推进到 NORMALIZING
+  → 按类目模板标准化
+  → 写 normalized_ref
+  → 执行 Schema / 主数据 / 商品模型 / 交易契约校验
+  → 校验通过后写 product_supply_staging
+  → 与线上 publish_version 做 Diff
+  → 生成 product_change_request
+  → 根据 risk_level 自动准入或创建 product_qc_review_item
+  → 更新 item.status
+```
+
+不要用一个大事务包住 500 行。否则一行失败会拖垮整批，也会造成长事务和锁等待。
+
+### 11.7.4 Item 状态机
+
+```text
+PENDING
+  → NORMALIZING
+  → VALIDATING
+  → STAGING
+  → DIFFING
+  → QC_PENDING
+  → QC_REVIEWING
+  → QC_APPROVED
+  → PUBLISHING
+  → SUCCESS
+
+失败分支：
+NORMALIZING / VALIDATING / STAGING / DIFFING / QC_REVIEWING / PUBLISHING
+  → FAILED / DLQ / SKIPPED
+```
+
+Task 状态从 item 聚合：
+
+| Item 汇总结果 | Task 状态 |
+|---------------|-----------|
+| 全部 `SUCCESS` | `PUBLISHED` |
+| 部分 `SUCCESS`，部分 `FAILED/DLQ` | `PARTIAL_FAILED` |
+| 全部失败 | `FAILED` |
+| 存在 `QC_PENDING/QC_REVIEWING` | `QC_REVIEWING` |
+| 存在 `PUBLISHING` | `PUBLISHING` |
+
+### 11.7.5 错误文件
+
+错误文件要能指导运营修复，而不是只写“导入失败”。
+
+```text
+row_no, object_key, field, error_code, error_message, suggestion
+12, SKU_001, price, PRICE_TOO_LOW, price lower than floor price, adjust price >= 100
+25, OFFER_014, refund_rule, REFUND_RULE_MISSING, refund rule is required, choose a refund template
+31, HOTEL_020, city_code, CITY_NOT_FOUND, city cannot map to platform city, add city mapping first
+```
+
+错误文件应该从 `product_supply_task_item` 和 `product_validation_result` 生成，而不是从日志里拼。
+
+生成错误文件后，建议写一条 `product_supply_file(file_type=ERROR)`，这样运营后台可以通过 task 直接找到源文件、规范化文件和错误文件。
 
 ---
 
-## 10.11 与其他系统的集成
+## 11.8 供应商商品同步链路
 
-### 10.11.1 与商品中心集成（数据写入）
+### 11.8.1 为什么单独设计
 
-写入路径建议：
+供应商同步和批量导入有相似之处：都是外部或非正式数据进入平台商品模型，都需要任务、明细、标准化、校验、Diff、发布和补偿。
 
-- **同步 API**：强一致的小范围字段更新（谨慎使用）
-- **命令模式**：`UpsertItemCommand` 由商品中心统一校验不变量
+但供应商同步还有额外复杂度：
 
-**写入契约：命令应携带「意图」而非「表字段集合」**  
-运营后台很容易把表单直接映射成 `UPDATE item SET ...`，这会让商品中心失去聚合边界。更推荐命令携带业务意图，例如 `AdjustBasePrice`、`ChangeTitleForCompliance`、`MoveCategoryWithReindex`。商品中心在聚合根内做不变量校验（类目必填属性、品牌授权、禁限售），再决定生成哪些领域事件。
+| 维度 | 批量导入 / 批量编辑 | 供应商同步 |
+|------|---------------------|------------|
+| 来源 | 运营、商家、内部系统 | 外部供应商 |
+| 触发方式 | 人工上传、运营操作 | 定时、全量、增量、Push、刷新 |
+| 数据形态 | Excel、CSV、表单 | API、消息、分页、游标 |
+| 失败原因 | 格式错误、字段缺失、人工误操作 | 超时、限流、5xx、游标失效、字段漂移 |
+| 恢复重点 | 错误文件、失败行重提 | Checkpoint、Worker Lease、Raw Snapshot、DLQ |
+| 新鲜度 | 通常不是秒级 | 很多品类强依赖新鲜度 |
+| 交易前确认 | 多数依赖平台配置 | Hotel / Flight / Movie 必须实时确认 |
 
-### 10.11.2 与库存系统集成（初始化库存）
+### 11.8.2 推荐架构
 
-上架 `PUBLISHED → ONLINE` 之前应确保库存记录存在；失败应停留在 `PROVISIONING` 并可重试。
-
-**初始化失败的分层处理**  
-库存初始化失败可能是瞬时网络问题，也可能是供应商 SKU 映射错误。任务层应区分：
-
-- **可重试错误**：指数退避重试，记录重试次数上限。
-- **不可重试错误**：将任务标记失败并给出明确错误码（例如映射缺失），避免无限重试刷爆库存服务。
-
-### 10.11.3 与计价系统集成（价格初始化）
-
-基础价初始化失败应阻断上线或进入「不可售」保护态，避免用户看到不可结算价格。
-
-**与「试算」系统的衔接说明**  
-用户看到的价格通常是计价系统基于基础价、活动、会员等因素试算结果。上架阶段初始化的是**基础价事实**与必要的价目表结构；不要把「活动价计算」塞进上架编排，否则会把营销耦合进供给链路，导致编排耗时不可控。
-
-### 10.11.4 与搜索系统集成（索引更新）
-
-索引更新可异步，但要监控「在线商品不可搜」窗口；可对热点商品同步刷新。
-
-**索引字段的分层**  
-建议把索引字段分为「强一致必要字段」（标题、类目、可售状态）与「弱一致增强字段」（销量统计、标签）。弱一致字段允许更长延迟，必要时可走独立 topic，避免阻塞强一致更新。
-
-### 10.11.5 与供应商系统集成（数据同步）
-
-对接层单独做 **Anti-Corruption Layer（防腐层）**，把供应商 DTO 映射为平台统一命令，避免供应商字段污染核心模型。
-
-**适配器治理：把「对接复杂度」关进笼子**  
-供应商越多，适配器越容易变成垃圾场。建议：
-
-- 每个供应商独立模块（package），对外只暴露 `IngestHandler`。
-- 映射规则版本化：`mapping_version` 与数据一起存储，便于回放与回滚。
-- 统一错误码翻译：把供应商千奇百怪的错误映射为平台内部枚举，便于监控聚合。
-
-### 10.11.6 集成事件流与幂等性保证
-
-**端到端时序：从「编排完成」到「用户可感知」**  
-下图强调两个事实：其一，商品中心仍是主数据写入枢纽；其二，搜索/缓存等读模型是**异步最终一致**，因此「商品已 ONLINE」与「用户可搜到」之间存在可度量时间窗，应用监控覆盖该窗口，而不是假设同步完成。
-
-```mermaid
-sequenceDiagram
-  participant ORCH as 供给编排器
-  participant PC as 商品中心
-  participant INV as 库存系统
-  participant PRC as 计价系统
-  participant OB as Outbox Dispatcher
-  participant BUS as Kafka
-  participant ES as 搜索索引
-  participant CDN as 缓存失效
-
-  ORCH->>PC: UpsertItemCommand（事务内）
-  ORCH->>INV: InitStock / Adjust（按场景）
-  ORCH->>PRC: InitBasePrice（按场景）
-  PC->>OB: 写入 outbox（同事务）
-  ORCH-->>ORCH: 提交事务
-
-  OB->>BUS: 发布 product.* 事件
-  BUS->>ES: 消费建索引/更新
-  BUS->>CDN: 消费删缓存键
+```text
+Supplier Adapter
+  → Sync Task / Batch
+  → Page / Cursor Fetch
+  → Raw Snapshot
+  → Normalize
+  → Quality Check
+  → Supplier Mapping
+  → Diff
+  → product_supply_staging
+  → Auto Approve / QC Review
+  → Publish
+  → Search / Cache / Downstream Event
+  → Metrics / DLQ / Compensation
 ```
 
-```mermaid
-flowchart LR
-  subgraph write_path[写入路径]
-    ORCH[编排器] --> PC[(商品中心)]
-    ORCH --> INV[(库存)]
-    ORCH --> PRC[(计价)]
-    PC --> OB[(Outbox)]
-  end
+同步执行层使用专项表：
 
-  OB --> BUS[Kafka / MQ]
-  BUS --> C1[搜索消费者]
-  BUS --> C2[推荐消费者]
-  BUS --> C3[缓存失效消费者]
-  BUS --> C4[营销投影消费者]
-
-  C1 --> ES[(ES 索引)]
-  C3 --> RD[(Redis)]
+```text
+supplier_sync_task
+supplier_sync_batch
+supplier_sync_snapshot
+supplier_sync_diff_log
+supplier_sync_dead_letter
 ```
 
-**消费者幂等**要点：
+发布治理层复用供给平台：
 
-- 以 `event_id` 做 Redis `SETNX` 或 DB 唯一表去重
-- 处理逻辑尽量**可重放**（replay）而非依赖「刚好一次」网络
+```text
+product_supply_task
+product_supply_task_item
+product_supply_staging
+product_validation_result
+product_change_request
+product_qc_review
+product_qc_review_item
+product_publish_snapshot
+product_outbox_event
+```
 
-```go
-package integration
+### 11.8.3 新鲜度分层
 
-import (
-	"context"
-	"errors"
-)
+不同数据的刷新策略不同。
 
-type Consumer interface {
-	Handle(ctx context.Context, evt Event) error
-}
+| 数据类型 | 示例 | 新鲜度要求 | 策略 |
+|----------|------|------------|------|
+| 静态资源 | 酒店名称、地址、设施、机场、车站 | 小时级或天级 | 全量 + 增量同步 |
+| 半动态数据 | 酒店最低价、可售状态、热门库存水位 | 分钟级 | 定时刷新 + 热门加频 |
+| 强动态数据 | 机票报价、座位图、下单前房态房价 | 秒级或实时 | 搜索缓存，详情刷新，下单实时确认 |
+| 交易契约 | 退款规则、履约参数、供应商映射 | 强一致倾向 | 发布版本控制，不随意覆盖 |
 
-type Event struct {
-	EventID string
-	Type    string
-	ItemID  int64
-}
+原则是：
 
-type Deduper interface {
-	Seen(ctx context.Context, eventID string) (bool, error)
-	Mark(ctx context.Context, eventID string) error
-}
+> 列表页可以快，详情页要准，创单必须安全。
 
-type IdempotentConsumer struct {
-	inner   Consumer
-	deduper Deduper
-}
+---
 
-func (c IdempotentConsumer) Handle(ctx context.Context, evt Event) error {
-	seen, err := c.deduper.Seen(ctx, evt.EventID)
-	if err != nil {
-		return err
-	}
-	if seen {
-		return nil
-	}
-	if err := c.inner.Handle(ctx, evt); err != nil {
-		return err
-	}
-	if err := c.deduper.Mark(ctx, evt.EventID); err != nil {
-		return err
-	}
-	return nil
-}
+## 11.9 标准化、质量校验与风险审核
 
-var ErrRetry = errors.New("retryable failure")
+### 11.9.1 标准化
+
+不同入口的数据格式不同，但必须统一到平台商品模型：
+
+```text
+入口数据
+  → Resource
+  → SPU / SKU
+  → Offer / Rate Plan
+  → Stock Config / Sellable Rule
+  → Input Schema
+  → Fulfillment Rule
+  → Refund Rule
+```
+
+标准化阶段要记录字段来源和 payload hash：
+
+```text
+field_source:
+  title: OPS
+  hotel_address: SUPPLIER
+  refund_rule: PLATFORM
+```
+
+这对字段主导权、供应商覆盖、事故追溯非常重要。
+
+### 11.9.2 质量校验
+
+质量校验不能只做字段必填。
+
+| 校验层 | 校验内容 | 失败处理 |
+|--------|----------|----------|
+| Schema 校验 | 类型、必填、枚举、长度、格式 | 行级失败 |
+| 类目模板校验 | 类目要求的对象和字段是否完整 | 阻断提交 |
+| 主数据校验 | 城市、商户、品牌、Resource 是否存在 | 进入人工映射 |
+| 商品模型校验 | SPU、SKU、Offer、Rate Plan 关系是否成立 | 阻断发布 |
+| 交易契约校验 | 库存来源、Input Schema、履约规则、退款规则 | 阻断发布 |
+| 可售校验 | 商品状态、库存、价格、渠道、站点是否允许售卖 | 阻断上线或告警 |
+| 风险校验 | 价格、类目、履约、退款、映射是否高风险 | 自动准入、进入 QC 或阻断 |
+
+### 11.9.3 来源准入与风险审核
+
+审核策略应该差异化，而不是所有变更都人工 QC。这里的“审核”落库到 `product_qc_review` 和 `product_qc_review_item`，`product_change_request` 负责记录字段 Diff 和风险结论，QC 表负责记录审核工单和审核结论。
+
+准入策略先看来源，再看风险：
+
+```text
+qc_policy =
+  source_policy
+  + operator_trust_level
+  + risk_level
+  + category_policy
+  + field_policy
+```
+
+默认推荐：
+
+| 来源 | 默认策略 | 说明 |
+|------|----------|------|
+| `LOCAL_OPS` | `AUTO_APPROVE` | 本地运营是内部可信操作源，校验通过后自动准入，不创建 QC 审核单 |
+| `MERCHANT` | `QC_REQUIRED` | 商家是外部操作源，上传创建和编辑默认进入 QC |
+| `SUPPLIER` | 风险分流 | 静态低风险字段可自动准入，高风险 Diff 进入 QC |
+| `SYSTEM` | 继承策略 | 补偿、回放、迁移任务继承原始任务或质量问题单策略 |
+
+这个策略能避免两个极端：一是把本地运营所有动作都堆进 QC，导致运营效率很低；二是让商家自助上传绕过 QC，导致低质量商品污染线上。
+
+```text
+risk_score =
+  field_weight
+  + change_ratio_weight
+  + category_weight
+  + operator_risk_weight
+  + product_heat_weight
+  + supplier_quality_weight
+```
+
+| 变更类型 | 风险等级 | 策略 |
+|----------|----------|------|
+| 本地运营创建商品 | 低/中 | 校验通过后自动准入，不创建 QC |
+| 商家上传商品 | 低/中 | 默认进入 QC，审核素材、类目、交易契约 |
+| 标题、描述、小图修正 | 低 | 本地运营自动准入，商家进入 QC |
+| 普通图片变更 | 低/中 | 图片质量校验通过后，本地运营自动准入，商家进入 QC |
+| 库存水位调整 | 中 | 自动校验，通过后发布，异常告警 |
+| 价格或 Offer 规则变更 | 中高 | 超阈值进入 QC |
+| 类目变更 | 高 | 强制 QC |
+| 履约类型或退款规则变更 | 高 | 强制 QC |
+| Resource / Supplier Mapping 变更 | 高 | 强制 QC 并触发巡检 |
+
+QC 审核单要保存：
+
+```text
+review_id
+task_id
+source_type
+staging_id
+change_id
+changed_fields
+risk_level
+review_policy
+reviewer_id
+review_note
+reject_reason
+status
+```
+
+审核员看到的不是一段 JSON，而是字段级 Diff、风险原因、历史版本、供应商原始数据或运营输入证据。
+
+### 11.9.4 QC 阶段位置
+
+QC 是发布前质量闸口，不是录入阶段，也不是最终商品主表。但并不是所有来源都需要 QC：商家上传默认需要，本地运营上传默认不需要。
+
+```text
+供给入口
+  → Draft / Task / Item
+  → Staging
+  → Validation
+  → Diff / Risk
+  → Source Policy
+  → Auto Approve / QC Pending / Block
+  → QC Review
+  → Publish
+```
+
+不同入口的 QC 处理方式不同：
+
+| 入口 | QC 触发点 | 处理方式 |
+|------|-----------|----------|
+| 本地运营单商品创建 | 后端强校验通过后 | 自动准入，不创建 QC 审核单 |
+| 商家单商品创建 | 后端强校验通过后 | 创建 QC 审核单，QC 通过后发布 |
+| 本地运营编辑 | 字段 Diff 和风险评分后 | 默认自动准入，高危动作走权限和二次确认 |
+| 商家编辑 | 字段 Diff 和风险评分后 | 默认进入 QC，驳回后回到 Draft |
+| 本地运营批量导入 | 每个 `product_supply_task_item` 校验完成后 | 成功项自动准入，失败项生成错误文件 |
+| 商家批量导入 | 每个 `product_supply_task_item` 校验完成后 | 成功项生成 QC item，不阻塞失败项错误文件 |
+| 批量编辑 | 每个商品、SKU、Offer 或规则 Diff 后 | 按来源和风险生成准入策略，支持部分通过、部分驳回 |
+| 供应商同步 | Normalize + Diff 后 | 高风险差异进入 QC，低风险差异自动发布 |
+| 质量巡检 | 缺陷修复提交后 | 修复结果进入 QC，避免修复动作二次污染线上 |
+
+QC 的关键原则是：**QC 通过才允许进入发布事务，QC 驳回不能修改正式商品表**。驳回项应该回到 Draft、错误文件、DLQ 或质量问题单，由运营修复后重新提交。
+
+---
+
+## 11.10 发布一致性设计
+
+QC 通过或自动准入不代表商品已经可售。发布要保证商品主数据、资源映射、交易契约、库存可售、搜索缓存和下游系统最终一致。
+
+### 11.10.1 发布事务
+
+```text
+QC 通过 / 自动准入
+  → 开启发布事务
+  → 写 Resource / SPU / SKU / Offer / Rate Plan
+  → 写 Stock Config / Sellable Rule
+  → 写 Input Schema / Fulfillment Rule / Refund Rule
+  → 生成 publish_version
+  → 写 product_publish_snapshot
+  → 写 product_change_log
+  → 写 product_outbox_event
+  → 提交事务
+  → 异步刷新搜索、缓存、营销、计价、数据平台
+```
+
+发布事务内只做商品中心必须强一致的事情。ES 刷新、缓存失效、营销圈品、计价上下文刷新都通过 Outbox 异步执行。
+
+发布前必须二次确认 QC 状态：
+
+```sql
+SELECT status
+FROM product_qc_review
+WHERE review_id = ?
+  AND status = 'APPROVED';
+```
+
+如果高风险变更没有对应的 `APPROVED` QC 审核单，Publish Worker 必须拒绝发布。这样可以防止绕过审核接口直接调用发布接口。
+
+### 11.10.2 发布版本和快照
+
+每次发布生成 `publish_version`：
+
+```text
+product_id = 10001
+old_publish_version = 21
+new_publish_version = 22
+```
+
+发布快照用于：
+
+1. 订单创单保存商品上下文。
+2. 事故回滚。
+3. 对账和排查。
+4. 审核复盘。
+5. 搜索索引一致性校验。
+
+订单系统不能回读最新商品解释历史订单，必须保存：
+
+```text
+商品快照
+报价快照
+履约契约快照
+退款规则快照
+供应商映射快照
+```
+
+### 11.10.3 Outbox
+
+Outbox 事件示例：
+
+```text
+ProductPublished
+ProductContentChanged
+OfferChanged
+SellableRuleChanged
+FulfillmentRuleChanged
+SearchIndexRefreshRequired
+ProductCacheInvalidationRequired
+```
+
+`product_outbox_event` 至少包含：
+
+```text
+event_id
+event_type
+aggregate_type
+aggregate_id
+publish_version
+payload
+status
+retry_count
+next_retry_at
+```
+
+如果搜索刷新失败，不回滚商品发布，而是进入 Outbox 补偿。
+
+---
+
+## 11.11 运营管理能力
+
+### 11.11.1 字段主导权
+
+字段主导权解决的是“供应商同步和人工运营谁覆盖谁”。
+
+| 字段 | 主导方 | 供应商同步能否覆盖 | 运营策略 |
+|------|--------|-------------------|----------|
+| 标题、卖点、活动标签 | 平台运营 | 否 | 运营编辑为准 |
+| 酒店名称、地址、设施 | 供应商/平台治理 | 低风险可覆盖，高风险审核 | 可人工修正并设置保护期 |
+| 展示图片 | 平台运营/供应商 | 取决于来源质量 | 图片变更需要质量校验 |
+| 基础价、Rate Plan | 供应商/计价 | 取决于品类 | 超阈值审核 |
+| 库存水位、可售状态 | 库存域/供应商 | 是 | 人工覆盖必须有有效期 |
+| 退款规则、履约规则 | 平台/供应商契约 | 高风险覆盖 | 强制 QC |
+| 类目、Resource 映射 | 平台治理 | 否 | 强制 QC 和数据巡检 |
+
+当运营覆盖供应商字段时，建议记录：
+
+```text
+field_path
+owner_type
+override_until
+override_reason
+operator_id
+```
+
+供应商同步遇到保护字段时，不自动覆盖，只记录 Diff 和冲突日志。
+
+### 11.11.2 权限与审计
+
+权限要拆成两层：
+
+1. **功能权限**：是否能创建、编辑、导入、审核、发布。
+2. **数据范围权限**：能操作哪些类目、商家、供应商、站点、渠道。
+
+审计日志至少记录：
+
+```text
+who
+when
+what
+before
+after
+reason
+trace_id
+task_id
+publish_version
+```
+
+高风险操作必须强制备注，例如：
+
+1. 批量改价。
+2. 类目迁移。
+3. 退款规则变更。
+4. 供应商映射变更。
+5. 热门商品下架。
+
+### 11.11.3 回滚与灰度
+
+回滚不是简单把字段改回去。需要区分：
+
+| 回滚对象 | 处理 |
+|----------|------|
+| 商品主数据 | 回滚到指定 `publish_version` |
+| 搜索索引 | 根据快照重建索引 |
+| 缓存 | 失效或刷新旧版本 |
+| 营销圈品 | 重新投递商品变更事件 |
+| 订单 | 不回滚历史订单快照 |
+
+灰度发布可以按：
+
+1. 站点。
+2. 渠道。
+3. 城市。
+4. 白名单用户。
+5. 商品热度。
+
+---
+
+## 11.12 DLQ、补偿与质量巡检
+
+### 11.12.1 失败分类
+
+| 失败类型 | 示例 | 处理 |
+|----------|------|------|
+| 输入失败 | Excel 字段非法、必填缺失 | 生成错误文件，运营修复后重新提交 |
+| 映射失败 | 城市、商户、品牌、Resource 找不到 | 进入人工映射队列 |
+| 审核失败 | 高风险变更被驳回 | 回到草稿，保留驳回原因 |
+| 发布失败 | DB 冲突、版本过期 | 重试或要求基于最新版本重新编辑 |
+| 下游失败 | ES 刷新失败、缓存失效失败 | Outbox 补偿 |
+| 质量失败 | 缺图、缺价、无库存、不可履约 | 质量巡检下架或告警 |
+
+### 11.12.2 DLQ 表
+
+`product_supply_dead_letter` 是可运营问题单，不只是消息队列里的失败消息。
+
+```text
+dead_letter_id
+task_id
+item_no
+error_stage
+error_type
+error_code
+error_message
+raw_payload_ref
+status
+retry_count
+next_retry_at
+assignee
+fix_note
+```
+
+DLQ 状态机：
+
+```text
+PENDING
+  → RETRYING
+  → RESOLVED
+
+PENDING
+  → MANUAL_FIX
+  → RETRYING
+  → RESOLVED
+
+PENDING
+  → IGNORED
+
+RETRYING
+  → FAILED
+```
+
+### 11.12.3 质量巡检
+
+质量巡检要覆盖：
+
+1. 缺图商品。
+2. 缺价商品。
+3. 无库存商品。
+4. 无履约规则商品。
+5. 退款规则缺失商品。
+6. 供应商映射缺失商品。
+7. 发布版本与搜索索引不一致。
+8. 运营覆盖字段过期。
+
+质量指标：
+
+```text
+商品质量缺陷率 = 缺陷商品数 / 在线商品数
+发布失败率 = 发布失败任务 / 发布任务
+索引刷新成功率 = ES 刷新成功 / 总刷新
+DLQ 修复率 = RESOLVED DLQ / TOTAL DLQ
 ```
 
 ---
 
-## 10.12 工程实践
+## 11.13 可观测性与稳定性
 
-### 10.12.1 并发控制
+### 11.13.1 任务看板
 
-- 主数据更新：`version` 乐观锁 + 有限重试
-- 批量任务：分片（shard）避免热点行更新
+运营后台至少要能看到：
 
-### 10.12.2 性能优化
-
-- 批量 DB：多值 `INSERT`、必要时 `COPY`
-- 计算 diff：先哈希整行，再细 diff，减少 CPU
-
-### 10.12.3 监控告警
-
-把「业务失败」映射成可行动报警：
-
-- `supplier_auth_error_rate` 上升 → 证书/时钟问题
-- `approval_queue_wait_p95` 上升 → 人审容量不足
-
-### 10.12.4 故障案例（典型复盘模板）
-
-1. **现象**：索引延迟升高，搜索空窗扩大  
-2. **直接原因**：批量导入与实时变更共用同一 consumer group  
-3. **根因**：缺少队列隔离与背压  
-4. **修复**：拆分 topic / group，导入走独立链路  
-5. **预防**：容量基线与灰度开关纳入发布检查清单  
-
-**案例 B：供应商重复推送导致「幽灵改价」**  
-某供应商在网关超时后重试回调，平台侧未做 `message_id` 去重，导致短时间内价格被回滚到旧值，又触发自动审核通过，最终造成活动价与展示价不一致。
-
-- **修复点**：Push 入口落「去重表 + 业务版本号」；应用变更前比较 `external_version`。
-- **预防点**：把供应商重试策略纳入联调验收清单（超时、重试间隔、幂等键）。
-
-**案例 C：乐观锁重试风暴**  
-大促期间运营批量改标题，与搜索 Hydrate 触发的轻量回写并发，导致大量 `version conflict`，worker 无限重试放大 DB 压力。
-
-- **修复点**：批量任务改为分片串行 per item；读路径回写避免触碰高频 version 字段。
-- **预防点**：区分「内容字段版本」与「展示投影版本」，避免所有变更都 bump 同一 version。
-
-**Go：基于版本号的并发写（带退避）**
-
-```go
-package concurrency
-
-import (
-	"context"
-	"errors"
-	"time"
-)
-
-var ErrConflict = errors.New("version conflict")
-
-type ItemWriter interface {
-	Load(ctx context.Context, itemID int64) (price int64, version int64, err error)
-	CASUpdatePrice(ctx context.Context, itemID int64, newPrice int64, fromVersion int64) (rows int64, err error)
-}
-
-func UpdatePriceWithRetry(ctx context.Context, w ItemWriter, itemID int64, newPrice int64) error {
-	var last error
-	for i := 0; i < 5; i++ {
-		_, ver, err := w.Load(ctx, itemID)
-		if err != nil {
-			return err
-		}
-		n, err := w.CASUpdatePrice(ctx, itemID, newPrice, ver)
-		if err != nil {
-			last = err
-		} else if n == 1 {
-			return nil
-		} else {
-			last = ErrConflict
-		}
-		time.Sleep(time.Duration(10*(i+1)) * time.Millisecond)
-	}
-	return last
-}
+```text
+任务进度：总数、成功、失败、跳过、当前阶段
+失败原因：错误码、错误字段、建议修复方式、错误文件
+审核队列：风险等级、命中规则、Diff、责任人
+发布结果：publish_version、Outbox 状态、索引/缓存刷新状态
+质量看板：缺图、缺价、无库存、无履约规则、映射缺失
 ```
+
+核心指标：
+
+| 指标 | 说明 |
+|------|------|
+| 任务成功率 | 成功任务 / 总任务 |
+| 行级成功率 | 成功 item / 总 item |
+| 任务完成耗时 | 从创建到发布完成 |
+| 自动准入占比 | 自动准入 / 总提交 |
+| QC 驳回率 | 驳回 / QC 提交 |
+| 发布失败率 | 发布失败 / 发布任务 |
+| 索引刷新成功率 | ES 刷新成功 / 总刷新 |
+| 商品质量缺陷率 | 缺图、缺价、无库存、映射缺失商品占比 |
+
+### 11.13.2 隔离与限流
+
+批量任务不能拖垮交易链路。
+
+建议隔离：
+
+1. 批量导入队列。
+2. 批量发布队列。
+3. 供应商同步队列。
+4. Outbox 刷新队列。
+5. 质量巡检队列。
+
+大促前夜，运营批量改价、供应商全量同步、搜索索引重建如果共用同一组 Worker 和数据库连接池，很容易互相放大故障。默认策略应该是：
+
+```text
+交易读链路优先
+单商品编辑优先
+小批量发布优先
+大批量任务限速
+供应商异常熔断
+```
+
+### 11.13.3 幂等与并发
+
+幂等分层：
+
+| 层级 | 幂等 Key |
+|------|----------|
+| 任务触发 | `task_type + trigger_id` |
+| 批量行级 | `task_id + item_no`、`task_id + idempotency_key` |
+| 暂存对象 | `task_id + object_type + object_key` |
+| 发布 | `object_id + payload_hash + base_publish_version` |
+| Outbox | `event_id` |
+
+并发控制：
+
+1. 编辑基于 `base_publish_version`。
+2. 发布时 CAS 校验版本。
+3. 失败后要求重新基于最新版本生成 Diff。
+4. 供应商同步遇到运营保护字段时不覆盖。
 
 ---
 
-## 10.13 本章小结
+## 11.14 与其他系统的集成
 
-本章围绕「商品如何进入平台并被持续运营」这一链路，给出了可落地的架构切分与关键机制：
+### 11.14.1 商品中心
 
-- 用 **Listing / Supplier Ingest / Ops** 分离三种业务语义，避免 Create / Upsert / Update 混写。
-- 用 **完整生命周期状态机** 管理主数据状态，用 **任务状态机** 管理流程实例。
-- 用 **风险评估引擎 + 差异化审核** 在成本与风险之间取得运营可承受平衡。
-- 用 **异步编排 + Outbox** 保证跨系统写入可恢复、事件可投递。
-- 用 **边界章节** 明确商品中心、库存、计价、搜索、供应商适配层的职责与数据主导权。
+供给平台通过命令 API 写商品中心，不直连商品正式表。
 
-**落地建议（按优先级）**  
-如果你只能做三件事：第一，把写入入口收敛为命令 API，消灭后台直连数据库；第二，把审核策略从代码搬到可灰度配置，并建立风险解释字段；第三，把跨系统编排做成可观测任务（可重试、可补偿、可报警）。其余优化（缓存、分片、影子对比）都应建立在这三板斧之上。
+命令应该表达业务意图：
 
-在下一章（第11章）中，我们将进入交易链路的基础能力：**计价系统**，把「上架时初始化价格」与「全链路试算」衔接到同一套价格模型之下。
+```text
+CreateProductDefinition
+ChangeProductContent
+ChangeOfferRule
+ChangeRefundRule
+PublishProductVersion
+OfflineProduct
+```
+
+不要让运营后台执行：
+
+```sql
+UPDATE product_sku SET price = ? WHERE sku_id = ?;
+```
+
+### 11.14.2 库存系统
+
+发布时只写库存配置和可售规则，不直接扣减库存。
+
+库存相关动作：
+
+1. 初始化库存来源。
+2. 校验券码池是否存在。
+3. 查询实时库存能力。
+4. 发布可售规则。
+5. 创单时由交易链路预占或确认。
+
+### 11.14.3 计价系统
+
+商品供给发布的是基础价格事实和 Offer 规则。营销活动价、会员价、优惠叠加由计价系统试算。
+
+不要把活动价手填到商品表里，否则会造成：
+
+1. 计价口径漂移。
+2. 营销成本无法对账。
+3. 退款时无法解释优惠来源。
+
+### 11.14.4 搜索系统
+
+发布后通过 Outbox 刷新搜索索引。
+
+搜索索引要保存：
+
+```text
+product_id
+publish_version
+title
+category
+tags
+display_price
+sellable_status
+updated_at
+```
+
+索引版本落后时，巡检任务要能发现：
+
+```text
+product_publish_version != search_index_publish_version
+```
+
+### 11.14.5 订单系统
+
+订单创建时不能只保存 `sku_id`，还要保存商品上下文快照。
+
+```text
+product_snapshot
+offer_snapshot
+price_snapshot
+input_schema_snapshot
+fulfillment_rule_snapshot
+refund_rule_snapshot
+supplier_mapping_snapshot
+```
+
+这样后续商品改价、下架、退款规则调整，不影响历史订单解释。
+
+---
+
+## 11.15 面试总结
+
+面试中可以这样总结商品供给与运营管理和生命周期管理：
+
+> 我不会把商品供给设计成后台 CRUD，也不会把供应商同步和人工运营割裂成两套系统。我的设计是统一供给治理平台：人工创建、批量导入、运营编辑和供应商同步都先进入 Draft、Task、Item 和 Staging，通过标准化、质量校验、Diff、风险审核、版本化发布、Outbox、DLQ、补偿和质量巡检后，再写入正式商品主数据和交易契约。单商品创建和编辑要保证同步体验，批量导入、批量编辑和供应商同步必须异步任务化。Draft、Staging、QC、正式 Item、Task 状态要分开建模，避免状态语义混乱。发布时生成 publish_version 和商品快照，订单只相信创单时快照，下游刷新通过 Outbox 最终一致。这样才能支撑多品类、多供应商和强运营平台的长期演进。
+
+如果只能做三件事：
+
+1. **收敛写入口**：所有商品变更必须经过命令 API、Task、Staging 和发布事务。
+2. **建立版本和审核**：所有高风险变更必须有 Diff、风险理由、审核记录和 `publish_version`。
+3. **补齐补偿闭环**：错误文件、DLQ、Outbox、质量巡检和运营看板必须能让失败被发现、被修复、被重新投递。
+
+---
+
+## 11.16 常见面试题
+
+### 11.16.1 基础边界
+
+**问题 1：为什么商品供给与运营平台不能设计成商品中心的后台 CRUD？**
+
+参考要点：商品中心负责正式主数据和查询契约，供给平台负责 Draft、Task、Staging、审核、发布、补偿和审计。后台直接 CRUD 会让未审核数据污染线上，也会造成搜索、缓存、订单快照和发布版本不可追溯。
+
+**问题 2：商品中心和供给运营平台的边界是什么？**
+
+参考要点：商品中心保存正式 `Resource / SPU / SKU / Offer / Rule` 和 `publish_version`；供给运营平台保存供给流程对象，例如 Draft、Staging、QC、Task、DLQ。供给平台通过发布事务写商品中心，不直接让运营后台改正式表。
+
+**问题 3：供应商同步和人工上传要分成两套系统吗？**
+
+参考要点：不要简单回答“分开”或“不分开”。更准确的设计是：**入口层、执行层要分开，标准化之后的治理和发布层要合流**。
+
+供应商同步和人工上传的执行问题完全不同：
+
+| 维度 | 人工上传 / 批量导入 | 供应商同步 |
+|------|---------------------|------------|
+| 触发方式 | 用户点击、上传 Excel、保存 Draft | 定时任务、全量同步、增量同步、Push |
+| 数据来源 | 本地运营、商家 | 外部供应商 API / 消息 |
+| 失败原因 | 字段填错、模板错误、图片不合规 | 超时、限流、5xx、游标失效、字段漂移 |
+| 进度模型 | 文件行号、导入 item、错误文件 | city / page / cursor / checkpoint |
+| 恢复机制 | 重传文件、失败行重试 | checkpoint 续跑、lease 抢占、DLQ |
+| 证据保存 | 上传文件、表单 payload | Raw Snapshot、payload hash |
+| 新鲜度 | 通常不要求秒级 | 酒店、票务、库存价格可能要求高新鲜度 |
+
+所以供应商同步需要独立执行层：
+
+```text
+supplier_sync_task
+supplier_sync_batch
+supplier_sync_snapshot
+supplier_sync_diff_log
+supplier_sync_dead_letter
+```
+
+但它们不能完全拆成两套商品发布系统。否则人工上传一套 QC 和发布逻辑，供应商同步另一套 QC 和发布逻辑，很容易出现审核规则重复、发布版本乱序、字段主导权混乱、搜索缓存刷新不一致、订单快照口径不统一等问题。
+
+推荐架构是：
+
+```text
+人工上传 / 批量导入
+  → product_supply_task
+  → product_supply_task_item
+  → product_supply_staging
+  → Validation
+  → Change Request / Risk
+  → QC / Auto Approve
+  → Publish
+  → Outbox
+
+供应商同步
+  → supplier_sync_task
+  → supplier_sync_batch
+  → Raw Snapshot
+  → Normalize
+  → Supplier Mapping
+  → Diff
+  → product_supply_task(task_type=SUPPLIER_SYNC_IMPORT)
+  → product_supply_staging
+  → Validation
+  → Change Request / Risk
+  → QC / Auto Approve
+  → Publish
+  → Outbox
+```
+
+能力拆分可以这样判断：
+
+| 能力 | 是否分开 | 原因 |
+|------|----------|------|
+| 供应商 API Adapter | 分开 | 每个供应商协议不同 |
+| 全量 / 增量同步任务 | 分开 | 需要 checkpoint、lease、分页游标 |
+| Raw Snapshot | 分开 | 供应商原始响应要可追溯和回放 |
+| 供应商限流 / 熔断 | 分开 | 外部依赖治理 |
+| 文件解析 | 人工链路独有 | Excel / CSV / 模板 |
+| Draft 编辑体验 | 人工链路独有 | 用户可反复保存 |
+| 标准化模型 | 合并 | 最终都要转成平台 Resource / SKU / Offer |
+| 质量校验 | 合并 | 商品发布门禁应该统一 |
+| Diff / Risk | 合并 | 风险判断口径要统一 |
+| QC 审核 | 合并 | 审核工作台和策略要统一 |
+| Publish | 合并 | 只能有一个正式发布入口 |
+| Outbox | 合并 | 下游刷新口径要统一 |
+| DLQ / 补偿 | 部分合并 | 供应商执行 DLQ 分开，发布治理 DLQ 合并 |
+
+面试时可以收束成一句话：
+
+> 供应商同步有自己的“采集和恢复系统”，但不应该有自己的“商品发布系统”。采集链路可以分，发布治理必须合。
+
+**问题 4：本地运营上传和商家上传为什么审核策略不同？**
+
+参考要点：本地运营是内部可信来源，默认 `AUTO_APPROVE`，但仍要走 Validation、Staging、Publish 和 Outbox；商家是外部来源，默认 `QC_REQUIRED`，QC 通过后才能发布。
+
+### 11.16.2 生命周期与 ID 设计
+
+**问题 5：为什么 Draft、Staging、QC、正式 Item 要有不同状态机？**
+
+参考要点：它们描述的是不同对象。Draft 是可编辑工作区，Staging 是提交冻结快照，QC 是审核工单，正式 Item 是线上商品资产。把这些状态混在一个字段里，会出现 `DRAFT/QC_PENDING/ONLINE/REJECTED` 语义混乱。
+
+**问题 6：新建商品在 Draft 和 QC 阶段还没有正式 `item_id`，怎么追踪全链路？**
+
+参考要点：首次创建时生成 `supply_trace_id` 和 `temporary_object_key`。发布成功后生成正式 `item_id`，再写 `product_supply_object_mapping`，后续可以用 `item_id` 反查 `supply_trace_id`。
+
+**问题 7：商品已经在线后再次编辑，哪些 ID 会新建，哪些 ID 会复用？**
+
+参考要点：`item_id` 和 `supply_trace_id` 复用；`operation_id`、`draft_id`、`staging_id`、可能的 `review_id` 都新建；发布成功后 `publish_version` 递增。
+
+**问题 8：为什么商家提交 Draft 后要生成不可随意修改的 Staging Ticket？**
+
+参考要点：Draft 是工作区，可以反复保存；Staging 是提交证据和审核发布对象。冻结 Staging 可以保证 QC 审核的内容和最终发布内容一致，避免“审核 A，发布 B”。
+
+**问题 9：Pending 阶段发现内容填错，还能直接编辑吗？**
+
+参考要点：不建议直接编辑待审 Staging。推荐语义是撤回当前 QC 和 Staging，再基于 Staging payload 生成新 Draft，修改后重新提交，生成新的 Staging 和 QC。
+
+### 11.16.3 审核、Diff 与发布
+
+**问题 10：为什么需要 `product_qc_review` 和 `product_qc_review_item` 两张表？**
+
+参考要点：`product_qc_review` 是审核工单主表，记录整体状态、审核人、结论；`product_qc_review_item` 是审核项明细，记录字段 Diff、风险原因、分项结论和驳回原因。批量任务和字段级驳回都需要明细表。
+
+**问题 11：`product_change_request`、`product_supply_operation_log`、`product_field_ownership` 分别解决什么问题？**
+
+参考要点：`product_change_request` 记录改了什么、风险多高、是否需要 QC；`product_supply_operation_log` 记录从 Draft 到下线全过程发生了什么；`product_field_ownership` 记录字段由谁主导，防止供应商同步覆盖人工治理结果。
+
+**问题 12：`product_publish_record`、`product_publish_snapshot`、`product_change_log` 的区别是什么？**
+
+参考要点：`publish_record` 记录一次发布动作和结果；`publish_snapshot` 保存发布后的正式商品上下文；`change_log` 解释正式商品从旧版本到新版本变了哪些字段。
+
+**问题 13：Publish 背后的实际流程是什么？**
+
+参考要点：发布前校验 Staging 状态、QC 状态、幂等、版本冲突和交易契约完整性；事务内写正式商品表、库存配置、履约退款规则、`publish_version`、发布快照、变更日志和 Outbox；事务后异步刷新搜索、缓存、营销和计价。
+
+**问题 14：为什么 QC 通过不等于商品已经上线？**
+
+参考要点：QC 通过只表示允许发布。真正上线还需要 Publish Worker 完成正式表写入、生成发布版本、写 Outbox、刷新搜索缓存，并且商品满足销售时间、库存、渠道和风控可售条件。
+
+**问题 15：为什么发布前要校验 `base_publish_version`？**
+
+参考要点：编辑是基于某个线上版本产生的。如果当前线上版本已经变化，旧 Staging 继续发布会覆盖别人的新修改。发布前做 CAS 版本校验，冲突时进入 `VERSION_CONFLICT` 并要求重新编辑。
+
+### 11.16.4 批量任务与供应商同步
+
+**问题 16：为什么批量导入不能同步循环写正式表？**
+
+参考要点：批量导入可能有大量数据、行级错误、长耗时和下游压力。应该先创建 `product_supply_task`，再流式解析文件、生成 `task_item`、行级校验、部分成功、错误文件和补偿任务。
+
+**问题 17：Parser Worker 和 Item Worker 为什么要拆开？**
+
+参考要点：Parser Worker 只负责文件解析和生成行级 item；Item Worker 负责标准化、校验、Staging、Diff、QC 和发布准备。拆开后解析失败不会污染业务处理，行级处理可以限流、重试和并行。
+
+**问题 18：`product_supply_task` 和 `product_supply_task_item` 的关系是什么？**
+
+参考要点：Task 是一次供给动作的批次状态，Task Item 是行级或对象级处理单元。Task 状态由 Item 聚合，支持部分成功、部分失败、部分等待 QC，避免一个失败项拖垮整批任务。
+
+**问题 19：供应商同步为什么需要 Raw Snapshot、Checkpoint 和 DLQ？**
+
+参考要点：供应商同步是长任务且外部不稳定。Raw Snapshot 用于追溯和回放；Checkpoint 用于断点续跑；DLQ 用于保存字段缺失、映射失败、发布失败等可运营问题单。
+
+### 11.16.5 一致性、补偿与交易安全
+
+**问题 20：如何保证商品发布后搜索、缓存、营销、计价最终一致？**
+
+参考要点：正式表、发布记录、发布快照和 Outbox 在同一事务内写入；下游通过 Outbox 异步消费，按 `event_id` 幂等处理，失败进入重试、DLQ 或 `product_compensation_task`。订单创建只相信当时的商品、报价、履约和退款快照，不回读最新商品解释历史订单。
 
 ---
 
 **延伸阅读建议**：
 
-- 第8章：商品中心模型（SPU/SKU、类目属性）
-- 第8章：库存系统（库存事实与预占）
-- 第4章：Saga、Outbox 与最终一致性策略
+- 第8章：商品中心模型（Resource、SPU/SKU、Offer、类目属性）
+- 第10章：营销系统
+- 第12章：计价系统设计与实现
+- [附录G：商品供给与运营治理平台](../../appendix/product-supply-ops.md)
+- [附录F：供应商数据同步链路](../../appendix/supplier-sync.md)
 
 ---
 

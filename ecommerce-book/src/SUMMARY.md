@@ -26,7 +26,7 @@
 - [第8章 商品中心系统](part2/supply/chapter7.md)
 - [第9章 库存系统](part2/supply/chapter8.md)
 - [第10章 营销系统](part2/supply/chapter9.md)
-- [第11章 商品供给与运营管理](part2/supply/chapter10.md)
+- [第11章 商品供给与运营管理和生命周期管理](part2/supply/chapter10.md)
 
 ## Part C：交易链路
 
@@ -51,3 +51,5 @@
 - [附录C 系统集成模式速查表](appendix/integration.md)
 - [附录D 术语表](appendix/glossary.md)
 - [附录E 参考资料](appendix/references.md)
+- [附录F 供应商数据同步链路](appendix/supplier-sync.md)
+- [附录G 商品供给与运营治理平台](appendix/product-supply-ops.md)
