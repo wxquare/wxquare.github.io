@@ -44,6 +44,7 @@
 - 部署前先运行`npm run build`确保没有错误
 - Front Matter的date字段必须是字符串格式，不能是对象
 - 图片路径使用相对路径，不要使用绝对路径
+- shell 正则中包含反引号时必须使用单引号或转义，避免被 shell 当作命令替换执行
 
 ## AI Agent 协作原则（Harness Engineering）
 - **上下文精简**：本文件作为入口（<100 行），详细规范见 `.cursorrules`，按需查阅

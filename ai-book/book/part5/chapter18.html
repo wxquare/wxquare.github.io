@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>附录A 术语表 - AI工程实践：从编程到Agent的完整指南</title>
+        <title>第18章 Agent失败模式、Debug与作品集模板 - AI工程实践：从编程到Agent的完整指南</title>
 
 
         <!-- Custom HTML head -->
@@ -177,107 +177,264 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="附录a-术语表"><a class="header" href="#附录a-术语表">附录A 术语表</a></h1>
-<p>本术语表收录了书中出现的核心术语和概念，按字母顺序排列。</p>
+                        <h1 id="第18章-agent失败模式debug与作品集模板"><a class="header" href="#第18章-agent失败模式debug与作品集模板">第18章 Agent失败模式、Debug与作品集模板</a></h1>
+<blockquote>
+<p>能讲成功案例是基础，能讲失败和复盘才像真正做过生产系统。</p>
+</blockquote>
+<h2 id="引言"><a class="header" href="#引言">引言</a></h2>
+<p>Agent 面试里，最有区分度的问题往往不是“你用了什么框架”，而是：</p>
+<ul>
+<li>你的 Agent 失败过吗？</li>
+<li>怎么定位问题？</li>
+<li>怎么防止下次再发生？</li>
+<li>如何证明修复有效？</li>
+</ul>
+<p>本章整理常见失败模式、Debug 流程，以及面试作品集模板。</p>
 <hr>
-<h2 id="a"><a class="header" href="#a">A</a></h2>
-<p><strong>Agent（智能体）</strong><br>能够感知环境、做出决策并执行操作的自主系统。在AI领域，通常指基于LLM的自主任务执行系统。</p>
-<p><strong>Attention Mechanism（注意力机制）</strong><br>Transformer架构的核心，通过计算序列内部元素之间的关联权重，捕获长距离依赖关系。</p>
+<h2 id="181-失败模式总览"><a class="header" href="#181-失败模式总览">18.1 失败模式总览</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">失败模式</th><th style="text-align: left">症状</th><th style="text-align: left">常见根因</th><th style="text-align: left">修复方向</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">检索失败</td><td style="text-align: left">回答缺少关键事实</td><td style="text-align: left">chunk、query、metadata、rerank 问题</td><td style="text-align: left">优化 RAG</td></tr>
+<tr><td style="text-align: left">幻觉</td><td style="text-align: left">编造事实或引用</td><td style="text-align: left">上下文不足、输出无校验</td><td style="text-align: left">citation、faithfulness eval</td></tr>
+<tr><td style="text-align: left">工具选错</td><td style="text-align: left">调错 API</td><td style="text-align: left">工具描述混淆、schema 不清</td><td style="text-align: left">改工具命名和描述</td></tr>
+<tr><td style="text-align: left">参数错误</td><td style="text-align: left">工具调用失败</td><td style="text-align: left">参数类型自由、缺默认值</td><td style="text-align: left">schema 收紧</td></tr>
+<tr><td style="text-align: left">死循环</td><td style="text-align: left">反复调用同一工具</td><td style="text-align: left">缺少 max step 和 stopping rule</td><td style="text-align: left">early stopping</td></tr>
+<tr><td style="text-align: left">越权</td><td style="text-align: left">查询不该看的数据</td><td style="text-align: left">权限只靠 prompt</td><td style="text-align: left">后端权限校验</td></tr>
+<tr><td style="text-align: left">成本暴涨</td><td style="text-align: left">token 或工具调用过多</td><td style="text-align: left">上下文过长、循环过多</td><td style="text-align: left">压缩、缓存、限步</td></tr>
+<tr><td style="text-align: left">延迟过高</td><td style="text-align: left">用户等待太久</td><td style="text-align: left">串行调用、慢工具</td><td style="text-align: left">并行、缓存、降级</td></tr>
+<tr><td style="text-align: left">多轮漂移</td><td style="text-align: left">越聊越偏</td><td style="text-align: left">会话摘要差、状态污染</td><td style="text-align: left">session state 设计</td></tr>
+</tbody>
+</table>
+</div>
 <hr>
-<h2 id="b"><a class="header" href="#b">B</a></h2>
-<p><strong>Backlinks（反向链接）</strong><br>在知识管理系统中，指向当前页面的所有链接。用于建立概念之间的双向关联。</p>
-<p><strong>BM25</strong><br>一种基于词频和逆文档频率的关键词检索算法，常用于混合检索策略。</p>
+<h2 id="182-debug的五步法"><a class="header" href="#182-debug的五步法">18.2 Debug的五步法</a></h2>
+<h3 id="step-1复现"><a class="header" href="#step-1复现">Step 1：复现</a></h3>
+<p>把用户请求、上下文、工具结果和模型版本固定下来。</p>
+<pre><code class="language-text">input + retrieved docs + tool results + prompt version + model version = reproducible case
+</code></pre>
+<h3 id="step-2看-trace"><a class="header" href="#step-2看-trace">Step 2：看 trace</a></h3>
+<p>不要只看最终回答。按顺序看：</p>
+<ul>
+<li>intent 是否识别正确；</li>
+<li>检索 query 是否正确；</li>
+<li>检索结果是否包含答案；</li>
+<li>工具是否选对；</li>
+<li>参数是否正确；</li>
+<li>中间 reasoning 是否偏离；</li>
+<li>输出是否通过 guardrails。</li>
+</ul>
+<h3 id="step-3归因"><a class="header" href="#step-3归因">Step 3：归因</a></h3>
+<p>把错误归到一层：</p>
+<pre><code class="language-text">Input → Routing → Retrieval → Tool → Reasoning → Output → Policy
+</code></pre>
+<p>不要笼统地说“模型不行”。</p>
+<h3 id="step-4修复"><a class="header" href="#step-4修复">Step 4：修复</a></h3>
+<p>不同层的修复手段不同：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层</th><th style="text-align: left">修复方式</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Routing</td><td style="text-align: left">增加 intent 示例，收紧分类</td></tr>
+<tr><td style="text-align: left">Retrieval</td><td style="text-align: left">改 chunk、metadata、rerank</td></tr>
+<tr><td style="text-align: left">Tool</td><td style="text-align: left">改 schema、错误返回、权限</td></tr>
+<tr><td style="text-align: left">Reasoning</td><td style="text-align: left">改 prompt、增加计划约束</td></tr>
+<tr><td style="text-align: left">Output</td><td style="text-align: left">增加格式校验和 citation</td></tr>
+<tr><td style="text-align: left">Policy</td><td style="text-align: left">增加 guardrail 和审批</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="step-5加入-eval"><a class="header" href="#step-5加入-eval">Step 5：加入 eval</a></h3>
+<p>每个生产失败都应该变成回归样本。</p>
+<pre><code class="language-yaml">- id: prod_failure_20260426_001
+  input: "帮我查一下同事的订单"
+  expected:
+    should_reject: true
+    reason: "permission_denied"
+  regression_for: "authorization_guardrail"
+</code></pre>
 <hr>
-<h2 id="c"><a class="header" href="#c">C</a></h2>
-<p><strong>Chain-of-Thought（思维链）</strong><br>一种Prompt Engineering技术，要求LLM逐步展示推理过程，提高复杂推理任务的准确性。</p>
-<p><strong>Chunking（分块）</strong><br>将长文档切分为较小片段的过程，用于RAG系统中的文档索引和检索。</p>
-<p><strong>Context Window（上下文窗口）</strong><br>LLM一次可以处理的最大token数量。现代LLM的上下文窗口从16k到1M tokens不等。</p>
-<p><strong>Cosine Similarity（余弦相似度）</strong><br>衡量两个向量方向相似程度的指标，常用于计算文本Embedding之间的语义相似度。</p>
+<h2 id="183-常见失败案例复盘"><a class="header" href="#183-常见失败案例复盘">18.3 常见失败案例复盘</a></h2>
+<h3 id="案例一rag-找错文档"><a class="header" href="#案例一rag-找错文档">案例一：RAG 找错文档</a></h3>
+<p>症状：用户问退款时效，Agent 引用了退货政策。</p>
+<p>Trace 发现：</p>
+<ul>
+<li>query rewrite 把“退款到账”改成了“退货流程”；</li>
+<li>top 5 文档没有退款时效文档；</li>
+<li>生成阶段基于错误文档回答。</li>
+</ul>
+<p>修复：</p>
+<ul>
+<li>增加领域词典：退款、退货、退换货分开；</li>
+<li>给文档增加 <code>policy_type</code> metadata；</li>
+<li>检索时按 intent filter；</li>
+<li>加入 eval case。</li>
+</ul>
+<h3 id="案例二工具参数错误"><a class="header" href="#案例二工具参数错误">案例二：工具参数错误</a></h3>
+<p>症状：Agent 查询工单状态失败。</p>
+<p>Trace 发现：</p>
+<pre><code class="language-json">{
+  "tool": "get_ticket_status",
+  "args": {
+    "ticket_id": "我的上一个工单"
+  },
+  "error": "invalid ticket_id"
+}
+</code></pre>
+<p>修复：</p>
+<ul>
+<li>schema 中明确 ticket_id 格式；</li>
+<li>如果用户没提供 ticket_id，先追问；</li>
+<li>工具错误返回 suggested_fix；</li>
+<li>增加参数校验 eval。</li>
+</ul>
+<h3 id="案例三高风险操作没有拦截"><a class="header" href="#案例三高风险操作没有拦截">案例三：高风险操作没有拦截</a></h3>
+<p>症状：Agent 建议直接重启生产服务。</p>
+<p>根因：</p>
+<ul>
+<li>工具没有风险等级；</li>
+<li>prompt 中写了“必要时执行修复”；</li>
+<li>没有 output guardrail 检查危险建议。</li>
+</ul>
+<p>修复：</p>
+<ul>
+<li>工具分级；</li>
+<li>high risk 操作必须人工确认；</li>
+<li>output guardrail 检查“重启、删除、修改配置”等危险动作；</li>
+<li>加入安全回归集。</li>
+</ul>
 <hr>
-<h2 id="d"><a class="header" href="#d">D</a></h2>
-<p><strong>Decision Tree（决策树）</strong><br>在Agent系统中，用于判断是否应使用Agent的决策框架，通过一系列Yes/No问题评估任务特征。</p>
-<p><strong>DoD（Developer on Duty）</strong><br>值班工程师，负责处理生产环境的告警和突发问题。在本书案例中，DoD Agent 指辅助值班工程师诊断、分流和处理告警的 Agent 系统。</p>
+<h2 id="184-作品集模板"><a class="header" href="#184-作品集模板">18.4 作品集模板</a></h2>
+<p>面试作品集不需要很花哨，但要让面试官快速看出工程深度。</p>
+<h3 id="一页项目介绍"><a class="header" href="#一页项目介绍">一页项目介绍</a></h3>
+<pre><code class="language-markdown"># 项目名称：Support Agent
+
+## 背景
+客服团队每天处理大量重复问题，知识分散在 FAQ、政策文档和历史工单中。
+
+## 目标
+- 自动回答常见问题
+- 查询工单状态
+- 必要时创建工单
+- 降低人工客服重复工作
+
+## 架构
+Router + RAG + Tool Calling + Guardrails + Trace + Evals
+
+## 我的贡献
+- 设计工具注册表和风险分级
+- 实现 RAG 检索与引用
+- 设计 eval dataset
+- 增加 trace 和失败复盘流程
+
+## 结果
+- 离线 eval pass rate: 86%
+- tool selection accuracy: 92%
+- P95 latency: 2.1s
+- 平均成本: $0.004 / task
+</code></pre>
+<h3 id="技术决策表"><a class="header" href="#技术决策表">技术决策表</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">决策</th><th style="text-align: left">选择</th><th style="text-align: left">原因</th><th style="text-align: left">替代方案</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Agent 模式</td><td style="text-align: left">Router + Tool Calling</td><td style="text-align: left">任务边界清晰，稳定性高</td><td style="text-align: left">ReACT</td></tr>
+<tr><td style="text-align: left">RAG</td><td style="text-align: left">Hybrid + metadata filter</td><td style="text-align: left">文档短语和语义都重要</td><td style="text-align: left">Pure vector</td></tr>
+<tr><td style="text-align: left">安全</td><td style="text-align: left">Tool risk level + approval</td><td style="text-align: left">防止高风险自动执行</td><td style="text-align: left">仅 prompt 约束</td></tr>
+<tr><td style="text-align: left">评估</td><td style="text-align: left">Offline eval + trace sampling</td><td style="text-align: left">支持回归和线上闭环</td><td style="text-align: left">人工体验</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="架构图"><a class="header" href="#架构图">架构图</a></h3>
+<pre><code class="language-text">User → API → Guardrail → Agent Runner → RAG / Tools → Output Guardrail → Response
+                                      ↓
+                                    Trace
+                                      ↓
+                                    Evals
+</code></pre>
 <hr>
-<h2 id="e"><a class="header" href="#e">E</a></h2>
-<p><strong>Embedding（嵌入向量）</strong><br>将文本转换为固定维度的数值向量的技术，捕获文本的语义信息。</p>
-<p><strong>Early Stopping（提前停止）</strong><br>检测Agent陷入无效循环时及时终止执行的机制。</p>
+<h2 id="185-面试故事模板"><a class="header" href="#185-面试故事模板">18.5 面试故事模板</a></h2>
+<h3 id="3分钟项目介绍"><a class="header" href="#3分钟项目介绍">3分钟项目介绍</a></h3>
+<pre><code class="language-text">我做过一个 Support Agent，用来处理内部知识问答和工单创建。
+它的目标不是完全替代客服，而是自动处理低风险、高重复的问题。
+
+架构上我用了 Router + RAG + Tool Calling。
+知识问题走 RAG，工单相关问题走工具，高风险和越权请求会被 guardrails 拦截。
+
+我重点做了三件工程化工作：
+第一，工具注册表，每个工具有 schema、风险等级、权限校验和结构化错误；
+第二，trace，记录检索、工具调用和模型输出；
+第三，eval dataset，用真实和构造样本回归测试 RAG、工具选择和安全边界。
+
+这个项目让我比较系统地理解了 Agent 从 demo 到生产需要补齐的能力。
+</code></pre>
+<h3 id="失败复盘故事"><a class="header" href="#失败复盘故事">失败复盘故事</a></h3>
+<pre><code class="language-text">有一次 Agent 回答退款问题时引用了退货政策。
+我没有直接改 prompt，而是先看 trace。
+trace 显示 query rewrite 把“退款到账”改成了“退货流程”，导致检索阶段就错了。
+
+我把问题归因到 retrieval 层，而不是 generation 层。
+修复时增加了 policy_type metadata，并在 intent 识别后加 filter。
+最后把这个 case 加入 eval dataset，防止后续回归。
+</code></pre>
+<p>这个故事的价值在于：你展示了 trace、归因、修复和 eval 闭环。</p>
 <hr>
-<h2 id="f"><a class="header" href="#f">F</a></h2>
-<p><strong>Few-Shot Learning（少样本学习）</strong><br>在Prompt中提供少量示例，帮助LLM理解任务格式和期望输出。</p>
-<p><strong>Fingerprint（指纹）</strong><br>告警的唯一标识符，用于去重和关联相同的告警。</p>
+<h2 id="186-面试前最终检查"><a class="header" href="#186-面试前最终检查">18.6 面试前最终检查</a></h2>
+<pre><code class="language-markdown">## Agent 面试最终检查
+
+### 概念
+- [ ] 能解释 Agent vs Workflow
+- [ ] 能解释 ReACT / Plan-and-Execute / State Machine
+- [ ] 能解释 RAG 失败模式
+- [ ] 能解释 MCP 的价值和风险
+
+### 项目
+- [ ] 有一个可讲项目
+- [ ] 有架构图
+- [ ] 有工具设计
+- [ ] 有 eval 数据
+- [ ] 有失败复盘
+
+### 系统设计
+- [ ] 能设计知识库 Agent
+- [ ] 能设计客服 Agent
+- [ ] 能设计告警诊断 Agent
+- [ ] 能讲安全和权限
+- [ ] 能讲观测和成本
+
+### 表达
+- [ ] 3 分钟项目介绍
+- [ ] 10 分钟系统设计
+- [ ] 3 个技术取舍
+- [ ] 3 个失败案例
+- [ ] 5 个常见追问
+</code></pre>
 <hr>
-<h2 id="g"><a class="header" href="#g">G</a></h2>
-<p><strong>GAS（Go Application Server）</strong><br>Shopee内部的Go语言应用开发框架。</p>
-<hr>
-<h2 id="h"><a class="header" href="#h">H</a></h2>
-<p><strong>Hallucination（幻觉）</strong><br>LLM生成看似合理但实际错误的内容，包括事实性幻觉、逻辑性幻觉和引用性幻觉。</p>
-<p><strong>Harness Engineering（驾驭工程）</strong><br>通过构建可靠的基础设施和约束系统来驾驭AI的工程方法论。</p>
-<p><strong>Hybrid Search（混合检索）</strong><br>结合向量检索和关键词检索的方法，提高检索的召回率和精确度。</p>
-<hr>
-<h2 id="i"><a class="header" href="#i">I</a></h2>
-<p><strong>Inference（推理）</strong><br>模型根据输入数据生成输出的过程。在机器学习中指模型的预测阶段。</p>
-<hr>
-<h2 id="l"><a class="header" href="#l">L</a></h2>
-<p><strong>LLM（Large Language Model，大语言模型）</strong><br>基于Transformer架构的大规模预训练语言模型，如GPT-4、Claude等。</p>
-<p><strong>Loop Detection（循环检测）</strong><br>检测Agent重复执行相同操作的机制，用于防止无限循环。</p>
-<hr>
-<h2 id="m"><a class="header" href="#m">M</a></h2>
-<p><strong>MCP（Model Context Protocol）</strong><br>Anthropic提出的协议，用于AI工具连接外部数据源和服务。</p>
-<p><strong>MTTR（Mean Time To Resolution，平均恢复时间）</strong><br>从问题发生到解决的平均时间，运维领域的关键指标。</p>
-<p><strong>Multi-Agent System（多Agent系统）</strong><br>由多个Agent协作完成复杂任务的系统架构。</p>
-<hr>
-<h2 id="p"><a class="header" href="#p">P</a></h2>
-<p><strong>Plan-and-Execute（计划-执行）</strong><br>一种Agent架构模式，先制定详细计划，再逐步执行。</p>
-<p><strong>Positional Encoding（位置编码）</strong><br>在Transformer中注入序列位置信息的机制。</p>
-<p><strong>Prompt Caching（Prompt缓存）</strong><br>缓存长System Prompt以节省token成本的技术。</p>
-<p><strong>Prompt Engineering（提示工程）</strong><br>设计和优化Prompt以提高LLM输出质量的技术。</p>
-<hr>
-<h2 id="r"><a class="header" href="#r">R</a></h2>
-<p><strong>RAG（Retrieval-Augmented Generation，检索增强生成）</strong><br>结合信息检索和语言模型生成的方法，通过检索外部知识增强LLM能力。</p>
-<p><strong>ReACT（Reasoning and Acting）</strong><br>一种Agent架构模式，交替进行推理（Thought）和行动（Action）。</p>
-<p><strong>Reciprocal Rank Fusion（倒数排名融合）</strong><br>一种融合多个检索结果的算法，用于混合检索。</p>
-<p><strong>Reranking（重排序）</strong><br>使用专门模型重新排序检索结果，提高精确度。</p>
-<hr>
-<h2 id="s"><a class="header" href="#s">S</a></h2>
-<p><strong>Self-Consistency（自我一致性）</strong><br>多次采样LLM输出，选择最一致的结果以提高准确性。</p>
-<p><strong>Sliding Window（滑动窗口）</strong><br>保留最近N条消息的上下文管理策略。</p>
-<p><strong>SOP（Standard Operating Procedure，标准操作流程）</strong><br>标准化的问题处理流程。</p>
-<p><strong>Spec Coding（规格编程）</strong><br>先定义清晰规格，再让AI生成代码的编程范式。</p>
-<p><strong>State Machine（状态机）</strong><br>管理系统状态转换的设计模式，用于控制Agent工作流。</p>
-<hr>
-<h2 id="t"><a class="header" href="#t">T</a></h2>
-<p><strong>Token</strong><br>LLM处理文本的基本单位，通常一个token约等于0.75个英文单词或0.5个中文字符。</p>
-<p><strong>Tool Call（工具调用）</strong><br>Agent调用外部工具（API、数据库、命令行等）执行操作。</p>
-<p><strong>Transformer</strong><br>基于Self-Attention机制的神经网络架构，现代LLM的基础。</p>
-<hr>
-<h2 id="v"><a class="header" href="#v">V</a></h2>
-<p><strong>Vector Database（向量数据库）</strong><br>专门存储和检索高维向量的数据库，用于RAG系统。</p>
-<p><strong>Vibe Coding（感觉编程）</strong><br>依赖直觉和经验，与AI反复迭代的编程方式。</p>
-<hr>
-<h2 id="z"><a class="header" href="#z">Z</a></h2>
-<p><strong>Zero-Shot Learning（零样本学习）</strong><br>不提供示例，直接让LLM完成任务。</p>
-<hr>
-<h2 id="中文术语"><a class="header" href="#中文术语">中文术语</a></h2>
-<p><strong>分级决策</strong><br>根据风险等级采用不同决策策略的方法。</p>
-<p><strong>幻觉</strong><br>见 Hallucination。</p>
-<p><strong>混合架构</strong><br>结合多种设计模式的系统架构，如状态机 + ReACT。</p>
-<p><strong>可观测性</strong><br>通过指标、日志、追踪等方式了解系统运行状态的能力。</p>
-<p><strong>上下文管理</strong><br>管理LLM上下文窗口中信息的策略和技术。</p>
-<p><strong>状态机</strong><br>见 State Machine。</p>
-<p><strong>向量数据库</strong><br>见 Vector Database。</p>
-<p><strong>知识编译</strong><br>LLM将原始数据转换为结构化知识的过程。</p>
-<hr>
-<p><em>本术语表持续更新中</em></p>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p>Agent 应用工程师面试的高分答案通常有三个特征：</p>
+<ol>
+<li>不夸大模型能力；</li>
+<li>能讲清工程边界；</li>
+<li>能用 eval 和 trace 证明系统在变好。</li>
+</ol>
+<p>如果你能用一个项目把 RAG、工具调用、Guardrails、Tracing、Evals 和失败复盘串起来，面试表达会比单纯背概念扎实得多。</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../part5/chapter18.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../part5/chapter17.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../appendix/references.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../appendix/glossary.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -287,11 +444,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../part5/chapter18.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../part5/chapter17.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../appendix/references.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../appendix/glossary.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
