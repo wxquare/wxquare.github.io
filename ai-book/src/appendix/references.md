@@ -101,6 +101,26 @@ https://docs.llamaindex.ai/
 https://docs.cursor.com/  
 *Cursor IDE官方文档*
 
+**OpenAI Agents SDK**  
+https://openai.github.io/openai-agents-python/  
+*Agent tracing、guardrails、handoff 和工具调用参考*
+
+**OpenAI Agent Evals**  
+https://platform.openai.com/docs/guides/agent-evals  
+*Agent 质量评估与 trace grading*
+
+**Model Context Protocol Documentation**  
+https://modelcontextprotocol.io/  
+*MCP 协议、Server 和 Client 文档*
+
+**Anthropic MCP Documentation**  
+https://docs.anthropic.com/en/docs/mcp  
+*Claude 与 MCP 集成说明*
+
+**LangSmith Documentation**  
+https://docs.langchain.com/langsmith/  
+*Agent observability、tracing 和 evaluation*
+
 ---
 
 ## 🎓 在线课程

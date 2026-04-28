@@ -29,7 +29,7 @@
 
 **实际例子：**
 
-```
+```text
 任务: 将客户反馈分类
 输入: "订单号12345还没发货，已经等了3天了"
 LLM输出: 
@@ -58,7 +58,7 @@ LLM输出:
 
 **实际例子：**
 
-```
+```text
 任务: 计算复利
 输入: "本金10000元，年利率5%，复利计算20年后是多少？"
 
@@ -75,7 +75,7 @@ FV = 10000 × (1 + 0.05)^20 = 26532.98
 
 ### 能力边界总结
 
-```
+```text
 LLM 的核心能力：
 ┌─────────────────────────────────────┐
 │  模式识别 + 序列生成               │
@@ -100,7 +100,7 @@ LLM 的核心能力：
 
 **典型案例：**
 
-```
+```text
 问题: "2022年诺贝尔物理学奖得主是谁？"
 
 LLM 幻觉回答:
@@ -121,7 +121,7 @@ Alain Aspect, John Clauser, Anton Zeilinger
 
 **1. 事实性幻觉（Factual Hallucination）**
 
-```
+```text
 输入: "介绍一下 TensorFlow 2.0 的新特性"
 幻觉: "TensorFlow 2.0 引入了自动微分功能"
 事实: TensorFlow 1.x 就有自动微分
@@ -129,7 +129,7 @@ Alain Aspect, John Clauser, Anton Zeilinger
 
 **2. 逻辑性幻觉（Logical Hallucination）**
 
-```
+```text
 输入: "如果 A > B 且 B > C，那么 A 和 C 的关系？"
 幻觉: "无法确定 A 和 C 的关系"
 事实: 必然 A > C（传递性）
@@ -137,7 +137,7 @@ Alain Aspect, John Clauser, Anton Zeilinger
 
 **3. 引用性幻觉（Citation Hallucination）**
 
-```
+```text
 输入: "引用一篇关于 Transformer 的论文"
 幻觉: "根据 Smith et al. (2023) 的研究..."
 事实: 这篇论文不存在
@@ -230,12 +230,12 @@ class VerifiedAnswer:
 ### 原则 1：明确性（Clarity）
 
 **❌ 模糊的 Prompt：**
-```
+```text
 "帮我写个函数"
 ```
 
 **✅ 明确的 Prompt：**
-```
+```text
 请用 Python 写一个函数，功能如下：
 - 函数名：calculate_discount
 - 输入参数：
@@ -255,12 +255,12 @@ class VerifiedAnswer:
 ### 原则 2：结构化（Structure）
 
 **❌ 无结构：**
-```
+```text
 我想知道 Transformer 的工作原理以及它和 RNN 的区别还有它的优缺点
 ```
 
 **✅ 结构化：**
-```
+```text
 关于 Transformer 架构，请回答以下问题：
 
 ## 1. 工作原理
@@ -281,13 +281,13 @@ class VerifiedAnswer:
 ### 原则 3：示例驱动（Few-Shot Learning）
 
 **Zero-Shot（无示例）：**
-```
+```text
 将以下客户反馈分类：
 "产品质量不错，但物流太慢了"
 ```
 
 **Few-Shot（有示例）：**
-```
+```text
 将客户反馈分类为：物流、产品质量、客服、价格
 
 示例 1:
@@ -314,12 +314,12 @@ class VerifiedAnswer:
 ### 原则 4：约束条件（Constraints）
 
 **❌ 无约束：**
-```
+```text
 生成一篇关于 AI 的文章
 ```
 
 **✅ 有约束：**
-```
+```text
 生成一篇关于 AI 的技术文章，要求：
 
 格式约束：
@@ -341,12 +341,12 @@ class VerifiedAnswer:
 ### 原则 5：输出格式（Output Format）
 
 **❌ 自由格式：**
-```
+```text
 提取这段文本中的关键信息
 ```
 
 **✅ 指定格式：**
-```
+```text
 从以下文本提取关键信息，返回 JSON 格式：
 
 {
@@ -425,7 +425,7 @@ SELF_CRITIQUE_TEMPLATE = """
 
 ### 选择决策树
 
-```
+```text
 是否需要本地部署？
 ├─ 是 → Llama 3.1 (70B/405B)
 └─ 否 ↓

@@ -35,6 +35,18 @@
 
 ---
 
+# 第五部分：Agent应用工程师面试实战
+
+- [第12章 Agent应用工程师能力地图与30天冲刺计划](part5/chapter12.md)
+- [第13章 Agent Evals：从离线评估到线上质量闭环](part5/chapter13.md)
+- [第14章 Guardrails与Agent安全设计](part5/chapter14.md)
+- [第15章 Tool Calling与MCP工程深化](part5/chapter15.md)
+- [第16章 从零实现一个可观测Mini Agent](part5/chapter16.md)
+- [第17章 Agent系统设计面试题库](part5/chapter17.md)
+- [第18章 Agent失败模式、Debug与作品集模板](part5/chapter18.md)
+
+---
+
 # 附录
 
 - [附录A 术语表](appendix/glossary.md)

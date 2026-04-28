@@ -45,8 +45,8 @@ LLM一次可以处理的最大token数量。现代LLM的上下文窗口从16k到
 **Decision Tree（决策树）**  
 在Agent系统中，用于判断是否应使用Agent的决策框架，通过一系列Yes/No问题评估任务特征。
 
-**DoD（Duty on Duty）**  
-值班工程师，负责处理生产环境的告警和突发问题。
+**DoD（Developer on Duty）**  
+值班工程师，负责处理生产环境的告警和突发问题。在本书案例中，DoD Agent 指辅助值班工程师诊断、分流和处理告警的 Agent 系统。
 
 ---
 
