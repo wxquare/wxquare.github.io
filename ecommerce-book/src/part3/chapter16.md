@@ -265,32 +265,39 @@ func (s *RechargeStockStrategy) Reserve(ctx context.Context, req *ReserveRequest
 
 **技术要点**：
 ```go
-// 券码池管理（Redis实现）
+// 券码池管理：MySQL 是权威，Redis LIST 只缓存 code_id
 type VoucherCodePool struct {
     redis redis.Client
+    repo  CodePoolRepository
 }
 
-func (p *VoucherCodePool) AssignCode(ctx context.Context, skuID int64, orderID int64) (string, error) {
-    // Step 1: 从Redis Set中原子弹出一个未使用的券码
-    poolKey := fmt.Sprintf("voucher:pool:%d", skuID)
-    code, err := p.redis.SPop(ctx, poolKey).Result()
-    if err == redis.Nil {
-        return "", errors.New("券码已售罄")
+func (p *VoucherCodePool) ReserveCode(ctx context.Context, batchID string, orderID int64) (int64, error) {
+    for attempt := 0; attempt < 3; attempt++ {
+        // Step 1: Redis LIST 只取 code_id，不取明文券码
+        poolKey := fmt.Sprintf("inventory:code:pool:%s:%d", batchID, shard(batchID))
+        codeID, err := p.redis.LPop(ctx, poolKey).Int64()
+        if err == redis.Nil {
+            return 0, errors.New("券码池为空")
+        }
+        if err != nil {
+            return 0, err
+        }
+
+        // Step 2: MySQL CAS 才是锁码成功的判定
+        // UPDATE inventory_code_pool_XX
+        // SET status='BOOKING', order_id=?, booked_at=NOW()
+        // WHERE code_id=? AND status='AVAILABLE'
+        ok, err := p.repo.BookCode(ctx, codeID, orderID)
+        if err != nil {
+            return 0, err
+        }
+        if ok {
+            return codeID, nil
+        }
+        // Redis 中的陈旧 code_id，丢弃后继续取下一个。
     }
-    
-    // Step 2: 记录券码分配关系（券码 → 订单号）
-    assignKey := fmt.Sprintf("voucher:assign:%s", code)
-    p.redis.Set(ctx, assignKey, orderID, 0)  // 永久存储
-    
-    // Step 3: 设置券码有效期（ZSet按过期时间排序）
-    expiresAt := time.Now().Add(90 * 24 * time.Hour)  // 90天有效期
-    expiryKey := fmt.Sprintf("voucher:expiry:%d", skuID)
-    p.redis.ZAdd(ctx, expiryKey, redis.Z{
-        Score:  float64(expiresAt.Unix()),
-        Member: code,
-    })
-    
-    return code, nil
+
+    return 0, errors.New("券码池热队列需要回填")
 }
 ```
 
@@ -1029,7 +1036,7 @@ func InitializeApp() (*App, error) {
 |------|---------|-----|
 | 商品详情 | Hash | 30分钟 |
 | 库存数量 | String（Lua原子扣减） | 永久 |
-| 券码池 | Set（SPOP原子弹出） | 永久 |
+| 券码池热队列 | List（只存 `code_id`，MySQL CAS 后才算锁码成功） | 可从 MySQL 重建 |
 | 用户Session | String | 2小时 |
 
 **Elasticsearch（搜索 + 日志）**
@@ -1248,7 +1255,7 @@ Runtime Context       表达交易前运行时上下文
 
 | 维度 | 评价 |
 |------|------|
-| **优点** | 解释力强，能同时覆盖固定 SKU、资源型商品和实时供给商品；边界清晰，适合书籍总结和面试表达 |
+| **优点** | 解释力强，能同时覆盖固定 SKU、资源型商品和实时供给商品；边界清晰，适合书籍总结和答辩表达 |
 | **缺点** | 初期理解成本较高，需要治理“哪些数据稳定、哪些数据实时、哪些数据只进快照” |
 | **适用阶段** | 多品类平台，尤其是同时覆盖 Topup、Bill、Voucher、Hotel、Flight、Movie、Local Service 的平台 |
 
@@ -1415,7 +1422,9 @@ Product Definition  定义平台卖什么
 | `fulfillment_rule_tab` | 履约契约配置 | 充值、销账、发码、出票、预订确认、核销等履约模式 |
 | `refund_rule_tab` | 售后规则配置 | 是否可退、是否人工审核、取消政策、核销后限制、供应商退改规则 |
 | `product_stock_tab` | 库存与可售状态 | 库存类型、库存来源、可售状态、库存数量、更新时间 |
-| `voucher_code_pool_tab` | 券码池 | 券码、SKU、状态、有效期、分配订单、核销状态 |
+| `inventory_create_task` | 库存创建任务 | 数量初始化、券码导入 / 生成、门店日期切片、创建状态和错误信息 |
+| `inventory_code_batch_tab` | 券码批次 | 批次来源、生成模式、总码量、有效期、密钥版本、分表路由 |
+| `inventory_code_pool_XX` | 券码池分表 | 一码一行、加密券码、状态机、分配订单、核销状态；Redis 只缓存 `code_id` |
 | `product_supply_task` | 商品供给任务 | 导入批次、任务状态、操作人、成功/失败数量、错误文件 |
 | `product_audit_log_tab` | 审核日志 | 审核对象、变更内容、审核结论、审核人、驳回原因 |
 | `product_change_log_tab` | 变更日志 | 商品字段变更前后值、操作来源、TraceID、操作人 |
@@ -1558,12 +1567,16 @@ erDiagram
         datetime updated_at
     }
 
-    VOUCHER_CODE_POOL_TAB {
+    INVENTORY_CODE_POOL_XX {
         bigint code_id PK
+        varchar batch_id
         bigint sku_id FK
-        varchar code_status
-        datetime expire_at
+        varbinary code_cipher
+        varchar code_hash
+        varchar status
+        varchar reservation_id
         bigint assigned_order_id
+        datetime expire_at
         varchar redeem_status
     }
 
@@ -1722,9 +1735,9 @@ input_schema_tab
 
 这四类入口应该进入同一个“供给治理控制面”，共享任务模型、校验、审核、发布版本、Outbox、补偿和可观测性；但供应商同步因为存在长任务、Checkpoint、Raw Snapshot、Worker 租约、DLQ、数据新鲜度等复杂问题，可以单独展开成 `16.6.1.7` 和附录案例。
 
-面试时可以先给出这个判断：
+相关答辩判断已统一收录到[附录B](../appendix/interview.md)。
 
-> 供应商同步是商品供给链路的一种入口，但不能把商品供给系统等同于供应商同步系统。商品供给平台要统一承接人工创建、批量导入、运营编辑和供应商同步；其中供应商同步是最复杂的自动化供给分支，需要独立的同步任务、Checkpoint 和数据治理链路。
+如果这条链路设计不好
 
 如果这条链路设计不好，问题会很快暴露到 C 端交易链路：列表页搜不到、详情页价格错误、下单时库存不可用、券码发放失败、供应商映射缺失、退款规则不完整。商品供给链路的核心不是“把商品写进数据库”，而是“让一个商品从供给入口到可被搜索、可被下单、可被履约、可被追溯”。
 
@@ -1961,7 +1974,7 @@ CREATE TABLE product_change_request (
 | **审核证据完整** | 审核员看到的是标准化后的商品快照、字段来源、风险命中和历史版本 |
 | **创建后不等于上线** | 发布成功后还要等待库存初始化、索引刷新、可售校验通过 |
 
-面试时可以强调：人工创建链路最容易被低估。真正难点不是页面表单，而是类目差异、交易契约完整性、审核证据和发布一致性。
+人工创建链路的答辩提示已统一收录到[附录B](../appendix/interview.md)。
 
 **6. 批量导入链路**
 
@@ -2258,11 +2271,9 @@ ProductCacheInvalidationRequired
 
 所以本章采用“主链路 + 专项链路”的写法：`16.6.1.6` 讲统一商品供给与运营治理平台，完整设计见[附录G：商品供给与运营治理平台](../appendix/product-supply-ops.md)；`16.6.1.7` 专门讲供应商同步，因为它有长任务恢复、外部数据追溯和供应商质量治理等额外复杂度。
 
-**面试总结**：
+本节答辩总结已统一收录到[附录B](../appendix/interview.md)。
 
-> 我不会把商品供给设计成后台 CRUD，也不会把供应商同步和人工运营割裂成两套互不相干的系统。我的设计是统一供给治理平台：人工创建、批量导入、运营编辑和供应商同步都先进入任务和暂存区，通过标准化、质量校验、Diff、差异化审核、版本化发布、Outbox、补偿和巡检后，再写入正式商品主数据和交易契约。供应商同步属于供给链路，但因为它涉及 Raw Snapshot、Checkpoint、Worker 租约、DLQ 和数据新鲜度，所以作为专项链路单独展开。这样既能保证入口统一，又能处理不同来源的复杂度差异。
-
----
+#### 16.6.1.7 供应商商品同步链路
 
 #### 16.6.1.7 供应商商品同步链路
 
@@ -2297,7 +2308,7 @@ ProductCacheInvalidationRequired
 
 ![供应商数据同步 Data Flow Diagram](../../images/supplier-sync-data-flow.png)
 
-完整的任务模型、Checkpoint、Worker 租约、DLQ、监控指标和面试题设计，见[附录F：供应商数据同步链路](../appendix/supplier-sync.md)。
+完整的任务模型、Checkpoint、Worker 租约、DLQ 和监控指标，见[附录F：供应商数据同步链路](../appendix/supplier-sync.md)。
 
 图中可以看到，供应商数据进入平台后会经过五个阶段：
 
@@ -2398,7 +2409,7 @@ Sync Batch v102
 
 质量校验要支持“部分成功”。例如酒店全量同步 100 万条房型数据，不能因为 100 条数据失败就整批失败。更合理的处理方式是：可处理数据继续写入，失败明细单独记录 `error_code`、`error_message`、`raw_payload_ref`，高风险数据不发布，进入人工修复或补偿队列。
 
-面试时可以强调：**供应商同步系统不是追求 100% 同步成功，而是要做到失败可定位、可隔离、可修复、可补偿**。
+供应商同步失败治理的答辩提示已统一收录到[附录B](../appendix/interview.md)。
 
 **6. 新鲜度设计**
 
@@ -2688,9 +2699,9 @@ Kafka DLQ：短期消息缓冲，可选
 MySQL DLQ：权威问题单和补偿状态
 ```
 
-面试时可以这样总结：
+供应商同步 DLQ 的答辩总结已统一收录到[附录B](../appendix/interview.md)。
 
-> 我会把供应商同步 DLQ 设计成 MySQL 主存储，而不是只依赖 Kafka 死信 Topic。因为同步失败往往不是单纯消息消费失败，而是字段缺失、映射失败、价格异常、发布失败这些需要人工修复、状态流转和审计的问题。Kafka 可以作为失败消息的缓冲层，但真正的死信治理要落 MySQL，记录供应商、外部编码、平台映射、错误阶段、payload 引用、重试次数、下次重试时间和处理状态。这样问题才能被查询、补偿、统计和运营化处理。
+**9. 监控设计**
 
 **9. 监控设计**
 
@@ -2729,11 +2740,9 @@ D-B 不可售率 = 下单前确认不可售 / 详情页可售点击
 | **Movie / Event** | 影片、影院、活动、场次、票种、套餐 | 座位图、最终票态、锁座结果 | 半同步半实时，座位相关必须实时确认 |
 | **Voucher / Gift Card** | 商户、品牌、面额、有效期、核销规则 | 本地券码池库存或供应商券码状态 | 更偏平台自营库存，重点是券码池和核销状态 |
 
-**面试总结**：
+供应商同步整体答辩总结已统一收录到[附录B](../appendix/interview.md)。
 
-> 我不会把供应商同步理解成“写几个定时任务拉数据”。在 OTA、O2O 和虚拟商品平台里，供应商同步本质上是一套外部供给数据治理体系。它要解决幂等映射、版本回溯、质量校验、新鲜度控制、失败补偿和监控治理。列表页可以使用缓存提升性能，详情页要更接近实时，创单前必须实时确认。这样才能在供应商接口不稳定、商品模型不一致、价格库存频繁变化的情况下，仍然保证平台商品数据可信、交易链路安全、问题可追踪。
-
----
+#### 16.6.1.8 库存与可售设计
 
 #### 16.6.1.8 库存与可售设计
 
@@ -2786,7 +2795,7 @@ D-B 不可售率 = 下单前确认不可售 / 详情页可售点击
 | 降级 | 价格不可用时展示基础价，营销不可用时隐藏标签，库存不可用时弱提示 |
 | 新鲜度 | L 页允许缓存，D 页更接近实时，创单必须实时校验 |
 
-面试时可以这样总结：**搜索导购不是单纯 ES 查询，而是“召回 + 排序 + 商品补齐 + 库存价格营销融合 + 降级”的完整读链路**。
+搜索导购的答辩总结已统一收录到[附录B](../appendix/interview.md)。
 
 ---
 

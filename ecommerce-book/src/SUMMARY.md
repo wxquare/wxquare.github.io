@@ -26,7 +26,7 @@
 - [第8章 商品中心系统](part2/supply/chapter7.md)
 - [第9章 库存系统](part2/supply/chapter8.md)
 - [第10章 营销系统](part2/supply/chapter9.md)
-- [第11章 商品供给与运营管理和生命周期管理](part2/supply/chapter10.md)
+- [第11章 商品供给管理：运营、库存与生命周期](part2/supply/chapter10.md)
 
 ## Part C：交易链路
 
