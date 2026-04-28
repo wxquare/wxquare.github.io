@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第11章 商品供给与运营管理和生命周期管理 - 电商系统架构设计与实现</title>
+        <title>第11章 商品供给管理：运营、库存与生命周期 - 电商系统架构设计与实现</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../../searchindex-fa2e5887.js";
+            window.path_to_searchindex_js = "../../searchindex-c88073af.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../../toc-5ff332a3.js"></script>
+        <script src="../../toc-394f2fef.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,11 +179,11 @@
                     <main>
                         <p><strong>导航</strong>：<a href="../../README.html">书籍主页</a> | <a href="../../SUMMARY.html">完整目录</a> | <a href="./chapter9.html">上一章：第10章</a> | <a href="../transaction/chapter11.html">下一章：第12章</a></p>
 <hr>
-<h1 id="第11章-商品供给与运营管理和生命周期管理"><a class="header" href="#第11章-商品供给与运营管理和生命周期管理">第11章 商品供给与运营管理和生命周期管理</a></h1>
+<h1 id="第11章-商品供给管理运营库存与生命周期"><a class="header" href="#第11章-商品供给管理运营库存与生命周期">第11章 商品供给管理：运营、库存与生命周期</a></h1>
 <blockquote>
-<p><strong>本章定位</strong>：承接第 8 章「商品中心」的 Resource、SPU/SKU、Offer、库存可售、搜索索引和订单快照模型，讨论商品如何进入平台、如何被审核发布、上线后如何持续运营，以及商品生命周期如何与供给任务、供应商同步、运营编辑、下游刷新保持一致。</p>
+<p><strong>本章定位</strong>：承接第 8 章「商品中心」的 Resource、SPU/SKU、Offer、库存可售、搜索索引和订单快照模型，讨论商品如何进入平台、如何被审核发布、如何创建和修改库存、上线后如何持续运营，以及商品生命周期如何与供给任务、供应商同步、库存控制面、营销协同和下游投影保持一致。</p>
 </blockquote>
-<p>商品供给与运营链路不是后台 CRUD。它是一条长期运行的供给治理流水线：</p>
+<p>商品供给管理不是后台 CRUD。它是一条长期运行的供给治理流水线：</p>
 <pre><code class="language-text">供给入口
   → Draft / Staging
   → Task / Item
@@ -191,15 +191,17 @@
   → Diff 与风险识别
   → 来源准入策略：商家 QC，本地运营自动准入
   → 版本化发布
-  → Outbox 下游刷新
+  → 库存控制面 / 营销协同 / 交易契约生效
+  → Outbox 下游投影刷新
   → DLQ / 补偿 / 质量巡检
 </code></pre>
-<p>本章要回答四个问题：</p>
+<p>本章要回答五个问题：</p>
 <ol>
 <li><strong>商品生命周期如何设计？</strong> Draft、Staging、QC、正式 Item、Task 状态不能混成一个字段。</li>
-<li><strong>供给入口如何统一？</strong> 人工创建、批量导入、运营编辑、供应商同步都进入统一治理框架，但执行策略不同。</li>
-<li><strong>同步与异步如何取舍？</strong> 单商品创建和编辑需要同步体验，批量导入、批量编辑和供应商同步必须异步任务化。</li>
-<li><strong>发布如何保证一致？</strong> 商品主数据、交易契约、搜索缓存、营销计价、订单快照要通过版本和 Outbox 形成最终一致。</li>
+<li><strong>供给入口如何统一？</strong> 人工创建、批量导入、运营编辑、库存创建 / 修改、供应商同步都进入统一治理框架，但执行策略不同。</li>
+<li><strong>库存创建和修改归谁管？</strong> 供给平台承接库存配置、补货、券码导入、生码和锁库存的运营工作流，库存系统维护库存事实和账本。</li>
+<li><strong>同步与异步如何取舍？</strong> 单商品创建和编辑需要同步体验，批量导入、批量编辑、库存批量导入和供应商同步必须异步任务化。</li>
+<li><strong>发布如何保证一致？</strong> 商品主数据、库存控制面、营销协同、交易契约、搜索缓存、计价上下文和订单快照要通过版本、命令和 Outbox 形成最终一致。</li>
 </ol>
 <p>完整专项设计见：</p>
 <ul>
@@ -236,19 +238,22 @@
 </thead>
 <tbody>
 <tr><td>商品中心</td><td>Resource、SPU、SKU、Offer、类目、属性、正式发布版本</td><td>文件导入进度、审核队列、错误文件、运营任务</td></tr>
-<tr><td>供给与运营平台</td><td>入口、草稿、任务、暂存、校验、QC 准入、发布编排、补偿、审计</td><td>C 端高 QPS 查询、库存扣减、计价试算</td></tr>
-<tr><td>库存系统</td><td>库存来源、库存预占、扣减、释放、券码池</td><td>商品标题、图片、类目治理</td></tr>
+<tr><td>供给与运营平台</td><td>入口、草稿、任务、暂存、校验、QC 准入、发布编排、库存创建 / 修改的运营入口、营销活动配置入口、补偿、审计</td><td>C 端高 QPS 查询、库存扣减、库存账本事实、计价试算、搜索索引直写、订单状态维护、营销优惠计算</td></tr>
+<tr><td>库存系统</td><td>库存事实、库存创建命令执行、库存预占、扣减、释放、券码池、库存账本</td><td>商品标题、图片、类目治理、运营审核流</td></tr>
 <tr><td>计价系统</td><td>基础价、渠道价、试算、优惠叠加、结算价</td><td>商品上架流程和审核流</td></tr>
+<tr><td>营销系统</td><td>活动、券、补贴、预算、营销库存、圈品规则、优惠计算规则</td><td>商品供给流程、商品生命周期和库存账本</td></tr>
 <tr><td>搜索系统</td><td>索引、召回、排序、可检索投影</td><td>商品发布事务</td></tr>
 <tr><td>订单系统</td><td>商品快照、报价快照、履约契约快照</td><td>最新商品配置维护</td></tr>
 </tbody>
 </table>
 </div>
+<p>供给平台与搜索、计价、订单的关系不是“后台同步调用并写入对方系统”。供给平台完成发布后写 Outbox，搜索索引、缓存、计价上下文、数据平台等由各自消费者按版本重建投影；订单系统不接收供给平台的直接写入，而是在创单时读取当时可交易上下文并保存商品、报价、履约和退款快照。</p>
+<p>供给平台与营销系统的关系更近，但仍然是控制面协同：供给平台可以承接“这个商品参加什么活动、圈选哪些 SKU、活动资格何时生效”的运营入口，并向营销系统提交活动配置或圈品命令；营销系统负责活动规则、预算、券、补贴、营销库存和最终优惠计算。不要把活动价、优惠叠加结果或券核销状态写回商品供给表。</p>
 <p>如果运营后台直接修改商品正式表，会快速产生几个问题：</p>
 <ol>
 <li>导入半成品污染线上。</li>
 <li>审核和变更原因不可追溯。</li>
-<li>搜索、缓存、营销、计价刷新不一致。</li>
+<li>搜索、缓存、计价上下文刷新不一致，营销活动协同状态不可见。</li>
 <li>历史订单被最新商品配置影响。</li>
 <li>供应商同步和人工编辑互相覆盖。</li>
 </ol>
@@ -256,8 +261,9 @@
 <blockquote>
 <p>让一个商品从供给入口到可被搜索、可被下单、可被履约、可被追溯。</p>
 </blockquote>
-<h3 id="1112-四类供给入口"><a class="header" href="#1112-四类供给入口">11.1.2 四类供给入口</a></h3>
-<p>商品供给来源通常有四类：</p>
+<p>这里要特别区分 <strong>运营入口归属</strong> 和 <strong>事实归属</strong>：创建库存、补货、导入券码、系统生码、锁库存、门店库存调整、日期库存调整，都应该在供给与运营平台里有工作台、审批、任务进度、错误文件和审计记录；但最终的库存余额、券码状态机、预占记录和账本流水，必须由库存系统维护。供给平台发起 <code>CreateInventory / AdjustInventory / ImportCodeBatch / GenerateCodeBatch / LockInventory</code> 命令，库存系统幂等执行并返回 <code>InventoryReady / InventoryChanged / InventoryFailed</code>。</p>
+<h3 id="1112-五类供给入口"><a class="header" href="#1112-五类供给入口">11.1.2 五类供给入口</a></h3>
+<p>商品供给来源通常有五类：</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -272,7 +278,7 @@
 </tbody>
 </table>
 </div>
-<p>这四类入口不能完全拆成四套系统。更合理的设计是：</p>
+<p>这五类入口不能完全拆成五套系统。更合理的设计是：</p>
 <pre><code class="language-text">入口层分开
   → 执行策略分开
   → 标准化后进入统一 Staging
@@ -281,9 +287,10 @@
 <h3 id="1113-主链路与专项链路"><a class="header" href="#1113-主链路与专项链路">11.1.3 主链路与专项链路</a></h3>
 <p>供应商同步属于商品供给链路，但它不是商品供给链路的全部。</p>
 <pre><code class="language-text">商品供给与运营治理平台
-  ├─ 人工创建/上传
+  ├─ 人工创建 / 商家上传
   ├─ 批量导入
   ├─ 运营编辑
+  ├─ 库存创建 / 补货 / 券码导入
   └─ 供应商同步
 </code></pre>
 <p>供应商同步因为涉及 Raw Snapshot、Checkpoint、Worker Lease、Sync Batch Version、Supplier Mapping、新鲜度和供应商质量治理，所以执行层需要单独设计。</p>
@@ -302,35 +309,145 @@
 <p>供应商同步执行层独立，商品发布治理层复用。</p>
 </blockquote>
 <hr>
-<h2 id="112-核心难点与设计策略"><a class="header" href="#112-核心难点与设计策略">11.2 核心难点与设计策略</a></h2>
-<p>商品供给与运营管理的难点集中在“入口多、状态多、数据风险高、下游影响大”。</p>
+<h2 id="112-核心难点与设计策略从供给治理到可售闭环"><a class="header" href="#112-核心难点与设计策略从供给治理到可售闭环">11.2 核心难点与设计策略：从供给治理到可售闭环</a></h2>
+<p>商品供给管理真正难的不是“建几张商品表”，而是把不同入口、不同状态、不同事实源和不同交易风险收敛成一条可治理、可回放、可补偿的供给链路。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>难点</th><th>典型表现</th><th>解决策略</th></tr>
+<tr><th>核心矛盾</th><th>典型表现</th><th>设计策略</th></tr>
 </thead>
 <tbody>
-<tr><td>入口多且语义不同</td><td>人工创建、批量导入、运营编辑、供应商同步都在改商品</td><td>统一进入 Supply Task 和 Staging，按 <code>task_type</code> 路由不同策略</td></tr>
-<tr><td>同步与异步混用</td><td>单商品需要立即反馈，批量任务需要长时间处理</td><td><code>execution_mode=SYNC/ASYNC</code>，单商品同步体验，批量任务异步 Worker</td></tr>
-<tr><td>未发布数据污染线上</td><td>草稿、导入半成品、供应商脏数据直接写正式表</td><td>Draft / Staging 与正式表隔离，只有发布事务写正式表</td></tr>
-<tr><td>品类差异大</td><td>酒店、话费、账单、礼品卡、电影票字段完全不同</td><td>类目模板 + 能力矩阵 + Schema 驱动表单和校验</td></tr>
-<tr><td>批量导入规模大</td><td>一次导入 10 万行商品或价格配置</td><td>流式解析、行级 item、分批处理、部分成功、错误文件</td></tr>
-<tr><td>运营误操作</td><td>批量改价、类目迁移、退款规则变更</td><td>Diff、风险评分、QC 审核、二次确认、回滚</td></tr>
-<tr><td>供应商与运营冲突</td><td>供应商同步覆盖运营修正字段</td><td>字段主导权、保护期、冲突日志、QC 审核</td></tr>
-<tr><td>发布不一致</td><td>商品库成功，ES / 缓存 / 营销 / 计价没刷新</td><td>发布事务 + Outbox + 异步刷新 + 补偿重试</td></tr>
-<tr><td>历史订单受影响</td><td>商品改价、改退款规则后影响旧订单</td><td>创单保存商品快照、报价快照、履约和退款规则快照</td></tr>
-<tr><td>失败不可运营</td><td>只在日志里记录失败</td><td>MySQL DLQ、错误文件、修复建议、重新投递</td></tr>
+<tr><td>多入口</td><td>人工创建、批量导入、运营编辑、库存创建 / 修改、供应商同步都会改变供给能力</td><td>入口分开，标准化后统一进入 Supply Task、Staging、Validation、Publish</td></tr>
+<tr><td>多状态</td><td>Draft、Staging、QC、正式商品、库存任务、Outbox 都有自己的状态</td><td>谁拥有生命周期，谁拥有状态字段，避免一个 <code>status</code> 表达所有语义</td></tr>
+<tr><td>多事实源</td><td>商品、库存、计价、营销、搜索、订单都关心商品变化，但事实归属不同</td><td>供给平台做控制面，事实数据留在各自系统，通过命令和事件协作</td></tr>
+<tr><td>多交易风险</td><td>缺图、缺价、无库存、无履约规则、活动配置失败都会导致不可售</td><td>发布版本、交易契约、库存任务、营销协同和可售投影分层推进</td></tr>
+<tr><td>多失败形态</td><td>导入失败、审核失败、发布失败、下游投影失败、库存创建失败</td><td>DLQ、错误文件、补偿任务和运营看板把失败运营化</td></tr>
 </tbody>
 </table>
 </div>
-<p>设计目标：</p>
+<p>这一章后续所有设计都围绕六个目标展开：</p>
 <ol>
 <li><strong>入口统一</strong>：所有供给动作都有任务、来源、操作者和 TraceID。</li>
 <li><strong>线上隔离</strong>：草稿、导入中数据、未审核变更不进入正式表。</li>
 <li><strong>质量可控</strong>：标准化、类目模板、主数据校验、交易契约校验和风险规则形成发布门禁。</li>
-<li><strong>发布一致</strong>：正式表、快照、Outbox 同事务，搜索缓存异步刷新。</li>
-<li><strong>失败可恢复</strong>：任务、item、DLQ、错误文件、补偿任务形成闭环。</li>
-<li><strong>变更可追溯</strong>：每次发布都有 Diff、审核记录、版本和快照。</li>
+<li><strong>状态分离</strong>：发布、上线、可售、库存 ready、营销 ready 不能混成一个状态。</li>
+<li><strong>最终一致</strong>：正式表、快照、Outbox 同事务，读侧投影和营销协同异步完成。</li>
+<li><strong>失败可运营</strong>：任务、Item、DLQ、错误文件、补偿任务和可售诊断形成闭环。</li>
+</ol>
+<h3 id="1121-供给链路的核心矛盾多入口多状态多事实源"><a class="header" href="#1121-供给链路的核心矛盾多入口多状态多事实源">11.2.1 供给链路的核心矛盾：多入口、多状态、多事实源</a></h3>
+<p>商品供给平台看上去像一个后台，但它本质上是供给控制面。控制面不直接承诺“库存一定够”“价格一定正确”“活动一定可用”“订单一定能履约”，它承诺的是：任何供给变更都必须有入口、有证据、有校验、有发布版本、有审计和可补偿路径。</p>
+<p>一个商品从进入平台到被用户购买，至少会经过三类对象：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对象类型</th><th>例子</th><th>设计重点</th></tr>
+</thead>
+<tbody>
+<tr><td>流程对象</td><td>Draft、Task、Task Item、Staging、QC Review</td><td>记录供给变更如何被提交、校验、审核和发布</td></tr>
+<tr><td>正式对象</td><td>Resource、SPU、SKU、Offer、Rate Plan、交易前契约</td><td>支撑 C 端查询、交易校验和订单快照</td></tr>
+<tr><td>派生对象</td><td>搜索索引、商品缓存、计价上下文、营销资格、可售投影</td><td>面向读性能、导购体验和交易前判断，可以异步重建</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果把这三类对象混在一张宽表里，短期会觉得简单，长期一定会遇到几个问题：未审核数据污染线上，供应商同步覆盖人工修复，库存补货绕过账本，搜索索引和商品版本对不上，历史订单无法解释当时为什么能买、为什么这个价。</p>
+<h3 id="1122-发布上线与可售三态分离"><a class="header" href="#1122-发布上线与可售三态分离">11.2.2 发布、上线与可售三态分离</a></h3>
+<p>电商系统里最容易被混淆的三个词是：发布、上线、可售。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态</th><th>含义</th><th>典型判断</th></tr>
+</thead>
+<tbody>
+<tr><td><code>PUBLISHED</code></td><td>正式商品版本已经生成，交易契约和发布快照已经落库</td><td><code>publish_version</code> 递增，Outbox 已写入</td></tr>
+<tr><td><code>ONLINE</code></td><td>商品生命周期允许 C 端展示和进入交易前校验</td><td>商品未下架、未封禁、未结束销售，当前时间在销售窗口内</td></tr>
+<tr><td><code>SELLABLE</code></td><td>当前渠道、当前时间、当前范围内可以承诺给用户</td><td>商品在线，库存 ready，价格 ready，营销资格 ready，履约和风控通过</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此，审核通过不等于发布成功，发布成功不等于商品上线，商品上线也不等于可售。更稳的链路应该是：</p>
+<pre><code class="language-text">QC Approved
+  → Publish Transaction
+  → ProductPublished
+  → InventoryReady / PricingContextReady / MarketingEligibilityReady
+  → AvailabilityProjected
+  → Search / Cache / Detail Page refresh
+</code></pre>
+<p>这样做的好处是，运营后台可以清楚解释“商品为什么不能卖”：</p>
+<pre><code class="language-text">商品已发布，但不可售：
+- 库存创建任务失败：券码文件存在重复码
+- 计价上下文未刷新：基础价版本落后
+- 营销活动绑定失败：活动预算已关闭
+- 搜索索引落后：等待 Outbox 补偿重放
+</code></pre>
+<h3 id="1123-供给控制面与事实数据面的边界"><a class="header" href="#1123-供给控制面与事实数据面的边界">11.2.3 供给控制面与事实数据面的边界</a></h3>
+<p>供给平台负责让变更安全进入平台，但不能替代各个事实系统。边界可以这样理解：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>系统</th><th>在供给链路里的角色</th><th>权威事实</th></tr>
+</thead>
+<tbody>
+<tr><td>供给运营平台</td><td>入口、任务、暂存、校验、审核、发布编排、补偿和审计</td><td>供给流程事实</td></tr>
+<tr><td>商品中心</td><td>正式商品主数据、交易前契约、发布版本和快照</td><td>商品定义事实</td></tr>
+<tr><td>库存系统</td><td>库存实例、券码池、预占、扣减、释放和账本</td><td>库存事实</td></tr>
+<tr><td>计价系统</td><td>基础价、渠道价、优惠叠加、试算和结算价</td><td>价格事实</td></tr>
+<tr><td>营销系统</td><td>活动、券、补贴、预算、营销库存和优惠规则</td><td>营销事实</td></tr>
+<tr><td>搜索系统</td><td>可检索投影、召回、排序和索引版本</td><td>搜索读模型</td></tr>
+<tr><td>订单系统</td><td>商品快照、报价快照、履约和退款契约快照</td><td>订单交易事实</td></tr>
+</tbody>
+</table>
+</div>
+<p>这里的关键不是“供给平台能不能调用别的系统”，而是“调用表达什么语义”。供给平台可以发起 <code>CreateInventory</code>、<code>BindProductToCampaign</code>、<code>PublishProductVersion</code> 这类业务命令；但不能直接更新库存余额、直接写 ES、直接写最终成交价，也不能修改订单状态。</p>
+<h3 id="1124-库存创建--修改的运营归属"><a class="header" href="#1124-库存创建--修改的运营归属">11.2.4 库存创建 / 修改的运营归属</a></h3>
+<p>库存创建和修改属于供给运营平台的业务工作，但不属于供给运营平台的数据事实。原因很简单：库存动作往往带有强运营属性。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>为什么需要供给运营平台承接</th></tr>
+</thead>
+<tbody>
+<tr><td>简单数量库存随商品发布创建</td><td>需要和商品类目、Offer、销售范围、扣减时机一起校验</td></tr>
+<tr><td>后台补货 / 调库存 / 锁库存</td><td>需要权限、审批、操作原因、风险提示和审计</td></tr>
+<tr><td>手动上传券码</td><td>需要文件上传、行级错误、重复码提示、错误文件和任务进度</td></tr>
+<tr><td>系统生成券码</td><td>需要生码规则、数量、有效期、审批和批次追踪</td></tr>
+<tr><td>门店 / 日期 / 时段库存</td><td>需要门店范围、营业时间、节假日、批量复制和局部调整</td></tr>
+<tr><td>批量编辑库存</td><td>需要异步任务、部分成功、失败重试和运营可见进度</td></tr>
+</tbody>
+</table>
+</div>
+<p>所以更准确的说法是：</p>
+<pre><code class="language-text">供给运营平台：负责库存任务的入口、审批、编排、进度、错误文件和审计
+库存系统：负责库存实例、余额、券码状态机、预占、扣减、释放和账本
+</code></pre>
+<p>库存任务会在 11.6 单独展开。这里先建立一个原则：<strong>供给平台发起库存命令，库存系统幂等执行库存事实变更。</strong></p>
+<h3 id="1125-发布后的最终一致与可售投影"><a class="header" href="#1125-发布后的最终一致与可售投影">11.2.5 发布后的最终一致与可售投影</a></h3>
+<p>供给发布事务内只做商品中心必须强一致的事情：写正式商品主数据、交易前契约、发布版本、发布快照、变更日志和 Outbox。事务外再由不同系统异步完成读模型和可售能力刷新。</p>
+<pre><code class="language-text">Publish Transaction
+  → ProductPublished Outbox
+  → Inventory Command / Inventory Event
+  → Pricing Context Consumer
+  → Marketing Command / Eligibility Event
+  → Search Indexer / Cache Invalidator
+  → Availability Projector
+</code></pre>
+<p>可售投影不替代任何事实系统。它只回答一个面向交易入口的问题：<strong>当前这个商品，在这个渠道、这个城市、这个门店、这个时间点，能不能展示、能不能下单、为什么不能下单。</strong></p>
+<pre><code class="language-text">Sellable =
+  product_status == ONLINE
+  AND now in sale_time_window
+  AND inventory_status in READY/AVAILABLE
+  AND price_status == READY
+  AND marketing_status in READY/NONE_REQUIRED
+  AND fulfillment_status == READY
+  AND channel_policy allows current channel
+  AND risk_status not in BLOCKED
+</code></pre>
+<p>一个成熟平台最需要避免的反模式是：</p>
+<ol>
+<li>供给后台直接改库存余额，绕过库存账本。</li>
+<li>库存系统直接决定商品上下架，绕过发布版本和审核。</li>
+<li>商品发布事务同步调用 ES、计价、营销和订单，导致发布链路被下游拖垮。</li>
+<li>把活动价、最终优惠金额写回商品表，导致计价口径和营销成本无法解释。</li>
+<li>历史订单回读最新商品配置，导致售后和财务无法复盘。</li>
 </ol>
 <hr>
 <h2 id="113-商品生命周期管理"><a class="header" href="#113-商品生命周期管理">11.3 商品生命周期管理</a></h2>
@@ -581,14 +698,15 @@ created_at
 <tr><td><code>ProductSupplySubmitted</code></td><td>Draft 提交并生成 Staging</td><td>审核系统、通知系统</td></tr>
 <tr><td><code>ProductQcApproved</code></td><td>QC 通过</td><td>发布 Worker、通知系统</td></tr>
 <tr><td><code>ProductQcRejected</code></td><td>QC 驳回</td><td>商家 Portal、运营后台</td></tr>
-<tr><td><code>ProductPublished</code></td><td>正式版本发布成功</td><td>搜索、缓存、营销、计价、数据平台</td></tr>
-<tr><td><code>ProductOnline</code></td><td>正式商品上线</td><td>搜索、推荐、营销</td></tr>
+<tr><td><code>ProductPublished</code></td><td>正式版本发布成功</td><td>搜索索引、缓存、计价上下文、数据平台、营销资格消费者</td></tr>
+<tr><td><code>ProductMarketingEligibilityChanged</code></td><td>商品活动资格、圈品范围或活动标签变化</td><td>营销系统</td></tr>
+<tr><td><code>ProductOnline</code></td><td>正式商品上线</td><td>搜索、推荐、营销资格消费者</td></tr>
 <tr><td><code>ProductOffline</code></td><td>正式商品下架</td><td>搜索、订单前校验、运营看板</td></tr>
 <tr><td><code>ProductArchived</code></td><td>正式商品归档</td><td>数据平台、审计系统</td></tr>
 </tbody>
 </table>
 </div>
-<p>对搜索、缓存、营销、计价这类下游系统来说，真正有交易意义的是 <code>ProductPublished/ProductOnline/ProductOffline</code>。Draft、Staging、QC 事件主要服务于 B 端运营、审核、通知和审计。</p>
+<p>对搜索、缓存、计价上下文这类读侧投影来说，真正有交易意义的是 <code>ProductPublished/ProductOnline/ProductOffline</code>。营销系统既可以消费商品发布事件更新活动资格，也可以接收供给平台发起的活动配置命令，但供给平台不直接写营销规则和优惠计算结果。Draft、Staging、QC 事件主要服务于 B 端运营、审核、通知和审计。</p>
 <p>事件发布建议走 Outbox：</p>
 <pre><code class="language-text">更新商品状态 / 写发布版本
   → 同事务写 product_outbox_event
@@ -1332,7 +1450,7 @@ Item.current_publish_version = 4
 <tr><td>审核员审核了什么、结论是什么</td><td>QC Review</td></tr>
 <tr><td>为什么不能发布</td><td>Validation / DLQ</td></tr>
 <tr><td>已经发布了哪个正式版本</td><td>Publish Record / Publish Snapshot</td></tr>
-<tr><td>搜索、缓存、营销是否收到变更</td><td>Outbox / Compensation</td></tr>
+<tr><td>搜索、缓存、计价上下文是否收到变更，营销活动协同是否完成</td><td>Outbox / Compensation</td></tr>
 <tr><td>从 Draft 到下线的全链路日志怎么查</td><td>Operation Log / Object Mapping</td></tr>
 </tbody>
 </table>
@@ -1787,7 +1905,7 @@ product_supply_staging_snapshot
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品正式发布变更日志';
 </code></pre>
 <h3 id="11512-outbox-事件表"><a class="header" href="#11512-outbox-事件表">11.5.12 Outbox 事件表</a></h3>
-<p>Outbox 解决“商品正式表已变更，但搜索、缓存、营销、计价没收到事件”的问题。商品正式写入、发布记录、Outbox 必须在同一个事务里完成。</p>
+<p>Outbox 解决“商品正式表已变更，但搜索、缓存、计价上下文或营销资格消费者没收到事件”的问题。商品正式写入、发布记录、Outbox 必须在同一个事务里完成。</p>
 <pre><code class="language-sql">CREATE TABLE product_outbox_event (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     event_id VARCHAR(64) NOT NULL,
@@ -2006,8 +2124,374 @@ product_supply_staging_snapshot
 </div>
 <p>正式商品主数据表，例如 <code>resource_tab</code>、<code>product_spu_tab</code>、<code>product_sku_tab</code>、<code>product_offer_tab</code>、<code>stock_config_tab</code>、<code>fulfillment_rule_tab</code>、<code>refund_rule_tab</code>，仍然属于商品中心和交易前契约，不属于供给任务表。供给平台只通过发布事务写入它们。</p>
 <hr>
-<h2 id="116-单商品创建和编辑链路"><a class="header" href="#116-单商品创建和编辑链路">11.6 单商品创建和编辑链路</a></h2>
-<h3 id="1161-单商品创建"><a class="header" href="#1161-单商品创建">11.6.1 单商品创建</a></h3>
+<h2 id="116-库存运营任务从库存创建补货到券码池管理"><a class="header" href="#116-库存运营任务从库存创建补货到券码池管理">11.6 库存运营任务：从库存创建、补货到券码池管理</a></h2>
+<p>库存系统负责库存事实，但库存任务的运营入口应该在供给平台。原因是库存创建、补货、券码导入、系统生码、门店日期库存调整，往往不是一个纯技术接口调用，而是一组带有类目约束、审批、批量进度、错误文件、风险提示和审计要求的运营工作。</p>
+<p>本节讨论的是 <strong>库存任务如何被供给平台发起和治理</strong>，不是库存系统内部如何扣减。库存系统内部的余额、预占、扣减、释放、券码状态机和账本，仍然属于第 9 章库存系统。</p>
+<h3 id="1161-为什么库存任务属于供给运营平台"><a class="header" href="#1161-为什么库存任务属于供给运营平台">11.6.1 为什么库存任务属于供给运营平台</a></h3>
+<p>有些库存很简单，商品发布时顺手创建一行数量库存即可；有些库存很复杂，需要运营手动上传券码、系统生成券码、按门店和日期批量物化库存切片，还要支持后续补货、锁库存、局部调整和错误修复。如果这些入口散落在库存后台、商品后台、商家后台和供应商同步任务里，后续一定会出现三类问题：</p>
+<ol>
+<li><strong>入口不可控</strong>：同一个 SKU 的库存可以从多个后台修改，谁改的、为什么改、基于哪个商品版本改，很难追踪。</li>
+<li><strong>风险不可审</strong>：大额补货、批量锁库存、券码导入失败、活动前临时调库存，没有统一的风险评分和审批。</li>
+<li><strong>失败不可运营</strong>：文件第几行错了、哪批券码重复、哪些门店日期库存创建失败，如果只在库存系统日志里，运营无法闭环。</li>
+</ol>
+<p>因此更合理的分工是：</p>
+<pre><code class="language-text">供给运营平台：
+  负责库存任务的入口、表单、审批、任务编排、进度、错误文件、补偿和审计
+
+库存系统：
+  负责库存配置、余额、券码池、预占、扣减、释放、账本和对账
+</code></pre>
+<p>这个边界和商品发布一致：供给平台不直接改正式商品表，也不直接改库存余额。它发起表达业务意图的命令，由库存系统幂等执行。</p>
+<h3 id="1162-库存任务的通用模型"><a class="header" href="#1162-库存任务的通用模型">11.6.2 库存任务的通用模型</a></h3>
+<p>库存运营任务可以复用供给平台的 Task / Task Item / File / DLQ 模型，但要有清晰的 <code>task_type</code> 和执行阶段。</p>
+<p>常见 <code>task_type</code>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>任务类型</th><th>说明</th><th>典型触发</th></tr>
+</thead>
+<tbody>
+<tr><td><code>INVENTORY_CREATE</code></td><td>创建初始库存实例</td><td>商品发布、供应商商品首次映射</td></tr>
+<tr><td><code>INVENTORY_ADJUST</code></td><td>数量补货、盘点调整、扣减修正</td><td>运营补货、库存盘点、售后修正</td></tr>
+<tr><td><code>INVENTORY_LOCK</code></td><td>锁定或解锁库存范围</td><td>风控、质检、活动预留、门店停业</td></tr>
+<tr><td><code>CODE_IMPORT</code></td><td>手动上传券码或卡密文件</td><td>运营导入、供应商批量交付</td></tr>
+<tr><td><code>CODE_GENERATE</code></td><td>系统生成券码</td><td>平台自营券、礼品卡、充值码</td></tr>
+<tr><td><code>TIME_STORE_STOCK_MATERIALIZE</code></td><td>门店、日期、时段库存物化</td><td>本地生活、预约、票务、酒店库存日历</td></tr>
+<tr><td><code>INVENTORY_BULK_EDIT</code></td><td>批量编辑库存配置或库存水位</td><td>大促前批量调整、门店批量上下线</td></tr>
+</tbody>
+</table>
+</div>
+<p>任务状态建议和普通供给任务保持一致，但要额外表达库存系统执行结果：</p>
+<pre><code class="language-text">DRAFT
+  → SUBMITTED
+  → VALIDATING
+  → REVIEWING
+  → APPROVED
+  → DISPATCHING
+  → EXECUTING
+  → SUCCESS
+
+EXECUTING
+  → PARTIAL_FAILED
+  → DLQ
+
+任意非终态
+  → CANCELLED
+</code></pre>
+<p>供给平台里的任务状态回答“运营任务走到哪一步”；库存系统里的命令结果回答“库存事实是否已经变更”。两者不要合成一个字段，否则会出现“任务已审批但库存未 ready”“库存部分成功但任务显示成功”这类语义混乱。</p>
+<p>库存命令至少要携带：</p>
+<pre><code class="language-text">operation_id
+task_id
+item_no
+source_type
+source_id
+item_id / sku_id / offer_id
+inventory_key
+inventory_type
+scope_type / scope_id
+quantity_delta / initial_quantity
+code_batch_id
+effective_time
+operator_id
+reason
+idempotency_key
+publish_version
+</code></pre>
+<p>其中 <code>idempotency_key</code> 很关键。它通常来自：</p>
+<pre><code class="language-text">商品发布创建库存：publish_id + sku_id + inventory_scope
+运营补货：task_id + item_no
+券码导入：batch_id + code_hash
+系统生码：task_id + generation_seq
+门店日期库存：task_id + store_id + date + time_slot
+</code></pre>
+<h3 id="1163-数量制库存随商品发布自动创建"><a class="header" href="#1163-数量制库存随商品发布自动创建">11.6.3 数量制库存：随商品发布自动创建</a></h3>
+<p>简单数量制库存通常和商品发布强相关。例如平台自营的充值套餐、通用券包、虚拟权益包，商品创建时就知道库存类型、初始数量、销售范围和扣减时机。此时可以让库存创建随商品发布自动触发，但仍然不要把库存创建放进商品发布事务里同步执行。</p>
+<p>推荐链路：</p>
+<pre><code class="language-text">Publish Transaction
+  → 写商品正式表、库存配置、交易契约、Outbox
+  → ProductPublished
+  → InventoryCreateCoordinator 消费事件
+  → 生成 CreateInventory 命令
+  → 库存系统创建 inventory_config / inventory_balance
+  → 写 INIT / INBOUND 账本
+  → InventoryReady / InventoryCreateFailed
+  → 可售投影刷新
+</code></pre>
+<p>这种设计有几个好处：</p>
+<ol>
+<li>商品发布事务不会被库存系统写放大拖慢。</li>
+<li>同一个 <code>publish_id + inventory_key</code> 可以幂等创建，Outbox 重放不会重复加库存。</li>
+<li>库存创建失败可以展示为“商品已发布但库存未 ready”，由运营重试或修复。</li>
+<li>库存系统仍然通过账本解释初始库存来源，而不是凭空出现一行余额。</li>
+</ol>
+<p>数量制库存也要区分三个概念：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>概念</th><th>含义</th><th>是否可以直接改</th></tr>
+</thead>
+<tbody>
+<tr><td><code>initial_quantity</code></td><td>初始化或本次入库数量</td><td>只能通过创建 / 入库命令产生</td></tr>
+<tr><td><code>available_quantity</code></td><td>当前可承诺数量</td><td>由库存系统根据预占、扣减、释放计算</td></tr>
+<tr><td><code>locked_quantity</code></td><td>被运营、风控或活动锁住的数量</td><td>通过锁定 / 解锁命令变化</td></tr>
+</tbody>
+</table>
+</div>
+<p>供给平台可以展示这些数值，但不能执行：</p>
+<pre><code class="language-sql">UPDATE inventory_balance SET available_quantity = ? WHERE inventory_key = ?;
+</code></pre>
+<h3 id="1164-数量制库存后台补货调库存与锁库存"><a class="header" href="#1164-数量制库存后台补货调库存与锁库存">11.6.4 数量制库存：后台补货、调库存与锁库存</a></h3>
+<p>商品上线后，运营仍然会做补货、盘点调整、锁库存和解锁。它们都属于库存任务，但业务语义不同，不能都叫“改库存”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>操作</th><th>业务语义</th><th>典型风险</th><th>库存系统动作</th></tr>
+</thead>
+<tbody>
+<tr><td>补货</td><td>增加可售供给</td><td>补错 SKU、补错门店、活动前超卖</td><td>写入库流水，增加可用或总量</td></tr>
+<tr><td>盘点调整</td><td>修正账实差异</td><td>人工改错导致账本不可解释</td><td>写调整流水，保留原因和审批单</td></tr>
+<tr><td>锁库存</td><td>暂停某部分库存继续售卖</td><td>误锁导致大面积售罄</td><td>增加锁定量或锁定范围</td></tr>
+<tr><td>解锁库存</td><td>恢复被锁库存可售</td><td>解锁已售或异常库存</td><td>校验状态后释放锁定</td></tr>
+<tr><td>活动预留</td><td>给营销活动预留一部分库存</td><td>与普通售卖池冲突</td><td>生成独立 reservation 或 lock reason</td></tr>
+</tbody>
+</table>
+</div>
+<p>补货任务建议至少经过：</p>
+<pre><code class="language-text">创建补货草稿
+  → 选择商品 / SKU / 门店 / 日期范围
+  → 输入补货数量和原因
+  → 风险校验：数量阈值、活动中商品、历史投诉、供应商主导权
+  → 自动通过 / 人工审批
+  → 发 AdjustInventory 命令
+  → 库存系统 CAS 执行并写 inventory_ledger
+  → 返回 InventoryChanged
+</code></pre>
+<p>锁库存任务要更加谨慎。它经常来自风控、质检、履约异常、供应商停供或门店停业。锁定后不能删除库存行，也不能影响历史订单和已预占记录；它只应该阻止新的 Reserve。</p>
+<h3 id="1165-券码制库存手动上传券码批次"><a class="header" href="#1165-券码制库存手动上传券码批次">11.6.5 券码制库存：手动上传券码批次</a></h3>
+<p>券码制库存不能只用一个数量字段表达。每个券码都是一份可交付资源，必须一码一行、有状态机、有加密存储、有去重能力、有订单关联和审计记录。</p>
+<p>手动上传券码推荐链路：</p>
+<pre><code class="language-text">上传券码文件
+  → 写 product_supply_file(file_type=CODE_IMPORT)
+  → 创建 CODE_IMPORT task
+  → Parser Worker 流式解析
+  → 生成 task_item(row_no, code_hash, raw_ref)
+  → 校验格式、重复码、有效期、批次、SKU 归属
+  → 低风险自动通过 / 高风险进入审批
+  → 发 ImportCodeBatch 命令
+  → 库存系统加密写 inventory_code_batch
+  → 分表写 inventory_code_pool_XX
+  → Redis LIST 预热 code_id
+  → 返回 CodeBatchReady / CodeBatchPartialFailed
+</code></pre>
+<p><code>inventory_code_pool_XX</code> 的核心原则是：<strong>一码一行，MySQL 状态机是权威，Redis LIST 只保存 <code>code_id</code> 热数据。</strong></p>
+<pre><code class="language-text">inventory_code_pool_XX
+  code_id
+  batch_id
+  inventory_key
+  sku_id / offer_id
+  code_cipher
+  code_hash
+  status
+  reservation_id
+  order_id
+  user_id
+  booked_at
+  sold_at
+  expire_at
+  version
+</code></pre>
+<p>券码导入要特别注意：</p>
+<ol>
+<li>明文码不进入日志、错误文件和 Redis。</li>
+<li><code>code_hash</code> 用于去重和问题排查，<code>code_cipher</code> 用于加密交付。</li>
+<li>重复码、格式错误、过期码要行级失败，不能拖垮整批。</li>
+<li>MySQL CAS 成功后才算锁码成功，Redis 弹出 <code>code_id</code> 只是候选。</li>
+<li><code>SOLD</code> 码不要因为退款直接回到可售池，退款要走售后和履约规则。</li>
+</ol>
+<h3 id="1166-券码制库存系统生码与码池初始化"><a class="header" href="#1166-券码制库存系统生码与码池初始化">11.6.6 券码制库存：系统生码与码池初始化</a></h3>
+<p>系统生码和手动上传券码相似，但多了生码规则和安全要求。供给平台负责生码任务配置，库存系统负责真正生成、落库和维护状态机。</p>
+<p>生码任务通常包含：</p>
+<pre><code class="language-text">sku_id / offer_id
+generate_count
+code_length
+code_prefix
+validity_start / validity_end
+redeem_channel
+merchant_id / supplier_id
+batch_reason
+approval_id
+idempotency_key
+</code></pre>
+<p>系统生码的关键不是“生成随机字符串”，而是保证不可猜测、不可重复、可审计、可恢复：</p>
+<ol>
+<li>使用足够熵的随机源，避免连续号或可推导规则。</li>
+<li>生成前先创建 <code>inventory_code_batch</code>，所有码归属同一批次。</li>
+<li>每个 <code>code_hash</code> 有唯一约束，重复生成要丢弃并补足数量。</li>
+<li>生成成功后先写 MySQL，再按需预热 Redis <code>code_id</code>。</li>
+<li>任务失败可以按 <code>task_id + generation_seq</code> 恢复，不重复生成已成功的码。</li>
+</ol>
+<p>对于大批量生码，建议分片执行：</p>
+<pre><code class="language-text">CODE_GENERATE task
+  → task_item 1: generate 1 - 10000
+  → task_item 2: generate 10001 - 20000
+  → ...
+</code></pre>
+<p>这样可以支持进度展示、部分失败重试和批次级对账。</p>
+<h3 id="1167-门店--日期--时段库存批量物化与局部调整"><a class="header" href="#1167-门店--日期--时段库存批量物化与局部调整">11.6.7 门店 / 日期 / 时段库存：批量物化与局部调整</a></h3>
+<p>本地生活、预约、票务、酒店、活动类商品经常不是一行全局库存，而是按门店、日期、时段、房型、场次等维度切片。供给平台要提供适合运营使用的批量工具，库存系统负责物化和扣减。</p>
+<p>典型库存范围：</p>
+<pre><code class="language-text">GLOBAL
+STORE
+CITY
+DATE
+STORE_DATE
+STORE_DATE_TIME_SLOT
+SUPPLIER_SKU
+CHANNEL
+</code></pre>
+<p>门店日期库存任务要支持三种创建方式：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>创建方式</th><th>适用场景</th><th>设计要点</th></tr>
+</thead>
+<tbody>
+<tr><td>提前物化</td><td>热门门店、热门日期、活动库存</td><td>发布后批量创建未来 N 天切片</td></tr>
+<tr><td>懒创建</td><td>长尾门店、低频日期</td><td>首次查询或首次编辑时创建库存行</td></tr>
+<tr><td>模板复制</td><td>多门店同规则、多日期同库存</td><td>从营业模板、节假日模板或门店分组复制</td></tr>
+</tbody>
+</table>
+</div>
+<p>例如运营要给 100 家门店创建未来 30 天、每天 6 个时段的库存，任务会展开成 18000 个库存切片。这个操作不能同步阻塞在页面提交里，必须任务化、分批执行、展示进度、支持部分失败。</p>
+<p>局部调整也很重要。例如某门店临时停业，只应该锁定该门店未来几天的库存切片，不应该下架整个商品；某个时段履约能力不足，也只应该调整这个时段的可售能力。</p>
+<h3 id="1168-库存批量编辑任务行级处理部分成功与错误文件"><a class="header" href="#1168-库存批量编辑任务行级处理部分成功与错误文件">11.6.8 库存批量编辑任务：行级处理、部分成功与错误文件</a></h3>
+<p>库存批量编辑和商品批量导入一样，必须按任务和行级明细设计。常见文件行可能长这样：</p>
+<pre><code class="language-text">row_no
+sku_id
+store_id
+date
+time_slot
+operation_type
+quantity_delta
+lock_reason
+effective_time
+idempotency_key
+</code></pre>
+<p>处理流程：</p>
+<pre><code class="language-text">上传库存批量文件
+  → 校验模板版本和列结构
+  → 流式解析为 task_item
+  → 行级校验：SKU 是否存在、门店是否有效、日期是否合法、数量是否越界
+  → 风险评分：大额调整、活动商品、供应商主导字段、临近开售
+  → 自动通过 / 人工审批
+  → 分批发送库存命令
+  → 聚合成功、失败、跳过、DLQ
+  → 生成错误文件
+</code></pre>
+<p>部分成功是必须能力。10000 行库存调整里 100 行门店不存在，不应该让 9900 行全部失败。错误文件要能让运营直接修复，至少包含：</p>
+<pre><code class="language-text">row_no
+sku_id
+store_id
+date
+operation_type
+error_code
+error_message
+suggestion
+retryable
+</code></pre>
+<h3 id="1169-库存任务状态机与幂等设计"><a class="header" href="#1169-库存任务状态机与幂等设计">11.6.9 库存任务状态机与幂等设计</a></h3>
+<p>库存任务最怕重复执行。重复导入券码会造成重复码，重复补货会造成库存虚增，重复锁库存会导致可售水位异常。因此每一层都要有幂等键。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层级</th><th>幂等 Key</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td>任务层</td><td><code>task_type + trigger_id</code></td><td>防止同一次发布或同一个文件重复创建任务</td></tr>
+<tr><td>行级层</td><td><code>task_id + item_no</code> 或业务 <code>idempotency_key</code></td><td>防止重复处理同一行</td></tr>
+<tr><td>库存命令层</td><td><code>operation_id</code></td><td>防止命令重复投递</td></tr>
+<tr><td>券码层</td><td><code>batch_id + code_hash</code></td><td>防止重复码入库</td></tr>
+<tr><td>库存切片层</td><td><code>inventory_key + scope + date + slot</code></td><td>防止重复物化切片</td></tr>
+<tr><td>账本层</td><td><code>operation_id + ledger_type</code></td><td>防止重复写入入库、调整或锁定流水</td></tr>
+</tbody>
+</table>
+</div>
+<p>任务状态推进建议用 CAS：</p>
+<pre><code class="language-sql">UPDATE product_supply_task
+SET status = 'EXECUTING',
+    updated_at = NOW()
+WHERE task_id = ?
+  AND status = 'APPROVED';
+</code></pre>
+<p>库存系统执行命令也要返回明确结果：</p>
+<pre><code class="language-text">SUCCESS
+DUPLICATE_IGNORED
+PARTIAL_FAILED
+VALIDATION_FAILED
+CONFLICT
+RETRYABLE_FAILED
+</code></pre>
+<p><code>DUPLICATE_IGNORED</code> 不是失败，而是说明幂等命中；<code>CONFLICT</code> 通常需要运营重新基于最新库存状态编辑。</p>
+<h3 id="11610-供给平台与库存系统的命令边界"><a class="header" href="#11610-供给平台与库存系统的命令边界">11.6.10 供给平台与库存系统的命令边界</a></h3>
+<p>供给平台和库存系统之间建议使用业务命令，而不是让供给平台直连库存表。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>命令</th><th>语义</th><th>返回事件</th></tr>
+</thead>
+<tbody>
+<tr><td><code>CreateInventory</code></td><td>创建库存配置和初始库存实例</td><td><code>InventoryReady / InventoryCreateFailed</code></td></tr>
+<tr><td><code>AdjustInventory</code></td><td>补货、盘点调整、修正库存</td><td><code>InventoryChanged / InventoryAdjustFailed</code></td></tr>
+<tr><td><code>LockInventory</code></td><td>锁定库存范围或数量</td><td><code>InventoryLocked / InventoryLockFailed</code></td></tr>
+<tr><td><code>UnlockInventory</code></td><td>解锁库存范围或数量</td><td><code>InventoryUnlocked / InventoryUnlockFailed</code></td></tr>
+<tr><td><code>ImportCodeBatch</code></td><td>导入券码批次</td><td><code>CodeBatchReady / CodeBatchPartialFailed</code></td></tr>
+<tr><td><code>GenerateCodeBatch</code></td><td>系统生成券码批次</td><td><code>CodeBatchReady / CodeBatchFailed</code></td></tr>
+<tr><td><code>MaterializeTimeStoreStock</code></td><td>物化门店、日期、时段库存</td><td><code>StockSliceReady / StockSlicePartialFailed</code></td></tr>
+<tr><td><code>RebuildAvailability</code></td><td>触发可售投影重建</td><td><code>AvailabilityProjected / AvailabilityProjectFailed</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>命令请求里要带 <code>operator_id</code>、<code>reason</code>、<code>source_type</code>、<code>task_id</code>、<code>operation_id</code> 和 <code>publish_version</code>。库存系统写账本时也要保存这些字段，后续才能从一条库存流水反查到对应的供给任务、审批单和发布版本。</p>
+<h3 id="11611-库存任务的审计补偿与可售诊断"><a class="header" href="#11611-库存任务的审计补偿与可售诊断">11.6.11 库存任务的审计、补偿与可售诊断</a></h3>
+<p>库存任务完成后，运营后台不能只显示“成功 / 失败”。更好的展示是：</p>
+<pre><code class="language-text">任务状态：PARTIAL_FAILED
+总行数：10000
+成功：9850
+失败：120
+跳过：30
+库存系统命令成功率：98.5%
+错误文件：可下载
+影响商品：128 个
+影响门店：46 个
+可售投影：等待 12 个商品刷新
+</code></pre>
+<p>补偿要区分三类：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>失败类型</th><th>示例</th><th>处理方式</th></tr>
+</thead>
+<tbody>
+<tr><td>供给侧失败</td><td>文件格式错误、字段缺失、门店不存在</td><td>生成错误文件，运营修复后重新提交</td></tr>
+<tr><td>库存侧失败</td><td>库存系统超时、CAS 冲突、重复码</td><td>自动重试、DLQ、人工确认</td></tr>
+<tr><td>投影侧失败</td><td>可售投影刷新失败、缓存未失效、搜索状态落后</td><td>Outbox 重放、补偿任务重建</td></tr>
+</tbody>
+</table>
+</div>
+<p>最终运营要能看到一条完整链路：</p>
+<pre><code class="language-text">谁在什么时间
+基于哪个商品版本
+因为什么原因
+创建了哪个库存任务
+影响了哪些库存实例或券码批次
+库存系统是否执行成功
+可售投影是否刷新成功
+如果失败，下一步该谁处理
+</code></pre>
+<p>这就是把库存运营任务放在供给平台里的价值：库存事实不被供给平台篡改，但库存变更过程被供给平台治理起来。</p>
+<hr>
+<h2 id="117-单商品创建和编辑链路"><a class="header" href="#117-单商品创建和编辑链路">11.7 单商品创建和编辑链路</a></h2>
+<h3 id="1171-单商品创建"><a class="header" href="#1171-单商品创建">11.7.1 单商品创建</a></h3>
 <p>单商品创建要保证运营体验，所以保存和基础校验走同步；正式发布仍然走治理链路。</p>
 <pre><code class="language-text">选择类目
   → 加载类目模板
@@ -2046,7 +2530,7 @@ product_supply_staging_snapshot
   ]
 }
 </code></pre>
-<h3 id="1162-单商品编辑"><a class="header" href="#1162-单商品编辑">11.6.2 单商品编辑</a></h3>
+<h3 id="1172-单商品编辑"><a class="header" href="#1172-单商品编辑">11.7.2 单商品编辑</a></h3>
 <p>编辑比创建更复杂，因为它基于线上版本修改。</p>
 <pre><code class="language-text">打开商品详情
   → 读取 current_publish_version
@@ -2090,7 +2574,7 @@ product_supply_staging_snapshot
 </tbody>
 </table>
 </div>
-<h3 id="1163-draft-与-staging-的区别"><a class="header" href="#1163-draft-与-staging-的区别">11.6.3 Draft 与 Staging 的区别</a></h3>
+<h3 id="1173-draft-与-staging-的区别"><a class="header" href="#1173-draft-与-staging-的区别">11.7.3 Draft 与 Staging 的区别</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -2113,9 +2597,9 @@ Staging
   → 只有发布事务能写入
 </code></pre>
 <hr>
-<h2 id="117-批量导入和批量编辑链路"><a class="header" href="#117-批量导入和批量编辑链路">11.7 批量导入和批量编辑链路</a></h2>
+<h2 id="118-批量导入和批量编辑链路"><a class="header" href="#118-批量导入和批量编辑链路">11.8 批量导入和批量编辑链路</a></h2>
 <p>批量链路要按“任务 + 行级明细 + 暂存快照 + 错误文件 + 补偿”设计，不能把整个 Excel 读进内存后循环写正式表。</p>
-<h3 id="1171-异步执行总流程"><a class="header" href="#1171-异步执行总流程">11.7.1 异步执行总流程</a></h3>
+<h3 id="1181-异步执行总流程"><a class="header" href="#1181-异步执行总流程">11.8.1 异步执行总流程</a></h3>
 <pre><code class="language-text">上传文件 / 批量提交
   → 写 product_supply_file(file_type=INPUT)
   → 创建 product_supply_task(status=PENDING, execution_mode=ASYNC)
@@ -2134,7 +2618,7 @@ Staging
 <li>行级失败不会拖垮整批任务。</li>
 <li>发布和下游刷新可以限速、重试和补偿。</li>
 </ol>
-<h3 id="1172-parser-worker"><a class="header" href="#1172-parser-worker">11.7.2 Parser Worker</a></h3>
+<h3 id="1182-parser-worker"><a class="header" href="#1182-parser-worker">11.8.2 Parser Worker</a></h3>
 <p>Parser Worker 只负责解析，不负责发布。</p>
 <pre><code class="language-text">1. CAS 抢占 product_supply_task
 2. 读取 product_supply_file，校验 input_file_ref、文件 hash、模板版本和列结构
@@ -2156,7 +2640,7 @@ Staging
 <pre><code class="language-text">UNIQUE(task_id, item_no)
 UNIQUE(task_id, idempotency_key)
 </code></pre>
-<h3 id="1173-item-worker"><a class="header" href="#1173-item-worker">11.7.3 Item Worker</a></h3>
+<h3 id="1183-item-worker"><a class="header" href="#1183-item-worker">11.8.3 Item Worker</a></h3>
 <p>Item Worker 不按整个文件处理，而是扫描小批量 item。</p>
 <pre><code class="language-sql">SELECT *
 FROM product_supply_task_item
@@ -2179,7 +2663,7 @@ LIMIT 500;
   → 更新 item.status
 </code></pre>
 <p>不要用一个大事务包住 500 行。否则一行失败会拖垮整批，也会造成长事务和锁等待。</p>
-<h3 id="1174-item-状态机"><a class="header" href="#1174-item-状态机">11.7.4 Item 状态机</a></h3>
+<h3 id="1184-item-状态机"><a class="header" href="#1184-item-状态机">11.8.4 Item 状态机</a></h3>
 <pre><code class="language-text">PENDING
   → NORMALIZING
   → VALIDATING
@@ -2210,7 +2694,7 @@ NORMALIZING / VALIDATING / STAGING / DIFFING / QC_REVIEWING / PUBLISHING
 </tbody>
 </table>
 </div>
-<h3 id="1175-错误文件"><a class="header" href="#1175-错误文件">11.7.5 错误文件</a></h3>
+<h3 id="1185-错误文件"><a class="header" href="#1185-错误文件">11.8.5 错误文件</a></h3>
 <p>错误文件要能指导运营修复，而不是只写“导入失败”。</p>
 <pre><code class="language-text">row_no, object_key, field, error_code, error_message, suggestion
 12, SKU_001, price, PRICE_TOO_LOW, price lower than floor price, adjust price &gt;= 100
@@ -2220,8 +2704,8 @@ NORMALIZING / VALIDATING / STAGING / DIFFING / QC_REVIEWING / PUBLISHING
 <p>错误文件应该从 <code>product_supply_task_item</code> 和 <code>product_validation_result</code> 生成，而不是从日志里拼。</p>
 <p>生成错误文件后，建议写一条 <code>product_supply_file(file_type=ERROR)</code>，这样运营后台可以通过 task 直接找到源文件、规范化文件和错误文件。</p>
 <hr>
-<h2 id="118-供应商商品同步链路"><a class="header" href="#118-供应商商品同步链路">11.8 供应商商品同步链路</a></h2>
-<h3 id="1181-为什么单独设计"><a class="header" href="#1181-为什么单独设计">11.8.1 为什么单独设计</a></h3>
+<h2 id="119-供应商商品同步链路"><a class="header" href="#119-供应商商品同步链路">11.9 供应商商品同步链路</a></h2>
+<h3 id="1191-为什么单独设计"><a class="header" href="#1191-为什么单独设计">11.9.1 为什么单独设计</a></h3>
 <p>供应商同步和批量导入有相似之处：都是外部或非正式数据进入平台商品模型，都需要任务、明细、标准化、校验、Diff、发布和补偿。</p>
 <p>但供应商同步还有额外复杂度：</p>
 <div class="table-wrapper">
@@ -2240,7 +2724,7 @@ NORMALIZING / VALIDATING / STAGING / DIFFING / QC_REVIEWING / PUBLISHING
 </tbody>
 </table>
 </div>
-<h3 id="1182-推荐架构"><a class="header" href="#1182-推荐架构">11.8.2 推荐架构</a></h3>
+<h3 id="1192-推荐架构"><a class="header" href="#1192-推荐架构">11.9.2 推荐架构</a></h3>
 <pre><code class="language-text">Supplier Adapter
   → Sync Task / Batch
   → Page / Cursor Fetch
@@ -2273,7 +2757,7 @@ product_qc_review_item
 product_publish_snapshot
 product_outbox_event
 </code></pre>
-<h3 id="1183-新鲜度分层"><a class="header" href="#1183-新鲜度分层">11.8.3 新鲜度分层</a></h3>
+<h3 id="1193-新鲜度分层"><a class="header" href="#1193-新鲜度分层">11.9.3 新鲜度分层</a></h3>
 <p>不同数据的刷新策略不同。</p>
 <div class="table-wrapper">
 <table>
@@ -2293,8 +2777,8 @@ product_outbox_event
 <p>列表页可以快，详情页要准，创单必须安全。</p>
 </blockquote>
 <hr>
-<h2 id="119-标准化质量校验与风险审核"><a class="header" href="#119-标准化质量校验与风险审核">11.9 标准化、质量校验与风险审核</a></h2>
-<h3 id="1191-标准化"><a class="header" href="#1191-标准化">11.9.1 标准化</a></h3>
+<h2 id="1110-标准化质量校验与风险审核"><a class="header" href="#1110-标准化质量校验与风险审核">11.10 标准化、质量校验与风险审核</a></h2>
+<h3 id="11101-标准化"><a class="header" href="#11101-标准化">11.10.1 标准化</a></h3>
 <p>不同入口的数据格式不同，但必须统一到平台商品模型：</p>
 <pre><code class="language-text">入口数据
   → Resource
@@ -2312,7 +2796,7 @@ product_outbox_event
   refund_rule: PLATFORM
 </code></pre>
 <p>这对字段主导权、供应商覆盖、事故追溯非常重要。</p>
-<h3 id="1192-质量校验"><a class="header" href="#1192-质量校验">11.9.2 质量校验</a></h3>
+<h3 id="11102-质量校验"><a class="header" href="#11102-质量校验">11.10.2 质量校验</a></h3>
 <p>质量校验不能只做字段必填。</p>
 <div class="table-wrapper">
 <table>
@@ -2330,7 +2814,7 @@ product_outbox_event
 </tbody>
 </table>
 </div>
-<h3 id="1193-来源准入与风险审核"><a class="header" href="#1193-来源准入与风险审核">11.9.3 来源准入与风险审核</a></h3>
+<h3 id="11103-来源准入与风险审核"><a class="header" href="#11103-来源准入与风险审核">11.10.3 来源准入与风险审核</a></h3>
 <p>审核策略应该差异化，而不是所有变更都人工 QC。这里的“审核”落库到 <code>product_qc_review</code> 和 <code>product_qc_review_item</code>，<code>product_change_request</code> 负责记录字段 Diff 和风险结论，QC 表负责记录审核工单和审核结论。</p>
 <p>准入策略先看来源，再看风险：</p>
 <pre><code class="language-text">qc_policy =
@@ -2396,7 +2880,7 @@ reject_reason
 status
 </code></pre>
 <p>审核员看到的不是一段 JSON，而是字段级 Diff、风险原因、历史版本、供应商原始数据或运营输入证据。</p>
-<h3 id="1194-qc-阶段位置"><a class="header" href="#1194-qc-阶段位置">11.9.4 QC 阶段位置</a></h3>
+<h3 id="11104-qc-阶段位置"><a class="header" href="#11104-qc-阶段位置">11.10.4 QC 阶段位置</a></h3>
 <p>QC 是发布前质量闸口，不是录入阶段，也不是最终商品主表。但并不是所有来源都需要 QC：商家上传默认需要，本地运营上传默认不需要。</p>
 <pre><code class="language-text">供给入口
   → Draft / Task / Item
@@ -2429,9 +2913,9 @@ status
 </div>
 <p>QC 的关键原则是：<strong>QC 通过才允许进入发布事务，QC 驳回不能修改正式商品表</strong>。驳回项应该回到 Draft、错误文件、DLQ 或质量问题单，由运营修复后重新提交。</p>
 <hr>
-<h2 id="1110-发布一致性设计"><a class="header" href="#1110-发布一致性设计">11.10 发布一致性设计</a></h2>
+<h2 id="1111-发布一致性设计"><a class="header" href="#1111-发布一致性设计">11.11 发布一致性设计</a></h2>
 <p>QC 通过或自动准入不代表商品已经可售。发布要保证商品主数据、资源映射、交易契约、库存可售、搜索缓存和下游系统最终一致。</p>
-<h3 id="11101-发布事务"><a class="header" href="#11101-发布事务">11.10.1 发布事务</a></h3>
+<h3 id="11111-发布事务"><a class="header" href="#11111-发布事务">11.11.1 发布事务</a></h3>
 <pre><code class="language-text">QC 通过 / 自动准入
   → 开启发布事务
   → 写 Resource / SPU / SKU / Offer / Rate Plan
@@ -2442,9 +2926,10 @@ status
   → 写 product_change_log
   → 写 product_outbox_event
   → 提交事务
-  → 异步刷新搜索、缓存、营销、计价、数据平台
+  → 异步刷新搜索、缓存、计价上下文、数据平台
+  → 如涉及活动配置，异步调用营销系统命令
 </code></pre>
-<p>发布事务内只做商品中心必须强一致的事情。ES 刷新、缓存失效、营销圈品、计价上下文刷新都通过 Outbox 异步执行。</p>
+<p>发布事务内只做商品中心必须强一致的事情。ES 刷新、缓存失效、计价上下文刷新都通过 Outbox 异步执行；营销活动配置走营销系统命令或营销资格事件，不放进商品发布事务同步调用。</p>
 <p>发布前必须二次确认 QC 状态：</p>
 <pre><code class="language-sql">SELECT status
 FROM product_qc_review
@@ -2452,7 +2937,7 @@ WHERE review_id = ?
   AND status = 'APPROVED';
 </code></pre>
 <p>如果高风险变更没有对应的 <code>APPROVED</code> QC 审核单，Publish Worker 必须拒绝发布。这样可以防止绕过审核接口直接调用发布接口。</p>
-<h3 id="11102-发布版本和快照"><a class="header" href="#11102-发布版本和快照">11.10.2 发布版本和快照</a></h3>
+<h3 id="11112-发布版本和快照"><a class="header" href="#11112-发布版本和快照">11.11.2 发布版本和快照</a></h3>
 <p>每次发布生成 <code>publish_version</code>：</p>
 <pre><code class="language-text">product_id = 10001
 old_publish_version = 21
@@ -2473,7 +2958,7 @@ new_publish_version = 22
 退款规则快照
 供应商映射快照
 </code></pre>
-<h3 id="11103-outbox"><a class="header" href="#11103-outbox">11.10.3 Outbox</a></h3>
+<h3 id="11113-outbox"><a class="header" href="#11113-outbox">11.11.3 Outbox</a></h3>
 <p>Outbox 事件示例：</p>
 <pre><code class="language-text">ProductPublished
 ProductContentChanged
@@ -2496,8 +2981,8 @@ next_retry_at
 </code></pre>
 <p>如果搜索刷新失败，不回滚商品发布，而是进入 Outbox 补偿。</p>
 <hr>
-<h2 id="1111-运营管理能力"><a class="header" href="#1111-运营管理能力">11.11 运营管理能力</a></h2>
-<h3 id="11111-字段主导权"><a class="header" href="#11111-字段主导权">11.11.1 字段主导权</a></h3>
+<h2 id="1112-运营管理能力"><a class="header" href="#1112-运营管理能力">11.12 运营管理能力</a></h2>
+<h3 id="11121-字段主导权"><a class="header" href="#11121-字段主导权">11.12.1 字段主导权</a></h3>
 <p>字段主导权解决的是“供应商同步和人工运营谁覆盖谁”。</p>
 <div class="table-wrapper">
 <table>
@@ -2523,7 +3008,7 @@ override_reason
 operator_id
 </code></pre>
 <p>供应商同步遇到保护字段时，不自动覆盖，只记录 Diff 和冲突日志。</p>
-<h3 id="11112-权限与审计"><a class="header" href="#11112-权限与审计">11.11.2 权限与审计</a></h3>
+<h3 id="11122-权限与审计"><a class="header" href="#11122-权限与审计">11.12.2 权限与审计</a></h3>
 <p>权限要拆成两层：</p>
 <ol>
 <li><strong>功能权限</strong>：是否能创建、编辑、导入、审核、发布。</li>
@@ -2548,7 +3033,7 @@ publish_version
 <li>供应商映射变更。</li>
 <li>热门商品下架。</li>
 </ol>
-<h3 id="11113-回滚与灰度"><a class="header" href="#11113-回滚与灰度">11.11.3 回滚与灰度</a></h3>
+<h3 id="11123-回滚与灰度"><a class="header" href="#11123-回滚与灰度">11.12.3 回滚与灰度</a></h3>
 <p>回滚不是简单把字段改回去。需要区分：</p>
 <div class="table-wrapper">
 <table>
@@ -2559,7 +3044,7 @@ publish_version
 <tr><td>商品主数据</td><td>回滚到指定 <code>publish_version</code></td></tr>
 <tr><td>搜索索引</td><td>根据快照重建索引</td></tr>
 <tr><td>缓存</td><td>失效或刷新旧版本</td></tr>
-<tr><td>营销圈品</td><td>重新投递商品变更事件</td></tr>
+<tr><td>营销圈品</td><td>重新向营销系统提交活动配置命令，或重新投递商品营销资格事件</td></tr>
 <tr><td>订单</td><td>不回滚历史订单快照</td></tr>
 </tbody>
 </table>
@@ -2573,8 +3058,8 @@ publish_version
 <li>商品热度。</li>
 </ol>
 <hr>
-<h2 id="1112-dlq补偿与质量巡检"><a class="header" href="#1112-dlq补偿与质量巡检">11.12 DLQ、补偿与质量巡检</a></h2>
-<h3 id="11121-失败分类"><a class="header" href="#11121-失败分类">11.12.1 失败分类</a></h3>
+<h2 id="1113-dlq补偿与质量巡检"><a class="header" href="#1113-dlq补偿与质量巡检">11.13 DLQ、补偿与质量巡检</a></h2>
+<h3 id="11131-失败分类"><a class="header" href="#11131-失败分类">11.13.1 失败分类</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -2590,7 +3075,7 @@ publish_version
 </tbody>
 </table>
 </div>
-<h3 id="11122-dlq-表"><a class="header" href="#11122-dlq-表">11.12.2 DLQ 表</a></h3>
+<h3 id="11132-dlq-表"><a class="header" href="#11132-dlq-表">11.13.2 DLQ 表</a></h3>
 <p><code>product_supply_dead_letter</code> 是可运营问题单，不只是消息队列里的失败消息。</p>
 <pre><code class="language-text">dead_letter_id
 task_id
@@ -2622,7 +3107,7 @@ PENDING
 RETRYING
   → FAILED
 </code></pre>
-<h3 id="11123-质量巡检"><a class="header" href="#11123-质量巡检">11.12.3 质量巡检</a></h3>
+<h3 id="11133-质量巡检"><a class="header" href="#11133-质量巡检">11.13.3 质量巡检</a></h3>
 <p>质量巡检要覆盖：</p>
 <ol>
 <li>缺图商品。</li>
@@ -2641,8 +3126,8 @@ RETRYING
 DLQ 修复率 = RESOLVED DLQ / TOTAL DLQ
 </code></pre>
 <hr>
-<h2 id="1113-可观测性与稳定性"><a class="header" href="#1113-可观测性与稳定性">11.13 可观测性与稳定性</a></h2>
-<h3 id="11131-任务看板"><a class="header" href="#11131-任务看板">11.13.1 任务看板</a></h3>
+<h2 id="1114-可观测性与稳定性"><a class="header" href="#1114-可观测性与稳定性">11.14 可观测性与稳定性</a></h2>
+<h3 id="11141-任务看板"><a class="header" href="#11141-任务看板">11.14.1 任务看板</a></h3>
 <p>运营后台至少要能看到：</p>
 <pre><code class="language-text">任务进度：总数、成功、失败、跳过、当前阶段
 失败原因：错误码、错误字段、建议修复方式、错误文件
@@ -2668,7 +3153,7 @@ DLQ 修复率 = RESOLVED DLQ / TOTAL DLQ
 </tbody>
 </table>
 </div>
-<h3 id="11132-隔离与限流"><a class="header" href="#11132-隔离与限流">11.13.2 隔离与限流</a></h3>
+<h3 id="11142-隔离与限流"><a class="header" href="#11142-隔离与限流">11.14.2 隔离与限流</a></h3>
 <p>批量任务不能拖垮交易链路。</p>
 <p>建议隔离：</p>
 <ol>
@@ -2685,7 +3170,7 @@ DLQ 修复率 = RESOLVED DLQ / TOTAL DLQ
 大批量任务限速
 供应商异常熔断
 </code></pre>
-<h3 id="11133-幂等与并发"><a class="header" href="#11133-幂等与并发">11.13.3 幂等与并发</a></h3>
+<h3 id="11143-幂等与并发"><a class="header" href="#11143-幂等与并发">11.14.3 幂等与并发</a></h3>
 <p>幂等分层：</p>
 <div class="table-wrapper">
 <table>
@@ -2709,8 +3194,8 @@ DLQ 修复率 = RESOLVED DLQ / TOTAL DLQ
 <li>供应商同步遇到运营保护字段时不覆盖。</li>
 </ol>
 <hr>
-<h2 id="1114-与其他系统的集成"><a class="header" href="#1114-与其他系统的集成">11.14 与其他系统的集成</a></h2>
-<h3 id="11141-商品中心"><a class="header" href="#11141-商品中心">11.14.1 商品中心</a></h3>
+<h2 id="1115-与其他系统的集成"><a class="header" href="#1115-与其他系统的集成">11.15 与其他系统的集成</a></h2>
+<h3 id="11151-商品中心"><a class="header" href="#11151-商品中心">11.15.1 商品中心</a></h3>
 <p>供给平台通过命令 API 写商品中心，不直连商品正式表。</p>
 <p>命令应该表达业务意图：</p>
 <pre><code class="language-text">CreateProductDefinition
@@ -2723,26 +3208,47 @@ OfflineProduct
 <p>不要让运营后台执行：</p>
 <pre><code class="language-sql">UPDATE product_sku SET price = ? WHERE sku_id = ?;
 </code></pre>
-<h3 id="11142-库存系统"><a class="header" href="#11142-库存系统">11.14.2 库存系统</a></h3>
-<p>发布时只写库存配置和可售规则，不直接扣减库存。</p>
-<p>库存相关动作：</p>
+<h3 id="11152-库存系统"><a class="header" href="#11152-库存系统">11.15.2 库存系统</a></h3>
+<p>库存创建和修改的运营入口在供给平台，但库存事实必须留在库存系统。11.6 已经展开库存运营任务的设计，这里只强调系统集成边界：供给平台发起库存命令，库存系统幂等执行事实变更并返回事件。</p>
+<p>供给平台可以发起的库存命令包括：</p>
 <ol>
-<li>初始化库存来源。</li>
-<li>校验券码池是否存在。</li>
-<li>查询实时库存能力。</li>
-<li>发布可售规则。</li>
-<li>创单时由交易链路预占或确认。</li>
+<li><code>CreateInventory</code>：初始化库存来源、范围、扣减时机和初始库存实例。</li>
+<li><code>AdjustInventory</code>：数量补货、库存调整、锁定和解锁。</li>
+<li><code>ImportCodeBatch / GenerateCodeBatch</code>：导入或生成券码批次，由库存系统加密落库和维护状态机。</li>
+<li><code>MaterializeTimeStoreStock</code>：创建门店、日期、时段等库存切片。</li>
+<li><code>RebuildAvailability</code>：发布可售规则并刷新可售投影。</li>
+<li>创单时仍由交易链路调用库存系统 Reserve / Confirm / Release。</li>
 </ol>
-<h3 id="11143-计价系统"><a class="header" href="#11143-计价系统">11.14.3 计价系统</a></h3>
-<p>商品供给发布的是基础价格事实和 Offer 规则。营销活动价、会员价、优惠叠加由计价系统试算。</p>
+<p>这里的底线是：供给平台负责表单、审批、任务、错误文件、进度和审计；库存系统负责幂等执行、CAS、预占、账本和对账。不要让运营后台执行：</p>
+<pre><code class="language-sql">UPDATE inventory_balance SET available_stock = ? WHERE inventory_key = ?;
+</code></pre>
+<h3 id="11153-营销系统"><a class="header" href="#11153-营销系统">11.15.3 营销系统</a></h3>
+<p>供给平台可以和营销系统集成，但集成的是活动配置、圈品和营销资格，不是优惠计算。常见动作包括：</p>
+<ol>
+<li><code>BindProductToCampaign</code>：把商品、SKU 或门店范围加入活动。</li>
+<li><code>UpdatePromotionEligibility</code>：同步商品是否具备参加活动的资格。</li>
+<li><code>SyncProductMarketingTags</code>：同步活动标签、频道标签或运营分组。</li>
+<li><code>UnbindProductFromCampaign</code>：商品下架、售罄、禁售或活动结束时解除圈品。</li>
+</ol>
+<p>边界要清楚：供给平台负责表单、审批、Diff、发布版本和审计；营销系统负责活动规则、预算、券、补贴、营销库存、优惠叠加和成本归因。供给平台不要保存最终活动价，也不要直接核销券或锁定营销预算。</p>
+<p>活动配置不能放进商品发布事务里同步调用。更稳妥的链路是：</p>
+<pre><code class="language-text">商品发布 / 活动资格变更
+  → 写 product_outbox_event
+  → Marketing Coordinator 消费事件
+  → 调用营销系统命令
+  → 营销系统返回 CampaignBindingReady / Failed
+  → 供给运营后台展示协同状态和补偿入口
+</code></pre>
+<h3 id="11154-计价系统"><a class="header" href="#11154-计价系统">11.15.4 计价系统</a></h3>
+<p>商品供给发布的是基础价格事实和 Offer 规则，计价系统根据商品版本、渠道、会员、营销活动和结算规则做试算。供给平台不要直接调用计价系统写最终成交价，发布后只通过 Outbox 让计价上下文消费者重建价格投影。</p>
 <p>不要把活动价手填到商品表里，否则会造成：</p>
 <ol>
 <li>计价口径漂移。</li>
 <li>营销成本无法对账。</li>
 <li>退款时无法解释优惠来源。</li>
 </ol>
-<h3 id="11144-搜索系统"><a class="header" href="#11144-搜索系统">11.14.4 搜索系统</a></h3>
-<p>发布后通过 Outbox 刷新搜索索引。</p>
+<h3 id="11155-搜索系统"><a class="header" href="#11155-搜索系统">11.15.5 搜索系统</a></h3>
+<p>发布后通过 Outbox 刷新搜索索引。供给平台不直接写 ES，也不把 ES 写入成功作为商品发布事务的一部分。</p>
 <p>搜索索引要保存：</p>
 <pre><code class="language-text">product_id
 publish_version
@@ -2756,7 +3262,8 @@ updated_at
 <p>索引版本落后时，巡检任务要能发现：</p>
 <pre><code class="language-text">product_publish_version != search_index_publish_version
 </code></pre>
-<h3 id="11145-订单系统"><a class="header" href="#11145-订单系统">11.14.5 订单系统</a></h3>
+<h3 id="11156-订单系统"><a class="header" href="#11156-订单系统">11.15.6 订单系统</a></h3>
+<p>供给平台不直接调用订单系统修改订单，也不向订单系统推送“最新商品配置”。订单系统只在创单时读取当时可交易上下文，并保存商品、报价、履约和退款规则快照。</p>
 <p>订单创建时不能只保存 <code>sku_id</code>，还要保存商品上下文快照。</p>
 <pre><code class="language-text">product_snapshot
 offer_snapshot
@@ -2768,143 +3275,8 @@ supplier_mapping_snapshot
 </code></pre>
 <p>这样后续商品改价、下架、退款规则调整，不影响历史订单解释。</p>
 <hr>
-<h2 id="1115-面试总结"><a class="header" href="#1115-面试总结">11.15 面试总结</a></h2>
-<p>面试中可以这样总结商品供给与运营管理和生命周期管理：</p>
-<blockquote>
-<p>我不会把商品供给设计成后台 CRUD，也不会把供应商同步和人工运营割裂成两套系统。我的设计是统一供给治理平台：人工创建、批量导入、运营编辑和供应商同步都先进入 Draft、Task、Item 和 Staging，通过标准化、质量校验、Diff、风险审核、版本化发布、Outbox、DLQ、补偿和质量巡检后，再写入正式商品主数据和交易契约。单商品创建和编辑要保证同步体验，批量导入、批量编辑和供应商同步必须异步任务化。Draft、Staging、QC、正式 Item、Task 状态要分开建模，避免状态语义混乱。发布时生成 publish_version 和商品快照，订单只相信创单时快照，下游刷新通过 Outbox 最终一致。这样才能支撑多品类、多供应商和强运营平台的长期演进。</p>
-</blockquote>
-<p>如果只能做三件事：</p>
-<ol>
-<li><strong>收敛写入口</strong>：所有商品变更必须经过命令 API、Task、Staging 和发布事务。</li>
-<li><strong>建立版本和审核</strong>：所有高风险变更必须有 Diff、风险理由、审核记录和 <code>publish_version</code>。</li>
-<li><strong>补齐补偿闭环</strong>：错误文件、DLQ、Outbox、质量巡检和运营看板必须能让失败被发现、被修复、被重新投递。</li>
-</ol>
-<hr>
-<h2 id="1116-常见面试题"><a class="header" href="#1116-常见面试题">11.16 常见面试题</a></h2>
-<h3 id="11161-基础边界"><a class="header" href="#11161-基础边界">11.16.1 基础边界</a></h3>
-<p><strong>问题 1：为什么商品供给与运营平台不能设计成商品中心的后台 CRUD？</strong></p>
-<p>参考要点：商品中心负责正式主数据和查询契约，供给平台负责 Draft、Task、Staging、审核、发布、补偿和审计。后台直接 CRUD 会让未审核数据污染线上，也会造成搜索、缓存、订单快照和发布版本不可追溯。</p>
-<p><strong>问题 2：商品中心和供给运营平台的边界是什么？</strong></p>
-<p>参考要点：商品中心保存正式 <code>Resource / SPU / SKU / Offer / Rule</code> 和 <code>publish_version</code>；供给运营平台保存供给流程对象，例如 Draft、Staging、QC、Task、DLQ。供给平台通过发布事务写商品中心，不直接让运营后台改正式表。</p>
-<p><strong>问题 3：供应商同步和人工上传要分成两套系统吗？</strong></p>
-<p>参考要点：不要简单回答“分开”或“不分开”。更准确的设计是：<strong>入口层、执行层要分开，标准化之后的治理和发布层要合流</strong>。</p>
-<p>供应商同步和人工上传的执行问题完全不同：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>维度</th><th>人工上传 / 批量导入</th><th>供应商同步</th></tr>
-</thead>
-<tbody>
-<tr><td>触发方式</td><td>用户点击、上传 Excel、保存 Draft</td><td>定时任务、全量同步、增量同步、Push</td></tr>
-<tr><td>数据来源</td><td>本地运营、商家</td><td>外部供应商 API / 消息</td></tr>
-<tr><td>失败原因</td><td>字段填错、模板错误、图片不合规</td><td>超时、限流、5xx、游标失效、字段漂移</td></tr>
-<tr><td>进度模型</td><td>文件行号、导入 item、错误文件</td><td>city / page / cursor / checkpoint</td></tr>
-<tr><td>恢复机制</td><td>重传文件、失败行重试</td><td>checkpoint 续跑、lease 抢占、DLQ</td></tr>
-<tr><td>证据保存</td><td>上传文件、表单 payload</td><td>Raw Snapshot、payload hash</td></tr>
-<tr><td>新鲜度</td><td>通常不要求秒级</td><td>酒店、票务、库存价格可能要求高新鲜度</td></tr>
-</tbody>
-</table>
-</div>
-<p>所以供应商同步需要独立执行层：</p>
-<pre><code class="language-text">supplier_sync_task
-supplier_sync_batch
-supplier_sync_snapshot
-supplier_sync_diff_log
-supplier_sync_dead_letter
-</code></pre>
-<p>但它们不能完全拆成两套商品发布系统。否则人工上传一套 QC 和发布逻辑，供应商同步另一套 QC 和发布逻辑，很容易出现审核规则重复、发布版本乱序、字段主导权混乱、搜索缓存刷新不一致、订单快照口径不统一等问题。</p>
-<p>推荐架构是：</p>
-<pre><code class="language-text">人工上传 / 批量导入
-  → product_supply_task
-  → product_supply_task_item
-  → product_supply_staging
-  → Validation
-  → Change Request / Risk
-  → QC / Auto Approve
-  → Publish
-  → Outbox
-
-供应商同步
-  → supplier_sync_task
-  → supplier_sync_batch
-  → Raw Snapshot
-  → Normalize
-  → Supplier Mapping
-  → Diff
-  → product_supply_task(task_type=SUPPLIER_SYNC_IMPORT)
-  → product_supply_staging
-  → Validation
-  → Change Request / Risk
-  → QC / Auto Approve
-  → Publish
-  → Outbox
-</code></pre>
-<p>能力拆分可以这样判断：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>能力</th><th>是否分开</th><th>原因</th></tr>
-</thead>
-<tbody>
-<tr><td>供应商 API Adapter</td><td>分开</td><td>每个供应商协议不同</td></tr>
-<tr><td>全量 / 增量同步任务</td><td>分开</td><td>需要 checkpoint、lease、分页游标</td></tr>
-<tr><td>Raw Snapshot</td><td>分开</td><td>供应商原始响应要可追溯和回放</td></tr>
-<tr><td>供应商限流 / 熔断</td><td>分开</td><td>外部依赖治理</td></tr>
-<tr><td>文件解析</td><td>人工链路独有</td><td>Excel / CSV / 模板</td></tr>
-<tr><td>Draft 编辑体验</td><td>人工链路独有</td><td>用户可反复保存</td></tr>
-<tr><td>标准化模型</td><td>合并</td><td>最终都要转成平台 Resource / SKU / Offer</td></tr>
-<tr><td>质量校验</td><td>合并</td><td>商品发布门禁应该统一</td></tr>
-<tr><td>Diff / Risk</td><td>合并</td><td>风险判断口径要统一</td></tr>
-<tr><td>QC 审核</td><td>合并</td><td>审核工作台和策略要统一</td></tr>
-<tr><td>Publish</td><td>合并</td><td>只能有一个正式发布入口</td></tr>
-<tr><td>Outbox</td><td>合并</td><td>下游刷新口径要统一</td></tr>
-<tr><td>DLQ / 补偿</td><td>部分合并</td><td>供应商执行 DLQ 分开，发布治理 DLQ 合并</td></tr>
-</tbody>
-</table>
-</div>
-<p>面试时可以收束成一句话：</p>
-<blockquote>
-<p>供应商同步有自己的“采集和恢复系统”，但不应该有自己的“商品发布系统”。采集链路可以分，发布治理必须合。</p>
-</blockquote>
-<p><strong>问题 4：本地运营上传和商家上传为什么审核策略不同？</strong></p>
-<p>参考要点：本地运营是内部可信来源，默认 <code>AUTO_APPROVE</code>，但仍要走 Validation、Staging、Publish 和 Outbox；商家是外部来源，默认 <code>QC_REQUIRED</code>，QC 通过后才能发布。</p>
-<h3 id="11162-生命周期与-id-设计"><a class="header" href="#11162-生命周期与-id-设计">11.16.2 生命周期与 ID 设计</a></h3>
-<p><strong>问题 5：为什么 Draft、Staging、QC、正式 Item 要有不同状态机？</strong></p>
-<p>参考要点：它们描述的是不同对象。Draft 是可编辑工作区，Staging 是提交冻结快照，QC 是审核工单，正式 Item 是线上商品资产。把这些状态混在一个字段里，会出现 <code>DRAFT/QC_PENDING/ONLINE/REJECTED</code> 语义混乱。</p>
-<p><strong>问题 6：新建商品在 Draft 和 QC 阶段还没有正式 <code>item_id</code>，怎么追踪全链路？</strong></p>
-<p>参考要点：首次创建时生成 <code>supply_trace_id</code> 和 <code>temporary_object_key</code>。发布成功后生成正式 <code>item_id</code>，再写 <code>product_supply_object_mapping</code>，后续可以用 <code>item_id</code> 反查 <code>supply_trace_id</code>。</p>
-<p><strong>问题 7：商品已经在线后再次编辑，哪些 ID 会新建，哪些 ID 会复用？</strong></p>
-<p>参考要点：<code>item_id</code> 和 <code>supply_trace_id</code> 复用；<code>operation_id</code>、<code>draft_id</code>、<code>staging_id</code>、可能的 <code>review_id</code> 都新建；发布成功后 <code>publish_version</code> 递增。</p>
-<p><strong>问题 8：为什么商家提交 Draft 后要生成不可随意修改的 Staging Ticket？</strong></p>
-<p>参考要点：Draft 是工作区，可以反复保存；Staging 是提交证据和审核发布对象。冻结 Staging 可以保证 QC 审核的内容和最终发布内容一致，避免“审核 A，发布 B”。</p>
-<p><strong>问题 9：Pending 阶段发现内容填错，还能直接编辑吗？</strong></p>
-<p>参考要点：不建议直接编辑待审 Staging。推荐语义是撤回当前 QC 和 Staging，再基于 Staging payload 生成新 Draft，修改后重新提交，生成新的 Staging 和 QC。</p>
-<h3 id="11163-审核diff-与发布"><a class="header" href="#11163-审核diff-与发布">11.16.3 审核、Diff 与发布</a></h3>
-<p><strong>问题 10：为什么需要 <code>product_qc_review</code> 和 <code>product_qc_review_item</code> 两张表？</strong></p>
-<p>参考要点：<code>product_qc_review</code> 是审核工单主表，记录整体状态、审核人、结论；<code>product_qc_review_item</code> 是审核项明细，记录字段 Diff、风险原因、分项结论和驳回原因。批量任务和字段级驳回都需要明细表。</p>
-<p><strong>问题 11：<code>product_change_request</code>、<code>product_supply_operation_log</code>、<code>product_field_ownership</code> 分别解决什么问题？</strong></p>
-<p>参考要点：<code>product_change_request</code> 记录改了什么、风险多高、是否需要 QC；<code>product_supply_operation_log</code> 记录从 Draft 到下线全过程发生了什么；<code>product_field_ownership</code> 记录字段由谁主导，防止供应商同步覆盖人工治理结果。</p>
-<p><strong>问题 12：<code>product_publish_record</code>、<code>product_publish_snapshot</code>、<code>product_change_log</code> 的区别是什么？</strong></p>
-<p>参考要点：<code>publish_record</code> 记录一次发布动作和结果；<code>publish_snapshot</code> 保存发布后的正式商品上下文；<code>change_log</code> 解释正式商品从旧版本到新版本变了哪些字段。</p>
-<p><strong>问题 13：Publish 背后的实际流程是什么？</strong></p>
-<p>参考要点：发布前校验 Staging 状态、QC 状态、幂等、版本冲突和交易契约完整性；事务内写正式商品表、库存配置、履约退款规则、<code>publish_version</code>、发布快照、变更日志和 Outbox；事务后异步刷新搜索、缓存、营销和计价。</p>
-<p><strong>问题 14：为什么 QC 通过不等于商品已经上线？</strong></p>
-<p>参考要点：QC 通过只表示允许发布。真正上线还需要 Publish Worker 完成正式表写入、生成发布版本、写 Outbox、刷新搜索缓存，并且商品满足销售时间、库存、渠道和风控可售条件。</p>
-<p><strong>问题 15：为什么发布前要校验 <code>base_publish_version</code>？</strong></p>
-<p>参考要点：编辑是基于某个线上版本产生的。如果当前线上版本已经变化，旧 Staging 继续发布会覆盖别人的新修改。发布前做 CAS 版本校验，冲突时进入 <code>VERSION_CONFLICT</code> 并要求重新编辑。</p>
-<h3 id="11164-批量任务与供应商同步"><a class="header" href="#11164-批量任务与供应商同步">11.16.4 批量任务与供应商同步</a></h3>
-<p><strong>问题 16：为什么批量导入不能同步循环写正式表？</strong></p>
-<p>参考要点：批量导入可能有大量数据、行级错误、长耗时和下游压力。应该先创建 <code>product_supply_task</code>，再流式解析文件、生成 <code>task_item</code>、行级校验、部分成功、错误文件和补偿任务。</p>
-<p><strong>问题 17：Parser Worker 和 Item Worker 为什么要拆开？</strong></p>
-<p>参考要点：Parser Worker 只负责文件解析和生成行级 item；Item Worker 负责标准化、校验、Staging、Diff、QC 和发布准备。拆开后解析失败不会污染业务处理，行级处理可以限流、重试和并行。</p>
-<p><strong>问题 18：<code>product_supply_task</code> 和 <code>product_supply_task_item</code> 的关系是什么？</strong></p>
-<p>参考要点：Task 是一次供给动作的批次状态，Task Item 是行级或对象级处理单元。Task 状态由 Item 聚合，支持部分成功、部分失败、部分等待 QC，避免一个失败项拖垮整批任务。</p>
-<p><strong>问题 19：供应商同步为什么需要 Raw Snapshot、Checkpoint 和 DLQ？</strong></p>
-<p>参考要点：供应商同步是长任务且外部不稳定。Raw Snapshot 用于追溯和回放；Checkpoint 用于断点续跑；DLQ 用于保存字段缺失、映射失败、发布失败等可运营问题单。</p>
-<h3 id="11165-一致性补偿与交易安全"><a class="header" href="#11165-一致性补偿与交易安全">11.16.5 一致性、补偿与交易安全</a></h3>
-<p><strong>问题 20：如何保证商品发布后搜索、缓存、营销、计价最终一致？</strong></p>
-<p>参考要点：正式表、发布记录、发布快照和 Outbox 在同一事务内写入；下游通过 Outbox 异步消费，按 <code>event_id</code> 幂等处理，失败进入重试、DLQ 或 <code>product_compensation_task</code>。订单创建只相信当时的商品、报价、履约和退款快照，不回读最新商品解释历史订单。</p>
-<hr>
+<h2 id="1116-答辩材料"><a class="header" href="#1116-答辩材料">11.16 答辩材料</a></h2>
+<p>本章相关总结、常见问题和参考要点已统一收录到<a href="../../appendix/interview.html">附录B</a>。</p>
 <p><strong>延伸阅读建议</strong>：</p>
 <ul>
 <li>第8章：商品中心模型（Resource、SPU/SKU、Offer、类目属性）</li>

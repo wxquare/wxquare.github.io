@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-fa2e5887.js";
+            window.path_to_searchindex_js = "../searchindex-c88073af.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5ff332a3.js"></script>
+        <script src="../toc-394f2fef.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -432,32 +432,39 @@ func (s *RechargeStockStrategy) Reserve(ctx context.Context, req *ReserveRequest
 <li>✓ 退款逻辑（未核销可退，已核销不可退）</li>
 </ul>
 <p><strong>技术要点</strong>：</p>
-<pre><code class="language-go">// 券码池管理（Redis实现）
+<pre><code class="language-go">// 券码池管理：MySQL 是权威，Redis LIST 只缓存 code_id
 type VoucherCodePool struct {
     redis redis.Client
+    repo  CodePoolRepository
 }
 
-func (p *VoucherCodePool) AssignCode(ctx context.Context, skuID int64, orderID int64) (string, error) {
-    // Step 1: 从Redis Set中原子弹出一个未使用的券码
-    poolKey := fmt.Sprintf("voucher:pool:%d", skuID)
-    code, err := p.redis.SPop(ctx, poolKey).Result()
-    if err == redis.Nil {
-        return "", errors.New("券码已售罄")
+func (p *VoucherCodePool) ReserveCode(ctx context.Context, batchID string, orderID int64) (int64, error) {
+    for attempt := 0; attempt &lt; 3; attempt++ {
+        // Step 1: Redis LIST 只取 code_id，不取明文券码
+        poolKey := fmt.Sprintf("inventory:code:pool:%s:%d", batchID, shard(batchID))
+        codeID, err := p.redis.LPop(ctx, poolKey).Int64()
+        if err == redis.Nil {
+            return 0, errors.New("券码池为空")
+        }
+        if err != nil {
+            return 0, err
+        }
+
+        // Step 2: MySQL CAS 才是锁码成功的判定
+        // UPDATE inventory_code_pool_XX
+        // SET status='BOOKING', order_id=?, booked_at=NOW()
+        // WHERE code_id=? AND status='AVAILABLE'
+        ok, err := p.repo.BookCode(ctx, codeID, orderID)
+        if err != nil {
+            return 0, err
+        }
+        if ok {
+            return codeID, nil
+        }
+        // Redis 中的陈旧 code_id，丢弃后继续取下一个。
     }
-    
-    // Step 2: 记录券码分配关系（券码 → 订单号）
-    assignKey := fmt.Sprintf("voucher:assign:%s", code)
-    p.redis.Set(ctx, assignKey, orderID, 0)  // 永久存储
-    
-    // Step 3: 设置券码有效期（ZSet按过期时间排序）
-    expiresAt := time.Now().Add(90 * 24 * time.Hour)  // 90天有效期
-    expiryKey := fmt.Sprintf("voucher:expiry:%d", skuID)
-    p.redis.ZAdd(ctx, expiryKey, redis.Z{
-        Score:  float64(expiresAt.Unix()),
-        Member: code,
-    })
-    
-    return code, nil
+
+    return 0, errors.New("券码池热队列需要回填")
 }
 </code></pre>
 <h3 id="1625-差异化设计策略"><a class="header" href="#1625-差异化设计策略">16.2.5 差异化设计策略</a></h3>
@@ -1205,7 +1212,7 @@ func InitializeApp() (*App, error) {
 <tbody>
 <tr><td>商品详情</td><td>Hash</td><td>30分钟</td></tr>
 <tr><td>库存数量</td><td>String（Lua原子扣减）</td><td>永久</td></tr>
-<tr><td>券码池</td><td>Set（SPOP原子弹出）</td><td>永久</td></tr>
+<tr><td>券码池热队列</td><td>List（只存 <code>code_id</code>，MySQL CAS 后才算锁码成功）</td><td>可从 MySQL 重建</td></tr>
 <tr><td>用户Session</td><td>String</td><td>2小时</td></tr>
 </tbody>
 </table>
@@ -1434,7 +1441,7 @@ Runtime Context       表达交易前运行时上下文
 <tr><th>维度</th><th>评价</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>优点</strong></td><td>解释力强，能同时覆盖固定 SKU、资源型商品和实时供给商品；边界清晰，适合书籍总结和面试表达</td></tr>
+<tr><td><strong>优点</strong></td><td>解释力强，能同时覆盖固定 SKU、资源型商品和实时供给商品；边界清晰，适合书籍总结和答辩表达</td></tr>
 <tr><td><strong>缺点</strong></td><td>初期理解成本较高，需要治理“哪些数据稳定、哪些数据实时、哪些数据只进快照”</td></tr>
 <tr><td><strong>适用阶段</strong></td><td>多品类平台，尤其是同时覆盖 Topup、Bill、Voucher、Hotel、Flight、Movie、Local Service 的平台</td></tr>
 </tbody>
@@ -1598,7 +1605,9 @@ Runtime Context       表达交易前运行时上下文
 <tr><td><code>fulfillment_rule_tab</code></td><td>履约契约配置</td><td>充值、销账、发码、出票、预订确认、核销等履约模式</td></tr>
 <tr><td><code>refund_rule_tab</code></td><td>售后规则配置</td><td>是否可退、是否人工审核、取消政策、核销后限制、供应商退改规则</td></tr>
 <tr><td><code>product_stock_tab</code></td><td>库存与可售状态</td><td>库存类型、库存来源、可售状态、库存数量、更新时间</td></tr>
-<tr><td><code>voucher_code_pool_tab</code></td><td>券码池</td><td>券码、SKU、状态、有效期、分配订单、核销状态</td></tr>
+<tr><td><code>inventory_create_task</code></td><td>库存创建任务</td><td>数量初始化、券码导入 / 生成、门店日期切片、创建状态和错误信息</td></tr>
+<tr><td><code>inventory_code_batch_tab</code></td><td>券码批次</td><td>批次来源、生成模式、总码量、有效期、密钥版本、分表路由</td></tr>
+<tr><td><code>inventory_code_pool_XX</code></td><td>券码池分表</td><td>一码一行、加密券码、状态机、分配订单、核销状态；Redis 只缓存 <code>code_id</code></td></tr>
 <tr><td><code>product_supply_task</code></td><td>商品供给任务</td><td>导入批次、任务状态、操作人、成功/失败数量、错误文件</td></tr>
 <tr><td><code>product_audit_log_tab</code></td><td>审核日志</td><td>审核对象、变更内容、审核结论、审核人、驳回原因</td></tr>
 <tr><td><code>product_change_log_tab</code></td><td>变更日志</td><td>商品字段变更前后值、操作来源、TraceID、操作人</td></tr>
@@ -1741,12 +1750,16 @@ Runtime Context       表达交易前运行时上下文
         datetime updated_at
     }
 
-    VOUCHER_CODE_POOL_TAB {
+    INVENTORY_CODE_POOL_XX {
         bigint code_id PK
+        varchar batch_id
         bigint sku_id FK
-        varchar code_status
-        datetime expire_at
+        varbinary code_cipher
+        varchar code_hash
+        varchar status
+        varchar reservation_id
         bigint assigned_order_id
+        datetime expire_at
         varchar redeem_status
     }
 
@@ -1888,10 +1901,8 @@ input_schema_tab
   └─ 供应商同步：外部供给数据全量/增量/Push/刷新
 </code></pre>
 <p>这四类入口应该进入同一个“供给治理控制面”，共享任务模型、校验、审核、发布版本、Outbox、补偿和可观测性；但供应商同步因为存在长任务、Checkpoint、Raw Snapshot、Worker 租约、DLQ、数据新鲜度等复杂问题，可以单独展开成 <code>16.6.1.7</code> 和附录案例。</p>
-<p>面试时可以先给出这个判断：</p>
-<blockquote>
-<p>供应商同步是商品供给链路的一种入口，但不能把商品供给系统等同于供应商同步系统。商品供给平台要统一承接人工创建、批量导入、运营编辑和供应商同步；其中供应商同步是最复杂的自动化供给分支，需要独立的同步任务、Checkpoint 和数据治理链路。</p>
-</blockquote>
+<p>相关答辩判断已统一收录到<a href="../appendix/interview.html">附录B</a>。</p>
+<p>如果这条链路设计不好</p>
 <p>如果这条链路设计不好，问题会很快暴露到 C 端交易链路：列表页搜不到、详情页价格错误、下单时库存不可用、券码发放失败、供应商映射缺失、退款规则不完整。商品供给链路的核心不是“把商品写进数据库”，而是“让一个商品从供给入口到可被搜索、可被下单、可被履约、可被追溯”。</p>
 <p>这条链路的系统难点和解决方法可以先这样收敛：</p>
 <div class="table-wrapper">
@@ -2129,7 +2140,7 @@ product_supply_dead_letter
 </tbody>
 </table>
 </div>
-<p>面试时可以强调：人工创建链路最容易被低估。真正难点不是页面表单，而是类目差异、交易契约完整性、审核证据和发布一致性。</p>
+<p>人工创建链路的答辩提示已统一收录到<a href="../appendix/interview.html">附录B</a>。</p>
 <p><strong>6. 批量导入链路</strong></p>
 <p>批量导入要按“任务 + 行级明细 + 暂存快照 + 错误文件”设计，不能把整个 Excel 读进内存后循环写正式表。</p>
 <pre><code class="language-text">下载模板
@@ -2415,12 +2426,9 @@ ProductCacheInvalidationRequired
   → 数据新鲜度
 </code></pre>
 <p>所以本章采用“主链路 + 专项链路”的写法：<code>16.6.1.6</code> 讲统一商品供给与运营治理平台，完整设计见<a href="../appendix/product-supply-ops.html">附录G：商品供给与运营治理平台</a>；<code>16.6.1.7</code> 专门讲供应商同步，因为它有长任务恢复、外部数据追溯和供应商质量治理等额外复杂度。</p>
-<p><strong>面试总结</strong>：</p>
-<blockquote>
-<p>我不会把商品供给设计成后台 CRUD，也不会把供应商同步和人工运营割裂成两套互不相干的系统。我的设计是统一供给治理平台：人工创建、批量导入、运营编辑和供应商同步都先进入任务和暂存区，通过标准化、质量校验、Diff、差异化审核、版本化发布、Outbox、补偿和巡检后，再写入正式商品主数据和交易契约。供应商同步属于供给链路，但因为它涉及 Raw Snapshot、Checkpoint、Worker 租约、DLQ 和数据新鲜度，所以作为专项链路单独展开。这样既能保证入口统一，又能处理不同来源的复杂度差异。</p>
-</blockquote>
-<hr>
+<p>本节答辩总结已统一收录到<a href="../appendix/interview.html">附录B</a>。</p>
 <h4 id="16617-供应商商品同步链路"><a class="header" href="#16617-供应商商品同步链路">16.6.1.7 供应商商品同步链路</a></h4>
+<h4 id="16617-供应商商品同步链路-1"><a class="header" href="#16617-供应商商品同步链路-1">16.6.1.7 供应商商品同步链路</a></h4>
 <p>供应商同步链路解决的是“外部供给数据如何进入平台，并持续保持可用、可信、足够新鲜”的问题。它不是简单的定时任务，也不是把供应商字段原样搬进商品表，而是一个完整的数据治理链路：接入外部数据、适配不同协议、完成平台模型映射、校验数据质量、生成发布版本、刷新搜索缓存、通知下游系统，并在失败时可追踪、可补偿、可人工修复。</p>
 <p>从系统边界上看，它属于 <code>16.6.1.6</code> 里的供应商供给入口，但执行层要单独设计。统一供给平台负责发布模型、审核、Outbox 和质量治理；供应商同步专项链路负责外部协议适配、Raw Snapshot、Checkpoint、租约、批次版本、新鲜度和供应商质量治理。</p>
 <p>在数字商品平台中，供应商同步的复杂度来自四个方面：</p>
@@ -2451,7 +2459,7 @@ ProductCacheInvalidationRequired
 <p><strong>供应商同步架构图与 Data Flow Diagram</strong>：</p>
 <p><img src="../../images/supplier-sync-architecture.png" alt="供应商数据同步链路架构图"></p>
 <p><img src="../../images/supplier-sync-data-flow.png" alt="供应商数据同步 Data Flow Diagram"></p>
-<p>完整的任务模型、Checkpoint、Worker 租约、DLQ、监控指标和面试题设计，见<a href="../appendix/supplier-sync.html">附录F：供应商数据同步链路</a>。</p>
+<p>完整的任务模型、Checkpoint、Worker 租约、DLQ 和监控指标，见<a href="../appendix/supplier-sync.html">附录F：供应商数据同步链路</a>。</p>
 <p>图中可以看到，供应商数据进入平台后会经过五个阶段：</p>
 <pre><code class="language-text">供应商数据源
   → 接入适配与同步任务
@@ -2557,7 +2565,7 @@ ProductCacheInvalidationRequired
 </table>
 </div>
 <p>质量校验要支持“部分成功”。例如酒店全量同步 100 万条房型数据，不能因为 100 条数据失败就整批失败。更合理的处理方式是：可处理数据继续写入，失败明细单独记录 <code>error_code</code>、<code>error_message</code>、<code>raw_payload_ref</code>，高风险数据不发布，进入人工修复或补偿队列。</p>
-<p>面试时可以强调：<strong>供应商同步系统不是追求 100% 同步成功，而是要做到失败可定位、可隔离、可修复、可补偿</strong>。</p>
+<p>供应商同步失败治理的答辩提示已统一收录到<a href="../appendix/interview.html">附录B</a>。</p>
 <p><strong>6. 新鲜度设计</strong></p>
 <p>不同数据的 TTL 不一样，不能使用统一缓存时间。</p>
 <div class="table-wrapper">
@@ -2844,10 +2852,8 @@ LIMIT 100;
 <pre><code class="language-text">Kafka DLQ：短期消息缓冲，可选
 MySQL DLQ：权威问题单和补偿状态
 </code></pre>
-<p>面试时可以这样总结：</p>
-<blockquote>
-<p>我会把供应商同步 DLQ 设计成 MySQL 主存储，而不是只依赖 Kafka 死信 Topic。因为同步失败往往不是单纯消息消费失败，而是字段缺失、映射失败、价格异常、发布失败这些需要人工修复、状态流转和审计的问题。Kafka 可以作为失败消息的缓冲层，但真正的死信治理要落 MySQL，记录供应商、外部编码、平台映射、错误阶段、payload 引用、重试次数、下次重试时间和处理状态。这样问题才能被查询、补偿、统计和运营化处理。</p>
-</blockquote>
+<p>供应商同步 DLQ 的答辩总结已统一收录到<a href="../appendix/interview.html">附录B</a>。</p>
+<p><strong>9. 监控设计</strong></p>
 <p><strong>9. 监控设计</strong></p>
 <p>供应商同步监控要分成技术指标、数据质量指标和业务影响指标。</p>
 <div class="table-wrapper">
@@ -2890,12 +2896,9 @@ D-B 不可售率 = 下单前确认不可售 / 详情页可售点击
 </tbody>
 </table>
 </div>
-<p><strong>面试总结</strong>：</p>
-<blockquote>
-<p>我不会把供应商同步理解成“写几个定时任务拉数据”。在 OTA、O2O 和虚拟商品平台里，供应商同步本质上是一套外部供给数据治理体系。它要解决幂等映射、版本回溯、质量校验、新鲜度控制、失败补偿和监控治理。列表页可以使用缓存提升性能，详情页要更接近实时，创单前必须实时确认。这样才能在供应商接口不稳定、商品模型不一致、价格库存频繁变化的情况下，仍然保证平台商品数据可信、交易链路安全、问题可追踪。</p>
-</blockquote>
-<hr>
+<p>供应商同步整体答辩总结已统一收录到<a href="../appendix/interview.html">附录B</a>。</p>
 <h4 id="16618-库存与可售设计"><a class="header" href="#16618-库存与可售设计">16.6.1.8 库存与可售设计</a></h4>
+<h4 id="16618-库存与可售设计-1"><a class="header" href="#16618-库存与可售设计-1">16.6.1.8 库存与可售设计</a></h4>
 <p>在本平台中库存没有独立拆服务，而是由商品中心内部的库存与可售域承接。这里的关键不是把库存字段放进商品主表，而是建立统一的库存抽象，屏蔽不同品类的库存来源差异。</p>
 <div class="table-wrapper">
 <table>
@@ -2945,7 +2948,7 @@ D-B 不可售率 = 下单前确认不可售 / 详情页可售点击
 </tbody>
 </table>
 </div>
-<p>面试时可以这样总结：<strong>搜索导购不是单纯 ES 查询，而是“召回 + 排序 + 商品补齐 + 库存价格营销融合 + 降级”的完整读链路</strong>。</p>
+<p>搜索导购的答辩总结已统一收录到<a href="../appendix/interview.html">附录B</a>。</p>
 <hr>
 <h4 id="166110-跨系统集成与事件设计"><a class="header" href="#166110-跨系统集成与事件设计">16.6.1.10 跨系统集成与事件设计</a></h4>
 <p>商品中心位于交易前链路，需要向多个系统输出稳定契约。</p>

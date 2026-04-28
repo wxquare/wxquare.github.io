@@ -35,10 +35,10 @@
             const path_to_root = "../../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../../searchindex-fa2e5887.js";
+            window.path_to_searchindex_js = "../../searchindex-c88073af.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../../toc-5ff332a3.js"></script>
+        <script src="../../toc-394f2fef.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -324,21 +324,8 @@ type ChannelClient interface {
 }
 </code></pre>
 <p>渠道差异集中在：<strong>同步返回是否可信</strong>（多数场景仅表示受理）、<strong>回调到达顺序</strong>、<strong>退款是否同步到账</strong>、<strong>对账文件粒度</strong>。网关要把这些差异折叠为<strong>有限的内部枚举</strong>（如 <code>ACCEPTED</code>、<code>SUCCEEDED</code>、<code>FAILED</code>、<code>UNKNOWN</code>），避免把渠道字符串透传到订单域。</p>
-<p><strong>子系统职责对照</strong>（面试与评审常用）：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>子系统</th><th>核心职责</th><th>关键数据</th><th>典型反模式</th></tr>
-</thead>
-<tbody>
-<tr><td>账户系统</td><td>余额、冻结、流水、充值提现</td><td>账户余额、冻结单、账务流水</td><td>把渠道手续费写进用户余额宽表</td></tr>
-<tr><td>支付网关</td><td>路由、报文、签名、重试</td><td>渠道请求 / 响应摘要、路由决策</td><td>在网关里改支付单状态机</td></tr>
-<tr><td>支付核心</td><td>支付单、退款单、幂等、Outbox</td><td><code>payment</code>、<code>refund</code>、<code>outbox</code></td><td>Handler 直连第三方 SDK</td></tr>
-<tr><td>清结算引擎</td><td>分账、批次、结算周期</td><td>分账明细、结算单、提现单</td><td>清结算回调里直接操作支付单</td></tr>
-<tr><td>风控系统</td><td>限额、名单、挑战</td><td>风控决策流水</td><td>风控结果不落库导致无法复盘</td></tr>
-</tbody>
-</table>
-</div>
+<p><strong>子系统职责对照</strong>：支付系统职责对照和答辩口径已统一收录到<a href="../../appendix/interview.html">附录B</a>。</p>
+<p><strong>数据落库建议</strong></p>
 <p><strong>数据落库建议</strong>：支付单主表保持「窄」——只放状态、金额、币种、渠道标识、幂等键、版本号；大报文、扩展参数、渠道原始回调进入<strong>扩展表或对象存储</strong>，查询走异步索引。这样可以在大促时显著降低行更新放大效应，同时满足合规留存。</p>
 <hr>
 <h2 id="153-支付流程"><a class="header" href="#153-支付流程">15.3 支付流程</a></h2>
@@ -875,7 +862,7 @@ func OnPaymentSuccessTx(tx *sql.Tx, paymentID, orderID int64) error {
 <p>边界章节的判据很简单：<strong>如果某个需求改动会让支付团队与订单团队同时大改表结构，通常说明边界画错了</strong>。好的边界让「最常变」的渠道差异停在网关，让「最不该变」的资金状态机停在支付核心。</p>
 <h3 id="1581-支付系统的职责边界"><a class="header" href="#1581-支付系统的职责边界">15.8.1 支付系统的职责边界</a></h3>
 <p>支付系统应拥有：<strong>支付单与退款单</strong>、<strong>渠道交互与回调验签</strong>、<strong>支付侧流水与幂等索引</strong>、<strong>触发清结算批次的事实</strong>、<strong>渠道对账原始凭证关联</strong>。不应拥有：订单履约、物流、商品库存数量真相（除非余额支付与账户强绑定）。</p>
-<p>反模式清单（面试与评审可直用）：在支付服务里写供应商下单、在支付服务里计算运费、在支付回调里直接改 SKU 库存、在支付库里维护商品税率版本。它们共同症状是：<strong>支付发布频率被迫与业务域绑定</strong>，任何小改动都触碰资金链路。</p>
+<p>反模式清单已统一收录到<a href="../../appendix/interview.html">附录B</a>。</p>
 <h3 id="1582-支付-vs-订单谁负责什么"><a class="header" href="#1582-支付-vs-订单谁负责什么">15.8.2 支付 vs 订单：谁负责什么</a></h3>
 <div class="table-wrapper">
 <table>

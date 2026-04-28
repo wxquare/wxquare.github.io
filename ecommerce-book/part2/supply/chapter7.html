@@ -35,10 +35,10 @@
             const path_to_root = "../../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../../searchindex-fa2e5887.js";
+            window.path_to_searchindex_js = "../../searchindex-c88073af.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../../toc-5ff332a3.js"></script>
+        <script src="../../toc-394f2fef.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -1421,39 +1421,8 @@ ProductSnapshotCreated
   → draft / staging / qc / publish_record
 </code></pre>
 <hr>
-<h2 id="815-常见面试问题"><a class="header" href="#815-常见面试问题">8.15 常见面试问题</a></h2>
-<p><strong>问题 1：商品中心和商品供给平台有什么区别？</strong></p>
-<p>参考回答：商品供给平台负责 Draft、Staging、QC、批量导入、供应商同步、DLQ 和发布编排；商品中心负责正式商品主数据、交易前契约、发布版本、商品快照和读模型。供给平台是“商品如何进入平台”，商品中心是“正式商品如何被交易系统稳定使用”。</p>
-<p><strong>问题 2：为什么商品正式表不应该有 Draft、QC Pending、Rejected 状态？</strong></p>
-<p>参考回答：这些是供给流程状态，不是正式商品生命周期状态。新建商品在发布前还没有正式 <code>item_id</code>；编辑商品待审时，线上旧版本仍然有效。如果把流程状态塞进正式商品表，会导致搜索、缓存、订单误读未审核数据。</p>
-<p><strong>问题 3：为什么需要 Resource，而不是只用 SPU/SKU？</strong></p>
-<p>参考回答：很多数字商品依附于现实或外部资源，例如酒店、门店、活动、运营商、账单机构。Resource 表达资源事实，SPU/SKU 表达商品定义，Offer 表达销售承诺。这样供应商同步可以先沉淀资源，运营再决定如何售卖。</p>
-<p><strong>问题 4：Product Item、SPU、SKU、Offer 的关系是什么？</strong></p>
-<p>参考回答：Product Item 是前台商品入口或聚合根；SPU 表达共性商品定义；SKU 表达可下单规格单元；Offer 表达销售条件、渠道、销售期、库存来源、输入、履约和退款规则。</p>
-<p><strong>问题 5：为什么需要 publish_version？</strong></p>
-<p>参考回答：<code>publish_version</code> 用于防止旧编辑覆盖新版本，也用于搜索、缓存、订单按版本处理。编辑发布时要校验 <code>base_publish_version == current_publish_version</code>，否则进入版本冲突。</p>
-<p><strong>问题 6：订单为什么不能回读最新商品表？</strong></p>
-<p>参考回答：商品会不断修改标题、价格计划、履约参数和退款规则。历史订单必须按照下单时的商品、报价、履约和退款契约解释，所以订单要保存或引用创单时的商品快照。</p>
-<p><strong>问题 7：商品中心是否保存实时库存和最终成交价？</strong></p>
-<p>参考回答：不应该把实时库存和最终成交价作为商品中心唯一事实。商品中心保存库存配置和基础价、Offer 规则；实时库存由库存系统判断，最终成交价由计价系统试算。</p>
-<p><strong>问题 8：发布成功后搜索刷新失败怎么办？</strong></p>
-<p>参考回答：不回滚商品发布。商品正式表、版本、快照和 Outbox 同事务写入；搜索刷新通过 Outbox 异步重试，失败进入补偿任务。搜索索引按 <code>publish_version</code> 幂等更新，并通过巡检发现版本落后。</p>
-<p><strong>问题 9：供应商同步是否直接写商品中心？</strong></p>
-<p>参考回答：不建议。供应商同步先保存 Raw Snapshot，然后标准化、映射、Diff，进入供给平台 Staging 和发布治理。商品中心只接收发布命令和正式结果。</p>
-<p><strong>问题 10：商品中心如何支持异构品类？</strong></p>
-<p>参考回答：用类目模板定义 Resource、SPU、SKU、Offer、交易契约和展示字段；核心交易字段结构化，品类核心字段可以用扩展表，长尾展示字段用 JSON，搜索筛选字段进入搜索投影。</p>
-<p><strong>问题 11：为什么发布事务里不直接刷新缓存和 ES？</strong></p>
-<p>参考回答：刷新缓存和 ES 是下游投影动作，可能慢、可能失败，不应该放在商品发布事务里。发布事务只写正式表、版本、快照和 Outbox；下游通过事件异步刷新并可补偿。</p>
-<p><strong>问题 12：商品中心如何排查线上展示旧数据？</strong></p>
-<p>参考回答：先查 <code>product_item_tab.current_publish_version</code>，再查 <code>product_snapshot_tab</code> 和 <code>product_outbox_event</code>，然后对比 Redis、搜索索引里的 <code>publish_version</code>。如果索引或缓存落后，通过 Outbox 重放或补偿任务刷新。</p>
-<hr>
-<h2 id="816-面试总结"><a class="header" href="#816-面试总结">8.16 面试总结</a></h2>
-<p>商品中心不是供给后台，也不是简单 SPU/SKU CRUD。一个成熟的商品中心应该是正式商品主数据和交易前契约中心：用 Resource、Product Item、SPU/SKU、Offer / Rate Plan 表达“卖什么”和“怎么卖”，用库存配置、Input Schema、履约规则、退款规则表达“如何下单、如何履约、如何售后”，用 <code>publish_version</code> 和商品快照保证历史订单可解释，用 Outbox 保证搜索、缓存、营销、计价等下游最终一致。</p>
-<p>面试时可以这样概括：</p>
-<blockquote>
-<p>第 11 章的供给平台解决“商品如何进入平台”，第 8 章的商品中心解决“正式商品如何稳定支撑交易”。Draft、Staging、QC、批量任务、供应商同步都不应该污染商品正式表；商品中心只接受发布命令，写入正式主数据、交易前契约、发布版本、商品快照和 Outbox。订单只信快照，下游按版本消费事件。这样商品中心才能同时支撑多品类、多供应商、高并发导购和长期运营治理。</p>
-</blockquote>
-<hr>
+<h2 id="815-答辩材料"><a class="header" href="#815-答辩材料">8.15 答辩材料</a></h2>
+<p>本章相关问题、总结话术和追问要点已统一收录到<a href="../../appendix/interview.html">附录B</a>。</p>
 <p><strong>延伸阅读建议</strong>：</p>
 <ul>
 <li><a href="./chapter8.html">第9章：库存系统</a></li>
