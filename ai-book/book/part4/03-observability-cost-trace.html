@@ -1,0 +1,861 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第16章 可观测性、成本优化与 Trace 诊断 - AI工程实践：从编程到Agent的完整指南</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向有经验AI工程师的实战指南，涵盖AI编程、Agent系统设计与完整案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-d3eab110.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-098a246f.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI工程实践：从编程到Agent的完整指南</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第16章-可观测性成本优化与-trace-诊断"><a class="header" href="#第16章-可观测性成本优化与-trace-诊断">第16章 可观测性、成本优化与 Trace 诊断</a></h1>
+<blockquote>
+<p>“You can’t improve what you don’t measure.” （无法衡量，就无法改进）</p>
+</blockquote>
+<h2 id="引言"><a class="header" href="#引言">引言</a></h2>
+<p>Agent 系统的可观测性与传统系统有本质区别。传统系统监控的是代码执行路径和资源消耗，而 Agent 系统还需要监控：</p>
+<ul>
+<li>LLM 的推理过程</li>
+<li>工具调用链路</li>
+<li>上下文使用情况</li>
+<li>Token 消耗和成本</li>
+</ul>
+<p>本章将深入探讨 Agent 系统的可观测性设计，以及如何在保证质量的前提下优化成本。</p>
+<hr>
+<h2 id="71-agent可观测性的三个层次"><a class="header" href="#71-agent可观测性的三个层次">7.1 Agent可观测性的三个层次</a></h2>
+<h3 id="层次-1基础指标metrics"><a class="header" href="#层次-1基础指标metrics">层次 1：基础指标（Metrics）</a></h3>
+<p><strong>系统级指标：</strong></p>
+<pre><code class="language-text">- 请求总数
+- 平均响应时间
+- 成功率 / 失败率
+- P50 / P95 / P99 延迟
+- 系统资源使用（CPU、内存）
+</code></pre>
+<p><strong>Agent 级指标：</strong></p>
+<pre><code class="language-text">- LLM 调用次数
+- Token 消耗（input + output）
+- 工具调用次数
+- 平均迭代轮数
+- 最终成功率
+</code></pre>
+<p><strong>实现示例：</strong></p>
+<pre><code class="language-python">class AgentMetrics:
+    def __init__(self):
+        self.llm_calls = 0
+        self.token_usage = {"input": 0, "output": 0}
+        self.tool_calls = {}
+        self.iterations = 0
+    
+    def record_llm_call(self, input_tokens: int, output_tokens: int):
+        self.llm_calls += 1
+        self.token_usage["input"] += input_tokens
+        self.token_usage["output"] += output_tokens
+    
+    def record_tool_call(self, tool_name: str):
+        self.tool_calls[tool_name] = self.tool_calls.get(tool_name, 0) + 1
+    
+    def record_iteration(self):
+        self.iterations += 1
+    
+    def get_summary(self):
+        return {
+            "llm_calls": self.llm_calls,
+            "token_usage": self.token_usage,
+            "tool_calls": self.tool_calls,
+            "iterations": self.iterations,
+            "estimated_cost": self.calculate_cost()
+        }
+    
+    def calculate_cost(self):
+        # GPT-4 定价（示例）
+        input_cost = self.token_usage["input"] / 1000 * 0.03
+        output_cost = self.token_usage["output"] / 1000 * 0.06
+        return input_cost + output_cost
+</code></pre>
+<h3 id="层次-2执行追踪tracing"><a class="header" href="#层次-2执行追踪tracing">层次 2：执行追踪（Tracing）</a></h3>
+<p>记录 Agent 的完整执行路径。</p>
+<p><strong>追踪内容：</strong></p>
+<pre><code class="language-json">{
+  "trace_id": "trace_abc123",
+  "session_id": "sess_xyz789",
+  "user_id": "user_456",
+  "start_time": "2026-04-21T10:30:00Z",
+  "end_time": "2026-04-21T10:30:45Z",
+  "duration_ms": 45000,
+  "spans": [
+    {
+      "span_id": "span_1",
+      "name": "llm_generate",
+      "start_time": "2026-04-21T10:30:00Z",
+      "duration_ms": 2000,
+      "attributes": {
+        "model": "gpt-4",
+        "input_tokens": 500,
+        "output_tokens": 150
+      }
+    },
+    {
+      "span_id": "span_2",
+      "name": "tool_call:prometheus_query",
+      "start_time": "2026-04-21T10:30:02Z",
+      "duration_ms": 300,
+      "attributes": {
+        "tool": "prometheus_query",
+        "args": {"query": "rate(cpu[5m])"}
+      }
+    }
+  ]
+}
+</code></pre>
+<p><strong>可视化：</strong></p>
+<pre><code class="language-text">trace_abc123
+├─ llm_generate (2s)
+├─ tool:prometheus_query (0.3s)
+├─ llm_generate (1.8s)
+├─ tool:loki_search (0.5s)
+├─ llm_generate (1.5s)
+└─ tool:kubernetes_get (0.4s)
+
+Total: 6.5s
+</code></pre>
+<h3 id="层次-3行为分析behavior-analysis"><a class="header" href="#层次-3行为分析behavior-analysis">层次 3：行为分析（Behavior Analysis）</a></h3>
+<p>分析 Agent 的决策过程和行为模式。</p>
+<p><strong>关键问题：</strong></p>
+<ul>
+<li>Agent 为什么选择这个工具？</li>
+<li>推理路径是否合理？</li>
+<li>在哪个步骤偏离了预期？</li>
+<li>什么样的输入导致了失败？</li>
+</ul>
+<p><strong>Thought Chain 记录：</strong></p>
+<pre><code class="language-python">{
+  "iteration": 1,
+  "thought": "告警显示 CPU 使用率 90%，我需要查看最近的部署记录",
+  "action": {
+    "tool": "kubernetes_get",
+    "args": {"resource": "deployments", "namespace": "production"}
+  },
+  "observation": "最近 2 小时内有 3 次部署",
+  "reasoning": "部署可能导致了 CPU 升高，需要进一步查看日志"
+}
+</code></pre>
+<hr>
+<h2 id="72-成本分析与优化"><a class="header" href="#72-成本分析与优化">7.2 成本分析与优化</a></h2>
+<h3 id="token-消耗分析"><a class="header" href="#token-消耗分析">Token 消耗分析</a></h3>
+<p><strong>成本构成：</strong></p>
+<pre><code class="language-text">总成本 = Input Token 成本 + Output Token 成本
+</code></pre>
+<p><strong>Input Token 来源：</strong></p>
+<ul>
+<li>System Prompt（固定）</li>
+<li>用户输入</li>
+<li>工具返回结果（累积）</li>
+<li>历史对话（累积）</li>
+</ul>
+<p><strong>Output Token 来源：</strong></p>
+<ul>
+<li>LLM 生成的内容</li>
+<li>工具调用的参数</li>
+<li>推理过程（Thought）</li>
+</ul>
+<p><strong>DoD Agent 的成本分析：</strong></p>
+<pre><code class="language-text">单次告警诊断：
+- System Prompt: 500 tokens
+- 告警信息: 200 tokens
+- 知识库检索结果: 2000 tokens
+- 工具调用结果: 1500 tokens（累积）
+- LLM 生成: 800 tokens
+- 迭代 3 轮
+
+Input: 500 + 200 + 2000 + 1500 * 3 = 7200 tokens
+Output: 800 * 3 = 2400 tokens
+
+成本: 7200 * 0.00003 + 2400 * 0.00006 = $0.36
+</code></pre>
+<p>每月 200 个告警，总成本约 $72/月。</p>
+<h3 id="优化策略-1prompt-压缩"><a class="header" href="#优化策略-1prompt-压缩">优化策略 1：Prompt 压缩</a></h3>
+<p><strong>技巧 1：精简 System Prompt</strong></p>
+<p>❌ <strong>冗长版本（800 tokens）：</strong></p>
+<pre><code class="language-text">你是一个经验丰富的运维专家，拥有 10 年以上的大型电商系统运维经验。
+你精通 Kubernetes、Prometheus、Grafana 等工具...
+（详细描述 500 字）
+</code></pre>
+<p>✅ <strong>精简版本（100 tokens）：</strong></p>
+<pre><code class="language-text">你是运维专家，分析告警并提供诊断建议。
+</code></pre>
+<p>节省 87.5% 的 System Prompt Token。</p>
+<p><strong>技巧 2：上下文裁剪</strong></p>
+<p>只保留最相关的信息：</p>
+<pre><code class="language-python">def build_context(alert, max_tokens=2000):
+    # 1. 检索相关文档
+    docs = retrieve_docs(alert, top_k=5)
+    
+    # 2. 裁剪到 token 限制
+    context = []
+    total_tokens = 0
+    
+    for doc in docs:
+        doc_tokens = count_tokens(doc)
+        if total_tokens + doc_tokens &gt; max_tokens:
+            break
+        context.append(doc)
+        total_tokens += doc_tokens
+    
+    return "\n\n".join(context)
+</code></pre>
+<p><strong>技巧 3：工具返回结果压缩</strong></p>
+<pre><code class="language-python">def prometheus_query(query: str, time_range: str):
+    # 原始结果可能有 100+ 数据点
+    raw_result = prom_api.query(query, time_range)
+    
+    # 压缩：只返回关键统计信息
+    return {
+        "avg": calculate_avg(raw_result),
+        "max": calculate_max(raw_result),
+        "current": raw_result[-1],
+        "trend": calculate_trend(raw_result)  # "increasing" / "stable" / "decreasing"
+    }
+</code></pre>
+<p>从 1000+ tokens 压缩到 50 tokens。</p>
+<h3 id="优化策略-2缓存机制"><a class="header" href="#优化策略-2缓存机制">优化策略 2：缓存机制</a></h3>
+<p><strong>工具结果缓存：</strong></p>
+<pre><code class="language-python">class CachedTool:
+    def __init__(self, tool: Tool, ttl: int = 300):
+        self.tool = tool
+        self.cache = {}
+        self.ttl = ttl
+    
+    def execute(self, args):
+        cache_key = self.generate_cache_key(args)
+        
+        # 检查缓存
+        if cache_key in self.cache:
+            cached = self.cache[cache_key]
+            if time.time() - cached["timestamp"] &lt; self.ttl:
+                return cached["result"]
+        
+        # 执行工具
+        result = self.tool.execute(args)
+        
+        # 写入缓存
+        self.cache[cache_key] = {
+            "result": result,
+            "timestamp": time.time()
+        }
+        
+        return result
+</code></pre>
+<p><strong>相似查询缓存：</strong></p>
+<p>对于知识库检索，相似的查询可以返回缓存结果：</p>
+<pre><code class="language-python">def cached_retrieval(query: str, similarity_threshold: float = 0.95):
+    # 计算查询的 embedding
+    query_embedding = get_embedding(query)
+    
+    # 查找缓存中相似的查询
+    for cached_query, cached_result in cache.items():
+        cached_embedding = get_embedding(cached_query)
+        similarity = cosine_similarity(query_embedding, cached_embedding)
+        
+        if similarity &gt; similarity_threshold:
+            return cached_result
+    
+    # 未命中缓存，执行实际检索
+    result = vector_db.search(query)
+    cache[query] = result
+    return result
+</code></pre>
+<h3 id="优化策略-3模型分层"><a class="header" href="#优化策略-3模型分层">优化策略 3：模型分层</a></h3>
+<p>不是所有任务都需要最强的模型。</p>
+<p><strong>模型选择策略：</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>任务类型</th><th>推荐模型</th><th>成本</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>简单分类</strong></td><td>GPT-3.5</td><td>$0.0015/1K tokens</td></tr>
+<tr><td><strong>一般推理</strong></td><td>GPT-4</td><td>$0.03/1K tokens</td></tr>
+<tr><td><strong>复杂推理</strong></td><td>GPT-4 Turbo</td><td>$0.06/1K tokens</td></tr>
+<tr><td><strong>代码生成</strong></td><td>Claude 3.5 Sonnet</td><td>$0.015/1K tokens</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>实现示例：</strong></p>
+<pre><code class="language-python">class AdaptiveAgent:
+    def __init__(self):
+        self.models = {
+            "simple": GPT35(),
+            "medium": GPT4(),
+            "complex": GPT4Turbo()
+        }
+    
+    def classify_complexity(self, task: str) -&gt; str:
+        # 简单分类：用便宜的模型
+        complexity = self.models["simple"].generate(
+            f"评估任务复杂度（simple/medium/complex）：{task}"
+        )
+        return complexity
+    
+    def run(self, task: str):
+        # 根据复杂度选择模型
+        complexity = self.classify_complexity(task)
+        model = self.models[complexity]
+        
+        return model.generate(task)
+</code></pre>
+<h3 id="优化策略-4early-stopping"><a class="header" href="#优化策略-4early-stopping">优化策略 4：Early Stopping</a></h3>
+<p>当 Agent 陷入无效循环时及时停止。</p>
+<p><strong>循环检测：</strong></p>
+<pre><code class="language-python">class LoopDetector:
+    def __init__(self, max_repeats: int = 3):
+        self.action_history = []
+        self.max_repeats = max_repeats
+    
+    def is_looping(self, action: str) -&gt; bool:
+        self.action_history.append(action)
+        
+        # 检查最近的 N 次操作是否重复
+        if len(self.action_history) &gt;= self.max_repeats:
+            recent = self.action_history[-self.max_repeats:]
+            if len(set(recent)) == 1:  # 所有操作相同
+                return True
+        
+        return False
+
+# 使用
+detector = LoopDetector(max_repeats=3)
+
+for iteration in range(max_iterations):
+    action = agent.decide_action()
+    
+    if detector.is_looping(action):
+        print("检测到循环，提前停止")
+        break
+    
+    execute_action(action)
+</code></pre>
+<hr>
+<h2 id="73-可观测性实现方案"><a class="header" href="#73-可观测性实现方案">7.3 可观测性实现方案</a></h2>
+<h3 id="方案-1结构化日志"><a class="header" href="#方案-1结构化日志">方案 1：结构化日志</a></h3>
+<p><strong>日志内容：</strong></p>
+<pre><code class="language-python">import logging
+import json
+
+class AgentLogger:
+    def __init__(self, session_id: str):
+        self.session_id = session_id
+        self.logger = logging.getLogger("agent")
+    
+    def log_llm_call(self, prompt: str, response: str, tokens: dict):
+        self.logger.info(json.dumps({
+            "type": "llm_call",
+            "session_id": self.session_id,
+            "timestamp": time.time(),
+            "prompt_length": len(prompt),
+            "response_length": len(response),
+            "tokens": tokens
+        }))
+    
+    def log_tool_call(self, tool_name: str, args: dict, result: any):
+        self.logger.info(json.dumps({
+            "type": "tool_call",
+            "session_id": self.session_id,
+            "timestamp": time.time(),
+            "tool": tool_name,
+            "args": args,
+            "result_type": type(result).__name__
+        }))
+    
+    def log_error(self, error: Exception, context: dict):
+        self.logger.error(json.dumps({
+            "type": "error",
+            "session_id": self.session_id,
+            "timestamp": time.time(),
+            "error": str(error),
+            "context": context
+        }))
+</code></pre>
+<h3 id="方案-2分布式追踪"><a class="header" href="#方案-2分布式追踪">方案 2：分布式追踪</a></h3>
+<p>使用 OpenTelemetry 实现分布式追踪：</p>
+<pre><code class="language-python">from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+# 初始化 tracer
+tracer = trace.get_tracer("agent")
+
+class TracedAgent:
+    def run(self, input: str):
+        with tracer.start_as_current_span("agent_run") as span:
+            span.set_attribute("input_length", len(input))
+            
+            # LLM 调用
+            with tracer.start_as_current_span("llm_generate") as llm_span:
+                response = self.llm.generate(input)
+                llm_span.set_attribute("tokens", response.usage)
+            
+            # 工具调用
+            with tracer.start_as_current_span("tool_execute") as tool_span:
+                result = self.tool.execute(args)
+                tool_span.set_attribute("tool_name", "prometheus_query")
+            
+            span.set_attribute("success", True)
+            return result
+</code></pre>
+<h3 id="方案-3实时监控面板"><a class="header" href="#方案-3实时监控面板">方案 3：实时监控面板</a></h3>
+<p><strong>核心指标面板：</strong></p>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│                   Agent Monitoring Dashboard                 │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  实时指标                                                    │
+│  ├─ 当前活跃 Agent 数: 5                                     │
+│  ├─ 总请求数（今日）: 156                                    │
+│  ├─ 成功率: 92.3%                                           │
+│  └─ 平均响应时间: 12.5s                                     │
+│                                                             │
+│  Token 使用                                                  │
+│  ├─ Input Tokens（今日）: 1.2M                              │
+│  ├─ Output Tokens（今日）: 350K                             │
+│  └─ 估计成本（今日）: $67                                   │
+│                                                             │
+│  工具调用排行                                                │
+│  ├─ prometheus_query: 89 次                                  │
+│  ├─ loki_search: 67 次                                       │
+│  ├─ kubernetes_get: 45 次                                    │
+│  └─ confluence_search: 34 次                                 │
+│                                                             │
+│  失败分析                                                    │
+│  ├─ tool_timeout: 8 次                                       │
+│  ├─ llm_error: 3 次                                          │
+│  └─ invalid_action: 5 次                                     │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<hr>
+<h2 id="74-成本优化实战"><a class="header" href="#74-成本优化实战">7.4 成本优化实战</a></h2>
+<h3 id="案例dod-agent-成本优化历程"><a class="header" href="#案例dod-agent-成本优化历程">案例：DoD Agent 成本优化历程</a></h3>
+<p><strong>V1：无优化版本</strong></p>
+<pre><code class="language-text">月告警量: 6000 次
+平均 Token: 10000 tokens/次
+月 Token 消耗: 60M tokens
+月成本: 60M * 0.00003 = $1800
+</code></pre>
+<p>成本过高，不可持续。</p>
+<p><strong>优化 1：Prompt 精简</strong></p>
+<pre><code class="language-text">System Prompt: 800 → 100 tokens (-87.5%)
+检索结果: 3000 → 1000 tokens (top-3 instead of top-10)
+
+平均 Token: 10000 → 6500 tokens (-35%)
+月成本: $1800 → $1170 (-35%)
+</code></pre>
+<p><strong>优化 2：缓存相似查询</strong></p>
+<pre><code class="language-text">缓存命中率: 40%
+缓存命中时跳过 LLM 调用
+
+实际 LLM 调用: 6000 * 0.6 = 3600 次
+月成本: $1170 → $702 (-40%)
+</code></pre>
+<p><strong>优化 3：模型分层</strong></p>
+<pre><code class="language-text">简单告警（50%）: 用 GPT-3.5 ($0.0015/1K tokens)
+复杂告警（50%）: 用 GPT-4 ($0.03/1K tokens)
+
+平均成本: (0.0015 * 0.5 + 0.03 * 0.5) * 6.5 = $0.10/次
+月成本: $702 → $360 (-49%)
+</code></pre>
+<p><strong>最终优化：</strong></p>
+<pre><code class="language-text">V1 成本: $1800/月
+V3 成本: $360/月
+优化幅度: 80%
+
+同时保持：
+- 诊断准确率: 85%+
+- 响应时间: &lt; 30s
+</code></pre>
+<h3 id="优化技巧汇总"><a class="header" href="#优化技巧汇总">优化技巧汇总</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>优化方向</th><th>具体方法</th><th>节省比例</th><th>风险</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Prompt 精简</strong></td><td>删除冗余描述</td><td>30-40%</td><td>低</td></tr>
+<tr><td><strong>上下文裁剪</strong></td><td>只保留最相关信息</td><td>20-30%</td><td>中（可能丢失重要信息）</td></tr>
+<tr><td><strong>结果缓存</strong></td><td>相似查询返回缓存</td><td>30-50%</td><td>低</td></tr>
+<tr><td><strong>模型分层</strong></td><td>简单任务用便宜模型</td><td>40-60%</td><td>中（需要准确分类）</td></tr>
+<tr><td><strong>Early Stopping</strong></td><td>检测循环提前终止</td><td>10-20%</td><td>低</td></tr>
+<tr><td><strong>批量处理</strong></td><td>合并多个请求</td><td>20-30%</td><td>中（需要支持批量）</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="75-代码熵管理"><a class="header" href="#75-代码熵管理">7.5 代码熵管理</a></h2>
+<p>Agent 产出的代码会随时间积累技术债，<strong>代码熵</strong>会持续增长。</p>
+<h3 id="什么是代码熵"><a class="header" href="#什么是代码熵">什么是代码熵？</a></h3>
+<pre><code class="language-text">代码熵 = 架构不一致 + 重复代码 + 废弃代码 + 文档过时
+</code></pre>
+<p>单次任务看起来没问题，但 Agent 生成的代码在不同会话之间缺乏统一的架构愿景。</p>
+<h3 id="熵管理策略"><a class="header" href="#熵管理策略">熵管理策略</a></h3>
+<p><strong>策略 1：持续审计</strong></p>
+<p>定期运行审计 Agent：</p>
+<pre><code class="language-bash"># 每周运行一次
+/schedule weekly "Audit codebase for architecture violations"
+</code></pre>
+<p>审计 Agent 检查：</p>
+<ul>
+<li>依赖关系是否违反架构分层</li>
+<li>新代码是否遵循设计模式</li>
+<li>文档是否与代码同步</li>
+</ul>
+<p><strong>策略 2：自动重构</strong></p>
+<pre><code class="language-python">def refactor_duplicated_code():
+    """Find and refactor duplicated code blocks."""
+    
+    # 1. 检测重复代码
+    duplicates = detect_duplicates(threshold=0.9)
+    
+    # 2. 提取为公共函数
+    for dup in duplicates:
+        common_func = extract_common_function(dup)
+        replace_with_function_call(dup, common_func)
+    
+    # 3. 运行测试验证
+    run_tests()
+</code></pre>
+<p><strong>策略 3：定期清理</strong></p>
+<pre><code class="language-bash"># 清理未使用的代码
+claude -p "Find and remove unused code in src/"
+
+# 清理废弃的依赖
+claude -p "Remove unused dependencies from package.json"
+
+# 更新过时的文档
+claude -p "Update docs/ to match current implementation"
+</code></pre>
+<hr>
+<h2 id="76-可观测性检查清单"><a class="header" href="#76-可观测性检查清单">7.6 可观测性检查清单</a></h2>
+<pre><code class="language-markdown">## Agent 可观测性检查清单
+
+### 基础指标
+- [ ] 记录请求总数、成功率、失败率
+- [ ] 记录平均响应时间和 P99 延迟
+- [ ] 记录 LLM 调用次数和 Token 消耗
+- [ ] 记录工具调用次数和分布
+- [ ] 记录成本（按天/周/月统计）
+
+### 执行追踪
+- [ ] 每个请求有唯一的 trace_id
+- [ ] 记录完整的执行路径
+- [ ] 记录每个步骤的耗时
+- [ ] 支持跨服务追踪（如果是分布式）
+
+### 行为分析
+- [ ] 记录 Agent 的推理过程（Thought Chain）
+- [ ] 记录工具选择的依据
+- [ ] 分析失败的根因
+- [ ] 识别常见的错误模式
+
+### 可视化
+- [ ] 实时监控面板
+- [ ] Token 消耗趋势图
+- [ ] 成功率趋势图
+- [ ] 工具调用热力图
+
+### 告警
+- [ ] 成功率低于阈值告警
+- [ ] 成本超预算告警
+- [ ] 响应时间过长告警
+- [ ] 工具调用失败告警
+</code></pre>
+<hr>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<h3 id="核心要点回顾"><a class="header" href="#核心要点回顾">核心要点回顾</a></h3>
+<p><strong>1. Agent 可观测性的三个层次</strong></p>
+<ul>
+<li><strong>基础指标</strong>：请求数、成功率、Token 消耗、成本</li>
+<li><strong>执行追踪</strong>：完整的执行路径和耗时分析</li>
+<li><strong>行为分析</strong>：推理过程、决策依据、失败根因</li>
+</ul>
+<p><strong>2. 成本优化五大策略</strong></p>
+<ul>
+<li><strong>Prompt 压缩</strong>：精简 System Prompt，节省 30-40%</li>
+<li><strong>上下文裁剪</strong>：只保留最相关信息，节省 20-30%</li>
+<li><strong>结果缓存</strong>：相似查询返回缓存，节省 30-50%</li>
+<li><strong>模型分层</strong>：简单任务用便宜模型，节省 40-60%</li>
+<li><strong>Early Stopping</strong>：检测循环提前终止，节省 10-20%</li>
+</ul>
+<p><strong>3. DoD Agent 成本优化实战</strong></p>
+<ul>
+<li>V1 成本：$1800/月</li>
+<li>通过四轮优化降到 $360/月</li>
+<li>优化幅度：80%</li>
+<li>同时保持准确率 85%+ 和响应时间 &lt; 30s</li>
+</ul>
+<p><strong>4. 代码熵管理</strong></p>
+<ul>
+<li>持续审计：定期检查架构违规</li>
+<li>自动重构：提取重复代码</li>
+<li>定期清理：删除废弃代码和依赖</li>
+</ul>
+<h3 id="关键洞察"><a class="header" href="#关键洞察">关键洞察</a></h3>
+<blockquote>
+<p><strong>可观测性不是可选项，而是必需品。没有可观测性的 Agent 系统，就像盲人开车。</strong></p>
+</blockquote>
+<blockquote>
+<p><strong>成本优化不是降低功能，而是提高效率。好的优化能在降低成本的同时提升质量。</strong></p>
+</blockquote>
+<h3 id="第二部分总结"><a class="header" href="#第二部分总结">第二部分总结</a></h3>
+<p>第二部分（Agent 系统设计）的四章内容已完成：</p>
+<ul>
+<li>✅ 第4章：Agent 架构设计与决策框架</li>
+<li>✅ 第5章：工具系统与 MCP 协议</li>
+<li>✅ 第6章：多 Agent 协作与工作流编排</li>
+<li>✅ 第7章：可观测性与成本优化</li>
+</ul>
+<p><strong>核心思想串联：</strong></p>
+<ol>
+<li><strong>第4章</strong> 建立了设计思维：何时需要 Agent，如何选择架构模式</li>
+<li><strong>第5章</strong> 深入工具系统：如何设计可靠的工具接口</li>
+<li><strong>第6章</strong> 探讨协作模式：如何让多个 Agent 高效协作</li>
+<li><strong>第7章</strong> 关注长期运营：如何观测和优化系统</li>
+</ol>
+<h3 id="下一章预告"><a class="header" href="#下一章预告">下一章预告</a></h3>
+<p>第8章我们将进入第三部分“完整实战案例“，通过 DoD Agent（电商告警自动处理系统）的完整案例，展示从需求分析到上线部署的全过程。</p>
+<hr>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<ol>
+<li><strong>OpenTelemetry for LLM Applications</strong> - OpenTelemetry Docs</li>
+<li><strong>LangSmith: LLM Application Observability</strong> - LangChain</li>
+<li><strong>Cost Optimization Strategies for LLM Applications</strong> - Anthropic Engineering Blog</li>
+<li><strong>Monitoring and Debugging LLM Applications</strong> - OpenAI Cookbook</li>
+<li><strong>Agent Metrics and KPIs</strong> - AI Engineering Best Practices</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part4/02-guardrails-security.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part4/04-agent-lifecycle.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part4/02-guardrails-security.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part4/04-agent-lifecycle.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
