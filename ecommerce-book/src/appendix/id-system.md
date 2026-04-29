@@ -543,6 +543,97 @@ CREATE TABLE id_worker (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Snowflake worker 租约表';
 ```
 
+这张表不是普通配置表，而是 Snowflake 实例之间争抢 `worker_id` 的租约表。每个正在发号的实例必须先在自己的 `region_code` 和 `datacenter_code` 下拿到一个未被占用的 `worker_id`，并且在租约有效期内持续续租。`UNIQUE KEY uk_worker_region_dc` 保证同一个地域和机房内，同一个 `worker_id` 同一时间只能被一个实例持有；`UNIQUE KEY uk_instance` 保证同一个实例不会同时占用多个 worker。
+
+核心字段的使用方式如下：
+
+| 字段 | 用法 |
+|------|------|
+| `worker_id` | 写入 Snowflake 的 worker bits，取值范围要受位数限制，例如 0 到 31 |
+| `region_code`、`datacenter_code` | 约束 worker 的部署边界，避免不同地域或机房混用同一组 worker |
+| `instance_id` | 当前持有租约的实例标识，通常由部署平台注入，例如 Pod UID 或进程实例 ID |
+| `lease_token` | 每次成功获取或抢占租约时生成的新 token，用于续租和释放时做 fencing 校验 |
+| `lease_until` | 租约过期时间，过期后其他实例才允许抢占 |
+| `heartbeat_at` | 最近一次心跳时间，用于排查实例卡顿、网络抖动和租约丢失 |
+| `status` | `ACTIVE` 表示可用租约，`EXPIRED` 表示已释放或过期，`DISABLED` 表示该 worker 位被运维禁用 |
+
+实例启动时的流程是：
+
+1. 生成或读取 `instance_id`。
+2. 先按 `instance_id` 查询自己是否已有租约行；如果有有效租约，则续租并复用原来的 `worker_id`。
+3. 如果自己的租约行已经过期但没有被禁用，则优先在原行上重新生成 `lease_token` 并续租，避免触发 `uk_instance` 唯一索引冲突。
+4. 如果没有自己的租约行，则在当前 `region_code` 和 `datacenter_code` 下扫描可用 `worker_id`。
+5. 对空闲 worker 插入新行；对已经过期的 worker，使用条件更新抢占。
+6. 只有插入成功或条件更新影响 1 行时，实例才算拿到租约，Snowflake Generator 才能进入 ready 状态。
+
+这里的“扫描可用 `worker_id`”不是说实例提前知道要抢哪一个，而是由 Snowflake 位数推导出候选集合。当前设计里 `worker_id` 是 5 bit，所以候选范围是 `0..31`。实例可以用 `hash(instance_id) % 32` 作为扫描起点，然后按环形顺序尝试 32 个候选，避免所有实例都从 `worker_id = 0` 开始竞争。
+
+对每个候选 `worker_id`，实例按下面顺序处理：
+
+1. 如果表里没有这一行，尝试插入新租约；插入成功就获得该 worker。
+2. 如果这一行存在且 `status = 'DISABLED'`，跳过。
+3. 如果这一行存在且 `lease_until >= NOW()`，说明仍被其他实例持有，跳过。
+4. 如果这一行存在且 `lease_until < NOW()`，再执行下面的条件更新抢占。
+5. 如果 32 个候选都不可用，实例保持 not ready，后台退避重试。
+
+空闲 worker 可以直接插入：
+
+```sql
+INSERT INTO id_worker (
+    worker_id, region_code, datacenter_code,
+    instance_id, lease_token, lease_until,
+    heartbeat_at, status, created_at, updated_at
+) VALUES (
+    ?, ?, ?,
+    ?, ?, DATE_ADD(NOW(), INTERVAL ? SECOND),
+    NOW(), 'ACTIVE', NOW(), NOW()
+);
+```
+
+并发启动时，两个实例可能同时插入同一个候选 worker。此时唯一索引会让其中一个插入失败；失败方不要报错退出，而是读取最新行状态，继续尝试下一个候选或尝试抢占已经过期的候选。
+
+抢占过期 worker 时必须带上过期条件，避免两个实例同时抢到同一个 worker：
+
+```sql
+UPDATE id_worker
+SET instance_id = ?,
+    lease_token = ?,
+    lease_until = DATE_ADD(NOW(), INTERVAL ? SECOND),
+    heartbeat_at = NOW(),
+    status = 'ACTIVE',
+    updated_at = NOW()
+WHERE worker_id = ?
+  AND region_code = ?
+  AND datacenter_code = ?
+  AND status <> 'DISABLED'
+  AND lease_until < NOW();
+```
+
+续租时必须同时校验 `instance_id` 和 `lease_token`。如果更新影响行数不是 1，说明租约已经过期、被抢占或被禁用，当前实例必须立刻停止发号，进入 not ready 状态，并记录 `WORKER_LEASE_LOST`：
+
+```sql
+UPDATE id_worker
+SET lease_until = DATE_ADD(NOW(), INTERVAL ? SECOND),
+    heartbeat_at = NOW(),
+    updated_at = NOW()
+WHERE instance_id = ?
+  AND lease_token = ?
+  AND status = 'ACTIVE';
+```
+
+正常退出时不要删除租约行，而是把租约置为过期，便于审计和后续排查：
+
+```sql
+UPDATE id_worker
+SET lease_until = NOW(),
+    status = 'EXPIRED',
+    updated_at = NOW()
+WHERE instance_id = ?
+  AND lease_token = ?;
+```
+
+实现时要把数据库时间作为租约判断的基准，减少不同机器本地时钟不一致带来的误判。实例本地还应维护一个租约看门狗：如果距离上次成功心跳已经超过安全阈值，即使数据库还没返回失败，也要先把 Snowflake Generator 标记为 not ready，避免长时间 GC、网络卡顿或容器暂停后继续使用已经可能被别人抢占的 `worker_id`。
+
 ### 9.4 发号审计与异常记录
 
 ```sql

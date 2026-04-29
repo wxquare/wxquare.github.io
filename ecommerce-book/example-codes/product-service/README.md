@@ -233,6 +233,14 @@ go run cmd/main.go
 
 展示 Topup 账号校验和 Flight 实时搜索。它们不是 `runtime-context` 的替代，而是不同 C 端场景对同一套品类能力和运行时数据的使用。
 
+#### Demo 6: 商品中心、库存中心与供给运营链路
+
+覆盖第 8、9、11 章的代码示例：
+
+- 商品中心：`PublishProductVersion` 写正式商品、发布版本、商品快照和 Outbox
+- 库存中心：`CreateInventory / CheckStock / ReserveStock / ConfirmStock / ReleaseStock` 维护库存配置、余额、预占和账本
+- 供给运营：`Draft → Staging → QC / Auto Approve → Publish`，发布后初始化库存实例
+
 ### 八层模型 API
 
 ```bash
@@ -249,6 +257,47 @@ curl -X POST "http://localhost:8080/api/v1/topup/validate-account" \
   -d '{"sku_id":10001,"mobile_number":"13800138000"}'
 
 curl "http://localhost:8080/api/v1/travel/flights/search?from=SHA&to=BJS&date=2026-05-01&adult=1"
+```
+
+### 商品中心 / 库存中心 / 供给运营 API
+
+本地运营创建商品草稿并发布：
+
+```bash
+curl -X POST "http://localhost:8080/api/v1/supply/drafts" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "operation_id":"op-demo-gift-card",
+    "source_type":"LOCAL_OPS",
+    "operator_id":9001,
+    "payload":{
+      "sku_id":30001,
+      "spu_id":3001,
+      "sku_code":"GIFT-DEMO-100",
+      "title":"Demo Gift Card 100",
+      "category_id":30105,
+      "base_price":{"amount":10000,"currency":"CNY"},
+      "resource":{"resource_type":"GIFT_CARD","resource_id":"brand_demo","name":"Demo Store"},
+      "offer":{"offer_id":"offer_gift_demo_100","offer_type":"FIXED_PRICE","price":{"amount":10000,"currency":"CNY"}},
+      "stock_config":{"inventory_key":"inv:sku:30001:global","management_type":"SELF_MANAGED","unit_type":"QUANTITY","deduct_timing":"ON_ORDER","initial_stock":5,"scope":{"scope_type":"GLOBAL","scope_id":"0"}},
+      "input_schema":{"schema_id":"gift_card_demo_input","fields":[{"name":"email","type":"string","required":true}]},
+      "fulfillment":{"type":"ISSUE_CODE","mode":"PAY_SUCCESS_THEN_ISSUE"},
+      "refund_rule":{"rule_id":"gift_card_demo_refund_before_issue","refundable":true,"description":"未发码前可退"}
+    }
+  }'
+
+curl -X POST "http://localhost:8080/api/v1/supply/drafts/{draft_id}/submit"
+curl -X POST "http://localhost:8080/api/v1/supply/staging/{staging_id}/publish"
+```
+
+库存强语义接口：
+
+```bash
+curl "http://localhost:8080/api/v1/inventory/check?inventory_key=inv:sku:30001:global&qty=1"
+
+curl -X POST "http://localhost:8080/api/v1/inventory/reserve" \
+  -H "Content-Type: application/json" \
+  -d '{"inventory_key":"inv:sku:30001:global","order_id":"ORDER-10001","qty":1,"ttl_seconds":900,"idempotency_key":"ORDER-10001:inv:sku:30001:global"}'
 ```
 
 ## 📚 详细文档

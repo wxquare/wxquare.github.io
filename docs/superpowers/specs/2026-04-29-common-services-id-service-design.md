@@ -414,10 +414,43 @@ Snowflake 的 `worker_id` 由租约表分配，不能靠配置文件随手写。
 启动流程：
 
 1. 实例生成或读取 `instance_id`。
-2. 根据 `region_id` 扫描可用 `worker_id`。
-3. 对过期租约执行抢占，写入新的 `lease_token`。
-4. 启动后台心跳，定期延长 `lease_until`。
-5. 心跳失败或租约被抢占时，服务进入 not ready，Snowflake 停止发号。
+2. 先按 `instance_id` 查询自己是否已有租约行；有效则续租并复用原来的 `worker_id`。
+3. 如果没有自己的有效租约，则根据 Snowflake worker bits 枚举候选 `worker_id`。当前设计是 5 bit，所以候选范围是 `0..31`。
+4. 使用 `hash(instance_id) % 32` 作为扫描起点，按环形顺序尝试候选，避免所有实例都从 `worker_id = 0` 开始竞争。
+5. 对表中不存在的候选执行插入，插入成功即获得租约；如果唯一索引冲突，则读取最新状态后继续尝试下一个候选。
+6. 对已经存在且过期的候选执行条件更新抢占，写入新的 `lease_token`。只有更新影响 1 行时才算抢占成功。
+7. 对 `status = 'DISABLED'` 或 `lease_until >= NOW(6)` 的候选跳过。
+8. 如果所有候选都不可用，服务保持 not ready，后台退避重试。
+9. 启动后台心跳，定期延长 `lease_until`。
+10. 心跳失败或租约被抢占时，服务进入 not ready，Snowflake 停止发号。
+
+抢占过期 worker 时，`worker_id` 来自上面的候选扫描，而不是配置文件硬编码：
+
+```sql
+UPDATE id_worker
+SET instance_id = ?,
+    lease_token = ?,
+    lease_until = DATE_ADD(NOW(6), INTERVAL ? SECOND),
+    heartbeat_at = NOW(6),
+    status = 'ACTIVE',
+    updated_at = NOW(6)
+WHERE worker_id = ?
+  AND region_id = ?
+  AND status <> 'DISABLED'
+  AND lease_until < NOW(6);
+```
+
+续租时必须校验 `instance_id` 和 `lease_token`，防止旧实例在租约被抢占后继续发号：
+
+```sql
+UPDATE id_worker
+SET lease_until = DATE_ADD(NOW(6), INTERVAL ? SECOND),
+    heartbeat_at = NOW(6),
+    updated_at = NOW(6)
+WHERE instance_id = ?
+  AND lease_token = ?
+  AND status = 'ACTIVE';
+```
 
 退出流程：
 
