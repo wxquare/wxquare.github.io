@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c29c193a.js";
+            window.path_to_searchindex_js = "searchindex-b1e220f7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-815249f6.js"></script>
+        <script src="toc-c2c27c03.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -564,10 +564,73 @@ mdbook serve
 </ol>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="第-3-章-mysql存储与数据库"><a class="header" href="#第-3-章-mysql存储与数据库">第 3 章 MySQL：存储与数据库</a></h1>
-<p>MySQL 在系统设计里通常同时承担三类角色：核心事务存储、查询与分析入口、以及其他组件的数据源。理解它的重点，不是死记零散命令，而是串起从建表、索引、事务、日志到扩展治理的整条链路。</p>
-<h2 id="存储引擎与整体架构"><a class="header" href="#存储引擎与整体架构">存储引擎与整体架构</a></h2>
-<p>MySQL 是分层架构。连接层负责认证、连接与线程管理；SQL 层负责解析、优化与执行计划；存储引擎层负责数据组织与读写；文件系统层负责数据文件和日志文件。线上排障时，先分清问题落在哪一层，通常比盲目改 SQL 更有效。</p>
-<p>InnoDB 是默认且最重要的存储引擎，适合绝大多数业务库：</p>
+<p>MySQL 是多数业务系统的核心事务存储。对于 3 到 10 年工程师来说，面试官通常不会只问“索引是什么”“事务四大特性是什么”，而是会把问题放进真实业务里：订单列表为什么慢、库存为什么超卖、支付回调为什么重复、主从延迟为什么导致用户看不到刚下的订单、单表过大后为什么不能只靠加机器解决。</p>
+<p>因此，本章的目标不是堆 MySQL 命令，而是建立一套面试和工程都能复用的决策框架：</p>
+<ul>
+<li>从业务建模出发，判断哪些数据应该进入 MySQL，哪些不该进入 MySQL。</li>
+<li>从表结构、索引和执行计划出发，解释查询性能问题。</li>
+<li>从事务、锁、MVCC 和状态机出发，解释一致性问题。</li>
+<li>从 redo、undo、binlog、复制和高可用出发，解释可靠性问题。</li>
+<li>从容量、归档、分库分表和读模型出发，解释系统如何演进。</li>
+</ul>
+<p>如果用一句话概括：MySQL 面试的核心不是“背概念”，而是能把业务约束、数据模型、索引设计、事务边界和扩展路径串成一条完整的工程链路。</p>
+<h2 id="mysql-在电商系统中的定位"><a class="header" href="#mysql-在电商系统中的定位">MySQL 在电商系统中的定位</a></h2>
+<p>电商系统里，MySQL 通常承载的是“必须可信、可追溯、可恢复”的核心业务事实，而不是所有读请求的最终形态。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>业务域</th><th>典型数据</th><th>MySQL 的角色</th><th>常见扩展组件</th></tr>
+</thead>
+<tbody>
+<tr><td>用户</td><td>用户账号、实名信息、地址</td><td>权威存储</td><td>Redis 缓存、风控系统</td></tr>
+<tr><td>商品</td><td>SPU、SKU、类目、属性</td><td>主数据与后台管理</td><td>Elasticsearch、Redis</td></tr>
+<tr><td>库存</td><td>可售库存、锁定库存、库存流水</td><td>强一致扣减与审计</td><td>Redis 预扣、MQ</td></tr>
+<tr><td>订单</td><td>订单主表、订单明细、状态流转</td><td>核心交易事实</td><td>MQ、搜索、归档库</td></tr>
+<tr><td>支付</td><td>支付单、退款单、对账记录</td><td>资金链路事实</td><td>支付渠道、账务系统</td></tr>
+<tr><td>营销</td><td>优惠券、活动、使用记录</td><td>权益与核销事实</td><td>Redis、规则引擎</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个成熟系统通常不会让 MySQL 同时承担所有职责。常见分工是：</p>
+<ul>
+<li>MySQL 保存核心事实，例如订单、支付、库存流水。</li>
+<li>Redis 承担热点缓存、限流、活动预热和临时状态。</li>
+<li>Elasticsearch 承担商品搜索、订单后台检索等多条件查询。</li>
+<li>Kafka 或其他 MQ 承担异步通知、数据同步、削峰和最终一致性。</li>
+<li>HBase、ClickHouse、Hive 等承担历史归档和分析查询。</li>
+</ul>
+<p>面试时如果被问“订单系统怎么设计存储”，好的回答一般不是一句“订单表分库分表”，而是先拆读写场景：</p>
+<ol>
+<li>买家下单、支付、取消、退款属于强一致写链路，核心状态落 MySQL。</li>
+<li>买家订单列表属于高频读，可以走 MySQL 索引、缓存或读模型。</li>
+<li>商家后台按多条件检索订单，适合同步到 Elasticsearch。</li>
+<li>超过一定时间的历史订单可以归档，在线库只保留热数据。</li>
+<li>财务对账与审计要保留不可篡改流水，不应只依赖订单当前状态。</li>
+</ol>
+<p>这个拆法体现的是系统设计能力：先识别数据的权威来源，再为不同访问模式构建合适的读模型。</p>
+<h2 id="mysql-架构与-innodb-基础"><a class="header" href="#mysql-架构与-innodb-基础">MySQL 架构与 InnoDB 基础</a></h2>
+<p>MySQL 可以粗略分成四层：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>作用</th><th>排障关注点</th></tr>
+</thead>
+<tbody>
+<tr><td>连接层</td><td>连接、认证、线程管理</td><td>连接数、连接池、认证耗时</td></tr>
+<tr><td>SQL 层</td><td>解析、优化、执行计划</td><td>慢 SQL、执行计划、临时表</td></tr>
+<tr><td>存储引擎层</td><td>数据组织、索引、事务、锁</td><td>InnoDB 锁、Buffer Pool、redo</td></tr>
+<tr><td>文件系统层</td><td>数据文件、日志文件、刷盘</td><td>IO、磁盘水位、fsync 抖动</td></tr>
+</tbody>
+</table>
+</div>
+<p>线上问题定位时，先判断瓶颈在什么层，比直接改 SQL 更有效：</p>
+<ul>
+<li>连接打满，可能是应用连接池、慢查询堆积或数据库连接配置问题。</li>
+<li>CPU 高，可能是大量排序、函数计算、低选择性索引或并发过高。</li>
+<li>IO 高，可能是 Buffer Pool 命中率低、刷脏页、临时表落盘或大查询扫表。</li>
+<li>锁等待高，可能是事务过长、索引未命中、加锁顺序混乱或热点行竞争。</li>
+</ul>
+<p>InnoDB 是大多数业务库默认选择，因为它同时提供事务、行锁、崩溃恢复和 MVCC。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -575,233 +638,1044 @@ mdbook serve
 </thead>
 <tbody>
 <tr><td>事务</td><td>支持 ACID</td><td>不支持</td></tr>
-<tr><td>锁粒度</td><td>行级锁</td><td>表级锁</td></tr>
-<tr><td>崩溃恢复</td><td>支持</td><td>弱</td></tr>
-<tr><td>典型场景</td><td>交易、订单、库存</td><td>读多写少历史场景</td></tr>
+<tr><td>锁粒度</td><td>行级锁为主</td><td>表级锁</td></tr>
+<tr><td>崩溃恢复</td><td>支持 redo 恢复</td><td>较弱</td></tr>
+<tr><td>外键</td><td>支持</td><td>不支持</td></tr>
+<tr><td>典型场景</td><td>订单、库存、支付</td><td>历史遗留读多写少场景</td></tr>
 </tbody>
 </table>
 </div>
-<p>InnoDB 的核心内存结构包括 Buffer Pool、Change Buffer、Adaptive Hash Index、Log Buffer；核心磁盘结构包括表空间、redo log、undo log、doublewrite buffer。理解这些组件有助于解释很多线上现象，例如 Buffer Pool 命中率低导致读放大、redo 刷盘策略影响提交延迟、脏页刷新跟不上时出现抖动。</p>
-<p>建表阶段要尽量把“后续治理成本”提前考虑进去：</p>
+<p>InnoDB 的几个核心组件要能和线上现象对应起来：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>组件</th><th>作用</th><th>典型现象</th></tr>
+</thead>
+<tbody>
+<tr><td>Buffer Pool</td><td>缓存数据页和索引页</td><td>命中率低会导致读 IO 放大</td></tr>
+<tr><td>Change Buffer</td><td>缓冲非唯一二级索引变更</td><td>写入后异步合并，降低随机 IO</td></tr>
+<tr><td>Adaptive Hash Index</td><td>热点页上的自适应哈希</td><td>某些读热点能加速，极端场景也可能带来争用</td></tr>
+<tr><td>Log Buffer</td><td>缓冲 redo 日志</td><td>提交延迟和刷盘策略相关</td></tr>
+<tr><td>undo log</td><td>保存旧版本</td><td>支撑回滚和 MVCC</td></tr>
+<tr><td>redo log</td><td>记录页修改</td><td>支撑崩溃恢复</td></tr>
+<tr><td>doublewrite buffer</td><td>防止页写一半损坏</td><td>提升恢复可靠性，带来额外写入</td></tr>
+</tbody>
+</table>
+</div>
+<p>面试中不要孤立背这些名词。更好的回答方式是：InnoDB 把数据按页组织在 B+ 树里，读写优先经过 Buffer Pool；事务修改先写 redo，旧版本写 undo；提交时通过 WAL 和刷盘策略保证持久性；崩溃后用 redo 重放、undo 回滚未完成事务。</p>
+<h2 id="表设计把治理成本前置"><a class="header" href="#表设计把治理成本前置">表设计：把治理成本前置</a></h2>
+<p>表设计不是把字段放进去就结束。对电商系统来说，表结构决定了后续索引、事务、归档、分库分表和数据同步的成本。</p>
+<h3 id="主键与业务-id"><a class="header" href="#主键与业务-id">主键与业务 ID</a></h3>
+<p>InnoDB 是聚簇索引组织表，主键会直接影响数据页组织和所有二级索引大小。主键设计通常遵循：</p>
 <ul>
-<li>默认使用 <code>utf8mb4</code>，避免字符集升级成本。</li>
-<li>主键尽量稳定、短小、单调递增，降低页分裂与二级索引体积。</li>
-<li>除 <code>text</code> 等少数类型外，字段尽量明确 <code>NOT NULL</code> 与默认值，减少三值逻辑带来的判断复杂度。</li>
-<li>外键约束在分库分表和高并发业务中往往限制扩展，很多团队更倾向于在应用层保证一致性。</li>
-<li>表结构变更要把 Online DDL、备份、回滚与发布顺序一起考虑，而不是把 <code>ALTER TABLE</code> 当成普通变更。</li>
+<li>尽量短：二级索引叶子节点会保存主键值，主键越长，二级索引越大。</li>
+<li>尽量稳定：主键不应跟随业务状态变化。</li>
+<li>尽量单调：随机主键会增加页分裂和写放大。</li>
+<li>避免把可变业务含义塞进主键：业务规则变更会非常痛苦。</li>
 </ul>
-<p>一个常见的工程经验是：DDL 先在影子环境验证，再安排低峰执行，最后配合应用发布。大表变更时如果忽略锁表、重建索引和空间放大，很容易把变更做成事故。</p>
-<h2 id="索引与查询执行"><a class="header" href="#索引与查询执行">索引与查询执行</a></h2>
-<p>索引本质上是“用写入成本换查询效率”的数据结构。InnoDB 以 B+ 树作为主流索引结构，是因为它兼顾低树高、顺序访问和范围查询能力。</p>
+<p>电商里经常同时存在两类 ID：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>ID 类型</th><th>用途</th><th>设计关注点</th></tr>
+</thead>
+<tbody>
+<tr><td>数据库主键 <code>id</code></td><td>InnoDB 聚簇索引</td><td>短小、单调、便于存储</td></tr>
+<tr><td>业务单号 <code>order_no</code></td><td>对外展示、幂等、路由</td><td>全局唯一、可追踪、避免泄露规模</td></tr>
+</tbody>
+</table>
+</div>
+<p>订单表可以用自增或趋势递增的 <code>BIGINT</code> 作为内部主键，同时用 <code>order_no</code> 做唯一业务单号。分库分表后，<code>order_no</code> 往往还要编码时间、机房、分片或随机位，便于路由和排障。</p>
+<h3 id="字段类型与约束"><a class="header" href="#字段类型与约束">字段类型与约束</a></h3>
+<p>字段类型决定存储成本和索引效率。常见建议如下：</p>
+<ul>
+<li>金额用整数存分，避免浮点误差。</li>
+<li>状态用 <code>TINYINT</code> 或 <code>SMALLINT</code>，并在代码中维护枚举含义。</li>
+<li>时间字段统一使用明确语义，例如 <code>created_at</code>、<code>updated_at</code>、<code>paid_at</code>、<code>deleted_at</code>。</li>
+<li>字符集默认 <code>utf8mb4</code>，避免后续表级字符集迁移。</li>
+<li>除少数确实需要三值逻辑的字段外，尽量 <code>NOT NULL</code> 并给默认值。</li>
+<li>大文本、JSON、图片地址列表等低频大字段，优先考虑垂直拆分。</li>
+</ul>
+<p>示例订单表结构可以这样思考，而不是照抄字段：</p>
+<pre><code class="language-sql">CREATE TABLE order_main (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  order_no VARCHAR(32) NOT NULL,
+  buyer_id BIGINT UNSIGNED NOT NULL,
+  seller_id BIGINT UNSIGNED NOT NULL,
+  status TINYINT NOT NULL,
+  total_amount BIGINT NOT NULL,
+  pay_amount BIGINT NOT NULL,
+  paid_at DATETIME NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_order_no (order_no),
+  KEY idx_buyer_status_created (buyer_id, status, created_at, id),
+  KEY idx_seller_created (seller_id, created_at, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+</code></pre>
+<p>这里的重点不是字段是否完整，而是几个设计意图：</p>
+<ul>
+<li><code>order_no</code> 用唯一索引保障业务幂等。</li>
+<li>买家订单列表按 <code>buyer_id + status + created_at</code> 建索引。</li>
+<li>商家后台如果只是按商家和时间查，可以用 <code>seller_id + created_at</code>。</li>
+<li>如果商家后台要按手机号、商品名、收货人、状态组合查询，就不应该强行全靠 MySQL 单表索引，通常要同步搜索读模型。</li>
+</ul>
+<h3 id="外键约束与应用层一致性"><a class="header" href="#外键约束与应用层一致性">外键、约束与应用层一致性</a></h3>
+<p>很多互联网业务不会大量使用数据库外键，不是因为外键没价值，而是因为高并发、分库分表、异步解耦和跨服务调用会让外键约束变得很难扩展。</p>
+<p>更常见的做法是：</p>
+<ul>
+<li>数据库用主键、唯一键、非空约束兜住底线。</li>
+<li>应用层用状态机、幂等键和事务边界保证业务一致性。</li>
+<li>异步链路用消息、补偿任务和对账任务修复最终一致性问题。</li>
+</ul>
+<p>比如订单和支付单不一定用外键绑定，但支付单必须有唯一支付流水号，订单状态更新必须带前置状态条件，支付成功消息必须可重放且幂等。</p>
+<h2 id="索引设计从访问模式倒推"><a class="header" href="#索引设计从访问模式倒推">索引设计：从访问模式倒推</a></h2>
+<p>索引本质上是用写入成本和存储成本换查询效率。真正的索引设计不是“字段越多越好”，而是从高频访问模式倒推。</p>
+<h3 id="为什么-innodb-使用-b-树"><a class="header" href="#为什么-innodb-使用-b-树">为什么 InnoDB 使用 B+ 树</a></h3>
+<p>InnoDB 主流索引结构是 B+ 树。和红黑树、B 树相比，B+ 树更适合磁盘和页缓存模型：</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>维度</th><th>B+ 树</th><th>红黑树</th><th>B 树</th></tr>
 </thead>
 <tbody>
-<tr><td>树高</td><td>低，千万级数据常见 3 到 4 层</td><td>高</td><td>低</td></tr>
-<tr><td>磁盘 IO</td><td>少</td><td>多</td><td>较少</td></tr>
-<tr><td>范围查询</td><td>强，叶子节点链表天然有序</td><td>弱</td><td>一般</td></tr>
-<tr><td>索引页利用率</td><td>高</td><td>低</td><td>中</td></tr>
+<tr><td>树高</td><td>低，扇出大</td><td>高，节点分散</td><td>较低</td></tr>
+<tr><td>磁盘 IO</td><td>适合按页读取</td><td>随机访问多</td><td>较适合</td></tr>
+<tr><td>范围查询</td><td>叶子节点链表天然有序</td><td>不擅长</td><td>一般</td></tr>
+<tr><td>缓存友好性</td><td>高</td><td>低</td><td>中</td></tr>
 </tbody>
 </table>
 </div>
-<p>InnoDB 的聚簇索引把主键与整行数据放在同一棵 B+ 树上；二级索引叶子节点保存的是主键值，所以很多查询会先走二级索引、再回表到聚簇索引读取整行。由此可以推导出几个常用概念：</p>
+<p>面试里常见追问是“一棵三层 B+ 树能存多少数据”。不要死背数字，应该说明估算逻辑：InnoDB 页默认常见大小是 16KB，非叶子节点存索引键和子节点指针，叶子节点存整行或二级索引条目。每层扇出越大，树高越低。实际容量受主键大小、行宽、页填充率影响，所以“几层树支撑百万到千万级数据”是估算，不是固定结论。</p>
+<h3 id="聚簇索引二级索引与回表"><a class="header" href="#聚簇索引二级索引与回表">聚簇索引、二级索引与回表</a></h3>
+<p>InnoDB 的聚簇索引把主键和整行数据放在同一棵 B+ 树上。二级索引叶子节点保存的是二级索引列加主键值。</p>
+<p>这带来几个重要结论：</p>
 <ul>
-<li>覆盖索引：查询所需列全部在索引里，避免回表。</li>
-<li>联合索引：索引列顺序由建索引时确定，查询是否高效仍然受最左前缀原则约束；优化器可以选择是否使用该索引、选择扫描方式或改写执行计划，但不会自由重排联合索引本身的列定义。</li>
-<li>回表：二级索引命中后再去主键索引找整行。</li>
-<li>索引失效：隐式类型转换、函数运算、前导模糊匹配、<code>or</code> 条件等都可能让优化器放弃索引。</li>
+<li>通过主键查询通常最快，因为一次命中聚簇索引即可。</li>
+<li>通过二级索引查询整行，通常要先命中二级索引，再用主键回表。</li>
+<li>覆盖索引能避免回表，因为查询所需列都在二级索引里。</li>
+<li>主键越大，所有二级索引都会变大。</li>
 </ul>
-<p>从 SQL 执行路径看，一条查询通常经历解析、优化器选择索引与 Join 顺序、执行器下推条件到存储引擎、返回结果这几步。排查慢 SQL 时，应该优先看 <code>EXPLAIN</code>：</p>
-<ul>
-<li><code>type</code> 是否退化到 <code>ALL</code> 或大范围 <code>range</code></li>
-<li><code>key</code> 是否命中预期索引</li>
-<li><code>rows</code> 是否扫描过多</li>
-<li><code>extra</code> 里是否出现 <code>Using filesort</code>、<code>Using temporary</code></li>
-</ul>
-<p>深分页是经典性能坑。<code>LIMIT 100000, 10</code> 的真正问题，不只是跳过 10 万行，而是通常要先扫描和排序大量数据。常见优化策略有：</p>
+<p>例如：</p>
+<pre><code class="language-sql">SELECT order_no, status, pay_amount
+FROM order_main
+WHERE buyer_id = 1001 AND status = 20
+ORDER BY created_at DESC
+LIMIT 20;
+</code></pre>
+<p>如果索引是：</p>
+<pre><code class="language-sql">KEY idx_buyer_status_created (buyer_id, status, created_at, id)
+</code></pre>
+<p>查询可以较好地按买家、状态、时间定位。但如果 <code>SELECT *</code>，仍可能回表读取其他列。面试时提到覆盖索引，最好同时补一句：覆盖索引不是为了炫技，而是为了减少随机回表；但索引列过多会增加写入成本和存储成本，要围绕高频查询设计。</p>
+<h3 id="联合索引设计原则"><a class="header" href="#联合索引设计原则">联合索引设计原则</a></h3>
+<p>联合索引遵循最左前缀原则，但工程上不能只背这句话。更实用的判断顺序是：</p>
 <ol>
-<li>用合适索引消除全表排序。</li>
-<li>先走子查询只取主键，再回表做延迟关联。</li>
-<li>优先使用游标分页而不是大偏移量分页。</li>
+<li>等值条件优先放在前面，例如 <code>buyer_id</code>、<code>status</code>。</li>
+<li>范围条件之后的列通常不能继续用于精确定位，只能部分用于过滤或排序。</li>
+<li>排序字段要和过滤条件组合考虑，避免额外 filesort。</li>
+<li>覆盖索引只覆盖高频轻量查询，不要把大字段塞进索引。</li>
+<li>区分度高不等于一定放最前，字段顺序要服务具体查询模式。</li>
 </ol>
-<p>如果查询目标是“稳定翻页”和“低抖动”，游标分页通常比 <code>OFFSET</code> 更适合线上系统。</p>
-<h2 id="事务隔离级别与锁"><a class="header" href="#事务隔离级别与锁">事务、隔离级别与锁</a></h2>
-<p>事务的价值在于把多条操作封装成一个具备原子性、一致性、隔离性、持久性的整体。InnoDB 默认隔离级别是可重复读（RR），理解它要同时看 MVCC 与锁。</p>
+<p>以订单列表为例，用户最常见查询是：</p>
+<pre><code class="language-sql">SELECT id, order_no, status, pay_amount, created_at
+FROM order_main
+WHERE buyer_id = ?
+  AND status = ?
+ORDER BY created_at DESC, id DESC
+LIMIT 20;
+</code></pre>
+<p>可以考虑：</p>
+<pre><code class="language-sql">KEY idx_buyer_status_created_id (buyer_id, status, created_at, id)
+</code></pre>
+<p>如果业务更常见的是“查询某个用户全部订单，不一定按状态筛选”，还需要评估是否补充：</p>
+<pre><code class="language-sql">KEY idx_buyer_created_id (buyer_id, created_at, id)
+</code></pre>
+<p>但不能机械地为每种组合建索引。索引过多会带来：</p>
+<ul>
+<li>写入、更新和删除变慢。</li>
+<li>Buffer Pool 被更多索引页占用。</li>
+<li>DDL 成本增加。</li>
+<li>优化器选择成本上升。</li>
+</ul>
+<p>一个好习惯是把索引和 SQL 场景写在一起评审，而不是只评审表结构。</p>
+<h3 id="索引失效与执行计划"><a class="header" href="#索引失效与执行计划">索引失效与执行计划</a></h3>
+<p>常见导致索引效果变差的原因包括：</p>
+<ul>
+<li>对索引列做函数运算，例如 <code>DATE(created_at) = '2026-04-01'</code>。</li>
+<li>隐式类型转换，例如字符串列用数字条件比较。</li>
+<li>前导模糊匹配，例如 <code>LIKE '%phone'</code>。</li>
+<li>低选择性字段单独建索引，例如只有几个状态值的 <code>status</code>。</li>
+<li><code>OR</code> 条件跨多个字段，导致优化器难以使用单个索引。</li>
+<li>范围条件过宽，优化器认为扫表更便宜。</li>
+<li>统计信息不准，执行计划选错。</li>
+</ul>
+<p>排查慢 SQL 时，<code>EXPLAIN</code> 至少关注：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>隔离级别</th><th>可能问题</th></tr>
+<tr><th>字段</th><th>关注点</th></tr>
 </thead>
 <tbody>
-<tr><td>读未提交</td><td>脏读</td></tr>
-<tr><td>读已提交</td><td>不可重复读</td></tr>
-<tr><td>可重复读</td><td>通过 MVCC 与间隙锁尽量避免不可重复读与幻读</td></tr>
-<tr><td>串行化</td><td>并发最低，但最保守</td></tr>
+<tr><td><code>type</code></td><td>是否退化为 <code>ALL</code>、大范围 <code>range</code></td></tr>
+<tr><td><code>key</code></td><td>是否命中预期索引</td></tr>
+<tr><td><code>rows</code></td><td>预估扫描行数是否过大</td></tr>
+<tr><td><code>filtered</code></td><td>过滤比例是否合理</td></tr>
+<tr><td><code>Extra</code></td><td>是否出现 <code>Using temporary</code>、<code>Using filesort</code></td></tr>
 </tbody>
 </table>
 </div>
-<p>MVCC 的三个核心部件是隐藏列、undo log 版本链和 ReadView：</p>
+<p><code>EXPLAIN</code> 不是终点。更严谨的排查还要结合慢日志、实际执行耗时、扫描行数、返回行数、索引统计信息和业务流量峰值。</p>
+<h2 id="查询优化从慢-sql-到访问模式重构"><a class="header" href="#查询优化从慢-sql-到访问模式重构">查询优化：从慢 SQL 到访问模式重构</a></h2>
+<p>SQL 优化的第一原则是：先确认瓶颈，再决定手段。不要看到慢 SQL 就立刻加索引。</p>
+<h3 id="慢-sql-排查路径"><a class="header" href="#慢-sql-排查路径">慢 SQL 排查路径</a></h3>
+<p>一条线上 SQL 很慢，可以按下面顺序排查：</p>
+<ol>
+<li>看慢日志，确认 SQL 模板、耗时、扫描行数和返回行数。</li>
+<li>看 <code>EXPLAIN</code>，确认索引、Join 顺序、排序和临时表。</li>
+<li>看业务参数分布，确认是不是少数大客户、爆款商品或异常时间范围。</li>
+<li>看锁等待，确认慢是执行慢还是等待慢。</li>
+<li>看资源指标，确认 CPU、IO、Buffer Pool、连接数是否异常。</li>
+<li>再决定是改 SQL、补索引、拆查询、加缓存、建读模型还是做归档。</li>
+</ol>
+<p>这个顺序很适合面试回答，因为它体现你不是“头痛医头”，而是在定位瓶颈。</p>
+<h3 id="深分页"><a class="header" href="#深分页">深分页</a></h3>
+<p>深分页是电商后台和订单列表常见问题。下面这个 SQL 看似只取 20 条：</p>
+<pre><code class="language-sql">SELECT id, order_no, status, created_at
+FROM order_main
+WHERE buyer_id = ?
+ORDER BY created_at DESC
+LIMIT 100000, 20;
+</code></pre>
+<p>数据库通常仍要扫描、排序或跳过大量记录。常见优化有三类。</p>
+<p>第一类是延迟关联，先用索引取主键，再回表：</p>
+<pre><code class="language-sql">SELECT o.id, o.order_no, o.status, o.created_at
+FROM order_main o
+JOIN (
+  SELECT id
+  FROM order_main
+  WHERE buyer_id = ?
+  ORDER BY created_at DESC
+  LIMIT 100000, 20
+) t ON o.id = t.id;
+</code></pre>
+<p>它能减少回表数据量，但不能从根上消除大偏移扫描。</p>
+<p>第二类是游标分页，也叫 keyset pagination：</p>
+<pre><code class="language-sql">SELECT id, order_no, status, created_at
+FROM order_main
+WHERE buyer_id = ?
+  AND (created_at &lt; ? OR (created_at = ? AND id &lt; ?))
+ORDER BY created_at DESC, id DESC
+LIMIT 20;
+</code></pre>
+<p>它适合 App 和 C 端列表，因为用户通常只是连续向下翻页，不需要精确跳到第 5000 页。</p>
+<p>第三类是读模型重构。比如商家后台要求按多个条件筛选历史订单，并支持任意页跳转，这类需求不一定适合直接压在订单主表上，可以同步到 Elasticsearch 或专门的后台查询表。</p>
+<h3 id="join-与反范式"><a class="header" href="#join-与反范式">Join 与反范式</a></h3>
+<p>面试里经常有人把“禁止 Join”当成经验。更准确的说法是：核心高并发链路要谨慎 Join，大查询和跨业务域 Join 要尽量避免。</p>
+<p>订单详情页如果每次都 Join 用户、商品、优惠、支付、履约多张表，稳定性会很差。常见做法是：</p>
 <ul>
-<li>隐藏列记录最后修改事务 ID 与回滚指针。</li>
-<li>undo log 保存旧版本，串成版本链。</li>
-<li>ReadView 决定当前事务能看到哪个版本。</li>
+<li>写入时适度冗余订单快照，例如商品标题、购买价、店铺名。</li>
+<li>核心链路按主键或唯一键查询，避免复杂 Join。</li>
+<li>后台分析和报表走离线或近实时数仓。</li>
+<li>搜索和复杂筛选走专门读模型。</li>
 </ul>
-<p>RC 与 RR 的核心差别，在于 ReadView 创建时机不同：RC 基本是每次读取都创建新视图，RR 则在事务中第一次快照读时固定视图，因此能实现“同一事务内前后两次快照读结果一致”。</p>
-<p>锁模型则负责补齐“当前读”和写入冲突控制：</p>
-<ul>
-<li>行锁适合精确命中索引的更新。</li>
-<li>Gap Lock 锁住记录间隙，防止插入。</li>
-<li>Next-Key Lock = 行锁 + 间隙锁，用来抑制幻读。</li>
-</ul>
-<p>悲观锁适合冲突高、必须串行化关键资源的场景，例如账户转账、库存扣减。典型写法是 <code>SELECT ... FOR UPDATE</code>，但它只有在命中索引时才真正是“行锁”；如果条件未命中索引，很容易退化为大范围锁甚至全表锁。</p>
-<p>乐观锁适合冲突少的场景，例如商品信息编辑、订单状态流转。工程上最重要的不是加一个 <code>version</code> 字段，而是每次更新后必须检查 <code>affected_rows</code>，否则“更新失败但代码以为成功”会成为隐蔽 bug。</p>
-<p>死锁不是异常情况，而是高并发下的常见结果。降低死锁概率的做法包括：</p>
-<ul>
-<li>多资源访问统一加锁顺序。</li>
-<li>缩短事务时间，避免长事务。</li>
-<li>确保条件命中索引，缩小锁范围。</li>
-<li>业务上做好重试与幂等。</li>
-</ul>
-<h2 id="日志复制与高可用"><a class="header" href="#日志复制与高可用">日志、复制与高可用</a></h2>
-<p>MySQL 里至少要分清三类日志：undo log、redo log、binlog。</p>
+<p>反范式不是不讲一致性，而是把“交易事实”和“展示快照”分开。订单里的商品标题是下单时快照，即使商品后来改名，历史订单也不应该跟着变。</p>
+<h2 id="事务mvcc-与隔离级别"><a class="header" href="#事务mvcc-与隔离级别">事务、MVCC 与隔离级别</a></h2>
+<p>事务的价值是把多条操作封装成一个具备原子性、一致性、隔离性和持久性的整体。对工程师来说，更重要的是知道什么时候需要事务、事务边界怎么划、长事务有什么风险。</p>
+<h3 id="隔离级别"><a class="header" href="#隔离级别">隔离级别</a></h3>
+<p>MySQL InnoDB 默认隔离级别通常是可重复读。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>日志</th><th>作用</th><th>关键价值</th></tr>
+<tr><th>隔离级别</th><th>可能问题</th><th>工程特点</th></tr>
 </thead>
 <tbody>
-<tr><td>undo log</td><td>保存旧版本</td><td>回滚与 MVCC</td></tr>
-<tr><td>redo log</td><td>记录页修改</td><td>崩溃恢复与持久性</td></tr>
-<tr><td>binlog</td><td>记录逻辑变更</td><td>复制、订阅、审计</td></tr>
+<tr><td>读未提交</td><td>脏读</td><td>基本不用</td></tr>
+<tr><td>读已提交</td><td>不可重复读</td><td>很多系统可接受，锁范围相对小</td></tr>
+<tr><td>可重复读</td><td>快照读一致，当前读配合锁控制幻读</td><td>InnoDB 默认常见选择</td></tr>
+<tr><td>串行化</td><td>并发最低</td><td>极少用于高并发业务</td></tr>
 </tbody>
 </table>
 </div>
-<p>InnoDB 依赖 WAL 思想：先写 redo log，再异步刷数据页。<code>innodb_flush_log_at_trx_commit</code> 常见取值含义如下：</p>
+<p>要区分快照读和当前读：</p>
 <ul>
-<li><code>1</code>：每次提交都刷盘，最安全，也是生产常用配置。</li>
-<li><code>2</code>：每次提交写 OS Buffer，fsync 按秒执行，性能更好但可能丢秒级数据。</li>
-<li><code>0</code>：都按秒刷，风险最高。</li>
+<li>普通 <code>SELECT</code> 通常是快照读，读的是 ReadView 可见版本。</li>
+<li><code>SELECT ... FOR UPDATE</code>、<code>UPDATE</code>、<code>DELETE</code> 是当前读，要读取最新版本并加锁。</li>
 </ul>
-<p>主从复制是 MySQL 最常见的高可用基础形态。主库负责写，从库通过 binlog 复制追赶主库，可以实现读写分离、灾备和只读扩展，但也带来三个老问题：</p>
+<p>很多幻读问题的争议都来自没有区分这两类读。InnoDB 在可重复读下，快照读通过 MVCC 保持一致视图；当前读则通过 Next-Key Lock 等机制控制并发插入。</p>
+<h3 id="mvcc"><a class="header" href="#mvcc">MVCC</a></h3>
+<p>MVCC 的核心由三部分组成：</p>
+<ul>
+<li>隐藏列：记录事务 ID 和回滚指针。</li>
+<li>undo log：保存旧版本，形成版本链。</li>
+<li>ReadView：记录当前活跃事务范围，判断哪个版本可见。</li>
+</ul>
+<p>RC 和 RR 的关键差异在 ReadView 创建时机：</p>
+<ul>
+<li>RC：每次快照读都创建新的 ReadView。</li>
+<li>RR：事务内第一次快照读创建 ReadView，后续复用。</li>
+</ul>
+<p>因此 RR 下同一事务里两次普通查询结果可以保持一致，而 RC 下第二次查询可能看到其他事务已经提交的数据。</p>
+<p>面试回答 MVCC 时，可以这样组织：</p>
 <ol>
-<li>主从延迟会导致读到旧数据。</li>
-<li>主库故障切换需要明确自动化方案与一致性策略。</li>
-<li>读写分离后，业务要知道哪些读必须回主。</li>
+<li>InnoDB 不直接覆盖旧数据，而是通过 undo log 保存旧版本。</li>
+<li>每行有事务 ID 和回滚指针，可以沿版本链找到历史版本。</li>
+<li>事务读取时根据 ReadView 判断哪些版本可见。</li>
+<li>这样读写可以并发，普通读不必阻塞写，写也不必阻塞普通读。</li>
+<li>但当前读和写冲突仍要靠锁解决。</li>
 </ol>
-<p>当单主无法满足容量与吞吐时，常见的演进路线是：</p>
+<h2 id="锁库存扣减与订单状态机"><a class="header" href="#锁库存扣减与订单状态机">锁、库存扣减与订单状态机</a></h2>
+<p>锁是 MySQL 面试最容易从概念走向工程的部分。不要只背行锁、间隙锁、Next-Key Lock，要能说清楚它们在库存、订单和支付里的作用。</p>
+<h3 id="行锁gap-lock-与-next-key-lock"><a class="header" href="#行锁gap-lock-与-next-key-lock">行锁、Gap Lock 与 Next-Key Lock</a></h3>
+<p>InnoDB 行锁是加在索引记录上的。这个细节非常重要：</p>
 <ul>
-<li>单机 InnoDB</li>
-<li>主从复制 + 读写分离</li>
-<li>垂直拆分不同业务库</li>
-<li>水平分片 + 路由</li>
+<li>条件命中唯一索引，锁范围通常很小。</li>
+<li>条件命中普通索引，可能锁住多条索引记录。</li>
+<li>条件没有命中索引，可能扫描并锁住大量记录。</li>
 </ul>
-<p>多主复制理论上提升写可用性，但实际会引入冲突解决和一致性复杂度，除非业务非常明确需要多活写入，否则大多数团队更愿意在单主或分片主的模式上建设高可用。</p>
-<h2 id="sql-优化与分库分表"><a class="header" href="#sql-优化与分库分表">SQL 优化与分库分表</a></h2>
-<p>SQL 优化首先应遵循“先把单库单表做到合理，再谈架构升级”的顺序。典型优化路径如下：</p>
-<ol>
-<li>看慢日志与 <code>EXPLAIN</code>，明确瓶颈在扫描、排序、回表还是锁等待。</li>
-<li>优化 SQL 写法，减少不必要列和无效条件。</li>
-<li>补充或调整索引。</li>
-<li>引入缓存、批量化、异步化降低数据库压力。</li>
-<li>仍然不够时，再考虑读写分离、分表分库、归档。</li>
-</ol>
-<p>关于“单表多少行要分表”没有绝对阈值。500 万行、2000 万行这类经验值，背后真正决定因素通常是索引能否放入内存、查询模式是否稳定、磁盘 IO 是否已经成为瓶颈。比起迷信固定数字，更重要的是观测实际 QPS、延迟、Buffer Pool 命中率和空间增长速度。</p>
-<p>分库分表常见模式包括：</p>
-<ul>
-<li>垂直分表：把冷热字段或低频大字段拆出去。</li>
-<li>垂直分库：按业务域拆库，例如订单库、商品库、用户库。</li>
-<li>水平分表：按用户、订单号、时间等维度打散数据。</li>
-<li>历史归档：把长期低频数据迁到冷存储或历史库。</li>
-</ul>
-<p>例如订单系统按用户维度分 1000 张表，解决的是热点写入与单表膨胀问题；超过一年再归档到 HBase 或历史库，解决的是“在线表承载全部历史”的存储与查询成本问题。分片之后的核心成本则转移到路由、跨分片查询、扩容再平衡和运维治理。</p>
-<h2 id="常见线上问题与排查"><a class="header" href="#常见线上问题与排查">常见线上问题与排查</a></h2>
-<p>线上 MySQL 问题常见于以下几类：</p>
-<p><strong>慢查询与深分页。</strong> 先查慢日志，再看执行计划，确认是否存在全表扫描、临时表、文件排序、低选择性索引和大偏移分页。深分页优先改写为延迟关联或游标分页。</p>
-<p><strong>锁等待与死锁。</strong> 可结合 <code>show processlist</code>、<code>performance_schema.data_locks</code>、<code>innodb_lock_waits</code> 等信息定位阻塞链路。排查时重点看：</p>
-<ul>
-<li>哪条 SQL 先持锁</li>
-<li>是否命中索引</li>
-<li>事务是否长时间未提交</li>
-<li>是否存在相反顺序加锁</li>
-</ul>
-<p><strong>主从延迟。</strong> 读写分离后，如果读流量打到从库，延迟会直接转化为数据不一致。常见处理手段是：</p>
-<ul>
-<li>对强一致读回主</li>
-<li>监控复制延迟并设置熔断阈值</li>
-<li>减少大事务和批量阻塞复制线程的操作</li>
-</ul>
-<p><strong>DDL 风险。</strong> 字段类型变更、加索引、删索引都可能导致锁表、重建表或大量 IO。大表 DDL 应优先考虑 Online DDL、灰度、备份和回滚预案。</p>
-<p><strong>连接与资源耗尽。</strong> 连接池参数要与服务端 <code>max_connections</code>、<code>wait_timeout</code> 协同设计。粗暴放大连接数往往只是把问题从排队变成雪崩。连接数估算通常要结合 QPS、平均耗时和应用节点数，而不是拍脑袋给极大值。</p>
-<p><strong>重点监控项。</strong></p>
+<p>几类锁可以这样理解：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>类别</th><th>关注指标</th></tr>
+<tr><th>锁类型</th><th>作用</th><th>典型场景</th></tr>
 </thead>
 <tbody>
-<tr><td>请求量</td><td><code>select/insert/update/delete</code> QPS</td></tr>
-<tr><td>延迟</td><td>慢查询数量、P95/P99</td></tr>
-<tr><td>连接</td><td>活跃连接、线程数、超时</td></tr>
-<tr><td>InnoDB</td><td>Buffer Pool 命中率、脏页、redo 刷盘</td></tr>
-<tr><td>复制</td><td>主从延迟、复制中断</td></tr>
-<tr><td>容量</td><td>表空间、索引体积、磁盘水位</td></tr>
+<tr><td>Record Lock</td><td>锁住已有索引记录</td><td>更新某个订单</td></tr>
+<tr><td>Gap Lock</td><td>锁住索引记录之间的间隙</td><td>防止范围内插入</td></tr>
+<tr><td>Next-Key Lock</td><td>Record Lock + Gap Lock</td><td>当前读下控制幻读</td></tr>
 </tbody>
 </table>
 </div>
+<p>如果面试官问“为什么 <code>SELECT ... FOR UPDATE</code> 变成锁表”，好的回答是：它不是字面意义一定锁全表，而是如果条件没有走索引，InnoDB 需要扫描大量记录并加锁，效果上接近大范围锁，导致并发更新被阻塞。</p>
+<h3 id="库存扣减不要先查再扣"><a class="header" href="#库存扣减不要先查再扣">库存扣减：不要先查再扣</a></h3>
+<p>库存扣减是电商最经典的一致性场景。错误写法通常是：</p>
+<pre><code class="language-sql">SELECT available_stock
+FROM sku_stock
+WHERE sku_id = ?;
+
+UPDATE sku_stock
+SET available_stock = available_stock - ?
+WHERE sku_id = ?;
+</code></pre>
+<p>如果没有事务和锁保护，并发下很容易超卖。更常见的安全写法是条件更新：</p>
+<pre><code class="language-sql">UPDATE sku_stock
+SET available_stock = available_stock - ?,
+    locked_stock = locked_stock + ?,
+    updated_at = NOW()
+WHERE sku_id = ?
+  AND available_stock &gt;= ?;
+</code></pre>
+<p>然后检查影响行数：</p>
+<ul>
+<li><code>affected_rows = 1</code>：扣减成功。</li>
+<li><code>affected_rows = 0</code>：库存不足或记录不存在。</li>
+</ul>
+<p>这类写法利用 MySQL 单行更新的原子性，避免“先查再改”的竞态。对于多 SKU 订单，还要注意：</p>
+<ul>
+<li>按 <code>sku_id</code> 排序后统一扣减，降低死锁概率。</li>
+<li>每个扣减动作写库存流水，便于回滚、审计和补偿。</li>
+<li>下单失败、支付超时、订单取消时释放锁定库存。</li>
+<li>秒杀等极高并发场景可以前置 Redis 预扣，但最终仍要落 MySQL 事实和流水。</li>
+</ul>
+<h3 id="乐观锁与订单状态机"><a class="header" href="#乐观锁与订单状态机">乐观锁与订单状态机</a></h3>
+<p>订单状态流转更适合用状态机和乐观更新控制。例如支付成功回调只允许把 <code>UNPAID</code> 改成 <code>PAID</code>：</p>
+<pre><code class="language-sql">UPDATE order_main
+SET status = 20,
+    paid_at = NOW(),
+    updated_at = NOW()
+WHERE order_no = ?
+  AND status = 10;
+</code></pre>
+<p>这条 SQL 的关键是 <code>status = 10</code>。它保证重复回调、乱序回调或人工操作不会随便覆盖状态。更新后必须检查影响行数：</p>
+<ul>
+<li><code>affected_rows = 1</code>：状态流转成功。</li>
+<li><code>affected_rows = 0</code>：订单不存在，或已经处理过，或状态不允许流转。</li>
+</ul>
+<p>如果表里使用 <code>version</code> 字段，写法类似：</p>
+<pre><code class="language-sql">UPDATE order_main
+SET status = ?,
+    version = version + 1,
+    updated_at = NOW()
+WHERE order_no = ?
+  AND version = ?;
+</code></pre>
+<p>乐观锁的重点不是有 <code>version</code> 字段，而是更新后必须判断影响行数，否则代码会把“更新失败”误认为“更新成功”。</p>
+<h3 id="悲观锁适合什么场景"><a class="header" href="#悲观锁适合什么场景">悲观锁适合什么场景</a></h3>
+<p>悲观锁适合冲突概率高、必须串行处理的关键资源。例如账户余额、同一张优惠券核销、同一笔售后单处理。典型写法是：</p>
+<pre><code class="language-sql">SELECT id, balance
+FROM account
+WHERE user_id = ?
+FOR UPDATE;
+</code></pre>
+<p>使用悲观锁要注意：</p>
+<ul>
+<li>查询条件必须命中索引。</li>
+<li>事务内不要调用慢外部接口。</li>
+<li>锁住资源后尽快更新并提交。</li>
+<li>多资源加锁要统一顺序，减少死锁。</li>
+</ul>
+<p>一个常见事故是：在事务里先锁订单，再调用支付渠道或库存服务，外部调用慢导致数据库锁长期持有，最终拖垮整个订单库。正确做法通常是把外部调用放到事务外，事务内只做必要的状态校验和落库。</p>
+<h3 id="死锁治理"><a class="header" href="#死锁治理">死锁治理</a></h3>
+<p>死锁不是 MySQL 异常，而是高并发系统的常见现象。重点不是追求永不死锁，而是降低概率并做好重试。</p>
+<p>常见治理手段：</p>
+<ul>
+<li>多资源操作统一顺序，例如多个 SKU 按 <code>sku_id</code> 升序扣减。</li>
+<li>缩短事务时间，事务中不做 RPC、不做大批量循环。</li>
+<li>确保更新条件命中索引，缩小锁范围。</li>
+<li>拆分大事务，避免一次锁太多行。</li>
+<li>对可重试事务做有限次数重试，并保证幂等。</li>
+</ul>
+<p>面试里如果被问“线上死锁怎么排查”，可以回答：</p>
+<ol>
+<li>查看死锁日志或 InnoDB status，找到两边 SQL 和锁等待关系。</li>
+<li>确认 SQL 是否命中索引，是否扫描了过大范围。</li>
+<li>确认事务代码路径，是否存在相反顺序加锁。</li>
+<li>缩小事务范围，统一加锁顺序。</li>
+<li>对业务允许的场景增加重试和幂等。</li>
+</ol>
+<h2 id="日志崩溃恢复与复制"><a class="header" href="#日志崩溃恢复与复制">日志、崩溃恢复与复制</a></h2>
+<p>MySQL 的可靠性离不开 undo log、redo log 和 binlog。它们回答的是不同问题。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>日志</th><th>所属</th><th>作用</th><th>典型用途</th></tr>
+</thead>
+<tbody>
+<tr><td>undo log</td><td>InnoDB</td><td>保存旧版本</td><td>回滚、MVCC</td></tr>
+<tr><td>redo log</td><td>InnoDB</td><td>记录物理页修改</td><td>崩溃恢复</td></tr>
+<tr><td>binlog</td><td>MySQL Server</td><td>记录逻辑变更</td><td>复制、审计、数据订阅</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="wal-与崩溃恢复"><a class="header" href="#wal-与崩溃恢复">WAL 与崩溃恢复</a></h3>
+<p>InnoDB 使用 WAL 思想：事务修改数据时，不必立刻把脏页刷到磁盘，而是先保证 redo log 持久化。崩溃后根据 redo log 重放已提交修改，再配合 undo 回滚未提交事务。</p>
+<p><code>innodb_flush_log_at_trx_commit</code> 常见取值：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>取值</th><th>行为</th><th>风险</th></tr>
+</thead>
+<tbody>
+<tr><td><code>1</code></td><td>每次提交写 redo 并 fsync</td><td>最安全，生产常见</td></tr>
+<tr><td><code>2</code></td><td>每次提交写 OS Buffer，约每秒 fsync</td><td>系统崩溃可能丢秒级数据</td></tr>
+<tr><td><code>0</code></td><td>写入和 fsync 都按周期</td><td>风险最高</td></tr>
+</tbody>
+</table>
+</div>
+<p>电商交易链路通常更偏向安全，而不是为了少量性能牺牲提交持久性。非核心日志类数据可以根据业务损失窗口做不同选择。</p>
+<h3 id="redo-log-与-binlog-的一致性"><a class="header" href="#redo-log-与-binlog-的一致性">redo log 与 binlog 的一致性</a></h3>
+<p>redo log 用于 InnoDB 崩溃恢复，binlog 用于复制和数据订阅。两者必须保持一致，否则可能出现主库恢复后数据存在，但从库和下游没有对应 binlog，或反过来。</p>
+<p>MySQL 通过两阶段提交协调 redo 和 binlog，大致过程是：</p>
+<ol>
+<li>InnoDB 写 redo prepare。</li>
+<li>MySQL Server 写 binlog。</li>
+<li>InnoDB 写 redo commit。</li>
+</ol>
+<p>面试中如果被问“为什么需要两阶段提交”，可以回答：因为 redo 和 binlog 属于不同日志体系，如果不协调，崩溃时可能出现主库事务状态和复制日志不一致，影响主从复制和数据恢复。</p>
+<h3 id="binlog-与数据订阅"><a class="header" href="#binlog-与数据订阅">binlog 与数据订阅</a></h3>
+<p>电商系统经常通过 binlog 同步数据到其他系统：</p>
+<ul>
+<li>订单数据同步到 Elasticsearch，支撑商家后台检索。</li>
+<li>商品变更同步到缓存和搜索索引。</li>
+<li>支付状态同步到账务、履约和通知系统。</li>
+<li>用户行为或订单事实同步到数仓。</li>
+</ul>
+<p>这类 CDC 链路要注意：</p>
+<ul>
+<li>下游消费必须幂等。</li>
+<li>乱序和重复要能处理。</li>
+<li>大事务会阻塞同步延迟。</li>
+<li>表结构变更要和订阅方兼容。</li>
+<li>删除操作要考虑软删和审计要求。</li>
+</ul>
+<h2 id="主从复制读写分离与高可用"><a class="header" href="#主从复制读写分离与高可用">主从复制、读写分离与高可用</a></h2>
+<p>主从复制是 MySQL 高可用和读扩展的基础形态。主库写入 binlog，从库拉取并重放。</p>
+<h3 id="主从延迟为什么发生"><a class="header" href="#主从延迟为什么发生">主从延迟为什么发生</a></h3>
+<p>主从延迟常见原因包括：</p>
+<ul>
+<li>主库写入流量过大，从库重放追不上。</li>
+<li>大事务或大批量 DDL 阻塞复制。</li>
+<li>从库机器规格弱于主库。</li>
+<li>从库同时承担大量慢查询。</li>
+<li>网络抖动或复制线程异常。</li>
+</ul>
+<p>读写分离后，延迟会变成业务一致性问题。比如用户刚支付成功，订单详情页如果读从库，可能仍然显示“待支付”。</p>
+<p>常见兜底策略：</p>
+<ul>
+<li>写后短时间内读主库，保证 read-your-writes。</li>
+<li>对订单详情、支付结果、库存确认等强一致读走主库。</li>
+<li>监控复制延迟，超过阈值时熔断从库读。</li>
+<li>根据 GTID 或位点等待从库追上，但要设置超时。</li>
+<li>对后台列表、历史查询、非关键统计允许读从库。</li>
+</ul>
+<p>面试回答时要把“哪些读必须回主”说清楚：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>是否可读从库</th><th>原因</th></tr>
+</thead>
+<tbody>
+<tr><td>支付成功后的结果页</td><td>通常读主</td><td>用户刚完成写操作</td></tr>
+<tr><td>订单详情页立即刷新</td><td>通常读主或粘主</td><td>避免状态倒退</td></tr>
+<tr><td>历史订单列表</td><td>可读从库</td><td>短暂延迟可接受</td></tr>
+<tr><td>后台报表</td><td>可读从库或数仓</td><td>实时性要求较低</td></tr>
+<tr><td>库存扣减判断</td><td>不能读从库后决策</td><td>会导致超卖风险</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="故障切换"><a class="header" href="#故障切换">故障切换</a></h3>
+<p>主库故障后，需要从从库中选新主，并让应用切换写入。这里的难点不是“能不能切”，而是：</p>
+<ul>
+<li>新主是否拥有最完整数据。</li>
+<li>老主恢复后如何避免双主写入。</li>
+<li>应用连接如何发现新主。</li>
+<li>复制拓扑如何重建。</li>
+<li>切换过程中业务是否允许短暂不可用。</li>
+</ul>
+<p>常见方案包括 MHA、Orchestrator、云数据库高可用方案和自研管控平台。面试不一定要深入某个工具，但要说明高可用不是只有数据库内部问题，还包括应用路由、连接池刷新、数据一致性和故障演练。</p>
+<h3 id="多主与单主"><a class="header" href="#多主与单主">多主与单主</a></h3>
+<p>多主写入听起来能提高可用性，但会引入冲突解决、全局唯一 ID、跨地域延迟和一致性问题。大多数交易系统更常见的是：</p>
+<ul>
+<li>单主写入，主从高可用。</li>
+<li>按业务域拆库，各自单主。</li>
+<li>分库分表后，每个分片单主。</li>
+<li>异地多活场景按业务规则拆写入归属，而不是任意多点同时写同一份数据。</li>
+</ul>
+<p>一句实用判断：交易事实尽量避免多点同时写同一行或同一业务对象，除非你已经有非常明确的冲突解决模型。</p>
+<h2 id="分库分表归档与容量演进"><a class="header" href="#分库分表归档与容量演进">分库分表、归档与容量演进</a></h2>
+<p>分库分表是 MySQL 面试大题，但它不是第一选择。好的回答要先说明什么时候不分，什么时候必须分，分了之后会引入什么新成本。</p>
+<h3 id="单库单表先做到合理"><a class="header" href="#单库单表先做到合理">单库单表先做到合理</a></h3>
+<p>在讨论分库分表前，先做这些事：</p>
+<ol>
+<li>表结构和索引是否合理。</li>
+<li>慢 SQL 是否已经治理。</li>
+<li>是否有缓存或读模型承接高频读。</li>
+<li>历史数据是否可以归档。</li>
+<li>大字段是否可以垂直拆分。</li>
+<li>是否可以按业务域垂直拆库。</li>
+</ol>
+<p>“单表多少行要分表”没有固定答案。500 万、2000 万只是经验区间，真正要看：</p>
+<ul>
+<li>行宽和索引大小。</li>
+<li>热数据比例和 Buffer Pool 命中率。</li>
+<li>高频查询是否稳定命中索引。</li>
+<li>写入 QPS 和更新热点。</li>
+<li>DDL、备份、恢复和归档耗时。</li>
+<li>业务是否已经遇到容量或性能瓶颈。</li>
+</ul>
+<p>面试里不要只说“超过 2000 万就分表”。更好的回答是：我会先看访问模式和增长趋势，如果索引高度、Buffer Pool、慢查询、备份恢复和 DDL 成本都开始不可控，再考虑分表，并且会优先通过归档和读模型降低在线库压力。</p>
+<h3 id="垂直拆分"><a class="header" href="#垂直拆分">垂直拆分</a></h3>
+<p>垂直拆分有两类。</p>
+<p>垂直分表：把低频大字段拆出去。例如订单主表保留状态、金额、用户、时间等核心字段，把扩展信息、备注、发票、地址快照放到扩展表。</p>
+<p>垂直分库：按业务域拆库。例如用户库、商品库、订单库、库存库、支付库、营销库。它的价值是：</p>
+<ul>
+<li>降低单库复杂度。</li>
+<li>隔离故障域。</li>
+<li>让不同业务域独立扩容。</li>
+<li>减少跨团队变更冲突。</li>
+</ul>
+<p>垂直拆分的代价是跨库 Join 消失，应用层要通过服务接口、冗余快照、异步同步和读模型解决查询需求。</p>
+<h3 id="水平分片"><a class="header" href="#水平分片">水平分片</a></h3>
+<p>水平分片要先选分片键。订单系统常见候选有：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>分片键</th><th>优点</th><th>问题</th></tr>
+</thead>
+<tbody>
+<tr><td><code>buyer_id</code></td><td>买家订单列表容易查</td><td>商家维度查询困难</td></tr>
+<tr><td><code>order_no</code></td><td>单订单查询和路由清晰</td><td>买家列表需要额外索引或映射</td></tr>
+<tr><td><code>seller_id</code></td><td>商家后台友好</td><td>买家查询困难</td></tr>
+<tr><td>时间</td><td>归档容易</td><td>热点集中，近期分片压力大</td></tr>
+</tbody>
+</table>
+</div>
+<p>实际系统里经常组合使用：</p>
+<ul>
+<li>订单主写入按 <code>buyer_id</code> 或 <code>order_no</code> 分片。</li>
+<li>单号里编码分片信息，便于直接路由。</li>
+<li>商家后台查询走搜索读模型。</li>
+<li>财务和运营分析走数仓。</li>
+<li>历史订单按时间归档。</li>
+</ul>
+<p>分片后要解决的问题包括：</p>
+<ul>
+<li>路由：请求如何定位到库表。</li>
+<li>唯一 ID：如何生成全局唯一业务单号。</li>
+<li>跨分片查询：如何查多个分片并合并排序。</li>
+<li>分布式事务：如何避免跨分片强事务。</li>
+<li>扩容再平衡：如何从 128 张表扩到 256 张表。</li>
+<li>运维治理：备份、恢复、DDL、监控如何批量执行。</li>
+</ul>
+<h3 id="跨分片查询与读模型"><a class="header" href="#跨分片查询与读模型">跨分片查询与读模型</a></h3>
+<p>很多分库分表失败，不是因为写入分散不了，而是因为查询需求没想清楚。</p>
+<p>例如订单分片按 <code>buyer_id</code>，买家列表很好查；但商家后台要按 <code>seller_id + status + created_at + phone</code> 查订单，就会变成跨分片扫描。常见解法不是硬查所有分片，而是：</p>
+<ul>
+<li>建商家订单读模型。</li>
+<li>同步到 Elasticsearch。</li>
+<li>后台查询限制时间范围和条件。</li>
+<li>把复杂报表放到数仓。</li>
+</ul>
+<p>这也是电商系统常见 CQRS 思路：写模型围绕交易一致性设计，读模型围绕查询效率设计。</p>
+<h3 id="历史归档"><a class="header" href="#历史归档">历史归档</a></h3>
+<p>订单、支付、库存流水都天然随时间增长。在线库不应该无限承载所有历史数据。</p>
+<p>归档设计要回答：</p>
+<ul>
+<li>在线库保留多久热数据，例如 3 个月、6 个月、1 年。</li>
+<li>归档库是否支持用户查询历史订单。</li>
+<li>归档过程如何避免影响主库。</li>
+<li>归档后订单详情、售后、发票、客服如何查询。</li>
+<li>归档数据是否需要参与审计和对账。</li>
+</ul>
+<p>常见做法是：</p>
+<ul>
+<li>在线库保留近期订单。</li>
+<li>历史库或冷存储保留全量订单。</li>
+<li>用户历史订单查询通过归档服务或异步查询。</li>
+<li>财务和审计走独立账务或数仓链路。</li>
+</ul>
+<p>归档不是简单 <code>DELETE</code>。大批量删除会产生大量 undo、redo、binlog，还可能造成复制延迟。工程上通常要小批量、限速、可恢复，并配合监控。</p>
+<h2 id="ddl连接池与线上治理"><a class="header" href="#ddl连接池与线上治理">DDL、连接池与线上治理</a></h2>
+<p>很多 MySQL 事故不是来自 SQL 写错，而是来自变更和治理不到位。</p>
+<h3 id="ddl-风险"><a class="header" href="#ddl-风险">DDL 风险</a></h3>
+<p>加字段、改字段、加索引、删索引都可能带来：</p>
+<ul>
+<li>元数据锁阻塞。</li>
+<li>表重建。</li>
+<li>大量 IO。</li>
+<li>主从延迟。</li>
+<li>binlog 暴涨。</li>
+<li>应用兼容问题。</li>
+</ul>
+<p>MySQL 8 对部分 DDL 支持更好的在线能力，例如某些场景可以 <code>INSTANT</code> 加列，但不能假设所有 DDL 都无成本。不同版本、字段位置、索引类型和表结构都会影响 DDL 算法。面试里说“先确认 MySQL 版本和 DDL 算法”，最好能落到可执行动作。</p>
+<p>第一步是确认数据库版本、发行版和表结构特征：</p>
+<pre><code class="language-sql">SELECT VERSION();
+SHOW VARIABLES LIKE 'version%';
+SHOW CREATE TABLE order_main\G
+SHOW TABLE STATUS LIKE 'order_main'\G
+</code></pre>
+<p>要重点看：</p>
+<ul>
+<li>是 MySQL 5.7、MySQL 8.0、MySQL 8.4，还是云厂商兼容版本；不同小版本的 Online DDL 能力差异很大。</li>
+<li>表是否为 InnoDB，是否有 <code>ROW_FORMAT=COMPRESSED</code>、全文索引、函数索引、分区、外键、生成列等特殊结构。</li>
+<li>本次 DDL 是加列、删列、改类型、改默认值、加索引、删索引，还是调整列顺序；不同操作对应的算法完全不同。</li>
+<li>是否会修改行格式或重建表，例如 <code>VARCHAR(255)</code> 改到 <code>VARCHAR(256)</code>、字段类型变更、列顺序调整，这类操作经常比“加一个字段”危险得多。</li>
+</ul>
+<p>第二步是明确 DDL 算法。常见算法可以这样理解：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>算法</th><th>含义</th><th>风险</th></tr>
+</thead>
+<tbody>
+<tr><td><code>INSTANT</code></td><td>主要改数据字典元数据，不改已有行数据</td><td>最轻，但仍需要短暂元数据锁</td></tr>
+<tr><td><code>INPLACE</code></td><td>尽量原地执行，可能重建表或索引</td><td>通常允许并发 DML，但可能有 IO 和主从延迟</td></tr>
+<tr><td><code>COPY</code></td><td>建临时表并复制全量数据</td><td>最重，耗时长，空间放大，通常不适合在线大表</td></tr>
+</tbody>
+</table>
+</div>
+<p>判断方法不是靠猜，而是主动约束算法和锁级别。比如你希望这是元数据级变更，就显式指定：</p>
+<pre><code class="language-sql">ALTER TABLE order_main
+  ADD COLUMN ext_info JSON NULL,
+  ALGORITHM=INSTANT,
+  LOCK=NONE;
+</code></pre>
+<p>如果当前版本或表结构不支持该算法，MySQL 会直接报错，而不是悄悄退化成更重的方式。对于加索引这类常见操作，也应该尽量显式指定期望：</p>
+<pre><code class="language-sql">ALTER TABLE order_main
+  ADD INDEX idx_buyer_created (buyer_id, created_at),
+  ALGORITHM=INPLACE,
+  LOCK=NONE;
+</code></pre>
+<p>上线前还要在影子库或预发库用同等量级数据验证：真实耗时、是否重建表、临时空间增长、binlog 增长、主从延迟、业务 SQL 是否被元数据锁阻塞。不要把开发库的几万行测试结果，直接外推到生产几亿行大表。</p>
+<p>大表 DDL 的稳妥流程：</p>
+<ol>
+<li>查清 MySQL 版本、表结构特征和本次 DDL 类型。</li>
+<li>查官方文档或云厂商文档，确认目标版本对该操作支持 <code>INSTANT</code>、<code>INPLACE</code> 还是只能 <code>COPY</code>。</li>
+<li>在 SQL 里显式指定 <code>ALGORITHM</code> 和 <code>LOCK</code>，让不符合预期的 DDL 直接失败。</li>
+<li>影子库或预发库用接近生产的数据量验证耗时、空间放大和主从延迟。</li>
+<li>选择低峰执行，必要时使用 gh-ost 或 pt-online-schema-change。</li>
+<li>监控主库负载、元数据锁、复制延迟、临时空间、binlog 增长和错误日志。</li>
+<li>应用发布采用 expand-contract 策略：先加字段兼容，再切流量，最后清理旧字段。</li>
+<li>准备回滚方案，并明确回滚是不是另一个更重的 DDL。</li>
+</ol>
+<h3 id="连接池治理"><a class="header" href="#连接池治理">连接池治理</a></h3>
+<p>连接数不是越大越好。连接池过大可能把数据库从“排队”打成“雪崩”。</p>
+<p>估算连接池要考虑：</p>
+<ul>
+<li>应用实例数。</li>
+<li>每个实例最大连接数。</li>
+<li>数据库 <code>max_connections</code>。</li>
+<li>平均 SQL 耗时和峰值 QPS。</li>
+<li>是否有慢查询占住连接。</li>
+</ul>
+<p>例如 50 个应用实例，每个实例连接池 100，总连接上限就是 5000。即使数据库允许这么多连接，真正同时执行 SQL 时，CPU、IO 和锁也未必扛得住。</p>
+<p>常见治理手段：</p>
+<ul>
+<li>按服务重要性设置不同连接池大小。</li>
+<li>对慢接口限流，避免占满连接。</li>
+<li>设置合理超时，避免连接长时间挂起。</li>
+<li>监控活跃连接、等待连接和连接获取耗时。</li>
+<li>对后台任务和在线链路使用不同账号或资源隔离。</li>
+</ul>
+<h3 id="监控指标"><a class="header" href="#监控指标">监控指标</a></h3>
+<p>MySQL 监控至少覆盖这些维度：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类别</th><th>指标</th></tr>
+</thead>
+<tbody>
+<tr><td>流量</td><td>QPS、TPS、读写比例</td></tr>
+<tr><td>延迟</td><td>平均延迟、P95、P99、慢查询数量</td></tr>
+<tr><td>连接</td><td>活跃连接、线程数、连接池等待</td></tr>
+<tr><td>InnoDB</td><td>Buffer Pool 命中率、脏页、行锁等待</td></tr>
+<tr><td>日志</td><td>redo 写入、fsync 耗时、binlog 大小</td></tr>
+<tr><td>复制</td><td>主从延迟、复制中断、Relay Log 堆积</td></tr>
+<tr><td>容量</td><td>数据文件、索引大小、磁盘水位</td></tr>
+<tr><td>变更</td><td>DDL 耗时、元数据锁、主从延迟波动</td></tr>
+</tbody>
+</table>
+</div>
+<p>面试里说监控时，不要只列指标。最好能说明指标和动作的关系：慢查询上升要看执行计划和流量参数；主从延迟上升要看大事务和从库慢查询；连接池等待上升要看数据库延迟和应用并发；磁盘水位上升要看归档和 binlog 清理。</p>
+<h2 id="电商典型场景设计"><a class="header" href="#电商典型场景设计">电商典型场景设计</a></h2>
+<p>这一节把前面的概念放到几个真实面试题里。</p>
+<h3 id="场景一下单扣库存如何防止超卖"><a class="header" href="#场景一下单扣库存如何防止超卖">场景一：下单扣库存如何防止超卖</a></h3>
+<p>目标：不能卖出超过真实库存，同时要支撑较高并发。</p>
+<p>基础方案：</p>
+<ol>
+<li>订单请求先做幂等校验，例如 <code>request_id</code> 或购物车提交 token。</li>
+<li>库存表用条件更新扣减可售库存。</li>
+<li>扣减成功后写库存流水。</li>
+<li>创建订单并记录订单明细。</li>
+<li>支付超时或取消订单时释放锁定库存。</li>
+</ol>
+<p>核心 SQL：</p>
+<pre><code class="language-sql">UPDATE sku_stock
+SET available_stock = available_stock - ?,
+    locked_stock = locked_stock + ?,
+    updated_at = NOW()
+WHERE sku_id = ?
+  AND available_stock &gt;= ?;
+</code></pre>
+<p>高并发秒杀场景可以进一步：</p>
+<ul>
+<li>Redis 预扣减少 MySQL 压力。</li>
+<li>MQ 削峰，异步创建订单。</li>
+<li>用户限购和风控前置。</li>
+<li>MySQL 保留最终库存事实和流水。</li>
+<li>对账任务校验 Redis、订单和库存流水一致性。</li>
+</ul>
+<p>优秀回答要点：不要只说“加锁”，要说清楚条件更新、影响行数、库存流水、幂等、失败补偿和热点削峰。</p>
+<h3 id="场景二支付回调重复怎么办"><a class="header" href="#场景二支付回调重复怎么办">场景二：支付回调重复怎么办</a></h3>
+<p>支付渠道可能重复通知，网络也可能重试。系统必须保证重复回调不会重复发货、重复加积分或重复记账。</p>
+<p>常见设计：</p>
+<ul>
+<li>支付流水号建立唯一索引。</li>
+<li>回调原始报文落库，便于审计。</li>
+<li>更新订单状态时带前置状态条件。</li>
+<li>后续履约、积分、通知通过消息异步触发，并且消费端幂等。</li>
+</ul>
+<p>示例：</p>
+<pre><code class="language-sql">INSERT INTO payment_callback_log (
+  channel_trade_no,
+  order_no,
+  payload,
+  created_at
+) VALUES (?, ?, ?, NOW())
+ON DUPLICATE KEY UPDATE updated_at = NOW();
+</code></pre>
+<pre><code class="language-sql">UPDATE order_main
+SET status = 20,
+    paid_at = NOW(),
+    updated_at = NOW()
+WHERE order_no = ?
+  AND status = 10;
+</code></pre>
+<p>如果更新影响行数为 0，不一定是错误，可能是重复回调或状态已经流转。业务要查询当前状态后做幂等返回。</p>
+<h3 id="场景三订单列表为什么越来越慢"><a class="header" href="#场景三订单列表为什么越来越慢">场景三：订单列表为什么越来越慢</a></h3>
+<p>常见原因：</p>
+<ul>
+<li>单表数据持续膨胀，索引和热数据无法很好留在内存。</li>
+<li>查询没有命中合适联合索引。</li>
+<li>使用深分页。</li>
+<li><code>SELECT *</code> 导致大量回表。</li>
+<li>历史订单和近期订单混在同一张在线表。</li>
+<li>商家后台复杂筛选压在交易库上。</li>
+</ul>
+<p>治理路径：</p>
+<ol>
+<li>先看慢日志和执行计划。</li>
+<li>针对买家列表建立合适联合索引。</li>
+<li>App 端改为游标分页。</li>
+<li>垂直拆分低频字段，减少行宽。</li>
+<li>历史订单归档。</li>
+<li>商家后台和客服检索走搜索读模型。</li>
+<li>数据继续增长后再考虑水平分片。</li>
+</ol>
+<p>这个回答比“加索引”更完整，因为它覆盖了访问模式、数据生命周期和读模型分离。</p>
+<h3 id="场景四主从延迟导致用户看到旧订单状态"><a class="header" href="#场景四主从延迟导致用户看到旧订单状态">场景四：主从延迟导致用户看到旧订单状态</a></h3>
+<p>现象：用户支付成功后跳转订单页，页面仍显示待支付。</p>
+<p>原因：支付成功写主库，但订单详情读从库；从库复制有延迟。</p>
+<p>解决：</p>
+<ul>
+<li>支付成功后的订单详情读主库。</li>
+<li>用户写操作后一段时间粘主。</li>
+<li>延迟超过阈值时从库摘流。</li>
+<li>对关键状态变更使用消息通知前端刷新时，也要保证查询源一致。</li>
+<li>从根因上治理大事务、慢查询和从库资源不足。</li>
+</ul>
+<p>面试追问通常是“那所有读都读主不就好了？”回答应该是：可以但会牺牲读扩展能力。更合理的是按一致性要求分级，强一致读回主，弱一致列表读从库。</p>
+<h2 id="常见线上问题排查手册"><a class="header" href="#常见线上问题排查手册">常见线上问题排查手册</a></h2>
+<h3 id="慢查询"><a class="header" href="#慢查询">慢查询</a></h3>
+<p>排查路径：</p>
+<ol>
+<li>慢日志定位 SQL 模板。</li>
+<li><code>EXPLAIN</code> 看索引、扫描行数、排序和临时表。</li>
+<li>对比实际参数，确认是否有大商家、大用户或异常时间范围。</li>
+<li>看是否锁等待，而不是执行慢。</li>
+<li>优化 SQL、索引或读模型。</li>
+</ol>
+<p>常见动作：</p>
+<ul>
+<li>避免 <code>SELECT *</code>。</li>
+<li>增加合适联合索引。</li>
+<li>改写深分页。</li>
+<li>拆分大查询。</li>
+<li>把复杂检索迁到搜索系统。</li>
+</ul>
+<h3 id="锁等待"><a class="header" href="#锁等待">锁等待</a></h3>
+<p>排查路径：</p>
+<ol>
+<li>查看当前执行 SQL 和阻塞链路。</li>
+<li>找出先持锁事务。</li>
+<li>确认事务是否长时间未提交。</li>
+<li>检查更新条件是否命中索引。</li>
+<li>检查代码里是否事务内调用外部服务。</li>
+</ol>
+<p>常见动作：</p>
+<ul>
+<li>缩短事务。</li>
+<li>补充索引。</li>
+<li>统一加锁顺序。</li>
+<li>拆分批量任务。</li>
+<li>对可重试事务增加幂等重试。</li>
+</ul>
+<h3 id="主从延迟"><a class="header" href="#主从延迟">主从延迟</a></h3>
+<p>排查路径：</p>
+<ol>
+<li>看延迟从什么时候开始。</li>
+<li>查主库是否有大事务、大 DDL 或批量更新。</li>
+<li>查从库是否有慢查询占用资源。</li>
+<li>看网络和复制线程状态。</li>
+<li>判断是否需要临时摘除从库读流量。</li>
+</ol>
+<p>常见动作：</p>
+<ul>
+<li>大任务小批量提交。</li>
+<li>DDL 低峰执行。</li>
+<li>从库避免跑重查询。</li>
+<li>延迟过高时强一致读回主。</li>
+<li>对归档、报表类任务限速。</li>
+</ul>
+<h3 id="连接耗尽"><a class="header" href="#连接耗尽">连接耗尽</a></h3>
+<p>排查路径：</p>
+<ol>
+<li>看数据库连接数是否打满。</li>
+<li>看应用连接池等待是否上升。</li>
+<li>查是否有慢 SQL 占住连接。</li>
+<li>查是否有连接泄漏或事务未关闭。</li>
+<li>查发布或流量突增是否导致实例数变化。</li>
+</ol>
+<p>常见动作：</p>
+<ul>
+<li>限制非核心接口。</li>
+<li>降低单实例连接池上限。</li>
+<li>优化慢 SQL。</li>
+<li>增加超时和熔断。</li>
+<li>后台任务与在线流量隔离。</li>
+</ul>
+<h2 id="面试答题框架"><a class="header" href="#面试答题框架">面试答题框架</a></h2>
+<p>MySQL 问题可以按四层回答：</p>
+<ol>
+<li><strong>业务语义</strong>：这是订单、库存、支付还是后台查询？一致性要求是什么？</li>
+<li><strong>数据模型</strong>：表怎么设计，主键、唯一键、状态、流水怎么设计？</li>
+<li><strong>执行机制</strong>：索引、事务、锁、日志、复制如何支撑它？</li>
+<li><strong>工程治理</strong>：慢 SQL、归档、分库分表、监控、补偿怎么做？</li>
+</ol>
+<p>例如被问“如何设计订单表”，不要直接列字段。可以这样答：</p>
+<ol>
+<li>订单是交易事实，主表记录订单核心状态、金额、买卖双方、时间，明细表记录商品快照。</li>
+<li>主键用内部递增 ID，外部用全局唯一 <code>order_no</code>，并建唯一索引保证幂等。</li>
+<li>买家列表按 <code>buyer_id + status + created_at</code> 建联合索引，单订单按 <code>order_no</code> 查。</li>
+<li>状态流转用前置状态条件或版本号保证幂等。</li>
+<li>支付、履约、积分等通过 MQ 异步解耦，但消费端必须幂等。</li>
+<li>后台复杂检索走搜索读模型，历史订单做归档，数据量继续增长再分库分表。</li>
+</ol>
+<p>这类回答体现的是工程经验，而不是背字段。</p>
 <h2 id="本章小结-2"><a class="header" href="#本章小结-2">本章小结</a></h2>
-<p>MySQL 的工程主线可以概括为四句话：</p>
+<p>MySQL 的工程主线可以总结为五句话：</p>
 <ul>
-<li>用 InnoDB 的存储模型理解读写路径，而不是只把 MySQL 当 SQL 执行器。</li>
-<li>用索引、执行计划和事务模型解释性能与一致性问题。</li>
-<li>用 redo、undo、binlog 和复制机制解释可靠性与高可用。</li>
-<li>用慢查询治理、归档、分库分表和连接治理支撑系统规模增长。</li>
+<li>MySQL 保存核心业务事实，不负责承接所有查询形态。</li>
+<li>表设计要提前考虑主键、唯一键、状态机、索引、归档和分片。</li>
+<li>索引设计必须从访问模式倒推，而不是为每个字段机械建索引。</li>
+<li>事务和锁要服务业务一致性，库存、订单、支付都要靠幂等和状态条件兜底。</li>
+<li>复制、归档、读模型和分库分表是容量演进手段，但每一步都会引入新的治理成本。</li>
 </ul>
-<p>真正的面试和线上问题，往往都不是孤立考一个概念，而是让你把这些点串成完整决策链。</p>
-<h2 id="本章面试题与追问-2"><a class="header" href="#本章面试题与追问-2">本章面试题与追问</a></h2>
-<ol>
-<li>
-<p>为什么 InnoDB 选择 B+ 树而不是红黑树或 B 树？
-追问：一棵三层或四层 B+ 树大致能承载多少数据，为什么？</p>
-</li>
-<li>
-<p>聚簇索引、二级索引、覆盖索引和回表分别是什么关系？
-追问：联合索引如何设计字段顺序，为什么区分度高的列常放前面？</p>
-</li>
-<li>
-<p>MVCC 是如何实现可重复读的？
-追问：RC 和 RR 的 ReadView 创建时机有什么差异？</p>
-</li>
-<li>
-<p>Next-Key Lock 解决的是什么问题？
-追问：什么时候会退化成更大范围的锁，甚至看起来像“锁表”？</p>
-</li>
-<li>
-<p>redo log、undo log、binlog 分别解决什么问题？
-追问：<code>innodb_flush_log_at_trx_commit</code> 的不同取值如何权衡性能和数据安全？</p>
-</li>
-<li>
-<p>一条 SQL 很慢，你会如何系统排查？
-追问：如果 <code>EXPLAIN</code> 显示 <code>Using filesort</code> 和大量扫描行数，你会优先怎么改？</p>
-</li>
-<li>
-<p>悲观锁和乐观锁分别适合什么场景？
-追问：为什么乐观锁一定要检查 <code>affected_rows</code>？</p>
-</li>
-<li>
-<p>主从复制为什么会有延迟，业务上如何兜底？
-追问：哪些读请求必须回主，哪些可以接受从库旧数据？</p>
-</li>
-<li>
-<p>单表达到多少数据量需要分库分表？
-追问：为什么这个问题不能只靠“500 万行”或“2000 万行”这样的经验值回答？</p>
-</li>
-<li>
-<p>订单系统做分库分表和历史归档时，路由层需要解决哪些问题？
-追问：扩容、跨分片查询和冷热数据迁移分别会引入什么复杂度？</p>
-</li>
-</ol>
+<p>对于 3 到 10 年工程师，面试官真正想听的是：你是否知道一个概念在真实业务里会带来什么收益、什么风险、如何排查、如何取舍。</p>
+<h2 id="本章面试题与优秀回答要点"><a class="header" href="#本章面试题与优秀回答要点">本章面试题与优秀回答要点</a></h2>
+<h3 id="1-为什么-innodb-选择-b-树而不是红黑树或-b-树"><a class="header" href="#1-为什么-innodb-选择-b-树而不是红黑树或-b-树">1. 为什么 InnoDB 选择 B+ 树，而不是红黑树或 B 树？</a></h3>
+<p>优秀回答要点：</p>
+<ul>
+<li>数据库存储按页读取，B+ 树扇出大、树高低，能减少磁盘 IO。</li>
+<li>B+ 树叶子节点有序链表，适合范围查询和排序。</li>
+<li>红黑树适合内存结构，但树高大、节点分散，不适合磁盘页模型。</li>
+<li>B 树非叶子节点也存数据，范围扫描和页利用率通常不如 B+ 树适合 InnoDB 场景。</li>
+</ul>
+<p>追问：三层 B+ 树大致能存多少数据？</p>
+<p>答题方向：说明估算方法，而不是死背数字。页大小、主键大小、行宽、页填充率都会影响容量。</p>
+<h3 id="2-聚簇索引二级索引覆盖索引和回表是什么关系"><a class="header" href="#2-聚簇索引二级索引覆盖索引和回表是什么关系">2. 聚簇索引、二级索引、覆盖索引和回表是什么关系？</a></h3>
+<p>优秀回答要点：</p>
+<ul>
+<li>聚簇索引叶子节点保存整行数据。</li>
+<li>二级索引叶子节点保存索引列和主键值。</li>
+<li>二级索引查整行通常要通过主键回表。</li>
+<li>覆盖索引是查询所需列都在索引里，可以避免回表。</li>
+<li>主键越大，二级索引越大。</li>
+</ul>
+<p>追问：为什么不把所有查询字段都放进覆盖索引？</p>
+<p>答题方向：索引会增加写入成本、存储成本和 Buffer Pool 压力，只覆盖高频轻量查询。</p>
+<h3 id="3-如何为订单列表设计索引"><a class="header" href="#3-如何为订单列表设计索引">3. 如何为订单列表设计索引？</a></h3>
+<p>优秀回答要点：</p>
+<ul>
+<li>先明确查询模式：买家列表、商家列表、后台检索不是同一个问题。</li>
+<li>买家按状态和时间翻页，可以设计 <code>buyer_id + status + created_at + id</code>。</li>
+<li>App 端优先游标分页，避免深分页。</li>
+<li>商家后台复杂多条件查询不一定适合压在订单主表，可能需要 Elasticsearch。</li>
+<li>索引设计要结合写入成本，不能为所有条件组合建索引。</li>
+</ul>
+<p>追问：如果查询不带 <code>status</code>，原索引还能用吗？</p>
+<p>答题方向：要看联合索引最左前缀，<code>buyer_id</code> 仍可用，但排序和过滤效果可能不同，必要时补充适配高频查询的索引。</p>
+<h3 id="4-mvcc-是如何实现可重复读的"><a class="header" href="#4-mvcc-是如何实现可重复读的">4. MVCC 是如何实现可重复读的？</a></h3>
+<p>优秀回答要点：</p>
+<ul>
+<li>InnoDB 通过 undo log 保存旧版本。</li>
+<li>行记录有事务 ID 和回滚指针，形成版本链。</li>
+<li>ReadView 判断哪些事务版本对当前事务可见。</li>
+<li>RR 下第一次快照读创建 ReadView，事务内复用，所以多次普通查询一致。</li>
+<li>当前读仍然要靠锁处理并发写入。</li>
+</ul>
+<p>追问：RC 和 RR 的 ReadView 有什么区别？</p>
+<p>答题方向：RC 每次快照读创建新 ReadView，RR 事务内第一次快照读创建并复用。</p>
+<h3 id="5-select--for-update-一定是行锁吗"><a class="header" href="#5-select--for-update-一定是行锁吗">5. <code>SELECT ... FOR UPDATE</code> 一定是行锁吗？</a></h3>
+<p>优秀回答要点：</p>
+<ul>
+<li>InnoDB 锁加在索引记录上。</li>
+<li>条件命中唯一索引时，锁范围较小。</li>
+<li>条件未命中索引时，可能扫描并锁住大量记录，效果接近锁表。</li>
+<li>事务内持锁时间越长，阻塞越严重。</li>
+</ul>
+<p>追问：如何降低锁范围？</p>
+<p>答题方向：命中合适索引，缩短事务，避免事务内 RPC，拆分批量操作。</p>
+<h3 id="6-库存扣减如何防止超卖"><a class="header" href="#6-库存扣减如何防止超卖">6. 库存扣减如何防止超卖？</a></h3>
+<p>优秀回答要点：</p>
+<ul>
+<li>不要先查库存再扣减。</li>
+<li>使用条件更新：<code>available_stock &gt;= quantity</code>。</li>
+<li>更新后检查 <code>affected_rows</code>。</li>
+<li>写库存流水，支持审计、回滚和对账。</li>
+<li>多 SKU 按固定顺序扣减，降低死锁。</li>
+<li>秒杀场景可以 Redis 预扣和 MQ 削峰，但 MySQL 仍保存最终事实。</li>
+</ul>
+<p>追问：Redis 扣成功但 MySQL 扣失败怎么办？</p>
+<p>答题方向：需要补偿释放 Redis 预扣、返回失败或重试，最终以 MySQL 库存事实和流水对账。</p>
+<h3 id="7-支付回调重复如何保证幂等"><a class="header" href="#7-支付回调重复如何保证幂等">7. 支付回调重复如何保证幂等？</a></h3>
+<p>优秀回答要点：</p>
+<ul>
+<li>支付渠道流水号唯一索引。</li>
+<li>回调日志落库。</li>
+<li>订单状态更新带前置状态条件。</li>
+<li>更新影响行数为 0 时，查询当前状态做幂等返回。</li>
+<li>后续履约、积分、通知消费端也要幂等。</li>
+</ul>
+<p>追问：为什么只靠分布式锁不够？</p>
+<p>答题方向：锁只能降低并发，不保存业务事实；重复请求、重放消息、进程崩溃后仍要靠唯一键和状态机保证幂等。</p>
+<h3 id="8-redo-logundo-logbinlog-分别解决什么问题"><a class="header" href="#8-redo-logundo-logbinlog-分别解决什么问题">8. redo log、undo log、binlog 分别解决什么问题？</a></h3>
+<p>优秀回答要点：</p>
+<ul>
+<li>undo log 保存旧版本，用于回滚和 MVCC。</li>
+<li>redo log 记录物理页修改，用于崩溃恢复。</li>
+<li>binlog 记录逻辑变更，用于复制、审计和数据订阅。</li>
+<li>redo 和 binlog 通过两阶段提交保持一致。</li>
+</ul>
+<p>追问：为什么需要两阶段提交？</p>
+<p>答题方向：避免崩溃时 redo 和 binlog 不一致，导致主库恢复状态和从库复制状态不一致。</p>
+<h3 id="9-主从延迟会带来什么业务问题"><a class="header" href="#9-主从延迟会带来什么业务问题">9. 主从延迟会带来什么业务问题？</a></h3>
+<p>优秀回答要点：</p>
+<ul>
+<li>写主读从可能读到旧数据。</li>
+<li>支付成功页、订单详情、库存决策等强一致场景不能随便读从。</li>
+<li>可以写后粘主、强一致读回主、监控延迟并摘流。</li>
+<li>大事务、DDL、从库慢查询都可能造成延迟。</li>
+</ul>
+<p>追问：哪些读可以读从库？</p>
+<p>答题方向：历史列表、后台报表、弱一致统计可以读从或数仓；刚写后的关键状态读主。</p>
+<h3 id="10-单表多少行需要分库分表"><a class="header" href="#10-单表多少行需要分库分表">10. 单表多少行需要分库分表？</a></h3>
+<p>优秀回答要点：</p>
+<ul>
+<li>没有绝对阈值。</li>
+<li>要看行宽、索引大小、热数据比例、QPS、慢查询、Buffer Pool、备份恢复和 DDL 成本。</li>
+<li>先治理索引、SQL、缓存、垂直拆分和历史归档。</li>
+<li>分库分表会引入路由、跨分片查询、扩容、分布式事务和运维成本。</li>
+</ul>
+<p>追问：订单表按什么分片键？</p>
+<p>答题方向：买家查询适合 <code>buyer_id</code>，单号查询适合 <code>order_no</code>，商家后台适合读模型；通常要结合业务主路径和辅助索引设计。</p>
+<h3 id="11-分库分表后如何处理跨分片查询"><a class="header" href="#11-分库分表后如何处理跨分片查询">11. 分库分表后如何处理跨分片查询？</a></h3>
+<p>优秀回答要点：</p>
+<ul>
+<li>尽量避免在线跨分片扫全量。</li>
+<li>核心查询通过分片键路由。</li>
+<li>商家后台、多条件检索走 Elasticsearch 或查询读模型。</li>
+<li>报表分析走数仓。</li>
+<li>必须跨分片时限制时间范围、并发查询、合并排序，并做好降级。</li>
+</ul>
+<p>追问：扩容从 128 张表到 256 张表怎么做？</p>
+<p>答题方向：提前设计可扩展路由；迁移要双写、校验、灰度切流、回滚；也可用逻辑分片避免频繁物理迁移。</p>
+<h3 id="12-一条-sql-很慢你如何系统排查"><a class="header" href="#12-一条-sql-很慢你如何系统排查">12. 一条 SQL 很慢，你如何系统排查？</a></h3>
+<p>优秀回答要点：</p>
+<ul>
+<li>先看慢日志和 SQL 模板。</li>
+<li>用 <code>EXPLAIN</code> 看索引、扫描行数、排序和临时表。</li>
+<li>看参数分布，确认是否热点用户或大时间范围。</li>
+<li>判断是执行慢还是锁等待。</li>
+<li>看数据库资源：CPU、IO、Buffer Pool、连接。</li>
+<li>再决定补索引、改 SQL、拆查询、缓存、读模型或归档。</li>
+</ul>
+<p>追问：<code>Using filesort</code> 一定有问题吗？</p>
+<p>答题方向：不一定。小结果集 filesort 可接受；大结果集频繁 filesort 才需要通过索引、限制范围或读模型优化。</p>
+<h3 id="13-大表-ddl-如何降低风险"><a class="header" href="#13-大表-ddl-如何降低风险">13. 大表 DDL 如何降低风险？</a></h3>
+<p>优秀回答要点：</p>
+<ul>
+<li>先用 <code>SELECT VERSION()</code>、<code>SHOW VARIABLES LIKE 'version%'</code>、<code>SHOW CREATE TABLE</code> 确认数据库版本、发行版、表引擎、行格式、索引、分区、外键和生成列等信息。</li>
+<li>再判断 DDL 类型：加列、删列、改类型、加索引、改默认值、调整列顺序，对应的 <code>INSTANT</code>、<code>INPLACE</code>、<code>COPY</code> 能力不同。</li>
+<li>显式指定 <code>ALGORITHM</code> 和 <code>LOCK</code>，例如期望元数据变更就写 <code>ALGORITHM=INSTANT, LOCK=NONE</code>；如果不支持，让它在预发或低峰前失败，而不是线上静默退化。</li>
+<li>影子环境用接近生产的数据量验证耗时、临时空间、binlog 增长、主从延迟和元数据锁影响。</li>
+<li>大表高风险变更选择低峰执行，必要时用 gh-ost 或 pt-online-schema-change。</li>
+<li>执行时监控元数据锁、主从延迟、IO、CPU、磁盘水位、错误日志和业务慢 SQL。</li>
+<li>应用采用 expand-contract 兼容发布：先扩展字段和代码兼容，再切流量，最后收缩旧字段。</li>
+<li>准备回滚方案，并确认回滚是否也需要重 DDL。</li>
+</ul>
+<p>追问：为什么删字段比加字段更危险？</p>
+<p>答题方向：删字段同时有兼容性风险和 DDL 风险。兼容性上，可能还有旧版本应用、定时任务、报表、数据同步、客服后台或风控规则在读写该字段；一旦删除，问题会立刻变成运行时错误或数据缺失。DDL 上，不同 MySQL 版本对 <code>DROP COLUMN</code> 的算法支持不同，可能是元数据级，也可能触发表重建、binlog 暴涨和主从延迟。稳妥做法是先让代码停止写，再停止读，保留一段观察期，通过 SQL 审计、代码搜索、binlog/CDC 订阅方确认无依赖，最后低峰删除。</p>
+<h3 id="14-如何设计-mysql-监控和告警"><a class="header" href="#14-如何设计-mysql-监控和告警">14. 如何设计 MySQL 监控和告警？</a></h3>
+<p>优秀回答要点：</p>
+<ul>
+<li>监控 QPS、延迟、慢查询、连接、锁等待、Buffer Pool、复制延迟、磁盘。</li>
+<li>告警要能映射动作，例如延迟高摘从库、磁盘高触发归档或扩容。</li>
+<li>区分主库、从库、在线链路、后台任务。</li>
+<li>监控要覆盖应用连接池，不只看数据库本身。</li>
+</ul>
+<p>追问：连接数打满时先扩连接可以吗？</p>
+<p>答题方向：不一定。先确认是不是慢 SQL、锁等待或连接泄漏。盲目扩连接可能把数据库打得更慢。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="第-4-章-redis缓存原理与实践"><a class="header" href="#第-4-章-redis缓存原理与实践">第 4 章 Redis：缓存原理与实践</a></h1>
 <p>Redis 在系统设计中的定位不只是“快一点的 KV”。它既可以做缓存，也可以承担计数、排行榜、延时任务、分布式协调等角色。要用好 Redis，关键在于先理解它为什么快、擅长什么，再明确哪些问题不该交给它解决。</p>
@@ -994,7 +1868,7 @@ mdbook serve
 <li>把 Redis 当高可用系统时，先分清持久化、主从、Sentinel、Cluster 各自解决什么问题。</li>
 <li>把 Redis 当分布式协调组件时，先明确它只能提供有限互斥，不替代数据库事务语义。</li>
 </ul>
-<h2 id="本章面试题与追问-3"><a class="header" href="#本章面试题与追问-3">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-2"><a class="header" href="#本章面试题与追问-2">本章面试题与追问</a></h2>
 <ol>
 <li>
 <p>Redis 为什么快？
@@ -1163,7 +2037,7 @@ mdbook serve
 <li>下游数据库或搜索服务承压时主动减速。</li>
 </ul>
 <p>否则 Kafka 只是把问题从“实时失败”变成“延迟爆炸”。</p>
-<h2 id="常见线上问题与排查-1"><a class="header" href="#常见线上问题与排查-1">常见线上问题与排查</a></h2>
+<h2 id="常见线上问题与排查"><a class="header" href="#常见线上问题与排查">常见线上问题与排查</a></h2>
 <p><strong>Rebalance 频繁，导致重复消费。</strong> 当消费逻辑过慢、心跳超时或实例频繁重启时，消费组会不断重平衡。排查时重点看：</p>
 <ul>
 <li><code>session.timeout.ms</code></li>
@@ -1198,7 +2072,7 @@ mdbook serve
 <li>用顺序写、Page Cache、零拷贝、批量压缩支撑高吞吐。</li>
 </ul>
 <p>真正落地时，最难的往往不是“会不会发消息”，而是能否在顺序、可靠性、吞吐、积压治理之间做清晰取舍。</p>
-<h2 id="本章面试题与追问-4"><a class="header" href="#本章面试题与追问-4">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-3"><a class="header" href="#本章面试题与追问-3">本章面试题与追问</a></h2>
 <ol>
 <li>
 <p>Kafka 的核心组件有哪些，它和普通消息队列最大的差异是什么？
@@ -1384,7 +2258,7 @@ mdbook serve
 <li>做性能优化时，先找出是写入、查询还是索引模型出了问题。</li>
 <li>做线上治理时，先稳住控制面、分片布局和磁盘水位，再谈复杂调优。</li>
 </ul>
-<h2 id="本章面试题与追问-5"><a class="header" href="#本章面试题与追问-5">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-4"><a class="header" href="#本章面试题与追问-4">本章面试题与追问</a></h2>
 <ol>
 <li>
 <p>Elasticsearch 和 MySQL 在检索模型上有什么根本区别？
@@ -1573,7 +2447,7 @@ mdbook serve
 <li>Kubernetes 的关键模型是声明式对象、调度控制和稳定服务入口。</li>
 <li>线上稳定性很大程度上取决于探针、资源、发布和排障体系是否健全。</li>
 </ul>
-<h2 id="本章面试题与追问-6"><a class="header" href="#本章面试题与追问-6">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-5"><a class="header" href="#本章面试题与追问-5">本章面试题与追问</a></h2>
 <ol>
 <li>
 <p>Docker 和虚拟机最大的差异是什么？
@@ -1760,7 +2634,7 @@ mdbook serve
 <li>超时、重试、幂等、限流、熔断、降级共同决定了故障会不会被放大。</li>
 <li>监控、压测、演练和复盘，决定了团队能否持续把系统越做越稳。</li>
 </ul>
-<h2 id="本章面试题与追问-7"><a class="header" href="#本章面试题与追问-7">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-6"><a class="header" href="#本章面试题与追问-6">本章面试题与追问</a></h2>
 <ol>
 <li>
 <p>SLI、SLO、SLA 分别是什么？三者之间是什么关系？
@@ -1952,7 +2826,7 @@ mdbook serve
 <li>高可用、一致性、幂等、降级、监控不是附加项，而是完整答案的一部分。</li>
 </ul>
 <p>如果把前面章节提供的工程知识看作“零件库”，那么本章讨论的就是如何在面试现场把这些零件按正确顺序装配出来，并解释为什么要这样装。</p>
-<h2 id="本章面试题与追问-8"><a class="header" href="#本章面试题与追问-8">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-7"><a class="header" href="#本章面试题与追问-7">本章面试题与追问</a></h2>
 <ol>
 <li>
 <p>系统设计面试和算法面试最大的区别是什么？
@@ -2043,7 +2917,7 @@ mdbook serve
 <li>同步原语和死锁治理是工程可靠性的基础，而不是语法细节。</li>
 </ul>
 <p>把这些概念和后续的网络、语言运行时、缓存与消息系统结合起来，很多线上现象都会更容易解释。</p>
-<h2 id="本章面试题与追问-9"><a class="header" href="#本章面试题与追问-9">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-8"><a class="header" href="#本章面试题与追问-8">本章面试题与追问</a></h2>
 <ol>
 <li>
 <p>进程、线程和协程的本质区别是什么？
@@ -2134,7 +3008,7 @@ mdbook serve
 <li>DNS、CDN 与代理决定了请求如何被分发、缓存和治理。</li>
 <li>排查网络问题时，要沿链路逐层验证，不要把所有异常都归因于应用代码。</li>
 </ul>
-<h2 id="本章面试题与追问-10"><a class="header" href="#本章面试题与追问-10">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-9"><a class="header" href="#本章面试题与追问-9">本章面试题与追问</a></h2>
 <ol>
 <li>
 <p>OSI 七层模型和 TCP/IP 分层模型在工程上最大的意义是什么？
@@ -2222,7 +3096,7 @@ mdbook serve
 <li><code>grep</code>、<code>sed</code>、<code>awk</code> 是日志排查和文本处理的高性价比工具。</li>
 <li>系统信息、网络状态和简单基准测试都可以通过 Shell 快速完成第一轮判断。</li>
 </ul>
-<h2 id="本章面试题与追问-11"><a class="header" href="#本章面试题与追问-11">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-10"><a class="header" href="#本章面试题与追问-10">本章面试题与追问</a></h2>
 <ol>
 <li>
 <p>为什么说 Shell 最大的价值是“组合已有工具”？
@@ -2310,7 +3184,7 @@ mdbook serve
 <li>性能优化要先 profile，再判断是算法、运行时还是语言边界问题。</li>
 <li>GIL 决定了 CPU 密集和 I/O 密集任务在并发模型上的不同选择。</li>
 </ul>
-<h2 id="本章面试题与追问-12"><a class="header" href="#本章面试题与追问-12">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-11"><a class="header" href="#本章面试题与追问-11">本章面试题与追问</a></h2>
 <ol>
 <li>
 <p>Python 在系统设计工程里最适合承担哪些角色？
@@ -2394,7 +3268,7 @@ mdbook serve
 <li>字符串和字符处理既是性能问题，也是安全问题。</li>
 <li>性能优化必须依赖测量工具，很多问题最终落在内存、链接和对象边界上。</li>
 </ul>
-<h2 id="本章面试题与追问-13"><a class="header" href="#本章面试题与追问-13">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-12"><a class="header" href="#本章面试题与追问-12">本章面试题与追问</a></h2>
 <ol>
 <li>
 <p><code>new/delete</code> 和 <code>malloc/free</code> 的本质区别是什么？
@@ -2471,7 +3345,7 @@ mdbook serve
 <li>接口和错误处理决定了 Go 代码库的可维护性与故障表达方式。</li>
 <li>网络服务优化应同时关注连接复用、超时控制、资源回收和 GC 压力。</li>
 </ul>
-<h2 id="本章面试题与追问-14"><a class="header" href="#本章面试题与追问-14">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-13"><a class="header" href="#本章面试题与追问-13">本章面试题与追问</a></h2>
 <ol>
 <li>
 <p>Go 为什么在服务端系统里如此常见？
@@ -2611,7 +3485,7 @@ mdbook serve
 <li>栈和队列看单调性与过期元素处理。</li>
 <li>树和图看遍历顺序、状态定义和去重方式。</li>
 </ul>
-<h2 id="本章面试题与追问-15"><a class="header" href="#本章面试题与追问-15">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-14"><a class="header" href="#本章面试题与追问-14">本章面试题与追问</a></h2>
 <ul>
 <li>为什么 <code>LRU</code> 需要“哈希表 + 双向链表”，只用其中一种结构为什么不够？</li>
 <li>单调栈题里，为什么元素出栈时往往意味着“答案已经确定”？</li>
@@ -2727,7 +3601,7 @@ mdbook serve
 <li>二分和贪心通常依赖排序或单调性来缩小搜索空间。</li>
 <li>回溯负责“全搜”，剪枝负责“少搜”。</li>
 </ul>
-<h2 id="本章面试题与追问-16"><a class="header" href="#本章面试题与追问-16">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-15"><a class="header" href="#本章面试题与追问-15">本章面试题与追问</a></h2>
 <ul>
 <li>滑动窗口和双指针的边界区别是什么，为什么两者经常被混用？</li>
 <li>二分答案题里，如何快速判断题目是否满足“可行解单调”？</li>
@@ -2798,7 +3672,7 @@ mdbook serve
 <li><code>rand</code> 题只写出思路，没说明为什么“等概率”成立。</li>
 <li>几何题用浮点数直接比斜率，导致精度问题；更稳妥的做法是约分成整数对。</li>
 </ul>
-<h2 id="本章面试题与追问-17"><a class="header" href="#本章面试题与追问-17">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-16"><a class="header" href="#本章面试题与追问-16">本章面试题与追问</a></h2>
 <ul>
 <li><code>n &amp; (n - 1)</code> 和 <code>n &amp; -n</code> 分别能解决什么问题，底层原因是什么？</li>
 <li>为什么模意义下的除法通常要转成逆元，逆元什么时候存在？</li>
@@ -2899,7 +3773,7 @@ mdbook serve
 <li>怎样判重？</li>
 <li>什么时候可以提前停止或剪枝？</li>
 </ul>
-<h2 id="本章面试题与追问-18"><a class="header" href="#本章面试题与追问-18">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-17"><a class="header" href="#本章面试题与追问-17">本章面试题与追问</a></h2>
 <ul>
 <li>BFS 为什么能保证第一次到达终点就是最短路，前提条件是什么？</li>
 <li>回溯和普通 DFS 的区别到底在哪里，为什么常说“回溯是带撤销的 DFS”？</li>
@@ -2996,7 +3870,7 @@ mdbook serve
 <li>先画依赖方向，再决定循环顺序。</li>
 <li>空间优化前先确认不会覆盖掉本轮还需要的旧状态。</li>
 </ul>
-<h2 id="本章面试题与追问-19"><a class="header" href="#本章面试题与追问-19">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-18"><a class="header" href="#本章面试题与追问-18">本章面试题与追问</a></h2>
 <ul>
 <li>为什么说“状态定义正确，DP 就做完一半了”？你如何检查状态是否完备？</li>
 <li>0/1 背包为什么必须倒序遍历，正序会错在哪里？</li>
@@ -3072,7 +3946,7 @@ mdbook serve
 <li><a href="https://oi-wiki.org/">OI Wiki</a></li>
 <li><a href="https://cp-algorithms.com/">cp-algorithms</a></li>
 </ul>
-<h2 id="本章面试题与追问-20"><a class="header" href="#本章面试题与追问-20">本章面试题与追问</a></h2>
+<h2 id="本章面试题与追问-19"><a class="header" href="#本章面试题与追问-19">本章面试题与追问</a></h2>
 <ul>
 <li><code>isdigit</code>、<code>isalpha</code>、<code>isalnum</code> 的区别是什么，分别适合放在哪类字符串题里？</li>
 <li>为什么很多字符串解析题最后不是算法难，而是边界条件难？</li>

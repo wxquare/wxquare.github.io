@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>前言与使用说明 - 程序员系统设计与面试指南：原理、工程与面试</title>
+        <title>第 4 章 Redis：缓存原理与实践 - 程序员系统设计与面试指南：原理、工程与面试</title>
 
 
         <!-- Custom HTML head -->
@@ -12,33 +12,33 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
-        <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
-        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
-        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
-        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
 
 
         <!-- Provide site root and default themes to javascript -->
         <script>
-            const path_to_root = "";
+            const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1e220f7.js";
+            window.path_to_searchindex_js = "../searchindex-b1e220f7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-c2c27c03.js"></script>
+        <script src="../toc-c2c27c03.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -105,7 +105,7 @@
             <!-- populated by js -->
             <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
             <noscript>
-                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
             </noscript>
             <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -140,7 +140,7 @@
                     <h1 class="menu-title">程序员系统设计与面试指南：原理、工程与面试</h1>
 
                     <div class="right-buttons">
-                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
                         </a>
                         <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
@@ -177,35 +177,250 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="程序员系统设计与面试指南"><a class="header" href="#程序员系统设计与面试指南">程序员系统设计与面试指南</a></h1>
-<p>这是一本<strong>手册型电子书</strong>，按<strong>先工程、后面试</strong>的顺序组织内容：先讲系统设计、基础设施、计算机基础与工程实践，再在各章末尾收束为「本章面试题与追问」。全书不做题库式拼接，而是用统一主线串起知识、方案与表达。</p>
-<h2 id="三条阅读路线"><a class="header" href="#三条阅读路线">三条阅读路线</a></h2>
+                        <h1 id="第-4-章-redis缓存原理与实践"><a class="header" href="#第-4-章-redis缓存原理与实践">第 4 章 Redis：缓存原理与实践</a></h1>
+<p>Redis 在系统设计中的定位不只是“快一点的 KV”。它既可以做缓存，也可以承担计数、排行榜、延时任务、分布式协调等角色。要用好 Redis，关键在于先理解它为什么快、擅长什么，再明确哪些问题不该交给它解决。</p>
+<h2 id="redis-的核心模型与高性能来源"><a class="header" href="#redis-的核心模型与高性能来源">Redis 的核心模型与高性能来源</a></h2>
+<p>Redis 的核心特征可以概括为三点：内存存储、单线程命令执行模型、面向场景设计的数据结构。绝大多数请求直接命中内存，避免了磁盘寻址；单线程把命令串行化，减少锁竞争；而 String、Hash、List、Set、ZSet 又让很多业务需求能以接近 O(1) 或 O(log n) 的方式完成。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>特性</th><th>价值</th></tr>
+</thead>
+<tbody>
+<tr><td>内存存储</td><td>微秒到毫秒级访问延迟</td></tr>
+<tr><td>单线程命令执行</td><td>避免复杂锁竞争与上下文切换</td></tr>
+<tr><td>多路复用 IO</td><td>用一个线程处理大量连接</td></tr>
+<tr><td>场景化数据结构</td><td>减少业务层重复造轮子</td></tr>
+</tbody>
+</table>
+</div>
+<p>“Redis 为什么快”通常可以从四个角度回答：</p>
 <ol>
-<li><strong>主线必读</strong>：第 1–9 章，覆盖导论、方法论、中间件、可靠性与系统设计面试主干。</li>
-<li><strong>支撑扩展</strong>：第 10–15 章，补足操作系统、网络、Shell、Python、C++、Go 等工程基础。</li>
-<li><strong>编码补充</strong>：第 16–21 章，作为 LeetCode 与编码模式的独立补充，不降格为附录。</li>
+<li>数据主要在内存中，避免磁盘 IO。</li>
+<li>数据结构专门为高频操作设计。</li>
+<li>命令执行串行化，减少锁开销。</li>
+<li>网络层使用 IO 多路复用支撑高并发连接。</li>
 </ol>
-<h2 id="使用方式"><a class="header" href="#使用方式">使用方式</a></h2>
+<p>但这套高性能模型也天然带来边界：大 Key、复杂脚本、阻塞命令、全量扫描都会拖慢整个实例。Redis 的快，建立在“单次操作足够短小”这个前提之上。</p>
+<h2 id="数据结构与典型使用模式"><a class="header" href="#数据结构与典型使用模式">数据结构与典型使用模式</a></h2>
+<p><strong>String。</strong> Redis String 的底层是 SDS，而不是 C 风格字符串。SDS 通过记录长度与剩余空间，避免了频繁遍历和越界问题，适合计数器、分布式 ID、简单对象缓存、限流键等场景。</p>
+<p>常见模式：</p>
 <ul>
-<li>想快速建立系统设计主干：先读主线必读，再按需回看支撑扩展。</li>
-<li>想兼顾工作与面试：按目录顺序阅读，保留章末的追问区作为复盘入口。</li>
-<li>想做长期查阅：将本书当作工程手册使用，结合源博客持续补充各章内容。</li>
+<li><code>INCR</code> 做访问计数、库存扣减、限流计数。</li>
+<li><code>SET key value EX ttl</code> 做简单对象缓存。</li>
+<li>短字符串走 <code>embstr</code> 编码，整数值可走 <code>int</code> 编码，节省内存和分配成本。</li>
 </ul>
-<h2 id="源稿位置迁移中"><a class="header" href="#源稿位置迁移中">源稿位置（迁移中）</a></h2>
-<p>正文从 Hexo 博客 <code>source/_posts/</code> 迁入各章对应文件。<strong>第六部分（第 16–21 章）</strong> 已从 <code>source/_posts/system-design/09-leetcode.md</code> 整段迁入；其余章节仍在逐步替换骨架为完整正文。</p>
-<h2 id="本地构建"><a class="header" href="#本地构建">本地构建</a></h2>
-<p>需安装 <a href="https://github.com/rust-lang/mdBook">mdBook</a> 与可选的 <code>mdbook-mermaid</code>（与 <code>ai-book</code> / <code>ecommerce-book</code> 一致）。</p>
-<pre><code class="language-bash">cd system-design-book
-mdbook build
-mdbook serve
-</code></pre>
+<p><strong>Hash。</strong> Hash 适合存储字段较少、需要局部更新的对象，例如商品基础信息、Session、用户状态。相比把整个 JSON 放进 String，Hash 的优势是可以只更新一个字段，不必整对象反序列化再回写。</p>
+<p>Redis 会在“小对象”与“大对象”之间切换编码：</p>
+<ul>
+<li>小 Hash 倾向使用紧凑编码，节省内存。</li>
+<li>字段数或字段长度超过阈值后切到哈希表，实现更快查找。</li>
+</ul>
+<p>工程上要警惕“大 Hash”：</p>
+<ul>
+<li><code>HGETALL</code> 可能阻塞。</li>
+<li>集群中容易形成热点。</li>
+<li>持久化和复制的代价会明显上升。</li>
+</ul>
+<p><strong>List。</strong> List 适合先进先出队列、最近浏览、时间线等场景。现代 Redis 使用 quicklist，把多个小块组织起来，在插入效率和内存占用之间做折中。</p>
+<p>典型模式：</p>
+<ul>
+<li><code>LPUSH</code> + <code>RPOP</code> 做简单队列。</li>
+<li><code>BRPOP</code> 做阻塞消费。</li>
+<li><code>LPUSH</code> + <code>LTRIM</code> 保留“最近 10 条浏览记录”。</li>
+</ul>
+<p>如果业务需要可靠消费、回溯和消费组语义，List 往往只是过渡方案，最终还是会演进到专业 MQ。</p>
+<p><strong>Set。</strong> Set 适合标签、去重、共同好友、点赞用户集合等场景。它擅长的是“存在性”和“集合运算”，例如交集、并集、差集。</p>
+<p><strong>ZSet。</strong> ZSet 通过 score 排序，典型用于排行榜、延时队列、推荐权重排序。它在小数据量时可以走紧凑编码，规模变大后通常用跳表加哈希表组合，同时兼顾按成员查询和按分值范围查询。</p>
+<p>一个实用判断是：如果需求里同时出现“排名”“TopN”“定时到期”“按权重取前几名”，优先想到 ZSet。</p>
+<h2 id="持久化复制与集群"><a class="header" href="#持久化复制与集群">持久化、复制与集群</a></h2>
+<p>Redis 的数据虽然主要在内存里，但线上系统通常不会接受“进程一挂数据全没”，因此要根据业务要求配置持久化与高可用。</p>
+<p><strong>持久化。</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>特点</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td>RDB</td><td>周期快照，文件紧凑，恢复快</td><td>可接受少量数据回退</td></tr>
+<tr><td>AOF</td><td>追加写命令，恢复更细粒度</td><td>更关注数据完整性</td></tr>
+</tbody>
+</table>
+</div>
+<p>RDB 的优势是生成文件紧凑、恢复速度快，对冷备和全量恢复友好；缺点是两次快照之间的数据可能丢失。AOF 的优势是更接近操作日志，数据损失窗口更小；代价是文件更大、重写和恢复时间更长。很多生产环境会结合两者使用，在恢复速度和数据完整性之间做平衡。</p>
+<p><strong>主从复制。</strong> 主从模式主要解决读扩展和基础灾备：</p>
+<ul>
+<li>主节点负责写入。</li>
+<li>从节点异步追赶主节点。</li>
+<li>可以承接只读流量。</li>
+</ul>
+<p>它的问题也很明确：存在复制延迟，且主节点故障后还需要额外机制完成自动切换。</p>
+<p><strong>Sentinel 与 Cluster。</strong> Sentinel 在主从之上补上监控、故障检测和自动切换能力，适合单分片但希望具备自动主备切换的场景。它解决的是“主挂了怎么办”，不解决“容量不够怎么办”。</p>
+<p>Cluster 则进一步提供数据分片能力，把 key 映射到 16384 个槽位，实现横向扩容。它更适合缓存容量和吞吐都持续增长的业务，但同时引入了新的限制：</p>
+<ul>
+<li>多 key 操作必须考虑槽位分布。</li>
+<li>跨槽事务与 Lua 脚本受到限制。</li>
+<li>热点 key 依然可能把单节点打爆。</li>
+</ul>
+<p>因此，Redis Cluster 不是“开了就自动水平扩展一切问题”，它只是把容量问题显式搬到了分片治理层。</p>
+<h2 id="缓存设计与一致性问题"><a class="header" href="#缓存设计与一致性问题">缓存设计与一致性问题</a></h2>
+<p>缓存设计的核心不是“把什么放进去”，而是先想清楚：失效后能不能接受短暂不一致，回源流量能不能扛住，以及命中率下降时怎么保护数据库。</p>
+<p><strong>常见缓存模式。</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模式</th><th>做法</th><th>特点</th></tr>
+</thead>
+<tbody>
+<tr><td>Cache Aside + TTL</td><td>读缓存未命中回源 DB，再回填缓存</td><td>最常见，简单但有不一致窗口</td></tr>
+<tr><td>定时刷新</td><td>后台任务周期性刷新</td><td>读路径稳定，但实现复杂</td></tr>
+<tr><td>写 DB 同时写缓存</td><td>一次请求更新两处</td><td>并发下顺序问题多</td></tr>
+<tr><td>写 DB 后删缓存</td><td>工程上最常见</td><td>需处理删失败与并发覆盖</td></tr>
+</tbody>
+</table>
+</div>
+<p>大多数业务会落在“先更新 DB，再删除缓存”这一范式上，因为直接写缓存更容易在并发场景里出现旧值覆盖新值的问题。但它也不是银弹，还要考虑：</p>
+<ul>
+<li>删除缓存失败怎么办</li>
+<li>主从延迟导致回源读到旧值怎么办</li>
+<li>热点 key 失效瞬间如何避免打穿 DB</li>
+</ul>
+<p>因此工程上常会叠加重试、延迟双删或 MQ 补偿，但要注意复杂度不能超过问题本身。</p>
+<p><strong>三类典型异常。</strong></p>
+<ol>
+<li>
+<p>缓存穿透：大量请求访问根本不存在的数据。
+常见治理是布隆过滤器、空值缓存和参数校验。</p>
+</li>
+<li>
+<p>缓存击穿：单个热点 key 过期瞬间，大量流量回源。
+常见治理是互斥锁、singleflight、热点预热和永不过期加异步刷新。</p>
+</li>
+<li>
+<p>缓存雪崩：一批 key 同时失效，导致回源洪峰。
+常见治理是 TTL 加随机抖动、多级缓存、限流降级和熔断保护。</p>
+</li>
+</ol>
+<p><strong>容量与淘汰。</strong> 内存规划至少要回答三个问题：</p>
+<ul>
+<li>目标命中率是多少</li>
+<li>能接受什么淘汰策略</li>
+<li>过期删除对 CPU 与内存的平衡如何取舍</li>
+</ul>
+<p>Redis 常见淘汰策略包括 <code>allkeys-lru</code>、<code>allkeys-lfu</code>、<code>volatile-lru</code> 等。业务热点分布明显时，LFU 往往比 LRU 更稳；而“永不过期 + noeviction”如果没有容量保护，通常只是在把风险后移。</p>
+<h2 id="分布式锁与常见误区"><a class="header" href="#分布式锁与常见误区">分布式锁与常见误区</a></h2>
+<p>Redis 可以实现分布式锁，但它适合的是“高性能互斥协调”，而不是“绝对强一致事务锁”。</p>
+<p>最基础的正确姿势是：</p>
+<ol>
+<li>使用 <code>SET key value NX EX seconds</code> 原子加锁。</li>
+<li>value 要写唯一请求标识，解锁时校验“是不是自己加的锁”。</li>
+<li>解锁要通过 Lua 脚本保证比较与删除原子执行。</li>
+</ol>
+<p>只做 <code>SETNX</code> 而不带过期时间，是最典型的线上事故源头之一，因为进程崩溃后锁会永久残留。另一类常见误区是：</p>
+<ul>
+<li>锁超时时间拍脑袋设置，业务执行时间稍长就提前过期。</li>
+<li>误把锁当作幂等，实际上锁只能限并发，不能替代状态校验。</li>
+<li>在 Cluster 下对多 key 脚本与锁语义理解不清。</li>
+</ul>
+<p>对于库存扣减、支付状态流转这类关键链路，更稳妥的做法通常是“数据库约束/乐观锁 + Redis 锁或限流”组合，而不是把一致性全压在 Redis 锁上。</p>
+<h2 id="热点问题与线上治理"><a class="header" href="#热点问题与线上治理">热点问题与线上治理</a></h2>
+<p>Redis 的线上治理重点，不是单纯“调大机器”，而是尽量把问题前移到模型和 key 设计阶段。</p>
+<p><strong>大 Key。</strong> 大 Key 典型定义可以粗略理解为：</p>
+<ul>
+<li>String 值很大，例如超过 10KB 甚至更高。</li>
+<li>Hash/List/Set/ZSet 元素数过多，例如上万级。</li>
+</ul>
+<p>风险包括：</p>
+<ul>
+<li>单次命令耗时长，阻塞主线程。</li>
+<li>复制、持久化和迁移成本高。</li>
+<li>集群迁移时容易形成长尾。</li>
+</ul>
+<p>治理手段包括拆 key、拆对象、避免 <code>HGETALL</code>/<code>LRANGE 0 -1</code> 之类全量命令，以及用 <code>redis-cli --bigkeys</code> 做巡检。</p>
+<p><strong>热 Key。</strong> 热 Key 问题的本质是流量集中到单个 key 所在实例。即便集群分片足够多，只要热点集中，单点依然会被打满。治理思路通常包括：</p>
+<ul>
+<li>本地缓存或多级缓存分担读流量。</li>
+<li>热点 key 主动预热、延长 TTL。</li>
+<li>在极端场景下做 key 复制或业务层读扩散。</li>
+</ul>
+<p><strong>阻塞型命令与扫描。</strong> 生产环境应避免直接使用 <code>KEYS *</code> 这类 O(N) 命令。全量扫描优先用 <code>SCAN</code>，大集合遍历要限制批次，避免在单线程模型里把维护脚本跑成线上事故。</p>
+<p><strong>监控维度。</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类别</th><th>指标</th></tr>
+</thead>
+<tbody>
+<tr><td>延迟</td><td>命令耗时、慢查询日志</td></tr>
+<tr><td>内存</td><td>used_memory、碎片率、淘汰次数</td></tr>
+<tr><td>键分布</td><td>大 Key、热 Key、过期键数量</td></tr>
+<tr><td>持久化</td><td>RDB/AOF 执行时长、失败次数</td></tr>
+<tr><td>复制</td><td>主从延迟、断链、全量同步次数</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p>Redis 的工程价值在于用合适的数据结构快速解决高频访问问题，但它的所有优势都建立在“数据模型简洁、单次命令短小、容量边界清楚”之上。</p>
+<p>这一章可以提炼为四个判断：</p>
+<ul>
+<li>把 Redis 当缓存时，先想一致性与回源保护。</li>
+<li>把 Redis 当数据结构服务时，先按访问模式选 String、Hash、List、Set、ZSet。</li>
+<li>把 Redis 当高可用系统时，先分清持久化、主从、Sentinel、Cluster 各自解决什么问题。</li>
+<li>把 Redis 当分布式协调组件时，先明确它只能提供有限互斥，不替代数据库事务语义。</li>
+</ul>
+<h2 id="本章面试题与追问"><a class="header" href="#本章面试题与追问">本章面试题与追问</a></h2>
+<ol>
+<li>
+<p>Redis 为什么快？
+追问：单线程是不是性能瓶颈，什么时候它反而是优势？</p>
+</li>
+<li>
+<p>String、Hash、List、Set、ZSet 分别适合哪些业务场景？
+追问：商品详情缓存为什么很多场景更适合 Hash 而不是整段 JSON String？</p>
+</li>
+<li>
+<p>Redis Hash 的紧凑编码和哈希表编码分别适合什么场景？
+追问：为什么大 Hash 会成为线上风险？</p>
+</li>
+<li>
+<p>RDB 和 AOF 怎么选？
+追问：如果业务既想恢复快，又不想丢太多数据，通常怎么组合？</p>
+</li>
+<li>
+<p>Sentinel 和 Cluster 分别解决什么问题？
+追问：为什么 Cluster 解决了容量扩展，却没有自动解决热 Key 问题？</p>
+</li>
+<li>
+<p>你会如何设计缓存和 DB 的一致性方案？
+追问：为什么很多团队选择“先更新 DB，再删除缓存”，而不是直接更新缓存？</p>
+</li>
+<li>
+<p>缓存穿透、击穿、雪崩分别是什么？
+追问：如果是明星商品详情页热点 key 过期，你会优先怎么保护 DB？</p>
+</li>
+<li>
+<p>Redis 分布式锁的正确实现方式是什么？
+追问：为什么解锁必须校验 value，并且通常要用 Lua 脚本？</p>
+</li>
+<li>
+<p>什么是大 Key 和热 Key，分别有什么危害？
+追问：如果你发现某个 key 读 QPS 极高，但又不能简单加机器，你会从哪几种方向治理？</p>
+</li>
+<li>
+<p>什么时候不应该继续用 Redis，而应该引入专业 MQ 或数据库能力？
+追问：如果需要可靠消费、消息回溯和消费组，你为什么不会优先选择 Redis List？</p>
+</li>
+</ol>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part02/03-mysql-storage-database.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
 
-                            <a rel="next prefetch" href="part01/01-system-design-guide.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../part02/05-kafka-message-queue-async.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -215,8 +430,11 @@ mdbook serve
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part02/03-mysql-storage-database.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
 
-                    <a rel="next prefetch" href="part01/01-system-design-guide.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../part02/05-kafka-message-queue-async.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
@@ -236,17 +454,17 @@ mdbook serve
         </script>
 
 
-        <script src="elasticlunr-ef4e11c1.min.js"></script>
-        <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
 
-        <script src="clipboard-1626706a.min.js"></script>
-        <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
 
 
 
