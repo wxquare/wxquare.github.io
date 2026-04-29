@@ -1,0 +1,838 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>附录H 全局 ID 体系设计 - 电商系统架构设计与实现</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="从领域建模到工程落地：面向中大型团队的实战指南">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-73a8e51c.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-11b15b16.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">电商系统架构设计与实现</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="附录h-全局-id-体系设计"><a class="header" href="#附录h-全局-id-体系设计">附录H 全局 ID 体系设计</a></h1>
+<h2 id="1-为什么电商系统需要全局-id-体系"><a class="header" href="#1-为什么电商系统需要全局-id-体系">1. 为什么电商系统需要全局 ID 体系</a></h2>
+<p>在示例代码中，供给链路为了演示流程，使用了类似下面的写法：</p>
+<pre><code class="language-go">s.repo.NextID(ctx, "draft")
+</code></pre>
+<p>仓储内部再用时间戳、前缀和内存序列拼出一个 ID。这种写法适合教学 Demo，因为它能让读者把注意力放在 Draft、Staging、QC、Publish 的业务流程上；但在生产系统中，这类发号逻辑很快会失控。</p>
+<p>问题不在于这行代码短，而在于它跳过了一条完整的 ID 设计决策链。</p>
+<p>第一步先判断<strong>业务语义</strong>：<code>draft_id</code> 到底是供给流程里的临时单据 ID，还是正式商品 ID？如果它只是草稿单据，就不应该和 <code>item_id</code>、<code>sku_id</code> 复用同一套语义；如果其他服务也要引用它，就必须进入统一 namespace 管理，而不能由某个 repository 临时定义 <code>"draft"</code> 前缀。</p>
+<p>第二步判断<strong>唯一性边界</strong>：如果系统只有单进程，内存序列可能暂时可用；一旦扩展到多个实例，实例之间就必须通过 worker_id、号段分配、数据库唯一约束或中心化 ID 服务避免撞号。多实例解决的是“同一个集群内多个进程是否会生成相同 ID”。</p>
+<p>第三步判断<strong>部署边界</strong>：从单机房迁到多机房后，问题会升级为 region / datacenter 之间是否会撞号。此时要考虑 region bits、独立号段、灾备切换、网络分区和数据汇合，而不仅仅是实例内的自增序列。</p>
+<p>第四步判断<strong>时间依赖</strong>：如果 ID 里拼了时间戳，机器时钟回拨、NTP 抖动、容器迁移都会影响唯一性和排序语义。使用 Snowflake 一类方案时，必须明确时钟回拨时是等待、熔断、切换 worker，还是降级到备用策略。</p>
+<p>第五步判断<strong>暴露范围</strong>：这个 ID 是只在内部日志和数据库中使用，还是会出现在 URL、开放 API、订单详情或客服系统中？如果对外暴露，连续递增或可预测格式可能泄露业务量，也可能带来枚举风险。</p>
+<p>第六步判断<strong>失败语义</strong>：发号失败时业务能不能感知？是直接返回错误、重试、回滚，还是使用本地缓存号段继续服务？如果 ID 已经发出但业务事务失败，这个 ID 是否允许浪费？大多数生产系统的答案是：允许跳号，不允许复用。</p>
+<p>第七步判断<strong>治理能力</strong>：namespace 谁审批？容量谁规划？号段快耗尽谁告警？重复冲突谁发现？发号 QPS、失败率、时钟回拨、worker 租约、审计日志在哪里看？如果这些问题没有归属，ID 生成就还只是工具函数，不是基础设施能力。</p>
+<p>电商系统里的 ID 远不止一个 <code>draft_id</code>。商品有 <code>item_id</code>、<code>spu_id</code>、<code>sku_id</code>，交易有 <code>checkout_id</code>、<code>order_id</code>、<code>payment_id</code>，供给有 <code>draft_id</code>、<code>staging_id</code>、<code>qc_review_id</code>，库存有 <code>inventory_key</code>、<code>reservation_id</code>，事件有 <code>event_id</code>、<code>outbox_event_id</code>，链路上还有 <code>trace_id</code> 和 <code>operation_id</code>。这些 ID 的业务语义、性能要求、暴露范围和容灾策略都不同。</p>
+<p>把这条链路走完后，全局 ID 体系要回答的就不再是“如何拼一个字符串”，而是建立一套可治理的规则：</p>
+<pre><code class="language-text">什么业务对象使用什么 ID 类型；
+什么 ID 由哪个 namespace 管理；
+什么 ID 可以对外暴露；
+什么 ID 需要趋势递增；
+什么 ID 需要可读业务单号；
+什么 ID 只是幂等键或链路追踪键；
+发号失败、重复、耗尽、时钟回拨时如何处理。
+</code></pre>
+<p>一句话概括：<strong>ID 体系是电商系统的基础设施治理问题，不只是一个工具函数问题。</strong></p>
+<h2 id="2-电商-id-分类"><a class="header" href="#2-电商-id-分类">2. 电商 ID 分类</a></h2>
+<p>设计 ID 之前，先不要问“用不用 Snowflake”，而要问“这个 ID 表达什么业务语义”。下表给出电商系统中最常见的 ID 分类。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类型</th><th>典型字段</th><th>设计重点</th><th>不适合的做法</th></tr>
+</thead>
+<tbody>
+<tr><td>实体 ID</td><td><code>item_id</code>、<code>spu_id</code>、<code>sku_id</code></td><td>长期稳定、索引友好、跨系统引用</td><td>每个服务各自自增</td></tr>
+<tr><td>业务单号</td><td><code>order_no</code>、<code>payment_no</code>、<code>refund_no</code></td><td>对外展示、客服查询、对账、不可枚举</td><td>直接暴露连续自增</td></tr>
+<tr><td>流程单据 ID</td><td><code>draft_id</code>、<code>staging_id</code>、<code>qc_review_id</code></td><td>流程追踪、审计、低耦合</td><td>与正式商品 ID 混用</td></tr>
+<tr><td>事件 ID</td><td><code>event_id</code>、<code>outbox_event_id</code></td><td>幂等消费、重放、排障</td><td>用时间戳字符串拼接</td></tr>
+<tr><td>幂等键</td><td><code>idempotency_key</code>、<code>request_id</code></td><td>表达同一次业务请求</td><td>当作普通随机 ID</td></tr>
+<tr><td>链路 ID</td><td><code>trace_id</code>、<code>operation_id</code></td><td>跨服务追踪和审计</td><td>每层重新生成</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张表背后的关键判断是：<strong>ID 的生成方式要服从它的业务用途。</strong></p>
+<p>例如，<code>sku_id</code> 通常是商品主数据的稳定实体 ID，适合使用 <code>BIGINT</code>，方便数据库索引、缓存 Key、消息体和下游系统引用；<code>order_no</code> 是对外业务单号，除了唯一之外，还要考虑客服查询、对账、不可枚举和格式兼容；<code>idempotency_key</code> 则不是普通 ID，它表达“同一次业务请求”，必须配合唯一索引和状态机来防止重复下单、重复扣款或重复退票。</p>
+<h2 id="3-全场景-id-清单"><a class="header" href="#3-全场景-id-清单">3. 全场景 ID 清单</a></h2>
+<p>下面的矩阵不是要求所有公司都照抄，而是给出一个可评审的默认选择。实际落地时，可以根据规模、团队能力、数据库类型、是否多机房和是否对外开放 API 做取舍。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>业务域</th><th>关键 ID</th><th>样例值</th><th>推荐类型</th><th>推荐生成方式</th><th>设计说明</th></tr>
+</thead>
+<tbody>
+<tr><td>商品中心</td><td><code>item_id</code>、<code>spu_id</code>、<code>sku_id</code></td><td><code>item_id=800000123456</code>、<code>spu_id=700000123456</code>、<code>sku_id=600000123456</code></td><td><code>BIGINT</code></td><td>Segment 号段或 Snowflake</td><td>高频查询和跨系统引用，优先索引友好</td></tr>
+<tr><td>商品组合</td><td><code>offer_id</code>、<code>rate_plan_id</code></td><td><code>offer_id=500000123456</code>、<code>rate_plan_id=510000123456</code></td><td><code>BIGINT</code> 或字符串</td><td>Segment，外部映射可用字符串</td><td>本地 Offer 用平台 ID，供应商编码单独保存</td></tr>
+<tr><td>供给流程</td><td><code>draft_id</code>、<code>staging_id</code>、<code>qc_review_id</code></td><td><code>draft_01HZY7K8J7W6S9B2Q5R4T3M1N0</code>、<code>staging_01HZY7N4K9P8D7C6B5A4M3T2Q1</code>、<code>qc_01HZY7R9S8T7V6W5X4Y3Z2A1B0</code></td><td>字符串</td><td>ULID/UUIDv7 + 受控 prefix</td><td>流程单据不应与正式商品 ID 混用</td></tr>
+<tr><td>供给任务</td><td><code>task_id</code>、<code>batch_id</code>、<code>sync_batch_id</code></td><td><code>batch_20260429_hotel_full_0001</code></td><td>字符串</td><td>ULID/UUIDv7 或业务时间分区编码</td><td>长任务、批处理和补偿需要可追踪</td></tr>
+<tr><td>库存事实</td><td><code>stock_ledger_id</code>、<code>reservation_id</code></td><td><code>stock_ledger_id=920000123456</code>、<code>rsrv_01HZY85D2K9M7N6P5Q4R3S2T1V</code></td><td><code>BIGINT</code> 或字符串</td><td>Segment、Snowflake 或 ULID</td><td>账本可用 <code>BIGINT</code>，预占凭证可用字符串</td></tr>
+<tr><td>库存业务键</td><td><code>inventory_key</code></td><td><code>inv:sku:600000123456:global</code>、<code>inv:sku:600000123456:date:2026-05-01:channel:app</code></td><td>字符串</td><td>业务组合键</td><td>表达 SKU、范围、日期、渠道、供应商等维度</td></tr>
+<tr><td>购物车</td><td><code>cart_id</code></td><td><code>cart_01HZY86K8V7T6S5R4Q3P2N1M0</code></td><td>字符串或 <code>BIGINT</code></td><td>登录态绑定 <code>user_id</code>，游客车用 ULID</td><td>登录购物车可弱化独立 ID，游客车需要会话标识</td></tr>
+<tr><td>结算</td><td><code>checkout_id</code></td><td><code>chk_01HZY88P6Q5R4S3T2V1W0X9Y8Z</code></td><td>字符串</td><td>ULID/UUIDv7 + 幂等键</td><td>一次结算会话要能重试、恢复和防重复</td></tr>
+<tr><td>订单</td><td><code>order_id</code>、<code>order_no</code></td><td><code>order_id=1928475629384753152</code>、<code>order_no=ORD20260429CN7K3F9Q2X</code></td><td>内部 <code>BIGINT</code> + 外部字符串</td><td>Snowflake 派生业务单号</td><td>内部主键和对外单号解耦</td></tr>
+<tr><td>支付</td><td><code>payment_id</code>、<code>payment_no</code>、<code>channel_trade_no</code></td><td><code>payment_no=PAY20260429F8K2M6Q9</code>、<code>channel_trade_no=202604292200149876543210</code></td><td>内部 <code>BIGINT</code> + 外部字符串</td><td>Snowflake 或渠道请求号</td><td>平台支付单和渠道单号都要保存</td></tr>
+<tr><td>售后</td><td><code>refund_id</code>、<code>after_sale_id</code></td><td><code>refund_no=RF20260429P7Q6R5S4</code>、<code>after_sale_id=AS20260429Q8R7S6T5</code></td><td>字符串或 <code>BIGINT</code></td><td>Snowflake 派生单号</td><td>便于客服、对账和售后流转</td></tr>
+<tr><td>营销</td><td><code>campaign_id</code>、<code>coupon_id</code>、<code>promotion_id</code></td><td><code>campaign_id=300000123456</code>、<code>coupon_id=310000123456</code></td><td><code>BIGINT</code></td><td>Segment 或 Snowflake</td><td>营销对象数量大，需稳定引用</td></tr>
+<tr><td>搜索</td><td><code>index_task_id</code>、<code>doc_id</code></td><td><code>index_task_id=idx_01HZY8A7B6C5D4E3F2G1H0J9K8</code>、<code>doc_id=sku_600000123456</code></td><td>字符串</td><td>业务 ID 或 ULID</td><td>搜索文档通常以业务实体 ID 为主键</td></tr>
+<tr><td>履约</td><td><code>fulfillment_id</code>、<code>delivery_order_no</code></td><td><code>fulfillment_id=FUL20260429M8N7P6Q5</code></td><td>字符串</td><td>Snowflake 派生单号或外部单号</td><td>履约单经常要与供应商、物流系统对接</td></tr>
+<tr><td>财务</td><td><code>ledger_id</code>、<code>settlement_id</code>、<code>reconciliation_id</code></td><td><code>ledger_id=930000123456</code>、<code>settlement_id=SET202604290001</code></td><td><code>BIGINT</code> 或字符串</td><td>Segment、Snowflake、批次号</td><td>账务更重视可追溯、不可重复和对账批次</td></tr>
+<tr><td>事件</td><td><code>event_id</code>、<code>outbox_event_id</code></td><td><code>evt_01HZY8B8C7D6E5F4G3H2J1K0M9</code>、<code>evt_product_published_800000123456_12</code></td><td>字符串</td><td>ULID/UUIDv7 或确定性事件 ID</td><td>用于幂等消费、重放和排障</td></tr>
+<tr><td>链路追踪</td><td><code>trace_id</code>、<code>operation_id</code></td><td><code>trace_id=4bf92f3577b34da6a3ce929d0e0e4736</code>、<code>op_01HZY8D9E8F7G6H5J4K3M2N1P0</code></td><td>字符串</td><td>Trace 标准或 ULID</td><td>跨服务传递，不在每一层重新生成</td></tr>
+<tr><td>幂等</td><td><code>idempotency_key</code></td><td><code>u_10001:cart_9f2a:req_8c7d</code></td><td>字符串</td><td>客户端请求 ID 或业务语义组合键</td><td>依赖唯一约束和状态机，不等同于随机 ID</td></tr>
+</tbody>
+</table>
+</div>
+<p>这里有几个容易混淆的点：</p>
+<ol>
+<li><code>order_id</code> 和 <code>order_no</code> 可以不是同一个字段。前者可以是内部主键，后者是对外业务单号。</li>
+<li><code>inventory_key</code> 通常不是随机 ID，而是业务维度组合，例如 <code>inv:sku:30001:global</code> 或 <code>inv:sku:40001:date:2026-05-01:channel:app</code>。</li>
+<li><code>checkout_id</code> 不是订单号。结算会话可能失败、过期或被重试，只有创单成功后才产生订单。</li>
+<li><code>idempotency_key</code> 的核心不是“看起来唯一”，而是业务上能判断“这是不是同一次请求”。</li>
+</ol>
+<h2 id="4-常见发号方案对比"><a class="header" href="#4-常见发号方案对比">4. 常见发号方案对比</a></h2>
+<h3 id="41-db-自增"><a class="header" href="#41-db-自增">4.1 DB 自增</a></h3>
+<p>DB 自增是最简单的方案：表主键使用 <code>AUTO_INCREMENT</code> 或数据库原生 identity。它适合单库单表、小规模后台配置、内部字典表和教学示例。</p>
+<p>优点是简单、强一致、无需额外服务。缺点也明显：强依赖单库，跨库分表困难；连续递增容易暴露业务量；高并发交易链路可能把数据库打成瓶颈。</p>
+<p>在电商系统中，DB 自增可以用于后台低频配置表，但不建议直接作为对外订单号、支付单号或全局 SKU ID。</p>
+<h3 id="42-db-sequence-表"><a class="header" href="#42-db-sequence-表">4.2 DB Sequence 表</a></h3>
+<p>Sequence 表通过插入一张专门的序列表获取 <code>LastInsertId</code>，示例中的订单服务就有类似思路：</p>
+<pre><code class="language-sql">CREATE TABLE order_id_seq (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    created_at DATETIME(6) NOT NULL
+);
+</code></pre>
+<p>每生成一个订单号，就插入一行序列表，再把自增值格式化成 <code>ORD-123</code>。这个方案比直接使用业务表自增稍微解耦，但本质仍是数据库中心化发号。</p>
+<p>它适合早期系统、低中并发内部单据和容易理解的教学实现。不适合高并发交易核心，也不适合直接对外暴露连续序列。</p>
+<h3 id="43-redis-incr"><a class="header" href="#43-redis-incr">4.3 Redis INCR</a></h3>
+<p>Redis <code>INCR</code> 可以按 key 递增，例如：</p>
+<pre><code class="language-text">INCR id:order:20260429
+</code></pre>
+<p>再格式化为：</p>
+<pre><code class="language-text">ORD2026042900012345
+</code></pre>
+<p>它的优点是性能高、实现简单、天然适合按天流水号。缺点是强依赖 Redis 高可用和持久化策略；主从切换、数据回滚、双活部署时要谨慎；同时，按天连续递增仍可能暴露业务量。</p>
+<p>Redis INCR 适合活动流水、短期批次、低风险业务编号。核心订单和支付单如果使用 Redis INCR，必须设计持久化、主从切换和重复保护。</p>
+<h3 id="44-snowflake"><a class="header" href="#44-snowflake">4.4 Snowflake</a></h3>
+<p>Snowflake 是经典的分布式趋势递增 ID 方案。常见实现把一个 64 位整数拆成：</p>
+<pre><code class="language-text">时间戳 + 机器 / 机房标识 + 毫秒内序列
+</code></pre>
+<p>例如常见切分是 41 位毫秒时间戳、10 位机器标识、12 位序列。它的优点是本地生成、低延迟、高吞吐、趋势递增、适合 <code>BIGINT</code> 主键。缺点是依赖时钟，必须治理 <code>worker_id</code>，还要处理时钟回拨。</p>
+<p>Snowflake 适合订单内部 ID、支付内部 ID、库存账本 ID、营销 ID，以及需要高并发写入的实体 ID。对外单号可以基于 Snowflake 再格式化，而不是直接暴露原始数字。</p>
+<h3 id="45-segment-号段"><a class="header" href="#45-segment-号段">4.5 Segment 号段</a></h3>
+<p>Segment 号段，也叫 Hi-Lo 模式。核心思想是数据库只负责分配一段 ID，服务实例拿到号段后在本地内存中发号：</p>
+<pre><code class="language-text">product.sku 申请到 1000000 - 1009999
+product.sku 申请到 1010000 - 1019999
+</code></pre>
+<p>数据库中通常维护：</p>
+<pre><code class="language-text">namespace、max_id、step、version
+</code></pre>
+<p>服务用乐观锁推进 <code>max_id</code>，一次拿一段。这样既保留数据库的强一致分配，又避免每个 ID 都访问数据库。</p>
+<p>优点是不强依赖时钟，容量可控，namespace 独立，适合主数据 ID。缺点是服务重启会浪费一段号；号段耗尽前要预取；如果数据库不可用，新的号段无法分配。</p>
+<p>Segment 非常适合 <code>item_id</code>、<code>spu_id</code>、<code>sku_id</code>、<code>campaign_id</code>、<code>coupon_id</code> 等电商主数据 ID。</p>
+<h3 id="46-uuidv7ulid-与-ksuid"><a class="header" href="#46-uuidv7ulid-与-ksuid">4.6 UUIDv7、ULID 与 KSUID</a></h3>
+<p>UUID、ULID、KSUID 都属于更偏字符串或 128 位标识的方案。相较传统 UUIDv4，UUIDv7、ULID 和 KSUID 更强调时间有序或近似时间有序，适合日志、事件、流程单据和跨服务追踪。</p>
+<p>UUIDv7 已在 RFC 9562 中定义，它把 Unix 毫秒时间放在高位，并用随机位提供唯一性。ULID 也采用时间 + 随机的思路，字符串更短、更适合人类阅读和按字典序排序。</p>
+<p>这类 ID 的优点是无需中心服务，跨服务生成方便，天然适合字符串前缀。缺点是比 <code>BIGINT</code> 长，索引和存储成本更高，不适合所有高频实体都使用。</p>
+<p>推荐用于 <code>draft_id</code>、<code>staging_id</code>、<code>qc_review_id</code>、<code>operation_id</code>、<code>event_id</code>、<code>outbox_event_id</code>、<code>checkout_id</code> 等场景。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>是否中心化</th><th>是否趋势递增</th><th>主要优点</th><th>主要风险</th><th>推荐场景</th></tr>
+</thead>
+<tbody>
+<tr><td>DB 自增</td><td>是</td><td>是</td><td>简单、强一致</td><td>单点瓶颈、暴露业务量</td><td>小规模后台表</td></tr>
+<tr><td>DB Sequence</td><td>是</td><td>是</td><td>与业务表解耦、易理解</td><td>高并发瓶颈、跨库困难</td><td>早期单据号、教学示例</td></tr>
+<tr><td>Redis INCR</td><td>是</td><td>是</td><td>高性能、适合按天流水</td><td>持久化和主从切换风险</td><td>活动流水、短期批次</td></tr>
+<tr><td>Snowflake</td><td>否</td><td>大体是</td><td>低延迟、高吞吐、<code>BIGINT</code> 友好</td><td>时钟回拨、worker 分配</td><td>订单、支付、库存账本</td></tr>
+<tr><td>Segment 号段</td><td>半中心化</td><td>是</td><td>不依赖时钟、容量可控</td><td>号段浪费、依赖号段预取</td><td>商品、营销、主数据</td></tr>
+<tr><td>UUIDv7 / ULID</td><td>否</td><td>是</td><td>无需协调、跨服务方便</td><td>字段较长、索引成本高</td><td>流程单据、事件、链路</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="5-推荐混合架构"><a class="header" href="#5-推荐混合架构">5. 推荐混合架构</a></h2>
+<p>生产电商系统更常见的不是“全站只用一个算法”，而是混合架构：</p>
+<pre><code class="language-text">业务服务
+  -&gt; ID SDK
+  -&gt; ID Registry
+  -&gt; Generator Router
+      -&gt; Segment Generator
+      -&gt; Snowflake Generator
+      -&gt; ULID / UUIDv7 Generator
+      -&gt; Business Number Formatter
+  -&gt; Observability / Audit / Admin
+</code></pre>
+<p>推荐默认规则如下：</p>
+<pre><code class="language-text">商品和库存主数据：Segment 或 Snowflake 的 BIGINT
+交易单号：Snowflake 派生业务单号
+供给流程、事件和链路：ULID/UUIDv7 + 受控 prefix
+幂等：业务语义唯一约束，不等同于普通 ID
+</code></pre>
+<p>也就是说：</p>
+<ol>
+<li><code>item_id</code>、<code>spu_id</code>、<code>sku_id</code> 这类主数据 ID 优先使用 <code>BIGINT</code>，便于索引和跨系统传递。</li>
+<li><code>order_no</code>、<code>payment_no</code>、<code>refund_no</code> 这类对外单号可以在底层 Snowflake ID 上增加日期、渠道、校验位或编码。</li>
+<li><code>draft_id</code>、<code>staging_id</code>、<code>qc_review_id</code> 这类流程单据 ID 使用字符串，更适合审计、日志和跨系统排障。</li>
+<li><code>idempotency_key</code> 不由 ID 服务随便生成，而要和用户、购物车快照、请求来源或业务动作绑定。</li>
+</ol>
+<p>这个混合架构可以同时满足性能、可读性、治理和扩展性。</p>
+<h2 id="6-id-服务架构"><a class="header" href="#6-id-服务架构">6. ID 服务架构</a></h2>
+<h3 id="61-id-registry"><a class="header" href="#61-id-registry">6.1 ID Registry</a></h3>
+<p>ID Registry 是 ID 体系的控制面，负责登记所有 namespace，例如：</p>
+<pre><code class="language-text">product.item
+product.spu
+product.sku
+supply.draft
+supply.staging
+trade.order
+trade.payment
+event.outbox
+</code></pre>
+<p>每个 namespace 至少要记录：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>namespace</code></td><td>全局唯一的业务命名空间</td></tr>
+<tr><td><code>biz_domain</code></td><td>所属业务域</td></tr>
+<tr><td><code>id_type</code></td><td><code>INT64</code>、<code>STRING</code>、<code>BUSINESS_NO</code> 或 <code>IDEMPOTENCY_KEY</code></td></tr>
+<tr><td><code>generator_type</code></td><td><code>SEGMENT</code>、<code>SNOWFLAKE</code>、<code>ULID</code>、<code>UUIDV7</code> 或 <code>BUSINESS</code></td></tr>
+<tr><td><code>prefix</code></td><td>字符串 ID 或业务单号前缀</td></tr>
+<tr><td><code>expose_scope</code></td><td><code>INTERNAL</code>、<code>EXTERNAL</code> 或 <code>MIXED</code></td></tr>
+<tr><td><code>owner_team</code></td><td>负责人团队</td></tr>
+<tr><td><code>status</code></td><td><code>ENABLED</code>、<code>DISABLED</code> 或 <code>DEPRECATED</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>不要让业务代码直接传 <code>"draft"</code>、<code>"order"</code> 这种裸字符串。裸字符串无法治理，也无法做容量规划和审计。</p>
+<h3 id="62-id-sdk"><a class="header" href="#62-id-sdk">6.2 ID SDK</a></h3>
+<p>业务服务应该依赖 SDK，而不是直接访问 ID 表或自己拼接字符串。SDK 至少提供：</p>
+<pre><code class="language-go">type Generator interface {
+    NextInt64(ctx context.Context, ns Namespace) (int64, error)
+    NextString(ctx context.Context, ns Namespace) (string, error)
+    NextBatchInt64(ctx context.Context, ns Namespace, size int) ([]int64, error)
+}
+</code></pre>
+<p>SDK 可以封装本地缓存、号段预取、熔断降级、指标上报和错误转换。业务服务只关心“我要哪个 namespace 的 ID”。</p>
+<h3 id="63-generator-router"><a class="header" href="#63-generator-router">6.3 Generator Router</a></h3>
+<p>Generator Router 根据 namespace 配置路由到不同发号器：</p>
+<pre><code class="language-text">product.sku       -&gt; Segment Generator
+trade.order       -&gt; Snowflake Generator + Business Number Formatter
+supply.draft      -&gt; ULID Generator
+event.outbox      -&gt; UUIDv7 Generator
+checkout.session  -&gt; ULID Generator
+</code></pre>
+<p>这样可以把“业务 ID 规则”从业务代码中拿出来，避免仓储层、应用层、HTTP 层各自发明一套规则。</p>
+<h3 id="64-segment-generator"><a class="header" href="#64-segment-generator">6.4 Segment Generator</a></h3>
+<p>Segment Generator 从数据库申请号段，然后在本地内存中发号。为了避免号段耗尽造成请求抖动，应该支持双 Buffer：</p>
+<pre><code class="language-text">当前号段使用到 70% 时，后台预取下一段；
+当前号段耗尽时，如果下一段已就绪，立即切换；
+预取失败时，继续使用当前号段并告警；
+当前号段完全耗尽且无法预取时，返回明确错误。
+</code></pre>
+<h3 id="65-snowflake-generator"><a class="header" href="#65-snowflake-generator">6.5 Snowflake Generator</a></h3>
+<p>Snowflake Generator 的关键不是位运算，而是 worker 治理：</p>
+<ol>
+<li><code>worker_id</code> 不能靠配置文件随手写，应该由租约表、注册中心或部署平台分配。</li>
+<li>实例启动时申请 worker，定期心跳，退出或过期后释放。</li>
+<li>发现时钟回拨时，要短暂等待、切换 worker 或熔断，而不是继续发号。</li>
+<li>多机房部署时，要预留 region 或 datacenter 位。</li>
+</ol>
+<h3 id="66-ulid--uuidv7-generator"><a class="header" href="#66-ulid--uuidv7-generator">6.6 ULID / UUIDv7 Generator</a></h3>
+<p>这类生成器适合本地生成，但仍然要受 namespace 约束。推荐格式：</p>
+<pre><code class="language-text">draft_01JABCD...
+staging_01JABCE...
+qc_01JABCF...
+evt_01JABCG...
+op_01JABCH...
+</code></pre>
+<p>prefix 不是随意字符串，而是 Registry 中登记过的前缀。这样日志、排障和数据治理可以快速识别 ID 类型。</p>
+<h3 id="67-business-number-formatter"><a class="header" href="#67-business-number-formatter">6.7 Business Number Formatter</a></h3>
+<p>业务单号通常不直接等于底层 ID。订单号可以设计为：</p>
+<pre><code class="language-text">ORD + yyyyMMdd + base36(snowflake_id) + check_digit
+</code></pre>
+<p>例如：</p>
+<pre><code class="language-text">ORD20260429CN7K3F9Q2X
+</code></pre>
+<p>这种格式便于客服和对账按日期定位，同时不直接暴露连续自增值。校验位可以降低人工录入错误。</p>
+<h3 id="68-observability--audit--admin"><a class="header" href="#68-observability--audit--admin">6.8 Observability / Audit / Admin</a></h3>
+<p>ID 服务必须可观测：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>idgen_qps</code></td><td>各 namespace 发号 QPS</td></tr>
+<tr><td><code>idgen_error_rate</code></td><td>发号失败率</td></tr>
+<tr><td><code>segment_remaining</code></td><td>当前号段剩余比例</td></tr>
+<tr><td><code>segment_alloc_latency</code></td><td>申请号段耗时</td></tr>
+<tr><td><code>clock_rollback_count</code></td><td>时钟回拨次数</td></tr>
+<tr><td><code>worker_lease_expired_count</code></td><td>worker 租约过期次数</td></tr>
+<tr><td><code>duplicate_key_error_count</code></td><td>下游唯一键冲突次数</td></tr>
+</tbody>
+</table>
+</div>
+<p>高频 ID 不应把每次发号都同步写审计表，否则 ID 服务会被审计拖垮。更合理的方式是：常规路径打指标，异常路径写审计。</p>
+<h2 id="7-关键业务-id-设计"><a class="header" href="#7-关键业务-id-设计">7. 关键业务 ID 设计</a></h2>
+<h3 id="71-sku_idspu_id-与-item_id"><a class="header" href="#71-sku_idspu_id-与-item_id">7.1 <code>sku_id</code>、<code>spu_id</code> 与 <code>item_id</code></a></h3>
+<p><code>item_id</code> 是前台商品入口，<code>spu_id</code> 是商品定义层的标准品，<code>sku_id</code> 是具体销售规格。它们都属于长期稳定的主数据 ID，推荐使用 <code>BIGINT</code>。</p>
+<p>默认选择：</p>
+<pre><code class="language-text">product.item -&gt; Segment
+product.spu  -&gt; Segment
+product.sku  -&gt; Segment
+</code></pre>
+<p>如果系统写入并发特别高，也可以改成 Snowflake，但要统一 worker 管理。无论使用哪种方案，ID 一旦发出就不应复用。草稿废弃、商品下架、SKU 删除都不应该回收 ID。</p>
+<p>供给链路中是否提前生成 <code>sku_id</code>，取决于业务：</p>
+<ol>
+<li>如果外部供应商、图片、库存、审核都需要提前引用 SKU，可以在 Draft 阶段占号，状态为 <code>RESERVED</code>。</li>
+<li>如果希望未审核数据完全不污染正式商品空间，可以在 Publish 成功时生成正式 <code>sku_id</code>。</li>
+</ol>
+<p>两种方案都可行，但必须在附录和代码中讲清楚边界。</p>
+<h3 id="72-order_id-与-order_no"><a class="header" href="#72-order_id-与-order_no">7.2 <code>order_id</code> 与 <code>order_no</code></a></h3>
+<p>订单建议内部主键和对外单号解耦：</p>
+<pre><code class="language-sql">CREATE TABLE orders (
+    id BIGINT PRIMARY KEY,
+    order_no VARCHAR(64) NOT NULL,
+    user_id BIGINT NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_order_no (order_no)
+);
+</code></pre>
+<p>其中：</p>
+<pre><code class="language-text">id       -&gt; 内部主键，Snowflake 或 Segment
+order_no -&gt; 对外业务单号，Snowflake 派生格式
+</code></pre>
+<p>不要直接暴露 <code>ORD-1</code>、<code>ORD-2</code> 这类连续单号。它会暴露业务量，也容易被枚举。</p>
+<h3 id="73-checkout_id-与-idempotency_key"><a class="header" href="#73-checkout_id-与-idempotency_key">7.3 <code>checkout_id</code> 与 <code>idempotency_key</code></a></h3>
+<p><code>checkout_id</code> 表达一次结算会话，<code>idempotency_key</code> 表达一次业务请求。它们可以相关，但不能混为一谈。</p>
+<p>典型设计：</p>
+<pre><code class="language-text">checkout_id = ULID
+idempotency_key = user_id + cart_snapshot_hash + client_request_id
+</code></pre>
+<p>创单时，订单系统需要唯一约束：</p>
+<pre><code class="language-sql">UNIQUE KEY uk_order_idempotency (user_id, idempotency_key)
+</code></pre>
+<p>这样用户重复点击“提交订单”时，系统返回同一笔订单，而不是生成多笔订单。</p>
+<h3 id="74-payment_id渠道单号与对账"><a class="header" href="#74-payment_id渠道单号与对账">7.4 <code>payment_id</code>、渠道单号与对账</a></h3>
+<p>支付系统至少要区分三类编号：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>payment_id</code></td><td>平台内部支付主键</td></tr>
+<tr><td><code>payment_no</code></td><td>平台对外支付单号</td></tr>
+<tr><td><code>channel_trade_no</code></td><td>支付渠道返回的交易号</td></tr>
+</tbody>
+</table>
+</div>
+<p>平台调用渠道时，还需要一个稳定的渠道请求号，例如 <code>out_trade_no</code>。这个请求号通常应该由平台生成，并作为调用渠道的幂等键。不要用渠道返回单号作为平台支付单的唯一依据，因为渠道单号只有调用成功后才出现。</p>
+<h3 id="75-draft_idstaging_id-与供给审核单"><a class="header" href="#75-draft_idstaging_id-与供给审核单">7.5 <code>draft_id</code>、<code>staging_id</code> 与供给审核单</a></h3>
+<p>供给流程 ID 推荐使用字符串：</p>
+<pre><code class="language-text">draft_01J...
+staging_01J...
+qc_01J...
+</code></pre>
+<p>原因是它们不是正式商品资产，不需要像 <code>sku_id</code> 一样参与高频交易查询。字符串 prefix 能快速表达流程类型，便于运营后台、日志检索和问题排查。</p>
+<p>关键边界是：Draft、Staging、QC 阶段的 ID 不应替代正式 <code>item_id</code>、<code>spu_id</code>、<code>sku_id</code>。只有发布事务成功后，商品中心才持有正式商品主数据 ID。</p>
+<h3 id="76-event_id-与-outbox-去重"><a class="header" href="#76-event_id-与-outbox-去重">7.6 <code>event_id</code> 与 Outbox 去重</a></h3>
+<p>事件 ID 需要支持幂等消费和重放。常见方案有两种：</p>
+<ol>
+<li>随机或时间有序 ID，例如 <code>evt_01J...</code>。</li>
+<li>确定性事件 ID，例如 <code>evt_product_published_{item_id}_{version}</code>。</li>
+</ol>
+<p>对于 Outbox，确定性事件 ID 很有价值，因为同一个聚合版本只应该发布一次事件。消费者侧仍然要有处理表或唯一索引：</p>
+<pre><code class="language-sql">CREATE TABLE event_consume_log (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    consumer_group VARCHAR(64) NOT NULL,
+    event_id VARCHAR(128) NOT NULL,
+    consumed_at DATETIME NOT NULL,
+    UNIQUE KEY uk_consumer_event (consumer_group, event_id)
+);
+</code></pre>
+<p>这样即使消息系统 at-least-once 投递，也能实现业务上的精确一次效果。</p>
+<h2 id="8-容灾风险与治理"><a class="header" href="#8-容灾风险与治理">8. 容灾、风险与治理</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>风险</th><th>表现</th><th>缓解策略</th></tr>
+</thead>
+<tbody>
+<tr><td>时钟回拨</td><td>Snowflake 生成重复或乱序 ID</td><td>使用 NTP 单调配置；检测回拨；短暂等待；超过阈值熔断或切换 worker</td></tr>
+<tr><td>号段浪费</td><td>Segment 服务重启后未用完的 ID 丢失</td><td>接受不连续；容量规划；合理设置 step；禁止回收已发号段</td></tr>
+<tr><td>重复发号</td><td>多实例使用同一 worker 或并发申请同一号段</td><td>worker 租约；DB 乐观锁；唯一索引；重复冲突告警</td></tr>
+<tr><td>ID 枚举</td><td>外部用户通过连续 ID 猜测订单量或访问资源</td><td>内外 ID 解耦；业务单号编码；权限校验；必要时加校验位</td></tr>
+<tr><td>跨地域冲突</td><td>多机房各自发号后 ID 冲突</td><td>预留 region bits；按 region 分段；中心化 namespace 规划</td></tr>
+<tr><td>字段类型失控</td><td>同一个 ID 在不同系统里一会儿是字符串，一会儿是数字</td><td>统一契约；IDL / OpenAPI 固化类型；迁移期双字段兼容</td></tr>
+<tr><td>把幂等键当 ID</td><td>重试请求仍然生成多笔订单或多次扣款</td><td>唯一约束；请求状态表；幂等返回；业务状态机保护</td></tr>
+</tbody>
+</table>
+</div>
+<p>电商系统还要特别注意“唯一性不是只靠 ID 服务保证”。最终写入业务表时仍然要有唯一索引。ID 服务负责降低冲突概率和统一规则，业务数据库负责最后一道硬约束。</p>
+<h2 id="9-数据库与接口设计"><a class="header" href="#9-数据库与接口设计">9. 数据库与接口设计</a></h2>
+<h3 id="91-namespace-注册表"><a class="header" href="#91-namespace-注册表">9.1 Namespace 注册表</a></h3>
+<pre><code class="language-sql">CREATE TABLE id_namespace (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    namespace VARCHAR(64) NOT NULL COMMENT '业务命名空间，例如 product.sku、trade.order',
+    biz_domain VARCHAR(64) NOT NULL COMMENT '业务域，例如 product、trade、supply',
+    id_type VARCHAR(32) NOT NULL COMMENT 'INT64/STRING/BUSINESS_NO/IDEMPOTENCY_KEY',
+    generator_type VARCHAR(32) NOT NULL COMMENT 'SEGMENT/SNOWFLAKE/ULID/UUIDV7/BUSINESS',
+    prefix VARCHAR(32) DEFAULT NULL COMMENT '字符串 ID 或业务单号前缀',
+    expose_scope VARCHAR(32) NOT NULL COMMENT 'INTERNAL/EXTERNAL/MIXED',
+    step INT NOT NULL DEFAULT 1000 COMMENT 'Segment 号段步长',
+    max_capacity BIGINT DEFAULT NULL COMMENT '容量规划上限',
+    owner_team VARCHAR(64) NOT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'ENABLED/DISABLED/DEPRECATED',
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_namespace (namespace),
+    KEY idx_domain_status (biz_domain, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='ID 命名空间注册表';
+</code></pre>
+<h3 id="92-segment-号段表"><a class="header" href="#92-segment-号段表">9.2 Segment 号段表</a></h3>
+<pre><code class="language-sql">CREATE TABLE id_segment (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    namespace VARCHAR(64) NOT NULL,
+    max_id BIGINT NOT NULL COMMENT '当前已经分配到的最大 ID',
+    step INT NOT NULL COMMENT '每次申请的号段大小',
+    version BIGINT NOT NULL COMMENT '乐观锁版本',
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_namespace (namespace)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Segment 号段表';
+</code></pre>
+<p>申请号段时使用乐观锁：</p>
+<pre><code class="language-sql">UPDATE id_segment
+SET max_id = max_id + step,
+    version = version + 1,
+    updated_at = NOW()
+WHERE namespace = ?
+  AND version = ?;
+</code></pre>
+<h3 id="93-snowflake-worker-租约表"><a class="header" href="#93-snowflake-worker-租约表">9.3 Snowflake Worker 租约表</a></h3>
+<pre><code class="language-sql">CREATE TABLE id_worker (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    worker_id INT NOT NULL,
+    region_code VARCHAR(32) NOT NULL,
+    datacenter_code VARCHAR(32) NOT NULL,
+    instance_id VARCHAR(128) NOT NULL,
+    lease_token VARCHAR(64) NOT NULL,
+    lease_until DATETIME NOT NULL,
+    heartbeat_at DATETIME NOT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'ACTIVE/EXPIRED/DISABLED',
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_worker_region_dc (worker_id, region_code, datacenter_code),
+    UNIQUE KEY uk_instance (instance_id),
+    KEY idx_status_lease (status, lease_until)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Snowflake worker 租约表';
+</code></pre>
+<p>这张表不是普通配置表，而是 Snowflake 实例之间争抢 <code>worker_id</code> 的租约表。每个正在发号的实例必须先在自己的 <code>region_code</code> 和 <code>datacenter_code</code> 下拿到一个未被占用的 <code>worker_id</code>，并且在租约有效期内持续续租。<code>UNIQUE KEY uk_worker_region_dc</code> 保证同一个地域和机房内，同一个 <code>worker_id</code> 同一时间只能被一个实例持有；<code>UNIQUE KEY uk_instance</code> 保证同一个实例不会同时占用多个 worker。</p>
+<p>核心字段的使用方式如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>用法</th></tr>
+</thead>
+<tbody>
+<tr><td><code>worker_id</code></td><td>写入 Snowflake 的 worker bits，取值范围要受位数限制，例如 0 到 31</td></tr>
+<tr><td><code>region_code</code>、<code>datacenter_code</code></td><td>约束 worker 的部署边界，避免不同地域或机房混用同一组 worker</td></tr>
+<tr><td><code>instance_id</code></td><td>当前持有租约的实例标识，通常由部署平台注入，例如 Pod UID 或进程实例 ID</td></tr>
+<tr><td><code>lease_token</code></td><td>每次成功获取或抢占租约时生成的新 token，用于续租和释放时做 fencing 校验</td></tr>
+<tr><td><code>lease_until</code></td><td>租约过期时间，过期后其他实例才允许抢占</td></tr>
+<tr><td><code>heartbeat_at</code></td><td>最近一次心跳时间，用于排查实例卡顿、网络抖动和租约丢失</td></tr>
+<tr><td><code>status</code></td><td><code>ACTIVE</code> 表示可用租约，<code>EXPIRED</code> 表示已释放或过期，<code>DISABLED</code> 表示该 worker 位被运维禁用</td></tr>
+</tbody>
+</table>
+</div>
+<p>实例启动时的流程是：</p>
+<ol>
+<li>生成或读取 <code>instance_id</code>。</li>
+<li>先按 <code>instance_id</code> 查询自己是否已有租约行；如果有有效租约，则续租并复用原来的 <code>worker_id</code>。</li>
+<li>如果自己的租约行已经过期但没有被禁用，则优先在原行上重新生成 <code>lease_token</code> 并续租，避免触发 <code>uk_instance</code> 唯一索引冲突。</li>
+<li>如果没有自己的租约行，则在当前 <code>region_code</code> 和 <code>datacenter_code</code> 下扫描可用 <code>worker_id</code>。</li>
+<li>对空闲 worker 插入新行；对已经过期的 worker，使用条件更新抢占。</li>
+<li>只有插入成功或条件更新影响 1 行时，实例才算拿到租约，Snowflake Generator 才能进入 ready 状态。</li>
+</ol>
+<p>这里的“扫描可用 <code>worker_id</code>”不是说实例提前知道要抢哪一个，而是由 Snowflake 位数推导出候选集合。当前设计里 <code>worker_id</code> 是 5 bit，所以候选范围是 <code>0..31</code>。实例可以用 <code>hash(instance_id) % 32</code> 作为扫描起点，然后按环形顺序尝试 32 个候选，避免所有实例都从 <code>worker_id = 0</code> 开始竞争。</p>
+<p>对每个候选 <code>worker_id</code>，实例按下面顺序处理：</p>
+<ol>
+<li>如果表里没有这一行，尝试插入新租约；插入成功就获得该 worker。</li>
+<li>如果这一行存在且 <code>status = 'DISABLED'</code>，跳过。</li>
+<li>如果这一行存在且 <code>lease_until &gt;= NOW()</code>，说明仍被其他实例持有，跳过。</li>
+<li>如果这一行存在且 <code>lease_until &lt; NOW()</code>，再执行下面的条件更新抢占。</li>
+<li>如果 32 个候选都不可用，实例保持 not ready，后台退避重试。</li>
+</ol>
+<p>空闲 worker 可以直接插入：</p>
+<pre><code class="language-sql">INSERT INTO id_worker (
+    worker_id, region_code, datacenter_code,
+    instance_id, lease_token, lease_until,
+    heartbeat_at, status, created_at, updated_at
+) VALUES (
+    ?, ?, ?,
+    ?, ?, DATE_ADD(NOW(), INTERVAL ? SECOND),
+    NOW(), 'ACTIVE', NOW(), NOW()
+);
+</code></pre>
+<p>并发启动时，两个实例可能同时插入同一个候选 worker。此时唯一索引会让其中一个插入失败；失败方不要报错退出，而是读取最新行状态，继续尝试下一个候选或尝试抢占已经过期的候选。</p>
+<p>抢占过期 worker 时必须带上过期条件，避免两个实例同时抢到同一个 worker：</p>
+<pre><code class="language-sql">UPDATE id_worker
+SET instance_id = ?,
+    lease_token = ?,
+    lease_until = DATE_ADD(NOW(), INTERVAL ? SECOND),
+    heartbeat_at = NOW(),
+    status = 'ACTIVE',
+    updated_at = NOW()
+WHERE worker_id = ?
+  AND region_code = ?
+  AND datacenter_code = ?
+  AND status &lt;&gt; 'DISABLED'
+  AND lease_until &lt; NOW();
+</code></pre>
+<p>续租时必须同时校验 <code>instance_id</code> 和 <code>lease_token</code>。如果更新影响行数不是 1，说明租约已经过期、被抢占或被禁用，当前实例必须立刻停止发号，进入 not ready 状态，并记录 <code>WORKER_LEASE_LOST</code>：</p>
+<pre><code class="language-sql">UPDATE id_worker
+SET lease_until = DATE_ADD(NOW(), INTERVAL ? SECOND),
+    heartbeat_at = NOW(),
+    updated_at = NOW()
+WHERE instance_id = ?
+  AND lease_token = ?
+  AND status = 'ACTIVE';
+</code></pre>
+<p>正常退出时不要删除租约行，而是把租约置为过期，便于审计和后续排查：</p>
+<pre><code class="language-sql">UPDATE id_worker
+SET lease_until = NOW(),
+    status = 'EXPIRED',
+    updated_at = NOW()
+WHERE instance_id = ?
+  AND lease_token = ?;
+</code></pre>
+<p>实现时要把数据库时间作为租约判断的基准，减少不同机器本地时钟不一致带来的误判。实例本地还应维护一个租约看门狗：如果距离上次成功心跳已经超过安全阈值，即使数据库还没返回失败，也要先把 Snowflake Generator 标记为 not ready，避免长时间 GC、网络卡顿或容器暂停后继续使用已经可能被别人抢占的 <code>worker_id</code>。</p>
+<h3 id="94-发号审计与异常记录"><a class="header" href="#94-发号审计与异常记录">9.4 发号审计与异常记录</a></h3>
+<pre><code class="language-sql">CREATE TABLE id_issue_log (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    request_id VARCHAR(64) NOT NULL,
+    namespace VARCHAR(64) NOT NULL,
+    caller VARCHAR(128) NOT NULL,
+    issue_type VARCHAR(32) NOT NULL COMMENT 'SUCCESS/FAILED/ROLLBACK/SEGMENT_ALLOCATED',
+    issued_value VARCHAR(128) DEFAULT NULL,
+    error_message VARCHAR(512) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_request_id (request_id),
+    KEY idx_namespace_time (namespace, created_at),
+    KEY idx_issue_type_time (issue_type, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='关键 ID 发号审计与异常记录';
+</code></pre>
+<p>审计表不应该记录所有高频发号请求。建议只记录关键 namespace、号段申请、异常、回拨和人工操作。</p>
+<h3 id="95-go-sdk-接口"><a class="header" href="#95-go-sdk-接口">9.5 Go SDK 接口</a></h3>
+<pre><code class="language-go">type Namespace string
+
+const (
+    NamespaceProductItem  Namespace = "product.item"
+    NamespaceProductSPU   Namespace = "product.spu"
+    NamespaceProductSKU   Namespace = "product.sku"
+    NamespaceSupplyDraft  Namespace = "supply.draft"
+    NamespaceSupplyStage  Namespace = "supply.staging"
+    NamespaceTradeOrder   Namespace = "trade.order"
+    NamespaceTradePayment Namespace = "trade.payment"
+)
+
+type Generator interface {
+    NextInt64(ctx context.Context, ns Namespace) (int64, error)
+    NextString(ctx context.Context, ns Namespace) (string, error)
+    NextBatchInt64(ctx context.Context, ns Namespace, size int) ([]int64, error)
+}
+</code></pre>
+<p>应用服务依赖这个接口，仓储只负责保存实体：</p>
+<pre><code class="language-go">type SupplyOpsService struct {
+    repo  SupplyRepository
+    idgen id.Generator
+}
+</code></pre>
+<h2 id="10-示例代码改造建议"><a class="header" href="#10-示例代码改造建议">10. 示例代码改造建议</a></h2>
+<p>当前示例中的写法是：</p>
+<pre><code class="language-go">DraftID: s.repo.NextID(ctx, "draft"),
+</code></pre>
+<p>生产级演进方向是：</p>
+<pre><code class="language-go">draftID, err := s.idgen.NextString(ctx, id.NamespaceSupplyDraft)
+if err != nil {
+    return nil, err
+}
+</code></pre>
+<p>再构造领域对象：</p>
+<pre><code class="language-go">draft := &amp;domain.ProductSupplyDraft{
+    DraftID:     draftID,
+    OperationID: operationID,
+    Status:      domain.DraftStatusDraft,
+    CreatedAt:   now,
+    UpdatedAt:   now,
+}
+</code></pre>
+<p><code>ProductCenterRepository.NextItemID(ctx)</code> 也可以演进为：</p>
+<pre><code class="language-go">itemID, err := s.idgen.NextInt64(ctx, id.NamespaceProductItem)
+if err != nil {
+    return nil, err
+}
+</code></pre>
+<p>订单服务中的 <code>NextOrderID(ctx)</code> 可以拆成两层：</p>
+<pre><code class="language-go">internalID, err := s.idgen.NextInt64(ctx, id.NamespaceTradeOrder)
+if err != nil {
+    return nil, err
+}
+
+orderNo := s.orderNoFormatter.Format(internalID, time.Now())
+</code></pre>
+<p>这样，仓储不再定义 ID 规则，业务服务也不再传裸 prefix。所有 namespace、生成策略和对外格式都由 ID 体系统一治理。</p>
+<p>本附录只给出改造方向，不要求立刻重构示例代码。教学代码可以保留简化实现，但正文要让读者知道生产系统应该如何演进。</p>
+<h2 id="11-面试和架构评审要点"><a class="header" href="#11-面试和架构评审要点">11. 面试和架构评审要点</a></h2>
+<p>设计全局 ID 体系时，可以用下面的问题自查：</p>
+<ol>
+<li>这个 ID 是内部实体 ID、对外业务单号、流程单据 ID、事件 ID，还是幂等键？</li>
+<li>这个 ID 是否会出现在 URL、订单详情、客服系统或开放 API 中？</li>
+<li>如果对外暴露，是否会泄露业务量或被枚举？</li>
+<li>这个 ID 是否需要趋势递增？是否真的需要严格递增？</li>
+<li>数据库主键是 <code>BIGINT</code> 还是字符串？索引成本是否可接受？</li>
+<li>多实例部署时，worker 或号段如何分配？</li>
+<li>机器时钟回拨时，系统等待、降级还是熔断？</li>
+<li>多机房部署时，是否预留 region 或 datacenter 位？</li>
+<li>ID 服务不可用时，业务是失败、降级还是使用本地缓存号段？</li>
+<li>最终业务表是否有唯一索引兜底？</li>
+<li>幂等键是否有业务语义，还是只是随机字符串？</li>
+<li>老系统 ID 如何迁移？是否需要双写、双查或映射表？</li>
+</ol>
+<p>如果这些问题没有答案，就说明 ID 体系还停留在工具函数层面，没有进入基础设施治理层面。</p>
+<h2 id="12-小结"><a class="header" href="#12-小结">12. 小结</a></h2>
+<p>统一 ID 体系的重点不是某个算法，而是按业务语义治理 namespace、生成策略、暴露形式和失败处理。</p>
+<p>电商系统中，<code>sku_id</code>、<code>order_no</code>、<code>draft_id</code>、<code>event_id</code> 和 <code>idempotency_key</code> 看起来都叫 ID，但它们解决的问题完全不同。生产级设计应该把它们分开建模：</p>
+<pre><code class="language-text">实体 ID：稳定引用，索引友好
+业务单号：对外展示，防枚举，便于对账
+流程单据：追踪流程，支持审计
+事件 ID：幂等消费，支持重放
+幂等键：表达同一次业务请求
+链路 ID：贯穿调用链和操作链
+</code></pre>
+<p>推荐的默认架构是：<strong>Segment 号段 + Snowflake + ULID/UUIDv7 + 幂等键治理</strong>。这套组合不是最炫的方案，但足够贴近真实电商系统：它尊重不同业务场景的差异，也给后续多实例、多机房、开放平台和长期演进留下空间。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../appendix/product-supply-ops.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../appendix/product-supply-ops.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-d02f3b5d.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
