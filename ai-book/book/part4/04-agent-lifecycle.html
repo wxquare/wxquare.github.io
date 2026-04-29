@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>附录B 参考资料与延伸阅读 - AI工程实践：从编程到Agent的完整指南</title>
+        <title>第17章 Agent 系统全生命周期工程 - AI工程实践：从编程到Agent的完整指南</title>
 
 
         <!-- Custom HTML head -->
@@ -177,141 +177,368 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="附录b-参考资料与延伸阅读"><a class="header" href="#附录b-参考资料与延伸阅读">附录B 参考资料与延伸阅读</a></h1>
-<p>本附录整理了书中引用的论文、文章、文档和其他学习资源，按主题分类。</p>
+                        <h1 id="第17章-agent-系统全生命周期工程"><a class="header" href="#第17章-agent-系统全生命周期工程">第17章 Agent 系统全生命周期工程</a></h1>
+<blockquote>
+<p>面试官说“全生命周期开发”，真正想听的不是你会调用模型，而是你能不能把 Agent 当成一个可靠的后端系统，从 0 到 1 设计、开发、测试、上线和持续优化。</p>
+</blockquote>
+<h2 id="引言"><a class="header" href="#引言">引言</a></h2>
+<p>很多 Agent 项目停在 demo 阶段：能回答几个问题，能调用一两个工具，看起来很聪明。但生产系统的要求完全不同。</p>
+<p>生产级 Agent 需要回答一组更工程化的问题：</p>
+<ul>
+<li>这个问题为什么需要 Agent？</li>
+<li>哪些步骤由模型判断，哪些步骤由后端确定性执行？</li>
+<li>工作流如何编排，失败后如何恢复？</li>
+<li>RAG、工具调用、状态机和权限如何组合？</li>
+<li>如何测试一个输出不固定的系统？</li>
+<li>如何灰度上线，如何监控，如何持续优化？</li>
+</ul>
+<p>这就是 AI Agent 系统的全生命周期开发。</p>
 <hr>
-<h2 id="-核心论文"><a class="header" href="#-核心论文">📚 核心论文</a></h2>
-<h3 id="transformer--attention"><a class="header" href="#transformer--attention">Transformer &amp; Attention</a></h3>
-<p><strong>Attention is All You Need</strong> (2017)<br>Vaswani et al.<br>https://arxiv.org/abs/1706.03762<br><em>Transformer架构的开创性论文</em></p>
-<p><strong>BERT: Pre-training of Deep Bidirectional Transformers</strong> (2018)<br>Devlin et al.<br>https://arxiv.org/abs/1810.04805<br><em>双向预训练语言模型</em></p>
-<p><strong>Language Models are Few-Shot Learners</strong> (2020)<br>Brown et al. (GPT-3)<br>https://arxiv.org/abs/2005.14165<br><em>Few-Shot Learning的里程碑</em></p>
-<h3 id="prompt-engineering"><a class="header" href="#prompt-engineering">Prompt Engineering</a></h3>
-<p><strong>Chain-of-Thought Prompting</strong> (2022)<br>Wei et al.<br>https://arxiv.org/abs/2201.11903<br><em>思维链提示技术</em></p>
-<p><strong>ReACT: Synergizing Reasoning and Acting</strong> (2023)<br>Yao et al.<br>https://arxiv.org/abs/2210.03629<br><em>ReACT Agent架构</em></p>
-<h3 id="rag--retrieval"><a class="header" href="#rag--retrieval">RAG &amp; Retrieval</a></h3>
-<p><strong>Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</strong> (2020)<br>Lewis et al.<br>https://arxiv.org/abs/2005.11401<br><em>RAG的原始论文</em></p>
-<p><strong>Dense Passage Retrieval for Open-Domain QA</strong> (2020)<br>Karpukhin et al.<br>https://arxiv.org/abs/2004.04906<br><em>密集向量检索</em></p>
+<h2 id="1-生命周期总览"><a class="header" href="#1-生命周期总览">1. 生命周期总览</a></h2>
+<p>一个完整的 Agent 系统可以拆成八个阶段：</p>
+<pre><code class="language-text">需求澄清
+  ↓
+架构设计
+  ↓
+工作流搭建
+  ↓
+RAG 与工具实现
+  ↓
+测试与评估
+  ↓
+上线部署
+  ↓
+监控与诊断
+  ↓
+持续优化
+</code></pre>
+<p>每个阶段都应该产出明确的工程资产：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">阶段</th><th style="text-align: left">关键问题</th><th style="text-align: left">产出物</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">需求澄清</td><td style="text-align: left">是否真的需要 Agent</td><td style="text-align: left">业务目标、边界、成功指标</td></tr>
+<tr><td style="text-align: left">架构设计</td><td style="text-align: left">Agent 放在哪一层</td><td style="text-align: left">架构图、模块边界、风险分级</td></tr>
+<tr><td style="text-align: left">工作流搭建</td><td style="text-align: left">任务如何流转</td><td style="text-align: left">状态机、DAG、Router、人工确认点</td></tr>
+<tr><td style="text-align: left">RAG 与工具实现</td><td style="text-align: left">Agent 如何获取事实和行动能力</td><td style="text-align: left">Retriever、Tool Registry、MCP Server</td></tr>
+<tr><td style="text-align: left">测试与评估</td><td style="text-align: left">如何证明有效</td><td style="text-align: left">eval dataset、测试用例、质量指标</td></tr>
+<tr><td style="text-align: left">上线部署</td><td style="text-align: left">如何安全发布</td><td style="text-align: left">灰度策略、限流、熔断、回滚方案</td></tr>
+<tr><td style="text-align: left">监控与诊断</td><td style="text-align: left">出错后怎么定位</td><td style="text-align: left">trace、metrics、日志、失败归因</td></tr>
+<tr><td style="text-align: left">持续优化</td><td style="text-align: left">如何越跑越好</td><td style="text-align: left">回归集、prompt 版本、检索优化、工具 schema 优化</td></tr>
+</tbody>
+</table>
+</div>
+<p>面试中可以把这张表当成回答主线。</p>
 <hr>
-<h2 id="-推荐书籍"><a class="header" href="#-推荐书籍">📖 推荐书籍</a></h2>
-<p><strong>《Designing Data-Intensive Applications》</strong><br>Martin Kleppmann<br>https://dataintensive.net/<br><em>构建可扩展系统的必读书籍</em></p>
-<p><strong>《Building a Second Brain》</strong><br>Tiago Forte<br>https://www.buildingasecondbrain.com/<br><em>个人知识管理方法论</em></p>
-<p><strong>《The Pragmatic Programmer》</strong><br>David Thomas &amp; Andrew Hunt<br><em>软件工程实践指南</em></p>
-<p><strong>《How to Take Smart Notes》</strong><br>Sönke Ahrens<br><em>卡片笔记法，知识管理的经典</em></p>
+<h2 id="2-需求澄清先判断是否需要-agent"><a class="header" href="#2-需求澄清先判断是否需要-agent">2. 需求澄清：先判断是否需要 Agent</a></h2>
+<p>不是所有自动化需求都适合 Agent。Agent 适合处理开放性、多步骤、信息不完整的任务；不适合替代强一致、强规则、强审计的核心交易逻辑。</p>
+<p>判断问题时可以问五个问题：</p>
+<pre><code class="language-text">1. 任务是否需要理解自然语言或模糊意图？
+2. 是否需要跨多个系统检索和整合信息？
+3. 是否需要根据中间结果动态选择下一步？
+4. 错误是否可以通过 guardrails、人工确认或回滚控制？
+5. 成功标准是否可以被评估和持续优化？
+</code></pre>
+<p>如果答案大多是“是”，Agent 可能有价值。否则，规则引擎、普通后端服务或固定 workflow 可能更合适。</p>
+<h3 id="面试表达"><a class="header" href="#面试表达">面试表达</a></h3>
+<pre><code class="language-text">我不会一上来就说用 Agent。
+我会先判断任务里哪些部分是不确定的，哪些部分是确定的。
+不确定的部分交给模型做理解、规划和信息整合；
+确定性的查询、权限、计算、状态变更和审计交给后端系统。
+</code></pre>
 <hr>
-<h2 id="-官方文档"><a class="header" href="#-官方文档">🌐 官方文档</a></h2>
-<h3 id="llm-providers"><a class="header" href="#llm-providers">LLM Providers</a></h3>
-<p><strong>OpenAI API Documentation</strong><br>https://platform.openai.com/docs<br><em>GPT-4、Embedding等API文档</em></p>
-<p><strong>Anthropic Claude Documentation</strong><br>https://docs.anthropic.com/<br><em>Claude API和Prompt Engineering指南</em></p>
-<p><strong>Google Gemini API</strong><br>https://ai.google.dev/docs<br><em>Gemini模型文档</em></p>
-<h3 id="tools--frameworks"><a class="header" href="#tools--frameworks">Tools &amp; Frameworks</a></h3>
-<p><strong>LangChain Documentation</strong><br>https://python.langchain.com/<br><em>LLM应用开发框架</em></p>
-<p><strong>LlamaIndex Documentation</strong><br>https://docs.llamaindex.ai/<br><em>RAG和数据索引框架</em></p>
-<p><strong>Cursor Documentation</strong><br>https://docs.cursor.com/<br><em>Cursor IDE官方文档</em></p>
-<p><strong>OpenAI Agents SDK</strong><br>https://openai.github.io/openai-agents-python/<br><em>Agent tracing、guardrails、handoff 和工具调用参考</em></p>
-<p><strong>OpenAI Agent Evals</strong><br>https://platform.openai.com/docs/guides/agent-evals<br><em>Agent 质量评估与 trace grading</em></p>
-<p><strong>Model Context Protocol Documentation</strong><br>https://modelcontextprotocol.io/<br><em>MCP 协议、Server 和 Client 文档</em></p>
-<p><strong>Anthropic MCP Documentation</strong><br>https://docs.anthropic.com/en/docs/mcp<br><em>Claude 与 MCP 集成说明</em></p>
-<p><strong>LangSmith Documentation</strong><br>https://docs.langchain.com/langsmith/<br><em>Agent observability、tracing 和 evaluation</em></p>
+<h2 id="3-架构设计把-agent-放进后端系统"><a class="header" href="#3-架构设计把-agent-放进后端系统">3. 架构设计：把 Agent 放进后端系统</a></h2>
+<p>生产级 Agent 通常不是一个孤立的模型调用，而是一组后端模块的组合。</p>
+<pre><code class="language-text">Client
+  ↓
+API Gateway / Auth
+  ↓
+Task Service
+  ↓
+Agent Runner
+  ├─ State Machine / Workflow Engine
+  ├─ RAG Retriever
+  ├─ Tool Registry / MCP Client
+  ├─ Memory / Session Store
+  └─ Guardrails
+  ↓
+Trace / Metrics / Evals
+</code></pre>
+<h3 id="核心模块"><a class="header" href="#核心模块">核心模块</a></h3>
+<p><strong>Task Service</strong></p>
+<p>负责任务创建、任务状态、幂等键、用户权限和结果查询。不要把关键任务状态只放在 Agent 内存里。</p>
+<p><strong>Agent Runner</strong></p>
+<p>负责调用模型、组织上下文、解释模型输出、执行工具调用和控制最大步数。</p>
+<p><strong>Workflow / State Machine</strong></p>
+<p>负责生命周期控制。例如告警处理可以是：</p>
+<pre><code class="language-text">NEW → ANALYZING → WAITING_CONFIRM → AUTO_RESOLVING → RESOLVED
+                         ↓
+                    ESCALATED
+</code></pre>
+<p><strong>RAG Retriever</strong></p>
+<p>负责从知识库、runbook、历史工单和文档中检索事实，并保留来源。</p>
+<p><strong>Tool Registry / MCP Client</strong></p>
+<p>负责把后端能力包装成可调用工具，包括 schema、权限、超时、重试、风险等级和审计。</p>
+<p><strong>Guardrails</strong></p>
+<p>负责输入过滤、权限拦截、输出校验、高风险动作审批和敏感信息脱敏。</p>
+<p><strong>Trace / Metrics / Evals</strong></p>
+<p>负责记录 Agent 每一步行为，并把失败样本沉淀为回归测试。</p>
 <hr>
-<h2 id="-在线课程"><a class="header" href="#-在线课程">🎓 在线课程</a></h2>
-<p><strong>DeepLearning.AI - ChatGPT Prompt Engineering</strong><br>https://www.deeplearning.ai/short-courses/chatgpt-prompt-engineering-for-developers/<br><em>Andrew Ng的Prompt Engineering课程</em></p>
-<p><strong>LangChain for LLM Application Development</strong><br>https://www.deeplearning.ai/short-courses/langchain-for-llm-application-development/<br><em>LangChain实战课程</em></p>
-<p><strong>Building Systems with the ChatGPT API</strong><br>https://www.deeplearning.ai/short-courses/building-systems-with-chatgpt/<br><em>构建ChatGPT系统</em></p>
+<h2 id="4-工作流搭建用确定性框架约束不确定性"><a class="header" href="#4-工作流搭建用确定性框架约束不确定性">4. 工作流搭建：用确定性框架约束不确定性</a></h2>
+<p>很多 Agent 系统失败，是因为把所有事情都交给一个自由循环的 Agent。更稳的做法是：用 workflow 控制主路径，把模型放在需要判断的位置。</p>
+<h3 id="常见工作流模式"><a class="header" href="#常见工作流模式">常见工作流模式</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">模式</th><th style="text-align: left">适用场景</th><th style="text-align: left">示例</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Router</td><td style="text-align: left">意图分流清晰</td><td style="text-align: left">FAQ、订单查询、工单创建</td></tr>
+<tr><td style="text-align: left">Chain</td><td style="text-align: left">步骤固定</td><td style="text-align: left">文档解析、摘要、格式化输出</td></tr>
+<tr><td style="text-align: left">State Machine</td><td style="text-align: left">生命周期明确</td><td style="text-align: left">告警处理、审批流、故障诊断</td></tr>
+<tr><td style="text-align: left">DAG</td><td style="text-align: left">子任务有依赖</td><td style="text-align: left">多来源分析、报告生成</td></tr>
+<tr><td style="text-align: left">Coordinator + Worker</td><td style="text-align: left">多 Agent 协作</td><td style="text-align: left">指标分析、日志分析、变更分析并行</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="一个告警诊断工作流"><a class="header" href="#一个告警诊断工作流">一个告警诊断工作流</a></h3>
+<pre><code class="language-text">Alert Received
+  ↓
+Normalize Alert
+  ↓
+Retrieve Runbook
+  ↓
+Query Metrics + Logs + Recent Deployments
+  ↓
+Diagnosis Agent
+  ↓
+Risk Decision
+  ├─ Low Risk: Auto Suggest
+  ├─ Medium Risk: Human Confirm
+  └─ High Risk: Escalate
+  ↓
+Report + Trace + Eval Candidate
+</code></pre>
+<p>这里的关键点是：模型不负责随意决定系统状态，状态流转由后端控制。</p>
 <hr>
-<h2 id="-技术博客"><a class="header" href="#-技术博客">📝 技术博客</a></h2>
-<h3 id="个人博客"><a class="header" href="#个人博客">个人博客</a></h3>
-<p><strong>Lil’Log (Lilian Weng - OpenAI)</strong><br>https://lilianweng.github.io/<br><em>高质量的AI技术博客</em></p>
-<p><strong>Jay Alammar’s Blog</strong><br>https://jalammar.github.io/<br><em>可视化解释深度学习</em></p>
-<p><strong>Andrej Karpathy’s Blog</strong><br>https://karpathy.github.io/<br><em>AI领域领军人物的博客</em></p>
-<h3 id="公司博客"><a class="header" href="#公司博客">公司博客</a></h3>
-<p><strong>OpenAI Blog</strong><br>https://openai.com/blog<br><em>GPT、ChatGPT等产品发布</em></p>
-<p><strong>Anthropic Research</strong><br>https://www.anthropic.com/research<br><em>Claude和Constitutional AI</em></p>
-<p><strong>DeepMind Blog</strong><br>https://deepmind.google/discover/blog/<br><em>AlphaGo、Gemini等研究</em></p>
+<h2 id="5-rag-与工具实现"><a class="header" href="#5-rag-与工具实现">5. RAG 与工具实现</a></h2>
+<p>Agent 的能力来自两类外部系统：RAG 提供事实，工具提供行动。</p>
+<h3 id="rag-设计要点"><a class="header" href="#rag-设计要点">RAG 设计要点</a></h3>
+<ul>
+<li>文档 ingest 时保留 metadata，例如服务名、环境、版本、权限、更新时间；</li>
+<li>检索前做权限过滤，避免越权文档进入上下文；</li>
+<li>使用 hybrid search 和 rerank 提升召回质量；</li>
+<li>输出必须带 citation，无法找到依据时允许拒答；</li>
+<li>把检索失败样本加入 eval dataset。</li>
+</ul>
+<h3 id="工具设计要点"><a class="header" href="#工具设计要点">工具设计要点</a></h3>
+<p>工具不是简单暴露 API。生产工具应该包含：</p>
+<pre><code class="language-text">name: query_metrics
+description: 查询指定服务在指定时间窗口内的指标
+schema: 参数类型、必填字段、枚举值
+risk_level: read_only
+timeout: 3s
+retry: 2
+permission: sre:read_metrics
+audit: enabled
+</code></pre>
+<p>工具按风险分级：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">风险等级</th><th style="text-align: left">示例</th><th style="text-align: left">执行策略</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">只读</td><td style="text-align: left">查指标、查日志、查订单状态</td><td style="text-align: left">可自动执行</td></tr>
+<tr><td style="text-align: left">中风险</td><td style="text-align: left">创建工单、发送通知、更新备注</td><td style="text-align: left">自动执行但必须审计</td></tr>
+<tr><td style="text-align: left">高风险</td><td style="text-align: left">退款、回滚、重启服务、修改生产配置</td><td style="text-align: left">只生成建议，需要人工确认</td></tr>
+<tr><td style="text-align: left">禁止</td><td style="text-align: left">删除生产数据、绕过权限</td><td style="text-align: left">不暴露给 Agent</td></tr>
+</tbody>
+</table>
+</div>
 <hr>
-<h2 id="-工具资源"><a class="header" href="#-工具资源">🛠️ 工具资源</a></h2>
-<h3 id="vector-databases"><a class="header" href="#vector-databases">Vector Databases</a></h3>
-<p><strong>Chroma</strong><br>https://www.trychroma.com/<br><em>轻量级向量数据库</em></p>
-<p><strong>Pinecone</strong><br>https://www.pinecone.io/<br><em>托管向量数据库服务</em></p>
-<p><strong>Weaviate</strong><br>https://weaviate.io/<br><em>开源向量搜索引擎</em></p>
-<p><strong>Milvus</strong><br>https://milvus.io/<br><em>高性能向量数据库</em></p>
-<h3 id="embedding-models"><a class="header" href="#embedding-models">Embedding Models</a></h3>
-<p><strong>Sentence Transformers</strong><br>https://www.sbert.net/<br><em>开源Embedding模型库</em></p>
-<p><strong>Voyage AI</strong><br>https://www.voyageai.com/<br><em>专业Embedding服务</em></p>
-<p><strong>Cohere Embed</strong><br>https://cohere.com/embed<br><em>多语言Embedding API</em></p>
-<h3 id="knowledge-management"><a class="header" href="#knowledge-management">Knowledge Management</a></h3>
-<p><strong>Obsidian</strong><br>https://obsidian.md/<br><em>本地优先的知识管理工具</em></p>
-<p><strong>Notion</strong><br>https://www.notion.so/<br><em>在线协作知识库</em></p>
-<p><strong>Roam Research</strong><br>https://roamresearch.com/<br><em>双向链接笔记</em></p>
+<h2 id="6-测试与评估"><a class="header" href="#6-测试与评估">6. 测试与评估</a></h2>
+<p>Agent 系统既需要传统测试，也需要 Agent Evals。</p>
+<h3 id="传统测试"><a class="header" href="#传统测试">传统测试</a></h3>
+<ul>
+<li>Tool 单元测试：参数校验、权限校验、错误返回；</li>
+<li>Workflow 测试：状态流转、失败重试、人工确认；</li>
+<li>API 测试：鉴权、幂等、超时、结果查询；</li>
+<li>集成测试：Agent Runner 与工具、RAG、状态机联调。</li>
+</ul>
+<h3 id="agent-evals"><a class="header" href="#agent-evals">Agent Evals</a></h3>
+<p>生产级 Agent 至少要分层评估：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层级</th><th style="text-align: left">指标</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">RAG</td><td style="text-align: left">recall@k、MRR、citation accuracy</td></tr>
+<tr><td style="text-align: left">工具调用</td><td style="text-align: left">tool selection accuracy、argument accuracy</td></tr>
+<tr><td style="text-align: left">任务完成</td><td style="text-align: left">task success rate、escalation correctness</td></tr>
+<tr><td style="text-align: left">安全</td><td style="text-align: left">unsafe action rate、permission violation rate</td></tr>
+<tr><td style="text-align: left">体验</td><td style="text-align: left">用户采纳率、人工升级率、平均处理时长</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="发布前检查"><a class="header" href="#发布前检查">发布前检查</a></h3>
+<pre><code class="language-text">1. 单元测试通过
+2. 工具权限测试通过
+3. 离线 eval 不低于基线版本
+4. 高风险 case 全部正确拦截
+5. trace 字段完整
+6. 回滚开关可用
+</code></pre>
 <hr>
-<h2 id="-实战项目"><a class="header" href="#-实战项目">🎯 实战项目</a></h2>
-<h3 id="open-source-projects"><a class="header" href="#open-source-projects">Open Source Projects</a></h3>
-<p><strong>AutoGPT</strong><br>https://github.com/Significant-Gravitas/AutoGPT<br><em>自主Agent实现</em></p>
-<p><strong>LangChain Templates</strong><br>https://github.com/langchain-ai/langchain/tree/master/templates<br><em>LangChain应用模板</em></p>
-<p><strong>PrivateGPT</strong><br>https://github.com/imartinez/privateGPT<br><em>私有RAG系统</em></p>
-<p><strong>Quivr</strong><br>https://github.com/StanGirard/quivr<br><em>个人知识管理Agent</em></p>
+<h2 id="7-上线部署"><a class="header" href="#7-上线部署">7. 上线部署</a></h2>
+<p>Agent 上线不要一次性全量发布。更稳的路径是：</p>
+<pre><code class="language-text">Shadow Mode → Internal Beta → Small Traffic → Gradual Rollout → Full Release
+</code></pre>
+<h3 id="shadow-mode"><a class="header" href="#shadow-mode">Shadow Mode</a></h3>
+<p>Agent 只观察真实请求，不影响用户结果。用于收集 trace、验证工具路径和发现未知失败模式。</p>
+<h3 id="internal-beta"><a class="header" href="#internal-beta">Internal Beta</a></h3>
+<p>只开放给内部用户或值班工程师，允许人工反馈和快速修复。</p>
+<h3 id="small-traffic"><a class="header" href="#small-traffic">Small Traffic</a></h3>
+<p>按用户、团队、场景或风险等级小流量放开。例如只处理低风险告警，只允许只读工具自动执行。</p>
+<h3 id="gradual-rollout"><a class="header" href="#gradual-rollout">Gradual Rollout</a></h3>
+<p>逐步扩大范围，同时观察质量、安全、成本和延迟指标。</p>
+<h3 id="回滚策略"><a class="header" href="#回滚策略">回滚策略</a></h3>
+<p>至少准备三类开关：</p>
+<ul>
+<li>model rollback：切回旧模型；</li>
+<li>prompt rollback：切回旧 prompt 版本；</li>
+<li>feature kill switch：关闭自动执行，仅保留建议模式。</li>
+</ul>
 <hr>
-<h2 id="-研究资源"><a class="header" href="#-研究资源">📊 研究资源</a></h2>
-<h3 id="papers-with-code"><a class="header" href="#papers-with-code">Papers with Code</a></h3>
-<p><strong>Papers with Code - NLP</strong><br>https://paperswithcode.com/area/natural-language-processing<br><em>NLP论文和代码</em></p>
-<p><strong>Hugging Face Papers</strong><br>https://huggingface.co/papers<br><em>每日AI论文推荐</em></p>
-<h3 id="benchmarks"><a class="header" href="#benchmarks">Benchmarks</a></h3>
-<p><strong>MMLU (Massive Multitask Language Understanding)</strong><br>https://github.com/hendrycks/test<br><em>LLM综合能力评测</em></p>
-<p><strong>HumanEval</strong><br>https://github.com/openai/human-eval<br><em>代码生成能力评测</em></p>
-<p><strong>MTEB (Massive Text Embedding Benchmark)</strong><br>https://github.com/embeddings-benchmark/mteb<br><em>Embedding模型评测</em></p>
+<h2 id="8-监控与诊断"><a class="header" href="#8-监控与诊断">8. 监控与诊断</a></h2>
+<p>上线后不能只看接口错误率。Agent 的问题经常表现为“没有报错，但做错了”。</p>
+<h3 id="必须监控的指标"><a class="header" href="#必须监控的指标">必须监控的指标</a></h3>
+<p><strong>系统指标</strong></p>
+<ul>
+<li>请求量；</li>
+<li>P95 / P99 延迟；</li>
+<li>错误率；</li>
+<li>超时率；</li>
+<li>队列积压。</li>
+</ul>
+<p><strong>Agent 指标</strong></p>
+<ul>
+<li>平均 LLM 调用次数；</li>
+<li>平均工具调用次数；</li>
+<li>平均执行步数；</li>
+<li>early stopping 次数；</li>
+<li>fallback 次数。</li>
+</ul>
+<p><strong>质量指标</strong></p>
+<ul>
+<li>task success rate；</li>
+<li>correct escalation rate；</li>
+<li>citation accuracy；</li>
+<li>tool selection accuracy；</li>
+<li>unsafe action rate。</li>
+</ul>
+<p><strong>成本指标</strong></p>
+<ul>
+<li>token per task；</li>
+<li>cost per task；</li>
+<li>cache hit rate；</li>
+<li>高成本请求占比。</li>
+</ul>
+<h3 id="trace-字段"><a class="header" href="#trace-字段">Trace 字段</a></h3>
+<pre><code class="language-json">{
+  "trace_id": "trace_001",
+  "task_id": "task_001",
+  "user_id": "u123",
+  "workflow_state": "ANALYZING",
+  "model": "gpt-4.1",
+  "prompt_version": "dod_agent_v3",
+  "retrieved_docs": [],
+  "tool_calls": [],
+  "risk_level": "medium",
+  "final_decision": "WAITING_CONFIRM",
+  "failure_category": "none"
+}
+</code></pre>
+<p>有了 trace，失败复盘才不会停留在“模型不稳定”。</p>
 <hr>
-<h2 id="-视频资源"><a class="header" href="#-视频资源">🎤 视频资源</a></h2>
-<h3 id="youtube-channels"><a class="header" href="#youtube-channels">YouTube Channels</a></h3>
-<p><strong>Andrej Karpathy</strong><br>https://www.youtube.com/@AndrejKarpathy<br><em>从零构建GPT等教学视频</em></p>
-<p><strong>3Blue1Brown</strong><br>https://www.youtube.com/@3blue1brown<br><em>神经网络可视化讲解</em></p>
-<p><strong>Two Minute Papers</strong><br>https://www.youtube.com/@TwoMinutePapers<br><em>AI论文快速解读</em></p>
+<h2 id="9-持续优化"><a class="header" href="#9-持续优化">9. 持续优化</a></h2>
+<p>Agent 系统的优化应该围绕 trace 和 eval，而不是凭感觉调 prompt。</p>
+<h3 id="优化闭环"><a class="header" href="#优化闭环">优化闭环</a></h3>
+<pre><code class="language-text">线上请求
+  ↓
+Trace 采样
+  ↓
+失败归因
+  ↓
+加入 eval dataset
+  ↓
+修复 prompt / retriever / tool schema / workflow
+  ↓
+回归测试
+  ↓
+灰度发布
+</code></pre>
+<h3 id="常见优化方向"><a class="header" href="#常见优化方向">常见优化方向</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">问题</th><th style="text-align: left">优化方式</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">检索不到正确文档</td><td style="text-align: left">调整 chunk、metadata、rerank、query rewrite</td></tr>
+<tr><td style="text-align: left">工具选错</td><td style="text-align: left">改工具命名、description、schema 和 few-shot</td></tr>
+<tr><td style="text-align: left">参数错误</td><td style="text-align: left">收紧 schema，增加默认值和错误提示</td></tr>
+<tr><td style="text-align: left">执行太慢</td><td style="text-align: left">并行工具调用、缓存、异步任务、模型分层</td></tr>
+<tr><td style="text-align: left">成本太高</td><td style="text-align: left">prompt 压缩、上下文裁剪、缓存、early stopping</td></tr>
+<tr><td style="text-align: left">高风险输出</td><td style="text-align: left">增加 guardrail、审批流和拒答策略</td></tr>
+</tbody>
+</table>
+</div>
 <hr>
-<h2 id="-资讯订阅"><a class="header" href="#-资讯订阅">📰 资讯订阅</a></h2>
-<h3 id="newsletters"><a class="header" href="#newsletters">Newsletters</a></h3>
-<p><strong>The Batch (DeepLearning.AI)</strong><br>https://www.deeplearning.ai/the-batch/<br><em>每周AI新闻</em></p>
-<p><strong>Import AI (Jack Clark)</strong><br>https://importai.substack.com/<br><em>AI研究进展</em></p>
-<p><strong>The Gradient</strong><br>https://thegradient.pub/<br><em>深度AI评论</em></p>
-<h3 id="podcasts"><a class="header" href="#podcasts">Podcasts</a></h3>
-<p><strong>Lex Fridman Podcast</strong><br>https://lexfridman.com/podcast/<br><em>AI领域深度访谈</em></p>
-<p><strong>The TWIML AI Podcast</strong><br>https://twimlai.com/<br><em>机器学习技术讨论</em></p>
+<h2 id="10-面试表达模板"><a class="header" href="#10-面试表达模板">10. 面试表达模板</a></h2>
+<p>如果面试官问：“你如何负责 AI Agent 系统的全生命周期开发？”</p>
+<p>可以这样回答：</p>
+<pre><code class="language-text">我会把 Agent 系统当成一个生产级后端系统来设计。
+
+第一步是需求澄清，判断哪些环节真的需要 Agent，哪些环节应该用确定性后端逻辑。
+
+第二步是架构设计，拆成 API、Task Service、Agent Runner、RAG、Tool Registry、Workflow、Guardrails 和 Trace。
+
+第三步是工作流搭建，用 Router、状态机或 DAG 控制任务生命周期，把模型限制在意图理解、规划和诊断这些开放性环节。
+
+第四步是实现 RAG 和工具调用。RAG 负责补充事实，工具负责连接外部系统。所有工具都要有 schema、权限、超时、重试、风险等级和审计。
+
+第五步是测试和评估。除了传统单元测试、集成测试，还要做 RAG eval、tool eval、task eval 和 safety eval。
+
+第六步是上线部署。先 shadow mode，再小流量灰度，配合限流、熔断、回滚和人工兜底。
+
+最后是持续优化。上线后基于 trace 做失败归因，把失败样本加入 eval dataset，持续优化 prompt、retriever、工具 schema 和 workflow。
+</code></pre>
+<p>这个回答的重点是让面试官听到：你不是只会调模型，而是能负责一个 Agent 系统从 0 到 1 到稳定运行的完整闭环。</p>
 <hr>
-<h2 id="-搜索引擎"><a class="header" href="#-搜索引擎">🔍 搜索引擎</a></h2>
-<p><strong>Perplexity AI</strong><br>https://www.perplexity.ai/<br><em>AI驱动的搜索引擎</em></p>
-<p><strong>Phind</strong><br>https://www.phind.com/<br><em>面向开发者的AI搜索</em></p>
-<hr>
-<h2 id="-延伸阅读建议"><a class="header" href="#-延伸阅读建议">📚 延伸阅读建议</a></h2>
-<h3 id="初学者路径"><a class="header" href="#初学者路径">初学者路径</a></h3>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p>AI Agent 系统的全生命周期开发，本质是把不确定的模型能力放进确定的工程框架里。</p>
+<p>你需要同时具备四类能力：</p>
 <ol>
-<li>先读 OpenAI 和 Anthropic 的 Prompt Engineering 指南</li>
-<li>学习 LangChain 或 LlamaIndex 框架</li>
-<li>实践小型 RAG 项目</li>
-<li>阅读经典论文（Transformer、BERT、GPT-3）</li>
+<li>架构能力：能拆模块、定边界、做取舍；</li>
+<li>后端能力：能处理状态、队列、幂等、权限、部署和回滚；</li>
+<li>Agent 能力：能设计 RAG、工具调用、工作流和多 Agent 协作；</li>
+<li>质量能力：能用 eval、trace 和监控持续证明系统有效。</li>
 </ol>
-<h3 id="进阶路径"><a class="header" href="#进阶路径">进阶路径</a></h3>
-<ol>
-<li>深入学习 ReACT、Chain-of-Thought 等论文</li>
-<li>研究生产级 Agent 系统设计</li>
-<li>优化 RAG 系统性能</li>
-<li>贡献开源项目</li>
-</ol>
-<h3 id="专家路径"><a class="header" href="#专家路径">专家路径</a></h3>
-<ol>
-<li>阅读最新研究论文</li>
-<li>实验新模型和技术</li>
-<li>构建领域特定 Agent 系统</li>
-<li>分享经验和最佳实践</li>
-</ol>
-<hr>
-<p><em>本参考资料持续更新，欢迎补充</em></p>
+<p>下一章的 DoD Agent 案例，就是这套生命周期方法的一次完整落地。</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../appendix/glossary.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../part4/03-observability-cost-trace.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../appendix/tools.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../part4/05-failure-debugging.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -321,11 +548,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../appendix/glossary.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../part4/03-observability-cost-trace.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../appendix/tools.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../part4/05-failure-debugging.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
