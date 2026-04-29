@@ -84,6 +84,35 @@ s.repo.NextID(ctx, "draft")
 | 链路追踪 | `trace_id`、`operation_id` | 字符串 | Trace 标准或 ULID | 跨服务传递，不在每一层重新生成 |
 | 幂等 | `idempotency_key` | 字符串 | 客户端请求 ID 或业务语义组合键 | 依赖唯一约束和状态机，不等同于随机 ID |
 
+### 3.1 样例清单
+
+下面给一组样例值，帮助读者把“ID 类型”和“业务语义”对应起来。样例只表达格式和设计意图，不代表所有公司都必须使用相同前缀、长度或编码规则。
+
+| 场景 | 字段 | 样例值 | 生成方式 | 说明 |
+|------|------|--------|----------|------|
+| 商品入口 | `item_id` | `800000123456` | Segment 号段 | 前台商品入口 ID，订单、搜索、购物车都可引用 |
+| 标准商品 | `spu_id` | `700000123456` | Segment 号段 | 表示一组标准商品定义，例如 iPhone 16 |
+| 销售规格 | `sku_id` | `600000123456` | Segment 号段或 Snowflake | 表示具体销售规格，例如黑色 256G |
+| 销售承诺 | `offer_id` | `500000123456` | Segment 号段 | 表示某个 SKU 在某渠道、价格、库存和履约规则下的售卖承诺 |
+| 供给草稿 | `draft_id` | `draft_01HZY7K8J7W6S9B2Q5R4T3M1N0` | ULID + prefix | 只属于供给流程，不等于正式商品 ID |
+| 供给暂存 | `staging_id` | `staging_01HZY7N4K9P8D7C6B5A4M3T2Q1` | ULID + prefix | 提交后冻结的待发布版本 |
+| 审核单 | `qc_review_id` | `qc_01HZY7R9S8T7V6W5X4Y3Z2A1B0` | ULID + prefix | 用于人工审核、风险校验和审计 |
+| 同步批次 | `sync_batch_id` | `batch_20260429_hotel_full_0001` | 业务时间分区编码 | 便于长任务断点续跑和人工排障 |
+| 库存业务键 | `inventory_key` | `inv:sku:600000123456:global` | 业务组合键 | 表达库存维度，不是随机 ID |
+| 日期库存 | `inventory_key` | `inv:sku:600000123456:date:2026-05-01:channel:app` | 业务组合键 | 适合酒店、票务、预约等按日期售卖的商品 |
+| 库存预占 | `reservation_id` | `rsrv_01HZY85D2K9M7N6P5Q4R3S2T1V` | ULID + prefix | 表示一次库存锁定凭证 |
+| 结算会话 | `checkout_id` | `chk_01HZY88P6Q5R4S3T2V1W0X9Y8Z` | ULID + prefix | 表示一次结算过程，不等于订单号 |
+| 创单幂等 | `idempotency_key` | `u_10001:cart_9f2a:req_8c7d` | 业务语义组合键 | 防止重复点击或网络重试产生多笔订单 |
+| 订单内部 ID | `order_id` | `1928475629384753152` | Snowflake | 内部主键，适合数据库索引和服务间引用 |
+| 订单对外单号 | `order_no` | `ORD20260429CN7K3F9Q2X` | Snowflake 派生业务单号 | 对用户、客服、对账展示，不直接暴露连续序列 |
+| 支付单号 | `payment_no` | `PAY20260429F8K2M6Q9` | Snowflake 派生业务单号 | 平台支付单号，和渠道交易号分开保存 |
+| 渠道交易号 | `channel_trade_no` | `202604292200149876543210` | 外部渠道返回 | 支付宝、微信、卡组织或供应商返回的外部编号 |
+| 退款单号 | `refund_no` | `RF20260429P7Q6R5S4` | Snowflake 派生业务单号 | 售后、财务、渠道退款对账使用 |
+| Outbox 事件 | `outbox_event_id` | `evt_product_published_800000123456_12` | 确定性事件 ID | 同一商品同一版本只应发布一次 |
+| 通用事件 | `event_id` | `evt_01HZY8B8C7D6E5F4G3H2J1K0M9` | ULID + prefix | 适合异步事件、重放和排障 |
+| 操作链路 | `operation_id` | `op_01HZY8D9E8F7G6H5J4K3M2N1P0` | ULID + prefix | 串起一次供给、发布、库存创建和 Outbox |
+| 分布式追踪 | `trace_id` | `4bf92f3577b34da6a3ce929d0e0e4736` | Trace 标准 | 贯穿网关、服务、消息消费和下游调用 |
+
 这里有几个容易混淆的点：
 
 1. `order_id` 和 `order_no` 可以不是同一个字段。前者可以是内部主键，后者是对外业务单号。
