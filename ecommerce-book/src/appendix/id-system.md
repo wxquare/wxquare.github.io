@@ -63,55 +63,26 @@ s.repo.NextID(ctx, "draft")
 
 下面的矩阵不是要求所有公司都照抄，而是给出一个可评审的默认选择。实际落地时，可以根据规模、团队能力、数据库类型、是否多机房和是否对外开放 API 做取舍。
 
-| 业务域 | 关键 ID | 推荐类型 | 推荐生成方式 | 设计说明 |
-|--------|---------|----------|--------------|----------|
-| 商品中心 | `item_id`、`spu_id`、`sku_id` | `BIGINT` | Segment 号段或 Snowflake | 高频查询和跨系统引用，优先索引友好 |
-| 商品组合 | `offer_id`、`rate_plan_id` | `BIGINT` 或字符串 | Segment，外部映射可用字符串 | 本地 Offer 用平台 ID，供应商编码单独保存 |
-| 供给流程 | `draft_id`、`staging_id`、`qc_review_id` | 字符串 | ULID/UUIDv7 + 受控 prefix | 流程单据不应与正式商品 ID 混用 |
-| 供给任务 | `task_id`、`batch_id`、`sync_batch_id` | 字符串 | ULID/UUIDv7 或业务时间分区编码 | 长任务、批处理和补偿需要可追踪 |
-| 库存事实 | `stock_ledger_id`、`reservation_id` | `BIGINT` 或字符串 | Segment、Snowflake 或 ULID | 账本可用 `BIGINT`，预占凭证可用字符串 |
-| 库存业务键 | `inventory_key` | 字符串 | 业务组合键 | 表达 SKU、范围、日期、渠道、供应商等维度 |
-| 购物车 | `cart_id` | 字符串或 `BIGINT` | 登录态绑定 `user_id`，游客车用 ULID | 登录购物车可弱化独立 ID，游客车需要会话标识 |
-| 结算 | `checkout_id` | 字符串 | ULID/UUIDv7 + 幂等键 | 一次结算会话要能重试、恢复和防重复 |
-| 订单 | `order_id`、`order_no` | 内部 `BIGINT` + 外部字符串 | Snowflake 派生业务单号 | 内部主键和对外单号解耦 |
-| 支付 | `payment_id`、`payment_no`、`channel_trade_no` | 内部 `BIGINT` + 外部字符串 | Snowflake 或渠道请求号 | 平台支付单和渠道单号都要保存 |
-| 售后 | `refund_id`、`after_sale_id` | 字符串或 `BIGINT` | Snowflake 派生单号 | 便于客服、对账和售后流转 |
-| 营销 | `campaign_id`、`coupon_id`、`promotion_id` | `BIGINT` | Segment 或 Snowflake | 营销对象数量大，需稳定引用 |
-| 搜索 | `index_task_id`、`doc_id` | 字符串 | 业务 ID 或 ULID | 搜索文档通常以业务实体 ID 为主键 |
-| 履约 | `fulfillment_id`、`delivery_order_no` | 字符串 | Snowflake 派生单号或外部单号 | 履约单经常要与供应商、物流系统对接 |
-| 财务 | `ledger_id`、`settlement_id`、`reconciliation_id` | `BIGINT` 或字符串 | Segment、Snowflake、批次号 | 账务更重视可追溯、不可重复和对账批次 |
-| 事件 | `event_id`、`outbox_event_id` | 字符串 | ULID/UUIDv7 或确定性事件 ID | 用于幂等消费、重放和排障 |
-| 链路追踪 | `trace_id`、`operation_id` | 字符串 | Trace 标准或 ULID | 跨服务传递，不在每一层重新生成 |
-| 幂等 | `idempotency_key` | 字符串 | 客户端请求 ID 或业务语义组合键 | 依赖唯一约束和状态机，不等同于随机 ID |
-
-### 3.1 样例清单
-
-下面给一组样例值，帮助读者把“ID 类型”和“业务语义”对应起来。样例只表达格式和设计意图，不代表所有公司都必须使用相同前缀、长度或编码规则。
-
-| 场景 | 字段 | 样例值 | 生成方式 | 说明 |
-|------|------|--------|----------|------|
-| 商品入口 | `item_id` | `800000123456` | Segment 号段 | 前台商品入口 ID，订单、搜索、购物车都可引用 |
-| 标准商品 | `spu_id` | `700000123456` | Segment 号段 | 表示一组标准商品定义，例如 iPhone 16 |
-| 销售规格 | `sku_id` | `600000123456` | Segment 号段或 Snowflake | 表示具体销售规格，例如黑色 256G |
-| 销售承诺 | `offer_id` | `500000123456` | Segment 号段 | 表示某个 SKU 在某渠道、价格、库存和履约规则下的售卖承诺 |
-| 供给草稿 | `draft_id` | `draft_01HZY7K8J7W6S9B2Q5R4T3M1N0` | ULID + prefix | 只属于供给流程，不等于正式商品 ID |
-| 供给暂存 | `staging_id` | `staging_01HZY7N4K9P8D7C6B5A4M3T2Q1` | ULID + prefix | 提交后冻结的待发布版本 |
-| 审核单 | `qc_review_id` | `qc_01HZY7R9S8T7V6W5X4Y3Z2A1B0` | ULID + prefix | 用于人工审核、风险校验和审计 |
-| 同步批次 | `sync_batch_id` | `batch_20260429_hotel_full_0001` | 业务时间分区编码 | 便于长任务断点续跑和人工排障 |
-| 库存业务键 | `inventory_key` | `inv:sku:600000123456:global` | 业务组合键 | 表达库存维度，不是随机 ID |
-| 日期库存 | `inventory_key` | `inv:sku:600000123456:date:2026-05-01:channel:app` | 业务组合键 | 适合酒店、票务、预约等按日期售卖的商品 |
-| 库存预占 | `reservation_id` | `rsrv_01HZY85D2K9M7N6P5Q4R3S2T1V` | ULID + prefix | 表示一次库存锁定凭证 |
-| 结算会话 | `checkout_id` | `chk_01HZY88P6Q5R4S3T2V1W0X9Y8Z` | ULID + prefix | 表示一次结算过程，不等于订单号 |
-| 创单幂等 | `idempotency_key` | `u_10001:cart_9f2a:req_8c7d` | 业务语义组合键 | 防止重复点击或网络重试产生多笔订单 |
-| 订单内部 ID | `order_id` | `1928475629384753152` | Snowflake | 内部主键，适合数据库索引和服务间引用 |
-| 订单对外单号 | `order_no` | `ORD20260429CN7K3F9Q2X` | Snowflake 派生业务单号 | 对用户、客服、对账展示，不直接暴露连续序列 |
-| 支付单号 | `payment_no` | `PAY20260429F8K2M6Q9` | Snowflake 派生业务单号 | 平台支付单号，和渠道交易号分开保存 |
-| 渠道交易号 | `channel_trade_no` | `202604292200149876543210` | 外部渠道返回 | 支付宝、微信、卡组织或供应商返回的外部编号 |
-| 退款单号 | `refund_no` | `RF20260429P7Q6R5S4` | Snowflake 派生业务单号 | 售后、财务、渠道退款对账使用 |
-| Outbox 事件 | `outbox_event_id` | `evt_product_published_800000123456_12` | 确定性事件 ID | 同一商品同一版本只应发布一次 |
-| 通用事件 | `event_id` | `evt_01HZY8B8C7D6E5F4G3H2J1K0M9` | ULID + prefix | 适合异步事件、重放和排障 |
-| 操作链路 | `operation_id` | `op_01HZY8D9E8F7G6H5J4K3M2N1P0` | ULID + prefix | 串起一次供给、发布、库存创建和 Outbox |
-| 分布式追踪 | `trace_id` | `4bf92f3577b34da6a3ce929d0e0e4736` | Trace 标准 | 贯穿网关、服务、消息消费和下游调用 |
+| 业务域 | 关键 ID | 样例值 | 推荐类型 | 推荐生成方式 | 设计说明 |
+|--------|---------|--------|----------|--------------|----------|
+| 商品中心 | `item_id`、`spu_id`、`sku_id` | `item_id=800000123456`、`spu_id=700000123456`、`sku_id=600000123456` | `BIGINT` | Segment 号段或 Snowflake | 高频查询和跨系统引用，优先索引友好 |
+| 商品组合 | `offer_id`、`rate_plan_id` | `offer_id=500000123456`、`rate_plan_id=510000123456` | `BIGINT` 或字符串 | Segment，外部映射可用字符串 | 本地 Offer 用平台 ID，供应商编码单独保存 |
+| 供给流程 | `draft_id`、`staging_id`、`qc_review_id` | `draft_01HZY7K8J7W6S9B2Q5R4T3M1N0`、`staging_01HZY7N4K9P8D7C6B5A4M3T2Q1`、`qc_01HZY7R9S8T7V6W5X4Y3Z2A1B0` | 字符串 | ULID/UUIDv7 + 受控 prefix | 流程单据不应与正式商品 ID 混用 |
+| 供给任务 | `task_id`、`batch_id`、`sync_batch_id` | `batch_20260429_hotel_full_0001` | 字符串 | ULID/UUIDv7 或业务时间分区编码 | 长任务、批处理和补偿需要可追踪 |
+| 库存事实 | `stock_ledger_id`、`reservation_id` | `stock_ledger_id=920000123456`、`rsrv_01HZY85D2K9M7N6P5Q4R3S2T1V` | `BIGINT` 或字符串 | Segment、Snowflake 或 ULID | 账本可用 `BIGINT`，预占凭证可用字符串 |
+| 库存业务键 | `inventory_key` | `inv:sku:600000123456:global`、`inv:sku:600000123456:date:2026-05-01:channel:app` | 字符串 | 业务组合键 | 表达 SKU、范围、日期、渠道、供应商等维度 |
+| 购物车 | `cart_id` | `cart_01HZY86K8V7T6S5R4Q3P2N1M0` | 字符串或 `BIGINT` | 登录态绑定 `user_id`，游客车用 ULID | 登录购物车可弱化独立 ID，游客车需要会话标识 |
+| 结算 | `checkout_id` | `chk_01HZY88P6Q5R4S3T2V1W0X9Y8Z` | 字符串 | ULID/UUIDv7 + 幂等键 | 一次结算会话要能重试、恢复和防重复 |
+| 订单 | `order_id`、`order_no` | `order_id=1928475629384753152`、`order_no=ORD20260429CN7K3F9Q2X` | 内部 `BIGINT` + 外部字符串 | Snowflake 派生业务单号 | 内部主键和对外单号解耦 |
+| 支付 | `payment_id`、`payment_no`、`channel_trade_no` | `payment_no=PAY20260429F8K2M6Q9`、`channel_trade_no=202604292200149876543210` | 内部 `BIGINT` + 外部字符串 | Snowflake 或渠道请求号 | 平台支付单和渠道单号都要保存 |
+| 售后 | `refund_id`、`after_sale_id` | `refund_no=RF20260429P7Q6R5S4`、`after_sale_id=AS20260429Q8R7S6T5` | 字符串或 `BIGINT` | Snowflake 派生单号 | 便于客服、对账和售后流转 |
+| 营销 | `campaign_id`、`coupon_id`、`promotion_id` | `campaign_id=300000123456`、`coupon_id=310000123456` | `BIGINT` | Segment 或 Snowflake | 营销对象数量大，需稳定引用 |
+| 搜索 | `index_task_id`、`doc_id` | `index_task_id=idx_01HZY8A7B6C5D4E3F2G1H0J9K8`、`doc_id=sku_600000123456` | 字符串 | 业务 ID 或 ULID | 搜索文档通常以业务实体 ID 为主键 |
+| 履约 | `fulfillment_id`、`delivery_order_no` | `fulfillment_id=FUL20260429M8N7P6Q5` | 字符串 | Snowflake 派生单号或外部单号 | 履约单经常要与供应商、物流系统对接 |
+| 财务 | `ledger_id`、`settlement_id`、`reconciliation_id` | `ledger_id=930000123456`、`settlement_id=SET202604290001` | `BIGINT` 或字符串 | Segment、Snowflake、批次号 | 账务更重视可追溯、不可重复和对账批次 |
+| 事件 | `event_id`、`outbox_event_id` | `evt_01HZY8B8C7D6E5F4G3H2J1K0M9`、`evt_product_published_800000123456_12` | 字符串 | ULID/UUIDv7 或确定性事件 ID | 用于幂等消费、重放和排障 |
+| 链路追踪 | `trace_id`、`operation_id` | `trace_id=4bf92f3577b34da6a3ce929d0e0e4736`、`op_01HZY8D9E8F7G6H5J4K3M2N1P0` | 字符串 | Trace 标准或 ULID | 跨服务传递，不在每一层重新生成 |
+| 幂等 | `idempotency_key` | `u_10001:cart_9f2a:req_8c7d` | 字符串 | 客户端请求 ID 或业务语义组合键 | 依赖唯一约束和状态机，不等同于随机 ID |
 
 这里有几个容易混淆的点：
 
