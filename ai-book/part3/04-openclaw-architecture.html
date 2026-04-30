@@ -3,12 +3,12 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第15章 OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态 - AI工程实践：从编程到Agent的完整指南</title>
+        <title>第15章 OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
 
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="面向有经验AI工程师的实战指南，涵盖AI编程、Agent系统设计与完整案例">
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4c5e8c88.js";
+            window.path_to_searchindex_js = "../searchindex-75e7677a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-3a2f58f8.js"></script>
+        <script src="../toc-5eb53b55.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">AI工程实践：从编程到Agent的完整指南</h1>
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -611,6 +611,32 @@ Plugin -&gt; 打包 channel、tool、skill、model provider、hook 等能力
   &gt; skills.load.extraDirs
 </code></pre>
 <p>这个优先级很有工程味道：workspace 规则最具体，所以优先；用户个人技能次之；系统内置技能最后兜底。</p>
+<p>从第 6 章的抽象看，OpenClaw 的 Skill 实现抓住了三个关键点。</p>
+<p>第一，<strong>Skill 是上下文，不是执行权限</strong>。<code>SKILL.md</code> 可以教 Agent 如何做事，但它本身不应该绕过 tools allow/deny、sandbox、approval gate。这样即使某个 Skill 写了高风险步骤，真正执行时仍然会被 Tool Policy 拦住。</p>
+<p>第二，<strong>Skill 有明确的 scope 和优先级</strong>。workspace skill 优先于用户 skill，用户 skill 优先于 bundled skill，这等价于把“上下文规则”做成分层覆盖模型。越靠近当前 workspace 的 Skill 越具体，越应该优先生效。</p>
+<p>第三，<strong>Skill 和 Plugin 解耦</strong>。Skill 只是方法说明，Plugin 才能注册 tool、channel、hook、model provider。这个边界能降低供应链风险：安装一个 Skill 主要改变 Agent 的行为指导，安装一个 Plugin 才扩大系统能力面。</p>
+<p>一个成熟 OpenClaw-like 系统中，Skill 加载链路应该类似这样：</p>
+<pre><code class="language-text">User Message
+  │
+  ▼
+Workspace / Agent Profile
+  │
+  ▼
+Skill Discovery
+  │  workspace &gt; user &gt; bundled &gt; extraDirs
+  ▼
+Skill Selection
+  │  只选择与任务匹配的少量 Skill
+  ▼
+Prompt Assembly
+  │  Skill + tools snapshot + policy hints + context
+  ▼
+Agent Runtime
+  │
+  ▼
+Tool Policy / Sandbox
+</code></pre>
+<p>这说明 OpenClaw 的 Skill 系统不是简单的 prompt 文件夹，而是 Context Engine、Tool Runtime 和 Policy 之间的连接层。</p>
 <h3 id="plugin能力包"><a class="header" href="#plugin能力包">Plugin：能力包</a></h3>
 <p>Plugin 可以注册多种能力：</p>
 <ul>
