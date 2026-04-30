@@ -1,25 +1,30 @@
 # 书籍介绍
 
-欢迎阅读《AI 工程实践：从编程到 Agent 的完整指南》。
+欢迎阅读《AI Agent 工程实践：从大模型基础到生产级智能体系统》。
 
 这不是一本单纯介绍工具按钮怎么点的书。它关注的是一个更长期的问题：当 AI 已经可以读代码、改代码、调用工具、规划任务、检索知识、长期运行甚至并行协作时，工程师应该怎样重新设计自己的工作方式、上下文系统、工具接口、验证回路和生产治理。
+
+## 全书工程主线图
+
+本书从大模型基础出发，逐层进入 Agent Runtime、知识系统、生产治理、成熟系统解析和实战案例。主线不是“学一堆工具名”，而是把不稳定的模型能力放进可复用、可审查、可验证、可治理的工程系统。
+
+```mermaid
+flowchart LR
+    A["大模型基础<br/>能力边界"] --> B["Prompt Engineering<br/>任务协议"]
+    B --> C["Context Engineering<br/>信息架构"]
+    C --> D["Harness Engineering<br/>运行环境"]
+    D --> E["Agent Runtime<br/>工具 / Skills / 工作流"]
+    E --> F["Knowledge Systems<br/>RAG / Agentic RAG / Memory"]
+    F --> G["Production Governance<br/>Evals / Guardrails / Observability"]
+    G --> H["Mature Systems<br/>成熟系统解析"]
+    H --> I["Case Studies<br/>实战案例"]
+```
 
 ## 本书解决什么问题
 
 AI 工程实践里最容易踩的坑，不是模型不会生成内容，而是我们把不清楚的意图、不完整的上下文、没有边界的工具和没有验证回路的流程交给了模型。结果往往是：第一版看起来很聪明，第二版开始补洞，第三版引入新问题，最后人和 AI 一起在上下文里迷路。
 
-本书的主线是把这种不稳定的协作方式，逐步收敛成可复用、可审查、可验证、可治理的工程系统：
-
-```mermaid
-flowchart LR
-    A[LLM Boundaries<br/>能力边界] --> B[Prompt Engineering<br/>任务协议]
-    B --> C[Context Engineering<br/>信息架构]
-    C --> D[Harness Engineering<br/>运行环境]
-    D --> E[Agent Runtime<br/>工具、工作流与知识系统]
-    E --> F[Production Governance<br/>评估、安全与观测]
-    F --> G[Mature Systems<br/>成熟系统解析]
-    G --> H[Case Studies<br/>完整架构案例]
-```
+本书的主线是把这种不稳定的协作方式，逐步收敛成可复用、可审查、可验证、可治理的工程系统。
 
 读完之后，你应该能够回答五类问题：
 
@@ -62,22 +67,27 @@ flowchart LR
 你会获得：
 
 - Agent 与传统后端的技术选型框架；
-- Tool Calling、MCP、权限、超时、重试和审计设计；
+- Tool Calling、Skills、MCP、权限、超时、重试和审计设计；
 - 状态机、DAG、Router、Plan-and-Execute、多 Agent 编排的适用边界；
 - RAG、Agentic RAG、Memory 的系统化设计；
 - Evals、Guardrails、可观测性、生命周期和失败诊断的生产治理闭环。
 
-### 第三部分：成熟系统解析与完整架构案例
+### 第三部分：成熟系统解析与实战案例
 
-这一部分把前两部分的方法放到真实系统中观察：先拆解成熟系统，再看端到端案例。
+这一部分把前两部分的方法放到真实系统中观察，分成两段：第 12-16 章是成熟系统解析，第 17-19 章是实战案例。
 
 你会获得：
+
+成熟系统解析：
 
 - Claude Code、Cursor、Codex 等 AI Coding Agent 的系统设计模式；
 - 企业知识助手中的 RAG、搜索、权限与知识治理架构；
 - LangGraph、AutoGen、MCP 生态背后的 Agent 平台抽象；
 - OpenClaw 这类个人 AI 助手 Gateway 的架构、工具生态和安全边界；
 - Hermes Agent 这类自我进化 Agent 的记忆、技能、工具、Gateway 和研究闭环；
+
+实战案例：
+
 - 电商告警 DoD Agent 的生产级架构设计；
 - 个人知识管理 Agent 中 RAG、Memory 和工作流的组合方式；
 - 一个可复现、可观测、可扩展的 Mini Agent 项目骨架。

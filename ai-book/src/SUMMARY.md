@@ -1,4 +1,4 @@
-# AI工程实践：从编程到Agent的完整指南
+# AI Agent 工程实践：从大模型基础到生产级智能体系统
 
 [书籍介绍](README.md)
 
@@ -16,7 +16,7 @@
 # 第二部分：Agent 系统设计、运行时与生产治理
 
 - [第5章 Agent 架构设计与决策框架](part2/01-agent-architecture.md)
-- [第6章 Tool Calling 与 MCP 工程架构](part2/02-tool-calling-mcp.md)
+- [第6章 Tool Calling、Skills 与 MCP 工程架构](part2/02-tool-calling-mcp.md)
 - [第7章 Agent 工作流、状态机与多 Agent 编排](part2/03-workflow-orchestration.md)
 - [第8章 RAG 与检索系统工程：从外部知识到可靠上下文](part2/04-rag-retrieval-engineering.md)
 - [第9章 Agentic RAG 与高级检索模式：从单次问答到复杂知识任务](part2/05-agentic-rag.md)
@@ -25,13 +25,16 @@
 
 ---
 
-# 第三部分：成熟系统解析与完整架构案例
+# 第三部分 A：成熟系统解析
 
 - [第12章 AI Coding Agent 系统解析：从 Vibe Coding、Spec Coding 到 Claude Code / Cursor / Codex](part3/01-coding-agent-systems.md)
 - [第13章 企业知识助手系统解析：RAG、搜索、权限与知识治理](part3/02-enterprise-knowledge-assistant.md)
 - [第14章 Agent 平台与编排框架解析：LangGraph、AutoGen、MCP 生态](part3/03-agent-platform-orchestration.md)
 - [第15章 OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态](part3/04-openclaw-architecture.md)
 - [第16章 Hermes Agent 架构解析：自我进化、记忆与多入口 Agent Gateway](part3/05-hermes-agent-architecture.md)
+
+# 第三部分 B：实战案例
+
 - [第17章 DoD Agent：电商告警自动处理系统](part3/06-dod-agent-case-study.md)
 - [第18章 个人知识管理 Agent 实践](part3/07-pkm-agent-case-study.md)
 - [第19章 从零实现一个可观测 Mini Agent](part3/08-mini-agent-observability.md)

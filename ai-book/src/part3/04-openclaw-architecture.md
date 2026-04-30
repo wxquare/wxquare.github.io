@@ -492,6 +492,40 @@ OpenClaw 支持多个 skill 来源，并有明确优先级：
 
 这个优先级很有工程味道：workspace 规则最具体，所以优先；用户个人技能次之；系统内置技能最后兜底。
 
+从第 6 章的抽象看，OpenClaw 的 Skill 实现抓住了三个关键点。
+
+第一，**Skill 是上下文，不是执行权限**。`SKILL.md` 可以教 Agent 如何做事，但它本身不应该绕过 tools allow/deny、sandbox、approval gate。这样即使某个 Skill 写了高风险步骤，真正执行时仍然会被 Tool Policy 拦住。
+
+第二，**Skill 有明确的 scope 和优先级**。workspace skill 优先于用户 skill，用户 skill 优先于 bundled skill，这等价于把“上下文规则”做成分层覆盖模型。越靠近当前 workspace 的 Skill 越具体，越应该优先生效。
+
+第三，**Skill 和 Plugin 解耦**。Skill 只是方法说明，Plugin 才能注册 tool、channel、hook、model provider。这个边界能降低供应链风险：安装一个 Skill 主要改变 Agent 的行为指导，安装一个 Plugin 才扩大系统能力面。
+
+一个成熟 OpenClaw-like 系统中，Skill 加载链路应该类似这样：
+
+```text
+User Message
+  │
+  ▼
+Workspace / Agent Profile
+  │
+  ▼
+Skill Discovery
+  │  workspace > user > bundled > extraDirs
+  ▼
+Skill Selection
+  │  只选择与任务匹配的少量 Skill
+  ▼
+Prompt Assembly
+  │  Skill + tools snapshot + policy hints + context
+  ▼
+Agent Runtime
+  │
+  ▼
+Tool Policy / Sandbox
+```
+
+这说明 OpenClaw 的 Skill 系统不是简单的 prompt 文件夹，而是 Context Engine、Tool Runtime 和 Policy 之间的连接层。
+
 ### Plugin：能力包
 
 Plugin 可以注册多种能力：

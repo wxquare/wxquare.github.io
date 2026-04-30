@@ -361,6 +361,61 @@ Skills 也会占上下文预算，所以不能每次全部塞进 prompt。更合
 
 这和本书前面讲的 Context Engineering 是同一个思想：不是让模型“知道所有东西”，而是让它在需要时拿到正确材料。
 
+### Hermes 的 Skill 演化管道
+
+如果说 OpenClaw 更强调 Skill 的加载优先级和插件生态，那么 Hermes 更值得关注的是：**Skill 如何从长期使用轨迹中演化出来**。
+
+结合第 6 章对 Skills 的定义，Hermes 的成熟实现可以抽象成一条管道：
+
+```text
+Session Trace
+  │
+  ├─ 用户反复要求同类任务
+  ├─ 某次任务形成稳定成功路径
+  ├─ 工具调用序列可复用
+  ├─ 验证命令稳定
+  └─ 人工纠正减少
+      │
+      ▼
+Skill Candidate
+      │  提取触发条件、步骤、工具、约束、验证方式
+      ▼
+Review / Eval
+      │  检查是否安全、是否过度泛化、是否真的提升质量
+      ▼
+Skill Registry
+      │  保存版本、owner、适用范围和依赖工具
+      ▼
+Future Sessions
+```
+
+这条链路让 Skill 不只是“手写说明”，而是长期 Agent 的能力沉淀机制。一次成功任务本身没有价值，能被压缩成可验证、可复用、可审查的程序性知识，才有价值。
+
+一个 Hermes-style Skill 需要保存的不只是步骤，还应保存这些元信息：
+
+```yaml
+skill:
+  name: repo_release_check
+  source_trace_ids:
+    - trace_20260430_001
+    - trace_20260430_019
+  trigger:
+    - "发布前检查"
+    - "release validation"
+  required_tools:
+    - file_search
+    - shell
+    - git_diff
+  verification:
+    - "run tests"
+    - "check diff"
+    - "summarize risk"
+  status: reviewed
+  version: "0.3.0"
+```
+
+`source_trace_ids` 很重要。它让后续 review 能回到原始任务，判断这个 Skill 是从真实成功经验中总结出来的，还是模型凭空概括出来的。
+
 ### 风险：技能会固化错误经验
 
 Skills 的风险也很明显：如果一次任务的解法本身是错误的，Agent 把它沉淀成 skill，下次会更稳定地犯同样错误。
