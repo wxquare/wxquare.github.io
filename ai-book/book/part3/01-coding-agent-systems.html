@@ -1,0 +1,1842 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第12章 AI Coding Agent 系统解析：从 Vibe Coding、Spec Coding 到 Claude Code / Cursor / Codex - AI工程实践：从编程到Agent的完整指南</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向有经验AI工程师的实战指南，涵盖AI编程、Agent系统设计与完整案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-4c5e8c88.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-3a2f58f8.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI工程实践：从编程到Agent的完整指南</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第12章-ai-coding-agent-系统解析从-vibe-codingspec-coding-到可复现原型"><a class="header" href="#第12章-ai-coding-agent-系统解析从-vibe-codingspec-coding-到可复现原型">第12章 AI Coding Agent 系统解析：从 Vibe Coding、Spec Coding 到可复现原型</a></h1>
+<blockquote>
+<p>AI Coding Agent 的本质，不是“自动写代码”，而是把软件工程任务转化为可规划、可执行、可验证、可回滚的工程闭环。</p>
+</blockquote>
+<h2 id="引言"><a class="header" href="#引言">引言</a></h2>
+<p>前两部分讨论了大模型基础、Prompt、Context、Harness，以及 Agent 的工具、RAG、Memory、Eval、Guardrails 和可观测性。本章开始进入成熟系统解析。</p>
+<p>我们选择 AI Coding Agent 作为第一个成熟系统案例，因为它几乎包含了 Agent 工程的全部核心问题：</p>
+<ul>
+<li>需要理解自然语言需求；</li>
+<li>需要读取大型代码库上下文；</li>
+<li>需要规划多步修改；</li>
+<li>需要调用文件、Shell、Git、测试等工具；</li>
+<li>需要处理失败、回滚和权限；</li>
+<li>需要把人的意图转化为可审查的代码变更。</li>
+</ul>
+<p>Claude Code、Cursor 和 Codex 的产品形态不同：一个偏终端，一个偏 IDE，一个偏云端任务执行。但从系统设计视角看，它们都在回答同一个问题：</p>
+<blockquote>
+<p>如何让不确定的大模型可靠地参与确定性的软件工程流程？</p>
+</blockquote>
+<p>本章的目标不只是比较产品，而是让你读完之后可以复现一个最小 Coding Agent 原型。这个原型不追求“像商业产品一样强”，但必须具备真实 Coding Agent 的关键骨架：</p>
+<ul>
+<li>能读取项目上下文；</li>
+<li>能选择和调用工具；</li>
+<li>能修改文件；</li>
+<li>能运行验证命令；</li>
+<li>能输出 diff、总结和失败原因；</li>
+<li>能通过权限、预算和审计降低风险。</li>
+</ul>
+<hr>
+<h2 id="121-ai-编程范式演进从补全到-agent"><a class="header" href="#121-ai-编程范式演进从补全到-agent">12.1 AI 编程范式演进：从补全到 Agent</a></h2>
+<p>AI 编程工具大致经历了四个阶段。</p>
+<pre><code class="language-text">代码补全
+   │
+   ▼
+对话式代码生成
+   │
+   ▼
+项目级上下文编程
+   │
+   ▼
+Coding Agent 闭环执行
+</code></pre>
+<h3 id="阶段一代码补全"><a class="header" href="#阶段一代码补全">阶段一：代码补全</a></h3>
+<p>代码补全工具把模型放在编辑器里，主要能力是根据当前文件上下文预测下一段代码。</p>
+<p>它的优势是低延迟、低风险、低学习成本；局限是只能处理局部代码，无法理解完整任务。</p>
+<h3 id="阶段二对话式代码生成"><a class="header" href="#阶段二对话式代码生成">阶段二：对话式代码生成</a></h3>
+<p>ChatGPT 类工具让开发者可以用自然语言描述需求，再复制代码片段到项目中。</p>
+<p>这一步的变化是：模型开始参与“设计解释”和“调试建议”，但仍然缺少项目级上下文和自动验证。</p>
+<h3 id="阶段三项目级上下文编程"><a class="header" href="#阶段三项目级上下文编程">阶段三：项目级上下文编程</a></h3>
+<p>Cursor 这类 IDE 原生工具把代码库、文件搜索、规则文件、编辑器状态整合进模型上下文。</p>
+<p>这一步的变化是：模型不再只看一个文件，而是可以跨文件理解调用链和项目规范。</p>
+<h3 id="阶段四coding-agent-闭环执行"><a class="header" href="#阶段四coding-agent-闭环执行">阶段四：Coding Agent 闭环执行</a></h3>
+<p>Claude Code、Codex 这类工具进一步把模型接入工具系统：</p>
+<ul>
+<li>搜索代码；</li>
+<li>修改文件；</li>
+<li>执行测试；</li>
+<li>查看失败输出；</li>
+<li>再次修复；</li>
+<li>生成 diff 或 PR。</li>
+</ul>
+<p>这时模型不再只是“建议者”，而是进入了一个由工具、权限、状态、验证、审计组成的执行环境。</p>
+<hr>
+<h2 id="122-vibe-coding探索式编程的价值与天花板"><a class="header" href="#122-vibe-coding探索式编程的价值与天花板">12.2 Vibe Coding：探索式编程的价值与天花板</a></h2>
+<p><strong>Vibe Coding</strong> 是指通过即兴 prompt 和多轮对话与 AI 共同摸索代码实现的方式。</p>
+<p>它不是坏方法。恰恰相反，在探索阶段它非常有效：</p>
+<ul>
+<li>快速了解新框架；</li>
+<li>验证一个技术方案是否可行；</li>
+<li>写一次性脚本；</li>
+<li>做原型和 Demo；</li>
+<li>让模型解释陌生代码。</li>
+</ul>
+<p>问题在于：Vibe Coding 容易被误用为生产交付方式。</p>
+<h3 id="典型问题"><a class="header" href="#典型问题">典型问题</a></h3>
+<pre><code class="language-text">你：实现一个用户注册功能
+模型：生成基础代码
+
+你：加邮箱验证
+模型：补一段逻辑
+
+你：密码要加密
+模型：继续修改
+
+你：还要防重复注册
+模型：再改一轮
+
+你：补测试
+模型：补测试，但测试只覆盖快乐路径
+</code></pre>
+<p>几轮之后，代码可能“看起来能跑”，但常见问题会积累：</p>
+<ul>
+<li>需求边界不清晰；</li>
+<li>错误处理不完整；</li>
+<li>安全约束靠后补；</li>
+<li>测试覆盖滞后；</li>
+<li>结构随着对话漂移；</li>
+<li>模型为了满足最新指令破坏早期约束。</li>
+</ul>
+<p>Vibe Coding 的本质是<strong>探索工具</strong>，不是<strong>交付协议</strong>。</p>
+<hr>
+<h2 id="123-spec-codingcoding-agent-的工作协议"><a class="header" href="#123-spec-codingcoding-agent-的工作协议">12.3 Spec Coding：Coding Agent 的工作协议</a></h2>
+<p>Spec Coding 的核心思想是：<strong>先把意图写成规范，再让 Agent 执行。</strong></p>
+<pre><code class="language-text">Intent
+  │
+  ▼
+Spec
+  │
+  ▼
+Plan
+  │
+  ▼
+Implementation
+  │
+  ▼
+Verification
+</code></pre>
+<p>这不是为了“写更多文档”，而是为了把人的隐性判断显式化，让模型有一个稳定的任务协议。</p>
+<h3 id="一个高质量-spec-至少回答八个问题"><a class="header" href="#一个高质量-spec-至少回答八个问题">一个高质量 Spec 至少回答八个问题</a></h3>
+<ol>
+<li>做什么？</li>
+<li>输入是什么？</li>
+<li>输出是什么？</li>
+<li>业务规则是什么？</li>
+<li>失败模式有哪些？</li>
+<li>安全要求是什么？</li>
+<li>性能和并发要求是什么？</li>
+<li>什么测试能证明它工作？</li>
+</ol>
+<p>对 Coding Agent 来说，Spec 不是文档资产，而是<strong>任务接口</strong>。它相当于传统系统里的 API Contract：输入、输出、约束、错误、验收标准都必须清楚。</p>
+<h3 id="spec-为什么适合-coding-agent"><a class="header" href="#spec-为什么适合-coding-agent">Spec 为什么适合 Coding Agent</a></h3>
+<p>Coding Agent 有三个特点：</p>
+<ul>
+<li>能读大量上下文，但容易被无关内容稀释；</li>
+<li>能做多步任务，但容易在中途偏航；</li>
+<li>能调用工具，但工具调用必须受约束。</li>
+</ul>
+<p>Spec 正好补上这些缺口：</p>
+<ul>
+<li>给 Agent 一个稳定目标；</li>
+<li>给计划提供验收标准；</li>
+<li>给测试提供依据；</li>
+<li>给人工 review 提供对照物；</li>
+<li>给失败复盘提供事实基线。</li>
+</ul>
+<h3 id="spec-不是瀑布"><a class="header" href="#spec-不是瀑布">Spec 不是瀑布</a></h3>
+<p>Spec Coding 不要求一开始写出完美方案。更健康的流程是：</p>
+<pre><code class="language-text">Vibe 探索 → 提炼 Spec → Agent 执行 → 验证反馈 → 修订 Spec
+</code></pre>
+<p>探索阶段允许混沌，交付阶段需要约束。</p>
+<hr>
+<h2 id="124-从成熟产品抽象出通用架构"><a class="header" href="#124-从成熟产品抽象出通用架构">12.4 从成熟产品抽象出通用架构</a></h2>
+<p>成熟 Coding Agent 通常包含八个核心模块。</p>
+<pre><code class="language-text">┌──────────────────────────────────────────────────────────────┐
+│                    Coding Agent Runtime                       │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  User Intent / Issue / Spec                                   │
+│      │                                                        │
+│      ▼                                                        │
+│  Task Planner                                                 │
+│      │                                                        │
+│      ▼                                                        │
+│  Context Builder ─────► Code Index / Git / Docs / Rules       │
+│      │                                                        │
+│      ▼                                                        │
+│  Tool Registry ───────► read/search/edit/shell/git/test       │
+│      │                                                        │
+│      ▼                                                        │
+│  Policy Engine ───────► allow / deny / ask / sandbox          │
+│      │                                                        │
+│      ▼                                                        │
+│  Agent Loop ──────────► think / act / observe / repair        │
+│      │                                                        │
+│      ▼                                                        │
+│  Verifier ────────────► test / lint / typecheck / diff        │
+│      │                                                        │
+│      ▼                                                        │
+│  Review Surface ──────► patch / PR / explanation / trace      │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">模块</th><th style="text-align: left">职责</th><th style="text-align: left">最小原型怎么做</th><th style="text-align: left">关键风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Task Planner</td><td style="text-align: left">把需求拆成步骤</td><td style="text-align: left">让模型输出 JSON plan</td><td style="text-align: left">计划过粗、遗漏验证</td></tr>
+<tr><td style="text-align: left">Context Builder</td><td style="text-align: left">找到相关代码和规则</td><td style="text-align: left">repo map + search + read_file</td><td style="text-align: left">上下文过多或漏掉关键文件</td></tr>
+<tr><td style="text-align: left">Tool Registry</td><td style="text-align: left">暴露可调用能力</td><td style="text-align: left">Python 函数注册表</td><td style="text-align: left">工具语义模糊</td></tr>
+<tr><td style="text-align: left">Policy Engine</td><td style="text-align: left">管控危险动作</td><td style="text-align: left">allowlist + path sandbox</td><td style="text-align: left">越权、破坏用户改动</td></tr>
+<tr><td style="text-align: left">Agent Loop</td><td style="text-align: left">驱动多轮执行</td><td style="text-align: left">while step &lt; max_steps</td><td style="text-align: left">死循环、偏航</td></tr>
+<tr><td style="text-align: left">Verifier</td><td style="text-align: left">运行检查</td><td style="text-align: left">pytest/lint/build 命令</td><td style="text-align: left">只验证快乐路径</td></tr>
+<tr><td style="text-align: left">Review Surface</td><td style="text-align: left">展示变更</td><td style="text-align: left">git diff + summary</td><td style="text-align: left">解释和实际变更不一致</td></tr>
+<tr><td style="text-align: left">Eval Loop</td><td style="text-align: left">复盘失败样本</td><td style="text-align: left">保存 trace 和失败任务</td><td style="text-align: left">没有持续改进闭环</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果只看表面，Coding Agent 像是“LLM + 工具调用”。但真正的工程难点在工具调用之外：</p>
+<ul>
+<li>上下文怎么选；</li>
+<li>工具能做什么、不能做什么；</li>
+<li>修改前如何知道文件没有被用户改动；</li>
+<li>测试失败后如何把错误反馈给模型；</li>
+<li>任务失败时如何保留证据；</li>
+<li>最后如何让人相信这个 diff 可以 review。</li>
+</ul>
+<hr>
+<h2 id="125-claude-codecursorcodex-的架构取舍"><a class="header" href="#125-claude-codecursorcodex-的架构取舍">12.5 Claude Code、Cursor、Codex 的架构取舍</a></h2>
+<h3 id="claude-code终端原生-runtime"><a class="header" href="#claude-code终端原生-runtime">Claude Code：终端原生 Runtime</a></h3>
+<p>Claude Code 的核心选择是：<strong>把 Agent 放在终端里，而不是只放在 IDE 里。</strong></p>
+<p>这带来几个工程优势：</p>
+<ul>
+<li>终端天然连接项目中的真实工具链；</li>
+<li>可以执行测试、构建、脚本、Git 命令；</li>
+<li>不绑定特定 IDE；</li>
+<li>适合远程开发和自动化工作流；</li>
+<li>容易与 MCP、Hooks、Subagents 等扩展机制组合。</li>
+</ul>
+<p>Claude Code 的典型循环可以概括为 TAOR：</p>
+<pre><code class="language-text">Think
+  │  分析需求、上下文和约束
+  ▼
+Act
+  │  调用文件、搜索、编辑、Shell、Git 等工具
+  ▼
+Observe
+  │  读取工具结果、测试输出、错误信息
+  ▼
+Repeat
+     未完成则继续，完成则给出总结和 diff
+</code></pre>
+<p><code>CLAUDE.md</code> 的价值不是保存模型记忆，而是把项目约束变成每次任务都会读取的上下文。它适合写项目结构、构建命令、测试命令、不可触碰的目录、发布前检查、过去犯过的错误。</p>
+<p>Hooks 则把“确定性约束”插进 Agent Runtime。例如编辑前检查路径，Shell 执行前拦截危险命令，测试结束后自动收集日志。Subagents 则把复杂任务拆给专门角色，例如 reviewer、test runner、debugger。</p>
+<h3 id="cursoride-原生-context-control-plane"><a class="header" href="#cursoride-原生-context-control-plane">Cursor：IDE 原生 Context Control Plane</a></h3>
+<p>Cursor 的核心选择是：<strong>把 Agent 放在开发者正在编辑代码的界面里。</strong></p>
+<p>它的优势在于：</p>
+<ul>
+<li>与编辑器 selection、文件树、诊断信息天然结合；</li>
+<li>适合局部修改和交互式重构；</li>
+<li>对 UI、前端、局部调用链修改体验更顺；</li>
+<li>规则系统能为不同目录提供 scoped instruction。</li>
+</ul>
+<p>Cursor 的 Rules 用来控制 Agent 和 Inline Edit 的行为。Project Rules 存放在 <code>.cursor/rules</code>，适合进入版本控制；User Rules 则表达个人偏好。</p>
+<p>从架构上看，Rules 是一种轻量级 Context Control Plane：</p>
+<pre><code class="language-text">User Request
+  │
+  ├─ Active File / Selection
+  ├─ Project Rules
+  ├─ User Rules
+  ├─ Retrieved Code Context
+  ▼
+Model / Agent
+</code></pre>
+<p>IDE Agent 很适合“人和模型共同编辑”，但对长时间后台任务、独立沙箱、跨仓库并行任务并不一定是最优形态。</p>
+<h3 id="codex云端任务型-sandbox"><a class="header" href="#codex云端任务型-sandbox">Codex：云端任务型 Sandbox</a></h3>
+<p>Codex 的核心选择是：<strong>把软件工程任务放进云端沙箱里执行。</strong></p>
+<p>这种形态适合：</p>
+<ul>
+<li>修复明确 bug；</li>
+<li>实现小到中等规模功能；</li>
+<li>批量处理 issue；</li>
+<li>生成 PR；</li>
+<li>并行探索多个方案。</li>
+</ul>
+<p>云端任务型 Agent 的关键不是“模型更强”，而是执行环境不同：</p>
+<pre><code class="language-text">Issue / Task
+  │
+  ▼
+Cloud Sandbox
+  ├─ Repository Checkout
+  ├─ Dependency Setup
+  ├─ Code Edit
+  ├─ Test / Lint
+  ├─ Commit / Patch
+  └─ PR Proposal
+</code></pre>
+<p>它把每个任务放在独立环境中，降低了污染本地工作区的风险，也更适合并行。代价是环境初始化成本更高、私有依赖和内网服务接入更复杂、权限和数据边界更敏感。</p>
+<h3 id="三类-coding-agent-的架构对比"><a class="header" href="#三类-coding-agent-的架构对比">三类 Coding Agent 的架构对比</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">Claude Code</th><th style="text-align: left">Cursor</th><th style="text-align: left">Codex</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">核心界面</td><td style="text-align: left">终端</td><td style="text-align: left">IDE</td><td style="text-align: left">云端任务</td></tr>
+<tr><td style="text-align: left">最强场景</td><td style="text-align: left">端到端任务、脚本、测试、Git</td><td style="text-align: left">交互式编辑、局部重构、前端开发</td><td style="text-align: left">并行 issue、PR 生成、后台任务</td></tr>
+<tr><td style="text-align: left">上下文来源</td><td style="text-align: left">文件系统、命令、规则、MCP</td><td style="text-align: left">编辑器、选区、代码索引、Rules</td><td style="text-align: left">仓库快照、任务描述、沙箱结果</td></tr>
+<tr><td style="text-align: left">执行环境</td><td style="text-align: left">本地/远程终端</td><td style="text-align: left">本地 IDE</td><td style="text-align: left">云端沙箱</td></tr>
+<tr><td style="text-align: left">风险重点</td><td style="text-align: left">Shell 和文件权限</td><td style="text-align: left">错误上下文和误编辑</td><td style="text-align: left">数据边界和环境复现</td></tr>
+<tr><td style="text-align: left">质量保障</td><td style="text-align: left">测试、hooks、人工确认</td><td style="text-align: left">编辑器诊断、diff review</td><td style="text-align: left">沙箱测试、PR review</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个成熟团队不一定只选择一种形态。更现实的组合是：</p>
+<ul>
+<li>Cursor 负责高频交互式开发；</li>
+<li>Claude Code 负责终端原生任务和本地自动化；</li>
+<li>Codex 负责并行 issue 和云端 PR 任务；</li>
+<li>统一用 Spec、测试、代码审查和 CI 把它们约束到同一工程标准。</li>
+</ul>
+<hr>
+<h2 id="126-一个可复现-coding-agent-mvp-的目标"><a class="header" href="#126-一个可复现-coding-agent-mvp-的目标">12.6 一个可复现 Coding Agent MVP 的目标</a></h2>
+<p>为了避免一上来就被商业产品复杂度压垮，我们先定义一个最小可用原型。</p>
+<p>这个 MVP 只处理单仓库、单任务、单 Agent 的代码修改场景。</p>
+<h3 id="mvp-能做什么"><a class="header" href="#mvp-能做什么">MVP 能做什么</a></h3>
+<pre><code class="language-text">输入：
+  一段任务说明，例如“给 calculator.py 的 divide 函数补充除零错误处理，并添加测试”
+
+输出：
+  1. 修改过的文件
+  2. 运行过的验证命令
+  3. git diff
+  4. Agent 执行摘要
+  5. 失败时的原因和下一步建议
+</code></pre>
+<h3 id="mvp-不做什么"><a class="header" href="#mvp-不做什么">MVP 不做什么</a></h3>
+<ul>
+<li>不做多 Agent 协作；</li>
+<li>不做长期记忆；</li>
+<li>不做跨仓库任务；</li>
+<li>不自动推送远程分支；</li>
+<li>不自动发布；</li>
+<li>不直接执行任意 Shell 命令；</li>
+<li>不保证能修复所有复杂 bug。</li>
+</ul>
+<p>这很重要。一个好的原型不是功能越多越好，而是边界清楚、主链路完整、失败可解释。</p>
+<h3 id="最小闭环"><a class="header" href="#最小闭环">最小闭环</a></h3>
+<pre><code class="language-text">Task
+  │
+  ▼
+Load Rules
+  │
+  ▼
+Build Context
+  │
+  ▼
+Plan
+  │
+  ▼
+Tool Loop
+  │
+  ├─ read/search
+  ├─ edit
+  └─ run verification
+  │
+  ▼
+Review Diff
+  │
+  ▼
+Final Report
+</code></pre>
+<p>如果你只能实现一个版本，优先实现这个闭环，而不是优先追求花哨的 UI。</p>
+<hr>
+<h2 id="127-原型目录结构"><a class="header" href="#127-原型目录结构">12.7 原型目录结构</a></h2>
+<p>推荐用下面的目录开始：</p>
+<pre><code class="language-text">mini-coding-agent/
+├── agent.py          # Agent Loop
+├── context.py        # 上下文构建
+├── llm.py            # LLM 适配器
+├── models.py         # 数据结构
+├── policy.py         # 权限策略
+├── tools.py          # 工具实现
+├── run.py            # CLI 入口
+├── AGENT.md          # 项目规则
+└── traces/           # 每次执行的 trace
+</code></pre>
+<p>这里故意不引入复杂框架。早期原型最需要的是把边界写清楚：</p>
+<ul>
+<li>LLM 只负责决策，不直接操作文件系统；</li>
+<li>Tool Runtime 只执行注册过的工具；</li>
+<li>Policy Engine 决定工具能不能执行；</li>
+<li>Context Builder 决定模型看什么；</li>
+<li>Agent Loop 负责把观察结果继续喂给模型；</li>
+<li>Verifier 决定任务有没有证据证明完成。</li>
+</ul>
+<hr>
+<h2 id="128-核心数据结构"><a class="header" href="#128-核心数据结构">12.8 核心数据结构</a></h2>
+<p>原型可以从四个数据结构开始。</p>
+<pre><code class="language-python"># models.py
+from dataclasses import dataclass, field
+from typing import Any, Literal
+
+
+@dataclass
+class ToolCall:
+    name: str
+    args: dict[str, Any]
+
+
+@dataclass
+class ToolResult:
+    ok: bool
+    content: str
+    error: str = ""
+
+
+@dataclass
+class AgentStep:
+    thought: str
+    tool_call: ToolCall | None = None
+    tool_result: ToolResult | None = None
+
+
+@dataclass
+class AgentState:
+    task: str
+    repo_root: str
+    messages: list[dict[str, str]] = field(default_factory=list)
+    steps: list[AgentStep] = field(default_factory=list)
+    changed_files: set[str] = field(default_factory=set)
+    status: Literal["running", "done", "failed"] = "running"
+</code></pre>
+<p>这四个结构背后的设计原则是：<strong>Agent 的每一步都必须可追踪。</strong></p>
+<p>不要只保存最后的回答。真正排查问题时，你需要知道：</p>
+<ul>
+<li>模型当时看到了什么上下文；</li>
+<li>它为什么选择某个工具；</li>
+<li>工具输入是什么；</li>
+<li>工具输出是什么；</li>
+<li>哪一步开始偏离任务；</li>
+<li>最终 diff 是如何产生的。</li>
+</ul>
+<hr>
+<h2 id="129-context-builder让模型看到正确的代码"><a class="header" href="#129-context-builder让模型看到正确的代码">12.9 Context Builder：让模型看到正确的代码</a></h2>
+<p>Coding Agent 的效果很大程度取决于上下文。上下文不是越多越好，而是要回答三个问题：</p>
+<ol>
+<li>这个任务可能涉及哪些文件？</li>
+<li>这些文件里哪些片段最相关？</li>
+<li>哪些项目规则必须始终注入？</li>
+</ol>
+<h3 id="最小实现"><a class="header" href="#最小实现">最小实现</a></h3>
+<pre><code class="language-python"># context.py
+from pathlib import Path
+
+IGNORE_DIRS = {
+    ".git",
+    "__pycache__",
+    ".venv",
+    "node_modules",
+    "dist",
+    "build",
+    "public",
+    "book",
+}
+
+
+def load_rules(repo_root: Path) -&gt; str:
+    for name in ["AGENT.md", "CLAUDE.md", ".cursorrules"]:
+        path = repo_root / name
+        if path.exists():
+            return path.read_text(encoding="utf-8")[:4000]
+    return ""
+
+
+def build_repo_map(repo_root: Path, limit: int = 300) -&gt; str:
+    files: list[str] = []
+    for path in repo_root.rglob("*"):
+        if path.is_dir():
+            continue
+        if any(part in IGNORE_DIRS for part in path.parts):
+            continue
+        if path.suffix in {".py", ".js", ".ts", ".go", ".java", ".md", ".yaml", ".yml"}:
+            files.append(str(path.relative_to(repo_root)))
+        if len(files) &gt;= limit:
+            break
+    return "\n".join(files)
+</code></pre>
+<h3 id="上下文分层"><a class="header" href="#上下文分层">上下文分层</a></h3>
+<p>实际系统里，建议把上下文分成四层：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层级</th><th style="text-align: left">内容</th><th style="text-align: left">是否每轮注入</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">System Contract</td><td style="text-align: left">Agent 行为规范、输出格式、工具协议</td><td style="text-align: left">是</td></tr>
+<tr><td style="text-align: left">Project Rules</td><td style="text-align: left">构建命令、代码风格、禁区目录</td><td style="text-align: left">是</td></tr>
+<tr><td style="text-align: left">Task Context</td><td style="text-align: left">用户需求、验收标准、当前计划</td><td style="text-align: left">是</td></tr>
+<tr><td style="text-align: left">Retrieved Context</td><td style="text-align: left">搜索到的文件片段、测试输出、diff</td><td style="text-align: left">按需</td></tr>
+</tbody>
+</table>
+</div>
+<p>最容易犯的错误是把整个仓库塞进 prompt。这样会产生两个问题：</p>
+<ul>
+<li>关键文件被无关内容稀释；</li>
+<li>模型以为自己“知道项目”，但实际上没有聚焦任务。</li>
+</ul>
+<p>更可靠的方法是：先给 repo map，再让模型主动 search/read。</p>
+<hr>
+<h2 id="1210-tool-runtime工具不是函数而是能力边界"><a class="header" href="#1210-tool-runtime工具不是函数而是能力边界">12.10 Tool Runtime：工具不是函数，而是能力边界</a></h2>
+<p>最小 Coding Agent 至少需要六类工具。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">工具</th><th style="text-align: left">作用</th><th style="text-align: left">默认权限</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><code>list_files</code></td><td style="text-align: left">查看仓库文件</td><td style="text-align: left">自动允许</td></tr>
+<tr><td style="text-align: left"><code>read_file</code></td><td style="text-align: left">读取文件片段</td><td style="text-align: left">自动允许</td></tr>
+<tr><td style="text-align: left"><code>search_code</code></td><td style="text-align: left">搜索代码</td><td style="text-align: left">自动允许</td></tr>
+<tr><td style="text-align: left"><code>replace_in_file</code></td><td style="text-align: left">精确替换文本</td><td style="text-align: left">需要路径校验</td></tr>
+<tr><td style="text-align: left"><code>run_shell</code></td><td style="text-align: left">执行验证命令</td><td style="text-align: left">只允许白名单</td></tr>
+<tr><td style="text-align: left"><code>git_diff</code></td><td style="text-align: left">查看变更</td><td style="text-align: left">自动允许</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="路径沙箱"><a class="header" href="#路径沙箱">路径沙箱</a></h3>
+<p>第一条规则：工具只能访问 repo root 内的文件。</p>
+<pre><code class="language-python"># tools.py
+from pathlib import Path
+
+
+class Workspace:
+    def __init__(self, root: str):
+        self.root = Path(root).resolve()
+
+    def resolve(self, relative_path: str) -&gt; Path:
+        path = (self.root / relative_path).resolve()
+        if not str(path).startswith(str(self.root)):
+            raise ValueError(f"path escapes workspace: {relative_path}")
+        if any(part in {".git", "node_modules", ".venv"} for part in path.parts):
+            raise ValueError(f"path is forbidden: {relative_path}")
+        return path
+</code></pre>
+<p>不要让模型直接传绝对路径。所有文件路径都应该是 repo root 下的相对路径。</p>
+<h3 id="读工具"><a class="header" href="#读工具">读工具</a></h3>
+<pre><code class="language-python"># tools.py
+import fnmatch
+from models import ToolResult
+
+
+def list_files(ws: Workspace, pattern: str = "*") -&gt; ToolResult:
+    matched: list[str] = []
+    for path in ws.root.rglob("*"):
+        if path.is_dir():
+            continue
+        rel = str(path.relative_to(ws.root))
+        if any(part in {".git", "node_modules", ".venv", "__pycache__"} for part in path.parts):
+            continue
+        if fnmatch.fnmatch(rel, pattern):
+            matched.append(rel)
+    return ToolResult(True, "\n".join(matched[:500]))
+
+
+def read_file(ws: Workspace, path: str, start: int = 1, limit: int = 200) -&gt; ToolResult:
+    file_path = ws.resolve(path)
+    lines = file_path.read_text(encoding="utf-8").splitlines()
+    begin = max(start - 1, 0)
+    end = min(begin + limit, len(lines))
+    body = "\n".join(f"{idx + 1}: {line}" for idx, line in enumerate(lines[begin:end], begin))
+    return ToolResult(True, body)
+</code></pre>
+<h3 id="搜索工具"><a class="header" href="#搜索工具">搜索工具</a></h3>
+<pre><code class="language-python"># tools.py
+def search_code(ws: Workspace, query: str, pattern: str = "*") -&gt; ToolResult:
+    results: list[str] = []
+    for path in ws.root.rglob("*"):
+        if path.is_dir():
+            continue
+        rel = str(path.relative_to(ws.root))
+        if not fnmatch.fnmatch(rel, pattern):
+            continue
+        if any(part in {".git", "node_modules", ".venv", "__pycache__"} for part in path.parts):
+            continue
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except UnicodeDecodeError:
+            continue
+        for idx, line in enumerate(lines, 1):
+            if query.lower() in line.lower():
+                results.append(f"{rel}:{idx}: {line}")
+                if len(results) &gt;= 100:
+                    return ToolResult(True, "\n".join(results))
+    return ToolResult(True, "\n".join(results) if results else "no matches")
+</code></pre>
+<p>生产系统可以用 <code>ripgrep</code>、AST 索引、Language Server、embedding 检索来增强搜索。但原型阶段，字符串搜索足够完成闭环。</p>
+<h3 id="编辑工具"><a class="header" href="#编辑工具">编辑工具</a></h3>
+<p>不要一开始就实现“任意写文件”。更安全的方式是提供精确替换：</p>
+<pre><code class="language-python"># tools.py
+def replace_in_file(ws: Workspace, path: str, old: str, new: str) -&gt; ToolResult:
+    file_path = ws.resolve(path)
+    text = file_path.read_text(encoding="utf-8")
+    if old not in text:
+        return ToolResult(False, "", "old text not found; read the file again before editing")
+    updated = text.replace(old, new, 1)
+    file_path.write_text(updated, encoding="utf-8")
+    return ToolResult(True, f"updated {path}")
+</code></pre>
+<p>为什么不用 <code>write_file</code>？</p>
+<p>因为 <code>write_file</code> 容易让模型重写整个文件，破坏格式、注释和用户未提交修改。<code>replace_in_file</code> 迫使模型先读取文件，再基于精确片段做局部修改。</p>
+<p>如果需要新增文件，可以单独实现 <code>create_file</code>，并要求目标文件不存在：</p>
+<pre><code class="language-python"># tools.py
+def create_file(ws: Workspace, path: str, content: str) -&gt; ToolResult:
+    file_path = ws.resolve(path)
+    if file_path.exists():
+        return ToolResult(False, "", "file already exists; use replace_in_file")
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_text(content, encoding="utf-8")
+    return ToolResult(True, f"created {path}")
+</code></pre>
+<h3 id="shell-工具"><a class="header" href="#shell-工具">Shell 工具</a></h3>
+<p>Shell 是 Coding Agent 最危险也最有价值的工具。原型阶段只允许验证类命令。</p>
+<pre><code class="language-python"># tools.py
+import shlex
+import subprocess
+
+ALLOWED_COMMANDS = {
+    "pytest",
+    "python",
+    "ruff",
+    "mypy",
+    "npm",
+    "pnpm",
+    "make",
+    "go",
+}
+
+DENY_TOKENS = {
+    "rm",
+    "sudo",
+    "curl",
+    "wget",
+    "ssh",
+    "scp",
+    "chmod",
+    "chown",
+    "git",
+}
+
+
+def run_shell(ws: Workspace, command: str, timeout: int = 30) -&gt; ToolResult:
+    parts = shlex.split(command)
+    if not parts:
+        return ToolResult(False, "", "empty command")
+    if parts[0] not in ALLOWED_COMMANDS:
+        return ToolResult(False, "", f"command not allowed: {parts[0]}")
+    if any(token in DENY_TOKENS for token in parts):
+        return ToolResult(False, "", f"dangerous token found in command: {command}")
+
+    proc = subprocess.run(
+        parts,
+        cwd=ws.root,
+        text=True,
+        capture_output=True,
+        timeout=timeout,
+    )
+    output = (proc.stdout + "\n" + proc.stderr).strip()
+    return ToolResult(proc.returncode == 0, output[:12000], f"exit code {proc.returncode}" if proc.returncode else "")
+</code></pre>
+<p>这里有一个刻意的取舍：原型不允许 <code>git</code> 写操作，只提供 <code>git_diff</code> 读操作。</p>
+<pre><code class="language-python"># tools.py
+def git_diff(ws: Workspace) -&gt; ToolResult:
+    proc = subprocess.run(
+        ["git", "diff", "--"],
+        cwd=ws.root,
+        text=True,
+        capture_output=True,
+        timeout=20,
+    )
+    return ToolResult(proc.returncode == 0, proc.stdout[:20000], proc.stderr)
+</code></pre>
+<hr>
+<h2 id="1211-policy-engine把安全规则从-prompt-里拿出来"><a class="header" href="#1211-policy-engine把安全规则从-prompt-里拿出来">12.11 Policy Engine：把安全规则从 Prompt 里拿出来</a></h2>
+<p>只在 Prompt 里告诉模型“不要做危险操作”是不够的。模型可能忘记，也可能在复杂上下文里误判。</p>
+<p>更可靠的做法是：把安全规则写成确定性代码。</p>
+<pre><code class="language-python"># policy.py
+from models import ToolCall
+
+
+READ_ONLY_TOOLS = {"list_files", "read_file", "search_code", "git_diff"}
+WRITE_TOOLS = {"replace_in_file", "create_file"}
+SHELL_TOOLS = {"run_shell"}
+
+
+class Policy:
+    def __init__(self, auto_edit: bool = True, auto_shell: bool = False):
+        self.auto_edit = auto_edit
+        self.auto_shell = auto_shell
+
+    def decide(self, call: ToolCall) -&gt; str:
+        if call.name in READ_ONLY_TOOLS:
+            return "allow"
+        if call.name in WRITE_TOOLS:
+            return "allow" if self.auto_edit else "ask"
+        if call.name in SHELL_TOOLS:
+            return "allow" if self.auto_shell else "ask"
+        return "deny"
+</code></pre>
+<p>商业产品里的权限系统更复杂，通常还会包含：</p>
+<ul>
+<li>路径级权限；</li>
+<li>命令级权限；</li>
+<li>网络访问权限；</li>
+<li>secret 访问权限；</li>
+<li>MCP server 权限；</li>
+<li>单次会话权限；</li>
+<li>项目级默认权限；</li>
+<li>企业审计策略。</li>
+</ul>
+<p>但最小原型里，只要先做到 <code>allow / deny / ask</code>，就已经比“让模型自由发挥”可靠很多。</p>
+<hr>
+<h2 id="1212-llm-输出协议不要让模型随意说话"><a class="header" href="#1212-llm-输出协议不要让模型随意说话">12.12 LLM 输出协议：不要让模型随意说话</a></h2>
+<p>Agent Loop 最怕模型输出一大段自然语言，然后 Runtime 不知道该执行什么。最小方案是要求模型每轮输出 JSON。</p>
+<pre><code class="language-json">{
+  "thought": "我需要先搜索 divide 函数在哪里。",
+  "action": {
+    "name": "search_code",
+    "args": {
+      "query": "def divide",
+      "pattern": "*.py"
+    }
+  }
+}
+</code></pre>
+<p>任务完成时输出：</p>
+<pre><code class="language-json">{
+  "thought": "实现和测试都完成了。",
+  "final": {
+    "summary": "为 divide 增加了除零检查，并补充了测试。",
+    "verification": "pytest 通过",
+    "changed_files": ["calculator.py", "test_calculator.py"]
+  }
+}
+</code></pre>
+<p>系统提示词可以这样设计：</p>
+<pre><code class="language-text">You are a coding agent working inside a repository.
+
+You can only act by returning JSON.
+
+Available tools:
+- list_files(pattern)
+- read_file(path, start, limit)
+- search_code(query, pattern)
+- replace_in_file(path, old, new)
+- create_file(path, content)
+- run_shell(command, timeout)
+- git_diff()
+
+Rules:
+1. Read files before editing them.
+2. Prefer replace_in_file over rewriting full files.
+3. Run verification after edits.
+4. If a tool fails, inspect the error and repair.
+5. Finish only when you have evidence.
+
+Return exactly one JSON object:
+- For tool use: {"thought": "...", "action": {"name": "...", "args": {...}}}
+- For final answer: {"thought": "...", "final": {"summary": "...", "verification": "...", "changed_files": [...]}}
+</code></pre>
+<p>这个协议的价值是把模型输出变成 Runtime 可解析的结构。真实系统可以使用模型原生 tool calling；原型阶段用 JSON 协议就能复现核心思想。</p>
+<hr>
+<h2 id="1213-agent-loopcoding-agent-的心脏"><a class="header" href="#1213-agent-loopcoding-agent-的心脏">12.13 Agent Loop：Coding Agent 的心脏</a></h2>
+<p>Agent Loop 不复杂，但它决定了系统是否可靠。</p>
+<pre><code class="language-text">while not done:
+    prompt = system + rules + task + context + observations
+    response = llm(prompt)
+    if response.action:
+        policy check
+        execute tool
+        append observation
+    if response.final:
+        verify diff and report
+</code></pre>
+<p>最小实现如下：</p>
+<pre><code class="language-python"># agent.py
+import json
+from pathlib import Path
+
+from context import build_repo_map, load_rules
+from policy import Policy
+from tools import Workspace, create_file, git_diff, list_files, read_file, replace_in_file, run_shell, search_code
+from models import AgentState, AgentStep, ToolCall, ToolResult
+
+
+TOOL_REGISTRY = {
+    "list_files": list_files,
+    "read_file": read_file,
+    "search_code": search_code,
+    "replace_in_file": replace_in_file,
+    "create_file": create_file,
+    "run_shell": run_shell,
+    "git_diff": git_diff,
+}
+
+
+SYSTEM_PROMPT = """You are a coding agent working inside a repository.
+Return exactly one JSON object.
+Use tools to inspect, edit, verify, and review.
+Do not claim success without verification evidence.
+"""
+
+
+def build_prompt(state: AgentState, repo_root: Path) -&gt; str:
+    rules = load_rules(repo_root)
+    repo_map = build_repo_map(repo_root)
+    observations = []
+    for step in state.steps[-8:]:
+        observations.append(f"thought: {step.thought}")
+        if step.tool_call:
+            observations.append(f"tool_call: {step.tool_call.name} {step.tool_call.args}")
+        if step.tool_result:
+            observations.append(
+                f"tool_result: ok={step.tool_result.ok}\n{step.tool_result.content}\n{step.tool_result.error}"
+            )
+
+    return f"""
+{SYSTEM_PROMPT}
+
+Project rules:
+{rules}
+
+Repository map:
+{repo_map}
+
+Task:
+{state.task}
+
+Recent observations:
+{chr(10).join(observations)}
+
+Available tools:
+- list_files(pattern)
+- read_file(path, start, limit)
+- search_code(query, pattern)
+- replace_in_file(path, old, new)
+- create_file(path, content)
+- run_shell(command, timeout)
+- git_diff()
+
+Return JSON:
+Tool: {{"thought":"...","action":{{"name":"read_file","args":{{"path":"..."}}}}}}
+Final: {{"thought":"...","final":{{"summary":"...","verification":"...","changed_files":["..."]}}}}
+"""
+
+
+def parse_model_output(text: str) -&gt; dict:
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as exc:
+        return {
+            "thought": "model returned invalid JSON",
+            "error": str(exc),
+        }
+
+
+def execute_tool(ws: Workspace, call: ToolCall) -&gt; ToolResult:
+    tool = TOOL_REGISTRY.get(call.name)
+    if not tool:
+        return ToolResult(False, "", f"unknown tool: {call.name}")
+    return tool(ws, **call.args)
+
+
+def run_agent(task: str, repo_root: str, llm, max_steps: int = 20) -&gt; AgentState:
+    ws = Workspace(repo_root)
+    policy = Policy(auto_edit=True, auto_shell=True)
+    state = AgentState(task=task, repo_root=repo_root)
+
+    for _ in range(max_steps):
+        prompt = build_prompt(state, Path(repo_root))
+        raw = llm.complete(prompt)
+        data = parse_model_output(raw)
+
+        if "final" in data:
+            state.status = "done"
+            state.steps.append(AgentStep(thought=data.get("thought", "done")))
+            return state
+
+        if "action" not in data:
+            state.steps.append(
+                AgentStep(
+                    thought=data.get("thought", "invalid model response"),
+                    tool_result=ToolResult(False, raw, "missing action or final"),
+                )
+            )
+            continue
+
+        action = data["action"]
+        call = ToolCall(name=action["name"], args=action.get("args", {}))
+        decision = policy.decide(call)
+        if decision == "deny":
+            result = ToolResult(False, "", f"policy denied tool: {call.name}")
+        elif decision == "ask":
+            result = ToolResult(False, "", f"tool requires approval: {call.name}")
+        else:
+            result = execute_tool(ws, call)
+
+        if call.name in {"replace_in_file", "create_file"} and result.ok:
+            path = call.args.get("path")
+            if path:
+                state.changed_files.add(path)
+
+        state.steps.append(
+            AgentStep(
+                thought=data.get("thought", ""),
+                tool_call=call,
+                tool_result=result,
+            )
+        )
+
+    state.status = "failed"
+    state.steps.append(AgentStep(thought="max steps reached"))
+    return state
+</code></pre>
+<p>这段代码已经包含 Coding Agent 的关键机制：</p>
+<ul>
+<li>每轮构造上下文；</li>
+<li>模型输出结构化动作；</li>
+<li>Runtime 做权限判断；</li>
+<li>工具执行后把观察结果写回状态；</li>
+<li>循环直到 final 或超过步数。</li>
+</ul>
+<p>真实系统会更复杂，但主干就是这个。</p>
+<hr>
+<h2 id="1214-llm-适配器把模型隔离在边界之外"><a class="header" href="#1214-llm-适配器把模型隔离在边界之外">12.14 LLM 适配器：把模型隔离在边界之外</a></h2>
+<p>不要让全系统依赖某个模型厂商的 SDK。建议定义一个很窄的接口。</p>
+<pre><code class="language-python"># llm.py
+from typing import Protocol
+
+
+class LLMClient(Protocol):
+    def complete(self, prompt: str) -&gt; str:
+        ...
+</code></pre>
+<p>本地调试时，可以先写一个假模型来跑通工具链：</p>
+<pre><code class="language-python"># llm.py
+class FakeLLM:
+    def __init__(self, responses: list[str]):
+        self.responses = responses
+        self.index = 0
+
+    def complete(self, prompt: str) -&gt; str:
+        if self.index &gt;= len(self.responses):
+            return '{"thought":"no more responses","final":{"summary":"stopped","verification":"none","changed_files":[]}}'
+        value = self.responses[self.index]
+        self.index += 1
+        return value
+</code></pre>
+<p>接真实模型时，只需要实现同一个接口：</p>
+<pre><code class="language-python"># llm.py
+import os
+from openai import OpenAI
+
+
+class OpenAICompatibleLLM:
+    def __init__(self, model: str):
+        self.client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+        self.model = model
+
+    def complete(self, prompt: str) -&gt; str:
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0,
+        )
+        return response.choices[0].message.content
+</code></pre>
+<p>如果你使用支持原生 tool calling 的模型，可以把 JSON 协议替换成模型原生工具调用；但建议保留 Tool Registry、Policy Engine、Trace、Verifier 这些 Runtime 抽象。</p>
+<hr>
+<h2 id="1215-cli-入口让原型真正跑起来"><a class="header" href="#1215-cli-入口让原型真正跑起来">12.15 CLI 入口：让原型真正跑起来</a></h2>
+<pre><code class="language-python"># run.py
+import argparse
+import os
+
+from agent import run_agent
+from llm import OpenAICompatibleLLM
+from tools import Workspace, git_diff
+
+
+def main() -&gt; None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("task")
+    parser.add_argument("--repo", default=".")
+    parser.add_argument("--model", default=os.environ.get("CODING_AGENT_MODEL", "your-model-name"))
+    args = parser.parse_args()
+
+    if args.model == "your-model-name":
+        raise SystemExit("set --model or CODING_AGENT_MODEL")
+
+    llm = OpenAICompatibleLLM(args.model)
+    state = run_agent(args.task, args.repo, llm)
+
+    print(f"status: {state.status}")
+    print(f"changed_files: {sorted(state.changed_files)}")
+
+    for idx, step in enumerate(state.steps, 1):
+        print(f"\n--- step {idx} ---")
+        print(step.thought)
+        if step.tool_call:
+            print(f"tool: {step.tool_call.name} {step.tool_call.args}")
+        if step.tool_result:
+            print(f"ok: {step.tool_result.ok}")
+            print(step.tool_result.content[:2000])
+            if step.tool_result.error:
+                print(f"error: {step.tool_result.error}")
+
+    diff = git_diff(Workspace(args.repo))
+    print("\n--- git diff ---")
+    print(diff.content)
+
+
+if __name__ == "__main__":
+    main()
+</code></pre>
+<p>运行方式：</p>
+<pre><code class="language-bash">export OPENAI_API_KEY=...
+export CODING_AGENT_MODEL=...
+python run.py "给 calculator.py 的 divide 函数补充除零错误处理，并添加 pytest 测试" --repo ./demo
+</code></pre>
+<p>这个 CLI 很朴素，但已经可以支撑真实实验：</p>
+<ul>
+<li>给一个小仓库；</li>
+<li>让 Agent 搜索代码；</li>
+<li>让 Agent 修改文件；</li>
+<li>让 Agent 运行测试；</li>
+<li>查看 diff；</li>
+<li>根据 trace 分析失败。</li>
+</ul>
+<h3 id="用一个-demo-仓库跑通"><a class="header" href="#用一个-demo-仓库跑通">用一个 demo 仓库跑通</a></h3>
+<p>建议先用一个极小仓库验证主链路，而不是直接拿生产仓库实验。</p>
+<pre><code class="language-text">demo/
+├── calculator.py
+└── test_calculator.py
+</code></pre>
+<p><code>calculator.py</code>：</p>
+<pre><code class="language-python">def divide(a: int, b: int) -&gt; float:
+    return a / b
+</code></pre>
+<p><code>test_calculator.py</code>：</p>
+<pre><code class="language-python">from calculator import divide
+
+
+def test_divide():
+    assert divide(6, 3) == 2
+</code></pre>
+<p>给 Agent 的任务：</p>
+<pre><code class="language-text">给 calculator.py 的 divide 函数补充除零错误处理，并添加 pytest 测试。
+要求：
+1. b 为 0 时抛出 ValueError；
+2. 保留原有正常除法行为；
+3. 运行 pytest 验证。
+</code></pre>
+<p>预期过程应该是：</p>
+<pre><code class="language-text">1. search_code("def divide")
+2. read_file("calculator.py")
+3. read_file("test_calculator.py")
+4. replace_in_file("calculator.py", old, new)
+5. replace_in_file("test_calculator.py", old, new)
+6. run_shell("pytest")
+7. git_diff()
+8. final report
+</code></pre>
+<p>如果 Agent 一开始就调用 <code>replace_in_file</code>，说明 System Prompt 约束不够；如果它不运行测试就 final，说明完成条件不够硬；如果它试图执行不在白名单里的命令，说明 Policy Engine 生效了。</p>
+<hr>
+<h2 id="1216-verifier没有验证就没有完成"><a class="header" href="#1216-verifier没有验证就没有完成">12.16 Verifier：没有验证就没有完成</a></h2>
+<p>Coding Agent 的 final answer 不应该由模型自己决定，而应该由验证证据支撑。</p>
+<p>最小 Verifier 可以做三件事：</p>
+<ol>
+<li>运行用户或项目规则指定的测试命令；</li>
+<li>检查 <code>git diff</code> 是否为空；</li>
+<li>检查模型是否报告了验证结果。</li>
+</ol>
+<pre><code class="language-python"># verifier.py
+from tools import Workspace, git_diff, run_shell
+
+
+def verify(ws: Workspace, commands: list[str]) -&gt; tuple[bool, str]:
+    outputs: list[str] = []
+    for command in commands:
+        result = run_shell(ws, command, timeout=60)
+        outputs.append(f"$ {command}\n{result.content}\n{result.error}")
+        if not result.ok:
+            return False, "\n\n".join(outputs)
+
+    diff = git_diff(ws)
+    if not diff.content.strip():
+        return False, "no code changes detected"
+
+    return True, "\n\n".join(outputs)
+</code></pre>
+<p>更进一步，可以把 Verifier 分成三层：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层级</th><th style="text-align: left">例子</th><th style="text-align: left">作用</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Syntax</td><td style="text-align: left">format、lint、typecheck</td><td style="text-align: left">快速发现低级错误</td></tr>
+<tr><td style="text-align: left">Behavior</td><td style="text-align: left">unit test、integration test</td><td style="text-align: left">证明功能行为</td></tr>
+<tr><td style="text-align: left">Review</td><td style="text-align: left">diff summary、risk note</td><td style="text-align: left">帮助人类审查</td></tr>
+</tbody>
+</table>
+</div>
+<p>Agent 最终报告应该包含：</p>
+<ul>
+<li>修改了哪些文件；</li>
+<li>为什么这么改；</li>
+<li>运行了哪些验证；</li>
+<li>验证是否通过；</li>
+<li>剩余风险是什么；</li>
+<li>如果失败，下一步该查什么。</li>
+</ul>
+<hr>
+<h2 id="1217-trace让每次执行都可复盘"><a class="header" href="#1217-trace让每次执行都可复盘">12.17 Trace：让每次执行都可复盘</a></h2>
+<p>没有 trace 的 Coding Agent 很难调试。最小 trace 可以保存为 JSONL。</p>
+<pre><code class="language-python"># trace.py
+import json
+from dataclasses import asdict
+from pathlib import Path
+
+from models import AgentStep
+
+
+class TraceWriter:
+    def __init__(self, path: str):
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+
+    def write_step(self, step: AgentStep) -&gt; None:
+        with self.path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(asdict(step), ensure_ascii=False) + "\n")
+</code></pre>
+<p>Trace 至少要回答：</p>
+<ul>
+<li>用户任务是什么；</li>
+<li>每轮 prompt 的摘要是什么；</li>
+<li>模型输出了什么；</li>
+<li>调用了什么工具；</li>
+<li>工具返回什么；</li>
+<li>哪些文件发生变化；</li>
+<li>验证命令是什么；</li>
+<li>最终状态是成功还是失败。</li>
+</ul>
+<p>有了 trace，后续才能做 eval：</p>
+<pre><code class="language-text">失败任务
+  │
+  ├─ 上下文不足？补 Context Builder
+  ├─ 工具不够？补 Tool
+  ├─ 权限太大？补 Policy
+  ├─ 测试缺失？补 Verifier
+  └─ Prompt 漂移？补 System Contract
+</code></pre>
+<hr>
+<h2 id="1218-从-mvp-到生产系统的演进路线"><a class="header" href="#1218-从-mvp-到生产系统的演进路线">12.18 从 MVP 到生产系统的演进路线</a></h2>
+<p>实现出最小原型后，不要立刻堆功能。建议按风险顺序演进。</p>
+<h3 id="第一阶段read-only-agent"><a class="header" href="#第一阶段read-only-agent">第一阶段：Read-only Agent</a></h3>
+<p>只允许 <code>list_files</code>、<code>read_file</code>、<code>search_code</code>、<code>git_diff</code>。</p>
+<p>目标是让 Agent 能回答：</p>
+<ul>
+<li>这个需求可能涉及哪些文件；</li>
+<li>当前代码是怎么工作的；</li>
+<li>应该怎么改；</li>
+<li>需要哪些测试。</li>
+</ul>
+<p>Read-only Agent 是最安全的第一步，适合接入真实大仓库。</p>
+<h3 id="第二阶段patch-agent"><a class="header" href="#第二阶段patch-agent">第二阶段：Patch Agent</a></h3>
+<p>开放 <code>replace_in_file</code> 和 <code>create_file</code>，但不开放任意 shell。</p>
+<p>目标是让 Agent 能生成小范围 patch，并由人运行测试。</p>
+<p>这一阶段要重点做：</p>
+<ul>
+<li>path sandbox；</li>
+<li>old text 精确匹配；</li>
+<li>diff 输出；</li>
+<li>人工确认。</li>
+</ul>
+<h3 id="第三阶段verified-agent"><a class="header" href="#第三阶段verified-agent">第三阶段：Verified Agent</a></h3>
+<p>开放测试类 Shell 命令。</p>
+<p>目标是让 Agent 能自己形成“修改 -&gt; 测试 -&gt; 修复”的闭环。</p>
+<p>这一阶段要重点做：</p>
+<ul>
+<li>command allowlist；</li>
+<li>timeout；</li>
+<li>输出截断；</li>
+<li>flaky test 处理；</li>
+<li>失败重试预算。</li>
+</ul>
+<h3 id="第四阶段workflow-agent"><a class="header" href="#第四阶段workflow-agent">第四阶段：Workflow Agent</a></h3>
+<p>加入计划、任务状态和多步骤工作流。</p>
+<p>目标是支持更长的任务，例如：</p>
+<ul>
+<li>重构一个模块；</li>
+<li>迁移一个 API；</li>
+<li>增加一组测试；</li>
+<li>修复一类 lint 问题。</li>
+</ul>
+<p>这一阶段要重点做：</p>
+<ul>
+<li>plan step 状态；</li>
+<li>每步验收标准；</li>
+<li>中途汇报；</li>
+<li>可暂停和恢复。</li>
+</ul>
+<h3 id="第五阶段team-agent"><a class="header" href="#第五阶段team-agent">第五阶段：Team Agent</a></h3>
+<p>加入 subagent、reviewer、eval、CI 集成。</p>
+<p>目标是让 Agent 进入团队工程流程，而不是只服务个人本地实验。</p>
+<p>这一阶段要重点做：</p>
+<ul>
+<li>reviewer agent；</li>
+<li>test runner agent；</li>
+<li>失败样本库；</li>
+<li>代码审查模板；</li>
+<li>PR bot；</li>
+<li>企业权限审计。</li>
+</ul>
+<hr>
+<h2 id="1219-设计自己的-coding-agent-工作流"><a class="header" href="#1219-设计自己的-coding-agent-工作流">12.19 设计自己的 Coding Agent 工作流</a></h2>
+<h3 id="1-把-spec-当成任务接口"><a class="header" href="#1-把-spec-当成任务接口">1. 把 Spec 当成任务接口</a></h3>
+<p>不要直接把复杂需求丢给 Agent。先写最小 Spec：</p>
+<pre><code class="language-markdown"># 功能：订单取消
+
+## 目标
+用户可以在订单未支付前取消订单。
+
+## 业务规则
+- 只有 `pending_payment` 状态可以取消；
+- 已支付订单不能直接取消；
+- 取消后释放库存；
+- 重复取消必须幂等。
+
+## 验收测试
+- pending_payment -&gt; canceled 成功；
+- paid -&gt; canceled 失败；
+- 重复取消返回相同结果；
+- 库存释放只执行一次。
+</code></pre>
+<h3 id="2-把规则写进项目上下文"><a class="header" href="#2-把规则写进项目上下文">2. 把规则写进项目上下文</a></h3>
+<p>规则文件不是越长越好。推荐只写三类内容：</p>
+<ul>
+<li>Agent 无法从代码推断的约束；</li>
+<li>经常被模型犯错的地方；</li>
+<li>必须执行的验证命令。</li>
+</ul>
+<h3 id="3-把验证命令标准化"><a class="header" href="#3-把验证命令标准化">3. 把验证命令标准化</a></h3>
+<p>每个仓库都应该有明确的验证入口：</p>
+<pre><code class="language-bash">make test
+make lint
+make typecheck
+make build
+</code></pre>
+<p>Agent 最怕的是“测试怎么跑”也要猜。</p>
+<h3 id="4-把高风险动作交给人"><a class="header" href="#4-把高风险动作交给人">4. 把高风险动作交给人</a></h3>
+<p>以下操作不应该自动执行：</p>
+<ul>
+<li>删除数据；</li>
+<li>修改生产配置；</li>
+<li>推送远程分支；</li>
+<li>发布上线；</li>
+<li>大范围重构；</li>
+<li>绕过失败测试。</li>
+</ul>
+<h3 id="5-把失败沉淀为规则和-eval"><a class="header" href="#5-把失败沉淀为规则和-eval">5. 把失败沉淀为规则和 eval</a></h3>
+<p>每次 Agent 犯错，都应该问：</p>
+<ul>
+<li>是 Spec 没写清楚？</li>
+<li>是上下文给错了？</li>
+<li>是工具权限太大？</li>
+<li>是测试没有覆盖？</li>
+<li>是模型能力边界？</li>
+</ul>
+<p>修复不能只靠“下次小心”，而要进入规则、测试或评估集。</p>
+<hr>
+<h2 id="1220-原型实现检查清单"><a class="header" href="#1220-原型实现检查清单">12.20 原型实现检查清单</a></h2>
+<p>如果你准备自己实现一个 Coding Agent，最小检查清单如下：</p>
+<h3 id="runtime"><a class="header" href="#runtime">Runtime</a></h3>
+<ul>
+<li>是否有明确的 <code>AgentState</code>？</li>
+<li>每一步是否保存 thought、tool call、tool result？</li>
+<li>是否有最大步数？</li>
+<li>是否有失败状态？</li>
+<li>是否能输出最终 diff？</li>
+</ul>
+<h3 id="context"><a class="header" href="#context">Context</a></h3>
+<ul>
+<li>是否加载项目规则？</li>
+<li>是否有 repo map？</li>
+<li>是否让模型按需 search/read？</li>
+<li>是否避免一次性塞入整个仓库？</li>
+<li>是否截断过长输出？</li>
+</ul>
+<h3 id="tools"><a class="header" href="#tools">Tools</a></h3>
+<ul>
+<li>是否只暴露注册过的工具？</li>
+<li>是否有路径沙箱？</li>
+<li>是否优先局部替换而不是整文件重写？</li>
+<li>Shell 是否有 allowlist？</li>
+<li>工具失败是否会进入下一轮上下文？</li>
+</ul>
+<h3 id="verification"><a class="header" href="#verification">Verification</a></h3>
+<ul>
+<li>是否有标准验证命令？</li>
+<li>是否捕获 stdout/stderr？</li>
+<li>是否处理超时？</li>
+<li>final answer 是否包含验证证据？</li>
+<li>验证失败时是否返回失败而不是假装成功？</li>
+</ul>
+<h3 id="safety"><a class="header" href="#safety">Safety</a></h3>
+<ul>
+<li>是否禁止访问 repo 外路径？</li>
+<li>是否禁止危险命令？</li>
+<li>是否避免读取 secret 文件？</li>
+<li>是否区分 read、write、shell 权限？</li>
+<li>是否保留 trace 供审计？</li>
+</ul>
+<hr>
+<h2 id="1221-真实工作流codex--mcp--日志--代码仓库生成架构图"><a class="header" href="#1221-真实工作流codex--mcp--日志--代码仓库生成架构图">12.21 真实工作流：Codex + MCP + 日志 + 代码仓库生成架构图</a></h2>
+<p>前面的章节从原型角度解释了 Coding Agent Runtime。但真实工作中，Coding Agent 的价值往往不只是“改代码”，而是把多个证据源串成一条可审查的工程分析链路。</p>
+<p>一个典型场景是：</p>
+<pre><code class="language-text">用户给出线上 trace id
+  │
+  ▼
+Codex 通过 MCP 查询日志和 trace
+  │
+  ▼
+从日志里提取服务、接口、错误、耗时和关键字段
+  │
+  ▼
+再搜索本地代码仓库
+  │
+  ▼
+把日志事实和代码结构对齐
+  │
+  ▼
+生成接口调用链、数据流程图或排查报告
+</code></pre>
+<p>这类工作很容易被误解为“模型查了日志并画了图”。真实机制更像一个受控的多层系统协作。</p>
+<h3 id="端到端架构"><a class="header" href="#端到端架构">端到端架构</a></h3>
+<pre class="mermaid">
+flowchart LR
+    User["用户\n自然语言排查目标"] --&gt; App["Coding Agent UI\nCLI / IDE / Web"]
+    App --&gt; Runtime["Agent Runtime\n上下文组装 / 工具调度 / 权限控制"]
+    Runtime --&gt; Model["远端大模型\n理解 / 规划 / 总结"]
+    Model --&gt; Runtime
+
+    Runtime --&gt; MCPClient["MCP Client\n结构化 tool call"]
+    MCPClient --&gt; MCPServer["Log MCP Server\n本地进程"]
+    MCPServer --&gt; LogAPI["Log / Trace Platform\nOpenAPI / SSE"]
+    LogAPI --&gt; Store["日志、Trace、Span、Service Map"]
+    Store --&gt; LogAPI
+    LogAPI --&gt; MCPServer
+    MCPServer --&gt; MCPClient
+    MCPClient --&gt; Runtime
+
+    Runtime --&gt; Repo["本地代码仓库\nsearch / read / grep"]
+    Repo --&gt; Runtime
+    Runtime --&gt; Diagram["架构图 / 调用链 / 排查报告"]
+</pre>
+
+<p>各层职责要分清：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层</th><th style="text-align: left">职责</th><th style="text-align: left">不是</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">大模型</td><td style="text-align: left">理解目标、规划步骤、选择工具、解释证据</td><td style="text-align: left">不是日志存储，也不直接访问生产系统</td></tr>
+<tr><td style="text-align: left">Agent Runtime</td><td style="text-align: left">组装上下文、校验工具调用、执行工具、维护 trace</td><td style="text-align: left">不是业务智能本身</td></tr>
+<tr><td style="text-align: left">MCP Server</td><td style="text-align: left">把工具调用转换成日志平台 API 请求</td><td style="text-align: left">不负责判断业务含义</td></tr>
+<tr><td style="text-align: left">Log / Trace Platform</td><td style="text-align: left">返回日志、span、service map 等事实</td><td style="text-align: left">不理解本地代码实现</td></tr>
+<tr><td style="text-align: left">本地代码仓库</td><td style="text-align: left">提供 route、handler、processor、client、日志打印点</td><td style="text-align: left">不代表线上一定部署同一版本</td></tr>
+<tr><td style="text-align: left">绘图流程</td><td style="text-align: left">把分析结果转成可读图形</td><td style="text-align: left">不制造新事实</td></tr>
+</tbody>
+</table>
+</div>
+<p>这条链路的本质是：<strong>模型负责推理，Runtime 负责执行，MCP 负责连接，日志平台负责事实，代码仓库负责结构。</strong></p>
+<h3 id="一次请求的生命周期"><a class="header" href="#一次请求的生命周期">一次请求的生命周期</a></h3>
+<p>假设用户提出一个脱敏后的请求：</p>
+<pre><code class="language-text">请用 live 日志工具查询 trace_id=&lt;trace-id&gt; 最近 20 分钟的日志，
+并结合当前代码仓库画出订单查询接口的调用链。
+</code></pre>
+<p>Agent 不会直接“知道”答案，而是会经历多轮循环。</p>
+<pre><code class="language-text">第 1 轮：解析任务
+  环境: live
+  查询对象: trace_id
+  时间范围: now - 20min 到 now
+  输出目标: 日志摘要 + 调用链图
+
+第 2 轮：调用 MCP 日志工具
+  search_log_by_trace_id(trace_id, start_time, end_time)
+
+第 3 轮：分析日志结果
+  提取入口 API、服务名、错误级别、时间线、span 信息
+
+第 4 轮：搜索代码仓库
+  search_code("/api/order/query")
+  search_code("OrderQueryHandler")
+  search_code("CalculatePrice")
+  search_code("inventory availability")
+
+第 5 轮：读取关键文件
+  route -&gt; handler -&gt; processor -&gt; rpc client -&gt; log statement
+
+第 6 轮：合成图
+  标注哪些节点来自日志，哪些边来自代码
+
+第 7 轮：输出结论
+  请求是否成功、异常是否影响主流程、剩余不确定性
+</code></pre>
+<p>这就是 Agent Loop 在真实排障中的样子：每一轮不是闲聊，而是围绕证据继续推进。</p>
+<h3 id="mcp-工具调用不是网络请求本身"><a class="header" href="#mcp-工具调用不是网络请求本身">MCP 工具调用不是网络请求本身</a></h3>
+<p>模型生成的通常不是 HTTP 请求，而是结构化工具调用意图：</p>
+<pre><code class="language-json">{
+  "tool": "log_live.search_log_by_trace_id",
+  "arguments": {
+    "trace_id": "&lt;redacted-trace-id&gt;",
+    "start_time": "2026-04-30T10:00:00+08:00",
+    "end_time": "2026-04-30T10:20:00+08:00",
+    "limit": 100
+  }
+}
+</code></pre>
+<p>真正执行链路是：</p>
+<pre><code class="language-text">模型输出 tool call
+  -&gt; Runtime 校验工具名和参数
+  -&gt; MCP Client 找到对应 MCP Server
+  -&gt; 本地 MCP Server 请求远端日志平台
+  -&gt; 日志平台返回结果
+  -&gt; Runtime 把 tool result 放回下一轮模型上下文
+</code></pre>
+<p>这个边界非常重要。模型没有直接访问日志平台的能力，它只是提出“我需要调用哪个工具”。能不能执行、怎么执行、执行结果是什么，都由 Runtime 和工具系统决定。</p>
+<h3 id="runtime-每一轮给模型什么"><a class="header" href="#runtime-每一轮给模型什么">Runtime 每一轮给模型什么</a></h3>
+<p>一次模型调用前，Runtime 会把当前任务打包成上下文：</p>
+<pre><code class="language-text">System / Developer Instructions
+  工具使用规则、sandbox、文件编辑规则、安全要求
+
+User Request
+  当前最新任务目标
+
+Environment Envelope
+  cwd、日期、时区、shell、可写目录、审批策略
+
+Tool Schema
+  当前可用 MCP 工具、shell 工具、文件读取工具、绘图工具
+
+Observed Evidence
+  已查到的日志、已读取的代码片段、命令输出、生成文件路径
+
+Process State
+  当前 plan、已完成步骤、失败工具调用、修改过的文件
+</code></pre>
+<p>模型看不到全量代码仓库，也看不到全量日志平台数据。它只能基于 Runtime 放进上下文的材料推理；材料不够时，就要继续调用工具收集证据。</p>
+<h3 id="日志事实如何变成代码搜索线索"><a class="header" href="#日志事实如何变成代码搜索线索">日志事实如何变成代码搜索线索</a></h3>
+<p>日志平台返回的通常是事实字段：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">日志字段</th><th style="text-align: left">模型可提取的信息</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">timestamp</td><td style="text-align: left">请求时间线和相对顺序</td></tr>
+<tr><td style="text-align: left">application</td><td style="text-align: left">涉及服务列表</td></tr>
+<tr><td style="text-align: left">severity</td><td style="text-align: left">ERROR/WARN/FATAL 过滤</td></tr>
+<tr><td style="text-align: left">message</td><td style="text-align: left">错误类型、业务语义、关键函数名</td></tr>
+<tr><td style="text-align: left">trace_id / span_id</td><td style="text-align: left">同一次请求关联</td></tr>
+<tr><td style="text-align: left">path / method</td><td style="text-align: left">入口接口</td></tr>
+<tr><td style="text-align: left">source file / line</td><td style="text-align: left">代码定位线索</td></tr>
+<tr><td style="text-align: left">status / error code</td><td style="text-align: left">请求是否失败</td></tr>
+</tbody>
+</table>
+</div>
+<p>这些字段会被模型转换成代码搜索任务：</p>
+<pre><code class="language-bash">rg "/api/order/query"
+rg "OrderQueryHandler"
+rg "CalculatePrice"
+rg "inventory availability"
+rg "promotion eligibility"
+</code></pre>
+<p>日志告诉我们“线上发生了什么”，代码告诉我们“为什么会这么走”。两者必须对齐，才能形成可靠结论。</p>
+<h3 id="证据等级哪些能写进图里"><a class="header" href="#证据等级哪些能写进图里">证据等级：哪些能写进图里</a></h3>
+<p>从日志到架构图，最容易犯的错误是把推断画成事实。建议把证据分成三档：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">证据等级</th><th style="text-align: left">来源</th><th style="text-align: left">可怎么表达</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">强证据</td><td style="text-align: left">日志包含 source file / line，代码中能找到同一日志打印点</td><td style="text-align: left">“日志确认”</td></tr>
+<tr><td style="text-align: left">中证据</td><td style="text-align: left">日志 message 与代码中的 log format 匹配</td><td style="text-align: left">“代码匹配”</td></tr>
+<tr><td style="text-align: left">弱证据</td><td style="text-align: left">服务名、方法名、业务名相似，但没有直接日志点</td><td style="text-align: left">“推断路径”</td></tr>
+</tbody>
+</table>
+</div>
+<p>架构图最好显式区分：</p>
+<pre><code class="language-text">实线：日志和代码都确认
+虚线：代码推断，日志未直接覆盖
+红色标注：日志中出现的 ERROR/WARN
+灰色节点：可能的异步或外部依赖
+</code></pre>
+<p>这样图不是“看起来很完整”，而是“知道哪里有证据，哪里只是推断”。</p>
+<h3 id="脱敏后的示例图"><a class="header" href="#脱敏后的示例图">脱敏后的示例图</a></h3>
+<p>下面是一个公开可用的脱敏示例：</p>
+<pre class="mermaid">
+flowchart TD
+    Client["Client"] --&gt; API["order-api\nPOST /api/order/query"]
+    API --&gt; Handler["OrderQueryHandler\nbind / validate / enrich context"]
+    Handler --&gt; OrderSvc["order-service\nQueryOrder"]
+    OrderSvc --&gt; Inventory["inventory-service\ncheck availability"]
+    OrderSvc --&gt; Pricing["pricing-service\ncalculate price"]
+    Pricing --&gt; Promotion["promotion-service\napply campaign"]
+    Promotion --&gt; User["user-service\nuser segment"]
+    Inventory --&gt; OrderSvc
+    Pricing --&gt; OrderSvc
+    OrderSvc --&gt; API
+    API --&gt; Client
+
+    Promotion -.-&gt; Note1["WARN: eligibility not matched&lt;br/&gt;日志确认"]
+    Inventory -.-&gt; Note2["推断依赖&lt;br/&gt;代码确认，日志未覆盖"]
+</pre>
+
+<p>这个图的价值不在于节点多，而在于它能说明：</p>
+<ul>
+<li>入口接口来自日志 path 和 route 代码；</li>
+<li><code>order-service</code> 来自 trace application 和 handler 调用；</li>
+<li><code>pricing-service</code> 来自代码中的 client 调用；</li>
+<li><code>promotion-service</code> 的 WARN 来自日志；</li>
+<li><code>inventory-service</code> 只在代码里确认，当前 trace 未必覆盖。</li>
+</ul>
+<h3 id="公开发布时必须脱敏"><a class="header" href="#公开发布时必须脱敏">公开发布时必须脱敏</a></h3>
+<p>如果把这类案例写进公开文章，必须做脱敏。建议按下面清单处理：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">类型</th><th style="text-align: left">不要公开</th><th style="text-align: left">推荐替换</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">公司和组织</td><td style="text-align: left">真实公司名、团队名、仓库名</td><td style="text-align: left"><code>ExampleCorp</code>、<code>demo-repo</code></td></tr>
+<tr><td style="text-align: left">内网域名</td><td style="text-align: left">真实日志平台域名、内部 API 域名</td><td style="text-align: left"><code>log.example.internal</code></td></tr>
+<tr><td style="text-align: left">Token 和配置</td><td style="text-align: left">API key、cookie、secret、内部代理配置</td><td style="text-align: left"><code>&lt;redacted&gt;</code></td></tr>
+<tr><td style="text-align: left">Trace 信息</td><td style="text-align: left">真实 trace id、span id、request id</td><td style="text-align: left"><code>&lt;trace-id&gt;</code></td></tr>
+<tr><td style="text-align: left">服务名</td><td style="text-align: left">真实应用名、CMDB 名</td><td style="text-align: left"><code>order-api</code>、<code>pricing-service</code></td></tr>
+<tr><td style="text-align: left">接口路径</td><td style="text-align: left">真实业务 path</td><td style="text-align: left"><code>/api/order/query</code></td></tr>
+<tr><td style="text-align: left">代码路径</td><td style="text-align: left">真实仓库目录和文件名</td><td style="text-align: left"><code>api/router.go</code>、<code>service/handler.go</code></td></tr>
+<tr><td style="text-align: left">日志内容</td><td style="text-align: left">真实用户、订单、价格、商户、权益信息</td><td style="text-align: left">摘要化错误类型</td></tr>
+<tr><td style="text-align: left">图产物</td><td style="text-align: left">内部文件路径</td><td style="text-align: left"><code>docs/diagrams/example-trace-flow.svg</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>脱敏不是简单替换几个字符串，而是要避免通过组合信息反推出业务、组织和系统结构。</p>
+<h3 id="最佳实践-prompt"><a class="header" href="#最佳实践-prompt">最佳实践 Prompt</a></h3>
+<p>用户可以这样向 Coding Agent 提需求：</p>
+<pre><code class="language-text">请基于 trace_id=&lt;trace-id&gt; 查询最近 20 分钟日志，
+并结合当前代码仓库还原调用链。
+
+要求：
+1. 先按时间线列出日志事实；
+2. 再用代码搜索定位 route、handler、processor、client；
+3. 区分“日志确认”“代码确认”“模型推断”；
+4. 生成 Mermaid 调用链图；
+5. 输出剩余不确定性；
+6. 不输出任何 token、内部域名、真实用户数据。
+</code></pre>
+<p>这类 prompt 的关键不是“画个图”，而是要求 Agent 保持证据边界。</p>
+<h3 id="常见失败点"><a class="header" href="#常见失败点">常见失败点</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">现象</th><th style="text-align: left">可能原因</th><th style="text-align: left">修复方式</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">日志为空</td><td style="text-align: left">时间窗口错、环境错、trace id 错、权限不足</td><td style="text-align: left">明确时区，扩大窗口，检查 live/test 环境</td></tr>
+<tr><td style="text-align: left">图很完整但不可信</td><td style="text-align: left">模型用常识补全太多</td><td style="text-align: left">要求标注证据等级</td></tr>
+<tr><td style="text-align: left">ERROR 被误判成请求失败</td><td style="text-align: left">业务诊断日志也可能用 ERROR 打印</td><td style="text-align: left">同时检查 status、error code、最终响应</td></tr>
+<tr><td style="text-align: left">代码搜索不到</td><td style="text-align: left">关键词来自日志但代码命名不同</td><td style="text-align: left">改搜 path、日志 message、RPC method</td></tr>
+<tr><td style="text-align: left">调用链缺边</td><td style="text-align: left">trace 只覆盖同步路径，异步链路缺失</td><td style="text-align: left">标注为未确认异步路径</td></tr>
+<tr><td style="text-align: left">暴露敏感信息</td><td style="text-align: left">原样贴日志或配置</td><td style="text-align: left">输出前做字段级脱敏</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="对-coding-agent-设计的启示"><a class="header" href="#对-coding-agent-设计的启示">对 Coding Agent 设计的启示</a></h3>
+<p>这个案例说明，一个成熟 Coding Agent 不只是代码编辑器里的“自动补丁生成器”。它还可以成为工程分析工作台：</p>
+<pre><code class="language-text">外部事实源  -&gt; MCP / API / Browser / DB
+本地实现源  -&gt; Code Search / File Read / AST / LSP
+推理与表达  -&gt; Model
+执行与边界  -&gt; Runtime / Policy / Sandbox
+证据沉淀    -&gt; Trace / Report / Diagram
+</code></pre>
+<p>当 Agent 能同时连接“线上事实”和“代码实现”，它就可以完成传统 IDE 很难完成的任务：从一次真实请求出发，还原系统行为，并生成可以 review 的架构解释。</p>
+<hr>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p>AI Coding Agent 的成熟，不是因为模型能写更多代码，而是因为系统开始围绕模型建立工程闭环：</p>
+<ul>
+<li>Vibe Coding 适合探索；</li>
+<li>Spec Coding 适合交付；</li>
+<li>Claude Code 展示了终端原生 Agent Runtime 的价值；</li>
+<li>Cursor 展示了 IDE 原生上下文控制的价值；</li>
+<li>Codex 展示了云端沙箱和并行任务的价值；</li>
+<li>可复现的 Coding Agent MVP 至少需要 Context Builder、Tool Runtime、Policy Engine、Agent Loop、Verifier 和 Trace；</li>
+<li>Codex + MCP + 日志 + 代码仓库展示了“外部事实源 + 本地实现源 + 模型推理”的证据链工作流；</li>
+<li>真正可靠的 Coding Agent 工作流，需要 Spec、Context、Tools、Verification、Review 和 Eval 同时存在。</li>
+</ul>
+<p>最重要的结论是：</p>
+<blockquote>
+<p>AI 编程的核心能力，正在从“亲手写代码”转向“定义任务、组织上下文、约束执行、审查结果”。</p>
+</blockquote>
+<p>如果你要从零实现原型，不要先追求“全自动程序员”。先实现一个能读文件、搜代码、局部修改、运行测试、输出 diff、保留 trace 的最小 Agent。这个原型足够小，却已经包含了 Coding Agent 的本质。</p>
+<hr>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<ol>
+<li><a href="https://docs.anthropic.com/en/docs/claude-code/sub-agents">Claude Code Subagents - Anthropic Docs</a></li>
+<li><a href="https://docs.anthropic.com/en/docs/claude-code/hooks">Claude Code Hooks - Anthropic Docs</a></li>
+<li><a href="https://docs.cursor.com/context/rules">Cursor Rules - Cursor Docs</a></li>
+<li><a href="https://openai.com/index/introducing-codex/">Introducing Codex - OpenAI</a></li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part2/07-agent-evals-guardrails-observability.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part3/02-enterprise-knowledge-assistant.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part2/07-agent-evals-guardrails-observability.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part3/02-enterprise-knowledge-assistant.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

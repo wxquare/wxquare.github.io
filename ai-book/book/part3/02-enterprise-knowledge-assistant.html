@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>附录A 术语表 - AI工程实践：从编程到Agent的完整指南</title>
+        <title>第13章 企业知识助手系统解析：RAG、搜索、权限与知识治理 - AI工程实践：从编程到Agent的完整指南</title>
 
 
         <!-- Custom HTML head -->
@@ -177,107 +177,378 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="附录a-术语表"><a class="header" href="#附录a-术语表">附录A 术语表</a></h1>
-<p>本术语表收录了书中出现的核心术语和概念，按字母顺序排列。</p>
+                        <h1 id="第13章-企业知识助手系统解析rag搜索权限与知识治理"><a class="header" href="#第13章-企业知识助手系统解析rag搜索权限与知识治理">第13章 企业知识助手系统解析：RAG、搜索、权限与知识治理</a></h1>
+<blockquote>
+<p>企业知识助手不是“把文档丢进向量库”，而是一个带权限、证据、治理和反馈闭环的知识操作系统。</p>
+</blockquote>
+<h2 id="引言"><a class="header" href="#引言">引言</a></h2>
+<p>RAG 是 Agent 系统里最常见、也最容易被低估的能力。很多团队以为企业知识助手的核心是 Embedding 和向量检索，真正上线后才发现主要难点在别处：</p>
+<ul>
+<li>数据源很多，格式和权限各不相同；</li>
+<li>搜索结果必须严格遵守源系统权限；</li>
+<li>文档过期、重复、冲突非常普遍；</li>
+<li>用户需要答案，也需要证据和引用；</li>
+<li>组织知识会持续变化，索引必须持续更新；</li>
+<li>回答错误会影响业务决策，必须可追责。</li>
+</ul>
+<p>Glean、Perplexity Enterprise、Microsoft 365 Copilot 类系统的成熟之处，不是单点模型能力，而是把搜索、RAG、权限、引用、反馈和治理组合成完整系统。</p>
+<p>本章从系统设计角度拆解企业知识助手。</p>
 <hr>
-<h2 id="a"><a class="header" href="#a">A</a></h2>
-<p><strong>Agent（智能体）</strong><br>能够感知环境、做出决策并执行操作的自主系统。在AI领域，通常指基于LLM的自主任务执行系统。</p>
-<p><strong>Attention Mechanism（注意力机制）</strong><br>Transformer架构的核心，通过计算序列内部元素之间的关联权重，捕获长距离依赖关系。</p>
+<h2 id="131-系统定位从搜索框到知识工作台"><a class="header" href="#131-系统定位从搜索框到知识工作台">13.1 系统定位：从搜索框到知识工作台</a></h2>
+<p>企业知识助手解决的不是“用户找不到文档”这么简单，而是三个层次的问题。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层次</th><th style="text-align: left">用户问题</th><th style="text-align: left">系统能力</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Search</td><td style="text-align: left">这份文档在哪里？</td><td style="text-align: left">跨系统检索、排序、权限过滤</td></tr>
+<tr><td style="text-align: left">Answer</td><td style="text-align: left">这个问题的答案是什么？</td><td style="text-align: left">RAG、引用、摘要、冲突处理</td></tr>
+<tr><td style="text-align: left">Action</td><td style="text-align: left">我下一步该怎么做？</td><td style="text-align: left">工具调用、流程建议、任务创建</td></tr>
+</tbody>
+</table>
+</div>
+<p>传统企业搜索通常停留在 Search 层；成熟知识助手会进入 Answer 和 Action 层。</p>
+<h3 id="典型用户工作流"><a class="header" href="#典型用户工作流">典型用户工作流</a></h3>
+<pre><code class="language-text">用户：为什么日本站订单取消率上周升高？
+
+系统：
+1. 识别问题类型：业务分析 + 时间范围 + 地区
+2. 检索相关数据源：BI 报表、实验记录、客服工单、发布记录
+3. 权限过滤：只返回用户有权查看的内容
+4. 证据聚合：订单取消率、支付失败、物流异常、最近发布
+5. 生成答案：给出结论、证据和不确定性
+6. 建议动作：创建分析任务或订阅后续指标
+</code></pre>
+<p>这类系统的核心不是一次问答，而是把组织知识转化为可操作判断。</p>
 <hr>
-<h2 id="b"><a class="header" href="#b">B</a></h2>
-<p><strong>Backlinks（反向链接）</strong><br>在知识管理系统中，指向当前页面的所有链接。用于建立概念之间的双向关联。</p>
-<p><strong>BM25</strong><br>一种基于词频和逆文档频率的关键词检索算法，常用于混合检索策略。</p>
+<h2 id="132-端到端架构"><a class="header" href="#132-端到端架构">13.2 端到端架构</a></h2>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│              Enterprise Knowledge Assistant                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  User / Team / App Context                                  │
+│      │                                                       │
+│      ▼                                                       │
+│  Query Understanding                                         │
+│  ├─ Intent Classification                                    │
+│  ├─ Entity / Time / Scope Extraction                         │
+│  └─ Access Context                                           │
+│      │                                                       │
+│      ▼                                                       │
+│  Retrieval Orchestrator                                      │
+│  ├─ Keyword Search                                           │
+│  ├─ Vector Search                                            │
+│  ├─ Graph / Metadata Filter                                  │
+│  └─ Freshness / Authority Ranker                             │
+│      │                                                       │
+│      ▼                                                       │
+│  Evidence Builder                                            │
+│  ├─ Permission Filtering                                     │
+│  ├─ Dedup / Conflict Detection                               │
+│  ├─ Snippet Selection                                        │
+│  └─ Citation Package                                         │
+│      │                                                       │
+│      ▼                                                       │
+│  Answer Generator                                            │
+│  ├─ Grounded Answer                                          │
+│  ├─ Uncertainty Statement                                    │
+│  ├─ Sources / Citations                                      │
+│  └─ Follow-up Actions                                        │
+│      │                                                       │
+│      ▼                                                       │
+│  Feedback / Eval / Governance                                │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p>架构上最重要的一点是：<strong>权限过滤和证据构建必须发生在答案生成之前</strong>。模型不能看到用户无权访问的内容，也不能在无证据时编造答案。</p>
 <hr>
-<h2 id="c"><a class="header" href="#c">C</a></h2>
-<p><strong>Chain-of-Thought（思维链）</strong><br>一种Prompt Engineering技术，要求LLM逐步展示推理过程，提高复杂推理任务的准确性。</p>
-<p><strong>Chunking（分块）</strong><br>将长文档切分为较小片段的过程，用于RAG系统中的文档索引和检索。</p>
-<p><strong>Context Window（上下文窗口）</strong><br>LLM一次可以处理的最大token数量。现代LLM的上下文窗口从16k到1M tokens不等。</p>
-<p><strong>Cosine Similarity（余弦相似度）</strong><br>衡量两个向量方向相似程度的指标，常用于计算文本Embedding之间的语义相似度。</p>
+<h2 id="133-数据摄取连接器是第一道护城河"><a class="header" href="#133-数据摄取连接器是第一道护城河">13.3 数据摄取：连接器是第一道护城河</a></h2>
+<p>成熟企业知识助手通常通过连接器接入各种数据源：</p>
+<ul>
+<li>文档系统：Google Drive、SharePoint、Confluence、Notion；</li>
+<li>协作系统：Slack、Teams、邮件；</li>
+<li>项目系统：Jira、Linear、GitHub；</li>
+<li>客服和 CRM：Zendesk、Salesforce；</li>
+<li>BI 和数据平台：Tableau、Looker、内部报表；</li>
+<li>代码和技术文档：GitHub、GitLab、Runbook。</li>
+</ul>
+<p>连接器不只是“拉数据”。它至少要做四件事：</p>
+<ol>
+<li>拉取内容；</li>
+<li>解析结构；</li>
+<li>同步权限；</li>
+<li>维护增量更新。</li>
+</ol>
+<h3 id="权限同步比内容同步更重要"><a class="header" href="#权限同步比内容同步更重要">权限同步比内容同步更重要</a></h3>
+<p>企业搜索最怕的不是“搜不到”，而是“搜到了不该看的东西”。</p>
+<p>因此连接器需要同步源系统 ACL：</p>
+<pre><code class="language-text">Document
+  ├─ content
+  ├─ metadata
+  ├─ owner
+  ├─ source
+  ├─ updated_at
+  └─ allowed_principals
+      ├─ users
+      ├─ groups
+      └─ domains
+</code></pre>
+<p>查询时再结合用户身份做过滤：</p>
+<pre><code class="language-text">candidate_docs
+  │
+  ▼
+permission_filter(user_id, groups)
+  │
+  ▼
+visible_docs
+</code></pre>
+<p>这意味着企业知识助手的检索系统必须同时处理“相关性”和“可见性”。</p>
 <hr>
-<h2 id="d"><a class="header" href="#d">D</a></h2>
-<p><strong>Decision Tree（决策树）</strong><br>在Agent系统中，用于判断是否应使用Agent的决策框架，通过一系列Yes/No问题评估任务特征。</p>
-<p><strong>DoD（Developer on Duty）</strong><br>值班工程师，负责处理生产环境的告警和突发问题。在本书案例中，DoD Agent 指辅助值班工程师诊断、分流和处理告警的 Agent 系统。</p>
+<h2 id="134-检索层hybrid-search-是默认选择"><a class="header" href="#134-检索层hybrid-search-是默认选择">13.4 检索层：Hybrid Search 是默认选择</a></h2>
+<p>单纯向量检索不适合企业知识场景，因为企业问题经常包含精确实体：</p>
+<ul>
+<li>工单号；</li>
+<li>项目代号；</li>
+<li>客户名；</li>
+<li>服务名；</li>
+<li>文档标题；</li>
+<li>错误码；</li>
+<li>表名和字段名。</li>
+</ul>
+<p>成熟系统通常使用 Hybrid Search：</p>
+<pre><code class="language-text">Query
+  ├─ BM25 / Keyword Search
+  ├─ Dense Vector Search
+  ├─ Metadata Filter
+  ├─ Graph Expansion
+  └─ Reranking
+</code></pre>
+<h3 id="排序信号"><a class="header" href="#排序信号">排序信号</a></h3>
+<p>企业知识排序不能只看语义相似度，还要考虑：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">信号</th><th style="text-align: left">作用</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">语义相似度</td><td style="text-align: left">找到主题相关内容</td></tr>
+<tr><td style="text-align: left">关键词匹配</td><td style="text-align: left">保证精确实体不丢</td></tr>
+<tr><td style="text-align: left">更新时间</td><td style="text-align: left">避免旧文档误导</td></tr>
+<tr><td style="text-align: left">权威度</td><td style="text-align: left">官方文档高于聊天记录</td></tr>
+<tr><td style="text-align: left">用户关系</td><td style="text-align: left">同团队内容更可能相关</td></tr>
+<tr><td style="text-align: left">点击和反馈</td><td style="text-align: left">组织内部使用行为</td></tr>
+<tr><td style="text-align: left">引用链</td><td style="text-align: left">被其他文档引用的内容更重要</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="freshness-与-authority-的冲突"><a class="header" href="#freshness-与-authority-的冲突">Freshness 与 Authority 的冲突</a></h3>
+<p>新文档不一定权威，权威文档也可能过期。系统需要显式处理：</p>
+<pre><code class="language-text">高权威 + 新鲜：优先引用
+高权威 + 过期：引用但标记过期风险
+低权威 + 新鲜：作为辅助证据
+低权威 + 过期：默认降权
+</code></pre>
+<p>这比“取 top-k 文档”更接近真实企业搜索。</p>
 <hr>
-<h2 id="e"><a class="header" href="#e">E</a></h2>
-<p><strong>Embedding（嵌入向量）</strong><br>将文本转换为固定维度的数值向量的技术，捕获文本的语义信息。</p>
-<p><strong>Early Stopping（提前停止）</strong><br>检测Agent陷入无效循环时及时终止执行的机制。</p>
+<h2 id="135-evidence-package让答案有证据边界"><a class="header" href="#135-evidence-package让答案有证据边界">13.5 Evidence Package：让答案有证据边界</a></h2>
+<p>RAG 的关键中间产物不应该是“拼接后的上下文”，而应该是 Evidence Package。</p>
+<pre><code class="language-json">{
+  "question": "为什么日本站订单取消率上周升高？",
+  "evidence": [
+    {
+      "source": "bi://orders/cancellation_dashboard",
+      "title": "JP Order Cancellation Dashboard",
+      "snippet": "Cancellation rate increased from 2.1% to 4.8% between Apr 20 and Apr 27.",
+      "updated_at": "2026-04-28",
+      "authority": "official_metric",
+      "permission_checked": true
+    },
+    {
+      "source": "jira://PAY-8842",
+      "title": "Payment timeout increase in JP",
+      "snippet": "Timeout errors increased after deploy payment-router-v3.",
+      "updated_at": "2026-04-25",
+      "authority": "incident_ticket",
+      "permission_checked": true
+    }
+  ],
+  "gaps": [
+    "No logistics dashboard access for current user."
+  ]
+}
+</code></pre>
+<p>Evidence Package 有三个价值：</p>
+<ul>
+<li>让模型只能基于证据回答；</li>
+<li>让用户能追溯答案来源；</li>
+<li>让评估系统能检查引用是否支持结论。</li>
+</ul>
 <hr>
-<h2 id="f"><a class="header" href="#f">F</a></h2>
-<p><strong>Few-Shot Learning（少样本学习）</strong><br>在Prompt中提供少量示例，帮助LLM理解任务格式和期望输出。</p>
-<p><strong>Fingerprint（指纹）</strong><br>告警的唯一标识符，用于去重和关联相同的告警。</p>
+<h2 id="136-答案生成引用冲突与不确定性"><a class="header" href="#136-答案生成引用冲突与不确定性">13.6 答案生成：引用、冲突与不确定性</a></h2>
+<p>企业知识助手的回答应该避免“全知口吻”。它需要表达三种东西：</p>
+<ol>
+<li>结论；</li>
+<li>证据；</li>
+<li>不确定性。</li>
+</ol>
+<h3 id="好的答案结构"><a class="header" href="#好的答案结构">好的答案结构</a></h3>
+<pre><code class="language-text">结论：
+日本站订单取消率升高，最可能与 payment-router-v3 发布后的支付超时增加有关。
+
+证据：
+1. BI 报表显示取消率从 2.1% 升至 4.8%。
+2. 支付工单 PAY-8842 显示 JP 支付超时在同一时间窗口上升。
+3. 发布记录显示 payment-router-v3 在异常开始前 30 分钟上线。
+
+不确定性：
+我没有访问物流异常报表的权限，因此不能排除物流延迟因素。
+
+建议：
+1. 检查 payment-router-v3 的 JP 路由超时配置。
+2. 让有权限的同事补充物流异常数据。
+</code></pre>
+<h3 id="冲突处理"><a class="header" href="#冲突处理">冲突处理</a></h3>
+<p>当证据冲突时，不要让模型“平均一下”。应该显式输出：</p>
+<pre><code class="language-text">证据冲突：
+- BI 报表显示取消率升高；
+- 客服周报说取消率无明显变化；
+- 两者统计口径不同：BI 按订单创建时间，客服按投诉时间。
+</code></pre>
+<p>这类回答比强行给结论更可信。</p>
 <hr>
-<h2 id="g"><a class="header" href="#g">G</a></h2>
-<p><strong>GAS（Go Application Server）</strong><br>Shopee内部的Go语言应用开发框架。</p>
+<h2 id="137-企业治理权限审计和数据边界"><a class="header" href="#137-企业治理权限审计和数据边界">13.7 企业治理：权限、审计和数据边界</a></h2>
+<p>成熟系统必须把安全设计放在架构里，而不是放在提示词里。</p>
+<h3 id="权限模型"><a class="header" href="#权限模型">权限模型</a></h3>
+<pre><code class="language-text">User Identity
+  ├─ user_id
+  ├─ groups
+  ├─ department
+  ├─ region
+  └─ role
+
+Document ACL
+  ├─ users
+  ├─ groups
+  ├─ domains
+  └─ source-specific rules
+</code></pre>
+<p>系统必须保证：</p>
+<ul>
+<li>检索阶段不返回无权文档；</li>
+<li>生成阶段不注入无权内容；</li>
+<li>引用链接打开时仍由源系统校验权限；</li>
+<li>审计日志能追踪谁问了什么、引用了什么。</li>
+</ul>
+<h3 id="数据边界"><a class="header" href="#数据边界">数据边界</a></h3>
+<p>企业知识助手通常需要明确回答：</p>
+<ul>
+<li>用户数据是否用于训练？</li>
+<li>文件上传保留多久？</li>
+<li>哪些连接器有写权限？</li>
+<li>是否支持数据驻留要求？</li>
+<li>是否支持 SSO、SCIM、审计导出？</li>
+</ul>
+<p>这些不是合规团队才关心的问题，它们直接决定系统能否在企业内部上线。</p>
 <hr>
-<h2 id="h"><a class="header" href="#h">H</a></h2>
-<p><strong>Hallucination（幻觉）</strong><br>LLM生成看似合理但实际错误的内容，包括事实性幻觉、逻辑性幻觉和引用性幻觉。</p>
-<p><strong>Harness Engineering（驾驭工程）</strong><br>通过构建可靠的基础设施和约束系统来驾驭AI的工程方法论。</p>
-<p><strong>Hybrid Search（混合检索）</strong><br>结合向量检索和关键词检索的方法，提高检索的召回率和精确度。</p>
+<h2 id="138-反馈闭环与质量评估"><a class="header" href="#138-反馈闭环与质量评估">13.8 反馈闭环与质量评估</a></h2>
+<p>企业知识助手的质量不能只看“用户点赞”。需要分层评估。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层次</th><th style="text-align: left">指标</th><th style="text-align: left">示例</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">检索</td><td style="text-align: left">Recall@k、MRR、权限误召回</td><td style="text-align: left">正确文档是否进入候选集</td></tr>
+<tr><td style="text-align: left">证据</td><td style="text-align: left">引用支持率、冲突识别率</td><td style="text-align: left">结论是否被证据支持</td></tr>
+<tr><td style="text-align: left">生成</td><td style="text-align: left">正确性、完整性、拒答率</td><td style="text-align: left">是否在证据不足时停止</td></tr>
+<tr><td style="text-align: left">安全</td><td style="text-align: left">越权率、敏感信息泄露率</td><td style="text-align: left">是否泄露无权内容</td></tr>
+<tr><td style="text-align: left">业务</td><td style="text-align: left">节省时间、任务完成率</td><td style="text-align: left">是否减少人工查找成本</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="线上反馈如何进入系统"><a class="header" href="#线上反馈如何进入系统">线上反馈如何进入系统</a></h3>
+<pre><code class="language-text">User Feedback
+  ├─ helpful / not helpful
+  ├─ wrong citation
+  ├─ outdated document
+  ├─ missing source
+  └─ permission issue
+        │
+        ▼
+Eval Dataset / Index Fix / Connector Fix / Prompt Fix
+</code></pre>
+<p>注意：不是所有问题都应该修 Prompt。</p>
+<ul>
+<li>找不到文档：可能是连接器或索引问题；</li>
+<li>引用错文档：可能是 reranker 问题；</li>
+<li>答案越权：是权限系统问题；</li>
+<li>编造结论：是生成约束和证据包问题；</li>
+<li>文档过期：是知识治理问题。</li>
+</ul>
 <hr>
-<h2 id="i"><a class="header" href="#i">I</a></h2>
-<p><strong>Inference（推理）</strong><br>模型根据输入数据生成输出的过程。在机器学习中指模型的预测阶段。</p>
+<h2 id="139-工程取舍"><a class="header" href="#139-工程取舍">13.9 工程取舍</a></h2>
+<h3 id="1-答案速度-vs-证据完整性"><a class="header" href="#1-答案速度-vs-证据完整性">1. 答案速度 vs 证据完整性</a></h3>
+<p>搜索助手需要快，但企业决策需要证据。可以用分层响应：</p>
+<pre><code class="language-text">快速答案：先给初步结论和 3 条证据
+深度分析：后台继续检索更多源，更新答案
+</code></pre>
+<h3 id="2-个性化-vs-信息茧房"><a class="header" href="#2-个性化-vs-信息茧房">2. 个性化 vs 信息茧房</a></h3>
+<p>个性化排序能提高命中率，但也可能让用户只看到本部门视角。关键问题需要跨源证据，而不是只取“最像用户平时点击的内容”。</p>
+<h3 id="3-内部知识-vs-外部知识"><a class="header" href="#3-内部知识-vs-外部知识">3. 内部知识 vs 外部知识</a></h3>
+<p>内部知识有权限和上下文优势，外部知识有时效和广度优势。成熟系统需要标记来源类型：</p>
+<pre><code class="language-text">internal_verified
+internal_unofficial
+external_web
+premium_data
+user_uploaded
+</code></pre>
+<p>不同来源进入答案时应有不同置信度和引用方式。</p>
 <hr>
-<h2 id="l"><a class="header" href="#l">L</a></h2>
-<p><strong>LLM（Large Language Model，大语言模型）</strong><br>基于Transformer架构的大规模预训练语言模型，如GPT-4、Claude等。</p>
-<p><strong>Loop Detection（循环检测）</strong><br>检测Agent重复执行相同操作的机制，用于防止无限循环。</p>
+<h2 id="1310-可借鉴点"><a class="header" href="#1310-可借鉴点">13.10 可借鉴点</a></h2>
+<p>设计企业知识助手时，可以直接借鉴这些原则：</p>
+<ul>
+<li>连接器必须同步权限，不只是同步内容；</li>
+<li>检索默认使用 Hybrid Search，而不是只用向量库；</li>
+<li>中间产物设计成 Evidence Package；</li>
+<li>生成答案必须包含引用、证据和不确定性；</li>
+<li>过期文档需要降权或显式标记；</li>
+<li>反馈要能路由到索引、权限、Prompt、文档治理等不同修复路径；</li>
+<li>高风险领域宁可拒答，也不要无证据自信回答。</li>
+</ul>
 <hr>
-<h2 id="m"><a class="header" href="#m">M</a></h2>
-<p><strong>MCP（Model Context Protocol）</strong><br>Anthropic提出的协议，用于AI工具连接外部数据源和服务。</p>
-<p><strong>MTTR（Mean Time To Resolution，平均恢复时间）</strong><br>从问题发生到解决的平均时间，运维领域的关键指标。</p>
-<p><strong>Multi-Agent System（多Agent系统）</strong><br>由多个Agent协作完成复杂任务的系统架构。</p>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p>企业知识助手的成熟度，不取决于向量库有多先进，而取决于它是否把知识系统当成工程系统来治理：</p>
+<ul>
+<li>数据源需要连接器；</li>
+<li>内容需要索引；</li>
+<li>权限需要同步；</li>
+<li>检索需要混合排序；</li>
+<li>答案需要证据；</li>
+<li>反馈需要闭环；</li>
+<li>质量需要评估。</li>
+</ul>
+<p>一句话总结：</p>
+<blockquote>
+<p>企业知识助手的核心不是“让模型知道更多”，而是“让模型只基于用户有权访问、足够新鲜、可被引用的证据回答”。</p>
+</blockquote>
 <hr>
-<h2 id="p"><a class="header" href="#p">P</a></h2>
-<p><strong>Plan-and-Execute（计划-执行）</strong><br>一种Agent架构模式，先制定详细计划，再逐步执行。</p>
-<p><strong>Positional Encoding（位置编码）</strong><br>在Transformer中注入序列位置信息的机制。</p>
-<p><strong>Prompt Caching（Prompt缓存）</strong><br>缓存长System Prompt以节省token成本的技术。</p>
-<p><strong>Prompt Engineering（提示工程）</strong><br>设计和优化Prompt以提高LLM输出质量的技术。</p>
-<hr>
-<h2 id="r"><a class="header" href="#r">R</a></h2>
-<p><strong>RAG（Retrieval-Augmented Generation，检索增强生成）</strong><br>结合信息检索和语言模型生成的方法，通过检索外部知识增强LLM能力。</p>
-<p><strong>ReACT（Reasoning and Acting）</strong><br>一种Agent架构模式，交替进行推理（Thought）和行动（Action）。</p>
-<p><strong>Reciprocal Rank Fusion（倒数排名融合）</strong><br>一种融合多个检索结果的算法，用于混合检索。</p>
-<p><strong>Reranking（重排序）</strong><br>使用专门模型重新排序检索结果，提高精确度。</p>
-<hr>
-<h2 id="s"><a class="header" href="#s">S</a></h2>
-<p><strong>Self-Consistency（自我一致性）</strong><br>多次采样LLM输出，选择最一致的结果以提高准确性。</p>
-<p><strong>Sliding Window（滑动窗口）</strong><br>保留最近N条消息的上下文管理策略。</p>
-<p><strong>SOP（Standard Operating Procedure，标准操作流程）</strong><br>标准化的问题处理流程。</p>
-<p><strong>Spec Coding（规格编程）</strong><br>先定义清晰规格，再让AI生成代码的编程范式。</p>
-<p><strong>State Machine（状态机）</strong><br>管理系统状态转换的设计模式，用于控制Agent工作流。</p>
-<hr>
-<h2 id="t"><a class="header" href="#t">T</a></h2>
-<p><strong>Token</strong><br>LLM处理文本的基本单位，通常一个token约等于0.75个英文单词或0.5个中文字符。</p>
-<p><strong>Tool Call（工具调用）</strong><br>Agent调用外部工具（API、数据库、命令行等）执行操作。</p>
-<p><strong>Transformer</strong><br>基于Self-Attention机制的神经网络架构，现代LLM的基础。</p>
-<hr>
-<h2 id="v"><a class="header" href="#v">V</a></h2>
-<p><strong>Vector Database（向量数据库）</strong><br>专门存储和检索高维向量的数据库，用于RAG系统。</p>
-<p><strong>Vibe Coding（感觉编程）</strong><br>依赖直觉和经验，与AI反复迭代的编程方式。</p>
-<hr>
-<h2 id="z"><a class="header" href="#z">Z</a></h2>
-<p><strong>Zero-Shot Learning（零样本学习）</strong><br>不提供示例，直接让LLM完成任务。</p>
-<hr>
-<h2 id="中文术语"><a class="header" href="#中文术语">中文术语</a></h2>
-<p><strong>分级决策</strong><br>根据风险等级采用不同决策策略的方法。</p>
-<p><strong>幻觉</strong><br>见 Hallucination。</p>
-<p><strong>混合架构</strong><br>结合多种设计模式的系统架构，如状态机 + ReACT。</p>
-<p><strong>可观测性</strong><br>通过指标、日志、追踪等方式了解系统运行状态的能力。</p>
-<p><strong>上下文管理</strong><br>管理LLM上下文窗口中信息的策略和技术。</p>
-<p><strong>状态机</strong><br>见 State Machine。</p>
-<p><strong>向量数据库</strong><br>见 Vector Database。</p>
-<p><strong>知识编译</strong><br>LLM将原始数据转换为结构化知识的过程。</p>
-<hr>
-<p><em>本术语表持续更新中</em></p>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<ol>
+<li><a href="https://docs.glean.com/connectors/about">Glean Connectors - Glean Docs</a></li>
+<li><a href="https://docs.perplexity.ai/guides/search-guide">Perplexity Search API - Perplexity Docs</a></li>
+<li><a href="https://enterprise.perplexity.ai/">Perplexity Enterprise Pro</a></li>
+</ol>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../part3/08-mini-agent-observability.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../part3/01-coding-agent-systems.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../appendix/references.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../part3/03-agent-platform-orchestration.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -287,11 +558,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../part3/08-mini-agent-observability.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../part3/01-coding-agent-systems.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../appendix/references.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../part3/03-agent-platform-orchestration.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
