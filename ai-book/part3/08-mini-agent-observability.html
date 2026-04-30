@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>附录A 术语表 - AI工程实践：从编程到Agent的完整指南</title>
+        <title>第19章 从零实现一个可观测 Mini Agent - AI工程实践：从编程到Agent的完整指南</title>
 
 
         <!-- Custom HTML head -->
@@ -177,107 +177,337 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="附录a-术语表"><a class="header" href="#附录a-术语表">附录A 术语表</a></h1>
-<p>本术语表收录了书中出现的核心术语和概念，按字母顺序排列。</p>
+                        <h1 id="第19章-从零实现一个可观测-mini-agent"><a class="header" href="#第19章-从零实现一个可观测-mini-agent">第19章 从零实现一个可观测 Mini Agent</a></h1>
+<blockquote>
+<p>面试中最有说服力的项目，不一定复杂，但必须闭环。</p>
+</blockquote>
+<h2 id="引言"><a class="header" href="#引言">引言</a></h2>
+<p>如果你准备 Agent 应用工程师面试，最好有一个可以讲清楚的 Mini Agent 项目。它不需要覆盖庞大业务，但要展示生产化意识：有工具、有 RAG、有 guardrails、有 trace、有 eval。</p>
+<p>本章设计一个“文档问答 + 工单创建”的 Mini Agent，用最小范围覆盖 Agent 应用工程的核心能力。</p>
 <hr>
-<h2 id="a"><a class="header" href="#a">A</a></h2>
-<p><strong>Agent（智能体）</strong><br>能够感知环境、做出决策并执行操作的自主系统。在AI领域，通常指基于LLM的自主任务执行系统。</p>
-<p><strong>Attention Mechanism（注意力机制）</strong><br>Transformer架构的核心，通过计算序列内部元素之间的关联权重，捕获长距离依赖关系。</p>
+<h2 id="191-项目目标"><a class="header" href="#191-项目目标">19.1 项目目标</a></h2>
+<p>项目名称：Support Agent</p>
+<p>目标：帮助用户查询内部知识库，并在无法解决时创建支持工单。</p>
+<p>能力范围：</p>
+<ul>
+<li>回答产品 FAQ；</li>
+<li>检索内部文档；</li>
+<li>查询工单状态；</li>
+<li>创建工单；</li>
+<li>对高风险请求转人工；</li>
+<li>记录 trace；</li>
+<li>跑离线 eval。</li>
+</ul>
+<p>非目标：</p>
+<ul>
+<li>不做复杂多 Agent 协作；</li>
+<li>不直接修改生产数据；</li>
+<li>不处理支付、退款等高风险业务；</li>
+<li>不追求大规模并发。</li>
+</ul>
 <hr>
-<h2 id="b"><a class="header" href="#b">B</a></h2>
-<p><strong>Backlinks（反向链接）</strong><br>在知识管理系统中，指向当前页面的所有链接。用于建立概念之间的双向关联。</p>
-<p><strong>BM25</strong><br>一种基于词频和逆文档频率的关键词检索算法，常用于混合检索策略。</p>
+<h2 id="192-目录结构"><a class="header" href="#192-目录结构">19.2 目录结构</a></h2>
+<pre><code class="language-text">support-agent/
+├── README.md
+├── app/
+│   ├── main.py
+│   ├── agent/
+│   │   ├── runner.py
+│   │   ├── prompts.py
+│   │   └── state.py
+│   ├── tools/
+│   │   ├── registry.py
+│   │   ├── ticket.py
+│   │   └── kb.py
+│   ├── rag/
+│   │   ├── ingest.py
+│   │   ├── retriever.py
+│   │   └── store.py
+│   ├── guardrails/
+│   │   ├── input.py
+│   │   ├── output.py
+│   │   └── tool.py
+│   ├── observability/
+│   │   ├── trace.py
+│   │   └── metrics.py
+│   └── evals/
+│       ├── dataset.yaml
+│       └── runner.py
+├── docs/
+│   ├── faq.md
+│   └── refund-policy.md
+├── tests/
+└── docker-compose.yml
+</code></pre>
+<p>这个结构的价值是清楚展示工程边界：</p>
+<ul>
+<li><code>agent/</code> 负责决策；</li>
+<li><code>tools/</code> 负责行动；</li>
+<li><code>rag/</code> 负责知识；</li>
+<li><code>guardrails/</code> 负责安全；</li>
+<li><code>observability/</code> 负责复盘；</li>
+<li><code>evals/</code> 负责质量回归。</li>
+</ul>
 <hr>
-<h2 id="c"><a class="header" href="#c">C</a></h2>
-<p><strong>Chain-of-Thought（思维链）</strong><br>一种Prompt Engineering技术，要求LLM逐步展示推理过程，提高复杂推理任务的准确性。</p>
-<p><strong>Chunking（分块）</strong><br>将长文档切分为较小片段的过程，用于RAG系统中的文档索引和检索。</p>
-<p><strong>Context Window（上下文窗口）</strong><br>LLM一次可以处理的最大token数量。现代LLM的上下文窗口从16k到1M tokens不等。</p>
-<p><strong>Cosine Similarity（余弦相似度）</strong><br>衡量两个向量方向相似程度的指标，常用于计算文本Embedding之间的语义相似度。</p>
+<h2 id="193-核心架构"><a class="header" href="#193-核心架构">19.3 核心架构</a></h2>
+<pre class="mermaid">
+flowchart TD
+    U[User] --&gt; API[FastAPI]
+    API --&gt; IG[Input Guardrail]
+    IG --&gt; A[Agent Runner]
+    A --&gt; R[RAG Retriever]
+    A --&gt; TR[Tool Registry]
+    TR --&gt; KT[Knowledge Tool]
+    TR --&gt; TT[Ticket Tool]
+    TR --&gt; TG[Tool Guardrail]
+    A --&gt; OG[Output Guardrail]
+    OG --&gt; API
+    A --&gt; OBS[Trace Store]
+    R --&gt; OBS
+    TR --&gt; OBS
+</pre>
+
 <hr>
-<h2 id="d"><a class="header" href="#d">D</a></h2>
-<p><strong>Decision Tree（决策树）</strong><br>在Agent系统中，用于判断是否应使用Agent的决策框架，通过一系列Yes/No问题评估任务特征。</p>
-<p><strong>DoD（Developer on Duty）</strong><br>值班工程师，负责处理生产环境的告警和突发问题。在本书案例中，DoD Agent 指辅助值班工程师诊断、分流和处理告警的 Agent 系统。</p>
+<h2 id="194-agent-runner"><a class="header" href="#194-agent-runner">19.4 Agent Runner</a></h2>
+<p>Runner 不要一开始就设计得过度复杂。第一版可以采用“Router + Tool Calling”的轻量模式。</p>
+<pre><code class="language-python">class AgentRunner:
+    def __init__(self, llm, retriever, tool_registry, tracer):
+        self.llm = llm
+        self.retriever = retriever
+        self.tool_registry = tool_registry
+        self.tracer = tracer
+
+    async def run(self, user, message: str) -&gt; dict:
+        trace = self.tracer.start_trace(user_id=user.id, input=message)
+
+        intent = await self.classify_intent(message)
+        trace.add_event("intent", {"intent": intent})
+
+        if intent == "knowledge_qa":
+            docs = await self.retriever.search(message)
+            answer = await self.answer_with_context(message, docs)
+            trace.add_event("rag", {"doc_count": len(docs)})
+            return answer
+
+        if intent == "ticket_status":
+            tool = self.tool_registry.get("get_ticket_status")
+            result = await tool.call(user=user, args=self.extract_ticket_args(message))
+            trace.add_event("tool_call", result)
+            return self.format_tool_result(result)
+
+        if intent == "create_ticket":
+            tool = self.tool_registry.get("create_ticket")
+            result = await tool.call(user=user, args=self.extract_ticket_args(message))
+            trace.add_event("tool_call", result)
+            return self.format_tool_result(result)
+
+        return {
+            "answer": "这个问题超出我的处理范围，我会转给人工支持。",
+            "handoff": True
+        }
+</code></pre>
+<p>面试时可以解释：第一版选择 Router 而不是自由 ReACT，是为了降低不可控循环和工具误用风险。</p>
 <hr>
-<h2 id="e"><a class="header" href="#e">E</a></h2>
-<p><strong>Embedding（嵌入向量）</strong><br>将文本转换为固定维度的数值向量的技术，捕获文本的语义信息。</p>
-<p><strong>Early Stopping（提前停止）</strong><br>检测Agent陷入无效循环时及时终止执行的机制。</p>
+<h2 id="195-工具注册表"><a class="header" href="#195-工具注册表">19.5 工具注册表</a></h2>
+<pre><code class="language-python">class Tool:
+    def __init__(self, name, description, risk_level, handler):
+        self.name = name
+        self.description = description
+        self.risk_level = risk_level
+        self.handler = handler
+
+    async def call(self, user, args):
+        guardrail_result = check_tool_permission(user, self.name, args)
+        if not guardrail_result.allowed:
+            return {
+                "status": "rejected",
+                "reason": guardrail_result.reason
+            }
+
+        return await self.handler(args)
+
+class ToolRegistry:
+    def __init__(self):
+        self.tools = {}
+
+    def register(self, tool):
+        self.tools[tool.name] = tool
+
+    def get(self, name):
+        return self.tools[name]
+</code></pre>
+<p>示例工具：</p>
+<pre><code class="language-python">async def create_ticket(args):
+    return {
+        "status": "success",
+        "ticket_id": "T-10086",
+        "message": "Support ticket created"
+    }
+</code></pre>
 <hr>
-<h2 id="f"><a class="header" href="#f">F</a></h2>
-<p><strong>Few-Shot Learning（少样本学习）</strong><br>在Prompt中提供少量示例，帮助LLM理解任务格式和期望输出。</p>
-<p><strong>Fingerprint（指纹）</strong><br>告警的唯一标识符，用于去重和关联相同的告警。</p>
+<h2 id="196-rag最小实现"><a class="header" href="#196-rag最小实现">19.6 RAG最小实现</a></h2>
+<p>第一版 RAG 不追求复杂，重点是可解释和可评估。</p>
+<pre><code class="language-python">class Retriever:
+    def __init__(self, vector_store):
+        self.vector_store = vector_store
+
+    async def search(self, query: str, top_k: int = 5):
+        docs = await self.vector_store.similarity_search(query, k=top_k)
+        return [
+            {
+                "doc_id": doc.id,
+                "title": doc.metadata["title"],
+                "content": doc.content,
+                "source": doc.metadata["source"]
+            }
+            for doc in docs
+        ]
+</code></pre>
+<p>回答时要求引用来源：</p>
+<pre><code class="language-text">请只基于 &lt;context&gt; 中的内容回答。
+如果上下文不足，明确说明不知道。
+回答末尾列出引用来源。
+</code></pre>
 <hr>
-<h2 id="g"><a class="header" href="#g">G</a></h2>
-<p><strong>GAS（Go Application Server）</strong><br>Shopee内部的Go语言应用开发框架。</p>
+<h2 id="197-trace设计"><a class="header" href="#197-trace设计">19.7 Trace设计</a></h2>
+<p>Trace 不需要一开始接入复杂平台，先落本地 JSON 也可以。</p>
+<pre><code class="language-json">{
+  "trace_id": "tr_001",
+  "user_id": "u_123",
+  "input": "如何查看退款进度？",
+  "intent": "knowledge_qa",
+  "events": [
+    {
+      "type": "retrieval",
+      "query": "如何查看退款进度？",
+      "doc_ids": ["refund-policy.md"],
+      "latency_ms": 120
+    },
+    {
+      "type": "generation",
+      "model": "gpt-4.1-mini",
+      "prompt_version": "qa-v1",
+      "latency_ms": 900
+    }
+  ],
+  "final_answer": "...",
+  "cost_usd": 0.003
+}
+</code></pre>
+<p>面试时要说明 trace 的用途：</p>
+<ul>
+<li>debug 单次失败；</li>
+<li>聚合分析失败模式；</li>
+<li>生成 eval case；</li>
+<li>对比版本效果；</li>
+<li>计算成本和延迟。</li>
+</ul>
 <hr>
-<h2 id="h"><a class="header" href="#h">H</a></h2>
-<p><strong>Hallucination（幻觉）</strong><br>LLM生成看似合理但实际错误的内容，包括事实性幻觉、逻辑性幻觉和引用性幻觉。</p>
-<p><strong>Harness Engineering（驾驭工程）</strong><br>通过构建可靠的基础设施和约束系统来驾驭AI的工程方法论。</p>
-<p><strong>Hybrid Search（混合检索）</strong><br>结合向量检索和关键词检索的方法，提高检索的召回率和精确度。</p>
+<h2 id="198-eval-dataset"><a class="header" href="#198-eval-dataset">19.8 Eval Dataset</a></h2>
+<pre><code class="language-yaml">- id: qa_refund_001
+  input: "我想知道退款一般多久能到账"
+  expected:
+    must_mention:
+      - "退款处理时间"
+      - "支付渠道"
+    must_cite:
+      - "refund-policy.md"
+    should_not:
+      - "承诺固定到账时间"
+
+- id: ticket_create_001
+  input: "我的订单一直失败，帮我建个工单"
+  expected:
+    tool_call:
+      name: "create_ticket"
+    final_contains:
+      - "ticket_id"
+</code></pre>
+<p>Eval runner：</p>
+<pre><code class="language-python">async def run_eval(dataset, agent):
+    results = []
+    for case in dataset:
+        output = await agent.run(user=case.user, message=case.input)
+        score = judge(case.expected, output)
+        results.append({
+            "id": case.id,
+            "passed": score.passed,
+            "reason": score.reason
+        })
+    return results
+</code></pre>
 <hr>
-<h2 id="i"><a class="header" href="#i">I</a></h2>
-<p><strong>Inference（推理）</strong><br>模型根据输入数据生成输出的过程。在机器学习中指模型的预测阶段。</p>
+<h2 id="199-readme展示模板"><a class="header" href="#199-readme展示模板">19.9 README展示模板</a></h2>
+<p>Mini Agent 项目的 README 应该服务面试。</p>
+<pre><code class="language-markdown"># Support Agent
+
+## 目标
+内部知识问答与支持工单创建。
+
+## 架构
+- FastAPI API 层
+- Router-based Agent Runner
+- RAG Retriever
+- Tool Registry
+- Input / Tool / Output Guardrails
+- JSON Trace
+- Offline Evals
+
+## 核心指标
+- Eval pass rate: 86%
+- Tool selection accuracy: 92%
+- P95 latency: 2.1s
+- Average cost per task: $0.004
+
+## Demo
+1. 知识问答
+2. 工单查询
+3. 工单创建
+4. 越权请求拦截
+
+## 设计取舍
+第一版使用 Router，而不是自由 ReACT，降低不可控工具调用风险。
+</code></pre>
 <hr>
-<h2 id="l"><a class="header" href="#l">L</a></h2>
-<p><strong>LLM（Large Language Model，大语言模型）</strong><br>基于Transformer架构的大规模预训练语言模型，如GPT-4、Claude等。</p>
-<p><strong>Loop Detection（循环检测）</strong><br>检测Agent重复执行相同操作的机制，用于防止无限循环。</p>
+<h2 id="1910-面试讲解脚本"><a class="header" href="#1910-面试讲解脚本">19.10 面试讲解脚本</a></h2>
+<p>3 分钟版本：</p>
+<pre><code class="language-text">我做了一个 Support Agent，用于内部知识问答和工单创建。
+
+架构上我没有直接做一个自由循环的 Agent，而是采用 Router + RAG + Tool Calling。
+普通知识问题走 RAG，工单状态查询和创建走工具，高风险或越权请求由 guardrails 拦截。
+
+工程上我重点做了三件事：
+第一是工具注册表，每个工具有风险等级、权限校验和结构化错误；
+第二是 trace，记录检索、工具调用、模型生成和最终输出；
+第三是 eval dataset，用 20 条 case 回归测试回答质量、工具选择和安全边界。
+
+这个项目虽然小，但覆盖了生产 Agent 的关键闭环：能回答、能行动、能防错、能评估、能复盘。
+</code></pre>
 <hr>
-<h2 id="m"><a class="header" href="#m">M</a></h2>
-<p><strong>MCP（Model Context Protocol）</strong><br>Anthropic提出的协议，用于AI工具连接外部数据源和服务。</p>
-<p><strong>MTTR（Mean Time To Resolution，平均恢复时间）</strong><br>从问题发生到解决的平均时间，运维领域的关键指标。</p>
-<p><strong>Multi-Agent System（多Agent系统）</strong><br>由多个Agent协作完成复杂任务的系统架构。</p>
-<hr>
-<h2 id="p"><a class="header" href="#p">P</a></h2>
-<p><strong>Plan-and-Execute（计划-执行）</strong><br>一种Agent架构模式，先制定详细计划，再逐步执行。</p>
-<p><strong>Positional Encoding（位置编码）</strong><br>在Transformer中注入序列位置信息的机制。</p>
-<p><strong>Prompt Caching（Prompt缓存）</strong><br>缓存长System Prompt以节省token成本的技术。</p>
-<p><strong>Prompt Engineering（提示工程）</strong><br>设计和优化Prompt以提高LLM输出质量的技术。</p>
-<hr>
-<h2 id="r"><a class="header" href="#r">R</a></h2>
-<p><strong>RAG（Retrieval-Augmented Generation，检索增强生成）</strong><br>结合信息检索和语言模型生成的方法，通过检索外部知识增强LLM能力。</p>
-<p><strong>ReACT（Reasoning and Acting）</strong><br>一种Agent架构模式，交替进行推理（Thought）和行动（Action）。</p>
-<p><strong>Reciprocal Rank Fusion（倒数排名融合）</strong><br>一种融合多个检索结果的算法，用于混合检索。</p>
-<p><strong>Reranking（重排序）</strong><br>使用专门模型重新排序检索结果，提高精确度。</p>
-<hr>
-<h2 id="s"><a class="header" href="#s">S</a></h2>
-<p><strong>Self-Consistency（自我一致性）</strong><br>多次采样LLM输出，选择最一致的结果以提高准确性。</p>
-<p><strong>Sliding Window（滑动窗口）</strong><br>保留最近N条消息的上下文管理策略。</p>
-<p><strong>SOP（Standard Operating Procedure，标准操作流程）</strong><br>标准化的问题处理流程。</p>
-<p><strong>Spec Coding（规格编程）</strong><br>先定义清晰规格，再让AI生成代码的编程范式。</p>
-<p><strong>State Machine（状态机）</strong><br>管理系统状态转换的设计模式，用于控制Agent工作流。</p>
-<hr>
-<h2 id="t"><a class="header" href="#t">T</a></h2>
-<p><strong>Token</strong><br>LLM处理文本的基本单位，通常一个token约等于0.75个英文单词或0.5个中文字符。</p>
-<p><strong>Tool Call（工具调用）</strong><br>Agent调用外部工具（API、数据库、命令行等）执行操作。</p>
-<p><strong>Transformer</strong><br>基于Self-Attention机制的神经网络架构，现代LLM的基础。</p>
-<hr>
-<h2 id="v"><a class="header" href="#v">V</a></h2>
-<p><strong>Vector Database（向量数据库）</strong><br>专门存储和检索高维向量的数据库，用于RAG系统。</p>
-<p><strong>Vibe Coding（感觉编程）</strong><br>依赖直觉和经验，与AI反复迭代的编程方式。</p>
-<hr>
-<h2 id="z"><a class="header" href="#z">Z</a></h2>
-<p><strong>Zero-Shot Learning（零样本学习）</strong><br>不提供示例，直接让LLM完成任务。</p>
-<hr>
-<h2 id="中文术语"><a class="header" href="#中文术语">中文术语</a></h2>
-<p><strong>分级决策</strong><br>根据风险等级采用不同决策策略的方法。</p>
-<p><strong>幻觉</strong><br>见 Hallucination。</p>
-<p><strong>混合架构</strong><br>结合多种设计模式的系统架构，如状态机 + ReACT。</p>
-<p><strong>可观测性</strong><br>通过指标、日志、追踪等方式了解系统运行状态的能力。</p>
-<p><strong>上下文管理</strong><br>管理LLM上下文窗口中信息的策略和技术。</p>
-<p><strong>状态机</strong><br>见 State Machine。</p>
-<p><strong>向量数据库</strong><br>见 Vector Database。</p>
-<p><strong>知识编译</strong><br>LLM将原始数据转换为结构化知识的过程。</p>
-<hr>
-<p><em>本术语表持续更新中</em></p>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p>一个好的面试项目不一定庞大，但必须体现工程完整性。</p>
+<p>Mini Agent 至少应该包含：</p>
+<ul>
+<li>清晰的业务目标；</li>
+<li>可解释的架构模式；</li>
+<li>工具注册表；</li>
+<li>RAG；</li>
+<li>Guardrails；</li>
+<li>Trace；</li>
+<li>Eval dataset；</li>
+<li>README 和架构图。</li>
+</ul>
+<p>正文到这里收束。附录提供术语表、参考资料、工具清单，以及系统设计面试题与作品集模板，方便按需查阅。</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../part3/08-mini-agent-observability.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../part3/07-pkm-agent-case-study.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../appendix/references.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../appendix/glossary.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -287,11 +517,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../part3/08-mini-agent-observability.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../part3/07-pkm-agent-case-study.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../appendix/references.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../appendix/glossary.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

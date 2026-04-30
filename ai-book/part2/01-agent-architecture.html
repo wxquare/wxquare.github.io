@@ -1,0 +1,777 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第5章 Agent 架构设计与决策框架 - AI工程实践：从编程到Agent的完整指南</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向有经验AI工程师的实战指南，涵盖AI编程、Agent系统设计与完整案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-4c5e8c88.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-3a2f58f8.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI工程实践：从编程到Agent的完整指南</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第5章-agent-架构设计与决策框架"><a class="header" href="#第5章-agent-架构设计与决策框架">第5章 Agent 架构设计与决策框架</a></h1>
+<blockquote>
+<p>“The right question isn’t whether to use AI, but whether the problem requires reasoning.” （关键不是要不要用AI，而是问题是否需要推理）</p>
+</blockquote>
+<h2 id="引言"><a class="header" href="#引言">引言</a></h2>
+<p>在设计 Agent 系统之前，我们必须回答一个根本问题：<strong>为什么不用传统的后端系统？</strong></p>
+<p>这不是一个简单的技术选型问题，而是对问题本质的理解。本章将通过对比传统后端系统与 AI Agent 的本质区别，建立一个系统化的决策框架，帮助你判断何时需要 Agent，以及如何设计合理的 Agent 架构。</p>
+<hr>
+<h2 id="51-agent-vs-传统后端的本质区别"><a class="header" href="#51-agent-vs-传统后端的本质区别">5.1 Agent vs 传统后端的本质区别</a></h2>
+<h3 id="传统后端系统的特征"><a class="header" href="#传统后端系统的特征">传统后端系统的特征</a></h3>
+<p>传统后端系统基于<strong>确定性逻辑</strong>和<strong>预定义流程</strong>：</p>
+<pre><code class="language-text">输入 → 规则引擎 → 输出
+</code></pre>
+<p><strong>核心特征：</strong></p>
+<ol>
+<li><strong>确定性</strong>：相同输入必然产生相同输出</li>
+<li><strong>规则驱动</strong>：所有逻辑都是显式编码的</li>
+<li><strong>静态流程</strong>：流程在编译时确定</li>
+<li><strong>可预测性</strong>：行为完全可预测和测试</li>
+</ol>
+<p><strong>适用场景：</strong></p>
+<ul>
+<li>业务规则明确且稳定</li>
+<li>流程固定，变化少</li>
+<li>对准确性要求极高</li>
+<li>需要强一致性保证</li>
+</ul>
+<p><strong>典型例子：</strong></p>
+<ul>
+<li>订单系统：下单 → 支付 → 发货 → 完成</li>
+<li>库存系统：扣减 → 锁定 → 释放</li>
+<li>支付系统：预授权 → 扣款 → 结算</li>
+</ul>
+<h3 id="ai-agent-的特征"><a class="header" href="#ai-agent-的特征">AI Agent 的特征</a></h3>
+<p>AI Agent 基于<strong>推理能力</strong>和<strong>动态规划</strong>：</p>
+<pre><code class="language-text">输入 → 理解意图 → 规划步骤 → 执行工具 → 评估结果 → 输出
+</code></pre>
+<p><strong>核心特征：</strong></p>
+<ol>
+<li><strong>不确定性</strong>：相同输入可能产生不同的执行路径</li>
+<li><strong>推理驱动</strong>：通过 LLM 推理而非硬编码规则</li>
+<li><strong>动态规划</strong>：根据中间结果调整执行计划</li>
+<li><strong>自主性</strong>：能够自主决策和调用工具</li>
+</ol>
+<p><strong>适用场景：</strong></p>
+<ul>
+<li>业务规则复杂且多变</li>
+<li>需要理解自然语言输入</li>
+<li>需要多步骤推理和规划</li>
+<li>需要整合多个系统和数据源</li>
+</ul>
+<p><strong>典型例子：</strong></p>
+<ul>
+<li>智能客服：理解问题 → 查询知识库 → 生成回答</li>
+<li>代码助手：理解需求 → 搜索代码 → 生成方案 → 测试验证</li>
+<li>运维助手：分析告警 → 查询日志 → 诊断问题 → 提供建议</li>
+</ul>
+<h3 id="对比分析"><a class="header" href="#对比分析">对比分析</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">传统后端系统</th><th style="text-align: left">AI Agent</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><strong>决策方式</strong></td><td style="text-align: left">if-else / 规则引擎</td><td style="text-align: left">LLM 推理</td></tr>
+<tr><td style="text-align: left"><strong>流程</strong></td><td style="text-align: left">静态，编译时确定</td><td style="text-align: left">动态，运行时规划</td></tr>
+<tr><td style="text-align: left"><strong>输入</strong></td><td style="text-align: left">结构化数据</td><td style="text-align: left">自然语言 + 结构化数据</td></tr>
+<tr><td style="text-align: left"><strong>可预测性</strong></td><td style="text-align: left">完全可预测</td><td style="text-align: left">概率性输出</td></tr>
+<tr><td style="text-align: left"><strong>扩展性</strong></td><td style="text-align: left">修改代码</td><td style="text-align: left">修改 Prompt / 增加工具</td></tr>
+<tr><td style="text-align: left"><strong>成本</strong></td><td style="text-align: left">固定（服务器）</td><td style="text-align: left">变动（Token）</td></tr>
+<tr><td style="text-align: left"><strong>延迟</strong></td><td style="text-align: left">毫秒级</td><td style="text-align: left">秒级</td></tr>
+<tr><td style="text-align: left"><strong>准确性</strong></td><td style="text-align: left">100%（逻辑正确）</td><td style="text-align: left">85-95%（依赖模型）</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="案例电商告警处理系统的演进"><a class="header" href="#案例电商告警处理系统的演进">案例：电商告警处理系统的演进</a></h3>
+<h4 id="v1传统后端方案被动工具"><a class="header" href="#v1传统后端方案被动工具">V1：传统后端方案（被动工具）</a></h4>
+<pre><code class="language-go">// 简单的查询服务
+func GetOnCallEngineer(service string) string {
+    // 硬编码的值班表
+    schedule := map[string]string{
+        "order-service": "engineer-a@company.com",
+        "payment-service": "engineer-b@company.com",
+    }
+    return schedule[service]
+}
+</code></pre>
+<p><strong>问题：</strong></p>
+<ul>
+<li>只能查询，不能分析</li>
+<li>无法理解告警上下文</li>
+<li>无法提供处理建议</li>
+<li>值班人员需要手动诊断</li>
+</ul>
+<h4 id="v2尝试用规则引擎"><a class="header" href="#v2尝试用规则引擎">V2：尝试用规则引擎</a></h4>
+<pre><code class="language-go">// 规则引擎方案
+func DiagnoseAlert(alert Alert) Diagnosis {
+    // 规则 1: CPU 高
+    if alert.Metric == "cpu_usage" &amp;&amp; alert.Value &gt; 80 {
+        return Diagnosis{
+            RootCause: "CPU 使用率过高",
+            Suggestion: "检查是否有异常进程",
+        }
+    }
+
+    // 规则 2: 内存高
+    if alert.Metric == "memory_usage" &amp;&amp; alert.Value &gt; 90 {
+        return Diagnosis{
+            RootCause: "内存不足",
+            Suggestion: "检查是否有内存泄漏",
+        }
+    }
+
+    // 需要为每种告警类型写规则...
+    // 规则数量爆炸：50+ 告警类型 × 10+ 服务 = 500+ 规则
+
+    return Diagnosis{RootCause: "未知", Suggestion: "人工处理"}
+}
+</code></pre>
+<p><strong>问题：</strong></p>
+<ul>
+<li><strong>规则爆炸</strong>：需要为每种场景写规则</li>
+<li><strong>维护困难</strong>：新增告警类型需要修改代码</li>
+<li><strong>缺乏上下文</strong>：无法关联多个告警</li>
+<li><strong>无法学习</strong>：不能从历史案例中学习</li>
+</ul>
+<h4 id="v3agent-方案"><a class="header" href="#v3agent-方案">V3：Agent 方案</a></h4>
+<pre><code class="language-go">// Agent 方案
+func (a *DoDAgent) DiagnoseAlert(alert Alert) Diagnosis {
+    // 1. 构建上下文
+    context := a.buildContext(alert)
+
+    // 2. LLM 推理
+    prompt := fmt.Sprintf(`
+你是一个电商系统运维专家。请分析以下告警：
+
+告警信息：
+- 服务：%s
+- 指标：%s
+- 当前值：%v
+- 阈值：%v
+
+上下文信息：
+- 最近部署：%s
+- 关联告警：%s
+- 历史案例：%s
+
+请分析：
+1. 可能的根因
+2. 影响范围
+3. 处理建议
+
+可用工具：
+- prometheus_query: 查询监控指标
+- log_search: 搜索日志
+- kubernetes_get: 查询 K8s 状态
+`, alert.Service, alert.Metric, alert.Value, alert.Threshold,
+   context.RecentDeployments, context.RelatedAlerts, context.HistoryCases)
+
+    // 3. Agent Loop（ReACT 模式）
+    for i := 0; i &lt; maxIterations; i++ {
+        response := a.llm.Generate(prompt)
+        action := a.parseAction(response)
+
+        if action.Type == "final_answer" {
+            return action.Diagnosis
+        }
+
+        // 执行工具
+        result := a.executeTool(action.Tool, action.Args)
+        prompt += fmt.Sprintf("\nObservation: %s", result)
+    }
+}
+</code></pre>
+<p><strong>优势：</strong></p>
+<ul>
+<li><strong>自动推理</strong>：无需硬编码规则</li>
+<li><strong>上下文理解</strong>：能够关联多个信息源</li>
+<li><strong>动态规划</strong>：根据中间结果调整诊断步骤</li>
+<li><strong>可扩展</strong>：新增告警类型无需修改代码</li>
+</ul>
+<hr>
+<h2 id="52-决策框架何时选择agent"><a class="header" href="#52-决策框架何时选择agent">5.2 决策框架：何时选择Agent？</a></h2>
+<p>基于以上分析，这里提供一个系统化的决策框架：</p>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│              Agent vs 传统后端决策树                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Q1: 输入是否包含自然语言？                                  │
+│      是 → 倾向 Agent                                        │
+│      否 → 继续                                              │
+│                                                             │
+│  Q2: 业务规则是否复杂且多变？                                │
+│      是 → 倾向 Agent                                        │
+│      否 → 继续                                              │
+│                                                             │
+│  Q3: 是否需要多步骤推理？                                    │
+│      是 → 倾向 Agent                                        │
+│      否 → 继续                                              │
+│                                                             │
+│  Q4: 是否需要整合多个系统？                                  │
+│      是 → 倾向 Agent                                        │
+│      否 → 继续                                              │
+│                                                             │
+│  Q5: 对准确性的要求？                                        │
+│      必须 100% → 传统后端                                   │
+│      85-95% 可接受 → Agent                                  │
+│                                                             │
+│  Q6: 对延迟的要求？                                          │
+│      &lt; 100ms → 传统后端                                     │
+│      1-5s 可接受 → Agent                                    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="dod-agent-的决策过程"><a class="header" href="#dod-agent-的决策过程">DoD Agent 的决策过程</a></h3>
+<ul>
+<li>✅ Q1: 告警描述是自然语言</li>
+<li>✅ Q2: 告警场景复杂多变</li>
+<li>✅ Q3: 需要多步骤诊断（查指标 → 查日志 → 查 K8s）</li>
+<li>✅ Q4: 需要整合 Prometheus、Loki、K8s、Confluence</li>
+<li>✅ Q5: 85-95% 准确率可接受（人工兜底）</li>
+<li>✅ Q6: 诊断时间 10-30s 可接受</li>
+</ul>
+<p><strong>结论</strong>：Agent 是合适的选择。</p>
+<hr>
+<h2 id="53-混合架构agent--传统后端"><a class="header" href="#53-混合架构agent--传统后端">5.3 混合架构：Agent + 传统后端</a></h2>
+<p>实际上，最佳方案往往是<strong>混合架构</strong>：</p>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│                    混合架构                                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────────────┐         ┌──────────────┐                 │
+│  │ 传统后端系统 │         │  AI Agent    │                 │
+│  │              │         │              │                 │
+│  │ • 核心业务   │         │ • 智能分析   │                 │
+│  │ • 高频操作   │◄────────┤ • 决策建议   │                 │
+│  │ • 强一致性   │         │ • 工具调用   │                 │
+│  │              │         │              │                 │
+│  └──────────────┘         └──────────────┘                 │
+│         │                        │                          │
+│         └────────────┬───────────┘                          │
+│                      ▼                                      │
+│              ┌──────────────┐                               │
+│              │  统一 API 层 │                               │
+│              └──────────────┘                               │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>DoD Agent 的混合架构：</strong></p>
+<ul>
+<li><strong>传统后端</strong>：告警接收、去重、存储、状态管理</li>
+<li><strong>AI Agent</strong>：告警分析、诊断推理、建议生成</li>
+<li><strong>决策引擎</strong>：基于风险等级决定是否自动执行</li>
+</ul>
+<hr>
+<h2 id="54-agent核心架构模式"><a class="header" href="#54-agent核心架构模式">5.4 Agent核心架构模式</a></h2>
+<h3 id="react-模式推理与行动"><a class="header" href="#react-模式推理与行动">ReACT 模式：推理与行动</a></h3>
+<p>ReACT（Reasoning and Acting）是最常用的 Agent 架构模式：</p>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│                    ReACT Loop                                │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. Thought（思考）                                          │
+│     ├─ 分析当前状态                                          │
+│     ├─ 识别缺少的信息                                        │
+│     └─ 规划下一步行动                                        │
+│                                                             │
+│  2. Action（行动）                                           │
+│     ├─ 选择合适的工具                                        │
+│     ├─ 构造工具参数                                          │
+│     └─ 执行工具调用                                          │
+│                                                             │
+│  3. Observation（观察）                                      │
+│     ├─ 接收工具返回结果                                      │
+│     ├─ 评估结果质量                                          │
+│     └─ 更新上下文                                            │
+│                                                             │
+│  4. Loop（循环）                                             │
+│     ├─ 判断是否达成目标                                      │
+│     ├─ 是 → 输出最终答案                                     │
+│     └─ 否 → 回到步骤 1                                       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>实现示例：</strong></p>
+<pre><code class="language-go">type ReACTAgent struct {
+    llm         LLM
+    tools       map[string]Tool
+    maxIterations int
+}
+
+func (a *ReACTAgent) Run(input string) (string, error) {
+    prompt := a.buildInitialPrompt(input)
+
+    for i := 0; i &lt; a.maxIterations; i++ {
+        // 1. Thought + Action
+        response, err := a.llm.Generate(prompt)
+        if err != nil {
+            return "", err
+        }
+
+        action := a.parseAction(response)
+
+        // 判断是否完成
+        if action.Type == "FinalAnswer" {
+            return action.Output, nil
+        }
+
+        // 2. Execute Tool
+        tool, ok := a.tools[action.ToolName]
+        if !ok {
+            return "", fmt.Errorf("unknown tool: %s", action.ToolName)
+        }
+
+        observation, err := tool.Execute(action.Args)
+        if err != nil {
+            observation = fmt.Sprintf("Error: %v", err)
+        }
+
+        // 3. Update Prompt with Observation
+        prompt += fmt.Sprintf("\nObservation: %s\n", observation)
+    }
+
+    return "", fmt.Errorf("max iterations reached")
+}
+</code></pre>
+<h3 id="plan-and-execute-模式先规划再执行"><a class="header" href="#plan-and-execute-模式先规划再执行">Plan-and-Execute 模式：先规划再执行</a></h3>
+<p>适用于复杂多步骤任务：</p>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│                  Plan-and-Execute                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Phase 1: Planning（规划阶段）                               │
+│     ├─ 理解任务目标                                          │
+│     ├─ 分解为子任务                                          │
+│     ├─ 确定执行顺序                                          │
+│     └─ 生成执行计划                                          │
+│                                                             │
+│  Phase 2: Execution（执行阶段）                              │
+│     ├─ 按顺序执行子任务                                      │
+│     ├─ 收集每步结果                                          │
+│     ├─ 根据结果调整计划（可选）                              │
+│     └─ 汇总最终结果                                          │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>对比：</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">ReACT</th><th style="text-align: left">Plan-and-Execute</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><strong>规划方式</strong></td><td style="text-align: left">动态，每步都重新规划</td><td style="text-align: left">静态，提前规划所有步骤</td></tr>
+<tr><td style="text-align: left"><strong>灵活性</strong></td><td style="text-align: left">高，可根据中间结果调整</td><td style="text-align: left">中，规划后较难调整</td></tr>
+<tr><td style="text-align: left"><strong>Token消耗</strong></td><td style="text-align: left">高，每步都调用LLM</td><td style="text-align: left">中，规划一次+执行多次</td></tr>
+<tr><td style="text-align: left"><strong>适用场景</strong></td><td style="text-align: left">探索性任务，结果不确定</td><td style="text-align: left">流程性任务，步骤明确</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="multi-agent-模式多agent协作"><a class="header" href="#multi-agent-模式多agent协作">Multi-Agent 模式：多Agent协作</a></h3>
+<p>适用于需要不同专业能力的复杂系统：</p>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│                   Multi-Agent System                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────────────┐                                           │
+│  │ Coordinator  │ ◄─────── User Input                       │
+│  │  协调者      │                                           │
+│  └──────┬───────┘                                           │
+│         │                                                    │
+│         ├───────► ┌──────────────┐                          │
+│         │         │ Analyzer     │                          │
+│         │         │  分析专家    │                          │
+│         │         └──────────────┘                          │
+│         │                                                    │
+│         ├───────► ┌──────────────┐                          │
+│         │         │ Executor     │                          │
+│         │         │  执行专家    │                          │
+│         │         └──────────────┘                          │
+│         │                                                    │
+│         └───────► ┌──────────────┐                          │
+│                   │ Reviewer     │                          │
+│                   │  审查专家    │                          │
+│                   └──────────────┘                          │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>优势：</strong></p>
+<ul>
+<li>职责分离，每个Agent专注自己的领域</li>
+<li>可并行执行，提高效率</li>
+<li>易于扩展和维护</li>
+</ul>
+<p><strong>劣势：</strong></p>
+<ul>
+<li>复杂度高，需要协调机制</li>
+<li>成本高，多个Agent调用LLM</li>
+</ul>
+<hr>
+<h2 id="55-需求分析三层框架"><a class="header" href="#55-需求分析三层框架">5.5 需求分析三层框架</a></h2>
+<p>在设计 Agent 之前，需要进行系统的需求分析：</p>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│                  需求分析三层框架                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Layer 1: 业务需求（What）                                  │
+│  ├─ 要解决什么问题？                                        │
+│  ├─ 目标用户是谁？                                          │
+│  ├─ 成功的标准是什么？                                      │
+│  └─ 业务价值是什么？                                        │
+│                                                             │
+│  Layer 2: 功能需求（How）                                   │
+│  ├─ 需要哪些功能？                                          │
+│  ├─ 输入输出是什么？                                        │
+│  ├─ 性能要求如何？                                          │
+│  └─ 非功能需求（可用性、安全性）                            │
+│                                                             │
+│  Layer 3: 技术需求（Why Agent）                             │
+│  ├─ 为什么需要 AI？                                         │
+│  ├─ 为什么需要 Agent？                                      │
+│  ├─ 为什么不用传统方案？                                    │
+│  └─ 技术可行性如何？                                        │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="dod-agent-案例业务需求分析"><a class="header" href="#dod-agent-案例业务需求分析">DoD Agent 案例：业务需求分析</a></h3>
+<p><strong>问题定义：</strong></p>
+<pre><code class="language-text">当前痛点：
+1. 告警量大（50-200条/天），值班人员疲劳
+2. 80% 的告警是重复性问题，但每次都需要人工分析
+3. 知识分散在 Confluence，难以快速定位
+4. 跨部门协作效率低，告警升级流程不清晰
+5. 新人上手慢，需要 2-3 个月才能独立值班
+
+核心问题：
+如何减少值班人员的重复性工作，提高告警处理效率？
+</code></pre>
+<p><strong>成功标准：</strong></p>
+<pre><code class="language-text">定量指标：
+- 自动诊断率 ≥ 60%
+- 诊断准确率 ≥ 85%
+- MTTR（平均恢复时间）降低 30%
+- 值班人员工作量减少 30%
+
+定性指标：
+- 值班人员满意度提升
+- 新人上手时间缩短到 1 个月
+- 知识沉淀和复用
+</code></pre>
+<p><strong>业务价值：</strong></p>
+<pre><code class="language-text">直接价值：
+- 减少人力成本：每月节省 40 小时 × $50/h = $2000
+- 降低故障损失：MTTR 降低 30% → 可用性提升 → 减少业务损失
+
+间接价值：
+- 知识沉淀：专家经验转化为可复用知识
+- 团队成长：新人快速成长，老人聚焦复杂问题
+- 流程标准化：告警处理流程规范化
+</code></pre>
+<hr>
+<h2 id="56-agent设计检查清单"><a class="header" href="#56-agent设计检查清单">5.6 Agent设计检查清单</a></h2>
+<pre><code class="language-markdown">## Agent 设计检查清单
+
+### 决策验证
+- [ ] 确认问题需要推理，不是简单的规则映射
+- [ ] 评估 85-95% 的准确率是否可接受
+- [ ] 评估秒级延迟是否可接受
+- [ ] 评估 LLM 成本是否在预算内
+- [ ] 对比传统方案的优劣
+
+### 架构设计
+- [ ] 选择合适的架构模式（ReACT / Plan-and-Execute / Multi-Agent）
+- [ ] 设计工具系统和 API 接口
+- [ ] 设计状态管理机制
+- [ ] 设计错误处理和重试策略
+- [ ] 设计可观测性和监控
+
+### 风险管理
+- [ ] 识别准确率不足的风险
+- [ ] 设计人工兜底机制
+- [ ] 设计成本控制措施
+- [ ] 设计安全性措施
+- [ ] 制定测试和验证计划
+
+### 实施准备
+- [ ] 评估团队技术能力
+- [ ] 制定学习和培训计划
+- [ ] 准备开发环境和工具
+- [ ] 准备测试数据和评估标准
+</code></pre>
+<hr>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<h3 id="核心要点回顾"><a class="header" href="#核心要点回顾">核心要点回顾</a></h3>
+<p><strong>1. Agent vs 传统后端的本质区别</strong></p>
+<ul>
+<li>传统后端：确定性、规则驱动、静态流程</li>
+<li>AI Agent：推理驱动、动态规划、自主决策</li>
+<li>关键不是技术新旧，而是问题是否需要推理</li>
+</ul>
+<p><strong>2. 决策框架</strong></p>
+<ul>
+<li>六个关键问题：输入类型、规则复杂度、推理需求、系统整合、准确性要求、延迟要求</li>
+<li>混合架构往往是最佳方案：传统后端 + AI Agent</li>
+</ul>
+<p><strong>3. 核心架构模式</strong></p>
+<ul>
+<li><strong>ReACT</strong>：动态规划，适合探索性任务</li>
+<li><strong>Plan-and-Execute</strong>：先规划再执行，适合流程性任务</li>
+<li><strong>Multi-Agent</strong>：多专家协作，适合复杂系统</li>
+</ul>
+<p><strong>4. 需求分析三层框架</strong></p>
+<ul>
+<li>Layer 1：业务需求（What）- 要解决什么问题</li>
+<li>Layer 2：功能需求（How）- 需要哪些功能</li>
+<li>Layer 3：技术需求（Why Agent）- 为什么需要 Agent</li>
+</ul>
+<p><strong>5. 实战经验</strong></p>
+<ul>
+<li>DoD Agent 案例展示了从规则引擎到 Agent 的演进</li>
+<li>明确的量化指标和成功标准</li>
+<li>完整的需求分析和风险评估</li>
+</ul>
+<h3 id="关键洞察"><a class="header" href="#关键洞察">关键洞察</a></h3>
+<blockquote>
+<p><strong>Agent 不是万能的，不要盲目追求 AI。传统后端系统在确定性场景下仍然是最佳选择。Agent 的价值在于处理复杂、多变、需要推理的场景。</strong></p>
+</blockquote>
+<h3 id="下一章预告"><a class="header" href="#下一章预告">下一章预告</a></h3>
+<p>第6章我们将深入探讨工具系统与 MCP 协议，包括如何设计可靠的工具接口、如何通过 MCP 连接外部系统，以及工具编排的最佳实践。</p>
+<hr>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<ol>
+<li><strong>ReACT: Synergizing Reasoning and Acting in Language Models</strong> - Yao et al., 2022</li>
+<li><strong>LangChain Agent 文档</strong> - https://docs.langchain.com/docs/components/agents</li>
+<li><strong>LangGraph 架构设计</strong> - https://langchain-ai.github.io/langgraph/</li>
+<li><strong>CrewAI Multi-Agent Framework</strong> - https://github.com/joaomdmoura/crewAI</li>
+<li><strong>OpenAI Function Calling Guide</strong> - https://platform.openai.com/docs/guides/function-calling</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part1/04-harness-engineering.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part2/02-tool-calling-mcp.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part1/04-harness-engineering.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part2/02-tool-calling-mcp.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
