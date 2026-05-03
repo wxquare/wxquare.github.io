@@ -58,17 +58,23 @@ func main() {
 
 // Dependencies 依赖容器
 type Dependencies struct {
-	localCache     *cache.LocalCache
-	redisCache     *cache.RedisCache
-	eventPublisher messaging.EventPublisher
-	repo           *persistence.ProductRepositoryImpl
-	productService *service.ProductService
-	runtimeRepo    *persistence.RuntimeContextRepository
-	runtimeService *service.RuntimeContextService
-	actionService  *service.CategoryActionService
-	httpHandler    *httpHandler.ProductHandler
-	eventHandler   *eventHandler.ProductEventHandler // ⭐️ Interface Layer
-	kafkaConsumer  *messaging.KafkaConsumer          // ⭐️ Infrastructure Layer
+	localCache           *cache.LocalCache
+	redisCache           *cache.RedisCache
+	eventPublisher       messaging.EventPublisher
+	repo                 *persistence.ProductRepositoryImpl
+	productService       *service.ProductService
+	runtimeRepo          *persistence.RuntimeContextRepository
+	runtimeService       *service.RuntimeContextService
+	actionService        *service.CategoryActionService
+	productCenterRepo    *persistence.ProductCenterRepository
+	productCenterService *service.ProductCenterService
+	inventoryRepo        *persistence.InventoryRepository
+	inventoryService     *service.InventoryService
+	supplyRepo           *persistence.SupplyOpsRepository
+	supplyOpsService     *service.SupplyOpsService
+	httpHandler          *httpHandler.ProductHandler
+	eventHandler         *eventHandler.ProductEventHandler // ⭐️ Interface Layer
+	kafkaConsumer        *messaging.KafkaConsumer          // ⭐️ Infrastructure Layer
 	// grpcHandler    *grpcHandler.ProductServiceServer
 }
 
@@ -94,9 +100,15 @@ func initDependencies() *Dependencies {
 		strategy.NewHotelStrategy(),
 	})
 	actionService := service.NewCategoryActionService(runtimeRepo)
+	productCenterRepo := persistence.NewProductCenterRepository()
+	productCenterService := service.NewProductCenterService(productCenterRepo)
+	inventoryRepo := persistence.NewInventoryRepository()
+	inventoryService := service.NewInventoryService(inventoryRepo)
+	supplyRepo := persistence.NewSupplyOpsRepository()
+	supplyOpsService := service.NewSupplyOpsService(supplyRepo, productCenterService, inventoryService)
 
 	// Interface Layer - HTTP
-	handler := httpHandler.NewProductHandler(productService, runtimeService, actionService)
+	handler := httpHandler.NewProductHandler(productService, runtimeService, actionService, productCenterService, inventoryService, supplyOpsService)
 
 	// ⭐️ Interface Layer - Event (异步接口)
 	evtHandler := eventHandler.NewProductEventHandler(productService)
@@ -113,17 +125,23 @@ func initDependencies() *Dependencies {
 	fmt.Println("")
 
 	return &Dependencies{
-		localCache:     localCache,
-		redisCache:     redisCache,
-		eventPublisher: eventPublisher,
-		repo:           repo,
-		productService: productService,
-		runtimeRepo:    runtimeRepo,
-		runtimeService: runtimeService,
-		actionService:  actionService,
-		httpHandler:    handler,
-		eventHandler:   evtHandler,
-		kafkaConsumer:  kafkaConsumer,
+		localCache:           localCache,
+		redisCache:           redisCache,
+		eventPublisher:       eventPublisher,
+		repo:                 repo,
+		productService:       productService,
+		runtimeRepo:          runtimeRepo,
+		runtimeService:       runtimeService,
+		actionService:        actionService,
+		productCenterRepo:    productCenterRepo,
+		productCenterService: productCenterService,
+		inventoryRepo:        inventoryRepo,
+		inventoryService:     inventoryService,
+		supplyRepo:           supplyRepo,
+		supplyOpsService:     supplyOpsService,
+		httpHandler:          handler,
+		eventHandler:         evtHandler,
+		kafkaConsumer:        kafkaConsumer,
 		// grpcHandler:    grpcHandler,
 	}
 }
@@ -253,6 +271,11 @@ func runCompleteDemo() {
 	fmt.Println("===========================================")
 	validateTopupAccount(baseURL, 10001, "13800138000")
 	searchFlights(baseURL, "SHA", "BJS", "2026-05-01", 1)
+
+	fmt.Println("\n===========================================")
+	fmt.Println("📋 Demo 6: 商品中心 + 库存中心 + 供给运营")
+	fmt.Println("===========================================")
+	runSupplyProductDemo(baseURL)
 }
 
 // HTTP客户端辅助函数
@@ -361,6 +384,143 @@ func searchFlights(baseURL string, from string, to string, date string, adult in
 		fmt.Printf("     Offer=%s Flight=%s Price=%s Booking=%s\n",
 			offer.OfferToken, offer.FlightNo, formatPrice(offer.Price.Amount), offer.BookingMode)
 	}
+}
+
+func runSupplyProductDemo(baseURL string) {
+	payload := samplePublishedPayload()
+	createReq := dto.CreateSupplyDraftRequest{
+		OperationID:        "op-local-gift-card-100",
+		SourceType:         "LOCAL_OPS",
+		OperatorID:         9001,
+		BasePublishVersion: 0,
+		Payload:            payload,
+	}
+	var createResp dto.CreateSupplyDraftResponse
+	if !postJSON(baseURL+"/api/v1/supply/drafts", createReq, &createResp) {
+		return
+	}
+	fmt.Printf("   Draft Created: DraftID=%s Status=%s\n", createResp.DraftID, createResp.Status)
+
+	var submitResp dto.SubmitSupplyDraftResponse
+	if !postJSON(baseURL+"/api/v1/supply/drafts/"+createResp.DraftID+"/submit", map[string]string{}, &submitResp) {
+		return
+	}
+	fmt.Printf("   Draft Submitted: StagingID=%s QCPolicy=%s Status=%s\n", submitResp.StagingID, submitResp.QCPolicy, submitResp.Status)
+
+	var publishResp dto.SupplyPublishResponse
+	if !postJSON(baseURL+"/api/v1/supply/staging/"+submitResp.StagingID+"/publish", map[string]string{}, &publishResp) {
+		return
+	}
+	fmt.Printf("   Published: ItemID=%d Version=%d Snapshot=%s InventoryReady=%v\n",
+		publishResp.ItemID, publishResp.PublishVersion, publishResp.SnapshotID, publishResp.InventoryReady)
+
+	checkInventory(baseURL, publishResp.InventoryKey, 2)
+	reserveInventory(baseURL, publishResp.InventoryKey, "ORDER-10001", 2)
+	checkInventory(baseURL, publishResp.InventoryKey, 1)
+}
+
+func samplePublishedPayload() dto.ProductPublishPayloadDTO {
+	return dto.ProductPublishPayloadDTO{
+		SKUID:      30001,
+		SPUID:      3001,
+		SKUCode:    "GIFT-DEMO-100",
+		Title:      "Demo Gift Card 100",
+		CategoryID: 30105,
+		BasePrice:  dto.MoneyDTO{Amount: 10000, Currency: "CNY"},
+		Attributes: map[string]string{
+			"brand_name": "Demo Store",
+		},
+		Images: []string{"https://example.com/gift-card-demo.jpg"},
+		Resource: dto.ProductCenterResourceDTO{
+			ResourceType: "GIFT_CARD",
+			ResourceID:   "brand_demo",
+			Name:         "Demo Store",
+		},
+		Offer: dto.ProductCenterOfferDTO{
+			OfferID:   "offer_gift_demo_100",
+			OfferType: "FIXED_PRICE",
+			Price:     dto.MoneyDTO{Amount: 10000, Currency: "CNY"},
+			Channels:  []string{"APP", "WEB"},
+		},
+		StockConfig: dto.ProductStockConfigDTO{
+			InventoryKey:      "inv:sku:30001:global",
+			ManagementType:    "SELF_MANAGED",
+			UnitType:          "QUANTITY",
+			DeductTiming:      "ON_ORDER",
+			InitialStock:      5,
+			LowStockThreshold: 1,
+			Scope: dto.InventoryScopeDTO{
+				ScopeType: "GLOBAL",
+				ScopeID:   "0",
+			},
+		},
+		InputSchema: dto.InputSchemaDTO{
+			SchemaID: "gift_card_demo_input",
+			Fields: []dto.InputFieldDTO{
+				{Name: "email", Label: "Email", Type: "string", Required: true},
+			},
+		},
+		Fulfillment: dto.FulfillmentContractDTO{
+			Type:       "ISSUE_CODE",
+			Mode:       "PAY_SUCCESS_THEN_ISSUE",
+			TimeoutSec: 60,
+		},
+		RefundRule: dto.RefundRuleDTO{
+			RuleID:      "gift_card_demo_refund_before_issue",
+			Refundable:  true,
+			NeedReview:  false,
+			Description: "未发码前可退",
+		},
+	}
+}
+
+func checkInventory(baseURL string, inventoryKey string, qty int) {
+	url := fmt.Sprintf("%s/api/v1/inventory/check?inventory_key=%s&qty=%d", baseURL, inventoryKey, qty)
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Printf("❌ Request error: %v\n", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	var result dto.CheckStockResponse
+	json.NewDecoder(resp.Body).Decode(&result)
+	fmt.Printf("   Inventory Check: Key=%s Sellable=%v Available=%d Message=%s\n",
+		result.InventoryKey, result.Sellable, result.Available, result.Message)
+}
+
+func reserveInventory(baseURL string, inventoryKey string, orderID string, qty int) {
+	req := dto.ReserveStockRequest{
+		InventoryKey:   inventoryKey,
+		OrderID:        orderID,
+		Qty:            qty,
+		TTLSeconds:     900,
+		IdempotencyKey: orderID + ":" + inventoryKey,
+	}
+	var result dto.ReserveStockResponse
+	if !postJSON(baseURL+"/api/v1/inventory/reserve", req, &result) {
+		return
+	}
+	fmt.Printf("   Inventory Reserve: ReservationID=%s Status=%s Remaining=%d\n",
+		result.ReservationID, result.Status, result.Remaining)
+}
+
+func postJSON(url string, req interface{}, result interface{}) bool {
+	bodyBytes, _ := json.Marshal(req)
+	resp, err := http.Post(url, "application/json", bytes.NewReader(bodyBytes))
+	if err != nil {
+		fmt.Printf("❌ Request error: %v\n", err)
+		return false
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		var errResp map[string]string
+		json.NewDecoder(resp.Body).Decode(&errResp)
+		fmt.Printf("❌ Response error: status=%d error=%s\n", resp.StatusCode, errResp["error"])
+		return false
+	}
+	json.NewDecoder(resp.Body).Decode(result)
+	return true
 }
 
 func formatPrice(amount int64) string {

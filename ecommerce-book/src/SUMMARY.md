@@ -53,3 +53,4 @@
 - [附录E 参考资料](appendix/references.md)
 - [附录F 供应商数据同步链路](appendix/supplier-sync.md)
 - [附录G 商品供给与运营治理平台](appendix/product-supply-ops.md)
+- [附录H 全局 ID 体系设计](appendix/id-system.md)

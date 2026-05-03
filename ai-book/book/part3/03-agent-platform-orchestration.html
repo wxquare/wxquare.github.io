@@ -1,0 +1,583 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第14章 Agent 平台与编排框架解析：LangGraph、AutoGen、MCP 生态 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-75e7677a.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-5eb53b55.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第14章-agent-平台与编排框架解析langgraphautogenmcp-生态"><a class="header" href="#第14章-agent-平台与编排框架解析langgraphautogenmcp-生态">第14章 Agent 平台与编排框架解析：LangGraph、AutoGen、MCP 生态</a></h1>
+<blockquote>
+<p>Agent 平台的价值，不是替你写一个更长的 prompt，而是把推理、工具、状态、人工审批和恢复机制变成可组合的工程抽象。</p>
+</blockquote>
+<h2 id="引言"><a class="header" href="#引言">引言</a></h2>
+<p>单个 Agent Demo 很容易写：一个模型、一组工具、一个循环。但当任务变长、工具变多、多人协作、需要审批和恢复时，Demo 架构很快会失控。</p>
+<p>成熟 Agent 平台和编排框架通常要解决这些问题：</p>
+<ul>
+<li>多步骤任务如何表示？</li>
+<li>中间状态保存在哪里？</li>
+<li>工具失败后如何恢复？</li>
+<li>人类审批如何插入流程？</li>
+<li>多 Agent 如何通信和分工？</li>
+<li>如何观察每一步的输入、输出和成本？</li>
+<li>如何把系统从 Demo 变成可运维服务？</li>
+</ul>
+<p>LangGraph、AutoGen、Microsoft Agent Framework、MCP 生态分别从不同角度回答这些问题。本章不做框架教程，而是分析它们背后的系统设计模式。</p>
+<hr>
+<h2 id="141-agent-编排为什么需要框架"><a class="header" href="#141-agent-编排为什么需要框架">14.1 Agent 编排为什么需要框架</a></h2>
+<p>最小 Agent Loop 通常长这样：</p>
+<pre><code class="language-python">while not done:
+    action = llm(context)
+    result = execute_tool(action)
+    context.append(result)
+</code></pre>
+<p>这段代码适合原型，但不适合生产。原因是生产系统需要显式处理：</p>
+<ul>
+<li>状态保存；</li>
+<li>步骤重放；</li>
+<li>失败恢复；</li>
+<li>超时和预算；</li>
+<li>人工审批；</li>
+<li>并发分支；</li>
+<li>版本管理；</li>
+<li>trace 和评估。</li>
+</ul>
+<p>一旦这些需求出现，Agent Loop 就会演化为 workflow runtime。</p>
+<pre><code class="language-text">Agent Demo
+  │
+  ▼
+Tool-using Agent
+  │
+  ▼
+Stateful Workflow
+  │
+  ▼
+Multi-Agent Runtime
+  │
+  ▼
+Agent Platform
+</code></pre>
+<hr>
+<h2 id="142-langgraph把-agent-表示成有状态图"><a class="header" href="#142-langgraph把-agent-表示成有状态图">14.2 LangGraph：把 Agent 表示成有状态图</a></h2>
+<p>LangGraph 的核心抽象是图：节点表示计算步骤，边表示状态转移，状态在节点之间流动。</p>
+<pre><code class="language-text">┌──────────┐
+│ Planner  │
+└────┬─────┘
+     ▼
+┌──────────┐      tool needed      ┌──────────┐
+│  Agent   │ ────────────────────► │  Tools   │
+└────┬─────┘                       └────┬─────┘
+     │ final answer                     │ result
+     ▼                                  ▼
+┌──────────┐ ◄──────────────────────────┘
+│  End     │
+└──────────┘
+</code></pre>
+<p>这种设计的价值是：Agent 不再是一段隐藏在 while loop 里的逻辑，而是一个可观察、可恢复、可测试的状态机。</p>
+<h3 id="durable-execution"><a class="header" href="#durable-execution">Durable Execution</a></h3>
+<p>长任务最怕中途失败。如果状态只存在内存里，进程挂掉就要从头来过。</p>
+<p>Durable execution 的思想是：在关键步骤保存状态，使流程可以从检查点恢复。</p>
+<pre><code class="language-text">Step 1 completed → checkpoint
+Step 2 completed → checkpoint
+Human approval pending → checkpoint
+Resume after approval → continue
+</code></pre>
+<p>这对 Agent 尤其重要，因为 LLM 调用可能超时、工具可能失败、人类审批可能隔天才发生。</p>
+<h3 id="human-in-the-loop"><a class="header" href="#human-in-the-loop">Human-in-the-loop</a></h3>
+<p>图式编排很适合插入人工节点：</p>
+<pre><code class="language-text">Diagnose Incident
+  │
+  ▼
+Propose Remediation
+  │
+  ▼
+Human Approval
+  │
+  ├─ approved → Execute
+  └─ rejected → Explain / Alternative
+</code></pre>
+<p>关键是：人工审批不是聊天里的“确认一下”，而是 workflow state 的一部分。</p>
+<h3 id="适用场景"><a class="header" href="#适用场景">适用场景</a></h3>
+<p>LangGraph 式编排适合：</p>
+<ul>
+<li>有明确状态流转的 Agent；</li>
+<li>需要中断和恢复的长任务；</li>
+<li>需要人工审批的流程；</li>
+<li>需要可视化和调试执行路径的系统；</li>
+<li>需要把 Agent 放进后端服务的团队。</li>
+</ul>
+<hr>
+<h2 id="143-autogen从多-agent-对话到协作模式"><a class="header" href="#143-autogen从多-agent-对话到协作模式">14.3 AutoGen：从多 Agent 对话到协作模式</a></h2>
+<p>AutoGen 的核心思想是用多个可配置 Agent 通过对话完成任务。</p>
+<pre><code class="language-text">User Proxy
+   │
+   ▼
+Planner Agent ──► Coder Agent ──► Reviewer Agent
+      ▲                                │
+      └────────── feedback ────────────┘
+</code></pre>
+<p>这种模型强调角色分工：</p>
+<ul>
+<li>Planner 负责拆任务；</li>
+<li>Coder 负责实现；</li>
+<li>Reviewer 负责审查；</li>
+<li>User Proxy 负责人类输入或工具执行；</li>
+<li>Group Chat Manager 负责路由对话。</li>
+</ul>
+<h3 id="多-agent-的价值"><a class="header" href="#多-agent-的价值">多 Agent 的价值</a></h3>
+<p>多 Agent 不是为了“看起来智能”，而是为了三个工程目标：</p>
+<ol>
+<li><strong>上下文隔离</strong>：不同角色只保留相关上下文；</li>
+<li><strong>职责分离</strong>：分析、执行、审查分开；</li>
+<li><strong>制衡机制</strong>：Reviewer 能发现 Writer 的盲点。</li>
+</ol>
+<h3 id="多-agent-的风险"><a class="header" href="#多-agent-的风险">多 Agent 的风险</a></h3>
+<p>多 Agent 也会带来额外复杂度：</p>
+<ul>
+<li>对话轮数增加，成本上升；</li>
+<li>角色边界不清会互相抢活；</li>
+<li>缺少全局状态时容易循环；</li>
+<li>聚合结果需要额外设计；</li>
+<li>每个 Agent 的权限需要单独控制。</li>
+</ul>
+<p>因此，多 Agent 应该用于真实需要分工、审查或并行的任务，而不是默认架构。</p>
+<hr>
+<h2 id="144-microsoft-agent-framework企业化-agent-runtime"><a class="header" href="#144-microsoft-agent-framework企业化-agent-runtime">14.4 Microsoft Agent Framework：企业化 Agent Runtime</a></h2>
+<p>Microsoft Agent Framework 的方向是把 AutoGen 的多 Agent 抽象与 Semantic Kernel 的企业能力合并，形成更完整的 Agent 应用框架。</p>
+<p>从系统设计角度看，它强调几个企业级能力：</p>
+<ul>
+<li>session-based state management；</li>
+<li>type safety；</li>
+<li>middleware / filters；</li>
+<li>telemetry；</li>
+<li>workflow orchestration；</li>
+<li>多模型和 embedding 支持；</li>
+<li>长任务和 human-in-the-loop。</li>
+</ul>
+<p>这说明 Agent 平台正在从“研究框架”走向“企业应用运行时”。</p>
+<h3 id="企业平台的关键抽象"><a class="header" href="#企业平台的关键抽象">企业平台的关键抽象</a></h3>
+<pre><code class="language-text">Agent
+  ├─ Instructions
+  ├─ Tools
+  ├─ State
+  ├─ Middleware
+  ├─ Telemetry
+  └─ Workflow
+</code></pre>
+<p>对于企业来说，平台价值不只在模型调用，而在统一：</p>
+<ul>
+<li>安全策略；</li>
+<li>日志和审计；</li>
+<li>状态管理；</li>
+<li>工具注册；</li>
+<li>模型路由；</li>
+<li>版本发布；</li>
+<li>成本追踪。</li>
+</ul>
+<hr>
+<h2 id="145-mcp-生态agent-工具和资源的连接协议"><a class="header" href="#145-mcp-生态agent-工具和资源的连接协议">14.5 MCP 生态：Agent 工具和资源的连接协议</a></h2>
+<p>MCP（Model Context Protocol）解决的是另一个维度的问题：<strong>AI 应用如何以标准方式连接外部工具和数据源。</strong></p>
+<p>在 Agent 平台中，MCP 通常处于工具连接层：</p>
+<pre><code class="language-text">Agent Runtime
+  │
+  ▼
+MCP Client
+  │
+  ├─ MCP Server: GitHub
+  ├─ MCP Server: Postgres
+  ├─ MCP Server: Slack
+  └─ MCP Server: Internal Tools
+</code></pre>
+<p>MCP 的价值在于统一暴露：</p>
+<ul>
+<li>Resources：可读取上下文；</li>
+<li>Tools：可执行操作；</li>
+<li>Prompts：可复用任务模板。</li>
+</ul>
+<h3 id="mcp-与编排框架的关系"><a class="header" href="#mcp-与编排框架的关系">MCP 与编排框架的关系</a></h3>
+<p>MCP 不是 workflow engine，也不是 agent framework。更准确地说：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层次</th><th style="text-align: left">负责什么</th><th style="text-align: left">示例</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Agent Framework</td><td style="text-align: left">决策、状态、流程</td><td style="text-align: left">LangGraph、Agent Framework</td></tr>
+<tr><td style="text-align: left">Tool Protocol</td><td style="text-align: left">工具发现和调用协议</td><td style="text-align: left">MCP</td></tr>
+<tr><td style="text-align: left">Business Service</td><td style="text-align: left">真实业务能力</td><td style="text-align: left">GitHub、数据库、工单系统</td></tr>
+</tbody>
+</table>
+</div>
+<p>编排框架决定“什么时候调用什么”，MCP 决定“如何发现和调用外部能力”。</p>
+<hr>
+<h2 id="146-平台能力矩阵"><a class="header" href="#146-平台能力矩阵">14.6 平台能力矩阵</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">能力</th><th style="text-align: left">LangGraph</th><th style="text-align: left">AutoGen</th><th style="text-align: left">Microsoft Agent Framework</th><th style="text-align: left">MCP</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">状态图</td><td style="text-align: left">强</td><td style="text-align: left">弱</td><td style="text-align: left">强</td><td style="text-align: left">不负责</td></tr>
+<tr><td style="text-align: left">多 Agent 会话</td><td style="text-align: left">可实现</td><td style="text-align: left">强</td><td style="text-align: left">强</td><td style="text-align: left">不负责</td></tr>
+<tr><td style="text-align: left">Durable execution</td><td style="text-align: left">强</td><td style="text-align: left">依赖实现</td><td style="text-align: left">强</td><td style="text-align: left">不负责</td></tr>
+<tr><td style="text-align: left">Human-in-the-loop</td><td style="text-align: left">强</td><td style="text-align: left">可实现</td><td style="text-align: left">强</td><td style="text-align: left">不负责</td></tr>
+<tr><td style="text-align: left">企业遥测</td><td style="text-align: left">依赖平台</td><td style="text-align: left">依赖实现</td><td style="text-align: left">强</td><td style="text-align: left">不负责</td></tr>
+<tr><td style="text-align: left">工具协议</td><td style="text-align: left">依赖集成</td><td style="text-align: left">依赖集成</td><td style="text-align: left">依赖集成</td><td style="text-align: left">强</td></tr>
+<tr><td style="text-align: left">资源发现</td><td style="text-align: left">依赖实现</td><td style="text-align: left">依赖实现</td><td style="text-align: left">依赖实现</td><td style="text-align: left">强</td></tr>
+<tr><td style="text-align: left">主要定位</td><td style="text-align: left">状态化编排</td><td style="text-align: left">多 Agent 协作</td><td style="text-align: left">企业 Agent Runtime</td><td style="text-align: left">工具和资源连接</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张表的重点不是比较谁更好，而是提醒：这些框架解决的问题不同。</p>
+<hr>
+<h2 id="147-设计自己的-agent-平台分层架构"><a class="header" href="#147-设计自己的-agent-平台分层架构">14.7 设计自己的 Agent 平台：分层架构</a></h2>
+<p>一个企业内部 Agent 平台可以按五层设计。</p>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│                     Agent Platform                           │
+├─────────────────────────────────────────────────────────────┤
+│  App Layer                                                   │
+│  ├─ Support Agent                                            │
+│  ├─ Coding Agent                                             │
+│  └─ Data Analyst Agent                                       │
+│                                                             │
+│  Orchestration Layer                                         │
+│  ├─ Workflow Graph                                           │
+│  ├─ Multi-Agent Router                                       │
+│  ├─ Human Approval                                           │
+│  └─ State Store                                              │
+│                                                             │
+│  Runtime Layer                                               │
+│  ├─ Model Gateway                                            │
+│  ├─ Tool Runtime                                             │
+│  ├─ Memory / RAG                                             │
+│  └─ Guardrails                                               │
+│                                                             │
+│  Integration Layer                                           │
+│  ├─ MCP Servers                                              │
+│  ├─ API Gateway                                              │
+│  ├─ Connectors                                               │
+│  └─ Secret Manager                                           │
+│                                                             │
+│  Governance Layer                                            │
+│  ├─ Trace / Metrics / Cost                                   │
+│  ├─ Eval Datasets                                            │
+│  ├─ Policy Engine                                            │
+│  └─ Audit Logs                                               │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p>这个分层的好处是边界清楚：</p>
+<ul>
+<li>App 只关心具体业务；</li>
+<li>Orchestration 关心流程和状态；</li>
+<li>Runtime 关心模型、工具和安全；</li>
+<li>Integration 关心外部系统；</li>
+<li>Governance 关心质量和责任链。</li>
+</ul>
+<hr>
+<h2 id="148-工程取舍"><a class="header" href="#148-工程取舍">14.8 工程取舍</a></h2>
+<h3 id="1-图式编排-vs-自由-agent-loop"><a class="header" href="#1-图式编排-vs-自由-agent-loop">1. 图式编排 vs 自由 Agent Loop</a></h3>
+<p>自由循环灵活，但难以审计；图式编排可控，但前期设计成本更高。</p>
+<p>建议：</p>
+<ul>
+<li>低风险探索任务用自由 loop；</li>
+<li>生产流程用显式 workflow；</li>
+<li>高风险动作必须进入审批节点。</li>
+</ul>
+<h3 id="2-单-agent-vs-多-agent"><a class="header" href="#2-单-agent-vs-多-agent">2. 单 Agent vs 多 Agent</a></h3>
+<p>单 Agent 更简单，多 Agent 更适合职责分离。判断标准不是任务复杂度，而是是否存在清晰的角色边界。</p>
+<p>适合多 Agent：</p>
+<ul>
+<li>Writer / Reviewer；</li>
+<li>Planner / Executor；</li>
+<li>Researcher / Synthesizer；</li>
+<li>Security Reviewer / Performance Reviewer。</li>
+</ul>
+<p>不适合多 Agent：</p>
+<ul>
+<li>简单问答；</li>
+<li>单次工具查询；</li>
+<li>没有可并行边界的小任务。</li>
+</ul>
+<h3 id="3-框架-vs-自研"><a class="header" href="#3-框架-vs-自研">3. 框架 vs 自研</a></h3>
+<p>自研适合学习和小型系统，但生产系统很快会遇到状态、恢复、观测和审批问题。</p>
+<p>如果你的系统已经需要这些能力，就应该优先评估成熟框架，而不是继续堆 prompt 和 while loop。</p>
+<hr>
+<h2 id="149-可借鉴点"><a class="header" href="#149-可借鉴点">14.9 可借鉴点</a></h2>
+<p>从成熟框架里可以抽象出这些设计原则：</p>
+<ul>
+<li>Agent 流程要显式建模，不要藏在无限循环里；</li>
+<li>状态要持久化，不能只存在上下文窗口；</li>
+<li>人工审批要成为 workflow 节点；</li>
+<li>多 Agent 要有角色边界和终止条件；</li>
+<li>工具连接协议和业务工具实现要解耦；</li>
+<li>Trace、成本和失败原因必须贯穿每一步；</li>
+<li>平台层应该提供统一模型网关、工具注册、权限和观测。</li>
+</ul>
+<hr>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p>Agent 平台和编排框架的共同趋势是：把不确定的模型行为放进确定的工程结构里。</p>
+<ul>
+<li>LangGraph 代表有状态图和 durable execution；</li>
+<li>AutoGen 代表多 Agent 对话和角色协作；</li>
+<li>Microsoft Agent Framework 代表企业级 Agent Runtime；</li>
+<li>MCP 代表工具和资源连接协议。</li>
+</ul>
+<p>一句话总结：</p>
+<blockquote>
+<p>生产级 Agent 不是一个更聪明的 while loop，而是一个能保存状态、连接工具、插入人工、恢复失败、记录证据的运行时系统。</p>
+</blockquote>
+<hr>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<ol>
+<li><a href="https://docs.langchain.com/oss/python/langgraph/durable-execution">LangGraph Durable Execution - LangChain Docs</a></li>
+<li><a href="https://learn.microsoft.com/en-us/agent-framework/overview/">Microsoft Agent Framework Overview - Microsoft Learn</a></li>
+<li><a href="https://www.microsoft.com/en-us/research/publication/autogen-enabling-next-gen-llm-applications-via-multi-agent-conversation-framework/">AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation - Microsoft Research</a></li>
+<li><a href="https://modelcontextprotocol.io/specification/2025-03-26/architecture">Model Context Protocol Specification</a></li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part3/02-enterprise-knowledge-assistant.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part3/04-openclaw-architecture.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part3/02-enterprise-knowledge-assistant.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part3/04-openclaw-architecture.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

@@ -15,29 +15,54 @@ type ProductHandler struct {
 	productService        *service.ProductService
 	runtimeContextService *service.RuntimeContextService
 	categoryActionService *service.CategoryActionService
+	productCenterService  *service.ProductCenterService
+	inventoryService      *service.InventoryService
+	supplyOpsService      *service.SupplyOpsService
 }
 
+// NewProductHandler constructs the HTTP adapter for sync APIs.
 func NewProductHandler(productService *service.ProductService, optionalServices ...interface{}) *ProductHandler {
 	var runtimeContextService *service.RuntimeContextService
 	var categoryActionService *service.CategoryActionService
-	for _, optionalService := range optionalServices {
-		switch svc := optionalService.(type) {
-		case *service.RuntimeContextService:
-			runtimeContextService = svc
-		case *service.CategoryActionService:
-			categoryActionService = svc
-		}
-	}
-
-	return &ProductHandler{
+	handler := &ProductHandler{
 		productService:        productService,
 		runtimeContextService: runtimeContextService,
 		categoryActionService: categoryActionService,
 	}
+	for _, optionalService := range optionalServices {
+		switch svc := optionalService.(type) {
+		case *service.RuntimeContextService:
+			handler.runtimeContextService = svc
+		case *service.CategoryActionService:
+			handler.categoryActionService = svc
+		case *service.ProductCenterService:
+			handler.productCenterService = svc
+		case *service.InventoryService:
+			handler.inventoryService = svc
+		case *service.SupplyOpsService:
+			handler.supplyOpsService = svc
+		}
+	}
+	return handler
 }
 
 // RegisterRoutes 注册路由
 func (h *ProductHandler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("/api/v1/product-center/publish", h.PublishProductVersion)
+	mux.HandleFunc("/api/v1/product-center/outbox", h.ListProductOutbox)
+	mux.HandleFunc("/api/v1/product-center/products/", h.GetProductSnapshot)
+	mux.HandleFunc("/api/v1/inventory/create", h.CreateInventory)
+	mux.HandleFunc("/api/v1/inventory/check", h.CheckStock)
+	mux.HandleFunc("/api/v1/inventory/reserve", h.ReserveStock)
+	mux.HandleFunc("/api/v1/inventory/confirm", h.ConfirmStock)
+	mux.HandleFunc("/api/v1/inventory/release", h.ReleaseStock)
+	mux.HandleFunc("/api/v1/inventory/adjust", h.AdjustInventory)
+	mux.HandleFunc("/api/v1/inventory/ledger", h.GetInventoryLedger)
+	mux.HandleFunc("/api/v1/supply/drafts", h.CreateSupplyDraft)
+	mux.HandleFunc("/api/v1/supply/drafts/", h.HandleSupplyDraftAction)
+	mux.HandleFunc("/api/v1/supply/qc/", h.HandleSupplyQCAction)
+	mux.HandleFunc("/api/v1/supply/staging/", h.HandleSupplyStagingAction)
+	mux.HandleFunc("/api/v1/supply/logs", h.ListSupplyLogs)
 	mux.HandleFunc("/api/v1/products/runtime-context", h.GetRuntimeContext)
 	mux.HandleFunc("/api/v1/topup/validate-account", h.ValidateTopupAccount)
 	mux.HandleFunc("/api/v1/travel/flights/search", h.SearchFlights)

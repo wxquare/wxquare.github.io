@@ -1,0 +1,617 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第13章 企业知识助手系统解析：RAG、搜索、权限与知识治理 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-75e7677a.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-5eb53b55.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第13章-企业知识助手系统解析rag搜索权限与知识治理"><a class="header" href="#第13章-企业知识助手系统解析rag搜索权限与知识治理">第13章 企业知识助手系统解析：RAG、搜索、权限与知识治理</a></h1>
+<blockquote>
+<p>企业知识助手不是“把文档丢进向量库”，而是一个带权限、证据、治理和反馈闭环的知识操作系统。</p>
+</blockquote>
+<h2 id="引言"><a class="header" href="#引言">引言</a></h2>
+<p>RAG 是 Agent 系统里最常见、也最容易被低估的能力。很多团队以为企业知识助手的核心是 Embedding 和向量检索，真正上线后才发现主要难点在别处：</p>
+<ul>
+<li>数据源很多，格式和权限各不相同；</li>
+<li>搜索结果必须严格遵守源系统权限；</li>
+<li>文档过期、重复、冲突非常普遍；</li>
+<li>用户需要答案，也需要证据和引用；</li>
+<li>组织知识会持续变化，索引必须持续更新；</li>
+<li>回答错误会影响业务决策，必须可追责。</li>
+</ul>
+<p>Glean、Perplexity Enterprise、Microsoft 365 Copilot 类系统的成熟之处，不是单点模型能力，而是把搜索、RAG、权限、引用、反馈和治理组合成完整系统。</p>
+<p>本章从系统设计角度拆解企业知识助手。</p>
+<hr>
+<h2 id="131-系统定位从搜索框到知识工作台"><a class="header" href="#131-系统定位从搜索框到知识工作台">13.1 系统定位：从搜索框到知识工作台</a></h2>
+<p>企业知识助手解决的不是“用户找不到文档”这么简单，而是三个层次的问题。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层次</th><th style="text-align: left">用户问题</th><th style="text-align: left">系统能力</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Search</td><td style="text-align: left">这份文档在哪里？</td><td style="text-align: left">跨系统检索、排序、权限过滤</td></tr>
+<tr><td style="text-align: left">Answer</td><td style="text-align: left">这个问题的答案是什么？</td><td style="text-align: left">RAG、引用、摘要、冲突处理</td></tr>
+<tr><td style="text-align: left">Action</td><td style="text-align: left">我下一步该怎么做？</td><td style="text-align: left">工具调用、流程建议、任务创建</td></tr>
+</tbody>
+</table>
+</div>
+<p>传统企业搜索通常停留在 Search 层；成熟知识助手会进入 Answer 和 Action 层。</p>
+<h3 id="典型用户工作流"><a class="header" href="#典型用户工作流">典型用户工作流</a></h3>
+<pre><code class="language-text">用户：为什么日本站订单取消率上周升高？
+
+系统：
+1. 识别问题类型：业务分析 + 时间范围 + 地区
+2. 检索相关数据源：BI 报表、实验记录、客服工单、发布记录
+3. 权限过滤：只返回用户有权查看的内容
+4. 证据聚合：订单取消率、支付失败、物流异常、最近发布
+5. 生成答案：给出结论、证据和不确定性
+6. 建议动作：创建分析任务或订阅后续指标
+</code></pre>
+<p>这类系统的核心不是一次问答，而是把组织知识转化为可操作判断。</p>
+<hr>
+<h2 id="132-端到端架构"><a class="header" href="#132-端到端架构">13.2 端到端架构</a></h2>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│              Enterprise Knowledge Assistant                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  User / Team / App Context                                  │
+│      │                                                       │
+│      ▼                                                       │
+│  Query Understanding                                         │
+│  ├─ Intent Classification                                    │
+│  ├─ Entity / Time / Scope Extraction                         │
+│  └─ Access Context                                           │
+│      │                                                       │
+│      ▼                                                       │
+│  Retrieval Orchestrator                                      │
+│  ├─ Keyword Search                                           │
+│  ├─ Vector Search                                            │
+│  ├─ Graph / Metadata Filter                                  │
+│  └─ Freshness / Authority Ranker                             │
+│      │                                                       │
+│      ▼                                                       │
+│  Evidence Builder                                            │
+│  ├─ Permission Filtering                                     │
+│  ├─ Dedup / Conflict Detection                               │
+│  ├─ Snippet Selection                                        │
+│  └─ Citation Package                                         │
+│      │                                                       │
+│      ▼                                                       │
+│  Answer Generator                                            │
+│  ├─ Grounded Answer                                          │
+│  ├─ Uncertainty Statement                                    │
+│  ├─ Sources / Citations                                      │
+│  └─ Follow-up Actions                                        │
+│      │                                                       │
+│      ▼                                                       │
+│  Feedback / Eval / Governance                                │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p>架构上最重要的一点是：<strong>权限过滤和证据构建必须发生在答案生成之前</strong>。模型不能看到用户无权访问的内容，也不能在无证据时编造答案。</p>
+<hr>
+<h2 id="133-数据摄取连接器是第一道护城河"><a class="header" href="#133-数据摄取连接器是第一道护城河">13.3 数据摄取：连接器是第一道护城河</a></h2>
+<p>成熟企业知识助手通常通过连接器接入各种数据源：</p>
+<ul>
+<li>文档系统：Google Drive、SharePoint、Confluence、Notion；</li>
+<li>协作系统：Slack、Teams、邮件；</li>
+<li>项目系统：Jira、Linear、GitHub；</li>
+<li>客服和 CRM：Zendesk、Salesforce；</li>
+<li>BI 和数据平台：Tableau、Looker、内部报表；</li>
+<li>代码和技术文档：GitHub、GitLab、Runbook。</li>
+</ul>
+<p>连接器不只是“拉数据”。它至少要做四件事：</p>
+<ol>
+<li>拉取内容；</li>
+<li>解析结构；</li>
+<li>同步权限；</li>
+<li>维护增量更新。</li>
+</ol>
+<h3 id="权限同步比内容同步更重要"><a class="header" href="#权限同步比内容同步更重要">权限同步比内容同步更重要</a></h3>
+<p>企业搜索最怕的不是“搜不到”，而是“搜到了不该看的东西”。</p>
+<p>因此连接器需要同步源系统 ACL：</p>
+<pre><code class="language-text">Document
+  ├─ content
+  ├─ metadata
+  ├─ owner
+  ├─ source
+  ├─ updated_at
+  └─ allowed_principals
+      ├─ users
+      ├─ groups
+      └─ domains
+</code></pre>
+<p>查询时再结合用户身份做过滤：</p>
+<pre><code class="language-text">candidate_docs
+  │
+  ▼
+permission_filter(user_id, groups)
+  │
+  ▼
+visible_docs
+</code></pre>
+<p>这意味着企业知识助手的检索系统必须同时处理“相关性”和“可见性”。</p>
+<hr>
+<h2 id="134-检索层hybrid-search-是默认选择"><a class="header" href="#134-检索层hybrid-search-是默认选择">13.4 检索层：Hybrid Search 是默认选择</a></h2>
+<p>单纯向量检索不适合企业知识场景，因为企业问题经常包含精确实体：</p>
+<ul>
+<li>工单号；</li>
+<li>项目代号；</li>
+<li>客户名；</li>
+<li>服务名；</li>
+<li>文档标题；</li>
+<li>错误码；</li>
+<li>表名和字段名。</li>
+</ul>
+<p>成熟系统通常使用 Hybrid Search：</p>
+<pre><code class="language-text">Query
+  ├─ BM25 / Keyword Search
+  ├─ Dense Vector Search
+  ├─ Metadata Filter
+  ├─ Graph Expansion
+  └─ Reranking
+</code></pre>
+<h3 id="排序信号"><a class="header" href="#排序信号">排序信号</a></h3>
+<p>企业知识排序不能只看语义相似度，还要考虑：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">信号</th><th style="text-align: left">作用</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">语义相似度</td><td style="text-align: left">找到主题相关内容</td></tr>
+<tr><td style="text-align: left">关键词匹配</td><td style="text-align: left">保证精确实体不丢</td></tr>
+<tr><td style="text-align: left">更新时间</td><td style="text-align: left">避免旧文档误导</td></tr>
+<tr><td style="text-align: left">权威度</td><td style="text-align: left">官方文档高于聊天记录</td></tr>
+<tr><td style="text-align: left">用户关系</td><td style="text-align: left">同团队内容更可能相关</td></tr>
+<tr><td style="text-align: left">点击和反馈</td><td style="text-align: left">组织内部使用行为</td></tr>
+<tr><td style="text-align: left">引用链</td><td style="text-align: left">被其他文档引用的内容更重要</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="freshness-与-authority-的冲突"><a class="header" href="#freshness-与-authority-的冲突">Freshness 与 Authority 的冲突</a></h3>
+<p>新文档不一定权威，权威文档也可能过期。系统需要显式处理：</p>
+<pre><code class="language-text">高权威 + 新鲜：优先引用
+高权威 + 过期：引用但标记过期风险
+低权威 + 新鲜：作为辅助证据
+低权威 + 过期：默认降权
+</code></pre>
+<p>这比“取 top-k 文档”更接近真实企业搜索。</p>
+<hr>
+<h2 id="135-evidence-package让答案有证据边界"><a class="header" href="#135-evidence-package让答案有证据边界">13.5 Evidence Package：让答案有证据边界</a></h2>
+<p>RAG 的关键中间产物不应该是“拼接后的上下文”，而应该是 Evidence Package。</p>
+<pre><code class="language-json">{
+  "question": "为什么日本站订单取消率上周升高？",
+  "evidence": [
+    {
+      "source": "bi://orders/cancellation_dashboard",
+      "title": "JP Order Cancellation Dashboard",
+      "snippet": "Cancellation rate increased from 2.1% to 4.8% between Apr 20 and Apr 27.",
+      "updated_at": "2026-04-28",
+      "authority": "official_metric",
+      "permission_checked": true
+    },
+    {
+      "source": "jira://PAY-8842",
+      "title": "Payment timeout increase in JP",
+      "snippet": "Timeout errors increased after deploy payment-router-v3.",
+      "updated_at": "2026-04-25",
+      "authority": "incident_ticket",
+      "permission_checked": true
+    }
+  ],
+  "gaps": [
+    "No logistics dashboard access for current user."
+  ]
+}
+</code></pre>
+<p>Evidence Package 有三个价值：</p>
+<ul>
+<li>让模型只能基于证据回答；</li>
+<li>让用户能追溯答案来源；</li>
+<li>让评估系统能检查引用是否支持结论。</li>
+</ul>
+<hr>
+<h2 id="136-答案生成引用冲突与不确定性"><a class="header" href="#136-答案生成引用冲突与不确定性">13.6 答案生成：引用、冲突与不确定性</a></h2>
+<p>企业知识助手的回答应该避免“全知口吻”。它需要表达三种东西：</p>
+<ol>
+<li>结论；</li>
+<li>证据；</li>
+<li>不确定性。</li>
+</ol>
+<h3 id="好的答案结构"><a class="header" href="#好的答案结构">好的答案结构</a></h3>
+<pre><code class="language-text">结论：
+日本站订单取消率升高，最可能与 payment-router-v3 发布后的支付超时增加有关。
+
+证据：
+1. BI 报表显示取消率从 2.1% 升至 4.8%。
+2. 支付工单 PAY-8842 显示 JP 支付超时在同一时间窗口上升。
+3. 发布记录显示 payment-router-v3 在异常开始前 30 分钟上线。
+
+不确定性：
+我没有访问物流异常报表的权限，因此不能排除物流延迟因素。
+
+建议：
+1. 检查 payment-router-v3 的 JP 路由超时配置。
+2. 让有权限的同事补充物流异常数据。
+</code></pre>
+<h3 id="冲突处理"><a class="header" href="#冲突处理">冲突处理</a></h3>
+<p>当证据冲突时，不要让模型“平均一下”。应该显式输出：</p>
+<pre><code class="language-text">证据冲突：
+- BI 报表显示取消率升高；
+- 客服周报说取消率无明显变化；
+- 两者统计口径不同：BI 按订单创建时间，客服按投诉时间。
+</code></pre>
+<p>这类回答比强行给结论更可信。</p>
+<hr>
+<h2 id="137-企业治理权限审计和数据边界"><a class="header" href="#137-企业治理权限审计和数据边界">13.7 企业治理：权限、审计和数据边界</a></h2>
+<p>成熟系统必须把安全设计放在架构里，而不是放在提示词里。</p>
+<h3 id="权限模型"><a class="header" href="#权限模型">权限模型</a></h3>
+<pre><code class="language-text">User Identity
+  ├─ user_id
+  ├─ groups
+  ├─ department
+  ├─ region
+  └─ role
+
+Document ACL
+  ├─ users
+  ├─ groups
+  ├─ domains
+  └─ source-specific rules
+</code></pre>
+<p>系统必须保证：</p>
+<ul>
+<li>检索阶段不返回无权文档；</li>
+<li>生成阶段不注入无权内容；</li>
+<li>引用链接打开时仍由源系统校验权限；</li>
+<li>审计日志能追踪谁问了什么、引用了什么。</li>
+</ul>
+<h3 id="数据边界"><a class="header" href="#数据边界">数据边界</a></h3>
+<p>企业知识助手通常需要明确回答：</p>
+<ul>
+<li>用户数据是否用于训练？</li>
+<li>文件上传保留多久？</li>
+<li>哪些连接器有写权限？</li>
+<li>是否支持数据驻留要求？</li>
+<li>是否支持 SSO、SCIM、审计导出？</li>
+</ul>
+<p>这些不是合规团队才关心的问题，它们直接决定系统能否在企业内部上线。</p>
+<hr>
+<h2 id="138-反馈闭环与质量评估"><a class="header" href="#138-反馈闭环与质量评估">13.8 反馈闭环与质量评估</a></h2>
+<p>企业知识助手的质量不能只看“用户点赞”。需要分层评估。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层次</th><th style="text-align: left">指标</th><th style="text-align: left">示例</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">检索</td><td style="text-align: left">Recall@k、MRR、权限误召回</td><td style="text-align: left">正确文档是否进入候选集</td></tr>
+<tr><td style="text-align: left">证据</td><td style="text-align: left">引用支持率、冲突识别率</td><td style="text-align: left">结论是否被证据支持</td></tr>
+<tr><td style="text-align: left">生成</td><td style="text-align: left">正确性、完整性、拒答率</td><td style="text-align: left">是否在证据不足时停止</td></tr>
+<tr><td style="text-align: left">安全</td><td style="text-align: left">越权率、敏感信息泄露率</td><td style="text-align: left">是否泄露无权内容</td></tr>
+<tr><td style="text-align: left">业务</td><td style="text-align: left">节省时间、任务完成率</td><td style="text-align: left">是否减少人工查找成本</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="线上反馈如何进入系统"><a class="header" href="#线上反馈如何进入系统">线上反馈如何进入系统</a></h3>
+<pre><code class="language-text">User Feedback
+  ├─ helpful / not helpful
+  ├─ wrong citation
+  ├─ outdated document
+  ├─ missing source
+  └─ permission issue
+        │
+        ▼
+Eval Dataset / Index Fix / Connector Fix / Prompt Fix
+</code></pre>
+<p>注意：不是所有问题都应该修 Prompt。</p>
+<ul>
+<li>找不到文档：可能是连接器或索引问题；</li>
+<li>引用错文档：可能是 reranker 问题；</li>
+<li>答案越权：是权限系统问题；</li>
+<li>编造结论：是生成约束和证据包问题；</li>
+<li>文档过期：是知识治理问题。</li>
+</ul>
+<hr>
+<h2 id="139-工程取舍"><a class="header" href="#139-工程取舍">13.9 工程取舍</a></h2>
+<h3 id="1-答案速度-vs-证据完整性"><a class="header" href="#1-答案速度-vs-证据完整性">1. 答案速度 vs 证据完整性</a></h3>
+<p>搜索助手需要快，但企业决策需要证据。可以用分层响应：</p>
+<pre><code class="language-text">快速答案：先给初步结论和 3 条证据
+深度分析：后台继续检索更多源，更新答案
+</code></pre>
+<h3 id="2-个性化-vs-信息茧房"><a class="header" href="#2-个性化-vs-信息茧房">2. 个性化 vs 信息茧房</a></h3>
+<p>个性化排序能提高命中率，但也可能让用户只看到本部门视角。关键问题需要跨源证据，而不是只取“最像用户平时点击的内容”。</p>
+<h3 id="3-内部知识-vs-外部知识"><a class="header" href="#3-内部知识-vs-外部知识">3. 内部知识 vs 外部知识</a></h3>
+<p>内部知识有权限和上下文优势，外部知识有时效和广度优势。成熟系统需要标记来源类型：</p>
+<pre><code class="language-text">internal_verified
+internal_unofficial
+external_web
+premium_data
+user_uploaded
+</code></pre>
+<p>不同来源进入答案时应有不同置信度和引用方式。</p>
+<hr>
+<h2 id="1310-可借鉴点"><a class="header" href="#1310-可借鉴点">13.10 可借鉴点</a></h2>
+<p>设计企业知识助手时，可以直接借鉴这些原则：</p>
+<ul>
+<li>连接器必须同步权限，不只是同步内容；</li>
+<li>检索默认使用 Hybrid Search，而不是只用向量库；</li>
+<li>中间产物设计成 Evidence Package；</li>
+<li>生成答案必须包含引用、证据和不确定性；</li>
+<li>过期文档需要降权或显式标记；</li>
+<li>反馈要能路由到索引、权限、Prompt、文档治理等不同修复路径；</li>
+<li>高风险领域宁可拒答，也不要无证据自信回答。</li>
+</ul>
+<hr>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p>企业知识助手的成熟度，不取决于向量库有多先进，而取决于它是否把知识系统当成工程系统来治理：</p>
+<ul>
+<li>数据源需要连接器；</li>
+<li>内容需要索引；</li>
+<li>权限需要同步；</li>
+<li>检索需要混合排序；</li>
+<li>答案需要证据；</li>
+<li>反馈需要闭环；</li>
+<li>质量需要评估。</li>
+</ul>
+<p>一句话总结：</p>
+<blockquote>
+<p>企业知识助手的核心不是“让模型知道更多”，而是“让模型只基于用户有权访问、足够新鲜、可被引用的证据回答”。</p>
+</blockquote>
+<hr>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<ol>
+<li><a href="https://docs.glean.com/connectors/about">Glean Connectors - Glean Docs</a></li>
+<li><a href="https://docs.perplexity.ai/guides/search-guide">Perplexity Search API - Perplexity Docs</a></li>
+<li><a href="https://enterprise.perplexity.ai/">Perplexity Enterprise Pro</a></li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part3/01-coding-agent-systems.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part3/03-agent-platform-orchestration.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part3/01-coding-agent-systems.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part3/03-agent-platform-orchestration.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

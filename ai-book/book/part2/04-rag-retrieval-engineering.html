@@ -1,0 +1,1397 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第8章 RAG 与检索系统工程：从外部知识到可靠上下文 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-75e7677a.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-5eb53b55.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第8章-rag-与检索系统工程从外部知识到可靠上下文"><a class="header" href="#第8章-rag-与检索系统工程从外部知识到可靠上下文">第8章 RAG 与检索系统工程：从外部知识到可靠上下文</a></h1>
+<blockquote>
+<p>RAG 的核心不是“给模型接一个向量数据库”，而是把外部知识转成可检索、可过滤、可引用、可评估的证据上下文。</p>
+</blockquote>
+<h2 id="引言"><a class="header" href="#引言">引言</a></h2>
+<p>前面的章节已经讨论过 LLM 的能力边界：模型擅长语言理解、模式归纳和生成，但它并不天然知道当前世界、企业内部数据、代码仓库状态、最新工单、实时指标和用户私有知识。</p>
+<p>RAG（Retrieval-Augmented Generation，检索增强生成）就是为了解决这类问题。它在模型生成之前，先从外部知识源检索相关内容，再把这些内容组织成上下文，让模型基于证据回答。</p>
+<p>很多初学者会把 RAG 简化成：</p>
+<pre><code class="language-text">文档 -&gt; 分块 -&gt; Embedding -&gt; 向量数据库 -&gt; Top-K -&gt; Prompt
+</code></pre>
+<p>这个流程适合 demo，但不足以支撑生产级 Agent。真实系统里，RAG 至少要回答这些问题：</p>
+<ul>
+<li>文档从哪里来，是否可信，是否过期；</li>
+<li>文档如何解析，标题、表格、代码块和权限是否保留；</li>
+<li>chunk 是检索单位、上下文单位还是引用单位；</li>
+<li>query 是直接搜索，还是需要改写、拆解、路由；</li>
+<li>向量检索、关键词检索、metadata filter 如何协同；</li>
+<li>检索结果如何 rerank、去重、压缩和引用；</li>
+<li>模型在没有证据、证据冲突、证据不足时如何回答；</li>
+<li>权限过滤发生在哪里；</li>
+<li>RAG 的效果如何评估；</li>
+<li>检索失败时如何 debug。</li>
+</ul>
+<p>所以本章把 RAG 当成一个完整的检索系统工程来讲，而不是一个向量库 API 调用。</p>
+<pre class="mermaid">
+flowchart LR
+    A[Knowledge Sources&lt;br/&gt;知识源] --&gt; B[Ingestion Pipeline&lt;br/&gt;摄取管道]
+    B --&gt; C[Indexing&lt;br/&gt;索引构建]
+    D[User Query&lt;br/&gt;用户问题] --&gt; E[Query Understanding&lt;br/&gt;查询理解]
+    E --&gt; F[Retrieval&lt;br/&gt;召回]
+    C --&gt; F
+    F --&gt; G[Rerank + Filter&lt;br/&gt;重排与过滤]
+    G --&gt; H[Context Builder&lt;br/&gt;上下文构建]
+    H --&gt; I[LLM]
+    I --&gt; J[Answer + Citations&lt;br/&gt;答案与引用]
+    J --&gt; K[Eval + Trace&lt;br/&gt;评估与追踪]
+    K --&gt; B
+    K --&gt; F
+    K --&gt; H
+</pre>
+
+<p>本章定位是：把 RAG 从“概念”和“代码片段”推进到“系统设计”。下一章会继续讨论 Agentic RAG、multi-hop retrieval、GraphRAG 和复杂知识任务。</p>
+<hr>
+<h2 id="81-rag-真正解决什么问题"><a class="header" href="#81-rag-真正解决什么问题">8.1 RAG 真正解决什么问题</a></h2>
+<p>RAG 解决的是模型缺少外部证据的问题。</p>
+<p>它并不直接让模型更聪明，也不保证模型一定不会幻觉。它做的是：在模型回答之前，把当前任务需要的外部信息找出来、筛出来、排好序，并用合适格式交给模型。</p>
+<h3 id="rag-的基本流程"><a class="header" href="#rag-的基本流程">RAG 的基本流程</a></h3>
+<p>最小 RAG 流程可以写成：</p>
+<pre><code class="language-text">用户问题
+  ↓
+检索相关文档
+  ↓
+构建上下文
+  ↓
+模型基于上下文回答
+  ↓
+返回答案和来源
+</code></pre>
+<p>和纯 LLM 相比：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">方式</th><th style="text-align: left">输入</th><th style="text-align: left">优点</th><th style="text-align: left">主要风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">纯 LLM</td><td style="text-align: left">用户问题</td><td style="text-align: left">简单、低延迟</td><td style="text-align: left">知识过期、无法访问私有数据、容易编造</td></tr>
+<tr><td style="text-align: left">RAG</td><td style="text-align: left">用户问题 + 外部证据</td><td style="text-align: left">可更新、可追溯、能接私有知识</td><td style="text-align: left">检索失败、证据污染、引用错误</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="适合-rag-的问题"><a class="header" href="#适合-rag-的问题">适合 RAG 的问题</a></h3>
+<p>RAG 适合解决“答案依赖外部资料”的问题。</p>
+<p>典型场景：</p>
+<ul>
+<li>企业知识库问答；</li>
+<li>产品文档问答；</li>
+<li>代码仓库问答；</li>
+<li>客服工单问答；</li>
+<li>法规、合同、政策检索；</li>
+<li>故障 runbook 检索；</li>
+<li>个人知识管理；</li>
+<li>内部搜索与辅助写作；</li>
+<li>Agent 执行任务前的证据收集。</li>
+</ul>
+<p>例如：</p>
+<pre><code class="language-text">问题：order-service CPU 高应该怎么排查？
+
+RAG 应检索：
+- order-service runbook；
+- 近期类似故障复盘；
+- 服务依赖关系；
+- 当前版本发布记录；
+- 指标和日志工具结果。
+</code></pre>
+<p>这个问题不能只靠模型常识回答。模型可以知道一般排查思路，但不知道你们公司的服务、runbook、权限和当前状态。</p>
+<h3 id="不适合只靠-rag-的问题"><a class="header" href="#不适合只靠-rag-的问题">不适合只靠 RAG 的问题</a></h3>
+<p>有些问题即使接入 RAG，也不能简单回答。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">问题类型</th><th style="text-align: left">为什么 RAG 不够</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">实时系统状态</td><td style="text-align: left">需要工具查询 metrics、logs、DB，而不是查历史文档</td></tr>
+<tr><td style="text-align: left">高风险决策</td><td style="text-align: left">需要审批、权限、审计和回滚机制</td></tr>
+<tr><td style="text-align: left">复杂推理</td><td style="text-align: left">可能需要多步检索、工具调用和验证</td></tr>
+<tr><td style="text-align: left">结构化计算</td><td style="text-align: left">应调用数据库、代码或计算工具</td></tr>
+<tr><td style="text-align: left">权限敏感数据</td><td style="text-align: left">必须先做 ACL 和数据脱敏</td></tr>
+</tbody>
+</table>
+</div>
+<p>例如：</p>
+<pre><code class="language-text">问题：现在可以回滚 production order-service 吗？
+</code></pre>
+<p>RAG 可以检索回滚流程和历史案例，但不能替代：</p>
+<ul>
+<li>当前告警状态；</li>
+<li>当前版本信息；</li>
+<li>发布审批状态；</li>
+<li>影响面分析；</li>
+<li>人工确认。</li>
+</ul>
+<p>RAG 是证据层，不是执行权限系统。</p>
+<h3 id="rag-的核心承诺"><a class="header" href="#rag-的核心承诺">RAG 的核心承诺</a></h3>
+<p>一个好的 RAG 系统应该提供四个承诺：</p>
+<pre><code class="language-text">1. 找得到：相关证据能被召回；
+2. 筛得准：无关、过期、越权证据不会进入上下文；
+3. 引得清：答案能追溯到具体来源；
+4. 评得出：系统能知道检索和回答哪里出了问题。
+</code></pre>
+<p>如果只实现了“向量搜索 Top-K”，只能算 RAG 的雏形。</p>
+<hr>
+<h2 id="82-生产级-rag-的端到端架构"><a class="header" href="#82-生产级-rag-的端到端架构">8.2 生产级 RAG 的端到端架构</a></h2>
+<p>RAG 系统可以分成两条链路：</p>
+<ul>
+<li>离线链路：把知识源转成可检索索引；</li>
+<li>在线链路：把用户问题转成证据上下文和答案。</li>
+</ul>
+<pre><code class="language-text">Offline Indexing
+  Document Source
+    -&gt; Parser
+    -&gt; Cleaner
+    -&gt; Chunker
+    -&gt; Metadata Enricher
+    -&gt; Embedding
+    -&gt; Keyword Index
+    -&gt; Vector Index
+
+Online Serving
+  User Query
+    -&gt; Query Understanding
+    -&gt; Permission Filter
+    -&gt; Candidate Retrieval
+    -&gt; Hybrid Merge
+    -&gt; Rerank
+    -&gt; Context Builder
+    -&gt; Answer Generator
+    -&gt; Citation Validator
+</code></pre>
+<p>这两条链路都很重要。</p>
+<p>很多 RAG 失败发生在线下索引阶段：文档解析错误、chunk 切坏、metadata 丢失、权限缺失。在线上再怎么调 prompt，也很难修复底层证据质量。</p>
+<h3 id="离线链路知识如何进入索引"><a class="header" href="#离线链路知识如何进入索引">离线链路：知识如何进入索引</a></h3>
+<p>离线链路处理的是“知识资产化”。</p>
+<pre class="mermaid">
+flowchart TD
+    A[Raw Sources&lt;br/&gt;原始知识源] --&gt; B[Parser&lt;br/&gt;解析]
+    B --&gt; C[Normalizer&lt;br/&gt;清洗标准化]
+    C --&gt; D[Chunker&lt;br/&gt;分块]
+    D --&gt; E[Metadata Enricher&lt;br/&gt;元数据增强]
+    E --&gt; F[Embedding&lt;br/&gt;向量化]
+    E --&gt; G[Keyword Index&lt;br/&gt;关键词索引]
+    F --&gt; H[Vector Index&lt;br/&gt;向量索引]
+    G --&gt; I[Index Registry&lt;br/&gt;索引注册]
+    H --&gt; I
+</pre>
+
+<p>关键输出不是“向量”，而是可治理的文档单元：</p>
+<pre><code class="language-yaml">indexed_chunk:
+  chunk_id: "runbook-order-cpu-v3#section-2#chunk-1"
+  parent_doc_id: "runbook-order-cpu-v3"
+  content: "当 order-service CPU 高于 85% 时，先检查最近 30 分钟部署记录..."
+  metadata:
+    title: "order-service CPU 高处理手册"
+    doc_type: "runbook"
+    service: "order-service"
+    team: "order-platform"
+    environment: "production"
+    source: "confluence"
+    version: "v3"
+    updated_at: "2026-04-01"
+    lifecycle_state: "active"
+    permission: "sre:order-service"
+  indexes:
+    vector: true
+    keyword: true
+</code></pre>
+<h3 id="在线链路问题如何变成证据上下文"><a class="header" href="#在线链路问题如何变成证据上下文">在线链路：问题如何变成证据上下文</a></h3>
+<p>在线链路处理的是“任务相关证据选择”。</p>
+<pre class="mermaid">
+flowchart TD
+    A[User Query&lt;br/&gt;用户问题] --&gt; B[Query Understanding&lt;br/&gt;查询理解]
+    B --&gt; C[Source Router&lt;br/&gt;知识源路由]
+    C --&gt; D[Metadata Filter&lt;br/&gt;元数据过滤]
+    D --&gt; E[Vector Search&lt;br/&gt;向量召回]
+    D --&gt; F[Keyword Search&lt;br/&gt;关键词召回]
+    E --&gt; G[Merge&lt;br/&gt;融合]
+    F --&gt; G
+    G --&gt; H[Rerank&lt;br/&gt;重排]
+    H --&gt; I[Dedupe + Diversity&lt;br/&gt;去重与多样性]
+    I --&gt; J[Context Builder&lt;br/&gt;上下文构建]
+    J --&gt; K[LLM Answer&lt;br/&gt;生成答案]
+</pre>
+
+<p>在线链路的目标不是把“最相似”的文本找出来，而是把“最能支持回答”的证据找出来。</p>
+<p>这两者不总是一样。</p>
+<p>例如，用户问：</p>
+<pre><code class="language-text">order-service CPU 高以后能不能直接重启？
+</code></pre>
+<p>最相似的文档可能是“重启服务操作手册”，但最应该进入上下文的证据可能是：</p>
+<ul>
+<li>CPU 高排查 runbook；</li>
+<li>生产变更审批规范；</li>
+<li>高风险操作确认流程；</li>
+<li>历史事故中误重启导致的问题。</li>
+</ul>
+<p>RAG 的目标是支持正确决策，而不是只追求语义相似度。</p>
+<hr>
+<h2 id="83-文档摄取rag-质量从源头开始"><a class="header" href="#83-文档摄取rag-质量从源头开始">8.3 文档摄取：RAG 质量从源头开始</a></h2>
+<p>RAG 系统的第一层质量来自文档摄取。摄取做不好，后面会出现一系列症状：</p>
+<ul>
+<li>检索不到；</li>
+<li>检索到了但语义断裂；</li>
+<li>引用来源不清；</li>
+<li>旧文档和新文档混在一起；</li>
+<li>用户看到无权限内容；</li>
+<li>模型把表格、代码或警告语理解错。</li>
+</ul>
+<h3 id="常见知识源"><a class="header" href="#常见知识源">常见知识源</a></h3>
+<p>企业 RAG 的知识源通常不是单一文档目录，而是一组异构系统：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">知识源</th><th style="text-align: left">典型内容</th><th style="text-align: left">摄取难点</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Markdown / HTML</td><td style="text-align: left">技术文档、博客、README</td><td style="text-align: left">标题层级、代码块、链接</td></tr>
+<tr><td style="text-align: left">PDF</td><td style="text-align: left">合同、报告、论文</td><td style="text-align: left">页眉页脚、表格、扫描件</td></tr>
+<tr><td style="text-align: left">Confluence / Notion</td><td style="text-align: left">内部知识库</td><td style="text-align: left">权限、版本、嵌套页面</td></tr>
+<tr><td style="text-align: left">Jira / 工单系统</td><td style="text-align: left">历史问题和处理记录</td><td style="text-align: left">评论噪音、状态变化</td></tr>
+<tr><td style="text-align: left">Git 仓库</td><td style="text-align: left">代码、配置、设计文档</td><td style="text-align: left">文件类型、符号结构</td></tr>
+<tr><td style="text-align: left">数据库</td><td style="text-align: left">业务记录、配置</td><td style="text-align: left">结构化查询、权限</td></tr>
+<tr><td style="text-align: left">日志系统</td><td style="text-align: left">事件和异常</td><td style="text-align: left">时效、噪音、敏感字段</td></tr>
+</tbody>
+</table>
+</div>
+<p>不同源应该有不同解析策略。不要用同一个纯文本抽取器处理所有内容。</p>
+<h3 id="解析时要保留结构"><a class="header" href="#解析时要保留结构">解析时要保留结构</a></h3>
+<p>很多系统只抽纯文本：</p>
+<pre><code class="language-text">title + body -&gt; plain text
+</code></pre>
+<p>这会丢掉大量有用信息。RAG 需要保留结构：</p>
+<ul>
+<li>标题层级；</li>
+<li>段落边界；</li>
+<li>列表层级；</li>
+<li>表格结构；</li>
+<li>代码块语言；</li>
+<li>图片说明；</li>
+<li>链接目标；</li>
+<li>文档路径；</li>
+<li>更新时间；</li>
+<li>作者；</li>
+<li>版本；</li>
+<li>权限；</li>
+<li>生命周期状态。</li>
+</ul>
+<p>例如技术文档中的代码块：</p>
+<pre><code class="language-yaml">parsed_block:
+  type: "code"
+  language: "bash"
+  content: "kubectl rollout restart deployment/order-service"
+  parent_heading: "重启服务"
+  warning_nearby: "生产环境执行前必须获得 SRE lead 审批"
+</code></pre>
+<p>如果只抽代码，不保留附近警告语，模型可能建议危险操作。</p>
+<h3 id="文档清洗"><a class="header" href="#文档清洗">文档清洗</a></h3>
+<p>清洗不是越干净越好，而是去掉噪音、保留语义。</p>
+<p>常见清洗动作：</p>
+<ul>
+<li>删除导航栏、页脚、广告、重复目录；</li>
+<li>归一化空白和标题层级；</li>
+<li>合并被 PDF 断开的段落；</li>
+<li>修复表格换行；</li>
+<li>保留代码块和配置；</li>
+<li>标记图片、图表和附件；</li>
+<li>提取更新时间和版本；</li>
+<li>去重或标记重复文档。</li>
+</ul>
+<p>不要盲目删除所有格式。格式本身经常是语义的一部分。</p>
+<h3 id="文档版本与生命周期"><a class="header" href="#文档版本与生命周期">文档版本与生命周期</a></h3>
+<p>企业知识会过期。RAG 必须知道文档状态。</p>
+<p>推荐给每个文档加生命周期字段：</p>
+<pre><code class="language-yaml">document_lifecycle:
+  status: "active"        # active | deprecated | archived | deleted
+  version: "v3"
+  effective_from: "2026-04-01"
+  supersedes: "runbook-order-cpu-v2"
+  superseded_by: null
+  last_verified_at: "2026-04-20"
+</code></pre>
+<p>检索时应该优先 active 文档，deprecated 文档默认降权，archived 文档通常不进入上下文。</p>
+<h3 id="稳定-id"><a class="header" href="#稳定-id">稳定 ID</a></h3>
+<p>RAG 索引要支持增量更新。每个文档和 chunk 都需要稳定 ID。</p>
+<p>不好的 ID：</p>
+<pre><code class="language-text">chunk_1
+chunk_2
+chunk_3
+</code></pre>
+<p>好的 ID：</p>
+<pre><code class="language-text">doc:{source}:{doc_id}:v{version}
+chunk:{doc_id}:{heading_path}:{hash}
+</code></pre>
+<p>稳定 ID 的价值：</p>
+<ul>
+<li>增量更新；</li>
+<li>删除旧 chunk；</li>
+<li>引用可追溯；</li>
+<li>eval 可复现；</li>
+<li>trace 可定位。</li>
+</ul>
+<hr>
+<h2 id="84-chunk-策略检索单位上下文单位和引用单位"><a class="header" href="#84-chunk-策略检索单位上下文单位和引用单位">8.4 Chunk 策略：检索单位、上下文单位和引用单位</a></h2>
+<p>Chunk 是 RAG 里最容易被低估的设计点。</p>
+<p>很多人问“chunk size 应该设多少”，但更重要的问题是：</p>
+<pre><code class="language-text">这个 chunk 在系统中扮演什么角色？
+</code></pre>
+<p>它可能是：</p>
+<ul>
+<li>检索单位：用于向量搜索或关键词匹配；</li>
+<li>上下文单位：最终放进 prompt 的文本；</li>
+<li>引用单位：答案展示 citation 的最小单元；</li>
+<li>权限单位：ACL 过滤的最小范围；</li>
+<li>更新单位：增量索引的最小对象。</li>
+</ul>
+<p>这几个单位不一定相同。</p>
+<h3 id="固定长度切分"><a class="header" href="#固定长度切分">固定长度切分</a></h3>
+<p>固定长度切分简单可控：</p>
+<pre><code class="language-text">每 500 tokens 一个 chunk，overlap 50 tokens
+</code></pre>
+<p>适合：</p>
+<ul>
+<li>长文档；</li>
+<li>结构不明显的文本；</li>
+<li>早期 baseline；</li>
+<li>快速验证。</li>
+</ul>
+<p>问题：</p>
+<ul>
+<li>容易切断语义；</li>
+<li>标题和正文可能分离；</li>
+<li>表格和代码块可能被截断；</li>
+<li>citation 不自然。</li>
+</ul>
+<h3 id="结构化切分"><a class="header" href="#结构化切分">结构化切分</a></h3>
+<p>技术文档更适合按结构切分：</p>
+<pre><code class="language-text">H1
+  H2
+    H3
+      paragraph / list / table / code block
+</code></pre>
+<p>结构化 chunk 应保留标题路径：</p>
+<pre><code class="language-yaml">chunk:
+  title_path:
+    - "order-service CPU 高处理手册"
+    - "排查步骤"
+    - "检查慢查询"
+  content: "查询最近 30 分钟 slow query 指标..."
+</code></pre>
+<p>标题路径本身可以进入 embedding 文本，让 chunk 在语义空间里更容易被召回：</p>
+<pre><code class="language-text">order-service CPU 高处理手册 &gt; 排查步骤 &gt; 检查慢查询
+
+查询最近 30 分钟 slow query 指标...
+</code></pre>
+<h3 id="语义切分"><a class="header" href="#语义切分">语义切分</a></h3>
+<p>FAQ、政策和客服知识库适合按语义单元切分：</p>
+<ul>
+<li>一个问题和答案；</li>
+<li>一个流程步骤；</li>
+<li>一个政策条款；</li>
+<li>一个错误码说明；</li>
+<li>一个故障案例。</li>
+</ul>
+<p>例如：</p>
+<pre><code class="language-yaml">chunk:
+  type: "faq"
+  question: "生产环境服务可以直接重启吗？"
+  answer: "不可以。需要先完成影响面评估并获得审批。"
+  tags:
+    - "production"
+    - "approval"
+    - "restart"
+</code></pre>
+<p>语义切分比固定长度更适合回答精准问题。</p>
+<h3 id="parent-child-chunk"><a class="header" href="#parent-child-chunk">Parent-child Chunk</a></h3>
+<p>生产系统常用 parent-child 策略：</p>
+<pre><code class="language-text">child chunk: 小，适合召回
+parent chunk: 大，适合生成上下文
+</code></pre>
+<p>例如：</p>
+<pre><code class="language-yaml">child_chunk:
+  id: "runbook#slow-query#child-1"
+  content: "先查询最近 30 分钟 slow query 指标。"
+  parent_id: "runbook#slow-query-section"
+
+parent_chunk:
+  id: "runbook#slow-query-section"
+  content: "完整的慢查询排查章节..."
+</code></pre>
+<p>流程：</p>
+<pre><code class="language-text">用 child chunk 精确召回
+  ↓
+根据 parent_id 拉取上下文
+  ↓
+把 parent section 放入 prompt
+</code></pre>
+<p>这能兼顾召回精度和上下文完整性。</p>
+<h3 id="chunk-策略选择"><a class="header" href="#chunk-策略选择">Chunk 策略选择</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">内容类型</th><th style="text-align: left">推荐策略</th><th style="text-align: left">原因</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">技术文档</td><td style="text-align: left">标题结构 + parent-child</td><td style="text-align: left">保留上下文层级</td></tr>
+<tr><td style="text-align: left">API 文档</td><td style="text-align: left">endpoint / method 粒度</td><td style="text-align: left">参数和响应要完整</td></tr>
+<tr><td style="text-align: left">代码</td><td style="text-align: left">函数、类、文件结构</td><td style="text-align: left">语义边界明确</td></tr>
+<tr><td style="text-align: left">FAQ</td><td style="text-align: left">问答对</td><td style="text-align: left">检索意图直接</td></tr>
+<tr><td style="text-align: left">工单</td><td style="text-align: left">问题、处理、结论分离</td><td style="text-align: left">避免评论噪音</td></tr>
+<tr><td style="text-align: left">runbook</td><td style="text-align: left">流程步骤 + 风险提示</td><td style="text-align: left">支持安全执行</td></tr>
+<tr><td style="text-align: left">合同法规</td><td style="text-align: left">条款级 + 上下文窗口</td><td style="text-align: left">citation 要精确</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chunk-的反模式"><a class="header" href="#chunk-的反模式">Chunk 的反模式</a></h3>
+<p>常见错误：</p>
+<ul>
+<li>只按字符数切所有文档；</li>
+<li>overlap 过大导致重复召回；</li>
+<li>chunk 没有标题路径；</li>
+<li>表格被切碎；</li>
+<li>代码块和解释分离；</li>
+<li>权限在文档级，但 chunk 混入跨权限内容；</li>
+<li>用一个 chunk 同时承担召回、上下文、引用、权限四种职责。</li>
+</ul>
+<p>Chunk 不是预处理小细节，而是 RAG 的信息架构设计。</p>
+<hr>
+<h2 id="85-metadata让检索从相似走向可控"><a class="header" href="#85-metadata让检索从相似走向可控">8.5 Metadata：让检索从“相似”走向“可控”</a></h2>
+<p>向量检索回答的是“语义上像不像”，metadata 回答的是“这个结果能不能用”。</p>
+<p>如果没有 metadata，RAG 系统很难处理：</p>
+<ul>
+<li>权限过滤；</li>
+<li>服务过滤；</li>
+<li>时间过滤；</li>
+<li>文档类型过滤；</li>
+<li>环境过滤；</li>
+<li>版本过滤；</li>
+<li>引用展示；</li>
+<li>过期降权；</li>
+<li>多租户隔离。</li>
+</ul>
+<h3 id="推荐-metadata-schema"><a class="header" href="#推荐-metadata-schema">推荐 Metadata Schema</a></h3>
+<pre><code class="language-yaml">metadata:
+  identity:
+    doc_id: "runbook_order_cpu_high"
+    chunk_id: "runbook_order_cpu_high#triage#1"
+    source: "confluence"
+    url: "https://internal/wiki/runbook_order_cpu_high"
+
+  structure:
+    title: "order-service CPU 高处理手册"
+    heading_path:
+      - "故障处理"
+      - "CPU 高"
+      - "排查步骤"
+    block_type: "paragraph"
+
+  domain:
+    doc_type: "runbook"
+    service: "order-service"
+    team: "order-platform"
+    environment: "production"
+    tags:
+      - "cpu"
+      - "incident"
+
+  lifecycle:
+    version: "v3"
+    status: "active"
+    updated_at: "2026-04-01"
+    last_verified_at: "2026-04-20"
+
+  access:
+    tenant_id: "company-a"
+    permission: "sre:order-service"
+    sensitivity: "internal"
+</code></pre>
+<h3 id="metadata-filter"><a class="header" href="#metadata-filter">Metadata Filter</a></h3>
+<p>检索时，metadata filter 应尽量前置。</p>
+<pre><code class="language-text">User Identity
+  ↓
+Permission Scope
+  ↓
+Metadata Filter
+  ↓
+Candidate Retrieval
+</code></pre>
+<p>例如：</p>
+<pre><code class="language-yaml">retrieval_filter:
+  tenant_id: "company-a"
+  permission_in:
+    - "sre:order-service"
+    - "docs:public"
+  service: "order-service"
+  lifecycle_status: "active"
+</code></pre>
+<p>不要把无权限文档召回后再告诉模型“不要使用”。模型不应该看到它无权看到的内容。</p>
+<h3 id="metadata-也参与排序"><a class="header" href="#metadata-也参与排序">Metadata 也参与排序</a></h3>
+<p>metadata 不只是过滤条件，也可以影响排序。</p>
+<p>例如：</p>
+<pre><code class="language-text">final_score =
+  retrieval_score * 0.50
++ doc_type_boost * 0.15
++ freshness_score * 0.15
++ source_authority * 0.15
++ service_match * 0.10
+- stale_penalty * 0.20
+</code></pre>
+<p>如果用户问 runbook，runbook 类型文档应该高于普通讨论帖；如果用户问当前版本，最近验证过的文档应该高于旧复盘。</p>
+<h3 id="metadata-缺失的代价"><a class="header" href="#metadata-缺失的代价">Metadata 缺失的代价</a></h3>
+<p>没有 metadata 的系统通常会出现：</p>
+<ul>
+<li>旧文档排名靠前；</li>
+<li>测试环境文档混入生产问题；</li>
+<li>A 团队文档回答 B 团队问题；</li>
+<li>无法解释为什么引用某个来源；</li>
+<li>无法增量更新；</li>
+<li>无法做权限审计；</li>
+<li>eval 只能看自然语言结果，定位不到检索问题。</li>
+</ul>
+<p>所以 metadata 是生产 RAG 的控制面。</p>
+<hr>
+<h2 id="86-embedding索引与-hybrid-search"><a class="header" href="#86-embedding索引与-hybrid-search">8.6 Embedding、索引与 Hybrid Search</a></h2>
+<p>Embedding 把文本转成向量，让语义相近的内容在向量空间中靠近。</p>
+<p>但生产 RAG 不能只依赖向量检索。</p>
+<h3 id="embedding-选型"><a class="header" href="#embedding-选型">Embedding 选型</a></h3>
+<p>选择 embedding 模型时不要只看排行榜。应该用自己的文档和问题评估。</p>
+<p>核心维度：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">要问的问题</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">语言</td><td style="text-align: left">中文、英文、混合语言效果如何</td></tr>
+<tr><td style="text-align: left">领域</td><td style="text-align: left">是否理解业务术语、代码、错误码、产品名</td></tr>
+<tr><td style="text-align: left">维度</td><td style="text-align: left">存储成本和索引性能是否可接受</td></tr>
+<tr><td style="text-align: left">延迟</td><td style="text-align: left">批量索引和在线 query 是否满足 SLA</td></tr>
+<tr><td style="text-align: left">成本</td><td style="text-align: left">高频查询和大规模文档是否可承受</td></tr>
+<tr><td style="text-align: left">隐私</td><td style="text-align: left">是否允许调用外部 API，是否需要本地部署</td></tr>
+<tr><td style="text-align: left">稳定性</td><td style="text-align: left">模型升级是否会导致全量重建索引</td></tr>
+</tbody>
+</table>
+</div>
+<p>选型流程建议：</p>
+<pre><code class="language-text">准备 100-300 个真实 query
+  ↓
+标注 expected docs
+  ↓
+比较 embedding 模型 Recall@K / MRR
+  ↓
+比较延迟和成本
+  ↓
+小流量灰度
+</code></pre>
+<h3 id="向量索引"><a class="header" href="#向量索引">向量索引</a></h3>
+<p>常见向量索引：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">索引</th><th style="text-align: left">特点</th><th style="text-align: left">适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Flat</td><td style="text-align: left">精确但慢</td><td style="text-align: left">小规模、评估 baseline</td></tr>
+<tr><td style="text-align: left">HNSW</td><td style="text-align: left">召回好、查询快</td><td style="text-align: left">常见生产场景</td></tr>
+<tr><td style="text-align: left">IVF</td><td style="text-align: left">适合大规模数据</td><td style="text-align: left">海量向量</td></tr>
+<tr><td style="text-align: left">PQ</td><td style="text-align: left">压缩存储</td><td style="text-align: left">成本敏感场景</td></tr>
+</tbody>
+</table>
+</div>
+<p>索引参数会影响 recall 和 latency。不要只追求查询快，必须用检索 eval 衡量召回损失。</p>
+<h3 id="为什么需要关键词检索"><a class="header" href="#为什么需要关键词检索">为什么需要关键词检索</a></h3>
+<p>向量检索擅长语义相似，但对精确标识符不一定稳定。</p>
+<p>例如：</p>
+<pre><code class="language-text">ERR_PAYMENT_1042
+JIRA-1234
+order-service
+config.max_connections
+</code></pre>
+<p>这些更适合关键词检索或结构化过滤。</p>
+<p>纯向量检索可能把“支付失败”相关文档召回，却漏掉具体错误码 <code>ERR_PAYMENT_1042</code> 的处理记录。</p>
+<h3 id="hybrid-search"><a class="header" href="#hybrid-search">Hybrid Search</a></h3>
+<p>生产 RAG 常用 hybrid search：</p>
+<pre><code class="language-text">vector search
+  +
+keyword search
+  +
+metadata filter
+  +
+rerank
+</code></pre>
+<p>一种简单融合方式：</p>
+<pre><code class="language-text">final_score = alpha * vector_score + (1 - alpha) * keyword_score
+</code></pre>
+<p>但不同检索器分数尺度可能不同，所以更常用的是 RRF（Reciprocal Rank Fusion）：</p>
+<pre><code class="language-text">score(doc) = Σ 1 / (k + rank_i(doc))
+</code></pre>
+<p>RRF 的优点是不用强行比较向量分数和 BM25 分数，只融合排名。</p>
+<h3 id="query-expansion-与-query-rewrite"><a class="header" href="#query-expansion-与-query-rewrite">Query Expansion 与 Query Rewrite</a></h3>
+<p>用户 query 往往很短：</p>
+<pre><code class="language-text">登录失败
+</code></pre>
+<p>它可能对应：</p>
+<ul>
+<li>账号密码错误；</li>
+<li>SSO 配置问题；</li>
+<li>token 过期；</li>
+<li>权限不足；</li>
+<li>后端 auth-service 异常；</li>
+<li>浏览器 cookie 问题。</li>
+</ul>
+<p>可以用 query rewrite 把问题改写成更适合检索的形式：</p>
+<pre><code class="language-yaml">original_query: "登录失败"
+expanded_queries:
+  - "用户登录失败 常见原因"
+  - "SSO 登录失败 排查"
+  - "auth-service error login"
+  - "token expired login issue"
+filters:
+  doc_type:
+    - "runbook"
+    - "faq"
+</code></pre>
+<p>但 query expansion 不能无限扩张。扩张太多会带来噪音和成本。</p>
+<hr>
+<h2 id="87-在线检索-pipeline"><a class="header" href="#87-在线检索-pipeline">8.7 在线检索 Pipeline</a></h2>
+<p>一个成熟的在线检索 pipeline 不应该只有 <code>search(query, top_k)</code>。</p>
+<p>推荐流程：</p>
+<pre><code class="language-text">User Query
+  ↓
+Intent + Entity Extraction
+  ↓
+Source Routing
+  ↓
+Permission + Metadata Filter
+  ↓
+Candidate Retrieval
+  ↓
+Hybrid Merge
+  ↓
+Rerank
+  ↓
+Dedupe
+  ↓
+Diversity Control
+  ↓
+Context Selection
+</code></pre>
+<h3 id="query-understanding"><a class="header" href="#query-understanding">Query Understanding</a></h3>
+<p>先理解用户真正需要什么。</p>
+<pre><code class="language-yaml">query_understanding:
+  raw_query: "order-service CPU 高怎么处理？"
+  intent: "incident_triage"
+  entities:
+    service: "order-service"
+    metric: "cpu"
+  desired_doc_types:
+    - "runbook"
+    - "incident_postmortem"
+  required_freshness: "active"
+  risk_level: "medium"
+</code></pre>
+<p>有了结构化理解，检索才能用 metadata filter，而不是只做全文相似。</p>
+<h3 id="source-routing"><a class="header" href="#source-routing">Source Routing</a></h3>
+<p>不同问题应该查不同知识源。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">问题</th><th style="text-align: left">优先知识源</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">“怎么处理 CPU 高”</td><td style="text-align: left">runbook、历史事故、监控文档</td></tr>
+<tr><td style="text-align: left">“这个函数谁调用”</td><td style="text-align: left">代码索引、符号图</td></tr>
+<tr><td style="text-align: left">“客户退款政策”</td><td style="text-align: left">政策文档、产品 FAQ</td></tr>
+<tr><td style="text-align: left">“现在服务是否异常”</td><td style="text-align: left">metrics、logs、traces 工具</td></tr>
+<tr><td style="text-align: left">“上次怎么修的”</td><td style="text-align: left">工单、postmortem、memory</td></tr>
+</tbody>
+</table>
+</div>
+<p>Source Router 可以避免所有 query 都打到同一个向量库。</p>
+<h3 id="candidate-retrieval"><a class="header" href="#candidate-retrieval">Candidate Retrieval</a></h3>
+<p>第一阶段召回要适当宽一点。</p>
+<pre><code class="language-text">vector_top_k = 50
+keyword_top_k = 50
+after_merge = 80
+after_rerank = 8
+context_final = 3-5
+</code></pre>
+<p>第一阶段追求“不漏”，第二阶段 rerank 追求“排准”。</p>
+<h3 id="rerank"><a class="header" href="#rerank">Rerank</a></h3>
+<p>Rerank 用 query-document pair 重新判断相关性。</p>
+<p>它尤其适合：</p>
+<ul>
+<li>文档很多；</li>
+<li>query 很短；</li>
+<li>初始召回噪音多；</li>
+<li>相似文档密集；</li>
+<li>需要精确 citation。</li>
+</ul>
+<p>Rerank 的输出不应该只是一组文本，最好包括原因和证据类型：</p>
+<pre><code class="language-yaml">rerank_result:
+  doc_id: "runbook_order_cpu_high"
+  score: 0.91
+  reason: "directly describes triage steps for order-service CPU high"
+  evidence_type: "runbook"
+</code></pre>
+<h3 id="去重与多样性"><a class="header" href="#去重与多样性">去重与多样性</a></h3>
+<p>RAG 经常召回多个几乎相同的 chunk。</p>
+<p>如果上下文里全是同一文档的相邻片段，会浪费 token，也会让模型误以为证据很充分。</p>
+<p>可以做：</p>
+<ul>
+<li>相同 parent doc 去重；</li>
+<li>相似 chunk 聚合；</li>
+<li>每个 doc 限制最多 N 个 chunk；</li>
+<li>保留不同来源的证据；</li>
+<li>保留正反证据。</li>
+</ul>
+<p>例如故障诊断场景中，好的上下文可能来自：</p>
+<pre><code class="language-text">1 个 runbook
+1 个最近部署记录
+1 个 metrics 摘要
+1 个历史事故
+</code></pre>
+<p>而不是 4 个 runbook 相邻段落。</p>
+<hr>
+<h2 id="88-上下文构建把检索结果变成证据包"><a class="header" href="#88-上下文构建把检索结果变成证据包">8.8 上下文构建：把检索结果变成证据包</a></h2>
+<p>检索结果不能直接拼进 prompt。它需要被构造成证据包。</p>
+<h3 id="context-package"><a class="header" href="#context-package">Context Package</a></h3>
+<p>推荐格式：</p>
+<pre><code class="language-yaml">context_package:
+  query: "order-service CPU 高怎么处理？"
+  evidence:
+    - id: "e1"
+      source: "runbook_order_cpu_high"
+      title: "order-service CPU 高处理手册"
+      evidence_type: "runbook"
+      trust_level: "authoritative"
+      updated_at: "2026-04-01"
+      content: "先检查最近 30 分钟部署记录和 slow query 指标..."
+      citation: "runbook_order_cpu_high#triage"
+    - id: "e2"
+      source: "incident_20260401"
+      evidence_type: "historical_case"
+      trust_level: "historical"
+      content: "历史案例显示 v1.8.3 曾因 N+1 查询导致 CPU 升高..."
+      usage_rule: "reference_only"
+  constraints:
+    - "historical_case cannot be treated as current fact"
+    - "high risk action requires human confirmation"
+</code></pre>
+<p>这里的关键是：上下文不仅包含内容，还包含来源、可信度和使用规则。</p>
+<h3 id="token-预算"><a class="header" href="#token-预算">Token 预算</a></h3>
+<p>上下文构建需要预算。</p>
+<pre><code class="language-yaml">context_budget:
+  total_tokens: 8000
+  allocation:
+    user_query: 500
+    system_instruction: 1000
+    retrieved_evidence: 4500
+    tool_results: 1500
+    output_contract: 500
+</code></pre>
+<p>如果证据太多，不能简单按 Top-K 截断。应该按任务价值分配：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">证据类型</th><th style="text-align: left">优先级</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">当前工具结果</td><td style="text-align: left">最高</td></tr>
+<tr><td style="text-align: left">权威文档</td><td style="text-align: left">高</td></tr>
+<tr><td style="text-align: left">当前用户提供信息</td><td style="text-align: left">高</td></tr>
+<tr><td style="text-align: left">最新 runbook</td><td style="text-align: left">高</td></tr>
+<tr><td style="text-align: left">历史案例</td><td style="text-align: left">中</td></tr>
+<tr><td style="text-align: left">旧讨论帖</td><td style="text-align: left">低</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="citation"><a class="header" href="#citation">Citation</a></h3>
+<p>RAG 的答案应该能追溯。</p>
+<p>不好的引用：</p>
+<pre><code class="language-text">根据资料显示，应该先检查慢查询。
+</code></pre>
+<p>更好的引用：</p>
+<pre><code class="language-text">根据《order-service CPU 高处理手册》“排查步骤”章节，应先检查最近 30 分钟部署记录和 slow query 指标。
+</code></pre>
+<p>citation 最好绑定到 <code>chunk_id</code> 或 <code>source span</code>，而不是只绑定文档名。</p>
+<h3 id="证据不足时如何回答"><a class="header" href="#证据不足时如何回答">证据不足时如何回答</a></h3>
+<p>RAG 不是每次都能找到答案。Prompt 和后端策略都要支持“无证据回答”。</p>
+<pre><code class="language-json">{
+  "answerable": false,
+  "reason": "retrieved evidence does not mention rollback criteria",
+  "missing_evidence": [
+    "current deployment status",
+    "rollback approval policy"
+  ],
+  "suggested_next_steps": [
+    "retrieve deployment runbook",
+    "query release system"
+  ]
+}
+</code></pre>
+<p>不要让模型在证据不足时硬答。</p>
+<h3 id="证据冲突"><a class="header" href="#证据冲突">证据冲突</a></h3>
+<p>检索可能召回冲突内容：</p>
+<pre><code class="language-text">Runbook v2: 可以直接重启服务。
+Runbook v3: 生产环境重启必须审批。
+</code></pre>
+<p>上下文构建器应标记冲突：</p>
+<pre><code class="language-yaml">conflict:
+  type: "version_conflict"
+  preferred_evidence: "runbook v3"
+  reason: "newer active document supersedes v2"
+</code></pre>
+<p>模型可以解释冲突，但不能自己随意选择旧规则。</p>
+<hr>
+<h2 id="89-端到端-rag-参考实现"><a class="header" href="#89-端到端-rag-参考实现">8.9 端到端 RAG 参考实现</a></h2>
+<p>下面不是可直接复制上线的完整代码，而是展示生产 RAG 的关键接口边界。</p>
+<h3 id="索引侧接口"><a class="header" href="#索引侧接口">索引侧接口</a></h3>
+<pre><code class="language-python">from dataclasses import dataclass
+from typing import Any, Dict, List
+
+
+@dataclass
+class RawDocument:
+    doc_id: str
+    source: str
+    content: bytes
+    metadata: Dict[str, Any]
+
+
+@dataclass
+class ParsedBlock:
+    block_id: str
+    block_type: str
+    text: str
+    heading_path: List[str]
+    metadata: Dict[str, Any]
+
+
+@dataclass
+class IndexedChunk:
+    chunk_id: str
+    parent_doc_id: str
+    text: str
+    metadata: Dict[str, Any]
+
+
+class IndexingPipeline:
+    def __init__(self, parser, chunker, metadata_enricher, embedder, index_writer):
+        self.parser = parser
+        self.chunker = chunker
+        self.metadata_enricher = metadata_enricher
+        self.embedder = embedder
+        self.index_writer = index_writer
+
+    def index(self, raw_doc: RawDocument) -&gt; None:
+        blocks = self.parser.parse(raw_doc)
+        chunks = self.chunker.split(blocks)
+        chunks = self.metadata_enricher.enrich(chunks, raw_doc.metadata)
+        embeddings = self.embedder.embed([chunk.text for chunk in chunks])
+        self.index_writer.upsert(chunks, embeddings)
+</code></pre>
+<p>这里的重点是 pipeline 边界清晰：</p>
+<ul>
+<li>parser 负责结构解析；</li>
+<li>chunker 负责切分策略；</li>
+<li>metadata_enricher 负责治理字段；</li>
+<li>embedder 负责向量化；</li>
+<li>index_writer 负责写入索引。</li>
+</ul>
+<p>不要把所有逻辑写成一个 <code>index_documents()</code> 大函数。</p>
+<h3 id="查询侧接口"><a class="header" href="#查询侧接口">查询侧接口</a></h3>
+<pre><code class="language-python">@dataclass
+class RetrievalRequest:
+    query: str
+    user_id: str
+    tenant_id: str
+    task_type: str
+    filters: Dict[str, Any]
+    top_k: int
+
+
+@dataclass
+class Evidence:
+    evidence_id: str
+    content: str
+    source: str
+    citation: str
+    score: float
+    metadata: Dict[str, Any]
+
+
+class RAGRetriever:
+    def __init__(self, query_analyzer, router, vector_index, keyword_index, reranker):
+        self.query_analyzer = query_analyzer
+        self.router = router
+        self.vector_index = vector_index
+        self.keyword_index = keyword_index
+        self.reranker = reranker
+
+    def retrieve(self, request: RetrievalRequest) -&gt; List[Evidence]:
+        query_plan = self.query_analyzer.analyze(request)
+        sources = self.router.route(query_plan)
+        filters = self.build_filters(request, query_plan)
+
+        vector_candidates = self.vector_index.search(query_plan.embedding_query, filters, sources)
+        keyword_candidates = self.keyword_index.search(query_plan.keyword_query, filters, sources)
+
+        candidates = self.merge(vector_candidates, keyword_candidates)
+        candidates = self.reranker.rerank(query_plan.original_query, candidates)
+        return self.select_evidence(candidates, request.top_k)
+</code></pre>
+<p>注意：权限和 metadata filter 是 request 的一部分，不是 prompt 的一句提醒。</p>
+<h3 id="生成侧接口"><a class="header" href="#生成侧接口">生成侧接口</a></h3>
+<pre><code class="language-python">class RAGAnswerer:
+    def __init__(self, retriever, context_builder, llm, citation_validator):
+        self.retriever = retriever
+        self.context_builder = context_builder
+        self.llm = llm
+        self.citation_validator = citation_validator
+
+    async def answer(self, request: RetrievalRequest) -&gt; dict:
+        evidence = self.retriever.retrieve(request)
+        context = self.context_builder.build(request.query, evidence)
+        response = await self.llm.generate(context.prompt)
+        validation = self.citation_validator.validate(response, evidence)
+
+        return {
+            "answer": response,
+            "evidence": evidence,
+            "validation": validation,
+            "trace": context.trace,
+        }
+</code></pre>
+<p>这类分层能让你单独评估：</p>
+<ul>
+<li>检索是否召回正确文档；</li>
+<li>rerank 是否排序正确；</li>
+<li>context 是否构建合理；</li>
+<li>模型是否忠于证据；</li>
+<li>citation 是否真实支持答案。</li>
+</ul>
+<hr>
+<h2 id="810-rag-评估与可观测性"><a class="header" href="#810-rag-评估与可观测性">8.10 RAG 评估与可观测性</a></h2>
+<p>RAG 不能只评估最终答案。必须分层评估。</p>
+<h3 id="检索层指标"><a class="header" href="#检索层指标">检索层指标</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">指标</th><th style="text-align: left">含义</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Recall@K</td><td style="text-align: left">正确证据是否出现在前 K 个候选里</td></tr>
+<tr><td style="text-align: left">Precision@K</td><td style="text-align: left">前 K 个候选里有多少是相关证据</td></tr>
+<tr><td style="text-align: left">MRR</td><td style="text-align: left">第一个正确证据排名是否靠前</td></tr>
+<tr><td style="text-align: left">nDCG</td><td style="text-align: left">排序质量</td></tr>
+<tr><td style="text-align: left">Coverage</td><td style="text-align: left">是否覆盖问题所需的不同证据类型</td></tr>
+<tr><td style="text-align: left">Freshness</td><td style="text-align: left">是否优先召回最新有效文档</td></tr>
+<tr><td style="text-align: left">ACL Violation Rate</td><td style="text-align: left">是否召回无权限内容</td></tr>
+</tbody>
+</table>
+</div>
+<p>检索 eval 数据可以这样写：</p>
+<pre><code class="language-yaml">eval_case:
+  id: "rag-order-cpu-001"
+  query: "order-service CPU 高怎么处理？"
+  user:
+    tenant_id: "company-a"
+    permissions:
+      - "sre:order-service"
+  expected_evidence:
+    - doc_id: "runbook_order_cpu_high"
+      required: true
+    - doc_type: "deployment_record"
+      required: true
+  must_not_retrieve:
+    - doc_id: "runbook_order_cpu_v1"
+      reason: "deprecated"
+    - permission: "sre:payment-service"
+      reason: "out of scope"
+</code></pre>
+<h3 id="生成层指标"><a class="header" href="#生成层指标">生成层指标</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">指标</th><th style="text-align: left">含义</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Faithfulness</td><td style="text-align: left">答案是否忠于证据</td></tr>
+<tr><td style="text-align: left">Answer Relevance</td><td style="text-align: left">答案是否回答了问题</td></tr>
+<tr><td style="text-align: left">Citation Accuracy</td><td style="text-align: left">引用是否真的支持对应句子</td></tr>
+<tr><td style="text-align: left">Abstention Accuracy</td><td style="text-align: left">无证据时是否拒绝或说明不足</td></tr>
+<tr><td style="text-align: left">Conflict Handling</td><td style="text-align: left">证据冲突时是否正确处理</td></tr>
+<tr><td style="text-align: left">Action Safety</td><td style="text-align: left">是否建议了越权或高风险动作</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="trace"><a class="header" href="#trace">Trace</a></h3>
+<p>每次 RAG 调用都应该记录 trace：</p>
+<pre><code class="language-json">{
+  "rag_trace": {
+    "query": "order-service CPU 高怎么处理？",
+    "query_understanding": {
+      "intent": "incident_triage",
+      "entities": {
+        "service": "order-service",
+        "metric": "cpu"
+      }
+    },
+    "filters": {
+      "tenant_id": "company-a",
+      "service": "order-service",
+      "lifecycle_state": "active"
+    },
+    "retrieval": {
+      "vector_candidates": 50,
+      "keyword_candidates": 40,
+      "after_merge": 67,
+      "after_rerank": 8,
+      "final_evidence": 4
+    },
+    "context": {
+      "tokens": 3200,
+      "evidence_ids": ["e1", "e2", "e3", "e4"]
+    }
+  }
+}
+</code></pre>
+<p>没有 trace，RAG debug 会很痛苦。你无法知道问题出在 query、filter、召回、rerank、context 还是 generation。</p>
+<hr>
+<h2 id="811-常见失败模式与修复路径"><a class="header" href="#811-常见失败模式与修复路径">8.11 常见失败模式与修复路径</a></h2>
+<p>RAG 失败通常不是随机的。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">失败模式</th><th style="text-align: left">表现</th><th style="text-align: left">常见原因</th><th style="text-align: left">修复方式</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">召回不到</td><td style="text-align: left">答案说没资料</td><td style="text-align: left">chunk 太碎、embedding 不适配、query 太短</td><td style="text-align: left">改 chunk、hybrid search、query rewrite</td></tr>
+<tr><td style="text-align: left">召回太多噪音</td><td style="text-align: left">答案绕圈或跑题</td><td style="text-align: left">filter 弱、Top-K 过大、rerank 缺失</td><td style="text-align: left">加 metadata filter、rerank、去重</td></tr>
+<tr><td style="text-align: left">引用错误</td><td style="text-align: left">citation 不支持答案</td><td style="text-align: left">context 混乱、模型自由引用</td><td style="text-align: left">citation validator、句子级引用</td></tr>
+<tr><td style="text-align: left">使用旧文档</td><td style="text-align: left">建议过期流程</td><td style="text-align: left">lifecycle 缺失、freshness 不参与排序</td><td style="text-align: left">增加版本和状态字段</td></tr>
+<tr><td style="text-align: left">权限泄露</td><td style="text-align: left">回答包含无权数据</td><td style="text-align: left">ACL 在 prompt 层而非检索层</td><td style="text-align: left">检索前权限过滤</td></tr>
+<tr><td style="text-align: left">证据冲突未处理</td><td style="text-align: left">答案混合两套规则</td><td style="text-align: left">未做冲突检测</td><td style="text-align: left">按版本、权威度、时间解析冲突</td></tr>
+<tr><td style="text-align: left">成本过高</td><td style="text-align: left">token 和 rerank 费用高</td><td style="text-align: left">召回过宽、上下文不压缩</td><td style="text-align: left">分层召回、预算控制、缓存</td></tr>
+<tr><td style="text-align: left">无证据硬答</td><td style="text-align: left">模型编造</td><td style="text-align: left">prompt 无 abstain policy</td><td style="text-align: left">增加 answerability 判断</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="debug-顺序"><a class="header" href="#debug-顺序">Debug 顺序</a></h3>
+<p>遇到 RAG 答错，不要第一反应调 prompt。建议顺序：</p>
+<pre><code class="language-text">1. 正确文档是否进入知识库？
+2. 文档是否解析正确？
+3. chunk 是否包含完整语义？
+4. metadata 是否正确？
+5. query 是否生成了正确 filter？
+6. 正确 chunk 是否出现在 candidate set？
+7. rerank 是否把它排到前面？
+8. context builder 是否保留了它？
+9. 模型是否忠于证据？
+10. citation 是否校验通过？
+</code></pre>
+<p>这条链路能快速定位问题属于检索、上下文还是生成。</p>
+<hr>
+<h2 id="812-面试表达与设计清单"><a class="header" href="#812-面试表达与设计清单">8.12 面试表达与设计清单</a></h2>
+<p>如果面试官问“你怎么设计一个生产级 RAG 系统”，不要只说“我会用向量数据库”。</p>
+<h3 id="面试表达"><a class="header" href="#面试表达">面试表达</a></h3>
+<p>可以这样回答：</p>
+<pre><code class="language-text">我会把 RAG 设计成一个端到端检索系统，而不是简单的向量搜索。
+
+离线侧先做文档摄取，包括解析、清洗、结构保留、chunk、metadata 增强、embedding 和索引构建。
+chunk 策略会根据文档类型设计，例如技术文档按标题结构切分，runbook 保留流程和风险提示，代码按函数和类切分。
+
+在线侧先做 query understanding，识别 intent、entity、doc_type 和权限范围。
+检索时采用 hybrid search，向量召回语义相关内容，关键词检索召回错误码、服务名和编号，再用 reranker 重排。
+然后由 context builder 构建带 source、trust_level、updated_at 和 citation 的证据包，而不是直接拼 Top-K 文本。
+
+生产环境里，权限过滤和 freshness filter 必须在模型看到上下文之前完成。
+评估上我会拆成检索层和生成层，分别看 Recall@K、MRR、nDCG、citation accuracy、faithfulness、abstention accuracy 和 ACL violation rate。
+</code></pre>
+<h3 id="设计清单"><a class="header" href="#设计清单">设计清单</a></h3>
+<pre><code class="language-text">1. 知识源是否明确？
+2. 文档解析是否保留标题、表格、代码、链接和权限？
+3. chunk 是否区分检索单位、上下文单位和引用单位？
+4. metadata 是否包含 source、doc_type、service、version、updated_at、permission？
+5. 是否支持 hybrid search？
+6. 是否有 rerank？
+7. 权限过滤是否发生在模型看到内容之前？
+8. 是否处理过期文档和版本冲突？
+9. context 是否包含 citation 和 trust_level？
+10. 无证据时是否能拒答或要求更多信息？
+11. 是否有检索 eval 数据集？
+12. 是否记录 RAG trace？
+</code></pre>
+<hr>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p>RAG 是让 Agent 获得外部知识和事实依据的关键能力，但它不是“向量数据库 + Prompt”。</p>
+<p>一个生产级 RAG 系统至少包括：</p>
+<ol>
+<li>文档摄取与解析；</li>
+<li>结构化 chunk 策略；</li>
+<li>metadata 与权限模型；</li>
+<li>embedding 与向量索引；</li>
+<li>关键词索引与 hybrid search；</li>
+<li>query understanding 与 source routing；</li>
+<li>rerank、去重和多样性控制；</li>
+<li>context builder 与 citation；</li>
+<li>证据不足和证据冲突处理；</li>
+<li>分层 eval 与 trace。</li>
+</ol>
+<p>RAG 的目标不是让模型“知道更多”，而是让模型在回答当前问题时看到正确、可信、可追溯的证据。</p>
+<p>下一章会进一步讨论 <strong>Agentic RAG 与高级检索模式</strong>：当问题无法通过一次检索回答时，Agent 如何拆解问题、规划检索、多跳推理、使用图结构和工具调用来完成复杂知识任务。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part2/03-workflow-orchestration.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part2/05-agentic-rag.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part2/03-workflow-orchestration.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part2/05-agentic-rag.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
