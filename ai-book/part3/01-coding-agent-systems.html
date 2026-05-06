@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-75e7677a.js";
+            window.path_to_searchindex_js = "../searchindex-66552cb8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-5eb53b55.js"></script>
@@ -199,6 +199,7 @@
 <p>本章的目标不只是比较产品，而是让你读完之后可以复现一个最小 Coding Agent 原型。这个原型不追求“像商业产品一样强”，但必须具备真实 Coding Agent 的关键骨架：</p>
 <ul>
 <li>能读取项目上下文；</li>
+<li>能按任务加载合适的 Skill；</li>
 <li>能选择和调用工具；</li>
 <li>能修改文件；</li>
 <li>能运行验证命令；</li>
@@ -329,7 +330,7 @@ Verification
 <p>探索阶段允许混沌，交付阶段需要约束。</p>
 <hr>
 <h2 id="124-从成熟产品抽象出通用架构"><a class="header" href="#124-从成熟产品抽象出通用架构">12.4 从成熟产品抽象出通用架构</a></h2>
-<p>成熟 Coding Agent 通常包含八个核心模块。</p>
+<p>成熟 Coding Agent 通常包含九个核心模块。</p>
 <pre><code class="language-text">┌──────────────────────────────────────────────────────────────┐
 │                    Coding Agent Runtime                       │
 ├──────────────────────────────────────────────────────────────┤
@@ -341,6 +342,9 @@ Verification
 │      │                                                        │
 │      ▼                                                        │
 │  Context Builder ─────► Code Index / Git / Docs / Rules       │
+│      │                                                        │
+│      ▼                                                        │
+│  Skill Registry ──────► bugfix / test / refactor / incident   │
 │      │                                                        │
 │      ▼                                                        │
 │  Tool Registry ───────► read/search/edit/shell/git/test       │
@@ -367,6 +371,7 @@ Verification
 <tbody>
 <tr><td style="text-align: left">Task Planner</td><td style="text-align: left">把需求拆成步骤</td><td style="text-align: left">让模型输出 JSON plan</td><td style="text-align: left">计划过粗、遗漏验证</td></tr>
 <tr><td style="text-align: left">Context Builder</td><td style="text-align: left">找到相关代码和规则</td><td style="text-align: left">repo map + search + read_file</td><td style="text-align: left">上下文过多或漏掉关键文件</td></tr>
+<tr><td style="text-align: left">Skill Registry</td><td style="text-align: left">选择任务相关的工程流程</td><td style="text-align: left"><code>skills/*/SKILL.md</code> + 触发规则</td><td style="text-align: left">加载过多、规则冲突</td></tr>
 <tr><td style="text-align: left">Tool Registry</td><td style="text-align: left">暴露可调用能力</td><td style="text-align: left">Python 函数注册表</td><td style="text-align: left">工具语义模糊</td></tr>
 <tr><td style="text-align: left">Policy Engine</td><td style="text-align: left">管控危险动作</td><td style="text-align: left">allowlist + path sandbox</td><td style="text-align: left">越权、破坏用户改动</td></tr>
 <tr><td style="text-align: left">Agent Loop</td><td style="text-align: left">驱动多轮执行</td><td style="text-align: left">while step &lt; max_steps</td><td style="text-align: left">死循环、偏航</td></tr>
@@ -385,6 +390,55 @@ Verification
 <li>任务失败时如何保留证据；</li>
 <li>最后如何让人相信这个 diff 可以 review。</li>
 </ul>
+<h3 id="skill-registry把工程经验变成可复用能力"><a class="header" href="#skill-registry把工程经验变成可复用能力">Skill Registry：把工程经验变成可复用能力</a></h3>
+<p>在 Coding Agent 里，Skill 是介于“规则文件”和“工具调用”之间的一层能力抽象。</p>
+<pre><code class="language-text">Tool  解决：Agent 能调用什么能力
+Skill 解决：某一类工程任务应该按什么方法完成
+</code></pre>
+<p>例如：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">任务</th><th style="text-align: left">需要的工具</th><th style="text-align: left">适合沉淀成 Skill 的经验</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">修复 bug</td><td style="text-align: left">search、read、edit、test</td><td style="text-align: left">先复现，再定位，再最小修改，再回归测试</td></tr>
+<tr><td style="text-align: left">补测试</td><td style="text-align: left">read、search、edit、test</td><td style="text-align: left">先理解现有测试风格，再覆盖失败路径和边界条件</td></tr>
+<tr><td style="text-align: left">重构模块</td><td style="text-align: left">search、read、edit、test、diff</td><td style="text-align: left">先建立调用面，再小步迁移，再保持行为等价</td></tr>
+<tr><td style="text-align: left">升级依赖</td><td style="text-align: left">read、edit、shell、diff</td><td style="text-align: left">先看 changelog，再改锁文件，再跑兼容测试</td></tr>
+<tr><td style="text-align: left">日志排障</td><td style="text-align: left">MCP log、trace、search、diagram</td><td style="text-align: left">先列日志事实，再对齐代码，再标注证据等级</td></tr>
+</tbody>
+</table>
+</div>
+<p>Skill 不应该拥有执行权限。它只是告诉 Agent “这类任务的可靠做法是什么”。真正的文件读写、Shell 执行、MCP 查询和 Git 操作，仍然必须经过 Tool Registry 和 Policy Engine。</p>
+<p>一个最小 Skill 可以写成这样：</p>
+<pre><code class="language-markdown"># Bugfix Skill
+
+## Trigger
+当用户要求修复缺陷、失败测试、异常日志或线上报错时使用。
+
+## Procedure
+1. 先复现或读取失败证据，不要直接修改代码；
+2. 搜索错误信息、函数名、测试名和相关调用链；
+3. 阅读最小相关文件，避免一次性加载整个仓库；
+4. 做最小修改，优先保持现有接口和行为；
+5. 新增或更新回归测试；
+6. 运行最小验证命令；
+7. 输出 diff、验证结果和剩余风险。
+
+## Stop Conditions
+- 无法复现；
+- 缺少权限；
+- 验证命令持续失败且原因不明；
+- 修改范围超过原始任务边界。
+</code></pre>
+<p>从架构上看，Skill Registry 做三件事：</p>
+<ol>
+<li><strong>发现</strong>：从项目、用户目录或内置目录加载 <code>SKILL.md</code>；</li>
+<li><strong>选择</strong>：根据任务类型、文件类型、工具需求和历史失败样本选择少量相关 Skill；</li>
+<li><strong>注入</strong>：把 Skill 的触发条件、步骤、验证要求放进本轮上下文。</li>
+</ol>
+<p>不要把所有 Skill 都塞进 prompt。一个成熟 Runtime 应该按需加载，最好还能记录本次任务到底加载了哪个 Skill、哪个版本，以及最终是否帮助任务成功。</p>
 <hr>
 <h2 id="125-claude-codecursorcodex-的架构取舍"><a class="header" href="#125-claude-codecursorcodex-的架构取舍">12.5 Claude Code、Cursor、Codex 的架构取舍</a></h2>
 <h3 id="claude-code终端原生-runtime"><a class="header" href="#claude-code终端原生-runtime">Claude Code：终端原生 Runtime</a></h3>
@@ -479,6 +533,21 @@ Cloud Sandbox
 <li>Codex 负责并行 issue 和云端 PR 任务；</li>
 <li>统一用 Spec、测试、代码审查和 CI 把它们约束到同一工程标准。</li>
 </ul>
+<h3 id="从-skill-视角看三类产品"><a class="header" href="#从-skill-视角看三类产品">从 Skill 视角看三类产品</a></h3>
+<p>不同产品不一定都把这种能力称为 Skill，但它们都需要某种“任务流程复用机制”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">产品形态</th><th style="text-align: left">Skill-like 机制</th><th style="text-align: left">适合沉淀的内容</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Claude Code</td><td style="text-align: left">项目规则、命令、Hooks、Subagents、Skills</td><td style="text-align: left">终端工作流、发布检查、调试流程、代码审查流程</td></tr>
+<tr><td style="text-align: left">Cursor</td><td style="text-align: left">Project Rules、目录级规则、编辑器上下文</td><td style="text-align: left">前端组件规范、目录局部约束、重构习惯</td></tr>
+<tr><td style="text-align: left">Codex</td><td style="text-align: left">任务模板、仓库规则、沙箱验证流程</td><td style="text-align: left">issue 修复流程、PR 生成流程、并行验证流程</td></tr>
+</tbody>
+</table>
+</div>
+<p>这说明 Skill 不是某个产品的专有功能，而是一种更通用的 Agent 工程模式：把“人类专家做这类任务的稳定方法”写成可版本化、可审查、可评估的上下文资产。</p>
 <hr>
 <h2 id="126-一个可复现-coding-agent-mvp-的目标"><a class="header" href="#126-一个可复现-coding-agent-mvp-的目标">12.6 一个可复现 Coding Agent MVP 的目标</a></h2>
 <p>为了避免一上来就被商业产品复杂度压垮，我们先定义一个最小可用原型。</p>
@@ -512,6 +581,9 @@ Cloud Sandbox
 Load Rules
   │
   ▼
+Load Relevant Skills
+  │
+  ▼
 Build Context
   │
   ▼
@@ -540,9 +612,15 @@ Final Report
 ├── llm.py            # LLM 适配器
 ├── models.py         # 数据结构
 ├── policy.py         # 权限策略
+├── skills.py         # Skill 发现与选择
 ├── tools.py          # 工具实现
 ├── run.py            # CLI 入口
 ├── AGENT.md          # 项目规则
+├── skills/
+│   ├── bugfix/SKILL.md
+│   ├── test-writing/SKILL.md
+│   ├── refactor/SKILL.md
+│   └── trace-to-architecture/SKILL.md
 └── traces/           # 每次执行的 trace
 </code></pre>
 <p>这里故意不引入复杂框架。早期原型最需要的是把边界写清楚：</p>
@@ -551,6 +629,7 @@ Final Report
 <li>Tool Runtime 只执行注册过的工具；</li>
 <li>Policy Engine 决定工具能不能执行；</li>
 <li>Context Builder 决定模型看什么；</li>
+<li>Skill Registry 决定本类任务应该按什么流程做；</li>
 <li>Agent Loop 负责把观察结果继续喂给模型；</li>
 <li>Verifier 决定任务有没有证据证明完成。</li>
 </ul>
@@ -603,11 +682,12 @@ class AgentState:
 </ul>
 <hr>
 <h2 id="129-context-builder让模型看到正确的代码"><a class="header" href="#129-context-builder让模型看到正确的代码">12.9 Context Builder：让模型看到正确的代码</a></h2>
-<p>Coding Agent 的效果很大程度取决于上下文。上下文不是越多越好，而是要回答三个问题：</p>
+<p>Coding Agent 的效果很大程度取决于上下文。上下文不是越多越好，而是要回答四个问题：</p>
 <ol>
 <li>这个任务可能涉及哪些文件？</li>
 <li>这些文件里哪些片段最相关？</li>
 <li>哪些项目规则必须始终注入？</li>
+<li>这个任务是否有可复用的工程流程？</li>
 </ol>
 <h3 id="最小实现"><a class="header" href="#最小实现">最小实现</a></h3>
 <pre><code class="language-python"># context.py
@@ -646,8 +726,52 @@ def build_repo_map(repo_root: Path, limit: int = 300) -&gt; str:
             break
     return "\n".join(files)
 </code></pre>
+<p>Skill 可以单独放在 <code>skills.py</code>，由 Context Builder 在每轮构造 prompt 时调用。</p>
+<pre><code class="language-python"># skills.py
+from dataclasses import dataclass
+from pathlib import Path
+
+
+@dataclass
+class Skill:
+    name: str
+    path: str
+    content: str
+
+
+SKILL_HINTS = {
+    "bugfix": ["bug", "fix", "error", "exception", "失败", "报错", "修复"],
+    "test-writing": ["test", "pytest", "unit", "coverage", "测试", "覆盖"],
+    "refactor": ["refactor", "migration", "cleanup", "重构", "迁移"],
+    "trace-to-architecture": ["trace", "log", "diagram", "mermaid", "日志", "调用链", "架构图"],
+}
+
+
+def load_relevant_skills(repo_root: Path, task: str, limit: int = 3) -&gt; list[Skill]:
+    skill_roots = [
+        repo_root / "skills",
+        Path.home() / ".coding-agent" / "skills",
+    ]
+    candidates: list[Skill] = []
+    task_lower = task.lower()
+
+    for root in skill_roots:
+        if not root.exists():
+            continue
+        for skill_file in sorted(root.glob("*/SKILL.md")):
+            name = skill_file.parent.name
+            content = skill_file.read_text(encoding="utf-8")[:4000]
+            haystack = f"{name}\n{content}".lower()
+            score = sum(1 for word in task_lower.split() if word and word in haystack)
+            score += sum(2 for hint in SKILL_HINTS.get(name, []) if hint in task_lower)
+            if score &gt; 0:
+                candidates.append(Skill(name=name, path=str(skill_file), content=content))
+
+    return candidates[:limit]
+</code></pre>
+<p>这个实现很朴素，但已经表达了关键边界：Skill 是上下文，不是工具权限。它被加载进 prompt 后，只能影响模型的做事方法，不能直接访问文件系统、执行命令或跳过审批。</p>
 <h3 id="上下文分层"><a class="header" href="#上下文分层">上下文分层</a></h3>
-<p>实际系统里，建议把上下文分成四层：</p>
+<p>实际系统里，建议把上下文分成五层：</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -656,6 +780,7 @@ def build_repo_map(repo_root: Path, limit: int = 300) -&gt; str:
 <tbody>
 <tr><td style="text-align: left">System Contract</td><td style="text-align: left">Agent 行为规范、输出格式、工具协议</td><td style="text-align: left">是</td></tr>
 <tr><td style="text-align: left">Project Rules</td><td style="text-align: left">构建命令、代码风格、禁区目录</td><td style="text-align: left">是</td></tr>
+<tr><td style="text-align: left">Skill Context</td><td style="text-align: left">当前任务相关的工程流程、检查清单、停止条件</td><td style="text-align: left">按需</td></tr>
 <tr><td style="text-align: left">Task Context</td><td style="text-align: left">用户需求、验收标准、当前计划</td><td style="text-align: left">是</td></tr>
 <tr><td style="text-align: left">Retrieved Context</td><td style="text-align: left">搜索到的文件片段、测试输出、diff</td><td style="text-align: left">按需</td></tr>
 </tbody>
@@ -685,6 +810,12 @@ def build_repo_map(repo_root: Path, limit: int = 300) -&gt; str:
 </tbody>
 </table>
 </div>
+<p>Skill 可以建议工具使用顺序，但不能改变工具权限。例如 <code>bugfix</code> Skill 可以要求“先读取失败测试，再修改代码，再运行最小测试”，但 <code>run_shell("pytest")</code> 是否允许执行，仍然由 Policy Engine 决定。</p>
+<p>这是生产系统里非常重要的边界：</p>
+<pre><code class="language-text">Skill = 方法建议 + 检查清单 + 停止条件
+Tool  = 可执行能力 + 参数 Schema + 权限策略
+Policy = 最终裁决
+</code></pre>
 <h3 id="路径沙箱"><a class="header" href="#路径沙箱">路径沙箱</a></h3>
 <p>第一条规则：工具只能访问 repo root 内的文件。</p>
 <pre><code class="language-python"># tools.py
@@ -917,12 +1048,18 @@ Available tools:
 - run_shell(command, timeout)
 - git_diff()
 
+Loaded skills:
+- Skills describe recommended procedures for this task.
+- Skills do not grant extra permissions.
+- If a skill conflicts with tool policy, follow tool policy.
+
 Rules:
-1. Read files before editing them.
-2. Prefer replace_in_file over rewriting full files.
-3. Run verification after edits.
-4. If a tool fails, inspect the error and repair.
-5. Finish only when you have evidence.
+1. Follow relevant loaded skills when they apply.
+2. Read files before editing them.
+3. Prefer replace_in_file over rewriting full files.
+4. Run verification after edits.
+5. If a tool fails, inspect the error and repair.
+6. Finish only when you have evidence.
 
 Return exactly one JSON object:
 - For tool use: {"thought": "...", "action": {"name": "...", "args": {...}}}
@@ -933,7 +1070,7 @@ Return exactly one JSON object:
 <h2 id="1213-agent-loopcoding-agent-的心脏"><a class="header" href="#1213-agent-loopcoding-agent-的心脏">12.13 Agent Loop：Coding Agent 的心脏</a></h2>
 <p>Agent Loop 不复杂，但它决定了系统是否可靠。</p>
 <pre><code class="language-text">while not done:
-    prompt = system + rules + task + context + observations
+    prompt = system + rules + skills + task + context + observations
     response = llm(prompt)
     if response.action:
         policy check
@@ -948,6 +1085,7 @@ import json
 from pathlib import Path
 
 from context import build_repo_map, load_rules
+from skills import load_relevant_skills
 from policy import Policy
 from tools import Workspace, create_file, git_diff, list_files, read_file, replace_in_file, run_shell, search_code
 from models import AgentState, AgentStep, ToolCall, ToolResult
@@ -974,6 +1112,11 @@ Do not claim success without verification evidence.
 def build_prompt(state: AgentState, repo_root: Path) -&gt; str:
     rules = load_rules(repo_root)
     repo_map = build_repo_map(repo_root)
+    skills = load_relevant_skills(repo_root, state.task)
+    skill_context = "\n\n".join(
+        f"Skill: {skill.name}\nPath: {skill.path}\n{skill.content}"
+        for skill in skills
+    )
     observations = []
     for step in state.steps[-8:]:
         observations.append(f"thought: {step.thought}")
@@ -989,6 +1132,9 @@ def build_prompt(state: AgentState, repo_root: Path) -&gt; str:
 
 Project rules:
 {rules}
+
+Relevant skills:
+{skill_context}
 
 Repository map:
 {repo_map}
@@ -1304,6 +1450,7 @@ class TraceWriter:
 <ul>
 <li>用户任务是什么；</li>
 <li>每轮 prompt 的摘要是什么；</li>
+<li>本轮加载了哪些 Skill、版本是什么；</li>
 <li>模型输出了什么；</li>
 <li>调用了什么工具；</li>
 <li>工具返回什么；</li>
@@ -1315,11 +1462,21 @@ class TraceWriter:
 <pre><code class="language-text">失败任务
   │
   ├─ 上下文不足？补 Context Builder
+  ├─ 流程不稳？补 Skill
   ├─ 工具不够？补 Tool
   ├─ 权限太大？补 Policy
   ├─ 测试缺失？补 Verifier
   └─ Prompt 漂移？补 System Contract
 </code></pre>
+<p>Trace 也是 Skill 的来源。很多团队一开始会把经验写进 prompt，后来才发现真正应该沉淀的是“任务流程”：</p>
+<pre><code class="language-text">失败 trace
+  │
+  ├─ 找出重复出现的失败模式
+  ├─ 写成 Skill 的 Trigger / Procedure / Stop Conditions
+  ├─ 加入 regression eval
+  └─ 在后续任务中按需加载
+</code></pre>
+<p>例如某类 bugfix 任务总是漏掉回归测试，就不要只在系统提示词里加一句“记得写测试”。更好的方式是更新 <code>bugfix/SKILL.md</code>，明确“修改前先定位失败证据，修改后必须新增或更新回归测试”，再把这类历史失败加入 eval。</p>
 <hr>
 <h2 id="1218-从-mvp-到生产系统的演进路线"><a class="header" href="#1218-从-mvp-到生产系统的演进路线">12.18 从 MVP 到生产系统的演进路线</a></h2>
 <p>实现出最小原型后，不要立刻堆功能。建议按风险顺序演进。</p>
@@ -1370,7 +1527,25 @@ class TraceWriter:
 <li>中途汇报；</li>
 <li>可暂停和恢复。</li>
 </ul>
-<h3 id="第五阶段team-agent"><a class="header" href="#第五阶段team-agent">第五阶段：Team Agent</a></h3>
+<h3 id="第五阶段skill-enabled-agent"><a class="header" href="#第五阶段skill-enabled-agent">第五阶段：Skill-enabled Agent</a></h3>
+<p>加入 Skill Registry，让 Agent 不只是“临场规划”，而是能够复用团队沉淀下来的工程流程。</p>
+<p>目标是支持可重复的高质量任务，例如：</p>
+<ul>
+<li>缺陷修复流程；</li>
+<li>测试补全流程；</li>
+<li>依赖升级流程；</li>
+<li>代码审查流程；</li>
+<li>日志到调用链分析流程。</li>
+</ul>
+<p>这一阶段要重点做：</p>
+<ul>
+<li>Skill 的触发条件；</li>
+<li>Skill 版本管理；</li>
+<li>Skill 与项目规则的优先级；</li>
+<li>Skill 加载 trace；</li>
+<li>Skill 修改后的 regression eval。</li>
+</ul>
+<h3 id="第六阶段team-agent"><a class="header" href="#第六阶段team-agent">第六阶段：Team Agent</a></h3>
 <p>加入 subagent、reviewer、eval、CI 集成。</p>
 <p>目标是让 Agent 进入团队工程流程，而不是只服务个人本地实验。</p>
 <p>这一阶段要重点做：</p>
@@ -1438,6 +1613,32 @@ make build
 <li>是模型能力边界？</li>
 </ul>
 <p>修复不能只靠“下次小心”，而要进入规则、测试或评估集。</p>
+<h3 id="6-把重复流程沉淀为-skill"><a class="header" href="#6-把重复流程沉淀为-skill">6. 把重复流程沉淀为 Skill</a></h3>
+<p>当同一类任务反复出现，并且它有相对稳定的步骤、检查点和停止条件时，就应该把它沉淀为 Skill。</p>
+<p>适合写成 Skill 的流程包括：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">Skill</th><th style="text-align: left">触发场景</th><th style="text-align: left">核心约束</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><code>bugfix</code></td><td style="text-align: left">失败测试、异常日志、用户报 bug</td><td style="text-align: left">先复现，后修改，必须补回归测试</td></tr>
+<tr><td style="text-align: left"><code>test-writing</code></td><td style="text-align: left">补单测、提升覆盖率</td><td style="text-align: left">先读现有测试风格，覆盖失败路径</td></tr>
+<tr><td style="text-align: left"><code>refactor</code></td><td style="text-align: left">模块整理、接口迁移</td><td style="text-align: left">保持行为等价，小步验证</td></tr>
+<tr><td style="text-align: left"><code>dependency-upgrade</code></td><td style="text-align: left">升级库、框架、运行时</td><td style="text-align: left">查破坏性变更，跑兼容测试</td></tr>
+<tr><td style="text-align: left"><code>trace-to-architecture</code></td><td style="text-align: left">根据 trace/log 还原调用链</td><td style="text-align: left">区分日志事实、代码确认、模型推断</td></tr>
+<tr><td style="text-align: left"><code>release-check</code></td><td style="text-align: left">发布前检查</td><td style="text-align: left">只读检查优先，高风险动作审批</td></tr>
+</tbody>
+</table>
+</div>
+<p>不要把 Skill 写成空泛口号，例如“认真修复 bug”。一个有效 Skill 至少要包含：</p>
+<ul>
+<li>什么时候触发；</li>
+<li>要按什么顺序做；</li>
+<li>必须收集什么证据；</li>
+<li>需要运行什么验证；</li>
+<li>什么时候停止并请求人工介入。</li>
+</ul>
 <hr>
 <h2 id="1220-原型实现检查清单"><a class="header" href="#1220-原型实现检查清单">12.20 原型实现检查清单</a></h2>
 <p>如果你准备自己实现一个 Coding Agent，最小检查清单如下：</p>
@@ -1452,10 +1653,19 @@ make build
 <h3 id="context"><a class="header" href="#context">Context</a></h3>
 <ul>
 <li>是否加载项目规则？</li>
+<li>是否加载了当前任务相关的 Skill？</li>
 <li>是否有 repo map？</li>
 <li>是否让模型按需 search/read？</li>
 <li>是否避免一次性塞入整个仓库？</li>
 <li>是否截断过长输出？</li>
+</ul>
+<h3 id="skills"><a class="header" href="#skills">Skills</a></h3>
+<ul>
+<li>是否有清晰的 Trigger？</li>
+<li>是否有 Procedure、Verification 和 Stop Conditions？</li>
+<li>是否避免把 Skill 当成工具权限？</li>
+<li>是否记录本次任务加载了哪些 Skill？</li>
+<li>Skill 修改后是否运行 regression eval？</li>
 </ul>
 <h3 id="tools"><a class="header" href="#tools">Tools</a></h3>
 <ul>
@@ -1576,6 +1786,34 @@ flowchart LR
   请求是否成功、异常是否影响主流程、剩余不确定性
 </code></pre>
 <p>这就是 Agent Loop 在真实排障中的样子：每一轮不是闲聊，而是围绕证据继续推进。</p>
+<h3 id="把这条链路沉淀成-skill"><a class="header" href="#把这条链路沉淀成-skill">把这条链路沉淀成 Skill</a></h3>
+<p>这类任务非常适合写成 <code>trace-to-architecture</code> Skill，因为它不是一次性的 prompt 技巧，而是一套可以复用的工程分析流程。</p>
+<pre><code class="language-markdown"># Trace to Architecture Skill
+
+## Trigger
+当用户提供 trace id、request id、日志片段，要求还原调用链、数据流或生成架构图时使用。
+
+## Procedure
+1. 明确环境、时间范围、trace id 和输出格式；
+2. 调用日志或 trace 工具，先获得时间线事实；
+3. 提取服务名、接口、错误码、日志 message、span 信息；
+4. 使用代码搜索定位 route、handler、processor、client 和日志打印点；
+5. 把每条边标注为“日志确认”“代码确认”或“模型推断”；
+6. 生成 Mermaid 图和文字结论；
+7. 输出剩余不确定性和下一步排查建议。
+
+## Verification
+- 日志查询结果为空时不能继续编造调用链；
+- 图中的关键节点必须有日志或代码证据；
+- 对外发布时必须脱敏 trace id、域名、服务名、用户数据和内部路径。
+
+## Stop Conditions
+- 时间窗口、环境或权限不明确；
+- 日志平台不可用；
+- 本地代码版本无法与线上请求对应；
+- 发现敏感信息但无法安全脱敏。
+</code></pre>
+<p>把它做成 Skill 后，Agent 每次遇到类似任务都能复用同一套证据纪律：先事实、再代码、后推断；先脱敏、再发布。</p>
 <h3 id="mcp-工具调用不是网络请求本身"><a class="header" href="#mcp-工具调用不是网络请求本身">MCP 工具调用不是网络请求本身</a></h3>
 <p>模型生成的通常不是 HTTP 请求，而是结构化工具调用意图：</p>
 <pre><code class="language-json">{
@@ -1610,6 +1848,9 @@ Environment Envelope
 
 Tool Schema
   当前可用 MCP 工具、shell 工具、文件读取工具、绘图工具
+
+Skill Context
+  trace-to-architecture 的流程、证据等级、脱敏要求、停止条件
 
 Observed Evidence
   已查到的日志、已读取的代码片段、命令输出、生成文件路径
@@ -1763,9 +2004,10 @@ flowchart TD
 <li>Claude Code 展示了终端原生 Agent Runtime 的价值；</li>
 <li>Cursor 展示了 IDE 原生上下文控制的价值；</li>
 <li>Codex 展示了云端沙箱和并行任务的价值；</li>
-<li>可复现的 Coding Agent MVP 至少需要 Context Builder、Tool Runtime、Policy Engine、Agent Loop、Verifier 和 Trace；</li>
+<li>Skill 把团队工程经验沉淀成可复用的任务流程，但不能绕过工具权限和安全策略；</li>
+<li>可复现的 Coding Agent MVP 至少需要 Context Builder、Skill Registry、Tool Runtime、Policy Engine、Agent Loop、Verifier 和 Trace；</li>
 <li>Codex + MCP + 日志 + 代码仓库展示了“外部事实源 + 本地实现源 + 模型推理”的证据链工作流；</li>
-<li>真正可靠的 Coding Agent 工作流，需要 Spec、Context、Tools、Verification、Review 和 Eval 同时存在。</li>
+<li>真正可靠的 Coding Agent 工作流，需要 Spec、Context、Skills、Tools、Verification、Review 和 Eval 同时存在。</li>
 </ul>
 <p>最重要的结论是：</p>
 <blockquote>
