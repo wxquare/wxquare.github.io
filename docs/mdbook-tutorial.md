@@ -307,8 +307,9 @@ mdbook serve --open
 # 1. 回到您的博客目录
 cd /Users/xianguiwang/gopath/src/github.com/wxquare/wxquare.github.io
 
-# 2. 创建book项目
-mdbook init ecommerce-book
+# 2. 创建books父目录和book项目
+mkdir -p books
+mdbook init books/ecommerce-book
 ```
 
 **交互**：
@@ -322,7 +323,7 @@ What title would you like to give the book?
 
 ```bash
 # 3. 进入项目
-cd ecommerce-book
+cd books/ecommerce-book
 
 # 4. 查看结构
 tree -L 2

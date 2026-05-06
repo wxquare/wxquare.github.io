@@ -1,0 +1,1027 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第16章 Hermes Agent 架构解析：自我进化、记忆与多入口 Agent Gateway - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-66552cb8.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-5eb53b55.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第16章-hermes-agent-架构解析自我进化记忆与多入口-agent-gateway"><a class="header" href="#第16章-hermes-agent-架构解析自我进化记忆与多入口-agent-gateway">第16章 Hermes Agent 架构解析：自我进化、记忆与多入口 Agent Gateway</a></h1>
+<blockquote>
+<p>Hermes Agent 的核心价值，不是“多一个聊天入口”，而是把长期运行的 Agent 做成一个会积累记忆、沉淀技能、跨入口工作、可扩展工具并能生成训练轨迹的个人运行时。</p>
+</blockquote>
+<h2 id="引言"><a class="header" href="#引言">引言</a></h2>
+<p>前几章分别分析了 Coding Agent、企业知识助手、Agent 平台和 OpenClaw。OpenClaw 让我们看到个人 AI 助手可以从聊天机器人升级为 Gateway：它把 WhatsApp、Telegram、Slack、WebChat、CLI 等入口接到同一个 Agent Runtime。</p>
+<p>Hermes Agent 和 OpenClaw 处在相近的问题空间，但设计重心不同：</p>
+<ul>
+<li>OpenClaw 更像一个个人 Agent Gateway，强调多渠道接入、插件生态和本地优先；</li>
+<li>Hermes Agent 更像一个长期运行、自我进化的 Agent Runtime，强调记忆、技能、工具、子 Agent、执行后端和研究数据闭环。</li>
+</ul>
+<p>如果用一句话概括：</p>
+<pre><code class="language-text">OpenClaw 解决“Agent 如何到达用户所在的地方”
+Hermes 解决“Agent 如何在长期使用中变得更懂用户、更会做事”
+</code></pre>
+<p>本章基于 2026 年 4 月 30 日可访问的 Hermes Agent 官方 README 与文档进行分析。Hermes Agent 正在快速演进，具体命令和模块数量以后可能变化，但它的架构思想很值得借鉴。</p>
+<p>本章关注六个问题：</p>
+<ol>
+<li>Hermes Agent 为什么要做成长运行的多入口 Agent？</li>
+<li>它的自我进化闭环到底由哪些系统组成？</li>
+<li>Memory、Skills、Session Search 和 Context Files 如何协作？</li>
+<li>它如何组织工具、工具集、执行后端和 MCP？</li>
+<li>Gateway、Cron、ACP、Profiles 如何把 Agent 从聊天扩展成工作平台？</li>
+<li>如果我们自研个人或团队 Agent，可以借鉴哪些设计？</li>
+</ol>
+<hr>
+<h2 id="161-系统定位从一次性会话到长期运行的-agent"><a class="header" href="#161-系统定位从一次性会话到长期运行的-agent">16.1 系统定位：从一次性会话到长期运行的 Agent</a></h2>
+<p>很多 AI 产品仍然是“一次性会话”：</p>
+<pre><code class="language-text">User Prompt -&gt; LLM -&gt; Answer
+</code></pre>
+<p>这种形态适合问答，但不适合真正的助手。真实助手需要具备连续性：</p>
+<ul>
+<li>记得用户偏好；</li>
+<li>记得项目背景；</li>
+<li>记得过去解决过什么问题；</li>
+<li>能把一次复杂任务沉淀成可复用技能；</li>
+<li>能从 CLI、Telegram、Slack、Discord、WhatsApp、Email 等入口继续同一类工作；</li>
+<li>能在本地、Docker、SSH、Modal、Daytona、Singularity 等环境里执行任务；</li>
+<li>能把运行轨迹导出，用于评估、微调或强化学习。</li>
+</ul>
+<p>Hermes Agent 的定位可以抽象成：</p>
+<pre><code class="language-text">Hermes Agent
+  = Long-running Agent Runtime
+  + Persistent Memory
+  + Procedural Skill System
+  + Multi-platform Gateway
+  + Tool / Toolset Registry
+  + Execution Backends
+  + Research Trajectory Pipeline
+</code></pre>
+<p>它和普通聊天机器人的本质区别是：普通聊天机器人围绕“单次回复”设计，Hermes 围绕“长期能力增长”设计。</p>
+<h3 id="关键判断agent-的能力不只来自模型"><a class="header" href="#关键判断agent-的能力不只来自模型">关键判断：Agent 的能力不只来自模型</a></h3>
+<p>Hermes 的设计隐含了一个重要判断：</p>
+<blockquote>
+<p>长期 Agent 的能力，不只来自模型参数，而来自模型、记忆、技能、工具、入口、执行环境和历史轨迹共同组成的系统。</p>
+</blockquote>
+<p>同一个模型，如果每次都从空白上下文开始，就是普通聊天；如果它能读取项目规则、调用工具、搜索旧会话、更新记忆、创建技能、定时执行任务，并在不同平台保持身份连续性，就开始接近真正的个人 Agent。</p>
+<hr>
+<h2 id="162-总体架构"><a class="header" href="#162-总体架构">16.2 总体架构</a></h2>
+<p>Hermes Agent 可以分成八个核心层：</p>
+<pre class="mermaid">
+flowchart TB
+    subgraph Entry["Entry Points"]
+        CLI["CLI / TUI"]
+        Gateway["Messaging Gateway"]
+        ACP["ACP / IDE Integration"]
+        Cron["Cron Jobs"]
+        Batch["Batch Runner / API"]
+    end
+
+    subgraph Core["Agent Core"]
+        Agent["AIAgent Loop"]
+        Prompt["Prompt Builder"]
+        Provider["Provider Resolver"]
+        Compressor["Context Compressor"]
+        Callbacks["Callbacks / Streaming"]
+    end
+
+    subgraph Context["Context &amp; Learning"]
+        Memory["MEMORY.md / USER.md"]
+        Sessions["SQLite Sessions + FTS5"]
+        Skills["Skills / SKILL.md"]
+        ContextFiles["AGENTS.md / .hermes.md / SOUL.md"]
+        Profiles["Profiles"]
+    end
+
+    subgraph Tools["Tool Runtime"]
+        Registry["Tool Registry"]
+        Toolsets["Toolsets"]
+        MCP["MCP Tools"]
+        Plugins["Plugins"]
+    end
+
+    subgraph Execution["Execution Backends"]
+        Local["Local"]
+        Docker["Docker"]
+        SSH["SSH"]
+        Daytona["Daytona"]
+        Modal["Modal"]
+        Singularity["Singularity"]
+    end
+
+    subgraph Storage["State Storage"]
+        Config["config.yaml"]
+        StateDB["state.db"]
+        SkillStore["~/.hermes/skills"]
+        MemoryStore["~/.hermes/memories"]
+    end
+
+    Entry --&gt; Agent
+    Agent --&gt; Prompt
+    Prompt --&gt; Context
+    Agent --&gt; Provider
+    Agent --&gt; Registry
+    Registry --&gt; Toolsets
+    Registry --&gt; MCP
+    Registry --&gt; Plugins
+    Toolsets --&gt; Execution
+    Agent --&gt; Compressor
+    Agent --&gt; Callbacks
+    Context --&gt; Storage
+    Agent --&gt; Storage
+</pre>
+
+<p>这张图背后有三个核心分离：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">分离点</th><th style="text-align: left">设计含义</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Entry 与 Core 分离</td><td style="text-align: left">CLI、Gateway、ACP、Cron 都复用同一个 Agent Core</td></tr>
+<tr><td style="text-align: left">Context 与 Tools 分离</td><td style="text-align: left">记忆和技能决定“知道什么”，工具系统决定“能做什么”</td></tr>
+<tr><td style="text-align: left">Toolsets 与 Execution 分离</td><td style="text-align: left">同一个 terminal 工具可以跑在 local、Docker、SSH 或云端后端</td></tr>
+</tbody>
+</table>
+</div>
+<p>这种分层让 Hermes 不只是一个 CLI 工具，而是一个可嵌入不同入口、不同执行环境、不同研究工作流的 Agent Runtime。</p>
+<hr>
+<h2 id="163-agent-loop统一多入口的运行核心"><a class="header" href="#163-agent-loop统一多入口的运行核心">16.3 Agent Loop：统一多入口的运行核心</a></h2>
+<p>Hermes 的核心是一个同步编排引擎，可以理解为：</p>
+<pre><code class="language-text">load profile
+  -&gt; load config / memory / skills / context files
+  -&gt; assemble system prompt
+  -&gt; resolve provider and model
+  -&gt; receive user turn
+  -&gt; call model
+  -&gt; dispatch tool calls
+  -&gt; stream progress via callbacks
+  -&gt; persist session and tool results
+  -&gt; compress context when needed
+  -&gt; update memory / skills when appropriate
+</code></pre>
+<p>伪代码如下：</p>
+<pre><code class="language-python">def run_turn(user_message, profile, entry_point):
+    config = load_config(profile)
+    memory = load_memory(profile)
+    skills = select_relevant_skills(user_message, profile)
+    context_files = discover_context_files()
+    sessions = load_session_state(entry_point, profile)
+
+    prompt = build_prompt(
+        personality=config.personality,
+        memory=memory,
+        skills=skills,
+        context_files=context_files,
+        tools=enabled_toolsets(entry_point),
+        session=sessions.current,
+    )
+
+    while not done:
+        response = model.complete(prompt)
+        if response.tool_calls:
+            results = tool_registry.dispatch(response.tool_calls)
+            callbacks.stream_tool_results(results)
+            prompt = append_observations(prompt, results)
+            persist(results)
+        else:
+            callbacks.stream_answer(response.text)
+            persist(response)
+            done = True
+</code></pre>
+<p>这个循环和第 12 章 Coding Agent 的循环很像，但 Hermes 多了三个面向长期运行的能力：</p>
+<ul>
+<li><strong>Prompt Assembly</strong>：每次会话开始时把人格、记忆、技能、项目上下文和工具指南组装成稳定系统提示；</li>
+<li><strong>Session Persistence</strong>：会话写入 SQLite，并用 FTS5 支持跨会话搜索；</li>
+<li><strong>Learning Loop</strong>：把经验沉淀到 memory 或 skill，而不是只留在一次对话里。</li>
+</ul>
+<h3 id="可中断和可观测"><a class="header" href="#可中断和可观测">可中断和可观测</a></h3>
+<p>长期运行 Agent 必须可中断。用户可能在 CLI 里按 <code>Ctrl+C</code>，也可能在消息平台发新消息打断当前任务。Hermes 的设计强调：</p>
+<ul>
+<li>工具调用过程对用户可见；</li>
+<li>模型输出可以流式返回；</li>
+<li>当前任务可以被用户中断或重定向；</li>
+<li>背景进程可以被查询、等待、查看日志或终止。</li>
+</ul>
+<p>这和传统后端的“请求进来、响应出去”不同。Agent 的执行可能持续几十秒甚至几分钟，用户需要知道它正在做什么、卡在哪里、是否可以停止。</p>
+<hr>
+<h2 id="164-prompt-system稳定上下文而不是动态拼贴"><a class="header" href="#164-prompt-system稳定上下文而不是动态拼贴">16.4 Prompt System：稳定上下文而不是动态拼贴</a></h2>
+<p>Hermes 的 Prompt System 不只是把用户输入发给模型，而是一个上下文控制面。</p>
+<p>一次系统提示通常由这些部分组成：</p>
+<pre><code class="language-text">System Prompt
+  ├─ Personality / SOUL.md
+  ├─ MEMORY.md
+  ├─ USER.md
+  ├─ Relevant Skills
+  ├─ Context Files
+  │   ├─ AGENTS.md
+  │   ├─ CLAUDE.md
+  │   ├─ .hermes.md
+  │   └─ .cursorrules
+  ├─ Tool Guidance
+  ├─ Model-specific Instructions
+  └─ Conversation State
+</code></pre>
+<p>这里有一个很关键的工程取舍：<strong>记忆在会话开始时注入为 frozen snapshot</strong>。</p>
+<p>也就是说，Agent 在本轮会话中可以更新 memory 文件，但这些变更不会立刻改变当前系统提示，而是下一次会话开始时生效。</p>
+<p>这个设计看起来“不实时”，但它有两个好处：</p>
+<ul>
+<li>保持系统提示前缀稳定，利于 prompt caching；</li>
+<li>避免会话中途系统身份和长期记忆突然变化，降低行为漂移。</li>
+</ul>
+<p>很多 Agent 原型会犯一个错误：每次工具调用后都重新拼一个完全不同的系统提示。短任务问题不大，长任务就容易出现行为不一致。Hermes 的 frozen snapshot 是一个值得学习的稳定性设计。</p>
+<hr>
+<h2 id="165-memory长期事实的稀缺预算"><a class="header" href="#165-memory长期事实的稀缺预算">16.5 Memory：长期事实的稀缺预算</a></h2>
+<p>Hermes 的内置 Memory 不是无限知识库，而是一个很小、很克制的长期事实层。</p>
+<p>它主要由两个文件组成：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">文件</th><th style="text-align: left">作用</th><th style="text-align: left">典型内容</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><code>MEMORY.md</code></td><td style="text-align: left">Agent 的个人笔记</td><td style="text-align: left">环境事实、项目约定、工具经验、已完成任务</td></tr>
+<tr><td style="text-align: left"><code>USER.md</code></td><td style="text-align: left">用户画像</td><td style="text-align: left">沟通偏好、角色、时区、工作习惯、表达偏好</td></tr>
+</tbody>
+</table>
+</div>
+<p>这两个文件被注入到系统提示里，因此必须非常短、非常高密度。Hermes 文档中给出了字符预算，这说明它把 Memory 当成“提示词预算里的稀缺资源”，不是普通文档库。</p>
+<h3 id="memory-解决什么问题"><a class="header" href="#memory-解决什么问题">Memory 解决什么问题</a></h3>
+<p>Memory 适合保存这些内容：</p>
+<ul>
+<li>用户偏好，例如“回答要简洁，先给结论”；</li>
+<li>环境事实，例如“项目在某目录，测试命令是某个 make target”；</li>
+<li>反复出现的工具坑，例如“这个服务器 SSH 端口不是 22”；</li>
+<li>项目约定，例如“后端使用 Go + sqlc，迁移脚本在 migrations/”；</li>
+<li>任务结果摘要，例如“某次迁移已经完成，风险点是什么”。</li>
+</ul>
+<p>Memory 不适合保存：</p>
+<ul>
+<li>大段日志；</li>
+<li>大段代码；</li>
+<li>原始文档；</li>
+<li>一次性临时路径；</li>
+<li>可以随时重新检索到的通用知识。</li>
+</ul>
+<p>这和第 10 章讲的 Agent Memory 原则一致：<strong>长期记忆应该保存高价值、低频变化、可执行的信息，而不是把上下文垃圾永久化。</strong></p>
+<h3 id="session-search长期历史的第二层"><a class="header" href="#session-search长期历史的第二层">Session Search：长期历史的第二层</a></h3>
+<p>如果 MEMORY.md 和 USER.md 是“每次都必须知道的关键事实”，Session Search 则是“需要时再搜索的历史记录”。</p>
+<p>Hermes 把 CLI 和消息平台的会话存进 SQLite，并用 FTS5 做全文检索。它可以回答类似问题：</p>
+<pre><code class="language-text">我们上周是不是讨论过这个部署失败？
+之前那个 Postgres 连接池参数最后怎么改的？
+我在哪次会话里让你记住了这个项目约定？
+</code></pre>
+<p>这形成了两级记忆：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层级</th><th style="text-align: left">注入方式</th><th style="text-align: left">适合内容</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Memory Snapshot</td><td style="text-align: left">每次会话自动注入</td><td style="text-align: left">必须稳定存在的事实</td></tr>
+<tr><td style="text-align: left">Session Search</td><td style="text-align: left">工具按需检索</td><td style="text-align: left">过去会话里的细节</td></tr>
+</tbody>
+</table>
+</div>
+<p>这比“把全部历史塞进上下文”更可控，也比“完全不记得历史”更有连续性。</p>
+<hr>
+<h2 id="166-skills把经验变成可复用程序性记忆"><a class="header" href="#166-skills把经验变成可复用程序性记忆">16.6 Skills：把经验变成可复用程序性记忆</a></h2>
+<p>Hermes 最有代表性的设计是 Skills System。</p>
+<p>Memory 保存“事实”，Skills 保存“做法”。一个 Skill 通常是一个 Markdown 文档，描述某类任务的步骤、约束、工具选择、常见失败和验证方法。</p>
+<p>可以这样理解：</p>
+<pre><code class="language-text">Memory = 我知道什么
+Skill  = 我下次怎么做
+Tool   = 我实际能执行什么
+</code></pre>
+<h3 id="从一次任务到技能"><a class="header" href="#从一次任务到技能">从一次任务到技能</a></h3>
+<p>一个典型闭环是：</p>
+<pre class="mermaid">
+flowchart LR
+    Task["复杂任务"] --&gt; Execute["Agent 执行"]
+    Execute --&gt; Trace["工具结果与会话轨迹"]
+    Trace --&gt; Reflect["反思哪些步骤可复用"]
+    Reflect --&gt; Skill["生成或更新 SKILL.md"]
+    Skill --&gt; Future["未来相似任务按需加载"]
+    Future --&gt; Execute
+</pre>
+
+<p>这比普通“记忆”更强，因为它保存的是可执行流程：</p>
+<ul>
+<li>什么时候先搜索；</li>
+<li>什么时候读配置；</li>
+<li>哪个命令能验证；</li>
+<li>常见错误怎么修复；</li>
+<li>产物应该放在哪里；</li>
+<li>什么操作必须先询问用户。</li>
+</ul>
+<h3 id="progressive-disclosure"><a class="header" href="#progressive-disclosure">Progressive Disclosure</a></h3>
+<p>Skills 也会占上下文预算，所以不能每次全部塞进 prompt。更合理的方式是 progressive disclosure：</p>
+<ol>
+<li>先只让模型看到 skill 名称和简短描述；</li>
+<li>当任务匹配时，再加载对应 <code>SKILL.md</code>；</li>
+<li>如果 skill 引用脚本、模板或资源，再按需读取。</li>
+</ol>
+<p>这和本书前面讲的 Context Engineering 是同一个思想：不是让模型“知道所有东西”，而是让它在需要时拿到正确材料。</p>
+<h3 id="hermes-的-skill-演化管道"><a class="header" href="#hermes-的-skill-演化管道">Hermes 的 Skill 演化管道</a></h3>
+<p>如果说 OpenClaw 更强调 Skill 的加载优先级和插件生态，那么 Hermes 更值得关注的是：<strong>Skill 如何从长期使用轨迹中演化出来</strong>。</p>
+<p>结合第 6 章对 Skills 的定义，Hermes 的成熟实现可以抽象成一条管道：</p>
+<pre><code class="language-text">Session Trace
+  │
+  ├─ 用户反复要求同类任务
+  ├─ 某次任务形成稳定成功路径
+  ├─ 工具调用序列可复用
+  ├─ 验证命令稳定
+  └─ 人工纠正减少
+      │
+      ▼
+Skill Candidate
+      │  提取触发条件、步骤、工具、约束、验证方式
+      ▼
+Review / Eval
+      │  检查是否安全、是否过度泛化、是否真的提升质量
+      ▼
+Skill Registry
+      │  保存版本、owner、适用范围和依赖工具
+      ▼
+Future Sessions
+</code></pre>
+<p>这条链路让 Skill 不只是“手写说明”，而是长期 Agent 的能力沉淀机制。一次成功任务本身没有价值，能被压缩成可验证、可复用、可审查的程序性知识，才有价值。</p>
+<p>一个 Hermes-style Skill 需要保存的不只是步骤，还应保存这些元信息：</p>
+<pre><code class="language-yaml">skill:
+  name: repo_release_check
+  source_trace_ids:
+    - trace_20260430_001
+    - trace_20260430_019
+  trigger:
+    - "发布前检查"
+    - "release validation"
+  required_tools:
+    - file_search
+    - shell
+    - git_diff
+  verification:
+    - "run tests"
+    - "check diff"
+    - "summarize risk"
+  status: reviewed
+  version: "0.3.0"
+</code></pre>
+<p><code>source_trace_ids</code> 很重要。它让后续 review 能回到原始任务，判断这个 Skill 是从真实成功经验中总结出来的，还是模型凭空概括出来的。</p>
+<h3 id="风险技能会固化错误经验"><a class="header" href="#风险技能会固化错误经验">风险：技能会固化错误经验</a></h3>
+<p>Skills 的风险也很明显：如果一次任务的解法本身是错误的，Agent 把它沉淀成 skill，下次会更稳定地犯同样错误。</p>
+<p>因此生产级 Skills System 需要：</p>
+<ul>
+<li>skill 创建前有验证证据；</li>
+<li>skill 更新时保留版本或变更记录；</li>
+<li>skill 里写清适用条件和不适用条件；</li>
+<li>定期清理过期技能；</li>
+<li>对高风险技能增加人工 review。</li>
+</ul>
+<p>真正可靠的自我进化，不是“做完就记住”，而是“验证后再沉淀”。</p>
+<hr>
+<h2 id="167-tool-runtime注册表工具集与执行后端"><a class="header" href="#167-tool-runtime注册表工具集与执行后端">16.7 Tool Runtime：注册表、工具集与执行后端</a></h2>
+<p>Hermes 的工具系统可以拆成三层：</p>
+<pre><code class="language-text">Tool Registry
+  ├─ Toolsets
+  │   ├─ web
+  │   ├─ terminal
+  │   ├─ file
+  │   ├─ browser
+  │   ├─ memory
+  │   ├─ session_search
+  │   ├─ cronjob
+  │   ├─ delegation
+  │   └─ mcp-*
+  └─ Execution Backends
+      ├─ local
+      ├─ docker
+      ├─ ssh
+      ├─ daytona
+      ├─ modal
+      └─ singularity
+</code></pre>
+<h3 id="tool-registry"><a class="header" href="#tool-registry">Tool Registry</a></h3>
+<p>工具注册表负责：</p>
+<ul>
+<li>收集工具 schema；</li>
+<li>判断工具是否可用；</li>
+<li>分发工具调用；</li>
+<li>包装错误；</li>
+<li>支持插件或 MCP 扩展；</li>
+<li>根据平台配置启用不同工具集。</li>
+</ul>
+<p>这和第 6 章 Tool Calling 的原则一致：模型不能直接执行任意函数，必须通过 Runtime 暴露的工具边界行动。</p>
+<h3 id="toolsets"><a class="header" href="#toolsets">Toolsets</a></h3>
+<p>Toolsets 是对工具能力的打包。比如：</p>
+<ul>
+<li>CLI 可以启用 terminal、file、web、browser；</li>
+<li>Telegram 可以启用 web、memory、send_message，但限制危险 terminal；</li>
+<li>某个 profile 可以只启用 read-only 工具；</li>
+<li>MCP server 可以动态形成 <code>mcp-&lt;server&gt;</code> 工具集。</li>
+</ul>
+<p>Toolsets 的价值是把“能不能用某类能力”变成配置，而不是散落在 prompt 里。</p>
+<h3 id="execution-backends"><a class="header" href="#execution-backends">Execution Backends</a></h3>
+<p>Hermes 的 terminal tool 不只是在本地跑命令，它可以选择多个执行后端：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">后端</th><th style="text-align: left">适合场景</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">local</td><td style="text-align: left">本机开发、可信任务</td></tr>
+<tr><td style="text-align: left">docker</td><td style="text-align: left">隔离执行、可复现环境</td></tr>
+<tr><td style="text-align: left">ssh</td><td style="text-align: left">远程服务器或隔离机器</td></tr>
+<tr><td style="text-align: left">daytona</td><td style="text-align: left">持久云端开发环境</td></tr>
+<tr><td style="text-align: left">modal</td><td style="text-align: left">serverless 执行和弹性任务</td></tr>
+<tr><td style="text-align: left">singularity</td><td style="text-align: left">HPC 或 rootless 容器场景</td></tr>
+</tbody>
+</table>
+</div>
+<p>这说明 Hermes 把“执行环境”作为一等公民。对于长期 Agent 来说，这非常重要：同一个工具调用，在本地执行和在 Docker/SSH 执行，风险完全不同。</p>
+<hr>
+<h2 id="168-gateway让-agent-活在用户所在的平台里"><a class="header" href="#168-gateway让-agent-活在用户所在的平台里">16.8 Gateway：让 Agent 活在用户所在的平台里</a></h2>
+<p>Hermes 的 Gateway 是一个长期运行进程，负责把不同消息平台接入同一个 Agent Core。</p>
+<pre class="mermaid">
+flowchart TB
+    subgraph Platforms["Messaging Platforms"]
+        Telegram[Telegram]
+        Discord[Discord]
+        Slack[Slack]
+        WhatsApp[WhatsApp]
+        Signal[Signal]
+        Email[Email]
+        Other[Other Adapters]
+    end
+
+    subgraph Gateway["Gateway Process"]
+        Adapter["Platform Adapters"]
+        Auth["Allowlist / DM Pairing"]
+        Router["Session Routing"]
+        Slash["Slash Commands"]
+        Hooks["Hooks"]
+        CronTick["Cron Tick"]
+    end
+
+    subgraph AgentCore["Agent Core"]
+        Session["Session State"]
+        Runtime["AIAgent Runtime"]
+        Tools["Toolsets"]
+    end
+
+    Platforms --&gt; Adapter
+    Adapter --&gt; Auth
+    Auth --&gt; Router
+    Router --&gt; Slash
+    Slash --&gt; Session
+    Router --&gt; Runtime
+    CronTick --&gt; Runtime
+    Hooks --&gt; Runtime
+    Runtime --&gt; Tools
+</pre>
+
+<p>Gateway 不是简单 webhook 转发器。它至少承担六类职责：</p>
+<ul>
+<li>平台适配：把不同平台消息标准化；</li>
+<li>用户授权：限制谁可以访问 Agent；</li>
+<li>会话路由：把不同平台、不同用户、不同线程映射到正确 session；</li>
+<li>Slash Commands：支持 <code>/new</code>、<code>/model</code>、<code>/skills</code>、<code>/stop</code> 等控制命令；</li>
+<li>Cron：定时触发 Agent 任务并把结果发送到平台；</li>
+<li>Hooks：在平台事件和 Agent Runtime 之间插入扩展逻辑。</li>
+</ul>
+<p>这也是为什么 Hermes 不是“聊天机器人包装器”。它把 messaging gateway 做成了 Agent 的长期控制面。</p>
+<hr>
+<h2 id="169-cronagent-task而不是-shell-cron"><a class="header" href="#169-cronagent-task而不是-shell-cron">16.9 Cron：Agent Task，而不是 Shell Cron</a></h2>
+<p>普通 cron 是执行命令：</p>
+<pre><code class="language-text">0 9 * * * /scripts/report.sh
+</code></pre>
+<p>Hermes 的 cron 更接近“定时 Agent 任务”：</p>
+<pre><code class="language-text">每天 9 点：
+  读取相关数据
+  使用指定 skill
+  调用必要工具
+  生成报告
+  发到 Telegram 或 Slack
+</code></pre>
+<p>这类任务和 Shell Cron 的区别是：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">Shell Cron</th><th style="text-align: left">Hermes Cron</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">执行对象</td><td style="text-align: left">命令或脚本</td><td style="text-align: left">Agent 任务</td></tr>
+<tr><td style="text-align: left">上下文</td><td style="text-align: left">环境变量和文件</td><td style="text-align: left">记忆、技能、工具、模型</td></tr>
+<tr><td style="text-align: left">输出</td><td style="text-align: left">stdout、文件、邮件</td><td style="text-align: left">多平台消息、报告、行动结果</td></tr>
+<tr><td style="text-align: left">失败处理</td><td style="text-align: left">依赖脚本自己处理</td><td style="text-align: left">可通过 Agent 解释和总结</td></tr>
+<tr><td style="text-align: left">复用</td><td style="text-align: left">主要复用脚本</td><td style="text-align: left">复用 skill、memory、toolsets</td></tr>
+</tbody>
+</table>
+</div>
+<p>这对个人自动化很有价值。比如：</p>
+<ul>
+<li>每天早上总结 GitHub issue；</li>
+<li>每周检查服务器磁盘和证书；</li>
+<li>每晚整理当天笔记；</li>
+<li>定期生成项目风险报告；</li>
+<li>监控某个网页或数据源变化。</li>
+</ul>
+<p>从系统角度看，Cron 把 Agent 从“被动回答”推向“主动运行”。</p>
+<hr>
+<h2 id="1610-profiles隔离长期身份"><a class="header" href="#1610-profiles隔离长期身份">16.10 Profiles：隔离长期身份</a></h2>
+<p>Hermes 支持 profile，每个 profile 有自己的 home、配置、memory、sessions、gateway PID 等。</p>
+<p>这个设计看起来像多账户，但工程意义更深：</p>
+<ul>
+<li>工作项目和个人生活不混在一起；</li>
+<li>不同客户或团队有不同 memory；</li>
+<li>不同 profile 可以启用不同工具和模型；</li>
+<li>高风险 profile 可以只启用受限执行后端；</li>
+<li>多个 profile 可以并行运行。</li>
+</ul>
+<p>长期 Agent 最怕“上下文串线”。如果一个 Agent 既记住公司 A 的规则，又记住公司 B 的凭据，还在同一个 session 里切换任务，迟早会出问题。</p>
+<p>Profile Isolation 是防止这种问题的第一道边界。</p>
+<hr>
+<h2 id="1611-plugin-与-mcp扩展能力但保持边界"><a class="header" href="#1611-plugin-与-mcp扩展能力但保持边界">16.11 Plugin 与 MCP：扩展能力，但保持边界</a></h2>
+<p>Hermes 的扩展可以来自三类路径：</p>
+<pre><code class="language-text">Built-in Tools
+  系统自带工具，例如 web、terminal、memory、browser
+
+Plugins
+  用户、项目或 pip entry point 提供的扩展
+
+MCP Servers
+  外部工具能力通过 MCP 协议接入
+</code></pre>
+<h3 id="plugin-system"><a class="header" href="#plugin-system">Plugin System</a></h3>
+<p>Plugin 可以注册：</p>
+<ul>
+<li>tools；</li>
+<li>hooks；</li>
+<li>CLI commands；</li>
+<li>memory provider；</li>
+<li>context engine。</li>
+</ul>
+<p>其中 memory provider 和 context engine 是特殊插件类型，通常是单选：同一时间只激活一个外部 memory provider 或一个 context engine。这个约束很重要，因为多个记忆系统同时改写上下文，很容易产生冲突。</p>
+<h3 id="mcp-integration"><a class="header" href="#mcp-integration">MCP Integration</a></h3>
+<p>MCP 的价值是把外部工具系统标准化接入 Hermes，例如：</p>
+<ul>
+<li>GitHub；</li>
+<li>数据库；</li>
+<li>内部服务；</li>
+<li>日志平台；</li>
+<li>浏览器工具；</li>
+<li>文档系统。</li>
+</ul>
+<p>但 MCP 也扩大了权限面。一个成熟系统必须做：</p>
+<ul>
+<li>MCP server 级别授权；</li>
+<li>工具 allowlist / denylist；</li>
+<li>secret 环境变量过滤；</li>
+<li>tool schema 审查；</li>
+<li>tool result 截断；</li>
+<li>高风险工具人工确认。</li>
+</ul>
+<p>这和第 12 章 Coding Agent 里的 MCP + 日志工作流是同一个问题：MCP 不是魔法，它只是把“外部能力”接进 Agent Runtime。真正可靠的是 Runtime 的权限、审计和上下文边界。</p>
+<hr>
+<h2 id="1612-security长期-agent-的攻击面更大"><a class="header" href="#1612-security长期-agent-的攻击面更大">16.12 Security：长期 Agent 的攻击面更大</a></h2>
+<p>Hermes 官方文档把安全模型拆成多层，包括用户授权、危险命令审批、容器隔离、MCP 凭据过滤、上下文文件扫描、跨会话隔离和输入清洗。</p>
+<p>这非常合理，因为长期运行 Agent 的风险比普通 Chatbot 大得多：</p>
+<ul>
+<li>它连接消息平台；</li>
+<li>它可能能执行命令；</li>
+<li>它有长期记忆；</li>
+<li>它能读项目文件；</li>
+<li>它能调用浏览器；</li>
+<li>它能运行 cron；</li>
+<li>它能通过 MCP 访问外部系统；</li>
+<li>它可能在服务器上 24 小时运行。</li>
+</ul>
+<h3 id="防御分层"><a class="header" href="#防御分层">防御分层</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层</th><th style="text-align: left">典型风险</th><th style="text-align: left">防御方式</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">用户授权</td><td style="text-align: left">陌生人给 bot 发消息触发工具</td><td style="text-align: left">allowlist、DM pairing</td></tr>
+<tr><td style="text-align: left">命令执行</td><td style="text-align: left">删除文件、泄露 secret、破坏系统</td><td style="text-align: left">危险命令审批、工具策略</td></tr>
+<tr><td style="text-align: left">执行环境</td><td style="text-align: left">本地权限过大</td><td style="text-align: left">Docker、SSH、Modal、Singularity</td></tr>
+<tr><td style="text-align: left">MCP</td><td style="text-align: left">外部 server 读取不该读取的凭据</td><td style="text-align: left">环境变量过滤、工具白名单</td></tr>
+<tr><td style="text-align: left">Context Files</td><td style="text-align: left">项目文件里藏 prompt injection</td><td style="text-align: left">扫描和隔离</td></tr>
+<tr><td style="text-align: left">Session</td><td style="text-align: left">平台或 profile 间串线</td><td style="text-align: left">session/profile isolation</td></tr>
+<tr><td style="text-align: left">Cron</td><td style="text-align: left">后台任务误触发高风险动作</td><td style="text-align: left">审批、审计、可暂停</td></tr>
+</tbody>
+</table>
+</div>
+<p>安全设计的核心原则是：</p>
+<blockquote>
+<p>不能因为 Agent 长期运行，就默认它值得长期信任。</p>
+</blockquote>
+<p>它必须在每个入口、每个工具、每个执行后端、每次持久化时重新经过边界检查。</p>
+<hr>
+<h2 id="1613-research-pipeline从使用轨迹到训练数据"><a class="header" href="#1613-research-pipeline从使用轨迹到训练数据">16.13 Research Pipeline：从使用轨迹到训练数据</a></h2>
+<p>Hermes 还有一个很特别的方向：它不仅是产品形态的 Agent，也是面向模型训练和研究的 Agent 平台。</p>
+<p>它支持：</p>
+<ul>
+<li>batch trajectory generation；</li>
+<li>tool-calling 轨迹压缩；</li>
+<li>ShareGPT 格式导出；</li>
+<li>RL environments；</li>
+<li>Atropos 相关训练集成。</li>
+</ul>
+<p>这说明 Hermes 把 Agent 运行看成一种可积累的数据资产：</p>
+<pre><code class="language-text">真实任务
+  -&gt; Agent 工具调用轨迹
+  -&gt; 成功/失败/人工修正
+  -&gt; 压缩与标注
+  -&gt; eval dataset
+  -&gt; fine-tuning / RL
+  -&gt; 更好的 agent behavior
+</code></pre>
+<p>这对团队自研 Agent 很有启发。很多团队只关心“Agent 当前能不能完成任务”，但忽略了“Agent 的失败能不能变成下一轮改进的数据”。真正长期可进化的系统，需要把每次执行都变成可复盘、可评估、可训练的材料。</p>
+<hr>
+<h2 id="1614-hermes-与-openclaw-的架构对比"><a class="header" href="#1614-hermes-与-openclaw-的架构对比">16.14 Hermes 与 OpenClaw 的架构对比</a></h2>
+<p>Hermes 和 OpenClaw 很容易被放在一起比较，因为它们都强调个人 AI 助手、多渠道入口、本地运行和工具生态。但它们的重心不同。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">OpenClaw</th><th style="text-align: left">Hermes Agent</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">核心定位</td><td style="text-align: left">Personal Agent Gateway</td><td style="text-align: left">Self-improving Long-running Agent</td></tr>
+<tr><td style="text-align: left">入口</td><td style="text-align: left">多聊天平台、WebChat、CLI、节点</td><td style="text-align: left">CLI/TUI、Messaging Gateway、ACP、Cron、Batch/API</td></tr>
+<tr><td style="text-align: left">记忆</td><td style="text-align: left">个人上下文和长期配置</td><td style="text-align: left">MEMORY.md、USER.md、SQLite Session Search、外部 Memory Provider</td></tr>
+<tr><td style="text-align: left">技能</td><td style="text-align: left">技能与插件生态</td><td style="text-align: left">自动创建/改进 Skills，兼容 agentskills.io</td></tr>
+<tr><td style="text-align: left">工具</td><td style="text-align: left">工具、技能、插件、MCP</td><td style="text-align: left">Tool Registry、Toolsets、MCP、Plugins、执行后端</td></tr>
+<tr><td style="text-align: left">执行环境</td><td style="text-align: left">本地和沙箱为主</td><td style="text-align: left">local、Docker、SSH、Daytona、Modal、Singularity</td></tr>
+<tr><td style="text-align: left">研究闭环</td><td style="text-align: left">更偏产品使用</td><td style="text-align: left">轨迹生成、压缩、RL/eval 数据</td></tr>
+<tr><td style="text-align: left">架构气质</td><td style="text-align: left">Gateway-first</td><td style="text-align: left">Learning-loop-first</td></tr>
+</tbody>
+</table>
+</div>
+<p>两者不是谁替代谁，而是代表两种长期 Agent 的设计方向：</p>
+<ul>
+<li>如果重点是“如何让用户从各种渠道触达 Agent”，OpenClaw 的 Gateway 思路更突出；</li>
+<li>如果重点是“如何让 Agent 在长期使用中积累能力”，Hermes 的 Memory + Skills + Session + Trajectory 思路更突出。</li>
+</ul>
+<hr>
+<h2 id="1615-如果自研-hermes-类系统最小可行架构是什么"><a class="header" href="#1615-如果自研-hermes-类系统最小可行架构是什么">16.15 如果自研 Hermes 类系统，最小可行架构是什么</a></h2>
+<p>不要一开始就实现完整 Hermes。一个可落地的最小版本可以这样设计：</p>
+<pre><code class="language-text">hermes-like-agent/
+├── cli.py
+├── agent/
+│   ├── loop.py
+│   ├── prompt_builder.py
+│   ├── provider.py
+│   └── callbacks.py
+├── context/
+│   ├── memory.py
+│   ├── skills.py
+│   ├── session_store.py
+│   └── context_files.py
+├── tools/
+│   ├── registry.py
+│   ├── terminal.py
+│   ├── file.py
+│   └── web.py
+├── gateway/
+│   ├── telegram.py
+│   └── router.py
+├── cron/
+│   └── scheduler.py
+└── state/
+    ├── config.yaml
+    ├── state.db
+    ├── memories/
+    └── skills/
+</code></pre>
+<p>优先级建议：</p>
+<ol>
+<li><strong>Agent Loop</strong>：先跑通模型、工具、回调、持久化；</li>
+<li><strong>Memory</strong>：只做两个小文件，限制字符数；</li>
+<li><strong>Session Search</strong>：SQLite + FTS5，先支持按关键词召回；</li>
+<li><strong>Skills</strong>：先手工创建技能，再考虑自动生成；</li>
+<li><strong>Toolsets</strong>：把工具按平台和 profile 配置；</li>
+<li><strong>Gateway</strong>：先接一个平台，例如 Telegram；</li>
+<li><strong>Cron</strong>：只允许低风险 read-only 任务；</li>
+<li><strong>Security</strong>：命令审批、路径沙箱、allowlist 必须尽早做。</li>
+</ol>
+<p>不要过早做的事情：</p>
+<ul>
+<li>不要一开始接十几个消息平台；</li>
+<li>不要一开始做复杂 external memory provider；</li>
+<li>不要自动生成并自动执行高风险 skill；</li>
+<li>不要给 messaging gateway 默认开放 terminal；</li>
+<li>不要把所有历史会话无脑注入 prompt。</li>
+</ul>
+<hr>
+<h2 id="1616-设计启示"><a class="header" href="#1616-设计启示">16.16 设计启示</a></h2>
+<p>Hermes Agent 给 Agent 工程带来几个重要启示。</p>
+<h3 id="1-长期-agent-的核心是连续性"><a class="header" href="#1-长期-agent-的核心是连续性">1. 长期 Agent 的核心是连续性</a></h3>
+<p>连续性不是“把聊天记录都放进去”，而是分层组织：</p>
+<ul>
+<li>Memory 保存关键事实；</li>
+<li>Session Search 保存历史细节；</li>
+<li>Skills 保存操作流程；</li>
+<li>Context Files 保存项目规范；</li>
+<li>Profiles 保存身份边界。</li>
+</ul>
+<h3 id="2-自我进化必须受验证约束"><a class="header" href="#2-自我进化必须受验证约束">2. 自我进化必须受验证约束</a></h3>
+<p>Agent 会记忆、会写 skill、会复用经验，这听起来很强，但如果没有验证和审查，就会把错误经验固化。</p>
+<p>更健康的闭环是：</p>
+<pre><code class="language-text">执行 -&gt; 验证 -&gt; 复盘 -&gt; 沉淀 memory/skill -&gt; eval 检查 -&gt; 再复用
+</code></pre>
+<h3 id="3-gateway-让-agent-从工具变成服务"><a class="header" href="#3-gateway-让-agent-从工具变成服务">3. Gateway 让 Agent 从工具变成服务</a></h3>
+<p>CLI Agent 是工具；Gateway Agent 是服务。</p>
+<p>一旦 Agent 进入 Telegram、Slack、Discord、Email，它就不再只服务“坐在电脑前的人”，而变成一个长期在线的数字工作者。此时必须重新设计授权、会话、审计、中断和后台任务。</p>
+<h3 id="4-toolsets-是权限治理的基本单位"><a class="header" href="#4-toolsets-是权限治理的基本单位">4. Toolsets 是权限治理的基本单位</a></h3>
+<p>不要只用 prompt 控制工具。把工具分成 toolsets，再按平台、profile、任务类型启用，是更可靠的设计。</p>
+<p>例如：</p>
+<pre><code class="language-text">CLI profile: web + file + terminal + memory
+Telegram profile: web + memory + send_message
+Cron profile: web + read-only file + send_message
+Research profile: batch + trajectory + eval tools
+</code></pre>
+<h3 id="5-轨迹是-agent-的资产"><a class="header" href="#5-轨迹是-agent-的资产">5. 轨迹是 Agent 的资产</a></h3>
+<p>每一次工具调用、失败、修复、用户纠正，都可以成为 eval、fine-tuning 或 RL 的材料。</p>
+<p>如果一个团队认真做 Agent，就应该尽早记录：</p>
+<ul>
+<li>task；</li>
+<li>system prompt version；</li>
+<li>tool calls；</li>
+<li>tool results；</li>
+<li>user corrections；</li>
+<li>final output；</li>
+<li>verification result；</li>
+<li>failure reason。</li>
+</ul>
+<p>这就是 Agent 系统的“数据飞轮”。</p>
+<hr>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p>Hermes Agent 展示了长期运行 Agent 的另一条成熟路径：不是只做更强的单次推理，而是围绕模型建立记忆、技能、工具、入口、执行环境和数据闭环。</p>
+<p>本章核心结论：</p>
+<ul>
+<li>Hermes 的本质是一个自我进化的长期 Agent Runtime；</li>
+<li>Memory 保存关键事实，Session Search 保存历史细节，Skills 保存可复用做法；</li>
+<li>Gateway 让同一个 Agent 活在 CLI、消息平台和自动化任务中；</li>
+<li>Tool Registry、Toolsets、Execution Backends 把行动能力拆成可治理的边界；</li>
+<li>Profiles 是长期 Agent 防止上下文串线的重要机制；</li>
+<li>Security 必须覆盖用户授权、命令审批、容器隔离、MCP 凭据过滤、上下文扫描和 session 隔离；</li>
+<li>Research Pipeline 把 Agent 执行轨迹变成 eval、fine-tuning 和 RL 的数据资产。</li>
+</ul>
+<p>如果 OpenClaw 让我们看到“个人 Agent Gateway 如何把用户和模型连起来”，Hermes 则让我们看到“长期 Agent 如何在使用中积累能力”。对自研 Agent 来说，最值得学习的不是某个具体命令，而是它把长期性拆成了可工程化的系统组件。</p>
+<hr>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<ol>
+<li><a href="https://github.com/NousResearch/hermes-agent">Hermes Agent GitHub Repository - NousResearch/hermes-agent</a></li>
+<li><a href="https://hermes-agent.nousresearch.com/docs/">Hermes Agent Documentation</a></li>
+<li><a href="https://hermes-agent.nousresearch.com/docs/developer-guide/architecture">Hermes Agent Architecture</a></li>
+<li><a href="https://hermes-agent.nousresearch.com/docs/user-guide/features/tools/">Hermes Agent Tools &amp; Toolsets</a></li>
+<li><a href="https://hermes-agent.nousresearch.com/docs/user-guide/features/memory/">Hermes Agent Persistent Memory</a></li>
+<li><a href="https://hermes-agent.nousresearch.com/docs/user-guide/security">Hermes Agent Security</a></li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part3/04-openclaw-architecture.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part3/06-dod-agent-case-study.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part3/04-openclaw-architecture.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part3/06-dod-agent-case-study.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
