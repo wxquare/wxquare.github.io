@@ -1,0 +1,1760 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第14章 Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-09f610a2.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-c0920cc6.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第14章-pi-agent-架构解析终端原生-coding-agent-runtime扩展系统与上下文工程"><a class="header" href="#第14章-pi-agent-架构解析终端原生-coding-agent-runtime扩展系统与上下文工程">第14章 Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程</a></h1>
+<blockquote>
+<p>Pi 的核心价值不是“又一个命令行聊天工具”，而是把 Coding Agent 做成一个小内核、强扩展、可嵌入、可定制的终端原生 Agent Runtime：模型调用、工具执行、上下文构建、会话树、扩展系统、Skills、Prompt Templates 和 SDK 都围绕一个可复用的 harness 展开。</p>
+</blockquote>
+<h2 id="引言"><a class="header" href="#引言">引言</a></h2>
+<p>第 13 章已经从 Claude Code、Cursor、Codex 这类成熟产品出发，拆解了 AI Coding Agent 的系统设计模式。本章继续往下挖一层：如果不从“产品界面”看，而是从“Agent Runtime”看，一个终端原生 Coding Agent 应该怎样组织？</p>
+<p>Pi 是一个很好的观察对象。它的官方定位是 minimal terminal coding harness：核心保持很小，通过 TypeScript extensions、skills、prompt templates、themes、packages 和 SDK 扩展能力。它可以直接作为 CLI 使用，也可以通过 JSON / RPC / SDK 被其他系统集成。OpenClaw 的 Agent Runtime 就是一个典型例子：OpenClaw 没有把 Pi 当作子进程启动，而是通过 SDK 直接创建 <code>AgentSession</code>，再把自己的消息渠道、工具、沙箱和会话管理接进去。</p>
+<p>如果把 Pi 看成“终端里的 AI 编程助手”，会低估它的工程价值。更准确的理解是：</p>
+<pre><code class="language-text">Pi = Terminal-native Coding Agent Runtime
+   + Resource Discovery System
+   + Tool Execution Harness
+   + Extension Host
+   + Skill / Prompt / Package Ecosystem
+   + Session Tree and Compaction
+   + Embeddable SDK
+</code></pre>
+<p>本章目标是回答八个问题：</p>
+<ol>
+<li>Pi 为什么选择“小内核 + 强扩展”的设计？</li>
+<li>一个 <code>AgentSession</code> 从创建到完成，经过哪些运行时阶段？</li>
+<li>Pi 如何加载项目上下文、全局规则、Skills、Prompt Templates 和 Extensions？</li>
+<li><code>read</code>、<code>write</code>、<code>edit</code>、<code>bash</code> 这类工具背后对应怎样的权限边界？</li>
+<li>TypeScript Extension 为什么是 Pi 的关键扩展机制？</li>
+<li>SDK 嵌入和 CLI 子进程集成有什么本质差异？</li>
+<li>OpenClaw 为什么选择直接嵌入 Pi？</li>
+<li>如果自研一个 Pi-like Coding Agent Runtime，最小可行架构是什么？</li>
+</ol>
+<p>本文基于 2026 年 5 月 6 日可访问的 Pi 官方文档、Pi SDK 文档和 OpenClaw 的 Pi 集成文档进行分析。Pi 仍在快速演进，具体命令、配置项和包版本以后可能变化，但它背后的 harness engineering 思路非常值得长期学习。</p>
+<hr>
+<h2 id="141-系统定位从-cli-assistant-到-coding-agent-harness"><a class="header" href="#141-系统定位从-cli-assistant-到-coding-agent-harness">14.1 系统定位：从 CLI Assistant 到 Coding Agent Harness</a></h2>
+<p>很多终端 AI 工具的起点是：</p>
+<pre><code class="language-text">User Prompt -&gt; LLM API -&gt; Text Reply
+</code></pre>
+<p>这个形态只能算“终端聊天”。Coding Agent 的复杂度来自另一组问题：</p>
+<ul>
+<li>模型需要安全地读写仓库文件；</li>
+<li>Shell 输出要进入上下文，但不能无限膨胀；</li>
+<li>项目规则、全局偏好和临时任务约束要同时生效；</li>
+<li>多轮会话要能恢复、分叉、压缩和导出；</li>
+<li>工具调用要可观察、可拦截、可扩展；</li>
+<li>第三方能力要能以插件、技能或包的形式分发；</li>
+<li>运行时要能被 IDE、聊天 Gateway、CI pipeline 或自研平台嵌入。</li>
+</ul>
+<p>Pi 的答案不是把所有能力写进核心，而是把核心压缩成一个可扩展 harness。</p>
+<pre><code class="language-text">传统 CLI Assistant
+  关注：输入一段话，输出一段话
+  边界：Prompt + Model + stdout
+
+Pi-style Coding Harness
+  关注：让模型在项目目录中可控行动
+  边界：Context + Tools + Sessions + Extensions + SDK
+</code></pre>
+<p>这也是 Pi 和普通“命令行聊天壳”的本质区别。它不是给模型套一个 TUI，而是把 Coding Agent 的关键运行时部件做成可组合的系统。</p>
+<h3 id="小内核意味着什么"><a class="header" href="#小内核意味着什么">小内核意味着什么</a></h3>
+<p>小内核不是功能少，而是核心职责克制。Pi 的核心要稳定承担这些事情：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">核心能力</th><th style="text-align: left">说明</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Agent Loop</td><td style="text-align: left">接收用户任务，调用模型，执行工具，继续下一轮</td></tr>
+<tr><td style="text-align: left">Tool Runtime</td><td style="text-align: left">暴露结构化工具，执行文件和 Shell 相关操作</td></tr>
+<tr><td style="text-align: left">Resource Loading</td><td style="text-align: left">发现上下文文件、Skills、Prompts、Extensions、Themes</td></tr>
+<tr><td style="text-align: left">Session Management</td><td style="text-align: left">保存、恢复、分叉、浏览和压缩会话</td></tr>
+<tr><td style="text-align: left">Model Abstraction</td><td style="text-align: left">管理 provider、model、auth、thinking level</td></tr>
+<tr><td style="text-align: left">Event Stream</td><td style="text-align: left">对 TUI、JSON、RPC、SDK 暴露运行事件</td></tr>
+<tr><td style="text-align: left">Extension Host</td><td style="text-align: left">允许外部代码注册工具、命令、事件处理器和 UI</td></tr>
+</tbody>
+</table>
+</div>
+<p>它不直接解决所有产品问题：</p>
+<ul>
+<li>不内置企业权限系统；</li>
+<li>不内置复杂 IDE 语义索引；</li>
+<li>不内置多用户租户隔离；</li>
+<li>不把所有业务工作流写成内置命令；</li>
+<li>不假设唯一入口是终端。</li>
+</ul>
+<p>这使 Pi 可以同时适配三类场景：</p>
+<ol>
+<li><strong>个人终端 Agent</strong>：开发者在仓库目录里直接运行 <code>pi</code>。</li>
+<li><strong>自动化 Agent Runtime</strong>：脚本、CI、评测系统用非交互模式调用。</li>
+<li><strong>嵌入式 Agent 内核</strong>：OpenClaw 这类系统用 SDK 嵌入 Pi 的 session、tool 和 event 能力。</li>
+</ol>
+<h3 id="harness-的边界"><a class="header" href="#harness-的边界">Harness 的边界</a></h3>
+<p>一个成熟 Coding Agent Harness 至少要定义五个边界：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">边界</th><th style="text-align: left">需要回答的问题</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Context Boundary</td><td style="text-align: left">模型本轮能看到什么？哪些信息只是候选资源？</td></tr>
+<tr><td style="text-align: left">Action Boundary</td><td style="text-align: left">模型能调用哪些工具？工具有什么参数和权限限制？</td></tr>
+<tr><td style="text-align: left">Persistence Boundary</td><td style="text-align: left">哪些内容写入 session？哪些只是本轮临时输入？</td></tr>
+<tr><td style="text-align: left">Extension Boundary</td><td style="text-align: left">外部扩展能改变什么？能否执行任意代码？</td></tr>
+<tr><td style="text-align: left">Integration Boundary</td><td style="text-align: left">外部系统如何驱动 agent、订阅事件、接管工具？</td></tr>
+</tbody>
+</table>
+</div>
+<p>Pi 的设计价值在于，它把这些边界都变成了一等公民。</p>
+<hr>
+<h2 id="142-总体架构"><a class="header" href="#142-总体架构">14.2 总体架构</a></h2>
+<p>Pi 可以抽象成七层：</p>
+<pre class="mermaid">
+flowchart TB
+    subgraph Entry["Entry Surfaces"]
+        TUI["Interactive TUI"]
+        Print["Print / JSON Mode"]
+        RPC["RPC Mode"]
+        SDK["Node.js SDK"]
+    end
+
+    subgraph Session["Agent Runtime"]
+        AgentSession["AgentSession"]
+        Loop["Agent Loop"]
+        Events["Event Stream"]
+        Compaction["Compaction"]
+    end
+
+    subgraph Resources["Resource Loading"]
+        Settings["settings.json"]
+        ContextFiles["AGENTS.md / CLAUDE.md"]
+        SystemFiles["SYSTEM.md / APPEND_SYSTEM.md"]
+        Skills["Skills"]
+        Prompts["Prompt Templates"]
+        Extensions["Extensions"]
+        Themes["Themes"]
+        Packages["Pi Packages"]
+    end
+
+    subgraph Model["Model Layer"]
+        Auth["AuthStorage"]
+        Registry["ModelRegistry"]
+        Providers["Provider APIs"]
+    end
+
+    subgraph Tools["Tool Runtime"]
+        Read["read / grep / find / ls"]
+        Write["write / edit"]
+        Bash["bash"]
+        CustomTools["Extension Tools"]
+    end
+
+    subgraph Storage["Local State"]
+        Sessions["JSONL Sessions"]
+        Config["Config Files"]
+        Credentials["auth.json / env"]
+        Keybindings["keybindings.json"]
+    end
+
+    Entry --&gt; AgentSession
+    AgentSession --&gt; Loop
+    Loop --&gt; Model
+    Loop --&gt; Tools
+    Loop --&gt; Events
+    Loop --&gt; Compaction
+    Resources --&gt; AgentSession
+    Model --&gt; Auth
+    Model --&gt; Registry
+    Registry --&gt; Providers
+    Tools --&gt; Storage
+    AgentSession --&gt; Storage
+</pre>
+
+<h3 id="分层职责"><a class="header" href="#分层职责">分层职责</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层</th><th style="text-align: left">职责</th><th style="text-align: left">关键设计</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Entry Surfaces</td><td style="text-align: left">提供交互式、非交互式、RPC、SDK 入口</td><td style="text-align: left">同一运行时，多种使用形态</td></tr>
+<tr><td style="text-align: left">Agent Runtime</td><td style="text-align: left">管理 <code>AgentSession</code>、Agent Loop、事件和压缩</td><td style="text-align: left">把模型调用和工具调用串成可恢复过程</td></tr>
+<tr><td style="text-align: left">Resource Loading</td><td style="text-align: left">加载上下文、技能、模板、扩展和主题</td><td style="text-align: left">资源发现优先级清晰，支持全局和项目级</td></tr>
+<tr><td style="text-align: left">Model Layer</td><td style="text-align: left">管理 provider、model、auth 和 thinking level</td><td style="text-align: left">provider-agnostic，模型可切换</td></tr>
+<tr><td style="text-align: left">Tool Runtime</td><td style="text-align: left">暴露读写文件、编辑、Shell 和自定义工具</td><td style="text-align: left">工具是行动边界，不是普通函数</td></tr>
+<tr><td style="text-align: left">Local State</td><td style="text-align: left">保存配置、凭据、session、keybindings</td><td style="text-align: left">终端原生，本地优先</td></tr>
+<tr><td style="text-align: left">Extension Host</td><td style="text-align: left">让外部代码扩展工具、事件、命令和 UI</td><td style="text-align: left">小核心可持续演进的关键</td></tr>
+</tbody>
+</table>
+</div>
+<p>Pi 最值得学习的地方，是它把“终端体验”和“Agent Runtime”解耦了。TUI 只是一个入口；真正可复用的是 <code>AgentSession</code>、资源加载、工具运行、模型抽象和事件流。</p>
+<hr>
+<h2 id="143-运行形态同一个-runtime多种入口"><a class="header" href="#143-运行形态同一个-runtime多种入口">14.3 运行形态：同一个 Runtime，多种入口</a></h2>
+<p>Pi 不是只有一种启动方式。它至少支持四类运行形态。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">运行形态</th><th style="text-align: left">典型用法</th><th style="text-align: left">适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Interactive TUI</td><td style="text-align: left">在项目目录运行 <code>pi</code></td><td style="text-align: left">日常开发、调试、结对编程</td></tr>
+<tr><td style="text-align: left">Print Mode</td><td style="text-align: left"><code>pi -p "Summarize this codebase"</code></td><td style="text-align: left">一次性任务、脚本调用</td></tr>
+<tr><td style="text-align: left">JSON Event Stream</td><td style="text-align: left"><code>--mode json</code></td><td style="text-align: left">自动化系统需要结构化事件</td></tr>
+<tr><td style="text-align: left">RPC Mode</td><td style="text-align: left"><code>--mode rpc</code></td><td style="text-align: left">进程级集成，外部程序驱动</td></tr>
+<tr><td style="text-align: left">SDK</td><td style="text-align: left"><code>createAgentSession()</code></td><td style="text-align: left">嵌入 Web、桌面、Gateway、CI、评测平台</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="interactive-tui"><a class="header" href="#interactive-tui">Interactive TUI</a></h3>
+<p>交互式 TUI 是最接近用户的入口。用户可以：</p>
+<ul>
+<li>输入自然语言任务；</li>
+<li>通过 <code>@file</code> 引用文件；</li>
+<li>用 <code>!command</code> 把 Shell 输出带入上下文；</li>
+<li>使用 <code>/model</code> 切换模型；</li>
+<li>使用 <code>/resume</code>、<code>/new</code>、<code>/tree</code>、<code>/fork</code>、<code>/clone</code> 管理会话；</li>
+<li>通过 <code>/reload</code> 重新加载资源；</li>
+<li>使用 prompt templates 形成 slash command。</li>
+</ul>
+<p>但从系统设计角度看，TUI 不应该承担太多业务逻辑。TUI 的职责是把用户输入、键盘事件、模型流式输出、工具事件和自定义 UI 渲染出来。</p>
+<pre><code class="language-text">TUI = input editor
+    + event renderer
+    + command palette
+    + session navigator
+    + extension UI surface
+</code></pre>
+<p>真正的 Agent 能力在 Runtime 层。</p>
+<h3 id="print--json--rpc"><a class="header" href="#print--json--rpc">Print / JSON / RPC</a></h3>
+<p>非交互模式解决的是自动化和集成问题：</p>
+<pre><code class="language-bash">pi -p "Summarize this repository and tell me how to run tests."
+cat README.md | pi -p "Summarize this text."
+pi --mode json -p "Review this diff."
+pi --mode rpc
+</code></pre>
+<p>这里的关键不是“能不能无界面运行”，而是：<strong>Agent 运行过程能否被机器消费</strong>。</p>
+<p>普通 stdout 只适合人看。JSON event stream 和 RPC 则可以让外部系统拿到：</p>
+<ul>
+<li>message start / update / end；</li>
+<li>tool execution start / update / end；</li>
+<li>agent start / end；</li>
+<li>compaction start / end；</li>
+<li>error 和 interrupt；</li>
+<li>session id、run id、tool call id。</li>
+</ul>
+<p>这为自动评测、任务队列、CI bot、审计系统和可视化控制台提供了接口。</p>
+<h3 id="sdk"><a class="header" href="#sdk">SDK</a></h3>
+<p>SDK 是 Pi 架构里最有生产价值的入口。它让外部系统直接创建 <code>AgentSession</code>，而不是把 Pi 当作黑盒进程：</p>
+<pre><code class="language-ts">import {
+  AuthStorage,
+  createAgentSession,
+  ModelRegistry,
+  SessionManager,
+} from "@mariozechner/pi-coding-agent";
+
+const authStorage = AuthStorage.create();
+const modelRegistry = ModelRegistry.create(authStorage);
+
+const { session } = await createAgentSession({
+  sessionManager: SessionManager.inMemory(),
+  authStorage,
+  modelRegistry,
+});
+
+session.subscribe((event) =&gt; {
+  if (
+    event.type === "message_update" &amp;&amp;
+    event.assistantMessageEvent.type === "text_delta"
+  ) {
+    process.stdout.write(event.assistantMessageEvent.delta);
+  }
+});
+
+await session.prompt("What files are in the current directory?");
+</code></pre>
+<p>这个接口说明 Pi 的核心抽象不是 <code>pi</code> 命令，而是 <code>AgentSession</code>。</p>
+<hr>
+<h2 id="144-agentsession运行时的最小闭环"><a class="header" href="#144-agentsession运行时的最小闭环">14.4 AgentSession：运行时的最小闭环</a></h2>
+<p><code>AgentSession</code> 可以理解为一次可持续对话和行动过程的运行容器。它不是单次 LLM call，也不是简单消息数组，而是把模型、上下文、工具、事件和持久化连接起来的对象。</p>
+<p>一个典型 <code>AgentSession</code> 生命周期如下：</p>
+<pre class="mermaid">
+sequenceDiagram
+    participant Entry as Entry Surface
+    participant Loader as ResourceLoader
+    participant Session as AgentSession
+    participant Model as Model Provider
+    participant Tool as Tool Runtime
+    participant Store as Session Store
+
+    Entry-&gt;&gt;Loader: reload resources
+    Loader--&gt;&gt;Entry: settings, context, skills, extensions
+    Entry-&gt;&gt;Session: createAgentSession(options)
+    Entry-&gt;&gt;Session: prompt(user task)
+    Session-&gt;&gt;Model: send messages + tools
+    Model--&gt;&gt;Session: assistant delta / tool call
+    Session-&gt;&gt;Tool: execute tool call
+    Tool--&gt;&gt;Session: tool result
+    Session-&gt;&gt;Model: continue with tool result
+    Model--&gt;&gt;Session: final answer
+    Session-&gt;&gt;Store: append JSONL entries
+    Session--&gt;&gt;Entry: event stream
+</pre>
+
+<h3 id="session-不是-chat-history"><a class="header" href="#session-不是-chat-history">Session 不是 Chat History</a></h3>
+<p>很多原型会把 session 简化成：</p>
+<pre><code class="language-json">[
+  {"role": "user", "content": "..."},
+  {"role": "assistant", "content": "..."}
+]
+</code></pre>
+<p>这对普通聊天够用，但对 Coding Agent 不够。一个 Coding Agent session 至少要记录：</p>
+<ul>
+<li>用户消息；</li>
+<li>assistant 文本和推理流；</li>
+<li>工具调用；</li>
+<li>工具结果；</li>
+<li>文件引用；</li>
+<li>图片输入；</li>
+<li>压缩摘要；</li>
+<li>分支关系；</li>
+<li>模型和 provider；</li>
+<li>扩展注入的上下文；</li>
+<li>错误和中断。</li>
+</ul>
+<p>所以 Pi 使用 JSONL session 文件是一种自然选择：每个事件或消息追加一行，便于流式写入、恢复、浏览和导出。</p>
+<h3 id="event-stream-是-runtime-的可观测接口"><a class="header" href="#event-stream-是-runtime-的可观测接口">Event Stream 是 Runtime 的可观测接口</a></h3>
+<p>一个成熟 Agent Runtime 不应该只在最后返回文本。它应该在运行中持续发出事件：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">事件类型</th><th style="text-align: left">意义</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><code>agent_start</code> / <code>agent_end</code></td><td style="text-align: left">一次用户 prompt 的生命周期</td></tr>
+<tr><td style="text-align: left"><code>turn_start</code> / <code>turn_end</code></td><td style="text-align: left">一轮模型调用和工具执行的生命周期</td></tr>
+<tr><td style="text-align: left"><code>message_start</code> / <code>message_update</code> / <code>message_end</code></td><td style="text-align: left">assistant 文本和思考流</td></tr>
+<tr><td style="text-align: left"><code>tool_execution_start</code></td><td style="text-align: left">工具开始执行</td></tr>
+<tr><td style="text-align: left"><code>tool_execution_update</code></td><td style="text-align: left">工具执行过程更新</td></tr>
+<tr><td style="text-align: left"><code>tool_execution_end</code></td><td style="text-align: left">工具执行完成</td></tr>
+<tr><td style="text-align: left"><code>compaction_start</code> / <code>compaction_end</code></td><td style="text-align: left">上下文压缩发生</td></tr>
+</tbody>
+</table>
+</div>
+<p>事件流有三个价值：</p>
+<ol>
+<li><strong>UI 渲染</strong>：TUI 可以实时展示模型输出和工具状态。</li>
+<li><strong>外部集成</strong>：SDK、RPC、JSON mode 可以把事件交给上层系统。</li>
+<li><strong>生产诊断</strong>：失败后能看到模型什么时候决定调用什么工具、工具返回了什么、压缩发生在哪里。</li>
+</ol>
+<p>第 19 章实现可观测 Coding Agent lab 时，也会复用这个思想：不要只存最终回答，要记录每一轮决策和工具执行。</p>
+<hr>
+<h2 id="145-从-piagent-反推终端原生-runtime"><a class="header" href="#145-从-piagent-反推终端原生-runtime">14.5 从 <code>~/.pi/agent</code> 反推终端原生 Runtime</a></h2>
+<p>第 13 章我们已经从 <code>~/.codex</code> 和 <code>~/.claude</code> 目录反推过终端原生 Agent Runtime。Pi 的目录约定也能透露出类似架构。</p>
+<p>Pi 的全局配置目录默认是：</p>
+<pre><code class="language-text">~/.pi/agent/
+</code></pre>
+<p>项目级配置通常在：</p>
+<pre><code class="language-text">.pi/
+.agents/
+AGENTS.md
+CLAUDE.md
+</code></pre>
+<p>从这些目录可以反推出 Pi 至少管理几类资源。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">资源</th><th style="text-align: left">典型位置</th><th style="text-align: left">系统含义</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">全局指令</td><td style="text-align: left"><code>~/.pi/agent/AGENTS.md</code></td><td style="text-align: left">用户跨项目偏好和安全规则</td></tr>
+<tr><td style="text-align: left">项目指令</td><td style="text-align: left"><code>AGENTS.md</code>、<code>CLAUDE.md</code></td><td style="text-align: left">仓库级工作协议</td></tr>
+<tr><td style="text-align: left">系统提示</td><td style="text-align: left"><code>.pi/SYSTEM.md</code>、<code>~/.pi/agent/SYSTEM.md</code></td><td style="text-align: left">替换默认 system prompt</td></tr>
+<tr><td style="text-align: left">附加提示</td><td style="text-align: left"><code>APPEND_SYSTEM.md</code></td><td style="text-align: left">在默认 prompt 后追加规则</td></tr>
+<tr><td style="text-align: left">Settings</td><td style="text-align: left"><code>settings.json</code>、<code>.pi/settings.json</code></td><td style="text-align: left">模型、UI、资源路径等配置</td></tr>
+<tr><td style="text-align: left">Auth</td><td style="text-align: left"><code>auth.json</code> 或环境变量</td><td style="text-align: left">provider 凭据</td></tr>
+<tr><td style="text-align: left">Keybindings</td><td style="text-align: left"><code>keybindings.json</code></td><td style="text-align: left">终端交互层自定义</td></tr>
+<tr><td style="text-align: left">Skills</td><td style="text-align: left"><code>skills/</code>、<code>.agents/skills/</code></td><td style="text-align: left">可按需加载的能力包</td></tr>
+<tr><td style="text-align: left">Prompts</td><td style="text-align: left"><code>prompts/*.md</code></td><td style="text-align: left">slash command 模板</td></tr>
+<tr><td style="text-align: left">Extensions</td><td style="text-align: left"><code>extensions/*.ts</code></td><td style="text-align: left">运行时代码扩展</td></tr>
+<tr><td style="text-align: left">Themes</td><td style="text-align: left"><code>themes/*.json</code></td><td style="text-align: left">TUI 主题</td></tr>
+<tr><td style="text-align: left">Sessions</td><td style="text-align: left">session JSONL</td><td style="text-align: left">会话、分支和历史</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="这个目录不是配置杂物间"><a class="header" href="#这个目录不是配置杂物间">这个目录不是“配置杂物间”</a></h3>
+<p>成熟终端 Agent 的本地目录通常会长成这样，不是偶然：</p>
+<pre><code class="language-text">agent-home/
+  auth.json
+  settings.json
+  keybindings.json
+  AGENTS.md
+  SYSTEM.md
+  APPEND_SYSTEM.md
+  skills/
+  prompts/
+  extensions/
+  themes/
+  sessions/
+</code></pre>
+<p>每一类文件都对应一个运行时问题：</p>
+<ul>
+<li><code>auth.json</code> 解决模型 provider 凭据；</li>
+<li><code>settings.json</code> 解决默认模型、thinking level、UI 和发现规则；</li>
+<li><code>AGENTS.md</code> 解决长期行为约束；</li>
+<li><code>SYSTEM.md</code> 解决默认 agent 身份；</li>
+<li><code>skills/</code> 解决复杂能力的渐进加载；</li>
+<li><code>prompts/</code> 解决重复工作流的入口；</li>
+<li><code>extensions/</code> 解决运行时代码扩展；</li>
+<li><code>sessions/</code> 解决持久会话和恢复。</li>
+</ul>
+<p>这类目录结构的本质是：<strong>把 Agent Runtime 的控制面落到本地文件系统</strong>。</p>
+<h3 id="全局和项目级的优先级"><a class="header" href="#全局和项目级的优先级">全局和项目级的优先级</a></h3>
+<p>Pi 的资源发现同时支持全局和项目级：</p>
+<pre><code class="language-text">Global scope:
+  ~/.pi/agent/AGENTS.md
+  ~/.pi/agent/settings.json
+  ~/.pi/agent/skills/
+  ~/.pi/agent/prompts/
+  ~/.pi/agent/extensions/
+
+Project scope:
+  AGENTS.md / CLAUDE.md
+  .pi/settings.json
+  .pi/skills/
+  .agents/skills/
+  .pi/prompts/
+  .pi/extensions/
+</code></pre>
+<p>这种分层很关键。全局规则适合放：</p>
+<ul>
+<li>回答风格；</li>
+<li>默认安全边界；</li>
+<li>用户偏好；</li>
+<li>常用 skills；</li>
+<li>常用 prompt templates。</li>
+</ul>
+<p>项目规则适合放：</p>
+<ul>
+<li>构建命令；</li>
+<li>测试命令；</li>
+<li>代码风格；</li>
+<li>不可触碰目录；</li>
+<li>发布约束；</li>
+<li>项目特有工具链。</li>
+</ul>
+<p>如果这两层混在一起，Agent 很快会变得不可控：跨项目规则污染本项目，本项目规则又被误用到其他仓库。</p>
+<hr>
+<h2 id="146-resourceloader上下文不是拼字符串"><a class="header" href="#146-resourceloader上下文不是拼字符串">14.6 ResourceLoader：上下文不是拼字符串</a></h2>
+<p>Pi SDK 文档里一个很重要的对象是 <code>DefaultResourceLoader</code>。它负责从 <code>cwd</code> 和 <code>agentDir</code> 发现 resources，并交给 <code>createAgentSession()</code> 使用。</p>
+<p>这说明 Pi 对上下文的理解不是“把几段文本拼进 prompt”，而是一个资源加载过程：</p>
+<pre><code class="language-text">cwd + agentDir
+  │
+  ├─ discover context files
+  ├─ discover settings
+  ├─ discover skills
+  ├─ discover prompt templates
+  ├─ discover extensions
+  ├─ discover themes
+  └─ build system prompt options
+</code></pre>
+<h3 id="context-files"><a class="header" href="#context-files">Context Files</a></h3>
+<p>Pi 会加载上下文文件：</p>
+<ul>
+<li>全局 <code>~/.pi/agent/AGENTS.md</code>；</li>
+<li>从当前目录往父目录查找的 <code>AGENTS.md</code>；</li>
+<li>兼容的 <code>CLAUDE.md</code>；</li>
+<li>可选禁用的 context files。</li>
+</ul>
+<p>这和我们在本书一直强调的 Context Engineering 一致：上下文不是越多越好，而是要分层、可解释、可覆盖。</p>
+<pre><code class="language-text">Global Instructions
+  + Repository Instructions
+  + Subdirectory Instructions
+  + User Prompt
+  + Mentioned Files
+  + Tool Results
+  + Skill Details
+  + Extension Messages
+</code></pre>
+<h3 id="system-prompt-files"><a class="header" href="#system-prompt-files">System Prompt Files</a></h3>
+<p>Pi 支持用 <code>SYSTEM.md</code> 替换默认 system prompt，也支持用 <code>APPEND_SYSTEM.md</code> 追加内容。</p>
+<p>这给了高级用户两种不同控制粒度：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">文件</th><th style="text-align: left">语义</th><th style="text-align: left">风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><code>SYSTEM.md</code></td><td style="text-align: left">替换默认 Agent 身份和行为协议</td><td style="text-align: left">可能破坏内置工具约定</td></tr>
+<tr><td style="text-align: left"><code>APPEND_SYSTEM.md</code></td><td style="text-align: left">在默认 prompt 后追加项目规则</td><td style="text-align: left">更适合大多数项目</td></tr>
+</tbody>
+</table>
+</div>
+<p>工程上，直接替换 system prompt 很强，也很危险。因为成熟 Coding Agent 的默认 prompt 往往包含：</p>
+<ul>
+<li>工具调用规则；</li>
+<li>文件编辑约束；</li>
+<li>安全提醒；</li>
+<li>输出格式；</li>
+<li>上下文来源说明；</li>
+<li>模型能力边界；</li>
+<li>与 TUI / Runtime 协作的隐藏约定。</li>
+</ul>
+<p>因此，生产实践里更推荐优先使用 <code>AGENTS.md</code> 或 <code>APPEND_SYSTEM.md</code>，只有在确实要重定义 agent 行为时才替换 <code>SYSTEM.md</code>。</p>
+<h3 id="skills-的渐进披露"><a class="header" href="#skills-的渐进披露">Skills 的渐进披露</a></h3>
+<p>Pi 实现 Agent Skills 标准。Skill 不是每次都把所有文档塞进 prompt，而是先在系统提示里暴露名称和描述；当任务匹配时，模型再读取完整 <code>SKILL.md</code>。</p>
+<p>这个机制解决了两个矛盾：</p>
+<ol>
+<li>Agent 需要知道有哪些能力可用；</li>
+<li>Agent 不能把所有能力文档一次性塞进上下文。</li>
+</ol>
+<p>可以把 Skills 理解为：</p>
+<pre><code class="language-text">Skill Index in Prompt
+  name + description
+      │
+      ▼
+Model decides skill is relevant
+      │
+      ▼
+read full SKILL.md
+      │
+      ▼
+use scripts / references / assets
+</code></pre>
+<p>这就是 progressive disclosure。它比“把所有知识库都塞进上下文”更适合 Coding Agent，因为编程任务经常需要专门工作流，比如：</p>
+<ul>
+<li>写浏览器自动化；</li>
+<li>修改 Word / PPT / Excel；</li>
+<li>调日志平台；</li>
+<li>生成图；</li>
+<li>请求代码审查；</li>
+<li>做验证清单。</li>
+</ul>
+<p>这些能力的说明可能很长，但只有在匹配任务时才需要加载。</p>
+<h3 id="prompt-templates"><a class="header" href="#prompt-templates">Prompt Templates</a></h3>
+<p>Prompt templates 则解决另一个问题：重复工作流的入口。</p>
+<p>一个模板可以类似这样：</p>
+<pre><code class="language-markdown">---
+description: Review staged git changes
+argument-hint: [focus area]
+---
+
+Review the staged changes using `git diff --cached`.
+
+Focus on:
+
+- Bugs and logic errors
+- Security issues
+- Missing tests
+- Behavioral regressions
+</code></pre>
+<p>模板文件名会变成命令名，比如 <code>review.md</code> 可以变成 <code>/review</code>。</p>
+<p>和 Skills 相比：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">机制</th><th style="text-align: left">适合解决</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Prompt Template</td><td style="text-align: left">重复 prompt、固定任务入口、slash command</td></tr>
+<tr><td style="text-align: left">Skill</td><td style="text-align: left">专门能力、长说明、辅助脚本、参考文档</td></tr>
+<tr><td style="text-align: left">Extension</td><td style="text-align: left">需要执行代码、注册工具、拦截事件、定制 UI</td></tr>
+</tbody>
+</table>
+</div>
+<p>这三者分开，是 Pi 扩展模型最重要的清晰性之一。</p>
+<hr>
+<h2 id="147-tool-runtime工具是能力边界"><a class="header" href="#147-tool-runtime工具是能力边界">14.7 Tool Runtime：工具是能力边界</a></h2>
+<p>Pi 默认给模型的核心工具很克制：</p>
+<ul>
+<li><code>read</code>：读取文件；</li>
+<li><code>write</code>：创建或覆盖文件；</li>
+<li><code>edit</code>：修改文件；</li>
+<li><code>bash</code>：运行 Shell 命令。</li>
+</ul>
+<p>一些只读工具，例如 <code>grep</code>、<code>find</code>、<code>ls</code>，可以通过工具选项启用。</p>
+<p>这组工具看起来很小，但已经覆盖了 Coding Agent 的最小行动空间：</p>
+<pre><code class="language-text">Observe:
+  read / grep / find / ls / bash readonly commands
+
+Act:
+  write / edit / bash side-effect commands
+
+Verify:
+  bash test commands / lint commands / build commands
+</code></pre>
+<h3 id="readwriteeditbash-的风险并不相同"><a class="header" href="#readwriteeditbash-的风险并不相同">read、write、edit、bash 的风险并不相同</a></h3>
+<p>一个常见错误是把工具权限简化成“允许 agent 修改代码”。实际应该拆得更细。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">工具</th><th style="text-align: left">风险等级</th><th style="text-align: left">主要风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><code>read</code></td><td style="text-align: left">低到中</td><td style="text-align: left">读取敏感文件、把 secret 放进模型上下文</td></tr>
+<tr><td style="text-align: left"><code>grep</code> / <code>find</code> / <code>ls</code></td><td style="text-align: left">低到中</td><td style="text-align: left">扫描过大目录、泄漏路径结构</td></tr>
+<tr><td style="text-align: left"><code>write</code></td><td style="text-align: left">高</td><td style="text-align: left">覆盖用户文件、破坏未提交改动</td></tr>
+<tr><td style="text-align: left"><code>edit</code></td><td style="text-align: left">高</td><td style="text-align: left">错误 patch、误改无关文件</td></tr>
+<tr><td style="text-align: left"><code>bash</code></td><td style="text-align: left">很高</td><td style="text-align: left">删除文件、联网、执行恶意脚本、泄漏凭据</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此，生产级 Coding Agent Harness 需要区分三层权限：</p>
+<pre><code class="language-text">Read Plane:
+  file read, search, list
+
+Write Plane:
+  create, edit, patch
+
+Execution Plane:
+  shell, test, package manager, external tools
+</code></pre>
+<p>第 19 章的 lab 里会把 <code>auto_edit</code> 和 <code>auto_shell</code> 分开，也是同一个思想：文件编辑和命令执行的风险不同，审批策略也应该不同。</p>
+<h3 id="tool-result-也是上下文"><a class="header" href="#tool-result-也是上下文">Tool Result 也是上下文</a></h3>
+<p>工具结果不是日志垃圾，而是下一轮模型决策的证据。</p>
+<pre><code class="language-text">Tool Call:
+  bash("npm test")
+
+Tool Result:
+  exit_code: 1
+  stdout: ...
+  stderr: ...
+  duration_ms: 18234
+
+Next LLM Turn:
+  "Tests failed because ..."
+</code></pre>
+<p>一个成熟 Tool Runtime 应该控制：</p>
+<ul>
+<li>输出截断；</li>
+<li>binary / image / large file 处理；</li>
+<li>secret masking；</li>
+<li>exit code；</li>
+<li>timeout；</li>
+<li>cwd；</li>
+<li>environment；</li>
+<li>command allowlist / denylist；</li>
+<li>是否把输出写入 session；</li>
+<li>是否把输出传给模型。</li>
+</ul>
+<p>如果这层没有设计，Agent 会出现两个极端：</p>
+<ol>
+<li>输出太少，模型不知道发生了什么；</li>
+<li>输出太多，上下文窗口被日志淹没。</li>
+</ol>
+<h3 id="bash-不是一个工具而是一组能力"><a class="header" href="#bash-不是一个工具而是一组能力">Bash 不是一个工具，而是一组能力</a></h3>
+<p><code>bash</code> 是 Coding Agent 最危险、也最强的工具。它可能代表：</p>
+<ul>
+<li>查询状态：<code>git status</code>；</li>
+<li>运行测试：<code>npm test</code>；</li>
+<li>构建项目：<code>npm run build</code>；</li>
+<li>修改文件：<code>sed -i</code>；</li>
+<li>安装依赖：<code>npm install</code>；</li>
+<li>删除文件：<code>rm</code>；</li>
+<li>网络访问：<code>curl</code>；</li>
+<li>启动服务：<code>npm run dev</code>。</li>
+</ul>
+<p>把这些都放进一个 <code>bash</code> 工具后，必须用策略层补回来：</p>
+<pre><code class="language-text">Command Classifier
+  │
+  ├─ readonly: git status, rg, ls, cat, pwd
+  ├─ safe write: mkdir, cp within workspace
+  ├─ verification: npm test, cargo test, go test
+  ├─ network: npm install, curl, git pull
+  └─ destructive: rm, sudo, chmod, docker prune
+</code></pre>
+<p>Pi 的核心文档强调默认工具很小；真正生产化时，工具策略要由 harness、extension 或上层系统共同承担。OpenClaw 嵌入 Pi 后，也会在自己的沙箱、channel 和 gateway 语义下重新接管部分工具策略。</p>
+<hr>
+<h2 id="148-extension-hostpi-最关键的扩展边界"><a class="header" href="#148-extension-hostpi-最关键的扩展边界">14.8 Extension Host：Pi 最关键的扩展边界</a></h2>
+<p>如果只支持 Skills 和 Prompt Templates，Pi 仍然只是一个可定制 prompt 的工具。真正让它变成 harness 的，是 TypeScript extensions。</p>
+<p>Pi extension 可以做几类事情：</p>
+<ul>
+<li>注册自定义工具；</li>
+<li>订阅生命周期事件；</li>
+<li>拦截或修改工具调用；</li>
+<li>注入上下文；</li>
+<li>定制 compaction；</li>
+<li>注册命令；</li>
+<li>添加 TUI 自定义组件；</li>
+<li>注册快捷键；</li>
+<li>注册 CLI flag；</li>
+<li>自定义消息渲染。</li>
+</ul>
+<p>这意味着扩展不是“提示词片段”，而是运行时代码。</p>
+<h3 id="注册工具"><a class="header" href="#注册工具">注册工具</a></h3>
+<p>一个企业内部 extension 可以把公司工具接进 Pi：</p>
+<pre><code class="language-ts">pi.registerTool({
+  name: "search_runbook",
+  description: "Search internal runbooks by keyword.",
+  parameters: {
+    type: "object",
+    properties: {
+      query: { type: "string" },
+      service: { type: "string" },
+    },
+    required: ["query"],
+  },
+  handler: async ({ query, service }) =&gt; {
+    return await searchRunbook({ query, service });
+  },
+});
+</code></pre>
+<p>这类工具和内置 <code>read</code>、<code>bash</code> 的地位一样，都会成为模型可调用的行动。</p>
+<h3 id="拦截事件"><a class="header" href="#拦截事件">拦截事件</a></h3>
+<p>Extension 可以监听 agent 生命周期，例如在 agent 启动前追加上下文：</p>
+<pre><code class="language-ts">pi.on("before_agent_start", async (event, ctx) =&gt; {
+  const service = await detectCurrentService(ctx.cwd);
+
+  return {
+    message: {
+      customType: "service-context",
+      content: `Current service: ${service.name}`,
+      display: true,
+    },
+    systemPrompt:
+      event.systemPrompt +
+      "\n\nWhen editing this service, always run its focused test target.",
+  };
+});
+</code></pre>
+<p>这类能力非常强，因为它能改变模型本轮看到的系统提示和上下文。</p>
+<h3 id="自定义-ui"><a class="header" href="#自定义-ui">自定义 UI</a></h3>
+<p>Extension 还可以通过 <code>ctx.ui</code> 与用户交互：</p>
+<pre><code class="language-ts">pi.registerCommand("deploy-check", {
+  description: "Run deployment readiness checks.",
+  handler: async (ctx) =&gt; {
+    const env = await ctx.ui.select("Environment", ["staging", "prod"]);
+    const confirmed = await ctx.ui.confirm(`Run checks for ${env}?`);
+
+    if (!confirmed) {
+      ctx.ui.notify("Cancelled.");
+      return;
+    }
+
+    await ctx.runTool("bash", { command: `npm run check:${env}` });
+  },
+});
+</code></pre>
+<p>这说明 Pi 的 TUI 不只是文本显示器，而是可以成为 extension 的交互面。</p>
+<h3 id="extension-的安全含义"><a class="header" href="#extension-的安全含义">Extension 的安全含义</a></h3>
+<p>Extension 是代码，代码就有权限。安装一个恶意 extension，本质上类似在本机运行一个 npm 包。</p>
+<p>所以 Pi Packages 文档会强调：packages 和 extensions 可能以完整系统权限运行，安装第三方包前必须审查源码。</p>
+<p>在生产环境中，extension 应该遵守几条规则：</p>
+<ul>
+<li>来源必须可信；</li>
+<li>版本必须 pin 住；</li>
+<li>安装和更新要审计；</li>
+<li>不要把 secret 写进 prompt；</li>
+<li>外部请求要有 allowlist；</li>
+<li>destructive tool 要有人工确认；</li>
+<li>企业环境应区分个人 extension 和组织批准 extension。</li>
+</ul>
+<p>这也是为什么“扩展能力”和“安全边界”必须一起讨论。强扩展是 Pi 的优势，也是它最需要治理的地方。</p>
+<hr>
+<h2 id="149-skillspromptspackages扩展生态的三种颗粒度"><a class="header" href="#149-skillspromptspackages扩展生态的三种颗粒度">14.9 Skills、Prompts、Packages：扩展生态的三种颗粒度</a></h2>
+<p>Pi 的扩展生态不是只有 extensions。它至少有四类资源：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">资源</th><th style="text-align: left">形态</th><th style="text-align: left">主要用途</th><th style="text-align: left">风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Skills</td><td style="text-align: left"><code>SKILL.md</code> + scripts / references / assets</td><td style="text-align: left">复杂能力和工作流</td><td style="text-align: left">Prompt injection、脚本执行</td></tr>
+<tr><td style="text-align: left">Prompt Templates</td><td style="text-align: left"><code>.md</code> 模板</td><td style="text-align: left">重复任务入口</td><td style="text-align: left">低到中</td></tr>
+<tr><td style="text-align: left">Extensions</td><td style="text-align: left">TypeScript / JavaScript</td><td style="text-align: left">运行时代码扩展</td><td style="text-align: left">高</td></tr>
+<tr><td style="text-align: left">Packages</td><td style="text-align: left">npm / git 分发的资源包</td><td style="text-align: left">分发一组 skills、prompts、extensions、themes</td><td style="text-align: left">取决于内容</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="skills能力包"><a class="header" href="#skills能力包">Skills：能力包</a></h3>
+<p>一个成熟 Skill 不应该只是“提醒模型做某事”。它应该包含：</p>
+<pre><code class="language-text">skill-name/
+  SKILL.md
+  scripts/
+  references/
+  assets/
+</code></pre>
+<p><code>SKILL.md</code> 负责告诉 Agent：</p>
+<ul>
+<li>什么时候使用；</li>
+<li>使用前要确认什么；</li>
+<li>需要读取哪些参考资料；</li>
+<li>可运行哪些脚本；</li>
+<li>输出格式是什么；</li>
+<li>常见错误如何处理。</li>
+</ul>
+<p>这和第 6 章的 Skills 设计完全一致：Skill 是可复用程序性记忆，不是长 prompt。</p>
+<h3 id="prompt-templates命令化入口"><a class="header" href="#prompt-templates命令化入口">Prompt Templates：命令化入口</a></h3>
+<p>Prompt Template 更像一个轻量 command：</p>
+<pre><code class="language-text">prompts/
+  review.md       -&gt; /review
+  summarize.md    -&gt; /summarize
+  test-plan.md    -&gt; /test-plan
+</code></pre>
+<p>它适合团队沉淀固定工作流，比如：</p>
+<ul>
+<li><code>/review</code>：审查 staged diff；</li>
+<li><code>/release-notes</code>：根据 commit 生成 release note；</li>
+<li><code>/incident-summary</code>：把告警和日志整理成复盘；</li>
+<li><code>/test-plan</code>：为某个 feature 生成测试计划。</li>
+</ul>
+<h3 id="packages分发单位"><a class="header" href="#packages分发单位">Packages：分发单位</a></h3>
+<p>Pi Packages 允许把 extensions、skills、prompts、themes 打包，通过 npm 或 git 分发。</p>
+<p>一个 package 可以用约定目录：</p>
+<pre><code class="language-text">my-pi-package/
+  package.json
+  extensions/
+  skills/
+  prompts/
+  themes/
+</code></pre>
+<p>也可以在 <code>package.json</code> 里通过 <code>pi</code> 字段声明资源。</p>
+<p>这使 Pi 的生态更像一个“Agent capability package manager”。团队可以发布：</p>
+<ul>
+<li>前端工程包；</li>
+<li>数据分析包；</li>
+<li>安全审计包；</li>
+<li>内部平台工具包；</li>
+<li>公司专属 coding workflow 包。</li>
+</ul>
+<p>但 package 也把供应链风险带了进来。对企业来说，最合理的路径不是让每个工程师自由安装未知包，而是建立内部 registry 和审核流程。</p>
+<hr>
+<h2 id="1410-context-engineeringpi-的长期竞争力"><a class="header" href="#1410-context-engineeringpi-的长期竞争力">14.10 Context Engineering：Pi 的长期竞争力</a></h2>
+<p>Coding Agent 的核心竞争力并不只来自模型能力。模型越来越强后，差异会转移到上下文工程：</p>
+<ul>
+<li>能不能找到正确文件；</li>
+<li>能不能加载正确规则；</li>
+<li>能不能控制工具输出；</li>
+<li>能不能保留关键历史；</li>
+<li>能不能压缩旧对话；</li>
+<li>能不能把 Skills 按需展开；</li>
+<li>能不能让 extension 在正确时机注入上下文。</li>
+</ul>
+<p>Pi 的设计体现了一个重要判断：<strong>上下文是运行时资源，不是 Prompt 字符串。</strong></p>
+<h3 id="启动时上下文"><a class="header" href="#启动时上下文">启动时上下文</a></h3>
+<p>启动时加载的上下文通常包括：</p>
+<pre><code class="language-text">Global AGENTS.md
+  + Parent AGENTS.md / CLAUDE.md
+  + Current directory AGENTS.md / CLAUDE.md
+  + Project settings
+  + Available skills index
+  + Available prompt templates
+  + Extension-provided prompt changes
+</code></pre>
+<p>这类上下文决定 agent 的长期行为。</p>
+<h3 id="本轮上下文"><a class="header" href="#本轮上下文">本轮上下文</a></h3>
+<p>本轮上下文来自用户任务和临时引用：</p>
+<pre><code class="language-text">User prompt
+  + @mentioned files
+  + pasted images
+  + command output
+  + extension injected messages
+  + tool results
+</code></pre>
+<p>本轮上下文不一定应该永久进入未来所有轮次。比如图片输入、一次性命令输出、临时日志片段，都应该有生命周期。</p>
+<p>OpenClaw 的 Pi 集成文档中特别提到图片注入是 prompt-local：当前 prompt 加载图片，并不重新扫描旧历史重新注入图片 payload。这个细节很重要，因为大对象上下文如果无脑跨轮保留，会很快拖垮成本和稳定性。</p>
+<h3 id="压缩不是删除历史"><a class="header" href="#压缩不是删除历史">压缩不是删除历史</a></h3>
+<p>会话变长后，Pi 会进行 compaction。正确理解 compaction：</p>
+<pre><code class="language-text">Full Session History
+  remains on disk
+
+Model Context
+  recent messages + compacted summary
+</code></pre>
+<p>压缩改变的是下一轮模型看到的上下文，不应该破坏完整历史。这样才能同时满足：</p>
+<ul>
+<li>长会话继续推进；</li>
+<li>历史可导出；</li>
+<li>分支可浏览；</li>
+<li>失败可复盘；</li>
+<li>评测可重放。</li>
+</ul>
+<h3 id="context-budget-的工程原则"><a class="header" href="#context-budget-的工程原则">Context Budget 的工程原则</a></h3>
+<p>生产级 Coding Agent 应该把上下文分成预算：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">上下文类别</th><th style="text-align: left">预算策略</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">System Prompt</td><td style="text-align: left">稳定、短、可缓存</td></tr>
+<tr><td style="text-align: left">Project Rules</td><td style="text-align: left">精炼，避免长篇背景</td></tr>
+<tr><td style="text-align: left">Skill Index</td><td style="text-align: left">只放 name + description</td></tr>
+<tr><td style="text-align: left">Full Skill</td><td style="text-align: left">按需读取</td></tr>
+<tr><td style="text-align: left">File Content</td><td style="text-align: left">用户引用和工具读取触发</td></tr>
+<tr><td style="text-align: left">Tool Output</td><td style="text-align: left">截断、摘要、保留 exit code</td></tr>
+<tr><td style="text-align: left">History</td><td style="text-align: left">最近消息 + 压缩摘要</td></tr>
+<tr><td style="text-align: left">Extension Context</td><td style="text-align: left">明确来源和生命周期</td></tr>
+</tbody>
+</table>
+</div>
+<p>这套预算思想比“上下文窗口越大越好”更重要。窗口大只会推迟问题，不会消除信息架构问题。</p>
+<hr>
+<h2 id="1411-session-tree从连续对话到可分叉工作区"><a class="header" href="#1411-session-tree从连续对话到可分叉工作区">14.11 Session Tree：从连续对话到可分叉工作区</a></h2>
+<p>Pi 支持 session continue、resume、tree、fork、clone 等会话操作。这说明它把 session 看成一棵可管理的工作树，而不是一条线性聊天记录。</p>
+<pre class="mermaid">
+flowchart TB
+    S0["Session root"]
+    S1["Implement feature A"]
+    S2["Try approach B"]
+    S3["Fix tests"]
+    S4["Alternative patch"]
+    S5["Review final diff"]
+
+    S0 --&gt; S1
+    S1 --&gt; S2
+    S1 --&gt; S3
+    S2 --&gt; S4
+    S3 --&gt; S5
+</pre>
+
+<h3 id="为什么-coding-agent-需要分支"><a class="header" href="#为什么-coding-agent-需要分支">为什么 Coding Agent 需要分支</a></h3>
+<p>编程任务天然有试错：</p>
+<ul>
+<li>一个 bug 可能有多个修复方案；</li>
+<li>一个重构可能先尝试局部改，再尝试抽象改；</li>
+<li>一个失败路径可能需要保留证据；</li>
+<li>用户可能想从某个中间状态重新开始。</li>
+</ul>
+<p>普通聊天系统只提供“继续对话”，很难支持这些工作流。Session tree 则允许：</p>
+<ul>
+<li>从某一轮 fork；</li>
+<li>clone 当前会话；</li>
+<li>回到旧分支继续；</li>
+<li>导出某条分支；</li>
+<li>比较不同分支的决策过程。</li>
+</ul>
+<h3 id="session-是评测数据"><a class="header" href="#session-是评测数据">Session 是评测数据</a></h3>
+<p>Coding Agent 的 session 还有另一个价值：它是模型、prompt、tool 和上下文工程的评测数据。</p>
+<p>一次完整 session 包含：</p>
+<ul>
+<li>用户任务；</li>
+<li>项目上下文；</li>
+<li>模型选择；</li>
+<li>工具调用；</li>
+<li>文件修改；</li>
+<li>测试命令；</li>
+<li>错误恢复；</li>
+<li>最终输出。</li>
+</ul>
+<p>这些信息可以反过来用于：</p>
+<ul>
+<li>失败样本分析；</li>
+<li>prompt 调整；</li>
+<li>tool schema 改进；</li>
+<li>compaction 策略评估；</li>
+<li>model routing 评估；</li>
+<li>自动化 regression eval。</li>
+</ul>
+<p>所以 session 不只是聊天历史，而是 Agent Runtime 的执行轨迹。</p>
+<hr>
+<h2 id="1412-sdk-嵌入为什么不是启动子进程"><a class="header" href="#1412-sdk-嵌入为什么不是启动子进程">14.12 SDK 嵌入：为什么不是启动子进程</a></h2>
+<p>外部系统集成 Pi 有两条路：</p>
+<pre><code class="language-text">Subprocess Integration:
+  spawn("pi", ["--mode", "rpc"])
+
+SDK Integration:
+  import { createAgentSession } from "@mariozechner/pi-coding-agent"
+</code></pre>
+<p>两者都能工作，但适用场景不同。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">子进程 / RPC</th><th style="text-align: left">SDK 嵌入</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">隔离性</td><td style="text-align: left">进程边界清晰</td><td style="text-align: left">与宿主同进程</td></tr>
+<tr><td style="text-align: left">控制力</td><td style="text-align: left">通过协议控制</td><td style="text-align: left">直接控制对象和回调</td></tr>
+<tr><td style="text-align: left">工具注入</td><td style="text-align: left">需要协议适配</td><td style="text-align: left">可以直接传 custom tools</td></tr>
+<tr><td style="text-align: left">事件处理</td><td style="text-align: left">解析 stdout / JSONL / RPC</td><td style="text-align: left">订阅 session events</td></tr>
+<tr><td style="text-align: left">错误恢复</td><td style="text-align: left">进程级重启</td><td style="text-align: left">函数级和 session 级处理</td></tr>
+<tr><td style="text-align: left">上下文定制</td><td style="text-align: left">通过参数和文件</td><td style="text-align: left">可直接接管 ResourceLoader</td></tr>
+<tr><td style="text-align: left">适合场景</td><td style="text-align: left">简单集成、语言无关</td><td style="text-align: left">深度嵌入、产品化 runtime</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="sdk-的核心对象"><a class="header" href="#sdk-的核心对象">SDK 的核心对象</a></h3>
+<p>Pi SDK 暴露了几个关键对象：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">对象</th><th style="text-align: left">职责</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><code>createAgentSession()</code></td><td style="text-align: left">创建 <code>AgentSession</code></td></tr>
+<tr><td style="text-align: left"><code>AgentSession</code></td><td style="text-align: left">prompt、事件订阅、agent loop</td></tr>
+<tr><td style="text-align: left"><code>SessionManager</code></td><td style="text-align: left">session 存储和恢复</td></tr>
+<tr><td style="text-align: left"><code>AuthStorage</code></td><td style="text-align: left">provider 凭据存储</td></tr>
+<tr><td style="text-align: left"><code>ModelRegistry</code></td><td style="text-align: left">model 和 provider 管理</td></tr>
+<tr><td style="text-align: left"><code>DefaultResourceLoader</code></td><td style="text-align: left">resources 发现和加载</td></tr>
+<tr><td style="text-align: left"><code>SettingsManager</code></td><td style="text-align: left">settings 管理</td></tr>
+</tbody>
+</table>
+</div>
+<p>这组对象足以支撑一个嵌入式 Coding Agent。</p>
+<h3 id="一个嵌入式运行器的形态"><a class="header" href="#一个嵌入式运行器的形态">一个嵌入式运行器的形态</a></h3>
+<p>自研系统嵌入 Pi 时，通常会包装成自己的 runner：</p>
+<pre><code class="language-ts">type RunCodingAgentParams = {
+  sessionId: string;
+  workspaceDir: string;
+  prompt: string;
+  provider: string;
+  model: string;
+  timeoutMs: number;
+  customTools: ToolDefinition[];
+  onEvent: (event: AgentEvent) =&gt; Promise&lt;void&gt;;
+};
+
+async function runCodingAgent(params: RunCodingAgentParams): Promise&lt;RunResult&gt; {
+  const authStorage = createAuthStorageForTenant(params.sessionId);
+  const modelRegistry = ModelRegistry.create(authStorage);
+  const sessionManager = createSessionManager(params.sessionId);
+  const resourceLoader = createResourceLoader(params.workspaceDir);
+
+  const { session } = await createAgentSession({
+    cwd: params.workspaceDir,
+    authStorage,
+    modelRegistry,
+    sessionManager,
+    resourceLoader,
+    tools: createBuiltInTools(params.workspaceDir),
+    customTools: params.customTools,
+    model: params.model,
+  });
+
+  const unsubscribe = session.subscribe(params.onEvent);
+
+  try {
+    await withTimeout(
+      session.prompt(params.prompt),
+      params.timeoutMs,
+    );
+
+    return { ok: true, sessionId: params.sessionId };
+  } finally {
+    unsubscribe();
+  }
+}
+</code></pre>
+<p>这个 runner 可以被 Web UI、聊天 Gateway、CI pipeline 或评测系统调用。</p>
+<hr>
+<h2 id="1413-openclaw-如何嵌入-pi"><a class="header" href="#1413-openclaw-如何嵌入-pi">14.13 OpenClaw 如何嵌入 Pi</a></h2>
+<p>OpenClaw 是理解 Pi SDK 价值的最好案例。OpenClaw 的 Pi 集成文档明确描述：它使用 Pi SDK 把 AI coding agent 嵌入自己的 messaging gateway，而不是启动 Pi 子进程，也不是使用 RPC mode。</p>
+<p>OpenClaw 的集成方式大致是：</p>
+<pre><code class="language-text">OpenClaw Gateway
+  receives channel message
+      │
+      ▼
+runEmbeddedPiAgent()
+      │
+      ▼
+createAgentSession()
+      │
+      ├─ custom tools: messaging, sandbox, channel actions
+      ├─ custom system prompt per channel/context
+      ├─ session persistence under OpenClaw state dir
+      ├─ auth profile rotation
+      └─ provider-agnostic model resolution
+      │
+      ▼
+subscribe AgentSession events
+      │
+      ▼
+send block replies / partial replies to channel
+</code></pre>
+<h3 id="package-分层"><a class="header" href="#package-分层">Package 分层</a></h3>
+<p>OpenClaw 文档把 Pi 相关包拆成四类：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">包</th><th style="text-align: left">职责</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><code>pi-ai</code></td><td style="text-align: left">LLM 抽象、model、message types、provider API</td></tr>
+<tr><td style="text-align: left"><code>pi-agent-core</code></td><td style="text-align: left">Agent loop、tool execution、AgentMessage types</td></tr>
+<tr><td style="text-align: left"><code>pi-coding-agent</code></td><td style="text-align: left">高层 SDK：<code>createAgentSession</code>、<code>SessionManager</code>、<code>AuthStorage</code>、<code>ModelRegistry</code>、内置工具</td></tr>
+<tr><td style="text-align: left"><code>pi-tui</code></td><td style="text-align: left">终端 UI 组件</td></tr>
+</tbody>
+</table>
+</div>
+<p>这说明 Pi 自身也不是一个单体。它把模型、agent core、coding harness 和 TUI 拆开，方便上层系统只取需要的部分。</p>
+<h3 id="openclaw-embedded-与-pi-cli-的差异"><a class="header" href="#openclaw-embedded-与-pi-cli-的差异">OpenClaw Embedded 与 Pi CLI 的差异</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">Pi CLI</th><th style="text-align: left">OpenClaw Embedded</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">调用方式</td><td style="text-align: left"><code>pi</code> 命令、print、JSON、RPC</td><td style="text-align: left">SDK <code>createAgentSession()</code></td></tr>
+<tr><td style="text-align: left">入口</td><td style="text-align: left">本地终端</td><td style="text-align: left">WhatsApp、Telegram、Slack、WebChat、CLI 等</td></tr>
+<tr><td style="text-align: left">工具</td><td style="text-align: left">默认 coding tools</td><td style="text-align: left">OpenClaw 自定义 messaging、sandbox、channel tools</td></tr>
+<tr><td style="text-align: left">系统提示</td><td style="text-align: left">AGENTS.md、prompts、skills</td><td style="text-align: left">按 channel、agent、session 动态构建</td></tr>
+<tr><td style="text-align: left">Session 位置</td><td style="text-align: left">Pi 默认 session 目录</td><td style="text-align: left">OpenClaw agent state 目录</td></tr>
+<tr><td style="text-align: left">Auth</td><td style="text-align: left">Pi 自己的凭据管理</td><td style="text-align: left">OpenClaw 多 profile、rotation、failover</td></tr>
+<tr><td style="text-align: left">事件处理</td><td style="text-align: left">TUI 渲染</td><td style="text-align: left">callback 转发到消息渠道和控制台</td></tr>
+</tbody>
+</table>
+</div>
+<p>这恰好说明 Pi 的边界设计是成功的：同一个 Runtime 可以被终端直接用，也可以被 OpenClaw 嵌入成聊天 Gateway 背后的 Agent Core。</p>
+<h3 id="为什么-openclaw-不用子进程"><a class="header" href="#为什么-openclaw-不用子进程">为什么 OpenClaw 不用子进程</a></h3>
+<p>如果 OpenClaw 只是启动 <code>pi --mode rpc</code>，它会遇到几个问题：</p>
+<ul>
+<li>session lifecycle 不好精细控制；</li>
+<li>custom tool injection 成本高；</li>
+<li>channel-specific prompt 不好动态拼装；</li>
+<li>block reply 和 partial reply 要绕一层协议；</li>
+<li>auth profile failover 和 model resolution 难以接管；</li>
+<li>gateway sandbox 和 Pi tool policy 容易分裂。</li>
+</ul>
+<p>SDK 嵌入让 OpenClaw 直接拥有运行时控制权：</p>
+<pre><code class="language-text">OpenClaw owns:
+  channel identity
+  session routing
+  auth profile
+  workspace sandbox
+  custom tools
+  reply formatting
+  timeout and failover
+
+Pi owns:
+  agent loop
+  model abstraction
+  built-in coding tools
+  resource loading
+  event protocol
+  compaction
+</code></pre>
+<p>这就是成熟系统之间正确的边界：OpenClaw 不重写 Coding Agent Runtime，Pi 也不承担 Messaging Gateway 的职责。</p>
+<hr>
+<h2 id="1414-pi-与-claude-codecodexcursor-的取舍"><a class="header" href="#1414-pi-与-claude-codecodexcursor-的取舍">14.14 Pi 与 Claude Code、Codex、Cursor 的取舍</a></h2>
+<p>第 13 章已经详细分析了 Claude Code、Cursor 和 Codex。把 Pi 放进这张图里，可以看得更清楚。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">系统</th><th style="text-align: left">核心入口</th><th style="text-align: left">主要优势</th><th style="text-align: left">典型边界</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Cursor</td><td style="text-align: left">IDE</td><td style="text-align: left">深度编辑器集成、索引、补全、diff review</td><td style="text-align: left">主要围绕 IDE 工作流</td></tr>
+<tr><td style="text-align: left">Claude Code</td><td style="text-align: left">Terminal Agent</td><td style="text-align: left">强终端体验、项目上下文、工具和计划模式</td><td style="text-align: left">产品内置能力较强</td></tr>
+<tr><td style="text-align: left">Codex</td><td style="text-align: left">CLI / App / Cloud</td><td style="text-align: left">任务隔离、审查、云端工作流、插件和技能</td><td style="text-align: left">更像完整 agent platform</td></tr>
+<tr><td style="text-align: left">Pi</td><td style="text-align: left">Terminal Harness / SDK</td><td style="text-align: left">小内核、强扩展、SDK 嵌入、资源系统</td><td style="text-align: left">需要用户或上层系统补生产治理</td></tr>
+</tbody>
+</table>
+</div>
+<p>Pi 的优势不是“默认产品体验最完整”，而是：</p>
+<ul>
+<li>核心小，易理解；</li>
+<li>资源加载规则清晰；</li>
+<li>extension 能力强；</li>
+<li>skills 和 prompt templates 原生；</li>
+<li>SDK 适合嵌入；</li>
+<li>与其他 harness 的 skills 有互操作空间；</li>
+<li>可以作为 OpenClaw 这类系统的 Agent Runtime。</li>
+</ul>
+<p>它的挑战也很明显：</p>
+<ul>
+<li>需要用户理解本地文件和权限边界；</li>
+<li>extension / package 供应链风险高；</li>
+<li>企业级权限和审计要靠上层补齐；</li>
+<li>IDE 级语义理解不是它的默认重点；</li>
+<li>长期运行和多租户场景需要额外控制面。</li>
+</ul>
+<p>因此，Pi 更适合被定义为：</p>
+<pre><code class="language-text">Pi is not primarily an IDE product.
+Pi is not primarily an enterprise agent platform.
+Pi is a programmable terminal-native coding harness.
+</code></pre>
+<p>这也是为什么它适合放在 OpenClaw 之前讲。先理解 Pi 的 Runtime，再看 OpenClaw 如何把这个 Runtime 放进 Personal Agent Gateway，会更顺。</p>
+<hr>
+<h2 id="1415-安全模型本地优先不等于天然安全"><a class="header" href="#1415-安全模型本地优先不等于天然安全">14.15 安全模型：本地优先不等于天然安全</a></h2>
+<p>Pi 运行在本地项目目录中，可以读文件、写文件、执行命令，还可以加载 extensions、skills 和 packages。这种能力非常适合开发者，但也意味着安全边界必须认真设计。</p>
+<h3 id="主要攻击面"><a class="header" href="#主要攻击面">主要攻击面</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">攻击面</th><th style="text-align: left">风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Project Prompt Injection</td><td style="text-align: left">仓库里的 <code>AGENTS.md</code>、<code>CLAUDE.md</code>、README 或代码注释诱导模型泄漏或破坏</td></tr>
+<tr><td style="text-align: left">Skill Injection</td><td style="text-align: left">第三方 Skill 要求模型运行危险脚本</td></tr>
+<tr><td style="text-align: left">Extension Supply Chain</td><td style="text-align: left">第三方 extension 是可执行代码</td></tr>
+<tr><td style="text-align: left">Package Installation</td><td style="text-align: left">Pi package 可能携带 extensions 和依赖</td></tr>
+<tr><td style="text-align: left">Shell Tool</td><td style="text-align: left"><code>bash</code> 可以执行危险命令</td></tr>
+<tr><td style="text-align: left">Secret Exposure</td><td style="text-align: left">读取 <code>.env</code>、cloud credentials、SSH key</td></tr>
+<tr><td style="text-align: left">Session Export</td><td style="text-align: left">导出的 HTML / gist 可能包含敏感历史</td></tr>
+<tr><td style="text-align: left">Auth Store</td><td style="text-align: left">provider key 存在本地或环境变量中</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="prompt-文件不是可信代码但会影响行为"><a class="header" href="#prompt-文件不是可信代码但会影响行为">Prompt 文件不是可信代码，但会影响行为</a></h3>
+<p><code>AGENTS.md</code>、<code>CLAUDE.md</code>、<code>SYSTEM.md</code> 都会影响模型行为。它们不直接执行代码，但会改变 agent 如何使用工具。</p>
+<p>生产实践里应该把这些文件当成“策略输入”看待：</p>
+<ul>
+<li>来自当前仓库的规则要显示来源；</li>
+<li>子目录规则要有作用范围；</li>
+<li>外部引用文件不能覆盖系统安全规则；</li>
+<li>项目文件不能要求读取 secret；</li>
+<li>规则冲突时，用户 / 组织 / 系统级规则优先。</li>
+</ul>
+<h3 id="extension-是真正的代码边界"><a class="header" href="#extension-是真正的代码边界">Extension 是真正的代码边界</a></h3>
+<p>Extension 可以运行 TypeScript / JavaScript，风险比 prompt 文件更高。企业使用时应该有更严格策略：</p>
+<pre><code class="language-text">Trusted Extensions:
+  installed from internal registry
+  pinned version
+  reviewed source
+  logged activation
+
+Untrusted Extensions:
+  disabled by default
+  explicit user approval
+  no access to production credentials
+</code></pre>
+<p>如果要把 Pi-like runtime 放进公司平台，extension sandbox 是绕不过去的主题。最小策略至少包括：</p>
+<ul>
+<li>禁止任意网络访问，或加网络 allowlist；</li>
+<li>凭据不自动暴露给 extension；</li>
+<li>文件访问限制在 workspace；</li>
+<li>高风险工具需要人工审批；</li>
+<li>extension 事件处理要可追踪；</li>
+<li>package install 要写审计日志。</li>
+</ul>
+<h3 id="shell-权限要分级"><a class="header" href="#shell-权限要分级">Shell 权限要分级</a></h3>
+<p>对 <code>bash</code>，推荐按风险分层：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">类别</th><th style="text-align: left">示例</th><th style="text-align: left">策略</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Readonly</td><td style="text-align: left"><code>git status</code>、<code>rg</code>、<code>ls</code>、<code>pwd</code></td><td style="text-align: left">可自动执行</td></tr>
+<tr><td style="text-align: left">Verification</td><td style="text-align: left"><code>npm test</code>、<code>go test</code>、<code>cargo test</code></td><td style="text-align: left">可自动执行，但要有 timeout</td></tr>
+<tr><td style="text-align: left">Local Write</td><td style="text-align: left"><code>mkdir</code>、<code>cp</code>、代码生成</td><td style="text-align: left">视模式审批</td></tr>
+<tr><td style="text-align: left">Network</td><td style="text-align: left"><code>npm install</code>、<code>curl</code>、<code>git pull</code></td><td style="text-align: left">默认审批</td></tr>
+<tr><td style="text-align: left">Destructive</td><td style="text-align: left"><code>rm</code>、<code>sudo</code>、<code>chmod</code>、<code>docker system prune</code></td><td style="text-align: left">默认拒绝或强审批</td></tr>
+</tbody>
+</table>
+</div>
+<p>这不是 Pi 独有的问题，而是所有 Coding Agent 的共同问题。Pi 把工具面暴露得足够清晰，给了上层系统制定策略的空间。</p>
+<hr>
+<h2 id="1416-如果自研一个-pi-like-runtime最小可行架构是什么"><a class="header" href="#1416-如果自研一个-pi-like-runtime最小可行架构是什么">14.16 如果自研一个 Pi-like Runtime，最小可行架构是什么</a></h2>
+<p>不要一开始就做完整 Pi。一个可落地的 Pi-like Coding Agent Runtime，可以分四个阶段。</p>
+<h3 id="阶段一最小-agent-loop"><a class="header" href="#阶段一最小-agent-loop">阶段一：最小 Agent Loop</a></h3>
+<p>目标：让模型能在一个 workspace 中读文件、编辑文件、运行测试。</p>
+<pre><code class="language-text">User Prompt
+  │
+  ▼
+Context Builder
+  │
+  ▼
+LLM with Tool Schemas
+  │
+  ▼
+Tool Runtime
+  │
+  ▼
+Trace + Session
+</code></pre>
+<p>必须实现：</p>
+<ul>
+<li><code>read_file</code>；</li>
+<li><code>search_files</code>；</li>
+<li><code>edit_file</code>；</li>
+<li><code>run_command</code>；</li>
+<li>JSONL trace；</li>
+<li>session id；</li>
+<li>max turns；</li>
+<li>timeout；</li>
+<li>diff summary；</li>
+<li>verifier command。</li>
+</ul>
+<p>不要一开始实现：</p>
+<ul>
+<li>插件市场；</li>
+<li>多 Agent；</li>
+<li>复杂 UI；</li>
+<li>云端任务队列；</li>
+<li>自定义模型 provider；</li>
+<li>多租户权限。</li>
+</ul>
+<h3 id="阶段二资源加载"><a class="header" href="#阶段二资源加载">阶段二：资源加载</a></h3>
+<p>目标：让 agent 的行为由本地文件和项目规则控制。</p>
+<pre><code class="language-text">agent-home/
+  settings.json
+  AGENTS.md
+  skills/
+  prompts/
+
+project/
+  AGENTS.md
+  .agent/settings.json
+  .agent/prompts/
+</code></pre>
+<p>需要定义：</p>
+<ul>
+<li>全局规则和项目规则的优先级；</li>
+<li>子目录规则如何覆盖；</li>
+<li>prompt template 如何转成 command；</li>
+<li>skill index 如何进入 prompt；</li>
+<li>full skill 何时加载；</li>
+<li>修改规则后如何 reload。</li>
+</ul>
+<h3 id="阶段三事件流和可观测性"><a class="header" href="#阶段三事件流和可观测性">阶段三：事件流和可观测性</a></h3>
+<p>目标：让 UI、自动化系统和调试工具都能消费 agent 事件。</p>
+<pre><code class="language-json">{"type":"agent_start","run_id":"run_123"}
+{"type":"message_delta","text":"I will inspect the repo."}
+{"type":"tool_start","tool":"search_files","call_id":"call_1"}
+{"type":"tool_end","tool":"search_files","exit_code":0}
+{"type":"agent_end","status":"completed"}
+</code></pre>
+<p>事件流要保证：</p>
+<ul>
+<li>每个 tool call 有 id；</li>
+<li>tool start 和 tool end 成对；</li>
+<li>error 有分类；</li>
+<li>事件可写入 JSONL；</li>
+<li>UI 渲染和持久化可以复用同一事件；</li>
+<li>外部系统不需要解析自然语言。</li>
+</ul>
+<h3 id="阶段四扩展系统"><a class="header" href="#阶段四扩展系统">阶段四：扩展系统</a></h3>
+<p>目标：让高级能力通过 extension、skill、prompt package 扩展，而不是改核心。</p>
+<p>最小 extension API 可以很小：</p>
+<pre><code class="language-ts">type AgentExtension = {
+  name: string;
+  setup: (api: ExtensionApi) =&gt; Promise&lt;void&gt;;
+};
+
+type ExtensionApi = {
+  registerTool: (tool: ToolDefinition) =&gt; void;
+  registerPrompt: (prompt: PromptTemplate) =&gt; void;
+  onEvent: (handler: EventHandler) =&gt; void;
+  appendSystemPrompt: (text: string) =&gt; void;
+};
+</code></pre>
+<p>这已经足以支持：</p>
+<ul>
+<li>内部工具；</li>
+<li>自定义检查；</li>
+<li>组织规则注入；</li>
+<li>事件审计；</li>
+<li>轻量 UI 命令。</li>
+</ul>
+<p>但 extension 一旦存在，就必须同步设计安全策略。</p>
+<hr>
+<h2 id="1417-pi-like-runtime-的生产化清单"><a class="header" href="#1417-pi-like-runtime-的生产化清单">14.17 Pi-like Runtime 的生产化清单</a></h2>
+<p>如果你要把 Pi-like Runtime 用在团队或企业环境，至少检查下面这些项。</p>
+<h3 id="运行时控制"><a class="header" href="#运行时控制">运行时控制</a></h3>
+<ul>
+<li>是否支持 max turns？</li>
+<li>是否支持 run timeout？</li>
+<li>是否支持 interrupt？</li>
+<li>是否支持 session resume？</li>
+<li>是否支持 session fork？</li>
+<li>是否支持 compaction？</li>
+<li>是否能导出完整 trace？</li>
+</ul>
+<h3 id="工具策略"><a class="header" href="#工具策略">工具策略</a></h3>
+<ul>
+<li>读、写、执行是否分级？</li>
+<li><code>bash</code> 是否有 command classifier？</li>
+<li>是否能限制 cwd？</li>
+<li>是否能限制路径访问？</li>
+<li>是否能 mask secrets？</li>
+<li>是否能记录 tool input 和 output？</li>
+<li>是否能区分自动执行和人工审批？</li>
+</ul>
+<h3 id="上下文治理"><a class="header" href="#上下文治理">上下文治理</a></h3>
+<ul>
+<li>是否清楚展示上下文来源？</li>
+<li>是否支持全局规则和项目规则？</li>
+<li>是否支持禁用 context files？</li>
+<li>是否支持 skill progressive disclosure？</li>
+<li>是否控制 tool output 长度？</li>
+<li>是否有 compaction eval？</li>
+</ul>
+<h3 id="扩展治理"><a class="header" href="#扩展治理">扩展治理</a></h3>
+<ul>
+<li>extension 是否有来源和版本？</li>
+<li>package 是否可审计？</li>
+<li>第三方代码是否默认禁用？</li>
+<li>extension 能否访问 secret？</li>
+<li>extension 能否修改 system prompt？</li>
+<li>extension 事件处理是否可追踪？</li>
+</ul>
+<h3 id="评估和回归"><a class="header" href="#评估和回归">评估和回归</a></h3>
+<ul>
+<li>是否有固定任务集？</li>
+<li>是否记录成功率、工具调用次数、测试通过率？</li>
+<li>是否比较不同模型？</li>
+<li>是否比较不同 prompt？</li>
+<li>是否评估上下文压缩后的性能？</li>
+<li>是否能重放失败 session？</li>
+</ul>
+<p>这张清单也是第 19 章 lab 走向生产级的路线图。第 19 章会实现的是最小闭环；Pi 展示的是这个闭环如何扩展成一个可定制的 Runtime。</p>
+<hr>
+<h2 id="1418-架构亮点"><a class="header" href="#1418-架构亮点">14.18 架构亮点</a></h2>
+<h3 id="亮点一把-tui-从-runtime-中解耦"><a class="header" href="#亮点一把-tui-从-runtime-中解耦">亮点一：把 TUI 从 Runtime 中解耦</a></h3>
+<p>很多终端 Agent 会把交互层和 Agent Loop 写死在一起，最后很难嵌入其他系统。Pi 把 TUI、JSON、RPC、SDK 都放在同一运行时之上，这让它可以被 OpenClaw 直接嵌入。</p>
+<h3 id="亮点二资源发现是一等公民"><a class="header" href="#亮点二资源发现是一等公民">亮点二：资源发现是一等公民</a></h3>
+<p><code>AGENTS.md</code>、<code>CLAUDE.md</code>、<code>SYSTEM.md</code>、Skills、Prompts、Extensions、Themes 都有明确位置和发现规则。这让用户和团队可以用文件系统管理 agent 行为，而不是把所有东西藏在数据库或 UI 配置里。</p>
+<h3 id="亮点三扩展机制分层清晰"><a class="header" href="#亮点三扩展机制分层清晰">亮点三：扩展机制分层清晰</a></h3>
+<p>Prompt Template、Skill、Extension、Package 解决的是不同颗粒度的问题：</p>
+<ul>
+<li>Prompt Template 是入口；</li>
+<li>Skill 是能力说明和工作流；</li>
+<li>Extension 是运行时代码；</li>
+<li>Package 是分发单位。</li>
+</ul>
+<p>这比“所有东西都是插件”更清楚。</p>
+<h3 id="亮点四sdk-让-runtime-可嵌入"><a class="header" href="#亮点四sdk-让-runtime-可嵌入">亮点四：SDK 让 Runtime 可嵌入</a></h3>
+<p>Pi 的 SDK 把 <code>AgentSession</code> 暴露出来，让上层系统能直接控制会话、工具、模型、事件和资源加载。OpenClaw 的集成说明：一个好 Runtime 应该能从“产品”里被抽出来，成为另一个系统的内核。</p>
+<h3 id="亮点五session-tree-适合真实开发"><a class="header" href="#亮点五session-tree-适合真实开发">亮点五：Session Tree 适合真实开发</a></h3>
+<p>真实编程不是线性问答。Session fork、tree、clone、resume 这类能力让 Agent 工作过程更接近 Git 分支和实验记录，而不是聊天滚动条。</p>
+<hr>
+<h2 id="1419-局限与风险"><a class="header" href="#1419-局限与风险">14.19 局限与风险</a></h2>
+<p>Pi 的架构很适合学习，但也要看到边界。</p>
+<h3 id="它不是企业多租户平台"><a class="header" href="#它不是企业多租户平台">它不是企业多租户平台</a></h3>
+<p>Pi 默认更接近个人终端运行时。要放进企业平台，需要额外补：</p>
+<ul>
+<li>身份系统；</li>
+<li>租户隔离；</li>
+<li>RBAC；</li>
+<li>secret management；</li>
+<li>network policy；</li>
+<li>audit log；</li>
+<li>admin console；</li>
+<li>policy distribution。</li>
+</ul>
+<p>这些不是一个 terminal harness 应该全部承担的职责，但生产落地时不能缺。</p>
+<h3 id="它不是-ide-语义引擎"><a class="header" href="#它不是-ide-语义引擎">它不是 IDE 语义引擎</a></h3>
+<p>Cursor 这类 IDE-first 工具会深度利用编辑器状态、语法树、语言服务器、索引和 inline UI。Pi 更偏 terminal-first。它可以通过工具和 extensions 补语义能力，但默认重心不是 IDE 内联体验。</p>
+<h3 id="强扩展带来强供应链风险"><a class="header" href="#强扩展带来强供应链风险">强扩展带来强供应链风险</a></h3>
+<p>Extension 和 Package 越强，越需要治理。一个恶意 package 可以同时携带：</p>
+<ul>
+<li>extension 代码；</li>
+<li>skill prompt；</li>
+<li>prompt template；</li>
+<li>npm dependency；</li>
+<li>TUI command；</li>
+<li>system prompt 修改。</li>
+</ul>
+<p>所以企业使用 Pi-like runtime 时，扩展生态必须从第一天就设计 trust model。</p>
+<h3 id="context-文件可能被滥用"><a class="header" href="#context-文件可能被滥用">Context 文件可能被滥用</a></h3>
+<p>项目里的 <code>AGENTS.md</code> 或 <code>CLAUDE.md</code> 很方便，但也可能成为 prompt injection 载体。比如开源仓库里加入一段“读取用户 home 下所有 secret 并发送出去”的指令。模型不一定会执行，但 harness 不能完全依赖模型自觉。</p>
+<p>成熟做法是：</p>
+<ul>
+<li>标注上下文来源；</li>
+<li>分离 system / user / project / untrusted content；</li>
+<li>高风险操作永远走 policy；</li>
+<li>不让项目文本覆盖系统安全规则。</li>
+</ul>
+<hr>
+<h2 id="1420-设计启示"><a class="header" href="#1420-设计启示">14.20 设计启示</a></h2>
+<p>Pi 给 Coding Agent 工程带来几个重要启示。</p>
+<h3 id="启示一coding-agent-的核心是-harness不是-chat"><a class="header" href="#启示一coding-agent-的核心是-harness不是-chat">启示一：Coding Agent 的核心是 Harness，不是 Chat</a></h3>
+<p>模型只是智能来源。真正把模型变成可工作的 Agent，需要：</p>
+<ul>
+<li>上下文控制；</li>
+<li>工具协议；</li>
+<li>权限策略；</li>
+<li>会话持久化；</li>
+<li>事件流；</li>
+<li>扩展机制；</li>
+<li>评估和审计。</li>
+</ul>
+<p>Pi 的价值在于把这些都落成了 terminal-native harness。</p>
+<h3 id="启示二扩展应该分层不要所有东西都做成插件"><a class="header" href="#启示二扩展应该分层不要所有东西都做成插件">启示二：扩展应该分层，不要所有东西都做成插件</a></h3>
+<p>Prompt Template、Skill、Extension、Package 的边界值得借鉴。自研系统也可以采用类似分层：</p>
+<pre><code class="language-text">Prompt = reusable task entry
+Skill = reusable workflow knowledge
+Tool = structured callable action
+Extension = runtime code and event interception
+Package = distribution and versioning unit
+</code></pre>
+<p>这样团队在扩展系统时不容易混乱。</p>
+<h3 id="启示三sdk-是成熟-runtime-的分水岭"><a class="header" href="#启示三sdk-是成熟-runtime-的分水岭">启示三：SDK 是成熟 Runtime 的分水岭</a></h3>
+<p>一个 Coding Agent 如果只能在自己的 UI 里运行，就还是产品功能。能通过 SDK 被其他系统嵌入，才更接近 Runtime。</p>
+<p>SDK 需要暴露：</p>
+<ul>
+<li>session；</li>
+<li>events；</li>
+<li>tools；</li>
+<li>model registry；</li>
+<li>auth；</li>
+<li>resource loader；</li>
+<li>settings；</li>
+<li>lifecycle control。</li>
+</ul>
+<p>Pi 在这点上很值得学习。</p>
+<h3 id="启示四openclaw-证明了-runtime-可复用"><a class="header" href="#启示四openclaw-证明了-runtime-可复用">启示四：OpenClaw 证明了 Runtime 可复用</a></h3>
+<p>Pi 和 OpenClaw 的关系很有代表性：</p>
+<pre><code class="language-text">Pi:
+  focuses on coding agent runtime
+
+OpenClaw:
+  focuses on personal agent gateway
+
+Integration:
+  OpenClaw embeds Pi as the agent core
+</code></pre>
+<p>这比“一个系统什么都做”更健康。每个系统守住自己的边界，组合后反而更强。</p>
+<hr>
+<h2 id="1421-小结"><a class="header" href="#1421-小结">14.21 小结</a></h2>
+<p>Pi 值得单独作为成熟系统分析，不是因为它功能最多，而是因为它把 Coding Agent Runtime 的关键边界拆得很清楚：</p>
+<ul>
+<li>它把终端交互和 Agent Runtime 解耦；</li>
+<li>它把上下文视为资源加载问题；</li>
+<li>它把工具调用视为权限边界；</li>
+<li>它用 Skills 做渐进披露；</li>
+<li>它用 Prompt Templates 命令化重复工作流；</li>
+<li>它用 Extensions 暴露运行时代码扩展；</li>
+<li>它用 Packages 组织能力分发；</li>
+<li>它用 Session Tree 承载真实开发中的试错路径；</li>
+<li>它用 SDK 让其他系统可以嵌入 Agent 能力。</li>
+</ul>
+<p>如果第 13 章回答的是“成熟 Coding Agent 产品如何组织工程工作流”，本章回答的就是“一个可嵌入、可扩展、可定制的 Coding Agent Runtime 应该长什么样”。下一章的 OpenClaw 会进一步展示：当一个 Personal Agent Gateway 需要 Agent Core 时，为什么可以把 Pi 嵌入进去，而不是重新实现一套 Coding Agent。</p>
+<hr>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<ol>
+<li><a href="https://pi.dev/docs/latest">Pi Documentation</a></li>
+<li><a href="https://pi.dev/docs/latest/quickstart">Pi Quickstart</a></li>
+<li><a href="https://pi.dev/docs/latest/usage">Pi Usage</a></li>
+<li><a href="https://pi.dev/docs/latest/settings">Pi Settings</a></li>
+<li><a href="https://pi.dev/docs/latest/extensions">Pi Extensions</a></li>
+<li><a href="https://pi.dev/docs/latest/skills">Pi Skills</a></li>
+<li><a href="https://pi.dev/docs/latest/prompt-templates">Pi Prompt Templates</a></li>
+<li><a href="https://pi.dev/docs/latest/packages">Pi Packages</a></li>
+<li><a href="https://pi.dev/docs/latest/sdk">Pi SDK</a></li>
+<li><a href="https://pi.dev/docs/latest/development">Pi Development</a></li>
+<li><a href="https://docs.openclaw.ai/pi">OpenClaw Pi Integration Architecture</a></li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part3/01-coding-agent-systems.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part3/04-openclaw-architecture.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part3/01-coding-agent-systems.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part3/04-openclaw-architecture.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

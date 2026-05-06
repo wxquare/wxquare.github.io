@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第19章 从零实现一个可观测 Mini Agent - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+        <title>第19章 从零实现一个可观测 Coding Agent - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-66552cb8.js";
+            window.path_to_searchindex_js = "../searchindex-09f610a2.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5eb53b55.js"></script>
+        <script src="../toc-c0920cc6.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,337 +177,1074 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第19章-从零实现一个可观测-mini-agent"><a class="header" href="#第19章-从零实现一个可观测-mini-agent">第19章 从零实现一个可观测 Mini Agent</a></h1>
+                        <h1 id="第19章-从零实现一个可观测-coding-agent"><a class="header" href="#第19章-从零实现一个可观测-coding-agent">第19章 从零实现一个可观测 Coding Agent</a></h1>
 <blockquote>
-<p>面试中最有说服力的项目，不一定复杂，但必须闭环。</p>
+<p>一个接近生产级的 Agent 原型，不是把模型接到代码仓库上就结束，而是把上下文、工具、权限、验证、trace 和失败复盘都放进同一个闭环。</p>
 </blockquote>
 <h2 id="引言"><a class="header" href="#引言">引言</a></h2>
-<p>如果你准备 Agent 应用工程师面试，最好有一个可以讲清楚的 Mini Agent 项目。它不需要覆盖庞大业务，但要展示生产化意识：有工具、有 RAG、有 guardrails、有 trace、有 eval。</p>
-<p>本章设计一个“文档问答 + 工单创建”的 Mini Agent，用最小范围覆盖 Agent 应用工程的核心能力。</p>
-<hr>
-<h2 id="191-项目目标"><a class="header" href="#191-项目目标">19.1 项目目标</a></h2>
-<p>项目名称：Support Agent</p>
-<p>目标：帮助用户查询内部知识库，并在无法解决时创建支持工单。</p>
-<p>能力范围：</p>
-<ul>
-<li>回答产品 FAQ；</li>
-<li>检索内部文档；</li>
-<li>查询工单状态；</li>
-<li>创建工单；</li>
-<li>对高风险请求转人工；</li>
-<li>记录 trace；</li>
-<li>跑离线 eval。</li>
-</ul>
-<p>非目标：</p>
-<ul>
-<li>不做复杂多 Agent 协作；</li>
-<li>不直接修改生产数据；</li>
-<li>不处理支付、退款等高风险业务；</li>
-<li>不追求大规模并发。</li>
-</ul>
-<hr>
-<h2 id="192-目录结构"><a class="header" href="#192-目录结构">19.2 目录结构</a></h2>
-<pre><code class="language-text">support-agent/
-├── README.md
-├── app/
-│   ├── main.py
-│   ├── agent/
-│   │   ├── runner.py
-│   │   ├── prompts.py
-│   │   └── state.py
-│   ├── tools/
-│   │   ├── registry.py
-│   │   ├── ticket.py
-│   │   └── kb.py
-│   ├── rag/
-│   │   ├── ingest.py
-│   │   ├── retriever.py
-│   │   └── store.py
-│   ├── guardrails/
-│   │   ├── input.py
-│   │   ├── output.py
-│   │   └── tool.py
-│   ├── observability/
-│   │   ├── trace.py
-│   │   └── metrics.py
-│   └── evals/
-│       ├── dataset.yaml
-│       └── runner.py
-├── docs/
-│   ├── faq.md
-│   └── refund-policy.md
-├── tests/
-└── docker-compose.yml
+<p>前面的章节已经讨论了 Prompt、Context、Harness、Tool Runtime、Workflow、RAG、Memory、Evals、Guardrails 和可观测性。第 13 章从成熟产品角度拆解了 Claude Code、Cursor、Codex 这类 AI Coding Agent 的系统设计，第 14 章又从 Pi 出发分析了终端原生 Coding Agent Runtime 的上下文、工具、扩展和 SDK 边界。</p>
+<p>本章把这些概念压缩进一个可以运行、可以测试、可以审查的实验项目：</p>
+<pre><code class="language-text">books/ai-book/labs/coding-agent-mvp
 </code></pre>
-<p>这个结构的价值是清楚展示工程边界：</p>
-<ul>
-<li><code>agent/</code> 负责决策；</li>
-<li><code>tools/</code> 负责行动；</li>
-<li><code>rag/</code> 负责知识；</li>
-<li><code>guardrails/</code> 负责安全；</li>
-<li><code>observability/</code> 负责复盘；</li>
-<li><code>evals/</code> 负责质量回归。</li>
-</ul>
+<p>这个 lab 实现的是一个最小但完整的 Coding Agent。它能读取项目规则和仓库结构，让模型输出结构化 JSON action，通过工具注册表执行读文件、搜索、局部编辑、运行测试和查看 diff，并把每一步保存为 JSONL trace。</p>
+<p>本章的目标不是复刻商业级 Coding Agent 的全部能力，而是让你亲手搭出一个工程骨架。这个骨架足够小，可以在一章里讲清楚；也足够完整，可以继续演进到生产级系统。</p>
 <hr>
-<h2 id="193-核心架构"><a class="header" href="#193-核心架构">19.3 核心架构</a></h2>
+<h2 id="191-项目目标与边界"><a class="header" href="#191-项目目标与边界">19.1 项目目标与边界</a></h2>
+<p>本章实现的项目叫 <strong>Coding Agent MVP</strong>。</p>
+<p>它解决一个窄但典型的问题：</p>
+<pre><code class="language-text">给定一个代码仓库和一段自然语言任务，让 Agent 读取上下文、修改文件、运行验证、输出 diff 和 trace。
+</code></pre>
+<p>典型任务是：</p>
+<pre><code class="language-text">给 calculator.py 的 divide 函数补充除零错误处理，并添加 pytest 测试。
+要求：b 为 0 时抛出 ValueError；保留原有正常除法行为；运行 pytest 验证。
+</code></pre>
+<p>这个 MVP 的能力范围：</p>
+<ul>
+<li>加载项目规则，例如 <code>AGENT.md</code>、<code>AGENTS.md</code>、<code>CLAUDE.md</code>、<code>.cursorrules</code>；</li>
+<li>构建 repo map，让模型知道仓库有哪些可读文件；</li>
+<li>要求模型每轮输出一个 JSON action；</li>
+<li>执行 <code>list_files</code>、<code>read_file</code>、<code>search_code</code>、<code>replace_in_file</code>、<code>create_file</code>、<code>run_shell</code>、<code>git_diff</code>；</li>
+<li>用 Policy 控制读、写和 shell 权限；</li>
+<li>用路径沙箱限制文件访问范围；</li>
+<li>保存每一步 thought、tool call、tool result 和 final；</li>
+<li>输出本次修改的文件和 <code>git diff</code>；</li>
+<li>提供 unit tests 验证工具、配置、trace 和 Agent Loop。</li>
+</ul>
+<p>它明确不做：</p>
+<ul>
+<li>不做多 Agent 协作；</li>
+<li>不做远程分支、PR、发布或部署；</li>
+<li>不执行任意 shell 命令；</li>
+<li>不读取 secret、<code>.env</code>、<code>.pem</code>、真实 API key 或仓库外文件；</li>
+<li>不保证复杂重构一次成功；</li>
+<li>不把模型 final answer 当成完成证据。</li>
+</ul>
+<p>边界清楚是生产化的第一步。一个 Agent 如果从第一天就能做任何事，通常也意味着它从第一天就能把问题做大。</p>
+<hr>
+<h2 id="192-接近生产级-coding-agent-的最小闭环"><a class="header" href="#192-接近生产级-coding-agent-的最小闭环">19.2 接近生产级 Coding Agent 的最小闭环</a></h2>
+<p>Coding Agent 的核心不是“自动写代码”，而是一个带控制面的执行闭环。</p>
 <pre class="mermaid">
 flowchart TD
-    U[User] --&gt; API[FastAPI]
-    API --&gt; IG[Input Guardrail]
-    IG --&gt; A[Agent Runner]
-    A --&gt; R[RAG Retriever]
-    A --&gt; TR[Tool Registry]
-    TR --&gt; KT[Knowledge Tool]
-    TR --&gt; TT[Ticket Tool]
-    TR --&gt; TG[Tool Guardrail]
-    A --&gt; OG[Output Guardrail]
-    OG --&gt; API
-    A --&gt; OBS[Trace Store]
-    R --&gt; OBS
-    TR --&gt; OBS
+    Task["User Task\n自然语言需求"] --&gt; Context["Context Builder\n规则 / repo map / recent observations"]
+    Context --&gt; Model["LLM\n输出 JSON action"]
+    Model --&gt; Parser["Action Parser\n解析 / 修复 JSON"]
+    Parser --&gt; Policy["Policy Engine\nallow / ask / deny"]
+    Policy --&gt; Tools["Tool Runtime\nread / search / edit / shell / diff"]
+    Tools --&gt; Trace["Trace Writer\nJSONL step log"]
+    Tools --&gt; State["Agent State\nsteps / changed_files / status"]
+    State --&gt; Context
+    State --&gt; Final["Final Report\nsummary / verification / diff"]
 </pre>
 
+<p>这条链路里，每一层都有明确职责：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层</th><th style="text-align: left">职责</th><th style="text-align: left">不应该做什么</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Context Builder</td><td style="text-align: left">给模型准备规则、文件地图和最近观察</td><td style="text-align: left">不直接决定工具权限</td></tr>
+<tr><td style="text-align: left">LLM</td><td style="text-align: left">理解任务、规划下一步、生成 action</td><td style="text-align: left">不直接读写文件</td></tr>
+<tr><td style="text-align: left">Parser</td><td style="text-align: left">把模型输出变成结构化数据</td><td style="text-align: left">不默默吞掉错误</td></tr>
+<tr><td style="text-align: left">Policy Engine</td><td style="text-align: left">判断工具调用是否允许</td><td style="text-align: left">不依赖模型自觉</td></tr>
+<tr><td style="text-align: left">Tool Runtime</td><td style="text-align: left">执行确定性外部能力</td><td style="text-align: left">不扩大模型权限</td></tr>
+<tr><td style="text-align: left">Trace Writer</td><td style="text-align: left">记录每一步证据</td><td style="text-align: left">不只保存最终答案</td></tr>
+<tr><td style="text-align: left">Verifier</td><td style="text-align: left">用测试和 diff 验证完成度</td><td style="text-align: left">不相信“看起来完成了”</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果把这些职责混在一个巨大函数里，Demo 可能能跑，但系统很难调试、扩展和审计。</p>
 <hr>
-<h2 id="194-agent-runner"><a class="header" href="#194-agent-runner">19.4 Agent Runner</a></h2>
-<p>Runner 不要一开始就设计得过度复杂。第一版可以采用“Router + Tool Calling”的轻量模式。</p>
-<pre><code class="language-python">class AgentRunner:
-    def __init__(self, llm, retriever, tool_registry, tracer):
-        self.llm = llm
-        self.retriever = retriever
-        self.tool_registry = tool_registry
-        self.tracer = tracer
-
-    async def run(self, user, message: str) -&gt; dict:
-        trace = self.tracer.start_trace(user_id=user.id, input=message)
-
-        intent = await self.classify_intent(message)
-        trace.add_event("intent", {"intent": intent})
-
-        if intent == "knowledge_qa":
-            docs = await self.retriever.search(message)
-            answer = await self.answer_with_context(message, docs)
-            trace.add_event("rag", {"doc_count": len(docs)})
-            return answer
-
-        if intent == "ticket_status":
-            tool = self.tool_registry.get("get_ticket_status")
-            result = await tool.call(user=user, args=self.extract_ticket_args(message))
-            trace.add_event("tool_call", result)
-            return self.format_tool_result(result)
-
-        if intent == "create_ticket":
-            tool = self.tool_registry.get("create_ticket")
-            result = await tool.call(user=user, args=self.extract_ticket_args(message))
-            trace.add_event("tool_call", result)
-            return self.format_tool_result(result)
-
-        return {
-            "answer": "这个问题超出我的处理范围，我会转给人工支持。",
-            "handoff": True
-        }
+<h2 id="193-lab-目录结构"><a class="header" href="#193-lab-目录结构">19.3 Lab 目录结构</a></h2>
+<p>配套源码放在：</p>
+<pre><code class="language-text">books/ai-book/labs/coding-agent-mvp/
 </code></pre>
-<p>面试时可以解释：第一版选择 Router 而不是自由 ReACT，是为了降低不可控循环和工具误用风险。</p>
+<p>核心文件如下：</p>
+<pre><code class="language-text">coding-agent-mvp/
+├── README.md
+├── agent.py
+├── config.py
+├── context.py
+├── llm.py
+├── models.py
+├── policy.py
+├── run.py
+├── tools.py
+├── trace_writer.py
+├── verifier.py
+├── agent.config.example.toml
+├── requirements.txt
+├── demo/
+│   ├── AGENT.md
+│   ├── calculator.py
+│   └── test_calculator.py
+└── tests/
+    ├── test_config.py
+    ├── test_tools.py
+    └── test_trace_and_agent.py
+</code></pre>
+<p>每个文件只负责一件事：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">文件</th><th style="text-align: left">职责</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><code>models.py</code></td><td style="text-align: left">定义 Agent 状态、工具调用、工具结果和步骤记录</td></tr>
+<tr><td style="text-align: left"><code>context.py</code></td><td style="text-align: left">加载项目规则，构建 repo map</td></tr>
+<tr><td style="text-align: left"><code>tools.py</code></td><td style="text-align: left">实现文件、搜索、编辑、shell 和 diff 工具</td></tr>
+<tr><td style="text-align: left"><code>policy.py</code></td><td style="text-align: left">决定工具调用是 allow、ask 还是 deny</td></tr>
+<tr><td style="text-align: left"><code>llm.py</code></td><td style="text-align: left">隔离模型供应商，提供 <code>complete(prompt)</code> 接口</td></tr>
+<tr><td style="text-align: left"><code>agent.py</code></td><td style="text-align: left">组织 Agent Loop、解析 action、执行工具、记录状态</td></tr>
+<tr><td style="text-align: left"><code>trace_writer.py</code></td><td style="text-align: left">把每一步写入 JSONL</td></tr>
+<tr><td style="text-align: left"><code>verifier.py</code></td><td style="text-align: left">运行验证命令，并检查 diff</td></tr>
+<tr><td style="text-align: left"><code>run.py</code></td><td style="text-align: left">CLI 入口，把配置、模型、Agent 和 trace 串起来</td></tr>
+<tr><td style="text-align: left"><code>tests/</code></td><td style="text-align: left">验证配置、工具边界和 Agent Loop</td></tr>
+</tbody>
+</table>
+</div>
+<p>这个拆分方式有一个重要好处：后续要把模型换成 OpenAI、Claude、Gemini 或本地模型时，只需要替换 <code>llm.py</code>；要把 shell 权限变严格时，优先改 <code>policy.py</code> 和 <code>tools.py</code>；要接入 LangSmith 或 OpenTelemetry 时，可以从 <code>trace_writer.py</code> 扩展。</p>
 <hr>
-<h2 id="195-工具注册表"><a class="header" href="#195-工具注册表">19.5 工具注册表</a></h2>
-<pre><code class="language-python">class Tool:
-    def __init__(self, name, description, risk_level, handler):
-        self.name = name
-        self.description = description
-        self.risk_level = risk_level
-        self.handler = handler
-
-    async def call(self, user, args):
-        guardrail_result = check_tool_permission(user, self.name, args)
-        if not guardrail_result.allowed:
-            return {
-                "status": "rejected",
-                "reason": guardrail_result.reason
-            }
-
-        return await self.handler(args)
-
-class ToolRegistry:
-    def __init__(self):
-        self.tools = {}
-
-    def register(self, tool):
-        self.tools[tool.name] = tool
-
-    def get(self, name):
-        return self.tools[name]
+<h2 id="194-环境准备与本地测试"><a class="header" href="#194-环境准备与本地测试">19.4 环境准备与本地测试</a></h2>
+<p>进入 lab 目录：</p>
+<pre><code class="language-bash">cd books/ai-book/labs/coding-agent-mvp
 </code></pre>
-<p>示例工具：</p>
-<pre><code class="language-python">async def create_ticket(args):
-    return {
-        "status": "success",
-        "ticket_id": "T-10086",
-        "message": "Support ticket created"
-    }
+<p>安装 demo 测试依赖：</p>
+<pre><code class="language-bash">python3 -m pip install -r requirements.txt
 </code></pre>
+<p>先运行原型自己的测试：</p>
+<pre><code class="language-bash">python3 -m unittest discover -s tests -v
+</code></pre>
+<p>这一步不需要真实模型，也不需要 API key。测试覆盖的是确定性控制面：</p>
+<ul>
+<li>配置文件是否能正确加载；</li>
+<li>路径沙箱是否阻止越界访问；</li>
+<li>forbidden 文件是否不能读取；</li>
+<li>shell allowlist 是否生效；</li>
+<li>fake LLM 是否能驱动 Agent Loop 创建文件；</li>
+<li>trace 是否能写出 JSONL。</li>
+</ul>
+<p>生产级 Agent 的第一条原则是：<strong>能不用模型测的部分，都不要依赖模型来测。</strong></p>
 <hr>
-<h2 id="196-rag最小实现"><a class="header" href="#196-rag最小实现">19.6 RAG最小实现</a></h2>
-<p>第一版 RAG 不追求复杂，重点是可解释和可评估。</p>
-<pre><code class="language-python">class Retriever:
-    def __init__(self, vector_store):
-        self.vector_store = vector_store
+<h2 id="195-配置模型和运行参数"><a class="header" href="#195-配置模型和运行参数">19.5 配置模型和运行参数</a></h2>
+<p>复制配置模板：</p>
+<pre><code class="language-bash">cp agent.config.example.toml agent.config.toml
+</code></pre>
+<p>示例配置：</p>
+<pre><code class="language-toml">[llm]
+provider = "deepseek"
+base_url = "https://api.deepseek.com"
+api_key = "sk-your-deepseek-api-key"
+model = "deepseek-v4-flash"
+temperature = 0
+max_tokens = 4096
+timeout = 120
+thinking = "disabled"
 
-    async def search(self, query: str, top_k: int = 5):
-        docs = await self.vector_store.similarity_search(query, k=top_k)
-        return [
-            {
-                "doc_id": doc.id,
-                "title": doc.metadata["title"],
-                "content": doc.content,
-                "source": doc.metadata["source"]
-            }
-            for doc in docs
-        ]
+[agent]
+max_steps = 20
+auto_edit = true
+auto_shell = true
+
+[shell]
+allowed_commands = ["python", "python3", "pytest", "ruff", "mypy", "npm", "pnpm", "make", "go"]
+timeout = 60
 </code></pre>
-<p>回答时要求引用来源：</p>
-<pre><code class="language-text">请只基于 &lt;context&gt; 中的内容回答。
-如果上下文不足，明确说明不知道。
-回答末尾列出引用来源。
-</code></pre>
+<p>这里有三个控制面：</p>
+<ol>
+<li><code>llm</code>：模型供应商、地址、模型名、温度、超时；</li>
+<li><code>agent</code>：最大步数、是否自动编辑、是否自动执行 shell；</li>
+<li><code>shell</code>：允许执行的命令和超时时间。</li>
+</ol>
+<p><code>agent.config.toml</code> 已被 <code>.gitignore</code> 忽略，不要提交真实 API key。</p>
+<h3 id="为什么配置要外置"><a class="header" href="#为什么配置要外置">为什么配置要外置</a></h3>
+<p>不要把模型、key、命令白名单和超时时间写死在 <code>agent.py</code> 里。它们属于运行时策略，应该可以按环境切换：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">环境</th><th style="text-align: left">推荐策略</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">本地 demo</td><td style="text-align: left"><code>auto_edit=true</code>，<code>auto_shell=true</code>，只允许测试命令</td></tr>
+<tr><td style="text-align: left">团队共享环境</td><td style="text-align: left"><code>auto_edit=true</code>，高风险 shell 需要审批</td></tr>
+<tr><td style="text-align: left">CI / eval</td><td style="text-align: left">使用固定模型版本、固定 temperature、固定数据集</td></tr>
+<tr><td style="text-align: left">生产代码库</td><td style="text-align: left">默认 read-only，按任务逐步开放写权限</td></tr>
+</tbody>
+</table>
+</div>
+<p>模型能力会变化，安全策略也会变化。把策略外置，系统才有演进空间。</p>
 <hr>
-<h2 id="197-trace设计"><a class="header" href="#197-trace设计">19.7 Trace设计</a></h2>
-<p>Trace 不需要一开始接入复杂平台，先落本地 JSON 也可以。</p>
-<pre><code class="language-json">{
-  "trace_id": "tr_001",
-  "user_id": "u_123",
-  "input": "如何查看退款进度？",
-  "intent": "knowledge_qa",
-  "events": [
-    {
-      "type": "retrieval",
-      "query": "如何查看退款进度？",
-      "doc_ids": ["refund-policy.md"],
-      "latency_ms": 120
-    },
-    {
-      "type": "generation",
-      "model": "gpt-4.1-mini",
-      "prompt_version": "qa-v1",
-      "latency_ms": 900
-    }
-  ],
-  "final_answer": "...",
-  "cost_usd": 0.003
+<h2 id="196-核心数据模型"><a class="header" href="#196-核心数据模型">19.6 核心数据模型</a></h2>
+<p><code>models.py</code> 定义了四个核心结构。</p>
+<pre><code class="language-python">from dataclasses import dataclass, field
+from typing import Any, Literal
+
+
+@dataclass
+class ToolCall:
+    name: str
+    args: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class ToolResult:
+    ok: bool
+    content: str
+    error: str = ""
+
+
+@dataclass
+class AgentStep:
+    thought: str
+    tool_call: ToolCall | None = None
+    tool_result: ToolResult | None = None
+    final: dict[str, Any] | None = None
+
+
+@dataclass
+class AgentState:
+    task: str
+    repo_root: str
+    messages: list[dict[str, str]] = field(default_factory=list)
+    steps: list[AgentStep] = field(default_factory=list)
+    changed_files: set[str] = field(default_factory=set)
+    status: Literal["running", "done", "failed"] = "running"
+    final: dict[str, Any] | None = None
+</code></pre>
+<p>这些结构看起来简单，但它们决定了系统能不能复盘。</p>
+<p><code>ToolCall</code> 表示模型想做什么；<code>ToolResult</code> 表示系统实际做了什么；<code>AgentStep</code> 把模型意图和工具结果绑定在一起；<code>AgentState</code> 保存任务生命周期。</p>
+<p>不要只保存最终回答。真正排查失败时，你需要知道：</p>
+<ul>
+<li>哪一轮模型开始偏航；</li>
+<li>它当时看到了哪些 observation；</li>
+<li>它选择了哪个工具；</li>
+<li>工具参数是否越界；</li>
+<li>工具失败后模型有没有修复；</li>
+<li>final 是否有验证证据。</li>
+</ul>
+<p>这就是为什么 trace 要从第一版就存在。</p>
+<hr>
+<h2 id="197-context-builder让模型先看边界再看代码"><a class="header" href="#197-context-builder让模型先看边界再看代码">19.7 Context Builder：让模型先看边界，再看代码</a></h2>
+<p>Coding Agent 的上下文不应该是“把整个仓库塞进 prompt”。更稳妥的做法是先给模型三类信息：</p>
+<ol>
+<li>项目规则；</li>
+<li>仓库文件地图；</li>
+<li>最近几轮工具结果。</li>
+</ol>
+<p><code>context.py</code> 里的规则加载很克制：</p>
+<pre><code class="language-python">def load_rules(repo_root: Path) -&gt; str:
+    for name in ["AGENT.md", "AGENTS.md", "CLAUDE.md", ".cursorrules"]:
+        path = repo_root / name
+        if path.exists() and path.is_file():
+            return path.read_text(encoding="utf-8")[:4000]
+    return ""
+</code></pre>
+<p>仓库地图也只收集文本类文件，并跳过缓存、构建产物和 trace：</p>
+<pre><code class="language-python">IGNORE_DIRS = {
+    ".git",
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "book",
+    "build",
+    "dist",
+    "node_modules",
+    "public",
+    "traces",
 }
 </code></pre>
-<p>面试时要说明 trace 的用途：</p>
+<p>这体现了 Context Engineering 的核心原则：上下文要服务当前任务，不要把噪声包装成“信息充分”。</p>
+<h3 id="生产级增强方向"><a class="header" href="#生产级增强方向">生产级增强方向</a></h3>
+<p>MVP 的 repo map 只是文件列表。生产级 Coding Agent 通常还会加入：</p>
 <ul>
-<li>debug 单次失败；</li>
-<li>聚合分析失败模式；</li>
+<li>语言级索引，例如函数、类、接口、路由、测试名；</li>
+<li>最近修改文件和 git status；</li>
+<li>issue、PR、设计文档、ADR；</li>
+<li>失败测试输出；</li>
+<li>依赖图和模块边界；</li>
+<li>目录级规则；</li>
+<li>与当前任务相关的 Skill。</li>
+</ul>
+<p>但第一版不要急着做复杂索引。先证明 read/search/edit/test/trace 的主链路可靠，再扩展上下文来源。</p>
+<hr>
+<h2 id="198-模型输出协议每轮只返回一个-json-对象"><a class="header" href="#198-模型输出协议每轮只返回一个-json-对象">19.8 模型输出协议：每轮只返回一个 JSON 对象</a></h2>
+<p>Agent Loop 最怕模型输出自由文本，Runtime 不知道该执行什么。</p>
+<p>本章的 MVP 不使用模型原生 tool calling，而是要求模型返回 JSON：</p>
+<pre><code class="language-json">{
+  "thought": "我需要先搜索 divide 函数在哪里。",
+  "action": {
+    "name": "search_code",
+    "args": {
+      "query": "def divide",
+      "pattern": "*.py"
+    }
+  }
+}
+</code></pre>
+<p>任务完成时返回：</p>
+<pre><code class="language-json">{
+  "thought": "实现和测试都完成了。",
+  "final": {
+    "summary": "为 divide 增加了除零检查，并补充了测试。",
+    "verification": "pytest 通过",
+    "changed_files": ["calculator.py", "test_calculator.py"]
+  }
+}
+</code></pre>
+<p><code>agent.py</code> 的系统提示词故意很短：</p>
+<pre><code class="language-python">SYSTEM_PROMPT = """You are a coding agent working inside a repository.
+You can only act by returning exactly one JSON object.
+Use tools to inspect, edit, verify, and review.
+Do not claim success without verification evidence.
+Read files before editing them.
+Prefer replace_in_file over rewriting whole files.
+"""
+</code></pre>
+<p>更复杂的生产系统可以换成原生 tool calling，但不要丢掉这些 Runtime 抽象：</p>
+<ul>
+<li>工具注册表；</li>
+<li>参数校验；</li>
+<li>权限策略；</li>
+<li>trace；</li>
+<li>verifier；</li>
+<li>final report schema。</li>
+</ul>
+<p>原生 tool calling 解决的是“模型如何结构化表达工具调用”，不自动解决“工具是否安全”和“任务是否完成”。</p>
+<hr>
+<h2 id="199-tool-runtime工具是能力边界不是普通函数"><a class="header" href="#199-tool-runtime工具是能力边界不是普通函数">19.9 Tool Runtime：工具是能力边界，不是普通函数</a></h2>
+<p><code>tools.py</code> 暴露七个工具：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">工具</th><th style="text-align: left">作用</th><th style="text-align: left">风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><code>list_files</code></td><td style="text-align: left">查看仓库文件</td><td style="text-align: left">低</td></tr>
+<tr><td style="text-align: left"><code>read_file</code></td><td style="text-align: left">读取文件片段</td><td style="text-align: left">低到中，取决于 secret 过滤</td></tr>
+<tr><td style="text-align: left"><code>search_code</code></td><td style="text-align: left">搜索代码文本</td><td style="text-align: left">低</td></tr>
+<tr><td style="text-align: left"><code>replace_in_file</code></td><td style="text-align: left">精确替换一个片段</td><td style="text-align: left">中</td></tr>
+<tr><td style="text-align: left"><code>create_file</code></td><td style="text-align: left">创建新文件</td><td style="text-align: left">中</td></tr>
+<tr><td style="text-align: left"><code>run_shell</code></td><td style="text-align: left">执行验证命令</td><td style="text-align: left">高</td></tr>
+<tr><td style="text-align: left"><code>git_diff</code></td><td style="text-align: left">查看工作区 diff</td><td style="text-align: left">低</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="路径沙箱"><a class="header" href="#路径沙箱">路径沙箱</a></h3>
+<p>第一条硬规则：工具只能访问 <code>--repo</code> 指定的 workspace 内部。</p>
+<pre><code class="language-python">class Workspace:
+    def __init__(self, root: str | Path):
+        self.root = Path(root).resolve()
+
+    def resolve(self, relative_path: str | Path) -&gt; Path:
+        path = (self.root / relative_path).resolve()
+        if path != self.root and self.root not in path.parents:
+            raise ValueError(f"path escapes workspace: {relative_path}")
+        rel_parts = path.relative_to(self.root).parts
+        if any(part in FORBIDDEN_DIRS for part in rel_parts):
+            raise ValueError(f"path is forbidden: {relative_path}")
+        if path.name in FORBIDDEN_FILES or path.name.endswith(".pem"):
+            raise ValueError(f"file is forbidden: {relative_path}")
+        return path
+</code></pre>
+<p>这个实现同时挡住几类风险：</p>
+<ul>
+<li><code>../../secret.txt</code> 这类路径逃逸；</li>
+<li><code>.git</code>、<code>.venv</code>、<code>node_modules</code> 这类高噪声或敏感目录；</li>
+<li><code>.env</code>、<code>agent.config.toml</code>、<code>.pem</code> 这类 secret 文件。</li>
+</ul>
+<p>路径沙箱不能依赖 prompt。模型可以被提示词约束，但真正的边界必须由代码执行。</p>
+<h3 id="局部编辑优先"><a class="header" href="#局部编辑优先">局部编辑优先</a></h3>
+<p>MVP 没有提供任意 <code>write_file</code>，而是提供 <code>replace_in_file</code>：</p>
+<pre><code class="language-python">def replace_in_file(ws: Workspace, path: str, old: str, new: str) -&gt; ToolResult:
+    try:
+        file_path = ws.resolve(path)
+        text = file_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        return ToolResult(False, "", str(exc))
+    if old not in text:
+        return ToolResult(False, "", "old text not found; read the file again before editing")
+
+    file_path.write_text(text.replace(old, new, 1), encoding="utf-8")
+    return ToolResult(True, f"updated {path}")
+</code></pre>
+<p>这会逼模型先 <code>read_file</code>，再基于精确片段修改。它不能随手重写整个文件，也更容易保护用户未提交的局部改动。</p>
+<p>生产系统还可以把编辑工具升级成 patch 工具：</p>
+<ul>
+<li>要求 unified diff；</li>
+<li>校验 patch 是否只影响允许路径；</li>
+<li>显示 diff 让用户确认；</li>
+<li>自动检测大范围格式化；</li>
+<li>对并发修改做冲突检查。</li>
+</ul>
+<h3 id="shell-白名单"><a class="header" href="#shell-白名单">Shell 白名单</a></h3>
+<p>Shell 是 Coding Agent 最危险的工具之一。本章的实现只允许配置中的命令：</p>
+<pre><code class="language-python">DEFAULT_ALLOWED_COMMANDS = {
+    "python",
+    "python3",
+    "pytest",
+    "ruff",
+    "mypy",
+    "npm",
+    "pnpm",
+    "make",
+    "go",
+}
+</code></pre>
+<p>同时拦截危险 token：</p>
+<pre><code class="language-python">DENY_TOKENS = {
+    "chmod",
+    "chown",
+    "curl",
+    "git",
+    "rm",
+    "scp",
+    "ssh",
+    "sudo",
+    "wget",
+}
+</code></pre>
+<p>这不是最终安全模型，但已经足够表达原则：让 Agent 运行测试，不等于让 Agent 拥有一个无限 shell。</p>
+<hr>
+<h2 id="1910-policy-engine把审批从-prompt-里拿出来"><a class="header" href="#1910-policy-engine把审批从-prompt-里拿出来">19.10 Policy Engine：把审批从 Prompt 里拿出来</a></h2>
+<p><code>policy.py</code> 把工具分成三类：</p>
+<pre><code class="language-python">READ_ONLY_TOOLS = {"list_files", "read_file", "search_code", "git_diff"}
+WRITE_TOOLS = {"replace_in_file", "create_file"}
+SHELL_TOOLS = {"run_shell"}
+</code></pre>
+<p>决策逻辑很小：</p>
+<pre><code class="language-python">class Policy:
+    def __init__(self, auto_edit: bool = True, auto_shell: bool = False):
+        self.auto_edit = auto_edit
+        self.auto_shell = auto_shell
+
+    def decide(self, call: ToolCall) -&gt; str:
+        if call.name in READ_ONLY_TOOLS:
+            return "allow"
+        if call.name in WRITE_TOOLS:
+            return "allow" if self.auto_edit else "ask"
+        if call.name in SHELL_TOOLS:
+            return "allow" if self.auto_shell else "ask"
+        return "deny"
+</code></pre>
+<p>MVP 里 <code>ask</code> 只是返回“需要审批”，还没有做人机交互。但这个状态很重要，因为生产系统通常会把 <code>ask</code> 接到：</p>
+<ul>
+<li>CLI 确认；</li>
+<li>IDE 弹窗；</li>
+<li>Web 审批流；</li>
+<li>Slack / Teams 审批；</li>
+<li>企业策略中心。</li>
+</ul>
+<p>不要让模型自己决定“这个操作安全吗”。模型可以解释风险，但最终裁决必须在确定性系统里完成。</p>
+<hr>
+<h2 id="1911-agent-loop把模型工具和状态串起来"><a class="header" href="#1911-agent-loop把模型工具和状态串起来">19.11 Agent Loop：把模型、工具和状态串起来</a></h2>
+<p><code>agent.py</code> 是系统主循环。</p>
+<pre><code class="language-python">def run_agent(
+    task: str,
+    repo_root: str | Path,
+    llm: LLMClient,
+    max_steps: int = 20,
+    auto_edit: bool = True,
+    auto_shell: bool = True,
+    allowed_commands: list[str] | None = None,
+    shell_timeout: int = 30,
+    trace_writer: TraceWriter | None = None,
+) -&gt; AgentState:
+    root = Path(repo_root).resolve()
+    ws = Workspace(root)
+    policy = Policy(auto_edit=auto_edit, auto_shell=auto_shell)
+    state = AgentState(task=task, repo_root=str(root))
+</code></pre>
+<p>每一轮做六件事：</p>
+<ol>
+<li>构造 prompt；</li>
+<li>调用模型；</li>
+<li>解析 JSON；</li>
+<li>判断 final 或 action；</li>
+<li>经过 Policy 执行工具；</li>
+<li>记录 step 和 trace。</li>
+</ol>
+<p>核心片段如下：</p>
+<pre><code class="language-python">for _ in range(max_steps):
+    prompt = build_prompt(state, root)
+    raw = llm.complete(prompt)
+    data = parse_model_output(raw)
+    thought = str(data.get("thought", ""))
+
+    if "final" in data:
+        final = data["final"]
+        state.status = "done"
+        state.final = final
+        for path in final.get("changed_files", []):
+            state.changed_files.add(str(path))
+        _record_step(state, AgentStep(thought=thought or "done", final=final), trace_writer)
+        return state
+
+    if "action" not in data:
+        _record_step(
+            state,
+            AgentStep(
+                thought=thought or "invalid model response",
+                tool_result=ToolResult(False, raw, str(data.get("error", "missing action or final"))),
+            ),
+            trace_writer,
+        )
+        continue
+</code></pre>
+<p>注意两个细节。</p>
+<p>第一，模型输出无效时，系统不会崩溃，而是把错误写回 observation。下一轮模型仍有机会修复。</p>
+<p>第二，<code>max_steps</code> 是硬停止条件。任何 Agent Loop 都必须有预算，不能让模型无限尝试。</p>
+<h3 id="当前-mvp-的一个刻意简化"><a class="header" href="#当前-mvp-的一个刻意简化">当前 MVP 的一个刻意简化</a></h3>
+<p>这个版本在收到 <code>final</code> 时会把 <code>state.status</code> 设为 <code>done</code>。生产系统里更稳妥的做法是让 final 进入 verifier：</p>
+<pre><code class="language-text">model final
+  │
+  ▼
+run verifier
+  ├─ pass -&gt; done
+  └─ fail -&gt; append observation and continue / failed
+</code></pre>
+<p>本章保留 <code>verifier.py</code>，是为了明确下一步演进方向：完成状态不能只由模型声明，应该由测试、diff 和风险检查共同决定。</p>
+<hr>
+<h2 id="1912-llm-adapter隔离模型供应商"><a class="header" href="#1912-llm-adapter隔离模型供应商">19.12 LLM Adapter：隔离模型供应商</a></h2>
+<p><code>llm.py</code> 定义了一个很窄的接口：</p>
+<pre><code class="language-python">class LLMClient(Protocol):
+    def complete(self, prompt: str) -&gt; str:
+        ...
+</code></pre>
+<p>本地测试使用 <code>FakeLLM</code>：</p>
+<pre><code class="language-python">class FakeLLM:
+    def __init__(self, responses: list[str]):
+        self.responses = responses
+        self.index = 0
+
+    def complete(self, prompt: str) -&gt; str:
+        if self.index &gt;= len(self.responses):
+            return json.dumps(
+                {
+                    "thought": "no more responses",
+                    "final": {
+                        "summary": "stopped",
+                        "verification": "none",
+                        "changed_files": [],
+                    },
+                },
+                ensure_ascii=False,
+            )
+        value = self.responses[self.index]
+        self.index += 1
+        return value
+</code></pre>
+<p>真实运行使用 DeepSeek 兼容接口：</p>
+<pre><code class="language-python">payload: dict[str, object] = {
+    "model": self.config.model,
+    "messages": [{"role": "user", "content": prompt}],
+    "temperature": self.config.temperature,
+    "max_tokens": self.config.max_tokens,
+    "response_format": {"type": "json_object"},
+}
+</code></pre>
+<p>为什么不把模型 SDK 直接散落在 <code>agent.py</code> 里？</p>
+<p>因为生产系统一定会遇到这些变化：</p>
+<ul>
+<li>模型供应商切换；</li>
+<li>模型版本灰度；</li>
+<li>请求超时和重试；</li>
+<li>JSON mode 或 tool calling 能力差异；</li>
+<li>token 成本统计；</li>
+<li>prompt / response 日志脱敏；</li>
+<li>fallback 模型；</li>
+<li>eval 环境固定模型。</li>
+</ul>
+<p>模型只是 Agent Runtime 的一个依赖，不应该成为整个系统的中心。</p>
+<hr>
+<h2 id="1913-trace让每一步都能复盘"><a class="header" href="#1913-trace让每一步都能复盘">19.13 Trace：让每一步都能复盘</a></h2>
+<p><code>trace_writer.py</code> 把每个 <code>AgentStep</code> 写成 JSONL：</p>
+<pre><code class="language-python">class TraceWriter:
+    def __init__(self, path: str | Path):
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+
+    def write_step(self, step: AgentStep) -&gt; None:
+        with self.path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(asdict(step), ensure_ascii=False) + "\n")
+</code></pre>
+<p>运行后会生成类似路径：</p>
+<pre><code class="language-text">traces/20260506-143000.jsonl
+</code></pre>
+<p>一条 trace 记录可能长这样：</p>
+<pre><code class="language-json">{
+  "thought": "I need to inspect the divide function first.",
+  "tool_call": {
+    "name": "search_code",
+    "args": {
+      "query": "def divide",
+      "pattern": "*.py"
+    }
+  },
+  "tool_result": {
+    "ok": true,
+    "content": "calculator.py:1: def divide(a: int, b: int) -&gt; float:",
+    "error": ""
+  },
+  "final": null
+}
+</code></pre>
+<p>Trace 至少有五个用途：</p>
+<ul>
+<li>单次失败调试；</li>
+<li>找出工具误用模式；</li>
 <li>生成 eval case；</li>
-<li>对比版本效果；</li>
-<li>计算成本和延迟。</li>
+<li>对比不同 prompt、模型和 policy；</li>
+<li>审计高风险任务。</li>
+</ul>
+<p>如果没有 trace，Agent 的失败就只能靠猜；有了 trace，失败可以被分类、回归和修复。</p>
+<hr>
+<h2 id="1914-verifier不要让模型自己宣布完成"><a class="header" href="#1914-verifier不要让模型自己宣布完成">19.14 Verifier：不要让模型自己宣布完成</a></h2>
+<p><code>verifier.py</code> 提供了一个最小验证器：</p>
+<pre><code class="language-python">def verify(
+    ws: Workspace,
+    commands: list[str],
+    allowed_commands: list[str] | None = None,
+) -&gt; tuple[bool, str]:
+    outputs: list[str] = []
+    for command in commands:
+        result = run_shell(ws, command, timeout=60, allowed_commands=allowed_commands)
+        outputs.append(f"$ {command}\n{result.content}\n{result.error}".strip())
+        if not result.ok:
+            return False, "\n\n".join(outputs)
+
+    diff = git_diff(ws)
+    if not diff.content.strip():
+        return False, "no code changes detected"
+    return True, "\n\n".join(outputs)
+</code></pre>
+<p>最小 verifier 检查两件事：</p>
+<ol>
+<li>验证命令是否通过；</li>
+<li><code>git diff</code> 是否非空。</li>
+</ol>
+<p>生产系统可以继续加：</p>
+<ul>
+<li>lint、typecheck、unit test、integration test；</li>
+<li>快速测试和全量测试分层；</li>
+<li>flaky test 重试策略；</li>
+<li>diff 风险分类；</li>
+<li>代码所有权和影响面分析；</li>
+<li>secret scan；</li>
+<li>静态安全扫描；</li>
+<li>snapshot 或 golden file 比较；</li>
+<li>人类 reviewer checklist。</li>
+</ul>
+<p>重要原则是：<strong>final answer 是报告，不是证据。证据来自工具结果、测试输出和 diff。</strong></p>
+<hr>
+<h2 id="1915-运行-demo从任务到-diff"><a class="header" href="#1915-运行-demo从任务到-diff">19.15 运行 Demo：从任务到 diff</a></h2>
+<p>Demo 仓库在 <code>demo/</code> 下：</p>
+<pre><code class="language-text">demo/
+├── AGENT.md
+├── calculator.py
+└── test_calculator.py
+</code></pre>
+<p>运行命令：</p>
+<pre><code class="language-bash">python3 run.py "给 calculator.py 的 divide 函数补充除零错误处理，并添加 pytest 测试。要求：b 为 0 时抛出 ValueError；保留原有正常除法行为；运行 pytest 验证。" --repo demo --config agent.config.toml
+</code></pre>
+<p>理想执行路径大致是：</p>
+<pre><code class="language-text">1. list_files 或 search_code，找到 calculator.py 和 test_calculator.py；
+2. read_file 读取现有实现和测试；
+3. replace_in_file 修改 divide；
+4. replace_in_file 修改测试；
+5. run_shell("pytest")；
+6. git_diff；
+7. final report。
+</code></pre>
+<p>CLI 会输出：</p>
+<pre><code class="language-text">status: done
+changed_files: ['calculator.py', 'test_calculator.py']
+trace: traces/20260506-143000.jsonl
+
+--- step 1 ---
+...
+
+--- git diff ---
+...
+</code></pre>
+<p>如果模型没有按理想路径执行，trace 就是调试入口。</p>
+<h3 id="常见失败与修复"><a class="header" href="#常见失败与修复">常见失败与修复</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">现象</th><th style="text-align: left">可能原因</th><th style="text-align: left">修复方向</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">模型输出不是 JSON</td><td style="text-align: left">prompt 约束不足，模型不支持 JSON mode</td><td style="text-align: left">强化输出协议，换支持 JSON mode 的模型</td></tr>
+<tr><td style="text-align: left">一上来就编辑</td><td style="text-align: left">系统规则不够硬</td><td style="text-align: left">加 “read before edit” 到 prompt 和 eval</td></tr>
+<tr><td style="text-align: left"><code>old text not found</code></td><td style="text-align: left">文件已变或模型引用片段不精确</td><td style="text-align: left">让模型重新 <code>read_file</code> 再改</td></tr>
+<tr><td style="text-align: left">shell 被拒绝</td><td style="text-align: left">命令不在 allowlist</td><td style="text-align: left">修改配置或让模型选择允许命令</td></tr>
+<tr><td style="text-align: left">测试失败后直接 final</td><td style="text-align: left">verifier 未接入 final gate</td><td style="text-align: left">把 final 改为 verifier pass 后才能 done</td></tr>
+<tr><td style="text-align: left">diff 过大</td><td style="text-align: left">模型重写文件或格式化全文件</td><td style="text-align: left">禁用 write_file，限制 replace 范围</td></tr>
+<tr><td style="text-align: left">读到 secret</td><td style="text-align: left">forbidden 文件规则不够</td><td style="text-align: left">扩展 <code>FORBIDDEN_FILES</code> 和 secret scan</td></tr>
+</tbody>
+</table>
+</div>
+<p>Agent 工程的改进方式不是“再劝模型认真一点”，而是把失败映射到 prompt、context、tool、policy、verifier 或 eval 的具体层。</p>
+<hr>
+<h2 id="1916-测试策略先测-runtime再测模型效果"><a class="header" href="#1916-测试策略先测-runtime再测模型效果">19.16 测试策略：先测 Runtime，再测模型效果</a></h2>
+<p>这个 lab 的 <code>tests/</code> 目录故意不依赖真实模型。</p>
+<p><code>test_tools.py</code> 应该覆盖：</p>
+<ul>
+<li>正常读取文件；</li>
+<li>阻止路径逃逸；</li>
+<li>阻止读取 forbidden 文件；</li>
+<li>精确替换文件；</li>
+<li>shell allowlist；</li>
+<li><code>git_diff</code> 只读。</li>
+</ul>
+<p><code>test_config.py</code> 应该覆盖：</p>
+<ul>
+<li>TOML 解析；</li>
+<li>默认配置；</li>
+<li>shell allowlist；</li>
+<li>模型配置字段。</li>
+</ul>
+<p><code>test_trace_and_agent.py</code> 用 <code>FakeLLM</code> 驱动 Agent Loop：</p>
+<pre><code class="language-python">llm = FakeLLM(
+    [
+        json.dumps(
+            {
+                "thought": "create a note",
+                "action": {
+                    "name": "create_file",
+                    "args": {"path": "note.txt", "content": "hello\n"},
+                },
+            }
+        ),
+        json.dumps(
+            {
+                "thought": "review diff",
+                "action": {"name": "git_diff", "args": {}},
+            }
+        ),
+        json.dumps(
+            {
+                "thought": "done",
+                "final": {
+                    "summary": "created note",
+                    "verification": "git diff reviewed",
+                    "changed_files": ["note.txt"],
+                },
+            }
+        ),
+    ]
+)
+</code></pre>
+<p>这类测试的价值是验证 Runtime 可靠，而不是验证某个模型“聪明”。</p>
+<p>模型效果需要另一类 eval：</p>
+<pre><code class="language-yaml">- id: divide_zero_guard
+  task: "给 divide 函数补充除零错误处理，并添加测试"
+  expected:
+    changed_files:
+      - calculator.py
+      - test_calculator.py
+    must_run:
+      - pytest
+    must_not:
+      - read agent.config.toml
+      - run rm
+</code></pre>
+<p>生产级 Coding Agent 通常要同时有两套评估：</p>
+<ul>
+<li>Runtime tests：确定性、快速、无模型；</li>
+<li>Agent evals：端到端、带模型、可回归。</li>
 </ul>
 <hr>
-<h2 id="198-eval-dataset"><a class="header" href="#198-eval-dataset">19.8 Eval Dataset</a></h2>
-<pre><code class="language-yaml">- id: qa_refund_001
-  input: "我想知道退款一般多久能到账"
-  expected:
-    must_mention:
-      - "退款处理时间"
-      - "支付渠道"
-    must_cite:
-      - "refund-policy.md"
-    should_not:
-      - "承诺固定到账时间"
-
-- id: ticket_create_001
-  input: "我的订单一直失败，帮我建个工单"
-  expected:
-    tool_call:
-      name: "create_ticket"
-    final_contains:
-      - "ticket_id"
-</code></pre>
-<p>Eval runner：</p>
-<pre><code class="language-python">async def run_eval(dataset, agent):
-    results = []
-    for case in dataset:
-        output = await agent.run(user=case.user, message=case.input)
-        score = judge(case.expected, output)
-        results.append({
-            "id": case.id,
-            "passed": score.passed,
-            "reason": score.reason
-        })
-    return results
-</code></pre>
+<h2 id="1917-从-mvp-演进到生产级-coding-agent"><a class="header" href="#1917-从-mvp-演进到生产级-coding-agent">19.17 从 MVP 演进到生产级 Coding Agent</a></h2>
+<p>这个 lab 已经有了核心骨架，但离生产级系统还有明显距离。演进时建议按风险顺序，而不是按功能诱惑。</p>
+<h3 id="阶段一read-only-agent"><a class="header" href="#阶段一read-only-agent">阶段一：Read-only Agent</a></h3>
+<p>只开放：</p>
+<ul>
+<li><code>list_files</code>;</li>
+<li><code>read_file</code>;</li>
+<li><code>search_code</code>;</li>
+<li><code>git_diff</code>。</li>
+</ul>
+<p>目标是让 Agent 能回答：</p>
+<ul>
+<li>这个需求可能涉及哪些文件；</li>
+<li>代码当前怎么工作；</li>
+<li>应该怎么改；</li>
+<li>需要哪些测试。</li>
+</ul>
+<p>这是接入真实大仓库最安全的第一步。</p>
+<h3 id="阶段二patch-agent"><a class="header" href="#阶段二patch-agent">阶段二：Patch Agent</a></h3>
+<p>开放局部编辑，但不开放 shell。</p>
+<p>重点治理：</p>
+<ul>
+<li>path sandbox；</li>
+<li>precise replace；</li>
+<li>diff preview；</li>
+<li>人工确认；</li>
+<li>禁止 secret 和生成文件误改。</li>
+</ul>
+<p>这一阶段适合让 Agent 生成小 patch，由人运行测试。</p>
+<h3 id="阶段三verified-agent"><a class="header" href="#阶段三verified-agent">阶段三：Verified Agent</a></h3>
+<p>开放测试类 shell 命令。</p>
+<p>重点治理：</p>
+<ul>
+<li>command allowlist；</li>
+<li>timeout；</li>
+<li>stdout / stderr 截断；</li>
+<li>flaky test 标记；</li>
+<li>失败重试预算；</li>
+<li>final gate 接入 verifier。</li>
+</ul>
+<p>目标是形成“修改 -&gt; 测试 -&gt; 修复 -&gt; 报告”的闭环。</p>
+<h3 id="阶段四workflow-agent"><a class="header" href="#阶段四workflow-agent">阶段四：Workflow Agent</a></h3>
+<p>加入计划和任务状态。</p>
+<p>适合更长任务：</p>
+<ul>
+<li>模块迁移；</li>
+<li>API 重构；</li>
+<li>测试补全；</li>
+<li>依赖升级；</li>
+<li>lint 批量修复。</li>
+</ul>
+<p>此时需要：</p>
+<ul>
+<li>plan step 状态；</li>
+<li>可暂停和恢复；</li>
+<li>checkpoint；</li>
+<li>每步验收标准；</li>
+<li>中途汇报。</li>
+</ul>
+<h3 id="阶段五skill-enabled-agent"><a class="header" href="#阶段五skill-enabled-agent">阶段五：Skill-enabled Agent</a></h3>
+<p>引入 Skill Registry，把重复工程流程沉淀成可版本化资产。</p>
+<p>典型 Skill：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">Skill</th><th style="text-align: left">触发场景</th><th style="text-align: left">验证要求</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><code>bugfix</code></td><td style="text-align: left">失败测试、异常日志、线上 bug</td><td style="text-align: left">先复现，后修复，必须补回归测试</td></tr>
+<tr><td style="text-align: left"><code>test-writing</code></td><td style="text-align: left">补测试、提升覆盖率</td><td style="text-align: left">先读现有测试风格，覆盖失败路径</td></tr>
+<tr><td style="text-align: left"><code>refactor</code></td><td style="text-align: left">模块整理、接口迁移</td><td style="text-align: left">保持行为等价，小步验证</td></tr>
+<tr><td style="text-align: left"><code>dependency-upgrade</code></td><td style="text-align: left">升级库或运行时</td><td style="text-align: left">查 breaking changes，跑兼容测试</td></tr>
+<tr><td style="text-align: left"><code>release-check</code></td><td style="text-align: left">发布前检查</td><td style="text-align: left">只读检查优先，高风险动作审批</td></tr>
+</tbody>
+</table>
+</div>
+<p>Skill 是过程记忆，不是权限系统。它能告诉 Agent 怎么做，但不能让 Agent 绕过 Policy。</p>
+<h3 id="阶段六team-agent"><a class="header" href="#阶段六team-agent">阶段六：Team Agent</a></h3>
+<p>接入团队工程流：</p>
+<ul>
+<li>PR 创建；</li>
+<li>CI 结果读取；</li>
+<li>reviewer agent；</li>
+<li>code owner；</li>
+<li>branch sandbox；</li>
+<li>issue / ticket 状态同步；</li>
+<li>企业审计；</li>
+<li>eval gate。</li>
+</ul>
+<p>这个阶段的核心问题不再是“模型会不会写代码”，而是“它如何进入团队责任链”。</p>
 <hr>
-<h2 id="199-readme展示模板"><a class="header" href="#199-readme展示模板">19.9 README展示模板</a></h2>
-<p>Mini Agent 项目的 README 应该服务面试。</p>
-<pre><code class="language-markdown"># Support Agent
-
-## 目标
-内部知识问答与支持工单创建。
-
-## 架构
-- FastAPI API 层
-- Router-based Agent Runner
-- RAG Retriever
-- Tool Registry
-- Input / Tool / Output Guardrails
-- JSON Trace
-- Offline Evals
-
-## 核心指标
-- Eval pass rate: 86%
-- Tool selection accuracy: 92%
-- P95 latency: 2.1s
-- Average cost per task: $0.004
-
-## Demo
-1. 知识问答
-2. 工单查询
-3. 工单创建
-4. 越权请求拦截
-
-## 设计取舍
-第一版使用 Router，而不是自由 ReACT，降低不可控工具调用风险。
-</code></pre>
+<h2 id="1918-生产级风险清单"><a class="header" href="#1918-生产级风险清单">19.18 生产级风险清单</a></h2>
+<p>Coding Agent 一旦能写文件和运行命令，就必须严肃处理风险。</p>
+<h3 id="文件风险"><a class="header" href="#文件风险">文件风险</a></h3>
+<ul>
+<li>路径逃逸；</li>
+<li>secret 文件读取；</li>
+<li>生成文件误改；</li>
+<li>大范围格式化；</li>
+<li>覆盖用户未提交修改；</li>
+<li>误改二进制文件。</li>
+</ul>
+<p>推荐措施：</p>
+<ul>
+<li>workspace sandbox；</li>
+<li>forbidden path；</li>
+<li>text suffix allowlist；</li>
+<li>diff size limit；</li>
+<li>dirty worktree warning；</li>
+<li>patch preview。</li>
+</ul>
+<h3 id="命令风险"><a class="header" href="#命令风险">命令风险</a></h3>
+<ul>
+<li>删除文件；</li>
+<li>网络下载和执行；</li>
+<li>修改权限；</li>
+<li>推送远程分支；</li>
+<li>运行生产脚本；</li>
+<li>超时或资源耗尽。</li>
+</ul>
+<p>推荐措施：</p>
+<ul>
+<li>command allowlist；</li>
+<li>deny token；</li>
+<li>timeout；</li>
+<li>cwd 限定；</li>
+<li>网络默认关闭；</li>
+<li>高风险命令审批。</li>
+</ul>
+<h3 id="模型风险"><a class="header" href="#模型风险">模型风险</a></h3>
+<ul>
+<li>invalid JSON；</li>
+<li>hallucinated file path；</li>
+<li>未读文件直接编辑；</li>
+<li>测试失败仍声称成功；</li>
+<li>被外部文档 prompt injection；</li>
+<li>长上下文遗忘约束。</li>
+</ul>
+<p>推荐措施：</p>
+<ul>
+<li>schema validation；</li>
+<li>read-before-edit eval；</li>
+<li>verifier gate；</li>
+<li>tool result 标注可信度；</li>
+<li>prompt injection guardrail；</li>
+<li>max steps 和 cost budget。</li>
+</ul>
+<h3 id="组织风险"><a class="header" href="#组织风险">组织风险</a></h3>
+<ul>
+<li>责任不清；</li>
+<li>自动合并过快；</li>
+<li>审计缺失；</li>
+<li>模型版本变化导致行为漂移；</li>
+<li>eval 覆盖不足。</li>
+</ul>
+<p>推荐措施：</p>
+<ul>
+<li>agent version；</li>
+<li>release gate；</li>
+<li>trace retention；</li>
+<li>PR reviewer；</li>
+<li>regression eval；</li>
+<li>rollback plan。</li>
+</ul>
 <hr>
-<h2 id="1910-面试讲解脚本"><a class="header" href="#1910-面试讲解脚本">19.10 面试讲解脚本</a></h2>
-<p>3 分钟版本：</p>
-<pre><code class="language-text">我做了一个 Support Agent，用于内部知识问答和工单创建。
+<h2 id="1919-面试和作品集表达"><a class="header" href="#1919-面试和作品集表达">19.19 面试和作品集表达</a></h2>
+<p>如果你把这个 lab 做成作品集，不要只说“我做了一个能改代码的 Agent”。更好的表达是：</p>
+<pre><code class="language-text">我实现了一个可观测 Coding Agent MVP。
 
-架构上我没有直接做一个自由循环的 Agent，而是采用 Router + RAG + Tool Calling。
-普通知识问题走 RAG，工单状态查询和创建走工具，高风险或越权请求由 guardrails 拦截。
+它不是让模型直接操作文件系统，而是通过 Runtime 把模型输出限制为 JSON action。
+Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 diff 输出。
 
-工程上我重点做了三件事：
-第一是工具注册表，每个工具有风险等级、权限校验和结构化错误；
-第二是 trace，记录检索、工具调用、模型生成和最终输出；
-第三是 eval dataset，用 20 条 case 回归测试回答质量、工具选择和安全边界。
+第一版支持 read/search/edit/shell/diff 七类工具，其中写文件只能通过精确 replace，shell 只能运行 allowlist 里的验证命令。
+每一步都会写入 JSONL trace，因此可以复盘模型为什么做这个操作、工具返回了什么、哪一步失败。
 
-这个项目虽然小，但覆盖了生产 Agent 的关键闭环：能回答、能行动、能防错、能评估、能复盘。
+我还写了不依赖真实模型的单元测试，用 FakeLLM 验证 Agent Loop。
+这保证了控制面本身可测，而不是把所有稳定性交给模型。
+
+后续如果要生产化，我会优先补 verifier final gate、patch preview、人类审批、eval dataset、模型版本灰度和 OpenTelemetry trace。
 </code></pre>
+<p>面试官真正想听的不是“用了哪个模型”，而是你是否理解 Agent 系统的工程边界：</p>
+<ul>
+<li>模型负责推理；</li>
+<li>Runtime 负责执行；</li>
+<li>Policy 负责权限；</li>
+<li>Tools 负责确定性副作用；</li>
+<li>Verifier 负责完成证据；</li>
+<li>Trace 负责复盘；</li>
+<li>Eval 负责持续改进。</li>
+</ul>
+<hr>
+<h2 id="1920-构建检查清单"><a class="header" href="#1920-构建检查清单">19.20 构建检查清单</a></h2>
+<p>如果你要从零实现自己的 Coding Agent，可以按下面清单验收。</p>
+<h3 id="runtime"><a class="header" href="#runtime">Runtime</a></h3>
+<ul>
+<li>是否有 <code>AgentState</code>？</li>
+<li>是否有最大步数？</li>
+<li>是否能处理 invalid JSON？</li>
+<li>是否区分 action 和 final？</li>
+<li>是否记录每一步？</li>
+</ul>
+<h3 id="context"><a class="header" href="#context">Context</a></h3>
+<ul>
+<li>是否加载项目规则？</li>
+<li>是否构建 repo map？</li>
+<li>是否避免注入整个仓库？</li>
+<li>是否截断过长工具结果？</li>
+<li>是否能把最近 observation 放回下一轮？</li>
+</ul>
+<h3 id="tools"><a class="header" href="#tools">Tools</a></h3>
+<ul>
+<li>是否有工具注册表？</li>
+<li>是否只允许相对路径？</li>
+<li>是否阻止路径逃逸？</li>
+<li>是否过滤 secret 文件？</li>
+<li>是否优先局部替换？</li>
+<li>shell 是否有 allowlist 和 timeout？</li>
+</ul>
+<h3 id="policy"><a class="header" href="#policy">Policy</a></h3>
+<ul>
+<li>是否区分 read、write、shell？</li>
+<li>是否支持 allow、ask、deny？</li>
+<li>高风险动作是否能进入人工审批？</li>
+<li>policy decision 是否进入 trace？</li>
+</ul>
+<h3 id="verification"><a class="header" href="#verification">Verification</a></h3>
+<ul>
+<li>是否运行验证命令？</li>
+<li>是否捕获 stdout / stderr？</li>
+<li>是否检查 diff？</li>
+<li>final 是否必须带验证证据？</li>
+<li>验证失败是否能回到 Agent Loop？</li>
+</ul>
+<h3 id="observability"><a class="header" href="#observability">Observability</a></h3>
+<ul>
+<li>是否保存 JSONL trace？</li>
+<li>trace 是否包含 tool call、tool result、final？</li>
+<li>是否能从失败 trace 生成 eval case？</li>
+<li>是否记录模型、prompt、工具和配置版本？</li>
+</ul>
+<h3 id="production"><a class="header" href="#production">Production</a></h3>
+<ul>
+<li>是否有 eval dataset？</li>
+<li>是否有 release gate？</li>
+<li>是否支持灰度和回滚？</li>
+<li>是否默认 read-only？</li>
+<li>是否有 secret scan？</li>
+<li>是否能降级到人工模式？</li>
+</ul>
 <hr>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
-<p>一个好的面试项目不一定庞大，但必须体现工程完整性。</p>
-<p>Mini Agent 至少应该包含：</p>
-<ul>
-<li>清晰的业务目标；</li>
-<li>可解释的架构模式；</li>
-<li>工具注册表；</li>
-<li>RAG；</li>
-<li>Guardrails；</li>
-<li>Trace；</li>
-<li>Eval dataset；</li>
-<li>README 和架构图。</li>
-</ul>
-<p>正文到这里收束。附录提供术语表、参考资料、工具清单，以及系统设计面试题与作品集模板，方便按需查阅。</p>
+<p>本章用 <code>books/ai-book/labs/coding-agent-mvp</code> 实现了一个可运行、可测试、可观测的 Coding Agent MVP。</p>
+<p>它的价值不在于功能复杂，而在于工程边界完整：</p>
+<ol>
+<li>Context Builder 控制模型看到什么；</li>
+<li>JSON action 协议控制模型如何表达意图；</li>
+<li>Tool Runtime 把外部能力变成可审查接口；</li>
+<li>Policy Engine 把权限从 prompt 里拿出来；</li>
+<li>Agent Loop 维护状态、预算和执行闭环；</li>
+<li>LLM Adapter 隔离模型供应商；</li>
+<li>Trace Writer 让每一步可复盘；</li>
+<li>Verifier 把“完成”变成证据问题；</li>
+<li>Tests 先验证 Runtime，再评估模型效果；</li>
+<li>演进路线从 read-only、patch、verified、workflow、skill-enabled 到 team agent。</li>
+</ol>
+<p>一句话总结：</p>
+<blockquote>
+<p>生产级 Coding Agent 不是“一个会写代码的模型”，而是一个围绕模型建立的可控执行系统。</p>
+</blockquote>
+<p>如果第 13 章回答的是“成熟 Coding Agent 产品为什么这样设计”，第 14 章回答的是“可嵌入 Coding Agent Runtime 应该长什么样”，本章回答的就是“如何从零搭出这个设计的最小可运行版本”。</p>
+<hr>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<ol>
+<li><a href="https://platform.openai.com/docs/guides/function-calling">OpenAI Function Calling Guide</a></li>
+<li><a href="https://modelcontextprotocol.io/specification/2025-03-26/architecture">Model Context Protocol Specification</a></li>
+<li><a href="https://docs.anthropic.com/en/docs/claude-code/hooks">Claude Code Hooks - Anthropic Docs</a></li>
+<li><a href="https://docs.cursor.com/context/rules">Cursor Rules - Cursor Docs</a></li>
+</ol>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../part3/07-pkm-agent-case-study.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../part3/02-enterprise-knowledge-assistant.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../appendix/glossary.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../part3/07-pkm-agent-case-study.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -517,11 +1254,11 @@ class ToolRegistry:
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../part3/07-pkm-agent-case-study.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../part3/02-enterprise-knowledge-assistant.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../appendix/glossary.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../part3/07-pkm-agent-case-study.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
@@ -534,22 +1271,6 @@ class ToolRegistry:
         <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
         <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
         <script>

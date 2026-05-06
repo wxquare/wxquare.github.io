@@ -1,6 +1,6 @@
 # Coding Agent MVP
 
-这是《AI Agent 工程实践》第 12 章的可运行原型。它实现了一个最小 Coding Agent 闭环：
+这是《AI Agent 工程实践》第 19 章的可运行原型。它实现了一个最小 Coding Agent 闭环：
 
 - 读取项目规则和 repo map；
 - 让模型输出 JSON action；

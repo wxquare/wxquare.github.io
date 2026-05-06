@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第13章 企业知识助手系统解析：RAG、搜索、权限与知识治理 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+        <title>第18章 企业知识助手：RAG、搜索、权限与知识治理落地实践 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-66552cb8.js";
+            window.path_to_searchindex_js = "../searchindex-09f610a2.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5eb53b55.js"></script>
+        <script src="../toc-c0920cc6.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,135 +177,334 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第13章-企业知识助手系统解析rag搜索权限与知识治理"><a class="header" href="#第13章-企业知识助手系统解析rag搜索权限与知识治理">第13章 企业知识助手系统解析：RAG、搜索、权限与知识治理</a></h1>
+                        <h1 id="第18章-企业知识助手rag搜索权限与知识治理落地实践"><a class="header" href="#第18章-企业知识助手rag搜索权限与知识治理落地实践">第18章 企业知识助手：RAG、搜索、权限与知识治理落地实践</a></h1>
 <blockquote>
-<p>企业知识助手不是“把文档丢进向量库”，而是一个带权限、证据、治理和反馈闭环的知识操作系统。</p>
+<p>企业知识助手不是“把文档丢进向量库”，而是一个带连接器、身份、权限、索引、证据、引用、反馈和治理闭环的知识操作系统。</p>
 </blockquote>
 <h2 id="引言"><a class="header" href="#引言">引言</a></h2>
-<p>RAG 是 Agent 系统里最常见、也最容易被低估的能力。很多团队以为企业知识助手的核心是 Embedding 和向量检索，真正上线后才发现主要难点在别处：</p>
+<p>企业知识助手是 Agent 系统里最常见、也最容易被低估的落地形态。很多团队以为它的核心是 Embedding、向量数据库和一个 RAG Prompt，真正上线后才发现主要难点在别处：</p>
 <ul>
-<li>数据源很多，格式和权限各不相同；</li>
-<li>搜索结果必须严格遵守源系统权限；</li>
-<li>文档过期、重复、冲突非常普遍；</li>
-<li>用户需要答案，也需要证据和引用；</li>
-<li>组织知识会持续变化，索引必须持续更新；</li>
-<li>回答错误会影响业务决策，必须可追责。</li>
+<li>数据源很多，格式、版本、权限和更新机制各不相同；</li>
+<li>搜索结果必须严格遵守源系统权限，不能靠 prompt 提醒模型“不要泄露”；</li>
+<li>文档过期、重复、冲突非常普遍，组织知识不是干净知识库；</li>
+<li>用户需要答案，也需要证据、引用、口径和不确定性；</li>
+<li>不同角色对同一个问题的可见范围不同，答案也必须不同；</li>
+<li>反馈不能只变成“调 prompt”，而要能路由到连接器、索引、排序、权限、文档治理和生成策略；</li>
+<li>企业上线需要审计、数据保留、SSO、SCIM、DLP、数据驻留和可追责机制。</li>
 </ul>
-<p>Glean、Perplexity Enterprise、Microsoft 365 Copilot 类系统的成熟之处，不是单点模型能力，而是把搜索、RAG、权限、引用、反馈和治理组合成完整系统。</p>
-<p>本章从系统设计角度拆解企业知识助手。</p>
+<p>Glean、Microsoft 365 Copilot、Perplexity Enterprise 这类系统的成熟之处，不是某个模型更强，而是把企业搜索、RAG、权限同步、引用证据、连接器生态、反馈治理和组织管理组合成完整系统。</p>
+<p>本章按一个企业内部落地案例展开：假设我们要为一家中大型研发和运营组织建设“企业知识助手”。它需要接入 Confluence / SharePoint、Slack / Teams、Jira / Linear、GitHub、BI 报表和内部 Runbook，让员工可以安全地搜索、提问、分析和追溯证据。</p>
+<p>这个案例的目标不是做一个“更会总结文档的聊天机器人”，而是落地一个可上线的知识工作台：</p>
+<ul>
+<li>普通员工可以问流程、找 owner、查项目背景；</li>
+<li>工程师可以查 runbook、事故复盘、代码 owner 和历史变更；</li>
+<li>运营和产品可以跨 BI、工单、发布记录分析业务问题；</li>
+<li>管理者可以查看知识质量、过期文档、反馈和使用效果；</li>
+<li>安全与合规团队可以审计谁问了什么、答案引用了什么。</li>
+</ul>
+<p>本章会从需求、架构、连接器、索引、权限、证据、生成、治理、评估和上线路线一层层拆解。重点不是介绍某个产品怎么用，而是回答：如果你要在公司里从 0 到 1 落地一个可靠的企业知识助手，应该如何设计和交付。</p>
 <hr>
-<h2 id="131-系统定位从搜索框到知识工作台"><a class="header" href="#131-系统定位从搜索框到知识工作台">13.1 系统定位：从搜索框到知识工作台</a></h2>
-<p>企业知识助手解决的不是“用户找不到文档”这么简单，而是三个层次的问题。</p>
+<h2 id="181-系统定位从搜索框到知识工作台"><a class="header" href="#181-系统定位从搜索框到知识工作台">18.1 系统定位：从搜索框到知识工作台</a></h2>
+<p>在这个案例里，企业知识助手解决的不是“用户找不到文档”这么简单。它至少覆盖四个层次。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">层次</th><th style="text-align: left">用户问题</th><th style="text-align: left">系统能力</th></tr>
+<tr><th style="text-align: left">层次</th><th style="text-align: left">用户问题</th><th style="text-align: left">系统能力</th><th style="text-align: left">风险</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">Search</td><td style="text-align: left">这份文档在哪里？</td><td style="text-align: left">跨系统检索、排序、权限过滤</td></tr>
-<tr><td style="text-align: left">Answer</td><td style="text-align: left">这个问题的答案是什么？</td><td style="text-align: left">RAG、引用、摘要、冲突处理</td></tr>
-<tr><td style="text-align: left">Action</td><td style="text-align: left">我下一步该怎么做？</td><td style="text-align: left">工具调用、流程建议、任务创建</td></tr>
+<tr><td style="text-align: left">Search</td><td style="text-align: left">这份文档在哪里？</td><td style="text-align: left">跨系统检索、排序、权限过滤</td><td style="text-align: left">搜不到、搜错、越权</td></tr>
+<tr><td style="text-align: left">Answer</td><td style="text-align: left">这个问题的答案是什么？</td><td style="text-align: left">RAG、引用、摘要、冲突处理</td><td style="text-align: left">编造、引用不支持结论</td></tr>
+<tr><td style="text-align: left">Analysis</td><td style="text-align: left">为什么会这样？</td><td style="text-align: left">多源证据聚合、口径对齐、时序分析</td><td style="text-align: left">因果误判、证据不足</td></tr>
+<tr><td style="text-align: left">Action</td><td style="text-align: left">下一步该做什么？</td><td style="text-align: left">工具调用、任务创建、订阅指标、通知 owner</td><td style="text-align: left">越权执行、错误行动</td></tr>
 </tbody>
 </table>
 </div>
-<p>传统企业搜索通常停留在 Search 层；成熟知识助手会进入 Answer 和 Action 层。</p>
+<p>传统企业搜索通常停留在 Search 层；成熟知识助手会进入 Answer、Analysis 和 Action 层。但越往后，系统越需要强证据、强权限、强审计。</p>
 <h3 id="典型用户工作流"><a class="header" href="#典型用户工作流">典型用户工作流</a></h3>
 <pre><code class="language-text">用户：为什么日本站订单取消率上周升高？
 
 系统：
 1. 识别问题类型：业务分析 + 时间范围 + 地区
-2. 检索相关数据源：BI 报表、实验记录、客服工单、发布记录
-3. 权限过滤：只返回用户有权查看的内容
-4. 证据聚合：订单取消率、支付失败、物流异常、最近发布
-5. 生成答案：给出结论、证据和不确定性
-6. 建议动作：创建分析任务或订阅后续指标
+2. 解析实体：JP、订单取消率、上周
+3. 判断可用数据源：BI 报表、实验记录、客服工单、发布记录、事故记录
+4. 权限过滤：只搜索和读取用户有权访问的内容
+5. 证据聚合：指标变化、支付失败、物流异常、最近发布、客服投诉
+6. 口径校验：不同系统的统计口径是否一致
+7. 生成答案：结论、证据、引用、不确定性
+8. 建议动作：创建分析任务、订阅指标、询问有权限同事补充证据
 </code></pre>
 <p>这类系统的核心不是一次问答，而是把组织知识转化为可操作判断。</p>
+<h3 id="企业知识助手与普通-rag-的区别"><a class="header" href="#企业知识助手与普通-rag-的区别">企业知识助手与普通 RAG 的区别</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">普通 RAG Demo</th><th style="text-align: left">企业知识助手</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">数据源</td><td style="text-align: left">一批文档或网页</td><td style="text-align: left">多 SaaS、多内部系统、多结构化源</td></tr>
+<tr><td style="text-align: left">权限</td><td style="text-align: left">通常忽略</td><td style="text-align: left">用户、组、租户、空间、行列级权限</td></tr>
+<tr><td style="text-align: left">更新</td><td style="text-align: left">手动重建索引</td><td style="text-align: left">增量同步、删除传播、权限漂移修复</td></tr>
+<tr><td style="text-align: left">检索</td><td style="text-align: left">向量 top-k</td><td style="text-align: left">hybrid search、metadata、graph、rerank、freshness、authority</td></tr>
+<tr><td style="text-align: left">输出</td><td style="text-align: left">一段答案</td><td style="text-align: left">结论、引用、证据、口径、不确定性、下一步</td></tr>
+<tr><td style="text-align: left">治理</td><td style="text-align: left">看起来对就行</td><td style="text-align: left">eval、审计、DLP、SLO、owner、反馈闭环</td></tr>
+</tbody>
+</table>
+</div>
+<p>所以，本章的主线不是“如何做一个 RAG”，而是“如何把企业知识作为一套受治理的运行系统”。</p>
+<h3 id="本案例的第一版边界"><a class="header" href="#本案例的第一版边界">本案例的第一版边界</a></h3>
+<p>真实项目最怕一上来就做“公司大脑”。第一版需要克制。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">范围</th><th style="text-align: left">第一版做</th><th style="text-align: left">第一版不做</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">数据源</td><td style="text-align: left">Confluence / SharePoint、Jira、GitHub、BI dashboard</td><td style="text-align: left">全公司所有 SaaS</td></tr>
+<tr><td style="text-align: left">权限</td><td style="text-align: left">SSO 用户、组、空间 / 项目级 ACL</td><td style="text-align: left">复杂行列级权限写操作</td></tr>
+<tr><td style="text-align: left">检索</td><td style="text-align: left">Hybrid Search、metadata filter、rerank</td><td style="text-align: left">全量知识图谱推理</td></tr>
+<tr><td style="text-align: left">答案</td><td style="text-align: left">Grounded Q&amp;A、引用、缺失证据说明</td><td style="text-align: left">自动执行高风险业务动作</td></tr>
+<tr><td style="text-align: left">治理</td><td style="text-align: left">connector health、query trace、反馈路由</td><td style="text-align: left">完整知识治理平台</td></tr>
+</tbody>
+</table>
+</div>
+<p>这个边界让项目可以在 6-10 周内交付一个可用版本，而不是陷入平台大而全。</p>
 <hr>
-<h2 id="132-端到端架构"><a class="header" href="#132-端到端架构">13.2 端到端架构</a></h2>
-<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
-│              Enterprise Knowledge Assistant                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  User / Team / App Context                                  │
-│      │                                                       │
-│      ▼                                                       │
-│  Query Understanding                                         │
-│  ├─ Intent Classification                                    │
-│  ├─ Entity / Time / Scope Extraction                         │
-│  └─ Access Context                                           │
-│      │                                                       │
-│      ▼                                                       │
-│  Retrieval Orchestrator                                      │
-│  ├─ Keyword Search                                           │
-│  ├─ Vector Search                                            │
-│  ├─ Graph / Metadata Filter                                  │
-│  └─ Freshness / Authority Ranker                             │
-│      │                                                       │
-│      ▼                                                       │
-│  Evidence Builder                                            │
-│  ├─ Permission Filtering                                     │
-│  ├─ Dedup / Conflict Detection                               │
-│  ├─ Snippet Selection                                        │
-│  └─ Citation Package                                         │
-│      │                                                       │
-│      ▼                                                       │
-│  Answer Generator                                            │
-│  ├─ Grounded Answer                                          │
-│  ├─ Uncertainty Statement                                    │
-│  ├─ Sources / Citations                                      │
-│  └─ Follow-up Actions                                        │
-│      │                                                       │
-│      ▼                                                       │
-│  Feedback / Eval / Governance                                │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+<h2 id="182-端到端架构两条链路和四个控制面"><a class="header" href="#182-端到端架构两条链路和四个控制面">18.2 端到端架构：两条链路和四个控制面</a></h2>
+<p>企业知识助手可以拆成两条主链路：</p>
+<ul>
+<li><strong>离线链路</strong>：连接器、摄取、解析、权限同步、索引构建、质量检查；</li>
+<li><strong>在线链路</strong>：查询理解、权限裁剪、检索编排、证据构建、答案生成、反馈记录。</li>
+</ul>
+<pre><code class="language-text">Offline Indexing Plane
+  Data Sources
+    │
+    ▼
+  Connectors
+    ├─ content sync
+    ├─ metadata sync
+    ├─ ACL sync
+    └─ deletion / update sync
+    │
+    ▼
+  Document Processing
+    ├─ parsing
+    ├─ chunking
+    ├─ entity extraction
+    ├─ freshness / authority labeling
+    └─ quality validation
+    │
+    ▼
+  Indexes
+    ├─ keyword index
+    ├─ vector index
+    ├─ metadata index
+    ├─ permission index
+    └─ knowledge graph
+
+Online Serving Plane
+  User Query
+    │
+    ▼
+  Query Understanding
+    ├─ intent
+    ├─ entities
+    ├─ time range
+    ├─ source routing
+    └─ access context
+    │
+    ▼
+  Retrieval Orchestrator
+    ├─ hybrid search
+    ├─ metadata / ACL filtering
+    ├─ reranking
+    ├─ dedup
+    └─ evidence selection
+    │
+    ▼
+  Evidence Package
+    ├─ facts
+    ├─ citations
+    ├─ conflicts
+    ├─ gaps
+    └─ confidence
+    │
+    ▼
+  Answer Generator
+    ├─ grounded answer
+    ├─ uncertainty
+    ├─ sources
+    └─ next actions
 </code></pre>
+<p>这套架构旁边还需要四个控制面。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">控制面</th><th style="text-align: left">负责什么</th><th style="text-align: left">典型问题</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Identity &amp; Permission</td><td style="text-align: left">用户、组、源系统 ACL、权限裁剪</td><td style="text-align: left">谁能看什么？权限变更多久生效？</td></tr>
+<tr><td style="text-align: left">Knowledge Governance</td><td style="text-align: left">owner、文档生命周期、权威度、过期策略</td><td style="text-align: left">哪些文档可信？过期知识如何降权？</td></tr>
+<tr><td style="text-align: left">Quality &amp; Eval</td><td style="text-align: left">检索、证据、生成、安全和业务指标</td><td style="text-align: left">系统有没有真的帮用户解决问题？</td></tr>
+<tr><td style="text-align: left">Audit &amp; Compliance</td><td style="text-align: left">查询日志、引用日志、数据保留、DLP</td><td style="text-align: left">谁问了什么？答案基于哪些内容？</td></tr>
+</tbody>
+</table>
+</div>
 <p>架构上最重要的一点是：<strong>权限过滤和证据构建必须发生在答案生成之前</strong>。模型不能看到用户无权访问的内容，也不能在无证据时编造答案。</p>
 <hr>
-<h2 id="133-数据摄取连接器是第一道护城河"><a class="header" href="#133-数据摄取连接器是第一道护城河">13.3 数据摄取：连接器是第一道护城河</a></h2>
+<h2 id="183-连接器企业知识助手的第一道护城河"><a class="header" href="#183-连接器企业知识助手的第一道护城河">18.3 连接器：企业知识助手的第一道护城河</a></h2>
 <p>成熟企业知识助手通常通过连接器接入各种数据源：</p>
 <ul>
-<li>文档系统：Google Drive、SharePoint、Confluence、Notion；</li>
+<li>文档系统：Google Drive、SharePoint、Confluence、Notion、Box；</li>
 <li>协作系统：Slack、Teams、邮件；</li>
-<li>项目系统：Jira、Linear、GitHub；</li>
-<li>客服和 CRM：Zendesk、Salesforce；</li>
-<li>BI 和数据平台：Tableau、Looker、内部报表；</li>
-<li>代码和技术文档：GitHub、GitLab、Runbook。</li>
+<li>项目系统：Jira、Linear、GitHub、GitLab；</li>
+<li>客服和 CRM：Zendesk、Salesforce、ServiceNow；</li>
+<li>BI 和数据平台：Tableau、Looker、内部报表、指标平台；</li>
+<li>技术知识：代码仓库、Runbook、事故复盘、设计文档；</li>
+<li>结构化系统：数据库、工单表、配置中心、CMDB。</li>
 </ul>
-<p>连接器不只是“拉数据”。它至少要做四件事：</p>
+<p>连接器不只是“拉数据”。它至少要做八件事：</p>
 <ol>
-<li>拉取内容；</li>
-<li>解析结构；</li>
-<li>同步权限；</li>
-<li>维护增量更新。</li>
+<li><strong>内容同步</strong>：拉取标题、正文、评论、附件、表格、代码块；</li>
+<li><strong>结构解析</strong>：保留标题层级、表格、链接、图片 OCR、引用关系；</li>
+<li><strong>metadata 同步</strong>：owner、source、space、project、updated_at、doc_type；</li>
+<li><strong>权限同步</strong>：用户、组、外部组、deny / grant、继承关系；</li>
+<li><strong>删除传播</strong>：源系统删除或撤权后，索引必须及时删除或隐藏；</li>
+<li><strong>增量更新</strong>：按变更时间、事件 webhook 或 cursor 递增同步；</li>
+<li><strong>错误隔离</strong>：某个连接器失败不能拖垮全局索引；</li>
+<li><strong>质量报告</strong>：同步延迟、失败率、权限缺失率、解析失败率。</li>
 </ol>
-<h3 id="权限同步比内容同步更重要"><a class="header" href="#权限同步比内容同步更重要">权限同步比内容同步更重要</a></h3>
-<p>企业搜索最怕的不是“搜不到”，而是“搜到了不该看的东西”。</p>
-<p>因此连接器需要同步源系统 ACL：</p>
-<pre><code class="language-text">Document
-  ├─ content
-  ├─ metadata
-  ├─ owner
-  ├─ source
-  ├─ updated_at
-  └─ allowed_principals
-      ├─ users
-      ├─ groups
-      └─ domains
+<h3 id="连接器的数据契约"><a class="header" href="#连接器的数据契约">连接器的数据契约</a></h3>
+<p>连接器输出最好是一种标准化 <code>KnowledgeItem</code>。</p>
+<pre><code class="language-json">{
+  "item_id": "confluence:SPACE:12345",
+  "source": "confluence",
+  "source_url": "https://confluence.example.com/pages/12345",
+  "title": "Payment Timeout Runbook",
+  "body": "&lt;document body&gt;",
+  "metadata": {
+    "space": "PAY",
+    "doc_type": "runbook",
+    "owner": "payments-platform",
+    "created_at": "2025-11-03T10:00:00Z",
+    "updated_at": "2026-04-21T12:30:00Z",
+    "language": "en",
+    "authority": "official_runbook"
+  },
+  "acl": {
+    "grants": [
+      {"type": "group", "id": "payments-oncall"},
+      {"type": "user", "id": "alice@example.com"}
+    ],
+    "denies": [
+      {"type": "group", "id": "contractors"}
+    ],
+    "inheritance": "source_system"
+  },
+  "sync": {
+    "version": "etag-abc",
+    "deleted": false,
+    "last_synced_at": "2026-05-06T09:00:00Z"
+  }
+}
 </code></pre>
+<p>这个契约有一个关键点：<strong>权限和内容同等重要</strong>。如果连接器只能同步正文，不能同步 ACL，它就不能直接进入企业知识助手的主索引。</p>
+<h3 id="权限同步比内容同步更难"><a class="header" href="#权限同步比内容同步更难">权限同步比内容同步更难</a></h3>
+<p>企业搜索最怕的不是“搜不到”，而是“搜到了不该看的东西”。权限问题有很多坑：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">问题</th><th style="text-align: left">例子</th><th style="text-align: left">设计要求</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">组映射</td><td style="text-align: left">Confluence local group 不等于企业 SSO group</td><td style="text-align: left">external group 映射</td></tr>
+<tr><td style="text-align: left">deny 优先</td><td style="text-align: left">文档对 Everyone 开放，但 deny 某个用户</td><td style="text-align: left">deny 必须优先于 grant</td></tr>
+<tr><td style="text-align: left">继承权限</td><td style="text-align: left">空间、目录、页面都有权限</td><td style="text-align: left">同步有效权限或可计算权限</td></tr>
+<tr><td style="text-align: left">权限漂移</td><td style="text-align: left">文档内容没变，但 ACL 变了</td><td style="text-align: left">ACL 单独增量同步</td></tr>
+<tr><td style="text-align: left">删除传播</td><td style="text-align: left">源文档删除后索引仍可见</td><td style="text-align: left">tombstone 和 hard delete</td></tr>
+<tr><td style="text-align: left">大组展开</td><td style="text-align: left">一个组有几万成员</td><td style="text-align: left">不要把组展开到每个 item</td></tr>
+</tbody>
+</table>
+</div>
 <p>查询时再结合用户身份做过滤：</p>
 <pre><code class="language-text">candidate_docs
   │
   ▼
-permission_filter(user_id, groups)
+permission_filter(user_id, groups, external_groups, tenant)
   │
   ▼
 visible_docs
 </code></pre>
 <p>这意味着企业知识助手的检索系统必须同时处理“相关性”和“可见性”。</p>
 <hr>
-<h2 id="134-检索层hybrid-search-是默认选择"><a class="header" href="#134-检索层hybrid-search-是默认选择">13.4 检索层：Hybrid Search 是默认选择</a></h2>
+<h2 id="184-文档处理chunk-不是切字符串"><a class="header" href="#184-文档处理chunk-不是切字符串">18.4 文档处理：Chunk 不是切字符串</a></h2>
+<p>文档处理决定 RAG 上限。企业知识库里的内容很脏：</p>
+<ul>
+<li>Confluence 页面包含嵌套表格、展开块、宏和过期链接；</li>
+<li>Google Docs 和 Word 文档有评论、修订、图片和表格；</li>
+<li>Slack / Teams 讨论是线程化和口语化的；</li>
+<li>Jira / Linear 工单有状态、owner、评论、附件和关联 issue；</li>
+<li>BI 报表有指标口径、筛选条件、更新时间和权限。</li>
+</ul>
+<p>如果直接把这些内容转成纯文本再按长度切 chunk，会丢掉大量关键信息。</p>
+<h3 id="chunk-的四种单位"><a class="header" href="#chunk-的四种单位">Chunk 的四种单位</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">单位</th><th style="text-align: left">用途</th><th style="text-align: left">例子</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">检索单位</td><td style="text-align: left">用于召回</td><td style="text-align: left">一段 runbook、一个 FAQ、一个 issue comment</td></tr>
+<tr><td style="text-align: left">上下文单位</td><td style="text-align: left">放进模型</td><td style="text-align: left">召回片段 + 标题 + metadata + 邻近段落</td></tr>
+<tr><td style="text-align: left">引用单位</td><td style="text-align: left">展示给用户</td><td style="text-align: left">可点击文档位置、页面 anchor、issue comment</td></tr>
+<tr><td style="text-align: left">权限单位</td><td style="text-align: left">ACL 裁剪</td><td style="text-align: left">文档、页面、数据库行、工单字段</td></tr>
+</tbody>
+</table>
+</div>
+<p>这四种单位不一定相同。比如一个文档级 ACL 可以覆盖多个 chunk；一个表格行可能是检索单位；引用时需要回到原页面和行号。</p>
+<h3 id="结构化解析优先于纯文本切分"><a class="header" href="#结构化解析优先于纯文本切分">结构化解析优先于纯文本切分</a></h3>
+<p>更稳的处理流程是：</p>
+<pre><code class="language-text">Raw Document
+  │
+  ▼
+Structured Parse
+  ├─ headings
+  ├─ paragraphs
+  ├─ tables
+  ├─ code blocks
+  ├─ links
+  ├─ comments
+  └─ attachments
+  │
+  ▼
+Semantic Blocks
+  ├─ section
+  ├─ table row group
+  ├─ decision record
+  ├─ incident timeline
+  └─ FAQ pair
+  │
+  ▼
+Indexable Chunks
+</code></pre>
+<p>表格尤其要小心。很多企业知识藏在表格里，例如接口字段、故障码、价格规则、审批矩阵。表格不能简单 flatten 成一坨文本，至少要保留表头、行号和单位。</p>
+<h3 id="freshnessauthority-与-lifecycle"><a class="header" href="#freshnessauthority-与-lifecycle">Freshness、Authority 与 Lifecycle</a></h3>
+<p>企业知识不是永久事实。每个 item 和 chunk 都应该带生命周期 metadata。</p>
+<pre><code class="language-yaml">freshness:
+  updated_at: "2026-04-21"
+  expires_at: "2026-07-21"
+  stale_after_days: 90
+authority:
+  level: official_runbook
+  owner: payments-platform
+  verified_by: alice@example.com
+lifecycle:
+  status: active
+  supersedes: ["confluence:PAY:998"]
+  superseded_by: []
+</code></pre>
+<p>上线后常见的幻觉不是模型凭空编造，而是系统检索到过期文档，模型基于过期证据给出了“看起来有引用”的错误答案。</p>
+<hr>
+<h2 id="185-检索层hybrid-search-是默认选择"><a class="header" href="#185-检索层hybrid-search-是默认选择">18.5 检索层：Hybrid Search 是默认选择</a></h2>
 <p>单纯向量检索不适合企业知识场景，因为企业问题经常包含精确实体：</p>
 <ul>
 <li>工单号；</li>
@@ -314,7 +513,9 @@ visible_docs
 <li>服务名；</li>
 <li>文档标题；</li>
 <li>错误码；</li>
-<li>表名和字段名。</li>
+<li>表名和字段名；</li>
+<li>指标名；</li>
+<li>发布版本。</li>
 </ul>
 <p>成熟系统通常使用 Hybrid Search：</p>
 <pre><code class="language-text">Query
@@ -322,8 +523,45 @@ visible_docs
   ├─ Dense Vector Search
   ├─ Metadata Filter
   ├─ Graph Expansion
-  └─ Reranking
+  ├─ Reranking
+  └─ Freshness / Authority Scoring
 </code></pre>
+<h3 id="query-understanding"><a class="header" href="#query-understanding">Query Understanding</a></h3>
+<p>检索前要先理解用户问题。</p>
+<pre><code class="language-json">{
+  "raw_query": "为什么日本站订单取消率上周升高？",
+  "intent": "business_root_cause_analysis",
+  "entities": [
+    {"type": "region", "value": "JP"},
+    {"type": "metric", "value": "order_cancellation_rate"}
+  ],
+  "time_range": {
+    "start": "2026-04-20",
+    "end": "2026-04-27"
+  },
+  "source_hints": ["bi", "incident", "release_notes", "support_tickets"],
+  "requires_fresh_data": true,
+  "risk_level": "medium"
+}
+</code></pre>
+<p>Query Understanding 的价值是把自然语言问题转成检索计划，而不是直接拿原句去向量库里搜。</p>
+<h3 id="source-routing"><a class="header" href="#source-routing">Source Routing</a></h3>
+<p>不同问题应该路由到不同知识源。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">问题类型</th><th style="text-align: left">优先源</th><th style="text-align: left">不适合只查</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">“这个流程怎么做？”</td><td style="text-align: left">Runbook、SOP、FAQ</td><td style="text-align: left">Slack 讨论</td></tr>
+<tr><td style="text-align: left">“这个指标为什么变了？”</td><td style="text-align: left">BI、事故、发布、工单</td><td style="text-align: left">静态文档</td></tr>
+<tr><td style="text-align: left">“这个字段是什么意思？”</td><td style="text-align: left">数据字典、代码、schema</td><td style="text-align: left">邮件</td></tr>
+<tr><td style="text-align: left">“谁负责这个系统？”</td><td style="text-align: left">CMDB、owner registry、代码 CODEOWNERS</td><td style="text-align: left">旧文档</td></tr>
+<tr><td style="text-align: left">“历史上怎么处理？”</td><td style="text-align: left">事故复盘、工单、on-call 记录</td><td style="text-align: left">官方规范</td></tr>
+</tbody>
+</table>
+</div>
+<p>Source Routing 能显著减少无关召回，也能降低成本。</p>
 <h3 id="排序信号"><a class="header" href="#排序信号">排序信号</a></h3>
 <p>企业知识排序不能只看语义相似度，还要考虑：</p>
 <div class="table-wrapper">
@@ -336,9 +574,11 @@ visible_docs
 <tr><td style="text-align: left">关键词匹配</td><td style="text-align: left">保证精确实体不丢</td></tr>
 <tr><td style="text-align: left">更新时间</td><td style="text-align: left">避免旧文档误导</td></tr>
 <tr><td style="text-align: left">权威度</td><td style="text-align: left">官方文档高于聊天记录</td></tr>
-<tr><td style="text-align: left">用户关系</td><td style="text-align: left">同团队内容更可能相关</td></tr>
+<tr><td style="text-align: left">用户关系</td><td style="text-align: left">同团队、同项目内容更可能相关</td></tr>
 <tr><td style="text-align: left">点击和反馈</td><td style="text-align: left">组织内部使用行为</td></tr>
 <tr><td style="text-align: left">引用链</td><td style="text-align: left">被其他文档引用的内容更重要</td></tr>
+<tr><td style="text-align: left">任务意图</td><td style="text-align: left">问 runbook 时优先 runbook，问事故时优先 incident</td></tr>
+<tr><td style="text-align: left">权限稳定性</td><td style="text-align: left">权限不完整的数据源应降权或隔离</td></tr>
 </tbody>
 </table>
 </div>
@@ -350,47 +590,122 @@ visible_docs
 低权威 + 过期：默认降权
 </code></pre>
 <p>这比“取 top-k 文档”更接近真实企业搜索。</p>
+<h3 id="rerank-不只是相关性排序"><a class="header" href="#rerank-不只是相关性排序">Rerank 不只是相关性排序</a></h3>
+<p>企业场景的 reranker 可以拆成多阶段：</p>
+<pre><code class="language-text">Candidate Recall
+  │
+  ├─ ACL filter
+  ├─ metadata filter
+  ├─ source routing
+  ▼
+Rerank
+  ├─ semantic relevance
+  ├─ exact entity match
+  ├─ freshness
+  ├─ authority
+  ├─ diversity
+  └─ citation quality
+</code></pre>
+<p>注意顺序：权限过滤应该在模型看到内容之前完成。不要把无权限文档召回后再让模型“忽略它”。</p>
 <hr>
-<h2 id="135-evidence-package让答案有证据边界"><a class="header" href="#135-evidence-package让答案有证据边界">13.5 Evidence Package：让答案有证据边界</a></h2>
+<h2 id="186-evidence-package让答案有证据边界"><a class="header" href="#186-evidence-package让答案有证据边界">18.6 Evidence Package：让答案有证据边界</a></h2>
 <p>RAG 的关键中间产物不应该是“拼接后的上下文”，而应该是 Evidence Package。</p>
 <pre><code class="language-json">{
   "question": "为什么日本站订单取消率上周升高？",
+  "query_understanding": {
+    "intent": "business_root_cause_analysis",
+    "time_range": "2026-04-20/2026-04-27",
+    "entities": ["JP", "order_cancellation_rate"]
+  },
   "evidence": [
     {
+      "id": "ev_001",
       "source": "bi://orders/cancellation_dashboard",
       "title": "JP Order Cancellation Dashboard",
+      "claim": "JP cancellation rate increased from 2.1% to 4.8%.",
       "snippet": "Cancellation rate increased from 2.1% to 4.8% between Apr 20 and Apr 27.",
       "updated_at": "2026-04-28",
       "authority": "official_metric",
-      "permission_checked": true
+      "permission_checked": true,
+      "citation": {
+        "url": "bi://orders/cancellation_dashboard",
+        "section": "JP weekly trend"
+      }
     },
     {
+      "id": "ev_002",
       "source": "jira://PAY-8842",
       "title": "Payment timeout increase in JP",
+      "claim": "Payment timeouts increased after payment-router-v3 deploy.",
       "snippet": "Timeout errors increased after deploy payment-router-v3.",
       "updated_at": "2026-04-25",
       "authority": "incident_ticket",
-      "permission_checked": true
+      "permission_checked": true,
+      "citation": {
+        "url": "jira://PAY-8842",
+        "section": "incident summary"
+      }
+    }
+  ],
+  "conflicts": [
+    {
+      "description": "Support weekly report says cancellation is stable.",
+      "possible_reason": "Support report uses complaint time, BI uses order create time."
     }
   ],
   "gaps": [
     "No logistics dashboard access for current user."
-  ]
+  ],
+  "confidence": "medium"
 }
 </code></pre>
-<p>Evidence Package 有三个价值：</p>
+<p>Evidence Package 有五个价值：</p>
 <ul>
 <li>让模型只能基于证据回答；</li>
 <li>让用户能追溯答案来源；</li>
-<li>让评估系统能检查引用是否支持结论。</li>
+<li>让评估系统能检查引用是否支持结论；</li>
+<li>让权限审计知道答案使用了哪些内容；</li>
+<li>让系统能在证据不足时拒答或请求补充权限。</li>
 </ul>
+<h3 id="evidence-不是-chunk"><a class="header" href="#evidence-不是-chunk">Evidence 不是 Chunk</a></h3>
+<p>Chunk 是检索材料，Evidence 是被系统选中、可支撑某个 claim 的证据。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">Chunk</th><th style="text-align: left">Evidence</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">来源</td><td style="text-align: left">索引切片</td><td style="text-align: left">经过筛选的候选</td></tr>
+<tr><td style="text-align: left">目标</td><td style="text-align: left">提高召回</td><td style="text-align: left">支撑答案</td></tr>
+<tr><td style="text-align: left">内容</td><td style="text-align: left">可能只是相关文本</td><td style="text-align: left">必须能表达事实或观点</td></tr>
+<tr><td style="text-align: left">权限</td><td style="text-align: left">必须已过滤</td><td style="text-align: left">必须可审计</td></tr>
+<tr><td style="text-align: left">评估</td><td style="text-align: left">recall / precision</td><td style="text-align: left">citation support / claim support</td></tr>
+</tbody>
+</table>
+</div>
+<p>这也是企业知识助手和普通 RAG Demo 的分界线。</p>
+<h3 id="证据充分性检查"><a class="header" href="#证据充分性检查">证据充分性检查</a></h3>
+<p>生成答案前，可以做一次 Evidence Sufficiency Check。</p>
+<pre><code class="language-text">问题：为什么日本站订单取消率上周升高？
+
+必要证据：
+- 指标是否确实升高？
+- 时间窗口是否明确？
+- 是否有候选原因？
+- 候选原因是否和时间线对齐？
+- 是否有反证？
+- 是否说明缺失的数据源？
+</code></pre>
+<p>如果必要证据不足，系统应该输出“当前证据不足”，而不是让模型硬答。</p>
 <hr>
-<h2 id="136-答案生成引用冲突与不确定性"><a class="header" href="#136-答案生成引用冲突与不确定性">13.6 答案生成：引用、冲突与不确定性</a></h2>
-<p>企业知识助手的回答应该避免“全知口吻”。它需要表达三种东西：</p>
+<h2 id="187-答案生成引用冲突与不确定性"><a class="header" href="#187-答案生成引用冲突与不确定性">18.7 答案生成：引用、冲突与不确定性</a></h2>
+<p>企业知识助手的回答应该避免“全知口吻”。它需要表达五种东西：</p>
 <ol>
 <li>结论；</li>
 <li>证据；</li>
-<li>不确定性。</li>
+<li>引用；</li>
+<li>不确定性；</li>
+<li>下一步动作。</li>
 </ol>
 <h3 id="好的答案结构"><a class="header" href="#好的答案结构">好的答案结构</a></h3>
 <pre><code class="language-text">结论：
@@ -408,6 +723,23 @@ visible_docs
 1. 检查 payment-router-v3 的 JP 路由超时配置。
 2. 让有权限的同事补充物流异常数据。
 </code></pre>
+<h3 id="引用策略"><a class="header" href="#引用策略">引用策略</a></h3>
+<p>引用不是装饰，而是答案可信度的接口。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">引用类型</th><th style="text-align: left">用途</th><th style="text-align: left">要求</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">文档引用</td><td style="text-align: left">支撑流程、规则、背景</td><td style="text-align: left">指向原文 section 或段落</td></tr>
+<tr><td style="text-align: left">工单引用</td><td style="text-align: left">支撑事件、状态、owner</td><td style="text-align: left">指向 issue / comment</td></tr>
+<tr><td style="text-align: left">指标引用</td><td style="text-align: left">支撑数值和趋势</td><td style="text-align: left">保留时间范围和筛选条件</td></tr>
+<tr><td style="text-align: left">代码引用</td><td style="text-align: left">支撑实现行为</td><td style="text-align: left">指向文件和行号</td></tr>
+<tr><td style="text-align: left">聊天引用</td><td style="text-align: left">支撑非正式信息</td><td style="text-align: left">标记低权威，不单独作为结论</td></tr>
+</tbody>
+</table>
+</div>
+<p>引用链接打开时，仍应由源系统校验权限。不能因为答案里出现了引用，就绕过源系统访问控制。</p>
 <h3 id="冲突处理"><a class="header" href="#冲突处理">冲突处理</a></h3>
 <p>当证据冲突时，不要让模型“平均一下”。应该显式输出：</p>
 <pre><code class="language-text">证据冲突：
@@ -416,42 +748,143 @@ visible_docs
 - 两者统计口径不同：BI 按订单创建时间，客服按投诉时间。
 </code></pre>
 <p>这类回答比强行给结论更可信。</p>
+<h3 id="拒答也是产品能力"><a class="header" href="#拒答也是产品能力">拒答也是产品能力</a></h3>
+<p>企业知识助手应该有拒答协议。</p>
+<pre><code class="language-text">我当前无法给出可靠结论，因为：
+1. 没有可访问的物流异常数据；
+2. 支付工单只有现象，没有根因确认；
+3. 发布记录缺少 JP 分流配置。
+
+可以继续做的事：
+- 请求 logistics-dashboard 权限；
+- 查询支付错误码按渠道分布；
+- 找 payment-router-v3 的 owner 确认配置变更。
+</code></pre>
+<p>拒答不是失败。无证据自信回答才是失败。</p>
 <hr>
-<h2 id="137-企业治理权限审计和数据边界"><a class="header" href="#137-企业治理权限审计和数据边界">13.7 企业治理：权限、审计和数据边界</a></h2>
+<h2 id="188-企业权限模型acl身份映射与安全裁剪"><a class="header" href="#188-企业权限模型acl身份映射与安全裁剪">18.8 企业权限模型：ACL、身份映射与安全裁剪</a></h2>
 <p>成熟系统必须把安全设计放在架构里，而不是放在提示词里。</p>
-<h3 id="权限模型"><a class="header" href="#权限模型">权限模型</a></h3>
+<h3 id="身份上下文"><a class="header" href="#身份上下文">身份上下文</a></h3>
 <pre><code class="language-text">User Identity
   ├─ user_id
+  ├─ email
+  ├─ tenant
   ├─ groups
+  ├─ external_groups
   ├─ department
   ├─ region
   └─ role
-
-Document ACL
-  ├─ users
-  ├─ groups
-  ├─ domains
-  └─ source-specific rules
+</code></pre>
+<h3 id="文档-acl"><a class="header" href="#文档-acl">文档 ACL</a></h3>
+<pre><code class="language-text">Document ACL
+  ├─ grants
+  │   ├─ users
+  │   ├─ groups
+  │   ├─ external_groups
+  │   └─ domains
+  ├─ denies
+  │   ├─ users
+  │   └─ groups
+  └─ inheritance
 </code></pre>
 <p>系统必须保证：</p>
 <ul>
 <li>检索阶段不返回无权文档；</li>
 <li>生成阶段不注入无权内容；</li>
 <li>引用链接打开时仍由源系统校验权限；</li>
-<li>审计日志能追踪谁问了什么、引用了什么。</li>
+<li>审计日志能追踪谁问了什么、引用了什么；</li>
+<li>权限变更能增量同步；</li>
+<li>源系统删除内容后，索引不可继续暴露。</li>
 </ul>
-<h3 id="数据边界"><a class="header" href="#数据边界">数据边界</a></h3>
-<p>企业知识助手通常需要明确回答：</p>
-<ul>
-<li>用户数据是否用于训练？</li>
-<li>文件上传保留多久？</li>
-<li>哪些连接器有写权限？</li>
-<li>是否支持数据驻留要求？</li>
-<li>是否支持 SSO、SCIM、审计导出？</li>
-</ul>
-<p>这些不是合规团队才关心的问题，它们直接决定系统能否在企业内部上线。</p>
+<h3 id="安全裁剪的三种位置"><a class="header" href="#安全裁剪的三种位置">安全裁剪的三种位置</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">位置</th><th style="text-align: left">做法</th><th style="text-align: left">风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Pre-filter</td><td style="text-align: left">检索前把权限条件加入 query</td><td style="text-align: left">最安全，但需要权限索引强</td></tr>
+<tr><td style="text-align: left">Mid-filter</td><td style="text-align: left">召回后、rerank 前过滤</td><td style="text-align: left">可行，但无权候选不能进模型</td></tr>
+<tr><td style="text-align: left">Post-filter</td><td style="text-align: left">生成后再删敏感内容</td><td style="text-align: left">不可靠，不应作为主方案</td></tr>
+</tbody>
+</table>
+</div>
+<p>企业知识助手应该优先使用 pre-filter 或 mid-filter。Post-filter 只能作为防御层，不能作为权限主机制。</p>
+<h3 id="权限泄露的常见路径"><a class="header" href="#权限泄露的常见路径">权限泄露的常见路径</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">路径</th><th style="text-align: left">例子</th><th style="text-align: left">防护</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">召回泄露</td><td style="text-align: left">无权文档进入上下文</td><td style="text-align: left">ACL filter 前置</td></tr>
+<tr><td style="text-align: left">摘要泄露</td><td style="text-align: left">老 session 里保留无权摘要</td><td style="text-align: left">session 权限重校验</td></tr>
+<tr><td style="text-align: left">引用泄露</td><td style="text-align: left">answer 显示敏感标题</td><td style="text-align: left">标题也要权限过滤</td></tr>
+<tr><td style="text-align: left">group 漂移</td><td style="text-align: left">用户已离组但索引未更新</td><td style="text-align: left">ACL 增量同步和 TTL</td></tr>
+<tr><td style="text-align: left">connector token 过大</td><td style="text-align: left">连接器用超级权限读取</td><td style="text-align: left">最小权限和源侧审计</td></tr>
+<tr><td style="text-align: left">跨租户污染</td><td style="text-align: left">多租户索引 filter 失效</td><td style="text-align: left">tenant_id 强制过滤</td></tr>
+</tbody>
+</table>
+</div>
+<p>权限不是一个检索参数，而是企业知识助手的生命线。</p>
 <hr>
-<h2 id="138-反馈闭环与质量评估"><a class="header" href="#138-反馈闭环与质量评估">13.8 反馈闭环与质量评估</a></h2>
+<h2 id="189-知识治理让组织知识持续可用"><a class="header" href="#189-知识治理让组织知识持续可用">18.9 知识治理：让组织知识持续可用</a></h2>
+<p>很多企业知识助手上线后，最大问题不是模型，而是知识本身质量差。</p>
+<p>常见症状：</p>
+<ul>
+<li>同一流程有三份文档，互相矛盾；</li>
+<li>runbook 三年没更新，但仍排在第一；</li>
+<li>Slack 里有最新结论，但没有沉淀到正式文档；</li>
+<li>owner 离职后文档无人维护；</li>
+<li>文档标题很像，但适用地区、版本、业务线不同；</li>
+<li>用户反馈“答案错了”，但没人负责修源文档。</li>
+</ul>
+<h3 id="knowledge-owner"><a class="header" href="#knowledge-owner">Knowledge Owner</a></h3>
+<p>每类知识应该有 owner。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">知识类型</th><th style="text-align: left">Owner</th><th style="text-align: left">维护动作</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Runbook</td><td style="text-align: left">服务 owner / on-call team</td><td style="text-align: left">定期验证、事故后更新</td></tr>
+<tr><td style="text-align: left">指标口径</td><td style="text-align: left">数据团队</td><td style="text-align: left">schema 和定义变更同步</td></tr>
+<tr><td style="text-align: left">产品流程</td><td style="text-align: left">产品运营</td><td style="text-align: left">上线后更新和版本标记</td></tr>
+<tr><td style="text-align: left">技术设计</td><td style="text-align: left">工程团队</td><td style="text-align: left">架构变更后更新</td></tr>
+<tr><td style="text-align: left">客服 FAQ</td><td style="text-align: left">客服运营</td><td style="text-align: left">基于问题频率更新</td></tr>
+</tbody>
+</table>
+</div>
+<p>没有 owner 的知识，系统应该降权或标记为 unverified。</p>
+<h3 id="文档生命周期"><a class="header" href="#文档生命周期">文档生命周期</a></h3>
+<pre><code class="language-text">draft
+  -&gt; reviewed
+  -&gt; active
+  -&gt; stale
+  -&gt; deprecated
+  -&gt; archived
+</code></pre>
+<p>不同状态应该影响检索排序和答案语气：</p>
+<ul>
+<li><code>active</code>：可以作为主要证据；</li>
+<li><code>stale</code>：可以引用，但必须提示过期风险；</li>
+<li><code>deprecated</code>：默认不引用，除非用户明确查历史；</li>
+<li><code>archived</code>：只用于历史追溯。</li>
+</ul>
+<h3 id="知识修复闭环"><a class="header" href="#知识修复闭环">知识修复闭环</a></h3>
+<p>用户反馈应该能路由到具体修复动作：</p>
+<pre><code class="language-text">wrong answer
+  │
+  ├─ retrieval missed source      -&gt; improve connector / index / rerank
+  ├─ citation not supporting      -&gt; fix evidence selection
+  ├─ source outdated              -&gt; notify owner / mark stale
+  ├─ permission issue             -&gt; fix ACL sync
+  ├─ conflicting documents        -&gt; trigger governance review
+  └─ generation overconfident     -&gt; adjust answer protocol / eval
+</code></pre>
+<p>不要把所有问题都归因于 prompt。</p>
+<hr>
+<h2 id="1810-反馈闭环与质量评估"><a class="header" href="#1810-反馈闭环与质量评估">18.10 反馈闭环与质量评估</a></h2>
 <p>企业知识助手的质量不能只看“用户点赞”。需要分层评估。</p>
 <div class="table-wrapper">
 <table>
@@ -459,40 +892,71 @@ Document ACL
 <tr><th style="text-align: left">层次</th><th style="text-align: left">指标</th><th style="text-align: left">示例</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">检索</td><td style="text-align: left">Recall@k、MRR、权限误召回</td><td style="text-align: left">正确文档是否进入候选集</td></tr>
-<tr><td style="text-align: left">证据</td><td style="text-align: left">引用支持率、冲突识别率</td><td style="text-align: left">结论是否被证据支持</td></tr>
-<tr><td style="text-align: left">生成</td><td style="text-align: left">正确性、完整性、拒答率</td><td style="text-align: left">是否在证据不足时停止</td></tr>
-<tr><td style="text-align: left">安全</td><td style="text-align: left">越权率、敏感信息泄露率</td><td style="text-align: left">是否泄露无权内容</td></tr>
-<tr><td style="text-align: left">业务</td><td style="text-align: left">节省时间、任务完成率</td><td style="text-align: left">是否减少人工查找成本</td></tr>
+<tr><td style="text-align: left">连接器</td><td style="text-align: left">sync latency、parse failure、ACL coverage</td><td style="text-align: left">文档和权限是否同步成功</td></tr>
+<tr><td style="text-align: left">检索</td><td style="text-align: left">Recall@k、MRR、NDCG、zero-result rate</td><td style="text-align: left">正确文档是否进入候选集</td></tr>
+<tr><td style="text-align: left">权限</td><td style="text-align: left">ACL violation rate、permission false negative</td><td style="text-align: left">是否越权或误拦</td></tr>
+<tr><td style="text-align: left">证据</td><td style="text-align: left">citation support、claim support、conflict detection</td><td style="text-align: left">结论是否被证据支持</td></tr>
+<tr><td style="text-align: left">生成</td><td style="text-align: left">groundedness、completeness、refusal quality</td><td style="text-align: left">是否在证据不足时停止</td></tr>
+<tr><td style="text-align: left">安全</td><td style="text-align: left">PII leak、secret leak、cross-tenant leak</td><td style="text-align: left">是否泄露敏感信息</td></tr>
+<tr><td style="text-align: left">业务</td><td style="text-align: left">time saved、task completion、follow-up rate</td><td style="text-align: left">是否减少人工查找成本</td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="线上反馈如何进入系统"><a class="header" href="#线上反馈如何进入系统">线上反馈如何进入系统</a></h3>
-<pre><code class="language-text">User Feedback
-  ├─ helpful / not helpful
-  ├─ wrong citation
-  ├─ outdated document
-  ├─ missing source
-  └─ permission issue
-        │
-        ▼
-Eval Dataset / Index Fix / Connector Fix / Prompt Fix
+<h3 id="eval-数据集"><a class="header" href="#eval-数据集">Eval 数据集</a></h3>
+<p>企业知识助手至少需要几类 eval case：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">Case 类型</th><th style="text-align: left">测什么</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Golden Q&amp;A</td><td style="text-align: left">标准问题是否答对</td></tr>
+<tr><td style="text-align: left">Known Source Retrieval</td><td style="text-align: left">指定问题是否召回正确文档</td></tr>
+<tr><td style="text-align: left">Permission Boundary</td><td style="text-align: left">不同用户是否看到不同答案</td></tr>
+<tr><td style="text-align: left">Conflict Cases</td><td style="text-align: left">证据冲突时是否说明冲突</td></tr>
+<tr><td style="text-align: left">Stale Document Cases</td><td style="text-align: left">旧文档是否被降权或标记</td></tr>
+<tr><td style="text-align: left">No Evidence Cases</td><td style="text-align: left">无证据时是否拒答</td></tr>
+<tr><td style="text-align: left">Sensitive Data Cases</td><td style="text-align: left">是否泄露 secret、PII、薪酬等信息</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="trace-设计"><a class="header" href="#trace-设计">Trace 设计</a></h3>
+<p>每次查询都应该记录结构化 trace。</p>
+<pre><code class="language-json">{
+  "query_id": "q_123",
+  "user_hash": "user_abc",
+  "intent": "business_root_cause_analysis",
+  "sources_routed": ["bi", "jira", "release_notes"],
+  "filters": {
+    "tenant": "company_a",
+    "groups_count": 12,
+    "time_range": "2026-04-20/2026-04-27"
+  },
+  "retrieval": {
+    "keyword_candidates": 42,
+    "vector_candidates": 50,
+    "visible_candidates": 31,
+    "reranked": 10
+  },
+  "evidence_ids": ["ev_001", "ev_002"],
+  "answer": {
+    "refused": false,
+    "confidence": "medium",
+    "citations": 3
+  },
+  "latency_ms": 2480,
+  "created_at": "2026-05-06T10:00:00Z"
+}
 </code></pre>
-<p>注意：不是所有问题都应该修 Prompt。</p>
-<ul>
-<li>找不到文档：可能是连接器或索引问题；</li>
-<li>引用错文档：可能是 reranker 问题；</li>
-<li>答案越权：是权限系统问题；</li>
-<li>编造结论：是生成约束和证据包问题；</li>
-<li>文档过期：是知识治理问题。</li>
-</ul>
+<p>trace 里不要存原始敏感内容，可以存引用、hash、artifact id 和脱敏摘要。</p>
 <hr>
-<h2 id="139-工程取舍"><a class="header" href="#139-工程取舍">13.9 工程取舍</a></h2>
+<h2 id="1811-工程取舍"><a class="header" href="#1811-工程取舍">18.11 工程取舍</a></h2>
 <h3 id="1-答案速度-vs-证据完整性"><a class="header" href="#1-答案速度-vs-证据完整性">1. 答案速度 vs 证据完整性</a></h3>
 <p>搜索助手需要快，但企业决策需要证据。可以用分层响应：</p>
 <pre><code class="language-text">快速答案：先给初步结论和 3 条证据
 深度分析：后台继续检索更多源，更新答案
 </code></pre>
+<p>但是，高风险场景不能为了速度牺牲证据。例如合规、财务、权限、生产事故根因分析，应该优先完整证据和人工确认。</p>
 <h3 id="2-个性化-vs-信息茧房"><a class="header" href="#2-个性化-vs-信息茧房">2. 个性化 vs 信息茧房</a></h3>
 <p>个性化排序能提高命中率，但也可能让用户只看到本部门视角。关键问题需要跨源证据，而不是只取“最像用户平时点击的内容”。</p>
 <h3 id="3-内部知识-vs-外部知识"><a class="header" href="#3-内部知识-vs-外部知识">3. 内部知识 vs 外部知识</a></h3>
@@ -504,51 +968,162 @@ premium_data
 user_uploaded
 </code></pre>
 <p>不同来源进入答案时应有不同置信度和引用方式。</p>
+<h3 id="4-权限严格-vs-召回损失"><a class="header" href="#4-权限严格-vs-召回损失">4. 权限严格 vs 召回损失</a></h3>
+<p>权限过滤越严格，越可能漏掉用户“应该能看但同步失败”的内容。但这类问题不能靠放宽权限解决，应该通过 connector health、ACL coverage 和权限缺失反馈修复。</p>
+<h3 id="5-单一索引-vs-多索引"><a class="header" href="#5-单一索引-vs-多索引">5. 单一索引 vs 多索引</a></h3>
+<p>单一索引简单，但很难处理权限、数据类型和排序差异。多索引更复杂，但适合企业场景：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">索引</th><th style="text-align: left">用途</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">document index</td><td style="text-align: left">文档、页面、附件</td></tr>
+<tr><td style="text-align: left">message index</td><td style="text-align: left">Slack、Teams、邮件</td></tr>
+<tr><td style="text-align: left">ticket index</td><td style="text-align: left">Jira、Linear、Zendesk</td></tr>
+<tr><td style="text-align: left">metric index</td><td style="text-align: left">指标、报表、dashboard</td></tr>
+<tr><td style="text-align: left">code index</td><td style="text-align: left">代码、设计、owner</td></tr>
+<tr><td style="text-align: left">graph index</td><td style="text-align: left">人、系统、项目、文档关系</td></tr>
+</tbody>
+</table>
+</div>
+<p>Retrieval Orchestrator 负责 source routing 和结果融合。</p>
 <hr>
-<h2 id="1310-可借鉴点"><a class="header" href="#1310-可借鉴点">13.10 可借鉴点</a></h2>
-<p>设计企业知识助手时，可以直接借鉴这些原则：</p>
+<h2 id="1812-落地路线从-mvp-到企业级"><a class="header" href="#1812-落地路线从-mvp-到企业级">18.12 落地路线：从 MVP 到企业级</a></h2>
+<p>企业知识助手不要一开始就做“大一统公司大脑”。更现实的路线是：</p>
+<h3 id="第一阶段read-only-enterprise-search"><a class="header" href="#第一阶段read-only-enterprise-search">第一阶段：Read-only Enterprise Search</a></h3>
 <ul>
-<li>连接器必须同步权限，不只是同步内容；</li>
-<li>检索默认使用 Hybrid Search，而不是只用向量库；</li>
-<li>中间产物设计成 Evidence Package；</li>
-<li>生成答案必须包含引用、证据和不确定性；</li>
-<li>过期文档需要降权或显式标记；</li>
-<li>反馈要能路由到索引、权限、Prompt、文档治理等不同修复路径；</li>
-<li>高风险领域宁可拒答，也不要无证据自信回答。</li>
+<li>接 2-3 个核心数据源；</li>
+<li>同步 ACL；</li>
+<li>做 hybrid search；</li>
+<li>返回文档和片段，不生成复杂答案；</li>
+<li>建立 connector health dashboard。</li>
+</ul>
+<p>目标是证明“搜得准、搜得安全”。</p>
+<h3 id="第二阶段grounded-qa"><a class="header" href="#第二阶段grounded-qa">第二阶段：Grounded Q&amp;A</a></h3>
+<ul>
+<li>构建 Evidence Package；</li>
+<li>支持引用和不确定性；</li>
+<li>支持无证据拒答；</li>
+<li>建立 golden Q&amp;A eval；</li>
+<li>记录 query trace。</li>
+</ul>
+<p>目标是证明“答得有证据”。</p>
+<h3 id="第三阶段multi-source-analysis"><a class="header" href="#第三阶段multi-source-analysis">第三阶段：Multi-source Analysis</a></h3>
+<ul>
+<li>支持 source routing；</li>
+<li>接入 BI、工单、发布记录、事故复盘；</li>
+<li>支持冲突检测和口径说明；</li>
+<li>支持深度分析异步任务。</li>
+</ul>
+<p>目标是从“文档问答”升级为“知识分析”。</p>
+<h3 id="第四阶段action-assistant"><a class="header" href="#第四阶段action-assistant">第四阶段：Action Assistant</a></h3>
+<ul>
+<li>支持创建工单、订阅指标、通知 owner；</li>
+<li>工具分风险等级；</li>
+<li>高风险动作必须审批；</li>
+<li>审计日志和 DLP 完整接入。</li>
+</ul>
+<p>目标是从“给答案”升级为“辅助行动”。</p>
+<h3 id="第五阶段knowledge-governance-platform"><a class="header" href="#第五阶段knowledge-governance-platform">第五阶段：Knowledge Governance Platform</a></h3>
+<ul>
+<li>owner 工作台；</li>
+<li>过期文档提醒；</li>
+<li>冲突文档治理；</li>
+<li>用户反馈路由；</li>
+<li>eval 和质量报表进入团队治理。</li>
+</ul>
+<p>目标是让知识质量持续改善，而不是靠一次性索引工程。</p>
+<hr>
+<h2 id="1813-参考架构企业知识助手控制面"><a class="header" href="#1813-参考架构企业知识助手控制面">18.13 参考架构：企业知识助手控制面</a></h2>
+<pre class="mermaid">
+flowchart TD
+    User["User / App"] --&gt; Query["Query Understanding"]
+    Query --&gt; Router["Source Router"]
+    Router --&gt; Search["Hybrid Retrieval"]
+    Search --&gt; ACL["Permission Filter"]
+    ACL --&gt; Rerank["Reranker"]
+    Rerank --&gt; Evidence["Evidence Builder"]
+    Evidence --&gt; Sufficiency{"Evidence Enough?"}
+    Sufficiency --&gt;|Yes| Answer["Grounded Answer"]
+    Sufficiency --&gt;|No| Refuse["Refuse / Ask for More Context"]
+    Answer --&gt; Feedback["Feedback Collector"]
+    Refuse --&gt; Feedback
+
+    Sources["Enterprise Sources"] --&gt; Connectors["Connectors"]
+    Connectors --&gt; Processing["Parsing / Chunking / Metadata"]
+    Processing --&gt; Indexes["Keyword / Vector / Metadata / Graph Indexes"]
+    Indexes --&gt; Search
+
+    Identity["SSO / Groups / ACL"] --&gt; ACL
+    Governance["Owner / Freshness / Authority"] --&gt; Rerank
+    Feedback --&gt; Eval["Eval Dataset / Quality Dashboard"]
+    Feedback --&gt; Governance
+    Feedback --&gt; Connectors
+</pre>
+
+<p>这张图的重点是闭环：不是 query 进来、answer 出去就结束。反馈、评估、文档治理和连接器质量会反过来影响下一次检索和答案生成。</p>
+<hr>
+<h2 id="1814-面试表达与设计清单"><a class="header" href="#1814-面试表达与设计清单">18.14 面试表达与设计清单</a></h2>
+<p>如果面试官问“如何设计一个企业知识助手”，不要只说“向量数据库 + RAG”。</p>
+<p>可以这样表达：</p>
+<blockquote>
+<p>我会把企业知识助手设计成一个受权限和证据约束的知识操作系统。离线侧通过连接器同步内容、metadata、ACL 和删除事件，经过结构化解析、chunk、embedding、keyword index、metadata index 和 graph index 建立可检索知识层。在线侧先做 query understanding 和 source routing，再做 hybrid retrieval、权限裁剪、rerank、dedup 和 Evidence Package 构建。模型只基于 evidence 生成答案，并必须输出引用、不确定性和缺失证据。生产上还需要 connector health、ACL violation eval、citation support eval、query trace、反馈路由、文档 owner 和过期治理。</p>
+</blockquote>
+<h3 id="设计清单"><a class="header" href="#设计清单">设计清单</a></h3>
+<ul>
+<li>是否同步源系统 ACL，而不是只同步内容？</li>
+<li>是否支持 external group、deny 优先和权限增量更新？</li>
+<li>是否在模型看到内容之前完成权限过滤？</li>
+<li>是否保留文档结构、表格、链接、评论和 metadata？</li>
+<li>是否区分检索单位、上下文单位、引用单位和权限单位？</li>
+<li>是否使用 hybrid search，而不是只用向量 top-k？</li>
+<li>是否有 source routing 和 query understanding？</li>
+<li>是否有 freshness、authority、owner 和 lifecycle metadata？</li>
+<li>是否构造 Evidence Package，而不是直接拼接 chunk？</li>
+<li>是否支持冲突证据和无证据拒答？</li>
+<li>是否记录 query trace、retrieval trace 和 citation trace？</li>
+<li>是否有权限越界、引用支持率、过期文档、无证据拒答等 eval？</li>
+<li>用户反馈是否能路由到连接器、索引、rerank、权限、文档治理和生成策略？</li>
+<li>高风险 action 是否需要审批和审计？</li>
 </ul>
 <hr>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
 <p>企业知识助手的成熟度，不取决于向量库有多先进，而取决于它是否把知识系统当成工程系统来治理：</p>
 <ul>
 <li>数据源需要连接器；</li>
-<li>内容需要索引；</li>
-<li>权限需要同步；</li>
-<li>检索需要混合排序；</li>
-<li>答案需要证据；</li>
-<li>反馈需要闭环；</li>
-<li>质量需要评估。</li>
+<li>内容需要结构化解析；</li>
+<li>权限需要同步和前置过滤；</li>
+<li>检索需要 hybrid search、metadata、graph 和 rerank；</li>
+<li>答案需要 Evidence Package、引用、冲突处理和不确定性；</li>
+<li>反馈需要路由到正确的系统层；</li>
+<li>质量需要 eval、trace 和治理闭环；</li>
+<li>企业上线需要身份、审计、DLP、数据保留和 owner 机制。</li>
 </ul>
 <p>一句话总结：</p>
 <blockquote>
-<p>企业知识助手的核心不是“让模型知道更多”，而是“让模型只基于用户有权访问、足够新鲜、可被引用的证据回答”。</p>
+<p>企业知识助手的核心不是“让模型知道更多”，而是“让模型只基于用户有权访问、足够新鲜、可被引用、可被审计的证据回答”。</p>
 </blockquote>
 <hr>
 <h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
 <ol>
 <li><a href="https://docs.glean.com/connectors/about">Glean Connectors - Glean Docs</a></li>
-<li><a href="https://docs.perplexity.ai/guides/search-guide">Perplexity Search API - Perplexity Docs</a></li>
-<li><a href="https://enterprise.perplexity.ai/">Perplexity Enterprise Pro</a></li>
+<li><a href="https://learn.microsoft.com/en-us/graph/connecting-external-content-connectors-api-overview">Microsoft 365 Copilot Connectors API Overview - Microsoft Learn</a></li>
+<li><a href="https://learn.microsoft.com/en-us/graph/connecting-external-content-manage-items">Create, update, and delete items in a Microsoft Graph connection - Microsoft Learn</a></li>
+<li><a href="https://learn.microsoft.com/en-us/graph/connecting-external-content-external-groups">Use external groups to manage permissions to Microsoft 365 Copilot connectors data sources - Microsoft Learn</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/search/hybrid-search-overview">Hybrid search using vectors and full text in Azure AI Search - Microsoft Learn</a></li>
+<li><a href="https://learn.microsoft.com/en-us/azure/search/semantic-search-overview">Semantic ranking in Azure AI Search - Microsoft Learn</a></li>
 </ol>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../part3/01-coding-agent-systems.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../part3/06-dod-agent-case-study.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../part3/03-agent-platform-orchestration.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../part3/08-mini-agent-observability.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -558,11 +1133,11 @@ user_uploaded
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../part3/01-coding-agent-systems.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../part3/06-dod-agent-case-study.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../part3/03-agent-platform-orchestration.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../part3/08-mini-agent-observability.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
@@ -575,22 +1150,6 @@ user_uploaded
         <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
         <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
         <script>

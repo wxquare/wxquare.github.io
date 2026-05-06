@@ -671,7 +671,7 @@ Agent 间通信使用结构化格式，避免自然语言歧义。
 
 ### 下一章预告
 
-第8章我们将进入 RAG 与检索系统工程，讨论 Agent 如何从外部知识中构建可靠上下文和证据链。
+第8章我们将进入 Agent 平台与编排框架，讨论 LangGraph、AutoGen、Microsoft Agent Framework 和 MCP 生态如何把工作流、多 Agent、工具连接和生产治理沉淀为运行时能力。
 
 ---
 

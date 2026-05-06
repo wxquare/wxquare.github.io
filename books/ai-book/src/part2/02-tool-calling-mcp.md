@@ -590,9 +590,9 @@ MCP 可以暴露 Tools、Resources 和 Prompts，但 Skill 更偏 Agent Runtime 
 | MCP Prompts 承载 Skill 模板 | Server 暴露可复用 prompt，Host 转成 skill 或任务入口 | 标准化报告、代码审查模板 |
 | Plugin 打包 Tool + Skill | 一个插件同时安装工具和使用说明 | 企业内部系统集成 |
 
-这也是为什么 OpenClaw 和 Hermes 都把 Tool、Skill、Plugin / Toolset 分开：工具负责行动，技能负责方法，插件负责分发，运行时负责权限和观测。
+这也是为什么 Pi、OpenClaw 和 Hermes 都把 Tool、Skill、Plugin / Toolset 分开：工具负责行动，技能负责方法，插件负责分发，运行时负责权限和观测。
 
-第 15 章会用 OpenClaw 展示 Skill 如何作为本地 Agent Gateway 的扩展层被加载；第 16 章会用 Hermes 展示 Skill 如何从长期会话轨迹中演化为可复用程序性记忆。
+第 14 章会用 Pi 展示 Skill、Prompt Template、Extension 和 Package 如何组成终端原生 Coding Agent Runtime 的扩展层；第 15 章会用 OpenClaw 展示 Skill 如何作为本地 Agent Gateway 的扩展层被加载；第 16 章会用 Hermes 展示 Skill 如何从长期会话轨迹中演化为可复用程序性记忆。
 
 ---
 

@@ -4,7 +4,7 @@
 
 ## 引言
 
-前几章分别分析了 Coding Agent、企业知识助手、Agent 平台和 OpenClaw。OpenClaw 让我们看到个人 AI 助手可以从聊天机器人升级为 Gateway：它把 WhatsApp、Telegram、Slack、WebChat、CLI 等入口接到同一个 Agent Runtime。
+前几章分别分析了 Agent 平台、Coding Agent、Pi Runtime 和 OpenClaw。Pi 让我们看到终端原生 Coding Agent 可以被拆成可嵌入、可扩展的 Runtime；OpenClaw 让我们看到个人 AI 助手可以从聊天机器人升级为 Gateway：它把 WhatsApp、Telegram、Slack、WebChat、CLI 等入口接到同一个 Agent Runtime。
 
 Hermes Agent 和 OpenClaw 处在相近的问题空间，但设计重心不同：
 
@@ -204,7 +204,7 @@ def run_turn(user_message, profile, entry_point):
             done = True
 ```
 
-这个循环和第 12 章 Coding Agent 的循环很像，但 Hermes 多了三个面向长期运行的能力：
+这个循环和第 13 章 Coding Agent 的循环很像，但 Hermes 多了三个面向长期运行的能力：
 
 - **Prompt Assembly**：每次会话开始时把人格、记忆、技能、项目上下文和工具指南组装成稳定系统提示；
 - **Session Persistence**：会话写入 SQLite，并用 FTS5 支持跨会话搜索；
@@ -289,7 +289,7 @@ Memory 不适合保存：
 - 一次性临时路径；
 - 可以随时重新检索到的通用知识。
 
-这和第 10 章讲的 Agent Memory 原则一致：**长期记忆应该保存高价值、低频变化、可执行的信息，而不是把上下文垃圾永久化。**
+这和第 11 章讲的 Agent Memory 原则一致：**长期记忆应该保存高价值、低频变化、可执行的信息，而不是把上下文垃圾永久化。**
 
 ### Session Search：长期历史的第二层
 
@@ -659,7 +659,7 @@ MCP 的价值是把外部工具系统标准化接入 Hermes，例如：
 - tool result 截断；
 - 高风险工具人工确认。
 
-这和第 12 章 Coding Agent 里的 MCP + 日志工作流是同一个问题：MCP 不是魔法，它只是把“外部能力”接进 Agent Runtime。真正可靠的是 Runtime 的权限、审计和上下文边界。
+这和第 13 章 Coding Agent 里的 MCP + 日志工作流是同一个问题：MCP 不是魔法，它只是把“外部能力”接进 Agent Runtime。真正可靠的是 Runtime 的权限、审计和上下文边界。
 
 ---
 

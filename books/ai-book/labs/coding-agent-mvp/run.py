@@ -10,7 +10,7 @@ from trace_writer import TraceWriter
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the Chapter 12 mini coding agent.")
+    parser = argparse.ArgumentParser(description="Run the Chapter 19 mini coding agent.")
     parser.add_argument("task", help="Natural-language coding task.")
     parser.add_argument("--repo", default="demo", help="Repository path the agent may inspect and edit.")
     parser.add_argument("--config", default="agent.config.toml", help="Local TOML config file.")
