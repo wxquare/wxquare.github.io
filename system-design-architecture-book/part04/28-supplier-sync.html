@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 29 章 供应商数据同步链路 - 系统设计与架构实战：原理、工程与电商案例</title>
+        <title>第 30 章 供应商数据同步链路 - 系统设计与架构实战：原理、工程与电商案例</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f0b7d2e.js";
+            window.path_to_searchindex_js = "../searchindex-c15c0b2b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-bc818db9.js"></script>
+        <script src="../toc-98451072.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,8 +177,8 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第-29-章-供应商数据同步链路"><a class="header" href="#第-29-章-供应商数据同步链路">第 29 章 供应商数据同步链路</a></h1>
-<h2 id="1-背景"><a class="header" href="#1-背景">1. 背景</a></h2>
+                        <h1 id="第-30-章-供应商数据同步链路"><a class="header" href="#第-30-章-供应商数据同步链路">第 30 章 供应商数据同步链路</a></h1>
+<h2 id="301-背景"><a class="header" href="#301-背景">30.1 背景</a></h2>
 <p>数字商品平台需要从外部供应商同步供给数据。本方案讨论的是一条通用的供应商数据同步链路，并以<strong>酒店供给全量同步</strong>为例展开。酒店数据规模大、结构复杂、变化频率不一致：酒店名称、地址、设施、图片等静态信息变化较慢；房型、套餐、最低价、可售状态等半动态信息需要更高频刷新；下单前房态房价必须实时确认。</p>
 <p>本设计聚焦一个典型任务：</p>
 <pre><code class="language-text">通过遍历所有城市，从供应商拉取酒店信息
@@ -187,7 +187,7 @@
 需要支持断点续跑、失败补偿、数据追溯和质量监控
 </code></pre>
 <p>这类任务不能只依赖进程内状态做一个长循环。第一阶段更推荐设计成 <strong>Batch + Checkpoint + DLQ</strong> 的可恢复流水线：任务可以按城市和分页顺序遍历，进度持久化在数据库里，失败后从 checkpoint 继续。任务分片和分布式 Worker 抢占可以作为后续优化项目，而不是一开始就进入主链路。</p>
-<h2 id="2-设计目标"><a class="header" href="#2-设计目标">2. 设计目标</a></h2>
+<h2 id="302-设计目标"><a class="header" href="#302-设计目标">30.2 设计目标</a></h2>
 <ol>
 <li><strong>可恢复</strong>：任务中断后可以从 checkpoint 继续，不从头重跑。</li>
 <li><strong>可追溯</strong>：保存供应商原始数据 Raw Snapshot，支持问题排查和回放。</li>
@@ -196,7 +196,7 @@
 <li><strong>可观测</strong>：实时查看任务进度、失败原因、供应商质量和业务影响指标。</li>
 <li><strong>不影响交易安全</strong>：列表页可缓存，详情页更接近实时，创单前必须实时确认。</li>
 </ol>
-<h2 id="3-核心难点"><a class="header" href="#3-核心难点">3. 核心难点</a></h2>
+<h2 id="303-核心难点"><a class="header" href="#303-核心难点">30.3 核心难点</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -213,7 +213,7 @@
 </tbody>
 </table>
 </div>
-<h2 id="4-总体架构"><a class="header" href="#4-总体架构">4. 总体架构</a></h2>
+<h2 id="304-总体架构"><a class="header" href="#304-总体架构">30.4 总体架构</a></h2>
 <pre><code class="language-text">Full Sync Task
   → Sync Batch
   → Page Fetch
@@ -237,8 +237,8 @@
 <li><code>books/system-design-architecture-book/images/supplier-sync-data-flow.png</code></li>
 <li><code>books/system-design-architecture-book/images/supplier-sync-data-flow.svg</code></li>
 </ul>
-<h2 id="5-任务模型"><a class="header" href="#5-任务模型">5. 任务模型</a></h2>
-<h3 id="51-task同步任务定义"><a class="header" href="#51-task同步任务定义">5.1 Task：同步任务定义</a></h3>
+<h2 id="305-任务模型"><a class="header" href="#305-任务模型">30.5 任务模型</a></h2>
+<h3 id="301-task同步任务定义"><a class="header" href="#301-task同步任务定义">30.1 Task：同步任务定义</a></h3>
 <p><code>supplier_sync_task</code> 描述“要同步什么、怎么同步、多久同步一次”。</p>
 <pre><code class="language-sql">CREATE TABLE supplier_sync_task (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -271,7 +271,7 @@ status: ENABLED
 concurrency_policy: SKIP_IF_RUNNING
 owner_team: product-sync
 </code></pre>
-<h3 id="52-batch一次任务执行批次"><a class="header" href="#52-batch一次任务执行批次">5.2 Batch：一次任务执行批次</a></h3>
+<h3 id="302-batch一次任务执行批次"><a class="header" href="#302-batch一次任务执行批次">30.2 Batch：一次任务执行批次</a></h3>
 <p><code>supplier_sync_batch</code> 记录一次任务执行的状态、水位、统计和版本。</p>
 <pre><code class="language-sql">CREATE TABLE supplier_sync_batch (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -339,8 +339,8 @@ last_heartbeat_stage: FETCHING
 last_heartbeat_message: fetching city=BKK page=120
 last_checkpoint_at: 2026-04-27 10:29:50
 </code></pre>
-<h2 id="6-任务创建互斥与执行恢复"><a class="header" href="#6-任务创建互斥与执行恢复">6. 任务创建、互斥与执行恢复</a></h2>
-<h3 id="61-任务创建流程"><a class="header" href="#61-任务创建流程">6.1 任务创建流程</a></h3>
+<h2 id="306-任务创建互斥与执行恢复"><a class="header" href="#306-任务创建互斥与执行恢复">30.6 任务创建、互斥与执行恢复</a></h2>
+<h3 id="301-任务创建流程"><a class="header" href="#301-任务创建流程">30.1 任务创建流程</a></h3>
 <p>一次同步任务通常由定时调度、运营手动触发或系统补偿触发。无论来源是什么，都不应该直接启动一个进程开始跑，而是先创建 batch，再由执行器领取 batch。</p>
 <pre><code class="language-text">触发同步
   → 查询 supplier_sync_task
@@ -377,7 +377,7 @@ last_checkpoint_at: 2026-04-27 10:29:50
 <p>如果是定时任务，可以用计划触发时间生成 <code>trigger_id</code>：</p>
 <pre><code class="language-text">trigger_id = hotel_supplier_full_resource:2026-04-27T02:00:00Z
 </code></pre>
-<h3 id="62-上一次任务还没执行完怎么办"><a class="header" href="#62-上一次任务还没执行完怎么办">6.2 上一次任务还没执行完怎么办</a></h3>
+<h3 id="302-上一次任务还没执行完怎么办"><a class="header" href="#302-上一次任务还没执行完怎么办">30.2 上一次任务还没执行完怎么办</a></h3>
 <p>同一个供应商、同一个品类、同一个数据范围的全量任务，通常不应该同时跑多个，否则会造成供应商限流、重复写入、发布版本乱序和进度混乱。这里需要显式定义互斥策略。</p>
 <div class="table-wrapper">
 <table>
@@ -411,8 +411,8 @@ concurrency_policy = ALLOW_PARALLEL
   → 检查数据范围是否重叠
   → 不重叠才允许创建
 </code></pre>
-<p>相关答辩提示已统一收录到<a href="./interview.html">附录B</a>。</p>
-<h3 id="63-batch-抢占"><a class="header" href="#63-batch-抢占">6.3 Batch 抢占</a></h3>
+<p>相关答辩提示已统一收录到<a href="../part05/33-ecommerce-architecture-interview.html">第 35 章</a>。</p>
+<h3 id="303-batch-抢占"><a class="header" href="#303-batch-抢占">30.3 Batch 抢占</a></h3>
 <p>即使第一阶段不做任务分片，也建议 batch 由执行器通过 CAS 抢占，避免多个进程同时执行同一个 batch。抢占不是“查出来再更新”，而是用一条带条件的 <code>UPDATE</code> 完成。</p>
 <pre><code class="language-sql">UPDATE supplier_sync_batch
 SET status = 'RUNNING',
@@ -442,7 +442,7 @@ WHERE batch_id = ?
   AND lease_until &lt; NOW();
 </code></pre>
 <p>注意，这里只抢占“租约过期”的任务，不抢占“心跳正常”的任务。否则一个慢请求、一次 GC 或一次网络抖动都可能导致双 worker 写同一个 batch。</p>
-<h3 id="64-worker_id-与-lease_token"><a class="header" href="#64-worker_id-与-lease_token">6.4 <code>worker_id</code> 与 <code>lease_token</code></a></h3>
+<h3 id="304-worker_id-与-lease_token"><a class="header" href="#304-worker_id-与-lease_token">30.4 <code>worker_id</code> 与 <code>lease_token</code></a></h3>
 <p><code>worker_id</code> 用来标识“哪个执行器实例在跑任务”，<code>lease_token</code> 用来标识“本次抢占的所有权”。两者要同时使用。</p>
 <div class="table-wrapper">
 <table>
@@ -481,7 +481,7 @@ lease_token = 7f2d4c77-5d5b-4f1f-aeb0-74f7f21c6e2a
   AND lease_token = ?
 </code></pre>
 <p>如果更新影响行数为 0，要立即停止当前任务，并记录 <code>LEASE_LOST</code> 日志。</p>
-<h3 id="65-心跳与租约"><a class="header" href="#65-心跳与租约">6.5 心跳与租约</a></h3>
+<h3 id="305-心跳与租约"><a class="header" href="#305-心跳与租约">30.5 心跳与租约</a></h3>
 <p>长任务不能只依赖 <code>status=RUNNING</code> 判断是否还活着。机器重启、进程 OOM、发布重启都可能导致状态永远卡在 <code>RUNNING</code>。因此 batch 要同时有“租约”和“心跳”。</p>
 <div class="table-wrapper">
 <table>
@@ -532,7 +532,7 @@ WHERE batch_id = ?
   → 退出执行
 </code></pre>
 <p>这一步非常关键。不能因为“当前进程还活着”就继续跑，因为数据库里的执行权可能已经被新 worker 抢走。</p>
-<h3 id="66-心跳正常但-checkpoint-不动怎么办"><a class="header" href="#66-心跳正常但-checkpoint-不动怎么办">6.6 心跳正常但 Checkpoint 不动怎么办</a></h3>
+<h3 id="306-心跳正常但-checkpoint-不动怎么办"><a class="header" href="#306-心跳正常但-checkpoint-不动怎么办">30.6 心跳正常但 Checkpoint 不动怎么办</a></h3>
 <p>心跳和 checkpoint 是两个维度。心跳正常只能说明 worker 还活着，不代表任务在前进。可能出现：</p>
 <ol>
 <li>供应商接口一直卡在慢请求。</li>
@@ -559,7 +559,7 @@ checkpoint_lag = now - last_checkpoint_at
 </table>
 </div>
 <p>不要在心跳正常时强行抢占。否则可能造成两个 worker 同时处理同一页，只是其中一个更慢。</p>
-<h3 id="67-机器重启后如何恢复"><a class="header" href="#67-机器重启后如何恢复">6.7 机器重启后如何恢复</a></h3>
+<h3 id="307-机器重启后如何恢复"><a class="header" href="#307-机器重启后如何恢复">30.7 机器重启后如何恢复</a></h3>
 <p>机器重启后，原 worker 不再续租。调度器或新 worker 会发现：</p>
 <pre><code class="language-sql">SELECT batch_id
 FROM supplier_sync_batch
@@ -579,7 +579,7 @@ WHERE status = 'RUNNING'
 <pre><code class="language-text">supplier_id + supplier_resource_code + supplier_product_code
 </code></pre>
 <p>Checkpoint 负责减少重跑范围，幂等负责保证重复处理也不会写错。</p>
-<h3 id="68-进度上报"><a class="header" href="#68-进度上报">6.8 进度上报</a></h3>
+<h3 id="308-进度上报"><a class="header" href="#308-进度上报">30.8 进度上报</a></h3>
 <p>进度不要只写日志，要落到 batch 表，便于运营后台、告警系统和排查工具读取。</p>
 <p>每处理完一页，更新 checkpoint、统计、进度和心跳：</p>
 <pre><code class="language-sql">UPDATE supplier_sync_batch
@@ -615,7 +615,7 @@ WHERE batch_id = ?
 </table>
 </div>
 <p>推荐：<strong>每页处理完成后推进 checkpoint，同时每 15 到 30 秒续租心跳</strong>。如果一页处理时间可能超过心跳间隔，则需要独立心跳协程，不能等整页处理完成才心跳。</p>
-<h3 id="69-边界场景处理"><a class="header" href="#69-边界场景处理">6.9 边界场景处理</a></h3>
+<h3 id="309-边界场景处理"><a class="header" href="#309-边界场景处理">30.9 边界场景处理</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -635,8 +635,8 @@ WHERE batch_id = ?
 </tbody>
 </table>
 </div>
-<h2 id="7-checkpoint-与断点续跑"><a class="header" href="#7-checkpoint-与断点续跑">7. Checkpoint 与断点续跑</a></h2>
-<h3 id="71-为什么需要-checkpoint"><a class="header" href="#71-为什么需要-checkpoint">7.1 为什么需要 Checkpoint</a></h3>
+<h2 id="307-checkpoint-与断点续跑"><a class="header" href="#307-checkpoint-与断点续跑">30.7 Checkpoint 与断点续跑</a></h2>
+<h3 id="301-为什么需要-checkpoint"><a class="header" href="#301-为什么需要-checkpoint">30.1 为什么需要 Checkpoint</a></h3>
 <p>100 万酒店、10 小时任务，如果只把进度放在内存里，会有三个问题：</p>
 <ol>
 <li>任务中断后恢复困难。</li>
@@ -651,7 +651,7 @@ WHERE batch_id = ?
   → city = JKT, page = 1
   → ...
 </code></pre>
-<h3 id="72-checkpoint-存储"><a class="header" href="#72-checkpoint-存储">7.2 Checkpoint 存储</a></h3>
+<h3 id="302-checkpoint-存储"><a class="header" href="#302-checkpoint-存储">30.2 Checkpoint 存储</a></h3>
 <p>Checkpoint 可以先复用 <code>supplier_sync_batch.start_checkpoint</code> 和 <code>supplier_sync_batch.end_checkpoint</code>，也可以在后续演进中拆出独立 checkpoint 表。</p>
 <p>主链路里的 checkpoint 建议记录：</p>
 <div class="table-wrapper">
@@ -670,7 +670,7 @@ WHERE batch_id = ?
 </tbody>
 </table>
 </div>
-<h3 id="73-checkpoint-是什么"><a class="header" href="#73-checkpoint-是什么">7.3 Checkpoint 是什么</a></h3>
+<h3 id="303-checkpoint-是什么"><a class="header" href="#303-checkpoint-是什么">30.3 Checkpoint 是什么</a></h3>
 <p>Checkpoint 是同步任务“跑到哪里了”的进度记录。它用于断点续跑。</p>
 <p>示例：</p>
 <pre><code class="language-json">{
@@ -681,7 +681,7 @@ WHERE batch_id = ?
 }
 </code></pre>
 <p>如果 Bangkok 第 120 页失败，下次可以从 page 120 或 cursor <code>abc123</code> 继续，而不是从第一页重跑。</p>
-<h3 id="74-checkpoint-怎么使用"><a class="header" href="#74-checkpoint-怎么使用">7.4 Checkpoint 怎么使用</a></h3>
+<h3 id="304-checkpoint-怎么使用"><a class="header" href="#304-checkpoint-怎么使用">30.4 Checkpoint 怎么使用</a></h3>
 <p>推荐顺序是：<strong>先处理本页数据，再推进 checkpoint</strong>。</p>
 <pre><code class="language-text">拉取 BKK page=120
   → 保存 Raw Snapshot
@@ -702,7 +702,7 @@ WHERE batch_id = ?
   → 通过 supplier_id + supplier_resource_code 幂等去重
 </code></pre>
 <p>Checkpoint 只能保证“不大范围重跑”，不能保证“绝不重复处理”。因此它必须和幂等设计配合使用。</p>
-<h2 id="8-拉取与限流"><a class="header" href="#8-拉取与限流">8. 拉取与限流</a></h2>
+<h2 id="308-拉取与限流"><a class="header" href="#308-拉取与限流">30.8 拉取与限流</a></h2>
 <p>同步任务按城市和分页拉取：</p>
 <pre><code class="language-text">city = BKK
 page_size = 100
@@ -729,8 +729,8 @@ page = 1..N
 <li>失败指数退避。</li>
 <li>供应商异常时熔断。</li>
 </ol>
-<h2 id="9-raw-snapshot-与标准化"><a class="header" href="#9-raw-snapshot-与标准化">9. Raw Snapshot 与标准化</a></h2>
-<h3 id="91-raw-snapshot"><a class="header" href="#91-raw-snapshot">9.1 Raw Snapshot</a></h3>
+<h2 id="309-raw-snapshot-与标准化"><a class="header" href="#309-raw-snapshot-与标准化">30.9 Raw Snapshot 与标准化</a></h2>
+<h3 id="301-raw-snapshot"><a class="header" href="#301-raw-snapshot">30.1 Raw Snapshot</a></h3>
 <p>Raw Snapshot 是供应商原始响应数据的快照。它不是平台商品模型，也不是最终发布数据，而是证据和可回放数据。</p>
 <p>作用：</p>
 <ol>
@@ -739,7 +739,7 @@ page = 1..N
 <li>支持 Diff：比较本次和上次数据变化。</li>
 <li>明确责任：区分供应商数据错误和平台清洗映射错误。</li>
 </ol>
-<h3 id="92-snapshot-表"><a class="header" href="#92-snapshot-表">9.2 Snapshot 表</a></h3>
+<h3 id="302-snapshot-表"><a class="header" href="#302-snapshot-表">30.2 Snapshot 表</a></h3>
 <pre><code class="language-sql">CREATE TABLE supplier_sync_snapshot (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     snapshot_id VARCHAR(64) NOT NULL,
@@ -770,7 +770,7 @@ snapshot_version: 8
 payload_ref: s3://hotel-sync/raw/2026/04/27/batch001/BKK/page120.json
 payload_hash: 9a0f...e31c
 </code></pre>
-<h3 id="93-标准化"><a class="header" href="#93-标准化">9.3 标准化</a></h3>
+<h3 id="303-标准化"><a class="header" href="#303-标准化">30.3 标准化</a></h3>
 <p>供应商字段需要转换成平台标准模型：</p>
 <div class="table-wrapper">
 <table>
@@ -789,7 +789,7 @@ payload_hash: 9a0f...e31c
 </table>
 </div>
 <p>标准化后生成 <code>NORMALIZED</code> snapshot。</p>
-<h2 id="10-质量校验"><a class="header" href="#10-质量校验">10. 质量校验</a></h2>
+<h2 id="3010-质量校验"><a class="header" href="#3010-质量校验">30.10 质量校验</a></h2>
 <p>质量校验分为五层：</p>
 <div class="table-wrapper">
 <table>
@@ -810,7 +810,7 @@ payload_hash: 9a0f...e31c
 失败数据：写入 DLQ
 高风险数据：进入审核或人工修复
 </code></pre>
-<h2 id="11-平台模型映射"><a class="header" href="#11-平台模型映射">11. 平台模型映射</a></h2>
+<h2 id="3011-平台模型映射"><a class="header" href="#3011-平台模型映射">30.11 平台模型映射</a></h2>
 <p>酒店通常作为 <code>Resource</code> 沉淀：</p>
 <pre><code class="language-text">supplier_hotel_id
   → supplier_product_mapping
@@ -840,7 +840,7 @@ payload_hash: 9a0f...e31c
 </tbody>
 </table>
 </div>
-<h2 id="12-版本与-diff"><a class="header" href="#12-版本与-diff">12. 版本与 Diff</a></h2>
+<h2 id="3012-版本与-diff"><a class="header" href="#3012-版本与-diff">30.12 版本与 Diff</a></h2>
 <p>版本分为三类：</p>
 <div class="table-wrapper">
 <table>
@@ -918,7 +918,7 @@ changed_fields:
 risk_level: LOW
 action: AUTO_PUBLISH
 </code></pre>
-<h2 id="13-发布与下游刷新"><a class="header" href="#13-发布与下游刷新">13. 发布与下游刷新</a></h2>
+<h2 id="3013-发布与下游刷新"><a class="header" href="#3013-发布与下游刷新">30.13 发布与下游刷新</a></h2>
 <p>发布时生成新的 <code>publish_version</code>：</p>
 <pre><code class="language-text">resource_id = 50001
 old_publish_version = 21
@@ -938,13 +938,13 @@ HotelSearchIndexRefreshRequired
 <li>数据平台 CDC。</li>
 <li>营销、计价、订单读取新版本商品上下文。</li>
 </ol>
-<h2 id="14-dlq-与补偿"><a class="header" href="#14-dlq-与补偿">14. DLQ 与补偿</a></h2>
-<h3 id="141-为什么用-mysql-dlq"><a class="header" href="#141-为什么用-mysql-dlq">14.1 为什么用 MySQL DLQ</a></h3>
+<h2 id="3014-dlq-与补偿"><a class="header" href="#3014-dlq-与补偿">30.14 DLQ 与补偿</a></h2>
+<h3 id="301-为什么用-mysql-dlq"><a class="header" href="#301-为什么用-mysql-dlq">30.1 为什么用 MySQL DLQ</a></h3>
 <p>酒店同步失败通常不是单纯消息失败，而是字段缺失、映射失败、价格异常、发布失败、索引失败等需要人工修复、状态流转和审计的问题。因此推荐：</p>
 <pre><code class="language-text">Kafka DLQ：短期失败消息缓冲，可选
 MySQL DLQ：权威问题单和补偿状态
 </code></pre>
-<h3 id="142-dlq-表"><a class="header" href="#142-dlq-表">14.2 DLQ 表</a></h3>
+<h3 id="302-dlq-表"><a class="header" href="#302-dlq-表">30.2 DLQ 表</a></h3>
 <pre><code class="language-sql">CREATE TABLE supplier_sync_dead_letter (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     dead_letter_id VARCHAR(64) NOT NULL,
@@ -1009,7 +1009,7 @@ status: MANUAL_FIX
 owner_team: product-sync
 assignee: ops_user_01
 </code></pre>
-<h3 id="143-状态机"><a class="header" href="#143-状态机">14.3 状态机</a></h3>
+<h3 id="303-状态机"><a class="header" href="#303-状态机">30.3 状态机</a></h3>
 <pre><code class="language-text">PENDING
   → RETRYING
   → RESOLVED
@@ -1025,7 +1025,7 @@ PENDING
 RETRYING
   → FAILED
 </code></pre>
-<h3 id="144-补偿-job"><a class="header" href="#144-补偿-job">14.4 补偿 Job</a></h3>
+<h3 id="304-补偿-job"><a class="header" href="#304-补偿-job">30.4 补偿 Job</a></h3>
 <pre><code class="language-sql">SELECT *
 FROM supplier_sync_dead_letter
 WHERE status IN ('PENDING', 'FAILED')
@@ -1037,7 +1037,7 @@ LIMIT 100;
 <p>重试时间使用指数退避：</p>
 <pre><code class="language-text">next_retry_at = now + min(2^retry_count minutes, 1 hour)
 </code></pre>
-<h2 id="15-监控指标"><a class="header" href="#15-监控指标">15. 监控指标</a></h2>
+<h2 id="3015-监控指标"><a class="header" href="#3015-监控指标">30.15 监控指标</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1061,7 +1061,7 @@ LIMIT 100;
 数据新鲜度延迟 = now - last_success_sync_time
 DLQ 修复率 = resolved_dlq_count / total_dlq_count
 </code></pre>
-<h2 id="16-异常场景"><a class="header" href="#16-异常场景">16. 异常场景</a></h2>
+<h2 id="3016-异常场景"><a class="header" href="#3016-异常场景">30.16 异常场景</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1078,10 +1078,10 @@ DLQ 修复率 = resolved_dlq_count / total_dlq_count
 </tbody>
 </table>
 </div>
-<h2 id="17-答辩材料"><a class="header" href="#17-答辩材料">17. 答辩材料</a></h2>
-<p>本专题相关总结、常见问题和参考回答已统一收录到<a href="./interview.html">附录B</a>。</p>
-<h2 id="18-后续优化项目"><a class="header" href="#18-后续优化项目">18. 后续优化项目</a></h2>
-<h3 id="181-任务分片"><a class="header" href="#181-任务分片">18.1 任务分片</a></h3>
+<h2 id="3017-答辩材料"><a class="header" href="#3017-答辩材料">30.17 答辩材料</a></h2>
+<p>本专题相关总结、常见问题和参考回答已统一收录到<a href="../part05/33-ecommerce-architecture-interview.html">第 35 章</a>。</p>
+<h2 id="3018-后续优化项目"><a class="header" href="#3018-后续优化项目">30.18 后续优化项目</a></h2>
+<h3 id="301-任务分片"><a class="header" href="#301-任务分片">30.1 任务分片</a></h3>
 <p>当单批次同步时间继续变长，或者需要多个 Worker 并行提升吞吐时，可以把任务从“Batch + Checkpoint”演进为“Batch + Shard + Checkpoint”。</p>
 <p>典型分片方式：</p>
 <pre><code class="language-text">batch_001
@@ -1115,7 +1115,7 @@ DLQ 修复率 = resolved_dlq_count / total_dlq_count
     KEY idx_updated_at (updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商同步分片';
 </code></pre>
-<h3 id="182-分布式-worker-抢占"><a class="header" href="#182-分布式-worker-抢占">18.2 分布式 Worker 抢占</a></h3>
+<h3 id="302-分布式-worker-抢占"><a class="header" href="#302-分布式-worker-抢占">30.2 分布式 Worker 抢占</a></h3>
 <p>多个 Worker 可以通过数据库 CAS 抢占 <code>PENDING</code> shard：</p>
 <pre><code class="language-sql">UPDATE supplier_sync_shard
 SET status = 'RUNNING',
@@ -1138,7 +1138,7 @@ WHERE id = ?
   AND status = 'RUNNING';
 </code></pre>
 <p>如果 Worker 宕机，租约过期后，调度器把 shard 释放回 <code>PENDING</code>，其他 Worker 读取 shard checkpoint 继续执行。</p>
-<h3 id="183-redis-抢占与数据库权威状态"><a class="header" href="#183-redis-抢占与数据库权威状态">18.3 Redis 抢占与数据库权威状态</a></h3>
+<h3 id="303-redis-抢占与数据库权威状态"><a class="header" href="#303-redis-抢占与数据库权威状态">30.3 Redis 抢占与数据库权威状态</a></h3>
 <p>当 batch 或 shard 数量非常多，多个 worker 高频抢占数据库导致压力上升时，可以引入 Redis 作为抢占加速层。</p>
 <p>基本做法：</p>
 <pre><code class="language-text">worker 抢 Redis 锁
@@ -1173,7 +1173,7 @@ end
 <li>如果 MySQL lease 更新失败，即使 Redis 锁还在，也必须停止任务。</li>
 </ol>
 <p>是否使用 Redis，要看瓶颈在哪里。对于“一个 10 小时酒店全量任务”的第一阶段，MySQL CAS 足够简单可靠；对于“上万个 shard、大量 worker 高频抢占”的阶段，Redis 才更有价值。</p>
-<h3 id="184-为什么放在后续优化"><a class="header" href="#184-为什么放在后续优化">18.4 为什么放在后续优化</a></h3>
+<h3 id="304-为什么放在后续优化"><a class="header" href="#304-为什么放在后续优化">30.4 为什么放在后续优化</a></h3>
 <p>任务分片和分布式 Worker 会引入额外复杂度：</p>
 <ol>
 <li>Shard 状态机。</li>

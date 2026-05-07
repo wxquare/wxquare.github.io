@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 22 章 营销系统 - 系统设计与架构实战：原理、工程与电商案例</title>
+        <title>第 23 章 营销系统 - 系统设计与架构实战：原理、工程与电商案例</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f0b7d2e.js";
+            window.path_to_searchindex_js = "../searchindex-c15c0b2b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-bc818db9.js"></script>
+        <script src="../toc-98451072.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,15 +177,13 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <p><strong>导航</strong>：<a href="../../README.html">书籍主页</a> | <a href="../../SUMMARY.html">完整目录</a> | <a href="./chapter8.html">上一章：第9章</a> | <a href="./chapter10.html">下一章：第11章</a></p>
-<hr>
-<h1 id="第-22-章-营销系统"><a class="header" href="#第-22-章-营销系统">第 22 章 营销系统</a></h1>
+                        <h1 id="第-23-章-营销系统"><a class="header" href="#第-23-章-营销系统">第 23 章 营销系统</a></h1>
 <blockquote>
 <p><strong>交易链路关键域</strong>：营销系统负责「增长与让利」的可编排表达——优惠券、积分、活动、补贴等工具在成本可控前提下提升转化；同时必须与计价、订单、库存、支付等系统严格分工，避免「算价口径漂移」与「资源扣减双写」。</p>
 </blockquote>
 <hr>
-<h2 id="91-系统概览"><a class="header" href="#91-系统概览">9.1 系统概览</a></h2>
-<h3 id="911-营销系统的定位"><a class="header" href="#911-营销系统的定位">9.1.1 营销系统的定位</a></h3>
+<h2 id="231-系统概览"><a class="header" href="#231-系统概览">23.1 系统概览</a></h2>
+<h3 id="2311-营销系统的定位"><a class="header" href="#2311-营销系统的定位">23.1.1 营销系统的定位</a></h3>
 <p><strong>一句话定位</strong>：营销系统是电商平台的<strong>增长引擎</strong>与<strong>让利规则中心</strong>，它不替代「商品价格事实来源」（商品中心 / 计价中心），而是对可售商品集合施加<strong>条件化权益</strong>（券、活动价、积分抵扣、平台补贴），并在交易链路中完成<strong>可审计的占用与核销</strong>。</p>
 <p><strong>与相邻系统的关系</strong>（职责视角）：</p>
 <div class="table-wrapper">
@@ -204,7 +202,7 @@
 </table>
 </div>
 <p><strong>价值闭环</strong>：投放 → 领取/参与 → 试算曝光 → 下单锁定 → 支付核销 → 结算对账 → 报表 ROI。缺任何一环都会出现「看得见优惠、对不上账」的工程事故。</p>
-<h3 id="912-核心业务场景"><a class="header" href="#912-核心业务场景">9.1.2 核心业务场景</a></h3>
+<h3 id="2312-核心业务场景"><a class="header" href="#2312-核心业务场景">23.1.2 核心业务场景</a></h3>
 <p>典型场景可按用户生命周期与平台目标拆分：</p>
 <p><strong>拉新</strong>：新人券、首单立减、渠道专属券批次、注册礼包（券 + 积分组合）。</p>
 <p><strong>促活与留存</strong>：签到积分、任务体系、会员等级权益、生日礼、沉默召回券。</p>
@@ -234,7 +232,7 @@
 <li><strong>可观测性</strong>：每一次试算输出 <code>trace_id</code>；每一次核销写审计流水；预算与库存类 Redis Key 有容量与过期策略。</li>
 <li><strong>安全与合规</strong>：防刷、频控、隐私最小化；补贴与券的发放记录满足审计留存周期。</li>
 </ul>
-<h3 id="913-系统架构"><a class="header" href="#913-系统架构">9.1.3 系统架构</a></h3>
+<h3 id="2313-系统架构"><a class="header" href="#2313-系统架构">23.1.3 系统架构</a></h3>
 <p>工程上通常采用「<strong>接入编排 + 工具域服务自治 + 计算引擎集中</strong>」的形态：网关负责鉴权、路由、限流与实验分桶；券/积分/活动各自拥有独立数据库边界（逻辑或物理分库）；<strong>营销计算引擎</strong>聚合多源输入并调用规则引擎；异步事件通过消息总线广播给通知、风控、数据仓库与对账任务。</p>
 <pre class="mermaid">
 flowchart LR
@@ -276,8 +274,8 @@ flowchart LR
 
 <p><strong>协作要点</strong>：</p>
 <ol>
-<li><strong>读路径</strong>：试算以「低耦合聚合」为目标，尽量通过计价中心统一编排（见 9.6、9.7），营销服务提供「可用工具集合 + 规则解释」。</li>
-<li><strong>写路径</strong>：领取、冻结、核销、回滚必须可幂等、可补偿；与订单 Saga 步骤一一对应（见 9.7.3）。</li>
+<li><strong>读路径</strong>：试算以「低耦合聚合」为目标，尽量通过计价中心统一编排（见 23.6、23.7），营销服务提供「可用工具集合 + 规则解释」。</li>
+<li><strong>写路径</strong>：领取、冻结、核销、回滚必须可幂等、可补偿；与订单 Saga 步骤一一对应（见 23.7.3）。</li>
 <li><strong>观测路径</strong>：任何金额差异必须能定位到「规则版本 + 输入快照 + 引擎输出」。</li>
 </ol>
 <p><strong>典型技术选型（可按团队资产替换，但角色分工建议保留）</strong>：</p>
@@ -297,7 +295,7 @@ flowchart LR
 </div>
 <p><strong>容量与体验的经验区间（用于评审对齐，不是 SLA 承诺）</strong>：日常试算 QPS 与购物车刷新强相关；大促峰值往往来自「领券 + 秒杀下单」叠加。实践中常把「试算」与「领券写路径」在网关层拆分集群，避免读放大拖慢写。秒杀接口的目标不是无限吞吐，而是<strong>失败要快、成功要稳</strong>：失败请求在边缘以毫秒级返回，成功请求进入受控队列，尾部延迟可接受。</p>
 <hr>
-<h2 id="92-营销工具体系"><a class="header" href="#92-营销工具体系">9.2 营销工具体系</a></h2>
+<h2 id="232-营销工具体系"><a class="header" href="#232-营销工具体系">23.2 营销工具体系</a></h2>
 <p>营销工具体系的本质是<strong>权益载体</strong>不同：券是「凭证类权益」，积分是「账户类权益」，活动是「时段/集合类权益」，补贴是「清算类权益」。统一抽象有利于计算引擎与对账。</p>
 <p>从领域建模角度，建议抽一层极薄的**营销权益（PromotionEntitlement）**通用语言：任何工具最终都落到「是否可用、可用多少、如何占用、如何确认、如何冲正」五问。这样订单编排层不必理解「满减与折扣的数学差异」，只理解统一的 Try/Confirm/Cancel 契约即可。</p>
 <p><strong>反模式提醒</strong>：</p>
@@ -365,7 +363,7 @@ flowchart TB
   CE3 --&gt;|不写账务| GW2
 </pre>
 
-<h3 id="921-优惠券系统"><a class="header" href="#921-优惠券系统">9.2.1 优惠券系统</a></h3>
+<h3 id="2321-优惠券系统"><a class="header" href="#2321-优惠券系统">23.2.1 优惠券系统</a></h3>
 <p><strong>模型拆分</strong>：</p>
 <ul>
 <li><strong>Coupon（券批次）</strong>：描述面额/折扣、门槛、总库存、每用户限领、适用范围（全场/类目/SKU）、承担方（平台/商家）。</li>
@@ -374,7 +372,7 @@ flowchart TB
 </ul>
 <p><strong>关键实现约束</strong>：</p>
 <ol>
-<li><strong>超发控制</strong>：热点券批次用 Redis 原子扣减「可领库存」，DB 落库作为最终事实；二者通过异步对账修正（见 9.8.2）。</li>
+<li><strong>超发控制</strong>：热点券批次用 Redis 原子扣减「可领库存」，DB 落库作为最终事实；二者通过异步对账修正（见 23.8.2）。</li>
 <li><strong>核销一致性</strong>：下单冻结、支付成功确认核销、关单回滚；状态迁移必须落在<strong>单用户券粒度锁</strong>或等价乐观锁上，避免并发双花。</li>
 </ol>
 <p><strong>券批次生命周期与运营协同</strong>：除技术状态外，建议为运营提供「紧急下线」与「仅禁止新领取、已领取仍可用」两种模式。前者用于舆情与合规风险，后者用于预算将尽时的平滑收口。两种模式在网关与试算引擎侧都要有显式开关，避免只改数据库导致缓存层继续发券。</p>
@@ -439,7 +437,7 @@ func (s *CouponAppService) Freeze(ctx context.Context, cmd FreezeCouponCommand) 
 	})
 }
 </code></pre>
-<h3 id="922-积分系统"><a class="header" href="#922-积分系统">9.2.2 积分系统</a></h3>
+<h3 id="2322-积分系统"><a class="header" href="#2322-积分系统">23.2.2 积分系统</a></h3>
 <p><strong>账户模型</strong>：<code>available</code> / <code>frozen</code> 双桶；<strong>流水</strong>追加不可变；<strong>过期</strong>建议「批次/桶」或「到期索引表」驱动，避免全表扫描。</p>
 <p><strong>并发更新</strong>：高冲突账户使用 <code>version</code> 乐观重试；低冲突可用单行 CAS。对外接口必须支持<strong>业务幂等键</strong>（例如 <code>biz_type + biz_id</code>）防止重复发放。</p>
 <pre><code class="language-go">import (
@@ -487,14 +485,14 @@ func (s *PointsAppService) Spend(ctx context.Context, cmd SpendPointsCommand) er
 	return ErrWriteConflict
 }
 </code></pre>
-<h3 id="923-活动系统"><a class="header" href="#923-活动系统">9.2.3 活动系统</a></h3>
+<h3 id="2323-活动系统"><a class="header" href="#2323-活动系统">23.2.3 活动系统</a></h3>
 <p>活动系统负责<strong>规则配置 + 圈品 + 生命周期治理</strong>。活动类型差异很大，但工程上可收敛为：</p>
 <ol>
 <li><strong>活动元数据</strong>：时间窗、状态机（草稿/待审/生效/结束/作废）。</li>
 <li><strong>参与单元</strong>：SKU 级活动价、店铺级满减、平台级跨店活动。</li>
-<li><strong>执行策略</strong>：由计算引擎解释 <code>rule_config</code>（JSON / DSL），活动服务自身避免堆叠 <code>switch</code> 地狱（与 9.3 联动）。</li>
+<li><strong>执行策略</strong>：由计算引擎解释 <code>rule_config</code>（JSON / DSL），活动服务自身避免堆叠 <code>switch</code> 地狱（与 23.3 联动）。</li>
 </ol>
-<p><strong>圈品</strong>（与商品中心集成详见 9.7.1）：活动侧存 <code>activity_product</code> 映射或存规则表达式；运行时以 <code>product_id/sku_id/category_id</code> 多路判定，注意索引与缓存击穿。</p>
+<p><strong>圈品</strong>（与商品中心集成详见 23.7.1）：活动侧存 <code>activity_product</code> 映射或存规则表达式；运行时以 <code>product_id/sku_id/category_id</code> 多路判定，注意索引与缓存击穿。</p>
 <p><strong>活动运营与工程协作</strong>：活动系统往往是运营配置最高频的子系统。建议把配置错误分为三类分别治理：<strong>语法错误</strong>（JSON Schema 校验拒绝保存）、<strong>语义风险</strong>（例如折扣低于成本阈值触发风控审核）、<strong>容量风险</strong>（圈品过大导致试算超时，需异步预计算 + 结果缓存）。Engineering 侧提供「沙箱试算」与「灰度发布」能力，比单纯堆人审核更有效。</p>
 <p><strong>常见活动形态与工程关注点</strong>（节选）：</p>
 <div class="table-wrapper">
@@ -510,14 +508,14 @@ func (s *PointsAppService) Spend(ctx context.Context, cmd SpendPointsCommand) er
 </tbody>
 </table>
 </div>
-<h3 id="924-补贴系统"><a class="header" href="#924-补贴系统">9.2.4 补贴系统</a></h3>
+<h3 id="2324-补贴系统"><a class="header" href="#2324-补贴系统">23.2.4 补贴系统</a></h3>
 <p>补贴与「券/活动」不同之处在于：<strong>它往往不直接以用户可见凭证表达</strong>，而是以<strong>平台/商家承担比例</strong>进入清结算。典型场景：</p>
 <ul>
 <li>平台秒杀补贴：活动价低于供货价差额由平台承担。</li>
 <li>联合营销：商家出资 70%，平台出资 30%。</li>
 <li>支付立减：渠道补贴 + 平台补贴叠加（需风控与预算）。</li>
 </ul>
-<p><strong>数据落点</strong>：订单行级记录「营销成本分摊字段」；支付成功后由营销结算服务生成<strong>结算事实表</strong>，推送给财务/对账系统（与 9.7.5 呼应）。</p>
+<p><strong>数据落点</strong>：订单行级记录「营销成本分摊字段」；支付成功后由营销结算服务生成<strong>结算事实表</strong>，推送给财务/对账系统（与 23.7.5 呼应）。</p>
 <pre><code class="language-go">type SubsidySplit struct {
 	OrderID        int64
 	LineID         int64
@@ -546,7 +544,7 @@ func BuildSubsidySplit(line LinePriceSnapshot, policy CostSharePolicy) SubsidySp
 }
 </code></pre>
 <hr>
-<h2 id="93-营销计算引擎"><a class="header" href="#93-营销计算引擎">9.3 营销计算引擎</a></h2>
+<h2 id="233-营销计算引擎"><a class="header" href="#233-营销计算引擎">23.3 营销计算引擎</a></h2>
 <p>营销计算引擎是「<strong>把业务上含糊的便宜</strong>」翻译成「<strong>可执行、可分摊、可回滚</strong>」的工程模块。它输入购物车行、用户工具实例、活动集合、规则版本；输出每个 SKU 行的优惠拆分与订单级汇总。</p>
 <p><strong>为什么必须单独建设「引擎」而不是散落在各接口里？</strong> 因为营销规则的变化频率远高于交易主流程：运营每周都可能调整叠加策略、临时插入互斥组、或对某渠道单独放量。若把规则散落在购物车、结算、创单多个服务，最终一定出现「页面能买、结算不能买」或「结算能买、支付少减」的漂移。引擎化的核心价值是把<strong>规则解释</strong>收敛到单一模块，并把输入输出契约化，让其他系统以「黑盒服务」方式依赖它。</p>
 <p><strong>输入输出的工程契约（建议写进接口文档的第一页）</strong>：</p>
@@ -555,7 +553,7 @@ func BuildSubsidySplit(line LinePriceSnapshot, policy CostSharePolicy) SubsidySp
 <li><strong>输出必须可分摊</strong>：除了订单级优惠总额，还要给出「行级拆分」与「税/运费处理建议字段」（若业务需要），否则财务与发票域会再次各自实现一套拆分。</li>
 <li><strong>输出必须可回放</strong>：<code>trace</code> 不是日志炫技，而是客服判责与线上排障的最低成本工具；建议以结构化 JSON 存储关键决策点（命中、未命中原因、互斥裁决）。</li>
 </ul>
-<h3 id="931-规则引擎设计"><a class="header" href="#931-规则引擎设计">9.3.1 规则引擎设计</a></h3>
+<h3 id="2331-规则引擎设计"><a class="header" href="#2331-规则引擎设计">23.3.1 规则引擎设计</a></h3>
 <p>规则引擎的目标不是追求通用 AI，而是追求：<strong>可版本化、可灰度、可解释、可单测</strong>。推荐分层：</p>
 <ol>
 <li><strong>事实层（Facts）</strong>：用户、店铺、渠道、会员等级、商品标签、时间窗。</li>
@@ -630,7 +628,7 @@ func (e *DefaultRuleEngine) Evaluate(ctx context.Context, in BasketInput, cfg Ru
 	return Evaluation{Applied: applied, Trace: trace}, nil
 }
 </code></pre>
-<h3 id="932-优惠叠加与互斥"><a class="header" href="#932-优惠叠加与互斥">9.3.2 优惠叠加与互斥</a></h3>
+<h3 id="2332-优惠叠加与互斥"><a class="header" href="#2332-优惠叠加与互斥">23.3.2 优惠叠加与互斥</a></h3>
 <p>叠加规则是事故高发区。建议产品口径与实现口径合一：<strong>用「互斥组 ID + 优先级 + 可叠加白名单」三要素表达一切</strong>。</p>
 <pre class="mermaid">
 flowchart TD
@@ -675,7 +673,7 @@ func (MutexGuard) PickAtMostOne(ps []Candidate) ([]Candidate, error) {
 	return out, nil
 }
 </code></pre>
-<h3 id="933-最优解求解"><a class="header" href="#933-最优解求解">9.3.3 最优解求解</a></h3>
+<h3 id="2333-最优解求解"><a class="header" href="#2333-最优解求解">23.3.3 最优解求解</a></h3>
 <p>「最优」必须业务定义：常见是<strong>用户应付最小</strong>或<strong>平台补贴最小</strong>或<strong>GMV 最大</strong>。工程上可用：</p>
 <ul>
 <li><strong>小规模</strong>：券张数 ≤ 3 且活动组合有限时，<strong>有界枚举</strong>最可靠。</li>
@@ -719,7 +717,7 @@ func BestCouponBruteForce(cents int64, coupons []CouponView) Plan {
 <p><strong>从枚举到「可证明正确」的贪心</strong>：当互斥组把候选压成「每张券至多一张、每组至多一张」时，常见目标函数（应付最小）往往可通过「按门槛分层 + 组内按优惠额排序」的贪心得到最优，前提是产品承认规则满足 <strong>拟阵（matroid）</strong> 或近似结构。工程上不必引入过重数学证明，但应在设计文档写清 <strong>贪心成立的前提</strong>（例如：折扣不随剩余金额非单调变化、不存在「用券 A 才解锁券 B」这类交叉依赖）。一旦出现交叉依赖，应显式退回枚举或 MILP 小模型求解，并在超时后降级为「用户已选方案」。</p>
 <p><strong>动态规划适用的一种典型子结构</strong>：若订单可拆为若干「独立店铺子篮」，且店铺间仅存在「平台跨店满减」一条耦合边，可先按店求局部最优，再在平台层做一次低维 DP（阶梯满减档位通常 ≤10）。这与「全购物车暴力 bitmask」相比，复杂度从指数降到近似多项式，是大厂 B2B2C 场景常用的工程折中。</p>
 <p><strong>与「用户主观选择」的冲突处理</strong>：最优解未必等于用户勾选。常见策略是：结算页提供「系统推荐组合」与「用户手动选择」两种模式；手动模式以校验为主（不重新最优），并在 UI 明确提示损失金额或不可用原因，减少客诉。</p>
-<h3 id="934-试算与预览"><a class="header" href="#934-试算与预览">9.3.4 试算与预览</a></h3>
+<h3 id="2334-试算与预览"><a class="header" href="#2334-试算与预览">23.3.4 试算与预览</a></h3>
 <p>试算接口必须<strong>无副作用</strong>；预览与创单必须使用<strong>同一套输入契约</strong>（行价格快照 ID、券实例 ID、活动版本、用户地址/会员状态）。</p>
 <p><strong>建议字段</strong>：</p>
 <ul>
@@ -748,8 +746,8 @@ type PreviewMarketingResponse struct {
 <p><strong>缓存与一致性策略</strong>：试算读多写少，可对「活动命中结果」做短 TTL 缓存，但务必以 <code>pricing_snapshot_id</code> 作为缓存键的一部分，避免基准价变化后命中脏数据。对于「用户已领券列表」类数据，强一致诉求更高，建议短 TTL + 用户维度本地缓存谨慎使用，或在关键操作（创单）前做一次穿透校验。</p>
 <p><strong>与创单的衔接</strong>：预览返回的 <code>LineAllocations</code> 应可被订单原样持久化为「营销快照」子文档；创单重放时不得再次调用可能变化的试算逻辑去「修正」历史订单，除非走明确的改价流程（通常需要客服授权与审计）。</p>
 <hr>
-<h2 id="94-高并发场景设计"><a class="header" href="#94-高并发场景设计">9.4 高并发场景设计</a></h2>
-<h3 id="941-秒杀与抢券"><a class="header" href="#941-秒杀与抢券">9.4.1 秒杀与抢券</a></h3>
+<h2 id="234-高并发场景设计"><a class="header" href="#234-高并发场景设计">23.4 高并发场景设计</a></h2>
+<h3 id="2341-秒杀与抢券"><a class="header" href="#2341-秒杀与抢券">23.4.1 秒杀与抢券</a></h3>
 <p>秒杀本质是：<strong>把绝大多数失败请求挡在极便宜的路径上</strong>，把极少数成功请求放进<strong>可串行化</strong>的扣减与下单管道。它与普通促销的差异在于：热点 SKU 的<strong>竞争半径</strong>远大于库存规模。</p>
 <pre class="mermaid">
 flowchart TB
@@ -771,12 +769,12 @@ flowchart TB
 
 <p><strong>关键设计点</strong>：</p>
 <ol>
-<li><strong>库存拆分</strong>：商品库存与营销库存（见 9.5）分别扣减，避免「营销卖爆但仓库没货」或反向超卖。</li>
+<li><strong>库存拆分</strong>：商品库存与营销库存（见 23.5）分别扣减，避免「营销卖爆但仓库没货」或反向超卖。</li>
 <li><strong>令牌化</strong>：网关层发放有限令牌，后端只验证令牌，避免打穿 DB。</li>
 <li><strong>排队与等待</strong>：返回「排队中」优于同步拖垮线程池（取决于体验要求）。</li>
 </ol>
 <p><strong>抢券与秒杀的共性差异</strong>：抢券失败通常是「库存耗尽」；秒杀失败还可能是「商品库存不足但营销库存仍显示可买」这类双库存不一致。务必在架构层定义<strong>哪一个是用户可见的剩余量</strong>，以及异步校准任务的 SLA（例如 1 秒内把 DB 回灌到 Redis）。</p>
-<h3 id="942-限流与降级"><a class="header" href="#942-限流与降级">9.4.2 限流与降级</a></h3>
+<h3 id="2342-限流与降级"><a class="header" href="#2342-限流与降级">23.4.2 限流与降级</a></h3>
 <p><strong>限流维度</strong>：用户 ID、设备指纹、IP 段、活动 ID、接口名。<strong>降级策略</strong>（需产品确认）：</p>
 <ul>
 <li>试算失败：按原价或可延迟重试。</li>
@@ -816,7 +814,7 @@ func NewMarketingBreaker() *gobreaker.CircuitBreaker {
 	})
 }
 </code></pre>
-<h3 id="943-防刷与风控"><a class="header" href="#943-防刷与风控">9.4.3 防刷与风控</a></h3>
+<h3 id="2343-防刷与风控"><a class="header" href="#2343-防刷与风控">23.4.3 防刷与风控</a></h3>
 <p>防刷是「业务风控 + 工程限流」的组合：<strong>设备指纹、代理 IP 聚类、异常领取节奏、黑名单、券码猜测防护</strong>。工程上务必：</p>
 <ul>
 <li>热点 Key 分片；避免单 Key 成为 Redis 热点。</li>
@@ -826,7 +824,7 @@ func NewMarketingBreaker() *gobreaker.CircuitBreaker {
 <p><strong>黑产对抗的分层策略</strong>：第一层是「明显的工程滥用」（高频请求、批量注册、同设备多号），用限流与验证码解决；第二层是「业务规则套利」（拆单、凑单、退款薅券），需要规则与订单域联合治理；第三层是「支付侧套利」（拒付、chargeback），已超出营销系统边界，但必须把营销核销数据完整输出给风控与财务。</p>
 <p><strong>策略落地建议</strong>：不要把所有风控判断都改成同步 RPC。典型做法是：领券接口同步只做硬规则（黑名单、频控），复杂模型异步回扫；一旦发现异常，可下发「冻结券使用资格」事件，让用户在结算页看到需要人脸核验或客服介入。这样可以在不大幅增加主链路 RT 的前提下提升对抗能力。</p>
 <hr>
-<h2 id="95-营销库存系统"><a class="header" href="#95-营销库存系统">9.5 营销库存系统</a></h2>
+<h2 id="235-营销库存系统"><a class="header" href="#235-营销库存系统">23.5 营销库存系统</a></h2>
 <p>营销库存是<strong>活动参与配额</strong>，与商品可售库存解耦。秒杀中「500 件活动库存 + 10000 件商品库存」意味着两路都要成功才能成交。</p>
 <p><strong>营销库存 vs 商品库存</strong>（概念对齐表，避免团队各说各话）：</p>
 <div class="table-wrapper">
@@ -845,11 +843,11 @@ func NewMarketingBreaker() *gobreaker.CircuitBreaker {
 </table>
 </div>
 <p><strong>工程结论</strong>：下单链路里若同时存在两类库存，编排顺序必须写死（先营销后商品或相反）并配套一致的回滚顺序；任何「只扣一类」的实现都会在极端并发下出现难复现的幽灵订单。</p>
-<h3 id="951-券库存管理"><a class="header" href="#951-券库存管理">9.5.1 券库存管理</a></h3>
+<h3 id="2351-券库存管理"><a class="header" href="#2351-券库存管理">23.5.1 券库存管理</a></h3>
 <p>券批次 <code>total / used / reserved</code> 三界清晰：<code>reserved</code> 对应创单未支付阶段的冻结量；支付成功由 reserved → used；关单释放 reserved。</p>
 <p><strong>批次库存与 Redis 热计数的一致性策略</strong>：公开领券场景下，常见做法是「Redis 原子扣减可领余量 + 异步刷新 DB 已领量」，主链路避免对券批次行高频 <code>UPDATE</code>。需要接受的前提是：极端情况下 Redis 与 DB 存在短暂偏差，因此必须配套 <strong>日终对账</strong>（按 <code>coupon_id</code> 聚合 <code>coupon_user</code> 与 Redis 计数）与 <strong>紧急熔断</strong>（运营一键停领后，网关与脚本两侧同时生效）。若业务要求「绝不能超发一张」，则要么将扣减下沉到单批次行的强一致事务（牺牲峰值），要么引入分桶库存（把 100 万张券拆成 N 个 sub-batch，各自 Redis 计数，DB 汇总）。</p>
 <p><strong>用户券实例与批次维度的联动</strong>：用户侧 <code>CouponUser</code> 状态迁移（未使用 → 冻结 → 已使用）应与批次维度的 <code>reserved/used</code> 单调一致；实现上可在 Confirm 阶段用 <strong>单笔订单幂等键</strong> 保证「批次已用 +1」只执行一次。冻结阶段是否同步增加批次 <code>reserved</code>，取决于财务口径——若冻结即占用预算，则批次层也应体现 reserved，便于运营实时看到「被锁住的成本」。</p>
-<h3 id="952-预算控制"><a class="header" href="#952-预算控制">9.5.2 预算控制</a></h3>
+<h3 id="2352-预算控制"><a class="header" href="#2352-预算控制">23.5.2 预算控制</a></h3>
 <p>活动预算与补贴池建议 <strong>Redis 原子扣减 + 日终对账</strong>；预算耗尽应<strong>快速失败</strong>并联动运营告警（短信/IM）。</p>
 <p><strong>预算模型拆分</strong>：至少区分「活动总预算」「单 SKU 子预算」「单用户补贴上限」三层。总预算用于财务控制；子预算用于防止单一 SKU 把活动打穿；用户上限用于防止单用户套利。上线前要与财务确认：<strong>预占是否计入消耗</strong>（通常创单即占用预算，关单释放），否则会出现「未支付订单占用预算导致活动提前结束」的体验问题。</p>
 <p><strong>Redis 与 DB 的职责</strong>：Redis 承担热点路径的原子判断与扣减；DB 承担审计与汇总；二者不一致时以 DB 为准修复 Redis 是常见策略，但要评估修复延迟期间的用户影响（短暂超发或短暂不可领）。若业务零容忍超发，需要把关键扣减下沉到 DB 或使用更强一致方案，代价是峰值容量下降。</p>
@@ -881,7 +879,7 @@ func DecrBudgetAtomically(ctx context.Context, r budgetRedis, key string, delta 
 	return res == 1, nil
 }
 </code></pre>
-<h3 id="953-实时监控"><a class="header" href="#953-实时监控">9.5.3 实时监控</a></h3>
+<h3 id="2353-实时监控"><a class="header" href="#2353-实时监控">23.5.3 实时监控</a></h3>
 <p>核心指标：</p>
 <ul>
 <li><strong>领取成功率 / 拒绝原因分布</strong>（库存不足 vs 风控 vs 限流）。</li>
@@ -891,8 +889,8 @@ func DecrBudgetAtomically(ctx context.Context, r budgetRedis, key string, delta 
 </ul>
 <p><strong>从指标到告警的落地方法</strong>：不要只对「错误率」告警，要对「结构变化」告警。例如：领取失败率不变，但「风控拒绝占比」突然上升，往往意味着活动被黑产盯上；又如：冻结成功但确认核销失败升高，通常是支付回调或订单状态机异常的前兆。营销监控看板建议固定三类视图：<strong>活动运营视图</strong>（转化、消耗、ROI）、<strong>稳定性视图</strong>（RT、限流、熔断）、<strong>资金风险视图</strong>（预算、异常大额订单、补贴分账失败队列）。</p>
 <hr>
-<h2 id="96-系统边界与职责"><a class="header" href="#96-系统边界与职责">9.6 系统边界与职责</a></h2>
-<h3 id="961-营销系统的职责边界"><a class="header" href="#961-营销系统的职责边界">9.6.1 营销系统的职责边界</a></h3>
+<h2 id="236-系统边界与职责"><a class="header" href="#236-系统边界与职责">23.6 系统边界与职责</a></h2>
+<h3 id="2361-营销系统的职责边界"><a class="header" href="#2361-营销系统的职责边界">23.6.1 营销系统的职责边界</a></h3>
 <p><strong>营销系统应负责</strong>：工具发放与状态机、活动配置与圈品、营销库存、补贴分摊事实生成、试算解释与审计日志、与订单冻结/回滚对应的资源操作。</p>
 <p><strong>营销系统不应负责</strong>：商品主数据、基础标价、支付渠道、物流、发票税务口径的唯一裁定。</p>
 <p><strong>边界不清的典型症状</strong>（出现任一条都值得开专项治理）：</p>
@@ -902,7 +900,7 @@ func DecrBudgetAtomically(ctx context.Context, r budgetRedis, key string, delta 
 <li>支付回调后才发现优惠无法分账，只能人工补单。</li>
 <li>风控拦截发券，但试算仍展示可用，用户完成下单后失败。</li>
 </ul>
-<h3 id="962-营销-vs-计价谁算什么"><a class="header" href="#962-营销-vs-计价谁算什么">9.6.2 营销 vs 计价：谁算什么</a></h3>
+<h3 id="2362-营销-vs-计价谁算什么"><a class="header" href="#2362-营销-vs-计价谁算什么">23.6.2 营销 vs 计价：谁算什么</a></h3>
 <p>这是最容易跨团队扯皮的边界。推荐<strong>清晰分工</strong>：</p>
 <div class="table-wrapper">
 <table>
@@ -919,12 +917,12 @@ func DecrBudgetAtomically(ctx context.Context, r budgetRedis, key string, delta 
 </div>
 <p><strong>反模式</strong>：订单服务里手写一段「满 100 减 20」与营销服务另一套重复逻辑——必然漂移。</p>
 <p><strong>推荐协作模式（一句话）</strong>：计价中心负责「把钱算清楚并快照」，营销系统负责「把规则讲清楚并证明合规」。当两者接口契约稳定后，前端与订单域都应对营销细节保持「无知」，只消费结构化结果。</p>
-<h3 id="963-平台营销-vs-商家营销"><a class="header" href="#963-平台营销-vs-商家营销">9.6.3 平台营销 vs 商家营销</a></h3>
+<h3 id="2363-平台营销-vs-商家营销"><a class="header" href="#2363-平台营销-vs-商家营销">23.6.3 平台营销 vs 商家营销</a></h3>
 <p>平台券与商家券在<strong>成本承担、审核、叠加策略、结算</strong>上不同；系统上建议「券实例维度绑定承担方」，订单行维度记录分摊，支付后生成清算明细。</p>
-<h3 id="964-营销规则-vs-营销执行"><a class="header" href="#964-营销规则-vs-营销执行">9.6.4 营销规则 vs 营销执行</a></h3>
-<p><strong>规则</strong>：可配置、可版本、可读多。<strong>执行</strong>：冻结、扣减、回滚、消息投递，必须可幂等与可补偿。不要在规则脚本里直接写数据库副作用；执行器与规则解释器分离（9.3.1 的分层）。</p>
+<h3 id="2364-营销规则-vs-营销执行"><a class="header" href="#2364-营销规则-vs-营销执行">23.6.4 营销规则 vs 营销执行</a></h3>
+<p><strong>规则</strong>：可配置、可版本、可读多。<strong>执行</strong>：冻结、扣减、回滚、消息投递，必须可幂等与可补偿。不要在规则脚本里直接写数据库副作用；执行器与规则解释器分离（23.3.1 的分层）。</p>
 <hr>
-<h2 id="97-与其他系统的集成"><a class="header" href="#97-与其他系统的集成">9.7 与其他系统的集成</a></h2>
+<h2 id="237-与其他系统的集成"><a class="header" href="#237-与其他系统的集成">23.7 与其他系统的集成</a></h2>
 <p>集成章节的目标是：把「同步调用边界」与「异步补偿边界」画清楚。营销系统处于交易链路中段，最容易出现<strong>长事务</strong>与<strong>重试风暴</strong>，因此接口设计要比普通 CRUD 更严格：超时、幂等、可观测三者缺一不可。</p>
 <p><strong>跨系统调用的最小契约（建议作为内部 OpenAPI 规范附件）</strong>：下列字段在多团队扯皮时最有用——<code>X-Idempotency-Key</code>（写路径必填）、<code>X-Rule-Version</code> / <code>pricing_snapshot_id</code>（试算与创单对齐）、<code>X-Biz-Scene</code>（<code>CHECKOUT</code> / <code>ORDER_CREATE</code>）、<code>X-Trace-Id</code>（全链路透传）。补偿任务消费侧应至少支持 <code>(biz_type, biz_id, action)</code> 唯一约束，避免 Kafka 重投导致二次核销。</p>
 <div class="table-wrapper">
@@ -941,22 +939,22 @@ func DecrBudgetAtomically(ctx context.Context, r budgetRedis, key string, delta 
 </tbody>
 </table>
 </div>
-<h3 id="971-与商品中心集成圈品规则"><a class="header" href="#971-与商品中心集成圈品规则">9.7.1 与商品中心集成（圈品规则）</a></h3>
+<h3 id="2371-与商品中心集成圈品规则"><a class="header" href="#2371-与商品中心集成圈品规则">23.7.1 与商品中心集成（圈品规则）</a></h3>
 <p>商品中心提供类目、标签、上下架状态；营销读取时应<strong>缓存 + 兜底超时降级</strong>（降级策略需业务拍板：宁可不可用券，不可错误可用券）。</p>
 <p><strong>失败模式</strong>：商品中心超时 → 试算无法判断圈品 → 建议默认「该活动对此 SKU 不适用」而不是「适用」，避免错误让利。对于已加购用户，可提示稍后重试或刷新。</p>
-<h3 id="972-与用户系统集成画像与风控"><a class="header" href="#972-与用户系统集成画像与风控">9.7.2 与用户系统集成（画像与风控）</a></h3>
+<h3 id="2372-与用户系统集成画像与风控"><a class="header" href="#2372-与用户系统集成画像与风控">23.7.2 与用户系统集成（画像与风控）</a></h3>
 <p>画像用于定向投放；注意隐私合规与最小必要原则。风控评分作为硬门槛时，应有明确失败原因码供前端展示（避免「神秘失败」）。</p>
 <p><strong>失败模式</strong>：画像服务延迟 → 定向券领取接口可异步化处理（先返回受理中），但创单路径若依赖画像，必须设置硬超时并走保守策略（按非定向规则校验）。</p>
-<h3 id="973-与订单系统集成锁定--扣减--回退"><a class="header" href="#973-与订单系统集成锁定--扣减--回退">9.7.3 与订单系统集成（锁定 / 扣减 / 回退）</a></h3>
+<h3 id="2373-与订单系统集成锁定--扣减--回退"><a class="header" href="#2373-与订单系统集成锁定--扣减--回退">23.7.3 与订单系统集成（锁定 / 扣减 / 回退）</a></h3>
 <p>订单创建立即涉及「资源锁定」；营销侧需提供 <strong>Try/Confirm/Cancel</strong> 语义或等价 Saga 接口：<code>freeze_coupon</code>、<code>confirm_coupon</code>、<code>rollback_coupon</code>，积分同理。</p>
 <p><strong>失败模式</strong>：订单 Try 成功但网络超时导致订单重试 → 营销接口必须幂等，重复 Try 不得重复扣减。Confirm 晚到必须先识别「已确认 / 已回滚」状态，避免二次核销。</p>
-<h3 id="974-与计价系统集成试算接口"><a class="header" href="#974-与计价系统集成试算接口">9.7.4 与计价系统集成（试算接口）</a></h3>
+<h3 id="2374-与计价系统集成试算接口"><a class="header" href="#2374-与计价系统集成试算接口">23.7.4 与计价系统集成（试算接口）</a></h3>
 <p>计价中心调用营销预览接口时，传入<strong>价格快照</strong>而不是实时价字符串，避免时间差；返回应用明细后由计价做最终取整与应付。</p>
 <p><strong>失败模式</strong>：营销试算成功但创单延迟十分钟 → 必须以快照版本为准；若规则版本在此期间变更，创单应拒绝或提示用户重新结算，而不能静默改价。</p>
-<h3 id="975-与支付系统集成补贴分账"><a class="header" href="#975-与支付系统集成补贴分账">9.7.5 与支付系统集成（补贴分账）</a></h3>
+<h3 id="2375-与支付系统集成补贴分账"><a class="header" href="#2375-与支付系统集成补贴分账">23.7.5 与支付系统集成（补贴分账）</a></h3>
 <p>支付成功事件触发：营销确认核销、生成补贴分账数据、推送给清算系统。必须处理<strong>重复回调幂等</strong>。</p>
 <p><strong>失败模式</strong>：支付回调重复 → Confirm 幂等；支付成功但营销 Confirm 失败 → 必须有补偿任务把订单推到一致状态，并阻断发货或数字履约直到营销侧确认完成（视业务风险阈值而定）。</p>
-<h3 id="976-集成时序图与补偿机制"><a class="header" href="#976-集成时序图与补偿机制">9.7.6 集成时序图与补偿机制</a></h3>
+<h3 id="2376-集成时序图与补偿机制"><a class="header" href="#2376-集成时序图与补偿机制">23.7.6 集成时序图与补偿机制</a></h3>
 <pre class="mermaid">
 sequenceDiagram
   participant U as 用户
@@ -989,8 +987,8 @@ sequenceDiagram
 
 <p><strong>补偿表</strong>字段建议：<code>biz_id</code>、<code>action</code>、<code>payload</code>、<code>next_retry_at</code>、<code>status</code>；超过阈值人工介入。对账任务按日核对营销核销与订单快照。</p>
 <hr>
-<h2 id="98-工程实践"><a class="header" href="#98-工程实践">9.8 工程实践</a></h2>
-<h3 id="981-性能优化"><a class="header" href="#981-性能优化">9.8.1 性能优化</a></h3>
+<h2 id="238-工程实践"><a class="header" href="#238-工程实践">23.8 工程实践</a></h2>
+<h3 id="2381-性能优化"><a class="header" href="#2381-性能优化">23.8.1 性能优化</a></h3>
 <ul>
 <li><strong>多级缓存</strong>：券批次元数据本地缓存 + Redis；注意失效传播。</li>
 <li><strong>并行 I/O</strong>：预览时券列表、活动命中、用户等级查询可 <code>errgroup</code> 并行（注意超时串联）。</li>
@@ -1026,7 +1024,7 @@ func PreviewParallel(ctx context.Context, userID int64) (coupons int, points int
 	return coupons, points, nil
 }
 </code></pre>
-<h3 id="982-数据一致性"><a class="header" href="#982-数据一致性">9.8.2 数据一致性</a></h3>
+<h3 id="2382-数据一致性"><a class="header" href="#2382-数据一致性">23.8.2 数据一致性</a></h3>
 <p>主路径用 Saga；异步用 Outbox 发 Kafka；消费者幂等键用 <code>event_id</code> 或业务联合键；日终对账修数据。</p>
 <p><strong>对账维度清单（营销侧最小集）</strong>：</p>
 <div class="table-wrapper">
@@ -1042,11 +1040,11 @@ func PreviewParallel(ctx context.Context, userID int64) (coupons int, points int
 </tbody>
 </table>
 </div>
-<h3 id="983-成本控制"><a class="header" href="#983-成本控制">9.8.3 成本控制</a></h3>
+<h3 id="2383-成本控制"><a class="header" href="#2383-成本控制">23.8.3 成本控制</a></h3>
 <p>预算桶、单用户上限、异常消耗报警、活动 ROI 看板；技术上防止「无限重试放大写压力」。</p>
 <p><strong>成本与体验平衡</strong>：预算耗尽应「快速失败」而不是「排队重试吞吞吐」。对于平台补贴型活动，建议设置<strong>分钟级消耗速率告警</strong>：一旦斜率异常（脚本薅羊毛），可自动触发熔断与黑名单联动。</p>
 <hr>
-<h2 id="99-本章小结"><a class="header" href="#99-本章小结">9.9 本章小结</a></h2>
+<h2 id="239-本章小结"><a class="header" href="#239-本章小结">23.9 本章小结</a></h2>
 <p>本章从<strong>工具体系</strong>（券、积分、活动、补贴）出发，拆解了营销系统的职责边界与架构分层；深入讲解了<strong>营销计算引擎</strong>的规则分层、叠加互斥与最优求解；针对秒杀抢券给出了<strong>高并发架构</strong>与限流降级策略；阐述了<strong>营销库存与预算</strong>独立于商品库存的原因与原子扣减模式；重点厘清了<strong>营销 vs 计价</strong>的算价边界，并通过<strong>集成时序图</strong>说明订单、计价、营销、库存、支付在全链路的 Try/Confirm 与补偿关系。</p>
 <p><strong>落地检查清单</strong>：</p>
 <ol>
@@ -1055,9 +1053,9 @@ func PreviewParallel(ctx context.Context, userID int64) (coupons int, points int
 <li>秒杀链路是否分离商品库存与营销库存，并有异步校准？</li>
 <li>补贴分账是否能在财务对账中还原到订单行？</li>
 </ol>
-<p><strong>与全书其他章节的阅读顺序建议</strong>：若你正在实现交易链路，建议将本章与第 12 章（计价系统）、第 14 章（购物车与结算）、第 15 章（订单系统）交叉阅读：把「试算 → 锁定 → 支付确认 → 清算」同一条时间轴画在白板上，再把每个系统的接口填进去，你会很快发现团队里哪些职责被重复实现、哪些补偿路径尚未覆盖。</p>
+<p><strong>与全书其他章节的阅读顺序建议</strong>：若你正在实现交易链路，建议将本章与第 25 章（计价系统）、第 27 章（购物车与结算）、第 28 章（订单系统）交叉阅读：把「试算 → 锁定 → 支付确认 → 清算」同一条时间轴画在白板上，再把每个系统的接口填进去，你会很快发现团队里哪些职责被重复实现、哪些补偿路径尚未覆盖。</p>
 <hr>
-<p><strong>延伸阅读</strong>：本书第 4 章（一致性）、第 12 章（计价系统）、第 15 章（订单系统）、第 16 章（支付系统）；博客原文《电商系统设计（四）：营销系统深度解析》可作为附录级细节与 SQL/Lua 参考。</p>
+<p><strong>延伸阅读</strong>：建议结合第 6 章（一致性）、第 18 章（资损防控）、第 25 章（计价系统）、第 28 章（订单系统）和第 29 章（支付系统）一起阅读，重点关注优惠锁定、核销、释放、补贴分账与对账闭环。</p>
 
                     </main>
 

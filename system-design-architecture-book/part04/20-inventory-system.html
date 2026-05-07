@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 21 章 库存系统 - 系统设计与架构实战：原理、工程与电商案例</title>
+        <title>第 22 章 库存系统 - 系统设计与架构实战：原理、工程与电商案例</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f0b7d2e.js";
+            window.path_to_searchindex_js = "../searchindex-c15c0b2b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-bc818db9.js"></script>
+        <script src="../toc-98451072.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,15 +177,13 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <p><strong>导航</strong>：<a href="../../README.html">书籍主页</a> | <a href="../../SUMMARY.html">完整目录</a> | <a href="./chapter7.html">上一章：第8章</a> | <a href="./chapter9.html">下一章：第10章</a></p>
-<hr>
-<h1 id="第-21-章-库存系统"><a class="header" href="#第-21-章-库存系统">第 21 章 库存系统</a></h1>
+                        <h1 id="第-22-章-库存系统"><a class="header" href="#第-22-章-库存系统">第 22 章 库存系统</a></h1>
 <blockquote>
 <p><strong>本章定位</strong>：库存是交易链路的硬约束之一。本章先从通用库存系统出发，解释库存为什么不是一个简单数字，而是一种可承诺供给能力；再用库存对象、库存范围、事实来源、单元形态和扣减时机抽象多品类差异，最后落到虚拟商品库存的券码、充值、供应商实时生成、Redis 原子扣减、账本对账与补偿实践。</p>
 </blockquote>
 <hr>
-<h2 id="91-背景与挑战"><a class="header" href="#91-背景与挑战">9.1 背景与挑战</a></h2>
-<h3 id="911-库存系统的本质"><a class="header" href="#911-库存系统的本质">9.1.1 库存系统的本质</a></h3>
+<h2 id="221-背景与挑战"><a class="header" href="#221-背景与挑战">22.1 背景与挑战</a></h2>
+<h3 id="2211-库存系统的本质"><a class="header" href="#2211-库存系统的本质">22.1.1 库存系统的本质</a></h3>
 <p>库存系统管理的不是一个简单数字，而是平台对用户的一种<strong>可承诺供给能力</strong>：</p>
 <pre><code class="language-text">某个售卖对象
   在某个库存范围
@@ -213,8 +211,8 @@
 </tbody>
 </table>
 </div>
-<p>库存语义混淆的答辩提示已统一收录到<a href="../../appendix/interview.html">附录B</a>。</p>
-<h3 id="912-从通用库存到虚拟商品库存"><a class="header" href="#912-从通用库存到虚拟商品库存">9.1.2 从通用库存到虚拟商品库存</a></h3>
+<p>库存语义混淆的答辩提示已统一收录到<a href="../part05/34-product-inventory-marketing-pricing-interview.html">第 36 章</a>。</p>
+<h3 id="2212-从通用库存到虚拟商品库存"><a class="header" href="#2212-从通用库存到虚拟商品库存">22.1.2 从通用库存到虚拟商品库存</a></h3>
 <p>通用库存系统先解决“可售承诺”的建模问题，再针对不同品类选择不同策略。虚拟商品没有传统仓库和物流，但它不是更简单，而是把仓储复杂度换成了履约和一致性复杂度：券码不能重复发，充值提交后不能随便撤回，供应商实时生成可能超时，卡密泄露会变成资损。</p>
 <div class="table-wrapper">
 <table>
@@ -232,7 +230,7 @@
 </table>
 </div>
 <p>所以这一章的叙事顺序应该是：先建立通用库存系统，再过渡到虚拟商品库存类型。后文的 Redis Lua、供应商同步、对账补偿，本质上都是服务于这些难点，而不是为了展示某个技术组件。</p>
-<h3 id="913-核心难点与解决手段"><a class="header" href="#913-核心难点与解决手段">9.1.3 核心难点与解决手段</a></h3>
+<h3 id="2213-核心难点与解决手段"><a class="header" href="#2213-核心难点与解决手段">22.1.3 核心难点与解决手段</a></h3>
 <p>库存系统的技术含量集中在“高并发下把承诺做对，失败后能修回来”。</p>
 <div class="table-wrapper">
 <table>
@@ -252,7 +250,7 @@
 </table>
 </div>
 <p>这张表也决定了本章的技术主线：<strong>账本模型保证可追溯，原子扣减保证并发安全，幂等状态机保证可重试，对账补偿保证最终修复，供应商适配保证外部不确定性可控</strong>。</p>
-<h3 id="914-设计目标"><a class="header" href="#914-设计目标">9.1.4 设计目标</a></h3>
+<h3 id="2214-设计目标"><a class="header" href="#2214-设计目标">22.1.4 设计目标</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -271,8 +269,8 @@
 </div>
 <p><strong>容量与并发视角的补充</strong>：库存系统往往是交易洪峰的第一扇闸门。当创单 QPS 在短时间内抬升一个数量级时，最先暴露的通常不是 CPU，而是热 Key、连接池、消息堆积与下游供应商配额。因此在需求阶段就要区分两类指标：对用户承诺的创单成功率，以及对内部承诺的库存服务自身 SLO，例如 Reserve P99、对账修复时延、补偿积压量。两者混谈会导致“系统看起来没挂，但用户体验已经崩了”。</p>
 <hr>
-<h2 id="92-通用库存模型与分类体系"><a class="header" href="#92-通用库存模型与分类体系">9.2 通用库存模型与分类体系</a></h2>
-<h3 id="921-四个建模问题"><a class="header" href="#921-四个建模问题">9.2.1 四个建模问题</a></h3>
+<h2 id="222-通用库存模型与分类体系"><a class="header" href="#222-通用库存模型与分类体系">22.2 通用库存模型与分类体系</a></h2>
+<h3 id="2221-四个建模问题"><a class="header" href="#2221-四个建模问题">22.2.1 四个建模问题</a></h3>
 <p>设计库存系统时，不应该先问“用 Redis 还是 MySQL”，而应该先问四个建模问题：</p>
 <div class="table-wrapper">
 <table>
@@ -288,7 +286,7 @@
 </table>
 </div>
 <p>这四个问题共同决定库存 Key、数据表唯一键、缓存 Key、扣减策略和对账维度。缺少“库存范围”时，系统很容易只支持虚拟商品数量制，一旦接入仓库、门店、酒店日期或活动独占库存，就会开始堆 <code>if category == xxx</code>。</p>
-<h3 id="922-库存范围从-sku-到可售承诺"><a class="header" href="#922-库存范围从-sku-到可售承诺">9.2.2 库存范围：从 SKU 到可售承诺</a></h3>
+<h3 id="2222-库存范围从-sku-到可售承诺"><a class="header" href="#2222-库存范围从-sku-到可售承诺">22.2.2 库存范围：从 SKU 到可售承诺</a></h3>
 <p>通用库存的核心 Key 不是单纯 <code>sku_id</code>，而是：</p>
 <pre><code class="language-text">inventory_key =
   sku_id
@@ -316,7 +314,7 @@
 </table>
 </div>
 <p>工程上建议把库存范围抽象成 <code>scope_type + scope_id</code>，再把日期、批次、渠道作为显式字段。这样既能保持查询可控，也能让业务表达足够清晰。</p>
-<h3 id="923-账本聚合与热视图"><a class="header" href="#923-账本聚合与热视图">9.2.3 账本、聚合与热视图</a></h3>
+<h3 id="2223-账本聚合与热视图"><a class="header" href="#2223-账本聚合与热视图">22.2.3 账本、聚合与热视图</a></h3>
 <p>一个可恢复的库存系统通常至少有四类数据：</p>
 <div class="table-wrapper">
 <table>
@@ -485,7 +483,7 @@ AVAILABLE --quality_check--&gt; INVALID
 6. 支付成功后 BOOKING -&gt; SOLD；订单取消或超时后 BOOKING -&gt; AVAILABLE，并通过 Outbox 或补偿任务把 code_id 回填到 Redis LIST。
 </code></pre>
 <p>因此 Redis 的角色只是「热队列」：只放 <code>code_id</code>，不放明文码；只提升吞吐，不承担库存权威职责。Redis LIST 为空时，补货 Worker 按 <code>idx_batch_status_id</code> 用 <code>id</code> 游标分页扫描 MySQL 可用码并回填；Redis 故障后，也可以从 MySQL 的 <code>AVAILABLE</code> 状态全量重建热队列。监控上要同时看 MySQL 可用码数量、Redis LIST 长度、锁码 CAS 失败率、BOOKING 超时释放量和 SOLD 重复告警。</p>
-<h3 id="924-多维分类模型"><a class="header" href="#924-多维分类模型">9.2.4 多维分类模型</a></h3>
+<h3 id="2224-多维分类模型"><a class="header" href="#2224-多维分类模型">22.2.4 多维分类模型</a></h3>
 <p>统一库存的关键，是把品类差异拆成几个正交维度，而不是让每个品类复制一套服务。</p>
 <pre><code class="language-go">// ManagementType：谁拥有库存事实来源
 const (
@@ -531,7 +529,7 @@ const (
 无限库存 + 无范围 + 支付后履约
   → 不扣库存，但写履约审计和风控流水
 </code></pre>
-<h3 id="925-品类分类矩阵"><a class="header" href="#925-品类分类矩阵">9.2.5 品类分类矩阵</a></h3>
+<h3 id="2225-品类分类矩阵"><a class="header" href="#2225-品类分类矩阵">22.2.5 品类分类矩阵</a></h3>
 <p>下表将常见品类映射到通用模型。它不是为了枚举业务，而是为了帮助团队识别“这类库存难在哪里，应该选哪组技术手段”。</p>
 <div class="table-wrapper">
 <table>
@@ -587,9 +585,9 @@ flowchart TB
 </pre>
 
 <blockquote>
-<p><strong>与营销库存的关系</strong>：商品库存回答“有没有货”，营销库存回答“活动名额 / 补贴预算够不够”。秒杀等场景往往需要双扣减（商品 + 营销），本章在 9.7 节说明集成边界；营销细节见第 10 章。</p>
+<p><strong>与营销库存的关系</strong>：商品库存回答“有没有货”，营销库存回答“活动名额 / 补贴预算够不够”。秒杀等场景往往需要双扣减（商品 + 营销），本章在 22.7 节说明集成边界；营销细节见第 24 章。</p>
 </blockquote>
-<h3 id="926-库存创建从商品发布到库存实例"><a class="header" href="#926-库存创建从商品发布到库存实例">9.2.6 库存创建：从商品发布到库存实例</a></h3>
+<h3 id="2226-库存创建从商品发布到库存实例"><a class="header" href="#2226-库存创建从商品发布到库存实例">22.2.6 库存创建：从商品发布到库存实例</a></h3>
 <p>库存系统不能只设计扣减，还要设计 <strong>库存从哪里来、什么时候创建、创建到什么粒度、失败后如何重放</strong>。商品发布只说明“这个 SKU 可以售卖”，不一定说明“库存实例已经准备好”。库存创建的目标，是把商品中心的销售契约转成库存域可扣减、可对账、可恢复的实例。</p>
 <p>库存创建通常来自五类入口：</p>
 <div class="table-wrapper">
@@ -716,7 +714,7 @@ flowchart TB
 <li>搜索 / 商品聚合读模型能感知可售状态；</li>
 <li>创建失败可以按 <code>inventory_create_task</code> 重试、部分成功回滚或人工修复。</li>
 </ol>
-<h3 id="927-虚拟商品库存的特化"><a class="header" href="#927-虚拟商品库存的特化">9.2.7 虚拟商品库存的特化</a></h3>
+<h3 id="2227-虚拟商品库存的特化"><a class="header" href="#2227-虚拟商品库存的特化">22.2.7 虚拟商品库存的特化</a></h3>
 <p>虚拟商品库存可以复用通用库存模型，但需要额外突出四个风险：</p>
 <ol>
 <li><strong>发货不可逆</strong>：充值、出票、发码一旦提交供应商或展示给用户，不能简单回滚。</li>
@@ -743,7 +741,7 @@ flowchart TB
 <blockquote>
 <p>虚拟商品不是“没有库存”，而是库存从仓库货架变成了数量承诺、唯一凭证、供应商额度和不可逆履约状态。</p>
 </blockquote>
-<h3 id="928-可售库存计算"><a class="header" href="#928-可售库存计算">9.2.8 可售库存计算</a></h3>
+<h3 id="2228-可售库存计算"><a class="header" href="#2228-可售库存计算">22.2.8 可售库存计算</a></h3>
 <p>库存系统对外暴露的不是 <code>total_stock</code>，而是可售判断。可售库存的计算要分管理类型：</p>
 <pre><code class="language-text">SelfManaged:
   sellable = total_stock - booking_stock - locked_stock - sold_stock
@@ -766,8 +764,8 @@ Unlimited:
 </code></pre>
 <p>这样可以把“展示性能”和“交易安全”分开，避免为了列表页性能牺牲创单正确性。</p>
 <hr>
-<h2 id="93-库存扣减策略"><a class="header" href="#93-库存扣减策略">9.3 库存扣减策略</a></h2>
-<h3 id="931-扣减时机"><a class="header" href="#931-扣减时机">9.3.1 扣减时机</a></h3>
+<h2 id="223-库存扣减策略"><a class="header" href="#223-库存扣减策略">22.3 库存扣减策略</a></h2>
+<h3 id="2231-扣减时机"><a class="header" href="#2231-扣减时机">22.3.1 扣减时机</a></h3>
 <p>扣减时机是交易体验与资损风险的权衡轴：</p>
 <ul>
 <li><strong>下单预占（Reserve / Book）</strong>：用户体验好（下单即锁货），但占用时长内库存不可用，需要可靠的超时释放。</li>
@@ -776,7 +774,7 @@ Unlimited:
 </ul>
 <p>工程上建议把时机写入 <code>inventory_config.deduct_timing</code>，由订单 / 结算编排读取，而不是散落在订单代码的 <code>switch</code>。</p>
 <p><strong>配置值与交易编排的契约</strong>：<code>deduct_timing</code> 只是标签，真正决定行为的是订单状态机与库存 API 的组合。推荐在内部文档中固定一张「状态 × 库存动作」表，例如：<code>PENDING_PAYMENT → Release</code>、<code>PAID → Confirm</code>、<code>CLOSED → Release(幂等)</code>。当同一品类在不同国家 / 不同供应商合同中扣减时机不同，用配置驱动可以避免为每个市场复制一套订单服务。</p>
-<h3 id="932-预占与确认"><a class="header" href="#932-预占与确认">9.3.2 预占与确认</a></h3>
+<h3 id="2232-预占与确认"><a class="header" href="#2232-预占与确认">22.3.2 预占与确认</a></h3>
 <p><strong>预占（Reserve）</strong> 的本质：把「可售」迁移到「已占用（booking）」状态，并保证操作原子、可幂等、可追踪。</p>
 <p><strong>确认（Confirm / Sell）</strong> 的本质：把「占用」迁移到「已售（sold / issued）」，并与支付成功事件对齐。</p>
 <p>自管理数量制的状态迁移（Redis HASH 字段视角）：</p>
@@ -810,7 +808,7 @@ func (StrategyRouter) MustStrategy(cfg *InventoryConfig) (InventoryStrategy, err
 }
 </code></pre>
 <p><strong>与「营销锁定」的关系</strong>：数量制 Redis HASH 常会增加 <code>locked</code> 以及按 <code>promotion_id</code> 维度的动态字段，用于表达「活动独占库存」。商品详情页展示的可售量，与下单强校验使用的可售量，可能不是同一个聚合口径——务必在接口契约里写清楚，避免运营配置误解导致客诉。</p>
-<h3 id="933-超时释放"><a class="header" href="#933-超时释放">9.3.3 超时释放</a></h3>
+<h3 id="2233-超时释放"><a class="header" href="#2233-超时释放">22.3.3 超时释放</a></h3>
 <p>超时释放至少要回答三个问题：<strong>谁来触发？以什么为准？失败如何兜底？</strong></p>
 <p>常见实现组合：</p>
 <ol>
@@ -868,27 +866,27 @@ stateDiagram-v2
 <li><strong>幂等键</strong>：<code>order_id</code> 贯穿 Reserve / Confirm / Release，重复调用必须安全。</li>
 <li><strong>顺序依赖</strong>：若营销与商品双预占，失败回滚顺序应与成功顺序相反（Saga 补偿语义）。</li>
 </ul>
-<h3 id="934-超卖防护"><a class="header" href="#934-超卖防护">9.3.4 超卖防护</a></h3>
+<h3 id="2234-超卖防护"><a class="header" href="#2234-超卖防护">22.3.4 超卖防护</a></h3>
 <p>超卖防护应分层：</p>
 <ol>
 <li><strong>热路径原子性</strong>：Redis Lua 或单分片事务，保证「检查 + 扣减」不可分割。</li>
 <li><strong>业务幂等</strong>：同一 <code>order_id</code> 重复确认只生效一次。</li>
 <li><strong>冷路径校验</strong>：支付回调后，在确认库存前读取 MySQL 侧汇总做二次校验（容忍更高延迟）。</li>
-<li><strong>对账兜底</strong>：周期任务发现 <code>available + booking + sold</code> 恒等式破坏或 Redis / MySQL 偏差过大，自动冻结商品并告警（见 9.5.2）。</li>
+<li><strong>对账兜底</strong>：周期任务发现 <code>available + booking + sold</code> 恒等式破坏或 Redis / MySQL 偏差过大，自动冻结商品并告警（见 22.5.2）。</li>
 </ol>
 <p><strong>CheckStock 与 ReserveStock 为什么要拆开？</strong> 只读 Check 适合列表页、加购前的快速失败；但它不能保证并发下的正确性。正确做法是：<strong>创单路径必须以 Reserve 这种「读改写原子操作」为准</strong>，Check 只是辅助。否则会出现「校验时还有货，下单时被抢走」的经典竞态。</p>
 <p><strong>秒杀场景的 Facade（可选优化）</strong>：当商品库存与营销库存必须同事务化编排时，常规做法是订单 Saga 两步调用；在极端 QPS 下可以引入 <code>FlashSaleInventoryFacade.CheckAndReserve</code> 聚合接口，把限流、热点治理、重复请求拦截收敛到库存域的专用入口。注意：Facade 是性能与风控的「窄接口」，不要让它反向吞噬订单领域的编排职责。</p>
 <hr>
-<h2 id="94-供应商集成"><a class="header" href="#94-供应商集成">9.4 供应商集成</a></h2>
+<h2 id="224-供应商集成"><a class="header" href="#224-供应商集成">22.4 供应商集成</a></h2>
 <p>供应商集成本质是 <strong>把「外部库存事实」映射为平台可售视图</strong>，并在预订 / 取消时调用供应商 API 对齐状态。</p>
-<h3 id="941-实时查询"><a class="header" href="#941-实时查询">9.4.1 实时查询</a></h3>
+<h3 id="2241-实时查询"><a class="header" href="#2241-实时查询">22.4.1 实时查询</a></h3>
 <p><strong>适用</strong>：变化快、对超卖极度敏感（机票、部分热门票务）。</p>
 <p><strong>模式</strong>：</p>
 <ul>
 <li>读路径：短 TTL 缓存 + 超时控制 + 熔断降级。</li>
-<li>写路径：同步预订或异步预订（供应商返回 pending 时需轮询，见博客原文异步 booking 状态机）。</li>
+<li>写路径：同步预订或异步预订（供应商返回 pending 时需轮询，并通过异步 booking 状态机收敛结果）。</li>
 </ul>
-<p><strong>读路径的 Go 骨架（与第 16 章风格一致：先缓存、后供应商、再回写、可观测）</strong>：</p>
+<p><strong>读路径的 Go 骨架（与第 32 章风格一致：先缓存、后供应商、再回写、可观测）</strong>：</p>
 <pre><code class="language-go">// CheckSupplierStock 演示：实时查询 + 短缓存 + 异步快照（示意代码）
 func (s *SupplierManagedStrategy) CheckStock(ctx context.Context, req *CheckStockReq) (*CheckStockResp, error) {
 	cacheKey := fmt.Sprintf("inventory:supplier:%d:%d:%s", req.ItemID, req.SKUID, req.Date)
@@ -928,21 +926,21 @@ func (s *SupplierManagedStrategy) CheckStock(ctx context.Context, req *CheckStoc
 <li><strong>错误语义</strong>：<code>Unknown</code> 不要当作「0 库存」返回，否则会把用户引导到错误决策；应显式返回「暂不可校验」并由前端降级展示。</li>
 <li><strong>观测</strong>：必须记录 <code>from_cache</code>、<code>supplier_latency_ms</code>、<code>supplier_error_class</code>，否则线上只能看到「库存服务慢」，无法判断是供应商还是自研逻辑。</li>
 </ul>
-<h3 id="942-定时同步"><a class="header" href="#942-定时同步">9.4.2 定时同步</a></h3>
+<h3 id="2242-定时同步"><a class="header" href="#2242-定时同步">22.4.2 定时同步</a></h3>
 <p><strong>适用</strong>：变化中等、可接受分钟级延迟（部分酒店库存）。</p>
 <p><strong>模式</strong>：</p>
 <ul>
 <li>定时任务拉取供应商库存，写入本地 <code>inventory</code> 快照字段（如 <code>supplier_stock</code>、<code>supplier_sync_time</code>）。</li>
 <li>读路径优先读本地快照，必要时触发「刷新任务」。</li>
 </ul>
-<h3 id="943-推送模式"><a class="header" href="#943-推送模式">9.4.3 推送模式</a></h3>
+<h3 id="2243-推送模式"><a class="header" href="#2243-推送模式">22.4.3 推送模式</a></h3>
 <p><strong>适用</strong>：供应商能力较强，主动推送房态 / 价格变更。</p>
 <p><strong>要点</strong>：</p>
 <ul>
 <li>Webhook 入口必须鉴权、幂等、重放安全。</li>
 <li>推送与定时拉取可并存：推送负责快变字段，拉取负责兜底对齐。</li>
 </ul>
-<h3 id="944-降级策略"><a class="header" href="#944-降级策略">9.4.4 降级策略</a></h3>
+<h3 id="2244-降级策略"><a class="header" href="#2244-降级策略">22.4.4 降级策略</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -980,8 +978,8 @@ flowchart LR
 <p><strong>礼品卡横跨多种模式的启示</strong>：预采购卡密（Self + Code）、实时生成卡密（Supplier + Code）、无限库存（Unlimited）往往并存于同一业务线。统一模型的价值在于：团队可以用同一张「策略决策表」讨论边界，而不是在三个服务里分别口述规则。</p>
 <p><strong>异步预订（pending → confirmed）的工程清单</strong>：当供应商只能异步确认时，至少补齐以下构件：<code>supplier_booking</code> 映射表、可重入的轮询 worker、超时与人工介入队列、订单侧状态机联动、对账任务对「平台已占 / 供应商未确认」的专项扫描。否则极易出现「钱扣了但供应商没单」或「供应商有单但平台没单」的双向不一致。</p>
 <hr>
-<h2 id="95-数据一致性保证"><a class="header" href="#95-数据一致性保证">9.5 数据一致性保证</a></h2>
-<h3 id="951-redis-与-mysql-同步"><a class="header" href="#951-redis-与-mysql-同步">9.5.1 Redis 与 MySQL 同步</a></h3>
+<h2 id="225-数据一致性保证"><a class="header" href="#225-数据一致性保证">22.5 数据一致性保证</a></h2>
+<h3 id="2251-redis-与-mysql-同步"><a class="header" href="#2251-redis-与-mysql-同步">22.5.1 Redis 与 MySQL 同步</a></h3>
 <p>典型路径是 <strong>「Redis 同步执行，MySQL 异步落库」</strong>：</p>
 <ul>
 <li><strong>同步</strong>：Lua 脚本更新 Redis 中的 <code>available/booking/issued</code> 或券码池。</li>
@@ -1011,7 +1009,7 @@ flowchart LR
 <li><strong>对账修复为主、消息为辅</strong>：接受短窗口不一致，用对账把差异拉回（适合容忍度稍高、但吞吐极大的场景）。</li>
 </ol>
 <p>选型没有银弹：机票酒店类强一致诉求更高，虚拟券码大促类更偏向吞吐与事后修复。</p>
-<h3 id="952-对账机制"><a class="header" href="#952-对账机制">9.5.2 对账机制</a></h3>
+<h3 id="2252-对账机制"><a class="header" href="#2252-对账机制">22.5.2 对账机制</a></h3>
 <p>对账目标不是「每时每刻 Redis == MySQL」，而是 <strong>尽快发现破坏恒等式与异常漂移，并可控修复</strong>。</p>
 <p>建议对账维度：</p>
 <ol>
@@ -1059,7 +1057,7 @@ func ReconcileItem(ctx context.Context, cfg InventoryConfig) error {
 	return nil
 }
 </code></pre>
-<h3 id="953-补偿任务"><a class="header" href="#953-补偿任务">9.5.3 补偿任务</a></h3>
+<h3 id="2253-补偿任务"><a class="header" href="#2253-补偿任务">22.5.3 补偿任务</a></h3>
 <p>补偿任务用于处理：</p>
 <ul>
 <li>Kafka 消费失败导致日志未落库。</li>
@@ -1069,10 +1067,10 @@ func ReconcileItem(ctx context.Context, cfg InventoryConfig) error {
 <p>建议补偿任务具备：<strong>可观测进度、可重入、可限流、可人工跳过</strong>，并在执行前获取分布式锁或基于 <code>order_id</code> 的行级互斥，避免双写打架。</p>
 <p><strong>补偿与对账的分工</strong>：对账偏「批量、周期性、发现漂移」；补偿偏「单点、事件触发、把状态推进到合法终态」。两者叠加才能覆盖「消息乱序」「重复投递」「供应商晚到回调」等真实世界的粗糙边缘。</p>
 <p><strong>Kafka 消费者的吞吐与顺序</strong>：库存事件消费端建议「按 <code>item_id</code> 分区有序 + 批量落库」：<code>item_id</code> 分区可以保证同一商品变更串行应用，批量 <code>INSERT</code> 日志与合并更新可以降低 MySQL TPS。需要警惕的是：<strong>重试会导致重复消息</strong>，因此 MySQL 写入必须基于 <code>event_id</code> 或业务幂等键去重；否则对账会看到「日志重复 / 库存多减」。</p>
-<p><strong>跨库存类型一致性（商品 + 营销）</strong>：秒杀场景下商品预占成功但营销失败时，必须回滚商品预占。回滚失败不要把系统留在「半占用」状态：应记录缺陷单并阻塞该 <code>order_id</code> 的继续支付，直到补偿成功或人工判定。该话题与第 4 章 Saga、第 10 章营销库存紧密相关，本章强调 <strong>库存侧 API 必须可单独幂等重放</strong>，以便编排器反复补偿。</p>
+<p><strong>跨库存类型一致性（商品 + 营销）</strong>：秒杀场景下商品预占成功但营销失败时，必须回滚商品预占。回滚失败不要把系统留在「半占用」状态：应记录缺陷单并阻塞该 <code>order_id</code> 的继续支付，直到补偿成功或人工判定。该话题与第 6 章 Saga、第 23 章营销库存紧密相关，本章强调 <strong>库存侧 API 必须可单独幂等重放</strong>，以便编排器反复补偿。</p>
 <hr>
-<h2 id="96-系统边界与职责"><a class="header" href="#96-系统边界与职责">9.6 系统边界与职责</a></h2>
-<h3 id="961-库存系统的职责边界"><a class="header" href="#961-库存系统的职责边界">9.6.1 库存系统的职责边界</a></h3>
+<h2 id="226-系统边界与职责"><a class="header" href="#226-系统边界与职责">22.6 系统边界与职责</a></h2>
+<h3 id="2261-库存系统的职责边界"><a class="header" href="#2261-库存系统的职责边界">22.6.1 库存系统的职责边界</a></h3>
 <p><strong>库存系统应该负责</strong>：</p>
 <ul>
 <li>SKU 维度的可售数量 / 券码 / 日历切片视图的维护。</li>
@@ -1084,7 +1082,7 @@ func ReconcileItem(ctx context.Context, cfg InventoryConfig) error {
 <li>订单优惠分摊、支付路由、用户风控评分（可读取必要参数，但不拥有规则）。</li>
 <li>商品详情文案、主图、类目属性（属于商品中心）。</li>
 </ul>
-<h3 id="962-库存-vs-商品边界划分"><a class="header" href="#962-库存-vs-商品边界划分">9.6.2 库存 vs 商品：边界划分</a></h3>
+<h3 id="2262-库存-vs-商品边界划分"><a class="header" href="#2262-库存-vs-商品边界划分">22.6.2 库存 vs 商品：边界划分</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1098,14 +1096,14 @@ func ReconcileItem(ctx context.Context, cfg InventoryConfig) error {
 </table>
 </div>
 <p><strong>建议</strong>：商品详情页展示库存「有 / 无」可以来自搜索 / 商品聚合读模型；<strong>下单路径的强校验</strong>必须调用库存服务。</p>
-<h3 id="963-平台库存-vs-供应商库存"><a class="header" href="#963-平台库存-vs-供应商库存">9.6.3 平台库存 vs 供应商库存</a></h3>
+<h3 id="2263-平台库存-vs-供应商库存"><a class="header" href="#2263-平台库存-vs-供应商库存">22.6.3 平台库存 vs 供应商库存</a></h3>
 <ul>
 <li><strong>平台自管</strong>：平台能强约束不超卖（在自有数据正确前提下）。</li>
 <li><strong>供应商管理</strong>：平台只能「尽力而为」，必须定义 <strong>同步延迟下</strong> 的用户协议与技术降级（例如显示「库存紧张」、下单后异步确认）。</li>
 </ul>
 <p><strong>把「可售」定义成合同</strong>：供应商管理并不等于「平台不承担责任」。产品条款、详情页提示、客服话术需要与技术策略一致：例如列表页展示的是「上次同步快照」，下单页展示的是「下单瞬间强刷结果」，支付页又可能进入「供应商二次确认」。这些差异如果只靠前端临时拼接字段，极易引发纠纷；建议由商品 / 库存领域共同产出 <strong>可售声明（availability disclaimer）</strong> 的配置，并在关键触点统一渲染。</p>
 <p><strong>时间维度下的边界</strong>：酒店类库存往往以「入住日」为切片，查询与扣减都携带日期参数。库存服务应提供明确的日期合法性校验（不可售日期、最小连住、跨日边界），但不要吞掉「价格日历」职责——价格仍归计价系统，库存只回答「这一天还有没有房 / 席位」。</p>
-<h3 id="964-库存预占的归属"><a class="header" href="#964-库存预占的归属">9.6.4 库存预占的归属</a></h3>
+<h3 id="2264-库存预占的归属"><a class="header" href="#2264-库存预占的归属">22.6.4 库存预占的归属</a></h3>
 <p>推荐由 <strong>库存服务提供 Reserve / Confirm / Release API</strong>，订单系统编排调用。避免订单服务直接写 Redis，否则：</p>
 <ul>
 <li>权限边界模糊，排障困难；</li>
@@ -1115,12 +1113,12 @@ func ReconcileItem(ctx context.Context, cfg InventoryConfig) error {
 <p><strong>进一步建议</strong>：把「预占记录」视为库存域内的聚合片段（可用 Redis HASH、也可用独立表存储影子状态），对外只暴露语义化 API。订单系统持有 <code>order_id</code> 与支付超时策略；库存系统持有「这单占了多少、占在哪一批次 / 哪一天」。当两边都要保存时，必须明确 <strong>主键映射与幂等回放</strong> 规则：支付回调重复到达时，Confirm 只能执行一次；超时释放与支付成功并发时，必须以「订单最终状态」为仲裁者。</p>
 <p><strong>组合型（Bundle）扣减的边界</strong>：套餐类商品是「一个售卖单元，多个库存单元」。库存系统可以提供 <code>BundleReserve</code> 事务式 API，内部仍以子 SKU 为单位调用原子脚本，但整体成功准则由库存域定义（全成或全败）。不建议把子项拆解交给订单服务循环调用——否则补偿顺序、部分失败、日志关联都会变得脆弱。</p>
 <hr>
-<h2 id="97-与其他系统的集成"><a class="header" href="#97-与其他系统的集成">9.7 与其他系统的集成</a></h2>
-<h3 id="971-与商品中心集成商品上架时初始化库存"><a class="header" href="#971-与商品中心集成商品上架时初始化库存">9.7.1 与商品中心集成（商品上架时初始化库存）</a></h3>
-<p>商品中心在 SKU 生效时发出领域事件（或消息）是最佳挂钩点：库存服务消费事件后生成 <code>InventoryCreateCommand</code>，再由创建任务异步初始化 <code>inventory_config</code>、<code>inventory_balance</code>、券码批次或日期 / 门店切片。完整创建模型见 9.2.6，本节只强调系统边界。</p>
+<h2 id="227-与其他系统的集成"><a class="header" href="#227-与其他系统的集成">22.7 与其他系统的集成</a></h2>
+<h3 id="2271-与商品中心集成商品上架时初始化库存"><a class="header" href="#2271-与商品中心集成商品上架时初始化库存">22.7.1 与商品中心集成（商品上架时初始化库存）</a></h3>
+<p>商品中心在 SKU 生效时发出领域事件（或消息）是最佳挂钩点：库存服务消费事件后生成 <code>InventoryCreateCommand</code>，再由创建任务异步初始化 <code>inventory_config</code>、<code>inventory_balance</code>、券码批次或日期 / 门店切片。完整创建模型见 22.2.6，本节只强调系统边界。</p>
 <p>这里的关键是 <strong>幂等</strong>：同一 SKU 的重复发布 / 回滚发布不得生成重复库存行；建议使用 <code>source_type + source_id + inventory_key</code> 或 <code>item_id + sku_id + scope + publish_version</code> 做唯一约束，并在消费端用「版本号 / 生效时间窗」判定是否应用变更。</p>
 <p>对「供应商管理」品类，初始化阶段就要写入 <code>supplier_id</code> 与 <code>sync_strategy</code>，并创建供应商适配器所需的 <strong>外部商品编码映射</strong>（否则库存同步与预订调用会在上线后才发现无法对齐）。对于券码制，还要初始化 <code>batch_id</code> 维度与分表路由规则，避免大促时临时改路由。</p>
-<h3 id="972-与商品供给运营平台和生命周期联动"><a class="header" href="#972-与商品供给运营平台和生命周期联动">9.7.2 与商品供给运营平台和生命周期联动</a></h3>
+<h3 id="2272-与商品供给运营平台和生命周期联动"><a class="header" href="#2272-与商品供给运营平台和生命周期联动">22.7.2 与商品供给运营平台和生命周期联动</a></h3>
 <p>从长期运营视角看，库存不是商品表里的一个字段，而是商品生命周期能否进入“真实可售”的硬闸门。商品供给运营平台负责“这次变更是否可以发布”，商品生命周期负责“正式商品处于什么线上状态”，库存系统负责“这个商品在某个范围内是否有可承诺资源”。三者必须通过命令、事件和可售投影联动，而不是互相直接改库。</p>
 <p>职责可以这样划分：</p>
 <div class="table-wrapper">
@@ -1204,16 +1202,16 @@ RebuildAvailability   重建可售投影
 <li><strong>供应商同步直接覆盖人工库存策略</strong>：应通过字段主导权、保护期和变更单处理冲突。</li>
 <li><strong>生命周期和库存状态互相递归调用</strong>：建议事件驱动 + 可售投影，避免同步调用链变成大事务。</li>
 </ol>
-<h3 id="973-与订单系统集成预占--扣减--释放"><a class="header" href="#973-与订单系统集成预占--扣减--释放">9.7.3 与订单系统集成（预占 / 扣减 / 释放）</a></h3>
+<h3 id="2273-与订单系统集成预占--扣减--释放"><a class="header" href="#2273-与订单系统集成预占--扣减--释放">22.7.3 与订单系统集成（预占 / 扣减 / 释放）</a></h3>
 <p>创单路径建议以 <strong>Reserve</strong> 作为硬闸门：订单系统先拿到库存服务的成功回执，再写入订单主表为 <code>PENDING_PAYMENT</code>。如果顺序反过来，会出现「订单已创建但库存未占」的不可恢复窗口，除非再引入复杂补偿。</p>
 <p>支付成功后的 <strong>Confirm</strong> 应与支付回调幂等键绑定（支付单号 / 回调事件 id）。实践中常见错误是：支付重放导致库存二次加 <code>issued</code>，或支付失败却误触发 Confirm。<strong>关单 / 超时释放</strong> 应与订单状态机严格对齐：只有从可取消状态进入释放，才调用 <code>Release</code>；对于已进入履约的订单，释放必须转为退款域的逆向流程（可能涉及供应商取消接口）。</p>
-<h3 id="974-与供应商系统集成实时查询--定时同步"><a class="header" href="#974-与供应商系统集成实时查询--定时同步">9.7.4 与供应商系统集成（实时查询 / 定时同步）</a></h3>
+<h3 id="2274-与供应商系统集成实时查询--定时同步"><a class="header" href="#2274-与供应商系统集成实时查询--定时同步">22.7.4 与供应商系统集成（实时查询 / 定时同步）</a></h3>
 <p>供应商集成建议落在 <strong>供应商网关</strong> 或 <strong>库存适配器层</strong>，由库存服务调用，而不是让订单服务直连供应商：订单系统只需要知道「库存服务承诺的结果」，不需要理解每家供应商的 OAuth、签名算法与重试语义。</p>
 <p>适配器层应统一：超时、重试（仅对幂等读 / 明确幂等写）、熔断、隔离舱（bulkhead）、以及 <strong>错误码映射</strong>。强烈建议把供应商错误抽象为三类：<code>Retryable</code>（可重试）、<code>Fatal</code>（明确失败）、<code>Unknown</code>（需要人工核对）。<code>Unknown</code> 类错误不要自动重试写入路径，否则极易造成重复预订。</p>
-<h3 id="975-库存变更事件发布"><a class="header" href="#975-库存变更事件发布">9.7.5 库存变更事件发布</a></h3>
+<h3 id="2275-库存变更事件发布"><a class="header" href="#2275-库存变更事件发布">22.7.5 库存变更事件发布</a></h3>
 <p>事件字段建议包含：<code>event_id</code>、<code>event_type</code>、<code>item_id</code>、<code>sku_id</code>、<code>order_id</code>、<code>quantity</code>、<code>before/after</code> 快照、时间戳。消费者可以是：搜索引擎刷新可售标签、报表、风控。</p>
 <p>事件设计要兼顾 <strong>可排序</strong> 与 <strong>可去重</strong>：<code>event_id</code> 建议全局唯一；<code>event_type</code> 建议稳定枚举；<code>before/after</code> 用于审计与对账回放。对于券码制，还应携带 <code>code_ids</code> 或哈希摘要（避免明文扩散到不该出现的下游）。如果下游是搜索索引，通常只需要「可售阈值变化」而非每一次微抖动，可增加 <strong>聚合投影</strong>（projector）把高频事件折叠为低频索引更新。</p>
-<h3 id="976-集成模式与降级策略"><a class="header" href="#976-集成模式与降级策略">9.7.6 集成模式与降级策略</a></h3>
+<h3 id="2276-集成模式与降级策略"><a class="header" href="#2276-集成模式与降级策略">22.7.6 集成模式与降级策略</a></h3>
 <ul>
 <li><strong>同步编排 + 异步对账</strong> 是默认主路径；</li>
 <li><strong>秒杀聚合接口</strong>（一次网络往返完成商品 + 营销预占）属于性能优化特例，应被清晰标记为「窄场景专用」，避免成为全局耦合点。</li>
@@ -1241,8 +1239,8 @@ sequenceDiagram
 
 <p><strong>降级策略（库存不可用）</strong>：严格模式直接失败；宽松模式允许「先创单后补扣」（极易超卖，仅适合内部试单或供应商兜底能力极强且可取消的场景）。若启用宽松模式，必须同步启用 <strong>更频繁对账 + 更强支付确认校验 + 明确法务条款</strong>。</p>
 <hr>
-<h2 id="98-工程实践"><a class="header" href="#98-工程实践">9.8 工程实践</a></h2>
-<h3 id="981-lua-脚本原子性"><a class="header" href="#981-lua-脚本原子性">9.8.1 Lua 脚本原子性</a></h3>
+<h2 id="228-工程实践"><a class="header" href="#228-工程实践">22.8 工程实践</a></h2>
+<h3 id="2281-lua-脚本原子性"><a class="header" href="#2281-lua-脚本原子性">22.8.1 Lua 脚本原子性</a></h3>
 <p>Redis 单线程执行 Lua，可保证脚本内多条命令原子执行，非常适合「读-判断-写」库存扣减。</p>
 <p><strong>数量制预占脚本（示例）</strong>：从 <code>available</code> 扣减并增加 <code>booking</code>，不足返回 <code>-1</code>。</p>
 <pre><code class="language-lua">-- KEYS[1]: inventory:qty:stock:{itemID}:{skuID}
@@ -1374,7 +1372,7 @@ return codeIds
 </code></pre>
 <p><strong>补货并发与空池短路</strong>：券码制常见问题是 Redis LIST 空时频繁穿透数据库。应组合使用「空池标记（短 TTL）」「补货分布式锁」「MySQL 侧复合索引 + id 游标分页」，避免补货慢事务拖垮热路径。</p>
 <p><strong>脚本版本管理</strong>：生产环境建议把 SHA 载入或显式 <code>SCRIPT LOAD</code>，并对脚本变更做版本号控制，避免滚动发布期间混用旧脚本。</p>
-<h3 id="982-性能优化"><a class="header" href="#982-性能优化">9.8.2 性能优化</a></h3>
+<h3 id="2282-性能优化"><a class="header" href="#2282-性能优化">22.8.2 性能优化</a></h3>
 <ul>
 <li><strong>热点 Key</strong>：本地缓存、随机副本读、网关限流、拆分活动维度字段。</li>
 <li><strong>批量落库</strong>：Kafka consumer 批量 <code>INSERT</code> 操作日志，减少 MySQL roundtrip。</li>
@@ -1382,7 +1380,7 @@ return codeIds
 </ul>
 <p><strong>容量与峰值的经验法则（中型平台量级）</strong>：当峰值下单 QPS 相对日均放大两个数量级以上时，瓶颈往往不在「业务 if-else」，而在 <strong>Redis 热 Key、Kafka 消费滞后、MySQL 批量写入窗口</strong>。因此性能优化应优先围绕：热点分散、消息攒批、限流前置、以及「允许短暂最终一致」的产品与风控共识。</p>
 <p><strong>Redis 故障降级</strong>：Redis 不可用时，可短期切到 MySQL 行级锁扣减（<code>UPDATE ... WHERE available_stock &gt;= ?</code> 或 <code>SELECT ... FOR UPDATE</code>），并把实例标记为 degraded，待恢复后做一次 <strong>以 MySQL 为准的全量回填</strong>。降级期间的延迟与锁竞争上升是预期成本，需要在监控面板明确标注「降级模式」，避免误读 SLO。</p>
-<h3 id="983-监控告警"><a class="header" href="#983-监控告警">9.8.3 监控告警</a></h3>
+<h3 id="2283-监控告警"><a class="header" href="#2283-监控告警">22.8.3 监控告警</a></h3>
 <p>建议至少监控：</p>
 <ul>
 <li><code>reserve/confirm/release</code> 成功率与 P99 延迟；</li>
@@ -1404,7 +1402,7 @@ return codeIds
 </table>
 </div>
 <hr>
-<h2 id="99-本章小结"><a class="header" href="#99-本章小结">9.9 本章小结</a></h2>
+<h2 id="229-本章小结"><a class="header" href="#229-本章小结">22.9 本章小结</a></h2>
 <p>本章围绕「通用库存模型 + 多维分类 + 策略实现 + 清晰系统边界」展开：</p>
 <ul>
 <li>用库存对象、库存范围、事实来源、单元形态和扣减时机收敛多品类差异，并以矩阵图帮助团队建立共同语言。</li>
@@ -1427,11 +1425,9 @@ return codeIds
 <li>是否具备 <strong>Redis / inventory_balance / inventory_reservation / 订单状态</strong> 多方对账与人工门闩？</li>
 <li>供应商异步确认是否有 <strong>映射表 + worker + 人工队列</strong>？</li>
 </ol>
-<p><strong>阅读建议</strong>：若读者刚完成第 8 章商品中心与第 4 章一致性章节，可按「商品发布 → 库存创建 → 创单预占 → 支付确认 → 对账修复」的顺序对照本章示意图走读一遍；再把自家品类的库存对象、库存范围、事实来源、单元形态和扣减时机填入矩阵，通常能在工作坊中快速对齐产品与工程预期。建议同时准备 1～2 个真实故障案例作为讨论锚点，避免停留在抽象原则层面。</p>
-<p><strong>下一章预告</strong>：第 10 章将深入营销系统，重点讨论优惠计算与营销库存（券、活动、补贴）如何与商品库存协同，避免「算得便宜却卖超了」这类跨域问题。</p>
+<p><strong>阅读建议</strong>：若读者刚完成第 21 章商品中心与第 6 章一致性章节，可按「商品发布 → 库存创建 → 创单预占 → 支付确认 → 对账修复」的顺序对照本章示意图走读一遍；再把自家品类的库存对象、库存范围、事实来源、单元形态和扣减时机填入矩阵，通常能在工作坊中快速对齐产品与工程预期。建议同时准备 1～2 个真实故障案例作为讨论锚点，避免停留在抽象原则层面。</p>
+<p><strong>下一章预告</strong>：第 24 章将深入营销系统，重点讨论优惠计算与营销库存（券、活动、补贴）如何与商品库存协同，避免「算得便宜却卖超了」这类跨域问题。</p>
 <hr>
-<p><strong>导航</strong>：<a href="../../README.html">书籍主页</a> | <a href="../../SUMMARY.html">完整目录</a> | <a href="./chapter7.html">上一章：第8章</a> | <a href="./chapter9.html">下一章：第10章</a></p>
-
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">

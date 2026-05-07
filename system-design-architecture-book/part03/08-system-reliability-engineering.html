@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 15 章 系统可靠性工程 - 系统设计与架构实战：原理、工程与电商案例</title>
+        <title>第 16 章 系统可靠性工程 - 系统设计与架构实战：原理、工程与电商案例</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f0b7d2e.js";
+            window.path_to_searchindex_js = "../searchindex-c15c0b2b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-bc818db9.js"></script>
+        <script src="../toc-98451072.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,190 +177,1114 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第-15-章-系统可靠性工程"><a class="header" href="#第-15-章-系统可靠性工程">第 15 章 系统可靠性工程</a></h1>
-<p>可靠性工程的目标，不是让系统“永不出错”，而是让系统在有限预算内可观测、可恢复、可演进。真正成熟的稳定性建设，既包括监控、应急、容量和发布，也包括面向故障的架构设计、保护性机制和复盘文化。</p>
-<h2 id="可靠性的核心指标"><a class="header" href="#可靠性的核心指标">可靠性的核心指标</a></h2>
-<p>讨论可靠性时，第一步不是喊“高可用”，而是先把目标量化。最常见的一组指标是 SLI、SLO、SLA：</p>
+                        <h1 id="第-16-章-系统可靠性工程"><a class="header" href="#第-16-章-系统可靠性工程">第 16 章 系统可靠性工程</a></h1>
+<p>可靠性工程的目标，不是让系统“永不出错”，而是让业务在错误必然发生时仍然可控：用户影响可感知，故障范围可隔离，核心链路可恢复，数据结果可解释，团队行为可复盘。</p>
+<p>对于业务系统来说，可靠性不是单纯的机器存活率，也不是监控平台上几个绿色仪表盘。一个系统如果接口 99.99% 返回 200，但支付成功率持续下降、库存偶发超卖、订单状态无法推进、补偿任务长期堆积，它在业务意义上仍然是不可靠的。</p>
+<p>本章从工程落地视角讨论可靠性：如何定义目标，如何识别故障，如何设计保护机制，如何建设监控告警，如何处理事故，如何通过容量、演练、发布和复盘把系统越做越稳。</p>
+<h2 id="161-可靠性的本质业务承诺而不是机器指标"><a class="header" href="#161-可靠性的本质业务承诺而不是机器指标">16.1 可靠性的本质：业务承诺，而不是机器指标</a></h2>
+<p>业务系统的可靠性至少包含四层含义：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>指标</th><th>含义</th><th>典型问题</th></tr>
+<tr><th>层次</th><th>关注问题</th><th>典型例子</th></tr>
 </thead>
 <tbody>
-<tr><td>SLI</td><td>服务真实表现的观测指标</td><td>我们怎么衡量延迟、成功率、可用性？</td></tr>
-<tr><td>SLO</td><td>团队内部承诺的目标</td><td>系统应该做到多稳定？</td></tr>
-<tr><td>SLA</td><td>面向客户的协议承诺</td><td>违约后要承担什么责任？</td></tr>
+<tr><td>可用性</td><td>用户能不能完成关键动作</td><td>能否搜索商品、进入结算、提交订单、完成支付</td></tr>
+<tr><td>正确性</td><td>系统结果是否符合业务规则</td><td>不能超卖、不能重复扣款、不能错误计价</td></tr>
+<tr><td>可恢复性</td><td>出错后能否回到一致状态</td><td>支付回调失败后可对账，库存预占失败后可释放</td></tr>
+<tr><td>可解释性</td><td>问题能否被定位、审计和复盘</td><td>一笔订单为什么卡住，哪一步失败，谁处理过</td></tr>
 </tbody>
 </table>
 </div>
-<p>实践里，SLI 往往围绕延迟、错误率、流量和饱和度展开，也就是常说的“四个黄金信号”。但它不能只停留在系统层，还要覆盖业务层、应用层、基础设施层。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>层次</th><th>关注点</th></tr>
-</thead>
-<tbody>
-<tr><td>业务层</td><td>下单成功率、支付成功率、库存一致性</td></tr>
-<tr><td>应用层</td><td>接口延迟、异常率、线程池与连接池使用情况</td></tr>
-<tr><td>系统层</td><td>CPU、内存、磁盘、网络、容器资源使用</td></tr>
-</tbody>
-</table>
-</div>
-<p>只有把业务指标放进可靠性体系，监控才真正贴近用户体验。否则系统图表看起来“机器都活着”，业务却已经不可用。</p>
-<p>错误预算也是一个非常重要的管理工具。它不是鼓励犯错，而是把“稳定性目标”和“变更速度”绑定起来：预算充足时可以加快试错；预算透支时就该收紧发布、优先治理缺陷。</p>
-<h2 id="高可用设计原则"><a class="header" href="#高可用设计原则">高可用设计原则</a></h2>
-<p>高可用设计的核心不是堆机器，而是减少单点、缩小故障域、提升恢复速度。常见原则可以总结为以下几类：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>原则</th><th>目标</th><th>常见做法</th></tr>
-</thead>
-<tbody>
-<tr><td>冗余</td><td>消除单点</td><td>多实例、多副本、双机房</td></tr>
-<tr><td>解耦</td><td>降低故障传播</td><td>MQ、异步化、服务边界拆分</td></tr>
-<tr><td>隔离</td><td>控制爆炸半径</td><td>线程池隔离、集群隔离、租户隔离</td></tr>
-<tr><td>无状态</td><td>提升弹性和恢复速度</td><td>状态外置到缓存、数据库、对象存储</td></tr>
-</tbody>
-</table>
-</div>
-<p>冗余要讲层次。应用层多实例只能抗单机故障，数据层多副本才能抗节点损坏，跨机房部署才能应对更大范围故障。面试里如果只回答“多部署几个实例”，通常会被继续追问“数据库、缓存、消息队列怎么做”。</p>
-<p>高可用还必须正视一致性和成本。副本越多、同步越强，可用性和复杂度都可能上升；跨城双活和异地多活能降低单地域风险，但会引入更重的链路治理、流量调度和数据冲突问题。工程上要回答清楚的是“在哪一层做到什么级别的可用性”，而不是抽象地追求全局最强。</p>
-<h2 id="超时重试幂等与隔离"><a class="header" href="#超时重试幂等与隔离">超时、重试、幂等与隔离</a></h2>
-<p>很多级联故障不是由最初错误本身造成的，而是由错误放大机制造成的。超时、重试、幂等和隔离就是控制放大效应的第一层防线。</p>
-<p>超时必须显式设置，不能依赖默认值。没有超时，请求就可能无限挂住；超时过长，线程和连接会被拖死；超时过短，又会把正常抖动误判为失败。超时策略通常要分层设置：</p>
+<p>很多团队把可靠性理解成“服务不挂”。这只是最低层目标。对电商、支付、交易、供应链这类业务系统来说，更重要的是<strong>关键业务结果不出错</strong>。</p>
+<p>例如：</p>
 <ul>
-<li>连接超时：控制建连等待。</li>
-<li>读取超时：控制响应等待。</li>
-<li>整体超时：控制请求全生命周期。</li>
+<li>商品详情页推荐模块失败，可以降级为空。</li>
+<li>搜索排序模型失败，可以切到默认排序。</li>
+<li>购物车展示价失败，可以提示“以结算页为准”。</li>
+<li>订单创建失败，不能生成半张订单。</li>
+<li>支付回调重复，不能重复推进订单状态。</li>
+<li>库存扣减失败，不能假装扣减成功。</li>
 </ul>
-<p>重试的价值是掩盖瞬时失败，但前提是失败具备重试价值，而且重试不会进一步压垮系统。设计重试时至少要回答三件事：</p>
+<p>可靠性工程的第一原则是：<strong>按业务重要性分层保护，而不是按技术组件平均用力。</strong></p>
+<h2 id="162-slislosla-与错误预算"><a class="header" href="#162-slislosla-与错误预算">16.2 SLI、SLO、SLA 与错误预算</a></h2>
+<p>可靠性建设必须先量化目标。没有目标，监控只是图表；没有目标，告警只是噪声；没有目标，稳定性投入永远会输给短期需求。</p>
+<p>最常用的概念是 SLI、SLO 和 SLA。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>问题</th><th>设计点</th></tr>
+<tr><th>指标</th><th>含义</th><th>谁使用</th><th>示例</th></tr>
 </thead>
 <tbody>
-<tr><td>什么错误可重试</td><td>只对瞬时失败、幂等操作重试</td></tr>
-<tr><td>重试多少次</td><td>限制次数，配合退避和抖动</td></tr>
-<tr><td>重试后副作用如何控制</td><td>依赖幂等键、状态机、去重记录</td></tr>
+<tr><td>SLI</td><td>Service Level Indicator，服务表现指标</td><td>工程团队</td><td>订单创建成功率、P99 延迟、支付回调处理延迟</td></tr>
+<tr><td>SLO</td><td>Service Level Objective，内部稳定性目标</td><td>工程与业务团队</td><td>订单创建 99.95% 在 2s 内完成</td></tr>
+<tr><td>SLA</td><td>Service Level Agreement，对外协议承诺</td><td>客户、法务、商业团队</td><td>可用性低于承诺时补偿客户</td></tr>
 </tbody>
 </table>
 </div>
-<p>幂等是重试安全的基础。支付回调、订单创建、消息消费这些场景里，系统通常做不到“只收到一次”，但必须做到“多次执行结果一致”。常见手段包括业务唯一键、乐观锁、状态机、去重表和幂等 token。</p>
-<p>隔离则用于防止局部故障拖垮全局。线程池隔离、连接池隔离、核心链路与非核心链路隔离、租户隔离，都是在缩小故障半径。没有隔离时，一个慢依赖就能把共享线程池耗尽，再把所有请求一起拖死。</p>
-<h2 id="限流熔断与降级"><a class="header" href="#限流熔断与降级">限流、熔断与降级</a></h2>
-<p>保护性机制的目标不是“让所有请求都成功”，而是优先保证核心功能和系统整体不被压穿。</p>
-<p>限流用于控制进入系统的请求量，避免瞬时流量把下游打满。常见算法有固定窗口、滑动窗口、漏桶和令牌桶。工程上更重要的是分层限流：</p>
+<p>SLI 是观测，SLO 是目标，SLA 是契约。三者不要混用。很多团队只有 SLA，却没有可执行的 SLO；最后稳定性问题就只能靠事故后吵架，而不是事故前治理。</p>
+<h3 id="1621-业务系统常见-sli"><a class="header" href="#1621-业务系统常见-sli">16.2.1 业务系统常见 SLI</a></h3>
+<p>SLI 不能只看接口成功率。业务系统至少要覆盖下面几类指标：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类型</th><th>指标</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>成功率</td><td>下单成功率、支付成功率、库存预占成功率</td><td>用户是否完成关键动作</td></tr>
+<tr><td>延迟</td><td>PDP P99、结算 Init P99、创单 P99、支付回调处理耗时</td><td>用户等待多久，链路是否退化</td></tr>
+<tr><td>正确性</td><td>价格差异率、超卖次数、重复扣款次数、非法状态迁移次数</td><td>是否出现资损或业务错误</td></tr>
+<tr><td>新鲜度</td><td>商品索引同步延迟、库存同步延迟、供应商数据延迟</td><td>读模型和权威数据相差多久</td></tr>
+<tr><td>完整性</td><td>消息堆积、DLQ 数量、补偿任务 backlog</td><td>异步链路是否持续收敛</td></tr>
+<tr><td>饱和度</td><td>线程池、连接池、队列、CPU、内存、磁盘、网络</td><td>系统距离崩溃还有多远</td></tr>
+</tbody>
+</table>
+</div>
+<p>面向用户体验的 SLI 更适合做告警；面向资源和组件的 SLI 更适合做排障。不要把两者颠倒。CPU 高不一定是事故，但下单成功率跌了通常就是事故。</p>
+<h3 id="1622-按用户旅程定义-slo"><a class="header" href="#1622-按用户旅程定义-slo">16.2.2 按用户旅程定义 SLO</a></h3>
+<p>业务系统的 SLO 最好围绕用户旅程定义，而不是围绕单个接口定义。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>用户旅程</th><th>推荐 SLO</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>商品浏览</td><td>99.9% 商品详情页在 1s 内返回基础信息</td><td>推荐、营销标签可降级</td></tr>
+<tr><td>搜索导购</td><td>99.5% 搜索请求在 800ms 内返回结果</td><td>个性化排序失败可回退默认排序</td></tr>
+<tr><td>结算初始化</td><td>99.5% 结算页在 2s 内完成商品、库存、价格校验</td><td>非关键权益可降级</td></tr>
+<tr><td>提交订单</td><td>99.95% 创单请求在 3s 内明确成功或失败</td><td>不允许返回未知半成功</td></tr>
+<tr><td>支付回调</td><td>99.99% 合法回调在 30s 内完成幂等处理</td><td>延迟处理必须进入对账</td></tr>
+<tr><td>商品发布</td><td>99% 商品发布后 5 分钟内同步搜索和缓存</td><td>允许短暂最终一致</td></tr>
+</tbody>
+</table>
+</div>
+<p>这里有两个关键点：</p>
+<p>第一，SLO 要区分核心与非核心能力。推荐模块和支付回调不能使用同一套目标。第二，SLO 要明确时间窗口。比如“商品发布后 5 分钟内同步搜索”，比“搜索要及时”更可执行。</p>
+<h3 id="1623-错误预算"><a class="header" href="#1623-错误预算">16.2.3 错误预算</a></h3>
+<p>错误预算是 SLO 的另一面。</p>
+<p>如果订单创建成功率 SLO 是 99.95%，那么一个月内允许的失败预算是 0.05%。预算消耗过快，说明系统稳定性正在透支。此时团队应该收紧发布、暂停高风险变更、优先修复稳定性问题。</p>
+<p>错误预算的价值不是“允许失败”，而是把稳定性和研发速度放进同一个决策框架：</p>
 <ul>
-<li>入口限流：挡住异常流量和攻击流量。</li>
-<li>服务级限流：保护单个应用实例和依赖。</li>
-<li>用户/租户级限流：避免少数热点用户占满公共资源。</li>
+<li>预算充足：可以更积极发布、实验和重构。</li>
+<li>预算快速消耗：需要减少变更，治理错误率最高的链路。</li>
+<li>预算耗尽：进入稳定性冻结期，只允许修复和低风险变更。</li>
 </ul>
-<p>熔断用于在依赖已经明显异常时快速失败，避免大量请求继续堆到故障节点。它通常围绕失败率、超时率和并发数等阈值工作，经历关闭、打开、半开三种状态。熔断不是为了“隐藏问题”，而是为了给系统争取恢复窗口。</p>
-<p>降级则是明确告诉系统：在资源不足或依赖失败时，哪些能力可以临时舍弃，哪些主链路必须保住。</p>
+<p>没有错误预算时，稳定性讨论容易变成抽象争论；有了错误预算，讨论会变成数据驱动。</p>
+<h2 id="163-故障模型先知道系统会怎样坏"><a class="header" href="#163-故障模型先知道系统会怎样坏">16.3 故障模型：先知道系统会怎样坏</a></h2>
+<p>可靠性工程不是等故障发生后再补救，而是在设计阶段预判故障类型。</p>
+<p>业务系统常见故障可以分为九类：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>机制</th><th>解决的问题</th><th>常见例子</th></tr>
+<tr><th>故障类型</th><th>典型表现</th><th>常见根因</th></tr>
 </thead>
 <tbody>
-<tr><td>限流</td><td>流量超过承载能力</td><td>热点秒杀、接口调用配额</td></tr>
-<tr><td>熔断</td><td>下游异常导致雪崩</td><td>数据库超时后快速失败</td></tr>
-<tr><td>降级</td><td>资源不够时保核心功能</td><td>关闭推荐、评论、画像等非核心能力</td></tr>
+<tr><td>流量冲击</td><td>QPS 突增、队列堆积、接口超时</td><td>大促、热点商品、爬虫、重试风暴</td></tr>
+<tr><td>慢依赖</td><td>P99 上升、线程池耗尽</td><td>下游 DB 慢查询、RPC 抖动、外部供应商变慢</td></tr>
+<tr><td>部分失败</td><td>只有某地区、某品类、某渠道异常</td><td>分片热点、灰度版本、地域网络、配置差异</td></tr>
+<tr><td>数据不一致</td><td>支付成功订单未更新、搜索仍展示下架商品</td><td>异步消息丢失、补偿失败、对账缺失</td></tr>
+<tr><td>资源耗尽</td><td>连接池满、磁盘满、内存 OOM、Pod 重启</td><td>容量低估、泄漏、突发批任务</td></tr>
+<tr><td>发布回归</td><td>新版本错误率升高</td><td>兼容性不足、灰度缺失、回滚困难</td></tr>
+<tr><td>配置事故</td><td>开关误开、阈值错误、路由错误</td><td>配置无审计、无灰度、无校验</td></tr>
+<tr><td>外部依赖故障</td><td>支付渠道、短信、供应商接口异常</td><td>第三方不可控、超时和降级不足</td></tr>
+<tr><td>人为操作事故</td><td>误删数据、错误补偿、误切流</td><td>权限过大、缺少审批和演练</td></tr>
 </tbody>
 </table>
 </div>
-<p>最常见的错误是只会背概念，却没有业务优先级。真正的降级设计必须回答“谁是核心交易链路，谁可以牺牲，牺牲后用户能接受到什么程度”。</p>
-<h2 id="监控日志与追踪"><a class="header" href="#监控日志与追踪">监控、日志与追踪</a></h2>
-<p>监控是可靠性金字塔的底座。没有监控，故障只能靠用户投诉发现；没有好的告警，团队会在噪声中疲劳；没有日志和追踪，定位效率会非常低。</p>
-<p>监控体系通常分三层建设：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>层次</th><th>典型指标</th><th>目的</th></tr>
-</thead>
-<tbody>
-<tr><td>业务监控</td><td>成功率、转化率、资损金额</td><td>尽早发现用户可感知异常</td></tr>
-<tr><td>应用监控</td><td>延迟、错误率、线程池、连接池</td><td>判断服务健康与瓶颈</td></tr>
-<tr><td>系统监控</td><td>CPU、内存、磁盘、网络</td><td>判断节点和容器资源状态</td></tr>
-</tbody>
-</table>
-</div>
-<p>告警策略要避免两个极端：过于迟钝，问题已经大面积扩散才响；过于敏感，团队每天被噪声淹没。好的告警要能体现严重度、通知对象和处理预案的对应关系。</p>
-<p>日志更适合回答“发生了什么”，链路追踪更适合回答“慢在哪里、卡在哪一跳”。在分布式系统中，三者需要联动：监控负责发现问题，日志负责补充上下文，追踪负责定位跨服务链路中的异常点。</p>
-<h2 id="容量规划压测与演练"><a class="header" href="#容量规划压测与演练">容量规划、压测与演练</a></h2>
-<p>很多线上事故本质上不是程序 bug，而是容量错判、流量模型失真、变更缺乏演练。容量规划要把业务增长、活动峰值和系统瓶颈串起来，而不是只盯着机器台数。</p>
-<p>一个基本的容量规划流程通常包括：</p>
+<p>做可靠性设计时，要针对每类故障问三个问题：</p>
 <ol>
-<li>梳理核心链路和关键依赖。</li>
-<li>估算峰值 QPS、并发数、数据量和增长速度。</li>
-<li>找出最先触顶的资源项，例如数据库连接、线程池、网关带宽、搜索分片。</li>
-<li>预留安全余量，并准备扩容与降级方案。</li>
+<li>如何提前发现？</li>
+<li>如何限制影响范围？</li>
+<li>如何恢复业务和数据？</li>
 </ol>
-<p>压测的目的不是“跑出一个漂亮数字”，而是验证系统在真实流量模型下的瓶颈和退化方式。至少要分清三种压测：</p>
+<p>只回答“加监控”是不够的。监控只能发现问题，不能自动阻止级联故障。要让故障可控，还需要隔离、限流、熔断、降级、补偿、对账、回滚和应急流程。</p>
+<h2 id="164-故障域与依赖分级"><a class="header" href="#164-故障域与依赖分级">16.4 故障域与依赖分级</a></h2>
+<p>大型业务系统真正危险的不是单点故障，而是故障传播。一个推荐接口变慢，拖慢商品详情；商品详情线程池被打满，网关堆积；网关重试放大流量，最终核心交易接口也被拖死。这就是故障域没有隔离。</p>
+<h3 id="1641-故障域"><a class="header" href="#1641-故障域">16.4.1 故障域</a></h3>
+<p>故障域可以从多个维度划分：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>类型</th><th>目的</th></tr>
+<tr><th>维度</th><th>示例</th><th>隔离手段</th></tr>
 </thead>
 <tbody>
-<tr><td>基准压测</td><td>测单服务上限和资源曲线</td></tr>
-<tr><td>链路压测</td><td>验证核心业务路径的端到端能力</td></tr>
-<tr><td>故障演练</td><td>验证节点故障、依赖抖动、机房切换时的系统行为</td></tr>
+<tr><td>业务域</td><td>商品、交易、支付、履约</td><td>服务边界、数据边界、独立发布</td></tr>
+<tr><td>流量域</td><td>普通流量、大促流量、爬虫流量</td><td>网关限流、活动专用集群、风控拦截</td></tr>
+<tr><td>用户域</td><td>C 端用户、商家、运营后台</td><td>租户限流、后台任务隔离</td></tr>
+<tr><td>地域域</td><td>华东、华南、海外</td><td>多地域部署、就近路由、区域熔断</td></tr>
+<tr><td>资源域</td><td>线程池、连接池、队列、缓存</td><td>舱壁隔离、配额、独立集群</td></tr>
+<tr><td>数据域</td><td>分库分表、冷热数据、租户分片</td><td>分片键设计、归档、读写隔离</td></tr>
 </tbody>
 </table>
 </div>
-<p>演练比单纯压测更接近可靠性建设本质。它要求团队不仅知道系统“能扛多大流量”，还要知道“出故障时谁来响应、怎么摘流、怎么切换、怎么回滚”。没有演练，预案大概率只是文档。</p>
-<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
-<p>可靠性工程是一套从目标定义到工程落地的闭环：先用指标量化，再靠架构和保护机制降低故障概率，用监控与值班体系提高发现速度，用容量和演练提升面对变化的韧性。</p>
-<p>本章最值得记住的是：</p>
+<p>故障域设计的目标是：一个局部问题不应该拖垮全站，一个非核心链路不应该拖垮核心链路，一个租户或热点商品不应该耗尽公共资源。</p>
+<h3 id="1642-依赖分级"><a class="header" href="#1642-依赖分级">16.4.2 依赖分级</a></h3>
+<p>依赖必须分级。否则所有失败都会被当作同等严重，系统就很难降级。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>依赖等级</th><th>定义</th><th>失败策略</th></tr>
+</thead>
+<tbody>
+<tr><td>强依赖</td><td>没有它不能继续业务</td><td>快速失败、阻断、进入补偿或人工处理</td></tr>
+<tr><td>弱依赖</td><td>失败后可提供降级体验</td><td>超时后返回默认值、隐藏模块、异步补齐</td></tr>
+<tr><td>后置依赖</td><td>不影响当前用户响应</td><td>写 Outbox、异步重试、DLQ</td></tr>
+<tr><td>观测依赖</td><td>只影响日志、埋点、统计</td><td>本地缓冲、采样、失败不阻断主链路</td></tr>
+</tbody>
+</table>
+</div>
+<p>以结算页为例：</p>
 <ul>
-<li>可靠性首先是可量化目标，而不是抽象口号。</li>
-<li>高可用不是单一技术，而是冗余、解耦、隔离和无状态的组合。</li>
-<li>超时、重试、幂等、限流、熔断、降级共同决定了故障会不会被放大。</li>
-<li>监控、压测、演练和复盘，决定了团队能否持续把系统越做越稳。</li>
+<li>商品上下架和库存预占是强依赖。</li>
+<li>营销标签、推荐凑单提示是弱依赖。</li>
+<li>积分发放、通知、推荐特征回流是后置依赖。</li>
+<li>埋点和日志上传是观测依赖。</li>
 </ul>
-<h2 id="本章面试题与追问"><a class="header" href="#本章面试题与追问">本章面试题与追问</a></h2>
+<p>只有把依赖分级写进设计，超时、重试、熔断、降级才有依据。</p>
+<h2 id="165-高可用架构原则"><a class="header" href="#165-高可用架构原则">16.5 高可用架构原则</a></h2>
+<p>高可用不是“多部署几个实例”。它是一组贯穿应用、数据、基础设施和组织流程的设计原则。</p>
+<h3 id="1651-冗余"><a class="header" href="#1651-冗余">16.5.1 冗余</a></h3>
+<p>冗余用于消除单点。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>常见做法</th><th>注意事项</th></tr>
+</thead>
+<tbody>
+<tr><td>应用层</td><td>多实例、多 Pod、多可用区</td><td>实例无状态，健康检查真实反映业务可用性</td></tr>
+<tr><td>网关层</td><td>多入口、多 LB、DNS 容灾</td><td>避免单一入口和错误路由配置</td></tr>
+<tr><td>数据层</td><td>主从、半同步、多副本、备份</td><td>复制延迟、故障切换、恢复演练</td></tr>
+<tr><td>缓存层</td><td>Redis Cluster、多副本、热点隔离</td><td>主从切换期间的一致性和热点保护</td></tr>
+<tr><td>消息层</td><td>多 Broker、多分区、多副本</td><td>ISR、磁盘、消费积压和重平衡</td></tr>
+<tr><td>跨地域</td><td>同城多活、异地灾备</td><td>数据冲突、流量切换、成本与复杂度</td></tr>
+</tbody>
+</table>
+</div>
+<p>冗余必须配合切换能力。没有演练过的备用链路，不能算可靠性能力。</p>
+<h3 id="1652-无状态与快速恢复"><a class="header" href="#1652-无状态与快速恢复">16.5.2 无状态与快速恢复</a></h3>
+<p>应用服务尽量无状态。状态外置到数据库、缓存、对象存储或消息系统。这样实例可以快速扩缩容和替换。</p>
+<p>但“无状态”不等于“没有状态”。业务状态仍然存在，只是不能绑死在某个进程内。常见问题包括：</p>
+<ul>
+<li>本地内存保存用户会话，实例重启后登录态丢失。</li>
+<li>本地队列保存待处理任务，进程崩溃后任务丢失。</li>
+<li>本地缓存没有版本控制，发布后读到旧规则。</li>
+</ul>
+<p>可靠的做法是明确状态归属：什么状态可以本地缓存，什么状态必须持久化，什么状态需要幂等恢复。</p>
+<h3 id="1653-舱壁隔离"><a class="header" href="#1653-舱壁隔离">16.5.3 舱壁隔离</a></h3>
+<p>舱壁隔离来自船舱设计：一个舱进水，不能让整条船沉没。</p>
+<p>业务系统里的舱壁隔离包括：</p>
+<ul>
+<li>不同下游依赖使用不同线程池和连接池。</li>
+<li>核心接口和非核心接口使用不同资源池。</li>
+<li>后台批任务和在线请求隔离。</li>
+<li>大客户、活动、渠道流量隔离。</li>
+<li>支付、订单、库存等强一致链路与推荐、画像、报表隔离。</li>
+</ul>
+<p>典型反模式是一个应用只有一个全局线程池。推荐服务变慢时，线程池被推荐请求占满，订单请求也无法执行。这种故障不是推荐系统故障，而是资源隔离设计失败。</p>
+<h3 id="1654-优雅退化"><a class="header" href="#1654-优雅退化">16.5.4 优雅退化</a></h3>
+<p>优雅退化不是“随便返回默认值”，而是在业务允许的边界内选择更低质量但可接受的服务。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>可接受降级</th><th>不可接受降级</th></tr>
+</thead>
+<tbody>
+<tr><td>商品详情</td><td>隐藏推荐、展示基础信息</td><td>展示已下架商品为可购买</td></tr>
+<tr><td>搜索导购</td><td>默认排序、隐藏个性化标签</td><td>返回过期价格导致误导购买</td></tr>
+<tr><td>购物车</td><td>部分商品状态显示“稍后刷新”</td><td>静默丢失用户加购</td></tr>
+<tr><td>结算</td><td>非关键优惠提示缺失</td><td>跳过库存校验继续下单</td></tr>
+<tr><td>支付</td><td>渠道切换、挂起等待对账</td><td>未确认支付却标记成功</td></tr>
+</tbody>
+</table>
+</div>
+<p>每个降级策略都应该写清楚：触发条件、用户文案、数据后果、恢复方式、审计记录和负责人。</p>
+<h2 id="166-保护机制超时重试幂等限流熔断降级"><a class="header" href="#166-保护机制超时重试幂等限流熔断降级">16.6 保护机制：超时、重试、幂等、限流、熔断、降级</a></h2>
+<p>保护机制的目标是阻止小故障变成大事故。</p>
+<h3 id="1661-超时预算"><a class="header" href="#1661-超时预算">16.6.1 超时预算</a></h3>
+<p>超时不能拍脑袋设置。一个请求的端到端超时应该拆成多个依赖的预算。</p>
+<p>例如结算 Init 总超时 2s：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>依赖</th><th>建议预算</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>商品校验</td><td>150ms</td><td>批量查询，强依赖</td></tr>
+<tr><td>库存预检查</td><td>300ms</td><td>强依赖，失败阻断</td></tr>
+<tr><td>计价试算</td><td>500ms</td><td>强依赖，展示链路可降级，提交链路不可降级</td></tr>
+<tr><td>营销试算</td><td>300ms</td><td>视业务可部分降级</td></tr>
+<tr><td>地址运费</td><td>300ms</td><td>可缓存，可部分降级</td></tr>
+<tr><td>聚合与序列化</td><td>200ms</td><td>应用自身预算</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果每个下游都默认 3s 超时，一个聚合接口就会在故障时被拖成几十秒。超时预算必须从入口向下传递，不能每一层各自为政。</p>
+<h3 id="1662-重试"><a class="header" href="#1662-重试">16.6.2 重试</a></h3>
+<p>重试只适合瞬时失败，不适合所有失败。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>错误类型</th><th>是否重试</th><th>原因</th></tr>
+</thead>
+<tbody>
+<tr><td>网络抖动、连接重置</td><td>可以</td><td>可能是瞬时问题</td></tr>
+<tr><td>读请求超时</td><td>可以，但要限制次数</td><td>注意不要放大流量</td></tr>
+<tr><td>写请求超时</td><td>谨慎</td><td>必须有幂等键或事务状态</td></tr>
+<tr><td>参数错误、权限错误</td><td>不重试</td><td>重试没有意义</td></tr>
+<tr><td>下游容量不足</td><td>不应立即重试</td><td>会加剧故障</td></tr>
+</tbody>
+</table>
+</div>
+<p>重试要配合退避和抖动：</p>
+<pre><code class="language-text">第一次失败：等待 50ms
+第二次失败：等待 100ms + 随机抖动
+第三次失败：等待 200ms + 随机抖动
+超过总预算：快速失败
+</code></pre>
+<p>没有退避的重试会形成重试风暴。没有幂等的重试会形成重复副作用。</p>
+<h3 id="1663-幂等"><a class="header" href="#1663-幂等">16.6.3 幂等</a></h3>
+<p>业务系统里，“只执行一次”通常做不到；“执行多次结果一致”必须做到。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>幂等手段</th></tr>
+</thead>
+<tbody>
+<tr><td>创建订单</td><td><code>idempotency_key</code> + 唯一索引 + 请求摘要</td></tr>
+<tr><td>支付回调</td><td>渠道流水号唯一约束 + 支付单状态机</td></tr>
+<tr><td>消息消费</td><td><code>event_id</code> 去重表 + 业务状态条件更新</td></tr>
+<tr><td>库存释放</td><td>预占单状态机 + 释放流水唯一约束</td></tr>
+<tr><td>优惠券核销</td><td>券实例状态机 + 核销单唯一约束</td></tr>
+</tbody>
+</table>
+</div>
+<p>幂等设计要回答四个问题：</p>
+<ol>
+<li>幂等键由谁生成？</li>
+<li>幂等键的作用范围是什么？</li>
+<li>相同幂等键但请求参数不同怎么办？</li>
+<li>幂等记录保存多久，如何清理？</li>
+</ol>
+<p>仅仅“前端按钮防抖”不是幂等。真正的幂等必须在服务端和存储层兜底。</p>
+<h3 id="1664-限流"><a class="header" href="#1664-限流">16.6.4 限流</a></h3>
+<p>限流不是为了拒绝用户，而是为了保护系统在极端情况下仍然服务核心请求。</p>
+<p>常见限流维度：</p>
+<ul>
+<li>API 维度：保护单个接口。</li>
+<li>用户维度：防止单用户刷爆资源。</li>
+<li>商家或租户维度：防止大租户影响小租户。</li>
+<li>商品维度：保护热点商品。</li>
+<li>活动维度：隔离大促流量。</li>
+<li>下游依赖维度：保护数据库、缓存、供应商接口。</li>
+</ul>
+<p>限流结果也要分层：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>限流对象</th><th>返回策略</th></tr>
+</thead>
+<tbody>
+<tr><td>非登录爬虫</td><td>直接拒绝</td></tr>
+<tr><td>普通用户读请求</td><td>排队或提示稍后重试</td></tr>
+<tr><td>下单请求</td><td>尽量排队，明确失败语义</td></tr>
+<tr><td>支付回调</td><td>不建议简单限流，应快速落表后异步处理</td></tr>
+<tr><td>后台批任务</td><td>降速、暂停、转离线队列</td></tr>
+</tbody>
+</table>
+</div>
+<p>支付回调、库存补偿、对账任务这类恢复链路不能和普通流量共用同一个限流策略，否则事故恢复时反而被限住。</p>
+<h3 id="1665-熔断"><a class="header" href="#1665-熔断">16.6.5 熔断</a></h3>
+<p>熔断解决的是“下游已经异常，继续调用只会浪费资源”的问题。</p>
+<p>熔断通常有三种状态：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态</th><th>行为</th></tr>
+</thead>
+<tbody>
+<tr><td>关闭</td><td>正常调用下游</td></tr>
+<tr><td>打开</td><td>快速失败或降级，不再打到下游</td></tr>
+<tr><td>半开</td><td>放少量探测流量，成功后恢复，失败后继续打开</td></tr>
+</tbody>
+</table>
+</div>
+<p>熔断触发条件不宜只看错误率，还要看延迟、并发数、超时率和业务错误类型。库存不足不是系统故障，不应该触发熔断；库存服务超时率升高才可能触发熔断。</p>
+<h3 id="1666-降级"><a class="header" href="#1666-降级">16.6.6 降级</a></h3>
+<p>降级要提前设计，而不是事故中临时写代码。</p>
+<p>一份合格的降级方案至少包含：</p>
+<ul>
+<li>哪些功能可以降级。</li>
+<li>什么条件触发降级。</li>
+<li>降级后的用户体验是什么。</li>
+<li>降级是否会造成数据不一致。</li>
+<li>如何恢复。</li>
+<li>谁有权限开启。</li>
+<li>开启和关闭是否有审计。</li>
+<li>是否演练过。</li>
+</ul>
+<p>降级开关必须纳入配置治理。不要让任何人可以在没有审批、没有审计、没有回滚方案的情况下打开“允许使用缓存价创单”这类高风险开关。</p>
+<h2 id="167-监控系统从有图表到能救命"><a class="header" href="#167-监控系统从有图表到能救命">16.7 监控系统：从“有图表”到“能救命”</a></h2>
+<p>监控系统是可靠性工程里最容易被低估、也最容易做成表面工程的一部分。很多团队有成百上千张图，但事故来临时仍然不知道哪里坏了；有几百条告警，但真正 P0 被淹没在噪声里。</p>
+<p>一个成熟的监控系统必须同时满足四个目标：</p>
+<ol>
+<li><strong>发现问题</strong>：用户感知异常前后，系统能尽快发现。</li>
+<li><strong>定位问题</strong>：能从业务指标追到服务、依赖、资源和代码路径。</li>
+<li><strong>解释问题</strong>：能说明影响范围、开始时间、变化点和根因候选。</li>
+<li><strong>推动恢复</strong>：告警附带负责人、预案、看板和止血动作。</li>
+</ol>
+<p>监控不是运维团队单独负责的事情。业务系统的监控指标必须由业务研发设计，由服务 owner 负责维护。</p>
+<h3 id="1671-监控分层模型"><a class="header" href="#1671-监控分层模型">16.7.1 监控分层模型</a></h3>
+<p>建议按五层建设监控。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>目标</th><th>典型指标</th></tr>
+</thead>
+<tbody>
+<tr><td>业务监控</td><td>判断用户和业务是否受影响</td><td>下单成功率、支付成功率、GMV、转化漏斗、资损金额</td></tr>
+<tr><td>链路监控</td><td>判断关键路径哪一步异常</td><td>结算 Init、库存预占、计价、创单、支付回调各步耗时和成功率</td></tr>
+<tr><td>应用监控</td><td>判断服务自身是否健康</td><td>QPS、错误率、P99、线程池、连接池、队列、依赖耗时</td></tr>
+<tr><td>中间件监控</td><td>判断基础组件是否退化</td><td>MySQL、Redis、Kafka、Elasticsearch、对象存储</td></tr>
+<tr><td>基础设施监控</td><td>判断运行环境是否饱和</td><td>CPU、内存、磁盘、网络、容器重启、节点压力</td></tr>
+</tbody>
+</table>
+</div>
+<p>这五层要能上下联动。支付成功率下降时，应该能继续下钻到支付回调延迟、支付渠道错误码、数据库锁等待、消息积压和具体版本变更。</p>
+<h3 id="1672-业务监控"><a class="header" href="#1672-业务监控">16.7.2 业务监控</a></h3>
+<p>业务监控是最接近用户体验的一层，也是告警优先级最高的一层。</p>
+<p>电商系统建议至少建设下面这些业务指标：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>业务域</th><th>核心指标</th><th>异常含义</th></tr>
+</thead>
+<tbody>
+<tr><td>商品</td><td>商品发布成功率、上下架延迟、商品索引同步延迟</td><td>商品无法发布或前台不可见</td></tr>
+<tr><td>搜索</td><td>搜索成功率、零结果率、召回数量分布、搜索转化率</td><td>搜索体验异常或索引错误</td></tr>
+<tr><td>购物车</td><td>加购成功率、购物车读取成功率、合并失败率</td><td>用户意图丢失或体验下降</td></tr>
+<tr><td>结算</td><td>结算 Init 成功率、库存预占失败率、价格试算失败率</td><td>交易前置链路异常</td></tr>
+<tr><td>订单</td><td>创单成功率、订单状态推进延迟、非法状态迁移数</td><td>交易主链路异常</td></tr>
+<tr><td>支付</td><td>支付发起成功率、渠道回调成功率、支付单挂起数</td><td>资金链路异常</td></tr>
+<tr><td>库存</td><td>超卖次数、预占释放延迟、库存对账差异</td><td>资损或履约风险</td></tr>
+<tr><td>供应商</td><td>同步成功率、数据新鲜度、解析失败率、DLQ 数量</td><td>外部供给质量异常</td></tr>
+</tbody>
+</table>
+</div>
+<p>业务监控要特别注意分桶。只看全站平均值会掩盖局部故障。常见分桶包括：</p>
+<ul>
+<li>地域：国家、城市、机房、可用区。</li>
+<li>端：iOS、Android、Web、小程序、开放 API。</li>
+<li>品类：实物、酒店、机票、券码、充值。</li>
+<li>渠道：自然流量、活动流量、推荐流量、商家后台。</li>
+<li>用户类型：新客、老客、会员、大客户、商家。</li>
+<li>支付渠道：微信、支付宝、信用卡、余额、第三方渠道。</li>
+</ul>
+<p>例如全站支付成功率只下降 0.2%，可能看起来不严重；但如果某个支付渠道在某个国家下降 20%，就是明确事故。</p>
+<h3 id="1673-应用监控red-与-use"><a class="header" href="#1673-应用监控red-与-use">16.7.3 应用监控：RED 与 USE</a></h3>
+<p>在线服务常用 RED 方法：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>含义</th><th>例子</th></tr>
+</thead>
+<tbody>
+<tr><td>Rate</td><td>请求速率</td><td>QPS、每分钟请求数</td></tr>
+<tr><td>Errors</td><td>错误</td><td>5xx、业务错误码、依赖错误</td></tr>
+<tr><td>Duration</td><td>延迟</td><td>P50、P95、P99、最大值</td></tr>
+</tbody>
+</table>
+</div>
+<p>资源类组件常用 USE 方法：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>含义</th><th>例子</th></tr>
+</thead>
+<tbody>
+<tr><td>Utilization</td><td>使用率</td><td>CPU、内存、磁盘、连接池使用率</td></tr>
+<tr><td>Saturation</td><td>饱和度</td><td>队列长度、线程池排队、Kafka lag</td></tr>
+<tr><td>Errors</td><td>错误</td><td>网络错误、磁盘错误、连接失败</td></tr>
+</tbody>
+</table>
+</div>
+<p>对业务服务来说，应用监控至少应包含：</p>
+<ul>
+<li>每个 API 的 QPS、成功率、错误码分布。</li>
+<li>P50、P90、P95、P99、P999 延迟。</li>
+<li>入口请求大小、响应大小、批量大小分布。</li>
+<li>下游依赖耗时、成功率、超时率、熔断次数。</li>
+<li>线程池活跃数、队列长度、拒绝数。</li>
+<li>数据库连接池使用率、等待时间、获取失败数。</li>
+<li>本地缓存命中率、缓存大小、淘汰数。</li>
+<li>消息生产成功率、消费延迟、重试次数。</li>
+<li>GC、goroutine/thread 数、堆内存、FD 数。</li>
+</ul>
+<p>P99 比平均值重要。平均延迟稳定，不代表用户体验稳定。很多事故都是 P99 先升高，然后队列堆积，最后错误率爆炸。</p>
+<h3 id="1674-中间件监控"><a class="header" href="#1674-中间件监控">16.7.4 中间件监控</a></h3>
+<p>中间件监控要关注“是否还能承载业务语义”，而不仅是“组件是否活着”。</p>
+<p><strong>MySQL</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>关注点</th></tr>
+</thead>
+<tbody>
+<tr><td>QPS / TPS</td><td>流量是否异常</td></tr>
+<tr><td>慢 SQL 数量</td><td>访问模式是否退化</td></tr>
+<tr><td>连接数 / 连接池等待</td><td>应用是否被 DB 卡住</td></tr>
+<tr><td>行锁等待 / 死锁</td><td>事务设计是否有问题</td></tr>
+<tr><td>主从延迟</td><td>读写分离是否会读旧数据</td></tr>
+<tr><td>Buffer Pool 命中率</td><td>内存是否足够</td></tr>
+<tr><td>磁盘 IOPS / fsync 延迟</td><td>存储是否饱和</td></tr>
+<tr><td>binlog 延迟与大小</td><td>数据订阅、恢复能力是否受影响</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Redis</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>关注点</th></tr>
+</thead>
+<tbody>
+<tr><td>QPS / 延迟</td><td>是否出现热点或网络抖动</td></tr>
+<tr><td>命中率</td><td>缓存是否有效</td></tr>
+<tr><td>内存使用 / evicted keys</td><td>是否正在淘汰关键数据</td></tr>
+<tr><td>hot key / big key</td><td>是否存在局部热点</td></tr>
+<tr><td>blocked clients</td><td>是否有慢命令阻塞</td></tr>
+<tr><td>replication lag</td><td>主从切换是否有数据风险</td></tr>
+<tr><td>连接数</td><td>客户端是否泄漏连接</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Kafka</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>关注点</th></tr>
+</thead>
+<tbody>
+<tr><td>Produce 成功率和耗时</td><td>上游是否能写入</td></tr>
+<tr><td>Consumer lag</td><td>下游是否跟得上</td></tr>
+<tr><td>分区倾斜</td><td>key 设计是否导致热点</td></tr>
+<tr><td>ISR 收缩</td><td>副本可靠性是否下降</td></tr>
+<tr><td>Broker 磁盘水位</td><td>是否接近不可写</td></tr>
+<tr><td>Rebalance 次数</td><td>消费组是否不稳定</td></tr>
+<tr><td>DLQ 数量</td><td>是否存在无法自动处理的数据</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Elasticsearch</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>关注点</th></tr>
+</thead>
+<tbody>
+<tr><td>查询延迟和错误率</td><td>搜索体验是否退化</td></tr>
+<tr><td>rejected / thread pool queue</td><td>查询或写入是否过载</td></tr>
+<tr><td>JVM heap / GC</td><td>集群是否接近不稳定</td></tr>
+<tr><td>segment 数量</td><td>merge 压力是否过大</td></tr>
+<tr><td>refresh / indexing 延迟</td><td>索引新鲜度</td></tr>
+<tr><td>shard 分布</td><td>是否存在热点分片</td></tr>
+<tr><td>circuit breaker</td><td>查询是否触发内存保护</td></tr>
+</tbody>
+</table>
+</div>
+<p>中间件指标要和业务指标联动。例如搜索零结果率升高，可能不是 ES 宕机，而是商品索引同步延迟或某个类目 mapping 错误。</p>
+<h3 id="1675-指标设计规范"><a class="header" href="#1675-指标设计规范">16.7.5 指标设计规范</a></h3>
+<p>指标设计不规范，监控平台很快会变成垃圾场。</p>
+<p><strong>命名</strong></p>
+<p>建议统一命名：</p>
+<pre><code class="language-text">&lt;domain&gt;_&lt;component&gt;_&lt;metric&gt;_&lt;unit&gt;
+</code></pre>
+<p>示例：</p>
+<pre><code class="language-text">order_create_requests_total
+order_create_latency_seconds
+payment_callback_failures_total
+inventory_reservation_conflicts_total
+checkout_init_dependency_latency_seconds
+</code></pre>
+<p><strong>标签</strong></p>
+<p>常用标签：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>标签</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><code>service</code></td><td>order-service</td></tr>
+<tr><td><code>env</code></td><td>prod、staging</td></tr>
+<tr><td><code>region</code></td><td>sg、hk、sh</td></tr>
+<tr><td><code>cluster</code></td><td>primary、canary</td></tr>
+<tr><td><code>endpoint</code></td><td>CreateOrder</td></tr>
+<tr><td><code>method</code></td><td>GET、POST</td></tr>
+<tr><td><code>result</code></td><td>success、failure</td></tr>
+<tr><td><code>error_code</code></td><td>INVENTORY_TIMEOUT</td></tr>
+<tr><td><code>dependency</code></td><td>inventory-service</td></tr>
+<tr><td><code>biz_type</code></td><td>physical、hotel、voucher</td></tr>
+</tbody>
+</table>
+</div>
+<p>不要把高基数字段放进指标标签，例如：</p>
+<ul>
+<li><code>user_id</code></li>
+<li><code>order_id</code></li>
+<li><code>sku_id</code></li>
+<li><code>trace_id</code></li>
+<li><code>request_id</code></li>
+</ul>
+<p>这些字段应该进入日志或追踪，不应该进入 metrics 标签。否则监控系统会被高基数打爆。</p>
+<p><strong>直方图桶</strong></p>
+<p>延迟指标建议使用 histogram，而不是只记录平均值。桶要贴近业务 SLO。</p>
+<p>例如创单延迟 SLO 是 3s，可以设置：</p>
+<pre><code class="language-text">50ms, 100ms, 200ms, 500ms, 1s, 2s, 3s, 5s, 10s
+</code></pre>
+<p>如果桶全是默认值，P99 可能无法准确表达业务目标。</p>
+<h3 id="1676-日志系统"><a class="header" href="#1676-日志系统">16.7.6 日志系统</a></h3>
+<p>日志用于回答“这一次具体发生了什么”。</p>
+<p>成熟的业务日志应该是结构化的，而不是只打印自然语言。</p>
+<pre><code class="language-json">{
+  "timestamp": "2026-05-07T10:30:00+08:00",
+  "level": "ERROR",
+  "service": "order-service",
+  "trace_id": "4f8c9f...",
+  "span_id": "a81d...",
+  "operation": "CreateOrder",
+  "user_id_hash": "u_9d21",
+  "order_id": "o_123456",
+  "idempotency_key": "idem_abc",
+  "error_code": "INVENTORY_RESERVE_TIMEOUT",
+  "dependency": "inventory-service",
+  "latency_ms": 850,
+  "message": "reserve inventory timeout"
+}
+</code></pre>
+<p>日志设计要注意：</p>
+<ul>
+<li>每条关键链路日志必须包含 <code>trace_id</code>。</li>
+<li>写操作日志必须包含业务 ID 和幂等键。</li>
+<li>错误日志必须包含标准错误码，而不是只打印异常堆栈。</li>
+<li>敏感信息要脱敏，例如手机号、证件号、银行卡号。</li>
+<li>日志级别要有规范，不能把正常业务失败都打成 ERROR。</li>
+<li>采样要谨慎，关键交易失败日志不能被采样丢掉。</li>
+</ul>
+<p>日志不是越多越好。无结构、无字段、无错误码的日志越多，排障越慢。</p>
+<h3 id="1677-链路追踪"><a class="header" href="#1677-链路追踪">16.7.7 链路追踪</a></h3>
+<p>链路追踪用于回答“慢在哪里、卡在哪一跳”。</p>
+<p>一次完整交易链路可能是：</p>
+<pre><code class="language-text">Gateway
+  -&gt; Checkout Service
+    -&gt; Product Service
+    -&gt; Pricing Service
+    -&gt; Inventory Service
+    -&gt; Marketing Service
+  -&gt; Order Service
+    -&gt; MySQL
+    -&gt; Outbox
+  -&gt; Kafka
+    -&gt; Payment Service
+</code></pre>
+<p>追踪系统需要做到：</p>
+<ul>
+<li>网关生成或透传 <code>trace_id</code>。</li>
+<li>RPC、HTTP、MQ 都要传递上下文。</li>
+<li>每个 Span 标记服务名、方法、依赖、错误码、耗时。</li>
+<li>异步消息要把生产端和消费端通过 trace 或 event id 关联。</li>
+<li>对慢请求和错误请求提高采样率。</li>
+</ul>
+<p>关键 Span 建议包含：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><code>biz.operation</code></td><td>checkout_init、create_order、payment_callback</td></tr>
+<tr><td><code>biz.id</code></td><td>order_id、payment_id、checkout_id</td></tr>
+<tr><td><code>dependency</code></td><td>inventory-service</td></tr>
+<tr><td><code>error_code</code></td><td>INVENTORY_TIMEOUT</td></tr>
+<tr><td><code>retry_count</code></td><td>2</td></tr>
+<tr><td><code>degraded</code></td><td>true</td></tr>
+<tr><td><code>idempotency_hit</code></td><td>false</td></tr>
+</tbody>
+</table>
+</div>
+<p>追踪不要只服务研发排障，也要服务事故复盘。事故时间线中每个关键业务动作都应该能找到对应 trace。</p>
+<h3 id="1678-告警体系"><a class="header" href="#1678-告警体系">16.7.8 告警体系</a></h3>
+<p>告警不是“指标超过阈值发消息”。告警的目标是把正确的人，在正确时间，带到正确现场。</p>
+<p>告警优先级建议如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>等级</th><th>定义</th><th>示例</th><th>响应</th></tr>
+</thead>
+<tbody>
+<tr><td>P0</td><td>核心业务大面积不可用或有资损风险</td><td>下单成功率大跌、重复扣款、支付状态错乱</td><td>立即电话，事故群，负责人到场</td></tr>
+<tr><td>P1</td><td>核心链路局部异常或持续退化</td><td>某地区支付失败率升高、库存预占超时</td><td>10 分钟内响应</td></tr>
+<tr><td>P2</td><td>非核心功能异常或有恶化趋势</td><td>推荐不可用、某批任务失败</td><td>工作时间处理或值班处理</td></tr>
+<tr><td>P3</td><td>观察项或容量预警</td><td>磁盘水位增长、连接池接近阈值</td><td>工单跟进</td></tr>
+</tbody>
+</table>
+</div>
+<p>告警要优先基于症状，而不是原因。</p>
+<p>好的 P0 告警：</p>
+<pre><code class="language-text">订单创建成功率 5 分钟内低于 98%，影响全部用户
+</code></pre>
+<p>较差的 P0 告警：</p>
+<pre><code class="language-text">order-service CPU &gt; 80%
+</code></pre>
+<p>CPU 高可能只是正常流量，也可能已经自动扩容；订单成功率下降才是真正用户影响。</p>
+<h3 id="1679-slo-燃烧率告警"><a class="header" href="#1679-slo-燃烧率告警">16.7.9 SLO 燃烧率告警</a></h3>
+<p>固定阈值容易误报或漏报。更成熟的方式是错误预算燃烧率告警。</p>
+<p>例如某接口 30 天 SLO 是 99.9%，错误预算是 0.1%。如果 5 分钟内错误率达到 5%，虽然只持续很短时间，但它燃烧预算的速度非常快，应立即告警。</p>
+<p>常见做法是多窗口组合：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>窗口</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td>5 分钟</td><td>快速发现突发事故</td></tr>
+<tr><td>30 分钟</td><td>过滤短暂抖动</td></tr>
+<tr><td>2 小时</td><td>发现持续退化</td></tr>
+<tr><td>24 小时</td><td>发现慢性问题</td></tr>
+</tbody>
+</table>
+</div>
+<p>示例规则：</p>
+<pre><code class="language-yaml">groups:
+  - name: order-slo
+    rules:
+      - alert: OrderCreateHighBurnRate
+        expr: |
+          (
+            sum(rate(order_create_requests_total{result="failure"}[5m]))
+            /
+            sum(rate(order_create_requests_total[5m]))
+          ) &gt; 0.02
+        for: 5m
+        labels:
+          severity: P0
+          service: order-service
+        annotations:
+          summary: "Order create failure rate is burning error budget fast"
+          runbook: "https://runbook.example.com/order-create"
+</code></pre>
+<p>真实生产中还要叠加 30 分钟窗口，避免短暂毛刺直接打爆电话。</p>
+<h3 id="16710-告警治理"><a class="header" href="#16710-告警治理">16.7.10 告警治理</a></h3>
+<p>告警治理和代码治理一样重要。没有治理，告警会腐烂。</p>
+<p>每条告警都应该有：</p>
+<ul>
+<li>明确 owner。</li>
+<li>明确严重级别。</li>
+<li>明确触发条件。</li>
+<li>明确恢复条件。</li>
+<li>明确 runbook。</li>
+<li>明确看板链接。</li>
+<li>明确是否需要夜间唤醒。</li>
+<li>明确抑制和去重策略。</li>
+</ul>
+<p>告警噪声常见来源：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>噪声来源</th><th>治理方式</th></tr>
+</thead>
+<tbody>
+<tr><td>阈值过低</td><td>使用历史基线或分位数</td></tr>
+<tr><td>同根因多告警</td><td>告警聚合和抑制</td></tr>
+<tr><td>非业务影响告警夜间唤醒</td><td>调整严重级别</td></tr>
+<tr><td>发布期间短暂波动</td><td>结合变更事件和灰度窗口</td></tr>
+<tr><td>无 owner 告警</td><td>直接下线或补 ownership</td></tr>
+<tr><td>长期无人处理</td><td>每周告警复盘</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个很实用的指标是：<strong>每周每个 on-call 被夜间唤醒次数</strong>。如果次数持续过高，团队会进入告警疲劳，真正事故反而没人敏感。</p>
+<h3 id="16711-看板设计"><a class="header" href="#16711-看板设计">16.7.11 看板设计</a></h3>
+<p>看板要按排障路径设计，而不是按组件堆图。</p>
+<p>推荐四类看板：</p>
+<p><strong>业务驾驶舱</strong></p>
+<ul>
+<li>GMV、订单量、支付成功率。</li>
+<li>搜索、加购、结算、创单、支付漏斗。</li>
+<li>各端、各地区、各品类分桶。</li>
+<li>当前事故和变更事件。</li>
+</ul>
+<p><strong>核心链路看板</strong></p>
+<ul>
+<li>结算 Init 每一步成功率和耗时。</li>
+<li>创单 Saga 每一步成功率和耗时。</li>
+<li>支付回调处理延迟。</li>
+<li>补偿任务 backlog。</li>
+</ul>
+<p><strong>服务看板</strong></p>
+<ul>
+<li>API QPS、错误率、P99。</li>
+<li>下游依赖耗时。</li>
+<li>线程池、连接池、队列。</li>
+<li>当前版本、实例数、重启次数。</li>
+</ul>
+<p><strong>中间件看板</strong></p>
+<ul>
+<li>DB 慢 SQL、锁等待、主从延迟。</li>
+<li>Redis 命中率、热点 key、内存淘汰。</li>
+<li>Kafka lag、DLQ、分区倾斜。</li>
+<li>ES 查询延迟、rejected、heap、shard 状态。</li>
+</ul>
+<p>看板第一屏应该回答三个问题：</p>
+<ol>
+<li>用户是否受影响？</li>
+<li>影响范围多大？</li>
+<li>当前最可疑的故障域在哪里？</li>
+</ol>
+<p>不要让 on-call 在事故中从几十张图里猜。</p>
+<h3 id="16712-监控覆盖检查清单"><a class="header" href="#16712-监控覆盖检查清单">16.7.12 监控覆盖检查清单</a></h3>
+<p>上线前可以用下面的清单检查监控是否完整：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>检查项</th><th>必须回答</th></tr>
+</thead>
+<tbody>
+<tr><td>业务成功率</td><td>核心动作是否有成功率指标</td></tr>
+<tr><td>业务延迟</td><td>用户关键等待路径是否有 P99</td></tr>
+<tr><td>错误码</td><td>是否区分业务失败和系统失败</td></tr>
+<tr><td>依赖指标</td><td>每个下游是否有成功率、耗时、超时</td></tr>
+<tr><td>资源饱和</td><td>线程池、连接池、队列是否可见</td></tr>
+<tr><td>数据一致性</td><td>是否有对账差异、补偿 backlog、DLQ</td></tr>
+<tr><td>分桶维度</td><td>是否能按地区、端、品类、渠道下钻</td></tr>
+<tr><td>变更关联</td><td>看板是否能看到版本、配置、开关变化</td></tr>
+<tr><td>告警 owner</td><td>每条 P0/P1 是否有人负责</td></tr>
+<tr><td>Runbook</td><td>告警是否附带处理步骤</td></tr>
+</tbody>
+</table>
+</div>
+<p>监控系统做到这个程度，才真正有资格说“线上可观测”。</p>
+<h2 id="168-应急响应先止血再定位再恢复"><a class="header" href="#168-应急响应先止血再定位再恢复">16.8 应急响应：先止血，再定位，再恢复</a></h2>
+<p>事故处理中最常见的错误，是一开始就追根因。真正的事故响应顺序应该是：</p>
+<ol>
+<li>判断影响范围。</li>
+<li>保护核心链路。</li>
+<li>止血和恢复用户体验。</li>
+<li>保留证据。</li>
+<li>定位根因。</li>
+<li>修复和复盘。</li>
+</ol>
+<h3 id="1681-事故角色"><a class="header" href="#1681-事故角色">16.8.1 事故角色</a></h3>
+<p>P0/P1 事故建议明确角色：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>角色</th><th>职责</th></tr>
+</thead>
+<tbody>
+<tr><td>Incident Commander</td><td>统一指挥，决定止血动作</td></tr>
+<tr><td>Tech Lead</td><td>技术定位和修复方案</td></tr>
+<tr><td>Operator</td><td>执行切流、回滚、开关、扩容</td></tr>
+<tr><td>Communicator</td><td>同步业务、客服、管理层</td></tr>
+<tr><td>Scribe</td><td>记录时间线和关键决策</td></tr>
+</tbody>
+</table>
+</div>
+<p>事故中最怕多人同时操作、没人记录、没人统一决策。角色清晰比技术高超更重要。</p>
+<h3 id="1682-常见止血动作"><a class="header" href="#1682-常见止血动作">16.8.2 常见止血动作</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>止血动作</th></tr>
+</thead>
+<tbody>
+<tr><td>新版本错误率升高</td><td>立即回滚或停止灰度</td></tr>
+<tr><td>单地域异常</td><td>摘除地域流量或切到备用区域</td></tr>
+<tr><td>下游依赖慢</td><td>熔断、降级、限制并发</td></tr>
+<tr><td>数据库打满</td><td>限流写入、暂停批任务、扩容只读</td></tr>
+<tr><td>Kafka 积压</td><td>扩消费者、暂停低优先级生产、隔离热点 topic</td></tr>
+<tr><td>支付渠道异常</td><td>切支付渠道、挂起订单、启动渠道对账</td></tr>
+<tr><td>商品错误上架</td><td>下架、冻结库存、停止投放</td></tr>
+<tr><td>价格错误</td><td>关闭活动、冻结订单、通知客服和法务</td></tr>
+</tbody>
+</table>
+</div>
+<p>止血动作要提前演练。事故中临时决定“能不能关这个开关”，通常已经晚了。</p>
+<h3 id="1683-事故时间线"><a class="header" href="#1683-事故时间线">16.8.3 事故时间线</a></h3>
+<p>事故复盘依赖时间线。建议记录：</p>
+<ul>
+<li>第一次异常指标出现时间。</li>
+<li>第一次告警时间。</li>
+<li>人工响应时间。</li>
+<li>影响范围变化。</li>
+<li>每次操作时间和操作人。</li>
+<li>关键判断依据。</li>
+<li>恢复时间。</li>
+<li>根因确认时间。</li>
+</ul>
+<p>没有时间线，复盘会变成各说各话。</p>
+<h2 id="169-容量规划压测与故障演练"><a class="header" href="#169-容量规划压测与故障演练">16.9 容量规划、压测与故障演练</a></h2>
+<p>容量规划不是“机器够不够”，而是“业务增长和流量模型变化时，核心链路是否还能维持 SLO”。</p>
+<h3 id="1691-容量估算"><a class="header" href="#1691-容量估算">16.9.1 容量估算</a></h3>
+<p>容量估算从业务漏斗开始。</p>
+<pre><code class="language-text">日活用户 -&gt; 高峰活跃 -&gt; 商品浏览 -&gt; 加购 -&gt; 结算 -&gt; 下单 -&gt; 支付
+</code></pre>
+<p>需要估算：</p>
+<ul>
+<li>峰值 QPS。</li>
+<li>并发请求数。</li>
+<li>数据写入量。</li>
+<li>热点 key 和热点商品。</li>
+<li>异步消息量。</li>
+<li>重试和补偿流量。</li>
+<li>外部依赖容量。</li>
+</ul>
+<p>大促系统尤其要关注流量形态。日常流量通常平滑，大促流量可能在秒级集中爆发。平均 QPS 对大促没有意义。</p>
+<h3 id="1692-压测"><a class="header" href="#1692-压测">16.9.2 压测</a></h3>
+<p>压测要验证三件事：</p>
+<ol>
+<li>系统上限在哪里。</li>
+<li>退化方式是否符合预期。</li>
+<li>保护机制是否生效。</li>
+</ol>
+<p>压测类型：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类型</th><th>目标</th></tr>
+</thead>
+<tbody>
+<tr><td>单服务压测</td><td>找服务自身瓶颈</td></tr>
+<tr><td>全链路压测</td><td>验证端到端能力</td></tr>
+<tr><td>影子流量</td><td>用真实流量分布验证读链路</td></tr>
+<tr><td>限流压测</td><td>验证限流阈值和用户体验</td></tr>
+<tr><td>降级压测</td><td>验证弱依赖失败时主链路是否稳定</td></tr>
+<tr><td>恢复压测</td><td>验证故障恢复后队列和补偿是否追平</td></tr>
+</tbody>
+</table>
+</div>
+<p>压测报告不要只写“峰值 QPS”。至少要包含：</p>
+<ul>
+<li>安全水位。</li>
+<li>瓶颈资源。</li>
+<li>P99 曲线。</li>
+<li>错误率拐点。</li>
+<li>下游依赖压力。</li>
+<li>扩容建议。</li>
+<li>降级开关验证结果。</li>
+</ul>
+<h3 id="1693-故障演练"><a class="header" href="#1693-故障演练">16.9.3 故障演练</a></h3>
+<p>故障演练比压测更接近真实事故。</p>
+<p>常见演练：</p>
+<ul>
+<li>关闭一个应用实例。</li>
+<li>让某个下游延迟升高。</li>
+<li>让 Redis 热 key 失效。</li>
+<li>让 Kafka 消费者停止。</li>
+<li>让支付渠道回调延迟。</li>
+<li>让数据库只读延迟升高。</li>
+<li>灰度版本返回错误码。</li>
+<li>配置中心下发错误配置并回滚。</li>
+</ul>
+<p>演练后要复盘：</p>
+<ul>
+<li>告警是否及时。</li>
+<li>值班是否知道怎么处理。</li>
+<li>开关是否可用。</li>
+<li>回滚是否顺畅。</li>
+<li>数据是否恢复一致。</li>
+<li>文档是否准确。</li>
+</ul>
+<p>未演练的预案，不应被视为可靠性能力。</p>
+<h2 id="1610-数据可靠性对账补偿备份与恢复"><a class="header" href="#1610-数据可靠性对账补偿备份与恢复">16.10 数据可靠性：对账、补偿、备份与恢复</a></h2>
+<p>业务系统的可靠性最终会落到数据上。服务恢复但数据错了，事故并没有结束。</p>
+<p>数据可靠性包括：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>能力</th><th>目标</th></tr>
+</thead>
+<tbody>
+<tr><td>幂等</td><td>防止重复副作用</td></tr>
+<tr><td>状态机</td><td>防止非法状态推进</td></tr>
+<tr><td>Outbox</td><td>保证本地事务和消息发送可恢复</td></tr>
+<tr><td>对账</td><td>发现跨系统不一致</td></tr>
+<tr><td>补偿</td><td>自动或人工修复不一致</td></tr>
+<tr><td>DLQ</td><td>隔离无法自动处理的数据</td></tr>
+<tr><td>备份</td><td>防止数据不可逆丢失</td></tr>
+<tr><td>恢复演练</td><td>确认备份真的能恢复</td></tr>
+</tbody>
+</table>
+</div>
+<p>备份不是可靠性终点，恢复才是。很多团队有备份，但从未演练恢复；真正事故发生时才发现备份缺字段、权限不可用、恢复耗时不可接受。</p>
+<p>关键业务数据至少要定期演练：</p>
+<ul>
+<li>单表误删恢复。</li>
+<li>单订单修复。</li>
+<li>按时间点恢复。</li>
+<li>跨系统对账修正。</li>
+<li>消息重放。</li>
+<li>补偿任务重跑。</li>
+</ul>
+<p>数据修复必须有审计。任何人工修复都应该记录操作人、原因、SQL 或工具参数、影响行数、审批单和验证结果。</p>
+<h2 id="1611-发布可靠性多数事故来自变更"><a class="header" href="#1611-发布可靠性多数事故来自变更">16.11 发布可靠性：多数事故来自变更</a></h2>
+<p>线上事故很大比例来自变更：代码发布、配置变更、数据迁移、活动配置、扩容缩容、依赖升级。</p>
+<p>发布可靠性要控制三个问题：</p>
+<ol>
+<li>变更前能否发现风险。</li>
+<li>变更中能否限制影响。</li>
+<li>变更后能否快速回滚。</li>
+</ol>
+<h3 id="16111-灰度发布"><a class="header" href="#16111-灰度发布">16.11.1 灰度发布</a></h3>
+<p>灰度发布建议按层推进：</p>
+<pre><code class="language-text">开发环境 -&gt; 测试环境 -&gt; 预发环境 -&gt; 单实例灰度 -&gt; 小流量灰度 -&gt; 分区域灰度 -&gt; 全量
+</code></pre>
+<p>灰度期间必须观察：</p>
+<ul>
+<li>错误率。</li>
+<li>P99 延迟。</li>
+<li>业务成功率。</li>
+<li>下游依赖耗时。</li>
+<li>新旧版本差异。</li>
+<li>日志错误码。</li>
+</ul>
+<p>如果灰度只看进程是否启动成功，等于没有灰度。</p>
+<h3 id="16112-配置变更"><a class="header" href="#16112-配置变更">16.11.2 配置变更</a></h3>
+<p>配置变更和代码发布一样危险，甚至更危险，因为它通常绕过测试。</p>
+<p>高风险配置包括：</p>
+<ul>
+<li>限流阈值。</li>
+<li>降级开关。</li>
+<li>价格规则。</li>
+<li>营销规则。</li>
+<li>路由规则。</li>
+<li>支付渠道权重。</li>
+<li>分库分表配置。</li>
+<li>库存策略。</li>
+</ul>
+<p>配置中心至少应支持：</p>
+<ul>
+<li>变更审批。</li>
+<li>灰度下发。</li>
+<li>版本记录。</li>
+<li>一键回滚。</li>
+<li>生效范围展示。</li>
+<li>变更事件写入监控和日志。</li>
+</ul>
+<h3 id="16113-数据库变更"><a class="header" href="#16113-数据库变更">16.11.3 数据库变更</a></h3>
+<p>数据库变更尤其要谨慎。</p>
+<p>常见原则：</p>
+<ul>
+<li>先兼容旧代码，再发布新代码，最后清理旧字段。</li>
+<li>大表 DDL 使用在线变更工具。</li>
+<li>回填任务限速，避免打爆主库。</li>
+<li>回填有断点续跑和校验。</li>
+<li>删除字段前至少观察一个版本周期。</li>
+<li>变更前准备回滚和恢复方案。</li>
+</ul>
+<p>很多事故不是 SQL 写错，而是回填任务没有限速，导致主库延迟和线上接口超时。</p>
+<h2 id="1612-复盘文化从事故里赚回经验"><a class="header" href="#1612-复盘文化从事故里赚回经验">16.12 复盘文化：从事故里赚回经验</a></h2>
+<p>事故复盘不是追责会。复盘的目标是让系统和团队变得更可靠。</p>
+<p>一份高质量复盘至少包含：</p>
+<ul>
+<li>事故摘要。</li>
+<li>影响范围。</li>
+<li>时间线。</li>
+<li>根因。</li>
+<li>为什么监控没有更早发现。</li>
+<li>为什么保护机制没有阻止扩散。</li>
+<li>为什么恢复耗时这么长。</li>
+<li>已完成修复。</li>
+<li>后续行动项。</li>
+<li>行动项 owner 和截止时间。</li>
+</ul>
+<p>复盘中最有价值的问题通常不是“谁犯了错”，而是：</p>
+<ul>
+<li>为什么这个错误能上线？</li>
+<li>为什么灰度没有发现？</li>
+<li>为什么告警没有及时响？</li>
+<li>为什么回滚不够快？</li>
+<li>为什么影响范围没有被隔离？</li>
+<li>为什么同类问题以前没有被系统性治理？</li>
+</ul>
+<p>复盘行动项要避免空话。比如“加强测试”“提升稳定性意识”不是有效行动项。有效行动项应该是：</p>
+<ul>
+<li>为订单创建接口新增创单成功率 SLO 告警。</li>
+<li>将营销依赖从订单线程池拆到独立 bulkhead。</li>
+<li>支付回调增加渠道流水唯一约束。</li>
+<li>配置中心对支付渠道权重开启双人审批。</li>
+<li>每月演练一次库存服务超时降级。</li>
+</ul>
+<h2 id="1613-本章小结"><a class="header" href="#1613-本章小结">16.13 本章小结</a></h2>
+<p>可靠性工程是一套闭环能力：</p>
+<ol>
+<li>用 SLI/SLO 定义业务目标。</li>
+<li>用故障模型识别系统会怎样坏。</li>
+<li>用高可用架构和保护机制限制故障扩散。</li>
+<li>用监控、日志、追踪和告警尽早发现并定位问题。</li>
+<li>用应急响应、对账补偿和恢复演练把系统拉回稳定状态。</li>
+<li>用发布治理和复盘机制减少下一次事故。</li>
+</ol>
+<p>对业务系统来说，可靠性最重要的不是“服务活着”，而是“核心业务结果可信”。一个 20 年仍能持续演进的系统，靠的不是从不出故障，而是每一次故障都能被看见、被控制、被恢复，并最终沉淀成工程能力。</p>
+<h2 id="1614-本章面试题与追问"><a class="header" href="#1614-本章面试题与追问">16.14 本章面试题与追问</a></h2>
 <ol>
 <li>
-<p>SLI、SLO、SLA 分别是什么？三者之间是什么关系？
-追问：为什么很多团队有 SLA，却没有真正可执行的 SLO？</p>
+<p>可靠性、可用性、正确性、可恢复性之间有什么区别？
+追问：为什么接口 200 成功率高，不代表业务系统可靠？</p>
 </li>
 <li>
-<p>可靠性指标为什么必须覆盖业务层，而不能只看 CPU、内存和错误日志？
-追问：如果接口成功率正常，但支付成功率下降，你会如何解释这种现象？</p>
+<p>SLI、SLO、SLA 分别是什么？
+追问：如何为订单创建链路设计 SLO？</p>
 </li>
 <li>
-<p>高可用设计通常包含哪些基本原则？
-追问：冗余、解耦、隔离、无状态分别是在控制什么风险？</p>
+<p>错误预算有什么作用？
+追问：错误预算耗尽时，研发流程应该发生什么变化？</p>
 </li>
 <li>
-<p>为什么超时必须显式设置？
-追问：如果一个下游偶发变慢，超时和重试配置不当会怎样把小故障放大成大故障？</p>
+<p>业务监控和系统监控有什么区别？
+追问：为什么 CPU 正常但支付成功率下降仍然是 P0？</p>
 </li>
 <li>
-<p>重试为什么必须和幂等一起设计？
-追问：支付、消息消费、订单创建这三类场景里，幂等实现有什么差别？</p>
+<p>如何设计一个电商系统的监控体系？
+追问：商品、库存、订单、支付分别应该监控哪些业务指标？</p>
 </li>
 <li>
-<p>限流、熔断、降级分别在什么情况下使用？
-追问：如果大促时库存服务压力飙升，你会优先在哪一层限流，哪些功能先降级？</p>
+<p>告警为什么要优先基于症状，而不是基于原因？
+追问：CPU 高、下单成功率下降、Kafka lag 上升，哪个更适合做 P0 告警？</p>
 </li>
 <li>
-<p>什么是线程池隔离和资源隔离？
-追问：为什么共享线程池经常会把非核心故障放大成全站故障？</p>
+<p>如何治理告警疲劳？
+追问：如何判断一条告警应该夜间唤醒，还是只生成工单？</p>
 </li>
 <li>
-<p>监控、日志、追踪三者分别解决什么问题？
-追问：如果接口 P99 延迟突然上升，你会怎样组合使用这三种手段定位问题？</p>
+<p>监控、日志、链路追踪分别解决什么问题？
+追问：如果结算 P99 突然升高，你会如何组合使用三者定位问题？</p>
 </li>
 <li>
-<p>容量规划通常怎么做？
-追问：如果大促峰值是日常的 8 倍，你会如何把业务指标换算成系统资源需求？</p>
+<p>超时、重试和幂等是什么关系？
+追问：为什么支付回调和订单创建不能随便重试？</p>
 </li>
 <li>
-<p>压测和故障演练有什么不同？
-追问：为什么很多团队压测成绩很好，线上出故障时仍然手忙脚乱？</p>
+<p>限流、熔断、降级分别解决什么问题？
+追问：库存服务超时时，搜索页、结算页、创单页的降级策略有什么不同？</p>
+</li>
+<li>
+<p>什么是舱壁隔离？
+追问：为什么共享线程池会把非核心故障放大成全站故障？</p>
+</li>
+<li>
+<p>如何做容量规划和压测？
+追问：为什么大促不能只看日均 QPS？</p>
+</li>
+<li>
+<p>故障演练和压测有什么不同？
+追问：一个支付渠道异常的演练应该验证哪些能力？</p>
+</li>
+<li>
+<p>发布可靠性包括哪些内容？
+追问：为什么配置变更可能比代码发布更危险？</p>
+</li>
+<li>
+<p>如何做事故复盘？
+追问：什么样的复盘行动项才是有效的？</p>
 </li>
 </ol>
 
@@ -372,7 +1296,7 @@
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../part03/16-architecture-quality-assurance.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../part03/17-reconciliation-compensation-dlq.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -386,7 +1310,7 @@
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../part03/16-architecture-quality-assurance.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../part03/17-reconciliation-compensation-dlq.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

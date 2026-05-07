@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 5 章 系统内部结构设计：三层、Clean Architecture、DDD、CQRS - 系统设计与架构实战：原理、工程与电商案例</title>
+        <title>第 5 章 系统内部结构设计：把复杂业务组织进可演进结构 - 系统设计与架构实战：原理、工程与电商案例</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f0b7d2e.js";
+            window.path_to_searchindex_js = "../searchindex-c15c0b2b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-bc818db9.js"></script>
+        <script src="../toc-98451072.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,14 +177,12 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <p><strong>导航</strong>：<a href="../README.html">书籍主页</a> | <a href="../SUMMARY.html">完整目录</a> | <a href="./chapter2.html">上一章：第2章</a> | <a href="./chapter4.html">下一章：第4章</a></p>
-<hr>
-<h1 id="第-5-章-系统内部结构设计三层clean-architecturedddcqrs"><a class="header" href="#第-5-章-系统内部结构设计三层clean-architecturedddcqrs">第 5 章 系统内部结构设计：三层、Clean Architecture、DDD、CQRS</a></h1>
+                        <h1 id="第-5-章-系统内部结构设计三层clean-architecturedddcqrs"><a class="header" href="#第-5-章-系统内部结构设计三层clean-architecturedddcqrs">第 5 章 系统内部结构设计：三层、Clean Architecture、DDD、CQRS</a></h1>
 <blockquote>
-<p>三层架构、Clean Architecture、DDD 战术与 CQRS 的协同落地</p>
+<p>从三层架构到 Clean Architecture、DDD 战术与 CQRS，把复杂业务组织进可演进的内部结构。</p>
 </blockquote>
 <hr>
-<h2 id="31-为什么要单独讨论系统内部结构"><a class="header" href="#31-为什么要单独讨论系统内部结构">3.1 为什么要单独讨论系统内部结构</a></h2>
+<h2 id="51-为什么要单独讨论系统内部结构"><a class="header" href="#51-为什么要单独讨论系统内部结构">5.1 为什么要单独讨论系统内部结构</a></h2>
 <p>如果说第 2 章解决的是「<strong>系统应该被划分成哪些业务边界</strong>」，那么这一章要回答的是另一个同样关键的问题：<strong>在边界已经划定之后，单个系统内部到底应该怎么组织？</strong></p>
 <p>很多团队在架构演进时，会把两个层面混在一起讨论：</p>
 <ul>
@@ -208,16 +206,16 @@
 <li><strong>CQRS</strong>：当读写目标冲突时，再拆分读写路径</li>
 </ul>
 <p>从这个角度看，这四者并不是彼此替代，而是逐层叠加。</p>
-<h3 id="311-从业务边界到系统内部结构"><a class="header" href="#311-从业务边界到系统内部结构">3.1.1 从业务边界到系统内部结构</a></h3>
+<h3 id="511-从业务边界到系统内部结构"><a class="header" href="#511-从业务边界到系统内部结构">5.1.1 从业务边界到系统内部结构</a></h3>
 <p>第 2 章讲的战略设计，解决的是「地图」问题：哪些能力属于订单，哪些属于库存，哪些属于营销，团队之间怎样通过上下文地图协作。</p>
 <p>而本章解决的是「房间内部装修」问题：当我们已经确定了这里是订单上下文、那里是库存上下文之后，订单系统内部又该如何分层、如何建模、如何组织读写路径。</p>
 <p>如果没有第 2 章的边界，系统内部结构设计会失去落点；<br>如果只有边界、没有内部结构，系统很快又会退化成新的大泥球。</p>
 <p>因此，这一章在全书里承担的是承上启下的角色：</p>
 <ul>
 <li><strong>承接第 2 章</strong>：边界已经划清</li>
-<li><strong>通向第 4 章</strong>：单个系统内部有了秩序之后，才有条件进一步讨论系统之间如何协作</li>
+<li><strong>通向第 6 章</strong>：单个系统内部有了秩序之后，才有条件进一步讨论系统之间如何协作</li>
 </ul>
-<h3 id="312-架构师在这一层真正关注什么"><a class="header" href="#312-架构师在这一层真正关注什么">3.1.2 架构师在这一层真正关注什么</a></h3>
+<h3 id="512-架构师在这一层真正关注什么"><a class="header" href="#512-架构师在这一层真正关注什么">5.1.2 架构师在这一层真正关注什么</a></h3>
 <p>在系统内部结构设计这一层，架构师最需要关注的，通常不是“某个类放在哪个目录”，而是以下几类长期成本：</p>
 <ul>
 <li><strong>变更成本</strong>：一个新需求会不会牵一发而动全身？</li>
@@ -227,11 +225,11 @@
 </ul>
 <p>这也是为什么系统内部结构设计，不能只靠“项目目录看起来很整齐”来判断。真正重要的是：<strong>职责有没有分清、依赖有没有收束、规则有没有回到模型内部、读写目标有没有被正确拆分。</strong></p>
 <hr>
-<h2 id="32-标准三层架构多数项目的默认起点"><a class="header" href="#32-标准三层架构多数项目的默认起点">3.2 标准三层架构：多数项目的默认起点</a></h2>
-<h3 id="321-为什么三层架构会成为默认起点"><a class="header" href="#321-为什么三层架构会成为默认起点">3.2.1 为什么三层架构会成为默认起点</a></h3>
+<h2 id="52-标准三层架构多数项目的默认起点"><a class="header" href="#52-标准三层架构多数项目的默认起点">5.2 标准三层架构：多数项目的默认起点</a></h2>
+<h3 id="521-为什么三层架构会成为默认起点"><a class="header" href="#521-为什么三层架构会成为默认起点">5.2.1 为什么三层架构会成为默认起点</a></h3>
 <p>在系统设计的早期阶段，最重要的往往不是“架构是否优雅”，而是“职责是否基本清楚”。对于一个刚开始建设的 <code>order-service</code> 来说，下单、查询订单、支付后更新状态、超时关单，这些需求虽然已经涉及接口、业务逻辑和数据存储，但复杂度通常还不足以支撑更重的架构方法论。此时，<strong>标准三层架构</strong>往往是一个合适的起点。</p>
 <p>它之所以在很多项目里成为默认选择，不是因为它“最先进”，而是因为它在低复杂度阶段最务实。对多数团队而言，先让代码按职责分区、让调用链基本清晰，往往比一开始就引入大量抽象更重要。</p>
-<h3 id="322-三层架构的核心分工"><a class="header" href="#322-三层架构的核心分工">3.2.2 三层架构的核心分工</a></h3>
+<h3 id="522-三层架构的核心分工"><a class="header" href="#522-三层架构的核心分工">5.2.2 三层架构的核心分工</a></h3>
 <p>三层架构的核心思想很简单：<strong>把系统按职责拆成表现层、业务逻辑层和数据访问层</strong>。如果用更统一的工程命名来表达，这三类职责通常会分别落在 <code>interfaces</code>、<code>application</code> 和 <code>infrastructure</code> 中。这样做的目的不是追求抽象，而是让不同类型的代码各归其位：</p>
 <ul>
 <li><strong>表现层（Interfaces）</strong>：接收 HTTP、RPC 或消息请求，完成参数解析和响应组装</li>
@@ -239,7 +237,7 @@
 <li><strong>数据访问层（Infrastructure 中的 persistence）</strong>：负责和数据库交互，执行查询、插入和更新操作</li>
 </ul>
 <p>这里要特别注意，三层架构首先强调的是<strong>职责分层</strong>，而不是<strong>接口隔离</strong>。在这个阶段，层与层之间通常可以直接调用，不需要一开始就为每一层都设计 Port、Adapter 和复杂的依赖注入。</p>
-<h3 id="323-go-项目中的典型目录映射"><a class="header" href="#323-go-项目中的典型目录映射">3.2.3 Go 项目中的典型目录映射</a></h3>
+<h3 id="523-go-项目中的典型目录映射"><a class="header" href="#523-go-项目中的典型目录映射">5.2.3 Go 项目中的典型目录映射</a></h3>
 <p>对于一个订单服务，这种分层通常可以组织成如下结构：</p>
 <pre><code class="language-text">order-service/
 ├── cmd/
@@ -290,7 +288,7 @@
 └── go.mod
 </code></pre>
 <p>这里虽然目录名已经统一成了 <code>interfaces / application / infrastructure</code> 这套风格，但它的本质仍然是三层架构。<code>interfaces</code> 对应表现层，<code>application</code> 对应业务逻辑层，<code>infrastructure/persistence</code> 对应数据访问层。额外出现的 <code>model</code> 只是为了集中承载共享数据结构，例如 <code>Order</code>、<code>CreateOrderRequest</code>，它还不是后续 DDD 阶段那种真正承担业务规则的 <code>domain</code>。</p>
-<h3 id="324-一个订单服务的调用链"><a class="header" href="#324-一个订单服务的调用链">3.2.4 一个订单服务的调用链</a></h3>
+<h3 id="524-一个订单服务的调用链"><a class="header" href="#524-一个订单服务的调用链">5.2.4 一个订单服务的调用链</a></h3>
 <p>以“创建订单”接口为例，这条调用链通常是这样的：</p>
 <pre><code class="language-text">HTTP / RPC 请求
     -&gt; interfaces.CreateOrder
@@ -333,7 +331,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderReq) (*Or
 <li><code>ListPendingPaymentBefore(t)</code>：查询超时未支付订单</li>
 </ul>
 <p>它的价值在于：<strong>把 SQL、表结构、连接池、事务细节集中到一个位置</strong>。这样，业务层不需要到处散落 SQL 语句，表现层也不必知道数据库长什么样。</p>
-<h3 id="325-为什么这种结构在项目初期很好用"><a class="header" href="#325-为什么这种结构在项目初期很好用">3.2.5 为什么这种结构在项目初期很好用</a></h3>
+<h3 id="525-为什么这种结构在项目初期很好用"><a class="header" href="#525-为什么这种结构在项目初期很好用">5.2.5 为什么这种结构在项目初期很好用</a></h3>
 <p>在标准三层架构中，层与层之间通常<strong>不需要</strong>一开始就为每一层专门定义接口和适配器。更常见的做法是：</p>
 <ul>
 <li><code>interfaces</code> 直接调用 <code>application</code></li>
@@ -346,7 +344,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderReq) (*Or
 <p>第二，它<strong>开发成本低</strong>。不需要在一开始就设计大量接口和抽象，代码路径短，调试方便，适合快速迭代。</p>
 <p>第三，它<strong>足够支撑早期业务</strong>。对于订单创建、订单查询、支付回调、超时关单这类相对直接的业务流程，三层架构通常已经可以胜任。</p>
 <p>换句话说，三层架构不是“过时的做法”，而是<strong>在业务复杂度还低时，一种成本最低的秩序化手段</strong>。</p>
-<h3 id="326-三层架构的边界与典型问题"><a class="header" href="#326-三层架构的边界与典型问题">3.2.6 三层架构的边界与典型问题</a></h3>
+<h3 id="526-三层架构的边界与典型问题"><a class="header" href="#526-三层架构的边界与典型问题">5.2.6 三层架构的边界与典型问题</a></h3>
 <p>三层架构的问题，通常不是一开始就出现，而是在业务逐渐变复杂时慢慢显现。最常见的几个信号是：</p>
 <ul>
 <li><code>Application</code> 层越来越大，开始同时处理业务规则、事务、SQL 细节和外部依赖</li>
@@ -358,8 +356,8 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderReq) (*Or
 <p>例如，当你想把 MySQL 更换为 PostgreSQL 时，可能会发现 <code>Application</code> 层虽然没有直接操作数据库连接，但它已经对持久化实现、事务组织方式，甚至某些 MySQL 特有能力形成了隐式依赖。此时，问题就不再只是“换个数据库驱动”这么简单，而是说明：<strong>业务逻辑与基础设施实现已经纠缠在一起了</strong>。</p>
 <p>这正是三层架构的边界所在。它非常适合作为系统的起点，但当复杂度继续增长时，仅靠“Interfaces / Application / Persistence”这条主线，已经不足以持续控制系统复杂性。接下来，就需要进一步引入更明确的依赖边界、更强的业务模型表达，以及更清晰的读写分离策略。这也是后续要引入 Clean Architecture、DDD 和 CQRS 的原因。</p>
 <hr>
-<h2 id="33-clean-architecture整洁架构"><a class="header" href="#33-clean-architecture整洁架构">3.3 Clean Architecture（整洁架构）</a></h2>
-<h3 id="331-核心思想依赖规则"><a class="header" href="#331-核心思想依赖规则">3.3.1 核心思想：依赖规则</a></h3>
+<h2 id="53-clean-architecture整洁架构"><a class="header" href="#53-clean-architecture整洁架构">5.3 Clean Architecture（整洁架构）</a></h2>
+<h3 id="551-核心思想依赖规则"><a class="header" href="#551-核心思想依赖规则">5.5.1 核心思想：依赖规则</a></h3>
 <p>Clean Architecture 由 Robert C. Martin（Uncle Bob）在 2012 年提出，其核心思想非常简单：</p>
 <blockquote>
 <p><strong>业务逻辑应该独立于 UI、数据库、框架或任何外部代理。</strong></p>
@@ -381,7 +379,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderReq) (*Or
 
                    依赖方向 ──────→ 向内
 </code></pre>
-<h3 id="332-四层模型"><a class="header" href="#332-四层模型">3.3.2 四层模型</a></h3>
+<h3 id="552-四层模型"><a class="header" href="#552-四层模型">5.5.2 四层模型</a></h3>
 <p>Clean Architecture 将系统划分为四层，每层有清晰的职责：</p>
 <div class="table-wrapper">
 <table>
@@ -403,7 +401,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderReq) (*Or
 <li><strong>Adapter 层</strong>连接内外，实现 Entity/Use Case 层定义的接口</li>
 <li><strong>Framework 层</strong>是具体的技术选型，可以随时替换</li>
 </ul>
-<h3 id="333-go-项目中的典型目录映射"><a class="header" href="#333-go-项目中的典型目录映射">3.3.3 Go 项目中的典型目录映射</a></h3>
+<h3 id="553-go-项目中的典型目录映射"><a class="header" href="#553-go-项目中的典型目录映射">5.5.3 Go 项目中的典型目录映射</a></h3>
 <p>在 Go 项目中，Clean Architecture 通常可以映射成和前面三层架构相近、但依赖方向更清晰的目录结构。例如，一个 <code>order-service</code> 可以演进成这样：</p>
 <pre><code class="language-text">order-service/
 ├── cmd/
@@ -479,7 +477,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderReq) (*Or
 <li><strong>接口在内层定义</strong>：例如 <code>internal/domain/repository.go</code> 定义 Port，<code>internal/infrastructure/persistence/order_repo.go</code> 提供实现</li>
 <li><strong>框架在外层</strong>：Gin、MySQL、Kafka、Redis 等技术细节都停留在 <code>interfaces</code> 或 <code>infrastructure</code>，不会侵入核心业务</li>
 </ol>
-<h3 id="334-三层架构与-clean-architecture-的区别"><a class="header" href="#334-三层架构与-clean-architecture-的区别">3.3.4 三层架构与 Clean Architecture 的区别</a></h3>
+<h3 id="554-三层架构与-clean-architecture-的区别"><a class="header" href="#554-三层架构与-clean-architecture-的区别">5.5.4 三层架构与 Clean Architecture 的区别</a></h3>
 <p>这一点非常容易被误解。很多团队以为自己已经做了三层分层，就等于已经做了 Clean Architecture。其实两者并不等价：</p>
 <ul>
 <li>三层架构关注的是<strong>分层职责</strong>：表现层、业务层、数据访问层分别负责什么</li>
@@ -487,7 +485,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderReq) (*Or
 </ul>
 <p>所以，三层架构回答的是“代码应该放在哪一层”，而 Clean Architecture 回答的是“核心业务应该依赖谁”。</p>
 <p>这也是为什么一个项目可以“已经分层”，但仍然没有真正获得可替换性和可测试性。只要 <code>application/service</code> 仍然依赖某个具体的 MySQL repository、具体的消息发布器、具体的框架对象，业务逻辑就还没有真正从基础设施中解耦出来。</p>
-<h3 id="335-改造要点引入-port把实现推到外层"><a class="header" href="#335-改造要点引入-port把实现推到外层">3.3.5 改造要点：引入 Port，把实现推到外层</a></h3>
+<h3 id="555-改造要点引入-port把实现推到外层"><a class="header" href="#555-改造要点引入-port把实现推到外层">5.5.5 改造要点：引入 Port，把实现推到外层</a></h3>
 <p>阶段 1 的关键动作通常有两个：</p>
 <ul>
 <li>在内层定义接口，例如 <code>OrderRepository</code></li>
@@ -513,7 +511,7 @@ func (svc *CreateOrderService) Execute(ctx context.Context, req CreateOrderReque
 }
 </code></pre>
 <p>在这段代码里，<code>CreateOrderService</code> 并不知道底层是不是 MySQL，也不知道外面是不是 HTTP Handler 调用它。它只关心“创建订单”这件业务本身。这种内层稳定、外层可替换的结构，就是 Clean Architecture 的核心价值。</p>
-<h3 id="336-以一个订单服务的调用链为例"><a class="header" href="#336-以一个订单服务的调用链为例">3.3.6 以一个订单服务的调用链为例</a></h3>
+<h3 id="556-以一个订单服务的调用链为例"><a class="header" href="#556-以一个订单服务的调用链为例">5.5.6 以一个订单服务的调用链为例</a></h3>
 <p>如果把 Clean Architecture 放到一个具体的 <code>order-service</code> 中，它的调用链通常会比三层架构多出一层清晰的“依赖反转”：</p>
 <pre><code class="language-text">HTTP 请求
     -&gt; adapter/inbound/http.OrderHandler
@@ -530,7 +528,7 @@ func (svc *CreateOrderService) Execute(ctx context.Context, req CreateOrderReque
 <li><strong>Outbound Adapter</strong> 负责把领域层定义的接口落到 MySQL、Redis 或 MQ 上</li>
 </ul>
 <p>从外面看，它和三层架构一样，仍然是在处理“下单请求”；但从里面看，业务逻辑和基础设施已经不再直接耦合。也正因为如此，后面不管你是替换存储、补单元测试，还是进一步引入 DDD，都有了更清晰的落脚点。</p>
-<h3 id="337-核心价值技术无关的业务逻辑"><a class="header" href="#337-核心价值技术无关的业务逻辑">3.3.7 核心价值：技术无关的业务逻辑</a></h3>
+<h3 id="557-核心价值技术无关的业务逻辑"><a class="header" href="#557-核心价值技术无关的业务逻辑">5.5.7 核心价值：技术无关的业务逻辑</a></h3>
 <p>让我们通过一个具体的代码示例来理解 Clean Architecture 的价值。</p>
 <h4 id="反例依赖具体实现"><a class="header" href="#反例依赖具体实现">反例：依赖具体实现</a></h4>
 <pre><code class="language-go">// ❌ 反例：OrderService 直接依赖具体的 MySQL 实现
@@ -732,7 +730,7 @@ func (r *MongoOrderRepo) Save(ctx context.Context, o *order.Order) error {
 </tbody>
 </table>
 </div>
-<h3 id="338-依赖注入的-go-实现"><a class="header" href="#338-依赖注入的-go-实现">3.3.8 依赖注入的 Go 实现</a></h3>
+<h3 id="558-依赖注入的-go-实现"><a class="header" href="#558-依赖注入的-go-实现">5.5.8 依赖注入的 Go 实现</a></h3>
 <p>在 Clean Architecture 中，<strong>组装</strong>（将接口与实现绑定）发生在最外层——通常是 <code>main.go</code> 或 <code>cmd/server/main.go</code>。</p>
 <h4 id="方式一手动注入推荐适合中小项目"><a class="header" href="#方式一手动注入推荐适合中小项目">方式一：手动注入（推荐，适合中小项目）</a></h4>
 <pre><code class="language-go">// cmd/server/main.go
@@ -902,17 +900,17 @@ func main() {
 <li><strong>中型项目（50-200 个依赖）</strong>：Wire</li>
 <li><strong>大型项目（200+ 个依赖，微服务）</strong>：Fx</li>
 </ul>
-<h3 id="339-为什么这一步通常早于-ddd"><a class="header" href="#339-为什么这一步通常早于-ddd">3.3.9 为什么这一步通常早于 DDD</a></h3>
+<h3 id="559-为什么这一步通常早于-ddd"><a class="header" href="#559-为什么这一步通常早于-ddd">5.5.9 为什么这一步通常早于 DDD</a></h3>
 <p>很多读者会问：既然后面还要引入 DDD，为什么不一步到位？原因是 Clean Architecture 先解决的是一个更基础的问题：<strong>先把业务逻辑和技术实现拆开</strong>。</p>
 <p>在这一步之前，系统最大的问题往往不是“领域模型不够优雅”，而是“业务代码和基础设施绑得太紧”。如果这个问题不先处理，后面即使想引入聚合根、值对象、领域事件，也很容易被外层技术细节拖住，导致模型表达和工程实现互相污染。</p>
 <p>所以，从演进顺序上看，先引入 Clean Architecture，往往比直接上 DDD 更稳妥。它为后续的领域建模先清出了一块相对干净的内层空间。</p>
-<h3 id="3310-收益可替换可测试可演进"><a class="header" href="#3310-收益可替换可测试可演进">3.3.10 收益：可替换、可测试、可演进</a></h3>
+<h3 id="5510-收益可替换可测试可演进"><a class="header" href="#5510-收益可替换可测试可演进">5.5.10 收益：可替换、可测试、可演进</a></h3>
 <p>引入 Clean Architecture 之后，最直接的收益通常有三个。</p>
 <p>第一，<strong>更容易替换基础设施</strong>。MySQL、PostgreSQL、Redis、消息中间件都变成外层实现细节，而不是业务层的一部分。</p>
 <p>第二，<strong>更容易做单元测试</strong>。<code>CreateOrderService</code> 可以直接注入 Mock Repository 进行测试，不需要启动数据库。</p>
 <p>第三，<strong>为后续演进留出空间</strong>。当业务复杂度进一步上升时，你可以在内层继续引入更强的领域模型表达，而不必同时和框架、数据库实现纠缠。</p>
 <p>当然，代价也很明显：目录更多、抽象更多、依赖注入也更复杂。对于业务非常简单的项目，这一步可能会显得“有点重”。但一旦系统已经出现“换数据库很痛”“单元测试写不动”“业务层越来越黏住基础设施”这些信号，引入 Clean Architecture 往往是值得的。</p>
-<h3 id="3311-架构风格对比clean-vs-六边形-vs-洋葱"><a class="header" href="#3311-架构风格对比clean-vs-六边形-vs-洋葱">3.3.11 架构风格对比：Clean vs 六边形 vs 洋葱</a></h3>
+<h3 id="5511-架构风格对比clean-vs-六边形-vs-洋葱"><a class="header" href="#5511-架构风格对比clean-vs-六边形-vs-洋葱">5.5.11 架构风格对比：Clean vs 六边形 vs 洋葱</a></h3>
 <p>在学习 Clean Architecture 时，你可能还会遇到另外两个相似的概念：<strong>六边形架构（Hexagonal Architecture）</strong> 和 <strong>洋葱架构（Onion Architecture）</strong>。它们经常被混用，但实际上有细微差别：</p>
 <div class="table-wrapper">
 <table>
@@ -1027,7 +1025,7 @@ func (a *MockPaymentAdapter) Charge(ctx context.Context, orderID string, amount 
 <li>测试时，可以用 Mock Adapter 替换真实的 Stripe Adapter</li>
 <li>换支付渠道（如从 Stripe 换到支付宝），只需新增一个 Adapter</li>
 </ul>
-<h3 id="3312-反模式常见违规案例"><a class="header" href="#3312-反模式常见违规案例">3.3.12 反模式：常见违规案例</a></h3>
+<h3 id="5512-反模式常见违规案例"><a class="header" href="#5512-反模式常见违规案例">5.5.12 反模式：常见违规案例</a></h3>
 <p>在实际项目中，Clean Architecture 的违规往往不是故意的，而是在时间压力下“顺手“写下的。以下是三个最常见的反模式：</p>
 <h4 id="anti-pattern-1跨层调用"><a class="header" href="#anti-pattern-1跨层调用">Anti-pattern 1：跨层调用</a></h4>
 <pre><code class="language-go">// ❌ 反例：Handler 直接引用了 MySQL 包（跳过了 domain 和 usecase 层）
@@ -1186,8 +1184,8 @@ usecase (依赖 Notifier 接口)
 adapter/notification (实现 Notifier 接口)
 </code></pre>
 <hr>
-<h2 id="34-ddd领域驱动设计"><a class="header" href="#34-ddd领域驱动设计">3.4 DDD（领域驱动设计）</a></h2>
-<h3 id="341-战略设计架构层面"><a class="header" href="#341-战略设计架构层面">3.4.1 战略设计：架构层面</a></h3>
+<h2 id="54-ddd领域驱动设计"><a class="header" href="#54-ddd领域驱动设计">5.4 DDD（领域驱动设计）</a></h2>
+<h3 id="541-战略设计架构层面"><a class="header" href="#541-战略设计架构层面">5.4.1 战略设计：架构层面</a></h3>
 <p>DDD 不是一种架构，而是一套<strong>方法论</strong>。它认为软件的灵魂在于其解决的业务问题（即“领域“）。</p>
 <p>DDD 分为两个层面：</p>
 <ul>
@@ -1195,7 +1193,7 @@ adapter/notification (实现 Notifier 接口)
 <li><strong>战术设计</strong>：代码层面，关注如何用聚合、实体、值对象等战术模式编写高质量的领域模型</li>
 </ul>
 <p>我们先讲战略设计。</p>
-<h3 id="342-领域分层与投资策略"><a class="header" href="#342-领域分层与投资策略">3.4.2 领域分层与投资策略</a></h3>
+<h3 id="542-领域分层与投资策略"><a class="header" href="#542-领域分层与投资策略">5.4.2 领域分层与投资策略</a></h3>
 <h4 id="为什么需要领域分层"><a class="header" href="#为什么需要领域分层">为什么需要领域分层？</a></h4>
 <p>一个中大型系统往往包含十几个甚至几十个子系统。假设你是一家电商平台的 CTO，面对以下子系统：</p>
 <ul>
@@ -1416,7 +1414,7 @@ adapter/notification (实现 Notifier 接口)
 </ul>
 </li>
 </ol>
-<h3 id="343-限界上下文bounded-context"><a class="header" href="#343-限界上下文bounded-context">3.4.3 限界上下文（Bounded Context）</a></h3>
+<h3 id="543-限界上下文bounded-context"><a class="header" href="#543-限界上下文bounded-context">5.4.3 限界上下文（Bounded Context）</a></h3>
 <p>同一个“商品“在不同的上下文中有完全不同的含义：</p>
 <pre><code class="language-text"> ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
  │   商品上下文      │     │   订单上下文      │     │   物流上下文      │
@@ -1457,8 +1455,8 @@ graph TB
     商品上下文 --&gt;|索引同步| 搜索上下文
 </pre>
 
-<p>不同上下文之间通过<strong>防腐层（Anti-Corruption Layer）<strong>或</strong>领域事件</strong>通信，避免概念混淆。我们会在 <strong>3.4.4</strong> 详细讲解。</p>
-<h3 id="344-上下文映射context-map"><a class="header" href="#344-上下文映射context-map">3.4.4 上下文映射（Context Map）</a></h3>
+<p>不同上下文之间通过<strong>防腐层（Anti-Corruption Layer）<strong>或</strong>领域事件</strong>通信，避免概念混淆。我们会在 <strong>5.4.4</strong> 详细讲解。</p>
+<h3 id="544-上下文映射context-map"><a class="header" href="#544-上下文映射context-map">5.4.4 上下文映射（Context Map）</a></h3>
 <p>限界上下文划分好之后，它们之间如何协作？Context Map（上下文映射）定义了上下文之间的<strong>关系模式</strong>。</p>
 <h4 id="常见的上下文关系模式"><a class="header" href="#常见的上下文关系模式">常见的上下文关系模式</a></h4>
 <div class="table-wrapper">
@@ -1497,7 +1495,7 @@ graph LR
 <li><strong>供应商 → 订单</strong>：遵奉者模式（完全遵循供应商的履约接口）</li>
 <li><strong>商品 → 搜索/营销</strong>：开放主机服务（提供标准化的商品查询API）</li>
 </ol>
-<h3 id="345-go-项目中的典型目录映射"><a class="header" href="#345-go-项目中的典型目录映射">3.4.5 Go 项目中的典型目录映射</a></h3>
+<h3 id="545-go-项目中的典型目录映射"><a class="header" href="#545-go-项目中的典型目录映射">5.4.5 Go 项目中的典型目录映射</a></h3>
 <p>当 DDD 落到 Go 项目时，目录结构通常会围绕“限界上下文”和“聚合”展开，而不是围绕数据库表或接口协议展开。以一个订单服务为例，比较常见的组织方式如下：</p>
 <pre><code class="language-text">order-service/
 ├── cmd/
@@ -1545,7 +1543,7 @@ graph LR
     └── mysql/
 </code></pre>
 <p>和阶段 1 相比，这里的核心变化不是目录变得更深，而是 <code>domain</code> 不再只是“放接口和几个结构体的地方”，而是开始真正承载业务语义。换句话说，阶段 1 的 <code>domain</code> 更像“业务核心的边界”；阶段 2 的 <code>domain</code> 才开始成为“业务规则真正居住的地方”。</p>
-<h3 id="346-从贫血模型到充血模型"><a class="header" href="#346-从贫血模型到充血模型">3.4.6 从贫血模型到充血模型</a></h3>
+<h3 id="546-从贫血模型到充血模型"><a class="header" href="#546-从贫血模型到充血模型">5.4.6 从贫血模型到充血模型</a></h3>
 <p>阶段 1 中，很多项目虽然已经把 <code>Order</code> 放进了 <code>domain</code>，但这个 <code>Order</code> 仍然只是一个贫血模型：它主要承担数据承载作用，真正的规则依旧写在 <code>application/service</code> 里。例如：</p>
 <pre><code class="language-go">// 阶段 1 的 "贫血模型"
 type Order struct {
@@ -1573,7 +1571,7 @@ func (o *Order) Place() ([]DomainEvent, error) {
 }
 </code></pre>
 <p>这里的关键不只是把字段从公有变成私有，也不只是把 <code>int</code> 改成 <code>OrderStatus</code>。真正重要的是：<strong>业务规则开始内聚到模型本身</strong>。订单能否下单、状态如何流转、哪些约束必须被保护，不再由外部调用者“记得去做”，而是由聚合根主动维护。</p>
-<h3 id="347-ddd-在这一阶段具体引入什么"><a class="header" href="#347-ddd-在这一阶段具体引入什么">3.4.7 DDD 在这一阶段具体引入什么</a></h3>
+<h3 id="547-ddd-在这一阶段具体引入什么"><a class="header" href="#547-ddd-在这一阶段具体引入什么">5.4.7 DDD 在这一阶段具体引入什么</a></h3>
 <p>阶段 2 最常引入的几个战术设计元素包括：</p>
 <ul>
 <li><strong>聚合根（Aggregate Root）</strong>：例如 <code>Order</code>，它负责维护订单聚合内部的一致性边界</li>
@@ -1583,7 +1581,7 @@ func (o *Order) Place() ([]DomainEvent, error) {
 <li><strong>领域服务（Domain Service）</strong>：当某条业务规则不自然属于某个单一聚合时，再用领域服务承载</li>
 </ul>
 <p>需要强调的是，DDD 不是要求你“把所有东西都做成值对象和事件”。它真正的目的，是让代码结构尽可能贴近业务语言，而不是贴近数据库表结构。</p>
-<h3 id="348-应用层在这一阶段如何变化"><a class="header" href="#348-应用层在这一阶段如何变化">3.4.8 应用层在这一阶段如何变化</a></h3>
+<h3 id="548-应用层在这一阶段如何变化"><a class="header" href="#548-应用层在这一阶段如何变化">5.4.8 应用层在这一阶段如何变化</a></h3>
 <p>引入 DDD 之后，<code>application/service</code> 并不会消失，但它的职责会变得更清晰：它不再自己堆满业务规则，而是更像一个应用服务，负责调度聚合根、协调事务和调用 Port。</p>
 <p>也就是说：</p>
 <ul>
@@ -1591,7 +1589,7 @@ func (o *Order) Place() ([]DomainEvent, error) {
 <li>在阶段 2 中，<code>PlaceOrderService</code> 更像一个 orchestrator，它负责加载聚合、调用 <code>order.Place()</code>、保存聚合、发布领域事件</li>
 </ul>
 <p>这也是为什么 DDD 不是对 Clean Architecture 的替代，而是对其内层表达能力的增强。</p>
-<h3 id="349-以一个订单服务的调用链为例"><a class="header" href="#349-以一个订单服务的调用链为例">3.4.9 以一个订单服务的调用链为例</a></h3>
+<h3 id="549-以一个订单服务的调用链为例"><a class="header" href="#549-以一个订单服务的调用链为例">5.4.9 以一个订单服务的调用链为例</a></h3>
 <p>如果把 DDD 放到下单场景里，调用链通常会长这样：</p>
 <pre><code class="language-text">HTTP 请求
     -&gt; interfaces/http.OrderHandler
@@ -1609,7 +1607,7 @@ func (o *Order) Place() ([]DomainEvent, error) {
 <li><code>Order.Place()</code>、<code>Order.Cancel()</code>、<code>Order.MarkPaid()</code> 这类方法开始成为真正的业务入口</li>
 </ul>
 <p>这意味着，当我们讨论“订单能不能取消”“订单支付后能不能再次修改”时，答案主要应该在 <code>domain/order</code> 里找到，而不是散落在多个应用服务和数据库更新逻辑中。</p>
-<h3 id="3410-为什么这一步值得做"><a class="header" href="#3410-为什么这一步值得做">3.4.10 为什么这一步值得做</a></h3>
+<h3 id="5410-为什么这一步值得做"><a class="header" href="#5410-为什么这一步值得做">5.4.10 为什么这一步值得做</a></h3>
 <p>当业务规则还很少时，把逻辑写在 <code>application/service</code> 里看起来并没有问题；但一旦规则数量和状态迁移开始增多，继续让应用层承担所有判断，很快会出现几个典型症状：</p>
 <ul>
 <li>一个 <code>application/service</code> 文件动辄数百行，充满 <code>if/else</code></li>
@@ -1618,13 +1616,13 @@ func (o *Order) Place() ([]DomainEvent, error) {
 <li>新成员很难回答“订单到底有哪些业务规则”</li>
 </ul>
 <p>这时，引入 DDD 的最大收益，就是把这些规则收拢回业务概念本身。新成员阅读 <code>Order.Place()</code>、<code>Order.Cancel()</code>、<code>Order.MarkPaid()</code>，就能理解订单生命周期中的核心约束，而不是在多个应用服务文件之间来回跳转。</p>
-<h3 id="3411-收益模型更贴近业务规则更容易维护"><a class="header" href="#3411-收益模型更贴近业务规则更容易维护">3.4.11 收益：模型更贴近业务，规则更容易维护</a></h3>
+<h3 id="5411-收益模型更贴近业务规则更容易维护"><a class="header" href="#5411-收益模型更贴近业务规则更容易维护">5.4.11 收益：模型更贴近业务，规则更容易维护</a></h3>
 <p>阶段 2 最直接的收益通常有三个。</p>
 <p>第一，<strong>业务规则开始真正内聚</strong>。规则不再散落在各个 <code>application/service</code> 中，而是集中在聚合根和相关值对象里。</p>
 <p>第二，<strong>模型表达能力更强</strong>。<code>Money</code> 不再只是 <code>float64</code>，<code>OrderStatus</code> 不再只是魔数，代码本身开始带有业务语义。</p>
 <p>第三，<strong>系统更适合继续演进</strong>。当后续要引入领域事件驱动、跨上下文协作，或者进一步拆分读写模型时，一个表达清晰的领域模型会成为非常稳固的基础。</p>
 <p>当然，代价也很现实：DDD 的学习门槛比前两阶段更高，过度使用聚合、值对象和事件，也很容易把简单业务写得过于复杂。因此，阶段 2 的关键不是“为了 DDD 而 DDD”，而是在业务规则确实已经复杂到值得建模时，再让模型承担它本来就该承担的职责。</p>
-<h3 id="3412-通用语言ubiquitous-language"><a class="header" href="#3412-通用语言ubiquitous-language">3.4.12 通用语言（Ubiquitous Language）</a></h3>
+<h3 id="5412-通用语言ubiquitous-language"><a class="header" href="#5412-通用语言ubiquitous-language">5.4.12 通用语言（Ubiquitous Language）</a></h3>
 <p>DDD 的战术设计关注的是代码层面的实现：如何用聚合、实体、值对象等战术模式编写高质量的领域模型。</p>
 <h4 id="战术设计概述"><a class="header" href="#战术设计概述">战术设计概述</a></h4>
 <div class="table-wrapper">
@@ -1824,7 +1822,7 @@ func (s *Stock) Lock(qty int) error {
 <li>❌ <code>updateInventoryStatus(orderId, status=2)</code> — 技术术语，无业务含义</li>
 <li>✅ <code>stock.Lock(qty)</code> — 业务术语，直接表达意图</li>
 </ul>
-<h3 id="3413-聚合设计原则"><a class="header" href="#3413-聚合设计原则">3.4.13 聚合设计原则</a></h3>
+<h3 id="5413-聚合设计原则"><a class="header" href="#5413-聚合设计原则">5.4.13 聚合设计原则</a></h3>
 <p>聚合设计是 DDD 战术层面最难的部分。三条核心原则：</p>
 <h4 id="原则一一个事务只修改一个聚合"><a class="header" href="#原则一一个事务只修改一个聚合">原则一：一个事务只修改一个聚合</a></h4>
 <pre><code class="language-go">// ❌ 反例：一个事务同时修改 Order 和 Inventory 两个聚合
@@ -1941,7 +1939,7 @@ type Order struct {
 <li>聚合之间松耦合，可以独立演进</li>
 <li>减少内存占用和数据库 JOIN</li>
 </ul>
-<h3 id="3414-repository-与-unit-of-work-模式"><a class="header" href="#3414-repository-与-unit-of-work-模式">3.4.14 Repository 与 Unit of Work 模式</a></h3>
+<h3 id="5414-repository-与-unit-of-work-模式"><a class="header" href="#5414-repository-与-unit-of-work-模式">5.4.14 Repository 与 Unit of Work 模式</a></h3>
 <p>Repository 是领域模型和持久化之间的桥梁，它提供了<strong>类似集合的接口</strong>来访问聚合。</p>
 <h4 id="标准-repository-模式"><a class="header" href="#标准-repository-模式">标准 Repository 模式</a></h4>
 <pre><code class="language-go">// domain/order/repository.go — 领域层定义接口
@@ -2024,7 +2022,7 @@ func (h *PlaceOrderHandler) Handle(ctx context.Context, cmd PlaceOrderCmd) error
     return uow.Commit(ctx)
 }
 </code></pre>
-<h3 id="3415-领域事件异步化outbox-pattern"><a class="header" href="#3415-领域事件异步化outbox-pattern">3.4.15 领域事件异步化：Outbox Pattern</a></h3>
+<h3 id="5415-领域事件异步化outbox-pattern"><a class="header" href="#5415-领域事件异步化outbox-pattern">5.4.15 领域事件异步化：Outbox Pattern</a></h3>
 <p><strong>问题</strong>：保存聚合到数据库后，还要发送事件到 Kafka。这两个操作无法在一个事务中完成（双写问题）。如果先写 DB 再发 Kafka，发送失败则事件丢失；如果先发 Kafka 再写 DB，写 DB 失败则产生幽灵事件。</p>
 <p><strong>解法</strong>：Outbox Pattern——将事件写入本地数据库的 Outbox 表（与业务数据同一事务），再由独立的 Relay 进程异步发送到 Kafka。</p>
 <pre class="mermaid">
@@ -2107,8 +2105,8 @@ func (r *OutboxRelay) Run(ctx context.Context) {
 <li><strong>死信处理</strong>：<code>retry_count &gt; 5</code> 的事件转入死信表，人工介入</li>
 </ul>
 <hr>
-<h2 id="35-cqrs命令查询职责分离"><a class="header" href="#35-cqrs命令查询职责分离">3.5 CQRS（命令查询职责分离）</a></h2>
-<h3 id="351-为什么要读写分离"><a class="header" href="#351-为什么要读写分离">3.5.1 为什么要读写分离</a></h3>
+<h2 id="55-cqrs命令查询职责分离"><a class="header" href="#55-cqrs命令查询职责分离">5.5 CQRS（命令查询职责分离）</a></h2>
+<h3 id="551-为什么要读写分离"><a class="header" href="#551-为什么要读写分离">5.5.1 为什么要读写分离</a></h3>
 <p>CQRS 的逻辑非常直白：处理“改变数据“（Command）的逻辑和处理“读取数据“（Query）的逻辑应该<strong>完全分开</strong>。</p>
 <p>在复杂系统中，写的逻辑和读的需求往往是<strong>矛盾的</strong>：</p>
 <div class="table-wrapper">
@@ -2157,11 +2155,11 @@ WHERE o.id = ?
   "refund": null
 }
 </code></pre>
-<h3 id="352-ddd-与-cqrs-的关系"><a class="header" href="#352-ddd-与-cqrs-的关系">3.5.2 DDD 与 CQRS 的关系</a></h3>
+<h3 id="552-ddd-与-cqrs-的关系"><a class="header" href="#552-ddd-与-cqrs-的关系">5.5.2 DDD 与 CQRS 的关系</a></h3>
 <p>如果说阶段 2 的 DDD 解决的是“业务逻辑本身应该如何表达”，那么阶段 3 的 CQRS 解决的则是另一个更现实的问题：<strong>这些业务逻辑表达清楚之后，读和写是否还应该继续走同一条路径</strong>。</p>
 <p>到了这一阶段，系统的主要矛盾往往已经不再是“模型贫血”或“规则散落”，而是“写模型为了保证一致性必须保持克制，但读场景又越来越追求宽表、搜索、排序和高并发”。也就是说，DDD 帮你把写侧建模建清楚了，但读侧未必适合继续共享同一套模型。</p>
 <p>这正是 CQRS 和 DDD 的关系。DDD 让命令侧的模型更有表达力，CQRS 则进一步承认：<strong>命令侧和查询侧本来就不是一回事</strong>。写侧继续走领域模型，读侧则按展示需求单独设计，这样两者才能各自优化。</p>
-<h3 id="353-go-项目中的典型目录映射"><a class="header" href="#353-go-项目中的典型目录映射">3.5.3 Go 项目中的典型目录映射</a></h3>
+<h3 id="553-go-项目中的典型目录映射-1"><a class="header" href="#553-go-项目中的典型目录映射-1">5.5.3 Go 项目中的典型目录映射</a></h3>
 <p>当 CQRS 落到 Go 项目中，最常见的变化不是整个项目推倒重来，而是在原有的应用层和适配层中，把读写路径显式拆开。以订单服务为例，比较常见的组织方式如下：</p>
 <pre><code class="language-text">order-service/
 ├── cmd/
@@ -2202,7 +2200,7 @@ WHERE o.id = ?
 │   └── mysql/
 </code></pre>
 <p>和前面的 DDD 相比，这里的核心变化不是 <code>domain</code> 再次升级，而是 <code>application</code> 和 <code>infrastructure</code> 开始明确区分“命令处理”和“查询处理”。从这个时候开始，大家讨论问题时，不再只是说“订单接口怎么写”，而是会进一步区分“这是一条命令链路，还是一条查询链路”。</p>
-<h3 id="354-以一个订单服务的调用链为例"><a class="header" href="#354-以一个订单服务的调用链为例">3.5.4 以一个订单服务的调用链为例</a></h3>
+<h3 id="554-以一个订单服务的调用链为例"><a class="header" href="#554-以一个订单服务的调用链为例">5.5.4 以一个订单服务的调用链为例</a></h3>
 <p>如果把 CQRS 放到下单和查单场景中，最直观的变化就是系统里开始并存两条调用链。</p>
 <p>写路径通常是这样的：</p>
 <pre><code class="language-text">HTTP 请求
@@ -2225,7 +2223,7 @@ WHERE o.id = ?
 <li><strong>读路径</strong> 关注的是展示效率、关联结果和查询性能</li>
 </ul>
 <p>也正因为如此，CQRS 并不是“把原来的 Service 拆成两个文件”那么简单，而是承认读写两类需求的优化方向从一开始就不一样。</p>
-<h3 id="355-架构全景"><a class="header" href="#355-架构全景">3.5.5 架构全景</a></h3>
+<h3 id="555-架构全景"><a class="header" href="#555-架构全景">5.5.5 架构全景</a></h3>
 <pre class="mermaid">
 flowchart LR
     subgraph 写路径 Command Side
@@ -2249,7 +2247,7 @@ flowchart LR
 <li><strong>Query Side（读路径）</strong>：绕过领域模型，直接从优化的读库（ES/Redis）返回 DTO</li>
 <li><strong>同步机制</strong>：通过领域事件 + 投影器（Projector）将写模型同步到读模型</li>
 </ul>
-<h3 id="356-command-与-query-的设计"><a class="header" href="#356-command-与-query-的设计">3.5.6 Command 与 Query 的设计</a></h3>
+<h3 id="556-command-与-query-的设计"><a class="header" href="#556-command-与-query-的设计">5.5.6 Command 与 Query 的设计</a></h3>
 <h4 id="command--表达意图不返回业务数据"><a class="header" href="#command--表达意图不返回业务数据">Command — 表达意图，不返回业务数据</a></h4>
 <pre><code class="language-go">// application/command/place_order.go
 package command
@@ -2329,7 +2327,7 @@ func (h *OrderDetailHandler) Handle(ctx context.Context, q OrderDetailQuery) (*O
 <li>直接从优化的读库（ES/Redis/宽表）返回 DTO</li>
 <li>数据结构完全匹配前端需求，减少转换</li>
 </ul>
-<h3 id="357-为什么这一步值得做"><a class="header" href="#357-为什么这一步值得做">3.5.7 为什么这一步值得做</a></h3>
+<h3 id="557-为什么这一步值得做"><a class="header" href="#557-为什么这一步值得做">5.5.7 为什么这一步值得做</a></h3>
 <p>当系统还比较简单时，把读和写放在同一套模型里看起来完全没有问题；但一旦查询开始变宽、流量开始倾斜、读写优化目标开始冲突，继续强行共用同一套模型，通常会出现几个典型症状：</p>
 <ul>
 <li>写模型为了保证一致性保持范式化，查询却不得不频繁做多表关联</li>
@@ -2338,7 +2336,7 @@ func (h *OrderDetailHandler) Handle(ctx context.Context, q OrderDetailQuery) (*O
 <li>业务层为了兼顾读写两端，逐渐长成“既不像领域模型，也不像查询模型”的折中结构</li>
 </ul>
 <p>这时，引入 CQRS 的最大收益，就是允许“写侧继续为正确性服务，读侧单独为性能服务”。你不再需要让一套模型同时满足两种天然冲突的目标。</p>
-<h3 id="358-核心价值"><a class="header" href="#358-核心价值">3.5.8 核心价值</a></h3>
+<h3 id="558-核心价值"><a class="header" href="#558-核心价值">5.5.8 核心价值</a></h3>
 <p><strong>极致的性能优化</strong>。你可以针对写操作使用关系型数据库（保证强一致性），针对读操作使用 Elasticsearch 或 Redis（保证高并发）。读写模型可以<strong>独立扩展、独立优化</strong>。</p>
 <p><strong>电商系统的实际案例</strong>：</p>
 <div class="table-wrapper">
@@ -2354,13 +2352,13 @@ func (h *OrderDetailHandler) Handle(ctx context.Context, q OrderDetailQuery) (*O
 </tbody>
 </table>
 </div>
-<h3 id="359-收益写侧更稳读侧更快"><a class="header" href="#359-收益写侧更稳读侧更快">3.5.9 收益：写侧更稳，读侧更快</a></h3>
+<h3 id="559-收益写侧更稳读侧更快"><a class="header" href="#559-收益写侧更稳读侧更快">5.5.9 收益：写侧更稳，读侧更快</a></h3>
 <p>引入 CQRS 之后，最直接的收益通常有三个。</p>
 <p>第一，<strong>写侧模型可以继续保持克制</strong>。命令处理依旧围绕聚合根和一致性边界展开，不必为了适配复杂查询去牺牲建模质量。</p>
 <p>第二，<strong>读侧可以针对场景单独优化</strong>。订单详情页、订单列表页、搜索页、报表页，可以分别使用适合自己的读模型，而不必共享同一套查询结构。</p>
 <p>第三，<strong>读写可以独立扩展</strong>。当读 QPS 远高于写 QPS 时，你可以优先扩读模型、缓存和搜索引擎，而不是被迫整体扩容。</p>
 <p>当然，代价也很现实：读写分离之后，系统复杂度会上升，读模型同步、最终一致性、幂等处理和投影器维护都需要额外关注。因此，CQRS 不是“默认就该上”的方案，而是在读写矛盾已经明显出现时，才值得付出的复杂性成本。</p>
-<h3 id="3510-event-sourcing事件溯源"><a class="header" href="#3510-event-sourcing事件溯源">3.5.10 Event Sourcing：事件溯源</a></h3>
+<h3 id="5510-event-sourcing事件溯源"><a class="header" href="#5510-event-sourcing事件溯源">5.5.10 Event Sourcing：事件溯源</a></h3>
 <p>Event Sourcing 经常和 CQRS 一起被提及，但它们是<strong>独立的概念</strong>，可以单独使用，也可以组合使用。</p>
 <h4 id="核心思想"><a class="header" href="#核心思想">核心思想</a></h4>
 <p>传统方式存储的是<strong>当前状态</strong>（state），Event Sourcing 存储的是<strong>导致状态变化的事件序列</strong>（events）。当前状态通过重放事件计算得出。</p>
@@ -2404,7 +2402,7 @@ graph LR
 </table>
 </div>
 <p><strong>本书立场</strong>：电商系统大部分场景<strong>只用 CQRS 不用 Event Sourcing</strong>。Event Sourcing 适合金融、合规等场景，但对于电商的商品、订单等模块，增加的复杂度超过了收益。</p>
-<h3 id="3511-最终一致性处理策略"><a class="header" href="#3511-最终一致性处理策略">3.5.11 最终一致性处理策略</a></h3>
+<h3 id="5511-最终一致性处理策略"><a class="header" href="#5511-最终一致性处理策略">5.5.11 最终一致性处理策略</a></h3>
 <p>引入 CQRS 后，写模型和读模型之间存在<strong>延迟</strong>（通常毫秒到秒级）。这需要在架构层面和用户体验层面同时处理。</p>
 <h4 id="架构层面"><a class="header" href="#架构层面">架构层面</a></h4>
 <p><strong>策略一：幂等消费</strong></p>
@@ -2442,7 +2440,7 @@ graph LR
 <pre><code class="language-text">正向流程：CreateOrder → ReserveStock → ChargePayment
 补偿流程：                ReleaseStock ← RefundPayment ← PaymentFailed
 </code></pre>
-<p>我们会在<strong>第4章</strong>详细讲解 Saga 模式。</p>
+<p>我们会在<strong>第 6 章</strong>详细讲解 Saga 模式。</p>
 <h4 id="用户体验层面"><a class="header" href="#用户体验层面">用户体验层面</a></h4>
 <p><strong>Optimistic UI（乐观更新）</strong>：前端在发送 Command 后立即更新 UI，不等待读模型同步。</p>
 <pre><code class="language-text">用户点击"下单" 
@@ -2478,7 +2476,7 @@ func (h *OrderDetailHandler) Handle(ctx context.Context, q OrderDetailQuery) (*O
     return dto, nil
 }
 </code></pre>
-<h3 id="3512-投影器projector实现模式"><a class="header" href="#3512-投影器projector实现模式">3.5.12 投影器（Projector）实现模式</a></h3>
+<h3 id="5512-投影器projector实现模式"><a class="header" href="#5512-投影器projector实现模式">5.5.12 投影器（Projector）实现模式</a></h3>
 <p>投影器是 CQRS 架构中将<strong>领域事件</strong>转化为<strong>读模型</strong>的组件。</p>
 <pre class="mermaid">
 flowchart LR
@@ -2547,7 +2545,7 @@ func (p *OrderReadModelProjector) Project(ctx context.Context, event DomainEvent
 <li>性能最优（异步处理不阻塞写操作）</li>
 </ul>
 <hr>
-<h2 id="36-本章小结"><a class="header" href="#36-本章小结">3.6 本章小结</a></h2>
+<h2 id="56-本章小结"><a class="header" href="#56-本章小结">5.6 本章小结</a></h2>
 <p>本章的核心不是再介绍几个新概念，而是把系统内部结构设计这件事重新排成一条清晰主线：</p>
 <ul>
 <li>先用三层架构建立最基本的职责秩序</li>
@@ -2557,10 +2555,6 @@ func (p *OrderReadModelProjector) Project(ctx context.Context, event DomainEvent
 </ul>
 <p>换句话说，系统内部结构设计不是在问“该选哪一种架构”，而是在问：<strong>面对职责、依赖、建模和数据流这四类问题时，架构师应该按什么顺序出招。</strong></p>
 <p>下一章将继续沿着这条主线往外走：当单个系统内部已经有了秩序之后，多个系统之间又该如何集成，怎样在分布式环境中处理协作与一致性问题。</p>
-<hr>
-<p><strong>下一章</strong>：<a href="./chapter4.html">第4章 系统集成与一致性设计</a> 将从跨系统调用、事件驱动、最终一致性、Outbox 与 Saga 等角度，讨论系统之间如何协作。</p>
-<hr>
-<p><strong>导航</strong>：<a href="../SUMMARY.html">返回目录</a> | <a href="./chapter2.html">上一章：第2章</a> | <a href="../README.html">书籍主页</a> | <a href="./chapter4.html">下一章：第4章</a></p>
 
                     </main>
 

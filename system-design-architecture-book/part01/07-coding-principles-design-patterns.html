@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 7 章 编码原则与设计模式 - 系统设计与架构实战：原理、工程与电商案例</title>
+        <title>第 8 章 编码原则与设计模式：用清晰代码承接架构意图 - 系统设计与架构实战：原理、工程与电商案例</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f0b7d2e.js";
+            window.path_to_searchindex_js = "../searchindex-c15c0b2b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-bc818db9.js"></script>
+        <script src="../toc-98451072.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,16 +177,14 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <p><strong>导航</strong>：<a href="../README.html">书籍主页</a> | <a href="../SUMMARY.html">完整目录</a> | <a href="./chapter4.html">上一章：第4章</a> | <a href="./chapter6.html">下一章：第6章</a></p>
-<hr>
-<h1 id="第-7-章-编码原则与设计模式"><a class="header" href="#第-7-章-编码原则与设计模式">第 7 章 编码原则与设计模式</a></h1>
+                        <h1 id="第-8-章-编码原则与设计模式"><a class="header" href="#第-8-章-编码原则与设计模式">第 8 章 编码原则与设计模式</a></h1>
 <blockquote>
-<p>用整洁代码、Pipeline、策略与规则引擎承接架构设计</p>
+<p>用整洁代码、Pipeline、策略模式和规则引擎，把架构意图落到可读、可测、可演进的实现里。</p>
 </blockquote>
 <hr>
-<h2 id="31-复杂业务代码的痛点"><a class="header" href="#31-复杂业务代码的痛点">3.1 复杂业务代码的痛点</a></h2>
+<h2 id="81-复杂业务代码的痛点"><a class="header" href="#81-复杂业务代码的痛点">8.1 复杂业务代码的痛点</a></h2>
 <p>第1章解决了「系统如何分层、依赖如何向内」的问题；本章解决「<strong>同一层里，代码如何写得可演进、可测试</strong>」。电商的下单、库存、营销是典型的<strong>长流程 + 多分支 + 高频变更</strong>场景，若缺少约束，业务代码会迅速腐化。</p>
-<h3 id="311-千行函数的噩梦"><a class="header" href="#311-千行函数的噩梦">3.1.1 千行函数的噩梦</a></h3>
+<h3 id="811-千行函数的噩梦"><a class="header" href="#811-千行函数的噩梦">8.1.1 千行函数的噩梦</a></h3>
 <p>下面这段伪代码浓缩了真实项目中常见的「上帝函数」形态：校验、读用户、查库存、算价、营销、风控、落库、支付、通知全部堆在一个入口里。</p>
 <pre><code class="language-go">// ❌ 反例：单函数承载整条下单链路（职责过多、难以测试）
 func CreateOrder(req *CreateOrderRequest) (*Order, error) {
@@ -204,7 +202,7 @@ func CreateOrder(req *CreateOrderRequest) (*Order, error) {
 <li>Code Review 难以聚焦，合并冲突集中在一个文件；</li>
 <li>新人需要整段读完才敢改一行。</li>
 </ul>
-<h3 id="312-代码腐化的根因"><a class="header" href="#312-代码腐化的根因">3.1.2 代码腐化的根因</a></h3>
+<h3 id="812-代码腐化的根因"><a class="header" href="#812-代码腐化的根因">8.1.2 代码腐化的根因</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -214,11 +212,11 @@ func CreateOrder(req *CreateOrderRequest) (*Order, error) {
 <tr><td><strong>缺少流程骨架</strong></td><td>步骤顺序靠注释和隐式顺序</td><td>Clean Architecture 只保证分层，不自动拆分函数</td></tr>
 <tr><td><strong>分支爆炸</strong></td><td><code>if-else</code> 按品类、地区、活动维度嵌套</td><td>领域模型仍在，但<strong>应用编排层</strong>失控</td></tr>
 <tr><td><strong>上下文随意传递</strong></td><td>十几个参数或「万能 struct」</td><td>未用显式 <strong>Context 对象</strong>承载流水线状态</td></tr>
-<tr><td><strong>规则与代码绑死</strong></td><td>运营改文案/门槛就要发版</td><td>与第9章营销系统呼应：需<strong>数据驱动</strong>的规则层</td></tr>
+<tr><td><strong>规则与代码绑死</strong></td><td>运营改文案/门槛就要发版</td><td>与后续营销系统呼应：需<strong>数据驱动</strong>的规则层</td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="313-技术债的累积"><a class="header" href="#313-技术债的累积">3.1.3 技术债的累积</a></h3>
+<h3 id="813-技术债的累积"><a class="header" href="#813-技术债的累积">8.1.3 技术债的累积</a></h3>
 <p>技术债不一定是「烂代码」，更多时候是<strong>当时合理、后来失配</strong>的设计：例如早期用三层 <code>Service</code> 足够，随着营销玩法与多仓库存策略叠加，仍坚持在一个 <code>OrderService</code> 里堆逻辑，债就滚雪球。</p>
 <p><strong>可操作的止损线</strong>（团队可写入评审清单）：</p>
 <ul>
@@ -236,9 +234,9 @@ flowchart LR
 </pre>
 
 <hr>
-<h2 id="32-函数设计原则"><a class="header" href="#32-函数设计原则">3.2 函数设计原则</a></h2>
+<h2 id="82-函数设计原则"><a class="header" href="#82-函数设计原则">8.2 函数设计原则</a></h2>
 <p>在引入模式之前，先收紧<strong>函数级</strong>的纪律：这是所有模式能落地的前提。</p>
-<h3 id="321-单一职责"><a class="header" href="#321-单一职责">3.2.1 单一职责</a></h3>
+<h3 id="821-单一职责"><a class="header" href="#821-单一职责">8.2.1 单一职责</a></h3>
 <p>一个函数应回答<strong>一个</strong>业务问题。例如「校验下单请求」与「持久化订单」不应混在同一函数中。</p>
 <pre><code class="language-go">// ❌ 反例：校验与副作用混在一起
 func PlaceOrder(ctx context.Context, req *PlaceOrderRequest, db *sql.DB) error {
@@ -260,9 +258,9 @@ func ValidatePlaceOrder(req *PlaceOrderRequest) error {
 	return nil
 }
 </code></pre>
-<h3 id="322-函数长度控制"><a class="header" href="#322-函数长度控制">3.2.2 函数长度控制</a></h3>
-<p>经验法则：<strong>一屏能读完</strong>（含错误处理）较理想。长逻辑不是「拆成很多小函数」就够了，还要让调用方读出<strong>业务流程</strong>，这正是 3.3 节 Pipeline 的价值。</p>
-<h3 id="323-参数设计"><a class="header" href="#323-参数设计">3.2.3 参数设计</a></h3>
+<h3 id="822-函数长度控制"><a class="header" href="#822-函数长度控制">8.2.2 函数长度控制</a></h3>
+<p>经验法则：<strong>一屏能读完</strong>（含错误处理）较理想。长逻辑不是「拆成很多小函数」就够了，还要让调用方读出<strong>业务流程</strong>，这正是 8.3 节 Pipeline 的价值。</p>
+<h3 id="823-参数设计"><a class="header" href="#823-参数设计">8.2.3 参数设计</a></h3>
 <p>参数过多往往说明缺少「<strong>用例级上下文</strong>」。把一次下单所需输入收敛为 <code>PlaceOrderInput</code>，中间态收敛为 <code>PlaceOrderState</code>（或下文 <code>OrderPipeContext</code>），Handler 只负责绑定 HTTP → DTO → 用例输入。</p>
 <pre><code class="language-go">// ❌ 反例：参数平面展开
 func PriceForCheckout(userID, region, platform string, qty int, skuID string, useCoupon bool, couponCode string) (int64, error) {
@@ -279,7 +277,7 @@ type CheckoutPriceQuery struct {
 	CouponCode string
 }
 </code></pre>
-<h3 id="324-错误处理"><a class="header" href="#324-错误处理">3.2.4 错误处理</a></h3>
+<h3 id="824-错误处理"><a class="header" href="#824-错误处理">8.2.4 错误处理</a></h3>
 <p>在 Go 中建议：</p>
 <ul>
 <li><strong>可预期业务失败</strong>用哨兵错误或自定义类型，便于上层映射 HTTP 4xx；</li>
@@ -295,9 +293,9 @@ func (r *MySQLOrderRepo) Save(ctx context.Context, o *Order) error {
 }
 </code></pre>
 <hr>
-<h2 id="33-pipeline-模式"><a class="header" href="#33-pipeline-模式">3.3 Pipeline 模式</a></h2>
+<h2 id="83-pipeline-模式"><a class="header" href="#83-pipeline-模式">8.3 Pipeline 模式</a></h2>
 <p>Pipeline（管道）把<strong>阶段化流程</strong>显式化：每一步是一个 <code>Processor</code>，共享一个<strong>上下文</strong>，由 <code>Pipeline</code> 顺序驱动。它与责任链的共同点都是「链式处理」，不同之处在于：Pipeline 更强调<strong>数据沿管道变换</strong>、阶段职责清晰，常用于下单、结算试算、营销列表组装等。</p>
-<h3 id="331-从嵌套到流水线"><a class="header" href="#331-从嵌套到流水线">3.3.1 从嵌套到流水线</a></h3>
+<h3 id="881-从嵌套到流水线"><a class="header" href="#881-从嵌套到流水线">8.8.1 从嵌套到流水线</a></h3>
 <pre class="mermaid">
 flowchart LR
 	P1[Validate] --&gt; P2[LoadUser]
@@ -319,14 +317,14 @@ flowchart LR
 </tbody>
 </table>
 </div>
-<h3 id="332-实现要点"><a class="header" href="#332-实现要点">3.3.2 实现要点</a></h3>
+<h3 id="882-实现要点"><a class="header" href="#882-实现要点">8.8.2 实现要点</a></h3>
 <ol>
 <li><strong>上下文对象</strong>：承载输入、中间结果、错误累积标记；避免用包级变量。</li>
 <li><strong>早失败</strong>：任一步返回错误即中止管道（或实现可配置的「继续/中止」策略）。</li>
 <li><strong>命名</strong>：<code>Processor.Name()</code> 便于日志与指标打标签。</li>
 <li><strong>与 Clean Architecture</strong>：Pipeline 通常落在 <strong>Application / Use Case 编排层</strong>，领域不变量仍在聚合根内。</li>
 </ol>
-<h3 id="333-订单处理的-pipeline-实例"><a class="header" href="#333-订单处理的-pipeline-实例">3.3.3 订单处理的 Pipeline 实例</a></h3>
+<h3 id="883-订单处理的-pipeline-实例"><a class="header" href="#883-订单处理的-pipeline-实例">8.8.3 订单处理的 Pipeline 实例</a></h3>
 <p>下面给出一份<strong>可编译思路</strong>的精简实现：创建订单流水线——校验 → 加载商品行 → 预留库存 → 写单。</p>
 <pre><code class="language-go">package orderpipe
 
@@ -465,9 +463,9 @@ func (p persistOrderProcessor) Process(ctx context.Context, c *OrderPipeContext)
 }
 </code></pre>
 <hr>
-<h2 id="34-策略模式"><a class="header" href="#34-策略模式">3.4 策略模式</a></h2>
+<h2 id="84-策略模式"><a class="header" href="#84-策略模式">8.4 策略模式</a></h2>
 <p>当分支维度稳定、而<strong>每个分支内部都很厚</strong>时，用策略（Strategy）把「选谁」与「怎么做」拆开：注册表负责选择，策略对象负责算法。</p>
-<h3 id="341-消除-if-else"><a class="header" href="#341-消除-if-else">3.4.1 消除 if-else</a></h3>
+<h3 id="841-消除-if-else"><a class="header" href="#841-消除-if-else">8.4.1 消除 if-else</a></h3>
 <pre><code class="language-go">// ❌ 反例：按库存类型硬编码
 func ReserveStock(kind string, sku string, qty int) error {
 	if kind == "platform" {
@@ -481,7 +479,7 @@ func ReserveStock(kind string, sku string, qty int) error {
 }
 </code></pre>
 <p>新增一种库存来源时，必须修改该函数，违反<strong>开闭原则</strong>，且冲突面大。</p>
-<h3 id="342-策略的注册与选择"><a class="header" href="#342-策略的注册与选择">3.4.2 策略的注册与选择</a></h3>
+<h3 id="842-策略的注册与选择"><a class="header" href="#842-策略的注册与选择">8.4.2 策略的注册与选择</a></h3>
 <pre><code class="language-go">package stockstrategy
 
 import (
@@ -525,7 +523,7 @@ func (reg *Registry) Reserve(ctx context.Context, kind string, in ReserveInput) 
 	return r.Reserve(ctx, in)
 }
 </code></pre>
-<h3 id="343-库存策略的实例"><a class="header" href="#343-库存策略的实例">3.4.3 库存策略的实例</a></h3>
+<h3 id="843-库存策略的实例"><a class="header" href="#843-库存策略的实例">8.4.3 库存策略的实例</a></h3>
 <pre><code class="language-go">type platformReserver struct{}
 
 func (platformReserver) Kind() string { return "platform" }
@@ -575,8 +573,8 @@ classDiagram
 
 <p><strong>与 Pipeline 的分工</strong>：Pipeline 回答「<strong>先做啥后做啥</strong>」；策略回答「<strong>同一类步骤里用哪套算法</strong>」。例如「预留库存」这一步内部再根据 <code>kind</code> 选策略。</p>
 <hr>
-<h2 id="35-规则引擎"><a class="header" href="#35-规则引擎">3.5 规则引擎</a></h2>
-<h3 id="351-何时需要规则引擎"><a class="header" href="#351-何时需要规则引擎">3.5.1 何时需要规则引擎</a></h3>
+<h2 id="85-规则引擎"><a class="header" href="#85-规则引擎">8.5 规则引擎</a></h2>
+<h3 id="851-何时需要规则引擎"><a class="header" href="#851-何时需要规则引擎">8.5.1 何时需要规则引擎</a></h3>
 <p><strong>适合</strong>：</p>
 <ul>
 <li>运营频繁调整的门槛、互斥、叠加（满减、品类券、会员日）；</li>
@@ -587,7 +585,7 @@ classDiagram
 <li>极少变化且分支很少（直接写在领域服务里更清晰）；</li>
 <li>强实时、超低延迟且规则解释执行成本高（需编译型或预计算方案）。</li>
 </ul>
-<h3 id="352-轻量级规则引擎设计"><a class="header" href="#352-轻量级规则引擎设计">3.5.2 轻量级规则引擎设计</a></h3>
+<h3 id="852-轻量级规则引擎设计"><a class="header" href="#852-轻量级规则引擎设计">8.5.2 轻量级规则引擎设计</a></h3>
 <p>核心思想：<strong>规则 = 条件（数据） + 动作（数据）</strong>，引擎负责排序、匹配、互斥与累计。下面示例用内存规则列表演示；生产可替换为从 DB 加载并带版本号缓存。</p>
 <pre><code class="language-go">package rules
 
@@ -682,7 +680,7 @@ func (eng *Engine) Evaluate(ctx context.Context, mc MarketingContext) (*Evaluati
 	return out, nil
 }
 </code></pre>
-<h3 id="353-营销规则引擎实例"><a class="header" href="#353-营销规则引擎实例">3.5.3 营销规则引擎实例</a></h3>
+<h3 id="853-营销规则引擎实例"><a class="header" href="#853-营销规则引擎实例">8.5.3 营销规则引擎实例</a></h3>
 <pre><code class="language-go">func DemoRules() *Engine {
 	return NewEngine(
 		&amp;Rule{
@@ -729,7 +727,7 @@ func (eng *Engine) Evaluate(ctx context.Context, mc MarketingContext) (*Evaluati
 }
 </code></pre>
 <blockquote>
-<p>生产落地时，可将 <code>When</code> / <code>Apply</code> 替换为<strong>声明式条件 AST + 有限动作集</strong>，配合配置中心热更新；与第9章「营销计算引擎」衔接时，注意<strong>资损防控</strong>（双写试算、幂等锁券）。</p>
+<p>生产落地时，可将 <code>When</code> / <code>Apply</code> 替换为<strong>声明式条件 AST + 有限动作集</strong>，配合配置中心热更新；与后续营销系统衔接时，注意<strong>资损防控</strong>（双写试算、幂等锁券）。</p>
 </blockquote>
 <pre class="mermaid">
 flowchart TB
@@ -746,10 +744,10 @@ flowchart TB
 </pre>
 
 <hr>
-<h2 id="36-依赖注入与测试"><a class="header" href="#36-依赖注入与测试">3.6 依赖注入与测试</a></h2>
-<h3 id="361-接口与依赖反转"><a class="header" href="#361-接口与依赖反转">3.6.1 接口与依赖反转</a></h3>
+<h2 id="86-依赖注入与测试"><a class="header" href="#86-依赖注入与测试">8.6 依赖注入与测试</a></h2>
+<h3 id="861-接口与依赖反转"><a class="header" href="#861-接口与依赖反转">8.6.1 接口与依赖反转</a></h3>
 <p>Pipeline 的 <code>Processor</code>、策略的 <code>Reserver</code>、规则引擎依赖的「加载器」都应在<strong>内层</strong>定义接口，由外层适配器实现——这与第1章的 Port-Adapter 一致。</p>
-<h3 id="362-依赖注入模式"><a class="header" href="#362-依赖注入模式">3.6.2 依赖注入模式</a></h3>
+<h3 id="862-依赖注入模式"><a class="header" href="#862-依赖注入模式">8.6.2 依赖注入模式</a></h3>
 <p>推荐顺序（与第1章一致）：</p>
 <ol>
 <li><strong>手动构造</strong>（依赖数量可控时最清晰）；</li>
@@ -757,7 +755,7 @@ flowchart TB
 <li><strong>Fx</strong>（需要生命周期与动态插件时）。</li>
 </ol>
 <p>Pipeline 本身通过构造函数注入 <code>Catalog</code>、<code>Inventory</code>、<code>OrderRepository</code>，<strong>不要在 Processor 内部 <code>sql.Open</code></strong>。</p>
-<h3 id="363-可测试性设计"><a class="header" href="#363-可测试性设计">3.6.3 可测试性设计</a></h3>
+<h3 id="863-可测试性设计"><a class="header" href="#863-可测试性设计">8.6.3 可测试性设计</a></h3>
 <pre><code class="language-go">// ✅ 正例：假库存用于单测 Pipeline
 type fakeInventory struct{}
 
@@ -775,7 +773,7 @@ func (fakeInventory) Reserve(ctx context.Context, customerID string, lines []Ord
 <li>规则引擎的<strong>互斥</strong>与<strong>优先级</strong>（同一输入下命中顺序稳定）。</li>
 </ul>
 <hr>
-<h2 id="37-本章小结"><a class="header" href="#37-本章小结">3.7 本章小结</a></h2>
+<h2 id="87-本章小结"><a class="header" href="#87-本章小结">8.7 本章小结</a></h2>
 <p>本章从电商落地视角串联了四件事：</p>
 <ol>
 <li><strong>痛点</strong>：千行函数与深层 <code>if-else</code> 是技术债的外显，要用团队约定的长度与复杂度红线约束。</li>
@@ -784,15 +782,13 @@ func (fakeInventory) Reserve(ctx context.Context, customerID string, lines []Ord
 <li><strong>策略与轻量规则引擎</strong>：策略消除「选算法」的 <code>if-else</code>；规则引擎把高频变更从代码挪到数据，并保留优先级与互斥扩展位。</li>
 <li><strong>依赖注入</strong>：Processor / Reserver / Loader 均通过接口注入，测试以 Fake 替换，延续第1章的整洁架构边界。</li>
 </ol>
-<p><strong>与全书的关系</strong>：第1章给出组合拳总览，第3章讨论系统内部结构，第4章讨论系统间协作；本章则把这些架构原则继续下沉到代码层，给出<strong>同层内的组织手法</strong>。下一章将进一步从评审与上线检查角度，防止这些工程纪律在落地中回潮。</p>
-<hr>
-<p><strong>导航</strong>：<a href="../SUMMARY.html">返回目录</a> | <a href="./chapter4.html">上一章：第4章</a> | <a href="../README.html">书籍主页</a> | <a href="./chapter6.html">下一章：第6章</a></p>
+<p><strong>与全书的关系</strong>：前文已经讨论方法论、业务边界、系统内部结构、系统间协作和架构质量保障；本章则把这些架构原则继续下沉到代码层，给出<strong>同层内的组织手法</strong>，让工程纪律真正落到日常实现中。</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../part01/06-integration-consistency-design.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../part01/07-architecture-quality-assurance.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -806,7 +802,7 @@ func (fakeInventory) Reserve(ctx context.Context, customerID string, lines []Ord
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../part01/06-integration-consistency-design.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../part01/07-architecture-quality-assurance.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

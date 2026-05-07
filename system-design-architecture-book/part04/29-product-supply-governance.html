@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 30 章 商品供给与运营治理平台 - 系统设计与架构实战：原理、工程与电商案例</title>
+        <title>第 31 章 商品供给与运营治理平台 - 系统设计与架构实战：原理、工程与电商案例</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f0b7d2e.js";
+            window.path_to_searchindex_js = "../searchindex-c15c0b2b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-bc818db9.js"></script>
+        <script src="../toc-98451072.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,8 +177,8 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第-30-章-商品供给与运营治理平台"><a class="header" href="#第-30-章-商品供给与运营治理平台">第 30 章 商品供给与运营治理平台</a></h1>
-<h2 id="1-背景"><a class="header" href="#1-背景">1. 背景</a></h2>
+                        <h1 id="第-31-章-商品供给与运营治理平台"><a class="header" href="#第-31-章-商品供给与运营治理平台">第 31 章 商品供给与运营治理平台</a></h1>
+<h2 id="311-背景"><a class="header" href="#311-背景">31.1 背景</a></h2>
 <p>商品供给与运营治理平台解决的是“商品如何进入平台、如何被审核发布、如何创建和修改库存、上线后如何持续维护”的问题。它不是运营后台的 CRUD，也不是供应商同步的一组定时任务，而是一条长期运行的供给治理流水线。</p>
 <p>在数字商品平台中，商品供给来源通常有五类：</p>
 <pre><code class="language-text">人工创建/上传
@@ -196,9 +196,9 @@
 供应商同步
   → 从外部供应商全量、增量、Push 或主动刷新供给数据
 </code></pre>
-<p>供应商同步属于商品供给链路，但它不是商品供给链路的全部。更合理的设计是：用一套统一的供给治理控制面承接五类入口，共享任务模型、暂存区、校验、审核、发布版本、Outbox、DLQ、补偿和质量监控；其中供应商同步因为有长任务、Checkpoint、Raw Snapshot、Worker 租约和数据新鲜度问题，单独作为专项链路展开。供应商同步的完整设计见<a href="./supplier-sync.html">附录F：供应商数据同步链路</a>。</p>
+<p>供应商同步属于商品供给链路，但它不是商品供给链路的全部。更合理的设计是：用一套统一的供给治理控制面承接五类入口，共享任务模型、暂存区、校验、审核、发布版本、Outbox、DLQ、补偿和质量监控；其中供应商同步因为有长任务、Checkpoint、Raw Snapshot、Worker 租约和数据新鲜度问题，单独作为专项链路展开。供应商同步的完整设计见<a href="./28-supplier-sync.html">第 30 章：供应商数据同步链路</a>。</p>
 <p>本附录聚焦统一供给治理平台，尤其补足人工上传、批量导入、运营编辑和库存运营四条控制面链路。</p>
-<h2 id="2-设计目标"><a class="header" href="#2-设计目标">2. 设计目标</a></h2>
+<h2 id="312-设计目标"><a class="header" href="#312-设计目标">31.2 设计目标</a></h2>
 <ol>
 <li><strong>入口统一</strong>：人工创建、批量导入、运营编辑、库存创建 / 修改、供应商同步进入统一任务和发布框架。</li>
 <li><strong>线上隔离</strong>：所有未校验、未审核、未发布的数据只进入 Draft / Staging，不污染正式商品表。</li>
@@ -208,7 +208,7 @@
 <li><strong>变更可追溯</strong>：每次发布都有 Diff、审核记录、操作者、TraceID、发布版本和商品快照。</li>
 <li><strong>运营可用</strong>：运营能看到任务进度、失败原因、错误文件、审核状态、发布结果和质量报表。</li>
 </ol>
-<h2 id="3-核心难点与解决方法"><a class="header" href="#3-核心难点与解决方法">3. 核心难点与解决方法</a></h2>
+<h2 id="313-核心难点与解决方法"><a class="header" href="#313-核心难点与解决方法">31.3 核心难点与解决方法</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -229,8 +229,8 @@
 </tbody>
 </table>
 </div>
-<p>核心判断已统一收录到<a href="./interview.html">附录B</a>。</p>
-<h2 id="4-总体架构"><a class="header" href="#4-总体架构">4. 总体架构</a></h2>
+<p>核心判断已统一收录到<a href="../part05/34-product-inventory-marketing-pricing-interview.html">第 36 章</a>。</p>
+<h2 id="314-总体架构"><a class="header" href="#314-总体架构">31.4 总体架构</a></h2>
 <p>架构图如下：</p>
 <p><img src="../../images/product-supply-ops-architecture.png" alt="商品供给与运营治理平台总体架构"></p>
 <p>图源文件：</p>
@@ -271,7 +271,7 @@
 </tbody>
 </table>
 </div>
-<h3 id="41-核心表分组"><a class="header" href="#41-核心表分组">4.1 核心表分组</a></h3>
+<h3 id="311-核心表分组"><a class="header" href="#311-核心表分组">31.1 核心表分组</a></h3>
 <p>商品供给与运营链路的表设计要覆盖草稿、任务、行级处理、暂存、校验、变更审核、发布、补偿审计八类能力。</p>
 <div class="table-wrapper">
 <table>
@@ -324,7 +324,7 @@ product_supply_dead_letter
   → product_change_request
   → Publish
 </code></pre>
-<h2 id="5-领域边界"><a class="header" href="#5-领域边界">5. 领域边界</a></h2>
+<h2 id="315-领域边界"><a class="header" href="#315-领域边界">31.5 领域边界</a></h2>
 <p>商品供给与运营平台不应该替代商品中心、库存系统、计价系统、搜索系统、订单系统或营销系统。它的职责是“供给流程和发布治理”，不是所有商品数据的唯一存储，也不是到处同步写下游的超级后台。</p>
 <div class="table-wrapper">
 <table>
@@ -350,8 +350,8 @@ product_supply_dead_letter
 <li>营销系统通过活动配置命令或营销资格事件协同，但活动规则、预算、券、补贴、营销库存和优惠计算仍归营销系统。</li>
 <li>订单只相信创单时保存的快照，不回读最新商品配置解释历史订单，也不由供给平台直接修改订单。</li>
 </ol>
-<h2 id="6-任务模型"><a class="header" href="#6-任务模型">6. 任务模型</a></h2>
-<h3 id="61-task一次供给动作"><a class="header" href="#61-task一次供给动作">6.1 Task：一次供给动作</a></h3>
+<h2 id="316-任务模型"><a class="header" href="#316-任务模型">31.6 任务模型</a></h2>
+<h3 id="311-task一次供给动作"><a class="header" href="#311-task一次供给动作">31.1 Task：一次供给动作</a></h3>
 <p><code>product_supply_task</code> 记录一次人工创建、批量导入、运营编辑或供应商同步动作。</p>
 <pre><code class="language-sql">CREATE TABLE product_supply_task (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -393,7 +393,7 @@ product_supply_dead_letter
     KEY idx_operator_time (operator_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给任务';
 </code></pre>
-<h3 id="62-task-item行级或对象级明细"><a class="header" href="#62-task-item行级或对象级明细">6.2 Task Item：行级或对象级明细</a></h3>
+<h3 id="312-task-item行级或对象级明细"><a class="header" href="#312-task-item行级或对象级明细">31.2 Task Item：行级或对象级明细</a></h3>
 <p>批量导入和供应商同步必须支持部分成功，因此任务要拆到 item 维度。</p>
 <pre><code class="language-sql">CREATE TABLE product_supply_task_item (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -426,7 +426,7 @@ product_supply_dead_letter
     KEY idx_platform_object (platform_resource_id, spu_id, sku_id, offer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给任务明细';
 </code></pre>
-<h3 id="63-状态机"><a class="header" href="#63-状态机">6.3 状态机</a></h3>
+<h3 id="313-状态机"><a class="header" href="#313-状态机">31.3 状态机</a></h3>
 <pre><code class="language-text">DRAFT
   → PENDING
   → PARSING
@@ -466,7 +466,7 @@ PENDING / PARSING / RUNNING / VALIDATING / REVIEWING
 </tbody>
 </table>
 </div>
-<h2 id="7-暂存区与快照"><a class="header" href="#7-暂存区与快照">7. 暂存区与快照</a></h2>
+<h2 id="317-暂存区与快照"><a class="header" href="#317-暂存区与快照">31.7 暂存区与快照</a></h2>
 <p>所有入口都必须先写暂存区，不能直接写商品正式表。</p>
 <pre><code class="language-sql">CREATE TABLE product_supply_staging (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -499,7 +499,7 @@ PENDING / PARSING / RUNNING / VALIDATING / REVIEWING
 <li>支持 Diff、风险评分、回放和问题排查。</li>
 <li>支持失败后修复并重新发布。</li>
 </ol>
-<h2 id="8-人工创建链路"><a class="header" href="#8-人工创建链路">8. 人工创建链路</a></h2>
+<h2 id="318-人工创建链路"><a class="header" href="#318-人工创建链路">31.8 人工创建链路</a></h2>
 <p>人工创建适合运营或商家少量创建商品，例如本地生活券、礼品卡、账单缴费入口、活动套餐。</p>
 <pre><code class="language-text">选择类目
   → 加载类目模板
@@ -539,7 +539,7 @@ PENDING / PARSING / RUNNING / VALIDATING / REVIEWING
   ]
 }
 </code></pre>
-<h2 id="9-批量导入链路"><a class="header" href="#9-批量导入链路">9. 批量导入链路</a></h2>
+<h2 id="319-批量导入链路"><a class="header" href="#319-批量导入链路">31.9 批量导入链路</a></h2>
 <p>批量导入适合大促、类目迁移、商家批量上新、套餐批量配置。</p>
 <pre><code class="language-text">下载模板
   → 上传文件
@@ -570,7 +570,7 @@ PENDING / PARSING / RUNNING / VALIDATING / REVIEWING
 </tbody>
 </table>
 </div>
-<h3 id="91-异步执行总流程"><a class="header" href="#91-异步执行总流程">9.1 异步执行总流程</a></h3>
+<h3 id="311-异步执行总流程"><a class="header" href="#311-异步执行总流程">31.1 异步执行总流程</a></h3>
 <p>批量导入和批量编辑不能只有一个后台线程从头跑到尾。更稳妥的方式是拆成解析、行级处理、审核发布和结果归档几个阶段。</p>
 <pre><code class="language-text">上传文件 / 批量提交
   → 创建 product_supply_task(status=PENDING, execution_mode=ASYNC)
@@ -588,7 +588,7 @@ PENDING / PARSING / RUNNING / VALIDATING / REVIEWING
 <li>行级失败不会拖垮整批任务。</li>
 <li>发布和下游刷新可以限速、重试和补偿。</li>
 </ol>
-<h3 id="92-parser-worker只解析不发布"><a class="header" href="#92-parser-worker只解析不发布">9.2 Parser Worker：只解析，不发布</a></h3>
+<h3 id="312-parser-worker只解析不发布"><a class="header" href="#312-parser-worker只解析不发布">31.2 Parser Worker：只解析，不发布</a></h3>
 <p>Parser Worker 的职责边界要非常窄：只负责把文件拆成 <code>product_supply_task_item</code>，不做正式发布。</p>
 <pre><code class="language-text">1. CAS 抢占 product_supply_task
 2. 校验 input_file_ref、文件 hash、模板版本和列结构
@@ -610,7 +610,7 @@ PENDING / PARSING / RUNNING / VALIDATING / REVIEWING
 UNIQUE(task_id, idempotency_key)
 </code></pre>
 <p>注意：Excel 这类格式不一定天然支持稳定的 <code>byte_offset</code> 恢复。工程上可以先把上传文件转换成规范化 CSV 或行级 JSONL，再按 offset 恢复；也可以按 <code>row_no</code> 从头快速跳过。核心原则是 checkpoint 控制重跑范围，幂等保证重复处理不写错。</p>
-<h3 id="93-task-item行级事实表"><a class="header" href="#93-task-item行级事实表">9.3 Task Item：行级事实表</a></h3>
+<h3 id="313-task-item行级事实表"><a class="header" href="#313-task-item行级事实表">31.3 Task Item：行级事实表</a></h3>
 <p><code>product_supply_task_item</code> 是批量链路里最重要的表。Task 只说明“这次批量任务怎么样”，Item 才能回答“第几行、哪个商品、哪个 Offer 为什么失败”。</p>
 <p>Item 状态机建议设计为：</p>
 <pre><code class="language-text">PENDING
@@ -643,7 +643,7 @@ NORMALIZING / VALIDATING / STAGING / DIFFING / PUBLISHING
 </tbody>
 </table>
 </div>
-<h3 id="94-item-worker分批处理行级任务"><a class="header" href="#94-item-worker分批处理行级任务">9.4 Item Worker：分批处理行级任务</a></h3>
+<h3 id="314-item-worker分批处理行级任务"><a class="header" href="#314-item-worker分批处理行级任务">31.4 Item Worker：分批处理行级任务</a></h3>
 <p>Item Worker 不按“整个文件”处理，而是扫描一小批待处理 item。</p>
 <pre><code class="language-sql">SELECT *
 FROM product_supply_task_item
@@ -666,7 +666,7 @@ LIMIT 500;
   → 更新 item.status
 </code></pre>
 <p>不要用一个大事务包住 500 行。正确做法是行级或小批次事务，否则一行失败会拖垮整批，也会造成长事务、锁等待和回滚成本过高。</p>
-<h3 id="95-stagingdiff-与发布合流"><a class="header" href="#95-stagingdiff-与发布合流">9.5 Staging、Diff 与发布合流</a></h3>
+<h3 id="315-stagingdiff-与发布合流"><a class="header" href="#315-stagingdiff-与发布合流">31.5 Staging、Diff 与发布合流</a></h3>
 <p>Item Worker 校验通过后，只能写 <code>product_supply_staging</code>，不能直接写正式商品表。</p>
 <pre><code class="language-text">product_supply_task_item
   → product_supply_staging
@@ -699,7 +699,7 @@ LIMIT 500;
   → item.status = SUCCESS
 </code></pre>
 <p>ES、缓存和计价上下文不要放在发布事务里同步调用，统一由 Outbox 消费者异步刷新；营销活动配置走营销系统命令或营销资格事件，不在发布事务内同步写营销规则。</p>
-<h3 id="96-task-状态汇总"><a class="header" href="#96-task-状态汇总">9.6 Task 状态汇总</a></h3>
+<h3 id="316-task-状态汇总"><a class="header" href="#316-task-状态汇总">31.6 Task 状态汇总</a></h3>
 <p>Task 状态不要靠 Worker 主观判断，而要从 item 状态聚合。</p>
 <div class="table-wrapper">
 <table>
@@ -717,7 +717,7 @@ LIMIT 500;
 </table>
 </div>
 <p>统计可以每批 item 处理完成后增量更新，也可以由定时聚合 Job 修正。运营后台看到的进度来自 task 计数，但失败定位必须下钻到 item。</p>
-<h3 id="97-失败处理"><a class="header" href="#97-失败处理">9.7 失败处理</a></h3>
+<h3 id="317-失败处理"><a class="header" href="#317-失败处理">31.7 失败处理</a></h3>
 <p>批量异步链路的失败要按阶段处理：</p>
 <div class="table-wrapper">
 <table>
@@ -735,7 +735,7 @@ LIMIT 500;
 </table>
 </div>
 <p>错误文件应该从 <code>product_supply_task_item</code> 和 <code>product_validation_result</code> 生成，而不是从日志拼出来。</p>
-<h3 id="98-设计原则"><a class="header" href="#98-设计原则">9.8 设计原则</a></h3>
+<h3 id="318-设计原则"><a class="header" href="#318-设计原则">31.8 设计原则</a></h3>
 <ol>
 <li><strong>Parser Worker 只解析，不发布。</strong></li>
 <li><strong>Item Worker 按行级状态推进，支持部分成功。</strong></li>
@@ -751,7 +751,7 @@ LIMIT 500;
 25, OFFER_014, refund_rule, REFUND_RULE_MISSING, refund rule is required, choose a refund template
 31, HOTEL_020, city_code, CITY_NOT_FOUND, city cannot map to platform city, add city mapping first
 </code></pre>
-<h2 id="10-运营编辑链路"><a class="header" href="#10-运营编辑链路">10. 运营编辑链路</a></h2>
+<h2 id="3110-运营编辑链路"><a class="header" href="#3110-运营编辑链路">31.10 运营编辑链路</a></h2>
 <p>运营编辑针对线上商品，需要解决“谁能改、改什么、是否覆盖供应商数据、什么时候生效、如何回滚”的问题。</p>
 <pre><code class="language-text">读取当前 publish_version
   → 创建编辑草稿
@@ -764,7 +764,7 @@ LIMIT 500;
   → Outbox 通知读侧投影
   → 营销活动配置异步协同
 </code></pre>
-<h3 id="101-字段主导权"><a class="header" href="#101-字段主导权">10.1 字段主导权</a></h3>
+<h3 id="311-字段主导权"><a class="header" href="#311-字段主导权">31.1 字段主导权</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -781,7 +781,7 @@ LIMIT 500;
 </tbody>
 </table>
 </div>
-<h3 id="102-冲突处理"><a class="header" href="#102-冲突处理">10.2 冲突处理</a></h3>
+<h3 id="312-冲突处理"><a class="header" href="#312-冲突处理">31.2 冲突处理</a></h3>
 <p>常见冲突：</p>
 <pre><code class="language-text">运营改了酒店名称
   → 供应商增量同步又推回旧名称
@@ -800,7 +800,7 @@ LIMIT 500;
 <li>高风险冲突进入审核队列。</li>
 <li>保护期到期后由巡检任务决定是否恢复供应商主导。</li>
 </ol>
-<h2 id="11-标准化与质量校验"><a class="header" href="#11-标准化与质量校验">11. 标准化与质量校验</a></h2>
+<h2 id="3111-标准化与质量校验"><a class="header" href="#3111-标准化与质量校验">31.11 标准化与质量校验</a></h2>
 <p>质量校验要分层，不要只做字段必填。</p>
 <div class="table-wrapper">
 <table>
@@ -827,7 +827,7 @@ LIMIT 500;
   + risk_score
 </code></pre>
 <p>如果商品缺图、缺价、无库存、无履约规则，即使主表写入成功，也不能认为供给成功。</p>
-<h2 id="12-diff-与风险审核"><a class="header" href="#12-diff-与风险审核">12. Diff 与风险审核</a></h2>
+<h2 id="3112-diff-与风险审核"><a class="header" href="#3112-diff-与风险审核">31.12 Diff 与风险审核</a></h2>
 <p>审核不是所有变更都走人工。系统应该根据 Diff 和风险规则决定处理方式。</p>
 <pre><code class="language-sql">CREATE TABLE product_change_request (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -876,7 +876,7 @@ LIMIT 500;
   + operator_history_weight
   + source_trust_weight
 </code></pre>
-<h2 id="13-发布一致性设计"><a class="header" href="#13-发布一致性设计">13. 发布一致性设计</a></h2>
+<h2 id="3113-发布一致性设计"><a class="header" href="#3113-发布一致性设计">31.13 发布一致性设计</a></h2>
 <p>审核通过不等于商品可售。发布阶段要把商品主数据和交易前契约一次性落到可追溯版本上。</p>
 <pre><code class="language-text">开始发布事务
   → 校验 base_publish_version
@@ -919,7 +919,7 @@ RefundRuleChanged
 SearchIndexRefreshRequired
 ProductCacheInvalidationRequired
 </code></pre>
-<h2 id="14-dlq-与补偿"><a class="header" href="#14-dlq-与补偿">14. DLQ 与补偿</a></h2>
+<h2 id="3114-dlq-与补偿"><a class="header" href="#3114-dlq-与补偿">31.14 DLQ 与补偿</a></h2>
 <p>人工供给和运营编辑也需要 DLQ。它们的失败通常不是供应商接口失败，而是输入错误、映射错误、审核驳回、版本冲突、发布失败和下游刷新失败。</p>
 <pre><code class="language-sql">CREATE TABLE product_supply_dead_letter (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -971,7 +971,7 @@ ProductCacheInvalidationRequired
 </tbody>
 </table>
 </div>
-<h2 id="15-可观测性"><a class="header" href="#15-可观测性">15. 可观测性</a></h2>
+<h2 id="3115-可观测性"><a class="header" href="#3115-可观测性">31.15 可观测性</a></h2>
 <p>运营后台和监控系统要能回答五个问题：</p>
 <ol>
 <li>任务跑到哪里了？</li>
@@ -1008,7 +1008,7 @@ ProductCacheInvalidationRequired
 <li>缓存版本与发布版本一致性巡检。</li>
 <li>运营覆盖字段到期巡检。</li>
 </ol>
-<h2 id="16-典型异常场景"><a class="header" href="#16-典型异常场景">16. 典型异常场景</a></h2>
+<h2 id="3116-典型异常场景"><a class="header" href="#3116-典型异常场景">31.16 典型异常场景</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1027,7 +1027,7 @@ ProductCacheInvalidationRequired
 </tbody>
 </table>
 </div>
-<h2 id="17-与供应商同步的关系"><a class="header" href="#17-与供应商同步的关系">17. 与供应商同步的关系</a></h2>
+<h2 id="3117-与供应商同步的关系"><a class="header" href="#3117-与供应商同步的关系">31.17 与供应商同步的关系</a></h2>
 <p>统一供给治理平台和供应商同步专项链路的关系如下：</p>
 <pre><code class="language-text">统一供给治理平台
   → 统一任务模型
@@ -1043,8 +1043,8 @@ ProductCacheInvalidationRequired
   → 数据新鲜度
 </code></pre>
 <p>供应商同步产生的标准化数据最终也应该进入供给治理平台的校验、Diff、审核和发布机制。不同点在于，供应商同步多了拉取、分页、断点续跑、租约抢占、原始快照和供应商质量监控。</p>
-<h2 id="18-答辩材料"><a class="header" href="#18-答辩材料">18. 答辩材料</a></h2>
-<p>本专题相关总结、常见问题和参考回答已统一收录到<a href="./interview.html">附录B</a>。</p>
+<h2 id="3118-答辩材料"><a class="header" href="#3118-答辩材料">31.18 答辩材料</a></h2>
+<p>本专题相关总结、常见问题和参考回答已统一收录到<a href="../part05/34-product-inventory-marketing-pricing-interview.html">第 36 章</a>。</p>
 
                     </main>
 

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 13 章 全局 ID 体系与基础服务设计 - 系统设计与架构实战：原理、工程与电商案例</title>
+        <title>第 14 章 全局 ID 体系与基础服务设计 - 系统设计与架构实战：原理、工程与电商案例</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f0b7d2e.js";
+            window.path_to_searchindex_js = "../searchindex-c15c0b2b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-bc818db9.js"></script>
+        <script src="../toc-98451072.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,8 +177,8 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第-13-章-全局-id-体系与基础服务设计"><a class="header" href="#第-13-章-全局-id-体系与基础服务设计">第 13 章 全局 ID 体系与基础服务设计</a></h1>
-<h2 id="1-为什么电商系统需要全局-id-体系"><a class="header" href="#1-为什么电商系统需要全局-id-体系">1. 为什么电商系统需要全局 ID 体系</a></h2>
+                        <h1 id="第-14-章-全局-id-体系与基础服务设计"><a class="header" href="#第-14-章-全局-id-体系与基础服务设计">第 14 章 全局 ID 体系与基础服务设计</a></h1>
+<h2 id="141-为什么电商系统需要全局-id-体系"><a class="header" href="#141-为什么电商系统需要全局-id-体系">14.1 为什么电商系统需要全局 ID 体系</a></h2>
 <p>在示例代码中，供给链路为了演示流程，使用了类似下面的写法：</p>
 <pre><code class="language-go">s.repo.NextID(ctx, "draft")
 </code></pre>
@@ -202,7 +202,7 @@
 发号失败、重复、耗尽、时钟回拨时如何处理。
 </code></pre>
 <p>一句话概括：<strong>ID 体系是电商系统的基础设施治理问题，不只是一个工具函数问题。</strong></p>
-<h2 id="2-电商-id-分类"><a class="header" href="#2-电商-id-分类">2. 电商 ID 分类</a></h2>
+<h2 id="142-电商-id-分类"><a class="header" href="#142-电商-id-分类">14.2 电商 ID 分类</a></h2>
 <p>设计 ID 之前，先不要问“用不用 Snowflake”，而要问“这个 ID 表达什么业务语义”。下表给出电商系统中最常见的 ID 分类。</p>
 <div class="table-wrapper">
 <table>
@@ -221,7 +221,7 @@
 </div>
 <p>这张表背后的关键判断是：<strong>ID 的生成方式要服从它的业务用途。</strong></p>
 <p>例如，<code>sku_id</code> 通常是商品主数据的稳定实体 ID，适合使用 <code>BIGINT</code>，方便数据库索引、缓存 Key、消息体和下游系统引用；<code>order_no</code> 是对外业务单号，除了唯一之外，还要考虑客服查询、对账、不可枚举和格式兼容；<code>idempotency_key</code> 则不是普通 ID，它表达“同一次业务请求”，必须配合唯一索引和状态机来防止重复下单、重复扣款或重复退票。</p>
-<h2 id="3-全场景-id-清单"><a class="header" href="#3-全场景-id-清单">3. 全场景 ID 清单</a></h2>
+<h2 id="143-全场景-id-清单"><a class="header" href="#143-全场景-id-清单">14.3 全场景 ID 清单</a></h2>
 <p>下面的矩阵不是要求所有公司都照抄，而是给出一个可评审的默认选择。实际落地时，可以根据规模、团队能力、数据库类型、是否多机房和是否对外开放 API 做取舍。</p>
 <div class="table-wrapper">
 <table>
@@ -257,12 +257,12 @@
 <li><code>checkout_id</code> 不是订单号。结算会话可能失败、过期或被重试，只有创单成功后才产生订单。</li>
 <li><code>idempotency_key</code> 的核心不是“看起来唯一”，而是业务上能判断“这是不是同一次请求”。</li>
 </ol>
-<h2 id="4-常见发号方案对比"><a class="header" href="#4-常见发号方案对比">4. 常见发号方案对比</a></h2>
-<h3 id="41-db-自增"><a class="header" href="#41-db-自增">4.1 DB 自增</a></h3>
+<h2 id="144-常见发号方案对比"><a class="header" href="#144-常见发号方案对比">14.4 常见发号方案对比</a></h2>
+<h3 id="141-db-自增"><a class="header" href="#141-db-自增">14.1 DB 自增</a></h3>
 <p>DB 自增是最简单的方案：表主键使用 <code>AUTO_INCREMENT</code> 或数据库原生 identity。它适合单库单表、小规模后台配置、内部字典表和教学示例。</p>
 <p>优点是简单、强一致、无需额外服务。缺点也明显：强依赖单库，跨库分表困难；连续递增容易暴露业务量；高并发交易链路可能把数据库打成瓶颈。</p>
 <p>在电商系统中，DB 自增可以用于后台低频配置表，但不建议直接作为对外订单号、支付单号或全局 SKU ID。</p>
-<h3 id="42-db-sequence-表"><a class="header" href="#42-db-sequence-表">4.2 DB Sequence 表</a></h3>
+<h3 id="142-db-sequence-表"><a class="header" href="#142-db-sequence-表">14.2 DB Sequence 表</a></h3>
 <p>Sequence 表通过插入一张专门的序列表获取 <code>LastInsertId</code>，示例中的订单服务就有类似思路：</p>
 <pre><code class="language-sql">CREATE TABLE order_id_seq (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -271,7 +271,7 @@
 </code></pre>
 <p>每生成一个订单号，就插入一行序列表，再把自增值格式化成 <code>ORD-123</code>。这个方案比直接使用业务表自增稍微解耦，但本质仍是数据库中心化发号。</p>
 <p>它适合早期系统、低中并发内部单据和容易理解的教学实现。不适合高并发交易核心，也不适合直接对外暴露连续序列。</p>
-<h3 id="43-redis-incr"><a class="header" href="#43-redis-incr">4.3 Redis INCR</a></h3>
+<h3 id="143-redis-incr"><a class="header" href="#143-redis-incr">14.3 Redis INCR</a></h3>
 <p>Redis <code>INCR</code> 可以按 key 递增，例如：</p>
 <pre><code class="language-text">INCR id:order:20260429
 </code></pre>
@@ -280,13 +280,13 @@
 </code></pre>
 <p>它的优点是性能高、实现简单、天然适合按天流水号。缺点是强依赖 Redis 高可用和持久化策略；主从切换、数据回滚、双活部署时要谨慎；同时，按天连续递增仍可能暴露业务量。</p>
 <p>Redis INCR 适合活动流水、短期批次、低风险业务编号。核心订单和支付单如果使用 Redis INCR，必须设计持久化、主从切换和重复保护。</p>
-<h3 id="44-snowflake"><a class="header" href="#44-snowflake">4.4 Snowflake</a></h3>
+<h3 id="144-snowflake"><a class="header" href="#144-snowflake">14.4 Snowflake</a></h3>
 <p>Snowflake 是经典的分布式趋势递增 ID 方案。常见实现把一个 64 位整数拆成：</p>
 <pre><code class="language-text">时间戳 + 机器 / 机房标识 + 毫秒内序列
 </code></pre>
 <p>例如常见切分是 41 位毫秒时间戳、10 位机器标识、12 位序列。它的优点是本地生成、低延迟、高吞吐、趋势递增、适合 <code>BIGINT</code> 主键。缺点是依赖时钟，必须治理 <code>worker_id</code>，还要处理时钟回拨。</p>
 <p>Snowflake 适合订单内部 ID、支付内部 ID、库存账本 ID、营销 ID，以及需要高并发写入的实体 ID。对外单号可以基于 Snowflake 再格式化，而不是直接暴露原始数字。</p>
-<h3 id="45-segment-号段"><a class="header" href="#45-segment-号段">4.5 Segment 号段</a></h3>
+<h3 id="145-segment-号段"><a class="header" href="#145-segment-号段">14.5 Segment 号段</a></h3>
 <p>Segment 号段，也叫 Hi-Lo 模式。核心思想是数据库只负责分配一段 ID，服务实例拿到号段后在本地内存中发号：</p>
 <pre><code class="language-text">product.sku 申请到 1000000 - 1009999
 product.sku 申请到 1010000 - 1019999
@@ -297,7 +297,7 @@ product.sku 申请到 1010000 - 1019999
 <p>服务用乐观锁推进 <code>max_id</code>，一次拿一段。这样既保留数据库的强一致分配，又避免每个 ID 都访问数据库。</p>
 <p>优点是不强依赖时钟，容量可控，namespace 独立，适合主数据 ID。缺点是服务重启会浪费一段号；号段耗尽前要预取；如果数据库不可用，新的号段无法分配。</p>
 <p>Segment 非常适合 <code>item_id</code>、<code>spu_id</code>、<code>sku_id</code>、<code>campaign_id</code>、<code>coupon_id</code> 等电商主数据 ID。</p>
-<h3 id="46-uuidv7ulid-与-ksuid"><a class="header" href="#46-uuidv7ulid-与-ksuid">4.6 UUIDv7、ULID 与 KSUID</a></h3>
+<h3 id="146-uuidv7ulid-与-ksuid"><a class="header" href="#146-uuidv7ulid-与-ksuid">14.6 UUIDv7、ULID 与 KSUID</a></h3>
 <p>UUID、ULID、KSUID 都属于更偏字符串或 128 位标识的方案。相较传统 UUIDv4，UUIDv7、ULID 和 KSUID 更强调时间有序或近似时间有序，适合日志、事件、流程单据和跨服务追踪。</p>
 <p>UUIDv7 已在 RFC 9562 中定义，它把 Unix 毫秒时间放在高位，并用随机位提供唯一性。ULID 也采用时间 + 随机的思路，字符串更短、更适合人类阅读和按字典序排序。</p>
 <p>这类 ID 的优点是无需中心服务，跨服务生成方便，天然适合字符串前缀。缺点是比 <code>BIGINT</code> 长，索引和存储成本更高，不适合所有高频实体都使用。</p>
@@ -317,7 +317,7 @@ product.sku 申请到 1010000 - 1019999
 </tbody>
 </table>
 </div>
-<h2 id="5-推荐混合架构"><a class="header" href="#5-推荐混合架构">5. 推荐混合架构</a></h2>
+<h2 id="145-推荐混合架构"><a class="header" href="#145-推荐混合架构">14.5 推荐混合架构</a></h2>
 <p>生产电商系统更常见的不是“全站只用一个算法”，而是混合架构：</p>
 <pre><code class="language-text">业务服务
   -&gt; ID SDK
@@ -343,8 +343,8 @@ product.sku 申请到 1010000 - 1019999
 <li><code>idempotency_key</code> 不由 ID 服务随便生成，而要和用户、购物车快照、请求来源或业务动作绑定。</li>
 </ol>
 <p>这个混合架构可以同时满足性能、可读性、治理和扩展性。</p>
-<h2 id="6-id-服务架构"><a class="header" href="#6-id-服务架构">6. ID 服务架构</a></h2>
-<h3 id="61-id-registry"><a class="header" href="#61-id-registry">6.1 ID Registry</a></h3>
+<h2 id="146-id-服务架构"><a class="header" href="#146-id-服务架构">14.6 ID 服务架构</a></h2>
+<h3 id="141-id-registry"><a class="header" href="#141-id-registry">14.1 ID Registry</a></h3>
 <p>ID Registry 是 ID 体系的控制面，负责登记所有 namespace，例如：</p>
 <pre><code class="language-text">product.item
 product.spu
@@ -374,7 +374,7 @@ event.outbox
 </table>
 </div>
 <p>不要让业务代码直接传 <code>"draft"</code>、<code>"order"</code> 这种裸字符串。裸字符串无法治理，也无法做容量规划和审计。</p>
-<h3 id="62-id-sdk"><a class="header" href="#62-id-sdk">6.2 ID SDK</a></h3>
+<h3 id="142-id-sdk"><a class="header" href="#142-id-sdk">14.2 ID SDK</a></h3>
 <p>业务服务应该依赖 SDK，而不是直接访问 ID 表或自己拼接字符串。SDK 至少提供：</p>
 <pre><code class="language-go">type Generator interface {
     NextInt64(ctx context.Context, ns Namespace) (int64, error)
@@ -383,7 +383,7 @@ event.outbox
 }
 </code></pre>
 <p>SDK 可以封装本地缓存、号段预取、熔断降级、指标上报和错误转换。业务服务只关心“我要哪个 namespace 的 ID”。</p>
-<h3 id="63-generator-router"><a class="header" href="#63-generator-router">6.3 Generator Router</a></h3>
+<h3 id="143-generator-router"><a class="header" href="#143-generator-router">14.3 Generator Router</a></h3>
 <p>Generator Router 根据 namespace 配置路由到不同发号器：</p>
 <pre><code class="language-text">product.sku       -&gt; Segment Generator
 trade.order       -&gt; Snowflake Generator + Business Number Formatter
@@ -392,14 +392,14 @@ event.outbox      -&gt; UUIDv7 Generator
 checkout.session  -&gt; ULID Generator
 </code></pre>
 <p>这样可以把“业务 ID 规则”从业务代码中拿出来，避免仓储层、应用层、HTTP 层各自发明一套规则。</p>
-<h3 id="64-segment-generator"><a class="header" href="#64-segment-generator">6.4 Segment Generator</a></h3>
+<h3 id="144-segment-generator"><a class="header" href="#144-segment-generator">14.4 Segment Generator</a></h3>
 <p>Segment Generator 从数据库申请号段，然后在本地内存中发号。为了避免号段耗尽造成请求抖动，应该支持双 Buffer：</p>
 <pre><code class="language-text">当前号段使用到 70% 时，后台预取下一段；
 当前号段耗尽时，如果下一段已就绪，立即切换；
 预取失败时，继续使用当前号段并告警；
 当前号段完全耗尽且无法预取时，返回明确错误。
 </code></pre>
-<h3 id="65-snowflake-generator"><a class="header" href="#65-snowflake-generator">6.5 Snowflake Generator</a></h3>
+<h3 id="145-snowflake-generator"><a class="header" href="#145-snowflake-generator">14.5 Snowflake Generator</a></h3>
 <p>Snowflake Generator 的关键不是位运算，而是 worker 治理：</p>
 <ol>
 <li><code>worker_id</code> 不能靠配置文件随手写，应该由租约表、注册中心或部署平台分配。</li>
@@ -407,7 +407,7 @@ checkout.session  -&gt; ULID Generator
 <li>发现时钟回拨时，要短暂等待、切换 worker 或熔断，而不是继续发号。</li>
 <li>多机房部署时，要预留 region 或 datacenter 位。</li>
 </ol>
-<h3 id="66-ulid--uuidv7-generator"><a class="header" href="#66-ulid--uuidv7-generator">6.6 ULID / UUIDv7 Generator</a></h3>
+<h3 id="146-ulid--uuidv7-generator"><a class="header" href="#146-ulid--uuidv7-generator">14.6 ULID / UUIDv7 Generator</a></h3>
 <p>这类生成器适合本地生成，但仍然要受 namespace 约束。推荐格式：</p>
 <pre><code class="language-text">draft_01JABCD...
 staging_01JABCE...
@@ -416,7 +416,7 @@ evt_01JABCG...
 op_01JABCH...
 </code></pre>
 <p>prefix 不是随意字符串，而是 Registry 中登记过的前缀。这样日志、排障和数据治理可以快速识别 ID 类型。</p>
-<h3 id="67-business-number-formatter"><a class="header" href="#67-business-number-formatter">6.7 Business Number Formatter</a></h3>
+<h3 id="147-business-number-formatter"><a class="header" href="#147-business-number-formatter">14.7 Business Number Formatter</a></h3>
 <p>业务单号通常不直接等于底层 ID。订单号可以设计为：</p>
 <pre><code class="language-text">ORD + yyyyMMdd + base36(snowflake_id) + check_digit
 </code></pre>
@@ -424,7 +424,7 @@ op_01JABCH...
 <pre><code class="language-text">ORD20260429CN7K3F9Q2X
 </code></pre>
 <p>这种格式便于客服和对账按日期定位，同时不直接暴露连续自增值。校验位可以降低人工录入错误。</p>
-<h3 id="68-observability--audit--admin"><a class="header" href="#68-observability--audit--admin">6.8 Observability / Audit / Admin</a></h3>
+<h3 id="148-observability--audit--admin"><a class="header" href="#148-observability--audit--admin">14.8 Observability / Audit / Admin</a></h3>
 <p>ID 服务必须可观测：</p>
 <div class="table-wrapper">
 <table>
@@ -443,8 +443,8 @@ op_01JABCH...
 </table>
 </div>
 <p>高频 ID 不应把每次发号都同步写审计表，否则 ID 服务会被审计拖垮。更合理的方式是：常规路径打指标，异常路径写审计。</p>
-<h2 id="7-关键业务-id-设计"><a class="header" href="#7-关键业务-id-设计">7. 关键业务 ID 设计</a></h2>
-<h3 id="71-sku_idspu_id-与-item_id"><a class="header" href="#71-sku_idspu_id-与-item_id">7.1 <code>sku_id</code>、<code>spu_id</code> 与 <code>item_id</code></a></h3>
+<h2 id="147-关键业务-id-设计"><a class="header" href="#147-关键业务-id-设计">14.7 关键业务 ID 设计</a></h2>
+<h3 id="141-sku_idspu_id-与-item_id"><a class="header" href="#141-sku_idspu_id-与-item_id">14.1 <code>sku_id</code>、<code>spu_id</code> 与 <code>item_id</code></a></h3>
 <p><code>item_id</code> 是前台商品入口，<code>spu_id</code> 是商品定义层的标准品，<code>sku_id</code> 是具体销售规格。它们都属于长期稳定的主数据 ID，推荐使用 <code>BIGINT</code>。</p>
 <p>默认选择：</p>
 <pre><code class="language-text">product.item -&gt; Segment
@@ -458,7 +458,7 @@ product.sku  -&gt; Segment
 <li>如果希望未审核数据完全不污染正式商品空间，可以在 Publish 成功时生成正式 <code>sku_id</code>。</li>
 </ol>
 <p>两种方案都可行，但必须在附录和代码中讲清楚边界。</p>
-<h3 id="72-order_id-与-order_no"><a class="header" href="#72-order_id-与-order_no">7.2 <code>order_id</code> 与 <code>order_no</code></a></h3>
+<h3 id="142-order_id-与-order_no"><a class="header" href="#142-order_id-与-order_no">14.2 <code>order_id</code> 与 <code>order_no</code></a></h3>
 <p>订单建议内部主键和对外单号解耦：</p>
 <pre><code class="language-sql">CREATE TABLE orders (
     id BIGINT PRIMARY KEY,
@@ -474,7 +474,7 @@ product.sku  -&gt; Segment
 order_no -&gt; 对外业务单号，Snowflake 派生格式
 </code></pre>
 <p>不要直接暴露 <code>ORD-1</code>、<code>ORD-2</code> 这类连续单号。它会暴露业务量，也容易被枚举。</p>
-<h3 id="73-checkout_id-与-idempotency_key"><a class="header" href="#73-checkout_id-与-idempotency_key">7.3 <code>checkout_id</code> 与 <code>idempotency_key</code></a></h3>
+<h3 id="143-checkout_id-与-idempotency_key"><a class="header" href="#143-checkout_id-与-idempotency_key">14.3 <code>checkout_id</code> 与 <code>idempotency_key</code></a></h3>
 <p><code>checkout_id</code> 表达一次结算会话，<code>idempotency_key</code> 表达一次业务请求。它们可以相关，但不能混为一谈。</p>
 <p>典型设计：</p>
 <pre><code class="language-text">checkout_id = ULID
@@ -484,7 +484,7 @@ idempotency_key = user_id + cart_snapshot_hash + client_request_id
 <pre><code class="language-sql">UNIQUE KEY uk_order_idempotency (user_id, idempotency_key)
 </code></pre>
 <p>这样用户重复点击“提交订单”时，系统返回同一笔订单，而不是生成多笔订单。</p>
-<h3 id="74-payment_id渠道单号与对账"><a class="header" href="#74-payment_id渠道单号与对账">7.4 <code>payment_id</code>、渠道单号与对账</a></h3>
+<h3 id="144-payment_id渠道单号与对账"><a class="header" href="#144-payment_id渠道单号与对账">14.4 <code>payment_id</code>、渠道单号与对账</a></h3>
 <p>支付系统至少要区分三类编号：</p>
 <div class="table-wrapper">
 <table>
@@ -499,7 +499,7 @@ idempotency_key = user_id + cart_snapshot_hash + client_request_id
 </table>
 </div>
 <p>平台调用渠道时，还需要一个稳定的渠道请求号，例如 <code>out_trade_no</code>。这个请求号通常应该由平台生成，并作为调用渠道的幂等键。不要用渠道返回单号作为平台支付单的唯一依据，因为渠道单号只有调用成功后才出现。</p>
-<h3 id="75-draft_idstaging_id-与供给审核单"><a class="header" href="#75-draft_idstaging_id-与供给审核单">7.5 <code>draft_id</code>、<code>staging_id</code> 与供给审核单</a></h3>
+<h3 id="145-draft_idstaging_id-与供给审核单"><a class="header" href="#145-draft_idstaging_id-与供给审核单">14.5 <code>draft_id</code>、<code>staging_id</code> 与供给审核单</a></h3>
 <p>供给流程 ID 推荐使用字符串：</p>
 <pre><code class="language-text">draft_01J...
 staging_01J...
@@ -507,7 +507,7 @@ qc_01J...
 </code></pre>
 <p>原因是它们不是正式商品资产，不需要像 <code>sku_id</code> 一样参与高频交易查询。字符串 prefix 能快速表达流程类型，便于运营后台、日志检索和问题排查。</p>
 <p>关键边界是：Draft、Staging、QC 阶段的 ID 不应替代正式 <code>item_id</code>、<code>spu_id</code>、<code>sku_id</code>。只有发布事务成功后，商品中心才持有正式商品主数据 ID。</p>
-<h3 id="76-event_id-与-outbox-去重"><a class="header" href="#76-event_id-与-outbox-去重">7.6 <code>event_id</code> 与 Outbox 去重</a></h3>
+<h3 id="146-event_id-与-outbox-去重"><a class="header" href="#146-event_id-与-outbox-去重">14.6 <code>event_id</code> 与 Outbox 去重</a></h3>
 <p>事件 ID 需要支持幂等消费和重放。常见方案有两种：</p>
 <ol>
 <li>随机或时间有序 ID，例如 <code>evt_01J...</code>。</li>
@@ -523,7 +523,7 @@ qc_01J...
 );
 </code></pre>
 <p>这样即使消息系统 at-least-once 投递，也能实现业务上的精确一次效果。</p>
-<h2 id="8-容灾风险与治理"><a class="header" href="#8-容灾风险与治理">8. 容灾、风险与治理</a></h2>
+<h2 id="148-容灾风险与治理"><a class="header" href="#148-容灾风险与治理">14.8 容灾、风险与治理</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -541,8 +541,8 @@ qc_01J...
 </table>
 </div>
 <p>电商系统还要特别注意“唯一性不是只靠 ID 服务保证”。最终写入业务表时仍然要有唯一索引。ID 服务负责降低冲突概率和统一规则，业务数据库负责最后一道硬约束。</p>
-<h2 id="9-数据库与接口设计"><a class="header" href="#9-数据库与接口设计">9. 数据库与接口设计</a></h2>
-<h3 id="91-namespace-注册表"><a class="header" href="#91-namespace-注册表">9.1 Namespace 注册表</a></h3>
+<h2 id="149-数据库与接口设计"><a class="header" href="#149-数据库与接口设计">14.9 数据库与接口设计</a></h2>
+<h3 id="141-namespace-注册表"><a class="header" href="#141-namespace-注册表">14.1 Namespace 注册表</a></h3>
 <pre><code class="language-sql">CREATE TABLE id_namespace (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     namespace VARCHAR(64) NOT NULL COMMENT '业务命名空间，例如 product.sku、trade.order',
@@ -561,7 +561,7 @@ qc_01J...
     KEY idx_domain_status (biz_domain, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='ID 命名空间注册表';
 </code></pre>
-<h3 id="92-segment-号段表"><a class="header" href="#92-segment-号段表">9.2 Segment 号段表</a></h3>
+<h3 id="142-segment-号段表"><a class="header" href="#142-segment-号段表">14.2 Segment 号段表</a></h3>
 <pre><code class="language-sql">CREATE TABLE id_segment (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     namespace VARCHAR(64) NOT NULL,
@@ -580,7 +580,7 @@ SET max_id = max_id + step,
 WHERE namespace = ?
   AND version = ?;
 </code></pre>
-<h3 id="93-snowflake-worker-租约表"><a class="header" href="#93-snowflake-worker-租约表">9.3 Snowflake Worker 租约表</a></h3>
+<h3 id="143-snowflake-worker-租约表"><a class="header" href="#143-snowflake-worker-租约表">14.3 Snowflake Worker 租约表</a></h3>
 <pre><code class="language-sql">CREATE TABLE id_worker (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     worker_id INT NOT NULL,
@@ -678,7 +678,7 @@ WHERE instance_id = ?
   AND lease_token = ?;
 </code></pre>
 <p>实现时要把数据库时间作为租约判断的基准，减少不同机器本地时钟不一致带来的误判。实例本地还应维护一个租约看门狗：如果距离上次成功心跳已经超过安全阈值，即使数据库还没返回失败，也要先把 Snowflake Generator 标记为 not ready，避免长时间 GC、网络卡顿或容器暂停后继续使用已经可能被别人抢占的 <code>worker_id</code>。</p>
-<h3 id="94-发号审计与异常记录"><a class="header" href="#94-发号审计与异常记录">9.4 发号审计与异常记录</a></h3>
+<h3 id="144-发号审计与异常记录"><a class="header" href="#144-发号审计与异常记录">14.4 发号审计与异常记录</a></h3>
 <pre><code class="language-sql">CREATE TABLE id_issue_log (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     request_id VARCHAR(64) NOT NULL,
@@ -694,7 +694,7 @@ WHERE instance_id = ?
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='关键 ID 发号审计与异常记录';
 </code></pre>
 <p>审计表不应该记录所有高频发号请求。建议只记录关键 namespace、号段申请、异常、回拨和人工操作。</p>
-<h3 id="95-go-sdk-接口"><a class="header" href="#95-go-sdk-接口">9.5 Go SDK 接口</a></h3>
+<h3 id="145-go-sdk-接口"><a class="header" href="#145-go-sdk-接口">14.5 Go SDK 接口</a></h3>
 <pre><code class="language-go">type Namespace string
 
 const (
@@ -719,7 +719,7 @@ type Generator interface {
     idgen id.Generator
 }
 </code></pre>
-<h2 id="10-示例代码改造建议"><a class="header" href="#10-示例代码改造建议">10. 示例代码改造建议</a></h2>
+<h2 id="1410-示例代码改造建议"><a class="header" href="#1410-示例代码改造建议">14.10 示例代码改造建议</a></h2>
 <p>当前示例中的写法是：</p>
 <pre><code class="language-go">DraftID: s.repo.NextID(ctx, "draft"),
 </code></pre>
@@ -754,7 +754,7 @@ orderNo := s.orderNoFormatter.Format(internalID, time.Now())
 </code></pre>
 <p>这样，仓储不再定义 ID 规则，业务服务也不再传裸 prefix。所有 namespace、生成策略和对外格式都由 ID 体系统一治理。</p>
 <p>本附录只给出改造方向，不要求立刻重构示例代码。教学代码可以保留简化实现，但正文要让读者知道生产系统应该如何演进。</p>
-<h2 id="11-面试和架构评审要点"><a class="header" href="#11-面试和架构评审要点">11. 面试和架构评审要点</a></h2>
+<h2 id="1411-面试和架构评审要点"><a class="header" href="#1411-面试和架构评审要点">14.11 面试和架构评审要点</a></h2>
 <p>设计全局 ID 体系时，可以用下面的问题自查：</p>
 <ol>
 <li>这个 ID 是内部实体 ID、对外业务单号、流程单据 ID、事件 ID，还是幂等键？</li>
@@ -771,7 +771,7 @@ orderNo := s.orderNoFormatter.Format(internalID, time.Now())
 <li>老系统 ID 如何迁移？是否需要双写、双查或映射表？</li>
 </ol>
 <p>如果这些问题没有答案，就说明 ID 体系还停留在工具函数层面，没有进入基础设施治理层面。</p>
-<h2 id="12-小结"><a class="header" href="#12-小结">12. 小结</a></h2>
+<h2 id="1412-小结"><a class="header" href="#1412-小结">14.12 小结</a></h2>
 <p>统一 ID 体系的重点不是某个算法，而是按业务语义治理 namespace、生成策略、暴露形式和失败处理。</p>
 <p>电商系统中，<code>sku_id</code>、<code>order_no</code>、<code>draft_id</code>、<code>event_id</code> 和 <code>idempotency_key</code> 看起来都叫 ID，但它们解决的问题完全不同。生产级设计应该把它们分开建模：</p>
 <pre><code class="language-text">实体 ID：稳定引用，索引友好

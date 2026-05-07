@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 40 章 Bash 与 Shell 实用 - 系统设计与架构实战：原理、工程与电商案例</title>
+        <title>第 41 章 Bash 与 Shell 实用 - 系统设计与架构实战：原理、工程与电商案例</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f0b7d2e.js";
+            window.path_to_searchindex_js = "../searchindex-c15c0b2b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-bc818db9.js"></script>
+        <script src="../toc-98451072.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,7 +177,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第-40-章-bash-与-shell-实用"><a class="header" href="#第-40-章-bash-与-shell-实用">第 40 章 Bash 与 Shell 实用</a></h1>
+                        <h1 id="第-41-章-bash-与-shell-实用"><a class="header" href="#第-41-章-bash-与-shell-实用">第 41 章 Bash 与 Shell 实用</a></h1>
 <p>Shell 不是系统设计主线的一部分，但它是工程师处理机器、日志和批量任务时最常用的放大器。真正有价值的 Shell 能力，并不是背命令大全，而是把零散命令组织成可靠的排查链路和自动化片段。本章只保留系统设计读者最常用的命令组织、文本处理和日志排查能力。</p>
 <h2 id="shell-基础与命令组织"><a class="header" href="#shell-基础与命令组织">Shell 基础与命令组织</a></h2>
 <p>Shell 的价值在于把命令、文件、环境变量和退出码组织成一条可重复执行的流程。相较于图形界面，Shell 更适合线上故障排查、批量处理和轻量自动化，因为它天然能够组合已有工具，而不必为每个小任务都写完整程序。</p>
@@ -187,7 +187,7 @@
 <p>对系统设计读者来说，Shell 最重要的心智模型是：命令不是孤立按钮，而是可以通过参数、退出码、重定向和环境变量编排的小组件。只要这个模型建立起来，后面的文本处理和自动化就顺了。</p>
 <h2 id="文本处理与管道"><a class="header" href="#文本处理与管道">文本处理与管道</a></h2>
 <p>管道是 Shell 最强大的抽象之一。它把前一个命令的标准输出直接作为后一个命令的标准输入，让你可以把过滤、切分、统计、排序等动作串成数据流处理链。工程上处理日志、CSV、配置文件和监控输出时，管道往往比临时写脚本更快。</p>
-<p>文本处理的第一原则是先缩小数据范围，再做昂贵分析。比如先用 <code>grep</code> 过滤出某类请求，再用 <code>awk</code> 取出关心的列，接着用 <code>sort</code>、<code>uniq -c</code> 做聚合统计，最后再排序找出热点。源稿中的一类典型命令是：</p>
+<p>文本处理的第一原则是先缩小数据范围，再做昂贵分析。比如先用 <code>grep</code> 过滤出某类请求，再用 <code>awk</code> 取出关心的列，接着用 <code>sort</code>、<code>uniq -c</code> 做聚合统计，最后再排序找出热点。一类典型命令是：</p>
 <pre><code class="language-bash">cat access.csv | grep "keyword" | awk -F ',' '{print $2,$5,$6}' | sort | uniq -c | sort -rk 1
 </code></pre>
 <p>它的意义不在于语法花哨，而在于体现了常见排查顺序：筛选样本、抽取字段、聚合去重、按频次排序。线上日志分析时，这种“逐步缩小”的方式比一次性写很复杂的正则更稳妥。</p>
@@ -210,7 +210,7 @@
 <p>线上排查时，Shell 的最大价值是把“人肉重复动作”变成稳定脚本。日志查看是最典型场景。<code>tail -f</code> 适合追实时新增日志，<code>grep</code> 适合筛错误关键词，<code>lsof</code>、<code>ps</code>、<code>top</code>、<code>free</code>、<code>df</code>、<code>iostat</code>、<code>sar</code> 则帮助你把应用日志和系统资源状态关联起来。</p>
 <p>常见的系统信息命令包括：<code>uname -a</code> 查看内核版本，<code>cat /proc/cpuinfo</code> 和 <code>cat /proc/meminfo</code> 查看硬件与内存信息，<code>ulimit -a</code> 查看进程资源限制，<code>ipcs</code> 查看 IPC 资源，<code>nvidia-smi</code> 查看 GPU 情况。系统设计里讨论容量和故障时，很多判断必须落到这些基础信息上。</p>
 <p>Shell 对网络排查同样有效。<code>netstat</code> 或 <code>ss</code> 可以看端口与连接状态，<code>lsof -i:port</code> 可以定位谁占用了端口，<code>ping</code> 和 <code>traceroute</code> 用于连通性验证，<code>scp</code> 和 <code>ssh</code> 则是远程运维的基本工具。<code>nc</code> 既能充当简单客户端，也能临时监听端口，非常适合验证某条网络路径是否真的能通。</p>
-<p>源稿里还保留了两个很实用的基准思路。第一，用 <code>dd</code> 配合 <code>/dev/zero</code>、<code>/dev/null</code> 粗测磁盘读写性能，帮助区分磁盘写慢、读慢还是读写竞争。第二，用 <code>nc</code> 配合 <code>time</code> 临时构造网络数据流，快速估算两台机器之间的吞吐上限。它们都不替代专业压测工具，但足够帮助你在故障现场先判断瓶颈大致落在哪一层。</p>
+<p>这里还需要保留两个很实用的基准思路。第一，用 <code>dd</code> 配合 <code>/dev/zero</code>、<code>/dev/null</code> 粗测磁盘读写性能，帮助区分磁盘写慢、读慢还是读写竞争。第二，用 <code>nc</code> 配合 <code>time</code> 临时构造网络数据流，快速估算两台机器之间的吞吐上限。它们都不替代专业压测工具，但足够帮助你在故障现场先判断瓶颈大致落在哪一层。</p>
 <p>自动化脚本的核心不是“写得复杂”，而是让结果稳定可复现。好的小脚本通常会包含清晰的输入参数、显式的失败处理、必要的输出说明，以及尽量少的副作用。只要能把重复检查、日志采样、批量拉取和环境初始化收敛成几个可靠脚本，排障效率就会明显提升。</p>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
 <p>Shell 对系统设计读者来说，是工程执行力的补足。它不负责设计架构，但负责让你更快地看见系统状态、清洗数据、定位热点并把重复动作自动化。</p>
