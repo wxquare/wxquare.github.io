@@ -299,7 +299,7 @@ CREATE TABLE event_outbox (
 ## 运行Demo查看事件流程
 
 ```bash
-cd /Users/wxquare/go/src/github.com/wxquare.github.io/books/ecommerce-book/example-codes/product-service
+cd /path/to/wxquare.github.io/books/system-design-architecture-book/example-codes/product-service
 go run cmd/main.go
 ```
 

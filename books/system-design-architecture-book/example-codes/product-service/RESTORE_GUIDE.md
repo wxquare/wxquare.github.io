@@ -59,7 +59,7 @@ cp -r /path/to/reference/product-service/* examples/product-service/
 ## 新增目录结构
 
 ```
-books/ecommerce-book/
+books/system-design-architecture-book/
 └── example-codes/               # ✅ 新增：代码示例目录
     ├── README.md               # ✅ 已创建
     ├── product-service/        # 商品中心服务
@@ -90,6 +90,6 @@ books/ecommerce-book/
 ## 需要帮助？
 
 如需完整代码文件，可以：
-1. 查看 chapter16.md 中的代码示例
+1. 查看第 32 章综合案例和 example-codes 中的代码示例
 2. 参考之前的conversation历史
 3. 联系维护者获取完整代码包

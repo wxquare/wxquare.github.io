@@ -1,30 +1,59 @@
-# 附录 B：参考文献与外链
+# 附录 B：参考文献与延伸阅读
 
-本附录用于汇总全书各章的参考文献、延伸阅读与外部链接，便于按章节持续维护，不在正文中重复堆叠同一批资料。
+本附录收录全书写作中反复涉及的基础资料和延伸阅读。正文以工程判断和实践模型为主，本附录用于帮助读者继续深入。
 
-## 维护原则
+## 系统设计与架构方法
 
-- 按章节归档：每章只收录与本章内容直接相关的资料，必要时再补充所属部分的公共参考。
-- 统一去重：同一链接只保留一处主引用，避免跨章重复维护同一外链。
-- 保持可追溯：新增或更新资料时，优先补充到对应章节，再在本附录做汇总。
+- Martin Kleppmann, *Designing Data-Intensive Applications*。
+- Eric Evans, *Domain-Driven Design: Tackling Complexity in the Heart of Software*。
+- Vaughn Vernon, *Implementing Domain-Driven Design*。
+- Sam Newman, *Building Microservices*。
+- Martin Fowler: [Patterns of Enterprise Application Architecture](https://martinfowler.com/books/eaa.html)。
+- Martin Fowler: [Microservices](https://martinfowler.com/articles/microservices.html)。
+- Martin Fowler: [CQRS](https://martinfowler.com/bliki/CQRS.html)。
 
-## 链接格式
+## 可靠性、SRE 与工程治理
 
-- 外部链接统一使用标准 Markdown 链接，如 `[文献标题](https://example.com)`。
-- 章节内引用若需要指回正文，优先写明章节名与小节名，避免只写裸链接。
-- 若同一资料在多个章节出现，以首个主用章节为准，其余章节只做简短交叉引用。
+- Google SRE: [Site Reliability Engineering](https://sre.google/sre-book/table-of-contents/)。
+- Google SRE: [The Site Reliability Workbook](https://sre.google/workbook/table-of-contents/)。
+- AWS Well-Architected Framework: [Reliability Pillar](https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/welcome.html)。
+- OpenTelemetry: [Documentation](https://opentelemetry.io/docs/)。
+- Prometheus: [Documentation](https://prometheus.io/docs/introduction/overview/)。
+- Grafana: [Documentation](https://grafana.com/docs/)。
 
-## 章节维护模板
+## 数据库、中间件与基础设施
 
-每章建议使用下面的轻量模板维护参考资料，不需要把目录结构重复写进本附录：
+- MySQL: [Reference Manual](https://dev.mysql.com/doc/refman/8.4/en/)。
+- Redis: [Documentation](https://redis.io/docs/latest/)。
+- Apache Kafka: [Documentation](https://kafka.apache.org/documentation/)。
+- Elasticsearch: [Documentation](https://www.elastic.co/docs)。
+- Kubernetes: [Documentation](https://kubernetes.io/docs/home/)。
+- Docker: [Documentation](https://docs.docker.com/)。
 
-```md
-### 第 X 章：章节名
+## 分布式事务、消息与一致性
 
-- 核心参考：书籍、论文、官方文档
-- 延伸阅读：章节末尾补充资料
-- 工程案例：与本章主题强相关的实践链接
-- 交叉引用：与其他章节共享时，注明主归属章节
-```
+- Chris Richardson: [Microservices Patterns](https://microservices.io/patterns/index.html)。
+- Chris Richardson: [Saga Pattern](https://microservices.io/patterns/data/saga.html)。
+- Chris Richardson: [Transactional Outbox](https://microservices.io/patterns/data/transactional-outbox.html)。
+- Pat Helland, *Life Beyond Distributed Transactions*。
+- Nancy Lynch, Seth Gilbert: *Brewer's Conjecture and the Feasibility of Consistent, Available, Partition-Tolerant Web Services*。
 
-如果同一资料会在多章复用，优先保留一处完整说明，其余位置只保留简短引用和链接，避免分叉维护。
+## 电商系统与业务架构
+
+- 商品、库存、计价、营销、订单和支付章节中的模型来自通用电商业务抽象，可结合所在公司的品类、供应商、履约和监管要求调整。
+- 资金、优惠、库存和退款相关设计应同时咨询财务、法务、风控和客服团队，不能只由研发侧独立决定。
+- 所有涉及支付渠道、银行卡、个人信息、发票、税务和跨境业务的落地方案，都应以当地法律法规和支付机构要求为准。
+
+## 代码与工程实践
+
+- Go: [Documentation](https://go.dev/doc/)。
+- Python: [Documentation](https://docs.python.org/3/)。
+- C++: [cppreference](https://en.cppreference.com/w/)。
+- Bash: [GNU Bash Manual](https://www.gnu.org/software/bash/manual/)。
+- Mermaid: [Documentation](https://mermaid.js.org/intro/)。
+
+## 维护建议
+
+- 新增章节时，在本附录补充对应的官方文档、经典书籍或工程案例。
+- 外部链接优先选择官方文档、原始论文、作者主页或长期维护的资料页。
+- 对强时效内容，例如云产品能力、开源组件版本、支付渠道规范，应在正文中注明“以官方最新文档为准”。

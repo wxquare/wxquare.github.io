@@ -207,7 +207,7 @@ Product Definition → Resource → Offer/Rate Plan → Availability
 ### 运行Demo
 
 ```bash
-cd books/ecommerce-book/example-codes/product-service
+cd books/system-design-architecture-book/example-codes/product-service
 go run cmd/main.go
 ```
 

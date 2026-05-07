@@ -1,6 +1,6 @@
 # 第 1 章 系统设计完全指南
 
-> 本章基于 `source/_posts/system-design/00-system-design-overview.md` 重组而成。原文中的导航、学习路线与高频题总表已压缩并下沉到本章末尾，正文优先服务工程理解。
+> 从问题定义到架构落地，建立系统设计的全流程判断框架。
 
 ## 系统设计的核心问题
 
@@ -162,8 +162,8 @@
 后续章节会分别展开中间件、可靠性与完整设计题，但所有细节最终都服务于同一个目标：让系统在现实约束下稳定地满足需求。
 
 延伸阅读：
-- `source/_posts/system-design/00-system-design-overview.md`
-- 第 3 章到第 8 章对应的中间件、可靠性与系统设计专题章节
+- 第 2 章到第 8 章对应的方法论、架构质量和编码落地章节
+- 第 16 章到第 19 章对应的可靠性、对账补偿、资损防控与容量治理章节
 - [system-design-primer](https://github.com/donnemartin/system-design-primer)
 
 ## 本章面试题与追问
