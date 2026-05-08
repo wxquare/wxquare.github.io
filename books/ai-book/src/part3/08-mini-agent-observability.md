@@ -203,8 +203,8 @@ thinking = "disabled"
 
 [agent]
 max_steps = 20
-auto_edit = true
-auto_shell = true
+auto_edit = false
+auto_shell = false
 
 [shell]
 allowed_commands = ["python", "python3", "pytest", "ruff", "mypy", "npm", "pnpm", "make", "go"]
@@ -217,6 +217,8 @@ timeout = 60
 2. `agent`：最大步数、是否自动编辑、是否自动执行 shell；
 3. `shell`：允许执行的命令和超时时间。
 
+示例配置采用安全默认值：允许读文件、搜索和查看 diff，但写文件与 shell 执行默认进入审批路径。运行本地 demo 时，可以复制一份 `agent.demo.toml`，在临时沙箱仓库中显式打开 `auto_edit=true` 和 `auto_shell=true`，并把 `allowed_commands` 收窄到测试命令。
+
 `agent.config.toml` 已被 `.gitignore` 忽略，不要提交真实 API key。
 
 ### 为什么配置要外置
@@ -225,7 +227,7 @@ timeout = 60
 
 | 环境 | 推荐策略 |
 |:---|:---|
-| 本地 demo | `auto_edit=true`，`auto_shell=true`，只允许测试命令 |
+| 本地 demo | 在临时 `agent.demo.toml` 中显式开启 `auto_edit=true`、`auto_shell=true`，只允许测试命令 |
 | 团队共享环境 | `auto_edit=true`，高风险 shell 需要审批 |
 | CI / eval | 使用固定模型版本、固定 temperature、固定数据集 |
 | 生产代码库 | 默认 read-only，按任务逐步开放写权限 |
@@ -528,7 +530,7 @@ SHELL_TOOLS = {"run_shell"}
 
 ```python
 class Policy:
-    def __init__(self, auto_edit: bool = True, auto_shell: bool = False):
+    def __init__(self, auto_edit: bool = False, auto_shell: bool = False):
         self.auto_edit = auto_edit
         self.auto_shell = auto_shell
 
@@ -564,8 +566,8 @@ def run_agent(
     repo_root: str | Path,
     llm: LLMClient,
     max_steps: int = 20,
-    auto_edit: bool = True,
-    auto_shell: bool = True,
+    auto_edit: bool = False,
+    auto_shell: bool = False,
     allowed_commands: list[str] | None = None,
     shell_timeout: int = 30,
     trace_writer: TraceWriter | None = None,
@@ -815,8 +817,18 @@ demo/
 运行命令：
 
 ```bash
-python3 run.py "给 calculator.py 的 divide 函数补充除零错误处理，并添加 pytest 测试。要求：b 为 0 时抛出 ValueError；保留原有正常除法行为；运行 pytest 验证。" --repo demo --config agent.config.toml
+python3 run.py "给 calculator.py 的 divide 函数补充除零错误处理，并添加 pytest 测试。要求：b 为 0 时抛出 ValueError；保留原有正常除法行为；运行 pytest 验证。" --repo demo --config agent.demo.toml
 ```
+
+前面的 `agent.config.toml` 是安全默认模板。要跑通这个本地 demo，需要复制一份临时 `agent.demo.toml`，并显式开启：
+
+```toml
+[agent]
+auto_edit = true
+auto_shell = true
+```
+
+这类配置只适合一次性 demo 仓库或可丢弃 worktree，不应该作为团队共享仓库或生产代码库的默认策略。
 
 理想执行路径大致是：
 

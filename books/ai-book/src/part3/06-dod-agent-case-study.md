@@ -652,8 +652,8 @@ suggested_actions: [
 ]
 confidence: 0.9
 references: [
-  "https://confluence.company.com/wiki/order-service-tuning",
-  "历史案例 #1234"
+  "https://internal.example.com/runbooks/order-service-performance-tuning",
+  "https://internal.example.com/incidents/INC-2025-1234"
 ]
 ```
 
@@ -696,8 +696,8 @@ references: [
 2. 长期方案：将连接池大小调整为 100
 
 📚 *参考文档*
-- [Order Service 性能调优指南](https://confluence...)
-- [历史案例 #1234](https://...)
+- [Order Service 性能调优指南](https://internal.example.com/runbooks/order-service-performance-tuning)
+- [历史案例 INC-2025-1234](https://internal.example.com/incidents/INC-2025-1234)
 
 ---
 
@@ -706,6 +706,8 @@ references: [
 回复 "2" 查看详细诊断步骤
 回复 "3" 升级给 DoD
 ```
+
+> 说明：上面的链接是脱敏示例，用 `internal.example.com` 表示企业内部 Runbook、Confluence 或事故复盘系统；真实链接通常不可被外部访问。
 
 **Step 5: 等待确认**
 

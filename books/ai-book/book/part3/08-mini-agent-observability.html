@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-09f610a2.js";
+            window.path_to_searchindex_js = "../searchindex-99fda850.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-c0920cc6.js"></script>
@@ -343,8 +343,8 @@ thinking = "disabled"
 
 [agent]
 max_steps = 20
-auto_edit = true
-auto_shell = true
+auto_edit = false
+auto_shell = false
 
 [shell]
 allowed_commands = ["python", "python3", "pytest", "ruff", "mypy", "npm", "pnpm", "make", "go"]
@@ -356,6 +356,7 @@ timeout = 60
 <li><code>agent</code>：最大步数、是否自动编辑、是否自动执行 shell；</li>
 <li><code>shell</code>：允许执行的命令和超时时间。</li>
 </ol>
+<p>示例配置采用安全默认值：允许读文件、搜索和查看 diff，但写文件与 shell 执行默认进入审批路径。运行本地 demo 时，可以复制一份 <code>agent.demo.toml</code>，在临时沙箱仓库中显式打开 <code>auto_edit=true</code> 和 <code>auto_shell=true</code>，并把 <code>allowed_commands</code> 收窄到测试命令。</p>
 <p><code>agent.config.toml</code> 已被 <code>.gitignore</code> 忽略，不要提交真实 API key。</p>
 <h3 id="为什么配置要外置"><a class="header" href="#为什么配置要外置">为什么配置要外置</a></h3>
 <p>不要把模型、key、命令白名单和超时时间写死在 <code>agent.py</code> 里。它们属于运行时策略，应该可以按环境切换：</p>
@@ -365,7 +366,7 @@ timeout = 60
 <tr><th style="text-align: left">环境</th><th style="text-align: left">推荐策略</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">本地 demo</td><td style="text-align: left"><code>auto_edit=true</code>，<code>auto_shell=true</code>，只允许测试命令</td></tr>
+<tr><td style="text-align: left">本地 demo</td><td style="text-align: left">在临时 <code>agent.demo.toml</code> 中显式开启 <code>auto_edit=true</code>、<code>auto_shell=true</code>，只允许测试命令</td></tr>
 <tr><td style="text-align: left">团队共享环境</td><td style="text-align: left"><code>auto_edit=true</code>，高风险 shell 需要审批</td></tr>
 <tr><td style="text-align: left">CI / eval</td><td style="text-align: left">使用固定模型版本、固定 temperature、固定数据集</td></tr>
 <tr><td style="text-align: left">生产代码库</td><td style="text-align: left">默认 read-only，按任务逐步开放写权限</td></tr>
@@ -615,7 +616,7 @@ SHELL_TOOLS = {"run_shell"}
 </code></pre>
 <p>决策逻辑很小：</p>
 <pre><code class="language-python">class Policy:
-    def __init__(self, auto_edit: bool = True, auto_shell: bool = False):
+    def __init__(self, auto_edit: bool = False, auto_shell: bool = False):
         self.auto_edit = auto_edit
         self.auto_shell = auto_shell
 
@@ -645,8 +646,8 @@ SHELL_TOOLS = {"run_shell"}
     repo_root: str | Path,
     llm: LLMClient,
     max_steps: int = 20,
-    auto_edit: bool = True,
-    auto_shell: bool = True,
+    auto_edit: bool = False,
+    auto_shell: bool = False,
     allowed_commands: list[str] | None = None,
     shell_timeout: int = 30,
     trace_writer: TraceWriter | None = None,
@@ -846,8 +847,14 @@ run verifier
 └── test_calculator.py
 </code></pre>
 <p>运行命令：</p>
-<pre><code class="language-bash">python3 run.py "给 calculator.py 的 divide 函数补充除零错误处理，并添加 pytest 测试。要求：b 为 0 时抛出 ValueError；保留原有正常除法行为；运行 pytest 验证。" --repo demo --config agent.config.toml
+<pre><code class="language-bash">python3 run.py "给 calculator.py 的 divide 函数补充除零错误处理，并添加 pytest 测试。要求：b 为 0 时抛出 ValueError；保留原有正常除法行为；运行 pytest 验证。" --repo demo --config agent.demo.toml
 </code></pre>
+<p>前面的 <code>agent.config.toml</code> 是安全默认模板。要跑通这个本地 demo，需要复制一份临时 <code>agent.demo.toml</code>，并显式开启：</p>
+<pre><code class="language-toml">[agent]
+auto_edit = true
+auto_shell = true
+</code></pre>
+<p>这类配置只适合一次性 demo 仓库或可丢弃 worktree，不应该作为团队共享仓库或生产代码库的默认策略。</p>
 <p>理想执行路径大致是：</p>
 <pre><code class="language-text">1. list_files 或 search_code，找到 calculator.py 和 test_calculator.py；
 2. read_file 读取现有实现和测试；
