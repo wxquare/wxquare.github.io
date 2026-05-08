@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-09f610a2.js";
+            window.path_to_searchindex_js = "../searchindex-99fda850.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-c0920cc6.js"></script>
@@ -617,6 +617,9 @@ Project scope:
 <p>如果这两层混在一起，Agent 很快会变得不可控：跨项目规则污染本项目，本项目规则又被误用到其他仓库。</p>
 <hr>
 <h2 id="146-resourceloader上下文不是拼字符串"><a class="header" href="#146-resourceloader上下文不是拼字符串">14.6 ResourceLoader：上下文不是拼字符串</a></h2>
+<blockquote>
+<p>来源口径：本节关于 <code>DefaultResourceLoader</code>、<code>cwd</code>、<code>agentDir</code>、context files、system prompt files 和 settings 的描述，主要来自 <a href="https://pi.dev/docs/latest/sdk">Pi SDK</a> 与 <a href="https://pi.dev/docs/latest/usage">Pi Usage</a> 文档；“上下文分层”和“工程治理”是基于这些机制的作者抽象。</p>
+</blockquote>
 <p>Pi SDK 文档里一个很重要的对象是 <code>DefaultResourceLoader</code>。它负责从 <code>cwd</code> 和 <code>agentDir</code> 发现 resources，并交给 <code>createAgentSession()</code> 使用。</p>
 <p>这说明 Pi 对上下文的理解不是“把几段文本拼进 prompt”，而是一个资源加载过程：</p>
 <pre><code class="language-text">cwd + agentDir
@@ -1120,6 +1123,9 @@ flowchart TB
 <p>所以 session 不只是聊天历史，而是 Agent Runtime 的执行轨迹。</p>
 <hr>
 <h2 id="1412-sdk-嵌入为什么不是启动子进程"><a class="header" href="#1412-sdk-嵌入为什么不是启动子进程">14.12 SDK 嵌入：为什么不是启动子进程</a></h2>
+<blockquote>
+<p>来源口径：本节关于 <code>createAgentSession()</code>、<code>AgentSession</code>、<code>SessionManager</code>、<code>AuthStorage</code>、<code>ModelRegistry</code> 和 <code>DefaultResourceLoader</code> 的对象边界，来自 <a href="https://pi.dev/docs/latest/sdk">Pi SDK</a>；对子进程、RPC 与 SDK 嵌入的对比是作者从集成架构角度的归纳。</p>
+</blockquote>
 <p>外部系统集成 Pi 有两条路：</p>
 <pre><code class="language-text">Subprocess Integration:
   spawn("pi", ["--mode", "rpc"])
@@ -1210,6 +1216,9 @@ async function runCodingAgent(params: RunCodingAgentParams): Promise&lt;RunResul
 <p>这个 runner 可以被 Web UI、聊天 Gateway、CI pipeline 或评测系统调用。</p>
 <hr>
 <h2 id="1413-openclaw-如何嵌入-pi"><a class="header" href="#1413-openclaw-如何嵌入-pi">14.13 OpenClaw 如何嵌入 Pi</a></h2>
+<blockquote>
+<p>来源口径：本节关于 OpenClaw 嵌入 Pi 的调用方式、package 分层和 messaging gateway 集成，来自 <a href="https://docs.openclaw.ai/pi">OpenClaw Pi Integration Architecture</a>；其中“为什么不用子进程”和“Runtime 可复用”的判断是作者基于该集成方式的工程解读。</p>
+</blockquote>
 <p>OpenClaw 是理解 Pi SDK 价值的最好案例。OpenClaw 的 Pi 集成文档明确描述：它使用 Pi SDK 把 AI coding agent 嵌入自己的 messaging gateway，而不是启动 Pi 子进程，也不是使用 RPC mode。</p>
 <p>OpenClaw 的集成方式大致是：</p>
 <pre><code class="language-text">OpenClaw Gateway
