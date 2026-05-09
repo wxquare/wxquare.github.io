@@ -1,6 +1,6 @@
 # 电商书籍项目说明文档
 
-**项目路径**：`/Users/xianguiwang/gopath/src/github.com/wxquare/wxquare.github.io/ecommerce-book/`
+**项目路径**：`/Users/xianguiwang/gopath/src/github.com/wxquare/wxquare.github.io/books/ecommerce-book/`
 
 **在线地址**：https://wxquare.github.io/ecommerce-book/
 
@@ -13,7 +13,7 @@
 ### 项目结构
 
 ```
-ecommerce-book/
+books/ecommerce-book/
 ├── book.toml              # mdBook配置文件
 ├── src/                   # 源文件
 │   ├── SUMMARY.md         # 目录结构（重要！）
@@ -42,11 +42,11 @@ ecommerce-book/
 
 ```bash
 # 1. 编辑文件
-vim ecommerce-book/src/part1/chapter1.md
+vim books/ecommerce-book/src/part1/chapter1.md
 
 # 2. 提交更改
 cd /Users/xianguiwang/gopath/src/github.com/wxquare/wxquare.github.io
-git add ecommerce-book/
+git add books/ecommerce-book/
 git commit -m "Update chapter1: add new section"
 git push origin hexo
 
@@ -61,10 +61,10 @@ git push origin hexo
 
 ```bash
 # 1. 创建文件
-echo "# 新章节标题" > ecommerce-book/src/part3/chapter17.md
+echo "# 新章节标题" > books/ecommerce-book/src/part3/chapter17.md
 
 # 2. 在SUMMARY.md中注册
-vim ecommerce-book/src/SUMMARY.md
+vim books/ecommerce-book/src/SUMMARY.md
 # 添加：- [第17章 标题](part3/chapter17.md)
 
 # 3. 提交
@@ -95,17 +95,17 @@ ERROR Rendering failed
 **方案B：使用Docker本地预览**
 ```bash
 # 创建脚本
-cat > ecommerce-book/serve-docker.sh << 'EOF'
+cat > books/ecommerce-book/serve-docker.sh << 'EOF'
 #!/bin/bash
 docker run --rm -v $(pwd):/book -p 3000:3000 \
   peaceiris/mdbook:v0.4.40 \
   mdbook serve --hostname 0.0.0.0
 EOF
 
-chmod +x ecommerce-book/serve-docker.sh
+chmod +x books/ecommerce-book/serve-docker.sh
 
 # 运行
-cd ecommerce-book
+cd books/ecommerce-book
 ./serve-docker.sh
 
 # 访问 http://localhost:3000
@@ -133,11 +133,11 @@ enable = true                         # 启用搜索
 
 ### GitHub Actions
 
-**工作流文件**：`.github/workflows/deploy-ebook.yml`
+**工作流文件**：`.github/workflows/deploy-ecommerce-book.yml`
 
 **触发条件**：
 - 推送到 `hexo` 分支
-- 修改了 `ecommerce-book/` 目录
+- 修改了 `books/ecommerce-book/` 目录
 
 **构建版本**：mdBook 0.4.40（稳定版本）
 
@@ -237,7 +237,7 @@ https://github.com/wxquare/wxquare.github.io/actions
 
 ## 🎨 样式定制
 
-**自定义CSS**：`ecommerce-book/theme/custom.css`
+**自定义CSS**：`books/ecommerce-book/theme/custom.css`
 
 **修改后**：推送到GitHub，自动应用
 
@@ -262,7 +262,7 @@ source/book/
 
 ### 迁移后
 ```
-ecommerce-book/src/
+books/ecommerce-book/src/
 ├── README.md          ← source/book/index.md
 ├── part1/chapter1.md  ← source/book/chapter1.md
 ├── part1/chapter2.md  ← source/book/chapter2.md
@@ -275,11 +275,11 @@ ecommerce-book/src/
 
 **方案A（推荐）**：以mdBook为主
 - 将 `source/book/` 改为只读（或删除）
-- 今后只更新 `ecommerce-book/src/`
+- 今后只更新 `books/ecommerce-book/src/`
 
 **方案B**：保持同步
 - 保留两边，但需手动同步
-- 更新后运行：`cd ecommerce-book && ./migrate.sh`
+- 更新后运行：`cd books/ecommerce-book && ./migrate.sh`
 
 ---
 
@@ -339,13 +339,13 @@ ecommerce-book/src/
 ```bash
 # 查看项目状态
 cd /Users/xianguiwang/gopath/src/github.com/wxquare/wxquare.github.io
-git status ecommerce-book/
+git status books/ecommerce-book/
 
 # 编辑内容
-vim ecommerce-book/src/part1/chapter1.md
+vim books/ecommerce-book/src/part1/chapter1.md
 
 # 提交更改
-git add ecommerce-book/
+git add books/ecommerce-book/
 git commit -m "Update: ..."
 git push origin hexo
 
@@ -356,7 +356,7 @@ open https://github.com/wxquare/wxquare.github.io/actions
 open https://wxquare.github.io/ecommerce-book/
 
 # Docker本地预览（如果配置了）
-cd ecommerce-book
+cd books/ecommerce-book
 ./serve-docker.sh
 ```
 

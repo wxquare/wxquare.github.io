@@ -1,0 +1,1223 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第1章 LLM 能力边界与架构约束 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-70607393.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-6b331060.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第1章-llm-能力边界与架构约束"><a class="header" href="#第1章-llm-能力边界与架构约束">第1章 LLM 能力边界与架构约束</a></h1>
+<blockquote>
+<p>“Understanding the limits of AI is as important as understanding its capabilities.” （理解AI的边界与理解它的能力同样重要）</p>
+</blockquote>
+<h2 id="引言"><a class="header" href="#引言">引言</a></h2>
+<p>在进入 Prompt、Context、Harness 和 Agent 架构之前，我们需要先理解 LLM 的<strong>能力边界</strong>和<strong>工程化要点</strong>。许多 AI 工程问题并不是工具不够强，而是我们把模型当成了确定性系统。</p>
+<p>许多 Agent 系统失败的根源，不是架构设计问题，而是对 LLM 能力的<strong>误解</strong>或<strong>过度期待</strong>。本章将系统梳理 LLM 的能力边界、常见陷阱和工程化最佳实践。</p>
+<hr>
+<h2 id="11-llm-的能力边界"><a class="header" href="#11-llm-的能力边界">1.1 LLM 的能力边界</a></h2>
+<h3 id="不要把-llm-能力写成通用准确率"><a class="header" href="#不要把-llm-能力写成通用准确率">不要把 LLM 能力写成通用准确率</a></h3>
+<p>LLM 的能力不是一个固定百分比，而是一个条件函数：</p>
+<pre><code class="language-text">能力表现 = f(
+  模型版本,
+  任务分布,
+  Prompt / System Prompt,
+  上下文质量,
+  是否可调用工具,
+  解码参数,
+  输出约束,
+  评测指标,
+  人工兜底策略
+)
+</code></pre>
+<p>同一个模型，在“封闭标签分类”“开放式事实问答”“多文件代码修改”“带工具的告警诊断”上表现会完全不同。即使是同一个任务，换一个 prompt、换一批数据、换一个模型 snapshot、是否允许检索和工具调用，结果也会变化。</p>
+<p>因此，本书不再给出“文本生成 90%+、代码生成 85%+”这类通用数字。更工程化的写法是：<strong>先描述任务条件，再定义评测口径，最后给出可复现的本地 eval 结果</strong>。</p>
+<p>一个负责任的能力结论应该长这样：</p>
+<pre><code class="language-text">任务：客户反馈分类
+模型：model-x-2026-05-01
+输入：最近 30 天人工标注的 800 条中文客服反馈
+标签集：物流 / 质量 / 价格 / 客服 / 售后 / 其他
+Prompt：v3，包含 6 个 few-shot 示例
+输出约束：JSON Schema，category 必须来自枚举
+指标：macro F1、各类别 precision / recall、拒答率
+基线：规则分类器、上一版 prompt、上一版模型
+结论：只对这批数据、这个标签集和这个 prompt 生效
+</code></pre>
+<p>没有这些条件，准确率数字没有工程意义。</p>
+<h3 id="从关键论文理解-llm-的能力来源"><a class="header" href="#从关键论文理解-llm-的能力来源">从关键论文理解 LLM 的能力来源</a></h3>
+<p>理解 LLM 的能力边界，不能只看产品发布会和排行榜，还要回到几个关键研究脉络。下面这些论文不适合作为“历史知识”死记，而应该作为工程判断的底层地图：模型为什么会有上下文学习、为什么需要对齐、为什么会幻觉、为什么 Agent 必须引入工具和外部状态。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层次</th><th style="text-align: left">关键论文</th><th style="text-align: left">讲清楚了什么</th><th style="text-align: left">对工程实践的影响</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">架构底座</td><td style="text-align: left"><a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a></td><td style="text-align: left">Transformer 用自注意力替代 RNN / CNN，允许模型在上下文内建立 token 之间的关系</td><td style="text-align: left">Context 是模型推理的数据平面；长上下文有成本，注意力不是长期记忆</td></tr>
+<tr><td style="text-align: left">规模化规律</td><td style="text-align: left"><a href="https://arxiv.org/abs/2001.08361">Scaling Laws for Neural Language Models</a>、<a href="https://arxiv.org/abs/2203.15556">Training Compute-Optimal Large Language Models</a></td><td style="text-align: left">模型损失会随参数、数据、算力呈规律性下降；Chinchilla 进一步强调模型规模和训练 token 要匹配</td><td style="text-align: left">“更大”不等于“更好”；选型要看模型、数据、推理成本和任务分布</td></tr>
+<tr><td style="text-align: left">上下文学习</td><td style="text-align: left"><a href="https://arxiv.org/abs/2005.14165">Language Models are Few-Shot Learners</a></td><td style="text-align: left">大模型可以通过自然语言指令和少量示例在推理时适配任务，无需每个任务都 fine-tune</td><td style="text-align: left">Prompt / few-shot 是运行时任务协议，但不是可靠训练；示例质量直接影响输出</td></tr>
+<tr><td style="text-align: left">指令对齐</td><td style="text-align: left"><a href="https://arxiv.org/abs/2203.02155">Training Language Models to Follow Instructions with Human Feedback</a>、<a href="https://arxiv.org/abs/2305.18290">Direct Preference Optimization</a></td><td style="text-align: left">Base model 会续写文本，assistant model 经过 SFT、RLHF 或 DPO 后更倾向于遵循人类意图</td><td style="text-align: left">对齐改善可用性和偏好匹配，但不能消除事实错误、越权风险和不确定性</td></tr>
+<tr><td style="text-align: left">推理诱导</td><td style="text-align: left"><a href="https://arxiv.org/abs/2201.11903">Chain-of-Thought Prompting</a></td><td style="text-align: left">对复杂任务，让模型生成中间推理步骤能显著改善部分数学、常识和符号推理任务</td><td style="text-align: left">分步推理可以提升表现和可调试性，但推理链不是证明，仍需 verifier / test</td></tr>
+<tr><td style="text-align: left">外部知识</td><td style="text-align: left"><a href="https://arxiv.org/abs/2005.11401">Retrieval-Augmented Generation</a></td><td style="text-align: left">参数记忆可以存储知识模式，但对新知识、私有知识和精确引用不可靠</td><td style="text-align: left">企业知识问答、合规回答和事实引用应优先设计 RAG，而不是依赖模型记忆</td></tr>
+<tr><td style="text-align: left">工具与行动</td><td style="text-align: left"><a href="https://arxiv.org/abs/2210.03629">ReAct</a>、<a href="https://arxiv.org/abs/2302.04761">Toolformer</a></td><td style="text-align: left">模型可以交替进行推理和行动，也可以学习何时调用 API、搜索、计算器等工具</td><td style="text-align: left">Agent Runtime 的核心是 Thought / Action / Observation 循环，而不是单次问答</td></tr>
+<tr><td style="text-align: left">高效适配</td><td style="text-align: left"><a href="https://arxiv.org/abs/2106.09685">LoRA</a>、<a href="https://arxiv.org/abs/2305.14314">QLoRA</a>、<a href="https://arxiv.org/abs/2302.13971">LLaMA</a></td><td style="text-align: left">开放模型和参数高效微调降低了私有化、领域适配和本地部署门槛</td><td style="text-align: left">企业落地不一定训练 foundation model，更多是模型路由、RAG、微调、蒸馏和治理</td></tr>
+</tbody>
+</table>
+</div>
+<p>这组论文可以归纳成一个三层视角：</p>
+<pre><code class="language-text">Pre-training:
+  从海量 token 中学习语言、代码和世界知识的统计结构。
+
+Post-training:
+  通过指令数据、偏好数据和安全数据，让模型更像一个可交互助手。
+
+Inference-time system:
+  通过 prompt、context、RAG、tool、memory、eval、policy 和 trace，
+  把概率生成模型放进可验证、可审计、可回滚的工程系统。
+</code></pre>
+<p>这也解释了为什么现代 LLM 系统不能只讨论“模型本身”：</p>
+<ul>
+<li>Transformer 让模型能利用上下文，但上下文不是数据库；</li>
+<li>Scaling Law 让能力提升可预测，但不能保证某个业务任务一定可靠；</li>
+<li>GPT-3 证明了 few-shot 的价值，但 prompt 仍需要评测和版本管理；</li>
+<li>RLHF / DPO 让模型更会听指令，但不等于输出一定真实；</li>
+<li>CoT / ReAct 让模型更会拆解任务，但生产系统还需要工具验证；</li>
+<li>RAG / Toolformer 说明外部知识和外部工具不是补丁，而是 LLM 架构的一部分。</li>
+</ul>
+<p>因此，本书讨论的 Prompt、Context、Harness、RAG、Tool、Memory、Eval 和 Agent Runtime，本质上都是围绕同一个目标展开：<strong>把一个强大的概率生成模型，约束成一个可用于生产系统的工程组件</strong>。</p>
+<h3 id="从任务类型理解-llm-擅长什么"><a class="header" href="#从任务类型理解-llm-擅长什么">从任务类型理解 LLM 擅长什么</a></h3>
+<p>LLM 的强项来自预训练目标：它擅长在给定上下文中建模语言、代码和知识模式。因此，它更适合处理“语义清晰、答案空间可约束、允许外部验证”的任务。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">任务类型</th><th style="text-align: left">可靠性判断</th><th style="text-align: left">工程前提</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">改写、总结、翻译</td><td style="text-align: left">通常较稳定</td><td style="text-align: left">输入材料足够完整，允许人工抽查</td></tr>
+<tr><td style="text-align: left">封闭标签分类</td><td style="text-align: left">较容易工程化</td><td style="text-align: left">标签定义清晰，有标注集，有混淆矩阵</td></tr>
+<tr><td style="text-align: left">结构化信息抽取</td><td style="text-align: left">较容易工程化</td><td style="text-align: left">使用 schema / enum / validator / retry</td></tr>
+<tr><td style="text-align: left">代码片段生成</td><td style="text-align: left">中等可靠</td><td style="text-align: left">范围小，有单元测试和 lint</td></tr>
+<tr><td style="text-align: left">多文件代码修改</td><td style="text-align: left">条件可靠</td><td style="text-align: left">需要 repo map、搜索、编辑工具、测试和 diff review</td></tr>
+<tr><td style="text-align: left">基于证据的问答</td><td style="text-align: left">条件可靠</td><td style="text-align: left">需要 RAG、引用、证据支持率评估</td></tr>
+<tr><td style="text-align: left">规划和头脑风暴</td><td style="text-align: left">有价值但不可直接执行</td><td style="text-align: left">需要人审、约束和后续验证</td></tr>
+</tbody>
+</table>
+</div>
+<p>注意这里说的是“工程化难度”，不是模型天然能力排名。封闭标签分类看起来简单，但如果标签定义含糊、训练数据偏斜，效果也会很差；多文件代码修改看起来难，但如果上下文、工具和测试都设计得好，也可以稳定落地。</p>
+<p><strong>实际例子：客户反馈分类</strong></p>
+<pre><code class="language-text">输入:
+"订单号 12345 还没发货，已经等了 3 天了"
+
+期望输出:
+{
+  "category": "物流",
+  "sentiment": "不满",
+  "urgency": "中",
+  "order_id": "12345"
+}
+</code></pre>
+<p>这个任务适合 LLM，不是因为“LLM 分类准确率天然很高”，而是因为它满足几个条件：</p>
+<ul>
+<li>标签集有限；</li>
+<li>输入短；</li>
+<li>语义线索明显；</li>
+<li>输出可用 JSON Schema 约束；</li>
+<li>可以积累人工标注集做离线评测；</li>
+<li>错误成本通常可由人工复核兜底。</li>
+</ul>
+<h3 id="从失败机制理解-llm-不擅长什么"><a class="header" href="#从失败机制理解-llm-不擅长什么">从失败机制理解 LLM 不擅长什么</a></h3>
+<p>LLM 不擅长的任务，不是简单的“模型不够聪明”，而是任务需要模型没有内置的能力：精确计算、实时状态、长期状态、可靠记忆、外部事实验证和确定性执行。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">任务类型</th><th style="text-align: left">失败机制</th><th style="text-align: left">工程补救</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">精确计算</td><td style="text-align: left">语言模型不是符号计算器</td><td style="text-align: left">调用计算器、SQL、Python、规则引擎</td></tr>
+<tr><td style="text-align: left">实时事实</td><td style="text-align: left">训练数据和当前世界不同步</td><td style="text-align: left">检索、数据库、Web、业务 API</td></tr>
+<tr><td style="text-align: left">长期记忆</td><td style="text-align: left">单次调用无状态</td><td style="text-align: left">外部 Memory、Profile、Session Store</td></tr>
+<tr><td style="text-align: left">多步推理</td><td style="text-align: left">中间步骤容易漂移</td><td style="text-align: left">分解任务、显式状态机、工具验证</td></tr>
+<tr><td style="text-align: left">自我检查</td><td style="text-align: left">模型可能解释自己的错误</td><td style="text-align: left">独立 verifier、测试、规则检查</td></tr>
+<tr><td style="text-align: left">高风险决策</td><td style="text-align: left">错误代价高且不可逆</td><td style="text-align: left">人工审批、权限系统、审计</td></tr>
+<tr><td style="text-align: left">开放领域事实问答</td><td style="text-align: left">可能编造引用和细节</td><td style="text-align: left">RAG、引用、claim verification</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>实际例子：复利计算</strong></p>
+<pre><code class="language-text">任务:
+本金 10000 元，年利率 5%，按年复利 20 年后是多少？
+
+不推荐:
+让 LLM 直接给最终数字。
+
+推荐:
+让 LLM 识别任务类型和公式，再调用计算工具：
+FV = 10000 * (1 + 0.05) ** 20
+</code></pre>
+<p>这里的核心不是“LLM 算错了多少”，而是<strong>架构上不应该让概率模型承担确定性计算职责</strong>。模型负责理解问题、选择公式、解释结果；计算交给确定性工具。</p>
+<h3 id="benchmark-只能回答局部问题"><a class="header" href="#benchmark-只能回答局部问题">Benchmark 只能回答局部问题</a></h3>
+<p>公开 benchmark 很有价值，但不能直接等同于你的产品效果。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">Benchmark 类型</th><th style="text-align: left">能说明什么</th><th style="text-align: left">不能说明什么</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">MMLU / 考试类</td><td style="text-align: left">学科知识和选择题能力</td><td style="text-align: left">真实业务输入、工具使用、长链路稳定性</td></tr>
+<tr><td style="text-align: left">HumanEval / 代码题</td><td style="text-align: left">小函数生成能力</td><td style="text-align: left">多文件修改、依赖环境、真实测试修复</td></tr>
+<tr><td style="text-align: left">SWE-bench</td><td style="text-align: left">真实仓库 issue 修复能力</td><td style="text-align: left">你的代码库、你的工具权限、你的 review 流程</td></tr>
+<tr><td style="text-align: left">TruthfulQA</td><td style="text-align: left">对常见误解的抗幻觉能力</td><td style="text-align: left">RAG 场景、企业私有知识、引用质量</td></tr>
+<tr><td style="text-align: left">HELM</td><td style="text-align: left">多场景、多指标权衡</td><td style="text-align: left">某个团队的具体任务 ROI</td></tr>
+</tbody>
+</table>
+</div>
+<p>HELM 的重要启发是：评估不能只看 accuracy，还要看 calibration、robustness、fairness、toxicity、efficiency 等维度。OpenAI 的 GPT-4 Technical Report 也明确指出，即使能力强的模型仍会产生事实幻觉和推理错误，在高风险场景需要人审、额外上下文或避免使用。</p>
+<h3 id="主流-llm-榜单该怎么看"><a class="header" href="#主流-llm-榜单该怎么看">主流 LLM 榜单该怎么看</a></h3>
+<p>截至 2026-05-08，主流 LLM 榜单已经从“谁的总分最高”演化成了多个侧重点不同的评测仪表盘。榜单应该用来发现候选模型、理解能力分布和设计本地 eval，而不应该直接替代你的选型实验。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">榜单 / Benchmark</th><th style="text-align: left">主要信号</th><th style="text-align: left">适合回答的问题</th><th style="text-align: left">常见误读</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><a href="https://arena.ai/leaderboard">LMArena / Arena</a></td><td style="text-align: left">人类偏好、盲测对比、聊天 / 代码 / 视觉 / 文档等分榜</td><td style="text-align: left">用户主观体验上，哪些模型更容易给出“看起来更好”的答案？</td><td style="text-align: left">把偏好胜率当成事实正确率或生产稳定性</td></tr>
+<tr><td style="text-align: left"><a href="https://github.com/livebench/livebench">LiveBench</a></td><td style="text-align: left">动态更新题目，降低测试集污染，覆盖数学、代码、推理、数据分析、语言和指令跟随</td><td style="text-align: left">哪些模型在较新的综合任务上仍有区分度？</td><td style="text-align: left">忽略你的业务数据、工具链和延迟成本</td></tr>
+<tr><td style="text-align: left"><a href="https://crfm.stanford.edu/helm/latest/">HELM</a></td><td style="text-align: left">多场景、多指标评测，强调 accuracy 之外的 calibration、robustness、fairness、toxicity、efficiency</td><td style="text-align: left">选型时是否只盯住准确率，漏掉安全性、鲁棒性和成本指标？</td><td style="text-align: left">把研究型综合评估直接当成单一产品排名</td></tr>
+<tr><td style="text-align: left"><a href="https://artificialanalysis.ai/">Artificial Analysis</a></td><td style="text-align: left">模型质量、输出速度、上下文、价格、提供商能力等工程维度</td><td style="text-align: left">同一任务下，质量、速度和成本如何权衡？</td><td style="text-align: left">忘记价格、限流、缓存策略会随官方 API 政策变化</td></tr>
+<tr><td style="text-align: left"><a href="https://www.swebench.com/">SWE-bench</a></td><td style="text-align: left">真实 GitHub issue 修复，关注代码理解、修改和测试修复</td><td style="text-align: left">Coding Agent 是否能处理真实仓库中的缺陷修复？</td><td style="text-align: left">忽略 harness、工具权限、上下文压缩和测试环境差异</td></tr>
+<tr><td style="text-align: left"><a href="https://aider.chat/docs/leaderboards/">Aider Polyglot</a></td><td style="text-align: left">多语言代码编辑能力，关注模型按指令修改代码的成功率和编辑格式</td><td style="text-align: left">模型是否适合在工程循环中做局部代码编辑？</td><td style="text-align: left">把单工具、单工作流结果泛化到所有 IDE / CLI Agent</td></tr>
+<tr><td style="text-align: left"><a href="https://www.tau-bench.com/">τ-bench</a></td><td style="text-align: left">多轮对话、工具调用、业务策略遵循和最终状态一致性</td><td style="text-align: left">Agent 能否在客服、订单、航旅等规则场景中稳定执行？</td><td style="text-align: left">只看 pass rate，不看多次运行一致性和策略违规类型</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个更实用的读法是按任务选择榜单，而不是按总榜选择模型：</p>
+<pre><code class="language-text">通用问答 / 写作体验      -&gt; 先看 LMArena，再做人工偏好评测
+复杂推理 / 新题泛化      -&gt; 先看 LiveBench，再做领域题集 eval
+代码修复 / Coding Agent  -&gt; 先看 SWE-bench / Aider，再跑你的仓库任务集
+工具调用 / 业务流程 Agent -&gt; 先看 τ-bench，再跑端到端状态校验
+企业选型 / 成本治理      -&gt; 先看 Artificial Analysis，再核对官方 pricing 和限流
+安全 / 鲁棒性 / 治理     -&gt; 先看 HELM，再补充红队测试和合规评估
+</code></pre>
+<p>如果不同榜单给出不同结论，这通常不是“榜单冲突”，而是它们测量的能力不同。一个模型可能在 LMArena 的主观偏好上领先，但在 SWE-bench 的真实代码修复中一般；也可能在 LiveBench 的数学推理上很强，却不适合低延迟客服场景。</p>
+<p>因此，模型选型可以分成三步：</p>
+<ol>
+<li><strong>榜单筛选</strong>：用公开榜单确定 3-5 个候选模型，记录榜单日期、版本、评价维度和任务分布。</li>
+<li><strong>本地复现</strong>：用你的真实样本、prompt、工具、schema、延迟预算和成本约束跑离线 eval。</li>
+<li><strong>线上灰度</strong>：在可回滚的流量中监控质量、人工接管率、错误类型、token 成本和用户满意度。</li>
+</ol>
+<p>真正可靠的模型选择报告，应该同时包含：</p>
+<pre><code class="language-text">候选模型来源：哪些榜单、什么日期、什么维度
+本地评测集：多少样本、什么分布、如何标注
+运行配置：prompt 版本、工具权限、temperature、schema、retry 策略
+质量指标：accuracy / F1 / pass rate / evidence support / human preference
+工程指标：p50 / p95 延迟、成本、限流、缓存命中率、失败率
+风险指标：幻觉类型、越权工具调用、拒答率、人工兜底比例
+结论边界：结论只对哪些任务、语言、输入分布和系统版本生效
+</code></pre>
+<p>榜单给你“从哪里开始看”，本地 eval 才能回答“这个模型能不能用于我的系统”。</p>
+<h3 id="能力边界总结"><a class="header" href="#能力边界总结">能力边界总结</a></h3>
+<pre><code class="language-text">LLM 的本质：
+┌─────────────────────────────────────────────┐
+│  条件概率生成器                              │
+│  在当前上下文下生成最可能、最符合指令的输出  │
+└─────────────────────────────────────────────┘
+
+工程推论：
+1. 语言理解、改写、抽取、规划适合交给模型；
+2. 计算、检索、执行、持久化、权限要交给系统；
+3. 质量不能靠“模型感觉不错”，必须靠 eval 和 trace；
+4. 模型能力结论必须绑定任务、数据、版本、prompt 和指标。
+</code></pre>
+<hr>
+<h2 id="12-幻觉问题与应对策略"><a class="header" href="#12-幻觉问题与应对策略">1.2 幻觉问题与应对策略</a></h2>
+<h3 id="什么是幻觉"><a class="header" href="#什么是幻觉">什么是幻觉？</a></h3>
+<p><strong>定义</strong>：LLM 生成看似合理但实际错误的内容。</p>
+<p><strong>典型案例：</strong></p>
+<pre><code class="language-text">问题: "2022年诺贝尔物理学奖得主是谁？"
+
+LLM 幻觉回答:
+"2022年诺贝尔物理学奖授予了 John Doe 和 Jane Smith，
+表彰他们在量子纠缠领域的贡献。"
+
+问题：
+1. 名字是编造的
+2. 研究方向是猜测的
+3. 表述非常自信
+
+正确答案:
+Alain Aspect, John Clauser, Anton Zeilinger
+（量子信息科学的奠基实验）
+</code></pre>
+<h3 id="幻觉的类型"><a class="header" href="#幻觉的类型">幻觉的类型</a></h3>
+<p><strong>1. 事实性幻觉（Factual Hallucination）</strong></p>
+<pre><code class="language-text">输入: "介绍一下 TensorFlow 2.0 的新特性"
+幻觉: "TensorFlow 2.0 引入了自动微分功能"
+事实: TensorFlow 1.x 就有自动微分
+</code></pre>
+<p><strong>2. 逻辑性幻觉（Logical Hallucination）</strong></p>
+<pre><code class="language-text">输入: "如果 A &gt; B 且 B &gt; C，那么 A 和 C 的关系？"
+幻觉: "无法确定 A 和 C 的关系"
+事实: 必然 A &gt; C（传递性）
+</code></pre>
+<p><strong>3. 引用性幻觉（Citation Hallucination）</strong></p>
+<pre><code class="language-text">输入: "引用一篇关于 Transformer 的论文"
+幻觉: "根据 Smith et al. (2023) 的研究..."
+事实: 这篇论文不存在
+</code></pre>
+<h3 id="应对策略"><a class="header" href="#应对策略">应对策略</a></h3>
+<p><strong>策略 1：工具调用（Tool Use）</strong></p>
+<pre><code class="language-python"># ❌ 直接让 LLM 计算
+prompt = "计算 sin(45°) × cos(30°)"
+result = llm.generate(prompt)  # 不可靠
+
+# ✅ 调用计算工具
+prompt = "生成 Python 代码计算 sin(45°) × cos(30°)"
+code = llm.generate(prompt)
+result = execute_code(code)  # 可靠
+</code></pre>
+<p><strong>策略 2：检索增强（RAG）</strong></p>
+<pre><code class="language-python"># ❌ 直接询问 LLM
+answer = llm.generate("2022年诺贝尔物理学奖得主？")
+
+# ✅ 先检索再回答
+docs = search_wikipedia("2022 Nobel Prize Physics")
+answer = llm.generate(f"基于以下资料回答：\n{docs}\n问题：...")
+</code></pre>
+<p><strong>策略 3：Self-Consistency（自我一致性）</strong></p>
+<pre><code class="language-python"># 多次采样，选择一致的答案
+answers = []
+for _ in range(5):
+    answer = llm.generate(question, temperature=0.7)
+    answers.append(answer)
+
+# 投票选择最一致的答案
+final_answer = most_common(answers)
+</code></pre>
+<p><strong>策略 4：Chain-of-Thought 验证</strong></p>
+<pre><code class="language-python">prompt = """
+问题：{question}
+
+请分步推理：
+1. 列出已知条件
+2. 列出推理步骤
+3. 给出最终答案
+4. 验证答案是否合理
+
+如果发现矛盾，请指出并重新推理。
+"""
+</code></pre>
+<p><strong>策略 5：External Verification（外部验证）</strong></p>
+<pre><code class="language-python">class VerifiedAnswer:
+    def answer(self, question: str):
+        # 1. LLM 生成答案
+        answer = self.llm.generate(question)
+
+        # 2. 提取可验证的事实
+        claims = self.extract_claims(answer)
+
+        # 3. 外部验证
+        for claim in claims:
+            if not self.verify_claim(claim):
+                # 标记不可靠
+                answer = self.add_warning(answer, claim)
+
+        return answer
+
+    def verify_claim(self, claim: str) -&gt; bool:
+        # 通过搜索引擎、数据库等验证
+        search_results = search(claim)
+        return check_consistency(claim, search_results)
+</code></pre>
+<hr>
+<h2 id="13-prompt-engineering-核心原则"><a class="header" href="#13-prompt-engineering-核心原则">1.3 Prompt Engineering 核心原则</a></h2>
+<h3 id="原则-1明确性clarity"><a class="header" href="#原则-1明确性clarity">原则 1：明确性（Clarity）</a></h3>
+<p><strong>❌ 模糊的 Prompt：</strong></p>
+<pre><code class="language-text">"帮我写个函数"
+</code></pre>
+<p><strong>✅ 明确的 Prompt：</strong></p>
+<pre><code class="language-text">请用 Python 写一个函数，功能如下：
+- 函数名：calculate_discount
+- 输入参数：
+  - price: float (原价)
+  - discount_rate: float (折扣率，0-1之间)
+- 返回：float (折后价)
+- 要求：
+  - 参数验证（价格非负，折扣率在0-1之间）
+  - 保留两位小数
+  - 添加 docstring
+</code></pre>
+<p><strong>为什么更稳定：</strong></p>
+<ul>
+<li>输出边界从“随便写一个函数”变成了明确接口；</li>
+<li>参数验证、返回格式和文档要求都可检查；</li>
+<li>后续可以用单元测试验证，而不是靠读者感觉判断质量。</li>
+</ul>
+<h3 id="原则-2结构化structure"><a class="header" href="#原则-2结构化structure">原则 2：结构化（Structure）</a></h3>
+<p><strong>❌ 无结构：</strong></p>
+<pre><code class="language-text">我想知道 Transformer 的工作原理以及它和 RNN 的区别还有它的优缺点
+</code></pre>
+<p><strong>✅ 结构化：</strong></p>
+<pre><code class="language-text">关于 Transformer 架构，请回答以下问题：
+
+## 1. 工作原理
+- Self-Attention 机制如何工作？
+- Positional Encoding 的作用是什么？
+
+## 2. 与 RNN 对比
+- 主要区别是什么？
+- 各自的优势场景？
+
+## 3. 优缺点
+- 优点（至少3个）
+- 缺点（至少2个）
+
+请用 Markdown 格式回答。
+</code></pre>
+<h3 id="原则-3示例驱动few-shot-learning"><a class="header" href="#原则-3示例驱动few-shot-learning">原则 3：示例驱动（Few-Shot Learning）</a></h3>
+<p><strong>Zero-Shot（无示例）：</strong></p>
+<pre><code class="language-text">将以下客户反馈分类：
+"产品质量不错，但物流太慢了"
+</code></pre>
+<p><strong>Few-Shot（有示例）：</strong></p>
+<pre><code class="language-text">将客户反馈分类为：物流、产品质量、客服、价格
+
+示例 1:
+输入: "订单还没发货，已经等了5天"
+分类: 物流
+
+示例 2:
+输入: "产品做工粗糙，不值这个价"
+分类: 产品质量
+
+示例 3:
+输入: "客服态度很好，帮我解决了问题"
+分类: 客服
+
+现在分类：
+输入: "产品质量不错，但物流太慢了"
+分类: ?
+</code></pre>
+<p><strong>为什么示例有效：</strong></p>
+<ul>
+<li>示例把标签边界变成了可模仿模式；</li>
+<li>模型可以学习“物流”和“产品质量”同时出现时如何取舍；</li>
+<li>但效果提升必须用你的标注集验证，不能把 few-shot 当成固定收益。</li>
+</ul>
+<h3 id="原则-4约束条件constraints"><a class="header" href="#原则-4约束条件constraints">原则 4：约束条件（Constraints）</a></h3>
+<p><strong>❌ 无约束：</strong></p>
+<pre><code class="language-text">生成一篇关于 AI 的文章
+</code></pre>
+<p><strong>✅ 有约束：</strong></p>
+<pre><code class="language-text">生成一篇关于 AI 的技术文章，要求：
+
+格式约束：
+- 字数：800-1000字
+- 结构：引言 + 3个小节 + 总结
+- 使用 Markdown 格式
+
+内容约束：
+- 目标读者：有编程基础的工程师
+- 深度：中级（不要太基础，不要太学术）
+- 必须包含：实际代码示例
+
+风格约束：
+- 语言：中文
+- 风格：技术准确，表达简洁
+- 避免：营销话术、夸大其词
+</code></pre>
+<h3 id="原则-5输出格式output-format"><a class="header" href="#原则-5输出格式output-format">原则 5：输出格式（Output Format）</a></h3>
+<p><strong>❌ 自由格式：</strong></p>
+<pre><code class="language-text">提取这段文本中的关键信息
+</code></pre>
+<p><strong>✅ 指定格式：</strong></p>
+<pre><code class="language-text">从以下文本提取关键信息，返回 JSON 格式：
+
+{
+  "name": "人名",
+  "email": "邮箱",
+  "phone": "电话",
+  "company": "公司名称"
+}
+
+文本：...
+</code></pre>
+<h3 id="prompt-模板库"><a class="header" href="#prompt-模板库">Prompt 模板库</a></h3>
+<pre><code class="language-python"># 模板 1：任务分解
+TASK_DECOMPOSITION_TEMPLATE = """
+任务：{task}
+
+请将此任务分解为可执行的子任务：
+
+1. 子任务 1
+   - 输入：...
+   - 输出：...
+   - 验证标准：...
+
+2. 子任务 2
+   ...
+
+最终输出：...
+"""
+
+# 模板 2：错误处理
+ERROR_HANDLING_TEMPLATE = """
+执行任务时发生错误：
+
+任务：{task}
+错误信息：{error}
+
+请分析：
+1. 错误原因是什么？
+2. 如何修复？
+3. 给出修复后的代码/方案
+
+不要重复之前的错误。
+"""
+
+# 模板 3：Self-Critique（自我批评）
+SELF_CRITIQUE_TEMPLATE = """
+你刚才给出的答案是：
+{previous_answer}
+
+请批判性地审查这个答案：
+1. 是否有事实错误？
+2. 逻辑是否严密？
+3. 是否遗漏重要信息？
+4. 是否有更好的表达方式？
+
+如果有问题，请给出改进后的答案。
+"""
+</code></pre>
+<hr>
+<h2 id="14-模型选择与权衡"><a class="header" href="#14-模型选择与权衡">1.4 模型选择与权衡</a></h2>
+<h3 id="不要把模型选择写成静态排行榜"><a class="header" href="#不要把模型选择写成静态排行榜">不要把模型选择写成静态排行榜</a></h3>
+<p>模型名称、上下文长度、价格、工具调用能力和安全策略都会变化。书稿正文不适合维护一张“2026 年主流模型排行榜”。更稳妥的方式，是把模型选择写成一组工程维度，然后在项目里用小型 eval 选择。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">要问的问题</th><th style="text-align: left">典型评测</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">推理能力</td><td style="text-align: left">能否处理多约束、多步骤任务？</td><td style="text-align: left">任务集成功率、人工评分、错误类型</td></tr>
+<tr><td style="text-align: left">代码能力</td><td style="text-align: left">能否读代码、改代码、修测试？</td><td style="text-align: left">单元测试通过率、diff 质量、review 缺陷率</td></tr>
+<tr><td style="text-align: left">工具调用</td><td style="text-align: left">能否生成正确参数并根据结果继续？</td><td style="text-align: left">tool call success rate、重试率、无效调用率</td></tr>
+<tr><td style="text-align: left">结构化输出</td><td style="text-align: left">能否稳定遵守 schema？</td><td style="text-align: left">JSON parse rate、schema validation rate</td></tr>
+<tr><td style="text-align: left">长上下文</td><td style="text-align: left">长文档下是否还能抓住关键事实？</td><td style="text-align: left">evidence recall、引用支持率、遗漏率</td></tr>
+<tr><td style="text-align: left">多模态</td><td style="text-align: left">是否需要图像、表格、截图、PDF？</td><td style="text-align: left">modality-specific eval</td></tr>
+<tr><td style="text-align: left">延迟</td><td style="text-align: left">是否满足交互体验？</td><td style="text-align: left">p50 / p95 latency</td></tr>
+<tr><td style="text-align: left">成本</td><td style="text-align: left">单任务成本是否可接受？</td><td style="text-align: left">cost per successful task</td></tr>
+<tr><td style="text-align: left">数据治理</td><td style="text-align: left">数据能否出域？是否支持私有部署？</td><td style="text-align: left">安全审查、合规审查、审计能力</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="选择决策树"><a class="header" href="#选择决策树">选择决策树</a></h3>
+<pre><code class="language-text">是否需要本地部署？
+├─ 是 → 评估开源模型、私有推理服务、硬件和数据治理
+└─ 否 ↓
+
+是否需要多模态？
+├─ 是 → 选择支持目标模态的模型，并做 modality-specific eval
+└─ 否 ↓
+
+是否需要长上下文？
+├─ 是 → 同时评估上下文窗口、有效召回、延迟和成本
+└─ 否 ↓
+
+任务是否需要工具调用？
+├─ 是 → 优先评估 tool schema adherence 和 recovery 能力
+└─ 否 ↓
+
+任务风险等级？
+├─ 高 → 强模型 + verifier + 人审 + 审计
+├─ 中 → 强模型或中等模型 + 局部验证
+└─ 低 → 快模型 / 便宜模型 + 抽样质检
+</code></pre>
+<h3 id="成本优化策略"><a class="header" href="#成本优化策略">成本优化策略</a></h3>
+<p><strong>策略 1：模型分层（Model Tiering）</strong></p>
+<pre><code class="language-python">class AdaptiveModelRouter:
+    """根据任务复杂度选择模型"""
+
+    def __init__(self, models):
+        self.models = models
+
+    def route(self, task: str):
+        complexity = self.classify_complexity(task)
+        return self.models[complexity]
+
+    def classify_complexity(self, task: str) -&gt; str:
+        """用便宜的模型分类任务复杂度"""
+        prompt = f"评估任务复杂度（simple/medium/complex）：{task}"
+        result = self.models["simple"].generate(prompt)
+        return result
+</code></pre>
+<p><strong>策略 2：Prompt 缓存（Prompt Caching）</strong></p>
+<pre><code class="language-python"># 如果模型供应商支持 prompt caching，可以缓存稳定上下文：
+# - 长 System Prompt
+# - 工具说明
+# - 稳定知识库摘要
+# 具体缓存语义和价格以官方文档为准。
+
+response = anthropic.messages.create(
+    model=MODEL_NAME,
+    system=[
+        {
+            "type": "text",
+            "text": LONG_SYSTEM_PROMPT,  # 缓存这部分
+            "cache_control": {"type": "ephemeral"}
+        }
+    ],
+    messages=[{"role": "user", "content": user_input}]
+)
+</code></pre>
+<p><strong>策略 3：批量处理（Batch Processing）</strong></p>
+<pre><code class="language-python"># 批量处理适用于非实时任务：
+# - 离线分类
+# - 离线摘要
+# - eval case 批量跑分
+# 具体价格折扣和完成时限以供应商官方文档为准。
+
+batch_jobs = [
+    {"custom_id": "task-1", "method": "POST", "url": "/v1/chat/completions", ...},
+    {"custom_id": "task-2", ...},
+    ...
+]
+
+# 提交批量任务
+batch = client.batches.create(
+    input_file_id=upload_batch_file(batch_jobs),
+    endpoint="/v1/chat/completions",
+    completion_window="24h"
+)
+</code></pre>
+<hr>
+<h2 id="15-上下文管理"><a class="header" href="#15-上下文管理">1.5 上下文管理</a></h2>
+<h3 id="token-限制"><a class="header" href="#token-限制">Token 限制</a></h3>
+<p>上下文窗口和价格是模型 snapshot 的属性，不适合在正文里写死。选型时应该查官方模型卡和 pricing，并同时关注下面几个指标。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">指标</th><th style="text-align: left">含义</th><th style="text-align: left">为什么重要</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Context Window</td><td style="text-align: left">最大输入上下文长度</td><td style="text-align: left">决定一次调用理论上能放多少材料</td></tr>
+<tr><td style="text-align: left">Effective Context</td><td style="text-align: left">长上下文中真正可利用的信息量</td><td style="text-align: left">窗口大不等于能稳定用好全部上下文</td></tr>
+<tr><td style="text-align: left">Max Output</td><td style="text-align: left">单次最大输出长度</td><td style="text-align: left">影响长报告、代码生成、批处理</td></tr>
+<tr><td style="text-align: left">Latency</td><td style="text-align: left">p50 / p95 响应时间</td><td style="text-align: left">影响交互体验和任务超时</td></tr>
+<tr><td style="text-align: left">Pricing</td><td style="text-align: left">输入、输出、缓存、批处理价格</td><td style="text-align: left">影响单任务成本和规模化成本</td></tr>
+<tr><td style="text-align: left">Cache Semantics</td><td style="text-align: left">哪些上下文可缓存、缓存多久</td><td style="text-align: left">影响长 system prompt 和工具说明成本</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="上下文溢出问题"><a class="header" href="#上下文溢出问题">上下文溢出问题</a></h3>
+<p><strong>问题场景：</strong></p>
+<pre><code class="language-python"># Agent 循环执行多次工具调用
+context = ""
+for i in range(10):
+    context += f"Step {i}: {tool_result}\n"  # 累积上下文
+    response = llm.generate(context)
+
+# 问题：
+# - 第10次迭代时，context 可能超过 token 限制
+# - 早期步骤可能不再相关，但仍占用 token
+</code></pre>
+<h3 id="解决策略"><a class="header" href="#解决策略">解决策略</a></h3>
+<p><strong>策略 1：滑动窗口（Sliding Window）</strong></p>
+<pre><code class="language-python">class SlidingWindowMemory:
+    """保留最近 N 条消息"""
+
+    def __init__(self, max_messages: int = 10):
+        self.messages = []
+        self.max_messages = max_messages
+
+    def add(self, message: dict):
+        self.messages.append(message)
+        if len(self.messages) &gt; self.max_messages:
+            # 保留 system message + 最近的消息
+            system_msg = self.messages[0]  # 假设第一条是 system
+            self.messages = [system_msg] + self.messages[-self.max_messages+1:]
+
+    def get_context(self):
+        return self.messages
+</code></pre>
+<p><strong>策略 2：摘要压缩（Summarization）</strong></p>
+<pre><code class="language-python">class SummarizingMemory:
+    """定期压缩历史对话"""
+
+    def __init__(self, llm, max_tokens: int = 4000):
+        self.llm = llm
+        self.messages = []
+        self.max_tokens = max_tokens
+
+    def add(self, message: dict):
+        self.messages.append(message)
+
+        # 检查 token 数量
+        if self.estimate_tokens() &gt; self.max_tokens:
+            self.compress()
+
+    def compress(self):
+        """压缩旧消息"""
+        # 保留最近 5 条完整消息
+        recent = self.messages[-5:]
+
+        # 压缩更早的消息
+        old = self.messages[:-5]
+        summary = self.llm.generate(
+            f"总结以下对话，保留关键信息：\n{old}"
+        )
+
+        # 用摘要替换旧消息
+        self.messages = [
+            {"role": "system", "content": f"之前的对话摘要：{summary}"}
+        ] + recent
+</code></pre>
+<p><strong>策略 3：相关性过滤（Relevance Filtering）</strong></p>
+<pre><code class="language-python">class RelevanceFilteredMemory:
+    """只保留与当前问题相关的历史"""
+
+    def get_relevant_context(self, current_query: str, history: List):
+        """检索相关的历史消息"""
+        relevant = []
+
+        for msg in history:
+            relevance_score = self.calculate_relevance(current_query, msg)
+            if relevance_score &gt; 0.7:
+                relevant.append(msg)
+
+        return relevant
+
+    def calculate_relevance(self, query: str, message: dict) -&gt; float:
+        """计算相关性（简化版，实际可用 embedding）"""
+        # 使用 LLM 评估相关性
+        prompt = f"""
+        问题：{query}
+        历史消息：{message['content']}
+
+        这条历史消息与当前问题的相关性（0-1）？
+        只返回数字。
+        """
+        score = float(self.llm.generate(prompt))
+        return score
+</code></pre>
+<hr>
+<h2 id="16-质量保证与测试"><a class="header" href="#16-质量保证与测试">1.6 质量保证与测试</a></h2>
+<h3 id="llm-系统的测试策略"><a class="header" href="#llm-系统的测试策略">LLM 系统的测试策略</a></h3>
+<p><strong>1. 单元测试（固定输入输出）</strong></p>
+<pre><code class="language-python">def test_sentiment_analysis():
+    """测试情感分析功能"""
+
+    test_cases = [
+        {
+            "input": "这个产品太棒了！",
+            "expected": "positive"
+        },
+        {
+            "input": "质量很差，非常失望",
+            "expected": "negative"
+        },
+        {
+            "input": "还可以吧",
+            "expected": "neutral"
+        }
+    ]
+
+    for case in test_cases:
+        result = sentiment_agent.analyze(case["input"])
+        assert result == case["expected"], \
+            f"Failed: {case['input']} -&gt; {result} (expected {case['expected']})"
+</code></pre>
+<p><strong>2. 基于 LLM 的评估（Evaluation with LLM）</strong></p>
+<pre><code class="language-python">class LLMEvaluator:
+    """用 LLM 评估 LLM 输出"""
+
+    def evaluate_answer(self, question: str, answer: str, reference: str) -&gt; dict:
+        """评估答案质量"""
+
+        prompt = f"""
+        评估以下答案的质量：
+
+        问题：{question}
+        参考答案：{reference}
+        待评估答案：{answer}
+
+        评分标准（1-5分）：
+        1. 准确性：答案是否正确？
+        2. 完整性：是否覆盖所有要点？
+        3. 简洁性：表达是否简洁清晰？
+
+        返回 JSON：
+        {{
+          "accuracy": 1-5,
+          "completeness": 1-5,
+          "conciseness": 1-5,
+          "overall": 1-5,
+          "feedback": "具体反馈"
+        }}
+        """
+
+        result = self.llm.generate(prompt)
+        return parse_json(result)
+</code></pre>
+<p><strong>3. A/B 测试（在线评估）</strong></p>
+<pre><code class="language-python">class ABTestingFramework:
+    """A/B 测试框架"""
+
+    def __init__(self):
+        self.model_a = GPT4()
+        self.model_b = Claude35()
+        self.results = []
+
+    def route_request(self, user_id: int, query: str):
+        """随机分配用户到不同模型"""
+
+        if hash(user_id) % 2 == 0:
+            model, variant = self.model_a, "A"
+        else:
+            model, variant = self.model_b, "B"
+
+        start_time = time.time()
+        response = model.generate(query)
+        latency = time.time() - start_time
+
+        # 记录结果
+        self.results.append({
+            "variant": variant,
+            "latency": latency,
+            "response": response,
+            "user_id": user_id
+        })
+
+        return response
+
+    def analyze_results(self):
+        """分析 A/B 测试结果"""
+        a_results = [r for r in self.results if r["variant"] == "A"]
+        b_results = [r for r in self.results if r["variant"] == "B"]
+
+        return {
+            "A": {
+                "avg_latency": np.mean([r["latency"] for r in a_results]),
+                "count": len(a_results)
+            },
+            "B": {
+                "avg_latency": np.mean([r["latency"] for r in b_results]),
+                "count": len(b_results)
+            }
+        }
+</code></pre>
+<hr>
+<h2 id="17-生产环境最佳实践"><a class="header" href="#17-生产环境最佳实践">1.7 生产环境最佳实践</a></h2>
+<h3 id="1-错误处理"><a class="header" href="#1-错误处理">1. 错误处理</a></h3>
+<pre><code class="language-python">class RobustLLMClient:
+    """健壮的 LLM 客户端"""
+
+    def __init__(self, llm, max_retries: int = 3):
+        self.llm = llm
+        self.max_retries = max_retries
+
+    async def generate(self, prompt: str, **kwargs):
+        """带重试的生成"""
+
+        for attempt in range(self.max_retries):
+            try:
+                response = await self.llm.generate(prompt, **kwargs)
+                return response
+
+            except RateLimitError as e:
+                # 速率限制：指数退避
+                wait_time = 2 ** attempt
+                logger.warning(f"Rate limited, retry in {wait_time}s")
+                await asyncio.sleep(wait_time)
+
+            except TimeoutError as e:
+                # 超时：重试
+                logger.warning(f"Timeout on attempt {attempt+1}")
+                if attempt == self.max_retries - 1:
+                    raise
+
+            except InvalidRequestError as e:
+                # 无效请求：不重试
+                logger.error(f"Invalid request: {e}")
+                raise
+
+        raise Exception(f"Failed after {self.max_retries} retries")
+</code></pre>
+<h3 id="2-监控与日志"><a class="header" href="#2-监控与日志">2. 监控与日志</a></h3>
+<pre><code class="language-python">class MonitoredLLMClient:
+    """带监控的 LLM 客户端"""
+
+    async def generate(self, prompt: str, **kwargs):
+        start_time = time.time()
+
+        try:
+            response = await self.llm.generate(prompt, **kwargs)
+
+            # 记录成功指标
+            self.metrics.record({
+                "latency": time.time() - start_time,
+                "input_tokens": self.count_tokens(prompt),
+                "output_tokens": self.count_tokens(response),
+                "model": self.llm.model_name,
+                "status": "success"
+            })
+
+            return response
+
+        except Exception as e:
+            # 记录失败
+            self.metrics.record({
+                "latency": time.time() - start_time,
+                "model": self.llm.model_name,
+                "status": "error",
+                "error_type": type(e).__name__
+            })
+            raise
+</code></pre>
+<h3 id="3-成本控制"><a class="header" href="#3-成本控制">3. 成本控制</a></h3>
+<pre><code class="language-python">class CostControlledClient:
+    """成本控制的 LLM 客户端"""
+
+    def __init__(self, llm, budget_per_day: float):
+        self.llm = llm
+        self.budget_per_day = budget_per_day
+        self.today_cost = 0
+        self.last_reset = date.today()
+
+    async def generate(self, prompt: str, **kwargs):
+        # 检查预算
+        self.check_budget()
+
+        # 估算成本
+        estimated_cost = self.estimate_cost(prompt, kwargs.get("max_tokens", 1000))
+
+        if self.today_cost + estimated_cost &gt; self.budget_per_day:
+            raise BudgetExceededError(
+                f"Daily budget ${self.budget_per_day} exceeded"
+            )
+
+        # 生成
+        response = await self.llm.generate(prompt, **kwargs)
+
+        # 更新成本
+        actual_cost = self.calculate_cost(prompt, response)
+        self.today_cost += actual_cost
+
+        return response
+
+    def check_budget(self):
+        """重置每日预算"""
+        if date.today() &gt; self.last_reset:
+            self.today_cost = 0
+            self.last_reset = date.today()
+</code></pre>
+<hr>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<h3 id="核心要点回顾"><a class="header" href="#核心要点回顾">核心要点回顾</a></h3>
+<p><strong>1. LLM 能力边界</strong></p>
+<ul>
+<li>不存在脱离模型版本、任务分布、prompt 和评测集的通用准确率</li>
+<li>擅长：语义理解、改写、抽取、受约束生成、规划草案</li>
+<li>不擅长：精确计算、实时事实、长期状态、不可逆高风险行动</li>
+<li>核心：条件概率生成，需要工具、检索、状态和验证系统配合</li>
+</ul>
+<p><strong>2. 幻觉问题</strong></p>
+<ul>
+<li>类型：事实性、逻辑性、引用性幻觉</li>
+<li>应对：工具调用、RAG、Self-Consistency、外部验证</li>
+</ul>
+<p><strong>3. Prompt Engineering</strong></p>
+<ul>
+<li>明确性：详细的任务描述和要求</li>
+<li>结构化：清晰的输入输出格式</li>
+<li>示例驱动：Few-Shot Learning 明确标签边界和输出风格</li>
+<li>约束条件：格式、内容、风格的明确要求</li>
+</ul>
+<p><strong>4. 模型选择</strong></p>
+<ul>
+<li>不维护静态模型排行榜，用任务 eval 做选择</li>
+<li>根据推理、代码、工具调用、结构化输出、长上下文、延迟、成本和数据治理综合取舍</li>
+<li>通过模型分层、缓存和批处理降低规模化成本</li>
+</ul>
+<p><strong>5. 上下文管理</strong></p>
+<ul>
+<li>滑动窗口：保留最近消息</li>
+<li>摘要压缩：压缩历史对话</li>
+<li>相关性过滤：只保留相关信息</li>
+</ul>
+<p><strong>6. 质量保证</strong></p>
+<ul>
+<li>单元测试：固定输入输出</li>
+<li>LLM 评估：用 LLM 评估 LLM</li>
+<li>A/B 测试：在线对比不同模型</li>
+</ul>
+<p><strong>7. 生产最佳实践</strong></p>
+<ul>
+<li>错误处理：重试、退避、降级</li>
+<li>监控日志：性能、成本、错误追踪</li>
+<li>成本控制：预算管理、成本估算</li>
+</ul>
+<h3 id="关键洞察"><a class="header" href="#关键洞察">关键洞察</a></h3>
+<blockquote>
+<p><strong>成功的 Agent 系统建立在对 LLM 能力边界的深刻理解之上。不是让 LLM 做所有事情，而是让它做它擅长的事情，其余交给传统工程方法。</strong></p>
+</blockquote>
+<blockquote>
+<p><strong>任何能力数字都必须回答四个问题：在哪个模型版本上、在哪批数据上、用哪个 prompt / harness、按什么指标评估。答不出这四点，数字就只能算印象，不是工程证据。</strong></p>
+</blockquote>
+<h3 id="下一章预告"><a class="header" href="#下一章预告">下一章预告</a></h3>
+<p>下一章我们将进入 <strong>Prompt Engineering 与结构化输出</strong>：学习如何把人的意图整理成模型可执行、系统可验证的任务协议。</p>
+<hr>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<ol>
+<li><a href="https://arxiv.org/abs/2303.08774">GPT-4 Technical Report</a> - OpenAI, 2023</li>
+<li><a href="https://crfm.stanford.edu/helm/latest/">Holistic Evaluation of Language Models</a> - Stanford CRFM, 2023</li>
+<li><a href="https://arxiv.org/abs/2109.07958">TruthfulQA: Measuring How Models Mimic Human Falsehoods</a> - Lin et al., 2021</li>
+<li><a href="https://www.swebench.com/">SWE-bench: Can Language Models Resolve Real-World GitHub Issues?</a> - Jimenez et al., 2023</li>
+<li><a href="https://arxiv.org/abs/2005.14165">Language Models are Few-Shot Learners</a> - Brown et al., 2020</li>
+<li><a href="https://arxiv.org/abs/2201.11903">Chain-of-Thought Prompting Elicits Reasoning in Large Language Models</a> - Wei et al., 2022</li>
+<li><a href="https://arxiv.org/abs/2005.11401">Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</a> - Lewis et al., 2020</li>
+<li><a href="https://openai.com/index/introducing-structured-outputs-in-the-api/">Introducing Structured Outputs in the API</a> - OpenAI, 2024</li>
+<li><a href="https://arena.ai/leaderboard">LMArena / Arena Leaderboard</a> - LMArena, dynamic leaderboard</li>
+<li><a href="https://github.com/livebench/livebench">LiveBench</a> - contamination-aware dynamic LLM benchmark</li>
+<li><a href="https://artificialanalysis.ai/">Artificial Analysis</a> - model quality, speed and cost analysis</li>
+<li><a href="https://aider.chat/docs/leaderboards/">Aider LLM Leaderboards</a> - coding and code editing benchmark</li>
+<li><a href="https://www.tau-bench.com/">τ-bench: Tool-Agent-User Interaction Benchmark</a> - Yao et al., 2024</li>
+<li><a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a> - Vaswani et al., 2017</li>
+<li><a href="https://arxiv.org/abs/2001.08361">Scaling Laws for Neural Language Models</a> - Kaplan et al., 2020</li>
+<li><a href="https://arxiv.org/abs/2203.15556">Training Compute-Optimal Large Language Models</a> - Hoffmann et al., 2022</li>
+<li><a href="https://arxiv.org/abs/2203.02155">Training Language Models to Follow Instructions with Human Feedback</a> - Ouyang et al., 2022</li>
+<li><a href="https://arxiv.org/abs/2305.18290">Direct Preference Optimization: Your Language Model is Secretly a Reward Model</a> - Rafailov et al., 2023</li>
+<li><a href="https://arxiv.org/abs/2210.03629">ReAct: Synergizing Reasoning and Acting in Language Models</a> - Yao et al., 2022</li>
+<li><a href="https://arxiv.org/abs/2302.04761">Toolformer: Language Models Can Teach Themselves to Use Tools</a> - Schick et al., 2023</li>
+<li><a href="https://arxiv.org/abs/2106.09685">LoRA: Low-Rank Adaptation of Large Language Models</a> - Hu et al., 2021</li>
+<li><a href="https://arxiv.org/abs/2305.14314">QLoRA: Efficient Finetuning of Quantized LLMs</a> - Dettmers et al., 2023</li>
+<li><a href="https://arxiv.org/abs/2302.13971">LLaMA: Open and Efficient Foundation Language Models</a> - Touvron et al., 2023</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part1/02-prompt-engineering.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part1/02-prompt-engineering.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

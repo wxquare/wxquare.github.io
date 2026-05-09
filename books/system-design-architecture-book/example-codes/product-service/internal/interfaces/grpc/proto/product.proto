@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package product.v1;
+
+option go_package = "product-service/internal/interfaces/grpc/proto;proto";
+
+// ProductService 商品服务gRPC接口
+service ProductService {
+    // 查询单个商品
+    rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+    
+    // 批量查询商品
+    rpc BatchGetProducts(BatchGetProductsRequest) returns (BatchGetProductsResponse);
+    
+    // 商品上架
+    rpc OnShelf(OnShelfRequest) returns (OnShelfResponse);
+    
+    // 更新基础价格
+    rpc UpdateBasePrice(UpdateBasePriceRequest) returns (UpdateBasePriceResponse);
+}
+
+// GetProduct请求
+message GetProductRequest {
+    int64 sku_id = 1;
+}
+
+// GetProduct响应
+message GetProductResponse {
+    ProductInfo product = 1;
+}
+
+// BatchGetProducts请求
+message BatchGetProductsRequest {
+    repeated int64 sku_ids = 1;  // 最多100个
+}
+
+// BatchGetProducts响应
+message BatchGetProductsResponse {
+    repeated ProductInfo products = 1;
+}
+
+// OnShelf请求
+message OnShelfRequest {
+    int64 sku_id = 1;
+}
+
+// OnShelf响应
+message OnShelfResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// UpdateBasePrice请求
+message UpdateBasePriceRequest {
+    int64 sku_id = 1;
+    int64 new_price = 2;  // 价格（分）
+}
+
+// UpdateBasePrice响应
+message UpdateBasePriceResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// 商品信息
+message ProductInfo {
+    int64 sku_id = 1;
+    int64 spu_id = 2;
+    string sku_code = 3;
+    string sku_name = 4;
+    int64 base_price = 5;             // 基础价格（分）
+    map<string, string> specs = 6;    // 规格
+    string status = 7;                // DRAFT/ON_SHELF/OFF_SHELF
+    repeated string images = 8;
+    int64 created_at = 9;             // Unix timestamp
+    int64 updated_at = 10;
+}

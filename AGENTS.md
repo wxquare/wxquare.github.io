@@ -12,6 +12,10 @@
 - `source/_posts/other/` - 其他主题文章
 - `source/about/` - 关于页面和面试资料
 - `source/diagrams/` - Excalidraw图表文件
+- `books/ai-book/` - AI Agent 工程实践 mdBook
+- `books/ecommerce-book/` - 电商系统架构设计 mdBook
+- `books/system-design-book/` - 程序员系统设计与面试指南 mdBook
+- `books/scripts/` - 三本 mdBook 共用的构建辅助脚本
 - `resume/` - 简历相关文档
 
 ## 开发命令
