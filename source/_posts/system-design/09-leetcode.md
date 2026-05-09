@@ -496,8 +496,11 @@ toc: true
   - [33. 搜索旋转排序数组](https://leetcode.cn/problems/search-in-rotated-sorted-array/) 【模式：分类讨论；利用局部单调性缩小区间】
   - [81. 搜索旋转排序数组 II](https://leetcode.cn/problems/search-in-rotated-sorted-array-ii/) 【模式：去重处理；含重复元素时，通过 `l++, r--` 恢复单调性，最坏 $O(n)$】
   - [153. 寻找旋转排序数组中的最小值](https://leetcode.cn/problems/find-minimum-in-rotated-sorted-array/) 【模式：旋转点查找；比较 `mid` 与 `right` 确定最小值所在半区】
+  - [154. 寻找旋转排序数组中的最小值 II](https://leetcode.cn/problems/find-minimum-in-rotated-sorted-array-ii) 【模式：旋转点查找 + 去重；和 153 题一样比较 `mid` 与 `right` 定位最小值，但遇到 `nums[mid] == nums[right]` 时只能 `right--` 收缩边界，最坏退化为 $O(n)$】
   - [162. 寻找峰值](https://leetcode.cn/problems/find-peak-element) 【模式：局部单调性二分；核心：比较 `mid` 与 `mid+1` 确定爬坡方向，在无序数组中实现 $O(\log n)$ 查找】
     - **Follow-up (含重复元素)**：当 `nums[mid] == nums[mid+1]` 时无法确定方向，需线性收缩边界或分治，最坏复杂度退化至 $O(n)$。
+  - [面试题 10.03. 搜索旋转数组](https://leetcode.cn/problems/search-rotate-array-lcci) 【模式：旋转数组搜索 + 重复元素；和 81 题类似利用局部单调性二分，但要求返回最小下标，遇到重复值时需要收缩边界，最坏退化为 $O(n)$】
+
 
 - **二维矩阵二分 (2D Matrix Search)**
   - [74. 搜索二维矩阵](https://leetcode.cn/problems/search-a-2d-matrix) 【模式：一维化二分；整个矩阵严格单调，映射为一维处理】
@@ -1063,4 +1066,3 @@ toc: true
 - https://cp-algorithms.com/
 - https://leetcode.cn/circle/discuss/tXLS3i/
 - https://leetcode.Studyplan/selected-coding-interview/
-
