@@ -28,7 +28,7 @@
 
 # 第三部分 A：成熟系统解析
 
-- [第13章 AI Coding Agent 系统解析：从 Vibe Coding、Spec Coding 到 Claude Code / Cursor / Codex](part3/01-coding-agent-systems.md)
+- [第13章 AI Coding Agent 系统解析：从工作协议到 Harness 工程](part3/01-coding-agent-systems.md)
 - [第14章 Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程](part3/03-pi-agent-architecture.md)
 - [第15章 OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态](part3/04-openclaw-architecture.md)
 - [第16章 Hermes Agent 架构解析：自我进化、记忆与多入口 Agent Gateway](part3/05-hermes-agent-architecture.md)
