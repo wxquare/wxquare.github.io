@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b1b13cf2.js";
+            window.path_to_searchindex_js = "../searchindex-705630ac.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-69e853c8.js"></script>
@@ -315,6 +315,31 @@ flowchart TB
 </table>
 </div>
 <p>这种分层让 Hermes 不只是一个 CLI 工具，而是一个可嵌入不同入口、不同执行环境、不同研究工作流的 Agent Runtime。</p>
+<h3 id="与第5章组件地图的对应关系"><a class="header" href="#与第5章组件地图的对应关系">与第5章组件地图的对应关系</a></h3>
+<p>Hermes 的重点不是“单次任务执行”，而是长期运行、自我进化和多入口接入。用第 5 章组件地图看，Hermes 对 Memory、Skills、Toolsets、Profiles、Research Pipeline 和 Learning Loop 覆盖很强；但如果要进入企业生产，还需要额外补强审批、合规审计、发布门禁和严格 Eval Harness。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">第5章组件</th><th style="text-align: left">Hermes 中的实现方式</th><th style="text-align: left">实现状态与差异</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Event &amp; Intake Router</td><td style="text-align: left">CLI / TUI、Messaging Gateway、ACP / IDE、Cron、Batch Runner / API</td><td style="text-align: left">强实现；多入口是 Hermes 从工具变成服务的关键</td></tr>
+<tr><td style="text-align: left">Intent Normalizer</td><td style="text-align: left">Prompt System、Profiles、入口类型和上下文文件共同塑造任务边界</td><td style="text-align: left">部分实现；更偏运行时上下文塑形，不一定显式生成任务契约</td></tr>
+<tr><td style="text-align: left">Task Planner</td><td style="text-align: left">AIAgent Loop 中的任务推进，Cron / Batch 可形成固定任务计划</td><td style="text-align: left">隐式到中等实现；计划存在于 loop、prompt 和任务配置中</td></tr>
+<tr><td style="text-align: left">Context Builder</td><td style="text-align: left">Prompt Builder、Context Compressor、AGENTS.md / <code>.hermes.md</code> / SOUL.md、Profiles</td><td style="text-align: left">强实现；上下文稳定性是 Hermes 的核心设计</td></tr>
+<tr><td style="text-align: left">Memory Layer</td><td style="text-align: left">MEMORY.md、USER.md、SQLite Sessions + FTS5、Profiles、Session Search</td><td style="text-align: left">强实现；长期事实、偏好、会话搜索和身份隔离是重点</td></tr>
+<tr><td style="text-align: left">Execution State &amp; Checkpoint</td><td style="text-align: left">SQLite state、sessions、callbacks、streaming、tool result persistence</td><td style="text-align: left">中等到强；支持回放和研究，但严格 checkpoint / rollback 需要上层治理</td></tr>
+<tr><td style="text-align: left">Capability Registry</td><td style="text-align: left">Tool Registry、Toolsets、MCP Tools、Plugins、Skills</td><td style="text-align: left">强实现；Toolsets 是权限和能力分组的核心单位</td></tr>
+<tr><td style="text-align: left">Policy Engine &amp; Human Control Plane</td><td style="text-align: left">Toolsets、Profiles、Execution Backends、Security 分层</td><td style="text-align: left">中等实现；能力分组清晰，但企业审批和人工接管流程需要强化</td></tr>
+<tr><td style="text-align: left">Agent Loop</td><td style="text-align: left">AIAgent Loop 统一多入口、模型调用、工具分发、流式回调和状态持久化</td><td style="text-align: left">强实现；这是 Hermes 的运行核心</td></tr>
+<tr><td style="text-align: left">Model Router &amp; Handoff Manager</td><td style="text-align: left">Provider Resolver、Profiles、不同入口和执行后端</td><td style="text-align: left">中等实现；模型选择清晰，专家委派和多 Agent 协作不是主要叙事</td></tr>
+<tr><td style="text-align: left">Verifier &amp; Eval Harness</td><td style="text-align: left">Research Pipeline、轨迹数据、失败样本、技能演化约束</td><td style="text-align: left">部分到中等实现；更偏研究与改进数据，生产 release gate 仍需补齐</td></tr>
+<tr><td style="text-align: left">Review Surface、Trace &amp; Audit</td><td style="text-align: left">callbacks、streaming、SQLite sessions、Gateway 消息、轨迹资产</td><td style="text-align: left">中等实现；可观测材料丰富，但合规审计口径需要工程化</td></tr>
+<tr><td style="text-align: left">Learning Loop</td><td style="text-align: left">Skills 演化、Memory 更新、Research Pipeline、轨迹到训练数据</td><td style="text-align: left">强实现；Hermes 最鲜明的差异点，但必须受验证和 owner review 约束</td></tr>
+</tbody>
+</table>
+</div>
+<p>Hermes 因此特别适合作为第 5 章 Learning Loop、Memory Layer 和长期 Agent 的系统案例。它提醒我们：Agent 的能力会随着记忆、技能和轨迹积累而增长，但这种增长必须被验证器、评测集和人工审核约束，否则“自我进化”很容易变成“错误经验自动固化”。</p>
 <hr>
 <h2 id="163-agent-loop统一多入口的运行核心"><a class="header" href="#163-agent-loop统一多入口的运行核心">16.3 Agent Loop：统一多入口的运行核心</a></h2>
 <p>Hermes 的核心是一个同步编排引擎，可以理解为：</p>
@@ -985,22 +1010,6 @@ Research profile: batch + trajectory + eval tools
         <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
         <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
         <script>

@@ -152,6 +152,28 @@ flowchart TB
 
 这种分层让 Hermes 不只是一个 CLI 工具，而是一个可嵌入不同入口、不同执行环境、不同研究工作流的 Agent Runtime。
 
+### 与第5章组件地图的对应关系
+
+Hermes 的重点不是“单次任务执行”，而是长期运行、自我进化和多入口接入。用第 5 章组件地图看，Hermes 对 Memory、Skills、Toolsets、Profiles、Research Pipeline 和 Learning Loop 覆盖很强；但如果要进入企业生产，还需要额外补强审批、合规审计、发布门禁和严格 Eval Harness。
+
+| 第5章组件 | Hermes 中的实现方式 | 实现状态与差异 |
+|:---|:---|:---|
+| Event & Intake Router | CLI / TUI、Messaging Gateway、ACP / IDE、Cron、Batch Runner / API | 强实现；多入口是 Hermes 从工具变成服务的关键 |
+| Intent Normalizer | Prompt System、Profiles、入口类型和上下文文件共同塑造任务边界 | 部分实现；更偏运行时上下文塑形，不一定显式生成任务契约 |
+| Task Planner | AIAgent Loop 中的任务推进，Cron / Batch 可形成固定任务计划 | 隐式到中等实现；计划存在于 loop、prompt 和任务配置中 |
+| Context Builder | Prompt Builder、Context Compressor、AGENTS.md / `.hermes.md` / SOUL.md、Profiles | 强实现；上下文稳定性是 Hermes 的核心设计 |
+| Memory Layer | MEMORY.md、USER.md、SQLite Sessions + FTS5、Profiles、Session Search | 强实现；长期事实、偏好、会话搜索和身份隔离是重点 |
+| Execution State & Checkpoint | SQLite state、sessions、callbacks、streaming、tool result persistence | 中等到强；支持回放和研究，但严格 checkpoint / rollback 需要上层治理 |
+| Capability Registry | Tool Registry、Toolsets、MCP Tools、Plugins、Skills | 强实现；Toolsets 是权限和能力分组的核心单位 |
+| Policy Engine & Human Control Plane | Toolsets、Profiles、Execution Backends、Security 分层 | 中等实现；能力分组清晰，但企业审批和人工接管流程需要强化 |
+| Agent Loop | AIAgent Loop 统一多入口、模型调用、工具分发、流式回调和状态持久化 | 强实现；这是 Hermes 的运行核心 |
+| Model Router & Handoff Manager | Provider Resolver、Profiles、不同入口和执行后端 | 中等实现；模型选择清晰，专家委派和多 Agent 协作不是主要叙事 |
+| Verifier & Eval Harness | Research Pipeline、轨迹数据、失败样本、技能演化约束 | 部分到中等实现；更偏研究与改进数据，生产 release gate 仍需补齐 |
+| Review Surface、Trace & Audit | callbacks、streaming、SQLite sessions、Gateway 消息、轨迹资产 | 中等实现；可观测材料丰富，但合规审计口径需要工程化 |
+| Learning Loop | Skills 演化、Memory 更新、Research Pipeline、轨迹到训练数据 | 强实现；Hermes 最鲜明的差异点，但必须受验证和 owner review 约束 |
+
+Hermes 因此特别适合作为第 5 章 Learning Loop、Memory Layer 和长期 Agent 的系统案例。它提醒我们：Agent 的能力会随着记忆、技能和轨迹积累而增长，但这种增长必须被验证器、评测集和人工审核约束，否则“自我进化”很容易变成“错误经验自动固化”。
+
 ---
 
 ## 16.3 Agent Loop：统一多入口的运行核心

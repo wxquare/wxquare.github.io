@@ -325,6 +325,28 @@ Agent 执行
 
 这些模块的边界要清楚。模型可以建议行动，但工具和权限由 Runtime 控制；模型可以总结结果，但完成判定必须由 Verifier 和人审共同支撑。
 
+### 与第5章组件地图的对应关系
+
+第 5 章把生产级 Agent Runtime 拆成 13 个核心组件。放到 Coding Agent 场景里，这些组件会更具体：入口不再只是聊天，而是 issue、diff、终端、IDE、PR、CI；上下文不再只是文档，而是代码仓库、Git 状态、测试输出、项目规则和历史变更。
+
+| 第5章组件 | Coding Agent 中的典型实现 | Claude Code / Cursor / Codex 的差异 |
+|:---|:---|:---|
+| Event & Intake Router | 接收自然语言任务、issue、PR 评论、终端命令、IDE 操作和后台任务 | Claude Code 偏终端入口，Cursor 偏 IDE 入口，Codex 同时覆盖本地任务和云端任务队列 |
+| Intent Normalizer | 把“修一下这个问题”转成 bugfix、refactor、test、review、explain、migration 等任务类型 | IDE 产品更依赖当前文件和选区，终端/云端产品更依赖任务说明、仓库和分支 |
+| Task Planner | 生成 todo、计划、文件阅读顺序、修改路径和验证步骤 | Claude Code / Codex 更强调长任务计划，Cursor 更强调人机共编中的局部计划 |
+| Context Builder | 选择代码片段、规则文件、Git diff、测试输出、日志、文档和工具结果 | Cursor 的 IDE 上下文更细，Claude Code 的终端上下文更宽，Codex 的 sandbox 上下文更任务化 |
+| Memory Layer | 项目规则、用户偏好、历史会话、失败样本、常用 workflow | Claude Code / Cursor 偏项目规则和用户设置，Codex 更强调任务状态、会话、日志和云端任务历史 |
+| Execution State & Checkpoint | 计划、已读文件、已改文件、工具结果、验证结果、checkpoint、worktree | Cursor 的 checkpoint 面向编辑体验，Codex 的 worktree/sandbox 面向并行任务，终端 Agent 依赖会话状态和 Git |
+| Capability Registry | 读文件、搜索、编辑、Shell、Git、MCP、浏览器、测试、review agent | 终端 Agent 的 Shell 能力最强，IDE Agent 的编辑能力最贴近人，云端 Agent 的环境隔离和批量能力更强 |
+| Policy Engine & Human Control Plane | read-before-edit、路径沙箱、命令 allowlist、网络限制、secret 保护、人工审批 | Claude Code 侧重 permission/hooks，Cursor 侧重 review/checkpoint，Codex 侧重 approval mode、sandbox 和 PR review |
+| Agent Loop | 多轮“读代码 -> 推理 -> 改动 -> 运行验证 -> 修复” | 三类产品都有 loop，但 UI 和执行节奏不同：终端偏连续执行，IDE 偏交互接管，云端偏异步任务 |
+| Model Router & Handoff Manager | 根据任务选择模型、子 Agent、reviewer、后台任务或人工接管 | Cursor / Codex 更容易接入后台任务和 review agent，Claude Code 更偏终端内 subagent 与 hooks |
+| Verifier & Eval Harness | 测试、lint、typecheck、build、CI、diff check、回归样本 | 成熟 Coding Agent 的分水岭是能否把“完成”绑定到验证结果，而不是 final answer |
+| Review Surface、Trace & Audit | diff、patch、PR、commit message、summary、tool trace、失败原因 | IDE review 最直观，终端 review 依赖 diff/summary，云端 review 依赖 PR、CI 和任务 trace |
+| Learning Loop | 从失败任务、review comment、测试失败和用户反馈沉淀规则、Skill、Eval case | 大多数产品都有部分闭环，但“自动学习”通常要受 owner review 和 release gate 约束 |
+
+这张表说明一个关键点：Coding Agent 的成熟度不取决于它会不会写代码，而取决于它能否把代码修改放进**任务契约、上下文治理、权限裁决、验证门禁和审查表面**里。第 19 章会把这些组件落成一个最小可运行版本。
+
 ### 13.2.3 Coding Agent 的实现分层
 
 从产品实现看，Coding Agent 不是一个单独的聊天窗口，而是一组围绕模型建立的控制面。

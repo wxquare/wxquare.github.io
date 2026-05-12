@@ -159,6 +159,28 @@ flowchart TB
 
 OpenClaw 最值得学习的地方，是它没有把所有东西堆进 Agent Loop。它把消息接入、会话路由、工具策略、上下文构建、沙箱执行拆到不同层，每层只承担一个主要职责。
 
+### 与第5章组件地图的对应关系
+
+OpenClaw 的特点是 Gateway 很强。它不是只做一个 Agent Loop，而是先把多渠道入口、身份绑定、队列、会话、上下文、工具、插件和执行边界组织起来。用第 5 章组件地图来看，OpenClaw 对“入口路由、人类交互、上下文、工具扩展、权限边界”覆盖较完整，对“离线 Eval Harness、模型路由、长期学习闭环”的公开实现则相对弱一些。
+
+| 第5章组件 | OpenClaw 中的实现方式 | 实现状态与差异 |
+|:---|:---|:---|
+| Event & Intake Router | Channel Adapter、Gateway Ingress、Queue、WebChat、移动 / 桌面 Nodes | 强实现；这是 OpenClaw 的架构核心 |
+| Intent Normalizer | Inbound Normalization、Routing & Bindings、会话上下文共同决定任务入口 | 部分实现；更偏消息归一化和路由，任务契约需要 Runtime/Skill 进一步形成 |
+| Task Planner | Agent Runtime 内部计划，Skill / Plugin 可提供流程约束 | 隐式实现；不是显式 planner 服务 |
+| Context Builder | Context Engine、Workspace、Bootstrap Context、Prompt Builder | 强实现；上下文构建被抽成可插拔引擎 |
+| Memory Layer | Session、Memory、Compaction、DM isolation | 中等实现；偏个人助手会话和长期上下文，不是企业知识治理平台 |
+| Execution State & Checkpoint | Queue、Session Manager、Command Queue、Transcript、Compaction | 强实现；适合长期在线个人助手和异步消息处理 |
+| Capability Registry | Tool Registry、Skills、Plugins、Hooks、MCP / External Tools | 强实现；Tool / Skill / Plugin 三层边界清楚 |
+| Policy Engine & Human Control Plane | Pairing / Allowlist / Auth、Tool Policy、Sandbox、workspaceAccess、Control UI | 强实现；个人助手场景下的权限和接管模型很完整 |
+| Agent Loop | Agent Runtime 中的 loop 负责模型调用、工具调度和事件输出 | 中等到强；OpenClaw 更强调 Gateway + Runtime 组合，而不是单独炫技 loop |
+| Model Router & Handoff Manager | Routing & Bindings、多 Agent Routing、不同助手绑定 | 中等实现；多 Agent 路由是亮点，但复杂专家委派和模型竞价不是重点 |
+| Verifier & Eval Harness | 工具结果、diff / summary、人工 review、Control UI 反馈 | 部分实现；运行时可审查较强，系统化离线 Eval 需要补齐 |
+| Review Surface、Trace & Audit | WebChat、Control UI、事件流、消息回执、会话 transcript | 强实现；用户交互和接管体验是 OpenClaw 的核心优势 |
+| Learning Loop | Skill、Plugin、Memory、用户反馈可沉淀经验 | 部分实现；更像手工/半自动沉淀，不应自动污染长期记忆和插件生态 |
+
+所以 OpenClaw 与 Pi 的差异很清楚：Pi 先把可嵌入 Runtime 做薄，OpenClaw 则把 Runtime 放进一个多入口个人 Agent Gateway 里。它更接近第 5 章里的“Entry Plane + Human Control Plane + Capability Plane”组合样板。
+
 ---
 
 ## 15.3 Gateway：个人助手的控制平面

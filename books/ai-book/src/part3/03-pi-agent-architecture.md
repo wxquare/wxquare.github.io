@@ -190,6 +190,28 @@ flowchart TB
 
 Pi 最值得学习的地方，是它把“终端体验”和“Agent Runtime”解耦了。TUI 只是一个入口；真正可复用的是 `AgentSession`、资源加载、工具运行、模型抽象和事件流。
 
+### 与第5章组件地图的对应关系
+
+Pi 的价值在于把终端原生 Coding Agent 拆成可嵌入 Runtime。用第 5 章的组件地图来看，Pi 对“入口、上下文、工具、扩展、会话、事件流”实现得比较强，对“企业级审批、长期学习闭环、离线 Eval 平台”则更多留给上层系统或嵌入方补齐。
+
+| 第5章组件 | Pi 中的实现方式 | 实现状态与差异 |
+|:---|:---|:---|
+| Event & Intake Router | Interactive TUI、Print / JSON、RPC、SDK 多入口进入同一个 `AgentSession` | 强实现；入口多样，但核心仍围绕终端和嵌入式运行时 |
+| Intent Normalizer | 通过命令模式、Prompt Template、用户输入和上下文资源形成任务边界 | 部分实现；更多依赖模型和模板，不一定有独立任务契约对象 |
+| Task Planner | Agent Loop 内部生成步骤，复杂任务可由 prompt / skill 引导 | 隐式实现；计划通常存在于会话和模型输出中，而非独立 planner 服务 |
+| Context Builder | `ResourceLoader` 加载 context files、system prompt、skills、templates，并按优先级组装 | 强实现；这是 Pi 的核心设计之一 |
+| Memory Layer | JSONL session、配置、历史会话、可能的项目级上下文文件 | 部分实现；偏会话与文件上下文，不是完整长期记忆系统 |
+| Execution State & Checkpoint | `AgentSession`、event stream、session tree、compaction 和本地 session 存储 | 强实现；适合暂停、回放、分支和嵌入式调试 |
+| Capability Registry | Tool Runtime + Extension Host + Skills + Prompt Templates + Packages | 强实现；扩展系统是 Pi-like Runtime 的关键边界 |
+| Policy Engine & Human Control Plane | 工具风险分级、bash / edit 权限、extension 信任边界、本地配置 | 部分实现；本地优先，企业审批和多租户策略需要上层补齐 |
+| Agent Loop | `AgentSession` 驱动模型调用、工具调用、事件流和压缩 | 强实现；Agent Loop 是可嵌入 Runtime 的最小心跳 |
+| Model Router & Handoff Manager | `ModelRegistry`、Provider APIs、auth、thinking level | 中等实现；支持 provider/model 切换，但专家委派和多 Agent 不是核心重点 |
+| Verifier & Eval Harness | 工具结果、事件流、session tree 可作为验证和评测材料 | 部分实现；Pi 提供数据面，完整 Eval Harness 需要外部系统建设 |
+| Review Surface、Trace & Audit | TUI、JSON event stream、RPC 输出、session 文件 | 强在 trace 事件，弱在企业审计；适合开发者可观测，不等于合规审计 |
+| Learning Loop | Skills、Prompt Templates、Packages 可沉淀经验 | 部分实现；强调可扩展资产，自动学习和 owner review 流程不是内核职责 |
+
+因此，Pi 更像一个“终端原生 Agent Runtime 内核”，而不是完整企业 Agent 平台。它把第 5 章中的 Runtime 关键边界做薄、做清楚，让 OpenClaw 这类上层系统可以复用它，再补 Gateway、权限、长期记忆、审批和产品化交互。
+
 ---
 
 ## 14.3 运行形态：同一个 Runtime，多种入口
