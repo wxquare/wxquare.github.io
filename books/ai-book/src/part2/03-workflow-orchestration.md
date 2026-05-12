@@ -1,4 +1,4 @@
-# 第7章 Agent 工作流、状态机与多 Agent 编排
+# 第7章 Agent 执行编排：工作流、状态机与多 Agent 协作
 
 > "Alone we can do so little; together we can do so much." —— Helen Keller
 

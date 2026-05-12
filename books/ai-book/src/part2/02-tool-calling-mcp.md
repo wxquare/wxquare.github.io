@@ -1,4 +1,4 @@
-# 第6章 Tool Calling、Skills 与 MCP 工程架构
+# 第6章 Agent 工具系统：Tool Calling、Skills 与 MCP
 
 > "Tools are the hands and eyes of an Agent." （工具是 Agent 的手和眼）
 
@@ -1186,7 +1186,7 @@ Tool Calling 是 Agent 从“会说”走向“会做”的关键能力，但它
 
 > **工具扩展了 Agent 的行动边界，Skills 沉淀了 Agent 的做事方法。生产级工具系统的目标，不是让模型能调用更多工具，而是让每一次调用都有方法、有边界、有证据、有责任链。**
 
-下一章将继续讨论 Agent 工作流、状态机与多 Agent 编排。工具系统解决“Agent 如何行动”，Skills 解决“相似任务如何复用经验”，工作流系统解决“多个行动如何组织成可靠过程”。
+下一章将继续讨论 Agent 执行编排：工作流、状态机与多 Agent 协作。工具系统解决“Agent 如何行动”，Skills 解决“相似任务如何复用经验”，工作流系统解决“多个行动如何组织成可靠过程”。
 
 ---
 

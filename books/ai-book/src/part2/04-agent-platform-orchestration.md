@@ -1,4 +1,4 @@
-# 第8章 Agent 平台与编排框架解析：LangGraph、AutoGen、MCP 生态
+# 第8章 Agent 平台架构：LangGraph、AutoGen 与 MCP 生态
 
 > Agent 平台的价值，不是替你写一个更长的 prompt，而是把推理、工具、状态、人工审批和恢复机制变成可组合的工程抽象。
 
