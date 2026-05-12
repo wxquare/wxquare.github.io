@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a64a9f79.js";
+            window.path_to_searchindex_js = "../searchindex-b1b13cf2.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-7410f92e.js"></script>
+        <script src="../toc-69e853c8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,7 +177,25 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第6章-agent-工具系统tool-callingskills-与-mcp"><a class="header" href="#第6章-agent-工具系统tool-callingskills-与-mcp">第6章 Agent 工具系统：Tool Calling、Skills 与 MCP</a></h1>
+                        <p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</p>
+<h1 id="第6章-agent-工具系统tool-callingskills-与-mcp"><a class="header" href="#第6章-agent-工具系统tool-callingskills-与-mcp">第6章 Agent 工具系统：Tool Calling、Skills 与 MCP</a></h1>
+<p>=======</p>
+<h1 id="第6章-agent-工具系统工程tool-callingskillscli-与-mcp"><a class="header" href="#第6章-agent-工具系统工程tool-callingskillscli-与-mcp">第6章 Agent 工具系统工程：Tool Calling、Skills、CLI 与 MCP</a></h1>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>21a1ebdd21dd9c2e1307691287887a785e5e384b</p>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
 <blockquote>
 <p>“Tools are the hands and eyes of an Agent.” （工具是 Agent 的手和眼）</p>
 </blockquote>
@@ -193,7 +211,7 @@
 </ol>
 <p>Skills 正是为第四类问题出现的工程抽象。Tool 解决“Agent 能做什么”，Skill 解决“Agent 什么时候、如何做”。它通常表现为一个可加载的操作手册、任务 Runbook 或程序性记忆，描述某类任务的触发条件、执行步骤、工具选择、约束、失败处理和验证方式。</p>
 <p>MCP（Model Context Protocol）则是为第五类问题出现的开放协议。它把“工具、资源、提示词模板”抽象成标准化能力，让 AI 应用不必为每个外部系统写一套私有集成。但 MCP 不是银弹：它只解决连接协议和能力发现问题，真正的可靠性仍然来自工具 Schema、Skills、权限模型、运行时治理、观测与评估。</p>
-<p>本章会从 Tool Calling 的底层语义讲起，进一步分析 Skills 如何把工具调用沉淀为可复用能力，再深入 MCP 的协议边界，并最终落到生产级工具架构设计。</p>
+<p>本章会从 Tool Calling 的底层语义讲起，进一步分析 Skills 如何把工具调用沉淀为可复用能力，再讨论 API、CLI、MCP 与 Browser Use 在工具系统中的位置，并最终落到生产级工具架构设计。</p>
 <hr>
 <h2 id="61-tool-calling-的本质把不确定推理接到确定执行"><a class="header" href="#61-tool-calling-的本质把不确定推理接到确定执行">6.1 Tool Calling 的本质：把不确定推理接到确定执行</a></h2>
 <p>LLM 的输出是概率性的，而外部系统的操作往往要求确定性。Tool Calling 的核心价值，是在两者之间建立一层可验证、可审计、可回滚的执行边界。</p>
@@ -253,6 +271,50 @@
 <li><strong>MCP</strong> 是连接协议：外部系统用标准方式暴露工具和资源，Host 用标准方式发现和调用。</li>
 </ul>
 <p>MCP 不替代 Tool Runtime。它提供“插头标准”，但插上去之后能不能安全可靠地工作，仍取决于运行时设计。</p>
+<h3 id="apiclimcpbrowser-use-与-skill-的分层"><a class="header" href="#apiclimcpbrowser-use-与-skill-的分层">API、CLI、MCP、Browser Use 与 Skill 的分层</a></h3>
+<p>围绕 Agent 工具系统的讨论里，经常会把 API、CLI、MCP、Skill、Browser Use 放在一起比较，甚至问“CLI 会不会取代 MCP”。这个问题本身容易混淆层级。</p>
+<p>更准确的分层是：</p>
+<pre><code class="language-text">用户意图
+  │
+  ▼
+Agent / 模型
+  │
+  ▼
+Skill / Instructions
+  │  流程、判断标准、约束和验证
+  ▼
+Tool Interface
+  │  Function Calling / MCP Tool / Shell Tool / 内置 Connector
+  ▼
+Execution Channel
+  │  API / CLI / Browser Automation / Local Runtime
+  ▼
+外部系统
+     GitHub / Notion / Slack / 数据库 / 文件系统
+</code></pre>
+<p>可以用四句话区分：</p>
+<ul>
+<li><strong>Skill 管“怎么做”</strong>：例如代码审查先看 diff，再看测试，再给出风险分级。</li>
+<li><strong>MCP 管“如何把工具暴露给 Agent”</strong>：例如 GitHub、Postgres、Figma 用统一协议暴露工具和资源。</li>
+<li><strong>CLI 管“如何通过命令执行”</strong>：例如 <code>git</code>、<code>gh</code>、<code>npm</code>、<code>docker</code>、<code>aws</code>。</li>
+<li><strong>API 管“系统底层如何被调用”</strong>：CLI 和 MCP Server 很多时候最终都会调用 API。</li>
+</ul>
+<p>Browser Use 则是另一类执行通道：当一个系统没有稳定 API、没有 CLI、也没有可用 MCP Server 时，Agent 才模拟人类操作浏览器或桌面界面。它不是默认方案，而是最后手段。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">接入方式</th><th style="text-align: left">所在层级</th><th style="text-align: left">面向谁</th><th style="text-align: left">优点</th><th style="text-align: left">风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">API</td><td style="text-align: left">底层服务接口</td><td style="text-align: left">程序 / Runtime</td><td style="text-align: left">稳定、完整、可控</td><td style="text-align: left">需要鉴权、SDK、错误处理</td></tr>
+<tr><td style="text-align: left">CLI</td><td style="text-align: left">执行通道</td><td style="text-align: left">人和 Agent</td><td style="text-align: left">本地开发友好、低成本、复用现有工具</td><td style="text-align: left">Shell 注入、输出不结构化、依赖本机环境</td></tr>
+<tr><td style="text-align: left">MCP</td><td style="text-align: left">工具协议层</td><td style="text-align: left">Agent Runtime</td><td style="text-align: left">标准化发现、跨客户端复用、适合多用户治理</td><td style="text-align: left">Server 运维、Schema 成本、权限和供应链风险</td></tr>
+<tr><td style="text-align: left">Browser Use</td><td style="text-align: left">GUI 自动化通道</td><td style="text-align: left">Agent</td><td style="text-align: left">适合无 API/CLI 的系统</td><td style="text-align: left">慢、脆弱、成本高</td></tr>
+<tr><td style="text-align: left">Skill</td><td style="text-align: left">流程层</td><td style="text-align: left">Agent</td><td style="text-align: left">复用方法、约束和验证标准</td><td style="text-align: left">过期、误触发、错误经验固化</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此，MCP 和 CLI 不是简单替代关系。CLI 是一种具体执行通道，适合本地开发环境中稳定、低成本地调用已有工具；MCP 是一种 Agent 工具协议，适合把外部能力标准化暴露给不同 Agent 客户端，尤其适合跨平台分发、多用户授权和企业治理场景。</p>
 <hr>
 <h2 id="62-工具-schema模型与系统之间的契约"><a class="header" href="#62-工具-schema模型与系统之间的契约">6.2 工具 Schema：模型与系统之间的契约</a></h2>
 <p>工具 Schema 不是普通文档，而是模型的“操作说明书”。它直接影响模型是否能选对工具、生成正确参数、理解工具结果。</p>
@@ -404,7 +466,7 @@ class ToolResult:
 <tr><td style="text-align: left">Tool Registry</td><td style="text-align: left">管理工具元数据、版本、风险等级</td><td style="text-align: left">支持按任务动态暴露工具</td></tr>
 <tr><td style="text-align: left">Schema Validator</td><td style="text-align: left">校验参数与类型</td><td style="text-align: left">严格模式、默认值、范围约束</td></tr>
 <tr><td style="text-align: left">Policy Engine</td><td style="text-align: left">决策是否允许调用</td><td style="text-align: left">RBAC、环境、风险、用户确认</td></tr>
-<tr><td style="text-align: left">Executor</td><td style="text-align: left">执行工具</td><td style="text-align: left">超时、重试、熔断、并发限制</td></tr>
+<tr><td style="text-align: left">Executor</td><td style="text-align: left">执行工具</td><td style="text-align: left">超时、重试、熔断、并发限制、执行隔离</td></tr>
 <tr><td style="text-align: left">Adapter</td><td style="text-align: left">对接外部系统</td><td style="text-align: left">API、CLI、MCP、数据库、消息队列</td></tr>
 <tr><td style="text-align: left">Result Normalizer</td><td style="text-align: left">统一返回格式</td><td style="text-align: left">成功/失败 Envelope、错误码</td></tr>
 <tr><td style="text-align: left">Observation Mapper</td><td style="text-align: left">生成模型上下文</td><td style="text-align: left">摘要、证据、压缩、脱敏</td></tr>
@@ -444,6 +506,203 @@ Observed
 <li><strong>失败不是异常路径，而是 Agent 正常推理的一部分。</strong></li>
 </ol>
 <p>例如 <code>search_logs</code> 超时后，Agent 可以缩小时间窗口重试；<code>create_incident_ticket</code> 被拒绝后，Agent 可以只输出建议；<code>prometheus_query_range</code> 返回 <code>RESULT_TOO_LARGE</code> 后，Agent 可以增加聚合粒度。</p>
+<h3 id="sandbox让-agent-在受控环境里行动"><a class="header" href="#sandbox让-agent-在受控环境里行动">Sandbox：让 Agent 在受控环境里行动</a></h3>
+<p>当 Agent 只能调用只读 API 时，安全边界主要来自 API 权限和工具 Schema。但一旦 Agent 可以运行 Shell、安装依赖、读写文件、启动浏览器、连接 MCP Server，风险就从“参数是否正确”变成了“外部进程到底能接触什么”。这时 sandbox 就不再是可选优化，而是 Tool Runtime 的基础设施。</p>
+<p>在 Agent 系统里，sandbox 的角色可以概括为一句话：</p>
+<blockquote>
+<p><strong>Sandbox 是 Agent 执行副作用动作的环境边界，用操作系统、容器、网络代理或远程隔离环境，把模型可能犯的错限制在可承受范围内。</strong></p>
+</blockquote>
+<p>它不替代权限系统，也不替代人工审批。权限系统回答“这个工具是否允许被调用”，审批回答“这次高风险动作是否被用户接受”，sandbox 回答“即使工具被调用了，底层进程最多能碰到哪里”。</p>
+<pre><code class="language-text">LLM Tool Call
+   │
+   ▼
+Policy / Approval
+   │  决定是否允许这次调用
+   ▼
+Sandbox Boundary
+   │  限制文件系统、网络、进程和凭据可见范围
+   ▼
+Executor
+   │  运行 shell / CLI / MCP server / browser automation
+   ▼
+External World
+</code></pre>
+<p>为什么需要这层边界？因为 Agent 的失败模式和传统程序不同。传统程序通常按固定代码路径执行，风险主要来自漏洞；Agent 的执行路径会被模型推理、用户输入、工具输出、网页内容、日志内容和依赖脚本共同影响。一次 prompt injection 可能诱导 Agent 读取 <code>.env</code>、上传 SSH key、运行陌生命令或修改项目外的文件。只靠“让模型不要这样做”是不够的，必须让底层执行环境从能力上做不到。</p>
+<p>生产级 sandbox 通常覆盖四类隔离：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">隔离维度</th><th style="text-align: left">作用</th><th style="text-align: left">典型策略</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">文件系统</td><td style="text-align: left">限制读写范围</td><td style="text-align: left">默认只写工作区；拒绝读取 <code>~/.ssh</code>、<code>.env</code>、系统目录；必要时挂载临时目录</td></tr>
+<tr><td style="text-align: left">网络</td><td style="text-align: left">防止数据外泄和恶意下载</td><td style="text-align: left">默认禁网；按域名 allowlist；企业环境接入代理和审计</td></tr>
+<tr><td style="text-align: left">进程与系统调用</td><td style="text-align: left">限制子进程能力</td><td style="text-align: left">macOS Seatbelt、Linux namespace / bubblewrap、Docker、Firecracker、gVisor</td></tr>
+<tr><td style="text-align: left">凭据</td><td style="text-align: left">限制 token 可见性</td><td style="text-align: left">最小权限、短期凭据、按工具注入、禁止把 secret 放入模型上下文</td></tr>
+</tbody>
+</table>
+</div>
+<p>这四类隔离要同时考虑。只有文件系统隔离而没有网络隔离，恶意命令仍可能把可读文件发出去；只有网络隔离而没有文件系统隔离，Agent 仍可能破坏本机配置或在项目中写入后门；只做审批而没有 sandbox，用户一旦审批疲劳，错误动作就会直接落到真实环境。</p>
+<p>当前 Agent sandbox 的现状可以分成几类：</p>
+<ol>
+<li><strong>本地 Coding Agent</strong>：主流方向是“工作区可写 + 项目外受限 + 网络默认收紧 + 高风险命令审批”。OpenAI Codex 和 Claude Code 都把 sandbox、审批和权限规则组合使用，而不是只依赖 prompt。</li>
+<li><strong>云端 Agent</strong>：更常见的是容器、虚拟机或微虚拟机隔离。Agent 在一次任务的临时环境里安装依赖、运行测试、生成补丁，任务结束后销毁环境。</li>
+<li><strong>企业 Agent 平台</strong>：重点从单机隔离扩展到多租户隔离、网络 egress 控制、凭据代理、审计日志和策略中心。</li>
+<li><strong>MCP 与插件生态</strong>：风险正在从“Agent 能运行什么命令”扩展到“第三方工具服务器能访问什么资源”。本地 MCP Server、stdio 子进程和插件 marketplace 都需要 sandbox、allowlist、签名、版本审查和输出过滤。</li>
+</ol>
+<p>但 sandbox 也不是银弹。它仍然有几个现实限制：</p>
+<ul>
+<li><strong>兼容性限制</strong>：Docker、Kubernetes、浏览器、移动模拟器、硬件设备、某些构建工具可能需要额外权限。</li>
+<li><strong>网络策略很难精确</strong>：允许 <code>github.com</code>、<code>npmjs.com</code>、<code>pypi.org</code> 可能是开发刚需，但也会扩大数据外泄路径。</li>
+<li><strong>本地桌面自动化难隔离</strong>：Browser Use、Computer Use 或 GUI 自动化往往运行在真实桌面上，需要额外的应用级权限和可见操作边界。</li>
+<li><strong>MCP Server 本身也要隔离</strong>：如果一个本地 MCP Server 拥有用户全部环境变量和文件权限，Agent 通过协议调用它时仍可能间接越权。</li>
+<li><strong>不能替代业务权限</strong>：sandbox 只能限制执行环境，不能判断“这个用户是否有权退款”“这次配置变更是否合规”。</li>
+</ul>
+<p>因此，更稳妥的设计不是“有 sandbox 就自动放权”，而是分层防御：</p>
+<pre><code class="language-text">Prompt / Skill 约束
+   ↓
+Tool Schema 约束
+   ↓
+Policy Engine / Approval
+   ↓
+Sandbox / Remote Execution
+   ↓
+Audit / Trace / Eval
+</code></pre>
+<p>对构建 Agent 的工程团队来说，一个实用原则是：<strong>越接近真实副作用，越要从 prompt 约束升级为运行时强制边界；越需要长期自治，越需要 sandbox 代替频繁人工确认。</strong></p>
+<h4 id="sandbox-不是什么"><a class="header" href="#sandbox-不是什么">Sandbox 不是什么</a></h4>
+<p>很多团队第一次做 Agent sandbox 时，会把它理解成“在 Docker 里跑一下命令”。这只覆盖了问题的一部分。更准确地说，sandbox 是一组运行时约束，而不是某个具体技术。</p>
+<p>它至少不是下面这些东西：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">容易混淆的概念</th><th style="text-align: left">为什么不等价</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Prompt 约束</td><td style="text-align: left">prompt 只能影响模型选择，不能约束子进程真实能力</td></tr>
+<tr><td style="text-align: left">用户审批</td><td style="text-align: left">审批是决策点，sandbox 是执行边界；审批疲劳后仍需要强制边界兜底</td></tr>
+<tr><td style="text-align: left">Docker 容器</td><td style="text-align: left">容器是实现方式之一，但默认容器仍可能有网络、挂载、环境变量和特权配置风险</td></tr>
+<tr><td style="text-align: left">只读文件系统</td><td style="text-align: left">只读不能阻止网络外传，也不能处理凭据泄露和供应链脚本</td></tr>
+<tr><td style="text-align: left">API RBAC</td><td style="text-align: left">RBAC 控制业务 API 权限，sandbox 控制本地进程、文件、网络和凭据可见性</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此，一个成熟 Agent Runtime 不应该只有一个 <code>sandbox: true</code> 开关，而应该把 sandbox 拆成可审计的策略对象。</p>
+<pre><code class="language-yaml">sandbox_policy:
+  filesystem:
+    allow_read:
+      - "./"
+      - "./docs"
+    allow_write:
+      - "./"
+      - "/tmp/agent-task-*"
+    deny_read:
+      - "~/.ssh"
+      - "~/.aws"
+      - ".env"
+      - "**/*secret*"
+  network:
+    default: "deny"
+    allow_domains:
+      - "github.com"
+      - "api.github.com"
+      - "registry.npmjs.org"
+    deny_private_ip_ranges: true
+  process:
+    timeout_seconds: 300
+    max_child_processes: 32
+    blocked_commands:
+      - "sudo"
+      - "rm -rf /"
+      - "chmod -R 777"
+  credentials:
+    inject_per_tool: true
+    expose_to_model: false
+    redact_in_logs: true
+</code></pre>
+<p>这类策略的价值不只是安全，也是可解释性。事故复盘时，团队可以回答：这次工具调用运行在哪个目录、允许访问哪些域名、是否注入了凭据、哪些访问被拒绝。</p>
+<h4 id="不同工具需要不同-sandbox"><a class="header" href="#不同工具需要不同-sandbox">不同工具需要不同 sandbox</a></h4>
+<p>Agent 工具的风险差异很大，不能用同一套边界处理所有工具。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">工具类型</th><th style="text-align: left">主要风险</th><th style="text-align: left">推荐 sandbox 策略</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">只读 API 查询</td><td style="text-align: left">越权读取、敏感字段进入上下文</td><td style="text-align: left">API RBAC、字段脱敏、结果摘要，不一定需要 OS sandbox</td></tr>
+<tr><td style="text-align: left">Shell / CLI</td><td style="text-align: left">文件破坏、命令注入、依赖脚本执行、数据外传</td><td style="text-align: left">路径 sandbox、网络 allowlist、命令 allowlist、超时和审批</td></tr>
+<tr><td style="text-align: left">包管理器</td><td style="text-align: left">install script 执行、供应链投毒、下载恶意包</td><td style="text-align: left">临时环境、锁文件校验、网络域名限制、缓存隔离</td></tr>
+<tr><td style="text-align: left">浏览器自动化</td><td style="text-align: left">跨站泄露、下载文件、访问内部系统</td><td style="text-align: left">独立浏览器 profile、域名 allowlist、下载目录隔离、cookie 分区</td></tr>
+<tr><td style="text-align: left">本地 MCP Server</td><td style="text-align: left">第三方 server 拥有本机权限、stdio 启动命令被滥用</td><td style="text-align: left">启动命令确认、server allowlist、进程 sandbox、最小环境变量</td></tr>
+<tr><td style="text-align: left">远程 MCP Server</td><td style="text-align: left">token 滥用、SSRF、租户混淆、工具越权</td><td style="text-align: left">OAuth audience 校验、scope 最小化、egress proxy、工具级授权</td></tr>
+<tr><td style="text-align: left">数据库工具</td><td style="text-align: left">大范围查询、越权读取、写入破坏</td><td style="text-align: left">只读账号、查询模板、行列级权限、结果行数限制</td></tr>
+</tbody>
+</table>
+</div>
+<p>这个表有一个重要启发：<strong>sandbox 的粒度应该跟工具类型绑定，而不是跟模型绑定。</strong> 同一个模型调用 <code>search_docs</code> 和调用 <code>bash</code>，应该进入完全不同的执行边界。</p>
+<h4 id="执行环境的四种层级"><a class="header" href="#执行环境的四种层级">执行环境的四种层级</a></h4>
+<p>从轻到重，Agent 可以选择四种执行环境：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层级</th><th style="text-align: left">形态</th><th style="text-align: left">适合场景</th><th style="text-align: left">代价</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Path Sandbox</td><td style="text-align: left">限制当前工作区读写</td><td style="text-align: left">本地代码编辑、文档生成、简单测试</td><td style="text-align: left">不能完整隔离依赖和网络</td></tr>
+<tr><td style="text-align: left">Process Sandbox</td><td style="text-align: left">OS 级文件、网络、进程限制</td><td style="text-align: left">本地 CLI、构建、脚本执行</td><td style="text-align: left">平台差异明显，配置复杂</td></tr>
+<tr><td style="text-align: left">Container / VM</td><td style="text-align: left">Docker、Kubernetes Job、云端 workspace</td><td style="text-align: left">依赖安装、长任务、多 Agent 并行</td><td style="text-align: left">启动成本、镜像维护、缓存治理</td></tr>
+<tr><td style="text-align: left">MicroVM / Remote Runner</td><td style="text-align: left">Firecracker、gVisor、远程隔离机器</td><td style="text-align: left">不可信代码、企业多租户、高风险自动化</td><td style="text-align: left">成本更高，调试和交互复杂</td></tr>
+</tbody>
+</table>
+</div>
+<p>个人 Coding Agent 常从 Path Sandbox + Approval 起步；企业平台通常会逐步走向 Container / Remote Runner。原因不是“容器更高级”，而是企业场景需要多租户隔离、凭据代理、网络出口审计和可销毁工作区。</p>
+<h4 id="sandbox-与审批的关系"><a class="header" href="#sandbox-与审批的关系">Sandbox 与审批的关系</a></h4>
+<p>审批和 sandbox 的关系可以用一个矩阵理解：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">风险</th><th style="text-align: left">Sandbox 边界</th><th style="text-align: left">是否需要审批</th><th style="text-align: left">示例</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">低</td><td style="text-align: left">工作区可写、禁网或有限网络</td><td style="text-align: left">通常不需要</td><td style="text-align: left">格式化代码、运行单元测试</td></tr>
+<tr><td style="text-align: left">中</td><td style="text-align: left">工作区可写、有限网络、无敏感凭据</td><td style="text-align: left">视情况确认</td><td style="text-align: left">安装依赖、调用 GitHub API 创建草稿</td></tr>
+<tr><td style="text-align: left">高</td><td style="text-align: left">隔离容器、最小凭据、审计开启</td><td style="text-align: left">需要审批</td><td style="text-align: left">发布包、部署到 staging、修改配置</td></tr>
+<tr><td style="text-align: left">Critical</td><td style="text-align: left">通用 Agent 不直接暴露</td><td style="text-align: left">专用流程和多方审批</td><td style="text-align: left">生产数据库写入、资金操作、权限变更</td></tr>
+</tbody>
+</table>
+</div>
+<p>这说明审批不是越多越安全。低风险动作如果反复审批，会造成审批疲劳；高风险动作如果只靠 sandbox 自动执行，又会把业务责任交给技术边界。更好的策略是：低风险动作靠 sandbox 自动化，高风险动作靠 sandbox + 人工确认，关键业务动作交给专用流程。</p>
+<h4 id="sandbox-也需要测试"><a class="header" href="#sandbox-也需要测试">Sandbox 也需要测试</a></h4>
+<p>很多系统“声称有 sandbox”，但没有验证它到底拦住了什么。生产级 Agent 至少应该有一组 sandbox regression tests：</p>
+<pre><code class="language-text">文件系统测试：
+- 尝试读取 ~/.ssh/id_rsa，必须失败。
+- 尝试写入工作区外目录，必须失败。
+- 尝试读取项目内允许文件，必须成功。
+
+网络测试：
+- 访问 allowlist 域名，应该按策略成功。
+- 访问未知公网域名，必须失败或触发审批。
+- 访问 127.0.0.1、169.254.169.254、内网 IP，必须按策略阻断。
+
+凭据测试：
+- 工具进程不能看到未授权环境变量。
+- 工具输出和 Trace 中不能出现 token 明文。
+
+MCP 测试：
+- 未批准的本地 MCP Server 不能启动。
+- MCP Server 启动命令必须完整展示并可审计。
+- Server 不能访问未授权文件路径和网络目标。
+</code></pre>
+<p>这些测试应该进入 Agent Runtime 的 CI，而不是依赖人工试用。每次调整 sandbox、权限规则、MCP 配置、浏览器自动化或远程 runner，都应该跑回归。否则 sandbox 很容易在“为了让某个构建命令跑通”的过程中被一点点放宽，最后只剩一个名义上的安全开关。</p>
+<h4 id="当前现状从审批优先走向边界优先"><a class="header" href="#当前现状从审批优先走向边界优先">当前现状：从“审批优先”走向“边界优先”</a></h4>
+<p>早期 Agent 产品更依赖逐次审批：模型想执行命令，用户点一次允许。这种模式直观，但长任务里很容易变成批准噪音。现在更明显的方向是：</p>
+<ul>
+<li>本地开发工具开始用 OS 级 sandbox，把安全目录、网络域名和命令风险前置配置；</li>
+<li>云端 Coding Agent 倾向在一次性工作区里执行任务，任务结束后用 patch、PR 或 diff 交付；</li>
+<li>MCP 生态开始把本地 server、OAuth、token audience、SSRF、scope 最小化当成协议安全问题；</li>
+<li>企业平台把 sandbox 和 IAM、egress proxy、secret manager、audit log、policy-as-code 组合成统一治理面。</li>
+</ul>
+<p>换句话说，Agent 安全正在从“每个动作问用户一次”转向“先定义边界，再让 Agent 在边界内更自主”。这是 sandbox 在 Agent 架构中的真正价值：不是让 Agent 永远不能犯错，而是让错误被限制在可观察、可回滚、可承担的范围内。</p>
 <h3 id="动态工具暴露"><a class="header" href="#动态工具暴露">动态工具暴露</a></h3>
 <p>不要把所有工具一次性塞给模型。工具定义会占用上下文，也会增加误选概率。更好的方式是根据任务、阶段、用户权限和环境动态暴露工具。</p>
 <pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
@@ -709,9 +968,46 @@ Trace / Diff / Tool Results
 </div>
 <p>这也是为什么 Pi、OpenClaw 和 Hermes 都把 Tool、Skill、Plugin / Toolset 分开：工具负责行动，技能负责方法，插件负责分发，运行时负责权限和观测。</p>
 <p>第 14 章会用 Pi 展示 Skill、Prompt Template、Extension 和 Package 如何组成终端原生 Coding Agent Runtime 的扩展层；第 15 章会用 OpenClaw 展示 Skill 如何作为本地 Agent Gateway 的扩展层被加载；第 16 章会用 Hermes 展示 Skill 如何从长期会话轨迹中演化为可复用程序性记忆。</p>
+<h3 id="github-例子apicli-与-mcp-的三条路径"><a class="header" href="#github-例子apicli-与-mcp-的三条路径">GitHub 例子：API、CLI 与 MCP 的三条路径</a></h3>
+<p>以 GitHub 为例，Agent 想读取 PR、查看 diff、创建 review，至少有三条常见路径：</p>
+<pre><code class="language-text">路径 A：直接 API
+Agent Runtime
+  └─ GitHub REST / GraphQL API
+      └─ GitHub
+
+路径 B：通过 CLI
+Agent Runtime
+  └─ Shell Tool
+      └─ gh CLI
+          └─ GitHub API
+              └─ GitHub
+
+路径 C：通过 MCP
+Agent Runtime
+  └─ MCP Client
+      └─ GitHub MCP Server
+          └─ GitHub API
+              └─ GitHub
+</code></pre>
+<p>模型本身并不直接调用 GitHub。模型通常只产生工具调用意图，真正执行的是 Agent Runtime。Runtime 可以把这个意图路由到 GitHub MCP Server，也可以转成 <code>gh</code> CLI 命令，还可以调用平台内置 GitHub Connector。</p>
+<p>三条路径的工程取舍不同：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">路径</th><th style="text-align: left">适合场景</th><th style="text-align: left">主要优势</th><th style="text-align: left">主要限制</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">直接 API</td><td style="text-align: left">自研 Runtime、强控制需求</td><td style="text-align: left">能力完整、错误处理可控</td><td style="text-align: left">需要自己维护集成、认证和分页</td></tr>
+<tr><td style="text-align: left">CLI</td><td style="text-align: left">个人开发、本地仓库操作、已有登录态</td><td style="text-align: left">简单、低成本、复用成熟工具</td><td style="text-align: left">输出需要解析，命令必须受控</td></tr>
+<tr><td style="text-align: left">MCP</td><td style="text-align: left">多客户端复用、多用户授权、企业治理</td><td style="text-align: left">标准发现、统一工具接口、便于审计</td><td style="text-align: left">需要部署和维护 Server</td></tr>
+</tbody>
+</table>
+</div>
+<p>这也是判断工具接入方式时最重要的原则：<strong>底层 API 是能力来源，CLI 是命令执行入口，MCP 是 Agent 工具协议入口，Skill 则是使用这些能力的方法。</strong></p>
 <hr>
 <h2 id="65-mcp从私有集成到开放协议"><a class="header" href="#65-mcp从私有集成到开放协议">6.5 MCP：从私有集成到开放协议</a></h2>
 <p>MCP（Model Context Protocol）由 Anthropic 推出，用于标准化 AI 应用与外部工具、数据源、提示词模板之间的连接方式。它的核心目标不是“让模型更聪明”，而是“让 AI 应用接入外部能力更一致”。</p>
+<p>MCP 的价值不在于比 CLI 更快，而在于把工具能力标准化分发给多个 Agent 客户端，并把多用户授权、能力发现、审计和治理纳入统一协议边界。</p>
 <h3 id="mcp-的架构边界"><a class="header" href="#mcp-的架构边界">MCP 的架构边界</a></h3>
 <p>官方架构中有三个角色：</p>
 <pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
@@ -1004,6 +1300,7 @@ Policy Engine classifies risk
 <tbody>
 <tr><td style="text-align: left">误选工具</td><td style="text-align: left">应该查日志却查指标</td><td style="text-align: left">工具描述重叠、暴露工具过多</td><td style="text-align: left">缩小工具集合，强化描述边界</td></tr>
 <tr><td style="text-align: left">参数错误</td><td style="text-align: left">时间格式错、枚举值错</td><td style="text-align: left">Schema 太宽、缺少严格校验</td><td style="text-align: left">使用 enum、format、严格 Schema</td></tr>
+<tr><td style="text-align: left">Shell 注入 / 误执行</td><td style="text-align: left">Agent 拼出危险命令或误删文件</td><td style="text-align: left">CLI 参数未结构化、Shell 字符未隔离</td><td style="text-align: left">使用参数数组、命令 allowlist、dry-run、审批</td></tr>
 <tr><td style="text-align: left">重复副作用</td><td style="text-align: left">重复发消息、重复建单</td><td style="text-align: left">重试无幂等保护</td><td style="text-align: left">引入 idempotency key</td></tr>
 <tr><td style="text-align: left">返回过大</td><td style="text-align: left">日志塞满上下文</td><td style="text-align: left">没有摘要和分页</td><td style="text-align: left">Observation Mapper 做摘要与引用</td></tr>
 <tr><td style="text-align: left">权限漂移</td><td style="text-align: left">开发环境可用，生产失败</td><td style="text-align: left">凭据和 RBAC 不一致</td><td style="text-align: left">工具级授权测试</td></tr>
@@ -1050,8 +1347,31 @@ class RetryPolicy:
 </ul>
 <p>这些指标不仅用于运维，也用于评估 Agent 质量。例如，如果某个工具调用成功率很低，可能是工具实现问题，也可能是 Schema 描述导致模型经常生成错误参数。</p>
 <hr>
-<h2 id="69-案例电商告警诊断-agent-的工具架构"><a class="header" href="#69-案例电商告警诊断-agent-的工具架构">6.9 案例：电商告警诊断 Agent 的工具架构</a></h2>
-<p>假设我们要构建一个电商告警诊断 Agent。用户输入是：</p>
+<h2 id="69-工具接入方式选择框架"><a class="header" href="#69-工具接入方式选择框架">6.9 工具接入方式选择框架</a></h2>
+<p>当一个 Agent 需要连接外部系统时，不要先问“要不要 MCP”，而应该先判断任务类型、执行环境和治理要求。</p>
+<pre><code class="language-text">1. 只是告诉 Agent 一套做事流程？
+   → 用 Skill / 项目规则 / Runbook。
+
+2. 是个人本机开发任务，并且已有成熟 CLI？
+   → 优先用 CLI，例如 git、gh、npm、docker、aws。
+
+3. 要让多个 Agent 客户端复用同一套工具能力？
+   → 用 MCP。
+
+4. 涉及多用户 OAuth、租户隔离、权限审计？
+   → MCP 或平台 Connector 更合适。
+
+5. 底层系统已有稳定 API？
+   → Runtime、MCP Server 或 CLI 最终都应尽量走 API。
+
+6. 没有 API、CLI、MCP？
+   → 才考虑 Browser Use / GUI 自动化。
+</code></pre>
+<p>个人开发者常见的最小可行组合是 <strong>CLI + Skill</strong>：CLI 负责调用成熟工具，Skill 负责沉淀项目流程、检查标准和交付规范。企业或平台级 Agent 则更常需要 <strong>MCP + Policy + Audit</strong>：MCP 负责标准化工具分发，Policy 负责权限边界，Audit 负责责任链。</p>
+<p>但无论选择哪条路，都不应该让模型自由拼接任意执行能力。CLI 应被包装成受控 Tool，MCP Server 应接入权限系统，API 调用应有最小权限凭据，Browser Use 应限制访问域和操作范围。</p>
+<hr>
+<h2 id="610-案例告警诊断-agent-的工具架构"><a class="header" href="#610-案例告警诊断-agent-的工具架构">6.10 案例：告警诊断 Agent 的工具架构</a></h2>
+<p>假设我们要构建一个告警诊断 Agent。用户输入是：</p>
 <pre><code class="language-text">order-service 的 P95 延迟从 200ms 升到 2s，帮我分析可能原因。
 </code></pre>
 <h3 id="工具集合设计"><a class="header" href="#工具集合设计">工具集合设计</a></h3>
@@ -1163,7 +1483,7 @@ class RetryPolicy:
 </code></pre>
 <p>这才是工具系统真正带来的价值：不是“调用了很多工具”，而是“把外部证据组织成可行动的判断”。</p>
 <hr>
-<h2 id="610-工具与技能设计检查清单"><a class="header" href="#610-工具与技能设计检查清单">6.10 工具与技能设计检查清单</a></h2>
+<h2 id="611-工具与技能设计检查清单"><a class="header" href="#611-工具与技能设计检查清单">6.11 工具与技能设计检查清单</a></h2>
 <h3 id="工具-schema"><a class="header" href="#工具-schema">工具 Schema</a></h3>
 <ul>
 <li><input disabled="" type="checkbox"> 工具名称是否是清晰的动作 + 对象？</li>
@@ -1179,8 +1499,14 @@ class RetryPolicy:
 <li><input disabled="" type="checkbox"> 是否有 Schema Validator，而不是直接信任模型参数？</li>
 <li><input disabled="" type="checkbox"> 是否有 Policy Engine 做权限、环境和风险判断？</li>
 <li><input disabled="" type="checkbox"> 是否有超时、重试、熔断和并发限制？</li>
+<li><input disabled="" type="checkbox"> Shell、CLI、浏览器自动化和本地 MCP Server 是否运行在受控 sandbox 或隔离环境中？</li>
+<li><input disabled="" type="checkbox"> sandbox 是否同时限制文件系统、网络、进程能力和凭据可见范围？</li>
+<li><input disabled="" type="checkbox"> sandbox policy 是否是可审计配置，而不是一个模糊的 <code>sandbox: true</code> 开关？</li>
+<li><input disabled="" type="checkbox"> 是否按工具类型区分 sandbox 策略，而不是所有工具共用同一权限边界？</li>
+<li><input disabled="" type="checkbox"> 是否有 sandbox regression tests 覆盖越界读写、未知域名访问、内网访问和 secret 泄露？</li>
 <li><input disabled="" type="checkbox"> 是否有完整的审计日志和 Trace？</li>
 <li><input disabled="" type="checkbox"> 是否能按任务阶段动态暴露工具？</li>
+<li><input disabled="" type="checkbox"> CLI 是否被包装成受控 Tool，而不是让模型自由拼接 Shell 命令？</li>
 </ul>
 <h3 id="skills"><a class="header" href="#skills">Skills</a></h3>
 <ul>
@@ -1200,6 +1526,8 @@ class RetryPolicy:
 <li><input disabled="" type="checkbox"> <code>tools/list</code>、<code>resources/list</code> 是否支持分页或规模控制？</li>
 <li><input disabled="" type="checkbox"> HTTP 传输是否实现认证、Origin 校验和会话管理？</li>
 <li><input disabled="" type="checkbox"> stdio 传输是否避免泄露环境变量和任意文件路径？</li>
+<li><input disabled="" type="checkbox"> 本地 MCP Server 是否被限制在最小文件、网络和凭据范围内？</li>
+<li><input disabled="" type="checkbox"> 远程 MCP Server 是否避免 token passthrough，并校验 token audience 和 scope？</li>
 </ul>
 <h3 id="安全与可靠性"><a class="header" href="#安全与可靠性">安全与可靠性</a></h3>
 <ul>
@@ -1216,13 +1544,15 @@ class RetryPolicy:
 <ul>
 <li>工具 Schema 决定模型能否正确理解能力边界。</li>
 <li>Tool Runtime 决定工具调用是否安全、可靠、可恢复。</li>
+<li>Sandbox 是 Tool Runtime 的执行边界，用来限制 Shell、CLI、浏览器自动化和本地 MCP Server 的真实副作用范围。</li>
 <li>Skills 把高频任务的方法、约束和验证标准沉淀成可复用能力。</li>
-<li>MCP 决定外部工具和资源能否以统一协议接入。</li>
+<li>API、CLI、MCP 和 Browser Use 是不同层级的接入方式，不能简单放在同一层比较。</li>
+<li>MCP 决定外部工具和资源能否以统一协议接入，CLI 则适合在本地开发环境中复用成熟命令行工具。</li>
 <li>Policy、Audit、Observation 和 Eval 决定系统能否进入生产环境。</li>
 </ul>
 <p>最重要的一句话是：</p>
 <blockquote>
-<p><strong>工具扩展了 Agent 的行动边界，Skills 沉淀了 Agent 的做事方法。生产级工具系统的目标，不是让模型能调用更多工具，而是让每一次调用都有方法、有边界、有证据、有责任链。</strong></p>
+<p><strong>工具扩展了 Agent 的行动边界，Skills 沉淀了 Agent 的做事方法，Sandbox 限制了 Agent 的副作用半径。生产级工具系统的目标，不是让模型能调用更多工具，而是让每一次调用都有方法、有边界、有证据、有责任链。</strong></p>
 </blockquote>
 <p>下一章将继续讨论 Agent 执行编排：工作流、状态机与多 Agent 协作。工具系统解决“Agent 如何行动”，Skills 解决“相似任务如何复用经验”，工作流系统解决“多个行动如何组织成可靠过程”。</p>
 <hr>
@@ -1235,6 +1565,10 @@ class RetryPolicy:
 <li><a href="https://modelcontextprotocol.io/specification/2025-03-26/server/prompts">Model Context Protocol Specification: Prompts</a></li>
 <li><a href="https://modelcontextprotocol.io/specification/2025-03-26/basic/authorization">Model Context Protocol Specification: Authorization</a></li>
 <li><a href="https://platform.openai.com/docs/guides/function-calling">OpenAI Function Calling Guide</a></li>
+<li><a href="https://openai.com/index/introducing-upgrades-to-codex/">OpenAI Codex: Introducing upgrades to Codex</a></li>
+<li><a href="https://code.claude.com/docs/en/sandboxing">Claude Code Docs: Sandboxing</a></li>
+<li><a href="https://code.claude.com/docs/en/permissions">Claude Code Docs: Configure permissions</a></li>
+<li><a href="https://modelcontextprotocol.io/specification/2025-06-18/basic/security_best_practices">Model Context Protocol Specification: Security Best Practices</a></li>
 </ol>
 
                     </main>

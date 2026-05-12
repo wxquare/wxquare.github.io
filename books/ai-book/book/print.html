@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a64a9f79.js";
+            window.path_to_searchindex_js = "searchindex-b1b13cf2.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-7410f92e.js"></script>
+        <script src="toc-69e853c8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -7554,7 +7554,25 @@ flowchart TD
 <li><a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills">Anthropic Agent Skills</a></li>
 </ol>
 <div style="break-before: page; page-break-before: always;"></div>
+<p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</p>
 <h1 id="第6章-agent-工具系统tool-callingskills-与-mcp"><a class="header" href="#第6章-agent-工具系统tool-callingskills-与-mcp">第6章 Agent 工具系统：Tool Calling、Skills 与 MCP</a></h1>
+<p>=======</p>
+<h1 id="第6章-agent-工具系统工程tool-callingskillscli-与-mcp"><a class="header" href="#第6章-agent-工具系统工程tool-callingskillscli-与-mcp">第6章 Agent 工具系统工程：Tool Calling、Skills、CLI 与 MCP</a></h1>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>21a1ebdd21dd9c2e1307691287887a785e5e384b</p>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
 <blockquote>
 <p>“Tools are the hands and eyes of an Agent.” （工具是 Agent 的手和眼）</p>
 </blockquote>
@@ -7570,7 +7588,7 @@ flowchart TD
 </ol>
 <p>Skills 正是为第四类问题出现的工程抽象。Tool 解决“Agent 能做什么”，Skill 解决“Agent 什么时候、如何做”。它通常表现为一个可加载的操作手册、任务 Runbook 或程序性记忆，描述某类任务的触发条件、执行步骤、工具选择、约束、失败处理和验证方式。</p>
 <p>MCP（Model Context Protocol）则是为第五类问题出现的开放协议。它把“工具、资源、提示词模板”抽象成标准化能力，让 AI 应用不必为每个外部系统写一套私有集成。但 MCP 不是银弹：它只解决连接协议和能力发现问题，真正的可靠性仍然来自工具 Schema、Skills、权限模型、运行时治理、观测与评估。</p>
-<p>本章会从 Tool Calling 的底层语义讲起，进一步分析 Skills 如何把工具调用沉淀为可复用能力，再深入 MCP 的协议边界，并最终落到生产级工具架构设计。</p>
+<p>本章会从 Tool Calling 的底层语义讲起，进一步分析 Skills 如何把工具调用沉淀为可复用能力，再讨论 API、CLI、MCP 与 Browser Use 在工具系统中的位置，并最终落到生产级工具架构设计。</p>
 <hr>
 <h2 id="61-tool-calling-的本质把不确定推理接到确定执行"><a class="header" href="#61-tool-calling-的本质把不确定推理接到确定执行">6.1 Tool Calling 的本质：把不确定推理接到确定执行</a></h2>
 <p>LLM 的输出是概率性的，而外部系统的操作往往要求确定性。Tool Calling 的核心价值，是在两者之间建立一层可验证、可审计、可回滚的执行边界。</p>
@@ -7630,6 +7648,50 @@ flowchart TD
 <li><strong>MCP</strong> 是连接协议：外部系统用标准方式暴露工具和资源，Host 用标准方式发现和调用。</li>
 </ul>
 <p>MCP 不替代 Tool Runtime。它提供“插头标准”，但插上去之后能不能安全可靠地工作，仍取决于运行时设计。</p>
+<h3 id="apiclimcpbrowser-use-与-skill-的分层"><a class="header" href="#apiclimcpbrowser-use-与-skill-的分层">API、CLI、MCP、Browser Use 与 Skill 的分层</a></h3>
+<p>围绕 Agent 工具系统的讨论里，经常会把 API、CLI、MCP、Skill、Browser Use 放在一起比较，甚至问“CLI 会不会取代 MCP”。这个问题本身容易混淆层级。</p>
+<p>更准确的分层是：</p>
+<pre><code class="language-text">用户意图
+  │
+  ▼
+Agent / 模型
+  │
+  ▼
+Skill / Instructions
+  │  流程、判断标准、约束和验证
+  ▼
+Tool Interface
+  │  Function Calling / MCP Tool / Shell Tool / 内置 Connector
+  ▼
+Execution Channel
+  │  API / CLI / Browser Automation / Local Runtime
+  ▼
+外部系统
+     GitHub / Notion / Slack / 数据库 / 文件系统
+</code></pre>
+<p>可以用四句话区分：</p>
+<ul>
+<li><strong>Skill 管“怎么做”</strong>：例如代码审查先看 diff，再看测试，再给出风险分级。</li>
+<li><strong>MCP 管“如何把工具暴露给 Agent”</strong>：例如 GitHub、Postgres、Figma 用统一协议暴露工具和资源。</li>
+<li><strong>CLI 管“如何通过命令执行”</strong>：例如 <code>git</code>、<code>gh</code>、<code>npm</code>、<code>docker</code>、<code>aws</code>。</li>
+<li><strong>API 管“系统底层如何被调用”</strong>：CLI 和 MCP Server 很多时候最终都会调用 API。</li>
+</ul>
+<p>Browser Use 则是另一类执行通道：当一个系统没有稳定 API、没有 CLI、也没有可用 MCP Server 时，Agent 才模拟人类操作浏览器或桌面界面。它不是默认方案，而是最后手段。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">接入方式</th><th style="text-align: left">所在层级</th><th style="text-align: left">面向谁</th><th style="text-align: left">优点</th><th style="text-align: left">风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">API</td><td style="text-align: left">底层服务接口</td><td style="text-align: left">程序 / Runtime</td><td style="text-align: left">稳定、完整、可控</td><td style="text-align: left">需要鉴权、SDK、错误处理</td></tr>
+<tr><td style="text-align: left">CLI</td><td style="text-align: left">执行通道</td><td style="text-align: left">人和 Agent</td><td style="text-align: left">本地开发友好、低成本、复用现有工具</td><td style="text-align: left">Shell 注入、输出不结构化、依赖本机环境</td></tr>
+<tr><td style="text-align: left">MCP</td><td style="text-align: left">工具协议层</td><td style="text-align: left">Agent Runtime</td><td style="text-align: left">标准化发现、跨客户端复用、适合多用户治理</td><td style="text-align: left">Server 运维、Schema 成本、权限和供应链风险</td></tr>
+<tr><td style="text-align: left">Browser Use</td><td style="text-align: left">GUI 自动化通道</td><td style="text-align: left">Agent</td><td style="text-align: left">适合无 API/CLI 的系统</td><td style="text-align: left">慢、脆弱、成本高</td></tr>
+<tr><td style="text-align: left">Skill</td><td style="text-align: left">流程层</td><td style="text-align: left">Agent</td><td style="text-align: left">复用方法、约束和验证标准</td><td style="text-align: left">过期、误触发、错误经验固化</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此，MCP 和 CLI 不是简单替代关系。CLI 是一种具体执行通道，适合本地开发环境中稳定、低成本地调用已有工具；MCP 是一种 Agent 工具协议，适合把外部能力标准化暴露给不同 Agent 客户端，尤其适合跨平台分发、多用户授权和企业治理场景。</p>
 <hr>
 <h2 id="62-工具-schema模型与系统之间的契约"><a class="header" href="#62-工具-schema模型与系统之间的契约">6.2 工具 Schema：模型与系统之间的契约</a></h2>
 <p>工具 Schema 不是普通文档，而是模型的“操作说明书”。它直接影响模型是否能选对工具、生成正确参数、理解工具结果。</p>
@@ -7781,7 +7843,7 @@ class ToolResult:
 <tr><td style="text-align: left">Tool Registry</td><td style="text-align: left">管理工具元数据、版本、风险等级</td><td style="text-align: left">支持按任务动态暴露工具</td></tr>
 <tr><td style="text-align: left">Schema Validator</td><td style="text-align: left">校验参数与类型</td><td style="text-align: left">严格模式、默认值、范围约束</td></tr>
 <tr><td style="text-align: left">Policy Engine</td><td style="text-align: left">决策是否允许调用</td><td style="text-align: left">RBAC、环境、风险、用户确认</td></tr>
-<tr><td style="text-align: left">Executor</td><td style="text-align: left">执行工具</td><td style="text-align: left">超时、重试、熔断、并发限制</td></tr>
+<tr><td style="text-align: left">Executor</td><td style="text-align: left">执行工具</td><td style="text-align: left">超时、重试、熔断、并发限制、执行隔离</td></tr>
 <tr><td style="text-align: left">Adapter</td><td style="text-align: left">对接外部系统</td><td style="text-align: left">API、CLI、MCP、数据库、消息队列</td></tr>
 <tr><td style="text-align: left">Result Normalizer</td><td style="text-align: left">统一返回格式</td><td style="text-align: left">成功/失败 Envelope、错误码</td></tr>
 <tr><td style="text-align: left">Observation Mapper</td><td style="text-align: left">生成模型上下文</td><td style="text-align: left">摘要、证据、压缩、脱敏</td></tr>
@@ -7821,6 +7883,203 @@ Observed
 <li><strong>失败不是异常路径，而是 Agent 正常推理的一部分。</strong></li>
 </ol>
 <p>例如 <code>search_logs</code> 超时后，Agent 可以缩小时间窗口重试；<code>create_incident_ticket</code> 被拒绝后，Agent 可以只输出建议；<code>prometheus_query_range</code> 返回 <code>RESULT_TOO_LARGE</code> 后，Agent 可以增加聚合粒度。</p>
+<h3 id="sandbox让-agent-在受控环境里行动"><a class="header" href="#sandbox让-agent-在受控环境里行动">Sandbox：让 Agent 在受控环境里行动</a></h3>
+<p>当 Agent 只能调用只读 API 时，安全边界主要来自 API 权限和工具 Schema。但一旦 Agent 可以运行 Shell、安装依赖、读写文件、启动浏览器、连接 MCP Server，风险就从“参数是否正确”变成了“外部进程到底能接触什么”。这时 sandbox 就不再是可选优化，而是 Tool Runtime 的基础设施。</p>
+<p>在 Agent 系统里，sandbox 的角色可以概括为一句话：</p>
+<blockquote>
+<p><strong>Sandbox 是 Agent 执行副作用动作的环境边界，用操作系统、容器、网络代理或远程隔离环境，把模型可能犯的错限制在可承受范围内。</strong></p>
+</blockquote>
+<p>它不替代权限系统，也不替代人工审批。权限系统回答“这个工具是否允许被调用”，审批回答“这次高风险动作是否被用户接受”，sandbox 回答“即使工具被调用了，底层进程最多能碰到哪里”。</p>
+<pre><code class="language-text">LLM Tool Call
+   │
+   ▼
+Policy / Approval
+   │  决定是否允许这次调用
+   ▼
+Sandbox Boundary
+   │  限制文件系统、网络、进程和凭据可见范围
+   ▼
+Executor
+   │  运行 shell / CLI / MCP server / browser automation
+   ▼
+External World
+</code></pre>
+<p>为什么需要这层边界？因为 Agent 的失败模式和传统程序不同。传统程序通常按固定代码路径执行，风险主要来自漏洞；Agent 的执行路径会被模型推理、用户输入、工具输出、网页内容、日志内容和依赖脚本共同影响。一次 prompt injection 可能诱导 Agent 读取 <code>.env</code>、上传 SSH key、运行陌生命令或修改项目外的文件。只靠“让模型不要这样做”是不够的，必须让底层执行环境从能力上做不到。</p>
+<p>生产级 sandbox 通常覆盖四类隔离：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">隔离维度</th><th style="text-align: left">作用</th><th style="text-align: left">典型策略</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">文件系统</td><td style="text-align: left">限制读写范围</td><td style="text-align: left">默认只写工作区；拒绝读取 <code>~/.ssh</code>、<code>.env</code>、系统目录；必要时挂载临时目录</td></tr>
+<tr><td style="text-align: left">网络</td><td style="text-align: left">防止数据外泄和恶意下载</td><td style="text-align: left">默认禁网；按域名 allowlist；企业环境接入代理和审计</td></tr>
+<tr><td style="text-align: left">进程与系统调用</td><td style="text-align: left">限制子进程能力</td><td style="text-align: left">macOS Seatbelt、Linux namespace / bubblewrap、Docker、Firecracker、gVisor</td></tr>
+<tr><td style="text-align: left">凭据</td><td style="text-align: left">限制 token 可见性</td><td style="text-align: left">最小权限、短期凭据、按工具注入、禁止把 secret 放入模型上下文</td></tr>
+</tbody>
+</table>
+</div>
+<p>这四类隔离要同时考虑。只有文件系统隔离而没有网络隔离，恶意命令仍可能把可读文件发出去；只有网络隔离而没有文件系统隔离，Agent 仍可能破坏本机配置或在项目中写入后门；只做审批而没有 sandbox，用户一旦审批疲劳，错误动作就会直接落到真实环境。</p>
+<p>当前 Agent sandbox 的现状可以分成几类：</p>
+<ol>
+<li><strong>本地 Coding Agent</strong>：主流方向是“工作区可写 + 项目外受限 + 网络默认收紧 + 高风险命令审批”。OpenAI Codex 和 Claude Code 都把 sandbox、审批和权限规则组合使用，而不是只依赖 prompt。</li>
+<li><strong>云端 Agent</strong>：更常见的是容器、虚拟机或微虚拟机隔离。Agent 在一次任务的临时环境里安装依赖、运行测试、生成补丁，任务结束后销毁环境。</li>
+<li><strong>企业 Agent 平台</strong>：重点从单机隔离扩展到多租户隔离、网络 egress 控制、凭据代理、审计日志和策略中心。</li>
+<li><strong>MCP 与插件生态</strong>：风险正在从“Agent 能运行什么命令”扩展到“第三方工具服务器能访问什么资源”。本地 MCP Server、stdio 子进程和插件 marketplace 都需要 sandbox、allowlist、签名、版本审查和输出过滤。</li>
+</ol>
+<p>但 sandbox 也不是银弹。它仍然有几个现实限制：</p>
+<ul>
+<li><strong>兼容性限制</strong>：Docker、Kubernetes、浏览器、移动模拟器、硬件设备、某些构建工具可能需要额外权限。</li>
+<li><strong>网络策略很难精确</strong>：允许 <code>github.com</code>、<code>npmjs.com</code>、<code>pypi.org</code> 可能是开发刚需，但也会扩大数据外泄路径。</li>
+<li><strong>本地桌面自动化难隔离</strong>：Browser Use、Computer Use 或 GUI 自动化往往运行在真实桌面上，需要额外的应用级权限和可见操作边界。</li>
+<li><strong>MCP Server 本身也要隔离</strong>：如果一个本地 MCP Server 拥有用户全部环境变量和文件权限，Agent 通过协议调用它时仍可能间接越权。</li>
+<li><strong>不能替代业务权限</strong>：sandbox 只能限制执行环境，不能判断“这个用户是否有权退款”“这次配置变更是否合规”。</li>
+</ul>
+<p>因此，更稳妥的设计不是“有 sandbox 就自动放权”，而是分层防御：</p>
+<pre><code class="language-text">Prompt / Skill 约束
+   ↓
+Tool Schema 约束
+   ↓
+Policy Engine / Approval
+   ↓
+Sandbox / Remote Execution
+   ↓
+Audit / Trace / Eval
+</code></pre>
+<p>对构建 Agent 的工程团队来说，一个实用原则是：<strong>越接近真实副作用，越要从 prompt 约束升级为运行时强制边界；越需要长期自治，越需要 sandbox 代替频繁人工确认。</strong></p>
+<h4 id="sandbox-不是什么"><a class="header" href="#sandbox-不是什么">Sandbox 不是什么</a></h4>
+<p>很多团队第一次做 Agent sandbox 时，会把它理解成“在 Docker 里跑一下命令”。这只覆盖了问题的一部分。更准确地说，sandbox 是一组运行时约束，而不是某个具体技术。</p>
+<p>它至少不是下面这些东西：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">容易混淆的概念</th><th style="text-align: left">为什么不等价</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Prompt 约束</td><td style="text-align: left">prompt 只能影响模型选择，不能约束子进程真实能力</td></tr>
+<tr><td style="text-align: left">用户审批</td><td style="text-align: left">审批是决策点，sandbox 是执行边界；审批疲劳后仍需要强制边界兜底</td></tr>
+<tr><td style="text-align: left">Docker 容器</td><td style="text-align: left">容器是实现方式之一，但默认容器仍可能有网络、挂载、环境变量和特权配置风险</td></tr>
+<tr><td style="text-align: left">只读文件系统</td><td style="text-align: left">只读不能阻止网络外传，也不能处理凭据泄露和供应链脚本</td></tr>
+<tr><td style="text-align: left">API RBAC</td><td style="text-align: left">RBAC 控制业务 API 权限，sandbox 控制本地进程、文件、网络和凭据可见性</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此，一个成熟 Agent Runtime 不应该只有一个 <code>sandbox: true</code> 开关，而应该把 sandbox 拆成可审计的策略对象。</p>
+<pre><code class="language-yaml">sandbox_policy:
+  filesystem:
+    allow_read:
+      - "./"
+      - "./docs"
+    allow_write:
+      - "./"
+      - "/tmp/agent-task-*"
+    deny_read:
+      - "~/.ssh"
+      - "~/.aws"
+      - ".env"
+      - "**/*secret*"
+  network:
+    default: "deny"
+    allow_domains:
+      - "github.com"
+      - "api.github.com"
+      - "registry.npmjs.org"
+    deny_private_ip_ranges: true
+  process:
+    timeout_seconds: 300
+    max_child_processes: 32
+    blocked_commands:
+      - "sudo"
+      - "rm -rf /"
+      - "chmod -R 777"
+  credentials:
+    inject_per_tool: true
+    expose_to_model: false
+    redact_in_logs: true
+</code></pre>
+<p>这类策略的价值不只是安全，也是可解释性。事故复盘时，团队可以回答：这次工具调用运行在哪个目录、允许访问哪些域名、是否注入了凭据、哪些访问被拒绝。</p>
+<h4 id="不同工具需要不同-sandbox"><a class="header" href="#不同工具需要不同-sandbox">不同工具需要不同 sandbox</a></h4>
+<p>Agent 工具的风险差异很大，不能用同一套边界处理所有工具。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">工具类型</th><th style="text-align: left">主要风险</th><th style="text-align: left">推荐 sandbox 策略</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">只读 API 查询</td><td style="text-align: left">越权读取、敏感字段进入上下文</td><td style="text-align: left">API RBAC、字段脱敏、结果摘要，不一定需要 OS sandbox</td></tr>
+<tr><td style="text-align: left">Shell / CLI</td><td style="text-align: left">文件破坏、命令注入、依赖脚本执行、数据外传</td><td style="text-align: left">路径 sandbox、网络 allowlist、命令 allowlist、超时和审批</td></tr>
+<tr><td style="text-align: left">包管理器</td><td style="text-align: left">install script 执行、供应链投毒、下载恶意包</td><td style="text-align: left">临时环境、锁文件校验、网络域名限制、缓存隔离</td></tr>
+<tr><td style="text-align: left">浏览器自动化</td><td style="text-align: left">跨站泄露、下载文件、访问内部系统</td><td style="text-align: left">独立浏览器 profile、域名 allowlist、下载目录隔离、cookie 分区</td></tr>
+<tr><td style="text-align: left">本地 MCP Server</td><td style="text-align: left">第三方 server 拥有本机权限、stdio 启动命令被滥用</td><td style="text-align: left">启动命令确认、server allowlist、进程 sandbox、最小环境变量</td></tr>
+<tr><td style="text-align: left">远程 MCP Server</td><td style="text-align: left">token 滥用、SSRF、租户混淆、工具越权</td><td style="text-align: left">OAuth audience 校验、scope 最小化、egress proxy、工具级授权</td></tr>
+<tr><td style="text-align: left">数据库工具</td><td style="text-align: left">大范围查询、越权读取、写入破坏</td><td style="text-align: left">只读账号、查询模板、行列级权限、结果行数限制</td></tr>
+</tbody>
+</table>
+</div>
+<p>这个表有一个重要启发：<strong>sandbox 的粒度应该跟工具类型绑定，而不是跟模型绑定。</strong> 同一个模型调用 <code>search_docs</code> 和调用 <code>bash</code>，应该进入完全不同的执行边界。</p>
+<h4 id="执行环境的四种层级"><a class="header" href="#执行环境的四种层级">执行环境的四种层级</a></h4>
+<p>从轻到重，Agent 可以选择四种执行环境：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层级</th><th style="text-align: left">形态</th><th style="text-align: left">适合场景</th><th style="text-align: left">代价</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Path Sandbox</td><td style="text-align: left">限制当前工作区读写</td><td style="text-align: left">本地代码编辑、文档生成、简单测试</td><td style="text-align: left">不能完整隔离依赖和网络</td></tr>
+<tr><td style="text-align: left">Process Sandbox</td><td style="text-align: left">OS 级文件、网络、进程限制</td><td style="text-align: left">本地 CLI、构建、脚本执行</td><td style="text-align: left">平台差异明显，配置复杂</td></tr>
+<tr><td style="text-align: left">Container / VM</td><td style="text-align: left">Docker、Kubernetes Job、云端 workspace</td><td style="text-align: left">依赖安装、长任务、多 Agent 并行</td><td style="text-align: left">启动成本、镜像维护、缓存治理</td></tr>
+<tr><td style="text-align: left">MicroVM / Remote Runner</td><td style="text-align: left">Firecracker、gVisor、远程隔离机器</td><td style="text-align: left">不可信代码、企业多租户、高风险自动化</td><td style="text-align: left">成本更高，调试和交互复杂</td></tr>
+</tbody>
+</table>
+</div>
+<p>个人 Coding Agent 常从 Path Sandbox + Approval 起步；企业平台通常会逐步走向 Container / Remote Runner。原因不是“容器更高级”，而是企业场景需要多租户隔离、凭据代理、网络出口审计和可销毁工作区。</p>
+<h4 id="sandbox-与审批的关系"><a class="header" href="#sandbox-与审批的关系">Sandbox 与审批的关系</a></h4>
+<p>审批和 sandbox 的关系可以用一个矩阵理解：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">风险</th><th style="text-align: left">Sandbox 边界</th><th style="text-align: left">是否需要审批</th><th style="text-align: left">示例</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">低</td><td style="text-align: left">工作区可写、禁网或有限网络</td><td style="text-align: left">通常不需要</td><td style="text-align: left">格式化代码、运行单元测试</td></tr>
+<tr><td style="text-align: left">中</td><td style="text-align: left">工作区可写、有限网络、无敏感凭据</td><td style="text-align: left">视情况确认</td><td style="text-align: left">安装依赖、调用 GitHub API 创建草稿</td></tr>
+<tr><td style="text-align: left">高</td><td style="text-align: left">隔离容器、最小凭据、审计开启</td><td style="text-align: left">需要审批</td><td style="text-align: left">发布包、部署到 staging、修改配置</td></tr>
+<tr><td style="text-align: left">Critical</td><td style="text-align: left">通用 Agent 不直接暴露</td><td style="text-align: left">专用流程和多方审批</td><td style="text-align: left">生产数据库写入、资金操作、权限变更</td></tr>
+</tbody>
+</table>
+</div>
+<p>这说明审批不是越多越安全。低风险动作如果反复审批，会造成审批疲劳；高风险动作如果只靠 sandbox 自动执行，又会把业务责任交给技术边界。更好的策略是：低风险动作靠 sandbox 自动化，高风险动作靠 sandbox + 人工确认，关键业务动作交给专用流程。</p>
+<h4 id="sandbox-也需要测试"><a class="header" href="#sandbox-也需要测试">Sandbox 也需要测试</a></h4>
+<p>很多系统“声称有 sandbox”，但没有验证它到底拦住了什么。生产级 Agent 至少应该有一组 sandbox regression tests：</p>
+<pre><code class="language-text">文件系统测试：
+- 尝试读取 ~/.ssh/id_rsa，必须失败。
+- 尝试写入工作区外目录，必须失败。
+- 尝试读取项目内允许文件，必须成功。
+
+网络测试：
+- 访问 allowlist 域名，应该按策略成功。
+- 访问未知公网域名，必须失败或触发审批。
+- 访问 127.0.0.1、169.254.169.254、内网 IP，必须按策略阻断。
+
+凭据测试：
+- 工具进程不能看到未授权环境变量。
+- 工具输出和 Trace 中不能出现 token 明文。
+
+MCP 测试：
+- 未批准的本地 MCP Server 不能启动。
+- MCP Server 启动命令必须完整展示并可审计。
+- Server 不能访问未授权文件路径和网络目标。
+</code></pre>
+<p>这些测试应该进入 Agent Runtime 的 CI，而不是依赖人工试用。每次调整 sandbox、权限规则、MCP 配置、浏览器自动化或远程 runner，都应该跑回归。否则 sandbox 很容易在“为了让某个构建命令跑通”的过程中被一点点放宽，最后只剩一个名义上的安全开关。</p>
+<h4 id="当前现状从审批优先走向边界优先"><a class="header" href="#当前现状从审批优先走向边界优先">当前现状：从“审批优先”走向“边界优先”</a></h4>
+<p>早期 Agent 产品更依赖逐次审批：模型想执行命令，用户点一次允许。这种模式直观，但长任务里很容易变成批准噪音。现在更明显的方向是：</p>
+<ul>
+<li>本地开发工具开始用 OS 级 sandbox，把安全目录、网络域名和命令风险前置配置；</li>
+<li>云端 Coding Agent 倾向在一次性工作区里执行任务，任务结束后用 patch、PR 或 diff 交付；</li>
+<li>MCP 生态开始把本地 server、OAuth、token audience、SSRF、scope 最小化当成协议安全问题；</li>
+<li>企业平台把 sandbox 和 IAM、egress proxy、secret manager、audit log、policy-as-code 组合成统一治理面。</li>
+</ul>
+<p>换句话说，Agent 安全正在从“每个动作问用户一次”转向“先定义边界，再让 Agent 在边界内更自主”。这是 sandbox 在 Agent 架构中的真正价值：不是让 Agent 永远不能犯错，而是让错误被限制在可观察、可回滚、可承担的范围内。</p>
 <h3 id="动态工具暴露"><a class="header" href="#动态工具暴露">动态工具暴露</a></h3>
 <p>不要把所有工具一次性塞给模型。工具定义会占用上下文，也会增加误选概率。更好的方式是根据任务、阶段、用户权限和环境动态暴露工具。</p>
 <pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
@@ -8086,9 +8345,46 @@ Trace / Diff / Tool Results
 </div>
 <p>这也是为什么 Pi、OpenClaw 和 Hermes 都把 Tool、Skill、Plugin / Toolset 分开：工具负责行动，技能负责方法，插件负责分发，运行时负责权限和观测。</p>
 <p>第 14 章会用 Pi 展示 Skill、Prompt Template、Extension 和 Package 如何组成终端原生 Coding Agent Runtime 的扩展层；第 15 章会用 OpenClaw 展示 Skill 如何作为本地 Agent Gateway 的扩展层被加载；第 16 章会用 Hermes 展示 Skill 如何从长期会话轨迹中演化为可复用程序性记忆。</p>
+<h3 id="github-例子apicli-与-mcp-的三条路径"><a class="header" href="#github-例子apicli-与-mcp-的三条路径">GitHub 例子：API、CLI 与 MCP 的三条路径</a></h3>
+<p>以 GitHub 为例，Agent 想读取 PR、查看 diff、创建 review，至少有三条常见路径：</p>
+<pre><code class="language-text">路径 A：直接 API
+Agent Runtime
+  └─ GitHub REST / GraphQL API
+      └─ GitHub
+
+路径 B：通过 CLI
+Agent Runtime
+  └─ Shell Tool
+      └─ gh CLI
+          └─ GitHub API
+              └─ GitHub
+
+路径 C：通过 MCP
+Agent Runtime
+  └─ MCP Client
+      └─ GitHub MCP Server
+          └─ GitHub API
+              └─ GitHub
+</code></pre>
+<p>模型本身并不直接调用 GitHub。模型通常只产生工具调用意图，真正执行的是 Agent Runtime。Runtime 可以把这个意图路由到 GitHub MCP Server，也可以转成 <code>gh</code> CLI 命令，还可以调用平台内置 GitHub Connector。</p>
+<p>三条路径的工程取舍不同：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">路径</th><th style="text-align: left">适合场景</th><th style="text-align: left">主要优势</th><th style="text-align: left">主要限制</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">直接 API</td><td style="text-align: left">自研 Runtime、强控制需求</td><td style="text-align: left">能力完整、错误处理可控</td><td style="text-align: left">需要自己维护集成、认证和分页</td></tr>
+<tr><td style="text-align: left">CLI</td><td style="text-align: left">个人开发、本地仓库操作、已有登录态</td><td style="text-align: left">简单、低成本、复用成熟工具</td><td style="text-align: left">输出需要解析，命令必须受控</td></tr>
+<tr><td style="text-align: left">MCP</td><td style="text-align: left">多客户端复用、多用户授权、企业治理</td><td style="text-align: left">标准发现、统一工具接口、便于审计</td><td style="text-align: left">需要部署和维护 Server</td></tr>
+</tbody>
+</table>
+</div>
+<p>这也是判断工具接入方式时最重要的原则：<strong>底层 API 是能力来源，CLI 是命令执行入口，MCP 是 Agent 工具协议入口，Skill 则是使用这些能力的方法。</strong></p>
 <hr>
 <h2 id="65-mcp从私有集成到开放协议"><a class="header" href="#65-mcp从私有集成到开放协议">6.5 MCP：从私有集成到开放协议</a></h2>
 <p>MCP（Model Context Protocol）由 Anthropic 推出，用于标准化 AI 应用与外部工具、数据源、提示词模板之间的连接方式。它的核心目标不是“让模型更聪明”，而是“让 AI 应用接入外部能力更一致”。</p>
+<p>MCP 的价值不在于比 CLI 更快，而在于把工具能力标准化分发给多个 Agent 客户端，并把多用户授权、能力发现、审计和治理纳入统一协议边界。</p>
 <h3 id="mcp-的架构边界"><a class="header" href="#mcp-的架构边界">MCP 的架构边界</a></h3>
 <p>官方架构中有三个角色：</p>
 <pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
@@ -8381,6 +8677,7 @@ Policy Engine classifies risk
 <tbody>
 <tr><td style="text-align: left">误选工具</td><td style="text-align: left">应该查日志却查指标</td><td style="text-align: left">工具描述重叠、暴露工具过多</td><td style="text-align: left">缩小工具集合，强化描述边界</td></tr>
 <tr><td style="text-align: left">参数错误</td><td style="text-align: left">时间格式错、枚举值错</td><td style="text-align: left">Schema 太宽、缺少严格校验</td><td style="text-align: left">使用 enum、format、严格 Schema</td></tr>
+<tr><td style="text-align: left">Shell 注入 / 误执行</td><td style="text-align: left">Agent 拼出危险命令或误删文件</td><td style="text-align: left">CLI 参数未结构化、Shell 字符未隔离</td><td style="text-align: left">使用参数数组、命令 allowlist、dry-run、审批</td></tr>
 <tr><td style="text-align: left">重复副作用</td><td style="text-align: left">重复发消息、重复建单</td><td style="text-align: left">重试无幂等保护</td><td style="text-align: left">引入 idempotency key</td></tr>
 <tr><td style="text-align: left">返回过大</td><td style="text-align: left">日志塞满上下文</td><td style="text-align: left">没有摘要和分页</td><td style="text-align: left">Observation Mapper 做摘要与引用</td></tr>
 <tr><td style="text-align: left">权限漂移</td><td style="text-align: left">开发环境可用，生产失败</td><td style="text-align: left">凭据和 RBAC 不一致</td><td style="text-align: left">工具级授权测试</td></tr>
@@ -8427,8 +8724,31 @@ class RetryPolicy:
 </ul>
 <p>这些指标不仅用于运维，也用于评估 Agent 质量。例如，如果某个工具调用成功率很低，可能是工具实现问题，也可能是 Schema 描述导致模型经常生成错误参数。</p>
 <hr>
-<h2 id="69-案例电商告警诊断-agent-的工具架构"><a class="header" href="#69-案例电商告警诊断-agent-的工具架构">6.9 案例：电商告警诊断 Agent 的工具架构</a></h2>
-<p>假设我们要构建一个电商告警诊断 Agent。用户输入是：</p>
+<h2 id="69-工具接入方式选择框架"><a class="header" href="#69-工具接入方式选择框架">6.9 工具接入方式选择框架</a></h2>
+<p>当一个 Agent 需要连接外部系统时，不要先问“要不要 MCP”，而应该先判断任务类型、执行环境和治理要求。</p>
+<pre><code class="language-text">1. 只是告诉 Agent 一套做事流程？
+   → 用 Skill / 项目规则 / Runbook。
+
+2. 是个人本机开发任务，并且已有成熟 CLI？
+   → 优先用 CLI，例如 git、gh、npm、docker、aws。
+
+3. 要让多个 Agent 客户端复用同一套工具能力？
+   → 用 MCP。
+
+4. 涉及多用户 OAuth、租户隔离、权限审计？
+   → MCP 或平台 Connector 更合适。
+
+5. 底层系统已有稳定 API？
+   → Runtime、MCP Server 或 CLI 最终都应尽量走 API。
+
+6. 没有 API、CLI、MCP？
+   → 才考虑 Browser Use / GUI 自动化。
+</code></pre>
+<p>个人开发者常见的最小可行组合是 <strong>CLI + Skill</strong>：CLI 负责调用成熟工具，Skill 负责沉淀项目流程、检查标准和交付规范。企业或平台级 Agent 则更常需要 <strong>MCP + Policy + Audit</strong>：MCP 负责标准化工具分发，Policy 负责权限边界，Audit 负责责任链。</p>
+<p>但无论选择哪条路，都不应该让模型自由拼接任意执行能力。CLI 应被包装成受控 Tool，MCP Server 应接入权限系统，API 调用应有最小权限凭据，Browser Use 应限制访问域和操作范围。</p>
+<hr>
+<h2 id="610-案例告警诊断-agent-的工具架构"><a class="header" href="#610-案例告警诊断-agent-的工具架构">6.10 案例：告警诊断 Agent 的工具架构</a></h2>
+<p>假设我们要构建一个告警诊断 Agent。用户输入是：</p>
 <pre><code class="language-text">order-service 的 P95 延迟从 200ms 升到 2s，帮我分析可能原因。
 </code></pre>
 <h3 id="工具集合设计"><a class="header" href="#工具集合设计">工具集合设计</a></h3>
@@ -8540,7 +8860,7 @@ class RetryPolicy:
 </code></pre>
 <p>这才是工具系统真正带来的价值：不是“调用了很多工具”，而是“把外部证据组织成可行动的判断”。</p>
 <hr>
-<h2 id="610-工具与技能设计检查清单"><a class="header" href="#610-工具与技能设计检查清单">6.10 工具与技能设计检查清单</a></h2>
+<h2 id="611-工具与技能设计检查清单"><a class="header" href="#611-工具与技能设计检查清单">6.11 工具与技能设计检查清单</a></h2>
 <h3 id="工具-schema"><a class="header" href="#工具-schema">工具 Schema</a></h3>
 <ul>
 <li><input disabled="" type="checkbox"> 工具名称是否是清晰的动作 + 对象？</li>
@@ -8556,8 +8876,14 @@ class RetryPolicy:
 <li><input disabled="" type="checkbox"> 是否有 Schema Validator，而不是直接信任模型参数？</li>
 <li><input disabled="" type="checkbox"> 是否有 Policy Engine 做权限、环境和风险判断？</li>
 <li><input disabled="" type="checkbox"> 是否有超时、重试、熔断和并发限制？</li>
+<li><input disabled="" type="checkbox"> Shell、CLI、浏览器自动化和本地 MCP Server 是否运行在受控 sandbox 或隔离环境中？</li>
+<li><input disabled="" type="checkbox"> sandbox 是否同时限制文件系统、网络、进程能力和凭据可见范围？</li>
+<li><input disabled="" type="checkbox"> sandbox policy 是否是可审计配置，而不是一个模糊的 <code>sandbox: true</code> 开关？</li>
+<li><input disabled="" type="checkbox"> 是否按工具类型区分 sandbox 策略，而不是所有工具共用同一权限边界？</li>
+<li><input disabled="" type="checkbox"> 是否有 sandbox regression tests 覆盖越界读写、未知域名访问、内网访问和 secret 泄露？</li>
 <li><input disabled="" type="checkbox"> 是否有完整的审计日志和 Trace？</li>
 <li><input disabled="" type="checkbox"> 是否能按任务阶段动态暴露工具？</li>
+<li><input disabled="" type="checkbox"> CLI 是否被包装成受控 Tool，而不是让模型自由拼接 Shell 命令？</li>
 </ul>
 <h3 id="skills"><a class="header" href="#skills">Skills</a></h3>
 <ul>
@@ -8577,6 +8903,8 @@ class RetryPolicy:
 <li><input disabled="" type="checkbox"> <code>tools/list</code>、<code>resources/list</code> 是否支持分页或规模控制？</li>
 <li><input disabled="" type="checkbox"> HTTP 传输是否实现认证、Origin 校验和会话管理？</li>
 <li><input disabled="" type="checkbox"> stdio 传输是否避免泄露环境变量和任意文件路径？</li>
+<li><input disabled="" type="checkbox"> 本地 MCP Server 是否被限制在最小文件、网络和凭据范围内？</li>
+<li><input disabled="" type="checkbox"> 远程 MCP Server 是否避免 token passthrough，并校验 token audience 和 scope？</li>
 </ul>
 <h3 id="安全与可靠性"><a class="header" href="#安全与可靠性">安全与可靠性</a></h3>
 <ul>
@@ -8593,13 +8921,15 @@ class RetryPolicy:
 <ul>
 <li>工具 Schema 决定模型能否正确理解能力边界。</li>
 <li>Tool Runtime 决定工具调用是否安全、可靠、可恢复。</li>
+<li>Sandbox 是 Tool Runtime 的执行边界，用来限制 Shell、CLI、浏览器自动化和本地 MCP Server 的真实副作用范围。</li>
 <li>Skills 把高频任务的方法、约束和验证标准沉淀成可复用能力。</li>
-<li>MCP 决定外部工具和资源能否以统一协议接入。</li>
+<li>API、CLI、MCP 和 Browser Use 是不同层级的接入方式，不能简单放在同一层比较。</li>
+<li>MCP 决定外部工具和资源能否以统一协议接入，CLI 则适合在本地开发环境中复用成熟命令行工具。</li>
 <li>Policy、Audit、Observation 和 Eval 决定系统能否进入生产环境。</li>
 </ul>
 <p>最重要的一句话是：</p>
 <blockquote>
-<p><strong>工具扩展了 Agent 的行动边界，Skills 沉淀了 Agent 的做事方法。生产级工具系统的目标，不是让模型能调用更多工具，而是让每一次调用都有方法、有边界、有证据、有责任链。</strong></p>
+<p><strong>工具扩展了 Agent 的行动边界，Skills 沉淀了 Agent 的做事方法，Sandbox 限制了 Agent 的副作用半径。生产级工具系统的目标，不是让模型能调用更多工具，而是让每一次调用都有方法、有边界、有证据、有责任链。</strong></p>
 </blockquote>
 <p>下一章将继续讨论 Agent 执行编排：工作流、状态机与多 Agent 协作。工具系统解决“Agent 如何行动”，Skills 解决“相似任务如何复用经验”，工作流系统解决“多个行动如何组织成可靠过程”。</p>
 <hr>
@@ -8612,6 +8942,10 @@ class RetryPolicy:
 <li><a href="https://modelcontextprotocol.io/specification/2025-03-26/server/prompts">Model Context Protocol Specification: Prompts</a></li>
 <li><a href="https://modelcontextprotocol.io/specification/2025-03-26/basic/authorization">Model Context Protocol Specification: Authorization</a></li>
 <li><a href="https://platform.openai.com/docs/guides/function-calling">OpenAI Function Calling Guide</a></li>
+<li><a href="https://openai.com/index/introducing-upgrades-to-codex/">OpenAI Codex: Introducing upgrades to Codex</a></li>
+<li><a href="https://code.claude.com/docs/en/sandboxing">Claude Code Docs: Sandboxing</a></li>
+<li><a href="https://code.claude.com/docs/en/permissions">Claude Code Docs: Configure permissions</a></li>
+<li><a href="https://modelcontextprotocol.io/specification/2025-06-18/basic/security_best_practices">Model Context Protocol Specification: Security Best Practices</a></li>
 </ol>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="第7章-agent-执行编排工作流状态机与多-agent-协作"><a class="header" href="#第7章-agent-执行编排工作流状态机与多-agent-协作">第7章 Agent 执行编排：工作流、状态机与多 Agent 协作</a></h1>
@@ -14859,994 +15193,160 @@ flowchart TB
 <p>没有评估、护栏和可观测性的 Agent，只是一个 Demo；有治理闭环的 Agent，才是生产系统。</p>
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="第13章-ai-coding-agent-系统解析从-vibe-codingspec-coding-到-claude-code--cursor--codex"><a class="header" href="#第13章-ai-coding-agent-系统解析从-vibe-codingspec-coding-到-claude-code--cursor--codex">第13章 AI Coding Agent 系统解析：从 Vibe Coding、Spec Coding 到 Claude Code / Cursor / Codex</a></h1>
+<h1 id="第13章-ai-coding-agent-系统解析从工作协议到-harness-工程"><a class="header" href="#第13章-ai-coding-agent-系统解析从工作协议到-harness-工程">第13章 AI Coding Agent 系统解析：从工作协议到 Harness 工程</a></h1>
 <blockquote>
-<p>AI Coding Agent 的本质，不是“自动写代码”，而是把软件工程任务转化为可规划、可执行、可验证、可回滚的工程闭环。</p>
+<p>AI Coding Agent 的本质，不是“自动写代码”，而是把软件工程任务转化为可规划、可执行、可验证、可隔离、可审查的工程闭环。</p>
 </blockquote>
 <h2 id="引言-12"><a class="header" href="#引言-12">引言</a></h2>
-<p>前两部分讨论了大模型基础、Prompt、Context、Harness，以及 Agent 的工具、RAG、Memory、Eval、Guardrails 和可观测性。本章开始进入成熟系统解析。</p>
-<p>我们选择 AI Coding Agent 作为第一个成熟系统案例，因为它几乎包含了 Agent 工程的全部核心问题：</p>
+<p>前两部分已经讨论了 LLM 能力边界、Prompt Engineering、Context Engineering、Harness Engineering，以及 Agent 的工具调用、工作流、RAG、Memory、Eval、Guardrails 和可观测性。从本章开始，我们进入成熟系统解析。</p>
+<p>本章选择 AI Coding Agent 作为第一个成熟系统案例，因为它几乎包含了 Agent 工程的全部核心问题：</p>
 <ul>
-<li>需要理解自然语言需求；</li>
-<li>需要读取大型代码库上下文；</li>
-<li>需要规划多步修改；</li>
-<li>需要调用文件、Shell、Git、测试等工具；</li>
-<li>需要处理失败、回滚和权限；</li>
-<li>需要把人的意图转化为可审查的代码变更。</li>
+<li>它要理解自然语言需求；</li>
+<li>它要读取和筛选大型代码库上下文；</li>
+<li>它要规划多步修改；</li>
+<li>它要调用搜索、文件、Shell、Git、测试等工具；</li>
+<li>它要处理权限、失败、回滚和用户中断；</li>
+<li>它要把人的意图转化为可审查的代码变更。</li>
 </ul>
-<p>Claude Code、Cursor 和 Codex 的产品形态不同：一个偏终端，一个偏 IDE，一个偏云端任务执行。但从系统设计视角看，它们都在回答同一个问题：</p>
-<blockquote>
-<p>如何让不确定的大模型可靠地参与确定性的软件工程流程？</p>
-</blockquote>
-<p>本章的目标不只是比较产品，而是让你读完之后可以复现一个最小 Coding Agent 原型。这个原型不追求“像商业产品一样强”，但必须具备真实 Coding Agent 的关键骨架：</p>
-<ul>
-<li>能读取项目上下文；</li>
-<li>能按任务加载合适的 Skill；</li>
-<li>能选择和调用工具；</li>
-<li>能修改文件；</li>
-<li>能运行验证命令；</li>
-<li>能输出 diff、总结和失败原因；</li>
-<li>能通过权限、预算和审计降低风险。</li>
-</ul>
+<p>Claude Code、Cursor 和 Codex 的产品形态不同：一个偏终端，一个偏 IDE，一个偏本地与云端任务执行。但从系统设计视角看，它们都在回答同一个问题：</p>
+<pre><code class="language-text">如何让一个概率模型可靠地参与确定性的软件工程流程？
+</code></pre>
+<p>这个问题不能只靠模型能力解决。模型负责理解、推理、规划和生成行动意图；真正让 Agent 能在真实工程环境中工作的，是模型外部的 Harness。</p>
+<p>可以把 Coding Agent 看成下面这个组合：</p>
+<pre><code class="language-text">Coding Agent = Model + Harness
+
+Model:
+  理解任务、推理方案、选择行动、解释结果
+
+Harness:
+  工具、上下文、状态、权限、验证、隔离、审计、交付界面
+</code></pre>
+<p>本章的目标不是做产品评测，而是从成熟产品中抽象出可迁移的工程原则。读完本章，你应该能回答：</p>
+<ol>
+<li>Vibe Coding 和 Spec Coding 分别适合什么阶段；</li>
+<li>一个成熟 Coding Agent Harness 由哪些模块组成；</li>
+<li>Claude Code、Cursor、Codex 的架构取舍有什么差异；</li>
+<li>终端原生 Coding Agent 为什么需要 Agent Loop、Tool Plane、Task State、Context Compact、Subagent、Worktree Isolation；</li>
+<li>如何从 MVP 演进到生产级 Coding Agent；</li>
+<li>如何评价一个 Coding Agent 系统是否可靠。</li>
+</ol>
 <hr>
-<h2 id="131-ai-编程范式演进从补全到-agent"><a class="header" href="#131-ai-编程范式演进从补全到-agent">13.1 AI 编程范式演进：从补全到 Agent</a></h2>
-<p>AI 编程工具大致经历了四个阶段。</p>
+<h2 id="131-从-ai-编程范式到-coding-agent-工作协议"><a class="header" href="#131-从-ai-编程范式到-coding-agent-工作协议">13.1 从 AI 编程范式到 Coding Agent 工作协议</a></h2>
+<p>AI 编程工具不是突然从“代码补全”跳到“自动程序员”的。它经历了从局部辅助到闭环执行的演进。</p>
 <pre><code class="language-text">代码补全
-   │
-   ▼
+   ↓
 对话式代码生成
-   │
-   ▼
+   ↓
 项目级上下文编程
-   │
-   ▼
+   ↓
 Coding Agent 闭环执行
 </code></pre>
-<h3 id="阶段一代码补全"><a class="header" href="#阶段一代码补全">阶段一：代码补全</a></h3>
-<p>代码补全工具把模型放在编辑器里，主要能力是根据当前文件上下文预测下一段代码。</p>
-<p>它的优势是低延迟、低风险、低学习成本；局限是只能处理局部代码，无法理解完整任务。</p>
-<h3 id="阶段二对话式代码生成"><a class="header" href="#阶段二对话式代码生成">阶段二：对话式代码生成</a></h3>
-<p>ChatGPT 类工具让开发者可以用自然语言描述需求，再复制代码片段到项目中。</p>
-<p>这一步的变化是：模型开始参与“设计解释”和“调试建议”，但仍然缺少项目级上下文和自动验证。</p>
-<h3 id="阶段三项目级上下文编程"><a class="header" href="#阶段三项目级上下文编程">阶段三：项目级上下文编程</a></h3>
-<p>Cursor 这类 IDE 原生工具把代码库、文件搜索、规则文件、编辑器状态整合进模型上下文。</p>
-<p>这一步的变化是：模型不再只看一个文件，而是可以跨文件理解调用链和项目规范。</p>
-<h3 id="阶段四coding-agent-闭环执行"><a class="header" href="#阶段四coding-agent-闭环执行">阶段四：Coding Agent 闭环执行</a></h3>
-<p>Claude Code、Codex 这类工具进一步把模型接入工具系统：</p>
-<ul>
-<li>搜索代码；</li>
-<li>修改文件；</li>
-<li>执行测试；</li>
-<li>查看失败输出；</li>
-<li>再次修复；</li>
-<li>生成 diff 或 PR。</li>
-</ul>
-<p>这时模型不再只是“建议者”，而是进入了一个由工具、权限、状态、验证、审计组成的执行环境。</p>
-<hr>
-<h2 id="132-vibe-coding探索式编程的价值与天花板"><a class="header" href="#132-vibe-coding探索式编程的价值与天花板">13.2 Vibe Coding：探索式编程的价值与天花板</a></h2>
-<p><strong>Vibe Coding</strong> 是指通过即兴 prompt 和多轮对话与 AI 共同摸索代码实现的方式。</p>
-<p>它不是坏方法。恰恰相反，在探索阶段它非常有效：</p>
+<p>这条演进线的关键变化，不是模型一次能写多少代码，而是模型是否被放进了一个能观察、行动、验证和修复的工程环境里。</p>
+<h3 id="1311-从代码补全到闭环执行"><a class="header" href="#1311-从代码补全到闭环执行">13.1.1 从代码补全到闭环执行</a></h3>
+<p>第一阶段是代码补全。模型根据当前文件和光标附近上下文预测下一段代码。这类工具的优势是低延迟、低风险、低学习成本；局限是只能处理局部代码，不理解完整任务。</p>
+<p>第二阶段是对话式代码生成。开发者用自然语言描述需求，模型生成代码片段、解释方案、给出调试建议。相比补全，它开始参与设计和分析，但仍然主要停留在“建议者”角色。</p>
+<p>第三阶段是项目级上下文编程。IDE Agent 能读取打开文件、选区、诊断信息、项目规则、代码索引和相关文件。这一步的变化是：模型不再只看一个文件，而是开始围绕代码库工作。</p>
+<p>第四阶段是 Coding Agent 闭环执行。Agent 能搜索代码、读取文件、修改文件、运行测试、分析失败、继续修复，并输出 diff、验证结果和剩余风险。这时模型不再只是生成答案，而是进入一个由工具、权限、状态、验证和审计组成的运行环境。</p>
+<p>闭环执行可以抽象为：</p>
+<pre><code class="language-text">Intent
+  ↓
+Plan
+  ↓
+Context Gathering
+  ↓
+Tool Use
+  ↓
+Patch
+  ↓
+Verification
+  ↓
+Review
+</code></pre>
+<p>这就是 Coding Agent 和普通 Chatbot 的分界线。</p>
+<h3 id="1312-vibe-coding探索式编程的价值"><a class="header" href="#1312-vibe-coding探索式编程的价值">13.1.2 Vibe Coding：探索式编程的价值</a></h3>
+<p>Vibe Coding 指的是开发者通过即兴 prompt、多轮对话和模型共同探索实现方案。</p>
+<p>它不是坏方法。在探索阶段，它非常有效：</p>
 <ul>
 <li>快速了解新框架；</li>
 <li>验证一个技术方案是否可行；</li>
-<li>写一次性脚本；</li>
+<li>生成一次性脚本；</li>
 <li>做原型和 Demo；</li>
-<li>让模型解释陌生代码。</li>
+<li>解释陌生代码；</li>
+<li>比较几种实现路径。</li>
 </ul>
-<p>问题在于：Vibe Coding 容易被误用为生产交付方式。</p>
-<h3 id="典型问题"><a class="header" href="#典型问题">典型问题</a></h3>
-<pre><code class="language-text">你：实现一个用户注册功能
+<p>Vibe Coding 的优势是启动快、反馈快、心理负担低。它把“先想清楚再写”变成“边试边看”，特别适合需求还不稳定、技术空间还不清楚的阶段。</p>
+<p>例如你想验证“能否把一段日志转成 Mermaid 调用链图”，用 Vibe Coding 很合适：</p>
+<pre><code class="language-text">先让模型写一个解析 demo；
+再贴一段脱敏日志；
+再让模型生成图；
+再观察哪些字段不稳定；
+最后决定是否值得工程化。
+</code></pre>
+<p>这种阶段的目标不是交付，而是学习。</p>
+<h3 id="1313-vibe-coding-的天花板"><a class="header" href="#1313-vibe-coding-的天花板">13.1.3 Vibe Coding 的天花板</a></h3>
+<p>Vibe Coding 一旦被误用为生产交付方式，问题会快速积累。</p>
+<p>典型过程是：</p>
+<pre><code class="language-text">用户：实现一个用户注册功能
 模型：生成基础代码
 
-你：加邮箱验证
+用户：加邮箱验证
 模型：补一段逻辑
 
-你：密码要加密
+用户：密码要加密
 模型：继续修改
 
-你：还要防重复注册
+用户：还要防重复注册
 模型：再改一轮
 
-你：补测试
-模型：补测试，但测试只覆盖快乐路径
+用户：补测试
+模型：补测试，但只覆盖快乐路径
 </code></pre>
-<p>几轮之后，代码可能“看起来能跑”，但常见问题会积累：</p>
+<p>几轮之后，代码可能“看起来能跑”，但系统性问题已经出现：</p>
 <ul>
-<li>需求边界不清晰；</li>
-<li>错误处理不完整；</li>
+<li>需求边界不清；</li>
 <li>安全约束靠后补；</li>
+<li>错误处理不完整；</li>
 <li>测试覆盖滞后；</li>
-<li>结构随着对话漂移；</li>
-<li>模型为了满足最新指令破坏早期约束。</li>
+<li>文件结构随着对话漂移；</li>
+<li>模型为了满足最新指令破坏早期约束；</li>
+<li>人很难判断最终代码是否满足最初目标。</li>
 </ul>
-<p>Vibe Coding 的本质是<strong>探索工具</strong>，不是<strong>交付协议</strong>。</p>
-<hr>
-<h2 id="133-spec-codingcoding-agent-的工作协议"><a class="header" href="#133-spec-codingcoding-agent-的工作协议">13.3 Spec Coding：Coding Agent 的工作协议</a></h2>
-<p>Spec Coding 的核心思想是：<strong>先把意图写成规范，再让 Agent 执行。</strong></p>
+<p>Vibe Coding 的本质是探索工具，不是交付协议。探索阶段允许混沌，交付阶段必须有约束。</p>
+<h3 id="1314-spec-coding把意图变成任务协议"><a class="header" href="#1314-spec-coding把意图变成任务协议">13.1.4 Spec Coding：把意图变成任务协议</a></h3>
+<p>Spec Coding 的核心思想是：先把人的意图写成可执行、可验证、可审查的任务协议，再让 Agent 执行。</p>
 <pre><code class="language-text">Intent
-  │
-  ▼
+  ↓
 Spec
-  │
-  ▼
+  ↓
 Plan
-  │
-  ▼
+  ↓
 Implementation
-  │
-  ▼
+  ↓
 Verification
+  ↓
+Review
 </code></pre>
-<p>这不是为了“写更多文档”，而是为了把人的隐性判断显式化，让模型有一个稳定的任务协议。</p>
-<h3 id="一个高质量-spec-至少回答八个问题"><a class="header" href="#一个高质量-spec-至少回答八个问题">一个高质量 Spec 至少回答八个问题</a></h3>
-<ol>
-<li>做什么？</li>
-<li>输入是什么？</li>
-<li>输出是什么？</li>
-<li>业务规则是什么？</li>
-<li>失败模式有哪些？</li>
-<li>安全要求是什么？</li>
-<li>性能和并发要求是什么？</li>
-<li>什么测试能证明它工作？</li>
-</ol>
-<p>对 Coding Agent 来说，Spec 不是文档资产，而是<strong>任务接口</strong>。它相当于传统系统里的 API Contract：输入、输出、约束、错误、验收标准都必须清楚。</p>
-<h3 id="spec-为什么适合-coding-agent"><a class="header" href="#spec-为什么适合-coding-agent">Spec 为什么适合 Coding Agent</a></h3>
-<p>Coding Agent 有三个特点：</p>
-<ul>
-<li>能读大量上下文，但容易被无关内容稀释；</li>
-<li>能做多步任务，但容易在中途偏航；</li>
-<li>能调用工具，但工具调用必须受约束。</li>
-</ul>
-<p>Spec 正好补上这些缺口：</p>
-<ul>
-<li>给 Agent 一个稳定目标；</li>
-<li>给计划提供验收标准；</li>
-<li>给测试提供依据；</li>
-<li>给人工 review 提供对照物；</li>
-<li>给失败复盘提供事实基线。</li>
-</ul>
-<h3 id="spec-不是瀑布"><a class="header" href="#spec-不是瀑布">Spec 不是瀑布</a></h3>
-<p>Spec Coding 不要求一开始写出完美方案。更健康的流程是：</p>
-<pre><code class="language-text">Vibe 探索 → 提炼 Spec → Agent 执行 → 验证反馈 → 修订 Spec
-</code></pre>
-<p>探索阶段允许混沌，交付阶段需要约束。</p>
-<hr>
-<h2 id="134-从成熟产品抽象出通用架构"><a class="header" href="#134-从成熟产品抽象出通用架构">13.4 从成熟产品抽象出通用架构</a></h2>
-<p>成熟 Coding Agent 通常包含九个核心模块。</p>
-<pre><code class="language-text">┌──────────────────────────────────────────────────────────────┐
-│                    Coding Agent Runtime                       │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  User Intent / Issue / Spec                                   │
-│      │                                                        │
-│      ▼                                                        │
-│  Task Planner                                                 │
-│      │                                                        │
-│      ▼                                                        │
-│  Context Builder ─────► Code Index / Git / Docs / Rules       │
-│      │                                                        │
-│      ▼                                                        │
-│  Skill Registry ──────► bugfix / test / refactor / incident   │
-│      │                                                        │
-│      ▼                                                        │
-│  Tool Registry ───────► read/search/edit/shell/git/test       │
-│      │                                                        │
-│      ▼                                                        │
-│  Policy Engine ───────► allow / deny / ask / sandbox          │
-│      │                                                        │
-│      ▼                                                        │
-│  Agent Loop ──────────► think / act / observe / repair        │
-│      │                                                        │
-│      ▼                                                        │
-│  Verifier ────────────► test / lint / typecheck / diff        │
-│      │                                                        │
-│      ▼                                                        │
-│  Review Surface ──────► patch / PR / explanation / trace      │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-</code></pre>
+<p>Spec 不是为了写更多文档，而是为了把隐性判断显式化。</p>
+<p>一个高质量 Spec 至少回答八个问题：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">模块</th><th style="text-align: left">职责</th><th style="text-align: left">最小原型怎么做</th><th style="text-align: left">关键风险</th></tr>
+<tr><th style="text-align: left">问题</th><th style="text-align: left">说明</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">Task Planner</td><td style="text-align: left">把需求拆成步骤</td><td style="text-align: left">让模型输出 JSON plan</td><td style="text-align: left">计划过粗、遗漏验证</td></tr>
-<tr><td style="text-align: left">Context Builder</td><td style="text-align: left">找到相关代码和规则</td><td style="text-align: left">repo map + search + read_file</td><td style="text-align: left">上下文过多或漏掉关键文件</td></tr>
-<tr><td style="text-align: left">Skill Registry</td><td style="text-align: left">选择任务相关的工程流程</td><td style="text-align: left"><code>skills/*/SKILL.md</code> + 触发规则</td><td style="text-align: left">加载过多、规则冲突</td></tr>
-<tr><td style="text-align: left">Tool Registry</td><td style="text-align: left">暴露可调用能力</td><td style="text-align: left">Python 函数注册表</td><td style="text-align: left">工具语义模糊</td></tr>
-<tr><td style="text-align: left">Policy Engine</td><td style="text-align: left">管控危险动作</td><td style="text-align: left">allowlist + path sandbox</td><td style="text-align: left">越权、破坏用户改动</td></tr>
-<tr><td style="text-align: left">Agent Loop</td><td style="text-align: left">驱动多轮执行</td><td style="text-align: left">while step &lt; max_steps</td><td style="text-align: left">死循环、偏航</td></tr>
-<tr><td style="text-align: left">Verifier</td><td style="text-align: left">运行检查</td><td style="text-align: left">pytest/lint/build 命令</td><td style="text-align: left">只验证快乐路径</td></tr>
-<tr><td style="text-align: left">Review Surface</td><td style="text-align: left">展示变更</td><td style="text-align: left">git diff + summary</td><td style="text-align: left">解释和实际变更不一致</td></tr>
-<tr><td style="text-align: left">Eval Loop</td><td style="text-align: left">复盘失败样本</td><td style="text-align: left">保存 trace 和失败任务</td><td style="text-align: left">没有持续改进闭环</td></tr>
+<tr><td style="text-align: left">做什么</td><td style="text-align: left">功能目标是什么</td></tr>
+<tr><td style="text-align: left">不做什么</td><td style="text-align: left">当前任务边界在哪里</td></tr>
+<tr><td style="text-align: left">输入是什么</td><td style="text-align: left">API、参数、事件、用户操作</td></tr>
+<tr><td style="text-align: left">输出是什么</td><td style="text-align: left">返回值、状态变化、UI 行为</td></tr>
+<tr><td style="text-align: left">业务规则是什么</td><td style="text-align: left">状态机、权限、幂等、并发</td></tr>
+<tr><td style="text-align: left">失败模式有哪些</td><td style="text-align: left">校验失败、外部依赖失败、超时</td></tr>
+<tr><td style="text-align: left">安全要求是什么</td><td style="text-align: left">权限、脱敏、审计、高风险动作</td></tr>
+<tr><td style="text-align: left">什么算完成</td><td style="text-align: left">测试、构建、diff、人工验收</td></tr>
 </tbody>
 </table>
 </div>
-<p>如果只看表面，Coding Agent 像是“LLM + 工具调用”。但真正的工程难点在工具调用之外：</p>
-<ul>
-<li>上下文怎么选；</li>
-<li>工具能做什么、不能做什么；</li>
-<li>修改前如何知道文件没有被用户改动；</li>
-<li>测试失败后如何把错误反馈给模型；</li>
-<li>任务失败时如何保留证据；</li>
-<li>最后如何让人相信这个 diff 可以 review。</li>
-</ul>
-<h3 id="成熟-coding-agent-的实现分层"><a class="header" href="#成熟-coding-agent-的实现分层">成熟 Coding Agent 的实现分层</a></h3>
-<p>把成熟 Coding Agent 拆开看，它不是一个单独的“聊天窗口”，而是一组围绕模型建立的控制面。</p>
-<pre><code class="language-text">User Surface
-  │  CLI / IDE / Web / GitHub / Slack / Mobile
-  ▼
-Task Envelope
-  │  用户请求、issue、branch、cwd、权限、环境、预算
-  ▼
-Context Control Plane
-  │  规则、代码索引、检索片段、终端输出、Git 状态、记忆、Skill
-  ▼
-Model Reasoning Loop
-  │  规划、选择工具、解释工具结果、修复失败
-  ▼
-Tool Execution Plane
-  │  file / search / edit / shell / git / MCP / browser / CI
-  ▼
-Policy &amp; Sandbox
-  │  路径、命令、网络、secret、审批、租户隔离
-  ▼
-Verification Gate
-  │  test / lint / typecheck / build / diff / review / eval
-  ▼
-Delivery Surface
-     patch / PR / commit / review comment / report / trace
-</code></pre>
-<p>这几个层次对应不同实现问题：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">层次</th><th style="text-align: left">关键实现问题</th><th style="text-align: left">设计判断</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">User Surface</td><td style="text-align: left">用户在哪里发起任务，在哪里接管结果</td><td style="text-align: left">IDE 适合交互，CLI 适合本地闭环，云端适合异步并行</td></tr>
-<tr><td style="text-align: left">Task Envelope</td><td style="text-align: left">每次任务的运行边界是什么</td><td style="text-align: left">cwd、branch、repo、模型、权限、预算、时区都要显式化</td></tr>
-<tr><td style="text-align: left">Context Control Plane</td><td style="text-align: left">模型每轮看到什么</td><td style="text-align: left">规则和证据要分层，不能把全仓库和历史聊天混在一起</td></tr>
-<tr><td style="text-align: left">Reasoning Loop</td><td style="text-align: left">模型如何从开放目标推进到完成</td><td style="text-align: left">action schema、max steps、repair loop、stop condition 缺一不可</td></tr>
-<tr><td style="text-align: left">Tool Execution Plane</td><td style="text-align: left">外部能力如何被调用</td><td style="text-align: left">工具必须有 schema、错误返回、超时、幂等和审计</td></tr>
-<tr><td style="text-align: left">Policy &amp; Sandbox</td><td style="text-align: left">哪些动作绝不能只靠模型自觉</td><td style="text-align: left">写文件、shell、网络、secret、Git 操作必须系统裁决</td></tr>
-<tr><td style="text-align: left">Verification Gate</td><td style="text-align: left">完成由谁判定</td><td style="text-align: left">测试、diff、CI、review 和 eval 要比 final answer 更可信</td></tr>
-<tr><td style="text-align: left">Delivery Surface</td><td style="text-align: left">人如何理解和接收结果</td><td style="text-align: left">diff、PR、trace、风险说明和回滚路径是交付的一部分</td></tr>
-</tbody>
-</table>
-</div>
-<p>这也是为什么成熟 Coding Agent 的实现，通常比普通 LLM 应用复杂得多。普通应用只需要“输入 -&gt; 模型 -&gt; 输出”；Coding Agent 必须把模型放进软件工程生命周期里。</p>
-<h3 id="context-control-plane模型不是自己读懂仓库的"><a class="header" href="#context-control-plane模型不是自己读懂仓库的">Context Control Plane：模型不是自己“读懂仓库”的</a></h3>
-<p>模型无法天然看到整个代码库。所谓“理解代码库”，其实是 Runtime 不断替模型选择上下文。</p>
-<p>成熟 Coding Agent 的上下文通常来自六类来源：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">来源</th><th style="text-align: left">示例</th><th style="text-align: left">风险</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">项目规则</td><td style="text-align: left"><code>CLAUDE.md</code>、<code>AGENTS.md</code>、<code>.cursor/rules</code></td><td style="text-align: left">规则过长、过期、互相冲突</td></tr>
-<tr><td style="text-align: left">代码索引</td><td style="text-align: left">文件树、符号、引用、测试名、路由</td><td style="text-align: left">索引滞后、召回错误</td></tr>
-<tr><td style="text-align: left">活动上下文</td><td style="text-align: left">当前文件、选区、打开的 diff、终端输出</td><td style="text-align: left">用户焦点不等于任务全部上下文</td></tr>
-<tr><td style="text-align: left">工具结果</td><td style="text-align: left">search、read、test、lint、CI、MCP 返回</td><td style="text-align: left">工具错误被模型当事实</td></tr>
-<tr><td style="text-align: left">历史状态</td><td style="text-align: left">conversation、plan、steps、trace、memory</td><td style="text-align: left">摘要污染、旧假设残留</td></tr>
-<tr><td style="text-align: left">任务流程</td><td style="text-align: left">Skill、workflow、review checklist</td><td style="text-align: left">流程过度泛化、误触发</td></tr>
-</tbody>
-</table>
-</div>
-<p>一个成熟 Context Control Plane 至少要做四件事。</p>
-<p>第一，<strong>分层注入</strong>。系统指令、组织策略、项目规则、任务目标、证据、工具结果和历史摘要不能混成一段文本。它们的可信度、优先级和生命周期不同。</p>
-<p>第二，<strong>按需检索</strong>。大仓库不能一次性塞进上下文，通常先给 repo map 或符号索引，再让模型通过 search/read 逐步收集证据。</p>
-<p>第三，<strong>上下文预算管理</strong>。工具结果、测试输出、diff 和日志都可能很长。Runtime 要截断、摘要、去重，并保留来源和时间。</p>
-<p>第四，<strong>污染控制</strong>。外部文档、README、issue、日志和网页都可能包含不可信指令。它们应该作为 data，而不是 instruction。</p>
-<p>可以把每轮模型调用前的上下文看成一个包：</p>
-<pre><code class="language-yaml">task_envelope:
-  user_request: "修复订单取消失败"
-  repo: "order-service"
-  branch: "feature/cancel-order"
-  cwd: "/workspace/order-service"
-  budget:
-    max_steps: 20
-    max_shell_seconds: 60
-
-instruction_layers:
-  system_contract: "只能通过工具行动；不要声称未验证的完成"
-  organization_policy: "不得读取 secret；高风险命令需要审批"
-  project_rules: "运行 make test；不要修改 generated/"
-  selected_skills:
-    - bugfix
-
-evidence:
-  repo_map: "..."
-  search_results:
-    - source: "rg cancel_order"
-      trust: "tool_result"
-  read_files:
-    - path: "service/order_cancel.go"
-      lines: "..."
-  test_output:
-    status: "failed"
-    command: "make test"
-
-state:
-  current_plan: [...]
-  recent_steps: [...]
-  changed_files: [...]
-</code></pre>
-<p>这类结构化上下文包，比“把所有内容拼到 prompt 里”更接近生产实现。</p>
-<h3 id="tool-execution-plane工具调用是一条受控执行链"><a class="header" href="#tool-execution-plane工具调用是一条受控执行链">Tool Execution Plane：工具调用是一条受控执行链</a></h3>
-<p>模型看到的是工具 schema，但真正发生的是 Runtime 执行链。</p>
-<pre><code class="language-text">model proposes tool call
-  │
-  ▼
-schema validation
-  │
-  ▼
-policy decision
-  ├─ deny -&gt; return rejection as observation
-  ├─ ask  -&gt; wait for human approval
-  └─ allow
-      │
-      ▼
-sandbox execution
-      │
-      ▼
-tool result envelope
-      │
-      ▼
-trace + next context
-</code></pre>
-<p>这里最关键的是：<strong>工具不是函数列表，而是权限边界。</strong></p>
-<p>例如 <code>run_shell("pytest")</code> 和 <code>run_shell("rm -rf .")</code> 都是 shell 字符串，但风险完全不同。成熟 Runtime 不会把它们交给模型自己判断，而是把工具参数拆成可裁决对象：</p>
-<pre><code class="language-yaml">tool_call:
-  name: run_shell
-  args:
-    command: "pytest tests/test_order.py -q"
-    timeout: 60
-
-policy_context:
-  cwd: "/workspace/order-service"
-  network: "disabled"
-  allowed_commands:
-    - pytest
-    - make
-    - npm
-  denied_tokens:
-    - rm
-    - sudo
-    - curl
-    - ssh
-  risk_level: medium
-
-decision:
-  result: allow
-  reason: "pytest is in allowlist and command has no denied tokens"
-</code></pre>
-<p>工具结果也应该标准化，而不是把 stdout 直接丢回模型：</p>
-<pre><code class="language-json">{
-  "tool": "run_shell",
-  "ok": false,
-  "status": "failed",
-  "exit_code": 1,
-  "stdout": "...",
-  "stderr": "...",
-  "truncated": true,
-  "duration_ms": 12403,
-  "retryable": true
-}
-</code></pre>
-<p>这样模型下一轮才能判断是继续修复、换工具、请求人工，还是停止。</p>
-<h3 id="verification-gate完成不是模型说了算"><a class="header" href="#verification-gate完成不是模型说了算">Verification Gate：完成不是模型说了算</a></h3>
-<p>Coding Agent 最危险的幻觉不是编造事实，而是“没有完成却宣布完成”。</p>
-<p>成熟系统通常会把完成判定拆成多层：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">层级</th><th style="text-align: left">检查内容</th><th style="text-align: left">失败时怎么办</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">格式层</td><td style="text-align: left">final schema 是否完整</td><td style="text-align: left">要求模型修复输出</td></tr>
-<tr><td style="text-align: left">变更层</td><td style="text-align: left">diff 是否存在、是否超范围</td><td style="text-align: left">阻止提交或请求人工确认</td></tr>
-<tr><td style="text-align: left">语法层</td><td style="text-align: left">format、lint、typecheck</td><td style="text-align: left">把错误回填给模型</td></tr>
-<tr><td style="text-align: left">行为层</td><td style="text-align: left">unit / integration / regression tests</td><td style="text-align: left">进入 repair loop</td></tr>
-<tr><td style="text-align: left">风险层</td><td style="text-align: left">secret scan、权限、依赖、迁移影响</td><td style="text-align: left">阻止自动完成</td></tr>
-<tr><td style="text-align: left">人审层</td><td style="text-align: left">review summary、PR comment、owner approval</td><td style="text-align: left">交给 reviewer</td></tr>
-</tbody>
-</table>
-</div>
-<p>这也是为什么优秀 Coding Agent 的用户体验里一定有 diff、测试输出、失败原因和剩余风险，而不是只有一段“我已经完成了”。</p>
-<h3 id="trace--eval-loop失败要能变成系统资产"><a class="header" href="#trace--eval-loop失败要能变成系统资产">Trace / Eval Loop：失败要能变成系统资产</a></h3>
-<p>成熟 Coding Agent 会记录的不只是聊天历史，而是可分析的执行轨迹：</p>
-<pre><code class="language-text">task_id
-  model_version
-  prompt_version
-  selected_rules
-  selected_skills
-  tool_calls
-  policy_decisions
-  file_reads
-  file_writes
-  shell_commands
-  test_results
-  final_diff
-  human_feedback
-</code></pre>
-<p>这些 trace 可以反哺三类改进：</p>
-<ol>
-<li><strong>Prompt / Skill 改进</strong>：某类任务总漏跑测试，就把“必须运行最小验证”写进 Skill；</li>
-<li><strong>Tool / Policy 改进</strong>：模型频繁调用危险命令，就收紧 shell schema 或 allowlist；</li>
-<li><strong>Eval 改进</strong>：把失败任务变成回归样本，防止下个模型版本重犯。</li>
-</ol>
-<p>没有 trace 的 Coding Agent，只能靠用户主观感觉调 prompt；有 trace 的 Coding Agent，才能进入工程化迭代。</p>
-<h3 id="skill-registry把工程经验变成可复用能力"><a class="header" href="#skill-registry把工程经验变成可复用能力">Skill Registry：把工程经验变成可复用能力</a></h3>
-<p>在 Coding Agent 里，Skill 是介于“规则文件”和“工具调用”之间的一层能力抽象。</p>
-<pre><code class="language-text">Tool  解决：Agent 能调用什么能力
-Skill 解决：某一类工程任务应该按什么方法完成
-</code></pre>
-<p>例如：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">任务</th><th style="text-align: left">需要的工具</th><th style="text-align: left">适合沉淀成 Skill 的经验</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">修复 bug</td><td style="text-align: left">search、read、edit、test</td><td style="text-align: left">先复现，再定位，再最小修改，再回归测试</td></tr>
-<tr><td style="text-align: left">补测试</td><td style="text-align: left">read、search、edit、test</td><td style="text-align: left">先理解现有测试风格，再覆盖失败路径和边界条件</td></tr>
-<tr><td style="text-align: left">重构模块</td><td style="text-align: left">search、read、edit、test、diff</td><td style="text-align: left">先建立调用面，再小步迁移，再保持行为等价</td></tr>
-<tr><td style="text-align: left">升级依赖</td><td style="text-align: left">read、edit、shell、diff</td><td style="text-align: left">先看 changelog，再改锁文件，再跑兼容测试</td></tr>
-<tr><td style="text-align: left">日志排障</td><td style="text-align: left">MCP log、trace、search、diagram</td><td style="text-align: left">先列日志事实，再对齐代码，再标注证据等级</td></tr>
-</tbody>
-</table>
-</div>
-<p>Skill 不应该拥有执行权限。它只是告诉 Agent “这类任务的可靠做法是什么”。真正的文件读写、Shell 执行、MCP 查询和 Git 操作，仍然必须经过 Tool Registry 和 Policy Engine。</p>
-<p>一个最小 Skill 可以写成这样：</p>
-<pre><code class="language-markdown"># Bugfix Skill
-
-## Trigger
-当用户要求修复缺陷、失败测试、异常日志或线上报错时使用。
-
-## Procedure
-1. 先复现或读取失败证据，不要直接修改代码；
-2. 搜索错误信息、函数名、测试名和相关调用链；
-3. 阅读最小相关文件，避免一次性加载整个仓库；
-4. 做最小修改，优先保持现有接口和行为；
-5. 新增或更新回归测试；
-6. 运行最小验证命令；
-7. 输出 diff、验证结果和剩余风险。
-
-## Stop Conditions
-- 无法复现；
-- 缺少权限；
-- 验证命令持续失败且原因不明；
-- 修改范围超过原始任务边界。
-</code></pre>
-<p>从架构上看，Skill Registry 做三件事：</p>
-<ol>
-<li><strong>发现</strong>：从项目、用户目录或内置目录加载 <code>SKILL.md</code>；</li>
-<li><strong>选择</strong>：根据任务类型、文件类型、工具需求和历史失败样本选择少量相关 Skill；</li>
-<li><strong>注入</strong>：把 Skill 的触发条件、步骤、验证要求放进本轮上下文。</li>
-</ol>
-<p>不要把所有 Skill 都塞进 prompt。一个成熟 Runtime 应该按需加载，最好还能记录本次任务到底加载了哪个 Skill、哪个版本，以及最终是否帮助任务成功。</p>
-<hr>
-<h2 id="135-claude-codecursorcodex-的架构取舍"><a class="header" href="#135-claude-codecursorcodex-的架构取舍">13.5 Claude Code、Cursor、Codex 的架构取舍</a></h2>
-<h3 id="claude-code终端原生-runtime"><a class="header" href="#claude-code终端原生-runtime">Claude Code：终端原生 Runtime</a></h3>
-<p>Claude Code 的核心选择是：<strong>把 Agent 放在终端里，而不是只放在 IDE 里。</strong></p>
-<p>这带来几个工程优势：</p>
-<ul>
-<li>终端天然连接项目中的真实工具链；</li>
-<li>可以执行测试、构建、脚本、Git 命令；</li>
-<li>不绑定特定 IDE；</li>
-<li>适合远程开发和自动化工作流；</li>
-<li>容易与 MCP、Hooks、Subagents 等扩展机制组合。</li>
-</ul>
-<p>从实现角度看，Claude Code 更像一个终端里的 Agent Runtime，而不是一个补全工具。它围绕当前工作目录启动，递归读取项目记忆文件，把用户请求、项目规则、工具结果和会话状态组装成上下文，然后通过文件、搜索、编辑、Bash、MCP 等工具推进任务。</p>
-<p>Claude Code 的典型循环可以概括为 TAOR：</p>
-<pre><code class="language-text">Think
-  │  分析需求、上下文和约束
-  ▼
-Act
-  │  调用文件、搜索、编辑、Shell、Git 等工具
-  ▼
-Observe
-  │  读取工具结果、测试输出、错误信息
-  ▼
-Repeat
-     未完成则继续，完成则给出总结和 diff
-</code></pre>
-<h4 id="memoryclaudemd-是项目级上下文协议"><a class="header" href="#memoryclaudemd-是项目级上下文协议">Memory：<code>CLAUDE.md</code> 是项目级上下文协议</a></h4>
-<p><code>CLAUDE.md</code> 的价值不是“模型真的拥有长期记忆”，而是把项目约束变成每次任务都会读取的上下文。它适合写：</p>
-<ul>
-<li>项目结构和关键目录；</li>
-<li>常用构建、测试、lint 命令；</li>
-<li>代码风格和架构边界；</li>
-<li>不可触碰的目录和文件；</li>
-<li>发布前检查；</li>
-<li>过去反复犯过的错误。</li>
-</ul>
-<p>Claude Code 的 memory 不是单一文件，而是有层级的：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">层级</th><th style="text-align: left">典型位置</th><th style="text-align: left">作用</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">企业策略</td><td style="text-align: left">系统级 <code>CLAUDE.md</code></td><td style="text-align: left">组织统一安全、合规和工程规范</td></tr>
-<tr><td style="text-align: left">项目记忆</td><td style="text-align: left">仓库内 <code>CLAUDE.md</code></td><td style="text-align: left">团队共享的项目规则</td></tr>
-<tr><td style="text-align: left">用户记忆</td><td style="text-align: left">用户目录 <code>CLAUDE.md</code></td><td style="text-align: left">个人偏好和常用工作流</td></tr>
-<tr><td style="text-align: left">子目录记忆</td><td style="text-align: left">子树下的 <code>CLAUDE.md</code></td><td style="text-align: left">大仓库里的局部规则</td></tr>
-</tbody>
-</table>
-</div>
-<p>这说明成熟 Coding Agent 的“记忆”本质上是 <strong>context loading policy</strong>：什么时候加载、加载哪个层级、冲突时谁优先、如何避免过期规则污染任务。</p>
-<h4 id="hooks把确定性约束插入工具生命周期"><a class="header" href="#hooks把确定性约束插入工具生命周期">Hooks：把确定性约束插入工具生命周期</a></h4>
-<p>Hooks 则把“确定性约束”插进 Agent Runtime。例如编辑前检查路径，Shell 执行前拦截危险命令，测试结束后自动收集日志。</p>
-<p>Claude Code 的 hooks 覆盖多个事件：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">Hook 事件</th><th style="text-align: left">发生时机</th><th style="text-align: left">工程用途</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left"><code>UserPromptSubmit</code></td><td style="text-align: left">用户提交 prompt 后、模型处理前</td><td style="text-align: left">注入 issue、阻止危险请求、补充上下文</td></tr>
-<tr><td style="text-align: left"><code>PreToolUse</code></td><td style="text-align: left">模型生成工具参数后、工具执行前</td><td style="text-align: left">allow / deny / ask，拦截写文件和 Bash</td></tr>
-<tr><td style="text-align: left"><code>PostToolUse</code></td><td style="text-align: left">工具执行成功后</td><td style="text-align: left">检查结果、追加上下文、提示模型修复</td></tr>
-<tr><td style="text-align: left"><code>Stop</code></td><td style="text-align: left">主 Agent 准备结束时</td><td style="text-align: left">阻止过早完成，要求跑测试或补报告</td></tr>
-<tr><td style="text-align: left"><code>PreCompact</code></td><td style="text-align: left">压缩上下文前</td><td style="text-align: left">保存关键状态，避免压缩丢失任务约束</td></tr>
-<tr><td style="text-align: left"><code>SessionStart</code></td><td style="text-align: left">会话启动或恢复时</td><td style="text-align: left">加载本地开发状态、issue、最近变更</td></tr>
-</tbody>
-</table>
-</div>
-<p>这套机制的关键点是：模型提出行动，hooks 和 permission 系统共同裁决行动。比如 <code>PreToolUse</code> 可以对某个 Bash 命令返回 <code>allow</code>、<code>deny</code> 或 <code>ask</code>。这就是把“不要执行危险命令”从 prompt 愿望变成 Runtime 机制。</p>
-<h4 id="subagents用独立上下文隔离职责"><a class="header" href="#subagents用独立上下文隔离职责">Subagents：用独立上下文隔离职责</a></h4>
-<p>Subagents 则把复杂任务拆给专门角色，例如 reviewer、test runner、debugger。它们有自己的上下文窗口、系统提示词和工具权限，可以放在项目级 <code>.claude/agents/</code> 或用户级目录。</p>
-<p>这解决了两个问题：</p>
-<ol>
-<li><strong>上下文隔离</strong>：reviewer 不需要继承 main agent 的全部探索过程；</li>
-<li><strong>权限收敛</strong>：test runner 可以有 Bash 权限，doc writer 可以只有 read/edit 权限。</li>
-</ol>
-<p>成熟团队使用 subagent 时，真正要设计的是职责边界：</p>
-<pre><code class="language-text">main agent:
-  负责理解任务、协调流程、汇总结论
-
-debugger subagent:
-  负责复现错误、定位根因、给出证据
-
-test-runner subagent:
-  负责运行验证命令、分析失败、建议最小修复
-
-code-reviewer subagent:
-  负责检查 diff 风险、遗漏测试、安全问题
-</code></pre>
-<h4 id="从-claude-反推终端原生-agent-runtime"><a class="header" href="#从-claude-反推终端原生-agent-runtime">从 <code>~/.claude</code> 反推终端原生 Agent Runtime</a></h4>
-<p>如果说 <code>~/.codex</code> 暴露的是“本地 app + 多任务调度 + 云端 sandbox”的 Runtime 剖面，那么 <code>~/.claude</code> 和项目 <code>.claude/</code> 暴露的则是另一种形态：<strong>终端原生 Agent Runtime 的配置控制面</strong>。</p>
-<p>Claude Code 的公开配置体系很有代表性。它不是只读一个全局配置文件，而是把配置拆成多个 scope：</p>
-<pre><code class="language-text">Managed policy
-  │  组织和设备级策略，用户不可覆盖
-  ▼
-Command line arguments
-  │  单次会话临时覆盖
-  ▼
-Local project settings
-  │  当前仓库个人配置，不提交
-  ▼
-Project settings
-  │  当前仓库团队共享配置，可提交
-  ▼
-User settings
-     用户全局配置
-</code></pre>
-<p>这套优先级本质上是一个 Scope Resolver。它决定本轮 Agent 到底加载哪些规则、哪些工具、哪些权限和哪些扩展。与普通 CLI 工具不同，Coding Agent 的配置不是“影响 UI 偏好”，而是会直接改变模型能看到什么、能调用什么、能执行什么。</p>
-<p>可以把 Claude Code 的本地与项目目录抽象成下面几类数据面：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">数据面</th><th style="text-align: left">典型位置</th><th style="text-align: left">Runtime 职责</th><th style="text-align: left">与 Codex 剖面的对应</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">身份与全局状态</td><td style="text-align: left"><code>~/.claude.json</code>、登录态、信任状态、缓存</td><td style="text-align: left">保存 OAuth session、MCP 配置、per-project state 和缓存</td><td style="text-align: left"><code>auth.json</code>、<code>state_5.sqlite</code>、<code>models_cache.json</code></td></tr>
-<tr><td style="text-align: left">配置与权限</td><td style="text-align: left"><code>~/.claude/settings.json</code>、<code>.claude/settings.json</code>、<code>.claude/settings.local.json</code>、managed settings</td><td style="text-align: left">管理权限规则、环境变量、sandbox、模型、插件和 hooks</td><td style="text-align: left"><code>config.toml</code>、approval mode、workspace policy</td></tr>
-<tr><td style="text-align: left">记忆与规则</td><td style="text-align: left"><code>~/.claude/CLAUDE.md</code>、仓库 <code>CLAUDE.md</code>、<code>.claude/CLAUDE.md</code>、<code>CLAUDE.local.md</code></td><td style="text-align: left">注入项目约束、工程习惯、常用命令和局部规则</td><td style="text-align: left"><code>rules/</code>、<code>memories/</code>、<code>AGENTS.md</code></td></tr>
-<tr><td style="text-align: left">子 Agent</td><td style="text-align: left"><code>~/.claude/agents/</code>、<code>.claude/agents/</code></td><td style="text-align: left">定义专用 agent 的系统提示词、工具权限和触发描述</td><td style="text-align: left">review agent、worker agent、subtask agent</td></tr>
-<tr><td style="text-align: left">Skills / Commands</td><td style="text-align: left"><code>~/.claude/skills/</code>、<code>.claude/skills/</code>、<code>.claude/commands/</code>、plugin skills</td><td style="text-align: left">沉淀任务流程，让模型按需加载</td><td style="text-align: left"><code>skills/</code></td></tr>
-<tr><td style="text-align: left">插件与 MCP</td><td style="text-align: left"><code>.mcp.json</code>、<code>~/.claude.json</code>、plugin MCP servers</td><td style="text-align: left">连接 GitHub、Jira、日志平台、数据库、浏览器等外部系统</td><td style="text-align: left"><code>plugins/</code>、MCP connector</td></tr>
-<tr><td style="text-align: left">生命周期拦截</td><td style="text-align: left">settings hooks、plugin hooks</td><td style="text-align: left">在 prompt、tool call、compact、stop、session start/end 等阶段插入确定性逻辑</td><td style="text-align: left">Tool policy、trace hook、verification gate</td></tr>
-<tr><td style="text-align: left">会话与 transcript</td><td style="text-align: left">session persistence、cleanup 策略、<code>/compact</code>、<code>/clear</code></td><td style="text-align: left">控制历史保留、压缩、清理和恢复</td><td style="text-align: left"><code>sessions/</code>、<code>archived_sessions/</code>、<code>session_index.jsonl</code></td></tr>
-</tbody>
-</table>
-</div>
-<p>这张表说明：Claude Code 并不是简单地把模型接到 Bash 上。它把终端环境拆成五个核心控制器。</p>
-<pre><code class="language-text">Terminal / TTY
-  │
-  ▼
-Claude Code Runtime
-  ├─ Scope Resolver
-  ├─ Memory Loader
-  ├─ Permission &amp; Sandbox Engine
-  ├─ Hook Dispatcher
-  ├─ Tool / MCP Router
-  ├─ Subagent Scheduler
-  └─ Session / Transcript Manager
-       │
-       ├─ Local Repository
-       ├─ Shell / Git / Test Toolchain
-       ├─ MCP Servers
-       └─ Plugins / Skills
-</code></pre>
-<p>这里最值得注意的是三点。</p>
-<p>第一，<strong><code>~/.claude.json</code> 不是普通上下文文件</strong>。它可能包含 OAuth session、MCP server 配置、per-project state 和缓存。它属于 Runtime 状态层，而不是应该喂给模型的知识层。模型可以通过 MCP 工具访问 GitHub issue 或日志平台，但不应该看到 token、OAuth session 或 connector 细节。</p>
-<p>第二，<strong><code>.claude/settings.json</code> 是团队级 Policy as Code</strong>。团队可以把允许的 Bash 命令、拒绝读取的 secret 路径、共享 MCP server、hooks 和插件配置写进仓库。这样一来，新成员 clone 仓库后，Agent 的行为边界就和项目一起版本化，而不是散落在每个人的口头经验里。</p>
-<p>第三，<strong>hooks 让终端 Agent 具备“中间件”能力</strong>。传统脚本是用户直接执行命令；Claude Code 是模型先提出工具调用，再由 hooks、permissions 和 sandbox 决定是否允许。<code>PreToolUse</code>、<code>PostToolUse</code>、<code>Stop</code>、<code>PreCompact</code> 这些事件把 Agent loop 拆成可插拔阶段，让安全、审计、验证和上下文维护不再完全依赖 prompt。</p>
-<p>这也解释了 Claude Code 和 Codex 的架构侧重点差异：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">维度</th><th style="text-align: left">Claude Code</th><th style="text-align: left">Codex</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">Runtime 形态</td><td style="text-align: left">终端原生，围绕当前 shell 和仓库运行</td><td style="text-align: left">App / CLI / Cloud 组合，围绕工作区和任务队列运行</td></tr>
-<tr><td style="text-align: left">状态暴露方式</td><td style="text-align: left">配置 scope、Markdown memory、JSON settings、hooks、MCP 配置</td><td style="text-align: left">本地 sqlite、sessions、plugins、skills、cloud requirements cache</td></tr>
-<tr><td style="text-align: left">强项</td><td style="text-align: left">把真实工程工具链纳入可审批的终端循环</td><td style="text-align: left">并行任务、云端 sandbox、本地/云端协同和多工作区编排</td></tr>
-<tr><td style="text-align: left">团队化方式</td><td style="text-align: left"><code>.claude/</code>、<code>CLAUDE.md</code>、<code>.mcp.json</code>、managed policy</td><td style="text-align: left">AGENTS.md、skills、plugins、workspace policy、PR / app review</td></tr>
-<tr><td style="text-align: left">主要风险</td><td style="text-align: left">Shell 权限、MCP 信任、项目规则污染、secret 误读</td><td style="text-align: left">数据边界、远程环境复现、并行任务治理、缓存和状态污染</td></tr>
-</tbody>
-</table>
-</div>
-<p>所以，Claude Code 对成熟 Coding Agent 的启示是：<strong>终端不是 UI，而是 Runtime substrate</strong>。它天然连接 shell、Git、测试、包管理器、CI 脚本和远程开发环境；而 <code>~/.claude</code> / <code>.claude/</code> 这套配置面，则负责把这些能力变成可配置、可审批、可拦截、可团队共享的 Agent 系统。</p>
-<p>Claude Code 的架构启示是：终端原生 Coding Agent 的核心不是“会不会聊天”，而是能否把真实工程工具链接进一个可审批、可拦截、可复盘的循环。</p>
-<h3 id="cursoride-原生-context-control-plane"><a class="header" href="#cursoride-原生-context-control-plane">Cursor：IDE 原生 Context Control Plane</a></h3>
-<p>Cursor 的核心选择是：<strong>把 Agent 放在开发者正在编辑代码的界面里。</strong></p>
-<p>它的优势在于：</p>
-<ul>
-<li>与编辑器 selection、文件树、诊断信息天然结合；</li>
-<li>适合局部修改和交互式重构；</li>
-<li>对 UI、前端、局部调用链修改体验更顺；</li>
-<li>规则系统能为不同目录提供 scoped instruction。</li>
-</ul>
-<p>从实现角度看，Cursor 的强项不是“后台执行”，而是 <strong>IDE 内上下文控制</strong>。它天然知道当前文件、选区、打开的 tab、诊断信息、diff、文件树和用户正在修改的位置。这些信息会显著影响模型做局部修改的质量。</p>
-<h4 id="modes用模式约束工具能力"><a class="header" href="#modes用模式约束工具能力">Modes：用模式约束工具能力</a></h4>
-<p>Cursor 把不同工作方式做成模式：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">模式</th><th style="text-align: left">适合场景</th><th style="text-align: left">工具能力</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">Ask</td><td style="text-align: left">理解代码、规划、问答</td><td style="text-align: left">只读搜索，不自动修改</td></tr>
-<tr><td style="text-align: left">Agent</td><td style="text-align: left">复杂功能、重构、多文件修改</td><td style="text-align: left">可探索、编辑、运行命令</td></tr>
-<tr><td style="text-align: left">Custom</td><td style="text-align: left">团队自定义流程</td><td style="text-align: left">可配置工具和能力</td></tr>
-</tbody>
-</table>
-</div>
-<p>这其实是 Policy UX：用户不用理解每个工具的权限细节，只要选择“只读探索”还是“允许修改执行”。成熟产品会把权限模型变成用户能理解的操作模式。</p>
-<h4 id="ruleside-agent-的轻量上下文控制面"><a class="header" href="#ruleside-agent-的轻量上下文控制面">Rules：IDE Agent 的轻量上下文控制面</a></h4>
-<p>Cursor 的 Rules 用来控制 Agent 和 Inline Edit 的行为。Project Rules 存放在 <code>.cursor/rules</code>，适合进入版本控制；User Rules 表达个人偏好；<code>AGENTS.md</code> 提供通用 Markdown 指令入口；旧的 <code>.cursorrules</code> 仍可兼容但不再是推荐形态。</p>
-<p>从架构上看，Rules 是一种轻量级 Context Control Plane：</p>
-<pre><code class="language-text">User Request
-  │
-  ├─ Active File / Selection
-  ├─ Project Rules
-  ├─ User Rules
-  ├─ Retrieved Code Context
-  ▼
-Model / Agent
-</code></pre>
-<p>Rules 的核心价值不是“写更多提示词”，而是把目录级约束、组件规范、测试习惯、架构边界变成可复用上下文。例如前端目录可以有组件规范，后端目录可以有 API 错误处理规范，Bugbot 还可以用 <code>.cursor/BUGBOT.md</code> 为 PR review 提供项目上下文。</p>
-<h4 id="diff-review-与-checkpoints把人放回交付链路"><a class="header" href="#diff-review-与-checkpoints把人放回交付链路">Diff Review 与 Checkpoints：把人放回交付链路</a></h4>
-<p>Cursor 很重视 review surface。Agent 生成变更后，会把 diff 放进熟悉的 review 界面，用户可以按文件接受或拒绝，也可以做细粒度选择。</p>
-<p>Checkpoints 则是另一层体验保护：它会保存 Agent 修改前后的状态，让用户能恢复到之前的 Agent 变更点。它不是 Git 的替代品，但能降低交互式试错成本。</p>
-<p>这两个机制说明 IDE Agent 的交付不是“模型直接写进仓库就结束”，而是：</p>
-<pre><code class="language-text">agent proposes edits
-  │
-  ▼
-editor shows diff
-  │
-  ├─ accept selected changes
-  ├─ reject selected changes
-  └─ restore checkpoint
-</code></pre>
-<h4 id="background-agents从-ide-走向远程异步执行"><a class="header" href="#background-agents从-ide-走向远程异步执行">Background Agents：从 IDE 走向远程异步执行</a></h4>
-<p>Cursor 的 Background Agents 把任务放到远程 Ubuntu 环境中运行，可以克隆 GitHub 仓库、安装依赖、运行命令、在独立分支上修改代码并把结果交回用户。</p>
-<p>这让 Cursor 从“IDE 内交互式 Agent”扩展到“异步远程 Agent”。但它也带来新的安全边界：</p>
-<ul>
-<li>远程环境通常有互联网访问；</li>
-<li>agent 可以自动运行终端命令；</li>
-<li>需要 GitHub App 权限来 clone、创建分支和推送变更；</li>
-<li>secrets 会进入远程环境配置；</li>
-<li>prompt injection 可能诱导 agent 外传代码或敏感信息。</li>
-</ul>
-<p>所以 Background Agent 的关键实现不只是远程机器，而是环境配置、权限、secret 管理、分支隔离和结果接管。</p>
-<p>Cursor 的架构启示是：IDE 原生 Agent 的核心优势在“人机共编”和上下文贴合；一旦进入后台执行，就必须补上云端沙箱、权限和审计。</p>
-<h3 id="codex云端任务型-sandbox"><a class="header" href="#codex云端任务型-sandbox">Codex：云端任务型 Sandbox</a></h3>
-<p>Codex 的核心选择是：<strong>同时覆盖本地配对编程和云端任务委托</strong>。</p>
-<p>本地形态里，Codex CLI、IDE extension 和 Codex app 让 Agent 在开发者当前环境中读取仓库、编辑文件、运行命令和执行测试。云端形态里，Codex 在隔离 sandbox 中接收任务，基于仓库和环境完成修改，生成可 review、可 merge 或可拉回本地继续工作的结果。</p>
-<p>这种形态适合：</p>
-<ul>
-<li>修复明确 bug；</li>
-<li>实现小到中等规模功能；</li>
-<li>批量处理 issue；</li>
-<li>生成 PR；</li>
-<li>并行探索多个方案。</li>
-</ul>
-<h4 id="local-codex审批模式就是权限模型"><a class="header" href="#local-codex审批模式就是权限模型">Local Codex：审批模式就是权限模型</a></h4>
-<p>本地 Codex 的一个核心设计是 approval mode。它把工具权限暴露成用户可选择的运行模式：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">模式</th><th style="text-align: left">允许行为</th><th style="text-align: left">适合场景</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">Suggest</td><td style="text-align: left">读文件，提出编辑和命令，需要用户批准</td><td style="text-align: left">探索代码、学习仓库、代码审查</td></tr>
-<tr><td style="text-align: left">Auto Edit</td><td style="text-align: left">自动读写文件，shell 仍需批准</td><td style="text-align: left">重构、批量编辑、重复性修改</td></tr>
-<tr><td style="text-align: left">Full Auto</td><td style="text-align: left">在 sandbox 中自动读写和执行命令</td><td style="text-align: left">较长任务、修复构建、原型开发</td></tr>
-</tbody>
-</table>
-</div>
-<p>这和第 19 章 lab 里的 <code>auto_edit</code>、<code>auto_shell</code> 是同一个设计思想：read、write、exec 是三种不同风险，不能只用一个“允许 Agent 工作”概括。</p>
-<h4 id="cloud-codex每个任务一个隔离执行环境"><a class="header" href="#cloud-codex每个任务一个隔离执行环境">Cloud Codex：每个任务一个隔离执行环境</a></h4>
-<p>云端任务型 Agent 的关键不是“模型更强”，而是执行环境不同：</p>
-<pre><code class="language-text">Issue / Task
-  │
-  ▼
-Cloud Sandbox
-  ├─ Repository Checkout
-  ├─ Dependency Setup
-  ├─ Code Edit
-  ├─ Test / Lint
-  ├─ Commit / Patch
-  └─ PR Proposal
-</code></pre>
-<p>它把每个任务放在独立环境中，降低了污染本地工作区的风险，也更适合并行。代价是环境初始化成本更高、私有依赖和内网服务接入更复杂、权限和数据边界更敏感。</p>
-<p>成熟云端 Coding Agent 通常要解决五个实现问题：</p>
-<ol>
-<li><strong>仓库接入</strong>：GitHub 权限、分支、submodule、私有依赖；</li>
-<li><strong>环境复现</strong>：setup script、依赖缓存、系统包、测试服务；</li>
-<li><strong>并行隔离</strong>：每个任务独立 sandbox，避免互相污染；</li>
-<li><strong>交付表面</strong>：patch、PR、review comment、可拉回本地继续；</li>
-<li><strong>企业控制</strong>：RBAC、数据保留、审计、合规 API、仓库授权。</li>
-</ol>
-<h4 id="codex-app从单-agent-到多工作区编排"><a class="header" href="#codex-app从单-agent-到多工作区编排">Codex app：从单 Agent 到多工作区编排</a></h4>
-<p>Codex app 进一步把本地和云端工作流组合起来：开发者可以在多个项目间并行运行 agent，使用 worktree、skills、automations 和 git 功能，把任务从“一个终端会话”提升到“一个多任务工程工作台”。</p>
-<p>这类形态的实现重点是调度：</p>
-<pre><code class="language-text">task queue
-  │
-  ├─ local worktree agent
-  ├─ cloud sandbox agent
-  ├─ review agent
-  └─ automation / heartbeat
-</code></pre>
-<h4 id="从-codex-目录反推本地-runtime"><a class="header" href="#从-codex-目录反推本地-runtime">从 <code>~/.codex</code> 目录反推本地 Runtime</a></h4>
-<p>如果观察一个真实 Codex app 的本地目录，会发现它并不是“一个聊天窗口 + 一个模型 API key”。更准确地说，它是一个小型本地 Agent Runtime，把账号、配置、会话、日志、插件、技能、规则、缓存和云端任务状态拆成不同的数据面。</p>
-<p>一个典型的本地目录可以抽象成下面几类：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">数据面</th><th style="text-align: left">典型文件或目录</th><th style="text-align: left">Runtime 职责</th><th style="text-align: left">生产级关注点</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">身份与配置</td><td style="text-align: left"><code>auth.json</code>、<code>installation_id</code>、<code>config.toml</code></td><td style="text-align: left">保存账号凭据、本机实例标识、默认模型、权限和工具配置</td><td style="text-align: left">凭据加密、权限最小化、配置迁移、不要进入模型上下文</td></tr>
-<tr><td style="text-align: left">会话与任务状态</td><td style="text-align: left"><code>sessions/</code>、<code>archived_sessions/</code>、<code>session_index.jsonl</code></td><td style="text-align: left">恢复历史会话，把 thread、workspace、shell 和任务状态关联起来</td><td style="text-align: left">schema 版本、断点恢复、索引一致性、隐私清理</td></tr>
-<tr><td style="text-align: left">记忆与规则</td><td style="text-align: left"><code>memories/</code>、<code>rules/</code></td><td style="text-align: left">保存跨会话偏好、全局规则、项目协作约束</td><td style="text-align: left">作用域隔离、优先级、过期机制、prompt injection 防护</td></tr>
-<tr><td style="text-align: left">扩展能力</td><td style="text-align: left"><code>skills/</code>、<code>plugins/</code>、<code>vendor_imports/</code></td><td style="text-align: left">装载任务流程、MCP / app connector、浏览器和文档工具等能力</td><td style="text-align: left">版本锁定、信任边界、权限声明、依赖隔离</td></tr>
-<tr><td style="text-align: left">可观测性</td><td style="text-align: left"><code>logs_2.sqlite</code>、<code>shell_snapshots/</code></td><td style="text-align: left">记录工具调用、终端状态、错误、trace 和运行事件</td><td style="text-align: left">脱敏、留存周期、查询性能、审计接口</td></tr>
-<tr><td style="text-align: left">应用状态</td><td style="text-align: left"><code>state_5.sqlite</code>、<code>sqlite/</code></td><td style="text-align: left">保存 app UI 状态、任务队列、后台 agent、工作区映射</td><td style="text-align: left">崩溃恢复、并发写、WAL 清理、数据迁移</td></tr>
-<tr><td style="text-align: left">缓存与产物</td><td style="text-align: left"><code>cache/</code>、<code>models_cache.json</code>、<code>cloud-requirements-cache.json</code>、<code>generated_images/</code>、<code>tmp/</code></td><td style="text-align: left">缓存模型元数据、云端环境需求、生成文件和临时结果</td><td style="text-align: left">失效策略、磁盘配额、缓存污染、可重建性</td></tr>
-</tbody>
-</table>
-</div>
-<p>这张表很重要，因为它暴露了一个成熟 Coding Agent 的真实边界：<strong>模型只是一轮推理引擎，Agent Runtime 才是把推理变成工程工作的系统</strong>。</p>
-<p>可以把它画成一个更通用的本地架构：</p>
-<pre><code class="language-text">User / IDE / CLI
-  │
-  ▼
-Local Agent Runtime
-  ├─ Config &amp; Identity Store
-  ├─ Session Store
-  ├─ Memory &amp; Rule Store
-  ├─ Skill / Plugin Registry
-  ├─ Tool Execution Plane
-  ├─ Event Log / Trace DB
-  └─ Cache / Artifact Store
-       │
-       ├─ Local Workspace
-       ├─ MCP / App Connectors
-       └─ Cloud Sandbox
-</code></pre>
-<p>这个目录结构背后有几条实现启示。</p>
-<p>第一，<strong>会话状态和事件日志应该分离</strong>。<code>sessions/</code> 负责恢复任务，<code>logs_2.sqlite</code> 负责追踪每一步发生了什么。恢复状态要短小、稳定、可迁移；事件日志要完整、可查询、可审计。如果把两者混在一个大 JSON 里，长任务恢复、隐私清理和问题排查都会变得困难。</p>
-<p>第二，<strong>规则、技能和插件是不同层级的扩展点</strong>。<code>rules/</code> 更像 Context Control Plane，决定模型应该遵守什么；<code>skills/</code> 更像工作流资产，告诉 agent 遇到某类任务该怎么做；<code>plugins/</code> 更像能力注册中心，让 agent 能调用 Gmail、浏览器、文档、日志平台、MCP server 等外部工具。把这三者混成一类“提示词模板”，会导致权限、依赖和审计边界不清。</p>
-<p>第三，<strong>日志数据库是 Agent 的黑匣子</strong>。成熟 agent 不只要回答“最后改了什么”，还要能回答“为什么读了这个文件、为什么执行这个命令、为什么相信这个测试结果”。SQLite + WAL 这类本地存储形态说明：工具调用、shell 快照、模型选择、错误和恢复点都应该被结构化记录，而不是只保存在聊天文本里。</p>
-<p>第四，<strong>secret 不能成为上下文资产</strong>。<code>auth.json</code> 的存在说明身份凭据属于执行层，不属于推理层。模型可以请求“搜索 Gmail”或“查询日志”，但不应该看到 token 本身。生产级实现里，凭据应该由 tool runtime 或 connector 管理，模型只看到脱敏后的工具结果。</p>
-<p>第五，<strong>缓存不是事实源</strong>。<code>models_cache.json</code> 和 <code>cloud-requirements-cache.json</code> 能提升启动和调度速度，但它们不能替代官方模型列表、真实云端环境或当前仓库状态。任何缓存都需要版本、来源、更新时间和失效策略，否则 agent 会基于过期能力做决策。</p>
-<p>如果把这些映射到第 19 章要实现的 lab，可以得到一张更接近生产系统的模块表：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">第 19 章模块</th><th style="text-align: left">本地 Runtime 对应物</th><th style="text-align: left">要补齐的生产能力</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left"><code>AgentState</code></td><td style="text-align: left"><code>sessions/</code>、<code>state_5.sqlite</code></td><td style="text-align: left">断点恢复、任务索引、状态迁移</td></tr>
-<tr><td style="text-align: left"><code>TraceStore</code></td><td style="text-align: left"><code>logs_2.sqlite</code>、<code>shell_snapshots/</code></td><td style="text-align: left">结构化事件、脱敏、查询和审计</td></tr>
-<tr><td style="text-align: left"><code>ContextBuilder</code></td><td style="text-align: left"><code>rules/</code>、<code>memories/</code>、项目文件</td><td style="text-align: left">分层上下文、优先级、污染隔离</td></tr>
-<tr><td style="text-align: left"><code>SkillRegistry</code></td><td style="text-align: left"><code>skills/</code></td><td style="text-align: left">trigger 匹配、版本管理、回归评估</td></tr>
-<tr><td style="text-align: left"><code>ToolRegistry</code></td><td style="text-align: left"><code>plugins/</code>、MCP connector</td><td style="text-align: left">schema、权限声明、超时和错误封装</td></tr>
-<tr><td style="text-align: left"><code>PolicyEngine</code></td><td style="text-align: left"><code>config.toml</code>、approval mode</td><td style="text-align: left">read / write / shell / network 的差异化授权</td></tr>
-<tr><td style="text-align: left"><code>ArtifactStore</code></td><td style="text-align: left"><code>generated_images/</code>、<code>tmp/</code>、<code>cache/</code></td><td style="text-align: left">产物生命周期、磁盘配额、可重建性</td></tr>
-<tr><td style="text-align: left"><code>CloudRunner</code></td><td style="text-align: left"><code>cloud-requirements-cache.json</code>、cloud sandbox</td><td style="text-align: left">环境复现、分支隔离、远程执行审计</td></tr>
-</tbody>
-</table>
-</div>
-<p>所以，Codex 的架构启示不只是“云端沙箱和并行任务”。更深一层看，它展示的是一个 Coding Agent 如何从无状态聊天，演进成带有本地状态、扩展注册、事件日志、权限控制和云端执行面的工程操作系统。模型只是其中一层，真正的产品壁垒在环境、权限、状态、并行、审查和团队治理。</p>
-<h3 id="三类-coding-agent-的架构对比"><a class="header" href="#三类-coding-agent-的架构对比">三类 Coding Agent 的架构对比</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">维度</th><th style="text-align: left">Claude Code</th><th style="text-align: left">Cursor</th><th style="text-align: left">Codex</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">核心界面</td><td style="text-align: left">终端</td><td style="text-align: left">IDE</td><td style="text-align: left">CLI / IDE / App / Cloud</td></tr>
-<tr><td style="text-align: left">最强场景</td><td style="text-align: left">端到端任务、脚本、测试、Git</td><td style="text-align: left">交互式编辑、局部重构、前端开发</td><td style="text-align: left">并行 issue、PR 生成、后台任务</td></tr>
-<tr><td style="text-align: left">上下文来源</td><td style="text-align: left">文件系统、命令、<code>CLAUDE.md</code>、<code>.claude/</code>、MCP、hooks</td><td style="text-align: left">编辑器、选区、代码索引、Rules、checkpoints</td><td style="text-align: left">仓库快照、任务描述、本地 runtime 状态、worktree、sandbox 结果</td></tr>
-<tr><td style="text-align: left">规则机制</td><td style="text-align: left">settings scope、memory、subagents、skills、hooks</td><td style="text-align: left">Project Rules、User Rules、AGENTS.md、Bugbot rules</td><td style="text-align: left">AGENTS.md / rules / skills / plugins / task prompt / workspace policy</td></tr>
-<tr><td style="text-align: left">执行环境</td><td style="text-align: left">本地/远程终端</td><td style="text-align: left">本地 IDE + 远程 background agent</td><td style="text-align: left">本地工作区 + 云端 sandbox</td></tr>
-<tr><td style="text-align: left">权限模型</td><td style="text-align: left"><code>/permissions</code>、hooks、工具权限、MCP 权限</td><td style="text-align: left">模式、review、GitHub app、远程环境配置</td><td style="text-align: left">approval modes、sandbox、RBAC、GitHub 授权</td></tr>
-<tr><td style="text-align: left">审查表面</td><td style="text-align: left">终端总结、diff、hooks、subagent review</td><td style="text-align: left">文件级 diff review、selective accept、checkpoint</td><td style="text-align: left">patch、PR、app review、自动 code review</td></tr>
-<tr><td style="text-align: left">风险重点</td><td style="text-align: left">Shell 和文件权限</td><td style="text-align: left">错误上下文、误编辑、远程 agent 外传风险</td><td style="text-align: left">数据边界、环境复现、并行任务治理</td></tr>
-<tr><td style="text-align: left">质量保障</td><td style="text-align: left">测试、hooks、人工确认</td><td style="text-align: left">编辑器诊断、diff review、Bugbot</td><td style="text-align: left">sandbox 测试、PR review、CI、code review agent</td></tr>
-</tbody>
-</table>
-</div>
-<p>一个成熟团队不一定只选择一种形态。更现实的组合是：</p>
-<ul>
-<li>Cursor 负责高频交互式开发；</li>
-<li>Claude Code 负责终端原生任务和本地自动化；</li>
-<li>Codex 负责并行 issue 和云端 PR 任务；</li>
-<li>统一用 Spec、测试、代码审查和 CI 把它们约束到同一工程标准。</li>
-</ul>
-<h3 id="成熟-coding-agent-的共同失败模式"><a class="header" href="#成熟-coding-agent-的共同失败模式">成熟 Coding Agent 的共同失败模式</a></h3>
-<p>不管产品形态如何，成熟 Coding Agent 都会遇到一组相似失败模式。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">失败模式</th><th style="text-align: left">表现</th><th style="text-align: left">应该在哪一层修</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">上下文误召回</td><td style="text-align: left">修改了相似但无关的文件</td><td style="text-align: left">Context Control Plane：改索引、规则、检索和引用</td></tr>
-<tr><td style="text-align: left">未读文件直接改</td><td style="text-align: left">生成 patch 覆盖现有逻辑</td><td style="text-align: left">Tool Policy：强制 read-before-edit</td></tr>
-<tr><td style="text-align: left">工具结果误解</td><td style="text-align: left">测试失败被当作通过</td><td style="text-align: left">Tool Result Envelope + Verifier</td></tr>
-<tr><td style="text-align: left">长任务偏航</td><td style="text-align: left">越做越偏，开始重构无关模块</td><td style="text-align: left">Workflow State：计划、预算、stop condition</td></tr>
-<tr><td style="text-align: left">Shell 权限过大</td><td style="text-align: left">执行危险命令或联网外传</td><td style="text-align: left">Sandbox + command allowlist + approval</td></tr>
-<tr><td style="text-align: left">Diff 过大</td><td style="text-align: left">大范围格式化或重写文件</td><td style="text-align: left">Patch Policy：diff size limit、路径范围、人工确认</td></tr>
-<tr><td style="text-align: left">解释和变更不一致</td><td style="text-align: left">summary 说改了 A，diff 实际改了 B</td><td style="text-align: left">Review Surface：自动 diff summary 校验</td></tr>
-<tr><td style="text-align: left">Prompt injection</td><td style="text-align: left">README、issue、日志诱导 Agent 忽略规则</td><td style="text-align: left">Context Firewall：外部内容降级为 data</td></tr>
-<tr><td style="text-align: left">版本漂移</td><td style="text-align: left">换模型后老任务变差</td><td style="text-align: left">Eval Loop：固定回归集和 release gate</td></tr>
-<tr><td style="text-align: left">本地状态污染</td><td style="text-align: left">旧会话、旧缓存或旧规则影响新任务</td><td style="text-align: left">State Store：作用域、TTL、显式清理和状态快照</td></tr>
-<tr><td style="text-align: left">敏感数据进入上下文</td><td style="text-align: left">token、日志、邮箱内容被原样写入 prompt</td><td style="text-align: left">Secret Boundary：凭据只在工具层，结果脱敏后入上下文</td></tr>
-</tbody>
-</table>
-</div>
-<p>这些失败模式说明：Coding Agent 的可靠性不是靠一个更强模型单独解决的，而是靠上下文、工具、策略、验证和审查共同收敛。</p>
-<h3 id="从-skill-视角看三类产品"><a class="header" href="#从-skill-视角看三类产品">从 Skill 视角看三类产品</a></h3>
-<p>不同产品不一定都把这种能力称为 Skill，但它们都需要某种“任务流程复用机制”。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th style="text-align: left">产品形态</th><th style="text-align: left">Skill-like 机制</th><th style="text-align: left">适合沉淀的内容</th></tr>
-</thead>
-<tbody>
-<tr><td style="text-align: left">Claude Code</td><td style="text-align: left">项目规则、命令、Hooks、Subagents、Skills</td><td style="text-align: left">终端工作流、发布检查、调试流程、代码审查流程</td></tr>
-<tr><td style="text-align: left">Cursor</td><td style="text-align: left">Project Rules、目录级规则、编辑器上下文</td><td style="text-align: left">前端组件规范、目录局部约束、重构习惯</td></tr>
-<tr><td style="text-align: left">Codex</td><td style="text-align: left">任务模板、仓库规则、沙箱验证流程</td><td style="text-align: left">issue 修复流程、PR 生成流程、并行验证流程</td></tr>
-</tbody>
-</table>
-</div>
-<p>这说明 Skill 不是某个产品的专有功能，而是一种更通用的 Agent 工程模式：把“人类专家做这类任务的稳定方法”写成可版本化、可审查、可评估的上下文资产。</p>
-<hr>
-<h2 id="136-从系统解析到可运行实验"><a class="header" href="#136-从系统解析到可运行实验">13.6 从系统解析到可运行实验</a></h2>
-<p>本章的定位是成熟系统解析，所以重点放在 AI Coding Agent 的范式、产品形态和架构取舍上，而不是在这里展开完整源码。</p>
-<p>真正从零实现一个 Coding Agent，需要连续讲清楚：</p>
-<ul>
-<li>如何加载项目规则和仓库结构；</li>
-<li>如何约束模型只输出结构化 action；</li>
-<li>如何设计文件、搜索、编辑、shell 和 diff 工具；</li>
-<li>如何用 Policy Engine 控制读、写和命令执行；</li>
-<li>如何记录 trace；</li>
-<li>如何运行测试和 verifier；</li>
-<li>如何从 MVP 演进到团队级 Agent。</li>
-</ul>
-<p>这些内容会在第 19 章基于可运行 lab 展开：</p>
-<pre><code class="language-text">books/ai-book/labs/coding-agent-mvp
-</code></pre>
-<p>也就是说，本章先回答“成熟 Coding Agent 为什么这样设计”，第 19 章再回答“如何把这些设计落成一个可运行、可测试、可观测的最小系统”。</p>
-<p>这种拆分有两个好处：</p>
-<ol>
-<li>第 13 章可以集中比较 Claude Code、Cursor、Codex 等系统的架构选择；</li>
-<li>第 19 章可以作为完整实战章节，从代码目录、配置、工具、权限、trace、verifier 到生产化路线一口气讲完。</li>
-</ol>
-<hr>
-<h2 id="137-从-mvp-到生产系统的演进路线"><a class="header" href="#137-从-mvp-到生产系统的演进路线">13.7 从 MVP 到生产系统的演进路线</a></h2>
-<p>通过第 19 章的 lab 实现出最小原型后，不要立刻堆功能。建议按风险顺序演进。</p>
-<h3 id="第一阶段read-only-agent"><a class="header" href="#第一阶段read-only-agent">第一阶段：Read-only Agent</a></h3>
-<p>只允许 <code>list_files</code>、<code>read_file</code>、<code>search_code</code>、<code>git_diff</code>。</p>
-<p>目标是让 Agent 能回答：</p>
-<ul>
-<li>这个需求可能涉及哪些文件；</li>
-<li>当前代码是怎么工作的；</li>
-<li>应该怎么改；</li>
-<li>需要哪些测试。</li>
-</ul>
-<p>Read-only Agent 是最安全的第一步，适合接入真实大仓库。</p>
-<h3 id="第二阶段patch-agent"><a class="header" href="#第二阶段patch-agent">第二阶段：Patch Agent</a></h3>
-<p>开放 <code>replace_in_file</code> 和 <code>create_file</code>，但不开放任意 shell。</p>
-<p>目标是让 Agent 能生成小范围 patch，并由人运行测试。</p>
-<p>这一阶段要重点做：</p>
-<ul>
-<li>path sandbox；</li>
-<li>old text 精确匹配；</li>
-<li>diff 输出；</li>
-<li>人工确认。</li>
-</ul>
-<h3 id="第三阶段verified-agent"><a class="header" href="#第三阶段verified-agent">第三阶段：Verified Agent</a></h3>
-<p>开放测试类 Shell 命令。</p>
-<p>目标是让 Agent 能自己形成“修改 -&gt; 测试 -&gt; 修复”的闭环。</p>
-<p>这一阶段要重点做：</p>
-<ul>
-<li>command allowlist；</li>
-<li>timeout；</li>
-<li>输出截断；</li>
-<li>flaky test 处理；</li>
-<li>失败重试预算。</li>
-</ul>
-<h3 id="第四阶段workflow-agent"><a class="header" href="#第四阶段workflow-agent">第四阶段：Workflow Agent</a></h3>
-<p>加入计划、任务状态和多步骤工作流。</p>
-<p>目标是支持更长的任务，例如：</p>
-<ul>
-<li>重构一个模块；</li>
-<li>迁移一个 API；</li>
-<li>增加一组测试；</li>
-<li>修复一类 lint 问题。</li>
-</ul>
-<p>这一阶段要重点做：</p>
-<ul>
-<li>plan step 状态；</li>
-<li>每步验收标准；</li>
-<li>中途汇报；</li>
-<li>可暂停和恢复。</li>
-</ul>
-<h3 id="第五阶段skill-enabled-agent"><a class="header" href="#第五阶段skill-enabled-agent">第五阶段：Skill-enabled Agent</a></h3>
-<p>加入 Skill Registry，让 Agent 不只是“临场规划”，而是能够复用团队沉淀下来的工程流程。</p>
-<p>目标是支持可重复的高质量任务，例如：</p>
-<ul>
-<li>缺陷修复流程；</li>
-<li>测试补全流程；</li>
-<li>依赖升级流程；</li>
-<li>代码审查流程；</li>
-<li>日志到调用链分析流程。</li>
-</ul>
-<p>这一阶段要重点做：</p>
-<ul>
-<li>Skill 的触发条件；</li>
-<li>Skill 版本管理；</li>
-<li>Skill 与项目规则的优先级；</li>
-<li>Skill 加载 trace；</li>
-<li>Skill 修改后的 regression eval。</li>
-</ul>
-<h3 id="第六阶段team-agent"><a class="header" href="#第六阶段team-agent">第六阶段：Team Agent</a></h3>
-<p>加入 subagent、reviewer、eval、CI 集成。</p>
-<p>目标是让 Agent 进入团队工程流程，而不是只服务个人本地实验。</p>
-<p>这一阶段要重点做：</p>
-<ul>
-<li>reviewer agent；</li>
-<li>test runner agent；</li>
-<li>失败样本库；</li>
-<li>代码审查模板；</li>
-<li>PR bot；</li>
-<li>企业权限审计。</li>
-</ul>
-<hr>
-<h2 id="138-设计自己的-coding-agent-工作流"><a class="header" href="#138-设计自己的-coding-agent-工作流">13.8 设计自己的 Coding Agent 工作流</a></h2>
-<h3 id="1-把-spec-当成任务接口"><a class="header" href="#1-把-spec-当成任务接口">1. 把 Spec 当成任务接口</a></h3>
-<p>不要直接把复杂需求丢给 Agent。先写最小 Spec：</p>
+<p>对 Coding Agent 来说，Spec 是任务接口。它类似传统系统里的 API Contract：输入、输出、约束、错误和验收标准都必须清楚。</p>
+<p>一个简化的 Spec 可以这样写：</p>
 <pre><code class="language-markdown"># 功能：订单取消
 
 ## 目标
@@ -15864,152 +15364,273 @@ Local Agent Runtime
 - 重复取消返回相同结果；
 - 库存释放只执行一次。
 </code></pre>
-<h3 id="2-把规则写进项目上下文"><a class="header" href="#2-把规则写进项目上下文">2. 把规则写进项目上下文</a></h3>
-<p>规则文件不是越长越好。推荐只写三类内容：</p>
-<ul>
-<li>Agent 无法从代码推断的约束；</li>
-<li>经常被模型犯错的地方；</li>
-<li>必须执行的验证命令。</li>
-</ul>
-<h3 id="3-把验证命令标准化"><a class="header" href="#3-把验证命令标准化">3. 把验证命令标准化</a></h3>
-<p>每个仓库都应该有明确的验证入口：</p>
-<pre><code class="language-bash">make test
-make lint
-make typecheck
-make build
+<p>这个 Spec 不长，但它已经足够让 Agent 规划修改、寻找相关代码、补测试和判断完成。</p>
+<h3 id="1315-spec-不是瀑布而是探索到交付的转换"><a class="header" href="#1315-spec-不是瀑布而是探索到交付的转换">13.1.5 Spec 不是瀑布，而是探索到交付的转换</a></h3>
+<p>Spec Coding 不意味着一开始写出完美方案。更健康的流程是：</p>
+<pre><code class="language-text">Vibe 探索
+  ↓
+提炼 Spec
+  ↓
+Agent 执行
+  ↓
+验证反馈
+  ↓
+修订 Spec
 </code></pre>
-<p>Agent 最怕的是“测试怎么跑”也要猜。</p>
-<h3 id="4-把高风险动作交给人"><a class="header" href="#4-把高风险动作交给人">4. 把高风险动作交给人</a></h3>
-<p>以下操作不应该自动执行：</p>
+<p>探索阶段可以用 Vibe Coding 打开问题空间；一旦要进入交付，就要把探索结果收束成 Spec。</p>
+<p>这也是成熟 Coding Agent 的工作方式：它可以和你一起探索，但当它要修改真实代码、运行命令、提交 diff 时，必须进入任务协议和验证闭环。</p>
+<hr>
+<h2 id="132-从成熟-coding-agent-产品抽象通用-harness-架构"><a class="header" href="#132-从成熟-coding-agent-产品抽象通用-harness-架构">13.2 从成熟 Coding Agent 产品抽象通用 Harness 架构</a></h2>
+<p>如果只看表面，Coding Agent 像是“LLM + 工具调用”。但这个理解太浅。</p>
+<p>一个能真正参与软件工程的 Coding Agent，至少要解决九类问题：</p>
+<ol>
+<li>用户意图如何变成任务；</li>
+<li>模型每轮应该看到什么上下文；</li>
+<li>模型可以调用哪些工具；</li>
+<li>工具调用如何被校验和执行；</li>
+<li>高风险动作如何审批；</li>
+<li>长任务状态如何维护；</li>
+<li>修改如何验证；</li>
+<li>结果如何交付给人审查；</li>
+<li>失败如何沉淀成规则、Skill 或 eval。</li>
+</ol>
+<p>这些问题合在一起，才是 Coding Agent Harness。</p>
+<h3 id="1321-为什么不能只把-coding-agent-理解成-llm--工具"><a class="header" href="#1321-为什么不能只把-coding-agent-理解成-llm--工具">13.2.1 为什么不能只把 Coding Agent 理解成 “LLM + 工具”</a></h3>
+<p>“LLM + 工具”只能解释 Agent 如何行动，不能解释 Agent 如何可靠行动。</p>
+<p>例如，模型可以提出：</p>
+<pre><code class="language-json">{
+  "tool": "run_shell",
+  "arguments": {
+    "command": "npm test"
+  }
+}
+</code></pre>
+<p>但真正的系统要回答更多问题：</p>
 <ul>
-<li>删除数据；</li>
-<li>修改生产配置；</li>
-<li>推送远程分支；</li>
-<li>发布上线；</li>
-<li>大范围重构；</li>
-<li>绕过失败测试。</li>
+<li>这个命令是否允许执行；</li>
+<li>当前目录是否正确；</li>
+<li>是否会访问网络；</li>
+<li>是否会修改文件；</li>
+<li>超时多久；</li>
+<li>stdout / stderr 如何截断；</li>
+<li>失败结果如何回填给模型；</li>
+<li>测试失败时是否允许继续改代码；</li>
+<li>最终是否可以声称完成。</li>
 </ul>
-<h3 id="5-把失败沉淀为规则和-eval"><a class="header" href="#5-把失败沉淀为规则和-eval">5. 把失败沉淀为规则和 eval</a></h3>
-<p>每次 Agent 犯错，都应该问：</p>
-<ul>
-<li>是 Spec 没写清楚？</li>
-<li>是上下文给错了？</li>
-<li>是工具权限太大？</li>
-<li>是测试没有覆盖？</li>
-<li>是模型能力边界？</li>
-</ul>
-<p>修复不能只靠“下次小心”，而要进入规则、测试或评估集。</p>
-<h3 id="6-把重复流程沉淀为-skill"><a class="header" href="#6-把重复流程沉淀为-skill">6. 把重复流程沉淀为 Skill</a></h3>
-<p>当同一类任务反复出现，并且它有相对稳定的步骤、检查点和停止条件时，就应该把它沉淀为 Skill。</p>
-<p>适合写成 Skill 的流程包括：</p>
+<p>工具调用只是一个动作意图。Harness 才负责把动作意图变成受控执行。</p>
+<h3 id="1322-成熟-coding-agent-的核心模块"><a class="header" href="#1322-成熟-coding-agent-的核心模块">13.2.2 成熟 Coding Agent 的核心模块</a></h3>
+<p>成熟 Coding Agent 通常可以拆成九个模块。</p>
+<pre><code class="language-text">┌──────────────────────────────────────────────────────────────┐
+│                    Coding Agent Runtime                       │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  User Intent / Issue / Spec                                   │
+│      ↓                                                        │
+│  Task Planner                                                 │
+│      ↓                                                        │
+│  Context Builder ─────► Code Index / Git / Docs / Rules       │
+│      ↓                                                        │
+│  Skill Registry ──────► bugfix / test / refactor / incident   │
+│      ↓                                                        │
+│  Tool Registry ───────► read / search / edit / shell / git    │
+│      ↓                                                        │
+│  Policy Engine ───────► allow / deny / ask / sandbox          │
+│      ↓                                                        │
+│  Agent Loop ──────────► observe / decide / act / repair       │
+│      ↓                                                        │
+│  Verifier ────────────► test / lint / typecheck / build       │
+│      ↓                                                        │
+│  Review Surface ──────► diff / PR / summary / trace           │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+</code></pre>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">Skill</th><th style="text-align: left">触发场景</th><th style="text-align: left">核心约束</th></tr>
+<tr><th style="text-align: left">模块</th><th style="text-align: left">职责</th><th style="text-align: left">最小原型</th><th style="text-align: left">关键风险</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left"><code>bugfix</code></td><td style="text-align: left">失败测试、异常日志、用户报 bug</td><td style="text-align: left">先复现，后修改，必须补回归测试</td></tr>
-<tr><td style="text-align: left"><code>test-writing</code></td><td style="text-align: left">补单测、提升覆盖率</td><td style="text-align: left">先读现有测试风格，覆盖失败路径</td></tr>
-<tr><td style="text-align: left"><code>refactor</code></td><td style="text-align: left">模块整理、接口迁移</td><td style="text-align: left">保持行为等价，小步验证</td></tr>
-<tr><td style="text-align: left"><code>dependency-upgrade</code></td><td style="text-align: left">升级库、框架、运行时</td><td style="text-align: left">查破坏性变更，跑兼容测试</td></tr>
-<tr><td style="text-align: left"><code>trace-to-architecture</code></td><td style="text-align: left">根据 trace/log 还原调用链</td><td style="text-align: left">区分日志事实、代码确认、模型推断</td></tr>
-<tr><td style="text-align: left"><code>release-check</code></td><td style="text-align: left">发布前检查</td><td style="text-align: left">只读检查优先，高风险动作审批</td></tr>
+<tr><td style="text-align: left">Task Planner</td><td style="text-align: left">把需求拆成步骤</td><td style="text-align: left">JSON plan / todo list</td><td style="text-align: left">计划过粗、遗漏验证</td></tr>
+<tr><td style="text-align: left">Context Builder</td><td style="text-align: left">找相关代码和规则</td><td style="text-align: left">repo map + search + read</td><td style="text-align: left">上下文过多或漏掉关键文件</td></tr>
+<tr><td style="text-align: left">Skill Registry</td><td style="text-align: left">加载任务流程</td><td style="text-align: left"><code>skills/*/SKILL.md</code></td><td style="text-align: left">规则冲突、误触发</td></tr>
+<tr><td style="text-align: left">Tool Registry</td><td style="text-align: left">暴露可调用能力</td><td style="text-align: left">函数注册表</td><td style="text-align: left">工具语义模糊</td></tr>
+<tr><td style="text-align: left">Policy Engine</td><td style="text-align: left">裁决危险动作</td><td style="text-align: left">allowlist + sandbox</td><td style="text-align: left">越权、破坏用户修改</td></tr>
+<tr><td style="text-align: left">Agent Loop</td><td style="text-align: left">驱动多轮执行</td><td style="text-align: left">while loop + tool result</td><td style="text-align: left">死循环、偏航</td></tr>
+<tr><td style="text-align: left">Verifier</td><td style="text-align: left">判断是否完成</td><td style="text-align: left">test / lint / build</td><td style="text-align: left">只验证快乐路径</td></tr>
+<tr><td style="text-align: left">Review Surface</td><td style="text-align: left">展示变更</td><td style="text-align: left">git diff + summary</td><td style="text-align: left">解释和实际 diff 不一致</td></tr>
+<tr><td style="text-align: left">Eval Loop</td><td style="text-align: left">复盘失败样本</td><td style="text-align: left">trace + case store</td><td style="text-align: left">没有持续改进闭环</td></tr>
 </tbody>
 </table>
 </div>
-<p>不要把 Skill 写成空泛口号，例如“认真修复 bug”。一个有效 Skill 至少要包含：</p>
+<p>这些模块的边界要清楚。模型可以建议行动，但工具和权限由 Runtime 控制；模型可以总结结果，但完成判定必须由 Verifier 和人审共同支撑。</p>
+<h3 id="1323-coding-agent-的实现分层"><a class="header" href="#1323-coding-agent-的实现分层">13.2.3 Coding Agent 的实现分层</a></h3>
+<p>从产品实现看，Coding Agent 不是一个单独的聊天窗口，而是一组围绕模型建立的控制面。</p>
+<pre><code class="language-text">User Surface
+  │  CLI / IDE / Web / GitHub / Slack
+  ▼
+Task Envelope
+  │  用户请求、issue、branch、cwd、权限、预算
+  ▼
+Context Control Plane
+  │  规则、代码索引、检索片段、终端输出、Git 状态、Skill
+  ▼
+Model Reasoning Loop
+  │  规划、选择工具、解释工具结果、修复失败
+  ▼
+Tool Execution Plane
+  │  file / search / edit / shell / git / MCP / browser / CI
+  ▼
+Policy &amp; Sandbox
+  │  路径、命令、网络、secret、审批、租户隔离
+  ▼
+Verification Gate
+  │  test / lint / typecheck / build / diff / review / eval
+  ▼
+Delivery Surface
+     patch / PR / commit / review comment / report / trace
+</code></pre>
+<p>不同产品的差异，本质上是这些层的取舍不同。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层次</th><th style="text-align: left">关键问题</th><th style="text-align: left">设计判断</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">User Surface</td><td style="text-align: left">用户在哪里发起任务，在哪里接管结果</td><td style="text-align: left">CLI 适合闭环任务，IDE 适合共编，云端适合异步并行</td></tr>
+<tr><td style="text-align: left">Task Envelope</td><td style="text-align: left">每次任务的边界是什么</td><td style="text-align: left">cwd、branch、repo、模型、权限、预算、时区都要显式化</td></tr>
+<tr><td style="text-align: left">Context Control Plane</td><td style="text-align: left">模型每轮看到什么</td><td style="text-align: left">规则、证据、工具结果和历史状态要分层</td></tr>
+<tr><td style="text-align: left">Reasoning Loop</td><td style="text-align: left">模型如何推进任务</td><td style="text-align: left">action schema、max steps、repair loop、stop condition 缺一不可</td></tr>
+<tr><td style="text-align: left">Tool Execution Plane</td><td style="text-align: left">外部能力如何被调用</td><td style="text-align: left">schema、错误返回、超时、幂等和审计是基础能力</td></tr>
+<tr><td style="text-align: left">Policy &amp; Sandbox</td><td style="text-align: left">哪些动作必须系统裁决</td><td style="text-align: left">写文件、Shell、网络、secret、Git 操作不能只靠模型自觉</td></tr>
+<tr><td style="text-align: left">Verification Gate</td><td style="text-align: left">完成由谁判定</td><td style="text-align: left">测试、diff、CI、review 比 final answer 更可信</td></tr>
+<tr><td style="text-align: left">Delivery Surface</td><td style="text-align: left">人如何理解结果</td><td style="text-align: left">diff、PR、trace、风险说明和回滚路径是交付的一部分</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="1324-claude-code终端原生-runtime"><a class="header" href="#1324-claude-code终端原生-runtime">13.2.4 Claude Code：终端原生 Runtime</a></h3>
+<p>Claude Code 的核心选择是：把 Agent 放在终端里，而不是只放在 IDE 里。</p>
+<p>这带来几个工程优势：</p>
 <ul>
-<li>什么时候触发；</li>
-<li>要按什么顺序做；</li>
-<li>必须收集什么证据；</li>
-<li>需要运行什么验证；</li>
-<li>什么时候停止并请求人工介入。</li>
+<li>终端天然连接真实工具链；</li>
+<li>可以执行测试、构建、脚本、Git 命令；</li>
+<li>不绑定特定 IDE；</li>
+<li>适合远程开发和自动化工作流；</li>
+<li>容易与 MCP、Hooks、Subagents、Skills 等机制组合。</li>
 </ul>
+<p>从系统角度看，它更像一个终端原生 Agent Runtime：围绕当前工作目录启动，加载项目规则，读取文件和工具结果，通过 Bash、文件编辑、搜索、Git、MCP 等工具推进任务。</p>
+<p>它的关键风险也来自终端：Shell 权限过强、secret 误读、危险 Git 操作、项目规则污染、外部工具信任边界不清。</p>
+<h3 id="1325-cursoride-原生-context-control-plane"><a class="header" href="#1325-cursoride-原生-context-control-plane">13.2.5 Cursor：IDE 原生 Context Control Plane</a></h3>
+<p>Cursor 的核心选择是：把 Agent 放在开发者正在编辑代码的界面里。</p>
+<p>它的优势在于：</p>
+<ul>
+<li>与当前文件、选区、打开 tab、诊断信息天然结合；</li>
+<li>适合局部修改和交互式重构；</li>
+<li>对前端、UI、组件级开发体验更顺；</li>
+<li>diff review 和 checkpoint 更贴近人的编辑习惯。</li>
+</ul>
+<p>从系统角度看，Cursor 的强项是 IDE 原生 Context Control Plane。它知道用户正在看什么、改什么、选择了什么，也能把 Project Rules、User Rules、代码索引和编辑器状态组合成上下文。</p>
+<p>它的主要风险是上下文过度贴近当前焦点：用户正在看的文件不一定是任务的全部边界。IDE Agent 很容易做出“局部看起来合理、全局破坏约束”的修改。</p>
+<h3 id="1326-codex云端任务型-sandbox"><a class="header" href="#1326-codex云端任务型-sandbox">13.2.6 Codex：云端任务型 Sandbox</a></h3>
+<p>Codex 的核心选择是：同时支持本地配对编程和云端任务委托。</p>
+<p>本地形态里，Agent 在开发者工作区中读取仓库、编辑文件、运行命令。云端形态里，Agent 在隔离 sandbox 中接收任务，基于仓库和环境完成修改，生成 patch、PR 或可拉回本地继续工作的结果。</p>
+<p>这种形态适合：</p>
+<ul>
+<li>修复明确 bug；</li>
+<li>实现小到中等规模功能；</li>
+<li>批量处理 issue；</li>
+<li>并行探索多个方案；</li>
+<li>把任务从“一个终端会话”提升到“任务队列和工程工作台”。</li>
+</ul>
+<p>它的主要风险是环境复现、权限边界、私有依赖、云端数据治理和并行任务状态管理。</p>
+<h3 id="1327-三类-coding-agent-的架构对比"><a class="header" href="#1327-三类-coding-agent-的架构对比">13.2.7 三类 Coding Agent 的架构对比</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">Claude Code</th><th style="text-align: left">Cursor</th><th style="text-align: left">Codex</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">核心界面</td><td style="text-align: left">终端</td><td style="text-align: left">IDE</td><td style="text-align: left">CLI / IDE / App / Cloud</td></tr>
+<tr><td style="text-align: left">最强场景</td><td style="text-align: left">端到端任务、脚本、测试、Git</td><td style="text-align: left">交互式编辑、局部重构、前端开发</td><td style="text-align: left">并行 issue、PR 生成、后台任务</td></tr>
+<tr><td style="text-align: left">上下文来源</td><td style="text-align: left">文件系统、命令、项目规则、MCP、hooks</td><td style="text-align: left">编辑器、选区、代码索引、Rules、checkpoints</td><td style="text-align: left">仓库快照、任务描述、本地状态、worktree、sandbox 结果</td></tr>
+<tr><td style="text-align: left">执行环境</td><td style="text-align: left">本地或远程终端</td><td style="text-align: left">本地 IDE + 远程 background agent</td><td style="text-align: left">本地工作区 + 云端 sandbox</td></tr>
+<tr><td style="text-align: left">权限模型</td><td style="text-align: left">permissions、hooks、工具权限、MCP 权限</td><td style="text-align: left">模式、review、checkpoint、GitHub app</td><td style="text-align: left">approval modes、sandbox、RBAC、仓库授权</td></tr>
+<tr><td style="text-align: left">审查表面</td><td style="text-align: left">终端总结、diff、hooks、subagent review</td><td style="text-align: left">文件级 diff review、selective accept</td><td style="text-align: left">patch、PR、app review、CI、review agent</td></tr>
+<tr><td style="text-align: left">风险重点</td><td style="text-align: left">Shell 和文件权限</td><td style="text-align: left">错误上下文、误编辑、远程 Agent 外传风险</td><td style="text-align: left">数据边界、环境复现、并行任务治理</td></tr>
+</tbody>
+</table>
+</div>
+<p>成熟团队不一定只选择一种形态。更现实的组合是：</p>
+<ul>
+<li>Cursor 负责高频交互式开发；</li>
+<li>Claude Code 负责终端原生任务和本地自动化；</li>
+<li>Codex 负责并行 issue 和云端 PR 任务；</li>
+<li>统一用 Spec、测试、代码审查和 CI 把它们约束到同一工程标准。</li>
+</ul>
+<h3 id="1328-共同失败模式上下文工具验证权限与协作"><a class="header" href="#1328-共同失败模式上下文工具验证权限与协作">13.2.8 共同失败模式：上下文、工具、验证、权限与协作</a></h3>
+<p>不同产品形态不同，但失败模式高度相似。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">失败模式</th><th style="text-align: left">表现</th><th style="text-align: left">应该在哪一层修</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">上下文误召回</td><td style="text-align: left">修改了相似但无关的文件</td><td style="text-align: left">Context Control Plane：改索引、规则、检索和引用</td></tr>
+<tr><td style="text-align: left">未读文件直接改</td><td style="text-align: left">生成 patch 覆盖现有逻辑</td><td style="text-align: left">Tool Policy：强制 read-before-edit</td></tr>
+<tr><td style="text-align: left">工具结果误解</td><td style="text-align: left">测试失败被当作通过</td><td style="text-align: left">Tool Result Envelope + Verifier</td></tr>
+<tr><td style="text-align: left">长任务偏航</td><td style="text-align: left">越做越偏，开始重构无关模块</td><td style="text-align: left">Task State：计划、预算、stop condition</td></tr>
+<tr><td style="text-align: left">Shell 权限过大</td><td style="text-align: left">执行危险命令或联网外传</td><td style="text-align: left">Sandbox + command allowlist + approval</td></tr>
+<tr><td style="text-align: left">Diff 过大</td><td style="text-align: left">大范围格式化或重写文件</td><td style="text-align: left">Patch Policy：diff size limit、路径范围、人工确认</td></tr>
+<tr><td style="text-align: left">解释和变更不一致</td><td style="text-align: left">summary 说改了 A，diff 实际改了 B</td><td style="text-align: left">Review Surface：自动 diff summary 校验</td></tr>
+<tr><td style="text-align: left">Prompt injection</td><td style="text-align: left">README、issue、日志诱导 Agent 忽略规则</td><td style="text-align: left">Context Firewall：外部内容降级为 data</td></tr>
+<tr><td style="text-align: left">版本漂移</td><td style="text-align: left">换模型后老任务变差</td><td style="text-align: left">Eval Loop：固定回归集和 release gate</td></tr>
+<tr><td style="text-align: left">本地状态污染</td><td style="text-align: left">旧会话、旧缓存或旧规则影响新任务</td><td style="text-align: left">State Store：作用域、TTL、显式清理</td></tr>
+</tbody>
+</table>
+</div>
+<p>这些失败模式说明：Coding Agent 的可靠性不是靠一个更强模型单独解决的，而是靠上下文、工具、策略、验证、隔离和审查共同收敛。</p>
+<h3 id="1329-从产品取舍反推-harness-设计原则"><a class="header" href="#1329-从产品取舍反推-harness-设计原则">13.2.9 从产品取舍反推 Harness 设计原则</a></h3>
+<p>从成熟产品反推，可以得到几个通用原则。</p>
+<p>第一，<strong>模型负责决策，Harness 负责边界</strong>。模型可以选择工具，但能否执行、如何执行、失败后如何恢复，必须由 Runtime 控制。</p>
+<p>第二，<strong>上下文是产品能力，不是 prompt 拼接</strong>。IDE、终端、云端 sandbox 的差异，本质上是上下文来源和上下文控制方式的差异。</p>
+<p>第三，<strong>工具是权限边界，不是函数列表</strong>。文件编辑、Shell、Git、网络、MCP、浏览器都必须有 schema、超时、审计和审批策略。</p>
+<p>第四，<strong>完成必须可验证</strong>。没有测试、diff、CI、review 或 trace 支撑的“完成”，只是模型声明。</p>
+<p>第五，<strong>长任务必须外置状态</strong>。计划、待办、工具结果、失败原因、修改文件和验证结果，不能只存在模型上下文里。</p>
+<p>第六，<strong>并行必须隔离</strong>。多 Agent、多任务、云端并行和后台任务，都需要 branch、worktree、sandbox 或任务目录隔离。</p>
 <hr>
-<h2 id="139-原型实现检查清单"><a class="header" href="#139-原型实现检查清单">13.9 原型实现检查清单</a></h2>
-<p>如果你准备自己实现一个 Coding Agent，最小检查清单如下：</p>
-<h3 id="runtime"><a class="header" href="#runtime">Runtime</a></h3>
-<ul>
-<li>是否有明确的 <code>AgentState</code>？</li>
-<li>每一步是否保存 thought、tool call、tool result？</li>
-<li>是否有最大步数？</li>
-<li>是否有失败状态？</li>
-<li>是否能输出最终 diff？</li>
-</ul>
-<h3 id="state--storage"><a class="header" href="#state--storage">State &amp; Storage</a></h3>
-<ul>
-<li>是否区分 session store、event log、cache 和 artifact store？</li>
-<li>是否把凭据保存在工具层，而不是 prompt、trace 或 session 里？</li>
-<li>是否有状态 schema 版本和迁移策略？</li>
-<li>是否能从中断会话恢复任务，而不是只能重开一轮对话？</li>
-<li>是否有日志留存、脱敏和清理策略？</li>
-<li>缓存是否有来源、更新时间和失效机制？</li>
-</ul>
-<h3 id="context"><a class="header" href="#context">Context</a></h3>
-<ul>
-<li>是否加载项目规则？</li>
-<li>是否加载了当前任务相关的 Skill？</li>
-<li>是否有 repo map？</li>
-<li>是否让模型按需 search/read？</li>
-<li>是否避免一次性塞入整个仓库？</li>
-<li>是否截断过长输出？</li>
-</ul>
-<h3 id="skills-1"><a class="header" href="#skills-1">Skills</a></h3>
-<ul>
-<li>是否有清晰的 Trigger？</li>
-<li>是否有 Procedure、Verification 和 Stop Conditions？</li>
-<li>是否避免把 Skill 当成工具权限？</li>
-<li>是否记录本次任务加载了哪些 Skill？</li>
-<li>Skill 修改后是否运行 regression eval？</li>
-</ul>
-<h3 id="tools"><a class="header" href="#tools">Tools</a></h3>
-<ul>
-<li>是否只暴露注册过的工具？</li>
-<li>是否有路径沙箱？</li>
-<li>是否优先局部替换而不是整文件重写？</li>
-<li>Shell 是否有 allowlist？</li>
-<li>工具失败是否会进入下一轮上下文？</li>
-</ul>
-<h3 id="verification"><a class="header" href="#verification">Verification</a></h3>
-<ul>
-<li>是否有标准验证命令？</li>
-<li>是否捕获 stdout/stderr？</li>
-<li>是否处理超时？</li>
-<li>final answer 是否包含验证证据？</li>
-<li>验证失败时是否返回失败而不是假装成功？</li>
-</ul>
-<h3 id="safety"><a class="header" href="#safety">Safety</a></h3>
-<ul>
-<li>是否禁止访问 repo 外路径？</li>
-<li>是否禁止危险命令？</li>
-<li>是否避免读取 secret 文件？</li>
-<li>是否区分 read、write、shell 权限？</li>
-<li>是否保留 trace 供审计？</li>
-<li>是否防止旧会话、旧缓存或旧规则污染新任务？</li>
-</ul>
-<hr>
-<h2 id="1310-真实工作流codex--mcp--日志--代码仓库生成架构图"><a class="header" href="#1310-真实工作流codex--mcp--日志--代码仓库生成架构图">13.10 真实工作流：Codex + MCP + 日志 + 代码仓库生成架构图</a></h2>
-<p>第 19 章会从原型角度实现 Coding Agent Runtime。本节先看一个更贴近真实工作的场景：Coding Agent 的价值往往不只是“改代码”，而是把多个证据源串成一条可审查的工程分析链路。</p>
+<h2 id="133-真实工作流codex--mcp--日志--代码仓库生成架构图"><a class="header" href="#133-真实工作流codex--mcp--日志--代码仓库生成架构图">13.3 真实工作流：Codex + MCP + 日志 + 代码仓库生成架构图</a></h2>
+<p>在深入 Claude Code 之前，先看一个真实工作流。Coding Agent 的价值不只是“改代码”，还可以把外部事实源和本地实现源串成一条可审查的工程分析链路。</p>
 <p>一个典型场景是：</p>
 <pre><code class="language-text">用户给出线上 trace id
-  │
-  ▼
+  ↓
 Codex 通过 MCP 查询日志和 trace
-  │
-  ▼
+  ↓
 从日志里提取服务、接口、错误、耗时和关键字段
-  │
-  ▼
+  ↓
 再搜索本地代码仓库
-  │
-  ▼
+  ↓
 把日志事实和代码结构对齐
-  │
-  ▼
+  ↓
 生成接口调用链、数据流程图或排查报告
 </code></pre>
-<p>这类工作很容易被误解为“模型查了日志并画了图”。真实机制更像一个受控的多层系统协作。</p>
-<h3 id="端到端架构"><a class="header" href="#端到端架构">端到端架构</a></h3>
+<p>这类任务非常适合观察成熟 Coding Agent 的系统边界：模型不直接访问生产系统，Runtime 执行工具，MCP 连接外部平台，日志平台返回事实，代码仓库提供实现结构，最终输出必须标注证据等级。</p>
+<h3 id="1331-任务背景为什么这个工作流适合观察-coding-agent"><a class="header" href="#1331-任务背景为什么这个工作流适合观察-coding-agent">13.3.1 任务背景：为什么这个工作流适合观察 Coding Agent</a></h3>
+<p>这个工作流同时包含五种能力：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">能力</th><th style="text-align: left">具体表现</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">外部工具</td><td style="text-align: left">通过 MCP 查询日志和 trace</td></tr>
+<tr><td style="text-align: left">本地上下文</td><td style="text-align: left">搜索和读取代码仓库</td></tr>
+<tr><td style="text-align: left">证据抽取</td><td style="text-align: left">从日志中提取时间线、服务名、错误码、span</td></tr>
+<tr><td style="text-align: left">推理合成</td><td style="text-align: left">把日志事实与代码调用关系对齐</td></tr>
+<tr><td style="text-align: left">可审查输出</td><td style="text-align: left">生成图、结论、不确定性和脱敏说明</td></tr>
+</tbody>
+</table>
+</div>
+<p>它比“修一个 bug”更能暴露 Agent 的架构能力，因为它要求 Agent 区分事实、代码确认和推断。</p>
+<h3 id="1332-端到端架构"><a class="header" href="#1332-端到端架构">13.3.2 端到端架构</a></h3>
 <pre class="mermaid">
 flowchart LR
     User["用户\n自然语言排查目标"] --&gt; App["Coding Agent UI\nCLI / IDE / Web"]
@@ -16039,7 +15660,7 @@ flowchart LR
 </thead>
 <tbody>
 <tr><td style="text-align: left">大模型</td><td style="text-align: left">理解目标、规划步骤、选择工具、解释证据</td><td style="text-align: left">不是日志存储，也不直接访问生产系统</td></tr>
-<tr><td style="text-align: left">Agent Runtime</td><td style="text-align: left">组装上下文、校验工具调用、执行工具、维护 trace</td><td style="text-align: left">不是业务智能本身</td></tr>
+<tr><td style="text-align: left">Agent Runtime</td><td style="text-align: left">组装上下文、校验工具调用、执行工具、维护 trace</td><td style="text-align: left">不是业务事实源</td></tr>
 <tr><td style="text-align: left">MCP Server</td><td style="text-align: left">把工具调用转换成日志平台 API 请求</td><td style="text-align: left">不负责判断业务含义</td></tr>
 <tr><td style="text-align: left">Log / Trace Platform</td><td style="text-align: left">返回日志、span、service map 等事实</td><td style="text-align: left">不理解本地代码实现</td></tr>
 <tr><td style="text-align: left">本地代码仓库</td><td style="text-align: left">提供 route、handler、processor、client、日志打印点</td><td style="text-align: left">不代表线上一定部署同一版本</td></tr>
@@ -16047,13 +15668,15 @@ flowchart LR
 </tbody>
 </table>
 </div>
-<p>这条链路的本质是：<strong>模型负责推理，Runtime 负责执行，MCP 负责连接，日志平台负责事实，代码仓库负责结构。</strong></p>
-<h3 id="一次请求的生命周期"><a class="header" href="#一次请求的生命周期">一次请求的生命周期</a></h3>
+<p>这条链路的本质是：</p>
+<pre><code class="language-text">模型负责推理，Runtime 负责执行，MCP 负责连接，日志平台负责事实，代码仓库负责结构。
+</code></pre>
+<h3 id="1333-一次请求的生命周期"><a class="header" href="#1333-一次请求的生命周期">13.3.3 一次请求的生命周期</a></h3>
 <p>假设用户提出一个脱敏后的请求：</p>
 <pre><code class="language-text">请用 live 日志工具查询 trace_id=&lt;trace-id&gt; 最近 20 分钟的日志，
 并结合当前代码仓库画出订单查询接口的调用链。
 </code></pre>
-<p>Agent 不会直接“知道”答案，而是会经历多轮循环。</p>
+<p>Agent 不会直接知道答案，而是经历多轮循环：</p>
 <pre><code class="language-text">第 1 轮：解析任务
   环境: live
   查询对象: trace_id
@@ -16070,7 +15693,6 @@ flowchart LR
   search_code("/api/order/query")
   search_code("OrderQueryHandler")
   search_code("CalculatePrice")
-  search_code("inventory availability")
 
 第 5 轮：读取关键文件
   route -&gt; handler -&gt; processor -&gt; rpc client -&gt; log statement
@@ -16082,35 +15704,7 @@ flowchart LR
   请求是否成功、异常是否影响主流程、剩余不确定性
 </code></pre>
 <p>这就是 Agent Loop 在真实排障中的样子：每一轮不是闲聊，而是围绕证据继续推进。</p>
-<h3 id="把这条链路沉淀成-skill"><a class="header" href="#把这条链路沉淀成-skill">把这条链路沉淀成 Skill</a></h3>
-<p>这类任务非常适合写成 <code>trace-to-architecture</code> Skill，因为它不是一次性的 prompt 技巧，而是一套可以复用的工程分析流程。</p>
-<pre><code class="language-markdown"># Trace to Architecture Skill
-
-## Trigger
-当用户提供 trace id、request id、日志片段，要求还原调用链、数据流或生成架构图时使用。
-
-## Procedure
-1. 明确环境、时间范围、trace id 和输出格式；
-2. 调用日志或 trace 工具，先获得时间线事实；
-3. 提取服务名、接口、错误码、日志 message、span 信息；
-4. 使用代码搜索定位 route、handler、processor、client 和日志打印点；
-5. 把每条边标注为“日志确认”“代码确认”或“模型推断”；
-6. 生成 Mermaid 图和文字结论；
-7. 输出剩余不确定性和下一步排查建议。
-
-## Verification
-- 日志查询结果为空时不能继续编造调用链；
-- 图中的关键节点必须有日志或代码证据；
-- 对外发布时必须脱敏 trace id、域名、服务名、用户数据和内部路径。
-
-## Stop Conditions
-- 时间窗口、环境或权限不明确；
-- 日志平台不可用；
-- 本地代码版本无法与线上请求对应；
-- 发现敏感信息但无法安全脱敏。
-</code></pre>
-<p>把它做成 Skill 后，Agent 每次遇到类似任务都能复用同一套证据纪律：先事实、再代码、后推断；先脱敏、再发布。</p>
-<h3 id="mcp-工具调用不是网络请求本身"><a class="header" href="#mcp-工具调用不是网络请求本身">MCP 工具调用不是网络请求本身</a></h3>
+<h3 id="1334-mcp-工具调用不是网络请求本身"><a class="header" href="#1334-mcp-工具调用不是网络请求本身">13.3.4 MCP 工具调用不是网络请求本身</a></h3>
 <p>模型生成的通常不是 HTTP 请求，而是结构化工具调用意图：</p>
 <pre><code class="language-json">{
   "tool": "log_live.search_log_by_trace_id",
@@ -16131,31 +15725,38 @@ flowchart LR
   -&gt; Runtime 把 tool result 放回下一轮模型上下文
 </code></pre>
 <p>这个边界非常重要。模型没有直接访问日志平台的能力，它只是提出“我需要调用哪个工具”。能不能执行、怎么执行、执行结果是什么，都由 Runtime 和工具系统决定。</p>
-<h3 id="runtime-每一轮给模型什么"><a class="header" href="#runtime-每一轮给模型什么">Runtime 每一轮给模型什么</a></h3>
+<h3 id="1335-runtime-每一轮给模型什么"><a class="header" href="#1335-runtime-每一轮给模型什么">13.3.5 Runtime 每一轮给模型什么</a></h3>
 <p>一次模型调用前，Runtime 会把当前任务打包成上下文：</p>
-<pre><code class="language-text">System / Developer Instructions
-  工具使用规则、sandbox、文件编辑规则、安全要求
-
-User Request
-  当前最新任务目标
-
-Environment Envelope
-  cwd、日期、时区、shell、可写目录、审批策略
-
-Tool Schema
-  当前可用 MCP 工具、shell 工具、文件读取工具、绘图工具
-
-Skill Context
-  trace-to-architecture 的流程、证据等级、脱敏要求、停止条件
-
-Observed Evidence
-  已查到的日志、已读取的代码片段、命令输出、生成文件路径
-
-Process State
-  当前 plan、已完成步骤、失败工具调用、修改过的文件
+<pre><code class="language-yaml">context_package:
+  instruction_layers:
+    - system_contract
+    - developer_policy
+    - project_rules
+  user_request:
+    goal: "基于 trace id 还原调用链"
+  environment:
+    cwd: "/workspace/order-service"
+    timezone: "Asia/Shanghai"
+    approval_mode: "ask_for_network_and_shell"
+  available_tools:
+    - log_live.search_log_by_trace_id
+    - search_code
+    - read_file
+    - render_mermaid
+  selected_skill:
+    name: "trace_to_architecture"
+  evidence:
+    logs: []
+    code_snippets: []
+  process_state:
+    plan:
+      - "查询日志"
+      - "提取线索"
+      - "搜索代码"
+      - "生成图"
 </code></pre>
 <p>模型看不到全量代码仓库，也看不到全量日志平台数据。它只能基于 Runtime 放进上下文的材料推理；材料不够时，就要继续调用工具收集证据。</p>
-<h3 id="日志事实如何变成代码搜索线索"><a class="header" href="#日志事实如何变成代码搜索线索">日志事实如何变成代码搜索线索</a></h3>
+<h3 id="1336-日志事实如何变成代码搜索线索"><a class="header" href="#1336-日志事实如何变成代码搜索线索">13.3.6 日志事实如何变成代码搜索线索</a></h3>
 <p>日志平台返回的通常是事实字段：</p>
 <div class="table-wrapper">
 <table>
@@ -16165,7 +15766,7 @@ Process State
 <tbody>
 <tr><td style="text-align: left">timestamp</td><td style="text-align: left">请求时间线和相对顺序</td></tr>
 <tr><td style="text-align: left">application</td><td style="text-align: left">涉及服务列表</td></tr>
-<tr><td style="text-align: left">severity</td><td style="text-align: left">ERROR/WARN/FATAL 过滤</td></tr>
+<tr><td style="text-align: left">severity</td><td style="text-align: left">ERROR / WARN / FATAL 过滤</td></tr>
 <tr><td style="text-align: left">message</td><td style="text-align: left">错误类型、业务语义、关键函数名</td></tr>
 <tr><td style="text-align: left">trace_id / span_id</td><td style="text-align: left">同一次请求关联</td></tr>
 <tr><td style="text-align: left">path / method</td><td style="text-align: left">入口接口</td></tr>
@@ -16182,12 +15783,12 @@ rg "inventory availability"
 rg "promotion eligibility"
 </code></pre>
 <p>日志告诉我们“线上发生了什么”，代码告诉我们“为什么会这么走”。两者必须对齐，才能形成可靠结论。</p>
-<h3 id="证据等级哪些能写进图里"><a class="header" href="#证据等级哪些能写进图里">证据等级：哪些能写进图里</a></h3>
+<h3 id="1337-证据等级哪些能写进图里"><a class="header" href="#1337-证据等级哪些能写进图里">13.3.7 证据等级：哪些能写进图里</a></h3>
 <p>从日志到架构图，最容易犯的错误是把推断画成事实。建议把证据分成三档：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">证据等级</th><th style="text-align: left">来源</th><th style="text-align: left">可怎么表达</th></tr>
+<tr><th style="text-align: left">证据等级</th><th style="text-align: left">来源</th><th style="text-align: left">图中表达</th></tr>
 </thead>
 <tbody>
 <tr><td style="text-align: left">强证据</td><td style="text-align: left">日志包含 source file / line，代码中能找到同一日志打印点</td><td style="text-align: left">“日志确认”</td></tr>
@@ -16199,11 +15800,11 @@ rg "promotion eligibility"
 <p>架构图最好显式区分：</p>
 <pre><code class="language-text">实线：日志和代码都确认
 虚线：代码推断，日志未直接覆盖
-红色标注：日志中出现的 ERROR/WARN
+红色标注：日志中出现的 ERROR / WARN
 灰色节点：可能的异步或外部依赖
 </code></pre>
-<p>这样图不是“看起来很完整”，而是“知道哪里有证据，哪里只是推断”。</p>
-<h3 id="脱敏后的示例图"><a class="header" href="#脱敏后的示例图">脱敏后的示例图</a></h3>
+<p>这样图不是“看起来完整”，而是“知道哪里有证据，哪里只是推断”。</p>
+<h3 id="1338-脱敏后的示例图"><a class="header" href="#1338-脱敏后的示例图">13.3.8 脱敏后的示例图</a></h3>
 <p>下面是一个公开可用的脱敏示例：</p>
 <pre class="mermaid">
 flowchart TD
@@ -16231,8 +15832,8 @@ flowchart TD
 <li><code>promotion-service</code> 的 WARN 来自日志；</li>
 <li><code>inventory-service</code> 只在代码里确认，当前 trace 未必覆盖。</li>
 </ul>
-<h3 id="公开发布时必须脱敏"><a class="header" href="#公开发布时必须脱敏">公开发布时必须脱敏</a></h3>
-<p>如果把这类案例写进公开文章，必须做脱敏。建议按下面清单处理：</p>
+<h3 id="1339-公开发布时必须脱敏"><a class="header" href="#1339-公开发布时必须脱敏">13.3.9 公开发布时必须脱敏</a></h3>
+<p>如果把这类案例写进公开文章，必须做脱敏。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -16252,7 +15853,7 @@ flowchart TD
 </table>
 </div>
 <p>脱敏不是简单替换几个字符串，而是要避免通过组合信息反推出业务、组织和系统结构。</p>
-<h3 id="最佳实践-prompt"><a class="header" href="#最佳实践-prompt">最佳实践 Prompt</a></h3>
+<h3 id="13310-最佳实践-prompt"><a class="header" href="#13310-最佳实践-prompt">13.3.10 最佳实践 Prompt</a></h3>
 <p>用户可以这样向 Coding Agent 提需求：</p>
 <pre><code class="language-text">请基于 trace_id=&lt;trace-id&gt; 查询最近 20 分钟日志，
 并结合当前代码仓库还原调用链。
@@ -16266,14 +15867,14 @@ flowchart TD
 6. 不输出任何 token、内部域名、真实用户数据。
 </code></pre>
 <p>这类 prompt 的关键不是“画个图”，而是要求 Agent 保持证据边界。</p>
-<h3 id="常见失败点"><a class="header" href="#常见失败点">常见失败点</a></h3>
+<h3 id="13311-常见失败点"><a class="header" href="#13311-常见失败点">13.3.11 常见失败点</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th style="text-align: left">现象</th><th style="text-align: left">可能原因</th><th style="text-align: left">修复方式</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">日志为空</td><td style="text-align: left">时间窗口错、环境错、trace id 错、权限不足</td><td style="text-align: left">明确时区，扩大窗口，检查 live/test 环境</td></tr>
+<tr><td style="text-align: left">日志为空</td><td style="text-align: left">时间窗口错、环境错、trace id 错、权限不足</td><td style="text-align: left">明确时区，扩大窗口，检查 live / test 环境</td></tr>
 <tr><td style="text-align: left">图很完整但不可信</td><td style="text-align: left">模型用常识补全太多</td><td style="text-align: left">要求标注证据等级</td></tr>
 <tr><td style="text-align: left">ERROR 被误判成请求失败</td><td style="text-align: left">业务诊断日志也可能用 ERROR 打印</td><td style="text-align: left">同时检查 status、error code、最终响应</td></tr>
 <tr><td style="text-align: left">代码搜索不到</td><td style="text-align: left">关键词来自日志但代码命名不同</td><td style="text-align: left">改搜 path、日志 message、RPC method</td></tr>
@@ -16282,8 +15883,8 @@ flowchart TD
 </tbody>
 </table>
 </div>
-<h3 id="对-coding-agent-设计的启示"><a class="header" href="#对-coding-agent-设计的启示">对 Coding Agent 设计的启示</a></h3>
-<p>这个案例说明，一个成熟 Coding Agent 不只是代码编辑器里的“自动补丁生成器”。它还可以成为工程分析工作台：</p>
+<h3 id="13312-对-coding-agent-设计的启示"><a class="header" href="#13312-对-coding-agent-设计的启示">13.3.12 对 Coding Agent 设计的启示</a></h3>
+<p>这个案例说明，一个成熟 Coding Agent 不只是代码编辑器里的自动补丁生成器。它还可以成为工程分析工作台：</p>
 <pre><code class="language-text">外部事实源  -&gt; MCP / API / Browser / DB
 本地实现源  -&gt; Code Search / File Read / AST / LSP
 推理与表达  -&gt; Model
@@ -16292,23 +15893,883 @@ flowchart TD
 </code></pre>
 <p>当 Agent 能同时连接“线上事实”和“代码实现”，它就可以完成传统 IDE 很难完成的任务：从一次真实请求出发，还原系统行为，并生成可以 review 的架构解释。</p>
 <hr>
-<h2 id="本章小结-12"><a class="header" href="#本章小结-12">本章小结</a></h2>
-<p>AI Coding Agent 的成熟，不是因为模型能写更多代码，而是因为系统开始围绕模型建立工程闭环：</p>
+<h2 id="134-claude-code-深度解析终端原生-coding-agent-harness"><a class="header" href="#134-claude-code-深度解析终端原生-coding-agent-harness">13.4 Claude Code 深度解析：终端原生 Coding Agent Harness</a></h2>
+<p>Claude Code 是理解 Coding Agent Harness 的好样本。它不是把模型塞进一个聊天窗口，而是把模型放进终端、文件系统、代码仓库、工具链和权限系统组成的工作环境。</p>
+<p>本节不会把 Claude Code 当成产品说明书来讲，而是从 Harness 工程角度拆解它代表的核心机制。</p>
+<h3 id="1341-claude-code-的产品定位不是-ide-插件而是终端-runtime"><a class="header" href="#1341-claude-code-的产品定位不是-ide-插件而是终端-runtime">13.4.1 Claude Code 的产品定位：不是 IDE 插件，而是终端 Runtime</a></h3>
+<p>Claude Code 的核心定位是终端原生 Runtime。</p>
+<p>这意味着它的默认工作场景不是“补全当前文件”，而是：</p>
+<pre><code class="language-text">在一个真实代码仓库中，
+围绕一个任务，
+读取上下文，
+调用工具，
+修改文件，
+运行命令，
+分析失败，
+输出可审查结果。
+</code></pre>
+<p>终端原生带来两个特点。</p>
+<p>第一，<strong>它贴近真实工程工具链</strong>。测试、构建、包管理、Git、脚本、日志工具、MCP server，本来就通过终端工作。把 Agent 放在终端里，可以让模型参与真实开发流程，而不是只能生成片段。</p>
+<p>第二，<strong>它必须面对真实权限风险</strong>。终端可以删除文件、联网、提交代码、读取配置、运行危险脚本。终端 Agent 的设计难点不是“能不能执行命令”，而是“如何让命令执行可裁决、可审计、可恢复”。</p>
+<h3 id="1342-claude-code-的核心架构model--harness"><a class="header" href="#1342-claude-code-的核心架构model--harness">13.4.2 Claude Code 的核心架构：Model + Harness</a></h3>
+<p>可以把 Claude Code 抽象为：</p>
+<pre><code class="language-text">Claude Code
+  = Model
+  + Agent Loop
+  + Tool Registry
+  + Context Loader
+  + Task State
+  + Permission Engine
+  + Verification Surface
+  + Session / Trace
+</code></pre>
+<p>其中 Model 提供理解和决策能力，Harness 提供行动空间。</p>
+<pre><code class="language-text">Model:
+  - 理解需求
+  - 制定计划
+  - 选择工具
+  - 解释工具结果
+  - 生成修复策略
+
+Harness:
+  - 暴露文件、搜索、编辑、Shell、Git、MCP 等工具
+  - 加载项目规则和任务上下文
+  - 维护任务状态和会话状态
+  - 执行权限裁决
+  - 运行测试和构建
+  - 输出 diff、trace 和总结
+</code></pre>
+<p>这个边界很关键。不要试图用代码写死“Agent 应该如何思考”；Harness 的职责是让模型能看见正确材料、调用正确工具、被正确约束、接受正确验证。</p>
+<h3 id="1343-agent-loopcoding-agent-的最小心跳"><a class="header" href="#1343-agent-loopcoding-agent-的最小心跳">13.4.3 Agent Loop：Coding Agent 的最小心跳</a></h3>
+<p>所有 Coding Agent 的内核都可以简化为一个循环：</p>
+<pre><code class="language-text">messages
+  ↓
+LLM
+  ↓
+response
+  ↓
+stop_reason == tool_use ?
+  ├─ yes: execute tool -&gt; append tool_result -&gt; loop
+  └─ no: return final answer
+</code></pre>
+<p>伪代码如下：</p>
+<pre><code class="language-python">def agent_loop(messages, tools):
+    while True:
+        response = model.generate(messages=messages, tools=tools)
+        messages.append(response.as_assistant_message())
+
+        if response.stop_reason != "tool_use":
+            return response.final_text
+
+        tool_results = []
+        for call in response.tool_calls:
+            result = tool_runtime.execute(call)
+            tool_results.append(result.as_tool_result())
+
+        messages.append({
+            "role": "user",
+            "content": tool_results,
+        })
+</code></pre>
+<p>这个循环看起来简单，但它定义了 Agent 的基本生命形式：</p>
 <ul>
-<li>Vibe Coding 适合探索；</li>
-<li>Spec Coding 适合交付；</li>
-<li>Claude Code 展示了终端原生 Agent Runtime 和配置控制面的价值；</li>
-<li>Cursor 展示了 IDE 原生上下文控制的价值；</li>
-<li>Codex 展示了本地 Agent Runtime、云端沙箱和并行任务编排的价值；</li>
-<li>Pi 展示了小内核、强扩展、Skills、Prompt Templates、Packages 和 SDK 嵌入如何组成可复用的 Coding Agent Harness；</li>
-<li>成熟 Coding Agent 的实现核心是 Context Control Plane、Tool Execution Plane、Policy &amp; Sandbox、Verification Gate 和 Trace / Eval Loop；</li>
-<li>一个真实 Coding Agent 本地目录本质上是身份配置、会话状态、规则技能、插件能力、事件日志、缓存产物和云端任务状态的集合；Claude Code 的 <code>~/.claude</code> / <code>.claude/</code> 更偏配置控制面，Codex 的 <code>.codex</code> 更偏 app runtime 与任务状态面；</li>
-<li>Skill 把团队工程经验沉淀成可复用的任务流程，但不能绕过工具权限和安全策略；</li>
-<li>第 14 章会进一步拆解 Pi 这类可嵌入 Coding Agent Runtime，第 19 章会把 Context Builder、Tool Runtime、Policy Engine、Agent Loop、Verifier 和 Trace 落成一个可运行的 Coding Agent MVP；</li>
-<li>Codex + MCP + 日志 + 代码仓库展示了“外部事实源 + 本地实现源 + 模型推理”的证据链工作流；</li>
-<li>真正可靠的 Coding Agent 工作流，需要 Spec、Context、Skills、Tools、Verification、Review 和 Eval 同时存在。</li>
+<li>模型观察当前上下文；</li>
+<li>模型决定下一步行动；</li>
+<li>Runtime 执行工具；</li>
+<li>工具结果成为下一轮观察；</li>
+<li>循环直到模型停止或 Runtime 终止。</li>
 </ul>
-<p>最重要的结论是：</p>
+<p>真正复杂的不是 loop 本身，而是 loop 周围的 Harness。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">周边机制</th><th style="text-align: left">解决什么问题</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Tool Registry</td><td style="text-align: left">模型能调用什么</td></tr>
+<tr><td style="text-align: left">Permission Engine</td><td style="text-align: left">哪些调用允许执行</td></tr>
+<tr><td style="text-align: left">Context Builder</td><td style="text-align: left">每轮模型看到什么</td></tr>
+<tr><td style="text-align: left">Task State</td><td style="text-align: left">长任务如何不偏航</td></tr>
+<tr><td style="text-align: left">Verifier</td><td style="text-align: left">什么时候算完成</td></tr>
+<tr><td style="text-align: left">Trace Store</td><td style="text-align: left">为什么这么做可复盘</td></tr>
+<tr><td style="text-align: left">Budget Control</td><td style="text-align: left">防止无限循环和成本失控</td></tr>
+</tbody>
+</table>
+</div>
+<p>Agent Loop 的设计原则是：<strong>循环保持简单，控制面保持强。</strong></p>
+<p>如果把太多业务规则写进 loop，系统会变得难以扩展；如果 loop 周围没有控制面，Agent 就会变成一个能执行任意命令的聊天模型。</p>
+<h3 id="1344-tool-execution-plane给模型一组受控的手"><a class="header" href="#1344-tool-execution-plane给模型一组受控的手">13.4.4 Tool Execution Plane：给模型一组受控的手</a></h3>
+<p>Coding Agent 的工具不是越多越好，而是要原子化、可组合、可描述、可裁决。</p>
+<p>一个终端原生 Coding Agent 至少需要这些工具：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">工具</th><th style="text-align: left">用途</th><th style="text-align: left">风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><code>list_files</code></td><td style="text-align: left">了解仓库结构</td><td style="text-align: left">输出过大</td></tr>
+<tr><td style="text-align: left"><code>search_code</code></td><td style="text-align: left">找符号、错误、调用链</td><td style="text-align: left">误召回相似代码</td></tr>
+<tr><td style="text-align: left"><code>read_file</code></td><td style="text-align: left">阅读相关文件</td><td style="text-align: left">读取 secret 或无关文件</td></tr>
+<tr><td style="text-align: left"><code>edit_file</code></td><td style="text-align: left">局部修改代码</td><td style="text-align: left">覆盖用户改动</td></tr>
+<tr><td style="text-align: left"><code>run_shell</code></td><td style="text-align: left">测试、构建、脚本</td><td style="text-align: left">危险命令、联网、长时间阻塞</td></tr>
+<tr><td style="text-align: left"><code>git_diff</code></td><td style="text-align: left">查看变更</td><td style="text-align: left">diff 太大或误读</td></tr>
+<tr><td style="text-align: left"><code>git_status</code></td><td style="text-align: left">识别工作区状态</td><td style="text-align: left">忽略用户未提交改动</td></tr>
+<tr><td style="text-align: left"><code>mcp_tool</code></td><td style="text-align: left">连接外部系统</td><td style="text-align: left">权限、数据泄露、工具结果污染</td></tr>
+</tbody>
+</table>
+</div>
+<p>工具注册可以抽象为 dispatch map：</p>
+<pre><code class="language-python">TOOL_HANDLERS = {
+    "read_file": read_file,
+    "search_code": search_code,
+    "edit_file": edit_file,
+    "run_shell": run_shell,
+}
+
+def execute_tool(call):
+    handler = TOOL_HANDLERS[call.name]
+    return handler(**call.arguments)
+</code></pre>
+<p>但生产系统不能只停在 dispatch map。每个工具都需要 schema、权限、超时、错误封装和审计。</p>
+<pre><code class="language-yaml">tool:
+  name: run_shell
+  description: "Run a command in the current workspace"
+  parameters:
+    command:
+      type: string
+    timeout_seconds:
+      type: integer
+      maximum: 120
+  policy:
+    allowed_commands:
+      - npm
+      - pytest
+      - make
+      - go
+    denied_tokens:
+      - rm
+      - sudo
+      - curl
+      - ssh
+      - chmod
+  audit:
+    record_stdout: true
+    redact_secrets: true
+</code></pre>
+<p>工具调用执行链应该是：</p>
+<pre><code class="language-text">model proposes tool call
+  ↓
+schema validation
+  ↓
+policy decision
+  ├─ deny -&gt; return rejection as observation
+  ├─ ask  -&gt; wait for human approval
+  └─ allow
+      ↓
+sandbox execution
+      ↓
+tool result envelope
+      ↓
+trace + next context
+</code></pre>
+<p>工具结果也应该标准化，而不是把 stdout 原样丢回模型：</p>
+<pre><code class="language-json">{
+  "tool": "run_shell",
+  "ok": false,
+  "exit_code": 1,
+  "stdout": "...",
+  "stderr": "...",
+  "truncated": true,
+  "duration_ms": 12403,
+  "retryable": true,
+  "risk": "low"
+}
+</code></pre>
+<p>这样模型下一轮才能判断是继续修复、换工具、请求人工，还是停止。</p>
+<h3 id="1345-task-state让多步任务不偏航"><a class="header" href="#1345-task-state让多步任务不偏航">13.4.5 Task State：让多步任务不偏航</a></h3>
+<p>模型可以临场规划，但长任务不能只靠模型上下文里的自然语言计划。</p>
+<p>Coding Agent 需要显式 Task State：</p>
+<pre><code class="language-yaml">task_state:
+  task_id: "fix-order-cancel-idempotency"
+  goal: "修复订单取消重复调用导致库存重复释放"
+  todos:
+    - id: "t1"
+      content: "阅读订单取消逻辑"
+      status: "completed"
+    - id: "t2"
+      content: "定位库存释放调用"
+      status: "completed"
+    - id: "t3"
+      content: "增加幂等保护"
+      status: "in_progress"
+    - id: "t4"
+      content: "补充重复取消测试"
+      status: "pending"
+    - id: "t5"
+      content: "运行订单相关测试"
+      status: "pending"
+  changed_files:
+    - "service/order_cancel.go"
+  blockers: []
+</code></pre>
+<p>Task State 的价值有三点。</p>
+<p>第一，<strong>让目标持久化</strong>。上下文压缩、子任务切换、工具输出很长时，模型容易忘记原始目标。Task State 是任务锚点。</p>
+<p>第二，<strong>让进度可观察</strong>。人可以看到 Agent 当前在做什么，是否偏离目标。</p>
+<p>第三，<strong>让 Runtime 能约束行为</strong>。例如同一时间只允许一个 <code>in_progress</code>，任务完成前必须有验证步骤，长时间没有更新计划时提醒模型修正。</p>
+<p>一个好的 Task State 不应该保存模型的全部推理，而应该保存可执行状态：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">不该长期保存</th><th style="text-align: left">应该保存</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">模型临时猜测</td><td style="text-align: left">当前目标</td></tr>
+<tr><td style="text-align: left">未验证根因</td><td style="text-align: left">已确认事实</td></tr>
+<tr><td style="text-align: left">大段思考过程</td><td style="text-align: left">当前步骤</td></tr>
+<tr><td style="text-align: left">无来源摘要</td><td style="text-align: left">工具结果引用</td></tr>
+<tr><td style="text-align: left">模糊计划</td><td style="text-align: left">可检查 todo</td></tr>
+</tbody>
+</table>
+</div>
+<p>这也解释了 Task State 和 Scratchpad 的区别：</p>
+<pre><code class="language-text">Scratchpad:
+  模型临时思考空间，可信度低，通常不长期保存
+
+Task State:
+  Runtime 维护的任务状态，影响后续行动和恢复
+</code></pre>
+<h3 id="1346-context-control-plane让模型看到该看的内容"><a class="header" href="#1346-context-control-plane让模型看到该看的内容">13.4.6 Context Control Plane：让模型看到该看的内容</a></h3>
+<p>模型无法天然“读懂仓库”。所谓读懂，实际上是 Runtime 不断替模型选择上下文。</p>
+<p>终端原生 Coding Agent 的上下文通常来自七类来源：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">来源</th><th style="text-align: left">示例</th><th style="text-align: left">风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">项目规则</td><td style="text-align: left"><code>AGENTS.md</code>、<code>CLAUDE.md</code>、团队规范</td><td style="text-align: left">规则过期、互相冲突</td></tr>
+<tr><td style="text-align: left">代码索引</td><td style="text-align: left">文件树、符号、引用、测试名</td><td style="text-align: left">索引滞后、召回错误</td></tr>
+<tr><td style="text-align: left">活动上下文</td><td style="text-align: left">当前目录、Git 状态、最近命令</td><td style="text-align: left">焦点不等于任务边界</td></tr>
+<tr><td style="text-align: left">工具结果</td><td style="text-align: left">search、read、test、lint、MCP 返回</td><td style="text-align: left">工具错误被当事实</td></tr>
+<tr><td style="text-align: left">任务状态</td><td style="text-align: left">plan、todos、changed files、blockers</td><td style="text-align: left">状态不更新导致误导</td></tr>
+<tr><td style="text-align: left">历史摘要</td><td style="text-align: left">previous steps、trace、memory</td><td style="text-align: left">摘要污染</td></tr>
+<tr><td style="text-align: left">Skill / Workflow</td><td style="text-align: left">bugfix、test-writing、trace-to-architecture</td><td style="text-align: left">误触发、规则过泛</td></tr>
+</tbody>
+</table>
+</div>
+<p>成熟 Context Control Plane 至少做五件事。</p>
+<p>第一，<strong>分层注入</strong>。系统指令、项目规则、用户请求、工具结果、任务状态和历史摘要不能混成一段文本。它们的可信度、优先级和生命周期不同。</p>
+<p>第二，<strong>按需检索</strong>。大仓库不能一次性塞进上下文。通常先给 repo map，再让模型通过 search / read 逐步取证。</p>
+<p>第三，<strong>上下文预算管理</strong>。工具结果、测试输出、diff 和日志都可能很长。Runtime 要截断、摘要、去重，并保留来源和时间。</p>
+<p>第四，<strong>污染控制</strong>。README、issue、外部网页、日志都可能包含指令式文本。它们应该作为 data，而不是 instruction。</p>
+<p>第五，<strong>压缩与恢复</strong>。长任务上下文总会满。压缩不是把聊天记录缩短，而是把任务重构成稳定状态。</p>
+<p>一个更可靠的压缩结果应该像这样：</p>
+<pre><code class="language-yaml">compact_summary:
+  original_goal: "修复订单取消重复释放库存"
+  confirmed_facts:
+    - "重复取消会再次调用 release_inventory"
+    - "订单状态 canceled 没有提前返回"
+  changed_files:
+    - "service/order_cancel.go"
+    - "service/order_cancel_test.go"
+  current_todos:
+    - "运行订单相关测试"
+    - "确认库存释放只调用一次"
+  open_risks:
+    - "未检查并发重复取消"
+  forbidden:
+    - "不要重构整个订单状态机"
+</code></pre>
+<p>这比“我们已经修了一些代码，还需要跑测试”可靠得多。</p>
+<h3 id="1347-skill--command--workflow把工程经验变成可复用流程"><a class="header" href="#1347-skill--command--workflow把工程经验变成可复用流程">13.4.7 Skill / Command / Workflow：把工程经验变成可复用流程</a></h3>
+<p>Skill 是介于“规则文件”和“工具调用”之间的一层能力抽象。</p>
+<pre><code class="language-text">Tool:
+  Agent 能调用什么能力
+
+Skill:
+  遇到某一类工程任务，应该按什么可靠流程完成
+</code></pre>
+<p>例如，修 bug 的稳定流程不是“直接改代码”，而是：</p>
+<pre><code class="language-text">先复现或读取失败证据
+  ↓
+搜索错误信息和调用链
+  ↓
+阅读最小相关文件
+  ↓
+形成根因假设
+  ↓
+做最小修改
+  ↓
+补回归测试
+  ↓
+运行验证
+  ↓
+输出 diff 和剩余风险
+</code></pre>
+<p>这个流程就适合沉淀成 Skill：</p>
+<pre><code class="language-markdown"># Bugfix Skill
+
+## Trigger
+当用户要求修复缺陷、失败测试、异常日志或线上报错时使用。
+
+## Procedure
+1. 先复现或读取失败证据，不要直接修改代码；
+2. 搜索错误信息、函数名、测试名和相关调用链；
+3. 阅读最小相关文件，避免一次性加载整个仓库；
+4. 做最小修改，优先保持现有接口和行为；
+5. 新增或更新回归测试；
+6. 运行最小验证命令；
+7. 输出 diff、验证结果和剩余风险。
+
+## Stop Conditions
+- 无法复现；
+- 缺少权限；
+- 验证命令持续失败且原因不明；
+- 修改范围超过原始任务边界。
+</code></pre>
+<p>Skill 的关键是“按需加载”。不要把所有 Skill 都塞进 system prompt。成熟 Runtime 应该：</p>
+<ol>
+<li>发现可用 Skill；</li>
+<li>根据任务选择少量相关 Skill；</li>
+<li>把 Skill 的触发条件、步骤、验证要求注入当前上下文；</li>
+<li>记录本次任务加载了哪个 Skill、哪个版本、是否有效；</li>
+<li>任务失败后决定是否修改 Skill 或新增 eval case。</li>
+</ol>
+<p>这让工程经验从“人脑经验”变成“可版本化、可审查、可评估的上下文资产”。</p>
+<h3 id="1348-verification-gate完成不是模型说了算"><a class="header" href="#1348-verification-gate完成不是模型说了算">13.4.8 Verification Gate：完成不是模型说了算</a></h3>
+<p>Coding Agent 最危险的幻觉，不是编造事实，而是“没有完成却宣布完成”。</p>
+<p>成熟系统要把完成判定拆成多层：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层级</th><th style="text-align: left">检查内容</th><th style="text-align: left">失败时怎么办</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">格式层</td><td style="text-align: left">final schema 是否完整</td><td style="text-align: left">要求模型修复输出</td></tr>
+<tr><td style="text-align: left">变更层</td><td style="text-align: left">diff 是否存在、是否超范围</td><td style="text-align: left">阻止提交或请求人工确认</td></tr>
+<tr><td style="text-align: left">语法层</td><td style="text-align: left">format、lint、typecheck</td><td style="text-align: left">把错误回填给模型</td></tr>
+<tr><td style="text-align: left">行为层</td><td style="text-align: left">unit / integration / regression tests</td><td style="text-align: left">进入 repair loop</td></tr>
+<tr><td style="text-align: left">风险层</td><td style="text-align: left">secret scan、权限、依赖、迁移影响</td><td style="text-align: left">阻止自动完成</td></tr>
+<tr><td style="text-align: left">人审层</td><td style="text-align: left">review summary、PR comment、owner approval</td><td style="text-align: left">交给 reviewer</td></tr>
+</tbody>
+</table>
+</div>
+<p>Verification Gate 的核心原则是：</p>
+<pre><code class="language-text">done criteria &gt; model final answer
+</code></pre>
+<p>也就是说，模型说“我完成了”只是一个候选结论。真正的完成必须由测试、构建、diff、CI、审查或用户验收支撑。</p>
+<p>验证结果也应该进入下一轮上下文：</p>
+<pre><code class="language-json">{
+  "verification": {
+    "command": "go test ./service -run TestCancelOrder",
+    "status": "failed",
+    "exit_code": 1,
+    "summary": "TestCancelOrder_Idempotent failed: inventory released twice",
+    "retry_budget_remaining": 2
+  }
+}
+</code></pre>
+<p>Agent 看到这个结果后，不应该解释失败为成功，而应该进入 repair loop。</p>
+<h3 id="1349-asyncsubagent-与-multi-agent-协作"><a class="header" href="#1349-asyncsubagent-与-multi-agent-协作">13.4.9 Async、Subagent 与 Multi-Agent 协作</a></h3>
+<p>终端任务中有很多慢操作：</p>
+<ul>
+<li>安装依赖；</li>
+<li>跑完整测试；</li>
+<li>构建前端产物；</li>
+<li>查远端日志；</li>
+<li>运行大规模搜索；</li>
+<li>等待 CI。</li>
+</ul>
+<p>如果主 Agent 被这些操作阻塞，它就无法继续规划。更好的方式是把慢操作变成 background task：</p>
+<pre><code class="language-text">main agent:
+  start background test
+  continue reading related files
+  receive notification when test finishes
+</code></pre>
+<p>后台任务需要三个机制：</p>
+<ol>
+<li><strong>任务句柄</strong>：Agent 能知道哪个后台任务还在跑；</li>
+<li><strong>通知队列</strong>：任务完成后把结果注入上下文；</li>
+<li><strong>超时和取消</strong>：防止长命令无限运行。</li>
+</ol>
+<p>Subagent 则解决另一个问题：上下文隔离。</p>
+<p>大任务可以拆给专门角色：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">Subagent</th><th style="text-align: left">适合职责</th><th style="text-align: left">权限</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Explorer</td><td style="text-align: left">阅读代码、找相关文件、总结调用链</td><td style="text-align: left">read / search</td></tr>
+<tr><td style="text-align: left">Debugger</td><td style="text-align: left">复现失败、定位根因</td><td style="text-align: left">read / search / shell</td></tr>
+<tr><td style="text-align: left">Test Runner</td><td style="text-align: left">运行测试、分析失败输出</td><td style="text-align: left">shell limited</td></tr>
+<tr><td style="text-align: left">Reviewer</td><td style="text-align: left">检查 diff 风险、遗漏测试、安全问题</td><td style="text-align: left">read / diff</td></tr>
+<tr><td style="text-align: left">Doc Writer</td><td style="text-align: left">更新文档和说明</td><td style="text-align: left">read / edit docs</td></tr>
+</tbody>
+</table>
+</div>
+<p>Subagent 的价值不是“多开几个模型更强”，而是：</p>
+<ul>
+<li>每个子任务有干净上下文；</li>
+<li>每个角色有更窄权限；</li>
+<li>主 Agent 不被探索过程污染；</li>
+<li>多个独立方向可以并行推进。</li>
+</ul>
+<p>多 Agent 协作进一步需要协议。最小协议至少包括：</p>
+<pre><code class="language-yaml">message:
+  from: "main"
+  to: "reviewer"
+  task_id: "review-diff-001"
+  request: "检查当前 diff 是否遗漏测试或破坏接口"
+  expected_output:
+    - findings
+    - severity
+    - suggested_fix
+  deadline: "10m"
+</code></pre>
+<p>没有协议的多 Agent，很快会变成多个聊天窗口互相制造噪声。</p>
+<h3 id="13410-worktree-isolation并行执行的隔离层"><a class="header" href="#13410-worktree-isolation并行执行的隔离层">13.4.10 Worktree Isolation：并行执行的隔离层</a></h3>
+<p>当 Agent 支持并行任务时，只靠“请小心不要互相覆盖”是不够的。并行需要文件系统级隔离。</p>
+<p>Git worktree 是 Coding Agent 很自然的隔离手段：</p>
+<pre><code class="language-text">main repo
+  ├─ task-101 worktree: fix-login-bug
+  ├─ task-102 worktree: refactor-payment-client
+  └─ task-103 worktree: add-order-tests
+</code></pre>
+<p>Worktree Isolation 解决四个问题：</p>
+<ol>
+<li><strong>文件修改隔离</strong>：不同任务不会在同一目录互相覆盖；</li>
+<li><strong>依赖状态隔离</strong>：构建产物、临时文件、测试状态不混在一起；</li>
+<li><strong>Git diff 清晰</strong>：每个任务有独立 diff；</li>
+<li><strong>失败可丢弃</strong>：某个任务失败，可以直接删除对应 worktree。</li>
+</ol>
+<p>Task 和 worktree 应该绑定：</p>
+<pre><code class="language-yaml">task:
+  id: "task-102"
+  branch: "agent/task-102-refactor-payment-client"
+  worktree: "/workspace/.worktrees/task-102"
+  status: "in_progress"
+  owner: "worker-agent-2"
+</code></pre>
+<p>设计原则是：</p>
+<pre><code class="language-text">Task 管目标，worktree 管目录。
+</code></pre>
+<p>任务系统负责分配、依赖和状态；worktree 负责文件系统隔离。把两者混在一起，会导致任务状态和目录状态互相污染。</p>
+<h3 id="13411-permission-与安全边界"><a class="header" href="#13411-permission-与安全边界">13.4.11 Permission 与安全边界</a></h3>
+<p>终端 Agent 的权限模型必须比普通聊天产品严格得多。</p>
+<p>至少要区分四类权限：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">权限</th><th style="text-align: left">示例</th><th style="text-align: left">风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Read</td><td style="text-align: left">读代码、读文档、读 Git 状态</td><td style="text-align: left">secret 泄露、越权读取</td></tr>
+<tr><td style="text-align: left">Write</td><td style="text-align: left">修改文件、创建文件</td><td style="text-align: left">覆盖用户改动、误改生成文件</td></tr>
+<tr><td style="text-align: left">Execute</td><td style="text-align: left">运行测试、构建、脚本</td><td style="text-align: left">危险命令、长时间阻塞</td></tr>
+<tr><td style="text-align: left">Network / External</td><td style="text-align: left">MCP、浏览器、API、数据库</td><td style="text-align: left">数据外传、权限扩大</td></tr>
+</tbody>
+</table>
+</div>
+<p>权限裁决不应该只依赖 prompt。Runtime 应该有明确策略：</p>
+<pre><code class="language-yaml">permission_policy:
+  read:
+    allowed_paths:
+      - "src/**"
+      - "tests/**"
+      - "docs/**"
+    denied_paths:
+      - ".env"
+      - "secrets/**"
+  write:
+    allowed_paths:
+      - "src/**"
+      - "tests/**"
+      - "docs/**"
+    require_approval:
+      - "package-lock.json"
+      - "migrations/**"
+  shell:
+    allowlist:
+      - "npm test"
+      - "npm run build"
+      - "go test ./..."
+    require_approval:
+      - "git push"
+      - "npm install"
+    deny:
+      - "rm -rf"
+      - "sudo"
+      - "curl | sh"
+</code></pre>
+<p>权限系统的目标不是让 Agent 什么都不能做，而是让风险动作从“模型自觉”变成“系统裁决”。</p>
+<h3 id="13412-claude-code-的优势局限与适用场景"><a class="header" href="#13412-claude-code-的优势局限与适用场景">13.4.12 Claude Code 的优势、局限与适用场景</a></h3>
+<p>Claude Code 的优势很明确：</p>
+<ul>
+<li>适合真实仓库中的端到端任务；</li>
+<li>贴近测试、构建、脚本和 Git；</li>
+<li>容易把团队流程沉淀成命令、规则、Skill 和 Hook；</li>
+<li>适合后端、基础设施、CLI、工具链和跨文件修改；</li>
+<li>能和 MCP 等外部工具结合，形成工程分析工作流。</li>
+</ul>
+<p>它的局限也很明确：</p>
+<ul>
+<li>终端权限风险高；</li>
+<li>对项目规则和上下文质量敏感；</li>
+<li>长任务需要压缩、状态和验证机制支撑；</li>
+<li>不如 IDE Agent 贴近用户当前选区和可视化编辑体验；</li>
+<li>多 Agent 和并行任务必须有隔离，否则容易污染工作区。</li>
+</ul>
+<p>适合使用 Claude Code 的任务：</p>
+<ul>
+<li>修复明确 bug；</li>
+<li>补测试；</li>
+<li>跨文件重构；</li>
+<li>运行和分析测试失败；</li>
+<li>生成脚本和工具；</li>
+<li>根据日志、trace、代码生成排查报告；</li>
+<li>自动化重复性工程流程。</li>
+</ul>
+<p>不适合完全交给它自动执行的任务：</p>
+<ul>
+<li>高风险生产变更；</li>
+<li>无明确验收标准的大型重构；</li>
+<li>涉及敏感数据或凭据的操作；</li>
+<li>需要大量产品判断或组织协调的任务；</li>
+<li>测试环境无法复现的业务变更。</li>
+</ul>
+<h3 id="13413-从-claude-code-反推-coding-agent-harness-设计原则"><a class="header" href="#13413-从-claude-code-反推-coding-agent-harness-设计原则">13.4.13 从 Claude Code 反推 Coding Agent Harness 设计原则</a></h3>
+<p>从 Claude Code 这类终端原生 Agent 可以反推出一组通用设计原则。</p>
+<p>第一，<strong>相信模型的推理能力，但不要相信模型能自我约束所有风险</strong>。让模型决策，让系统裁决。</p>
+<p>第二，<strong>工具要小而清楚</strong>。新增工具时，最好只是新增 handler，不要改 Agent Loop。</p>
+<p>第三，<strong>计划要外置</strong>。没有计划的 Agent 会走哪算哪；计划外置后，Runtime 才能提醒、恢复和审查。</p>
+<p>第四，<strong>知识按需加载</strong>。用到什么 Skill、规则、文档，就加载什么；不要把所有知识塞进 system prompt。</p>
+<p>第五，<strong>上下文总会满</strong>。必须有 compact、summary、task state 和 trace 引用，而不是无限追加聊天记录。</p>
+<p>第六，<strong>慢操作异步化</strong>。测试、构建、日志查询应该能后台运行，结果通过通知回到 Agent Loop。</p>
+<p>第七，<strong>多 Agent 需要协议</strong>。没有消息协议、任务边界和权限边界的多 Agent，只会放大混乱。</p>
+<p>第八，<strong>并行执行必须隔离目录</strong>。worktree、branch、sandbox 是并行 Coding Agent 的基础设施。</p>
+<p>第九，<strong>验证是交付的一部分</strong>。没有验证结果的代码生成，只能算候选 patch。</p>
+<p>第十，<strong>trace 是系统资产</strong>。失败任务、工具调用、权限裁决、测试结果和人类反馈都应该能进入复盘和 eval。</p>
+<hr>
+<h2 id="135-从-mvp-到生产级-coding-agent"><a class="header" href="#135-从-mvp-到生产级-coding-agent">13.5 从 MVP 到生产级 Coding Agent</a></h2>
+<p>如果要从零实现 Coding Agent，不要一开始就追求“全自动程序员”。更稳妥的路线是按风险递增。</p>
+<h3 id="1351-mvp-1read-only-agent"><a class="header" href="#1351-mvp-1read-only-agent">13.5.1 MVP 1：Read-only Agent</a></h3>
+<p>第一阶段只允许读取和搜索，不允许修改。</p>
+<p>开放工具：</p>
+<ul>
+<li><code>list_files</code></li>
+<li><code>read_file</code></li>
+<li><code>search_code</code></li>
+<li><code>git_status</code></li>
+<li><code>git_diff</code></li>
+</ul>
+<p>目标是让 Agent 能回答：</p>
+<ul>
+<li>这个需求可能涉及哪些文件；</li>
+<li>当前代码是怎么工作的；</li>
+<li>应该怎么改；</li>
+<li>需要哪些测试。</li>
+</ul>
+<p>Read-only Agent 是最安全的第一步，适合接入真实大仓库。</p>
+<h3 id="1352-mvp-2patch-agent"><a class="header" href="#1352-mvp-2patch-agent">13.5.2 MVP 2：Patch Agent</a></h3>
+<p>第二阶段开放局部编辑，但不开放任意 shell。</p>
+<p>开放工具：</p>
+<ul>
+<li><code>replace_in_file</code></li>
+<li><code>create_file</code></li>
+<li><code>format_patch</code></li>
+</ul>
+<p>重点能力：</p>
+<ul>
+<li>path sandbox；</li>
+<li>read-before-edit；</li>
+<li>old text 精确匹配；</li>
+<li>diff 输出；</li>
+<li>人工确认。</li>
+</ul>
+<p>这一阶段的目标不是自动完成，而是生成小范围 patch 供人审查。</p>
+<h3 id="1353-mvp-3verified-agent"><a class="header" href="#1353-mvp-3verified-agent">13.5.3 MVP 3：Verified Agent</a></h3>
+<p>第三阶段开放测试类 Shell 命令，让 Agent 形成“修改 -&gt; 测试 -&gt; 修复”的闭环。</p>
+<p>新增能力：</p>
+<ul>
+<li>command allowlist；</li>
+<li>timeout；</li>
+<li>stdout / stderr 截断；</li>
+<li>失败摘要；</li>
+<li>retry budget。</li>
+</ul>
+<p>典型流程：</p>
+<pre><code class="language-text">edit file
+  ↓
+run targeted test
+  ↓
+observe failure
+  ↓
+repair
+  ↓
+run test again
+  ↓
+summarize diff and verification
+</code></pre>
+<p>这一阶段必须明确：验证失败时，Agent 不能假装完成。</p>
+<h3 id="1354-mvp-4workflow-agent"><a class="header" href="#1354-mvp-4workflow-agent">13.5.4 MVP 4：Workflow Agent</a></h3>
+<p>第四阶段加入计划、任务状态和多步骤工作流。</p>
+<p>目标是支持更长的任务：</p>
+<ul>
+<li>重构一个模块；</li>
+<li>迁移一个 API；</li>
+<li>增加一组测试；</li>
+<li>修复一类 lint 问题；</li>
+<li>根据日志定位线上问题。</li>
+</ul>
+<p>需要补齐：</p>
+<ul>
+<li>todo state；</li>
+<li>step status；</li>
+<li>stop condition；</li>
+<li>中途汇报；</li>
+<li>任务暂停和恢复；</li>
+<li>变更范围控制。</li>
+</ul>
+<h3 id="1355-mvp-5skill-enabled-agent"><a class="header" href="#1355-mvp-5skill-enabled-agent">13.5.5 MVP 5：Skill-enabled Agent</a></h3>
+<p>第五阶段加入 Skill Registry，让 Agent 复用团队工程经验。</p>
+<p>适合沉淀为 Skill 的流程：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">Skill</th><th style="text-align: left">触发场景</th><th style="text-align: left">核心约束</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><code>bugfix</code></td><td style="text-align: left">失败测试、异常日志、用户报 bug</td><td style="text-align: left">先复现，后修改，必须补回归测试</td></tr>
+<tr><td style="text-align: left"><code>test-writing</code></td><td style="text-align: left">补单测、提升覆盖率</td><td style="text-align: left">先读现有测试风格，覆盖失败路径</td></tr>
+<tr><td style="text-align: left"><code>refactor</code></td><td style="text-align: left">模块整理、接口迁移</td><td style="text-align: left">保持行为等价，小步验证</td></tr>
+<tr><td style="text-align: left"><code>dependency-upgrade</code></td><td style="text-align: left">升级库、框架、运行时</td><td style="text-align: left">查破坏性变更，跑兼容测试</td></tr>
+<tr><td style="text-align: left"><code>trace-to-architecture</code></td><td style="text-align: left">根据 trace / log 还原调用链</td><td style="text-align: left">区分日志事实、代码确认、模型推断</td></tr>
+<tr><td style="text-align: left"><code>release-check</code></td><td style="text-align: left">发布前检查</td><td style="text-align: left">只读检查优先，高风险动作审批</td></tr>
+</tbody>
+</table>
+</div>
+<p>这一阶段要重点做 Skill 的触发条件、版本管理、加载 trace 和 regression eval。</p>
+<h3 id="1356-mvp-6team-agent"><a class="header" href="#1356-mvp-6team-agent">13.5.6 MVP 6：Team Agent</a></h3>
+<p>第六阶段加入 subagent、background task、worktree、reviewer 和 CI 集成。</p>
+<p>目标是让 Agent 进入团队工程流程，而不是只服务个人本地实验。</p>
+<p>需要补齐：</p>
+<ul>
+<li>explorer agent；</li>
+<li>test runner agent；</li>
+<li>reviewer agent；</li>
+<li>task queue；</li>
+<li>worktree isolation；</li>
+<li>PR bot；</li>
+<li>失败样本库；</li>
+<li>权限审计。</li>
+</ul>
+<p>Team Agent 的关键不是“多几个模型”，而是任务边界、通信协议、工作区隔离和质量门禁。</p>
+<h3 id="1357-从原型到生产系统还缺什么"><a class="header" href="#1357-从原型到生产系统还缺什么">13.5.7 从原型到生产系统还缺什么</a></h3>
+<p>MVP 能跑，不代表可以生产使用。生产级 Coding Agent 还需要：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">能力</th><th style="text-align: left">为什么重要</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">RBAC</td><td style="text-align: left">不同用户、仓库、环境权限不同</td></tr>
+<tr><td style="text-align: left">Secret Boundary</td><td style="text-align: left">凭据不能进入 prompt、trace 或 diff</td></tr>
+<tr><td style="text-align: left">Audit Log</td><td style="text-align: left">能解释谁让 Agent 做了什么</td></tr>
+<tr><td style="text-align: left">Eval Dataset</td><td style="text-align: left">防止模型、prompt、Skill 升级造成回归</td></tr>
+<tr><td style="text-align: left">CI Integration</td><td style="text-align: left">验证不只靠本地命令</td></tr>
+<tr><td style="text-align: left">Rollback</td><td style="text-align: left">失败任务能恢复工作区</td></tr>
+<tr><td style="text-align: left">Cost Control</td><td style="text-align: left">限制步数、token、工具调用和云端资源</td></tr>
+<tr><td style="text-align: left">Data Retention</td><td style="text-align: left">会话、日志、产物要有保留和删除策略</td></tr>
+<tr><td style="text-align: left">Human Approval</td><td style="text-align: left">高风险动作必须人审</td></tr>
+</tbody>
+</table>
+</div>
+<p>生产化的核心不是堆更多工具，而是让 Agent 的每一次行动都在可控边界内发生。</p>
+<hr>
+<h2 id="136-设计清单与常见反模式"><a class="header" href="#136-设计清单与常见反模式">13.6 设计清单与常见反模式</a></h2>
+<p>这一节把本章收束成设计清单。你可以用它评估一个 Coding Agent 系统，也可以用它准备系统设计面试。</p>
+<h3 id="1361-coding-agent-harness-设计清单"><a class="header" href="#1361-coding-agent-harness-设计清单">13.6.1 Coding Agent Harness 设计清单</a></h3>
+<p><strong>任务入口</strong></p>
+<ul>
+<li>是否支持从自然语言、issue、PR comment、告警、trace 等入口创建任务；</li>
+<li>是否显式记录 cwd、repo、branch、用户、权限、预算；</li>
+<li>是否区分探索任务和执行任务；</li>
+<li>是否有清晰的 done criteria。</li>
+</ul>
+<p><strong>上下文</strong></p>
+<ul>
+<li>是否加载项目规则；</li>
+<li>是否有 repo map 或代码索引；</li>
+<li>是否让模型按需 search / read；</li>
+<li>是否避免把全仓库塞进 prompt；</li>
+<li>是否区分 instruction、data、tool result、memory；</li>
+<li>是否有上下文压缩和状态恢复。</li>
+</ul>
+<p><strong>工具</strong></p>
+<ul>
+<li>是否只暴露注册过的工具；</li>
+<li>每个工具是否有 schema；</li>
+<li>是否有路径沙箱；</li>
+<li>是否优先局部替换而不是整文件重写；</li>
+<li>Shell 是否有 allowlist、timeout 和审批；</li>
+<li>工具失败是否被结构化返回给模型。</li>
+</ul>
+<p><strong>状态</strong></p>
+<ul>
+<li>是否有显式 Task State；</li>
+<li>是否记录当前步骤、已完成步骤、阻塞点；</li>
+<li>是否区分 task state、scratchpad、memory；</li>
+<li>是否能暂停和恢复；</li>
+<li>是否能处理用户中途修改需求。</li>
+</ul>
+<p><strong>权限</strong></p>
+<ul>
+<li>是否区分 read、write、shell、network；</li>
+<li>是否禁止读取 secret；</li>
+<li>是否禁止 repo 外写入；</li>
+<li>是否对 Git push、发布、迁移等高风险动作要求审批；</li>
+<li>是否记录权限裁决。</li>
+</ul>
+<p><strong>验证</strong></p>
+<ul>
+<li>是否有标准验证命令；</li>
+<li>是否捕获 stdout / stderr；</li>
+<li>是否处理超时和 flaky test；</li>
+<li>final answer 是否包含验证证据；</li>
+<li>验证失败时是否返回失败而不是假装成功。</li>
+</ul>
+<p><strong>隔离</strong></p>
+<ul>
+<li>并行任务是否使用 branch、worktree 或 sandbox；</li>
+<li>后台任务是否有句柄、通知、超时和取消；</li>
+<li>subagent 是否有独立上下文和权限；</li>
+<li>云端任务是否隔离依赖和环境变量。</li>
+</ul>
+<p><strong>交付</strong></p>
+<ul>
+<li>是否输出 diff；</li>
+<li>是否解释修改动机；</li>
+<li>是否列出验证结果；</li>
+<li>是否列出剩余风险；</li>
+<li>是否能生成 PR、review comment 或报告。</li>
+</ul>
+<p><strong>改进闭环</strong></p>
+<ul>
+<li>是否记录 trace；</li>
+<li>是否把失败任务沉淀为 eval；</li>
+<li>是否把重复流程沉淀为 Skill；</li>
+<li>是否有 prompt、Skill、Tool、Policy 的版本管理；</li>
+<li>是否能回滚配置变更。</li>
+</ul>
+<h3 id="1362-常见反模式prompt-堆叠无验证无隔离无状态"><a class="header" href="#1362-常见反模式prompt-堆叠无验证无隔离无状态">13.6.2 常见反模式：Prompt 堆叠、无验证、无隔离、无状态</a></h3>
+<p><strong>反模式一：把所有规则塞进 system prompt</strong></p>
+<p>表现：</p>
+<ul>
+<li>system prompt 越来越长；</li>
+<li>规则互相冲突；</li>
+<li>模型忽略后半段；</li>
+<li>无法知道哪条规则生效。</li>
+</ul>
+<p>修复方式：</p>
+<pre><code class="language-text">稳定规则 -&gt; 项目规则 / policy
+任务流程 -&gt; Skill
+权限边界 -&gt; Runtime
+输出格式 -&gt; Schema
+失败样本 -&gt; Eval
+</code></pre>
+<p><strong>反模式二：让模型自己判断是否完成</strong></p>
+<p>表现：</p>
+<ul>
+<li>测试没跑却说完成；</li>
+<li>测试失败但 summary 写“已通过”；</li>
+<li>diff 和解释不一致。</li>
+</ul>
+<p>修复方式：</p>
+<ul>
+<li>引入 Verification Gate；</li>
+<li>final answer 必须引用验证结果；</li>
+<li>没有验证时明确标注“未验证”；</li>
+<li>高风险任务必须人审。</li>
+</ul>
+<p><strong>反模式三：Shell 权限过大</strong></p>
+<p>表现：</p>
+<ul>
+<li>模型执行危险命令；</li>
+<li>联网下载未知脚本；</li>
+<li>修改 repo 外路径；</li>
+<li>读取 secret 文件。</li>
+</ul>
+<p>修复方式：</p>
+<ul>
+<li>command allowlist；</li>
+<li>path sandbox；</li>
+<li>network approval；</li>
+<li>secret scan；</li>
+<li>shell output trace。</li>
+</ul>
+<p><strong>反模式四：没有 Task State</strong></p>
+<p>表现：</p>
+<ul>
+<li>长任务中途偏航；</li>
+<li>重复做同一步；</li>
+<li>忘记用户约束；</li>
+<li>上下文压缩后丢失目标。</li>
+</ul>
+<p>修复方式：</p>
+<ul>
+<li>显式 todo；</li>
+<li>每步状态；</li>
+<li>当前目标和禁止事项；</li>
+<li>compact 后重建状态；</li>
+<li>Runtime 对长时间无计划更新进行提醒。</li>
+</ul>
+<p><strong>反模式五：并行任务共享同一工作区</strong></p>
+<p>表现：</p>
+<ul>
+<li>两个 Agent 改同一个文件；</li>
+<li>测试产物互相污染；</li>
+<li>diff 混在一起；</li>
+<li>一个任务失败影响另一个任务。</li>
+</ul>
+<p>修复方式：</p>
+<ul>
+<li>branch / worktree / sandbox 隔离；</li>
+<li>task id 绑定工作目录；</li>
+<li>每个任务独立验证；</li>
+<li>合并前统一 review。</li>
+</ul>
+<h3 id="1363-面试表达如何讲清一个-coding-agent-系统"><a class="header" href="#1363-面试表达如何讲清一个-coding-agent-系统">13.6.3 面试表达：如何讲清一个 Coding Agent 系统</a></h3>
+<p>如果面试官问“你如何设计一个 Coding Agent”，不要只回答“接入 LLM 和工具调用”。可以这样表达：</p>
+<pre><code class="language-text">我会把 Coding Agent 设计成 Model + Harness。
+
+Model 负责理解任务、规划步骤、选择工具和解释结果；
+Harness 负责上下文、工具、权限、状态、验证、隔离和审计。
+
+系统入口可以是自然语言、issue 或 PR comment。
+任务进入后先形成 Task Envelope，包括 repo、branch、cwd、权限、预算和验收标准。
+Context Builder 根据项目规则、repo map、代码搜索、文件读取、工具结果和 Skill 构建上下文。
+Agent Loop 让模型在每一轮选择工具行动，Runtime 对工具调用做 schema 校验、权限裁决、sandbox 执行和 trace 记录。
+长任务用 Task State 管理进度，慢操作用 background task，复杂任务用 subagent 隔离上下文，并行任务用 worktree 或 sandbox 隔离工作区。
+完成不能由模型自我声明，必须经过 test、lint、typecheck、build、diff review 或 CI 验证。
+所有失败都进入 trace 和 eval，重复流程沉淀为 Skill。
+</code></pre>
+<p>这个回答的重点是：你不是在描述一个聊天机器人，而是在描述一个可治理的软件工程执行环境。</p>
+<hr>
+<h2 id="本章小结-12"><a class="header" href="#本章小结-12">本章小结</a></h2>
+<p>AI Coding Agent 的成熟，不是因为模型能写更多代码，而是因为系统开始围绕模型建立工程闭环。</p>
+<p>本章的关键结论是：</p>
+<ol>
+<li>Vibe Coding 适合探索，Spec Coding 适合交付；</li>
+<li>Coding Agent 的核心不是“LLM + 工具”，而是 Model + Harness；</li>
+<li>Claude Code、Cursor、Codex 的差异，本质上是 CLI、IDE、云端 sandbox 在上下文、工具、权限和交付面上的取舍；</li>
+<li>真实工作流里，Agent 可以连接外部事实源和本地实现源，但必须保留证据等级；</li>
+<li>终端原生 Coding Agent 的核心机制包括 Agent Loop、Tool Plane、Task State、Context Control、Skill Loading、Verification Gate、Subagent、Background Task 和 Worktree Isolation；</li>
+<li>完成不是模型说了算，必须由验证、diff、CI、review 或用户验收支撑；</li>
+<li>生产级 Coding Agent 要解决权限、隔离、状态、审计、eval、成本和数据治理；</li>
+<li>重复的工程经验应该沉淀为 Skill，失败的任务应该沉淀为 eval。</li>
+</ol>
+<p>最重要的变化是：</p>
 <blockquote>
 <p>AI 编程的核心能力，正在从“亲手写代码”转向“定义任务、组织上下文、约束执行、审查结果”。</p>
 </blockquote>
@@ -16316,19 +16777,20 @@ flowchart TD
 <hr>
 <h2 id="参考资料-6"><a class="header" href="#参考资料-6">参考资料</a></h2>
 <ol>
+<li><a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code Documentation - Anthropic Docs</a></li>
 <li><a href="https://docs.anthropic.com/en/docs/claude-code/sub-agents">Claude Code Subagents - Anthropic Docs</a></li>
 <li><a href="https://docs.anthropic.com/en/docs/claude-code/hooks">Claude Code Hooks - Anthropic Docs</a></li>
 <li><a href="https://docs.anthropic.com/en/docs/claude-code/memory">Claude Code Memory - Anthropic Docs</a></li>
 <li><a href="https://docs.anthropic.com/en/docs/claude-code/slash-commands">Claude Code Slash Commands - Anthropic Docs</a></li>
 <li><a href="https://docs.anthropic.com/en/docs/claude-code/settings">Claude Code Settings - Anthropic Docs</a></li>
 <li><a href="https://docs.anthropic.com/en/docs/claude-code/mcp">Claude Code MCP - Anthropic Docs</a></li>
-<li><a href="https://code.claude.com/docs/en/plugins">Claude Code Plugins - Anthropic Docs</a></li>
 <li><a href="https://docs.cursor.com/context/rules">Cursor Rules - Cursor Docs</a></li>
 <li><a href="https://docs.cursor.com/en/chat/agent">Cursor Agent Modes - Cursor Docs</a></li>
 <li><a href="https://docs.cursor.com/en/agent/review">Cursor Diffs &amp; Review - Cursor Docs</a></li>
 <li><a href="https://docs.cursor.com/en/background-agents">Cursor Background Agents - Cursor Docs</a></li>
-<li><a href="https://help.openai.com/en/articles/11096431-openai-codex-ligetting-started">OpenAI Codex CLI Getting Started - OpenAI Help Center</a></li>
+<li><a href="https://help.openai.com/en/articles/11096431-openai-codex-cli-getting-started">OpenAI Codex CLI Getting Started - OpenAI Help Center</a></li>
 <li><a href="https://help.openai.com/en/articles/11369540-codex-in-chatgpt">Using Codex with your ChatGPT plan - OpenAI Help Center</a></li>
+<li><a href="https://github.com/shareAI-lab/learn-claude-code">shareAI-lab/learn-claude-code - GitHub</a></li>
 </ol>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="第14章-pi-agent-架构解析终端原生-coding-agent-runtime扩展系统与上下文工程"><a class="header" href="#第14章-pi-agent-架构解析终端原生-coding-agent-runtime扩展系统与上下文工程">第14章 Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程</a></h1>
@@ -22503,7 +22965,7 @@ Eval Owner
 <li>是否定义高风险业务域和资损敏感域？</li>
 <li>是否定义业务 owner 和审批角色？</li>
 </ul>
-<h3 id="context-1"><a class="header" href="#context-1">Context</a></h3>
+<h3 id="context"><a class="header" href="#context">Context</a></h3>
 <ul>
 <li>是否有标准 Alert 和 Incident 模型？</li>
 <li>是否有标准 Question 和 Answer 模型？</li>
@@ -24505,7 +24967,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 <hr>
 <h2 id="1920-构建检查清单"><a class="header" href="#1920-构建检查清单">19.20 构建检查清单</a></h2>
 <p>如果你要从零实现自己的 Coding Agent，可以按下面清单验收。</p>
-<h3 id="runtime-1"><a class="header" href="#runtime-1">Runtime</a></h3>
+<h3 id="runtime"><a class="header" href="#runtime">Runtime</a></h3>
 <ul>
 <li>是否有 <code>AgentState</code>？</li>
 <li>是否有最大步数？</li>
@@ -24513,7 +24975,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 <li>是否区分 action 和 final？</li>
 <li>是否记录每一步？</li>
 </ul>
-<h3 id="context-2"><a class="header" href="#context-2">Context</a></h3>
+<h3 id="context-1"><a class="header" href="#context-1">Context</a></h3>
 <ul>
 <li>是否加载项目规则？</li>
 <li>是否构建 repo map？</li>
@@ -24521,7 +24983,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 <li>是否截断过长工具结果？</li>
 <li>是否能把最近 observation 放回下一轮？</li>
 </ul>
-<h3 id="tools-1"><a class="header" href="#tools-1">Tools</a></h3>
+<h3 id="tools"><a class="header" href="#tools">Tools</a></h3>
 <ul>
 <li>是否有工具注册表？</li>
 <li>是否只允许相对路径？</li>
@@ -24537,7 +24999,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 <li>高风险动作是否能进入人工审批？</li>
 <li>policy decision 是否进入 trace？</li>
 </ul>
-<h3 id="verification-1"><a class="header" href="#verification-1">Verification</a></h3>
+<h3 id="verification"><a class="header" href="#verification">Verification</a></h3>
 <ul>
 <li>是否运行验证命令？</li>
 <li>是否捕获 stdout / stderr？</li>
