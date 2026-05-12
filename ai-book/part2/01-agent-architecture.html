@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b1b13cf2.js";
+            window.path_to_searchindex_js = "../searchindex-705630ac.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-69e853c8.js"></script>
@@ -782,7 +782,66 @@ response.sent
 <h2 id="53-agent-核心组件职责边界与后续章节地图"><a class="header" href="#53-agent-核心组件职责边界与后续章节地图">5.3 Agent 核心组件：职责边界与后续章节地图</a></h2>
 <p>5.3 不是要把每个组件都讲透，而是建立一张生产级 Agent Runtime 的组件地图。后续第 6 到第 12 章，会沿着这张地图逐层展开：工具系统、执行编排、平台化、知识上下文、Memory、Evals、Guardrails 和可观测性。</p>
 <p>现代 Agent 系统已经不只是“模型 + 工具调用”。从 OpenAI Agents SDK、AgentKit、LangGraph、Google ADK、MCP、Anthropic Skills 这些工程实践可以看到，生产级 Agent 越来越像一个可治理的 Runtime：它要管理入口、任务契约、上下文、状态、能力、权限、人工控制、模型路由、Trace、评测和学习闭环。</p>
-<p>下面这张表先给出组件地图：</p>
+<p>先用一张图把职责边界和后续章节关系串起来：</p>
+<pre class="mermaid">
+flowchart LR
+    subgraph Runtime["生产级 Agent Runtime 组件边界"]
+        Intake["Event &amp; Intake Router&lt;br/&gt;统一入口"]
+        Intent["Intent Normalizer&lt;br/&gt;任务契约"]
+        Planner["Task Planner&lt;br/&gt;计划与预算"]
+        Context["Context Builder&lt;br/&gt;证据与上下文"]
+        Memory["Memory Layer&lt;br/&gt;长期上下文"]
+        State["Execution State &amp; Checkpoint&lt;br/&gt;状态与回放"]
+        Capability["Capability Registry&lt;br/&gt;Skills / Tools / MCP"]
+        Policy["Policy Engine &amp; Human Control&lt;br/&gt;权限 / 审批 / 接管"]
+        Loop["Agent Loop&lt;br/&gt;观察 / 决策 / 行动 / 修复"]
+        Router["Model Router &amp; Handoff&lt;br/&gt;模型选择 / 专家委派"]
+        Verify["Verifier &amp; Eval Harness&lt;br/&gt;验证与评测"]
+        Review["Review Surface / Trace / Audit&lt;br/&gt;交付 / 追踪 / 审计"]
+        Learn["Learning Loop&lt;br/&gt;反馈驱动演进"]
+    end
+
+    subgraph Chapters["后续章节地图"]
+        C6["第6章&lt;br/&gt;Tools / Skills / MCP"]
+        C7["第7章&lt;br/&gt;Workflow / State Machine / Multi-Agent"]
+        C8["第8章&lt;br/&gt;平台与编排框架"]
+        C9["第9章&lt;br/&gt;RAG 与检索工程"]
+        C10["第10章&lt;br/&gt;Agentic RAG"]
+        C11["第11章&lt;br/&gt;Memory 与状态管理"]
+        C12["第12章&lt;br/&gt;Evals / Guardrails / Observability"]
+    end
+
+    Intake --&gt; Intent --&gt; Planner --&gt; Context --&gt; Loop --&gt; Verify --&gt; Review
+    Context &lt;--&gt; Memory
+    Planner --&gt; State
+    State --&gt; Loop
+    Planner --&gt; Capability
+    Capability --&gt; Policy --&gt; Loop
+    Router --&gt; Loop
+    Review --&gt; Learn
+    Learn -.-&gt; SkillUpdate["Skill / Memory / Eval 候选"]
+    SkillUpdate -.-&gt; Capability
+    SkillUpdate -.-&gt; Memory
+    SkillUpdate -.-&gt; Verify
+
+    Capability -.-&gt; C6
+    Intake -.-&gt; C7
+    Planner -.-&gt; C7
+    State -.-&gt; C7
+    Loop -.-&gt; C7
+    Router -.-&gt; C8
+    Context -.-&gt; C9
+    Context -.-&gt; C10
+    Memory -.-&gt; C11
+    Policy -.-&gt; C12
+    Verify -.-&gt; C12
+    Review -.-&gt; C12
+    Learn -.-&gt; C11
+    Learn -.-&gt; C12
+</pre>
+
+<p>这张图有两个读法：从左到右看，是一次 Agent 任务在 Runtime 内部的主要控制链路；从组件指向右侧章节看，是第二部分后续内容的阅读路线。也就是说，第 6 到第 12 章不是零散专题，而是这张 Runtime 图上的不同区域。</p>
+<p>下面这张表再给出组件地图：</p>
 <div class="table-wrapper">
 <table>
 <thead>

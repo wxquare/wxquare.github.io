@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b1b13cf2.js";
+            window.path_to_searchindex_js = "../searchindex-705630ac.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-69e853c8.js"></script>
@@ -321,6 +321,31 @@ flowchart TB
 </table>
 </div>
 <p>OpenClaw 最值得学习的地方，是它没有把所有东西堆进 Agent Loop。它把消息接入、会话路由、工具策略、上下文构建、沙箱执行拆到不同层，每层只承担一个主要职责。</p>
+<h3 id="与第5章组件地图的对应关系"><a class="header" href="#与第5章组件地图的对应关系">与第5章组件地图的对应关系</a></h3>
+<p>OpenClaw 的特点是 Gateway 很强。它不是只做一个 Agent Loop，而是先把多渠道入口、身份绑定、队列、会话、上下文、工具、插件和执行边界组织起来。用第 5 章组件地图来看，OpenClaw 对“入口路由、人类交互、上下文、工具扩展、权限边界”覆盖较完整，对“离线 Eval Harness、模型路由、长期学习闭环”的公开实现则相对弱一些。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">第5章组件</th><th style="text-align: left">OpenClaw 中的实现方式</th><th style="text-align: left">实现状态与差异</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Event &amp; Intake Router</td><td style="text-align: left">Channel Adapter、Gateway Ingress、Queue、WebChat、移动 / 桌面 Nodes</td><td style="text-align: left">强实现；这是 OpenClaw 的架构核心</td></tr>
+<tr><td style="text-align: left">Intent Normalizer</td><td style="text-align: left">Inbound Normalization、Routing &amp; Bindings、会话上下文共同决定任务入口</td><td style="text-align: left">部分实现；更偏消息归一化和路由，任务契约需要 Runtime/Skill 进一步形成</td></tr>
+<tr><td style="text-align: left">Task Planner</td><td style="text-align: left">Agent Runtime 内部计划，Skill / Plugin 可提供流程约束</td><td style="text-align: left">隐式实现；不是显式 planner 服务</td></tr>
+<tr><td style="text-align: left">Context Builder</td><td style="text-align: left">Context Engine、Workspace、Bootstrap Context、Prompt Builder</td><td style="text-align: left">强实现；上下文构建被抽成可插拔引擎</td></tr>
+<tr><td style="text-align: left">Memory Layer</td><td style="text-align: left">Session、Memory、Compaction、DM isolation</td><td style="text-align: left">中等实现；偏个人助手会话和长期上下文，不是企业知识治理平台</td></tr>
+<tr><td style="text-align: left">Execution State &amp; Checkpoint</td><td style="text-align: left">Queue、Session Manager、Command Queue、Transcript、Compaction</td><td style="text-align: left">强实现；适合长期在线个人助手和异步消息处理</td></tr>
+<tr><td style="text-align: left">Capability Registry</td><td style="text-align: left">Tool Registry、Skills、Plugins、Hooks、MCP / External Tools</td><td style="text-align: left">强实现；Tool / Skill / Plugin 三层边界清楚</td></tr>
+<tr><td style="text-align: left">Policy Engine &amp; Human Control Plane</td><td style="text-align: left">Pairing / Allowlist / Auth、Tool Policy、Sandbox、workspaceAccess、Control UI</td><td style="text-align: left">强实现；个人助手场景下的权限和接管模型很完整</td></tr>
+<tr><td style="text-align: left">Agent Loop</td><td style="text-align: left">Agent Runtime 中的 loop 负责模型调用、工具调度和事件输出</td><td style="text-align: left">中等到强；OpenClaw 更强调 Gateway + Runtime 组合，而不是单独炫技 loop</td></tr>
+<tr><td style="text-align: left">Model Router &amp; Handoff Manager</td><td style="text-align: left">Routing &amp; Bindings、多 Agent Routing、不同助手绑定</td><td style="text-align: left">中等实现；多 Agent 路由是亮点，但复杂专家委派和模型竞价不是重点</td></tr>
+<tr><td style="text-align: left">Verifier &amp; Eval Harness</td><td style="text-align: left">工具结果、diff / summary、人工 review、Control UI 反馈</td><td style="text-align: left">部分实现；运行时可审查较强，系统化离线 Eval 需要补齐</td></tr>
+<tr><td style="text-align: left">Review Surface、Trace &amp; Audit</td><td style="text-align: left">WebChat、Control UI、事件流、消息回执、会话 transcript</td><td style="text-align: left">强实现；用户交互和接管体验是 OpenClaw 的核心优势</td></tr>
+<tr><td style="text-align: left">Learning Loop</td><td style="text-align: left">Skill、Plugin、Memory、用户反馈可沉淀经验</td><td style="text-align: left">部分实现；更像手工/半自动沉淀，不应自动污染长期记忆和插件生态</td></tr>
+</tbody>
+</table>
+</div>
+<p>所以 OpenClaw 与 Pi 的差异很清楚：Pi 先把可嵌入 Runtime 做薄，OpenClaw 则把 Runtime 放进一个多入口个人 Agent Gateway 里。它更接近第 5 章里的“Entry Plane + Human Control Plane + Capability Plane”组合样板。</p>
 <hr>
 <h2 id="153-gateway个人助手的控制平面"><a class="header" href="#153-gateway个人助手的控制平面">15.3 Gateway：个人助手的控制平面</a></h2>
 <p>OpenClaw 官方文档把 Gateway 描述为会话、路由和渠道连接的单一事实源。它是一个长期运行的 daemon，默认通过本地端口提供 HTTP/WS 服务，并由 launchd、systemd 或用户手动进程保持运行。</p>

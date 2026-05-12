@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b1b13cf2.js";
+            window.path_to_searchindex_js = "../searchindex-705630ac.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-69e853c8.js"></script>
@@ -315,6 +315,31 @@ flowchart TB
 </table>
 </div>
 <p>这种分层让 Hermes 不只是一个 CLI 工具，而是一个可嵌入不同入口、不同执行环境、不同研究工作流的 Agent Runtime。</p>
+<h3 id="与第5章组件地图的对应关系"><a class="header" href="#与第5章组件地图的对应关系">与第5章组件地图的对应关系</a></h3>
+<p>Hermes 的重点不是“单次任务执行”，而是长期运行、自我进化和多入口接入。用第 5 章组件地图看，Hermes 对 Memory、Skills、Toolsets、Profiles、Research Pipeline 和 Learning Loop 覆盖很强；但如果要进入企业生产，还需要额外补强审批、合规审计、发布门禁和严格 Eval Harness。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">第5章组件</th><th style="text-align: left">Hermes 中的实现方式</th><th style="text-align: left">实现状态与差异</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Event &amp; Intake Router</td><td style="text-align: left">CLI / TUI、Messaging Gateway、ACP / IDE、Cron、Batch Runner / API</td><td style="text-align: left">强实现；多入口是 Hermes 从工具变成服务的关键</td></tr>
+<tr><td style="text-align: left">Intent Normalizer</td><td style="text-align: left">Prompt System、Profiles、入口类型和上下文文件共同塑造任务边界</td><td style="text-align: left">部分实现；更偏运行时上下文塑形，不一定显式生成任务契约</td></tr>
+<tr><td style="text-align: left">Task Planner</td><td style="text-align: left">AIAgent Loop 中的任务推进，Cron / Batch 可形成固定任务计划</td><td style="text-align: left">隐式到中等实现；计划存在于 loop、prompt 和任务配置中</td></tr>
+<tr><td style="text-align: left">Context Builder</td><td style="text-align: left">Prompt Builder、Context Compressor、AGENTS.md / <code>.hermes.md</code> / SOUL.md、Profiles</td><td style="text-align: left">强实现；上下文稳定性是 Hermes 的核心设计</td></tr>
+<tr><td style="text-align: left">Memory Layer</td><td style="text-align: left">MEMORY.md、USER.md、SQLite Sessions + FTS5、Profiles、Session Search</td><td style="text-align: left">强实现；长期事实、偏好、会话搜索和身份隔离是重点</td></tr>
+<tr><td style="text-align: left">Execution State &amp; Checkpoint</td><td style="text-align: left">SQLite state、sessions、callbacks、streaming、tool result persistence</td><td style="text-align: left">中等到强；支持回放和研究，但严格 checkpoint / rollback 需要上层治理</td></tr>
+<tr><td style="text-align: left">Capability Registry</td><td style="text-align: left">Tool Registry、Toolsets、MCP Tools、Plugins、Skills</td><td style="text-align: left">强实现；Toolsets 是权限和能力分组的核心单位</td></tr>
+<tr><td style="text-align: left">Policy Engine &amp; Human Control Plane</td><td style="text-align: left">Toolsets、Profiles、Execution Backends、Security 分层</td><td style="text-align: left">中等实现；能力分组清晰，但企业审批和人工接管流程需要强化</td></tr>
+<tr><td style="text-align: left">Agent Loop</td><td style="text-align: left">AIAgent Loop 统一多入口、模型调用、工具分发、流式回调和状态持久化</td><td style="text-align: left">强实现；这是 Hermes 的运行核心</td></tr>
+<tr><td style="text-align: left">Model Router &amp; Handoff Manager</td><td style="text-align: left">Provider Resolver、Profiles、不同入口和执行后端</td><td style="text-align: left">中等实现；模型选择清晰，专家委派和多 Agent 协作不是主要叙事</td></tr>
+<tr><td style="text-align: left">Verifier &amp; Eval Harness</td><td style="text-align: left">Research Pipeline、轨迹数据、失败样本、技能演化约束</td><td style="text-align: left">部分到中等实现；更偏研究与改进数据，生产 release gate 仍需补齐</td></tr>
+<tr><td style="text-align: left">Review Surface、Trace &amp; Audit</td><td style="text-align: left">callbacks、streaming、SQLite sessions、Gateway 消息、轨迹资产</td><td style="text-align: left">中等实现；可观测材料丰富，但合规审计口径需要工程化</td></tr>
+<tr><td style="text-align: left">Learning Loop</td><td style="text-align: left">Skills 演化、Memory 更新、Research Pipeline、轨迹到训练数据</td><td style="text-align: left">强实现；Hermes 最鲜明的差异点，但必须受验证和 owner review 约束</td></tr>
+</tbody>
+</table>
+</div>
+<p>Hermes 因此特别适合作为第 5 章 Learning Loop、Memory Layer 和长期 Agent 的系统案例。它提醒我们：Agent 的能力会随着记忆、技能和轨迹积累而增长，但这种增长必须被验证器、评测集和人工审核约束，否则“自我进化”很容易变成“错误经验自动固化”。</p>
 <hr>
 <h2 id="163-agent-loop统一多入口的运行核心"><a class="header" href="#163-agent-loop统一多入口的运行核心">16.3 Agent Loop：统一多入口的运行核心</a></h2>
 <p>Hermes 的核心是一个同步编排引擎，可以理解为：</p>

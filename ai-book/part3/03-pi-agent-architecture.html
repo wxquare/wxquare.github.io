@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b1b13cf2.js";
+            window.path_to_searchindex_js = "../searchindex-705630ac.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-69e853c8.js"></script>
@@ -361,6 +361,31 @@ flowchart TB
 </table>
 </div>
 <p>Pi 最值得学习的地方，是它把“终端体验”和“Agent Runtime”解耦了。TUI 只是一个入口；真正可复用的是 <code>AgentSession</code>、资源加载、工具运行、模型抽象和事件流。</p>
+<h3 id="与第5章组件地图的对应关系"><a class="header" href="#与第5章组件地图的对应关系">与第5章组件地图的对应关系</a></h3>
+<p>Pi 的价值在于把终端原生 Coding Agent 拆成可嵌入 Runtime。用第 5 章的组件地图来看，Pi 对“入口、上下文、工具、扩展、会话、事件流”实现得比较强，对“企业级审批、长期学习闭环、离线 Eval 平台”则更多留给上层系统或嵌入方补齐。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">第5章组件</th><th style="text-align: left">Pi 中的实现方式</th><th style="text-align: left">实现状态与差异</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Event &amp; Intake Router</td><td style="text-align: left">Interactive TUI、Print / JSON、RPC、SDK 多入口进入同一个 <code>AgentSession</code></td><td style="text-align: left">强实现；入口多样，但核心仍围绕终端和嵌入式运行时</td></tr>
+<tr><td style="text-align: left">Intent Normalizer</td><td style="text-align: left">通过命令模式、Prompt Template、用户输入和上下文资源形成任务边界</td><td style="text-align: left">部分实现；更多依赖模型和模板，不一定有独立任务契约对象</td></tr>
+<tr><td style="text-align: left">Task Planner</td><td style="text-align: left">Agent Loop 内部生成步骤，复杂任务可由 prompt / skill 引导</td><td style="text-align: left">隐式实现；计划通常存在于会话和模型输出中，而非独立 planner 服务</td></tr>
+<tr><td style="text-align: left">Context Builder</td><td style="text-align: left"><code>ResourceLoader</code> 加载 context files、system prompt、skills、templates，并按优先级组装</td><td style="text-align: left">强实现；这是 Pi 的核心设计之一</td></tr>
+<tr><td style="text-align: left">Memory Layer</td><td style="text-align: left">JSONL session、配置、历史会话、可能的项目级上下文文件</td><td style="text-align: left">部分实现；偏会话与文件上下文，不是完整长期记忆系统</td></tr>
+<tr><td style="text-align: left">Execution State &amp; Checkpoint</td><td style="text-align: left"><code>AgentSession</code>、event stream、session tree、compaction 和本地 session 存储</td><td style="text-align: left">强实现；适合暂停、回放、分支和嵌入式调试</td></tr>
+<tr><td style="text-align: left">Capability Registry</td><td style="text-align: left">Tool Runtime + Extension Host + Skills + Prompt Templates + Packages</td><td style="text-align: left">强实现；扩展系统是 Pi-like Runtime 的关键边界</td></tr>
+<tr><td style="text-align: left">Policy Engine &amp; Human Control Plane</td><td style="text-align: left">工具风险分级、bash / edit 权限、extension 信任边界、本地配置</td><td style="text-align: left">部分实现；本地优先，企业审批和多租户策略需要上层补齐</td></tr>
+<tr><td style="text-align: left">Agent Loop</td><td style="text-align: left"><code>AgentSession</code> 驱动模型调用、工具调用、事件流和压缩</td><td style="text-align: left">强实现；Agent Loop 是可嵌入 Runtime 的最小心跳</td></tr>
+<tr><td style="text-align: left">Model Router &amp; Handoff Manager</td><td style="text-align: left"><code>ModelRegistry</code>、Provider APIs、auth、thinking level</td><td style="text-align: left">中等实现；支持 provider/model 切换，但专家委派和多 Agent 不是核心重点</td></tr>
+<tr><td style="text-align: left">Verifier &amp; Eval Harness</td><td style="text-align: left">工具结果、事件流、session tree 可作为验证和评测材料</td><td style="text-align: left">部分实现；Pi 提供数据面，完整 Eval Harness 需要外部系统建设</td></tr>
+<tr><td style="text-align: left">Review Surface、Trace &amp; Audit</td><td style="text-align: left">TUI、JSON event stream、RPC 输出、session 文件</td><td style="text-align: left">强在 trace 事件，弱在企业审计；适合开发者可观测，不等于合规审计</td></tr>
+<tr><td style="text-align: left">Learning Loop</td><td style="text-align: left">Skills、Prompt Templates、Packages 可沉淀经验</td><td style="text-align: left">部分实现；强调可扩展资产，自动学习和 owner review 流程不是内核职责</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此，Pi 更像一个“终端原生 Agent Runtime 内核”，而不是完整企业 Agent 平台。它把第 5 章中的 Runtime 关键边界做薄、做清楚，让 OpenClaw 这类上层系统可以复用它，再补 Gateway、权限、长期记忆、审批和产品化交互。</p>
 <hr>
 <h2 id="143-运行形态同一个-runtime多种入口"><a class="header" href="#143-运行形态同一个-runtime多种入口">14.3 运行形态：同一个 Runtime，多种入口</a></h2>
 <p>Pi 不是只有一种启动方式。它至少支持四类运行形态。</p>
