@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第5章 Agent 架构设计与决策框架 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+        <title>第5章 Agent 架构总纲：边界、Runtime 与模式选择 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bdc2e83f.js";
+            window.path_to_searchindex_js = "../searchindex-b1b13cf2.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5c15c3c2.js"></script>
+        <script src="../toc-69e853c8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,543 +177,1803 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第5章-agent-架构设计与决策框架"><a class="header" href="#第5章-agent-架构设计与决策框架">第5章 Agent 架构设计与决策框架</a></h1>
+                        <h1 id="第5章-agent-架构总纲边界runtime-与模式选择"><a class="header" href="#第5章-agent-架构总纲边界runtime-与模式选择">第5章 Agent 架构总纲：边界、Runtime 与模式选择</a></h1>
 <blockquote>
-<p>“The right question isn’t whether to use AI, but whether the problem requires reasoning.” （关键不是要不要用AI，而是问题是否需要推理）</p>
+<p>“The right question isn’t whether to use AI, but whether the problem requires reasoning.”
+关键不是要不要用 AI，而是这个问题是否需要推理、行动、验证和治理。</p>
 </blockquote>
 <h2 id="引言"><a class="header" href="#引言">引言</a></h2>
-<p>在设计 Agent 系统之前，我们必须回答一个根本问题：<strong>为什么不用传统的后端系统？</strong></p>
-<p>这不是一个简单的技术选型问题，而是对问题本质的理解。本章将通过对比传统后端系统与 AI Agent 的本质区别，建立一个系统化的决策框架，帮助你判断何时需要 Agent，以及如何设计合理的 Agent 架构。</p>
+<p>很多团队第一次设计 Agent 系统时，会把注意力放在模型上：用哪个大模型、提示词怎么写、工具调用怎么接。模型当然重要，但从工程架构看，Agent 不是“一个会调用工具的 Prompt”，而是一个围绕模型构建的<strong>运行时系统</strong>。</p>
+<p>这个运行时系统至少要回答十二个问题：</p>
+<ol>
+<li>用户到底想完成什么任务？</li>
+<li>任务应该被拆成哪些步骤？</li>
+<li>每一步需要哪些上下文？</li>
+<li>哪些历史状态、用户偏好和经验可以被复用？</li>
+<li>系统有哪些可复用技能、工具、连接器和工作流？</li>
+<li>模型应该选择哪个能力、哪个模型或哪个专家？</li>
+<li>哪些动作允许执行，哪些必须拒绝、审批、沙箱或人工接管？</li>
+<li>执行过程中如何观察、修复、暂停、恢复和停止？</li>
+<li>任务过程如何被记录、回放、审计和评估？</li>
+<li>最终结果如何被验证、审查和交接？</li>
+<li>用户反馈、失败案例和复盘经验如何进入改进闭环？</li>
+<li>哪些能力可以自动沉淀，哪些必须经过人工审核和灰度发布？</li>
+</ol>
+<p>本章的目标是建立一个通用的 Agent 架构总纲。它不绑定某一种产品形态，也不局限于某个垂直场景。你可以用它设计企业知识助手、告警处理助手、客服运营助手、数据分析助手、审批助手，也可以用它评估一个现有 Agent 系统到底缺了哪一层。</p>
+<p>本章按五层展开：5.1 先判断是否真的需要 Agent，5.2 建立生产级 Agent Runtime 的最小骨架，5.3 展开核心组件的职责边界和后续章节地图，5.4 讨论组件如何组合成不同架构模式，5.5 用场景映射和检查清单校验设计是否完整。</p>
+<p>第 5 章不是把每个组件都讲透，而是给第二部分建立一张总图。第 6 章会深入工具、Skills、连接器与 MCP，第 7 章会深入工作流、状态机和多 Agent 协作，第 8 章会讨论平台化架构，第 9 到第 11 章会展开 RAG、Agentic RAG、Memory 与状态管理，第 12 章会系统讨论 Evals、Guardrails、Trace 和可观测性。理解了本章的边界图，后续章节就不再是零散专题，而是同一个 Runtime 的逐层展开。</p>
 <hr>
-<h2 id="51-agent-vs-传统后端的本质区别"><a class="header" href="#51-agent-vs-传统后端的本质区别">5.1 Agent vs 传统后端的本质区别</a></h2>
-<h3 id="传统后端系统的特征"><a class="header" href="#传统后端系统的特征">传统后端系统的特征</a></h3>
-<p>传统后端系统基于<strong>确定性逻辑</strong>和<strong>预定义流程</strong>：</p>
-<pre><code class="language-text">输入 → 规则引擎 → 输出
-</code></pre>
-<p><strong>核心特征：</strong></p>
-<ol>
-<li><strong>确定性</strong>：相同输入必然产生相同输出</li>
-<li><strong>规则驱动</strong>：所有逻辑都是显式编码的</li>
-<li><strong>静态流程</strong>：流程在编译时确定</li>
-<li><strong>可预测性</strong>：行为完全可预测和测试</li>
-</ol>
-<p><strong>适用场景：</strong></p>
-<ul>
-<li>业务规则明确且稳定</li>
-<li>流程固定，变化少</li>
-<li>对准确性要求极高</li>
-<li>需要强一致性保证</li>
-</ul>
-<p><strong>典型例子：</strong></p>
-<ul>
-<li>订单系统：下单 → 支付 → 发货 → 完成</li>
-<li>库存系统：扣减 → 锁定 → 释放</li>
-<li>支付系统：预授权 → 扣款 → 结算</li>
-</ul>
-<h3 id="ai-agent-的特征"><a class="header" href="#ai-agent-的特征">AI Agent 的特征</a></h3>
-<p>AI Agent 基于<strong>推理能力</strong>和<strong>动态规划</strong>：</p>
-<pre><code class="language-text">输入 → 理解意图 → 规划步骤 → 执行工具 → 评估结果 → 输出
-</code></pre>
-<p><strong>核心特征：</strong></p>
-<ol>
-<li><strong>不确定性</strong>：相同输入可能产生不同的执行路径</li>
-<li><strong>推理驱动</strong>：通过 LLM 推理而非硬编码规则</li>
-<li><strong>动态规划</strong>：根据中间结果调整执行计划</li>
-<li><strong>自主性</strong>：能够自主决策和调用工具</li>
-</ol>
-<p><strong>适用场景：</strong></p>
-<ul>
-<li>业务规则复杂且多变</li>
-<li>需要理解自然语言输入</li>
-<li>需要多步骤推理和规划</li>
-<li>需要整合多个系统和数据源</li>
-</ul>
-<p><strong>典型例子：</strong></p>
-<ul>
-<li>智能客服：理解问题 → 查询知识库 → 生成回答</li>
-<li>代码助手：理解需求 → 搜索代码 → 生成方案 → 测试验证</li>
-<li>运维助手：分析告警 → 查询日志 → 诊断问题 → 提供建议</li>
-</ul>
-<h3 id="对比分析"><a class="header" href="#对比分析">对比分析</a></h3>
+<h2 id="51-agent-架构决策先判断是否需要-agent"><a class="header" href="#51-agent-架构决策先判断是否需要-agent">5.1 Agent 架构决策：先判断是否需要 Agent</a></h2>
+<h3 id="511-从问题出发为什么不是传统后端"><a class="header" href="#511-从问题出发为什么不是传统后端">5.1.1 从问题出发：为什么不是传统后端</a></h3>
+<p>在设计 Agent 系统之前，先不要问“能不能接一个大模型”，而要问：为什么传统后端、规则引擎、工作流系统或搜索系统不够用？</p>
+<p>如果一个问题可以被稳定规则、固定流程和确定性接口很好地解决，那么优先使用传统后端。Agent 的价值来自另一类任务：目标表达模糊，信息分散在多个系统里，执行路径需要根据观察动态调整，最终结果还需要证据、验证和人工审查。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">维度</th><th style="text-align: left">传统后端系统</th><th style="text-align: left">AI Agent</th></tr>
+<tr><th style="text-align: left">问题特征</th><th style="text-align: left">传统后端的困难</th><th style="text-align: left">Agent 可以补上的能力</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left"><strong>决策方式</strong></td><td style="text-align: left">if-else / 规则引擎</td><td style="text-align: left">LLM 推理</td></tr>
-<tr><td style="text-align: left"><strong>流程</strong></td><td style="text-align: left">静态，编译时确定</td><td style="text-align: left">动态，运行时规划</td></tr>
-<tr><td style="text-align: left"><strong>输入</strong></td><td style="text-align: left">结构化数据</td><td style="text-align: left">自然语言 + 结构化数据</td></tr>
-<tr><td style="text-align: left"><strong>可预测性</strong></td><td style="text-align: left">完全可预测</td><td style="text-align: left">概率性输出</td></tr>
-<tr><td style="text-align: left"><strong>扩展性</strong></td><td style="text-align: left">修改代码</td><td style="text-align: left">修改 Prompt / 增加工具</td></tr>
-<tr><td style="text-align: left"><strong>成本</strong></td><td style="text-align: left">固定（服务器）</td><td style="text-align: left">变动（Token）</td></tr>
-<tr><td style="text-align: left"><strong>延迟</strong></td><td style="text-align: left">毫秒级</td><td style="text-align: left">秒级</td></tr>
-<tr><td style="text-align: left"><strong>准确性</strong></td><td style="text-align: left">100%（逻辑正确）</td><td style="text-align: left">85-95%（依赖模型）</td></tr>
+<tr><td style="text-align: left">输入不稳定</td><td style="text-align: left">很难提前穷举所有表达方式</td><td style="text-align: left">理解自然语言、文档和半结构化事件</td></tr>
+<tr><td style="text-align: left">信息分散</td><td style="text-align: left">需要人工跨系统查询和拼接</td><td style="text-align: left">按任务动态收集上下文和证据</td></tr>
+<tr><td style="text-align: left">路径不固定</td><td style="text-align: left">固定流程容易过度复杂</td><td style="text-align: left">边观察、边判断、边重规划</td></tr>
+<tr><td style="text-align: left">依赖经验</td><td style="text-align: left">规则难以覆盖专家判断</td><td style="text-align: left">复用 Skill、Runbook 和历史案例</td></tr>
+<tr><td style="text-align: left">结果需解释</td><td style="text-align: left">只返回状态码不足以交付</td><td style="text-align: left">输出结论、证据、不确定性和下一步</td></tr>
+<tr><td style="text-align: left">风险需治理</td><td style="text-align: left">直接自动执行不可接受</td><td style="text-align: left">通过 Policy、审批、Verifier 和 Review 控制边界</td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="案例电商告警处理系统的演进"><a class="header" href="#案例电商告警处理系统的演进">案例：电商告警处理系统的演进</a></h3>
-<h4 id="v1传统后端方案被动工具"><a class="header" href="#v1传统后端方案被动工具">V1：传统后端方案（被动工具）</a></h4>
-<pre><code class="language-go">// 简单的查询服务
-func GetOnCallEngineer(service string) string {
-    // 硬编码的值班表
-    schedule := map[string]string{
-        "order-service": "engineer-a@company.com",
-        "payment-service": "engineer-b@company.com",
-    }
-    return schedule[service]
-}
-</code></pre>
-<p><strong>问题：</strong></p>
-<ul>
-<li>只能查询，不能分析</li>
-<li>无法理解告警上下文</li>
-<li>无法提供处理建议</li>
-<li>值班人员需要手动诊断</li>
-</ul>
-<h4 id="v2尝试用规则引擎"><a class="header" href="#v2尝试用规则引擎">V2：尝试用规则引擎</a></h4>
-<pre><code class="language-go">// 规则引擎方案
-func DiagnoseAlert(alert Alert) Diagnosis {
-    // 规则 1: CPU 高
-    if alert.Metric == "cpu_usage" &amp;&amp; alert.Value &gt; 80 {
-        return Diagnosis{
-            RootCause: "CPU 使用率过高",
-            Suggestion: "检查是否有异常进程",
-        }
-    }
-
-    // 规则 2: 内存高
-    if alert.Metric == "memory_usage" &amp;&amp; alert.Value &gt; 90 {
-        return Diagnosis{
-            RootCause: "内存不足",
-            Suggestion: "检查是否有内存泄漏",
-        }
-    }
-
-    // 需要为每种告警类型写规则...
-    // 规则数量爆炸：50+ 告警类型 × 10+ 服务 = 500+ 规则
-
-    return Diagnosis{RootCause: "未知", Suggestion: "人工处理"}
-}
-</code></pre>
-<p><strong>问题：</strong></p>
-<ul>
-<li><strong>规则爆炸</strong>：需要为每种场景写规则</li>
-<li><strong>维护困难</strong>：新增告警类型需要修改代码</li>
-<li><strong>缺乏上下文</strong>：无法关联多个告警</li>
-<li><strong>无法学习</strong>：不能从历史案例中学习</li>
-</ul>
-<h4 id="v3agent-方案"><a class="header" href="#v3agent-方案">V3：Agent 方案</a></h4>
-<pre><code class="language-go">// Agent 方案
-func (a *DoDAgent) DiagnoseAlert(alert Alert) Diagnosis {
-    // 1. 构建上下文
-    context := a.buildContext(alert)
-
-    // 2. LLM 推理
-    prompt := fmt.Sprintf(`
-你是一个电商系统运维专家。请分析以下告警：
-
-告警信息：
-- 服务：%s
-- 指标：%s
-- 当前值：%v
-- 阈值：%v
-
-上下文信息：
-- 最近部署：%s
-- 关联告警：%s
-- 历史案例：%s
-
-请分析：
-1. 可能的根因
-2. 影响范围
-3. 处理建议
-
-可用工具：
-- prometheus_query: 查询监控指标
-- log_search: 搜索日志
-- kubernetes_get: 查询 K8s 状态
-`, alert.Service, alert.Metric, alert.Value, alert.Threshold,
-   context.RecentDeployments, context.RelatedAlerts, context.HistoryCases)
-
-    // 3. Agent Loop（ReACT 模式）
-    for i := 0; i &lt; maxIterations; i++ {
-        response := a.llm.Generate(prompt)
-        action := a.parseAction(response)
-
-        if action.Type == "final_answer" {
-            return action.Diagnosis
-        }
-
-        // 执行工具
-        result := a.executeTool(action.Tool, action.Args)
-        prompt += fmt.Sprintf("\nObservation: %s", result)
-    }
-}
-</code></pre>
-<p><strong>优势：</strong></p>
-<ul>
-<li><strong>自动推理</strong>：无需硬编码规则</li>
-<li><strong>上下文理解</strong>：能够关联多个信息源</li>
-<li><strong>动态规划</strong>：根据中间结果调整诊断步骤</li>
-<li><strong>可扩展</strong>：新增告警类型无需修改代码</li>
-</ul>
+<p>这一步的结论不是“要不要 AI”，而是判断任务是否需要<strong>推理、行动、验证和治理</strong>同时存在。如果只需要一次性生成或分类，可以是普通 LLM 应用；如果需要在受控边界内多步完成任务，才进入 Agent 架构设计。</p>
 <hr>
-<h2 id="52-决策框架何时选择agent"><a class="header" href="#52-决策框架何时选择agent">5.2 决策框架：何时选择Agent？</a></h2>
-<p>基于以上分析，这里提供一个系统化的决策框架：</p>
-<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
-│              Agent vs 传统后端决策树                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Q1: 输入是否包含自然语言？                                  │
-│      是 → 倾向 Agent                                        │
-│      否 → 继续                                              │
-│                                                             │
-│  Q2: 业务规则是否复杂且多变？                                │
-│      是 → 倾向 Agent                                        │
-│      否 → 继续                                              │
-│                                                             │
-│  Q3: 是否需要多步骤推理？                                    │
-│      是 → 倾向 Agent                                        │
-│      否 → 继续                                              │
-│                                                             │
-│  Q4: 是否需要整合多个系统？                                  │
-│      是 → 倾向 Agent                                        │
-│      否 → 继续                                              │
-│                                                             │
-│  Q5: 对准确性的要求？                                        │
-│      必须 100% → 传统后端                                   │
-│      85-95% 可接受 → Agent                                  │
-│                                                             │
-│  Q6: 对延迟的要求？                                          │
-│      &lt; 100ms → 传统后端                                     │
-│      1-5s 可接受 → Agent                                    │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+<h3 id="512-agent-与传统后端的本质区别"><a class="header" href="#512-agent-与传统后端的本质区别">5.1.2 Agent 与传统后端的本质区别</a></h3>
+<p>传统后端系统基于确定性逻辑：</p>
+<pre><code class="language-text">Structured Input -&gt; Rules / Code -&gt; Deterministic Output
 </code></pre>
-<h3 id="dod-agent-的决策过程"><a class="header" href="#dod-agent-的决策过程">DoD Agent 的决策过程</a></h3>
-<ul>
-<li>✅ Q1: 告警描述是自然语言</li>
-<li>✅ Q2: 告警场景复杂多变</li>
-<li>✅ Q3: 需要多步骤诊断（查指标 → 查日志 → 查 K8s）</li>
-<li>✅ Q4: 需要整合 Prometheus、Loki、K8s、Confluence</li>
-<li>✅ Q5: 85-95% 准确率可接受（人工兜底）</li>
-<li>✅ Q6: 诊断时间 10-30s 可接受</li>
-</ul>
-<p><strong>结论</strong>：Agent 是合适的选择。</p>
-<hr>
-<h2 id="53-混合架构agent--传统后端"><a class="header" href="#53-混合架构agent--传统后端">5.3 混合架构：Agent + 传统后端</a></h2>
-<p>实际上，最佳方案往往是<strong>混合架构</strong>：</p>
-<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
-│                    混合架构                                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌──────────────┐         ┌──────────────┐                 │
-│  │ 传统后端系统 │         │  AI Agent    │                 │
-│  │              │         │              │                 │
-│  │ • 核心业务   │         │ • 智能分析   │                 │
-│  │ • 高频操作   │◄────────┤ • 决策建议   │                 │
-│  │ • 强一致性   │         │ • 工具调用   │                 │
-│  │              │         │              │                 │
-│  └──────────────┘         └──────────────┘                 │
-│         │                        │                          │
-│         └────────────┬───────────┘                          │
-│                      ▼                                      │
-│              ┌──────────────┐                               │
-│              │  统一 API 层 │                               │
-│              └──────────────┘                               │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+<p>Agent 系统基于受控推理：</p>
+<pre><code class="language-text">Task -&gt; Context -&gt; Reasoning -&gt; Tool Use -&gt; Observation -&gt; Verification -&gt; Result
 </code></pre>
-<p><strong>DoD Agent 的混合架构：</strong></p>
-<ul>
-<li><strong>传统后端</strong>：告警接收、去重、存储、状态管理</li>
-<li><strong>AI Agent</strong>：告警分析、诊断推理、建议生成</li>
-<li><strong>决策引擎</strong>：基于风险等级决定是否自动执行</li>
-</ul>
-<hr>
-<h2 id="54-agent核心架构模式"><a class="header" href="#54-agent核心架构模式">5.4 Agent核心架构模式</a></h2>
-<h3 id="react-模式推理与行动"><a class="header" href="#react-模式推理与行动">ReACT 模式：推理与行动</a></h3>
-<p>ReACT（Reasoning and Acting）是最常用的 Agent 架构模式：</p>
-<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
-│                    ReACT Loop                                │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  1. Thought（思考）                                          │
-│     ├─ 分析当前状态                                          │
-│     ├─ 识别缺少的信息                                        │
-│     └─ 规划下一步行动                                        │
-│                                                             │
-│  2. Action（行动）                                           │
-│     ├─ 选择合适的工具                                        │
-│     ├─ 构造工具参数                                          │
-│     └─ 执行工具调用                                          │
-│                                                             │
-│  3. Observation（观察）                                      │
-│     ├─ 接收工具返回结果                                      │
-│     ├─ 评估结果质量                                          │
-│     └─ 更新上下文                                            │
-│                                                             │
-│  4. Loop（循环）                                             │
-│     ├─ 判断是否达成目标                                      │
-│     ├─ 是 → 输出最终答案                                     │
-│     └─ 否 → 回到步骤 1                                       │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-</code></pre>
-<p><strong>实现示例：</strong></p>
-<pre><code class="language-go">type ReACTAgent struct {
-    llm         LLM
-    tools       map[string]Tool
-    maxIterations int
-}
-
-func (a *ReACTAgent) Run(input string) (string, error) {
-    prompt := a.buildInitialPrompt(input)
-
-    for i := 0; i &lt; a.maxIterations; i++ {
-        // 1. Thought + Action
-        response, err := a.llm.Generate(prompt)
-        if err != nil {
-            return "", err
-        }
-
-        action := a.parseAction(response)
-
-        // 判断是否完成
-        if action.Type == "FinalAnswer" {
-            return action.Output, nil
-        }
-
-        // 2. Execute Tool
-        tool, ok := a.tools[action.ToolName]
-        if !ok {
-            return "", fmt.Errorf("unknown tool: %s", action.ToolName)
-        }
-
-        observation, err := tool.Execute(action.Args)
-        if err != nil {
-            observation = fmt.Sprintf("Error: %v", err)
-        }
-
-        // 3. Update Prompt with Observation
-        prompt += fmt.Sprintf("\nObservation: %s\n", observation)
-    }
-
-    return "", fmt.Errorf("max iterations reached")
-}
-</code></pre>
-<h3 id="plan-and-execute-模式先规划再执行"><a class="header" href="#plan-and-execute-模式先规划再执行">Plan-and-Execute 模式：先规划再执行</a></h3>
-<p>适用于复杂多步骤任务：</p>
-<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
-│                  Plan-and-Execute                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Phase 1: Planning（规划阶段）                               │
-│     ├─ 理解任务目标                                          │
-│     ├─ 分解为子任务                                          │
-│     ├─ 确定执行顺序                                          │
-│     └─ 生成执行计划                                          │
-│                                                             │
-│  Phase 2: Execution（执行阶段）                              │
-│     ├─ 按顺序执行子任务                                      │
-│     ├─ 收集每步结果                                          │
-│     ├─ 根据结果调整计划（可选）                              │
-│     └─ 汇总最终结果                                          │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-</code></pre>
-<p><strong>对比：</strong></p>
+<p>两者不是替代关系，而是分工关系。传统后端擅长高频、稳定、强一致的业务流程；Agent 擅长处理模糊输入、多源上下文、多步骤推理和开放式任务。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th style="text-align: left">维度</th><th style="text-align: left">ReACT</th><th style="text-align: left">Plan-and-Execute</th></tr>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">传统后端系统</th><th style="text-align: left">Agent 系统</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left"><strong>规划方式</strong></td><td style="text-align: left">动态，每步都重新规划</td><td style="text-align: left">静态，提前规划所有步骤</td></tr>
-<tr><td style="text-align: left"><strong>灵活性</strong></td><td style="text-align: left">高，可根据中间结果调整</td><td style="text-align: left">中，规划后较难调整</td></tr>
-<tr><td style="text-align: left"><strong>Token消耗</strong></td><td style="text-align: left">高，每步都调用LLM</td><td style="text-align: left">中，规划一次+执行多次</td></tr>
-<tr><td style="text-align: left"><strong>适用场景</strong></td><td style="text-align: left">探索性任务，结果不确定</td><td style="text-align: left">流程性任务，步骤明确</td></tr>
+<tr><td style="text-align: left">输入形态</td><td style="text-align: left">结构化字段、固定 API</td><td style="text-align: left">自然语言、半结构化事件、文档、上下文</td></tr>
+<tr><td style="text-align: left">决策方式</td><td style="text-align: left">规则、状态机、确定性算法</td><td style="text-align: left">LLM 推理 + 策略约束 + 工具反馈</td></tr>
+<tr><td style="text-align: left">流程形态</td><td style="text-align: left">设计时固定</td><td style="text-align: left">运行时规划或动态调整</td></tr>
+<tr><td style="text-align: left">外部能力</td><td style="text-align: left">后端服务直接调用</td><td style="text-align: left">模型提出行动，Runtime 裁决和执行</td></tr>
+<tr><td style="text-align: left">成功判定</td><td style="text-align: left">状态变更、返回码、事务结果</td><td style="text-align: left">任务契约、证据、验证器、人工审查</td></tr>
+<tr><td style="text-align: left">风险来源</td><td style="text-align: left">代码缺陷、配置错误、依赖故障</td><td style="text-align: left">上下文缺失、工具误用、幻觉、越权、不可复现</td></tr>
+<tr><td style="text-align: left">治理方式</td><td style="text-align: left">测试、监控、权限、审计</td><td style="text-align: left">Evals、Guardrails、Trace、Policy、Review</td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="multi-agent-模式多agent协作"><a class="header" href="#multi-agent-模式多agent协作">Multi-Agent 模式：多Agent协作</a></h3>
-<p>适用于需要不同专业能力的复杂系统：</p>
-<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
-│                   Multi-Agent System                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌──────────────┐                                           │
-│  │ Coordinator  │ ◄─────── User Input                       │
-│  │  协调者      │                                           │
-│  └──────┬───────┘                                           │
-│         │                                                    │
-│         ├───────► ┌──────────────┐                          │
-│         │         │ Analyzer     │                          │
-│         │         │  分析专家    │                          │
-│         │         └──────────────┘                          │
-│         │                                                    │
-│         ├───────► ┌──────────────┐                          │
-│         │         │ Executor     │                          │
-│         │         │  执行专家    │                          │
-│         │         └──────────────┘                          │
-│         │                                                    │
-│         └───────► ┌──────────────┐                          │
-│                   │ Reviewer     │                          │
-│                   │  审查专家    │                          │
-│                   └──────────────┘                          │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-</code></pre>
-<p><strong>优势：</strong></p>
-<ul>
-<li>职责分离，每个Agent专注自己的领域</li>
-<li>可并行执行，提高效率</li>
-<li>易于扩展和维护</li>
-</ul>
-<p><strong>劣势：</strong></p>
-<ul>
-<li>复杂度高，需要协调机制</li>
-<li>成本高，多个Agent调用LLM</li>
-</ul>
+<p>一个常见误区是把 Agent 的概率性理解成“不可控”。生产系统的正确做法不是期待模型永远正确，而是把模型放进可控 Runtime：</p>
+<pre class="mermaid">
+flowchart LR
+    Model["LLM&lt;br/&gt;概率性推理"]
+    Runtime["Agent Runtime&lt;br/&gt;确定性边界"]
+    World["External Systems&lt;br/&gt;外部系统"]
+
+    Runtime --&gt;|"提供受限上下文"| Model
+    Model --&gt;|"提出计划或工具调用"| Runtime
+    Runtime --&gt;|"策略裁决 / 参数校验 / 沙箱执行"| World
+    World --&gt;|"结构化观察结果"| Runtime
+    Runtime --&gt;|"验证 / 审计 / 交接"| Runtime
+</pre>
+
+<p>换句话说，Agent 系统的工程目标不是消灭不确定性，而是把不确定性限制在可以观察、可以验证、可以回滚、可以接管的范围内。</p>
 <hr>
-<h2 id="55-需求分析三层框架"><a class="header" href="#55-需求分析三层框架">5.5 需求分析三层框架</a></h2>
-<p>在设计 Agent 之前，需要进行系统的需求分析：</p>
-<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
-│                  需求分析三层框架                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Layer 1: 业务需求（What）                                  │
-│  ├─ 要解决什么问题？                                        │
-│  ├─ 目标用户是谁？                                          │
-│  ├─ 成功的标准是什么？                                      │
-│  └─ 业务价值是什么？                                        │
-│                                                             │
-│  Layer 2: 功能需求（How）                                   │
-│  ├─ 需要哪些功能？                                          │
-│  ├─ 输入输出是什么？                                        │
-│  ├─ 性能要求如何？                                          │
-│  └─ 非功能需求（可用性、安全性）                            │
-│                                                             │
-│  Layer 3: 技术需求（Why Agent）                             │
-│  ├─ 为什么需要 AI？                                         │
-│  ├─ 为什么需要 Agent？                                      │
-│  ├─ 为什么不用传统方案？                                    │
-│  └─ 技术可行性如何？                                        │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+<h3 id="513-agent-是运行时系统不只是模型调用"><a class="header" href="#513-agent-是运行时系统不只是模型调用">5.1.3 Agent 是运行时系统，不只是模型调用</a></h3>
+<p>一个最小的 LLM 应用通常长这样：</p>
+<pre><code class="language-text">User Input -&gt; Prompt -&gt; LLM -&gt; Answer
 </code></pre>
-<h3 id="dod-agent-案例业务需求分析"><a class="header" href="#dod-agent-案例业务需求分析">DoD Agent 案例：业务需求分析</a></h3>
-<p><strong>问题定义：</strong></p>
-<pre><code class="language-text">当前痛点：
-1. 告警量大（50-200条/天），值班人员疲劳
-2. 80% 的告警是重复性问题，但每次都需要人工分析
-3. 知识分散在 Confluence，难以快速定位
-4. 跨部门协作效率低，告警升级流程不清晰
-5. 新人上手慢，需要 2-3 个月才能独立值班
+<p>这类系统适合做一次性问答、文本生成、分类、摘要等任务。它的特点是简单、低成本、易上线，但它并不是真正意义上的 Agent。</p>
+<p>Agent 系统通常长这样：</p>
+<pre class="mermaid">
+flowchart TD
+    User["User Intent / Issue / Spec&lt;br/&gt;用户意图 / 问题 / 任务说明"]
+    Planner["Task Planner&lt;br/&gt;任务规划器"]
+    Context["Context Builder&lt;br/&gt;上下文构建器"]
+    Skills["Skill Registry&lt;br/&gt;技能注册表"]
+    Tools["Tool Registry&lt;br/&gt;工具注册表"]
+    Policy["Policy Engine&lt;br/&gt;策略引擎"]
+    Loop["Agent Loop&lt;br/&gt;观察 / 决策 / 行动 / 修复"]
+    Verifier["Verifier&lt;br/&gt;验证器"]
+    Review["Review Surface&lt;br/&gt;审查与交接界面"]
 
-核心问题：
-如何减少值班人员的重复性工作，提高告警处理效率？
-</code></pre>
-<p><strong>成功标准：</strong></p>
-<pre><code class="language-text">定量指标：
-- 自动诊断率 ≥ 60%
-- 诊断准确率 ≥ 85%
-- MTTR（平均恢复时间）降低 30%
-- 值班人员工作量减少 30%
+    Sources["Knowledge / Data / Docs / Rules / State&lt;br/&gt;知识 / 数据 / 文档 / 规则 / 状态"]
+    SkillDefs["Domain Skills / Workflow Skills / Operation Skills&lt;br/&gt;领域技能 / 流程技能 / 操作技能"]
+    ToolDefs["Read / Search / Write / Notify / Execute / Approve&lt;br/&gt;读取 / 搜索 / 写入 / 通知 / 执行 / 审批"]
+    Decisions["Allow / Deny / Ask / Sandbox / Audit&lt;br/&gt;允许 / 拒绝 / 询问 / 沙箱 / 审计"]
+    Checks["Check / Simulate / Validate / Compare&lt;br/&gt;检查 / 模拟 / 校验 / 对比"]
+    Outputs["Answer / Report / Ticket / Trace / Handoff&lt;br/&gt;回答 / 报告 / 工单 / 追踪 / 交接"]
 
-定性指标：
-- 值班人员满意度提升
-- 新人上手时间缩短到 1 个月
-- 知识沉淀和复用
-</code></pre>
-<p><strong>业务价值：</strong></p>
-<pre><code class="language-text">直接价值：
-- 减少人力成本：每月节省 40 小时 × $50/h = $2000
-- 降低故障损失：MTTR 降低 30% → 可用性提升 → 减少业务损失
+    User --&gt; Planner
+    Planner --&gt; Context
+    Context --&gt; Skills
+    Skills --&gt; Tools
+    Tools --&gt; Policy
+    Policy --&gt; Loop
+    Loop --&gt; Verifier
+    Verifier --&gt; Review
 
-间接价值：
-- 知识沉淀：专家经验转化为可复用知识
-- 团队成长：新人快速成长，老人聚焦复杂问题
-- 流程标准化：告警处理流程规范化
-</code></pre>
+    Context -.-&gt; Sources
+    Skills -.-&gt; SkillDefs
+    Tools -.-&gt; ToolDefs
+    Policy -.-&gt; Decisions
+    Verifier -.-&gt; Checks
+    Review -.-&gt; Outputs
+</pre>
+
+<p>这张图是本章最重要的心智模型。模型只是 Agent Loop 中的推理引擎，真正让系统可用的是 Runtime：</p>
+<ul>
+<li><strong>Planner</strong> 把模糊任务变成可执行计划；</li>
+<li><strong>Context Builder</strong> 决定模型能看到什么；</li>
+<li><strong>Skill Registry</strong> 让系统复用领域经验和操作流程；</li>
+<li><strong>Tool Registry</strong> 把外部能力变成可审查接口；</li>
+<li><strong>Policy Engine</strong> 把权限和风险判断从 Prompt 中拿出来；</li>
+<li><strong>Agent Loop</strong> 负责多轮观察、决策、行动和修复；</li>
+<li><strong>Verifier</strong> 决定任务是否真的完成；</li>
+<li><strong>Review Surface</strong> 让人类能审查、接管、复盘和追责。</li>
+</ul>
+<p>如果一个系统只有 Prompt 和工具调用，没有上下文治理、策略裁决、执行预算、验证机制和审计界面，它更像“增强版聊天应用”，还不是生产级 Agent。</p>
 <hr>
-<h2 id="56-agent设计检查清单"><a class="header" href="#56-agent设计检查清单">5.6 Agent设计检查清单</a></h2>
-<pre><code class="language-markdown">## Agent 设计检查清单
+<h3 id="514-决策框架什么时候需要-agent"><a class="header" href="#514-决策框架什么时候需要-agent">5.1.4 决策框架：什么时候需要 Agent</a></h3>
+<p>不要因为“可以用 AI”就设计 Agent。先判断问题是否真的需要推理和行动。</p>
+<pre class="mermaid">
+flowchart TD
+    Start["要解决的任务"]
+    Rule["规则是否清晰稳定？"]
+    Deterministic["用传统后端 / 规则引擎 / 工作流系统"]
+    Language["是否需要理解自然语言、文档或非结构化输入？"]
+    MultiStep["是否需要多步骤推理和动态决策？"]
+    Tools["是否需要跨系统查询、写入、通知或执行动作？"]
+    Verify["结果是否可以被验证或人工审查？"]
+    Risk["错误后果是否可控？"]
+    Agent["适合设计 Agent"]
+    Hybrid["采用混合架构：后端流程 + Agent 辅助"]
+    NotReady["不适合直接上 Agent：先补验证、权限或人工流程"]
 
-### 决策验证
-- [ ] 确认问题需要推理，不是简单的规则映射
-- [ ] 评估 85-95% 的准确率是否可接受
-- [ ] 评估秒级延迟是否可接受
-- [ ] 评估 LLM 成本是否在预算内
-- [ ] 对比传统方案的优劣
+    Start --&gt; Rule
+    Rule --&gt;|"是，且变化少"| Deterministic
+    Rule --&gt;|"否，或变化快"| Language
+    Language --&gt;|"否"| Hybrid
+    Language --&gt;|"是"| MultiStep
+    MultiStep --&gt;|"否"| Hybrid
+    MultiStep --&gt;|"是"| Tools
+    Tools --&gt;|"否"| Hybrid
+    Tools --&gt;|"是"| Verify
+    Verify --&gt;|"否"| NotReady
+    Verify --&gt;|"是"| Risk
+    Risk --&gt;|"不可控"| NotReady
+    Risk --&gt;|"可隔离 / 可审批 / 可回滚"| Agent
+</pre>
 
-### 架构设计
-- [ ] 选择合适的架构模式（ReACT / Plan-and-Execute / Multi-Agent）
-- [ ] 设计工具系统和 API 接口
-- [ ] 设计状态管理机制
-- [ ] 设计错误处理和重试策略
-- [ ] 设计可观测性和监控
+<p>可以用一个更工程化的矩阵判断：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">判断项</th><th style="text-align: left">倾向传统后端</th><th style="text-align: left">倾向 Agent</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">输入是否模糊</td><td style="text-align: left">输入字段固定，含义明确</td><td style="text-align: left">用户表达多样，包含文档、上下文、事件描述</td></tr>
+<tr><td style="text-align: left">规则是否稳定</td><td style="text-align: left">规则清晰、变化少</td><td style="text-align: left">规则多变，依赖经验和上下文</td></tr>
+<tr><td style="text-align: left">是否需要探索</td><td style="text-align: left">不需要，路径固定</td><td style="text-align: left">需要边查边判断、根据观察调整计划</td></tr>
+<tr><td style="text-align: left">是否跨系统</td><td style="text-align: left">单一系统或少量稳定 API</td><td style="text-align: left">多个知识库、业务系统、监控系统、工单系统</td></tr>
+<tr><td style="text-align: left">是否能验证</td><td style="text-align: left">结果由数据库状态或返回码确认</td><td style="text-align: left">需要证据、引用、模拟、对比、人工审查</td></tr>
+<tr><td style="text-align: left">错误代价</td><td style="text-align: left">错误不可接受且难回滚</td><td style="text-align: left">可以只读、审批、沙箱、灰度或人工兜底</td></tr>
+<tr><td style="text-align: left">延迟要求</td><td style="text-align: left">毫秒级</td><td style="text-align: left">秒级或分钟级可接受</td></tr>
+<tr><td style="text-align: left">成本形态</td><td style="text-align: left">高频低成本请求</td><td style="text-align: left">低频高价值任务，愿意为推理付费</td></tr>
+</tbody>
+</table>
+</div>
+<p>这里不应该写“Agent 准确率通常是多少”这类通用数字。不同模型、任务、上下文、工具、评测集和上线时间都会改变结果。更可靠的做法是定义<strong>任务级 Eval</strong>：</p>
+<ul>
+<li>对知识问答，看引用准确率、拒答率、幻觉率、权限违规率；</li>
+<li>对告警诊断，看根因命中率、证据完整度、建议安全性、人工采纳率；</li>
+<li>对审批助手，看分类准确率、风险漏判率、误拦截率、处理时延；</li>
+<li>对运营助手，看动作建议命中率、执行回滚率、用户确认率。</li>
+</ul>
+<p>Agent 是否可用，必须由你自己的任务、数据和风险边界验证，而不是由一个跨场景的经验准确率决定。</p>
+<hr>
+<h3 id="515-混合架构agent-不应该接管所有东西"><a class="header" href="#515-混合架构agent-不应该接管所有东西">5.1.5 混合架构：Agent 不应该接管所有东西</a></h3>
+<p>生产系统里，最稳妥的架构通常不是“全 Agent”，而是混合架构：</p>
+<pre class="mermaid">
+flowchart TD
+    subgraph Backend["Deterministic Backend&lt;br/&gt;确定性后端"]
+        API["API / Workflow"]
+        DB["Database"]
+        Rules["Rules / State Machine"]
+        Audit["Audit Log"]
+    end
 
-### 风险管理
-- [ ] 识别准确率不足的风险
-- [ ] 设计人工兜底机制
-- [ ] 设计成本控制措施
-- [ ] 设计安全性措施
-- [ ] 制定测试和验证计划
+    subgraph Agent["Agent Runtime&lt;br/&gt;推理运行时"]
+        Planner["Planner"]
+        Context["Context Builder"]
+        Loop["Agent Loop"]
+        Policy["Policy Engine"]
+        Verifier["Verifier"]
+    end
 
-### 实施准备
-- [ ] 评估团队技术能力
-- [ ] 制定学习和培训计划
-- [ ] 准备开发环境和工具
-- [ ] 准备测试数据和评估标准
+    subgraph Human["Human Control&lt;br/&gt;人工控制"]
+        Review["Review Surface"]
+        Approval["Approval"]
+        Feedback["Feedback"]
+    end
+
+    User["User / Event"] --&gt; API
+    API --&gt;|"结构化任务"| Agent
+    Agent --&gt;|"只读查询 / 低风险建议"| API
+    Agent --&gt;|"中高风险动作请求"| Approval
+    Approval --&gt;|"确认后执行"| API
+    API --&gt; DB
+    API --&gt; Rules
+    API --&gt; Audit
+    Agent --&gt; Review
+    Review --&gt; Feedback
+    Feedback --&gt; Agent
+</pre>
+
+<p>推荐的边界是：</p>
+<ul>
+<li><strong>传统后端管状态</strong>：订单、工单、审批、资产、权限、任务生命周期；</li>
+<li><strong>Agent 管推理</strong>：理解意图、规划路径、整合证据、生成建议；</li>
+<li><strong>Policy 管风险</strong>：动作是否允许、是否需要审批、是否进入沙箱；</li>
+<li><strong>Verifier 管完成</strong>：结果是否满足任务契约；</li>
+<li><strong>Human Review 管责任</strong>：关键结论、风险动作、知识沉淀必须可审查。</li>
+</ul>
+<p>Agent 的价值不是替代后端系统，而是把后端系统原本无法处理的模糊任务、跨系统任务和专家经验任务，转化成可操作、可验证、可审计的工作流。</p>
+<hr>
+<h2 id="52-agent-runtime生产级-agent-的最小骨架"><a class="header" href="#52-agent-runtime生产级-agent-的最小骨架">5.2 Agent Runtime：生产级 Agent 的最小骨架</a></h2>
+<h3 id="521-最小-runtime-心智模型"><a class="header" href="#521-最小-runtime-心智模型">5.2.1 最小 Runtime 心智模型</a></h3>
+<p>完整 Runtime 图容易让人觉得 Agent 很复杂。真正落地时，可以先记住一个最小骨架：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">Runtime 能力</th><th style="text-align: left">解决的问题</th><th style="text-align: left">如果缺失会怎样</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Intake</td><td style="text-align: left">任务从哪里来，身份和环境是什么</td><td style="text-align: left">聊天、告警、工单、Webhook 混成一团，无法审计和幂等</td></tr>
+<tr><td style="text-align: left">Context</td><td style="text-align: left">模型应该看到什么</td><td style="text-align: left">回答凭感觉，引用和权限失控</td></tr>
+<tr><td style="text-align: left">Memory</td><td style="text-align: left">哪些经验、偏好和历史可以复用</td><td style="text-align: left">每次都从零开始，或错误历史污染当前任务</td></tr>
+<tr><td style="text-align: left">Capability</td><td style="text-align: left">Agent 能请求哪些 Skills、Tools、Connectors</td><td style="text-align: left">只能聊天，不能行动或查证，或者能力暴露过宽</td></tr>
+<tr><td style="text-align: left">Policy / Human Control</td><td style="text-align: left">哪些动作允许执行，哪些需要人介入</td><td style="text-align: left">高风险动作被 Prompt 软约束，容易越权</td></tr>
+<tr><td style="text-align: left">State</td><td style="text-align: left">当前任务进展到哪里</td><td style="text-align: left">长任务不可恢复，容易重复执行</td></tr>
+<tr><td style="text-align: left">Loop</td><td style="text-align: left">如何观察、决策、行动、修复</td><td style="text-align: left">无法多步推进，也无法处理失败</td></tr>
+<tr><td style="text-align: left">Model Routing / Handoff</td><td style="text-align: left">任务应该交给哪个模型、专家或 Agent</td><td style="text-align: left">所有任务都挤在一个通用 Agent 里，成本高且边界混乱</td></tr>
+<tr><td style="text-align: left">Verifier / Eval</td><td style="text-align: left">如何判断当前任务完成，以及版本是否退化</td><td style="text-align: left">模型自己宣布完成，质量不可控</td></tr>
+<tr><td style="text-align: left">Review / Trace / Audit</td><td style="text-align: left">人如何审查、复盘、接管和追责</td><td style="text-align: left">结果不可追责，无法进入生产流程</td></tr>
+<tr><td style="text-align: left">Learning Loop</td><td style="text-align: left">反馈和失败经验如何沉淀</td><td style="text-align: left">系统不会变好，或未经审核的经验污染生产能力</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张表是后面所有组件的压缩版。MVP 可以不复杂，但这些边界最好一开始就存在。哪怕它们只是几个模块、几张表、几个配置，也比把所有责任都塞进 Prompt 更可靠。</p>
+<hr>
+<h3 id="522-通用-agent-runtime-分层架构"><a class="header" href="#522-通用-agent-runtime-分层架构">5.2.2 通用 Agent Runtime 分层架构</a></h3>
+<p>下面是一个更完整的通用架构图：</p>
+<pre class="mermaid">
+flowchart TB
+    Entry["Entry Layer&lt;br/&gt;Chat / API / Event / Ticket / Webhook"]
+    Intent["Intent Normalizer&lt;br/&gt;意图识别与任务契约"]
+    Planner["Task Planner&lt;br/&gt;分解 / 排序 / 预算 / 停止条件"]
+
+    subgraph ContextPlane["Context Plane&lt;br/&gt;上下文平面"]
+        Router["Source Router"]
+        Retriever["Retriever"]
+        MemoryRouter["Memory Router"]
+        Ranker["Ranker / Compressor"]
+        Package["Context Package"]
+    end
+
+    subgraph CapabilityPlane["Capability Plane&lt;br/&gt;能力平面"]
+        CapabilityRegistry["Capability Registry"]
+        SkillRegistry["Skill Registry"]
+        ToolRegistry["Tool Registry"]
+        ConnectorRegistry["Connector / MCP Registry"]
+        ToolRuntime["Tool Runtime"]
+    end
+
+    subgraph GovernancePlane["Governance Plane&lt;br/&gt;治理平面"]
+        Policy["Policy Engine"]
+        HumanControl["Human Control Plane"]
+        Guardrails["Guardrails"]
+        Budget["Budget / Rate Limit"]
+        Audit["Audit / Trace"]
+    end
+
+    subgraph ReasoningPlane["Reasoning Plane&lt;br/&gt;推理平面"]
+        ModelRouter["Model Router / Handoff"]
+        Model["LLM"]
+        Loop["Agent Loop"]
+        State["Task State"]
+        Checkpoint["Checkpoint Store"]
+    end
+
+    subgraph VerificationPlane["Verification Plane&lt;br/&gt;验证平面"]
+        Verifier["Verifier"]
+        Eval["Eval Harness"]
+        Evidence["Evidence Store"]
+    end
+
+    Review["Review Surface&lt;br/&gt;Answer / Report / Ticket / Handoff"]
+
+    Entry --&gt; Intent --&gt; Planner --&gt; ContextPlane
+    ContextPlane --&gt; CapabilityPlane
+    CapabilityPlane --&gt; GovernancePlane
+    GovernancePlane --&gt; ReasoningPlane
+    ReasoningPlane --&gt; CapabilityPlane
+    ReasoningPlane --&gt; VerificationPlane
+    VerificationPlane --&gt; Review
+    GovernancePlane --&gt; Audit
+    VerificationPlane --&gt; Evidence
+    ReasoningPlane --&gt; Checkpoint
+</pre>
+
+<p>这套架构可以拆成六个平面：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">平面</th><th style="text-align: left">解决的问题</th><th style="text-align: left">核心组件</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Entry Plane</td><td style="text-align: left">任务从哪里来，如何标准化</td><td style="text-align: left">Chat、API、Webhook、Ticket、Intent Normalizer</td></tr>
+<tr><td style="text-align: left">Context Plane</td><td style="text-align: left">模型应该看到什么</td><td style="text-align: left">Source Router、Retriever、Memory Router、Ranker、Context Package</td></tr>
+<tr><td style="text-align: left">Capability Plane</td><td style="text-align: left">Agent 能做什么</td><td style="text-align: left">Capability Registry、Skill Registry、Tool Registry、Connector / MCP Registry、Tool Runtime</td></tr>
+<tr><td style="text-align: left">Governance Plane</td><td style="text-align: left">Agent 能不能做，什么时候要人介入</td><td style="text-align: left">Policy Engine、Human Control Plane、Guardrails、Budget、Audit</td></tr>
+<tr><td style="text-align: left">Reasoning Plane</td><td style="text-align: left">Agent 如何推理和行动</td><td style="text-align: left">Model Router、LLM、Agent Loop、Task State、Checkpoint Store</td></tr>
+<tr><td style="text-align: left">Verification Plane</td><td style="text-align: left">任务是否完成，版本是否退化</td><td style="text-align: left">Verifier、Eval Harness、Evidence Store</td></tr>
+</tbody>
+</table>
+</div>
+<p>注意：这些平面不一定对应独立服务。MVP 可以把它们放在一个进程里，但架构边界要清晰。否则系统越长越像一个巨大 Prompt，最后难以测试、难以调试、难以治理。</p>
+<hr>
+<h3 id="523-runtime-初始化模型工具技能策略与数据源"><a class="header" href="#523-runtime-初始化模型工具技能策略与数据源">5.2.3 Runtime 初始化：模型、工具、技能、策略与数据源</a></h3>
+<p>Agent 的完整链路不是从用户请求才开始。请求进入之前，Runtime 已经完成了一次系统初始化：加载配置、注册模型、注册工具、注册技能、编译策略、连接数据源、初始化可观测性。</p>
+<p>如果没有这一步，模型就不知道可用工具有哪些，Runtime 也不知道哪些动作允许执行。</p>
+<pre class="mermaid">
+flowchart TB
+    Config["Runtime Config&lt;br/&gt;模型 / 工具 / 权限 / 数据源 / 环境"]
+
+    subgraph ModelLayer["Model Layer&lt;br/&gt;模型层"]
+        ModelRegistry["Model Registry"]
+        ModelAdapter["Model Adapter"]
+        ModelPolicy["Model Policy&lt;br/&gt;模型选择 / 降级 / 预算"]
+    end
+
+    subgraph CapabilityLayer["Capability Layer&lt;br/&gt;能力层"]
+        ToolRegistry["Tool Registry"]
+        SkillRegistry["Skill Registry"]
+        MCPClients["MCP / Plugin / API Clients"]
+    end
+
+    subgraph GovernanceLayer["Governance Layer&lt;br/&gt;治理层"]
+        PolicyEngine["Policy Engine"]
+        Sandbox["Sandbox / Permission"]
+        Audit["Audit / Trace"]
+    end
+
+    subgraph KnowledgeLayer["Knowledge Layer&lt;br/&gt;知识与状态层"]
+        SourceCatalog["Source Catalog"]
+        Indexes["Search Index / Vector Index"]
+        MemoryStore["Memory / State Store"]
+    end
+
+    subgraph QualityLayer["Quality Layer&lt;br/&gt;质量层"]
+        VerifierRegistry["Verifier Registry"]
+        EvalSuites["Eval Suites"]
+        Metrics["Metrics / Logs / Traces"]
+    end
+
+    Config --&gt; ModelLayer
+    Config --&gt; CapabilityLayer
+    Config --&gt; GovernanceLayer
+    Config --&gt; KnowledgeLayer
+    Config --&gt; QualityLayer
+    CapabilityLayer --&gt; PolicyEngine
+    KnowledgeLayer --&gt; PolicyEngine
+    QualityLayer --&gt; Audit
+</pre>
+
+<p>初始化阶段会产生几个关键注册表：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">注册对象</th><th style="text-align: left">作用</th><th style="text-align: left">典型内容</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Model Registry</td><td style="text-align: left">告诉 Runtime 可以使用哪些模型</td><td style="text-align: left">模型名称、能力、上下文长度、成本预算、降级顺序</td></tr>
+<tr><td style="text-align: left">Tool Registry</td><td style="text-align: left">告诉 Runtime 有哪些可执行能力</td><td style="text-align: left">工具名、描述、输入 Schema、输出 Schema、风险等级、owner</td></tr>
+<tr><td style="text-align: left">Skill Registry</td><td style="text-align: left">告诉 Runtime 有哪些可复用方法</td><td style="text-align: left">触发条件、步骤、约束、需要的工具、验证要求</td></tr>
+<tr><td style="text-align: left">Source Catalog</td><td style="text-align: left">告诉 Runtime 可以从哪里取上下文</td><td style="text-align: left">文档库、业务数据库、日志、指标、工单、规则、Memory</td></tr>
+<tr><td style="text-align: left">Policy Store</td><td style="text-align: left">告诉 Runtime 什么动作允许执行</td><td style="text-align: left">RBAC、ABAC、环境限制、审批策略、沙箱规则</td></tr>
+<tr><td style="text-align: left">Verifier Registry</td><td style="text-align: left">告诉 Runtime 如何判断完成</td><td style="text-align: left">引用校验、格式校验、状态校验、领域规则校验</td></tr>
+<tr><td style="text-align: left">Observability Config</td><td style="text-align: left">告诉 Runtime 如何记录过程</td><td style="text-align: left">trace schema、采样率、敏感字段脱敏、指标上报</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个简化的 Runtime 配置可以长这样：</p>
+<pre><code class="language-yaml">runtime:
+  environment: production
+  default_mode: read_only
+  max_steps: 12
+  max_cost_usd: 0.5
+
+models:
+  primary:
+    name: general-reasoning-model
+    capabilities: [reasoning, tool_calling, structured_output]
+  fallback:
+    name: fast-summary-model
+    capabilities: [summarization, classification]
+
+tools:
+  - name: search_docs
+    risk_level: low
+    side_effect: false
+  - name: create_ticket
+    risk_level: medium
+    side_effect: true
+    requires_approval: true
+
+skills:
+  - name: policy_question_answering
+    triggers: [policy, process, reimbursement]
+  - name: incident_initial_diagnosis
+    triggers: [alert, incident, degradation]
+
+policies:
+  default_write_action: ask
+  production_side_effect: ask
+  restricted_data_access: deny
 </code></pre>
+<p>初始化不是把所有信息都塞给模型。它只是让 Runtime 拥有一张完整的能力地图。真正给模型看的，是后面根据任务动态筛选出来的<strong>本轮可见工具、相关技能和上下文包</strong>。</p>
+<p>系统初始化还应该做健康检查：</p>
+<ul>
+<li>模型 Provider 是否可用；</li>
+<li>MCP Server、插件和外部 API 是否连接正常；</li>
+<li>工具 Schema 是否能通过校验；</li>
+<li>Policy 规则是否能编译；</li>
+<li>检索索引是否新鲜；</li>
+<li>Trace、日志和指标是否能写入；</li>
+<li>高风险工具是否默认关闭或进入审批模式。</li>
+</ul>
+<p>这一步的目标是让 Agent 在接收用户请求之前，就已经知道自己的能力边界和安全边界。</p>
+<hr>
+<h3 id="524-用户请求完整链路从入口到最终响应"><a class="header" href="#524-用户请求完整链路从入口到最终响应">5.2.4 用户请求完整链路：从入口到最终响应</a></h3>
+<p>完成初始化后，一次用户请求才真正进入 Runtime。完整链路可以拆成二十个事件：</p>
+<pre class="mermaid">
+flowchart TD
+    Request["1. User Request&lt;br/&gt;用户请求"]
+    Intake["2. Request Intake&lt;br/&gt;会话 / 身份 / 环境"]
+    Intent["3. Intent Parsing&lt;br/&gt;意图识别"]
+    Contract["4. Task Contract&lt;br/&gt;任务契约"]
+    Mode["5. Mode Selection&lt;br/&gt;只读 / 建议 / 执行 / 审批"]
+    Plan["6. Initial Plan&lt;br/&gt;初始计划"]
+    Expose["7. Capability Exposure&lt;br/&gt;选择可见技能和工具"]
+    Discover["8. Context Discovery&lt;br/&gt;检索和查询"]
+    Select["9. Context Selection&lt;br/&gt;筛选 / 去重 / 压缩"]
+    Package["10. Context Packaging&lt;br/&gt;上下文包"]
+    Prompt["11. Model Request&lt;br/&gt;系统指令 / 任务 / 上下文 / 工具 Schema"]
+    Reason["12. LLM Reasoning&lt;br/&gt;模型推理"]
+    Proposal["13. Action Proposal&lt;br/&gt;回答或工具调用"]
+    Validate["14. Runtime Validation&lt;br/&gt;Schema / 权限 / 风险"]
+    Execute["15. Tool Execution&lt;br/&gt;工具执行"]
+    Observe["16. Observation&lt;br/&gt;结构化观察"]
+    State["17. State Update&lt;br/&gt;状态更新"]
+    Replan["18. Re-plan / Continue&lt;br/&gt;重规划或继续"]
+    Verify["19. Verify&lt;br/&gt;验证完成度"]
+    Final["20. Final Response&lt;br/&gt;最终响应 / 交接"]
+
+    Request --&gt; Intake --&gt; Intent --&gt; Contract --&gt; Mode --&gt; Plan --&gt; Expose
+    Expose --&gt; Discover --&gt; Select --&gt; Package --&gt; Prompt --&gt; Reason --&gt; Proposal
+    Proposal --&gt; Validate
+    Validate --&gt;|"tool call"| Execute --&gt; Observe --&gt; State --&gt; Replan
+    Replan --&gt;|"continue"| Package
+    Replan --&gt;|"ready"| Verify
+    Validate --&gt;|"final answer"| Verify
+    Verify --&gt;|"needs repair"| State
+    Verify --&gt;|"passed"| Final
+</pre>
+
+<p>这条链路里，模型和 Runtime 的职责不同：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">阶段</th><th style="text-align: left">主要数据对象</th><th style="text-align: left">主要责任方</th><th style="text-align: left">说明</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Request Intake</td><td style="text-align: left">request envelope</td><td style="text-align: left">Runtime</td><td style="text-align: left">记录用户、会话、入口、时间、环境</td></tr>
+<tr><td style="text-align: left">Intent Parsing</td><td style="text-align: left">intent</td><td style="text-align: left">模型 + Runtime</td><td style="text-align: left">判断是问答、诊断、建议、执行还是审批</td></tr>
+<tr><td style="text-align: left">Task Contract</td><td style="text-align: left">task contract</td><td style="text-align: left">模型生成，Runtime 校验</td><td style="text-align: left">抽取目标、实体、约束、成功标准、风险等级</td></tr>
+<tr><td style="text-align: left">Mode Selection</td><td style="text-align: left">execution mode</td><td style="text-align: left">Runtime / Policy</td><td style="text-align: left">决定 read-only、dry-run、approval 或 execute</td></tr>
+<tr><td style="text-align: left">Initial Plan</td><td style="text-align: left">plan</td><td style="text-align: left">模型</td><td style="text-align: left">拆解步骤、依赖、预算和停止条件</td></tr>
+<tr><td style="text-align: left">Capability Exposure</td><td style="text-align: left">visible skills / tools</td><td style="text-align: left">Runtime</td><td style="text-align: left">按任务、权限、风险筛选可见能力</td></tr>
+<tr><td style="text-align: left">Context Discovery</td><td style="text-align: left">raw evidence</td><td style="text-align: left">工具</td><td style="text-align: left">搜索文档、查数据库、查日志、查状态</td></tr>
+<tr><td style="text-align: left">Context Selection</td><td style="text-align: left">selected evidence</td><td style="text-align: left">Runtime + 模型</td><td style="text-align: left">过滤无关内容，保留来源、时间、权限和证据 ID</td></tr>
+<tr><td style="text-align: left">Context Packaging</td><td style="text-align: left">context package</td><td style="text-align: left">Runtime</td><td style="text-align: left">组装模型本轮可见上下文</td></tr>
+<tr><td style="text-align: left">Model Request</td><td style="text-align: left">messages + tool schema</td><td style="text-align: left">Runtime</td><td style="text-align: left">把任务、上下文、可见工具和约束发送给模型</td></tr>
+<tr><td style="text-align: left">LLM Reasoning</td><td style="text-align: left">reasoning result</td><td style="text-align: left">模型</td><td style="text-align: left">判断下一步是回答、继续查询还是请求动作</td></tr>
+<tr><td style="text-align: left">Action Proposal</td><td style="text-align: left">final answer / tool call</td><td style="text-align: left">模型</td><td style="text-align: left">生成结构化输出或工具调用参数</td></tr>
+<tr><td style="text-align: left">Runtime Validation</td><td style="text-align: left">validation result</td><td style="text-align: left">Runtime / Policy</td><td style="text-align: left">校验工具名、参数 Schema、权限、风险、预算</td></tr>
+<tr><td style="text-align: left">Tool Execution</td><td style="text-align: left">tool result</td><td style="text-align: left">Tool Runtime</td><td style="text-align: left">执行确定性动作，返回结构化观察</td></tr>
+<tr><td style="text-align: left">Observation</td><td style="text-align: left">observation envelope</td><td style="text-align: left">Runtime</td><td style="text-align: left">标准化工具结果、错误和证据</td></tr>
+<tr><td style="text-align: left">State Update</td><td style="text-align: left">task state</td><td style="text-align: left">Runtime</td><td style="text-align: left">记录已完成步骤、失败原因、预算消耗</td></tr>
+<tr><td style="text-align: left">Re-plan / Continue</td><td style="text-align: left">revised plan</td><td style="text-align: left">模型</td><td style="text-align: left">根据观察结果决定继续、修复或停止</td></tr>
+<tr><td style="text-align: left">Verify</td><td style="text-align: left">verification report</td><td style="text-align: left">Verifier</td><td style="text-align: left">判断输出是否满足任务契约</td></tr>
+<tr><td style="text-align: left">Final Response</td><td style="text-align: left">answer / report / handoff</td><td style="text-align: left">模型 + Runtime</td><td style="text-align: left">生成用户可读结果，并附证据、风险和 trace</td></tr>
+</tbody>
+</table>
+</div>
+<p>在真正请求模型时，Runtime 通常不会只发送用户原话，而是发送一个被组织过的请求包：</p>
+<pre><code class="language-json">{
+  "system_instructions": [
+    "你是企业 Agent Runtime 中的推理模块。",
+    "只能使用本轮暴露的工具。",
+    "所有关键结论必须引用证据。"
+  ],
+  "task_contract": {
+    "intent": "answer_policy_question",
+    "goal": "回答员工关于费用报销时限的问题",
+    "success_criteria": ["给出直接回答", "引用制度来源", "说明不确定性"]
+  },
+  "selected_skills": [
+    {
+      "name": "policy_question_answering",
+      "steps": ["识别制度主题", "检索权威文档", "比较冲突条款", "带引用回答"]
+    }
+  ],
+  "context_package": {
+    "evidence": [
+      {
+        "id": "DOC-001#p3",
+        "title": "费用报销制度",
+        "updated_at": "2026-04-18",
+        "excerpt": "差旅住宿费用需要在行程结束后 30 天内提交。"
+      }
+    ],
+    "constraints": {
+      "must_cite_sources": true,
+      "do_not_expose_restricted_content": true
+    }
+  },
+  "available_tools": [
+    {
+      "name": "search_docs",
+      "description": "按关键词搜索用户有权限访问的内部文档。",
+      "input_schema": {
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+          "query": {"type": "string"},
+          "limit": {"type": "integer"}
+        }
+      }
+    }
+  ],
+  "task_state": {
+    "step": 2,
+    "remaining_budget": {"tool_calls": 5, "seconds": 30},
+    "observations": []
+  }
+}
+</code></pre>
+<p>这里有一个关键点：<strong>模型看到的是本轮允许使用的工具 Schema，不是完整工具注册表</strong>。完整注册表属于 Runtime。模型只负责在可见能力范围内做选择，不能越过 Runtime 调用隐藏工具。</p>
+<p>完整请求链路还应该记录成 trace：</p>
+<pre><code class="language-text">request.received
+intent.parsed
+task_contract.created
+mode.selected
+plan.created
+tools.exposed
+context.retrieved
+context.packaged
+model.requested
+action.proposed
+policy.checked
+tool.executed
+observation.recorded
+state.updated
+verification.completed
+response.sent
+</code></pre>
+<p>这组事件让 Agent 任务可以被回放、调试、评估和审计。否则当用户问“为什么它给出这个结论”时，系统只能回答“模型这么说的”，这在生产环境里是不够的。</p>
+<hr>
+<h2 id="53-agent-核心组件职责边界与后续章节地图"><a class="header" href="#53-agent-核心组件职责边界与后续章节地图">5.3 Agent 核心组件：职责边界与后续章节地图</a></h2>
+<p>5.3 不是要把每个组件都讲透，而是建立一张生产级 Agent Runtime 的组件地图。后续第 6 到第 12 章，会沿着这张地图逐层展开：工具系统、执行编排、平台化、知识上下文、Memory、Evals、Guardrails 和可观测性。</p>
+<p>现代 Agent 系统已经不只是“模型 + 工具调用”。从 OpenAI Agents SDK、AgentKit、LangGraph、Google ADK、MCP、Anthropic Skills 这些工程实践可以看到，生产级 Agent 越来越像一个可治理的 Runtime：它要管理入口、任务契约、上下文、状态、能力、权限、人工控制、模型路由、Trace、评测和学习闭环。</p>
+<p>下面这张表先给出组件地图：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">核心组件</th><th style="text-align: left">主要职责</th><th style="text-align: left">后续展开</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Event &amp; Intake Router</td><td style="text-align: left">接收聊天、API、告警、工单、Webhook、定时任务等入口</td><td style="text-align: left">第7章工作流、第17章 DoD Agent</td></tr>
+<tr><td style="text-align: left">Intent Normalizer</td><td style="text-align: left">把模糊输入变成结构化任务契约</td><td style="text-align: left">第7章入口路由、第12章输入治理</td></tr>
+<tr><td style="text-align: left">Task Planner</td><td style="text-align: left">生成可执行、可验证、可修订的计划</td><td style="text-align: left">第7章执行编排</td></tr>
+<tr><td style="text-align: left">Context Builder</td><td style="text-align: left">组织本轮任务需要的证据和上下文</td><td style="text-align: left">第9章 RAG、第10章 Agentic RAG</td></tr>
+<tr><td style="text-align: left">Memory Layer</td><td style="text-align: left">管理跨会话偏好、经验、历史任务和长期上下文</td><td style="text-align: left">第11章 Memory</td></tr>
+<tr><td style="text-align: left">Execution State &amp; Checkpoint</td><td style="text-align: left">管理任务状态、暂停、恢复、重试、回放和幂等</td><td style="text-align: left">第7章状态机、第11章状态管理</td></tr>
+<tr><td style="text-align: left">Capability Registry</td><td style="text-align: left">统一管理 Skills、Tools、Connectors、MCP、Prompt 和 Workflow</td><td style="text-align: left">第6章工具系统、第8章平台架构</td></tr>
+<tr><td style="text-align: left">Policy Engine &amp; Human Control Plane</td><td style="text-align: left">管理权限、风险、审批、接管、降级和回滚</td><td style="text-align: left">第6章工具权限、第12章 Guardrails</td></tr>
+<tr><td style="text-align: left">Agent Loop</td><td style="text-align: left">推动观察、决策、行动、修复和停止</td><td style="text-align: left">第7章工作流、第8章平台运行时</td></tr>
+<tr><td style="text-align: left">Model Router &amp; Handoff Manager</td><td style="text-align: left">管理模型选择、专家委派、多 Agent 协作和跨 Agent 通信</td><td style="text-align: left">第7章多 Agent、第8章平台架构</td></tr>
+<tr><td style="text-align: left">Verifier &amp; Eval Harness</td><td style="text-align: left">运行时验证和离线回归评测</td><td style="text-align: left">第12章 Evals</td></tr>
+<tr><td style="text-align: left">Review Surface、Trace &amp; Audit</td><td style="text-align: left">提供可审查输出、过程追踪和审计证据</td><td style="text-align: left">第12章可观测性、第17章实战案例</td></tr>
+<tr><td style="text-align: left">Learning Loop</td><td style="text-align: left">把反馈、失败案例和复盘经验转化为能力演进</td><td style="text-align: left">第11章 Memory、第12章 Evals、第16章 Hermes</td></tr>
+</tbody>
+</table>
+</div>
+<p>这些组件不一定都要独立成服务。MVP 可以从一个进程、几张表、几个配置和一套 trace schema 开始。但职责边界最好一开始就清楚：哪些事情由模型推理，哪些事情由 Runtime 裁决，哪些事情由人工确认，哪些事情只能通过评测和灰度后进入生产。</p>
+<hr>
+<h3 id="531-event--intake-routeragent-的入口不只是聊天"><a class="header" href="#531-event--intake-routeragent-的入口不只是聊天">5.3.1 Event &amp; Intake Router：Agent 的入口不只是聊天</a></h3>
+<p>很多 Agent 原型从聊天框开始，所以会把用户消息当成唯一入口。但生产级 Agent 不只处理自然语言聊天，还要处理各种系统事件：</p>
+<ul>
+<li>告警系统推送的 incident；</li>
+<li>工单系统里的升级请求；</li>
+<li>Webhook 触发的业务事件；</li>
+<li>定时任务产生的巡检结果；</li>
+<li>IDE、CLI 或浏览器插件里的上下文事件；</li>
+<li>企业 IM、邮件、客服会话中的多轮对话；</li>
+<li>其他 Agent 或工作流委派过来的子任务。</li>
+</ul>
+<p>Event &amp; Intake Router 的职责是把这些入口统一成请求信封，而不是直接让模型读原始事件。</p>
+<pre><code class="language-json">{
+  "request_id": "req_20260512_001",
+  "channel": "alert_webhook",
+  "tenant": "wxquare",
+  "actor": {
+    "type": "system",
+    "id": "prometheus"
+  },
+  "user_context": {
+    "viewer": "u_123",
+    "roles": ["sre_oncall"]
+  },
+  "payload_type": "incident_alert",
+  "payload": {
+    "service": "payment",
+    "severity": "critical",
+    "time_window": "2026-05-12T10:00:00+08:00/2026-05-12T10:15:00+08:00"
+  },
+  "correlation_id": "trace_or_incident_id",
+  "idempotency_key": "alert-payment-20260512-1000",
+  "environment": "production"
+}
+</code></pre>
+<p>这一层主要做四件事：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">职责</th><th style="text-align: left">说明</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">入口归一</td><td style="text-align: left">把聊天、API、Webhook、工单、告警、定时任务归一成 request envelope</td></tr>
+<tr><td style="text-align: left">身份绑定</td><td style="text-align: left">绑定用户、系统、租户、角色、环境和权限上下文</td></tr>
+<tr><td style="text-align: left">幂等与关联</td><td style="text-align: left">生成 request_id、correlation_id、idempotency_key，避免重复处置</td></tr>
+<tr><td style="text-align: left">初步分流</td><td style="text-align: left">判断是否进入问答、诊断、审批、执行、人工转接或拒绝</td></tr>
+</tbody>
+</table>
+</div>
+<p>Event &amp; Intake Router 不应该承担复杂推理。它只负责把“事件从哪里来、谁触发、影响什么、属于什么环境”说清楚。真正的任务理解交给 Intent Normalizer，执行路径交给 Planner 和 Workflow。</p>
+<p>这一层很容易被忽略，但它决定 Agent 能不能从聊天机器人走向生产系统。DoD Agent、客服 Agent、运营 Agent 和 Coding Agent 的差异，往往首先体现在入口事件不同，而不是模型不同。</p>
+<hr>
+<h3 id="532-intent-normalizer把用户输入变成任务契约"><a class="header" href="#532-intent-normalizer把用户输入变成任务契约">5.3.2 Intent Normalizer：把用户输入变成任务契约</a></h3>
+<p>Agent 的输入不应该直接等于用户原话。用户可能说：</p>
+<pre><code class="language-text">这个客户投诉为什么这么久还没解决？
+</code></pre>
+<p>这句话里面包含了多个隐含问题：</p>
+<ul>
+<li>这是查询、诊断、催办，还是升级？</li>
+<li>“这个客户”对应哪个客户、工单或订单？</li>
+<li>“这么久”是超过 SLA，还是超过用户心理预期？</li>
+<li>系统能否读取客户信息？</li>
+<li>如果要催办，是否需要审批？</li>
+</ul>
+<p>所以第一层应该是 Intent Normalizer。它负责把原始输入转成任务契约：</p>
+<pre><code class="language-json">{
+  "task_id": "task_20260511_001",
+  "intent": "diagnose_ticket_delay",
+  "user_goal": "解释客户投诉工单长时间未解决的原因，并给出下一步建议",
+  "domain": "customer_support",
+  "entities": {
+    "ticket_id": "TCK-1024",
+    "customer_id": "C-8801"
+  },
+  "risk_level": "medium",
+  "allowed_actions": ["read", "summarize", "recommend"],
+  "requires_approval_for": ["notify_customer", "change_owner", "close_ticket"],
+  "success_criteria": [
+    "说明当前工单状态",
+    "列出延迟原因和证据",
+    "给出下一步建议",
+    "标注信息来源"
+  ]
+}
+</code></pre>
+<p>任务契约的价值是把模糊请求变成可执行边界：</p>
+<ul>
+<li>Planner 知道要规划什么；</li>
+<li>Context Builder 知道要找什么证据；</li>
+<li>Tool Registry 知道暴露哪些工具；</li>
+<li>Policy Engine 知道哪些动作有风险；</li>
+<li>Verifier 知道如何判断完成；</li>
+<li>Review Surface 知道如何向用户交付。</li>
+</ul>
+<p>没有任务契约，Agent Loop 很容易变成“模型想做什么就做什么”。</p>
+<hr>
+<h3 id="533-task-planner计划是可验证的假设"><a class="header" href="#533-task-planner计划是可验证的假设">5.3.3 Task Planner：计划是可验证的假设</a></h3>
+<p>Planner 的职责不是写一段漂亮的推理过程，而是把目标拆成可执行、可观察、可验证的步骤。</p>
+<p>一个好的计划应该包含：</p>
+<ul>
+<li><strong>目标</strong>：这一步要解决什么问题；</li>
+<li><strong>输入</strong>：需要哪些上下文或工具结果；</li>
+<li><strong>动作</strong>：要调用什么能力；</li>
+<li><strong>风险</strong>：是否可能越权、写入、通知、执行；</li>
+<li><strong>验证</strong>：如何判断这一步成功；</li>
+<li><strong>停止条件</strong>：什么时候不再继续探索。</li>
+</ul>
+<pre class="mermaid">
+flowchart LR
+    Goal["Task Goal&lt;br/&gt;任务目标"]
+    Decompose["Decompose&lt;br/&gt;拆解步骤"]
+    Order["Order&lt;br/&gt;依赖排序"]
+    Budget["Budget&lt;br/&gt;步数 / 时间 / 成本"]
+    Risk["Risk Tagging&lt;br/&gt;风险标注"]
+    Stop["Stop Criteria&lt;br/&gt;停止条件"]
+    Plan["Executable Plan&lt;br/&gt;可执行计划"]
+
+    Goal --&gt; Decompose --&gt; Order --&gt; Budget --&gt; Risk --&gt; Stop --&gt; Plan
+</pre>
+
+<p>计划可以分三种粒度：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">计划类型</th><th style="text-align: left">适用场景</th><th style="text-align: left">示例</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Checklist Plan</td><td style="text-align: left">步骤清晰、风险低</td><td style="text-align: left">“检索文档 -&gt; 摘要 -&gt; 引用来源”</td></tr>
+<tr><td style="text-align: left">Investigative Plan</td><td style="text-align: left">需要边查边判断</td><td style="text-align: left">“先查指标，再根据异常维度查日志或变更记录”</td></tr>
+<tr><td style="text-align: left">Workflow Plan</td><td style="text-align: left">有状态流转和审批</td><td style="text-align: left">“生成处理建议 -&gt; 人工审批 -&gt; 执行 -&gt; 验证 -&gt; 回写工单”</td></tr>
+</tbody>
+</table>
+</div>
+<p>计划不要追求一次性完美。生产 Agent 中，计划更像一个可修订的假设：</p>
+<pre><code class="language-text">Plan -&gt; Act -&gt; Observe -&gt; Replan -&gt; Verify
+</code></pre>
+<p>关键是每次修订都要留下 trace：为什么改计划、基于什么观察、风险等级是否变化。</p>
+<hr>
+<h3 id="534-context-builder上下文是信息架构不是拼-prompt"><a class="header" href="#534-context-builder上下文是信息架构不是拼-prompt">5.3.4 Context Builder：上下文是信息架构，不是拼 Prompt</a></h3>
+<p>Context Builder 是 Agent 系统最容易被低估的一层。它决定模型能看到什么，也决定模型看不到什么。</p>
+<pre class="mermaid">
+flowchart TD
+    Task["Task Contract"]
+    Sources["Source Catalog&lt;br/&gt;知识库 / 数据库 / 日志 / 工单 / 规则 / 历史案例"]
+    Route["Source Router&lt;br/&gt;选择来源"]
+    Retrieve["Retrieve&lt;br/&gt;检索与查询"]
+    Filter["Permission Filter&lt;br/&gt;权限过滤"]
+    Rank["Rank / Deduplicate&lt;br/&gt;排序与去重"]
+    Compress["Compress&lt;br/&gt;摘要与压缩"]
+    Cite["Citation Builder&lt;br/&gt;引用与证据编号"]
+    Package["Context Package&lt;br/&gt;上下文包"]
+
+    Task --&gt; Route
+    Sources --&gt; Route
+    Route --&gt; Retrieve --&gt; Filter --&gt; Rank --&gt; Compress --&gt; Cite --&gt; Package
+</pre>
+
+<p>Context Builder 至少要处理六类信息：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">信息类型</th><th style="text-align: left">作用</th><th style="text-align: left">风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">任务上下文</td><td style="text-align: left">用户目标、实体、约束、成功标准</td><td style="text-align: left">意图识别错误会导致整条链偏航</td></tr>
+<tr><td style="text-align: left">领域知识</td><td style="text-align: left">文档、FAQ、Runbook、制度、流程</td><td style="text-align: left">文档过期、权限不匹配、引用缺失</td></tr>
+<tr><td style="text-align: left">业务数据</td><td style="text-align: left">订单、工单、客户、资产、配置</td><td style="text-align: left">隐私泄露、越权访问、数据时效问题</td></tr>
+<tr><td style="text-align: left">运行状态</td><td style="text-align: left">当前任务状态、已调用工具、失败原因</td><td style="text-align: left">状态丢失会导致重复执行或误判</td></tr>
+<tr><td style="text-align: left">历史经验</td><td style="text-align: left">过往案例、用户偏好、团队规则</td><td style="text-align: left">错误经验污染新任务</td></tr>
+<tr><td style="text-align: left">安全规则</td><td style="text-align: left">可见范围、动作限制、审批要求</td><td style="text-align: left">只靠 Prompt 提醒会被绕过</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐把上下文组织成结构化 Context Package：</p>
+<pre><code class="language-json">{
+  "task": {
+    "intent": "answer_policy_question",
+    "success_criteria": ["回答问题", "引用来源", "标注不确定性"]
+  },
+  "sources": [
+    {
+      "id": "doc_001",
+      "type": "policy_doc",
+      "title": "费用报销制度",
+      "updated_at": "2026-04-18",
+      "permission": "allowed",
+      "excerpt": "差旅住宿费用需要在行程结束后 30 天内提交。",
+      "citation": "DOC-001#p3"
+    }
+  ],
+  "constraints": {
+    "answer_must_cite_sources": true,
+    "cannot_reveal_restricted_content": true,
+    "ask_when_evidence_conflicts": true
+  },
+  "state": {
+    "previous_tool_calls": [],
+    "open_questions": ["用户所在地区是否有特殊报销标准"]
+  }
+}
+</code></pre>
+<p>Context Builder 的核心原则：</p>
+<ol>
+<li><strong>先权限，后检索结果注入</strong>：用户无权访问的内容不应该进入模型上下文。</li>
+<li><strong>先证据，后结论</strong>：让模型围绕证据推理，而不是凭记忆回答。</li>
+<li><strong>保留来源和时间</strong>：引用、更新时间、owner、置信度都应进入上下文。</li>
+<li><strong>区分事实和推断</strong>：工具返回的是事实，模型总结的是推断，两者要分开。</li>
+<li><strong>控制预算</strong>：上下文越多不一定越好，噪声会让模型更难判断。</li>
+</ol>
+<p>还要注意，Context Builder 不是 Memory 系统本身。Context 是本轮模型调用的工作区，Memory 是跨轮次、跨会话、跨任务保存的外部状态。Context Builder 可以读取 Memory，并把经过筛选、授权、压缩后的记忆放入本轮上下文，但不能把所有历史对话一股脑塞给模型。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">来源</th><th style="text-align: left">进入 Context 的方式</th><th style="text-align: left">关键控制点</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">RAG 文档</td><td style="text-align: left">作为外部知识证据进入</td><td style="text-align: left">权限、时效、引用、冲突处理</td></tr>
+<tr><td style="text-align: left">工具结果</td><td style="text-align: left">作为当前事实进入</td><td style="text-align: left">Schema、时间窗口、错误类型、证据 ID</td></tr>
+<tr><td style="text-align: left">Workflow State</td><td style="text-align: left">作为任务执行状态进入</td><td style="text-align: left">当前步骤、审批状态、已执行动作、幂等键</td></tr>
+<tr><td style="text-align: left">Memory</td><td style="text-align: left">作为偏好、经验或历史摘要进入</td><td style="text-align: left">作用域、可信度、过期时间、写入来源</td></tr>
+</tbody>
+</table>
+</div>
+<p>第 9 章和第 10 章会展开 RAG 与 Agentic RAG，第 11 章会专门展开 Memory 的读取、写入、遗忘、污染防控和评估。</p>
+<hr>
+<h3 id="535-memory-layer跨会话状态经验与长期上下文"><a class="header" href="#535-memory-layer跨会话状态经验与长期上下文">5.3.5 Memory Layer：跨会话状态、经验与长期上下文</a></h3>
+<p>Memory Layer 是现代 Agent Runtime 的关键组件。它解决的不是“把聊天记录存起来”，而是让 Agent 在合适的边界内拥有连续性、经验和可治理的长期上下文。</p>
+<p>Memory 至少要和三个概念区分开：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">概念</th><th style="text-align: left">生命周期</th><th style="text-align: left">典型内容</th><th style="text-align: left">谁负责治理</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Context</td><td style="text-align: left">单次模型调用</td><td style="text-align: left">当前问题、证据、工具结果、约束</td><td style="text-align: left">Context Builder</td></tr>
+<tr><td style="text-align: left">Execution State</td><td style="text-align: left">一次任务生命周期</td><td style="text-align: left">当前步骤、已调用工具、审批状态、失败原因</td><td style="text-align: left">Workflow / State Store</td></tr>
+<tr><td style="text-align: left">RAG Knowledge</td><td style="text-align: left">长期知识库</td><td style="text-align: left">文档、Runbook、制度、FAQ、代码索引</td><td style="text-align: left">Knowledge Platform</td></tr>
+<tr><td style="text-align: left">Memory</td><td style="text-align: left">跨会话或跨任务</td><td style="text-align: left">用户偏好、历史摘要、成功经验、失败教训</td><td style="text-align: left">Memory Layer + Policy</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个生产级 Memory 系统通常会包含几类记忆：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">Memory 类型</th><th style="text-align: left">示例</th><th style="text-align: left">风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">User Preference</td><td style="text-align: left">“用户偏好中文总结，喜欢先看结论”</td><td style="text-align: left">偏好覆盖当前明确指令</td></tr>
+<tr><td style="text-align: left">Task Memory</td><td style="text-align: left">“这个客户投诉曾在上周升级过一次”</td><td style="text-align: left">旧状态被误当成当前事实</td></tr>
+<tr><td style="text-align: left">Domain Experience</td><td style="text-align: left">“支付超时常见原因包括下游网关抖动和幂等锁竞争”</td><td style="text-align: left">经验被泛化到不适用场景</td></tr>
+<tr><td style="text-align: left">Failure Memory</td><td style="text-align: left">“上次误判因为只看了 5 分钟窗口，没有对比发布记录”</td><td style="text-align: left">错误归因污染后续诊断</td></tr>
+<tr><td style="text-align: left">Team Convention</td><td style="text-align: left">“SRE 团队要求恢复动作必须先 dry-run”</td><td style="text-align: left">规则过期或跨团队误用</td></tr>
+<tr><td style="text-align: left">Skill Candidate</td><td style="text-align: left">“这类任务可以沉淀成 incident_initial_diagnosis Skill”</td><td style="text-align: left">未审核能力进入生产</td></tr>
+</tbody>
+</table>
+</div>
+<p>Memory 读取要经过路由和过滤：</p>
+<pre class="mermaid">
+flowchart LR
+    Task["Task Contract"]
+    Router["Memory Router"]
+    Store["Memory Store"]
+    Filter["Scope / Permission / Freshness Filter"]
+    Rank["Rank&lt;br/&gt;相关性 / 新鲜度 / 重要性"]
+    Pack["Context Package"]
+
+    Task --&gt; Router --&gt; Store --&gt; Filter --&gt; Rank --&gt; Pack
+</pre>
+
+<p>Memory 写入更要谨慎。生产 Agent 不应该默认把所有对话、模型猜测和工具结果写进长期记忆。推荐增加 Memory Write Gate：</p>
+<pre><code class="language-text">candidate memory
+-&gt; evidence check
+-&gt; sensitivity check
+-&gt; scope decision
+-&gt; owner review when needed
+-&gt; ttl / expiration
+-&gt; write or reject
+</code></pre>
+<p>可以写入 Memory 的内容通常包括：</p>
+<ul>
+<li>用户稳定偏好；</li>
+<li>已验证的任务摘要；</li>
+<li>人工确认过的复盘结论；</li>
+<li>可复用的失败案例；</li>
+<li>服务或团队级注意事项；</li>
+<li>进入 Skill、Policy、Eval 的候选经验。</li>
+</ul>
+<p>不应该直接写入 Memory 的内容包括：</p>
+<ul>
+<li>未验证的模型推断；</li>
+<li>本轮临时指令；</li>
+<li>过期业务状态；</li>
+<li>敏感数据原文；</li>
+<li>用户无权长期保存的数据；</li>
+<li>高风险处置建议的草稿。</li>
+</ul>
+<p>Memory 的核心原则是：<strong>可读、可控、可忘、可审计、可评估</strong>。如果没有写入门控、权限边界和遗忘机制，Memory 会从“让 Agent 更懂你”变成“让错误长期污染系统”。</p>
+<hr>
+<h3 id="536-execution-state-与-checkpoint让-agent-可暂停恢复与回放"><a class="header" href="#536-execution-state-与-checkpoint让-agent-可暂停恢复与回放">5.3.6 Execution State 与 Checkpoint：让 Agent 可暂停、恢复与回放</a></h3>
+<p>Execution State 管的是“当前任务执行到哪里”。它和 Memory 不同：Memory 是跨任务经验，Execution State 是一次任务生命周期里的事实状态。</p>
+<p>生产级 Agent 一旦进入多步骤任务，就必须有状态层。否则系统会遇到几个典型问题：</p>
+<ul>
+<li>工具调用失败后不知道从哪一步重试；</li>
+<li>用户审批后无法恢复原来的上下文；</li>
+<li>长任务中断后只能从头开始；</li>
+<li>同一告警重复触发导致重复处置；</li>
+<li>模型忘记已经查过哪些系统；</li>
+<li>事故复盘时无法重放执行路径。</li>
+</ul>
+<p>一个任务状态可以这样建模：</p>
+<pre><code class="language-json">{
+  "task_id": "task_20260512_001",
+  "status": "waiting_approval",
+  "current_step": "recommend_action",
+  "plan_version": 3,
+  "checkpoints": [
+    {
+      "step": "collect_evidence",
+      "completed_at": "2026-05-12T10:20:00+08:00",
+      "evidence_ids": ["metric_001", "log_002", "deploy_003"]
+    }
+  ],
+  "tool_calls": [
+    {
+      "tool": "query_metric",
+      "idempotency_key": "metric-payment-latency-001",
+      "status": "success"
+    }
+  ],
+  "approval": {
+    "required": true,
+    "reason": "生产环境恢复动作需要 SRE Lead 确认",
+    "approver_role": "sre_lead"
+  },
+  "budget": {
+    "remaining_steps": 5,
+    "remaining_seconds": 120,
+    "remaining_tool_calls": 8
+  }
+}
+</code></pre>
+<p>Checkpoint 的价值是让 Agent 支持：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">能力</th><th style="text-align: left">说明</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Pause</td><td style="text-align: left">等待用户补充信息、等待审批、等待外部系统结果</td></tr>
+<tr><td style="text-align: left">Resume</td><td style="text-align: left">从中断点继续，而不是重新推理整条链</td></tr>
+<tr><td style="text-align: left">Retry</td><td style="text-align: left">对可重试工具调用做幂等重试</td></tr>
+<tr><td style="text-align: left">Replay</td><td style="text-align: left">按 trace 和 checkpoint 重放任务过程</td></tr>
+<tr><td style="text-align: left">Time Travel Debugging</td><td style="text-align: left">回到某个状态观察不同计划或不同模型的表现</td></tr>
+<tr><td style="text-align: left">Human Takeover</td><td style="text-align: left">人工接管时能看到当前状态、证据和建议动作</td></tr>
+</tbody>
+</table>
+</div>
+<p>第 7 章讲工作流和状态机时，会把 Execution State 作为核心对象；第 11 章讲 Memory 时，会进一步区分短期会话状态、任务状态和长期记忆。</p>
+<hr>
+<h3 id="537-capability-registryskillstoolsconnectors-与-mcp"><a class="header" href="#537-capability-registryskillstoolsconnectors-与-mcp">5.3.7 Capability Registry：Skills、Tools、Connectors 与 MCP</a></h3>
+<p>很多系统会把 Skill、Tool、Connector、Workflow、MCP Server 混在一起，导致权限边界混乱。现代 Agent Runtime 更适合用 Capability Registry 统一管理“系统能提供哪些能力”，再按任务、身份、环境和风险筛选本轮可见能力。</p>
+<p>推荐的区分是：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">概念</th><th style="text-align: left">含义</th><th style="text-align: left">是否执行外部动作</th><th style="text-align: left">示例</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Skill</td><td style="text-align: left">完成某类任务的方法论</td><td style="text-align: left">否</td><td style="text-align: left">“如何做事故初步诊断”“如何回答制度问题”</td></tr>
+<tr><td style="text-align: left">Tool</td><td style="text-align: left">可调用的外部能力</td><td style="text-align: left">是</td><td style="text-align: left">搜索文档、查询工单、发送通知、创建审批</td></tr>
+<tr><td style="text-align: left">Connector</td><td style="text-align: left">外部系统连接方式</td><td style="text-align: left">可能</td><td style="text-align: left">Google Drive、Slack、Jira、内部 CMDB、日志平台</td></tr>
+<tr><td style="text-align: left">MCP Resource</td><td style="text-align: left">可读取的上下文资源</td><td style="text-align: left">否</td><td style="text-align: left">文件、数据库记录、设计稿、代码仓库片段</td></tr>
+<tr><td style="text-align: left">MCP Prompt</td><td style="text-align: left">可复用提示或工作流模板</td><td style="text-align: left">否</td><td style="text-align: left">“生成事故复盘报告”“按模板分析 PR 风险”</td></tr>
+<tr><td style="text-align: left">Workflow</td><td style="text-align: left">固定或半固定流程</td><td style="text-align: left">可能</td><td style="text-align: left">“生成建议 -&gt; 审批 -&gt; 执行 -&gt; 验证”</td></tr>
+<tr><td style="text-align: left">Agent as Tool</td><td style="text-align: left">把专家 Agent 暴露为能力</td><td style="text-align: left">间接可能</td><td style="text-align: left">“transfer_to_refund_agent”“call_security_reviewer”</td></tr>
+<tr><td style="text-align: left">Policy</td><td style="text-align: left">能否执行的裁决规则</td><td style="text-align: left">否，负责裁决</td><td style="text-align: left">“发送客户通知必须人工确认”</td></tr>
+</tbody>
+</table>
+</div>
+<p>它们的关系如下：</p>
+<pre class="mermaid">
+flowchart TD
+    Task["Task Contract"]
+    Capability["Capability Registry&lt;br/&gt;Skills / Tools / Connectors / MCP / Workflows"]
+    SkillRegistry["Skill Registry&lt;br/&gt;选择任务方法"]
+    Skill["Selected Skill&lt;br/&gt;步骤、注意事项、验证要求"]
+    ToolRegistry["Tool Registry&lt;br/&gt;选择可用工具"]
+    Connector["Connector / MCP Client&lt;br/&gt;连接外部系统"]
+    Tool["Tool Runtime&lt;br/&gt;执行工具"]
+    Policy["Policy Engine&lt;br/&gt;裁决工具调用"]
+    Observation["Observation&lt;br/&gt;结构化结果"]
+
+    Task --&gt; Capability
+    Capability --&gt; SkillRegistry
+    Capability --&gt; ToolRegistry
+    Task --&gt; SkillRegistry --&gt; Skill
+    Task --&gt; ToolRegistry
+    Skill --&gt; ToolRegistry
+    ToolRegistry --&gt; Policy --&gt; Connector --&gt; Tool --&gt; Observation
+</pre>
+
+<p><strong>Skill Registry</strong></p>
+<p>Skill Registry 管的是“做事方法”。一个 Skill 应该描述：</p>
+<pre><code class="language-yaml">name: incident_initial_diagnosis
+version: 1.3.0
+when_to_use:
+  - 出现服务异常、告警、SLA 下降或用户投诉
+inputs:
+  - alert
+  - service
+  - time_window
+steps:
+  - 确认影响范围
+  - 查询最近变更
+  - 对比关键指标
+  - 搜索相关日志
+  - 生成带证据的诊断结论
+guardrails:
+  - 不得直接执行恢复动作
+  - 不得隐藏不确定性
+verification:
+  - 结论必须包含证据 ID
+  - 建议必须标注风险等级
+owner: sre-platform
+</code></pre>
+<p>Skill 不应该拥有权限。它只是告诉 Agent “这类任务的可靠做法是什么”。真正的能力调用仍然要经过 Tool Registry 和 Policy Engine。</p>
+<p><strong>Tool Registry</strong></p>
+<p>Tool Registry 管的是“系统能做什么”。一个 Tool 至少要有：</p>
+<ul>
+<li>名称和描述；</li>
+<li>输入 Schema；</li>
+<li>输出 Schema；</li>
+<li>风险等级；</li>
+<li>权限要求；</li>
+<li>是否有副作用；</li>
+<li>是否支持 dry-run；</li>
+<li>连接器或执行后端；</li>
+<li>owner 和审计字段；</li>
+<li>版本、灰度状态和废弃策略。</li>
+</ul>
+<pre><code class="language-json">{
+  "name": "create_support_ticket",
+  "description": "创建一条客户支持工单",
+  "input_schema": {
+    "type": "object",
+    "required": ["customer_id", "title", "priority"],
+    "properties": {
+      "customer_id": {"type": "string"},
+      "title": {"type": "string"},
+      "priority": {"type": "string", "enum": ["low", "medium", "high"]}
+    }
+  },
+  "risk_level": "medium",
+  "side_effect": true,
+  "requires_approval": true,
+  "supports_dry_run": true,
+  "owner": "support-platform"
+}
+</code></pre>
+<p>Capability Registry 还应该支持按需暴露。模型不应该看到完整能力列表，而只能看到本轮经过筛选后的能力子集：</p>
+<pre><code class="language-text">all capabilities
+-&gt; task filter
+-&gt; permission filter
+-&gt; risk filter
+-&gt; environment filter
+-&gt; budget filter
+-&gt; visible skills / tools / connectors
+</code></pre>
+<p>这也是 MCP、连接器和插件体系必须被治理的原因。MCP 可以标准化外部系统接入，但它不是安全边界本身。一个 MCP Server 暴露的资源、工具和 Prompt，都要经过 Capability Registry、Policy Engine、Trace 和 Review Surface 才能进入生产 Agent。</p>
+<p>第 6 章会深入展开 Tool Calling、Skills 与 MCP。第 5 章只需要建立一个关键边界：<strong>Skill 是流程知识，Tool 是外部能力，Connector 是连接方式，Policy 是执行裁决</strong>。</p>
+<hr>
+<h3 id="538-policy-engine-与-human-control-plane权限审批接管与降级"><a class="header" href="#538-policy-engine-与-human-control-plane权限审批接管与降级">5.3.8 Policy Engine 与 Human Control Plane：权限、审批、接管与降级</a></h3>
+<p>“请不要执行危险操作”不是安全机制，只是提示词愿望。生产 Agent 必须有独立于模型的 Policy Engine。</p>
+<p>Policy Engine 的输入不是一句自然语言，而是一组可裁决对象：</p>
+<pre><code class="language-json">{
+  "user": {
+    "id": "u_123",
+    "role": "support_lead",
+    "department": "customer_success"
+  },
+  "task": {
+    "intent": "notify_customer",
+    "risk_level": "medium"
+  },
+  "tool_call": {
+    "name": "send_customer_email",
+    "args": {
+      "customer_id": "C-8801",
+      "template": "delay_explanation"
+    },
+    "side_effect": true
+  },
+  "context": {
+    "environment": "production",
+    "confidence": "medium",
+    "evidence_count": 2
+  }
+}
+</code></pre>
+<p>Policy Engine 的输出应该是结构化决策：</p>
+<pre><code class="language-json">{
+  "decision": "ask",
+  "reason": "向客户发送通知属于有副作用动作，需要人工确认",
+  "required_approver_role": "support_lead",
+  "allowed_in_dry_run": true,
+  "audit_tags": ["customer_communication", "side_effect"]
+}
+</code></pre>
+<p>核心决策类型可以是五种：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">决策</th><th style="text-align: left">含义</th><th style="text-align: left">示例</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">allow</td><td style="text-align: left">直接允许</td><td style="text-align: left">读取公开文档、查询自己有权限的工单</td></tr>
+<tr><td style="text-align: left">deny</td><td style="text-align: left">直接拒绝</td><td style="text-align: left">读取无权限客户数据、绕过审批关闭工单</td></tr>
+<tr><td style="text-align: left">ask</td><td style="text-align: left">需要人工确认</td><td style="text-align: left">发送外部通知、变更负责人、执行恢复动作</td></tr>
+<tr><td style="text-align: left">sandbox</td><td style="text-align: left">只允许沙箱或 dry-run</td><td style="text-align: left">模拟一条规则变更的影响</td></tr>
+<tr><td style="text-align: left">audit</td><td style="text-align: left">允许但加强审计</td><td style="text-align: left">读取敏感但授权的数据</td></tr>
+</tbody>
+</table>
+</div>
+<p>Policy Engine 不只看工具名，还要看上下文：</p>
+<pre class="mermaid">
+flowchart TD
+    ToolCall["Tool Call"]
+    User["User / Role"]
+    Task["Task Contract"]
+    Env["Environment"]
+    Risk["Risk Metadata"]
+    State["Task State"]
+    Policy["Policy Engine"]
+    Decision["allow / deny / ask / sandbox / audit"]
+
+    ToolCall --&gt; Policy
+    User --&gt; Policy
+    Task --&gt; Policy
+    Env --&gt; Policy
+    Risk --&gt; Policy
+    State --&gt; Policy
+    Policy --&gt; Decision
+</pre>
+
+<p>例如“发送通知”在内部测试环境可能是低风险，在生产客户环境就是中高风险；“读取文档”对公开制度是低风险，对客户隐私文档就是高风险。</p>
+<p>Policy Engine 解决“能不能做”，Human Control Plane 解决“人如何介入”。生产 Agent 不能只有自动化路径，还必须有清晰的人工控制点：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">控制点</th><th style="text-align: left">说明</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Confirmation</td><td style="text-align: left">执行有副作用动作前，让用户确认</td></tr>
+<tr><td style="text-align: left">Approval</td><td style="text-align: left">高风险动作需要指定角色审批</td></tr>
+<tr><td style="text-align: left">Interrupt</td><td style="text-align: left">人可以打断正在运行的 Agent Loop</td></tr>
+<tr><td style="text-align: left">Takeover</td><td style="text-align: left">人可以接管任务，继续执行或关闭</td></tr>
+<tr><td style="text-align: left">Escalation</td><td style="text-align: left">风险过高、证据不足或预算耗尽时升级给人</td></tr>
+<tr><td style="text-align: left">Rollback</td><td style="text-align: left">对可回滚动作生成回滚计划或触发回滚流程</td></tr>
+<tr><td style="text-align: left">Degrade</td><td style="text-align: left">工具、模型或权限异常时降级为只读建议模式</td></tr>
+</tbody>
+</table>
+</div>
+<p>Human Control Plane 不等于“所有事情都弹确认”。真正好的设计是按风险分层：低风险只读任务自动完成，中风险动作要求确认，高风险生产动作进入审批，极高风险任务直接拒绝或转人工。这样既不牺牲效率，也不会把生产责任交给模型。</p>
+<hr>
+<h3 id="539-agent-loop观察决策行动修复"><a class="header" href="#539-agent-loop观察决策行动修复">5.3.9 Agent Loop：观察、决策、行动、修复</a></h3>
+<p>Agent Loop 是模型、状态、上下文、工具和策略之间的执行闭环。</p>
+<pre class="mermaid">
+stateDiagram-v2
+    [*] --&gt; Observe
+    Observe --&gt; Decide: context ready
+    Decide --&gt; Act: tool call proposed
+    Decide --&gt; Finalize: answer ready
+    Act --&gt; PolicyCheck
+    PolicyCheck --&gt; Execute: allow
+    PolicyCheck --&gt; HumanApproval: ask
+    PolicyCheck --&gt; Repair: deny or invalid
+    HumanApproval --&gt; Execute: approved
+    HumanApproval --&gt; Repair: rejected
+    Execute --&gt; Observe: observation
+    Observe --&gt; Repair: missing or conflicting evidence
+    Repair --&gt; Decide: revise plan
+    Finalize --&gt; Verify
+    Verify --&gt; Finalize: needs revision
+    Verify --&gt; [*]: passed
+</pre>
+
+<p>一个生产级 Loop 至少要有这些机制：</p>
+<ul>
+<li><strong>最大步数</strong>：防止无限循环；</li>
+<li><strong>时间预算</strong>：防止长任务拖垮系统；</li>
+<li><strong>Token 预算</strong>：控制成本和上下文长度；</li>
+<li><strong>工具预算</strong>：限制昂贵查询和高风险动作；</li>
+<li><strong>状态持久化</strong>：任务中断后可以恢复；</li>
+<li><strong>错误分类</strong>：区分工具失败、权限失败、模型格式错误、证据不足；</li>
+<li><strong>修复策略</strong>：格式错误可重试，证据不足可补检索，权限不足要询问或拒绝；</li>
+<li><strong>停止条件</strong>：达到成功标准、风险过高、预算耗尽、用户取消。</li>
+</ul>
+<p>伪代码可以这样理解：</p>
+<pre><code class="language-text">while not done:
+    context = build_context(task, state)
+    model_output = llm(context, available_skills, available_tools)
+    action = parse_and_validate(model_output)
+
+    if action.type == "final_answer":
+        verification = verifier.check(action.answer, task, evidence)
+        if verification.passed:
+            return review_surface.render(action.answer, trace)
+        state.add_feedback(verification.errors)
+        continue
+
+    decision = policy.check(action.tool_call, task, user, state)
+    if decision == "deny":
+        state.add_observation("policy_denied", decision.reason)
+        continue
+    if decision == "ask":
+        approval = request_human_approval(decision)
+        if not approval.approved:
+            state.add_observation("approval_rejected", approval.reason)
+            continue
+
+    observation = tool_runtime.execute(action.tool_call)
+    state.add_observation(observation)
+</code></pre>
+<p>这段伪代码背后的原则是：模型可以提出行动，但不能绕过解析、校验、策略裁决和验证。</p>
+<p>在更完整的 Runtime 里，Agent Loop 每一轮都应该写入 checkpoint。这样当任务进入审批、等待外部系统、工具超时或人工接管时，系统可以从最近的稳定状态恢复。Loop 不是“模型一直想”，而是“Runtime 按状态推进，模型在必要位置提供推理和选择”。</p>
+<hr>
+<h3 id="5310-model-router-与-handoff-manager模型选择专家委派与多-agent-协作"><a class="header" href="#5310-model-router-与-handoff-manager模型选择专家委派与多-agent-协作">5.3.10 Model Router 与 Handoff Manager：模型选择、专家委派与多 Agent 协作</a></h3>
+<p>现代 Agent 系统通常不会只依赖一个模型、一个 Prompt、一个通用 Agent。不同任务对模型能力、成本、延迟、上下文长度、工具调用能力和安全要求都不一样。Model Router 与 Handoff Manager 负责把任务交给合适的模型、专家 Agent 或外部 Agent 系统。</p>
+<p>Model Router 关注“用哪个模型”：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">路由依据</th><th style="text-align: left">示例</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">任务复杂度</td><td style="text-align: left">简单分类用低成本模型，复杂诊断用强推理模型</td></tr>
+<tr><td style="text-align: left">上下文长度</td><td style="text-align: left">长文档分析选择长上下文模型</td></tr>
+<tr><td style="text-align: left">工具能力</td><td style="text-align: left">需要稳定工具调用时选择工具调用能力更强的模型</td></tr>
+<tr><td style="text-align: left">风险等级</td><td style="text-align: left">高风险任务使用更强模型，并增加 Verifier 和人工审查</td></tr>
+<tr><td style="text-align: left">成本和延迟</td><td style="text-align: left">实时客服优先低延迟，离线分析可以接受慢模型</td></tr>
+<tr><td style="text-align: left">数据边界</td><td style="text-align: left">敏感任务限制在特定供应商、区域或私有部署模型</td></tr>
+</tbody>
+</table>
+</div>
+<p>Handoff Manager 关注“交给哪个专家”。它可以把任务从通用 Agent 委派给专业 Agent：</p>
+<pre><code class="language-text">triage agent
+-&gt; billing specialist
+-&gt; refund specialist
+-&gt; security reviewer
+-&gt; human approver
+</code></pre>
+<p>Handoff 不应该只是自然语言“你来处理一下”。一个可靠的 Handoff 至少要包含：</p>
+<ul>
+<li>交接原因；</li>
+<li>任务摘要；</li>
+<li>已收集证据；</li>
+<li>当前状态；</li>
+<li>风险等级；</li>
+<li>可用工具范围；</li>
+<li>不应该重复执行的动作；</li>
+<li>返回结果的结构化协议。</li>
+</ul>
+<pre><code class="language-json">{
+  "handoff_to": "refund_specialist_agent",
+  "reason": "用户问题涉及退款规则和订单状态",
+  "task_summary": "解释订单 O-1024 为什么退款失败，并给出下一步建议",
+  "evidence_ids": ["order_001", "payment_002"],
+  "current_state": "investigating",
+  "risk_level": "medium",
+  "allowed_actions": ["read", "summarize", "recommend"],
+  "blocked_actions": ["execute_refund_without_approval"]
+}
+</code></pre>
+<p>多 Agent 协作要特别警惕两个问题。第一，多个 Agent 之间不能互相绕过权限和审计；第二，Handoff 不能让上下文无限膨胀。每次交接都应该经过 input filter、证据压缩和权限重算。</p>
+<p>第 7 章会展开多 Agent 协作和状态机，第 8 章会讨论平台框架如何支持 Handoff、Agent Team、A2A 和跨系统协作。</p>
+<hr>
+<h3 id="5311-verifier-与-eval-harness运行时验证与回归评测"><a class="header" href="#5311-verifier-与-eval-harness运行时验证与回归评测">5.3.11 Verifier 与 Eval Harness：运行时验证与回归评测</a></h3>
+<p>Agent 最危险的句子之一是：“任务已经完成。”</p>
+<p>是否完成，不应该由模型自己宣布，而应该由 Verifier 判断。</p>
+<p>不同任务需要不同 Verifier：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">任务类型</th><th style="text-align: left">验证方式</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">知识问答</td><td style="text-align: left">引用是否存在、引用是否支持结论、是否越权、是否承认不确定性</td></tr>
+<tr><td style="text-align: left">告警诊断</td><td style="text-align: left">证据是否覆盖时间窗口、根因是否有指标或日志支撑、建议是否安全</td></tr>
+<tr><td style="text-align: left">业务处理</td><td style="text-align: left">状态是否变化、审批是否完成、通知是否发送、审计是否记录</td></tr>
+<tr><td style="text-align: left">数据分析</td><td style="text-align: left">查询是否可复现、口径是否明确、图表是否和数据一致</td></tr>
+<tr><td style="text-align: left">流程建议</td><td style="text-align: left">是否满足约束、是否遗漏关键步骤、是否需要人工确认</td></tr>
+</tbody>
+</table>
+</div>
+<p>Verifier 可以分层：</p>
+<pre class="mermaid">
+flowchart TD
+    Answer["Agent Output"]
+    Format["Format Check&lt;br/&gt;结构和字段"]
+    Evidence["Evidence Check&lt;br/&gt;证据和引用"]
+    Policy["Policy Check&lt;br/&gt;权限和风险"]
+    Domain["Domain Check&lt;br/&gt;领域规则"]
+    Human["Human Review&lt;br/&gt;人工抽检或审批"]
+    Pass["Pass / Needs Repair / Reject"]
+
+    Answer --&gt; Format --&gt; Evidence --&gt; Policy --&gt; Domain --&gt; Human --&gt; Pass
+</pre>
+
+<p>常见的 Verifier 设计：</p>
+<ul>
+<li><strong>格式验证</strong>：输出是否符合 JSON Schema 或报告模板；</li>
+<li><strong>引用验证</strong>：每个关键结论是否能映射到证据；</li>
+<li><strong>权限验证</strong>：是否包含用户无权查看的信息；</li>
+<li><strong>一致性验证</strong>：前后结论是否冲突；</li>
+<li><strong>动作验证</strong>：执行结果是否真的改变了目标状态；</li>
+<li><strong>回归验证</strong>：新版本 Agent 是否比旧版本退化；</li>
+<li><strong>人工验证</strong>：高风险任务必须有人确认。</li>
+</ul>
+<p>Verifier 失败后，不一定要直接报错。更好的做法是把失败原因放回 Agent Loop：</p>
+<pre><code class="language-text">Verifier: 结论 2 缺少引用，建议补充来源或删除该结论。
+Agent Loop: 重新检索证据，修正回答。
+</code></pre>
+<p>这让 Agent 从“生成答案”变成“生成、检查、修复答案”的闭环。</p>
+<p>Eval Harness 和 Verifier 不同。Verifier 是运行时守门员，Eval Harness 是上线前和迭代中的回归系统。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">Verifier</th><th style="text-align: left">Eval Harness</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">发生时机</td><td style="text-align: left">每次任务运行中</td><td style="text-align: left">发布前、灰度中、线上抽样后</td></tr>
+<tr><td style="text-align: left">目标</td><td style="text-align: left">判断当前输出能否交付</td><td style="text-align: left">判断版本是否整体变好或退化</td></tr>
+<tr><td style="text-align: left">输入</td><td style="text-align: left">当前任务、证据、输出、状态</td><td style="text-align: left">数据集、历史 trace、失败案例、人工标注</td></tr>
+<tr><td style="text-align: left">输出</td><td style="text-align: left">pass、needs_repair、reject</td><td style="text-align: left">分数、维度评估、回归报告、改进建议</td></tr>
+</tbody>
+</table>
+</div>
+<p>Agent 的 Eval 不应该只评估最终答案，还要评估执行轨迹：</p>
+<ul>
+<li>是否选择了正确工具；</li>
+<li>是否遗漏关键证据源；</li>
+<li>是否错误调用高风险工具；</li>
+<li>是否在证据不足时承认不确定性；</li>
+<li>是否正确进入审批或人工接管；</li>
+<li>是否比上一个版本增加成本、延迟或失败率；</li>
+<li>是否在历史失败案例上发生回归。</li>
+</ul>
+<p>这也是为什么 Trace 很重要。没有可回放的 trace，就很难做 trajectory eval，也很难知道 Agent 到底是因为检索失败、工具失败、计划错误还是模型误判而失败。</p>
+<hr>
+<h3 id="5312-review-surfacetrace-与-audit可审查的交付界面"><a class="header" href="#5312-review-surfacetrace-与-audit可审查的交付界面">5.3.12 Review Surface、Trace 与 Audit：可审查的交付界面</a></h3>
+<p>Review Surface 是人类和 Agent 系统之间的交接界面。它决定用户看到什么，也决定系统如何被审计和复盘。</p>
+<pre class="mermaid">
+flowchart LR
+    Trace["Trace&lt;br/&gt;过程记录"]
+    Evidence["Evidence&lt;br/&gt;证据"]
+    Decision["Decision&lt;br/&gt;策略裁决"]
+    Output["Output&lt;br/&gt;回答或报告"]
+    Actions["Actions&lt;br/&gt;待确认动作"]
+    Feedback["Feedback&lt;br/&gt;反馈入口"]
+
+    Trace --&gt; Surface["Review Surface"]
+    Evidence --&gt; Surface
+    Decision --&gt; Surface
+    Output --&gt; Surface
+    Actions --&gt; Surface
+    Surface --&gt; Feedback
+</pre>
+
+<p>不同场景的 Review Surface 不一样：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">场景</th><th style="text-align: left">合适的输出界面</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">企业知识问答</td><td style="text-align: left">带引用回答、相关文档、置信度、不确定性说明</td></tr>
+<tr><td style="text-align: left">告警诊断</td><td style="text-align: left">影响范围、根因候选、证据时间线、建议动作、风险等级</td></tr>
+<tr><td style="text-align: left">客服运营</td><td style="text-align: left">工单摘要、客户影响、推荐回复、下一步处理人</td></tr>
+<tr><td style="text-align: left">审批辅助</td><td style="text-align: left">申请摘要、风险点、历史对比、建议决策、审批按钮</td></tr>
+<tr><td style="text-align: left">数据分析</td><td style="text-align: left">查询口径、结果表、图表、异常解释、可复现查询</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个好的 Review Surface 应该包含：</p>
+<ul>
+<li><strong>结论</strong>：用户真正关心的答案；</li>
+<li><strong>证据</strong>：支撑结论的来源；</li>
+<li><strong>不确定性</strong>：哪些地方证据不足；</li>
+<li><strong>动作建议</strong>：下一步可以做什么；</li>
+<li><strong>风险等级</strong>：哪些动作需要审批；</li>
+<li><strong>Trace 链接</strong>：需要时能追溯每一步；</li>
+<li><strong>反馈入口</strong>：用户可以标注有用、错误、遗漏、过期。</li>
+</ul>
+<p>不要把所有内部推理都暴露给用户。用户需要的是可审查的证据链，不是模型的全部思考过程。</p>
+<p>Trace 和 Audit 是 Review Surface 的底座。Trace 面向调试、评测和复盘，Audit 面向责任、合规和安全。</p>
+<p>一个完整 trace 至少应该记录：</p>
+<pre><code class="language-text">request.received
+intent.normalized
+plan.created
+context.retrieved
+memory.recalled
+capability.exposed
+model.selected
+model.called
+tool.proposed
+policy.checked
+human.approval.requested
+tool.executed
+checkpoint.created
+verifier.completed
+response.rendered
+feedback.received
+learning.candidate.created
+</code></pre>
+<p>Audit 记录则更关注不可抵赖的信息：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">审计对象</th><th style="text-align: left">示例</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">谁触发</td><td style="text-align: left">用户、系统、其他 Agent、定时任务</td></tr>
+<tr><td style="text-align: left">看了什么</td><td style="text-align: left">文档、数据表、日志、客户信息、代码文件</td></tr>
+<tr><td style="text-align: left">做了什么</td><td style="text-align: left">查询、生成、通知、创建工单、执行恢复动作</td></tr>
+<tr><td style="text-align: left">谁批准</td><td style="text-align: left">审批人、审批时间、审批理由</td></tr>
+<tr><td style="text-align: left">为什么允许</td><td style="text-align: left">Policy 决策、风险等级、证据数量</td></tr>
+<tr><td style="text-align: left">结果如何</td><td style="text-align: left">成功、失败、部分成功、回滚、转人工</td></tr>
+</tbody>
+</table>
+</div>
+<p>对 Coding Agent、数据分析 Agent、文档 Agent 来说，还需要 Artifact / Workspace Store。Agent 的交付物可能不是一段文字，而是代码补丁、报告、表格、图表、配置变更、审批单或事故复盘文档。Review Surface 应该能展示这些产物的版本、diff、来源和验证结果。</p>
+<hr>
+<h3 id="5313-learning-loop从反馈到能力演进"><a class="header" href="#5313-learning-loop从反馈到能力演进">5.3.13 Learning Loop：从反馈到能力演进</a></h3>
+<p>有些现代 Agent 会被描述为具备“自学习”能力。这个说法容易误导。生产级 Agent 的学习不应该是模型在后台偷偷改自己，而应该是一个受治理的能力演进闭环。</p>
+<p>Learning Loop 的输入通常来自四类信号：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">信号来源</th><th style="text-align: left">示例</th><th style="text-align: left">可能沉淀到哪里</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">用户反馈</td><td style="text-align: left">“这个回答引用错了”“这个建议有用”</td><td style="text-align: left">Eval 样本、知识库修订候选</td></tr>
+<tr><td style="text-align: left">运行结果</td><td style="text-align: left">工具失败、审批拒绝、Verifier 失败</td><td style="text-align: left">Failure Memory、回归集</td></tr>
+<tr><td style="text-align: left">人工 Review</td><td style="text-align: left">专家修改诊断结论、补充证据</td><td style="text-align: left">Skill 候选、Runbook 候选</td></tr>
+<tr><td style="text-align: left">事故复盘</td><td style="text-align: left">根因、处置动作、遗漏信号</td><td style="text-align: left">Memory、Policy、Eval、监控规则</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐的闭环如下：</p>
+<pre class="mermaid">
+flowchart LR
+    Feedback["Feedback / Trace / Incident Review"]
+    Candidate["Learning Candidate&lt;br/&gt;候选经验"]
+    Classify["Classify&lt;br/&gt;Memory / Skill / Policy / Eval / Knowledge"]
+    Verify["Verify&lt;br/&gt;证据、权限、敏感性"]
+    Review["Owner Review&lt;br/&gt;人工审核"]
+    Publish["Versioned Publish&lt;br/&gt;版本化发布"]
+    Monitor["Monitor&lt;br/&gt;灰度和回归监控"]
+
+    Feedback --&gt; Candidate --&gt; Classify --&gt; Verify --&gt; Review --&gt; Publish --&gt; Monitor
+    Monitor --&gt; Candidate
+</pre>
+
+<p>Learning Loop 可以沉淀几类资产：</p>
+<ul>
+<li><strong>Memory</strong>：用户偏好、团队约定、已验证历史经验；</li>
+<li><strong>Skill</strong>：稳定可复用的方法论和执行步骤；</li>
+<li><strong>Policy</strong>：新的风险规则、审批规则、沙箱规则；</li>
+<li><strong>Eval Case</strong>：失败样本、边界样本、回归样本；</li>
+<li><strong>Knowledge Update</strong>：Runbook、FAQ、制度文档、事故复盘；</li>
+<li><strong>Tool Improvement</strong>：更严格的 Schema、更好的错误码、更安全的 dry-run。</li>
+</ul>
+<p>这里最重要的是写入门控和版本治理。一个经验从线上 trace 进入生产能力，至少要经过：</p>
+<ol>
+<li>证据是否充分；</li>
+<li>是否包含敏感信息；</li>
+<li>是否只适用于特定租户、团队、系统或时间段；</li>
+<li>是否需要 owner 审核；</li>
+<li>是否要先进入 Eval，而不是直接进入 Memory 或 Skill；</li>
+<li>是否需要灰度发布和回滚方案。</li>
+</ol>
+<p>因此，“自学习”更准确地说是<strong>受控自改进</strong>。Agent 可以发现模式、提出候选、生成 Skill 草稿或 Eval 样本，但是否进入生产能力，必须经过验证、审查、版本化和监控。这样既能让系统持续变强，也不会让一次错误经验长期污染未来任务。</p>
+<hr>
+<h2 id="54-agent-架构模式从组件组合到系统形态"><a class="header" href="#54-agent-架构模式从组件组合到系统形态">5.4 Agent 架构模式：从组件组合到系统形态</a></h2>
+<p>Agent 架构模式不是越复杂越好。应该根据任务复杂度、风险和可验证性选择。</p>
+<h3 id="541-架构模式选择矩阵"><a class="header" href="#541-架构模式选择矩阵">5.4.1 架构模式选择矩阵</a></h3>
+<p>先用一个矩阵做选择，再进入具体模式。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">架构模式</th><th style="text-align: left">任务复杂度</th><th style="text-align: left">工具调用</th><th style="text-align: left">状态管理</th><th style="text-align: left">风险动作</th><th style="text-align: left">适合场景</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Single-shot</td><td style="text-align: left">低</td><td style="text-align: left">无或少量只读</td><td style="text-align: left">不需要</td><td style="text-align: left">低</td><td style="text-align: left">摘要、分类、草稿、简单问答</td></tr>
+<tr><td style="text-align: left">Router + Specialist</td><td style="text-align: left">中</td><td style="text-align: left">按领域暴露</td><td style="text-align: left">会话级</td><td style="text-align: left">低到中</td><td style="text-align: left">企业助手、多类型入口、客服辅助</td></tr>
+<tr><td style="text-align: left">Plan-and-Execute</td><td style="text-align: left">中到高</td><td style="text-align: left">多工具</td><td style="text-align: left">任务级</td><td style="text-align: left">中</td><td style="text-align: left">数据分析、复杂检索、跨系统诊断</td></tr>
+<tr><td style="text-align: left">State Machine + Agent</td><td style="text-align: left">高</td><td style="text-align: left">多工具</td><td style="text-align: left">生命周期级</td><td style="text-align: left">中到高</td><td style="text-align: left">告警处置、审批、工单、恢复流程</td></tr>
+<tr><td style="text-align: left">Multi-Agent</td><td style="text-align: left">高</td><td style="text-align: left">多角色、多工具</td><td style="text-align: left">多任务级</td><td style="text-align: left">取决于协调策略</td><td style="text-align: left">复杂研究、互审、并行分析</td></tr>
+</tbody>
+</table>
+</div>
+<p>选择时不要从“哪个模式更先进”出发，而要从任务风险出发：如果任务没有生命周期，就不要强行上状态机；如果不需要多角色互审，就不要过早引入 Multi-Agent；如果有生产动作和审批，State Machine + Agent 往往比纯 ReACT 更稳。</p>
+<hr>
+<h3 id="542-single-shot-agent"><a class="header" href="#542-single-shot-agent">5.4.2 Single-shot Agent</a></h3>
+<pre class="mermaid">
+flowchart LR
+    Input["Input"] --&gt; Context["Context"] --&gt; LLM["LLM"] --&gt; Verify["Verify"] --&gt; Output["Output"]
+</pre>
+
+<p>适合低风险、无副作用、上下文清晰的任务，例如摘要、分类、制度问答草稿。</p>
+<p>优点是简单、低延迟、成本低。缺点是无法动态补充证据，遇到复杂任务容易猜测。</p>
+<h3 id="543-router--specialist"><a class="header" href="#543-router--specialist">5.4.3 Router + Specialist</a></h3>
+<pre class="mermaid">
+flowchart TD
+    Input["Input"] --&gt; Router["Task Router"]
+    Router --&gt; QA["Knowledge Specialist"]
+    Router --&gt; Ops["Operation Specialist"]
+    Router --&gt; Analysis["Analysis Specialist"]
+    QA --&gt; Review["Review Surface"]
+    Ops --&gt; Review
+    Analysis --&gt; Review
+</pre>
+
+<p>适合任务类型明确但领域不同的系统，例如企业助手同时处理制度问答、流程咨询、工单摘要。</p>
+<p>关键是 Router 要能拒绝不确定分类，不要强行把所有问题分到某个 Specialist。</p>
+<h3 id="544-plan-and-execute"><a class="header" href="#544-plan-and-execute">5.4.4 Plan-and-Execute</a></h3>
+<pre class="mermaid">
+flowchart LR
+    Input["Input"] --&gt; Plan["Plan"]
+    Plan --&gt; Step1["Step 1"]
+    Step1 --&gt; Step2["Step 2"]
+    Step2 --&gt; Step3["Step 3"]
+    Step3 --&gt; Verify["Verify"]
+    Verify --&gt; Output["Output"]
+</pre>
+
+<p>适合步骤相对清晰、需要多工具协作的任务，例如“分析某类投诉最近一周上升原因”。</p>
+<p>关键风险是计划过早固定。生产系统应允许基于观察结果局部重规划。</p>
+<h3 id="545-state-machine--agent"><a class="header" href="#545-state-machine--agent">5.4.5 State Machine + Agent</a></h3>
+<pre class="mermaid">
+flowchart TD
+    New["New Task"] --&gt; Triage["Triage"]
+    Triage --&gt; Investigate["Investigate"]
+    Investigate --&gt; Recommend["Recommend"]
+    Recommend --&gt; Approval["Approval"]
+    Approval --&gt; Execute["Execute"]
+    Execute --&gt; Verify["Verify"]
+    Verify --&gt; Close["Close"]
+
+    Approval --&gt;|"rejected"| Recommend
+    Verify --&gt;|"failed"| Investigate
+</pre>
+
+<p>适合有明确生命周期、风险动作和人工审批的任务，例如告警处置、工单处理、审批辅助。</p>
+<p>这是企业生产环境最推荐的形态之一：状态机负责边界，Agent 负责状态内的推理。</p>
+<h3 id="546-multi-agent"><a class="header" href="#546-multi-agent">5.4.6 Multi-Agent</a></h3>
+<pre class="mermaid">
+flowchart TD
+    Coordinator["Coordinator"]
+    Researcher["Research Agent"]
+    Analyst["Analysis Agent"]
+    Reviewer["Review Agent"]
+    Surface["Review Surface"]
+
+    Coordinator --&gt; Researcher
+    Coordinator --&gt; Analyst
+    Researcher --&gt; Reviewer
+    Analyst --&gt; Reviewer
+    Reviewer --&gt; Surface
+</pre>
+
+<p>适合任务确实需要多角色并行或互审，例如复杂研究、跨部门分析、长周期项目。</p>
+<p>不要过早引入 Multi-Agent。很多所谓多 Agent 系统只是把一个本来就可以由状态机和工具完成的流程拆成多个模型调用，成本更高，调试更难。</p>
+<hr>
+<h2 id="55-场景映射与落地校验"><a class="header" href="#55-场景映射与落地校验">5.5 场景映射与落地校验</a></h2>
+<p>下面用三个通用场景说明这套框架如何落地。</p>
+<h3 id="551-企业知识助手"><a class="header" href="#551-企业知识助手">5.5.1 企业知识助手</a></h3>
+<pre class="mermaid">
+flowchart TD
+    User["员工问题"]
+    Intent["Intent Normalizer&lt;br/&gt;制度 / 流程 / 权限 / 操作咨询"]
+    Context["Context Builder&lt;br/&gt;知识库 / 制度文档 / FAQ / 工单历史"]
+    Policy["Policy Engine&lt;br/&gt;文档权限 / 隐私过滤"]
+    Loop["Agent Loop&lt;br/&gt;检索 / 对比 / 澄清 / 回答"]
+    Verify["Verifier&lt;br/&gt;引用校验 / 权限校验 / 冲突校验"]
+    Review["Answer Surface&lt;br/&gt;带引用回答 / 相关文档 / 反馈"]
+
+    User --&gt; Intent --&gt; Context --&gt; Policy --&gt; Loop --&gt; Verify --&gt; Review
+</pre>
+
+<p>设计重点：</p>
+<ul>
+<li>Context Builder 要做权限过滤和引用构建；</li>
+<li>Verifier 要检查回答是否被引用支持；</li>
+<li>Review Surface 要鼓励用户反馈“文档过期”“没有回答我的问题”；</li>
+<li>Learning Loop 可以把失败问题变成知识库更新候选，但不能自动污染正式知识库。</li>
+</ul>
+<h3 id="552-告警诊断与处置助手"><a class="header" href="#552-告警诊断与处置助手">5.5.2 告警诊断与处置助手</a></h3>
+<pre class="mermaid">
+flowchart TD
+    Alert["告警 / 事件 / 用户投诉"]
+    Intent["事件归一化&lt;br/&gt;服务 / 时间窗 / 影响范围"]
+    Planner["诊断计划&lt;br/&gt;指标 / 日志 / 变更 / 历史案例"]
+    Context["Context Builder&lt;br/&gt;监控 / 日志 / 工单 / Runbook"]
+    Policy["Policy Engine&lt;br/&gt;只读 / dry-run / 审批 / 禁止"]
+    Loop["Agent Loop&lt;br/&gt;观察 / 诊断 / 补证据"]
+    Verify["Verifier&lt;br/&gt;证据完整度 / 建议安全性"]
+    Review["Incident Surface&lt;br/&gt;根因候选 / 证据 / 建议动作 / 交接"]
+
+    Alert --&gt; Intent --&gt; Planner --&gt; Context --&gt; Policy --&gt; Loop --&gt; Verify --&gt; Review
+</pre>
+
+<p>设计重点：</p>
+<ul>
+<li>诊断可以自动化，恢复动作要分级审批；</li>
+<li>所有结论必须绑定时间窗口和证据；</li>
+<li>高风险动作优先提供 dry-run 和人工确认；</li>
+<li>处置后要把复盘结果沉淀成 Runbook、Eval Case 和 Skill 候选。</li>
+</ul>
+<h3 id="553-业务运营助手"><a class="header" href="#553-业务运营助手">5.5.3 业务运营助手</a></h3>
+<pre class="mermaid">
+flowchart TD
+    Request["运营请求&lt;br/&gt;活动分析 / 客群筛选 / 异常解释"]
+    Intent["任务契约&lt;br/&gt;目标 / 指标 / 口径 / 时间范围"]
+    Planner["分析计划&lt;br/&gt;数据源 / 维度 / 对比方式"]
+    Context["Context Builder&lt;br/&gt;指标定义 / 数据表 / 历史活动 / 规则"]
+    Tools["Tool Runtime&lt;br/&gt;查询 / 计算 / 生成报告"]
+    Policy["Policy Engine&lt;br/&gt;数据权限 / 导出限制 / 外发审批"]
+    Verify["Verifier&lt;br/&gt;口径一致 / 数据可复现 / 异常解释"]
+    Review["Report Surface&lt;br/&gt;结论 / 图表 / 查询口径 / 下一步建议"]
+
+    Request --&gt; Intent --&gt; Planner --&gt; Context --&gt; Tools --&gt; Policy --&gt; Verify --&gt; Review
+</pre>
+
+<p>设计重点：</p>
+<ul>
+<li>指标口径必须进入 Context Package；</li>
+<li>查询和图表要可复现；</li>
+<li>涉及用户数据导出时必须经过权限和审批；</li>
+<li>输出不应只有结论，还要包含口径、数据范围和不确定性。</li>
+</ul>
+<p>这三个场景差异很大，但底层架构是一致的：入口归一、任务契约、上下文、Memory、状态、能力注册、策略、循环、验证、审查、Trace 和学习闭环。</p>
+<hr>
+<h3 id="554-三类场景横向对比"><a class="header" href="#554-三类场景横向对比">5.5.4 三类场景横向对比</a></h3>
+<p>这三个场景可以放在一起比较：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">场景</th><th style="text-align: left">主要任务</th><th style="text-align: left">推荐模式</th><th style="text-align: left">核心组件</th><th style="text-align: left">最大风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">企业知识助手</td><td style="text-align: left">回答制度、流程、知识问题</td><td style="text-align: left">Router + Specialist / Single-shot</td><td style="text-align: left">Context、RAG、Memory、Permission、Verifier</td><td style="text-align: left">引用错误、越权、文档过期、错误记忆污染</td></tr>
+<tr><td style="text-align: left">告警诊断与处置助手</td><td style="text-align: left">诊断告警、建议处置、交接事故</td><td style="text-align: left">State Machine + Agent / Plan-and-Execute</td><td style="text-align: left">Tool、Policy、State、Checkpoint、Trace、Review</td><td style="text-align: left">误诊、高风险动作、证据不足、重复处置</td></tr>
+<tr><td style="text-align: left">业务运营助手</td><td style="text-align: left">分析数据、解释异常、生成报告</td><td style="text-align: left">Plan-and-Execute</td><td style="text-align: left">Planner、Data Tool、Context、Verifier、Artifact Store</td><td style="text-align: left">口径错误、数据不可复现、越权导出</td></tr>
+</tbody>
+</table>
+</div>
+<p>同一套 Agent Runtime，在不同场景中重点不同。知识助手的核心是权限和引用，告警助手的核心是证据和风险动作，运营助手的核心是数据口径和可复现性。架构设计不能只复制组件图，必须让组件服务当前场景的主要风险。</p>
+<hr>
+<h3 id="555-agent-设计检查清单"><a class="header" href="#555-agent-设计检查清单">5.5.5 Agent 设计检查清单</a></h3>
+<p>设计一个 Agent 系统时，可以按下面的清单逐层检查。</p>
+<p><strong>任务与输入</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> 是否定义了目标用户和主要任务？</li>
+<li><input disabled="" type="checkbox"> 是否定义了聊天、API、Webhook、工单、告警、定时任务等入口？</li>
+<li><input disabled="" type="checkbox"> 是否有 request_id、correlation_id、idempotency_key 和环境信息？</li>
+<li><input disabled="" type="checkbox"> 是否区分了问答、诊断、建议、执行、审批等意图？</li>
+<li><input disabled="" type="checkbox"> 是否把用户输入转换成结构化任务契约？</li>
+<li><input disabled="" type="checkbox"> 是否定义了成功标准和停止条件？</li>
+<li><input disabled="" type="checkbox"> 是否明确哪些任务不应该由 Agent 处理？</li>
+</ul>
+<p><strong>上下文</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> 是否有 Source Catalog 管理知识、数据、规则和状态来源？</li>
+<li><input disabled="" type="checkbox"> 是否先做权限过滤，再把内容放入模型上下文？</li>
+<li><input disabled="" type="checkbox"> 是否保留引用、更新时间、owner 和证据 ID？</li>
+<li><input disabled="" type="checkbox"> 是否处理文档冲突、过期和缺失？</li>
+<li><input disabled="" type="checkbox"> 是否控制上下文预算，避免把噪声塞给模型？</li>
+<li><input disabled="" type="checkbox"> 是否区分了 Context、RAG、Execution State 和 Memory？</li>
+</ul>
+<p><strong>Memory 与状态</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Memory 是否有作用域、权限、时效、可信度和遗忘策略？</li>
+<li><input disabled="" type="checkbox"> 是否有 Memory Write Gate，避免未验证推断进入长期记忆？</li>
+<li><input disabled="" type="checkbox"> 是否持久化任务状态、审批状态、工具观察和失败原因？</li>
+<li><input disabled="" type="checkbox"> 是否支持暂停、恢复、重试、回放和人工接管？</li>
+<li><input disabled="" type="checkbox"> 是否为有副作用动作设计了幂等键和重复执行保护？</li>
+</ul>
+<p><strong>技能与工具</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Skill 是否只描述方法，不拥有执行权限？</li>
+<li><input disabled="" type="checkbox"> Tool 是否有明确输入 Schema、输出 Schema 和风险等级？</li>
+<li><input disabled="" type="checkbox"> Connector、MCP Resource、MCP Prompt、Workflow 是否纳入 Capability Registry？</li>
+<li><input disabled="" type="checkbox"> 模型是否只能看到本轮经过筛选后的能力子集？</li>
+<li><input disabled="" type="checkbox"> 有副作用工具是否支持 dry-run、审批和审计？</li>
+<li><input disabled="" type="checkbox"> Tool Result 是否结构化，是否区分成功、失败、部分成功？</li>
+<li><input disabled="" type="checkbox"> 是否避免把宽泛 Shell、数据库写入、任意 HTTP 请求直接暴露给模型？</li>
+</ul>
+<p><strong>策略与安全</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Policy Engine 是否独立于模型执行？</li>
+<li><input disabled="" type="checkbox"> 是否支持 allow、deny、ask、sandbox、audit 等决策？</li>
+<li><input disabled="" type="checkbox"> 是否按用户、角色、环境、任务、工具、状态综合裁决？</li>
+<li><input disabled="" type="checkbox"> 是否对敏感数据、客户数据、生产动作有额外限制？</li>
+<li><input disabled="" type="checkbox"> 是否记录每次策略裁决的原因？</li>
+<li><input disabled="" type="checkbox"> 是否设计了确认、审批、打断、接管、升级、回滚和降级路径？</li>
+</ul>
+<p><strong>Agent Loop</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> 是否有最大步数、时间预算、成本预算和工具预算？</li>
+<li><input disabled="" type="checkbox"> 是否持久化任务状态和工具观察结果？</li>
+<li><input disabled="" type="checkbox"> 是否能处理工具失败、格式错误、证据不足、权限拒绝？</li>
+<li><input disabled="" type="checkbox"> 是否支持基于观察结果局部重规划？</li>
+<li><input disabled="" type="checkbox"> 是否有明确停止条件，避免无限循环？</li>
+<li><input disabled="" type="checkbox"> 是否有 Model Router 和 Handoff Manager 管理模型选择、专家委派和多 Agent 协作？</li>
+</ul>
+<p><strong>验证与审查</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> 是否有 Verifier 判断任务是否完成？</li>
+<li><input disabled="" type="checkbox"> 是否验证引用、权限、格式、状态变化和业务规则？</li>
+<li><input disabled="" type="checkbox"> 是否有 Eval Harness 覆盖历史失败样本、边界样本和轨迹评测？</li>
+<li><input disabled="" type="checkbox"> 高风险结论和动作是否有人类审查？</li>
+<li><input disabled="" type="checkbox"> Review Surface 是否展示结论、证据、不确定性、风险和下一步？</li>
+<li><input disabled="" type="checkbox"> 是否能从线上 Trace 生成 Eval Case 和改进候选？</li>
+</ul>
+<p><strong>生产治理</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> 是否有 Trace 记录每次模型调用、工具调用和策略裁决？</li>
+<li><input disabled="" type="checkbox"> Audit 是否能回答谁触发、看了什么、做了什么、谁批准、结果如何？</li>
+<li><input disabled="" type="checkbox"> 是否有离线 Eval 和线上质量监控？</li>
+<li><input disabled="" type="checkbox"> 是否有灰度、回滚和降级策略？</li>
+<li><input disabled="" type="checkbox"> 是否有成本、延迟和错误率监控？</li>
+<li><input disabled="" type="checkbox"> 是否定义了知识更新、Skill 更新和策略更新的 owner review 流程？</li>
+<li><input disabled="" type="checkbox"> Learning Loop 是否区分 Memory、Skill、Policy、Eval、Knowledge Update 和 Tool Improvement？</li>
+</ul>
 <hr>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
-<h3 id="核心要点回顾"><a class="header" href="#核心要点回顾">核心要点回顾</a></h3>
-<p><strong>1. Agent vs 传统后端的本质区别</strong></p>
-<ul>
-<li>传统后端：确定性、规则驱动、静态流程</li>
-<li>AI Agent：推理驱动、动态规划、自主决策</li>
-<li>关键不是技术新旧，而是问题是否需要推理</li>
-</ul>
-<p><strong>2. 决策框架</strong></p>
-<ul>
-<li>六个关键问题：输入类型、规则复杂度、推理需求、系统整合、准确性要求、延迟要求</li>
-<li>混合架构往往是最佳方案：传统后端 + AI Agent</li>
-</ul>
-<p><strong>3. 核心架构模式</strong></p>
-<ul>
-<li><strong>ReACT</strong>：动态规划，适合探索性任务</li>
-<li><strong>Plan-and-Execute</strong>：先规划再执行，适合流程性任务</li>
-<li><strong>Multi-Agent</strong>：多专家协作，适合复杂系统</li>
-</ul>
-<p><strong>4. 需求分析三层框架</strong></p>
-<ul>
-<li>Layer 1：业务需求（What）- 要解决什么问题</li>
-<li>Layer 2：功能需求（How）- 需要哪些功能</li>
-<li>Layer 3：技术需求（Why Agent）- 为什么需要 Agent</li>
-</ul>
-<p><strong>5. 实战经验</strong></p>
-<ul>
-<li>DoD Agent 案例展示了从规则引擎到 Agent 的演进</li>
-<li>明确的量化指标和成功标准</li>
-<li>完整的需求分析和风险评估</li>
-</ul>
-<h3 id="关键洞察"><a class="header" href="#关键洞察">关键洞察</a></h3>
+<p>本章重新建立了一个从决策到落地的 Agent 架构框架。</p>
+<p>第一，Agent 架构设计不能从模型开始，而要从问题开始。只有当任务包含模糊输入、多源上下文、多步骤推理、跨系统行动、结果验证和风险治理时，才值得进入 Agent 设计。</p>
+<p>第二，Agent 不是传统后端的替代品，而是和后端形成混合架构。传统后端负责状态、事务、权限和审计，Agent 负责理解、规划、证据整合和建议生成，Policy、Verifier 和 Review Surface 负责把风险关在系统边界内。</p>
+<p>第三，生产级 Agent 至少需要 Runtime 骨架：Intake、Context、Memory、Capability、Policy、Human Control、State、Loop、Model Routing、Verifier、Eval、Review、Trace、Audit 和 Learning Loop。MVP 可以简单，但这些职责边界不能缺失。</p>
+<p>第四，核心组件要分工清楚：Event &amp; Intake Router 统一入口，Intent Normalizer 把输入变成任务契约，Planner 生成可验证计划，Context Builder 组织可信上下文，Memory Layer 提供受治理的长期上下文，Execution State 和 Checkpoint 支撑暂停、恢复与回放，Capability Registry 管理 Skills、Tools、Connectors 和 MCP，Policy 与 Human Control 负责裁决和人工介入，Agent Loop 推动任务，Model Router 与 Handoff Manager 负责模型和专家委派，Verifier 与 Eval Harness 判断质量，Review Surface、Trace 和 Audit 完成交接与复盘。</p>
+<p>第五，架构模式要按任务风险选择。低风险任务可以 Single-shot，多入口任务可以 Router + Specialist，多步骤任务适合 Plan-and-Execute，有生命周期和审批的生产任务更适合 State Machine + Agent，Multi-Agent 应该留给确实需要多角色并行或互审的复杂任务。</p>
+<p>最后，场景映射和检查清单是架构设计的落地校验。一个方案图看起来完整不代表可上线，只有当任务、上下文、工具、策略、循环、验证、审查和生产治理都能被回答，Agent 系统才真正具备工程可行性。</p>
+<p>这条主线会贯穿后续章节：第 6 章深入 Agent 工具系统、Skills、连接器与 MCP；第 7 章展开工作流、状态机、Checkpoint 和多 Agent 协作；第 8 章讨论平台架构、模型路由和跨 Agent 协作；第 9-11 章进入 RAG、Agentic RAG、Memory、会话和长期上下文；第 12 章系统讨论 Evals、Guardrails、Trace、Audit 和生产可观测性。</p>
+<p><strong>关键洞察</strong></p>
 <blockquote>
-<p><strong>Agent 不是万能的，不要盲目追求 AI。传统后端系统在确定性场景下仍然是最佳选择。Agent 的价值在于处理复杂、多变、需要推理的场景。</strong></p>
+<p>Agent 的本质不是“模型能不能自己做事”，而是“系统能不能让模型在正确入口、正确上下文、正确状态、正确能力、正确权限和正确验证下完成任务，并把反馈安全地变成下一轮能力演进”。</p>
 </blockquote>
-<h3 id="下一章预告"><a class="header" href="#下一章预告">下一章预告</a></h3>
-<p>第6章我们将深入探讨工具系统与 MCP 协议，包括如何设计可靠的工具接口、如何通过 MCP 连接外部系统，以及工具编排的最佳实践。</p>
 <hr>
 <h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
 <ol>
-<li><strong>ReACT: Synergizing Reasoning and Acting in Language Models</strong> - Yao et al., 2022</li>
-<li><strong>LangChain Agent 文档</strong> - https://docs.langchain.com/docs/components/agents</li>
-<li><strong>LangGraph 架构设计</strong> - https://langchain-ai.github.io/langgraph/</li>
-<li><strong>CrewAI Multi-Agent Framework</strong> - https://github.com/joaomdmoura/crewAI</li>
-<li><strong>OpenAI Function Calling Guide</strong> - https://platform.openai.com/docs/guides/function-calling</li>
+<li><a href="https://arxiv.org/abs/2210.03629">ReAct: Synergizing Reasoning and Acting in Language Models</a> - Shunyu Yao et al., 2022</li>
+<li><a href="https://arxiv.org/abs/2205.00445">MRKL Systems: A modular, neuro-symbolic architecture that combines large language models, external knowledge sources and discrete reasoning</a> - Karpas et al., 2022</li>
+<li><a href="https://arxiv.org/abs/2302.04761">Toolformer: Language Models Can Teach Themselves to Use Tools</a> - Schick et al., 2023</li>
+<li><a href="https://platform.openai.com/docs/guides/agents-sdk">OpenAI Agents SDK</a></li>
+<li><a href="https://openai.com/index/introducing-agentkit/">OpenAI AgentKit</a></li>
+<li><a href="https://openai.github.io/openai-agents-python/tracing/">OpenAI Agents SDK Tracing</a></li>
+<li><a href="https://openai.github.io/openai-agents-python/guardrails/">OpenAI Agents SDK Guardrails</a></li>
+<li><a href="https://openai.github.io/openai-agents-js/guides/handoffs/">OpenAI Agents SDK Handoffs</a></li>
+<li><a href="https://docs.langchain.com/oss/python/langgraph/persistence">LangGraph Persistence</a></li>
+<li><a href="https://docs.langchain.com/oss/javascript/langgraph/add-memory">LangGraph Memory</a></li>
+<li><a href="https://modelcontextprotocol.io/specification/2025-06-18">Model Context Protocol Specification</a></li>
+<li><a href="https://adk.dev/">Google Agent Development Kit</a></li>
+<li><a href="https://google-a2a.github.io/A2A/specification/">A2A Protocol Specification</a></li>
+<li><a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills">Anthropic Agent Skills</a></li>
 </ol>
 
                     </main>
