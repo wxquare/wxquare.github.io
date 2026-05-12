@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-705630ac.js";
+            window.path_to_searchindex_js = "searchindex-a66000eb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-69e853c8.js"></script>
@@ -6222,36 +6222,43 @@ policies:
 <p>完成初始化后，一次用户请求才真正进入 Runtime。完整链路可以拆成二十个事件：</p>
 <pre class="mermaid">
 flowchart TD
-    Request["1. User Request&lt;br/&gt;用户请求"]
-    Intake["2. Request Intake&lt;br/&gt;会话 / 身份 / 环境"]
-    Intent["3. Intent Parsing&lt;br/&gt;意图识别"]
-    Contract["4. Task Contract&lt;br/&gt;任务契约"]
-    Mode["5. Mode Selection&lt;br/&gt;只读 / 建议 / 执行 / 审批"]
-    Plan["6. Initial Plan&lt;br/&gt;初始计划"]
-    Expose["7. Capability Exposure&lt;br/&gt;选择可见技能和工具"]
-    Discover["8. Context Discovery&lt;br/&gt;检索和查询"]
-    Select["9. Context Selection&lt;br/&gt;筛选 / 去重 / 压缩"]
-    Package["10. Context Packaging&lt;br/&gt;上下文包"]
-    Prompt["11. Model Request&lt;br/&gt;系统指令 / 任务 / 上下文 / 工具 Schema"]
-    Reason["12. LLM Reasoning&lt;br/&gt;模型推理"]
-    Proposal["13. Action Proposal&lt;br/&gt;回答或工具调用"]
-    Validate["14. Runtime Validation&lt;br/&gt;Schema / 权限 / 风险"]
-    Execute["15. Tool Execution&lt;br/&gt;工具执行"]
-    Observe["16. Observation&lt;br/&gt;结构化观察"]
-    State["17. State Update&lt;br/&gt;状态更新"]
-    Replan["18. Re-plan / Continue&lt;br/&gt;重规划或继续"]
-    Verify["19. Verify&lt;br/&gt;验证完成度"]
-    Final["20. Final Response&lt;br/&gt;最终响应 / 交接"]
+    Request["S01 User Request&lt;br/&gt;用户请求"]
+    Intake["S02 Request Intake&lt;br/&gt;会话 / 身份 / 环境"]
+    Intent["S03 Intent Parsing&lt;br/&gt;意图识别"]
+    Contract["S04 Task Contract&lt;br/&gt;任务契约"]
+    Mode["S05 Mode Selection&lt;br/&gt;只读 / 建议 / 执行 / 审批"]
+    Plan["S06 Initial Plan&lt;br/&gt;初始计划"]
+    Expose["S07 Capability Exposure&lt;br/&gt;选择可见技能和工具"]
+    Discover["S08 Context Discovery&lt;br/&gt;检索和查询"]
+    Select["S09 Context Selection&lt;br/&gt;筛选 / 去重 / 压缩"]
+    Package["S10 Context Packaging&lt;br/&gt;上下文包"]
+    Prompt["S11 Model Request&lt;br/&gt;系统指令 / 任务 / 上下文 / 工具 Schema"]
+    Reason["S12 LLM Reasoning&lt;br/&gt;模型推理"]
+    Proposal["S13 Action Proposal&lt;br/&gt;回答或工具调用"]
+    Validate["S14 Runtime Validation&lt;br/&gt;Schema / 权限 / 风险"]
+    Execute["S15 Tool Execution&lt;br/&gt;工具执行"]
+    Observe["S16 Observation&lt;br/&gt;结构化观察"]
+    State["S17 State Update&lt;br/&gt;状态更新"]
+    Replan["S18 Re-plan / Continue&lt;br/&gt;重规划或继续"]
+    Verify["S19 Verify&lt;br/&gt;验证完成度"]
+    Final["S20 Final Response&lt;br/&gt;最终响应 / 交接"]
+    ActionType{"动作类型判断"}
+    ContinueDecision{"是否继续"}
+    VerifyResult{"验证结果"}
 
     Request --&gt; Intake --&gt; Intent --&gt; Contract --&gt; Mode --&gt; Plan --&gt; Expose
     Expose --&gt; Discover --&gt; Select --&gt; Package --&gt; Prompt --&gt; Reason --&gt; Proposal
     Proposal --&gt; Validate
-    Validate --&gt;|"tool call"| Execute --&gt; Observe --&gt; State --&gt; Replan
-    Replan --&gt;|"continue"| Package
-    Replan --&gt;|"ready"| Verify
-    Validate --&gt;|"final answer"| Verify
-    Verify --&gt;|"needs repair"| State
-    Verify --&gt;|"passed"| Final
+    Validate --&gt; ActionType
+    ActionType --&gt; Execute
+    ActionType --&gt; Verify
+    Execute --&gt; Observe --&gt; State --&gt; Replan
+    Replan --&gt; ContinueDecision
+    ContinueDecision --&gt; Package
+    ContinueDecision --&gt; Verify
+    Verify --&gt; VerifyResult
+    VerifyResult --&gt; State
+    VerifyResult --&gt; Final
 </pre>
 
 <p>这条链路里，模型和 Runtime 的职责不同：</p>
@@ -6508,27 +6515,105 @@ flowchart LR
 <li>系统能否读取客户信息？</li>
 <li>如果要催办，是否需要审批？</li>
 </ul>
-<p>所以第一层应该是 Intent Normalizer。它负责把原始输入转成任务契约：</p>
+<p>所以 Intent Normalizer 不是一个简单分类器，也不是完全由模型单独完成。更准确地说，它是一个由 Runtime 编排的归一化流水线：</p>
+<pre><code class="language-text">Runtime 收集入口元数据
+  -&gt; 模型做语义解析
+  -&gt; 工具补齐实体和确定性事实
+  -&gt; Policy 裁决权限和风险
+  -&gt; Runtime 校验并生成 Task Contract
+</code></pre>
+<p>四类组件的职责不同：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">组件</th><th style="text-align: left">职责</th><th style="text-align: left">示例</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Runtime</td><td style="text-align: left">收集入口元数据、编排流程、合并结果、校验 Schema</td><td style="text-align: left">用户、渠道、租户、时间、workspace、环境</td></tr>
+<tr><td style="text-align: left">模型</td><td style="text-align: left">理解自然语言意图，抽取模糊实体，判断是否需要澄清</td><td style="text-align: left">判断这是 <code>diagnose_ticket_delay</code>，不是简单 FAQ</td></tr>
+<tr><td style="text-align: left">工具</td><td style="text-align: left">补充确定性事实</td><td style="text-align: left">从链接提取工单号，查询客户 ID，读取工单状态</td></tr>
+<tr><td style="text-align: left">Policy</td><td style="text-align: left">裁决权限、风险和审批要求</td><td style="text-align: left">能否读客户信息，能否通知客户，能否关闭工单</td></tr>
+</tbody>
+</table>
+</div>
+<p>第一步，Runtime 先接收请求信封。这里的信息不是模型推理出来的，而是入口系统自带的事实：</p>
+<pre><code class="language-json">{
+  "user_id": "u_123",
+  "channel": "slack",
+  "workspace": "customer_support",
+  "timestamp": "2026-05-12T10:00:00+08:00",
+  "raw_text": "帮我看看这个客户投诉为什么一直没处理完"
+}
+</code></pre>
+<p>第二步，模型做语义解析：</p>
+<pre><code class="language-json">{
+  "intent": "diagnose_ticket_delay",
+  "task_type": "diagnosis",
+  "entities": {
+    "customer": "unknown",
+    "ticket": "unknown"
+  },
+  "needs_clarification": true
+}
+</code></pre>
+<p>这一步主要依赖模型，因为用户表达往往是模糊的：同一句“帮我看看”可能是问答、诊断、催办、审批前检查，也可能是要求生成处理建议。</p>
+<p>第三步，如果用户消息里带了链接、工单号、客户名或上下文事件，Runtime 可以调用工具补齐确定性事实：</p>
+<pre><code class="language-text">extract_ticket_id(raw_text)
+search_customer(candidate_name)
+get_ticket_status(ticket_id)
+</code></pre>
+<p>工具返回的不是推断，而是可校验事实：</p>
+<pre><code class="language-json">{
+  "ticket_id": "TCK-1024",
+  "customer_id": "C-8801",
+  "ticket_status": "pending_engineering"
+}
+</code></pre>
+<p>第四步，Policy 对权限和风险做裁决：</p>
+<pre><code class="language-json">{
+  "read_ticket": "allow",
+  "read_customer_private_note": "deny",
+  "notify_customer": "ask",
+  "close_ticket": "ask"
+}
+</code></pre>
+<p>最后，Runtime 把入口元数据、模型解析、工具事实和 Policy 裁决合并成任务契约：</p>
 <pre><code class="language-json">{
   "task_id": "task_20260511_001",
   "intent": "diagnose_ticket_delay",
+  "task_type": "diagnosis",
   "user_goal": "解释客户投诉工单长时间未解决的原因，并给出下一步建议",
   "domain": "customer_support",
+  "actor": {
+    "user_id": "u_123",
+    "role": "support_lead"
+  },
   "entities": {
     "ticket_id": "TCK-1024",
-    "customer_id": "C-8801"
+    "customer_id": "C-8801",
+    "ticket_status": "pending_engineering"
   },
   "risk_level": "medium",
-  "allowed_actions": ["read", "summarize", "recommend"],
-  "requires_approval_for": ["notify_customer", "change_owner", "close_ticket"],
+  "allowed_actions": ["read_ticket", "summarize", "recommend"],
+  "blocked_actions": ["read_customer_private_note"],
+  "requires_approval": ["notify_customer", "close_ticket"],
   "success_criteria": [
-    "说明当前工单状态",
-    "列出延迟原因和证据",
+    "解释工单当前状态",
+    "找出延迟原因",
+    "列出证据来源",
     "给出下一步建议",
-    "标注信息来源"
+    "标注需要人工确认的动作"
   ]
 }
 </code></pre>
+<p>如果关键实体缺失，Intent Normalizer 不应该让 Agent 猜。它应该生成澄清决策：</p>
+<pre><code class="language-json">{
+  "decision": "ask_clarification",
+  "question": "请提供客户 ID、工单号，或相关投诉链接。",
+  "missing_fields": ["ticket_id", "customer_id"]
+}
+</code></pre>
+<p>注意：最终 Task Contract 应该由 Runtime 生成和校验，而不是完全相信模型输出。模型负责理解，工具负责查证，Policy 负责裁决，Runtime 负责把它们合并成后续组件都能消费的结构化契约。</p>
 <p>任务契约的价值是把模糊请求变成可执行边界：</p>
 <ul>
 <li>Planner 知道要规划什么；</li>
@@ -6541,7 +6626,220 @@ flowchart LR
 <p>没有任务契约，Agent Loop 很容易变成“模型想做什么就做什么”。</p>
 <hr>
 <h3 id="533-task-planner计划是可验证的假设"><a class="header" href="#533-task-planner计划是可验证的假设">5.3.3 Task Planner：计划是可验证的假设</a></h3>
-<p>Planner 的职责不是写一段漂亮的推理过程，而是把目标拆成可执行、可观察、可验证的步骤。</p>
+<p>Planner 的职责不是写一段漂亮的推理过程，而是把 Task Contract 转成 Runtime 可以执行、Policy 可以裁决、Verifier 可以验证、Review Surface 可以解释的计划。</p>
+<p>Task Planner 通常也是模型、Runtime、工具、Policy 和 Verifier 协作完成的：</p>
+<pre><code class="language-text">Task Contract
+  -&gt; Runtime 选择 Planner 模式
+  -&gt; Skill 声明任务需要哪些事实
+  -&gt; Tool Registry 声明工具能提供哪些事实
+  -&gt; Runtime 计算 Fact Gap
+  -&gt; Policy 过滤不可用或高风险工具
+  -&gt; 模型生成候选计划
+  -&gt; Runtime 校验计划 Schema、预算和依赖
+  -&gt; Verifier 为每一步绑定完成标准
+  -&gt; 输出 Executable Plan
+</code></pre>
+<p>Planner 的输入不是用户原话，而是上一节生成的任务契约，再叠加当前状态、能力地图和预算约束：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">输入</th><th style="text-align: left">来源</th><th style="text-align: left">作用</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Task Contract</td><td style="text-align: left">Intent Normalizer</td><td style="text-align: left">目标、实体、风险、允许动作、成功标准</td></tr>
+<tr><td style="text-align: left">Task State</td><td style="text-align: left">Runtime</td><td style="text-align: left">已完成步骤、已知事实、失败原因、预算消耗</td></tr>
+<tr><td style="text-align: left">Skill</td><td style="text-align: left">Skill Registry</td><td style="text-align: left">这类任务通常需要哪些事实、推荐步骤、验证要求</td></tr>
+<tr><td style="text-align: left">Tool Metadata</td><td style="text-align: left">Tool Registry</td><td style="text-align: left">工具能提供什么事实、需要什么参数、风险等级</td></tr>
+<tr><td style="text-align: left">Policy Decision</td><td style="text-align: left">Policy Engine</td><td style="text-align: left">哪些工具或动作允许、拒绝、需要审批</td></tr>
+<tr><td style="text-align: left">Evidence</td><td style="text-align: left">Context Builder / Tools</td><td style="text-align: left">当前已经掌握了哪些证据</td></tr>
+<tr><td style="text-align: left">Budget</td><td style="text-align: left">Runtime</td><td style="text-align: left">最大步骤数、时间、Token、成本、工具次数</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个常见误区是让模型直接从工具列表里“挑工具”。更稳的做法是先把任务转成事实缺口。</p>
+<p>例如任务契约是：</p>
+<pre><code class="language-json">{
+  "intent": "diagnose_ticket_delay",
+  "entities": {
+    "ticket_id": "TCK-1024"
+  },
+  "success_criteria": [
+    "解释工单当前状态",
+    "找出延迟原因",
+    "列出证据来源",
+    "给出下一步建议"
+  ]
+}
+</code></pre>
+<p>对应 Skill 可以声明这类任务需要的事实：</p>
+<pre><code class="language-json">{
+  "skill": "diagnose_ticket_delay",
+  "required_facts": [
+    "ticket.status",
+    "ticket.history",
+    "sla.policy",
+    "issue.blocker"
+  ],
+  "verification": [
+    "每个延迟原因必须有证据来源",
+    "如果缺少工单号，必须先澄清"
+  ]
+}
+</code></pre>
+<p>如果当前只知道 <code>ticket_id</code>，Planner 会得到 Fact Gap：</p>
+<pre><code class="language-json">{
+  "known_facts": ["ticket_id"],
+  "missing_facts": [
+    "ticket.status",
+    "ticket.history",
+    "sla.policy",
+    "issue.blocker"
+  ]
+}
+</code></pre>
+<p>Tool Registry 不是只有工具名，还要声明工具能提供哪些事实：</p>
+<pre><code class="language-json">[
+  {
+    "tool": "get_ticket",
+    "provides": ["ticket.status", "ticket.history", "ticket.updated_at"],
+    "requires": ["ticket_id"],
+    "risk_level": "low",
+    "side_effect": false
+  },
+  {
+    "tool": "get_sla_policy",
+    "provides": ["sla.policy"],
+    "requires": ["ticket_id"],
+    "risk_level": "low",
+    "side_effect": false
+  },
+  {
+    "tool": "search_linked_issues",
+    "provides": ["issue.blocker", "issue.status"],
+    "requires": ["ticket_id"],
+    "risk_level": "low",
+    "side_effect": false
+  }
+]
+</code></pre>
+<p>于是 Planner 的中间推理对象不是“我想调用哪个工具”，而是：</p>
+<pre><code class="language-json">{
+  "missing_facts": [
+    "ticket.status",
+    "ticket.history",
+    "sla.policy",
+    "issue.blocker"
+  ],
+  "candidate_tools": [
+    {
+      "tool": "get_ticket",
+      "covers": ["ticket.status", "ticket.history"]
+    },
+    {
+      "tool": "get_sla_policy",
+      "covers": ["sla.policy"]
+    },
+    {
+      "tool": "search_linked_issues",
+      "covers": ["issue.blocker", "issue.status"]
+    }
+  ]
+}
+</code></pre>
+<p>Policy 再对候选工具和动作做裁决：</p>
+<pre><code class="language-json">{
+  "get_ticket": "allow",
+  "get_sla_policy": "allow",
+  "search_linked_issues": "allow",
+  "notify_customer": "ask",
+  "close_ticket": "ask",
+  "read_customer_private_note": "deny"
+}
+</code></pre>
+<p>这样生成的计划就不是工具冲动，而是围绕事实缺口组织出来的可执行计划：</p>
+<pre><code class="language-json">{
+  "plan_id": "plan_001",
+  "mode": "investigative",
+  "budget": {
+    "max_steps": 6,
+    "max_tool_calls": 8,
+    "max_minutes": 3
+  },
+  "steps": [
+    {
+      "id": "s1",
+      "goal": "获取工单状态和处理历史",
+      "required_facts": ["ticket.status", "ticket.history"],
+      "tool": "get_ticket",
+      "args": {
+        "ticket_id": "TCK-1024"
+      },
+      "risk": "low",
+      "policy": "allow",
+      "verification": "必须返回 ticket.status、ticket.history 和 updated_at"
+    },
+    {
+      "id": "s2",
+      "goal": "获取适用 SLA 规则",
+      "required_facts": ["sla.policy"],
+      "tool": "get_sla_policy",
+      "args": {
+        "ticket_id": "TCK-1024"
+      },
+      "risk": "low",
+      "policy": "allow",
+      "verification": "必须返回适用 SLA 条款或明确无匹配规则"
+    },
+    {
+      "id": "s3",
+      "goal": "检查工程侧阻塞",
+      "required_facts": ["issue.blocker", "issue.status"],
+      "tool": "search_linked_issues",
+      "args": {
+        "ticket_id": "TCK-1024"
+      },
+      "risk": "low",
+      "policy": "allow",
+      "verification": "必须返回关联 issue 状态，或明确没有关联 issue"
+    },
+    {
+      "id": "s4",
+      "goal": "形成延迟原因和下一步建议",
+      "required_facts": [
+        "ticket.status",
+        "ticket.history",
+        "sla.policy",
+        "issue.blocker"
+      ],
+      "tool": null,
+      "risk": "medium",
+      "policy": "no_side_effect",
+      "verification": "每个原因必须引用前面步骤的证据；建议必须区分可直接建议和需审批动作"
+    }
+  ],
+  "stop_conditions": [
+    "工单不存在",
+    "用户无权限读取工单",
+    "关键事实缺失且无法通过工具补齐",
+    "证据不足以支持结论"
+  ]
+}
+</code></pre>
+<p>这里各组件的分工很清楚：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">组件</th><th style="text-align: left">在 Planner 中的职责</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">模型</td><td style="text-align: left">选择相关 Skill、排序事实缺口、生成步骤顺序、判断哪些步骤可以并行、根据观察结果重规划</td></tr>
+<tr><td style="text-align: left">Runtime</td><td style="text-align: left">校验计划 Schema、检查工具是否存在、检查参数是否满足 <code>requires</code>、限制预算、持久化计划和步骤状态</td></tr>
+<tr><td style="text-align: left">Tool Registry</td><td style="text-align: left">提供工具能力地图：每个工具能提供什么事实、需要什么输入、风险和副作用是什么</td></tr>
+<tr><td style="text-align: left">Policy Engine</td><td style="text-align: left">过滤 <code>deny</code> 工具，把 <code>ask</code> 动作转成审批步骤，限制生产环境高风险动作</td></tr>
+<tr><td style="text-align: left">Verifier</td><td style="text-align: left">给每一步绑定完成标准，避免 Agent 凭感觉宣布完成</td></tr>
+</tbody>
+</table>
+</div>
 <p>一个好的计划应该包含：</p>
 <ul>
 <li><strong>目标</strong>：这一步要解决什么问题；</li>
@@ -6580,7 +6878,15 @@ flowchart LR
 <p>计划不要追求一次性完美。生产 Agent 中，计划更像一个可修订的假设：</p>
 <pre><code class="language-text">Plan -&gt; Act -&gt; Observe -&gt; Replan -&gt; Verify
 </code></pre>
+<p>例如 <code>get_ticket</code> 返回工单不存在时，Planner 不应该继续查 SLA，而应该重规划：</p>
+<pre><code class="language-json">{
+  "replan_reason": "ticket_not_found",
+  "next_action": "ask_clarification",
+  "question": "没有找到 TCK-1024，请确认工单号是否正确。"
+}
+</code></pre>
 <p>关键是每次修订都要留下 trace：为什么改计划、基于什么观察、风险等级是否变化。</p>
+<p>Task Planner 的价值，不是让模型写一份漂亮计划，而是把任务拆成 Runtime 能执行、Policy 能裁决、Verifier 能验证、Review Surface 能解释的步骤。</p>
 <hr>
 <h3 id="534-context-builder上下文是信息架构不是拼-prompt"><a class="header" href="#534-context-builder上下文是信息架构不是拼-prompt">5.3.4 Context Builder：上下文是信息架构，不是拼 Prompt</a></h3>
 <p>Context Builder 是 Agent 系统最容易被低估的一层。它决定模型能看到什么，也决定模型看不到什么。</p>
