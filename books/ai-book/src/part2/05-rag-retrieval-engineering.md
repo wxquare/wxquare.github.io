@@ -1274,6 +1274,20 @@ eval_case:
 
 没有 trace，RAG debug 会很痛苦。你无法知道问题出在 query、filter、召回、rerank、context 还是 generation。
 
+trace 还应该进入治理闭环。比如一次企业知识助手错误回答，trace 显示正确文档没有进入 candidate set，或者进入了 candidate set 但被 rerank 降到上下文之外。这个失败不应该只修一次 prompt，而应该生成回归样本：
+
+```yaml
+failure_record:
+  source_trace_id: "rag_trace_20260506_0123"
+  failure_type: "correct_evidence_not_in_context"
+  root_cause_layer: "rerank"
+  required_regression:
+    - "runbook_order_cpu_high 必须进入 final_evidence"
+    - "deprecated runbook_order_cpu_v1 不得进入 context package"
+```
+
+这样 RAG eval 不只是一次离线评分，而是 Release Gate 的输入：如果新索引、新 reranker 或新切分策略让历史失败复发，就应该阻断发布或进入人工评审。
+
 ---
 
 ## 9.11 常见失败模式与修复路径

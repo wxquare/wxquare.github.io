@@ -1938,6 +1938,26 @@ Trace 要能回答几个问题：
 - 人工在哪一步确认；
 - 恢复验证是否通过。
 
+Trace 的另一个用途，是把线上失败送进 Failure Registry。DoD Agent 的失败不应该只停留在日志里，而要变成可跟踪、可复现、可阻断发布的治理对象。
+
+```yaml
+failure_record:
+  source_trace_id: "trace_inc_20260508_001"
+  incident_id: "inc_20260508_001"
+  failure_type: "stale_runbook_used"
+  root_cause_layer:
+    - retrieval
+    - evidence_validation
+  severity: "p1"
+  user_impact: "误导值班工程师优先排查过期 DLQ 流程"
+  required_regression:
+    - "过期 Runbook 不应高置信进入 Context Package"
+    - "诊断结论必须引用当前日志和指标证据"
+  release_gate_effect: "block_until_regression_passed"
+```
+
+这样，`stale_runbook_used_total` 不只是一个监控指标，也能驱动 eval case、修复任务和发布门禁。
+
 ### Evidence Graph
 
 对于复杂 Incident，可以把证据组织成图。
@@ -2052,6 +2072,21 @@ DoD Agent 不应该一上线就自动执行动作。推荐路线：
 
 每一次 Prompt、工具 Schema、模型版本、Runbook、Policy 变更，都应该跑回归集。
 
+### 从线上失败生成 Eval Case
+
+DoD Agent 的高价值回归集，应该主要来自真实 Incident，而不是靠离线想象。每次出现误诊、漏诊、越权召回、无证据结论、过期 Runbook、高风险动作误判，都应该进入一个 triage 流程：
+
+```text
+prod trace
+  -> failure record
+  -> 冻结告警、指标、日志、Runbook、Policy 和工具返回
+  -> 人工标注正确诊断路径
+  -> 生成 regression eval case
+  -> 下一次发布前由 release gate 检查
+```
+
+例如，某次 Agent 把 DLQ 积压误判为“可以直接重放”，但人工确认真正根因是新版本回调代码异常。这个失败样本应该固化为 eval case，要求新版本必须先识别代码异常、验证幂等和下游健康，再提出小批量 dry-run，而不能直接建议 replay。
+
 ### LLM-as-Judge 的边界
 
 LLM-as-Judge 可以用来评价摘要质量、报告可读性、证据是否覆盖结论。但不要用它单独判断：
@@ -2147,6 +2182,8 @@ external_content:
 - 执行动作的参数；
 - 验证结果；
 - 是否写入 Memory 或 Eval。
+- 失败是否进入 Failure Registry；
+- 相关发布是否通过 Release Gate。
 
 没有审计，Agent 就不应该被允许执行任何生产动作。
 
@@ -3101,6 +3138,10 @@ Eval Owner
 
 用户问“DLQ 增长时要不要重放”通常是在问流程；用户说“帮我重放 production DLQ”才是动作请求。Intent Router 必须区分知识问答、实时诊断和执行请求。
 
+### 失败十一：失败没有进入发布门禁
+
+线上误诊被人工纠正后，如果只写复盘、不进回归集、不影响下一次发布，那么系统没有真正变强。DoD Agent 的高影响失败必须进入 Failure Registry，并在对应 regression eval 通过前阻断新版本发布。
+
 ---
 
 ## 17.25 设计检查清单
@@ -3166,6 +3207,14 @@ Eval Owner
 - 是否能看到模型版本、Prompt 版本、工具版本和 Runbook 版本？
 - 是否有质量指标和成本指标？
 - 是否能解释每个结论的证据来源？
+
+### Governance
+
+- 是否有 Failure Registry 管理高影响失败？
+- 是否能把线上失败冻结成可复现的 regression eval case？
+- 是否保存 agent version 快照，包括模型、Prompt、工具、Policy、Runbook 和索引版本？
+- 是否有 Release Gate 阻断 safety regression、权限回归、旧失败复发和未关闭 P0/P1 failure？
+- 是否能追溯每次发布修复了哪些 failure，又引入了哪些新风险？
 
 ### Learning
 

@@ -757,6 +757,28 @@ Trace 至少有五个用途：
 
 如果没有 trace，Agent 的失败就只能靠猜；有了 trace，失败可以被分类、回归和修复。
 
+在更完整的系统里，trace 还应该能直接生成 eval case 候选。比如一次 Coding Agent 失败 trace 显示：模型修改了 `calculator.py`，但没有新增除零测试，最后只根据 final answer 宣布完成。这条 trace 可以转成回归样本：
+
+```yaml
+eval_case:
+  id: "coding-agent-missing-regression-test-001"
+  source_trace: "traces/20260506-143000.jsonl"
+  task: "给 divide 函数补充除零错误处理，并添加 pytest 测试"
+  required_behavior:
+    - "修改业务代码"
+    - "新增或更新测试覆盖 b == 0"
+    - "运行 pytest 并记录结果"
+  forbidden_behavior:
+    - "未运行验证命令就宣布完成"
+    - "只有代码修改，没有测试修改"
+  scoring:
+    - diff_contains_test_change
+    - verifier_passed
+    - final_answer_has_evidence
+```
+
+这就是第 12 章生产治理控制面在最小 Coding Agent 里的落点：Trace Writer 负责留下事实，Eval Runner 和 Release Gate 负责让旧失败不能静默复发。
+
 ---
 
 ## 19.14 Verifier：不要让模型自己宣布完成
@@ -800,6 +822,27 @@ def verify(
 - 人类 reviewer checklist。
 
 重要原则是：**final answer 是报告，不是证据。证据来自工具结果、测试输出和 diff。**
+
+如果把 verifier 接到发布门禁，最小决策可以非常朴素：
+
+```python
+def coding_agent_release_gate(eval_report):
+    if eval_report.invalid_json_cases > 0:
+        return "block", "model output protocol is unstable"
+
+    if eval_report.verifier_failed_cases > 0:
+        return "block", "agent claims completion without passing verifier"
+
+    if eval_report.missing_regression_test_cases > 0:
+        return "review", "code changes may lack regression coverage"
+
+    if eval_report.avg_tool_calls > eval_report.tool_call_budget:
+        return "review", "tool call budget exceeded"
+
+    return "allow", "coding agent candidate passed"
+```
+
+这里的门禁不需要一开始很复杂，但必须由证据驱动：trace 证明发生过什么，verifier 证明结果是否成立，eval report 决定候选 Agent 能不能进入下一阶段。
 
 ---
 
@@ -1003,6 +1046,13 @@ llm = FakeLLM(
 - final gate 接入 verifier。
 
 目标是形成“修改 -> 测试 -> 修复 -> 报告”的闭环。
+
+从这一阶段开始，建议引入最小治理控制面：
+
+- 每次任务保存 trace；
+- verifier 输出进入 eval result；
+- 失败 trace 可以转成 regression eval case；
+- release gate 阻断“未验证即完成”“修改无 diff”“测试缺失”等历史失败。
 
 ### 阶段四：Workflow Agent
 
@@ -1219,6 +1269,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 ### Production
 
 - 是否有 eval dataset？
+- 是否有 Failure Registry 记录高影响失败？
 - 是否有 release gate？
 - 是否支持灰度和回滚？
 - 是否默认 read-only？
@@ -1242,7 +1293,8 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 7. Trace Writer 让每一步可复盘；
 8. Verifier 把“完成”变成证据问题；
 9. Tests 先验证 Runtime，再评估模型效果；
-10. 演进路线从 read-only、patch、verified、workflow、skill-enabled 到 team agent。
+10. Failure Registry 和 Release Gate 让失败进入回归闭环；
+11. 演进路线从 read-only、patch、verified、workflow、skill-enabled 到 team agent。
 
 一句话总结：
 

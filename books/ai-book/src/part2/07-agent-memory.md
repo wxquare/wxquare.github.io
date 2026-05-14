@@ -775,6 +775,20 @@ write_decision:
   reason: "model inference from historical case, not current verified fact"
 ```
 
+写入决策本身也要进入 trace。生产 Agent 需要能回答：某条长期记忆是谁触发的、基于什么证据写入、经过了哪条 policy、是否有用户确认、后续是否被 eval 判定为误导。
+
+```yaml
+memory_audit_event:
+  memory_id: "mem_pref_ai_book_depth"
+  source_trace_id: "trace_task_20260506_017"
+  write_policy_version: "memory-policy-v3"
+  decision: "write"
+  confidence: 0.92
+  approved_by: "user"
+```
+
+如果 Memory 写入不进审计，错误记忆就很难回滚，也很难进入第 12 章讨论的 Failure Registry。
+
 ### 什么适合写入
 
 适合写入长期或中期 Memory：
@@ -841,6 +855,18 @@ active -> stale -> archived
 - 权限或合规策略变化。
 
 Demotion 的价值是减少旧记忆的影响力，而不是立刻删除所有历史。
+
+当某条记忆被证明误导了 Agent，处理方式不应该只是手动删除。更稳的流程是：
+
+```text
+bad memory used in trace
+  -> failure record
+  -> memory demotion / invalidation
+  -> regression eval case
+  -> release gate checks memory policy version
+```
+
+这样 Memory Store 才是可治理状态层，而不是一个会长期放大错误的隐性上下文源。
 
 ---
 

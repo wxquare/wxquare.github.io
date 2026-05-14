@@ -29,7 +29,7 @@
 - `source/about/resume-project-description.md`
 - `source/about/interview-talking-points.md`
 - `source/about/batch-optimization-detail.md`
-- `source/about/pricing-engine-interview-questions.md`
+- `source/about/pricing-engine-interview-material.md`
 - `books/ai-book/src/`
 - `books/ecommerce-book/src/`
 - `books/system-design-book/src/`

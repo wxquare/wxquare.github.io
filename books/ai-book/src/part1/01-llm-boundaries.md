@@ -90,6 +90,92 @@ Inference-time system:
 
 因此，本书讨论的 Prompt、Context、Harness、RAG、Tool、Memory、Eval 和 Agent Runtime，本质上都是围绕同一个目标展开：**把一个强大的概率生成模型，约束成一个可用于生产系统的工程组件**。
 
+### 从能力边界到三层工程控制面
+
+理解 LLM 的能力边界后，接下来最重要的问题是：工程系统应该在哪些层面约束它？
+
+本书把这个问题拆成三层控制面：
+
+```text
+Prompt Engineering  -> 任务协议
+Context Engineering -> 信息架构
+Harness Engineering -> 运行环境
+```
+
+它们对应 LLM 的三个核心限制：
+
+- 模型会主动补全模糊目标，所以需要 Prompt Engineering 明确任务协议；
+- 模型只能基于输入窗口工作，所以需要 Context Engineering 构建可信工作区；
+- 模型不能天然拥有权限、状态、验证和恢复能力，所以需要 Harness Engineering 提供运行环境。
+
+更具体地说：
+
+| 层 | 核心问题 | 主要产物 | 负责什么 | 不负责什么 |
+|:---|:---|:---|:---|:---|
+| Prompt Engineering | 模型应该怎么做？ | Task Protocol、Output Contract、Reasoning Contract、Tool Contract | 定义角色、任务步骤、输出结构、工具使用规则和失败策略 | 不负责提供真实数据，不负责执行权限和系统验证 |
+| Context Engineering | 模型应该看什么、信什么？ | Context Package、Evidence Package、Context Type System、Memory / RAG 策略 | 选择、过滤、标注、压缩和组织任务所需信息 | 不负责工具执行，不替代任务协议，也不做最终权限控制 |
+| Harness Engineering | 模型如何安全运行？ | Agent Runtime、Tool Runtime、Policy Engine、Workflow、Verifier、Eval、Trace | 控制工具调用、审批、状态、验证、护栏、观测、回滚和治理闭环 | 不替代 Prompt 的任务表达，也不替代 Context 的信息质量 |
+
+用一个告警诊断任务来看会更直观。
+
+用户请求：
+
+```text
+checkout-api P95 延迟升高，请分析可能原因。
+```
+
+Prompt Engineering 负责把任务协议说清楚：
+
+```text
+必须先收集指标、日志和部署记录。
+不能在没有证据时断言根因。
+输出必须包含 hypothesis、evidence、confidence 和 next_steps。
+高风险动作只能建议，不能直接执行。
+```
+
+Context Engineering 负责构建可信工作区：
+
+```yaml
+context_package:
+  current_metrics:
+    source: prometheus
+    time_range: "last_30m"
+    trust: current_fact
+  error_logs:
+    source: log_platform
+    time_range: "last_30m"
+    trust: current_fact
+  deployments:
+    source: deploy_system
+    trust: authoritative
+  runbook:
+    source: checkout_latency_runbook
+    updated_at: "2026-04-01"
+    trust: authoritative
+  historical_incident:
+    usage_rule: "reference_only"
+```
+
+Harness Engineering 负责把行动放进运行边界：
+
+```text
+只暴露只读诊断工具；
+每次工具调用先经过 Policy Engine；
+高风险动作必须人工审批；
+每一步写入 trace；
+最终结论经过 evidence validator；
+失败样本进入 regression eval；
+发布前由 Release Gate 检查旧失败是否复发。
+```
+
+判断边界时，可以用一个简单规则：
+
+- 如果问题是“模型应该按什么协议完成任务”，属于 Prompt Engineering；
+- 如果问题是“模型应该拿到哪些信息，以及这些信息是否可信”，属于 Context Engineering；
+- 如果问题是“模型能调用什么、谁来审批、如何验证和追踪”，属于 Harness Engineering。
+
+这也是本书第一部分的展开顺序：先理解能力边界，再设计任务协议，再设计信息架构，最后进入运行环境。
+
 ### 从任务类型理解 LLM 擅长什么
 
 LLM 的强项来自预训练目标：它擅长在给定上下文中建模语言、代码和知识模式。因此，它更适合处理“语义清晰、答案空间可约束、允许外部验证”的任务。

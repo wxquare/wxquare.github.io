@@ -479,6 +479,9 @@ RAG 的关键中间产物不应该是“拼接后的上下文”，而应该是 
       "snippet": "Cancellation rate increased from 2.1% to 4.8% between Apr 20 and Apr 27.",
       "updated_at": "2026-04-28",
       "authority": "official_metric",
+      "trust_level": "authoritative",
+      "evidence_hash": "sha256:...",
+      "expires_at": "2026-05-28",
       "permission_checked": true,
       "citation": {
         "url": "bi://orders/cancellation_dashboard",
@@ -493,6 +496,9 @@ RAG 的关键中间产物不应该是“拼接后的上下文”，而应该是 
       "snippet": "Timeout errors increased after deploy payment-router-v3.",
       "updated_at": "2026-04-25",
       "authority": "incident_ticket",
+      "trust_level": "verified_incident",
+      "evidence_hash": "sha256:...",
+      "expires_at": "2026-07-25",
       "permission_checked": true,
       "citation": {
         "url": "jira://PAY-8842",
@@ -520,6 +526,7 @@ Evidence Package 有五个价值：
 - 让评估系统能检查引用是否支持结论；
 - 让权限审计知道答案使用了哪些内容；
 - 让系统能在证据不足时拒答或请求补充权限。
+- 让治理控制面能判断某次回答使用了哪些证据版本，以及这些证据是否过期或被撤回。
 
 ### Evidence 不是 Chunk
 
@@ -823,6 +830,17 @@ wrong answer
 ```
 
 trace 里不要存原始敏感内容，可以存引用、hash、artifact id 和脱敏摘要。
+
+当用户点踩、人工纠正、权限拦截或 citation validator 发现问题时，这条 trace 应该进入 Failure Registry，并生成可复现的 eval case。企业知识助手常见的发布门禁包括：
+
+- 正确证据没有进入 Evidence Package；
+- 引用不能支撑关键 claim；
+- 使用过期文档回答；
+- 不同权限用户看到不该看到的证据；
+- 无证据时没有拒答；
+- 敏感信息泄露或跨租户召回。
+
+这些门禁能把“用户反馈不好”转成可执行的系统改进，而不是只靠调 prompt。
 
 ---
 
