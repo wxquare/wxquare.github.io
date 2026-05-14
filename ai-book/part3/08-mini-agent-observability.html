@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a66000eb.js";
+            window.path_to_searchindex_js = "../searchindex-833404c9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-69e853c8.js"></script>
@@ -800,6 +800,24 @@ run verifier
 <li>审计高风险任务。</li>
 </ul>
 <p>如果没有 trace，Agent 的失败就只能靠猜；有了 trace，失败可以被分类、回归和修复。</p>
+<p>在更完整的系统里，trace 还应该能直接生成 eval case 候选。比如一次 Coding Agent 失败 trace 显示：模型修改了 <code>calculator.py</code>，但没有新增除零测试，最后只根据 final answer 宣布完成。这条 trace 可以转成回归样本：</p>
+<pre><code class="language-yaml">eval_case:
+  id: "coding-agent-missing-regression-test-001"
+  source_trace: "traces/20260506-143000.jsonl"
+  task: "给 divide 函数补充除零错误处理，并添加 pytest 测试"
+  required_behavior:
+    - "修改业务代码"
+    - "新增或更新测试覆盖 b == 0"
+    - "运行 pytest 并记录结果"
+  forbidden_behavior:
+    - "未运行验证命令就宣布完成"
+    - "只有代码修改，没有测试修改"
+  scoring:
+    - diff_contains_test_change
+    - verifier_passed
+    - final_answer_has_evidence
+</code></pre>
+<p>这就是第 12 章生产治理控制面在最小 Coding Agent 里的落点：Trace Writer 负责留下事实，Eval Runner 和 Release Gate 负责让旧失败不能静默复发。</p>
 <hr>
 <h2 id="1914-verifier不要让模型自己宣布完成"><a class="header" href="#1914-verifier不要让模型自己宣布完成">19.14 Verifier：不要让模型自己宣布完成</a></h2>
 <p><code>verifier.py</code> 提供了一个最小验证器：</p>
@@ -838,6 +856,23 @@ run verifier
 <li>人类 reviewer checklist。</li>
 </ul>
 <p>重要原则是：<strong>final answer 是报告，不是证据。证据来自工具结果、测试输出和 diff。</strong></p>
+<p>如果把 verifier 接到发布门禁，最小决策可以非常朴素：</p>
+<pre><code class="language-python">def coding_agent_release_gate(eval_report):
+    if eval_report.invalid_json_cases &gt; 0:
+        return "block", "model output protocol is unstable"
+
+    if eval_report.verifier_failed_cases &gt; 0:
+        return "block", "agent claims completion without passing verifier"
+
+    if eval_report.missing_regression_test_cases &gt; 0:
+        return "review", "code changes may lack regression coverage"
+
+    if eval_report.avg_tool_calls &gt; eval_report.tool_call_budget:
+        return "review", "tool call budget exceeded"
+
+    return "allow", "coding agent candidate passed"
+</code></pre>
+<p>这里的门禁不需要一开始很复杂，但必须由证据驱动：trace 证明发生过什么，verifier 证明结果是否成立，eval report 决定候选 Agent 能不能进入下一阶段。</p>
 <hr>
 <h2 id="1915-运行-demo从任务到-diff"><a class="header" href="#1915-运行-demo从任务到-diff">19.15 运行 Demo：从任务到 diff</a></h2>
 <p>Demo 仓库在 <code>demo/</code> 下：</p>
@@ -1005,6 +1040,13 @@ trace: traces/20260506-143000.jsonl
 <li>final gate 接入 verifier。</li>
 </ul>
 <p>目标是形成“修改 -&gt; 测试 -&gt; 修复 -&gt; 报告”的闭环。</p>
+<p>从这一阶段开始，建议引入最小治理控制面：</p>
+<ul>
+<li>每次任务保存 trace；</li>
+<li>verifier 输出进入 eval result；</li>
+<li>失败 trace 可以转成 regression eval case；</li>
+<li>release gate 阻断“未验证即完成”“修改无 diff”“测试缺失”等历史失败。</li>
+</ul>
 <h3 id="阶段四workflow-agent"><a class="header" href="#阶段四workflow-agent">阶段四：Workflow Agent</a></h3>
 <p>加入计划和任务状态。</p>
 <p>适合更长任务：</p>
@@ -1207,6 +1249,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 <h3 id="production"><a class="header" href="#production">Production</a></h3>
 <ul>
 <li>是否有 eval dataset？</li>
+<li>是否有 Failure Registry 记录高影响失败？</li>
 <li>是否有 release gate？</li>
 <li>是否支持灰度和回滚？</li>
 <li>是否默认 read-only？</li>
@@ -1227,6 +1270,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 <li>Trace Writer 让每一步可复盘；</li>
 <li>Verifier 把“完成”变成证据问题；</li>
 <li>Tests 先验证 Runtime，再评估模型效果；</li>
+<li>Failure Registry 和 Release Gate 让失败进入回归闭环；</li>
 <li>演进路线从 read-only、patch、verified、workflow、skill-enabled 到 team agent。</li>
 </ol>
 <p>一句话总结：</p>

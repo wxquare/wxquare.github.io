@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a66000eb.js";
+            window.path_to_searchindex_js = "../searchindex-833404c9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-69e853c8.js"></script>
@@ -193,23 +193,26 @@
 <li>失败样本能否沉淀为改进？</li>
 <li>人类是否能在关键节点接管？</li>
 </ul>
-<p>本章把 Evals、Guardrails、Observability、Lifecycle 和 Failure Debugging 合并为一个完整治理闭环。</p>
-<pre><code class="language-text">Design
+<p>本章把 Evals、Guardrails、Observability、Lifecycle 和 Failure Debugging 合并为一个完整治理闭环。为了避免把它们讲成几个孤立模块，本章始终围绕一个主问题展开：</p>
+<blockquote>
+<p>一次线上 Agent 失败，如何变成下一次发布前的门禁？</p>
+</blockquote>
+<pre><code class="language-text">Production Run
   │
   ▼
-Eval
+Trace
   │
   ▼
-Guardrail
+Failure Triage
   │
   ▼
-Observe
+Eval Case
   │
   ▼
-Debug
+Fix / Regression
   │
   ▼
-Improve
+Release Gate
 </code></pre>
 <p>这条链路有一个很实际的含义：</p>
 <pre><code class="language-text">不能被评估的 Agent，不应该上线；
@@ -266,6 +269,31 @@ Improve
   └─ Failure Registry
 </code></pre>
 <p>一开始实现可以很小，但边界要先留出来。</p>
+<h3 id="贯穿案例告警诊断-agent-的失败闭环"><a class="header" href="#贯穿案例告警诊断-agent-的失败闭环">贯穿案例：告警诊断 Agent 的失败闭环</a></h3>
+<p>假设一个告警诊断 Agent 在线上收到请求：</p>
+<pre><code class="language-text">checkout-api P95 延迟升高，请分析可能原因。
+</code></pre>
+<p>Agent 检索到一篇过期 Runbook，并在没有日志证据的情况下断言“数据库连接池耗尽”。值班工程师纠正后发现，真实原因是最近部署引入的 <code>payment-client</code> timeout 增加。</p>
+<p>生产治理系统不能只记录“这个回答错了”。它应该把这次失败走完一条闭环：</p>
+<pre><code class="language-text">trace_prod_0099
+  │
+  ▼
+failure_type = evidence_not_supported
+root_cause_layer = retrieval + reasoning
+  │
+  ▼
+冻结 metrics / logs / runbook index / prompt / policy
+  │
+  ▼
+新增 regression eval case
+  │
+  ▼
+修复检索过滤、证据检查和输出 guardrail
+  │
+  ▼
+下一次发布前由 Release Gate 验证旧失败不再复发
+</code></pre>
+<p>这就是本章想建立的工程直觉：治理不是“出事后写复盘”，而是让失败自动进入系统改进链路。</p>
 <hr>
 <h2 id="122-agent-evals从样例测试到质量体系"><a class="header" href="#122-agent-evals从样例测试到质量体系">12.2 Agent Evals：从样例测试到质量体系</a></h2>
 <p>Agent Eval 的目标不是证明模型“聪明”，而是持续回答：</p>
@@ -1094,7 +1122,7 @@ task_success_rate dropped by 10% compared with 7-day baseline
 <p>每一次 Agent 行为，能否被记录、评估、解释，并反过来影响下一次发布？</p>
 </blockquote>
 <h3 id="核心数据模型"><a class="header" href="#核心数据模型">核心数据模型</a></h3>
-<p>一个最小治理控制面可以从六张逻辑表开始。</p>
+<p>一个最小治理控制面可以从九张逻辑表开始。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1105,8 +1133,11 @@ task_success_rate dropped by 10% compared with 7-day baseline
 <tr><td style="text-align: left"><code>agent_steps</code></td><td style="text-align: left"><code>run_id</code>、<code>step_id</code>、<code>span_type</code>、<code>model</code>、<code>tool</code>、<code>status</code></td><td style="text-align: left">记录推理、检索、工具调用</td></tr>
 <tr><td style="text-align: left"><code>policy_decisions</code></td><td style="text-align: left"><code>run_id</code>、<code>tool</code>、<code>risk</code>、<code>decision</code>、<code>reason</code>、<code>approver</code></td><td style="text-align: left">审计权限判断</td></tr>
 <tr><td style="text-align: left"><code>evidence_items</code></td><td style="text-align: left"><code>evidence_id</code>、<code>source</code>、<code>hash</code>、<code>trust_level</code>、<code>expires_at</code></td><td style="text-align: left">管理证据</td></tr>
+<tr><td style="text-align: left"><code>failure_records</code></td><td style="text-align: left"><code>failure_id</code>、<code>source_trace_id</code>、<code>failure_type</code>、<code>root_cause_layer</code>、<code>severity</code>、<code>owner</code></td><td style="text-align: left">管理失败样本和修复责任</td></tr>
 <tr><td style="text-align: left"><code>eval_cases</code></td><td style="text-align: left"><code>case_id</code>、<code>source_trace_id</code>、<code>task_contract</code>、<code>frozen_context</code></td><td style="text-align: left">管理评估样本</td></tr>
 <tr><td style="text-align: left"><code>eval_results</code></td><td style="text-align: left"><code>case_id</code>、<code>agent_version</code>、<code>scores</code>、<code>trace_id</code>、<code>failure_type</code></td><td style="text-align: left">比较版本质量</td></tr>
+<tr><td style="text-align: left"><code>release_reports</code></td><td style="text-align: left"><code>release_id</code>、<code>agent_version</code>、<code>eval_suite</code>、<code>gate_decision</code>、<code>blocking_reason</code></td><td style="text-align: left">记录发布门禁结果</td></tr>
+<tr><td style="text-align: left"><code>agent_versions</code></td><td style="text-align: left"><code>agent_version</code>、<code>model_profile</code>、<code>prompt</code>、<code>tools</code>、<code>policy</code>、<code>index</code>、<code>schema</code></td><td style="text-align: left">固化一次发布的完整组合</td></tr>
 </tbody>
 </table>
 </div>
@@ -1117,7 +1148,43 @@ task_success_rate dropped by 10% compared with 7-day baseline
 <li>某次失败是否已经变成回归样本？</li>
 <li>新版本是否修复了旧失败？</li>
 <li>质量下降是模型、prompt、索引还是工具导致的？</li>
+<li>当前发布是否还带着未关闭的高风险失败？</li>
 </ul>
+<h3 id="failure-registry失败不是日志而是待关闭的系统债务"><a class="header" href="#failure-registry失败不是日志而是待关闭的系统债务">Failure Registry：失败不是日志，而是待关闭的系统债务</a></h3>
+<p><code>Failure Registry</code> 不应该只是一个错误日志列表。日志回答“发生了什么”，Failure Registry 回答“这类失败是否已经被系统性处理”。</p>
+<p>一个失败记录至少要包含：</p>
+<pre><code class="language-yaml">failure_record:
+  id: "failure-alert-20260430-0099"
+  source_trace_id: "trace_prod_0099"
+  task_type: "incident_diagnosis"
+  failure_type: "evidence_not_supported"
+  root_cause_layer:
+    - retrieval
+    - reasoning
+  severity: "p1"
+  user_impact: "误导值班工程师排查数据库连接池"
+  frozen_context:
+    prompt_version: "incident-diagnosis-v12"
+    policy_version: "prod-policy-v5"
+    retrieval_index: "runbook-index-20260429"
+    metrics_snapshot: "snapshots/metrics_0099.json"
+    log_snapshot: "snapshots/logs_0099.json"
+  required_regression:
+    - "必须检索 payment-client timeout 日志"
+    - "没有证据时不能断言数据库故障"
+  owner: "agent-platform-team"
+  status: "open"
+</code></pre>
+<p>这个对象把线上事实、根因层级、冻结上下文、修复责任和回归要求连接起来。只有当对应修复完成、回归样本加入 eval suite，并且新版本通过 release gate 后，这条 failure 才能关闭。</p>
+<p>可以把状态流设计成：</p>
+<pre><code class="language-text">detected
+  -&gt; triaged
+  -&gt; regression_created
+  -&gt; fix_candidate_ready
+  -&gt; gate_passed
+  -&gt; closed
+</code></pre>
+<p>如果没有这个状态流，团队很容易陷入“每次都在聊天群里复盘，但系统没有变强”的循环。</p>
 <h3 id="版本对象"><a class="header" href="#版本对象">版本对象</a></h3>
 <p>生产 Agent 不是一个模型，而是一组版本对象的组合。</p>
 <pre><code class="language-yaml">agent_version:
@@ -1135,6 +1202,12 @@ task_success_rate dropped by 10% compared with 7-day baseline
 <h3 id="release-gate-的决策逻辑"><a class="header" href="#release-gate-的决策逻辑">Release Gate 的决策逻辑</a></h3>
 <p>发布门禁不应该依赖人工感觉，而应该由 eval report、policy report 和线上指标共同决定。</p>
 <pre><code class="language-python">def release_gate(report):
+    if report.open_p0_failures &gt; 0:
+        return "block", "unresolved p0 failures"
+
+    if report.failure_cases_without_regression &gt; 0:
+        return "block", "production failures missing regression cases"
+
     if report.safety_violations &gt; 0:
         return "block", "safety violations found"
 
@@ -1161,6 +1234,21 @@ task_success_rate dropped by 10% compared with 7-day baseline
 <li><code>review</code>：质量或成本变化，需要人工判断收益是否值得；</li>
 <li><code>allow</code>：满足门禁，可以进入灰度。</li>
 </ul>
+<p>Release Gate 的输入不应该只有 eval 分数。更完整的门禁应该合并四类信号：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">信号</th><th style="text-align: left">典型来源</th><th style="text-align: left">作用</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Eval Report</td><td style="text-align: left">smoke、regression、safety、scenario eval</td><td style="text-align: left">判断候选版本是否通过离线评估</td></tr>
+<tr><td style="text-align: left">Failure Registry</td><td style="text-align: left">未关闭失败、失败严重级别、是否已有回归样本</td><td style="text-align: left">防止带着已知事故发布</td></tr>
+<tr><td style="text-align: left">Policy Report</td><td style="text-align: left">工具风险、审批、越权尝试、policy bypass</td><td style="text-align: left">判断权限和安全边界是否稳定</td></tr>
+<tr><td style="text-align: left">Online Metrics</td><td style="text-align: left">灰度期成功率、人工纠正率、成本、延迟、拒答率</td><td style="text-align: left">判断真实流量下是否退化</td></tr>
+</tbody>
+</table>
+</div>
+<p>这样发布门禁就不再是“跑完一组测试”，而是一次面向生产风险的决策。</p>
 <h3 id="从控制面到改进闭环"><a class="header" href="#从控制面到改进闭环">从控制面到改进闭环</a></h3>
 <p>一个成熟闭环应该像这样运转：</p>
 <pre><code class="language-text">生产 Trace
@@ -1186,6 +1274,16 @@ Release Gate
 灰度发布
 </code></pre>
 <p>这也是本章最核心的工程观点：Agent 治理不是给模型套几条规则，而是建立一条从生产事实到系统改进的反馈链。</p>
+<p>用前面的告警诊断失败来套这条链路，闭环会变成：</p>
+<pre><code class="language-text">1. Trace 发现 Agent 给出了无证据的数据库结论；
+2. Failure Registry 标记为 evidence_not_supported；
+3. 人工标注冻结上下文，生成 regression eval case；
+4. 修复 retrieval metadata、rerank 和 evidence guardrail；
+5. 新版本在 pairwise regression 中通过旧失败样本；
+6. Release Gate 检查没有开放 P0/P1 failure、没有 safety regression；
+7. 灰度后继续观察 evidence_support_rate 和 human_correction_rate。
+</code></pre>
+<p>这个例子比“提高准确率”更接近生产系统的真实工作方式：每一次失败都必须有去处，每一次发布都必须回答旧失败是否复发。</p>
 <hr>
 <h2 id="126-生命周期从设计到持续改进"><a class="header" href="#126-生命周期从设计到持续改进">12.6 生命周期：从设计到持续改进</a></h2>
 <p>一个 Agent 从想法到生产，建议经过八个阶段。</p>
@@ -1446,7 +1544,7 @@ flowchart TB
 <li>输出必须带 evidence；</li>
 <li>失败样本进入 regression eval；</li>
 <li>发布前跑 smoke + safety eval；</li>
-<li>线上有成本和失败率告警。</li>
+<li>线上有成本和失败率告警；</li>
 <li>每次发布保存完整 agent version 快照。</li>
 </ol>
 <p>这八件事不华丽，但能让 Agent 从 Demo 进入可运营状态。</p>
@@ -1496,11 +1594,21 @@ flowchart TB
 <ul>
 <li><input disabled="" type="checkbox"> 是否有统一的 agent version 对象？</li>
 <li><input disabled="" type="checkbox"> 是否记录模型、prompt、工具、策略、索引和 schema 版本？</li>
-<li><input disabled="" type="checkbox"> Release Gate 是否使用 eval、policy、metrics 三类信号？</li>
+<li><input disabled="" type="checkbox"> Release Gate 是否使用 eval、failure、policy、metrics 四类信号？</li>
 <li><input disabled="" type="checkbox"> 线上 trace 是否能自动进入失败样本候选池？</li>
 <li><input disabled="" type="checkbox"> 是否支持 pairwise regression 比较新旧版本？</li>
 <li><input disabled="" type="checkbox"> 是否能按失败层级统计 root cause？</li>
 <li><input disabled="" type="checkbox"> 是否能从一次回答追溯到 evidence、tool call 和 policy decision？</li>
+</ul>
+<h3 id="failure-registry"><a class="header" href="#failure-registry">Failure Registry</a></h3>
+<ul>
+<li><input disabled="" type="checkbox"> 每个高影响失败是否关联 source trace？</li>
+<li><input disabled="" type="checkbox"> 是否记录 failure type、root cause layer、severity 和 owner？</li>
+<li><input disabled="" type="checkbox"> 是否能冻结复现所需的 prompt、policy、index、memory 和工具结果快照？</li>
+<li><input disabled="" type="checkbox"> 是否区分 detected、triaged、regression_created、gate_passed、closed 等状态？</li>
+<li><input disabled="" type="checkbox"> 未关闭 P0/P1 failure 是否会阻断发布？</li>
+<li><input disabled="" type="checkbox"> 线上失败是否必须生成或关联 regression eval case？</li>
+<li><input disabled="" type="checkbox"> 关闭失败前是否要求新版本通过对应回归样本？</li>
 </ul>
 <hr>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>

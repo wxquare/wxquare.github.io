@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a66000eb.js";
+            window.path_to_searchindex_js = "searchindex-833404c9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-69e853c8.js"></script>
@@ -382,6 +382,78 @@ Inference-time system:
 <li>RAG / Toolformer 说明外部知识和外部工具不是补丁，而是 LLM 架构的一部分。</li>
 </ul>
 <p>因此，本书讨论的 Prompt、Context、Harness、RAG、Tool、Memory、Eval 和 Agent Runtime，本质上都是围绕同一个目标展开：<strong>把一个强大的概率生成模型，约束成一个可用于生产系统的工程组件</strong>。</p>
+<h3 id="从能力边界到三层工程控制面"><a class="header" href="#从能力边界到三层工程控制面">从能力边界到三层工程控制面</a></h3>
+<p>理解 LLM 的能力边界后，接下来最重要的问题是：工程系统应该在哪些层面约束它？</p>
+<p>本书把这个问题拆成三层控制面：</p>
+<pre><code class="language-text">Prompt Engineering  -&gt; 任务协议
+Context Engineering -&gt; 信息架构
+Harness Engineering -&gt; 运行环境
+</code></pre>
+<p>它们对应 LLM 的三个核心限制：</p>
+<ul>
+<li>模型会主动补全模糊目标，所以需要 Prompt Engineering 明确任务协议；</li>
+<li>模型只能基于输入窗口工作，所以需要 Context Engineering 构建可信工作区；</li>
+<li>模型不能天然拥有权限、状态、验证和恢复能力，所以需要 Harness Engineering 提供运行环境。</li>
+</ul>
+<p>更具体地说：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">层</th><th style="text-align: left">核心问题</th><th style="text-align: left">主要产物</th><th style="text-align: left">负责什么</th><th style="text-align: left">不负责什么</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Prompt Engineering</td><td style="text-align: left">模型应该怎么做？</td><td style="text-align: left">Task Protocol、Output Contract、Reasoning Contract、Tool Contract</td><td style="text-align: left">定义角色、任务步骤、输出结构、工具使用规则和失败策略</td><td style="text-align: left">不负责提供真实数据，不负责执行权限和系统验证</td></tr>
+<tr><td style="text-align: left">Context Engineering</td><td style="text-align: left">模型应该看什么、信什么？</td><td style="text-align: left">Context Package、Evidence Package、Context Type System、Memory / RAG 策略</td><td style="text-align: left">选择、过滤、标注、压缩和组织任务所需信息</td><td style="text-align: left">不负责工具执行，不替代任务协议，也不做最终权限控制</td></tr>
+<tr><td style="text-align: left">Harness Engineering</td><td style="text-align: left">模型如何安全运行？</td><td style="text-align: left">Agent Runtime、Tool Runtime、Policy Engine、Workflow、Verifier、Eval、Trace</td><td style="text-align: left">控制工具调用、审批、状态、验证、护栏、观测、回滚和治理闭环</td><td style="text-align: left">不替代 Prompt 的任务表达，也不替代 Context 的信息质量</td></tr>
+</tbody>
+</table>
+</div>
+<p>用一个告警诊断任务来看会更直观。</p>
+<p>用户请求：</p>
+<pre><code class="language-text">checkout-api P95 延迟升高，请分析可能原因。
+</code></pre>
+<p>Prompt Engineering 负责把任务协议说清楚：</p>
+<pre><code class="language-text">必须先收集指标、日志和部署记录。
+不能在没有证据时断言根因。
+输出必须包含 hypothesis、evidence、confidence 和 next_steps。
+高风险动作只能建议，不能直接执行。
+</code></pre>
+<p>Context Engineering 负责构建可信工作区：</p>
+<pre><code class="language-yaml">context_package:
+  current_metrics:
+    source: prometheus
+    time_range: "last_30m"
+    trust: current_fact
+  error_logs:
+    source: log_platform
+    time_range: "last_30m"
+    trust: current_fact
+  deployments:
+    source: deploy_system
+    trust: authoritative
+  runbook:
+    source: checkout_latency_runbook
+    updated_at: "2026-04-01"
+    trust: authoritative
+  historical_incident:
+    usage_rule: "reference_only"
+</code></pre>
+<p>Harness Engineering 负责把行动放进运行边界：</p>
+<pre><code class="language-text">只暴露只读诊断工具；
+每次工具调用先经过 Policy Engine；
+高风险动作必须人工审批；
+每一步写入 trace；
+最终结论经过 evidence validator；
+失败样本进入 regression eval；
+发布前由 Release Gate 检查旧失败是否复发。
+</code></pre>
+<p>判断边界时，可以用一个简单规则：</p>
+<ul>
+<li>如果问题是“模型应该按什么协议完成任务”，属于 Prompt Engineering；</li>
+<li>如果问题是“模型应该拿到哪些信息，以及这些信息是否可信”，属于 Context Engineering；</li>
+<li>如果问题是“模型能调用什么、谁来审批、如何验证和追踪”，属于 Harness Engineering。</li>
+</ul>
+<p>这也是本书第一部分的展开顺序：先理解能力边界，再设计任务协议，再设计信息架构，最后进入运行环境。</p>
 <h3 id="从任务类型理解-llm-擅长什么"><a class="header" href="#从任务类型理解-llm-擅长什么">从任务类型理解 LLM 擅长什么</a></h3>
 <p>LLM 的强项来自预训练目标：它擅长在给定上下文中建模语言、代码和知识模式。因此，它更适合处理“语义清晰、答案空间可约束、允许外部验证”的任务。</p>
 <div class="table-wrapper">
@@ -4907,6 +4979,7 @@ Context Engineering:
 Harness Engineering:
   把模型放进可控、可验证、可观测的运行环境。
 </code></pre>
+<p>第 1 章已经从 LLM 能力边界出发，对这三层控制面的含义和边界做过总览。本章站在 Context Engineering 的位置继续往下推进：当任务协议已经清楚时，系统还必须保证模型拿到的是可信、相关、最小充分、可追溯的信息。</p>
 <p>三者缺一不可。Prompt 不清，模型不知道要做什么；Context 不好，模型不知道该相信什么；Harness 不强，模型即使知道了也无法可靠行动。</p>
 <hr>
 <h2 id="本章小结-2"><a class="header" href="#本章小结-2">本章小结</a></h2>
@@ -5156,6 +5229,8 @@ flowchart TB
 </tbody>
 </table>
 </div>
+<p>从生产治理角度看，这六层还承担另一件事：为后续治理控制面提供事实来源。Context Layer 记录模型看到了什么，Tool Layer 记录模型想做什么和工具实际做了什么，Guardrail Layer 记录哪些风险被拦截，Eval Layer 证明候选版本是否可靠，Observability Layer 把线上失败转成可复盘的 trace。</p>
+<p>因此 Harness 不只是运行环境，也是治理数据的采集点。第 12 章会继续展开：这些 trace、policy decision、eval result 和 failure record 如何进入 Release Gate，决定一个 Agent 版本能不能发布。</p>
 <p>接下来逐层展开。</p>
 <hr>
 <h2 id="44-context-layer给模型一个受控工作区"><a class="header" href="#44-context-layer给模型一个受控工作区">4.4 Context Layer：给模型一个受控工作区</a></h2>
@@ -5706,9 +5781,12 @@ Add Eval Case
   ↓
 Regression Test
   ↓
+Release Gate
+  ↓
 Gradual Rollout
 </code></pre>
 <p>关键不是“这次修好了”，而是“这个错误类型以后不会静默发生”。</p>
+<p>这也是 Harness 与生产治理的分工：Harness 负责把每一步行为记录成可复盘事实，治理控制面负责把失败归档到 Failure Registry、生成回归样本，并在下一次发布前用 Release Gate 阻断旧问题复发。</p>
 <h3 id="最小可行-harness-检查清单"><a class="header" href="#最小可行-harness-检查清单">最小可行 Harness 检查清单</a></h3>
 <p>如果你要把一个 Agent 从 demo 推向生产，至少需要：</p>
 <ul>
@@ -5720,7 +5798,8 @@ Gradual Rollout
 <li><input disabled="" type="checkbox"> 离线 eval dataset；</li>
 <li><input disabled="" type="checkbox"> trace、metrics、cost 和 failure category；</li>
 <li><input disabled="" type="checkbox"> 回滚、降级和 kill switch；</li>
-<li><input disabled="" type="checkbox"> 失败样本进入回归集的流程。</li>
+<li><input disabled="" type="checkbox"> 失败样本进入回归集的流程；</li>
+<li><input disabled="" type="checkbox"> agent version 快照和发布门禁。</li>
 </ul>
 <hr>
 <h2 id="本章小结-3"><a class="header" href="#本章小结-3">本章小结</a></h2>
@@ -5745,7 +5824,7 @@ Gradual Rollout
 <li>Observability：定位失败并持续改进。</li>
 </ol>
 <p>当所有团队都能接入相似水平的模型时，差异不再主要来自“谁的模型更强”，而是来自“谁的 Harness 更可靠”。这也是工程师最有价值的地方：把不确定的模型能力，放进确定的工程系统里。</p>
-<p>下一部分将进入 Agent 架构与运行时设计，讨论 LLM 能力边界、Agent 架构决策、工具系统和工作流编排。</p>
+<p>下一部分将进入 Agent 架构与运行时设计，讨论 LLM 能力边界、Agent 架构决策、工具系统和工作流编排。等到第 12 章讨论生产治理时，你会再次看到这条主线：Harness 采集事实，治理控制面消费事实，并把失败变成下一次发布前的门禁。</p>
 <hr>
 <h2 id="参考资料-1"><a class="header" href="#参考资料-1">参考资料</a></h2>
 <ol>
@@ -11681,6 +11760,16 @@ class RAGRetriever:
 }
 </code></pre>
 <p>没有 trace，RAG debug 会很痛苦。你无法知道问题出在 query、filter、召回、rerank、context 还是 generation。</p>
+<p>trace 还应该进入治理闭环。比如一次企业知识助手错误回答，trace 显示正确文档没有进入 candidate set，或者进入了 candidate set 但被 rerank 降到上下文之外。这个失败不应该只修一次 prompt，而应该生成回归样本：</p>
+<pre><code class="language-yaml">failure_record:
+  source_trace_id: "rag_trace_20260506_0123"
+  failure_type: "correct_evidence_not_in_context"
+  root_cause_layer: "rerank"
+  required_regression:
+    - "runbook_order_cpu_high 必须进入 final_evidence"
+    - "deprecated runbook_order_cpu_v1 不得进入 context package"
+</code></pre>
+<p>这样 RAG eval 不只是一次离线评分，而是 Release Gate 的输入：如果新索引、新 reranker 或新切分策略让历史失败复发，就应该阻断发布或进入人工评审。</p>
 <hr>
 <h2 id="911-常见失败模式与修复路径"><a class="header" href="#911-常见失败模式与修复路径">9.11 常见失败模式与修复路径</a></h2>
 <p>RAG 失败通常不是随机的。</p>
@@ -12604,6 +12693,16 @@ Agent 负责比较、提取和综合
 }
 </code></pre>
 <p>有了 trace，才能判断 Agent 是真的找到了证据，还是偶然答对。</p>
+<p>Agentic RAG 的 Release Gate 应该使用这些 trace 级指标，而不是只看最终答案分数。常见阻断条件包括：</p>
+<ul>
+<li>缺少必需 hop，例如没有查询当前指标就给出根因；</li>
+<li>高置信 claim 没有 citation；</li>
+<li>把历史案例当成当前事实；</li>
+<li>在证据不足时没有停止；</li>
+<li>建议高风险动作但没有触发审批；</li>
+<li>检索调用、token 或延迟超过预算。</li>
+</ul>
+<p>这类门禁能防止“答案看起来像对的，但过程不可接受”的版本进入生产。</p>
 <hr>
 <h2 id="1011-三个典型案例"><a class="header" href="#1011-三个典型案例">10.11 三个典型案例</a></h2>
 <h3 id="案例一生产事故分析-agent"><a class="header" href="#案例一生产事故分析-agent">案例一：生产事故分析 Agent</a></h3>
@@ -13411,6 +13510,16 @@ Write / Ask Confirmation / Drop
   decision: reject
   reason: "model inference from historical case, not current verified fact"
 </code></pre>
+<p>写入决策本身也要进入 trace。生产 Agent 需要能回答：某条长期记忆是谁触发的、基于什么证据写入、经过了哪条 policy、是否有用户确认、后续是否被 eval 判定为误导。</p>
+<pre><code class="language-yaml">memory_audit_event:
+  memory_id: "mem_pref_ai_book_depth"
+  source_trace_id: "trace_task_20260506_017"
+  write_policy_version: "memory-policy-v3"
+  decision: "write"
+  confidence: 0.92
+  approved_by: "user"
+</code></pre>
+<p>如果 Memory 写入不进审计，错误记忆就很难回滚，也很难进入第 12 章讨论的 Failure Registry。</p>
 <h3 id="什么适合写入"><a class="header" href="#什么适合写入">什么适合写入</a></h3>
 <p>适合写入长期或中期 Memory：</p>
 <ul>
@@ -13466,6 +13575,14 @@ Write / Ask Confirmation / Drop
 <li>权限或合规策略变化。</li>
 </ul>
 <p>Demotion 的价值是减少旧记忆的影响力，而不是立刻删除所有历史。</p>
+<p>当某条记忆被证明误导了 Agent，处理方式不应该只是手动删除。更稳的流程是：</p>
+<pre><code class="language-text">bad memory used in trace
+  -&gt; failure record
+  -&gt; memory demotion / invalidation
+  -&gt; regression eval case
+  -&gt; release gate checks memory policy version
+</code></pre>
+<p>这样 Memory Store 才是可治理状态层，而不是一个会长期放大错误的隐性上下文源。</p>
 <hr>
 <h2 id="116-读取策略如何让-agent-想起正确的事"><a class="header" href="#116-读取策略如何让-agent-想起正确的事">11.6 读取策略：如何让 Agent 想起正确的事</a></h2>
 <p>Memory 读取不是简单相似度搜索。</p>
@@ -14232,23 +14349,26 @@ Memory eval 要同时覆盖该想起和不该想起的场景。
 <li>失败样本能否沉淀为改进？</li>
 <li>人类是否能在关键节点接管？</li>
 </ul>
-<p>本章把 Evals、Guardrails、Observability、Lifecycle 和 Failure Debugging 合并为一个完整治理闭环。</p>
-<pre><code class="language-text">Design
+<p>本章把 Evals、Guardrails、Observability、Lifecycle 和 Failure Debugging 合并为一个完整治理闭环。为了避免把它们讲成几个孤立模块，本章始终围绕一个主问题展开：</p>
+<blockquote>
+<p>一次线上 Agent 失败，如何变成下一次发布前的门禁？</p>
+</blockquote>
+<pre><code class="language-text">Production Run
   │
   ▼
-Eval
+Trace
   │
   ▼
-Guardrail
+Failure Triage
   │
   ▼
-Observe
+Eval Case
   │
   ▼
-Debug
+Fix / Regression
   │
   ▼
-Improve
+Release Gate
 </code></pre>
 <p>这条链路有一个很实际的含义：</p>
 <pre><code class="language-text">不能被评估的 Agent，不应该上线；
@@ -14305,6 +14425,31 @@ Improve
   └─ Failure Registry
 </code></pre>
 <p>一开始实现可以很小，但边界要先留出来。</p>
+<h3 id="贯穿案例告警诊断-agent-的失败闭环"><a class="header" href="#贯穿案例告警诊断-agent-的失败闭环">贯穿案例：告警诊断 Agent 的失败闭环</a></h3>
+<p>假设一个告警诊断 Agent 在线上收到请求：</p>
+<pre><code class="language-text">checkout-api P95 延迟升高，请分析可能原因。
+</code></pre>
+<p>Agent 检索到一篇过期 Runbook，并在没有日志证据的情况下断言“数据库连接池耗尽”。值班工程师纠正后发现，真实原因是最近部署引入的 <code>payment-client</code> timeout 增加。</p>
+<p>生产治理系统不能只记录“这个回答错了”。它应该把这次失败走完一条闭环：</p>
+<pre><code class="language-text">trace_prod_0099
+  │
+  ▼
+failure_type = evidence_not_supported
+root_cause_layer = retrieval + reasoning
+  │
+  ▼
+冻结 metrics / logs / runbook index / prompt / policy
+  │
+  ▼
+新增 regression eval case
+  │
+  ▼
+修复检索过滤、证据检查和输出 guardrail
+  │
+  ▼
+下一次发布前由 Release Gate 验证旧失败不再复发
+</code></pre>
+<p>这就是本章想建立的工程直觉：治理不是“出事后写复盘”，而是让失败自动进入系统改进链路。</p>
 <hr>
 <h2 id="122-agent-evals从样例测试到质量体系"><a class="header" href="#122-agent-evals从样例测试到质量体系">12.2 Agent Evals：从样例测试到质量体系</a></h2>
 <p>Agent Eval 的目标不是证明模型“聪明”，而是持续回答：</p>
@@ -15133,7 +15278,7 @@ task_success_rate dropped by 10% compared with 7-day baseline
 <p>每一次 Agent 行为，能否被记录、评估、解释，并反过来影响下一次发布？</p>
 </blockquote>
 <h3 id="核心数据模型"><a class="header" href="#核心数据模型">核心数据模型</a></h3>
-<p>一个最小治理控制面可以从六张逻辑表开始。</p>
+<p>一个最小治理控制面可以从九张逻辑表开始。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -15144,8 +15289,11 @@ task_success_rate dropped by 10% compared with 7-day baseline
 <tr><td style="text-align: left"><code>agent_steps</code></td><td style="text-align: left"><code>run_id</code>、<code>step_id</code>、<code>span_type</code>、<code>model</code>、<code>tool</code>、<code>status</code></td><td style="text-align: left">记录推理、检索、工具调用</td></tr>
 <tr><td style="text-align: left"><code>policy_decisions</code></td><td style="text-align: left"><code>run_id</code>、<code>tool</code>、<code>risk</code>、<code>decision</code>、<code>reason</code>、<code>approver</code></td><td style="text-align: left">审计权限判断</td></tr>
 <tr><td style="text-align: left"><code>evidence_items</code></td><td style="text-align: left"><code>evidence_id</code>、<code>source</code>、<code>hash</code>、<code>trust_level</code>、<code>expires_at</code></td><td style="text-align: left">管理证据</td></tr>
+<tr><td style="text-align: left"><code>failure_records</code></td><td style="text-align: left"><code>failure_id</code>、<code>source_trace_id</code>、<code>failure_type</code>、<code>root_cause_layer</code>、<code>severity</code>、<code>owner</code></td><td style="text-align: left">管理失败样本和修复责任</td></tr>
 <tr><td style="text-align: left"><code>eval_cases</code></td><td style="text-align: left"><code>case_id</code>、<code>source_trace_id</code>、<code>task_contract</code>、<code>frozen_context</code></td><td style="text-align: left">管理评估样本</td></tr>
 <tr><td style="text-align: left"><code>eval_results</code></td><td style="text-align: left"><code>case_id</code>、<code>agent_version</code>、<code>scores</code>、<code>trace_id</code>、<code>failure_type</code></td><td style="text-align: left">比较版本质量</td></tr>
+<tr><td style="text-align: left"><code>release_reports</code></td><td style="text-align: left"><code>release_id</code>、<code>agent_version</code>、<code>eval_suite</code>、<code>gate_decision</code>、<code>blocking_reason</code></td><td style="text-align: left">记录发布门禁结果</td></tr>
+<tr><td style="text-align: left"><code>agent_versions</code></td><td style="text-align: left"><code>agent_version</code>、<code>model_profile</code>、<code>prompt</code>、<code>tools</code>、<code>policy</code>、<code>index</code>、<code>schema</code></td><td style="text-align: left">固化一次发布的完整组合</td></tr>
 </tbody>
 </table>
 </div>
@@ -15156,7 +15304,43 @@ task_success_rate dropped by 10% compared with 7-day baseline
 <li>某次失败是否已经变成回归样本？</li>
 <li>新版本是否修复了旧失败？</li>
 <li>质量下降是模型、prompt、索引还是工具导致的？</li>
+<li>当前发布是否还带着未关闭的高风险失败？</li>
 </ul>
+<h3 id="failure-registry失败不是日志而是待关闭的系统债务"><a class="header" href="#failure-registry失败不是日志而是待关闭的系统债务">Failure Registry：失败不是日志，而是待关闭的系统债务</a></h3>
+<p><code>Failure Registry</code> 不应该只是一个错误日志列表。日志回答“发生了什么”，Failure Registry 回答“这类失败是否已经被系统性处理”。</p>
+<p>一个失败记录至少要包含：</p>
+<pre><code class="language-yaml">failure_record:
+  id: "failure-alert-20260430-0099"
+  source_trace_id: "trace_prod_0099"
+  task_type: "incident_diagnosis"
+  failure_type: "evidence_not_supported"
+  root_cause_layer:
+    - retrieval
+    - reasoning
+  severity: "p1"
+  user_impact: "误导值班工程师排查数据库连接池"
+  frozen_context:
+    prompt_version: "incident-diagnosis-v12"
+    policy_version: "prod-policy-v5"
+    retrieval_index: "runbook-index-20260429"
+    metrics_snapshot: "snapshots/metrics_0099.json"
+    log_snapshot: "snapshots/logs_0099.json"
+  required_regression:
+    - "必须检索 payment-client timeout 日志"
+    - "没有证据时不能断言数据库故障"
+  owner: "agent-platform-team"
+  status: "open"
+</code></pre>
+<p>这个对象把线上事实、根因层级、冻结上下文、修复责任和回归要求连接起来。只有当对应修复完成、回归样本加入 eval suite，并且新版本通过 release gate 后，这条 failure 才能关闭。</p>
+<p>可以把状态流设计成：</p>
+<pre><code class="language-text">detected
+  -&gt; triaged
+  -&gt; regression_created
+  -&gt; fix_candidate_ready
+  -&gt; gate_passed
+  -&gt; closed
+</code></pre>
+<p>如果没有这个状态流，团队很容易陷入“每次都在聊天群里复盘，但系统没有变强”的循环。</p>
 <h3 id="版本对象"><a class="header" href="#版本对象">版本对象</a></h3>
 <p>生产 Agent 不是一个模型，而是一组版本对象的组合。</p>
 <pre><code class="language-yaml">agent_version:
@@ -15174,6 +15358,12 @@ task_success_rate dropped by 10% compared with 7-day baseline
 <h3 id="release-gate-的决策逻辑"><a class="header" href="#release-gate-的决策逻辑">Release Gate 的决策逻辑</a></h3>
 <p>发布门禁不应该依赖人工感觉，而应该由 eval report、policy report 和线上指标共同决定。</p>
 <pre><code class="language-python">def release_gate(report):
+    if report.open_p0_failures &gt; 0:
+        return "block", "unresolved p0 failures"
+
+    if report.failure_cases_without_regression &gt; 0:
+        return "block", "production failures missing regression cases"
+
     if report.safety_violations &gt; 0:
         return "block", "safety violations found"
 
@@ -15200,6 +15390,21 @@ task_success_rate dropped by 10% compared with 7-day baseline
 <li><code>review</code>：质量或成本变化，需要人工判断收益是否值得；</li>
 <li><code>allow</code>：满足门禁，可以进入灰度。</li>
 </ul>
+<p>Release Gate 的输入不应该只有 eval 分数。更完整的门禁应该合并四类信号：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">信号</th><th style="text-align: left">典型来源</th><th style="text-align: left">作用</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Eval Report</td><td style="text-align: left">smoke、regression、safety、scenario eval</td><td style="text-align: left">判断候选版本是否通过离线评估</td></tr>
+<tr><td style="text-align: left">Failure Registry</td><td style="text-align: left">未关闭失败、失败严重级别、是否已有回归样本</td><td style="text-align: left">防止带着已知事故发布</td></tr>
+<tr><td style="text-align: left">Policy Report</td><td style="text-align: left">工具风险、审批、越权尝试、policy bypass</td><td style="text-align: left">判断权限和安全边界是否稳定</td></tr>
+<tr><td style="text-align: left">Online Metrics</td><td style="text-align: left">灰度期成功率、人工纠正率、成本、延迟、拒答率</td><td style="text-align: left">判断真实流量下是否退化</td></tr>
+</tbody>
+</table>
+</div>
+<p>这样发布门禁就不再是“跑完一组测试”，而是一次面向生产风险的决策。</p>
 <h3 id="从控制面到改进闭环"><a class="header" href="#从控制面到改进闭环">从控制面到改进闭环</a></h3>
 <p>一个成熟闭环应该像这样运转：</p>
 <pre><code class="language-text">生产 Trace
@@ -15225,6 +15430,16 @@ Release Gate
 灰度发布
 </code></pre>
 <p>这也是本章最核心的工程观点：Agent 治理不是给模型套几条规则，而是建立一条从生产事实到系统改进的反馈链。</p>
+<p>用前面的告警诊断失败来套这条链路，闭环会变成：</p>
+<pre><code class="language-text">1. Trace 发现 Agent 给出了无证据的数据库结论；
+2. Failure Registry 标记为 evidence_not_supported；
+3. 人工标注冻结上下文，生成 regression eval case；
+4. 修复 retrieval metadata、rerank 和 evidence guardrail；
+5. 新版本在 pairwise regression 中通过旧失败样本；
+6. Release Gate 检查没有开放 P0/P1 failure、没有 safety regression；
+7. 灰度后继续观察 evidence_support_rate 和 human_correction_rate。
+</code></pre>
+<p>这个例子比“提高准确率”更接近生产系统的真实工作方式：每一次失败都必须有去处，每一次发布都必须回答旧失败是否复发。</p>
 <hr>
 <h2 id="126-生命周期从设计到持续改进"><a class="header" href="#126-生命周期从设计到持续改进">12.6 生命周期：从设计到持续改进</a></h2>
 <p>一个 Agent 从想法到生产，建议经过八个阶段。</p>
@@ -15485,7 +15700,7 @@ flowchart TB
 <li>输出必须带 evidence；</li>
 <li>失败样本进入 regression eval；</li>
 <li>发布前跑 smoke + safety eval；</li>
-<li>线上有成本和失败率告警。</li>
+<li>线上有成本和失败率告警；</li>
 <li>每次发布保存完整 agent version 快照。</li>
 </ol>
 <p>这八件事不华丽，但能让 Agent 从 Demo 进入可运营状态。</p>
@@ -15535,11 +15750,21 @@ flowchart TB
 <ul>
 <li><input disabled="" type="checkbox"> 是否有统一的 agent version 对象？</li>
 <li><input disabled="" type="checkbox"> 是否记录模型、prompt、工具、策略、索引和 schema 版本？</li>
-<li><input disabled="" type="checkbox"> Release Gate 是否使用 eval、policy、metrics 三类信号？</li>
+<li><input disabled="" type="checkbox"> Release Gate 是否使用 eval、failure、policy、metrics 四类信号？</li>
 <li><input disabled="" type="checkbox"> 线上 trace 是否能自动进入失败样本候选池？</li>
 <li><input disabled="" type="checkbox"> 是否支持 pairwise regression 比较新旧版本？</li>
 <li><input disabled="" type="checkbox"> 是否能按失败层级统计 root cause？</li>
 <li><input disabled="" type="checkbox"> 是否能从一次回答追溯到 evidence、tool call 和 policy decision？</li>
+</ul>
+<h3 id="failure-registry"><a class="header" href="#failure-registry">Failure Registry</a></h3>
+<ul>
+<li><input disabled="" type="checkbox"> 每个高影响失败是否关联 source trace？</li>
+<li><input disabled="" type="checkbox"> 是否记录 failure type、root cause layer、severity 和 owner？</li>
+<li><input disabled="" type="checkbox"> 是否能冻结复现所需的 prompt、policy、index、memory 和工具结果快照？</li>
+<li><input disabled="" type="checkbox"> 是否区分 detected、triaged、regression_created、gate_passed、closed 等状态？</li>
+<li><input disabled="" type="checkbox"> 未关闭 P0/P1 failure 是否会阻断发布？</li>
+<li><input disabled="" type="checkbox"> 线上失败是否必须生成或关联 regression eval case？</li>
+<li><input disabled="" type="checkbox"> 关闭失败前是否要求新版本通过对应回归样本？</li>
 </ul>
 <hr>
 <h2 id="本章小结-11"><a class="header" href="#本章小结-11">本章小结</a></h2>
@@ -22381,6 +22606,22 @@ requires_approval: true
 <li>人工在哪一步确认；</li>
 <li>恢复验证是否通过。</li>
 </ul>
+<p>Trace 的另一个用途，是把线上失败送进 Failure Registry。DoD Agent 的失败不应该只停留在日志里，而要变成可跟踪、可复现、可阻断发布的治理对象。</p>
+<pre><code class="language-yaml">failure_record:
+  source_trace_id: "trace_inc_20260508_001"
+  incident_id: "inc_20260508_001"
+  failure_type: "stale_runbook_used"
+  root_cause_layer:
+    - retrieval
+    - evidence_validation
+  severity: "p1"
+  user_impact: "误导值班工程师优先排查过期 DLQ 流程"
+  required_regression:
+    - "过期 Runbook 不应高置信进入 Context Package"
+    - "诊断结论必须引用当前日志和指标证据"
+  release_gate_effect: "block_until_regression_passed"
+</code></pre>
+<p>这样，<code>stale_runbook_used_total</code> 不只是一个监控指标，也能驱动 eval case、修复任务和发布门禁。</p>
 <h3 id="evidence-graph"><a class="header" href="#evidence-graph">Evidence Graph</a></h3>
 <p>对于复杂 Incident，可以把证据组织成图。</p>
 <pre><code class="language-text">Deployment v20260508.3
@@ -22484,6 +22725,16 @@ metrics:
 <li><strong>Continuous Regression</strong>：线上失败样本进入回归集。</li>
 </ol>
 <p>每一次 Prompt、工具 Schema、模型版本、Runbook、Policy 变更，都应该跑回归集。</p>
+<h3 id="从线上失败生成-eval-case"><a class="header" href="#从线上失败生成-eval-case">从线上失败生成 Eval Case</a></h3>
+<p>DoD Agent 的高价值回归集，应该主要来自真实 Incident，而不是靠离线想象。每次出现误诊、漏诊、越权召回、无证据结论、过期 Runbook、高风险动作误判，都应该进入一个 triage 流程：</p>
+<pre><code class="language-text">prod trace
+  -&gt; failure record
+  -&gt; 冻结告警、指标、日志、Runbook、Policy 和工具返回
+  -&gt; 人工标注正确诊断路径
+  -&gt; 生成 regression eval case
+  -&gt; 下一次发布前由 release gate 检查
+</code></pre>
+<p>例如，某次 Agent 把 DLQ 积压误判为“可以直接重放”，但人工确认真正根因是新版本回调代码异常。这个失败样本应该固化为 eval case，要求新版本必须先识别代码异常、验证幂等和下游健康，再提出小批量 dry-run，而不能直接建议 replay。</p>
 <h3 id="llm-as-judge-的边界"><a class="header" href="#llm-as-judge-的边界">LLM-as-Judge 的边界</a></h3>
 <p>LLM-as-Judge 可以用来评价摘要质量、报告可读性、证据是否覆盖结论。但不要用它单独判断：</p>
 <ul>
@@ -22567,6 +22818,8 @@ metrics:
 <li>执行动作的参数；</li>
 <li>验证结果；</li>
 <li>是否写入 Memory 或 Eval。</li>
+<li>失败是否进入 Failure Registry；</li>
+<li>相关发布是否通过 Release Gate。</li>
 </ul>
 <p>没有审计，Agent 就不应该被允许执行任何生产动作。</p>
 <hr>
@@ -23419,6 +23672,8 @@ Eval Owner
 <p>如果 Question Gateway 没有做 ACL，Agent 可能把用户无权访问的复盘、客户数据或安全文档召回到上下文。知识权限必须发生在检索前，而不是回答后。</p>
 <h3 id="失败十把怎么做误解成现在执行"><a class="header" href="#失败十把怎么做误解成现在执行">失败十：把“怎么做”误解成“现在执行”</a></h3>
 <p>用户问“DLQ 增长时要不要重放”通常是在问流程；用户说“帮我重放 production DLQ”才是动作请求。Intent Router 必须区分知识问答、实时诊断和执行请求。</p>
+<h3 id="失败十一失败没有进入发布门禁"><a class="header" href="#失败十一失败没有进入发布门禁">失败十一：失败没有进入发布门禁</a></h3>
+<p>线上误诊被人工纠正后，如果只写复盘、不进回归集、不影响下一次发布，那么系统没有真正变强。DoD Agent 的高影响失败必须进入 Failure Registry，并在对应 regression eval 通过前阻断新版本发布。</p>
 <hr>
 <h2 id="1725-设计检查清单"><a class="header" href="#1725-设计检查清单">17.25 设计检查清单</a></h2>
 <p>上线 DoD Agent 前，可以用下面的清单自查。</p>
@@ -23481,6 +23736,14 @@ Eval Owner
 <li>是否能看到模型版本、Prompt 版本、工具版本和 Runbook 版本？</li>
 <li>是否有质量指标和成本指标？</li>
 <li>是否能解释每个结论的证据来源？</li>
+</ul>
+<h3 id="governance"><a class="header" href="#governance">Governance</a></h3>
+<ul>
+<li>是否有 Failure Registry 管理高影响失败？</li>
+<li>是否能把线上失败冻结成可复现的 regression eval case？</li>
+<li>是否保存 agent version 快照，包括模型、Prompt、工具、Policy、Runbook 和索引版本？</li>
+<li>是否有 Release Gate 阻断 safety regression、权限回归、旧失败复发和未关闭 P0/P1 failure？</li>
+<li>是否能追溯每次发布修复了哪些 failure，又引入了哪些新风险？</li>
 </ul>
 <h3 id="learning"><a class="header" href="#learning">Learning</a></h3>
 <ul>
@@ -23963,6 +24226,9 @@ Rerank
       "snippet": "Cancellation rate increased from 2.1% to 4.8% between Apr 20 and Apr 27.",
       "updated_at": "2026-04-28",
       "authority": "official_metric",
+      "trust_level": "authoritative",
+      "evidence_hash": "sha256:...",
+      "expires_at": "2026-05-28",
       "permission_checked": true,
       "citation": {
         "url": "bi://orders/cancellation_dashboard",
@@ -23977,6 +24243,9 @@ Rerank
       "snippet": "Timeout errors increased after deploy payment-router-v3.",
       "updated_at": "2026-04-25",
       "authority": "incident_ticket",
+      "trust_level": "verified_incident",
+      "evidence_hash": "sha256:...",
+      "expires_at": "2026-07-25",
       "permission_checked": true,
       "citation": {
         "url": "jira://PAY-8842",
@@ -24003,6 +24272,7 @@ Rerank
 <li>让评估系统能检查引用是否支持结论；</li>
 <li>让权限审计知道答案使用了哪些内容；</li>
 <li>让系统能在证据不足时拒答或请求补充权限。</li>
+<li>让治理控制面能判断某次回答使用了哪些证据版本，以及这些证据是否过期或被撤回。</li>
 </ul>
 <h3 id="evidence-不是-chunk"><a class="header" href="#evidence-不是-chunk">Evidence 不是 Chunk</a></h3>
 <p>Chunk 是检索材料，Evidence 是被系统选中、可支撑某个 claim 的证据。</p>
@@ -24286,6 +24556,16 @@ Rerank
 }
 </code></pre>
 <p>trace 里不要存原始敏感内容，可以存引用、hash、artifact id 和脱敏摘要。</p>
+<p>当用户点踩、人工纠正、权限拦截或 citation validator 发现问题时，这条 trace 应该进入 Failure Registry，并生成可复现的 eval case。企业知识助手常见的发布门禁包括：</p>
+<ul>
+<li>正确证据没有进入 Evidence Package；</li>
+<li>引用不能支撑关键 claim；</li>
+<li>使用过期文档回答；</li>
+<li>不同权限用户看到不该看到的证据；</li>
+<li>无证据时没有拒答；</li>
+<li>敏感信息泄露或跨租户召回。</li>
+</ul>
+<p>这些门禁能把“用户反馈不好”转成可执行的系统改进，而不是只靠调 prompt。</p>
 <hr>
 <h2 id="1811-工程取舍"><a class="header" href="#1811-工程取舍">18.11 工程取舍</a></h2>
 <h3 id="1-答案速度-vs-证据完整性"><a class="header" href="#1-答案速度-vs-证据完整性">1. 答案速度 vs 证据完整性</a></h3>
@@ -25075,6 +25355,24 @@ run verifier
 <li>审计高风险任务。</li>
 </ul>
 <p>如果没有 trace，Agent 的失败就只能靠猜；有了 trace，失败可以被分类、回归和修复。</p>
+<p>在更完整的系统里，trace 还应该能直接生成 eval case 候选。比如一次 Coding Agent 失败 trace 显示：模型修改了 <code>calculator.py</code>，但没有新增除零测试，最后只根据 final answer 宣布完成。这条 trace 可以转成回归样本：</p>
+<pre><code class="language-yaml">eval_case:
+  id: "coding-agent-missing-regression-test-001"
+  source_trace: "traces/20260506-143000.jsonl"
+  task: "给 divide 函数补充除零错误处理，并添加 pytest 测试"
+  required_behavior:
+    - "修改业务代码"
+    - "新增或更新测试覆盖 b == 0"
+    - "运行 pytest 并记录结果"
+  forbidden_behavior:
+    - "未运行验证命令就宣布完成"
+    - "只有代码修改，没有测试修改"
+  scoring:
+    - diff_contains_test_change
+    - verifier_passed
+    - final_answer_has_evidence
+</code></pre>
+<p>这就是第 12 章生产治理控制面在最小 Coding Agent 里的落点：Trace Writer 负责留下事实，Eval Runner 和 Release Gate 负责让旧失败不能静默复发。</p>
 <hr>
 <h2 id="1914-verifier不要让模型自己宣布完成"><a class="header" href="#1914-verifier不要让模型自己宣布完成">19.14 Verifier：不要让模型自己宣布完成</a></h2>
 <p><code>verifier.py</code> 提供了一个最小验证器：</p>
@@ -25113,6 +25411,23 @@ run verifier
 <li>人类 reviewer checklist。</li>
 </ul>
 <p>重要原则是：<strong>final answer 是报告，不是证据。证据来自工具结果、测试输出和 diff。</strong></p>
+<p>如果把 verifier 接到发布门禁，最小决策可以非常朴素：</p>
+<pre><code class="language-python">def coding_agent_release_gate(eval_report):
+    if eval_report.invalid_json_cases &gt; 0:
+        return "block", "model output protocol is unstable"
+
+    if eval_report.verifier_failed_cases &gt; 0:
+        return "block", "agent claims completion without passing verifier"
+
+    if eval_report.missing_regression_test_cases &gt; 0:
+        return "review", "code changes may lack regression coverage"
+
+    if eval_report.avg_tool_calls &gt; eval_report.tool_call_budget:
+        return "review", "tool call budget exceeded"
+
+    return "allow", "coding agent candidate passed"
+</code></pre>
+<p>这里的门禁不需要一开始很复杂，但必须由证据驱动：trace 证明发生过什么，verifier 证明结果是否成立，eval report 决定候选 Agent 能不能进入下一阶段。</p>
 <hr>
 <h2 id="1915-运行-demo从任务到-diff"><a class="header" href="#1915-运行-demo从任务到-diff">19.15 运行 Demo：从任务到 diff</a></h2>
 <p>Demo 仓库在 <code>demo/</code> 下：</p>
@@ -25280,6 +25595,13 @@ trace: traces/20260506-143000.jsonl
 <li>final gate 接入 verifier。</li>
 </ul>
 <p>目标是形成“修改 -&gt; 测试 -&gt; 修复 -&gt; 报告”的闭环。</p>
+<p>从这一阶段开始，建议引入最小治理控制面：</p>
+<ul>
+<li>每次任务保存 trace；</li>
+<li>verifier 输出进入 eval result；</li>
+<li>失败 trace 可以转成 regression eval case；</li>
+<li>release gate 阻断“未验证即完成”“修改无 diff”“测试缺失”等历史失败。</li>
+</ul>
 <h3 id="阶段四workflow-agent"><a class="header" href="#阶段四workflow-agent">阶段四：Workflow Agent</a></h3>
 <p>加入计划和任务状态。</p>
 <p>适合更长任务：</p>
@@ -25482,6 +25804,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 <h3 id="production"><a class="header" href="#production">Production</a></h3>
 <ul>
 <li>是否有 eval dataset？</li>
+<li>是否有 Failure Registry 记录高影响失败？</li>
 <li>是否有 release gate？</li>
 <li>是否支持灰度和回滚？</li>
 <li>是否默认 read-only？</li>
@@ -25502,6 +25825,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 <li>Trace Writer 让每一步可复盘；</li>
 <li>Verifier 把“完成”变成证据问题；</li>
 <li>Tests 先验证 Runtime，再评估模型效果；</li>
+<li>Failure Registry 和 Release Gate 让失败进入回归闭环；</li>
 <li>演进路线从 read-only、patch、verified、workflow、skill-enabled 到 team agent。</li>
 </ol>
 <p>一句话总结：</p>

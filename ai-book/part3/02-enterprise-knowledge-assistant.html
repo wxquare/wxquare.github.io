@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a66000eb.js";
+            window.path_to_searchindex_js = "../searchindex-833404c9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-69e853c8.js"></script>
@@ -626,6 +626,9 @@ Rerank
       "snippet": "Cancellation rate increased from 2.1% to 4.8% between Apr 20 and Apr 27.",
       "updated_at": "2026-04-28",
       "authority": "official_metric",
+      "trust_level": "authoritative",
+      "evidence_hash": "sha256:...",
+      "expires_at": "2026-05-28",
       "permission_checked": true,
       "citation": {
         "url": "bi://orders/cancellation_dashboard",
@@ -640,6 +643,9 @@ Rerank
       "snippet": "Timeout errors increased after deploy payment-router-v3.",
       "updated_at": "2026-04-25",
       "authority": "incident_ticket",
+      "trust_level": "verified_incident",
+      "evidence_hash": "sha256:...",
+      "expires_at": "2026-07-25",
       "permission_checked": true,
       "citation": {
         "url": "jira://PAY-8842",
@@ -666,6 +672,7 @@ Rerank
 <li>让评估系统能检查引用是否支持结论；</li>
 <li>让权限审计知道答案使用了哪些内容；</li>
 <li>让系统能在证据不足时拒答或请求补充权限。</li>
+<li>让治理控制面能判断某次回答使用了哪些证据版本，以及这些证据是否过期或被撤回。</li>
 </ul>
 <h3 id="evidence-不是-chunk"><a class="header" href="#evidence-不是-chunk">Evidence 不是 Chunk</a></h3>
 <p>Chunk 是检索材料，Evidence 是被系统选中、可支撑某个 claim 的证据。</p>
@@ -949,6 +956,16 @@ Rerank
 }
 </code></pre>
 <p>trace 里不要存原始敏感内容，可以存引用、hash、artifact id 和脱敏摘要。</p>
+<p>当用户点踩、人工纠正、权限拦截或 citation validator 发现问题时，这条 trace 应该进入 Failure Registry，并生成可复现的 eval case。企业知识助手常见的发布门禁包括：</p>
+<ul>
+<li>正确证据没有进入 Evidence Package；</li>
+<li>引用不能支撑关键 claim；</li>
+<li>使用过期文档回答；</li>
+<li>不同权限用户看到不该看到的证据；</li>
+<li>无证据时没有拒答；</li>
+<li>敏感信息泄露或跨租户召回。</li>
+</ul>
+<p>这些门禁能把“用户反馈不好”转成可执行的系统改进，而不是只靠调 prompt。</p>
 <hr>
 <h2 id="1811-工程取舍"><a class="header" href="#1811-工程取舍">18.11 工程取舍</a></h2>
 <h3 id="1-答案速度-vs-证据完整性"><a class="header" href="#1-答案速度-vs-证据完整性">1. 答案速度 vs 证据完整性</a></h3>
