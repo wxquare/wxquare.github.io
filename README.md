@@ -1,31 +1,58 @@
-# wxquare.github.io - 个人技术博客
+# wxquare.github.io
 
-> 一个基于 Hexo 搭建的技术知识库，覆盖系统设计、AI 与 Agent、电商架构、计算机基础等核心领域。
+> 一个长期维护的技术博客与知识库，重点关注系统设计与后端架构，以及 AI 与 Agent 工程实践。
 
-## 📋 快速导航
+## 核心入口
 
-| 资源 | 描述 |
+| 入口 | 说明 |
 |------|------|
-| [🌐 在线博客](https://wxquare.github.io) | 访问完整的博客内容 |
-| [📚 AI Agent 工程实践](./books/ai-book/) | mdBook 形式的系统教程 |
-| [🛍️ 电商系统架构设计](./books/ecommerce-book/) | 电商架构完整实现 |
-| [🎯 系统设计与面试指南](./books/system-design-book/) | 面试和系统设计经验总结 |
+| [在线博客](https://wxquare.github.io) | 浏览完整博客内容与专题导航 |
+| [AI Agent 工程实践](./books/ai-book/) | 从大模型基础到生产级智能体系统的系统化专题 |
+| [系统设计与架构实战](./books/system-design-architecture-book/) | 面向中高级工程师的系统设计、电商架构与可靠性实战 |
 
----
+## 精选内容
 
-## 🚀 快速开始
+- [Claude Code 实践：从能写到写对](./source/_posts/AI/01-claude-code-practices.md)
+- [Harness Engineering：把模型放进可验证的工程系统](./source/_posts/AI/06-harness-engineering.md)
+- [系统设计完全指南：从问题定义到架构落地](./source/_posts/system-design/00-system-design-overview.md)
+- [系统可靠性工程：从故障恢复到治理闭环](./source/_posts/system-design/07-system-reliability-engineering.md)
+- [计价系统设计与实现](./source/_posts/system-design/24-ecommerce-pricing-engine.md)
+- [搜索与导购系统设计](./source/_posts/system-design/31-ecommerce-search-discovery.md)
+- [首页与导购链路性能优化面试材料](./source/about/material/homepage-performance-interview-material.md)
+- [计价引擎面试材料](./source/about/material/pricing-engine-interview-material.md)
+
+## 内容地图
+
+### 系统设计与后端架构
+
+围绕业务边界、系统拆分、数据一致性、可靠性工程和架构治理展开，覆盖 MySQL、Redis、Kafka、Elasticsearch、Kubernetes，以及商品、库存、计价、订单、支付等核心系统。
+
+### AI 与 Agent 工程实践
+
+关注大模型能力边界、Prompt Engineering、Context Engineering、Harness Engineering，以及 Tool Calling、MCP、RAG、Memory、Evals、Guardrails 和 Agent 平台化落地。
+
+### 电商架构与性能优化
+
+以电商链路为高密度样本，讨论首页、搜索、详情、购物车、计价、订单、支付、供应商同步与 B2B2C 平台演进，也包含面试表达与案例材料沉淀。
+
+### 计算机基础
+
+补充操作系统、网络、Shell、Python、C++、Go 等基础能力，帮助把系统设计、工程实现和编码实践串起来。
+
+## 本地运行
 
 ### 环境要求
+
 - Node.js >= 14
 - npm >= 6.0
 
-### 本地运行
+### 常用命令
 
 ```bash
 # 安装依赖
 npm install
 
-# 启动本地预览服务器 (http://localhost:4000)
+# 启动本地预览服务器
 npm run server
 
 # 生成静态文件
@@ -33,204 +60,70 @@ npm run build
 
 # 清理缓存
 npm run clean
-
-# 部署到 GitHub Pages
-npm run deploy
 ```
 
----
+访问：
 
-## 📁 项目结构
-
+```text
+http://localhost:4000
 ```
+
+## 仓库结构
+
+```text
 .
 ├── source/
-│   ├── _posts/              # 博客文章
-│   │   ├── AI/              # AI 与 Agent 相关
-│   │   ├── system-design/   # 系统设计
-│   │   └── other/           # 其他主题
-│   ├── about/               # 关于页面、简历、面试资料
-│   ├── diagrams/            # Excalidraw 图表
-│   └── ...
+│   ├── _posts/                  # 博客文章
+│   ├── about/                   # 关于页、简历、面试材料
+│   └── diagrams/                # 图表源文件
 ├── books/
-│   ├── ai-book/             # AI Agent 工程实践
-│   ├── ecommerce-book/      # 电商系统架构设计
-│   ├── system-design-book/  # 系统设计与面试指南
-│   └── scripts/             # 共用构建脚本
-├── public/                  # 生成的静态网站
-├── _config.yml              # Hexo 配置
-└── package.json             # 项目依赖
+│   ├── ai-book/                 # AI Agent 工程实践专题
+│   ├── system-design-architecture-book/  # 系统设计与架构专题
+│   └── scripts/                 # 共用构建脚本
+├── docs/                        # 规划、设计与过程文档
+├── _config.yml                  # Hexo 配置
+└── package.json                 # 项目依赖与脚本
 ```
 
----
+## 写作与维护约定
 
-## 📚 核心内容领域
+### Front Matter
 
-### 计算机基础
-
-#### 操作系统与网络
-- Linux 操作系统和常用命令（CPU、内存、网络、存储）
-- 网络基础与协议原理
-- 进程、线程、并发编程
-
-#### 后台中间件
-- **数据存储**：MySQL、Redis、Elasticsearch、HBase、S3、CDN
-- **消息队列**：Kafka
-- **缓存系统**
-  - 本地缓存与 Remote Cache（双 buffer、LRU、并发安全）
-  - 缓存更新机制（TTL、击穿、雪崩、singleflight）
-  - 工具：groupcache
-
-### 系统设计与架构
-
-#### 网关与负载均衡
-- DNS + LVS + Nginx 实现原理
-- API 网关设计（Gin、Grpc-Gateway）
-- 参考案例：Shopee、美团 Shepherd
-
-#### 流量控制与可靠性
-- **限流**：单机限流、分布式限流（Sentinel）
-- **熔断**：熔断机制实现（Hystrix-Go）
-- **重试**：指数退避重试（backoff）
-- **监控**：ELK Stack、Prometheus、Grafana、Jaeger
-
-#### 分布式服务
-- gRPC 和 RPC 服务架构
-- 服务发现与集群管理（Zookeeper、etcd）
-- 工作流引擎与任务编排
-- 定时任务调度（单机、分布式）
-- 延时任务队列（Redis、LMSTFY）
-
-#### 高级特性
-- 规则引擎与风控（Gengine）
-- 脚本执行引擎与低代码平台（Tengo、Anko）
-- A/B Test 平台
-- 大数据处理（Spark、Hive、Flink）
-
-#### 部署与运维
-- Docker 容器化
-- Kubernetes 容器编排
-- CI/CD（Jenkins、Git）
-
----
-
-## 📝 写作规范
-
-### Front Matter 要求
 每篇文章必须包含：
+
 ```yaml
 ---
 title: 文章标题
 date: YYYY-MM-DD
 categories:
   - 分类1
-  - 分类2  # 最多 2 层
+  - 分类2
 tags:
   - tag1
-  - tag2  # 使用小写，多词用连字符连接
+  - tag2
 ---
 ```
 
-### 格式规范
-- ✅ 中文文章使用中文标点，英文文章使用英文标点
-- ✅ 代码块必须指定语言（```python、```go 等）
-- ✅ 中英文之间加空格
-- ✅ 图片使用相对路径（不要使用绝对路径）
-- ✅ 标签用小写，多词用连字符（如 deep-learning）
+### 基本规范
 
-### 文件命名规范
-- **系列文章**：使用数字前缀（`22-ai-system-design.md`）
-- **技术笔记**：描述性名称（`tensorflow-model-quantization.md`）
-- **时效性强**：日期开头（`2026-03-07-OpenClaw深度调研.md`）
+- 分类层级最多 2 层。
+- 标签使用小写，多个词用连字符连接，如 `deep-learning`。
+- 中文文章使用中文标点，英文文章使用英文标点。
+- 代码块必须指定语言。
+- 中英文之间保留空格。
+- 图片使用相对路径，不要使用绝对路径。
 
----
+### 常见陷阱
 
-## 🛠️ 开发规范
+1. 修改 `_config.yml` 后必须重启本地服务。
+2. 新增文章后建议先运行 `npm run clean`。
+3. 提交前运行 `npm run build`，先确认构建通过。
+4. Front Matter 中 `date` 必须是字符串，不能写成对象。
 
-### Git 规范
-- 代码管理使用 Git
-- 提交前运行 `npm run build` 确保无错误
+### 相关说明
 
-### 编码规范
-- Go：遵循 [golang-standards/project-layout](https://github.com/golang-standards/project-layout)
-- API：RESTful API 设计规范、Swagger + YApi 文档
+- Hexo 配置与博客搭建记录见 [基于 Github 双分支和 Hexo 搭建博客](./source/_posts/other/基于Github双分支和Hexo搭建博客.md)。
 
-### 设计规范
-- UML 标准
-- DDD（Domain-Driven Design）设计模式
-- 文档书写规范
+## 许可证
 
----
-
-## 🔨 推荐工具
-
-| 工具 | 用途 |
-|-----|------|
-| **VS Code** | 轻量级代码编辑器，支持多语言 |
-| **IntelliJ IDEA** | Java/Spark 开发 IDE |
-| **DBeaver** | 数据库桌面管理工具 |
-| **Postman** | API 测试与调试 |
-| **Swagger** | API 文档与测试 |
-| **PlantUML** | 时序图、架构图绘制 |
-| **Diagrams.net** | 在线流程图、架构图工具 |
-| **Charles Proxy** | HTTPS 代理抓包工具 |
-
----
-
-## ⚠️ 常见陷阱
-
-1. **修改 _config.yml**：必须重启 server
-2. **新增文章**：需要运行 `hexo clean` 清理缓存
-3. **部署前**：运行 `npm run build` 确保无错误
-4. **Front Matter**：date 字段必须是字符串格式，不能是对象
-5. **图片路径**：使用相对路径，不要使用绝对路径
-
----
-
-## 📖 参考资源
-
-### Hexo 配置完全指南
-详见：[基于 Github 双分支和 Hexo 搭建博客](./source/_posts/other/基于Github双分支和Hexo搭建博客.md)
-
-### AI 相关主题
-- 计算机视觉（Computer Vision）
-- 深度学习框架（TensorFlow）
-- 编译器与优化（TVM）
-
-### 系统设计主题
-- 架构设计最佳实践
-- 性能优化策略
-- 可靠性工程
-
----
-
-## 🔗 链接资源
-
-### 技术文章
-- [Shopee Games API 网关设计与实现](https://www.modb.pro/db/474513)
-- [百亿规模 API 网关服务 Shepherd 的设计与实现](https://tech.meituan.com/2021/05/20/shepherd-api-gateway.html)
-
-### 开源项目
-- [gin - Go Web Framework](https://github.com/gin-gonic/gin)
-- [Sentinel - 限流降级](https://github.com/alibaba/Sentinel)
-- [Hystrix-Go - 熔断器](https://github.com/afex/hystrix-go)
-- [Gengine - 规则引擎](https://github.com/bilibili/gengine)
-
-### 相关技术
-- [Zookeeper](https://zookeeper.apache.org)
-- [etcd](https://coreos.com/etcd/docs/latest)
-- [PlantUML](https://plantuml.com/)
-- [Diagrams.net](https://app.diagrams.net/)
-
----
-
-## 🤝 贡献指南
-
-这是个人技术博客，但欢迎反馈和建议！
-
----
-
-## 📄 许可证
-
-本项目采用 MIT 许可证。详见 LICENSE 文件。
-
+本项目采用 MIT 许可证。详见 `LICENSE`。
