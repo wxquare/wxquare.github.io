@@ -1,0 +1,604 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第27章 Embedding、Rerank 与 RAG 基础 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-88a5934e.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-0d34ed9a.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第27章-embeddingrerank-与-rag-基础"><a class="header" href="#第27章-embeddingrerank-与-rag-基础">第27章 Embedding、Rerank 与 RAG 基础</a></h1>
+<p>LLM 的参数记忆不是生产系统的知识库。企业知识、实时数据、权限信息、交易状态、项目文档和用户私有数据，都需要从外部系统接入。Embedding、Rerank 和 RAG 就是这条链路的基础。</p>
+<h2 id="271-宏观理解rag-在解决什么问题"><a class="header" href="#271-宏观理解rag-在解决什么问题">27.1 宏观理解：RAG 在解决什么问题</a></h2>
+<p>RAG（Retrieval-Augmented Generation）把检索和生成结合起来：</p>
+<pre class="mermaid">
+flowchart LR
+    A["用户问题"] --&gt; B["Query Rewrite"]
+    B --&gt; C["Retrieval"]
+    C --&gt; D["Rerank"]
+    D --&gt; E["Context Builder"]
+    E --&gt; F["LLM Generation"]
+    F --&gt; G["带证据回答"]
+</pre>
+
+<p>它解决的是：</p>
+<ul>
+<li>模型不知道最新事实；</li>
+<li>企业数据不能进入训练集；</li>
+<li>回答需要引用证据；</li>
+<li>权限和租户隔离必须可控；</li>
+<li>知识频繁变化；</li>
+<li>错误需要可追溯。</li>
+</ul>
+<p>RAG 不是“把文档塞进 prompt”，而是一条上下文供应链。</p>
+<h2 id="272-embedding-是什么"><a class="header" href="#272-embedding-是什么">27.2 Embedding 是什么</a></h2>
+<p>Embedding model 把文本映射成向量。语义相近的文本，向量距离通常更近。</p>
+<p>例如：</p>
+<pre><code class="language-text">"订单退款规则" -&gt; [0.12, -0.03, ...]
+"如何退订酒店订单" -&gt; [0.10, -0.01, ...]
+</code></pre>
+<p>向量检索会找和 query embedding 最相近的文档 chunk。</p>
+<p>常见相似度包括：</p>
+<ul>
+<li>cosine similarity；</li>
+<li>dot product；</li>
+<li>L2 distance。</li>
+</ul>
+<h2 id="273-sparsedense-与-hybrid-retrieval"><a class="header" href="#273-sparsedense-与-hybrid-retrieval">27.3 Sparse、Dense 与 Hybrid Retrieval</a></h2>
+<h3 id="2731-sparse-retrieval"><a class="header" href="#2731-sparse-retrieval">27.3.1 Sparse Retrieval</a></h3>
+<p>BM25 等 sparse 方法依赖词面匹配。优点是可解释、对关键词强，缺点是同义词和语义改写能力弱。</p>
+<h3 id="2732-dense-retrieval"><a class="header" href="#2732-dense-retrieval">27.3.2 Dense Retrieval</a></h3>
+<p>Dense retrieval 使用 embedding 向量匹配语义。优点是能处理同义改写，缺点是可能忽略精确关键词、版本号、错误码、代码符号。</p>
+<h3 id="2733-hybrid-retrieval"><a class="header" href="#2733-hybrid-retrieval">27.3.3 Hybrid Retrieval</a></h3>
+<p>Hybrid retrieval 结合 sparse 和 dense，常用于生产系统。它既保留关键词精确性，又利用语义召回。</p>
+<h2 id="274-rerank-是什么"><a class="header" href="#274-rerank-是什么">27.4 Rerank 是什么</a></h2>
+<p>Embedding 检索通常负责从大量文档中召回候选，例如 top 50 或 top 100。</p>
+<p>Reranker 负责对候选进行更精细排序，例如选出 top 5。</p>
+<p>常见 reranker 是 cross-encoder：它同时读取 query 和 document，判断相关性。相比 embedding，它更准但更慢。</p>
+<p>所以典型结构是：</p>
+<pre><code class="language-text">召回要快，排序要准。
+</code></pre>
+<h2 id="275-chunking切块决定召回上限"><a class="header" href="#275-chunking切块决定召回上限">27.5 Chunking：切块决定召回上限</a></h2>
+<p>文档进入向量库前要切成 chunk。</p>
+<p>chunk 太小：</p>
+<ul>
+<li>语义不完整；</li>
+<li>答案跨 chunk；</li>
+<li>上下文缺失。</li>
+</ul>
+<p>chunk 太大：</p>
+<ul>
+<li>噪声多；</li>
+<li>embedding 表示被稀释；</li>
+<li>召回后占用太多上下文。</li>
+</ul>
+<p>生产系统常用策略：</p>
+<ul>
+<li>按标题层级切；</li>
+<li>按段落切；</li>
+<li>代码按函数/类切；</li>
+<li>表格按行组或业务实体切；</li>
+<li>保留 metadata；</li>
+<li>chunk overlap；</li>
+<li>parent-child retrieval；</li>
+<li>late chunking。</li>
+</ul>
+<h2 id="276-metadata-是-rag-的骨架"><a class="header" href="#276-metadata-是-rag-的骨架">27.6 Metadata 是 RAG 的骨架</a></h2>
+<p>只存文本和向量是不够的。每个 chunk 应该有 metadata：</p>
+<ul>
+<li>文档 ID；</li>
+<li>标题路径；</li>
+<li>来源系统；</li>
+<li>作者或负责人；</li>
+<li>更新时间；</li>
+<li>版本；</li>
+<li>权限标签；</li>
+<li>业务域；</li>
+<li>语言；</li>
+<li>文档类型；</li>
+<li>chunk 顺序；</li>
+<li>原文链接。</li>
+</ul>
+<p>没有 metadata，RAG 很难做过滤、权限、溯源、更新和评估。</p>
+<h2 id="277-context-builder不是简单拼接"><a class="header" href="#277-context-builder不是简单拼接">27.7 Context Builder：不是简单拼接</a></h2>
+<p>检索结果不能直接粗暴塞给模型。Context Builder 要做：</p>
+<ul>
+<li>去重；</li>
+<li>排序；</li>
+<li>合并相邻 chunk；</li>
+<li>控制 token 预算；</li>
+<li>标注来源；</li>
+<li>区分事实、规则、示例、日志；</li>
+<li>处理冲突；</li>
+<li>保留引用 ID。</li>
+</ul>
+<p>好的 RAG 系统输出给模型的是结构化上下文，而不是一堆无序文本。</p>
+<h2 id="278-工业实践rag-质量链路"><a class="header" href="#278-工业实践rag-质量链路">27.8 工业实践：RAG 质量链路</a></h2>
+<p>RAG 的错误可以拆成几类：</p>
+<ul>
+<li>没召回：正确文档不在候选里；</li>
+<li>排错序：正确文档有，但排名太低；</li>
+<li>上下文污染：无关内容进入 prompt；</li>
+<li>证据冲突：多个来源说法不一致；</li>
+<li>生成错误：证据正确但模型总结错；</li>
+<li>权限错误：召回了不该看的内容；</li>
+<li>更新错误：索引不是最新版本。</li>
+</ul>
+<p>所以 RAG eval 不能只看最终答案，还要分阶段评估：</p>
+<ul>
+<li>retrieval recall；</li>
+<li>rerank precision；</li>
+<li>citation accuracy；</li>
+<li>answer faithfulness；</li>
+<li>latency；</li>
+<li>token cost；</li>
+<li>permission correctness。</li>
+</ul>
+<h2 id="279-工业实践rag-与长上下文的关系"><a class="header" href="#279-工业实践rag-与长上下文的关系">27.9 工业实践：RAG 与长上下文的关系</a></h2>
+<p>长上下文模型让我们可以放更多文档，但它没有消灭 RAG。</p>
+<p>长上下文适合：</p>
+<ul>
+<li>用户明确提供的一组文档；</li>
+<li>小规模代码库或报告；</li>
+<li>需要跨全文综合的任务。</li>
+</ul>
+<p>RAG 适合：</p>
+<ul>
+<li>大规模知识库；</li>
+<li>频繁更新；</li>
+<li>权限复杂；</li>
+<li>需要溯源；</li>
+<li>需要低成本和低延迟；</li>
+<li>需要检索日志和评估。</li>
+</ul>
+<p>很多生产系统会结合两者：先检索缩小范围，再把高质量证据放进较长上下文。</p>
+<h2 id="2710-科研现状截至-2026-05"><a class="header" href="#2710-科研现状截至-2026-05">27.10 科研现状：截至 2026-05</a></h2>
+<h3 id="1-更强-embedding"><a class="header" href="#1-更强-embedding">1. 更强 Embedding</a></h3>
+<p>Embedding 模型从单纯语义相似，发展到多语言、多任务、多粒度和指令化 embedding。BGE-M3 等模型尝试同时支持 dense、sparse 和 multi-vector 检索。</p>
+<h3 id="2-late-interaction"><a class="header" href="#2-late-interaction">2. Late Interaction</a></h3>
+<p>ColBERT 代表的 late interaction 方法保留 token-level 表示，在效率和精度之间折中。它比单向量 embedding 更细粒度，但索引和存储成本更高。</p>
+<h3 id="3-reranker-强化"><a class="header" href="#3-reranker-强化">3. Reranker 强化</a></h3>
+<p>Reranker 从 cross-encoder 发展到 LLM reranker、多阶段 rerank、领域 rerank。工业上重点是质量和延迟平衡。</p>
+<h3 id="4-graphrag-与结构化检索"><a class="header" href="#4-graphrag-与结构化检索">4. GraphRAG 与结构化检索</a></h3>
+<p>知识图谱、实体关系、社区摘要和结构化索引可以帮助模型处理复杂知识任务，尤其适合跨文档、多实体、多跳问题。</p>
+<h3 id="5-agentic-rag"><a class="header" href="#5-agentic-rag">5. Agentic RAG</a></h3>
+<p>Agentic RAG 让模型可以多轮检索、改写 query、选择工具、验证证据和补充缺失信息。它比 naive RAG 更强，但更难评估，也更容易出现成本和循环问题。</p>
+<h3 id="6-rag-评估"><a class="header" href="#6-rag-评估">6. RAG 评估</a></h3>
+<p>研究和工业界都在从“最终答案打分”转向链路级评估：检索是否命中、证据是否支持、引用是否准确、答案是否忠实、冲突是否处理。</p>
+<h2 id="2711-工程清单"><a class="header" href="#2711-工程清单">27.11 工程清单</a></h2>
+<p>设计 RAG 系统时，检查：</p>
+<ul>
+<li>文档解析是否保留结构？</li>
+<li>chunk 策略是否按文档类型区分？</li>
+<li>metadata 是否足够支持权限和溯源？</li>
+<li>是否使用 hybrid retrieval？</li>
+<li>是否有 reranker？</li>
+<li>是否有 query rewrite？</li>
+<li>是否处理冲突和过期文档？</li>
+<li>是否输出 citation？</li>
+<li>是否记录 retrieval trace？</li>
+<li>是否有 retrieval recall eval？</li>
+<li>是否有 answer faithfulness eval？</li>
+<li>是否有权限测试？</li>
+</ul>
+<h2 id="2712-面试表达"><a class="header" href="#2712-面试表达">27.12 面试表达</a></h2>
+<p>一句话版：</p>
+<blockquote>
+<p>Embedding 负责语义召回，Rerank 负责精排，RAG 负责把外部知识以证据形式注入上下文。生产级 RAG 不是向量库加 Prompt，而是文档解析、chunking、metadata、检索、重排、上下文构建、权限和评估的完整链路。</p>
+</blockquote>
+<p>展开版：</p>
+<blockquote>
+<p>我会把 RAG 拆成 retrieval pipeline 和 generation pipeline。检索侧关注文档解析、chunk、metadata、hybrid retrieval、rerank 和权限过滤；生成侧关注 context builder、引用、冲突处理和忠实性。评估也要分层：先看是否召回正确证据，再看排序和引用，最后看模型是否基于证据回答。长上下文可以增强 RAG，但不能替代 RAG 的权限、更新、溯源和评估能力。</p>
+</blockquote>
+<h2 id="2713-深入理解embedding-检索为什么会错"><a class="header" href="#2713-深入理解embedding-检索为什么会错">27.13 深入理解：Embedding 检索为什么会错</a></h2>
+<p>Embedding 检索不是语义魔法。它把一段文本压缩成一个向量，这个压缩会丢失信息。</p>
+<p>常见错误包括：</p>
+<ul>
+<li><strong>数字不敏感</strong>：<code>v1.2</code> 和 <code>v1.3</code> 很接近，但业务含义可能完全不同。</li>
+<li><strong>否定不敏感</strong>：“可以退款”和“不可以退款”可能向量距离很近。</li>
+<li><strong>实体混淆</strong>：相似产品、相似服务、相似接口容易召回错。</li>
+<li><strong>代码符号弱</strong>：函数名、路径、错误码需要精确匹配。</li>
+<li><strong>长 chunk 稀释</strong>：一个 chunk 里包含多个主题，embedding 表示变得模糊。</li>
+<li><strong>查询过短</strong>：用户问“这个怎么处理”，缺少可检索信号。</li>
+<li><strong>权限不可见</strong>：向量相似度不知道用户是否有权访问。</li>
+</ul>
+<p>所以生产 RAG 不应只依赖 dense vector search。更稳的做法是 dense + sparse + metadata + rerank + 权限过滤。</p>
+<h2 id="2714-深入理解rerank-是质量杠杆也是延迟成本"><a class="header" href="#2714-深入理解rerank-是质量杠杆也是延迟成本">27.14 深入理解：Rerank 是质量杠杆，也是延迟成本</a></h2>
+<p>Rerank 的价值在于它能同时看 query 和候选文档，判断细粒度相关性。它比 embedding 更适合处理否定、数字、实体、上下文条件和问题意图。</p>
+<p>但 rerank 也有成本：</p>
+<ul>
+<li>cross-encoder 需要对每个候选单独或批量推理；</li>
+<li>top-k 越大，延迟越高；</li>
+<li>reranker 本身也可能有领域偏差；</li>
+<li>长文档 rerank 会被截断；</li>
+<li>多语言和代码场景需要专门评估。</li>
+</ul>
+<p>一个常见工业配置是：</p>
+<pre><code class="language-text">BM25 top 100 + dense top 100 -&gt; merge/dedup -&gt; rerank top 50 -&gt; context top 5~10
+</code></pre>
+<p>这个配置不是固定答案，但体现了原则：召回阶段宁可多一点，rerank 阶段负责筛掉噪声，context builder 阶段负责控制 token 和证据结构。</p>
+<h2 id="2715-工业实践文档解析决定-rag-上限"><a class="header" href="#2715-工业实践文档解析决定-rag-上限">27.15 工业实践：文档解析决定 RAG 上限</a></h2>
+<p>很多 RAG 项目失败，不是 embedding 模型不够强，而是文档解析太差。</p>
+<p>PDF、网页、Markdown、Word、表格、PPT、代码库都有不同结构。如果解析阶段丢掉标题、表格关系、图片说明、代码块边界和页码，后面的 embedding 再强也只能检索残缺文本。</p>
+<p>高质量解析至少要保留：</p>
+<ul>
+<li>标题层级；</li>
+<li>段落顺序；</li>
+<li>表格结构；</li>
+<li>图片和图注；</li>
+<li>代码块语言；</li>
+<li>列表层级；</li>
+<li>页码或原文定位；</li>
+<li>链接和引用；</li>
+<li>文档版本和更新时间。</li>
+</ul>
+<p>RAG 的第一性原理是：检索系统只能召回已经被正确表达和索引的东西。</p>
+<h2 id="2716-工业实践权限过滤必须前置"><a class="header" href="#2716-工业实践权限过滤必须前置">27.16 工业实践：权限过滤必须前置</a></h2>
+<p>权限过滤有两种方式：</p>
+<ul>
+<li>检索前过滤：只在用户有权访问的文档集合里检索。</li>
+<li>检索后过滤：召回后再剔除无权限文档。</li>
+</ul>
+<p>生产系统通常应优先检索前过滤，因为检索后过滤可能造成两个问题：</p>
+<ul>
+<li>向量库或日志中已经暴露了不该访问的候选；</li>
+<li>top-k 被无权限文档占据，过滤后剩余结果不足。</li>
+</ul>
+<p>权限还要进入 cache 设计。检索结果、rerank 结果、context package、LLM trace 都可能包含敏感信息，不能跨租户复用。</p>
+<p>对企业 RAG 来说，权限正确性不是附加需求，而是系统正确性的一部分。</p>
+<h2 id="2717-深入理解graphrag-解决的是全局理解问题"><a class="header" href="#2717-深入理解graphrag-解决的是全局理解问题">27.17 深入理解：GraphRAG 解决的是“全局理解”问题</a></h2>
+<p>传统 RAG 擅长回答局部问题，例如“某个退款规则是什么”。但遇到全局问题会变弱，例如：</p>
+<ul>
+<li>这批客户投诉的主要主题是什么？</li>
+<li>一个代码库的核心架构是什么？</li>
+<li>多份报告中共同的风险趋势是什么？</li>
+<li>一个组织知识库中的关键实体关系是什么？</li>
+</ul>
+<p>这类问题不是找一个 chunk 就够，而是需要跨文档聚合、实体关系和层级摘要。</p>
+<p>GraphRAG 的思路是先抽取实体和关系，构建图结构或社区摘要，再在查询时检索相关子图和摘要。它提升的是全局 sensemaking 能力，但代价是构建复杂、更新成本高、抽取错误会传播。</p>
+<p>工程上，GraphRAG 适合相对稳定、实体关系重要、需要全局总结的知识库；不适合高频更新、小规模文档或简单 FAQ。</p>
+<h2 id="2718-研究补充agentic-rag-的机会和风险"><a class="header" href="#2718-研究补充agentic-rag-的机会和风险">27.18 研究补充：Agentic RAG 的机会和风险</a></h2>
+<p>Agentic RAG 让模型可以多轮检索、改写查询、选择索引、读取目录、验证证据。2026 年 A-RAG 这类工作进一步强调 hierarchical retrieval interface，让模型通过层级接口逐步探索信息空间。</p>
+<p>它的优势是：</p>
+<ul>
+<li>能处理复杂问题；</li>
+<li>能根据中间结果调整检索；</li>
+<li>能减少一次性塞入上下文的 token；</li>
+<li>更接近人类研究资料的过程。</li>
+</ul>
+<p>风险是：</p>
+<ul>
+<li>多轮检索增加延迟和成本；</li>
+<li>模型可能陷入无效搜索；</li>
+<li>trace 更复杂；</li>
+<li>eval 更难；</li>
+<li>工具权限和停止条件更重要。</li>
+</ul>
+<p>因此 Agentic RAG 需要状态机、预算、最大轮数、检索 trace、证据验证和失败降级，不应该只是让模型自由调用 search。</p>
+<h2 id="2719-研究补充rag-eval-正在从单分数走向诊断视图"><a class="header" href="#2719-研究补充rag-eval-正在从单分数走向诊断视图">27.19 研究补充：RAG Eval 正在从单分数走向诊断视图</a></h2>
+<p>早期 RAG eval 常看最终答案是否正确。但最终答案错了，原因可能很多：</p>
+<ul>
+<li>没召回；</li>
+<li>召回了但排序低；</li>
+<li>证据被 context builder 丢掉；</li>
+<li>模型没读懂证据；</li>
+<li>模型读懂了但生成时编造；</li>
+<li>引用错；</li>
+<li>权限错。</li>
+</ul>
+<p>RAGAS、ARES、RAGChecker、RAGVUE 等方向都说明：RAG 评估需要拆成多个诊断维度。</p>
+<p>更好的评估报告应该能回答：</p>
+<pre><code class="language-text">retrieval 错了还是 generation 错了？
+证据支持答案吗？
+答案里的每个 claim 是否可追溯？
+遗漏了哪些关键证据？
+judge 自己是否可靠？
+</code></pre>
+<p>这和本书的 Agent Evals 思路一致：复杂系统不能只看最终分数，必须看链路。</p>
+<h2 id="2720-工程案例企业知识助手的-rag-迭代路径"><a class="header" href="#2720-工程案例企业知识助手的-rag-迭代路径">27.20 工程案例：企业知识助手的 RAG 迭代路径</a></h2>
+<p>一个企业知识助手可以这样迭代：</p>
+<ol>
+<li><strong>Baseline</strong>：Markdown/网页解析，dense retrieval，top-k 拼接。</li>
+<li><strong>结构化解析</strong>：保留标题、表格、代码块、来源和更新时间。</li>
+<li><strong>Hybrid Retrieval</strong>：加入 BM25，解决关键词、错误码、版本号问题。</li>
+<li><strong>Rerank</strong>：提升 top-k 相关性。</li>
+<li><strong>Context Builder</strong>：合并相邻 chunk，去重，加入 citation。</li>
+<li><strong>权限过滤</strong>：接入用户、团队、租户和文档 ACL。</li>
+<li><strong>Eval</strong>：建立问题集、证据集、答案评估和权限测试。</li>
+<li><strong>Agentic Retrieval</strong>：对复杂问题允许多轮检索和工具查询。</li>
+<li><strong>Feedback Loop</strong>：把失败样本回流到 query rewrite、chunking 和 rerank。</li>
+</ol>
+<p>这个路径比一开始追求“最强向量模型”更稳，因为它每一步都能定位收益。</p>
+<h2 id="2721-常见误区rag"><a class="header" href="#2721-常见误区rag">27.21 常见误区：RAG</a></h2>
+<h3 id="误区-1有向量库就是-rag"><a class="header" href="#误区-1有向量库就是-rag">误区 1：有向量库就是 RAG</a></h3>
+<p>向量库只是检索基础设施。生产级 RAG 还需要解析、chunk、metadata、权限、rerank、context builder、引用、eval 和监控。</p>
+<h3 id="误区-2召回-top-k-越多越好"><a class="header" href="#误区-2召回-top-k-越多越好">误区 2：召回 top-k 越多越好</a></h3>
+<p>top-k 太大可能引入噪声，增加 token 成本，让模型更难定位证据。更好的方式是提升召回质量、rerank 和上下文组织，而不是盲目增大 k。</p>
+<h3 id="误区-3rag-可以完全消除幻觉"><a class="header" href="#误区-3rag-可以完全消除幻觉">误区 3：RAG 可以完全消除幻觉</a></h3>
+<p>RAG 降低幻觉，但不能消除。模型仍可能误读证据、忽略证据、错误归纳或编造没有被证据支持的 claim。</p>
+<h3 id="误区-4长上下文会淘汰-rag"><a class="header" href="#误区-4长上下文会淘汰-rag">误区 4：长上下文会淘汰 RAG</a></h3>
+<p>长上下文减少一部分检索压力，但不能替代权限、更新、溯源、索引、trace 和评估。大规模企业知识仍然需要检索系统。</p>
+<h2 id="2722-专家问答"><a class="header" href="#2722-专家问答">27.22 专家问答</a></h2>
+<p><strong>问：为什么 hybrid retrieval 通常比纯向量更稳？</strong></p>
+<p>因为业务问题既有语义相似，也有精确匹配。错误码、版本号、函数名、产品名和日期常常需要 sparse retrieval；同义表达和自然语言问题需要 dense retrieval。</p>
+<p><strong>问：RAG 的第一优先级是换 embedding 模型吗？</strong></p>
+<p>不一定。很多时候更重要的是文档解析、chunk 策略、metadata、query rewrite 和 rerank。换 embedding 只能解决一部分召回问题。</p>
+<p><strong>问：如何判断生成是否忠实？</strong></p>
+<p>把答案拆成 claim，逐条检查是否被证据支持。只看最终答案相似度不够，因为答案可能语言流畅但证据不支持。</p>
+<p><strong>问：Agentic RAG 什么时候值得做？</strong></p>
+<p>当问题需要多跳检索、动态探索、跨文档综合或工具查询时值得做。简单 FAQ 不需要 Agentic RAG，否则只会增加延迟和不稳定性。</p>
+<h2 id="2723-rag-错误排查表"><a class="header" href="#2723-rag-错误排查表">27.23 RAG 错误排查表</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>现象</th><th>可能原因</th><th>排查方向</th></tr>
+</thead>
+<tbody>
+<tr><td>答案完全不相关</td><td>query rewrite 错、召回错</td><td>查看原始 query、rewrite query、top-k 文档</td></tr>
+<tr><td>答案缺关键条件</td><td>chunk 太小或 evidence 被裁剪</td><td>检查 chunk 边界和 context builder</td></tr>
+<tr><td>引用了过期规则</td><td>metadata 缺版本或更新时间</td><td>增加版本过滤和更新时间排序</td></tr>
+<tr><td>引用了无权限文档</td><td>权限过滤后置或 cache 污染</td><td>检查 ACL filter 和 trace 隔离</td></tr>
+<tr><td>文档召回了但没用</td><td>上下文噪声太多或排序低</td><td>加 rerank、减少 top-k、提升信息密度</td></tr>
+<tr><td>答案有证据但总结错</td><td>generation 忠实性问题</td><td>加 citation、claim check、低温采样</td></tr>
+<tr><td>简单问题很慢</td><td>检索链路过重</td><td>增加意图分类和快速路径</td></tr>
+<tr><td>多跳问题失败</td><td>naive RAG 不够</td><td>引入 agentic retrieval 或分步检索</td></tr>
+</tbody>
+</table>
+</div>
+<p>这个表的价值是把“RAG 不准”拆成可行动问题。不要一上来就换 embedding 模型。</p>
+<h2 id="2724-案例代码库-rag-与文档-rag-的差异"><a class="header" href="#2724-案例代码库-rag-与文档-rag-的差异">27.24 案例：代码库 RAG 与文档 RAG 的差异</a></h2>
+<p>文档 RAG 主要处理自然语言段落，代码库 RAG 还要处理：</p>
+<ul>
+<li>文件路径；</li>
+<li>import 关系；</li>
+<li>函数调用图；</li>
+<li>类型定义；</li>
+<li>测试文件；</li>
+<li>配置文件；</li>
+<li>生成代码和手写代码边界；</li>
+<li>最近修改历史。</li>
+</ul>
+<p>代码库 RAG 的 chunk 不应该只按固定 token 数切。更好的方式是按函数、类、模块和调用关系切，并保留 symbol metadata。</p>
+<p>代码问题经常需要精确匹配，因此 BM25、路径过滤、符号索引和 AST 分析往往比纯向量更重要。</p>
+<p>这也解释了为什么 Coding Agent 的上下文工程会比普通问答更复杂：它需要把代码结构、运行状态、错误日志和修改意图一起组织给模型。</p>
+<h2 id="2725-参考资料"><a class="header" href="#2725-参考资料">27.25 参考资料</a></h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2005.11401">Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</a></li>
+<li><a href="https://arxiv.org/abs/2004.12832">ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction</a></li>
+<li><a href="https://arxiv.org/abs/2402.03216">BGE M3-Embedding</a></li>
+<li><a href="https://arxiv.org/abs/2401.00368">Improving Text Embeddings with Large Language Models</a></li>
+<li><a href="https://arxiv.org/abs/2404.16130">GraphRAG: From Local to Global</a></li>
+<li><a href="https://arxiv.org/abs/2309.15217">RAGAS: Automated Evaluation of Retrieval Augmented Generation</a></li>
+<li><a href="https://arxiv.org/abs/2602.03442">A-RAG: Scaling Agentic Retrieval-Augmented Generation via Hierarchical Retrieval Interfaces</a></li>
+<li><a href="https://arxiv.org/abs/2601.04196">RAGVUE: A Diagnostic View for Explainable and Automated Evaluation of Retrieval-Augmented Generation</a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part4/06-finetuning-quantization-serving.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part4/08-world-models-embodied-ai.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part4/06-finetuning-quantization-serving.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part4/08-world-models-embodied-ai.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
