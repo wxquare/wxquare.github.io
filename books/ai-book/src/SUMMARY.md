@@ -39,6 +39,7 @@
 - [第18章 企业知识助手：RAG、搜索、权限与知识治理落地实践](part3/02-enterprise-knowledge-assistant.md)
 - [第19章 从零实现一个可观测 Coding Agent](part3/08-mini-agent-observability.md)
 - [第20章 个人知识管理 Agent 实践](part3/07-pkm-agent-case-study.md)
+- [第29章 模型微调：从基础原理到 DoD Agent 的生产落地](part3/09-model-finetuning-dod.md)
 
 ---
 
