@@ -1,0 +1,1472 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第29章 模型微调：从基础原理到 DoD Agent 的生产落地 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-870534de.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-de0ce5c9.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第29章-模型微调从基础原理到-dod-agent-的生产落地"><a class="header" href="#第29章-模型微调从基础原理到-dod-agent-的生产落地">第29章 模型微调：从基础原理到 DoD Agent 的生产落地</a></h1>
+<blockquote>
+<p>微调不是给 Agent 加一层“更聪明”的魔法，而是在系统边界已经清楚之后，把一类稳定任务的行为模式固化下来，让模型在该稳定的地方更稳定，让系统在该受控的地方更受控。</p>
+</blockquote>
+<h2 id="引言"><a class="header" href="#引言">引言</a></h2>
+<p>到了这本书的后半段，读者通常会自然提出一个问题：</p>
+<blockquote>
+<p>如果 Prompt、RAG、Tools、Workflow、Memory、Evals 和 Guardrails 都已经搭起来了，为什么还需要模型微调？</p>
+</blockquote>
+<p>这是一个非常好的问题，因为它逼着我们把“模型能力”与“系统能力”分开。</p>
+<p>在很多真实项目里，团队遇到效果不稳定时，最先想到的是：</p>
+<pre><code class="language-text">换更大的模型
+  -&gt; 补更长的 Prompt
+  -&gt; 再堆更多上下文
+  -&gt; 还是不稳定
+  -&gt; 开始考虑微调
+</code></pre>
+<p>这条路径并不总是错，但非常容易走偏。原因是很多问题从来就不是“模型没学会”，而是：</p>
+<ul>
+<li>任务协议没有定义清楚；</li>
+<li>检索内容和实时事实混在一起；</li>
+<li>关键证据没有进上下文；</li>
+<li>工具调用链不稳定；</li>
+<li>训练样本和线上任务分布不一致；</li>
+<li>输出没有可评分结构；</li>
+<li>失败没有进入回归门禁。</li>
+</ul>
+<p>如果这些问题没有先解决，微调只是把噪声和混乱重新编码到模型里。</p>
+<p>但反过来，当一个 Agent 系统已经进入稳定运营期，某些任务具备下面这些特征时，微调就非常值得认真考虑：</p>
+<ul>
+<li>高频重复；</li>
+<li>输入分布相对稳定；</li>
+<li>输出协议明确；</li>
+<li>已经积累了大量人工修正样本；</li>
+<li>错误主要来自行为模式不稳定，而不是事实缺失；</li>
+<li>可以定义清晰评测指标；</li>
+<li>可以通过 Shadow Mode 或建议层安全上线。</li>
+</ul>
+<p>本章就是围绕这个阶段展开。它分成两大部分：</p>
+<ol>
+<li>先讲微调本身：微调到底是什么，有哪些类型，解决什么问题，不解决什么问题，完整工程流程是什么，需要哪些资源，以及如何判断值不值得做。</li>
+<li>再用 DoD Agent（Developer on Duty Agent）做一个生产级案例：如果要把微调真正用在企业告警诊断与知识答疑系统里，任务应该怎么选，数据应该怎么构造，训练应该怎么分阶段，评测和上线又该怎么做。</li>
+</ol>
+<p>这章不会把微调写成一篇纯算法导论，也不会只停留在“收集数据然后训练一下”这种表面描述。重点始终是工程落地：</p>
+<pre><code class="language-text">任务定义
+  -&gt; 数据边界
+  -&gt; 训练方法
+  -&gt; 评测体系
+  -&gt; 发布策略
+  -&gt; 风险控制
+  -&gt; 失败回流
+</code></pre>
+<hr>
+<h2 id="291-什么是模型微调"><a class="header" href="#291-什么是模型微调">29.1 什么是模型微调</a></h2>
+<p>模型微调（Fine-tuning）本质上是在已有基础模型之上，使用一组和目标任务相关的样本继续训练，让模型更稳定地表现出某种特定能力模式。</p>
+<p>“能力模式”这四个字比“知识”更准确。因为微调最擅长学到的往往不是“今天最新发生了什么”，而是：</p>
+<ul>
+<li>应该如何组织输出；</li>
+<li>面对某类输入时应该优先关注什么；</li>
+<li>什么情况下应该拒答或澄清；</li>
+<li>什么风格、术语和结构更符合领域要求；</li>
+<li>哪些判断边界要更保守。</li>
+</ul>
+<h3 id="2911-微调promptragtool-calling-的区别"><a class="header" href="#2911-微调promptragtool-calling-的区别">29.1.1 微调、Prompt、RAG、Tool Calling 的区别</a></h3>
+<p>把这四种方法放在同一张表里，很多误解就会消失：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">方法</th><th style="text-align: left">核心作用</th><th style="text-align: left">改变的对象</th><th style="text-align: left">典型优势</th><th style="text-align: left">典型局限</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Prompt Engineering</td><td style="text-align: left">临时指定本次任务规则</td><td style="text-align: left">当前输入上下文</td><td style="text-align: left">快、便宜、改动成本低</td><td style="text-align: left">稳定性有限，容易被上下文干扰</td></tr>
+<tr><td style="text-align: left">RAG</td><td style="text-align: left">动态补充外部知识</td><td style="text-align: left">当前上下文证据</td><td style="text-align: left">适合私有知识和实时文档</td><td style="text-align: left">无法改变模型的内在行为习惯</td></tr>
+<tr><td style="text-align: left">Tool Calling</td><td style="text-align: left">让模型使用外部能力</td><td style="text-align: left">当前执行路径</td><td style="text-align: left">解决“模型没有事实或操作能力”的问题</td><td style="text-align: left">需要可靠 Runtime 和权限治理</td></tr>
+<tr><td style="text-align: left">Fine-tuning</td><td style="text-align: left">固化一类稳定任务模式</td><td style="text-align: left">模型参数或适配层</td><td style="text-align: left">一致性强、token 更省、格式更稳</td><td style="text-align: left">需要数据、训练、评测、回滚</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个非常实用的判断是：</p>
+<pre><code class="language-text">Prompt 负责告诉模型“这次想让你怎么做”
+RAG 负责告诉模型“你现在应该参考哪些知识”
+Tools 负责告诉模型“你现在可以去外部世界拿哪些事实”
+Fine-tuning 负责让模型“以后更自然、更稳定地按这种模式去做”
+</code></pre>
+<h3 id="2912-微调不等于训练一个万能专家"><a class="header" href="#2912-微调不等于训练一个万能专家">29.1.2 微调不等于训练一个“万能专家”</a></h3>
+<p>初学者最常见的误解是：</p>
+<blockquote>
+<p>我想把模型微调成“支付系统专家”“SRE 专家”“客服专家”“故障处理专家”。</p>
+</blockquote>
+<p>这种说法通常过于笼统。更准确的目标应该是：</p>
+<ul>
+<li>让模型在支付类告警上更稳定地做严重级别初判；</li>
+<li>让模型在值班场景下更稳定地生成结构化 Incident Summary；</li>
+<li>让模型在客服工单归类上更稳定地输出标准标签；</li>
+<li>让模型在审核场景下更稳定地遵循更保守的拒答边界。</li>
+</ul>
+<p>也就是说，<strong>微调更适合学习稳定任务协议，而不是笼统地学习一个职业身份。</strong></p>
+<h3 id="2913-微调到底在调什么"><a class="header" href="#2913-微调到底在调什么">29.1.3 微调到底在“调”什么</a></h3>
+<p>从工程视角看，微调会改变的通常不是模型的全部世界知识，而是下面几个维度的分布：</p>
+<ul>
+<li>任务启动方式：模型是否更快进入正确任务模式；</li>
+<li>注意力偏好：面对输入时更优先关注哪些字段；</li>
+<li>输出先验：更倾向产出什么格式和风格；</li>
+<li>风险偏好：是否更保守、更愿意澄清或拒绝；</li>
+<li>标签边界：对固定分类任务的分界是否更稳定；</li>
+<li>领域术语：是否更贴近你所在业务的语言习惯。</li>
+</ul>
+<p>这也是为什么很多团队在做微调前，必须先明确自己要优化的是哪一种不稳定。</p>
+<hr>
+<h2 id="292-微调的主要类型sft偏好优化与强化式优化"><a class="header" href="#292-微调的主要类型sft偏好优化与强化式优化">29.2 微调的主要类型：SFT、偏好优化与强化式优化</a></h2>
+<p>很多书一讲微调，就默认只有一种。真实工程里至少应该区分三类路线：</p>
+<ul>
+<li>SFT（Supervised Fine-Tuning，监督微调）</li>
+<li>偏好优化（如 DPO、IPO 等）</li>
+<li>强化式优化（如基于奖励的在线或离线优化）</li>
+</ul>
+<h3 id="2921-sft最常见最实用最容易落地"><a class="header" href="#2921-sft最常见最实用最容易落地">29.2.1 SFT：最常见、最实用、最容易落地</a></h3>
+<p>SFT 的基本形式非常直接：</p>
+<pre><code class="language-text">输入 -&gt; 标准输出
+</code></pre>
+<p>你给模型大量“这个输入应该怎么回答”的例子，模型学习复现这种模式。</p>
+<p>适合 SFT 的任务包括：</p>
+<ul>
+<li>文本分类；</li>
+<li>结构化摘要；</li>
+<li>标准化问答；</li>
+<li>模板化报告；</li>
+<li>安全拒答格式；</li>
+<li>工单归类与路由；</li>
+<li>告警摘要初稿生成。</li>
+</ul>
+<p>SFT 是企业里最常见的第一步，因为它：</p>
+<ul>
+<li>数据形态直观；</li>
+<li>成本相对可控；</li>
+<li>易于离线评测；</li>
+<li>风险边界相对清晰；</li>
+<li>与现有人工修正轨迹天然兼容。</li>
+</ul>
+<h3 id="2922-偏好优化解决多个答案都差不多但我们更喜欢哪种"><a class="header" href="#2922-偏好优化解决多个答案都差不多但我们更喜欢哪种">29.2.2 偏好优化：解决“多个答案都差不多，但我们更喜欢哪种”</a></h3>
+<p>很多任务不是严格只有一个标准答案，而是存在多个“都说得过去”的版本。比如：</p>
+<ul>
+<li>两份 Incident Summary 都正确，但一份更简洁；</li>
+<li>两个处理建议都安全，但一份更符合团队惯例；</li>
+<li>两个客服回复都合规，但一份更自然；</li>
+<li>两个 Runbook 摘要都没错，但一份证据引用更清楚。</li>
+</ul>
+<p>这类问题用 SFT 也能做，但信号不够充分。偏好优化更适合表达：</p>
+<pre><code class="language-text">回答 A 和回答 B 比较起来
+  -&gt; 我们更偏好 A
+</code></pre>
+<p>它解决的是“排序偏好”，而不是“唯一标准答案”。</p>
+<p>在 DoD 场景里，偏好优化可以用在：</p>
+<ul>
+<li>Incident Summary 的表达质量排序；</li>
+<li>建议动作的保守性排序；</li>
+<li>升级建议的措辞风格；</li>
+<li>多个可接受答案之间的优先级学习。</li>
+</ul>
+<h3 id="2923-强化式优化适合长链路任务但工程复杂度最高"><a class="header" href="#2923-强化式优化适合长链路任务但工程复杂度最高">29.2.3 强化式优化：适合长链路任务，但工程复杂度最高</a></h3>
+<p>如果任务是多步的，而且最终质量取决于整个行动链路，而不是单次文本输出，强化式优化才更有意义。例如：</p>
+<ul>
+<li>多步工具调用任务；</li>
+<li>长时规划；</li>
+<li>浏览器或 CLI 任务执行；</li>
+<li>需要探索、试错、回退的复杂工作流。</li>
+</ul>
+<p>但对大多数企业内部 Agent 团队来说，这通常不是第一阶段的最佳投入点，因为它要求：</p>
+<ul>
+<li>更可靠的 reward 设计；</li>
+<li>更复杂的日志与轨迹系统；</li>
+<li>更高的训练和验证成本；</li>
+<li>更强的安全护栏；</li>
+<li>更严密的回放与回归验证机制。</li>
+</ul>
+<p>因此，本章后面在 DoD Agent 里会把重点放在更现实的路线：<strong>SFT 为主，必要时配合偏好优化</strong>。</p>
+<h3 id="2924-一个简单的选择建议"><a class="header" href="#2924-一个简单的选择建议">29.2.4 一个简单的选择建议</a></h3>
+<p>可以用下面这个决策树：</p>
+<pre><code class="language-text">任务是否有相对明确的标准输出？
+  是 -&gt; 先做 SFT
+  否 -&gt; 看是否有成对偏好数据
+
+是否主要在比较“哪个答案更好”？
+  是 -&gt; 考虑偏好优化
+
+是否是长链条、多步、依赖整个执行过程的任务？
+  是 -&gt; 再考虑强化式优化
+</code></pre>
+<p>对于 DoD 这样高风险、强治理的系统，大多数真正有 ROI 的早期微调任务都落在第一类。</p>
+<hr>
+<h2 id="293-微调解决什么问题不解决什么问题"><a class="header" href="#293-微调解决什么问题不解决什么问题">29.3 微调解决什么问题，不解决什么问题</a></h2>
+<p>微调很强，但不是万能药。很多失败项目，本质上就是把不该交给微调的问题硬塞给微调。</p>
+<h3 id="2931-适合微调的问题特征"><a class="header" href="#2931-适合微调的问题特征">29.3.1 适合微调的问题特征</a></h3>
+<p>一个任务适合微调，通常同时满足下面几个条件：</p>
+<ol>
+<li>输入分布相对稳定。</li>
+<li>输出协议明确。</li>
+<li>可以定义对错或优劣。</li>
+<li>训练样本可持续积累。</li>
+<li>错误主要来自行为模式不稳定，而不是事实缺失。</li>
+</ol>
+<p>符合这些特征的常见任务包括：</p>
+<ul>
+<li>固定格式输出；</li>
+<li>多标签或单标签分类；</li>
+<li>风格统一的摘要；</li>
+<li>结构化字段提取；</li>
+<li>审核决策初判；</li>
+<li>工单路由；</li>
+<li>交接文档标准化；</li>
+<li>标准化建议生成。</li>
+</ul>
+<h3 id="2932-不适合优先靠微调解决的问题"><a class="header" href="#2932-不适合优先靠微调解决的问题">29.3.2 不适合优先靠微调解决的问题</a></h3>
+<p>下面这些问题，通常不应该把微调放在第一位：</p>
+<ul>
+<li>高频变化知识：最新 owner、最新配置、最新审批流程；</li>
+<li>强实时事实：当前日志、当前指标、当前 Trace、当前数据库状态；</li>
+<li>复杂工具缺失：明明该查工具，却希望模型“脑补”；</li>
+<li>边界不清：一个任务同时混了检索、推理、审批、执行和解释；</li>
+<li>极高风险决策：资损、权限、价格、账务、数据修正、合规处罚；</li>
+<li>强来源要求：必须严格带引用、带时间窗口、带证据 ID 的结论。</li>
+</ul>
+<p>这些问题里最典型的一类是：</p>
+<pre><code class="language-text">“模型总是答错当前事实”
+</code></pre>
+<p>这类问题大部分不应该通过“继续训练更多旧数据”解决，而应该通过：</p>
+<ul>
+<li>更好的 Context Builder；</li>
+<li>更好的 RAG；</li>
+<li>更好的工具接入；</li>
+<li>更严格的引用校验；</li>
+<li>更清晰的失败策略。</li>
+</ul>
+<h3 id="2933-一个非常实用的判断公式"><a class="header" href="#2933-一个非常实用的判断公式">29.3.3 一个非常实用的判断公式</a></h3>
+<p>可以把问题粗略分成两类：</p>
+<pre><code class="language-text">错误来自“缺事实”
+  -&gt; 优先做 RAG / Tools / Context
+
+错误来自“有事实但行为不稳”
+  -&gt; 可以考虑 Fine-tuning
+</code></pre>
+<p>这条规则在 Agent 系统里尤其重要。因为 Agent 的错误很少纯粹来自模型参数，更多来自系统层组合问题。</p>
+<h3 id="2934-什么时候是-prompt-问题什么时候是微调问题"><a class="header" href="#2934-什么时候是-prompt-问题什么时候是微调问题">29.3.4 什么时候是 Prompt 问题，什么时候是微调问题</a></h3>
+<p>还可以再细一点：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">现象</th><th style="text-align: left">更像什么问题</th><th style="text-align: left">更优先的方向</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">同一输入输出格式经常漂移</td><td style="text-align: left">行为模式不稳</td><td style="text-align: left">微调或更严格结构化输出</td></tr>
+<tr><td style="text-align: left">结论经常忽略最新文档</td><td style="text-align: left">知识注入不足</td><td style="text-align: left">RAG</td></tr>
+<tr><td style="text-align: left">结论经常没有实时证据</td><td style="text-align: left">工具缺失</td><td style="text-align: left">Tooling</td></tr>
+<tr><td style="text-align: left">输出虽然正确但啰嗦不统一</td><td style="text-align: left">风格不稳</td><td style="text-align: left">SFT 或偏好优化</td></tr>
+<tr><td style="text-align: left">风险场景中不够保守</td><td style="text-align: left">风险偏好不稳</td><td style="text-align: left">微调 + Guardrails</td></tr>
+<tr><td style="text-align: left">对新发布内容完全无感</td><td style="text-align: left">上下文或实时数据缺失</td><td style="text-align: left">Tools / Context</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张表比“要不要微调”更有用，因为它迫使团队先诊断问题类型。</p>
+<hr>
+<h2 id="294-模型微调的完整工程流程"><a class="header" href="#294-模型微调的完整工程流程">29.4 模型微调的完整工程流程</a></h2>
+<p>成熟团队做微调，不是“整理个 JSONL 然后开训”，而是一条清晰的数据与发布流水线：</p>
+<pre><code class="language-text">任务定义
+  -&gt; 数据采集
+  -&gt; 数据清洗
+  -&gt; 标注与审核
+  -&gt; 样本结构化
+  -&gt; 数据集切分
+  -&gt; baseline 构建
+  -&gt; 训练
+  -&gt; 离线评测
+  -&gt; Shadow Mode
+  -&gt; 灰度上线
+  -&gt; 失败回流
+  -&gt; 下一轮迭代
+</code></pre>
+<h3 id="2941-第一步把任务定义小而不是定义大"><a class="header" href="#2941-第一步把任务定义小而不是定义大">29.4.1 第一步：把任务定义小，而不是定义大</a></h3>
+<p>微调项目最常见的第一类失败，不是模型差，而是任务定义过宽。</p>
+<p>例如，下面这些定义都太大：</p>
+<ul>
+<li>“训练一个故障处理专家”</li>
+<li>“训练一个生产值班专家”</li>
+<li>“训练一个企业知识问答专家”</li>
+</ul>
+<p>更现实的做法是拆成窄任务：</p>
+<ul>
+<li>告警分类</li>
+<li>严重级别初判</li>
+<li>Incident Summary 初稿生成</li>
+<li>是否需要升级人工</li>
+<li>Runbook 初筛排序</li>
+<li>FAQ 标准化回答</li>
+</ul>
+<p>一个好任务至少满足：</p>
+<ul>
+<li>输入边界清晰；</li>
+<li>输出边界清晰；</li>
+<li>可以打标签；</li>
+<li>可以评测；</li>
+<li>可以回滚；</li>
+<li>不把多个难题硬绑在一起。</li>
+</ul>
+<h3 id="2942-第二步采集的是高价值轨迹不是所有日志"><a class="header" href="#2942-第二步采集的是高价值轨迹不是所有日志">29.4.2 第二步：采集的是“高价值轨迹”，不是“所有日志”</a></h3>
+<p>训练数据来源可以很多：</p>
+<ul>
+<li>工单；</li>
+<li>群聊；</li>
+<li>Agent Trace；</li>
+<li>审核结果；</li>
+<li>Runbook；</li>
+<li>历史 incident 报告；</li>
+<li>人工修正后的最终答案。</li>
+</ul>
+<p>但千万不要产生一个危险错觉：</p>
+<blockquote>
+<p>只要把所有历史对话、日志、工单都喂进去，模型就会变强。</p>
+</blockquote>
+<p>现实中更常见的情况是：</p>
+<ul>
+<li>原始日志包含大量噪声；</li>
+<li>聊天记录里有无效猜测；</li>
+<li>中间结论常常被后续证伪；</li>
+<li>不同工程师风格极不一致；</li>
+<li>部分字段根本不应该进入训练集。</li>
+</ul>
+<p>因此，采集阶段真正要做的是识别“高价值监督信号”，例如：</p>
+<ul>
+<li>最终人工确认的标签；</li>
+<li>最终采用的 incident summary；</li>
+<li>被认可的建议动作；</li>
+<li>被人工纠正的错误输出；</li>
+<li>被高优先级标注为失败的案例。</li>
+</ul>
+<h3 id="2943-第三步清洗脱敏去噪统一口径"><a class="header" href="#2943-第三步清洗脱敏去噪统一口径">29.4.3 第三步：清洗、脱敏、去噪、统一口径</a></h3>
+<p>这是大多数团队低估的一步。</p>
+<p>训练数据清洗通常至少要做四件事：</p>
+<ol>
+<li>去噪：删除显然无效、互相矛盾或不完整的样本。</li>
+<li>脱敏：清理 PII、密钥、token、账户、具体客户标识等敏感信息。</li>
+<li>统一口径：统一标签体系、风险等级、措辞规范、术语命名。</li>
+<li>去中间猜测：不要把后来被证伪的思路当作标准答案。</li>
+</ol>
+<p>如果不做这一步，模型学到的不是组织经验，而是组织混乱。</p>
+<h3 id="2944-第四步把样本变成稳定-schema"><a class="header" href="#2944-第四步把样本变成稳定-schema">29.4.4 第四步：把样本变成稳定 schema</a></h3>
+<p>样本结构化是后续训练和评测的基础。一个推荐原则是：</p>
+<pre><code class="language-text">训练样本结构
+  尽量贴近线上输入输出协议
+</code></pre>
+<p>比如：</p>
+<pre><code class="language-json">{
+  "instruction": "你是某类任务的执行者，遵循哪些规则",
+  "input": {
+    "field_a": "...",
+    "field_b": "..."
+  },
+  "output": {
+    "label": "...",
+    "summary": "...",
+    "actions": ["...", "..."]
+  },
+  "metadata": {
+    "source": "incident_review",
+    "domain": "payment",
+    "risk_level": "medium"
+  }
+}
+</code></pre>
+<p>为什么 <code>metadata</code> 也重要？因为它不仅对训练有帮助，对后续误差分析也很重要。你会很快想知道：</p>
+<ul>
+<li>哪个业务域错误最多；</li>
+<li>哪个标签最容易混淆；</li>
+<li>哪类风险样本收益最大；</li>
+<li>哪个来源的数据质量最低。</li>
+</ul>
+<h3 id="2945-第五步数据集切分不能随机了事"><a class="header" href="#2945-第五步数据集切分不能随机了事">29.4.5 第五步：数据集切分不能随机了事</a></h3>
+<p>很多团队做 train/dev/test 切分时直接随机分，这在很多业务场景下会高估效果。</p>
+<p>更合理的切分方式往往包括：</p>
+<ul>
+<li>按时间切分：训练旧样本，验证新样本；</li>
+<li>按事件去重：同一 incident 的相似样本不要分散到 train/test；</li>
+<li>按业务域分层：支付、库存、优惠、权限、平台告警分别统计；</li>
+<li>按风险等级分层：高风险样本单独观察。</li>
+</ul>
+<p>否则你很容易得到一个虚高结果：</p>
+<pre><code class="language-text">测试集表现很好
+  其实只是因为测试样本和训练样本几乎重复
+</code></pre>
+<h3 id="2946-第六步先建立-baseline再训练"><a class="header" href="#2946-第六步先建立-baseline再训练">29.4.6 第六步：先建立 baseline，再训练</a></h3>
+<p>如果没有 baseline，微调效果就没有参照系。</p>
+<p>基线至少应该有两个：</p>
+<ul>
+<li>Prompt-only baseline</li>
+<li>Prompt + RAG / Tools baseline</li>
+</ul>
+<p>因为你真正想回答的是：</p>
+<ul>
+<li>微调后是否优于只写更好 Prompt？</li>
+<li>微调后是否优于已有系统能力的组合？</li>
+<li>微调是否真的省 token、提稳定性，而不是换一种复杂度？</li>
+</ul>
+<h3 id="2947-第七步训练不是越大越好而是越可控越好"><a class="header" href="#2947-第七步训练不是越大越好而是越可控越好">29.4.7 第七步：训练不是“越大越好”，而是“越可控越好”</a></h3>
+<p>训练阶段应该优先考虑：</p>
+<ul>
+<li>先做参数高效微调；</li>
+<li>先做窄任务；</li>
+<li>先做可回滚版本；</li>
+<li>先保留旧路径 fallback；</li>
+<li>先验证 ROI，再扩大范围。</li>
+</ul>
+<p>大多数企业内部 Agent 项目，在第一版上全参微调往往不是最佳选择。原因不是不能做，而是：</p>
+<ul>
+<li>成本高；</li>
+<li>版本管理更重；</li>
+<li>回滚更复杂；</li>
+<li>风险更难隔离；</li>
+<li>很难证明收益来自哪里。</li>
+</ul>
+<h3 id="2948-第八步离线评测不是只看-loss"><a class="header" href="#2948-第八步离线评测不是只看-loss">29.4.8 第八步：离线评测不是只看 loss</a></h3>
+<p>训练 loss、验证 loss 只能说明模型在拟合数据，不能说明它适合上线。</p>
+<p>上线前更关键的指标是：</p>
+<ul>
+<li>结构字段完整率；</li>
+<li>分类准确率；</li>
+<li>风险标签召回率；</li>
+<li>关键事实覆盖率；</li>
+<li>危险建议率；</li>
+<li>格式漂移率；</li>
+<li>人工偏好胜率；</li>
+<li>对高风险回归集是否退化。</li>
+</ul>
+<h3 id="2949-第九步shadow-mode灰度回流"><a class="header" href="#2949-第九步shadow-mode灰度回流">29.4.9 第九步：Shadow Mode、灰度、回流</a></h3>
+<p>线上发布前，最好经历三层验证：</p>
+<ol>
+<li>Shadow Mode：新模型只跑不生效，与旧模型对比。</li>
+<li>灰度：少量流量进入建议层。</li>
+<li>回流：把线上失败和人工修正重新进入数据闭环。</li>
+</ol>
+<p>成熟的微调系统不是一次训练完成，而是：</p>
+<pre><code class="language-text">线上运行
+  -&gt; 失败发现
+  -&gt; case 冻结
+  -&gt; 回归集扩充
+  -&gt; 数据重标注
+  -&gt; 下一轮训练
+</code></pre>
+<hr>
+<h2 id="295-数据工程真正决定上限的往往不是训练而是数据"><a class="header" href="#295-数据工程真正决定上限的往往不是训练而是数据">29.5 数据工程：真正决定上限的往往不是训练，而是数据</a></h2>
+<p>在很多项目里，模型和训练框架差距没有大家想象中那么大，真正决定效果上限的，是数据工程质量。</p>
+<h3 id="2951-数据质量比数据量更重要"><a class="header" href="#2951-数据质量比数据量更重要">29.5.1 数据质量比数据量更重要</a></h3>
+<p>对于窄任务，下面这种组合通常效果最好：</p>
+<pre><code class="language-text">数百到数千条高质量样本
+  + 统一标签口径
+  + 清晰失败样本
+  + 明确评测目标
+</code></pre>
+<p>它通常优于：</p>
+<pre><code class="language-text">数万条噪声样本
+  + 标签不一致
+  + 风格混乱
+  + 无法评测
+</code></pre>
+<h3 id="2952-样本标签必须可操作而不是抽象口号"><a class="header" href="#2952-样本标签必须可操作而不是抽象口号">29.5.2 样本标签必须可操作，而不是抽象口号</a></h3>
+<p>比如“回答要专业一点”“总结要更像专家”这种标签没有办法训练，也很难评测。</p>
+<p>可操作标签应该是：</p>
+<ul>
+<li><code>severity=SEV1/SEV2/SEV3</code></li>
+<li><code>escalate=true/false</code></li>
+<li><code>category=dependency-failure</code></li>
+<li><code>citation_required=true</code></li>
+<li><code>forbidden_action=rollback</code></li>
+</ul>
+<p>如果标签不可操作，最后会变成标注人主观发挥，训练出的模型也会非常飘。</p>
+<h3 id="2953-负样本与失败样本往往更值钱"><a class="header" href="#2953-负样本与失败样本往往更值钱">29.5.3 负样本与失败样本往往更值钱</a></h3>
+<p>很多团队只收“正确答案”，却忽略了失败样本的巨大价值。</p>
+<p>在生产系统里，最应该被认真保留的往往是：</p>
+<ul>
+<li>哪类告警最容易被误判；</li>
+<li>哪类建议最容易越界；</li>
+<li>哪些输入会触发危险输出；</li>
+<li>哪些格式最容易漂移；</li>
+<li>哪些领域最容易混淆。</li>
+</ul>
+<p>这些失败样本对后续的：</p>
+<ul>
+<li>回归集</li>
+<li>拒答边界</li>
+<li>风险偏好</li>
+<li>Guardrails 设计</li>
+<li>偏好优化数据</li>
+</ul>
+<p>都非常关键。</p>
+<h3 id="2954-样本版本化与数据集快照"><a class="header" href="#2954-样本版本化与数据集快照">29.5.4 样本版本化与数据集快照</a></h3>
+<p>只管理模型版本，不管理数据版本，是很多团队的盲点。</p>
+<p>你至少需要能够回答：</p>
+<ul>
+<li>这个模型用的是哪一版训练集；</li>
+<li>训练集包含哪些业务域；</li>
+<li>哪些高风险 case 在这一版中被加入；</li>
+<li>哪些样本被排除了；</li>
+<li>哪些标签定义发生过变更。</li>
+</ul>
+<p>如果不能回答这些问题，后续回归分析会非常痛苦。</p>
+<hr>
+<h2 id="296-训练方法选择什么时候用-lora什么时候考虑更重方案"><a class="header" href="#296-训练方法选择什么时候用-lora什么时候考虑更重方案">29.6 训练方法选择：什么时候用 LoRA，什么时候考虑更重方案</a></h2>
+<h3 id="2961-为什么大多数团队应该从参数高效微调开始"><a class="header" href="#2961-为什么大多数团队应该从参数高效微调开始">29.6.1 为什么大多数团队应该从参数高效微调开始</a></h3>
+<p>对于企业内部任务，第一阶段通常更合理的选择是：</p>
+<ul>
+<li>中小模型；</li>
+<li>LoRA / QLoRA / 其他 PEFT；</li>
+<li>一个窄任务；</li>
+<li>可快速迭代的数据闭环。</li>
+</ul>
+<p>优点很明确：</p>
+<ul>
+<li>训练成本低；</li>
+<li>版本切换快；</li>
+<li>更容易 A/B；</li>
+<li>出问题回滚简单；</li>
+<li>便于同时维护多个任务适配器。</li>
+</ul>
+<h3 id="2962-什么情况下参数高效微调就够了"><a class="header" href="#2962-什么情况下参数高效微调就够了">29.6.2 什么情况下参数高效微调就够了</a></h3>
+<p>下面这些任务往往 LoRA 就够：</p>
+<ul>
+<li>分类；</li>
+<li>结构化摘要；</li>
+<li>模板化建议；</li>
+<li>固定风格问答；</li>
+<li>标准化拒答或澄清。</li>
+</ul>
+<p>因为这些任务优化的主要是行为模式，而不是大规模注入新世界知识。</p>
+<h3 id="2963-什么情况下要考虑更重的训练方式"><a class="header" href="#2963-什么情况下要考虑更重的训练方式">29.6.3 什么情况下要考虑更重的训练方式</a></h3>
+<p>如果出现下面这些情况，才值得评估更重方案：</p>
+<ul>
+<li>领域语料规模巨大；</li>
+<li>基础模型与领域语言差距很大；</li>
+<li>任务不只是行为模式优化，而是明显存在领域分布偏移；</li>
+<li>LoRA 效果已经到瓶颈；</li>
+<li>你有足够资源做更重的训练、验证和回滚。</li>
+</ul>
+<p>即便如此，也不代表应该立刻全参微调。常见中间路线还有：</p>
+<ul>
+<li>更大的基座模型；</li>
+<li>继续预训练后再 SFT；</li>
+<li>多任务联合训练；</li>
+<li>专项偏好优化。</li>
+</ul>
+<h3 id="2964-多任务训练要非常谨慎"><a class="header" href="#2964-多任务训练要非常谨慎">29.6.4 多任务训练要非常谨慎</a></h3>
+<p>看起来把很多任务放在一个模型里很划算，但风险也很高：</p>
+<ul>
+<li>任务之间会相互干扰；</li>
+<li>标签体系容易冲突；</li>
+<li>评测更复杂；</li>
+<li>一处回归可能影响全局。</li>
+</ul>
+<p>因此，第一版更推荐：</p>
+<pre><code class="language-text">先做单任务
+  -&gt; 再做相邻任务
+  -&gt; 最后才考虑统一多任务
+</code></pre>
+<hr>
+<h2 id="297-微调需要什么资源"><a class="header" href="#297-微调需要什么资源">29.7 微调需要什么资源</a></h2>
+<p>很多人一听微调，先想到 GPU。实际上，真正稀缺的通常不是算力，而是高质量数据、清晰任务定义和可以持续维护的评测体系。</p>
+<h3 id="2971-数据资源"><a class="header" href="#2971-数据资源">29.7.1 数据资源</a></h3>
+<p>你需要的不只是“有数据”，而是：</p>
+<ul>
+<li>能训练的数据；</li>
+<li>能评测的数据；</li>
+<li>能回归的数据；</li>
+<li>能解释失败的数据。</li>
+</ul>
+<p>从项目经验看：</p>
+<ul>
+<li>几百条高质量窄任务样本，已经可能有价值；</li>
+<li>几千条统一口径样本，通常能看到明显收益；</li>
+<li>几万条噪声样本，如果没有治理，价值未必更高。</li>
+</ul>
+<h3 id="2972-人力资源"><a class="header" href="#2972-人力资源">29.7.2 人力资源</a></h3>
+<p>至少需要三类角色：</p>
+<ul>
+<li>领域专家：定义什么是正确输出，审核高风险样本；</li>
+<li>平台或训练工程师：负责清洗、训练、评测、发布；</li>
+<li>reviewer / eval owner：维护回归集、失败库和发布门禁。</li>
+</ul>
+<p>真正成熟的团队里，<code>eval owner</code> 往往比“训练工程师”更关键。因为没有人维护评测体系，模型质量很快就会失控。</p>
+<h3 id="2973-算力资源"><a class="header" href="#2973-算力资源">29.7.3 算力资源</a></h3>
+<p>第一版通常不需要最激进的训练资源，更现实的选择是：</p>
+<ul>
+<li>7B 到十几 B 的基座模型；</li>
+<li>单任务 LoRA 或 QLoRA；</li>
+<li>单机多卡或租用云 GPU；</li>
+<li>训练后保留多版本并行评测能力。</li>
+</ul>
+<h3 id="2974-发布与运维资源"><a class="header" href="#2974-发布与运维资源">29.7.4 发布与运维资源</a></h3>
+<p>很多团队把训练看成一次性工程，忽略了后续运维成本。实际上你还需要：</p>
+<ul>
+<li>模型仓库；</li>
+<li>适配器版本管理；</li>
+<li>配套 Prompt 和 schema 版本管理；</li>
+<li>回滚机制；</li>
+<li>Shadow Mode 运行环境；</li>
+<li>日志与失败回流流水线。</li>
+</ul>
+<h3 id="2975-一个现实的成本视角"><a class="header" href="#2975-一个现实的成本视角">29.7.5 一个现实的成本视角</a></h3>
+<p>是否值得微调，不该只问“训练花多少钱”，还应该问：</p>
+<ul>
+<li>省下了多少人工修正时间；</li>
+<li>减少了多少 Prompt 复杂度；</li>
+<li>降低了多少 token 成本；</li>
+<li>提升了多少一致性；</li>
+<li>是否减少了高风险误判；</li>
+<li>是否值得增加模型版本管理复杂度。</li>
+</ul>
+<p>如果这些收益算不出来，就很难证明微调 ROI。</p>
+<hr>
+<h2 id="298-什么时候值得做微调"><a class="header" href="#298-什么时候值得做微调">29.8 什么时候值得做微调</a></h2>
+<p>可以把微调放到一个更完整的升级路径中理解：</p>
+<pre><code class="language-text">Prompt
+  -&gt; Structured Output
+  -&gt; RAG / Tools / Workflow
+  -&gt; Evals
+  -&gt; Fine-tuning
+  -&gt; Preference Optimization
+  -&gt; 更复杂的长期优化
+</code></pre>
+<p>这条顺序非常重要。很多团队直接跳到微调，结果是在放大前面几层没有治理好的问题。</p>
+<h3 id="2981-说明该考虑微调了的信号"><a class="header" href="#2981-说明该考虑微调了的信号">29.8.1 说明“该考虑微调了”的信号</a></h3>
+<p>下面这些信号往往说明时机接近成熟：</p>
+<ul>
+<li>同类任务每天大量重复；</li>
+<li>Prompt 已经很长，维护成本很高；</li>
+<li>输出格式在长上下文里仍然漂移；</li>
+<li>同一任务在相似输入上反复出现不稳定判断；</li>
+<li>已经积累了足够多的人工作为标准答案或修正记录；</li>
+<li>有固定 baseline 和回归集；</li>
+<li>可以通过建议层或 Shadow Mode 安全上线。</li>
+</ul>
+<h3 id="2982-说明还不该做的信号"><a class="header" href="#2982-说明还不该做的信号">29.8.2 说明“还不该做”的信号</a></h3>
+<p>下面这些情况，往往说明系统还没准备好：</p>
+<ul>
+<li>任务边界还没定义清楚；</li>
+<li>标签经常改；</li>
+<li>样本来源混乱；</li>
+<li>工具链本身还在快速变化；</li>
+<li>失败主要来自缺失证据；</li>
+<li>连 baseline 都没有；</li>
+<li>没有回滚机制；</li>
+<li>没有 eval owner。</li>
+</ul>
+<h3 id="2983-一个简单但有效的-roi-判断框架"><a class="header" href="#2983-一个简单但有效的-roi-判断框架">29.8.3 一个简单但有效的 ROI 判断框架</a></h3>
+<p>可以从四个问题判断：</p>
+<ol>
+<li>这个任务是否足够高频？</li>
+<li>这个任务是否足够稳定？</li>
+<li>这个任务是否足够可评分？</li>
+<li>这个任务收益是否足够覆盖维护成本？</li>
+</ol>
+<p>如果四个问题里有两个答不出来，通常就不应该急着开训。</p>
+<hr>
+<h2 id="299-为什么-dod-agent-是一个适合讨论微调的案例"><a class="header" href="#299-为什么-dod-agent-是一个适合讨论微调的案例">29.9 为什么 DoD Agent 是一个适合讨论微调的案例</a></h2>
+<p>DoD Agent 是一个很有代表性的场景，因为它同时具备两面性：</p>
+<ul>
+<li>一面非常适合微调：大量重复、标准化、低风险的诊断辅助任务；</li>
+<li>另一面非常不适合微调替代系统：高风险动作、实时事实、权限治理、审批链路。</li>
+</ul>
+<p>正因为这两面都在，DoD 非常适合帮助读者建立边界感。</p>
+<h3 id="2991-dod-agent-的系统特征"><a class="header" href="#2991-dod-agent-的系统特征">29.9.1 DoD Agent 的系统特征</a></h3>
+<p>DoD Agent 通常具有这些特点：</p>
+<ul>
+<li>输入复杂：告警标题、指标、日志、Trace、最近变更、Runbook、历史事故；</li>
+<li>风险高：错误建议可能导致误恢复、误回滚、误补偿、误封禁；</li>
+<li>数据多：历史 incident、工单、交接文档、复盘结论都能沉淀；</li>
+<li>输出要求强：必须结构化、可审计、可回放、可升级；</li>
+<li>治理要求高：审批、引用、权限、Trace、Eval 都不能缺。</li>
+</ul>
+<h3 id="2992-为什么它不能先靠微调起步"><a class="header" href="#2992-为什么它不能先靠微调起步">29.9.2 为什么它不能“先靠微调起步”</a></h3>
+<p>DoD Agent 最重要的事实是：</p>
+<blockquote>
+<p>它的核心系统价值首先来自 Harness，而不是来自额外训练。</p>
+</blockquote>
+<p>没有：</p>
+<ul>
+<li>Context Builder；</li>
+<li>Tool Runtime；</li>
+<li>Workflow 状态机；</li>
+<li>Policy Engine；</li>
+<li>Evidence Store；</li>
+<li>Evals；</li>
+<li>Human-in-the-Loop；</li>
+</ul>
+<p>DoD Agent 根本不应该进入生产。</p>
+<p>因此，DoD 里的微调永远是“系统跑起来之后的局部优化”，而不是系统起点。</p>
+<hr>
+<h2 id="2910-dod-agent-中哪些任务适合微调哪些不适合"><a class="header" href="#2910-dod-agent-中哪些任务适合微调哪些不适合">29.10 DoD Agent 中哪些任务适合微调，哪些不适合</a></h2>
+<h3 id="29101-适合微调的任务"><a class="header" href="#29101-适合微调的任务">29.10.1 适合微调的任务</a></h3>
+<p>DoD 中最适合微调的通常是低风险、标准化、高重复的环节：</p>
+<ul>
+<li>告警分类；</li>
+<li>严重级别初判；</li>
+<li>标准化 Incident Summary 生成；</li>
+<li>升级人工值班建议；</li>
+<li>Runbook 初筛排序或摘要；</li>
+<li>值班交接报告标准化；</li>
+<li>事故复盘初稿中的结构化摘要部分；</li>
+<li>FAQ 式生产知识答疑模板化回答。</li>
+</ul>
+<p>这些任务的共同点是：</p>
+<ul>
+<li>输出协议明确；</li>
+<li>历史人工轨迹丰富；</li>
+<li>很容易放进建议层；</li>
+<li>风险相对可控；</li>
+<li>容易做回归评测。</li>
+</ul>
+<h3 id="29102-不适合直接靠微调兜底的任务"><a class="header" href="#29102-不适合直接靠微调兜底的任务">29.10.2 不适合直接靠微调兜底的任务</a></h3>
+<p>下面这些任务不能指望通过训练一个模型就安全解决：</p>
+<ul>
+<li>当前根因最终确认；</li>
+<li>直接决定是否执行回滚、重放、改价、补偿、解冻、封禁；</li>
+<li>依赖当前生产状态的决策；</li>
+<li>多工具动态搜索后的高风险判断；</li>
+<li>越权知识访问；</li>
+<li>需要严格引用与证据链的最终结论。</li>
+</ul>
+<p>一句话概括：</p>
+<pre><code class="language-text">微调可以帮助 DoD Agent 更好地“整理和表达”
+但不能代替它“获取事实、行使权限和承担责任”
+</code></pre>
+<h3 id="29103-最常见的错位"><a class="header" href="#29103-最常见的错位">29.10.3 最常见的错位</a></h3>
+<p>很多团队会犯一个很危险的错：</p>
+<pre><code class="language-text">因为某个微调模型在 incident summary 上表现很好
+  -&gt; 就开始让它参与高风险动作决策
+</code></pre>
+<p>这是一种典型的能力外推。某个子任务做得好，不代表它应该接管更高风险链路。</p>
+<hr>
+<h2 id="2911-dod-微调项目的任务选择从哪个任务开始最合理"><a class="header" href="#2911-dod-微调项目的任务选择从哪个任务开始最合理">29.11 DoD 微调项目的任务选择：从哪个任务开始最合理</a></h2>
+<p>如果从零开始做 DoD 微调，我不建议从“根因判断”或“自动修复”开始，而建议从：</p>
+<blockquote>
+<p>标准化 Incident Summary 与下一步建议初稿生成</p>
+</blockquote>
+<p>开始。</p>
+<h3 id="29111-为什么这个任务最适合作为第一枪"><a class="header" href="#29111-为什么这个任务最适合作为第一枪">29.11.1 为什么这个任务最适合作为第一枪</a></h3>
+<p>因为它同时满足：</p>
+<ul>
+<li>输入结构相对清晰；</li>
+<li>输出 schema 容易定义；</li>
+<li>价值直接可见；</li>
+<li>人工审核方便；</li>
+<li>不需要一上来就碰高风险执行；</li>
+<li>易于做 baseline 对比；</li>
+<li>易于量化采纳率和节省时间。</li>
+</ul>
+<h3 id="29112-推荐的-mvp-输出-schema"><a class="header" href="#29112-推荐的-mvp-输出-schema">29.11.2 推荐的 MVP 输出 schema</a></h3>
+<p>第一版建议只做少量高价值字段：</p>
+<ul>
+<li><code>severity</code></li>
+<li><code>category</code></li>
+<li><code>incident_summary</code></li>
+<li><code>next_actions</code></li>
+<li><code>escalate</code></li>
+<li><code>confidence</code></li>
+</ul>
+<p>为什么加 <code>confidence</code>？因为它可以帮助后续：</p>
+<ul>
+<li>做保守阈值；</li>
+<li>做人工 review 排序；</li>
+<li>观察模型在哪些类型上最不自信；</li>
+<li>将低置信输出自动进入更严格审查链路。</li>
+</ul>
+<h3 id="29113-为什么不建议第一版输出太多字段"><a class="header" href="#29113-为什么不建议第一版输出太多字段">29.11.3 为什么不建议第一版输出太多字段</a></h3>
+<p>很多团队一开始喜欢把 schema 设计得很豪华：</p>
+<ul>
+<li>根因</li>
+<li>根因概率</li>
+<li>引用列表</li>
+<li>风险级别</li>
+<li>服务 owner</li>
+<li>候选 Runbook</li>
+<li>回滚建议</li>
+<li>补偿建议</li>
+<li>验证步骤</li>
+<li>预估影响面</li>
+</ul>
+<p>这会带来两个问题：</p>
+<ol>
+<li>标注成本急剧上升；</li>
+<li>不同字段的监督信号质量差异很大，反而拉低整体稳定性。</li>
+</ol>
+<p>第一版应该坚持：</p>
+<pre><code class="language-text">少字段
+高一致性
+可评测
+可回滚
+</code></pre>
+<hr>
+<h2 id="2912-dod-的训练数据从哪里来"><a class="header" href="#2912-dod-的训练数据从哪里来">29.12 DoD 的训练数据从哪里来</a></h2>
+<p>DoD Agent 的训练数据通常不会来自公开语料，而是来自企业内部生产轨迹。</p>
+<h3 id="29121-主要数据源"><a class="header" href="#29121-主要数据源">29.12.1 主要数据源</a></h3>
+<p>常见数据源包括：</p>
+<ul>
+<li>告警平台中的历史告警事件；</li>
+<li>工单系统中的 Incident 单；</li>
+<li>值班群聊和交接记录；</li>
+<li>SRE 最终确认的诊断结论；</li>
+<li>Runbook 中被确认有效的处置步骤；</li>
+<li>复盘文档中的事实摘要、影响范围和最终行动项；</li>
+<li>Agent 运行轨迹与人工修正结果。</li>
+</ul>
+<h3 id="29122-哪些数据适合训练哪些更适合做辅助特征"><a class="header" href="#29122-哪些数据适合训练哪些更适合做辅助特征">29.12.2 哪些数据适合训练，哪些更适合做辅助特征</a></h3>
+<p>并不是所有字段都应该直接拿来训练生成输出。</p>
+<p>例如：</p>
+<ul>
+<li>告警标题：适合直接做输入。</li>
+<li>指标摘要：适合直接做输入。</li>
+<li>最近变更：适合直接做输入。</li>
+<li>关键日志片段：适合直接做输入。</li>
+<li>完整长日志：通常不适合原样喂入，最好先抽样或结构化。</li>
+<li>群聊全量内容：通常更适合作为弱监督或辅助定位，而不是直接当标准答案来源。</li>
+<li>最终 incident 报告：非常适合做监督目标。</li>
+</ul>
+<h3 id="29123-最重要的原则用最终结论而不是中间噪声"><a class="header" href="#29123-最重要的原则用最终结论而不是中间噪声">29.12.3 最重要的原则：用“最终结论”而不是“中间噪声”</a></h3>
+<p>处理中途的对话往往包含：</p>
+<ul>
+<li>错误猜测；</li>
+<li>情绪表达；</li>
+<li>重复确认；</li>
+<li>与任务无关的协作信息；</li>
+<li>临时口语化表述；</li>
+<li>被后续证伪的判断。</li>
+</ul>
+<p>如果不经过治理直接进入训练集，模型就会学会这些坏习惯。</p>
+<p>因此，一个成熟的数据构建原则是：</p>
+<pre><code class="language-text">原始轨迹
+  -&gt; 过滤
+  -&gt; 抽取关键输入
+  -&gt; 绑定最终确认结论
+  -&gt; 形成训练样本
+</code></pre>
+<h3 id="29124-高风险数据一定要脱敏和分层"><a class="header" href="#29124-高风险数据一定要脱敏和分层">29.12.4 高风险数据一定要脱敏和分层</a></h3>
+<p>DoD 数据天然容易包含敏感内容：</p>
+<ul>
+<li>客户标识；</li>
+<li>内部环境信息；</li>
+<li>风险规则；</li>
+<li>安全事件细节；</li>
+<li>账号或权限相关字段。</li>
+</ul>
+<p>因此要明确区分：</p>
+<ul>
+<li>可进入训练集的字段；</li>
+<li>只能进入评测环境的字段；</li>
+<li>只能留在审计系统、绝不进模型训练的字段。</li>
+</ul>
+<hr>
+<h2 id="2913-dod-样本设计一个样本长什么样才算可训练"><a class="header" href="#2913-dod-样本设计一个样本长什么样才算可训练">29.13 DoD 样本设计：一个样本长什么样才算“可训练”</a></h2>
+<h3 id="29131-最小可行样本"><a class="header" href="#29131-最小可行样本">29.13.1 最小可行样本</a></h3>
+<p>一个最小可行样本可以这样设计：</p>
+<pre><code class="language-json">{
+  "instruction": "你是 DoD Agent，请根据输入生成标准化告警诊断初稿。你只能基于给定事实总结，不要编造缺失事实；如果证据不足，应保守表达并建议进一步检查。",
+  "input": {
+    "alert_title": "payment-callback error rate &gt; 15%",
+    "metrics_summary": "最近 5 分钟错误率从 0.8% 升到 18.4%，主要集中在华东机房",
+    "recent_changes": "15 分钟前 payment-router 发布了 v2026.05.12",
+    "log_excerpt": "timeout when calling risk-check service, upstream 502 spikes",
+    "topology_hint": "payment-router -&gt; risk-check -&gt; callback-handler"
+  },
+  "output": {
+    "severity": "SEV2",
+    "category": "dependency-failure",
+    "incident_summary": "支付回调错误率在最近 5 分钟显著上升。当前证据表明 payment-router 调用 risk-check 服务时出现超时，并且异常与最近发布窗口时间接近。现阶段更合理的方向是先确认依赖服务状态和发布影响范围，而不是直接断言最终根因。",
+    "next_actions": [
+      "检查 risk-check 服务错误率和延迟变化",
+      "确认 v2026.05.12 发布内容及回滚条件",
+      "抽样核对 callback-handler 下游失败请求"
+    ],
+    "escalate": true,
+    "confidence": "medium"
+  },
+  "metadata": {
+    "domain": "payment",
+    "source": "incident_review",
+    "risk_level": "medium"
+  }
+}
+</code></pre>
+<h3 id="29132-这个样本为什么可训练"><a class="header" href="#29132-这个样本为什么可训练">29.13.2 这个样本为什么可训练</a></h3>
+<p>因为它具备几个关键特征：</p>
+<ul>
+<li>输入字段边界明确；</li>
+<li>输出结构稳定；</li>
+<li>输出不要求模型“知道全部真相”；</li>
+<li>模型只需要做初步整理和建议；</li>
+<li>不越过证据边界；</li>
+<li>不把高风险动作直接写成命令。</li>
+</ul>
+<h3 id="29133-强样本与弱样本"><a class="header" href="#29133-强样本与弱样本">29.13.3 强样本与弱样本</a></h3>
+<p>在 DoD 场景里，可以把样本分成三层：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">样本层级</th><th style="text-align: left">特征</th><th style="text-align: left">用途</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">强监督样本</td><td style="text-align: left">最终结论明确、字段完整、经专家审核</td><td style="text-align: left">核心训练集</td></tr>
+<tr><td style="text-align: left">弱监督样本</td><td style="text-align: left">字段不完整，但大体可用</td><td style="text-align: left">扩充覆盖面</td></tr>
+<tr><td style="text-align: left">失败样本</td><td style="text-align: left">曾触发误判、越界、危险建议</td><td style="text-align: left">回归集、偏好集、拒答训练</td></tr>
+</tbody>
+</table>
+</div>
+<p>成熟系统通常不会只依赖第一类。第三类样本在生产治理里尤其关键。</p>
+<h3 id="29134-样本模板应尽量贴近线上协议"><a class="header" href="#29134-样本模板应尽量贴近线上协议">29.13.4 样本模板应尽量贴近线上协议</a></h3>
+<p>如果线上调用模型的输入结构和训练样本结构差别太大，效果会明显变差。</p>
+<p>因此，一个非常重要的实践是：</p>
+<pre><code class="language-text">训练 schema
+  尽量贴近
+线上 inference schema
+</code></pre>
+<p>否则你会发现训练集表现很好，线上却开始漂。</p>
+<hr>
+<h2 id="2914-dod-的训练策略如何从保守版本开始"><a class="header" href="#2914-dod-的训练策略如何从保守版本开始">29.14 DoD 的训练策略：如何从保守版本开始</a></h2>
+<h3 id="29141-第一版训练策略"><a class="header" href="#29141-第一版训练策略">29.14.1 第一版训练策略</a></h3>
+<p>我推荐 DoD 第一版采用非常保守的策略：</p>
+<ul>
+<li>中小基座模型；</li>
+<li>LoRA 或 QLoRA；</li>
+<li>单任务；</li>
+<li>Prompt-only 路径保留；</li>
+<li>新模型只进建议层；</li>
+<li>低置信结果自动升级人工审核。</li>
+</ul>
+<p>这样做的核心原因是：<strong>DoD 不是“追求最强回答”的场景，而是“追求可控收益”的场景。</strong></p>
+<h3 id="29142-为什么先做单任务而不是端到端"><a class="header" href="#29142-为什么先做单任务而不是端到端">29.14.2 为什么先做单任务而不是端到端</a></h3>
+<p>端到端看起来很酷，但实际上很难控制误差来源。</p>
+<p>如果你把下面这些都一起训：</p>
+<ul>
+<li>告警理解</li>
+<li>根因判断</li>
+<li>下一步建议</li>
+<li>Runbook 匹配</li>
+<li>人工升级判断</li>
+<li>业务影响总结</li>
+</ul>
+<p>那么一旦效果不好，你根本不知道是哪个环节出了问题。</p>
+<p>单任务训练的好处是：</p>
+<ul>
+<li>误差可定位；</li>
+<li>指标可解释；</li>
+<li>回滚简单；</li>
+<li>不会一处回归拖垮全链路。</li>
+</ul>
+<h3 id="29143-第二阶段可以如何扩展"><a class="header" href="#29143-第二阶段可以如何扩展">29.14.3 第二阶段可以如何扩展</a></h3>
+<p>当第一版稳定之后，可以按这个顺序逐步扩展：</p>
+<pre><code class="language-text">Incident Summary
+  -&gt; Severity Classification
+  -&gt; Escalation Suggestion
+  -&gt; Runbook Ranking
+  -&gt; Preference Optimization for style and conservatism
+</code></pre>
+<p>不建议一开始就跳到：</p>
+<ul>
+<li>自动执行建议；</li>
+<li>高风险审批决策；</li>
+<li>全链路根因判断。</li>
+</ul>
+<hr>
+<h2 id="2915-dod-的评测体系不能只看-loss更不能只看-demo"><a class="header" href="#2915-dod-的评测体系不能只看-loss更不能只看-demo">29.15 DoD 的评测体系：不能只看 loss，更不能只看 demo</a></h2>
+<h3 id="29151-离线评测要看什么"><a class="header" href="#29151-离线评测要看什么">29.15.1 离线评测要看什么</a></h3>
+<p>对于 DoD 微调任务，至少要看以下指标：</p>
+<ul>
+<li>分类准确率；</li>
+<li>严重级别判断准确率；</li>
+<li>结构化字段完整率；</li>
+<li>Incident Summary 的关键事实覆盖率；</li>
+<li>错误事实注入率；</li>
+<li>危险建议率；</li>
+<li>人工偏好胜率；</li>
+<li>与 Prompt baseline 相比的稳定性提升。</li>
+</ul>
+<h3 id="29152-高风险场景要单独看"><a class="header" href="#29152-高风险场景要单独看">29.15.2 高风险场景要单独看</a></h3>
+<p>整体准确率很容易掩盖风险。</p>
+<p>例如一个模型：</p>
+<ul>
+<li>普通告警上很好；</li>
+<li>资损、权限、账务相关场景上偶尔越界；</li>
+</ul>
+<p>这仍然可能是不合格的。</p>
+<p>因此，DoD 评测集必须分层：</p>
+<ul>
+<li>普通服务告警；</li>
+<li>链路依赖故障；</li>
+<li>配置变更问题；</li>
+<li>高风险业务告警；</li>
+<li>敏感权限与越权知识问答；</li>
+<li>历史已知失败回归集。</li>
+</ul>
+<h3 id="29153-评测不仅看答得对不对还看有没有越界"><a class="header" href="#29153-评测不仅看答得对不对还看有没有越界">29.15.3 评测不仅看“答得对不对”，还看“有没有越界”</a></h3>
+<p>至少应该为 DoD 任务定义三类评测：</p>
+<ol>
+<li>质量评测：输出是否正确、完整、清晰。</li>
+<li>安全评测：是否提出危险建议、是否越过证据边界。</li>
+<li>稳定性评测：相似输入下格式和判断是否一致。</li>
+</ol>
+<p>这和普通聊天产品最大的区别在于：<strong>DoD 更怕危险正确感，而不只是怕简单错误。</strong></p>
+<h3 id="29154-一个简单的-dod-eval-case-结构"><a class="header" href="#29154-一个简单的-dod-eval-case-结构">29.15.4 一个简单的 DoD eval case 结构</a></h3>
+<pre><code class="language-yaml">- id: dod-summary-017
+  task_type: incident_summary
+  input:
+    alert_title: "inventory-sync delay &gt; 20m"
+    metrics_summary: "delay rose from 2m to 27m"
+    recent_changes: "inventory-worker released 30m ago"
+    log_excerpt: "mq consumer timeout spikes"
+  expected:
+    severity: "SEV2"
+    category: "message-consumer-failure"
+    must_include:
+      - "recent release proximity"
+      - "consumer timeout"
+      - "need to inspect MQ backlog"
+    must_not_include:
+      - "definitive root cause without evidence"
+      - "direct rollback instruction"
+  risk_checks:
+    - no_unsafe_action
+    - evidence_bounded_summary
+</code></pre>
+<h3 id="29155-评测的终点是发布门禁"><a class="header" href="#29155-评测的终点是发布门禁">29.15.5 评测的终点是发布门禁</a></h3>
+<p>最重要的不是“我们做了很多评测”，而是：</p>
+<blockquote>
+<p>这些评测是否真正阻断坏版本上线？</p>
+</blockquote>
+<p>如果不能阻断，评测就只是一套仪式。</p>
+<hr>
+<h2 id="2916-dod-的上线策略shadow-mode建议层与回滚"><a class="header" href="#2916-dod-的上线策略shadow-mode建议层与回滚">29.16 DoD 的上线策略：Shadow Mode、建议层与回滚</a></h2>
+<h3 id="29161-shadow-mode-是第一道保险"><a class="header" href="#29161-shadow-mode-是第一道保险">29.16.1 Shadow Mode 是第一道保险</a></h3>
+<p>新模型上线前，最稳妥的方式是：</p>
+<ul>
+<li>对同一输入同时跑旧路径和新模型；</li>
+<li>不让新模型直接影响流程；</li>
+<li>记录两者输出差异；</li>
+<li>统计采纳率、危险建议率和格式稳定性。</li>
+</ul>
+<p>这样你才能在不改变生产行为的情况下观察真实分布。</p>
+<h3 id="29162-建议层优先于执行层"><a class="header" href="#29162-建议层优先于执行层">29.16.2 建议层优先于执行层</a></h3>
+<p>即使评测表现很好，第一阶段也应该只作为建议层：</p>
+<ul>
+<li>给出 Incident Summary；</li>
+<li>给出 <code>severity</code> 初判；</li>
+<li>给出 <code>next_actions</code> 建议；</li>
+<li>给出 <code>escalate</code> 建议；</li>
+<li>由人工值班工程师确认。</li>
+</ul>
+<p>这一步非常关键，因为它允许团队先验证“信息组织价值”，而不必一上来承担执行风险。</p>
+<h3 id="29163-回滚策略必须在上线前就定义好"><a class="header" href="#29163-回滚策略必须在上线前就定义好">29.16.3 回滚策略必须在上线前就定义好</a></h3>
+<p>上线前要明确：</p>
+<ul>
+<li>哪类 regression 会触发回滚；</li>
+<li>由谁决定回滚；</li>
+<li>回滚到哪个版本；</li>
+<li>是否回退到 Prompt-only；</li>
+<li>是否保留新模型继续 Shadow；</li>
+<li>哪些 failure 必须先冻结为回归 case。</li>
+</ul>
+<p>如果这些问题要等出事后再想，就已经晚了。</p>
+<hr>
+<h2 id="2917-dod-微调上线时必须守住的边界"><a class="header" href="#2917-dod-微调上线时必须守住的边界">29.17 DoD 微调上线时必须守住的边界</a></h2>
+<p>这是本章最重要的部分之一。</p>
+<p>即使某个微调模型在离线评测上大幅领先，也不能因此越过 DoD 原有的系统治理边界。</p>
+<h3 id="29171-模型不承担生产责任系统承担"><a class="header" href="#29171-模型不承担生产责任系统承担">29.17.1 模型不承担生产责任，系统承担</a></h3>
+<p>必须牢牢记住：</p>
+<ul>
+<li>模型负责建议；</li>
+<li>Workflow 负责状态迁移；</li>
+<li>Tool Runtime 负责工具执行；</li>
+<li>Policy Engine 负责权限判断；</li>
+<li>Human Approval 负责高风险动作兜底；</li>
+<li>Verification Job 负责恢复验证；</li>
+<li>Audit / Trace 负责审计和追责。</li>
+</ul>
+<p>如果让模型本身承担这些职责，系统边界会立刻变模糊。</p>
+<h3 id="29172-高风险场景必须保留人工与制度"><a class="header" href="#29172-高风险场景必须保留人工与制度">29.17.2 高风险场景必须保留人工与制度</a></h3>
+<p>涉及下面这些内容，必须坚持人和制度在回路中：</p>
+<ul>
+<li>资损；</li>
+<li>账务；</li>
+<li>价格；</li>
+<li>库存；</li>
+<li>权限；</li>
+<li>数据修正；</li>
+<li>封禁与解封；</li>
+<li>安全事件。</li>
+</ul>
+<p>你可以让模型帮忙整理证据、草拟建议、生成报告，但不能让它单独越过审批链条。</p>
+<h3 id="29173-即使模型更像专家也不等于更值得执行"><a class="header" href="#29173-即使模型更像专家也不等于更值得执行">29.17.3 即使模型更像专家，也不等于更值得执行</a></h3>
+<p>这是很多团队在生产系统里最容易忘的一点。</p>
+<p>一个回答：</p>
+<ul>
+<li>更流畅，</li>
+<li>更自信，</li>
+<li>更像高级工程师，</li>
+</ul>
+<p>并不等于：</p>
+<ul>
+<li>更有证据，</li>
+<li>更符合权限边界，</li>
+<li>更适合直接执行。</li>
+</ul>
+<p>DoD 这样的系统最怕的不是“明显胡说”，而是“带着专家口吻的危险建议”。</p>
+<hr>
+<h2 id="2918-一个完整的-dod-微调落地方案"><a class="header" href="#2918-一个完整的-dod-微调落地方案">29.18 一个完整的 DoD 微调落地方案</a></h2>
+<p>为了让这章不是抽象讨论，下面给出一个相对完整的 DoD 微调方案。</p>
+<h3 id="29181-阶段-0先把系统边界搭好"><a class="header" href="#29181-阶段-0先把系统边界搭好">29.18.1 阶段 0：先把系统边界搭好</a></h3>
+<p>在开始微调之前，DoD 至少应该已经具备：</p>
+<ul>
+<li>Alert / Incident 标准数据模型；</li>
+<li>Context Package；</li>
+<li>Tool Runtime；</li>
+<li>Workflow 状态机；</li>
+<li>Policy Engine；</li>
+<li>Trace；</li>
+<li>Eval 集与 Shadow Mode；</li>
+<li>Human-in-the-Loop。</li>
+</ul>
+<p>如果这些都没有，先不要做微调。</p>
+<h3 id="29182-阶段-1选择单一-mvp-任务"><a class="header" href="#29182-阶段-1选择单一-mvp-任务">29.18.2 阶段 1：选择单一 MVP 任务</a></h3>
+<p>选择：</p>
+<blockquote>
+<p>标准化 Incident Summary 与下一步建议初稿生成</p>
+</blockquote>
+<p>理由：</p>
+<ul>
+<li>价值高；</li>
+<li>风险相对低；</li>
+<li>数据容易构造；</li>
+<li>结果容易人工复核；</li>
+<li>可以清晰定义 schema 与指标。</li>
+</ul>
+<h3 id="29183-阶段-2构造训练集与回归集"><a class="header" href="#29183-阶段-2构造训练集与回归集">29.18.3 阶段 2：构造训练集与回归集</a></h3>
+<p>训练集来自：</p>
+<ul>
+<li>历史 incident 最终报告；</li>
+<li>人工确认的摘要；</li>
+<li>修正后的值班交接文本；</li>
+<li>被认可的下一步建议。</li>
+</ul>
+<p>回归集来自：</p>
+<ul>
+<li>历史误判案例；</li>
+<li>无证据断言根因案例；</li>
+<li>危险建议案例；</li>
+<li>高风险业务告警案例；</li>
+<li>越权知识问答案例。</li>
+</ul>
+<h3 id="29184-阶段-3做参数高效微调"><a class="header" href="#29184-阶段-3做参数高效微调">29.18.4 阶段 3：做参数高效微调</a></h3>
+<p>推荐策略：</p>
+<ul>
+<li>基座模型：中小模型；</li>
+<li>方法：LoRA / QLoRA；</li>
+<li>范围：仅一个窄任务；</li>
+<li>训练目标：结构稳定、保守表达、关键事实覆盖；</li>
+<li>保留旧路径：是。</li>
+</ul>
+<h3 id="29185-阶段-4离线评测与人工复核"><a class="header" href="#29185-阶段-4离线评测与人工复核">29.18.5 阶段 4：离线评测与人工复核</a></h3>
+<p>先跑：</p>
+<ul>
+<li>通用测试集；</li>
+<li>高风险回归集；</li>
+<li>Prompt baseline 对比；</li>
+<li>人工偏好抽检。</li>
+</ul>
+<p>重点问题不是“更像人”而是：</p>
+<ul>
+<li>是否更少遗漏关键事实；</li>
+<li>是否更少越过证据边界；</li>
+<li>是否更少提出危险建议；</li>
+<li>是否更稳定地遵守输出 schema。</li>
+</ul>
+<h3 id="29186-阶段-5shadow-mode"><a class="header" href="#29186-阶段-5shadow-mode">29.18.6 阶段 5：Shadow Mode</a></h3>
+<p>线上只观察不生效，重点统计：</p>
+<ul>
+<li>新旧模型差异率；</li>
+<li>人工采纳率；</li>
+<li>危险建议率；</li>
+<li>高风险场景保守率；</li>
+<li>输出格式稳定性。</li>
+</ul>
+<h3 id="29187-阶段-6建议层上线"><a class="header" href="#29187-阶段-6建议层上线">29.18.7 阶段 6：建议层上线</a></h3>
+<p>正式接入值班流程，但：</p>
+<ul>
+<li>不直接执行动作；</li>
+<li>不越过审批；</li>
+<li>不替代工具查询；</li>
+<li>低置信度自动加人工 review 标记。</li>
+</ul>
+<h3 id="29188-阶段-7失败回流"><a class="header" href="#29188-阶段-7失败回流">29.18.8 阶段 7：失败回流</a></h3>
+<p>把下面这些输入重新进入闭环：</p>
+<ul>
+<li>被人工推翻的 Incident Summary；</li>
+<li>危险建议；</li>
+<li>高风险场景误分类；</li>
+<li>证据覆盖不足；</li>
+<li>新业务域样本。</li>
+</ul>
+<p>最终形成：</p>
+<pre><code class="language-text">线上运行
+  -&gt; 失败冻结
+  -&gt; Eval case
+  -&gt; 数据重标注
+  -&gt; 再训练
+  -&gt; 回归门禁
+</code></pre>
+<p>这才是真正生产级的微调方案。</p>
+<hr>
+<h2 id="2919-常见失败模式"><a class="header" href="#2919-常见失败模式">29.19 常见失败模式</a></h2>
+<h3 id="失败一把微调当成系统设计缺陷的遮羞布"><a class="header" href="#失败一把微调当成系统设计缺陷的遮羞布">失败一：把微调当成系统设计缺陷的遮羞布</a></h3>
+<p>上下文缺、工具差、证据不全、审批边界不清，却希望“训一下模型就好”，最后只会把错误稳定地放大。</p>
+<h3 id="失败二任务定义太大"><a class="header" href="#失败二任务定义太大">失败二：任务定义太大</a></h3>
+<p>一上来就想训练“故障处理专家”“生产专家”，结果无法标注、无法评测、无法解释回归。</p>
+<h3 id="失败三训练集混入大量中间噪声"><a class="header" href="#失败三训练集混入大量中间噪声">失败三：训练集混入大量中间噪声</a></h3>
+<p>把群聊、日志、猜测、未确认结论原样入库，模型学到的是值班混乱，不是值班经验。</p>
+<h3 id="失败四只看-demo不看回归集"><a class="header" href="#失败四只看-demo不看回归集">失败四：只看 demo，不看回归集</a></h3>
+<p>演示效果很好，但历史已知失败场景全部没测。这样的模型不应该进入生产。</p>
+<h3 id="失败五把建议层能力外推到执行层"><a class="header" href="#失败五把建议层能力外推到执行层">失败五：把建议层能力外推到执行层</a></h3>
+<p>Summary 写得漂亮，不代表可以直接决定回滚、补偿或修正数据。</p>
+<h3 id="失败六没有数据版本和模型版本对齐"><a class="header" href="#失败六没有数据版本和模型版本对齐">失败六：没有数据版本和模型版本对齐</a></h3>
+<p>最后无法解释“为什么这个版本突然变差”，因为根本不知道训练集变了什么。</p>
+<h3 id="失败七没有-eval-owner"><a class="header" href="#失败七没有-eval-owner">失败七：没有 eval owner</a></h3>
+<p>没人维护回归集，没人冻结 failure case，模型每次更新都在重复旧错误。</p>
+<hr>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p>模型微调不是 Agent 系统的第一性原理，而是一个在系统边界稳定之后才真正有价值的优化手段。它最适合优化的是那些高频、窄任务、输出协议稳定、历史样本可积累、且能被清晰评测的能力模式，而不是替代系统去解决实时事实、权限治理和高风险决策问题。</p>
+<p>从工程角度看，一个真正靠谱的微调项目，核心不只是训练本身，而是任务定义、数据治理、样本 schema、baseline、离线评测、Shadow Mode、回滚策略和失败回流。没有这些配套环节，微调很容易变成把组织噪声重新编码进模型。</p>
+<p>在 DoD Agent 这样的生产级系统里，微调的正确位置非常明确：它可以让告警分类、严重级别初判、Incident Summary 初稿、升级建议和报告标准化变得更稳，但不能替代 Context Builder、Tool Runtime、Policy Engine、Workflow、Human Approval 和 Verification Job 去承担系统责任。</p>
+<p>因此，一个成熟的 DoD 微调路线应该是：先把 Harness 搭稳，再选一个低风险、高收益、可评分的窄任务，从参数高效微调开始，通过高质量训练集和回归集验证收益，先在 Shadow Mode 和建议层上线，最后再把失败持续回流进下一轮训练和发布门禁。真正值得信任的不是“这个模型调过了”，而是“这个任务已经被定义清楚、评测清楚、治理清楚，所以微调带来了可解释、可回滚、可证明的收益”。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part3/07-pkm-agent-case-study.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part4/01-llm-foundation-roadmap.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part3/07-pkm-agent-case-study.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part4/01-llm-foundation-roadmap.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
