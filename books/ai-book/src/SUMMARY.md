@@ -43,9 +43,23 @@
 
 ---
 
+# 第四部分：大模型基础专题
+
+- [第21章 大模型基础学习地图](part4/01-llm-foundation-roadmap.md)
+- [第22章 Token、Tokenizer、Embedding 与上下文窗口](part4/02-tokenizer-embedding-context.md)
+- [第23章 Transformer Decoder：Attention、Q/K/V、FFN 与位置编码](part4/03-transformer-decoder-attention.md)
+- [第24章 LLM 推理机制：Prefill、Decode、Sampling 与 KV Cache](part4/04-llm-inference-kv-cache.md)
+- [第25章 大模型训练与对齐：Pretraining、SFT、RLHF、DPO](part4/05-training-alignment.md)
+- [第26章 微调、量化与部署：LoRA、QLoRA、Serving Engine](part4/06-finetuning-quantization-serving.md)
+- [第27章 Embedding、Rerank 与 RAG 基础](part4/07-embedding-rerank-rag-basics.md)
+- [第28章 世界模型与具身智能：从预测世界到行动系统](part4/08-world-models-embodied-ai.md)
+
+---
+
 # 附录
 
 - [附录A 术语表](appendix/glossary.md)
 - [附录B 参考资料与延伸阅读](appendix/references.md)
 - [附录C 常用工具与框架](appendix/tools.md)
 - [附录D 系统设计面试题与作品集模板](appendix/system-design-interview-portfolio.md)
+- [附录E LLM / Agent 面试题库与参考来源](appendix/llm-agent-interview-question-bank.md)

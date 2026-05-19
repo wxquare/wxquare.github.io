@@ -1,0 +1,41 @@
+真正的 Agent，不是多一个聊天入口，而是一个会长期积累记忆和技能的运行时。
+
+很多 AI 助手看起来都很像：你发一句话，它回一句话；换到 Telegram、Slack 或 CLI，也只是多了几个入口。但 Hermes Agent 想解决的问题更深：Agent 如何在长期使用中变得更懂你、更会做事？
+
+可以把 OpenClaw 和 Hermes 放在一起理解。OpenClaw 更像个人 Agent Gateway，重点是让 Agent 到达用户所在的地方。Hermes 更像长期运行的 Agent Runtime，重点是记忆、技能、工具、执行后端和轨迹闭环。
+
+一句话概括：OpenClaw 解决“Agent 如何到达用户”，Hermes 解决“Agent 如何长期成长”。
+
+普通聊天机器人围绕单次回复设计。用户输入，模型回答，这条链路很短。但真正的个人 Agent 需要连续性：它要记得用户偏好和项目背景，能把复杂任务沉淀成可复用技能，也能从 CLI、消息平台、IDE 或定时任务继续工作。
+
+所以 Hermes 可以抽象成一个长期运行的 Agent Runtime：它包含 Persistent Memory、Skills、Multi-platform Gateway、Tool Registry、Execution Backends 和 Research Trajectory Pipeline。
+
+这背后有一个关键判断：Agent 的能力不只来自模型参数，而来自模型、记忆、技能、工具、入口、执行环境和历史轨迹共同组成的系统。
+
+理解 Hermes，可以先看六个核心组件。
+
+第一是大脑中枢，负责理解意图、生成推理和选择工具。第二是记忆系统，保存长期事实、用户画像、历史会话和 Skills。第三是小脑，负责规划、状态和工作流。第四是工具中心，管理 Tool Registry、Toolsets、MCP 和插件。第五是执行引擎，把工具调用变成真实动作，并处理失败和重试。第六是外部环境，包括 Gateway、Cron、ACP、CLI、本地、Docker、SSH 等后端。
+
+一次 Hermes 任务的数据流也不是 Prompt 到 Answer 这么简单。用户从 Telegram、CLI 或 Cron 发起请求，入口层先标准化消息，Session Router 找到正确的用户、线程和 profile。Prompt Builder 再组装人格、长期记忆、相关 Skills、项目上下文和工具边界。
+
+模型判断是否需要工具。Tool Runtime 在对应 toolset 和执行后端里调用 web、terminal、file、browser、memory 或 MCP 工具。工具结果回到 Agent Loop，模型继续推理，直到给出答案。最后，会话写入 Session Store，稳定事实进入 Memory，稳定流程进入 Skill 候选，执行轨迹进入研究数据。
+
+这就是 Hermes 的重点：Memory 不只是输入，也参与输出后的回流。没有回流，Agent 每次都从头开始；没有约束，Agent 又会把错误、噪声和越权信息永久化。
+
+所以 Prompt System 的设计很关键。Hermes 不是把所有历史塞进上下文，而是分三层治理：稳定前缀、按需召回、本轮运行态。这样既有连续性，又不会让上下文失控。
+
+Memory 保存“我知道什么”，Skills 保存“我下次怎么做”，Tool 保存“我实际能执行什么”。这三者不要混在一起。
+
+比如一次发布检查，如果反复成功，Hermes-style Skill 应该沉淀触发条件、步骤、依赖工具、验证命令和适用边界，而不是只记一句“发布前要检查”。
+
+这也是 Hermes 最值得借鉴的地方：它把经验变成程序性记忆。一次成功任务本身价值有限，能被压缩成可验证、可复用、可审查的流程，才会真正提升长期能力。
+
+但自我进化也有风险。错误步骤可能被固化，隐私可能被写入长期记忆，跨 profile 的信息可能串线，高风险工具可能被错误授权。所以长期 Agent 必须有验证、评测、人工审核、权限边界和可观测轨迹。
+
+Gateway 和 Toolsets 正是边界的一部分。多入口让 Agent 活在用户所在的平台里，Toolsets 则决定它在每个平台、每个 profile、每种任务下能调用哪些能力。长期在线不等于无限授权。
+
+最后总结一下：Hermes 的核心价值，不是多一个聊天入口，而是把 Agent 做成一个长期运行的个人运行时。它会记忆，会沉淀技能，会跨入口工作，会调用工具，也会把轨迹变成未来改进的数据资产。
+
+如果你要自研个人或团队 Agent，最小可行架构不是“接一个模型 API”，而是至少包含五件事：统一入口，稳定上下文，受控工具集，可审计执行，以及被验证约束的学习闭环。
+
+真正的 Agent 能力，来自模型加 Runtime，加长期轨迹闭环。
