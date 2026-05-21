@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-# 第6章 Agent 工具系统：Tool Calling、Skills 与 MCP
-=======
 # 第6章 Agent 工具系统工程：Tool Calling、Skills、CLI 与 MCP
->>>>>>> 21a1ebdd21dd9c2e1307691287887a785e5e384b
 
 > "Tools are the hands and eyes of an Agent." （工具是 Agent 的手和眼）
 
@@ -83,52 +79,7 @@ LLM 的输出是概率性的，而外部系统的操作往往要求确定性。T
 - **Skill** 是能力复用：把“如何完成某类任务”写成可加载的操作手册，让 Agent 复用步骤、工具选择和验证方法。
 - **MCP** 是连接协议：外部系统用标准方式暴露工具和资源，Host 用标准方式发现和调用。
 
-MCP 不替代 Tool Runtime。它提供“插头标准”，但插上去之后能不能安全可靠地工作，仍取决于运行时设计。
-
-### API、CLI、MCP、Browser Use 与 Skill 的分层
-
-围绕 Agent 工具系统的讨论里，经常会把 API、CLI、MCP、Skill、Browser Use 放在一起比较，甚至问“CLI 会不会取代 MCP”。这个问题本身容易混淆层级。
-
-更准确的分层是：
-
-```text
-用户意图
-  │
-  ▼
-Agent / 模型
-  │
-  ▼
-Skill / Instructions
-  │  流程、判断标准、约束和验证
-  ▼
-Tool Interface
-  │  Function Calling / MCP Tool / Shell Tool / 内置 Connector
-  ▼
-Execution Channel
-  │  API / CLI / Browser Automation / Local Runtime
-  ▼
-外部系统
-     GitHub / Notion / Slack / 数据库 / 文件系统
-```
-
-可以用四句话区分：
-
-- **Skill 管“怎么做”**：例如代码审查先看 diff，再看测试，再给出风险分级。
-- **MCP 管“如何把工具暴露给 Agent”**：例如 GitHub、Postgres、Figma 用统一协议暴露工具和资源。
-- **CLI 管“如何通过命令执行”**：例如 `git`、`gh`、`npm`、`docker`、`aws`。
-- **API 管“系统底层如何被调用”**：CLI 和 MCP Server 很多时候最终都会调用 API。
-
-Browser Use 则是另一类执行通道：当一个系统没有稳定 API、没有 CLI、也没有可用 MCP Server 时，Agent 才模拟人类操作浏览器或桌面界面。它不是默认方案，而是最后手段。
-
-| 接入方式 | 所在层级 | 面向谁 | 优点 | 风险 |
-|:---|:---|:---|:---|:---|
-| API | 底层服务接口 | 程序 / Runtime | 稳定、完整、可控 | 需要鉴权、SDK、错误处理 |
-| CLI | 执行通道 | 人和 Agent | 本地开发友好、低成本、复用现有工具 | Shell 注入、输出不结构化、依赖本机环境 |
-| MCP | 工具协议层 | Agent Runtime | 标准化发现、跨客户端复用、适合多用户治理 | Server 运维、Schema 成本、权限和供应链风险 |
-| Browser Use | GUI 自动化通道 | Agent | 适合无 API/CLI 的系统 | 慢、脆弱、成本高 |
-| Skill | 流程层 | Agent | 复用方法、约束和验证标准 | 过期、误触发、错误经验固化 |
-
-因此，MCP 和 CLI 不是简单替代关系。CLI 是一种具体执行通道，适合本地开发环境中稳定、低成本地调用已有工具；MCP 是一种 Agent 工具协议，适合把外部能力标准化暴露给不同 Agent 客户端，尤其适合跨平台分发、多用户授权和企业治理场景。
+MCP 不替代 Tool Runtime。它提供“插头标准”，但插上去之后能不能安全可靠地工作，仍取决于运行时设计。至于 API、CLI、MCP、Browser Use 和 Skill 这些概念到底处在什么层级，本文放到 6.5 节集中讨论，避免在 Tool Calling 和 MCP 之间来回跳转。
 
 ---
 
@@ -845,43 +796,6 @@ MCP 可以暴露 Tools、Resources 和 Prompts，但 Skill 更偏 Agent Runtime 
 
 第 14 章会用 Pi 展示 Skill、Prompt Template、Extension 和 Package 如何组成终端原生 Coding Agent Runtime 的扩展层；第 15 章会用 OpenClaw 展示 Skill 如何作为本地 Agent Gateway 的扩展层被加载；第 16 章会用 Hermes 展示 Skill 如何从长期会话轨迹中演化为可复用程序性记忆。
 
-### GitHub 例子：API、CLI 与 MCP 的三条路径
-
-以 GitHub 为例，Agent 想读取 PR、查看 diff、创建 review，至少有三条常见路径：
-
-```text
-路径 A：直接 API
-Agent Runtime
-  └─ GitHub REST / GraphQL API
-      └─ GitHub
-
-路径 B：通过 CLI
-Agent Runtime
-  └─ Shell Tool
-      └─ gh CLI
-          └─ GitHub API
-              └─ GitHub
-
-路径 C：通过 MCP
-Agent Runtime
-  └─ MCP Client
-      └─ GitHub MCP Server
-          └─ GitHub API
-              └─ GitHub
-```
-
-模型本身并不直接调用 GitHub。模型通常只产生工具调用意图，真正执行的是 Agent Runtime。Runtime 可以把这个意图路由到 GitHub MCP Server，也可以转成 `gh` CLI 命令，还可以调用平台内置 GitHub Connector。
-
-三条路径的工程取舍不同：
-
-| 路径 | 适合场景 | 主要优势 | 主要限制 |
-|:---|:---|:---|:---|
-| 直接 API | 自研 Runtime、强控制需求 | 能力完整、错误处理可控 | 需要自己维护集成、认证和分页 |
-| CLI | 个人开发、本地仓库操作、已有登录态 | 简单、低成本、复用成熟工具 | 输出需要解析，命令必须受控 |
-| MCP | 多客户端复用、多用户授权、企业治理 | 标准发现、统一工具接口、便于审计 | 需要部署和维护 Server |
-
-这也是判断工具接入方式时最重要的原则：**底层 API 是能力来源，CLI 是命令执行入口，MCP 是 Agent 工具协议入口，Skill 则是使用这些能力的方法。**
-
 ---
 
 ## 6.5 MCP：从私有集成到开放协议
@@ -889,6 +803,50 @@ Agent Runtime
 MCP（Model Context Protocol）由 Anthropic 推出，用于标准化 AI 应用与外部工具、数据源、提示词模板之间的连接方式。它的核心目标不是“让模型更聪明”，而是“让 AI 应用接入外部能力更一致”。
 
 MCP 的价值不在于比 CLI 更快，而在于把工具能力标准化分发给多个 Agent 客户端，并把多用户授权、能力发现、审计和治理纳入统一协议边界。
+
+### MCP 解决的到底是什么问题
+
+如果把 MCP 只理解成“又一种调用工具的方式”，就很容易和 API、CLI 混在一起。更准确地说，MCP 解决的是 **AI Host 如何以统一协议接入外部能力**，而不是底层系统如何实现业务能力。
+
+围绕工具系统，常见概念的层级关系如下：
+
+```text
+用户意图
+  │
+  ▼
+Agent / 模型
+  │
+  ▼
+Skill / Instructions
+  │  流程、判断标准、约束和验证
+  ▼
+Tool Interface
+  │  Function Calling / MCP Tool / Shell Tool / 内置 Connector
+  ▼
+Execution Channel
+  │  API / CLI / Browser Automation / Local Runtime
+  ▼
+外部系统
+     GitHub / Notion / Slack / 数据库 / 文件系统
+```
+
+可以用五句话区分：
+
+- **Skill 管“怎么做”**：例如代码审查先看 diff，再看测试，再给出风险分级。
+- **MCP 管“如何把能力标准化暴露给 Agent”**：例如 GitHub、Postgres、Figma 用统一协议暴露工具和资源。
+- **CLI 管“如何通过命令执行”**：例如 `git`、`gh`、`npm`、`docker`、`aws`。
+- **API 管“系统底层如何被调用”**：CLI、MCP Server 和平台 Connector 很多时候最终都会调用 API。
+- **Browser Use 管“没有合适接口时如何模拟人类操作”**：它是兜底执行通道，而不是默认方案。
+
+| 接入方式 | 所在层级 | 面向谁 | 优点 | 风险 |
+|:---|:---|:---|:---|:---|
+| API | 底层服务接口 | 程序 / Runtime | 稳定、完整、可控 | 需要鉴权、SDK、错误处理 |
+| CLI | 执行通道 | 人和 Agent | 本地开发友好、低成本、复用现有工具 | Shell 注入、输出不结构化、依赖本机环境 |
+| MCP | 工具协议层 | Agent Runtime | 标准化发现、跨客户端复用、适合多用户治理 | Server 运维、Schema 成本、权限和供应链风险 |
+| Browser Use | GUI 自动化通道 | Agent | 适合无 API/CLI 的系统 | 慢、脆弱、成本高 |
+| Skill | 流程层 | Agent | 复用方法、约束和验证标准 | 过期、误触发、错误经验固化 |
+
+因此，MCP 和 CLI 不是简单替代关系。CLI 是一种具体执行通道，适合本地开发环境中稳定、低成本地调用已有工具；MCP 是一种 Agent 工具协议，适合把外部能力标准化暴露给不同 Agent 客户端，尤其适合跨平台分发、多用户授权和企业治理场景。
 
 ### MCP 的架构边界
 
@@ -998,6 +956,50 @@ MCP 当前标准传输主要包括 stdio 和 Streamable HTTP。
 | Streamable HTTP | 远程 MCP Server、企业平台、SaaS 集成 | 支持独立服务、会话、流式响应、OAuth | 需要认证、Origin 校验、会话管理和网络安全 |
 
 对本地开发工具来说，stdio 很自然：Host 启动一个 Server 子进程，通过标准输入输出交换 JSON-RPC 消息。对企业级工具平台来说，HTTP 更合适：Server 是独立服务，可以统一认证、扩缩容、审计和限流。
+
+这两种传输也对应了实践中常见的两种部署形态：
+
+- **本地 MCP Server**：通常由 Host 用 `command + args` 拉起，适合 `git`、文件系统、IDE、本地构建链路等强本地上下文能力。
+- **远程 MCP Server**：通常由 Host 通过 URL 连接，适合知识库、日志平台、内部 SaaS、团队共享目录服务等中心化能力。
+
+前者更容易拿到本地文件、环境变量和 CLI；后者更容易统一版本、授权、审计和多用户治理。
+
+### GitHub 例子：API、CLI 与 MCP 的三条路径
+
+以 GitHub 为例，Agent 想读取 PR、查看 diff、创建 review，至少有三条常见路径：
+
+```text
+路径 A：直接 API
+Agent Runtime
+  └─ GitHub REST / GraphQL API
+      └─ GitHub
+
+路径 B：通过 CLI
+Agent Runtime
+  └─ Shell Tool
+      └─ gh CLI
+          └─ GitHub API
+              └─ GitHub
+
+路径 C：通过 MCP
+Agent Runtime
+  └─ MCP Client
+      └─ GitHub MCP Server
+          └─ GitHub API
+              └─ GitHub
+```
+
+模型本身并不直接调用 GitHub。模型通常只产生工具调用意图，真正执行的是 Agent Runtime。Runtime 可以把这个意图路由到 GitHub MCP Server，也可以转成 `gh` CLI 命令，还可以调用平台内置 GitHub Connector。
+
+三条路径的工程取舍不同：
+
+| 路径 | 适合场景 | 主要优势 | 主要限制 |
+|:---|:---|:---|:---|
+| 直接 API | 自研 Runtime、强控制需求 | 能力完整、错误处理可控 | 需要自己维护集成、认证和分页 |
+| CLI | 个人开发、本地仓库操作、已有登录态 | 简单、低成本、复用成熟工具 | 输出需要解析，命令必须受控 |
+| MCP | 多客户端复用、多用户授权、企业治理 | 标准发现、统一工具接口、便于审计 | 需要部署和维护 Server |
+
+这也是判断工具接入方式时最重要的原则：**底层 API 是能力来源，CLI 是命令执行入口，MCP 是 Agent 工具协议入口，Skill 则是使用这些能力的方法。**
 
 ### MCP 不是 API Gateway 的替代品
 
