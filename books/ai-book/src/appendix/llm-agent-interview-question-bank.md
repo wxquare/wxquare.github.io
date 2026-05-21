@@ -1,6 +1,6 @@
 # LLM / Agent 面试题库与参考来源
 
-> 采集日期：2026-05-16  
+> 采集日期：2026-05-16；补充日期：2026-05-21  
 > 用途：为《附录D 系统设计面试题与作品集模板》提供外部面试信号、题型来源和后续扩展素材。  
 > 原则：不复制大段原文，不直接搬运题库答案；只记录来源、摘要、主题标签和可原创改写的面试题。
 
@@ -430,6 +430,15 @@ C：社区帖子、二手经验、SEO 文章，只作为趋势或追问方向参
 | GitHub：sreekanth-madisetty/Awesome-LLM-Interview-Questions | <https://github.com/sreekanth-madisetty/Awesome-LLM-Interview-Questions> | RAG、agents、fine-tuning、quantization、pretraining | B，分类清楚，可做学习索引 |
 | GitHub：DolbyUUU/Awesome-LLM-Interview-Questions-and-Answers | <https://github.com/DolbyUUU/Awesome-LLM-Interview-Questions-and-Answers> | 中文 LLM / Agent / RAG / MCP / Tool Use / 项目经验 | B-，贴近国内面试，但答案需要复核 |
 | Rubduck AI Question Bank | <https://rubduck.ai/questions> | AI system design、agents、RAG、LLM evaluation | B，适合作为题型覆盖检查 |
+| OpenAI API：Structured Outputs | <https://developers.openai.com/api/docs/guides/structured-outputs> | JSON Schema、function calling、response format、schema adherence | A，适合结构化输出和工具边界题 |
+| OpenAI API：Prompt Caching | <https://developers.openai.com/api/docs/guides/prompt-caching> | prompt cache、成本、延迟、静态前缀、缓存保持 | A，适合成本优化和长上下文题 |
+| Model Context Protocol 2025-06-18 Specification | <https://modelcontextprotocol.io/specification/2025-06-18> | host/client/server、resources、prompts、tools、sampling、roots、elicitation、安全原则 | A，适合 MCP 和 Tool Registry 题 |
+| MCP Server Tools | <https://modelcontextprotocol.io/specification/2025-06-18/server/tools> | tools/list、tools/call、inputSchema、outputSchema、annotations、structuredContent | A，适合工具 schema 和安全题 |
+| MCP Server Resources | <https://modelcontextprotocol.io/specification/2025-06-18/server/resources> | resources/list、resources/read、templates、subscribe、listChanged、annotations | A，适合上下文供给和资源权限题 |
+| MCP Server Prompts | <https://modelcontextprotocol.io/specification/2025-06-18/server/prompts> | prompts/list、prompts/get、arguments、prompt messages、多模态内容、安全校验 | A，适合 prompt catalog 和工作流模板题 |
+| OWASP Top 10 for LLM Applications | <https://owasp.org/www-project-top-10-for-large-language-model-applications/> | prompt injection、insecure output handling、sensitive disclosure、excessive agency、model theft | A，适合安全和风险建模题 |
+| OpenTelemetry GenAI Semantic Conventions | <https://opentelemetry.io/docs/specs/semconv/gen-ai/> | GenAI spans、events、metrics、model spans、agent spans、MCP spans | A，适合 observability 标准化题 |
+| LangSmith Evaluation | <https://docs.langchain.com/langsmith/evaluation> | offline eval、online eval、dataset、evaluator、production trace feedback loop | A-，产品文档，适合 eval 平台题 |
 
 ---
 
@@ -1225,3 +1234,265 @@ C：社区帖子、二手经验、SEO 文章，只作为趋势或追问方向参
 348. 看是否有反馈到 eval、数据和产品改进的闭环。
 349. 看是否有发布门禁、canary、回滚和安全评估。
 350. 理想答案是两者平衡：demo 速度用于探索，生产可靠性用于交付。
+
+---
+
+## 10. 第二遍进阶专题题单：带参考答案
+
+> 这一节用于第二遍复习。每题给出可直接口头回答的参考答案，并尽量映射到 2026 年仍然高频的工程面试信号。来源优先参考 OpenAI、Anthropic、MCP、OWASP、OpenTelemetry、Ragas、LangSmith 等官方文档或工程文章。
+
+### 10.1 结构化输出、模型路由与成本
+
+351. **Structured Outputs 和 JSON mode 的核心区别是什么？**  
+     答：JSON mode 主要保证输出是合法 JSON；Structured Outputs 进一步要求输出符合给定 JSON Schema。面试里要强调它解决的是接口解析和 schema adherence，不等于保证事实正确、业务正确或安全合规。
+
+352. **什么时候用 function calling，什么时候用 structured response format？**  
+     答：如果模型要连接系统能力、数据库、工具或外部动作，用 function calling；如果只是希望最终回复按固定结构返回给应用层或 UI，用 structured response format。前者是“模型请求系统做事”，后者是“模型按结构回答”。
+
+353. **Structured Outputs 能否替代后端校验？**  
+     答：不能。它能降低格式错误，但业务约束、权限、幂等、风险等级、库存状态、金额上限等仍必须由后端系统校验。生产系统应把 schema 视为输入边界的一层，不是可信执行环境。
+
+354. **多模型供应商下，结构化输出有什么兼容风险？**  
+     答：不同供应商对 JSON Schema 子集、并行工具调用、拒答格式和错误处理的支持不完全一致。工程上要做 provider adapter、schema 子集约束、契约测试和回归 eval，避免在切模型时只测“能解析”而不测“字段语义正确”。
+
+355. **Prompt caching 如何优化成本和延迟？**  
+     答：把稳定前缀放在 prompt 开头，例如 system 指令、工具说明、少量示例和固定 policy；把用户输入、检索证据、临时工具结果放在后面。缓存依赖前缀匹配，动态内容越靠前，缓存命中越差。
+
+356. **模型路由应该按什么维度设计？**  
+     答：按任务难度、风险等级、上下文长度、结构化输出要求、延迟预算、成本预算和历史成功率路由。简单分类和格式转换走小模型，高风险决策、复杂推理和长上下文 synthesis 走强模型，并保留 fallback 和回滚。
+
+357. **Fallback model 设计的关键难点是什么？**  
+     答：难点不是“换一个模型再试”，而是保证输出契约、工具调用能力、安全策略和用户体验一致。fallback 前要定义触发条件，fallback 后要标记 trace，并评估质量差异、成本差异和是否需要人工接管。
+
+358. **Streaming 会改变 LLM 系统设计的哪些部分？**  
+     答：Streaming 改善首 token 体验，但要求前端能处理增量输出、取消、重试、部分结果和最终校验。对需要结构化输出或工具调用的任务，不能只看流式文本，还要等最终对象、guardrail 和后端状态确认。
+
+359. **LLM 应用中的缓存分为哪些层？**  
+     答：常见层包括 prompt cache、embedding cache、retrieval cache、rerank cache、tool result cache 和 answer cache。越靠近最终答案，越要关注权限、时效、个性化和引用一致性；生产系统通常优先缓存稳定前缀和检索中间结果。
+
+360. **为什么 cost per successful task 比 average request cost 更有意义？**  
+     答：Agent 任务可能多轮、多工具、多次重试，只看单次请求成本会低估失败和重试成本。`cost / successful_task` 能把质量、成本和完成率放在一起衡量，更接近业务实际付费意愿。
+
+### 10.2 MCP、Tool Registry 与工具安全
+
+361. **MCP 中 host、client、server 分别是什么？**  
+     答：host 是发起连接的 LLM 应用，例如 IDE 或聊天产品；client 是 host 内部连接某个 MCP server 的连接器；server 提供 resources、prompts、tools 等能力。这个拆分让工具和上下文接入标准化，也让权限边界更清楚。
+
+362. **MCP 的 resources、prompts、tools 有什么区别？**  
+     答：resources 是给模型或用户使用的上下文和数据；prompts 是可复用的模板化消息或工作流；tools 是模型可请求执行的函数能力。面试中要说明：resources 主要供给信息，tools 可能产生动作，风险等级不同。
+
+363. **MCP 为什么需要 capability negotiation？**  
+     答：不同 server 支持的能力不同，例如是否支持 tools、resources subscribe、prompts listChanged。初始化阶段声明 capability 后，host 才能决定展示什么、调用什么、监听什么，避免客户端假设能力存在而导致运行时错误。
+
+364. **MCP resource subscription 适合什么场景？**  
+     答：适合文件、文档、配置、任务状态等会变化的上下文。订阅后资源更新可通知 client，Agent 能避免使用过期上下文；但订阅内容仍要做权限控制、脱敏和范围限制。
+
+365. **MCP tool definition 中最关键的字段是什么？**  
+     答：至少要有唯一 `name`、清晰 `description`、`inputSchema`，有结构化返回时还应有 `outputSchema`。工具 annotations 和描述可能来自 server，除非 server 可信，否则 host 不能把它们当安全事实。
+
+366. **MCP 工具调用为什么必须要求用户同意和控制？**  
+     答：工具可能访问数据或执行代码路径。安全原则要求用户理解数据会被谁访问、动作会造成什么影响，并能授权或拒绝。模型只能提出调用请求，不能绕过 host 的授权和审计。
+
+367. **MCP sampling 有什么特殊风险？**  
+     答：sampling 允许 server 触发模型调用，可能造成递归调用、数据外传、成本失控或提示注入扩大化。设计上应让用户控制是否允许 sampling、实际发送的 prompt 以及 server 能看到哪些结果。
+
+368. **工具列表动态变化时，Agent 系统要注意什么？**  
+     答：需要处理 `listChanged` 通知、工具版本、schema 变化和 eval 回归。工具新增或重命名可能改变模型选择行为，所以要把 tool registry 变化纳入发布流程，而不是把工具列表当静态 prompt。
+
+369. **MCP server 市场化后，主要安全风险有哪些？**  
+     答：风险包括 lookalike tool、过宽权限、恶意工具描述、数据外传、供应链污染和 tool combination attack。host 应做来源信任、权限最小化、工具风险分级、用户确认、审计和安全 eval。
+
+370. **MCP 和普通内部 API 的关系是什么？**  
+     答：内部 API 是业务系统接口，MCP 是面向 LLM 应用暴露资源、工具和 prompt 的协议层。生产中通常用 MCP server 包装内部 API，但鉴权、审计、限流、幂等和业务校验仍由企业系统负责。
+
+### 10.3 Agent Runtime、持久化与人工介入
+
+371. **为什么长任务 Agent 需要 durable execution？**  
+     答：长任务可能跨分钟到小时，期间会遇到模型超时、工具失败、服务重启和人工审批。durable execution 把状态保存到持久层，使任务可暂停、恢复、重放和审计。
+
+372. **Agent checkpoint 应该保存哪些信息？**  
+     答：保存目标、当前阶段、状态变量、工具结果摘要、预算、已完成动作、待审批动作、关键上下文引用、artifact 路径和下一步计划。不要只保存聊天历史，否则恢复后很难判断真实执行状态。
+
+373. **Human-in-the-loop 应放在哪些位置？**  
+     答：应放在高风险写操作、外部发送、删除、生产变更、权限升级、低置信度决策和用户明确要求确认的位置。好的设计不是最后统一点“批准”，而是在风险发生前暂停并展示影响、参数和回滚方式。
+
+374. **可恢复 Agent 如何处理有副作用的工具调用？**  
+     答：副作用工具必须有 idempotency key、状态查询、去重和审计。恢复或重放时不能盲目再次执行退款、发送邮件或改配置，而应先查上一次动作是否已经成功。
+
+375. **长运行 worker 中 trace 为什么可能需要显式 flush？**  
+     答：trace 通常异步批量导出。后台任务、队列 worker 或 serverless 任务结束时，如果进程很快退出，trace 可能还在缓冲区；显式 flush 可提高导出完整性，便于事后排障。
+
+376. **state、memory 和 artifact 的区别是什么？**  
+     答：state 是当前任务运行状态；memory 是跨任务、跨会话保留的偏好或事实；artifact 是文件、报告、代码、图表等可独立引用的产物。三者混在聊天上下文里会造成恢复困难和信息丢失。
+
+377. **为什么子 Agent 输出有时应该写入 artifact，而不是只回传给主 Agent？**  
+     答：大结果通过主 Agent 口头转述会丢信息、耗 token、引入二次总结误差。让子 Agent 直接写文件、表格或结构化结果，再把引用交给主 Agent，可以降低上下文压力并提高可审查性。
+
+378. **长上下文快满时，Agent 应如何保持连续性？**  
+     答：应阶段性压缩已完成工作，把关键事实、决策、待办、证据引用和 artifact 路径写入外部状态；必要时启动新上下文继续执行。不要简单截断历史，否则容易丢掉约束和已做动作。
+
+379. **time travel debugging 对 Agent 有什么价值？**  
+     答：它允许从历史 checkpoint 查看、回放或分叉执行，定位哪个决策导致失败。对多轮 Agent 来说，这比只看最终失败输出更有价值，因为很多错误来自早期工具选择或错误状态。
+
+380. **异步 Agent job 应如何向用户呈现进度？**  
+     答：前端展示阶段、当前动作、等待原因、可取消入口、已产出 artifact 和预计下一步。后端通过 checkpoint、trace 和事件流驱动 UI，避免用户只能看到一个长时间 spinning 状态。
+
+### 10.4 进阶 Evals 与统计解释
+
+381. **`pass@k` 和 `pass^k` 分别衡量什么？**  
+     答：`pass@k` 衡量 k 次尝试中至少一次成功的概率，适合“多试几次有一个能用”的场景；`pass^k` 衡量 k 次全部成功的概率，适合用户每次都期望稳定成功的生产 Agent。
+
+382. **为什么 Agent eval 要重复运行同一个 case？**  
+     答：Agent 有采样、工具、检索和环境非确定性，单次通过不代表稳定。重复运行能估计成功率、方差和不稳定失败模式，尤其适合客服、浏览器和研究型 Agent。
+
+383. **offline eval 和 online eval 如何分工？**  
+     答：offline eval 用 curated dataset 在发布前比较版本、防回归；online eval 在生产 trace 上抽样监控真实分布、安全和质量漂移。成熟流程是线上失败进入数据集，离线验证修复，再灰度上线。
+
+384. **如何从生产 trace 生成 eval case？**  
+     答：先筛失败、低评分、高成本、人工接管和安全事件 trace，脱敏后标注用户目标、初始状态、允许工具、禁止行为、期望 outcome 和评分器。关键是保留轨迹和环境状态，而不只是输入输出。
+
+385. **不同风险等级应选择什么 grader？**  
+     答：确定性规则用 code-based grader；开放文本和交互质量用 LLM rubric；高风险、安全、合规和 judge 校准样本用 human grader。越高风险，越不能只依赖模型打分。
+
+386. **如何解释 eval 分数的统计不确定性？**  
+     答：看样本量、置信区间、重复 trial、case 难度分布和分层指标。小样本上 2% 的提升可能只是噪声；生产门禁应关注关键场景和高严重度失败，而不是只看平均分。
+
+387. **LLM-as-a-judge 如何校准？**  
+     答：用人工标注 golden set 对齐 rubric，定期抽检 judge 输出，比较一致性和偏差；对关键 case 使用双 judge 或 human review。还要固定 judge 模型和 prompt 版本，否则评分基准会漂移。
+
+388. **多轮客服 Agent 为什么需要 end-state eval？**  
+     答：同一个目标可能有多条合理路径，逐步匹配固定轨迹会误杀。更好的做法是检查最终 ticket、refund、confirmation、用户状态等是否正确，同时用 transcript rubric 约束语气、轮数和策略遵守。
+
+389. **研究型 Agent 的 eval 难点是什么？**  
+     答：研究输出开放、来源会变化、专家可能不同意“完整性”标准。通常需要 groundedness、coverage、source quality、citation support 和人工校准的 LLM rubric 组合评估。
+
+390. **为什么 evaluator 也要版本化？**  
+     答：prompt、rubric、规则代码、judge 模型或阈值改变都会改变分数含义。版本化 evaluator 能解释历史趋势，避免把评分器变化误判成模型或 Agent 质量变化。
+
+### 10.5 OWASP、Prompt Injection 与生产安全
+
+391. **OWASP LLM Top 10 对 Agent 面试有什么价值？**  
+     答：它提供了 LLM 应用风险分类语言，例如 prompt injection、sensitive information disclosure、supply chain、excessive agency、overreliance 等。面试里可以用它组织威胁建模，而不是零散说“加 guardrail”。
+
+392. **Excessive Agency 是什么？**  
+     答：系统给模型过多自主动作能力、过宽权限或缺少确认，导致模型一旦误判就能造成真实影响。缓解方式包括最小权限、工具风险分级、审批、限额、幂等和可回滚设计。
+
+393. **Insecure Output Handling 为什么危险？**  
+     答：如果把模型输出直接当代码、SQL、HTML、shell 或业务指令执行，模型错误或被注入的输出会传染到下游系统。必须做解析、转义、schema 校验、权限校验和安全执行环境。
+
+394. **Sensitive Information Disclosure 如何在 LLM 系统里发生？**  
+     答：敏感信息可能来自 prompt、RAG context、tool result、memory、trace 或最终输出。防护要覆盖数据最小化、权限过滤、DLP、脱敏、trace 访问控制和输出 guardrail。
+
+395. **Model DoS / cost attack 在 Agent 中如何表现？**  
+     答：攻击者可诱导超长上下文、无限循环、多工具重试、高成本模型路由或大量子 Agent。系统要有限步数、预算、速率限制、上下文大小、工具次数和异常成本告警。
+
+396. **LLM supply chain 风险包括哪些？**  
+     答：包括第三方模型、embedding 模型、MCP server、插件、prompt 包、数据集、向量库内容和依赖库被污染。缓解方式是来源审查、版本锁定、最小权限、签名、隔离和上线前安全 eval。
+
+397. **为什么检索文档和网页内容必须视为 untrusted content？**  
+     答：它们可能包含恶意指令、过期信息或攻击者控制的内容。模型可以把它们当证据，但系统不能让它们覆盖 system/developer 指令，也不能让它们直接决定权限和工具调用。
+
+398. **RAG 能否彻底解决 prompt injection？**  
+     答：不能。RAG 反而引入了间接 prompt injection：恶意内容藏在文档或网页中。正确做法是信任域隔离、引用约束、工具前校验、敏感动作审批和安全 regression eval。
+
+399. **安全 eval 应覆盖哪些 case？**  
+     答：覆盖直接 injection、间接 injection、跨租户读取、PII 输出、越权工具、高风险写操作、成本攻击、系统 prompt 泄露和恶意工具返回。每次事故都应沉淀为回归 case。
+
+400. **LLM 安全事故复盘应产出什么？**  
+     答：产出现象、影响范围、trace、根因层级、修复项、数据/工具/prompt/policy 变更、回滚动作和 regression eval。不要只写“优化 prompt”，否则无法防止同类问题再次发生。
+
+### 10.6 Observability 标准化与 Trace 设计
+
+401. **OpenTelemetry GenAI semantic conventions 解决什么问题？**  
+     答：它给模型调用、检索、工具调用、事件、指标和 Agent span 提供统一命名和属性约定，方便不同框架和平台之间交换 telemetry。面试里可把它作为“不要自创不可迁移日志格式”的依据。
+
+402. **模型 inference span 应记录哪些核心字段？**  
+     答：记录 operation、provider、request model、response model、token usage、latency、error type 和必要的采样信息。prompt 和输出可做摘要或 opt-in 保存，因为它们可能包含敏感数据。
+
+403. **retrieval span 应记录哪些内容？**  
+     答：记录 query 摘要、data source、top-k、filter、retrieved doc id、score、rerank 信息和错误。完整 query 和文档内容可能敏感，应默认摘要、脱敏或受控保存。
+
+404. **tool span 为什么要特别注意敏感字段？**  
+     答：tool arguments 和 results 往往包含客户数据、订单、合同、密钥或内部系统返回。trace 要记录可排障的摘要、状态、耗时和风险等级，但敏感参数要脱敏、哈希或按权限隔离。
+
+405. **Agent trace 采样策略如何设计？**  
+     答：普通成功请求可低比例采样；失败、高成本、高延迟、人工接管、安全事件和高风险工具调用应全量保留。采样决策最好基于 span 初始属性和最终 outcome 组合。
+
+406. **为什么不应默认保存完整 prompt？**  
+     答：完整 prompt 可能含用户隐私、企业知识、检索证据、工具结果和系统策略。默认保存摘要和结构化 metadata，需要排障时再受控开启，并配合保留周期和访问审计。
+
+407. **如何监控 Agent 行为漂移？**  
+     答：监控工具调用分布、拒答率、澄清率、任务成功率、policy violation、用户纠错、行为聚类和 eval 分数。行为漂移不是传统错误率能完全覆盖的，需要 trace 和反馈结合。
+
+408. **为什么 trace 要关联 prompt、model、tool schema 和 dataset 版本？**  
+     答：Agent 失败可能来自任何一个版本变化。没有版本关联，就无法做 ablation，也无法解释某天质量下降是模型、prompt、工具、检索数据还是 harness 改动造成的。
+
+409. **trace 如何进入 eval 闭环？**  
+     答：线上 trace 先用于归因和分类，再脱敏标注为 eval case，最后进入 regression suite。修复后用相同 case 验证，避免线上同类失败重复出现。
+
+410. **Agent observability dashboard 应展示哪些 SLO？**  
+     答：展示任务成功率、关键场景成功率、安全违规率、p95/p99 延迟、成本、工具错误率、检索缺失、人工接管率、用户反馈和 eval 趋势。只看 token 和 latency 不足以描述 Agent 质量。
+
+### 10.7 多模态、语音与 Computer-use Agent
+
+411. **语音 Agent 的 trace 和文本 Agent 有什么不同？**  
+     答：除 generation、tool、guardrail 外，还要记录 transcription、speech、speech group、音频延迟、打断和识别错误。音频数据通常更敏感，默认不应完整保存。
+
+412. **语音 Agent 的隐私风险有哪些？**  
+     答：音频可能包含声纹、背景对话、身份信息和未预期内容。设计上要有录音提示、数据最小化、音频脱敏或不落盘、保留周期、访问控制和用户删除能力。
+
+413. **Computer-use Agent 如何评估是否完成任务？**  
+     答：不要只看它说“完成了”，要检查环境最终状态，例如 URL、页面状态、文件系统、数据库、应用配置或订单状态。GUI 路径可以不同，但最终可验证状态必须正确。
+
+414. **浏览器 Agent 中 DOM 工具和截图工具如何取舍？**  
+     答：DOM 适合提取大量文本和结构化页面，速度快但 token 可能很大；截图适合视觉布局、商品浏览和非结构化界面，可能更慢但更贴近人类界面。生产 Agent 通常按任务动态选择。
+
+415. **图像输入也会有 prompt injection 吗？**  
+     答：会。截图、图片或 OCR 文本可能包含恶意指令。系统应把视觉内容转成 untrusted observation，只提取事实，不允许它覆盖高优先级指令或触发未授权工具。
+
+416. **多模态 RAG 的 ingestion pipeline 有哪些额外步骤？**  
+     答：需要版面解析、OCR、表格结构化、图片 caption、图表数据抽取、坐标或页码锚点、跨模态 embedding 和引用定位。评估时要分别检查解析质量、检索质量和引用可验证性。
+
+417. **实时语音 Agent 为什么需要 interruption handling？**  
+     答：用户会打断、纠正或改变意图。如果系统不能取消正在生成的语音、停止工具调用或重建状态，就会出现响应滞后和误执行。需要把打断作为一等事件记录到 state 和 trace。
+
+418. **语音 Agent 的关键延迟指标有哪些？**  
+     答：包括 speech-to-text 延迟、首 token 延迟、首音频延迟、工具等待时间、端到端响应延迟和打断响应时间。用户感知通常比纯文本更敏感，所以要拆阶段优化。
+
+419. **浏览器 Agent 如何评估工具选择是否正确？**  
+     答：构造任务集，标注每一步应该用 DOM、截图、点击、输入、滚动还是搜索工具，并比较实际轨迹。工具选错可能不立刻失败，但会增加 token、延迟和误操作风险。
+
+420. **Computer-use Agent 的 sandbox 应限制什么？**  
+     答：限制文件系统、剪贴板、网络域名、下载上传、凭据、系统设置、支付和外部发送。高风险动作前要截图或状态摘要给用户确认，并记录可审计 trace。
+
+### 10.8 作品集、系统设计表达与反追问
+
+421. **面试中介绍 Agent 系统，最稳定的四层结构是什么？**  
+     答：先讲用户目标和成功指标，再讲 runtime / tools / data 的架构，然后讲 eval / observability / guardrails，最后讲失败模式和 trade-off。这样能从 demo 叙述升级到生产系统叙述。
+
+422. **面试官问“为什么不用普通 workflow”，怎么回答？**  
+     答：先承认固定 workflow 更可控，适合规则明确路径；再说明当前任务是否存在开放步骤、动态工具选择、多轮反馈和未知分解。如果这些条件不足，就应选择 workflow 而不是 Agent。
+
+423. **把 demo Agent 迁到生产，第一阶段应该补什么？**  
+     答：补权限、日志/trace、失败处理、工具幂等、eval 集、发布门禁、成本限制和人工接管。不要先追复杂多 Agent，而要先让单 Agent 可测、可控、可恢复。
+
+424. **企业验收 Agent 项目时应看哪些证据？**  
+     答：看关键任务成功率、安全违规率、人工接管率、p95 延迟、成本、trace 样本、eval report、权限测试、事故演练和回滚方案。只展示 demo 视频不足以证明可上线。
+
+425. **如何讲一个 Agent 项目的失败复盘？**  
+     答：按现象、影响、trace 证据、根因、修复、回归测试和剩余风险来讲。好的复盘要能说明你如何从“模型答错了”定位到具体系统层，而不是泛泛说 prompt 不好。
+
+426. **如何量化 Agent 的业务价值？**  
+     答：用任务完成率、平均处理时长、人工节省、用户满意度、转人工率、错误成本、每成功任务成本和 SLA 改善衡量。技术指标要能映射到业务结果，否则很难说服面试官。
+
+427. **没有线上数据时，如何做可信 eval？**  
+     答：用历史样例、公开 benchmark、专家合成 case、对抗 case 和小规模人工标注建立初始集；上线后再用真实 trace 迭代。要诚实说明数据来源和覆盖盲区。
+
+428. **面试官问“为什么用这个 Agent 框架”，怎么回答？**  
+     答：从需求出发回答：是否需要 durable execution、graph state、human-in-the-loop、多 Agent 编排、observability 集成或生态工具。若只是简单工具循环，直接用 SDK 或少量代码可能更合适。
+
+429. **开源本地模型和闭源 API 模型如何取舍？**  
+     答：闭源 API 通常质量、工具能力和维护成本更优；开源本地模型在数据控制、私有化、可定制和单位成本上有优势。生产取舍要看质量门槛、合规、延迟、吞吐、运维能力和供应商风险。
+
+430. **如果只准备一个作品集项目，应该覆盖哪些能力信号？**  
+     答：选择一个小而完整的 RAG 或 Agent 项目，必须展示架构图、工具/数据边界、eval dataset、trace、guardrails、失败复盘、成本延迟和 README 讲法。面试官看的是生产意识，不只是功能能跑。
