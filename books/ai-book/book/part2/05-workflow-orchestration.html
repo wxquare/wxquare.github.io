@@ -1,0 +1,1193 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第9章 Agent 执行编排与平台架构：工作流、状态机、多 Agent 与框架生态 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-ff3e4717.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-1b384b0e.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第9章-agent-执行编排与平台架构工作流状态机多-agent-与框架生态"><a class="header" href="#第9章-agent-执行编排与平台架构工作流状态机多-agent-与框架生态">第9章 Agent 执行编排与平台架构：工作流、状态机、多 Agent 与框架生态</a></h1>
+<blockquote>
+<p>Agent 执行编排的目标，不是让模型“多想几步”，而是把不确定的模型行为放进可恢复、可审计、可治理的运行时结构里。</p>
+</blockquote>
+<h2 id="引言从可靠执行到平台化运行时"><a class="header" href="#引言从可靠执行到平台化运行时">引言：从可靠执行到平台化运行时</a></h2>
+<p>前面几章分别讨论了 Agent 的架构边界、工具系统、知识系统和记忆系统。到这里，一个 Agent 已经具备了“看上下文、查知识、调用工具、保留连续性”的能力。但这些能力本身还不能保证任务可靠完成。</p>
+<p>生产环境中的 Agent 往往要处理更长的任务：</p>
+<ul>
+<li>一次任务包含多个步骤；</li>
+<li>某些步骤依赖工具结果；</li>
+<li>某些动作有副作用，需要审批；</li>
+<li>中途可能失败、超时或被用户打断；</li>
+<li>任务可能隔天继续；</li>
+<li>多个 Agent 或多个工作区可能并行执行；</li>
+<li>结果必须能被追踪、回放和评估。</li>
+</ul>
+<p>这就是执行编排的位置。</p>
+<p>执行编排不是多 Agent 才需要。单 Agent 只要任务变长、动作变多、风险变高，也需要 workflow、state machine、checkpoint、human-in-the-loop 和 trace。多 Agent 只是执行编排的一种复杂形态。</p>
+<p>本章把两类内容合并讨论：</p>
+<pre><code class="language-text">执行编排：如何把任务组织成可靠过程
+平台架构：如何把编排、状态、工具、审批、恢复和观测沉淀为可复用运行时
+</code></pre>
+<p>这也是为什么 LangGraph、AutoGen、Microsoft Agent Framework 这类框架不能只当作“Agent 框架”看。它们背后真正解决的是：如何让 Agent 从 demo 变成可运行、可恢复、可审计、可扩展的系统。</p>
+<hr>
+<h2 id="91-从-agent-loop-到-workflow-runtime"><a class="header" href="#91-从-agent-loop-到-workflow-runtime">9.1 从 Agent Loop 到 Workflow Runtime</a></h2>
+<h3 id="911-最小-agent-loop-的边界"><a class="header" href="#911-最小-agent-loop-的边界">9.1.1 最小 Agent Loop 的边界</a></h3>
+<p>最小 Agent Loop 通常长这样：</p>
+<pre><code class="language-python">while not done:
+    action = llm(context)
+    result = execute_tool(action)
+    context.append(result)
+</code></pre>
+<p>这个 loop 适合原型，也适合低风险探索任务。它的优点是简单、灵活、实现快。</p>
+<p>但它的边界也很明显：</p>
+<ul>
+<li>控制流隐藏在模型输出里；</li>
+<li>状态保存在上下文或内存变量里；</li>
+<li>工具副作用缺少幂等和审计；</li>
+<li>失败后不知道从哪一步恢复；</li>
+<li>人工审批只能靠聊天确认；</li>
+<li>trace 不完整，无法稳定复盘；</li>
+<li>任务越长，上下文越容易膨胀和污染。</li>
+</ul>
+<p>最小 loop 的问题不是“模型不够聪明”，而是缺少运行时结构。模型可以决定下一步，但系统必须决定哪些步骤可执行、哪些动作要暂停、哪些状态要持久化、哪些证据必须保留。</p>
+<h3 id="912-为什么单-agent-也需要显式编排"><a class="header" href="#912-为什么单-agent-也需要显式编排">9.1.2 为什么单 Agent 也需要显式编排</a></h3>
+<p>很多人把 workflow 和 state machine 误认为多 Agent 专属能力。其实只要单 Agent 需要执行多步任务，就已经需要显式编排。</p>
+<p>例如一个单 Agent 告警诊断任务：</p>
+<pre><code class="language-text">接收告警
+  -&gt; 拉取指标
+  -&gt; 查询日志
+  -&gt; 生成假设
+  -&gt; 验证假设
+  -&gt; 生成修复建议
+  -&gt; 等待人工审批
+  -&gt; 执行低风险动作或输出操作手册
+</code></pre>
+<p>这里可以只有一个 Agent，但仍然需要：</p>
+<ul>
+<li>workflow：定义步骤顺序和分支；</li>
+<li>state：保存当前诊断进度；</li>
+<li>checkpoint：工具失败后恢复；</li>
+<li>approval：高风险动作前暂停；</li>
+<li>trace：记录证据和决策过程。</li>
+</ul>
+<p>单 Agent 加上 workflow，不会让系统变复杂，反而会让复杂任务变得可控。</p>
+<h3 id="913-控制流状态副作用人工介入与可观测性"><a class="header" href="#913-控制流状态副作用人工介入与可观测性">9.1.3 控制流、状态、副作用、人工介入与可观测性</a></h3>
+<p>生产级 Agent Runtime 至少要显式处理五类问题。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">问题</th><th style="text-align: left">Demo 做法</th><th style="text-align: left">生产做法</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">控制流</td><td style="text-align: left">让模型自由决定下一步</td><td style="text-align: left">workflow、graph、router、state machine</td></tr>
+<tr><td style="text-align: left">状态</td><td style="text-align: left">拼进 prompt 或内存变量</td><td style="text-align: left">task state、checkpoint、session store</td></tr>
+<tr><td style="text-align: left">副作用</td><td style="text-align: left">直接调用工具</td><td style="text-align: left">tool runtime、幂等键、审批、补偿</td></tr>
+<tr><td style="text-align: left">人工介入</td><td style="text-align: left">聊天里问“可以吗”</td><td style="text-align: left">approval node、interrupt、resume token</td></tr>
+<tr><td style="text-align: left">可观测性</td><td style="text-align: left">打印日志</td><td style="text-align: left">trace、span、evidence、cost、eval replay</td></tr>
+</tbody>
+</table>
+</div>
+<p>这五类问题决定了 Agent 能不能上线。模型可以生成计划，但系统必须管理执行计划的生命周期。</p>
+<h3 id="914-agent-demo-到-agent-platform-的演进路径"><a class="header" href="#914-agent-demo-到-agent-platform-的演进路径">9.1.4 Agent Demo 到 Agent Platform 的演进路径</a></h3>
+<p>一个常见演进路径是：</p>
+<pre><code class="language-text">Single LLM Call
+  -&gt; Tool-using Agent
+  -&gt; Stateful Workflow
+  -&gt; Long-running Agent Runtime
+  -&gt; Multi-Agent Runtime
+  -&gt; Managed Agent Platform
+</code></pre>
+<p>每一步都不是为了“更炫”，而是因为出现了新的工程压力：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">阶段</th><th style="text-align: left">触发条件</th><th style="text-align: left">新增能力</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Tool-using Agent</td><td style="text-align: left">需要查询或执行外部系统</td><td style="text-align: left">tool schema、权限、错误处理</td></tr>
+<tr><td style="text-align: left">Stateful Workflow</td><td style="text-align: left">任务超过一步</td><td style="text-align: left">task state、控制流、分支</td></tr>
+<tr><td style="text-align: left">Long-running Runtime</td><td style="text-align: left">任务可能失败或暂停</td><td style="text-align: left">checkpoint、resume、replay</td></tr>
+<tr><td style="text-align: left">Multi-Agent Runtime</td><td style="text-align: left">需要多角色并行或互审</td><td style="text-align: left">role、handoff、team topology</td></tr>
+<tr><td style="text-align: left">Managed Platform</td><td style="text-align: left">多团队复用和上线治理</td><td style="text-align: left">registry、policy、trace、eval、release gate</td></tr>
+</tbody>
+</table>
+</div>
+<p>Agent Platform 不是一开始就要建设的东西。但如果每个团队都在重复实现工具注册、状态恢复、审批、trace 和 eval，那么平台化就开始有价值。</p>
+<hr>
+<h2 id="92-单-agent-执行编排把任务组织成可靠过程"><a class="header" href="#92-单-agent-执行编排把任务组织成可靠过程">9.2 单 Agent 执行编排：把任务组织成可靠过程</a></h2>
+<h3 id="921-plan-and-execute计划与执行分离"><a class="header" href="#921-plan-and-execute计划与执行分离">9.2.1 Plan-and-Execute：计划与执行分离</a></h3>
+<p>Plan-and-Execute 把任务拆成两个阶段：</p>
+<pre><code class="language-text">Plan: 生成可执行步骤、约束、证据要求和风险边界
+Execute: 按步骤执行、验证、修正和结束
+</code></pre>
+<p>适合场景：</p>
+<ul>
+<li>任务目标明确；</li>
+<li>步骤之间有依赖；</li>
+<li>需要用户或系统审查计划；</li>
+<li>执行过程需要恢复或追踪。</li>
+</ul>
+<p>关键不是“先让模型写一个计划”，而是计划必须变成结构化任务对象。</p>
+<pre><code class="language-json">{
+  "goal": "diagnose_order_latency",
+  "steps": [
+    {"id": "metrics", "action": "query_metrics", "risk": "read"},
+    {"id": "logs", "action": "search_logs", "risk": "read"},
+    {"id": "hypothesis", "action": "generate_hypothesis", "risk": "none"},
+    {"id": "verify", "action": "verify_hypothesis", "risk": "read"}
+  ],
+  "stop_conditions": ["root_cause_found", "evidence_insufficient", "budget_exceeded"],
+  "requires_approval": []
+}
+</code></pre>
+<p>计划一旦结构化，Runtime 就能检查预算、权限、风险动作和完成条件。</p>
+<h3 id="922-react-loop观察思考行动反馈"><a class="header" href="#922-react-loop观察思考行动反馈">9.2.2 ReAct Loop：观察、思考、行动、反馈</a></h3>
+<p>ReAct Loop 强调在推理和行动之间循环：</p>
+<pre><code class="language-text">Observe -&gt; Think -&gt; Act -&gt; Observe -&gt; ...
+</code></pre>
+<p>它适合工具结果不确定、需要边查边判断的任务。问题是，如果 ReAct 完全自由运行，就容易出现：</p>
+<ul>
+<li>工具调用过多；</li>
+<li>反复查询同一信息；</li>
+<li>中途忘记目标；</li>
+<li>停止条件不清楚；</li>
+<li>trace 难以归因。</li>
+</ul>
+<p>生产系统中更常见的做法是把 ReAct 放进受控边界：</p>
+<pre><code class="language-text">最多调用 N 次工具
+每次工具调用必须有 purpose
+每轮必须更新 evidence state
+达到 stop condition 后停止
+高风险工具必须暂停审批
+</code></pre>
+<p>也就是说，ReAct 是 Agent 的认知循环，Workflow Runtime 是它的运行边界。</p>
+<h3 id="923-workflow固定流程中的-llm-节点"><a class="header" href="#923-workflow固定流程中的-llm-节点">9.2.3 Workflow：固定流程中的 LLM 节点</a></h3>
+<p>有些业务流程本身比较稳定，只是其中某些节点需要 LLM 判断或生成。</p>
+<p>例如客服工单处理：</p>
+<pre><code class="language-text">Classify Ticket
+  -&gt; Retrieve Policy
+  -&gt; Draft Reply
+  -&gt; Risk Check
+  -&gt; Human Review
+  -&gt; Send
+</code></pre>
+<p>这里 LLM 不是整个流程的主人，而是某些节点的执行器。Workflow 负责顺序、分支、权限、审批和失败恢复。</p>
+<p>这种模式适合生产系统，因为它把不确定性限制在节点内部，而不是让整个流程都由模型自由决定。</p>
+<h3 id="924-state-machine显式状态转移"><a class="header" href="#924-state-machine显式状态转移">9.2.4 State Machine：显式状态转移</a></h3>
+<p>当任务有明确生命周期时，应该用 state machine 表示。</p>
+<pre><code class="language-text">created
+  -&gt; planning
+  -&gt; running
+  -&gt; waiting_approval
+  -&gt; executing_action
+  -&gt; completed
+  -&gt; failed
+</code></pre>
+<p>状态机的价值是：</p>
+<ul>
+<li>当前任务处于哪个阶段一目了然；</li>
+<li>每个状态允许哪些动作可以被系统校验；</li>
+<li>失败和恢复路径可以明确建模；</li>
+<li>人工接管时能看到稳定状态；</li>
+<li>trace 和 eval 可以按状态归因。</li>
+</ul>
+<p>不要把状态机藏在 prompt 里。状态应该由 Runtime 保存，模型只能基于状态提出建议或选择允许的动作。</p>
+<h3 id="925-checkpointresumereplay-与幂等"><a class="header" href="#925-checkpointresumereplay-与幂等">9.2.5 Checkpoint、Resume、Replay 与幂等</a></h3>
+<p>长任务必须考虑失败。模型调用可能超时，工具可能失败，进程可能重启，人类审批可能隔天才发生。</p>
+<p>Checkpoint 的基本思想是：</p>
+<pre><code class="language-text">Step completed -&gt; save state
+External action requested -&gt; save intent and idempotency key
+Human approval pending -&gt; save approval state
+Resume -&gt; continue from last safe checkpoint
+</code></pre>
+<p>关键点有三个：</p>
+<ul>
+<li>checkpoint 保存的是结构化状态，不只是聊天历史；</li>
+<li>外部副作用必须有幂等键；</li>
+<li>replay 时不能重复执行已经成功的副作用。</li>
+</ul>
+<p>幂等设计尤其重要。一个“创建退款单”的工具如果在恢复时重复执行，就会造成真实业务事故。Runtime 必须记录 action id、request payload、response、状态和重试策略。</p>
+<h3 id="926-human-in-the-loop审批暂停与恢复"><a class="header" href="#926-human-in-the-loop审批暂停与恢复">9.2.6 Human-in-the-loop：审批、暂停与恢复</a></h3>
+<p>Human-in-the-loop 不是在聊天里问一句“要继续吗”，而是 workflow state 的一部分。</p>
+<pre><code class="language-text">Propose Action
+  -&gt; Risk Classifier
+  -&gt; Approval Node
+  -&gt; Execute or Reject
+</code></pre>
+<p>审批节点至少要记录：</p>
+<ul>
+<li>谁发起；</li>
+<li>审批什么动作；</li>
+<li>证据是什么；</li>
+<li>风险等级是什么；</li>
+<li>谁批准或拒绝；</li>
+<li>什么时候处理；</li>
+<li>恢复后从哪里继续。</li>
+</ul>
+<p>这样人工介入才具备可审计性和可恢复性。</p>
+<hr>
+<h2 id="93-workflow-pattern单-agent-和多-agent-都适用"><a class="header" href="#93-workflow-pattern单-agent-和多-agent-都适用">9.3 Workflow Pattern：单 Agent 和多 Agent 都适用</a></h2>
+<h3 id="931-sequential顺序执行"><a class="header" href="#931-sequential顺序执行">9.3.1 Sequential：顺序执行</a></h3>
+<p>Sequential 是最基础的 workflow pattern。</p>
+<pre><code class="language-text">Input -&gt; Step 1 -&gt; Step 2 -&gt; Step 3 -&gt; Output
+</code></pre>
+<p>适合步骤有明确依赖的任务，例如：</p>
+<ul>
+<li>先检索证据，再生成回答；</li>
+<li>先解析需求，再生成代码；</li>
+<li>先跑测试，再总结结果。</li>
+</ul>
+<p>Sequential 可以由一个 Agent 执行，也可以由多个节点分别执行。重点是步骤关系，而不是 Agent 数量。</p>
+<h3 id="932-parallel并行执行"><a class="header" href="#932-parallel并行执行">9.3.2 Parallel：并行执行</a></h3>
+<p>Parallel 用于独立子任务并行处理。</p>
+<pre><code class="language-text">          -&gt; Branch A -&gt;
+Input -&gt; -&gt; Branch B -&gt; Aggregator -&gt; Output
+          -&gt; Branch C -&gt;
+</code></pre>
+<p>适合场景：</p>
+<ul>
+<li>多个数据源并行查询；</li>
+<li>多个文件并行分析；</li>
+<li>多个 reviewer 从不同角度审查；</li>
+<li>多个候选方案并行生成。</li>
+</ul>
+<p>Parallel 的难点在聚合。Aggregator 不能只是拼接结果，它需要处理冲突、去重、排序、引用和证据充分性。</p>
+<h3 id="933-router按意图分流"><a class="header" href="#933-router按意图分流">9.3.3 Router：按意图分流</a></h3>
+<p>Router 根据任务类型选择路径。</p>
+<pre><code class="language-text">User Input
+  -&gt; Intent Router
+     -&gt; QA Flow
+     -&gt; Coding Flow
+     -&gt; Data Analysis Flow
+     -&gt; Human Escalation
+</code></pre>
+<p>Router 可以由规则、分类模型或 LLM 实现。但生产系统中应该输出结构化结果：</p>
+<pre><code class="language-json">{
+  "intent": "incident_diagnosis",
+  "confidence": 0.86,
+  "route": "diagnosis_workflow",
+  "reason": "user asks to inspect alert and logs"
+}
+</code></pre>
+<p>低置信度或高风险任务应该进入澄清或人工路径。</p>
+<h3 id="934-evaluator-optimizer评估与迭代优化"><a class="header" href="#934-evaluator-optimizer评估与迭代优化">9.3.4 Evaluator-Optimizer：评估与迭代优化</a></h3>
+<p>Evaluator-Optimizer 用于需要多轮改进的任务。</p>
+<pre><code class="language-text">Generator -&gt; Evaluator -&gt; Feedback -&gt; Generator
+</code></pre>
+<p>适合：</p>
+<ul>
+<li>代码生成和审查；</li>
+<li>文档草稿和编辑；</li>
+<li>查询计划优化；</li>
+<li>多候选答案评估。</li>
+</ul>
+<p>必须设置退出条件：</p>
+<ul>
+<li>最大迭代次数；</li>
+<li>明确验收标准；</li>
+<li>质量不再提升时停止；</li>
+<li>成本超过预算时停止；</li>
+<li>低置信度时交给人工。</li>
+</ul>
+<p>没有退出条件的 evaluator loop 很容易变成无限循环。</p>
+<h3 id="935-orchestrator-workers编排者与工作者"><a class="header" href="#935-orchestrator-workers编排者与工作者">9.3.5 Orchestrator-Workers：编排者与工作者</a></h3>
+<p>Orchestrator-Workers 把任务拆给多个 worker，再汇总结果。</p>
+<pre><code class="language-text">Orchestrator
+  -&gt; Worker A
+  -&gt; Worker B
+  -&gt; Worker C
+  -&gt; Merge
+</code></pre>
+<p>这个模式可以是单 Agent 内部的 task decomposition，也可以是真正的多 Agent 协作。</p>
+<p>关键是 worker 的输入必须清晰：</p>
+<ul>
+<li>目标；</li>
+<li>边界；</li>
+<li>可写范围；</li>
+<li>预期输出格式；</li>
+<li>验收标准；</li>
+<li>禁止事项。</li>
+</ul>
+<p>如果 worker 接到的是模糊自然语言，合并成本会急剧上升。</p>
+<h3 id="936-fan-out批量任务与并行处理"><a class="header" href="#936-fan-out批量任务与并行处理">9.3.6 Fan-out：批量任务与并行处理</a></h3>
+<p>Fan-out 是 Orchestrator-Workers 的批量化形态。</p>
+<pre><code class="language-text">Files[1..N] -&gt; N workers -&gt; Results -&gt; Review / Merge
+</code></pre>
+<p>适合：</p>
+<ul>
+<li>批量迁移；</li>
+<li>批量修复；</li>
+<li>批量代码审查；</li>
+<li>批量文档改写；</li>
+<li>批量数据抽取。</li>
+</ul>
+<p>Fan-out 的核心风险是冲突和质量不一致。应该尽量保证每个 worker 的写入范围不重叠，并在最后设置合并审查。</p>
+<h3 id="937-workflow-的验收标准超时与预算"><a class="header" href="#937-workflow-的验收标准超时与预算">9.3.7 Workflow 的验收标准、超时与预算</a></h3>
+<p>Workflow 不能只定义步骤，还要定义运行边界。</p>
+<pre><code class="language-yaml">workflow_policy:
+  max_steps: 12
+  max_tool_calls: 20
+  timeout_seconds: 900
+  max_cost_usd: 3.0
+  approval_required_for:
+    - write_database
+    - deploy
+    - send_external_message
+  stop_conditions:
+    - completed
+    - evidence_insufficient
+    - user_cancelled
+    - budget_exceeded
+</code></pre>
+<p>这些边界最好由 Runtime 执行，而不是靠 prompt 约束。</p>
+<hr>
+<h2 id="94-multi-agent-协作执行编排的复杂形态"><a class="header" href="#94-multi-agent-协作执行编排的复杂形态">9.4 Multi-Agent 协作：执行编排的复杂形态</a></h2>
+<h3 id="941-多-agent-什么时候才必要"><a class="header" href="#941-多-agent-什么时候才必要">9.4.1 多 Agent 什么时候才必要</a></h3>
+<p>多 Agent 的价值不是“看起来更智能”，而是解决单 Agent 难以同时满足的工程诉求：</p>
+<ul>
+<li>职责分离；</li>
+<li>并行执行；</li>
+<li>独立上下文；</li>
+<li>互相审查；</li>
+<li>专家能力隔离；</li>
+<li>大任务分块处理。</li>
+</ul>
+<p>不适合多 Agent 的场景：</p>
+<ul>
+<li>简单问答；</li>
+<li>单次工具查询；</li>
+<li>没有明确角色边界的小任务；</li>
+<li>成本比收益更高的低风险任务。</li>
+</ul>
+<p>判断标准不是任务复杂度本身，而是是否存在清晰的角色边界和可合并的输出。</p>
+<h3 id="942-planner--executor"><a class="header" href="#942-planner--executor">9.4.2 Planner / Executor</a></h3>
+<p>Planner / Executor 把计划和执行分离。</p>
+<pre><code class="language-text">Planner: 生成计划、约束、风险和验收标准
+Executor: 按计划执行工具、修改文件或生成结果
+</code></pre>
+<p>适合长任务和高风险任务。Planner 不直接执行副作用动作，Executor 也不能随意改变目标。计划变更需要回到 Planner 或用户确认。</p>
+<h3 id="943-writer--reviewer"><a class="header" href="#943-writer--reviewer">9.4.3 Writer / Reviewer</a></h3>
+<p>Writer / Reviewer 用于质量控制。</p>
+<pre><code class="language-text">Writer -&gt; Draft
+Reviewer -&gt; Findings
+Writer -&gt; Revision
+</code></pre>
+<p>这个模式在代码、文档、方案设计中都常见。Reviewer 必须有明确标准，否则会变成泛泛评价。</p>
+<p>好的 Reviewer 输出应该包含：</p>
+<ul>
+<li>具体问题；</li>
+<li>影响；</li>
+<li>证据位置；</li>
+<li>建议修复；</li>
+<li>是否阻塞发布。</li>
+</ul>
+<h3 id="944-researcher--synthesizer"><a class="header" href="#944-researcher--synthesizer">9.4.4 Researcher / Synthesizer</a></h3>
+<p>Researcher / Synthesizer 用于复杂研究任务。</p>
+<pre><code class="language-text">Researcher: 搜索、阅读、抽取证据
+Synthesizer: 组织结论、处理冲突、生成答案
+</code></pre>
+<p>Researcher 不应该直接生成最终结论，Synthesizer 也不应该编造证据。两者之间应该传递 Evidence Packet，而不是自由文本摘要。</p>
+<h3 id="945-coordinator--specialist"><a class="header" href="#945-coordinator--specialist">9.4.5 Coordinator / Specialist</a></h3>
+<p>Coordinator / Specialist 适合多领域任务。</p>
+<pre><code class="language-text">Coordinator
+  -&gt; Security Specialist
+  -&gt; Performance Specialist
+  -&gt; API Specialist
+  -&gt; Docs Specialist
+</code></pre>
+<p>Coordinator 负责拆分、分配、合并和停止条件。Specialist 负责明确领域内的判断。</p>
+<h3 id="946-多-agent-的风险成本上下文丢失无限循环权限绕过"><a class="header" href="#946-多-agent-的风险成本上下文丢失无限循环权限绕过">9.4.6 多 Agent 的风险：成本、上下文丢失、无限循环、权限绕过</a></h3>
+<p>多 Agent 常见失败模式：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">风险</th><th style="text-align: left">表现</th><th style="text-align: left">修复</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">成本失控</td><td style="text-align: left">多个 Agent 重复探索</td><td style="text-align: left">设置预算、去重、共享证据</td></tr>
+<tr><td style="text-align: left">上下文丢失</td><td style="text-align: left">交接后忘记约束</td><td style="text-align: left">使用结构化 handoff</td></tr>
+<tr><td style="text-align: left">无限循环</td><td style="text-align: left">reviewer 和 writer 反复争论</td><td style="text-align: left">最大迭代次数和验收标准</td></tr>
+<tr><td style="text-align: left">权限绕过</td><td style="text-align: left">子 Agent 调用不该用的工具</td><td style="text-align: left">每个 Agent 独立权限校验</td></tr>
+<tr><td style="text-align: left">合并失败</td><td style="text-align: left">输出格式不一致</td><td style="text-align: left">明确输出 schema</td></tr>
+</tbody>
+</table>
+</div>
+<p>多 Agent 不是替代 workflow。多 Agent 更需要 workflow。</p>
+<hr>
+<h2 id="95-并行执行基础设施"><a class="header" href="#95-并行执行基础设施">9.5 并行执行基础设施</a></h2>
+<h3 id="951-git-worktrees隔离工作区"><a class="header" href="#951-git-worktrees隔离工作区">9.5.1 Git Worktrees：隔离工作区</a></h3>
+<p>Coding Agent 的并行执行通常需要隔离文件系统状态。Git worktree 是一个实用基础设施。</p>
+<pre><code class="language-bash">git worktree add ../feature-auth feature/auth
+git worktree add ../feature-payment feature/payment
+</code></pre>
+<p>每个 Agent 在独立 worktree 中工作，可以减少文件冲突。适合：</p>
+<ul>
+<li>大规模重构；</li>
+<li>多模块并行开发；</li>
+<li>多方案实验；</li>
+<li>批量迁移。</li>
+</ul>
+<p>关键要求是写入范围要提前划分，避免多个 Agent 修改同一文件。</p>
+<h3 id="952-subagents专家上下文"><a class="header" href="#952-subagents专家上下文">9.5.2 Subagents：专家上下文</a></h3>
+<p>Subagent 的核心价值是独立上下文。主 Agent 可以把一个边界清晰的任务交给专家 Agent，让它在自己的上下文中完成。</p>
+<p>适合：</p>
+<ul>
+<li>安全审查；</li>
+<li>性能分析；</li>
+<li>测试补齐；</li>
+<li>文档改写；</li>
+<li>代码库局部探索。</li>
+</ul>
+<p>不适合把关键路径上的阻塞任务随意交给 subagent。下一步必须依赖的结果，主流程通常应该自己处理，或明确等待。</p>
+<h3 id="953-agent-teams自动协调"><a class="header" href="#953-agent-teams自动协调">9.5.3 Agent Teams：自动协调</a></h3>
+<p>Agent Team 把多个角色组织成固定拓扑。例如：</p>
+<pre><code class="language-text">Writer -&gt; Reviewer -&gt; Writer
+Planner -&gt; Executor -&gt; Verifier
+Coordinator -&gt; Specialists -&gt; Coordinator
+</code></pre>
+<p>Team 的重点不是“让多个 Agent 聊天”，而是：</p>
+<ul>
+<li>每个角色有明确职责；</li>
+<li>消息传递有结构；</li>
+<li>有终止条件；</li>
+<li>有合并规则；</li>
+<li>有审计和成本记录。</li>
+</ul>
+<h3 id="954-batch--fan-out批量迁移批量修复与批量评审"><a class="header" href="#954-batch--fan-out批量迁移批量修复与批量评审">9.5.4 Batch / Fan-out：批量迁移、批量修复与批量评审</a></h3>
+<p>批量任务适合 fan-out。</p>
+<pre><code class="language-text">Find targets
+  -&gt; shard targets
+  -&gt; dispatch workers
+  -&gt; collect results
+  -&gt; run verification
+  -&gt; merge
+</code></pre>
+<p>批量迁移尤其要注意：</p>
+<ul>
+<li>每个 shard 的写入范围；</li>
+<li>失败 shard 的重试策略；</li>
+<li>全局一致性检查；</li>
+<li>最后统一格式化和测试；</li>
+<li>合并后的人工 review。</li>
+</ul>
+<h3 id="955-并行任务的合并冲突和审查边界"><a class="header" href="#955-并行任务的合并冲突和审查边界">9.5.5 并行任务的合并、冲突和审查边界</a></h3>
+<p>并行执行的难点不在启动 worker，而在合并。</p>
+<p>合并前要检查：</p>
+<ul>
+<li>是否有文件冲突；</li>
+<li>是否有接口不一致；</li>
+<li>是否有重复实现；</li>
+<li>是否破坏共享测试；</li>
+<li>是否有未声明副作用。</li>
+</ul>
+<p>并行执行的原则是：并行可以提升吞吐，但不能降低审查标准。</p>
+<hr>
+<h2 id="96-langgraph把-agent-表示成有状态图"><a class="header" href="#96-langgraph把-agent-表示成有状态图">9.6 LangGraph：把 Agent 表示成有状态图</a></h2>
+<h3 id="961-statenodeedge-与-graph"><a class="header" href="#961-statenodeedge-与-graph">9.6.1 State、Node、Edge 与 Graph</a></h3>
+<p>LangGraph 的核心抽象是有状态图。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">抽象</th><th style="text-align: left">含义</th><th style="text-align: left">工程价值</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">State</td><td style="text-align: left">节点之间共享的结构化状态</td><td style="text-align: left">避免所有信息都塞进 prompt</td></tr>
+<tr><td style="text-align: left">Node</td><td style="text-align: left">一步计算，可以是 LLM、工具、函数、人工节点</td><td style="text-align: left">让步骤可测试、可替换</td></tr>
+<tr><td style="text-align: left">Edge</td><td style="text-align: left">状态转移，可以是固定边或条件边</td><td style="text-align: left">把控制流显式化</td></tr>
+<tr><td style="text-align: left">Graph</td><td style="text-align: left">节点和边组成的运行时结构</td><td style="text-align: left">支持可视化、恢复和审计</td></tr>
+</tbody>
+</table>
+</div>
+<p>这种设计适合把 Agent loop 拆成可观察的步骤。</p>
+<h3 id="962-durable-execution"><a class="header" href="#962-durable-execution">9.6.2 Durable Execution</a></h3>
+<p>Durable Execution 让长任务可以在失败后恢复。关键是每一步状态都能持久化。</p>
+<pre><code class="language-text">Node A completed -&gt; checkpoint
+Node B waiting approval -&gt; checkpoint
+Resume after approval -&gt; Node C
+</code></pre>
+<p>这比保存聊天历史更可靠，因为 Runtime 知道当前状态、已完成动作和下一步允许动作。</p>
+<h3 id="963-human-in-the-loop"><a class="header" href="#963-human-in-the-loop">9.6.3 Human-in-the-loop</a></h3>
+<p>LangGraph 这类图式编排天然适合插入人工节点。</p>
+<pre><code class="language-text">Diagnose -&gt; Propose Action -&gt; Human Approval -&gt; Execute
+</code></pre>
+<p>审批不是模型输出的一句话，而是图中的 interrupt / approval state。这样才能恢复和审计。</p>
+<h3 id="964-persistence-与-replay"><a class="header" href="#964-persistence-与-replay">9.6.4 Persistence 与 Replay</a></h3>
+<p>Persistence 保存状态，Replay 用于调试和评估。</p>
+<p>Replay 时要区分：</p>
+<ul>
+<li>可以重放的纯计算节点；</li>
+<li>不能重复执行的副作用节点；</li>
+<li>需要 mock 或固定响应的外部工具；</li>
+<li>需要人工重新确认的审批节点。</li>
+</ul>
+<p>这也是为什么工具副作用要有幂等键和 action log。</p>
+<h3 id="965-适用场景与局限"><a class="header" href="#965-适用场景与局限">9.6.5 适用场景与局限</a></h3>
+<p>适合 LangGraph 思路的场景：</p>
+<ul>
+<li>长任务；</li>
+<li>多步骤流程；</li>
+<li>需要恢复和人审；</li>
+<li>需要可视化状态；</li>
+<li>需要严格 trace。</li>
+</ul>
+<p>局限是设计成本更高。对于一次性问答或低风险探索，完整图式编排可能过重。</p>
+<hr>
+<h2 id="97-autogen从多-agent-对话到协作拓扑"><a class="header" href="#97-autogen从多-agent-对话到协作拓扑">9.7 AutoGen：从多 Agent 对话到协作拓扑</a></h2>
+<h3 id="971-agentchatcore-与-extensions"><a class="header" href="#971-agentchatcore-与-extensions">9.7.1 AgentChat、Core 与 Extensions</a></h3>
+<p>AutoGen 的价值在于多 Agent 编程模型。它把不同角色的 Agent、消息流、工具执行和团队模式组织起来。</p>
+<p>从工程角度看，它解决的是：</p>
+<ul>
+<li>多 Agent 如何通信；</li>
+<li>谁先说，谁后说；</li>
+<li>什么时候停止；</li>
+<li>工具由谁执行；</li>
+<li>多角色结果如何合并。</li>
+</ul>
+<h3 id="972-team-pattern多-agent-不是群聊"><a class="header" href="#972-team-pattern多-agent-不是群聊">9.7.2 Team Pattern：多 Agent 不是群聊</a></h3>
+<p>多 Agent 系统不应该是开放群聊，而应该是协作拓扑。</p>
+<pre><code class="language-text">RoundRobin Team
+Selector Team
+Swarm
+Planner / Executor Team
+Writer / Reviewer Team
+</code></pre>
+<p>不同拓扑对应不同控制策略。生产系统需要明确谁有最终决策权。</p>
+<h3 id="973-工具执行和代码执行边界"><a class="header" href="#973-工具执行和代码执行边界">9.7.3 工具执行和代码执行边界</a></h3>
+<p>多 Agent 中工具权限更容易出问题。不能因为某个 Agent 是“子角色”，就绕过工具权限。</p>
+<p>每个 Agent 都应该有：</p>
+<ul>
+<li>可用工具列表；</li>
+<li>风险等级；</li>
+<li>sandbox；</li>
+<li>审批规则；</li>
+<li>trace identity。</li>
+</ul>
+<h3 id="974-多-agent-系统的终止条件"><a class="header" href="#974-多-agent-系统的终止条件">9.7.4 多 Agent 系统的终止条件</a></h3>
+<p>多 Agent 最容易无限循环。终止条件必须外置。</p>
+<pre><code class="language-yaml">team_policy:
+  max_rounds: 6
+  stop_when:
+    - reviewer_approved
+    - coordinator_decided
+    - budget_exceeded
+    - human_required
+</code></pre>
+<p>终止条件不应该完全交给参与对话的 Agent 自己判断。</p>
+<h3 id="975-适用场景与局限"><a class="header" href="#975-适用场景与局限">9.7.5 适用场景与局限</a></h3>
+<p>适合 AutoGen 思路的场景：</p>
+<ul>
+<li>多角色协作；</li>
+<li>互审；</li>
+<li>研究和综合；</li>
+<li>复杂任务分解；</li>
+<li>需要模拟团队工作方式。</li>
+</ul>
+<p>局限是成本和不确定性更高。角色越多，协调协议越重要。</p>
+<hr>
+<h2 id="98-microsoft-agent-framework企业化-agent-runtime"><a class="header" href="#98-microsoft-agent-framework企业化-agent-runtime">9.8 Microsoft Agent Framework：企业化 Agent Runtime</a></h2>
+<h3 id="981-agents-vs-workflows"><a class="header" href="#981-agents-vs-workflows">9.8.1 Agents vs Workflows</a></h3>
+<p>企业级 Agent 系统通常同时需要 Agent 和 Workflow。</p>
+<pre><code class="language-text">Agent: 处理开放任务和动态判断
+Workflow: 管理确定流程、状态、审批和恢复
+</code></pre>
+<p>两者不是替代关系。生产系统常常是 workflow 调用 Agent，Agent 在节点内完成推理或工具选择。</p>
+<h3 id="982-企业编排模式"><a class="header" href="#982-企业编排模式">9.8.2 企业编排模式</a></h3>
+<p>企业编排更关注：</p>
+<ul>
+<li>长任务；</li>
+<li>组织权限；</li>
+<li>审批流程；</li>
+<li>多系统连接；</li>
+<li>审计留痕；</li>
+<li>版本治理；</li>
+<li>部署和监控。</li>
+</ul>
+<p>这些能力往往比“模型能不能回答”更决定系统能否上线。</p>
+<h3 id="983-middlewaretelemetry-与企业接入"><a class="header" href="#983-middlewaretelemetry-与企业接入">9.8.3 Middleware、Telemetry 与企业接入</a></h3>
+<p>企业平台需要在运行时统一处理横切能力：</p>
+<ul>
+<li>authentication；</li>
+<li>authorization；</li>
+<li>policy；</li>
+<li>logging；</li>
+<li>tracing；</li>
+<li>cost accounting；</li>
+<li>rate limiting；</li>
+<li>data boundary。</li>
+</ul>
+<p>Middleware 和 telemetry 的价值是让这些能力不散落在业务代码里。</p>
+<h3 id="984-审批恢复部署与治理"><a class="header" href="#984-审批恢复部署与治理">9.8.4 审批、恢复、部署与治理</a></h3>
+<p>企业场景中，Agent Runtime 要能回答：</p>
+<ul>
+<li>哪个版本执行了这个任务；</li>
+<li>哪些工具被调用；</li>
+<li>谁批准了高风险动作；</li>
+<li>失败后是否能恢复；</li>
+<li>新版本是否通过 eval；</li>
+<li>线上质量是否下降。</li>
+</ul>
+<p>这些能力和第 10 章生产治理直接衔接。</p>
+<h3 id="985-适用场景与局限"><a class="header" href="#985-适用场景与局限">9.8.5 适用场景与局限</a></h3>
+<p>适合企业级 Agent Framework 的场景：</p>
+<ul>
+<li>多团队共用 Agent 能力；</li>
+<li>需要统一权限和审计；</li>
+<li>需要工作流审批；</li>
+<li>需要部署、监控和治理；</li>
+<li>Agent 是长期运行服务，而不是一次性脚本。</li>
+</ul>
+<p>局限是平台成本较高。单一场景验证阶段不应过早平台化。</p>
+<hr>
+<h2 id="99-平台能力矩阵"><a class="header" href="#99-平台能力矩阵">9.9 平台能力矩阵</a></h2>
+<h3 id="991-编排能力"><a class="header" href="#991-编排能力">9.9.1 编排能力</a></h3>
+<p>编排能力包括：</p>
+<ul>
+<li>graph / workflow；</li>
+<li>router；</li>
+<li>conditional edge；</li>
+<li>loop；</li>
+<li>interrupt；</li>
+<li>human approval；</li>
+<li>retry；</li>
+<li>compensation。</li>
+</ul>
+<p>编排层决定任务怎么走。</p>
+<h3 id="992-状态与持久化能力"><a class="header" href="#992-状态与持久化能力">9.9.2 状态与持久化能力</a></h3>
+<p>状态能力包括：</p>
+<ul>
+<li>task state；</li>
+<li>session state；</li>
+<li>checkpoint；</li>
+<li>thread；</li>
+<li>replay；</li>
+<li>state migration；</li>
+<li>action log。</li>
+</ul>
+<p>状态层决定任务能不能恢复。</p>
+<h3 id="993-多-agent-能力"><a class="header" href="#993-多-agent-能力">9.9.3 多 Agent 能力</a></h3>
+<p>多 Agent 能力包括：</p>
+<ul>
+<li>role definition；</li>
+<li>team topology；</li>
+<li>handoff；</li>
+<li>shared evidence；</li>
+<li>independent context；</li>
+<li>termination policy；</li>
+<li>merge protocol。</li>
+</ul>
+<p>多 Agent 层决定多个角色能不能协作而不是互相干扰。</p>
+<h3 id="994-工具和资源接入能力"><a class="header" href="#994-工具和资源接入能力">9.9.4 工具和资源接入能力</a></h3>
+<p>工具和资源接入可以通过函数调用、内部 API Gateway、Connector、MCP Server 等方式实现。</p>
+<p>MCP 的价值在于统一暴露 Tool、Resource 和 Prompt，但它不是编排框架。它不负责 workflow、checkpoint、human approval、multi-agent routing 或 release gate。</p>
+<p>因此平台设计时应把 MCP 放在 Integration Layer，而不是 Orchestration Layer。</p>
+<pre><code class="language-text">Orchestration Layer: workflow / state / approval / routing
+Integration Layer: tools / resources / connectors / MCP servers
+Governance Layer: policy / trace / eval / release gate
+</code></pre>
+<h3 id="995-治理观测和部署能力"><a class="header" href="#995-治理观测和部署能力">9.9.5 治理、观测和部署能力</a></h3>
+<p>治理能力包括：</p>
+<ul>
+<li>policy engine；</li>
+<li>tool permission；</li>
+<li>trace；</li>
+<li>eval harness；</li>
+<li>release gate；</li>
+<li>audit log；</li>
+<li>cost control；</li>
+<li>deployment strategy。</li>
+</ul>
+<p>这些能力决定 Agent 能不能长期运行，而不仅是 demo 能不能跑通。</p>
+<h3 id="996-框架选型对比表"><a class="header" href="#996-框架选型对比表">9.9.6 框架选型对比表</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">LangGraph</th><th style="text-align: left">AutoGen</th><th style="text-align: left">Microsoft Agent Framework</th><th style="text-align: left">自研 Runtime</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">核心强项</td><td style="text-align: left">有状态图、durable execution</td><td style="text-align: left">多 Agent 编程模型</td><td style="text-align: left">企业工作流和平台化</td><td style="text-align: left">完全贴合内部系统</td></tr>
+<tr><td style="text-align: left">适合任务</td><td style="text-align: left">长任务、可恢复流程</td><td style="text-align: left">多角色协作</td><td style="text-align: left">企业级 Agent 应用</td><td style="text-align: left">特殊约束或轻量场景</td></tr>
+<tr><td style="text-align: left">状态管理</td><td style="text-align: left">强</td><td style="text-align: left">中</td><td style="text-align: left">强</td><td style="text-align: left">取决于实现</td></tr>
+<tr><td style="text-align: left">多 Agent</td><td style="text-align: left">中</td><td style="text-align: left">强</td><td style="text-align: left">中到强</td><td style="text-align: left">取决于实现</td></tr>
+<tr><td style="text-align: left">工具接入</td><td style="text-align: left">需集成</td><td style="text-align: left">需集成</td><td style="text-align: left">生态集成</td><td style="text-align: left">自行建设</td></tr>
+<tr><td style="text-align: left">治理能力</td><td style="text-align: left">需补齐</td><td style="text-align: left">需补齐</td><td style="text-align: left">较强</td><td style="text-align: left">自行建设</td></tr>
+<tr><td style="text-align: left">主要风险</td><td style="text-align: left">图设计成本</td><td style="text-align: left">协调成本</td><td style="text-align: left">平台复杂度</td><td style="text-align: left">重复造轮子</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="910-设计自己的-agent-平台"><a class="header" href="#910-设计自己的-agent-平台">9.10 设计自己的 Agent 平台</a></h2>
+<h3 id="9101-最小生产平台清单"><a class="header" href="#9101-最小生产平台清单">9.10.1 最小生产平台清单</a></h3>
+<p>一个最小生产 Agent 平台不应该先追求可视化拖拽，而应该优先建设运行时底座。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">模块</th><th style="text-align: left">最小能力</th><th style="text-align: left">不做会怎样</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Model Gateway</td><td style="text-align: left">统一模型调用、超时、重试、成本记录</td><td style="text-align: left">各团队重复封装，成本不可控</td></tr>
+<tr><td style="text-align: left">Tool Registry</td><td style="text-align: left">工具 schema、owner、风险等级</td><td style="text-align: left">工具滥用，没人知道谁能做什么</td></tr>
+<tr><td style="text-align: left">Workflow Runtime</td><td style="text-align: left">状态、checkpoint、interrupt、resume</td><td style="text-align: left">长任务失败无法恢复</td></tr>
+<tr><td style="text-align: left">Policy Engine</td><td style="text-align: left">read / write / execute 权限</td><td style="text-align: left">只能靠 prompt 控制风险</td></tr>
+<tr><td style="text-align: left">Trace Store</td><td style="text-align: left">run、node、tool、token、latency、error</td><td style="text-align: left">调试和复盘困难</td></tr>
+<tr><td style="text-align: left">Eval Harness</td><td style="text-align: left">回归集、失败样本、版本对比</td><td style="text-align: left">模型或 prompt 一改就退化</td></tr>
+<tr><td style="text-align: left">Artifact Store</td><td style="text-align: left">报告、diff、图表、日志片段</td><td style="text-align: left">输出散落在聊天里，无法审查</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="9102-控制面执行面集成面与治理面"><a class="header" href="#9102-控制面执行面集成面与治理面">9.10.2 控制面、执行面、集成面与治理面</a></h3>
+<p>可以把平台拆成四个面：</p>
+<pre><code class="language-text">Control Plane: registry / policy / config / release
+Execution Plane: workflow runtime / task runner / sandbox
+Integration Plane: tools / resources / connectors / MCP
+Governance Plane: trace / eval / audit / cost / monitoring
+</code></pre>
+<p>这四个面不一定要拆成四个服务，但职责要清楚。</p>
+<h3 id="9103-生产级运行时事件模型"><a class="header" href="#9103-生产级运行时事件模型">9.10.3 生产级运行时事件模型</a></h3>
+<p>Agent Runtime 应该把关键事件记录下来。</p>
+<pre><code class="language-json">{
+  "run_id": "run_123",
+  "event_type": "tool_call_completed",
+  "node": "query_logs",
+  "tool": "log_search",
+  "input_hash": "sha256:...",
+  "status": "success",
+  "latency_ms": 842,
+  "cost": 0.02,
+  "timestamp": "2026-05-21T10:00:00Z"
+}
+</code></pre>
+<p>事件模型是 trace、eval、debug、audit 和 billing 的共同基础。</p>
+<h3 id="9104-多租户与权限边界"><a class="header" href="#9104-多租户与权限边界">9.10.4 多租户与权限边界</a></h3>
+<p>平台化后必须处理多租户：</p>
+<ul>
+<li>用户身份；</li>
+<li>项目边界；</li>
+<li>工具权限；</li>
+<li>数据权限；</li>
+<li>Memory scope；</li>
+<li>知识库 ACL；</li>
+<li>审计归属。</li>
+</ul>
+<p>多 Agent 和 subagent 不能继承无限权限。每次 handoff 都应该重新计算权限和上下文边界。</p>
+<h3 id="9105-从单应用-agent-到共享平台的演进路线"><a class="header" href="#9105-从单应用-agent-到共享平台的演进路线">9.10.5 从单应用 Agent 到共享平台的演进路线</a></h3>
+<p>推荐演进路线：</p>
+<pre><code class="language-text">single app agent
+  -&gt; shared tool runtime
+  -&gt; shared workflow runtime
+  -&gt; shared trace / eval
+  -&gt; shared policy / approval
+  -&gt; managed agent platform
+</code></pre>
+<p>不要一开始就做大而全平台。先从重复痛点最多的能力开始抽取。</p>
+<hr>
+<h2 id="911-工程取舍与选型清单"><a class="header" href="#911-工程取舍与选型清单">9.11 工程取舍与选型清单</a></h2>
+<h3 id="9111-图式编排-vs-自由-agent-loop"><a class="header" href="#9111-图式编排-vs-自由-agent-loop">9.11.1 图式编排 vs 自由 Agent Loop</a></h3>
+<p>自由 loop 灵活，图式编排可控。</p>
+<p>建议：</p>
+<ul>
+<li>低风险探索用自由 loop；</li>
+<li>生产流程用显式 workflow；</li>
+<li>高风险动作必须进入审批节点；</li>
+<li>长任务必须有 checkpoint。</li>
+</ul>
+<h3 id="9112-单-agent-vs-多-agent"><a class="header" href="#9112-单-agent-vs-多-agent">9.11.2 单 Agent vs 多 Agent</a></h3>
+<p>优先从单 Agent + Workflow 开始。只有当存在清晰角色边界、并行收益或互审需求时，再引入多 Agent。</p>
+<p>多 Agent 的收益必须超过协调成本。</p>
+<h3 id="9113-框架-vs-自研"><a class="header" href="#9113-框架-vs-自研">9.11.3 框架 vs 自研</a></h3>
+<p>选择框架还是自研，取决于已有系统约束。</p>
+<p>适合框架：</p>
+<ul>
+<li>需要 durable execution；</li>
+<li>需要多 Agent；</li>
+<li>需要快速验证；</li>
+<li>团队愿意接受框架抽象。</li>
+</ul>
+<p>适合自研：</p>
+<ul>
+<li>内部权限、工具、审计约束很强；</li>
+<li>只需要轻量 workflow；</li>
+<li>不希望引入重依赖；</li>
+<li>平台能力需要深度定制。</li>
+</ul>
+<h3 id="9114-平台化-vs-单应用内嵌"><a class="header" href="#9114-平台化-vs-单应用内嵌">9.11.4 平台化 vs 单应用内嵌</a></h3>
+<p>单应用内嵌适合早期验证。平台化适合多团队复用。</p>
+<p>平台化触发信号：</p>
+<ul>
+<li>多个团队重复接模型；</li>
+<li>多个团队重复封装工具；</li>
+<li>权限和审计开始分散；</li>
+<li>需要统一成本控制；</li>
+<li>需要统一 eval 和 release gate；</li>
+<li>长任务恢复成为共性问题。</li>
+</ul>
+<h3 id="9115-选型决策树"><a class="header" href="#9115-选型决策树">9.11.5 选型决策树</a></h3>
+<pre><code class="language-text">任务是否有明确流程？
+  ├─ 是：优先 workflow / graph
+  └─ 否：继续问
+
+任务是否需要长时间运行或恢复？
+  ├─ 是：必须 checkpoint / durable execution
+  └─ 否：继续问
+
+是否需要多个角色协作？
+  ├─ 是：考虑 multi-agent topology
+  └─ 否：单 Agent + workflow
+
+是否多团队复用？
+  ├─ 是：建设平台控制面
+  └─ 否：先应用内嵌
+
+是否主要问题是外部能力接入？
+  ├─ 是：建设 tool runtime / connector / MCP integration
+  └─ 否：不要把 MCP 当编排层
+</code></pre>
+<hr>
+<h2 id="912-常见失败模式与修复路径"><a class="header" href="#912-常见失败模式与修复路径">9.12 常见失败模式与修复路径</a></h2>
+<h3 id="9121-工作流卡死"><a class="header" href="#9121-工作流卡死">9.12.1 工作流卡死</a></h3>
+<p>表现：</p>
+<ul>
+<li>等待一个永远不会发生的事件；</li>
+<li>状态无法转移；</li>
+<li>Agent 反复尝试同一步。</li>
+</ul>
+<p>修复：</p>
+<ul>
+<li>每个等待状态设置 timeout；</li>
+<li>每个状态定义允许动作；</li>
+<li>增加 fallback 和 human escalation；</li>
+<li>trace 中记录卡住原因。</li>
+</ul>
+<h3 id="9122-状态丢失或重复执行"><a class="header" href="#9122-状态丢失或重复执行">9.12.2 状态丢失或重复执行</a></h3>
+<p>表现：</p>
+<ul>
+<li>进程重启后任务从头开始；</li>
+<li>工具副作用重复发生；</li>
+<li>审批后找不到上下文。</li>
+</ul>
+<p>修复：</p>
+<ul>
+<li>checkpoint 关键状态；</li>
+<li>外部动作使用幂等键；</li>
+<li>action log 记录请求和响应；</li>
+<li>resume 时从状态恢复，不从聊天历史猜。</li>
+</ul>
+<h3 id="9123-多-agent-循环争论"><a class="header" href="#9123-多-agent-循环争论">9.12.3 多 Agent 循环争论</a></h3>
+<p>表现：</p>
+<ul>
+<li>reviewer 不断要求修改；</li>
+<li>writer 不断生成新版本；</li>
+<li>coordinator 无法决策。</li>
+</ul>
+<p>修复：</p>
+<ul>
+<li>设置最大轮数；</li>
+<li>定义验收标准；</li>
+<li>引入 final decision owner；</li>
+<li>低置信度转人工。</li>
+</ul>
+<h3 id="9124-工具副作用失控"><a class="header" href="#9124-工具副作用失控">9.12.4 工具副作用失控</a></h3>
+<p>表现：</p>
+<ul>
+<li>Agent 执行了未授权写操作；</li>
+<li>批量任务影响范围过大；</li>
+<li>工具调用无法追责。</li>
+</ul>
+<p>修复：</p>
+<ul>
+<li>工具分级；</li>
+<li>写操作审批；</li>
+<li>sandbox；</li>
+<li>dry-run；</li>
+<li>audit log；</li>
+<li>最小权限。</li>
+</ul>
+<h3 id="9125-平台抽象过重"><a class="header" href="#9125-平台抽象过重">9.12.5 平台抽象过重</a></h3>
+<p>表现：</p>
+<ul>
+<li>简单任务也要配置复杂 graph；</li>
+<li>业务团队接入成本高；</li>
+<li>框架概念多于业务价值。</li>
+</ul>
+<p>修复：</p>
+<ul>
+<li>从 MVP runtime 开始；</li>
+<li>常见模式模板化；</li>
+<li>保留轻量 escape hatch；</li>
+<li>平台能力按复用痛点演进。</li>
+</ul>
+<h3 id="9126-trace-不足导致无法复盘"><a class="header" href="#9126-trace-不足导致无法复盘">9.12.6 Trace 不足导致无法复盘</a></h3>
+<p>表现：</p>
+<ul>
+<li>不知道模型看到了什么；</li>
+<li>不知道为什么调用工具；</li>
+<li>不知道证据来自哪里；</li>
+<li>不知道失败发生在哪一步。</li>
+</ul>
+<p>修复：</p>
+<ul>
+<li>记录 run / node / tool / model span；</li>
+<li>保存 evidence id；</li>
+<li>记录 policy decision；</li>
+<li>记录 cost、latency、error；</li>
+<li>将失败 trace 转成 eval case。</li>
+</ul>
+<hr>
+<h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
+<p>执行编排是 Agent 从 demo 走向生产的关键层。它不只属于多 Agent，单 Agent 只要任务变长、动作变多、风险变高，也需要 workflow、state machine、checkpoint 和 human-in-the-loop。</p>
+<p>本章的核心结论是：</p>
+<ol>
+<li>Agent Loop 适合原型，生产系统需要 Workflow Runtime；</li>
+<li>单 Agent 也需要显式编排；</li>
+<li>Workflow Pattern 可以服务单 Agent，也可以服务多 Agent；</li>
+<li>Multi-Agent 是执行编排的复杂形态，不是默认起点；</li>
+<li>LangGraph、AutoGen、Microsoft Agent Framework 分别从状态图、多 Agent 编程模型和企业运行时角度提供抽象；</li>
+<li>MCP 是 Integration Layer，不是 Orchestration Layer；</li>
+<li>平台化的关键不是框架名称，而是状态、工具、权限、审批、恢复、trace、eval 和发布治理是否形成闭环。</li>
+</ol>
+<p>一句话总结：</p>
+<pre><code class="language-text">生产级 Agent 不是一个更聪明的 while loop，而是一个能组织任务、保存状态、控制副作用、插入人工、恢复失败、记录证据的运行时系统。
+</code></pre>
+<hr>
+<h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>
+<ol>
+<li><a href="https://docs.langchain.com/oss/python/langgraph/overview">LangGraph Overview - LangChain Docs</a></li>
+<li><a href="https://docs.langchain.com/oss/python/langgraph/durable-execution">LangGraph Durable Execution - LangChain Docs</a></li>
+<li><a href="https://docs.langchain.com/oss/python/langgraph/persistence">LangGraph Persistence - LangChain Docs</a></li>
+<li><a href="https://microsoft.github.io/autogen/stable/index.html">AutoGen Stable Documentation - Microsoft</a></li>
+<li><a href="https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/index.html">AutoGen AgentChat User Guide - Microsoft</a></li>
+<li><a href="https://www.microsoft.com/en-us/research/publication/autogen-enabling-next-gen-llm-applications-via-multi-agent-conversation-framework/">AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation - Microsoft Research</a></li>
+<li><a href="https://learn.microsoft.com/en-us/agent-framework/overview/">Microsoft Agent Framework Overview - Microsoft Learn</a></li>
+<li><a href="https://learn.microsoft.com/en-us/agent-framework/workflows/orchestrations/">Agent Framework Workflow Orchestrations - Microsoft Learn</a></li>
+<li><a href="https://modelcontextprotocol.io/specification/2025-03-26/architecture">Model Context Protocol Specification</a></li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part2/04-agent-memory.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part2/06-agent-evals-guardrails-observability.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part2/04-agent-memory.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part2/06-agent-evals-guardrails-observability.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

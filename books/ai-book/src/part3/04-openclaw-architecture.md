@@ -4,7 +4,7 @@
 
 ## 引言
 
-第 8 章已经分析了 LangGraph、AutoGen、MCP 这类 Agent 平台与编排框架；第 13 章分析了 AI Coding Agent，第 14 章进一步拆解了 Pi 这类终端原生 Coding Agent Runtime。本章继续分析一个更贴近个人生产力场景的成熟系统：OpenClaw。
+第 9 章已经分析了 LangGraph、AutoGen、MCP 这类 Agent 平台与编排框架；第 13 章分析了 AI Coding Agent，第 14 章进一步拆解了 Pi 这类终端原生 Coding Agent Runtime。本章继续分析一个更贴近个人生产力场景的成熟系统：OpenClaw。
 
 OpenClaw 的官方定位是个人 AI 助手。它运行在用户自己的设备或服务器上，通过一个长期运行的 Gateway 接入 WhatsApp、Telegram、Slack、Discord、Signal、iMessage、WebChat 等渠道，并把这些消息路由给 Agent Runtime。它还提供工具、技能、插件、会话、上下文、沙箱、移动节点和控制台等能力。
 

@@ -17,12 +17,10 @@
 
 - [第5章 Agent 架构总纲：边界、Runtime 与模式选择](part2/01-agent-architecture.md)
 - [第6章 Agent 工具系统：Tool Calling、Skills 与 MCP](part2/02-tool-calling-mcp.md)
-- [第7章 Agent 执行编排：工作流、状态机与多 Agent 协作](part2/03-workflow-orchestration.md)
-- [第8章 Agent 平台架构：LangGraph、AutoGen 与 MCP 生态](part2/04-agent-platform-orchestration.md)
-- [第9章 Agent 知识上下文：RAG、检索与可信证据](part2/05-rag-retrieval-engineering.md)
-- [第10章 Agentic RAG：从问答检索到复杂知识任务](part2/06-agentic-rag.md)
-- [第11章 Agent 状态管理：Memory、会话与长期上下文](part2/07-agent-memory.md)
-- [第12章 Agent 生产治理：Evals、Guardrails 与可观测性](part2/08-agent-evals-guardrails-observability.md)
+- [第7章 Agent 知识系统：从知识源、RAG 到 Agentic RAG](part2/03-agent-knowledge-systems.md)
+- [第8章 Agent 记忆系统：Memory、会话与长期上下文](part2/04-agent-memory.md)
+- [第9章 Agent 执行编排与平台架构：工作流、状态机、多 Agent 与框架生态](part2/05-workflow-orchestration.md)
+- [第10章 Agent 生产治理：Evals、Guardrails 与可观测性](part2/06-agent-evals-guardrails-observability.md)
 
 ---
 

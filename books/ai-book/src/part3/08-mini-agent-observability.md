@@ -777,7 +777,7 @@ eval_case:
     - final_answer_has_evidence
 ```
 
-这就是第 12 章生产治理控制面在最小 Coding Agent 里的落点：Trace Writer 负责留下事实，Eval Runner 和 Release Gate 负责让旧失败不能静默复发。
+这就是第 10 章生产治理控制面在最小 Coding Agent 里的落点：Trace Writer 负责留下事实，Eval Runner 和 Release Gate 负责让旧失败不能静默复发。
 
 ---
 

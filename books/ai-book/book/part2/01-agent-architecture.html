@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1bdbf243.js";
+            window.path_to_searchindex_js = "../searchindex-ff3e4717.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-de0ce5c9.js"></script>
+        <script src="../toc-1b384b0e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -201,7 +201,7 @@
 </ol>
 <p>本章的目标是建立一个通用的 Agent 架构总纲。它不绑定某一种产品形态，也不局限于某个垂直场景。你可以用它设计企业知识助手、告警处理助手、客服运营助手、数据分析助手、审批助手，也可以用它评估一个现有 Agent 系统到底缺了哪一层。</p>
 <p>本章按五层展开：5.1 先判断是否真的需要 Agent，5.2 建立生产级 Agent Runtime 的最小骨架，5.3 展开核心组件的职责边界和后续章节地图，5.4 讨论组件如何组合成不同架构模式，5.5 用场景映射和检查清单校验设计是否完整。</p>
-<p>第 5 章不是把每个组件都讲透，而是给第二部分建立一张总图。第 6 章会深入工具、Skills、连接器与 MCP，第 7 章会深入工作流、状态机和多 Agent 协作，第 8 章会讨论平台化架构，第 9 到第 11 章会展开 RAG、Agentic RAG、Memory 与状态管理，第 12 章会系统讨论 Evals、Guardrails、Trace 和可观测性。理解了本章的边界图，后续章节就不再是零散专题，而是同一个 Runtime 的逐层展开。</p>
+<p>第 5 章不是把每个组件都讲透，而是给第二部分建立一张总图。第 6 章会深入工具、Skills、连接器与 MCP，第 7 章会展开 Agent 知识系统，第 8 章会展开 Agent 记忆系统，第 9 章会深入执行编排、状态机、多 Agent 协作和平台框架，第 10 章会系统讨论 Evals、Guardrails、Trace 和可观测性。理解了本章的边界图，后续章节就不再是零散专题，而是同一个 Runtime 的逐层展开。</p>
 <hr>
 <h2 id="51-agent-架构决策先判断是否需要-agent"><a class="header" href="#51-agent-架构决策先判断是否需要-agent">5.1 Agent 架构决策：先判断是否需要 Agent</a></h2>
 <h3 id="511-从问题出发为什么不是传统后端"><a class="header" href="#511-从问题出发为什么不是传统后端">5.1.1 从问题出发：为什么不是传统后端</a></h3>
@@ -787,7 +787,7 @@ response.sent
 <p>这组事件让 Agent 任务可以被回放、调试、评估和审计。否则当用户问“为什么它给出这个结论”时，系统只能回答“模型这么说的”，这在生产环境里是不够的。</p>
 <hr>
 <h2 id="53-agent-核心组件职责边界与后续章节地图"><a class="header" href="#53-agent-核心组件职责边界与后续章节地图">5.3 Agent 核心组件：职责边界与后续章节地图</a></h2>
-<p>5.3 不是要把每个组件都讲透，而是建立一张生产级 Agent Runtime 的组件地图。后续第 6 到第 12 章，会沿着这张地图逐层展开：工具系统、执行编排、平台化、知识上下文、Memory、Evals、Guardrails 和可观测性。</p>
+<p>5.3 不是要把每个组件都讲透，而是建立一张生产级 Agent Runtime 的组件地图。后续第 6 到第 10 章，会沿着这张地图逐层展开：工具系统、知识系统、记忆系统、执行编排、平台化、Evals、Guardrails 和可观测性。</p>
 <p>现代 Agent 系统已经不只是“模型 + 工具调用”。从 OpenAI Agents SDK、AgentKit、LangGraph、Google ADK、MCP、Anthropic Skills 这些工程实践可以看到，生产级 Agent 越来越像一个可治理的 Runtime：它要管理入口、任务契约、上下文、状态、能力、权限、人工控制、模型路由、Trace、评测和学习闭环。</p>
 <p>先用一张图把职责边界和后续章节关系串起来：</p>
 <pre class="mermaid">
@@ -810,12 +810,10 @@ flowchart LR
 
     subgraph Chapters["后续章节地图"]
         C6["第6章&lt;br/&gt;Tools / Skills / MCP"]
-        C7["第7章&lt;br/&gt;Workflow / State Machine / Multi-Agent"]
-        C8["第8章&lt;br/&gt;平台与编排框架"]
-        C9["第9章&lt;br/&gt;RAG 与检索工程"]
-        C10["第10章&lt;br/&gt;Agentic RAG"]
-        C11["第11章&lt;br/&gt;Memory 与状态管理"]
-        C12["第12章&lt;br/&gt;Evals / Guardrails / Observability"]
+        C7["第7章&lt;br/&gt;Agent 知识系统"]
+        C8["第8章&lt;br/&gt;Agent 记忆系统"]
+        C9["第9章&lt;br/&gt;执行编排与平台架构"]
+        C10["第10章&lt;br/&gt;Evals / Guardrails / Observability"]
     end
 
     Intake --&gt; Intent --&gt; Planner --&gt; Context --&gt; Loop --&gt; Verify --&gt; Review
@@ -832,22 +830,21 @@ flowchart LR
     SkillUpdate -.-&gt; Verify
 
     Capability -.-&gt; C6
-    Intake -.-&gt; C7
-    Planner -.-&gt; C7
-    State -.-&gt; C7
-    Loop -.-&gt; C7
-    Router -.-&gt; C8
-    Context -.-&gt; C9
-    Context -.-&gt; C10
-    Memory -.-&gt; C11
-    Policy -.-&gt; C12
-    Verify -.-&gt; C12
-    Review -.-&gt; C12
-    Learn -.-&gt; C11
-    Learn -.-&gt; C12
+    Context -.-&gt; C7
+    Memory -.-&gt; C8
+    Intake -.-&gt; C9
+    Planner -.-&gt; C9
+    State -.-&gt; C9
+    Loop -.-&gt; C9
+    Router -.-&gt; C9
+    Policy -.-&gt; C10
+    Verify -.-&gt; C10
+    Review -.-&gt; C10
+    Learn -.-&gt; C8
+    Learn -.-&gt; C10
 </pre>
 
-<p>这张图有两个读法：从左到右看，是一次 Agent 任务在 Runtime 内部的主要控制链路；从组件指向右侧章节看，是第二部分后续内容的阅读路线。也就是说，第 6 到第 12 章不是零散专题，而是这张 Runtime 图上的不同区域。</p>
+<p>这张图有两个读法：从左到右看，是一次 Agent 任务在 Runtime 内部的主要控制链路；从组件指向右侧章节看，是第二部分后续内容的阅读路线。也就是说，第 6 到第 10 章不是零散专题，而是这张 Runtime 图上的不同区域。</p>
 <p>下面这张表再给出组件地图：</p>
 <div class="table-wrapper">
 <table>
@@ -855,19 +852,19 @@ flowchart LR
 <tr><th style="text-align: left">核心组件</th><th style="text-align: left">主要职责</th><th style="text-align: left">后续展开</th></tr>
 </thead>
 <tbody>
-<tr><td style="text-align: left">Event &amp; Intake Router</td><td style="text-align: left">接收聊天、API、告警、工单、Webhook、定时任务等入口</td><td style="text-align: left">第7章工作流、第17章 DoD Agent</td></tr>
-<tr><td style="text-align: left">Intent Normalizer</td><td style="text-align: left">把模糊输入变成结构化任务契约</td><td style="text-align: left">第7章入口路由、第12章输入治理</td></tr>
-<tr><td style="text-align: left">Task Planner</td><td style="text-align: left">生成可执行、可验证、可修订的计划</td><td style="text-align: left">第7章执行编排</td></tr>
-<tr><td style="text-align: left">Context Builder</td><td style="text-align: left">组织本轮任务需要的证据和上下文</td><td style="text-align: left">第9章 RAG、第10章 Agentic RAG</td></tr>
-<tr><td style="text-align: left">Memory Layer</td><td style="text-align: left">管理跨会话偏好、经验、历史任务和长期上下文</td><td style="text-align: left">第11章 Memory</td></tr>
-<tr><td style="text-align: left">Execution State &amp; Checkpoint</td><td style="text-align: left">管理任务状态、暂停、恢复、重试、回放和幂等</td><td style="text-align: left">第7章状态机、第11章状态管理</td></tr>
-<tr><td style="text-align: left">Capability Registry</td><td style="text-align: left">统一管理 Skills、Tools、Connectors、MCP、Prompt 和 Workflow</td><td style="text-align: left">第6章工具系统、第8章平台架构</td></tr>
-<tr><td style="text-align: left">Policy Engine &amp; Human Control Plane</td><td style="text-align: left">管理权限、风险、审批、接管、降级和回滚</td><td style="text-align: left">第6章工具权限、第12章 Guardrails</td></tr>
-<tr><td style="text-align: left">Agent Loop</td><td style="text-align: left">推动观察、决策、行动、修复和停止</td><td style="text-align: left">第7章工作流、第8章平台运行时</td></tr>
-<tr><td style="text-align: left">Model Router &amp; Handoff Manager</td><td style="text-align: left">管理模型选择、专家委派、多 Agent 协作和跨 Agent 通信</td><td style="text-align: left">第7章多 Agent、第8章平台架构</td></tr>
-<tr><td style="text-align: left">Verifier &amp; Eval Harness</td><td style="text-align: left">运行时验证和离线回归评测</td><td style="text-align: left">第12章 Evals</td></tr>
-<tr><td style="text-align: left">Review Surface、Trace &amp; Audit</td><td style="text-align: left">提供可审查输出、过程追踪和审计证据</td><td style="text-align: left">第12章可观测性、第17章实战案例</td></tr>
-<tr><td style="text-align: left">Learning Loop</td><td style="text-align: left">把反馈、失败案例和复盘经验转化为能力演进</td><td style="text-align: left">第11章 Memory、第12章 Evals、第16章 Hermes</td></tr>
+<tr><td style="text-align: left">Event &amp; Intake Router</td><td style="text-align: left">接收聊天、API、告警、工单、Webhook、定时任务等入口</td><td style="text-align: left">第9章工作流、第17章 DoD Agent</td></tr>
+<tr><td style="text-align: left">Intent Normalizer</td><td style="text-align: left">把模糊输入变成结构化任务契约</td><td style="text-align: left">第9章入口路由、第10章输入治理</td></tr>
+<tr><td style="text-align: left">Task Planner</td><td style="text-align: left">生成可执行、可验证、可修订的计划</td><td style="text-align: left">第9章执行编排</td></tr>
+<tr><td style="text-align: left">Context Builder</td><td style="text-align: left">组织本轮任务需要的证据和上下文</td><td style="text-align: left">第7章 Agent 知识系统</td></tr>
+<tr><td style="text-align: left">Memory Layer</td><td style="text-align: left">管理跨会话偏好、经验、历史任务和长期上下文</td><td style="text-align: left">第8章记忆系统</td></tr>
+<tr><td style="text-align: left">Execution State &amp; Checkpoint</td><td style="text-align: left">管理任务状态、暂停、恢复、重试、回放和幂等</td><td style="text-align: left">第9章状态机、第8章记忆系统</td></tr>
+<tr><td style="text-align: left">Capability Registry</td><td style="text-align: left">统一管理 Skills、Tools、Connectors、MCP、Prompt 和 Workflow</td><td style="text-align: left">第6章工具系统、第9章平台架构</td></tr>
+<tr><td style="text-align: left">Policy Engine &amp; Human Control Plane</td><td style="text-align: left">管理权限、风险、审批、接管、降级和回滚</td><td style="text-align: left">第6章工具权限、第10章 Guardrails</td></tr>
+<tr><td style="text-align: left">Agent Loop</td><td style="text-align: left">推动观察、决策、行动、修复和停止</td><td style="text-align: left">第9章工作流与平台运行时</td></tr>
+<tr><td style="text-align: left">Model Router &amp; Handoff Manager</td><td style="text-align: left">管理模型选择、专家委派、多 Agent 协作和跨 Agent 通信</td><td style="text-align: left">第9章多 Agent 与平台架构</td></tr>
+<tr><td style="text-align: left">Verifier &amp; Eval Harness</td><td style="text-align: left">运行时验证和离线回归评测</td><td style="text-align: left">第10章 Evals</td></tr>
+<tr><td style="text-align: left">Review Surface、Trace &amp; Audit</td><td style="text-align: left">提供可审查输出、过程追踪和审计证据</td><td style="text-align: left">第10章可观测性、第17章实战案例</td></tr>
+<tr><td style="text-align: left">Learning Loop</td><td style="text-align: left">把反馈、失败案例和复盘经验转化为能力演进</td><td style="text-align: left">第8章记忆系统、第10章 Evals、第16章 Hermes</td></tr>
 </tbody>
 </table>
 </div>
@@ -1395,7 +1392,7 @@ flowchart TD
 </tbody>
 </table>
 </div>
-<p>第 9 章和第 10 章会展开 RAG 与 Agentic RAG，第 11 章会专门展开 Memory 的读取、写入、遗忘、污染防控和评估。</p>
+<p>第 7 章会展开 Agent 知识系统中的 RAG、Agentic RAG、MCP Resource 和 Web Search，第 8 章会专门展开 Memory 的读取、写入、遗忘、污染防控和评估。</p>
 <hr>
 <h3 id="535-memory-layer跨会话状态经验与长期上下文"><a class="header" href="#535-memory-layer跨会话状态经验与长期上下文">5.3.5 Memory Layer：跨会话状态、经验与长期上下文</a></h3>
 <p>Memory Layer 是现代 Agent Runtime 的关键组件。它解决的不是“把聊天记录存起来”，而是让 Agent 在合适的边界内拥有连续性、经验和可治理的长期上下文。</p>
@@ -1530,7 +1527,7 @@ flowchart LR
 </tbody>
 </table>
 </div>
-<p>第 7 章讲工作流和状态机时，会把 Execution State 作为核心对象；第 11 章讲 Memory 时，会进一步区分短期会话状态、任务状态和长期记忆。</p>
+<p>第 9 章讲工作流和状态机时，会把 Execution State 作为核心对象；第 8 章讲 Memory 时，会进一步区分短期会话状态、任务状态和长期记忆。</p>
 <hr>
 <h3 id="537-capability-registryskillstoolsconnectors-与-mcp"><a class="header" href="#537-capability-registryskillstoolsconnectors-与-mcp">5.3.7 Capability Registry：Skills、Tools、Connectors 与 MCP</a></h3>
 <p>很多系统会把 Skill、Tool、Connector、Workflow、MCP Server 混在一起，导致权限边界混乱。现代 Agent Runtime 更适合用 Capability Registry 统一管理“系统能提供哪些能力”，再按任务、身份、环境和风险筛选本轮可见能力。</p>
@@ -1796,7 +1793,7 @@ stateDiagram-v2
     observation = tool_runtime.execute(action.tool_call)
     state.add_observation(observation)
 </code></pre>
-<p>这段伪代码背后的原则是：模型可以提出行动，但不能绕过解析、校验、策略裁决和验证。</p>
+<p>这段伪代码背后的原则是：模型可以提出行动，但不能绕过解析、校验、策略裁决和验证。ReAct（Reasoning and Acting）可以看作 Agent Loop 的一种典型实现：模型在“推理、行动、观察、修正”之间循环。但生产级 Runtime 不能只依赖这个循环本身，还必须把 Policy、Trace、Verifier 和 Checkpoint 放进闭环，保证每次行动都可裁决、可审计、可恢复。</p>
 <p>在更完整的 Runtime 里，Agent Loop 每一轮都应该写入 checkpoint。这样当任务进入审批、等待外部系统、工具超时或人工接管时，系统可以从最近的稳定状态恢复。Loop 不是“模型一直想”，而是“Runtime 按状态推进，模型在必要位置提供推理和选择”。</p>
 <hr>
 <h3 id="5310-model-router-与-handoff-manager模型选择专家委派与多-agent-协作"><a class="header" href="#5310-model-router-与-handoff-manager模型选择专家委派与多-agent-协作">5.3.10 Model Router 与 Handoff Manager：模型选择、专家委派与多 Agent 协作</a></h3>
@@ -1847,7 +1844,7 @@ stateDiagram-v2
 }
 </code></pre>
 <p>多 Agent 协作要特别警惕两个问题。第一，多个 Agent 之间不能互相绕过权限和审计；第二，Handoff 不能让上下文无限膨胀。每次交接都应该经过 input filter、证据压缩和权限重算。</p>
-<p>第 7 章会展开多 Agent 协作和状态机，第 8 章会讨论平台框架如何支持 Handoff、Agent Team、A2A 和跨系统协作。</p>
+<p>第 9 章会展开多 Agent 协作、状态机和平台框架如何支持 Handoff、Agent Team、A2A 和跨系统协作。</p>
 <hr>
 <h3 id="5311-verifier-与-eval-harness运行时验证与回归评测"><a class="header" href="#5311-verifier-与-eval-harness运行时验证与回归评测">5.3.11 Verifier 与 Eval Harness：运行时验证与回归评测</a></h3>
 <p>Agent 最危险的句子之一是：“任务已经完成。”</p>
@@ -2074,9 +2071,25 @@ flowchart LR
 </tbody>
 </table>
 </div>
-<p>选择时不要从“哪个模式更先进”出发，而要从任务风险出发：如果任务没有生命周期，就不要强行上状态机；如果不需要多角色互审，就不要过早引入 Multi-Agent；如果有生产动作和审批，State Machine + Agent 往往比纯 ReACT 更稳。</p>
+<p>选择时不要从“哪个模式更先进”出发，而要从任务风险出发：如果任务没有生命周期，就不要强行上状态机；如果不需要多角色互审，就不要过早引入 Multi-Agent；如果有生产动作和审批，State Machine + Agent 往往比纯 ReAct 更稳。</p>
 <hr>
-<h3 id="542-single-shot-agent"><a class="header" href="#542-single-shot-agent">5.4.2 Single-shot Agent</a></h3>
+<h3 id="542-reactplan-and-execute-与-plan-mode三个容易混淆的概念"><a class="header" href="#542-reactplan-and-execute-与-plan-mode三个容易混淆的概念">5.4.2 ReAct、Plan-and-Execute 与 Plan mode：三个容易混淆的概念</a></h3>
+<p>这三个词经常被放在一起讨论，但它们位于不同层级：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">概念</th><th style="text-align: left">所在层级</th><th style="text-align: left">核心含义</th><th style="text-align: left">适合场景</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">ReAct</td><td style="text-align: left">Agent Loop 模式</td><td style="text-align: left"><code>Reason -&gt; Act -&gt; Observe -&gt; Replan</code> 的推理-行动循环</td><td style="text-align: left">探索、诊断、信息逐步补全</td></tr>
+<tr><td style="text-align: left">Plan-and-Execute</td><td style="text-align: left">任务架构模式</td><td style="text-align: left">先生成任务级计划，再由执行器逐步执行和验证</td><td style="text-align: left">多步骤分析、复杂检索、迁移任务</td></tr>
+<tr><td style="text-align: left">Plan mode</td><td style="text-align: left">产品 / Runtime 协作模式</td><td style="text-align: left">只允许探索和规划，不执行修改动作</td><td style="text-align: left">需求不清、风险较高、需要先评审方案</td></tr>
+</tbody>
+</table>
+</div>
+<p>ReAct 关注“每一步如何边想边用工具”。Plan-and-Execute 关注“整个任务如何先拆解再执行”。Plan mode 关注“当前会话是否允许执行”。三者可以组合：规划模式下可以用 ReAct 做只读探索并输出计划；普通执行模式下可以用 Plan-and-Execute 落地计划，而每个执行步骤内部仍然可能使用 ReAct 调用工具、观察结果并局部修正。</p>
+<p>因此，架构设计时要把“执行范式”和“协作权限”分开。Plan-and-Execute 是系统如何组织执行，Plan mode 是 Runtime 或产品如何限制当前阶段不能执行写操作。混淆这两者，会导致设计文档看似有计划，实际没有明确谁能执行、何时执行、如何验证和如何回滚。</p>
+<h3 id="543-single-shot-agent"><a class="header" href="#543-single-shot-agent">5.4.3 Single-shot Agent</a></h3>
 <pre class="mermaid">
 flowchart LR
     Input["Input"] --&gt; Context["Context"] --&gt; LLM["LLM"] --&gt; Verify["Verify"] --&gt; Output["Output"]
@@ -2084,7 +2097,7 @@ flowchart LR
 
 <p>适合低风险、无副作用、上下文清晰的任务，例如摘要、分类、制度问答草稿。</p>
 <p>优点是简单、低延迟、成本低。缺点是无法动态补充证据，遇到复杂任务容易猜测。</p>
-<h3 id="543-router--specialist"><a class="header" href="#543-router--specialist">5.4.3 Router + Specialist</a></h3>
+<h3 id="544-router--specialist"><a class="header" href="#544-router--specialist">5.4.4 Router + Specialist</a></h3>
 <pre class="mermaid">
 flowchart TD
     Input["Input"] --&gt; Router["Task Router"]
@@ -2098,7 +2111,7 @@ flowchart TD
 
 <p>适合任务类型明确但领域不同的系统，例如企业助手同时处理制度问答、流程咨询、工单摘要。</p>
 <p>关键是 Router 要能拒绝不确定分类，不要强行把所有问题分到某个 Specialist。</p>
-<h3 id="544-plan-and-execute"><a class="header" href="#544-plan-and-execute">5.4.4 Plan-and-Execute</a></h3>
+<h3 id="545-plan-and-execute"><a class="header" href="#545-plan-and-execute">5.4.5 Plan-and-Execute</a></h3>
 <pre class="mermaid">
 flowchart LR
     Input["Input"] --&gt; Plan["Plan"]
@@ -2110,8 +2123,17 @@ flowchart LR
 </pre>
 
 <p>适合步骤相对清晰、需要多工具协作的任务，例如“分析某类投诉最近一周上升原因”。</p>
-<p>关键风险是计划过早固定。生产系统应允许基于观察结果局部重规划。</p>
-<h3 id="545-state-machine--agent"><a class="header" href="#545-state-machine--agent">5.4.5 State Machine + Agent</a></h3>
+<p>Plan-and-Execute 不是 Plan mode。前者是架构模式，决定任务如何拆分、执行和验证；后者是协作权限模式，决定当前阶段是否允许执行修改动作。一个系统可以在 Plan mode 下只生成可执行计划，也可以在普通模式下按照 Plan-and-Execute 自动执行。</p>
+<p>高质量计划不能只是自然语言清单，最好包含：</p>
+<ul>
+<li>每一步的输入、输出和依赖；</li>
+<li>需要暴露的工具集合；</li>
+<li>预算、风险等级和审批点；</li>
+<li>成功标准、失败分支和停止条件；</li>
+<li>观察结果出现偏差时的局部重规划策略。</li>
+</ul>
+<p>关键风险是计划过早固定。生产系统应允许基于观察结果局部重规划，并把重规划写入 Trace，避免执行器盲目走完一份已经失效的计划。</p>
+<h3 id="546-state-machine--agent"><a class="header" href="#546-state-machine--agent">5.4.6 State Machine + Agent</a></h3>
 <pre class="mermaid">
 flowchart TD
     New["New Task"] --&gt; Triage["Triage"]
@@ -2128,7 +2150,7 @@ flowchart TD
 
 <p>适合有明确生命周期、风险动作和人工审批的任务，例如告警处置、工单处理、审批辅助。</p>
 <p>这是企业生产环境最推荐的形态之一：状态机负责边界，Agent 负责状态内的推理。</p>
-<h3 id="546-multi-agent"><a class="header" href="#546-multi-agent">5.4.6 Multi-Agent</a></h3>
+<h3 id="547-multi-agent"><a class="header" href="#547-multi-agent">5.4.7 Multi-Agent</a></h3>
 <pre class="mermaid">
 flowchart TD
     Coordinator["Coordinator"]
@@ -2315,9 +2337,9 @@ flowchart TD
 <p>第二，Agent 不是传统后端的替代品，而是和后端形成混合架构。传统后端负责状态、事务、权限和审计，Agent 负责理解、规划、证据整合和建议生成，Policy、Verifier 和 Review Surface 负责把风险关在系统边界内。</p>
 <p>第三，生产级 Agent 至少需要 Runtime 骨架：Intake、Context、Memory、Capability、Policy、Human Control、State、Loop、Model Routing、Verifier、Eval、Review、Trace、Audit 和 Learning Loop。MVP 可以简单，但这些职责边界不能缺失。</p>
 <p>第四，核心组件要分工清楚：Event &amp; Intake Router 统一入口，Intent Normalizer 把输入变成任务契约，Planner 生成可验证计划，Context Builder 组织可信上下文，Memory Layer 提供受治理的长期上下文，Execution State 和 Checkpoint 支撑暂停、恢复与回放，Capability Registry 管理 Skills、Tools、Connectors 和 MCP，Policy 与 Human Control 负责裁决和人工介入，Agent Loop 推动任务，Model Router 与 Handoff Manager 负责模型和专家委派，Verifier 与 Eval Harness 判断质量，Review Surface、Trace 和 Audit 完成交接与复盘。</p>
-<p>第五，架构模式要按任务风险选择。低风险任务可以 Single-shot，多入口任务可以 Router + Specialist，多步骤任务适合 Plan-and-Execute，有生命周期和审批的生产任务更适合 State Machine + Agent，Multi-Agent 应该留给确实需要多角色并行或互审的复杂任务。</p>
+<p>第五，架构模式要按任务风险选择。低风险任务可以 Single-shot，多入口任务可以 Router + Specialist，多步骤任务适合 Plan-and-Execute，有生命周期和审批的生产任务更适合 State Machine + Agent，Multi-Agent 应该留给确实需要多角色并行或互审的复杂任务。架构模式和产品协作模式也要分开理解：Plan mode 控制“当前能不能执行”，Plan-and-Execute 控制“任务怎么组织执行”。</p>
 <p>最后，场景映射和检查清单是架构设计的落地校验。一个方案图看起来完整不代表可上线，只有当任务、上下文、工具、策略、循环、验证、审查和生产治理都能被回答，Agent 系统才真正具备工程可行性。</p>
-<p>这条主线会贯穿后续章节：第 6 章深入 Agent 工具系统、Skills、连接器与 MCP；第 7 章展开工作流、状态机、Checkpoint 和多 Agent 协作；第 8 章讨论平台架构、模型路由和跨 Agent 协作；第 9-11 章进入 RAG、Agentic RAG、Memory、会话和长期上下文；第 12 章系统讨论 Evals、Guardrails、Trace、Audit 和生产可观测性。</p>
+<p>这条主线会贯穿后续章节：第 6 章深入 Agent 工具系统、Skills、连接器与 MCP；第 7 章展开 Agent 知识系统；第 8 章进入 Agent 记忆系统、会话和长期上下文；第 9 章展开工作流、状态机、Checkpoint、多 Agent 协作和平台架构；第 10 章系统讨论 Evals、Guardrails、Trace、Audit 和生产可观测性。</p>
 <p><strong>关键洞察</strong></p>
 <blockquote>
 <p>Agent 的本质不是“模型能不能自己做事”，而是“系统能不能让模型在正确入口、正确上下文、正确状态、正确能力、正确权限和正确验证下完成任务，并把反馈安全地变成下一轮能力演进”。</p>

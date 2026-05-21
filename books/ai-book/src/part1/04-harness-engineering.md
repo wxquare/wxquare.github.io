@@ -251,7 +251,7 @@ flowchart TB
 
 从生产治理角度看，这六层还承担另一件事：为后续治理控制面提供事实来源。Context Layer 记录模型看到了什么，Tool Layer 记录模型想做什么和工具实际做了什么，Guardrail Layer 记录哪些风险被拦截，Eval Layer 证明候选版本是否可靠，Observability Layer 把线上失败转成可复盘的 trace。
 
-因此 Harness 不只是运行环境，也是治理数据的采集点。第 12 章会继续展开：这些 trace、policy decision、eval result 和 failure record 如何进入 Release Gate，决定一个 Agent 版本能不能发布。
+因此 Harness 不只是运行环境，也是治理数据的采集点。第 10 章会继续展开：这些 trace、policy decision、eval result 和 failure record 如何进入 Release Gate，决定一个 Agent 版本能不能发布。
 
 接下来逐层展开。
 
@@ -985,7 +985,7 @@ LLM 的工程特性决定了 Harness 的必要性：
 
 当所有团队都能接入相似水平的模型时，差异不再主要来自“谁的模型更强”，而是来自“谁的 Harness 更可靠”。这也是工程师最有价值的地方：把不确定的模型能力，放进确定的工程系统里。
 
-下一部分将进入 Agent 架构与运行时设计，讨论 LLM 能力边界、Agent 架构决策、工具系统和工作流编排。等到第 12 章讨论生产治理时，你会再次看到这条主线：Harness 采集事实，治理控制面消费事实，并把失败变成下一次发布前的门禁。
+下一部分将进入 Agent 架构与运行时设计，讨论 LLM 能力边界、Agent 架构决策、工具系统和工作流编排。等到第 10 章讨论生产治理时，你会再次看到这条主线：Harness 采集事实，治理控制面消费事实，并把失败变成下一次发布前的门禁。
 
 ---
 
