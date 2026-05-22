@@ -106,6 +106,53 @@ User Input -> Prompt -> LLM -> Answer
 
 这类系统适合做一次性问答、文本生成、分类、摘要等任务。它的特点是简单、低成本、易上线，但它并不是真正意义上的 Agent。
 
+#### 操作系统类比：Runtime 才是 Agent 的安全边界
+
+理解 Agent Runtime，一个有效的类比是 Linux 操作系统。这个类比不是说 Agent 系统真的等同于操作系统，而是帮助建立一个工程直觉：**模型不能直接操作真实世界，它只能提出动作请求；真正的执行必须经过 Runtime 的受控边界**。
+
+在 Linux 里，用户态程序不能直接读写磁盘、操作网卡、访问任意内存或控制其他进程。它必须通过 system call 进入内核，由内核完成权限检查、资源调度、驱动调用、状态管理和审计。Agent 也类似：LLM 可以提出“查日志、读文件、调用 API、发通知、执行命令”，但这些请求不能直接落到真实系统，必须先经过 Agent Runtime 的裁决、调度、执行和记录。
+
+这个类比可以拆成下面几层：
+
+| Linux 操作系统 | Agent 系统 | 类比含义 |
+|:---|:---|:---|
+| 操作系统内核 | Agent Runtime | 管理任务生命周期、身份、权限、状态、资源、审计和恢复 |
+| 用户态程序 | LLM / Agent App | 产生意图、推理和动作请求，但不能直接触碰真实资源 |
+| 进程调度与控制循环 | Agent Loop / Planner | 根据当前状态和观察结果决定下一步、是否继续、是否暂停或结束 |
+| 系统调用 | Tool Calling / Action Request | 用户态向内核请求能力，模型向 Runtime 请求外部动作 |
+| 系统调用校验 | Policy Engine / Guardrails | 校验身份、权限、参数、风险、预算和审批要求 |
+| syscall dispatcher / scheduler | Execution Engine | 解析动作请求，调度执行，处理超时、取消、重试、降级和状态回写 |
+| 驱动框架 / VFS / 网络栈 | Tool Runtime / Connector / MCP Client | 把统一动作请求适配到具体工具、协议、连接器或外部能力 |
+| 硬件设备 / 外部服务 | Execution Backend / External System | 真正发生副作用的地方，如 Shell、Docker、浏览器、API、MCP Server、远程 Runner |
+| 进程状态 | Task State / Checkpoint | 保存执行进度，支持暂停、恢复、回放和幂等 |
+| 文件系统 | Memory / Artifact Store / Context Store | 保存长期上下文、产物、证据和可复用信息 |
+| 日志 / auditd / tracing | Trace / Audit / Observability | 记录执行过程，支持调试、审计、复盘和追责 |
+
+这张表背后的重点不是名词对应，而是责任边界。生产级 Agent 至少要把下面五层分开：
+
+- **Agent Runtime 管生命周期**：任务从哪里来、谁在执行、能看到什么、能做什么、状态如何保存、失败如何恢复、过程如何审计。
+- **Agent Loop 管下一步**：根据任务状态、上下文、工具观察和模型推理，决定继续、澄清、调用工具、修复还是停止。
+- **Execution Engine 管动作调度**：把 Planner 或 Agent Loop 产生的动作请求变成可控执行，处理参数完整性、执行状态、超时、取消、重试、降级和结果回写。
+- **Tool Runtime 管工具治理**：管理工具注册、Schema、参数校验、可见工具集合、连接器适配、MCP 调用、工具级错误码和结构化 Observation。
+- **Execution Backend 管真实副作用**：在本地 Shell、Docker、浏览器、远程 API、MCP Server、Kubernetes Job 或远程 Runner 中真正执行动作。
+
+因此，Agent 的行动链路不应该是“模型直接调用外部系统”，而应该是：
+
+```text
+LLM / Agent Loop
+  -> Tool Call / Action Request
+  -> Policy Check
+  -> Execution Engine
+  -> Tool Runtime / Connector / Workflow Runner
+  -> Execution Backend
+  -> Observation
+  -> Agent Loop
+```
+
+这也解释了生产级 Agent 的一个基本原则：**Prompt 不是权限边界，Runtime 才是权限边界**。就像不能靠告诉用户态程序“请不要访问这个文件”来保护操作系统，Agent 也不能只靠 Prompt 说“不要执行危险命令”。真正的安全边界必须由 Runtime、Policy、Sandbox、Execution Engine 和 Tool Runtime 强制执行。
+
+这个分层不是某个框架的唯一官方术语，而是对多种工程实践的综合抽象：ReAct 强调推理和行动循环，MCP 强调工具、资源和外部能力边界，LangGraph 强调状态、checkpoint 和可恢复执行，OpenAI Agents SDK 和 Google ADK 强调 Runtime、工具、handoff、guardrails 和 trace。不同框架命名不同，但共同点是一致的：**模型负责提出行动，Runtime 负责裁决和编排，执行层负责可靠运行，后端负责真实副作用**。
+
 Agent 系统通常长这样：
 
 ```mermaid
