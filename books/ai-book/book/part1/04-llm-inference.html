@@ -1,0 +1,667 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第4章 大模型推理机制详解：Prefill、Decode、Sampling、KV Cache 与 Reasoning Budget - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-1e9302fa.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-4bd48997.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第4章-大模型推理机制详解prefilldecodesamplingkv-cache-与-reasoning-budget"><a class="header" href="#第4章-大模型推理机制详解prefilldecodesamplingkv-cache-与-reasoning-budget">第4章 大模型推理机制详解：Prefill、Decode、Sampling、KV Cache 与 Reasoning Budget</a></h1>
+<p>LLM 推理不是简单的“跑一次模型”。对自回归模型来说，生成文本是一个循环：每次预测下一个 token，把它追加到上下文，再继续预测下一个 token。</p>
+<p>本章先从宏观上理解推理流程，再看工业界如何优化 serving，最后看 KV cache、speculative decoding、paged memory、reasoning budget、量化和长上下文相关研究。</p>
+<h2 id="41-宏观理解一次生成是怎么发生的"><a class="header" href="#41-宏观理解一次生成是怎么发生的">4.1 宏观理解：一次生成是怎么发生的</a></h2>
+<p>输入 prompt 后，模型并不是一次性吐出完整答案，而是一步步生成：</p>
+<pre class="mermaid">
+flowchart LR
+    A["Prompt"] --&gt; B["Prefill"]
+    B --&gt; C["Logits for next token"]
+    C --&gt; D["Sampling / Decoding"]
+    D --&gt; E["New token"]
+    E --&gt; F["Append to context"]
+    F --&gt; G["Decode next token"]
+    G --&gt; C
+</pre>
+
+<p>每一步都会产生一个 logits 向量。logits 可以理解成“词表里每个 token 作为下一个 token 的未归一化分数”。经过 softmax 后，它变成概率分布。</p>
+<h2 id="42-prefill-与-decode"><a class="header" href="#42-prefill-与-decode">4.2 Prefill 与 Decode</a></h2>
+<p>LLM 推理通常分为两个阶段。</p>
+<h3 id="421-prefill"><a class="header" href="#421-prefill">4.2.1 Prefill</a></h3>
+<p>Prefill 是处理输入 prompt 的阶段。</p>
+<p>假设用户输入了 4K token，模型会一次性处理这些 token，计算每层 attention 的 Key / Value，并得到最后一个位置的 next-token logits。</p>
+<p>这个阶段通常并行度高，更像大矩阵计算。prompt 越长，prefill 越慢，TTFT（Time To First Token，首 token 延迟）越高。</p>
+<h3 id="422-decode"><a class="header" href="#422-decode">4.2.2 Decode</a></h3>
+<p>Decode 是生成输出 token 的阶段。</p>
+<p>每一步 decode 只生成一个 token。模型会读取历史上下文，计算当前 token 对历史 token 的注意力，然后采样出下一个 token。</p>
+<p>decode 阶段经常是 memory-bound：瓶颈不一定是算力，而是读取模型权重和 KV cache 的显存带宽。</p>
+<h2 id="43-sampling模型如何选择下一个-token"><a class="header" href="#43-sampling模型如何选择下一个-token">4.3 Sampling：模型如何选择下一个 token</a></h2>
+<p>模型输出的是概率分布，但最终必须选出一个 token。</p>
+<p>常见策略包括：</p>
+<ul>
+<li><strong>Greedy decoding</strong>：每次选概率最高的 token，稳定但容易机械。</li>
+<li><strong>Temperature</strong>：调节分布尖锐程度。低温更保守，高温更多样。</li>
+<li><strong>Top-k</strong>：只在概率最高的 k 个 token 中采样。</li>
+<li><strong>Top-p / nucleus sampling</strong>：只在累计概率达到 p 的 token 集合里采样。</li>
+<li><strong>Repetition penalty</strong>：降低重复 token 的概率。</li>
+<li><strong>Stop sequence</strong>：遇到特定 token 或字符串时停止生成。</li>
+</ul>
+<p>工程上，sampling 参数决定输出的稳定性、创造性和可复现性。代码生成、SQL、JSON、函数调用通常需要更低温度；创意写作可以使用更高温度。</p>
+<p>对于 reasoning model，推理还要多一个维度：<strong>reasoning budget</strong>。系统需要决定是否允许模型生成更长的内部思考、是否启用 verifier、是否允许多轮工具调用，以及什么时候因为成本、延迟或证据不足而停止。普通问答关注“选哪个 token”，复杂 Agent 任务还要关注“允许模型花多少推理计算”。</p>
+<h2 id="44-kv-cache-里的-kv-是什么"><a class="header" href="#44-kv-cache-里的-kv-是什么">4.4 KV Cache 里的 KV 是什么</a></h2>
+<p>KV cache 是理解推理性能的核心概念。这里的 KV 不是数据库里的 key-value，而是 Transformer Attention 里的 <strong>Key / Value 向量</strong>。</p>
+<p>Self-Attention 的简化公式是：</p>
+<pre><code class="language-text">Attention(Q, K, V) = softmax(QK^T / sqrt(d)) V
+</code></pre>
+<p>对当前新 token 来说：</p>
+<ul>
+<li><code>Q</code>：当前 token 的 query；</li>
+<li><code>K/V</code>：历史所有 token 在每一层 attention 中产生的 key/value；</li>
+<li><code>KV cache</code>：把历史 token 的 K 和 V 存下来，下次生成时直接复用。</li>
+</ul>
+<p>没有 KV cache 时，每生成一个新 token，都要重新计算整段上下文的 K/V。</p>
+<p>有 KV cache 时：</p>
+<ul>
+<li>prefill 阶段一次性处理 prompt，把所有历史 token 的 K/V 存起来；</li>
+<li>decode 阶段每生成一个新 token，只算这个新 token 的 K/V，然后追加到 cache。</li>
+</ul>
+<p>所以 KV cache 的本质是：</p>
+<blockquote>
+<p>用显存换速度。</p>
+</blockquote>
+<h2 id="45-kv-cache-的显存成本"><a class="header" href="#45-kv-cache-的显存成本">4.5 KV Cache 的显存成本</a></h2>
+<p>KV cache 让 decode 快很多，但显存会线性增长：</p>
+<pre><code class="language-text">KV cache size ≈ 2 × layers × batch × seq_len × kv_heads × head_dim × bytes
+</code></pre>
+<p>其中：</p>
+<ul>
+<li><code>2</code> 是 Key 和 Value；</li>
+<li><code>layers</code> 是模型层数；</li>
+<li><code>batch</code> 是同时服务的序列数；</li>
+<li><code>seq_len</code> 是上下文长度，包括输入和已生成输出；</li>
+<li><code>kv_heads</code> 是 Key / Value head 数；</li>
+<li><code>head_dim</code> 是每个 head 的维度；</li>
+<li><code>bytes</code> 是每个元素的字节数，例如 FP16/BF16 通常是 2。</li>
+</ul>
+<p>一个直觉例子：</p>
+<p>假设模型有 32 层、32 个 KV heads、<code>head_dim = 128</code>，使用 FP16：</p>
+<pre><code class="language-text">每个 token 的 KV cache ≈ 2 × 32 × 32 × 128 × 2 = 512 KB
+</code></pre>
+<p>那么：</p>
+<ul>
+<li>4K context 约等于 2 GB；</li>
+<li>32K context 约等于 16 GB。</li>
+</ul>
+<p>这还只是一个请求。如果并发多个长上下文请求，KV cache 会迅速成为推理服务的主要显存瓶颈。</p>
+<h2 id="46-为什么长上下文会降低吞吐"><a class="header" href="#46-为什么长上下文会降低吞吐">4.6 为什么长上下文会降低吞吐</a></h2>
+<p>长上下文有三个直接影响：</p>
+<ul>
+<li>prefill 更慢，首 token 延迟更高；</li>
+<li>decode 每一步都要读取更长的 KV cache；</li>
+<li>KV cache 占用显存，减少可同时服务的请求数。</li>
+</ul>
+<p>在短 prompt、低并发场景里，模型权重可能是主要显存占用。在长上下文、高并发场景里，KV cache 往往更接近 serving capacity 的决定因素。</p>
+<p>这就是为什么“支持 128K context”和“128K context 下高吞吐稳定服务”是两件事。</p>
+<h2 id="47-工业实践serving-engine-在优化什么"><a class="header" href="#47-工业实践serving-engine-在优化什么">4.7 工业实践：Serving Engine 在优化什么</a></h2>
+<p>生产级 LLM serving 关注的是端到端指标：</p>
+<ul>
+<li>TTFT：首 token 延迟；</li>
+<li>TPOT：每个输出 token 的延迟；</li>
+<li>tokens/s：吞吐；</li>
+<li>QPS：请求吞吐；</li>
+<li>GPU memory watermark：显存水位；</li>
+<li>cache hit rate：prefix cache 命中率；</li>
+<li>queueing delay：排队延迟。</li>
+</ul>
+<p>常见 serving engine 包括 vLLM、TensorRT-LLM、SGLang、Hugging Face TGI、llama.cpp、LMDeploy 等。它们的优化重点不完全相同，但都会围绕 batch、KV cache、kernel、quantization 和调度展开。</p>
+<h2 id="48-pagedattention-与-paged-kv-cache"><a class="header" href="#48-pagedattention-与-paged-kv-cache">4.8 PagedAttention 与 Paged KV Cache</a></h2>
+<p>vLLM 的 PagedAttention 把每个请求的 KV cache 切成固定大小的 block/page，不要求连续显存，类似操作系统分页。</p>
+<p>好处包括：</p>
+<ul>
+<li>减少显存碎片；</li>
+<li>支持 continuous batching；</li>
+<li>支持 prefix sharing；</li>
+<li>更容易处理不同长度序列；</li>
+<li>支持 beam search 等场景下的 cache 共享。</li>
+</ul>
+<p>这类设计把 KV cache 从“请求私有的大块连续内存”变成“由 serving engine 管理的 block 资源”。</p>
+<h2 id="49-continuous-batching-与-in-flight-batching"><a class="header" href="#49-continuous-batching-与-in-flight-batching">4.9 Continuous Batching 与 In-flight Batching</a></h2>
+<p>传统 batching 会等一批请求一起开始、一起结束。LLM 生成长度差异很大，短请求会被长请求拖住。</p>
+<p>Continuous batching / in-flight batching 允许新的请求在每个 decode step 加入 batch，也允许完成的请求离开 batch。</p>
+<p>这提升 GPU 利用率，但要求调度器实时管理：</p>
+<ul>
+<li>哪些请求处于 prefill；</li>
+<li>哪些请求处于 decode；</li>
+<li>batch token 数是否超限；</li>
+<li>KV cache 空间是否足够；</li>
+<li>长请求是否挤占短请求；</li>
+<li>是否需要抢占、暂停或降级。</li>
+</ul>
+<h2 id="410-prefix-reuse-与-prompt-caching"><a class="header" href="#410-prefix-reuse-与-prompt-caching">4.10 Prefix Reuse 与 Prompt Caching</a></h2>
+<p>很多请求共享相同前缀，例如：</p>
+<ul>
+<li>system prompt；</li>
+<li>工具 schema；</li>
+<li>few-shot 示例；</li>
+<li>项目规范；</li>
+<li>长文档开头；</li>
+<li>多轮对话中的稳定上下文。</li>
+</ul>
+<p>Prefix caching 可以复用这部分前缀的 KV cache，减少重复 prefill。</p>
+<p>但它有正确性风险：</p>
+<ul>
+<li>token 序列必须完全一致；</li>
+<li>位置和 chat template 必须一致；</li>
+<li>多租户、权限和安全边界不能混淆；</li>
+<li>工具 schema 版本变化后不能复用旧 cache。</li>
+</ul>
+<h2 id="411-模型结构层面的优化mqagqamla"><a class="header" href="#411-模型结构层面的优化mqagqamla">4.11 模型结构层面的优化：MQA、GQA、MLA</a></h2>
+<p>KV cache 大小和 <code>kv_heads</code> 成正比。</p>
+<p>因此模型结构也会影响推理成本：</p>
+<ul>
+<li>MHA：每个 query head 有自己的 K/V head，表达力强但 KV cache 大。</li>
+<li>MQA：多个 query heads 共享一组 K/V head，KV cache 小但可能影响质量。</li>
+<li>GQA：多个 query heads 分组共享 K/V head，是现代模型常用折中。</li>
+<li>MLA：把 K/V 信息压缩到 latent 表示，进一步降低 KV cache 成本。</li>
+</ul>
+<p>这类优化通常比单纯换 serving engine 更底层，因为它改变了模型本身的推理内存结构。</p>
+<h2 id="412-kv-cache-实现策略"><a class="header" href="#412-kv-cache-实现策略">4.12 KV Cache 实现策略</a></h2>
+<p>Hugging Face Transformers 中有多种 cache 策略：</p>
+<ul>
+<li><code>DynamicCache</code>：动态增长，灵活；</li>
+<li><code>StaticCache</code>：预分配，利于编译优化；</li>
+<li><code>QuantizedCache</code>：降低 KV 精度以节省显存；</li>
+<li>offloaded cache：把部分 cache 放到 CPU，降低 GPU 显存压力。</li>
+</ul>
+<p>这些策略对应不同 trade-off：</p>
+<ul>
+<li>灵活性；</li>
+<li>编译友好性；</li>
+<li>显存占用；</li>
+<li>PCIe / NVLink 带宽；</li>
+<li>输出质量；</li>
+<li>tail latency。</li>
+</ul>
+<h2 id="413-kernel-优化"><a class="header" href="#413-kernel-优化">4.13 Kernel 优化</a></h2>
+<p>FlashAttention、FlashInfer 等库会针对 prefill、decode、paged KV layout、ragged sequence 做专门 kernel。</p>
+<p>核心目标是减少 HBM 读写和中间张量，提升 attention 的实际吞吐。</p>
+<p>同一个模型、同一张 GPU、同样的上下文长度，在不同 kernel 和 serving engine 上可能有明显吞吐差异。</p>
+<h2 id="414-科研现状kv-cache-与推理优化"><a class="header" href="#414-科研现状kv-cache-与推理优化">4.14 科研现状：KV Cache 与推理优化</a></h2>
+<p>截至 2026-05，推理优化研究主要集中在下面几类。</p>
+<h3 id="1-更好的内存管理"><a class="header" href="#1-更好的内存管理">1. 更好的内存管理</a></h3>
+<p>PagedAttention 是主流路线。vAttention 则尝试利用虚拟内存机制保持 KV cache 虚拟连续、物理按需分配，降低对特殊 attention kernel 的依赖。</p>
+<h3 id="2-kv-cache-量化"><a class="header" href="#2-kv-cache-量化">2. KV Cache 量化</a></h3>
+<p>KIVI、KVQuant、TurboQuant 等方法尝试把 K/V 从 FP16/BF16 压到 INT8、4-bit、2-bit 甚至更低。难点在于长上下文质量、outlier 处理和不同任务的稳定性。</p>
+<h3 id="3-kv-cache-剪枝与驱逐"><a class="header" href="#3-kv-cache-剪枝与驱逐">3. KV Cache 剪枝与驱逐</a></h3>
+<p>H2O、SnapKV 等方法认为不是所有历史 token 都同等重要，可以保留 heavy hitter token、recent token 或 prompt 中的重要 token，驱逐低价值 KV。</p>
+<p>风险是错误驱逐会造成不可恢复的信息损失，因此必须用目标任务 eval 验证。</p>
+<h3 id="4-speculative-decoding"><a class="header" href="#4-speculative-decoding">4. Speculative Decoding</a></h3>
+<p>Speculative decoding 用小模型或 draft head 先生成候选 token，再由大模型验证。目标是在不显著损失质量的情况下减少大模型 forward 次数。</p>
+<h3 id="5-disaggregated-prefill--decode"><a class="header" href="#5-disaggregated-prefill--decode">5. Disaggregated Prefill / Decode</a></h3>
+<p>一些 serving 系统开始把 prefill-heavy 和 decode-heavy workload 分开调度，甚至部署到不同 GPU 资源池。原因是 prefill 更偏 compute-bound，decode 更偏 memory-bound。</p>
+<h2 id="415-工程清单"><a class="header" href="#415-工程清单">4.15 工程清单</a></h2>
+<p>设计推理服务时，可以检查：</p>
+<ul>
+<li>是否区分 TTFT 和 TPOT？</li>
+<li>是否统计输入长度、输出长度和并发分布？</li>
+<li>是否估算了最大上下文下的 KV cache？</li>
+<li>是否使用 GQA/MQA/MLA 等降低 KV heads？</li>
+<li>serving engine 是否支持 paged KV cache？</li>
+<li>是否启用 continuous batching？</li>
+<li>是否支持 prefix caching？</li>
+<li>是否有超长 prompt 的 admission control？</li>
+<li>是否有 cache eviction、offloading 或降级策略？</li>
+<li>sampling 参数是否按任务类型配置？</li>
+<li>JSON / tool calling 是否需要 constrained decoding？</li>
+</ul>
+<h2 id="416-面试表达"><a class="header" href="#416-面试表达">4.16 面试表达</a></h2>
+<p>一句话版：</p>
+<blockquote>
+<p>LLM 推理分为 prefill 和 decode。Prefill 处理输入并生成 KV cache，decode 一次生成一个 token 并复用历史 KV。KV cache 能显著加速生成，但显存随 batch size 和 context length 线性增长，所以工业界用 PagedAttention、continuous batching、prefix reuse、GQA/MQA/MLA、量化、offloading 和 cache-aware scheduling 优化。</p>
+</blockquote>
+<p>展开版：</p>
+<blockquote>
+<p>我会把推理性能拆成 prefill、decode 和 serving 调度三层。Prefill 决定首 token 延迟，decode 决定每 token 延迟，KV cache 决定长上下文和高并发下的显存容量。生产系统不会只优化单次 forward，而会用 paged KV cache 减少碎片，用 continuous batching 提高利用率，用 prefix caching 复用稳定前缀，用 GQA/MQA/MLA 降低 KV 大小，用量化和 offload 控制显存，并通过 eval 确认这些优化没有破坏质量。</p>
+</blockquote>
+<h2 id="417-深入理解prefill-和-decode-的资源画像不同"><a class="header" href="#417-深入理解prefill-和-decode-的资源画像不同">4.17 深入理解：Prefill 和 Decode 的资源画像不同</a></h2>
+<p>Prefill 和 decode 不是同一种负载。</p>
+<p>Prefill 会一次处理大量输入 token，矩阵乘法规模大，GPU 利用率通常较高。它的核心问题是首 token 延迟和长 prompt 带来的瞬时计算压力。</p>
+<p>Decode 每次只生成一个 token，batch 中每个序列都要读取模型权重和自己的 KV cache。它的核心问题往往是显存带宽和 KV cache 管理，而不是纯 FLOPS。</p>
+<p>这带来一个重要工程判断：</p>
+<pre><code class="language-text">prefill-heavy workload 需要优化 prompt 处理和 chunked prefill
+decode-heavy workload 需要优化 KV cache、batching 和 memory bandwidth
+</code></pre>
+<p>例如，文档问答通常 prefill-heavy，因为输入长、输出短。写长报告和 reasoning agent 通常 decode-heavy，因为输出和思考轨迹很长。代码 Agent 可能两者都重：上下文里有代码库片段，输出又可能包含长 patch 和多轮工具调用。</p>
+<p>成熟 serving 系统会区分这两类负载，而不是把所有请求混进同一个 FIFO 队列。</p>
+<h2 id="418-深入理解为什么-decode-经常是-memory-bound"><a class="header" href="#418-深入理解为什么-decode-经常是-memory-bound">4.18 深入理解：为什么 Decode 经常是 Memory-bound</a></h2>
+<p>在 decode 阶段，每生成一个 token 都要经过所有层。对于 batch size 不大的在线请求，矩阵乘法规模相对小，GPU 算力可能吃不满，但模型权重和 KV cache 仍要从显存读取。</p>
+<p>因此瓶颈经常是：</p>
+<ul>
+<li>模型权重读取；</li>
+<li>KV cache 读取；</li>
+<li>attention score 计算中的内存访问；</li>
+<li>batch shape 不规则导致 kernel 效率下降；</li>
+<li>请求长度差异导致调度碎片。</li>
+</ul>
+<p>这解释了为什么量化、GQA、KV cache 压缩、continuous batching 和 speculative decoding 都能提升推理性能。它们本质上都在减少每个输出 token 消耗的内存带宽、forward 次数或调度浪费。</p>
+<p>也解释了为什么“换更强 GPU”不一定线性提升吞吐。如果 bottleneck 是显存容量、内存带宽或 batch 形状，单看 TFLOPS 会误判。</p>
+<h2 id="419-工业实践调度器如何做取舍"><a class="header" href="#419-工业实践调度器如何做取舍">4.19 工业实践：调度器如何做取舍</a></h2>
+<p>LLM serving 的调度器要同时照顾吞吐和用户体验。它面对的不是统一长度的矩阵请求，而是一批动态增长的序列。</p>
+<p>调度器通常要考虑：</p>
+<ul>
+<li>一个 batch 中最多放多少 token；</li>
+<li>prefill 和 decode 是否分开调度；</li>
+<li>超长请求是否限制并发；</li>
+<li>是否允许抢占低优先级请求；</li>
+<li>KV cache 空间不足时如何处理；</li>
+<li>prefix cache 命中高的请求是否优先；</li>
+<li>streaming 响应如何避免尾延迟；</li>
+<li>多租户如何做配额和隔离。</li>
+</ul>
+<p>一个常见策略是把 prefill 以 chunk 的方式切开，避免单个超长 prompt 长时间占用 GPU；decode 则通过 continuous batching 尽量保持 GPU 忙碌。</p>
+<p>但这也有代价：chunked prefill 会增加调度复杂度，过度追求吞吐可能拉高首 token 延迟，过度照顾短请求可能饿死长请求。</p>
+<p>所以 serving 优化不是单指标问题，而是 SLA、成本和公平性的多目标优化。</p>
+<h2 id="420-深入理解prefix-cache-不是普通缓存"><a class="header" href="#420-深入理解prefix-cache-不是普通缓存">4.20 深入理解：Prefix Cache 不是普通缓存</a></h2>
+<p>普通 Web 缓存通常以 URL 或 key 命中。Prefix cache 命中的是 token 前缀和对应的 KV block。</p>
+<p>它有几个特殊点：</p>
+<ul>
+<li>cache 内容和模型版本绑定；</li>
+<li>cache 内容和 tokenizer / chat template 绑定；</li>
+<li>cache 内容和 position 绑定；</li>
+<li>cache 内容和 LoRA adapter 或 system prompt 版本绑定；</li>
+<li>cache 内容可能包含权限敏感信息。</li>
+</ul>
+<p>因此 prefix cache 的设计不能只看命中率，还要看隔离和失效策略。</p>
+<p>例如企业 Agent 的 system prompt 和工具 schema 可以缓存，但用户私有文档不一定能跨用户缓存。多租户场景下，即使 token 序列相同，如果权限域不同，也要谨慎复用。</p>
+<h2 id="421-研究补充reasoning-模型放大了-kv-cache-问题"><a class="header" href="#421-研究补充reasoning-模型放大了-kv-cache-问题">4.21 研究补充：Reasoning 模型放大了 KV Cache 问题</a></h2>
+<p>reasoning 模型通常会生成更长的中间推理轨迹。这提升了复杂任务能力，但也放大了 decode 成本：</p>
+<ul>
+<li>输出 token 更多；</li>
+<li>KV cache 持续增长；</li>
+<li>长时间占用 batch slot；</li>
+<li>请求之间长度差异更大；</li>
+<li>并发下显存压力更强。</li>
+</ul>
+<p>从系统角度看，test-time scaling 有两条路径：</p>
+<ul>
+<li><strong>纵向慢思考</strong>：模型在一次调用内部生成更长推理轨迹，用更多 token 搜索、验证和修正答案。</li>
+<li><strong>横向多轮环境交互</strong>：Agent 多次调用工具、读取观察、更新状态，再决定下一步。</li>
+</ul>
+<p>两条路径都会消耗推理预算。前者主要放大 decode 和 KV cache 压力，后者还会放大工具延迟、状态管理、trace 记录、权限控制和失败恢复成本。</p>
+<p>2026 年的 Zipage 这类工作把 compressed PagedAttention 和 token-wise KV eviction 结合起来，目标就是在 reasoning workload 下维持高并发。它反映了一个趋势：KV cache 优化正在从“单请求长上下文”走向“高并发长 reasoning”。</p>
+<p>但这类方法落地必须问三个问题：</p>
+<ul>
+<li>被压缩或驱逐的 KV 是否会影响最终答案？</li>
+<li>压缩本身是否引入额外延迟？</li>
+<li>是否兼容 prefix caching、paged memory 和现有 serving engine？</li>
+</ul>
+<h2 id="422-工程诊断推理慢时怎么定位"><a class="header" href="#422-工程诊断推理慢时怎么定位">4.22 工程诊断：推理慢时怎么定位</a></h2>
+<p>线上推理慢，不要直接归因于模型太大。可以按下面路径诊断：</p>
+<ol>
+<li><strong>看 TTFT</strong>：高 TTFT 往往来自长 prompt、prefill 排队、chunked prefill 配置或冷启动。</li>
+<li><strong>看 TPOT</strong>：高 TPOT 往往来自 decode 带宽、batch 太小、KV cache 压力或 kernel 效率。</li>
+<li><strong>看 GPU 利用率</strong>：低利用率可能是 batch 不足、调度碎片或 CPU/tokenizer 瓶颈。</li>
+<li><strong>看显存水位</strong>：接近上限时，KV cache 可能限制并发。</li>
+<li><strong>看请求长度分布</strong>：少量超长请求可能拖垮 P99。</li>
+<li><strong>看 prefix cache 命中率</strong>：低命中说明 prompt 前缀不稳定或模板版本混乱。</li>
+<li><strong>看输出长度</strong>：reasoning 或 verbose prompt 可能让 decode 成本暴涨。</li>
+</ol>
+<p>只有把这些指标拆开，才能判断该优化 prompt、换模型、改 sampling、加 batching、做量化，还是换 serving engine。</p>
+<h2 id="423-面试加分表达从单机推理到服务化推理"><a class="header" href="#423-面试加分表达从单机推理到服务化推理">4.23 面试加分表达：从单机推理到服务化推理</a></h2>
+<p>面试里如果只讲 KV cache 公式，答案还停留在模型层。更好的表达是：</p>
+<blockquote>
+<p>单机推理关注一次 forward 怎么快；服务化推理关注多请求、多长度、多租户下如何稳定利用 GPU。KV cache 是连接模型层和系统层的关键状态，它既决定 decode 速度，也决定显存容量和调度策略。因此我会同时考虑模型结构、cache layout、batch scheduler、prefix reuse、admission control 和质量 eval。</p>
+</blockquote>
+<p>这句话的好处是把你从“知道概念”提升到“知道系统怎么设计”。</p>
+<h2 id="424-常见误区推理性能"><a class="header" href="#424-常见误区推理性能">4.24 常见误区：推理性能</a></h2>
+<h3 id="误区-1只看-tokenss"><a class="header" href="#误区-1只看-tokenss">误区 1：只看 tokens/s</a></h3>
+<p>tokens/s 是吞吐指标，但用户还关心 TTFT、TPOT、P95/P99 延迟、排队时间和失败率。一个系统平均 tokens/s 高，不代表交互体验好。</p>
+<h3 id="误区-2以为-kv-cache-是可选优化"><a class="header" href="#误区-2以为-kv-cache-是可选优化">误区 2：以为 KV cache 是可选优化</a></h3>
+<p>对自回归 decode 来说，KV cache 是现代高效推理的基础。没有 KV cache，每步都重复计算历史上下文，长文本生成成本会不可接受。</p>
+<h3 id="误区-3以为-prefix-caching-会加速所有阶段"><a class="header" href="#误区-3以为-prefix-caching-会加速所有阶段">误区 3：以为 prefix caching 会加速所有阶段</a></h3>
+<p>Prefix caching 主要减少重复 prefill。它不直接让后续 decode token 变快。长输出任务仍然会受 decode 和 KV cache 带宽限制。</p>
+<h3 id="误区-4只靠量化解决-serving-问题"><a class="header" href="#误区-4只靠量化解决-serving-问题">误区 4：只靠量化解决 serving 问题</a></h3>
+<p>量化能降低权重或 KV cache 成本，但调度、batching、prefix cache、模型结构和 workload 分布同样重要。量化还可能带来质量退化。</p>
+<h2 id="425-专家问答"><a class="header" href="#425-专家问答">4.25 专家问答</a></h2>
+<p><strong>问：为什么有时 batch 变大，单请求延迟也变高？</strong></p>
+<p>batch 变大提升吞吐，但每个请求可能要等待同一批次或更多调度步骤。服务系统要在吞吐和延迟之间取舍，不能只追求 GPU 利用率。</p>
+<p><strong>问：为什么长 prompt 的首 token 慢？</strong></p>
+<p>因为 prefill 必须处理全部输入 token，并构建 KV cache。prompt 越长，首 token 之前要做的计算越多。</p>
+<p><strong>问：为什么 reasoning 模型更考验 serving？</strong></p>
+<p>它们输出更长，decode step 更多，KV cache 增长更久，占用 batch slot 时间更长。高并发下，reasoning token 会显著改变容量规划。</p>
+<p><strong>问：怎么快速估算是否会 OOM？</strong></p>
+<p>先估模型权重显存，再估目标 batch 和最大 seq_len 下的 KV cache，再加上激活、临时 buffer、CUDA graph、fragmentation 和 serving engine 预留。只看模型权重会严重低估长上下文成本。</p>
+<h2 id="426-容量规划案例三种典型-workload"><a class="header" href="#426-容量规划案例三种典型-workload">4.26 容量规划案例：三种典型 Workload</a></h2>
+<h3 id="1-客服问答"><a class="header" href="#1-客服问答">1. 客服问答</a></h3>
+<p>特点：</p>
+<ul>
+<li>prompt 中等；</li>
+<li>输出较短；</li>
+<li>并发高；</li>
+<li>对 TTFT 敏感；</li>
+<li>RAG 证据通常较短。</li>
+</ul>
+<p>优化重点：</p>
+<ul>
+<li>prompt caching；</li>
+<li>hybrid retrieval 控制 evidence token；</li>
+<li>continuous batching；</li>
+<li>小模型路由简单问题；</li>
+<li>严格限制最大输出。</li>
+</ul>
+<p>客服问答通常不需要特别长的 reasoning trace，过长输出反而降低用户体验。</p>
+<h3 id="2-代码-agent"><a class="header" href="#2-代码-agent">2. 代码 Agent</a></h3>
+<p>特点：</p>
+<ul>
+<li>prompt 可能很长；</li>
+<li>工具 schema 和项目上下文稳定；</li>
+<li>多轮工具调用；</li>
+<li>输出 patch 可能较长；</li>
+<li>正确性比速度更重要。</li>
+</ul>
+<p>优化重点：</p>
+<ul>
+<li>prefix cache 复用系统提示和工具说明；</li>
+<li>项目上下文分层加载；</li>
+<li>文件级检索；</li>
+<li>长任务异步化；</li>
+<li>trace 和可恢复状态；</li>
+<li>对 patch 做编译/测试验证。</li>
+</ul>
+<p>代码 Agent 的成本不只在模型 token，还在工具执行、环境准备和失败恢复。</p>
+<h3 id="3-长文档分析"><a class="header" href="#3-长文档分析">3. 长文档分析</a></h3>
+<p>特点：</p>
+<ul>
+<li>prefill-heavy；</li>
+<li>输入长；</li>
+<li>输出可能中等；</li>
+<li>需要引用证据；</li>
+<li>容易受中间位置遗忘影响。</li>
+</ul>
+<p>优化重点：</p>
+<ul>
+<li>chunked prefill；</li>
+<li>map-reduce 或分层摘要；</li>
+<li>citation-aware context；</li>
+<li>多阶段检索；</li>
+<li>先抽取结构再综合；</li>
+<li>控制单次上下文信息密度。</li>
+</ul>
+<p>长文档分析不应该简单把全文塞进窗口，而应该先组织信息结构。</p>
+<h2 id="427-数字化估算从模型配置到并发上限"><a class="header" href="#427-数字化估算从模型配置到并发上限">4.27 数字化估算：从模型配置到并发上限</a></h2>
+<p>假设一个 32 层模型，<code>kv_heads=8</code>，<code>head_dim=128</code>，FP16，单请求 16K context。</p>
+<p>KV cache 约为：</p>
+<pre><code class="language-text">2 × 32 × 1 × 16384 × 8 × 128 × 2 bytes
+= 2 GB
+</code></pre>
+<p>如果 GPU 剩余可用显存 40 GB，理论上最多放 20 个这样的请求。但真实系统不能按理论值打满，因为还需要：</p>
+<ul>
+<li>模型权重；</li>
+<li>临时 buffer；</li>
+<li>CUDA graph；</li>
+<li>fragmentation；</li>
+<li>serving engine 预留；</li>
+<li>不同请求长度差异；</li>
+<li>输出继续增长后的 KV。</li>
+</ul>
+<p>所以容量规划通常要保守，比如只按 60%-80% 可用 KV 空间做 admission control。</p>
+<p>这个估算能力非常适合面试，因为它能把模型结构、显存和服务并发连起来。</p>
+<h2 id="428-专家实践推理优化的优先级"><a class="header" href="#428-专家实践推理优化的优先级">4.28 专家实践：推理优化的优先级</a></h2>
+<p>当系统太慢或太贵时，可以按优先级尝试：</p>
+<ol>
+<li><strong>减少无效 token</strong>：压缩 system prompt、工具说明、RAG 噪声。</li>
+<li><strong>控制输出长度</strong>：限制 verbose 回答和无意义 reasoning。</li>
+<li><strong>启用 batching</strong>：提高 GPU 利用率。</li>
+<li><strong>启用 prefix cache</strong>：复用稳定前缀。</li>
+<li><strong>换模型结构</strong>：选择 GQA/MQA/MLA 更友好的模型。</li>
+<li><strong>量化权重</strong>：降低模型显存和带宽。</li>
+<li><strong>量化或压缩 KV cache</strong>：处理长上下文并发。</li>
+<li><strong>speculative decoding</strong>：降低大模型 forward 次数。</li>
+<li><strong>分离 prefill/decode</strong>：处理大规模服务。</li>
+</ol>
+<p>这个顺序的原则是先减少不必要工作，再优化必要工作。</p>
+<h2 id="429-参考资料"><a class="header" href="#429-参考资料">4.29 参考资料</a></h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2309.06180">Efficient Memory Management for Large Language Model Serving with PagedAttention</a></li>
+<li><a href="https://docs.vllm.ai/en/v0.6.0/automatic_prefix_caching/details.html">vLLM Automatic Prefix Caching</a></li>
+<li><a href="https://nvidia.github.io/TensorRT-LLM/latest/features/kvcache.html">TensorRT-LLM KV Cache System</a></li>
+<li><a href="https://nvidia.github.io/TensorRT-LLM/advanced/gpt-attention.html">TensorRT-LLM GPT Attention</a></li>
+<li><a href="https://huggingface.co/docs/transformers/main/kv_cache">Hugging Face Transformers KV Cache Strategies</a></li>
+<li><a href="https://docs.flashinfer.ai/api/attention.html">FlashInfer Attention Kernels</a></li>
+<li><a href="https://arxiv.org/abs/2405.04437">vAttention</a></li>
+<li><a href="https://arxiv.org/abs/2402.02750">KIVI</a></li>
+<li><a href="https://arxiv.org/abs/2401.18079">KVQuant</a></li>
+<li><a href="https://arxiv.org/abs/2306.14048">H2O</a></li>
+<li><a href="https://arxiv.org/abs/2404.14469">SnapKV</a></li>
+<li><a href="https://arxiv.org/abs/2504.19874">TurboQuant</a></li>
+<li><a href="https://arxiv.org/abs/2603.08743">Zipage: Maintain High Request Concurrency for LLM Reasoning through Compressed PagedAttention</a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part1/03-llm-training.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part1/05-llm-adaptation-serving.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part1/03-llm-training.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part1/05-llm-adaptation-serving.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
