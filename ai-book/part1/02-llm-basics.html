@@ -1,0 +1,642 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第2章 大模型基础知识：Token、Embedding、Transformer 与能力边界 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-1e9302fa.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-f8e22fcf.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第2章-大模型基础知识tokenembeddingtransformer-与能力边界"><a class="header" href="#第2章-大模型基础知识tokenembeddingtransformer-与能力边界">第2章 大模型基础知识：Token、Embedding、Transformer 与能力边界</a></h1>
+<p>理解大模型，不能只从“会不会回答问题”开始。工程上真正重要的是：文本如何变成模型可以计算的表示，模型如何在上下文中传递信息，哪些能力来自模型权重，哪些能力来自系统设计，以及为什么长上下文、训练、推理和 RAG 会带来不同约束。</p>
+<p>本章是第一部分模型基础的基础入口。它不追求把每个公式推到最深，而是建立后续章节需要的共同语言：</p>
+<pre><code class="language-text">文本
+→ Token
+→ Token ID
+→ Embedding
+→ Transformer Decoder
+→ Hidden State
+→ Logits
+→ Sampling / Decoding
+→ 输出 Token
+</code></pre>
+<p>如果把第1章看作大模型范式演进的地图，本章就是读懂这张地图的基础坐标系。</p>
+<h2 id="21-大模型到底是什么"><a class="header" href="#21-大模型到底是什么">2.1 大模型到底是什么</a></h2>
+<p>现代 LLM 最核心的训练目标通常可以简化为：</p>
+<pre><code class="language-text">给定前面的 token，预测下一个 token。
+</code></pre>
+<p>这叫 next-token prediction。它看起来只是文本续写，但当数据、参数和算力规模足够大时，模型会在这个任务中学到很多可复用能力：</p>
+<ul>
+<li>语言模式；</li>
+<li>事实关联；</li>
+<li>代码结构；</li>
+<li>数学表达；</li>
+<li>对话格式；</li>
+<li>指令模式；</li>
+<li>常见推理路径；</li>
+<li>工具调用格式。</li>
+</ul>
+<p>因此，LLM 不是一个手写规则系统，也不是一个可审计数据库。它更像一个在大规模序列数据上训练出来的条件概率模型：</p>
+<pre><code class="language-text">P(next_token | previous_tokens)
+</code></pre>
+<p>这也解释了它的两面性：它可以生成非常合理的内容，但如果没有外部证据、工具约束和评估闭环，也可能生成看似合理但并不真实的回答。</p>
+<h2 id="22-文本如何进入模型"><a class="header" href="#22-文本如何进入模型">2.2 文本如何进入模型</a></h2>
+<p>LLM 不能直接处理“文字”。模型看到的是 token ID 序列。</p>
+<pre class="mermaid">
+flowchart LR
+    A["原始文本"] --&gt; B["Tokenizer"]
+    B --&gt; C["Token 序列"]
+    C --&gt; D["Token IDs"]
+    D --&gt; E["Token Embedding"]
+    E --&gt; F["Transformer Decoder"]
+</pre>
+
+<p>Tokenizer 负责把文本切成模型词表中的 token。Embedding 层负责把每个 token ID 映射成向量。</p>
+<p>注意：token 不等于汉字，也不等于英文单词。</p>
+<ul>
+<li>一个英文单词可能被切成一个或多个 token。</li>
+<li>一个中文词可能按字、词或子词切分。</li>
+<li>空格、换行、标点、缩进、代码符号都可能影响 tokenization。</li>
+<li>同一句话在不同模型的 tokenizer 下 token 数可能不同。</li>
+</ul>
+<p>这就是为什么同样一份文档，换一个模型后 token 数、价格、延迟和上下文占用都可能变化。</p>
+<h2 id="23-tokenizer-的几类常见方法"><a class="header" href="#23-tokenizer-的几类常见方法">2.3 Tokenizer 的几类常见方法</a></h2>
+<h3 id="231-bpe"><a class="header" href="#231-bpe">2.3.1 BPE</a></h3>
+<p>BPE（Byte Pair Encoding）从字符或字节开始，反复合并高频片段，得到词表。它常见于 GPT 系模型。</p>
+<p>优点是简单、压缩率高、能处理未登录词；缺点是切分结果不一定符合自然语言词边界。</p>
+<h3 id="232-wordpiece"><a class="header" href="#232-wordpiece">2.3.2 WordPiece</a></h3>
+<p>WordPiece 常见于 BERT 系模型。它同样使用子词思想，但合并策略与 BPE 不完全相同。</p>
+<p>工程上不需要记住所有训练细节，关键是理解：WordPiece 和 BPE 都是在词和字符之间找一个折中，让模型既能表达常见词，又能处理罕见词。</p>
+<h3 id="233-sentencepiece"><a class="header" href="#233-sentencepiece">2.3.3 SentencePiece</a></h3>
+<p>SentencePiece 把输入当成 Unicode 字符序列，不依赖预先分词，因此对多语言更友好。很多开源模型使用 SentencePiece 或类似方案。</p>
+<h3 id="234-byte-level-tokenizer"><a class="header" href="#234-byte-level-tokenizer">2.3.4 Byte-level Tokenizer</a></h3>
+<p>Byte-level tokenizer 从字节层面处理文本，理论上可以覆盖任意输入，不容易遇到 unknown token。但它可能让某些语言或特殊文本变成长 token 序列。</p>
+<h2 id="24-tokenizer-为什么是能力边界的一部分"><a class="header" href="#24-tokenizer-为什么是能力边界的一部分">2.4 Tokenizer 为什么是能力边界的一部分</a></h2>
+<p>Tokenizer 经常被当成预处理工具，但它实际上是模型能力边界的一部分。模型训练时看到的是 token 序列，而不是原始字符序列。</p>
+<p>例如，中文如果被切得更碎，同样一段话会占用更多 token，模型要用更多位置才能表达同样语义。这不仅增加成本，也改变 attention 距离。代码也是如此：缩进、括号、换行、变量名和特殊符号如果切分不稳定，模型学习代码结构会更困难。</p>
+<p>Tokenizer 还会影响安全和鲁棒性。有些 prompt injection、越狱字符串、Unicode 混淆和不可见字符攻击，本质上利用了人类可见文本和模型 token 序列之间的不一致。人看到的是一句正常话，模型看到的可能是异常 token 组合。</p>
+<p>生产系统至少要在三个地方显式处理 tokenizer：</p>
+<ul>
+<li>成本估算；</li>
+<li>上下文预算；</li>
+<li>安全和输入规范化。</li>
+</ul>
+<h2 id="25-embedding从离散符号到连续向量"><a class="header" href="#25-embedding从离散符号到连续向量">2.5 Embedding：从离散符号到连续向量</a></h2>
+<p>Tokenizer 输出的是 token ID，例如：</p>
+<pre><code class="language-text">["KV", " cache", " 是", " 什么"] -&gt; [12345, 6789, 3456, 7890]
+</code></pre>
+<p>模型不能直接在 ID 上做语义计算。Embedding 层会把每个 ID 映射成一个向量：</p>
+<pre><code class="language-text">token_id -&gt; dense vector
+</code></pre>
+<p>这些向量不是人工写的词典，而是在训练中学习出来的参数。相似语境中的 token 往往会形成相似表示，但不要把 embedding 简化成“词义坐标”。在深层 Transformer 中，hidden state 会随着上下文不断变化，同一个 token 在不同句子里的表示也会不同。</p>
+<h2 id="26-两类-embedding模型内部表示与-rag-检索表示"><a class="header" href="#26-两类-embedding模型内部表示与-rag-检索表示">2.6 两类 Embedding：模型内部表示与 RAG 检索表示</a></h2>
+<p>Embedding 这个词容易混淆，因为它在 LLM 内部和 RAG 系统中都出现。</p>
+<p>在 LLM 内部，embedding 层把 token ID 映射成初始向量。这些向量随后经过多层 Transformer，不断被上下文改写。第 1 层的 <code>bank</code> 可能只是一个 token 表示；到第 20 层时，它可能已经结合上下文变成“河岸”或“银行”的语义状态。</p>
+<p>在 RAG 中，embedding model 把一个 query 或文档 chunk 映射成一个向量，用于相似度检索。这个向量通常是整段文本的压缩表示，服务于“找相似内容”。</p>
+<p>二者有联系，但不能混为一谈：</p>
+<pre><code class="language-text">LLM token embedding：模型内部表示的起点
+RAG text embedding：外部检索系统的语义索引
+</code></pre>
+<p>本章只讲模型内部 embedding。RAG 检索 embedding、hybrid retrieval、rerank 和 Agentic RAG 会放在第13章的 Agent 知识系统中讨论。</p>
+<h2 id="27-transformer-decoder现代-llm-的主干结构"><a class="header" href="#27-transformer-decoder现代-llm-的主干结构">2.7 Transformer Decoder：现代 LLM 的主干结构</a></h2>
+<p>大多数现代文本 LLM 使用 decoder-only Transformer。它的目标很简单：</p>
+<pre><code class="language-text">给定前面的 token，预测下一个 token。
+</code></pre>
+<p>它只能看当前位置之前的 token，不能偷看未来 token。这种约束叫 causal mask。</p>
+<pre class="mermaid">
+flowchart TD
+    A["Token Embedding + Position"] --&gt; B["Decoder Block 1"]
+    B --&gt; C["Decoder Block 2"]
+    C --&gt; D["..."]
+    D --&gt; E["Decoder Block N"]
+    E --&gt; F["LM Head"]
+    F --&gt; G["Next-token logits"]
+</pre>
+
+<p>每个 Decoder Block 通常包含：</p>
+<ul>
+<li>Attention；</li>
+<li>Feed-Forward Network（FFN 或 MLP）；</li>
+<li>residual connection；</li>
+<li>normalization；</li>
+<li>有些模型还包含 MoE、SwiGLU、RMSNorm 等变体。</li>
+</ul>
+<h2 id="28-attention-在解决什么问题"><a class="header" href="#28-attention-在解决什么问题">2.8 Attention 在解决什么问题</a></h2>
+<p>RNN 按顺序读文本，长距离依赖容易衰减。Attention 的核心想法是：当前位置可以直接和历史位置建立关系。</p>
+<p>Self-Attention 的简化公式是：</p>
+<pre><code class="language-text">Attention(Q, K, V) = softmax(QK^T / sqrt(d)) V
+</code></pre>
+<p>可以把 Q/K/V 理解成三个角色：</p>
+<ul>
+<li><code>Q</code>：当前 token 的查询，“我现在需要看什么”；</li>
+<li><code>K</code>：每个历史 token 的索引，“我有哪些可匹配特征”；</li>
+<li><code>V</code>：每个历史 token 的内容，“如果关注我，就取走什么信息”。</li>
+</ul>
+<p>当前 token 用自己的 <code>Q</code> 和历史 token 的 <code>K</code> 做相似度匹配，再用注意力权重加权汇总历史 token 的 <code>V</code>。</p>
+<p>Attention 的强项是内容寻址。当前 token 可以根据 query 去历史 token 中找相关 key，再读取对应 value。这使它很适合处理引用、依赖、对齐、复制、代码括号匹配和多处证据汇总。</p>
+<p>但 Attention 也有弱点：</p>
+<ul>
+<li>计算和显存随序列长度增长；</li>
+<li>长上下文中注意力权重可能被噪声稀释；</li>
+<li>它不天然理解文档层级和权限边界；</li>
+<li>它更像软检索，不是精确数据库查询；</li>
+<li>attention 权重不等于可靠解释。</li>
+</ul>
+<h2 id="29-multi-head-attentionmqagqa-与-mla"><a class="header" href="#29-multi-head-attentionmqagqa-与-mla">2.9 Multi-Head Attention、MQA、GQA 与 MLA</a></h2>
+<p>Multi-Head Attention（MHA）让模型同时用多个 head 观察上下文。不同 head 可以关注不同模式，例如局部语法、引用关系、代码括号、长距离依赖等。</p>
+<p>MHA 的问题是每个 head 都有自己的 K/V，长上下文下 KV cache 很大。为了降低推理成本，现代模型常见几类变体：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">结构</th><th style="text-align: left">核心思想</th><th style="text-align: left">工程影响</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">MHA</td><td style="text-align: left">每个 query head 都有独立 K/V</td><td style="text-align: left">表达能力强，KV cache 大</td></tr>
+<tr><td style="text-align: left">MQA</td><td style="text-align: left">多个 query heads 共享同一组 K/V</td><td style="text-align: left">KV cache 小，可能损失部分表达</td></tr>
+<tr><td style="text-align: left">GQA</td><td style="text-align: left">query heads 分组共享 K/V</td><td style="text-align: left">质量和推理效率折中</td></tr>
+<tr><td style="text-align: left">MLA</td><td style="text-align: left">把 K/V 压缩到 latent 表示</td><td style="text-align: left">降低 KV 成本，实现复杂度更高</td></tr>
+</tbody>
+</table>
+</div>
+<p>你可以把 MHA、MQA、GQA、MLA 看成同一个方向上的不同取舍：</p>
+<pre><code class="language-text">表达能力、实现复杂度、KV cache 大小、推理带宽
+</code></pre>
+<p>这也是为什么模型结构会直接影响第4章要讲的推理性能。</p>
+<h2 id="210-ffn--mlp-在做什么"><a class="header" href="#210-ffn--mlp-在做什么">2.10 FFN / MLP 在做什么</a></h2>
+<p>Attention 负责在 token 之间传递信息，FFN 负责对每个 token 的表示做非线性变换。</p>
+<p>一个简化的 Decoder Block 可以写成：</p>
+<pre><code class="language-text">x = x + Attention(Norm(x))
+x = x + FFN(Norm(x))
+</code></pre>
+<p>FFN 通常占模型参数的大头。很多 MoE 模型就是把 FFN 替换成多个 expert，每个 token 只激活其中一部分 expert，从而用更大的总参数换取相对可控的每 token 计算量。</p>
+<p>这解释了为什么 MoE 可以在总参数量很大的情况下保持每 token 计算量相对可控。它不是每次调用都跑所有参数，而是按 token 激活少数 expert。</p>
+<p>但 MoE 的代价是工程复杂度：</p>
+<ul>
+<li>expert 负载不均会造成尾延迟；</li>
+<li>多 GPU 之间需要 all-to-all 通信；</li>
+<li>batch 形状更复杂；</li>
+<li>量化和 serving 支持更难；</li>
+<li>热门 expert 可能成为瓶颈。</li>
+</ul>
+<h2 id="211-位置编码模型如何知道顺序"><a class="header" href="#211-位置编码模型如何知道顺序">2.11 位置编码：模型如何知道顺序</a></h2>
+<p>Attention 本身对顺序不敏感。如果不加位置信息，模型只知道有一堆 token，不知道谁在前谁在后。</p>
+<p>常见位置编码包括：</p>
+<ul>
+<li><strong>绝对位置编码</strong>：给每个位置一个向量；</li>
+<li><strong>RoPE</strong>：通过旋转位置编码把相对位置信息注入 Q/K；</li>
+<li><strong>ALiBi</strong>：用 attention bias 表达距离衰减；</li>
+<li><strong>RoPE scaling / interpolation</strong>：把训练时的上下文长度扩展到更长窗口。</li>
+</ul>
+<p>RoPE 是现代开源 LLM 中非常常见的方案。它在长上下文扩展中很重要，但简单扩展位置编码并不等于模型真的会稳定利用长上下文。</p>
+<p>把最大位置从 8K 扩展到 128K，至少涉及三层问题：</p>
+<ul>
+<li>模型训练时有没有见过足够长的序列；</li>
+<li>attention 和位置编码在长距离上是否数值稳定；</li>
+<li>下游任务是否真的需要跨长距离整合信息。</li>
+</ul>
+<h2 id="212-上下文窗口是什么"><a class="header" href="#212-上下文窗口是什么">2.12 上下文窗口是什么</a></h2>
+<p>上下文窗口指模型一次调用中最多能处理的 token 数。</p>
+<p>它包括：</p>
+<ul>
+<li>system prompt；</li>
+<li>developer / instruction 信息；</li>
+<li>用户输入；</li>
+<li>few-shot 示例；</li>
+<li>工具说明；</li>
+<li>检索片段；</li>
+<li>历史对话；</li>
+<li>模型已经生成的输出。</li>
+</ul>
+<p>上下文窗口不是数据库。它只是本次推理时模型能看到的 token 序列。超过窗口的内容要么被截断，要么需要压缩、检索、分层加载或重新组织。</p>
+<h2 id="213-上下文窗口是软能力不是硬承诺"><a class="header" href="#213-上下文窗口是软能力不是硬承诺">2.13 上下文窗口是软能力，不是硬承诺</a></h2>
+<p>模型标称支持 128K 或 1M token，并不意味着它能同等质量地使用窗口中的所有信息。</p>
+<p>长上下文能力至少要拆成四件事：</p>
+<ul>
+<li><strong>可输入</strong>：模型和 serving engine 允许这么长的 token 序列。</li>
+<li><strong>可保持</strong>：模型不会在长序列下明显退化或丢失中间信息。</li>
+<li><strong>可定位</strong>：模型能从长文本中找到关键证据。</li>
+<li><strong>可整合</strong>：模型能跨多个位置组合信息并生成正确答案。</li>
+</ul>
+<p>很多长上下文失败不是窗口超限，而是定位和整合失败。常见现象包括：</p>
+<ul>
+<li>只引用开头和结尾，忽略中间内容；</li>
+<li>多个证据冲突时选择更近的证据；</li>
+<li>对长表格或日志做错误聚合；</li>
+<li>在多文档中混淆来源；</li>
+<li>回答看似完整但漏掉关键约束。</li>
+</ul>
+<p>窗口变大只是给系统更多空间，不等于自动解决信息组织问题。</p>
+<h2 id="214-上下文窗口的三个成本"><a class="header" href="#214-上下文窗口的三个成本">2.14 上下文窗口的三个成本</a></h2>
+<p>长上下文不只是“能放更多字”，它有三个成本。</p>
+<h3 id="1-价格成本"><a class="header" href="#1-价格成本">1. 价格成本</a></h3>
+<p>大多数模型按输入 token 和输出 token 计费。长文档、长历史、长工具结果都会增加输入成本。</p>
+<h3 id="2-延迟成本"><a class="header" href="#2-延迟成本">2. 延迟成本</a></h3>
+<p>输入越长，prefill 阶段越慢。用户感受到的首 token 延迟会增加。</p>
+<h3 id="3-显存成本"><a class="header" href="#3-显存成本">3. 显存成本</a></h3>
+<p>推理时需要保存历史 token 的 KV cache。上下文越长，KV cache 越大，并发能力越受限。第4章会专门解释这个问题。</p>
+<h2 id="215-工业实践token-预算怎么做"><a class="header" href="#215-工业实践token-预算怎么做">2.15 工业实践：Token 预算怎么做</a></h2>
+<p>生产系统不会无脑把所有信息塞进 prompt。常见做法是给不同上下文分配预算：</p>
+<pre><code class="language-text">总预算 = 系统指令 + 用户输入 + 会话状态 + 检索证据 + 工具结果 + 输出预留
+</code></pre>
+<p>例如一个 32K token 窗口的企业知识助手，可以这样分配：</p>
+<ul>
+<li>2K：系统指令、角色、风格和安全边界；</li>
+<li>4K：用户问题、会话摘要和任务状态；</li>
+<li>18K：检索证据；</li>
+<li>4K：工具结果；</li>
+<li>4K：输出预留。</li>
+</ul>
+<p>实际系统还要动态调整：简单问题少取证据，复杂问题多取证据；短回答少预留输出，报告生成多预留输出。</p>
+<p>成熟团队不会只在开发阶段估算 token，而会在线上持续监控：</p>
+<ul>
+<li>input tokens 分布；</li>
+<li>output tokens 分布；</li>
+<li>system prompt 占比；</li>
+<li>tool schema 占比；</li>
+<li>evidence 占比；</li>
+<li>discarded context 占比；</li>
+<li>超预算请求比例；</li>
+<li>prompt cache 命中率；</li>
+<li>长上下文请求的 TTFT 和错误率。</li>
+</ul>
+<h2 id="216-工业实践看模型配置时要看什么"><a class="header" href="#216-工业实践看模型配置时要看什么">2.16 工业实践：看模型配置时要看什么</a></h2>
+<p>读一个模型配置时，重点看：</p>
+<ul>
+<li><code>num_hidden_layers</code>：层数；</li>
+<li><code>hidden_size</code>：隐藏维度；</li>
+<li><code>num_attention_heads</code>：query head 数；</li>
+<li><code>num_key_value_heads</code>：KV head 数，决定 KV cache 规模；</li>
+<li><code>intermediate_size</code>：FFN 宽度；</li>
+<li><code>max_position_embeddings</code>：标称上下文长度；</li>
+<li><code>rope_theta</code> 或 RoPE scaling 配置；</li>
+<li>是否使用 MoE；</li>
+<li>是否使用 sliding window attention；</li>
+<li>tokenizer 和 chat template。</li>
+</ul>
+<p>这些配置会直接影响：</p>
+<ul>
+<li>模型质量；</li>
+<li>推理显存；</li>
+<li>KV cache 大小；</li>
+<li>serving engine 兼容性；</li>
+<li>长上下文稳定性；</li>
+<li>微调和量化难度。</li>
+</ul>
+<p>参数量不是全部。两个同样参数量的模型，可能因为数据、架构、tokenizer、上下文长度、GQA/MQA、MoE、后训练方法不同，在实际任务中表现差异很大。</p>
+<h2 id="217-科研现状基础结构的几条主线"><a class="header" href="#217-科研现状基础结构的几条主线">2.17 科研现状：基础结构的几条主线</a></h2>
+<p>截至 2026-05，Transformer 仍是主流 LLM 的核心架构，但基础结构研究在多个方向推进。</p>
+<h3 id="1-tokenizer-free--byte-level"><a class="header" href="#1-tokenizer-free--byte-level">1. Tokenizer-free / Byte-level</a></h3>
+<p>传统 tokenizer 的问题越来越明显：多语言不公平、长尾字符处理差、代码和表格结构不稳定、token 边界和语义边界不一致。因此 byte-level 和 tokenizer-free 路线持续升温。</p>
+<p>Byte Latent Transformer（BLT）尝试直接在字节上建模，但不是天真地一个字节一个字节跑完整 Transformer，而是把字节聚合成动态 patch，让模型在信息复杂的地方用更多计算，在可预测的地方用更少计算。</p>
+<h3 id="2-高效-attention"><a class="header" href="#2-高效-attention">2. 高效 Attention</a></h3>
+<p>FlashAttention 系列通过 IO-aware 设计减少显存读写，让长序列 attention 更高效。PagedAttention 进一步从 serving 角度管理 KV cache。</p>
+<h3 id="3-长上下文架构"><a class="header" href="#3-长上下文架构">3. 长上下文架构</a></h3>
+<p>研究集中在 RoPE scaling、sliding window、sparse attention、attention sink、long-context eval 和更好的位置外推。真正难点不只是“能输入 1M token”，而是模型是否能稳定找到、整合和引用长距离信息。</p>
+<h3 id="4-moe"><a class="header" href="#4-moe">4. MoE</a></h3>
+<p>MoE 让模型拥有很大的总参数量，但每个 token 只激活部分 expert。它提升了训练和推理的性价比，但带来路由、负载均衡、通信和服务部署复杂度。</p>
+<h3 id="5-kv-表示压缩"><a class="header" href="#5-kv-表示压缩">5. KV 表示压缩</a></h3>
+<p>MLA、GQA、MQA、KV cache quantization 都在处理同一个问题：decode 阶段 KV cache 和内存带宽是瓶颈。reasoning 模型输出更长，KV 压力更大，这条线会更重要。</p>
+<h3 id="6-非-transformer-路线"><a class="header" href="#6-非-transformer-路线">6. 非 Transformer 路线</a></h3>
+<p>Mamba 等 selective state space model 试图用线性时间序列建模替代二次复杂度 attention。它们在长序列效率上有吸引力，但在通用 LLM 生态、工具兼容和大规模实战上仍处于竞争与融合阶段。</p>
+<h2 id="218-常见误区大模型基础概念"><a class="header" href="#218-常见误区大模型基础概念">2.18 常见误区：大模型基础概念</a></h2>
+<h3 id="误区-1按字符数控制上下文"><a class="header" href="#误区-1按字符数控制上下文">误区 1：按字符数控制上下文</a></h3>
+<p>字符数和 token 数没有稳定比例。英文、中文、代码、JSON、Markdown 表格、日志、emoji、不可见字符都会改变 token 密度。生产系统必须用目标模型 tokenizer 计算真实 token 数。</p>
+<h3 id="误区-2embedding-能保留所有语义"><a class="header" href="#误区-2embedding-能保留所有语义">误区 2：Embedding 能保留所有语义</a></h3>
+<p>Embedding 是压缩表示。压缩就会损失细节。版本号、否定、数字、时间、条件、权限、代码符号都可能在向量相似度中被弱化。</p>
+<h3 id="误区-3attention-权重就是解释"><a class="header" href="#误区-3attention-权重就是解释">误区 3：Attention 权重就是解释</a></h3>
+<p>Attention 权重能提供一些线索，但不能等同于因果解释。模型输出还受到 FFN、残差连接、层间变换、logits head 和采样影响。</p>
+<h3 id="误区-4参数越多一定越好"><a class="header" href="#误区-4参数越多一定越好">误区 4：参数越多一定越好</a></h3>
+<p>参数量只是能力的一部分。数据质量、训练策略、上下文长度、tokenizer、后训练、推理预算和模型结构都会影响实际效果。</p>
+<h3 id="误区-5支持长上下文就代表理解长上下文"><a class="header" href="#误区-5支持长上下文就代表理解长上下文">误区 5：支持长上下文就代表理解长上下文</a></h3>
+<p>模型能接收长输入，不代表能在长输入中稳定定位、整合、比较和推理。长上下文能力必须用目标任务评估。</p>
+<h3 id="误区-6moe-只是更大的模型"><a class="header" href="#误区-6moe-只是更大的模型">误区 6：MoE 只是更大的模型</a></h3>
+<p>MoE 的关键不是总参数大，而是每 token 激活一部分参数。它改变了训练效率和推理系统形态，也引入路由、通信和负载均衡问题。</p>
+<h2 id="219-工程诊断如何判断是基础表示问题"><a class="header" href="#219-工程诊断如何判断是基础表示问题">2.19 工程诊断：如何判断是基础表示问题</a></h2>
+<p>当系统出现下面现象时，要怀疑 token、embedding、结构或上下文层：</p>
+<ul>
+<li>本地测试正常，线上长对话后开始答非所问。</li>
+<li>检索证据正确，但模型没有引用关键内容。</li>
+<li>工具 schema 很长，压缩后质量反而提升。</li>
+<li>中文文档成本明显高于预期。</li>
+<li>代码任务中模型遗漏文件路径、函数名或错误码。</li>
+<li>prompt cache 命中率低，虽然看起来 system prompt 没变。</li>
+<li>模型明明能写 JSON，却在线上偶尔输出坏 JSON。</li>
+</ul>
+<p>诊断步骤：</p>
+<ol>
+<li>打印真实 chat template 后的 token 序列长度。</li>
+<li>分解各类上下文占比。</li>
+<li>检查被截断的是哪一部分。</li>
+<li>对比短上下文和长上下文下的输出差异。</li>
+<li>检查输入中是否存在不可见字符、异常 Unicode 或特殊 token。</li>
+<li>查看目标模型是否支持当前 attention 结构、上下文长度和 tool format。</li>
+<li>评估是否需要结构化上下文、摘要、分层加载或外部工具。</li>
+</ol>
+<h2 id="220-工程案例设计一个-32k-token-的上下文预算"><a class="header" href="#220-工程案例设计一个-32k-token-的上下文预算">2.20 工程案例：设计一个 32K Token 的上下文预算</a></h2>
+<p>假设要设计一个企业知识问答 Agent，模型上下文窗口是 32K。一个合理预算不是平均分配，而是按任务价值分配。</p>
+<pre><code class="language-text">System / Policy：2K
+Tool Schema：3K
+User Query + Conversation State：3K
+Retrieved Evidence：16K
+Tool Results：4K
+Output Reserve：4K
+</code></pre>
+<p>这只是初始值。真实系统要动态调节：</p>
+<ul>
+<li>如果用户问题简单，检索证据可以降到 4K，把预算留给输出。</li>
+<li>如果用户要求生成报告，输出预留要增加。</li>
+<li>如果工具 schema 很稳定，可以依赖 prompt caching 或压缩描述。</li>
+<li>如果证据冲突，要保留更多 metadata 和来源说明。</li>
+<li>如果会话很长，不要保留完整历史，而是保留结构化状态。</li>
+</ul>
+<p>预算还要和质量指标绑定。比如 evidence token 从 8K 增加到 16K，如果准确率没有提升，只是延迟和成本增加，就说明检索或上下文构建没有做好。</p>
+<h2 id="221-工程案例为什么结构化输出会失败"><a class="header" href="#221-工程案例为什么结构化输出会失败">2.21 工程案例：为什么结构化输出会失败</a></h2>
+<p>一个模型明明能写 JSON，却在线上偶尔输出坏 JSON，可能有多个原因：</p>
+<ul>
+<li>sampling temperature 太高；</li>
+<li>stop sequence 截断了括号；</li>
+<li>prompt 中示例格式不一致；</li>
+<li>输出 token 太长导致后半截漂移；</li>
+<li>tokenizer 把特殊符号切分成不稳定模式；</li>
+<li>模型后训练不擅长工具调用；</li>
+<li>grammar / constrained decoding 没启用；</li>
+<li>长上下文噪声干扰了格式约束。</li>
+</ul>
+<p>解决路径不是只说“让模型严格输出 JSON”，而是：</p>
+<ol>
+<li>降低 temperature。</li>
+<li>使用 JSON schema 或 constrained decoding。</li>
+<li>缩短无关上下文。</li>
+<li>使用明确字段说明和少量一致示例。</li>
+<li>增加 parser + retry。</li>
+<li>用 eval 统计格式遵循率。</li>
+</ol>
+<p>这说明模型结构、采样和工程控制是连在一起的。</p>
+<h2 id="222-面试表达"><a class="header" href="#222-面试表达">2.22 面试表达</a></h2>
+<p>一句话版：</p>
+<blockquote>
+<p>LLM 处理的不是字符或单词，而是 tokenizer 切出来的 token。Token 会被映射成 embedding 向量进入 decoder-only Transformer；每层用 causal self-attention 读取历史 token，用 FFN 改写当前位置表示，最后通过 logits 和 decoding 生成下一个 token。上下文窗口限制的是一次推理能看到的 token 序列，它同时影响价格、延迟和 KV cache 显存。</p>
+</blockquote>
+<p>展开版：</p>
+<blockquote>
+<p>我理解大模型基础时，会先看输入表示、模型结构和上下文约束。Tokenizer 决定文本如何变成 token，embedding 把 token ID 变成可计算向量，Transformer Decoder 用 attention、FFN 和位置编码逐层改写 hidden state。工程上我会特别关注 tokenizer、chat template、上下文长度、KV head 数、MoE、GQA/MLA 和后训练方式，因为它们会影响成本、延迟、长上下文能力、结构化输出和工具调用稳定性。</p>
+</blockquote>
+<h2 id="223-自测问题"><a class="header" href="#223-自测问题">2.23 自测问题</a></h2>
+<ol>
+<li>为什么 token 不等于字符或单词？</li>
+<li>LLM 内部 token embedding 和 RAG text embedding 的区别是什么？</li>
+<li>Attention 里的 Q、K、V 分别可以如何理解？</li>
+<li>为什么 GQA 能降低推理阶段 KV cache 压力？</li>
+<li>FFN / MLP 为什么经常是模型参数的重要来源？</li>
+<li>位置编码为什么会影响长上下文外推？</li>
+<li>为什么 128K 上下文不等于模型能可靠理解 128K 文档？</li>
+<li>设计 Agent 系统时，为什么要监控 token 占比和 discarded context？</li>
+<li>为什么结构化输出失败不一定是 prompt 写得不够强？</li>
+<li>读一个模型配置时，哪些字段会直接影响部署成本？</li>
+</ol>
+<h2 id="224-参考资料"><a class="header" href="#224-参考资料">2.24 参考资料</a></h2>
+<ul>
+<li><a href="https://arxiv.org/abs/1508.07909">Neural Machine Translation of Rare Words with Subword Units</a></li>
+<li><a href="https://arxiv.org/abs/1808.06226">SentencePiece: A simple and language independent subword tokenizer</a></li>
+<li><a href="https://huggingface.co/docs/tokenizers/index">Hugging Face Tokenizers</a></li>
+<li><a href="https://github.com/openai/tiktoken">OpenAI tiktoken</a></li>
+<li><a href="https://arxiv.org/abs/2412.09871">Byte Latent Transformer: Patches Scale Better Than Tokens</a></li>
+<li><a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a></li>
+<li><a href="https://arxiv.org/abs/2104.09864">RoFormer: Enhanced Transformer with Rotary Position Embedding</a></li>
+<li><a href="https://arxiv.org/abs/2108.12409">Train Short, Test Long: Attention with Linear Biases Enables Input Length Extrapolation</a></li>
+<li><a href="https://arxiv.org/abs/1911.02150">Fast Transformer Decoding: One Write-Head is All You Need</a></li>
+<li><a href="https://arxiv.org/abs/2305.13245">GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints</a></li>
+<li><a href="https://arxiv.org/abs/2205.14135">FlashAttention: Fast and Memory-Efficient Exact Attention</a></li>
+<li><a href="https://arxiv.org/abs/2312.00752">Mamba: Linear-Time Sequence Modeling with Selective State Spaces</a></li>
+<li><a href="https://arxiv.org/abs/2412.19437">DeepSeek-V3 Technical Report</a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part1/01-llm-paradigm-roadmap.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part1/03-llm-training.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part1/01-llm-paradigm-roadmap.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part1/03-llm-training.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

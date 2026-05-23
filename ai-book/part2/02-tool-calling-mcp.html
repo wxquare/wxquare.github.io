@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第6章 Agent 工具系统：Tool Calling、Skills 与 MCP - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+        <title>第12章 Agent 工具系统工程：Tool Calling、Skills 与 MCP - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-7b32aa52.js";
+            window.path_to_searchindex_js = "../searchindex-1e9302fa.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-b7b29691.js"></script>
+        <script src="../toc-f8e22fcf.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,7 +177,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第6章-agent-工具系统工程tool-callingskills-与-mcp"><a class="header" href="#第6章-agent-工具系统工程tool-callingskills-与-mcp">第6章 Agent 工具系统工程：Tool Calling、Skills 与 MCP</a></h1>
+                        <h1 id="第12章-agent-工具系统工程tool-callingskills-与-mcp"><a class="header" href="#第12章-agent-工具系统工程tool-callingskills-与-mcp">第12章 Agent 工具系统工程：Tool Calling、Skills 与 MCP</a></h1>
 <blockquote>
 <p>“Tools are the hands and eyes of an Agent.”
 工具是 Agent 的手和眼，但真正决定生产可用性的，是工具背后的契约、运行时、权限边界和复用机制。</p>
@@ -196,8 +196,8 @@
 <p>Tool Calling 解决的是“Agent 如何行动”。Skills 解决的是“Agent 如何复用做事方法”。MCP（Model Context Protocol）解决的是“外部能力如何以标准协议暴露给 Agent”。三者不是替代关系，而是同一个工具系统里的不同层级。</p>
 <p>本章按照第 5 章建立的 Agent Runtime 总图继续展开。6.1 先定义 Tool Calling 的工程边界，6.2 讲工具契约，6.3 讲 Tool Runtime，6.4 讲 Skills，6.5 集中讲 MCP，6.6 讲 Sandbox 与权限边界，6.7 讲工具编排，6.8 用告警诊断案例串起来，6.9 给出设计检查清单。</p>
 <hr>
-<h2 id="61-tool-calling-决策从函数调用到受控行动"><a class="header" href="#61-tool-calling-决策从函数调用到受控行动">6.1 Tool Calling 决策：从函数调用到受控行动</a></h2>
-<h3 id="611-从问题出发为什么不是直接-api-调用"><a class="header" href="#611-从问题出发为什么不是直接-api-调用">6.1.1 从问题出发：为什么不是直接 API 调用</a></h3>
+<h2 id="121-tool-calling-决策从函数调用到受控行动"><a class="header" href="#121-tool-calling-决策从函数调用到受控行动">12.1 Tool Calling 决策：从函数调用到受控行动</a></h2>
+<h3 id="1211-从问题出发为什么不是直接-api-调用"><a class="header" href="#1211-从问题出发为什么不是直接-api-调用">12.1.1 从问题出发：为什么不是直接 API 调用</a></h3>
 <p>传统后端直接调用 API，前提是调用路径、参数和错误处理都已经在代码里确定。Agent 工具调用面对的是另一类任务：用户目标可能模糊，所需信息分散在多个系统里，执行路径需要根据观察结果动态调整。</p>
 <p>例如用户说：</p>
 <pre><code class="language-text">order-service 的 P95 延迟突然升高了，帮我看一下可能原因。
@@ -212,7 +212,7 @@
 <li>对高风险动作保留人工审批。</li>
 </ol>
 <p>如果把这类任务写成固定后端流程，流程会很快变成大量分支。Agent 的价值在于让模型负责“下一步该查什么”的开放式判断，但必须由 Runtime 负责确定性执行和风险控制。</p>
-<h3 id="612-tool-calling-的运行闭环"><a class="header" href="#612-tool-calling-的运行闭环">6.1.2 Tool Calling 的运行闭环</a></h3>
+<h3 id="1212-tool-calling-的运行闭环"><a class="header" href="#1212-tool-calling-的运行闭环">12.1.2 Tool Calling 的运行闭环</a></h3>
 <p>Tool Calling 的核心价值，是在概率性推理和确定性执行之间建立可验证、可审计、可回滚的边界。</p>
 <pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
 │                    Tool Calling 运行闭环                     │
@@ -255,7 +255,7 @@
 </table>
 </div>
 <p>因此，Tool Calling 不是一个 API 功能，而是一段可治理的运行时事务。</p>
-<h3 id="613-function-callingtool-callingpluginskills-与-mcp-的边界"><a class="header" href="#613-function-callingtool-callingpluginskills-与-mcp-的边界">6.1.3 Function Calling、Tool Calling、Plugin、Skills 与 MCP 的边界</a></h3>
+<h3 id="1213-function-callingtool-callingpluginskills-与-mcp-的边界"><a class="header" href="#1213-function-callingtool-callingpluginskills-与-mcp-的边界">12.1.3 Function Calling、Tool Calling、Plugin、Skills 与 MCP 的边界</a></h3>
 <p>这些概念经常被混在一起，但它们回答的问题不同。</p>
 <div class="table-wrapper">
 <table>
@@ -287,7 +287,7 @@
   └─ Scripts / Templates / Assets（辅助资源）
 </code></pre>
 <p>MCP 不替代 Tool Runtime，Plugin 也不替代 Skill。Plugin 解决“能力如何被安装和分发”，Skill 解决“模型什么时候、按什么方法使用能力”，MCP 解决“外部能力如何被标准化发现和调用”。工具插上去之后能不能安全可靠地工作，仍取决于 Schema、Policy、Sandbox、Trace 和 Eval。</p>
-<h3 id="614-tool-calling-是运行时系统不只是模型-api-功能"><a class="header" href="#614-tool-calling-是运行时系统不只是模型-api-功能">6.1.4 Tool Calling 是运行时系统，不只是模型 API 功能</a></h3>
+<h3 id="1214-tool-calling-是运行时系统不只是模型-api-功能"><a class="header" href="#1214-tool-calling-是运行时系统不只是模型-api-功能">12.1.4 Tool Calling 是运行时系统，不只是模型 API 功能</a></h3>
 <p>一个最小工具调用 demo 通常只有三步：</p>
 <pre><code class="language-text">LLM -&gt; tool call JSON -&gt; execute function
 </code></pre>
@@ -304,7 +304,7 @@
   -&gt; Continue or Stop
 </code></pre>
 <p>这意味着工具调用必须从“函数绑定”升级成“控制平面”。否则工具越多，风险越高：模型可能误选工具、生成错误参数、重复执行副作用动作、把外部不可信输出当成指令，或者在没有审计的情况下访问敏感系统。</p>
-<h3 id="615-工具接入方式选择框架apiclimcp-与-browser-use"><a class="header" href="#615-工具接入方式选择框架apiclimcp-与-browser-use">6.1.5 工具接入方式选择框架：API、CLI、MCP 与 Browser Use</a></h3>
+<h3 id="1215-工具接入方式选择框架apiclimcp-与-browser-use"><a class="header" href="#1215-工具接入方式选择框架apiclimcp-与-browser-use">12.1.5 工具接入方式选择框架：API、CLI、MCP 与 Browser Use</a></h3>
 <p>当 Agent 需要连接外部系统时，不要先问“要不要 MCP”，而应该先判断任务类型、执行环境和治理要求。</p>
 <div class="table-wrapper">
 <table>
@@ -331,8 +331,8 @@
 </ol>
 <p>个人开发者常见的最小可行组合是 <strong>CLI + Skill</strong>：CLI 负责调用成熟工具，Skill 负责沉淀项目流程、检查标准和交付规范。企业或平台级 Agent 更常需要 <strong>MCP + Policy + Audit</strong>：MCP 负责标准化能力分发，Policy 负责权限边界，Audit 负责责任链。</p>
 <hr>
-<h2 id="62-工具契约schema返回结果与能力暴露"><a class="header" href="#62-工具契约schema返回结果与能力暴露">6.2 工具契约：Schema、返回结果与能力暴露</a></h2>
-<h3 id="621-工具-schema-是模型与系统之间的契约"><a class="header" href="#621-工具-schema-是模型与系统之间的契约">6.2.1 工具 Schema 是模型与系统之间的契约</a></h3>
+<h2 id="122-工具契约schema返回结果与能力暴露"><a class="header" href="#122-工具契约schema返回结果与能力暴露">12.2 工具契约：Schema、返回结果与能力暴露</a></h2>
+<h3 id="1221-工具-schema-是模型与系统之间的契约"><a class="header" href="#1221-工具-schema-是模型与系统之间的契约">12.2.1 工具 Schema 是模型与系统之间的契约</a></h3>
 <p>工具 Schema 不是普通文档，而是模型的操作说明书。它直接影响模型是否能选对工具、生成正确参数、理解工具结果。</p>
 <p>一个好的工具定义应满足四个目标：</p>
 <div class="table-wrapper">
@@ -349,7 +349,7 @@
 </table>
 </div>
 <p>好的 Schema 会把不确定性留给模型的推理，把确定性约束交给 Runtime。</p>
-<h3 id="622-反例过度宽泛的工具为什么不可靠"><a class="header" href="#622-反例过度宽泛的工具为什么不可靠">6.2.2 反例：过度宽泛的工具为什么不可靠</a></h3>
+<h3 id="1222-反例过度宽泛的工具为什么不可靠"><a class="header" href="#1222-反例过度宽泛的工具为什么不可靠">12.2.2 反例：过度宽泛的工具为什么不可靠</a></h3>
 <p>下面这个工具看起来很灵活，实际会把太多决策丢给模型：</p>
 <pre><code class="language-json">{
   "name": "query",
@@ -373,7 +373,7 @@
 <li>这个工具是只读，还是可能触发副作用？</li>
 </ul>
 <p>宽泛工具会让 Agent 看起来“能力很强”，但实际可靠性很差。它们把复杂度从代码移动到了模型推理里，也让权限和审计更难落地。</p>
-<h3 id="623-正例边界清晰的工具如何设计"><a class="header" href="#623-正例边界清晰的工具如何设计">6.2.3 正例：边界清晰的工具如何设计</a></h3>
+<h3 id="1223-正例边界清晰的工具如何设计"><a class="header" href="#1223-正例边界清晰的工具如何设计">12.2.3 正例：边界清晰的工具如何设计</a></h3>
 <p>更好的工具定义应该把意图、输入格式、适用范围和默认策略都写进 Schema：</p>
 <pre><code class="language-json">{
   "type": "function",
@@ -406,7 +406,7 @@
 }
 </code></pre>
 <p>这个工具仍然允许模型推理，但推理空间被限定在可控范围内。它也方便 Runtime 做 Schema 校验、风险分级和审计。</p>
-<h3 id="624-schema-设计原则名称参数幂等边界与错误"><a class="header" href="#624-schema-设计原则名称参数幂等边界与错误">6.2.4 Schema 设计原则：名称、参数、幂等、边界与错误</a></h3>
+<h3 id="1224-schema-设计原则名称参数幂等边界与错误"><a class="header" href="#1224-schema-设计原则名称参数幂等边界与错误">12.2.4 Schema 设计原则：名称、参数、幂等、边界与错误</a></h3>
 <p><strong>名称使用动作加对象。</strong> 优先使用 <code>search_logs</code>、<code>get_order_by_id</code>、<code>create_incident_ticket</code>，少用 <code>handle_request</code>、<code>execute</code>、<code>process</code> 这种泛化名称。</p>
 <p><strong>参数尽量结构化。</strong> 如果参数有固定取值，用 <code>enum</code>。如果时间有格式要求，写清楚 RFC3339、Unix timestamp 或相对时间。不要让模型在隐式约定里猜。</p>
 <p><strong>写操作必须支持幂等或 dry-run。</strong> 创建工单、发送消息、执行部署、修改配置这类工具，都应该支持 <code>idempotency_key</code> 或 <code>dry_run</code>，避免模型重试时产生重复副作用。</p>
@@ -418,7 +418,7 @@
 <p><strong>工具描述要写清何时不用。</strong> 工具描述不能只说能力，还要说明边界，例如“不要用于查询用户 PII”“不要用于生产环境写操作”“只有当用户明确要求发送通知时才调用”。</p>
 <p><strong>返回结果面向下一步推理。</strong> 原始日志、完整 SQL 结果、几百 KB JSON 都会污染上下文。返回结果应包含摘要、关键字段、证据链接和可选的原始数据引用。</p>
 <p><strong>错误是接口的一部分。</strong> <code>error</code> 太粗糙，<code>PROMQL_SYNTAX_ERROR</code>、<code>RATE_LIMITED</code>、<code>PERMISSION_DENIED</code>、<code>RESULT_TOO_LARGE</code> 才能让 Agent 做出不同动作。</p>
-<h3 id="625-toolresult-envelope把模型上下文和系统元数据分开"><a class="header" href="#625-toolresult-envelope把模型上下文和系统元数据分开">6.2.5 ToolResult Envelope：把模型上下文和系统元数据分开</a></h3>
+<h3 id="1225-toolresult-envelope把模型上下文和系统元数据分开"><a class="header" href="#1225-toolresult-envelope把模型上下文和系统元数据分开">12.2.5 ToolResult Envelope：把模型上下文和系统元数据分开</a></h3>
 <p>推荐让所有工具返回一个统一 Envelope：</p>
 <pre><code class="language-python">from dataclasses import dataclass
 from typing import Any, Literal
@@ -450,7 +450,7 @@ class ToolResult:
 </table>
 </div>
 <p>工具结果不是越完整越好。生产系统更需要“摘要可读、数据可追溯、错误可恢复、证据可审计”。</p>
-<h3 id="626-动态工具暴露按任务阶段权限和环境裁剪能力"><a class="header" href="#626-动态工具暴露按任务阶段权限和环境裁剪能力">6.2.6 动态工具暴露：按任务、阶段、权限和环境裁剪能力</a></h3>
+<h3 id="1226-动态工具暴露按任务阶段权限和环境裁剪能力"><a class="header" href="#1226-动态工具暴露按任务阶段权限和环境裁剪能力">12.2.6 动态工具暴露：按任务、阶段、权限和环境裁剪能力</a></h3>
 <p>不要把所有工具一次性塞给模型。工具定义会占用上下文，也会增加误选概率。更好的方式是根据任务、阶段、用户权限和环境动态暴露工具。</p>
 <pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
 │                    Dynamic Tool Exposure                     │
@@ -503,8 +503,8 @@ class ToolResult:
 </code></pre>
 <p>因此，治理重点不是“机器上能不能安装很多能力”，而是“当前任务是否只暴露必要能力”。如果把所有工具 Schema 和所有 Skill 全文都默认注入上下文，模型选择会更直接，但成本更高、噪声更大、误选工具的概率也更高。</p>
 <hr>
-<h2 id="63-tool-runtime生产级工具调用的控制平面"><a class="header" href="#63-tool-runtime生产级工具调用的控制平面">6.3 Tool Runtime：生产级工具调用的控制平面</a></h2>
-<h3 id="631-最小-tool-runtime-心智模型"><a class="header" href="#631-最小-tool-runtime-心智模型">6.3.1 最小 Tool Runtime 心智模型</a></h3>
+<h2 id="123-tool-runtime生产级工具调用的控制平面"><a class="header" href="#123-tool-runtime生产级工具调用的控制平面">12.3 Tool Runtime：生产级工具调用的控制平面</a></h2>
+<h3 id="1231-最小-tool-runtime-心智模型"><a class="header" href="#1231-最小-tool-runtime-心智模型">12.3.1 最小 Tool Runtime 心智模型</a></h3>
 <p>当工具数量从 5 个增长到 50 个，问题就不再是“怎么写工具函数”，而是“怎么治理工具调用”。生产级 Agent 通常需要一个 Tool Runtime。</p>
 <pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
 │                       Tool Runtime                          │
@@ -536,7 +536,7 @@ class ToolResult:
 └─────────────────────────────────────────────────────────────┘
 </code></pre>
 <p>Tool Runtime 的核心原则是：模型可以建议行动，但不能越过 Runtime 直接行动。</p>
-<h3 id="632-tool-runtime-核心组件registryvalidatorpolicyexecutor-与-trace"><a class="header" href="#632-tool-runtime-核心组件registryvalidatorpolicyexecutor-与-trace">6.3.2 Tool Runtime 核心组件：Registry、Validator、Policy、Executor 与 Trace</a></h3>
+<h3 id="1232-tool-runtime-核心组件registryvalidatorpolicyexecutor-与-trace"><a class="header" href="#1232-tool-runtime-核心组件registryvalidatorpolicyexecutor-与-trace">12.3.2 Tool Runtime 核心组件：Registry、Validator、Policy、Executor 与 Trace</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -555,7 +555,7 @@ class ToolResult:
 </table>
 </div>
 <p>这些组件不一定都是独立服务。MVP 可以把它们放在一个进程里，但职责边界必须清晰。否则系统会退化成“模型返回 JSON，然后应用随手执行”。</p>
-<h3 id="633-工具调用状态机从-requested-到-observed"><a class="header" href="#633-工具调用状态机从-requested-到-observed">6.3.3 工具调用状态机：从 Requested 到 Observed</a></h3>
+<h3 id="1233-工具调用状态机从-requested-到-observed"><a class="header" href="#1233-工具调用状态机从-requested-到-observed">12.3.3 工具调用状态机：从 Requested 到 Observed</a></h3>
 <p>工具调用不是一次函数调用，而是一段可观测事务。</p>
 <pre><code class="language-text">Requested
    │
@@ -588,7 +588,7 @@ Observed
 <li>失败不是异常路径，而是 Agent 正常推理的一部分。</li>
 </ol>
 <p>例如 <code>search_logs</code> 超时后，Agent 可以缩小时间窗口重试；<code>create_incident_ticket</code> 被拒绝后，Agent 可以只输出建议；<code>prometheus_query_range</code> 返回 <code>RESULT_TOO_LARGE</code> 后，Agent 可以增加聚合粒度。</p>
-<h3 id="634-失败模式误选工具参数错误重复副作用与注入攻击"><a class="header" href="#634-失败模式误选工具参数错误重复副作用与注入攻击">6.3.4 失败模式：误选工具、参数错误、重复副作用与注入攻击</a></h3>
+<h3 id="1234-失败模式误选工具参数错误重复副作用与注入攻击"><a class="header" href="#1234-失败模式误选工具参数错误重复副作用与注入攻击">12.3.4 失败模式：误选工具、参数错误、重复副作用与注入攻击</a></h3>
 <p>工具系统的失败往往不是单点故障，而是模型、Schema、权限、外部系统和上下文压缩共同作用的结果。</p>
 <div class="table-wrapper">
 <table>
@@ -609,7 +609,7 @@ Observed
 </table>
 </div>
 <p>这些失败模式应该进入工具设计评审和 Eval，而不是上线后靠人工复盘补救。</p>
-<h3 id="635-重试策略哪些失败可以重试哪些不能"><a class="header" href="#635-重试策略哪些失败可以重试哪些不能">6.3.5 重试策略：哪些失败可以重试，哪些不能</a></h3>
+<h3 id="1235-重试策略哪些失败可以重试哪些不能"><a class="header" href="#1235-重试策略哪些失败可以重试哪些不能">12.3.5 重试策略：哪些失败可以重试，哪些不能</a></h3>
 <p>并不是所有失败都应该重试。</p>
 <div class="table-wrapper">
 <table>
@@ -636,7 +636,7 @@ class RetryPolicy:
     retryable_error_codes: set[str]
 </code></pre>
 <p>模型可以根据错误摘要调整下一步计划，但是否重试、重试几次、是否退避，应该由 Runtime 统一控制。</p>
-<h3 id="636-可观测性指标成功率延迟审批率成本与上下文预算"><a class="header" href="#636-可观测性指标成功率延迟审批率成本与上下文预算">6.3.6 可观测性指标：成功率、延迟、审批率、成本与上下文预算</a></h3>
+<h3 id="1236-可观测性指标成功率延迟审批率成本与上下文预算"><a class="header" href="#1236-可观测性指标成功率延迟审批率成本与上下文预算">12.3.6 可观测性指标：成功率、延迟、审批率、成本与上下文预算</a></h3>
 <p>生产级工具系统至少要观察这些指标：</p>
 <div class="table-wrapper">
 <table>
@@ -657,8 +657,8 @@ class RetryPolicy:
 </div>
 <p>这些指标不仅用于运维，也用于评估 Agent 质量。如果某个工具调用成功率很低，可能是工具实现问题，也可能是 Schema 描述导致模型经常生成错误参数。</p>
 <hr>
-<h2 id="64-agent-skills从工具调用到能力复用"><a class="header" href="#64-agent-skills从工具调用到能力复用">6.4 Agent Skills：从工具调用到能力复用</a></h2>
-<h3 id="641-为什么-tool-calling-还需要-skills"><a class="header" href="#641-为什么-tool-calling-还需要-skills">6.4.1 为什么 Tool Calling 还需要 Skills</a></h3>
+<h2 id="124-agent-skills从工具调用到能力复用"><a class="header" href="#124-agent-skills从工具调用到能力复用">12.4 Agent Skills：从工具调用到能力复用</a></h2>
+<h3 id="1241-为什么-tool-calling-还需要-skills"><a class="header" href="#1241-为什么-tool-calling-还需要-skills">12.4.1 为什么 Tool Calling 还需要 Skills</a></h3>
 <p>当 Agent 只做简单任务时，Tool Calling 已经足够。用户问天气，模型调用天气工具；用户查订单，模型调用订单查询工具。</p>
 <p>真实工程任务很少只是一跳工具调用。比如“排查线上延迟升高”通常包含：</p>
 <ol>
@@ -672,7 +672,7 @@ class RetryPolicy:
 <li>明确哪些动作需要人工审批。</li>
 </ol>
 <p>如果每次都让模型从零规划，它会重复犯错：漏查部署、过早下结论、忘记脱敏、没有验证、调用高风险工具。Skill 的价值就是把这些“怎么做”沉淀下来。</p>
-<h3 id="642-skill-的定义触发条件步骤工具约束与验证"><a class="header" href="#642-skill-的定义触发条件步骤工具约束与验证">6.4.2 Skill 的定义：触发条件、步骤、工具、约束与验证</a></h3>
+<h3 id="1242-skill-的定义触发条件步骤工具约束与验证"><a class="header" href="#1242-skill-的定义触发条件步骤工具约束与验证">12.4.2 Skill 的定义：触发条件、步骤、工具、约束与验证</a></h3>
 <p>可以用一句话定义：</p>
 <blockquote>
 <p><strong>Skill 是可被 Agent 按需加载的程序性上下文，用来描述某类任务的触发条件、执行步骤、工具使用方式、约束、失败处理和验证标准。</strong></p>
@@ -693,7 +693,7 @@ class RetryPolicy:
 </table>
 </div>
 <p>Skill 不是 Tool 的替代品。Skill 通常不直接执行代码，它只是影响 Agent 的计划、上下文选择和工具使用策略。真正的行动仍然必须通过 Tool Runtime。</p>
-<h3 id="643-toolskillworkflowmemoryplugin-的边界"><a class="header" href="#643-toolskillworkflowmemoryplugin-的边界">6.4.3 Tool、Skill、Workflow、Memory、Plugin 的边界</a></h3>
+<h3 id="1243-toolskillworkflowmemoryplugin-的边界"><a class="header" href="#1243-toolskillworkflowmemoryplugin-的边界">12.4.3 Tool、Skill、Workflow、Memory、Plugin 的边界</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -716,7 +716,7 @@ Workflow = 哪些步骤必须确定性编排
 Plugin  = 如何把一组能力打包分发
 </code></pre>
 <p>这些概念可以组合，但不应该混淆。把 Skill 当 Tool，会让提示词承担执行责任；把 Workflow 当 Skill，会让模型在本该确定性编排的地方自由发挥；把 Memory 当 Skill，会把过期事实伪装成通用方法。</p>
-<h3 id="644-一个高质量-skill-应该长什么样"><a class="header" href="#644-一个高质量-skill-应该长什么样">6.4.4 一个高质量 Skill 应该长什么样</a></h3>
+<h3 id="1244-一个高质量-skill-应该长什么样"><a class="header" href="#1244-一个高质量-skill-应该长什么样">12.4.4 一个高质量 Skill 应该长什么样</a></h3>
 <p>一个高质量 Skill 不应该只是几句提示词，而应该像一份可执行 Runbook。</p>
 <pre><code class="language-yaml">name: incident_diagnosis
 description: Diagnose production alerts and generate evidence-based incident reports.
@@ -760,7 +760,7 @@ verification:
   - 如创建事故单，必须先让用户确认。
 </code></pre>
 <p>这个 Skill 的作用不是“替模型思考”，而是提供一个稳定的任务协议。模型仍然可以根据现场情况调整步骤，但不能随意越过安全和验证边界。</p>
-<h3 id="645-去哪里找高质量的-skill"><a class="header" href="#645-去哪里找高质量的-skill">6.4.5 去哪里找高质量的 Skill</a></h3>
+<h3 id="1245-去哪里找高质量的-skill"><a class="header" href="#1245-去哪里找高质量的-skill">12.4.5 去哪里找高质量的 Skill</a></h3>
 <p>高质量 Skill 的来源通常不是提示词市场，而是已经被验证过的工作方法。一个 Skill 是否值得沉淀，关键不在于写得像不像提示词，而在于它是否能稳定提升某类任务的完成质量。</p>
 <div class="table-wrapper">
 <table>
@@ -795,7 +795,7 @@ verification:
 <li><strong>来源可信</strong>：来自官方文档、团队 Runbook、成功 Trace 或专家审核，而不是随手生成。</li>
 </ol>
 <p>一个实用原则是：<strong>优先把已经被人类专家反复执行并验证过的方法沉淀为 Skill，而不是让模型凭空发明 Skill。</strong></p>
-<h3 id="646-skill-registry技能也需要版本owner-和风险等级"><a class="header" href="#646-skill-registry技能也需要版本owner-和风险等级">6.4.6 Skill Registry：技能也需要版本、Owner 和风险等级</a></h3>
+<h3 id="1246-skill-registry技能也需要版本owner-和风险等级"><a class="header" href="#1246-skill-registry技能也需要版本owner-和风险等级">12.4.6 Skill Registry：技能也需要版本、Owner 和风险等级</a></h3>
 <p>当 Skill 数量变多，就需要像 Tool Registry 一样管理它们。一个 Skill 至少应该有元数据：</p>
 <pre><code class="language-yaml">name: incident_diagnosis
 description: "Diagnose production alerts and generate evidence-based incident reports."
@@ -832,7 +832,7 @@ updated_at: "2026-04-30"
 <li>支持版本变更、回滚和审计。</li>
 </ul>
 <p>没有注册表的 Skill 很容易变成散落的 prompt 片段，后续无法治理。</p>
-<h3 id="647-skill-selection不是每次全部加载"><a class="header" href="#647-skill-selection不是每次全部加载">6.4.7 Skill Selection：不是每次全部加载</a></h3>
+<h3 id="1247-skill-selection不是每次全部加载"><a class="header" href="#1247-skill-selection不是每次全部加载">12.4.7 Skill Selection：不是每次全部加载</a></h3>
 <p>Skill 本质上是上下文，所以上下文预算是第一约束。不能把所有 <code>SKILL.md</code> 都塞进 prompt。</p>
 <p>更合理的方式是 progressive disclosure：</p>
 <pre><code class="language-text">User Task
@@ -881,7 +881,7 @@ description: Use when starting any conversation - establishes how to find and us
 <li>定期从 Trace 中检查它是否在低价值任务里被频繁触发。</li>
 </ul>
 <p>Skill Selection 的目标不是“尽可能多加载专家经验”，而是“在当前任务中加载最少、最相关、最可验证的操作手册”。</p>
-<h3 id="648-skill-与-tool-policy-的关系"><a class="header" href="#648-skill-与-tool-policy-的关系">6.4.8 Skill 与 Tool Policy 的关系</a></h3>
+<h3 id="1248-skill-与-tool-policy-的关系"><a class="header" href="#1248-skill-与-tool-policy-的关系">12.4.8 Skill 与 Tool Policy 的关系</a></h3>
 <p>Skill 可以建议工具，但不能绕过 Tool Policy。</p>
 <pre><code class="language-text">Skill says:
   "Use create_incident_ticket after evidence is collected."
@@ -894,7 +894,7 @@ Runtime still checks:
   - 是否超过预算？
 </code></pre>
 <p>换句话说，Skill 是“操作建议”，Policy 是“强制边界”。如果 Skill 中写了“执行重启服务”，但 Policy 不允许，最终仍然应该被拒绝。</p>
-<h3 id="649-skill-生命周期createreviewvalidatepublishretire"><a class="header" href="#649-skill-生命周期createreviewvalidatepublishretire">6.4.9 Skill 生命周期：Create、Review、Validate、Publish、Retire</a></h3>
+<h3 id="1249-skill-生命周期createreviewvalidatepublishretire"><a class="header" href="#1249-skill-生命周期createreviewvalidatepublishretire">12.4.9 Skill 生命周期：Create、Review、Validate、Publish、Retire</a></h3>
 <p>Skill 会随着项目、工具、组织流程和模型能力变化而过期。生产级系统至少要管理五个阶段。</p>
 <div class="table-wrapper">
 <table>
@@ -928,7 +928,7 @@ Trace / Diff / Tool Results
   ▼
 进入 Skill Registry
 </code></pre>
-<h3 id="6410-skills-的常见失败模式"><a class="header" href="#6410-skills-的常见失败模式">6.4.10 Skills 的常见失败模式</a></h3>
+<h3 id="12410-skills-的常见失败模式"><a class="header" href="#12410-skills-的常见失败模式">12.4.10 Skills 的常见失败模式</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -945,7 +945,7 @@ Trace / Diff / Tool Results
 </table>
 </div>
 <p>Skill 越接近真实执行流程，越需要版本、Owner、评估和回滚。否则它会从“经验复用”变成“错误复用”。</p>
-<h3 id="6411-skills-与-mcp-的关系"><a class="header" href="#6411-skills-与-mcp-的关系">6.4.11 Skills 与 MCP 的关系</a></h3>
+<h3 id="12411-skills-与-mcp-的关系"><a class="header" href="#12411-skills-与-mcp-的关系">12.4.11 Skills 与 MCP 的关系</a></h3>
 <p>MCP 可以暴露 Tools、Resources 和 Prompts，但 Skill 更偏 Agent Runtime 的程序性上下文。在工程上有三种组合方式：</p>
 <div class="table-wrapper">
 <table>
@@ -961,8 +961,8 @@ Trace / Diff / Tool Results
 </div>
 <p>这也是为什么成熟 Agent Runtime 通常会把 Tool、Skill、Plugin / Toolset 分开：工具负责行动，技能负责方法，插件负责分发，运行时负责权限和观测。</p>
 <hr>
-<h2 id="65-mcptool-calling-的标准化接入协议"><a class="header" href="#65-mcptool-calling-的标准化接入协议">6.5 MCP：Tool Calling 的标准化接入协议</a></h2>
-<h3 id="651-为什么有了-httprest-和-openapi-还需要-mcp"><a class="header" href="#651-为什么有了-httprest-和-openapi-还需要-mcp">6.5.1 为什么有了 HTTP、REST 和 OpenAPI 还需要 MCP</a></h3>
+<h2 id="125-mcptool-calling-的标准化接入协议"><a class="header" href="#125-mcptool-calling-的标准化接入协议">12.5 MCP：Tool Calling 的标准化接入协议</a></h2>
+<h3 id="1251-为什么有了-httprest-和-openapi-还需要-mcp"><a class="header" href="#1251-为什么有了-httprest-和-openapi-还需要-mcp">12.5.1 为什么有了 HTTP、REST 和 OpenAPI 还需要 MCP</a></h3>
 <p>HTTP、REST、OpenAPI 和 MCP 都可以出现在同一条链路里，但它们解决的问题不同。</p>
 <div class="table-wrapper">
 <table>
@@ -979,7 +979,7 @@ Trace / Diff / Tool Results
 </div>
 <p>RESTful HTTP 也强调资源，但 REST 的资源通常是业务系统里的实体，例如订单、用户、文章、库存。MCP 的 Resources 更接近“给模型看的上下文材料”，例如文件内容、数据库 Schema、设计稿、日志片段或某个 Trace 的证据摘要。</p>
 <p>因此，MCP 的价值不是替代 HTTP，而是在 HTTP、stdio 或其他传输之上，补上 AI 工具协作所需的语义层。</p>
-<h3 id="652-mcp-解决什么不解决什么"><a class="header" href="#652-mcp-解决什么不解决什么">6.5.2 MCP 解决什么，不解决什么</a></h3>
+<h3 id="1252-mcp-解决什么不解决什么"><a class="header" href="#1252-mcp-解决什么不解决什么">12.5.2 MCP 解决什么，不解决什么</a></h3>
 <p>MCP 解决的是 <strong>AI Host 如何以统一协议接入外部能力</strong>，而不是底层系统如何实现业务能力。</p>
 <p>它主要解决四类问题：</p>
 <ol>
@@ -997,7 +997,7 @@ Trace / Diff / Tool Results
 <li>不替代 Skill、Policy、Sandbox、Audit 和 Eval。</li>
 </ul>
 <p>一句话：MCP 让工具接入更标准，但不自动让工具系统更可靠。</p>
-<h3 id="653-mcp-与-apiclibrowser-use-的边界"><a class="header" href="#653-mcp-与-apiclibrowser-use-的边界">6.5.3 MCP 与 API、CLI、Browser Use 的边界</a></h3>
+<h3 id="1253-mcp-与-apiclibrowser-use-的边界"><a class="header" href="#1253-mcp-与-apiclibrowser-use-的边界">12.5.3 MCP 与 API、CLI、Browser Use 的边界</a></h3>
 <p>围绕工具系统，常见概念的层级关系如下：</p>
 <pre><code class="language-text">用户意图
   │
@@ -1026,7 +1026,7 @@ Execution Channel
 <li><strong>Browser Use 管“没有合适接口时如何模拟人类操作”</strong>：它是兜底执行通道，而不是默认方案。</li>
 </ul>
 <p>因此，MCP 和 CLI 不是简单替代关系。CLI 是一种具体执行通道，适合本地开发环境中稳定、低成本地调用已有工具；MCP 是一种 Agent 工具协议，适合把外部能力标准化暴露给不同 Agent 客户端，尤其适合跨平台分发、多用户授权和企业治理场景。</p>
-<h3 id="654-mcp-的架构边界hostclientserver"><a class="header" href="#654-mcp-的架构边界hostclientserver">6.5.4 MCP 的架构边界：Host、Client、Server</a></h3>
+<h3 id="1254-mcp-的架构边界hostclientserver"><a class="header" href="#1254-mcp-的架构边界hostclientserver">12.5.4 MCP 的架构边界：Host、Client、Server</a></h3>
 <p>官方架构中有三个核心角色：</p>
 <pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
 │                         MCP Host                            │
@@ -1053,7 +1053,7 @@ Execution Channel
 <li><strong>Server</strong> 暴露专门能力，例如 GitHub、Postgres、日志平台、文件系统。</li>
 </ul>
 <p>MCP Server 不应该读取完整对话，也不应该知道其他 Server 的存在。它只接收 Host 决定传给它的最小上下文。这个隔离设计非常重要，因为工具服务器往往连接真实系统和敏感数据。</p>
-<h3 id="655-mcp-的能力模型toolsresourcesprompts"><a class="header" href="#655-mcp-的能力模型toolsresourcesprompts">6.5.5 MCP 的能力模型：Tools、Resources、Prompts</a></h3>
+<h3 id="1255-mcp-的能力模型toolsresourcesprompts"><a class="header" href="#1255-mcp-的能力模型toolsresourcesprompts">12.5.5 MCP 的能力模型：Tools、Resources、Prompts</a></h3>
 <p>MCP Server 主要暴露三类能力：</p>
 <div class="table-wrapper">
 <table>
@@ -1074,7 +1074,7 @@ Execution Channel
 <li><strong>Prompts</strong> 通常是可复用任务入口，帮助用户和 Agent 以一致方式启动工作流。</li>
 </ul>
 <p>这也是 MCP 和普通 REST API 的重要区别：MCP 不是只暴露接口路径，而是给 Agent Runtime 暴露“可发现、可描述、可治理”的能力集合。</p>
-<h3 id="656-capability-negotiation能力协商与渐进兼容"><a class="header" href="#656-capability-negotiation能力协商与渐进兼容">6.5.6 Capability Negotiation：能力协商与渐进兼容</a></h3>
+<h3 id="1256-capability-negotiation能力协商与渐进兼容"><a class="header" href="#1256-capability-negotiation能力协商与渐进兼容">12.5.6 Capability Negotiation：能力协商与渐进兼容</a></h3>
 <p>MCP 会在初始化阶段进行 capability negotiation。Server 声明自己支持哪些能力，Client 声明自己支持哪些客户端能力，例如 Resources 订阅、Tools 变更通知、Prompts 变更通知等。</p>
 <pre><code class="language-json">{
   "capabilities": {
@@ -1097,7 +1097,7 @@ Execution Channel
 <li>Server 可以渐进式增加能力，保持兼容；</li>
 <li>Client 可以基于 capability 决定 UI、缓存、订阅和重试策略。</li>
 </ul>
-<h3 id="657-mcp-协议流initializelistcallread-与-notifications"><a class="header" href="#657-mcp-协议流initializelistcallread-与-notifications">6.5.7 MCP 协议流：initialize、list、call、read 与 notifications</a></h3>
+<h3 id="1257-mcp-协议流initializelistcallread-与-notifications"><a class="header" href="#1257-mcp-协议流initializelistcallread-与-notifications">12.5.7 MCP 协议流：initialize、list、call、read 与 notifications</a></h3>
 <p>一个典型 MCP 工具调用流程如下：</p>
 <pre><code class="language-text">Client                         Server
   │                              │
@@ -1120,7 +1120,7 @@ Execution Channel
 </code></pre>
 <p>MCP 使用 JSON-RPC 编码消息。工具发现通常通过 <code>tools/list</code>，工具调用通过 <code>tools/call</code>。资源发现和读取则通过 <code>resources/list</code>、<code>resources/read</code>。Server 能力变化可以通过 notifications 告诉 Client。</p>
 <p>这条协议流的关键不是“JSON-RPC 比 HTTP REST 更先进”，而是它让 Agent Host 用统一语义发现工具、调用工具、读取资源和管理会话。</p>
-<h3 id="658-stdio-与-streamable-http本地-server-和远程-server"><a class="header" href="#658-stdio-与-streamable-http本地-server-和远程-server">6.5.8 stdio 与 Streamable HTTP：本地 Server 和远程 Server</a></h3>
+<h3 id="1258-stdio-与-streamable-http本地-server-和远程-server"><a class="header" href="#1258-stdio-与-streamable-http本地-server-和远程-server">12.5.8 stdio 与 Streamable HTTP：本地 Server 和远程 Server</a></h3>
 <p>MCP 标准传输主要包括 stdio 和 Streamable HTTP。</p>
 <div class="table-wrapper">
 <table>
@@ -1139,7 +1139,7 @@ Execution Channel
 <li><strong>远程 MCP Server</strong>：通常由 Host 通过 URL 连接，适合知识库、日志平台、内部 SaaS、团队共享目录服务等中心化能力。</li>
 </ul>
 <p>前者更容易拿到本地文件、环境变量和 CLI；后者更容易统一版本、授权、审计和多用户治理。</p>
-<h3 id="659-去哪里找到开源-mcp-能力"><a class="header" href="#659-去哪里找到开源-mcp-能力">6.5.9 去哪里找到开源 MCP 能力</a></h3>
+<h3 id="1259-去哪里找到开源-mcp-能力"><a class="header" href="#1259-去哪里找到开源-mcp-能力">12.5.9 去哪里找到开源 MCP 能力</a></h3>
 <p>寻找 MCP 能力时，应该区分“发现候选能力”和“允许进入生产环境”。前者可以开放，后者必须治理。</p>
 <div class="table-wrapper">
 <table>
@@ -1175,7 +1175,7 @@ Execution Channel
 <li>是否能被企业内部 allowlist 和版本锁定。</li>
 </ul>
 <p>一个实用原则是：<strong>MCP Server 可以从公开生态发现，但进入生产前必须经过内部能力目录、权限评估和版本治理。</strong></p>
-<h3 id="6510-github-与-log-mcp-示例apicli-与-mcp-的三条路径"><a class="header" href="#6510-github-与-log-mcp-示例apicli-与-mcp-的三条路径">6.5.10 GitHub 与 Log MCP 示例：API、CLI 与 MCP 的三条路径</a></h3>
+<h3 id="12510-github-与-log-mcp-示例apicli-与-mcp-的三条路径"><a class="header" href="#12510-github-与-log-mcp-示例apicli-与-mcp-的三条路径">12.5.10 GitHub 与 Log MCP 示例：API、CLI 与 MCP 的三条路径</a></h3>
 <p>以 GitHub 为例，Agent 想读取 PR、查看 diff、创建 review，至少有三条常见路径：</p>
 <pre><code class="language-text">路径 A：直接 API
 Agent Runtime
@@ -1225,7 +1225,7 @@ Agent Runtime
 </table>
 </div>
 <p>模型本身不直接访问日志平台。模型提出工具调用意图，Host 决定是否允许，MCP Client 调用 Log MCP Server，Server 再访问内部日志 API 或查询引擎。</p>
-<h3 id="6511-mcp-不是-api-gateway-的替代品"><a class="header" href="#6511-mcp-不是-api-gateway-的替代品">6.5.11 MCP 不是 API Gateway 的替代品</a></h3>
+<h3 id="12511-mcp-不是-api-gateway-的替代品"><a class="header" href="#12511-mcp-不是-api-gateway-的替代品">12.5.11 MCP 不是 API Gateway 的替代品</a></h3>
 <p>MCP Server 可以封装业务 API，但它不应该绕过企业已有的 API Gateway、权限系统和审计系统。更合理的关系是：</p>
 <pre><code class="language-text">Agent Host
    │
@@ -1245,7 +1245,7 @@ Internal API Gateway
 </code></pre>
 <p>MCP 解决“AI 应用如何接入能力”，API Gateway 解决“企业服务如何被安全访问”。两者职责不同。</p>
 <p>如果 MCP Server 直接绕过企业网关访问内部数据库或服务，它反而会变成新的权限旁路。</p>
-<h3 id="6512-mcp-server-的生产级设计"><a class="header" href="#6512-mcp-server-的生产级设计">6.5.12 MCP Server 的生产级设计</a></h3>
+<h3 id="12512-mcp-server-的生产级设计"><a class="header" href="#12512-mcp-server-的生产级设计">12.5.12 MCP Server 的生产级设计</a></h3>
 <p>一个演示级 MCP Server 很容易写：列出工具、接收参数、调用 API、返回结果。但生产环境需要更多结构。</p>
 <pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
 │                    Production MCP Server                     │
@@ -1278,7 +1278,7 @@ Internal API Gateway
 └─────────────────────────────────────────────────────────────┘
 </code></pre>
 <p>这个架构的关键是不要把 MCP Server 写成“模型可以调用的万能内部网关”。它应该只暴露聚焦能力，并且每个工具都有清晰 Schema、风险等级、权限策略和输出处理。</p>
-<h3 id="6513-工具风险分级认证授权与输出防注入"><a class="header" href="#6513-工具风险分级认证授权与输出防注入">6.5.13 工具风险分级、认证授权与输出防注入</a></h3>
+<h3 id="12513-工具风险分级认证授权与输出防注入"><a class="header" href="#12513-工具风险分级认证授权与输出防注入">12.5.13 工具风险分级、认证授权与输出防注入</a></h3>
 <p>MCP Tool 是模型可调用能力，因此每个工具都应该有风险等级。</p>
 <div class="table-wrapper">
 <table>
@@ -1319,8 +1319,8 @@ Internal API Gateway
 <li>指令隔离：告诉模型工具输出是证据，不是系统指令。</li>
 </ul>
 <hr>
-<h2 id="66-sandbox-与权限边界"><a class="header" href="#66-sandbox-与权限边界">6.6 Sandbox 与权限边界</a></h2>
-<h3 id="661-sandbox-的职责限制文件网络进程和凭据边界"><a class="header" href="#661-sandbox-的职责限制文件网络进程和凭据边界">6.6.1 Sandbox 的职责：限制文件、网络、进程和凭据边界</a></h3>
+<h2 id="126-sandbox-与权限边界"><a class="header" href="#126-sandbox-与权限边界">12.6 Sandbox 与权限边界</a></h2>
+<h3 id="1261-sandbox-的职责限制文件网络进程和凭据边界"><a class="header" href="#1261-sandbox-的职责限制文件网络进程和凭据边界">12.6.1 Sandbox 的职责：限制文件、网络、进程和凭据边界</a></h3>
 <p>当 Agent 只能调用只读 API 时，安全边界主要来自 API 权限和工具 Schema。但一旦 Agent 可以运行 Shell、安装依赖、读写文件、启动浏览器、连接 MCP Server，风险就从“参数是否正确”变成了“外部进程到底能接触什么”。这时 sandbox 就不再是可选优化，而是 Tool Runtime 的基础设施。</p>
 <p>在 Agent 系统里，sandbox 的角色可以概括为一句话：</p>
 <blockquote>
@@ -1342,7 +1342,7 @@ Internal API Gateway
 </table>
 </div>
 <p>这四类隔离要同时考虑。只有文件系统隔离而没有网络隔离，恶意命令仍可能把可读文件发出去；只有网络隔离而没有文件系统隔离，Agent 仍可能破坏本机配置或在项目中写入后门。</p>
-<h3 id="662-sandbox-不是什么不是-prompt审批docker-或-api-rbac"><a class="header" href="#662-sandbox-不是什么不是-prompt审批docker-或-api-rbac">6.6.2 Sandbox 不是什么：不是 Prompt、审批、Docker 或 API RBAC</a></h3>
+<h3 id="1262-sandbox-不是什么不是-prompt审批docker-或-api-rbac"><a class="header" href="#1262-sandbox-不是什么不是-prompt审批docker-或-api-rbac">12.6.2 Sandbox 不是什么：不是 Prompt、审批、Docker 或 API RBAC</a></h3>
 <p>很多团队第一次做 Agent sandbox 时，会把它理解成“在 Docker 里跑一下命令”。这只覆盖了问题的一部分。更准确地说，sandbox 是一组运行时约束，而不是某个具体技术。</p>
 <div class="table-wrapper">
 <table>
@@ -1392,7 +1392,7 @@ Internal API Gateway
     redact_in_logs: true
 </code></pre>
 <p>这类策略的价值不只是安全，也是可解释性。事故复盘时，团队可以回答：这次工具调用运行在哪个目录、允许访问哪些域名、是否注入了凭据、哪些访问被拒绝。</p>
-<h3 id="663-不同工具需要不同-sandbox"><a class="header" href="#663-不同工具需要不同-sandbox">6.6.3 不同工具需要不同 Sandbox</a></h3>
+<h3 id="1263-不同工具需要不同-sandbox"><a class="header" href="#1263-不同工具需要不同-sandbox">12.6.3 不同工具需要不同 Sandbox</a></h3>
 <p>Agent 工具的风险差异很大，不能用同一套边界处理所有工具。</p>
 <div class="table-wrapper">
 <table>
@@ -1411,7 +1411,7 @@ Internal API Gateway
 </table>
 </div>
 <p>这个表有一个重要启发：sandbox 的粒度应该跟工具类型绑定，而不是跟模型绑定。同一个模型调用 <code>search_docs</code> 和调用 <code>bash</code>，应该进入完全不同的执行边界。</p>
-<h3 id="664-执行环境的四种层级pathprocesscontainerremote-runner"><a class="header" href="#664-执行环境的四种层级pathprocesscontainerremote-runner">6.6.4 执行环境的四种层级：Path、Process、Container、Remote Runner</a></h3>
+<h3 id="1264-执行环境的四种层级pathprocesscontainerremote-runner"><a class="header" href="#1264-执行环境的四种层级pathprocesscontainerremote-runner">12.6.4 执行环境的四种层级：Path、Process、Container、Remote Runner</a></h3>
 <p>从轻到重，Agent 可以选择四种执行环境：</p>
 <div class="table-wrapper">
 <table>
@@ -1427,7 +1427,7 @@ Internal API Gateway
 </table>
 </div>
 <p>个人 Coding Agent 常从 Path Sandbox + Approval 起步；企业平台通常会逐步走向 Container / Remote Runner。原因不是“容器更高级”，而是企业场景需要多租户隔离、凭据代理、网络出口审计和可销毁工作区。</p>
-<h3 id="665-sandbox-与审批的关系"><a class="header" href="#665-sandbox-与审批的关系">6.6.5 Sandbox 与审批的关系</a></h3>
+<h3 id="1265-sandbox-与审批的关系"><a class="header" href="#1265-sandbox-与审批的关系">12.6.5 Sandbox 与审批的关系</a></h3>
 <p>审批和 sandbox 的关系可以用一个矩阵理解：</p>
 <div class="table-wrapper">
 <table>
@@ -1443,7 +1443,7 @@ Internal API Gateway
 </table>
 </div>
 <p>审批不是越多越安全。低风险动作如果反复审批，会造成审批疲劳；高风险动作如果只靠 sandbox 自动执行，又会把业务责任交给技术边界。更好的策略是：低风险动作靠 sandbox 自动化，高风险动作靠 sandbox + 人工确认，关键业务动作交给专用流程。</p>
-<h3 id="666-sandbox-regression-tests文件网络凭据与-mcp-server-测试"><a class="header" href="#666-sandbox-regression-tests文件网络凭据与-mcp-server-测试">6.6.6 Sandbox Regression Tests：文件、网络、凭据与 MCP Server 测试</a></h3>
+<h3 id="1266-sandbox-regression-tests文件网络凭据与-mcp-server-测试"><a class="header" href="#1266-sandbox-regression-tests文件网络凭据与-mcp-server-测试">12.6.6 Sandbox Regression Tests：文件、网络、凭据与 MCP Server 测试</a></h3>
 <p>很多系统“声称有 sandbox”，但没有验证它到底拦住了什么。生产级 Agent 至少应该有一组 sandbox regression tests：</p>
 <pre><code class="language-text">文件系统测试：
 - 尝试读取 ~/.ssh/id_rsa，必须失败。
@@ -1465,7 +1465,7 @@ MCP 测试：
 - Server 不能访问未授权文件路径和网络目标。
 </code></pre>
 <p>这些测试应该进入 Agent Runtime 的 CI，而不是依赖人工试用。每次调整 sandbox、权限规则、MCP 配置、浏览器自动化或远程 runner，都应该跑回归。</p>
-<h3 id="667-当前趋势从审批优先走向边界优先"><a class="header" href="#667-当前趋势从审批优先走向边界优先">6.6.7 当前趋势：从审批优先走向边界优先</a></h3>
+<h3 id="1267-当前趋势从审批优先走向边界优先"><a class="header" href="#1267-当前趋势从审批优先走向边界优先">12.6.7 当前趋势：从审批优先走向边界优先</a></h3>
 <p>早期 Agent 产品更依赖逐次审批：模型想执行命令，用户点一次允许。这种模式直观，但长任务里很容易变成批准噪音。现在更明显的方向是：</p>
 <ul>
 <li>本地开发工具开始用 OS 级 sandbox，把安全目录、网络域名和命令风险前置配置；</li>
@@ -1475,20 +1475,20 @@ MCP 测试：
 </ul>
 <p>换句话说，Agent 安全正在从“每个动作问用户一次”转向“先定义边界，再让 Agent 在边界内更自主”。sandbox 的价值不是让 Agent 永远不能犯错，而是让错误被限制在可观察、可回滚、可承担的范围内。</p>
 <hr>
-<h2 id="67-工具编排模式从单次调用到可治理流程"><a class="header" href="#67-工具编排模式从单次调用到可治理流程">6.7 工具编排模式：从单次调用到可治理流程</a></h2>
-<h3 id="671-direct-tool-calling"><a class="header" href="#671-direct-tool-calling">6.7.1 Direct Tool Calling</a></h3>
+<h2 id="127-工具编排模式从单次调用到可治理流程"><a class="header" href="#127-工具编排模式从单次调用到可治理流程">12.7 工具编排模式：从单次调用到可治理流程</a></h2>
+<h3 id="1271-direct-tool-calling"><a class="header" href="#1271-direct-tool-calling">12.7.1 Direct Tool Calling</a></h3>
 <p>模型直接选择工具并调用。</p>
 <pre><code class="language-text">User -&gt; LLM -&gt; Tool -&gt; Observation -&gt; LLM -&gt; Answer
 </code></pre>
 <p>适合简单任务，例如查询天气、查订单状态、读取文档。优点是延迟低，缺点是对复杂任务缺少全局规划。</p>
-<h3 id="672-plan-and-execute--plan-then-execute"><a class="header" href="#672-plan-and-execute--plan-then-execute">6.7.2 Plan-and-Execute / Plan-Then-Execute</a></h3>
+<h3 id="1272-plan-and-execute--plan-then-execute"><a class="header" href="#1272-plan-and-execute--plan-then-execute">12.7.2 Plan-and-Execute / Plan-Then-Execute</a></h3>
 <p>先生成任务级计划，再按计划调用工具。这里的 <code>Plan-Then-Execute</code> 是 <code>Plan-and-Execute</code> 在工具编排视角下的别名，本章主要讨论它对工具暴露和权限裁剪的影响。</p>
 <pre><code class="language-text">User -&gt; Planner -&gt; Plan -&gt; Executor -&gt; Tools -&gt; Verifier -&gt; Answer
 </code></pre>
 <p>适合多步骤任务，例如事故诊断、数据分析、代码迁移。关键是计划不能只是自然语言列表，最好包含可验证的步骤、输入输出和停止条件。</p>
 <p>从工具系统视角看，Plan-and-Execute 的关键不是“先写一段计划”，而是规划阶段和执行阶段应该暴露不同工具集合：规划阶段通常需要只读搜索、代码检索、文档和指标工具；执行阶段才可能开放写文件、创建工单、发送通知或修改配置等高风险工具。</p>
 <p>它也不同于产品里的 Plan mode。Plan mode 是 Runtime 或客户端施加的协作权限策略，通常只允许只读探索和计划输出，禁止执行修改动作。Plan-and-Execute 是任务架构模式，可以在获得授权后自动执行。ReAct 则更偏单步循环，对工具系统的要求是低延迟反馈、清晰 Observation 和可控的最大步数。</p>
-<h3 id="673-tool-router"><a class="header" href="#673-tool-router">6.7.3 Tool Router</a></h3>
+<h3 id="1273-tool-router"><a class="header" href="#1273-tool-router">12.7.3 Tool Router</a></h3>
 <p>先用轻量路由器选择工具集合，再把子任务交给主模型。</p>
 <pre><code class="language-text">User Request
    │
@@ -1500,7 +1500,7 @@ Tool Router
    └─ Communication Tools
 </code></pre>
 <p>适合工具数量很多的企业 Agent。Router 可以基于规则、Embedding、轻量模型或历史调用统计实现。</p>
-<h3 id="674-workflow-as-tool"><a class="header" href="#674-workflow-as-tool">6.7.4 Workflow-as-Tool</a></h3>
+<h3 id="1274-workflow-as-tool"><a class="header" href="#1274-workflow-as-tool">12.7.4 Workflow-as-Tool</a></h3>
 <p>把稳定的多步流程封装成高层工具。</p>
 <pre><code class="language-python">def diagnose_latency_incident(alert_id: str) -&gt; ToolResult:
     alert = get_alert_details(alert_id)
@@ -1518,7 +1518,7 @@ Tool Router
     )
 </code></pre>
 <p>这类工具的好处是降低模型规划负担，坏处是灵活性下降。它适合已经验证过的高频流程，不适合探索性任务。</p>
-<h3 id="675-human-in-the-loop"><a class="header" href="#675-human-in-the-loop">6.7.5 Human-in-the-Loop</a></h3>
+<h3 id="1275-human-in-the-loop"><a class="header" href="#1275-human-in-the-loop">12.7.5 Human-in-the-Loop</a></h3>
 <p>高风险工具必须把人放进闭环。</p>
 <pre><code class="language-text">LLM proposes action
    │
@@ -1539,13 +1539,13 @@ Policy Engine classifies risk
 </ul>
 <p>人类审批不是为了拖慢系统，而是为了把不可逆决策留给有责任边界的人。</p>
 <hr>
-<h2 id="68-案例告警诊断-agent-的工具架构"><a class="header" href="#68-案例告警诊断-agent-的工具架构">6.8 案例：告警诊断 Agent 的工具架构</a></h2>
-<h3 id="681-场景输入与任务目标"><a class="header" href="#681-场景输入与任务目标">6.8.1 场景输入与任务目标</a></h3>
+<h2 id="128-案例告警诊断-agent-的工具架构"><a class="header" href="#128-案例告警诊断-agent-的工具架构">12.8 案例：告警诊断 Agent 的工具架构</a></h2>
+<h3 id="1281-场景输入与任务目标"><a class="header" href="#1281-场景输入与任务目标">12.8.1 场景输入与任务目标</a></h3>
 <p>假设我们要构建一个告警诊断 Agent。用户输入是：</p>
 <pre><code class="language-text">order-service 的 P95 延迟从 200ms 升到 2s，帮我分析可能原因。
 </code></pre>
 <p>这个任务的目标不是“调用很多工具”，而是“把外部证据组织成可行动的判断”。一个好的诊断结果应该包含结论、证据、置信度、下一步建议和需要人工审批的动作。</p>
-<h3 id="682-工具集合设计"><a class="header" href="#682-工具集合设计">6.8.2 工具集合设计</a></h3>
+<h3 id="1282-工具集合设计"><a class="header" href="#1282-工具集合设计">12.8.2 工具集合设计</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1565,7 +1565,7 @@ Policy Engine classifies risk
 </table>
 </div>
 <p>这个工具集合故意把读取、写入和高风险修复动作分开。Agent 可以自动收集证据，但不能自动重启服务或回滚。</p>
-<h3 id="683-对应-skill-设计"><a class="header" href="#683-对应-skill-设计">6.8.3 对应 Skill 设计</a></h3>
+<h3 id="1283-对应-skill-设计"><a class="header" href="#1283-对应-skill-设计">12.8.3 对应 Skill 设计</a></h3>
 <p>工具集合只说明 Agent 能做什么，还不能保证它会按正确顺序做。这个场景应该配一个 <code>incident_diagnosis</code> Skill：</p>
 <pre><code class="language-yaml">skill:
   name: incident_diagnosis
@@ -1598,7 +1598,7 @@ Policy Engine classifies risk
     - human_approval_required
 </code></pre>
 <p>这样 Tool Runtime 提供能力边界，Skill 提供任务方法，Policy Engine 决定哪些动作真的能执行。</p>
-<h3 id="684-推荐执行流程"><a class="header" href="#684-推荐执行流程">6.8.4 推荐执行流程</a></h3>
+<h3 id="1284-推荐执行流程"><a class="header" href="#1284-推荐执行流程">12.8.4 推荐执行流程</a></h3>
 <pre><code class="language-text">1. 读取告警详情
 2. 查询最近部署
 3. 查询延迟、错误率、QPS、CPU、内存
@@ -1610,7 +1610,7 @@ Policy Engine classifies risk
 9. 高风险修复动作只给建议，不自动执行
 </code></pre>
 <p>这里的流程既不是完全固定的 Workflow，也不是完全自由的模型规划。更合理的方式是 Skill 给出默认路径，Agent 根据观察结果调整，Runtime 负责权限和停止条件。</p>
-<h3 id="685-一次工具调用-trace"><a class="header" href="#685-一次工具调用-trace">6.8.5 一次工具调用 Trace</a></h3>
+<h3 id="1285-一次工具调用-trace"><a class="header" href="#1285-一次工具调用-trace">12.8.5 一次工具调用 Trace</a></h3>
 <pre><code class="language-json">{
   "trace_id": "trace_20260429_001",
   "agent_session_id": "sess_incident_abc",
@@ -1639,7 +1639,7 @@ Policy Engine classifies risk
 <li>结果是否支持最终结论？</li>
 <li>未来如何复盘和优化？</li>
 </ul>
-<h3 id="686-输出质量标准"><a class="header" href="#686-输出质量标准">6.8.6 输出质量标准</a></h3>
+<h3 id="1286-输出质量标准"><a class="header" href="#1286-输出质量标准">12.8.6 输出质量标准</a></h3>
 <p>最终诊断报告不应该只给“可能是部署导致”。它应该给出分层结论：</p>
 <pre><code class="language-text">结论：高度怀疑 deploy_8842 引入了 order-service 延迟回归。
 
@@ -1656,8 +1656,8 @@ Policy Engine classifies risk
 </code></pre>
 <p>这才是工具系统真正带来的价值：不是“调用了很多工具”，而是“把外部证据组织成可行动、可审查、可追责的判断”。</p>
 <hr>
-<h2 id="69-工具技能与-mcp-设计检查清单"><a class="header" href="#69-工具技能与-mcp-设计检查清单">6.9 工具、技能与 MCP 设计检查清单</a></h2>
-<h3 id="691-工具-schema"><a class="header" href="#691-工具-schema">6.9.1 工具 Schema</a></h3>
+<h2 id="129-工具技能与-mcp-设计检查清单"><a class="header" href="#129-工具技能与-mcp-设计检查清单">12.9 工具、技能与 MCP 设计检查清单</a></h2>
+<h3 id="1291-工具-schema"><a class="header" href="#1291-工具-schema">12.9.1 工具 Schema</a></h3>
 <ul>
 <li><input disabled="" type="checkbox"> 工具名称是否是清晰的动作 + 对象？</li>
 <li><input disabled="" type="checkbox"> 描述中是否说明了适用场景和不适用场景？</li>
@@ -1666,7 +1666,7 @@ Policy Engine classifies risk
 <li><input disabled="" type="checkbox"> 是否避免了 <code>execute_anything</code>、<code>query_anything</code> 这类万能工具？</li>
 <li><input disabled="" type="checkbox"> 返回值是否有摘要、结构化数据、错误码和证据引用？</li>
 </ul>
-<h3 id="692-运行时治理"><a class="header" href="#692-运行时治理">6.9.2 运行时治理</a></h3>
+<h3 id="1292-运行时治理"><a class="header" href="#1292-运行时治理">12.9.2 运行时治理</a></h3>
 <ul>
 <li><input disabled="" type="checkbox"> 是否有工具注册表管理版本、Owner 和风险等级？</li>
 <li><input disabled="" type="checkbox"> 是否有 Schema Validator，而不是直接信任模型参数？</li>
@@ -1678,7 +1678,7 @@ Policy Engine classifies risk
 <li><input disabled="" type="checkbox"> 是否避免一次性向模型暴露所有 Tools、Skills 和完整 Schema？</li>
 <li><input disabled="" type="checkbox"> CLI 是否被包装成受控 Tool，而不是让模型自由拼接 Shell 命令？</li>
 </ul>
-<h3 id="693-skills"><a class="header" href="#693-skills">6.9.3 Skills</a></h3>
+<h3 id="1293-skills"><a class="header" href="#1293-skills">12.9.3 Skills</a></h3>
 <ul>
 <li><input disabled="" type="checkbox"> 是否区分 Tool、Skill、Workflow、Memory、Plugin？</li>
 <li><input disabled="" type="checkbox"> Skill 是否写清适用场景和不适用场景？</li>
@@ -1690,7 +1690,7 @@ Policy Engine classifies risk
 <li><input disabled="" type="checkbox"> 是否能从 trace 中发现可沉淀的 Skill candidate？</li>
 <li><input disabled="" type="checkbox"> 是否建立了高质量 Skill 来源，例如 Runbook、成功 Trace、专家 SOP 和项目规则？</li>
 </ul>
-<h3 id="694-mcp-server"><a class="header" href="#694-mcp-server">6.9.4 MCP Server</a></h3>
+<h3 id="1294-mcp-server"><a class="header" href="#1294-mcp-server">12.9.4 MCP Server</a></h3>
 <ul>
 <li><input disabled="" type="checkbox"> 是否清楚区分 Host、Client、Server 的职责？</li>
 <li><input disabled="" type="checkbox"> 是否只暴露聚焦能力，而不是把整个内部系统直接暴露给 Agent？</li>
@@ -1702,7 +1702,7 @@ Policy Engine classifies risk
 <li><input disabled="" type="checkbox"> 远程 MCP Server 是否避免 token passthrough，并校验 token audience 和 scope？</li>
 <li><input disabled="" type="checkbox"> 公网 MCP Server 是否经过内部 allowlist、版本锁定和权限评估？</li>
 </ul>
-<h3 id="695-sandbox"><a class="header" href="#695-sandbox">6.9.5 Sandbox</a></h3>
+<h3 id="1295-sandbox"><a class="header" href="#1295-sandbox">12.9.5 Sandbox</a></h3>
 <ul>
 <li><input disabled="" type="checkbox"> Shell、CLI、浏览器自动化和本地 MCP Server 是否运行在受控 sandbox 或隔离环境中？</li>
 <li><input disabled="" type="checkbox"> sandbox 是否同时限制文件系统、网络、进程能力和凭据可见范围？</li>
@@ -1710,7 +1710,7 @@ Policy Engine classifies risk
 <li><input disabled="" type="checkbox"> 是否按工具类型区分 sandbox 策略，而不是所有工具共用同一权限边界？</li>
 <li><input disabled="" type="checkbox"> 是否有 sandbox regression tests 覆盖越界读写、未知域名访问、内网访问和 secret 泄露？</li>
 </ul>
-<h3 id="696-安全与可靠性"><a class="header" href="#696-安全与可靠性">6.9.6 安全与可靠性</a></h3>
+<h3 id="1296-安全与可靠性"><a class="header" href="#1296-安全与可靠性">12.9.6 安全与可靠性</a></h3>
 <ul>
 <li><input disabled="" type="checkbox"> 是否对每个工具做风险分级？</li>
 <li><input disabled="" type="checkbox"> 高风险工具是否默认禁用自动执行？</li>
