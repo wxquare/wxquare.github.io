@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第7章 Agent 知识系统：从知识源、RAG 到 Agentic RAG - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+        <title>第13章 Agent 知识系统：从知识源、RAG 到 Agentic RAG - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-7b32aa52.js";
+            window.path_to_searchindex_js = "../searchindex-1e9302fa.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-1b384b0e.js"></script>
+        <script src="../toc-4bd48997.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,7 +177,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第7章-agent-知识系统从知识源rag-到-agentic-rag"><a class="header" href="#第7章-agent-知识系统从知识源rag-到-agentic-rag">第7章 Agent 知识系统：从知识源、RAG 到 Agentic RAG</a></h1>
+                        <h1 id="第13章-agent-知识系统从知识源rag-到-agentic-rag"><a class="header" href="#第13章-agent-知识系统从知识源rag-到-agentic-rag">第13章 Agent 知识系统：从知识源、RAG 到 Agentic RAG</a></h1>
 <blockquote>
 <p>Agent 知识系统的目标，不是把更多文本塞进上下文，而是让 Agent 知道该查哪里、信什么、取多少、如何验证，以及如何把证据组织成模型可以可靠使用的上下文。</p>
 </blockquote>
@@ -200,8 +200,8 @@
 → 证据、引用、评估与治理
 </code></pre>
 <hr>
-<h2 id="71-agent-知识系统全景"><a class="header" href="#71-agent-知识系统全景">7.1 Agent 知识系统全景</a></h2>
-<h3 id="711-模型不是事实源"><a class="header" href="#711-模型不是事实源">7.1.1 模型不是事实源</a></h3>
+<h2 id="131-agent-知识系统全景"><a class="header" href="#131-agent-知识系统全景">13.1 Agent 知识系统全景</a></h2>
+<h3 id="1311-模型不是事实源"><a class="header" href="#1311-模型不是事实源">13.1.1 模型不是事实源</a></h3>
 <p>很多 Agent Demo 的隐含假设是：模型“知道”答案，只需要问得好一点。这个假设在生产系统里很危险。</p>
 <p>模型参数里的知识有几个天然问题：</p>
 <ul>
@@ -214,7 +214,7 @@
 <pre><code class="language-text">模型负责推理与表达，外部系统负责事实与证据。
 </code></pre>
 <p>这并不意味着模型没有知识价值。模型的价值在于理解用户意图、判断需要哪些知识、生成查询、综合多源证据、发现缺口和表达结论。但只要涉及实时事实、企业内部事实、权限控制或高风险决策，就不能把模型记忆当作最终依据。</p>
-<h3 id="712-agent-获取知识的基本链路"><a class="header" href="#712-agent-获取知识的基本链路">7.1.2 Agent 获取知识的基本链路</a></h3>
+<h3 id="1312-agent-获取知识的基本链路"><a class="header" href="#1312-agent-获取知识的基本链路">13.1.2 Agent 获取知识的基本链路</a></h3>
 <p>一个完整的知识获取链路通常不是一次向量检索，而是多阶段 pipeline：</p>
 <pre class="mermaid">
 flowchart LR
@@ -233,7 +233,7 @@ flowchart LR
 <pre><code class="language-text">Agent 获取知识 = Source Routing + Retrieval + Verification + Context Packing + Citation
 </code></pre>
 <p>其中最容易被低估的是 Source Routing。很多系统一上来就做向量库，结果把所有问题都当作“文档相似度检索”处理。实际生产里，用户问“订单为什么没有发货”，应该查订单系统、履约系统和日志；用户问“这个接口应该怎么调用”，应该读 API 文档、schema 或源代码；用户问“最近某只股票发生了什么”，应该查行情 API、新闻、公告和财报。</p>
-<h3 id="713-知识供给分层promptcontexttoolragmemory"><a class="header" href="#713-知识供给分层promptcontexttoolragmemory">7.1.3 知识供给分层：Prompt、Context、Tool、RAG、Memory</a></h3>
+<h3 id="1313-知识供给分层promptcontexttoolragmemory"><a class="header" href="#1313-知识供给分层promptcontexttoolragmemory">13.1.3 知识供给分层：Prompt、Context、Tool、RAG、Memory</a></h3>
 <p>Agent 的知识来源应该分层管理，而不是混成一个巨大的 prompt。</p>
 <div class="table-wrapper">
 <table>
@@ -252,7 +252,7 @@ flowchart LR
 </table>
 </div>
 <p>这些层次的优先级不同。当前用户指令通常高于长期 Memory；数据库和工具结果高于模型记忆；官方文档高于二手博客；源代码高于过期设计文档。</p>
-<h3 id="714-source-routing先判断该去哪儿找知识"><a class="header" href="#714-source-routing先判断该去哪儿找知识">7.1.4 Source Routing：先判断该去哪儿找知识</a></h3>
+<h3 id="1314-source-routing先判断该去哪儿找知识"><a class="header" href="#1314-source-routing先判断该去哪儿找知识">13.1.4 Source Routing：先判断该去哪儿找知识</a></h3>
 <p>Source Routing 是知识系统的入口。它把用户问题映射到合适的知识源和检索策略。</p>
 <div class="table-wrapper">
 <table>
@@ -271,7 +271,7 @@ flowchart LR
 </table>
 </div>
 <p>工程实现上，Source Router 可以是规则、分类模型、LLM 结构化输出，或者几者组合。关键不是算法多复杂，而是必须显式记录“为什么选择这个知识源”，否则后续评估和 debug 会很困难。</p>
-<h3 id="715-知识可信度一手来源二手来源与模型记忆"><a class="header" href="#715-知识可信度一手来源二手来源与模型记忆">7.1.5 知识可信度：一手来源、二手来源与模型记忆</a></h3>
+<h3 id="1315-知识可信度一手来源二手来源与模型记忆"><a class="header" href="#1315-知识可信度一手来源二手来源与模型记忆">13.1.5 知识可信度：一手来源、二手来源与模型记忆</a></h3>
 <p>知识系统需要可信度分级。</p>
 <div class="table-wrapper">
 <table>
@@ -289,8 +289,8 @@ flowchart LR
 </div>
 <p>在金融、医疗、法律、运维等高风险场景中，Agent 不应该只给出“看起来合理”的答案，而要说明依据来自哪里、是否足够、是否存在冲突，以及哪些结论只是推断。</p>
 <hr>
-<h2 id="72-知识源形态与选型"><a class="header" href="#72-知识源形态与选型">7.2 知识源形态与选型</a></h2>
-<h3 id="721-markdown--docs-as-code工程化知识沉淀"><a class="header" href="#721-markdown--docs-as-code工程化知识沉淀">7.2.1 Markdown / Docs-as-Code：工程化知识沉淀</a></h3>
+<h2 id="132-知识源形态与选型"><a class="header" href="#132-知识源形态与选型">13.2 知识源形态与选型</a></h2>
+<h3 id="1321-markdown--docs-as-code工程化知识沉淀"><a class="header" href="#1321-markdown--docs-as-code工程化知识沉淀">13.2.1 Markdown / Docs-as-Code：工程化知识沉淀</a></h3>
 <p>Markdown repo、mdBook、Docusaurus、VitePress、MkDocs 和 Obsidian vault 都属于 Docs-as-Code 的范式。它们适合工程团队沉淀长期知识：</p>
 <ul>
 <li>架构设计文档；</li>
@@ -302,7 +302,7 @@ flowchart LR
 </ul>
 <p>它的优势是 Git 友好、review 友好、可版本化、容易被 Agent 读取和修改。对于工程团队，Markdown 最大的价值不是排版，而是把知识放进和代码类似的变更流程里。</p>
 <p>缺点也明显：非技术人员编辑门槛高，权限和评论体验弱，文档多了以后目录和命名会变成治理问题。因此 Markdown 适合“可审查、可自动化、偏工程”的知识，不一定适合跨部门日常协作。</p>
-<h3 id="722-wiki--协作文档系统组织知识协作"><a class="header" href="#722-wiki--协作文档系统组织知识协作">7.2.2 Wiki / 协作文档系统：组织知识协作</a></h3>
+<h3 id="1322-wiki--协作文档系统组织知识协作"><a class="header" href="#1322-wiki--协作文档系统组织知识协作">13.2.2 Wiki / 协作文档系统：组织知识协作</a></h3>
 <p>Confluence、Notion、飞书知识库、语雀、Outline、Wiki.js 等更适合组织协作：</p>
 <ul>
 <li>产品文档；</li>
@@ -314,7 +314,7 @@ flowchart LR
 </ul>
 <p>它们的优势是编辑体验、权限体系、评论协作和模板能力。缺点是结构容易发散，版本控制不如 Git 精确，导出和迁移成本较高，Agent 读取通常需要 API、连接器、爬虫或同步任务。</p>
 <p>Wiki 的治理重点是“信息架构”和“生命周期”。如果没有负责人、目录规范、更新时间和过期机制，Wiki 很容易变成文档坟场。RAG 可以缓解“找不到”的问题，但不能自动解决“文档已经错了”的问题。</p>
-<h3 id="723-rag-知识库大规模非结构化检索"><a class="header" href="#723-rag-知识库大规模非结构化检索">7.2.3 RAG 知识库：大规模非结构化检索</a></h3>
+<h3 id="1323-rag-知识库大规模非结构化检索"><a class="header" href="#1323-rag-知识库大规模非结构化检索">13.2.3 RAG 知识库：大规模非结构化检索</a></h3>
 <p>RAG 适合处理大量非结构化或半结构化文本：</p>
 <ul>
 <li>Wiki；</li>
@@ -327,7 +327,7 @@ flowchart LR
 </ul>
 <p>它的核心价值是让 Agent 可以从海量文档中召回相关证据，而不是依赖模型记忆。</p>
 <p>但 RAG 不是万能知识层。它不擅长实时状态，不擅长精确事务查询，也不擅长维护“当前最佳结论”。如果用户问“这个订单现在在哪个状态”，应该查业务系统；如果问“过去三个月类似故障的处理经验”，RAG 才合适。</p>
-<h3 id="724-mcp-resource标准化暴露明确资源"><a class="header" href="#724-mcp-resource标准化暴露明确资源">7.2.4 MCP Resource：标准化暴露明确资源</a></h3>
+<h3 id="1324-mcp-resource标准化暴露明确资源"><a class="header" href="#1324-mcp-resource标准化暴露明确资源">13.2.4 MCP Resource：标准化暴露明确资源</a></h3>
 <p>MCP Resource 的定位是把明确资源以标准协议暴露给 Agent 读取。例如：</p>
 <pre><code class="language-text">docs://order-system/design
 schema://order-db/orders
@@ -350,7 +350,7 @@ repo://checkout-service/api/openapi.yaml
 </table>
 </div>
 <p>在工程系统里，MCP Resource 常用于暴露项目目录、数据库 schema、API 文档、配置片段、日志样本和运行时上下文。它比把这些内容预先切片进向量库更直接、更可控。</p>
-<h3 id="725-mcp-tool--外部-api实时结构化事实"><a class="header" href="#725-mcp-tool--外部-api实时结构化事实">7.2.5 MCP Tool / 外部 API：实时结构化事实</a></h3>
+<h3 id="1325-mcp-tool--外部-api实时结构化事实"><a class="header" href="#1325-mcp-tool--外部-api实时结构化事实">13.2.5 MCP Tool / 外部 API：实时结构化事实</a></h3>
 <p>Tool 适合查询实时状态或执行动作。典型例子：</p>
 <ul>
 <li><code>get_order_status(order_id)</code>；</li>
@@ -361,7 +361,7 @@ repo://checkout-service/api/openapi.yaml
 <li><code>create_ticket(payload)</code>。</li>
 </ul>
 <p>结构化事实不应该优先进入向量库。向量检索擅长相似度召回，不擅长精确一致性。对于订单状态、库存数量、监控指标、股票价格这类事实，直接查权威系统更可靠。</p>
-<h3 id="726-web-search公开互联网与近期事实"><a class="header" href="#726-web-search公开互联网与近期事实">7.2.6 Web Search：公开互联网与近期事实</a></h3>
+<h3 id="1326-web-search公开互联网与近期事实"><a class="header" href="#1326-web-search公开互联网与近期事实">13.2.6 Web Search：公开互联网与近期事实</a></h3>
 <p>Web Search 适合获取公开互联网中的近期事实：</p>
 <ul>
 <li>新闻；</li>
@@ -376,7 +376,7 @@ repo://checkout-service/api/openapi.yaml
 Web Search：检索公开互联网
 </code></pre>
 <p>区别在于，Web Search 的数据源更开放，可信度更不稳定，因此更依赖来源筛选、日期判断、交叉验证和引用展示。</p>
-<h3 id="727-gbrain-类系统agent-长期知识演化"><a class="header" href="#727-gbrain-类系统agent-长期知识演化">7.2.7 GBrain 类系统：Agent 长期知识演化</a></h3>
+<h3 id="1327-gbrain-类系统agent-长期知识演化"><a class="header" href="#1327-gbrain-类系统agent-长期知识演化">13.2.7 GBrain 类系统：Agent 长期知识演化</a></h3>
 <p>GBrain 类 AI-native knowledge brain 的重点不是“存文档”，而是让 Agent 可以长期维护和演化知识。</p>
 <p>常见设计是：</p>
 <pre><code class="language-text">Markdown：人类可读来源
@@ -387,10 +387,10 @@ Skill：约束 Agent 如何更新知识
 </code></pre>
 <p>它适合个人长期记忆、研究员知识库、投资人知识库、创始人知识系统、项目决策沉淀等场景。核心模式通常是：</p>
 <pre><code class="language-text">compiled truth：当前最佳理解
-evidence timeline：证据和变化历史
+evidence history：证据和变化历史
 </code></pre>
 <p>这种系统和普通 Wiki 的区别在于：Wiki 主要服务人类协作，GBrain 类系统同时服务人类阅读和 Agent 读写。风险也更高，因为 Agent 写入长期知识需要门控、审计、回滚和过期机制。</p>
-<h3 id="728-知识图谱关系密集型知识"><a class="header" href="#728-知识图谱关系密集型知识">7.2.8 知识图谱：关系密集型知识</a></h3>
+<h3 id="1328-知识图谱关系密集型知识"><a class="header" href="#1328-知识图谱关系密集型知识">13.2.8 知识图谱：关系密集型知识</a></h3>
 <p>当问题的关键不在文本相似度，而在人、系统、项目、事件之间的关系时，知识图谱更合适。</p>
 <p>适合知识图谱的场景包括：</p>
 <ul>
@@ -400,7 +400,7 @@ evidence timeline：证据和变化历史
 <li>故障分析中的服务依赖、变更、指标和日志。</li>
 </ul>
 <p>图谱的优势是关系明确、可追踪、适合多跳推理。缺点是建模和维护成本高。早期系统不要一上来就做复杂图谱，除非关系本身就是核心问题。</p>
-<h3 id="729-场景选型表"><a class="header" href="#729-场景选型表">7.2.9 场景选型表</a></h3>
+<h3 id="1329-场景选型表"><a class="header" href="#1329-场景选型表">13.2.9 场景选型表</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -420,8 +420,8 @@ evidence timeline：证据和变化历史
 </table>
 </div>
 <hr>
-<h2 id="73-rag-基础从文档到检索索引"><a class="header" href="#73-rag-基础从文档到检索索引">7.3 RAG 基础：从文档到检索索引</a></h2>
-<h3 id="731-rag-真正解决什么问题"><a class="header" href="#731-rag-真正解决什么问题">7.3.1 RAG 真正解决什么问题</a></h3>
+<h2 id="133-rag-基础从文档到检索索引"><a class="header" href="#133-rag-基础从文档到检索索引">13.3 RAG 基础：从文档到检索索引</a></h2>
+<h3 id="1331-rag-真正解决什么问题"><a class="header" href="#1331-rag-真正解决什么问题">13.3.1 RAG 真正解决什么问题</a></h3>
 <p>RAG 的核心不是“让模型读文档”，而是把外部知识变成可检索、可引用、可验证的证据上下文。</p>
 <p>基本流程是：</p>
 <pre><code class="language-text">User Query
@@ -445,7 +445,7 @@ evidence timeline：证据和变化历史
 <li>需要权限审批的动作；</li>
 <li>需要持续探索和验证的研究任务。</li>
 </ul>
-<h3 id="732-生产级-rag-的离线与在线链路"><a class="header" href="#732-生产级-rag-的离线与在线链路">7.3.2 生产级 RAG 的离线与在线链路</a></h3>
+<h3 id="1332-生产级-rag-的离线与在线链路"><a class="header" href="#1332-生产级-rag-的离线与在线链路">13.3.2 生产级 RAG 的离线与在线链路</a></h3>
 <p>生产级 RAG 通常分成离线链路和在线链路。</p>
 <pre class="mermaid">
 flowchart TB
@@ -469,7 +469,7 @@ flowchart TB
 </pre>
 
 <p>离线链路决定知识质量上限。在线链路决定用户问题能否命中正确证据。只优化 embedding 模型而忽略文档解析、chunk、metadata 和 rerank，通常不会得到稳定效果。</p>
-<h3 id="733-文档摄取解析清洗版本与生命周期"><a class="header" href="#733-文档摄取解析清洗版本与生命周期">7.3.3 文档摄取：解析、清洗、版本与生命周期</a></h3>
+<h3 id="1333-文档摄取解析清洗版本与生命周期"><a class="header" href="#1333-文档摄取解析清洗版本与生命周期">13.3.3 文档摄取：解析、清洗、版本与生命周期</a></h3>
 <p>文档摄取不是简单读文件。不同来源有不同风险。</p>
 <div class="table-wrapper">
 <table>
@@ -499,7 +499,7 @@ flowchart TB
 </ul>
 <p>清洗时要删除导航、广告、重复页脚、无意义模板和过期提示，但不能把引用、表格标题和代码上下文误删。</p>
 <p>生命周期也很重要。每个文档和 chunk 都应该有稳定 ID、版本、更新时间、失效状态和来源链接。否则引用会漂移，debug 时无法复现。</p>
-<h3 id="734-chunk-策略检索单位上下文单位引用单位"><a class="header" href="#734-chunk-策略检索单位上下文单位引用单位">7.3.4 Chunk 策略：检索单位、上下文单位、引用单位</a></h3>
+<h3 id="1334-chunk-策略检索单位上下文单位引用单位"><a class="header" href="#1334-chunk-策略检索单位上下文单位引用单位">13.3.4 Chunk 策略：检索单位、上下文单位、引用单位</a></h3>
 <p>Chunk 不是越小越好，也不是越大越好。它至少有三种角色：</p>
 <pre><code class="language-text">检索单位：用于召回
 上下文单位：放入 prompt
@@ -524,7 +524,7 @@ flowchart TB
 parent section：用于上下文展示和引用
 </code></pre>
 <p>这样可以兼顾召回精度和回答完整性。</p>
-<h3 id="735-metadata让检索从相似走向可控"><a class="header" href="#735-metadata让检索从相似走向可控">7.3.5 Metadata：让检索从“相似”走向“可控”</a></h3>
+<h3 id="1335-metadata让检索从相似走向可控"><a class="header" href="#1335-metadata让检索从相似走向可控">13.3.5 Metadata：让检索从“相似”走向“可控”</a></h3>
 <p>没有 metadata 的 RAG 只能做“相似文本搜索”。生产系统需要可控检索。</p>
 <p>推荐 metadata 包含：</p>
 <pre><code class="language-json">{
@@ -552,8 +552,18 @@ parent section：用于上下文展示和引用
 <li>过期内容治理。</li>
 </ul>
 <p>如果 metadata 缺失，系统很难回答“为什么召回了这个 chunk”“这个文档是否过期”“用户是否有权限看”。</p>
-<h3 id="736-embedding-与向量索引"><a class="header" href="#736-embedding-与向量索引">7.3.6 Embedding 与向量索引</a></h3>
-<p>Embedding 把文本映射到向量空间，使语义相近的文本距离更近。选型时要关注：</p>
+<h3 id="1336-embedding-与向量索引"><a class="header" href="#1336-embedding-与向量索引">13.3.6 Embedding 与向量索引</a></h3>
+<p>Embedding model 把文本映射到向量空间，使语义相近的文本距离更近。例如：</p>
+<pre><code class="language-text">"订单退款规则" -&gt; [0.12, -0.03, ...]
+"如何退订酒店订单" -&gt; [0.10, -0.01, ...]
+</code></pre>
+<p>向量检索会把用户 query 和文档 chunk 分别编码成向量，再找距离最近的候选。常见相似度包括 cosine similarity、dot product 和 L2 distance。</p>
+<p>这里的 embedding 要和第2章里的 <strong>LLM token embedding</strong> 区分开：</p>
+<pre><code class="language-text">LLM token embedding：模型内部把 token ID 映射成初始向量
+RAG text embedding：检索系统把 query / document 映射成语义索引
+</code></pre>
+<p>两者都叫 embedding，但工程位置不同。RAG embedding 是外部知识系统的一部分，目标是“找相关证据”；LLM token embedding 是模型权重的一部分，目标是“让 token 进入 Transformer 计算”。</p>
+<p>选型 embedding model 时要关注：</p>
 <ul>
 <li>中文、英文、多语言效果；</li>
 <li>代码和表格支持；</li>
@@ -563,8 +573,21 @@ parent section：用于上下文展示和引用
 <li>是否需要本地部署。</li>
 </ul>
 <p>向量索引用于近似最近邻搜索。常见实现包括 HNSW、IVF、PQ 等。工程选型通常由数据规模、召回质量、延迟、更新频率和部署约束决定。</p>
-<p>但 embedding 不是搜索的全部。它擅长语义相似，不擅长精确匹配实体、错误码、接口名、类名、订单号和配置 key。</p>
-<h3 id="737-hybrid-search关键词检索为什么仍然重要"><a class="header" href="#737-hybrid-search关键词检索为什么仍然重要">7.3.7 Hybrid Search：关键词检索为什么仍然重要</a></h3>
+<p>但 embedding 不是搜索的全部。它擅长语义相似，不擅长精确匹配实体、错误码、接口名、类名、订单号、版本号和配置 key。一个单向量表示会压缩掉很多细节，尤其是数字、否定、时间、表格结构、代码符号和权限语义。因此生产 RAG 不能只靠向量库。</p>
+<h3 id="1337-hybrid-search关键词检索为什么仍然重要"><a class="header" href="#1337-hybrid-search关键词检索为什么仍然重要">13.3.7 Hybrid Search：关键词检索为什么仍然重要</a></h3>
+<p>检索方法可以粗略分成三类：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">方法</th><th style="text-align: left">机制</th><th style="text-align: left">优点</th><th style="text-align: left">短板</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Sparse Retrieval</td><td style="text-align: left">BM25、关键词、倒排索引</td><td style="text-align: left">可解释，适合错误码、接口名、版本号</td><td style="text-align: left">同义改写能力弱</td></tr>
+<tr><td style="text-align: left">Dense Retrieval</td><td style="text-align: left">embedding 向量语义匹配</td><td style="text-align: left">能处理语义相似和自然语言改写</td><td style="text-align: left">容易忽略精确符号和结构细节</td></tr>
+<tr><td style="text-align: left">Hybrid Retrieval</td><td style="text-align: left">sparse + dense + filter</td><td style="text-align: left">兼顾语义召回和精确匹配</td><td style="text-align: left">需要合并、去重和排序策略</td></tr>
+</tbody>
+</table>
+</div>
 <p>生产级 RAG 通常需要 hybrid search：</p>
 <pre><code class="language-text">Dense Retrieval：语义召回
 Sparse Retrieval：关键词 / BM25 召回
@@ -588,9 +611,10 @@ Rerank：统一排序
 → deduplicate
 → rerank
 </code></pre>
+<p>这背后的原则是：召回阶段尽量不要漏掉候选，排序阶段再精细判断哪些证据真正有用。</p>
 <hr>
-<h2 id="74-在线检索-pipeline"><a class="header" href="#74-在线检索-pipeline">7.4 在线检索 Pipeline</a></h2>
-<h3 id="741-query-understanding理解用户到底要查什么"><a class="header" href="#741-query-understanding理解用户到底要查什么">7.4.1 Query Understanding：理解用户到底要查什么</a></h3>
+<h2 id="134-在线检索-pipeline"><a class="header" href="#134-在线检索-pipeline">13.4 在线检索 Pipeline</a></h2>
+<h3 id="1341-query-understanding理解用户到底要查什么"><a class="header" href="#1341-query-understanding理解用户到底要查什么">13.4.1 Query Understanding：理解用户到底要查什么</a></h3>
 <p>用户问题往往不等于检索 query。在线 pipeline 的第一步是理解用户到底需要什么。</p>
 <p>需要识别：</p>
 <ul>
@@ -611,7 +635,7 @@ Rerank：统一排序
 - 输出：关注指标和情景化操作框架
 - 风险：金融建议，需要免责声明和来源
 </code></pre>
-<h3 id="742-query-rewrite-与-query-expansion"><a class="header" href="#742-query-rewrite-与-query-expansion">7.4.2 Query Rewrite 与 Query Expansion</a></h3>
+<h3 id="1342-query-rewrite-与-query-expansion"><a class="header" href="#1342-query-rewrite-与-query-expansion">13.4.2 Query Rewrite 与 Query Expansion</a></h3>
 <p>Query Rewrite 把用户问题改写成更适合检索的表达。Query Expansion 补充同义词、实体别名和相关字段。</p>
 <pre><code class="language-text">原问题：支付失败兜底怎么做？
 
@@ -622,7 +646,7 @@ rewrite:
 - payment timeout compensation
 </code></pre>
 <p>改写不能失控。过度 expansion 会引入噪声。工程上可以限制 expansion 的数量，并把扩展词记录到 trace 中，方便排查召回为什么偏了。</p>
-<h3 id="743-source-routing选择知识源"><a class="header" href="#743-source-routing选择知识源">7.4.3 Source Routing：选择知识源</a></h3>
+<h3 id="1343-source-routing选择知识源"><a class="header" href="#1343-source-routing选择知识源">13.4.3 Source Routing：选择知识源</a></h3>
 <p>在线检索中的 Source Routing 需要结合问题类型、实体、时间窗口和权限。</p>
 <pre><code class="language-json">{
   "question_type": "incident_diagnosis",
@@ -643,7 +667,7 @@ rewrite:
 <li>历史事故提供经验；</li>
 <li>代码和配置提供实现依据。</li>
 </ul>
-<h3 id="744-candidate-retrieval召回候选证据"><a class="header" href="#744-candidate-retrieval召回候选证据">7.4.4 Candidate Retrieval：召回候选证据</a></h3>
+<h3 id="1344-candidate-retrieval召回候选证据"><a class="header" href="#1344-candidate-retrieval召回候选证据">13.4.4 Candidate Retrieval：召回候选证据</a></h3>
 <p>Candidate Retrieval 的目标是高召回，不是最终排序。常见做法是：</p>
 <ul>
 <li>向量召回；</li>
@@ -664,8 +688,11 @@ rewrite:
 }
 </code></pre>
 <p>这些信息对后续 debug 很有价值。</p>
-<h3 id="745-rerank让结果从相似变成有用"><a class="header" href="#745-rerank让结果从相似变成有用">7.4.5 Rerank：让结果从“相似”变成“有用”</a></h3>
-<p>Rerank 解决的是候选结果排序问题。相似不等于有用。一个 chunk 可能和问题很像，但内容过期、权限不匹配、只讲背景、不包含答案。</p>
+<h3 id="1345-rerank让结果从相似变成有用"><a class="header" href="#1345-rerank让结果从相似变成有用">13.4.5 Rerank：让结果从“相似”变成“有用”</a></h3>
+<p>Rerank 解决的是候选结果排序问题。Embedding 检索通常负责从大量文档中快速召回候选，例如 top 50 或 top 100；reranker 负责对候选进行更精细排序，例如选出 top 5。可以把它压缩成一句话：</p>
+<pre><code class="language-text">召回要快，排序要准。
+</code></pre>
+<p>相似不等于有用。一个 chunk 可能和问题很像，但内容过期、权限不匹配、只讲背景、不包含答案。</p>
 <p>Rerank 可以考虑：</p>
 <ul>
 <li>与问题的相关性；</li>
@@ -677,14 +704,15 @@ rewrite:
 <li>用户权限；</li>
 <li>是否是一手来源。</li>
 </ul>
+<p>常见 reranker 是 cross-encoder：它同时读取 query 和 document，判断两者是否真的相关。相比 embedding，它更准但更慢，所以通常不用于全库检索，而用于候选集重排。</p>
 <p>生产系统里，rerank 往往比单纯换 embedding 模型更能提升最终回答质量。</p>
-<h3 id="746-去重多样性与权限过滤"><a class="header" href="#746-去重多样性与权限过滤">7.4.6 去重、多样性与权限过滤</a></h3>
+<h3 id="1346-去重多样性与权限过滤"><a class="header" href="#1346-去重多样性与权限过滤">13.4.6 去重、多样性与权限过滤</a></h3>
 <p>检索结果容易出现重复：同一文档的相邻 chunk、复制到多个 Wiki 页面、旧版和新版文档同时存在。去重需要在 chunk、section、doc 三个层级做。</p>
 <p>多样性也重要。复杂问题需要来自不同来源的证据：</p>
 <pre><code class="language-text">设计文档 + API schema + 最近变更 + 历史事故
 </code></pre>
 <p>权限过滤必须发生在进入模型上下文之前。模型不应该看到用户无权访问的证据，再靠 prompt 要求它“不泄露”。权限应该由检索层或资源层强制执行。</p>
-<h3 id="747-context-package把检索结果变成证据包"><a class="header" href="#747-context-package把检索结果变成证据包">7.4.7 Context Package：把检索结果变成证据包</a></h3>
+<h3 id="1347-context-package把检索结果变成证据包"><a class="header" href="#1347-context-package把检索结果变成证据包">13.4.7 Context Package：把检索结果变成证据包</a></h3>
 <p>最终进入模型的不是原始 top-k，而是 Context Package。</p>
 <p>一个好的 Context Package 至少包含：</p>
 <pre><code class="language-json">{
@@ -708,8 +736,8 @@ rewrite:
 </code></pre>
 <p>Context Package 的目标是让模型更容易做正确综合，而不是让模型在杂乱 chunk 中自行猜测。</p>
 <hr>
-<h2 id="75-web-search-与实时外部知识"><a class="header" href="#75-web-search-与实时外部知识">7.5 Web Search 与实时外部知识</a></h2>
-<h3 id="751-web-search-的实现原理"><a class="header" href="#751-web-search-的实现原理">7.5.1 Web Search 的实现原理</a></h3>
+<h2 id="135-web-search-与实时外部知识"><a class="header" href="#135-web-search-与实时外部知识">13.5 Web Search 与实时外部知识</a></h2>
+<h3 id="1351-web-search-的实现原理"><a class="header" href="#1351-web-search-的实现原理">13.5.1 Web Search 的实现原理</a></h3>
 <p>Web Search 不是模型“自己上网”，而是模型通过受控工具访问搜索和网页内容。</p>
 <p>典型链路是：</p>
 <pre><code class="language-text">用户问题
@@ -723,7 +751,7 @@ rewrite:
 → 基于来源回答
 </code></pre>
 <p>推理模型还可能多轮搜索：先搜概览，再搜一手来源，再打开页面验证细节，最后综合回答。</p>
-<h3 id="752-google-apibingbraveserpapitavilyexa-的角色"><a class="header" href="#752-google-apibingbraveserpapitavilyexa-的角色">7.5.2 Google API、Bing、Brave、SerpAPI、Tavily、Exa 的角色</a></h3>
+<h3 id="1352-google-apibingbraveserpapitavilyexa-的角色"><a class="header" href="#1352-google-apibingbraveserpapitavilyexa-的角色">13.5.2 Google API、Bing、Brave、SerpAPI、Tavily、Exa 的角色</a></h3>
 <p>Web Search 的底层不一定是 Google API。它可以有多种实现。</p>
 <div class="table-wrapper">
 <table>
@@ -740,7 +768,7 @@ rewrite:
 </table>
 </div>
 <p>生产级 Agent 往往会混合多个来源，而不是只依赖一个通用搜索 API。</p>
-<h3 id="753-搜索结果网页正文与内容清洗"><a class="header" href="#753-搜索结果网页正文与内容清洗">7.5.3 搜索结果、网页正文与内容清洗</a></h3>
+<h3 id="1353-搜索结果网页正文与内容清洗"><a class="header" href="#1353-搜索结果网页正文与内容清洗">13.5.3 搜索结果、网页正文与内容清洗</a></h3>
 <p>搜索 API 返回的 snippet 往往不够。Agent 需要正文、发布时间、作者、标题、表格和引用来源。</p>
 <p>网页清洗需要去掉：</p>
 <ul>
@@ -762,7 +790,7 @@ rewrite:
 <li>引用位置。</li>
 </ul>
 <p>对于近期事实，时间尤其重要。同一家公司新闻，2024 年的消息和 2026 年的消息不能混用。回答里应该明确“截至哪个日期检索到的信息”。</p>
-<h3 id="754-自建索引与垂直搜索"><a class="header" href="#754-自建索引与垂直搜索">7.5.4 自建索引与垂直搜索</a></h3>
+<h3 id="1354-自建索引与垂直搜索"><a class="header" href="#1354-自建索引与垂直搜索">13.5.4 自建索引与垂直搜索</a></h3>
 <p>大型平台或垂直领域系统可能不会完全依赖第三方搜索 API，而是自建索引：</p>
 <pre><code class="language-text">Crawler
 → Parser
@@ -782,7 +810,7 @@ rewrite:
 <li>需要权限隔离。</li>
 </ul>
 <p>缺点是成本高，尤其是抓取、反爬、内容清洗、增量更新和质量评估。</p>
-<h3 id="755-实时事实为什么常常需要专用-api"><a class="header" href="#755-实时事实为什么常常需要专用-api">7.5.5 实时事实为什么常常需要专用 API</a></h3>
+<h3 id="1355-实时事实为什么常常需要专用-api"><a class="header" href="#1355-实时事实为什么常常需要专用-api">13.5.5 实时事实为什么常常需要专用 API</a></h3>
 <p>Web Search 适合查公开网页，但不一定适合查实时结构化事实。</p>
 <p>例如股票分析：</p>
 <ul>
@@ -793,7 +821,7 @@ rewrite:
 <li>分析师评级和财务数据应来自专业数据源。</li>
 </ul>
 <p>如果只靠网页搜索，可能拿到过期价格、转载新闻、无来源评论或延迟数据。</p>
-<h3 id="756-股票分析案例行情新闻财报技术指标如何组合"><a class="header" href="#756-股票分析案例行情新闻财报技术指标如何组合">7.5.6 股票分析案例：行情、新闻、财报、技术指标如何组合</a></h3>
+<h3 id="1356-股票分析案例行情新闻财报技术指标如何组合"><a class="header" href="#1356-股票分析案例行情新闻财报技术指标如何组合">13.5.6 股票分析案例：行情、新闻、财报、技术指标如何组合</a></h3>
 <p>当用户问：</p>
 <pre><code class="language-text">结合最近某只股票的趋势和相关新闻，分析短期应该关注的指标。
 </code></pre>
@@ -828,14 +856,14 @@ flowchart LR
 </ul>
 <p>输出应是情景化框架，而不是承诺收益。例如：“若价格放量突破某压力位，关注延续；若跌破某支撑位，说明短期趋势失效。”</p>
 <hr>
-<h2 id="76-mcp-resourcetool-与-rag-的组合"><a class="header" href="#76-mcp-resourcetool-与-rag-的组合">7.6 MCP Resource、Tool 与 RAG 的组合</a></h2>
-<h3 id="761-rag-与-mcp-resource-的本质区别"><a class="header" href="#761-rag-与-mcp-resource-的本质区别">7.6.1 RAG 与 MCP Resource 的本质区别</a></h3>
+<h2 id="136-mcp-resourcetool-与-rag-的组合"><a class="header" href="#136-mcp-resourcetool-与-rag-的组合">13.6 MCP Resource、Tool 与 RAG 的组合</a></h2>
+<h3 id="1361-rag-与-mcp-resource-的本质区别"><a class="header" href="#1361-rag-与-mcp-resource-的本质区别">13.6.1 RAG 与 MCP Resource 的本质区别</a></h3>
 <p>RAG 是检索系统，MCP Resource 是资源访问接口。</p>
 <pre><code class="language-text">RAG：不知道读哪篇文档，所以先搜索
 MCP Resource：已经知道资源 URI，所以直接读取
 </code></pre>
 <p>这一区分很重要。很多系统把 schema、配置、API 文档都切进向量库，导致回答依赖相似度召回。更好的做法是：明确资源通过 MCP Resource 暴露，需要搜索时再由 RAG 找到资源入口。</p>
-<h3 id="762-resource读取明确上下文"><a class="header" href="#762-resource读取明确上下文">7.6.2 Resource：读取明确上下文</a></h3>
+<h3 id="1362-resource读取明确上下文"><a class="header" href="#1362-resource读取明确上下文">13.6.2 Resource：读取明确上下文</a></h3>
 <p>Resource 适合稳定、明确、可枚举的上下文：</p>
 <pre><code class="language-text">schema://order-db/orders
 api://payment-service/openapi
@@ -849,7 +877,7 @@ repo://pricing-service/README.md
 → summarize or use as evidence
 </code></pre>
 <p>Resource 的优势是可控、可权限化、可审计。它不需要把所有内容提前 embedding，也不依赖语义相似度命中。</p>
-<h3 id="763-tool查询实时状态或执行动作"><a class="header" href="#763-tool查询实时状态或执行动作">7.6.3 Tool：查询实时状态或执行动作</a></h3>
+<h3 id="1363-tool查询实时状态或执行动作"><a class="header" href="#1363-tool查询实时状态或执行动作">13.6.3 Tool：查询实时状态或执行动作</a></h3>
 <p>Tool 适合带参数的查询和动作：</p>
 <pre><code class="language-json">{
   "tool": "query_logs",
@@ -862,7 +890,7 @@ repo://pricing-service/README.md
 }
 </code></pre>
 <p>Tool 结果应该被纳入 Evidence，而不是直接拼成自然语言上下文。这样系统才能记录来源、时间、参数和可信度。</p>
-<h3 id="764-rag--mcp-resource先检索再读取完整资源"><a class="header" href="#764-rag--mcp-resource先检索再读取完整资源">7.6.4 RAG + MCP Resource：先检索，再读取完整资源</a></h3>
+<h3 id="1364-rag--mcp-resource先检索再读取完整资源"><a class="header" href="#1364-rag--mcp-resource先检索再读取完整资源">13.6.4 RAG + MCP Resource：先检索，再读取完整资源</a></h3>
 <p>一种常见组合是：</p>
 <pre><code class="language-text">User Query
 → RAG search 找到相关文档片段
@@ -871,7 +899,7 @@ repo://pricing-service/README.md
 → 构建 Evidence Packet
 </code></pre>
 <p>这样可以避免只引用片段而丢失上下文，也能把最终引用定位到稳定资源。</p>
-<h3 id="765-rag--tool把工具结果纳入-evidence"><a class="header" href="#765-rag--tool把工具结果纳入-evidence">7.6.5 RAG + Tool：把工具结果纳入 Evidence</a></h3>
+<h3 id="1365-rag--tool把工具结果纳入-evidence"><a class="header" href="#1365-rag--tool把工具结果纳入-evidence">13.6.5 RAG + Tool：把工具结果纳入 Evidence</a></h3>
 <p>复杂问题通常需要文档和工具共同提供证据。</p>
 <p>例如排查事故：</p>
 <pre><code class="language-text">Runbook RAG：告诉你标准处理流程
@@ -890,7 +918,7 @@ Incident RAG：告诉你历史类似案例
   "content": "order-service p95 latency increased from 120ms to 850ms after 10:35."
 }
 </code></pre>
-<h3 id="766-tool-augmented-retrieval-的优先级与风险"><a class="header" href="#766-tool-augmented-retrieval-的优先级与风险">7.6.6 Tool-Augmented Retrieval 的优先级与风险</a></h3>
+<h3 id="1366-tool-augmented-retrieval-的优先级与风险"><a class="header" href="#1366-tool-augmented-retrieval-的优先级与风险">13.6.6 Tool-Augmented Retrieval 的优先级与风险</a></h3>
 <p>工具结果通常比历史文档更接近当前事实，但也有风险：</p>
 <ul>
 <li>工具参数可能错；</li>
@@ -904,8 +932,8 @@ Incident RAG：告诉你历史类似案例
 </code></pre>
 <p>同时要保留 tool call trace，包括参数、时间、返回摘要和错误状态。</p>
 <hr>
-<h2 id="77-agentic-rag复杂知识任务的控制循环"><a class="header" href="#77-agentic-rag复杂知识任务的控制循环">7.7 Agentic RAG：复杂知识任务的控制循环</a></h2>
-<h3 id="771-为什么普通-rag-不够"><a class="header" href="#771-为什么普通-rag-不够">7.7.1 为什么普通 RAG 不够</a></h3>
+<h2 id="137-agentic-rag复杂知识任务的控制循环"><a class="header" href="#137-agentic-rag复杂知识任务的控制循环">13.7 Agentic RAG：复杂知识任务的控制循环</a></h2>
+<h3 id="1371-为什么普通-rag-不够"><a class="header" href="#1371-为什么普通-rag-不够">13.7.1 为什么普通 RAG 不够</a></h3>
 <p>普通 RAG 假设一次检索就能找到足够证据。但很多任务不满足这个假设：</p>
 <ul>
 <li>问题太宽，需要先拆解；</li>
@@ -919,7 +947,7 @@ Incident RAG：告诉你历史类似案例
 <pre><code class="language-text">我们最近几次订单超时事故的共同根因是什么？现在这个告警是不是同类问题？
 </code></pre>
 <p>这不是一次 top-k 检索能解决的问题。Agent 需要先查历史事故，再抽取共同模式，再查当前日志和指标，最后判断是否相似。</p>
-<h3 id="772-什么时候需要-agentic-rag"><a class="header" href="#772-什么时候需要-agentic-rag">7.7.2 什么时候需要 Agentic RAG</a></h3>
+<h3 id="1372-什么时候需要-agentic-rag"><a class="header" href="#1372-什么时候需要-agentic-rag">13.7.2 什么时候需要 Agentic RAG</a></h3>
 <p>满足以下条件时，应该考虑 Agentic RAG：</p>
 <ul>
 <li>需要拆解成多个子问题；</li>
@@ -931,7 +959,7 @@ Incident RAG：告诉你历史类似案例
 <li>需要过程 trace 和可恢复性。</li>
 </ul>
 <p>不应该把所有问题都升级成 Agentic RAG。简单 FAQ、明确文档问答、单资源读取不需要多轮搜索，否则只会增加延迟、成本和不稳定性。</p>
-<h3 id="773-plan把问题拆成可检索任务"><a class="header" href="#773-plan把问题拆成可检索任务">7.7.3 Plan：把问题拆成可检索任务</a></h3>
+<h3 id="1373-plan把问题拆成可检索任务"><a class="header" href="#1373-plan把问题拆成可检索任务">13.7.3 Plan：把问题拆成可检索任务</a></h3>
 <p>Agentic RAG 的第一步是生成检索计划。</p>
 <pre><code class="language-json">{
   "goal": "分析当前订单超时告警是否与历史支付补偿问题相关",
@@ -959,7 +987,7 @@ Incident RAG：告诉你历史类似案例
 }
 </code></pre>
 <p>计划必须包含预算。没有预算的 Agentic RAG 容易无限检索。</p>
-<h3 id="774-retrieve按子问题检索"><a class="header" href="#774-retrieve按子问题检索">7.7.4 Retrieve：按子问题检索</a></h3>
+<h3 id="1374-retrieve按子问题检索"><a class="header" href="#1374-retrieve按子问题检索">13.7.4 Retrieve：按子问题检索</a></h3>
 <p>Retrieve 阶段按子问题选择不同工具和知识源。它不是简单循环调用同一个 search。</p>
 <pre><code class="language-text">Q1 → incident RAG
 Q2 → log tool
@@ -976,7 +1004,7 @@ Q4 → runbook Resource
 <li>失败原因；</li>
 <li>进入 evidence state 的内容。</li>
 </ul>
-<h3 id="775-read抽取结构化证据"><a class="header" href="#775-read抽取结构化证据">7.7.5 Read：抽取结构化证据</a></h3>
+<h3 id="1375-read抽取结构化证据"><a class="header" href="#1375-read抽取结构化证据">13.7.5 Read：抽取结构化证据</a></h3>
 <p>Agentic RAG 不应该把检索结果原样堆进上下文。Read 阶段要把结果抽取成结构化证据。</p>
 <pre><code class="language-json">{
   "evidence_id": "E7",
@@ -992,7 +1020,7 @@ Q4 → runbook Resource
 }
 </code></pre>
 <p>结构化证据让后续验证、引用和冲突处理变得可做。</p>
-<h3 id="776-evidence-state维护证据状态"><a class="header" href="#776-evidence-state维护证据状态">7.7.6 Evidence State：维护证据状态</a></h3>
+<h3 id="1376-evidence-state维护证据状态"><a class="header" href="#1376-evidence-state维护证据状态">13.7.6 Evidence State：维护证据状态</a></h3>
 <p>Evidence State 是 Agentic RAG 的工作记忆，不等于长期 Memory。</p>
 <p>它应该记录：</p>
 <ul>
@@ -1014,7 +1042,7 @@ Q4 → runbook Resource
 ├─ visited_sources
 └─ budget_used
 </code></pre>
-<h3 id="777-decide-next-step继续检索换源验证或停止"><a class="header" href="#777-decide-next-step继续检索换源验证或停止">7.7.7 Decide Next Step：继续检索、换源、验证或停止</a></h3>
+<h3 id="1377-decide-next-step继续检索换源验证或停止"><a class="header" href="#1377-decide-next-step继续检索换源验证或停止">13.7.7 Decide Next Step：继续检索、换源、验证或停止</a></h3>
 <p>每轮检索后，Agent 需要决定下一步：</p>
 <ul>
 <li>证据足够，进入综合；</li>
@@ -1032,7 +1060,7 @@ Q4 → runbook Resource
 - max_rounds reached
 - cost or latency budget exhausted
 </code></pre>
-<h3 id="778-synthesize--verify综合与验证"><a class="header" href="#778-synthesize--verify综合与验证">7.7.8 Synthesize + Verify：综合与验证</a></h3>
+<h3 id="1378-synthesize--verify综合与验证"><a class="header" href="#1378-synthesize--verify综合与验证">13.7.8 Synthesize + Verify：综合与验证</a></h3>
 <p>综合阶段不是简单总结所有证据，而是把证据映射到 claim。</p>
 <p>输出前应检查：</p>
 <ul>
@@ -1050,8 +1078,8 @@ Q4 → runbook Resource
 建议下一步验证
 </code></pre>
 <hr>
-<h2 id="78-高级检索模式"><a class="header" href="#78-高级检索模式">7.8 高级检索模式</a></h2>
-<h3 id="781-query-decomposition-的风险"><a class="header" href="#781-query-decomposition-的风险">7.8.1 Query Decomposition 的风险</a></h3>
+<h2 id="138-高级检索模式"><a class="header" href="#138-高级检索模式">13.8 高级检索模式</a></h2>
+<h3 id="1381-query-decomposition-的风险"><a class="header" href="#1381-query-decomposition-的风险">13.8.1 Query Decomposition 的风险</a></h3>
 <p>Query Decomposition 可以提升复杂问题处理能力，但也会引入风险：</p>
 <ul>
 <li>拆出的子问题偏离用户目标；</li>
@@ -1066,7 +1094,7 @@ Q4 → runbook Resource
 每个子问题都有预期来源
 子问题数量受预算约束
 </code></pre>
-<h3 id="782-multi-hop-retrieval跨证据链路检索"><a class="header" href="#782-multi-hop-retrieval跨证据链路检索">7.8.2 Multi-hop Retrieval：跨证据链路检索</a></h3>
+<h3 id="1382-multi-hop-retrieval跨证据链路检索"><a class="header" href="#1382-multi-hop-retrieval跨证据链路检索">13.8.2 Multi-hop Retrieval：跨证据链路检索</a></h3>
 <p>Multi-hop Retrieval 用于答案需要跨多个证据节点时。</p>
 <p>例如：</p>
 <pre><code class="language-text">哪个配置变更导致了最近的支付超时？
@@ -1075,7 +1103,7 @@ Q4 → runbook Resource
 <pre><code class="language-text">告警时间 → 相关服务 → 最近部署 → 配置 diff → 代码路径 → 历史事故
 </code></pre>
 <p>每一跳都要产生新的实体或约束，而不是盲目继续搜索。</p>
-<h3 id="783-bridge-entity通过中间实体继续追踪"><a class="header" href="#783-bridge-entity通过中间实体继续追踪">7.8.3 Bridge Entity：通过中间实体继续追踪</a></h3>
+<h3 id="1383-bridge-entity通过中间实体继续追踪"><a class="header" href="#1383-bridge-entity通过中间实体继续追踪">13.8.3 Bridge Entity：通过中间实体继续追踪</a></h3>
 <p>Bridge Entity 是多跳检索中的桥梁实体。它可能是服务名、接口名、错误码、配置 key、人员、公司、论文术语或数据库表。</p>
 <p>例如：</p>
 <pre><code class="language-text">用户问题：为什么 checkout 最近变慢？
@@ -1087,7 +1115,7 @@ Q4 → runbook Resource
 第三跳：promotion_rule_cache miss spike
 </code></pre>
 <p>Bridge Entity 必须来自证据，而不是模型凭空生成。</p>
-<h3 id="784-graphrag当关系比文本相似更重要"><a class="header" href="#784-graphrag当关系比文本相似更重要">7.8.4 GraphRAG：当关系比文本相似更重要</a></h3>
+<h3 id="1384-graphrag当关系比文本相似更重要"><a class="header" href="#1384-graphrag当关系比文本相似更重要">13.8.4 GraphRAG：当关系比文本相似更重要</a></h3>
 <p>GraphRAG 适合关系密集问题：</p>
 <ul>
 <li>服务依赖；</li>
@@ -1110,7 +1138,7 @@ Q4 → runbook Resource
 </table>
 </div>
 <p>GraphRAG 的风险是图谱过期、边关系错误、实体消歧困难。它应该和文本证据、工具结果结合，而不是替代所有检索。</p>
-<h3 id="785-long-context-与-rag-的组合"><a class="header" href="#785-long-context-与-rag-的组合">7.8.5 Long-context 与 RAG 的组合</a></h3>
+<h3 id="1385-long-context-与-rag-的组合"><a class="header" href="#1385-long-context-与-rag-的组合">13.8.5 Long-context 与 RAG 的组合</a></h3>
 <p>长上下文可以减少切片损失，但不能替代 RAG。</p>
 <p>长上下文解决的是：</p>
 <ul>
@@ -1133,7 +1161,7 @@ Long-context 负责容纳
 Rerank 负责排序
 Context Builder 负责组织
 </code></pre>
-<h3 id="786-反证检索与-self-verification"><a class="header" href="#786-反证检索与-self-verification">7.8.6 反证检索与 Self-Verification</a></h3>
+<h3 id="1386-反证检索与-self-verification"><a class="header" href="#1386-反证检索与-self-verification">13.8.6 反证检索与 Self-Verification</a></h3>
 <p>高风险回答需要反证检索。不要只检索支持当前结论的证据，也要检索可能推翻结论的证据。</p>
 <p>例如：</p>
 <pre><code class="language-text">初步结论：超时由支付网关变慢导致。
@@ -1146,8 +1174,8 @@ Context Builder 负责组织
 </code></pre>
 <p>Self-Verification 的目标不是让模型“自信”，而是让系统检查回答是否被证据支持。</p>
 <hr>
-<h2 id="79-证据引用与可信回答"><a class="header" href="#79-证据引用与可信回答">7.9 证据、引用与可信回答</a></h2>
-<h3 id="791-evidence-packet-的结构"><a class="header" href="#791-evidence-packet-的结构">7.9.1 Evidence Packet 的结构</a></h3>
+<h2 id="139-证据引用与可信回答"><a class="header" href="#139-证据引用与可信回答">13.9 证据、引用与可信回答</a></h2>
+<h3 id="1391-evidence-packet-的结构"><a class="header" href="#1391-evidence-packet-的结构">13.9.1 Evidence Packet 的结构</a></h3>
 <p>Evidence Packet 是知识系统交给模型的事实载体。它应该比原始 chunk 更结构化。</p>
 <pre><code class="language-json">{
   "id": "E12",
@@ -1165,7 +1193,7 @@ Context Builder 负责组织
 }
 </code></pre>
 <p>Evidence Packet 的关键字段是来源、时间、可信度和限制条件。没有这些字段，模型很容易把局部证据说成全局结论。</p>
-<h3 id="792-token-预算与上下文压缩"><a class="header" href="#792-token-预算与上下文压缩">7.9.2 Token 预算与上下文压缩</a></h3>
+<h3 id="1392-token-预算与上下文压缩"><a class="header" href="#1392-token-预算与上下文压缩">13.9.2 Token 预算与上下文压缩</a></h3>
 <p>上下文不是越多越好。过多证据会带来：</p>
 <ul>
 <li>成本增加；</li>
@@ -1183,7 +1211,7 @@ Context Builder 负责组织
 <li>把长文档拆成 evidence summary + resource link；</li>
 <li>对低可信来源降权或排除。</li>
 </ul>
-<h3 id="793-citation-与-claim-level-citation"><a class="header" href="#793-citation-与-claim-level-citation">7.9.3 Citation 与 Claim-level Citation</a></h3>
+<h3 id="1393-citation-与-claim-level-citation"><a class="header" href="#1393-citation-与-claim-level-citation">13.9.3 Citation 与 Claim-level Citation</a></h3>
 <p>Citation 不应该只是回答末尾的链接列表。更好的方式是 claim-level citation：每个关键事实都能对应证据。</p>
 <pre><code class="language-text">订单超时主要集中在 10:35 之后，因为监控显示 order-service p95 延迟在该时间点后从 120ms 升至 850ms [E12]。
 </code></pre>
@@ -1194,7 +1222,7 @@ Context Builder 负责组织
 <li>debug 时能定位错误证据；</li>
 <li>模型不容易把多个来源混成一个泛泛结论。</li>
 </ul>
-<h3 id="794-evidence-sufficiency-check"><a class="header" href="#794-evidence-sufficiency-check">7.9.4 Evidence Sufficiency Check</a></h3>
+<h3 id="1394-evidence-sufficiency-check"><a class="header" href="#1394-evidence-sufficiency-check">13.9.4 Evidence Sufficiency Check</a></h3>
 <p>回答前应检查证据是否足够。</p>
 <pre><code class="language-json">{
   "answerable": true,
@@ -1205,7 +1233,7 @@ Context Builder 负责组织
 }
 </code></pre>
 <p>如果证据不足，应该明确说不足，而不是补全一个看似完整的答案。</p>
-<h3 id="795-证据不足时如何回答"><a class="header" href="#795-证据不足时如何回答">7.9.5 证据不足时如何回答</a></h3>
+<h3 id="1395-证据不足时如何回答"><a class="header" href="#1395-证据不足时如何回答">13.9.5 证据不足时如何回答</a></h3>
 <p>证据不足时，推荐回答结构是：</p>
 <pre><code class="language-text">当前证据不足以确认结论。
 
@@ -1219,7 +1247,7 @@ Context Builder 负责组织
 - ...
 </code></pre>
 <p>这比强行给出确定答案更有工程价值。生产环境里，“不知道但知道还差什么”通常比错误自信更可靠。</p>
-<h3 id="796-证据冲突时如何处理"><a class="header" href="#796-证据冲突时如何处理">7.9.6 证据冲突时如何处理</a></h3>
+<h3 id="1396-证据冲突时如何处理"><a class="header" href="#1396-证据冲突时如何处理">13.9.6 证据冲突时如何处理</a></h3>
 <p>证据冲突很常见。例如 Wiki 说接口字段叫 <code>user_id</code>，OpenAPI schema 说叫 <code>buyer_id</code>，源代码里实际读取 <code>account_id</code>。</p>
 <p>处理原则：</p>
 <pre><code class="language-text">当前权威实现 &gt; 自动生成 schema &gt; 官方文档 &gt; 历史 Wiki &gt; 二手说明
@@ -1227,7 +1255,7 @@ Context Builder 负责组织
 <p>回答时要显式指出冲突：</p>
 <pre><code class="language-text">文档 A 使用 user_id，但当前 OpenAPI schema 使用 buyer_id。若以当前接口为准，应使用 buyer_id。建议同步修正文档 A。
 </code></pre>
-<h3 id="797-hallucination-guard"><a class="header" href="#797-hallucination-guard">7.9.7 Hallucination Guard</a></h3>
+<h3 id="1397-hallucination-guard"><a class="header" href="#1397-hallucination-guard">13.9.7 Hallucination Guard</a></h3>
 <p>Hallucination Guard 不是一句 prompt，而是一组机制：</p>
 <ul>
 <li>强制引用；</li>
@@ -1241,8 +1269,25 @@ Context Builder 负责组织
 </ul>
 <p>对知识问答来说，最有效的 guardrail 往往不是“请不要幻觉”，而是“没有证据就不能生成关键事实”。</p>
 <hr>
-<h2 id="710-生产治理评估观测与失败诊断"><a class="header" href="#710-生产治理评估观测与失败诊断">7.10 生产治理：评估、观测与失败诊断</a></h2>
-<h3 id="7101-检索层指标"><a class="header" href="#7101-检索层指标">7.10.1 检索层指标</a></h3>
+<h2 id="1310-生产治理评估观测与失败诊断"><a class="header" href="#1310-生产治理评估观测与失败诊断">13.10 生产治理：评估、观测与失败诊断</a></h2>
+<p>RAG 质量不能只看最终回答。一个回答错了，可能是没有召回正确证据，也可能是排错序、上下文污染、证据冲突、生成总结错误、权限过滤错误或索引过期。</p>
+<p>因此生产级 RAG eval 应该拆成一条质量链路：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">阶段</th><th style="text-align: left">关注指标</th><th style="text-align: left">典型问题</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Retrieval</td><td style="text-align: left">retrieval recall、Recall@k、source routing accuracy</td><td style="text-align: left">正确文档是否进入候选集</td></tr>
+<tr><td style="text-align: left">Rerank</td><td style="text-align: left">rerank precision、nDCG、MRR</td><td style="text-align: left">正确证据是否排在前面</td></tr>
+<tr><td style="text-align: left">Evidence</td><td style="text-align: left">evidence sufficiency、citation coverage、freshness</td><td style="text-align: left">进入上下文的证据是否足够、可信、可引用</td></tr>
+<tr><td style="text-align: left">Generation</td><td style="text-align: left">answer faithfulness、citation accuracy、unsupported claim rate</td><td style="text-align: left">模型是否忠实使用证据</td></tr>
+<tr><td style="text-align: left">Governance</td><td style="text-align: left">latency、token cost、permission correctness</td><td style="text-align: left">是否满足成本、延迟和权限约束</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张表的价值在于把“RAG 效果不好”拆成可定位的问题，而不是笼统地换 embedding 模型或增加 top-k。</p>
+<h3 id="13101-检索层指标"><a class="header" href="#13101-检索层指标">13.10.1 检索层指标</a></h3>
 <p>检索层关注“是否找到了该找的证据”。</p>
 <p>常见指标：</p>
 <ul>
@@ -1256,7 +1301,7 @@ Context Builder 负责组织
 <li>duplicate rate。</li>
 </ul>
 <p>评估集应该包含真实用户问题、期望证据、不可回答问题和权限受限问题。</p>
-<h3 id="7102-证据层指标"><a class="header" href="#7102-证据层指标">7.10.2 证据层指标</a></h3>
+<h3 id="13102-证据层指标"><a class="header" href="#13102-证据层指标">13.10.2 证据层指标</a></h3>
 <p>证据层关注“进入上下文的证据是否可用”。</p>
 <p>指标包括：</p>
 <ul>
@@ -1268,7 +1313,7 @@ Context Builder 负责组织
 <li>unsupported claim rate。</li>
 </ul>
 <p>证据层指标能帮助区分“检索没找到”和“找到了但模型没用好”。</p>
-<h3 id="7103-生成层指标"><a class="header" href="#7103-生成层指标">7.10.3 生成层指标</a></h3>
+<h3 id="13103-生成层指标"><a class="header" href="#13103-生成层指标">13.10.3 生成层指标</a></h3>
 <p>生成层关注最终回答。</p>
 <p>常见指标：</p>
 <ul>
@@ -1281,7 +1326,7 @@ Context Builder 负责组织
 <li>actionability。</li>
 </ul>
 <p>对于企业知识助手，不能只看答案是否流畅，而要看是否有证据、有权限、有引用、有边界。</p>
-<h3 id="7104-agentic-rag-过程指标"><a class="header" href="#7104-agentic-rag-过程指标">7.10.4 Agentic RAG 过程指标</a></h3>
+<h3 id="13104-agentic-rag-过程指标"><a class="header" href="#13104-agentic-rag-过程指标">13.10.4 Agentic RAG 过程指标</a></h3>
 <p>Agentic RAG 还需要过程指标：</p>
 <ul>
 <li>plan quality；</li>
@@ -1294,7 +1339,7 @@ Context Builder 负责组织
 <li>recovery success rate。</li>
 </ul>
 <p>这些指标必须依赖 trace。只看最终答案，很难知道 Agent 是靠正确过程得到答案，还是误打误撞。</p>
-<h3 id="7105-trace-与可观测性"><a class="header" href="#7105-trace-与可观测性">7.10.5 Trace 与可观测性</a></h3>
+<h3 id="13105-trace-与可观测性"><a class="header" href="#13105-trace-与可观测性">13.10.5 Trace 与可观测性</a></h3>
 <p>知识系统 trace 应记录：</p>
 <pre><code class="language-text">user query
 → parsed intent
@@ -1310,7 +1355,7 @@ Context Builder 负责组织
 </code></pre>
 <p>Agentic RAG 还要记录每一轮计划、工具调用、证据状态和停止原因。</p>
 <p>没有 trace 的 RAG 系统很难生产化。用户说“答错了”，你需要知道错在召回、排序、上下文压缩、证据冲突、模型生成，还是数据源本身过期。</p>
-<h3 id="7106-预算缓存与可恢复性"><a class="header" href="#7106-预算缓存与可恢复性">7.10.6 预算、缓存与可恢复性</a></h3>
+<h3 id="13106-预算缓存与可恢复性"><a class="header" href="#13106-预算缓存与可恢复性">13.10.6 预算、缓存与可恢复性</a></h3>
 <p>知识系统的成本来自：</p>
 <ul>
 <li>embedding；</li>
@@ -1341,7 +1386,7 @@ Context Builder 负责组织
 <li>evidence summary 缓存。</li>
 </ul>
 <p>可恢复性要求 Agentic RAG 的状态能 checkpoint。任务中断后，应能从 evidence state 恢复，而不是重新搜索一遍。</p>
-<h3 id="7107-常见失败模式与修复路径"><a class="header" href="#7107-常见失败模式与修复路径">7.10.7 常见失败模式与修复路径</a></h3>
+<h3 id="13107-常见失败模式与修复路径"><a class="header" href="#13107-常见失败模式与修复路径">13.10.7 常见失败模式与修复路径</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1370,8 +1415,8 @@ Context Builder 负责组织
 8. 数据源本身是否过期或错误？
 </code></pre>
 <hr>
-<h2 id="711-系统设计清单与面试表达"><a class="header" href="#711-系统设计清单与面试表达">7.11 系统设计清单与面试表达</a></h2>
-<h3 id="7111-agent-知识系统设计清单"><a class="header" href="#7111-agent-知识系统设计清单">7.11.1 Agent 知识系统设计清单</a></h3>
+<h2 id="1311-系统设计清单与面试表达"><a class="header" href="#1311-系统设计清单与面试表达">13.11 系统设计清单与面试表达</a></h2>
+<h3 id="13111-agent-知识系统设计清单"><a class="header" href="#13111-agent-知识系统设计清单">13.11.1 Agent 知识系统设计清单</a></h3>
 <p>设计 Agent 知识系统时，可以按这个清单展开：</p>
 <pre><code class="language-text">1. 知识源
    - 有哪些文档、资源、工具、API、实时数据？
@@ -1405,7 +1450,7 @@ Context Builder 负责组织
    - 如何记录 trace？
    - 如何处理权限、成本、缓存、失败恢复？
 </code></pre>
-<h3 id="7112-企业知识助手设计题回答框架"><a class="header" href="#7112-企业知识助手设计题回答框架">7.11.2 企业知识助手设计题回答框架</a></h3>
+<h3 id="13112-企业知识助手设计题回答框架"><a class="header" href="#13112-企业知识助手设计题回答框架">13.11.2 企业知识助手设计题回答框架</a></h3>
 <p>如果面试或设计评审中被问到“如何设计企业知识助手”，可以这样回答：</p>
 <pre><code class="language-text">我会先把知识源分层，而不是直接建一个向量库。
 
@@ -1422,7 +1467,7 @@ Context Builder 负责组织
 复杂问题升级为 Agentic RAG：先拆解子问题，再多轮检索、维护 evidence state、做反证检索，最后综合验证。
 生产上用 trace、检索指标、证据指标、生成指标和过程指标持续评估。
 </code></pre>
-<h3 id="7113-rag--agentic-rag-面试表达"><a class="header" href="#7113-rag--agentic-rag-面试表达">7.11.3 RAG / Agentic RAG 面试表达</a></h3>
+<h3 id="13113-rag--agentic-rag-面试表达"><a class="header" href="#13113-rag--agentic-rag-面试表达">13.11.3 RAG / Agentic RAG 面试表达</a></h3>
 <p>RAG 的重点表达：</p>
 <pre><code class="language-text">RAG 不是简单向量搜索，而是从知识源摄取、解析、切分、metadata、hybrid search、rerank、context package 到 citation 的完整证据链路。
 </code></pre>
@@ -1432,7 +1477,7 @@ Context Builder 负责组织
 <p>MCP 与 RAG 的重点表达：</p>
 <pre><code class="language-text">RAG 解决“从大量知识里找什么”，MCP Resource 解决“读取明确资源”，MCP Tool 解决“查询实时系统或执行动作”。生产系统通常需要三者组合。
 </code></pre>
-<h3 id="7114-落地选型速查表"><a class="header" href="#7114-落地选型速查表">7.11.4 落地选型速查表</a></h3>
+<h3 id="13114-落地选型速查表"><a class="header" href="#13114-落地选型速查表">13.11.4 落地选型速查表</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>

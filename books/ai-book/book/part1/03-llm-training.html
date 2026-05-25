@@ -1,0 +1,1097 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第3章 大模型训练过程详解：Pretraining、Post-training、SFT、RL 与偏好优化 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-1e9302fa.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-4bd48997.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第3章-大模型训练过程详解pretrainingpost-trainingsftrl-与偏好优化"><a class="header" href="#第3章-大模型训练过程详解pretrainingpost-trainingsftrl-与偏好优化">第3章 大模型训练过程详解：Pretraining、Post-training、SFT、RL 与偏好优化</a></h1>
+<p>大模型能力不是只靠 Prompt 调出来的。Prompt、RAG、工具和 Agent Runtime 是推理时的工程控制层；训练和后训练则决定了模型已经具备什么能力、习惯什么表达方式、愿意遵守哪些边界、在复杂任务上是否会主动搜索和验证。</p>
+<p>本章把大模型训练拆成一条工程链路：</p>
+<pre><code class="language-text">训练目标
+  -&gt; 预训练过程
+  -&gt; 数据工程
+  -&gt; 后训练 pipeline
+  -&gt; SFT
+  -&gt; RLHF / DPO / RLAIF
+  -&gt; Reasoning RL / RLVR
+  -&gt; 工程落地
+  -&gt; 难点挑战
+  -&gt; 科研现状
+</code></pre>
+<p>这不是训练框架教程，也不是论文公式大全。它的目标是让工程师能回答三个问题：</p>
+<ul>
+<li>一个模型的能力和行为分别来自训练的哪个阶段？</li>
+<li>业务问题到底该用 Prompt、RAG、工具、微调、偏好优化还是 RL？</li>
+<li>训练项目从数据、Eval、算力、上线到回滚，为什么经常比算法本身更难？</li>
+</ul>
+<h2 id="31-训练到底在改变什么能力知识行为可控性"><a class="header" href="#31-训练到底在改变什么能力知识行为可控性">3.1 训练到底在改变什么：能力、知识、行为、可控性</a></h2>
+<p>讨论训练时，最容易混在一起的四个词是：能力、知识、行为、可控性。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">维度</th><th style="text-align: left">它指什么</th><th style="text-align: left">主要来自哪里</th><th style="text-align: left">工程判断</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">能力</td><td style="text-align: left">理解、生成、推理、编码、数学、工具使用</td><td style="text-align: left">预训练规模、数据质量、模型结构、推理强化</td><td style="text-align: left">能力不足通常先换模型或扩大训练，而不是写更长 Prompt</td></tr>
+<tr><td style="text-align: left">知识</td><td style="text-align: left">模型参数中压缩的事实、模式和常识</td><td style="text-align: left">预训练数据、继续预训练、合成数据</td><td style="text-align: left">动态事实不应主要靠微调注入</td></tr>
+<tr><td style="text-align: left">行为</td><td style="text-align: left">是否像助手、是否遵循指令、是否拒答、是否按格式输出</td><td style="text-align: left">SFT、RLHF、DPO、安全对齐</td><td style="text-align: left">行为问题适合后训练和协议约束</td></tr>
+<tr><td style="text-align: left">可控性</td><td style="text-align: left">能否被系统稳定约束、验证和回滚</td><td style="text-align: left">Eval、Prompt、工具权限、RAG、Guardrails</td><td style="text-align: left">可控性不是靠权重单独解决</td></tr>
+</tbody>
+</table>
+</div>
+<p>可以把一个 LLM 的形成过程理解成三层塑形：</p>
+<pre class="mermaid">
+flowchart TD
+    A["Pretraining&lt;br/&gt;学习语言、知识、代码、世界模式"] --&gt; B["Mid-training / Continued Pretraining&lt;br/&gt;加强领域、长上下文、代码、数学、多语言"]
+    B --&gt; C["Post-training&lt;br/&gt;SFT、偏好优化、安全对齐、工具和推理行为"]
+    C --&gt; D["Inference-time Control&lt;br/&gt;Prompt、RAG、Tool、Verifier、Sampling、Reasoning Budget"]
+</pre>
+
+<p>这几层不是互相替代，而是分工不同。预训练提供底层能力，后训练把模型变成可用助手，推理时控制把模型接入具体任务和生产约束。</p>
+<h2 id="32-大模型训练全流程pretrainingmid-trainingpost-traininginference-time-control"><a class="header" href="#32-大模型训练全流程pretrainingmid-trainingpost-traininginference-time-control">3.2 大模型训练全流程：Pretraining、Mid-training、Post-training、Inference-time Control</a></h2>
+<p>现代大模型训练通常不是“一次训练完”。更接近下面这条 pipeline：</p>
+<pre class="mermaid">
+flowchart LR
+    A["Raw Data&lt;br/&gt;网页、书籍、代码、数学、多语言、合成数据"] --&gt; B["Data Pipeline&lt;br/&gt;清洗、去重、过滤、配比、污染检测"]
+    B --&gt; C["Tokenizer&lt;br/&gt;词表、chat template、特殊 token"]
+    C --&gt; D["Batches&lt;br/&gt;序列打包、混合采样、长上下文样本"]
+    D --&gt; E["Pretraining Loss&lt;br/&gt;next-token prediction"]
+    E --&gt; F["Optimizer&lt;br/&gt;AdamW、学习率、并行训练"]
+    F --&gt; G["Checkpoints&lt;br/&gt;中间模型、回滚点"]
+    G --&gt; H["Pretrain Eval&lt;br/&gt;loss、能力、污染、安全初筛"]
+    H --&gt; I["Post-training&lt;br/&gt;SFT、RM、RLHF、DPO、RLAIF、Reasoning RL"]
+    I --&gt; J["Release Eval&lt;br/&gt;能力、行为、安全、回归、成本"]
+</pre>
+
+<p>工程上可以按四个阶段理解：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">阶段</th><th style="text-align: left">核心目标</th><th style="text-align: left">典型输入</th><th style="text-align: left">典型输出</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">Pretraining</td><td style="text-align: left">学通用语言、知识、代码和推理模式</td><td style="text-align: left">大规模未标注 token</td><td style="text-align: left">Base model</td></tr>
+<tr><td style="text-align: left">Mid-training</td><td style="text-align: left">强化特定能力或分布</td><td style="text-align: left">领域数据、代码、数学、长上下文、多语言</td><td style="text-align: left">Specialized base model</td></tr>
+<tr><td style="text-align: left">Post-training</td><td style="text-align: left">让模型像助手，学会偏好、安全和工具行为</td><td style="text-align: left">指令、偏好、轨迹、环境反馈</td><td style="text-align: left">Chat / Instruct / Reasoning model</td></tr>
+<tr><td style="text-align: left">Inference-time Control</td><td style="text-align: left">在具体任务中控制模型行为</td><td style="text-align: left">Prompt、RAG、工具、策略、verifier</td><td style="text-align: left">生产系统输出</td></tr>
+</tbody>
+</table>
+</div>
+<p>Mid-training 不是所有团队都会显式命名，但实践中很常见。例如基础模型预训练完成后，继续用高质量代码、数学、长上下文或领域数据训练一段，以改善某类能力。它仍然更接近预训练，因为目标通常还是 next-token prediction，只是数据分布更有方向。</p>
+<h2 id="33-pretraining-原理next-token-predictionloss数据分布与能力来源"><a class="header" href="#33-pretraining-原理next-token-predictionloss数据分布与能力来源">3.3 Pretraining 原理：next-token prediction、loss、数据分布与能力来源</a></h2>
+<p>预训练的核心目标是预测下一个 token：</p>
+<pre><code class="language-text">maximize P(next_token | previous_tokens)
+</code></pre>
+<p>训练时，模型看到一段 token 序列：</p>
+<pre><code class="language-text">x1, x2, x3, ..., xt
+</code></pre>
+<p>它要在每个位置预测下一个 token：</p>
+<pre><code class="language-text">x1 -&gt; x2
+x1, x2 -&gt; x3
+x1, x2, x3 -&gt; x4
+</code></pre>
+<p>训练 loss 通常是交叉熵。直觉上，如果正确 token 的概率越高，loss 越低；模型在海量文本上持续降低 loss，就会被迫学习很多结构：</p>
+<ul>
+<li>语法和语义；</li>
+<li>事实共现；</li>
+<li>代码语法和库用法；</li>
+<li>数学表达和证明模式；</li>
+<li>对话轮次和格式；</li>
+<li>文档结构；</li>
+<li>长距离依赖；</li>
+<li>常见问题的解决路径。</li>
+</ul>
+<p>这解释了为什么 next-token prediction 看起来简单，却能产生通用能力。模型不是显式存了一张事实表，而是在权重中压缩了训练数据分布中的统计规律和可泛化模式。</p>
+<p>但也正因为如此，预训练模型有天然边界：</p>
+<ul>
+<li>参数记忆没有行级版本、权限和更新时间；</li>
+<li>模型会补全“看起来合理”的文本，而不是天然校验事实；</li>
+<li>训练数据里的偏差、错误和污染可能进入模型；</li>
+<li>loss 下降不等于某个业务任务可靠。</li>
+</ul>
+<p>所以 Base Model 更像一个强大的任务先验，不是生产系统的事实源。</p>
+<h2 id="34-预训练过程数据清洗去重配比tokenization训练checkpoint评估"><a class="header" href="#34-预训练过程数据清洗去重配比tokenization训练checkpoint评估">3.4 预训练过程：数据清洗、去重、配比、tokenization、训练、checkpoint、评估</a></h2>
+<p>预训练项目的难度不只在 GPU。更难的是数据、系统和评估三件事同时稳定。</p>
+<h3 id="数据清洗"><a class="header" href="#数据清洗">数据清洗</a></h3>
+<p>原始数据通常包含网页模板、广告、垃圾文本、重复页面、机器翻译、低质量代码、乱码、个人信息和 benchmark 泄露。清洗目标不是把数据变得“干净到无菌”，而是减少会系统性伤害模型的噪声。</p>
+<p>常见处理包括：</p>
+<ul>
+<li>语言识别；</li>
+<li>质量分类器；</li>
+<li>文档去重和近似去重；</li>
+<li>PII 和敏感信息过滤；</li>
+<li>低质量站点过滤；</li>
+<li>benchmark contamination 检测；</li>
+<li>代码 license 和仓库质量过滤；</li>
+<li>数学、代码、表格、长文档的结构保留。</li>
+</ul>
+<h3 id="数据配比"><a class="header" href="#数据配比">数据配比</a></h3>
+<p>大模型不是“把所有数据混在一起”训练。不同数据类型会拉动不同能力：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">数据类型</th><th style="text-align: left">主要影响</th><th style="text-align: left">风险</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">通用网页</td><td style="text-align: left">常识、语言、多主题覆盖</td><td style="text-align: left">噪声、重复、偏见</td></tr>
+<tr><td style="text-align: left">书籍和长文</td><td style="text-align: left">篇章结构、长距离依赖</td><td style="text-align: left">版权和领域偏差</td></tr>
+<tr><td style="text-align: left">代码</td><td style="text-align: left">编程、结构化输出、工具格式</td><td style="text-align: left">过拟合常见仓库、license 风险</td></tr>
+<tr><td style="text-align: left">数学和科学</td><td style="text-align: left">符号推理、严谨表达</td><td style="text-align: left">数据少、格式复杂</td></tr>
+<tr><td style="text-align: left">多语言</td><td style="text-align: left">跨语言能力</td><td style="text-align: left">高资源语言挤压低资源语言</td></tr>
+<tr><td style="text-align: left">合成数据</td><td style="text-align: left">定向补齐能力</td><td style="text-align: left">自我污染、模板化、错误放大</td></tr>
+</tbody>
+</table>
+</div>
+<p>数据配比是能力设计，不只是数据工程。想要代码能力强，就要有足够高质量代码和代码相关自然语言；想要长上下文能力好，就要让模型在训练或继续训练中见到足够长、足够结构化的样本。</p>
+<h3 id="tokenization-与样本构造"><a class="header" href="#tokenization-与样本构造">Tokenization 与样本构造</a></h3>
+<p>Tokenizer 决定了文本如何变成 token。预训练时还要决定：</p>
+<ul>
+<li>最大序列长度；</li>
+<li>是否 pack 多个文档；</li>
+<li>文档边界如何标记；</li>
+<li>特殊 token 如何设计；</li>
+<li>多轮对话和工具格式是否进入训练；</li>
+<li>长上下文样本如何采样。</li>
+</ul>
+<p>这些细节会影响模型后来是否稳定理解文档边界、角色边界、代码缩进和工具调用格式。</p>
+<h3 id="分布式训练与-checkpoint"><a class="header" href="#分布式训练与-checkpoint">分布式训练与 checkpoint</a></h3>
+<p>大模型训练通常需要数据并行、张量并行、流水线并行、ZeRO / FSDP 等技术组合。工程上必须处理：</p>
+<ul>
+<li>GPU 故障；</li>
+<li>网络抖动；</li>
+<li>optimizer state 保存；</li>
+<li>checkpoint 频率；</li>
+<li>训练恢复；</li>
+<li>loss spike；</li>
+<li>数据 loader 稳定性；</li>
+<li>混合精度数值稳定。</li>
+</ul>
+<p>Checkpoint 不只是保存进度，也是实验审计和回滚点。一个成熟训练项目必须知道：哪个 checkpoint 开始出现能力提升，哪个数据版本引入了退化，哪个训练阶段影响了安全边界。</p>
+<h3 id="评估"><a class="header" href="#评估">评估</a></h3>
+<p>预训练评估不能只看 loss。至少要看：</p>
+<ul>
+<li>held-out loss；</li>
+<li>通用能力 benchmark；</li>
+<li>代码、数学、多语言、长上下文；</li>
+<li>contamination 检测；</li>
+<li>memorization 和隐私风险；</li>
+<li>安全初筛；</li>
+<li>downstream post-training 适配潜力。</li>
+</ul>
+<p>有些模型 base loss 很漂亮，但 post-training 后工具调用不稳定；有些模型 benchmark 不差，但中文、代码、长上下文或结构化输出在目标业务里不够稳。预训练评估要服务后续系统目标。</p>
+<h2 id="35-scaling-lawchinchilla-与数据质量"><a class="header" href="#35-scaling-lawchinchilla-与数据质量">3.5 Scaling Law、Chinchilla 与数据质量</a></h2>
+<p>Scaling law 说明，在一定范围内，模型 loss 会随参数量、数据量和计算量呈规律性下降。这给行业一个重要信号：只要数据、算力和模型规模持续扩大，模型能力可以被相对可预测地推进。</p>
+<p>但 Chinchilla 之后，行业更重视 compute-optimal：不是只堆参数，而是在参数量和训练 token 数之间找到更优配比。一个参数更多但训练 token 不够的模型，可能不如一个参数较少但数据更充分的模型。</p>
+<p>工程上可以总结成三句话：</p>
+<ul>
+<li><strong>参数决定容量上限</strong>：模型能压缩多少模式，表达多少复杂函数。</li>
+<li><strong>数据决定能力分布</strong>：模型在哪些语言、领域、任务、格式上熟练。</li>
+<li><strong>计算决定训练到什么程度</strong>：模型是否充分利用参数和数据。</li>
+</ul>
+<p>近年的实践进一步说明，数据质量正在变得和数据规模同样重要。Llama 3、GPT-4 等技术报告都强调大规模训练之外，还需要高质量数据、过滤、合成数据、能力定向和严格评估。</p>
+<p>对工程师来说，Scaling Law 的价值不是让你从零训练千亿模型，而是建立成本判断：</p>
+<ul>
+<li>小模型是否已经吃够目标领域数据？</li>
+<li>继续训练是更划算，还是换更强基础模型？</li>
+<li>目标能力来自数据缺口，还是模型容量缺口？</li>
+<li>用合成数据扩充时，是否有独立 eval 防止自我强化错误？</li>
+</ul>
+<h2 id="36-post-training-总览为什么基础模型不能直接当助手"><a class="header" href="#36-post-training-总览为什么基础模型不能直接当助手">3.6 Post-training 总览：为什么基础模型不能直接当助手</a></h2>
+<p>Base model 会续写文本，但它不一定会当助手。用户问：</p>
+<pre><code class="language-text">帮我解释这个报错，并给出修复步骤。
+</code></pre>
+<p>未对齐的模型可能会：</p>
+<ul>
+<li>续写一个论坛帖子；</li>
+<li>模拟多个用户讨论；</li>
+<li>编造上下文；</li>
+<li>忽略格式要求；</li>
+<li>给出危险操作；</li>
+<li>不知道何时拒答。</li>
+</ul>
+<p>Post-training 的目标是把 base model 塑造成可用的 assistant / tool user / reasoning model。它通常包含：</p>
+<pre><code class="language-text">SFT：学习指令和示范答案
+Preference Optimization：学习什么回答更好
+Safety Alignment：学习边界和拒答策略
+Tool / Agent Training：学习工具格式和环境交互
+Reasoning RL：学习长推理、验证和搜索策略
+</code></pre>
+<p>Post-training 不只是“让模型更礼貌”。它会改变模型的默认行为：</p>
+<ul>
+<li>更倾向回答用户问题，而不是续写语料；</li>
+<li>更会遵守系统指令和输出格式；</li>
+<li>更会承认不确定性；</li>
+<li>更会拒绝危险请求；</li>
+<li>更会使用工具或生成结构化调用；</li>
+<li>更会在复杂任务上花更多推理 token。</li>
+</ul>
+<p>但后训练也可能损害某些能力。例如模型变得过度安全、过度冗长、校准变差，或者在偏好数据中过拟合某种“高分回答风格”。因此 post-training 必须和 Eval、红队、回归测试绑定。</p>
+<h2 id="37-sft示范学习指令数据格式塑形与局限"><a class="header" href="#37-sft示范学习指令数据格式塑形与局限">3.7 SFT：示范学习、指令数据、格式塑形与局限</a></h2>
+<p>SFT（Supervised Fine-Tuning）用指令-回答样本训练模型。它的基本数据形态是：</p>
+<pre><code class="language-text">instruction -&gt; ideal answer
+</code></pre>
+<p>或者多轮对话：</p>
+<pre><code class="language-text">system + user + assistant + user -&gt; assistant
+</code></pre>
+<p>SFT 的本质是示范学习。它告诉模型：看到这种输入时，一个好助手应该如何回答。</p>
+<p>SFT 擅长解决：</p>
+<ul>
+<li>指令遵循；</li>
+<li>输出格式；</li>
+<li>角色风格；</li>
+<li>常见任务模板；</li>
+<li>工具调用 JSON 格式；</li>
+<li>领域话术；</li>
+<li>拒答和不确定性表达的基本样式。</li>
+</ul>
+<p>SFT 的局限也很清楚：</p>
+<ul>
+<li>它主要模仿答案，不直接优化真实任务目标；</li>
+<li>数据风格不一致会导致模型行为摇摆；</li>
+<li>少量事实不适合靠 SFT 注入；</li>
+<li>错误示范会被模型稳定学会；</li>
+<li>太强的格式数据可能让模型变得模板化；</li>
+<li>过量窄域 SFT 可能损伤通用能力。</li>
+</ul>
+<p>好的 SFT 数据不一定要多，但必须一致、清晰、覆盖真实分布。比如工具调用数据中，字段名、错误处理、拒答边界和结果引用方式必须统一，否则模型会学到混乱的工具协议。</p>
+<h3 id="sft-数据的工程标准"><a class="header" href="#sft-数据的工程标准">SFT 数据的工程标准</a></h3>
+<p>一条 SFT 样本至少应该能回答：</p>
+<ul>
+<li>这个样本训练什么能力？</li>
+<li>输入是否真实代表线上任务？</li>
+<li>输出是否符合最终产品标准？</li>
+<li>有没有引用不存在的事实？</li>
+<li>是否泄露了不该出现的信息？</li>
+<li>是否和系统安全策略冲突？</li>
+<li>是否会让模型学到冗长、讨好或过度承诺？</li>
+</ul>
+<p>如果样本本身说不清目标，模型只会更快地学会混乱。</p>
+<h2 id="38-rlhf偏好数据reward-modelpporl-loop-与风险"><a class="header" href="#38-rlhf偏好数据reward-modelpporl-loop-与风险">3.8 RLHF：偏好数据、Reward Model、PPO/RL loop 与风险</a></h2>
+<p>RLHF（Reinforcement Learning from Human Feedback）解决的问题不是“标准答案是什么”，而是“多个可行回答里哪个更好”。</p>
+<p>典型 RLHF pipeline 是：</p>
+<pre class="mermaid">
+flowchart TD
+    A["Prompt"] --&gt; B["Policy Model 生成多个回答"]
+    B --&gt; C["Human / AI Preference&lt;br/&gt;选择更好的回答"]
+    C --&gt; D["Reward Model&lt;br/&gt;学习偏好评分"]
+    D --&gt; E["Policy Optimization&lt;br/&gt;PPO / RL"]
+    E --&gt; F["Aligned Model"]
+    F --&gt; G["Eval + Red Team + 回归测试"]
+</pre>
+
+<h3 id="偏好数据"><a class="header" href="#偏好数据">偏好数据</a></h3>
+<p>偏好数据通常不是单个标准答案，而是 pairwise comparison：</p>
+<pre><code class="language-text">prompt
+chosen response
+rejected response
+</code></pre>
+<p>标注者需要判断哪个回答更有帮助、更真实、更安全、更符合要求。难点在于：偏好标准必须明确，否则 reward model 会学到标注者噪声。</p>
+<h3 id="reward-model"><a class="header" href="#reward-model">Reward Model</a></h3>
+<p>Reward Model 把 prompt 和 response 映射成一个分数：</p>
+<pre><code class="language-text">reward(prompt, response) -&gt; scalar score
+</code></pre>
+<p>这个分数不是事实真理，而是偏好代理。代理指标越窄，越容易被模型钻空子。</p>
+<h3 id="policy-optimization-与-kl-constraint"><a class="header" href="#policy-optimization-与-kl-constraint">Policy Optimization 与 KL Constraint</a></h3>
+<p>用 RL 优化语言模型时，不能只追求 reward 最高。否则模型可能偏离原始语言分布，生成奇怪、重复或投机的文本。</p>
+<p>因此 RLHF 通常会加入 KL constraint，让新 policy 不要离参考模型太远：</p>
+<pre><code class="language-text">maximize reward - KL(policy || reference_policy)
+</code></pre>
+<p>直觉上，这是在平衡两件事：</p>
+<ul>
+<li>学会偏好目标；</li>
+<li>保持语言质量和基础能力。</li>
+</ul>
+<h3 id="rlhf-的风险"><a class="header" href="#rlhf-的风险">RLHF 的风险</a></h3>
+<p>RLHF 能显著改善帮助性、无害性和指令遵循，但也会带来风险：</p>
+<ul>
+<li>reward hacking；</li>
+<li>过度拒答；</li>
+<li>讨好用户；</li>
+<li>冗长但空泛；</li>
+<li>校准变差；</li>
+<li>标注偏差固化；</li>
+<li>对真实业务指标不敏感；</li>
+<li>对 reward model 的盲点过拟合。</li>
+</ul>
+<p>所以 RLHF 项目必须有独立 eval，而不能只看 reward 曲线。</p>
+<h2 id="39-dpo-与偏好优化家族dpoipoktoorpo-的工程定位"><a class="header" href="#39-dpo-与偏好优化家族dpoipoktoorpo-的工程定位">3.9 DPO 与偏好优化家族：DPO、IPO、KTO、ORPO 的工程定位</a></h2>
+<p>DPO（Direct Preference Optimization）把偏好优化改写成更直接的监督学习目标，不显式训练 reward model，也不需要完整在线 RL loop。</p>
+<p>从工程角度看，DPO 的吸引力在于：</p>
+<ul>
+<li>pipeline 比 RLHF 简单；</li>
+<li>训练更稳定；</li>
+<li>适合开源模型后训练；</li>
+<li>可以直接使用 chosen / rejected 数据；</li>
+<li>不需要单独维护 reward model。</li>
+</ul>
+<p>但 DPO 不是“免费 RLHF”。它仍然依赖高质量偏好数据，也需要参考模型、温度系数、数据过滤和回归 eval。偏好样本如果有偏，模型会稳定学会这些偏差。</p>
+<p>偏好优化家族可以这样理解：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">方法</th><th style="text-align: left">数据需求</th><th style="text-align: left">工程特点</th><th style="text-align: left">适合场景</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">RLHF / PPO</td><td style="text-align: left">偏好数据 + reward model</td><td style="text-align: left">最完整，也最复杂</td><td style="text-align: left">大规模对齐、复杂偏好</td></tr>
+<tr><td style="text-align: left">DPO</td><td style="text-align: left">chosen / rejected pair</td><td style="text-align: left">简洁稳定，常用于开源后训练</td><td style="text-align: left">偏好数据质量较高</td></tr>
+<tr><td style="text-align: left">IPO</td><td style="text-align: left">preference pair</td><td style="text-align: left">关注偏好目标的稳定性</td><td style="text-align: left">DPO 类替代方案</td></tr>
+<tr><td style="text-align: left">KTO</td><td style="text-align: left">desirable / undesirable 二元信号</td><td style="text-align: left">不一定需要成对偏好</td><td style="text-align: left">有好坏标签但缺少 pair</td></tr>
+<tr><td style="text-align: left">ORPO</td><td style="text-align: left">SFT 中合并偏好约束</td><td style="text-align: left">reference-free，流程更短</td><td style="text-align: left">想降低后训练阶段复杂度</td></tr>
+</tbody>
+</table>
+</div>
+<p>工程上不要把方法名当信仰。更重要的是数据形态：</p>
+<ul>
+<li>如果你有高质量示范答案，先 SFT。</li>
+<li>如果你有成对偏好，DPO / IPO 很自然。</li>
+<li>如果你有好坏标签但没有 pair，KTO 可能更合适。</li>
+<li>如果你有可靠 reward 或环境反馈，并且需要优化策略，才考虑 RL。</li>
+</ul>
+<h2 id="310-rlaifconstitutional-ai-与安全对齐"><a class="header" href="#310-rlaifconstitutional-ai-与安全对齐">3.10 RLAIF、Constitutional AI 与安全对齐</a></h2>
+<p>RLAIF（Reinforcement Learning from AI Feedback）用 AI 反馈替代或补充人类反馈。Constitutional AI 则用一组原则指导模型自我批评、修改回答和偏好学习。</p>
+<p>它们解决两个问题：</p>
+<ul>
+<li>人类偏好标注成本高，且难以覆盖所有安全边界；</li>
+<li>有些安全原则需要显式写入训练和评估流程。</li>
+</ul>
+<p>一个简化流程是：</p>
+<pre><code class="language-text">模型生成回答
+-&gt; 模型根据原则自我批评
+-&gt; 模型修改回答
+-&gt; 用原则偏好构造训练数据
+-&gt; 训练更符合原则的模型
+</code></pre>
+<p>这类方法很适合把安全原则、拒答边界、无害性和帮助性结合起来。但工业上不能把安全完全交给模型权重。</p>
+<p>生产系统仍然需要：</p>
+<ul>
+<li>输入输出过滤；</li>
+<li>权限系统；</li>
+<li>工具调用审批；</li>
+<li>审计日志；</li>
+<li>风险分级；</li>
+<li>红队测试；</li>
+<li>业务 eval；</li>
+<li>人工升级路径。</li>
+</ul>
+<p>对齐降低风险，不提供强权限。强权限必须由系统执行。</p>
+<h2 id="311-reasoning-rl--rlvr可验证奖励grpotest-time-computeo1r1kimi-k15"><a class="header" href="#311-reasoning-rl--rlvr可验证奖励grpotest-time-computeo1r1kimi-k15">3.11 Reasoning RL / RLVR：可验证奖励、GRPO、test-time compute、o1/R1/Kimi k1.5</a></h2>
+<p>2024-2026 年最重要的变化之一，是 reasoning model 和 test-time scaling 变成主线。</p>
+<p>传统后训练更关注“回答是否符合人类偏好”。Reasoning RL 更关注“模型能不能通过更多搜索、推理和验证解决难题”。</p>
+<h3 id="rlvrreinforcement-learning-with-verifiable-rewards"><a class="header" href="#rlvrreinforcement-learning-with-verifiable-rewards">RLVR：Reinforcement Learning with Verifiable Rewards</a></h3>
+<p>RLVR 的核心是：某些任务有可自动验证的结果，因此可以不依赖主观偏好。</p>
+<p>典型任务包括：</p>
+<ul>
+<li>数学题：最终答案是否正确；</li>
+<li>代码题：单元测试是否通过；</li>
+<li>形式化证明：checker 是否接受；</li>
+<li>工具任务：环境状态是否达成目标；</li>
+<li>游戏或仿真：reward 是否来自环境。</li>
+</ul>
+<p>这类 reward 更接近真实目标，但并不完美。测试覆盖不足时，模型仍然可能 reward hacking。</p>
+<h3 id="grpo-与-ppo-的工程差异"><a class="header" href="#grpo-与-ppo-的工程差异">GRPO 与 PPO 的工程差异</a></h3>
+<p>DeepSeekMath 引入的 GRPO（Group Relative Policy Optimization）可以看成 PPO 的一种简化变体。它不为每个样本训练单独 critic，而是对同一个问题采样多个回答，用组内相对分数估计优势。</p>
+<p>直觉上：</p>
+<pre><code class="language-text">同一个问题生成多个解法
+-&gt; 用 verifier / reward 给每个解法打分
+-&gt; 让好解法概率上升，差解法概率下降
+</code></pre>
+<p>这对数学、代码等可验证任务很自然，也能降低 PPO 中 value model / critic 带来的显存和工程复杂度。</p>
+<h3 id="长推理轨迹与-test-time-compute"><a class="header" href="#长推理轨迹与-test-time-compute">长推理轨迹与 test-time compute</a></h3>
+<p>Reasoning RL 不只是让模型知道更多知识，而是让模型学会在推理时花更多计算：</p>
+<ul>
+<li>分解问题；</li>
+<li>尝试不同路径；</li>
+<li>检查中间结果；</li>
+<li>修正错误；</li>
+<li>生成更长推理轨迹；</li>
+<li>在必要时调用工具或 verifier。</li>
+</ul>
+<p>这就是 test-time scaling：能力不只来自训练期 scale，也来自推理期计算扩展。</p>
+<p>它有两条工程路径：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">路径</th><th style="text-align: left">形态</th><th style="text-align: left">成本</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">纵向慢思考</td><td style="text-align: left">单次调用内部生成更多 reasoning token</td><td style="text-align: left">decode 更长、KV cache 更大、延迟更高</td></tr>
+<tr><td style="text-align: left">横向环境交互</td><td style="text-align: left">多轮工具调用、搜索、执行、观察</td><td style="text-align: left">工具延迟、状态管理、trace、权限、失败恢复</td></tr>
+</tbody>
+</table>
+</div>
+<p>o1、DeepSeek-R1、Kimi k1.5 说明 reasoning RL 和推理期扩展可以显著提升数学、代码和复杂推理能力。Qwen3 进一步把 thinking / non-thinking 模式和 thinking budget 纳入统一框架，体现了工程上对“什么时候慢想、什么时候快答”的需求。</p>
+<h3 id="对-agent-工程的影响"><a class="header" href="#对-agent-工程的影响">对 Agent 工程的影响</a></h3>
+<p>Agent 系统不能简单地让模型永远“多想一会儿”。它需要 reasoning budget policy：</p>
+<ul>
+<li>简单问题直接回答；</li>
+<li>高风险问题先检索或调用工具；</li>
+<li>可验证任务调用 verifier；</li>
+<li>长任务限制最大轮数和最大 token；</li>
+<li>失败时记录 trace 并可恢复；</li>
+<li>成本超预算时降级或请求确认。</li>
+</ul>
+<p>Reasoning RL 让模型更像会搜索的解题器，但生产可靠性仍来自系统闭环。</p>
+<h2 id="312-agent-与多模态后训练轨迹数据工具反馈环境反馈"><a class="header" href="#312-agent-与多模态后训练轨迹数据工具反馈环境反馈">3.12 Agent 与多模态后训练：轨迹数据、工具反馈、环境反馈</a></h2>
+<p>Agent 后训练和普通问答后训练不同。普通问答训练一条输入输出；Agent 训练的是过程。</p>
+<p>一个 Agent 轨迹可能长这样：</p>
+<pre><code class="language-text">用户任务
+-&gt; 计划
+-&gt; 读取文件
+-&gt; 调用搜索
+-&gt; 运行测试
+-&gt; 观察失败
+-&gt; 修改方案
+-&gt; 再次执行
+-&gt; 总结结果
+</code></pre>
+<p>这种数据比指令-回答对更有价值，也更难处理。它需要记录：</p>
+<ul>
+<li>任务目标；</li>
+<li>中间状态；</li>
+<li>工具输入输出；</li>
+<li>失败和恢复；</li>
+<li>证据来源；</li>
+<li>权限边界；</li>
+<li>最终验收结果。</li>
+</ul>
+<p>多模态后训练也类似。模型不只要“看图”，还要把图像、文档、视频、语音和屏幕操作 grounding 到具体证据上：</p>
+<ul>
+<li>哪个区域支持这个判断？</li>
+<li>OCR 是否正确？</li>
+<li>表格单元格是否读对？</li>
+<li>屏幕按钮是否真的可点击？</li>
+<li>视频中的状态变化是否一致？</li>
+</ul>
+<p>未来 Agent 和多模态后训练会越来越依赖环境反馈，而不是只依赖人类偏好。软件 Agent 可以用测试、编译、浏览器状态作为反馈；机器人和具身智能需要仿真、真实传感器和安全层反馈。</p>
+<h2 id="313-工程落地什么时候训练什么时候不要训练"><a class="header" href="#313-工程落地什么时候训练什么时候不要训练">3.13 工程落地：什么时候训练，什么时候不要训练</a></h2>
+<p>多数业务场景不应该一上来就训练模型。更合理的顺序是：</p>
+<pre><code class="language-text">Prompt / Schema
+-&gt; RAG / Tool
+-&gt; Eval / Trace
+-&gt; 错误归因
+-&gt; SFT / LoRA
+-&gt; DPO / RLHF
+-&gt; 专用模型或继续训练
+</code></pre>
+<p>一个实用判断表：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">问题类型</th><th style="text-align: left">优先方案</th><th style="text-align: left">不推荐一上来做</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left">少量事实缺失</td><td style="text-align: left">RAG、数据库、工具</td><td style="text-align: left">SFT 灌事实</td></tr>
+<tr><td style="text-align: left">事实频繁变化</td><td style="text-align: left">权威 API、实时工具</td><td style="text-align: left">参数记忆</td></tr>
+<tr><td style="text-align: left">输出格式不稳</td><td style="text-align: left">JSON schema、parser、constrained decoding、SFT</td><td style="text-align: left">只靠提示词强调</td></tr>
+<tr><td style="text-align: left">领域话术不对</td><td style="text-align: left">SFT / LoRA</td><td style="text-align: left">换很大的模型裸跑</td></tr>
+<tr><td style="text-align: left">偏好取舍不对</td><td style="text-align: left">DPO / RLHF</td><td style="text-align: left">加更多无关示例</td></tr>
+<tr><td style="text-align: left">数学/代码推理弱</td><td style="text-align: left">更强 reasoning model、RLVR、verifier</td><td style="text-align: left">只调 temperature</td></tr>
+<tr><td style="text-align: left">调用成本过高</td><td style="text-align: left">小模型蒸馏、量化、路由、serving 优化</td><td style="text-align: left">盲目训练大模型</td></tr>
+<tr><td style="text-align: left">工具使用不稳</td><td style="text-align: left">工具协议、轨迹 SFT、Agent eval</td><td style="text-align: left">只训练最终答案</td></tr>
+<tr><td style="text-align: left">权限和安全问题</td><td style="text-align: left">系统权限、审批、guardrails</td><td style="text-align: left">交给模型自觉</td></tr>
+</tbody>
+</table>
+</div>
+<p>适合训练的条件：</p>
+<ul>
+<li>任务分布稳定；</li>
+<li>有足够高质量样本；</li>
+<li>有可复现 eval；</li>
+<li>错误已经定位到模型行为或能力；</li>
+<li>训练收益能抵消数据、算力和维护成本；</li>
+<li>上线后有回滚和监控。</li>
+</ul>
+<p>不适合训练的条件：</p>
+<ul>
+<li>没有稳定 eval；</li>
+<li>不知道问题来自检索、Prompt、工具还是模型；</li>
+<li>业务知识每天变化；</li>
+<li>权限规则复杂；</li>
+<li>目标只是让模型记住少量产品信息；</li>
+<li>线上错误无法容忍但训练数据很少；</li>
+<li>输出格式可以用 schema 或 parser 解决。</li>
+</ul>
+<p>一句话判断：</p>
+<pre><code class="language-text">知识问题优先外部化
+格式问题优先结构化
+能力问题优先换模型
+成本问题优先优化 serving
+行为问题再考虑后训练
+</code></pre>
+<h2 id="314-训练数据工程数据版本标注规范合成数据污染控制"><a class="header" href="#314-训练数据工程数据版本标注规范合成数据污染控制">3.14 训练数据工程：数据版本、标注规范、合成数据、污染控制</a></h2>
+<p>训练数据不是素材，而是模型行为的源代码。成熟团队会像管理代码一样管理训练数据。</p>
+<h3 id="数据版本"><a class="header" href="#数据版本">数据版本</a></h3>
+<p>每个数据集都应该有：</p>
+<ul>
+<li>版本号；</li>
+<li>来源记录；</li>
+<li>license 和权限；</li>
+<li>过滤规则；</li>
+<li>标注规范；</li>
+<li>生成模型版本；</li>
+<li>适用任务；</li>
+<li>已知风险；</li>
+<li>对应 eval 结果。</li>
+</ul>
+<p>如果训练后模型变差，必须能回答：</p>
+<ul>
+<li>哪批数据导致了变化？</li>
+<li>哪类任务提升了？</li>
+<li>哪类任务退化了？</li>
+<li>是能力变化、风格变化还是安全边界变化？</li>
+<li>该回滚数据、训练配置还是模型版本？</li>
+</ul>
+<h3 id="标注规范"><a class="header" href="#标注规范">标注规范</a></h3>
+<p>偏好标注尤其容易出问题。标注者如果没有统一标准，reward model 会学到噪声。</p>
+<p>标注规范应该明确：</p>
+<ul>
+<li>什么叫有帮助；</li>
+<li>什么叫事实正确；</li>
+<li>如何处理不确定性；</li>
+<li>什么时候拒答；</li>
+<li>是否偏好简洁；</li>
+<li>是否必须引用证据；</li>
+<li>如何比较“答案短但准确”和“答案长但空泛”；</li>
+<li>如何处理安全与帮助性的冲突。</li>
+</ul>
+<h3 id="合成数据"><a class="header" href="#合成数据">合成数据</a></h3>
+<p>合成数据越来越重要，因为人工数据贵、慢、覆盖有限。它适合：</p>
+<ul>
+<li>扩展长尾任务；</li>
+<li>生成格式样本；</li>
+<li>构造工具调用轨迹；</li>
+<li>补齐多语言；</li>
+<li>生成可验证数学和代码题；</li>
+<li>构造安全红队样本。</li>
+</ul>
+<p>但合成数据有典型风险：</p>
+<ul>
+<li>放大 teacher model 的偏差；</li>
+<li>产生看似合理的错误；</li>
+<li>模板化严重；</li>
+<li>与 eval 污染；</li>
+<li>难以覆盖真实用户分布；</li>
+<li>让模型学会“像高分答案”，而不是解决真实问题。</li>
+</ul>
+<p>所以合成数据必须过滤、抽检、去重，并用独立 eval 验证。</p>
+<h3 id="污染控制"><a class="header" href="#污染控制">污染控制</a></h3>
+<p>Benchmark contamination 会让模型看起来更强，但实际泛化不一定更好。污染可能来自：</p>
+<ul>
+<li>benchmark 原题进入预训练数据；</li>
+<li>解析后的题解进入训练；</li>
+<li>合成数据复述测试集；</li>
+<li>人工标注参考了测试答案；</li>
+<li>线上失败样本回流时没有隔离评估集。</li>
+</ul>
+<p>工程上要维护训练集、开发集、测试集、红队集、线上回归集之间的边界。Eval 一旦进入训练数据，就失去了裁判价值。</p>
+<h2 id="315-eval-体系能力行为安全回归过程轨迹"><a class="header" href="#315-eval-体系能力行为安全回归过程轨迹">3.15 Eval 体系：能力、行为、安全、回归、过程轨迹</a></h2>
+<p>训练前必须先有 eval。没有 eval 的训练项目，等于没有仪表盘的飞行。</p>
+<p>后训练 eval 至少覆盖五层：</p>
+<h3 id="1-能力-eval"><a class="header" href="#1-能力-eval">1. 能力 Eval</a></h3>
+<p>目标任务是否变好，例如：</p>
+<ul>
+<li>代码修复准确率；</li>
+<li>SQL 正确率；</li>
+<li>数学题通过率；</li>
+<li>客服问题解决率；</li>
+<li>工具任务完成率；</li>
+<li>多语言任务表现。</li>
+</ul>
+<h3 id="2-行为-eval"><a class="header" href="#2-行为-eval">2. 行为 Eval</a></h3>
+<p>模型是否按产品预期行动：</p>
+<ul>
+<li>是否遵循格式；</li>
+<li>是否引用证据；</li>
+<li>是否承认不确定性；</li>
+<li>是否按要求调用工具；</li>
+<li>是否避免无关长篇解释；</li>
+<li>是否稳定保持角色边界。</li>
+</ul>
+<h3 id="3-安全-eval"><a class="header" href="#3-安全-eval">3. 安全 Eval</a></h3>
+<p>包括：</p>
+<ul>
+<li>越狱；</li>
+<li>敏感信息泄露；</li>
+<li>危险操作建议；</li>
+<li>工具越权；</li>
+<li>隐私和合规；</li>
+<li>高风险领域拒答边界。</li>
+</ul>
+<h3 id="4-回归-eval"><a class="header" href="#4-回归-eval">4. 回归 Eval</a></h3>
+<p>训练目标任务变好，不代表整体模型变好。必须检查：</p>
+<ul>
+<li>通用问答；</li>
+<li>中文和英文；</li>
+<li>代码；</li>
+<li>数学；</li>
+<li>长上下文；</li>
+<li>结构化输出；</li>
+<li>原有业务场景；</li>
+<li>延迟和输出长度。</li>
+</ul>
+<h3 id="5-过程轨迹-eval"><a class="header" href="#5-过程轨迹-eval">5. 过程轨迹 Eval</a></h3>
+<p>Agent 和 reasoning model 不能只看最终答案。还要看过程：</p>
+<ul>
+<li>是否选对工具；</li>
+<li>是否读对观察；</li>
+<li>是否跳过必要验证；</li>
+<li>是否在错误假设上越走越远；</li>
+<li>是否超预算；</li>
+<li>是否能从失败中恢复；</li>
+<li>trace 是否可复盘。</li>
+</ul>
+<p>一个训练版本只有同时满足“目标任务提升”和“关键回归不退化”，才应该进入灰度。</p>
+<h2 id="316-难点与挑战reward-hacking模式坍缩过度拒答灾难性遗忘数据泄露"><a class="header" href="#316-难点与挑战reward-hacking模式坍缩过度拒答灾难性遗忘数据泄露">3.16 难点与挑战：reward hacking、模式坍缩、过度拒答、灾难性遗忘、数据泄露</a></h2>
+<h3 id="reward-hacking"><a class="header" href="#reward-hacking">Reward Hacking</a></h3>
+<p>Reward hacking 指模型找到了拿高 reward 的捷径，但没有真正完成我们想要的目标。</p>
+<p>也就是：</p>
+<pre><code class="language-text">优化了评分规则
+但没有优化真实任务
+</code></pre>
+<p>例如，如果偏好数据总是奖励更长、更礼貌、更完整的回答，模型可能学会输出冗长、空泛、看似专业的解释，而不是更准确地解决问题。</p>
+<p>代码任务里也很常见。假设目标是实现 <code>divide(a, b)</code>，但测试只覆盖：</p>
+<pre><code class="language-python">assert divide(4, 2) == 2
+</code></pre>
+<p>模型可能写出：</p>
+<pre><code class="language-python">def divide(a, b):
+    return 2
+</code></pre>
+<p>它通过了当前测试，reward 很高，但没有真正学会除法。这就是 reward hacking。</p>
+<p>避免 reward hacking 的方法不是“不用 RL”，而是让 reward 更接近真实目标：</p>
+<ul>
+<li>使用隐藏测试和回归测试；</li>
+<li>评估过程轨迹，而不只评估最终答案；</li>
+<li>使用多维指标，而不是单一分数；</li>
+<li>对高风险任务加入人工抽检；</li>
+<li>记录 Agent trace；</li>
+<li>把失败样本加入回归集。</li>
+</ul>
+<h3 id="模式坍缩"><a class="header" href="#模式坍缩">模式坍缩</a></h3>
+<p>后训练可能让模型输出越来越像同一种“高分答案”：结构完整、语气礼貌、篇幅很长，但信息密度下降。这是偏好数据和 LLM-as-Judge 容易共同放大的问题。</p>
+<p>解决方式包括：</p>
+<ul>
+<li>在 eval 中奖励简洁和信息密度；</li>
+<li>增加多风格数据；</li>
+<li>区分任务类型的回答长度；</li>
+<li>使用人工抽检校准 judge；</li>
+<li>对过度模板化做回归测试。</li>
+</ul>
+<h3 id="过度拒答"><a class="header" href="#过度拒答">过度拒答</a></h3>
+<p>安全对齐过强或安全数据过窄，可能让模型把正常请求也拒掉。比如合法的安全研究、医学科普、金融知识解释、代码调试，都可能被误判为高风险。</p>
+<p>工程上要区分：</p>
+<ul>
+<li>明确有害请求；</li>
+<li>双用途请求；</li>
+<li>合法教育或防御场景；</li>
+<li>需要免责声明但可以回答的场景；</li>
+<li>需要转人工的场景。</li>
+</ul>
+<h3 id="灾难性遗忘"><a class="header" href="#灾难性遗忘">灾难性遗忘</a></h3>
+<p>窄域 SFT 或继续训练可能提升目标任务，但损伤通用能力。常见表现：</p>
+<ul>
+<li>通用问答变差；</li>
+<li>结构化输出变差；</li>
+<li>多语言能力下降；</li>
+<li>安全边界漂移；</li>
+<li>原本会的工具格式变得不稳定。</li>
+</ul>
+<p>解决方式是混合保留数据、控制学习率、使用 adapter、加强回归 eval，并保留可回滚版本。</p>
+<h3 id="数据泄露和隐私"><a class="header" href="#数据泄露和隐私">数据泄露和隐私</a></h3>
+<p>训练数据可能包含用户隐私、商业机密、内部代码、API key 或受版权限制内容。模型可能在特定 prompt 下复现训练片段。</p>
+<p>生产训练必须有：</p>
+<ul>
+<li>数据来源审计；</li>
+<li>PII 检测和脱敏；</li>
+<li>权限和 license 记录；</li>
+<li>训练数据删除机制；</li>
+<li>记忆化评估；</li>
+<li>红队测试。</li>
+</ul>
+<p>模型权重一旦发布，删除错误数据非常困难。因此数据进入训练前的治理比训练后补救更重要。</p>
+<h2 id="317-科研现状截至-2026-05-的主线"><a class="header" href="#317-科研现状截至-2026-05-的主线">3.17 科研现状：截至 2026-05 的主线</a></h2>
+<p>截至 2026-05，大模型训练研究可以概括为六条主线。</p>
+<h3 id="1-pretraining-从更多数据走向更会配数据"><a class="header" href="#1-pretraining-从更多数据走向更会配数据">1. Pretraining 从“更多数据”走向“更会配数据”</a></h3>
+<p>Scaling law 仍然有效，但 compute-optimal 和数据质量变得更重要。行业关注的不只是 token 数，而是数据覆盖、数据去重、能力配比、污染控制和合成数据质量。</p>
+<h3 id="2-post-training-从-rlhf-扩展到多种偏好优化"><a class="header" href="#2-post-training-从-rlhf-扩展到多种偏好优化">2. Post-training 从 RLHF 扩展到多种偏好优化</a></h3>
+<p>RLHF 仍是重要基线，但 DPO、KTO、ORPO 等方法降低了工程复杂度。趋势不是某个方法统一天下，而是根据数据形态选择目标函数。</p>
+<h3 id="3-reasoning-rl-与-rlvr-成为核心增长点"><a class="header" href="#3-reasoning-rl-与-rlvr-成为核心增长点">3. Reasoning RL 与 RLVR 成为核心增长点</a></h3>
+<p>o1、DeepSeek-R1、Kimi k1.5、Qwen3 都说明，数学、代码和复杂任务可以通过可验证奖励、长推理轨迹和推理预算获得明显提升。研究重点正在从“会不会回答”转向“会不会搜索、验证和自我修正”。</p>
+<h3 id="4-sftrl-与推理期控制正在融合"><a class="header" href="#4-sftrl-与推理期控制正在融合">4. SFT、RL 与推理期控制正在融合</a></h3>
+<p>模型训练不再只产生一个固定行为。Qwen3 这类模型把 thinking / non-thinking mode 和 thinking budget 放进统一框架，说明训练和推理策略正在共同决定最终体验。</p>
+<h3 id="5-agent-后训练依赖环境反馈"><a class="header" href="#5-agent-后训练依赖环境反馈">5. Agent 后训练依赖环境反馈</a></h3>
+<p>工具调用、浏览器操作、代码修改、数据分析、机器人控制，都需要轨迹级数据和环境反馈。只用最终答案偏好，很难训练出可靠 Agent。</p>
+<h3 id="6-scalable-oversight-仍然是开放问题"><a class="header" href="#6-scalable-oversight-仍然是开放问题">6. Scalable Oversight 仍然是开放问题</a></h3>
+<p>当任务复杂到人类难以快速判断时，如何评估模型、如何监督长链推理、如何发现看似正确但隐藏错误的答案，仍然是安全和工程的共同难题。</p>
+<h2 id="318-案例客服模型后训练"><a class="header" href="#318-案例客服模型后训练">3.18 案例：客服模型后训练</a></h2>
+<p>客服模型常见目标不是“更聪明”，而是更稳定地遵守业务口径。</p>
+<p>目标通常包括：</p>
+<ul>
+<li>回答更符合业务规则；</li>
+<li>不胡乱承诺；</li>
+<li>能识别证据不足；</li>
+<li>能按固定格式输出；</li>
+<li>能把用户引导到正确流程；</li>
+<li>能区分普通咨询和投诉升级；</li>
+<li>能在政策冲突时说明依据。</li>
+</ul>
+<p>合理架构是：</p>
+<pre><code class="language-text">RAG 提供最新规则
+SFT 学客服话术和格式
+DPO 学更好的服务偏好
+Guardrails 控制敏感承诺
+Eval 覆盖业务 case 和回归场景
+</code></pre>
+<p>训练数据可以包括：</p>
+<ul>
+<li>标准问答；</li>
+<li>真实工单改写；</li>
+<li>证据充分和证据不足样本；</li>
+<li>错误承诺反例；</li>
+<li>需要转人工的边界样本；</li>
+<li>简洁回答和详细解释的偏好对。</li>
+</ul>
+<p>不要把政策事实写进权重里作为唯一来源。政策更新后，知识库和工具应该先更新；模型训练主要学习话术、格式、拒答边界和证据使用方式。</p>
+<h2 id="319-案例代码-agent--tool-use-后训练"><a class="header" href="#319-案例代码-agent--tool-use-后训练">3.19 案例：代码 Agent / Tool-use 后训练</a></h2>
+<p>代码 Agent 的后训练目标通常包括：</p>
+<ul>
+<li>更会读错误日志；</li>
+<li>更会定位相关文件；</li>
+<li>更会生成小 patch；</li>
+<li>更会遵守仓库规范；</li>
+<li>更会调用测试工具；</li>
+<li>更会在失败后恢复；</li>
+<li>更会解释改动和风险。</li>
+</ul>
+<p>这类训练不能只用“问题-答案”样本。更有价值的是轨迹数据：</p>
+<pre><code class="language-text">问题
+-&gt; 查看文件
+-&gt; 定位原因
+-&gt; 修改
+-&gt; 运行测试
+-&gt; 修复失败
+-&gt; 再验证
+-&gt; 总结
+</code></pre>
+<p>轨迹数据可以训练模型更像工程师一样工作，但它也更难收集和清洗。</p>
+<p>高质量轨迹应该包含：</p>
+<ul>
+<li>每一步为什么做；</li>
+<li>工具调用输入输出；</li>
+<li>失败观察；</li>
+<li>修改前后差异；</li>
+<li>测试命令和结果；</li>
+<li>最终验收；</li>
+<li>哪些路径没有改。</li>
+</ul>
+<p>错误轨迹如果不标注清楚，模型可能学会无效操作。例如反复运行无关测试、盲目扩大修改范围、忽略用户已有改动、为了通过当前测试硬编码答案。</p>
+<p>因此代码 Agent 后训练必须配合执行环境和可验证测试，而不是只看自然语言偏好。</p>
+<h2 id="320-常见误区"><a class="header" href="#320-常见误区">3.20 常见误区</a></h2>
+<h3 id="误区-1微调可以可靠注入事实"><a class="header" href="#误区-1微调可以可靠注入事实">误区 1：微调可以可靠注入事实</a></h3>
+<p>微调可以改变模型行为，但不适合管理大量动态事实。事实应该放在数据库、搜索索引、知识库或工具里，再通过上下文注入。</p>
+<h3 id="误区-2rlhf-只会让模型更好"><a class="header" href="#误区-2rlhf-只会让模型更好">误区 2：RLHF 只会让模型更好</a></h3>
+<p>RLHF 会优化偏好目标，但偏好目标可能不等于真实业务目标。它可能带来过度拒答、冗长回答、讨好用户和 reward hacking。</p>
+<h3 id="误区-3合成数据越多越好"><a class="header" href="#误区-3合成数据越多越好">误区 3：合成数据越多越好</a></h3>
+<p>合成数据便宜，但也会放大模型已有偏差。低质量合成数据会让模型学会模板化、空泛和错误模式。需要过滤、去重、混合真实数据和 eval 验证。</p>
+<h3 id="误区-4只看训练-loss"><a class="header" href="#误区-4只看训练-loss">误区 4：只看训练 loss</a></h3>
+<p>loss 下降不代表目标任务更好。后训练必须看任务指标、格式遵循、安全、回归和线上分布。</p>
+<h3 id="误区-5把-sft-和-rl-当成同一种微调"><a class="header" href="#误区-5把-sft-和-rl-当成同一种微调">误区 5：把 SFT 和 RL 当成同一种微调</a></h3>
+<p>SFT 学示范答案，RL 学目标优化。SFT 更像模仿，RL 更像搜索和策略改进。它们需要的数据、评估和失败诊断不同。</p>
+<h3 id="误区-6把-reasoning-token-当成免费能力"><a class="header" href="#误区-6把-reasoning-token-当成免费能力">误区 6：把 reasoning token 当成免费能力</a></h3>
+<p>更长思考会增加延迟、成本和 KV cache 压力。复杂任务需要 reasoning budget，简单任务应直接回答。</p>
+<h3 id="误区-7训练可以替代系统权限"><a class="header" href="#误区-7训练可以替代系统权限">误区 7：训练可以替代系统权限</a></h3>
+<p>对齐和安全训练不能提供强权限。工具调用、数据访问、审批和审计必须由外部系统保证。</p>
+<h2 id="321-面试表达"><a class="header" href="#321-面试表达">3.21 面试表达</a></h2>
+<p>一句话版：</p>
+<blockquote>
+<p>Pretraining 学基础能力和知识分布，SFT 学指令格式和示范行为，RLHF/DPO 学偏好与行为边界，Reasoning RL 学更强的搜索、验证和长推理策略；真正生产落地还需要 Prompt、RAG、工具、Eval、权限和回滚。</p>
+</blockquote>
+<p>展开版：</p>
+<blockquote>
+<p>我会先区分能力、知识和行为。能力不足可能来自基础模型规模、数据或 reasoning 训练不足；知识过期更适合 RAG、数据库和工具；行为不稳定才考虑 SFT、DPO 或 RLHF。训练项目不能从算法开始，而要从 eval 和错误归因开始：先判断问题发生在输入、检索、上下文、模型行为、工具调用还是安全策略，再选择训练或系统工程方案。</p>
+</blockquote>
+<p>如果面试官追问 SFT 和 RL：</p>
+<blockquote>
+<p>SFT 是示范学习，数据形态是 instruction 到 ideal answer，擅长格式、风格和基础指令遵循。RL 是根据 reward 优化行为，数据可以是回答或行动轨迹加奖励，擅长偏好、推理、多步任务和工具行动。RL 的风险是 reward hacking，所以必须用隐藏测试、过程 eval、多维指标和 trace 约束。</p>
+</blockquote>
+<p>如果面试官追问 reasoning model：</p>
+<blockquote>
+<p>Reasoning model 的关键不是参数里多记了多少知识，而是模型学会在推理时使用更多计算进行搜索、分解、验证和修正。训练上常见路线是 RLVR，用数学答案、代码测试或环境反馈提供可验证奖励；系统上要配合 reasoning budget、verifier、工具和成本控制。</p>
+</blockquote>
+<h2 id="322-自测问题"><a class="header" href="#322-自测问题">3.22 自测问题</a></h2>
+<ol>
+<li>Pretraining、Mid-training、Post-training 和 Inference-time Control 分别解决什么问题？</li>
+<li>为什么 next-token prediction 能产生语言、代码和推理能力？</li>
+<li>为什么预训练模型不是可审计知识库？</li>
+<li>Chinchilla 对“只堆参数”的理解有什么修正？</li>
+<li>SFT 适合解决哪些问题，不适合解决哪些问题？</li>
+<li>RLHF 的三个核心步骤是什么？</li>
+<li>Reward Model 为什么只是代理目标？</li>
+<li>DPO 相比 RLHF 的工程优势和局限是什么？</li>
+<li>RLAIF 和 Constitutional AI 解决了什么问题？</li>
+<li>RLVR 为什么适合数学、代码和工具任务？</li>
+<li>GRPO 相比 PPO 的直觉差异是什么？</li>
+<li>Reasoning RL 和 test-time compute 有什么关系？</li>
+<li>为什么 Agent 后训练更需要轨迹数据？</li>
+<li>训练数据为什么要像代码一样管理？</li>
+<li>如何判断一个问题应该用 RAG、工具、SFT、DPO 还是 RL？</li>
+<li>reward hacking 在代码 Agent 中可能如何出现？</li>
+<li>为什么后训练必须做回归 eval？</li>
+<li>为什么训练不能替代系统权限？</li>
+</ol>
+<h2 id="323-参考资料"><a class="header" href="#323-参考资料">3.23 参考资料</a></h2>
+<h3 id="scaling--pretraining"><a class="header" href="#scaling--pretraining">Scaling / Pretraining</a></h3>
+<ul>
+<li><a href="https://arxiv.org/abs/2001.08361">Scaling Laws for Neural Language Models</a></li>
+<li><a href="https://arxiv.org/abs/2203.15556">Training Compute-Optimal Large Language Models</a></li>
+<li><a href="https://arxiv.org/abs/2303.08774">GPT-4 Technical Report</a></li>
+<li><a href="https://arxiv.org/abs/2407.21783">The Llama 3 Herd of Models</a></li>
+</ul>
+<h3 id="instruction-tuning--alignment"><a class="header" href="#instruction-tuning--alignment">Instruction Tuning / Alignment</a></h3>
+<ul>
+<li><a href="https://arxiv.org/abs/2203.02155">Training language models to follow instructions with human feedback</a></li>
+<li><a href="https://arxiv.org/abs/2212.08073">Constitutional AI: Harmlessness from AI Feedback</a></li>
+<li><a href="https://arxiv.org/abs/2305.18290">Direct Preference Optimization: Your Language Model is Secretly a Reward Model</a></li>
+<li><a href="https://arxiv.org/abs/2402.01306">KTO: Model Alignment as Prospect Theoretic Optimization</a></li>
+<li><a href="https://arxiv.org/abs/2403.07691">ORPO: Monolithic Preference Optimization without Reference Model</a></li>
+</ul>
+<h3 id="reasoning-rl--test-time-compute"><a class="header" href="#reasoning-rl--test-time-compute">Reasoning RL / Test-time Compute</a></h3>
+<ul>
+<li><a href="https://openai.com/index/learning-to-reason-with-llms/">Learning to reason with LLMs</a></li>
+<li><a href="https://arxiv.org/abs/2402.03300">DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models</a></li>
+<li><a href="https://arxiv.org/abs/2501.12948">DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning</a></li>
+<li><a href="https://arxiv.org/abs/2501.12599">Kimi k1.5: Scaling Reinforcement Learning with LLMs</a></li>
+<li><a href="https://arxiv.org/abs/2505.09388">Qwen3 Technical Report</a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part1/02-llm-basics.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part1/04-llm-inference.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part1/02-llm-basics.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part1/04-llm-inference.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

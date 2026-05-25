@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第19章 从零实现一个可观测 Coding Agent - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+        <title>第23章 从零实现一个可观测 Coding Agent - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-7b32aa52.js";
+            window.path_to_searchindex_js = "../searchindex-1e9302fa.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-1b384b0e.js"></script>
+        <script src="../toc-4bd48997.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,7 +177,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第19章-从零实现一个可观测-coding-agent"><a class="header" href="#第19章-从零实现一个可观测-coding-agent">第19章 从零实现一个可观测 Coding Agent</a></h1>
+                        <h1 id="第23章-从零实现一个可观测-coding-agent"><a class="header" href="#第23章-从零实现一个可观测-coding-agent">第23章 从零实现一个可观测 Coding Agent</a></h1>
 <blockquote>
 <p>一个接近生产级的 Agent 原型，不是把模型接到代码仓库上就结束，而是把上下文、工具、权限、验证、trace 和失败复盘都放进同一个闭环。</p>
 </blockquote>
@@ -189,7 +189,7 @@
 <p>这个 lab 实现的是一个最小但完整的 Coding Agent。它能读取项目规则和仓库结构，让模型输出结构化 JSON action，通过工具注册表执行读文件、搜索、局部编辑、运行测试和查看 diff，并把每一步保存为 JSONL trace。</p>
 <p>本章的目标不是复刻商业级 Coding Agent 的全部能力，而是让你亲手搭出一个工程骨架。这个骨架足够小，可以在一章里讲清楚；也足够完整，可以继续演进到生产级系统。</p>
 <hr>
-<h2 id="191-项目目标与边界"><a class="header" href="#191-项目目标与边界">19.1 项目目标与边界</a></h2>
+<h2 id="231-项目目标与边界"><a class="header" href="#231-项目目标与边界">23.1 项目目标与边界</a></h2>
 <p>本章实现的项目叫 <strong>Coding Agent MVP</strong>。</p>
 <p>它解决一个窄但典型的问题：</p>
 <pre><code class="language-text">给定一个代码仓库和一段自然语言任务，让 Agent 读取上下文、修改文件、运行验证、输出 diff 和 trace。
@@ -221,7 +221,7 @@
 </ul>
 <p>边界清楚是生产化的第一步。一个 Agent 如果从第一天就能做任何事，通常也意味着它从第一天就能把问题做大。</p>
 <hr>
-<h2 id="192-接近生产级-coding-agent-的最小闭环"><a class="header" href="#192-接近生产级-coding-agent-的最小闭环">19.2 接近生产级 Coding Agent 的最小闭环</a></h2>
+<h2 id="232-接近生产级-coding-agent-的最小闭环"><a class="header" href="#232-接近生产级-coding-agent-的最小闭环">23.2 接近生产级 Coding Agent 的最小闭环</a></h2>
 <p>Coding Agent 的核心不是“自动写代码”，而是一个带控制面的执行闭环。</p>
 <pre class="mermaid">
 flowchart TD
@@ -255,7 +255,7 @@ flowchart TD
 </div>
 <p>如果把这些职责混在一个巨大函数里，Demo 可能能跑，但系统很难调试、扩展和审计。</p>
 <hr>
-<h2 id="193-lab-目录结构"><a class="header" href="#193-lab-目录结构">19.3 Lab 目录结构</a></h2>
+<h2 id="233-lab-目录结构"><a class="header" href="#233-lab-目录结构">23.3 Lab 目录结构</a></h2>
 <p>配套源码放在：</p>
 <pre><code class="language-text">books/ai-book/labs/coding-agent-mvp/
 </code></pre>
@@ -305,7 +305,7 @@ flowchart TD
 </div>
 <p>这个拆分方式有一个重要好处：后续要把模型换成 OpenAI、Claude、Gemini 或本地模型时，只需要替换 <code>llm.py</code>；要把 shell 权限变严格时，优先改 <code>policy.py</code> 和 <code>tools.py</code>；要接入 LangSmith 或 OpenTelemetry 时，可以从 <code>trace_writer.py</code> 扩展。</p>
 <hr>
-<h2 id="194-环境准备与本地测试"><a class="header" href="#194-环境准备与本地测试">19.4 环境准备与本地测试</a></h2>
+<h2 id="234-环境准备与本地测试"><a class="header" href="#234-环境准备与本地测试">23.4 环境准备与本地测试</a></h2>
 <p>进入 lab 目录：</p>
 <pre><code class="language-bash">cd books/ai-book/labs/coding-agent-mvp
 </code></pre>
@@ -326,7 +326,7 @@ flowchart TD
 </ul>
 <p>生产级 Agent 的第一条原则是：<strong>能不用模型测的部分，都不要依赖模型来测。</strong></p>
 <hr>
-<h2 id="195-配置模型和运行参数"><a class="header" href="#195-配置模型和运行参数">19.5 配置模型和运行参数</a></h2>
+<h2 id="235-配置模型和运行参数"><a class="header" href="#235-配置模型和运行参数">23.5 配置模型和运行参数</a></h2>
 <p>复制配置模板：</p>
 <pre><code class="language-bash">cp agent.config.example.toml agent.config.toml
 </code></pre>
@@ -375,7 +375,7 @@ timeout = 60
 </div>
 <p>模型能力会变化，安全策略也会变化。把策略外置，系统才有演进空间。</p>
 <hr>
-<h2 id="196-核心数据模型"><a class="header" href="#196-核心数据模型">19.6 核心数据模型</a></h2>
+<h2 id="236-核心数据模型"><a class="header" href="#236-核心数据模型">23.6 核心数据模型</a></h2>
 <p><code>models.py</code> 定义了四个核心结构。</p>
 <pre><code class="language-python">from dataclasses import dataclass, field
 from typing import Any, Literal
@@ -425,7 +425,7 @@ class AgentState:
 </ul>
 <p>这就是为什么 trace 要从第一版就存在。</p>
 <hr>
-<h2 id="197-context-builder让模型先看边界再看代码"><a class="header" href="#197-context-builder让模型先看边界再看代码">19.7 Context Builder：让模型先看边界，再看代码</a></h2>
+<h2 id="237-context-builder让模型先看边界再看代码"><a class="header" href="#237-context-builder让模型先看边界再看代码">23.7 Context Builder：让模型先看边界，再看代码</a></h2>
 <p>Coding Agent 的上下文不应该是“把整个仓库塞进 prompt”。更稳妥的做法是先给模型三类信息：</p>
 <ol>
 <li>项目规则；</li>
@@ -470,7 +470,7 @@ class AgentState:
 </ul>
 <p>但第一版不要急着做复杂索引。先证明 read/search/edit/test/trace 的主链路可靠，再扩展上下文来源。</p>
 <hr>
-<h2 id="198-模型输出协议每轮只返回一个-json-对象"><a class="header" href="#198-模型输出协议每轮只返回一个-json-对象">19.8 模型输出协议：每轮只返回一个 JSON 对象</a></h2>
+<h2 id="238-模型输出协议每轮只返回一个-json-对象"><a class="header" href="#238-模型输出协议每轮只返回一个-json-对象">23.8 模型输出协议：每轮只返回一个 JSON 对象</a></h2>
 <p>Agent Loop 最怕模型输出自由文本，Runtime 不知道该执行什么。</p>
 <p>本章的 MVP 不使用模型原生 tool calling，而是要求模型返回 JSON：</p>
 <pre><code class="language-json">{
@@ -514,7 +514,7 @@ Prefer replace_in_file over rewriting whole files.
 </ul>
 <p>原生 tool calling 解决的是“模型如何结构化表达工具调用”，不自动解决“工具是否安全”和“任务是否完成”。</p>
 <hr>
-<h2 id="199-tool-runtime工具是能力边界不是普通函数"><a class="header" href="#199-tool-runtime工具是能力边界不是普通函数">19.9 Tool Runtime：工具是能力边界，不是普通函数</a></h2>
+<h2 id="239-tool-runtime工具是能力边界不是普通函数"><a class="header" href="#239-tool-runtime工具是能力边界不是普通函数">23.9 Tool Runtime：工具是能力边界，不是普通函数</a></h2>
 <p><code>tools.py</code> 暴露七个工具：</p>
 <div class="table-wrapper">
 <table>
@@ -608,7 +608,7 @@ Prefer replace_in_file over rewriting whole files.
 </code></pre>
 <p>这不是最终安全模型，但已经足够表达原则：让 Agent 运行测试，不等于让 Agent 拥有一个无限 shell。</p>
 <hr>
-<h2 id="1910-policy-engine把审批从-prompt-里拿出来"><a class="header" href="#1910-policy-engine把审批从-prompt-里拿出来">19.10 Policy Engine：把审批从 Prompt 里拿出来</a></h2>
+<h2 id="2310-policy-engine把审批从-prompt-里拿出来"><a class="header" href="#2310-policy-engine把审批从-prompt-里拿出来">23.10 Policy Engine：把审批从 Prompt 里拿出来</a></h2>
 <p><code>policy.py</code> 把工具分成三类：</p>
 <pre><code class="language-python">READ_ONLY_TOOLS = {"list_files", "read_file", "search_code", "git_diff"}
 WRITE_TOOLS = {"replace_in_file", "create_file"}
@@ -639,7 +639,7 @@ SHELL_TOOLS = {"run_shell"}
 </ul>
 <p>不要让模型自己决定“这个操作安全吗”。模型可以解释风险，但最终裁决必须在确定性系统里完成。</p>
 <hr>
-<h2 id="1911-agent-loop把模型工具和状态串起来"><a class="header" href="#1911-agent-loop把模型工具和状态串起来">19.11 Agent Loop：把模型、工具和状态串起来</a></h2>
+<h2 id="2311-agent-loop把模型工具和状态串起来"><a class="header" href="#2311-agent-loop把模型工具和状态串起来">23.11 Agent Loop：把模型、工具和状态串起来</a></h2>
 <p><code>agent.py</code> 是系统主循环。</p>
 <pre><code class="language-python">def run_agent(
     task: str,
@@ -707,7 +707,7 @@ run verifier
 </code></pre>
 <p>本章保留 <code>verifier.py</code>，是为了明确下一步演进方向：完成状态不能只由模型声明，应该由测试、diff 和风险检查共同决定。</p>
 <hr>
-<h2 id="1912-llm-adapter隔离模型供应商"><a class="header" href="#1912-llm-adapter隔离模型供应商">19.12 LLM Adapter：隔离模型供应商</a></h2>
+<h2 id="2312-llm-adapter隔离模型供应商"><a class="header" href="#2312-llm-adapter隔离模型供应商">23.12 LLM Adapter：隔离模型供应商</a></h2>
 <p><code>llm.py</code> 定义了一个很窄的接口：</p>
 <pre><code class="language-python">class LLMClient(Protocol):
     def complete(self, prompt: str) -&gt; str:
@@ -759,7 +759,7 @@ run verifier
 </ul>
 <p>模型只是 Agent Runtime 的一个依赖，不应该成为整个系统的中心。</p>
 <hr>
-<h2 id="1913-trace让每一步都能复盘"><a class="header" href="#1913-trace让每一步都能复盘">19.13 Trace：让每一步都能复盘</a></h2>
+<h2 id="2313-trace让每一步都能复盘"><a class="header" href="#2313-trace让每一步都能复盘">23.13 Trace：让每一步都能复盘</a></h2>
 <p><code>trace_writer.py</code> 把每个 <code>AgentStep</code> 写成 JSONL：</p>
 <pre><code class="language-python">class TraceWriter:
     def __init__(self, path: str | Path):
@@ -819,7 +819,7 @@ run verifier
 </code></pre>
 <p>这就是第 10 章生产治理控制面在最小 Coding Agent 里的落点：Trace Writer 负责留下事实，Eval Runner 和 Release Gate 负责让旧失败不能静默复发。</p>
 <hr>
-<h2 id="1914-verifier不要让模型自己宣布完成"><a class="header" href="#1914-verifier不要让模型自己宣布完成">19.14 Verifier：不要让模型自己宣布完成</a></h2>
+<h2 id="2314-verifier不要让模型自己宣布完成"><a class="header" href="#2314-verifier不要让模型自己宣布完成">23.14 Verifier：不要让模型自己宣布完成</a></h2>
 <p><code>verifier.py</code> 提供了一个最小验证器：</p>
 <pre><code class="language-python">def verify(
     ws: Workspace,
@@ -874,7 +874,7 @@ run verifier
 </code></pre>
 <p>这里的门禁不需要一开始很复杂，但必须由证据驱动：trace 证明发生过什么，verifier 证明结果是否成立，eval report 决定候选 Agent 能不能进入下一阶段。</p>
 <hr>
-<h2 id="1915-运行-demo从任务到-diff"><a class="header" href="#1915-运行-demo从任务到-diff">19.15 运行 Demo：从任务到 diff</a></h2>
+<h2 id="2315-运行-demo从任务到-diff"><a class="header" href="#2315-运行-demo从任务到-diff">23.15 运行 Demo：从任务到 diff</a></h2>
 <p>Demo 仓库在 <code>demo/</code> 下：</p>
 <pre><code class="language-text">demo/
 ├── AGENT.md
@@ -930,7 +930,7 @@ trace: traces/20260506-143000.jsonl
 </div>
 <p>Agent 工程的改进方式不是“再劝模型认真一点”，而是把失败映射到 prompt、context、tool、policy、verifier 或 eval 的具体层。</p>
 <hr>
-<h2 id="1916-测试策略先测-runtime再测模型效果"><a class="header" href="#1916-测试策略先测-runtime再测模型效果">19.16 测试策略：先测 Runtime，再测模型效果</a></h2>
+<h2 id="2316-测试策略先测-runtime再测模型效果"><a class="header" href="#2316-测试策略先测-runtime再测模型效果">23.16 测试策略：先测 Runtime，再测模型效果</a></h2>
 <p>这个 lab 的 <code>tests/</code> 目录故意不依赖真实模型。</p>
 <p><code>test_tools.py</code> 应该覆盖：</p>
 <ul>
@@ -999,7 +999,7 @@ trace: traces/20260506-143000.jsonl
 <li>Agent evals：端到端、带模型、可回归。</li>
 </ul>
 <hr>
-<h2 id="1917-从-mvp-演进到生产级-coding-agent"><a class="header" href="#1917-从-mvp-演进到生产级-coding-agent">19.17 从 MVP 演进到生产级 Coding Agent</a></h2>
+<h2 id="2317-从-mvp-演进到生产级-coding-agent"><a class="header" href="#2317-从-mvp-演进到生产级-coding-agent">23.17 从 MVP 演进到生产级 Coding Agent</a></h2>
 <p>这个 lab 已经有了核心骨架，但离生产级系统还有明显距离。演进时建议按风险顺序，而不是按功能诱惑。</p>
 <h3 id="阶段一read-only-agent"><a class="header" href="#阶段一read-only-agent">阶段一：Read-only Agent</a></h3>
 <p>只开放：</p>
@@ -1097,7 +1097,7 @@ trace: traces/20260506-143000.jsonl
 </ul>
 <p>这个阶段的核心问题不再是“模型会不会写代码”，而是“它如何进入团队责任链”。</p>
 <hr>
-<h2 id="1918-生产级风险清单"><a class="header" href="#1918-生产级风险清单">19.18 生产级风险清单</a></h2>
+<h2 id="2318-生产级风险清单"><a class="header" href="#2318-生产级风险清单">23.18 生产级风险清单</a></h2>
 <p>Coding Agent 一旦能写文件和运行命令，就必须严肃处理风险。</p>
 <h3 id="文件风险"><a class="header" href="#文件风险">文件风险</a></h3>
 <ul>
@@ -1171,7 +1171,7 @@ trace: traces/20260506-143000.jsonl
 <li>rollback plan。</li>
 </ul>
 <hr>
-<h2 id="1919-面试和作品集表达"><a class="header" href="#1919-面试和作品集表达">19.19 面试和作品集表达</a></h2>
+<h2 id="2319-面试和作品集表达"><a class="header" href="#2319-面试和作品集表达">23.19 面试和作品集表达</a></h2>
 <p>如果你把这个 lab 做成作品集，不要只说“我做了一个能改代码的 Agent”。更好的表达是：</p>
 <pre><code class="language-text">我实现了一个可观测 Coding Agent MVP。
 
@@ -1197,7 +1197,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 <li>Eval 负责持续改进。</li>
 </ul>
 <hr>
-<h2 id="1920-构建检查清单"><a class="header" href="#1920-构建检查清单">19.20 构建检查清单</a></h2>
+<h2 id="2320-构建检查清单"><a class="header" href="#2320-构建检查清单">23.20 构建检查清单</a></h2>
 <p>如果你要从零实现自己的 Coding Agent，可以按下面清单验收。</p>
 <h3 id="runtime"><a class="header" href="#runtime">Runtime</a></h3>
 <ul>
