@@ -16,8 +16,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c15c0b2b.js";
+            window.path_to_searchindex_js = "searchindex-9b6e45c7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-98451072.js"></script>
+        <script src="toc-61e4a651.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -17652,7 +17652,6 @@ Item.current_publish_version = 4
 <tbody>
 <tr><td>Draft 草稿表</td><td><code>product_supply_draft</code>、<code>product_supply_draft_version</code></td><td>保存单商品创建和编辑过程中的草稿</td></tr>
 <tr><td>Task 任务表</td><td><code>product_supply_task</code></td><td>记录一次供给动作</td></tr>
-<tr><td>File 文件表</td><td><code>product_supply_file</code></td><td>保存批量导入源文件、规范化文件、错误文件和文件 hash</td></tr>
 <tr><td>Task Item 明细表</td><td><code>product_supply_task_item</code></td><td>记录每一行、每个商品、每个 Offer 或每条规则的处理状态</td></tr>
 <tr><td>Staging 暂存表</td><td><code>product_supply_staging</code>、<code>product_supply_staging_snapshot</code></td><td>保存已提交、已标准化、但未发布的数据</td></tr>
 <tr><td>Validation 校验表</td><td><code>product_validation_result</code></td><td>保存字段、类目、主数据、交易契约、风险规则的校验结果</td></tr>
@@ -17667,7 +17666,6 @@ Item.current_publish_version = 4
 <p>第一期最小闭环建议：</p>
 <pre><code class="language-text">product_supply_draft
 product_supply_task
-product_supply_file
 product_supply_task_item
 product_supply_staging
 product_validation_result
@@ -17751,8 +17749,15 @@ product_supply_staging_snapshot
     skipped_count INT NOT NULL DEFAULT 0,
     current_stage VARCHAR(64) DEFAULT NULL,
     input_file_ref VARCHAR(512) DEFAULT NULL,
+    input_file_name VARCHAR(256) DEFAULT NULL,
+    input_file_hash VARCHAR(64) DEFAULT NULL,
+    input_file_size BIGINT DEFAULT NULL,
+    input_file_content_type VARCHAR(128) DEFAULT NULL,
     parse_checkpoint VARCHAR(1024) DEFAULT NULL,
     error_file_ref VARCHAR(512) DEFAULT NULL,
+    error_file_name VARCHAR(256) DEFAULT NULL,
+    report_file_ref VARCHAR(512) DEFAULT NULL,
+    report_file_name VARCHAR(256) DEFAULT NULL,
     publish_version BIGINT DEFAULT NULL,
     worker_id VARCHAR(64) DEFAULT NULL,
     lease_token VARCHAR(64) DEFAULT NULL,
@@ -17769,36 +17774,8 @@ product_supply_staging_snapshot
     KEY idx_category_status (category_code, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给任务';
 </code></pre>
-<h3 id="2454-file-文件表"><a class="header" href="#2454-file-文件表">24.5.4 File 文件表</a></h3>
-<p>批量导入不建议只在 Task 表里放一个 <code>input_file_ref</code>。源文件、规范化文件、错误文件、文件 hash、扫描状态都需要独立记录，方便幂等、审计、错误文件下载和重新解析。</p>
-<pre><code class="language-sql">CREATE TABLE product_supply_file (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    file_id VARCHAR(64) NOT NULL,
-    task_id VARCHAR(64) NOT NULL,
-    file_type VARCHAR(32) NOT NULL COMMENT 'INPUT/NORMALIZED/ERROR/REPORT',
-    file_name VARCHAR(256) DEFAULT NULL,
-    file_ref VARCHAR(512) NOT NULL,
-    file_hash VARCHAR(64) NOT NULL,
-    file_size BIGINT DEFAULT NULL,
-    template_version VARCHAR(64) DEFAULT NULL,
-    row_count INT DEFAULT NULL,
-    status VARCHAR(32) NOT NULL
-        COMMENT 'UPLOADED/SCANNING/READY/PARSING/PARSED/FAILED/EXPIRED',
-    error_code VARCHAR(128) DEFAULT NULL,
-    error_message VARCHAR(1024) DEFAULT NULL,
-    uploader_id VARCHAR(64) DEFAULT NULL,
-    created_at DATETIME NOT NULL,
-    parsed_at DATETIME DEFAULT NULL,
-    updated_at DATETIME NOT NULL,
-    UNIQUE KEY uk_file_id (file_id),
-    UNIQUE KEY uk_task_file_type (task_id, file_type),
-    KEY idx_task (task_id),
-    KEY idx_hash (file_hash),
-    KEY idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给文件';
-</code></pre>
-<p>如果一个任务支持多个附件，可以把 <code>uk_task_file_type</code> 改成 <code>(task_id, file_type, file_id)</code>，并增加 <code>file_seq</code>。</p>
-<h3 id="2455-task-item-表"><a class="header" href="#2455-task-item-表">24.5.5 Task Item 表</a></h3>
+<p>批量导入相关文件元数据直接放在 <code>product_supply_task</code> 中：源文件、错误文件和质量报告都通过 <code>*_file_ref</code>、<code>*_file_name</code>、<code>input_file_hash</code> 这类字段管理。这样第一期模型更简单，运营后台也可以通过 task 直接拿到文件地址和校验信息。</p>
+<h3 id="2454-task-item-表"><a class="header" href="#2454-task-item-表">24.5.4 Task Item 表</a></h3>
 <p>Task Item 是批量任务的核心表，也是失败定位单元。</p>
 <pre><code class="language-sql">CREATE TABLE product_supply_task_item (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -17835,7 +17812,7 @@ product_supply_staging_snapshot
     KEY idx_task_status (task_id, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给任务明细';
 </code></pre>
-<h3 id="2456-staging-表"><a class="header" href="#2456-staging-表">24.5.6 Staging 表</a></h3>
+<h3 id="2455-staging-表"><a class="header" href="#2455-staging-表">24.5.5 Staging 表</a></h3>
 <p>Staging 是正式表前的隔离层。</p>
 <pre><code class="language-sql">CREATE TABLE product_supply_staging (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -17870,7 +17847,7 @@ product_supply_staging_snapshot
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给暂存数据';
 </code></pre>
 <p><code>base_publish_version</code> 很重要。运营编辑或批量导入可能基于旧版本，如果发布时线上版本已经变化，必须识别冲突，不能静默覆盖。</p>
-<h3 id="2457-qc-审核表"><a class="header" href="#2457-qc-审核表">24.5.7 QC 审核表</a></h3>
+<h3 id="2456-qc-审核表"><a class="header" href="#2456-qc-审核表">24.5.6 QC 审核表</a></h3>
 <p>QC 审核表位于“标准化校验之后、正式发布之前”。它不是商品正式数据表，而是发布准入工单。商品数据仍然保存在 Draft、Staging、Snapshot 或正式商品表中；QC 表只记录谁审核、审核什么、为什么需要审核、审核结论是什么。</p>
 <pre><code class="language-text">Staging
   → Validation
@@ -17963,7 +17940,7 @@ product_supply_staging_snapshot
 <p><code>product_qc_review</code> 管一次审核工单，<code>product_qc_review_item</code> 管工单下的审核项。对于单商品，通常一张审核单只有一个或少量 item；对于批量导入，可能一个任务生成多个 QC item，QC 通过的 item 可以继续发布，驳回的 item 回到草稿、错误文件或 DLQ。</p>
 <p>QC 状态和任务状态要分开。一个 <code>product_supply_task</code> 可以处于 <code>QC_REVIEWING</code> 或 <code>PARTIAL_FAILED</code>，其中部分 <code>product_qc_review_item</code> 已经 <code>APPROVED</code> 并发布，另一些仍然 <code>PENDING</code> 或 <code>REJECTED</code>。不要把整批任务强行卡成一个大审核单。</p>
 <p><code>REJECTED</code> 和 <code>CANCELLED</code> 也要分开统计。<code>REJECTED</code> 表示审核员认为本次提交内容不符合平台要求，应计入 QC 驳回率；<code>CANCELLED</code> 表示审核单被商家、QC、系统或任务主动终止，不应计入驳回率，而应单独看撤销率和撤销原因分布。</p>
-<h3 id="2458-validation-校验结果表"><a class="header" href="#2458-validation-校验结果表">24.5.8 Validation 校验结果表</a></h3>
+<h3 id="2457-validation-校验结果表"><a class="header" href="#2457-validation-校验结果表">24.5.7 Validation 校验结果表</a></h3>
 <p>Validation 负责保存“为什么不能进入 Staging、QC 或 Publish”。错误文件、表单错误提示、DLQ 修复建议都应该从这里或 Task Item 中生成，而不是从日志里拼。</p>
 <pre><code class="language-sql">CREATE TABLE product_validation_result (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -17993,7 +17970,7 @@ product_supply_staging_snapshot
     KEY idx_status_error (status, error_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给校验结果';
 </code></pre>
-<h3 id="2459-change-request-表"><a class="header" href="#2459-change-request-表">24.5.9 Change Request 表</a></h3>
+<h3 id="2458-change-request-表"><a class="header" href="#2458-change-request-表">24.5.8 Change Request 表</a></h3>
 <p>Change Request 保存字段 Diff、风险等级和准入策略。QC 审核的是 Change Request 对应的 Staging，而不是直接审核 Draft。</p>
 <pre><code class="language-sql">CREATE TABLE product_change_request (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -18025,7 +18002,7 @@ product_supply_staging_snapshot
     KEY idx_item_status (item_id, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给变更请求';
 </code></pre>
-<h3 id="24510-发布记录与发布快照表"><a class="header" href="#24510-发布记录与发布快照表">24.5.10 发布记录与发布快照表</a></h3>
+<h3 id="2459-发布记录与发布快照表"><a class="header" href="#2459-发布记录与发布快照表">24.5.9 发布记录与发布快照表</a></h3>
 <p>Publish Record 记录一次发布动作，Publish Snapshot 保存发布后的正式商品上下文。订单快照、回滚、对账、问题排查都依赖发布快照。</p>
 <pre><code class="language-sql">CREATE TABLE product_publish_record (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -18072,7 +18049,7 @@ product_supply_staging_snapshot
     KEY idx_publish (publish_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品发布快照';
 </code></pre>
-<h3 id="24511-商品变更日志表"><a class="header" href="#24511-商品变更日志表">24.5.11 商品变更日志表</a></h3>
+<h3 id="24510-商品变更日志表"><a class="header" href="#24510-商品变更日志表">24.5.10 商品变更日志表</a></h3>
 <p><code>product_change_log</code> 是正式发布后的变更流水，用于后台展示、审计、回滚和数据平台消费。</p>
 <pre><code class="language-sql">CREATE TABLE product_change_log (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -18092,7 +18069,7 @@ product_supply_staging_snapshot
     KEY idx_publish (publish_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品正式发布变更日志';
 </code></pre>
-<h3 id="24512-outbox-事件表"><a class="header" href="#24512-outbox-事件表">24.5.12 Outbox 事件表</a></h3>
+<h3 id="24511-outbox-事件表"><a class="header" href="#24511-outbox-事件表">24.5.11 Outbox 事件表</a></h3>
 <p>Outbox 解决“商品正式表已变更，但搜索、缓存、计价上下文或营销资格消费者没收到事件”的问题。商品正式写入、发布记录、Outbox 必须在同一个事务里完成。</p>
 <pre><code class="language-sql">CREATE TABLE product_outbox_event (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -18116,7 +18093,7 @@ product_supply_staging_snapshot
     KEY idx_item_version (item_id, publish_version)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给 Outbox 事件';
 </code></pre>
-<h3 id="24513-dlq-表"><a class="header" href="#24513-dlq-表">24.5.13 DLQ 表</a></h3>
+<h3 id="24512-dlq-表"><a class="header" href="#24512-dlq-表">24.5.12 DLQ 表</a></h3>
 <p>DLQ 是运营可处理的问题单，不是简单日志。它要能支持自动重试、人工分派、修复备注和重新投递。</p>
 <pre><code class="language-sql">CREATE TABLE product_supply_dead_letter (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -18152,7 +18129,7 @@ product_supply_staging_snapshot
     KEY idx_item_status (item_id, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给死信问题单';
 </code></pre>
-<h3 id="24514-对象映射表"><a class="header" href="#24514-对象映射表">24.5.14 对象映射表</a></h3>
+<h3 id="24513-对象映射表"><a class="header" href="#24513-对象映射表">24.5.13 对象映射表</a></h3>
 <p><code>product_supply_object_mapping</code> 用来解决“创建前没有 <code>item_id</code>，发布后如何从 <code>item_id</code> 反查整个供给生命周期”的问题。</p>
 <pre><code class="language-sql">CREATE TABLE product_supply_object_mapping (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -18174,7 +18151,7 @@ product_supply_staging_snapshot
     KEY idx_temp_key (temporary_object_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供给对象与正式商品映射';
 </code></pre>
-<h3 id="24515-操作流水表"><a class="header" href="#24515-操作流水表">24.5.15 操作流水表</a></h3>
+<h3 id="24514-操作流水表"><a class="header" href="#24514-操作流水表">24.5.14 操作流水表</a></h3>
 <p><code>product_supply_operation_log</code> 串联 Draft、Staging、QC、Publish、Item Status，是 B 端“View Log”的主要数据源。</p>
 <pre><code class="language-sql">CREATE TABLE product_supply_operation_log (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -18196,7 +18173,7 @@ product_supply_staging_snapshot
     KEY idx_object (object_type, object_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给操作流水';
 </code></pre>
-<h3 id="24516-字段主导权表"><a class="header" href="#24516-字段主导权表">24.5.16 字段主导权表</a></h3>
+<h3 id="24515-字段主导权表"><a class="header" href="#24515-字段主导权表">24.5.15 字段主导权表</a></h3>
 <p>字段主导权用于解决供应商同步和人工运营编辑互相覆盖的问题。没有这张表，供应商同步很容易把运营刚修复的标题、坐标、退款规则覆盖掉。</p>
 <pre><code class="language-sql">CREATE TABLE product_field_ownership (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -18215,7 +18192,7 @@ product_supply_staging_snapshot
     KEY idx_status_until (status, override_until)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品字段主导权';
 </code></pre>
-<h3 id="24517-补偿任务表"><a class="header" href="#24517-补偿任务表">24.5.17 补偿任务表</a></h3>
+<h3 id="24516-补偿任务表"><a class="header" href="#24516-补偿任务表">24.5.16 补偿任务表</a></h3>
 <p>Outbox 自身可以重试事件投递，但商品供给还需要更宽的补偿任务：重建搜索索引、刷新缓存、修复发布版本和索引不一致、重新生成错误文件、重新投递质量修复结果等。这类任务不要混在业务 Task 里，否则运营看板会分不清“供给任务失败”和“下游补偿任务失败”。</p>
 <pre><code class="language-sql">CREATE TABLE product_compensation_task (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -18249,7 +18226,7 @@ product_supply_staging_snapshot
     KEY idx_source (source_type, source_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给补偿任务';
 </code></pre>
-<h3 id="24518-质量问题表"><a class="header" href="#24518-质量问题表">24.5.18 质量问题表</a></h3>
+<h3 id="24517-质量问题表"><a class="header" href="#24517-质量问题表">24.5.17 质量问题表</a></h3>
 <p>质量巡检发现的问题要变成可分派、可跟进、可统计的问题单。它和 DLQ 的区别是：DLQ 通常来自链路执行失败，质量问题表来自发布后巡检、数据对账和运营治理。</p>
 <pre><code class="language-sql">CREATE TABLE product_quality_issue (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -18280,7 +18257,7 @@ product_supply_staging_snapshot
     KEY idx_severity (severity)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品质量问题单';
 </code></pre>
-<h3 id="24519-表模型-review-结论"><a class="header" href="#24519-表模型-review-结论">24.5.19 表模型 review 结论</a></h3>
+<h3 id="24518-表模型-review-结论"><a class="header" href="#24518-表模型-review-结论">24.5.18 表模型 review 结论</a></h3>
 <p>这一组表的边界可以这样记：</p>
 <div class="table-wrapper">
 <table>
@@ -18290,7 +18267,6 @@ product_supply_staging_snapshot
 <tbody>
 <tr><td><code>product_supply_draft</code></td><td>可编辑工作区</td></tr>
 <tr><td><code>product_supply_task</code></td><td>一次供给动作的执行批次</td></tr>
-<tr><td><code>product_supply_file</code></td><td>批量导入和错误文件元数据</td></tr>
 <tr><td><code>product_supply_task_item</code></td><td>批量任务的行级处理单元</td></tr>
 <tr><td><code>product_supply_staging</code></td><td>已提交冻结快照</td></tr>
 <tr><td><code>product_validation_result</code></td><td>为什么不能继续流转</td></tr>
@@ -18331,7 +18307,7 @@ product_supply_staging_snapshot
 </code></pre>
 <p>这个边界和商品发布一致：供给平台不直接改正式商品表，也不直接改库存余额。它发起表达业务意图的命令，由库存系统幂等执行。</p>
 <h3 id="2462-库存任务的通用模型"><a class="header" href="#2462-库存任务的通用模型">24.6.2 库存任务的通用模型</a></h3>
-<p>库存运营任务可以复用供给平台的 Task / Task Item / File / DLQ 模型，但要有清晰的 <code>task_type</code> 和执行阶段。</p>
+<p>库存运营任务可以复用供给平台的 Task / Task Item / DLQ 模型，文件元数据直接挂在 Task 上，但要有清晰的 <code>task_type</code> 和执行阶段。</p>
 <p>常见 <code>task_type</code>：</p>
 <div class="table-wrapper">
 <table>
@@ -18459,8 +18435,8 @@ publish_version
 <p>券码制库存不能只用一个数量字段表达。每个券码都是一份可交付资源，必须一码一行、有状态机、有加密存储、有去重能力、有订单关联和审计记录。</p>
 <p>手动上传券码推荐链路：</p>
 <pre><code class="language-text">上传券码文件
-  → 写 product_supply_file(file_type=CODE_IMPORT)
   → 创建 CODE_IMPORT task
+  → 在 task 中写入 input_file_ref / input_file_hash
   → Parser Worker 流式解析
   → 生成 task_item(row_no, code_hash, raw_ref)
   → 校验格式、重复码、有效期、批次、SKU 归属
@@ -18789,8 +18765,8 @@ Staging
 <p>批量链路要按“任务 + 行级明细 + 暂存快照 + 错误文件 + 补偿”设计，不能把整个 Excel 读进内存后循环写正式表。</p>
 <h3 id="2481-异步执行总流程"><a class="header" href="#2481-异步执行总流程">24.8.1 异步执行总流程</a></h3>
 <pre><code class="language-text">上传文件 / 批量提交
-  → 写 product_supply_file(file_type=INPUT)
   → 创建 product_supply_task(status=PENDING, execution_mode=ASYNC)
+  → 在 task 中写入 input_file_ref / input_file_name / input_file_hash
   → Parser Worker 抢占任务并流式解析文件
   → 批量写入 product_supply_task_item
   → Item Worker 分批处理 item
@@ -18809,7 +18785,7 @@ Staging
 <h3 id="2482-parser-worker"><a class="header" href="#2482-parser-worker">24.8.2 Parser Worker</a></h3>
 <p>Parser Worker 只负责解析，不负责发布。</p>
 <pre><code class="language-text">1. CAS 抢占 product_supply_task
-2. 读取 product_supply_file，校验 input_file_ref、文件 hash、模板版本和列结构
+2. 读取 product_supply_task 中的文件元数据，校验 input_file_ref、文件 hash、模板版本和列结构
 3. 流式读取文件，不能一次性加载到内存
 4. 每 N 行批量插入 product_supply_task_item
 5. 更新 parsed_count、parse_checkpoint、heartbeat_at
@@ -18890,7 +18866,7 @@ NORMALIZING / VALIDATING / STAGING / DIFFING / QC_REVIEWING / PUBLISHING
 31, HOTEL_020, city_code, CITY_NOT_FOUND, city cannot map to platform city, add city mapping first
 </code></pre>
 <p>错误文件应该从 <code>product_supply_task_item</code> 和 <code>product_validation_result</code> 生成，而不是从日志里拼。</p>
-<p>生成错误文件后，建议写一条 <code>product_supply_file(file_type=ERROR)</code>，这样运营后台可以通过 task 直接找到源文件、规范化文件和错误文件。</p>
+<p>生成错误文件后，直接回写 <code>product_supply_task.error_file_ref</code> 和 <code>error_file_name</code>，这样运营后台可以通过 task 直接找到源文件和错误文件。</p>
 <hr>
 <h2 id="249-供应商商品同步链路"><a class="header" href="#249-供应商商品同步链路">24.9 供应商商品同步链路</a></h2>
 <h3 id="2491-为什么单独设计"><a class="header" href="#2491-为什么单独设计">24.9.1 为什么单独设计</a></h3>
@@ -56926,11 +56902,11 @@ mdbook serve
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="mermaid-eefea253.min.js"></script>
