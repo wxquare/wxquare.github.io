@@ -1371,7 +1371,6 @@ supplier_sync_task
 |------|--------|------|
 | Draft 草稿表 | `product_supply_draft`、`product_supply_draft_version` | 保存单商品创建和编辑过程中的草稿 |
 | Task 任务表 | `product_supply_task` | 记录一次供给动作 |
-| File 文件表 | `product_supply_file` | 保存批量导入源文件、规范化文件、错误文件和文件 hash |
 | Task Item 明细表 | `product_supply_task_item` | 记录每一行、每个商品、每个 Offer 或每条规则的处理状态 |
 | Staging 暂存表 | `product_supply_staging`、`product_supply_staging_snapshot` | 保存已提交、已标准化、但未发布的数据 |
 | Validation 校验表 | `product_validation_result` | 保存字段、类目、主数据、交易契约、风险规则的校验结果 |
@@ -1386,7 +1385,6 @@ supplier_sync_task
 ```text
 product_supply_draft
 product_supply_task
-product_supply_file
 product_supply_task_item
 product_supply_staging
 product_validation_result
@@ -1481,8 +1479,15 @@ CREATE TABLE product_supply_task (
     skipped_count INT NOT NULL DEFAULT 0,
     current_stage VARCHAR(64) DEFAULT NULL,
     input_file_ref VARCHAR(512) DEFAULT NULL,
+    input_file_name VARCHAR(256) DEFAULT NULL,
+    input_file_hash VARCHAR(64) DEFAULT NULL,
+    input_file_size BIGINT DEFAULT NULL,
+    input_file_content_type VARCHAR(128) DEFAULT NULL,
     parse_checkpoint VARCHAR(1024) DEFAULT NULL,
     error_file_ref VARCHAR(512) DEFAULT NULL,
+    error_file_name VARCHAR(256) DEFAULT NULL,
+    report_file_ref VARCHAR(512) DEFAULT NULL,
+    report_file_name VARCHAR(256) DEFAULT NULL,
     publish_version BIGINT DEFAULT NULL,
     worker_id VARCHAR(64) DEFAULT NULL,
     lease_token VARCHAR(64) DEFAULT NULL,
@@ -1500,41 +1505,9 @@ CREATE TABLE product_supply_task (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给任务';
 ```
 
-### 24.5.4 File 文件表
+批量导入相关文件元数据直接放在 `product_supply_task` 中：源文件、错误文件和质量报告都通过 `*_file_ref`、`*_file_name`、`input_file_hash` 这类字段管理。这样第一期模型更简单，运营后台也可以通过 task 直接拿到文件地址和校验信息。
 
-批量导入不建议只在 Task 表里放一个 `input_file_ref`。源文件、规范化文件、错误文件、文件 hash、扫描状态都需要独立记录，方便幂等、审计、错误文件下载和重新解析。
-
-```sql
-CREATE TABLE product_supply_file (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    file_id VARCHAR(64) NOT NULL,
-    task_id VARCHAR(64) NOT NULL,
-    file_type VARCHAR(32) NOT NULL COMMENT 'INPUT/NORMALIZED/ERROR/REPORT',
-    file_name VARCHAR(256) DEFAULT NULL,
-    file_ref VARCHAR(512) NOT NULL,
-    file_hash VARCHAR(64) NOT NULL,
-    file_size BIGINT DEFAULT NULL,
-    template_version VARCHAR(64) DEFAULT NULL,
-    row_count INT DEFAULT NULL,
-    status VARCHAR(32) NOT NULL
-        COMMENT 'UPLOADED/SCANNING/READY/PARSING/PARSED/FAILED/EXPIRED',
-    error_code VARCHAR(128) DEFAULT NULL,
-    error_message VARCHAR(1024) DEFAULT NULL,
-    uploader_id VARCHAR(64) DEFAULT NULL,
-    created_at DATETIME NOT NULL,
-    parsed_at DATETIME DEFAULT NULL,
-    updated_at DATETIME NOT NULL,
-    UNIQUE KEY uk_file_id (file_id),
-    UNIQUE KEY uk_task_file_type (task_id, file_type),
-    KEY idx_task (task_id),
-    KEY idx_hash (file_hash),
-    KEY idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给文件';
-```
-
-如果一个任务支持多个附件，可以把 `uk_task_file_type` 改成 `(task_id, file_type, file_id)`，并增加 `file_seq`。
-
-### 24.5.5 Task Item 表
+### 24.5.4 Task Item 表
 
 Task Item 是批量任务的核心表，也是失败定位单元。
 
@@ -1575,7 +1548,7 @@ CREATE TABLE product_supply_task_item (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给任务明细';
 ```
 
-### 24.5.6 Staging 表
+### 24.5.5 Staging 表
 
 Staging 是正式表前的隔离层。
 
@@ -1615,7 +1588,7 @@ CREATE TABLE product_supply_staging (
 
 `base_publish_version` 很重要。运营编辑或批量导入可能基于旧版本，如果发布时线上版本已经变化，必须识别冲突，不能静默覆盖。
 
-### 24.5.7 QC 审核表
+### 24.5.6 QC 审核表
 
 QC 审核表位于“标准化校验之后、正式发布之前”。它不是商品正式数据表，而是发布准入工单。商品数据仍然保存在 Draft、Staging、Snapshot 或正式商品表中；QC 表只记录谁审核、审核什么、为什么需要审核、审核结论是什么。
 
@@ -1716,7 +1689,7 @@ QC 状态和任务状态要分开。一个 `product_supply_task` 可以处于 `Q
 
 `REJECTED` 和 `CANCELLED` 也要分开统计。`REJECTED` 表示审核员认为本次提交内容不符合平台要求，应计入 QC 驳回率；`CANCELLED` 表示审核单被商家、QC、系统或任务主动终止，不应计入驳回率，而应单独看撤销率和撤销原因分布。
 
-### 24.5.8 Validation 校验结果表
+### 24.5.7 Validation 校验结果表
 
 Validation 负责保存“为什么不能进入 Staging、QC 或 Publish”。错误文件、表单错误提示、DLQ 修复建议都应该从这里或 Task Item 中生成，而不是从日志里拼。
 
@@ -1750,7 +1723,7 @@ CREATE TABLE product_validation_result (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给校验结果';
 ```
 
-### 24.5.9 Change Request 表
+### 24.5.8 Change Request 表
 
 Change Request 保存字段 Diff、风险等级和准入策略。QC 审核的是 Change Request 对应的 Staging，而不是直接审核 Draft。
 
@@ -1786,7 +1759,7 @@ CREATE TABLE product_change_request (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给变更请求';
 ```
 
-### 24.5.10 发布记录与发布快照表
+### 24.5.9 发布记录与发布快照表
 
 Publish Record 记录一次发布动作，Publish Snapshot 保存发布后的正式商品上下文。订单快照、回滚、对账、问题排查都依赖发布快照。
 
@@ -1839,7 +1812,7 @@ CREATE TABLE product_publish_snapshot (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品发布快照';
 ```
 
-### 24.5.11 商品变更日志表
+### 24.5.10 商品变更日志表
 
 `product_change_log` 是正式发布后的变更流水，用于后台展示、审计、回滚和数据平台消费。
 
@@ -1863,7 +1836,7 @@ CREATE TABLE product_change_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品正式发布变更日志';
 ```
 
-### 24.5.12 Outbox 事件表
+### 24.5.11 Outbox 事件表
 
 Outbox 解决“商品正式表已变更，但搜索、缓存、计价上下文或营销资格消费者没收到事件”的问题。商品正式写入、发布记录、Outbox 必须在同一个事务里完成。
 
@@ -1891,7 +1864,7 @@ CREATE TABLE product_outbox_event (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给 Outbox 事件';
 ```
 
-### 24.5.13 DLQ 表
+### 24.5.12 DLQ 表
 
 DLQ 是运营可处理的问题单，不是简单日志。它要能支持自动重试、人工分派、修复备注和重新投递。
 
@@ -1931,7 +1904,7 @@ CREATE TABLE product_supply_dead_letter (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给死信问题单';
 ```
 
-### 24.5.14 对象映射表
+### 24.5.13 对象映射表
 
 `product_supply_object_mapping` 用来解决“创建前没有 `item_id`，发布后如何从 `item_id` 反查整个供给生命周期”的问题。
 
@@ -1957,7 +1930,7 @@ CREATE TABLE product_supply_object_mapping (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供给对象与正式商品映射';
 ```
 
-### 24.5.15 操作流水表
+### 24.5.14 操作流水表
 
 `product_supply_operation_log` 串联 Draft、Staging、QC、Publish、Item Status，是 B 端“View Log”的主要数据源。
 
@@ -1983,7 +1956,7 @@ CREATE TABLE product_supply_operation_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给操作流水';
 ```
 
-### 24.5.16 字段主导权表
+### 24.5.15 字段主导权表
 
 字段主导权用于解决供应商同步和人工运营编辑互相覆盖的问题。没有这张表，供应商同步很容易把运营刚修复的标题、坐标、退款规则覆盖掉。
 
@@ -2006,7 +1979,7 @@ CREATE TABLE product_field_ownership (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品字段主导权';
 ```
 
-### 24.5.17 补偿任务表
+### 24.5.16 补偿任务表
 
 Outbox 自身可以重试事件投递，但商品供给还需要更宽的补偿任务：重建搜索索引、刷新缓存、修复发布版本和索引不一致、重新生成错误文件、重新投递质量修复结果等。这类任务不要混在业务 Task 里，否则运营看板会分不清“供给任务失败”和“下游补偿任务失败”。
 
@@ -2044,7 +2017,7 @@ CREATE TABLE product_compensation_task (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给补偿任务';
 ```
 
-### 24.5.18 质量问题表
+### 24.5.17 质量问题表
 
 质量巡检发现的问题要变成可分派、可跟进、可统计的问题单。它和 DLQ 的区别是：DLQ 通常来自链路执行失败，质量问题表来自发布后巡检、数据对账和运营治理。
 
@@ -2079,7 +2052,7 @@ CREATE TABLE product_quality_issue (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品质量问题单';
 ```
 
-### 24.5.19 表模型 review 结论
+### 24.5.18 表模型 review 结论
 
 这一组表的边界可以这样记：
 
@@ -2087,7 +2060,6 @@ CREATE TABLE product_quality_issue (
 |----|------------|
 | `product_supply_draft` | 可编辑工作区 |
 | `product_supply_task` | 一次供给动作的执行批次 |
-| `product_supply_file` | 批量导入和错误文件元数据 |
 | `product_supply_task_item` | 批量任务的行级处理单元 |
 | `product_supply_staging` | 已提交冻结快照 |
 | `product_validation_result` | 为什么不能继续流转 |
@@ -2137,7 +2109,7 @@ CREATE TABLE product_quality_issue (
 
 ### 24.6.2 库存任务的通用模型
 
-库存运营任务可以复用供给平台的 Task / Task Item / File / DLQ 模型，但要有清晰的 `task_type` 和执行阶段。
+库存运营任务可以复用供给平台的 Task / Task Item / DLQ 模型，文件元数据直接挂在 Task 上，但要有清晰的 `task_type` 和执行阶段。
 
 常见 `task_type`：
 
@@ -2278,8 +2250,8 @@ UPDATE inventory_balance SET available_quantity = ? WHERE inventory_key = ?;
 
 ```text
 上传券码文件
-  → 写 product_supply_file(file_type=CODE_IMPORT)
   → 创建 CODE_IMPORT task
+  → 在 task 中写入 input_file_ref / input_file_hash
   → Parser Worker 流式解析
   → 生成 task_item(row_no, code_hash, raw_ref)
   → 校验格式、重复码、有效期、批次、SKU 归属
@@ -2644,8 +2616,8 @@ Staging
 
 ```text
 上传文件 / 批量提交
-  → 写 product_supply_file(file_type=INPUT)
   → 创建 product_supply_task(status=PENDING, execution_mode=ASYNC)
+  → 在 task 中写入 input_file_ref / input_file_name / input_file_hash
   → Parser Worker 抢占任务并流式解析文件
   → 批量写入 product_supply_task_item
   → Item Worker 分批处理 item
@@ -2668,7 +2640,7 @@ Parser Worker 只负责解析，不负责发布。
 
 ```text
 1. CAS 抢占 product_supply_task
-2. 读取 product_supply_file，校验 input_file_ref、文件 hash、模板版本和列结构
+2. 读取 product_supply_task 中的文件元数据，校验 input_file_ref、文件 hash、模板版本和列结构
 3. 流式读取文件，不能一次性加载到内存
 4. 每 N 行批量插入 product_supply_task_item
 5. 更新 parsed_count、parse_checkpoint、heartbeat_at
@@ -2768,7 +2740,7 @@ row_no, object_key, field, error_code, error_message, suggestion
 
 错误文件应该从 `product_supply_task_item` 和 `product_validation_result` 生成，而不是从日志里拼。
 
-生成错误文件后，建议写一条 `product_supply_file(file_type=ERROR)`，这样运营后台可以通过 task 直接找到源文件、规范化文件和错误文件。
+生成错误文件后，直接回写 `product_supply_task.error_file_ref` 和 `error_file_name`，这样运营后台可以通过 task 直接找到源文件和错误文件。
 
 ---
 
@@ -3441,4 +3413,3 @@ supplier_mapping_snapshot
 - [第 30 章：供应商数据同步链路](./28-supplier-sync.md)
 
 ---
-
