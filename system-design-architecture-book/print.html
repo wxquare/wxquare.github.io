@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9b6e45c7.js";
+            window.path_to_searchindex_js = "searchindex-c1ac9b11.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-61e4a651.js"></script>
@@ -16671,7 +16671,7 @@ func PreviewParallel(ctx context.Context, userID int64) (coupons int, points int
   qc_status = PENDING
 </code></pre>
 <p>这不是重复设计，而是避免“一个字段表达四种语义”。正式 <code>item_tab</code> 不应该出现 <code>DRAFT</code>、<code>QC_PENDING</code>、<code>REJECTED</code> 这类供给流程状态；新建商品在发布前甚至还没有正式 <code>item_id</code>。</p>
-<h3 id="2432-四套核心状态机"><a class="header" href="#2432-四套核心状态机">24.3.2 四套核心状态机</a></h3>
+<h3 id="2432-六套核心状态机"><a class="header" href="#2432-六套核心状态机">24.3.2 六套核心状态机</a></h3>
 <h4 id="24321-draft-状态机"><a class="header" href="#24321-draft-状态机">24.3.2.1 Draft 状态机</a></h4>
 <p>Draft 是编辑工作区，允许反复保存。它不进入审核，也不代表线上商品。</p>
 <pre class="mermaid">
@@ -16823,8 +16823,125 @@ product_item_tab.publish_version:
 </code></pre>
 <p><code>item_status</code> 描述商品资产是否上线、下线、封禁、归档；<code>sellable_status</code> 描述当前是否允许交易。比如商品可以是 <code>ONLINE</code>，但因为库存为 0 而 <code>sellable_status=SOLD_OUT</code>。</p>
 <p>对于编辑已上线商品，正式 Item 通常保持 <code>ONLINE</code>，新的 Draft、Staging、QC 在供给侧流转。只有发布事务成功后，正式 Item 的 <code>publish_version</code> 才递增。</p>
+<h4 id="24325-task-状态机"><a class="header" href="#24325-task-状态机">24.3.2.5 Task 状态机</a></h4>
+<p>批量任务除了商品对象本身的状态机，还应该有独立的 <code>task</code> 状态机。<code>task</code> 负责表达整批任务当前所处阶段，并为后台展示、超时回收、重试补偿、报告生成提供统一锚点。</p>
+<p>批量 Task 是执行编排对象。它不描述“商品是否在线”，而描述“一整批导入、编辑、审核、发布任务现在走到了哪一步”。</p>
+<pre class="mermaid">
+stateDiagram-v2
+  [*] --&gt; PENDING: 创建任务
+  PENDING --&gt; PARSING: Parser 抢占
+  PARSING --&gt; RUNNING: 切分 task_item 完成
+  RUNNING --&gt; QC_REVIEWING: 存在高风险 item
+  RUNNING --&gt; PUBLISHING: 已有 item 进入发布
+  QC_REVIEWING --&gt; PUBLISHING: 审核通过进入发布
+  PUBLISHING --&gt; SUCCESS: 全部发布成功
+  PUBLISHING --&gt; PARTIAL_FAILED: 部分发布失败
+  RUNNING --&gt; FAILED: 全部失败或审核整体驳回
+  QC_REVIEWING --&gt; FAILED: 审核整体驳回
+  PUBLISHING --&gt; FAILED: 发布整体失败
+  PENDING --&gt; CANCELLED: 人工取消
+  PARSING --&gt; CANCELLED: 人工取消或超时回收
+  RUNNING --&gt; CANCELLED: 人工取消或超时回收
+  QC_REVIEWING --&gt; CANCELLED: 人工取消或超时回收
+  PUBLISHING --&gt; CANCELLED: 人工取消或超时回收
+  SUCCESS --&gt; [*]
+  PARTIAL_FAILED --&gt; [*]
+  FAILED --&gt; [*]
+  CANCELLED --&gt; [*]
+</pre>
+
+<p>Task 状态说明：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>PENDING</code></td><td>任务已创建，等待 Parser 抢占</td></tr>
+<tr><td><code>PARSING</code></td><td>正在解析源文件、生成 <code>task_item</code></td></tr>
+<tr><td><code>RUNNING</code></td><td>item 已开始异步处理</td></tr>
+<tr><td><code>QC_REVIEWING</code></td><td>存在高风险 item 等待审核</td></tr>
+<tr><td><code>PUBLISHING</code></td><td>已有通过准入的 item 进入发布</td></tr>
+<tr><td><code>SUCCESS</code></td><td>全部 item 成功发布</td></tr>
+<tr><td><code>PARTIAL_FAILED</code></td><td>部分成功，部分失败 / 驳回 / DLQ</td></tr>
+<tr><td><code>FAILED</code></td><td>整批失败、审核整体驳回，或最终没有可用结果</td></tr>
+<tr><td><code>CANCELLED</code></td><td>人工取消或超时回收结束</td></tr>
+</tbody>
+</table>
+</div>
+<p>Task 状态通常由 item 聚合而来，但不等于简单计数求和。一个实用的聚合规则如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Item 汇总结果</th><th>Task 状态</th></tr>
+</thead>
+<tbody>
+<tr><td>全部 <code>SUCCESS</code></td><td><code>SUCCESS</code></td></tr>
+<tr><td>部分 <code>SUCCESS</code>，部分 <code>FAILED/DLQ/REJECTED</code></td><td><code>PARTIAL_FAILED</code></td></tr>
+<tr><td>全部失败或全部被驳回</td><td><code>FAILED</code></td></tr>
+<tr><td>存在 <code>QC_PENDING/QC_REVIEWING</code></td><td><code>QC_REVIEWING</code></td></tr>
+<tr><td>存在 <code>PUBLISHING</code></td><td><code>PUBLISHING</code></td></tr>
+<tr><td>尚未开始处理，仅完成建 task</td><td><code>PENDING</code></td></tr>
+<tr><td>Parser 已抢占但未完成切 item</td><td><code>PARSING</code></td></tr>
+<tr><td>item 已启动执行但未进入 QC / 发布</td><td><code>RUNNING</code></td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="24326-task-item-状态机"><a class="header" href="#24326-task-item-状态机">24.3.2.6 Task Item 状态机</a></h4>
+<p><code>task_item</code> 是批量任务里的行级执行单元，它描述“这一行数据在标准化、校验、审核、发布中的推进情况”，不应和正式商品状态混在一起。</p>
+<p>Task Item 关注的是“这一行数据现在处在处理链路的哪一环”，因此状态机会比 Task 更细，但仍应保持单向推进为主。</p>
+<pre class="mermaid">
+stateDiagram-v2
+  [*] --&gt; PENDING: 生成行级任务
+  PENDING --&gt; NORMALIZING: Worker 抢占
+  NORMALIZING --&gt; VALIDATING: 标准化完成
+  VALIDATING --&gt; STAGING: 校验通过
+  STAGING --&gt; DIFFING: 写入 staging
+  DIFFING --&gt; QC_PENDING: 命中高风险规则
+  DIFFING --&gt; PUBLISHING: 自动准入
+  QC_PENDING --&gt; QC_REVIEWING: 审核员领取
+  QC_REVIEWING --&gt; QC_APPROVED: 审核通过
+  QC_APPROVED --&gt; PUBLISHING: 进入发布
+  PUBLISHING --&gt; SUCCESS: 发布成功
+  NORMALIZING --&gt; FAILED: 标准化失败
+  VALIDATING --&gt; FAILED: 校验失败
+  STAGING --&gt; FAILED: staging 写入失败
+  DIFFING --&gt; FAILED: diff 失败
+  QC_REVIEWING --&gt; FAILED: 审核驳回
+  PUBLISHING --&gt; FAILED: 发布失败
+  FAILED --&gt; DLQ: 超过重试阈值
+  PENDING --&gt; SKIPPED: 幂等命中 / 任务取消
+  FAILED --&gt; SKIPPED: 冲突策略跳过
+  SUCCESS --&gt; [*]
+  DLQ --&gt; [*]
+  SKIPPED --&gt; [*]
+</pre>
+
+<p>Task Item 状态说明：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>PENDING</code></td><td>已生成行级任务，等待消费</td></tr>
+<tr><td><code>NORMALIZING</code></td><td>正在按模板做标准化</td></tr>
+<tr><td><code>VALIDATING</code></td><td>正在执行结构、主数据、交易契约校验</td></tr>
+<tr><td><code>STAGING</code></td><td>已写入 staging，准备做 diff</td></tr>
+<tr><td><code>DIFFING</code></td><td>正在和线上版本比较差异</td></tr>
+<tr><td><code>QC_PENDING</code></td><td>命中高风险规则，等待审核</td></tr>
+<tr><td><code>QC_REVIEWING</code></td><td>审核中</td></tr>
+<tr><td><code>QC_APPROVED</code></td><td>审核通过，等待进入发布</td></tr>
+<tr><td><code>PUBLISHING</code></td><td>正在发布正式版本</td></tr>
+<tr><td><code>SUCCESS</code></td><td>已成功完成发布</td></tr>
+<tr><td><code>FAILED</code></td><td>执行失败，可重试或导出错误文件</td></tr>
+<tr><td><code>DLQ</code></td><td>多次失败后进入死信队列</td></tr>
+<tr><td><code>SKIPPED</code></td><td>被幂等、撤销、冲突策略跳过</td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="2433-状态联动规则"><a class="header" href="#2433-状态联动规则">24.3.3 状态联动规则</a></h3>
-<p>四套状态机不是互相复制，而是通过明确动作联动。</p>
+<p>六套状态机不是互相复制，而是通过明确动作联动。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -18782,8 +18899,102 @@ Staging
 <li>行级失败不会拖垮整批任务。</li>
 <li>发布和下游刷新可以限速、重试和补偿。</li>
 </ol>
-<h3 id="2482-parser-worker"><a class="header" href="#2482-parser-worker">24.8.2 Parser Worker</a></h3>
+<h3 id="2482-提交任务"><a class="header" href="#2482-提交任务">24.8.2 提交任务</a></h3>
+<p>“提交任务”阶段只负责保存源文件和任务元数据，不直接解析 Excel，也不直接写正式商品表。</p>
+<pre class="mermaid">
+sequenceDiagram
+  title Excel 批量导入：提交任务
+  actor Merchant
+  participant API as Upload API
+  participant FileStore as OSS / USS
+  participant TaskDB as product_supply_task
+
+  Merchant-&gt;&gt;API: 1. 上传 Excel / 批量提交
+  activate API
+  API-&gt;&gt;FileStore: 2. 上传源文件到 OSS / USS
+  activate FileStore
+  FileStore--&gt;&gt;API: input_file_ref / file_name / hash
+  deactivate FileStore
+
+  API-&gt;&gt;TaskDB: 3. 创建 product_supply_task&lt;br/&gt;status=PENDING, execution_mode=ASYNC,&lt;br/&gt;input_file_ref / file_name / input_file_hash
+  activate TaskDB
+  TaskDB--&gt;&gt;API: task_id
+  deactivate TaskDB
+
+  API--&gt;&gt;Merchant: 4. 返回 task_id
+  deactivate API
+
+  Note right of API: 提交阶段只负责保存源文件和任务元数据，&lt;br/&gt;不直接解析 Excel，也不直接写正式商品表。
+</pre>
+
+<h3 id="2483-parser-worker"><a class="header" href="#2483-parser-worker">24.8.3 Parser Worker</a></h3>
 <p>Parser Worker 只负责解析，不负责发布。</p>
+<pre class="mermaid">
+sequenceDiagram
+  title Excel 批量导入：Parser Worker 解析文件
+  actor Scheduler as Parser Scheduler
+  participant Parser as Parser Worker
+  participant FileStore as OSS / USS
+  participant TaskDB as product_supply_task
+  participant ItemDB as product_supply_task_item
+  participant Outbox
+  participant ItemMQ as Task Item MQ
+
+  Scheduler-&gt;&gt;Parser: 1. 触发解析任务
+  activate Parser
+  Parser-&gt;&gt;TaskDB: 2. CAS 抢占任务&lt;br/&gt;PENDING -&gt; PARSING
+  activate TaskDB
+  TaskDB--&gt;&gt;Parser: claim ok
+  deactivate TaskDB
+
+  Parser-&gt;&gt;TaskDB: 3. 读取文件元数据&lt;br/&gt;校验 input_file_ref / hash / 模板版本 / 列结构
+  activate TaskDB
+  TaskDB--&gt;&gt;Parser: file metadata
+  deactivate TaskDB
+
+  Parser-&gt;&gt;FileStore: 4. 按 input_file_ref 读取源文件
+  activate FileStore
+  FileStore--&gt;&gt;Parser: file stream
+  deactivate FileStore
+
+  loop 5. 流式解析文件，每 N 行一批
+    Parser-&gt;&gt;Parser: 5.1 stream read&lt;br/&gt;不能一次性加载到内存
+    Parser-&gt;&gt;ItemDB: 5.2 同事务写 task items&lt;br/&gt;status=PENDING
+    activate ItemDB
+    ItemDB--&gt;&gt;Parser: inserted
+    deactivate ItemDB
+
+    Parser-&gt;&gt;Outbox: 5.3 同事务写 Outbox&lt;br/&gt;TASK_ITEM_CREATED, task_item_id
+    activate Outbox
+    Outbox--&gt;&gt;Parser: queued
+    deactivate Outbox
+
+    Parser-&gt;&gt;ItemMQ: 5.4 提交后立即发布 task_item_id
+    activate ItemMQ
+    ItemMQ--&gt;&gt;Parser: ack
+    deactivate ItemMQ
+
+    Parser-&gt;&gt;Outbox: 5.5 更新 outbox.status=SENT
+    activate Outbox
+    Outbox--&gt;&gt;Parser: updated
+    deactivate Outbox
+
+    Parser-&gt;&gt;TaskDB: 5.6 update parsed_count&lt;br/&gt;parse_checkpoint / heartbeat_at
+    activate TaskDB
+    TaskDB--&gt;&gt;Parser: updated
+    deactivate TaskDB
+  end
+
+  Parser-&gt;&gt;TaskDB: 6. 写 total_count&lt;br/&gt;PARSING -&gt; RUNNING
+  activate TaskDB
+  TaskDB--&gt;&gt;Parser: updated
+  deactivate TaskDB
+  deactivate Parser
+
+  Note right of Parser: parse_checkpoint 示例:&lt;br/&gt;{&lt;br/&gt;  "sheet": "Sheet1",&lt;br/&gt;  "row_no": 12000,&lt;br/&gt;  "byte_offset": 8842211&lt;br/&gt;}&lt;br/&gt;&lt;br/&gt;这一阶段结束时，&lt;br/&gt;TASK_ITEM_CREATED 已经投递到 MQ。
+  Note right of ItemDB: 幂等兜底:&lt;br/&gt;UNIQUE(task_id, item_no)&lt;br/&gt;UNIQUE(task_id, idempotency_key)
+</pre>
+
 <pre><code class="language-text">1. CAS 抢占 product_supply_task
 2. 读取 product_supply_task 中的文件元数据，校验 input_file_ref、文件 hash、模板版本和列结构
 3. 流式读取文件，不能一次性加载到内存
@@ -18804,16 +19015,99 @@ Staging
 <pre><code class="language-text">UNIQUE(task_id, item_no)
 UNIQUE(task_id, idempotency_key)
 </code></pre>
-<h3 id="2483-item-worker"><a class="header" href="#2483-item-worker">24.8.3 Item Worker</a></h3>
-<p>Item Worker 不按整个文件处理，而是扫描小批量 item。</p>
-<pre><code class="language-sql">SELECT *
-FROM product_supply_task_item
-WHERE task_id = ?
-  AND status IN ('PENDING', 'FAILED')
-  AND next_retry_at &lt;= NOW()
-ORDER BY item_no ASC
-LIMIT 500;
-</code></pre>
+<h3 id="2484-item-worker"><a class="header" href="#2484-item-worker">24.8.4 Item Worker</a></h3>
+<p>Item Worker 的主链路应改为消费 <code>Task Item MQ</code>，而不是高频扫表抢小批量 item。扫表只保留给补偿、超时回收和死信重放。</p>
+<pre class="mermaid">
+sequenceDiagram
+  title Excel 批量导入：Item 执行与分流
+  participant ItemMQ as Task Item MQ
+  participant ItemWorker as Item Worker
+  participant ItemDB as product_supply_task_item
+  participant StagingDB as product_supply_staging
+  participant Risk as Risk Engine / QC Builder
+  participant QCDB as product_qc_review
+  participant QCItemDB as product_qc_review_item
+
+  loop 1. 消费 task item 事件
+    ItemWorker-&gt;&gt;ItemMQ: 1.1 消费 TASK_ITEM_CREATED
+    activate ItemWorker
+    activate ItemMQ
+    ItemMQ--&gt;&gt;ItemWorker: task_item_id
+    deactivate ItemMQ
+
+    rect rgb(245, 245, 245)
+      Note over ItemWorker,ItemDB: 每个 item 独立事务
+      ItemWorker-&gt;&gt;ItemDB: 1.2 CAS item -&gt; NORMALIZING
+      activate ItemDB
+      ItemDB--&gt;&gt;ItemWorker: claim ok / duplicated
+      deactivate ItemDB
+
+      ItemWorker-&gt;&gt;ItemWorker: 1.3 读取 raw_row_ref&lt;br/&gt;按类目模板标准化
+      ItemWorker-&gt;&gt;ItemDB: 1.4 写 normalized_ref
+      activate ItemDB
+      ItemDB--&gt;&gt;ItemWorker: saved
+      deactivate ItemDB
+
+      ItemWorker-&gt;&gt;ItemWorker: 1.5 Schema / 主数据 /&lt;br/&gt;商品模型 / 交易契约校验
+
+      alt 校验通过
+        ItemWorker-&gt;&gt;StagingDB: 1.6 写 product_supply_staging
+        activate StagingDB
+        StagingDB--&gt;&gt;ItemWorker: staging_ref
+        deactivate StagingDB
+
+        ItemWorker-&gt;&gt;StagingDB: 1.7 与线上 publish_version 做 Diff
+        activate StagingDB
+        StagingDB--&gt;&gt;ItemWorker: diff result
+        deactivate StagingDB
+
+        ItemWorker-&gt;&gt;Risk: 1.8 生成 product_change_request
+        activate Risk
+
+        alt 低风险自动准入
+          Risk-&gt;&gt;StagingDB: 1.9 staging.status = APPROVED
+          activate StagingDB
+          StagingDB--&gt;&gt;Risk: updated
+          deactivate StagingDB
+          Risk-&gt;&gt;ItemDB: 1.10 item.status = APPROVED
+          activate ItemDB
+          ItemDB--&gt;&gt;Risk: updated
+          deactivate ItemDB
+        else 高风险进入 QC
+          Risk-&gt;&gt;QCDB: 1.9 创建 product_qc_review
+          activate QCDB
+          QCDB--&gt;&gt;Risk: review_id
+          deactivate QCDB
+          Risk-&gt;&gt;QCItemDB: 1.10 创建 product_qc_review_item
+          activate QCItemDB
+          QCItemDB--&gt;&gt;Risk: created
+          deactivate QCItemDB
+          Risk-&gt;&gt;StagingDB: 1.11 staging.status = QC_PENDING
+          activate StagingDB
+          StagingDB--&gt;&gt;Risk: updated
+          deactivate StagingDB
+          Risk-&gt;&gt;ItemDB: 1.12 item.status = QC_PENDING
+          activate ItemDB
+          ItemDB--&gt;&gt;Risk: updated
+          deactivate ItemDB
+        end
+
+        deactivate Risk
+      else 校验失败
+        ItemWorker-&gt;&gt;ItemDB: 1.6 item.status = FAILED&lt;br/&gt;error_code / error_message
+        activate ItemDB
+        ItemDB--&gt;&gt;ItemWorker: updated
+        deactivate ItemDB
+      end
+    end
+
+    deactivate ItemWorker
+  end
+
+  Note right of ItemWorker: 主链路由 MQ 实时驱动，&lt;br/&gt;不要依赖高频扫表抢任务。
+  Note over ItemWorker,Risk: 这一阶段结束时：&lt;br/&gt;低风险进入 APPROVED，&lt;br/&gt;高风险进入 QC_PENDING。
+</pre>
+
 <p>每个 item 或小批次独立事务：</p>
 <pre><code class="language-text">读取 raw_row_ref
   → CAS 将 item 推进到 NORMALIZING
@@ -18823,42 +19117,240 @@ LIMIT 500;
   → 校验通过后写 product_supply_staging
   → 与线上 publish_version 做 Diff
   → 生成 product_change_request
-  → 根据 risk_level 自动准入或创建 product_qc_review_item
+  → 根据 risk_level 将 staging / item 分流到 APPROVED 或 QC_PENDING
   → 更新 item.status
 </code></pre>
-<p>不要用一个大事务包住 500 行。否则一行失败会拖垮整批，也会造成长事务和锁等待。</p>
-<h3 id="2484-item-状态机"><a class="header" href="#2484-item-状态机">24.8.4 Item 状态机</a></h3>
-<pre><code class="language-text">PENDING
-  → NORMALIZING
-  → VALIDATING
-  → STAGING
-  → DIFFING
-  → QC_PENDING
-  → QC_REVIEWING
-  → QC_APPROVED
-  → PUBLISHING
-  → SUCCESS
+<p>不要用一个大事务包住 500 行。否则一行失败会拖垮整批，也会造成长事务和锁等待。补偿任务如果需要扫表，也应该只扫超时未完成、需要重试或进入 DLQ 回放的少量 item，而不是作为主执行路径。</p>
+<h3 id="2485-qc-流程"><a class="header" href="#2485-qc-流程">24.8.5 QC 流程</a></h3>
+<p>QC 流程应从 Item 主链路里拆开。Item Worker 只负责把高风险变更送进 <code>QC_PENDING</code>，后续由审核工作台和 QC Worker 推进。</p>
+<pre class="mermaid">
+sequenceDiagram
+  title Excel 批量导入：QC 审核流
+  actor Ops as Ops / QC Reviewer
+  participant QCAPI as QC API
+  participant QCDB as product_qc_review
+  participant QCItemDB as product_qc_review_item
+  participant StagingDB as product_supply_staging
+  participant ItemDB as product_supply_task_item
+  participant Publish as Publish Worker
 
-失败分支：
-NORMALIZING / VALIDATING / STAGING / DIFFING / QC_REVIEWING / PUBLISHING
-  → FAILED / DLQ / SKIPPED
+  Ops-&gt;&gt;QCAPI: 1. 打开审核单 / 查看风险命中和 Diff
+  activate QCAPI
+  QCAPI-&gt;&gt;QCDB: 1.1 查询 product_qc_review
+  activate QCDB
+  QCDB--&gt;&gt;QCAPI: review header
+  deactivate QCDB
+  QCAPI-&gt;&gt;QCItemDB: 1.2 查询 product_qc_review_item
+  activate QCItemDB
+  QCItemDB--&gt;&gt;QCAPI: review items
+  deactivate QCItemDB
+  QCAPI-&gt;&gt;StagingDB: 1.3 查询 staging snapshot / diff
+  activate StagingDB
+  StagingDB--&gt;&gt;QCAPI: snapshot
+  deactivate StagingDB
+  QCAPI--&gt;&gt;Ops: review context
+  deactivate QCAPI
+
+  alt Ops 审核通过
+    Ops-&gt;&gt;QCAPI: 2. 审核通过
+    activate QCAPI
+    QCAPI-&gt;&gt;QCDB: 2.1 review.status = APPROVED&lt;br/&gt;reviewer_id / reviewed_at
+    activate QCDB
+    QCDB--&gt;&gt;QCAPI: updated
+    deactivate QCDB
+    QCAPI-&gt;&gt;QCItemDB: 2.2 review_item.status = APPROVED
+    activate QCItemDB
+    QCItemDB--&gt;&gt;QCAPI: updated
+    deactivate QCItemDB
+    QCAPI-&gt;&gt;StagingDB: 2.3 staging.status = APPROVED
+    activate StagingDB
+    StagingDB--&gt;&gt;QCAPI: updated
+    deactivate StagingDB
+    QCAPI-&gt;&gt;ItemDB: 2.4 item.status = APPROVED
+    activate ItemDB
+    ItemDB--&gt;&gt;QCAPI: updated
+    deactivate ItemDB
+    QCAPI-&gt;&gt;Publish: 2.5 enqueue publish candidate
+    activate Publish
+    Publish--&gt;&gt;QCAPI: queued
+    deactivate Publish
+    deactivate QCAPI
+  else Ops 驳回
+    Ops-&gt;&gt;QCAPI: 2. 审核驳回 / 填写原因
+    activate QCAPI
+    QCAPI-&gt;&gt;QCDB: 2.1 review.status = REJECTED&lt;br/&gt;reject_reason / reviewer_id
+    activate QCDB
+    QCDB--&gt;&gt;QCAPI: updated
+    deactivate QCDB
+    QCAPI-&gt;&gt;QCItemDB: 2.2 review_item.status = REJECTED
+    activate QCItemDB
+    QCItemDB--&gt;&gt;QCAPI: updated
+    deactivate QCItemDB
+    QCAPI-&gt;&gt;StagingDB: 2.3 staging.status = REJECTED
+    activate StagingDB
+    StagingDB--&gt;&gt;QCAPI: updated
+    deactivate StagingDB
+    QCAPI-&gt;&gt;ItemDB: 2.4 item.status = REJECTED
+    activate ItemDB
+    ItemDB--&gt;&gt;QCAPI: updated
+    deactivate ItemDB
+    deactivate QCAPI
+  end
+
+  Note over Ops,Publish: 审核通过后进入发布队列，&lt;br/&gt;驳回则停留在供给治理链路内等待修复。
+</pre>
+
+<pre><code class="language-text">item.status = QC_PENDING
+  → 创建 product_qc_review / product_qc_review_item
+  → 审核员领取 review
+  → 逐条查看 diff / 风险原因 / 规则命中
+  → 审核通过: item.status = QC_APPROVED, staging.status = APPROVED
+  → 审核驳回: item.status = FAILED 或 QC_REJECTED, staging.status = REJECTED
 </code></pre>
-<p>Task 状态从 item 聚合：</p>
+<p>工程上要注意两点：</p>
+<ol>
+<li><code>product_qc_review</code> 适合作为审核单头，<code>product_qc_review_item</code> 作为行级审核项。</li>
+<li>审核动作要记录 reviewer、decision、reason、reviewed_at，避免只改状态不留审计。</li>
+</ol>
+<h3 id="2486-publisher-流程"><a class="header" href="#2486-publisher-流程">24.8.6 Publisher 流程</a></h3>
+<p>Publisher 也应从 Item Worker 中拆开。它只消费已经进入 <code>APPROVED / QC_APPROVED</code> 的 staging 或 publish candidate，不再重复做标准化和风险判断。</p>
+<pre class="mermaid">
+sequenceDiagram
+  title Excel 批量导入：发布流程
+  participant Trigger as Auto Approve / QC API
+  participant Publish as Publish Worker
+  participant FormalTable as Formal Item Table
+  participant Outbox
+  participant ItemDB as product_supply_task_item
+  participant TaskDB as product_supply_task
+
+  Trigger-&gt;&gt;Publish: 1. enqueue publish candidate&lt;br/&gt;来源: 自动准入 / QC 审核通过
+
+  alt 发布成功
+    Publish-&gt;&gt;FormalTable: 2. 发布正式商品表&lt;br/&gt;写 payload / publish_version
+    activate Publish
+    activate FormalTable
+    FormalTable--&gt;&gt;Publish: published
+    deactivate FormalTable
+
+    Publish-&gt;&gt;Outbox: 3. 写 Outbox 事件
+    activate Outbox
+    Outbox--&gt;&gt;Publish: queued
+    deactivate Outbox
+
+    Publish-&gt;&gt;ItemDB: 4. 回写 item.status=PUBLISHED
+    activate ItemDB
+    ItemDB--&gt;&gt;Publish: updated
+    deactivate ItemDB
+
+    Publish-&gt;&gt;TaskDB: 5. 聚合 task progress / success_count
+    activate TaskDB
+    TaskDB--&gt;&gt;Publish: updated
+    deactivate TaskDB
+    deactivate Publish
+  else 发布失败
+    Publish-&gt;&gt;Outbox: 2. 写失败事件
+    activate Publish
+    activate Outbox
+    Outbox--&gt;&gt;Publish: queued
+    deactivate Outbox
+
+    Publish-&gt;&gt;ItemDB: 3. 回写 item.status=FAILED
+    activate ItemDB
+    ItemDB--&gt;&gt;Publish: updated
+    deactivate ItemDB
+
+    Publish-&gt;&gt;TaskDB: 4. 聚合 failed_count
+    activate TaskDB
+    TaskDB--&gt;&gt;Publish: updated
+    deactivate TaskDB
+    deactivate Publish
+  end
+
+  Note right of Publish: 发布阶段只承接已经通过准入的候选项，&lt;br/&gt;负责正式表写入、状态回写和出箱事件。
+</pre>
+
+<pre><code class="language-text">Publish Worker
+  → 领取 APPROVED / QC_APPROVED 的 staging
+  → CAS staging -&gt; PUBLISHING
+  → 写正式商品表 / 索引刷新 / 缓存失效
+  → 同事务写 Outbox
+  → 更新 item.status = SUCCESS
+  → 更新 staging.status = PUBLISHED
+</code></pre>
+<p>如果发布失败：</p>
+<pre><code class="language-text">PUBLISHING
+  → RETRY_WAITING / FAILED / DLQ
+</code></pre>
+<p>这样拆开以后，职责边界更清晰：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Item 汇总结果</th><th>Task 状态</th></tr>
+<tr><th>组件</th><th>主要职责</th></tr>
 </thead>
 <tbody>
-<tr><td>全部 <code>SUCCESS</code></td><td><code>PUBLISHED</code></td></tr>
-<tr><td>部分 <code>SUCCESS</code>，部分 <code>FAILED/DLQ</code></td><td><code>PARTIAL_FAILED</code></td></tr>
-<tr><td>全部失败</td><td><code>FAILED</code></td></tr>
-<tr><td>存在 <code>QC_PENDING/QC_REVIEWING</code></td><td><code>QC_REVIEWING</code></td></tr>
-<tr><td>存在 <code>PUBLISHING</code></td><td><code>PUBLISHING</code></td></tr>
+<tr><td>Item Worker</td><td>标准化、校验、写 staging、风险分流</td></tr>
+<tr><td>QC Worker / 审核台</td><td>人工审核高风险变更</td></tr>
+<tr><td>Publish Worker</td><td>只处理已准入的发布动作</td></tr>
+<tr><td>Report Generator</td><td>聚合终态结果，生成错误文件与质量报告</td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="2485-错误文件"><a class="header" href="#2485-错误文件">24.8.5 错误文件</a></h3>
+<h3 id="2487-report--错误文件生成流程"><a class="header" href="#2487-report--错误文件生成流程">24.8.7 Report / 错误文件生成流程</a></h3>
+<p>Report Generator 可以独立于 Publish Worker。它订阅任务终态事件，或扫描已经进入终态的 task，聚合行级错误、QC 结果和发布结果，生成运营可读的错误文件与质量报告。</p>
+<pre class="mermaid">
+sequenceDiagram
+  title Excel 批量导入：错误文件与质量报告生成
+  participant Trigger as Task Terminal Event / Scheduler
+  participant Report as Error File / Report Generator
+  participant ItemDB as product_supply_task_item
+  participant QCDB as product_qc_review_item
+  participant TaskDB as product_supply_task
+  participant FileStore as OSS / USS
+
+  Trigger-&gt;&gt;Report: 1. 触发生成错误文件 / 质量报告
+  activate Report
+  Report-&gt;&gt;ItemDB: 2. 读取 FAILED / REJECTED / DLQ item
+  activate ItemDB
+  ItemDB--&gt;&gt;Report: item errors
+  deactivate ItemDB
+
+  Report-&gt;&gt;QCDB: 3. 读取 QC 审核结果 / 驳回原因
+  activate QCDB
+  QCDB--&gt;&gt;Report: review results
+  deactivate QCDB
+
+  Report-&gt;&gt;Report: 4. 聚合错误明细 / 统计指标 / 质量摘要
+  Report-&gt;&gt;FileStore: 5. 上传 error file / report
+  activate FileStore
+  FileStore--&gt;&gt;Report: error_file_ref / report_ref
+  deactivate FileStore
+
+  Report-&gt;&gt;TaskDB: 6. 回写 error_file_ref / report_ref / error_file_name
+  activate TaskDB
+  TaskDB--&gt;&gt;Report: updated
+  deactivate TaskDB
+  deactivate Report
+
+  Note right of Report: 报告生成失败不应阻塞发布主链路，&lt;br/&gt;可以异步重试或人工补生成。
+</pre>
+
+<pre><code class="language-text">Report Generator
+  → 监听 task 终态事件或定时扫描终态 task
+  → 聚合 FAILED / REJECTED / DLQ item
+  → 拼装错误文件和质量报告
+  → 上传文件存储
+  → 回写 product_supply_task.error_file_ref / report_ref
+</code></pre>
+<h3 id="2488-状态机引用"><a class="header" href="#2488-状态机引用">24.8.8 状态机引用</a></h3>
+<p>批量导入链路中的 <code>task</code> 与 <code>task_item</code> 状态机，建议统一收敛到 <a href="#/part04/22-product-supply-ops.html?highlight=24.3">24.3 商品生命周期管理</a> 中维护，避免在执行链路章节重复定义后逐渐漂移。</p>
+<p>在本节里可以只记住两点：</p>
+<ol>
+<li><code>task</code> 负责表达整批任务的阶段推进，如 <code>PENDING → PARSING → RUNNING → QC_REVIEWING → PUBLISHING → SUCCESS/PARTIAL_FAILED/FAILED</code>。</li>
+<li><code>task_item</code> 负责表达行级执行状态，如标准化、校验、进入 QC、发布成功、失败重试或进入 DLQ。</li>
+</ol>
+<p>具体状态定义、状态说明和聚合规则，见 <code>24.3.2.5 Task 状态机</code> 与 <code>24.3.2.6 Task Item 状态机</code>。</p>
+<h3 id="2489-错误文件"><a class="header" href="#2489-错误文件">24.8.9 错误文件</a></h3>
 <p>错误文件要能指导运营修复，而不是只写“导入失败”。</p>
 <pre><code class="language-text">row_no, object_key, field, error_code, error_message, suggestion
 12, SKU_001, price, PRICE_TOO_LOW, price lower than floor price, adjust price &gt;= 100
