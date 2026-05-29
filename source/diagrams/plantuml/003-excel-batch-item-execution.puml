@@ -1,0 +1,130 @@
+@startuml
+!theme plain
+title Excel 批量导入：Item 执行与风险判断
+
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 18
+skinparam BoxPadding 10
+
+skinparam participant {
+  BackgroundColor #f4f4f4
+  BorderColor #2c3e50
+  FontStyle bold
+  FontColor #2c3e50
+}
+
+skinparam database {
+  BackgroundColor #eef6ff
+  BorderColor #2c3e50
+  FontColor #2c3e50
+}
+
+skinparam queue {
+  BackgroundColor #fff7e6
+  BorderColor #8a5a00
+  FontColor #5c3b00
+}
+
+skinparam note {
+  BackgroundColor #fff8dc
+  BorderColor #d4ac0d
+  FontColor #333333
+}
+
+queue "Task Item MQ" as itemmq #fff7e6
+participant "Item Worker" as itemworker #e8f8f5
+database "product_supply_task_item" as itemdb #eef6ff
+database "product_supply_staging" as stagingdb #eef6ff
+participant "Risk Engine / QC Builder" as risk #f9ebea
+database "product_qc_review" as qcdb #eef6ff
+database "product_qc_review_item" as qcitemdb #eef6ff
+participant "Publish Worker" as publish #eafaf1
+
+loop 1. 消费 task item 事件
+  itemworker -> itemmq: 1.1 消费 TASK_ITEM_CREATED
+  activate itemworker
+  activate itemmq
+  itemmq --> itemworker: task_item_id
+  deactivate itemmq
+
+  group 每个 item 独立事务
+    itemworker -> itemdb: 1.2 CAS item -> NORMALIZING
+    activate itemdb
+    itemdb --> itemworker: claim ok / duplicated
+    deactivate itemdb
+
+    itemworker -> itemworker: 1.3 读取 raw_row_ref\n按类目模板标准化
+    itemworker -> itemdb: 1.4 写 normalized_ref
+    activate itemdb
+    itemdb --> itemworker: saved
+    deactivate itemdb
+
+    itemworker -> itemworker: 1.5 Schema / 主数据 /\n商品模型 / 交易契约校验
+
+    alt 校验通过
+      itemworker -> stagingdb: 1.6 写 product_supply_staging
+      activate stagingdb
+      stagingdb --> itemworker: staging_ref
+      deactivate stagingdb
+
+      itemworker -> stagingdb: 1.7 与线上 publish_version 做 Diff
+      activate stagingdb
+      stagingdb --> itemworker: diff result
+      deactivate stagingdb
+
+      itemworker -> risk: 1.8 生成 product_change_request
+      activate risk
+
+      alt 低风险自动准入
+        risk -> publish: 1.9 enqueue publish candidate
+        activate publish
+        publish --> risk: queued
+        deactivate publish
+        risk -> itemdb: 1.10 item.status = APPROVED
+        activate itemdb
+        itemdb --> risk: updated
+        deactivate itemdb
+      else 高风险进入 QC
+        risk -> qcdb: 1.9 创建 product_qc_review
+        activate qcdb
+        qcdb --> risk: review_id
+        deactivate qcdb
+        risk -> qcitemdb: 1.10 创建 product_qc_review_item
+        activate qcitemdb
+        qcitemdb --> risk: created
+        deactivate qcitemdb
+        risk -> stagingdb: 1.11 staging.status = QC_PENDING
+        activate stagingdb
+        stagingdb --> risk: updated
+        deactivate stagingdb
+        risk -> itemdb: 1.12 item.status = QC_PENDING
+        activate itemdb
+        itemdb --> risk: updated
+        deactivate itemdb
+      end
+
+      deactivate risk
+    else 校验失败
+      itemworker -> itemdb: 1.6 item.status = FAILED\nerror_code / error_message
+      activate itemdb
+      itemdb --> itemworker: updated
+      deactivate itemdb
+    end
+  end
+
+  deactivate itemworker
+end
+
+note right of itemworker
+主链路由 MQ 实时驱动，
+不要依赖高频扫表抢任务。
+end note
+
+note over itemworker,risk
+这一阶段结束时：
+低风险进入发布，
+高风险进入 QC。
+end note
+
+@enduml
