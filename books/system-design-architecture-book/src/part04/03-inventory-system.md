@@ -34,7 +34,7 @@
 | 锁定库存 | 被风控、运营、活动或异常处理临时锁住 | `locked_stock` |
 | 已售库存 | 已经确认成交或已经出库 / 出码 / 出票 | `sold_stock/issued_stock` |
 
-库存语义混淆的答辩提示已统一收录到[第 36 章](../part05/34-product-inventory-marketing-pricing-interview.md)。
+库存语义混淆的答辩提示已统一收录到[第 36 章](../part05/04-product-inventory-marketing-pricing-interview.md)。
 
 ### 22.1.2 从通用库存到虚拟商品库存
 

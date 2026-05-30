@@ -157,7 +157,7 @@ type ChannelClient interface {
 
 渠道差异集中在：**同步返回是否可信**（多数场景仅表示受理）、**回调到达顺序**、**退款是否同步到账**、**对账文件粒度**。网关要把这些差异折叠为**有限的内部枚举**（如 `ACCEPTED`、`SUCCEEDED`、`FAILED`、`UNKNOWN`），避免把渠道字符串透传到订单域。
 
-**子系统职责对照**：支付系统职责对照和答辩口径已统一收录到[第 37 章](../part05/35-search-cart-order-payment-interview.md)。
+**子系统职责对照**：支付系统职责对照和答辩口径已统一收录到[第 37 章](../part05/05-search-cart-order-payment-interview.md)。
 
 **数据落库建议**
 
@@ -792,7 +792,7 @@ sequenceDiagram
 
 支付系统应拥有：**支付单与退款单**、**渠道交互与回调验签**、**支付侧流水与幂等索引**、**触发清结算批次的事实**、**渠道对账原始凭证关联**。不应拥有：订单履约、物流、商品库存数量真相（除非余额支付与账户强绑定）。
 
-反模式清单已统一收录到[第 37 章](../part05/35-search-cart-order-payment-interview.md)。
+反模式清单已统一收录到[第 37 章](../part05/05-search-cart-order-payment-interview.md)。
 
 ### 29.8.2 支付 vs 订单：谁负责什么
 

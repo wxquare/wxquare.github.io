@@ -27,8 +27,8 @@
 
 完整专项设计见：
 
-- [第 31 章：商品供给与运营治理平台](./29-product-supply-governance.md)
-- [第 30 章：供应商数据同步链路](./28-supplier-sync.md)
+- [第 31 章：商品供给与运营治理平台](./12-product-supply-governance.md)
+- [第 30 章：供应商数据同步链路](./11-supplier-sync.md)
 
 本章建议配合三张图阅读：
 
@@ -3216,7 +3216,7 @@ Report Generator
 
 ### 24.8.8 状态机引用
 
-批量导入链路中的 `task` 与 `task_item` 状态机，建议统一收敛到 [24.3 商品生命周期管理](#/part04/22-product-supply-ops.html?highlight=24.3) 中维护，避免在执行链路章节重复定义后逐渐漂移。
+批量导入链路中的 `task` 与 `task_item` 状态机，建议统一收敛到 [24.3 商品生命周期管理](#/part04/05-product-supply-ops.html?highlight=24.3) 中维护，避免在执行链路章节重复定义后逐渐漂移。
 
 在本节里可以只记住两点：
 
@@ -3900,14 +3900,14 @@ supplier_mapping_snapshot
 
 ## 24.16 答辩材料
 
-本章相关总结、常见问题和参考要点已统一收录到[第 36 章](../part05/34-product-inventory-marketing-pricing-interview.md)。
+本章相关总结、常见问题和参考要点已统一收录到[第 36 章](../part05/04-product-inventory-marketing-pricing-interview.md)。
 
 **延伸阅读建议**：
 
 - 第 22 章：商品中心模型（Resource、SPU/SKU、Offer、类目属性）
 - 第 24 章：营销系统
 - 第 26 章：计价系统设计与实现
-- [第 31 章：商品供给与运营治理平台](./29-product-supply-governance.md)
-- [第 30 章：供应商数据同步链路](./28-supplier-sync.md)
+- [第 31 章：商品供给与运营治理平台](./12-product-supply-governance.md)
+- [第 30 章：供应商数据同步链路](./11-supplier-sync.md)
 
 ---

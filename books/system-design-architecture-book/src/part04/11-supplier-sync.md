@@ -264,7 +264,7 @@ concurrency_policy = ALLOW_PARALLEL
   → 不重叠才允许创建
 ```
 
-相关答辩提示已统一收录到[第 35 章](../part05/33-ecommerce-architecture-interview.md)。
+相关答辩提示已统一收录到[第 35 章](../part05/03-ecommerce-architecture-interview.md)。
 
 ### 30.3 Batch 抢占
 
@@ -1018,7 +1018,7 @@ DLQ 修复率 = resolved_dlq_count / total_dlq_count
 
 ## 30.17 答辩材料
 
-本专题相关总结、常见问题和参考回答已统一收录到[第 35 章](../part05/33-ecommerce-architecture-interview.md)。
+本专题相关总结、常见问题和参考回答已统一收录到[第 35 章](../part05/03-ecommerce-architecture-interview.md)。
 
 ## 30.18 后续优化项目
 

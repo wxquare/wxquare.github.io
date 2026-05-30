@@ -23,7 +23,7 @@
   → 从外部供应商全量、增量、Push 或主动刷新供给数据
 ```
 
-供应商同步属于商品供给链路，但它不是商品供给链路的全部。更合理的设计是：用一套统一的供给治理控制面承接五类入口，共享任务模型、暂存区、校验、审核、发布版本、Outbox、DLQ、补偿和质量监控；其中供应商同步因为有长任务、Checkpoint、Raw Snapshot、Worker 租约和数据新鲜度问题，单独作为专项链路展开。供应商同步的完整设计见[第 30 章：供应商数据同步链路](./28-supplier-sync.md)。
+供应商同步属于商品供给链路，但它不是商品供给链路的全部。更合理的设计是：用一套统一的供给治理控制面承接五类入口，共享任务模型、暂存区、校验、审核、发布版本、Outbox、DLQ、补偿和质量监控；其中供应商同步因为有长任务、Checkpoint、Raw Snapshot、Worker 租约和数据新鲜度问题，单独作为专项链路展开。供应商同步的完整设计见[第 30 章：供应商数据同步链路](./11-supplier-sync.md)。
 
 本附录聚焦统一供给治理平台，尤其补足人工上传、批量导入、运营编辑和库存运营四条控制面链路。
 
@@ -53,7 +53,7 @@
 | 失败不可运营 | 只在日志里记录导入失败 | 运营不知道怎么修 | MySQL DLQ + 错误文件 + 修复建议 + 重新投递 |
 | 质量缺陷长期存在 | 缺图、缺价、无库存、无履约规则 | 转化差、履约失败 | 商品质量巡检、质量分、自动下架或告警 |
 
-核心判断已统一收录到[第 36 章](../part05/34-product-inventory-marketing-pricing-interview.md)。
+核心判断已统一收录到[第 36 章](../part05/04-product-inventory-marketing-pricing-interview.md)。
 
 ## 31.4 总体架构
 
@@ -909,4 +909,4 @@ CREATE TABLE product_supply_dead_letter (
 
 ## 31.18 答辩材料
 
-本专题相关总结、常见问题和参考回答已统一收录到[第 36 章](../part05/34-product-inventory-marketing-pricing-interview.md)。
+本专题相关总结、常见问题和参考回答已统一收录到[第 36 章](../part05/04-product-inventory-marketing-pricing-interview.md)。

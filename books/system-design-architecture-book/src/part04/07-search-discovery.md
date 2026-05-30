@@ -98,7 +98,7 @@ graph TB
 
 在 **非功能需求** 上，建议把导购链路的 SLO 拆成「可分别报警」的三段：**ES 召回 P99**、**应用内排序 P99**、**Hydrate 端到端成功率**。很多团队只监控入口延迟，结果线上表现为「整体还不慢」，但 **Hydrate 超时率缓慢爬升**，直到大促才被计价或库存的连接池打爆一次性暴露。更稳妥的做法是把 Hydrate 每个依赖的 **超时次数、空返回比例、批量大小分布** 都做成 TopN 维度，并在压测脚本里显式模拟「半数依赖降级」。
 
-**容量估算**：导购链路的容量估算答辩口径已统一收录到[第 37 章](../part05/35-search-cart-order-payment-interview.md)。
+**容量估算**：导购链路的容量估算答辩口径已统一收录到[第 37 章](../part05/05-search-cart-order-payment-interview.md)。
 
 ---
 
@@ -604,7 +604,7 @@ func BuildKeywordDSL(site, cat, q string, from, size int) SearchBody {
 | `search_after` | 深度翻页 / 连续浏览 | 需稳定 sort key；不适合随机跳页 |
 | `scroll` | 离线导出、对账 | 不适合 C 端高并发 |
 
-**答辩提示**：深分页问题的标准答法已统一收录到[第 37 章](../part05/35-search-cart-order-payment-interview.md)。
+**答辩提示**：深分页问题的标准答法已统一收录到[第 37 章](../part05/05-search-cart-order-payment-interview.md)。
 
 **`search_after` 的工程细节**：sort 数组必须 **全链路稳定**，任何「仅用于展示」的字段都不应参与 tie-break，否则会出现翻页跳变。常见做法是 `_score` + 业务排序字段 + 主键升序。客户端需要缓存上一页最后一条的 sort 值；若中间发生 **索引刷新** 导致顺序变化，产品上要接受「轻微抖动」或通过 **会话级快照**（成本更高）解决。
 
@@ -678,7 +678,7 @@ func BuildKeywordDSL(site, cat, q string, from, size int) SearchBody {
 - **排序**：可解释、可版本化、可回滚；重排承载运营与合规。
 - **Hydrate**：补齐易变展示字段；**单卡失败不拖死整页**。
 
-**答辩提示**：搜索边界类追问已统一收录到[第 37 章](../part05/35-search-cart-order-payment-interview.md)。
+**答辩提示**：搜索边界类追问已统一收录到[第 37 章](../part05/05-search-cart-order-payment-interview.md)。
 
 ---
 
@@ -836,7 +836,7 @@ sequenceDiagram
 
 搜索与导购是电商 **读模型工程化** 的主战场：**统一 scene 与编排** 降低系统熵；**Elasticsearch** 承担召回与部分粗排，但必须与商品、上架、生命周期、计价、库存、营销的 **契约** 清晰划分；**Query → Recall → Rank → Hydrate** 主链路上，一致性与体验通过 **索引版本化 + Hydrate 限时降级 + 产品话术** 组合兜底。与推荐系统保持 **目标与架构边界** 上的解耦，在特征与实验平台上 **复用能力**，是多数中大型平台的务实演进路径。
 
-本章答辩总结已统一收录到[第 37 章](../part05/35-search-cart-order-payment-interview.md)。
+本章答辩总结已统一收录到[第 37 章](../part05/05-search-cart-order-payment-interview.md)。
 
 从 **演进路线** 看，多数团队会经历「ES 直出 → 引入 Hydrate → 引入统一 scene 与 rank 版本 → 引入完整观测与对账」四阶段；每一阶段都能单独带来收益，但不要把四阶段压缩成一次「大爆炸重构」，否则会在大促窗口付出惨痛代价。最稳妥的切分是：**先统一排序内核与日志字段**，再逐步把易变字段迁出索引。
 

@@ -8,10 +8,10 @@
 
 第 32 章是全书的综合案例入口。为了便于在线阅读，本章按设计过程拆成五个子章节：
 
-- [32.1-32.3 业务背景、品类模型与边界设计](./30-b2b2c-business-context.md)
-- [32.4-32.5 整体架构与技术选型](./30-b2b2c-architecture-decisions.md)
-- [32.6 核心系统设计](./30-b2b2c-core-systems.md)
-- [32.7-32.8 完整业务链路与 DDD 战术设计](./30-b2b2c-business-flows.md)
-- [32.9-32.14 架构决策、治理与演进](./30-b2b2c-governance-evolution.md)
+- [32.1-32.3 业务背景、品类模型与边界设计](./13-01-b2b2c-business-context.md)
+- [32.4-32.5 整体架构与技术选型](./13-02-b2b2c-architecture-decisions.md)
+- [32.6 核心系统设计](./13-03-b2b2c-core-systems.md)
+- [32.7-32.8 完整业务链路与 DDD 战术设计](./13-04-b2b2c-business-flows.md)
+- [32.9-32.14 架构决策、治理与演进](./13-05-b2b2c-governance-evolution.md)
 
 阅读时建议先快速浏览业务背景和整体架构，再按自己关注的主题进入核心系统、交易链路或治理演进章节。
