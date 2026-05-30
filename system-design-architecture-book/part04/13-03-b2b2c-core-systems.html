@@ -1,0 +1,3800 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>32.6 核心系统设计 - 系统设计与架构实战：原理、工程与电商案例</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="从系统设计方法论、核心基础设施、可靠性工程到电商业务架构实战；兼顾原理、工程落地、面试表达和完整业务案例。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-1b444fc1.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-0fb2b3fb.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">系统设计与架构实战：原理、工程与电商案例</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="326-核心系统设计"><a class="header" href="#326-核心系统设计">32.6 核心系统设计</a></h1>
+<h2 id="326-核心系统设计application--data-architecture详细设计"><a class="header" href="#326-核心系统设计application--data-architecture详细设计">32.6 核心系统设计（Application + Data Architecture详细设计）</a></h2>
+<p>基于32.4的整体架构，本节深入每个核心系统的详细设计，包括应用层的业务逻辑设计和数据层的模型设计。</p>
+<h3 id="3261-商品中心设计"><a class="header" href="#3261-商品中心设计">32.6.1 商品中心设计</a></h3>
+<h4 id="32611-服务定位与职责"><a class="header" href="#32611-服务定位与职责">32.6.1.1 服务定位与职责</a></h4>
+<p>一句话概括，<strong>商品中心 = 商品主数据 + 供给运营 + 库存管理 + 搜索导购中心</strong>。</p>
+<p>商品中心处在供应商供给、平台运营、C 端导购和交易系统之间。它不是简单的商品表 CRUD，也不是只维护标题、图片、类目和上下架状态的 PIM 系统；在数字商品平台里，商品中心还要承接商品如何进入平台、如何被运营维护、如何保持供应商数据新鲜、如何判断可售、如何支撑搜索列表和详情页，以及如何在下单前给订单系统提供稳定的商品快照和库存校验结果。</p>
+<p>由于团队规模和系统演进阶段限制，本平台没有独立拆分库存中心和搜索中心，库存能力与搜索导购能力都由商品中心内部模块承接。这里需要特别说明：<strong>库存和搜索归商品中心，不代表商品主数据、库存状态、搜索索引混在一起</strong>。商品中心内部仍然按六个域拆分，分别管理不同的数据模型、生命周期和对外契约，避免商品定义、库存状态、搜索索引、供应商模型和交易状态互相污染。</p>
+<p>从业务链路看，商品中心主要承接三类问题：</p>
+<ol>
+<li><strong>供给侧问题</strong>：商品从哪里来，如何上传、审核、同步、修正和下架。</li>
+<li><strong>导购侧问题</strong>：用户如何在首页、列表页、详情页看到正确、可搜索、可筛选、可展示的商品。</li>
+<li><strong>交易前问题</strong>：商品是否存在、是否上架、是否可售、库存是否满足、是否需要供应商实时确认。</li>
+</ol>
+<p>因此，商品中心内部可以拆成六个稳定的职责域：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>职责域</th><th>解决的问题</th><th>关键输出</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>商品主数据域</strong></td><td>定义商品是什么，包括类目、SPU/SKU、属性、素材、业务实体和商品状态</td><td>标准商品模型、类目属性、商品详情、商品快照</td></tr>
+<tr><td><strong>商品供给与运营域</strong></td><td>管理商品如何进入平台、如何审核、如何编辑、如何上下架</td><td>Listing Task、审核结果、发布事件、变更日志</td></tr>
+<tr><td><strong>供应商商品同步域</strong></td><td>管理外部供应商商品如何映射、同步、刷新和补偿</td><td>供应商映射、同步任务、数据完整性报告</td></tr>
+<tr><td><strong>库存与可售域</strong></td><td>判断商品是否能卖，统一无限库存、池化库存和实时库存差异</td><td>库存查询结果、预占结果、可售状态、券码发放结果</td></tr>
+<tr><td><strong>搜索与导购域</strong></td><td>支撑首页、列表页、详情页的召回、筛选、排序、Hydrate 和缓存</td><td>ES 索引、搜索结果、详情页聚合数据、降级结果</td></tr>
+<tr><td><strong>系统集成与事件域</strong></td><td>向营销、计价、订单、履约、供应商网关和数据平台输出稳定契约</td><td>查询 API、领域事件、CDC、质量监控数据</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>商品中心内部模块划分</strong>：</p>
+<pre><code class="language-text">商品中心 Product Center
+├─ 1. 商品主数据域（Product Master Data）
+│  ├─ 类目：前台类目、后台类目、类目层级、类目属性模板
+│  ├─ SPU/SKU：标准商品、销售单元、组合 SKU
+│  ├─ 商品属性：基础属性、业务属性、动态属性、扩展属性
+│  ├─ 业务实体：运营商、银行、航司、酒店、影院、商户、门店
+│  ├─ 商品素材：标题、描述、图片、Icon、展示标签
+│  └─ 商品状态：草稿、待审核、已上架、已下架、已归档
+│
+├─ 2. 商品供给与运营域（Supply &amp; Operation）
+│  ├─ 商品供给：人工上传、批量上传、模板下载、供应商导入
+│  ├─ 数据校验：字段校验、类目校验、属性校验、价格/库存预检
+│  ├─ 审核发布：新商品审核、编辑审核、高风险变更审核
+│  ├─ 商品运营：编辑、批量编辑、上下架、排序、入口配置
+│  ├─ 质量治理：缺字段检查、异常价格检查、库存异常检查
+│  └─ 操作追踪：Listing Task、审核日志、变更日志、状态流水
+│
+├─ 3. 供应商商品同步域（Supplier Sync）
+│  ├─ 商品映射：平台 SKU 与供应商 SKU、外部资源 ID、业务实体 ID 映射
+│  ├─ 静态同步：酒店基础信息、影院信息、商户门店、票务基础数据
+│  ├─ 动态同步：可缓存价格、库存水位、上下架状态
+│  ├─ 同步任务：全量同步、增量同步、供应商 Push、接入层 Push
+│  └─ 同步治理：重试、补偿、告警、数据完整性巡检
+│
+├─ 4. 库存与可售域（Stock &amp; Sellable）
+│  ├─ 库存模型：无限库存、池化库存、实时库存
+│  ├─ 库存来源：本地 DB、券码池、供应商接入层 API、供应商 API
+│  ├─ 交易动作：查询、预占、释放、扣减、回补
+│  ├─ 券码管理：券码池、发码、核销状态、过期管理
+│  └─ 可售判断：商品状态、库存状态、供应商可用性、业务规则
+│
+├─ 5. 搜索与导购域（Search &amp; Discovery）
+│  ├─ 搜索索引：ES 索引构建、索引刷新、索引回滚
+│  ├─ 召回筛选：关键词、类目、品牌/Carrier、城市、商户、标签
+│  ├─ 排序展示：运营排序、销量、价格、活动标签、库存状态
+│  ├─ Hydrate：补齐商品详情、库存状态、展示价、营销标签
+│  ├─ 页面能力：首页入口、列表页、详情页、商品缓存
+│  └─ 降级策略：缓存兜底、隐藏营销标签、库存弱展示
+│
+└─ 6. 系统集成与事件域（Integration &amp; Event）
+   ├─ 对营销：类目、Tag、商品范围、圈品能力、可营销状态
+   ├─ 对计价：基础价、类目、属性、库存上下文、能力配置
+   ├─ 对订单：商品快照、上下架状态、可售校验、库存预占结果
+   ├─ 对履约：履约类型、供应商映射、发货/出票/充值能力配置
+   ├─ 对供应商网关：查价、查库存、同步任务、履约参数映射
+   ├─ 对数据平台：CDC、商品变更日志、质量监控、经营分析
+   └─ 事件机制：商品创建、商品更新、上下架、库存变化、同步失败
+</code></pre>
+<p><strong>与其他系统的边界</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>系统</th><th>商品中心提供</th><th>对方负责</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>营销系统</strong></td><td>类目、Tag、业务实体、商品范围、可营销状态</td><td>活动配置、圈品、优惠券、满减/折扣规则</td></tr>
+<tr><td><strong>计价中心</strong></td><td>基础价、类目、属性、库存上下文、能力配置</td><td>PDP 价格、结算页试算价、下单价、支付价、结算价</td></tr>
+<tr><td><strong>订单系统</strong></td><td>商品详情、商品快照、上下架状态、库存可售性、预占结果</td><td>订单创建、订单状态机、支付前后流转</td></tr>
+<tr><td><strong>履约系统</strong></td><td>履约类型、供应商映射、商品能力配置</td><td>出票、预订确认、充值、发券、销账、履约补偿</td></tr>
+<tr><td><strong>供应商网关/供应商接入层</strong></td><td>平台 SKU、供应商映射、同步任务、商品能力配置</td><td>外部 API 适配、供应商查价查库存、供应商履约调用</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此，商品中心的定位不是“商品表 CRUD 服务”，而是数字商品平台交易前链路的核心系统。它统一商品定义、库存能力和搜索导购能力，屏蔽供应商商品模型差异，对外稳定输出商品、库存、搜索结果和能力配置，并通过事件机制驱动营销、计价、订单和履约系统协同。</p>
+<hr>
+<h4 id="32612-核心设计挑战异构商品模型"><a class="header" href="#32612-核心设计挑战异构商品模型">32.6.1.2 核心设计挑战：异构商品模型</a></h4>
+<p>数字商品平台的商品中心，最大的难点不是“字段很多”，而是<strong>不同品类对交易对象的定义并不相同</strong>。实物电商的交易对象通常比较稳定：用户买的是一个 SKU，平台围绕 SKU 管库存、价格、物流和售后即可。但 OTA、O2O 和虚拟商品不是这样。它们卖的可能是一次账户余额变更、一个数字凭证、一项到店服务权益、一个特定时间窗口内的资源确认权，或者一次供应商实时返回的临时报价。</p>
+<p>所以，这里的“商品”不能简单理解为 <code>Product + SKU</code>。更准确的说法是：<strong>商品中心要统一的是交易前的经营表达，而不是所有品类的实时交易状态</strong>。</p>
+<p><strong>1. 不同品类卖的不是同一种东西</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>品类类型</th><th>用户实际购买的是什么</th><th>典型品类</th><th>核心复杂度</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>账户变更型</strong></td><td>给外部账户充值、销账或开通权益</td><td>Topup、账单缴费、流量包</td><td>下单前要校验账户，支付后要确认外部账户状态变化</td></tr>
+<tr><td><strong>数字凭证型</strong></td><td>一个可兑换、可消费或可核销的凭证</td><td>Gift Card、E-Voucher、Payment Voucher</td><td>商品定义与券码库存必须隔离，发码后状态不可随意回滚</td></tr>
+<tr><td><strong>到店服务型</strong></td><td>某商户或门店的一次服务权益</td><td>Local Service、Deal Voucher</td><td>商户、门店、核销、过期、退款规则比 SKU 字段更重要</td></tr>
+<tr><td><strong>资源确认型</strong></td><td>某个时间窗口下的稀缺资源确认权</td><td>Flight、Hotel、Movie、Train、Bus</td><td>价格和库存高度实时，通常需要供应商确认或锁定</td></tr>
+<tr><td><strong>组合套餐型</strong></td><td>多个权益或资源的组合</td><td>电影 + 小食、酒店 + 活动券</td><td>需要处理组合价、组合库存、部分履约和部分退款</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果用实物电商的思路强行套这些品类，会遇到五类问题：</p>
+<ol>
+<li><strong>SKU 爆炸</strong>：把机票、酒店、电影票的每次报价都沉淀成 SKU，会产生海量临时 SKU，而且很快过期。</li>
+<li><strong>字段污染</strong>：把所有品类字段都放进一张商品宽表，最后会变成大量空字段、重复字段和语义不清的扩展字段。</li>
+<li><strong>实时性误判</strong>：把动态价格和实时库存当成商品主数据保存，会导致列表页、详情页和下单价频繁不一致。</li>
+<li><strong>流程耦合</strong>：把账号校验、账单查询、锁座、房态确认、券码发放都写进商品 CRUD，会让商品中心变成交易系统和履约系统的混合体。</li>
+<li><strong>售后规则丢失</strong>：OTA/O2O 的退改签、取消政策、核销后不可退等规则不是普通展示字段，而是影响订单状态机和资损风险的交易规则。</li>
+</ol>
+<p><strong>2. 三种常见解决方案</strong></p>
+<p>面对异构商品，业界通常会经历三种建模方案。它们不是简单的“谁对谁错”，而是适用于不同阶段、不同品类复杂度。</p>
+<p><strong>方案A：标准 SPU/SKU + EAV/ExtInfo 扩展</strong></p>
+<p>这是最接近传统电商商品中心的方案。核心模型是：</p>
+<pre><code class="language-text">Category
+  → SPU
+  → SKU
+  → Attribute / EAV
+  → ExtInfo JSON
+</code></pre>
+<p>所有商品尽量表达为 SPU/SKU。固定字段放主表，可搜索、可筛选字段放属性表，品类专属展示字段放 <code>ExtInfo JSON</code>。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>评价</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>优点</strong></td><td>简单直观，运营后台容易实现，适合 Topup、Gift Card、E-Voucher、Local Service 等固定面额或固定券模板商品</td></tr>
+<tr><td><strong>缺点</strong></td><td>难以表达 Flight、Hotel、Movie 这类实时供给；如果把日期、舱位、房态、座位都 SKU 化，会造成 SKU 爆炸</td></tr>
+<tr><td><strong>适用阶段</strong></td><td>平台早期、品类较少、以固定数字商品为主</td></tr>
+</tbody>
+</table>
+</div>
+<p>这套方案的问题在于：它容易让团队误以为“所有东西都应该变成 SKU”。一旦把实时报价、房态、座位图、账单金额都塞进 SKU，商品中心就会从主数据系统滑向交易结果缓存系统。</p>
+<p><strong>方案B：资源中心化模型</strong></p>
+<p>OTA 和 O2O 平台常见的另一种做法，是先把业务资源标准化，再在资源上包装可售商品。</p>
+<pre><code class="language-text">Resource
+  → Product Package
+  → Offer / Rate Plan
+  → Availability
+</code></pre>
+<p>这里的 Resource 可以是酒店、房型、城市、机场、车站、影院、影厅、影片、商户、门店、账单机构等。SPU/SKU 不再是唯一核心，而是资源上的销售包装。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>评价</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>优点</strong></td><td>适合酒店、电影、本地服务、交通票务；避免把所有资源组合都沉淀成 SKU；供应商资源映射更清晰</td></tr>
+<tr><td><strong>缺点</strong></td><td>模型理解成本更高；只解决资源建模，还不能完整表达用户输入、预订锁定、履约和售后</td></tr>
+<tr><td><strong>适用阶段</strong></td><td>平台开始接入 OTA/O2O 品类，资源、门店、城市、场次、房型等成为核心数据</td></tr>
+</tbody>
+</table>
+</div>
+<p>资源中心化模型能解决“商品背后是什么资源”的问题，但还没有完整回答“这个资源在交易链路里怎么报价、怎么锁定、怎么履约、怎么退款”。</p>
+<p><strong>方案C：商品交易契约模型（推荐）</strong></p>
+<p>更完整的做法是把商品中心从“商品字段存储系统”升级为“交易前契约系统”。它不是推翻 SPU/SKU，也不是单纯资源化，而是把两者组合起来：</p>
+<pre><code class="language-text">SPU/SKU               表达平台商品定义
+Resource              表达商品背后的业务资源
+Offer / Rate Plan     表达售卖条件和报价规则
+Capability Matrix     表达类目能力差异
+Runtime Context       表达交易前运行时上下文
+</code></pre>
+<p>这套方案的核心思想是：</p>
+<blockquote>
+<p>商品中心统一的是经营表达和交易前契约，不是所有品类的实时资源状态。</p>
+</blockquote>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>评价</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>优点</strong></td><td>解释力强，能同时覆盖固定 SKU、资源型商品和实时供给商品；边界清晰，适合书籍总结和答辩表达</td></tr>
+<tr><td><strong>缺点</strong></td><td>初期理解成本较高，需要治理“哪些数据稳定、哪些数据实时、哪些数据只进快照”</td></tr>
+<tr><td><strong>适用阶段</strong></td><td>多品类平台，尤其是同时覆盖 Topup、Bill、Voucher、Hotel、Flight、Movie、Local Service 的平台</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此，本章采用方案 C 作为推荐方案。它吸收方案 A 的 SPU/SKU 基础能力，也吸收方案 B 的 Resource 建模能力，再通过能力矩阵和运行时上下文把不同品类的交易差异显式表达出来。</p>
+<p><strong>3. 八层商品交易模型</strong></p>
+<p>对 OTA、O2O 和虚拟商品来说，一个可交易商品通常可以拆成八层。不是每个品类都完整使用八层，但这个分层能帮助我们判断“什么应该进商品中心，什么应该留给库存、计价、订单和履约系统”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>解决的问题</th><th>商品中心是否负责</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Product Definition</strong></td><td>平台如何运营和展示这个商品</td><td>负责</td><td>类目、标题、图片、品牌/实体、基础描述、上下架状态</td></tr>
+<tr><td><strong>Resource</strong></td><td>商品背后的资源是什么</td><td>负责稳定部分</td><td>酒店、房型、影院、场次、商户、门店、账单机构、城市站点</td></tr>
+<tr><td><strong>Offer / Rate Plan</strong></td><td>在某个上下文下如何报价</td><td>负责配置，不负责所有实时结果</td><td>面额、套餐、日历价规则、供应商报价计划、活动价输入</td></tr>
+<tr><td><strong>Availability</strong></td><td>当前是否可买</td><td>负责统一入口和可售判断</td><td>券码池库存、供应商实时库存、房态、座位、通道可用性</td></tr>
+<tr><td><strong>Input Schema</strong></td><td>下单前需要用户提供什么</td><td>负责配置</td><td>手机号、账单号、乘客证件、入住人、座位选择、邮箱</td></tr>
+<tr><td><strong>Booking / Lock</strong></td><td>支付前是否需要锁定资源</td><td>只负责能力配置和结果引用</td><td>占座、锁房、锁券码、锁账单金额、锁场次座位</td></tr>
+<tr><td><strong>Fulfillment Contract</strong></td><td>支付后如何交付</td><td>负责履约能力配置</td><td>充值、销账、发码、出票、预订确认、到店核销</td></tr>
+<tr><td><strong>Refund / After-sale Rule</strong></td><td>失败或退款时如何处理</td><td>负责规则配置和快照输入</td><td>未核销可退、已出票退改签、取消政策、失败自动退款</td></tr>
+</tbody>
+</table>
+</div>
+<p>这八层之间的关系可以理解为：</p>
+<pre><code class="language-text">Product Definition  定义平台卖什么
+  → Resource        指向背后的资源
+  → Offer           生成可展示或可购买的报价
+  → Availability    判断当前是否可买
+  → Input Schema    收集交易所需信息
+  → Booking / Lock  锁定稀缺资源或金额
+  → Fulfillment     支付后完成数字交付
+  → Refund Rule     失败或售后时决定如何回滚
+</code></pre>
+<p>这套分层的价值在于：<strong>它不要求所有品类长得一样，但要求所有品类在交易链路里说清楚自己处在哪一层、依赖哪些层、哪些数据需要实时确认</strong>。</p>
+<p><strong>4. 典型品类的八层映射</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>品类</th><th>Product Definition</th><th>Resource</th><th>Offer / Rate Plan</th><th>Availability</th><th>Input Schema</th><th>Booking / Lock</th><th>Fulfillment</th><th>Refund / After-sale</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Topup</strong></td><td>运营商、面额、套餐说明</td><td>手机号账户、区域</td><td>固定面额/套餐价</td><td>供应商通道可用性</td><td>手机号、区域</td><td>通常无需锁定</td><td>充值到账</td><td>失败退款，成功后通常不可退</td></tr>
+<tr><td><strong>Bill</strong></td><td>账单机构、账单类型</td><td>用户账单账户</td><td>查账后生成金额</td><td>账单是否可缴</td><td>账单号、用户标识</td><td>可锁定账单金额或查询流水</td><td>代缴销账</td><td>已销账通常不可退</td></tr>
+<tr><td><strong>Gift Card</strong></td><td>品牌、面额、有效期、使用说明</td><td>券码池</td><td>固定面额/折扣价</td><td>未分配券码数量</td><td>收件账号/邮箱</td><td>可在支付后分配，也可提前锁码</td><td>发码</td><td>未发码可退，已发码受限</td></tr>
+<tr><td><strong>E-Voucher / Local Service</strong></td><td>商户、门店、券模板、核销规则</td><td>门店服务能力、券码池</td><td>券售价/活动价</td><td>本地库存/券码数量</td><td>门店、购买数量</td><td>可锁库存或支付后扣减</td><td>发券 + 到店核销</td><td>未核销可退，已核销不可退</td></tr>
+<tr><td><strong>Flight / Train / Bus</strong></td><td>城市、站点、承运方、基础运营配置</td><td>班次、舱位/座位</td><td>供应商实时报价</td><td>实时座位/占座结果</td><td>乘客、证件、行李等</td><td>创单前占座/预订</td><td>出票</td><td>退改签规则复杂</td></tr>
+<tr><td><strong>Hotel</strong></td><td>酒店、房型、设施、地理位置、政策</td><td>房型 + 日期范围</td><td>Rate Plan / 日历价 / 动态价</td><td>房态确认</td><td>入住人、日期、人数</td><td>预订确认或担保锁房</td><td>预订确认</td><td>受取消政策约束</td></tr>
+<tr><td><strong>Movie</strong></td><td>影片、影院、影厅、场次基础信息</td><td>场次 + 座位</td><td>场次价/套餐价</td><td>座位图和锁座状态</td><td>座位、手机号</td><td>锁座</td><td>出票/取票码</td><td>通常不可退或限时退</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张表说明了一个关键事实：<strong>同样叫商品，但不同品类的“可售单元”可能位于不同层次</strong>。Gift Card 的可售单元很接近 SKU；Hotel 的可售单元是“房型 + 日期范围 + Rate Plan”；Flight 的可售单元是一次实时报价和占座结果；Bill 的可售单元甚至要在用户输入账单号之后才形成。</p>
+<p><strong>5. 商品中心的职责边界</strong></p>
+<p>基于八层模型，商品中心应该重点负责交易前可复用、可运营、可搜索、可配置的部分：</p>
+<pre><code class="language-text">商品中心负责：
+  Product Definition：类目、SPU/SKU、标题、图片、状态、Tag
+  Resource 稳定部分：酒店、房型、影院、商户、门店、城市、站点、账单机构
+  Offer 配置：基础价、面额、套餐、价格规则输入、供应商报价映射
+  Availability 入口：库存类型、库存来源、可售规则、查询/预占能力
+  Input Schema：手机号、账单号、乘客、入住人、座位等表单配置
+  Contract 配置：履约类型、退款规则、供应商映射、能力开关
+
+商品中心不负责：
+  实时航班报价、实时房态房价、座位锁定状态
+  用户账单金额、支付结果、订单履约状态、售后处理结果
+</code></pre>
+<p>这样划分之后，商品中心不会因为接入一个新品类就不断膨胀。新增品类时，优先回答八个问题：</p>
+<ol>
+<li>它的稳定商品定义是什么？</li>
+<li>它依赖哪些资源？</li>
+<li>报价是平台配置还是供应商实时返回？</li>
+<li>可用性由谁确认？</li>
+<li>用户下单前需要输入什么？</li>
+<li>是否需要预订、锁定或占用资源？</li>
+<li>支付后如何履约？</li>
+<li>失败、取消、退款时遵循什么规则？</li>
+</ol>
+<p>这八个问题回答清楚，商品中心、计价、库存、订单、履约和售后之间的边界也就清楚了。</p>
+<p><strong>6. 建模原则</strong></p>
+<p>最终的建模原则可以总结为六句话：</p>
+<ol>
+<li><strong>不要用一个 SKU 表硬套所有品类</strong>：SKU 是稳定可售单元，不是所有实时报价和资源组合的容器。</li>
+<li><strong>静态资源和动态资源分离</strong>：酒店资料、影院资料可以同步；房态、座位、报价必须按时效处理。</li>
+<li><strong>商品定义和交易结果分离</strong>：商品中心保存能力和规则，订单/履约系统保存每笔交易的状态。</li>
+<li><strong>用户输入配置化</strong>：不同品类的表单和校验规则要通过 Input Schema 表达，避免写死在交易代码里。</li>
+<li><strong>履约和售后契约前置</strong>：商品中心要告诉订单系统“这个商品怎么履约、怎么退”，但不处理具体订单的履约状态。</li>
+<li><strong>供应商差异通过映射和防腐层隔离</strong>：商品中心只保留平台模型和供应商映射，不让供应商字段污染主模型。</li>
+</ol>
+<p>这一节的核心结论是：<strong>商品中心真正统一的是经营表达和交易前契约，而不是统一所有品类的实时资源状态</strong>。这是数字商品平台避免商品模型失控的关键。</p>
+<hr>
+<h4 id="32613-统一商品模型设计"><a class="header" href="#32613-统一商品模型设计">32.6.1.3 统一商品模型设计</a></h4>
+<p>商品中心的统一模型目标不是把所有品类强行压成同一种 SKU，而是提供一个稳定的“商品表达框架”，让不同品类都能被运营、搜索、计价、下单和履约系统理解。</p>
+<p><strong>核心模型分层</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模型</th><th>作用</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Category</strong></td><td>统一品类层级和能力开关</td><td><code>40102</code> 机票、<code>10102</code> 话费充值、<code>70101</code> Deal Voucher</td></tr>
+<tr><td><strong>Resource</strong></td><td>表达商品背后的稳定业务资源</td><td>酒店、房型、城市、机场、影院、商户、门店、账单机构</td></tr>
+<tr><td><strong>Carrier / Brand</strong></td><td>统一业务实体、品牌、运营商、机构</td><td>某运营商、某礼品卡品牌、某酒店品牌、某银行、某影院</td></tr>
+<tr><td><strong>SPU</strong></td><td>表达平台商品或商品族</td><td>某品牌礼品卡、某酒店商品页、某商户套餐</td></tr>
+<tr><td><strong>SKU</strong></td><td>表达稳定可售单元或销售模板</td><td>100 元礼品卡、某券模板、某充值面额、某房型 + Rate Plan</td></tr>
+<tr><td><strong>Offer / Rate Plan</strong></td><td>表达报价和售卖条件</td><td>固定面额、套餐价、含早/无早、可取消/不可取消</td></tr>
+<tr><td><strong>Attribute / EAV</strong></td><td>支持可搜索、可筛选、可分析属性</td><td>面额、有效期、城市、商户类型、是否支持退款</td></tr>
+<tr><td><strong>ExtInfo JSON</strong></td><td>承接低频、展示型、品类专属字段</td><td>酒店设施、券使用说明、账单字段配置</td></tr>
+<tr><td><strong>Supplier Mapping</strong></td><td>连接平台商品与外部供应商资源</td><td>平台 SKU ↔ 供应商 SKU / 外部资源 ID / 业务实体 ID</td></tr>
+<tr><td><strong>Category Capability</strong></td><td>表达类目在交易链路中的能力差异</td><td>是否实时查价、是否需要输入账号、是否需要锁座/锁房</td></tr>
+<tr><td><strong>Runtime Context</strong></td><td>为列表、详情、结算、创单组装交易前上下文</td><td>商品定义 + 资源 + 报价 + 可售 + 输入 + 履约 + 售后</td></tr>
+</tbody>
+</table>
+</div>
+<p>这套模型可以理解为三层：</p>
+<pre><code class="language-text">第一层：稳定主数据
+  Category + Resource + SPU + SKU + Attribute
+
+第二层：交易前契约
+  Offer / Rate Plan + Capability + Input Schema + Fulfillment Rule + Refund Rule
+
+第三层：运行时上下文
+  Runtime Context = 稳定主数据 + 交易前契约 + 实时查询结果
+</code></pre>
+<p>其中第一层主要持久化在商品中心；第二层也是商品中心负责维护，但会被计价、订单、履约和售后系统消费；第三层通常不是永久主数据，而是在搜索、详情、结算、创单等场景下按需组装，并在订单创建时形成订单快照。</p>
+<p><strong>设计原则</strong>：</p>
+<ol>
+<li><strong>类目表达业务类型</strong>：不要再额外引入 <code>product_type</code> 与 <code>category_id</code> 互相重叠，类目编码本身可以表达一级、二级、三级业务含义。</li>
+<li><strong>Resource 表达稳定业务资源</strong>：酒店、房型、影院、商户、门店、城市、机场、车站等不是普通 SKU 字段，而是可以被多个商品、多个供应商和多个场景复用的资源。</li>
+<li><strong>Carrier / Brand 表达业务实体</strong>：运营商、银行、航司、影院、酒店品牌、商户都可以归入业务实体模型，再通过实体类型区分。</li>
+<li><strong>SPU/SKU 表达可运营商品</strong>：Gift Card、Voucher、Topup 面额适合沉淀 SKU；Flight 搜索结果不适合沉淀完整 SKU，只沉淀城市、站点、航司等基础资源。</li>
+<li><strong>Offer / Rate Plan 表达售卖条件</strong>：酒店的含早/无早、可取消/不可取消，电影套餐，礼品卡面额，都应该从“商品是什么”里拆出来，作为“如何售卖”的配置。</li>
+<li><strong>EAV 只放可检索属性</strong>：需要筛选、搜索、分析的字段进入属性表；仅用于展示的复杂结构进入 <code>ExtInfo</code>。</li>
+<li><strong>动态价格和实时库存不进商品主表</strong>：商品主表保存稳定定义，动态报价、房态、座位库存通过缓存、供应商查询和订单快照处理。</li>
+</ol>
+<hr>
+<h4 id="32614-商品中心核心表设计"><a class="header" href="#32614-商品中心核心表设计">32.6.1.4 商品中心核心表设计</a></h4>
+<p>商品中心的表设计要支撑三件事：稳定主数据、灵活品类差异、可追溯运营链路。下面是核心表的定位，不要求所有字段一次性设计到位，但边界要清晰。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表名</th><th>定位</th><th>关键内容</th></tr>
+</thead>
+<tbody>
+<tr><td><code>category_tab</code></td><td>类目树</td><td>类目编码、父类目、层级、名称、排序、状态、能力开关</td></tr>
+<tr><td><code>carrier_brand_tab</code></td><td>业务实体/品牌/运营商</td><td>实体类型、名称、Logo、国家/地区、状态、扩展配置</td></tr>
+<tr><td><code>resource_tab</code></td><td>统一业务资源</td><td>资源类型、资源编码、名称、父资源、国家/城市、状态、通用属性</td></tr>
+<tr><td><code>resource_ext_*_tab</code></td><td>高频资源扩展表</td><td>酒店、房型、门店、影院、航线等高频字段，避免全部塞进 JSON</td></tr>
+<tr><td><code>product_spu_tab</code></td><td>标准商品或商品族</td><td>SPU Code、类目、品牌/实体、标题、状态、素材</td></tr>
+<tr><td><code>product_sku_tab</code></td><td>可售单元</td><td>SKU Code、SPU ID、基础价、销售状态、库存类型、履约类型</td></tr>
+<tr><td><code>product_resource_mapping_tab</code></td><td>商品与资源关系</td><td>SKU/SPU 与酒店、房型、门店、影院、城市等资源的关系</td></tr>
+<tr><td><code>product_offer_tab</code></td><td>商品报价配置</td><td>固定价、套餐价、展示价、报价来源、价格生效范围</td></tr>
+<tr><td><code>rate_plan_tab</code></td><td>售卖条件计划</td><td>早餐、取消政策、支付方式、入住人数、供应商报价计划</td></tr>
+<tr><td><code>product_attr_definition_tab</code></td><td>属性定义</td><td>属性 Code、属性类型、适用类目、是否可搜索/筛选</td></tr>
+<tr><td><code>product_attr_value_tab</code></td><td>商品属性值</td><td>SKU/SPU 与属性值绑定，用于筛选、搜索、分析</td></tr>
+<tr><td><code>product_ext_info_tab</code></td><td>品类扩展信息</td><td>JSON 结构，保存低频展示型、品类专属字段</td></tr>
+<tr><td><code>supplier_product_mapping_tab</code></td><td>供应商商品映射</td><td>平台 SKU/SPU 与供应商 SKU、外部资源 ID、业务实体 ID 的映射</td></tr>
+<tr><td><code>category_capability_tab</code></td><td>类目能力矩阵</td><td>商品模型类型、报价类型、库存类型、输入 Schema、锁定模式、履约类型、售后规则</td></tr>
+<tr><td><code>input_schema_tab</code></td><td>用户输入表单配置</td><td>手机号、账单号、乘客、入住人、邮箱、座位选择等输入字段</td></tr>
+<tr><td><code>fulfillment_rule_tab</code></td><td>履约契约配置</td><td>充值、销账、发码、出票、预订确认、核销等履约模式</td></tr>
+<tr><td><code>refund_rule_tab</code></td><td>售后规则配置</td><td>是否可退、是否人工审核、取消政策、核销后限制、供应商退改规则</td></tr>
+<tr><td><code>product_stock_tab</code></td><td>库存与可售状态</td><td>库存类型、库存来源、可售状态、库存数量、更新时间</td></tr>
+<tr><td><code>inventory_create_task</code></td><td>库存创建任务</td><td>数量初始化、券码导入 / 生成、门店日期切片、创建状态和错误信息</td></tr>
+<tr><td><code>inventory_code_batch_tab</code></td><td>券码批次</td><td>批次来源、生成模式、总码量、有效期、密钥版本、分表路由</td></tr>
+<tr><td><code>inventory_code_pool_XX</code></td><td>券码池分表</td><td>一码一行、加密券码、状态机、分配订单、核销状态；Redis 只缓存 <code>code_id</code></td></tr>
+<tr><td><code>product_supply_task</code></td><td>商品供给任务</td><td>导入批次、任务状态、操作人、成功/失败数量、错误文件</td></tr>
+<tr><td><code>product_audit_log_tab</code></td><td>审核日志</td><td>审核对象、变更内容、审核结论、审核人、驳回原因</td></tr>
+<tr><td><code>product_change_log_tab</code></td><td>变更日志</td><td>商品字段变更前后值、操作来源、TraceID、操作人</td></tr>
+<tr><td><code>product_search_index_task_tab</code></td><td>搜索索引任务</td><td>索引动作、目标 SKU、任务状态、重试次数、失败原因</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>方案 3 的核心 ER 关系</strong>：</p>
+<pre class="mermaid">
+erDiagram
+    CATEGORY_TAB ||--o{ PRODUCT_SPU_TAB : contains
+    PRODUCT_SPU_TAB ||--o{ PRODUCT_SKU_TAB : contains
+
+    CATEGORY_TAB ||--|| CATEGORY_CAPABILITY_TAB : configures
+    CATEGORY_TAB ||--o{ RATE_PLAN_TAB : defines
+    CATEGORY_TAB ||--o{ INPUT_SCHEMA_TAB : defines
+    CATEGORY_TAB ||--o{ FULFILLMENT_RULE_TAB : defines
+    CATEGORY_TAB ||--o{ REFUND_RULE_TAB : defines
+
+    PRODUCT_SKU_TAB ||--o{ PRODUCT_OFFER_TAB : has
+    RATE_PLAN_TAB ||--o{ PRODUCT_OFFER_TAB : applies_to
+
+    PRODUCT_SKU_TAB ||--|| PRODUCT_STOCK_TAB : has
+    PRODUCT_SKU_TAB ||--o{ VOUCHER_CODE_POOL_TAB : allocates
+
+    PRODUCT_SPU_TAB ||--o{ PRODUCT_RESOURCE_MAPPING_TAB : maps
+    PRODUCT_SKU_TAB ||--o{ PRODUCT_RESOURCE_MAPPING_TAB : maps
+    RESOURCE_TAB ||--o{ PRODUCT_RESOURCE_MAPPING_TAB : referenced_by
+
+    RESOURCE_TAB ||--o{ RESOURCE_RELATION_TAB : from_resource
+    RESOURCE_TAB ||--o{ RESOURCE_RELATION_TAB : to_resource
+
+    RESOURCE_TAB ||--o{ SUPPLIER_RESOURCE_MAPPING_TAB : maps_to_supplier
+    PRODUCT_SKU_TAB ||--o{ SUPPLIER_PRODUCT_MAPPING_TAB : maps_to_supplier
+    PRODUCT_OFFER_TAB ||--o{ SUPPLIER_PRODUCT_MAPPING_TAB : maps_to_supplier
+
+    CATEGORY_TAB {
+        bigint category_id PK
+        varchar category_code
+        bigint parent_id
+        int level
+        varchar name
+        varchar status
+    }
+
+    CATEGORY_CAPABILITY_TAB {
+        bigint capability_id PK
+        bigint category_id FK
+        varchar product_model_type
+        varchar offer_type
+        varchar availability_type
+        varchar booking_mode
+        varchar fulfillment_type
+        varchar refund_rule_id
+        varchar supplier_dependency
+    }
+
+    PRODUCT_SPU_TAB {
+        bigint spu_id PK
+        bigint category_id FK
+        varchar spu_code
+        varchar title
+        bigint brand_id
+        varchar status
+        json ext_info
+    }
+
+    PRODUCT_SKU_TAB {
+        bigint sku_id PK
+        bigint spu_id FK
+        varchar sku_code
+        varchar sku_name
+        bigint base_price
+        varchar inventory_type
+        varchar fulfillment_type
+        varchar status
+        json ext_info
+    }
+
+    RESOURCE_TAB {
+        bigint resource_id PK
+        varchar resource_type
+        varchar resource_code
+        varchar name
+        bigint parent_resource_id
+        varchar country_code
+        varchar city_code
+        varchar status
+        json attributes
+    }
+
+    PRODUCT_RESOURCE_MAPPING_TAB {
+        bigint id PK
+        bigint spu_id FK
+        bigint sku_id FK
+        bigint resource_id FK
+        varchar relation_type
+        int priority
+        varchar status
+    }
+
+    RESOURCE_RELATION_TAB {
+        bigint id PK
+        bigint from_resource_id FK
+        bigint to_resource_id FK
+        varchar relation_type
+        varchar status
+    }
+
+    PRODUCT_OFFER_TAB {
+        bigint offer_id PK
+        bigint sku_id FK
+        bigint rate_plan_id FK
+        varchar offer_type
+        bigint price
+        varchar currency
+        varchar price_rule
+        datetime valid_from
+        datetime valid_to
+        varchar status
+    }
+
+    RATE_PLAN_TAB {
+        bigint rate_plan_id PK
+        bigint category_id FK
+        varchar plan_code
+        varchar meal_type
+        varchar cancel_policy
+        varchar payment_type
+        json constraints
+        varchar status
+    }
+
+    PRODUCT_STOCK_TAB {
+        bigint stock_id PK
+        bigint sku_id FK
+        varchar stock_type
+        varchar source_type
+        int quantity
+        boolean sellable
+        datetime updated_at
+    }
+
+    INVENTORY_CODE_POOL_XX {
+        bigint code_id PK
+        varchar batch_id
+        bigint sku_id FK
+        varbinary code_cipher
+        varchar code_hash
+        varchar status
+        varchar reservation_id
+        bigint assigned_order_id
+        datetime expire_at
+        varchar redeem_status
+    }
+
+    INPUT_SCHEMA_TAB {
+        bigint schema_id PK
+        bigint category_id FK
+        varchar scene
+        json fields
+        json validation_rules
+        varchar status
+    }
+
+    FULFILLMENT_RULE_TAB {
+        bigint rule_id PK
+        bigint category_id FK
+        varchar fulfillment_type
+        varchar mode
+        int timeout_sec
+        json params
+        varchar status
+    }
+
+    REFUND_RULE_TAB {
+        bigint refund_rule_id PK
+        bigint category_id FK
+        boolean refundable
+        boolean need_review
+        json policy
+        varchar status
+    }
+
+    SUPPLIER_RESOURCE_MAPPING_TAB {
+        bigint id PK
+        bigint resource_id FK
+        bigint supplier_id
+        varchar supplier_resource_code
+        varchar supplier_resource_type
+        varchar status
+    }
+
+    SUPPLIER_PRODUCT_MAPPING_TAB {
+        bigint id PK
+        bigint sku_id FK
+        bigint offer_id FK
+        bigint supplier_id
+        varchar supplier_product_code
+        varchar mapping_status
+        json ext_ref
+    }
+</pre>
+
+<p>一个重要经验是：<strong>表结构要承认异构，而不是掩盖异构</strong>。主表保持稳定，资源表承接业务资源，Offer/Rate Plan 表承接售卖条件，能力矩阵承接流程差异，映射表连接供应商，日志表保证可追溯。这样既不会让主表无限膨胀，也不会每新增一个品类就新建一整套孤立模型。</p>
+<p>资源表建议采用“统一资源表 + 高频扩展表”的方式：</p>
+<pre><code class="language-text">resource_tab
+  保存资源身份、资源类型、名称、父子关系、状态、国家/城市等通用字段
+
+resource_ext_hotel_tab / resource_ext_room_type_tab
+  保存酒店星级、地址、经纬度、设施、房型面积、床型等高频字段
+
+resource_ext_merchant_tab / resource_ext_outlet_tab
+  保存商户、门店、营业时间、地理位置、核销能力等高频字段
+
+resource_ext_cinema_tab / resource_ext_route_tab
+  保存影院、影厅、城市站点、航线/车线等高频字段
+</code></pre>
+<p>这样设计的原因是：不是所有资源都值得单独建完整模型，但高频检索、高频展示、高频排序的资源字段不能长期躲在 JSON 里。统一 <code>resource_tab</code> 负责身份和关系，扩展表负责高频业务字段。</p>
+<hr>
+<h4 id="32615-不同品类的数据存储样例"><a class="header" href="#32615-不同品类的数据存储样例">32.6.1.5 不同品类的数据存储样例</a></h4>
+<p>不同品类进入商品中心时，关键是判断“哪些信息稳定，哪些信息动态，哪些信息不应该沉淀”。下面按典型品类说明。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>品类</th><th>SPU/SKU 存什么</th><th>Resource 存什么</th><th>Offer / Rate Plan 存什么</th><th>动态数据在哪里</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Topup</strong></td><td>运营商面额 SKU、套餐说明、基础价、可售状态</td><td>运营商、国家/地区、号码归属规则</td><td>固定面额、套餐价、手续费规则</td><td>手机号校验、供应商通道状态实时查询或短缓存</td></tr>
+<tr><td><strong>Bill</strong></td><td>账单机构商品、账单类型、缴费入口</td><td>账单机构、账单地区、账单账号类型</td><td>手续费规则、是否支持部分支付、滞纳金规则</td><td>用户账单金额、欠费明细、账单可缴状态实时查询</td></tr>
+<tr><td><strong>Gift Card</strong></td><td>品牌 + 面额 SKU、有效期、使用说明</td><td>礼品卡品牌、券码池资源</td><td>固定面额、折扣价、发码规则</td><td>券码分配结果、用户核销状态进入履约/核销链路</td></tr>
+<tr><td><strong>E-Voucher / Local Service</strong></td><td>券模板 SKU、购买限制、可用时间、核销规则摘要</td><td>商户、门店、服务项目、券码池</td><td>券售价、活动价、门店适用范围</td><td>发券、核销、过期、退款状态进入履约/售后链路</td></tr>
+<tr><td><strong>Flight / Train / Bus</strong></td><td>通常不沉淀完整行程 SKU，只存基础运营配置</td><td>城市、机场/车站、航司/车司、线路</td><td>供应商报价计划、服务费、加价规则</td><td>航班/班次报价、座位、舱位、占座结果实时查询</td></tr>
+<tr><td><strong>Hotel</strong></td><td>酒店 SPU、房型销售模板 SKU、上下架、展示素材</td><td>酒店、房型、品牌、城市、商圈、设施</td><td>Rate Plan：含早/无早、可取消/不可取消、支付方式</td><td>某日期房态房价、税费、供应商确认结果走缓存或实时查询</td></tr>
+<tr><td><strong>Movie</strong></td><td>影片/影院/套餐商品、基础场次配置</td><td>影片、影院、影厅、座位区域</td><td>场次价、套餐价、服务费规则</td><td>实时座位图、锁座状态、出票结果走供应商查询</td></tr>
+</tbody>
+</table>
+</div>
+<p>这种划分的核心标准是：<strong>稳定内容进商品中心，动态资源走缓存/供应商，交易结果进订单/履约/售后快照</strong>。</p>
+<p>以酒店为例，酒店本身是 Resource，平台上售卖的不是“酒店这一条记录”，而是围绕酒店资源包装出来的商品和售卖条件：</p>
+<pre><code class="language-text">resource_tab
+  HOTEL: Bangkok Central Hotel
+  ROOM_TYPE: Deluxe King Room
+
+product_spu_tab
+  SPU-HOTEL-90001: 平台上的 Bangkok Central Hotel 商品页
+
+product_sku_tab
+  SKU-HOTEL-90001-ROOM90002-BF-RF:
+    Deluxe King Room + 含早 + 可取消
+
+rate_plan_tab
+  BF_RF:
+    breakfast = included
+    cancel_policy = free_cancel_before_deadline
+    payment_type = prepay
+
+实时查询 / 报价缓存
+  check_in = 2026-05-01
+  nights = 2
+  adult = 2
+  price = 实时返回
+  availability = 实时确认
+</code></pre>
+<p>这个例子说明：<code>resource_tab</code> 回答“资源是什么”，<code>product_spu_tab</code> 回答“平台是否运营这个资源”，<code>product_sku_tab</code> 回答“卖哪个稳定销售模板”，<code>rate_plan_tab</code> 回答“用什么售卖条件”，实时查询回答“这个日期和人数下是否真的可以买”。</p>
+<p>再以账单缴费为例，账单机构和缴费入口可以沉淀在商品中心，但用户账单金额不能沉淀成商品主数据：</p>
+<pre><code class="language-text">resource_tab
+  BILLER: 某电力公司
+
+product_spu_tab
+  SPU-BILL-ELECTRICITY: 电费缴费
+
+product_sku_tab
+  SKU-BILL-ELECTRICITY-REGION-A: A 地区电费缴费入口
+
+input_schema_tab
+  account_no: 必填，数字，长度 10-16
+
+实时查账
+  account_no = 用户输入
+  bill_amount = 实时返回
+  due_date = 实时返回
+</code></pre>
+<p>这类商品的可售单元不是固定面额，而是“用户输入账号后形成的一次账单支付上下文”。因此商品中心只保存账单机构、输入规则、手续费规则和履约契约，具体账单金额进入计价上下文和订单快照。</p>
+<hr>
+<h4 id="32616-商品供给与运营链路"><a class="header" href="#32616-商品供给与运营链路">32.6.1.6 商品供给与运营链路</a></h4>
+<p>商品供给与运营链路解决的是“商品如何进入平台，以及上线后如何被持续维护”的问题。供应商同步本质上属于供给链路，但它不是唯一入口。更准确的划分是：</p>
+<pre><code class="language-text">商品供给与运营治理平台
+  ├─ 人工创建/上传：运营/商家从 0 到 1 创建商品
+  ├─ 批量导入：文件、模板、批量任务导入商品和配置
+  ├─ 运营编辑：标题、图片、类目、价格、库存、上下架、退款规则变更
+  └─ 供应商同步：外部供给数据全量/增量/Push/刷新
+</code></pre>
+<p>这四类入口应该进入同一个“供给治理控制面”，共享任务模型、校验、审核、发布版本、Outbox、补偿和可观测性；但供应商同步因为存在长任务、Checkpoint、Raw Snapshot、Worker 租约、DLQ、数据新鲜度等复杂问题，可以单独展开成 <code>32.6.1.7</code> 和附录案例。</p>
+<p>相关答辩判断已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
+<p>如果这条链路设计不好</p>
+<p>如果这条链路设计不好，问题会很快暴露到 C 端交易链路：列表页搜不到、详情页价格错误、下单时库存不可用、券码发放失败、供应商映射缺失、退款规则不完整。商品供给链路的核心不是“把商品写进数据库”，而是“让一个商品从供给入口到可被搜索、可被下单、可被履约、可被追溯”。</p>
+<p>这条链路的系统难点和解决方法可以先这样收敛：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>难点</th><th>典型表现</th><th>解决方法</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>入口多且语义不同</strong></td><td>人工创建、批量导入、运营编辑、供应商同步都在改商品</td><td>统一进入 Supply Task 和 Staging，但按 <code>task_type</code> 路由不同策略</td></tr>
+<tr><td><strong>半成品污染线上</strong></td><td>草稿、导入半成品、同步脏数据直接写正式表</td><td>Draft / Staging 与正式表隔离，只有发布事务能写线上版本</td></tr>
+<tr><td><strong>品类差异大</strong></td><td>酒店、话费、账单、礼品卡、电影票字段和交易规则完全不同</td><td>类目模板 + 能力矩阵 + Schema 驱动表单、校验和发布规则</td></tr>
+<tr><td><strong>运营误操作风险高</strong></td><td>批量改价、退款规则变更、类目迁移导致资损或投诉</td><td>字段级 Diff、风险评分、强审核、版本回滚和灰度发布</td></tr>
+<tr><td><strong>供应商和运营冲突</strong></td><td>供应商同步覆盖运营修正字段，线上数据反复抖动</td><td>字段主导权、人工覆盖保护期、冲突日志和巡检</td></tr>
+<tr><td><strong>发布不一致</strong></td><td>商品库成功，ES、缓存、营销、计价没有刷新</td><td>发布事务 + Outbox + 异步刷新 + 补偿重试</td></tr>
+<tr><td><strong>失败不可运营</strong></td><td>错误只在日志里，运营不知道哪一行失败、怎么修</td><td>行级明细、错误文件、MySQL DLQ、修复建议和重新投递</td></tr>
+<tr><td><strong>历史订单被新配置影响</strong></td><td>商品改价或退款规则变更后影响旧订单解释</td><td>创单保存商品快照、报价快照、履约契约和退款规则快照</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>1. 三种方案对比</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>核心思路</th><th>优点</th><th>缺点</th><th>适用阶段</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>方案A：后台 CRUD + 简单审核</strong></td><td>运营直接编辑商品正式表，审核通过后上架</td><td>实现简单，适合固定 SKU、低规模自营商品</td><td>无法支撑批量导入、错误隔离、版本回滚、下游一致性和事故追溯</td><td>早期平台</td></tr>
+<tr><td><strong>方案B：任务化上架系统</strong></td><td>用 Listing Task 承接人工上传、批量导入和运营编辑</td><td>支持异步处理、进度追踪、错误文件、失败重试</td><td>只解决“任务怎么跑”，没有完整的质量治理、风险分级和发布一致性</td><td>中期平台</td></tr>
+<tr><td><strong>方案C：供给治理平台</strong></td><td>在任务化基础上加入暂存区、标准化、质量校验、Diff、差异化审核、发布快照、Outbox、补偿和巡检</td><td>能支撑 OTA、O2O、虚拟商品、多供应商、多运营角色长期演进</td><td>设计复杂度更高，需要明确模型边界和流程状态机</td><td>多品类、多来源、强运营平台</td></tr>
+</tbody>
+</table>
+</div>
+<p>本系统选择 <strong>方案C：供给治理平台</strong>。它不是把所有入口混成一条大流程，而是提供统一控制面，让不同入口走不同策略、共享同一套发布和治理能力。</p>
+<p><strong>2. 推荐架构：供给治理控制面</strong></p>
+<pre><code class="language-text">供给入口层
+  → Draft / Staging 暂存区
+  → Listing Task / Batch / Item
+  → 标准化与类目模板适配
+  → 多层质量校验
+  → Diff 与风险识别
+  → 审核流 / 自动准入
+  → 发布事务：主数据 + 交易契约 + Outbox
+  → 搜索索引 / 缓存 / 营销 / 计价 / 订单上下文刷新
+  → DLQ / 补偿 / 巡检 / 质量报表
+</code></pre>
+<p>各层职责如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层级</th><th>职责</th><th>关键产物</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>供给入口层</strong></td><td>接收运营表单、批量文件、供应商同步、商家 API</td><td>原始输入、操作者、来源、TraceID</td></tr>
+<tr><td><strong>暂存层</strong></td><td>保存未发布数据，避免污染线上正式表</td><td>Draft、Staging Snapshot、Import Row</td></tr>
+<tr><td><strong>任务编排层</strong></td><td>把一次供给动作变成可恢复任务</td><td><code>product_supply_task</code>、<code>product_supply_task_item</code>、进度和失败明细</td></tr>
+<tr><td><strong>标准化层</strong></td><td>把入口数据转换成平台 Resource/SPU/SKU/Offer/Rule 模型</td><td>标准化模型、字段来源、数据 hash</td></tr>
+<tr><td><strong>校验层</strong></td><td>检查字段、主数据、交易契约、可售规则</td><td>校验结果、错误码、质量分</td></tr>
+<tr><td><strong>风险审核层</strong></td><td>识别高风险变更并路由审核</td><td>Diff、风险等级、审核单</td></tr>
+<tr><td><strong>发布层</strong></td><td>写正式表、生成版本、写 Outbox</td><td><code>publish_version</code>、商品快照、事件</td></tr>
+<tr><td><strong>下游刷新层</strong></td><td>刷新搜索、缓存、营销、计价、数据平台</td><td>索引任务、缓存失效任务、补偿任务</td></tr>
+<tr><td><strong>治理层</strong></td><td>巡检、补偿、报表、审计</td><td>DLQ、质量报告、操作日志</td></tr>
+</tbody>
+</table>
+</div>
+<p>这里最重要的边界是：<strong>所有入口都不要直接写商品正式表</strong>。人工表单、Excel 导入、供应商同步和运营批量编辑都先写暂存区和任务表，经过校验、审核和发布后，再写入正式主数据和交易契约表。</p>
+<p><strong>3. 四类入口的差异化设计</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>入口</th><th>典型场景</th><th>主流程</th><th>关键风险</th><th>处理策略</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>人工创建</strong></td><td>运营创建本地生活券、礼品卡、话费套餐、账单缴费入口</td><td>表单草稿 → 实时校验 → 提交审核 → 发布</td><td>字段漏填、类目选错、履约规则不完整</td><td>表单配置化、类目模板、强校验、完整审核</td></tr>
+<tr><td><strong>批量导入</strong></td><td>大促前批量创建套餐、门店、价格计划、券码池</td><td>上传文件 → 预校验 → 异步解析 → 分批处理 → 错误文件</td><td>大批量错误、重复导入、局部失败</td><td>任务化、行级状态、部分成功、失败文件、幂等 key</td></tr>
+<tr><td><strong>运营编辑</strong></td><td>改标题、图片、价格、库存、退款规则、上下架</td><td>读取线上版本 → 创建变更单 → Diff → 风险审核 → 发布</td><td>误操作、批量事故、覆盖供应商数据</td><td>字段主导权、版本锁、风险阈值、回滚</td></tr>
+<tr><td><strong>供应商同步</strong></td><td>酒店、影院、活动、票务等外部数据同步</td><td>同步任务 → Raw Snapshot → 标准化 → 映射 → Diff → 发布</td><td>接口不稳定、模型不一致、新鲜度、长任务失败</td><td>独立同步链路，见 <code>32.6.1.7</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>这四类入口共享最终发布模型，但入口策略不同。人工创建强调“完整性和可解释”；批量导入强调“吞吐和错误隔离”；运营编辑强调“Diff、权限和风险”；供应商同步强调“可恢复、可追溯和自动化治理”。</p>
+<p><strong>4. 核心数据模型</strong></p>
+<p>供给治理平台的表设计不要从“一张商品表”出发，而要围绕“未发布隔离、任务可恢复、行级可定位、校验可解释、变更可审核、发布可追溯、失败可补偿”来组织。核心可以分成八组：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表组</th><th>典型表</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Draft 草稿表</strong></td><td><code>product_supply_draft</code>、<code>product_supply_draft_version</code></td><td>保存单商品创建和编辑过程中的草稿，允许反复保存，不影响线上</td></tr>
+<tr><td><strong>Task 任务表</strong></td><td><code>product_supply_task</code></td><td>记录一次供给动作，如人工创建、批量导入、运营编辑、供应商同步后的商品变更接入</td></tr>
+<tr><td><strong>Task Item 明细表</strong></td><td><code>product_supply_task_item</code></td><td>记录每一行、每个商品、每个 Offer 或每条规则的处理状态，是失败定位单元</td></tr>
+<tr><td><strong>Staging 暂存表</strong></td><td><code>product_supply_staging</code>、<code>product_supply_staging_snapshot</code></td><td>保存已经提交、已经标准化、但未发布到正式表的数据</td></tr>
+<tr><td><strong>Validation 校验表</strong></td><td><code>product_validation_result</code></td><td>保存 Schema、类目模板、主数据、商品模型、交易契约、风险规则的校验结果</td></tr>
+<tr><td><strong>Change / Audit 表</strong></td><td><code>product_change_request</code>、<code>product_audit_log</code>、<code>product_field_ownership</code></td><td>保存字段 Diff、风险等级、审核策略、审核动作和字段主导权</td></tr>
+<tr><td><strong>Publish / Snapshot 表</strong></td><td><code>product_publish_record</code>、<code>product_publish_snapshot</code>、<code>product_change_log</code></td><td>保存发布批次、线上版本快照和正式变更日志，支持追溯和回滚</td></tr>
+<tr><td><strong>Outbox / DLQ / Compensation 表</strong></td><td><code>product_outbox_event</code>、<code>product_supply_dead_letter</code>、<code>product_compensation_task</code>、<code>product_quality_issue</code></td><td>保证下游最终一致，承接失败补偿、人工修复和质量巡检</td></tr>
+</tbody>
+</table>
+</div>
+<p>第一期不一定把所有可选表都建齐，最小闭环建议包括：</p>
+<pre><code class="language-text">product_supply_draft
+product_supply_task
+product_supply_task_item
+product_supply_staging
+product_validation_result
+product_change_request
+product_audit_log
+product_publish_snapshot
+product_change_log
+product_outbox_event
+product_supply_dead_letter
+</code></pre>
+<p>供应商同步执行层可以独立使用 <code>supplier_sync_task</code>、<code>supplier_sync_batch</code>、<code>supplier_sync_snapshot</code> 和 <code>supplier_sync_dead_letter</code>，但标准化之后要进入供给平台的 <code>product_supply_staging</code>、<code>product_validation_result</code>、<code>product_change_request</code> 和统一发布链路。</p>
+<p><code>product_supply_task</code> 记录一次供给动作：</p>
+<pre><code class="language-sql">CREATE TABLE product_supply_task (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    task_id VARCHAR(64) NOT NULL,
+    task_type VARCHAR(32) NOT NULL COMMENT 'MANUAL_CREATE/BATCH_IMPORT/OPS_EDIT/SUPPLIER_SYNC',
+    source_type VARCHAR(32) NOT NULL COMMENT 'OPS/MERCHANT/SUPPLIER/SYSTEM',
+    source_id VARCHAR(64) DEFAULT NULL,
+    category_code VARCHAR(32) NOT NULL,
+    operator_id VARCHAR(64) DEFAULT NULL,
+    trigger_id VARCHAR(64) DEFAULT NULL COMMENT '外部幂等 ID',
+    status VARCHAR(32) NOT NULL COMMENT 'DRAFT/VALIDATING/REVIEWING/APPROVED/PUBLISHING/PUBLISHED/PARTIAL_FAILED/REJECTED/FAILED/CANCELLED',
+    total_count INT NOT NULL DEFAULT 0,
+    success_count INT NOT NULL DEFAULT 0,
+    failed_count INT NOT NULL DEFAULT 0,
+    skipped_count INT NOT NULL DEFAULT 0,
+    current_stage VARCHAR(64) DEFAULT NULL,
+    error_file_ref VARCHAR(512) DEFAULT NULL,
+    publish_version BIGINT DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    started_at DATETIME DEFAULT NULL,
+    finished_at DATETIME DEFAULT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_task_id (task_id),
+    UNIQUE KEY uk_trigger (task_type, trigger_id),
+    KEY idx_status (status),
+    KEY idx_category_status (category_code, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给任务';
+</code></pre>
+<p><code>product_supply_task_item</code> 记录每个商品、资源或 Offer 的处理结果：</p>
+<pre><code class="language-sql">CREATE TABLE product_supply_task_item (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    task_id VARCHAR(64) NOT NULL,
+    item_no VARCHAR(64) NOT NULL COMMENT '文件行号或外部对象序号',
+    item_type VARCHAR(32) NOT NULL COMMENT 'RESOURCE/SPU/SKU/OFFER/STOCK/RULE',
+    idempotency_key VARCHAR(128) NOT NULL,
+    platform_resource_id BIGINT DEFAULT NULL,
+    spu_id BIGINT DEFAULT NULL,
+    sku_id BIGINT DEFAULT NULL,
+    offer_id BIGINT DEFAULT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'PENDING/VALIDATING/REVIEWING/PUBLISHING/SUCCESS/FAILED/SKIPPED',
+    risk_level VARCHAR(32) DEFAULT NULL COMMENT 'LOW/MEDIUM/HIGH',
+    error_code VARCHAR(128) DEFAULT NULL,
+    error_message VARCHAR(1024) DEFAULT NULL,
+    draft_ref VARCHAR(512) DEFAULT NULL,
+    normalized_ref VARCHAR(512) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_task_item (task_id, item_no),
+    UNIQUE KEY uk_task_idempotency (task_id, idempotency_key),
+    KEY idx_task_status (task_id, status),
+    KEY idx_platform_object (platform_resource_id, spu_id, sku_id, offer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给任务明细';
+</code></pre>
+<p>暂存区保存未发布的数据，不直接影响线上：</p>
+<pre><code class="language-sql">CREATE TABLE product_supply_staging (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    staging_id VARCHAR(64) NOT NULL,
+    task_id VARCHAR(64) NOT NULL,
+    item_no VARCHAR(64) NOT NULL,
+    object_type VARCHAR(32) NOT NULL COMMENT 'RESOURCE/SPU/SKU/OFFER/RATE_PLAN/STOCK/RULE',
+    object_key VARCHAR(128) NOT NULL,
+    source_type VARCHAR(32) NOT NULL,
+    raw_payload_ref VARCHAR(512) DEFAULT NULL,
+    normalized_payload JSON NOT NULL,
+    payload_hash VARCHAR(64) NOT NULL,
+    base_publish_version BIGINT DEFAULT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'DRAFT/VALIDATED/REVIEWING/APPROVED/PUBLISHED/REJECTED',
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_staging_id (staging_id),
+    UNIQUE KEY uk_task_object (task_id, object_type, object_key),
+    KEY idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给暂存数据';
+</code></pre>
+<p>变更日志保存 Diff、风险和审核依据：</p>
+<pre><code class="language-sql">CREATE TABLE product_change_request (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    change_id VARCHAR(64) NOT NULL,
+    task_id VARCHAR(64) NOT NULL,
+    object_type VARCHAR(32) NOT NULL,
+    object_id BIGINT DEFAULT NULL,
+    old_publish_version BIGINT DEFAULT NULL,
+    new_staging_id VARCHAR(64) NOT NULL,
+    changed_fields JSON NOT NULL,
+    risk_level VARCHAR(32) NOT NULL,
+    review_policy VARCHAR(32) NOT NULL COMMENT 'AUTO_APPROVE/MANUAL_REVIEW/BLOCK',
+    status VARCHAR(32) NOT NULL COMMENT 'PENDING/APPROVED/REJECTED/PUBLISHED',
+    reviewer_id VARCHAR(64) DEFAULT NULL,
+    review_note VARCHAR(1024) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_change_id (change_id),
+    KEY idx_task (task_id),
+    KEY idx_status_risk (status, risk_level)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品供给变更单';
+</code></pre>
+<p><strong>5. 人工创建链路</strong></p>
+<p>人工创建不是简单表单提交。它要把“类目模板、交易契约、履约契约、退款规则”一次性收齐，否则商品看似创建成功，交易时会失败。</p>
+<pre><code class="language-text">选择类目
+  → 加载类目模板和能力矩阵
+  → 填写 Resource / SPU / SKU / Offer / Rule
+  → 前端实时校验 + 后端强校验
+  → 保存 Draft
+  → 提交 Listing Task
+  → 生成 Staging Snapshot
+  → 质量校验
+  → 新商品审核
+  → 发布正式表
+</code></pre>
+<p>人工创建的关键设计：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>类目模板驱动表单</strong></td><td>不同品类展示不同字段，例如酒店要地址和坐标，充值要号码规则，账单缴费要 Input Schema</td></tr>
+<tr><td><strong>Draft 与正式表隔离</strong></td><td>草稿允许反复保存，不影响线上商品</td></tr>
+<tr><td><strong>交易契约强校验</strong></td><td>Offer、库存来源、履约规则、退款规则、Input Schema 不完整时不能提交</td></tr>
+<tr><td><strong>审核证据完整</strong></td><td>审核员看到的是标准化后的商品快照、字段来源、风险命中和历史版本</td></tr>
+<tr><td><strong>创建后不等于上线</strong></td><td>发布成功后还要等待库存初始化、索引刷新、可售校验通过</td></tr>
+</tbody>
+</table>
+</div>
+<p>人工创建链路的答辩提示已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
+<p><strong>6. 批量导入链路</strong></p>
+<p>批量导入要按“任务 + 行级明细 + 暂存快照 + 错误文件”设计，不能把整个 Excel 读进内存后循环写正式表。</p>
+<pre><code class="language-text">下载模板
+  → 上传文件
+  → 文件格式预检
+  → 创建 product_supply_task(status=PENDING)
+  → 流式解析文件
+  → 每行生成 product_supply_task_item
+  → 分批标准化和校验
+  → 成功项进入发布/审核
+  → 失败项生成错误文件
+  → 任务状态汇总为 PUBLISHED / PARTIAL_FAILED / FAILED
+</code></pre>
+<p>批量导入的关键设计：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>模板版本化</strong></td><td>模板字段随类目演进，导入文件必须记录 <code>template_version</code></td></tr>
+<tr><td><strong>行级幂等</strong></td><td>用 <code>task_id + row_no</code> 和业务幂等 key 防止重复导入</td></tr>
+<tr><td><strong>部分成功</strong></td><td>10000 行中 9800 行成功、200 行失败时，不应该整批回滚</td></tr>
+<tr><td><strong>错误文件下载</strong></td><td>失败行要带 <code>error_code</code>、<code>error_message</code>、原始值和建议修复方式</td></tr>
+<tr><td><strong>背压与限流</strong></td><td>大文件分片处理，避免压垮商品库、库存系统和搜索刷新</td></tr>
+<tr><td><strong>批量事故防护</strong></td><td>高风险批量变更必须二次确认或抽样审核</td></tr>
+</tbody>
+</table>
+</div>
+<p>批量异步链路要拆成多个 Worker 阶段，而不是一个 Worker 从解析文件一路写到正式表：</p>
+<pre><code class="language-text">上传文件 / 批量提交
+  → 创建 product_supply_task(status=PENDING)
+  → Parser Worker 抢占任务并流式解析文件
+  → 批量写入 product_supply_task_item
+  → Item Worker 分批处理 item
+  → 标准化 / 校验 / Staging / Diff
+  → 低风险自动发布，高风险进入审核
+  → Publish Worker 发布正式表并写 Outbox
+  → 生成错误文件 / DLQ / 质量报告
+</code></pre>
+<p><strong>Parser Worker 只负责解析，不负责发布</strong>。它校验文件 hash、模板版本和列结构，按行流式读取文件，每 N 行批量插入 <code>product_supply_task_item</code>，并持续更新 <code>parsed_count</code> 和 <code>parse_checkpoint</code>。如果 Worker 中途退出，下次从 checkpoint 继续；如果重复解析上一小批数据，通过 <code>task_id + item_no</code> 和 <code>task_id + idempotency_key</code> 唯一键去重。</p>
+<pre><code class="language-json">{
+  "sheet": "Sheet1",
+  "row_no": 12000,
+  "byte_offset": 8842211
+}
+</code></pre>
+<p><strong><code>product_supply_task_item</code> 是真正的问题定位单元</strong>。Task 只表示一次批量任务，Item 表示每一行、每一个商品对象或每一个 Offer 的处理状态。</p>
+<pre><code class="language-text">PENDING
+  → NORMALIZING
+  → VALIDATING
+  → STAGING
+  → DIFFING
+  → REVIEWING
+  → PUBLISHING
+  → SUCCESS
+
+失败分支：
+NORMALIZING / VALIDATING / STAGING / DIFFING / PUBLISHING
+  → FAILED / DLQ / SKIPPED
+</code></pre>
+<p>Item Worker 不按文件整批处理，而是扫描小批量 item：</p>
+<pre><code class="language-sql">SELECT *
+FROM product_supply_task_item
+WHERE task_id = ?
+  AND status IN ('PENDING', 'FAILED')
+  AND next_retry_at &lt;= NOW()
+ORDER BY item_no ASC
+LIMIT 500;
+</code></pre>
+<p>每个 item 或小批次独立事务，流程是：读取原始行 → 按类目模板标准化 → 写 <code>normalized_ref</code> → 执行 Schema、主数据、交易契约校验 → 写 <code>product_supply_staging</code> → 与线上 <code>publish_version</code> 做 Diff → 生成 <code>product_change_request</code> → 按风险等级进入自动发布或人工审核。</p>
+<p>Publish Worker 只处理已经通过审核或自动准入的变更：</p>
+<pre><code class="language-text">读取 APPROVED change
+  → 开启发布事务
+  → 写 Resource / SPU / SKU / Offer / Rule
+  → 写 publish_snapshot 和 change_log
+  → 写 outbox_event
+  → 提交事务
+  → item.status = SUCCESS
+</code></pre>
+<p>Task 状态由 item 统计汇总，而不是 Worker 主观判断：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Item 汇总结果</th><th>Task 状态</th></tr>
+</thead>
+<tbody>
+<tr><td>全部 <code>SUCCESS</code></td><td><code>PUBLISHED</code></td></tr>
+<tr><td>部分 <code>SUCCESS</code>，部分 <code>FAILED/DLQ</code></td><td><code>PARTIAL_FAILED</code></td></tr>
+<tr><td>全部失败</td><td><code>FAILED</code></td></tr>
+<tr><td>存在 <code>REVIEWING</code></td><td><code>REVIEWING</code></td></tr>
+<tr><td>存在 <code>PUBLISHING</code></td><td><code>PUBLISHING</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>这里的关键原则是：<strong>Parser Worker 只解析，Item Worker 推进行级状态，Publish Worker 只做已审核发布；Task 管整体进度，Item 管失败定位，Staging 管线上隔离，Outbox 管下游一致性</strong>。</p>
+<p>错误文件示例：</p>
+<pre><code class="language-text">row_no, sku_code, field, error_code, error_message
+12, SKU_001, price, PRICE_TOO_LOW, price is lower than category floor price
+25, SKU_014, refund_rule, REFUND_RULE_MISSING, refund rule is required for hotel offer
+31, SKU_020, city_code, CITY_NOT_FOUND, city code cannot map to platform city
+</code></pre>
+<p><strong>7. 运营编辑链路</strong></p>
+<p>运营编辑不是“打开商品详情页直接保存”。一个线上商品可能同时被供应商同步、运营编辑、库存系统、风控系统影响。运营编辑必须明确字段主导权、版本锁和风险审核。</p>
+<pre><code class="language-text">读取当前 publish_version
+  → 创建编辑草稿
+  → 修改字段
+  → 与线上版本做 Diff
+  → 判断字段主导权和风险等级
+  → 自动通过 / 人工审核 / 阻断
+  → 发布新 publish_version
+  → Outbox 通知搜索、缓存、营销、计价、订单
+</code></pre>
+<p>字段主导权可以这样定义：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>主导方</th><th>供应商同步能否覆盖</th><th>运营编辑策略</th></tr>
+</thead>
+<tbody>
+<tr><td>酒店名称、地址、设施</td><td>供应商/平台治理</td><td>低风险可覆盖，高风险审核</td><td>可人工修正并加保护期</td></tr>
+<tr><td>标题、卖点、活动标签</td><td>平台运营</td><td>不能直接覆盖</td><td>运营编辑为准</td></tr>
+<tr><td>基础价格、Rate Plan</td><td>供应商/计价</td><td>取决于品类</td><td>超阈值审核</td></tr>
+<tr><td>库存水位、可售状态</td><td>库存域/供应商</td><td>可覆盖</td><td>异常告警，不建议人工长期覆盖</td></tr>
+<tr><td>退款规则、履约规则</td><td>平台/供应商契约</td><td>高风险覆盖</td><td>强制审核</td></tr>
+<tr><td>类目、Resource 映射</td><td>平台治理</td><td>不能自动覆盖</td><td>强制审核和巡检</td></tr>
+</tbody>
+</table>
+</div>
+<p>高风险运营编辑必须具备三个能力：</p>
+<ol>
+<li><strong>Diff 可读</strong>：审核员看到字段级变化，而不是整段 JSON。</li>
+<li><strong>版本可回滚</strong>：发布新版本后出现事故，可以回滚到上一个 <code>publish_version</code>。</li>
+<li><strong>覆盖可解释</strong>：如果运营字段覆盖了供应商字段，要记录覆盖原因、有效期和责任人。</li>
+</ol>
+<p><strong>8. 标准化校验与风险审核</strong></p>
+<p>数字商品供给不能只做字段必填校验，还要校验交易前契约是否完整。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>校验层</th><th>检查内容</th><th>示例</th><th>失败处理</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Schema 校验</strong></td><td>字段类型、必填、枚举、长度、格式</td><td>图片 URL、手机号规则、账单号长度</td><td>行级失败</td></tr>
+<tr><td><strong>类目模板校验</strong></td><td>类目要求的属性、能力、扩展字段是否完整</td><td>Gift Card 必须有面额和有效期</td><td>阻断提交</td></tr>
+<tr><td><strong>主数据校验</strong></td><td>Resource、Brand、Carrier、城市、商户是否存在</td><td>酒店必须有关联城市</td><td>进入人工映射</td></tr>
+<tr><td><strong>商品模型校验</strong></td><td>SPU/SKU/Offer/Rate Plan 关系是否成立</td><td>SKU 不能缺 Offer</td><td>阻断发布</td></tr>
+<tr><td><strong>交易契约校验</strong></td><td>库存来源、Input Schema、履约规则、退款规则是否完整</td><td>Voucher 券码池为空不能发布</td><td>阻断发布或告警</td></tr>
+<tr><td><strong>风险校验</strong></td><td>价格、类目、履约、退款、映射是否高风险</td><td>价格大幅变化、退款规则变严</td><td>人工审核</td></tr>
+</tbody>
+</table>
+</div>
+<p>审核策略应该差异化，而不是所有变更都人工审核：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>变更类型</th><th>风险等级</th><th>策略</th></tr>
+</thead>
+<tbody>
+<tr><td>标题、描述、普通图片修改</td><td>低</td><td>自动通过，记录变更日志</td></tr>
+<tr><td>库存水位、供应商可售状态</td><td>中</td><td>自动校验，通过后发布，异常告警</td></tr>
+<tr><td>展示价、Offer 规则、活动标签</td><td>中高</td><td>超过阈值进入人工审核</td></tr>
+<tr><td>类目、履约类型、退款规则</td><td>高</td><td>强制人工审核</td></tr>
+<tr><td>供应商映射、Resource ID、SPU/SKU 结构</td><td>高</td><td>强制审核，并触发巡检</td></tr>
+</tbody>
+</table>
+</div>
+<p>风险规则要配置化：</p>
+<pre><code class="language-text">risk_score =
+  field_weight
+  + change_ratio_weight
+  + category_weight
+  + operator_risk_weight
+  + product_heat_weight
+</code></pre>
+<p>例如同样是改价，长尾商品小幅调价可以自动通过，热门酒店或高销量礼品卡大幅降价必须人工复核。</p>
+<p><strong>9. 发布一致性设计</strong></p>
+<p>审核通过不代表商品已经可售。真正发布时，要保证商品主数据、资源映射、交易契约、库存可售、搜索缓存和下游系统最终一致。</p>
+<pre><code class="language-text">审核通过
+  → 开启发布事务
+  → 写入 Resource / SPU / SKU / Offer / Rate Plan
+  → 写入 Stock Config / Sellable Rule
+  → 写入 Input Schema / Fulfillment Rule / Refund Rule
+  → 生成 publish_version 和 product_snapshot
+  → 写入 product_change_log
+  → 写入 Outbox 事件
+  → 提交事务
+  → 异步刷新搜索、缓存、营销、计价、数据平台
+</code></pre>
+<p>发布事务里只做商品中心必须强一致的事情；ES 刷新、缓存失效、营销圈品、计价上下文刷新都通过 Outbox 异步执行。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>正式表与暂存表分离</strong></td><td>任务处理中的半成品不能污染线上</td></tr>
+<tr><td><strong>发布版本化</strong></td><td>每次发布生成 <code>publish_version</code>，支持回滚、对账和排查</td></tr>
+<tr><td><strong>Outbox 同事务</strong></td><td>商品变更与事件写入同事务，避免“商品变了但下游不知道”</td></tr>
+<tr><td><strong>下游刷新可重试</strong></td><td>ES、缓存、营销、计价刷新失败进入补偿任务</td></tr>
+<tr><td><strong>订单只信快照</strong></td><td>创单保存商品快照、报价快照、履约契约和退款规则快照</td></tr>
+</tbody>
+</table>
+</div>
+<p>Outbox 事件示例：</p>
+<pre><code class="language-text">ProductPublished
+ProductContentChanged
+OfferChanged
+SellableRuleChanged
+FulfillmentRuleChanged
+SearchIndexRefreshRequired
+ProductCacheInvalidationRequired
+</code></pre>
+<p><strong>10. DLQ、补偿与质量巡检</strong></p>
+<p>人工供给和运营编辑也需要 DLQ。它们的失败不一定来自供应商接口，更多来自文件格式、字段错误、审核驳回、发布失败和下游刷新失败。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>失败类型</th><th>示例</th><th>处理</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>输入失败</strong></td><td>Excel 字段非法、必填缺失</td><td>生成错误文件，运营修复后重新提交</td></tr>
+<tr><td><strong>映射失败</strong></td><td>城市、商户、品牌、Resource 找不到</td><td>进入人工映射队列</td></tr>
+<tr><td><strong>审核失败</strong></td><td>高风险变更被驳回</td><td>回到草稿，保留驳回原因</td></tr>
+<tr><td><strong>发布失败</strong></td><td>DB 写入冲突、版本过期</td><td>重试或要求基于最新版本重新编辑</td></tr>
+<tr><td><strong>下游失败</strong></td><td>ES 刷新失败、缓存失效失败</td><td>Outbox 补偿</td></tr>
+<tr><td><strong>质量失败</strong></td><td>缺图、缺价、无库存、不可履约</td><td>质量巡检下架或告警</td></tr>
+</tbody>
+</table>
+</div>
+<p>补偿任务包括：</p>
+<ol>
+<li>失败行重新投递。</li>
+<li>审核通过但发布失败重试。</li>
+<li>搜索索引重建。</li>
+<li>商品缓存失效重试。</li>
+<li>发布版本与 ES 索引一致性校验。</li>
+<li>商品质量日报。</li>
+<li>运营覆盖字段到期巡检。</li>
+<li>无库存、无价格、无履约规则商品巡检。</li>
+</ol>
+<p><strong>11. 可观测性指标</strong></p>
+<p>供给运营链路需要可观测，否则运营会遇到“上传了但不知道失败在哪里”“审核通过但前台搜不到”“商品发布了但不能下单”等问题。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>说明</th><th>目标</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>任务成功率</strong></td><td>成功任务 / 总任务</td><td>按入口拆分统计</td></tr>
+<tr><td><strong>行级成功率</strong></td><td>成功 item / 总 item</td><td>批量导入核心指标</td></tr>
+<tr><td><strong>任务完成耗时</strong></td><td>从创建到发布完成</td><td>P95 可控</td></tr>
+<tr><td><strong>自动审核占比</strong></td><td>自动通过 / 总审核</td><td>持续提升，但高风险不追求自动化</td></tr>
+<tr><td><strong>审核驳回率</strong></td><td>驳回 / 审核提交</td><td>反映输入质量和规则合理性</td></tr>
+<tr><td><strong>发布失败率</strong></td><td>发布失败 / 发布任务</td><td>&lt; 1%</td></tr>
+<tr><td><strong>索引刷新成功率</strong></td><td>ES 刷新成功 / 总刷新</td><td>&gt; 99%</td></tr>
+<tr><td><strong>缓存失效成功率</strong></td><td>缓存失效成功 / 总失效</td><td>&gt; 99%</td></tr>
+<tr><td><strong>商品质量缺陷率</strong></td><td>缺图、缺价、无库存、映射缺失商品占比</td><td>持续下降</td></tr>
+<tr><td><strong>人工修复耗时</strong></td><td>从失败到修复完成</td><td>按错误类型统计</td></tr>
+</tbody>
+</table>
+</div>
+<p>运营后台至少要能看到：</p>
+<pre><code class="language-text">任务进度：总数、成功、失败、跳过、当前阶段
+失败原因：错误码、错误字段、建议修复方式、错误文件
+审核队列：风险等级、命中规则、Diff、责任人
+发布结果：publish_version、Outbox 状态、索引/缓存刷新状态
+质量看板：缺图、缺价、无库存、无履约规则、映射缺失
+</code></pre>
+<p><strong>12. 与供应商同步链路的关系</strong></p>
+<p>供应商同步不是被排除在供给链路之外，而是供给链路中自动化程度最高、数据治理要求最强的入口。</p>
+<pre><code class="language-text">统一供给治理平台
+  → 统一发布模型：Resource / SPU / SKU / Offer / Rule
+  → 统一治理能力：校验 / Diff / 审核 / 发布 / Outbox / 补偿
+  → 统一观测能力：任务进度 / 失败明细 / 质量指标
+
+供应商同步专项链路
+  → Raw Snapshot
+  → Checkpoint
+  → Worker Lease
+  → Sync Batch Version
+  → Supplier Mapping
+  → 数据新鲜度
+</code></pre>
+<p>所以本章采用“主链路 + 专项链路”的写法：<code>32.6.1.6</code> 讲统一商品供给与运营治理平台，完整设计见<a href="./12-product-supply-governance.html">第 31 章：商品供给与运营治理平台</a>；<code>32.6.1.7</code> 专门讲供应商同步，因为它有长任务恢复、外部数据追溯和供应商质量治理等额外复杂度。</p>
+<p>本节答辩总结已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
+<h4 id="32617-供应商商品同步链路"><a class="header" href="#32617-供应商商品同步链路">32.6.1.7 供应商商品同步链路</a></h4>
+<h4 id="32617-供应商商品同步链路-1"><a class="header" href="#32617-供应商商品同步链路-1">32.6.1.7 供应商商品同步链路</a></h4>
+<p>供应商同步链路解决的是“外部供给数据如何进入平台，并持续保持可用、可信、足够新鲜”的问题。它不是简单的定时任务，也不是把供应商字段原样搬进商品表，而是一个完整的数据治理链路：接入外部数据、适配不同协议、完成平台模型映射、校验数据质量、生成发布版本、刷新搜索缓存、通知下游系统，并在失败时可追踪、可补偿、可人工修复。</p>
+<p>从系统边界上看，它属于 <code>32.6.1.6</code> 里的供应商供给入口，但执行层要单独设计。统一供给平台负责发布模型、审核、Outbox 和质量治理；供应商同步专项链路负责外部协议适配、Raw Snapshot、Checkpoint、租约、批次版本、新鲜度和供应商质量治理。</p>
+<p>在数字商品平台中，供应商同步的复杂度来自四个方面：</p>
+<ol>
+<li><strong>接口不稳定</strong>：供应商可能超时、限流、重复推送、乱序推送，也可能临时修改字段含义。</li>
+<li><strong>模型不一致</strong>：供应商有自己的酒店、房型、套餐、面额、场次、票种模型，平台则使用 Resource、SPU、SKU、Offer、Rate Plan 等统一抽象。</li>
+<li><strong>新鲜度不同</strong>：酒店地址和设施可以小时级更新，酒店最低价需要分钟级刷新，机票报价和下单前房态房价必须实时确认。</li>
+<li><strong>交易风险高</strong>：列表页展示可以允许轻微过期，但创单前如果使用过期价格或库存，就会带来资损、投诉和履约失败。</li>
+</ol>
+<p>因此，供应商同步链路的核心目标不是“同步成功”，而是：<strong>正确映射、变化可追溯、错误可隔离、数据可验证、过期可感知、失败可补偿</strong>。</p>
+<p>核心难点和解决方法如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>难点</th><th>典型表现</th><th>解决方法</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>长任务易中断</strong></td><td>100 万酒店全量同步跑 10 小时，发布、重启、OOM 都可能中断</td><td>Batch + Page/Cursor Checkpoint + Worker Lease</td></tr>
+<tr><td><strong>外部数据不可控</strong></td><td>字段缺失、枚举变化、分页游标失效、重复 Push</td><td>Adapter 防腐层、Schema 校验、幂等 key、指数退避和熔断</td></tr>
+<tr><td><strong>模型映射复杂</strong></td><td>供应商酒店/房型/套餐无法直接对应平台 Resource/SPU/SKU/Offer</td><td>supplier mapping 表、标准化快照、映射失败进入人工修复</td></tr>
+<tr><td><strong>同步成功不等于可发布</strong></td><td>拉到了数据但城市映射失败、价格异常、坐标漂移</td><td>质量校验、Diff、风险分级、低风险自动发布，高风险审核或 DLQ</td></tr>
+<tr><td><strong>数据新鲜度不一致</strong></td><td>静态信息小时级即可，房态房价下单前必须实时</td><td>按数据类型和交易阶段分层 TTL，列表缓存、详情刷新、创单确认</td></tr>
+<tr><td><strong>失败需要可追溯</strong></td><td>线上价格异常时不知道供应商当时返回什么</td><td>Raw Snapshot / Normalized Snapshot / Diff / publish_version 分离</td></tr>
+<tr><td><strong>下游最终一致</strong></td><td>DB 更新成功但 ES、缓存、营销、计价没有同步</td><td>Outbox 同事务写入，索引和缓存刷新失败进入补偿</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>供应商同步架构图与 Data Flow Diagram</strong>：</p>
+<p><img src="../../images/supplier-sync-architecture.png" alt="供应商数据同步链路架构图"></p>
+<p><img src="../../images/supplier-sync-data-flow.png" alt="供应商数据同步 Data Flow Diagram"></p>
+<p>完整的任务模型、Checkpoint、Worker 租约、DLQ 和监控指标，见<a href="./11-supplier-sync.html">第 30 章：供应商数据同步链路</a>。</p>
+<p>图中可以看到，供应商数据进入平台后会经过五个阶段：</p>
+<pre><code class="language-text">供应商数据源
+  → 接入适配与同步任务
+  → 标准化、质量校验、平台模型映射
+  → Resource / SPU / SKU / Offer / Mapping / Stock Snapshot 落库
+  → 搜索索引、缓存、营销、计价、订单、数据平台刷新
+  → 失败补偿、监控告警、数据巡检
+</code></pre>
+<p><strong>1. 同步对象分层</strong></p>
+<p>供应商同步首先要分清楚“同步的到底是什么”。不同数据的生命周期、新鲜度和交易风险完全不同，不能放在同一张表、使用同一个刷新策略。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>数据层</th><th>示例</th><th>平台承接模型</th><th>同步特点</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>资源数据</strong></td><td>城市、机场、车站、酒店、影院、商户、门店</td><td><code>resource_tab</code></td><td>相对稳定，适合全量 + 增量同步</td></tr>
+<tr><td><strong>商品主数据</strong></td><td>标题、图片、类目、属性、可售范围</td><td><code>product_spu_tab</code>、<code>product_sku_tab</code></td><td>变化频率中等，需要审核与发布版本</td></tr>
+<tr><td><strong>销售配置</strong></td><td>面额、套餐、房价计划、票种、售卖规则</td><td><code>product_offer_tab</code>、<code>rate_plan_tab</code></td><td>直接影响展示价和可售性</td></tr>
+<tr><td><strong>动态交易数据</strong></td><td>价格、库存、座位图、房态、可售状态</td><td><code>product_stock_tab</code>、缓存、实时查询</td><td>变化快，需要 TTL 和交易前确认</td></tr>
+<tr><td><strong>供应商映射</strong></td><td>供应商酒店 ID、房型 ID、套餐 ID、票种 ID</td><td><code>supplier_product_mapping_tab</code></td><td>是履约、查价、查库存的关键桥梁</td></tr>
+</tbody>
+</table>
+</div>
+<p>这个分层决定了同步策略：静态资源可以沉淀，动态报价可以缓存，强交易数据必须实时确认。商品中心不能为了统一而把所有数据都持久化成 SKU，也不能为了灵活而完全不沉淀基础资源。</p>
+<p><strong>2. 同步模式设计</strong></p>
+<p>供应商同步通常要同时支持五种模式：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>同步模式</th><th>适用场景</th><th>设计重点</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>全量同步</strong></td><td>新供应商接入、数据修复、周期校准</td><td>分片、断点续跑、批次版本、失败明细</td></tr>
+<tr><td><strong>增量同步</strong></td><td>日常商品、资源、状态变化</td><td>游标、更新时间、水位记录、乱序处理</td></tr>
+<tr><td><strong>供应商 Push</strong></td><td>供应商主动推送价格、库存、上下架变化</td><td>幂等、签名校验、重复消息去重</td></tr>
+<tr><td><strong>平台主动刷新</strong></td><td>热门酒店、热门影片、热门面额、活动商品</td><td>根据曝光、点击、转化、变价率动态调频</td></tr>
+<tr><td><strong>交易前实时确认</strong></td><td>Flight、Hotel、Movie 等强实时品类</td><td>下单前查价、查库存、锁资源或确认可售</td></tr>
+</tbody>
+</table>
+</div>
+<p>实际系统中这五种模式会同时存在。比如酒店静态信息来自全量和增量同步，列表页最低价来自定时刷新，详情页房态房价来自短 TTL 缓存，下单前必须实时向供应商确认。</p>
+<p><strong>3. 幂等设计</strong></p>
+<p>供应商同步的幂等要覆盖三层：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层级</th><th>幂等对象</th><th>幂等 Key</th><th>目的</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>接入层</strong></td><td>一次供应商 Push 或同步消息</td><td><code>supplier_id + event_id</code> 或 payload hash</td><td>防止重复消费</td></tr>
+<tr><td><strong>映射层</strong></td><td>一个外部资源或商品</td><td><code>supplier_id + supplier_resource_code + supplier_product_code</code></td><td>防止重复创建 Resource/SPU/SKU</td></tr>
+<tr><td><strong>发布层</strong></td><td>一次平台商品变更</td><td><code>sync_batch_id + platform_product_id + data_hash</code></td><td>防止重复发布、重复刷新索引</td></tr>
+</tbody>
+</table>
+</div>
+<p>其中 <code>supplier_resource_code</code> 表示供应商侧稳定资源，例如酒店 ID、影院 ID、商户 ID、机场/车站代码；<code>supplier_product_code</code> 表示供应商侧可售对象，例如房型、套餐、面额、场次、票种。</p>
+<pre><code class="language-text">供应商原始数据
+  → 生成 source_hash
+  → 查询 supplier_mapping
+  → 已存在：比较 data_hash，变化才更新
+  → 不存在：创建平台 Resource / SPU / SKU / Offer
+  → 写入 mapping，保证后续同步可定位
+</code></pre>
+<p>这里最容易踩坑的是供应商编码不稳定。有些供应商会复用商品编码、合并资源、拆分资源，甚至换供应商后编码体系完全变化。因此平台不能直接把供应商编码当成平台主键，而要维护独立的 <code>platform_resource_id</code>、<code>spu_id</code>、<code>sku_id</code>，供应商编码只作为映射关系存在。</p>
+<p><strong>4. 版本设计</strong></p>
+<p>版本要分清楚三类，不能混在一起：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>版本</th><th>含义</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td><code>sync_batch_version</code></td><td>本次同步任务版本</td><td>排查“哪次同步带来了变化”</td></tr>
+<tr><td><code>data_snapshot_version</code></td><td>原始数据和标准化数据快照版本</td><td>支持回放、diff、回滚</td></tr>
+<tr><td><code>publish_version</code></td><td>平台正式发布版本</td><td>控制搜索、缓存、下游事件一致性</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐链路如下：</p>
+<pre><code class="language-text">Sync Batch v102
+  → Raw Snapshot v102.1
+  → Normalized Snapshot v102.1
+  → Diff: price changed / room name changed / offer disabled
+  → Publish Version p5688
+  → ProductUpdated / OfferChanged / StockChanged Event
+</code></pre>
+<p>版本设计的关键是：<strong>同步版本不等于发布版本</strong>。供应商同步可能只是拉到了数据，但经过校验后发现字段缺失，不应该发布；也可能一次同步中有 10 万条数据，只有 300 条真正变化。平台需要把“同步到了什么”和“发布了什么”分开记录。</p>
+<p><strong>5. 质量校验设计</strong></p>
+<p>质量校验不能只做字段非空，而要分成五层：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>校验层</th><th>校验内容</th><th>失败处理</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Schema 校验</strong></td><td>必填字段、类型、枚举、时间格式、货币单位</td><td>直接拦截，进入失败明细</td></tr>
+<tr><td><strong>主数据校验</strong></td><td>城市、机场、酒店、商户、品牌、类目是否存在</td><td>进入待映射或人工修复</td></tr>
+<tr><td><strong>模型校验</strong></td><td>是否能映射到 Resource/SPU/SKU/Offer/Rate Plan</td><td>阻断发布</td></tr>
+<tr><td><strong>交易校验</strong></td><td>价格是否异常、库存是否为负、可售状态是否矛盾</td><td>高风险拦截或降级</td></tr>
+<tr><td><strong>业务规则校验</strong></td><td>是否允许该站点、渠道、品类售卖，是否需要审核</td><td>进入审核或灰度发布</td></tr>
+</tbody>
+</table>
+</div>
+<p>质量校验要支持“部分成功”。例如酒店全量同步 100 万条房型数据，不能因为 100 条数据失败就整批失败。更合理的处理方式是：可处理数据继续写入，失败明细单独记录 <code>error_code</code>、<code>error_message</code>、<code>raw_payload_ref</code>，高风险数据不发布，进入人工修复或补偿队列。</p>
+<p>供应商同步失败治理的答辩提示已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
+<p><strong>6. 新鲜度设计</strong></p>
+<p>不同数据的 TTL 不一样，不能使用统一缓存时间。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>数据类型</th><th>示例</th><th>新鲜度要求</th><th>策略</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>静态资源</strong></td><td>酒店名称、地址、设施、机场、车站</td><td>小时级或天级</td><td>全量 + 增量同步</td></tr>
+<tr><td><strong>半动态数据</strong></td><td>酒店最低价、可售状态、热门库存水位</td><td>分钟级</td><td>定时刷新 + 热门加频</td></tr>
+<tr><td><strong>强动态数据</strong></td><td>机票报价、座位图、下单前房态房价</td><td>秒级或实时</td><td>搜索缓存，详情刷新，下单实时确认</td></tr>
+<tr><td><strong>交易契约</strong></td><td>退款规则、履约参数、供应商映射</td><td>强一致倾向</td><td>发布版本控制，不随意覆盖</td></tr>
+</tbody>
+</table>
+</div>
+<p>新鲜度可以按三个维度决策：</p>
+<pre><code class="language-text">TTL = f(category, popularity, transaction_stage)
+</code></pre>
+<p>示例：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>TTL 策略</th></tr>
+</thead>
+<tbody>
+<tr><td>Hotel 列表页最低价</td><td>热门酒店 10 分钟刷新，长尾酒店 1-6 小时</td></tr>
+<tr><td>Hotel 详情页房态房价</td><td>用户进入详情页时刷新或短 TTL 缓存</td></tr>
+<tr><td>Hotel 下单前确认</td><td>必须实时查供应商</td></tr>
+<tr><td>Flight 搜索报价</td><td>实时查或极短 TTL</td></tr>
+<tr><td>Topup 面额配置</td><td>小时级缓存即可</td></tr>
+<tr><td>Bill 账单金额</td><td>用户输入账单号后实时查询</td></tr>
+</tbody>
+</table>
+</div>
+<p>这里的原则是：<strong>L 页可以快，D 页要准，创单必须安全</strong>。列表页价格允许作为导购参考，详情页价格要尽量接近实时，创单价格必须基于最新供应商状态确认。</p>
+<p><strong>7. 补偿设计</strong></p>
+<p>补偿不是“失败后重试三次”这么简单，而要按失败类型分类处理。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>失败类型</th><th>示例</th><th>处理方式</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>临时失败</strong></td><td>网络超时、供应商 5xx、限流</td><td>指数退避重试</td></tr>
+<tr><td><strong>数据失败</strong></td><td>字段缺失、枚举非法、价格异常</td><td>不盲目重试，进入修复队列</td></tr>
+<tr><td><strong>映射失败</strong></td><td>找不到城市、酒店、影院、商户映射</td><td>进入人工映射或规则匹配</td></tr>
+<tr><td><strong>发布失败</strong></td><td>DB 成功但 ES 刷新失败</td><td>Outbox 重试，索引补偿</td></tr>
+<tr><td><strong>一致性失败</strong></td><td>平台数据与供应商数据长期不一致</td><td>对账任务 + 差异修复</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐处理链路：</p>
+<pre><code class="language-text">Sync Failed
+  → 判断错误类型
+  → Retryable：延迟重试
+  → NonRetryable：进入失败明细
+  → MappingRequired：进入人工修复队列
+  → PublishFailed：Outbox 补偿
+  → StaleData：巡检任务重新拉取
+</code></pre>
+<p>死信队列中不要只存错误信息，要存完整上下文：</p>
+<pre><code class="language-text">supplier_id
+sync_batch_id
+supplier_resource_code
+supplier_product_code
+error_code
+error_message
+raw_payload_ref
+retry_count
+next_retry_time
+owner_team
+</code></pre>
+<p>否则线上排查时只能看到“同步失败”，不知道失败的是哪个供应商、哪个资源、哪条商品。</p>
+<p><strong>8. 死信队列落地设计</strong></p>
+<p>死信队列（Dead Letter Queue, DLQ）不要只理解成“失败消息丢到一个 MQ Topic”。在供应商商品同步场景里，失败往往不是单纯的消息消费失败，而是字段缺失、映射失败、价格异常、发布失败、索引刷新失败等需要人工修复、状态流转和审计的问题。因此，推荐设计成 <strong>MySQL 为主的可运营 DLQ + MQ/Redis 做调度辅助</strong>。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>组件</th><th>职责</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>MySQL DLQ 表</strong></td><td>权威问题单，支持查询、筛选、人工修复、状态流转、审计和报表</td></tr>
+<tr><td><strong>Kafka / MQ</strong></td><td>可选，用于失败事件的短期缓冲和异步投递</td></tr>
+<tr><td><strong>Redis ZSet</strong></td><td>可选，用于延迟重试调度，按 <code>next_retry_at</code> 排序</td></tr>
+<tr><td><strong>Raw Snapshot / 对象存储</strong></td><td>保存大体积原始 payload，DLQ 表只保存引用</td></tr>
+</tbody>
+</table>
+</div>
+<p>判断一条失败是否进入 DLQ，需要先做错误分类：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>失败类型</th><th>是否进入 DLQ</th><th>处理方式</th></tr>
+</thead>
+<tbody>
+<tr><td>网络超时、供应商 5xx</td><td>不一定</td><td>先自动重试，超过次数后进入 DLQ</td></tr>
+<tr><td>供应商限流</td><td>不一定</td><td>延迟重试、降速、熔断</td></tr>
+<tr><td>字段缺失、枚举非法</td><td>是</td><td>需要人工或规则修复</td></tr>
+<tr><td>城市、酒店、影院、商户映射失败</td><td>是</td><td>需要补映射</td></tr>
+<tr><td>价格异常、库存异常</td><td>是</td><td>高风险数据拦截</td></tr>
+<tr><td>DB 写入成功但 ES 刷新失败</td><td>是</td><td>索引补偿</td></tr>
+<tr><td>同步成功但发布失败</td><td>是</td><td>发布补偿</td></tr>
+<tr><td>重复消息</td><td>否</td><td>幂等丢弃即可</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐处理架构如下：</p>
+<pre><code class="language-text">同步任务失败
+  → 错误分类
+  → Retryable：进入延迟重试队列
+  → 达到最大重试次数：写入 MySQL DLQ
+  → NonRetryable：直接写入 MySQL DLQ
+  → 人工修复 / 规则修复 / 定时补偿
+  → 重新投递同步任务
+  → 成功后标记 RESOLVED
+</code></pre>
+<p>DLQ 主表可以这样设计：</p>
+<pre><code class="language-sql">CREATE TABLE supplier_sync_dead_letter (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+
+    -- 定位同步批次
+    sync_batch_id VARCHAR(64) NOT NULL,
+    sync_task_id VARCHAR(64) NOT NULL,
+    sync_mode VARCHAR(32) NOT NULL COMMENT 'FULL/INCREMENTAL/PUSH/REFRESH',
+    category_code VARCHAR(32) NOT NULL,
+
+    -- 定位供应商和外部对象
+    supplier_id BIGINT NOT NULL,
+    supplier_resource_code VARCHAR(128) DEFAULT NULL,
+    supplier_product_code VARCHAR(128) DEFAULT NULL,
+
+    -- 平台侧映射，可为空，因为很多失败发生在映射前
+    platform_resource_id BIGINT DEFAULT NULL,
+    spu_id BIGINT DEFAULT NULL,
+    sku_id BIGINT DEFAULT NULL,
+    offer_id BIGINT DEFAULT NULL,
+
+    -- 错误分类
+    error_stage VARCHAR(64) NOT NULL COMMENT 'ADAPTER/VALIDATION/MAPPING/PUBLISH/INDEX',
+    error_type VARCHAR(64) NOT NULL COMMENT 'RETRYABLE/NON_RETRYABLE/MAPPING_REQUIRED/RISK_BLOCKED',
+    error_code VARCHAR(128) NOT NULL,
+    error_message VARCHAR(1024) NOT NULL,
+
+    -- Payload 不建议大字段直接塞满主表
+    raw_payload_ref VARCHAR(512) DEFAULT NULL,
+    raw_payload_hash VARCHAR(64) DEFAULT NULL,
+    normalized_payload_ref VARCHAR(512) DEFAULT NULL,
+
+    -- 重试与状态
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING'
+        COMMENT 'PENDING/RETRYING/MANUAL_FIX/RESOLVED/IGNORED/FAILED',
+    retry_count INT NOT NULL DEFAULT 0,
+    max_retry_count INT NOT NULL DEFAULT 5,
+    next_retry_at DATETIME DEFAULT NULL,
+    last_retry_at DATETIME DEFAULT NULL,
+
+    -- 人工处理
+    owner_team VARCHAR(64) DEFAULT NULL,
+    assignee VARCHAR(64) DEFAULT NULL,
+    fix_note VARCHAR(1024) DEFAULT NULL,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    resolved_at DATETIME DEFAULT NULL,
+
+    UNIQUE KEY uk_dedup (
+        sync_batch_id,
+        supplier_id,
+        supplier_resource_code,
+        supplier_product_code,
+        error_stage,
+        raw_payload_hash
+    ),
+    KEY idx_status_next_retry (status, next_retry_at),
+    KEY idx_supplier_status (supplier_id, status),
+    KEY idx_category_status (category_code, status),
+    KEY idx_task (sync_task_id),
+    KEY idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商同步死信队列';
+</code></pre>
+<p>这个表有几个关键设计点：</p>
+<ol>
+<li><strong>定位外部对象</strong>：<code>supplier_resource_code</code> 和 <code>supplier_product_code</code> 用来定位供应商侧资源和可售对象。</li>
+<li><strong>平台映射允许为空</strong>：很多失败发生在映射前，所以 <code>platform_resource_id</code>、<code>sku_id</code>、<code>offer_id</code> 都不能强制非空。</li>
+<li><strong>Payload 存引用</strong>：供应商原始数据可能很大，尤其是酒店图片、设施、电影座位图，不建议全部放在 DLQ 主表。</li>
+<li><strong>唯一键去重</strong>：<code>uk_dedup</code> 防止同一条错误反复写入 DLQ。</li>
+<li><strong>补偿扫描索引</strong>：<code>idx_status_next_retry</code> 支持补偿 Job 按状态和下次重试时间扫描。</li>
+</ol>
+<p>如果不想引入对象存储，也可以把 payload 放到单独快照表：</p>
+<pre><code class="language-sql">CREATE TABLE supplier_sync_payload_snapshot (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    payload_ref VARCHAR(128) NOT NULL,
+    payload_type VARCHAR(32) NOT NULL COMMENT 'RAW/NORMALIZED',
+    payload_json JSON NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_payload_ref (payload_ref)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商同步载荷快照';
+</code></pre>
+<p>DLQ 状态机建议保持简单：</p>
+<pre><code class="language-text">PENDING
+  → RETRYING
+  → RESOLVED
+
+PENDING
+  → MANUAL_FIX
+  → RETRYING
+  → RESOLVED
+
+PENDING
+  → IGNORED
+
+RETRYING
+  → FAILED
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>PENDING</code></td><td>等待系统或人工处理</td></tr>
+<tr><td><code>RETRYING</code></td><td>正在补偿重试</td></tr>
+<tr><td><code>MANUAL_FIX</code></td><td>需要人工补映射、修字段、确认风险</td></tr>
+<tr><td><code>RESOLVED</code></td><td>已修复成功</td></tr>
+<tr><td><code>IGNORED</code></td><td>确认无需处理，例如供应商下架或数据已废弃</td></tr>
+<tr><td><code>FAILED</code></td><td>多次补偿仍失败，需要升级</td></tr>
+</tbody>
+</table>
+</div>
+<p>补偿 Job 可以按 <code>status</code> 和 <code>next_retry_at</code> 扫描：</p>
+<pre><code class="language-sql">SELECT *
+FROM supplier_sync_dead_letter
+WHERE status IN ('PENDING', 'FAILED')
+  AND next_retry_at &lt;= NOW()
+  AND retry_count &lt; max_retry_count
+ORDER BY next_retry_at ASC
+LIMIT 100;
+</code></pre>
+<p>处理时要按错误类型走不同分支：</p>
+<pre><code class="language-go">func ProcessDeadLetter(ctx context.Context, dlq *DeadLetter) error {
+    if !tryLock(dlq.ID) {
+        return nil
+    }
+
+    switch dlq.ErrorType {
+    case "RETRYABLE":
+        return retryOriginalSync(ctx, dlq)
+    case "MAPPING_REQUIRED":
+        if !mappingFixed(dlq) {
+            markManualFix(dlq)
+            return nil
+        }
+        return retryOriginalSync(ctx, dlq)
+    case "RISK_BLOCKED":
+        return waitManualApproval(ctx, dlq)
+    case "PUBLISH_FAILED":
+        return retryPublish(ctx, dlq)
+    default:
+        markManualFix(dlq)
+        return nil
+    }
+}
+</code></pre>
+<p>重试时间建议使用指数退避，避免供应商故障时补偿任务反复打爆外部接口：</p>
+<pre><code class="language-text">next_retry_at = now + min(2^retry_count minutes, 1 hour)
+</code></pre>
+<p>为什么不只用 Kafka DLQ？因为 Kafka 更适合保留失败消息，不适合作为运营治理主存储。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>能力</th><th>Kafka DLQ</th><th>MySQL DLQ</th></tr>
+</thead>
+<tbody>
+<tr><td>保留失败消息</td><td>好</td><td>好</td></tr>
+<tr><td>按供应商、品类、错误码查询</td><td>弱</td><td>强</td></tr>
+<tr><td>人工修复状态流转</td><td>弱</td><td>强</td></tr>
+<tr><td>审计和报表</td><td>弱</td><td>强</td></tr>
+<tr><td>定时补偿扫描</td><td>一般</td><td>强</td></tr>
+<tr><td>高吞吐消息暂存</td><td>强</td><td>一般</td></tr>
+</tbody>
+</table>
+</div>
+<p>所以更推荐采用：</p>
+<pre><code class="language-text">Kafka DLQ：短期消息缓冲，可选
+MySQL DLQ：权威问题单和补偿状态
+</code></pre>
+<p>供应商同步 DLQ 的答辩总结已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
+<p><strong>9. 监控设计</strong></p>
+<p><strong>9. 监控设计</strong></p>
+<p>供应商同步监控要分成技术指标、数据质量指标和业务影响指标。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标类型</th><th>指标</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>技术指标</strong></td><td>同步成功率、失败率、平均耗时、P99 耗时、重试次数</td><td>看任务是否健康</td></tr>
+<tr><td><strong>数据质量</strong></td><td>字段缺失率、映射失败率、重复数据率、异常价格率</td><td>看数据是否可信</td></tr>
+<tr><td><strong>新鲜度</strong></td><td>数据延迟、过期数据比例、热门商品刷新延迟</td><td>看数据是否足够新</td></tr>
+<tr><td><strong>交易影响</strong></td><td>L-D 变价率、D-B 不可售率、下单前确认失败率</td><td>看同步对转化和交易的影响</td></tr>
+<tr><td><strong>供应商维度</strong></td><td>每个供应商成功率、超时率、字段错误率</td><td>支持供应商治理</td></tr>
+<tr><td><strong>品类维度</strong></td><td>每个品类同步量、失败率、变价率</td><td>支持品类策略优化</td></tr>
+</tbody>
+</table>
+</div>
+<p>核心指标可以这样定义：</p>
+<pre><code class="language-text">同步成功率 = 成功处理 item 数 / 总 item 数
+映射失败率 = 映射失败 item 数 / 总 item 数
+字段缺失率 = 缺失关键字段 item 数 / 总 item 数
+数据新鲜度延迟 = now - last_success_sync_time
+L-D 变价率 = 详情页价格 != 列表页价格 的访问占比
+D-B 不可售率 = 下单前确认不可售 / 详情页可售点击
+</code></pre>
+<p>这些指标不仅用于技术告警，也应该反馈到运营和供应商治理。比如某个供应商字段缺失率长期高，说明不是偶发故障，而是供应商数据质量问题；某个品类 L-D 变价率长期高，说明列表页缓存刷新策略需要调整；某个热门酒店 D-B 不可售率高，说明详情页房态刷新或下单前确认策略存在问题。</p>
+<p><strong>10. 不同品类的同步策略</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>品类</th><th>平台沉淀什么</th><th>实时获取什么</th><th>同步重点</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Flight / Train / Bus</strong></td><td>城市、机场、车站、航司/车司、基础线路</td><td>报价、余票、座位、退改规则确认</td><td>少沉淀 SKU，搜索和下单前强实时</td></tr>
+<tr><td><strong>Hotel</strong></td><td>酒店、房型、设施、地理位置、图片、品牌</td><td>房态、房价、取消规则最终确认</td><td>静态资源沉淀，动态价格库存按热度刷新</td></tr>
+<tr><td><strong>Topup</strong></td><td>运营商、国家/地区、面额、套餐、号码规则</td><td>账号可用性、供应商可用性</td><td>商品配置稳定，重点是账号校验和供应商状态</td></tr>
+<tr><td><strong>Bill</strong></td><td>账单机构、账单类型、输入字段、支付规则</td><td>账单金额、欠费状态、是否可缴</td><td>低代码表单 + 实时查账单</td></tr>
+<tr><td><strong>Movie / Event</strong></td><td>影片、影院、活动、场次、票种、套餐</td><td>座位图、最终票态、锁座结果</td><td>半同步半实时，座位相关必须实时确认</td></tr>
+<tr><td><strong>Voucher / Gift Card</strong></td><td>商户、品牌、面额、有效期、核销规则</td><td>本地券码池库存或供应商券码状态</td><td>更偏平台自营库存，重点是券码池和核销状态</td></tr>
+</tbody>
+</table>
+</div>
+<p>供应商同步整体答辩总结已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
+<h4 id="32618-库存与可售设计"><a class="header" href="#32618-库存与可售设计">32.6.1.8 库存与可售设计</a></h4>
+<h4 id="32618-库存与可售设计-1"><a class="header" href="#32618-库存与可售设计-1">32.6.1.8 库存与可售设计</a></h4>
+<p>在本平台中库存没有独立拆服务，而是由商品中心内部的库存与可售域承接。这里的关键不是把库存字段放进商品主表，而是建立统一的库存抽象，屏蔽不同品类的库存来源差异。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>库存类型</th><th>典型品类</th><th>库存来源</th><th>处理方式</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>无限库存</strong></td><td>Topup、Bill</td><td>无明确库存或供应商容量足够</td><td>只做可售规则与供应商可用性校验</td></tr>
+<tr><td><strong>池化库存</strong></td><td>Voucher、Gift Card</td><td>平台券码池或本地库存</td><td>支付后分配券码，库存不足时停止售卖</td></tr>
+<tr><td><strong>实时库存</strong></td><td>Flight、Hotel、Movie</td><td>供应商接入层 / 外部供应商实时查询</td><td>搜索展示可缓存，下单前必须实时确认</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>统一可售判断</strong>：</p>
+<pre><code class="language-text">可售 = 商品状态可售
+    + 类目/站点/渠道可售
+    + 库存满足
+    + 供应商可用
+    + 风控/业务规则允许
+</code></pre>
+<p>库存相关动作包括查询、预占、释放、扣减、回补和对账。对于 Flight/Hotel/Movie 这类实时库存，商品中心更多是统一入口和状态判断，真实资源确认仍然要通过供应商网关或供应商接入层完成。</p>
+<hr>
+<h4 id="32619-搜索与导购设计"><a class="header" href="#32619-搜索与导购设计">32.6.1.9 搜索与导购设计</a></h4>
+<p>由于搜索也由商品中心负责，商品中心不仅要管理商品数据，还要负责把商品组织成用户可浏览、可搜索、可筛选、可点击的前台体验。</p>
+<p><strong>搜索导购链路</strong>：</p>
+<pre><code class="language-text">首页入口/类目导航
+  → 列表页搜索与筛选
+  → ES 召回
+  → 排序与过滤
+  → Hydrate 商品信息、库存、展示价、营销标签
+  → 返回列表页
+  → 详情页聚合
+</code></pre>
+<p><strong>关键设计点</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>能力</th><th>设计重点</th></tr>
+</thead>
+<tbody>
+<tr><td>首页入口</td><td>入口配置、类目分组、排序、发布快照、CDN/Redis 缓存</td></tr>
+<tr><td>ES 索引</td><td>商品主数据、类目、实体、Tag、可售状态、运营排序字段</td></tr>
+<tr><td>Hydrate</td><td>搜索只返回候选 ID，详情信息、库存、价格、营销标签统一补齐</td></tr>
+<tr><td>缓存</td><td>热门商品、本地缓存、Redis、索引快照结合使用</td></tr>
+<tr><td>降级</td><td>价格不可用时展示基础价，营销不可用时隐藏标签，库存不可用时弱提示</td></tr>
+<tr><td>新鲜度</td><td>L 页允许缓存，D 页更接近实时，创单必须实时校验</td></tr>
+</tbody>
+</table>
+</div>
+<p>搜索导购的答辩总结已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
+<hr>
+<h4 id="326110-跨系统集成与事件设计"><a class="header" href="#326110-跨系统集成与事件设计">32.6.1.10 跨系统集成与事件设计</a></h4>
+<p>商品中心位于交易前链路，需要向多个系统输出稳定契约。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>下游系统</th><th>商品中心输出</th><th>对方使用方式</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>营销系统</strong></td><td>类目、Tag、商品范围、业务实体、可营销状态</td><td>圈品、活动配置、券可用范围</td></tr>
+<tr><td><strong>计价中心</strong></td><td>基础价、类目、属性、库存上下文、能力配置</td><td>PDP 价格、结算试算价、下单价、结算价</td></tr>
+<tr><td><strong>订单系统</strong></td><td>商品快照、上下架状态、可售校验、库存预占结果</td><td>创建订单前校验与订单快照落库</td></tr>
+<tr><td><strong>履约系统</strong></td><td>履约类型、供应商映射、履约参数</td><td>出票、充值、发券、预订确认</td></tr>
+<tr><td><strong>供应商网关/供应商接入层</strong></td><td>平台 SKU、供应商映射、同步任务上下文</td><td>查价、查库存、同步、履约调用</td></tr>
+<tr><td><strong>数据平台</strong></td><td>CDC、商品变更日志、质量监控数据</td><td>经营分析、质量报表、异常发现</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>核心事件</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>事件</th><th>触发时机</th><th>典型消费者</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ProductCreated</code></td><td>商品创建成功</td><td>搜索索引、营销、数据平台</td></tr>
+<tr><td><code>ProductUpdated</code></td><td>商品字段变化</td><td>搜索索引、缓存刷新、质量监控</td></tr>
+<tr><td><code>ProductOnShelf</code></td><td>商品上架</td><td>搜索、营销、推荐</td></tr>
+<tr><td><code>ProductOffShelf</code></td><td>商品下架</td><td>搜索、订单前校验、运营看板</td></tr>
+<tr><td><code>StockChanged</code></td><td>库存变化</td><td>搜索导购、告警、数据平台</td></tr>
+<tr><td><code>SupplierSyncFailed</code></td><td>供应商同步失败</td><td>告警、运营后台、任务补偿</td></tr>
+</tbody>
+</table>
+</div>
+<p>事件发布建议使用 Outbox 或可靠消息机制，避免“商品已更新但事件丢失”导致搜索、营销、计价数据不一致。</p>
+<hr>
+<h4 id="326111-架构取舍与经验总结"><a class="header" href="#326111-架构取舍与经验总结">32.6.1.11 架构取舍与经验总结</a></h4>
+<p><strong>1. 为什么没有独立拆库存中心和搜索中心？</strong></p>
+<p>这是团队规模和演进阶段下的取舍。库存和搜索都与商品强相关，早期拆成独立服务会增加团队协作、接口维护和数据一致性成本。把它们放在商品中心内部，可以减少跨服务调用，提高迭代效率。但内部必须按域隔离，避免主数据、库存状态和搜索索引混成一团。</p>
+<p><strong>2. 为什么不用一张大宽表？</strong></p>
+<p>大宽表短期开发快，但会很快变成 80+ 字段、15+ 品类混杂、字段语义不清的“大泥球”。更好的做法是：稳定字段进主表，可检索字段进属性表，展示型差异进 ExtInfo，高频品类能力进入扩展表。</p>
+<p><strong>3. ExtInfo JSON、EAV、扩展表怎么取舍？</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>适合场景</th><th>不适合场景</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>ExtInfo JSON</strong></td><td>低频展示字段、品类专属配置</td><td>高频查询、筛选、排序</td></tr>
+<tr><td><strong>EAV 属性表</strong></td><td>可搜索、可筛选、可分析属性</td><td>强事务、高频更新字段</td></tr>
+<tr><td><strong>扩展表</strong></td><td>高频访问的品类核心字段</td><td>低频字段和一次性配置</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>4. 为什么 Flight 不沉淀完整 SKU？</strong></p>
+<p>机票报价由日期、航线、航班、舱位、乘客类型、供应商策略共同决定，价格和库存变化太快。如果把每次报价都沉淀成 SKU，会产生巨量临时 SKU，且数据很快过期。更合理的是商品中心维护城市、机场、航司等基础资源，搜索和创单实时请求供应商。</p>
+<p><strong>5. 为什么 Hotel 要静态信息和动态房态房价分离？</strong></p>
+<p>酒店名称、地址、设施、图片相对稳定，适合同步到商品中心并进入搜索索引；房态和房价按日期、间夜、人数实时变化，适合缓存刷新和下单前实时确认。两者分离可以兼顾搜索性能和交易准确性。</p>
+<p><strong>6. 如何避免商品中心变成“大泥球”？</strong></p>
+<p>关键是三条边界：内部按六个域拆分，数据库按主表/属性/扩展/映射/日志拆分，对外用 API 和事件契约隔离。即便物理上是一个商品中心，逻辑上也要保持清晰边界，为未来拆分成商品中台、库存中心、搜索中心留下演进空间。</p>
+<hr>
+<h4 id="326112-实现落地参考ddd-分层与代码组织"><a class="header" href="#326112-实现落地参考ddd-分层与代码组织">32.6.1.12 实现落地参考：DDD 分层与代码组织</a></h4>
+<p>前面 32.6.1.2 到 32.6.1.11 讨论的是商品中心的业务架构和数据架构。本节保留一个简化版 DDD 代码落地参考，用于说明 Product 聚合根、Repository、接口层、事件订阅和缓存如何组织。它不是上述完整商品中心的全量实现，而是帮助读者理解“架构如何落到代码”的最小示例。</p>
+<h5 id="3261121-八层模型的工程落地方式"><a class="header" href="#3261121-八层模型的工程落地方式">32.6.1.12.1 八层模型的工程落地方式</a></h5>
+<p>八层商品交易模型不建议直接落成八个服务或八组强耦合表。更合理的落地方式是：<strong>用八层模型识别品类差异，用品类能力矩阵沉淀差异，用 Runtime Context 输出交易前上下文，用 Category Strategy 执行动态差异，用供应商适配器隔离外部接口差异</strong>。</p>
+<pre><code class="language-text">八层商品交易模型
+  → Category Capability Matrix  品类能力矩阵
+  → Product Master Model        商品主模型
+  → ProductRuntimeContext       交易前运行时上下文
+  → CategoryStrategy            品类策略
+  → Supplier Adapter / ACL      供应商适配器/防腐层
+</code></pre>
+<p><strong>1. Category Capability Matrix：把八层模型变成品类配置</strong></p>
+<p>能力矩阵描述每个类目在八层模型上的行为。新增品类时，先补齐能力矩阵，再判断是否需要新增策略代码。</p>
+<pre><code class="language-text">category_capability
+├─ category_id
+├─ product_model_type       // SINGLE_SKU / RESOURCE_BASED / REALTIME_OFFER / ACCOUNT_BASED
+├─ resource_type            // NONE / HOTEL / FLIGHT / MOVIE / MERCHANT / BILLER
+├─ offer_type               // FIXED_PRICE / RATE_PLAN / REALTIME_QUOTE / BILL_QUERY
+├─ availability_type        // UNLIMITED / LOCAL_POOL / REALTIME_SUPPLIER / SEATMAP
+├─ input_schema_id
+├─ booking_mode             // NONE / PRE_LOCK / PAY_THEN_LOCK / CONFIRM_AFTER_PAY
+├─ fulfillment_type         // TOPUP / BILL_PAY / ISSUE_CODE / TICKET / BOOKING_CONFIRM
+├─ refund_rule_id
+└─ supplier_dependency      // LOW / MEDIUM / HIGH
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>品类</th><th>商品模型</th><th>报价</th><th>可用性</th><th>输入</th><th>锁定</th><th>履约</th></tr>
+</thead>
+<tbody>
+<tr><td>Topup</td><td><code>SINGLE_SKU</code></td><td><code>FIXED_PRICE</code></td><td><code>SUPPLIER_CHANNEL</code></td><td>手机号</td><td><code>NONE</code></td><td>充值</td></tr>
+<tr><td>Bill</td><td><code>ACCOUNT_BASED</code></td><td><code>BILL_QUERY</code></td><td><code>BILL_PAYABLE</code></td><td>账单号</td><td><code>LOCK_AMOUNT</code></td><td>销账</td></tr>
+<tr><td>Gift Card</td><td><code>SINGLE_SKU</code></td><td><code>FIXED_PRICE</code></td><td><code>LOCAL_POOL</code></td><td>邮箱/账号</td><td><code>LOCK_CODE</code></td><td>发码</td></tr>
+<tr><td>Hotel</td><td><code>RESOURCE_BASED</code></td><td><code>RATE_PLAN</code></td><td><code>REALTIME_SUPPLIER</code></td><td>入住人/日期</td><td><code>CONFIRM_BOOKING</code></td><td>预订确认</td></tr>
+<tr><td>Flight</td><td><code>REALTIME_OFFER</code></td><td><code>REALTIME_QUOTE</code></td><td><code>REALTIME_SUPPLIER</code></td><td>乘客证件</td><td><code>PRE_LOCK</code></td><td>出票</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>2. ProductRuntimeContext：给交易前链路统一输出</strong></p>
+<p>搜索、详情、结算、创单都需要商品信息，但需要的深度不同。因此商品中心可以输出统一的运行时上下文，再由调用方按场景读取需要的部分。</p>
+<pre><code class="language-go">type ProductRuntimeContext struct {
+    ProductDefinition   ProductDefinition
+    ResourceContext     ResourceContext
+    OfferContext        OfferContext
+    Availability        AvailabilityContext
+    InputSchema         InputSchema
+    BookingRequirement  BookingRequirement
+    FulfillmentContract FulfillmentContract
+    RefundRule          RefundRule
+}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>需要的上下文</th></tr>
+</thead>
+<tbody>
+<tr><td>首页</td><td><code>ProductDefinition</code></td></tr>
+<tr><td>列表页</td><td><code>ProductDefinition + Offer 展示价 + Availability 弱状态</code></td></tr>
+<tr><td>详情页</td><td><code>Product + Resource + Offer + Availability + RefundRule</code></td></tr>
+<tr><td>结算页</td><td><code>Product + Offer + Availability + InputSchema</code></td></tr>
+<tr><td>创单</td><td><code>Product + 实时 Offer + 实时 Availability + Booking + Fulfillment + RefundRule</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>3. CategoryStrategy：让主流程不感知品类差异</strong></p>
+<p>主流程不应该写大量 <code>if category == flight</code>、<code>if category == hotel</code>。品类差异应该进入策略接口。</p>
+<pre><code class="language-go">type CategoryStrategy interface {
+    BuildProductContext(ctx context.Context, req *RuntimeRequest) (*ProductDefinition, error)
+    ResolveOffer(ctx context.Context, req *RuntimeRequest) (*OfferContext, error)
+    CheckAvailability(ctx context.Context, req *RuntimeRequest) (*AvailabilityContext, error)
+    ValidateInput(ctx context.Context, req *RuntimeRequest) error
+    PrepareBooking(ctx context.Context, req *RuntimeRequest) (*BookingRequirement, error)
+    BuildFulfillmentContract(ctx context.Context, req *RuntimeRequest) (*FulfillmentContract, error)
+    BuildRefundRule(ctx context.Context, req *RuntimeRequest) (*RefundRule, error)
+}
+</code></pre>
+<p>不同品类实现不同策略：</p>
+<pre><code class="language-text">TopupStrategy
+BillStrategy
+GiftCardStrategy
+LocalServiceStrategy
+HotelStrategy
+FlightStrategy
+MovieStrategy
+</code></pre>
+<p><strong>4. Supplier Adapter / ACL：隔离供应商接口差异</strong></p>
+<p>供应商请求参数、响应字段、错误码和超时策略都不一致，不能让这些差异污染商品中心主模型。供应商适配器负责请求转换、响应转换、错误码统一、超时重试、熔断、幂等键和 TraceID 透传。</p>
+<pre><code class="language-text">平台统一请求
+  → Supplier Adapter
+  → 供应商 A/B/C 私有协议
+  → Supplier Adapter 归一化响应
+  → OfferContext / AvailabilityContext
+</code></pre>
+<p><strong>5. 创单场景下的完整运行流程</strong></p>
+<pre><code class="language-text">1. 订单系统请求商品中心构造 RuntimeContext
+2. 商品中心读取 category_capability
+3. 根据 category_id 找到对应 CategoryStrategy
+4. Strategy 读取商品主数据、资源、输入配置、履约配置
+5. Strategy 调供应商适配器获取实时 Offer / Availability
+6. Strategy 校验用户输入
+7. 如果需要 Booking，则执行预订、占座或锁定
+8. 商品中心返回 ProductRuntimeContext
+9. 订单系统保存商品快照、报价快照、履约契约、售后规则快照
+10. 支付成功后，履约系统按 FulfillmentContract 执行交付
+</code></pre>
+<p>这套落地方式的关键是：<strong>商品中心保存能力与规则，RuntimeContext 输出交易前上下文，订单保存交易快照，履约系统执行交付，售后系统执行退款规则</strong>。</p>
+<p><strong>领域模型设计思想</strong>：商品域的特点是“树形结构+读多写少“，与订单域的“复杂状态机+高并发写“完全不同。</p>
+<h5 id="3261122-product-聚合根示例"><a class="header" href="#3261122-product-聚合根示例">32.6.1.12.2 Product 聚合根示例</a></h5>
+<pre><code class="language-go">// Product聚合根（SKU维度）
+type Product struct {
+    // 聚合根ID
+    skuID SKU_ID  // 值对象
+    
+    // SPU信息（实体引用）
+    spu *SPU
+    
+    // SKU规格（值对象）
+    specs Specifications
+    
+    // 基础价格（值对象）
+    basePrice Price
+    
+    // 状态（值对象）
+    status ProductStatus
+    
+    // 多媒体素材
+    images []ImageURL
+    
+    // 时间戳
+    createdAt time.Time
+    updatedAt time.Time
+    
+    // 领域事件（未提交）
+    domainEvents []DomainEvent
+}
+
+// 值对象：SKU_ID
+type SKU_ID struct {
+    value int64
+}
+
+func NewSKU_ID(id int64) SKU_ID {
+    return SKU_ID{value: id}
+}
+
+func (id SKU_ID) Int64() int64 {
+    return id.value
+}
+
+// 值对象：Price（基础价格，单位：分）
+type Price struct {
+    amount int64  // 分为单位
+}
+
+func NewPrice(amount int64) (Price, error) {
+    if amount &lt; 0 {
+        return Price{}, errors.New("价格不能为负数")
+    }
+    if amount &gt; 100000000 { // 100万元上限
+        return Price{}, errors.New("价格超过上限")
+    }
+    return Price{amount: amount}, nil
+}
+
+func (p Price) Amount() int64 {
+    return p.amount
+}
+
+func (p Price) Yuan() float64 {
+    return float64(p.amount) / 100.0
+}
+
+// 值对象：Specifications（SKU规格）
+type Specifications struct {
+    attributes map[string]string  // {"颜色":"红色","尺寸":"L"}
+}
+
+func NewSpecifications(attrs map[string]string) Specifications {
+    return Specifications{attributes: attrs}
+}
+
+func (s Specifications) Get(key string) string {
+    return s.attributes[key]
+}
+
+func (s Specifications) ToJSON() string {
+    data, _ := json.Marshal(s.attributes)
+    return string(data)
+}
+
+// 值对象：ProductStatus
+type ProductStatus string
+
+const (
+    ProductDraft     ProductStatus = "DRAFT"      // 草稿
+    ProductOnShelf   ProductStatus = "ON_SHELF"   // 在架
+    ProductOffShelf  ProductStatus = "OFF_SHELF"  // 下架
+)
+
+// 实体：SPU（标准产品单元）
+type SPU struct {
+    id         SPU_ID
+    title      string
+    categoryID int64
+    brandID    int64
+    attributes map[string][]string  // 属性模板{"颜色":["红","蓝"],"尺寸":["S","M","L"]}
+    description string
+    
+    // SPU下的所有SKU（聚合内实体集合）
+    skus []*Product
+}
+
+func (spu *SPU) ID() SPU_ID {
+    return spu.id
+}
+
+func (spu *SPU) Title() string {
+    return spu.title
+}
+
+func (spu *SPU) AddSKU(sku *Product) error {
+    // 不变量检查：SKU规格必须符合SPU属性模板
+    if !spu.isValidSpecs(sku.specs) {
+        return errors.New("SKU规格不符合SPU属性模板")
+    }
+    spu.skus = append(spu.skus, sku)
+    return nil
+}
+
+func (spu *SPU) isValidSpecs(specs Specifications) bool {
+    // 检查SKU的规格是否都在SPU的属性模板中
+    for key, value := range specs.attributes {
+        allowedValues, exists := spu.attributes[key]
+        if !exists {
+            return false
+        }
+        if !contains(allowedValues, value) {
+            return false
+        }
+    }
+    return true
+}
+</code></pre>
+<h5 id="3261123-聚合根方法"><a class="header" href="#3261123-聚合根方法">32.6.1.12.3 聚合根方法</a></h5>
+<pre><code class="language-go">// 上架（状态转换）
+func (p *Product) OnShelf() error {
+    if p.status == ProductOnShelf {
+        return errors.New("商品已在架")
+    }
+    
+    // 不变量检查：必须有基础价格
+    if p.basePrice.Amount() == 0 {
+        return errors.New("商品未设置价格，不能上架")
+    }
+    
+    // 不变量检查：必须有商品图片
+    if len(p.images) == 0 {
+        return errors.New("商品未上传图片，不能上架")
+    }
+    
+    oldStatus := p.status
+    p.status = ProductOnShelf
+    p.updatedAt = time.Now()
+    
+    // 发布领域事件
+    p.addDomainEvent(&amp;ProductOnShelfEvent{
+        SKUID:      p.skuID,
+        SPUID:      p.spu.id,
+        OnShelfTime: p.updatedAt,
+    })
+    
+    return nil
+}
+
+// 下架
+func (p *Product) OffShelf(reason string) error {
+    if p.status == ProductOffShelf {
+        return errors.New("商品已下架")
+    }
+    
+    oldStatus := p.status
+    p.status = ProductOffShelf
+    p.updatedAt = time.Now()
+    
+    // 发布领域事件
+    p.addDomainEvent(&amp;ProductOffShelfEvent{
+        SKUID:       p.skuID,
+        Reason:      reason,
+        OffShelfTime: p.updatedAt,
+    })
+    
+    return nil
+}
+
+// 更新基础价格
+func (p *Product) UpdateBasePrice(newPrice Price) error {
+    if newPrice.Amount() == p.basePrice.Amount() {
+        return nil  // 价格未变化
+    }
+    
+    oldPrice := p.basePrice
+    p.basePrice = newPrice
+    p.updatedAt = time.Now()
+    
+    // 发布领域事件
+    p.addDomainEvent(&amp;PriceChangedEvent{
+        SKUID:    p.skuID,
+        OldPrice: oldPrice.Amount(),
+        NewPrice: newPrice.Amount(),
+        ChangedAt: p.updatedAt,
+    })
+    
+    return nil
+}
+
+// 领域事件管理
+func (p *Product) addDomainEvent(event DomainEvent) {
+    p.domainEvents = append(p.domainEvents, event)
+}
+
+func (p *Product) DomainEvents() []DomainEvent {
+    return p.domainEvents
+}
+
+func (p *Product) ClearDomainEvents() {
+    p.domainEvents = nil
+}
+
+// 查询方法
+func (p *Product) IsOnShelf() bool {
+    return p.status == ProductOnShelf
+}
+
+func (p *Product) BasePrice() Price {
+    return p.basePrice
+}
+
+func (p *Product) Specs() Specifications {
+    return p.specs
+}
+</code></pre>
+<h5 id="3261124-repository-模式防腐层"><a class="header" href="#3261124-repository-模式防腐层">32.6.1.12.4 Repository 模式（防腐层）</a></h5>
+<pre><code class="language-go">// ProductRepository接口（领域层定义）
+type ProductRepository interface {
+    // 查询
+    FindBySKUID(ctx context.Context, skuID SKU_ID) (*Product, error)
+    FindBySPUID(ctx context.Context, spuID SPU_ID) ([]*Product, error)
+    BatchFindBySKUIDs(ctx context.Context, skuIDs []SKU_ID) ([]*Product, error)
+    
+    // 保存
+    Save(ctx context.Context, product *Product) error
+    Update(ctx context.Context, product *Product) error
+    
+    // 删除
+    Delete(ctx context.Context, skuID SKU_ID) error
+}
+
+// ProductRepositoryImpl实现（基础设施层）
+type ProductRepositoryImpl struct {
+    db             *gorm.DB
+    cache          cache.Cache
+    eventPublisher EventPublisher
+    sharding       ShardingStrategy
+}
+
+func (r *ProductRepositoryImpl) FindBySKUID(ctx context.Context, skuID SKU_ID) (*Product, error) {
+    // Step 1: 查询L1本地缓存
+    cacheKey := fmt.Sprintf("product:%d", skuID.Int64())
+    if cached, found := r.cache.GetLocal(cacheKey); found {
+        return cached.(*Product), nil
+    }
+    
+    // Step 2: 查询L2 Redis缓存
+    if cached, err := r.cache.Get(ctx, cacheKey); err == nil {
+        product := r.unmarshalProduct(cached)
+        r.cache.SetLocal(cacheKey, product, 1*time.Minute)
+        return product, nil
+    }
+    
+    // Step 3: 查询MySQL
+    productDO, err := r.queryFromDB(ctx, skuID)
+    if err != nil {
+        return nil, err
+    }
+    
+    // Step 4: 转换DO → Domain Model
+    product := r.toDomain(productDO)
+    
+    // Step 5: 回写缓存
+    r.cache.Set(ctx, cacheKey, r.marshalProduct(product), 30*time.Minute)
+    r.cache.SetLocal(cacheKey, product, 1*time.Minute)
+    
+    return product, nil
+}
+
+func (r *ProductRepositoryImpl) Save(ctx context.Context, product *Product) error {
+    // Step 1: 转换Domain Model → DO
+    productDO := r.toDataObject(product)
+    
+    // Step 2: 分库路由
+    db := r.sharding.Route(product.spu.categoryID)
+    
+    // Step 3: 保存到数据库
+    if err := db.WithContext(ctx).Create(productDO).Error; err != nil {
+        return fmt.Errorf("save product failed: %w", err)
+    }
+    
+    // Step 4: 发布领域事件（事务提交后）
+    for _, event := range product.DomainEvents() {
+        if err := r.eventPublisher.Publish(ctx, event); err != nil {
+            log.Errorf("publish event failed: %v", err)
+        }
+    }
+    product.ClearDomainEvents()
+    
+    // Step 5: 清除缓存
+    cacheKey := fmt.Sprintf("product:%d", product.skuID.Int64())
+    r.cache.Delete(ctx, cacheKey)
+    
+    return nil
+}
+
+func (r *ProductRepositoryImpl) BatchFindBySKUIDs(ctx context.Context, skuIDs []SKU_ID) ([]*Product, error) {
+    products := make([]*Product, 0, len(skuIDs))
+    
+    // 批量查询优化：分离缓存命中和未命中
+    var missedIDs []SKU_ID
+    
+    for _, skuID := range skuIDs {
+        cacheKey := fmt.Sprintf("product:%d", skuID.Int64())
+        if cached, err := r.cache.Get(ctx, cacheKey); err == nil {
+            products = append(products, r.unmarshalProduct(cached))
+        } else {
+            missedIDs = append(missedIDs, skuID)
+        }
+    }
+    
+    // 批量查询数据库（未命中的）
+    if len(missedIDs) &gt; 0 {
+        missedProducts, err := r.batchQueryFromDB(ctx, missedIDs)
+        if err != nil {
+            return nil, err
+        }
+        
+        // 回写缓存
+        for _, product := range missedProducts {
+            cacheKey := fmt.Sprintf("product:%d", product.skuID.Int64())
+            r.cache.Set(ctx, cacheKey, r.marshalProduct(product), 30*time.Minute)
+        }
+        
+        products = append(products, missedProducts...)
+    }
+    
+    return products, nil
+}
+</code></pre>
+<hr>
+<h5 id="3261125-基础设施层infrastructure-layer"><a class="header" href="#3261125-基础设施层infrastructure-layer">32.6.1.12.5 基础设施层（Infrastructure Layer）</a></h5>
+<h6 id="32611251-核心存储设计"><a class="header" href="#32611251-核心存储设计">32.6.1.12.5.1 核心存储设计</a></h6>
+<p><strong>表结构设计</strong>：</p>
+<pre><code class="language-sql">-- SPU表（标准产品单元）
+CREATE TABLE product_spu (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL COMMENT '商品标题',
+    category_id BIGINT NOT NULL COMMENT '类目ID',
+    brand_id BIGINT COMMENT '品牌ID',
+    attributes JSON COMMENT '属性模板',
+    description TEXT COMMENT '商品描述',
+    status VARCHAR(20) DEFAULT 'DRAFT' COMMENT '状态',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_category (category_id),
+    INDEX idx_brand (brand_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='SPU表';
+
+-- SKU表（库存保持单元）
+CREATE TABLE product_sku (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    spu_id BIGINT NOT NULL COMMENT 'SPU ID',
+    sku_code VARCHAR(100) UNIQUE NOT NULL COMMENT 'SKU编码',
+    specs JSON COMMENT '规格值',
+    base_price BIGINT NOT NULL COMMENT '基础价格（分）',
+    images JSON COMMENT '商品图片',
+    status VARCHAR(20) DEFAULT 'DRAFT' COMMENT '状态',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_spu (spu_id),
+    INDEX idx_code (sku_code),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='SKU表';
+
+-- 类目表
+CREATE TABLE product_category (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    parent_id BIGINT DEFAULT 0 COMMENT '父类目ID',
+    level INT DEFAULT 1 COMMENT '层级',
+    sort_order INT DEFAULT 0 COMMENT '排序',
+    status VARCHAR(20) DEFAULT 'ACTIVE',
+    INDEX idx_parent (parent_id),
+    INDEX idx_level (level)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品类目表';
+</code></pre>
+<p><strong>分库分表策略</strong>：</p>
+<pre><code class="language-sql">-- 按 category_id 分4库
+-- 理由：同品类商品通常一起查询（搜索、推荐）
+db_index = category_id % 4
+
+-- 单表不分表
+-- 理由：单品类商品数量可控（&lt; 100万），查询模式简单
+</code></pre>
+<p><strong>索引策略</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>索引名</th><th>字段</th><th>类型</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td>PRIMARY</td><td>id</td><td>主键</td><td>主键查询</td></tr>
+<tr><td>idx_category</td><td>category_id</td><td>普通</td><td>类目查询</td></tr>
+<tr><td>idx_brand</td><td>brand_id</td><td>普通</td><td>品牌查询</td></tr>
+<tr><td>idx_status</td><td>status</td><td>普通</td><td>状态筛选</td></tr>
+<tr><td>idx_spu</td><td>spu_id</td><td>普通</td><td>SPU查SKU</td></tr>
+<tr><td>idx_code</td><td>sku_code</td><td>唯一</td><td>SKU编码查询</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h6 id="32611252-缓存策略"><a class="header" href="#32611252-缓存策略">32.6.1.12.5.2 缓存策略</a></h6>
+<p>详见下文“32.6.1.12.8 三级缓存实现“。</p>
+<hr>
+<h6 id="32611253-消息中间件messaging"><a class="header" href="#32611253-消息中间件messaging">32.6.1.12.5.3 消息中间件（Messaging）⭐️</a></h6>
+<p><strong>职责划分</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>组件</th><th>层级</th><th>职责</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Kafka Producer</strong></td><td>Infrastructure</td><td>事件发布（技术实现）</td><td>发送消息到Kafka Topic</td></tr>
+<tr><td><strong>Kafka Consumer</strong></td><td>Infrastructure</td><td>事件消费（技术实现）</td><td>订阅Topic、接收消息、路由</td></tr>
+<tr><td><strong>Event Handler</strong></td><td>Interface</td><td>协议适配</td><td>Kafka消息 → DTO</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Kafka Producer（事件发布）</strong>：</p>
+<pre><code class="language-go">// internal/infrastructure/messaging/kafka_producer.go
+
+type KafkaProducer struct {
+    producer *kafka.Producer
+}
+
+func (p *KafkaProducer) Publish(ctx context.Context, event domain.DomainEvent) error {
+    topic := p.getTopicByEventType(event.EventType())
+    
+    // 序列化事件
+    data, _ := json.Marshal(event)
+    
+    // 发送到Kafka
+    return p.producer.Produce(&amp;kafka.Message{
+        TopicPartition: kafka.TopicPartition{
+            Topic:     &amp;topic,
+            Partition: kafka.PartitionAny,
+        },
+        Key:   []byte(event.EventType()),
+        Value: data,
+        Headers: []kafka.Header{
+            {Key: "event_type", Value: []byte(event.EventType())},
+            {Key: "timestamp", Value: []byte(fmt.Sprint(event.OccurredAt().Unix()))},
+        },
+    }, nil)
+}
+</code></pre>
+<p><strong>Kafka Consumer（事件消费）</strong>：</p>
+<pre><code class="language-go">// internal/infrastructure/messaging/kafka_consumer.go
+
+type KafkaConsumer struct {
+    consumer     *kafka.Consumer
+    eventHandler *event.ProductEventHandler  // 注入Interface Layer的Handler
+}
+
+func (c *KafkaConsumer) Start(ctx context.Context) error {
+    // 订阅Topic
+    c.consumer.SubscribeTopics([]string{
+        "supplier-product-events",
+        "pricing-events",
+    }, nil)
+    
+    // 消费循环
+    for {
+        msg, err := c.consumer.ReadMessage(100 * time.Millisecond)
+        if err != nil {
+            continue
+        }
+        
+        // ⭐️ 路由到Interface Layer的Event Handler
+        messageType := string(msg.Key)
+        if err := c.eventHandler.HandleMessage(ctx, messageType, msg.Value); err != nil {
+            log.Errorf("Handle message failed: %v", err)
+        } else {
+            c.consumer.CommitMessage(msg)  // 手动提交offset
+        }
+    }
+}
+</code></pre>
+<p><strong>Topic设计</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Topic</th><th>生产者</th><th>消费者</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td><code>product-domain-events</code></td><td>Product Service</td><td>Search Service, Marketing Service</td><td>商品领域事件（商品创建、上架、价格变更）</td></tr>
+<tr><td><code>supplier-product-events</code></td><td>Supplier Service</td><td>Product Service</td><td>供应商商品事件（供应商创建商品）</td></tr>
+<tr><td><code>pricing-events</code></td><td>Pricing Service</td><td>Product Service</td><td>定价事件（价格计算完成）</td></tr>
+</tbody>
+</table>
+</div>
+<p>详见 <code>32.6.1.12.7.4 事件订阅者的分层设计</code>。</p>
+<hr>
+<h5 id="3261126-接口层interface-layer"><a class="header" href="#3261126-接口层interface-layer">32.6.1.12.6 接口层（Interface Layer）</a></h5>
+<h6 id="32611261-grpc-接口定义"><a class="header" href="#32611261-grpc-接口定义">32.6.1.12.6.1 gRPC 接口定义</a></h6>
+<p><strong>核心接口</strong>（product.proto）：</p>
+<pre><code class="language-protobuf">// ProductService商品服务
+service ProductService {
+    // 查询单个商品
+    rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+    
+    // 批量查询商品
+    rpc BatchGetProducts(BatchGetProductsRequest) returns (BatchGetProductsResponse);
+    
+    // 创建商品
+    rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+    
+    // 更新基础价格
+    rpc UpdateBasePrice(UpdateBasePriceRequest) returns (UpdateBasePriceResponse);
+    
+    // 上架
+    rpc OnShelf(OnShelfRequest) returns (OnShelfResponse);
+    
+    // 下架
+    rpc OffShelf(OffShelfRequest) returns (OffShelfResponse);
+}
+
+message GetProductRequest {
+    int64 sku_id = 1;
+}
+
+message GetProductResponse {
+    ProductInfo product = 1;
+}
+
+message BatchGetProductsRequest {
+    repeated int64 sku_ids = 1;  // 最多100个
+}
+
+message BatchGetProductsResponse {
+    repeated ProductInfo products = 1;
+}
+
+message ProductInfo {
+    int64 sku_id = 1;
+    int64 spu_id = 2;
+    string sku_code = 3;
+    string sku_name = 4;
+    Price base_price = 5;
+    Specifications specs = 6;
+    ProductStatus status = 7;
+}
+
+message Price {
+    int64 amount = 1;  // 金额（分）
+    string currency = 2;  // 货币（CNY）
+}
+
+message Specifications {
+    string color = 1;
+    string size = 2;
+    map&lt;string, string&gt; attrs = 3;  // 其他属性
+}
+
+enum ProductStatus {
+    DRAFT = 0;      // 草稿
+    ON_SHELF = 1;   // 上架
+    OFF_SHELF = 2;  // 下架
+}
+</code></pre>
+<h6 id="32611262-http-接口可选"><a class="header" href="#32611262-http-接口可选">32.6.1.12.6.2 HTTP 接口（可选）</a></h6>
+<pre><code class="language-go">// HTTP接口（供运营后台使用）
+GET    /api/v1/products/:sku_id           # 查询商品
+POST   /api/v1/products                    # 创建商品
+PUT    /api/v1/products/:sku_id           # 更新商品
+POST   /api/v1/products/:sku_id/on-shelf  # 上架
+POST   /api/v1/products/:sku_id/off-shelf # 下架
+</code></pre>
+<h6 id="32611263-event-接口异步"><a class="header" href="#32611263-event-接口异步">32.6.1.12.6.3 Event 接口（异步）⭐️</a></h6>
+<p><strong>事件订阅接口</strong>（接收外部服务事件）：</p>
+<pre><code class="language-go">// ProductEventHandler 商品事件处理器（接口层）
+// 职责：适配外部事件消息 → 调用Application Service
+type ProductEventHandler struct {
+    productService *service.ProductService
+}
+
+// 处理消息入口
+func (h *ProductEventHandler) HandleMessage(ctx context.Context, messageType string, data []byte) error
+
+// 订阅的事件类型
+const (
+    SupplierProductCreated = "supplier.product.created"  // 供应商商品创建
+    PricingPriceChanged    = "pricing.price_changed"     // 定价变更
+)
+</code></pre>
+<p><strong>与HTTP/gRPC的区别</strong>：</p>
+<ul>
+<li><strong>同步接口</strong>（HTTP/gRPC）：客户端等待响应</li>
+<li><strong>异步接口</strong>（Event）：消息队列异步触发，无响应</li>
+</ul>
+<p><strong>职责</strong>：</p>
+<ul>
+<li>✅ 协议适配（Kafka消息 → DTO）</li>
+<li>✅ 调用Application Service</li>
+<li>❌ 不负责Kafka连接（由Infrastructure Layer的Kafka Consumer负责）</li>
+</ul>
+<p>详见 <code>32.6.1.12.7.4 事件订阅者的分层设计</code>。</p>
+<hr>
+<h5 id="3261127-应用服务层application-layer"><a class="header" href="#3261127-应用服务层application-layer">32.6.1.12.7 应用服务层（Application Layer）</a></h5>
+<h6 id="32611271-核心代码结构"><a class="header" href="#32611271-核心代码结构">32.6.1.12.7.1 核心代码结构</a></h6>
+<pre><code class="language-text">product-service/
+├── cmd/
+│   └── main.go                          # 服务入口
+├── internal/
+│   ├── domain/                          # 领域模型层
+│   │   ├── product.go                   # Product聚合根
+│   │   ├── spu.go                       # SPU实体
+│   │   ├── value_objects.go             # 值对象（SKU_ID, Price, Specifications）
+│   │   ├── events.go                    # 领域事件
+│   │   └── repository.go                # Repository接口
+│   ├── application/                     # 应用服务层
+│   │   ├── dto/
+│   │   │   ├── product_request.go       # 请求DTO
+│   │   │   └── product_response.go      # 响应DTO
+│   │   └── service/
+│   │       ├── product_service.go       # 商品应用服务
+│   │       └── product_query_service.go # 查询服务（CQRS）
+│   ├── infrastructure/                  # 基础设施层
+│   │   ├── persistence/
+│   │   │   ├── product_repository.go    # Repository实现
+│   │   │   ├── data_object.go           # 数据对象（DO）
+│   │   │   └── sharding.go              # 分库路由
+│   │   ├── cache/
+│   │   │   ├── redis_cache.go           # Redis缓存
+│   │   │   └── local_cache.go           # 本地缓存
+│   │   └── messaging/                   # 消息中间件 ⭐️
+│   │       ├── kafka_producer.go        # Kafka生产者（事件发布）
+│   │       └── kafka_consumer.go        # Kafka消费者（技术实现）
+│   └── interfaces/                      # 接口层
+│       ├── grpc/
+│       │   ├── product_handler.go       # gRPC处理器
+│       │   └── proto/
+│       │       └── product.proto        # Protobuf定义
+│       ├── http/
+│       │   └── product_handler.go       # HTTP处理器（可选）
+│       └── event/ ⭐️                     # 事件接口（异步）
+│           └── product_event_handler.go # Event Handler
+├── config/
+│   └── config.yaml                      # 配置文件
+├── migrations/                          # 数据库迁移
+│   └── 001_create_product_tables.sql
+└── go.mod
+</code></pre>
+<hr>
+<h6 id="32611272-核心应用服务实现"><a class="header" href="#32611272-核心应用服务实现">32.6.1.12.7.2 核心应用服务实现</a></h6>
+<p><strong>应用服务层</strong>（product_service.go）：</p>
+<pre><code class="language-go">type ProductService struct {
+    repo           domain.ProductRepository
+    eventPublisher EventPublisher
+}
+
+// GetProduct 查询商品（三级缓存）
+func (s *ProductService) GetProduct(ctx context.Context, skuID int64) (*dto.ProductResponse, error) {
+    // Step 1: 通过Repository查询（Repository内部实现三级缓存）
+    product, err := s.repo.FindBySKUID(ctx, domain.NewSKU_ID(skuID))
+    if err != nil {
+        return nil, fmt.Errorf("product not found: %w", err)
+    }
+    
+    // Step 2: Domain Model → DTO
+    return s.toDTO(product), nil
+}
+
+// BatchGetProducts 批量查询商品
+func (s *ProductService) BatchGetProducts(ctx context.Context, skuIDs []int64) ([]*dto.ProductResponse, error) {
+    // 参数校验：限制批量大小
+    if len(skuIDs) &gt; 100 {
+        return nil, errors.New("批量查询最多100个")
+    }
+    
+    // 转换为值对象
+    domainIDs := make([]domain.SKU_ID, len(skuIDs))
+    for i, id := range skuIDs {
+        domainIDs[i] = domain.NewSKU_ID(id)
+    }
+    
+    // 批量查询
+    products, err := s.repo.BatchFindBySKUIDs(ctx, domainIDs)
+    if err != nil {
+        return nil, err
+    }
+    
+    // 转换为DTO
+    dtos := make([]*dto.ProductResponse, len(products))
+    for i, p := range products {
+        dtos[i] = s.toDTO(p)
+    }
+    
+    return dtos, nil
+}
+
+// CreateProduct 创建商品
+func (s *ProductService) CreateProduct(ctx context.Context, req *dto.CreateProductRequest) (*dto.ProductResponse, error) {
+    // Step 1: DTO → Domain Model
+    product, err := s.buildProduct(req)
+    if err != nil {
+        return nil, fmt.Errorf("build product failed: %w", err)
+    }
+    
+    // Step 2: 保存（Repository内部发布领域事件）
+    if err := s.repo.Save(ctx, product); err != nil {
+        return nil, fmt.Errorf("save product failed: %w", err)
+    }
+    
+    return s.toDTO(product), nil
+}
+
+// OnShelf 商品上架
+func (s *ProductService) OnShelf(ctx context.Context, skuID int64) error {
+    // Step 1: 查询聚合根
+    product, err := s.repo.FindBySKUID(ctx, domain.NewSKU_ID(skuID))
+    if err != nil {
+        return err
+    }
+    
+    // Step 2: 执行领域逻辑（状态转换）
+    if err := product.OnShelf(); err != nil {
+        return err
+    }
+    
+    // Step 3: 保存聚合根（自动发布领域事件）
+    return s.repo.Update(ctx, product)
+}
+
+// UpdateBasePrice 更新基础价格
+func (s *ProductService) UpdateBasePrice(ctx context.Context, skuID int64, newPrice int64) error {
+    // Step 1: 查询聚合根
+    product, err := s.repo.FindBySKUID(ctx, domain.NewSKU_ID(skuID))
+    if err != nil {
+        return err
+    }
+    
+    // Step 2: 创建价格值对象（带校验）
+    price, err := domain.NewPrice(newPrice)
+    if err != nil {
+        return fmt.Errorf("invalid price: %w", err)
+    }
+    
+    // Step 3: 执行领域逻辑
+    if err := product.UpdateBasePrice(price); err != nil {
+        return err
+    }
+    
+    // Step 4: 保存聚合根（自动发布PriceChangedEvent）
+    return s.repo.Update(ctx, product)
+}
+</code></pre>
+<hr>
+<h6 id="32611273-领域事件"><a class="header" href="#32611273-领域事件">32.6.1.12.7.3 领域事件</a></h6>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>事件名</th><th>触发时机</th><th>事件数据</th><th>消费方</th><th>Topic</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>ProductCreated</strong></td><td>商品创建成功</td><td>sku_id, spu_id, title, category_id, base_price</td><td>Search Service, Recommendation</td><td>product-events</td><td>同步到ES索引</td></tr>
+<tr><td><strong>ProductUpdated</strong></td><td>商品信息更新</td><td>sku_id, changed_fields</td><td>Search Service, Cache Invalidation</td><td>product-events</td><td>更新ES、清缓存</td></tr>
+<tr><td><strong>ProductOnShelf</strong></td><td>商品上架</td><td>sku_id, spu_id, on_shelf_time</td><td>Search Service, Marketing</td><td>product-events</td><td>上架通知、活动关联</td></tr>
+<tr><td><strong>ProductOffShelf</strong></td><td>商品下架</td><td>sku_id, reason, off_shelf_time</td><td>Search Service, Order Service</td><td>product-events</td><td>从ES移除、停止接单</td></tr>
+<tr><td><strong>PriceChanged</strong></td><td>基础价格变更</td><td>sku_id, old_price, new_price</td><td>Pricing Service, Analytics</td><td>product-events</td><td>重新计算售价、价格分析</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>事件结构定义</strong>：</p>
+<pre><code class="language-go">// ProductCreatedEvent 商品创建事件
+type ProductCreatedEvent struct {
+    SKUID      int64     `json:"sku_id"`
+    SPUID      int64     `json:"spu_id"`
+    Title      string    `json:"title"`
+    CategoryID int64     `json:"category_id"`
+    BasePrice  int64     `json:"base_price"`
+    CreatedAt  time.Time `json:"created_at"`
+}
+
+func (e *ProductCreatedEvent) Type() string {
+    return "product.created"
+}
+
+// ProductOnShelfEvent 商品上架事件
+type ProductOnShelfEvent struct {
+    SKUID       int64     `json:"sku_id"`
+    SPUID       int64     `json:"spu_id"`
+    OnShelfTime time.Time `json:"on_shelf_time"`
+}
+
+func (e *ProductOnShelfEvent) Type() string {
+    return "product.on_shelf"
+}
+
+// PriceChangedEvent 价格变更事件
+type PriceChangedEvent struct {
+    SKUID     int64     `json:"sku_id"`
+    OldPrice  int64     `json:"old_price"`
+    NewPrice  int64     `json:"new_price"`
+    ChangedAt time.Time `json:"changed_at"`
+}
+
+func (e *PriceChangedEvent) Type() string {
+    return "product.price_changed"
+}
+</code></pre>
+<hr>
+<h6 id="32611274-事件订阅者的分层设计-"><a class="header" href="#32611274-事件订阅者的分层设计-">32.6.1.12.7.4 事件订阅者的分层设计 ⭐️</a></h6>
+<p><strong>核心问题</strong>：DDD架构中，事件订阅者（Event Subscriber）应该放在哪一层？</p>
+<p>这是微服务架构中的经典设计问题。不同的分层方案会影响代码的复用性、可测试性和职责清晰度。</p>
+<h6 id="方案对比"><a class="header" href="#方案对比">方案对比</a></h6>
+<p><strong>方案A：Interface Layer（推荐）⭐️</strong></p>
+<p>事件订阅者是“异步接口“，与HTTP/gRPC同级。</p>
+<pre><code class="language-text">┌─────────────────────────────────────────────────────────────┐
+│              Interface Layer (接口层)                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │ HTTP Handler │  │ gRPC Handler │  │Event Subscriber│     │
+│  │  (同步接口)   │  │  (同步接口)   │  │  (异步接口) ⭐️│     │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
+│         │                  │                  │               │
+└─────────┼──────────────────┼──────────────────┼─────────────┘
+          ↓                  ↓                  ↓
+┌─────────────────────────────────────────────────────────────┐
+│    同一个 Application Service (ProductService)                │
+│    - GetProduct()     (查询)                                 │
+│    - CreateProduct()  (命令)                                 │
+│    - OnShelf()        (命令)                                 │
+│    - UpdatePrice()    (命令)                                 │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>方案B：Infrastructure Layer（不推荐）</strong></p>
+<p>Kafka Consumer直接调用Application Service。</p>
+<p>问题：</p>
+<ul>
+<li>❌ 违反依赖倒置原则（Infrastructure依赖Application）</li>
+<li>❌ 职责不清晰（Infrastructure既是实现层又是入口层）</li>
+<li>❌ 难以替换消息队列（从Kafka切换到RabbitMQ需要大量修改）</li>
+</ul>
+<p><strong>推荐方案A的原因</strong>：</p>
+<ol>
+<li><strong>对称性</strong>：HTTP、gRPC、Event都是外部触发源，应该同级</li>
+<li><strong>复用性</strong>：Application Service被所有接口复用，业务逻辑只写一次</li>
+<li><strong>职责清晰</strong>：Interface负责协议适配，Infrastructure负责技术实现</li>
+<li><strong>易于测试</strong>：可以直接测试Application Service，不依赖Kafka</li>
+<li><strong>易于替换</strong>：更换消息队列只需修改Infrastructure Layer</li>
+</ol>
+<hr>
+<h6 id="完整调用链路"><a class="header" href="#完整调用链路">完整调用链路</a></h6>
+<p><strong>HTTP同步调用</strong>：</p>
+<pre><code class="language-text">Client
+  ↓ HTTP Request
+┌─────────────────────────────────┐
+│ Interface Layer - HTTP Handler  │ ← 解析HTTP请求
+│ product_handler.go              │
+└──────────────┬──────────────────┘
+               ↓ DTO
+┌─────────────────────────────────┐
+│ Application Layer               │ ← 业务编排
+│ product_service.go              │
+└──────────────┬──────────────────┘
+               ↓ Domain Model
+┌─────────────────────────────────┐
+│ Domain Layer                    │ ← 业务规则
+│ product.go                      │
+└──────────────┬──────────────────┘
+               ↓ Repository
+┌─────────────────────────────────┐
+│ Infrastructure Layer            │ ← 数据持久化
+│ product_repository.go           │
+└─────────────────────────────────┘
+</code></pre>
+<p><strong>Kafka异步调用</strong>：</p>
+<pre><code class="language-text">Kafka Topic (supplier-product-events)
+  ↓ 异步消息
+┌─────────────────────────────────┐
+│ Infrastructure Layer            │ ← 技术实现（Kafka连接、消息接收）
+│ kafka_consumer.go               │
+└──────────────┬──────────────────┘
+               ↓ 消息路由
+┌─────────────────────────────────┐
+│ Interface Layer - Event Handler │ ← 协议适配（Kafka消息 → DTO）
+│ product_event_handler.go        │
+└──────────────┬──────────────────┘
+               ↓ DTO
+┌─────────────────────────────────┐
+│ Application Layer               │ ← 业务编排（复用同一个Service）
+│ product_service.go              │
+└──────────────┬──────────────────┘
+               ↓ Domain Model
+┌─────────────────────────────────┐
+│ Domain Layer                    │ ← 业务规则
+│ product.go                      │
+└──────────────┬──────────────────┘
+               ↓ Repository
+┌─────────────────────────────────┐
+│ Infrastructure Layer            │ ← 数据持久化
+│ product_repository.go           │
+└─────────────────────────────────┘
+</code></pre>
+<p><strong>关键差异</strong>：</p>
+<ul>
+<li>HTTP: <code>Interface → Application</code></li>
+<li>Event: <code>Infrastructure → Interface → Application</code>（多一层技术实现）</li>
+</ul>
+<hr>
+<h6 id="目录结构调整"><a class="header" href="#目录结构调整">目录结构调整</a></h6>
+<pre><code class="language-diff">product-service/
+├── internal/
+│   ├── interfaces/                      # 接口层
+│   │   ├── http/
+│   │   │   └── product_handler.go       # HTTP Handler（同步）
+│   │   ├── grpc/
+│   │   │   ├── proto/product.proto      
+│   │   │   └── product_handler.go       # gRPC Handler（同步）
++│   │   └── event/ ⭐️                    # 新增：事件接口
++│   │       └── product_event_handler.go # Event Handler（异步接口）
+│   │
+│   ├── application/                     
+│   │   └── service/
+│   │       └── product_service.go       # 应用服务（被所有接口复用）
+│   │
+│   ├── infrastructure/                  
+│   │   ├── persistence/
+│   │   │   └── product_repository.go    
+-│   │   └── event/
+-│   │       └── kafka_publisher.go      # 事件发布
++│   │   └── messaging/ ⭐️                # 重命名：消息中间件
++│   │       ├── kafka_producer.go       # Kafka生产者（事件发布）
++│   │       └── kafka_consumer.go       # Kafka消费者（技术实现）
+</code></pre>
+<hr>
+<h6 id="interface-layer---event-handler实现"><a class="header" href="#interface-layer---event-handler实现">Interface Layer - Event Handler实现</a></h6>
+<p><strong>职责</strong>：协议适配（Kafka消息 → DTO → 调用Application Service）</p>
+<pre><code class="language-go">// internal/interfaces/event/product_event_handler.go
+
+package event
+
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+
+    "product-service/internal/application/dto"
+    "product-service/internal/application/service"
+)
+
+// ProductEventHandler 商品事件处理器（接口层）
+// 职责：适配外部事件消息 → 调用Application Service
+// 与HTTP/gRPC Handler同级，是"异步接口"
+type ProductEventHandler struct {
+    productService *service.ProductService
+}
+
+func NewProductEventHandler(productService *service.ProductService) *ProductEventHandler {
+    return &amp;ProductEventHandler{
+        productService: productService,
+    }
+}
+
+// HandleMessage 统一的消息处理入口
+// 由Infrastructure Layer的Kafka Consumer调用
+func (h *ProductEventHandler) HandleMessage(ctx context.Context, messageType string, data []byte) error {
+    fmt.Printf("🔔 [Interface Layer - Event] Received message: %s\n", messageType)
+
+    switch messageType {
+    case "supplier.product.created":
+        return h.handleSupplierProductCreated(ctx, data)
+
+    case "pricing.price_changed":
+        return h.handlePriceChanged(ctx, data)
+
+    default:
+        fmt.Printf("⚠️  Unknown message type: %s\n", messageType)
+        return nil
+    }
+}
+
+// handleSupplierProductCreated 处理供应商商品创建事件
+// 场景：供应商服务创建新商品后，通过Kafka通知商品服务同步
+func (h *ProductEventHandler) handleSupplierProductCreated(ctx context.Context, data []byte) error {
+    // Step 1: 反序列化Kafka消息
+    var kafkaEvent struct {
+        SupplierID  int64  `json:"supplier_id"`
+        SupplierSKU string `json:"supplier_sku"`
+        Title       string `json:"title"`
+        BasePrice   int64  `json:"base_price"`
+        CategoryID  int64  `json:"category_id"`
+    }
+    if err := json.Unmarshal(data, &amp;kafkaEvent); err != nil {
+        return fmt.Errorf("反序列化失败: %w", err)
+    }
+
+    // Step 2: Kafka消息 → DTO（协议适配）
+    req := &amp;dto.CreateProductRequest{
+        SupplierID:  kafkaEvent.SupplierID,
+        SupplierSKU: kafkaEvent.SupplierSKU,
+        Title:       kafkaEvent.Title,
+        BasePrice:   kafkaEvent.BasePrice,
+        CategoryID:  kafkaEvent.CategoryID,
+    }
+
+    // Step 3: 调用应用服务（与HTTP/gRPC调用同一个方法！）
+    resp, err := h.productService.CreateProduct(ctx, req)
+    if err != nil {
+        return fmt.Errorf("创建商品失败: %w", err)
+    }
+
+    fmt.Printf("✅ [Interface Layer - Event] Product created, SKUID=%d\n", resp.SKUID)
+    return nil
+}
+
+// handlePriceChanged 处理价格变更事件
+// 场景：定价服务计算出新价格后，通知商品服务更新基础价格
+func (h *ProductEventHandler) handlePriceChanged(ctx context.Context, data []byte) error {
+    var kafkaEvent struct {
+        SKUID    int64 `json:"sku_id"`
+        NewPrice int64 `json:"new_price"`
+    }
+    if err := json.Unmarshal(data, &amp;kafkaEvent); err != nil {
+        return fmt.Errorf("反序列化失败: %w", err)
+    }
+
+    // Kafka消息 → DTO
+    req := &amp;dto.UpdatePriceRequest{
+        SKUID:    kafkaEvent.SKUID,
+        NewPrice: kafkaEvent.NewPrice,
+    }
+
+    // 调用应用服务（复用业务逻辑）
+    _, err := h.productService.UpdateBasePrice(ctx, req)
+    if err != nil {
+        return fmt.Errorf("更新价格失败: %w", err)
+    }
+
+    fmt.Printf("✅ [Interface Layer - Event] Price updated, SKUID=%d\n", kafkaEvent.SKUID)
+    return nil
+}
+</code></pre>
+<p><strong>关键设计点</strong>：</p>
+<ol>
+<li><strong>协议适配</strong>：将Kafka特有的消息格式转换为通用的DTO</li>
+<li><strong>复用Service</strong>：调用 <code>productService.CreateProduct()</code>（与HTTP/gRPC同一个方法）</li>
+<li><strong>错误处理</strong>：返回错误给Kafka Consumer，由Consumer决定重试或DLQ</li>
+<li><strong>日志跟踪</strong>：打印日志便于调试异步流程</li>
+</ol>
+<hr>
+<h6 id="infrastructure-layer---kafka-consumer实现"><a class="header" href="#infrastructure-layer---kafka-consumer实现">Infrastructure Layer - Kafka Consumer实现</a></h6>
+<p><strong>职责</strong>：技术实现（Kafka连接、订阅Topic、接收消息、路由到Interface Layer）</p>
+<pre><code class="language-go">// internal/infrastructure/messaging/kafka_consumer.go
+
+package messaging
+
+import (
+    "context"
+    "fmt"
+    "time"
+
+    eventHandler "product-service/internal/interfaces/event"
+    "github.com/confluentinc/confluent-kafka-go/kafka"
+)
+
+// KafkaConsumer Kafka消费者（基础设施层）
+// 职责：管理Kafka连接、订阅Topic、接收消息、路由到Interface Layer
+type KafkaConsumer struct {
+    consumer     *kafka.Consumer
+    eventHandler *eventHandler.ProductEventHandler
+    topics       []string
+}
+
+func NewKafkaConsumer(eventHandler *eventHandler.ProductEventHandler) *KafkaConsumer {
+    return &amp;KafkaConsumer{
+        eventHandler: eventHandler,
+        topics: []string{
+            "supplier-product-events",  // 供应商事件
+            "pricing-events",           // 定价事件
+        },
+    }
+}
+
+// Start 启动消费者（阻塞）
+func (c *KafkaConsumer) Start(ctx context.Context) error {
+    fmt.Printf("📡 [Infrastructure - Kafka Consumer] Starting...\n")
+    
+    // 初始化Kafka Consumer
+    consumer, err := kafka.NewConsumer(&amp;kafka.ConfigMap{
+        "bootstrap.servers": "localhost:9092",
+        "group.id":          "product-service-group",
+        "auto.offset.reset": "earliest",
+        "enable.auto.commit": false,  // 手动提交offset（保证at-least-once）
+    })
+    if err != nil {
+        return fmt.Errorf("创建Kafka Consumer失败: %w", err)
+    }
+    c.consumer = consumer
+
+    // 订阅Topic
+    if err := c.consumer.SubscribeTopics(c.topics, nil); err != nil {
+        return fmt.Errorf("订阅Topic失败: %w", err)
+    }
+    
+    fmt.Printf("📡 [Infrastructure - Kafka Consumer] Subscribed to: %v\n", c.topics)
+
+    // 消费循环
+    for {
+        select {
+        case &lt;-ctx.Done():
+            fmt.Println("📡 [Infrastructure - Kafka Consumer] Stopping...")
+            return ctx.Err()
+            
+        default:
+            // 读取消息（100ms超时）
+            msg, err := c.consumer.ReadMessage(100 * time.Millisecond)
+            if err != nil {
+                continue  // 超时或临时错误，继续循环
+            }
+
+            // ⭐️ 路由消息到Interface Layer的Handler
+            messageType := string(msg.Key)
+            if err := c.routeMessage(ctx, messageType, msg.Value); err != nil {
+                fmt.Printf("❌ [Infrastructure - Kafka Consumer] Handle error: %v\n", err)
+                // 错误处理：重试或发送到DLQ (Dead Letter Queue)
+            } else {
+                // ⭐️ 手动提交offset（保证at-least-once）
+                c.consumer.CommitMessage(msg)
+            }
+        }
+    }
+}
+
+// routeMessage 路由消息到Interface Layer的Handler
+func (c *KafkaConsumer) routeMessage(ctx context.Context, messageType string, data []byte) error {
+    fmt.Printf("📬 [Infrastructure - Kafka Consumer] Routing: %s\n", messageType)
+
+    // ⭐️ 调用Interface Layer的Handler
+    if err := c.eventHandler.HandleMessage(ctx, messageType, data); err != nil {
+        return fmt.Errorf("处理消息失败: %w", err)
+    }
+
+    return nil
+}
+
+// Stop 停止消费者
+func (c *KafkaConsumer) Stop() error {
+    if c.consumer != nil {
+        return c.consumer.Close()
+    }
+    return nil
+}
+</code></pre>
+<p><strong>关键设计点</strong>：</p>
+<ol>
+<li><strong>技术实现</strong>：负责Kafka连接、消息接收等技术细节</li>
+<li><strong>消息路由</strong>：根据消息类型路由到Interface Layer的Handler</li>
+<li><strong>手动提交Offset</strong>：保证at-least-once语义（消息处理成功后才提交）</li>
+<li><strong>错误处理</strong>：失败消息可以重试或发送到DLQ</li>
+<li><strong>优雅停机</strong>：通过Context取消消费循环</li>
+</ol>
+<hr>
+<h6 id="依赖注入与启动"><a class="header" href="#依赖注入与启动">依赖注入与启动</a></h6>
+<p><strong>main.go</strong>：</p>
+<pre><code class="language-go">package main
+
+import (
+    "context"
+    "product-service/internal/application/service"
+    "product-service/internal/infrastructure/messaging"
+    "product-service/internal/infrastructure/persistence"
+    eventHandler "product-service/internal/interfaces/event"
+    httpHandler "product-service/internal/interfaces/http"
+)
+
+func main() {
+    // Infrastructure Layer - 持久化
+    repo := persistence.NewProductRepository(...)
+
+    // Infrastructure Layer - 消息发布
+    eventPublisher := messaging.NewKafkaProducer()
+
+    // Application Layer
+    productService := service.NewProductService(repo, eventPublisher)
+
+    // Interface Layer - HTTP
+    handler := httpHandler.NewProductHandler(productService)
+
+    // ⭐️ Interface Layer - Event (异步接口)
+    evtHandler := eventHandler.NewProductEventHandler(productService)
+
+    // ⭐️ Infrastructure Layer - Kafka Consumer (技术实现)
+    kafkaConsumer := messaging.NewKafkaConsumer(evtHandler)
+
+    // 启动HTTP服务器
+    go startHTTPServer(handler)
+
+    // ⭐️ 启动Kafka Consumer
+    ctx := context.Background()
+    if err := kafkaConsumer.Start(ctx); err != nil {
+        log.Fatalf("Kafka Consumer error: %v", err)
+    }
+}
+</code></pre>
+<p><strong>依赖关系</strong>：</p>
+<pre><code class="language-text">Infrastructure (KafkaConsumer)
+    ↓ 调用
+Interface (ProductEventHandler)
+    ↓ 调用
+Application (ProductService)
+    ↓ 调用
+Domain (Product)
+</code></pre>
+<p>✅ 依赖方向：外层 → 内层（符合依赖倒置原则）</p>
+<hr>
+<h6 id="实际项目优化"><a class="header" href="#实际项目优化">实际项目优化</a></h6>
+<p><strong>1. 服务分离部署</strong></p>
+<pre><code class="language-text">product-service-api (处理HTTP/gRPC)
+├── Deployment: 10副本
+├── 职责：对外接口
+└── 扩容依据：QPS
+
+product-service-consumer (处理Kafka事件)
+├── Deployment: 3副本
+├── Consumer Group: product-service-group
+├── 职责：消费事件
+└── 扩容依据：消息堆积
+
+共享：
+├── Application Service
+├── Domain Model
+└── Repository
+</code></pre>
+<p><strong>好处</strong>：</p>
+<ul>
+<li>API服务可以独立扩容（根据QPS）</li>
+<li>Consumer服务可以独立扩容（根据消息堆积）</li>
+<li>Consumer故障不影响API可用性</li>
+</ul>
+<p><strong>2. Outbox Pattern（保证一致性）</strong></p>
+<pre><code class="language-sql">-- 事件表（保证事务一致性）
+CREATE TABLE domain_event_outbox (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    aggregate_type VARCHAR(50) NOT NULL COMMENT '聚合类型',
+    aggregate_id BIGINT NOT NULL COMMENT '聚合ID',
+    event_type VARCHAR(100) NOT NULL COMMENT '事件类型',
+    event_data JSON NOT NULL COMMENT '事件数据',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    published_at TIMESTAMP NULL COMMENT '发布时间',
+    status ENUM('PENDING', 'PUBLISHED', 'FAILED') DEFAULT 'PENDING',
+    retry_count INT DEFAULT 0,
+    INDEX idx_status_created (status, created_at)
+) ENGINE=InnoDB COMMENT='领域事件发件箱';
+</code></pre>
+<p><strong>Outbox发送器</strong>：</p>
+<pre><code class="language-go">// 定时扫描未发布的事件
+func (s *OutboxSender) SendPendingEvents(ctx context.Context) error {
+    events, err := s.repo.FindPendingEvents(ctx, limit)
+    if err != nil {
+        return err
+    }
+
+    for _, event := range events {
+        // 发布到Kafka
+        if err := s.kafkaProducer.Publish(ctx, event); err != nil {
+            s.repo.MarkFailed(ctx, event.ID)
+            continue
+        }
+
+        // 标记为已发布
+        s.repo.MarkPublished(ctx, event.ID)
+    }
+
+    return nil
+}
+</code></pre>
+<p><strong>3. 事件幂等性处理</strong></p>
+<pre><code class="language-go">// Event Handler中的幂等性检查
+func (h *ProductEventHandler) handlePriceChanged(ctx context.Context, data []byte) error {
+    var event PriceChangedEvent
+    json.Unmarshal(data, &amp;event)
+
+    // ⭐️ 检查是否已处理（根据event_id或业务维度）
+    if h.isEventProcessed(ctx, event.EventID) {
+        fmt.Println("⏭️  Event already processed, skipping...")
+        return nil  // 幂等性：已处理，直接返回成功
+    }
+
+    // 处理业务逻辑
+    if err := h.productService.UpdateBasePrice(ctx, ...); err != nil {
+        return err
+    }
+
+    // 记录已处理
+    h.markEventProcessed(ctx, event.EventID)
+
+    return nil
+}
+
+// 使用Redis或DB记录已处理的事件
+func (h *ProductEventHandler) isEventProcessed(ctx context.Context, eventID string) bool {
+    exists, _ := h.redis.Exists(ctx, "processed:event:"+eventID).Result()
+    return exists &gt; 0
+}
+
+func (h *ProductEventHandler) markEventProcessed(ctx context.Context, eventID string) {
+    // 保存24小时（TTL根据业务重试窗口决定）
+    h.redis.SetEX(ctx, "processed:event:"+eventID, "1", 24*time.Hour)
+}
+</code></pre>
+<hr>
+<h6 id="总结"><a class="header" href="#总结">总结</a></h6>
+<p><strong>事件订阅者应该放在Interface Layer</strong>，原因：</p>
+<ol>
+<li>✅ <strong>对称性</strong>：HTTP、gRPC、Event都是外部触发源，应该同级</li>
+<li>✅ <strong>复用性</strong>：Application Service被所有接口复用，业务逻辑只写一次</li>
+<li>✅ <strong>职责清晰</strong>：Interface负责协议适配，Infrastructure负责技术实现</li>
+<li>✅ <strong>易于测试</strong>：可以直接测试Application Service，不依赖Kafka</li>
+<li>✅ <strong>易于替换</strong>：更换消息队列只需修改Infrastructure Layer</li>
+</ol>
+<p><strong>完整调用链路</strong>：</p>
+<pre><code class="language-text">Kafka Topic 
+  → Infrastructure (接收消息)
+  → Interface (协议适配) 
+  → Application (业务编排)
+  → Domain (业务规则)
+  → Infrastructure (持久化)
+</code></pre>
+<p><strong>示例代码</strong>：参见 <code>books/system-design-architecture-book/example-codes/product-service/</code> 完整 Demo</p>
+<hr>
+<h5 id="3261128-三级缓存实现infrastructure-layer-详细实现"><a class="header" href="#3261128-三级缓存实现infrastructure-layer-详细实现">32.6.1.12.8 三级缓存实现（Infrastructure Layer 详细实现）</a></h5>
+<p><strong>三级缓存架构</strong>：</p>
+<pre><code class="language-go">// L1: 本地缓存（1分钟）
+// 优点：延迟最低（&lt;1ms），适合热点商品
+// 缺点：容量有限，多实例不一致
+localCache.Set("product:"+skuID, product, 1*time.Minute)
+
+// L2: Redis缓存（30分钟）
+// 优点：容量大，多实例共享
+// 缺点：网络开销（1-5ms）
+redis.Set("product:"+skuID, marshal(product), 30*time.Minute)
+
+// L3: MySQL（源数据）
+// 优点：数据权威、一致
+// 缺点：延迟最高（10-50ms）
+db.QueryOne("SELECT * FROM product_sku WHERE id = ?", skuID)
+</code></pre>
+<p><strong>缓存更新策略</strong>：</p>
+<ol>
+<li><strong>商品更新时</strong>：主动删除缓存（Cache Aside模式）</li>
+<li><strong>上下架时</strong>：删除L1+L2缓存，强制下次查询走DB</li>
+<li><strong>价格变更时</strong>：删除缓存 + 发布PriceChangedEvent通知Pricing Service</li>
+</ol>
+<p><strong>缓存Key设计</strong>：</p>
+<pre><code class="language-text">product:{sku_id}                    # 单个商品
+product:spu:{spu_id}                # SPU下所有SKU（Hash结构）
+product:category:{category_id}      # 类目商品列表（Set结构）
+</code></pre>
+<hr>
+<h5 id="3261129-完整示例代码-"><a class="header" href="#3261129-完整示例代码-">32.6.1.12.9 完整示例代码 ⭐️</a></h5>
+<p>本章节的完整代码实现（包含 DDD 四层架构、事件发布订阅、三级缓存等）详见：</p>
+<p><strong>示例代码路径</strong>：<code>books/system-design-architecture-book/example-codes/product-service/</code></p>
+<p>这部分示例代码不是完整生产系统，而是为了帮助读者把前面的架构设计映射到工程结构中。它重点覆盖商品中心的 DDD 分层、聚合根、Repository、缓存、事件发布订阅和接口适配。前面讨论的供给运营、供应商同步、库存可售、搜索导购等能力，在真实项目中会继续扩展为更多应用服务和任务模块；示例工程先保留最小可读骨架，避免把主线淹没在实现细节里。</p>
+<p><strong>目录结构</strong>：</p>
+<pre><code class="language-text">example-codes/product-service/
+├── README.md                               # 项目说明
+├── QUICKSTART.md                           # 快速开始指南
+├── EIGHT_LAYER_MODEL.md                    # 八层商品交易模型说明
+├── EVENT_PATTERN.md                        # 事件模式说明
+├── EVENT_SUBSCRIBER_LAYER.md               # 事件订阅者分层设计
+├── RESTORE_GUIDE.md                        # 示例恢复与排查指南
+├── go.mod
+├── cmd/
+│   └── main.go                             # 程序入口
+└── internal/
+    ├── domain/                             # 领域层
+    │   ├── product.go                      # Product 聚合根
+    │   ├── spu.go                          # SPU 实体
+    │   ├── value_objects.go                # 值对象
+    │   ├── events.go                       # 领域事件
+    │   ├── repository.go                   # Repository 接口
+    │   ├── category_capability.go          # 品类能力矩阵
+    │   ├── runtime_context.go              # 八层运行时上下文
+    │   ├── category_strategy.go            # 品类策略接口
+    │   └── strategy/                       # Topup/GiftCard/Flight/Hotel策略
+    ├── application/                        # 应用层
+    │   ├── dto/
+    │   │   ├── product_dto.go              # 商品 DTO
+    │   │   ├── runtime_context_dto.go      # 八层上下文 DTO
+    │   │   └── category_action_dto.go      # 品类动作/垂直搜索 DTO
+    │   └── service/
+    │       ├── product_service.go          # 商品应用服务
+    │       ├── runtime_context_service.go  # 八层上下文应用服务
+    │       └── category_action_service.go  # Topup校验/Flight搜索应用服务
+    ├── infrastructure/                     # 基础设施层
+    │   ├── cache/cache.go                  # 三级缓存
+    │   ├── event/
+    │   │   ├── event_handlers.go           # 领域事件处理
+    │   │   └── event_publisher.go          # 事件发布抽象
+    │   ├── messaging/
+    │   │   ├── kafka_producer.go           # Kafka 生产者
+    │   │   └── kafka_consumer.go           # Kafka 消费者
+    │   └── persistence/
+    │       ├── product_repository.go       # Repository 实现
+    │       ├── data_object.go              # 数据对象
+    │       └── capability_repository.go    # 品类能力与示例数据
+    └── interfaces/                         # 接口层
+        ├── http/product_handler.go         # HTTP 接口
+        ├── http/runtime_context_handler.go # 八层上下文 HTTP 接口
+        ├── http/category_action_handler.go # 品类动作/垂直搜索 HTTP 接口
+        ├── grpc/product_handler.go         # gRPC 接口
+        └── event/product_event_handler.go  # Event 接口
+</code></pre>
+<p><strong>章节内容与示例代码的对应关系</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>本节设计点</th><th>示例代码位置</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>DDD 分层结构</td><td><code>internal/domain</code>、<code>internal/application</code>、<code>internal/infrastructure</code>、<code>internal/interfaces</code></td><td>展示领域层、应用层、基础设施层、接口层的依赖方向</td></tr>
+<tr><td>Product 聚合根</td><td><code>internal/domain/product.go</code></td><td>承载商品状态、基础价格、上下架行为和领域事件</td></tr>
+<tr><td>SPU 与值对象</td><td><code>internal/domain/spu.go</code>、<code>internal/domain/value_objects.go</code></td><td>展示 SPU/SKU、价格、规格等核心模型</td></tr>
+<tr><td>八层商品交易模型</td><td><code>internal/domain/runtime_context.go</code>、<code>internal/domain/category_capability.go</code></td><td>展示 Product Definition、Resource、Offer、Availability、Input Schema、Booking、Fulfillment、Refund Rule</td></tr>
+<tr><td>品类差异策略</td><td><code>internal/domain/strategy</code></td><td>展示 Topup、Gift Card、Flight、Hotel 如何分别构建八层上下文</td></tr>
+<tr><td>交易前上下文编排</td><td><code>internal/application/service/runtime_context_service.go</code></td><td>根据 SKU、类目和场景选择策略并组装 <code>ProductRuntimeContext</code></td></tr>
+<tr><td>品类动作与垂直搜索</td><td><code>internal/application/service/category_action_service.go</code>、<code>internal/interfaces/http/category_action_handler.go</code></td><td>展示 Topup 账号校验和 Flight 实时搜索如何复用品类能力，但保留独立场景接口</td></tr>
+<tr><td>Repository 抽象</td><td><code>internal/domain/repository.go</code></td><td>在领域层定义仓储接口，避免领域模型依赖数据库实现</td></tr>
+<tr><td>Repository 实现</td><td><code>internal/infrastructure/persistence/product_repository.go</code></td><td>负责 DO 与 Domain Model 转换、缓存回写和持久化</td></tr>
+<tr><td>品类能力示例数据</td><td><code>internal/infrastructure/persistence/capability_repository.go</code></td><td>用内存数据模拟品类能力矩阵和商品运行时数据</td></tr>
+<tr><td>缓存策略</td><td><code>internal/infrastructure/cache/cache.go</code></td><td>演示本地缓存、Redis 缓存和源数据查询的组合方式</td></tr>
+<tr><td>HTTP/gRPC 接口</td><td><code>internal/interfaces/http</code>、<code>internal/interfaces/grpc</code></td><td>同步接口入口，负责请求协议到应用服务 DTO 的转换</td></tr>
+<tr><td>Event 接口</td><td><code>internal/interfaces/event/product_event_handler.go</code></td><td>异步接口入口，把外部事件转换为应用服务调用</td></tr>
+<tr><td>Kafka 技术实现</td><td><code>internal/infrastructure/messaging</code></td><td>负责消息队列连接、消费、生产等基础设施细节</td></tr>
+<tr><td>事件模式说明</td><td><code>EVENT_PATTERN.md</code>、<code>EVENT_SUBSCRIBER_LAYER.md</code></td><td>解释事件发布、订阅者分层和接口层定位</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>运行 Demo</strong>：</p>
+<pre><code class="language-bash">cd books/system-design-architecture-book/example-codes/product-service
+go run cmd/main.go
+</code></pre>
+<p><strong>学习要点</strong>：</p>
+<ol>
+<li><strong>DDD分层架构</strong>：Domain、Application、Infrastructure、Interface四层</li>
+<li><strong>事件订阅者分层</strong>：Interface Layer作为异步接口（推荐阅读 <code>EVENT_SUBSCRIBER_LAYER.md</code>）</li>
+<li><strong>三级缓存实现</strong>：L1本地缓存 → L2 Redis → L3 MySQL</li>
+<li><strong>领域事件发布订阅</strong>：Domain产生事件 → Application发布 → Infrastructure投递 → Interface消费</li>
+<li><strong>八层商品交易模型</strong>：通过 <code>ProductRuntimeContext</code> 展示 Topup、Gift Card、Flight、Hotel 的商品模型差异</li>
+</ol>
+<hr>
+<h3 id="3262-库存系统设计"><a class="header" href="#3262-库存系统设计">32.6.2 库存系统设计</a></h3>
+<p><strong>二维库存模型</strong>（参考32.2.5）：</p>
+<pre><code class="language-go">// 库存策略接口
+type StockStrategy interface {
+    CheckStock(ctx context.Context, req *StockRequest) (*StockResponse, error)
+    Reserve(ctx context.Context, req *ReserveRequest) (*ReserveResponse, error)
+    Deduct(ctx context.Context, req *DeductRequest) error
+    Release(ctx context.Context, reserveID string) error
+}
+
+// 策略工厂
+func NewStockStrategy(managementType ManagementType) StockStrategy {
+    switch managementType {
+    case Realtime:
+        return &amp;RealtimeStockStrategy{}  // 机票、酒店
+    case Pooled:
+        return &amp;PooledStockStrategy{}    // 优惠券
+    case Unlimited:
+        return &amp;UnlimitedStockStrategy{} // 充值
+    }
+}
+</code></pre>
+<p><strong>预占机制</strong>：</p>
+<pre><code class="language-go">// Redis Lua脚本（原子预占）
+const reserveScript = `
+local stock_key = KEYS[1]
+local reserve_key = KEYS[2]
+local qty = tonumber(ARGV[1])
+local ttl = tonumber(ARGV[2])
+
+local stock = tonumber(redis.call('GET', stock_key) or 0)
+if stock &gt;= qty then
+    redis.call('DECRBY', stock_key, qty)
+    redis.call('SET', reserve_key, qty, 'EX', ttl)
+    return 1
+else
+    return 0
+end
+`
+
+func (r *StockRepo) Reserve(ctx context.Context, skuID int64, qty int, ttl time.Duration) (string, error) {
+    reserveID := generateReserveID()
+    stockKey := fmt.Sprintf("stock:%d", skuID)
+    reserveKey := fmt.Sprintf("reserve:%s", reserveID)
+    
+    result, err := r.redis.Eval(ctx, reserveScript, 
+        []string{stockKey, reserveKey}, 
+        qty, int(ttl.Seconds())).Result()
+    
+    if result == int64(1) {
+        return reserveID, nil
+    }
+    return "", errors.New("库存不足")
+}
+</code></pre>
+<h3 id="3263-订单系统设计"><a class="header" href="#3263-订单系统设计">32.6.3 订单系统设计</a></h3>
+<p><strong>状态机</strong>：</p>
+<pre><code class="language-go">type OrderStatus string
+
+const (
+    StatusCreated          OrderStatus = "CREATED"           // 已创建
+    StatusPendingPayment   OrderStatus = "PENDING_PAYMENT"   // 待支付
+    StatusPaid             OrderStatus = "PAID"              // 已支付
+    StatusFulfilling       OrderStatus = "FULFILLING"        // 履约中
+    StatusFulfilled        OrderStatus = "FULFILLED"         // 已履约
+    StatusCanceled         OrderStatus = "CANCELED"          // 已取消
+    StatusRefunded         OrderStatus = "REFUNDED"          // 已退款
+)
+
+// 状态转换规则
+var transitions = map[OrderStatus][]OrderStatus{
+    StatusCreated:        {StatusPendingPayment, StatusCanceled},
+    StatusPendingPayment: {StatusPaid, StatusCanceled},
+    StatusPaid:           {StatusFulfilling, StatusRefunded},
+    StatusFulfilling:     {StatusFulfilled, StatusRefunded},
+    StatusFulfilled:      {StatusRefunded},  // 已履约可申请退款
+}
+
+func (o *Order) TransitionTo(newStatus OrderStatus) error {
+    allowed, ok := transitions[o.Status]
+    if !ok || !contains(allowed, newStatus) {
+        return fmt.Errorf("不允许从 %s 转换到 %s", o.Status, newStatus)
+    }
+    o.Status = newStatus
+    return nil
+}
+</code></pre>
+<p><strong>分库分表</strong>（参考ADR-007）：</p>
+<pre><code class="language-text">• 分库：按 user_id % 8（用户维度查询最频繁）
+• 分表：按 create_time 分表（按月归档，64表）
+• 路由表：order_route（order_id → db_index, table_index）
+</code></pre>
+<h3 id="3264-支付系统设计"><a class="header" href="#3264-支付系统设计">32.6.4 支付系统设计</a></h3>
+<p><strong>支付流程</strong>：</p>
+<pre><code class="language-go">// Step 1: 创建支付单
+func (s *PaymentService) CreatePayment(ctx context.Context, orderID int64, amount int64) (*Payment, error) {
+    payment := &amp;Payment{
+        ID:      generatePaymentID(),
+        OrderID: orderID,
+        Amount:  amount,
+        Status:  PaymentStatusCreated,
+    }
+    s.repo.Save(ctx, payment)
+    return payment, nil
+}
+
+// Step 2: 调用支付渠道（支付宝/微信）
+func (s *PaymentService) Pay(ctx context.Context, paymentID int64, channel string) (*PayURL, error) {
+    gateway := s.gatewayFactory.Get(channel)
+    payURL, err := gateway.CreateOrder(ctx, payment)
+    return payURL, err
+}
+
+// Step 3: 接收支付回调（幂等处理）
+func (s *PaymentService) HandleCallback(ctx context.Context, callbackData *CallbackData) error {
+    // 幂等性检查
+    payment, err := s.repo.GetByPaymentID(ctx, callbackData.PaymentID)
+    if payment.Status == PaymentStatusPaid {
+        return nil  // 已处理，幂等返回
+    }
+    
+    // 验签
+    if !s.verifySign(callbackData) {
+        return errors.New("签名验证失败")
+    }
+    
+    // 更新支付状态（乐观锁）
+    affected, err := s.repo.UpdateStatus(ctx, callbackData.PaymentID, 
+        PaymentStatusCreated, PaymentStatusPaid)
+    if affected == 0 {
+        return errors.New("支付单状态已变更")
+    }
+    
+    // 发布支付成功事件
+    s.eventPublisher.Publish(ctx, &amp;PaymentPaidEvent{
+        OrderID:   payment.OrderID,
+        PaymentID: payment.ID,
+        Amount:    payment.Amount,
+    })
+    
+    return nil
+}
+</code></pre>
+<p><strong>对账流程</strong>：</p>
+<pre><code class="language-go">// 每小时对账任务
+func (s *PaymentService) ReconcileHourly(ctx context.Context, hour time.Time) error {
+    // Step 1: 获取本地支付记录
+    localPayments, _ := s.repo.GetByHour(ctx, hour)
+    
+    // Step 2: 获取支付渠道对账单
+    remotePayments, _ := s.gatewayClient.DownloadBill(ctx, hour)
+    
+    // Step 3: 比对差异
+    diff := s.compare(localPayments, remotePayments)
+    
+    // Step 4: 处理差异
+    for _, d := range diff {
+        if d.Type == Missing {
+            // 本地有，渠道无 → 可能是渠道延迟
+            s.alertService.Alert("支付对账差异", d)
+        } else if d.Type == Extra {
+            // 本地无，渠道有 → 可能是回调丢失
+            s.补单处理(d)
+        }
+    }
+    
+    return nil
+}
+</code></pre>
+<h3 id="3265-供应商集成设计"><a class="header" href="#3265-供应商集成设计">32.6.5 供应商集成设计</a></h3>
+<p><strong>适配器模式</strong>：</p>
+<pre><code class="language-go">// 供应商接口（统一抽象）
+type SupplierAdapter interface {
+    QueryStock(ctx context.Context, req *StockQueryRequest) (*StockQueryResponse, error)
+    ReserveStock(ctx context.Context, req *ReserveRequest) (*ReserveResponse, error)
+    CreateOrder(ctx context.Context, req *CreateOrderRequest) (*CreateOrderResponse, error)
+    QueryOrderStatus(ctx context.Context, orderID string) (*OrderStatus, error)
+}
+
+// 机票供应商适配器
+type FlightSupplierAdapter struct {
+    client *FlightSupplierClient
+    config *Config
+}
+
+func (a *FlightSupplierAdapter) QueryStock(ctx context.Context, req *StockQueryRequest) (*StockQueryResponse, error) {
+    // Step 1: 参数转换（平台模型 → 供应商模型）
+    supplierReq := a.transformRequest(req)
+    
+    // Step 2: 调用供应商API（熔断保护）
+    supplierResp, err := a.client.QueryAvailability(ctx, supplierReq)
+    if err != nil {
+        return nil, fmt.Errorf("供应商调用失败: %w", err)
+    }
+    
+    // Step 3: 响应转换（供应商模型 → 平台模型）
+    resp := a.transformResponse(supplierResp)
+    return resp, nil
+}
+</code></pre>
+<p><strong>熔断机制</strong>：</p>
+<pre><code class="language-go">import "github.com/sony/gobreaker"
+
+func NewSupplierClientWithCircuitBreaker(client *http.Client) *SupplierClient {
+    cb := gobreaker.NewCircuitBreaker(gobreaker.Settings{
+        Name:        "SupplierAPI",
+        MaxRequests: 3,
+        Interval:    10 * time.Second,
+        Timeout:     30 * time.Second,
+        ReadyToTrip: func(counts gobreaker.Counts) bool {
+            failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
+            return counts.Requests &gt;= 3 &amp;&amp; failureRatio &gt;= 0.5
+        },
+        OnStateChange: func(name string, from, to gobreaker.State) {
+            log.Printf("熔断器 %s 状态变更: %s -&gt; %s", name, from, to)
+        },
+    })
+    
+    return &amp;SupplierClient{
+        client: client,
+        cb:     cb,
+    }
+}
+
+func (c *SupplierClient) QueryStock(ctx context.Context, req *Request) (*Response, error) {
+    result, err := c.cb.Execute(func() (interface{}, error) {
+        return c.client.Do(buildHTTPRequest(req))
+    })
+    if err != nil {
+        return nil, err
+    }
+    return parseResponse(result), nil
+}
+</code></pre>
+<hr>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part04/13-02-b2b2c-architecture-decisions.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part04/13-04-b2b2c-business-flows.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part04/13-02-b2b2c-architecture-decisions.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part04/13-04-b2b2c-business-flows.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

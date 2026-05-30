@@ -1,0 +1,961 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>32.1-32.3 业务背景、品类模型与边界设计 - 系统设计与架构实战：原理、工程与电商案例</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="从系统设计方法论、核心基础设施、可靠性工程到电商业务架构实战；兼顾原理、工程落地、面试表达和完整业务案例。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-1b444fc1.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-0fb2b3fb.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">系统设计与架构实战：原理、工程与电商案例</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="321-323-业务背景品类模型与边界设计"><a class="header" href="#321-323-业务背景品类模型与边界设计">32.1-32.3 业务背景、品类模型与边界设计</a></h1>
+<h2 id="321-项目背景与业务约束business-context"><a class="header" href="#321-项目背景与业务约束business-context">32.1 项目背景与业务约束（Business Context）</a></h2>
+<p>本章讨论的是一个中大型 B2B2C 聚合电商平台。它不是传统实物电商，也不是单一供应商商城，而是连接多类外部供应商与自营虚拟商品的平台型系统。平台侧负责商品组织、搜索导购、价格试算、营销、下单、支付和履约编排；供应商侧负责实际资源确认与数字履约。</p>
+<p>这个背景很重要。因为系统的核心复杂度不来自物流仓配，而来自<strong>多品类、多供应商、强实时交易和不一致外部接口</strong>的叠加：机票和酒店要求零超卖，充值和礼品卡允许失败后补偿，电子券又依赖本地券码池发放。不同品类背后的库存、价格、履约模型完全不同，直接决定后续的领域划分、服务边界和一致性策略。</p>
+<h3 id="3211-业务定位"><a class="header" href="#3211-业务定位">32.1.1 业务定位</a></h3>
+<p>平台采用“聚合供应商 + 自营虚拟商品”的 B2B2C 模式，连接航司/GDS、酒店 OTA/PMS、运营商、院线、券码供应商等外部系统，同时保留部分自营业务能力。</p>
+<p><strong>业务范围</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>业务类型</th><th>典型品类</th><th>履约方式</th><th>关键特征</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>供应商聚合</strong></td><td>机票、酒店、充值、电影票</td><td>调用供应商 API 完成出票、确认、充值、锁座</td><td>接口差异大，实时性和可用性依赖外部系统</td></tr>
+<tr><td><strong>平台自营</strong></td><td>优惠券、线下券、礼品卡</td><td>平台本地发券码或调用内部发码系统</td><td>可控性更强，但需要券码池、核销和过期管理</td></tr>
+<tr><td><strong>数字履约</strong></td><td>所有品类</td><td>API 调用、异步确认、电子凭证发放</td><td>无物流链路，但交易状态和补偿链路更复杂</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>业务全景图</strong>：</p>
+<p><img src="../../images/b2b2c-business-overview.png" alt="B2B2C 数字商品平台业务全景"></p>
+<p>这张图展示了平台业务链路的四个关键视角：供应商供给侧负责资源供给与数字履约；平台核心能力负责商品、库存、价格、营销、订单、支付、履约和售后编排；本地商家与平台运营负责商品录入、审核、维护、促销和上下架；C 端用户则围绕搜索导购、结算下单、支付、履约结果和退款售后形成完整交易闭环。</p>
+<p>本平台的一个关键前提是<strong>无物流场景</strong>。所有商品都是虚拟数字商品，履约不经过仓库、分拣、配送，而是通过 API 调用、电子票、确认单、充值结果或券码完成。因此，本章不会讨论仓配、物流轨迹、签收等实物电商问题，而是聚焦数字商品平台中更核心的四类问题：</p>
+<ol>
+<li><strong>供应商差异</strong>：50+ 外部供应商接口形态不一致，可能同时存在实时查询、定时同步和事件推送。</li>
+<li><strong>库存差异</strong>：机票/酒店依赖供应商实时库存，电子券依赖本地券码池，充值类商品近似无限库存。</li>
+<li><strong>价格差异</strong>：机票动态定价、酒店日历价、充值固定面额、优惠券固定折扣价并存。</li>
+<li><strong>履约差异</strong>：有的品类同步返回结果，有的品类需要异步确认，有的品类需要本地分配唯一券码。</li>
+</ol>
+<h3 id="3212-业务与技术目标"><a class="header" href="#3212-业务与技术目标">32.1.2 业务与技术目标</a></h3>
+<p>平台的核心目标可以概括为四句话：</p>
+<ol>
+<li><strong>交易链路要稳</strong>：订单创建、支付、履约不能丢数据，核心链路故障要快速恢复。</li>
+<li><strong>导购链路要快</strong>：搜索、详情、结算要在高并发下保持低延迟，并允许适度降级。</li>
+<li><strong>供给运营要可控</strong>：商品上架、运营编辑、供应商同步、促销配置和上下架要有明确流程、审核机制和可追溯记录。</li>
+<li><strong>品类接入要快</strong>：新增品类和供应商不能反复改造主流程。</li>
+<li><strong>团队协作要顺</strong>：服务边界、API 契约和事件契约必须足够清晰，支撑多人多团队并行开发。</li>
+</ol>
+<p><strong>性能目标</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>正常值</th><th>大促峰值</th><th>设计含义</th></tr>
+</thead>
+<tbody>
+<tr><td>日订单量</td><td>200 万</td><td>1000 万</td><td>交易链路需要支持 5 倍峰值弹性</td></tr>
+<tr><td>搜索 QPS</td><td>3000</td><td>15000</td><td>搜索与聚合层需要缓存、批量查询和降级能力</td></tr>
+<tr><td>详情页 QPS</td><td>5000</td><td>25000</td><td>商品、库存、计价、营销服务需要并发编排</td></tr>
+<tr><td>下单 QPS</td><td>1000</td><td>5000</td><td>库存预占、价格校验、订单写入必须控制事务边界</td></tr>
+<tr><td>P99 延迟</td><td>200ms</td><td>500ms</td><td>大促期间允许部分非核心能力降级</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>可用性目标</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>目标</th><th>要求</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>核心链路 SLA</td><td>99.95%</td><td>覆盖订单创建、支付、履约等交易动作</td></tr>
+<tr><td>搜索/详情 SLA</td><td>99.9%</td><td>可通过缓存、兜底价格、隐藏营销信息等方式降级</td></tr>
+<tr><td>RTO</td><td>&lt; 5 分钟</td><td>故障后需要在 5 分钟内恢复核心能力</td></tr>
+<tr><td>RPO</td><td>0</td><td>核心交易数据不允许丢失</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>扩展性目标</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>扩展场景</th><th>目标</th><th>关键依赖</th></tr>
+</thead>
+<tbody>
+<tr><td>新品类接入</td><td>&lt; 2 周</td><td>品类策略、库存策略、履约策略可插拔</td></tr>
+<tr><td>新供应商接入</td><td>&lt; 1 周</td><td>供应商适配器、防腐层、统一错误模型</td></tr>
+<tr><td>新营销玩法</td><td>&lt; 3 天</td><td>规则引擎、计价输入标准化、活动配置平台</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="3213-本章的核心架构命题"><a class="header" href="#3213-本章的核心架构命题">32.1.3 本章的核心架构命题</a></h3>
+<p>在上述业务背景下，架构设计的难点不是“要不要拆微服务”，而是<strong>如何在品类差异、供应商不确定性和交易一致性之间找到可演进的边界</strong>。</p>
+<p>本章后续会围绕四个问题展开：</p>
+<ol>
+<li><strong>如何理解品类差异</strong>：机票、酒店、充值、电子券为什么不能用同一套库存和履约模型。</li>
+<li><strong>如何划分系统边界</strong>：订单、商品、库存、计价、营销、支付、供应商网关各自拥有怎样的数据和职责。</li>
+<li><strong>如何组织交易链路</strong>：搜索、详情、结算、下单、支付如何在性能与准确性之间取舍。</li>
+<li><strong>如何沉淀架构决策</strong>：通过 ADR 记录关键取舍，避免团队在同一问题上反复争论。</li>
+</ol>
+<hr>
+<h2 id="322-品类业务模型分析business-architecture"><a class="header" href="#322-品类业务模型分析business-architecture">32.2 品类业务模型分析（Business Architecture）</a></h2>
+<p>不同品类的业务模型存在显著差异，直接影响架构设计决策。理解这些差异是系统设计的基础。</p>
+<h3 id="3221-机票业务模型"><a class="header" href="#3221-机票业务模型">32.2.1 机票业务模型</a></h3>
+<p><strong>业务特点</strong>：</p>
+<pre><code class="language-text">• 库存模型：实时库存（供应商侧），强依赖供应商实时查询
+• 价格模型：动态定价，实时波动（可能秒级变化）
+• SKU复杂度：极高（航司+航班号+舱位+日期+...组合）
+• 库存单位：座位数量（不可超卖）
+• 扣减时机：创单前向供应商实时确认并占座 → 创单待支付 → 支付确认 → 出票
+• 履约流程：查询报价/库存 → 占座/预订 → 创建订单 → 支付 → 出票（调用GDS/供应商API）→ 发送电子票
+</code></pre>
+<p><strong>架构影响</strong>：</p>
+<ul>
+<li>✓ 必须支持实时库存查询（高频调用供应商API）</li>
+<li>✓ 价格快照必须精确到秒级，防止价格变动纠纷</li>
+<li>✓ 超卖零容忍 → 创建订单前必须完成供应商侧占座/预订</li>
+<li>✓ 供应商故障需快速切换到备用供应商</li>
+<li>✓ 订单状态复杂（待出票、出票中、出票失败、已出票）</li>
+</ul>
+<p><strong>技术要点</strong>：</p>
+<pre><code class="language-go">// 机票库存查询策略
+type FlightStockStrategy struct {
+    supplierClient rpc.SupplierClient
+    redis          redis.Client
+    config         *FlightConfig
+}
+
+func (s *FlightStockStrategy) CheckStock(ctx context.Context, req *StockRequest) (*StockResponse, error) {
+    // Step 1: 尝试从Redis获取缓存（TTL=5分钟）
+    cacheKey := fmt.Sprintf("flight:stock:%s:%s", req.FlightNo, req.Date)
+    cached, err := s.redis.Get(ctx, cacheKey).Result()
+    if err == nil {
+        return parseStockFromCache(cached), nil
+    }
+    
+    // Step 2: 缓存未命中，调用供应商实时查询
+    ctx, cancel := context.WithTimeout(ctx, 800*time.Millisecond)  // 800ms超时
+    defer cancel()
+    
+    stock, err := s.supplierClient.QueryStock(ctx, req)
+    if err != nil {
+        // 供应商故障，切换备用供应商
+        return s.fallbackToSecondarySupplier(ctx, req)
+    }
+    
+    // Step 3: 缓存结果（短TTL，机票价格变化快）
+    s.redis.Set(ctx, cacheKey, marshal(stock), 5*time.Minute)
+    
+    return stock, nil
+}
+</code></pre>
+<p><strong>监控指标</strong>：</p>
+<ul>
+<li>供应商调用超时率：&lt; 1%</li>
+<li>缓存命中率：&gt; 70%</li>
+<li>出票成功率：&gt; 99.5%</li>
+<li>出票平均时长：&lt; 30秒</li>
+</ul>
+<h3 id="3222-酒店业务模型"><a class="header" href="#3222-酒店业务模型">32.2.2 酒店业务模型</a></h3>
+<p><strong>业务特点</strong>：</p>
+<pre><code class="language-text">• 库存模型：房间数量（按日期维度管理）
+• 价格模型：日历房价（每个日期不同价格）
+• SKU复杂度：高（酒店ID+房型+日期范围+早餐+...）
+• 库存单位：房间数/间夜数
+• 扣减时机：下单预占 → 支付确认 → 供应商确认
+• 履约流程：下单 → 支付 → 提交供应商 → 确认单 → 入住凭证
+</code></pre>
+<p><strong>架构影响</strong>：</p>
+<ul>
+<li>✓ 支持日期范围查询（check-in到check-out）</li>
+<li>✓ 日历价格存储（每个日期一条记录）</li>
+<li>✓ 库存按日期维度管理（某天无房不影响其他日期）</li>
+<li>✓ 支持“担保“模式（先占房，入住时结算）</li>
+<li>✓ 需处理“确认单延迟“（供应商异步确认）</li>
+</ul>
+<p><strong>数据模型</strong>：</p>
+<pre><code class="language-go">// 酒店日历价格表（宽表存储）
+type HotelCalendarPrice struct {
+    HotelID      int64     `gorm:"primaryKey"`
+    RoomTypeID   int64     `gorm:"primaryKey"`
+    Date         time.Time `gorm:"primaryKey;index"`  // 日期维度
+    BasePrice    int64     // 基础价格（分）
+    WeekendPrice int64     // 周末价格
+    Stock        int       // 当日库存
+    Status       string    // 可售状态（AVAILABLE/SOLD_OUT/CLOSED）
+}
+
+// 查询日期范围内的价格与库存
+func (r *HotelRepo) GetCalendarPrice(hotelID, roomTypeID int64, checkIn, checkOut time.Time) ([]*HotelCalendarPrice, error) {
+    var prices []*HotelCalendarPrice
+    err := r.db.Where("hotel_id = ? AND room_type_id = ? AND date &gt;= ? AND date &lt; ?",
+        hotelID, roomTypeID, checkIn, checkOut).
+        Order("date ASC").
+        Find(&amp;prices).Error
+    return prices, err
+}
+</code></pre>
+<p><strong>缓存策略</strong>：</p>
+<ul>
+<li>热门酒店：30分钟缓存</li>
+<li>长尾酒店：1小时缓存</li>
+<li>价格变更：主动失效缓存</li>
+</ul>
+<h3 id="3223-充值业务模型"><a class="header" href="#3223-充值业务模型">32.2.3 充值业务模型</a></h3>
+<p><strong>业务特点</strong>：</p>
+<pre><code class="language-text">• 库存模型：无限库存（供应商侧无限制）
+• 价格模型：固定面额（10元、50元、100元）
+• SKU复杂度：低（运营商+面额）
+• 库存单位：无限
+• 扣减时机：支付后
+• 履约流程：下单 → 支付 → 调用供应商API → 充值成功/失败
+</code></pre>
+<p><strong>架构影响</strong>：</p>
+<ul>
+<li>✓ 无需库存管理（库存类型=无限）</li>
+<li>✓ 价格简单（基础价+平台服务费）</li>
+<li>✓ 超卖可接受（事后补偿）</li>
+<li>✓ 供应商调用简单（同步API，3秒内返回）</li>
+<li>✓ 失败重试友好（幂等性强）</li>
+</ul>
+<p><strong>技术要点</strong>：</p>
+<pre><code class="language-go">// 充值库存策略（无限库存）
+type RechargeStockStrategy struct{}
+
+func (s *RechargeStockStrategy) CheckStock(ctx context.Context, req *StockRequest) (*StockResponse, error) {
+    // 充值类商品无需检查库存，直接返回"可售"
+    return &amp;StockResponse{
+        Available: true,
+        Quantity:  999999,  // 虚拟无限库存
+        Message:   "充值类商品，库存充足",
+    }, nil
+}
+
+func (s *RechargeStockStrategy) Reserve(ctx context.Context, req *ReserveRequest) (*ReserveResponse, error) {
+    // 充值类商品无需预占，直接返回成功
+    return &amp;ReserveResponse{
+        ReserveID: "",  // 无预占ID
+        Success:   true,
+    }, nil
+}
+</code></pre>
+<h3 id="3224-电子券业务模型"><a class="header" href="#3224-电子券业务模型">32.2.4 电子券业务模型</a></h3>
+<p><strong>业务特点</strong>：</p>
+<pre><code class="language-text">• 库存模型：固定库存（券码池）
+• 价格模型：固定折扣价
+• SKU复杂度：中（商户+门店+商品+...）
+• 库存单位：券码（一券一码）
+• 扣减时机：支付后
+• 履约流程：下单 → 支付 → 发券码 → 到店核销
+</code></pre>
+<p><strong>架构影响</strong>：</p>
+<ul>
+<li>✓ 券码池管理（预生成10万个券码）</li>
+<li>✓ 券码发放（支付后随机分配）</li>
+<li>✓ 核销系统（商户扫码核销）</li>
+<li>✓ 过期管理（券有效期7天-180天）</li>
+<li>✓ 退款逻辑（未核销可退，已核销不可退）</li>
+</ul>
+<p><strong>技术要点</strong>：</p>
+<pre><code class="language-go">// 券码池管理：MySQL 是权威，Redis LIST 只缓存 code_id
+type VoucherCodePool struct {
+    redis redis.Client
+    repo  CodePoolRepository
+}
+
+func (p *VoucherCodePool) ReserveCode(ctx context.Context, batchID string, orderID int64) (int64, error) {
+    for attempt := 0; attempt &lt; 3; attempt++ {
+        // Step 1: Redis LIST 只取 code_id，不取明文券码
+        poolKey := fmt.Sprintf("inventory:code:pool:%s:%d", batchID, shard(batchID))
+        codeID, err := p.redis.LPop(ctx, poolKey).Int64()
+        if err == redis.Nil {
+            return 0, errors.New("券码池为空")
+        }
+        if err != nil {
+            return 0, err
+        }
+
+        // Step 2: MySQL CAS 才是锁码成功的判定
+        // UPDATE inventory_code_pool_XX
+        // SET status='BOOKING', order_id=?, booked_at=NOW()
+        // WHERE code_id=? AND status='AVAILABLE'
+        ok, err := p.repo.BookCode(ctx, codeID, orderID)
+        if err != nil {
+            return 0, err
+        }
+        if ok {
+            return codeID, nil
+        }
+        // Redis 中的陈旧 code_id，丢弃后继续取下一个。
+    }
+
+    return 0, errors.New("券码池热队列需要回填")
+}
+</code></pre>
+<h3 id="3225-差异化设计策略"><a class="header" href="#3225-差异化设计策略">32.2.5 差异化设计策略</a></h3>
+<p>通过上述品类分析，我们提炼出三个核心设计维度：</p>
+<p><strong>维度1：库存管理类型</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类型</th><th>典型品类</th><th>库存来源</th><th>预占策略</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>实时库存</strong></td><td>机票、酒店、电影票</td><td>供应商实时查询</td><td>创单前确认资源，订单超时释放</td></tr>
+<tr><td><strong>池化库存</strong></td><td>优惠券、礼品卡</td><td>平台自有（券码池）</td><td>支付后扣减</td></tr>
+<tr><td><strong>无限库存</strong></td><td>充值、SaaS服务</td><td>无库存概念</td><td>无需预占</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>维度2：价格模型</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类型</th><th>典型品类</th><th>缓存策略</th><th>快照策略</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>动态定价</strong></td><td>机票</td><td>5分钟TTL</td><td>秒级快照</td></tr>
+<tr><td><strong>日历定价</strong></td><td>酒店</td><td>30分钟TTL</td><td>日期维度快照</td></tr>
+<tr><td><strong>固定定价</strong></td><td>充值、礼品卡</td><td>1小时TTL</td><td>简单快照</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>维度3：履约模式</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类型</th><th>典型品类</th><th>调用方式</th><th>失败处理</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>同步履约</strong></td><td>充值</td><td>同步API（3秒超时）</td><td>立即重试3次</td></tr>
+<tr><td><strong>异步履约</strong></td><td>机票、酒店</td><td>异步轮询（30秒/次）</td><td>补偿任务</td></tr>
+<tr><td><strong>券码发放</strong></td><td>优惠券</td><td>本地分配（无外部调用）</td><td>券码池补充</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>统一抽象</strong>：</p>
+<pre><code class="language-go">// 品类策略接口（策略模式）
+type CategoryStrategy interface {
+    // 库存检查
+    CheckStock(ctx context.Context, req *StockRequest) (*StockResponse, error)
+    // 库存预占
+    ReserveStock(ctx context.Context, req *ReserveRequest) (*ReserveResponse, error)
+    // 价格计算
+    CalculatePrice(ctx context.Context, req *PriceRequest) (*PriceResponse, error)
+    // 订单履约
+    Fulfill(ctx context.Context, order *Order) (*FulfillResult, error)
+}
+
+// 策略工厂（根据品类选择策略）
+type CategoryStrategyFactory struct {
+    strategies map[CategoryType]CategoryStrategy
+}
+
+func (f *CategoryStrategyFactory) GetStrategy(categoryType CategoryType) CategoryStrategy {
+    return f.strategies[categoryType]
+}
+</code></pre>
+<p><strong>设计原则</strong>：</p>
+<ol>
+<li><strong>策略模式</strong>：每个品类一个策略实现，避免 if-else 地狱</li>
+<li><strong>适配器模式</strong>：统一供应商接口差异，降低耦合</li>
+<li><strong>模板方法</strong>：下单流程统一，具体步骤由策略实现</li>
+<li><strong>可扩展性</strong>：新增品类只需新增策略，不影响主流程</li>
+</ol>
+<hr>
+<h2 id="323-ddd战略设计与系统边界application-architecture---设计过程"><a class="header" href="#323-ddd战略设计与系统边界application-architecture---设计过程">32.3 DDD战略设计与系统边界（Application Architecture - 设计过程）</a></h2>
+<p>基于32.2的品类业务分析，本节展示如何运用DDD战略设计方法，从业务领域识别限界上下文、划分系统边界、设计服务间集成方式，最终形成32.4的整体架构全貌。</p>
+<h3 id="3231-限界上下文识别"><a class="header" href="#3231-限界上下文识别">32.3.1 限界上下文识别</a></h3>
+<p><strong>限界上下文是DDD战略设计的核心概念</strong>，它定义了一个模型的适用边界。本系统通过事件风暴识别出12个核心限界上下文。</p>
+<p><strong>识别过程</strong>（事件风暴Workshop）：</p>
+<pre><code class="language-text">第1步：领域事件识别（橙色便签）
+• OrderCreated（订单创建）
+• ProductOnShelf（商品上架）
+• StockReserved（库存预占）
+• PaymentPaid（支付成功）
+• PromotionApplied（促销应用）
+...
+
+第2步：聚合命令（蓝色便签）
+• CreateOrder（创建订单）
+• ReserveStock（预占库存）
+• CalculatePrice（计算价格）
+• ApplyPromotion（应用促销）
+...
+
+第3步：聚合实体（黄色便签）
+• Order（订单）
+• Product（商品）
+• Stock（库存）
+• Payment（支付）
+• Promotion（促销）
+...
+
+第4步：限界上下文识别（用绳子圈起相关的实体/命令/事件）
+• 订单上下文：Order + CreateOrder + OrderCreated
+• 商品上下文：Product + OnShelfProduct + ProductOnShelf
+• 库存上下文：Stock + ReserveStock + StockReserved
+...
+</code></pre>
+<p><strong>识别出的12个限界上下文</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>限界上下文</th><th>核心聚合根</th><th>核心职责</th><th>数据所有权</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>订单上下文</strong></td><td>Order</td><td>订单创建、状态机、履约</td><td>orders、order_items</td></tr>
+<tr><td><strong>商品上下文</strong></td><td>Product</td><td>商品信息、类目、属性</td><td>products、categories</td></tr>
+<tr><td><strong>库存上下文</strong></td><td>Stock</td><td>库存管理、预占、扣减</td><td>stocks、stock_logs</td></tr>
+<tr><td><strong>计价上下文</strong></td><td>Price</td><td>价格计算、试算、快照</td><td>price_snapshots</td></tr>
+<tr><td><strong>营销上下文</strong></td><td>Promotion</td><td>营销规则、优惠券、活动</td><td>promotions、coupons</td></tr>
+<tr><td><strong>支付上下文</strong></td><td>Payment</td><td>支付、退款、对账</td><td>payments、refunds</td></tr>
+<tr><td><strong>搜索上下文</strong></td><td>ProductIndex</td><td>商品搜索、筛选、排序</td><td>ES索引</td></tr>
+<tr><td><strong>用户上下文</strong></td><td>User</td><td>用户信息、登录、权限</td><td>users、roles</td></tr>
+<tr><td><strong>供应商上下文</strong></td><td>Supplier</td><td>供应商对接、适配、熔断</td><td>suppliers、supplier_products</td></tr>
+<tr><td><strong>购物车上下文</strong></td><td>Cart</td><td>购物车管理、合并</td><td>carts</td></tr>
+<tr><td><strong>评价上下文</strong></td><td>Review</td><td>用户评价、晒单</td><td>reviews</td></tr>
+<tr><td><strong>消息上下文</strong></td><td>Notification</td><td>消息通知、推送</td><td>notifications</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>为什么这样划分？</strong></p>
+<ol>
+<li>
+<p><strong>订单与商品分离</strong>：</p>
+<ul>
+<li>订单关注“交易流程“（下单、支付、履约）</li>
+<li>商品关注“商品信息“（SPU/SKU、类目、属性）</li>
+<li>分离原因：变化速度不同（订单频繁变更，商品相对稳定）</li>
+</ul>
+</li>
+<li>
+<p><strong>库存独立</strong>：</p>
+<ul>
+<li>库存是“资源“，订单/商品都依赖它</li>
+<li>库存有独立的生命周期（预占 → 扣减 → 释放）</li>
+<li>独立原因：单一职责，避免库存逻辑分散</li>
+</ul>
+</li>
+<li>
+<p><strong>计价独立</strong>：</p>
+<ul>
+<li>价格计算涉及多个维度（基础价、营销、优惠券、Coin）</li>
+<li>多个场景需要试算（详情页、购物车、结算页）</li>
+<li>独立原因：统一计价逻辑，避免不一致</li>
+</ul>
+</li>
+<li>
+<p><strong>营销独立</strong>：</p>
+<ul>
+<li>营销规则复杂（满减、折扣、买赠、限时秒杀）</li>
+<li>营销活动变化频繁</li>
+<li>独立原因：灵活支持新玩法，不影响主流程</li>
+</ul>
+</li>
+</ol>
+<p><strong>上下文大小原则</strong>：</p>
+<pre><code class="language-text">过小：每个实体一个上下文 ❌
+• 导致上下文过多，通信成本高
+• 事务边界不清晰
+
+合适：一个聚合根（或紧密相关的聚合根）一个上下文 ✅
+• 订单上下文：Order + OrderItem
+• 商品上下文：Product + Category
+
+过大：多个不相关的聚合根在一个上下文 ❌
+• 导致上下文职责不清晰
+• 团队协作困难
+</code></pre>
+<h3 id="3232-上下文映射关系"><a class="header" href="#3232-上下文映射关系">32.3.2 上下文映射关系</a></h3>
+<p><strong>上下文映射是限界上下文之间的关系</strong>，定义了它们如何协作、如何通信、谁主导谁跟随。</p>
+<p><strong>本系统的上下文映射图</strong>：</p>
+<pre class="mermaid">
+graph LR
+    Order[订单上下文&lt;br/&gt;Order Context] 
+    Product[商品上下文&lt;br/&gt;Product Context]
+    Inventory[库存上下文&lt;br/&gt;Inventory Context]
+    Pricing[计价上下文&lt;br/&gt;Pricing Context]
+    Marketing[营销上下文&lt;br/&gt;Marketing Context]
+    Payment[支付上下文&lt;br/&gt;Payment Context]
+    Search[搜索上下文&lt;br/&gt;Search Context]
+    Supplier[供应商上下文&lt;br/&gt;Supplier Context]
+    
+    Order --&gt;|Customer-Supplier| Product
+    Order --&gt;|Customer-Supplier| Inventory
+    Order --&gt;|Customer-Supplier| Pricing
+    Order --&gt;|Customer-Supplier| Marketing
+    Order --&gt;|Customer-Supplier| Payment
+    
+    Search --&gt;|Conformist| Product
+    Search --&gt;|Open Host Service| Product
+    
+    Inventory --&gt;|Anti-Corruption Layer| Supplier
+    Product --&gt;|Anti-Corruption Layer| Supplier
+    
+    Pricing --&gt;|Shared Kernel| Marketing
+</pre>
+
+<p><strong>映射关系类型</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>关系类型</th><th>说明</th><th>本系统示例</th><th>实现方式</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Customer-Supplier</strong></td><td>下游（客户）依赖上游（供应商）</td><td>订单 → 商品<br />订单 → 库存</td><td>同步RPC调用</td></tr>
+<tr><td><strong>Conformist</strong></td><td>下游完全遵循上游模型</td><td>搜索 → 商品</td><td>搜索直接使用商品模型</td></tr>
+<tr><td><strong>Anti-Corruption Layer</strong></td><td>下游用防腐层保护自己</td><td>库存 → 供应商</td><td>适配器翻译外部模型</td></tr>
+<tr><td><strong>Open Host Service</strong></td><td>上游提供公开服务</td><td>商品 → 搜索</td><td>RESTful API + Events</td></tr>
+<tr><td><strong>Shared Kernel</strong></td><td>两个上下文共享部分模型</td><td>计价 ⇄ 营销</td><td>共享折扣计算规则</td></tr>
+<tr><td><strong>Published Language</strong></td><td>上游定义标准数据格式</td><td>订单事件（Kafka）</td><td>Protobuf/JSON Schema</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>关键决策解析</strong>：</p>
+<p><strong>决策1：订单 → 商品（Customer-Supplier）</strong></p>
+<pre><code class="language-text">为什么不是Conformist（遵奉者）？
+• 订单需要保存商品快照（商品模型可能变化）
+• 订单不应该被商品模型变更影响
+• 订单有自己的领域模型（OrderItem vs Product）
+
+为什么是Customer-Supplier？
+• 订单依赖商品（下游依赖上游）
+• 商品提供稳定的API（上游为下游服务）
+• 变更需要协商（商品API变更需通知订单团队）
+</code></pre>
+<p><strong>决策2：库存 → 供应商（Anti-Corruption Layer）</strong></p>
+<pre><code class="language-text">为什么需要防腐层？
+• 供应商模型不稳定（50+供应商，接口各不相同）
+• 防止供应商模型污染库存域
+• 便于切换供应商（ACL隔离变化）
+
+防腐层职责：
+• 翻译外部模型 → 内部模型
+• 统一异常处理
+• 适配器模式（每个供应商一个适配器）
+</code></pre>
+<p><strong>决策3：计价 ⇄ 营销（Shared Kernel）</strong></p>
+<pre><code class="language-text">为什么是Shared Kernel？
+• 折扣计算规则在两个上下文都需要
+• 规则变更需要两个上下文同步
+• 共享折扣计算代码（避免重复）
+
+Shared Kernel范围：
+• DiscountRule（折扣规则接口）
+• PriceBreakdown（价格明细结构）
+• 仅共享"计算规则"，不共享"数据存储"
+</code></pre>
+<p><strong>上下文通信机制</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>通信方式</th><th>协议</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>同步查询</strong></td><td>RPC</td><td>gRPC + Protobuf</td><td>订单查询商品信息</td></tr>
+<tr><td><strong>同步操作</strong></td><td>RPC</td><td>gRPC + Protobuf</td><td>订单预占库存</td></tr>
+<tr><td><strong>异步事件</strong></td><td>消息队列</td><td>Kafka + Protobuf</td><td>订单创建 → 搜索更新销量</td></tr>
+<tr><td><strong>批量查询</strong></td><td>RPC</td><td>gRPC + Stream</td><td>批量查询商品价格</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="3233-边界划分实践案例"><a class="header" href="#3233-边界划分实践案例">32.3.3 边界划分实践案例</a></h3>
+<pre><code class="language-text">┌──────────────────────────────────────────────────────┐
+│              接入层（API Gateway）                    │
+│  • 鉴权、限流、路由、协议转换                         │
+│  • Web/App/小程序统一接入                            │
+└──────────────────────────────────────────────────────┘
+                          ↓
+┌──────────────────────────────────────────────────────┐
+│             聚合层（Aggregation Service）             │
+│  • 数据编排：并发调用多个微服务                       │
+│  • 降级策略：服务故障时的降级处理                     │
+│  • 缓存优化：聚合结果缓存                            │
+└──────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   业务服务层（Microservices）                │
+│  ┌────────┬────────┬────────┬────────┬────────┬────────┐   │
+│  │ Product│Inventory│ Pricing│Marketing│ Order │ Payment│   │
+│  │  商品  │  库存  │  计价  │  营销  │  订单 │  支付  │   │
+│  └────────┴────────┴────────┴────────┴────────┴────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌──────────────────────────────────────────────────────┐
+│           基础设施层（Infrastructure）                │
+│  • MySQL、Redis、Elasticsearch、Kafka               │
+│  • 服务发现（Consul）、服务网格（Envoy）             │
+│  • 监控告警（Prometheus、Grafana、Jaeger）          │
+└──────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>分层职责</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层级</th><th>服务</th><th>职责</th><th>不负责</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>接入层</strong></td><td>API Gateway</td><td>鉴权、限流、路由</td><td>业务逻辑、数据编排</td></tr>
+<tr><td><strong>聚合层</strong></td><td>Aggregation</td><td>数据获取、编排、降级</td><td>具体业务计算</td></tr>
+<tr><td><strong>业务层</strong></td><td>Microservices</td><td>单一业务领域逻辑</td><td>跨域数据获取</td></tr>
+<tr><td><strong>基础层</strong></td><td>Infra</td><td>存储、消息、监控</td><td>业务规则</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="3242-微服务拆分"><a class="header" href="#3242-微服务拆分">32.4.2 微服务拆分</a></h3>
+<p><strong>拆分原则</strong>：</p>
+<ol>
+<li><strong>按业务能力拆分</strong>（而非技术层次）</li>
+<li><strong>单一职责</strong>：每个服务只负责一个限界上下文</li>
+<li><strong>数据所有权</strong>：每个服务拥有自己的数据库</li>
+<li><strong>API优先</strong>：服务间只通过API或事件通信</li>
+</ol>
+<p><strong>核心服务清单</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>服务名称</th><th>职责</th><th>数据库</th><th>QPS（峰值）</th><th>团队规模</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Product Center</strong></td><td>商品信息、类目、属性</td><td>MySQL（4分库）</td><td>20000</td><td>12人</td></tr>
+<tr><td><strong>Inventory Service</strong></td><td>库存管理、预占、扣减</td><td>MySQL+Redis</td><td>8000</td><td>10人</td></tr>
+<tr><td><strong>Pricing Service</strong></td><td>价格计算、试算、快照</td><td>MySQL</td><td>15000</td><td>8人</td></tr>
+<tr><td><strong>Marketing Service</strong></td><td>营销规则、优惠券、活动</td><td>MySQL+Redis</td><td>10000</td><td>12人</td></tr>
+<tr><td><strong>Order Service</strong></td><td>订单创建、状态机、履约</td><td>MySQL（8分库64表）</td><td>5000</td><td>15人</td></tr>
+<tr><td><strong>Payment Service</strong></td><td>支付、退款、对账</td><td>MySQL</td><td>6000</td><td>10人</td></tr>
+<tr><td><strong>Search Service</strong></td><td>商品搜索、筛选、排序</td><td>Elasticsearch</td><td>15000</td><td>8人</td></tr>
+<tr><td><strong>User Service</strong></td><td>用户信息、登录、权限</td><td>MySQL</td><td>8000</td><td>6人</td></tr>
+<tr><td><strong>Supplier Gateway</strong></td><td>供应商对接、适配、熔断</td><td>MySQL+Redis</td><td>12000</td><td>15人</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>聚合服务</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>服务</th><th>职责</th><th>依赖服务</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Search Aggregation</strong></td><td>搜索结果聚合</td><td>Search + Product + Inventory + Pricing</td></tr>
+<tr><td><strong>Detail Aggregation</strong></td><td>详情页聚合</td><td>Product + Inventory + Pricing + Marketing</td></tr>
+<tr><td><strong>Checkout Aggregation</strong></td><td>结算页聚合</td><td>Product + Inventory + Pricing + Marketing</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="3243-服务依赖关系"><a class="header" href="#3243-服务依赖关系">32.4.3 服务依赖关系</a></h3>
+<pre class="mermaid">
+graph TB
+    subgraph 接入层
+        Gateway[API Gateway]
+    end
+    
+    subgraph 聚合层
+        SearchAgg[搜索聚合]
+        DetailAgg[详情聚合]
+        CheckoutAgg[结算聚合]
+    end
+    
+    subgraph 业务服务层
+        Product[商品中心]
+        Inventory[库存服务]
+        Pricing[计价服务]
+        Marketing[营销服务]
+        Order[订单服务]
+        Payment[支付服务]
+        Search[搜索服务]
+    end
+    
+    subgraph 基础服务
+        Supplier[供应商网关]
+        User[用户服务]
+    end
+    
+    Gateway --&gt; SearchAgg
+    Gateway --&gt; DetailAgg
+    Gateway --&gt; CheckoutAgg
+    Gateway --&gt; Order
+    
+    SearchAgg --&gt; Search
+    SearchAgg --&gt; Product
+    SearchAgg --&gt; Inventory
+    SearchAgg --&gt; Pricing
+    
+    DetailAgg --&gt; Product
+    DetailAgg --&gt; Inventory
+    DetailAgg --&gt; Pricing
+    DetailAgg --&gt; Marketing
+    
+    CheckoutAgg --&gt; Product
+    CheckoutAgg --&gt; Inventory
+    CheckoutAgg --&gt; Pricing
+    CheckoutAgg --&gt; Marketing
+    
+    Order --&gt; Inventory
+    Order --&gt; Payment
+    Order --&gt; Supplier
+    
+    Inventory --&gt; Supplier
+    Product --&gt; Supplier
+</pre>
+
+<p><strong>依赖原则</strong>：</p>
+<ol>
+<li><strong>上游 → 下游</strong>：聚合层调用业务层，不反向依赖</li>
+<li><strong>避免循环依赖</strong>：严格禁止服务间循环调用</li>
+<li><strong>异步解耦</strong>：非核心路径使用Kafka事件异步</li>
+<li><strong>降级友好</strong>：下游故障不影响上游核心功能</li>
+</ol>
+<h3 id="3244-数据流转"><a class="header" href="#3244-数据流转">32.4.4 数据流转</a></h3>
+<p><strong>同步数据流（关键路径）</strong>：</p>
+<pre><code class="language-text">用户搜索商品：
+API Gateway → Search Aggregation 
+            → Search Service（ES查询）
+            → Product Service（批量获取基础信息）
+            → Inventory Service（批量查库存）
+            → Pricing Service（批量计算价格）
+            ← 返回聚合结果
+
+响应时间：&lt; 200ms（P99）
+</code></pre>
+<p><strong>异步数据流（非关键路径）</strong>：</p>
+<pre><code class="language-text">订单创建成功 → Kafka Event：OrderCreated
+            → 订阅者1：Inventory Service（确认扣减）
+            → 订阅者2：Search Service（更新销量）
+            → 订阅者3：User Service（积分增加）
+            → 订阅者4：Data Team（数据分析）
+
+最终一致性：&lt; 5秒
+</code></pre>
+<p><strong>32.4小结</strong>：</p>
+<p>以上展示了系统的整体架构全貌：四层架构、12个核心微服务、服务依赖关系、数据流转模式。这些是32.3战略设计的具体落地——12个限界上下文对应12个微服务，上下文映射关系决定了服务间的集成方式。</p>
+<p>接下来32.5节将讨论技术选型决策，32.6节将深入各个系统的详细设计。</p>
+<hr>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part04/13-b2b2c-platform-architecture.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part04/13-02-b2b2c-architecture-decisions.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part04/13-b2b2c-platform-architecture.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part04/13-02-b2b2c-architecture-decisions.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
