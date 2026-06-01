@@ -1,0 +1,1172 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第 11 章 资损防控 - 系统设计与架构实战：原理、工程与电商案例</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="从系统设计方法论、核心基础设施、可靠性工程到电商业务架构实战；兼顾原理、工程落地、面试表达和完整业务案例。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-f2e377c1.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-15ae8bf9.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">系统设计与架构实战：原理、工程与电商案例</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第-11-章-资损防控资金库存优惠与账务安全"><a class="header" href="#第-11-章-资损防控资金库存优惠与账务安全">第 11 章 资损防控：资金、库存、优惠与账务安全</a></h1>
+<p>资损防控是业务系统可靠性里最“硬”的部分。接口慢一点，用户可能刷新；推荐失败，用户可能少点一个商品；但一旦出现重复扣款、错误退款、超卖、优惠券被薅、商家错结算、价格算错，系统损失的就不只是可用性，而是现金、库存、商誉和合规风险。</p>
+<p>很多团队把资损防控理解成支付系统或财务系统的事情，这是不完整的。真正的资损往往发生在业务链路交界处：计价给了错误金额，订单保存了错误快照，库存释放重复，营销券重复核销，支付回调乱序，退款绕过原路退回，供应商履约失败但订单仍完成，运营后台误改了高风险配置。</p>
+<p>本章从业务系统工程视角讨论资损防控：如何识别资损场景，如何设计账本与状态机，如何在主链路中防错，如何在高风险操作前审批和拦截，如何通过对账、补偿、冻结和审计把损失控制在最小范围。</p>
+<h2 id="111-什么是资损"><a class="header" href="#111-什么是资损">11.1 什么是资损</a></h2>
+<p>资损不只是“钱少了”。只要系统错误导致平台、商家、用户、供应商之间的权益分配偏离真实业务承诺，都可以视为资损风险。</p>
+<p>在电商系统中，常见资损对象包括：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对象</th><th>资损表现</th><th>例子</th></tr>
+</thead>
+<tbody>
+<tr><td>现金</td><td>多扣、少扣、漏扣、错退</td><td>用户支付 100 元，订单只入账 90 元</td></tr>
+<tr><td>库存</td><td>超卖、少卖、重复释放、错误锁定</td><td>库存只有 1 件，卖出 2 件</td></tr>
+<tr><td>优惠</td><td>重复用券、超预算补贴、错误叠加</td><td>满减和新人券错误叠加导致 0 元购</td></tr>
+<tr><td>积分 / 余额</td><td>重复发放、重复扣减、扣减失败</td><td>订单取消后积分未退回</td></tr>
+<tr><td>商家结算</td><td>错分账、错费率、错周期</td><td>商家应结 1000 元，只结 900 元</td></tr>
+<tr><td>供应商结算</td><td>平台订单与供应商单不一致</td><td>供应商已确认，平台未生成结算</td></tr>
+<tr><td>发票 / 税务</td><td>金额口径错误</td><td>含税价和不含税价混用</td></tr>
+<tr><td>履约权益</td><td>虚拟码重复发、酒店错订</td><td>同一券码发给两个用户</td></tr>
+</tbody>
+</table>
+</div>
+<p>资损防控的目标不是让所有风险变成零。成本、体验和效率决定了系统只能对不同风险分级治理。核心目标是：</p>
+<ol>
+<li>高风险错误尽量在发生前拦截。</li>
+<li>已发生的差异尽快发现。</li>
+<li>发现后能冻结影响范围。</li>
+<li>修复动作可幂等、可审批、可审计。</li>
+<li>损失金额、影响用户和责任边界可解释。</li>
+</ol>
+<h2 id="112-资损风险的来源"><a class="header" href="#112-资损风险的来源">11.2 资损风险的来源</a></h2>
+<p>资损通常不是单点 Bug，而是业务规则、分布式一致性、人工操作和外部依赖共同作用的结果。</p>
+<h3 id="1121-计价错误"><a class="header" href="#1121-计价错误">11.2.1 计价错误</a></h3>
+<p>计价错误是资损高发区。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>风险</th></tr>
+</thead>
+<tbody>
+<tr><td>优惠叠加顺序错误</td><td>折扣、满减、券、积分重复优惠</td></tr>
+<tr><td>金额精度错误</td><td>浮点计算、舍入规则不一致</td></tr>
+<tr><td>币种转换错误</td><td>汇率、币种精度、税费口径错误</td></tr>
+<tr><td>价格缓存过期</td><td>下架价、活动价、供应商价未刷新</td></tr>
+<tr><td>运费 / 税费漏算</td><td>用户少付或商家少收</td></tr>
+<tr><td>会员价与活动价冲突</td><td>高优先级规则未生效</td></tr>
+</tbody>
+</table>
+</div>
+<p>计价资损最危险的地方在于：错误金额一旦进入订单快照，后续支付、退款、结算都会沿着错误口径继续执行。</p>
+<h3 id="1122-状态机错误"><a class="header" href="#1122-状态机错误">11.2.2 状态机错误</a></h3>
+<p>状态机错误会让系统在不该推进时推进，或者在该回滚时没有回滚。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>风险</th></tr>
+</thead>
+<tbody>
+<tr><td>支付成功晚于订单取消</td><td>订单状态和资金事实冲突</td></tr>
+<tr><td>退款成功但订单仍完成</td><td>商家结算多结</td></tr>
+<tr><td>发货后重复退款</td><td>用户拿到商品又拿到钱</td></tr>
+<tr><td>订单取消后库存未释放</td><td>少卖</td></tr>
+<tr><td>订单取消后券未退回</td><td>用户权益损失</td></tr>
+<tr><td>售后关闭后退款回调到达</td><td>重复状态推进</td></tr>
+</tbody>
+</table>
+</div>
+<p>状态机必须用代码和数据库约束共同保护，不能只靠业务同学“按流程操作”。</p>
+<h3 id="1123-幂等缺失"><a class="header" href="#1123-幂等缺失">11.2.3 幂等缺失</a></h3>
+<p>高并发系统中，重复请求、重复回调、重复消息、重复人工提交都很常见。</p>
+<p>幂等缺失会直接造成：</p>
+<ul>
+<li>重复创建订单。</li>
+<li>重复扣库存。</li>
+<li>重复核销优惠券。</li>
+<li>重复发放积分。</li>
+<li>重复退款。</li>
+<li>重复给供应商下单。</li>
+</ul>
+<p>只在前端按钮上做防抖没有意义。资损防控要求服务端、数据库唯一键、状态机和流水账本共同保证幂等。</p>
+<h3 id="1124-异步链路不一致"><a class="header" href="#1124-异步链路不一致">11.2.4 异步链路不一致</a></h3>
+<p>为了性能，电商系统大量使用异步事件。</p>
+<pre><code class="language-text">支付成功
+  -&gt; 订单已支付
+  -&gt; 库存确认已售
+  -&gt; 营销确认核销
+  -&gt; 履约创建
+  -&gt; 商家结算计提
+  -&gt; 数据仓库入账
+</code></pre>
+<p>任何一步事件丢失、消费失败、乱序或重复，都可能造成资损。因此异步链路必须具备 Outbox、消费幂等、DLQ、对账和补偿。</p>
+<h3 id="1125-人工操作"><a class="header" href="#1125-人工操作">11.2.5 人工操作</a></h3>
+<p>很多严重资损来自人工操作，而不是代码 Bug。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>操作</th><th>风险</th></tr>
+</thead>
+<tbody>
+<tr><td>批量改价</td><td>大量商品低价售卖</td></tr>
+<tr><td>修改活动规则</td><td>优惠门槛错误、预算失控</td></tr>
+<tr><td>手工补券</td><td>重复发券或发错用户</td></tr>
+<tr><td>手工退款</td><td>超额退款或错退</td></tr>
+<tr><td>直接 SQL 修数据</td><td>绕过状态机和审计</td></tr>
+<tr><td>修改支付渠道权重</td><td>走错费率或不可用渠道</td></tr>
+<tr><td>修改供应商映射</td><td>商品履约和结算主体错误</td></tr>
+</tbody>
+</table>
+</div>
+<p>资损防控必须把后台、配置中心、批量任务和人工修复工具纳入治理，而不是只保护 C 端接口。</p>
+<h3 id="1126-外部系统不确定性"><a class="header" href="#1126-外部系统不确定性">11.2.6 外部系统不确定性</a></h3>
+<p>支付渠道、供应商、物流、银行、清结算文件都可能不稳定。</p>
+<p>典型风险：</p>
+<ul>
+<li>渠道同步返回成功，但最终扣款失败。</li>
+<li>渠道回调成功，但对账文件缺记录。</li>
+<li>供应商确认成功，但后续取消。</li>
+<li>供应商价格和平台价格不同步。</li>
+<li>银行清算金额与本地账务不同。</li>
+</ul>
+<p>外部依赖不能被当作本地事务的一部分。必须用适配层、状态机、查单、对账和人工复核治理。</p>
+<h2 id="113-资损防控的三道防线"><a class="header" href="#113-资损防控的三道防线">11.3 资损防控的三道防线</a></h2>
+<p>成熟的资损防控不是某一个风控规则，而是三道防线。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>防线</th><th>目标</th><th>手段</th></tr>
+</thead>
+<tbody>
+<tr><td>事前防错</td><td>不让高风险动作发生</td><td>规则校验、状态机、唯一键、限额、审批、灰度</td></tr>
+<tr><td>事中拦截</td><td>异常发生时立即阻断扩散</td><td>风险规则、冻结、熔断、预算水位、异常检测</td></tr>
+<tr><td>事后收敛</td><td>已发生差异可发现、可修复</td><td>对账、补偿、DLQ、审计、复盘</td></tr>
+</tbody>
+</table>
+</div>
+<p>很多团队只做事后对账，等财务发现差异时，用户已经拿到错误权益，商家已经结算，供应商已经履约，修复成本极高。真正有效的资损防控必须前移。</p>
+<h3 id="1131-事前防错"><a class="header" href="#1131-事前防错">11.3.1 事前防错</a></h3>
+<p>事前防错的核心是把业务不变量写进系统。</p>
+<p>例如：</p>
+<ul>
+<li>退款总额不能超过支付成功金额。</li>
+<li>同一支付渠道流水只能绑定一笔支付单。</li>
+<li>同一张券只能被一个订单核销一次。</li>
+<li>库存释放必须关联原始预占流水。</li>
+<li>订单金额必须等于商品金额、优惠、运费、税费的可解释组合。</li>
+<li>活动预算消耗不能超过预算上限。</li>
+<li>高风险价格变更必须审批和灰度。</li>
+</ul>
+<p>这些规则不能只存在于 PRD 或口头约定中，必须落到数据库约束、领域服务校验、审批流和监控规则。</p>
+<h3 id="1132-事中拦截"><a class="header" href="#1132-事中拦截">11.3.2 事中拦截</a></h3>
+<p>事中拦截关注“异常趋势刚出现时，能否快速止血”。</p>
+<p>典型拦截：</p>
+<ul>
+<li>某活动优惠核销速度超过预算曲线，自动暂停活动。</li>
+<li>某 SKU 下单价低于成本价阈值，自动下架或进入审核。</li>
+<li>某支付渠道短时间失败率异常，自动降权或切流。</li>
+<li>某商家退款率异常升高，冻结自动退款。</li>
+<li>某接口重复退款请求异常，触发用户或订单级限流。</li>
+<li>库存超卖风险出现，冻结商品可售。</li>
+</ul>
+<p>拦截动作必须区分用户体验和资损风险。推荐失败可以降级，但金额异常应该宁可阻断，也不能带病放行。</p>
+<h3 id="1133-事后收敛"><a class="header" href="#1133-事后收敛">11.3.3 事后收敛</a></h3>
+<p>事后收敛依赖第 10 章的对账、补偿、DLQ 和故障恢复能力。</p>
+<p>关键要求：</p>
+<ul>
+<li>差异能被批次化发现。</li>
+<li>差异能按风险等级分类。</li>
+<li>低风险差异能自动修复。</li>
+<li>高风险差异能冻结并进入人工复核。</li>
+<li>所有修复动作都有审计证据。</li>
+<li>修复后再次对账确认收敛。</li>
+</ul>
+<p>事后收敛不是失败的借口，而是承认分布式系统不可能永远同步成功。</p>
+<h2 id="114-资损防控的核心模型账本状态机快照"><a class="header" href="#114-资损防控的核心模型账本状态机快照">11.4 资损防控的核心模型：账本、状态机、快照</a></h2>
+<p>资损防控有三个底层模型：账本、状态机、快照。</p>
+<h3 id="1141-账本"><a class="header" href="#1141-账本">11.4.1 账本</a></h3>
+<p>账本记录每一次权益变化的事实流水。余额、库存、券、积分、商家结算都应该有账本。</p>
+<p>账本的特点：</p>
+<ol>
+<li>追加写，不随意物理删除。</li>
+<li>每条流水有业务来源和幂等键。</li>
+<li>借贷或增减方向明确。</li>
+<li>能从流水重放出余额。</li>
+<li>能与快照和外部账单对账。</li>
+</ol>
+<p>以资金账本为例：</p>
+<pre><code class="language-sql">CREATE TABLE fund_ledger (
+    id BIGINT PRIMARY KEY,
+    account_id VARCHAR(128) NOT NULL,
+    biz_type VARCHAR(64) NOT NULL,
+    biz_id VARCHAR(128) NOT NULL,
+    direction VARCHAR(16) NOT NULL,
+    amount BIGINT NOT NULL,
+    currency VARCHAR(16) NOT NULL,
+    ledger_type VARCHAR(64) NOT NULL,
+    idempotency_key VARCHAR(128) NOT NULL,
+    before_balance BIGINT NULL,
+    after_balance BIGINT NULL,
+    status VARCHAR(32) NOT NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_fund_ledger_idem (ledger_type, idempotency_key),
+    KEY idx_fund_ledger_account (account_id, created_at),
+    KEY idx_fund_ledger_biz (biz_type, biz_id)
+);
+</code></pre>
+<p>金额建议使用最小货币单位的整数，例如分、厘、cent，避免浮点误差。</p>
+<h3 id="1142-状态机"><a class="header" href="#1142-状态机">11.4.2 状态机</a></h3>
+<p>状态机定义业务对象能从哪里到哪里。</p>
+<p>支付单状态机示例：</p>
+<pre><code class="language-text">INIT
+  -&gt; PAYING
+  -&gt; SUCCESS
+  -&gt; FAILED
+  -&gt; CLOSED
+  -&gt; REFUNDING
+  -&gt; REFUNDED
+</code></pre>
+<p>状态机要做三件事：</p>
+<ol>
+<li>限制非法迁移。</li>
+<li>处理重复事件。</li>
+<li>为补偿和对账提供判断依据。</li>
+</ol>
+<p>例如支付单从 <code>SUCCESS</code> 不能回到 <code>PAYING</code>；退款成功回调重复到达时应该幂等返回；订单已取消后收到支付成功事件时不能无条件推进订单，需要进入特殊处理。</p>
+<h3 id="1143-快照"><a class="header" href="#1143-快照">11.4.3 快照</a></h3>
+<p>快照用于固定业务承诺。</p>
+<p>订单创建时应保存：</p>
+<ul>
+<li>商品快照。</li>
+<li>SKU 快照。</li>
+<li>价格快照。</li>
+<li>优惠快照。</li>
+<li>运费和税费快照。</li>
+<li>履约规则快照。</li>
+<li>供应商报价和确认快照。</li>
+</ul>
+<p>如果订单只保存商品 ID，后续商品改价、活动下线、供应商规则变化，就无法解释当时为什么收这个价，也无法正确退款、结算和审计。</p>
+<p>资损防控里有一个重要原则：<strong>交易发生后，用交易快照解释历史，不用当前配置解释历史。</strong></p>
+<h2 id="115-计价资损防控"><a class="header" href="#115-计价资损防控">11.5 计价资损防控</a></h2>
+<p>计价是资损防控第一现场。</p>
+<h3 id="1151-金额公式必须可解释"><a class="header" href="#1151-金额公式必须可解释">11.5.1 金额公式必须可解释</a></h3>
+<p>订单应付金额应该能被公式解释：</p>
+<pre><code class="language-text">payable_amount
+  = item_amount
+  + shipping_fee
+  + tax_amount
+  + service_fee
+  - platform_discount
+  - merchant_discount
+  - coupon_discount
+  - points_discount
+</code></pre>
+<p>每一项都必须有来源、版本和上限。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>金额项</th><th>防控要求</th></tr>
+</thead>
+<tbody>
+<tr><td>商品金额</td><td>绑定商品价格版本和币种</td></tr>
+<tr><td>运费</td><td>保存运费模板版本和计算输入</td></tr>
+<tr><td>税费</td><td>保存税率、税区、含税口径</td></tr>
+<tr><td>平台优惠</td><td>绑定活动 ID、预算、规则版本</td></tr>
+<tr><td>商家优惠</td><td>区分商家承担和平台承担</td></tr>
+<tr><td>券优惠</td><td>绑定券实例和核销流水</td></tr>
+<tr><td>积分抵扣</td><td>保存积分扣减流水</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果金额只保存一个总价，后续退款、结算、财务入账都会变成猜谜。</p>
+<h3 id="1152-金额不变量"><a class="header" href="#1152-金额不变量">11.5.2 金额不变量</a></h3>
+<p>计价系统必须校验不变量：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>不变量</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>应付金额不能小于 0</td><td>除非明确支持 0 元单</td></tr>
+<tr><td>优惠总额不能超过可优惠金额</td><td>防止倒贴</td></tr>
+<tr><td>平台补贴不能超过活动预算</td><td>防止预算穿透</td></tr>
+<tr><td>商家承担金额不能超过商家授权</td><td>防止错扣商家</td></tr>
+<tr><td>退款金额不能超过原支付成功金额</td><td>防止超退</td></tr>
+<tr><td>分账总额不能超过实收金额</td><td>防止商家多结</td></tr>
+<tr><td>不同币种不能直接加减</td><td>必须先明确汇率和结算币种</td></tr>
+</tbody>
+</table>
+</div>
+<p>这些校验应该存在于计价服务、订单创建、支付创建、退款创建和结算生成多个关键点。</p>
+<h3 id="1153-价格保护"><a class="header" href="#1153-价格保护">11.5.3 价格保护</a></h3>
+<p>价格变更要有风险保护：</p>
+<ul>
+<li>价格低于成本价或历史均价一定比例，进入审核。</li>
+<li>批量改价影响 SKU 数超过阈值，需要双人审批。</li>
+<li>活动价生效前灰度到小流量或内部用户。</li>
+<li>新规则上线后监控订单平均折扣率、毛利率和 0 元单数量。</li>
+<li>价格配置变更写审计，并能快速回滚。</li>
+</ul>
+<p>价格错误通常扩散非常快。一个错误活动配置可能几分钟内产生几万笔订单，所以价格保护必须具备自动暂停能力。</p>
+<h2 id="116-订单支付与退款资损防控"><a class="header" href="#116-订单支付与退款资损防控">11.6 订单、支付与退款资损防控</a></h2>
+<h3 id="1161-创建支付单"><a class="header" href="#1161-创建支付单">11.6.1 创建支付单</a></h3>
+<p>创建支付单前必须校验：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>校验</th><th>目的</th></tr>
+</thead>
+<tbody>
+<tr><td>订单仍可支付</td><td>防止取消后支付</td></tr>
+<tr><td>支付金额等于订单应付金额</td><td>防止篡改金额</td></tr>
+<tr><td>支付币种一致</td><td>防止币种错配</td></tr>
+<tr><td>支付单幂等</td><td>防止重复支付单</td></tr>
+<tr><td>订单未进入退款或风控冻结</td><td>防止状态冲突</td></tr>
+</tbody>
+</table>
+</div>
+<p>支付金额不能信任前端传入。前端只能提交订单号和支付方式，金额必须由服务端根据订单快照读取。</p>
+<h3 id="1162-支付回调"><a class="header" href="#1162-支付回调">11.6.2 支付回调</a></h3>
+<p>支付回调是资损高风险入口。</p>
+<p>处理顺序建议：</p>
+<pre><code class="language-text">接收回调
+  -&gt; 验签
+  -&gt; 校验渠道商户号
+  -&gt; 幂等检查渠道流水
+  -&gt; 查询本地支付单
+  -&gt; 校验金额、币种、订单归属
+  -&gt; 状态机推进
+  -&gt; 写支付流水和 Outbox
+  -&gt; 返回渠道成功
+</code></pre>
+<p>几个关键原则：</p>
+<ul>
+<li>验签失败不能进入业务逻辑。</li>
+<li>渠道流水号必须唯一。</li>
+<li>回调金额必须等于支付单金额。</li>
+<li>更新支付状态和写 Outbox 应在同一事务内。</li>
+<li>成功响应渠道应该晚于本地事务提交。</li>
+<li>重复回调必须幂等返回成功。</li>
+</ul>
+<h3 id="1163-退款防控"><a class="header" href="#1163-退款防控">11.6.3 退款防控</a></h3>
+<p>退款比支付更容易出资损，因为它常常由售后、客服、运营或自动规则触发。</p>
+<p>退款前必须校验：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>校验</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>原支付成功</td><td>未支付不能退款</td></tr>
+<tr><td>可退金额</td><td>累计退款不能超过实付</td></tr>
+<tr><td>退款原因</td><td>是否符合售后规则</td></tr>
+<tr><td>订单状态</td><td>已发货、已核销、已完成的退款规则不同</td></tr>
+<tr><td>权益回收</td><td>券、积分、库存、发票是否需要反向处理</td></tr>
+<tr><td>风险审批</td><td>大额退款、批量退款、跨账户退款必须审批</td></tr>
+</tbody>
+</table>
+</div>
+<p>退款建议使用退款单状态机：</p>
+<pre><code class="language-text">INIT
+  -&gt; REFUNDING
+  -&gt; SUCCESS
+  -&gt; FAILED
+  -&gt; CLOSED
+</code></pre>
+<p>原路退回是默认原则。任何非原路退款、线下退款、人工补偿，都应提高风险等级并要求审批。</p>
+<h3 id="1164-重复退款防控"><a class="header" href="#1164-重复退款防控">11.6.4 重复退款防控</a></h3>
+<p>重复退款常见来源：</p>
+<ul>
+<li>用户重复提交售后。</li>
+<li>客服重复点击。</li>
+<li>渠道回调重复。</li>
+<li>补偿任务重复执行。</li>
+<li>多个售后单同时关联同一支付单。</li>
+</ul>
+<p>防控方式：</p>
+<ul>
+<li><code>payment_id + refund_request_id</code> 唯一。</li>
+<li>支付单累计退款金额使用条件更新。</li>
+<li>退款成功流水唯一。</li>
+<li>退款补偿幂等。</li>
+<li>售后单和退款单一对一或明确多对一规则。</li>
+</ul>
+<p>金额更新建议使用条件约束：</p>
+<pre><code class="language-sql">UPDATE payment_order
+SET refunded_amount = refunded_amount + :refund_amount
+WHERE payment_id = :payment_id
+  AND paid_amount - refunded_amount &gt;= :refund_amount;
+</code></pre>
+<p>更新影响行数为 0 时，不能继续发起渠道退款。</p>
+<h2 id="117-库存与履约资损防控"><a class="header" href="#117-库存与履约资损防控">11.7 库存与履约资损防控</a></h2>
+<p>库存资损既可能是超卖，也可能是少卖。</p>
+<h3 id="1171-库存账本"><a class="header" href="#1171-库存账本">11.7.1 库存账本</a></h3>
+<p>库存系统不应该只有一个 <code>available_stock</code> 字段。至少需要库存流水：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>流水类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>INIT</td><td>初始化库存</td></tr>
+<tr><td>RESERVE</td><td>下单预占</td></tr>
+<tr><td>CONFIRM</td><td>支付成功确认已售</td></tr>
+<tr><td>RELEASE</td><td>取消或超时释放</td></tr>
+<tr><td>ADJUST</td><td>人工调整</td></tr>
+<tr><td>FREEZE</td><td>风险冻结</td></tr>
+<tr><td>UNFREEZE</td><td>解除冻结</td></tr>
+</tbody>
+</table>
+</div>
+<p>库存余额可以是快照，但库存真相应来自流水和状态机。</p>
+<h3 id="1172-超卖防控"><a class="header" href="#1172-超卖防控">11.7.2 超卖防控</a></h3>
+<p>超卖防控要覆盖并发、缓存和供应商三类风险。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>风险</th><th>防控</th></tr>
+</thead>
+<tbody>
+<tr><td>并发扣减</td><td>DB 条件更新、Redis Lua、库存分片</td></tr>
+<tr><td>重复扣减</td><td>预占流水幂等键</td></tr>
+<tr><td>重复释放</td><td>释放流水唯一键</td></tr>
+<tr><td>Redis 与 DB 不一致</td><td>定期对账，以账本修复缓存</td></tr>
+<tr><td>热点 SKU</td><td>限流、排队、库存分桶</td></tr>
+<tr><td>供应商库存延迟</td><td>可售水位、安全库存、实时确认</td></tr>
+</tbody>
+</table>
+</div>
+<p>典型扣减条件：</p>
+<pre><code class="language-sql">UPDATE inventory_balance
+SET available = available - :qty,
+    reserved = reserved + :qty
+WHERE inventory_key = :inventory_key
+  AND available &gt;= :qty;
+</code></pre>
+<p>影响行数为 0 表示库存不足，不能继续创建可支付订单。</p>
+<h3 id="1173-少卖防控"><a class="header" href="#1173-少卖防控">11.7.3 少卖防控</a></h3>
+<p>很多团队只关注超卖，忽略少卖。少卖也是资损，因为平台损失交易机会。</p>
+<p>少卖来源：</p>
+<ul>
+<li>订单失败后库存未释放。</li>
+<li>Redis 扣减成功但 DB 释放失败。</li>
+<li>预占过期扫描任务挂掉。</li>
+<li>供应商库存恢复后平台未同步。</li>
+<li>风险冻结后没有自动解冻。</li>
+</ul>
+<p>少卖防控依赖：</p>
+<ul>
+<li>预占过期释放。</li>
+<li>库存对账。</li>
+<li>冻结库存监控。</li>
+<li>供应商库存新鲜度监控。</li>
+<li>手工冻结工单 SLA。</li>
+</ul>
+<h3 id="1174-虚拟商品和券码"><a class="header" href="#1174-虚拟商品和券码">11.7.4 虚拟商品和券码</a></h3>
+<p>券码、充值、酒店、机票这类库存更复杂。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>品类</th><th>风险</th><th>防控</th></tr>
+</thead>
+<tbody>
+<tr><td>券码</td><td>同一码发给多个用户</td><td>code_id 状态机、发码幂等</td></tr>
+<tr><td>充值</td><td>供应商扣款但用户未到账</td><td>供应商请求幂等、回调对账</td></tr>
+<tr><td>酒店</td><td>平台收款但供应商未确认</td><td>支付前二次确认或支付后快速取消退款</td></tr>
+<tr><td>机票</td><td>价格和舱位实时变化</td><td>锁价、验舱、支付时效</td></tr>
+</tbody>
+</table>
+</div>
+<p>虚拟履约必须有供应商请求流水，不能只记录“履约成功 / 失败”。否则供应商争议时无法举证。</p>
+<h2 id="118-营销与优惠资损防控"><a class="header" href="#118-营销与优惠资损防控">11.8 营销与优惠资损防控</a></h2>
+<p>营销系统是“有意让利”的系统，也是资损高发区。</p>
+<h3 id="1181-优惠预算"><a class="header" href="#1181-优惠预算">11.8.1 优惠预算</a></h3>
+<p>每个活动都应该有预算控制：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>预算类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>总预算</td><td>活动最多补贴金额</td></tr>
+<tr><td>日预算</td><td>单日最多补贴金额</td></tr>
+<tr><td>用户预算</td><td>单用户最多领取或核销</td></tr>
+<tr><td>商家预算</td><td>单商家承担上限</td></tr>
+<tr><td>商品预算</td><td>单 SKU 补贴上限</td></tr>
+<tr><td>渠道预算</td><td>不同渠道独立预算</td></tr>
+</tbody>
+</table>
+</div>
+<p>预算扣减要使用原子操作，并有预算流水。</p>
+<pre><code class="language-text">预算冻结
+  -&gt; 订单支付成功确认消耗
+  -&gt; 订单取消释放预算
+  -&gt; 退款时按规则返还或不返还
+</code></pre>
+<p>不要只在活动开始前校验预算，活动运行中必须实时监控预算消耗速度。</p>
+<h3 id="1182-优惠叠加规则"><a class="header" href="#1182-优惠叠加规则">11.8.2 优惠叠加规则</a></h3>
+<p>优惠叠加要明确：</p>
+<ul>
+<li>哪些优惠互斥。</li>
+<li>哪些优惠可叠加。</li>
+<li>叠加顺序是什么。</li>
+<li>每类优惠作用范围是什么。</li>
+<li>优惠是否参与退款。</li>
+<li>优惠由平台还是商家承担。</li>
+</ul>
+<p>常见事故是优惠规则从“单券”扩展到“多券 + 满减 + 积分 + 会员价”后，没有重新设计规则引擎，只是在代码里堆条件。</p>
+<h3 id="1183-薅羊毛防控"><a class="header" href="#1183-薅羊毛防控">11.8.3 薅羊毛防控</a></h3>
+<p>营销资损不一定来自 Bug，也可能来自规则被利用。</p>
+<p>常见手段：</p>
+<ul>
+<li>新用户补贴被批量注册领取。</li>
+<li>邀请奖励被刷。</li>
+<li>低价商品叠加满减套利。</li>
+<li>退款后优惠权益未回收。</li>
+<li>组合订单拆单后优惠分摊错误。</li>
+</ul>
+<p>防控方式：</p>
+<ul>
+<li>用户、设备、支付工具、收货地址、IP、账号关系图谱。</li>
+<li>优惠领取和核销频率限制。</li>
+<li>低价订单和 0 元订单专项监控。</li>
+<li>退款后优惠回收规则。</li>
+<li>活动预算和毛利率水位告警。</li>
+</ul>
+<p>营销系统不能只看转化率，也要看补贴效率和异常套利。</p>
+<h2 id="119-供应商与结算资损防控"><a class="header" href="#119-供应商与结算资损防控">11.9 供应商与结算资损防控</a></h2>
+<p>B2B2C 和多供应商平台里，资损常发生在平台、用户、商家、供应商之间的边界。</p>
+<h3 id="1191-供应商履约一致性"><a class="header" href="#1191-供应商履约一致性">11.9.1 供应商履约一致性</a></h3>
+<p>平台订单和供应商订单必须建立映射：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>order_id</code></td><td>平台订单</td></tr>
+<tr><td><code>supplier_order_id</code></td><td>供应商订单</td></tr>
+<tr><td><code>supplier_id</code></td><td>供应商</td></tr>
+<tr><td><code>confirm_status</code></td><td>供应商确认状态</td></tr>
+<tr><td><code>supplier_amount</code></td><td>供应商结算金额</td></tr>
+<tr><td><code>currency</code></td><td>币种</td></tr>
+<tr><td><code>confirm_time</code></td><td>确认时间</td></tr>
+<tr><td><code>raw_response_ref</code></td><td>原始响应</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果用户已支付但供应商未确认，系统必须明确处理策略：</p>
+<ul>
+<li>自动重试确认。</li>
+<li>切换供应商。</li>
+<li>退款。</li>
+<li>客服介入。</li>
+<li>平台承担差价履约。</li>
+</ul>
+<p>不能让订单无限停在“处理中”。</p>
+<h3 id="1192-商家结算"><a class="header" href="#1192-商家结算">11.9.2 商家结算</a></h3>
+<p>商家结算至少要对齐：</p>
+<pre><code class="language-text">用户实付
+  - 平台优惠承担
+  - 商家优惠承担
+  - 佣金
+  - 手续费
+  - 退款
+  - 售后扣减
+  = 商家应结算金额
+</code></pre>
+<p>结算资损常见问题：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>问题</th><th>风险</th></tr>
+</thead>
+<tbody>
+<tr><td>优惠承担方错</td><td>平台和商家分摊错误</td></tr>
+<tr><td>退款未冲减结算</td><td>商家多结</td></tr>
+<tr><td>费率配置错误</td><td>佣金少收或多收</td></tr>
+<tr><td>结算周期错误</td><td>提前或延后结算</td></tr>
+<tr><td>跨币种汇率错误</td><td>汇兑损失</td></tr>
+<tr><td>订单状态口径错误</td><td>未完成订单被结算</td></tr>
+</tbody>
+</table>
+</div>
+<p>结算系统必须使用不可变结算批次和结算明细。已出账批次不能随意修改，应通过调账单修正。</p>
+<h3 id="1193-调账"><a class="header" href="#1193-调账">11.9.3 调账</a></h3>
+<p>调账是必要能力，但也是高风险能力。</p>
+<p>调账必须具备：</p>
+<ul>
+<li>调账原因。</li>
+<li>调账对象。</li>
+<li>调账金额。</li>
+<li>关联订单或结算单。</li>
+<li>审批人。</li>
+<li>操作人。</li>
+<li>前后余额。</li>
+<li>财务凭证。</li>
+</ul>
+<p>调账不能直接修改原始订单金额或支付金额。正确方式是追加调账流水。</p>
+<h2 id="1110-权限配置与后台操作防控"><a class="header" href="#1110-权限配置与后台操作防控">11.10 权限、配置与后台操作防控</a></h2>
+<p>后台是资损防控的重点区域。</p>
+<h3 id="11101-高风险操作分级"><a class="header" href="#11101-高风险操作分级">11.10.1 高风险操作分级</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>风险等级</th><th>操作</th><th>控制</th></tr>
+</thead>
+<tbody>
+<tr><td>P0</td><td>批量退款、批量改价、批量发券、结算调账</td><td>双人审批、白名单、限额、审计</td></tr>
+<tr><td>P1</td><td>活动规则上线、支付渠道切换、供应商映射修改</td><td>审批、灰度、回滚</td></tr>
+<tr><td>P2</td><td>单商品改价、单订单补偿、单用户补券</td><td>权限校验、理由必填、审计</td></tr>
+<tr><td>P3</td><td>查询、导出、低风险配置</td><td>权限和水印</td></tr>
+</tbody>
+</table>
+</div>
+<p>高风险操作要做到“能不能做、谁能做、做多少、怎么回滚、谁审批、如何审计”都有系统约束。</p>
+<h3 id="11102-配置变更防控"><a class="header" href="#11102-配置变更防控">11.10.2 配置变更防控</a></h3>
+<p>配置变更必须和代码发布一样治理。</p>
+<p>要求：</p>
+<ul>
+<li>配置有 schema 校验。</li>
+<li>配置有版本号。</li>
+<li>配置支持灰度。</li>
+<li>配置支持一键回滚。</li>
+<li>高风险配置需要审批。</li>
+<li>配置变更事件写入监控。</li>
+<li>配置生效范围可见。</li>
+</ul>
+<p>例如支付渠道权重、活动预算、费率、退款规则、库存策略，都不应允许无审批直接全量生效。</p>
+<h3 id="11103-禁止直接改库成为流程"><a class="header" href="#11103-禁止直接改库成为流程">11.10.3 禁止直接改库成为流程</a></h3>
+<p>事故处理中偶尔可能需要 DBA 级别的紧急修复，但不能把直接 SQL 变成日常流程。</p>
+<p>直接改库的风险：</p>
+<ul>
+<li>绕过状态机。</li>
+<li>绕过幂等。</li>
+<li>绕过 Outbox。</li>
+<li>绕过审计。</li>
+<li>无法触发下游同步。</li>
+<li>无法被对账系统正确解释。</li>
+</ul>
+<p>正确方式是建设修复工具：通过领域服务执行修复，自动写状态日志、Outbox、审计和对账标记。</p>
+<h2 id="1111-风险规则与拦截系统"><a class="header" href="#1111-风险规则与拦截系统">11.11 风险规则与拦截系统</a></h2>
+<p>资损防控需要规则系统，但规则系统不能变成没人懂的黑盒。</p>
+<h3 id="11111-规则类型"><a class="header" href="#11111-规则类型">11.11.1 规则类型</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>规则类型</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td>阈值规则</td><td>单笔退款超过 5000 元需要审批</td></tr>
+<tr><td>比例规则</td><td>商品价格低于近 7 日均价 50% 拦截</td></tr>
+<tr><td>频率规则</td><td>同用户 10 分钟内退款超过 3 次</td></tr>
+<tr><td>预算规则</td><td>活动预算消耗超过 90% 自动降级</td></tr>
+<tr><td>状态规则</td><td>已发货订单不能自动全额退款</td></tr>
+<tr><td>关系规则</td><td>同设备批量领取新人券</td></tr>
+<tr><td>对账规则</td><td>支付成功但订单未推进超过 1 分钟</td></tr>
+</tbody>
+</table>
+</div>
+<p>规则结果不一定只有通过和拒绝，还可以是：</p>
+<ul>
+<li>放行。</li>
+<li>二次确认。</li>
+<li>人工审批。</li>
+<li>冻结对象。</li>
+<li>降级权益。</li>
+<li>触发对账。</li>
+<li>触发告警。</li>
+</ul>
+<h3 id="11112-规则执行点"><a class="header" href="#11112-规则执行点">11.11.2 规则执行点</a></h3>
+<p>规则要放在关键业务动作前：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>动作</th><th>规则</th></tr>
+</thead>
+<tbody>
+<tr><td>计价</td><td>价格、优惠、预算、毛利率</td></tr>
+<tr><td>创单</td><td>库存、优惠、风控、金额</td></tr>
+<tr><td>支付</td><td>金额一致、订单状态、渠道风险</td></tr>
+<tr><td>退款</td><td>可退金额、售后状态、风险审批</td></tr>
+<tr><td>发券</td><td>用户资格、频率、预算</td></tr>
+<tr><td>改价</td><td>成本价、影响范围、审批</td></tr>
+<tr><td>结算</td><td>订单完成、退款冲减、费率</td></tr>
+<tr><td>人工修复</td><td>权限、审批、幂等、审计</td></tr>
+</tbody>
+</table>
+</div>
+<p>越靠近源头拦截，损失越小。等到财务 T+1 对账才发现，通常已经很难无痛修复。</p>
+<h3 id="11113-规则治理"><a class="header" href="#11113-规则治理">11.11.3 规则治理</a></h3>
+<p>规则系统本身也会造成事故。</p>
+<p>治理要求：</p>
+<ul>
+<li>规则有 owner。</li>
+<li>规则有版本。</li>
+<li>规则有命中日志。</li>
+<li>规则支持灰度。</li>
+<li>规则支持回滚。</li>
+<li>规则变更有审批。</li>
+<li>规则效果可监控。</li>
+<li>规则误杀可申诉和恢复。</li>
+</ul>
+<p>没有治理的规则系统，最后会变成谁也不敢改、谁也解释不了的风险源。</p>
+<h2 id="1112-监控与告警"><a class="header" href="#1112-监控与告警">11.12 监控与告警</a></h2>
+<p>资损监控要比普通可用性监控更贴近业务结果。</p>
+<h3 id="11121-核心指标"><a class="header" href="#11121-核心指标">11.12.1 核心指标</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>域</th><th>指标</th></tr>
+</thead>
+<tbody>
+<tr><td>计价</td><td>0 元单数量、负毛利订单数、折扣率分布、价格异常拦截数</td></tr>
+<tr><td>支付</td><td>支付金额不一致、重复渠道流水、支付成功订单未推进</td></tr>
+<tr><td>退款</td><td>超额退款拦截数、重复退款尝试、人工退款金额</td></tr>
+<tr><td>库存</td><td>超卖次数、预占超时未释放、库存对账差异</td></tr>
+<tr><td>营销</td><td>预算消耗速度、券重复核销、异常领取量</td></tr>
+<tr><td>结算</td><td>长短款、调账金额、结算差异</td></tr>
+<tr><td>供应商</td><td>平台支付成功但供应商未确认、供应商金额差异</td></tr>
+<tr><td>后台</td><td>高风险操作次数、审批拒绝数、批量操作影响量</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="11122-告警分级"><a class="header" href="#11122-告警分级">11.12.2 告警分级</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>等级</th><th>场景</th><th>响应</th></tr>
+</thead>
+<tbody>
+<tr><td>P0</td><td>重复扣款、重复退款、大面积错价、超卖、金额不一致</td><td>立即止血，事故群，冻结风险对象</td></tr>
+<tr><td>P1</td><td>活动预算异常消耗、供应商确认失败激增、结算差异升高</td><td>10 分钟内响应</td></tr>
+<tr><td>P2</td><td>单类商品价格异常、补偿积压、DLQ 增长</td><td>值班处理</td></tr>
+<tr><td>P3</td><td>审计报表、趋势异常</td><td>工单跟进</td></tr>
+</tbody>
+</table>
+</div>
+<p>资损告警必须带上影响金额、影响订单数、影响用户数、开始时间、建议止血动作。只告警“规则命中异常”没有行动价值。</p>
+<h3 id="11123-风险看板"><a class="header" href="#11123-风险看板">11.12.3 风险看板</a></h3>
+<p>资损看板建议分为四屏：</p>
+<ol>
+<li><strong>实时风险屏</strong>：P0/P1 风险、影响金额、冻结对象、当前止血状态。</li>
+<li><strong>交易链路屏</strong>：计价、创单、支付、退款、履约各环节异常。</li>
+<li><strong>权益与库存屏</strong>：库存、券、积分、预算、活动风险。</li>
+<li><strong>运营与审计屏</strong>：高风险操作、审批、调账、人工修复。</li>
+</ol>
+<p>看板第一屏必须让值班同学知道：现在是否正在亏钱，亏在哪，是否已经止血。</p>
+<h2 id="1113-资损事故处理"><a class="header" href="#1113-资损事故处理">11.13 资损事故处理</a></h2>
+<p>资损事故处理顺序和普通可用性事故不同。普通事故优先恢复服务，资损事故优先止血和保护证据。</p>
+<p>推荐顺序：</p>
+<ol>
+<li>确认是否仍在产生损失。</li>
+<li>冻结风险入口，例如活动、商品、退款、支付渠道、供应商。</li>
+<li>保护现场，保存日志、配置版本、订单快照、渠道流水。</li>
+<li>估算影响范围和金额。</li>
+<li>分类处理用户、商家、供应商和财务影响。</li>
+<li>执行修复或补偿。</li>
+<li>复核账务和数据。</li>
+<li>输出复盘和长期改进项。</li>
+</ol>
+<h3 id="11131-常见止血动作"><a class="header" href="#11131-常见止血动作">11.13.1 常见止血动作</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>事故</th><th>止血动作</th></tr>
+</thead>
+<tbody>
+<tr><td>错价</td><td>下架商品、暂停活动、冻结未履约订单</td></tr>
+<tr><td>重复退款</td><td>暂停自动退款、冻结售后入口</td></tr>
+<tr><td>优惠被薅</td><td>暂停活动、冻结异常券、限制用户</td></tr>
+<tr><td>超卖</td><td>停售 SKU、冻结库存、启动客服预案</td></tr>
+<tr><td>支付状态错乱</td><td>暂停相关渠道、启动查单和对账</td></tr>
+<tr><td>供应商确认失败</td><td>暂停售卖或切供应商</td></tr>
+<tr><td>商家结算错误</td><td>暂停出账批次、冻结打款</td></tr>
+</tbody>
+</table>
+</div>
+<p>止血动作要提前做成开关，并有权限和审计。事故中临时找人写 SQL 关活动，通常已经晚了。</p>
+<h3 id="11132-影响范围评估"><a class="header" href="#11132-影响范围评估">11.13.2 影响范围评估</a></h3>
+<p>资损事故必须回答：</p>
+<ul>
+<li>影响开始和结束时间。</li>
+<li>影响订单数。</li>
+<li>影响用户数。</li>
+<li>影响商家或供应商。</li>
+<li>最大可能损失金额。</li>
+<li>已实际发生损失金额。</li>
+<li>可追回金额。</li>
+<li>需要赔付金额。</li>
+<li>是否涉及合规和法务。</li>
+</ul>
+<p>影响范围评估依赖快照、账本、审计和对账。如果平时没有这些数据，事故当天无法凭空生成。</p>
+<h2 id="1114-典型案例"><a class="header" href="#1114-典型案例">11.14 典型案例</a></h2>
+<h3 id="11141-错价-0-元购"><a class="header" href="#11141-错价-0-元购">11.14.1 错价 0 元购</a></h3>
+<p>故障过程：</p>
+<pre><code class="language-text">运营配置满 100 减 100
+  -&gt; 规则未限制适用品类
+  -&gt; 低价商品叠加新人券
+  -&gt; 大量订单应付金额变成 0
+  -&gt; 支付绕过
+  -&gt; 履约开始发货
+</code></pre>
+<p>防控点：</p>
+<ul>
+<li>计价校验应付金额不能低于最低支付金额，除非活动明确允许。</li>
+<li>活动规则必须绑定适用品类、商品、用户和预算。</li>
+<li>0 元单数量异常告警。</li>
+<li>负毛利订单实时拦截。</li>
+<li>履约前二次校验订单风险状态。</li>
+</ul>
+<h3 id="11142-重复退款"><a class="header" href="#11142-重复退款">11.14.2 重复退款</a></h3>
+<p>故障过程：</p>
+<pre><code class="language-text">用户申请退款
+  -&gt; 售后系统创建退款单
+  -&gt; 支付渠道退款超时
+  -&gt; 补偿任务重试
+  -&gt; 客服又手工发起退款
+  -&gt; 两条路径使用不同幂等键
+  -&gt; 用户收到两笔退款
+</code></pre>
+<p>防控点：</p>
+<ul>
+<li>退款以支付单累计可退金额为最终约束。</li>
+<li>售后单、退款单、支付单建立唯一关系。</li>
+<li>所有退款入口共用统一退款服务。</li>
+<li>人工退款也走同一幂等和审批流程。</li>
+<li>渠道超时先查单，不盲目再次退款。</li>
+</ul>
+<h3 id="11143-库存重复释放"><a class="header" href="#11143-库存重复释放">11.14.3 库存重复释放</a></h3>
+<p>故障过程：</p>
+<pre><code class="language-text">订单超时取消
+  -&gt; 关单任务释放库存
+  -&gt; 支付失败回调也释放库存
+  -&gt; 补偿任务再次释放库存
+  -&gt; 可售库存被加回三次
+  -&gt; 后续超卖
+</code></pre>
+<p>防控点：</p>
+<ul>
+<li>库存释放必须基于 reservation 状态机。</li>
+<li><code>reservation_id + release_type</code> 或 release ledger 唯一。</li>
+<li>库存余额不能由多个系统直接修改。</li>
+<li>库存对账发现 <code>available + reserved + sold</code> 不平立即冻结。</li>
+</ul>
+<h2 id="1115-上线前资损检查清单"><a class="header" href="#1115-上线前资损检查清单">11.15 上线前资损检查清单</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>检查项</th><th>必须回答</th></tr>
+</thead>
+<tbody>
+<tr><td>金额口径</td><td>订单、支付、退款、结算金额是否有统一定义</td></tr>
+<tr><td>快照</td><td>订单是否保存商品、价格、优惠、税费和履约快照</td></tr>
+<tr><td>幂等</td><td>支付、退款、发券、扣库存是否有服务端幂等</td></tr>
+<tr><td>状态机</td><td>是否限制非法状态迁移和晚到事件</td></tr>
+<tr><td>账本</td><td>资金、库存、券、积分、预算是否有流水</td></tr>
+<tr><td>预算</td><td>活动和补贴是否有实时预算控制</td></tr>
+<tr><td>可退金额</td><td>是否防止累计退款超过实付</td></tr>
+<tr><td>可售库存</td><td>是否防止重复释放和超卖</td></tr>
+<tr><td>人工操作</td><td>高风险后台操作是否有审批、限额、审计</td></tr>
+<tr><td>配置变更</td><td>活动、费率、渠道、库存策略是否支持灰度和回滚</td></tr>
+<tr><td>对账</td><td>支付、库存、营销、结算、供应商是否有对账</td></tr>
+<tr><td>冻结</td><td>发现异常时能否冻结商品、订单、退款、活动、结算</td></tr>
+<tr><td>监控</td><td>是否有影响金额、订单数和异常趋势告警</td></tr>
+<tr><td>Runbook</td><td>值班同学是否知道如何止血和评估影响</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="1116-本章小结"><a class="header" href="#1116-本章小结">11.16 本章小结</a></h2>
+<p>资损防控是业务系统工程能力的综合考试。它同时考验领域建模、金额口径、状态机、幂等、账本、审批、对账、补偿、监控和事故处理。</p>
+<p>对电商系统来说，资损防控不能只放在支付系统里，也不能只依赖财务 T+1 对账。真正可靠的做法是：</p>
+<ol>
+<li>在计价阶段保证金额可解释。</li>
+<li>在订单阶段固化交易快照。</li>
+<li>在库存和营销阶段用账本保护权益变化。</li>
+<li>在支付和退款阶段用幂等、状态机和渠道对账保护资金事实。</li>
+<li>在供应商和结算阶段明确外部事实和结算口径。</li>
+<li>在后台和配置中心治理人工高风险操作。</li>
+<li>在事故中优先止血、冻结、保留证据和评估影响。</li>
+</ol>
+<p>资损防控的最高标准不是“出了问题能赔”，而是系统能在大多数错误发生前拦住，在少数错误发生后快速发现，并在修复过程中保留完整证据链。</p>
+<h2 id="1117-本章面试题与追问"><a class="header" href="#1117-本章面试题与追问">11.17 本章面试题与追问</a></h2>
+<ol>
+<li>
+<p>什么是资损？为什么资损防控不只是支付系统的职责？
+追问：价格、库存、营销、结算分别可能产生什么资损？</p>
+</li>
+<li>
+<p>如何设计电商系统的资损防控体系？
+追问：事前防错、事中拦截、事后收敛分别包括哪些能力？</p>
+</li>
+<li>
+<p>订单金额为什么必须保存快照？
+追问：如果只保存商品 ID 和总价，退款和结算会遇到什么问题？</p>
+</li>
+<li>
+<p>支付回调如何防止资损？
+追问：为什么验签、金额校验、渠道流水唯一和 Outbox 都必须有？</p>
+</li>
+<li>
+<p>如何防止重复退款？
+追问：人工退款和自动退款为什么必须走同一个退款服务？</p>
+</li>
+<li>
+<p>库存系统如何防止超卖和少卖？
+追问：为什么 Redis 不能作为库存账本？</p>
+</li>
+<li>
+<p>营销优惠如何防止被薅？
+追问：预算、叠加规则、用户频率和退款回收如何设计？</p>
+</li>
+<li>
+<p>商家结算为什么不能直接修改原始订单金额？
+追问：调账单和结算流水应该如何设计？</p>
+</li>
+<li>
+<p>高风险后台操作如何治理？
+追问：批量改价、批量退款、批量发券需要哪些审批和审计？</p>
+</li>
+<li>
+<p>发生错价事故时如何止血？
+追问：如何评估影响范围和最大可能损失？</p>
+</li>
+<li>
+<p>风险规则系统本身如何治理？
+追问：规则灰度、版本、命中日志和误杀恢复为什么重要？</p>
+</li>
+<li>
+<p>资损防控和第 10 章的对账补偿有什么关系？
+追问：哪些资损风险应该事前拦截，哪些可以依赖事后对账？</p>
+</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part01/10-reconciliation-compensation-dlq.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part01/12-capacity-planning-resilience.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part01/10-reconciliation-compensation-dlq.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part01/12-capacity-planning-resilience.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

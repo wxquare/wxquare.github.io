@@ -1,0 +1,1359 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第 10 章 对账、补偿、DLQ 与故障恢复 - 系统设计与架构实战：原理、工程与电商案例</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="从系统设计方法论、核心基础设施、可靠性工程到电商业务架构实战；兼顾原理、工程落地、面试表达和完整业务案例。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-f2e377c1.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-15ae8bf9.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">系统设计与架构实战：原理、工程与电商案例</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第-10-章-对账补偿dlq-与故障恢复"><a class="header" href="#第-10-章-对账补偿dlq-与故障恢复">第 10 章 对账、补偿、DLQ 与故障恢复</a></h1>
+<p>业务系统真正困难的地方，不是让每一次调用都成功，而是在调用失败、消息丢失、回调乱序、数据延迟、人工误操作和外部系统不可控时，仍然能把业务状态拉回正确轨道。</p>
+<p>电商系统尤其如此。一次下单会穿过商品、库存、营销、计价、订单、支付、履约、供应商、搜索、财务等多个系统。任何一个系统都只能保证自己局部正确，却很难在同一个事务里保证全链路同时成功。于是，系统必须接受一个事实：<strong>短时间不一致不可避免，长期不收敛不可接受</strong>。</p>
+<p>对账、补偿、DLQ 和故障恢复，就是让系统从“偶发错误靠人肉排查”走向“差异可发现、失败可隔离、修复可执行、过程可审计”的工程体系。</p>
+<p>本章会以电商系统为主线，回答几个关键问题：</p>
+<ol>
+<li>什么情况下必须做对账，谁是权威数据源？</li>
+<li>对账发现差异后，如何生成安全的补偿任务？</li>
+<li>什么错误应该自动重试，什么错误应该进入 DLQ？</li>
+<li>DLQ 为什么不能只是 Kafka 的死信 Topic？</li>
+<li>支付成功但订单未更新、库存扣了但订单失败、供应商同步一半失败，应该如何恢复？</li>
+<li>如何设计后台、监控、审计和人工介入流程，让故障恢复真正可运营？</li>
+</ol>
+<h2 id="101-先建立一个判断恢复能力是主链路的一部分"><a class="header" href="#101-先建立一个判断恢复能力是主链路的一部分">10.1 先建立一个判断：恢复能力是主链路的一部分</a></h2>
+<p>很多团队把对账和补偿当作“上线后再补”的兜底脚本。这是危险的。业务系统上线第一天，就应该具备基本恢复能力。</p>
+<p>因为故障不是例外，而是分布式协作的常态：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>故障形态</th><th>电商例子</th><th>如果没有恢复能力</th></tr>
+</thead>
+<tbody>
+<tr><td>请求超时</td><td>库存预占接口超时，但下游实际预占成功</td><td>订单失败，库存长期占用</td></tr>
+<tr><td>回调丢失</td><td>支付渠道扣款成功，回调没有送达</td><td>用户已扣款，订单仍待支付</td></tr>
+<tr><td>消息失败</td><td>商品已发布，搜索索引事件消费失败</td><td>前台搜索不到商品或仍展示下架商品</td></tr>
+<tr><td>消费乱序</td><td>先收到订单取消，再收到支付成功事件</td><td>状态机被错误推进</td></tr>
+<tr><td>部分成功</td><td>订单创建成功，优惠券锁定失败</td><td>用户看到订单异常，券状态不一致</td></tr>
+<tr><td>外部延迟</td><td>供应商库存更新延迟 10 分钟</td><td>平台继续售卖已售罄商品</td></tr>
+<tr><td>人工误操作</td><td>运营错误调整价格或库存</td><td>需要回滚、冻结和审计</td></tr>
+</tbody>
+</table>
+</div>
+<p>可靠的系统不是没有这些问题，而是问题出现后能够自动识别、自动收敛或可控地交给人工处理。</p>
+<p>这一章讨论的对象不是单个技术组件，而是一条恢复闭环：</p>
+<pre><code class="language-text">业务事实产生
+  -&gt; 事件投递 / 状态推进 / 外部交互
+  -&gt; 差异出现
+  -&gt; 对账发现差异
+  -&gt; 差异分类
+  -&gt; 自动补偿或进入 DLQ
+  -&gt; 人工修复或重新投递
+  -&gt; 再次对账确认收敛
+  -&gt; 形成审计记录和复盘材料
+</code></pre>
+<p>如果这个闭环缺任何一环，系统都会变成“线上看起来能跑，但出了问题谁也说不清”。</p>
+<h2 id="102-四个核心概念"><a class="header" href="#102-四个核心概念">10.2 四个核心概念</a></h2>
+<h3 id="1021-对账"><a class="header" href="#1021-对账">10.2.1 对账</a></h3>
+<p>对账是用一个或多个权威数据源，比对另一个系统中的派生状态、投影状态或外部状态，发现差异并形成可处理的差异项。</p>
+<p>对账不是财务系统专属概念。只要存在下面任意一种情况，就需要对账：</p>
+<ul>
+<li>跨系统异步同步。</li>
+<li>事件驱动的最终一致。</li>
+<li>本地系统与外部渠道协作。</li>
+<li>缓存、索引、读模型与主数据分离。</li>
+<li>主链路为了性能接受短窗口不一致。</li>
+<li>需要审计、追溯和证明业务结果。</li>
+</ul>
+<p>例如：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对账场景</th><th>权威数据源</th><th>被对账对象</th><th>常见差异</th></tr>
+</thead>
+<tbody>
+<tr><td>支付对账</td><td>支付渠道账单、银行流水</td><td>本地支付单、订单状态</td><td>渠道成功，本地未支付</td></tr>
+<tr><td>库存对账</td><td>库存流水账本</td><td>库存余额快照、Redis 库存</td><td>流水扣减成功，余额未刷新</td></tr>
+<tr><td>订单对账</td><td>订单状态日志、支付事实</td><td>订单主状态、履约状态</td><td>支付成功但订单未推进</td></tr>
+<tr><td>商品对账</td><td>商品正式表、发布版本</td><td>搜索索引、缓存、推荐特征</td><td>商品下架但搜索仍可见</td></tr>
+<tr><td>营销对账</td><td>券实例状态、核销流水</td><td>订单优惠快照、用户券包</td><td>订单取消但券未释放</td></tr>
+<tr><td>供应商对账</td><td>供应商接口或文件</td><td>平台商品、库存、价格</td><td>供应商下架但平台仍售卖</td></tr>
+<tr><td>消息对账</td><td>Outbox 表</td><td>Kafka 消费进度、下游处理表</td><td>事件已生成但未被消费</td></tr>
+</tbody>
+</table>
+</div>
+<p>对账的本质是：<strong>用更可信的事实校准更容易漂移的状态</strong>。</p>
+<h3 id="1022-补偿"><a class="header" href="#1022-补偿">10.2.2 补偿</a></h3>
+<p>补偿是针对已发现的不一致，执行一个可幂等、可重试、可审计的修复动作，让系统重新收敛。</p>
+<p>补偿不是“反向操作”这么简单。真实业务里，补偿动作要遵守状态机、资金规则、库存规则和用户体验边界。</p>
+<p>例如：</p>
+<ul>
+<li>库存预占成功但订单创建失败，可以释放库存。</li>
+<li>支付成功但订单仍待支付，应推进订单到已支付，而不是退款。</li>
+<li>订单已取消后又收到支付成功，可能要进入退款或人工确认，而不是直接把订单改回已支付。</li>
+<li>商品已下架但搜索仍展示，应删除搜索文档或标记不可售。</li>
+<li>供应商酒店价格异常，可能不能自动覆盖，要进入人工审核。</li>
+</ul>
+<p>补偿的核心原则是：<strong>修复业务结果，而不是机械回滚技术动作</strong>。</p>
+<h3 id="1023-dlq"><a class="header" href="#1023-dlq">10.2.3 DLQ</a></h3>
+<p>DLQ 是 Dead Letter Queue，死信队列。但在业务系统里，DLQ 不应该只是 MQ 里的失败 Topic。</p>
+<p>对于电商系统，失败数据往往需要查询、筛选、分派、修复、重新投递、忽略、审计和统计。Kafka DLQ 可以保留失败消息，但它不适合承担运营治理主存储。</p>
+<p>更成熟的做法是：</p>
+<pre><code class="language-text">Kafka DLQ：短期失败消息缓冲，可选
+MySQL DLQ：权威问题单、处理状态、修复入口和审计台账
+对象存储：保存大 payload、原始文件、渠道账单、供应商原始响应
+运营后台：提供筛选、修复、重放、忽略、导出、审批
+</code></pre>
+<p>所以本章提到 DLQ 时，重点指“可运营的死信治理体系”，不只是消息中间件里的一个 Topic。</p>
+<h3 id="1024-故障恢复"><a class="header" href="#1024-故障恢复">10.2.4 故障恢复</a></h3>
+<p>故障恢复是比对账、补偿、DLQ 更大的概念。它覆盖请求失败、任务失败、数据不一致、系统宕机、灾备切换和人工修复。</p>
+<p>可以分为四层：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>目标</th><th>常见手段</th></tr>
+</thead>
+<tbody>
+<tr><td>请求级恢复</td><td>单次请求失败后快速返回或安全重试</td><td>超时、重试、幂等键、状态查询</td></tr>
+<tr><td>任务级恢复</td><td>异步任务失败后继续推进</td><td>重试队列、补偿任务、Checkpoint、Worker Lease</td></tr>
+<tr><td>数据级恢复</td><td>多系统数据重新收敛</td><td>对账、重放、差异修复、人工工单</td></tr>
+<tr><td>系统级恢复</td><td>服务或机房故障后恢复业务能力</td><td>回滚、切流、降级、灾备、数据恢复</td></tr>
+</tbody>
+</table>
+</div>
+<p>成熟系统不会把恢复责任压在某一层。只靠请求重试会放大故障，只靠夜间对账会延长用户影响，只靠人工工单会拖垮团队。</p>
+<h2 id="103-设计对账前先定义事实和口径"><a class="header" href="#103-设计对账前先定义事实和口径">10.3 设计对账前，先定义“事实”和“口径”</a></h2>
+<p>对账最容易失败的原因，不是 SQL 写错，而是团队没有统一“谁说了算”。</p>
+<h3 id="1031-权威数据源"><a class="header" href="#1031-权威数据源">10.3.1 权威数据源</a></h3>
+<p>不同业务域的权威事实不同：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>业务对象</th><th>权威事实</th><th>不应作为权威的对象</th></tr>
+</thead>
+<tbody>
+<tr><td>支付是否成功</td><td>渠道交易流水、本地支付单状态机</td><td>前端支付页结果、同步预下单返回</td></tr>
+<tr><td>订单是否有效</td><td>订单主状态 + 状态变更日志</td><td>搜索索引、客服备注</td></tr>
+<tr><td>库存是否扣减</td><td>库存流水账本、预占记录、确认记录</td><td>Redis 当前值、前台展示库存</td></tr>
+<tr><td>券是否核销</td><td>券实例状态机、核销流水</td><td>订单优惠展示字段</td></tr>
+<tr><td>商品是否可售</td><td>商品发布版本、可售规则、库存状态</td><td>ES 文档、缓存详情页</td></tr>
+<tr><td>供应商是否有库存</td><td>供应商实时查询或最近一次有效同步</td><td>平台缓存库存</td></tr>
+</tbody>
+</table>
+</div>
+<p>权威数据源也不是永远固定的。资金事实通常以渠道和银行为准；业务状态以本地状态机为准；履约状态可能以供应商确认为准；财务入账以总账系统为准。对账系统要明确每类差异的裁决规则。</p>
+<h3 id="1032-业务口径"><a class="header" href="#1032-业务口径">10.3.2 业务口径</a></h3>
+<p>同一个字段在不同系统里可能含义不同。</p>
+<p>以支付为例：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>可能的口径差异</th></tr>
+</thead>
+<tbody>
+<tr><td><code>paid_amount</code></td><td>用户实付、渠道扣款、平台到账、扣除手续费后金额</td></tr>
+<tr><td><code>paid_time</code></td><td>用户确认时间、渠道扣款时间、回调到达时间、本地入库时间</td></tr>
+<tr><td><code>success</code></td><td>渠道受理成功、扣款成功、清算成功、可结算成功</td></tr>
+<tr><td><code>refund_amount</code></td><td>申请退款金额、渠道退款金额、实际到账金额</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果这些口径不统一，对账会不断制造“假差异”。因此重要字段必须有数据字典，并在系统边界上写清楚。</p>
+<h3 id="1033-差异容忍窗口"><a class="header" href="#1033-差异容忍窗口">10.3.3 差异容忍窗口</a></h3>
+<p>最终一致系统允许短时间不一致。对账不能把所有延迟都当事故。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>合理容忍窗口</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>支付回调到订单推进</td><td>秒级到分钟级</td><td>回调、Outbox、消费者可能有短暂延迟</td></tr>
+<tr><td>商品发布到搜索可见</td><td>分钟级</td><td>索引刷新和缓存刷新需要时间</td></tr>
+<tr><td>库存 Redis 与 MySQL 快照</td><td>秒级到分钟级</td><td>热路径与账本路径可能异步</td></tr>
+<tr><td>供应商库存同步</td><td>分钟级到小时级</td><td>取决于供应商接口能力和品类风险</td></tr>
+<tr><td>财务清结算</td><td>T+1 或 T+N</td><td>取决于渠道账单周期</td></tr>
+</tbody>
+</table>
+</div>
+<p>对账规则必须写清“多长时间内算正常延迟，多长时间后算差异”。否则系统会在高峰期产生大量误报。</p>
+<h2 id="104-对账系统的分层设计"><a class="header" href="#104-对账系统的分层设计">10.4 对账系统的分层设计</a></h2>
+<p>一套通用对账系统通常包含五层。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>职责</th><th>电商例子</th></tr>
+</thead>
+<tbody>
+<tr><td>数据采集层</td><td>拉取权威数据和被对账数据</td><td>渠道账单、订单表、库存流水、供应商文件</td></tr>
+<tr><td>标准化层</td><td>把异构数据转成统一模型</td><td>金额单位、币种、状态枚举、时间格式</td></tr>
+<tr><td>比对层</td><td>执行 Join、聚合、恒等式校验</td><td>支付单和渠道流水外连接</td></tr>
+<tr><td>差异层</td><td>生成差异项并分类</td><td>长款、短款、状态不一致、缺失记录</td></tr>
+<tr><td>处置层</td><td>自动补偿、人工工单、忽略、复核</td><td>推进订单、退款、释放库存、重建索引</td></tr>
+</tbody>
+</table>
+</div>
+<p>不要把对账写成一个巨大定时脚本。脚本可以作为第一版实现，但架构上仍应具备批次、明细、差异状态、处理动作和审计。</p>
+<h3 id="1041-对账批次"><a class="header" href="#1041-对账批次">10.4.1 对账批次</a></h3>
+<p>每次对账都应该有批次记录。</p>
+<pre><code class="language-sql">CREATE TABLE recon_batch (
+    id BIGINT PRIMARY KEY,
+    recon_type VARCHAR(64) NOT NULL,
+    biz_date DATE NOT NULL,
+    source_system VARCHAR(64) NOT NULL,
+    target_system VARCHAR(64) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    total_count BIGINT NOT NULL DEFAULT 0,
+    matched_count BIGINT NOT NULL DEFAULT 0,
+    diff_count BIGINT NOT NULL DEFAULT 0,
+    auto_fixed_count BIGINT NOT NULL DEFAULT 0,
+    manual_required_count BIGINT NOT NULL DEFAULT 0,
+    started_at DATETIME NOT NULL,
+    finished_at DATETIME NULL,
+    error_code VARCHAR(64) NULL,
+    error_message VARCHAR(512) NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_recon_batch (recon_type, biz_date, source_system, target_system)
+);
+</code></pre>
+<p>批次的价值是可追溯：今天对了什么，是否完成，发现多少差异，自动修复多少，还剩多少需要人工处理。</p>
+<h3 id="1042-对账明细和差异项"><a class="header" href="#1042-对账明细和差异项">10.4.2 对账明细和差异项</a></h3>
+<p>差异项应单独建表，而不是只打日志。</p>
+<pre><code class="language-sql">CREATE TABLE recon_diff (
+    id BIGINT PRIMARY KEY,
+    batch_id BIGINT NOT NULL,
+    recon_type VARCHAR(64) NOT NULL,
+    biz_id VARCHAR(128) NOT NULL,
+    biz_sub_id VARCHAR(128) NULL,
+    diff_type VARCHAR(64) NOT NULL,
+    severity VARCHAR(32) NOT NULL,
+    source_snapshot JSON NOT NULL,
+    target_snapshot JSON NOT NULL,
+    expected_action VARCHAR(64) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    compensation_task_id BIGINT NULL,
+    owner VARCHAR(64) NULL,
+    first_seen_at DATETIME NOT NULL,
+    last_seen_at DATETIME NOT NULL,
+    resolved_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_diff_dedup (recon_type, biz_id, biz_sub_id, diff_type)
+);
+</code></pre>
+<p>几个关键点：</p>
+<ul>
+<li><code>source_snapshot</code> 和 <code>target_snapshot</code> 保存比对时的证据。</li>
+<li><code>diff_type</code> 用于分类，不要只写自然语言。</li>
+<li><code>expected_action</code> 说明建议处理动作。</li>
+<li><code>status</code> 管理差异生命周期，不能靠“有没有日志”判断是否处理。</li>
+<li>唯一键用于差异去重，避免同一问题每天生成一堆新差异。</li>
+</ul>
+<h3 id="1043-差异分类"><a class="header" href="#1043-差异分类">10.4.3 差异分类</a></h3>
+<p>差异分类决定能否自动修复。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>差异类型</th><th>示例</th><th>推荐动作</th></tr>
+</thead>
+<tbody>
+<tr><td>缺本地记录</td><td>渠道有成功支付，本地无支付单</td><td>人工确认或补建支付单，风险高</td></tr>
+<tr><td>缺外部记录</td><td>本地支付成功，渠道账单无记录</td><td>查单复核，可能短款</td></tr>
+<tr><td>状态不一致</td><td>渠道成功，本地支付中</td><td>自动查单后推进状态</td></tr>
+<tr><td>金额不一致</td><td>本地 100 元，渠道 99 元</td><td>人工复核，禁止自动改账</td></tr>
+<tr><td>时间延迟</td><td>订单已支付，履约未开始</td><td>超窗口后生成补偿</td></tr>
+<tr><td>投影缺失</td><td>商品已发布，ES 无文档</td><td>自动重建索引</td></tr>
+<tr><td>重复记录</td><td>同一渠道流水命中多笔本地单</td><td>P0 资损风险，人工冻结</td></tr>
+</tbody>
+</table>
+</div>
+<p>原则上，资金金额差异、重复扣款、重复退款、跨用户归属错误，都不应该直接自动修复。可以自动生成工单、冻结风险对象、通知负责人，但不能让补偿程序“自作主张”。</p>
+<h2 id="105-电商核心场景对账"><a class="header" href="#105-电商核心场景对账">10.5 电商核心场景对账</a></h2>
+<h3 id="1051-支付对账"><a class="header" href="#1051-支付对账">10.5.1 支付对账</a></h3>
+<p>支付对账是最典型、也最不能偷懒的对账场景。</p>
+<p>核心数据源包括：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>数据源</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td>渠道账单</td><td>外部扣款和退款事实</td></tr>
+<tr><td>本地支付单</td><td>平台支付状态机</td></tr>
+<tr><td>支付渠道交互日志</td><td>请求、回调、查单证据</td></tr>
+<tr><td>订单表</td><td>用户侧交易状态</td></tr>
+<tr><td>财务分录</td><td>入账和清结算口径</td></tr>
+</tbody>
+</table>
+</div>
+<p>支付对账常见差异：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>差异</th><th>含义</th><th>处理</th></tr>
+</thead>
+<tbody>
+<tr><td>渠道成功，本地支付中</td><td>回调丢失或处理失败</td><td>主动查单，推进支付单和订单</td></tr>
+<tr><td>渠道成功，本地失败</td><td>本地状态错误或晚到成功</td><td>进入人工复核，可能需要补发事件</td></tr>
+<tr><td>本地成功，渠道无成功记录</td><td>本地误判成功或账单延迟</td><td>查单复核，超窗口转人工</td></tr>
+<tr><td>渠道退款成功，本地退款中</td><td>退款回调丢失</td><td>推进退款单，通知订单售后</td></tr>
+<tr><td>金额不一致</td><td>资损风险</td><td>冻结差异项，人工复核</td></tr>
+</tbody>
+</table>
+</div>
+<p>支付对账的推荐流程：</p>
+<pre><code class="language-text">T+1 拉取渠道账单
+  -&gt; 校验文件完整性和签名
+  -&gt; 标准化为 ChannelTradeRow
+  -&gt; 与 payment_channel_log / payment_order 外连接
+  -&gt; 生成 recon_diff
+  -&gt; 对低风险状态差异自动查单
+  -&gt; 查单确认后生成 compensation_task
+  -&gt; 补偿推进支付单、订单、Outbox
+  -&gt; 高风险金额差异进入人工复核
+</code></pre>
+<p>注意：支付对账的自动补偿应该优先“推进状态”，而不是直接“改金额”。金额差异必须谨慎，因为它会影响财务、税务、商家结算和用户权益。</p>
+<h3 id="1052-订单对账"><a class="header" href="#1052-订单对账">10.5.2 订单对账</a></h3>
+<p>订单是业务承诺的载体。订单对账重点不是“表里有没有数据”，而是订单状态是否和周边事实一致。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>订单状态</th><th>需要对齐的事实</th></tr>
+</thead>
+<tbody>
+<tr><td>待支付</td><td>支付单应未成功，库存和营销资源仍在锁定窗口内</td></tr>
+<tr><td>已支付</td><td>支付成功事实存在，库存确认或履约创建应已触发</td></tr>
+<tr><td>已取消</td><td>支付未成功或已退款，库存和券应释放</td></tr>
+<tr><td>已发货 / 履约中</td><td>履约单或供应商订单应存在</td></tr>
+<tr><td>已完成</td><td>履约完成、售后窗口和财务确认满足规则</td></tr>
+</tbody>
+</table>
+</div>
+<p>典型对账规则：</p>
+<ul>
+<li>支付单成功超过 1 分钟，订单仍待支付，生成订单推进补偿。</li>
+<li>订单取消超过 5 分钟，库存预占仍未释放，生成库存释放补偿。</li>
+<li>订单已支付超过 10 分钟，履约单未创建，生成履约补偿。</li>
+<li>订单已退款，营销券仍显示已核销，生成营销释放或人工修复。</li>
+<li>主单完成，但子单仍处于中间态，生成状态修复任务。</li>
+</ul>
+<p>订单对账必须尊重状态机。不能因为“支付成功”就无条件把订单改成“已支付”。如果订单已经取消、退款、关闭或进入风控冻结，补偿动作应该进入人工确认或走专门的反向流程。</p>
+<h3 id="1053-库存对账"><a class="header" href="#1053-库存对账">10.5.3 库存对账</a></h3>
+<p>库存对账的目标是保证“可售、预占、已售、释放、作废”这些状态最终符合账本。</p>
+<p>一个常见库存恒等式：</p>
+<pre><code class="language-text">total = available + reserved + sold + locked + damaged
+</code></pre>
+<p>如果使用 Redis 做热路径扣减，还需要额外比较：</p>
+<pre><code class="language-text">MySQL 可售快照
+  vs Redis 可售值
+  vs 库存流水聚合
+  vs 订单预占状态
+</code></pre>
+<p>典型差异：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>差异</th><th>可能原因</th><th>处理</th></tr>
+</thead>
+<tbody>
+<tr><td>Redis 少于 MySQL</td><td>扣减成功但落库失败、回填失败</td><td>以账本为准重建 Redis</td></tr>
+<tr><td>Redis 多于 MySQL</td><td>释放重复、缓存覆盖错误</td><td>冻结商品，按账本修复</td></tr>
+<tr><td>预占超时未释放</td><td>关单任务失败</td><td>补偿释放预占</td></tr>
+<tr><td>已支付订单库存仍 reserved</td><td>支付确认事件消费失败</td><td>补偿确认 sold</td></tr>
+<tr><td>流水聚合不等于余额</td><td>人工改库或程序缺陷</td><td>停止自动修复，人工排查</td></tr>
+</tbody>
+</table>
+</div>
+<p>库存对账最重要的原则是：<strong>Redis 不是账本</strong>。故障恢复时应以 MySQL 账本、预占记录、订单状态和审计日志为准，Redis 可以重建。</p>
+<h3 id="1054-商品与搜索对账"><a class="header" href="#1054-商品与搜索对账">10.5.4 商品与搜索对账</a></h3>
+<p>商品系统经常采用“主数据 + 读模型”架构。正式商品表是权威数据，搜索索引、商品详情缓存、推荐特征都是投影。</p>
+<p>常见对账规则：</p>
+<ul>
+<li>商品已下架，ES 仍可搜索到，删除或标记不可售。</li>
+<li>商品已发布，ES 缺文档，重建索引。</li>
+<li>商品价格版本已更新，详情页缓存仍是旧版本，刷新缓存。</li>
+<li>商品可售状态依赖库存和履约规则，搜索文档的可售标记过期，重新投影。</li>
+<li>供应商商品被标记风险，前台仍展示，强制下架并告警。</li>
+</ul>
+<p>商品投影对账通常可以自动修复，因为它不改变主数据，只重建派生视图。但如果发现主数据本身质量异常，例如类目映射错误、酒店坐标漂移、价格异常波动，则应进入质量问题单或 DLQ，而不是自动发布。</p>
+<h3 id="1055-供应商同步对账"><a class="header" href="#1055-供应商同步对账">10.5.5 供应商同步对账</a></h3>
+<p>供应商同步是电商系统里最容易产生长尾差异的地方。供应商接口可能限流、超时、字段缺失、分页游标异常、同一商品编码复用、价格库存延迟更新。</p>
+<p>供应商对账要区分三类事实：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>事实</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>Raw Snapshot</td><td>供应商原始响应，便于追溯和重放</td></tr>
+<tr><td>Standardized Model</td><td>平台标准化后的中间模型</td></tr>
+<tr><td>Published Version</td><td>已发布到交易链路的正式版本</td></tr>
+</tbody>
+</table>
+</div>
+<p>同步成功不等于可以发布。一个酒店从供应商拉取成功，但城市映射失败、经纬度漂移、价格低于风险阈值、房型缺关键字段，都不应该直接进入正式商品。</p>
+<p>典型处理：</p>
+<ul>
+<li>网络超时：指数退避重试。</li>
+<li>供应商 5xx：限流、熔断、延迟重试。</li>
+<li>字段缺失：进入 MySQL DLQ，等待供应商或运营修复。</li>
+<li>城市映射失败：进入映射工单。</li>
+<li>价格异常：进入审核，不自动发布。</li>
+<li>下游索引刷新失败：生成投影补偿。</li>
+</ul>
+<p>供应商同步的恢复能力通常依赖 <code>Task + Checkpoint + Worker Lease + Raw Snapshot + DLQ</code>。没有这些能力，长任务一旦中断，就只能从头跑，或者靠人工猜进度。</p>
+<h2 id="106-补偿任务设计"><a class="header" href="#106-补偿任务设计">10.6 补偿任务设计</a></h2>
+<p>补偿任务不是简单的定时重试。它是一个小型工作流系统。</p>
+<h3 id="1061-补偿任务模型"><a class="header" href="#1061-补偿任务模型">10.6.1 补偿任务模型</a></h3>
+<pre><code class="language-sql">CREATE TABLE compensation_task (
+    id BIGINT PRIMARY KEY,
+    task_type VARCHAR(64) NOT NULL,
+    biz_type VARCHAR(64) NOT NULL,
+    biz_id VARCHAR(128) NOT NULL,
+    biz_sub_id VARCHAR(128) NULL,
+    priority INT NOT NULL DEFAULT 0,
+    status VARCHAR(32) NOT NULL,
+    idempotency_key VARCHAR(128) NOT NULL,
+    request_payload JSON NOT NULL,
+    context_snapshot JSON NOT NULL,
+    retry_count INT NOT NULL DEFAULT 0,
+    max_retry_count INT NOT NULL DEFAULT 10,
+    next_retry_at DATETIME NOT NULL,
+    last_error_code VARCHAR(64) NULL,
+    last_error_message VARCHAR(512) NULL,
+    locked_by VARCHAR(128) NULL,
+    locked_until DATETIME NULL,
+    source_type VARCHAR(64) NOT NULL,
+    source_id BIGINT NULL,
+    manual_required TINYINT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_comp_idem (task_type, idempotency_key),
+    KEY idx_comp_schedule (status, next_retry_at, priority),
+    KEY idx_comp_biz (biz_type, biz_id)
+);
+</code></pre>
+<p>字段说明：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>设计目的</th></tr>
+</thead>
+<tbody>
+<tr><td><code>task_type</code></td><td>区分支付查单、订单推进、库存释放、索引重建等动作</td></tr>
+<tr><td><code>biz_type</code> / <code>biz_id</code></td><td>关联业务对象，便于客服和运营检索</td></tr>
+<tr><td><code>idempotency_key</code></td><td>防止同一差异生成多个重复补偿</td></tr>
+<tr><td><code>context_snapshot</code></td><td>保存补偿创建时的上下文证据</td></tr>
+<tr><td><code>source_type</code> / <code>source_id</code></td><td>关联来源，例如 recon_diff、dlq、manual</td></tr>
+<tr><td><code>locked_by</code> / <code>locked_until</code></td><td>支持多 Worker 抢占和故障恢复</td></tr>
+<tr><td><code>manual_required</code></td><td>标记是否需要人工审批或处理</td></tr>
+</tbody>
+</table>
+</div>
+<p>补偿任务必须能回答：为什么生成、要修什么、修复前证据是什么、谁执行过、执行结果如何。</p>
+<h3 id="1062-补偿状态机"><a class="header" href="#1062-补偿状态机">10.6.2 补偿状态机</a></h3>
+<p>建议状态机保持简单：</p>
+<pre><code class="language-text">PENDING
+  -&gt; RUNNING
+  -&gt; SUCCESS
+  -&gt; RETRY_WAIT
+  -&gt; MANUAL_REQUIRED
+  -&gt; DLQ
+  -&gt; CANCELLED
+</code></pre>
+<p>状态含义：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>PENDING</code></td><td>等待执行</td></tr>
+<tr><td><code>RUNNING</code></td><td>Worker 正在执行</td></tr>
+<tr><td><code>RETRY_WAIT</code></td><td>可重试失败，等待下一次执行</td></tr>
+<tr><td><code>SUCCESS</code></td><td>补偿完成，并通过必要校验</td></tr>
+<tr><td><code>MANUAL_REQUIRED</code></td><td>需要人工判断或审批</td></tr>
+<tr><td><code>DLQ</code></td><td>自动补偿已无法继续，转入死信治理</td></tr>
+<tr><td><code>CANCELLED</code></td><td>差异已消失或任务被人工取消</td></tr>
+</tbody>
+</table>
+</div>
+<p>不要让任务在 <code>RUNNING</code> 状态永久停留。Worker 必须使用租约，超时后允许其他 Worker 接管。</p>
+<h3 id="1063-重试策略"><a class="header" href="#1063-重试策略">10.6.3 重试策略</a></h3>
+<p>补偿重试要区分错误类型。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>错误类型</th><th>示例</th><th>策略</th></tr>
+</thead>
+<tbody>
+<tr><td>瞬时错误</td><td>网络抖动、连接重置</td><td>指数退避重试</td></tr>
+<tr><td>下游限流</td><td>渠道 QPS 超限、供应商 429</td><td>降低并发，延后重试</td></tr>
+<tr><td>数据未就绪</td><td>订单刚创建，支付单尚未落库</td><td>短延迟重试</td></tr>
+<tr><td>业务冲突</td><td>状态机不允许推进</td><td>转人工或重新对账</td></tr>
+<tr><td>参数错误</td><td>商品 ID 不存在、字段格式错误</td><td>进入 DLQ</td></tr>
+<tr><td>资损风险</td><td>金额不一致、重复扣款</td><td>冻结并人工复核</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个常见退避策略：</p>
+<pre><code class="language-text">第 1 次：30 秒后重试
+第 2 次：2 分钟后重试
+第 3 次：10 分钟后重试
+第 4 次：30 分钟后重试
+第 5 次：2 小时后重试
+超过阈值：MANUAL_REQUIRED 或 DLQ
+</code></pre>
+<p>不要无上限重试。无上限重试会掩盖真实问题，打爆下游，也会让补偿队列永远无法清空。</p>
+<h3 id="1064-worker-执行原则"><a class="header" href="#1064-worker-执行原则">10.6.4 Worker 执行原则</a></h3>
+<p>补偿 Worker 应该遵守这些原则：</p>
+<ol>
+<li>先抢租约，再执行任务。</li>
+<li>执行前重新读取业务对象最新状态。</li>
+<li>判断差异是否仍然存在。</li>
+<li>调用幂等接口或执行条件更新。</li>
+<li>执行后验证结果。</li>
+<li>写补偿日志和审计记录。</li>
+<li>失败时按错误分类更新下一次动作。</li>
+</ol>
+<p>伪流程：</p>
+<pre><code class="language-text">扫描 PENDING / RETRY_WAIT 且 next_retry_at &lt;= now 的任务
+  -&gt; CAS 抢占 locked_by / locked_until
+  -&gt; 读取任务和业务对象
+  -&gt; 如果差异已消失，标记 SUCCESS 或 CANCELLED
+  -&gt; 如果状态机不允许自动修复，标记 MANUAL_REQUIRED
+  -&gt; 执行幂等补偿动作
+  -&gt; 校验修复结果
+  -&gt; 成功：标记 SUCCESS
+  -&gt; 可重试失败：计算 next_retry_at，标记 RETRY_WAIT
+  -&gt; 不可重试失败：写入 DLQ
+</code></pre>
+<h3 id="1065-补偿接口要幂等"><a class="header" href="#1065-补偿接口要幂等">10.6.5 补偿接口要幂等</a></h3>
+<p>补偿任务本身会重试，也可能被人工重放。因此所有补偿动作都必须幂等。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>补偿动作</th><th>幂等设计</th></tr>
+</thead>
+<tbody>
+<tr><td>推进订单已支付</td><td><code>order_id + paid_event_id</code> 唯一约束，状态条件更新</td></tr>
+<tr><td>释放库存预占</td><td><code>reservation_id + release_reason</code> 唯一流水，状态机从 reserved 到 released</td></tr>
+<tr><td>确认库存已售</td><td><code>reservation_id</code> 只能确认一次</td></tr>
+<tr><td>释放优惠券</td><td><code>coupon_lock_id</code> 状态机，重复释放直接返回成功</td></tr>
+<tr><td>重建搜索索引</td><td><code>item_id + publish_version</code> 覆盖式写入</td></tr>
+<tr><td>支付查单</td><td><code>payment_id</code> 查询不产生副作用，结果推进用状态机</td></tr>
+<tr><td>供应商重投递</td><td><code>task_item_id + retry_round</code> 去重，保留原始 payload 引用</td></tr>
+</tbody>
+</table>
+</div>
+<p>判断幂等是否合格，可以问一句：<strong>同一补偿任务执行 10 次，业务结果是否仍然正确？</strong></p>
+<h3 id="1066-补偿不是万能的"><a class="header" href="#1066-补偿不是万能的">10.6.6 补偿不是万能的</a></h3>
+<p>有些差异不应该自动补偿。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>原因</th></tr>
+</thead>
+<tbody>
+<tr><td>金额不一致</td><td>可能涉及资损、税务、分账</td></tr>
+<tr><td>重复支付</td><td>需要确认是否退款、是否合并订单</td></tr>
+<tr><td>跨用户归属错误</td><td>可能是严重数据串号</td></tr>
+<tr><td>商品价格异常</td><td>可能需要法务和运营判断</td></tr>
+<tr><td>供应商确认失败但用户已支付</td><td>需要客服、退款或替代履约策略</td></tr>
+<tr><td>人工 SQL 导致状态错乱</td><td>需要冻结现场，防止越修越错</td></tr>
+</tbody>
+</table>
+</div>
+<p>自动化的边界必须清楚。好的补偿系统不是“什么都自动修”，而是低风险自动收敛，高风险快速冻结、分派和审计。</p>
+<h2 id="107-dlq-设计从失败消息到可运营问题单"><a class="header" href="#107-dlq-设计从失败消息到可运营问题单">10.7 DLQ 设计：从失败消息到可运营问题单</a></h2>
+<h3 id="1071-什么应该进入-dlq"><a class="header" href="#1071-什么应该进入-dlq">10.7.1 什么应该进入 DLQ</a></h3>
+<p>进入 DLQ 的前提是：系统判断当前数据无法继续正常自动处理，或者继续重试会产生更高风险。</p>
+<p>常见进入 DLQ 的原因：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类型</th><th>例子</th><th>是否可自动恢复</th></tr>
+</thead>
+<tbody>
+<tr><td>格式错误</td><td>消息 JSON 无法解析、字段类型不兼容</td><td>通常不可</td></tr>
+<tr><td>业务对象缺失</td><td>订单不存在、商品不存在</td><td>可能需要等待或人工</td></tr>
+<tr><td>状态冲突</td><td>订单已取消但收到支付成功事件</td><td>需要业务判断</td></tr>
+<tr><td>下游持续失败</td><td>重试超过阈值</td><td>可能稍后恢复</td></tr>
+<tr><td>数据质量问题</td><td>供应商城市映射失败、价格异常</td><td>通常需要人工</td></tr>
+<tr><td>幂等冲突</td><td>同一幂等键参数不同</td><td>高风险，人工</td></tr>
+<tr><td>安全风险</td><td>验签失败、来源不可信</td><td>不应重放</td></tr>
+</tbody>
+</table>
+</div>
+<p>不要把所有失败都立即丢进 DLQ。瞬时网络失败应该先重试；明确不可恢复的数据问题才应进入 DLQ。</p>
+<h3 id="1072-mysql-dlq-表"><a class="header" href="#1072-mysql-dlq-表">10.7.2 MySQL DLQ 表</a></h3>
+<p>业务 DLQ 推荐落 MySQL 或其他可查询事务存储，作为权威问题单。</p>
+<pre><code class="language-sql">CREATE TABLE dead_letter_item (
+    id BIGINT PRIMARY KEY,
+    dlq_type VARCHAR(64) NOT NULL,
+    biz_type VARCHAR(64) NOT NULL,
+    biz_id VARCHAR(128) NOT NULL,
+    stage VARCHAR(64) NOT NULL,
+    error_code VARCHAR(64) NOT NULL,
+    error_message VARCHAR(512) NOT NULL,
+    retryable TINYINT NOT NULL DEFAULT 0,
+    severity VARCHAR(32) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    payload_ref VARCHAR(512) NULL,
+    payload_digest VARCHAR(128) NOT NULL,
+    context_snapshot JSON NOT NULL,
+    retry_count INT NOT NULL DEFAULT 0,
+    next_retry_at DATETIME NULL,
+    owner VARCHAR(64) NULL,
+    resolved_by VARCHAR(64) NULL,
+    resolved_at DATETIME NULL,
+    resolution VARCHAR(64) NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_dlq_dedup (dlq_type, biz_type, biz_id, stage, error_code, payload_digest),
+    KEY idx_dlq_status (status, severity, created_at),
+    KEY idx_dlq_biz (biz_type, biz_id)
+);
+</code></pre>
+<p>设计要点：</p>
+<ul>
+<li>大 payload 不要直接塞主表，保存对象存储引用和摘要。</li>
+<li><code>payload_digest</code> 用于去重和防篡改。</li>
+<li><code>stage</code> 表示失败阶段，例如 <code>PARSE</code>、<code>VALIDATE</code>、<code>PUBLISH</code>、<code>CONSUME</code>、<code>CALLBACK</code>。</li>
+<li><code>resolution</code> 表示处理结果，例如 <code>REPLAYED</code>、<code>IGNORED</code>、<code>MANUAL_FIXED</code>、<code>REFUNDED</code>。</li>
+<li>所有人工动作必须写审计日志。</li>
+</ul>
+<h3 id="1073-dlq-状态机"><a class="header" href="#1073-dlq-状态机">10.7.3 DLQ 状态机</a></h3>
+<pre><code class="language-text">OPEN
+  -&gt; ASSIGNED
+  -&gt; RETRYING
+  -&gt; RESOLVED
+  -&gt; IGNORED
+  -&gt; ESCALATED
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>OPEN</code></td><td>新进入，等待处理</td></tr>
+<tr><td><code>ASSIGNED</code></td><td>已分派给 owner</td></tr>
+<tr><td><code>RETRYING</code></td><td>正在自动或人工重放</td></tr>
+<tr><td><code>RESOLVED</code></td><td>已修复并验证</td></tr>
+<tr><td><code>IGNORED</code></td><td>确认为无需处理，必须填写原因</td></tr>
+<tr><td><code>ESCALATED</code></td><td>升级到事故、客服、财务或供应商</td></tr>
+</tbody>
+</table>
+</div>
+<p>DLQ 的“忽略”能力很重要，但必须有权限和审计。没有忽略能力，队列会永远堆积；忽略没有审计，又会变成掩盖问题的洞。</p>
+<h3 id="1074-kafka-dlq-与-mysql-dlq-的边界"><a class="header" href="#1074-kafka-dlq-与-mysql-dlq-的边界">10.7.4 Kafka DLQ 与 MySQL DLQ 的边界</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>能力</th><th>Kafka DLQ</th><th>MySQL DLQ</th></tr>
+</thead>
+<tbody>
+<tr><td>保留失败消息</td><td>强</td><td>中</td></tr>
+<tr><td>顺序回放</td><td>强</td><td>弱</td></tr>
+<tr><td>运营查询</td><td>弱</td><td>强</td></tr>
+<tr><td>分派处理</td><td>弱</td><td>强</td></tr>
+<tr><td>人工修复</td><td>弱</td><td>强</td></tr>
+<tr><td>审计报表</td><td>弱</td><td>强</td></tr>
+<tr><td>大规模吞吐</td><td>强</td><td>中</td></tr>
+<tr><td>问题单生命周期</td><td>弱</td><td>强</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐组合：</p>
+<pre><code class="language-text">消息消费失败
+  -&gt; 可重试错误：延迟重试 Topic
+  -&gt; 超过阈值：写 Kafka DLQ 保留原消息
+  -&gt; 同时写 MySQL DLQ 作为问题单
+  -&gt; 运营或系统修复后，从 MySQL 触发重新投递
+  -&gt; 需要原始消息时，从 Kafka / 对象存储读取 payload
+</code></pre>
+<h3 id="1075-重新投递要有护栏"><a class="header" href="#1075-重新投递要有护栏">10.7.5 重新投递要有护栏</a></h3>
+<p>DLQ 重新投递不能只是一个按钮。</p>
+<p>重放前必须检查：</p>
+<ul>
+<li>原始 payload 是否完整。</li>
+<li>消费代码是否已经修复。</li>
+<li>业务对象当前状态是否允许重放。</li>
+<li>是否会重复扣款、重复发券、重复扣库存。</li>
+<li>是否需要灰度重放。</li>
+<li>是否需要限速。</li>
+<li>是否需要审批。</li>
+</ul>
+<p>重放策略：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>策略</th><th>使用场景</th></tr>
+</thead>
+<tbody>
+<tr><td>单条重放</td><td>高风险订单、支付、退款</td></tr>
+<tr><td>批量限速重放</td><td>商品索引、缓存刷新</td></tr>
+<tr><td>按错误码重放</td><td>已修复某类解析错误</td></tr>
+<tr><td>按时间窗口重放</td><td>某次发布造成的失败</td></tr>
+<tr><td>影子重放</td><td>先验证新代码能否处理，不写正式状态</td></tr>
+</tbody>
+</table>
+</div>
+<p>高风险 DLQ 应该要求双人审批。尤其是支付、退款、库存和营销权益，不能让一个人随手批量重放。</p>
+<h2 id="108-outbox事件重放与对账的关系"><a class="header" href="#108-outbox事件重放与对账的关系">10.8 Outbox、事件重放与对账的关系</a></h2>
+<p>Outbox 解决的是“本地事务成功后，事件可靠发出去”的问题。对账解决的是“事件发出去之后，下游最终有没有处理成功”的问题。</p>
+<p>两者不能互相替代。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>能力</th><th>解决问题</th><th>不能解决</th></tr>
+</thead>
+<tbody>
+<tr><td>Outbox</td><td>本地数据和事件生成同事务</td><td>下游消费失败、业务处理失败</td></tr>
+<tr><td>MQ 重试</td><td>临时消费失败</td><td>不可重试数据错误</td></tr>
+<tr><td>DLQ</td><td>隔离无法处理的数据</td><td>自动判断业务真相</td></tr>
+<tr><td>对账</td><td>发现最终状态差异</td><td>实时阻止所有错误</td></tr>
+<tr><td>补偿</td><td>修复已发现差异</td><td>替代主链路正确性</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个电商订单支付成功事件的可靠链路应该是：</p>
+<pre><code class="language-text">支付回调落库
+  -&gt; 支付单状态机推进为 SUCCESS
+  -&gt; 同事务写 payment_outbox_event
+  -&gt; Outbox Relay 投递 PaymentSucceeded
+  -&gt; 订单服务消费事件，幂等推进订单
+  -&gt; 履约、库存、营销继续消费订单事件
+  -&gt; 对账任务扫描支付成功但订单未支付
+  -&gt; 发现差异后生成订单推进补偿
+</code></pre>
+<p>即使 Outbox 做得很好，对账仍然必要。因为下游可能消费失败、业务状态冲突、代码 Bug、数据污染或人工误操作。</p>
+<h2 id="109-端到端案例一支付成功但订单未更新"><a class="header" href="#109-端到端案例一支付成功但订单未更新">10.9 端到端案例一：支付成功但订单未更新</a></h2>
+<p>这是电商系统最典型的恢复案例。</p>
+<h3 id="1091-故障过程"><a class="header" href="#1091-故障过程">10.9.1 故障过程</a></h3>
+<pre><code class="language-text">用户提交支付
+  -&gt; 支付渠道扣款成功
+  -&gt; 渠道回调支付服务
+  -&gt; 支付服务验签成功，更新支付单 SUCCESS
+  -&gt; 写 Outbox 事件 PaymentSucceeded
+  -&gt; 订单服务消费事件时数据库超时
+  -&gt; MQ 重试多次失败
+  -&gt; 消息进入 DLQ
+  -&gt; 用户订单仍显示待支付
+</code></pre>
+<p>用户看到的是“钱扣了，订单没变”。这类问题必须优先处理，因为它直接影响信任。</p>
+<h3 id="1092-发现方式"><a class="header" href="#1092-发现方式">10.9.2 发现方式</a></h3>
+<p>至少应该有三条发现路径：</p>
+<ol>
+<li>实时链路告警：支付成功事件消费失败率升高。</li>
+<li>近实时对账：支付成功超过 1 分钟，订单仍待支付。</li>
+<li>T+1 渠道对账：渠道成功，本地订单未完成。</li>
+</ol>
+<p>只靠用户投诉是不合格的。</p>
+<h3 id="1093-自动补偿策略"><a class="header" href="#1093-自动补偿策略">10.9.3 自动补偿策略</a></h3>
+<p>低风险情况下，可以自动推进订单：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>前置条件</th><th>判断</th></tr>
+</thead>
+<tbody>
+<tr><td>支付单为 SUCCESS</td><td>是</td></tr>
+<tr><td>渠道流水验签和金额正确</td><td>是</td></tr>
+<tr><td>订单仍处于 PendingPay</td><td>是</td></tr>
+<tr><td>订单未取消、未退款、未风控冻结</td><td>是</td></tr>
+<tr><td>支付金额等于订单应付金额</td><td>是</td></tr>
+<tr><td>幂等事件未处理成功</td><td>是</td></tr>
+</tbody>
+</table>
+</div>
+<p>补偿动作：</p>
+<pre><code class="language-text">创建 compensation_task: ADVANCE_ORDER_PAID
+  -&gt; 读取订单和支付单最新状态
+  -&gt; 校验金额、币种、支付单归属
+  -&gt; CAS 更新订单 PendingPay -&gt; Paid
+  -&gt; 写订单状态日志
+  -&gt; 写 OrderPaid Outbox
+  -&gt; 标记补偿成功
+  -&gt; 对账差异改为 RESOLVED
+</code></pre>
+<p>如果订单已取消，就不能简单推进。需要判断取消原因和支付时间：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>情况</th><th>处理</th></tr>
+</thead>
+<tbody>
+<tr><td>支付发生在取消前</td><td>可能是状态处理延迟，人工确认</td></tr>
+<tr><td>支付发生在取消后</td><td>通常发起退款或人工确认</td></tr>
+<tr><td>订单已风控冻结</td><td>进入风控工单</td></tr>
+<tr><td>金额不一致</td><td>进入财务差异工单</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="1094-用户体验"><a class="header" href="#1094-用户体验">10.9.4 用户体验</a></h3>
+<p>恢复系统还要考虑用户展示：</p>
+<ul>
+<li>支付成功但订单未推进时，不要长期显示“待支付”。</li>
+<li>可以展示“支付结果确认中”，并提供刷新或客服入口。</li>
+<li>如果自动补偿完成，应同步推送订单状态。</li>
+<li>如果需要退款，应明确退款处理中和预计到账时间。</li>
+</ul>
+<p>很多系统后台补偿做得不错，但前台状态表达很差，用户仍然会投诉。故障恢复不只是数据修复，也包括用户可解释性。</p>
+<h2 id="1010-端到端案例二库存预占成功但订单创建失败"><a class="header" href="#1010-端到端案例二库存预占成功但订单创建失败">10.10 端到端案例二：库存预占成功但订单创建失败</a></h2>
+<h3 id="10101-故障过程"><a class="header" href="#10101-故障过程">10.10.1 故障过程</a></h3>
+<pre><code class="language-text">用户提交订单
+  -&gt; 订单服务调用库存预占
+  -&gt; 库存系统写 reservation SUCCESS
+  -&gt; 订单服务写订单主表时失败
+  -&gt; 用户收到下单失败
+  -&gt; 库存仍被占用
+</code></pre>
+<p>如果不处理，库存会被幽灵订单占住，造成少卖。</p>
+<h3 id="10102-恢复设计"><a class="header" href="#10102-恢复设计">10.10.2 恢复设计</a></h3>
+<p>库存预占必须有过期时间和业务关联。</p>
+<p>关键字段：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>reservation_id</code></td><td>预占 ID</td></tr>
+<tr><td><code>request_id</code></td><td>创单请求幂等键</td></tr>
+<tr><td><code>order_id</code></td><td>如果订单创建成功则绑定</td></tr>
+<tr><td><code>sku_id</code></td><td>库存对象</td></tr>
+<tr><td><code>quantity</code></td><td>预占数量</td></tr>
+<tr><td><code>status</code></td><td>RESERVED、CONFIRMED、RELEASED、EXPIRED</td></tr>
+<tr><td><code>expire_at</code></td><td>预占过期时间</td></tr>
+</tbody>
+</table>
+</div>
+<p>恢复路径：</p>
+<ol>
+<li>创单失败后，订单服务同步调用库存释放。</li>
+<li>如果同步释放失败，写补偿任务 <code>RELEASE_INVENTORY_RESERVATION</code>。</li>
+<li>库存系统定时扫描超时 <code>RESERVED</code> 记录。</li>
+<li>对账任务扫描“无订单绑定的有效预占”。</li>
+<li>补偿释放库存并写释放流水。</li>
+</ol>
+<p>注意：释放库存必须幂等。重复释放不能让库存加两次。</p>
+<h3 id="10103-什么时候不能自动释放"><a class="header" href="#10103-什么时候不能自动释放">10.10.3 什么时候不能自动释放</a></h3>
+<p>如果订单服务写主表超时，可能订单实际已经写成功，只是响应失败。因此释放前要查订单：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>查询结果</th><th>处理</th></tr>
+</thead>
+<tbody>
+<tr><td>订单不存在</td><td>可以释放</td></tr>
+<tr><td>订单存在且待支付</td><td>不释放，绑定 reservation</td></tr>
+<tr><td>订单存在且已支付</td><td>确认库存 sold</td></tr>
+<tr><td>订单存在但状态异常</td><td>转人工或重新对账</td></tr>
+</tbody>
+</table>
+</div>
+<p>这就是为什么补偿执行前必须重新读取最新状态。补偿不能只相信任务创建时的上下文。</p>
+<h2 id="1011-端到端案例三供应商同步失败进入-dlq"><a class="header" href="#1011-端到端案例三供应商同步失败进入-dlq">10.11 端到端案例三：供应商同步失败进入 DLQ</a></h2>
+<h3 id="10111-场景"><a class="header" href="#10111-场景">10.11.1 场景</a></h3>
+<p>一个酒店供应商每天同步 100 万个酒店和房型。某次同步中，供应商把城市编码从 <code>BKK</code> 改成新编码，但没有提前通知平台。平台城市映射失败，导致部分酒店无法发布。</p>
+<p>如果系统只是打印日志，运营不会知道哪些酒店失败，也无法修复。</p>
+<h3 id="10112-正确链路"><a class="header" href="#10112-正确链路">10.11.2 正确链路</a></h3>
+<pre><code class="language-text">Supplier Sync Task
+  -&gt; 拉取 Raw Snapshot
+  -&gt; 标准化字段
+  -&gt; 城市 / 商户 / 品牌映射
+  -&gt; 质量校验
+  -&gt; Diff
+  -&gt; 低风险自动发布
+  -&gt; 高风险审核
+  -&gt; 失败进入 MySQL DLQ
+</code></pre>
+<p>DLQ 记录应包含：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><code>dlq_type</code></td><td>SUPPLIER_SYNC</td></tr>
+<tr><td><code>biz_type</code></td><td>HOTEL</td></tr>
+<tr><td><code>biz_id</code></td><td>supplier_hotel_id</td></tr>
+<tr><td><code>stage</code></td><td>MAPPING</td></tr>
+<tr><td><code>error_code</code></td><td>CITY_MAPPING_NOT_FOUND</td></tr>
+<tr><td><code>payload_ref</code></td><td>raw snapshot 地址</td></tr>
+<tr><td><code>context_snapshot</code></td><td>supplier_id、city_code、hotel_name、task_id</td></tr>
+<tr><td><code>owner</code></td><td>supply-ops</td></tr>
+<tr><td><code>retryable</code></td><td>false</td></tr>
+</tbody>
+</table>
+</div>
+<p>运营后台应该能按供应商、城市、错误码筛选，批量建立映射规则，然后重放受影响 DLQ。</p>
+<h3 id="10113-为什么不能直接自动发布"><a class="header" href="#10113-为什么不能直接自动发布">10.11.3 为什么不能直接自动发布</a></h3>
+<p>城市映射失败不是技术瞬时错误，而是业务语义缺失。自动发布可能导致：</p>
+<ul>
+<li>酒店出现在错误城市。</li>
+<li>用户搜索结果错误。</li>
+<li>税费和履约规则错误。</li>
+<li>供应商结算主体错误。</li>
+</ul>
+<p>所以这类 DLQ 的正确处理不是重试，而是修复映射数据后重新投递。</p>
+<h3 id="10114-重放后的验证"><a class="header" href="#10114-重放后的验证">10.11.4 重放后的验证</a></h3>
+<p>重放成功不等于结束。还要验证：</p>
+<ul>
+<li>商品正式版本是否更新。</li>
+<li>搜索索引是否刷新。</li>
+<li>详情页缓存是否刷新。</li>
+<li>可售诊断是否通过。</li>
+<li>质量报表中的失败数是否下降。</li>
+<li>原 DLQ 是否标记 <code>RESOLVED</code> 并写审计。</li>
+</ul>
+<p>这才是闭环。</p>
+<h2 id="1012-故障恢复中的人工介入"><a class="header" href="#1012-故障恢复中的人工介入">10.12 故障恢复中的人工介入</a></h2>
+<p>业务系统不能完全排斥人工介入。关键是人工介入必须产品化、权限化、审计化。</p>
+<h3 id="10121-人工介入入口"><a class="header" href="#10121-人工介入入口">10.12.1 人工介入入口</a></h3>
+<p>建议后台至少提供：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>能力</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>差异查询</td><td>按订单号、支付单、SKU、供应商、错误码查找</td></tr>
+<tr><td>证据展示</td><td>展示对账快照、原始 payload、trace、日志链接</td></tr>
+<tr><td>操作建议</td><td>系统给出推荐动作和风险提示</td></tr>
+<tr><td>单条修复</td><td>对单个差异执行推进、释放、重建、退款等动作</td></tr>
+<tr><td>批量处理</td><td>对低风险同类问题批量重放</td></tr>
+<tr><td>审批流程</td><td>高风险动作需要双人审批</td></tr>
+<tr><td>操作审计</td><td>记录操作人、原因、参数、前后状态</td></tr>
+<tr><td>结果验证</td><td>操作后自动触发对账或状态检查</td></tr>
+</tbody>
+</table>
+</div>
+<p>禁止直接让运营或研发用 SQL 改核心状态。手工 SQL 最大的问题不是慢，而是不可审计、不可复用、不可防错。</p>
+<h3 id="10122-人工动作也要幂等"><a class="header" href="#10122-人工动作也要幂等">10.12.2 人工动作也要幂等</a></h3>
+<p>人工点击“重新投递”也可能点两次，后台超时后也可能重复提交。所以人工操作不能绕过幂等。</p>
+<p>每次人工动作都应该生成 <code>manual_operation</code> 记录：</p>
+<pre><code class="language-sql">CREATE TABLE manual_operation (
+    id BIGINT PRIMARY KEY,
+    operation_type VARCHAR(64) NOT NULL,
+    biz_type VARCHAR(64) NOT NULL,
+    biz_id VARCHAR(128) NOT NULL,
+    idempotency_key VARCHAR(128) NOT NULL,
+    operator VARCHAR(64) NOT NULL,
+    reason VARCHAR(512) NOT NULL,
+    request_payload JSON NOT NULL,
+    before_snapshot JSON NOT NULL,
+    after_snapshot JSON NULL,
+    status VARCHAR(32) NOT NULL,
+    approved_by VARCHAR(64) NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_manual_idem (operation_type, idempotency_key)
+);
+</code></pre>
+<p>人工修复不是“绕过系统”，而是通过系统提供的安全入口完成修复。</p>
+<h2 id="1013-监控与指标"><a class="header" href="#1013-监控与指标">10.13 监控与指标</a></h2>
+<p>第 9 章已经系统讨论监控体系，本章只列对账、补偿和 DLQ 必须具备的专项指标。</p>
+<h3 id="10131-对账指标"><a class="header" href="#10131-对账指标">10.13.1 对账指标</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>recon_batch_success_rate</code></td><td>对账批次成功率</td></tr>
+<tr><td><code>recon_batch_duration_seconds</code></td><td>对账耗时</td></tr>
+<tr><td><code>recon_diff_total</code></td><td>差异数量</td></tr>
+<tr><td><code>recon_diff_age_seconds</code></td><td>差异存活时间</td></tr>
+<tr><td><code>recon_auto_fix_success_rate</code></td><td>自动修复成功率</td></tr>
+<tr><td><code>recon_manual_required_total</code></td><td>需要人工处理的差异</td></tr>
+</tbody>
+</table>
+</div>
+<p>关键告警：</p>
+<ul>
+<li>支付对账批次失败。</li>
+<li>P0 差异数量大于 0，例如重复扣款、金额不一致。</li>
+<li>差异超过 SLA 未处理。</li>
+<li>同一错误码差异突然上升。</li>
+</ul>
+<h3 id="10132-补偿指标"><a class="header" href="#10132-补偿指标">10.13.2 补偿指标</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>compensation_pending_total</code></td><td>待执行任务数</td></tr>
+<tr><td><code>compensation_retry_total</code></td><td>重试任务数</td></tr>
+<tr><td><code>compensation_success_rate</code></td><td>补偿成功率</td></tr>
+<tr><td><code>compensation_oldest_age_seconds</code></td><td>最老任务年龄</td></tr>
+<tr><td><code>compensation_manual_required_total</code></td><td>需要人工介入数量</td></tr>
+<tr><td><code>compensation_execution_duration_seconds</code></td><td>单次执行耗时</td></tr>
+</tbody>
+</table>
+</div>
+<p>比“失败数量”更重要的是“最老任务年龄”。如果一条支付补偿卡了 6 小时，哪怕总数只有 1，也可能是严重用户问题。</p>
+<h3 id="10133-dlq-指标"><a class="header" href="#10133-dlq-指标">10.13.3 DLQ 指标</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>dlq_open_total</code></td><td>未处理 DLQ 数</td></tr>
+<tr><td><code>dlq_new_total</code></td><td>新增 DLQ 数</td></tr>
+<tr><td><code>dlq_resolved_total</code></td><td>已解决数</td></tr>
+<tr><td><code>dlq_replay_success_rate</code></td><td>重放成功率</td></tr>
+<tr><td><code>dlq_oldest_age_seconds</code></td><td>最老 DLQ 年龄</td></tr>
+<tr><td><code>dlq_by_error_code</code></td><td>按错误码分布</td></tr>
+<tr><td><code>dlq_by_owner</code></td><td>按负责人分布</td></tr>
+</tbody>
+</table>
+</div>
+<p>DLQ 要有运营 SLA。例如：</p>
+<ul>
+<li>支付和退款 DLQ：15 分钟内响应。</li>
+<li>订单状态 DLQ：30 分钟内响应。</li>
+<li>商品投影 DLQ：2 小时内处理。</li>
+<li>供应商数据质量 DLQ：工作日内处理或升级供应商。</li>
+</ul>
+<h2 id="1014-上线前检查清单"><a class="header" href="#1014-上线前检查清单">10.14 上线前检查清单</a></h2>
+<p>上线一个跨系统链路前，可以用下面清单检查恢复能力。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>检查项</th><th>必须回答</th></tr>
+</thead>
+<tbody>
+<tr><td>权威数据源</td><td>出现差异时谁说了算</td></tr>
+<tr><td>幂等键</td><td>重试、回调、补偿是否共用稳定幂等语义</td></tr>
+<tr><td>状态机</td><td>哪些状态允许自动推进，哪些必须人工</td></tr>
+<tr><td>Outbox</td><td>本地事务成功后事件是否可靠投递</td></tr>
+<tr><td>对账规则</td><td>是否有差异发现机制和容忍窗口</td></tr>
+<tr><td>补偿任务</td><td>是否有任务表、状态机、租约、重试和审计</td></tr>
+<tr><td>DLQ</td><td>不可自动处理的数据是否可查询、可分派、可重放</td></tr>
+<tr><td>人工入口</td><td>是否禁止直接 SQL 修核心状态</td></tr>
+<tr><td>监控告警</td><td>是否能看到差异数量、积压时间、重放成功率</td></tr>
+<tr><td>Runbook</td><td>值班同学是否知道如何止血和恢复</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果一个链路没有对账和补偿，它不是“设计简单”，而是把复杂度转嫁给事故当天的 on-call。</p>
+<h2 id="1015-常见反模式"><a class="header" href="#1015-常见反模式">10.15 常见反模式</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>反模式</th><th>问题</th></tr>
+</thead>
+<tbody>
+<tr><td>只写日志不落差异表</td><td>问题不可运营，无法统计和追踪</td></tr>
+<tr><td>对账只告警不修复</td><td>告警越来越多，团队逐渐麻木</td></tr>
+<tr><td>补偿没有幂等</td><td>重试本身制造二次事故</td></tr>
+<tr><td>所有失败都无限重试</td><td>打爆下游，掩盖数据问题</td></tr>
+<tr><td>DLQ 只是 Kafka Topic</td><td>运营无法查询、分派、修复、审计</td></tr>
+<tr><td>人工直接改库</td><td>无权限边界、无审计、无防错</td></tr>
+<tr><td>金额差异自动修</td><td>极易扩大资损</td></tr>
+<tr><td>不保存原始 payload</td><td>无法复盘、无法重放、无法举证</td></tr>
+<tr><td>不区分错误类型</td><td>可重试和不可重试混在一起</td></tr>
+<tr><td>补偿执行前不读最新状态</td><td>修复旧问题，制造新问题</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="1016-本章小结"><a class="header" href="#1016-本章小结">10.16 本章小结</a></h2>
+<p>对账、补偿、DLQ 与故障恢复，是业务系统长期稳定运行的底座。</p>
+<p>对电商系统来说：</p>
+<ul>
+<li>支付对账保护资金事实。</li>
+<li>库存对账保护可售承诺。</li>
+<li>订单对账保护用户状态。</li>
+<li>商品与搜索对账保护前台体验。</li>
+<li>供应商对账保护供给质量。</li>
+<li>补偿任务负责把低风险差异自动拉回正确状态。</li>
+<li>DLQ 负责把不可自动处理的问题变成可运营、可追踪、可审计的问题单。</li>
+<li>人工介入不是失败，而是高风险业务恢复的一部分，但必须通过系统化入口完成。</li>
+</ul>
+<p>真正成熟的恢复体系，不是“出了问题有脚本”，而是从主链路设计时就把失败纳入模型：每个动作都有幂等语义，每个状态都有推进规则，每个事件都有重放路径，每个差异都有处理责任，每次人工操作都有证据链。</p>
+<p>系统会失败，但业务结果必须最终可信。这就是对账、补偿、DLQ 和故障恢复的工程价值。</p>
+<h2 id="1017-本章面试题与追问"><a class="header" href="#1017-本章面试题与追问">10.17 本章面试题与追问</a></h2>
+<ol>
+<li>
+<p>对账和监控有什么区别？
+追问：为什么支付成功率正常，仍然可能需要支付对账？</p>
+</li>
+<li>
+<p>如何为支付系统设计对账流程？
+追问：渠道成功、本地待支付时，能不能直接把订单改成已支付？</p>
+</li>
+<li>
+<p>补偿任务为什么必须幂等？
+追问：库存释放补偿重复执行两次会发生什么，如何避免？</p>
+</li>
+<li>
+<p>DLQ 为什么不应该只是 Kafka 的死信 Topic？
+追问：供应商同步失败为什么更适合用 MySQL DLQ 做治理？</p>
+</li>
+<li>
+<p>如何处理支付成功但订单未更新？
+追问：订单已经取消时，为什么不能无条件推进为已支付？</p>
+</li>
+<li>
+<p>库存 Redis 和 MySQL 不一致时，以谁为准？
+追问：什么情况下应该冻结商品而不是自动修复？</p>
+</li>
+<li>
+<p>对账差异如何分类？
+追问：哪些差异可以自动补偿，哪些必须人工复核？</p>
+</li>
+<li>
+<p>Outbox、MQ 重试、DLQ、对账和补偿分别解决什么问题？
+追问：为什么用了 Outbox 仍然需要对账？</p>
+</li>
+<li>
+<p>供应商同步长任务如何故障恢复？
+追问：Raw Snapshot、Checkpoint、Worker Lease 和 DLQ 各自解决什么问题？</p>
+</li>
+<li>
+<p>如何设计一个补偿任务表？
+追问：为什么需要 <code>locked_until</code>、<code>idempotency_key</code> 和 <code>context_snapshot</code>？</p>
+</li>
+<li>
+<p>人工修复为什么也要走系统入口？
+追问：直接 SQL 修订单状态会留下哪些风险？</p>
+</li>
+<li>
+<p>如何监控补偿和 DLQ？
+追问：为什么最老任务年龄比任务总数更重要？</p>
+</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part01/09-system-reliability-engineering.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part01/11-asset-loss-prevention.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part01/09-system-reliability-engineering.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part01/11-asset-loss-prevention.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
