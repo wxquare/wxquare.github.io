@@ -3216,7 +3216,7 @@ Report Generator
 
 ### 24.8.8 状态机引用
 
-批量导入链路中的 `task` 与 `task_item` 状态机，建议统一收敛到 [24.3 商品生命周期管理](#/part04/05-product-supply-ops.html?highlight=24.3) 中维护，避免在执行链路章节重复定义后逐渐漂移。
+批量导入链路中的 `task` 与 `task_item` 状态机，建议统一收敛到 [24.3 商品生命周期管理](#/part02/05-product-supply-ops.html?highlight=24.3) 中维护，避免在执行链路章节重复定义后逐渐漂移。
 
 在本节里可以只记住两点：
 
