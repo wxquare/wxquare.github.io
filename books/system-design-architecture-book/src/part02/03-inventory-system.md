@@ -34,7 +34,7 @@
 | 锁定库存 | 被风控、运营、活动或异常处理临时锁住 | `locked_stock` |
 | 已售库存 | 已经确认成交或已经出库 / 出码 / 出票 | `sold_stock/issued_stock` |
 
-库存语义混淆的答辩提示已统一收录到[第 36 章](../part05/04-product-inventory-marketing-pricing-interview.md)。
+库存语义混淆的答辩提示已统一收录到[第 34 章](../part05/04-product-inventory-marketing-pricing-interview.md)。
 
 ### 22.1.2 从通用库存到虚拟商品库存
 
@@ -764,7 +764,7 @@ stateDiagram-v2
 - 读路径：短 TTL 缓存 + 超时控制 + 熔断降级。
 - 写路径：同步预订或异步预订（供应商返回 pending 时需轮询，并通过异步 booking 状态机收敛结果）。
 
-**读路径的 Go 骨架（与第 32 章风格一致：先缓存、后供应商、再回写、可观测）**：
+**读路径的 Go 骨架（与第 30 章风格一致：先缓存、后供应商、再回写、可观测）**：
 
 ```go
 // CheckSupplierStock 演示：实时查询 + 短缓存 + 异步快照（示意代码）

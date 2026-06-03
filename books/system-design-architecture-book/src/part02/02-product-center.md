@@ -25,9 +25,7 @@
 
 完整的供给治理链路见：
 
-- [第 24 章：商品供给与运营管理和生命周期管理](./05-product-supply-ops.md)
-- [第 31 章：商品供给与运营治理平台](./12-product-supply-governance.md)
-- [第 30 章：供应商数据同步链路](./11-supplier-sync.md)
+- [第 24 章：商品供给、运营与生命周期治理](./05-product-supply-lifecycle-ops.md)
 
 ---
 
@@ -1448,14 +1446,13 @@ publish_id / operation_id
 
 ## 21.15 答辩材料
 
-本章相关问题、总结话术和追问要点已统一收录到[第 36 章](../part05/04-product-inventory-marketing-pricing-interview.md)。
+本章相关问题、总结话术和追问要点已统一收录到[第 34 章](../part05/04-product-inventory-marketing-pricing-interview.md)。
 
 **延伸阅读建议**：
 
 - [第 22 章：库存系统](./03-inventory-system.md)
 - [第 23 章：营销系统](./04-marketing-system.md)
-- [第 24 章：商品供给与运营管理和生命周期管理](./05-product-supply-ops.md)
-- [第 31 章：商品供给与运营治理平台](./12-product-supply-governance.md)
-- [第 30 章：供应商数据同步链路](./11-supplier-sync.md)
+- [第 24 章：商品供给、运营与生命周期治理](./05-product-supply-lifecycle-ops.md)
+- [第 24 章：商品供给、运营与生命周期治理](./05-product-supply-lifecycle-ops.md)
 
 ---
