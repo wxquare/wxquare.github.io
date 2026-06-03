@@ -1,0 +1,111 @@
+@startuml
+autonumber
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+
+actor "XXL-JOB (分布式调度中心)" as Cron
+participant "供给控制中心\n(supply_pull_job)" as Job
+
+box "供给接入平台 (网关域 - 薄荷绿)" #E8F8F5
+    participant "自适应拉取器\n(Paging Fetcher)" as Fetcher
+    database "全局缓存\n(Redis)" as Redis
+    participant "增量防腐沙盒\n(supplier_raw_item_tab)" as Sandbox
+    queue "商品供给集市 topic\n(MQ)" as MQ
+end box
+
+box "外部供应商系统 (外域 - 灰色)" #E0E0E0
+    participant "供应商标准商品 API\n(Vendor API)" as Vendor
+end box
+
+box "商品中心 (主数据域 - 浅蓝色)" #LightBlue
+    participant "商品中心核心\n(product_main/draft)" as Center
+end box
+
+== 阶段 1：定时触发与全局分布式锁控制 ==
+
+Cron -> Job: 1. 触发凌晨定时拉取任务 (Vendor_ID = 99)
+activate Job #LightSeaGreen
+
+Job -> Redis: 2. 尝试加锁: SETNX lock_pull_99 1 EX 3600
+activate Redis
+Redis --> Job: 返回加锁成功 (防止多实例重叠执行)
+deactivate Redis
+
+Job -> Job: 3. **初始化批次快照标签**\n生成当前批次唯一标识: Batch_No = 20260603
+
+== 阶段 2：有状态的自适应分页滑动窗口拉取 ==
+
+Job -> Fetcher: 4. 启动分页流水线: startPull(Vendor_ID, Batch_No)
+activate Fetcher #LightSeaGreen
+
+Fetcher -> Fetcher: 5. 初始化参数: Page_No = 1, Page_Size = 500
+
+loop 对方数据未拉取完 (Until response.hasMore == false)
+    Fetcher -> Vendor: 6. 分页请求对方接口: getItems(Page_No, Page_Size)
+    activate Vendor #DarkGray
+    Vendor --> Fetcher: 7. 返回当前页 500 条原始商品 JSON 列表
+    deactivate Vendor
+    
+    Fetcher -> Fetcher: 8. **自适应动态调优**\n根据本次请求的响应耗时(RT)动态缩放下一页的 Page_Size
+    
+    == 阶段 3：激进的内存/Redis MD5 差分过滤 ==
+    
+    loop 遍历本页 500 条数据
+        Fetcher -> Fetcher: 9. 提取唯一键 (Biz_Key) 与计算最新指纹 (New_MD5)
+        
+        Fetcher -> Redis: 10. 查询昨日该商品的成功变更指纹: GET fingerprint_99_outerId
+        activate Redis
+        Redis --> Fetcher: 返回 Old_MD5
+        deactivate Redis
+        
+        alt 情况 A: New_MD5 == Old_MD5 (数据毫无变更)
+            Fetcher -> Fetcher: 11. **就地沉默丢弃 (Drop)**\n不写沙盒，不发 MQ，写流量削减 95%
+        else 情况 B: New_MD5 != Old_MD5 (首次创建或内容已发生变更)
+            Fetcher -> Sandbox: 12. **沙盒落地并打标**\nUpsert 写入暂存表，状态标记为 VALID，绑定当前 batch_no
+            activate Sandbox
+            Sandbox --> Fetcher: 落地成功
+            deactivate Sandbox
+            
+            Fetcher -> Redis: 13. 同步更新最新指纹缓存: SET fingerprint_99_outerId New_MD5
+            activate Redis
+            deactivate Redis
+            
+            Fetcher -> Fetcher: 14. 积攒进入本地 Buffer 队列 (凑满 100 条)
+        end
+    end
+    
+    alt 本地 Buffer 满 100 条
+        Fetcher -[#Purple]> MQ: 15. **攒批投递 MQ 削峰**\nsendMessage(SUPPLY_TOPIC, batch_json)
+    end
+    
+    Fetcher -> Fetcher: 16. 推进页码: Page_No = Page_No + 1
+end
+
+== 阶段 4：清尾扫尾机制 - 解决“供应商删品，我方不知”的漏下架痛点 ==
+
+Fetcher --> Job: 17. 全量分页拉取与投产结束
+deactivate Fetcher
+
+Job -> Sandbox: 18. **执行清尾算子 (全量反查)**\nSELECT FROM supplier_raw_item_tab WHERE batch_no != 20260603
+activate Sandbox
+Sandbox --> Job: 19. 返回这批“在对方系统已被删除”的死活孤儿商品列表
+deactivate Sandbox
+
+loop 遍历死活孤儿商品
+    Job -[#Purple]> MQ: 20. **投递强制下架消息**\nsendMessage(SUPPLY_TOPIC, item_id, status=OFF_SHELF)
+end
+
+== 阶段 5：任务收尾与运维监控看板 ==
+
+Job -> Redis: 21. 释放分布式锁: DEL lock_pull_99
+activate Redis
+Redis --> Job: 锁释放成功
+deactivate Redis
+
+Job -> Job: 22. 整理同步结果日志看板\n(今日共扫描 10万 条，指纹拦截 9.5万 条，实际投产 5千 条)
+
+Job --> Cron: 23. 离线静默同步任务彻底结束 (SUCCESS)
+deactivate Job
+
+@endum
+@enduml

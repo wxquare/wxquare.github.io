@@ -1,0 +1,108 @@
+@startuml
+autonumber
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+
+actor "Merchant (商家)" as Merchant
+participant "B端商家后台前端" as FE
+
+box "供给接入平台 (网关域)" #E8F8F5
+    participant "供给接入平台\n(Gateway)" as Supply
+end box
+
+box "商品中心 (主数据域)" #LightBlue
+    participant "全局统一主表\n(product_main_tab)" as Main
+    participant "工作台表/影子行\n(product_draft_tab)" as Draft
+    participant "线上核心交易表\n(product_item_tab)" as Item
+end box
+
+box "QC审核治理中心 (治理域)" #FFF3E0
+    participant "差异快照表\n(qc_diff_snapshot_tab)" as QCSnap
+    participant "QC规则引擎/人审\n(qc_task_tab)" as QCEngine
+end box
+
+== 阶段 1：前端表单交互与提交 ==
+
+Merchant -> FE: 1. 选择品类(类目)，填写商品核心信息
+activate FE
+FE -> Supply: 2. 请求该品类的动态属性配置 (Get Schema)
+activate Supply #LightSeaGreen
+Supply --> FE: 返回该品类的自定义字段及校验规则
+deactivate Supply
+
+Merchant -> FE: 3. 补全非标属性，点击【提交审核】
+FE -> Supply: 4. POST /api/v1/supply/goods/create (带上全量表单数据)
+deactivate FE
+activate Supply #LightSeaGreen
+
+== 阶段 2：供给平台拼命工作 (100ms内) ==
+
+Supply -> Supply: 5. **安全与防刷校验**\n限流拦截、风控敏感词初筛
+Supply -> Supply: 6. **Schema 规则引擎计算**\n校验必填项、格式、范围
+Supply -> Supply: 7. **数据流沙盒落地 (宽进)**\n写入 supply_task_tab (Task_ID)\n将表单打包成全量 JSON 写入 supplier_raw_item_tab
+Supply -> Supply: 8. **模型翻译**\n将异构表单组装为商品中台标准 DTO
+
+== 阶段 3：商品中心多表联动与隔离 ==
+
+Supply -> Main: 9. RPC 调用商品中台: createDraft(StandardGoodsDTO)
+activate Main #DodgerBlue
+
+alt [全新商品创建]
+    Main -> Main: 10a. **全局权威发号**\n生成全局唯一身份证 Goods_ID
+else [线上售卖商品二次编辑]
+    Main -> Main: 10b. **查询静态关系**\n基于外键或ID获取已有 Goods_ID\n并获取当前线上生效版本 current_version
+end
+
+Main -> Draft: 11. 推进明细数据落库
+activate Draft #DodgerBlue
+Draft -> Draft: 12. **影子行控制**\n新插入明细数据行 (Biz_Version = N+1)\n状态标记为 UNDER_REVIEW\n(注：此时线上交易表继续高并发安全卖货)
+Draft --> Main: 写入成功
+deactivate Draft
+
+Main --> Supply: 返回 Goods_ID
+deactivate Main
+
+Supply --> FE: 13. 秒级响应：提交成功，生成 Goods_ID (Task_Status = SUCCESS)
+deactivate Supply
+
+activate FE
+FE --> Merchant: 页面跳转，提示：“商品已提交，正在审核中...”
+deactivate FE
+
+== 阶段 4：异步驱动 QC 差异化治理流 ==
+
+Note over Draft, QCSnap: 触发 MQ 异步消息: 发送审核任务 (Goods_ID, Biz_Version)
+Draft -[#blue]> QCSnap: 14. 投递送审事件与新数据快照
+activate QCSnap #Orange
+
+QCSnap -> Item: 15. 反查线上当前生效的旧数据 (若为首次创建则为空)
+activate Item #DodgerBlue
+Item --> QCSnap: 返回当前线上老数据
+deactivate Item
+
+QCSnap -> QCSnap: 16. **运行差分(Diff)算法**\n对比送审新数据 vs 线上老数据\n将变化字段及其新旧值存入 diff_fields JSON 字段
+
+QCSnap -> QCEngine: 17. 唤醒审核任务流 (触发 qc_task_tab)
+deactivate QCSnap
+activate QCEngine #Orange
+
+QCEngine -> QCEngine: 18. **运行 QC 规则引擎**\n审核人员在后台读取 diff_fields 高亮展示差异\n(机审过滤 / 人工复核通过)
+
+== 阶段 5：审核通过，商品中心原子合流 ==
+
+QCEngine -> Item: 19. 审批通过，触发原子 Merge 算子
+deactivate QCEngine
+activate Item #DodgerBlue
+
+Item -> Item: 20. **动静合流与版本推進**\n将影子行的变动字段原子覆写至 item_tab\n状态强制同步为 ACTIVE\n同步更新 Main 表的 current_version
+
+Item -> Main: 21. 双删 C 端商详/搜索分布式缓存 (保证强一致性)
+activate Main #DodgerBlue
+Main --> Item: 缓存清除成功
+deactivate Main
+
+Item --> Merchant: 22. 异步通知商家：您的商品已成功发布/更新！
+deactivate Item
+
+@endum
+@enduml
