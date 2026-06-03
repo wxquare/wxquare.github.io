@@ -1,0 +1,1490 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第 21 章 商品中心系统 - 系统设计与架构实战：原理、工程与电商案例</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="从系统设计方法论、核心基础设施、可靠性工程到电商业务架构实战；兼顾原理、工程落地、面试表达和完整业务案例。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-2d8b94c7.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-92ac6fa0.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">系统设计与架构实战：原理、工程与电商案例</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第-21-章-商品中心系统"><a class="header" href="#第-21-章-商品中心系统">第 21 章 商品中心系统</a></h1>
+<blockquote>
+<p><strong>本章定位</strong>：商品中心不是供给后台，也不是商家上传系统。商品中心是平台的正式商品主数据中心和交易前契约中心，负责沉淀已经发布生效的 Resource、SPU/SKU、Offer、库存配置、履约规则、退款规则、发布版本和商品快照。第 24 章讨论商品如何从 Draft、Staging、QC 进入平台；本章讨论商品一旦发布后，平台如何稳定、可追溯、可交易地表达“卖什么、怎么卖、如何履约、历史订单如何解释”。</p>
+</blockquote>
+<p>商品中心最容易被设计成一个“大后台 CRUD”。早期这样做问题不大，但当平台开始支持本地生活、酒店、票务、充值、礼品卡、账单缴费、供应商同步和商家自助上传后，商品中心如果继续直接承接草稿、审核、导入、供应商拉取、搜索刷新、订单快照，就会迅速变成不可维护的大泥球。</p>
+<p>更合理的边界是：</p>
+<pre><code class="language-text">供给与运营平台
+  → Draft / Staging / QC / Task / DLQ
+  → Publish Command
+  → 商品中心正式主数据
+  → 商品快照 / Outbox / 读模型
+  → 搜索、缓存、库存、计价、订单、履约
+</code></pre>
+<p>本章回答五个问题：</p>
+<ol>
+<li><strong>商品中心到底负责什么？</strong> 正式商品主数据、交易前契约、发布版本和稳定读模型。</li>
+<li><strong>为什么不能把 Draft、QC、Rejected 放到商品正式表？</strong> 因为这些是供给流程状态，不是正式商品生命周期状态。</li>
+<li><strong>Resource、SPU/SKU、Offer 如何建模？</strong> 用资源层、商品定义层、销售承诺层拆清楚异构品类。</li>
+<li><strong>发布版本和商品快照解决什么问题？</strong> 解决回滚、对账、搜索一致性和历史订单解释。</li>
+<li><strong>商品中心如何和库存、计价、搜索、订单集成？</strong> 通过交易前契约、Outbox 事件和版本化读模型形成最终一致。</li>
+</ol>
+<p>完整的供给治理链路见：</p>
+<ul>
+<li><a href="./05-product-supply-lifecycle-ops.html">第 24 章：商品供给、运营与生命周期治理</a></li>
+</ul>
+<hr>
+<h2 id="211-系统定位与边界"><a class="header" href="#211-系统定位与边界">21.1 系统定位与边界</a></h2>
+<h3 id="2111-商品中心是什么"><a class="header" href="#2111-商品中心是什么">21.1.1 商品中心是什么</a></h3>
+<p>商品中心是平台对“商品事实”的正式表达。它不关心商家正在编辑哪份草稿，也不关心某条 Excel 第几行是否解析失败；它关心的是已经发布生效的商品版本。</p>
+<p>商品中心至少要回答：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>问题</th><th>商品中心的回答</th></tr>
+</thead>
+<tbody>
+<tr><td>卖的是什么资源</td><td><code>Resource</code>，例如酒店、门店、机场、活动、充值运营商</td></tr>
+<tr><td>商品如何定义</td><td><code>SPU/SKU</code>，例如套餐、面额、房型、服务规格</td></tr>
+<tr><td>用什么销售承诺卖</td><td><code>Offer / Rate Plan</code>，例如价格计划、渠道、销售期、可售规则</td></tr>
+<tr><td>下单前需要什么信息</td><td><code>Input Schema</code>，例如手机号、账单号、入住人、证件</td></tr>
+<tr><td>如何履约</td><td><code>Fulfillment Rule</code>，例如充值、发券、出票、供应商确认</td></tr>
+<tr><td>如何退款售后</td><td><code>Refund Rule</code>，例如随时退、过期退、不可退、取消政策</td></tr>
+<tr><td>哪个版本当前生效</td><td><code>publish_version</code></td></tr>
+<tr><td>历史订单如何解释</td><td>商品快照、报价快照、履约契约快照、退款规则快照</td></tr>
+</tbody>
+</table>
+</div>
+<p>一句话：</p>
+<blockquote>
+<p>商品中心负责正式商品和交易前契约，不负责供给过程。</p>
+</blockquote>
+<h3 id="2112-商品中心不是什么"><a class="header" href="#2112-商品中心不是什么">21.1.2 商品中心不是什么</a></h3>
+<p>商品中心不应该承接所有 B 端流程状态。下面这些内容应该属于第 25 章的供给与运营平台：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>内容</th><th>应该归属</th><th>原因</th></tr>
+</thead>
+<tbody>
+<tr><td>草稿保存</td><td>供给平台 Draft</td><td>草稿允许反复编辑，不影响线上</td></tr>
+<tr><td>商家上传审核</td><td>供给平台 QC</td><td>审核是发布准入工单，不是正式商品</td></tr>
+<tr><td>Excel 导入进度</td><td>供给平台 Task / Task Item</td><td>属于任务执行状态</td></tr>
+<tr><td>供应商分页同步</td><td>供应商同步 Batch / Checkpoint</td><td>属于外部拉取和恢复链路</td></tr>
+<tr><td>错误文件</td><td>供给平台 File / Validation / DLQ</td><td>属于运营修复闭环</td></tr>
+<tr><td>待审、驳回、撤回</td><td>Staging / QC Review</td><td>属于提交快照和审核工单</td></tr>
+</tbody>
+</table>
+</div>
+<p>商品正式表不应该出现这些状态：</p>
+<pre><code class="language-text">DRAFT
+QC_PENDING
+QC_REVIEWING
+REJECTED
+WITHDRAWN
+PARSING
+VALIDATING
+</code></pre>
+<p>正式商品表应该出现的是线上资产状态：</p>
+<pre><code class="language-text">PUBLISHED
+ONLINE
+OFFLINE
+ENDED
+BANNED
+ARCHIVED
+</code></pre>
+<p>这个边界非常重要。新建商品在 Draft、Staging、QC 阶段还没有正式 <code>item_id</code>，只有发布成功后才进入商品中心。如果商品中心提前生成正式商品并把状态设为 <code>DRAFT</code>，后面会出现两个问题：</p>
+<ol>
+<li>未审核商品容易被搜索、缓存或内部查询误读为正式商品。</li>
+<li>Draft、QC、正式商品的生命周期混在一起，状态机很快失控。</li>
+</ol>
+<h3 id="2113-与供给平台的关系"><a class="header" href="#2113-与供给平台的关系">21.1.3 与供给平台的关系</a></h3>
+<p>第 25 章的供给平台负责“如何把商品送进来”，商品中心负责“已经发布的商品如何被交易系统稳定使用”。</p>
+<pre><code class="language-text">供给平台：
+  Draft
+  Staging Ticket
+  QC Review
+  Change Request
+  Publish Record
+
+商品中心：
+  Resource
+  Product Item
+  SPU / SKU
+  Offer / Rate Plan
+  Stock Config
+  Input Schema
+  Fulfillment Rule
+  Refund Rule
+  Publish Version
+  Product Snapshot
+</code></pre>
+<p>两者通过发布命令连接：</p>
+<pre><code class="language-text">PublishProductVersionCommand
+  → 商品中心校验 base_publish_version
+  → 写正式商品主数据
+  → 生成 publish_version
+  → 生成商品快照
+  → 写 Outbox 事件
+</code></pre>
+<p>商品中心可以保存 <code>last_publish_id</code>、<code>last_operation_id</code>、<code>source_type</code> 等审计引用，但不应该反向保存供给侧的完整流程状态。</p>
+<hr>
+<h2 id="212-总体架构"><a class="header" href="#212-总体架构">21.2 总体架构</a></h2>
+<h3 id="2121-架构分层"><a class="header" href="#2121-架构分层">21.2.1 架构分层</a></h3>
+<p>商品中心建议拆成五层：</p>
+<pre><code class="language-text">Command API
+  → Domain Model
+  → Versioned Write Model
+  → Snapshot / Outbox
+  → Read Model / Cache / Search Projection
+</code></pre>
+<p>更完整的架构如下：</p>
+<pre class="mermaid">
+flowchart LR
+    subgraph Supply["供给与运营平台"]
+        Draft["Draft / Staging / QC"]
+        PublishCmd["Publish Command"]
+    end
+
+    subgraph ProductCenter["商品中心"]
+        Command["Command API"]
+        Domain["Resource / Item / SPU / SKU / Offer"]
+        Contract["Stock Config / Input Schema / Fulfillment / Refund"]
+        Version["Publish Version"]
+        Snapshot["Product Snapshot"]
+        Outbox["Outbox Event"]
+        Query["Query API / Read Model"]
+    end
+
+    subgraph Downstream["下游系统"]
+        Search["搜索"]
+        Cache["缓存"]
+        Pricing["计价"]
+        Inventory["库存"]
+        Order["订单"]
+        Fulfillment["履约"]
+        Data["数据平台"]
+    end
+
+    Draft --&gt; PublishCmd
+    PublishCmd --&gt; Command
+    Command --&gt; Domain
+    Command --&gt; Contract
+    Domain --&gt; Version
+    Contract --&gt; Version
+    Version --&gt; Snapshot
+    Version --&gt; Outbox
+    Snapshot --&gt; Query
+    Outbox --&gt; Search
+    Outbox --&gt; Cache
+    Outbox --&gt; Pricing
+    Outbox --&gt; Inventory
+    Outbox --&gt; Data
+    Query --&gt; Order
+    Query --&gt; Fulfillment
+</pre>
+
+<p>这张图的关键点是：商品中心的写入口不是运营后台的表单提交，而是供给平台发布出来的命令。这样可以保证所有商品变更都经过 Draft、Staging、Validation、QC 或自动准入策略，再进入正式商品。</p>
+<h3 id="2122-读写分离"><a class="header" href="#2122-读写分离">21.2.2 读写分离</a></h3>
+<p>商品中心的写入链路强调一致性和可追溯：</p>
+<pre><code class="language-text">Publish Command
+  → 版本校验
+  → 正式表事务写入
+  → 快照生成
+  → Outbox
+</code></pre>
+<p>商品中心的读取链路强调低延迟和稳定：</p>
+<pre><code class="language-text">详情页
+  → Redis / Local Cache
+  → 商品中心 Query API
+  → DB 回源
+
+列表页
+  → Search
+  → 商品中心批量 Hydrate
+
+创单页
+  → 商品中心版本化快照
+  → 库存确认
+  → 计价试算
+</code></pre>
+<p>不要让搜索列表直接扫商品中心 MySQL，也不要让商品中心在详情接口里临时计算复杂优惠价和实时库存。商品中心提供交易前契约，计价和库存由各自领域负责。</p>
+<h3 id="2123-核心原则"><a class="header" href="#2123-核心原则">21.2.3 核心原则</a></h3>
+<p>商品中心设计要坚持几个原则：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>原则</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>正式表只保存发布数据</td><td>Draft、QC、Rejected 不进入商品正式表</td></tr>
+<tr><td>写入必须版本化</td><td>每次发布递增 <code>publish_version</code></td></tr>
+<tr><td>订单只信快照</td><td>历史订单不回读最新商品解释</td></tr>
+<tr><td>读模型可最终一致</td><td>搜索、缓存通过 Outbox 异步刷新</td></tr>
+<tr><td>下游按版本幂等消费</td><td>旧事件不能覆盖新版本</td></tr>
+<tr><td>高变化数据不强塞商品表</td><td>实时库存、最终成交价、供应商实时房态不属于商品中心唯一事实</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="213-核心领域模型"><a class="header" href="#213-核心领域模型">21.3 核心领域模型</a></h2>
+<h3 id="2131-三层商品模型"><a class="header" href="#2131-三层商品模型">21.3.1 三层商品模型</a></h3>
+<p>传统电商常用 SPU/SKU 就够了，但数字商品平台会遇到酒店、票务、账单、充值、本地服务、礼品卡等异构场景。只靠 SPU/SKU 容易把资源、销售单元、交易契约混在一起。</p>
+<p>更稳的模型是三层：</p>
+<pre><code class="language-text">资源层 Resource
+  → 商品定义层 SPU / SKU / Product Item
+  → 销售承诺层 Offer / Rate Plan / Contract
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层级</th><th>解决的问题</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td>Resource</td><td>这个商品背后依附什么现实或虚拟资源</td><td>酒店、门店、机场、运营商、影院、活动</td></tr>
+<tr><td>SPU/SKU</td><td>平台上售卖的商品定义和规格</td><td>豪华房、50 元券、10GB 流量包、电影票套餐</td></tr>
+<tr><td>Offer / Rate Plan</td><td>以什么条件卖给用户</td><td>价格计划、销售期、渠道、取消政策、库存来源</td></tr>
+</tbody>
+</table>
+</div>
+<p>这个拆法的好处是：</p>
+<ol>
+<li>同一个 Resource 可以挂多个商品。</li>
+<li>同一个 SKU 可以有多个 Offer。</li>
+<li>同一个 Offer 可以切换库存、履约、退款策略。</li>
+<li>供应商同步可以优先沉淀 Resource，运营再决定如何售卖。</li>
+</ol>
+<h3 id="2132-resource"><a class="header" href="#2132-resource">21.3.2 Resource</a></h3>
+<p>Resource 表达“现实或外部世界里的资源对象”。它不是一定可售的商品，而是商品的承载对象。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>品类</th><th>Resource 示例</th><th>商品示例</th></tr>
+</thead>
+<tbody>
+<tr><td>酒店</td><td>酒店、房间资源、地理位置</td><td>房型套餐、Rate Plan</td></tr>
+<tr><td>本地生活</td><td>门店、服务地点</td><td>双人餐券、洗车券、按摩套餐</td></tr>
+<tr><td>票务</td><td>演出、场馆、场次</td><td>门票档位、座位区</td></tr>
+<tr><td>充值</td><td>运营商、国家、产品线</td><td>话费面额、流量包</td></tr>
+<tr><td>账单</td><td>账单机构、缴费类型</td><td>电费、水费、宽带账单</td></tr>
+</tbody>
+</table>
+</div>
+<p>Resource 的状态不等于商品状态。酒店资源可以是有效的，但某个房型 Offer 暂时不可售；门店可以营业，但某张券可以下架。</p>
+<h3 id="2133-product-item"><a class="header" href="#2133-product-item">21.3.3 Product Item</a></h3>
+<p><code>Product Item</code> 是商品中心对 C 端“一个可展示商品”的正式聚合。它通常对应前台一个详情页或一张商品卡。</p>
+<p>它和 SPU 的关系取决于品类：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>建议</th></tr>
+</thead>
+<tbody>
+<tr><td>标准零售</td><td>一个 <code>item_id</code> 通常对应一个 SPU</td></tr>
+<tr><td>本地生活券</td><td>一个 <code>item_id</code> 可以对应一个套餐 SPU 和默认 SKU</td></tr>
+<tr><td>酒店</td><td>一个 <code>item_id</code> 可以对应酒店资源详情，Offer 表达房型和 Rate Plan</td></tr>
+<tr><td>充值缴费</td><td>一个 <code>item_id</code> 可以对应运营商或缴费入口，SKU 表达面额或套餐</td></tr>
+</tbody>
+</table>
+</div>
+<p>为什么需要 <code>item_id</code>？因为 C 端、商家端、订单、搜索通常需要一个统一的商品入口 ID。SPU/SKU 偏商品定义，Resource 偏资源对象，Offer 偏销售承诺；<code>item_id</code> 是把这些内容组合成“前台商品”的聚合根。</p>
+<h3 id="2134-spu--sku"><a class="header" href="#2134-spu--sku">21.3.4 SPU / SKU</a></h3>
+<p>SPU 表达商品共性定义，SKU 表达可下单的规格单元。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对象</th><th>作用</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td>SPU</td><td>商品共性信息</td><td>iPhone 16、KFC 套餐、酒店豪华房</td></tr>
+<tr><td>SKU</td><td>可售规格单元</td><td>黑色 256G、双人套餐、含早可取消</td></tr>
+</tbody>
+</table>
+</div>
+<p>不是所有数字商品都需要复杂多 SKU，但建议保留默认 SKU。这样订单、库存、计价、履约都能使用统一结构。</p>
+<h3 id="2135-offer--rate-plan"><a class="header" href="#2135-offer--rate-plan">21.3.5 Offer / Rate Plan</a></h3>
+<p>Offer 表达销售承诺。它不是简单价格字段，而是一组交易前条件：</p>
+<pre><code class="language-text">Offer =
+  销售对象
+  + 渠道
+  + 销售期
+  + 价格/价格引用
+  + 库存来源
+  + 输入要求
+  + 履约规则
+  + 退款规则
+</code></pre>
+<p>酒店和票务等品类还需要 Rate Plan：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对象</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td>Offer</td><td>平台销售配置</td></tr>
+<tr><td>Rate Plan</td><td>供应商或业务侧的价格计划、取消政策、入住条件</td></tr>
+</tbody>
+</table>
+</div>
+<p>例如酒店：</p>
+<pre><code class="language-text">Resource: Bangkok Hotel A
+SPU: Deluxe Room
+SKU: Deluxe Room + 2 Breakfast
+Offer: Shopee App Channel + TH Site
+Rate Plan: refundable before T-1, pay now, supplier plan RP_001
+</code></pre>
+<hr>
+<h2 id="214-类目模板与异构品类"><a class="header" href="#214-类目模板与异构品类">21.4 类目模板与异构品类</a></h2>
+<h3 id="2141-为什么需要类目模板"><a class="header" href="#2141-为什么需要类目模板">21.4.1 为什么需要类目模板</a></h3>
+<p>商品中心不能为每个品类硬编码一套表单和校验。类目模板要定义：</p>
+<ol>
+<li>需要哪些 Resource。</li>
+<li>是否需要 SPU/SKU。</li>
+<li>必填属性和枚举。</li>
+<li>是否需要库存配置。</li>
+<li>是否需要 Input Schema。</li>
+<li>支持哪些履约方式。</li>
+<li>支持哪些退款规则。</li>
+<li>哪些字段可索引、可筛选、可展示。</li>
+</ol>
+<pre><code class="language-text">category_template
+  → resource_schema
+  → spu_schema
+  → sku_schema
+  → offer_schema
+  → contract_schema
+</code></pre>
+<p>类目模板既服务供给平台，也服务商品中心。供给平台用它做表单、校验、QC 风险识别；商品中心用它约束正式数据和生成读模型。</p>
+<h3 id="2142-属性分类"><a class="header" href="#2142-属性分类">21.4.2 属性分类</a></h3>
+<p>商品属性至少分四类：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>属性类型</th><th>示例</th><th>是否影响交易</th></tr>
+</thead>
+<tbody>
+<tr><td>基础展示属性</td><td>标题、图片、卖点、描述</td><td>间接影响</td></tr>
+<tr><td>关键决策属性</td><td>品牌、城市、门店、酒店星级</td><td>影响搜索和转化</td></tr>
+<tr><td>销售规格属性</td><td>颜色、尺码、面额、房型</td><td>影响 SKU</td></tr>
+<tr><td>交易契约属性</td><td>退款规则、履约方式、输入字段</td><td>直接影响下单和售后</td></tr>
+</tbody>
+</table>
+</div>
+<p>不要把所有属性都塞进一个 <code>ext_info</code>。适合搜索、筛选、风控、计价、履约使用的字段，要结构化存储或生成专门投影；纯展示和低频字段可以放 JSON 扩展。</p>
+<h3 id="2143-扩展字段策略"><a class="header" href="#2143-扩展字段策略">21.4.3 扩展字段策略</a></h3>
+<p>扩展字段有三种方式：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方式</th><th>优点</th><th>缺点</th><th>适用</th></tr>
+</thead>
+<tbody>
+<tr><td>JSON 扩展</td><td>上线快，适合异构字段</td><td>查询和约束弱</td><td>低频展示字段</td></tr>
+<tr><td>垂直扩展表</td><td>类型清晰，查询友好</td><td>表多，建模成本高</td><td>酒店、门店、票务核心属性</td></tr>
+<tr><td>属性表 EAV</td><td>灵活</td><td>查询复杂，容易失控</td><td>通用筛选属性</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐组合：</p>
+<pre><code class="language-text">核心交易字段
+  → 结构化列
+
+品类核心字段
+  → 垂直扩展表
+
+长尾展示字段
+  → JSON
+
+搜索筛选字段
+  → 搜索投影
+</code></pre>
+<hr>
+<h2 id="215-正式商品状态与版本"><a class="header" href="#215-正式商品状态与版本">21.5 正式商品状态与版本</a></h2>
+<h3 id="2151-item-状态"><a class="header" href="#2151-item-状态">21.5.1 Item 状态</a></h3>
+<p>正式商品的生命周期状态建议放在 <code>product_item_tab.item_status</code>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>PUBLISHED</code></td><td>已有正式发布版本，但未必已经开始售卖</td></tr>
+<tr><td><code>ONLINE</code></td><td>C 端可见，满足上线条件</td></tr>
+<tr><td><code>OFFLINE</code></td><td>手动下线或暂不售卖</td></tr>
+<tr><td><code>ENDED</code></td><td>销售期结束</td></tr>
+<tr><td><code>BANNED</code></td><td>平台封禁</td></tr>
+<tr><td><code>ARCHIVED</code></td><td>归档，仅保留历史查询和审计</td></tr>
+</tbody>
+</table>
+</div>
+<p>它不应该包含 <code>DRAFT</code>、<code>QC_PENDING</code>、<code>REJECTED</code>。这些状态属于供给侧对象。</p>
+<h3 id="2152-sellable-状态"><a class="header" href="#2152-sellable-状态">21.5.2 Sellable 状态</a></h3>
+<p><code>item_status</code> 表达商品资产状态，<code>sellable_status</code> 表达当前是否可交易：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>SELLABLE</code></td><td>当前允许下单</td></tr>
+<tr><td><code>UNSELLABLE</code></td><td>不允许下单</td></tr>
+<tr><td><code>NOT_STARTED</code></td><td>销售期未开始</td></tr>
+<tr><td><code>SOLD_OUT</code></td><td>库存或券码池不足</td></tr>
+<tr><td><code>EXPIRED</code></td><td>销售期或有效期结束</td></tr>
+<tr><td><code>RISK_BLOCKED</code></td><td>风控或平台规则阻断</td></tr>
+</tbody>
+</table>
+</div>
+<p>这两个状态可以不同。例如商品 <code>ONLINE</code>，但库存为 0 时 <code>sellable_status=SOLD_OUT</code>。列表页可以展示该商品，但下单按钮不可用。</p>
+<h3 id="2153-publish-version"><a class="header" href="#2153-publish-version">21.5.3 Publish Version</a></h3>
+<p>每次发布都要生成新的 <code>publish_version</code>：</p>
+<pre><code class="language-text">item_id = item_80001
+publish_version: 3 → 4
+</code></pre>
+<p>版本用于：</p>
+<ol>
+<li>防止旧编辑覆盖新版本。</li>
+<li>支持回滚和审计。</li>
+<li>让搜索、缓存、订单按版本幂等处理。</li>
+<li>让历史订单能解释当时看到的商品。</li>
+</ol>
+<p>编辑发布前必须校验：</p>
+<pre><code class="language-text">staging.base_publish_version == product_item.current_publish_version
+</code></pre>
+<p>如果不相等，说明线上商品已经变化，当前提交应进入版本冲突，不能静默覆盖。</p>
+<h3 id="2154-商品状态机"><a class="header" href="#2154-商品状态机">21.5.4 商品状态机</a></h3>
+<pre class="mermaid">
+stateDiagram-v2
+  [*] --&gt; PUBLISHED: Publish Version Created
+  PUBLISHED --&gt; ONLINE: Hit Sale Rule
+  PUBLISHED --&gt; OFFLINE: Not Saleable Yet
+  ONLINE --&gt; OFFLINE: Merchant/Ops Offline
+  ONLINE --&gt; ENDED: Sale Ended
+  ONLINE --&gt; BANNED: Platform Ban
+  OFFLINE --&gt; ONLINE: Reactivate
+  ENDED --&gt; ONLINE: Extend Sale Period and Publish
+  BANNED --&gt; OFFLINE: Unban
+  OFFLINE --&gt; ARCHIVED: Archive
+  ENDED --&gt; ARCHIVED: Archive
+  ARCHIVED --&gt; [*]
+</pre>
+
+<p>注意：这个状态机只描述正式商品。Draft、Staging、QC 的状态机在第 25 章。</p>
+<hr>
+<h2 id="216-核心表模型"><a class="header" href="#216-核心表模型">21.6 核心表模型</a></h2>
+<p>商品中心表模型围绕“正式主数据 + 交易前契约 + 发布版本 + 快照”设计。</p>
+<h3 id="2161-resource-表"><a class="header" href="#2161-resource-表">21.6.1 Resource 表</a></h3>
+<pre><code class="language-sql">CREATE TABLE resource_tab (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    resource_id VARCHAR(64) NOT NULL,
+    resource_type VARCHAR(32) NOT NULL COMMENT 'HOTEL/STORE/EVENT/CARRIER/BILLER',
+    category_code VARCHAR(32) NOT NULL,
+    resource_name VARCHAR(256) NOT NULL,
+    country_code VARCHAR(32) DEFAULT NULL,
+    city_code VARCHAR(64) DEFAULT NULL,
+    address VARCHAR(512) DEFAULT NULL,
+    geo_lat DECIMAL(10, 7) DEFAULT NULL,
+    geo_lng DECIMAL(10, 7) DEFAULT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'ACTIVE/INACTIVE/ARCHIVED',
+    ext_info JSON DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_resource_id (resource_id),
+    KEY idx_type_city (resource_type, city_code),
+    KEY idx_category_status (category_code, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='平台资源主表';
+</code></pre>
+<p>Resource 是平台沉淀资源的主表。供应商同步通常先映射到 Resource，再由供给平台决定是否生成商品和 Offer。</p>
+<h3 id="2162-product-item-表"><a class="header" href="#2162-product-item-表">21.6.2 Product Item 表</a></h3>
+<pre><code class="language-sql">CREATE TABLE product_item_tab (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    item_id VARCHAR(64) NOT NULL,
+    category_code VARCHAR(32) NOT NULL,
+    item_type VARCHAR(32) NOT NULL COMMENT 'STANDARD/VIRTUAL/LOCAL_SERVICE/HOTEL/TICKET/BILL',
+    resource_id VARCHAR(64) DEFAULT NULL,
+    title VARCHAR(256) NOT NULL,
+    subtitle VARCHAR(512) DEFAULT NULL,
+    main_image VARCHAR(512) DEFAULT NULL,
+    item_status VARCHAR(32) NOT NULL COMMENT 'PUBLISHED/ONLINE/OFFLINE/ENDED/BANNED/ARCHIVED',
+    sellable_status VARCHAR(32) NOT NULL COMMENT 'SELLABLE/UNSELLABLE/NOT_STARTED/SOLD_OUT/EXPIRED/RISK_BLOCKED',
+    current_publish_version BIGINT NOT NULL DEFAULT 1,
+    sale_start_at DATETIME DEFAULT NULL,
+    sale_end_at DATETIME DEFAULT NULL,
+    source_type VARCHAR(32) DEFAULT NULL COMMENT 'LOCAL_OPS/MERCHANT/SUPPLIER/SYSTEM',
+    last_publish_id VARCHAR(64) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_item_id (item_id),
+    KEY idx_resource (resource_id),
+    KEY idx_category_status (category_code, item_status),
+    KEY idx_sellable (sellable_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='正式商品聚合根';
+</code></pre>
+<p><code>product_item_tab</code> 是 C 端商品入口。它不保存 Draft 和 QC 状态，只保存正式商品的线上状态和当前发布版本。</p>
+<h3 id="2163-spu-表"><a class="header" href="#2163-spu-表">21.6.3 SPU 表</a></h3>
+<pre><code class="language-sql">CREATE TABLE product_spu_tab (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    spu_id VARCHAR(64) NOT NULL,
+    item_id VARCHAR(64) NOT NULL,
+    category_code VARCHAR(32) NOT NULL,
+    spu_name VARCHAR(256) NOT NULL,
+    brand_id BIGINT DEFAULT NULL,
+    spec_schema JSON DEFAULT NULL,
+    attr_payload JSON DEFAULT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'ACTIVE/INACTIVE/ARCHIVED',
+    publish_version BIGINT NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_spu_id (spu_id),
+    KEY idx_item (item_id),
+    KEY idx_category_status (category_code, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品 SPU 定义';
+</code></pre>
+<p>SPU 承载共性信息和规格定义。对于单规格商品，可以只有一个默认 SKU。</p>
+<h3 id="2164-sku-表"><a class="header" href="#2164-sku-表">21.6.4 SKU 表</a></h3>
+<pre><code class="language-sql">CREATE TABLE product_sku_tab (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    sku_id VARCHAR(64) NOT NULL,
+    item_id VARCHAR(64) NOT NULL,
+    spu_id VARCHAR(64) NOT NULL,
+    sku_name VARCHAR(256) DEFAULT NULL,
+    spec_values JSON DEFAULT NULL,
+    barcode VARCHAR(128) DEFAULT NULL,
+    sku_status VARCHAR(32) NOT NULL COMMENT 'ACTIVE/INACTIVE/ARCHIVED',
+    publish_version BIGINT NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_sku_id (sku_id),
+    KEY idx_item (item_id),
+    KEY idx_spu (spu_id),
+    KEY idx_status (sku_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品 SKU 定义';
+</code></pre>
+<p>SKU 是订单行、库存配置和计价试算常用的锚点。即使是虚拟品，也建议保留默认 SKU 来统一交易链路。</p>
+<h3 id="2165-offer-表"><a class="header" href="#2165-offer-表">21.6.5 Offer 表</a></h3>
+<pre><code class="language-sql">CREATE TABLE product_offer_tab (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    offer_id VARCHAR(64) NOT NULL,
+    item_id VARCHAR(64) NOT NULL,
+    spu_id VARCHAR(64) DEFAULT NULL,
+    sku_id VARCHAR(64) DEFAULT NULL,
+    resource_id VARCHAR(64) DEFAULT NULL,
+    offer_type VARCHAR(32) NOT NULL COMMENT 'NORMAL/PACKAGE/RATE_PLAN/PRESELL',
+    site_code VARCHAR(32) NOT NULL,
+    channel_code VARCHAR(32) DEFAULT NULL,
+    currency VARCHAR(16) NOT NULL,
+    list_price DECIMAL(18, 4) DEFAULT NULL COMMENT '标价或基础价，不等同最终成交价',
+    offer_status VARCHAR(32) NOT NULL COMMENT 'ACTIVE/INACTIVE/ARCHIVED',
+    sale_start_at DATETIME DEFAULT NULL,
+    sale_end_at DATETIME DEFAULT NULL,
+    publish_version BIGINT NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_offer_id (offer_id),
+    KEY idx_item_status (item_id, offer_status),
+    KEY idx_sku (sku_id),
+    KEY idx_site_channel (site_code, channel_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品销售 Offer';
+</code></pre>
+<p>Offer 里的价格字段只能表达基础价或标价。最终成交价应该由计价系统根据活动、优惠、会员、渠道和风控规则试算。</p>
+<h3 id="2166-rate-plan-表"><a class="header" href="#2166-rate-plan-表">21.6.6 Rate Plan 表</a></h3>
+<pre><code class="language-sql">CREATE TABLE product_rate_plan_tab (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    rate_plan_id VARCHAR(64) NOT NULL,
+    offer_id VARCHAR(64) NOT NULL,
+    supplier_id BIGINT DEFAULT NULL,
+    supplier_rate_plan_code VARCHAR(128) DEFAULT NULL,
+    plan_name VARCHAR(256) DEFAULT NULL,
+    plan_type VARCHAR(32) DEFAULT NULL COMMENT 'REFUNDABLE/NON_REFUNDABLE/PAY_NOW/PAY_LATER',
+    cancellation_policy_ref VARCHAR(128) DEFAULT NULL,
+    meal_plan VARCHAR(64) DEFAULT NULL,
+    ext_info JSON DEFAULT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'ACTIVE/INACTIVE/ARCHIVED',
+    publish_version BIGINT NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_rate_plan_id (rate_plan_id),
+    KEY idx_offer (offer_id),
+    KEY idx_supplier_plan (supplier_id, supplier_rate_plan_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='价格计划或供应商 Rate Plan';
+</code></pre>
+<p>Rate Plan 适合酒店、票务、活动等复杂供给。简单商品可以不建独立 Rate Plan，只使用 Offer。</p>
+<h3 id="2167-库存配置表"><a class="header" href="#2167-库存配置表">21.6.7 库存配置表</a></h3>
+<pre><code class="language-sql">CREATE TABLE product_stock_config_tab (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    stock_config_id VARCHAR(64) NOT NULL,
+    item_id VARCHAR(64) NOT NULL,
+    sku_id VARCHAR(64) DEFAULT NULL,
+    offer_id VARCHAR(64) DEFAULT NULL,
+    stock_type VARCHAR(32) NOT NULL COMMENT 'PLATFORM_STOCK/CODE_POOL/SUPPLIER_REALTIME/NO_STOCK',
+    inventory_ref VARCHAR(128) DEFAULT NULL,
+    deduct_timing VARCHAR(32) DEFAULT NULL COMMENT 'CREATE_ORDER/PAY_SUCCESS/FULFILL_SUCCESS',
+    oversell_policy VARCHAR(32) DEFAULT NULL COMMENT 'FORBID/ALLOW_WITH_LIMIT/SUPPLIER_CONFIRM',
+    status VARCHAR(32) NOT NULL COMMENT 'ACTIVE/INACTIVE',
+    publish_version BIGINT NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_stock_config_id (stock_config_id),
+    KEY idx_item (item_id),
+    KEY idx_offer (offer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品库存配置';
+</code></pre>
+<p>这张表保存库存“如何接入”和“扣减时机”，不保存实时库存事实。实时库存属于库存系统或供应商实时确认。</p>
+<h3 id="2168-输入-schema-表"><a class="header" href="#2168-输入-schema-表">21.6.8 输入 Schema 表</a></h3>
+<pre><code class="language-sql">CREATE TABLE product_input_schema_tab (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    input_schema_id VARCHAR(64) NOT NULL,
+    item_id VARCHAR(64) NOT NULL,
+    offer_id VARCHAR(64) DEFAULT NULL,
+    schema_version BIGINT NOT NULL,
+    schema_payload JSON NOT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'ACTIVE/INACTIVE/ARCHIVED',
+    publish_version BIGINT NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_input_schema_id (input_schema_id),
+    KEY idx_item_offer (item_id, offer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='下单输入 Schema';
+</code></pre>
+<p>充值需要手机号，账单缴费需要账单号，酒店需要入住人，机票需要乘机人证件。Input Schema 必须发布为正式契约，否则订单系统无法稳定校验用户输入。</p>
+<h3 id="2169-履约规则表"><a class="header" href="#2169-履约规则表">21.6.9 履约规则表</a></h3>
+<pre><code class="language-sql">CREATE TABLE product_fulfillment_rule_tab (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    fulfillment_rule_id VARCHAR(64) NOT NULL,
+    item_id VARCHAR(64) NOT NULL,
+    offer_id VARCHAR(64) DEFAULT NULL,
+    fulfillment_type VARCHAR(32) NOT NULL COMMENT 'TOPUP/ISSUE_CODE/BOOKING/SUPPLIER_ORDER/MANUAL',
+    supplier_id BIGINT DEFAULT NULL,
+    fulfillment_params JSON DEFAULT NULL,
+    timeout_seconds INT DEFAULT NULL,
+    retry_policy JSON DEFAULT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'ACTIVE/INACTIVE/ARCHIVED',
+    publish_version BIGINT NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_fulfillment_rule_id (fulfillment_rule_id),
+    KEY idx_item_offer (item_id, offer_id),
+    KEY idx_supplier (supplier_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品履约规则';
+</code></pre>
+<p>履约规则是交易前契约的一部分。订单创建时要保存对应快照，避免商品后续修改供应商参数后影响历史订单。</p>
+<h3 id="21610-退款规则表"><a class="header" href="#21610-退款规则表">21.6.10 退款规则表</a></h3>
+<pre><code class="language-sql">CREATE TABLE product_refund_rule_tab (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    refund_rule_id VARCHAR(64) NOT NULL,
+    item_id VARCHAR(64) NOT NULL,
+    offer_id VARCHAR(64) DEFAULT NULL,
+    refund_type VARCHAR(32) NOT NULL COMMENT 'REFUNDABLE/NON_REFUNDABLE/PARTIAL/CONDITIONAL',
+    rule_payload JSON NOT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'ACTIVE/INACTIVE/ARCHIVED',
+    publish_version BIGINT NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_refund_rule_id (refund_rule_id),
+    KEY idx_item_offer (item_id, offer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品退款规则';
+</code></pre>
+<p>退款规则变更属于高风险变更。它应在第 25 章供给平台中经过 Diff、风险识别和 QC 或强权限确认，再发布到商品中心。</p>
+<h3 id="21611-发布版本表"><a class="header" href="#21611-发布版本表">21.6.11 发布版本表</a></h3>
+<pre><code class="language-sql">CREATE TABLE product_publish_version_tab (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    item_id VARCHAR(64) NOT NULL,
+    publish_version BIGINT NOT NULL,
+    publish_id VARCHAR(64) NOT NULL,
+    publish_type VARCHAR(32) NOT NULL COMMENT 'CREATE/EDIT/OFFLINE/ONLINE/BAN/UNBAN/ROLLBACK',
+    source_type VARCHAR(32) DEFAULT NULL COMMENT 'LOCAL_OPS/MERCHANT/SUPPLIER/SYSTEM',
+    source_ref_id VARCHAR(64) DEFAULT NULL COMMENT '供给侧 publish_id、operation_id 或 sync batch',
+    payload_hash VARCHAR(64) NOT NULL,
+    status VARCHAR(32) NOT NULL COMMENT 'ACTIVE/ROLLED_BACK/ARCHIVED',
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_item_version (item_id, publish_version),
+    UNIQUE KEY uk_publish_id (publish_id),
+    KEY idx_item_time (item_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品发布版本';
+</code></pre>
+<p>发布版本是商品中心的核心版本轴。供给侧的 <code>product_publish_record</code> 记录发布动作，商品中心的 <code>product_publish_version_tab</code> 记录正式版本事实。</p>
+<h3 id="21612-商品快照表"><a class="header" href="#21612-商品快照表">21.6.12 商品快照表</a></h3>
+<pre><code class="language-sql">CREATE TABLE product_snapshot_tab (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    snapshot_id VARCHAR(64) NOT NULL,
+    item_id VARCHAR(64) NOT NULL,
+    publish_version BIGINT NOT NULL,
+    snapshot_type VARCHAR(32) NOT NULL
+        COMMENT 'FULL/PRODUCT/OFFER/STOCK_CONFIG/INPUT_SCHEMA/FULFILLMENT/REFUND',
+    snapshot_payload JSON NOT NULL,
+    payload_hash VARCHAR(64) NOT NULL,
+    payload_ref VARCHAR(512) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_snapshot_id (snapshot_id),
+    UNIQUE KEY uk_item_version_type (item_id, publish_version, snapshot_type),
+    KEY idx_item_version (item_id, publish_version)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品发布快照';
+</code></pre>
+<p>快照是订单系统解释历史订单的基础。订单不应该回读最新商品表，而应该保存或引用创单时的快照。</p>
+<h3 id="21613-outbox-表"><a class="header" href="#21613-outbox-表">21.6.13 Outbox 表</a></h3>
+<pre><code class="language-sql">CREATE TABLE product_outbox_event (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    event_id VARCHAR(64) NOT NULL,
+    aggregate_type VARCHAR(64) NOT NULL COMMENT 'PRODUCT_ITEM/PUBLISH_VERSION',
+    aggregate_id VARCHAR(64) NOT NULL,
+    event_type VARCHAR(128) NOT NULL
+        COMMENT 'ProductPublished/ProductOnline/ProductOffline/ProductSnapshotCreated',
+    item_id VARCHAR(64) DEFAULT NULL,
+    publish_version BIGINT DEFAULT NULL,
+    payload JSON NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING'
+        COMMENT 'PENDING/SENDING/SENT/FAILED/DLQ',
+    retry_count INT NOT NULL DEFAULT 0,
+    next_retry_at DATETIME DEFAULT NULL,
+    last_error_message VARCHAR(1024) DEFAULT NULL,
+    created_at DATETIME NOT NULL,
+    sent_at DATETIME DEFAULT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_event_id (event_id),
+    KEY idx_status_retry (status, next_retry_at),
+    KEY idx_item_version (item_id, publish_version)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品中心 Outbox 事件';
+</code></pre>
+<p>正式表写入、版本表、快照表、Outbox 必须在同一个事务里完成。搜索和缓存刷新失败时，不回滚商品发布，而是通过 Outbox 重试和补偿。</p>
+<hr>
+<h2 id="217-发布写入链路"><a class="header" href="#217-发布写入链路">21.7 发布写入链路</a></h2>
+<h3 id="2171-只接受发布命令"><a class="header" href="#2171-只接受发布命令">21.7.1 只接受发布命令</a></h3>
+<p>商品中心写接口不应该暴露成通用 CRUD：</p>
+<pre><code class="language-text">POST /product/updateTitle
+POST /sku/updatePrice
+POST /offer/updateRefundRule
+</code></pre>
+<p>更合理的是命令式接口：</p>
+<pre><code class="language-text">PublishProductVersion
+OfflineProduct
+ReactivateProduct
+BanProduct
+UnbanProduct
+ArchiveProduct
+RollbackProductVersion
+</code></pre>
+<p>原因很简单：商品变更不是字段修改，而是交易前契约变更。每次变更都需要版本、快照、事件和审计。</p>
+<h3 id="2172-publish-command"><a class="header" href="#2172-publish-command">21.7.2 Publish Command</a></h3>
+<p>发布命令需要包含完整的发布上下文：</p>
+<pre><code class="language-json">{
+  "publish_id": "pub_20260427_0001",
+  "operation_id": "op_20001",
+  "source_type": "MERCHANT",
+  "publish_type": "EDIT",
+  "item_id": "item_80001",
+  "base_publish_version": 3,
+  "category_code": "LOCAL_SERVICE",
+  "resource": {},
+  "spu_list": [],
+  "sku_list": [],
+  "offer_list": [],
+  "stock_config_list": [],
+  "input_schema_list": [],
+  "fulfillment_rule_list": [],
+  "refund_rule_list": []
+}
+</code></pre>
+<p>新建商品时 <code>item_id</code> 可以为空，由商品中心在发布事务中生成正式 <code>item_id</code>。编辑商品时必须带 <code>item_id</code> 和 <code>base_publish_version</code>。</p>
+<h3 id="2173-发布前校验"><a class="header" href="#2173-发布前校验">21.7.3 发布前校验</a></h3>
+<p>商品中心发布前要做最后一道强校验：</p>
+<ol>
+<li><code>publish_id</code> 是否幂等。</li>
+<li>新建商品是否没有重复外部对象映射。</li>
+<li>编辑商品的 <code>base_publish_version</code> 是否匹配当前版本。</li>
+<li>Resource、SPU、SKU、Offer 关系是否完整。</li>
+<li>库存配置、输入 Schema、履约规则、退款规则是否满足类目模板。</li>
+<li>商品是否被封禁、归档或锁定。</li>
+<li>发布 payload hash 是否已经发布过。</li>
+</ol>
+<p>如果校验失败，商品中心应该返回结构化错误给供给平台，由供给平台记录 DLQ 或展示给运营。</p>
+<h3 id="2174-发布事务"><a class="header" href="#2174-发布事务">21.7.4 发布事务</a></h3>
+<p>发布事务的典型流程：</p>
+<pre><code class="language-text">BEGIN
+  → 幂等检查 publish_id
+  → 新建商品生成 item_id，编辑商品锁定 item_id 当前版本
+  → 写 resource_tab
+  → 写 product_item_tab
+  → 写 product_spu_tab
+  → 写 product_sku_tab
+  → 写 product_offer_tab
+  → 写 product_stock_config_tab
+  → 写 product_input_schema_tab
+  → 写 product_fulfillment_rule_tab
+  → 写 product_refund_rule_tab
+  → 生成 new_publish_version
+  → 写 product_publish_version_tab
+  → 写 product_snapshot_tab
+  → 写 product_outbox_event
+COMMIT
+</code></pre>
+<p>不要在发布事务里刷新 ES、删除 Redis、通知营销系统。那些动作通过 Outbox 异步执行。</p>
+<h3 id="2175-幂等与并发"><a class="header" href="#2175-幂等与并发">21.7.5 幂等与并发</a></h3>
+<p>发布幂等建议使用：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>幂等 Key</th></tr>
+</thead>
+<tbody>
+<tr><td>发布请求</td><td><code>publish_id</code></td></tr>
+<tr><td>商品版本</td><td><code>item_id + publish_version</code></td></tr>
+<tr><td>payload 去重</td><td><code>item_id + base_publish_version + payload_hash</code></td></tr>
+<tr><td>Outbox 事件</td><td><code>event_id</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>编辑并发使用版本 CAS：</p>
+<pre><code class="language-sql">UPDATE product_item_tab
+SET current_publish_version = ?,
+    updated_at = NOW()
+WHERE item_id = ?
+  AND current_publish_version = ?;
+</code></pre>
+<p><code>rows_affected = 0</code> 说明线上版本已经变化，本次发布必须失败并返回版本冲突。</p>
+<hr>
+<h2 id="218-读取模型与查询接口"><a class="header" href="#218-读取模型与查询接口">21.8 读取模型与查询接口</a></h2>
+<h3 id="21211-详情页读模型"><a class="header" href="#21211-详情页读模型">21.21.1 详情页读模型</a></h3>
+<p>详情页需要的信息通常横跨多张表：</p>
+<pre><code class="language-text">item
+  + resource
+  + spu / sku
+  + offer
+  + stock config
+  + input schema
+  + fulfillment rule
+  + refund rule
+</code></pre>
+<p>在线上高 QPS 场景，不建议每次详情请求都做多表实时 Join。可以生成详情读模型：</p>
+<pre><code class="language-text">ProductDetailView
+  item_id
+  publish_version
+  title
+  images
+  resource_info
+  sku_options
+  offer_summary
+  input_schema
+  fulfillment_summary
+  refund_summary
+  sellable_status
+</code></pre>
+<p>读模型可以存 Redis、文档库或宽表。它是正式表的投影，不是新的事实源。</p>
+<h3 id="21212-列表页与搜索"><a class="header" href="#21212-列表页与搜索">21.21.2 列表页与搜索</a></h3>
+<p>列表页通常从搜索系统召回商品，再批量补充商品中心的轻量信息：</p>
+<pre><code class="language-text">Search Query
+  → item_id list
+  → batch get product summary
+  → merge price / inventory / campaign hint
+</code></pre>
+<p>搜索索引建议保存：</p>
+<pre><code class="language-text">item_id
+publish_version
+title
+category
+resource_location
+tags
+display_price
+sellable_status
+updated_at
+</code></pre>
+<p>搜索索引不是商品事实源。索引里的 <code>publish_version</code> 必须能和商品中心对账。</p>
+<h3 id="21213-创单前读取"><a class="header" href="#21213-创单前读取">21.21.3 创单前读取</a></h3>
+<p>创单前读取和详情页读取不同。详情页可以为了体验返回缓存，创单前必须重新确认交易安全：</p>
+<pre><code class="language-text">Create Order
+  → 读取商品当前 publish_version
+  → 读取商品快照
+  → 库存确认
+  → 计价试算
+  → 供应商实时确认（如果需要）
+  → 保存订单快照
+</code></pre>
+<p>对酒店、机票、电影票这类动态品类：</p>
+<pre><code class="language-text">列表页可以缓存
+详情页尽量刷新
+创单前必须实时确认
+</code></pre>
+<h3 id="21214-批量查询"><a class="header" href="#21214-批量查询">21.21.4 批量查询</a></h3>
+<p>商品中心必须提供批量查询接口，否则搜索、购物车、订单、营销会在高峰期打出 N+1 查询。</p>
+<p>推荐接口：</p>
+<pre><code class="language-text">BatchGetProductSummary(item_ids)
+BatchGetProductSnapshot(item_id, publish_version)
+BatchGetOfferContract(offer_ids)
+BatchGetInputSchema(item_ids)
+</code></pre>
+<p>批量接口要支持部分失败和降级：</p>
+<pre><code class="language-json">{
+  "success_items": [],
+  "missing_items": ["item_001"],
+  "stale_items": ["item_002"]
+}
+</code></pre>
+<hr>
+<h2 id="219-商品快照与订单契约"><a class="header" href="#219-商品快照与订单契约">21.9 商品快照与订单契约</a></h2>
+<h3 id="2191-为什么订单只信快照"><a class="header" href="#2191-为什么订单只信快照">21.9.1 为什么订单只信快照</a></h3>
+<p>商品会持续变化：标题、图片、价格、退款规则、履约参数、供应商映射都可能调整。如果历史订单回读最新商品表，就会出现：</p>
+<ol>
+<li>用户下单时看到可退款，售后时变成不可退款。</li>
+<li>下单时是供应商 A，履约时商品映射变成供应商 B。</li>
+<li>下单时价格计划为 RP_001，后续改成 RP_002，订单对账无法解释。</li>
+<li>商品下架后历史订单详情无法展示。</li>
+</ol>
+<p>所以订单创建时必须保存商品上下文快照。</p>
+<h3 id="2192-快照内容"><a class="header" href="#2192-快照内容">21.9.2 快照内容</a></h3>
+<p>订单至少需要保存或引用：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>快照</th><th>内容</th></tr>
+</thead>
+<tbody>
+<tr><td>商品快照</td><td>标题、图片、类目、Resource、SPU/SKU</td></tr>
+<tr><td>Offer 快照</td><td>销售期、渠道、基础价、Rate Plan</td></tr>
+<tr><td>价格快照</td><td>计价系统试算结果、优惠、实付金额</td></tr>
+<tr><td>输入 Schema 快照</td><td>用户下单时需要提供什么</td></tr>
+<tr><td>履约规则快照</td><td>供应商、履约参数、超时策略</td></tr>
+<tr><td>退款规则快照</td><td>取消政策、退款条件、售后路径</td></tr>
+<tr><td>供应商映射快照</td><td>外部商品、资源、Rate Plan 对应关系</td></tr>
+</tbody>
+</table>
+</div>
+<p>商品中心负责商品、Offer、输入、履约、退款等交易前契约快照；计价系统负责价格快照；库存系统负责库存预占或扣减记录。</p>
+<h3 id="2193-快照生成策略"><a class="header" href="#2193-快照生成策略">21.9.3 快照生成策略</a></h3>
+<p>快照可以在发布时生成，也可以在创单时按版本读取。</p>
+<p>推荐：</p>
+<pre><code class="language-text">发布时生成版本化商品快照
+  → 创单时引用 item_id + publish_version + snapshot_id
+  → 订单保存必要字段冗余
+</code></pre>
+<p>这样既能减少创单时组装成本，也能保证历史解释稳定。</p>
+<hr>
+<h2 id="2110-与库存计价搜索订单的边界"><a class="header" href="#2110-与库存计价搜索订单的边界">21.10 与库存、计价、搜索、订单的边界</a></h2>
+<h3 id="21101-与库存系统"><a class="header" href="#21101-与库存系统">21.10.1 与库存系统</a></h3>
+<p>商品中心保存库存配置，不保存实时库存事实。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>商品中心</th><th>库存系统</th></tr>
+</thead>
+<tbody>
+<tr><td>库存类型</td><td>实时库存数量</td></tr>
+<tr><td>库存来源引用</td><td>预占、扣减、释放</td></tr>
+<tr><td>券码池引用</td><td>券码分配</td></tr>
+<tr><td>扣减时机</td><td>并发控制</td></tr>
+<tr><td>是否需要供应商确认</td><td>供应商库存查询</td></tr>
+</tbody>
+</table>
+</div>
+<p>例如：</p>
+<pre><code class="language-text">product_stock_config.stock_type = CODE_POOL
+inventory_ref = code_pool_10001
+</code></pre>
+<p>商品中心只告诉订单系统这个商品使用券码池，真正券码是否可用由库存或券码系统判断。</p>
+<h3 id="21102-与计价系统"><a class="header" href="#21102-与计价系统">21.10.2 与计价系统</a></h3>
+<p>商品中心可以保存基础价、标价、Offer 规则引用，但最终成交价属于计价系统。</p>
+<pre><code class="language-text">商品中心：
+  list_price
+  currency
+  offer_id
+  rate_plan_id
+
+计价系统：
+  channel price
+  campaign price
+  coupon
+  service fee
+  settlement amount
+  final payable amount
+</code></pre>
+<p>不要把活动价、券后价、会员价直接写死在商品表里，否则退款、对账和营销成本会失去来源。</p>
+<h3 id="21103-与搜索系统"><a class="header" href="#21103-与搜索系统">21.10.3 与搜索系统</a></h3>
+<p>搜索系统是商品中心的读投影。商品中心通过 Outbox 发送：</p>
+<pre><code class="language-text">ProductPublished
+ProductContentChanged
+ProductOnline
+ProductOffline
+ProductSellableChanged
+</code></pre>
+<p>搜索消费事件后更新索引。索引要保存 <code>publish_version</code>，方便巡检：</p>
+<pre><code class="language-text">product_item.current_publish_version
+  vs
+search_index.publish_version
+</code></pre>
+<p>如果不一致，生成补偿任务重建索引。</p>
+<h3 id="21104-与订单系统"><a class="header" href="#21104-与订单系统">21.10.4 与订单系统</a></h3>
+<p>订单系统使用商品中心的方式是：</p>
+<ol>
+<li>创单前读取商品当前版本和快照。</li>
+<li>校验商品状态和基础交易契约。</li>
+<li>调库存系统确认可售。</li>
+<li>调计价系统确认金额。</li>
+<li>必要时调供应商实时确认。</li>
+<li>保存订单快照。</li>
+</ol>
+<p>订单不应该直接依赖商品中心最新表解释历史订单。</p>
+<h3 id="21105-与履约系统"><a class="header" href="#21105-与履约系统">21.10.5 与履约系统</a></h3>
+<p>履约系统需要的不是最新商品详情，而是订单创建时的履约规则快照。</p>
+<pre><code class="language-text">fulfillment_type
+supplier_id
+supplier_product_code
+rate_plan_code
+timeout_seconds
+retry_policy
+</code></pre>
+<p>商品发布后的履约规则变更只影响新订单，不影响旧订单。</p>
+<hr>
+<h2 id="2111-缓存索引与一致性"><a class="header" href="#2111-缓存索引与一致性">21.11 缓存、索引与一致性</a></h2>
+<h3 id="21111-缓存策略"><a class="header" href="#21111-缓存策略">21.11.1 缓存策略</a></h3>
+<p>商品详情适合多级缓存：</p>
+<pre><code class="language-text">Local Cache
+  → Redis
+  → DB / Read Model
+</code></pre>
+<p>缓存 key 要带版本：</p>
+<pre><code class="language-text">product:detail:{item_id}:{publish_version}
+</code></pre>
+<p>这样新版本发布后可以直接读新 key，旧版本仍可供历史订单或短期页面使用。</p>
+<h3 id="21112-缓存失效"><a class="header" href="#21112-缓存失效">21.11.2 缓存失效</a></h3>
+<p>发布成功后，不建议同步删除所有缓存。更稳的方式：</p>
+<pre><code class="language-text">写新版本缓存
+  → Outbox 通知缓存失效
+  → 旧版本自然过期
+</code></pre>
+<p>如果使用不带版本的热 key：</p>
+<pre><code class="language-text">product:detail:{item_id}
+</code></pre>
+<p>则必须通过 Outbox 事件失效或刷新，并让消费者按 <code>publish_version</code> 幂等，避免旧事件覆盖新缓存。</p>
+<h3 id="21113-搜索最终一致"><a class="header" href="#21113-搜索最终一致">21.11.3 搜索最终一致</a></h3>
+<p>商品中心 DB 和搜索索引天然是最终一致。关键不是强行同步刷新，而是：</p>
+<ol>
+<li>事件不丢。</li>
+<li>消费可重试。</li>
+<li>消费按版本幂等。</li>
+<li>有巡检发现索引落后。</li>
+<li>有补偿任务重建索引。</li>
+</ol>
+<p>巡检公式：</p>
+<pre><code class="language-text">索引落后 = product_item.current_publish_version &gt; search_index.publish_version
+</code></pre>
+<h3 id="21114-outbox-补偿"><a class="header" href="#21114-outbox-补偿">21.11.4 Outbox 补偿</a></h3>
+<p>Outbox 失败不应影响商品发布成功。失败事件进入重试：</p>
+<pre><code class="language-text">PENDING
+  → SENDING
+  → SENT
+
+SENDING / FAILED
+  → retry
+  → DLQ
+</code></pre>
+<p>常见补偿任务：</p>
+<ol>
+<li>重建搜索索引。</li>
+<li>刷新商品详情缓存。</li>
+<li>重放商品发布事件。</li>
+<li>校验营销圈品是否同步。</li>
+<li>校验订单创单快照是否可读取。</li>
+</ol>
+<hr>
+<h2 id="2112-供应商同步与商品中心"><a class="header" href="#2112-供应商同步与商品中心">21.12 供应商同步与商品中心</a></h2>
+<p>供应商同步属于供给链路，不属于商品中心内部执行链路。商品中心不应该知道某个供应商全量同步跑到哪个城市、哪个 page、哪个 cursor。</p>
+<p>正确关系：</p>
+<pre><code class="language-text">Supplier Sync
+  → Raw Snapshot
+  → Normalize
+  → Mapping
+  → Diff
+  → Product Supply Staging
+  → Publish Command
+  → Product Center
+</code></pre>
+<p>商品中心只接收发布后的正式结果：</p>
+<pre><code class="language-text">Resource 更新
+SPU/SKU 更新
+Offer 更新
+Rate Plan 更新
+履约/退款契约更新
+</code></pre>
+<p>但商品中心要支持供应商同步带来的特殊要求：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>要求</th><th>商品中心怎么支持</th></tr>
+</thead>
+<tbody>
+<tr><td>供应商资源映射</td><td>Resource、Offer、Rate Plan 保留外部映射引用</td></tr>
+<tr><td>字段主导权</td><td>商品中心保留字段来源，供给平台判断是否可覆盖</td></tr>
+<tr><td>大批量更新</td><td>发布命令幂等、限流、分批</td></tr>
+<tr><td>版本追溯</td><td><code>source_type</code>、<code>source_ref_id</code>、<code>publish_version</code></td></tr>
+<tr><td>下游刷新</td><td>Outbox 事件按版本投递</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="2113-商品中心-api-设计"><a class="header" href="#2113-商品中心-api-设计">21.13 商品中心 API 设计</a></h2>
+<h3 id="21131-command-api"><a class="header" href="#21131-command-api">21.13.1 Command API</a></h3>
+<p>Command API 面向供给平台和内部治理系统。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>API</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td><code>PublishProductVersion</code></td><td>发布新商品或编辑版本</td></tr>
+<tr><td><code>OfflineProduct</code></td><td>下线商品</td></tr>
+<tr><td><code>ReactivateProduct</code></td><td>重新上线</td></tr>
+<tr><td><code>BanProduct</code></td><td>平台封禁</td></tr>
+<tr><td><code>UnbanProduct</code></td><td>解封</td></tr>
+<tr><td><code>ArchiveProduct</code></td><td>归档</td></tr>
+<tr><td><code>RollbackProductVersion</code></td><td>回滚到指定版本</td></tr>
+</tbody>
+</table>
+</div>
+<p>Command API 要求：</p>
+<ol>
+<li>强幂等。</li>
+<li>带 <code>operator</code> 和 <code>source_ref</code>。</li>
+<li>带 <code>base_publish_version</code>。</li>
+<li>返回结构化错误。</li>
+<li>写操作必须产生版本、快照和事件。</li>
+</ol>
+<h3 id="21132-query-api"><a class="header" href="#21132-query-api">21.13.2 Query API</a></h3>
+<p>Query API 面向前台、订单、搜索 Hydrate 和内部系统。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>API</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td><code>GetProductDetail</code></td><td>商品详情</td></tr>
+<tr><td><code>BatchGetProductSummary</code></td><td>批量商品摘要</td></tr>
+<tr><td><code>GetProductSnapshot</code></td><td>按版本读取商品快照</td></tr>
+<tr><td><code>BatchGetOfferContract</code></td><td>批量读取 Offer 契约</td></tr>
+<tr><td><code>GetInputSchema</code></td><td>读取下单输入 Schema</td></tr>
+<tr><td><code>GetFulfillmentRuleSnapshot</code></td><td>读取履约规则快照</td></tr>
+<tr><td><code>GetRefundRuleSnapshot</code></td><td>读取退款规则快照</td></tr>
+</tbody>
+</table>
+</div>
+<p>Query API 要区分：</p>
+<pre><code class="language-text">C 端展示读取
+  → 可以走缓存和读模型
+
+创单交易读取
+  → 必须读取版本化快照并做状态校验
+</code></pre>
+<h3 id="21133-事件-api"><a class="header" href="#21133-事件-api">21.13.3 事件 API</a></h3>
+<p>商品中心对外发布事件：</p>
+<pre><code class="language-text">ProductPublished
+ProductContentChanged
+ProductOfferChanged
+ProductContractChanged
+ProductOnline
+ProductOffline
+ProductBanned
+ProductArchived
+ProductSnapshotCreated
+</code></pre>
+<p>事件 payload 至少包含：</p>
+<pre><code class="language-json">{
+  "event_id": "evt_001",
+  "event_type": "ProductPublished",
+  "item_id": "item_80001",
+  "publish_version": 4,
+  "changed_fields": ["title", "refund_rule"],
+  "occurred_at": "2026-04-27T10:00:00Z"
+}
+</code></pre>
+<p>下游必须按 <code>event_id</code> 幂等，按 <code>publish_version</code> 防乱序。</p>
+<hr>
+<h2 id="2114-质量治理与可观测性"><a class="header" href="#2114-质量治理与可观测性">21.14 质量治理与可观测性</a></h2>
+<h3 id="21141-商品质量维度"><a class="header" href="#21141-商品质量维度">21.14.1 商品质量维度</a></h3>
+<p>商品中心要参与发布后质量巡检，但质量问题的修复流程仍然回到供给平台。</p>
+<p>常见质量问题：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>问题</th><th>影响</th></tr>
+</thead>
+<tbody>
+<tr><td>缺图</td><td>C 端转化下降，搜索降权</td></tr>
+<tr><td>缺价或价格异常</td><td>详情页不可展示，计价失败</td></tr>
+<tr><td>无库存配置</td><td>创单不可售</td></tr>
+<tr><td>无履约规则</td><td>支付后无法履约</td></tr>
+<tr><td>无退款规则</td><td>售后不可解释</td></tr>
+<tr><td>Resource 映射缺失</td><td>供应商履约失败</td></tr>
+<tr><td>搜索索引版本落后</td><td>前台搜不到或展示旧数据</td></tr>
+<tr><td>缓存版本落后</td><td>详情页展示旧内容</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="21142-监控指标"><a class="header" href="#21142-监控指标">21.14.2 监控指标</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>商品详情 P99</td><td>Query API 延迟</td></tr>
+<tr><td>缓存命中率</td><td>详情缓存、摘要缓存命中</td></tr>
+<tr><td>发布成功率</td><td>发布命令成功 / 总命令</td></tr>
+<tr><td>发布版本冲突率</td><td>版本 CAS 失败比例</td></tr>
+<tr><td>快照生成失败率</td><td>发布后快照失败比例</td></tr>
+<tr><td>Outbox 堆积量</td><td>待投递商品事件数</td></tr>
+<tr><td>索引版本落后数</td><td>搜索索引落后商品数</td></tr>
+<tr><td>商品契约缺失率</td><td>缺库存、履约、退款规则的商品占比</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="21143-排查链路"><a class="header" href="#21143-排查链路">21.14.3 排查链路</a></h3>
+<p>线上商品问题建议从 <code>item_id</code> 和 <code>publish_version</code> 开始排查：</p>
+<pre><code class="language-text">item_id
+  → product_item_tab
+  → product_publish_version_tab
+  → product_snapshot_tab
+  → product_outbox_event
+  → search_index publish_version
+  → order snapshot
+</code></pre>
+<p>如果要追溯商品是怎么进入平台的，再通过 <code>source_ref_id</code> 回到第 25 章供给平台：</p>
+<pre><code class="language-text">publish_id / operation_id
+  → product_supply_operation_log
+  → draft / staging / qc / publish_record
+</code></pre>
+<hr>
+<h2 id="2115-答辩材料"><a class="header" href="#2115-答辩材料">21.15 答辩材料</a></h2>
+<p>本章相关问题、总结话术和追问要点已统一收录到<a href="../part05/04-product-inventory-marketing-pricing-interview.html">第 34 章</a>。</p>
+<p><strong>延伸阅读建议</strong>：</p>
+<ul>
+<li><a href="./03-inventory-system.html">第 22 章：库存系统</a></li>
+<li><a href="./04-marketing-system.html">第 23 章：营销系统</a></li>
+<li><a href="./05-product-supply-lifecycle-ops.html">第 24 章：商品供给、运营与生命周期治理</a></li>
+<li><a href="./05-product-supply-lifecycle-ops.html">第 24 章：商品供给、运营与生命周期治理</a></li>
+</ul>
+<hr>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../appendix/ecommerce-product-supply-inventory-lifecycle.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part02/04-inventory-system.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../appendix/ecommerce-product-supply-inventory-lifecycle.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part02/04-inventory-system.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

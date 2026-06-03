@@ -1,0 +1,1906 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>专题总章：商品、供给、库存、上架、QC 与运营的全生命周期设计 - 系统设计与架构实战：原理、工程与电商案例</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="从系统设计方法论、核心基础设施、可靠性工程到电商业务架构实战；兼顾原理、工程落地、面试表达和完整业务案例。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-2d8b94c7.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-92ac6fa0.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">系统设计与架构实战：原理、工程与电商案例</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="商品供给库存上架qc-与运营的全生命周期设计"><a class="header" href="#商品供给库存上架qc-与运营的全生命周期设计">商品、供给、库存、上架、QC 与运营的全生命周期设计</a></h1>
+<blockquote>
+<p><strong>本章定位</strong>：这不是对“商品中心”“供给平台”“库存系统”三篇文章的简单拼接，而是站在平台生命周期视角，把商品如何进入平台、如何被治理、如何形成正式交易契约、如何建立可售库存、如何持续编辑和运营、以及如何与搜索、营销、订单、履约保持一致，收敛成一条完整主线。</p>
+</blockquote>
+<p>如果前面的专题章节分别回答的是“某个系统内部怎么设计”，这一章回答的则是：</p>
+<ol>
+<li>平台到底在处理哪些高频使用场景。</li>
+<li>这些场景为什么不能用一个后台 CRUD 搞定。</li>
+<li><code>Draft</code>、<code>Staging</code>、正式商品、库存事实、审核状态、发布版本应该分别放在哪里。</li>
+<li>为什么库存运营入口和库存事实归属必须分离。</li>
+<li>为什么真正难的不是建几张表，而是跨系统一致性、任务化、幂等、补偿和资损防控。</li>
+</ol>
+<p>建议配合以下章节交叉阅读：</p>
+<ul>
+<li><a href="../part02/03-product-center.html">第 21 章 商品中心系统</a></li>
+<li><a href="../part02/04-inventory-system.html">第 22 章 库存系统</a></li>
+<li><a href="../part02/02-product-supply-lifecycle-ops.html">第 24 章 商品供给、编辑、运营与生命周期治理</a></li>
+</ul>
+<hr>
+<h2 id="1-核心使用场景系统到底在处理什么问题"><a class="header" href="#1-核心使用场景系统到底在处理什么问题">1. 核心使用场景：系统到底在处理什么问题</a></h2>
+<p>很多团队一开始会从系统模块讲起：商品中心一章、库存系统一章、审核后台一章、供应商同步一章。这样讲虽然清楚，但读者很容易失去真正的主线，因为业务里遇到的从来不是“我现在只在操作商品中心”，而是：</p>
+<blockquote>
+<p>一个商品从创建、审核、发布、补库存、改标题、供应商同步、搜索刷新到订单履约，会跨越多少系统边界，以及这些边界怎么保证不打架。</p>
+</blockquote>
+<h3 id="11-商品创建场景"><a class="header" href="#11-商品创建场景">1.1 商品创建场景</a></h3>
+<p>商品创建并不是单一操作，而是至少五类不同来源的组合：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>典型触发方</th><th>特征</th><th>体验要求</th><th>系统重点</th></tr>
+</thead>
+<tbody>
+<tr><td>本地运营手工创建</td><td>平台运营</td><td>低频、强交互、可信来源</td><td>同步保存、秒级回执</td><td>Draft、强校验、自动准入</td></tr>
+<tr><td>商家后台单品上传</td><td>商家</td><td>数据质量波动大</td><td>同步提交、异步审核</td><td>默认 QC、素材校验、风控</td></tr>
+<tr><td>Excel 批量导入</td><td>运营 / 商家</td><td>高吞吐、行级失败</td><td>快速返回任务 ID</td><td>任务化、错误文件、重试</td></tr>
+<tr><td>API / ISV 推送建品</td><td>ERP / 开放平台</td><td>中高频、天然重试</td><td>先确认接收，再异步完成</td><td>幂等键、回调、批次治理</td></tr>
+<tr><td>供应商首次同步建品</td><td>第三方供应商</td><td>海量、离线、外部不稳定</td><td>纯异步</td><td>Checkpoint、Mapping、归一化</td></tr>
+</tbody>
+</table>
+</div>
+<p>这些场景共同逼着系统回答几个问题：</p>
+<ol>
+<li>手工创建和批量导入能否走同一条治理主线。</li>
+<li>供应商同步是“创建”还是“Upsert”。</li>
+<li>外部来源的数据先放哪里，什么时候才算正式商品。</li>
+<li>审核和发布失败后如何定位到具体行、具体字段、具体来源。</li>
+</ol>
+<h3 id="12-商品编辑场景"><a class="header" href="#12-商品编辑场景">1.2 商品编辑场景</a></h3>
+<p>商品一旦上线，编辑链路往往比创建链路更复杂，因为它直接影响线上交易和历史一致性。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>典型触发方</th><th>是否影响线上存量商品</th><th>常见风险</th><th>推荐模式</th></tr>
+</thead>
+<tbody>
+<tr><td>运营手工改单品</td><td>运营后台</td><td>是</td><td>标题、类目、价格误改</td><td>变更请求 + 审核发布</td></tr>
+<tr><td>商家批量编辑标题 / 属性</td><td>商家</td><td>是</td><td>批量污染、类目错挂</td><td>批量任务 + 行级校验</td></tr>
+<tr><td>供应商增量同步更新</td><td>供应商</td><td>是</td><td>覆盖人工改动、脏数据反写</td><td>差异识别 + 策略路由</td></tr>
+<tr><td>高频价格 / 库存变更</td><td>ERP / 自动化系统</td><td>是</td><td>生效滞后、重复覆盖</td><td>局部旁路 + 幂等更新</td></tr>
+<tr><td>风控 / 合规强制下架</td><td>法务 / 风控</td><td>是</td><td>即时停止可售</td><td>平台裁决直达正式态</td></tr>
+</tbody>
+</table>
+</div>
+<p>这里最关键的分歧不是“能不能改”，而是：</p>
+<ul>
+<li>哪些字段必须先进 <code>Staging</code> 再发布。</li>
+<li>哪些字段可以走快速旁路。</li>
+<li>哪些变更必须保留审批与审计链路。</li>
+<li>供应商同步和人工编辑冲突时谁优先。</li>
+</ul>
+<h3 id="13-库存运营场景"><a class="header" href="#13-库存运营场景">1.3 库存运营场景</a></h3>
+<p>库存不是一个孤立的“数字服务”，B 端运营视角里它至少包含以下场景：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>典型对象</th><th>目标</th><th>风险</th><th>归属建议</th></tr>
+</thead>
+<tbody>
+<tr><td>初始化库存</td><td>新商品 / 新 SKU</td><td>建立首批可售能力</td><td>初始配置错误</td><td>供给平台发起，库存系统落账</td></tr>
+<tr><td>补货 / 扣减 / 调整</td><td>数量库存</td><td>改变可售量</td><td>超卖 / 错减</td><td>运营工作台 + 库存命令</td></tr>
+<tr><td>券码导入</td><td>卡密 / 礼品卡 / 券类</td><td>增加唯一资源池</td><td>泄露 / 重复导入</td><td>批量任务 + 码池账本</td></tr>
+<tr><td>系统生码</td><td>平台生成券码</td><td>自动补足供给</td><td>生成失败 / 碰撞</td><td>异步批任务</td></tr>
+<tr><td>锁库存 / 解锁库存</td><td>大促 / 风控 / 活动</td><td>临时冻结可售</td><td>漏解锁</td><td>显式命令 + 审计</td></tr>
+<tr><td>门店 / 日期 / 批次调整</td><td>O2O / 酒店 / 票务</td><td>精细化承诺</td><td>维度错配</td><td>范围化建模</td></tr>
+</tbody>
+</table>
+</div>
+<p>库存场景的难点不是表单操作，而是：</p>
+<ul>
+<li>库存运营入口要不要直接放在库存系统。</li>
+<li>数量库存和券码库存能否共用一个模型。</li>
+<li>Redis 里的热数据是不是事实来源。</li>
+<li>订单预占、支付确认、超时释放怎么和库存账本对齐。</li>
+</ul>
+<h3 id="14-生命周期治理场景"><a class="header" href="#14-生命周期治理场景">1.4 生命周期治理场景</a></h3>
+<p>治理场景决定了这个系统是不是“平台”：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>目标</th><th>为什么重要</th></tr>
+</thead>
+<tbody>
+<tr><td>提交审核</td><td>把编辑结果送入准入链路</td><td>防止半成品直接污染线上</td></tr>
+<tr><td>自动准入</td><td>让低风险变更快速生效</td><td>降低人工成本，提升运营效率</td></tr>
+<tr><td>人工 QC</td><td>人工兜底高风险变更</td><td>处理类目、素材、合规风险</td></tr>
+<tr><td>驳回 / 撤回 / 重提</td><td>形成运营闭环</td><td>让失败可修复、可追踪</td></tr>
+<tr><td>发布 / 下架 / 归档</td><td>管理线上资产状态</td><td>区分流程态与正式态</td></tr>
+</tbody>
+</table>
+</div>
+<p>这部分要解决的核心问题是：流程状态、审核状态和正式商品状态能不能混在一起。答案通常是否定的。</p>
+<h3 id="15-供应商协同场景"><a class="header" href="#15-供应商协同场景">1.5 供应商协同场景</a></h3>
+<p>供应商同步既是供给入口，也是持续运营的一部分：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>特征</th><th>关键能力</th></tr>
+</thead>
+<tbody>
+<tr><td>全量拉取</td><td>海量、慢、成本高</td><td>分片、快照、断点续跑</td></tr>
+<tr><td>增量同步</td><td>高频、可重复</td><td>指纹、幂等、对齐</td></tr>
+<tr><td>Push 回调</td><td>外部主动通知</td><td>签名校验、重放防护</td></tr>
+<tr><td>人工刷新</td><td>定向修复</td><td>单资源重跑、人工兜底</td></tr>
+</tbody>
+</table>
+</div>
+<p>供应商协同最大的工程难点不是“能不能接上接口”，而是：</p>
+<ul>
+<li>供应商数据是不是可以直接覆盖正式商品。</li>
+<li>同步失败后如何知道哪一批、哪一页、哪个资源出问题。</li>
+<li>供应商变更和人工编辑冲突时谁说了算。</li>
+</ul>
+<h3 id="16-场景到系统问题的映射"><a class="header" href="#16-场景到系统问题的映射">1.6 场景到系统问题的映射</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景类型</th><th>典型问题</th></tr>
+</thead>
+<tbody>
+<tr><td>商品创建</td><td>入口统一、同步/异步分层、草稿归属、批量错误隔离</td></tr>
+<tr><td>商品编辑</td><td>差异化审核、线上版本保护、供应商冲突治理</td></tr>
+<tr><td>库存运营</td><td>入口与事实分离、账本可追溯、预占释放一致性</td></tr>
+<tr><td>生命周期治理</td><td>状态分层、审计留痕、重提与补偿闭环</td></tr>
+<tr><td>供应商协同</td><td>幂等、断点续跑、数据质量评估、Mapping 管理</td></tr>
+<tr><td>发布协同</td><td>版本化发布、Outbox、搜索/缓存/订单最终一致</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="2-整体方案设计"><a class="header" href="#2-整体方案设计">2. 整体方案设计</a></h2>
+<p>这一节按照“先看系统边界，再看主链路，最后看关键决策”的顺序展开。先把商品主域、供给平台、库存系统、营销、搜索和订单各自的职责划清楚，再把这些系统放进一条完整的生命周期主链路中理解，最后集中讨论 <code>Draft / Staging</code>、同步 / 异步、资产归属和库存边界这些关键设计选择。</p>
+<h3 id="21-系统的边界和职责"><a class="header" href="#21-系统的边界和职责">2.1 系统的边界和职责</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>系统</th><th>负责什么</th><th>不负责什么</th></tr>
+</thead>
+<tbody>
+<tr><td>商品主域（写侧）</td><td>可审核、可发布的 <code>Draft / Staging</code>、正式商品主数据、交易前契约、发布版本、商品快照</td><td>商家接入、文件导入界面、错误文件分发、供应商抓取编排</td></tr>
+<tr><td>供给与运营平台</td><td>入口、标准化、Task、Validation、QC 工作台、发布编排、运营工作台</td><td>库存最终事实、搜索索引直写、订单状态维护、正式商品资产主权</td></tr>
+<tr><td>库存系统</td><td>库存事实、预占、确认、释放、账本、券码池</td><td>商品标题、类目、审核流、营销规则</td></tr>
+<tr><td>营销系统</td><td>活动、圈品、预算、优惠规则、营销库存</td><td>商品正式发布事务、库存总账</td></tr>
+<tr><td>搜索系统</td><td>索引、召回、排序、可检索投影</td><td>商品发布事务、库存事实</td></tr>
+<tr><td>订单系统</td><td>订单状态、商品/报价/履约快照引用</td><td>最新商品配置维护</td></tr>
+</tbody>
+</table>
+</div>
+<p>边界划分里最重要的三条原则是：</p>
+<ol>
+<li>供给平台负责接脏数据、洗数据、做任务和审核编排，但不持有正式商品资产主权。</li>
+<li>商品主域写侧负责可审核、可发布的草稿资产、版本冻结和正式落库闭环。</li>
+<li>库存系统负责库存事实和账本，不负责 B 端商品编辑与审核流程。</li>
+</ol>
+<h3 id="22-全生命周期主链路总览"><a class="header" href="#22-全生命周期主链路总览">2.2 全生命周期主链路总览</a></h3>
+<pre class="mermaid">
+flowchart LR
+    A["供给入口"] --&gt; B["Draft / Staging"]
+    B --&gt; C["标准化与校验"]
+    C --&gt; D["Diff / 风险识别"]
+    D --&gt; E["QC / 自动准入"]
+    E --&gt; F["发布到商品主域正式态"]
+    F --&gt; G["库存 / 营销 / 搜索 / 计价协同"]
+    G --&gt; H["订单使用快照交易"]
+    F --&gt; I["Outbox 下游投影"]
+    I --&gt; J["巡检 / 对账 / 补偿"]
+</pre>
+
+<p>这条主链路表达的是统一供给治理平台的基本职责：</p>
+<ol>
+<li>所有供给动作先进入 <code>Draft / Staging</code>，而不是直接污染正式商品。</li>
+<li>标准化、校验、Diff、风险识别和审核，构成正式发布前的质量门禁。</li>
+<li>发布之后不是“流程结束”，而是进入库存、营销、搜索、计价和订单快照的协同阶段。</li>
+<li>最终通过 Outbox、巡检、对账和补偿保证一致性，而不是要求一次同步调用把所有下游都写成功。</li>
+</ol>
+<h3 id="23-决策点-1为什么不能继续在原商品系统上打补丁而是需要新增-draft-表"><a class="header" href="#23-决策点-1为什么不能继续在原商品系统上打补丁而是需要新增-draft-表">2.3 决策点 1：为什么不能继续在原商品系统上打补丁，而是需要新增 <code>Draft</code> 表</a></h3>
+<h4 id="场景与问题"><a class="header" href="#场景与问题">场景与问题</a></h4>
+<p>很多团队在系统演进早期都会问一个问题：既然原来已经有商品系统，为什么不继续在原表上加几个字段、补几个状态、加几段审核逻辑，而是要显式引入 <code>Draft</code> 表甚至新的写模型？</p>
+<p>短期当然可以继续打补丁，但问题是业务模型已经变了。早期很多商品系统主要承载的是自运营的相对简单的配置型商品，商品本身更像一个后台配置对象；后面商品开始承载外部供给接入、审核流程、库存策略、履约规则、退款口径、供应商同步和版本化发布之后，它已经不再只是“静态配置”，而是在向“可治理的交易资产”演进。</p>
+<p>如果继续把这些新能力都硬塞进原商品系统的单一正式表或单一状态字段里，短期看似节省改造成本，长期却会持续累积三类问题：</p>
+<ol>
+<li>
+<p><strong>边界继续塌陷</strong></p>
+<p>原商品系统原本只负责正式商品表达，如果继续往里塞草稿、审核、导入状态、供应商同步中间态，它就会同时承担接入层、流程层和资产层职责，后面每接一个新品类或一个新供给来源，复杂度都会继续上升。</p>
+</li>
+<li>
+<p><strong>正式资产被流程态污染</strong></p>
+<p>一旦把“待审、驳回、文件解析中、待补图、供应商刷新中”这些状态混进正式商品表，商品主域的语义就不再稳定，搜索、缓存、计价、订单也更容易误读这些半成品或中间态。</p>
+</li>
+<li>
+<p><strong>演进成本越来越高</strong></p>
+<p>继续打补丁的本质是拿局部 if/else 和临时字段去扛新的业务模型。前期似乎更快，但后期每增加一种商品类型、每新增一种审核策略、每接一种库存模式，都要在旧结构上继续叠复杂度，风险和维护成本只会越来越高。</p>
+</li>
+</ol>
+<p>所以这次改造的本质不是简单重构代码，而是<strong>边界重划</strong>：把正式商品、可发布草稿、流程任务、审核工作台、库存事实这些不同层次的数据重新分层。也正因为如此，系统才需要显式引入 <code>Draft</code> 或 <code>Staging</code> 这类新写模型，而不是继续在原商品表上追加字段和状态。</p>
+<h4 id="方案对比"><a class="header" href="#方案对比">方案对比</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>适用场景</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：继续在原商品系统上打补丁</td><td>短期改造快；不需要新增模型和表</td><td>边界塌陷；流程态污染正式态；复杂度滚雪球增长</td><td>早期、简单、低变化系统</td><td>过渡方案</td></tr>
+<tr><td>方案 B：新增 <code>Draft</code> 表和独立写模型</td><td>语义分层清晰；便于审核、发布、版本冻结和演进</td><td>初期改造成本更高</td><td>中长期演进、复杂商品平台</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="推荐方案"><a class="header" href="#推荐方案">推荐方案</a></h4>
+<p>推荐方案 B。判断标准不是“新增表是不是更优雅”，而是业务模型是否已经发生质变。</p>
+<p>一旦商品开始承载供给接入、审核治理、库存协同、履约规则和版本化发布，原商品系统就不再适合只靠补字段和补状态来演进。此时新增 <code>Draft</code> 表，本质上是在承认“正式商品”和“待治理草稿”是两种不同层次的数据，应该被显式建模。</p>
+<h3 id="24-决策点-2draft-属于供给平台还是商品主域写侧qc-挂在哪层快照上"><a class="header" href="#24-决策点-2draft-属于供给平台还是商品主域写侧qc-挂在哪层快照上">2.4 决策点 2：<code>Draft</code> 属于供给平台还是商品主域写侧，QC 挂在哪层快照上</a></h3>
+<h4 id="场景与问题-1"><a class="header" href="#场景与问题-1">场景与问题</a></h4>
+<p>这是整个商品生命周期架构里最容易引发争论的一个决策点。按业务流程直觉看，商家和运营是在供给平台改商品，所以草稿似乎天然应该留在供给侧；但从资产主权、事务边界、版本冻结和长期演进看，<code>Draft</code> 又更像商品主域内部的未生效版本。</p>
+<p>这个问题不能只看“草稿表放哪里”，还必须连着 QC 链路一起看。因为真正的架构问题不是：</p>
+<blockquote>
+<p><code>Draft</code> 在供给还是在商品中心？</p>
+</blockquote>
+<p>而是：</p>
+<blockquote>
+<p><strong>可审核、可发布的草稿资产归谁持有，QC 又应该挂在哪一层冻结快照上做裁判？</strong></p>
+</blockquote>
+<p>如果 <code>Draft</code> 留在供给侧，QC 往往也只能围绕供给侧草稿运行，链路就会自然变成：</p>
+<pre><code class="language-text">供给(draft)
+  → QC
+  → 商品正式态
+</code></pre>
+<p>如果 <code>Draft</code> 已进入商品主域写侧，QC 更合理的形态则是：</p>
+<pre><code class="language-text">供给接入
+  → 商品主域 Draft / Staging
+  → QC
+  → 本地 Merge 到正式 Item
+</code></pre>
+<p>这两条链路看起来只差了一个步骤，底层却是两种完全不同的资产主权和版本控制模型。</p>
+<p>这里先给出结论，再展开论证：</p>
+<blockquote>
+<p>如果 <code>Draft</code> 只是浏览器表单保存、文件上传中的临时缓存，它可以短暂停留在供给侧；但一旦 <code>Draft</code> 进入待审核、待发布、可版本冻结、可与正式商品合流的阶段，它本质上已经属于商品主域的写模型，而不应该长期留在供给接入层。</p>
+</blockquote>
+<p>换句话说，这一节讨论的不是“前端临时草稿存哪里”，而是“可审核、可发布的商品草稿资产归谁持有”。</p>
+<h4 id="方案-adraft-留在供给平台"><a class="header" href="#方案-adraft-留在供给平台">方案 A：<code>Draft</code> 留在供给平台</a></h4>
+<p>这种方案的出发点非常自然：供给平台负责对接商家、运营、供应商和 ERP，商品变更从这里进入，审核工作台、批量任务、错误文件也在这里，于是团队很容易顺着流程心智把 <code>Draft</code> 一起留在供给层。</p>
+<p>在这种设计下，QC 也通常会变成“前置流式审核”，即先在供给侧审核，再把通过后的 DTO 推给商品主域落正式态。</p>
+<h5 id="优点"><a class="header" href="#优点">优点</a></h5>
+<ul>
+<li>业务流程看起来更顺，商家上传、审核流、任务进度都集中在一个平台。</li>
+<li>供给平台天然适合承接脏数据、错误文件、批量导入和人工修复。</li>
+<li>对早期团队来说，上线速度快，不需要商品主域一开始就承接完整的草稿写模型。</li>
+</ul>
+<h5 id="缺点--风险"><a class="header" href="#缺点--风险">缺点 / 风险</a></h5>
+<ol>
+<li>
+<p><strong>资产主权分裂</strong></p>
+<p>同一个商品会被拆成两份核心表达：供给平台里的草稿资产，以及商品中心里的正式资产。草稿和正式商品其实只是同一资产的不同阶段，却被两个服务分别持有，后续版本控制、冲突治理和审计解释都会变复杂。</p>
+</li>
+<li>
+<p><strong>发布合流链路跨服务，放大批量窗口风险</strong></p>
+<p>当 QC 判定通过时，系统需要把草稿 merge 到正式商品。如果草稿在供给、正式表在商品中心，发布就必须走跨服务 RPC 或异步命令。单次发布未必是灾难，但一旦进入凌晨供应商大批量更新、大促前批量调价、酒店政策全量同步等场景，发布链路时延、锁竞争、失败点和重试成本都会明显放大，也更容易在批量窗口冲击商品主域写链路。</p>
+</li>
+<li>
+<p><strong>类目属性契约和校验逻辑容易进入“双写地狱”</strong></p>
+<p>商品草稿模型与正式模型往往高度同构：类目、属性、多规格 SKU、阶梯价、履约规则、退款规则都要表达。商品主域一旦新增类目契约、修改必填属性或调整校验规则，供给平台就很容易被迫同步修改草稿表结构和复制一套校验逻辑。久而久之，两个服务会演变成披着接口外衣的伪单体。</p>
+</li>
+<li>
+<p><strong>版本冻结与防篡改更难做</strong></p>
+<p>如果审核看的数据在供给侧，而最终发布动作发生在商品主域，审核中途还要面对商家、运营、供应商同步并发修改同一商品的问题。理论上可以通过版本号、快照和锁机制解决，但复杂度明显高于把可发布草稿直接内聚在商品主域本地。</p>
+</li>
+<li>
+<p><strong>QC 更难锁定真正的裁判快照</strong></p>
+<p>这是这条链路最微妙、也是最危险的问题。QC 在供给侧看到的是版本 A，但在审核通过到跨服务发布的窗口里，供给侧草稿可能已经被另一个并发修改线程推进到版本 B。最终就可能出现“审的是 A，发的是 B”的时空撕裂问题。</p>
+</li>
+<li>
+<p><strong>多版本乱序容易导致线上数据回滚</strong></p>
+<p>商家短时间连续提交多个版本时，机审秒过的版本 B 可能先发布，而人工审核较慢的版本 A 后通过。如果发布动作只是“审核通过后把 DTO 再推给商品主域”，旧版本 A 就可能在更晚的时间反向覆盖新版本 B，形成线上数据时间倒流。</p>
+</li>
+</ol>
+<h5 id="适用场景"><a class="header" href="#适用场景">适用场景</a></h5>
+<ul>
+<li>早期系统</li>
+<li>类目简单、审核弱、供应商同步不重</li>
+<li>商品主域还没有成熟的写模型和发布版本体系</li>
+</ul>
+<h4 id="方案-bdraft-收拢到商品主域写侧"><a class="header" href="#方案-bdraft-收拢到商品主域写侧">方案 B：<code>Draft</code> 收拢到商品主域写侧</a></h4>
+<p>这里的“放在商品中心”需要说得更精确一些：不是把 <code>Draft</code> 直接放进 C 端线上 <code>product_item</code> 表，而是放进商品主域自己的 <code>draft / staging / version / publish merge</code> 写模型中。商品主域对这份草稿资产拥有版本冻结、发布合流和正式落库的主权。</p>
+<p>在这种设计下，QC 不再审核供给平台里那份可变草稿，而是基于商品主域已经落库、已经冻结版本号的 <code>Draft / Staging</code> 快照做裁判。QC 回传的也不再是完整商品 DTO，而只是轻量的判决结果，例如：</p>
+<pre><code class="language-json">{
+  "draft_id": 555,
+  "publish_version": 102,
+  "result": "PASS"
+}
+</code></pre>
+<h5 id="优点-1"><a class="header" href="#优点-1">优点</a></h5>
+<ol>
+<li>
+<p><strong>资产主权统一</strong></p>
+<p>无论是线上售卖商品，还是待审核的未生效版本，本质上都是同一份商品资产的不同形态。把它们收在商品主域写侧，领域边界最稳定。</p>
+</li>
+<li>
+<p><strong>合流可以本地事务闭环</strong></p>
+<p><code>product_draft_tab</code>、<code>product_staging_tab</code>、<code>product_item_tab</code>、<code>publish_version</code> 都在商品主域本地时，QC 通过后的 merge 可以在本地事务内完成。这样发布路径更短，也更容易做版本校验、幂等发布和失败回滚。</p>
+</li>
+<li>
+<p><strong>版本冻结与快照锁定更自然</strong></p>
+<p>供给平台把数据清洗成标准 DTO 后推给商品主域，商品主域将其落成 <code>Draft</code> 或 <code>Staging</code> 并生成版本号。QC 审核的是这份冻结后的本地快照，而不是仍然暴露在接入层并发修改风险中的动态数据。</p>
+</li>
+<li>
+<p><strong>契约和校验逻辑只维护一份</strong></p>
+<p>类目、属性、SKU、Offer、履约、退款等商品主契约只需在一个主域里演进，避免供给和商品两边长期维护两套同构模型。</p>
+</li>
+<li>
+<p><strong>发布事件与读模型刷新更容易统一</strong></p>
+<p>正式商品落库、快照生成、Outbox 写入、搜索/缓存/计价/营销投影刷新都可以由商品主域统一发起，链路更可解释。</p>
+</li>
+<li>
+<p><strong>QC 能基于冻结快照做真正的版本裁判</strong></p>
+<p>数据一旦进入商品主域落成 <code>Draft</code> 或 <code>Staging</code>，系统就可以为它分配明确的业务版本号，并在送审期间锁定这份快照。商家若继续修改，必须生成新的版本而不是覆写旧版本。这样 QC 审核的是确定版本，发布的也是同一个确定版本。</p>
+</li>
+<li>
+<p><strong>QC 回传 verdict，商品主域本地事务完成 merge</strong></p>
+<p>QC 审核通过后，不需要再跨服务传一份巨大的商品 DTO 回商品主域，只需要回传“哪一个草稿版本审核通过”的轻量判决。商品主域随后在本地事务里将该版本 merge 到正式 <code>Item</code>，并统一完成快照、Outbox、缓存刷新等后续动作。</p>
+</li>
+</ol>
+<h5 id="缺点--风险-1"><a class="header" href="#缺点--风险-1">缺点 / 风险</a></h5>
+<ol>
+<li>
+<p><strong>B 端写压力会向商品主域集中</strong></p>
+<p>零散保存、批量导入、供应商同步、错误重提等写流量都会压到商品主域写侧。</p>
+</li>
+<li>
+<p><strong>商品主域会承接更多流程复杂度</strong></p>
+<p>如果团队边界没划清，商品主域很容易被误用成“供给后台本体”，把本该属于供给平台的任务、审核工作台、文件处理逻辑全堆进来。</p>
+</li>
+</ol>
+<h5 id="化解施策"><a class="header" href="#化解施策">化解施策</a></h5>
+<p>方案 B 的关键不是“把所有东西都塞进一个商品服务”，而是：</p>
+<ul>
+<li>供给平台继续负责入口、清洗、任务、审核工作台、供应商同步编排。</li>
+<li>商品主域只负责可审核、可发布的草稿资产，以及正式落库闭环。</li>
+<li><code>product_draft_tab</code> 与 <code>product_item_tab</code> 物理隔离，避免草稿写洪峰污染线上正式资产。</li>
+<li>条件成熟时，可以拆成 <code>product-writer</code> 和 <code>product-reader</code>：前者承接草稿、审核、发布；后者只服务 C 端读流量和缓存。</li>
+</ul>
+<h5 id="适用场景-1"><a class="header" href="#适用场景-1">适用场景</a></h5>
+<ul>
+<li>中大型平台</li>
+<li>类目复杂、供应商同步重、审核和版本治理要求高</li>
+<li>希望长期保持商品主权统一的系统</li>
+</ul>
+<h4 id="方案对比-1"><a class="header" href="#方案对比-1">方案对比</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>适用场景</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：<code>Draft</code> 留在供给平台，QC 前置审核</td><td>流程直觉强；任务与审核工作台集中；早期交付快</td><td>资产主权分裂；发布跨服务；契约双写；QC 难锁定冻结快照；易发生版本乱序覆盖</td><td>早期系统、低复杂度业务</td><td>过渡方案</td></tr>
+<tr><td>方案 B：<code>Draft</code> 收拢到商品主域写侧，QC 基于本地快照裁判</td><td>主权统一；本地事务 merge；版本冻结自然；契约单一演进；QC verdict 轻量回传</td><td>写压力上移；需要 writer/reader 与冷热隔离</td><td>中大型平台、长期治理</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="推荐方案-1"><a class="header" href="#推荐方案-1">推荐方案</a></h4>
+<p>推荐方案 B，但需要准确理解为：</p>
+<blockquote>
+<p><code>Draft</code> 不应该长期留在供给接入层，也不应该直接混进 C 端线上商品表，而应该归商品主域写侧管理。</p>
+</blockquote>
+<p>供给平台的定位更像“流量入口、数据加工厂与流程编排层”：</p>
+<ul>
+<li>负责接外部脏数据</li>
+<li>负责把数据清洗成标准 DTO</li>
+<li>负责任务、审核工作台、错误文件和供应商同步流程</li>
+</ul>
+<p>而商品主域才真正负责：</p>
+<ul>
+<li><code>Draft / Staging / Version</code></li>
+<li>版本冻结与防篡改</li>
+<li>QC 裁判快照锚定</li>
+<li>本地事务 merge</li>
+<li>正式商品落库</li>
+<li>Outbox 与下游投影事件</li>
+</ul>
+<p>因此，更完整的架构判断不是“<code>Draft</code> 属于供给平台还是商品中心”二选一，而是：</p>
+<ul>
+<li><strong>入口态临时数据</strong> 可以短暂停在供给侧</li>
+<li><strong>可审核、可发布的草稿资产</strong> 应归商品主域写侧</li>
+<li><strong>QC 应该裁判商品主域中已经冻结版本的快照</strong></li>
+</ul>
+<p>这也是为什么在平台化电商架构里，真正成熟的设计通常都不会让供给平台长期持有商品草稿的最终主权。</p>
+<h3 id="25-决策点-3是否需要-staging单-draft--operation-log-是否可行"><a class="header" href="#25-决策点-3是否需要-staging单-draft--operation-log-是否可行">2.5 决策点 3：是否需要 <code>Staging</code>，单 <code>Draft</code> + <code>Operation Log</code> 是否可行</a></h3>
+<h4 id="场景与问题-2"><a class="header" href="#场景与问题-2">场景与问题</a></h4>
+<p>当团队决定引入 <code>Draft</code> 之后，下一步一定会遇到两个高度关联的问题：</p>
+<ol>
+<li>只有 <code>Draft</code> 和正式 <code>Item</code> 两层够不够，是否还需要单独的 <code>Staging</code>。</li>
+<li>如果想尽量轻量化，单 <code>Draft</code> + <code>Operation Log</code> 能不能替代 <code>Draft + Staging + Item</code> 三层模型。</li>
+</ol>
+<p>这两个问题最好放在一起讨论，因为它们本质上都在回答同一件事：</p>
+<blockquote>
+<p>商品写模型到底需不需要三层隔离，以及单草稿方案的边界在哪里。</p>
+</blockquote>
+<p>这里先给出一个压缩结论：</p>
+<ul>
+<li><code>Draft</code> 解决的是“脏数据吸收、审核沙盒、并行编辑”。</li>
+<li><code>Staging</code> 解决的是“已通过 QC 的干净版本如何等待生效、切渠道、做回滚”。</li>
+<li><code>Operation Log</code> 适合作为单草稿方案的差分增强，但它不能完全替代 <code>Staging</code> 在时间轴、渠道隔离和回滚上的作用。</li>
+</ul>
+<h4 id="draft-与-staging-的职责差异"><a class="header" href="#draft-与-staging-的职责差异"><code>Draft</code> 与 <code>Staging</code> 的职责差异</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th><code>Draft</code></th><th><code>Staging</code></th></tr>
+</thead>
+<tbody>
+<tr><td>核心语义</td><td>正在编辑、待治理的工作副本</td><td>已通过 QC、待激活的静态快照</td></tr>
+<tr><td>数据纯净度</td><td>可能仍在被修改，存在未审核内容</td><td>100% 已过审，版本已冻结</td></tr>
+<tr><td>解决的问题</td><td>审核沙盒、并行编辑、脏写隔离</td><td>定时生效、多渠道隔离、快速回滚</td></tr>
+<tr><td>是否面向 C 端</td><td>否</td><td>当前不可见，但可视为“下一任合法继承人”</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果没有 <code>Staging</code>，系统就只能在“审核通过后立刻发布”和“继续停留在 Draft 里等待后续动作”之间二选一，这会让定时生效、多渠道未来版本和回滚变得很别扭。</p>
+<h4 id="方案-a只有-draft无-staging"><a class="header" href="#方案-a只有-draft无-staging">方案 A：只有 <code>Draft</code>，无 <code>Staging</code></a></h4>
+<h5 id="优点-2"><a class="header" href="#优点-2">优点</a></h5>
+<ul>
+<li>模型简单，表和状态少。</li>
+<li>审核通过后直接发布，链路短。</li>
+<li>对小系统或低变更频率系统来说，心智负担低。</li>
+</ul>
+<h5 id="缺点--风险-2"><a class="header" href="#缺点--风险-2">缺点 / 风险</a></h5>
+<ol>
+<li>
+<p><strong>已提交版本和正在编辑版本容易混淆</strong></p>
+<p>如果没有 <code>Staging</code>，系统很难清晰表达“这份数据已经通过 QC，但暂时还不应该生效”的状态。</p>
+</li>
+<li>
+<p><strong>定时生效和渠道隔离能力弱</strong></p>
+<p>大促零点变价、不同渠道未来版本、供应商已过审但待外部确认的场景，都需要一个“已过审但未激活”的物理缓冲区。</p>
+</li>
+<li>
+<p><strong>回滚确定性弱</strong></p>
+<p>没有 <code>Staging</code> 的物理快照，回滚通常要依赖历史版本重算、日志回放或脚本修复。</p>
+</li>
+</ol>
+<h5 id="适用场景-2"><a class="header" href="#适用场景-2">适用场景</a></h5>
+<ul>
+<li>小团队</li>
+<li>商品结构简单</li>
+<li>几乎没有定时生效、多渠道隔离和秒级回滚要求</li>
+</ul>
+<h4 id="方案-b单-draft--operation-log"><a class="header" href="#方案-b单-draft--operation-log">方案 B：单 <code>Draft</code> + <code>Operation Log</code></a></h4>
+<p>这是很多中型系统会选择的折中方案：一个商品只保留一个 <code>Draft</code>，再配套 <code>Operation Log / Diff Map</code> 记录价格、标题、库存等字段差分。</p>
+<h5 id="优点-3"><a class="header" href="#优点-3">优点</a></h5>
+<ul>
+<li>比三层模型更轻量，只需要 <code>Item + Draft + Operation Log</code>。</li>
+<li>某些低风险变更可以直接 patch 当前草稿，避免“一个商品只能改一次”的业务阻塞。</li>
+<li>存储成本、索引成本和模型心智都比较低。</li>
+</ul>
+<h5 id="缺点--风险-3"><a class="header" href="#缺点--风险-3">缺点 / 风险</a></h5>
+<ol>
+<li>
+<p><strong>多任务审核容易撕裂</strong></p>
+<p>标题改动需要人工审核 3 小时，价格改动 100ms 秒过，如果它们都 patch 到同一个 <code>Draft</code> 上，价格就无法安全独立发布。</p>
+</li>
+<li>
+<p><strong>激活时需要动态归并日志</strong></p>
+<p>没有 <code>Staging</code> 的完整待发布快照，系统只能在生效瞬间做 <code>Operation Log</code> 的 Reduce 和字段级 patch，这会把计算压力带到高峰时刻。</p>
+</li>
+<li>
+<p><strong>多渠道隔离与一键回滚能力弱</strong></p>
+<p>单 <code>Draft</code> 很难同时表达多个未来渠道版本；一旦线上数据洗脏，回滚通常要依赖逆向回放 <code>Operation Log</code>，确定性弱于直接切回上一个 <code>Staging</code> 版本。</p>
+</li>
+</ol>
+<h5 id="适用场景-3"><a class="header" href="#适用场景-3">适用场景</a></h5>
+<ul>
+<li>中等复杂度系统</li>
+<li>审核策略比较一致</li>
+<li>定时生效和多渠道未来版本需求不强</li>
+</ul>
+<h4 id="方案-cdraft--staging--item"><a class="header" href="#方案-cdraft--staging--item">方案 C：<code>Draft + Staging + Item</code></a></h4>
+<h5 id="优点-4"><a class="header" href="#优点-4">优点</a></h5>
+<ul>
+<li><code>Draft</code> 负责吸收脏写流量和并行编辑，<code>Staging</code> 负责沉淀通过 QC 的完整待发布版本。</li>
+<li>多个 Draft 可以并行加工，但最终只在 <code>Staging</code> 中形成有序的未来版本时间轴。</li>
+<li>到激活时不再做复杂归并，而是把已经组装好的快照本地 merge 到 <code>Item</code>。</li>
+<li>支持定时发布、多渠道隔离、灰度切换和秒级回滚。</li>
+</ul>
+<h5 id="缺点--风险-4"><a class="header" href="#缺点--风险-4">缺点 / 风险</a></h5>
+<ul>
+<li>物理数据副本更多，模型更重。</li>
+<li>需要额外的激活调度、版本治理和清理策略。</li>
+<li>对团队的数据建模要求更高。</li>
+</ul>
+<h5 id="适用场景-4"><a class="header" href="#适用场景-4">适用场景</a></h5>
+<ul>
+<li>中大型平台</li>
+<li>审核存在快慢混合链路</li>
+<li>大促定时变价、跨渠道供给隔离较多</li>
+<li>需要高确定性的回滚和版本切换</li>
+</ul>
+<h4 id="方案对比-2"><a class="header" href="#方案对比-2">方案对比</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>适用场景</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：只有 <code>Draft</code>，无 <code>Staging</code></td><td>简单、状态少、上手快</td><td>难表达“已过审待生效”；定时发布和渠道隔离弱</td><td>小系统</td><td>有条件可用</td></tr>
+<tr><td>方案 B：单 <code>Draft</code> + <code>Operation Log</code></td><td>轻量、节省存储、开发快</td><td>多任务审核撕裂；激活时要动态归并；回滚能力弱</td><td>中等复杂度系统</td><td>可行但有天花板</td></tr>
+<tr><td>方案 C：<code>Draft + Staging + Item</code></td><td>状态分层清晰；激活轻量；支持多版本、多渠道、回滚</td><td>模型更重，存储更多</td><td>中大型供给中台</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="推荐方案-2"><a class="header" href="#推荐方案-2">推荐方案</a></h4>
+<p>推荐方案 C 作为复杂供给中台的目标形态，但不是所有系统第一天就必须上三层模型。</p>
+<p>更务实的判断标准是：</p>
+<ul>
+<li>如果系统当前仍以单渠道、弱审核、低频定时发布为主，方案 B 完全可以作为高性价比方案。</li>
+<li>一旦系统开始出现多路并行修改、价格和图文审核时效分裂、大促零点定时生效、跨渠道未来版本和秒级回滚要求，就应从单 <code>Draft</code> 进化到 <code>Draft + Staging + Item</code>。</li>
+</ul>
+<p>换句话说，<code>Staging</code> 不是“为了优雅而优雅”的抽象，而是当系统需要时间轴、渠道隔离和高确定性回滚时，最自然的一层写模型。</p>
+<h3 id="26-决策点-4同步体验和异步任务如何分层"><a class="header" href="#26-决策点-4同步体验和异步任务如何分层">2.6 决策点 4：同步体验和异步任务如何分层</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>适用场景</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：全部同步处理</td><td>用户感知简单</td><td>批量导入、供应商同步会拖垮接口</td><td>小流量、低复杂度</td><td>不推荐</td></tr>
+<tr><td>方案 B：全部异步任务化</td><td>统一执行模型</td><td>单品创建体验差，交互成本高</td><td>内部工具型系统</td><td>不推荐</td></tr>
+<tr><td>方案 C：单品同步体验，批量与长链路异步任务化</td><td>体验与治理平衡</td><td>需要双模式编排</td><td>平台型业务</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐方案是方案 C：表单手工创建、低风险单品编辑保留同步交互；批量导入、批量编辑、券码导入、供应商同步全部任务化。</p>
+<h3 id="27-决策点-5单商品创建也需要写入任务表吗"><a class="header" href="#27-决策点-5单商品创建也需要写入任务表吗">2.7 决策点 5：单商品创建也需要写入任务表吗</a></h3>
+<h4 id="场景与问题-3"><a class="header" href="#场景与问题-3">场景与问题</a></h4>
+<p>这个问题在很多团队里都会被直觉性地处理成“单品同步接口就直接写数据库，不要引入任务表”，因为从前端交互看，运营或商家只是在页面上点一次提交，系统秒级返回，看起来不像一个需要任务化治理的场景。</p>
+<p>但如果把链路往后多看几步，就会发现单商品创建后面仍然会经过：</p>
+<ul>
+<li>标准化与校验</li>
+<li>交易契约检查</li>
+<li>风险识别</li>
+<li>送商品主域写侧冻结快照</li>
+<li>审核或自动准入</li>
+<li>发布编排</li>
+<li>下游刷新</li>
+<li>失败补偿与审计追踪</li>
+</ul>
+<p>如果单品场景完全不落 <code>task</code>，它就会和 Excel、API/ISV 推送、批量编辑形成两套完全不同的排障、审计和补偿口径。</p>
+<h4 id="方案对比-3"><a class="header" href="#方案对比-3">方案对比</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>适用场景</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：单商品创建不写任务表</td><td>实现最轻；同步链路最短</td><td>审计不统一；无法统一补偿；发布追踪割裂</td><td>非常早期、极简后台</td><td>不推荐</td></tr>
+<tr><td>方案 B：单商品创建只写 <code>operation_id</code>，不写 <code>task</code></td><td>比方案 A 多一层链路锚点</td><td>仍然和批量链路分叉；任务视图不统一</td><td>过渡期系统</td><td>可过渡</td></tr>
+<tr><td>方案 C：单商品创建写轻量 <code>task(total_count=1, execution_mode=SYNC)</code></td><td>审计、发布、补偿、状态跟踪统一</td><td>需要多维护一张轻量任务记录</td><td>平台型系统</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="推荐方案-3"><a class="header" href="#推荐方案-3">推荐方案</a></h4>
+<p>推荐方案 C。单商品创建虽然是同步交互，但后端仍建议写入一条轻量 <code>product_supply_task</code>，并在需要时配一条 <code>task_item</code>。这样可以统一：</p>
+<ul>
+<li>入口受理号 <code>receipt_id</code></li>
+<li>操作链路 <code>operation_id</code></li>
+<li>发布记录 <code>publish_record</code></li>
+<li>失败补偿入口</li>
+<li>运营侧任务查询与审计口径</li>
+</ul>
+<p>这条任务记录不是为了把单品交互“强行异步化”，而是为了让同步体验和长链路治理共用同一套后端锚点。</p>
+<p>一句话说，就是：</p>
+<blockquote>
+<p>单商品创建可以同步执行，但不应该脱离任务模型。</p>
+</blockquote>
+<h3 id="28-决策点-6库存配置与库存事实是否放在同一系统"><a class="header" href="#28-决策点-6库存配置与库存事实是否放在同一系统">2.8 决策点 6：库存配置与库存事实是否放在同一系统</a></h3>
+<h4 id="场景与问题-4"><a class="header" href="#场景与问题-4">场景与问题</a></h4>
+<p>商品上线前常常需要配置库存策略，例如是数量库存、券码库存还是供应商库存；但上线后真正的库存余额、预占和账本又属于交易硬约束。</p>
+<h4 id="方案对比-4"><a class="header" href="#方案对比-4">方案对比</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>适用场景</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：库存配置和库存事实全放商品/供给侧</td><td>简化初期集成</td><td>后期库存服务难独立；交易与运营耦合过深</td><td>早期单体系统</td><td>不推荐</td></tr>
+<tr><td>方案 B：库存配置可在商品/供给链路表达，库存事实由库存系统维护</td><td>符合职责边界；账本和交易链路更稳</td><td>需要命令与事件协同</td><td>平台化和多品类系统</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="推荐方案-4"><a class="header" href="#推荐方案-4">推荐方案</a></h4>
+<p>推荐方案 B：库存配置是交易契约的一部分，可以在商品发布时一并声明；库存余额、预占、确认、释放、券码状态机必须由库存系统维护。</p>
+<hr>
+<h2 id="3-详细设计---供给平台"><a class="header" href="#3-详细设计---供给平台">3. 详细设计 - 供给平台</a></h2>
+<p>这一节不再讨论“商品资产最终长什么样”，而是专门回答供给平台如何承接多入口流量、如何隔离不同入口的资源和执行策略、如何把脏输入治理成标准对象，并如何把结果交给商品主域写侧与库存系统。</p>
+<p>这里先钉死三个边界：</p>
+<ol>
+<li>供给平台负责接入、标准化、任务编排、发布编排和失败运营化。</li>
+<li>供给平台不持有 <code>Draft / Staging / QC</code> 主权，这些状态与快照属于商品主域写侧。</li>
+<li>供给平台承接库存运营入口，但不持有库存事实、预占、账本和券码池主权。</li>
+</ol>
+<h3 id="31-平台定位与职责边界"><a class="header" href="#31-平台定位与职责边界">3.1 平台定位与职责边界</a></h3>
+<p>供给平台的定位更接近一个 <strong>B 端接入与治理控制面</strong>，而不是商品资产或库存事实的权威持有者。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>能力</th><th>供给平台负责什么</th><th>不负责什么</th></tr>
+</thead>
+<tbody>
+<tr><td>入口接入</td><td>商家上传、运营创建、Excel 导入、API/ISV 推送、供应商 Pull/Push</td><td>正式商品读模型</td></tr>
+<tr><td>输入治理</td><td>标准化、格式校验、映射补齐、错误文件、幂等受理</td><td><code>Draft / Staging / QC</code> 主权</td></tr>
+<tr><td>任务编排</td><td><code>task / task_item</code>、执行模式、进度跟踪、部分成功</td><td>商品正式态本地 merge</td></tr>
+<tr><td>发布协同</td><td>触发发布命令、跟踪发布结果、记录 publish record</td><td>正式商品版本落库</td></tr>
+<tr><td>库存入口</td><td>创建库存变更单、券码导入、生码、锁库存命令入口</td><td>库存事实、账本、预占</td></tr>
+<tr><td>供应商同步</td><td>Batch、Checkpoint、Snapshot、映射、DLQ</td><td>供应商数据最终是否成为正式商品版本的裁决权</td></tr>
+</tbody>
+</table>
+</div>
+<p>一句话总结：</p>
+<blockquote>
+<p>供给平台负责把外部和 B 端的复杂输入组织成可治理、可编排、可恢复的标准化变更；商品主域写侧负责把这些变更冻结、审核、发布为正式商品；库存系统负责把库存命令落成事实。</p>
+</blockquote>
+<h3 id="32-供给入口四象限隔离架构"><a class="header" href="#32-供给入口四象限隔离架构">3.2 供给入口四象限隔离架构</a></h3>
+<p>整个接入层不应该只按“来源”分类，更应该按 <strong>交互频率 × 数据吞吐量</strong> 做资源隔离。表面上看 Excel 导入和 ERP 推送都是“批量数据”，但它们对时延、容错、资源竞争和用户心理预期完全不同。</p>
+<h4 id="321-local-单个创建--单个编辑"><a class="header" href="#321-local-单个创建--单个编辑">3.2.1 Local 单个创建 / 单个编辑</a></h4>
+<ul>
+<li>典型来源：运营后台、商家后台单品表单。</li>
+<li>交互特征：强交互、低吞吐、秒级预期。</li>
+<li>执行方式：同步提交，同步返回。</li>
+<li>资源隔离：独立 Web 线程池或独立同步请求配额，不允许被批量任务排队拖死。</li>
+<li>编排锚点：后端仍建议创建轻量 <code>task(total_count=1, execution_mode=SYNC)</code>，统一审计、状态跟踪和发布编排。</li>
+</ul>
+<h4 id="322-local-excel-批量导入"><a class="header" href="#322-local-excel-批量导入">3.2.2 Local Excel 批量导入</a></h4>
+<ul>
+<li>典型来源：商家后台导表、运营批量建品、批量编辑。</li>
+<li>交互特征：高交互异步任务，中等吞吐，用户盯着进度条等待结果。</li>
+<li>执行方式：上传后立刻返回 <code>task_id</code>，由专属 Excel Worker 异步解析和处理。</li>
+<li>资源隔离：独立 Excel Worker Pool，不能和 Supplier Push/Pull 共用。</li>
+<li>输出特征：部分成功、错误文件、错题本下载、分钟级结果反馈。</li>
+</ul>
+<h4 id="323-supplier-api--erp-实时推送"><a class="header" href="#323-supplier-api--erp-实时推送">3.2.3 Supplier API / ERP 实时推送</a></h4>
+<ul>
+<li>典型来源：三方 ERP、ISV、供应商开放接口 Push。</li>
+<li>交互特征：无交互、低时效、超大吞吐，允许延迟消费。</li>
+<li>执行方式：接口层只做签名校验、幂等受理和快速 ACK，然后写专属 MQ。</li>
+<li>资源隔离：专属 MQ + 专属 Consumer，不共用本地运营导表线程池。</li>
+<li>设计目标：即使 ERP 在大促前疯狂重试，也只能把压力堆在 MQ，不应拖垮本地商家后台。</li>
+</ul>
+<h4 id="324-supplier-full-sync--pull-批量拉取"><a class="header" href="#324-supplier-full-sync--pull-批量拉取">3.2.4 Supplier Full Sync / Pull 批量拉取</a></h4>
+<ul>
+<li>典型来源：酒店、票务、供应商平台全量 / 增量拉取。</li>
+<li>交互特征：长任务、海量吞吐、可恢复优先于低延迟。</li>
+<li>执行方式：<code>Batch + Checkpoint + Lease + Raw Snapshot</code>。</li>
+<li>资源隔离：独立 Batch Worker，与 Local 单品和 Excel 链路物理隔离。</li>
+<li>设计目标：保证任务能断点续跑、限流熔断、按批补偿，而不是追求“立即完成”。</li>
+</ul>
+<h3 id="33-统一任务模型与执行框架"><a class="header" href="#33-统一任务模型与执行框架">3.3 统一任务模型与执行框架</a></h3>
+<p>这里的“统一任务模型”不是指所有入口都共用一套执行线程池，而是指 <strong>Local 单品、Excel、API/ISV 推送、运营批量编辑</strong> 这些供给治理型入口共用一套治理任务锚点：</p>
+<ul>
+<li><code>product_supply_task</code></li>
+<li><code>product_supply_task_item</code></li>
+<li><code>receipt_id</code></li>
+<li><code>trigger_id</code></li>
+<li><code>operation_id</code></li>
+<li><code>execution_mode</code></li>
+</ul>
+<h4 id="共用范围"><a class="header" href="#共用范围">共用范围</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>入口</th><th>是否共用 <code>product_supply_task</code></th><th>推荐模式</th></tr>
+</thead>
+<tbody>
+<tr><td>Local 单品创建/编辑</td><td>是</td><td>轻量 <code>task(total_count=1, execution_mode=SYNC)</code></td></tr>
+<tr><td>Excel 批量导入</td><td>是</td><td><code>task + task_item</code>，异步执行</td></tr>
+<tr><td>API / ISV 推送</td><td>是</td><td>受理后落治理任务，异步处理</td></tr>
+<tr><td>运营批量编辑</td><td>是</td><td><code>task + task_item</code>，支持部分成功</td></tr>
+<tr><td>Supplier 同步执行层</td><td>否</td><td>独立 <code>supplier_sync_*</code> 模型</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此需要在正文中明确一句：</p>
+<blockquote>
+<p>Local 任务与 Supplier 任务在治理层复用发布编排锚点，但执行层不共用线程池、队列和 Worker 模型。</p>
+</blockquote>
+<h4 id="任务状态机"><a class="header" href="#任务状态机">任务状态机</a></h4>
+<p>统一任务模型除了统一表结构，还要统一状态机。否则单品、批量、API 推送虽然都写进了 <code>product_supply_task</code>，但每条链路各自发明一套状态语义，最后还是会退化成多套排障和审计口径。</p>
+<p>推荐把状态拆成两层：</p>
+<ul>
+<li><code>product_supply_task</code> 负责表达“这一批整体走到哪里了”</li>
+<li><code>product_supply_task_item</code> 负责表达“这一行 / 这一对象具体成没成功”</li>
+</ul>
+<pre class="mermaid">
+stateDiagram-v2
+    [*] --&gt; CREATED
+    CREATED --&gt; RUNNING: sync execution starts / worker accepted
+    CREATED --&gt; CANCELED: withdrawn before execution
+    RUNNING --&gt; DONE: all items succeeded
+    RUNNING --&gt; PARTIAL_SUCCESS: some items failed
+    RUNNING --&gt; FAILED: batch-level failure or all items failed
+    RUNNING --&gt; CANCELED: manually terminated
+    PARTIAL_SUCCESS --&gt; DONE: retry succeeded
+    PARTIAL_SUCCESS --&gt; FAILED: retry exhausted / manual close
+    FAILED --&gt; RUNNING: retry or compensation retry
+</pre>
+
+<pre class="mermaid">
+stateDiagram-v2
+    [*] --&gt; PENDING
+    PENDING --&gt; VALIDATING
+    VALIDATING --&gt; FAILED: validation error
+    VALIDATING --&gt; READY: normalized and routable
+    READY --&gt; PUBLISHED: publish succeeded
+    READY --&gt; FAILED: rejected / publish failed
+    READY --&gt; SKIPPED: no-op / ownership deny
+    FAILED --&gt; PENDING: item retry
+</pre>
+
+<p>推荐语义如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层级</th><th>状态</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>task</code></td><td><code>CREATED</code></td><td>已受理，还未开始执行</td></tr>
+<tr><td><code>task</code></td><td><code>RUNNING</code></td><td>已进入同步执行或异步 Worker 执行</td></tr>
+<tr><td><code>task</code></td><td><code>PARTIAL_SUCCESS</code></td><td>部分对象成功、部分失败，通常需要错误文件或重试</td></tr>
+<tr><td><code>task</code></td><td><code>DONE</code></td><td>全部对象成功结束</td></tr>
+<tr><td><code>task</code></td><td><code>FAILED</code></td><td>整体失败，或全部对象失败</td></tr>
+<tr><td><code>task</code></td><td><code>CANCELED</code></td><td>执行前撤回，或人工终止</td></tr>
+<tr><td><code>task_item</code></td><td><code>PENDING</code></td><td>已入队，尚未处理</td></tr>
+<tr><td><code>task_item</code></td><td><code>VALIDATING</code></td><td>正在标准化、校验、计算 Diff</td></tr>
+<tr><td><code>task_item</code></td><td><code>READY</code></td><td>已通过供给治理，可提交商品主域写侧</td></tr>
+<tr><td><code>task_item</code></td><td><code>PUBLISHED</code></td><td>已完成发布</td></tr>
+<tr><td><code>task_item</code></td><td><code>FAILED</code></td><td>行级校验失败、审核驳回或发布失败</td></tr>
+<tr><td><code>task_item</code></td><td><code>SKIPPED</code></td><td>无有效变更、字段主导权不允许覆盖等</td></tr>
+</tbody>
+</table>
+</div>
+<p>这套状态机要强调两个边界：</p>
+<ul>
+<li><code>task</code> 状态不等于商品状态。<code>DONE</code> 只表示供给任务处理完了，不代表商品一定已经 <code>ONLINE</code>。</li>
+<li><code>task_item.READY</code> 也不等于正式发布成功，它只表示该对象已经完成供给平台治理，可以进入商品主域写侧的 <code>Draft / Staging / QC</code> 链路。</li>
+</ul>
+<h3 id="34-接入层资源池与执行隔离策略"><a class="header" href="#34-接入层资源池与执行隔离策略">3.4 接入层资源池与执行隔离策略</a></h3>
+<p>供给平台的执行架构不能只讲“有任务表”，还要讲“不同任务跑在哪些资源池上”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>链路</th><th>资源池 / 介质</th><th>设计原则</th></tr>
+</thead>
+<tbody>
+<tr><td>Local 单品创建/编辑</td><td>独立 Web 线程池</td><td>不排队，秒级返回</td></tr>
+<tr><td>Local Excel 导入</td><td>独立 Excel Worker Pool</td><td>保证分钟级反馈，不被 ERP 洪峰拖垮</td></tr>
+<tr><td>Supplier Push</td><td>独立 MQ + Consumer</td><td>接口快速 ACK，后端慢消费</td></tr>
+<tr><td>Supplier Pull</td><td>独立 Batch Worker</td><td>支持长任务、Checkpoint、Lease</td></tr>
+</tbody>
+</table>
+</div>
+<p>这一层要强调两个底线：</p>
+<ol>
+<li>Excel 导入与 Supplier ERP/API 推送不共用线程池。</li>
+<li>Supplier Push 和 Supplier Pull 也不应混在同一个执行池中，因为一个偏实时受理，一个偏长任务恢复。</li>
+</ol>
+<h3 id="35-典型场景时序图标准化校验与变更编排"><a class="header" href="#35-典型场景时序图标准化校验与变更编排">3.5 典型场景时序图：标准化、校验与变更编排</a></h3>
+<p>这一节不再抽象罗列“标准化、校验、Diff、路由”这些动作，而是直接按 4 类典型场景展开时序图。这样读者能更直观看到：供给平台负责接入、标准化、校验、任务编排和发布触发，但 <code>Draft / Staging / QC</code> 的资产主权始终留在商品主域写侧。</p>
+<h4 id="351-单个创建"><a class="header" href="#351-单个创建">3.5.1 单个创建</a></h4>
+<pre class="mermaid">
+sequenceDiagram
+    participant U as "运营/商家"
+    participant W as "供给平台 Web"
+    participant T as "product_supply_task"
+    participant I as "product_supply_task_item"
+    participant V as "标准化/校验层"
+    participant A as "Supply Application"
+    participant P as "商品中心 RPC"
+
+    U-&gt;&gt;W: 提交单个商品创建表单
+    Note over W,T: 本地事务 Tx1：受理请求并初始化任务
+    W-&gt;&gt;T: 创建轻量 task(total_count=1, execution_mode=SYNC)
+    W-&gt;&gt;I: 创建 task_item(object_type=PRODUCT)
+    W-&gt;&gt;V: 标准化输入、模板校验、交易契约校验
+    alt 校验失败
+        V--&gt;&gt;W: 直接返回字段级错误
+        W-&gt;&gt;I: 更新 item=FAILED
+        W-&gt;&gt;T: 更新 task=FAILED
+        W--&gt;&gt;U: 同步返回失败原因
+    else 校验通过
+        Note over V,A: 本地事务 Tx2：组装创建命令
+        V-&gt;&gt;A: 组装 CreateDraftCommand
+        A-&gt;&gt;P: CreateProductDraft RPC
+        P--&gt;&gt;A: 返回 draft_id / goods_id(可选) / audit_route
+        Note over A,T: 本地事务 Tx3：回填 RPC 受理结果
+        A-&gt;&gt;I: 更新 item=SUBMITTED，记录 draft_id
+        A-&gt;&gt;T: 更新 task=SUBMITTED，记录 draft_id
+        A--&gt;&gt;W: 返回受理结果
+        W--&gt;&gt;U: 返回 draft_id / task_id
+    end
+</pre>
+
+<p>这条链路如果要突出供给侧细节，关键不在商品中心后续如何审核和发布，而在于供给平台在调用 RPC 之前到底做了什么。推荐把职责拆成四层：</p>
+<ol>
+<li>
+<p><strong>Web / BFF 层</strong><br>负责接收表单、鉴权、幂等校验、保存 <code>task</code> 和返回同步结果。</p>
+</li>
+<li>
+<p><strong>标准化 / 校验层</strong><br>负责把页面表单转成统一商品 DTO，并完成类目模板校验、字段格式校验、交易前契约校验。</p>
+</li>
+<li>
+<p><strong>Supply Application 层</strong><br>负责把标准 DTO 组装成商品中心可识别的 <code>CreateDraftCommand</code>，并补齐任务上下文。</p>
+</li>
+<li>
+<p><strong>商品中心 RPC 边界</strong><br>供给平台只调用“创建草稿”或“提交草稿”的语义化 RPC，不关心商品中心内部如何继续流转到 QC、发布和下游投影。</p>
+</li>
+</ol>
+<p>如果要把供给侧写得更落地，建议不要只建一个 <code>task</code>，而是至少形成一个“请求受理 + 标准化校验 + RPC 调用”的最小闭环。下面这组就是单个创建链路里真正必要的供给侧表：</p>
+<pre><code class="language-text">1. product_supply_task
+   - task_id
+   - task_type=LOCAL_CREATE
+   - execution_mode=SYNC
+   - source_type=LOCAL_UI / MERCHANT_UI
+   - operator_id
+   - category_id
+   - payload_hash
+   - status
+
+2. product_supply_task_item
+   - item_id
+   - task_id
+   - object_type=PRODUCT
+   - object_key(client_generated_key / external_ref)
+   - normalized_snapshot
+   - status
+
+3. product_supply_request_log
+   - request_id
+   - task_id
+   - api_name=CreateProductDraft
+   - rpc_target=ProductWriteService
+   - request_payload_hash
+   - response_code
+   - response_message
+   - latency_ms
+   - created_at
+
+4. CreateDraftCommand
+   - request_id
+   - task_id
+   - item_id
+   - source_type
+   - operator_id
+   - category_id
+   - base_goods_id(新建为空)
+   - product_payload
+   - validation_summary
+   - idempotency_key
+</code></pre>
+<p>其中几张表的职责可以明确拆开：</p>
+<ul>
+<li><code>product_supply_task</code>
+记录一次供给动作，回答“谁在什么时候发起了什么操作”。</li>
+<li><code>product_supply_task_item</code>
+记录当前这次创建对应的对象级明细。虽然单个创建只有一条，但保留这一层后，单品和批量才能共用同一套治理模型。</li>
+<li><code>product_supply_request_log</code>
+记录供给平台调用商品中心 RPC 的请求与返回，便于排查“供给侧已受理但商品中心未落 Draft”这类问题。</li>
+</ul>
+<p>对于单个创建链路，校验失败直接报错返回即可，不需要再额外落独立的“校验结果表”或“变更请求表”。这一层的重点是：</p>
+<ul>
+<li>供给侧要先把请求受理下来；</li>
+<li>要有 <code>task</code> 和 <code>task_item</code> 作为审计锚点；</li>
+<li>要把调用商品中心 RPC 的请求结果记录清楚；</li>
+<li>至于商品中心后续怎么进入 QC、怎么发布，不属于这一段要展开的范围。</li>
+</ul>
+<p>这一段还需要明确事务边界。供给侧至少有三个本地事务：</p>
+<ol>
+<li>
+<p><strong>Tx1：请求受理事务</strong><br>创建 <code>product_supply_task</code>、<code>product_supply_task_item</code>，确保请求先有审计锚点。</p>
+</li>
+<li>
+<p><strong>Tx2：校验与命令组装事务</strong><br>校验失败直接返回；校验通过后组装 <code>CreateDraftCommand</code>。</p>
+</li>
+<li>
+<p><strong>Tx3：RPC 结果回填事务</strong><br>商品中心返回 <code>draft_id</code> 后，回填 <code>task</code> / <code>task_item</code> 状态和 <code>draft_id</code>。</p>
+</li>
+</ol>
+<p>供给侧不应追求把“本地落表 + 商品中心建 Draft RPC”做成跨服务分布式大事务。更合理的目标是：</p>
+<ul>
+<li>供给侧本地状态有完整审计链；</li>
+<li>RPC 调用有明确请求日志；</li>
+<li>失败后可重试、可补偿、可追查。</li>
+</ul>
+<p>因此，供给平台调用商品中心时，RPC 可以细化成：</p>
+<pre><code class="language-text">ProductWriteService.CreateProductDraft(CreateProductDraftRequest)
+</code></pre>
+<p>请求里至少要有：</p>
+<pre><code class="language-text">request_id
+task_id
+source_type
+operator_id
+category_id
+product_payload
+payload_hash
+idempotency_key
+</code></pre>
+<p>同步返回建议只关心供给侧真正需要的结果：</p>
+<pre><code class="language-text">draft_id
+goods_id(optional)
+audit_route
+accepted
+error_code
+error_message
+</code></pre>
+<p>这样写的好处是：</p>
+<ul>
+<li>供给平台有完整的任务锚点和审计上下文。</li>
+<li>供给侧自己的状态沉淀是完整的，不会只剩一条 <code>task</code> 记录。</li>
+<li>商品中心拥有 <code>Draft</code> 资产主权。</li>
+<li>时序图不会越界写到商品中心内部细节，章节边界更清楚。</li>
+</ul>
+<h4 id="352-单个更新"><a class="header" href="#352-单个更新">3.5.2 单个更新</a></h4>
+<pre class="mermaid">
+sequenceDiagram
+    participant U as "运营/商家"
+    participant W as "供给平台 Web"
+    participant T as "product_supply_task"
+    participant V as "标准化/校验层"
+    participant D as "Diff/字段主导权"
+    participant P as "商品主域写侧"
+    participant Q as "QC/审核"
+    participant R as "发布编排"
+
+    U-&gt;&gt;W: 提交单个商品编辑
+    W-&gt;&gt;T: 创建轻量 task(total_count=1, execution_mode=SYNC)
+    W-&gt;&gt;V: 标准化输入并做格式/契约校验
+    V-&gt;&gt;D: 计算 Diff，判断字段主导权和风险级别
+    alt 无有效变更
+        D--&gt;&gt;W: 返回 no-op
+        W-&gt;&gt;T: 更新 task=DONE
+        W--&gt;&gt;U: 返回无变更
+    else 有效变更
+        D-&gt;&gt;P: 基于 base_publish_version 提交变更
+        P-&gt;&gt;Q: 自动准入或进入人工审核
+        Q--&gt;&gt;P: 审核结果
+        alt 审核通过
+            P-&gt;&gt;R: 触发 merge 与发布
+            R-&gt;&gt;T: 更新 task=DONE
+            R--&gt;&gt;U: 返回更新成功
+        else 审核驳回
+            P--&gt;&gt;W: 返回驳回/冲突结果
+            W-&gt;&gt;T: 更新 task=FAILED
+            W--&gt;&gt;U: 返回失败原因
+        end
+    end
+</pre>
+
+<p>这条链路比单个创建多了两个核心动作：一是基于正式版本做 <code>Diff</code> 和 <code>base_publish_version check</code>；二是字段主导权判断，避免供应商字段和运营字段互相覆盖。</p>
+<h4 id="353-批量创建--批量更新"><a class="header" href="#353-批量创建--批量更新">3.5.3 批量创建 / 批量更新</a></h4>
+<pre class="mermaid">
+sequenceDiagram
+    participant U as "运营/商家"
+    participant W as "供给平台 Web"
+    participant T as "product_supply_task"
+    participant I as "product_supply_task_item"
+    participant X as "Excel Worker / Batch Worker"
+    participant V as "标准化/校验层"
+    participant P as "商品主域写侧"
+    participant Q as "QC/审核"
+    participant R as "发布编排"
+
+    U-&gt;&gt;W: 上传 Excel / 发起批量编辑
+    W-&gt;&gt;T: 创建 task(execution_mode=ASYNC)
+    W--&gt;&gt;U: 返回 task_id / receipt_id
+    W-&gt;&gt;X: 投递批量执行任务
+    loop 每一行/每一个对象
+        X-&gt;&gt;I: 创建 task_item
+        X-&gt;&gt;V: 标准化、模板校验、契约校验
+        alt 行级失败
+            V--&gt;&gt;I: 更新 item=FAILED，记录 error_code / error_message
+        else 行级成功
+            V-&gt;&gt;P: 提交 Draft / 变更请求
+            P-&gt;&gt;Q: 自动准入或审核
+            Q--&gt;&gt;P: 返回结果
+            alt 发布成功
+                P-&gt;&gt;R: 触发发布
+                R-&gt;&gt;I: 更新 item=PUBLISHED
+            else 驳回或失败
+                P--&gt;&gt;I: 更新 item=FAILED
+            end
+        end
+    end
+    X-&gt;&gt;T: 汇总 success_count / failed_count / error_file_url
+    T--&gt;&gt;U: 前端轮询得到部分成功或全部完成
+</pre>
+
+<p>这条链路的重点是：任务级状态和行级状态必须分离，批量链路允许部分成功，最终要能生成错题本或错误文件，而不是把整个批次一刀切打回。</p>
+<h4 id="354-供应商-pull-场景"><a class="header" href="#354-供应商-pull-场景">3.5.4 供应商 Pull 场景</a></h4>
+<pre class="mermaid">
+sequenceDiagram
+    participant S as "Supplier"
+    participant B as "supplier_sync_batch"
+    participant PULL as "Pull Worker"
+    participant SNAP as "supplier_sync_snapshot"
+    participant MAP as "Mapping/Diff 层"
+    participant T as "product_supply_task"
+    participant P as "商品主域写侧"
+    participant Q as "QC/审核"
+    participant R as "发布编排"
+
+    B-&gt;&gt;PULL: 启动批次，申请 lease / checkpoint
+    PULL-&gt;&gt;S: 按页拉取供应商数据
+    S--&gt;&gt;PULL: 返回原始 payload
+    PULL-&gt;&gt;SNAP: 保存 raw snapshot
+    PULL-&gt;&gt;MAP: 做 mapping、标准化、Supplier Diff
+    alt 批次级关键错误
+        MAP--&gt;&gt;B: 标记 batch FAILED，写 dead letter
+    else 生成有效变更
+        MAP-&gt;&gt;T: 按标准对象写入治理任务锚点
+        T-&gt;&gt;P: 提交变更到商品主域写侧
+        P-&gt;&gt;Q: 自动准入或审核
+        Q--&gt;&gt;P: 返回结果
+        P-&gt;&gt;R: 触发发布与下游刷新
+        R--&gt;&gt;B: 回填批次进度与结果
+        B-&gt;&gt;B: 更新 checkpoint，继续下一页
+    end
+</pre>
+
+<p>这条链路最重要的边界是：供应商同步执行层独立建模，负责 <code>Batch / Checkpoint / Lease / Snapshot / DLQ</code>；但标准化后的有效变更仍然进入统一治理与发布编排链路，而不是绕过商品主域直接改正式商品。</p>
+<h3 id="36-校验策略分流excel-与-erp-为什么不能共用同一套容错机制"><a class="header" href="#36-校验策略分流excel-与-erp-为什么不能共用同一套容错机制">3.6 校验策略分流：Excel 与 ERP 为什么不能共用同一套容错机制</a></h3>
+<p>这是供给平台里最容易被低估的一个设计点。两者都是“批量数据”，但容错心智完全不同。</p>
+<h4 id="excel-导入"><a class="header" href="#excel-导入">Excel 导入</a></h4>
+<ul>
+<li>用户在页面前等待结果</li>
+<li>接受部分成功</li>
+<li>允许行级失败继续往下处理</li>
+<li>最终要产出错题本、错误文件、修复建议</li>
+</ul>
+<h4 id="erp--api-推送"><a class="header" href="#erp--api-推送">ERP / API 推送</a></h4>
+<ul>
+<li>没有人盯进度条</li>
+<li>更关注接口高可用和标准错误码</li>
+<li>对关键批次错误通常采取整批阻断</li>
+<li>依赖幂等重试和批次隔离</li>
+</ul>
+<p>因此，第 3 节要明确区分：</p>
+<ul>
+<li><strong>可行级跳过的错误</strong>：字段格式错、个别映射缺失、单行类目异常</li>
+<li><strong>必须整批失败的错误</strong>：签名失败、密钥过期、核心模板不匹配、批次结构畸形</li>
+</ul>
+<h3 id="37-发布编排与商品主域交互"><a class="header" href="#37-发布编排与商品主域交互">3.7 发布编排与商品主域交互</a></h3>
+<p>供给平台在这一层不做正式落库，而是负责把治理结果编排成可执行的发布动作。</p>
+<p>重点内容：</p>
+<ul>
+<li>发布命令</li>
+<li><code>base_publish_version</code></li>
+<li><code>product_publish_record</code></li>
+<li><code>product_outbox_event</code></li>
+<li>搜索 / 缓存 / 计价 / 营销协同</li>
+</ul>
+<p>这里要钉死一句：</p>
+<blockquote>
+<p>供给平台负责编排和触发发布；<code>Draft / Staging / QC / publish merge</code> 由商品主域写侧闭环完成。</p>
+</blockquote>
+<h3 id="38-库存运营入口设计"><a class="header" href="#38-库存运营入口设计">3.8 库存运营入口设计</a></h3>
+<p>供给平台要承接库存相关的 B 端操作入口，但不负责库存事实。</p>
+<p>推荐在这一小节只讲命令入口和边界，不深入库存内部模型：</p>
+<ul>
+<li><code>CreateInventory</code></li>
+<li><code>AdjustInventory</code></li>
+<li><code>ImportCodeBatch</code></li>
+<li><code>GenerateCodeBatch</code></li>
+<li><code>LockInventory</code></li>
+</ul>
+<p>核心表达：</p>
+<ul>
+<li>入口归供给</li>
+<li>事实归库存</li>
+<li>发布后可触发库存初始化或库存变更任务</li>
+<li>供给平台保留权限、审批、操作理由、审计和错误文件能力</li>
+</ul>
+<h3 id="39-供应商同步专项链路"><a class="header" href="#39-供应商同步专项链路">3.9 供应商同步专项链路</a></h3>
+<p>供应商同步要明确和 <code>3.3</code> 的关系：</p>
+<ul>
+<li>执行层独立</li>
+<li>治理层复用</li>
+</ul>
+<p>这一节建议覆盖的执行层模型：</p>
+<ul>
+<li><code>supplier_sync_task</code></li>
+<li><code>supplier_sync_batch</code></li>
+<li><code>supplier_sync_snapshot</code></li>
+<li><code>supplier_sync_diff_log</code></li>
+<li><code>supplier_sync_dead_letter</code></li>
+<li><code>supplier_product_mapping_tab</code></li>
+</ul>
+<p>以及四类关键能力：</p>
+<ul>
+<li>Push / Pull / Full Sync / Incremental Sync</li>
+<li>Batch / Checkpoint / Lease</li>
+<li>Raw Snapshot 与标准化结果分离</li>
+<li>执行失败进入专项 DLQ，再进入统一治理链路</li>
+</ul>
+<h3 id="310-异常处理与运营闭环"><a class="header" href="#310-异常处理与运营闭环">3.10 异常处理与运营闭环</a></h3>
+<p>供给平台最终要把失败运营化，而不是把问题藏在日志里。</p>
+<p>这一小节建议覆盖：</p>
+<ul>
+<li>错误文件</li>
+<li>部分成功</li>
+<li>DLQ</li>
+<li>补偿任务</li>
+<li>人工修复</li>
+<li>审计日志</li>
+<li>质量看板</li>
+</ul>
+<p>对运营侧要能回答：</p>
+<ul>
+<li>哪个任务失败了</li>
+<li>哪一行失败了</li>
+<li>为什么失败</li>
+<li>是交互型导入问题还是系统型同步问题</li>
+<li>能否下载错误文件修复</li>
+<li>是否可以重新投递</li>
+</ul>
+<h3 id="311-供给平台表清单与使用场景"><a class="header" href="#311-供给平台表清单与使用场景">3.11 供给平台表清单与使用场景</a></h3>
+<p>这一小节建议显式列出供给平台权威表，避免和商品主域写侧、库存系统混淆。</p>
+<h4 id="a-接入与任务编排表"><a class="header" href="#a-接入与任务编排表">A. 接入与任务编排表</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表</th><th>使用场景</th><th>解决的问题类型</th></tr>
+</thead>
+<tbody>
+<tr><td><code>product_supply_task</code></td><td>单品创建、运营编辑、Excel 导入、API/ISV 推送</td><td>交互型导入问题 / 统一编排锚点</td></tr>
+<tr><td><code>product_supply_task_item</code></td><td>Excel 每行、批量编辑每条、标准化后每个对象</td><td>交互型导入问题 / 行级状态</td></tr>
+<tr><td><code>product_supply_operation_log</code></td><td>提交、重试、撤回、错误文件、补偿触发</td><td>交互型与系统型共同审计</td></tr>
+</tbody>
+</table>
+</div>
+<p>这 3 张表建议这样设计：</p>
+<h5 id="product_supply_task"><a class="header" href="#product_supply_task"><code>product_supply_task</code></a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>含义</th><th>设计要点</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>任务主键</td><td>雪花 ID 或 UUID</td></tr>
+<tr><td><code>task_no</code></td><td>任务号</td><td>对外展示，便于运营检索</td></tr>
+<tr><td><code>task_type</code></td><td>任务类型</td><td><code>CREATE / EDIT / IMPORT / API_PUSH / BATCH_EDIT</code></td></tr>
+<tr><td><code>source_type</code></td><td>来源类型</td><td><code>LOCAL / EXCEL / API / ISV / OPS</code></td></tr>
+<tr><td><code>biz_scope</code></td><td>业务范围</td><td>例如 <code>PRODUCT / INVENTORY_ENTRY / PUBLISH</code></td></tr>
+<tr><td><code>receipt_id</code></td><td>受理号</td><td>入口受理即返回，用于异步查询</td></tr>
+<tr><td><code>trigger_id</code></td><td>触发源 ID</td><td>例如上传文件、按钮点击、定时任务实例</td></tr>
+<tr><td><code>operation_id</code></td><td>操作链路 ID</td><td>串起任务、发布、补偿、审计</td></tr>
+<tr><td><code>execution_mode</code></td><td>执行模式</td><td><code>SYNC / ASYNC</code>；单品常为 <code>SYNC</code>，批量常为 <code>ASYNC</code></td></tr>
+<tr><td><code>operator_type</code></td><td>操作人类型</td><td><code>MERCHANT / OPS / SYSTEM / ISV</code></td></tr>
+<tr><td><code>operator_id</code></td><td>操作人 ID</td><td>人工或系统主体</td></tr>
+<tr><td><code>merchant_id</code></td><td>商家 ID</td><td>本地运营场景可为空</td></tr>
+<tr><td><code>tenant_id</code></td><td>租户 ID</td><td>多租户场景需要</td></tr>
+<tr><td><code>status</code></td><td>任务状态</td><td><code>CREATED / RUNNING / PARTIAL_SUCCESS / FAILED / DONE / CANCELED</code></td></tr>
+<tr><td><code>total_count</code></td><td>总对象数</td><td>单品场景固定为 <code>1</code></td></tr>
+<tr><td><code>success_count</code></td><td>成功数</td><td>任务汇总字段</td></tr>
+<tr><td><code>failed_count</code></td><td>失败数</td><td>任务汇总字段</td></tr>
+<tr><td><code>risk_level</code></td><td>整体风险级别</td><td><code>LOW / MEDIUM / HIGH</code>，供后续路由</td></tr>
+<tr><td><code>error_file_url</code></td><td>错题本地址</td><td>Excel 导入常用</td></tr>
+<tr><td><code>ext_json</code></td><td>扩展字段</td><td>存任务级上下文，如模板、入口配置</td></tr>
+<tr><td><code>created_at</code></td><td>创建时间</td><td>审计基础字段</td></tr>
+<tr><td><code>updated_at</code></td><td>更新时间</td><td>审计基础字段</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="product_supply_task_item"><a class="header" href="#product_supply_task_item"><code>product_supply_task_item</code></a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>含义</th><th>设计要点</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>行级主键</td><td>雪花 ID 或 UUID</td></tr>
+<tr><td><code>task_id</code></td><td>所属任务 ID</td><td>关联 <code>product_supply_task.id</code></td></tr>
+<tr><td><code>item_no</code></td><td>行号/序号</td><td>Excel 行号或批量对象序号</td></tr>
+<tr><td><code>object_type</code></td><td>对象类型</td><td><code>PRODUCT / SKU / OFFER / INVENTORY_ENTRY</code></td></tr>
+<tr><td><code>object_key</code></td><td>对象业务键</td><td>如外部商品 ID、临时对象键</td></tr>
+<tr><td><code>item_action</code></td><td>本行动作</td><td><code>CREATE / UPDATE / UPSERT / DELETE / PUBLISH</code></td></tr>
+<tr><td><code>raw_ref</code></td><td>原始输入引用</td><td>Excel 行引用、上传对象引用、消息体引用</td></tr>
+<tr><td><code>normalized_snapshot</code></td><td>标准化快照</td><td>结构化 JSON，供后续校验与发布编排</td></tr>
+<tr><td><code>diff_summary</code></td><td>变更摘要</td><td>记录关键字段差异</td></tr>
+<tr><td><code>status</code></td><td>行级状态</td><td><code>PENDING / VALIDATING / READY / FAILED / PUBLISHED / SKIPPED</code></td></tr>
+<tr><td><code>error_code</code></td><td>错误码</td><td>面向机器处理</td></tr>
+<tr><td><code>error_message</code></td><td>错误信息</td><td>面向运营排查</td></tr>
+<tr><td><code>retry_count</code></td><td>重试次数</td><td>行级重试控制</td></tr>
+<tr><td><code>publish_record_id</code></td><td>发布记录 ID</td><td>成功进入发布编排后回填</td></tr>
+<tr><td><code>ext_json</code></td><td>扩展字段</td><td>存模板版本、路由策略等</td></tr>
+<tr><td><code>created_at</code></td><td>创建时间</td><td>审计基础字段</td></tr>
+<tr><td><code>updated_at</code></td><td>更新时间</td><td>审计基础字段</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="product_supply_operation_log"><a class="header" href="#product_supply_operation_log"><code>product_supply_operation_log</code></a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>含义</th><th>设计要点</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>日志主键</td><td>雪花 ID 或 UUID</td></tr>
+<tr><td><code>operation_id</code></td><td>操作链路 ID</td><td>审计主锚点</td></tr>
+<tr><td><code>task_id</code></td><td>关联任务 ID</td><td>可为空，兼容轻量同步场景</td></tr>
+<tr><td><code>task_item_id</code></td><td>关联行级 ID</td><td>行级事件可回填</td></tr>
+<tr><td><code>event_type</code></td><td>事件类型</td><td><code>SUBMIT / RETRY / WITHDRAW / GENERATE_ERROR_FILE / TRIGGER_COMPENSATION / PUBLISH</code></td></tr>
+<tr><td><code>event_stage</code></td><td>事件阶段</td><td><code>INGEST / VALIDATE / ROUTE / PUBLISH / COMPENSATE</code></td></tr>
+<tr><td><code>operator_type</code></td><td>操作人类型</td><td><code>MERCHANT / OPS / SYSTEM / SCHEDULER</code></td></tr>
+<tr><td><code>operator_id</code></td><td>操作人 ID</td><td>触发主体</td></tr>
+<tr><td><code>before_snapshot</code></td><td>变更前摘要</td><td>不建议存整行大对象，只存关键摘要</td></tr>
+<tr><td><code>after_snapshot</code></td><td>变更后摘要</td><td>只存关键摘要</td></tr>
+<tr><td><code>result_status</code></td><td>结果状态</td><td><code>SUCCESS / FAILED / SKIPPED</code></td></tr>
+<tr><td><code>result_code</code></td><td>结果码</td><td>便于分类统计</td></tr>
+<tr><td><code>message</code></td><td>审计说明</td><td>面向运营和排障</td></tr>
+<tr><td><code>trace_id</code></td><td>链路追踪 ID</td><td>打通日志平台</td></tr>
+<tr><td><code>created_at</code></td><td>事件时间</td><td>审计基础字段</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐索引：</p>
+<ul>
+<li><code>product_supply_task</code>
+<ul>
+<li>唯一索引：<code>uk_receipt_id</code></li>
+<li>普通索引：<code>idx_operation_id</code></li>
+<li>普通索引：<code>idx_source_type_status_created_at</code></li>
+</ul>
+</li>
+<li><code>product_supply_task_item</code>
+<ul>
+<li>普通索引：<code>idx_task_id_status</code></li>
+<li>普通索引：<code>idx_object_key</code></li>
+<li>普通索引：<code>idx_publish_record_id</code></li>
+</ul>
+</li>
+<li><code>product_supply_operation_log</code>
+<ul>
+<li>普通索引：<code>idx_operation_id_created_at</code></li>
+<li>普通索引：<code>idx_task_id_event_type</code></li>
+<li>普通索引：<code>idx_trace_id</code></li>
+</ul>
+</li>
+</ul>
+<p>其中有两个实现细节需要明确：</p>
+<ul>
+<li>Local 单品创建/编辑虽然是同步交互，但后端仍建议创建轻量 <code>product_supply_task(total_count=1, execution_mode=SYNC)</code>，这样才能统一审计、发布追踪和失败补偿。</li>
+<li><code>product_supply_task_item.normalized_snapshot</code> 保存的是供给平台完成标准化后的对象快照，用于校验、Diff 和发布编排；它不是商品主域写侧的 <code>Draft / Staging</code> 资产本体。</li>
+</ul>
+<h4 id="b-标准化与冲突治理补充表"><a class="header" href="#b-标准化与冲突治理补充表">B. 标准化与冲突治理补充表</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表</th><th>使用场景</th><th>解决的问题类型</th></tr>
+</thead>
+<tbody>
+<tr><td><code>product_field_ownership</code></td><td>供应商字段与运营字段冲突</td><td>系统型同步问题</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="c-发布编排与追踪表"><a class="header" href="#c-发布编排与追踪表">C. 发布编排与追踪表</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表</th><th>使用场景</th><th>解决的问题类型</th></tr>
+</thead>
+<tbody>
+<tr><td><code>product_publish_record</code></td><td>一次任务最终触发了哪次发布</td><td>交互型与系统型共同发布追踪</td></tr>
+<tr><td><code>product_supply_object_mapping</code></td><td>供给对象与正式 <code>item_id</code> 映射</td><td>交互型与系统型共同追溯</td></tr>
+<tr><td><code>product_outbox_event</code></td><td>下游刷新事件跟踪</td><td>交互型与系统型共同一致性</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="d-失败恢复与运营治理表"><a class="header" href="#d-失败恢复与运营治理表">D. 失败恢复与运营治理表</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表</th><th>使用场景</th><th>解决的问题类型</th></tr>
+</thead>
+<tbody>
+<tr><td><code>product_supply_dead_letter</code></td><td>发布失败、重试超限、关键校验失败</td><td>交互型与系统型共同失败恢复</td></tr>
+<tr><td><code>product_compensation_task</code></td><td>下游刷新失败、库存初始化失败、事件重投</td><td>系统一致性问题</td></tr>
+<tr><td><code>product_quality_issue</code></td><td>巡检发现缺履约、缺库存配置、搜索滞后</td><td>质量治理问题</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="e-供应商同步执行层表"><a class="header" href="#e-供应商同步执行层表">E. 供应商同步执行层表</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表</th><th>使用场景</th><th>解决的问题类型</th></tr>
+</thead>
+<tbody>
+<tr><td><code>supplier_sync_task</code></td><td>定义要同步什么、怎么同步</td><td>系统型同步问题</td></tr>
+<tr><td><code>supplier_sync_batch</code></td><td>一次执行批次、进度、水位、租约</td><td>系统型同步问题</td></tr>
+<tr><td><code>supplier_sync_snapshot</code></td><td>保存供应商原始数据快照</td><td>系统型同步问题</td></tr>
+<tr><td><code>supplier_sync_diff_log</code></td><td>记录供应商侧差异识别</td><td>系统型同步问题</td></tr>
+<tr><td><code>supplier_sync_dead_letter</code></td><td>分页失败、字段缺失、映射失败</td><td>系统型同步问题</td></tr>
+<tr><td><code>supplier_product_mapping_tab</code></td><td>外部资源到平台资源映射</td><td>系统型同步问题</td></tr>
+</tbody>
+</table>
+</div>
+<p>这里还要明确反向排除：</p>
+<ul>
+<li><code>product_supply_draft</code></li>
+<li><code>product_supply_staging</code></li>
+<li><code>product_qc_review</code></li>
+</ul>
+<p>这些不应列为供给平台权威表，而应归商品主域写侧。</p>
+<hr>
+<h2 id="4-正式商品模型发布后平台到底沉淀什么"><a class="header" href="#4-正式商品模型发布后平台到底沉淀什么">4. 正式商品模型：发布后平台到底沉淀什么</a></h2>
+<h3 id="41-正式商品的核心组成"><a class="header" href="#41-正式商品的核心组成">4.1 正式商品的核心组成</a></h3>
+<p>商品中心沉淀的不是“后台录入过程”，而是正式交易契约：</p>
+<ul>
+<li><code>Resource</code>：卖的是什么资源，例如酒店、门店、活动、充值运营商。</li>
+<li><code>SPU / SKU</code>：资源如何被定义为可售商品和规格。</li>
+<li><code>Offer / Rate Plan</code>：按什么渠道、价格、销售期、履约规则去卖。</li>
+<li><code>Input Schema</code>：用户下单前必须提供哪些信息。</li>
+<li><code>Fulfillment Rule</code>：发券、充值、出票、预约等怎么履约。</li>
+<li><code>Refund Rule</code>：退款、取消、售后口径。</li>
+<li><code>publish_version</code>：哪一个正式版本当前生效。</li>
+<li><code>Product Snapshot</code>：订单创建时引用或复制的解释事实。</li>
+</ul>
+<h3 id="42-决策点-8正式商品表是否承接-draft--qc_pending--rejected"><a class="header" href="#42-决策点-8正式商品表是否承接-draft--qc_pending--rejected">4.2 决策点 8：正式商品表是否承接 <code>DRAFT / QC_PENDING / REJECTED</code></a></h3>
+<h4 id="方案对比-5"><a class="header" href="#方案对比-5">方案对比</a></h4>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>适用场景</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：正式商品表混合流程状态</td><td>表少、查询直接</td><td>语义污染；状态机失控；误触发搜索和缓存刷新</td><td>小规模系统</td><td>不推荐</td></tr>
+<tr><td>方案 B：流程态留在供给与商品主域写侧，正式读模型只保存正式态</td><td>语义清晰；读写边界稳定；订单快照更可解释</td><td>发布编排更复杂</td><td>中大型平台</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="推荐方案-5"><a class="header" href="#推荐方案-5">推荐方案</a></h4>
+<p>推荐方案 B。正式商品表中更适合出现的状态是：</p>
+<pre><code class="language-text">PUBLISHED / ONLINE / OFFLINE / ENDED / BANNED / ARCHIVED
+</code></pre>
+<p>而不应出现：</p>
+<pre><code class="language-text">DRAFT / QC_PENDING / REJECTED / PARSING / VALIDATING
+</code></pre>
+<hr>
+<h2 id="5-供给入口统一治理商品从哪里来"><a class="header" href="#5-供给入口统一治理商品从哪里来">5. 供给入口统一治理：商品从哪里来</a></h2>
+<h3 id="51-统一治理不是统一入口"><a class="header" href="#51-统一治理不是统一入口">5.1 统一治理，不是统一入口</a></h3>
+<p>供给入口可以分散，但治理框架最好统一：</p>
+<pre><code class="language-text">本地运营创建
+商家上传
+Excel 批量导入
+API / ISV 推送
+供应商 Pull / Push
+  ↓
+标准化
+  ↓
+Staging
+  ↓
+Validation / Diff / Review / Publish / Outbox
+</code></pre>
+<h3 id="52-决策点-9不同入口是多套流程还是统一治理框架"><a class="header" href="#52-决策点-9不同入口是多套流程还是统一治理框架">5.2 决策点 9：不同入口是多套流程，还是统一治理框架</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>适用场景</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：每个入口各做一套</td><td>每个团队可独立优化</td><td>规则分叉；一致性差；审计和补偿分散</td><td>极小团队、阶段性方案</td><td>不推荐</td></tr>
+<tr><td>方案 B：入口分开、标准化后治理合流</td><td>审核、发布、补偿、审计可复用</td><td>抽象设计要求更高</td><td>平台化系统</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="推荐方案-6"><a class="header" href="#推荐方案-6">推荐方案</a></h4>
+<p>推荐方案 B。入口的差异保留在“接入层与执行策略”，治理则尽量收敛到统一主线。</p>
+<hr>
+<h2 id="6-上架qc-与运营编辑生命周期里的关键控制点"><a class="header" href="#6-上架qc-与运营编辑生命周期里的关键控制点">6. 上架、QC 与运营编辑：生命周期里的关键控制点</a></h2>
+<h3 id="61-三类关键动作"><a class="header" href="#61-三类关键动作">6.1 三类关键动作</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>动作</th><th>关注点</th></tr>
+</thead>
+<tbody>
+<tr><td>新商品上架</td><td>从无到有，完整建模与准入</td></tr>
+<tr><td>已上线商品编辑</td><td>保护线上版本，控制变更风险</td></tr>
+<tr><td>强制下架 / 禁售</td><td>合规、风控、资损止血</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="62-决策点-10所有变更是否统一人工审核"><a class="header" href="#62-决策点-10所有变更是否统一人工审核">6.2 决策点 10：所有变更是否统一人工审核</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>适用场景</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：全部人工审核</td><td>风险保守</td><td>效率低，运营成本高</td><td>早期高风险行业</td><td>局部可用</td></tr>
+<tr><td>方案 B：差异化审核</td><td>效率更高；风险更细粒度</td><td>需要规则引擎和审计</td><td>中大型平台</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐差异化审核：标题、类目、履约规则、退款规则等高风险字段走审核；小幅价格或库存变化可按策略旁路。</p>
+<h3 id="63-决策点-11运营编辑是否直接改正式商品"><a class="header" href="#63-决策点-11运营编辑是否直接改正式商品">6.3 决策点 11：运营编辑是否直接改正式商品</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>适用场景</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：直接改正式商品</td><td>实现简单，立即生效</td><td>线上版本易被污染；缺少审计和回滚边界</td><td>低风险后台</td><td>不推荐作为默认</td></tr>
+<tr><td>方案 B：先进变更请求 / <code>Staging</code> 再审核发布</td><td>保护正式版本；易于比对和回滚</td><td>过程更长</td><td>中大型平台</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="推荐方案-7"><a class="header" href="#推荐方案-7">推荐方案</a></h4>
+<p>高风险字段默认走方案 B；低风险、高频字段可在策略允许下走旁路更新，但必须仍然保留幂等、审计和回放能力。</p>
+<hr>
+<h2 id="7-库存如何接入生命周期而不是孤立存在"><a class="header" href="#7-库存如何接入生命周期而不是孤立存在">7. 库存如何接入生命周期，而不是孤立存在</a></h2>
+<h3 id="71-库存接入的三个层次"><a class="header" href="#71-库存接入的三个层次">7.1 库存接入的三个层次</a></h3>
+<ol>
+<li>商品发布时声明库存策略与范围。</li>
+<li>运营通过工作台发起库存相关动作。</li>
+<li>库存系统维护可售承诺、账本与状态机。</li>
+</ol>
+<h3 id="72-典型库存模式"><a class="header" href="#72-典型库存模式">7.2 典型库存模式</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类型</th><th>适合场景</th><th>核心特点</th></tr>
+</thead>
+<tbody>
+<tr><td>数量库存</td><td>实物、普通券类、门店配额</td><td>聚合数量模型</td></tr>
+<tr><td>券码库存</td><td>礼品卡、兑换码、卡密</td><td>一码一实例，必须有码池</td></tr>
+<tr><td>供应商库存</td><td>酒店、票务、实时报价商品</td><td>可售量受外部事实影响</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="73-决策点-12库存创建补货入口归供给平台还是库存系统"><a class="header" href="#73-决策点-12库存创建补货入口归供给平台还是库存系统">7.3 决策点 12：库存创建/补货入口归供给平台还是库存系统</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>适用场景</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：库存系统直接承接所有 B 端操作</td><td>路径最短</td><td>工作流、审核、文件任务、运营体验都堆进库存系统</td><td>简单内部系统</td><td>不推荐</td></tr>
+<tr><td>方案 B：供给/运营平台承接工作流，库存系统维护事实和账本</td><td>平台边界清晰；库存专注事实</td><td>需要命令协同</td><td>平台化交易系统</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="推荐方案-8"><a class="header" href="#推荐方案-8">推荐方案</a></h4>
+<p>推荐方案 B。供给平台发起 <code>CreateInventory / AdjustInventory / ImportCodeBatch / GenerateCodeBatch / LockInventory</code>，库存系统幂等执行并记录账本。</p>
+<hr>
+<h2 id="8-库存系统内部模型可售承诺如何落地"><a class="header" href="#8-库存系统内部模型可售承诺如何落地">8. 库存系统内部模型：可售承诺如何落地</a></h2>
+<h3 id="81-最小权威模型"><a class="header" href="#81-最小权威模型">8.1 最小权威模型</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模型</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td><code>inventory_config</code></td><td>定义扣减时机、管理方式、是否允许超卖</td></tr>
+<tr><td><code>inventory_balance</code></td><td>当前聚合库存视图</td></tr>
+<tr><td><code>inventory_reservation</code></td><td>某个订单占了多少库存</td></tr>
+<tr><td><code>inventory_ledger</code></td><td>每次变动的权威账本</td></tr>
+<tr><td><code>inventory_code_pool_xx</code></td><td>券码池权威表</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="82-决策点-13redis-是否作为库存权威"><a class="header" href="#82-决策点-13redis-是否作为库存权威">8.2 决策点 13：Redis 是否作为库存权威</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>适用场景</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：Redis 作为库存权威</td><td>热路径极快</td><td>崩溃恢复难；审计弱；对账困难</td><td>极简秒杀模型</td><td>不推荐</td></tr>
+<tr><td>方案 B：Redis 作为热视图，MySQL 账本为权威</td><td>易恢复；可对账；适配复杂库存</td><td>实现更重</td><td>多场景库存系统</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="推荐方案-9"><a class="header" href="#推荐方案-9">推荐方案</a></h4>
+<p>推荐方案 B。Redis 负责高并发热路径，MySQL 账本负责最终解释和恢复。</p>
+<hr>
+<h2 id="9-发布一致性商品库存搜索营销订单如何一起生效"><a class="header" href="#9-发布一致性商品库存搜索营销订单如何一起生效">9. 发布一致性：商品、库存、搜索、营销、订单如何一起生效</a></h2>
+<h3 id="91-发布的目标"><a class="header" href="#91-发布的目标">9.1 发布的目标</a></h3>
+<p>发布不是“把一行商品写进表”，而是让一组正式契约一起进入可交易世界：</p>
+<ul>
+<li>商品主数据正式生效。</li>
+<li>库存控制面或初始化命令就绪。</li>
+<li>搜索与缓存接收到新版本。</li>
+<li>计价、营销、数据平台拿到一致事件。</li>
+<li>订单以后只能基于快照解释。</li>
+</ul>
+<h3 id="92-决策点-14发布时是否同步写下游系统"><a class="header" href="#92-决策点-14发布时是否同步写下游系统">9.2 决策点 14：发布时是否同步写下游系统</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>适用场景</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：发布事务内同步调用所有下游</td><td>逻辑直观</td><td>事务长、耦合重、下游故障放大</td><td>小系统</td><td>不推荐</td></tr>
+<tr><td>方案 B：正式主数据提交 + Outbox 异步投影</td><td>可恢复；幂等；下游解耦</td><td>最终一致，需要监控补偿</td><td>平台化架构</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="推荐方案-10"><a class="header" href="#推荐方案-10">推荐方案</a></h4>
+<p>推荐方案 B。一个常见的发布链路如下：</p>
+<pre><code class="language-text">Publish Command
+  → 校验 base_publish_version
+  → 写正式商品 / 发布版本 / 快照
+  → 写 Outbox
+  → 搜索 / 缓存 / 计价 / 营销 / 数据平台按版本消费
+</code></pre>
+<p>订单系统不直接接受“商品被发布”的写入，而是在创单时读取当时有效的商品、库存、价格、履约上下文，并保存快照。</p>
+<hr>
+<h2 id="10-状态机与任务模型设计"><a class="header" href="#10-状态机与任务模型设计">10. 状态机与任务模型设计</a></h2>
+<h3 id="101-不要用一个大状态字段表达全部生命周期"><a class="header" href="#101-不要用一个大状态字段表达全部生命周期">10.1 不要用一个大状态字段表达全部生命周期</a></h3>
+<p>下面这些状态不是一个层面的东西：</p>
+<ul>
+<li><code>Draft</code> / <code>Staging</code></li>
+<li><code>QC_PENDING</code> / <code>APPROVED</code> / <code>REJECTED</code></li>
+<li><code>PUBLISHED</code> / <code>ONLINE</code> / <code>OFFLINE</code></li>
+<li><code>RESERVED</code> / <code>CONFIRMED</code> / <code>RELEASED</code></li>
+<li><code>RUNNING</code> / <code>FAILED</code> / <code>PARTIAL_SUCCESS</code></li>
+</ul>
+<h3 id="102-决策点-15是否只用一个大状态字段表达全部生命周期"><a class="header" href="#102-决策点-15是否只用一个大状态字段表达全部生命周期">10.2 决策点 15：是否只用一个大状态字段表达全部生命周期</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>适用场景</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：单一大状态字段</td><td>表面简单</td><td>状态爆炸；语义冲突；难扩展</td><td>原型期</td><td>不推荐</td></tr>
+<tr><td>方案 B：拆分任务状态、审核状态、正式商品状态、库存状态</td><td>语义清晰；便于治理</td><td>模型设计要求更高</td><td>中大型系统</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="推荐方案-11"><a class="header" href="#推荐方案-11">推荐方案</a></h4>
+<p>建议至少拆成四层：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态层</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td>任务状态</td><td><code>CREATED / RUNNING / PARTIAL_SUCCESS / FAILED / DONE</code></td></tr>
+<tr><td>审核状态</td><td><code>PENDING / APPROVED / REJECTED / WITHDRAWN</code></td></tr>
+<tr><td>正式商品状态</td><td><code>ONLINE / OFFLINE / ENDED / BANNED / ARCHIVED</code></td></tr>
+<tr><td>库存状态</td><td><code>AVAILABLE / RESERVED / CONFIRMED / RELEASED / LOCKED</code></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="103-任务模型"><a class="header" href="#103-任务模型">10.3 任务模型</a></h3>
+<p>批量与长链路建议采用：</p>
+<ul>
+<li><code>product_supply_task</code></li>
+<li><code>product_supply_task_item</code></li>
+<li><code>product_publish_record</code></li>
+</ul>
+<p>供应商同步可在执行层再增加：</p>
+<ul>
+<li><code>supplier_sync_batch</code></li>
+<li><code>supplier_sync_checkpoint</code></li>
+<li><code>supplier_mapping</code></li>
+</ul>
+<hr>
+<h2 id="11-异常治理怎么发现问题修复问题避免资损"><a class="header" href="#11-异常治理怎么发现问题修复问题避免资损">11. 异常治理：怎么发现问题、修复问题、避免资损</a></h2>
+<h3 id="111-常见异常"><a class="header" href="#111-常见异常">11.1 常见异常</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>异常</th><th>典型表现</th><th>需要的治理能力</th></tr>
+</thead>
+<tbody>
+<tr><td>校验失败</td><td>文件部分行失败、素材不合规</td><td>行级错误、错误文件、重提</td></tr>
+<tr><td>重复提交</td><td>API 超时重试、消息重复消费</td><td>幂等键、唯一索引、状态机终态</td></tr>
+<tr><td>搜索 / 缓存漂移</td><td>商品已发布但列表未更新</td><td>版本比对、补偿刷新</td></tr>
+<tr><td>库存漂移</td><td>Redis、账本、订单口径不一致</td><td>对账、修复任务、人工兜底</td></tr>
+<tr><td>供应商脏数据</td><td>错误价格、下架误推送</td><td>质量评分、灰度、隔离</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="112-决策点-16失败后是重试覆盖还是保留审计链路--补偿闭环"><a class="header" href="#112-决策点-16失败后是重试覆盖还是保留审计链路--补偿闭环">11.2 决策点 16：失败后是重试覆盖，还是保留审计链路 + 补偿闭环</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>适用场景</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：失败后直接重试覆盖</td><td>逻辑简单</td><td>失败原因丢失；难对账；问题不可追</td><td>低风险内部工具</td><td>不推荐</td></tr>
+<tr><td>方案 B：保留审计链路 + 补偿闭环</td><td>可回放、可归因、可人工修复</td><td>成本更高</td><td>平台型业务</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="推荐方案-12"><a class="header" href="#推荐方案-12">推荐方案</a></h4>
+<p>推荐方案 B。真正的平台能力不只是自动成功，更是失败后还能解释、还能修回来。</p>
+<hr>
+<h2 id="12-典型业务场景串讲"><a class="header" href="#12-典型业务场景串讲">12. 典型业务场景串讲</a></h2>
+<h3 id="121-本地生活券商品创建到上线"><a class="header" href="#121-本地生活券商品创建到上线">12.1 本地生活券商品创建到上线</a></h3>
+<ol>
+<li>运营在后台表单创建商品，先写 <code>Draft</code>。</li>
+<li>系统做类目、素材、履约、退款、库存策略校验。</li>
+<li>低风险字段自动准入，高风险字段进入 QC。</li>
+<li>审核通过后发布到商品主域正式态，初始化库存配置。</li>
+<li>Outbox 驱动搜索、缓存、营销圈品刷新。</li>
+</ol>
+<h3 id="122-券码库存导入与发码"><a class="header" href="#122-券码库存导入与发码">12.2 券码库存导入与发码</a></h3>
+<ol>
+<li>运营上传券码文件，供给平台创建批量任务。</li>
+<li>解析成功后调用库存系统 <code>ImportCodeBatch</code>。</li>
+<li>券码入 <code>inventory_code_pool_xx</code>，Redis 仅保存可发放热视图。</li>
+<li>订单支付成功后预占并发码，失败则回补或标记人工处理。</li>
+</ol>
+<h3 id="123-酒店商品同步与变更发布"><a class="header" href="#123-酒店商品同步与变更发布">12.3 酒店商品同步与变更发布</a></h3>
+<ol>
+<li>供应商全量或增量拉取原始资源。</li>
+<li>通过 <code>supplier_mapping</code> 映射到平台资源。</li>
+<li>归一化后进入 <code>Staging</code>。</li>
+<li>差异识别决定哪些字段自动更新，哪些字段进审核。</li>
+<li>发布版本递增，下游按版本消费事件。</li>
+</ol>
+<h3 id="124-运营批量编辑"><a class="header" href="#124-运营批量编辑">12.4 运营批量编辑</a></h3>
+<ol>
+<li>运营上传 Excel 批量改标题、价格、上下架。</li>
+<li>系统为每行生成 <code>task_item</code> 和校验结果。</li>
+<li>标题和类目等高风险字段进入审核；价格小改可旁路。</li>
+<li>任务完成后生成错误文件和成功报告。</li>
+</ol>
+<h3 id="125-风控强制下架"><a class="header" href="#125-风控强制下架">12.5 风控强制下架</a></h3>
+<ol>
+<li>风控命中违规商品。</li>
+<li>平台裁决链路直接将正式商品切为 <code>BANNED</code> 或 <code>OFFLINE</code>。</li>
+<li>搜索、营销、库存侧同步收敛到不可售。</li>
+<li>保留审计链路，必要时支持申诉和恢复。</li>
+</ol>
+<hr>
+<h2 id="13-面试答辩与工程总结"><a class="header" href="#13-面试答辩与工程总结">13. 面试答辩与工程总结</a></h2>
+<p>如果要把这一章压缩成一句面试表达，可以这样说：</p>
+<blockquote>
+<p>商品、供给、库存、上架、QC 和运营不是几个孤立后台，而是一条受治理的生命周期流水线。入口态数据从供给侧进入，<code>Draft / Staging</code> 归商品主域写侧管理，正式商品读模型只承接已发布正式态，库存事实归库存系统，发布通过版本和 Outbox 保证最终一致，所有批量与外部同步链路都要任务化、幂等化、可补偿、可审计。</p>
+</blockquote>
+<p>面试里建议重点讲清五个判断：</p>
+<ol>
+<li><code>Draft</code> 不属于正式商品读模型，可审核、可发布的草稿资产应归商品主域写侧。</li>
+<li><code>Staging</code> 的价值是隔离“正在编辑”和“已提交待发布”的快照。</li>
+<li>库存运营入口可以在供给平台，但库存事实必须归库存系统。</li>
+<li>发布不能同步写所有下游，应该用版本化 + Outbox。</li>
+<li>真正的平台设计重点不是 CRUD，而是状态分层、任务化、审计、补偿和资损防控。</li>
+</ol>
+<p>如果读者能把这五个判断讲清楚，就已经从“会画商品系统架构图”进入“能解释平台治理设计”的阶段了。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part02/01-ecommerce-overview.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part02/03-product-center.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part02/01-ecommerce-overview.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part02/03-product-center.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
