@@ -1,0 +1,3402 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第 5 章 生产级系统保障：可靠性、恢复与资损防控 - 系统设计与架构实战：原理、工程与电商案例</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="从系统设计方法论、核心基础设施、可靠性工程到电商业务架构实战；兼顾原理、工程落地、面试表达和完整业务案例。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-f812c69c.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-48cb1802.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">系统设计与架构实战：原理、工程与电商案例</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第-5-章-生产级系统保障可靠性恢复与资损防控"><a class="header" href="#第-5-章-生产级系统保障可靠性恢复与资损防控">第 5 章 生产级系统保障：可靠性、恢复与资损防控</a></h1>
+<p>可靠性工程的目标，不是让系统“永不出错”，而是让业务在错误必然发生时仍然可控：用户影响可感知，故障范围可隔离，核心链路可恢复，数据结果可解释，团队行为可复盘。</p>
+<p>对于业务系统来说，可靠性不是单纯的机器存活率，也不是监控平台上几个绿色仪表盘。一个系统如果接口 99.99% 返回 200，但支付成功率持续下降、库存偶发超卖、订单状态无法推进、补偿任务长期堆积，它在业务意义上仍然是不可靠的。</p>
+<p>本章从工程落地视角讨论可靠性：如何定义目标，如何识别故障，如何设计保护机制，如何建设监控告警，如何处理事故，如何通过容量、演练、发布和复盘把系统越做越稳。</p>
+<h2 id="91-可靠性的本质业务承诺而不是机器指标"><a class="header" href="#91-可靠性的本质业务承诺而不是机器指标">9.1 可靠性的本质：业务承诺，而不是机器指标</a></h2>
+<p>业务系统的可靠性至少包含四层含义：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>关注问题</th><th>典型例子</th></tr>
+</thead>
+<tbody>
+<tr><td>可用性</td><td>用户能不能完成关键动作</td><td>能否搜索商品、进入结算、提交订单、完成支付</td></tr>
+<tr><td>正确性</td><td>系统结果是否符合业务规则</td><td>不能超卖、不能重复扣款、不能错误计价</td></tr>
+<tr><td>可恢复性</td><td>出错后能否回到一致状态</td><td>支付回调失败后可对账，库存预占失败后可释放</td></tr>
+<tr><td>可解释性</td><td>问题能否被定位、审计和复盘</td><td>一笔订单为什么卡住，哪一步失败，谁处理过</td></tr>
+</tbody>
+</table>
+</div>
+<p>很多团队把可靠性理解成“服务不挂”。这只是最低层目标。对电商、支付、交易、供应链这类业务系统来说，更重要的是<strong>关键业务结果不出错</strong>。</p>
+<p>例如：</p>
+<ul>
+<li>商品详情页推荐模块失败，可以降级为空。</li>
+<li>搜索排序模型失败，可以切到默认排序。</li>
+<li>购物车展示价失败，可以提示“以结算页为准”。</li>
+<li>订单创建失败，不能生成半张订单。</li>
+<li>支付回调重复，不能重复推进订单状态。</li>
+<li>库存扣减失败，不能假装扣减成功。</li>
+</ul>
+<p>可靠性工程的第一原则是：<strong>按业务重要性分层保护，而不是按技术组件平均用力。</strong></p>
+<h2 id="92-slislosla-与错误预算"><a class="header" href="#92-slislosla-与错误预算">9.2 SLI、SLO、SLA 与错误预算</a></h2>
+<p>可靠性建设必须先量化目标。没有目标，监控只是图表；没有目标，告警只是噪声；没有目标，稳定性投入永远会输给短期需求。</p>
+<p>最常用的概念是 SLI、SLO 和 SLA。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>含义</th><th>谁使用</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td>SLI</td><td>Service Level Indicator，服务表现指标</td><td>工程团队</td><td>订单创建成功率、P99 延迟、支付回调处理延迟</td></tr>
+<tr><td>SLO</td><td>Service Level Objective，内部稳定性目标</td><td>工程与业务团队</td><td>订单创建 99.95% 在 2s 内完成</td></tr>
+<tr><td>SLA</td><td>Service Level Agreement，对外协议承诺</td><td>客户、法务、商业团队</td><td>可用性低于承诺时补偿客户</td></tr>
+</tbody>
+</table>
+</div>
+<p>SLI 是观测，SLO 是目标，SLA 是契约。三者不要混用。很多团队只有 SLA，却没有可执行的 SLO；最后稳定性问题就只能靠事故后吵架，而不是事故前治理。</p>
+<h3 id="921-业务系统常见-sli"><a class="header" href="#921-业务系统常见-sli">9.2.1 业务系统常见 SLI</a></h3>
+<p>SLI 不能只看接口成功率。业务系统至少要覆盖下面几类指标：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类型</th><th>指标</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>成功率</td><td>下单成功率、支付成功率、库存预占成功率</td><td>用户是否完成关键动作</td></tr>
+<tr><td>延迟</td><td>PDP P99、结算 Init P99、创单 P99、支付回调处理耗时</td><td>用户等待多久，链路是否退化</td></tr>
+<tr><td>正确性</td><td>价格差异率、超卖次数、重复扣款次数、非法状态迁移次数</td><td>是否出现资损或业务错误</td></tr>
+<tr><td>新鲜度</td><td>商品索引同步延迟、库存同步延迟、供应商数据延迟</td><td>读模型和权威数据相差多久</td></tr>
+<tr><td>完整性</td><td>消息堆积、DLQ 数量、补偿任务 backlog</td><td>异步链路是否持续收敛</td></tr>
+<tr><td>饱和度</td><td>线程池、连接池、队列、CPU、内存、磁盘、网络</td><td>系统距离崩溃还有多远</td></tr>
+</tbody>
+</table>
+</div>
+<p>面向用户体验的 SLI 更适合做告警；面向资源和组件的 SLI 更适合做排障。不要把两者颠倒。CPU 高不一定是事故，但下单成功率跌了通常就是事故。</p>
+<h3 id="922-按用户旅程定义-slo"><a class="header" href="#922-按用户旅程定义-slo">9.2.2 按用户旅程定义 SLO</a></h3>
+<p>业务系统的 SLO 最好围绕用户旅程定义，而不是围绕单个接口定义。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>用户旅程</th><th>推荐 SLO</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>商品浏览</td><td>99.9% 商品详情页在 1s 内返回基础信息</td><td>推荐、营销标签可降级</td></tr>
+<tr><td>搜索导购</td><td>99.5% 搜索请求在 800ms 内返回结果</td><td>个性化排序失败可回退默认排序</td></tr>
+<tr><td>结算初始化</td><td>99.5% 结算页在 2s 内完成商品、库存、价格校验</td><td>非关键权益可降级</td></tr>
+<tr><td>提交订单</td><td>99.95% 创单请求在 3s 内明确成功或失败</td><td>不允许返回未知半成功</td></tr>
+<tr><td>支付回调</td><td>99.99% 合法回调在 30s 内完成幂等处理</td><td>延迟处理必须进入对账</td></tr>
+<tr><td>商品发布</td><td>99% 商品发布后 5 分钟内同步搜索和缓存</td><td>允许短暂最终一致</td></tr>
+</tbody>
+</table>
+</div>
+<p>这里有两个关键点：</p>
+<p>第一，SLO 要区分核心与非核心能力。推荐模块和支付回调不能使用同一套目标。第二，SLO 要明确时间窗口。比如“商品发布后 5 分钟内同步搜索”，比“搜索要及时”更可执行。</p>
+<h3 id="923-错误预算"><a class="header" href="#923-错误预算">9.2.3 错误预算</a></h3>
+<p>错误预算是 SLO 的另一面。</p>
+<p>如果订单创建成功率 SLO 是 99.95%，那么一个月内允许的失败预算是 0.05%。预算消耗过快，说明系统稳定性正在透支。此时团队应该收紧发布、暂停高风险变更、优先修复稳定性问题。</p>
+<p>错误预算的价值不是“允许失败”，而是把稳定性和研发速度放进同一个决策框架：</p>
+<ul>
+<li>预算充足：可以更积极发布、实验和重构。</li>
+<li>预算快速消耗：需要减少变更，治理错误率最高的链路。</li>
+<li>预算耗尽：进入稳定性冻结期，只允许修复和低风险变更。</li>
+</ul>
+<p>没有错误预算时，稳定性讨论容易变成抽象争论；有了错误预算，讨论会变成数据驱动。</p>
+<h2 id="93-故障模型先知道系统会怎样坏"><a class="header" href="#93-故障模型先知道系统会怎样坏">9.3 故障模型：先知道系统会怎样坏</a></h2>
+<p>可靠性工程不是等故障发生后再补救，而是在设计阶段预判故障类型。</p>
+<p>业务系统常见故障可以分为九类：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>故障类型</th><th>典型表现</th><th>常见根因</th></tr>
+</thead>
+<tbody>
+<tr><td>流量冲击</td><td>QPS 突增、队列堆积、接口超时</td><td>大促、热点商品、爬虫、重试风暴</td></tr>
+<tr><td>慢依赖</td><td>P99 上升、线程池耗尽</td><td>下游 DB 慢查询、RPC 抖动、外部供应商变慢</td></tr>
+<tr><td>部分失败</td><td>只有某地区、某品类、某渠道异常</td><td>分片热点、灰度版本、地域网络、配置差异</td></tr>
+<tr><td>数据不一致</td><td>支付成功订单未更新、搜索仍展示下架商品</td><td>异步消息丢失、补偿失败、对账缺失</td></tr>
+<tr><td>资源耗尽</td><td>连接池满、磁盘满、内存 OOM、Pod 重启</td><td>容量低估、泄漏、突发批任务</td></tr>
+<tr><td>发布回归</td><td>新版本错误率升高</td><td>兼容性不足、灰度缺失、回滚困难</td></tr>
+<tr><td>配置事故</td><td>开关误开、阈值错误、路由错误</td><td>配置无审计、无灰度、无校验</td></tr>
+<tr><td>外部依赖故障</td><td>支付渠道、短信、供应商接口异常</td><td>第三方不可控、超时和降级不足</td></tr>
+<tr><td>人为操作事故</td><td>误删数据、错误补偿、误切流</td><td>权限过大、缺少审批和演练</td></tr>
+</tbody>
+</table>
+</div>
+<p>做可靠性设计时，要针对每类故障问三个问题：</p>
+<ol>
+<li>如何提前发现？</li>
+<li>如何限制影响范围？</li>
+<li>如何恢复业务和数据？</li>
+</ol>
+<p>只回答“加监控”是不够的。监控只能发现问题，不能自动阻止级联故障。要让故障可控，还需要隔离、限流、熔断、降级、补偿、对账、回滚和应急流程。</p>
+<h2 id="94-故障域与依赖分级"><a class="header" href="#94-故障域与依赖分级">9.4 故障域与依赖分级</a></h2>
+<p>大型业务系统真正危险的不是单点故障，而是故障传播。一个推荐接口变慢，拖慢商品详情；商品详情线程池被打满，网关堆积；网关重试放大流量，最终核心交易接口也被拖死。这就是故障域没有隔离。</p>
+<h3 id="941-故障域"><a class="header" href="#941-故障域">9.4.1 故障域</a></h3>
+<p>故障域可以从多个维度划分：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>示例</th><th>隔离手段</th></tr>
+</thead>
+<tbody>
+<tr><td>业务域</td><td>商品、交易、支付、履约</td><td>服务边界、数据边界、独立发布</td></tr>
+<tr><td>流量域</td><td>普通流量、大促流量、爬虫流量</td><td>网关限流、活动专用集群、风控拦截</td></tr>
+<tr><td>用户域</td><td>C 端用户、商家、运营后台</td><td>租户限流、后台任务隔离</td></tr>
+<tr><td>地域域</td><td>华东、华南、海外</td><td>多地域部署、就近路由、区域熔断</td></tr>
+<tr><td>资源域</td><td>线程池、连接池、队列、缓存</td><td>舱壁隔离、配额、独立集群</td></tr>
+<tr><td>数据域</td><td>分库分表、冷热数据、租户分片</td><td>分片键设计、归档、读写隔离</td></tr>
+</tbody>
+</table>
+</div>
+<p>故障域设计的目标是：一个局部问题不应该拖垮全站，一个非核心链路不应该拖垮核心链路，一个租户或热点商品不应该耗尽公共资源。</p>
+<h3 id="942-依赖分级"><a class="header" href="#942-依赖分级">9.4.2 依赖分级</a></h3>
+<p>依赖必须分级。否则所有失败都会被当作同等严重，系统就很难降级。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>依赖等级</th><th>定义</th><th>失败策略</th></tr>
+</thead>
+<tbody>
+<tr><td>强依赖</td><td>没有它不能继续业务</td><td>快速失败、阻断、进入补偿或人工处理</td></tr>
+<tr><td>弱依赖</td><td>失败后可提供降级体验</td><td>超时后返回默认值、隐藏模块、异步补齐</td></tr>
+<tr><td>后置依赖</td><td>不影响当前用户响应</td><td>写 Outbox、异步重试、DLQ</td></tr>
+<tr><td>观测依赖</td><td>只影响日志、埋点、统计</td><td>本地缓冲、采样、失败不阻断主链路</td></tr>
+</tbody>
+</table>
+</div>
+<p>以结算页为例：</p>
+<ul>
+<li>商品上下架和库存预占是强依赖。</li>
+<li>营销标签、推荐凑单提示是弱依赖。</li>
+<li>积分发放、通知、推荐特征回流是后置依赖。</li>
+<li>埋点和日志上传是观测依赖。</li>
+</ul>
+<p>只有把依赖分级写进设计，超时、重试、熔断、降级才有依据。</p>
+<h2 id="95-高可用架构原则"><a class="header" href="#95-高可用架构原则">9.5 高可用架构原则</a></h2>
+<p>高可用不是“多部署几个实例”。它是一组贯穿应用、数据、基础设施和组织流程的设计原则。</p>
+<h3 id="951-冗余"><a class="header" href="#951-冗余">9.5.1 冗余</a></h3>
+<p>冗余用于消除单点。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>常见做法</th><th>注意事项</th></tr>
+</thead>
+<tbody>
+<tr><td>应用层</td><td>多实例、多 Pod、多可用区</td><td>实例无状态，健康检查真实反映业务可用性</td></tr>
+<tr><td>网关层</td><td>多入口、多 LB、DNS 容灾</td><td>避免单一入口和错误路由配置</td></tr>
+<tr><td>数据层</td><td>主从、半同步、多副本、备份</td><td>复制延迟、故障切换、恢复演练</td></tr>
+<tr><td>缓存层</td><td>Redis Cluster、多副本、热点隔离</td><td>主从切换期间的一致性和热点保护</td></tr>
+<tr><td>消息层</td><td>多 Broker、多分区、多副本</td><td>ISR、磁盘、消费积压和重平衡</td></tr>
+<tr><td>跨地域</td><td>同城多活、异地灾备</td><td>数据冲突、流量切换、成本与复杂度</td></tr>
+</tbody>
+</table>
+</div>
+<p>冗余必须配合切换能力。没有演练过的备用链路，不能算可靠性能力。</p>
+<h3 id="952-无状态与快速恢复"><a class="header" href="#952-无状态与快速恢复">9.5.2 无状态与快速恢复</a></h3>
+<p>应用服务尽量无状态。状态外置到数据库、缓存、对象存储或消息系统。这样实例可以快速扩缩容和替换。</p>
+<p>但“无状态”不等于“没有状态”。业务状态仍然存在，只是不能绑死在某个进程内。常见问题包括：</p>
+<ul>
+<li>本地内存保存用户会话，实例重启后登录态丢失。</li>
+<li>本地队列保存待处理任务，进程崩溃后任务丢失。</li>
+<li>本地缓存没有版本控制，发布后读到旧规则。</li>
+</ul>
+<p>可靠的做法是明确状态归属：什么状态可以本地缓存，什么状态必须持久化，什么状态需要幂等恢复。</p>
+<h3 id="953-舱壁隔离"><a class="header" href="#953-舱壁隔离">9.5.3 舱壁隔离</a></h3>
+<p>舱壁隔离来自船舱设计：一个舱进水，不能让整条船沉没。</p>
+<p>业务系统里的舱壁隔离包括：</p>
+<ul>
+<li>不同下游依赖使用不同线程池和连接池。</li>
+<li>核心接口和非核心接口使用不同资源池。</li>
+<li>后台批任务和在线请求隔离。</li>
+<li>大客户、活动、渠道流量隔离。</li>
+<li>支付、订单、库存等强一致链路与推荐、画像、报表隔离。</li>
+</ul>
+<p>典型反模式是一个应用只有一个全局线程池。推荐服务变慢时，线程池被推荐请求占满，订单请求也无法执行。这种故障不是推荐系统故障，而是资源隔离设计失败。</p>
+<h3 id="954-优雅退化"><a class="header" href="#954-优雅退化">9.5.4 优雅退化</a></h3>
+<p>优雅退化不是“随便返回默认值”，而是在业务允许的边界内选择更低质量但可接受的服务。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>可接受降级</th><th>不可接受降级</th></tr>
+</thead>
+<tbody>
+<tr><td>商品详情</td><td>隐藏推荐、展示基础信息</td><td>展示已下架商品为可购买</td></tr>
+<tr><td>搜索导购</td><td>默认排序、隐藏个性化标签</td><td>返回过期价格导致误导购买</td></tr>
+<tr><td>购物车</td><td>部分商品状态显示“稍后刷新”</td><td>静默丢失用户加购</td></tr>
+<tr><td>结算</td><td>非关键优惠提示缺失</td><td>跳过库存校验继续下单</td></tr>
+<tr><td>支付</td><td>渠道切换、挂起等待对账</td><td>未确认支付却标记成功</td></tr>
+</tbody>
+</table>
+</div>
+<p>每个降级策略都应该写清楚：触发条件、用户文案、数据后果、恢复方式、审计记录和负责人。</p>
+<h2 id="96-保护机制超时重试幂等限流熔断降级"><a class="header" href="#96-保护机制超时重试幂等限流熔断降级">9.6 保护机制：超时、重试、幂等、限流、熔断、降级</a></h2>
+<p>保护机制的目标是阻止小故障变成大事故。</p>
+<h3 id="961-超时预算"><a class="header" href="#961-超时预算">9.6.1 超时预算</a></h3>
+<p>超时不能拍脑袋设置。一个请求的端到端超时应该拆成多个依赖的预算。</p>
+<p>例如结算 Init 总超时 2s：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>依赖</th><th>建议预算</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>商品校验</td><td>150ms</td><td>批量查询，强依赖</td></tr>
+<tr><td>库存预检查</td><td>300ms</td><td>强依赖，失败阻断</td></tr>
+<tr><td>计价试算</td><td>500ms</td><td>强依赖，展示链路可降级，提交链路不可降级</td></tr>
+<tr><td>营销试算</td><td>300ms</td><td>视业务可部分降级</td></tr>
+<tr><td>地址运费</td><td>300ms</td><td>可缓存，可部分降级</td></tr>
+<tr><td>聚合与序列化</td><td>200ms</td><td>应用自身预算</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果每个下游都默认 3s 超时，一个聚合接口就会在故障时被拖成几十秒。超时预算必须从入口向下传递，不能每一层各自为政。</p>
+<h3 id="962-重试"><a class="header" href="#962-重试">9.6.2 重试</a></h3>
+<p>重试只适合瞬时失败，不适合所有失败。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>错误类型</th><th>是否重试</th><th>原因</th></tr>
+</thead>
+<tbody>
+<tr><td>网络抖动、连接重置</td><td>可以</td><td>可能是瞬时问题</td></tr>
+<tr><td>读请求超时</td><td>可以，但要限制次数</td><td>注意不要放大流量</td></tr>
+<tr><td>写请求超时</td><td>谨慎</td><td>必须有幂等键或事务状态</td></tr>
+<tr><td>参数错误、权限错误</td><td>不重试</td><td>重试没有意义</td></tr>
+<tr><td>下游容量不足</td><td>不应立即重试</td><td>会加剧故障</td></tr>
+</tbody>
+</table>
+</div>
+<p>重试要配合退避和抖动：</p>
+<pre><code class="language-text">第一次失败：等待 50ms
+第二次失败：等待 100ms + 随机抖动
+第三次失败：等待 200ms + 随机抖动
+超过总预算：快速失败
+</code></pre>
+<p>没有退避的重试会形成重试风暴。没有幂等的重试会形成重复副作用。</p>
+<h3 id="963-幂等"><a class="header" href="#963-幂等">9.6.3 幂等</a></h3>
+<p>业务系统里，“只执行一次”通常做不到；“执行多次结果一致”必须做到。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>幂等手段</th></tr>
+</thead>
+<tbody>
+<tr><td>创建订单</td><td><code>idempotency_key</code> + 唯一索引 + 请求摘要</td></tr>
+<tr><td>支付回调</td><td>渠道流水号唯一约束 + 支付单状态机</td></tr>
+<tr><td>消息消费</td><td><code>event_id</code> 去重表 + 业务状态条件更新</td></tr>
+<tr><td>库存释放</td><td>预占单状态机 + 释放流水唯一约束</td></tr>
+<tr><td>优惠券核销</td><td>券实例状态机 + 核销单唯一约束</td></tr>
+</tbody>
+</table>
+</div>
+<p>幂等设计要回答四个问题：</p>
+<ol>
+<li>幂等键由谁生成？</li>
+<li>幂等键的作用范围是什么？</li>
+<li>相同幂等键但请求参数不同怎么办？</li>
+<li>幂等记录保存多久，如何清理？</li>
+</ol>
+<p>仅仅“前端按钮防抖”不是幂等。真正的幂等必须在服务端和存储层兜底。</p>
+<h3 id="964-限流"><a class="header" href="#964-限流">9.6.4 限流</a></h3>
+<p>限流不是为了拒绝用户，而是为了保护系统在极端情况下仍然服务核心请求。</p>
+<p>常见限流维度：</p>
+<ul>
+<li>API 维度：保护单个接口。</li>
+<li>用户维度：防止单用户刷爆资源。</li>
+<li>商家或租户维度：防止大租户影响小租户。</li>
+<li>商品维度：保护热点商品。</li>
+<li>活动维度：隔离大促流量。</li>
+<li>下游依赖维度：保护数据库、缓存、供应商接口。</li>
+</ul>
+<p>限流结果也要分层：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>限流对象</th><th>返回策略</th></tr>
+</thead>
+<tbody>
+<tr><td>非登录爬虫</td><td>直接拒绝</td></tr>
+<tr><td>普通用户读请求</td><td>排队或提示稍后重试</td></tr>
+<tr><td>下单请求</td><td>尽量排队，明确失败语义</td></tr>
+<tr><td>支付回调</td><td>不建议简单限流，应快速落表后异步处理</td></tr>
+<tr><td>后台批任务</td><td>降速、暂停、转离线队列</td></tr>
+</tbody>
+</table>
+</div>
+<p>支付回调、库存补偿、对账任务这类恢复链路不能和普通流量共用同一个限流策略，否则事故恢复时反而被限住。</p>
+<h3 id="965-熔断"><a class="header" href="#965-熔断">9.6.5 熔断</a></h3>
+<p>熔断解决的是“下游已经异常，继续调用只会浪费资源”的问题。</p>
+<p>熔断通常有三种状态：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态</th><th>行为</th></tr>
+</thead>
+<tbody>
+<tr><td>关闭</td><td>正常调用下游</td></tr>
+<tr><td>打开</td><td>快速失败或降级，不再打到下游</td></tr>
+<tr><td>半开</td><td>放少量探测流量，成功后恢复，失败后继续打开</td></tr>
+</tbody>
+</table>
+</div>
+<p>熔断触发条件不宜只看错误率，还要看延迟、并发数、超时率和业务错误类型。库存不足不是系统故障，不应该触发熔断；库存服务超时率升高才可能触发熔断。</p>
+<h3 id="966-降级"><a class="header" href="#966-降级">9.6.6 降级</a></h3>
+<p>降级要提前设计，而不是事故中临时写代码。</p>
+<p>一份合格的降级方案至少包含：</p>
+<ul>
+<li>哪些功能可以降级。</li>
+<li>什么条件触发降级。</li>
+<li>降级后的用户体验是什么。</li>
+<li>降级是否会造成数据不一致。</li>
+<li>如何恢复。</li>
+<li>谁有权限开启。</li>
+<li>开启和关闭是否有审计。</li>
+<li>是否演练过。</li>
+</ul>
+<p>降级开关必须纳入配置治理。不要让任何人可以在没有审批、没有审计、没有回滚方案的情况下打开“允许使用缓存价创单”这类高风险开关。</p>
+<h2 id="97-监控系统从有图表到能救命"><a class="header" href="#97-监控系统从有图表到能救命">9.7 监控系统：从“有图表”到“能救命”</a></h2>
+<p>监控系统是可靠性工程里最容易被低估、也最容易做成表面工程的一部分。很多团队有成百上千张图，但事故来临时仍然不知道哪里坏了；有几百条告警，但真正 P0 被淹没在噪声里。</p>
+<p>一个成熟的监控系统必须同时满足四个目标：</p>
+<ol>
+<li><strong>发现问题</strong>：用户感知异常前后，系统能尽快发现。</li>
+<li><strong>定位问题</strong>：能从业务指标追到服务、依赖、资源和代码路径。</li>
+<li><strong>解释问题</strong>：能说明影响范围、开始时间、变化点和根因候选。</li>
+<li><strong>推动恢复</strong>：告警附带负责人、预案、看板和止血动作。</li>
+</ol>
+<p>监控不是运维团队单独负责的事情。业务系统的监控指标必须由业务研发设计，由服务 owner 负责维护。</p>
+<h3 id="971-监控分层模型"><a class="header" href="#971-监控分层模型">9.7.1 监控分层模型</a></h3>
+<p>建议按五层建设监控。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>目标</th><th>典型指标</th></tr>
+</thead>
+<tbody>
+<tr><td>业务监控</td><td>判断用户和业务是否受影响</td><td>下单成功率、支付成功率、GMV、转化漏斗、资损金额</td></tr>
+<tr><td>链路监控</td><td>判断关键路径哪一步异常</td><td>结算 Init、库存预占、计价、创单、支付回调各步耗时和成功率</td></tr>
+<tr><td>应用监控</td><td>判断服务自身是否健康</td><td>QPS、错误率、P99、线程池、连接池、队列、依赖耗时</td></tr>
+<tr><td>中间件监控</td><td>判断基础组件是否退化</td><td>MySQL、Redis、Kafka、Elasticsearch、对象存储</td></tr>
+<tr><td>基础设施监控</td><td>判断运行环境是否饱和</td><td>CPU、内存、磁盘、网络、容器重启、节点压力</td></tr>
+</tbody>
+</table>
+</div>
+<p>这五层要能上下联动。支付成功率下降时，应该能继续下钻到支付回调延迟、支付渠道错误码、数据库锁等待、消息积压和具体版本变更。</p>
+<h3 id="972-业务监控"><a class="header" href="#972-业务监控">9.7.2 业务监控</a></h3>
+<p>业务监控是最接近用户体验的一层，也是告警优先级最高的一层。</p>
+<p>电商系统建议至少建设下面这些业务指标：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>业务域</th><th>核心指标</th><th>异常含义</th></tr>
+</thead>
+<tbody>
+<tr><td>商品</td><td>商品发布成功率、上下架延迟、商品索引同步延迟</td><td>商品无法发布或前台不可见</td></tr>
+<tr><td>搜索</td><td>搜索成功率、零结果率、召回数量分布、搜索转化率</td><td>搜索体验异常或索引错误</td></tr>
+<tr><td>购物车</td><td>加购成功率、购物车读取成功率、合并失败率</td><td>用户意图丢失或体验下降</td></tr>
+<tr><td>结算</td><td>结算 Init 成功率、库存预占失败率、价格试算失败率</td><td>交易前置链路异常</td></tr>
+<tr><td>订单</td><td>创单成功率、订单状态推进延迟、非法状态迁移数</td><td>交易主链路异常</td></tr>
+<tr><td>支付</td><td>支付发起成功率、渠道回调成功率、支付单挂起数</td><td>资金链路异常</td></tr>
+<tr><td>库存</td><td>超卖次数、预占释放延迟、库存对账差异</td><td>资损或履约风险</td></tr>
+<tr><td>供应商</td><td>同步成功率、数据新鲜度、解析失败率、DLQ 数量</td><td>外部供给质量异常</td></tr>
+</tbody>
+</table>
+</div>
+<p>业务监控要特别注意分桶。只看全站平均值会掩盖局部故障。常见分桶包括：</p>
+<ul>
+<li>地域：国家、城市、机房、可用区。</li>
+<li>端：iOS、Android、Web、小程序、开放 API。</li>
+<li>品类：实物、酒店、机票、券码、充值。</li>
+<li>渠道：自然流量、活动流量、推荐流量、商家后台。</li>
+<li>用户类型：新客、老客、会员、大客户、商家。</li>
+<li>支付渠道：微信、支付宝、信用卡、余额、第三方渠道。</li>
+</ul>
+<p>例如全站支付成功率只下降 0.2%，可能看起来不严重；但如果某个支付渠道在某个国家下降 20%，就是明确事故。</p>
+<h3 id="973-应用监控red-与-use"><a class="header" href="#973-应用监控red-与-use">9.7.3 应用监控：RED 与 USE</a></h3>
+<p>在线服务常用 RED 方法：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>含义</th><th>例子</th></tr>
+</thead>
+<tbody>
+<tr><td>Rate</td><td>请求速率</td><td>QPS、每分钟请求数</td></tr>
+<tr><td>Errors</td><td>错误</td><td>5xx、业务错误码、依赖错误</td></tr>
+<tr><td>Duration</td><td>延迟</td><td>P50、P95、P99、最大值</td></tr>
+</tbody>
+</table>
+</div>
+<p>资源类组件常用 USE 方法：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>含义</th><th>例子</th></tr>
+</thead>
+<tbody>
+<tr><td>Utilization</td><td>使用率</td><td>CPU、内存、磁盘、连接池使用率</td></tr>
+<tr><td>Saturation</td><td>饱和度</td><td>队列长度、线程池排队、Kafka lag</td></tr>
+<tr><td>Errors</td><td>错误</td><td>网络错误、磁盘错误、连接失败</td></tr>
+</tbody>
+</table>
+</div>
+<p>对业务服务来说，应用监控至少应包含：</p>
+<ul>
+<li>每个 API 的 QPS、成功率、错误码分布。</li>
+<li>P50、P90、P95、P99、P999 延迟。</li>
+<li>入口请求大小、响应大小、批量大小分布。</li>
+<li>下游依赖耗时、成功率、超时率、熔断次数。</li>
+<li>线程池活跃数、队列长度、拒绝数。</li>
+<li>数据库连接池使用率、等待时间、获取失败数。</li>
+<li>本地缓存命中率、缓存大小、淘汰数。</li>
+<li>消息生产成功率、消费延迟、重试次数。</li>
+<li>GC、goroutine/thread 数、堆内存、FD 数。</li>
+</ul>
+<p>P99 比平均值重要。平均延迟稳定，不代表用户体验稳定。很多事故都是 P99 先升高，然后队列堆积，最后错误率爆炸。</p>
+<h3 id="974-中间件监控"><a class="header" href="#974-中间件监控">9.7.4 中间件监控</a></h3>
+<p>中间件监控要关注“是否还能承载业务语义”，而不仅是“组件是否活着”。</p>
+<p><strong>MySQL</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>关注点</th></tr>
+</thead>
+<tbody>
+<tr><td>QPS / TPS</td><td>流量是否异常</td></tr>
+<tr><td>慢 SQL 数量</td><td>访问模式是否退化</td></tr>
+<tr><td>连接数 / 连接池等待</td><td>应用是否被 DB 卡住</td></tr>
+<tr><td>行锁等待 / 死锁</td><td>事务设计是否有问题</td></tr>
+<tr><td>主从延迟</td><td>读写分离是否会读旧数据</td></tr>
+<tr><td>Buffer Pool 命中率</td><td>内存是否足够</td></tr>
+<tr><td>磁盘 IOPS / fsync 延迟</td><td>存储是否饱和</td></tr>
+<tr><td>binlog 延迟与大小</td><td>数据订阅、恢复能力是否受影响</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Redis</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>关注点</th></tr>
+</thead>
+<tbody>
+<tr><td>QPS / 延迟</td><td>是否出现热点或网络抖动</td></tr>
+<tr><td>命中率</td><td>缓存是否有效</td></tr>
+<tr><td>内存使用 / evicted keys</td><td>是否正在淘汰关键数据</td></tr>
+<tr><td>hot key / big key</td><td>是否存在局部热点</td></tr>
+<tr><td>blocked clients</td><td>是否有慢命令阻塞</td></tr>
+<tr><td>replication lag</td><td>主从切换是否有数据风险</td></tr>
+<tr><td>连接数</td><td>客户端是否泄漏连接</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Kafka</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>关注点</th></tr>
+</thead>
+<tbody>
+<tr><td>Produce 成功率和耗时</td><td>上游是否能写入</td></tr>
+<tr><td>Consumer lag</td><td>下游是否跟得上</td></tr>
+<tr><td>分区倾斜</td><td>key 设计是否导致热点</td></tr>
+<tr><td>ISR 收缩</td><td>副本可靠性是否下降</td></tr>
+<tr><td>Broker 磁盘水位</td><td>是否接近不可写</td></tr>
+<tr><td>Rebalance 次数</td><td>消费组是否不稳定</td></tr>
+<tr><td>DLQ 数量</td><td>是否存在无法自动处理的数据</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Elasticsearch</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>关注点</th></tr>
+</thead>
+<tbody>
+<tr><td>查询延迟和错误率</td><td>搜索体验是否退化</td></tr>
+<tr><td>rejected / thread pool queue</td><td>查询或写入是否过载</td></tr>
+<tr><td>JVM heap / GC</td><td>集群是否接近不稳定</td></tr>
+<tr><td>segment 数量</td><td>merge 压力是否过大</td></tr>
+<tr><td>refresh / indexing 延迟</td><td>索引新鲜度</td></tr>
+<tr><td>shard 分布</td><td>是否存在热点分片</td></tr>
+<tr><td>circuit breaker</td><td>查询是否触发内存保护</td></tr>
+</tbody>
+</table>
+</div>
+<p>中间件指标要和业务指标联动。例如搜索零结果率升高，可能不是 ES 宕机，而是商品索引同步延迟或某个类目 mapping 错误。</p>
+<h3 id="975-指标设计规范"><a class="header" href="#975-指标设计规范">9.7.5 指标设计规范</a></h3>
+<p>指标设计不规范，监控平台很快会变成垃圾场。</p>
+<p><strong>命名</strong></p>
+<p>建议统一命名：</p>
+<pre><code class="language-text">&lt;domain&gt;_&lt;component&gt;_&lt;metric&gt;_&lt;unit&gt;
+</code></pre>
+<p>示例：</p>
+<pre><code class="language-text">order_create_requests_total
+order_create_latency_seconds
+payment_callback_failures_total
+inventory_reservation_conflicts_total
+checkout_init_dependency_latency_seconds
+</code></pre>
+<p><strong>标签</strong></p>
+<p>常用标签：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>标签</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><code>service</code></td><td>order-service</td></tr>
+<tr><td><code>env</code></td><td>prod、staging</td></tr>
+<tr><td><code>region</code></td><td>sg、hk、sh</td></tr>
+<tr><td><code>cluster</code></td><td>primary、canary</td></tr>
+<tr><td><code>endpoint</code></td><td>CreateOrder</td></tr>
+<tr><td><code>method</code></td><td>GET、POST</td></tr>
+<tr><td><code>result</code></td><td>success、failure</td></tr>
+<tr><td><code>error_code</code></td><td>INVENTORY_TIMEOUT</td></tr>
+<tr><td><code>dependency</code></td><td>inventory-service</td></tr>
+<tr><td><code>biz_type</code></td><td>physical、hotel、voucher</td></tr>
+</tbody>
+</table>
+</div>
+<p>不要把高基数字段放进指标标签，例如：</p>
+<ul>
+<li><code>user_id</code></li>
+<li><code>order_id</code></li>
+<li><code>sku_id</code></li>
+<li><code>trace_id</code></li>
+<li><code>request_id</code></li>
+</ul>
+<p>这些字段应该进入日志或追踪，不应该进入 metrics 标签。否则监控系统会被高基数打爆。</p>
+<p><strong>直方图桶</strong></p>
+<p>延迟指标建议使用 histogram，而不是只记录平均值。桶要贴近业务 SLO。</p>
+<p>例如创单延迟 SLO 是 3s，可以设置：</p>
+<pre><code class="language-text">50ms, 100ms, 200ms, 500ms, 1s, 2s, 3s, 5s, 10s
+</code></pre>
+<p>如果桶全是默认值，P99 可能无法准确表达业务目标。</p>
+<h3 id="976-日志系统"><a class="header" href="#976-日志系统">9.7.6 日志系统</a></h3>
+<p>日志用于回答“这一次具体发生了什么”。</p>
+<p>成熟的业务日志应该是结构化的，而不是只打印自然语言。</p>
+<pre><code class="language-json">{
+  "timestamp": "2026-05-07T10:30:00+08:00",
+  "level": "ERROR",
+  "service": "order-service",
+  "trace_id": "4f8c9f...",
+  "span_id": "a81d...",
+  "operation": "CreateOrder",
+  "user_id_hash": "u_9d21",
+  "order_id": "o_123456",
+  "idempotency_key": "idem_abc",
+  "error_code": "INVENTORY_RESERVE_TIMEOUT",
+  "dependency": "inventory-service",
+  "latency_ms": 850,
+  "message": "reserve inventory timeout"
+}
+</code></pre>
+<p>日志设计要注意：</p>
+<ul>
+<li>每条关键链路日志必须包含 <code>trace_id</code>。</li>
+<li>写操作日志必须包含业务 ID 和幂等键。</li>
+<li>错误日志必须包含标准错误码，而不是只打印异常堆栈。</li>
+<li>敏感信息要脱敏，例如手机号、证件号、银行卡号。</li>
+<li>日志级别要有规范，不能把正常业务失败都打成 ERROR。</li>
+<li>采样要谨慎，关键交易失败日志不能被采样丢掉。</li>
+</ul>
+<p>日志不是越多越好。无结构、无字段、无错误码的日志越多，排障越慢。</p>
+<h3 id="977-链路追踪"><a class="header" href="#977-链路追踪">9.7.7 链路追踪</a></h3>
+<p>链路追踪用于回答“慢在哪里、卡在哪一跳”。</p>
+<p>一次完整交易链路可能是：</p>
+<pre><code class="language-text">Gateway
+  -&gt; Checkout Service
+    -&gt; Product Service
+    -&gt; Pricing Service
+    -&gt; Inventory Service
+    -&gt; Marketing Service
+  -&gt; Order Service
+    -&gt; MySQL
+    -&gt; Outbox
+  -&gt; Kafka
+    -&gt; Payment Service
+</code></pre>
+<p>追踪系统需要做到：</p>
+<ul>
+<li>网关生成或透传 <code>trace_id</code>。</li>
+<li>RPC、HTTP、MQ 都要传递上下文。</li>
+<li>每个 Span 标记服务名、方法、依赖、错误码、耗时。</li>
+<li>异步消息要把生产端和消费端通过 trace 或 event id 关联。</li>
+<li>对慢请求和错误请求提高采样率。</li>
+</ul>
+<p>关键 Span 建议包含：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><code>biz.operation</code></td><td>checkout_init、create_order、payment_callback</td></tr>
+<tr><td><code>biz.id</code></td><td>order_id、payment_id、checkout_id</td></tr>
+<tr><td><code>dependency</code></td><td>inventory-service</td></tr>
+<tr><td><code>error_code</code></td><td>INVENTORY_TIMEOUT</td></tr>
+<tr><td><code>retry_count</code></td><td>2</td></tr>
+<tr><td><code>degraded</code></td><td>true</td></tr>
+<tr><td><code>idempotency_hit</code></td><td>false</td></tr>
+</tbody>
+</table>
+</div>
+<p>追踪不要只服务研发排障，也要服务事故复盘。事故时间线中每个关键业务动作都应该能找到对应 trace。</p>
+<h3 id="978-告警体系"><a class="header" href="#978-告警体系">9.7.8 告警体系</a></h3>
+<p>告警不是“指标超过阈值发消息”。告警的目标是把正确的人，在正确时间，带到正确现场。</p>
+<p>告警优先级建议如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>等级</th><th>定义</th><th>示例</th><th>响应</th></tr>
+</thead>
+<tbody>
+<tr><td>P0</td><td>核心业务大面积不可用或有资损风险</td><td>下单成功率大跌、重复扣款、支付状态错乱</td><td>立即电话，事故群，负责人到场</td></tr>
+<tr><td>P1</td><td>核心链路局部异常或持续退化</td><td>某地区支付失败率升高、库存预占超时</td><td>10 分钟内响应</td></tr>
+<tr><td>P2</td><td>非核心功能异常或有恶化趋势</td><td>推荐不可用、某批任务失败</td><td>工作时间处理或值班处理</td></tr>
+<tr><td>P3</td><td>观察项或容量预警</td><td>磁盘水位增长、连接池接近阈值</td><td>工单跟进</td></tr>
+</tbody>
+</table>
+</div>
+<p>告警要优先基于症状，而不是原因。</p>
+<p>好的 P0 告警：</p>
+<pre><code class="language-text">订单创建成功率 5 分钟内低于 98%，影响全部用户
+</code></pre>
+<p>较差的 P0 告警：</p>
+<pre><code class="language-text">order-service CPU &gt; 80%
+</code></pre>
+<p>CPU 高可能只是正常流量，也可能已经自动扩容；订单成功率下降才是真正用户影响。</p>
+<h3 id="979-slo-燃烧率告警"><a class="header" href="#979-slo-燃烧率告警">9.7.9 SLO 燃烧率告警</a></h3>
+<p>固定阈值容易误报或漏报。更成熟的方式是错误预算燃烧率告警。</p>
+<p>例如某接口 30 天 SLO 是 99.9%，错误预算是 0.1%。如果 5 分钟内错误率达到 5%，虽然只持续很短时间，但它燃烧预算的速度非常快，应立即告警。</p>
+<p>常见做法是多窗口组合：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>窗口</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td>5 分钟</td><td>快速发现突发事故</td></tr>
+<tr><td>30 分钟</td><td>过滤短暂抖动</td></tr>
+<tr><td>2 小时</td><td>发现持续退化</td></tr>
+<tr><td>24 小时</td><td>发现慢性问题</td></tr>
+</tbody>
+</table>
+</div>
+<p>示例规则：</p>
+<pre><code class="language-yaml">groups:
+  - name: order-slo
+    rules:
+      - alert: OrderCreateHighBurnRate
+        expr: |
+          (
+            sum(rate(order_create_requests_total{result="failure"}[5m]))
+            /
+            sum(rate(order_create_requests_total[5m]))
+          ) &gt; 0.02
+        for: 5m
+        labels:
+          severity: P0
+          service: order-service
+        annotations:
+          summary: "Order create failure rate is burning error budget fast"
+          runbook: "https://runbook.example.com/order-create"
+</code></pre>
+<p>真实生产中还要叠加 30 分钟窗口，避免短暂毛刺直接打爆电话。</p>
+<h3 id="9710-告警治理"><a class="header" href="#9710-告警治理">9.7.10 告警治理</a></h3>
+<p>告警治理和代码治理一样重要。没有治理，告警会腐烂。</p>
+<p>每条告警都应该有：</p>
+<ul>
+<li>明确 owner。</li>
+<li>明确严重级别。</li>
+<li>明确触发条件。</li>
+<li>明确恢复条件。</li>
+<li>明确 runbook。</li>
+<li>明确看板链接。</li>
+<li>明确是否需要夜间唤醒。</li>
+<li>明确抑制和去重策略。</li>
+</ul>
+<p>告警噪声常见来源：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>噪声来源</th><th>治理方式</th></tr>
+</thead>
+<tbody>
+<tr><td>阈值过低</td><td>使用历史基线或分位数</td></tr>
+<tr><td>同根因多告警</td><td>告警聚合和抑制</td></tr>
+<tr><td>非业务影响告警夜间唤醒</td><td>调整严重级别</td></tr>
+<tr><td>发布期间短暂波动</td><td>结合变更事件和灰度窗口</td></tr>
+<tr><td>无 owner 告警</td><td>直接下线或补 ownership</td></tr>
+<tr><td>长期无人处理</td><td>每周告警复盘</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个很实用的指标是：<strong>每周每个 on-call 被夜间唤醒次数</strong>。如果次数持续过高，团队会进入告警疲劳，真正事故反而没人敏感。</p>
+<h3 id="9711-看板设计"><a class="header" href="#9711-看板设计">9.7.11 看板设计</a></h3>
+<p>看板要按排障路径设计，而不是按组件堆图。</p>
+<p>推荐四类看板：</p>
+<p><strong>业务驾驶舱</strong></p>
+<ul>
+<li>GMV、订单量、支付成功率。</li>
+<li>搜索、加购、结算、创单、支付漏斗。</li>
+<li>各端、各地区、各品类分桶。</li>
+<li>当前事故和变更事件。</li>
+</ul>
+<p><strong>核心链路看板</strong></p>
+<ul>
+<li>结算 Init 每一步成功率和耗时。</li>
+<li>创单 Saga 每一步成功率和耗时。</li>
+<li>支付回调处理延迟。</li>
+<li>补偿任务 backlog。</li>
+</ul>
+<p><strong>服务看板</strong></p>
+<ul>
+<li>API QPS、错误率、P99。</li>
+<li>下游依赖耗时。</li>
+<li>线程池、连接池、队列。</li>
+<li>当前版本、实例数、重启次数。</li>
+</ul>
+<p><strong>中间件看板</strong></p>
+<ul>
+<li>DB 慢 SQL、锁等待、主从延迟。</li>
+<li>Redis 命中率、热点 key、内存淘汰。</li>
+<li>Kafka lag、DLQ、分区倾斜。</li>
+<li>ES 查询延迟、rejected、heap、shard 状态。</li>
+</ul>
+<p>看板第一屏应该回答三个问题：</p>
+<ol>
+<li>用户是否受影响？</li>
+<li>影响范围多大？</li>
+<li>当前最可疑的故障域在哪里？</li>
+</ol>
+<p>不要让 on-call 在事故中从几十张图里猜。</p>
+<h3 id="9712-监控覆盖检查清单"><a class="header" href="#9712-监控覆盖检查清单">9.7.12 监控覆盖检查清单</a></h3>
+<p>上线前可以用下面的清单检查监控是否完整：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>检查项</th><th>必须回答</th></tr>
+</thead>
+<tbody>
+<tr><td>业务成功率</td><td>核心动作是否有成功率指标</td></tr>
+<tr><td>业务延迟</td><td>用户关键等待路径是否有 P99</td></tr>
+<tr><td>错误码</td><td>是否区分业务失败和系统失败</td></tr>
+<tr><td>依赖指标</td><td>每个下游是否有成功率、耗时、超时</td></tr>
+<tr><td>资源饱和</td><td>线程池、连接池、队列是否可见</td></tr>
+<tr><td>数据一致性</td><td>是否有对账差异、补偿 backlog、DLQ</td></tr>
+<tr><td>分桶维度</td><td>是否能按地区、端、品类、渠道下钻</td></tr>
+<tr><td>变更关联</td><td>看板是否能看到版本、配置、开关变化</td></tr>
+<tr><td>告警 owner</td><td>每条 P0/P1 是否有人负责</td></tr>
+<tr><td>Runbook</td><td>告警是否附带处理步骤</td></tr>
+</tbody>
+</table>
+</div>
+<p>监控系统做到这个程度，才真正有资格说“线上可观测”。</p>
+<h2 id="98-应急响应先止血再定位再恢复"><a class="header" href="#98-应急响应先止血再定位再恢复">9.8 应急响应：先止血，再定位，再恢复</a></h2>
+<p>事故处理中最常见的错误，是一开始就追根因。真正的事故响应顺序应该是：</p>
+<ol>
+<li>判断影响范围。</li>
+<li>保护核心链路。</li>
+<li>止血和恢复用户体验。</li>
+<li>保留证据。</li>
+<li>定位根因。</li>
+<li>修复和复盘。</li>
+</ol>
+<h3 id="981-事故角色"><a class="header" href="#981-事故角色">9.8.1 事故角色</a></h3>
+<p>P0/P1 事故建议明确角色：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>角色</th><th>职责</th></tr>
+</thead>
+<tbody>
+<tr><td>Incident Commander</td><td>统一指挥，决定止血动作</td></tr>
+<tr><td>Tech Lead</td><td>技术定位和修复方案</td></tr>
+<tr><td>Operator</td><td>执行切流、回滚、开关、扩容</td></tr>
+<tr><td>Communicator</td><td>同步业务、客服、管理层</td></tr>
+<tr><td>Scribe</td><td>记录时间线和关键决策</td></tr>
+</tbody>
+</table>
+</div>
+<p>事故中最怕多人同时操作、没人记录、没人统一决策。角色清晰比技术高超更重要。</p>
+<h3 id="982-常见止血动作"><a class="header" href="#982-常见止血动作">9.8.2 常见止血动作</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>止血动作</th></tr>
+</thead>
+<tbody>
+<tr><td>新版本错误率升高</td><td>立即回滚或停止灰度</td></tr>
+<tr><td>单地域异常</td><td>摘除地域流量或切到备用区域</td></tr>
+<tr><td>下游依赖慢</td><td>熔断、降级、限制并发</td></tr>
+<tr><td>数据库打满</td><td>限流写入、暂停批任务、扩容只读</td></tr>
+<tr><td>Kafka 积压</td><td>扩消费者、暂停低优先级生产、隔离热点 topic</td></tr>
+<tr><td>支付渠道异常</td><td>切支付渠道、挂起订单、启动渠道对账</td></tr>
+<tr><td>商品错误上架</td><td>下架、冻结库存、停止投放</td></tr>
+<tr><td>价格错误</td><td>关闭活动、冻结订单、通知客服和法务</td></tr>
+</tbody>
+</table>
+</div>
+<p>止血动作要提前演练。事故中临时决定“能不能关这个开关”，通常已经晚了。</p>
+<h3 id="983-事故时间线"><a class="header" href="#983-事故时间线">9.8.3 事故时间线</a></h3>
+<p>事故复盘依赖时间线。建议记录：</p>
+<ul>
+<li>第一次异常指标出现时间。</li>
+<li>第一次告警时间。</li>
+<li>人工响应时间。</li>
+<li>影响范围变化。</li>
+<li>每次操作时间和操作人。</li>
+<li>关键判断依据。</li>
+<li>恢复时间。</li>
+<li>根因确认时间。</li>
+</ul>
+<p>没有时间线，复盘会变成各说各话。</p>
+<h2 id="99-容量规划压测与故障演练"><a class="header" href="#99-容量规划压测与故障演练">9.9 容量规划、压测与故障演练</a></h2>
+<p>容量规划不是“机器够不够”，而是“业务增长和流量模型变化时，核心链路是否还能维持 SLO”。</p>
+<h3 id="991-容量估算"><a class="header" href="#991-容量估算">9.9.1 容量估算</a></h3>
+<p>容量估算从业务漏斗开始。</p>
+<pre><code class="language-text">日活用户 -&gt; 高峰活跃 -&gt; 商品浏览 -&gt; 加购 -&gt; 结算 -&gt; 下单 -&gt; 支付
+</code></pre>
+<p>需要估算：</p>
+<ul>
+<li>峰值 QPS。</li>
+<li>并发请求数。</li>
+<li>数据写入量。</li>
+<li>热点 key 和热点商品。</li>
+<li>异步消息量。</li>
+<li>重试和补偿流量。</li>
+<li>外部依赖容量。</li>
+</ul>
+<p>大促系统尤其要关注流量形态。日常流量通常平滑，大促流量可能在秒级集中爆发。平均 QPS 对大促没有意义。</p>
+<h3 id="992-压测"><a class="header" href="#992-压测">9.9.2 压测</a></h3>
+<p>压测要验证三件事：</p>
+<ol>
+<li>系统上限在哪里。</li>
+<li>退化方式是否符合预期。</li>
+<li>保护机制是否生效。</li>
+</ol>
+<p>压测类型：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类型</th><th>目标</th></tr>
+</thead>
+<tbody>
+<tr><td>单服务压测</td><td>找服务自身瓶颈</td></tr>
+<tr><td>全链路压测</td><td>验证端到端能力</td></tr>
+<tr><td>影子流量</td><td>用真实流量分布验证读链路</td></tr>
+<tr><td>限流压测</td><td>验证限流阈值和用户体验</td></tr>
+<tr><td>降级压测</td><td>验证弱依赖失败时主链路是否稳定</td></tr>
+<tr><td>恢复压测</td><td>验证故障恢复后队列和补偿是否追平</td></tr>
+</tbody>
+</table>
+</div>
+<p>压测报告不要只写“峰值 QPS”。至少要包含：</p>
+<ul>
+<li>安全水位。</li>
+<li>瓶颈资源。</li>
+<li>P99 曲线。</li>
+<li>错误率拐点。</li>
+<li>下游依赖压力。</li>
+<li>扩容建议。</li>
+<li>降级开关验证结果。</li>
+</ul>
+<h3 id="993-故障演练"><a class="header" href="#993-故障演练">9.9.3 故障演练</a></h3>
+<p>故障演练比压测更接近真实事故。</p>
+<p>常见演练：</p>
+<ul>
+<li>关闭一个应用实例。</li>
+<li>让某个下游延迟升高。</li>
+<li>让 Redis 热 key 失效。</li>
+<li>让 Kafka 消费者停止。</li>
+<li>让支付渠道回调延迟。</li>
+<li>让数据库只读延迟升高。</li>
+<li>灰度版本返回错误码。</li>
+<li>配置中心下发错误配置并回滚。</li>
+</ul>
+<p>演练后要复盘：</p>
+<ul>
+<li>告警是否及时。</li>
+<li>值班是否知道怎么处理。</li>
+<li>开关是否可用。</li>
+<li>回滚是否顺畅。</li>
+<li>数据是否恢复一致。</li>
+<li>文档是否准确。</li>
+</ul>
+<p>未演练的预案，不应被视为可靠性能力。</p>
+<h2 id="910-数据可靠性对账补偿备份与恢复"><a class="header" href="#910-数据可靠性对账补偿备份与恢复">9.10 数据可靠性：对账、补偿、备份与恢复</a></h2>
+<p>业务系统的可靠性最终会落到数据上。服务恢复但数据错了，事故并没有结束。</p>
+<p>数据可靠性包括：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>能力</th><th>目标</th></tr>
+</thead>
+<tbody>
+<tr><td>幂等</td><td>防止重复副作用</td></tr>
+<tr><td>状态机</td><td>防止非法状态推进</td></tr>
+<tr><td>Outbox</td><td>保证本地事务和消息发送可恢复</td></tr>
+<tr><td>对账</td><td>发现跨系统不一致</td></tr>
+<tr><td>补偿</td><td>自动或人工修复不一致</td></tr>
+<tr><td>DLQ</td><td>隔离无法自动处理的数据</td></tr>
+<tr><td>备份</td><td>防止数据不可逆丢失</td></tr>
+<tr><td>恢复演练</td><td>确认备份真的能恢复</td></tr>
+</tbody>
+</table>
+</div>
+<p>备份不是可靠性终点，恢复才是。很多团队有备份，但从未演练恢复；真正事故发生时才发现备份缺字段、权限不可用、恢复耗时不可接受。</p>
+<p>关键业务数据至少要定期演练：</p>
+<ul>
+<li>单表误删恢复。</li>
+<li>单订单修复。</li>
+<li>按时间点恢复。</li>
+<li>跨系统对账修正。</li>
+<li>消息重放。</li>
+<li>补偿任务重跑。</li>
+</ul>
+<p>数据修复必须有审计。任何人工修复都应该记录操作人、原因、SQL 或工具参数、影响行数、审批单和验证结果。</p>
+<h2 id="911-发布可靠性多数事故来自变更"><a class="header" href="#911-发布可靠性多数事故来自变更">9.11 发布可靠性：多数事故来自变更</a></h2>
+<p>线上事故很大比例来自变更：代码发布、配置变更、数据迁移、活动配置、扩容缩容、依赖升级。</p>
+<p>发布可靠性要控制三个问题：</p>
+<ol>
+<li>变更前能否发现风险。</li>
+<li>变更中能否限制影响。</li>
+<li>变更后能否快速回滚。</li>
+</ol>
+<h3 id="9111-灰度发布"><a class="header" href="#9111-灰度发布">9.11.1 灰度发布</a></h3>
+<p>灰度发布建议按层推进：</p>
+<pre><code class="language-text">开发环境 -&gt; 测试环境 -&gt; 预发环境 -&gt; 单实例灰度 -&gt; 小流量灰度 -&gt; 分区域灰度 -&gt; 全量
+</code></pre>
+<p>灰度期间必须观察：</p>
+<ul>
+<li>错误率。</li>
+<li>P99 延迟。</li>
+<li>业务成功率。</li>
+<li>下游依赖耗时。</li>
+<li>新旧版本差异。</li>
+<li>日志错误码。</li>
+</ul>
+<p>如果灰度只看进程是否启动成功，等于没有灰度。</p>
+<h3 id="9112-配置变更"><a class="header" href="#9112-配置变更">9.11.2 配置变更</a></h3>
+<p>配置变更和代码发布一样危险，甚至更危险，因为它通常绕过测试。</p>
+<p>高风险配置包括：</p>
+<ul>
+<li>限流阈值。</li>
+<li>降级开关。</li>
+<li>价格规则。</li>
+<li>营销规则。</li>
+<li>路由规则。</li>
+<li>支付渠道权重。</li>
+<li>分库分表配置。</li>
+<li>库存策略。</li>
+</ul>
+<p>配置中心至少应支持：</p>
+<ul>
+<li>变更审批。</li>
+<li>灰度下发。</li>
+<li>版本记录。</li>
+<li>一键回滚。</li>
+<li>生效范围展示。</li>
+<li>变更事件写入监控和日志。</li>
+</ul>
+<h3 id="9113-数据库变更"><a class="header" href="#9113-数据库变更">9.11.3 数据库变更</a></h3>
+<p>数据库变更尤其要谨慎。</p>
+<p>常见原则：</p>
+<ul>
+<li>先兼容旧代码，再发布新代码，最后清理旧字段。</li>
+<li>大表 DDL 使用在线变更工具。</li>
+<li>回填任务限速，避免打爆主库。</li>
+<li>回填有断点续跑和校验。</li>
+<li>删除字段前至少观察一个版本周期。</li>
+<li>变更前准备回滚和恢复方案。</li>
+</ul>
+<p>很多事故不是 SQL 写错，而是回填任务没有限速，导致主库延迟和线上接口超时。</p>
+<h2 id="912-复盘文化从事故里赚回经验"><a class="header" href="#912-复盘文化从事故里赚回经验">9.12 复盘文化：从事故里赚回经验</a></h2>
+<p>事故复盘不是追责会。复盘的目标是让系统和团队变得更可靠。</p>
+<p>一份高质量复盘至少包含：</p>
+<ul>
+<li>事故摘要。</li>
+<li>影响范围。</li>
+<li>时间线。</li>
+<li>根因。</li>
+<li>为什么监控没有更早发现。</li>
+<li>为什么保护机制没有阻止扩散。</li>
+<li>为什么恢复耗时这么长。</li>
+<li>已完成修复。</li>
+<li>后续行动项。</li>
+<li>行动项 owner 和截止时间。</li>
+</ul>
+<p>复盘中最有价值的问题通常不是“谁犯了错”，而是：</p>
+<ul>
+<li>为什么这个错误能上线？</li>
+<li>为什么灰度没有发现？</li>
+<li>为什么告警没有及时响？</li>
+<li>为什么回滚不够快？</li>
+<li>为什么影响范围没有被隔离？</li>
+<li>为什么同类问题以前没有被系统性治理？</li>
+</ul>
+<p>复盘行动项要避免空话。比如“加强测试”“提升稳定性意识”不是有效行动项。有效行动项应该是：</p>
+<ul>
+<li>为订单创建接口新增创单成功率 SLO 告警。</li>
+<li>将营销依赖从订单线程池拆到独立 bulkhead。</li>
+<li>支付回调增加渠道流水唯一约束。</li>
+<li>配置中心对支付渠道权重开启双人审批。</li>
+<li>每月演练一次库存服务超时降级。</li>
+</ul>
+<h2 id="913-本章小结"><a class="header" href="#913-本章小结">9.13 本章小结</a></h2>
+<p>可靠性工程是一套闭环能力：</p>
+<ol>
+<li>用 SLI/SLO 定义业务目标。</li>
+<li>用故障模型识别系统会怎样坏。</li>
+<li>用高可用架构和保护机制限制故障扩散。</li>
+<li>用监控、日志、追踪和告警尽早发现并定位问题。</li>
+<li>用应急响应、对账补偿和恢复演练把系统拉回稳定状态。</li>
+<li>用发布治理和复盘机制减少下一次事故。</li>
+</ol>
+<p>对业务系统来说，可靠性最重要的不是“服务活着”，而是“核心业务结果可信”。一个 20 年仍能持续演进的系统，靠的不是从不出故障，而是每一次故障都能被看见、被控制、被恢复，并最终沉淀成工程能力。</p>
+<h2 id="914-本章面试题与追问"><a class="header" href="#914-本章面试题与追问">9.14 本章面试题与追问</a></h2>
+<ol>
+<li>
+<p>可靠性、可用性、正确性、可恢复性之间有什么区别？
+追问：为什么接口 200 成功率高，不代表业务系统可靠？</p>
+</li>
+<li>
+<p>SLI、SLO、SLA 分别是什么？
+追问：如何为订单创建链路设计 SLO？</p>
+</li>
+<li>
+<p>错误预算有什么作用？
+追问：错误预算耗尽时，研发流程应该发生什么变化？</p>
+</li>
+<li>
+<p>业务监控和系统监控有什么区别？
+追问：为什么 CPU 正常但支付成功率下降仍然是 P0？</p>
+</li>
+<li>
+<p>如何设计一个电商系统的监控体系？
+追问：商品、库存、订单、支付分别应该监控哪些业务指标？</p>
+</li>
+<li>
+<p>告警为什么要优先基于症状，而不是基于原因？
+追问：CPU 高、下单成功率下降、Kafka lag 上升，哪个更适合做 P0 告警？</p>
+</li>
+<li>
+<p>如何治理告警疲劳？
+追问：如何判断一条告警应该夜间唤醒，还是只生成工单？</p>
+</li>
+<li>
+<p>监控、日志、链路追踪分别解决什么问题？
+追问：如果结算 P99 突然升高，你会如何组合使用三者定位问题？</p>
+</li>
+<li>
+<p>超时、重试和幂等是什么关系？
+追问：为什么支付回调和订单创建不能随便重试？</p>
+</li>
+<li>
+<p>限流、熔断、降级分别解决什么问题？
+追问：库存服务超时时，搜索页、结算页、创单页的降级策略有什么不同？</p>
+</li>
+<li>
+<p>什么是舱壁隔离？
+追问：为什么共享线程池会把非核心故障放大成全站故障？</p>
+</li>
+<li>
+<p>如何做容量规划和压测？
+追问：为什么大促不能只看日均 QPS？</p>
+</li>
+<li>
+<p>故障演练和压测有什么不同？
+追问：一个支付渠道异常的演练应该验证哪些能力？</p>
+</li>
+<li>
+<p>发布可靠性包括哪些内容？
+追问：为什么配置变更可能比代码发布更危险？</p>
+</li>
+<li>
+<p>如何做事故复盘？
+追问：什么样的复盘行动项才是有效的？</p>
+</li>
+</ol>
+<h2 id="对账补偿dlq-与故障恢复"><a class="header" href="#对账补偿dlq-与故障恢复">对账、补偿、DLQ 与故障恢复</a></h2>
+<p>业务系统真正困难的地方，不是让每一次调用都成功，而是在调用失败、消息丢失、回调乱序、数据延迟、人工误操作和外部系统不可控时，仍然能把业务状态拉回正确轨道。</p>
+<p>电商系统尤其如此。一次下单会穿过商品、库存、营销、计价、订单、支付、履约、供应商、搜索、财务等多个系统。任何一个系统都只能保证自己局部正确，却很难在同一个事务里保证全链路同时成功。于是，系统必须接受一个事实：<strong>短时间不一致不可避免，长期不收敛不可接受</strong>。</p>
+<p>对账、补偿、DLQ 和故障恢复，就是让系统从“偶发错误靠人肉排查”走向“差异可发现、失败可隔离、修复可执行、过程可审计”的工程体系。</p>
+<p>本章会以电商系统为主线，回答几个关键问题：</p>
+<ol>
+<li>什么情况下必须做对账，谁是权威数据源？</li>
+<li>对账发现差异后，如何生成安全的补偿任务？</li>
+<li>什么错误应该自动重试，什么错误应该进入 DLQ？</li>
+<li>DLQ 为什么不能只是 Kafka 的死信 Topic？</li>
+<li>支付成功但订单未更新、库存扣了但订单失败、供应商同步一半失败，应该如何恢复？</li>
+<li>如何设计后台、监控、审计和人工介入流程，让故障恢复真正可运营？</li>
+</ol>
+<h2 id="101-先建立一个判断恢复能力是主链路的一部分"><a class="header" href="#101-先建立一个判断恢复能力是主链路的一部分">10.1 先建立一个判断：恢复能力是主链路的一部分</a></h2>
+<p>很多团队把对账和补偿当作“上线后再补”的兜底脚本。这是危险的。业务系统上线第一天，就应该具备基本恢复能力。</p>
+<p>因为故障不是例外，而是分布式协作的常态：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>故障形态</th><th>电商例子</th><th>如果没有恢复能力</th></tr>
+</thead>
+<tbody>
+<tr><td>请求超时</td><td>库存预占接口超时，但下游实际预占成功</td><td>订单失败，库存长期占用</td></tr>
+<tr><td>回调丢失</td><td>支付渠道扣款成功，回调没有送达</td><td>用户已扣款，订单仍待支付</td></tr>
+<tr><td>消息失败</td><td>商品已发布，搜索索引事件消费失败</td><td>前台搜索不到商品或仍展示下架商品</td></tr>
+<tr><td>消费乱序</td><td>先收到订单取消，再收到支付成功事件</td><td>状态机被错误推进</td></tr>
+<tr><td>部分成功</td><td>订单创建成功，优惠券锁定失败</td><td>用户看到订单异常，券状态不一致</td></tr>
+<tr><td>外部延迟</td><td>供应商库存更新延迟 10 分钟</td><td>平台继续售卖已售罄商品</td></tr>
+<tr><td>人工误操作</td><td>运营错误调整价格或库存</td><td>需要回滚、冻结和审计</td></tr>
+</tbody>
+</table>
+</div>
+<p>可靠的系统不是没有这些问题，而是问题出现后能够自动识别、自动收敛或可控地交给人工处理。</p>
+<p>这一章讨论的对象不是单个技术组件，而是一条恢复闭环：</p>
+<pre><code class="language-text">业务事实产生
+  -&gt; 事件投递 / 状态推进 / 外部交互
+  -&gt; 差异出现
+  -&gt; 对账发现差异
+  -&gt; 差异分类
+  -&gt; 自动补偿或进入 DLQ
+  -&gt; 人工修复或重新投递
+  -&gt; 再次对账确认收敛
+  -&gt; 形成审计记录和复盘材料
+</code></pre>
+<p>如果这个闭环缺任何一环，系统都会变成“线上看起来能跑，但出了问题谁也说不清”。</p>
+<h2 id="102-四个核心概念"><a class="header" href="#102-四个核心概念">10.2 四个核心概念</a></h2>
+<h3 id="1021-对账"><a class="header" href="#1021-对账">10.2.1 对账</a></h3>
+<p>对账是用一个或多个权威数据源，比对另一个系统中的派生状态、投影状态或外部状态，发现差异并形成可处理的差异项。</p>
+<p>对账不是财务系统专属概念。只要存在下面任意一种情况，就需要对账：</p>
+<ul>
+<li>跨系统异步同步。</li>
+<li>事件驱动的最终一致。</li>
+<li>本地系统与外部渠道协作。</li>
+<li>缓存、索引、读模型与主数据分离。</li>
+<li>主链路为了性能接受短窗口不一致。</li>
+<li>需要审计、追溯和证明业务结果。</li>
+</ul>
+<p>例如：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对账场景</th><th>权威数据源</th><th>被对账对象</th><th>常见差异</th></tr>
+</thead>
+<tbody>
+<tr><td>支付对账</td><td>支付渠道账单、银行流水</td><td>本地支付单、订单状态</td><td>渠道成功，本地未支付</td></tr>
+<tr><td>库存对账</td><td>库存流水账本</td><td>库存余额快照、Redis 库存</td><td>流水扣减成功，余额未刷新</td></tr>
+<tr><td>订单对账</td><td>订单状态日志、支付事实</td><td>订单主状态、履约状态</td><td>支付成功但订单未推进</td></tr>
+<tr><td>商品对账</td><td>商品正式表、发布版本</td><td>搜索索引、缓存、推荐特征</td><td>商品下架但搜索仍可见</td></tr>
+<tr><td>营销对账</td><td>券实例状态、核销流水</td><td>订单优惠快照、用户券包</td><td>订单取消但券未释放</td></tr>
+<tr><td>供应商对账</td><td>供应商接口或文件</td><td>平台商品、库存、价格</td><td>供应商下架但平台仍售卖</td></tr>
+<tr><td>消息对账</td><td>Outbox 表</td><td>Kafka 消费进度、下游处理表</td><td>事件已生成但未被消费</td></tr>
+</tbody>
+</table>
+</div>
+<p>对账的本质是：<strong>用更可信的事实校准更容易漂移的状态</strong>。</p>
+<h3 id="1022-补偿"><a class="header" href="#1022-补偿">10.2.2 补偿</a></h3>
+<p>补偿是针对已发现的不一致，执行一个可幂等、可重试、可审计的修复动作，让系统重新收敛。</p>
+<p>补偿不是“反向操作”这么简单。真实业务里，补偿动作要遵守状态机、资金规则、库存规则和用户体验边界。</p>
+<p>例如：</p>
+<ul>
+<li>库存预占成功但订单创建失败，可以释放库存。</li>
+<li>支付成功但订单仍待支付，应推进订单到已支付，而不是退款。</li>
+<li>订单已取消后又收到支付成功，可能要进入退款或人工确认，而不是直接把订单改回已支付。</li>
+<li>商品已下架但搜索仍展示，应删除搜索文档或标记不可售。</li>
+<li>供应商酒店价格异常，可能不能自动覆盖，要进入人工审核。</li>
+</ul>
+<p>补偿的核心原则是：<strong>修复业务结果，而不是机械回滚技术动作</strong>。</p>
+<h3 id="1023-dlq"><a class="header" href="#1023-dlq">10.2.3 DLQ</a></h3>
+<p>DLQ 是 Dead Letter Queue，死信队列。但在业务系统里，DLQ 不应该只是 MQ 里的失败 Topic。</p>
+<p>对于电商系统，失败数据往往需要查询、筛选、分派、修复、重新投递、忽略、审计和统计。Kafka DLQ 可以保留失败消息，但它不适合承担运营治理主存储。</p>
+<p>更成熟的做法是：</p>
+<pre><code class="language-text">Kafka DLQ：短期失败消息缓冲，可选
+MySQL DLQ：权威问题单、处理状态、修复入口和审计台账
+对象存储：保存大 payload、原始文件、渠道账单、供应商原始响应
+运营后台：提供筛选、修复、重放、忽略、导出、审批
+</code></pre>
+<p>所以本章提到 DLQ 时，重点指“可运营的死信治理体系”，不只是消息中间件里的一个 Topic。</p>
+<h3 id="1024-故障恢复"><a class="header" href="#1024-故障恢复">10.2.4 故障恢复</a></h3>
+<p>故障恢复是比对账、补偿、DLQ 更大的概念。它覆盖请求失败、任务失败、数据不一致、系统宕机、灾备切换和人工修复。</p>
+<p>可以分为四层：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>目标</th><th>常见手段</th></tr>
+</thead>
+<tbody>
+<tr><td>请求级恢复</td><td>单次请求失败后快速返回或安全重试</td><td>超时、重试、幂等键、状态查询</td></tr>
+<tr><td>任务级恢复</td><td>异步任务失败后继续推进</td><td>重试队列、补偿任务、Checkpoint、Worker Lease</td></tr>
+<tr><td>数据级恢复</td><td>多系统数据重新收敛</td><td>对账、重放、差异修复、人工工单</td></tr>
+<tr><td>系统级恢复</td><td>服务或机房故障后恢复业务能力</td><td>回滚、切流、降级、灾备、数据恢复</td></tr>
+</tbody>
+</table>
+</div>
+<p>成熟系统不会把恢复责任压在某一层。只靠请求重试会放大故障，只靠夜间对账会延长用户影响，只靠人工工单会拖垮团队。</p>
+<h2 id="103-设计对账前先定义事实和口径"><a class="header" href="#103-设计对账前先定义事实和口径">10.3 设计对账前，先定义“事实”和“口径”</a></h2>
+<p>对账最容易失败的原因，不是 SQL 写错，而是团队没有统一“谁说了算”。</p>
+<h3 id="1031-权威数据源"><a class="header" href="#1031-权威数据源">10.3.1 权威数据源</a></h3>
+<p>不同业务域的权威事实不同：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>业务对象</th><th>权威事实</th><th>不应作为权威的对象</th></tr>
+</thead>
+<tbody>
+<tr><td>支付是否成功</td><td>渠道交易流水、本地支付单状态机</td><td>前端支付页结果、同步预下单返回</td></tr>
+<tr><td>订单是否有效</td><td>订单主状态 + 状态变更日志</td><td>搜索索引、客服备注</td></tr>
+<tr><td>库存是否扣减</td><td>库存流水账本、预占记录、确认记录</td><td>Redis 当前值、前台展示库存</td></tr>
+<tr><td>券是否核销</td><td>券实例状态机、核销流水</td><td>订单优惠展示字段</td></tr>
+<tr><td>商品是否可售</td><td>商品发布版本、可售规则、库存状态</td><td>ES 文档、缓存详情页</td></tr>
+<tr><td>供应商是否有库存</td><td>供应商实时查询或最近一次有效同步</td><td>平台缓存库存</td></tr>
+</tbody>
+</table>
+</div>
+<p>权威数据源也不是永远固定的。资金事实通常以渠道和银行为准；业务状态以本地状态机为准；履约状态可能以供应商确认为准；财务入账以总账系统为准。对账系统要明确每类差异的裁决规则。</p>
+<h3 id="1032-业务口径"><a class="header" href="#1032-业务口径">10.3.2 业务口径</a></h3>
+<p>同一个字段在不同系统里可能含义不同。</p>
+<p>以支付为例：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>可能的口径差异</th></tr>
+</thead>
+<tbody>
+<tr><td><code>paid_amount</code></td><td>用户实付、渠道扣款、平台到账、扣除手续费后金额</td></tr>
+<tr><td><code>paid_time</code></td><td>用户确认时间、渠道扣款时间、回调到达时间、本地入库时间</td></tr>
+<tr><td><code>success</code></td><td>渠道受理成功、扣款成功、清算成功、可结算成功</td></tr>
+<tr><td><code>refund_amount</code></td><td>申请退款金额、渠道退款金额、实际到账金额</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果这些口径不统一，对账会不断制造“假差异”。因此重要字段必须有数据字典，并在系统边界上写清楚。</p>
+<h3 id="1033-差异容忍窗口"><a class="header" href="#1033-差异容忍窗口">10.3.3 差异容忍窗口</a></h3>
+<p>最终一致系统允许短时间不一致。对账不能把所有延迟都当事故。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>合理容忍窗口</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>支付回调到订单推进</td><td>秒级到分钟级</td><td>回调、Outbox、消费者可能有短暂延迟</td></tr>
+<tr><td>商品发布到搜索可见</td><td>分钟级</td><td>索引刷新和缓存刷新需要时间</td></tr>
+<tr><td>库存 Redis 与 MySQL 快照</td><td>秒级到分钟级</td><td>热路径与账本路径可能异步</td></tr>
+<tr><td>供应商库存同步</td><td>分钟级到小时级</td><td>取决于供应商接口能力和品类风险</td></tr>
+<tr><td>财务清结算</td><td>T+1 或 T+N</td><td>取决于渠道账单周期</td></tr>
+</tbody>
+</table>
+</div>
+<p>对账规则必须写清“多长时间内算正常延迟，多长时间后算差异”。否则系统会在高峰期产生大量误报。</p>
+<h2 id="104-对账系统的分层设计"><a class="header" href="#104-对账系统的分层设计">10.4 对账系统的分层设计</a></h2>
+<p>一套通用对账系统通常包含五层。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>职责</th><th>电商例子</th></tr>
+</thead>
+<tbody>
+<tr><td>数据采集层</td><td>拉取权威数据和被对账数据</td><td>渠道账单、订单表、库存流水、供应商文件</td></tr>
+<tr><td>标准化层</td><td>把异构数据转成统一模型</td><td>金额单位、币种、状态枚举、时间格式</td></tr>
+<tr><td>比对层</td><td>执行 Join、聚合、恒等式校验</td><td>支付单和渠道流水外连接</td></tr>
+<tr><td>差异层</td><td>生成差异项并分类</td><td>长款、短款、状态不一致、缺失记录</td></tr>
+<tr><td>处置层</td><td>自动补偿、人工工单、忽略、复核</td><td>推进订单、退款、释放库存、重建索引</td></tr>
+</tbody>
+</table>
+</div>
+<p>不要把对账写成一个巨大定时脚本。脚本可以作为第一版实现，但架构上仍应具备批次、明细、差异状态、处理动作和审计。</p>
+<h3 id="1041-对账批次"><a class="header" href="#1041-对账批次">10.4.1 对账批次</a></h3>
+<p>每次对账都应该有批次记录。</p>
+<pre><code class="language-sql">CREATE TABLE recon_batch (
+    id BIGINT PRIMARY KEY,
+    recon_type VARCHAR(64) NOT NULL,
+    biz_date DATE NOT NULL,
+    source_system VARCHAR(64) NOT NULL,
+    target_system VARCHAR(64) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    total_count BIGINT NOT NULL DEFAULT 0,
+    matched_count BIGINT NOT NULL DEFAULT 0,
+    diff_count BIGINT NOT NULL DEFAULT 0,
+    auto_fixed_count BIGINT NOT NULL DEFAULT 0,
+    manual_required_count BIGINT NOT NULL DEFAULT 0,
+    started_at DATETIME NOT NULL,
+    finished_at DATETIME NULL,
+    error_code VARCHAR(64) NULL,
+    error_message VARCHAR(512) NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_recon_batch (recon_type, biz_date, source_system, target_system)
+);
+</code></pre>
+<p>批次的价值是可追溯：今天对了什么，是否完成，发现多少差异，自动修复多少，还剩多少需要人工处理。</p>
+<h3 id="1042-对账明细和差异项"><a class="header" href="#1042-对账明细和差异项">10.4.2 对账明细和差异项</a></h3>
+<p>差异项应单独建表，而不是只打日志。</p>
+<pre><code class="language-sql">CREATE TABLE recon_diff (
+    id BIGINT PRIMARY KEY,
+    batch_id BIGINT NOT NULL,
+    recon_type VARCHAR(64) NOT NULL,
+    biz_id VARCHAR(128) NOT NULL,
+    biz_sub_id VARCHAR(128) NULL,
+    diff_type VARCHAR(64) NOT NULL,
+    severity VARCHAR(32) NOT NULL,
+    source_snapshot JSON NOT NULL,
+    target_snapshot JSON NOT NULL,
+    expected_action VARCHAR(64) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    compensation_task_id BIGINT NULL,
+    owner VARCHAR(64) NULL,
+    first_seen_at DATETIME NOT NULL,
+    last_seen_at DATETIME NOT NULL,
+    resolved_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_diff_dedup (recon_type, biz_id, biz_sub_id, diff_type)
+);
+</code></pre>
+<p>几个关键点：</p>
+<ul>
+<li><code>source_snapshot</code> 和 <code>target_snapshot</code> 保存比对时的证据。</li>
+<li><code>diff_type</code> 用于分类，不要只写自然语言。</li>
+<li><code>expected_action</code> 说明建议处理动作。</li>
+<li><code>status</code> 管理差异生命周期，不能靠“有没有日志”判断是否处理。</li>
+<li>唯一键用于差异去重，避免同一问题每天生成一堆新差异。</li>
+</ul>
+<h3 id="1043-差异分类"><a class="header" href="#1043-差异分类">10.4.3 差异分类</a></h3>
+<p>差异分类决定能否自动修复。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>差异类型</th><th>示例</th><th>推荐动作</th></tr>
+</thead>
+<tbody>
+<tr><td>缺本地记录</td><td>渠道有成功支付，本地无支付单</td><td>人工确认或补建支付单，风险高</td></tr>
+<tr><td>缺外部记录</td><td>本地支付成功，渠道账单无记录</td><td>查单复核，可能短款</td></tr>
+<tr><td>状态不一致</td><td>渠道成功，本地支付中</td><td>自动查单后推进状态</td></tr>
+<tr><td>金额不一致</td><td>本地 100 元，渠道 99 元</td><td>人工复核，禁止自动改账</td></tr>
+<tr><td>时间延迟</td><td>订单已支付，履约未开始</td><td>超窗口后生成补偿</td></tr>
+<tr><td>投影缺失</td><td>商品已发布，ES 无文档</td><td>自动重建索引</td></tr>
+<tr><td>重复记录</td><td>同一渠道流水命中多笔本地单</td><td>P0 资损风险，人工冻结</td></tr>
+</tbody>
+</table>
+</div>
+<p>原则上，资金金额差异、重复扣款、重复退款、跨用户归属错误，都不应该直接自动修复。可以自动生成工单、冻结风险对象、通知负责人，但不能让补偿程序“自作主张”。</p>
+<h2 id="105-电商核心场景对账"><a class="header" href="#105-电商核心场景对账">10.5 电商核心场景对账</a></h2>
+<h3 id="1051-支付对账"><a class="header" href="#1051-支付对账">10.5.1 支付对账</a></h3>
+<p>支付对账是最典型、也最不能偷懒的对账场景。</p>
+<p>核心数据源包括：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>数据源</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td>渠道账单</td><td>外部扣款和退款事实</td></tr>
+<tr><td>本地支付单</td><td>平台支付状态机</td></tr>
+<tr><td>支付渠道交互日志</td><td>请求、回调、查单证据</td></tr>
+<tr><td>订单表</td><td>用户侧交易状态</td></tr>
+<tr><td>财务分录</td><td>入账和清结算口径</td></tr>
+</tbody>
+</table>
+</div>
+<p>支付对账常见差异：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>差异</th><th>含义</th><th>处理</th></tr>
+</thead>
+<tbody>
+<tr><td>渠道成功，本地支付中</td><td>回调丢失或处理失败</td><td>主动查单，推进支付单和订单</td></tr>
+<tr><td>渠道成功，本地失败</td><td>本地状态错误或晚到成功</td><td>进入人工复核，可能需要补发事件</td></tr>
+<tr><td>本地成功，渠道无成功记录</td><td>本地误判成功或账单延迟</td><td>查单复核，超窗口转人工</td></tr>
+<tr><td>渠道退款成功，本地退款中</td><td>退款回调丢失</td><td>推进退款单，通知订单售后</td></tr>
+<tr><td>金额不一致</td><td>资损风险</td><td>冻结差异项，人工复核</td></tr>
+</tbody>
+</table>
+</div>
+<p>支付对账的推荐流程：</p>
+<pre><code class="language-text">T+1 拉取渠道账单
+  -&gt; 校验文件完整性和签名
+  -&gt; 标准化为 ChannelTradeRow
+  -&gt; 与 payment_channel_log / payment_order 外连接
+  -&gt; 生成 recon_diff
+  -&gt; 对低风险状态差异自动查单
+  -&gt; 查单确认后生成 compensation_task
+  -&gt; 补偿推进支付单、订单、Outbox
+  -&gt; 高风险金额差异进入人工复核
+</code></pre>
+<p>注意：支付对账的自动补偿应该优先“推进状态”，而不是直接“改金额”。金额差异必须谨慎，因为它会影响财务、税务、商家结算和用户权益。</p>
+<h3 id="1052-订单对账"><a class="header" href="#1052-订单对账">10.5.2 订单对账</a></h3>
+<p>订单是业务承诺的载体。订单对账重点不是“表里有没有数据”，而是订单状态是否和周边事实一致。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>订单状态</th><th>需要对齐的事实</th></tr>
+</thead>
+<tbody>
+<tr><td>待支付</td><td>支付单应未成功，库存和营销资源仍在锁定窗口内</td></tr>
+<tr><td>已支付</td><td>支付成功事实存在，库存确认或履约创建应已触发</td></tr>
+<tr><td>已取消</td><td>支付未成功或已退款，库存和券应释放</td></tr>
+<tr><td>已发货 / 履约中</td><td>履约单或供应商订单应存在</td></tr>
+<tr><td>已完成</td><td>履约完成、售后窗口和财务确认满足规则</td></tr>
+</tbody>
+</table>
+</div>
+<p>典型对账规则：</p>
+<ul>
+<li>支付单成功超过 1 分钟，订单仍待支付，生成订单推进补偿。</li>
+<li>订单取消超过 5 分钟，库存预占仍未释放，生成库存释放补偿。</li>
+<li>订单已支付超过 10 分钟，履约单未创建，生成履约补偿。</li>
+<li>订单已退款，营销券仍显示已核销，生成营销释放或人工修复。</li>
+<li>主单完成，但子单仍处于中间态，生成状态修复任务。</li>
+</ul>
+<p>订单对账必须尊重状态机。不能因为“支付成功”就无条件把订单改成“已支付”。如果订单已经取消、退款、关闭或进入风控冻结，补偿动作应该进入人工确认或走专门的反向流程。</p>
+<h3 id="1053-库存对账"><a class="header" href="#1053-库存对账">10.5.3 库存对账</a></h3>
+<p>库存对账的目标是保证“可售、预占、已售、释放、作废”这些状态最终符合账本。</p>
+<p>一个常见库存恒等式：</p>
+<pre><code class="language-text">total = available + reserved + sold + locked + damaged
+</code></pre>
+<p>如果使用 Redis 做热路径扣减，还需要额外比较：</p>
+<pre><code class="language-text">MySQL 可售快照
+  vs Redis 可售值
+  vs 库存流水聚合
+  vs 订单预占状态
+</code></pre>
+<p>典型差异：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>差异</th><th>可能原因</th><th>处理</th></tr>
+</thead>
+<tbody>
+<tr><td>Redis 少于 MySQL</td><td>扣减成功但落库失败、回填失败</td><td>以账本为准重建 Redis</td></tr>
+<tr><td>Redis 多于 MySQL</td><td>释放重复、缓存覆盖错误</td><td>冻结商品，按账本修复</td></tr>
+<tr><td>预占超时未释放</td><td>关单任务失败</td><td>补偿释放预占</td></tr>
+<tr><td>已支付订单库存仍 reserved</td><td>支付确认事件消费失败</td><td>补偿确认 sold</td></tr>
+<tr><td>流水聚合不等于余额</td><td>人工改库或程序缺陷</td><td>停止自动修复，人工排查</td></tr>
+</tbody>
+</table>
+</div>
+<p>库存对账最重要的原则是：<strong>Redis 不是账本</strong>。故障恢复时应以 MySQL 账本、预占记录、订单状态和审计日志为准，Redis 可以重建。</p>
+<h3 id="1054-商品与搜索对账"><a class="header" href="#1054-商品与搜索对账">10.5.4 商品与搜索对账</a></h3>
+<p>商品系统经常采用“主数据 + 读模型”架构。正式商品表是权威数据，搜索索引、商品详情缓存、推荐特征都是投影。</p>
+<p>常见对账规则：</p>
+<ul>
+<li>商品已下架，ES 仍可搜索到，删除或标记不可售。</li>
+<li>商品已发布，ES 缺文档，重建索引。</li>
+<li>商品价格版本已更新，详情页缓存仍是旧版本，刷新缓存。</li>
+<li>商品可售状态依赖库存和履约规则，搜索文档的可售标记过期，重新投影。</li>
+<li>供应商商品被标记风险，前台仍展示，强制下架并告警。</li>
+</ul>
+<p>商品投影对账通常可以自动修复，因为它不改变主数据，只重建派生视图。但如果发现主数据本身质量异常，例如类目映射错误、酒店坐标漂移、价格异常波动，则应进入质量问题单或 DLQ，而不是自动发布。</p>
+<h3 id="1055-供应商同步对账"><a class="header" href="#1055-供应商同步对账">10.5.5 供应商同步对账</a></h3>
+<p>供应商同步是电商系统里最容易产生长尾差异的地方。供应商接口可能限流、超时、字段缺失、分页游标异常、同一商品编码复用、价格库存延迟更新。</p>
+<p>供应商对账要区分三类事实：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>事实</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>Raw Snapshot</td><td>供应商原始响应，便于追溯和重放</td></tr>
+<tr><td>Standardized Model</td><td>平台标准化后的中间模型</td></tr>
+<tr><td>Published Version</td><td>已发布到交易链路的正式版本</td></tr>
+</tbody>
+</table>
+</div>
+<p>同步成功不等于可以发布。一个酒店从供应商拉取成功，但城市映射失败、经纬度漂移、价格低于风险阈值、房型缺关键字段，都不应该直接进入正式商品。</p>
+<p>典型处理：</p>
+<ul>
+<li>网络超时：指数退避重试。</li>
+<li>供应商 5xx：限流、熔断、延迟重试。</li>
+<li>字段缺失：进入 MySQL DLQ，等待供应商或运营修复。</li>
+<li>城市映射失败：进入映射工单。</li>
+<li>价格异常：进入审核，不自动发布。</li>
+<li>下游索引刷新失败：生成投影补偿。</li>
+</ul>
+<p>供应商同步的恢复能力通常依赖 <code>Task + Checkpoint + Worker Lease + Raw Snapshot + DLQ</code>。没有这些能力，长任务一旦中断，就只能从头跑，或者靠人工猜进度。</p>
+<h2 id="106-补偿任务设计"><a class="header" href="#106-补偿任务设计">10.6 补偿任务设计</a></h2>
+<p>补偿任务不是简单的定时重试。它是一个小型工作流系统。</p>
+<h3 id="1061-补偿任务模型"><a class="header" href="#1061-补偿任务模型">10.6.1 补偿任务模型</a></h3>
+<pre><code class="language-sql">CREATE TABLE compensation_task (
+    id BIGINT PRIMARY KEY,
+    task_type VARCHAR(64) NOT NULL,
+    biz_type VARCHAR(64) NOT NULL,
+    biz_id VARCHAR(128) NOT NULL,
+    biz_sub_id VARCHAR(128) NULL,
+    priority INT NOT NULL DEFAULT 0,
+    status VARCHAR(32) NOT NULL,
+    idempotency_key VARCHAR(128) NOT NULL,
+    request_payload JSON NOT NULL,
+    context_snapshot JSON NOT NULL,
+    retry_count INT NOT NULL DEFAULT 0,
+    max_retry_count INT NOT NULL DEFAULT 10,
+    next_retry_at DATETIME NOT NULL,
+    last_error_code VARCHAR(64) NULL,
+    last_error_message VARCHAR(512) NULL,
+    locked_by VARCHAR(128) NULL,
+    locked_until DATETIME NULL,
+    source_type VARCHAR(64) NOT NULL,
+    source_id BIGINT NULL,
+    manual_required TINYINT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_comp_idem (task_type, idempotency_key),
+    KEY idx_comp_schedule (status, next_retry_at, priority),
+    KEY idx_comp_biz (biz_type, biz_id)
+);
+</code></pre>
+<p>字段说明：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>设计目的</th></tr>
+</thead>
+<tbody>
+<tr><td><code>task_type</code></td><td>区分支付查单、订单推进、库存释放、索引重建等动作</td></tr>
+<tr><td><code>biz_type</code> / <code>biz_id</code></td><td>关联业务对象，便于客服和运营检索</td></tr>
+<tr><td><code>idempotency_key</code></td><td>防止同一差异生成多个重复补偿</td></tr>
+<tr><td><code>context_snapshot</code></td><td>保存补偿创建时的上下文证据</td></tr>
+<tr><td><code>source_type</code> / <code>source_id</code></td><td>关联来源，例如 recon_diff、dlq、manual</td></tr>
+<tr><td><code>locked_by</code> / <code>locked_until</code></td><td>支持多 Worker 抢占和故障恢复</td></tr>
+<tr><td><code>manual_required</code></td><td>标记是否需要人工审批或处理</td></tr>
+</tbody>
+</table>
+</div>
+<p>补偿任务必须能回答：为什么生成、要修什么、修复前证据是什么、谁执行过、执行结果如何。</p>
+<h3 id="1062-补偿状态机"><a class="header" href="#1062-补偿状态机">10.6.2 补偿状态机</a></h3>
+<p>建议状态机保持简单：</p>
+<pre><code class="language-text">PENDING
+  -&gt; RUNNING
+  -&gt; SUCCESS
+  -&gt; RETRY_WAIT
+  -&gt; MANUAL_REQUIRED
+  -&gt; DLQ
+  -&gt; CANCELLED
+</code></pre>
+<p>状态含义：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>PENDING</code></td><td>等待执行</td></tr>
+<tr><td><code>RUNNING</code></td><td>Worker 正在执行</td></tr>
+<tr><td><code>RETRY_WAIT</code></td><td>可重试失败，等待下一次执行</td></tr>
+<tr><td><code>SUCCESS</code></td><td>补偿完成，并通过必要校验</td></tr>
+<tr><td><code>MANUAL_REQUIRED</code></td><td>需要人工判断或审批</td></tr>
+<tr><td><code>DLQ</code></td><td>自动补偿已无法继续，转入死信治理</td></tr>
+<tr><td><code>CANCELLED</code></td><td>差异已消失或任务被人工取消</td></tr>
+</tbody>
+</table>
+</div>
+<p>不要让任务在 <code>RUNNING</code> 状态永久停留。Worker 必须使用租约，超时后允许其他 Worker 接管。</p>
+<h3 id="1063-重试策略"><a class="header" href="#1063-重试策略">10.6.3 重试策略</a></h3>
+<p>补偿重试要区分错误类型。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>错误类型</th><th>示例</th><th>策略</th></tr>
+</thead>
+<tbody>
+<tr><td>瞬时错误</td><td>网络抖动、连接重置</td><td>指数退避重试</td></tr>
+<tr><td>下游限流</td><td>渠道 QPS 超限、供应商 429</td><td>降低并发，延后重试</td></tr>
+<tr><td>数据未就绪</td><td>订单刚创建，支付单尚未落库</td><td>短延迟重试</td></tr>
+<tr><td>业务冲突</td><td>状态机不允许推进</td><td>转人工或重新对账</td></tr>
+<tr><td>参数错误</td><td>商品 ID 不存在、字段格式错误</td><td>进入 DLQ</td></tr>
+<tr><td>资损风险</td><td>金额不一致、重复扣款</td><td>冻结并人工复核</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个常见退避策略：</p>
+<pre><code class="language-text">第 1 次：30 秒后重试
+第 2 次：2 分钟后重试
+第 3 次：10 分钟后重试
+第 4 次：30 分钟后重试
+第 5 次：2 小时后重试
+超过阈值：MANUAL_REQUIRED 或 DLQ
+</code></pre>
+<p>不要无上限重试。无上限重试会掩盖真实问题，打爆下游，也会让补偿队列永远无法清空。</p>
+<h3 id="1064-worker-执行原则"><a class="header" href="#1064-worker-执行原则">10.6.4 Worker 执行原则</a></h3>
+<p>补偿 Worker 应该遵守这些原则：</p>
+<ol>
+<li>先抢租约，再执行任务。</li>
+<li>执行前重新读取业务对象最新状态。</li>
+<li>判断差异是否仍然存在。</li>
+<li>调用幂等接口或执行条件更新。</li>
+<li>执行后验证结果。</li>
+<li>写补偿日志和审计记录。</li>
+<li>失败时按错误分类更新下一次动作。</li>
+</ol>
+<p>伪流程：</p>
+<pre><code class="language-text">扫描 PENDING / RETRY_WAIT 且 next_retry_at &lt;= now 的任务
+  -&gt; CAS 抢占 locked_by / locked_until
+  -&gt; 读取任务和业务对象
+  -&gt; 如果差异已消失，标记 SUCCESS 或 CANCELLED
+  -&gt; 如果状态机不允许自动修复，标记 MANUAL_REQUIRED
+  -&gt; 执行幂等补偿动作
+  -&gt; 校验修复结果
+  -&gt; 成功：标记 SUCCESS
+  -&gt; 可重试失败：计算 next_retry_at，标记 RETRY_WAIT
+  -&gt; 不可重试失败：写入 DLQ
+</code></pre>
+<h3 id="1065-补偿接口要幂等"><a class="header" href="#1065-补偿接口要幂等">10.6.5 补偿接口要幂等</a></h3>
+<p>补偿任务本身会重试，也可能被人工重放。因此所有补偿动作都必须幂等。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>补偿动作</th><th>幂等设计</th></tr>
+</thead>
+<tbody>
+<tr><td>推进订单已支付</td><td><code>order_id + paid_event_id</code> 唯一约束，状态条件更新</td></tr>
+<tr><td>释放库存预占</td><td><code>reservation_id + release_reason</code> 唯一流水，状态机从 reserved 到 released</td></tr>
+<tr><td>确认库存已售</td><td><code>reservation_id</code> 只能确认一次</td></tr>
+<tr><td>释放优惠券</td><td><code>coupon_lock_id</code> 状态机，重复释放直接返回成功</td></tr>
+<tr><td>重建搜索索引</td><td><code>item_id + publish_version</code> 覆盖式写入</td></tr>
+<tr><td>支付查单</td><td><code>payment_id</code> 查询不产生副作用，结果推进用状态机</td></tr>
+<tr><td>供应商重投递</td><td><code>task_item_id + retry_round</code> 去重，保留原始 payload 引用</td></tr>
+</tbody>
+</table>
+</div>
+<p>判断幂等是否合格，可以问一句：<strong>同一补偿任务执行 10 次，业务结果是否仍然正确？</strong></p>
+<h3 id="1066-补偿不是万能的"><a class="header" href="#1066-补偿不是万能的">10.6.6 补偿不是万能的</a></h3>
+<p>有些差异不应该自动补偿。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>原因</th></tr>
+</thead>
+<tbody>
+<tr><td>金额不一致</td><td>可能涉及资损、税务、分账</td></tr>
+<tr><td>重复支付</td><td>需要确认是否退款、是否合并订单</td></tr>
+<tr><td>跨用户归属错误</td><td>可能是严重数据串号</td></tr>
+<tr><td>商品价格异常</td><td>可能需要法务和运营判断</td></tr>
+<tr><td>供应商确认失败但用户已支付</td><td>需要客服、退款或替代履约策略</td></tr>
+<tr><td>人工 SQL 导致状态错乱</td><td>需要冻结现场，防止越修越错</td></tr>
+</tbody>
+</table>
+</div>
+<p>自动化的边界必须清楚。好的补偿系统不是“什么都自动修”，而是低风险自动收敛，高风险快速冻结、分派和审计。</p>
+<h2 id="107-dlq-设计从失败消息到可运营问题单"><a class="header" href="#107-dlq-设计从失败消息到可运营问题单">10.7 DLQ 设计：从失败消息到可运营问题单</a></h2>
+<h3 id="1071-什么应该进入-dlq"><a class="header" href="#1071-什么应该进入-dlq">10.7.1 什么应该进入 DLQ</a></h3>
+<p>进入 DLQ 的前提是：系统判断当前数据无法继续正常自动处理，或者继续重试会产生更高风险。</p>
+<p>常见进入 DLQ 的原因：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>类型</th><th>例子</th><th>是否可自动恢复</th></tr>
+</thead>
+<tbody>
+<tr><td>格式错误</td><td>消息 JSON 无法解析、字段类型不兼容</td><td>通常不可</td></tr>
+<tr><td>业务对象缺失</td><td>订单不存在、商品不存在</td><td>可能需要等待或人工</td></tr>
+<tr><td>状态冲突</td><td>订单已取消但收到支付成功事件</td><td>需要业务判断</td></tr>
+<tr><td>下游持续失败</td><td>重试超过阈值</td><td>可能稍后恢复</td></tr>
+<tr><td>数据质量问题</td><td>供应商城市映射失败、价格异常</td><td>通常需要人工</td></tr>
+<tr><td>幂等冲突</td><td>同一幂等键参数不同</td><td>高风险，人工</td></tr>
+<tr><td>安全风险</td><td>验签失败、来源不可信</td><td>不应重放</td></tr>
+</tbody>
+</table>
+</div>
+<p>不要把所有失败都立即丢进 DLQ。瞬时网络失败应该先重试；明确不可恢复的数据问题才应进入 DLQ。</p>
+<h3 id="1072-mysql-dlq-表"><a class="header" href="#1072-mysql-dlq-表">10.7.2 MySQL DLQ 表</a></h3>
+<p>业务 DLQ 推荐落 MySQL 或其他可查询事务存储，作为权威问题单。</p>
+<pre><code class="language-sql">CREATE TABLE dead_letter_item (
+    id BIGINT PRIMARY KEY,
+    dlq_type VARCHAR(64) NOT NULL,
+    biz_type VARCHAR(64) NOT NULL,
+    biz_id VARCHAR(128) NOT NULL,
+    stage VARCHAR(64) NOT NULL,
+    error_code VARCHAR(64) NOT NULL,
+    error_message VARCHAR(512) NOT NULL,
+    retryable TINYINT NOT NULL DEFAULT 0,
+    severity VARCHAR(32) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    payload_ref VARCHAR(512) NULL,
+    payload_digest VARCHAR(128) NOT NULL,
+    context_snapshot JSON NOT NULL,
+    retry_count INT NOT NULL DEFAULT 0,
+    next_retry_at DATETIME NULL,
+    owner VARCHAR(64) NULL,
+    resolved_by VARCHAR(64) NULL,
+    resolved_at DATETIME NULL,
+    resolution VARCHAR(64) NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_dlq_dedup (dlq_type, biz_type, biz_id, stage, error_code, payload_digest),
+    KEY idx_dlq_status (status, severity, created_at),
+    KEY idx_dlq_biz (biz_type, biz_id)
+);
+</code></pre>
+<p>设计要点：</p>
+<ul>
+<li>大 payload 不要直接塞主表，保存对象存储引用和摘要。</li>
+<li><code>payload_digest</code> 用于去重和防篡改。</li>
+<li><code>stage</code> 表示失败阶段，例如 <code>PARSE</code>、<code>VALIDATE</code>、<code>PUBLISH</code>、<code>CONSUME</code>、<code>CALLBACK</code>。</li>
+<li><code>resolution</code> 表示处理结果，例如 <code>REPLAYED</code>、<code>IGNORED</code>、<code>MANUAL_FIXED</code>、<code>REFUNDED</code>。</li>
+<li>所有人工动作必须写审计日志。</li>
+</ul>
+<h3 id="1073-dlq-状态机"><a class="header" href="#1073-dlq-状态机">10.7.3 DLQ 状态机</a></h3>
+<pre><code class="language-text">OPEN
+  -&gt; ASSIGNED
+  -&gt; RETRYING
+  -&gt; RESOLVED
+  -&gt; IGNORED
+  -&gt; ESCALATED
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>状态</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>OPEN</code></td><td>新进入，等待处理</td></tr>
+<tr><td><code>ASSIGNED</code></td><td>已分派给 owner</td></tr>
+<tr><td><code>RETRYING</code></td><td>正在自动或人工重放</td></tr>
+<tr><td><code>RESOLVED</code></td><td>已修复并验证</td></tr>
+<tr><td><code>IGNORED</code></td><td>确认为无需处理，必须填写原因</td></tr>
+<tr><td><code>ESCALATED</code></td><td>升级到事故、客服、财务或供应商</td></tr>
+</tbody>
+</table>
+</div>
+<p>DLQ 的“忽略”能力很重要，但必须有权限和审计。没有忽略能力，队列会永远堆积；忽略没有审计，又会变成掩盖问题的洞。</p>
+<h3 id="1074-kafka-dlq-与-mysql-dlq-的边界"><a class="header" href="#1074-kafka-dlq-与-mysql-dlq-的边界">10.7.4 Kafka DLQ 与 MySQL DLQ 的边界</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>能力</th><th>Kafka DLQ</th><th>MySQL DLQ</th></tr>
+</thead>
+<tbody>
+<tr><td>保留失败消息</td><td>强</td><td>中</td></tr>
+<tr><td>顺序回放</td><td>强</td><td>弱</td></tr>
+<tr><td>运营查询</td><td>弱</td><td>强</td></tr>
+<tr><td>分派处理</td><td>弱</td><td>强</td></tr>
+<tr><td>人工修复</td><td>弱</td><td>强</td></tr>
+<tr><td>审计报表</td><td>弱</td><td>强</td></tr>
+<tr><td>大规模吞吐</td><td>强</td><td>中</td></tr>
+<tr><td>问题单生命周期</td><td>弱</td><td>强</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐组合：</p>
+<pre><code class="language-text">消息消费失败
+  -&gt; 可重试错误：延迟重试 Topic
+  -&gt; 超过阈值：写 Kafka DLQ 保留原消息
+  -&gt; 同时写 MySQL DLQ 作为问题单
+  -&gt; 运营或系统修复后，从 MySQL 触发重新投递
+  -&gt; 需要原始消息时，从 Kafka / 对象存储读取 payload
+</code></pre>
+<h3 id="1075-重新投递要有护栏"><a class="header" href="#1075-重新投递要有护栏">10.7.5 重新投递要有护栏</a></h3>
+<p>DLQ 重新投递不能只是一个按钮。</p>
+<p>重放前必须检查：</p>
+<ul>
+<li>原始 payload 是否完整。</li>
+<li>消费代码是否已经修复。</li>
+<li>业务对象当前状态是否允许重放。</li>
+<li>是否会重复扣款、重复发券、重复扣库存。</li>
+<li>是否需要灰度重放。</li>
+<li>是否需要限速。</li>
+<li>是否需要审批。</li>
+</ul>
+<p>重放策略：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>策略</th><th>使用场景</th></tr>
+</thead>
+<tbody>
+<tr><td>单条重放</td><td>高风险订单、支付、退款</td></tr>
+<tr><td>批量限速重放</td><td>商品索引、缓存刷新</td></tr>
+<tr><td>按错误码重放</td><td>已修复某类解析错误</td></tr>
+<tr><td>按时间窗口重放</td><td>某次发布造成的失败</td></tr>
+<tr><td>影子重放</td><td>先验证新代码能否处理，不写正式状态</td></tr>
+</tbody>
+</table>
+</div>
+<p>高风险 DLQ 应该要求双人审批。尤其是支付、退款、库存和营销权益，不能让一个人随手批量重放。</p>
+<h2 id="108-outbox事件重放与对账的关系"><a class="header" href="#108-outbox事件重放与对账的关系">10.8 Outbox、事件重放与对账的关系</a></h2>
+<p>Outbox 解决的是“本地事务成功后，事件可靠发出去”的问题。对账解决的是“事件发出去之后，下游最终有没有处理成功”的问题。</p>
+<p>两者不能互相替代。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>能力</th><th>解决问题</th><th>不能解决</th></tr>
+</thead>
+<tbody>
+<tr><td>Outbox</td><td>本地数据和事件生成同事务</td><td>下游消费失败、业务处理失败</td></tr>
+<tr><td>MQ 重试</td><td>临时消费失败</td><td>不可重试数据错误</td></tr>
+<tr><td>DLQ</td><td>隔离无法处理的数据</td><td>自动判断业务真相</td></tr>
+<tr><td>对账</td><td>发现最终状态差异</td><td>实时阻止所有错误</td></tr>
+<tr><td>补偿</td><td>修复已发现差异</td><td>替代主链路正确性</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个电商订单支付成功事件的可靠链路应该是：</p>
+<pre><code class="language-text">支付回调落库
+  -&gt; 支付单状态机推进为 SUCCESS
+  -&gt; 同事务写 payment_outbox_event
+  -&gt; Outbox Relay 投递 PaymentSucceeded
+  -&gt; 订单服务消费事件，幂等推进订单
+  -&gt; 履约、库存、营销继续消费订单事件
+  -&gt; 对账任务扫描支付成功但订单未支付
+  -&gt; 发现差异后生成订单推进补偿
+</code></pre>
+<p>即使 Outbox 做得很好，对账仍然必要。因为下游可能消费失败、业务状态冲突、代码 Bug、数据污染或人工误操作。</p>
+<h2 id="109-端到端案例一支付成功但订单未更新"><a class="header" href="#109-端到端案例一支付成功但订单未更新">10.9 端到端案例一：支付成功但订单未更新</a></h2>
+<p>这是电商系统最典型的恢复案例。</p>
+<h3 id="1091-故障过程"><a class="header" href="#1091-故障过程">10.9.1 故障过程</a></h3>
+<pre><code class="language-text">用户提交支付
+  -&gt; 支付渠道扣款成功
+  -&gt; 渠道回调支付服务
+  -&gt; 支付服务验签成功，更新支付单 SUCCESS
+  -&gt; 写 Outbox 事件 PaymentSucceeded
+  -&gt; 订单服务消费事件时数据库超时
+  -&gt; MQ 重试多次失败
+  -&gt; 消息进入 DLQ
+  -&gt; 用户订单仍显示待支付
+</code></pre>
+<p>用户看到的是“钱扣了，订单没变”。这类问题必须优先处理，因为它直接影响信任。</p>
+<h3 id="1092-发现方式"><a class="header" href="#1092-发现方式">10.9.2 发现方式</a></h3>
+<p>至少应该有三条发现路径：</p>
+<ol>
+<li>实时链路告警：支付成功事件消费失败率升高。</li>
+<li>近实时对账：支付成功超过 1 分钟，订单仍待支付。</li>
+<li>T+1 渠道对账：渠道成功，本地订单未完成。</li>
+</ol>
+<p>只靠用户投诉是不合格的。</p>
+<h3 id="1093-自动补偿策略"><a class="header" href="#1093-自动补偿策略">10.9.3 自动补偿策略</a></h3>
+<p>低风险情况下，可以自动推进订单：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>前置条件</th><th>判断</th></tr>
+</thead>
+<tbody>
+<tr><td>支付单为 SUCCESS</td><td>是</td></tr>
+<tr><td>渠道流水验签和金额正确</td><td>是</td></tr>
+<tr><td>订单仍处于 PendingPay</td><td>是</td></tr>
+<tr><td>订单未取消、未退款、未风控冻结</td><td>是</td></tr>
+<tr><td>支付金额等于订单应付金额</td><td>是</td></tr>
+<tr><td>幂等事件未处理成功</td><td>是</td></tr>
+</tbody>
+</table>
+</div>
+<p>补偿动作：</p>
+<pre><code class="language-text">创建 compensation_task: ADVANCE_ORDER_PAID
+  -&gt; 读取订单和支付单最新状态
+  -&gt; 校验金额、币种、支付单归属
+  -&gt; CAS 更新订单 PendingPay -&gt; Paid
+  -&gt; 写订单状态日志
+  -&gt; 写 OrderPaid Outbox
+  -&gt; 标记补偿成功
+  -&gt; 对账差异改为 RESOLVED
+</code></pre>
+<p>如果订单已取消，就不能简单推进。需要判断取消原因和支付时间：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>情况</th><th>处理</th></tr>
+</thead>
+<tbody>
+<tr><td>支付发生在取消前</td><td>可能是状态处理延迟，人工确认</td></tr>
+<tr><td>支付发生在取消后</td><td>通常发起退款或人工确认</td></tr>
+<tr><td>订单已风控冻结</td><td>进入风控工单</td></tr>
+<tr><td>金额不一致</td><td>进入财务差异工单</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="1094-用户体验"><a class="header" href="#1094-用户体验">10.9.4 用户体验</a></h3>
+<p>恢复系统还要考虑用户展示：</p>
+<ul>
+<li>支付成功但订单未推进时，不要长期显示“待支付”。</li>
+<li>可以展示“支付结果确认中”，并提供刷新或客服入口。</li>
+<li>如果自动补偿完成，应同步推送订单状态。</li>
+<li>如果需要退款，应明确退款处理中和预计到账时间。</li>
+</ul>
+<p>很多系统后台补偿做得不错，但前台状态表达很差，用户仍然会投诉。故障恢复不只是数据修复，也包括用户可解释性。</p>
+<h2 id="1010-端到端案例二库存预占成功但订单创建失败"><a class="header" href="#1010-端到端案例二库存预占成功但订单创建失败">10.10 端到端案例二：库存预占成功但订单创建失败</a></h2>
+<h3 id="10101-故障过程"><a class="header" href="#10101-故障过程">10.10.1 故障过程</a></h3>
+<pre><code class="language-text">用户提交订单
+  -&gt; 订单服务调用库存预占
+  -&gt; 库存系统写 reservation SUCCESS
+  -&gt; 订单服务写订单主表时失败
+  -&gt; 用户收到下单失败
+  -&gt; 库存仍被占用
+</code></pre>
+<p>如果不处理，库存会被幽灵订单占住，造成少卖。</p>
+<h3 id="10102-恢复设计"><a class="header" href="#10102-恢复设计">10.10.2 恢复设计</a></h3>
+<p>库存预占必须有过期时间和业务关联。</p>
+<p>关键字段：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>reservation_id</code></td><td>预占 ID</td></tr>
+<tr><td><code>request_id</code></td><td>创单请求幂等键</td></tr>
+<tr><td><code>order_id</code></td><td>如果订单创建成功则绑定</td></tr>
+<tr><td><code>sku_id</code></td><td>库存对象</td></tr>
+<tr><td><code>quantity</code></td><td>预占数量</td></tr>
+<tr><td><code>status</code></td><td>RESERVED、CONFIRMED、RELEASED、EXPIRED</td></tr>
+<tr><td><code>expire_at</code></td><td>预占过期时间</td></tr>
+</tbody>
+</table>
+</div>
+<p>恢复路径：</p>
+<ol>
+<li>创单失败后，订单服务同步调用库存释放。</li>
+<li>如果同步释放失败，写补偿任务 <code>RELEASE_INVENTORY_RESERVATION</code>。</li>
+<li>库存系统定时扫描超时 <code>RESERVED</code> 记录。</li>
+<li>对账任务扫描“无订单绑定的有效预占”。</li>
+<li>补偿释放库存并写释放流水。</li>
+</ol>
+<p>注意：释放库存必须幂等。重复释放不能让库存加两次。</p>
+<h3 id="10103-什么时候不能自动释放"><a class="header" href="#10103-什么时候不能自动释放">10.10.3 什么时候不能自动释放</a></h3>
+<p>如果订单服务写主表超时，可能订单实际已经写成功，只是响应失败。因此释放前要查订单：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>查询结果</th><th>处理</th></tr>
+</thead>
+<tbody>
+<tr><td>订单不存在</td><td>可以释放</td></tr>
+<tr><td>订单存在且待支付</td><td>不释放，绑定 reservation</td></tr>
+<tr><td>订单存在且已支付</td><td>确认库存 sold</td></tr>
+<tr><td>订单存在但状态异常</td><td>转人工或重新对账</td></tr>
+</tbody>
+</table>
+</div>
+<p>这就是为什么补偿执行前必须重新读取最新状态。补偿不能只相信任务创建时的上下文。</p>
+<h2 id="1011-端到端案例三供应商同步失败进入-dlq"><a class="header" href="#1011-端到端案例三供应商同步失败进入-dlq">10.11 端到端案例三：供应商同步失败进入 DLQ</a></h2>
+<h3 id="10111-场景"><a class="header" href="#10111-场景">10.11.1 场景</a></h3>
+<p>一个酒店供应商每天同步 100 万个酒店和房型。某次同步中，供应商把城市编码从 <code>BKK</code> 改成新编码，但没有提前通知平台。平台城市映射失败，导致部分酒店无法发布。</p>
+<p>如果系统只是打印日志，运营不会知道哪些酒店失败，也无法修复。</p>
+<h3 id="10112-正确链路"><a class="header" href="#10112-正确链路">10.11.2 正确链路</a></h3>
+<pre><code class="language-text">Supplier Sync Task
+  -&gt; 拉取 Raw Snapshot
+  -&gt; 标准化字段
+  -&gt; 城市 / 商户 / 品牌映射
+  -&gt; 质量校验
+  -&gt; Diff
+  -&gt; 低风险自动发布
+  -&gt; 高风险审核
+  -&gt; 失败进入 MySQL DLQ
+</code></pre>
+<p>DLQ 记录应包含：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><code>dlq_type</code></td><td>SUPPLIER_SYNC</td></tr>
+<tr><td><code>biz_type</code></td><td>HOTEL</td></tr>
+<tr><td><code>biz_id</code></td><td>supplier_hotel_id</td></tr>
+<tr><td><code>stage</code></td><td>MAPPING</td></tr>
+<tr><td><code>error_code</code></td><td>CITY_MAPPING_NOT_FOUND</td></tr>
+<tr><td><code>payload_ref</code></td><td>raw snapshot 地址</td></tr>
+<tr><td><code>context_snapshot</code></td><td>supplier_id、city_code、hotel_name、task_id</td></tr>
+<tr><td><code>owner</code></td><td>supply-ops</td></tr>
+<tr><td><code>retryable</code></td><td>false</td></tr>
+</tbody>
+</table>
+</div>
+<p>运营后台应该能按供应商、城市、错误码筛选，批量建立映射规则，然后重放受影响 DLQ。</p>
+<h3 id="10113-为什么不能直接自动发布"><a class="header" href="#10113-为什么不能直接自动发布">10.11.3 为什么不能直接自动发布</a></h3>
+<p>城市映射失败不是技术瞬时错误，而是业务语义缺失。自动发布可能导致：</p>
+<ul>
+<li>酒店出现在错误城市。</li>
+<li>用户搜索结果错误。</li>
+<li>税费和履约规则错误。</li>
+<li>供应商结算主体错误。</li>
+</ul>
+<p>所以这类 DLQ 的正确处理不是重试，而是修复映射数据后重新投递。</p>
+<h3 id="10114-重放后的验证"><a class="header" href="#10114-重放后的验证">10.11.4 重放后的验证</a></h3>
+<p>重放成功不等于结束。还要验证：</p>
+<ul>
+<li>商品正式版本是否更新。</li>
+<li>搜索索引是否刷新。</li>
+<li>详情页缓存是否刷新。</li>
+<li>可售诊断是否通过。</li>
+<li>质量报表中的失败数是否下降。</li>
+<li>原 DLQ 是否标记 <code>RESOLVED</code> 并写审计。</li>
+</ul>
+<p>这才是闭环。</p>
+<h2 id="1012-故障恢复中的人工介入"><a class="header" href="#1012-故障恢复中的人工介入">10.12 故障恢复中的人工介入</a></h2>
+<p>业务系统不能完全排斥人工介入。关键是人工介入必须产品化、权限化、审计化。</p>
+<h3 id="10121-人工介入入口"><a class="header" href="#10121-人工介入入口">10.12.1 人工介入入口</a></h3>
+<p>建议后台至少提供：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>能力</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>差异查询</td><td>按订单号、支付单、SKU、供应商、错误码查找</td></tr>
+<tr><td>证据展示</td><td>展示对账快照、原始 payload、trace、日志链接</td></tr>
+<tr><td>操作建议</td><td>系统给出推荐动作和风险提示</td></tr>
+<tr><td>单条修复</td><td>对单个差异执行推进、释放、重建、退款等动作</td></tr>
+<tr><td>批量处理</td><td>对低风险同类问题批量重放</td></tr>
+<tr><td>审批流程</td><td>高风险动作需要双人审批</td></tr>
+<tr><td>操作审计</td><td>记录操作人、原因、参数、前后状态</td></tr>
+<tr><td>结果验证</td><td>操作后自动触发对账或状态检查</td></tr>
+</tbody>
+</table>
+</div>
+<p>禁止直接让运营或研发用 SQL 改核心状态。手工 SQL 最大的问题不是慢，而是不可审计、不可复用、不可防错。</p>
+<h3 id="10122-人工动作也要幂等"><a class="header" href="#10122-人工动作也要幂等">10.12.2 人工动作也要幂等</a></h3>
+<p>人工点击“重新投递”也可能点两次，后台超时后也可能重复提交。所以人工操作不能绕过幂等。</p>
+<p>每次人工动作都应该生成 <code>manual_operation</code> 记录：</p>
+<pre><code class="language-sql">CREATE TABLE manual_operation (
+    id BIGINT PRIMARY KEY,
+    operation_type VARCHAR(64) NOT NULL,
+    biz_type VARCHAR(64) NOT NULL,
+    biz_id VARCHAR(128) NOT NULL,
+    idempotency_key VARCHAR(128) NOT NULL,
+    operator VARCHAR(64) NOT NULL,
+    reason VARCHAR(512) NOT NULL,
+    request_payload JSON NOT NULL,
+    before_snapshot JSON NOT NULL,
+    after_snapshot JSON NULL,
+    status VARCHAR(32) NOT NULL,
+    approved_by VARCHAR(64) NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_manual_idem (operation_type, idempotency_key)
+);
+</code></pre>
+<p>人工修复不是“绕过系统”，而是通过系统提供的安全入口完成修复。</p>
+<h2 id="1013-监控与指标"><a class="header" href="#1013-监控与指标">10.13 监控与指标</a></h2>
+<p>第 5 章已经系统讨论监控体系，本章只列对账、补偿和 DLQ 必须具备的专项指标。</p>
+<h3 id="10131-对账指标"><a class="header" href="#10131-对账指标">10.13.1 对账指标</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>recon_batch_success_rate</code></td><td>对账批次成功率</td></tr>
+<tr><td><code>recon_batch_duration_seconds</code></td><td>对账耗时</td></tr>
+<tr><td><code>recon_diff_total</code></td><td>差异数量</td></tr>
+<tr><td><code>recon_diff_age_seconds</code></td><td>差异存活时间</td></tr>
+<tr><td><code>recon_auto_fix_success_rate</code></td><td>自动修复成功率</td></tr>
+<tr><td><code>recon_manual_required_total</code></td><td>需要人工处理的差异</td></tr>
+</tbody>
+</table>
+</div>
+<p>关键告警：</p>
+<ul>
+<li>支付对账批次失败。</li>
+<li>P0 差异数量大于 0，例如重复扣款、金额不一致。</li>
+<li>差异超过 SLA 未处理。</li>
+<li>同一错误码差异突然上升。</li>
+</ul>
+<h3 id="10132-补偿指标"><a class="header" href="#10132-补偿指标">10.13.2 补偿指标</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>compensation_pending_total</code></td><td>待执行任务数</td></tr>
+<tr><td><code>compensation_retry_total</code></td><td>重试任务数</td></tr>
+<tr><td><code>compensation_success_rate</code></td><td>补偿成功率</td></tr>
+<tr><td><code>compensation_oldest_age_seconds</code></td><td>最老任务年龄</td></tr>
+<tr><td><code>compensation_manual_required_total</code></td><td>需要人工介入数量</td></tr>
+<tr><td><code>compensation_execution_duration_seconds</code></td><td>单次执行耗时</td></tr>
+</tbody>
+</table>
+</div>
+<p>比“失败数量”更重要的是“最老任务年龄”。如果一条支付补偿卡了 6 小时，哪怕总数只有 1，也可能是严重用户问题。</p>
+<h3 id="10133-dlq-指标"><a class="header" href="#10133-dlq-指标">10.13.3 DLQ 指标</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>dlq_open_total</code></td><td>未处理 DLQ 数</td></tr>
+<tr><td><code>dlq_new_total</code></td><td>新增 DLQ 数</td></tr>
+<tr><td><code>dlq_resolved_total</code></td><td>已解决数</td></tr>
+<tr><td><code>dlq_replay_success_rate</code></td><td>重放成功率</td></tr>
+<tr><td><code>dlq_oldest_age_seconds</code></td><td>最老 DLQ 年龄</td></tr>
+<tr><td><code>dlq_by_error_code</code></td><td>按错误码分布</td></tr>
+<tr><td><code>dlq_by_owner</code></td><td>按负责人分布</td></tr>
+</tbody>
+</table>
+</div>
+<p>DLQ 要有运营 SLA。例如：</p>
+<ul>
+<li>支付和退款 DLQ：15 分钟内响应。</li>
+<li>订单状态 DLQ：30 分钟内响应。</li>
+<li>商品投影 DLQ：2 小时内处理。</li>
+<li>供应商数据质量 DLQ：工作日内处理或升级供应商。</li>
+</ul>
+<h2 id="1014-上线前检查清单"><a class="header" href="#1014-上线前检查清单">10.14 上线前检查清单</a></h2>
+<p>上线一个跨系统链路前，可以用下面清单检查恢复能力。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>检查项</th><th>必须回答</th></tr>
+</thead>
+<tbody>
+<tr><td>权威数据源</td><td>出现差异时谁说了算</td></tr>
+<tr><td>幂等键</td><td>重试、回调、补偿是否共用稳定幂等语义</td></tr>
+<tr><td>状态机</td><td>哪些状态允许自动推进，哪些必须人工</td></tr>
+<tr><td>Outbox</td><td>本地事务成功后事件是否可靠投递</td></tr>
+<tr><td>对账规则</td><td>是否有差异发现机制和容忍窗口</td></tr>
+<tr><td>补偿任务</td><td>是否有任务表、状态机、租约、重试和审计</td></tr>
+<tr><td>DLQ</td><td>不可自动处理的数据是否可查询、可分派、可重放</td></tr>
+<tr><td>人工入口</td><td>是否禁止直接 SQL 修核心状态</td></tr>
+<tr><td>监控告警</td><td>是否能看到差异数量、积压时间、重放成功率</td></tr>
+<tr><td>Runbook</td><td>值班同学是否知道如何止血和恢复</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果一个链路没有对账和补偿，它不是“设计简单”，而是把复杂度转嫁给事故当天的 on-call。</p>
+<h2 id="1015-常见反模式"><a class="header" href="#1015-常见反模式">10.15 常见反模式</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>反模式</th><th>问题</th></tr>
+</thead>
+<tbody>
+<tr><td>只写日志不落差异表</td><td>问题不可运营，无法统计和追踪</td></tr>
+<tr><td>对账只告警不修复</td><td>告警越来越多，团队逐渐麻木</td></tr>
+<tr><td>补偿没有幂等</td><td>重试本身制造二次事故</td></tr>
+<tr><td>所有失败都无限重试</td><td>打爆下游，掩盖数据问题</td></tr>
+<tr><td>DLQ 只是 Kafka Topic</td><td>运营无法查询、分派、修复、审计</td></tr>
+<tr><td>人工直接改库</td><td>无权限边界、无审计、无防错</td></tr>
+<tr><td>金额差异自动修</td><td>极易扩大资损</td></tr>
+<tr><td>不保存原始 payload</td><td>无法复盘、无法重放、无法举证</td></tr>
+<tr><td>不区分错误类型</td><td>可重试和不可重试混在一起</td></tr>
+<tr><td>补偿执行前不读最新状态</td><td>修复旧问题，制造新问题</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="1016-本章小结"><a class="header" href="#1016-本章小结">10.16 本章小结</a></h2>
+<p>对账、补偿、DLQ 与故障恢复，是业务系统长期稳定运行的底座。</p>
+<p>对电商系统来说：</p>
+<ul>
+<li>支付对账保护资金事实。</li>
+<li>库存对账保护可售承诺。</li>
+<li>订单对账保护用户状态。</li>
+<li>商品与搜索对账保护前台体验。</li>
+<li>供应商对账保护供给质量。</li>
+<li>补偿任务负责把低风险差异自动拉回正确状态。</li>
+<li>DLQ 负责把不可自动处理的问题变成可运营、可追踪、可审计的问题单。</li>
+<li>人工介入不是失败，而是高风险业务恢复的一部分，但必须通过系统化入口完成。</li>
+</ul>
+<p>真正成熟的恢复体系，不是“出了问题有脚本”，而是从主链路设计时就把失败纳入模型：每个动作都有幂等语义，每个状态都有推进规则，每个事件都有重放路径，每个差异都有处理责任，每次人工操作都有证据链。</p>
+<p>系统会失败，但业务结果必须最终可信。这就是对账、补偿、DLQ 和故障恢复的工程价值。</p>
+<h2 id="1017-本章面试题与追问"><a class="header" href="#1017-本章面试题与追问">10.17 本章面试题与追问</a></h2>
+<ol>
+<li>
+<p>对账和监控有什么区别？
+追问：为什么支付成功率正常，仍然可能需要支付对账？</p>
+</li>
+<li>
+<p>如何为支付系统设计对账流程？
+追问：渠道成功、本地待支付时，能不能直接把订单改成已支付？</p>
+</li>
+<li>
+<p>补偿任务为什么必须幂等？
+追问：库存释放补偿重复执行两次会发生什么，如何避免？</p>
+</li>
+<li>
+<p>DLQ 为什么不应该只是 Kafka 的死信 Topic？
+追问：供应商同步失败为什么更适合用 MySQL DLQ 做治理？</p>
+</li>
+<li>
+<p>如何处理支付成功但订单未更新？
+追问：订单已经取消时，为什么不能无条件推进为已支付？</p>
+</li>
+<li>
+<p>库存 Redis 和 MySQL 不一致时，以谁为准？
+追问：什么情况下应该冻结商品而不是自动修复？</p>
+</li>
+<li>
+<p>对账差异如何分类？
+追问：哪些差异可以自动补偿，哪些必须人工复核？</p>
+</li>
+<li>
+<p>Outbox、MQ 重试、DLQ、对账和补偿分别解决什么问题？
+追问：为什么用了 Outbox 仍然需要对账？</p>
+</li>
+<li>
+<p>供应商同步长任务如何故障恢复？
+追问：Raw Snapshot、Checkpoint、Worker Lease 和 DLQ 各自解决什么问题？</p>
+</li>
+<li>
+<p>如何设计一个补偿任务表？
+追问：为什么需要 <code>locked_until</code>、<code>idempotency_key</code> 和 <code>context_snapshot</code>？</p>
+</li>
+<li>
+<p>人工修复为什么也要走系统入口？
+追问：直接 SQL 修订单状态会留下哪些风险？</p>
+</li>
+<li>
+<p>如何监控补偿和 DLQ？
+追问：为什么最老任务年龄比任务总数更重要？</p>
+</li>
+</ol>
+<h2 id="资损防控资金库存优惠与账务安全"><a class="header" href="#资损防控资金库存优惠与账务安全">资损防控：资金、库存、优惠与账务安全</a></h2>
+<p>资损防控是业务系统可靠性里最“硬”的部分。接口慢一点，用户可能刷新；推荐失败，用户可能少点一个商品；但一旦出现重复扣款、错误退款、超卖、优惠券被薅、商家错结算、价格算错，系统损失的就不只是可用性，而是现金、库存、商誉和合规风险。</p>
+<p>很多团队把资损防控理解成支付系统或财务系统的事情，这是不完整的。真正的资损往往发生在业务链路交界处：计价给了错误金额，订单保存了错误快照，库存释放重复，营销券重复核销，支付回调乱序，退款绕过原路退回，供应商履约失败但订单仍完成，运营后台误改了高风险配置。</p>
+<p>本章从业务系统工程视角讨论资损防控：如何识别资损场景，如何设计账本与状态机，如何在主链路中防错，如何在高风险操作前审批和拦截，如何通过对账、补偿、冻结和审计把损失控制在最小范围。</p>
+<h2 id="111-什么是资损"><a class="header" href="#111-什么是资损">11.1 什么是资损</a></h2>
+<p>资损不只是“钱少了”。只要系统错误导致平台、商家、用户、供应商之间的权益分配偏离真实业务承诺，都可以视为资损风险。</p>
+<p>在电商系统中，常见资损对象包括：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对象</th><th>资损表现</th><th>例子</th></tr>
+</thead>
+<tbody>
+<tr><td>现金</td><td>多扣、少扣、漏扣、错退</td><td>用户支付 100 元，订单只入账 90 元</td></tr>
+<tr><td>库存</td><td>超卖、少卖、重复释放、错误锁定</td><td>库存只有 1 件，卖出 2 件</td></tr>
+<tr><td>优惠</td><td>重复用券、超预算补贴、错误叠加</td><td>满减和新人券错误叠加导致 0 元购</td></tr>
+<tr><td>积分 / 余额</td><td>重复发放、重复扣减、扣减失败</td><td>订单取消后积分未退回</td></tr>
+<tr><td>商家结算</td><td>错分账、错费率、错周期</td><td>商家应结 1000 元，只结 900 元</td></tr>
+<tr><td>供应商结算</td><td>平台订单与供应商单不一致</td><td>供应商已确认，平台未生成结算</td></tr>
+<tr><td>发票 / 税务</td><td>金额口径错误</td><td>含税价和不含税价混用</td></tr>
+<tr><td>履约权益</td><td>虚拟码重复发、酒店错订</td><td>同一券码发给两个用户</td></tr>
+</tbody>
+</table>
+</div>
+<p>资损防控的目标不是让所有风险变成零。成本、体验和效率决定了系统只能对不同风险分级治理。核心目标是：</p>
+<ol>
+<li>高风险错误尽量在发生前拦截。</li>
+<li>已发生的差异尽快发现。</li>
+<li>发现后能冻结影响范围。</li>
+<li>修复动作可幂等、可审批、可审计。</li>
+<li>损失金额、影响用户和责任边界可解释。</li>
+</ol>
+<h2 id="112-资损风险的来源"><a class="header" href="#112-资损风险的来源">11.2 资损风险的来源</a></h2>
+<p>资损通常不是单点 Bug，而是业务规则、分布式一致性、人工操作和外部依赖共同作用的结果。</p>
+<h3 id="1121-计价错误"><a class="header" href="#1121-计价错误">11.2.1 计价错误</a></h3>
+<p>计价错误是资损高发区。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>风险</th></tr>
+</thead>
+<tbody>
+<tr><td>优惠叠加顺序错误</td><td>折扣、满减、券、积分重复优惠</td></tr>
+<tr><td>金额精度错误</td><td>浮点计算、舍入规则不一致</td></tr>
+<tr><td>币种转换错误</td><td>汇率、币种精度、税费口径错误</td></tr>
+<tr><td>价格缓存过期</td><td>下架价、活动价、供应商价未刷新</td></tr>
+<tr><td>运费 / 税费漏算</td><td>用户少付或商家少收</td></tr>
+<tr><td>会员价与活动价冲突</td><td>高优先级规则未生效</td></tr>
+</tbody>
+</table>
+</div>
+<p>计价资损最危险的地方在于：错误金额一旦进入订单快照，后续支付、退款、结算都会沿着错误口径继续执行。</p>
+<h3 id="1122-状态机错误"><a class="header" href="#1122-状态机错误">11.2.2 状态机错误</a></h3>
+<p>状态机错误会让系统在不该推进时推进，或者在该回滚时没有回滚。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>风险</th></tr>
+</thead>
+<tbody>
+<tr><td>支付成功晚于订单取消</td><td>订单状态和资金事实冲突</td></tr>
+<tr><td>退款成功但订单仍完成</td><td>商家结算多结</td></tr>
+<tr><td>发货后重复退款</td><td>用户拿到商品又拿到钱</td></tr>
+<tr><td>订单取消后库存未释放</td><td>少卖</td></tr>
+<tr><td>订单取消后券未退回</td><td>用户权益损失</td></tr>
+<tr><td>售后关闭后退款回调到达</td><td>重复状态推进</td></tr>
+</tbody>
+</table>
+</div>
+<p>状态机必须用代码和数据库约束共同保护，不能只靠业务同学“按流程操作”。</p>
+<h3 id="1123-幂等缺失"><a class="header" href="#1123-幂等缺失">11.2.3 幂等缺失</a></h3>
+<p>高并发系统中，重复请求、重复回调、重复消息、重复人工提交都很常见。</p>
+<p>幂等缺失会直接造成：</p>
+<ul>
+<li>重复创建订单。</li>
+<li>重复扣库存。</li>
+<li>重复核销优惠券。</li>
+<li>重复发放积分。</li>
+<li>重复退款。</li>
+<li>重复给供应商下单。</li>
+</ul>
+<p>只在前端按钮上做防抖没有意义。资损防控要求服务端、数据库唯一键、状态机和流水账本共同保证幂等。</p>
+<h3 id="1124-异步链路不一致"><a class="header" href="#1124-异步链路不一致">11.2.4 异步链路不一致</a></h3>
+<p>为了性能，电商系统大量使用异步事件。</p>
+<pre><code class="language-text">支付成功
+  -&gt; 订单已支付
+  -&gt; 库存确认已售
+  -&gt; 营销确认核销
+  -&gt; 履约创建
+  -&gt; 商家结算计提
+  -&gt; 数据仓库入账
+</code></pre>
+<p>任何一步事件丢失、消费失败、乱序或重复，都可能造成资损。因此异步链路必须具备 Outbox、消费幂等、DLQ、对账和补偿。</p>
+<h3 id="1125-人工操作"><a class="header" href="#1125-人工操作">11.2.5 人工操作</a></h3>
+<p>很多严重资损来自人工操作，而不是代码 Bug。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>操作</th><th>风险</th></tr>
+</thead>
+<tbody>
+<tr><td>批量改价</td><td>大量商品低价售卖</td></tr>
+<tr><td>修改活动规则</td><td>优惠门槛错误、预算失控</td></tr>
+<tr><td>手工补券</td><td>重复发券或发错用户</td></tr>
+<tr><td>手工退款</td><td>超额退款或错退</td></tr>
+<tr><td>直接 SQL 修数据</td><td>绕过状态机和审计</td></tr>
+<tr><td>修改支付渠道权重</td><td>走错费率或不可用渠道</td></tr>
+<tr><td>修改供应商映射</td><td>商品履约和结算主体错误</td></tr>
+</tbody>
+</table>
+</div>
+<p>资损防控必须把后台、配置中心、批量任务和人工修复工具纳入治理，而不是只保护 C 端接口。</p>
+<h3 id="1126-外部系统不确定性"><a class="header" href="#1126-外部系统不确定性">11.2.6 外部系统不确定性</a></h3>
+<p>支付渠道、供应商、物流、银行、清结算文件都可能不稳定。</p>
+<p>典型风险：</p>
+<ul>
+<li>渠道同步返回成功，但最终扣款失败。</li>
+<li>渠道回调成功，但对账文件缺记录。</li>
+<li>供应商确认成功，但后续取消。</li>
+<li>供应商价格和平台价格不同步。</li>
+<li>银行清算金额与本地账务不同。</li>
+</ul>
+<p>外部依赖不能被当作本地事务的一部分。必须用适配层、状态机、查单、对账和人工复核治理。</p>
+<h2 id="113-资损防控的三道防线"><a class="header" href="#113-资损防控的三道防线">11.3 资损防控的三道防线</a></h2>
+<p>成熟的资损防控不是某一个风控规则，而是三道防线。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>防线</th><th>目标</th><th>手段</th></tr>
+</thead>
+<tbody>
+<tr><td>事前防错</td><td>不让高风险动作发生</td><td>规则校验、状态机、唯一键、限额、审批、灰度</td></tr>
+<tr><td>事中拦截</td><td>异常发生时立即阻断扩散</td><td>风险规则、冻结、熔断、预算水位、异常检测</td></tr>
+<tr><td>事后收敛</td><td>已发生差异可发现、可修复</td><td>对账、补偿、DLQ、审计、复盘</td></tr>
+</tbody>
+</table>
+</div>
+<p>很多团队只做事后对账，等财务发现差异时，用户已经拿到错误权益，商家已经结算，供应商已经履约，修复成本极高。真正有效的资损防控必须前移。</p>
+<h3 id="1131-事前防错"><a class="header" href="#1131-事前防错">11.3.1 事前防错</a></h3>
+<p>事前防错的核心是把业务不变量写进系统。</p>
+<p>例如：</p>
+<ul>
+<li>退款总额不能超过支付成功金额。</li>
+<li>同一支付渠道流水只能绑定一笔支付单。</li>
+<li>同一张券只能被一个订单核销一次。</li>
+<li>库存释放必须关联原始预占流水。</li>
+<li>订单金额必须等于商品金额、优惠、运费、税费的可解释组合。</li>
+<li>活动预算消耗不能超过预算上限。</li>
+<li>高风险价格变更必须审批和灰度。</li>
+</ul>
+<p>这些规则不能只存在于 PRD 或口头约定中，必须落到数据库约束、领域服务校验、审批流和监控规则。</p>
+<h3 id="1132-事中拦截"><a class="header" href="#1132-事中拦截">11.3.2 事中拦截</a></h3>
+<p>事中拦截关注“异常趋势刚出现时，能否快速止血”。</p>
+<p>典型拦截：</p>
+<ul>
+<li>某活动优惠核销速度超过预算曲线，自动暂停活动。</li>
+<li>某 SKU 下单价低于成本价阈值，自动下架或进入审核。</li>
+<li>某支付渠道短时间失败率异常，自动降权或切流。</li>
+<li>某商家退款率异常升高，冻结自动退款。</li>
+<li>某接口重复退款请求异常，触发用户或订单级限流。</li>
+<li>库存超卖风险出现，冻结商品可售。</li>
+</ul>
+<p>拦截动作必须区分用户体验和资损风险。推荐失败可以降级，但金额异常应该宁可阻断，也不能带病放行。</p>
+<h3 id="1133-事后收敛"><a class="header" href="#1133-事后收敛">11.3.3 事后收敛</a></h3>
+<p>事后收敛依赖第 6 章的对账、补偿、DLQ 和故障恢复能力。</p>
+<p>关键要求：</p>
+<ul>
+<li>差异能被批次化发现。</li>
+<li>差异能按风险等级分类。</li>
+<li>低风险差异能自动修复。</li>
+<li>高风险差异能冻结并进入人工复核。</li>
+<li>所有修复动作都有审计证据。</li>
+<li>修复后再次对账确认收敛。</li>
+</ul>
+<p>事后收敛不是失败的借口，而是承认分布式系统不可能永远同步成功。</p>
+<h2 id="114-资损防控的核心模型账本状态机快照"><a class="header" href="#114-资损防控的核心模型账本状态机快照">11.4 资损防控的核心模型：账本、状态机、快照</a></h2>
+<p>资损防控有三个底层模型：账本、状态机、快照。</p>
+<h3 id="1141-账本"><a class="header" href="#1141-账本">11.4.1 账本</a></h3>
+<p>账本记录每一次权益变化的事实流水。余额、库存、券、积分、商家结算都应该有账本。</p>
+<p>账本的特点：</p>
+<ol>
+<li>追加写，不随意物理删除。</li>
+<li>每条流水有业务来源和幂等键。</li>
+<li>借贷或增减方向明确。</li>
+<li>能从流水重放出余额。</li>
+<li>能与快照和外部账单对账。</li>
+</ol>
+<p>以资金账本为例：</p>
+<pre><code class="language-sql">CREATE TABLE fund_ledger (
+    id BIGINT PRIMARY KEY,
+    account_id VARCHAR(128) NOT NULL,
+    biz_type VARCHAR(64) NOT NULL,
+    biz_id VARCHAR(128) NOT NULL,
+    direction VARCHAR(16) NOT NULL,
+    amount BIGINT NOT NULL,
+    currency VARCHAR(16) NOT NULL,
+    ledger_type VARCHAR(64) NOT NULL,
+    idempotency_key VARCHAR(128) NOT NULL,
+    before_balance BIGINT NULL,
+    after_balance BIGINT NULL,
+    status VARCHAR(32) NOT NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_fund_ledger_idem (ledger_type, idempotency_key),
+    KEY idx_fund_ledger_account (account_id, created_at),
+    KEY idx_fund_ledger_biz (biz_type, biz_id)
+);
+</code></pre>
+<p>金额建议使用最小货币单位的整数，例如分、厘、cent，避免浮点误差。</p>
+<h3 id="1142-状态机"><a class="header" href="#1142-状态机">11.4.2 状态机</a></h3>
+<p>状态机定义业务对象能从哪里到哪里。</p>
+<p>支付单状态机示例：</p>
+<pre><code class="language-text">INIT
+  -&gt; PAYING
+  -&gt; SUCCESS
+  -&gt; FAILED
+  -&gt; CLOSED
+  -&gt; REFUNDING
+  -&gt; REFUNDED
+</code></pre>
+<p>状态机要做三件事：</p>
+<ol>
+<li>限制非法迁移。</li>
+<li>处理重复事件。</li>
+<li>为补偿和对账提供判断依据。</li>
+</ol>
+<p>例如支付单从 <code>SUCCESS</code> 不能回到 <code>PAYING</code>；退款成功回调重复到达时应该幂等返回；订单已取消后收到支付成功事件时不能无条件推进订单，需要进入特殊处理。</p>
+<h3 id="1143-快照"><a class="header" href="#1143-快照">11.4.3 快照</a></h3>
+<p>快照用于固定业务承诺。</p>
+<p>订单创建时应保存：</p>
+<ul>
+<li>商品快照。</li>
+<li>SKU 快照。</li>
+<li>价格快照。</li>
+<li>优惠快照。</li>
+<li>运费和税费快照。</li>
+<li>履约规则快照。</li>
+<li>供应商报价和确认快照。</li>
+</ul>
+<p>如果订单只保存商品 ID，后续商品改价、活动下线、供应商规则变化，就无法解释当时为什么收这个价，也无法正确退款、结算和审计。</p>
+<p>资损防控里有一个重要原则：<strong>交易发生后，用交易快照解释历史，不用当前配置解释历史。</strong></p>
+<h2 id="115-计价资损防控"><a class="header" href="#115-计价资损防控">11.5 计价资损防控</a></h2>
+<p>计价是资损防控第一现场。</p>
+<h3 id="1151-金额公式必须可解释"><a class="header" href="#1151-金额公式必须可解释">11.5.1 金额公式必须可解释</a></h3>
+<p>订单应付金额应该能被公式解释：</p>
+<pre><code class="language-text">payable_amount
+  = item_amount
+  + shipping_fee
+  + tax_amount
+  + service_fee
+  - platform_discount
+  - merchant_discount
+  - coupon_discount
+  - points_discount
+</code></pre>
+<p>每一项都必须有来源、版本和上限。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>金额项</th><th>防控要求</th></tr>
+</thead>
+<tbody>
+<tr><td>商品金额</td><td>绑定商品价格版本和币种</td></tr>
+<tr><td>运费</td><td>保存运费模板版本和计算输入</td></tr>
+<tr><td>税费</td><td>保存税率、税区、含税口径</td></tr>
+<tr><td>平台优惠</td><td>绑定活动 ID、预算、规则版本</td></tr>
+<tr><td>商家优惠</td><td>区分商家承担和平台承担</td></tr>
+<tr><td>券优惠</td><td>绑定券实例和核销流水</td></tr>
+<tr><td>积分抵扣</td><td>保存积分扣减流水</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果金额只保存一个总价，后续退款、结算、财务入账都会变成猜谜。</p>
+<h3 id="1152-金额不变量"><a class="header" href="#1152-金额不变量">11.5.2 金额不变量</a></h3>
+<p>计价系统必须校验不变量：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>不变量</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>应付金额不能小于 0</td><td>除非明确支持 0 元单</td></tr>
+<tr><td>优惠总额不能超过可优惠金额</td><td>防止倒贴</td></tr>
+<tr><td>平台补贴不能超过活动预算</td><td>防止预算穿透</td></tr>
+<tr><td>商家承担金额不能超过商家授权</td><td>防止错扣商家</td></tr>
+<tr><td>退款金额不能超过原支付成功金额</td><td>防止超退</td></tr>
+<tr><td>分账总额不能超过实收金额</td><td>防止商家多结</td></tr>
+<tr><td>不同币种不能直接加减</td><td>必须先明确汇率和结算币种</td></tr>
+</tbody>
+</table>
+</div>
+<p>这些校验应该存在于计价服务、订单创建、支付创建、退款创建和结算生成多个关键点。</p>
+<h3 id="1153-价格保护"><a class="header" href="#1153-价格保护">11.5.3 价格保护</a></h3>
+<p>价格变更要有风险保护：</p>
+<ul>
+<li>价格低于成本价或历史均价一定比例，进入审核。</li>
+<li>批量改价影响 SKU 数超过阈值，需要双人审批。</li>
+<li>活动价生效前灰度到小流量或内部用户。</li>
+<li>新规则上线后监控订单平均折扣率、毛利率和 0 元单数量。</li>
+<li>价格配置变更写审计，并能快速回滚。</li>
+</ul>
+<p>价格错误通常扩散非常快。一个错误活动配置可能几分钟内产生几万笔订单，所以价格保护必须具备自动暂停能力。</p>
+<h2 id="116-订单支付与退款资损防控"><a class="header" href="#116-订单支付与退款资损防控">11.6 订单、支付与退款资损防控</a></h2>
+<h3 id="1161-创建支付单"><a class="header" href="#1161-创建支付单">11.6.1 创建支付单</a></h3>
+<p>创建支付单前必须校验：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>校验</th><th>目的</th></tr>
+</thead>
+<tbody>
+<tr><td>订单仍可支付</td><td>防止取消后支付</td></tr>
+<tr><td>支付金额等于订单应付金额</td><td>防止篡改金额</td></tr>
+<tr><td>支付币种一致</td><td>防止币种错配</td></tr>
+<tr><td>支付单幂等</td><td>防止重复支付单</td></tr>
+<tr><td>订单未进入退款或风控冻结</td><td>防止状态冲突</td></tr>
+</tbody>
+</table>
+</div>
+<p>支付金额不能信任前端传入。前端只能提交订单号和支付方式，金额必须由服务端根据订单快照读取。</p>
+<h3 id="1162-支付回调"><a class="header" href="#1162-支付回调">11.6.2 支付回调</a></h3>
+<p>支付回调是资损高风险入口。</p>
+<p>处理顺序建议：</p>
+<pre><code class="language-text">接收回调
+  -&gt; 验签
+  -&gt; 校验渠道商户号
+  -&gt; 幂等检查渠道流水
+  -&gt; 查询本地支付单
+  -&gt; 校验金额、币种、订单归属
+  -&gt; 状态机推进
+  -&gt; 写支付流水和 Outbox
+  -&gt; 返回渠道成功
+</code></pre>
+<p>几个关键原则：</p>
+<ul>
+<li>验签失败不能进入业务逻辑。</li>
+<li>渠道流水号必须唯一。</li>
+<li>回调金额必须等于支付单金额。</li>
+<li>更新支付状态和写 Outbox 应在同一事务内。</li>
+<li>成功响应渠道应该晚于本地事务提交。</li>
+<li>重复回调必须幂等返回成功。</li>
+</ul>
+<h3 id="1163-退款防控"><a class="header" href="#1163-退款防控">11.6.3 退款防控</a></h3>
+<p>退款比支付更容易出资损，因为它常常由售后、客服、运营或自动规则触发。</p>
+<p>退款前必须校验：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>校验</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>原支付成功</td><td>未支付不能退款</td></tr>
+<tr><td>可退金额</td><td>累计退款不能超过实付</td></tr>
+<tr><td>退款原因</td><td>是否符合售后规则</td></tr>
+<tr><td>订单状态</td><td>已发货、已核销、已完成的退款规则不同</td></tr>
+<tr><td>权益回收</td><td>券、积分、库存、发票是否需要反向处理</td></tr>
+<tr><td>风险审批</td><td>大额退款、批量退款、跨账户退款必须审批</td></tr>
+</tbody>
+</table>
+</div>
+<p>退款建议使用退款单状态机：</p>
+<pre><code class="language-text">INIT
+  -&gt; REFUNDING
+  -&gt; SUCCESS
+  -&gt; FAILED
+  -&gt; CLOSED
+</code></pre>
+<p>原路退回是默认原则。任何非原路退款、线下退款、人工补偿，都应提高风险等级并要求审批。</p>
+<h3 id="1164-重复退款防控"><a class="header" href="#1164-重复退款防控">11.6.4 重复退款防控</a></h3>
+<p>重复退款常见来源：</p>
+<ul>
+<li>用户重复提交售后。</li>
+<li>客服重复点击。</li>
+<li>渠道回调重复。</li>
+<li>补偿任务重复执行。</li>
+<li>多个售后单同时关联同一支付单。</li>
+</ul>
+<p>防控方式：</p>
+<ul>
+<li><code>payment_id + refund_request_id</code> 唯一。</li>
+<li>支付单累计退款金额使用条件更新。</li>
+<li>退款成功流水唯一。</li>
+<li>退款补偿幂等。</li>
+<li>售后单和退款单一对一或明确多对一规则。</li>
+</ul>
+<p>金额更新建议使用条件约束：</p>
+<pre><code class="language-sql">UPDATE payment_order
+SET refunded_amount = refunded_amount + :refund_amount
+WHERE payment_id = :payment_id
+  AND paid_amount - refunded_amount &gt;= :refund_amount;
+</code></pre>
+<p>更新影响行数为 0 时，不能继续发起渠道退款。</p>
+<h2 id="117-库存与履约资损防控"><a class="header" href="#117-库存与履约资损防控">11.7 库存与履约资损防控</a></h2>
+<p>库存资损既可能是超卖，也可能是少卖。</p>
+<h3 id="1171-库存账本"><a class="header" href="#1171-库存账本">11.7.1 库存账本</a></h3>
+<p>库存系统不应该只有一个 <code>available_stock</code> 字段。至少需要库存流水：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>流水类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>INIT</td><td>初始化库存</td></tr>
+<tr><td>RESERVE</td><td>下单预占</td></tr>
+<tr><td>CONFIRM</td><td>支付成功确认已售</td></tr>
+<tr><td>RELEASE</td><td>取消或超时释放</td></tr>
+<tr><td>ADJUST</td><td>人工调整</td></tr>
+<tr><td>FREEZE</td><td>风险冻结</td></tr>
+<tr><td>UNFREEZE</td><td>解除冻结</td></tr>
+</tbody>
+</table>
+</div>
+<p>库存余额可以是快照，但库存真相应来自流水和状态机。</p>
+<h3 id="1172-超卖防控"><a class="header" href="#1172-超卖防控">11.7.2 超卖防控</a></h3>
+<p>超卖防控要覆盖并发、缓存和供应商三类风险。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>风险</th><th>防控</th></tr>
+</thead>
+<tbody>
+<tr><td>并发扣减</td><td>DB 条件更新、Redis Lua、库存分片</td></tr>
+<tr><td>重复扣减</td><td>预占流水幂等键</td></tr>
+<tr><td>重复释放</td><td>释放流水唯一键</td></tr>
+<tr><td>Redis 与 DB 不一致</td><td>定期对账，以账本修复缓存</td></tr>
+<tr><td>热点 SKU</td><td>限流、排队、库存分桶</td></tr>
+<tr><td>供应商库存延迟</td><td>可售水位、安全库存、实时确认</td></tr>
+</tbody>
+</table>
+</div>
+<p>典型扣减条件：</p>
+<pre><code class="language-sql">UPDATE inventory_balance
+SET available = available - :qty,
+    reserved = reserved + :qty
+WHERE inventory_key = :inventory_key
+  AND available &gt;= :qty;
+</code></pre>
+<p>影响行数为 0 表示库存不足，不能继续创建可支付订单。</p>
+<h3 id="1173-少卖防控"><a class="header" href="#1173-少卖防控">11.7.3 少卖防控</a></h3>
+<p>很多团队只关注超卖，忽略少卖。少卖也是资损，因为平台损失交易机会。</p>
+<p>少卖来源：</p>
+<ul>
+<li>订单失败后库存未释放。</li>
+<li>Redis 扣减成功但 DB 释放失败。</li>
+<li>预占过期扫描任务挂掉。</li>
+<li>供应商库存恢复后平台未同步。</li>
+<li>风险冻结后没有自动解冻。</li>
+</ul>
+<p>少卖防控依赖：</p>
+<ul>
+<li>预占过期释放。</li>
+<li>库存对账。</li>
+<li>冻结库存监控。</li>
+<li>供应商库存新鲜度监控。</li>
+<li>手工冻结工单 SLA。</li>
+</ul>
+<h3 id="1174-虚拟商品和券码"><a class="header" href="#1174-虚拟商品和券码">11.7.4 虚拟商品和券码</a></h3>
+<p>券码、充值、酒店、机票这类库存更复杂。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>品类</th><th>风险</th><th>防控</th></tr>
+</thead>
+<tbody>
+<tr><td>券码</td><td>同一码发给多个用户</td><td>code_id 状态机、发码幂等</td></tr>
+<tr><td>充值</td><td>供应商扣款但用户未到账</td><td>供应商请求幂等、回调对账</td></tr>
+<tr><td>酒店</td><td>平台收款但供应商未确认</td><td>支付前二次确认或支付后快速取消退款</td></tr>
+<tr><td>机票</td><td>价格和舱位实时变化</td><td>锁价、验舱、支付时效</td></tr>
+</tbody>
+</table>
+</div>
+<p>虚拟履约必须有供应商请求流水，不能只记录“履约成功 / 失败”。否则供应商争议时无法举证。</p>
+<h2 id="118-营销与优惠资损防控"><a class="header" href="#118-营销与优惠资损防控">11.8 营销与优惠资损防控</a></h2>
+<p>营销系统是“有意让利”的系统，也是资损高发区。</p>
+<h3 id="1181-优惠预算"><a class="header" href="#1181-优惠预算">11.8.1 优惠预算</a></h3>
+<p>每个活动都应该有预算控制：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>预算类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>总预算</td><td>活动最多补贴金额</td></tr>
+<tr><td>日预算</td><td>单日最多补贴金额</td></tr>
+<tr><td>用户预算</td><td>单用户最多领取或核销</td></tr>
+<tr><td>商家预算</td><td>单商家承担上限</td></tr>
+<tr><td>商品预算</td><td>单 SKU 补贴上限</td></tr>
+<tr><td>渠道预算</td><td>不同渠道独立预算</td></tr>
+</tbody>
+</table>
+</div>
+<p>预算扣减要使用原子操作，并有预算流水。</p>
+<pre><code class="language-text">预算冻结
+  -&gt; 订单支付成功确认消耗
+  -&gt; 订单取消释放预算
+  -&gt; 退款时按规则返还或不返还
+</code></pre>
+<p>不要只在活动开始前校验预算，活动运行中必须实时监控预算消耗速度。</p>
+<h3 id="1182-优惠叠加规则"><a class="header" href="#1182-优惠叠加规则">11.8.2 优惠叠加规则</a></h3>
+<p>优惠叠加要明确：</p>
+<ul>
+<li>哪些优惠互斥。</li>
+<li>哪些优惠可叠加。</li>
+<li>叠加顺序是什么。</li>
+<li>每类优惠作用范围是什么。</li>
+<li>优惠是否参与退款。</li>
+<li>优惠由平台还是商家承担。</li>
+</ul>
+<p>常见事故是优惠规则从“单券”扩展到“多券 + 满减 + 积分 + 会员价”后，没有重新设计规则引擎，只是在代码里堆条件。</p>
+<h3 id="1183-薅羊毛防控"><a class="header" href="#1183-薅羊毛防控">11.8.3 薅羊毛防控</a></h3>
+<p>营销资损不一定来自 Bug，也可能来自规则被利用。</p>
+<p>常见手段：</p>
+<ul>
+<li>新用户补贴被批量注册领取。</li>
+<li>邀请奖励被刷。</li>
+<li>低价商品叠加满减套利。</li>
+<li>退款后优惠权益未回收。</li>
+<li>组合订单拆单后优惠分摊错误。</li>
+</ul>
+<p>防控方式：</p>
+<ul>
+<li>用户、设备、支付工具、收货地址、IP、账号关系图谱。</li>
+<li>优惠领取和核销频率限制。</li>
+<li>低价订单和 0 元订单专项监控。</li>
+<li>退款后优惠回收规则。</li>
+<li>活动预算和毛利率水位告警。</li>
+</ul>
+<p>营销系统不能只看转化率，也要看补贴效率和异常套利。</p>
+<h2 id="119-供应商与结算资损防控"><a class="header" href="#119-供应商与结算资损防控">11.9 供应商与结算资损防控</a></h2>
+<p>B2B2C 和多供应商平台里，资损常发生在平台、用户、商家、供应商之间的边界。</p>
+<h3 id="1191-供应商履约一致性"><a class="header" href="#1191-供应商履约一致性">11.9.1 供应商履约一致性</a></h3>
+<p>平台订单和供应商订单必须建立映射：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>order_id</code></td><td>平台订单</td></tr>
+<tr><td><code>supplier_order_id</code></td><td>供应商订单</td></tr>
+<tr><td><code>supplier_id</code></td><td>供应商</td></tr>
+<tr><td><code>confirm_status</code></td><td>供应商确认状态</td></tr>
+<tr><td><code>supplier_amount</code></td><td>供应商结算金额</td></tr>
+<tr><td><code>currency</code></td><td>币种</td></tr>
+<tr><td><code>confirm_time</code></td><td>确认时间</td></tr>
+<tr><td><code>raw_response_ref</code></td><td>原始响应</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果用户已支付但供应商未确认，系统必须明确处理策略：</p>
+<ul>
+<li>自动重试确认。</li>
+<li>切换供应商。</li>
+<li>退款。</li>
+<li>客服介入。</li>
+<li>平台承担差价履约。</li>
+</ul>
+<p>不能让订单无限停在“处理中”。</p>
+<h3 id="1192-商家结算"><a class="header" href="#1192-商家结算">11.9.2 商家结算</a></h3>
+<p>商家结算至少要对齐：</p>
+<pre><code class="language-text">用户实付
+  - 平台优惠承担
+  - 商家优惠承担
+  - 佣金
+  - 手续费
+  - 退款
+  - 售后扣减
+  = 商家应结算金额
+</code></pre>
+<p>结算资损常见问题：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>问题</th><th>风险</th></tr>
+</thead>
+<tbody>
+<tr><td>优惠承担方错</td><td>平台和商家分摊错误</td></tr>
+<tr><td>退款未冲减结算</td><td>商家多结</td></tr>
+<tr><td>费率配置错误</td><td>佣金少收或多收</td></tr>
+<tr><td>结算周期错误</td><td>提前或延后结算</td></tr>
+<tr><td>跨币种汇率错误</td><td>汇兑损失</td></tr>
+<tr><td>订单状态口径错误</td><td>未完成订单被结算</td></tr>
+</tbody>
+</table>
+</div>
+<p>结算系统必须使用不可变结算批次和结算明细。已出账批次不能随意修改，应通过调账单修正。</p>
+<h3 id="1193-调账"><a class="header" href="#1193-调账">11.9.3 调账</a></h3>
+<p>调账是必要能力，但也是高风险能力。</p>
+<p>调账必须具备：</p>
+<ul>
+<li>调账原因。</li>
+<li>调账对象。</li>
+<li>调账金额。</li>
+<li>关联订单或结算单。</li>
+<li>审批人。</li>
+<li>操作人。</li>
+<li>前后余额。</li>
+<li>财务凭证。</li>
+</ul>
+<p>调账不能直接修改原始订单金额或支付金额。正确方式是追加调账流水。</p>
+<h2 id="1110-权限配置与后台操作防控"><a class="header" href="#1110-权限配置与后台操作防控">11.10 权限、配置与后台操作防控</a></h2>
+<p>后台是资损防控的重点区域。</p>
+<h3 id="11101-高风险操作分级"><a class="header" href="#11101-高风险操作分级">11.10.1 高风险操作分级</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>风险等级</th><th>操作</th><th>控制</th></tr>
+</thead>
+<tbody>
+<tr><td>P0</td><td>批量退款、批量改价、批量发券、结算调账</td><td>双人审批、白名单、限额、审计</td></tr>
+<tr><td>P1</td><td>活动规则上线、支付渠道切换、供应商映射修改</td><td>审批、灰度、回滚</td></tr>
+<tr><td>P2</td><td>单商品改价、单订单补偿、单用户补券</td><td>权限校验、理由必填、审计</td></tr>
+<tr><td>P3</td><td>查询、导出、低风险配置</td><td>权限和水印</td></tr>
+</tbody>
+</table>
+</div>
+<p>高风险操作要做到“能不能做、谁能做、做多少、怎么回滚、谁审批、如何审计”都有系统约束。</p>
+<h3 id="11102-配置变更防控"><a class="header" href="#11102-配置变更防控">11.10.2 配置变更防控</a></h3>
+<p>配置变更必须和代码发布一样治理。</p>
+<p>要求：</p>
+<ul>
+<li>配置有 schema 校验。</li>
+<li>配置有版本号。</li>
+<li>配置支持灰度。</li>
+<li>配置支持一键回滚。</li>
+<li>高风险配置需要审批。</li>
+<li>配置变更事件写入监控。</li>
+<li>配置生效范围可见。</li>
+</ul>
+<p>例如支付渠道权重、活动预算、费率、退款规则、库存策略，都不应允许无审批直接全量生效。</p>
+<h3 id="11103-禁止直接改库成为流程"><a class="header" href="#11103-禁止直接改库成为流程">11.10.3 禁止直接改库成为流程</a></h3>
+<p>事故处理中偶尔可能需要 DBA 级别的紧急修复，但不能把直接 SQL 变成日常流程。</p>
+<p>直接改库的风险：</p>
+<ul>
+<li>绕过状态机。</li>
+<li>绕过幂等。</li>
+<li>绕过 Outbox。</li>
+<li>绕过审计。</li>
+<li>无法触发下游同步。</li>
+<li>无法被对账系统正确解释。</li>
+</ul>
+<p>正确方式是建设修复工具：通过领域服务执行修复，自动写状态日志、Outbox、审计和对账标记。</p>
+<h2 id="1111-风险规则与拦截系统"><a class="header" href="#1111-风险规则与拦截系统">11.11 风险规则与拦截系统</a></h2>
+<p>资损防控需要规则系统，但规则系统不能变成没人懂的黑盒。</p>
+<h3 id="11111-规则类型"><a class="header" href="#11111-规则类型">11.11.1 规则类型</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>规则类型</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td>阈值规则</td><td>单笔退款超过 5000 元需要审批</td></tr>
+<tr><td>比例规则</td><td>商品价格低于近 7 日均价 50% 拦截</td></tr>
+<tr><td>频率规则</td><td>同用户 10 分钟内退款超过 3 次</td></tr>
+<tr><td>预算规则</td><td>活动预算消耗超过 90% 自动降级</td></tr>
+<tr><td>状态规则</td><td>已发货订单不能自动全额退款</td></tr>
+<tr><td>关系规则</td><td>同设备批量领取新人券</td></tr>
+<tr><td>对账规则</td><td>支付成功但订单未推进超过 1 分钟</td></tr>
+</tbody>
+</table>
+</div>
+<p>规则结果不一定只有通过和拒绝，还可以是：</p>
+<ul>
+<li>放行。</li>
+<li>二次确认。</li>
+<li>人工审批。</li>
+<li>冻结对象。</li>
+<li>降级权益。</li>
+<li>触发对账。</li>
+<li>触发告警。</li>
+</ul>
+<h3 id="11112-规则执行点"><a class="header" href="#11112-规则执行点">11.11.2 规则执行点</a></h3>
+<p>规则要放在关键业务动作前：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>动作</th><th>规则</th></tr>
+</thead>
+<tbody>
+<tr><td>计价</td><td>价格、优惠、预算、毛利率</td></tr>
+<tr><td>创单</td><td>库存、优惠、风控、金额</td></tr>
+<tr><td>支付</td><td>金额一致、订单状态、渠道风险</td></tr>
+<tr><td>退款</td><td>可退金额、售后状态、风险审批</td></tr>
+<tr><td>发券</td><td>用户资格、频率、预算</td></tr>
+<tr><td>改价</td><td>成本价、影响范围、审批</td></tr>
+<tr><td>结算</td><td>订单完成、退款冲减、费率</td></tr>
+<tr><td>人工修复</td><td>权限、审批、幂等、审计</td></tr>
+</tbody>
+</table>
+</div>
+<p>越靠近源头拦截，损失越小。等到财务 T+1 对账才发现，通常已经很难无痛修复。</p>
+<h3 id="11113-规则治理"><a class="header" href="#11113-规则治理">11.11.3 规则治理</a></h3>
+<p>规则系统本身也会造成事故。</p>
+<p>治理要求：</p>
+<ul>
+<li>规则有 owner。</li>
+<li>规则有版本。</li>
+<li>规则有命中日志。</li>
+<li>规则支持灰度。</li>
+<li>规则支持回滚。</li>
+<li>规则变更有审批。</li>
+<li>规则效果可监控。</li>
+<li>规则误杀可申诉和恢复。</li>
+</ul>
+<p>没有治理的规则系统，最后会变成谁也不敢改、谁也解释不了的风险源。</p>
+<h2 id="1112-监控与告警"><a class="header" href="#1112-监控与告警">11.12 监控与告警</a></h2>
+<p>资损监控要比普通可用性监控更贴近业务结果。</p>
+<h3 id="11121-核心指标"><a class="header" href="#11121-核心指标">11.12.1 核心指标</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>域</th><th>指标</th></tr>
+</thead>
+<tbody>
+<tr><td>计价</td><td>0 元单数量、负毛利订单数、折扣率分布、价格异常拦截数</td></tr>
+<tr><td>支付</td><td>支付金额不一致、重复渠道流水、支付成功订单未推进</td></tr>
+<tr><td>退款</td><td>超额退款拦截数、重复退款尝试、人工退款金额</td></tr>
+<tr><td>库存</td><td>超卖次数、预占超时未释放、库存对账差异</td></tr>
+<tr><td>营销</td><td>预算消耗速度、券重复核销、异常领取量</td></tr>
+<tr><td>结算</td><td>长短款、调账金额、结算差异</td></tr>
+<tr><td>供应商</td><td>平台支付成功但供应商未确认、供应商金额差异</td></tr>
+<tr><td>后台</td><td>高风险操作次数、审批拒绝数、批量操作影响量</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="11122-告警分级"><a class="header" href="#11122-告警分级">11.12.2 告警分级</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>等级</th><th>场景</th><th>响应</th></tr>
+</thead>
+<tbody>
+<tr><td>P0</td><td>重复扣款、重复退款、大面积错价、超卖、金额不一致</td><td>立即止血，事故群，冻结风险对象</td></tr>
+<tr><td>P1</td><td>活动预算异常消耗、供应商确认失败激增、结算差异升高</td><td>10 分钟内响应</td></tr>
+<tr><td>P2</td><td>单类商品价格异常、补偿积压、DLQ 增长</td><td>值班处理</td></tr>
+<tr><td>P3</td><td>审计报表、趋势异常</td><td>工单跟进</td></tr>
+</tbody>
+</table>
+</div>
+<p>资损告警必须带上影响金额、影响订单数、影响用户数、开始时间、建议止血动作。只告警“规则命中异常”没有行动价值。</p>
+<h3 id="11123-风险看板"><a class="header" href="#11123-风险看板">11.12.3 风险看板</a></h3>
+<p>资损看板建议分为四屏：</p>
+<ol>
+<li><strong>实时风险屏</strong>：P0/P1 风险、影响金额、冻结对象、当前止血状态。</li>
+<li><strong>交易链路屏</strong>：计价、创单、支付、退款、履约各环节异常。</li>
+<li><strong>权益与库存屏</strong>：库存、券、积分、预算、活动风险。</li>
+<li><strong>运营与审计屏</strong>：高风险操作、审批、调账、人工修复。</li>
+</ol>
+<p>看板第一屏必须让值班同学知道：现在是否正在亏钱，亏在哪，是否已经止血。</p>
+<h2 id="1113-资损事故处理"><a class="header" href="#1113-资损事故处理">11.13 资损事故处理</a></h2>
+<p>资损事故处理顺序和普通可用性事故不同。普通事故优先恢复服务，资损事故优先止血和保护证据。</p>
+<p>推荐顺序：</p>
+<ol>
+<li>确认是否仍在产生损失。</li>
+<li>冻结风险入口，例如活动、商品、退款、支付渠道、供应商。</li>
+<li>保护现场，保存日志、配置版本、订单快照、渠道流水。</li>
+<li>估算影响范围和金额。</li>
+<li>分类处理用户、商家、供应商和财务影响。</li>
+<li>执行修复或补偿。</li>
+<li>复核账务和数据。</li>
+<li>输出复盘和长期改进项。</li>
+</ol>
+<h3 id="11131-常见止血动作"><a class="header" href="#11131-常见止血动作">11.13.1 常见止血动作</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>事故</th><th>止血动作</th></tr>
+</thead>
+<tbody>
+<tr><td>错价</td><td>下架商品、暂停活动、冻结未履约订单</td></tr>
+<tr><td>重复退款</td><td>暂停自动退款、冻结售后入口</td></tr>
+<tr><td>优惠被薅</td><td>暂停活动、冻结异常券、限制用户</td></tr>
+<tr><td>超卖</td><td>停售 SKU、冻结库存、启动客服预案</td></tr>
+<tr><td>支付状态错乱</td><td>暂停相关渠道、启动查单和对账</td></tr>
+<tr><td>供应商确认失败</td><td>暂停售卖或切供应商</td></tr>
+<tr><td>商家结算错误</td><td>暂停出账批次、冻结打款</td></tr>
+</tbody>
+</table>
+</div>
+<p>止血动作要提前做成开关，并有权限和审计。事故中临时找人写 SQL 关活动，通常已经晚了。</p>
+<h3 id="11132-影响范围评估"><a class="header" href="#11132-影响范围评估">11.13.2 影响范围评估</a></h3>
+<p>资损事故必须回答：</p>
+<ul>
+<li>影响开始和结束时间。</li>
+<li>影响订单数。</li>
+<li>影响用户数。</li>
+<li>影响商家或供应商。</li>
+<li>最大可能损失金额。</li>
+<li>已实际发生损失金额。</li>
+<li>可追回金额。</li>
+<li>需要赔付金额。</li>
+<li>是否涉及合规和法务。</li>
+</ul>
+<p>影响范围评估依赖快照、账本、审计和对账。如果平时没有这些数据，事故当天无法凭空生成。</p>
+<h2 id="1114-典型案例"><a class="header" href="#1114-典型案例">11.14 典型案例</a></h2>
+<h3 id="11141-错价-0-元购"><a class="header" href="#11141-错价-0-元购">11.14.1 错价 0 元购</a></h3>
+<p>故障过程：</p>
+<pre><code class="language-text">运营配置满 100 减 100
+  -&gt; 规则未限制适用品类
+  -&gt; 低价商品叠加新人券
+  -&gt; 大量订单应付金额变成 0
+  -&gt; 支付绕过
+  -&gt; 履约开始发货
+</code></pre>
+<p>防控点：</p>
+<ul>
+<li>计价校验应付金额不能低于最低支付金额，除非活动明确允许。</li>
+<li>活动规则必须绑定适用品类、商品、用户和预算。</li>
+<li>0 元单数量异常告警。</li>
+<li>负毛利订单实时拦截。</li>
+<li>履约前二次校验订单风险状态。</li>
+</ul>
+<h3 id="11142-重复退款"><a class="header" href="#11142-重复退款">11.14.2 重复退款</a></h3>
+<p>故障过程：</p>
+<pre><code class="language-text">用户申请退款
+  -&gt; 售后系统创建退款单
+  -&gt; 支付渠道退款超时
+  -&gt; 补偿任务重试
+  -&gt; 客服又手工发起退款
+  -&gt; 两条路径使用不同幂等键
+  -&gt; 用户收到两笔退款
+</code></pre>
+<p>防控点：</p>
+<ul>
+<li>退款以支付单累计可退金额为最终约束。</li>
+<li>售后单、退款单、支付单建立唯一关系。</li>
+<li>所有退款入口共用统一退款服务。</li>
+<li>人工退款也走同一幂等和审批流程。</li>
+<li>渠道超时先查单，不盲目再次退款。</li>
+</ul>
+<h3 id="11143-库存重复释放"><a class="header" href="#11143-库存重复释放">11.14.3 库存重复释放</a></h3>
+<p>故障过程：</p>
+<pre><code class="language-text">订单超时取消
+  -&gt; 关单任务释放库存
+  -&gt; 支付失败回调也释放库存
+  -&gt; 补偿任务再次释放库存
+  -&gt; 可售库存被加回三次
+  -&gt; 后续超卖
+</code></pre>
+<p>防控点：</p>
+<ul>
+<li>库存释放必须基于 reservation 状态机。</li>
+<li><code>reservation_id + release_type</code> 或 release ledger 唯一。</li>
+<li>库存余额不能由多个系统直接修改。</li>
+<li>库存对账发现 <code>available + reserved + sold</code> 不平立即冻结。</li>
+</ul>
+<h2 id="1115-上线前资损检查清单"><a class="header" href="#1115-上线前资损检查清单">11.15 上线前资损检查清单</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>检查项</th><th>必须回答</th></tr>
+</thead>
+<tbody>
+<tr><td>金额口径</td><td>订单、支付、退款、结算金额是否有统一定义</td></tr>
+<tr><td>快照</td><td>订单是否保存商品、价格、优惠、税费和履约快照</td></tr>
+<tr><td>幂等</td><td>支付、退款、发券、扣库存是否有服务端幂等</td></tr>
+<tr><td>状态机</td><td>是否限制非法状态迁移和晚到事件</td></tr>
+<tr><td>账本</td><td>资金、库存、券、积分、预算是否有流水</td></tr>
+<tr><td>预算</td><td>活动和补贴是否有实时预算控制</td></tr>
+<tr><td>可退金额</td><td>是否防止累计退款超过实付</td></tr>
+<tr><td>可售库存</td><td>是否防止重复释放和超卖</td></tr>
+<tr><td>人工操作</td><td>高风险后台操作是否有审批、限额、审计</td></tr>
+<tr><td>配置变更</td><td>活动、费率、渠道、库存策略是否支持灰度和回滚</td></tr>
+<tr><td>对账</td><td>支付、库存、营销、结算、供应商是否有对账</td></tr>
+<tr><td>冻结</td><td>发现异常时能否冻结商品、订单、退款、活动、结算</td></tr>
+<tr><td>监控</td><td>是否有影响金额、订单数和异常趋势告警</td></tr>
+<tr><td>Runbook</td><td>值班同学是否知道如何止血和评估影响</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="1116-本章小结"><a class="header" href="#1116-本章小结">11.16 本章小结</a></h2>
+<p>资损防控是业务系统工程能力的综合考试。它同时考验领域建模、金额口径、状态机、幂等、账本、审批、对账、补偿、监控和事故处理。</p>
+<p>对电商系统来说，资损防控不能只放在支付系统里，也不能只依赖财务 T+1 对账。真正可靠的做法是：</p>
+<ol>
+<li>在计价阶段保证金额可解释。</li>
+<li>在订单阶段固化交易快照。</li>
+<li>在库存和营销阶段用账本保护权益变化。</li>
+<li>在支付和退款阶段用幂等、状态机和渠道对账保护资金事实。</li>
+<li>在供应商和结算阶段明确外部事实和结算口径。</li>
+<li>在后台和配置中心治理人工高风险操作。</li>
+<li>在事故中优先止血、冻结、保留证据和评估影响。</li>
+</ol>
+<p>资损防控的最高标准不是“出了问题能赔”，而是系统能在大多数错误发生前拦住，在少数错误发生后快速发现，并在修复过程中保留完整证据链。</p>
+<h2 id="1117-本章面试题与追问"><a class="header" href="#1117-本章面试题与追问">11.17 本章面试题与追问</a></h2>
+<ol>
+<li>
+<p>什么是资损？为什么资损防控不只是支付系统的职责？
+追问：价格、库存、营销、结算分别可能产生什么资损？</p>
+</li>
+<li>
+<p>如何设计电商系统的资损防控体系？
+追问：事前防错、事中拦截、事后收敛分别包括哪些能力？</p>
+</li>
+<li>
+<p>订单金额为什么必须保存快照？
+追问：如果只保存商品 ID 和总价，退款和结算会遇到什么问题？</p>
+</li>
+<li>
+<p>支付回调如何防止资损？
+追问：为什么验签、金额校验、渠道流水唯一和 Outbox 都必须有？</p>
+</li>
+<li>
+<p>如何防止重复退款？
+追问：人工退款和自动退款为什么必须走同一个退款服务？</p>
+</li>
+<li>
+<p>库存系统如何防止超卖和少卖？
+追问：为什么 Redis 不能作为库存账本？</p>
+</li>
+<li>
+<p>营销优惠如何防止被薅？
+追问：预算、叠加规则、用户频率和退款回收如何设计？</p>
+</li>
+<li>
+<p>商家结算为什么不能直接修改原始订单金额？
+追问：调账单和结算流水应该如何设计？</p>
+</li>
+<li>
+<p>高风险后台操作如何治理？
+追问：批量改价、批量退款、批量发券需要哪些审批和审计？</p>
+</li>
+<li>
+<p>发生错价事故时如何止血？
+追问：如何评估影响范围和最大可能损失？</p>
+</li>
+<li>
+<p>风险规则系统本身如何治理？
+追问：规则灰度、版本、命中日志和误杀恢复为什么重要？</p>
+</li>
+<li>
+<p>资损防控和第 6 章的对账补偿有什么关系？
+追问：哪些资损风险应该事前拦截，哪些可以依赖事后对账？</p>
+</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part01/04-coding-principles-design-patterns.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part02/01-ecommerce-overview.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part01/04-coding-principles-design-patterns.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part02/01-ecommerce-overview.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

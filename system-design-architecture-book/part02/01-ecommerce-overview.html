@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f2e377c1.js";
+            window.path_to_searchindex_js = "../searchindex-f812c69c.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-15ae8bf9.js"></script>
+        <script src="../toc-48cb1802.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,7 +179,7 @@
                     <main>
                         <h1 id="第-20-章-电商系统全景图"><a class="header" href="#第-20-章-电商系统全景图">第 20 章 电商系统全景图</a></h1>
 <blockquote>
-<p>本章定位：在读完第一部分的方法论之后，进入第四部分「电商系统设计实战」之前，用一张<strong>可落地的全景图</strong>把业务能力、应用系统、数据资产与技术基础设施对齐到同一坐标系。后续第 21 章至第 32 章将沿本章划定的边界逐域深入；第 6 章已经从方法论层面讨论了跨系统集成与一致性模式。</p>
+<p>本章定位：在读完第一部分的方法论之后，进入第四部分「电商系统设计实战」之前，用一张<strong>可落地的全景图</strong>把业务能力、应用系统、数据资产与技术基础设施对齐到同一坐标系。后续第 21 章至第 30 章将沿本章划定的边界逐域深入；第 6 章已经从方法论层面讨论了跨系统集成与一致性模式。</p>
 </blockquote>
 <p><strong>阅读建议</strong>：若你已熟悉 DDD 战略术语，可快速浏览 20.2 后进入 20.1 的图示；若你更习惯从接口与数据表入手，建议从 20.1.3 数据架构读起，再回到 20.1.1 校正业务语义。无论哪种路径，都请至少完成 20.4 的三条时序走读，因为后续各章的「集成小节」默认你已经知道<strong>主链路的参与者与先后次序</strong>。</p>
 <p><strong>本章产出物（可用于团队对齐）</strong>：</p>
@@ -208,6 +208,53 @@
 </div>
 <p>下面四节分别给出图示与解读要点。图示刻意与后续各章的术语保持一致，便于你在阅读第 21 章至第 29 章时「对照地图」。</p>
 <p><strong>本章的阅读方式</strong>：不要把全景图当成服务清单，而要把它当成后续实战章节的索引地图。商品、库存、营销、计价、搜索、购物车、订单、支付、供给治理和供应商同步都会在后文展开；本章先把它们放到同一张业务地图上，帮助读者理解每个系统的职责、上游、下游和失败边界。</p>
+<p>下面这张图先给出 Part 2 的<strong>功能全景索引图</strong>。它不试图一次讲完所有实现细节，而是回答四个更基础的问题：平台有哪些能力域、这些能力域如何分工、主链路如何推进、治理闭环如何反哺供给。读完这张图，再进入后面的业务架构、应用架构、数据架构和技术架构，会更容易建立“先有地图，再看局部”的阅读节奏。</p>
+<pre class="mermaid">
+flowchart LR
+    A["供应商 / 商家&lt;br/&gt;入驻与资质&lt;br/&gt;基础商品 / 资源&lt;br/&gt;库存或券码供给&lt;br/&gt;价格与履约能力"]
+
+    subgraph P["数字电商平台 / B2B2C 平台"]
+        direction LR
+
+        B["供给平台&lt;br/&gt;接入与同步&lt;br/&gt;Draft / Staging / QC&lt;br/&gt;批量导入与任务编排&lt;br/&gt;库存运营与供应商治理"]
+
+        C["商品中心&lt;br/&gt;Resource / SPU / SKU&lt;br/&gt;Offer / Rule / Snapshot&lt;br/&gt;正式商品主数据&lt;br/&gt;交易前契约"]
+
+        D["运营平台&lt;br/&gt;活动与促销&lt;br/&gt;CMS / 会场 / 分类&lt;br/&gt;搜索与流量运营&lt;br/&gt;上下架与曝光编排"]
+
+        E["用户前台&lt;br/&gt;搜索导购&lt;br/&gt;详情与列表&lt;br/&gt;购物车与结算&lt;br/&gt;下单入口"]
+
+        F["订单 / 履约 / 售后&lt;br/&gt;订单创建与支付&lt;br/&gt;履约编排与发货&lt;br/&gt;退款售后与补偿&lt;br/&gt;清结算与对账"]
+    end
+
+    U["消费者 / 用户"]
+
+    A --&gt; B
+    B --&gt; C
+    C --&gt; D
+    D --&gt; E
+    E --&gt; F
+    U --&gt; E
+
+    G["质量巡检&lt;br/&gt;商品质量分 / 风险识别"]
+    H["生命周期治理&lt;br/&gt;上下架 / 冻结 / 下线 / 回滚"]
+    I["供应商同步治理&lt;br/&gt;Raw Snapshot / Checkpoint / 质量监控"]
+    J["Outbox / DLQ / 补偿&lt;br/&gt;异常闭环 / 人工修复"]
+
+    G --&gt; B
+    H --&gt; B
+    I --&gt; B
+    J --&gt; B
+    F -.异常、质量与售后信号回流.-&gt; G
+
+    K["主链路：把货组织成资产 → 把资产组织成销售 → 把销售沉淀成交易结果"]
+    B -.-&gt; K
+    C -.-&gt; K
+    D -.-&gt; K
+    E -.-&gt; K
+    F -.-&gt; K
+</pre>
+
 <p><strong>术语对照（避免口语歧义）</strong>：</p>
 <div class="table-wrapper">
 <table>
@@ -290,7 +337,7 @@ flowchart TB
 <li><strong>客户方（Downstream）</strong>：订单与结算消费上述契约，但不应要求供应方暴露内部表结构。</li>
 <li><strong>防腐层（ACL）</strong>：对接供应商、旧单体或外采营销引擎时，把外部模型挡在边界之外，避免污染核心域通用语言。</li>
 </ul>
-<p><strong>答辩提示</strong>：业务架构图的表述模板已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
+<p><strong>答辩提示</strong>：业务架构图的表述模板已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 31 章</a>。</p>
 <h3 id="2012-应用架构微服务视角"><a class="header" href="#2012-应用架构微服务视角">20.1.2 应用架构（微服务视角）</a></h3>
 <p>应用架构关注<strong>可部署单元</strong>之间的依赖。原则是：<strong>依赖方向自上而下、由稳定侧指向易变侧</strong>，避免出现「基础数据服务回调订单服务」这类环。下图在典型分层架构上，补全 C 端读路径（搜索、购物车）与结算编排，并标注后续章节编号，便于索引。</p>
 <pre class="mermaid">
@@ -770,9 +817,9 @@ sequenceDiagram
 <tr><td>7</td><td>结算编排</td><td>结算页 Saga、预占协调、拆单预览</td><td>不替代订单合同存储</td><td><a href="./08-cart-checkout.html">第 27 章</a></td></tr>
 <tr><td>8</td><td>订单系统</td><td>合同、状态机、拆单、履约协调入口</td><td>渠道密钥、资金划拨</td><td><a href="./09-order-system.html">第 28 章</a></td></tr>
 <tr><td>9</td><td>支付系统</td><td>支付单、渠道路由、回调、对账与退款</td><td>商品主数据、库存数量</td><td><a href="./10-payment-system.html">第 29 章</a></td></tr>
-<tr><td>10</td><td>商品上架</td><td>上架审核、发布流程、供给侧状态机</td><td>不复制商品中心全量模型职责</td><td><a href="./05-product-supply-ops.html">第 24 章</a></td></tr>
-<tr><td>11</td><td>供给与运营管理</td><td>批量任务、配置工具、权限与审计</td><td>不绕过商品中心直接写「影子库」</td><td><a href="./05-product-supply-ops.html">第 24 章</a></td></tr>
-<tr><td>12</td><td>生命周期与供给治理</td><td>同步/编辑/下架边界、跨系统编排约束</td><td>不实现全量搜索召回</td><td><a href="./05-product-supply-ops.html">第 24 章</a></td></tr>
+<tr><td>10</td><td>商品上架</td><td>上架审核、发布流程、供给侧状态机</td><td>不复制商品中心全量模型职责</td><td><a href="./05-product-supply-lifecycle-ops.html">第 24 章</a></td></tr>
+<tr><td>11</td><td>供给与运营管理</td><td>批量任务、配置工具、权限与审计</td><td>不绕过商品中心直接写「影子库」</td><td><a href="./05-product-supply-lifecycle-ops.html">第 24 章</a></td></tr>
+<tr><td>12</td><td>生命周期与供给治理</td><td>同步/编辑/下架边界、跨系统编排约束</td><td>不实现全量搜索召回</td><td><a href="./05-product-supply-lifecycle-ops.html">第 24 章</a></td></tr>
 </tbody>
 </table>
 </div>
@@ -849,7 +896,7 @@ sequenceDiagram
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../part01/12-capacity-planning-resilience.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../part01/05-production-resilience-safeguards.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -863,7 +910,7 @@ sequenceDiagram
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../part01/12-capacity-planning-resilience.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../part01/05-production-resilience-safeguards.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
