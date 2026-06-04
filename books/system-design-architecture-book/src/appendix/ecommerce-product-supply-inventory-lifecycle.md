@@ -43,6 +43,23 @@
 3. 外部来源的数据先放哪里，什么时候才算正式商品。
 4. 审核和发布失败后如何定位到具体行、具体字段、具体来源。
 
+但真正落到业务现场时，**“创建商品” 往往并不只是在建一条商品记录，而是在同时决定这个商品如何建立可售库存能力**。尤其在酒旅、到店餐饮、景区票务和本地生活券场景里，商品创建常常天然伴随着库存创建。
+
+典型地会出现 3 类组合场景：
+
+| 场景 | 商品创建时的库存动作 | 库存真相来源 | 系统重点 |
+| --- | --- | --- | --- |
+| 纯数字库存商品 | 手工填写初始库存数字 | 数量 | 创建商品时同步初始化库存 |
+| 系统动态发券商品 | 手工填写初始库存数字，并声明发券规则 | 数量 + 券码生成规则 | 商品创建时同步建立库存与发券策略 |
+| 外部死码池商品 | 先声明 `EXT_POOL` 模式，后续导入券码 Excel | 券码池 | 商品创建与券码导入分阶段完成 |
+
+这意味着系统在创建商品时，至少还要回答两个额外问题：
+
+1. 创建商品时，是否必须同步声明 `inventory_mode`。
+2. 商品创建和库存初始化，是不是要被收敛到同一个供给任务里。
+
+也正因为如此，后面第 `3.7` 节讨论的“库存入口设计”，并不是独立于商品创建存在的附属能力，而是商品供给主链路的一部分。
+
 ### 1.2 商品编辑场景
 
 商品一旦上线，编辑链路往往比创建链路更复杂，因为它直接影响线上交易和历史一致性。
@@ -117,9 +134,9 @@
 
 | 场景类型 | 典型问题 |
 | --- | --- |
-| 商品创建 | 入口统一、同步/异步分层、草稿归属、批量错误隔离 |
+| 商品创建 | 入口统一、同步/异步分层、草稿归属、批量错误隔离、创建商品时是否同步创建库存 |
 | 商品编辑 | 差异化审核、线上版本保护、供应商冲突治理 |
-| 库存运营 | 入口与事实分离、账本可追溯、预占释放一致性 |
+| 库存运营 | 入口与事实分离、账本可追溯、预占释放一致性、库存模式路由 |
 | 生命周期治理 | 状态分层、审计留痕、重提与补偿闭环 |
 | 供应商协同 | 幂等、断点续跑、数据质量评估、Mapping 管理 |
 | 发布协同 | 版本化发布、Outbox、搜索/缓存/订单最终一致 |
@@ -593,6 +610,68 @@ flowchart LR
 
 推荐方案 B：库存配置是交易契约的一部分，可以在商品发布时一并声明；库存余额、预占、确认、释放、券码状态机必须由库存系统维护。
 
+### 2.9 决策点 7：供应商同步的无效流量过滤，应该放在供给侧还是商品中心
+
+#### 场景与问题
+
+供应商同步场景里，经常会遇到一个非常诱人的优化点：既然 100w 级对象里可能有 70%~80% 根本没有实质变化，那么是不是应该在供给侧先基于业务指纹做一轮粗过滤，把无效数据直接蒸发在上游？
+
+这个思路在算力和带宽上很有吸引力，但它会立即引出一个更危险的问题：
+
+> 供给侧是否真的拥有足够权威的“真相”，来判断一条供应商数据应该被跳过？
+
+如果供给侧维护了一套自己的指纹或状态镜像，而商品中心又是正式商品的唯一真相源，那么一旦出现：
+
+- 上一轮同步失败
+- 消息在 MQ 中长时间排队
+- 运营在商品中心人工改价或锁定字段
+- 多条链路同时修改同一商品
+
+供给侧就很容易基于一份“过期状态”做出错误过滤，最终把本应进入商品中心重试或更新的数据静默跳过，形成最危险的“丢单式不一致”。
+
+#### 方案对比
+
+| 方案 | 优点 | 缺点 / 风险 | 适用场景 | 推荐结论 |
+| --- | --- | --- | --- | --- |
+| 方案 A：供给侧基于业务指纹做过滤 | 上游 MQ、Consumer、RPC 压力更小；看起来更省算力 | 供给侧需要维护商品状态镜像；失败状态和线上真相容易不一致；最容易产生静默跳过和幽灵覆盖 | 真相源就在上游、链路极短、失败模型简单的系统 | 不推荐 |
+| 方案 B：供给侧忠实搬运，商品中心负责幂等去重与 Diff 裁剪 | 真相源单一；最终判断权收敛到商品主域；不容易出现跨系统状态分裂 | 下游商品中心需要承担更强的幂等和 Diff 压力 | 平台化商品主域、多链路并发更新场景 | 推荐 |
+
+#### 推荐方案
+
+推荐方案 B：**供给侧不承担最终过滤主权，由商品中心自己基于正式真相做幂等去重和 Diff 裁剪。**
+
+这背后的核心判断是：
+
+1. **商品中心才是正式商品的唯一真相源**
+
+   供应商同步、运营手工编辑、商家后台修改、营销锁价都可能同时作用于同一商品。只有商品中心知道当前线上正式版本、字段锁定状态和最终主导权，因此也只有它最适合做“是否真要写入”的最终裁决。
+
+2. **上游过滤最怕静默丢单**
+
+   一旦供给侧的指纹、状态或失败记录与商品中心不一致，就会出现“上游判定没变，实际下游没成功”的黑洞。这类错误比多发几条 MQ 更危险，因为它既难发现，又直接导致数据永远不同步。
+
+3. **幂等和去重本来就是商品主域必须具备的底线能力**
+
+   即使没有供应商 Pull，商品中心也必须面对：
+   - 同一消息重投
+   - 多链路并发更新
+   - 旧版本晚到
+   - 运营人工修改和自动同步打架
+
+   所以把去重主权收拢到商品中心，不是额外负担，而是让商品主域回到它本来就该承担的职责。
+
+#### 设计收束
+
+这条决策最终会把供应商同步链路压缩成一种更稳定的非对称结构：
+
+- **供给侧**：负责串行拉取、快照落盘、状态台账、MQ 投递、任务与批次管理
+- **商品中心**：负责基于正式 DTO、`publish_version`、字段主导权和乐观锁做最终幂等拦截
+
+一句话说：
+
+> 上游允许忠实重发，下游商品中心必须死守强幂等。  
+> 对供应商同步来说，真正安全的过滤不应该放在供给侧，而应该放在商品主域的最终写入前。
+
 ---
 
 ## 3. 详细设计 - 供给平台
@@ -622,43 +701,377 @@ flowchart LR
 
 > 供给平台负责把外部和 B 端的复杂输入组织成可治理、可编排、可恢复的标准化变更；商品主域写侧负责把这些变更冻结、审核、发布为正式商品；库存系统负责把库存命令落成事实。
 
-### 3.2 供给入口四象限隔离架构
+### 3.2 决策点
 
-整个接入层不应该只按“来源”分类，更应该按 **交互频率 × 数据吞吐量** 做资源隔离。表面上看 Excel 导入和 ERP 推送都是“批量数据”，但它们对时延、容错、资源竞争和用户心理预期完全不同。
+这一节后面会进入大量实现细节。为了避免决策点散落在各个小节里，供给平台相关的关键取舍统一先收口在 `3.2`。后续如果继续新增决策点，也优先继续挂到这里。
 
-#### 3.2.1 Local 单个创建 / 单个编辑
+#### 3.2.1 决策点 1：任务抢占使用 DB 还是 Redis 分布式锁
 
-- 典型来源：运营后台、商家后台单品表单。
-- 交互特征：强交互、低吞吐、秒级预期。
-- 执行方式：同步提交，同步返回。
-- 资源隔离：独立 Web 线程池或独立同步请求配额，不允许被批量任务排队拖死。
-- 编排锚点：后端仍建议创建轻量 `task(total_count=1, execution_mode=SYNC)`，统一审计、状态跟踪和发布编排。
+Parser Worker 抢占 `PENDING` 任务时，行业里最主流的两套方案就是：
 
-#### 3.2.2 Local Excel 批量导入
+- 基于 MySQL 行锁 / 轻量 CAS 的 DB 抢占
+- 基于 Redis `SETNX` / Redisson 的分布式锁抢占
 
-- 典型来源：商家后台导表、运营批量建品、批量编辑。
-- 交互特征：高交互异步任务，中等吞吐，用户盯着进度条等待结果。
-- 执行方式：上传后立刻返回 `task_id`，由专属 Excel Worker 异步解析和处理。
-- 资源隔离：独立 Excel Worker Pool，不能和 Supplier Push/Pull 共用。
-- 输出特征：部分成功、错误文件、错题本下载、分钟级结果反馈。
+这两套方案都能做，但它们解决问题的侧重点完全不同。
 
-#### 3.2.3 Supplier API / ERP 实时推送
+| 对比维度 | 方案 A：基于 DB 的轻量 CAS / 行锁抢占 | 方案 B：基于 Redis 分布式锁抢占 | 推荐结论 |
+| --- | --- | --- | --- |
+| 底层原理 | 依赖 MySQL 单行条件更新和 MVCC，在数据库里一步完成状态推进与租约占有 | 先在 Redis 抢锁，再去 DB 改状态，锁与状态分属两个组件 | 对 B 端批量任务更推荐方案 A |
+| 架构复杂度 | 低，无额外中间件依赖 | 中，需要 Redis 集群和分布式锁客户端 | 批量任务优先简单可靠 |
+| 抢占吞吐 | 中等，但对 B 端批处理完全够用 | 极高，适合超高频短平快抢占 | Parser 抢占通常不需要 Redis 级吞吐 |
+| 状态一致性 | 强。状态、租约、进度都在 DB 权威方闭环 | 弱一些。加锁和改状态跨组件，天然存在双写不一致风险 | B 端供应链更看重一致性 |
+| 续租机制 | 需要自己维护 `heartbeat_at / lease_until` | 可借助 Redisson Watchdog 自动续租 | 自动续租是优点，但不是决定性优势 |
+| 脑裂 / 猝死恢复 | 强。旧 Worker 恢复后因为 `worker_id + lease_token` 不匹配而自然失效 | 弱一些。Redis 主从异步复制、锁提前过期、假死恢复都可能带来双 Worker 风险 | 批量主链路不应把风险转移到锁组件 |
+| 运维与排障 | 简单，直接查 `product_supply_task` 就能看到状态、租约、进度 | 更复杂，需要同时查 DB 和 Redis 锁状态 | 批量链路更适合单主权排障模型 |
 
-- 典型来源：三方 ERP、ISV、供应商开放接口 Push。
-- 交互特征：无交互、低时效、超大吞吐，允许延迟消费。
-- 执行方式：接口层只做签名校验、幂等受理和快速 ACK，然后写专属 MQ。
-- 资源隔离：专属 MQ + 专属 Consumer，不共用本地运营导表线程池。
-- 设计目标：即使 ERP 在大促前疯狂重试，也只能把压力堆在 MQ，不应拖垮本地商家后台。
+推荐结论是：
 
-#### 3.2.4 Supplier Full Sync / Pull 批量拉取
+> 对 Excel 批量导入这类 **长生命周期、低 TPS、强一致、强审计** 的 B 端任务，优先使用 **DB CAS 抢占**；  
+> 对秒杀、轻量定时任务、超高频短平快加锁场景，才优先考虑 Redis 分布式锁。
 
-- 典型来源：酒店、票务、供应商平台全量 / 增量拉取。
-- 交互特征：长任务、海量吞吐、可恢复优先于低延迟。
-- 执行方式：`Batch + Checkpoint + Lease + Raw Snapshot`。
-- 资源隔离：独立 Batch Worker，与 Local 单品和 Excel 链路物理隔离。
-- 设计目标：保证任务能断点续跑、限流熔断、按批补偿，而不是追求“立即完成”。
+原因不在于 Redis 不够快，而在于这类批处理任务真正敏感的不是“抢占吞吐”，而是：
+
+- 状态是否原子闭环
+- 容灾恢复是否确定
+- 排障路径是否单一
+- 是否会因为锁和状态分离而产生脑裂
+
+因此在当前这条链路里，更稳的选择是：
+
+- 任务状态、租约、进度全部沉淀在 `product_supply_task`
+- 通过一条带条件的 `UPDATE ... WHERE status='PENDING'` 或 `lease_until < NOW()` 完成抢占
+- 由旁路恢复逻辑接管过期租约任务
+
+一句话讲清楚就是：
+
+> 这条链路要优先追求 **状态强一致和容灾确定性**，而不是为了追求更高的锁吞吐，把抢占权拆到 Redis 去制造新的双写不一致面。
+
+#### 3.2.2 决策点 2：多入口是否需要按交互频率与数据吞吐量做物理隔离
+
+供给平台的入口很多，但真正困难的地方从来不是“入口多”，而是不同入口的**时效预期、吞吐规模、失败容忍度和用户心理完全不同**。如果把单品同步提交、Excel 导入、ERP Push、Supplier Pull 全塞进一套线程池、一套队列、一套 Worker，短期看架构很简单，长期一定会在高峰窗口自相残杀。
+
+这里要回答的不是抽象地“要不要隔离”，而是一个更具体的工程问题：
+
+> 供给平台应该“一套执行池跑所有入口”，还是应该按交互频率和数据吞吐量做物理隔离。
+
+先给结论：
+
+> 应该按 **交互频率 × 数据吞吐量** 做物理隔离。  
+> 多入口可以复用治理模型，但不应该共用执行资源池、队列和容错策略。
+
+| 方案 | 优点 | 缺点 / 风险 | 适用场景 | 推荐结论 |
+| --- | --- | --- | --- | --- |
+| 方案 A：所有入口共用一套线程池 / 队列 / Worker | 架构简单；早期开发快；运维对象少 | 高峰时互相拖垮；交互型链路被系统型流量吞掉；长任务与短任务争抢资源；容错策略互相污染 | 早期、小流量、单一入口系统 | 过渡方案 |
+| 方案 B：按四象限做物理隔离，治理层复用 | 时效和吞吐边界清晰；本地运营体验更稳；便于限流、背压、分级容错 | 资源池更多；执行面稍复杂；入口分层要求更高 | 中大型供给平台、多入口系统 | 推荐 |
+
+为什么这件事必须作为独立决策点先钉死：
+
+1. **用户心智不同**
+
+   单品创建/编辑是秒级心智；Excel 导入是分钟级、盯着进度条的交互心智；ERP Push 只要求快速 ACK 和高可用；Supplier Pull 更偏向长任务、可恢复优先。把这些链路混在一起，本质上是在让最脆弱的交互型链路去为最大吞吐的系统型流量垫背。
+
+2. **资源模型不同**
+
+   单品提交主要吃 Web 线程和 RPC RT；Excel 导入吃文件 IO、流式解析和批量落盘；ERP Push 吃 MQ 堆积和 Consumer 匀速消费；Supplier Pull 吃 Batch Worker、Checkpoint、Lease、Snapshot 和外部限流。它们根本不是同一种执行问题。
+
+3. **容错策略不同**
+
+   Excel 需要部分成功、错题本和行级修复；ERP/API 需要在签名失败、模板错配、批次结构畸形时整批阻断；Supplier Pull 还要区分批次级、页面级、对象级失败。执行层不隔离，最后连错误模型都会互相污染。
+
+4. **高峰窗口最容易出现跨链路拖垮**
+
+   凌晨供应商同步百万级对象、ERP 疯狂重试、Supplier Pull 长时间占用 Worker 时，如果 Excel 导入和单品创建还共用这套执行资源，前台商家可能连一个 20 行的小 Excel 都要排很久，甚至单品保存都会被拖慢。
+
+**落地结构：四象限入口设计**
+
+整个接入层不应该只按“来源”分类，更应该按 **交互频率 × 数据吞吐量** 做资源隔离。
+
+| 象限 | 典型入口 | 交互/吞吐特征 | 执行方式 | 核心目标 |
+| --- | --- | --- | --- | --- |
+| Local 单品 | 运营后台、商家后台单品表单 | 强交互、低吞吐、秒级预期 | 同步提交、同步返回 | 不卡前台，不排队 |
+| Local Excel | 商家导表、运营批量建品/编辑 | 高交互异步任务、中等吞吐 | 上传后返回 `task_id`，专属 Excel Worker 异步解析和处理 | 分钟级反馈、错题本、部分成功 |
+| Supplier Push | 三方 ERP、ISV、供应商开放接口 Push | 无交互、低时效、超大吞吐 | 接口快速 ACK，写专属 MQ，Consumer 匀速消费 | 抗洪峰，不拖垮本地后台 |
+| Supplier Pull | 酒店、票务、供应商平台全量/增量拉取 | 长任务、海量吞吐、可恢复优先 | `Batch + Checkpoint + Lease + Raw Snapshot` | 可恢复、可补偿、可追溯 |
+
+**落地结构：资源池 / 队列 / Worker 对应关系**
+
+隔离不是概念隔离，而是要落到具体执行介质上：
+
+| 链路 | 资源池 / 介质 | 设计原则 |
+| --- | --- | --- |
+| Local 单品创建/编辑 | 独立 Web 线程池或独立同步请求配额 | 不排队，秒级返回 |
+| Local Excel 导入 | 独立 Excel Worker Pool | 保证分钟级反馈，不被 ERP 洪峰拖垮 |
+| Supplier Push | 独立 MQ + Consumer | 接口快速 ACK，后端慢消费 |
+| Supplier Pull | 独立 Batch Worker | 支持长任务、Checkpoint、Lease |
+
+这里要钉死两个底线：
+
+1. Excel 导入与 Supplier ERP/API 推送不共用线程池、队列和容错模型。
+2. Supplier Push 和 Supplier Pull 也不应共用同一执行池，因为一个偏实时受理，一个偏长任务恢复。
+
+**推荐方案**
+
+推荐的落地原则是：
+
+- **治理层复用**
+  - 统一 `task / task_item / publish_record / operation_log`
+  - 统一校验结果、Diff、发布编排和错误运营化
+- **执行层隔离**
+  - Local 单品：独立同步链路
+  - Local Excel：独立 Excel Worker Pool
+  - Supplier Push：独立 MQ + Consumer
+  - Supplier Pull：独立 Batch Worker + Checkpoint / Lease
+
+#### 3.2.3 决策点 3：Excel 与 ERP/API 是否可以共用同一套容错机制
+
+这是供给平台里最容易被低估的一个设计点。两者都叫“批量数据”，但它们面对的是两种完全不同的用户心智和恢复语义：
+
+- Excel 导入是 **交互型导入**
+- ERP/API 推送是 **系统型同步**
+
+真正的问题不是“是不是都可能失败”，而是：
+
+> 供给平台应该给所有批量入口一套统一错误模型，还是应该按交互型导入和系统型同步拆分容错机制。
+
+先给结论：
+
+> 不应该共用同一套容错机制。  
+> Excel 导入应以**部分成功、行级失败、错题本、人工修复**为核心；  
+> ERP/API 推送应以**关键错误整批阻断、标准错误码、幂等重试、批次隔离**为核心。
+
+| 方案 | 优点 | 缺点 / 风险 | 适用场景 | 推荐结论 |
+| --- | --- | --- | --- | --- |
+| 方案 A：统一容错模型 | 规则少；实现看起来简单；错误处理路径统一 | 用户心智混乱；交互型导入和系统型同步互相迁就；结果输出和重试语义容易错位 | 早期、小流量、单一入口系统 | 过渡方案 |
+| 方案 B：按交互型导入 vs 系统型同步拆分容错模型 | 用户体感更合理；错误粒度更贴近场景；便于部分成功和批次阻断分别治理 | 需要维护两套错误语义和输出模型 | 中大型供给平台、多入口系统 | 推荐 |
+
+为什么必须拆：
+
+1. **用户心智不同**
+
+   Excel 导入的操作者坐在页面前等待结果，接受“99 行成功、1 行失败，给我错题本”；ERP/API 推送没有人在等进度条，更在意接口高可用、标准错误码和是否能稳定重试。
+
+2. **错误粒度不同**
+
+   Excel 更适合行级错误隔离；ERP/API 更适合批次级阻断。把两者混成一种模型，要么 Excel 体验过于僵硬，要么 ERP 批次语义被稀释。
+
+3. **恢复方式不同**
+
+   Excel 的恢复动作往往是“下载错题本、修复后重传”；ERP/API 的恢复动作通常是“幂等重试、重新推送整批、按错误码修复上游数据”。
+
+4. **结果输出不同**
+
+   Excel 需要错误文件、错题本、行级提示；ERP/API 需要标准响应码、批次状态、重试与死信策略。结果载体本身就不是一回事。
+
+**推荐方案**
+
+推荐把两类入口的错误模型明确拆开：
+
+- **Excel 导入**
+  - 支持部分成功
+  - 允许行级失败继续向下处理
+  - 生成错题本和错误文件
+  - 支持运营人工修复后再提交
+- **ERP/API 推送**
+  - 关键错误整批阻断
+  - 返回标准错误码
+  - 依赖幂等重试和批次隔离
+  - 超过阈值进入死信或问题单
+
+**错误分级规则**
+
+第 3 节应该明确区分：
+
+- **可行级跳过的错误**
+  - 字段格式错
+  - 个别映射缺失
+  - 单行类目异常
+- **必须整批失败的错误**
+  - 签名失败
+  - 密钥过期
+  - 核心模板不匹配
+  - 批次结构畸形
+
+#### 3.2.4 决策点 4：Excel 批量链路为什么不能继续用传统串行流程
+
+很多团队在批量导入场景的第一版实现里，都会自然地选择“一把梭”串行流程：
+
+- 上传文件
+- 接口线程直接开始解析
+- 逐行调用下游
+- 最后在接口或单机后台线程里给出结果
+
+这种做法在数据量小、链路短的时候能跑通，但一旦进入真正的供给平台场景，问题会迅速暴露出来。Excel 批量创建和更新并不是“把单品流程循环 N 次”那么简单，它面对的是：
+
+- 文件 IO 和业务处理耦合
+- 大文件导致的内存和线程占用
+- 单行失败拖垮整批
+- 系统重启后任务蒸发
+- 下游抖动时无法削峰和背压
+- 结果文件、错题本、部分成功难以可靠生成
+
+所以这里真正要回答的问题不是“要不要异步”，而是：
+
+> Excel 批量链路应该继续沿用传统串行处理，还是升级为任务化、分阶段、可恢复的异步流水线。
+
+| 方案 | 优点 | 缺点 / 风险 | 适用场景 | 推荐结论 |
+| --- | --- | --- | --- | --- |
+| 方案 A：传统串行流程 | 实现快；组件少；早期容易跑通 | 文件解析和业务处理耦合；接口长时间占用；一行失败拖垮整批；系统重启难恢复；难做错题本和部分成功 | 低流量、临时工具型系统 | 过渡方案 |
+| 方案 B：任务化、分阶段、可恢复的异步流水线 | 可削峰、可恢复、可审计、支持部分成功和错题本 | 需要 `task / task_item / parser worker / MQ / 结果归档` 等配套 | 平台型批量供给链路 | 推荐 |
+
+| 维度 | 传统串行流程 | 当前新流程 |
+| --- | --- | --- |
+| 提交阶段 | 上传后直接开始处理，接口可能长时间占用 | 只收单，创建 `task`，秒级返回 `task_id` |
+| 解析方式 | 一个线程从头读到尾，解析和处理耦合 | Parser Worker 负责流式解析，行级明细先落盘 |
+| 执行模型 | 单机线程池直接逐行调用下游 | 解析后投递 MQ，Consumer 集群匀速消费 |
+| 状态表达 | 只有“成功/失败”或粗糙进度 | `task` 与 `task_item` 分层状态机 |
+| 失败处理 | 一行失败容易拖垮整批 | 行级沙盒隔离，允许 `PARTIAL_SUCCESS` |
+| 恢复能力 | 进程重启往往只能从头重跑 | `parse_checkpoint + lease + MQ retry` 支持恢复 |
+| 结果输出 | 靠日志排查 | 自动生成错题本和错误文件 |
+
+推荐把 Excel 批量链路升级成：
+
+- 提交任务
+- 解析 Excel
+- 处理任务
+- 产生结果文件
+
+这不是为了“架构更复杂”，而是为了把批量链路从单机脚本思维升级成：
+
+> **任务化、分阶段、可恢复、可审计、可部分成功** 的工业级流水线。
+
+#### 3.2.5 决策点 5：供应商定时同步链路为什么要单独拆分出来
+
+供应商定时同步链路通常来自三方 ERP 的定时批量同步、货期库存批量回传、接口增量推送等场景。它在后端履约阶段，确实可以复用 Excel 批量链路的部分底座，比如：
+
+- 行级 `task_item` 落盘
+- MQ 行级解耦消费
+- `Diff / 字段主导权 / base_publish_version` 校验
+- 结果文件或问题单回填
+
+但它在接入层、吞吐模型、容错语义和监控容灾心智上，必须单独拆出来。原因不是“供应商同步更高级”，而是它和 Excel 批量链路面对的是两种完全不同的世界。
+
+先给结论：
+
+> 供应商定时同步链路应该独立成一条接入链路和执行链路，但可以复用批量治理底座。  
+> 也就是“接入层分流，履约层收口”。
+
+| 方案 | 优点 | 缺点 / 风险 | 适用场景 | 推荐结论 |
+| --- | --- | --- | --- | --- |
+| 方案 A：供应商同步和 Excel 批量共用一套接入池、解析器和容错模型 | 实现看起来统一；入口少；早期开发快 | 运营导表和 ERP 洪峰互相拖垮；文件流和 JSON/RPC 混在一起；错误语义错位；凌晨同步会把前台 Excel 链路堵死 | 低流量、单入口、临时工具型系统 | 过渡方案 |
+| 方案 B：供应商同步单独拆分接入链路，履约层复用批量治理底座 | 接入隔离清晰；监控和背压策略可独立；Excel 体验不被洪峰拖垮；错误模型更契合 ERP 协议 | 入口更多；执行面要分层；治理底座需要共用接口 | 中大型供给平台、多入口系统 | 推荐 |
+
+为什么要单独拆分，核心是四组对立面：
+
+1. **流量特征不同**
+   - Excel 是商家手动上传，流量散落、低频、文件大对象。
+   - 供应商同步是 ERP 定时洪峰，流量集中、周期性强、瞬时并发高。
+   - 如果共用接入池，ERP 洪峰会把 Excel 导入和单品保存一起拖慢。
+
+2. **数据载体不同**
+   - Excel 的输入是文件流，需要 Parser Worker、流式解析、Checkpoint 和断点续跑。
+   - 供应商同步的输入通常是 JSON/RPC 报文或消息，不需要文件解析器。
+   - 如果混用，接入层会被迫同时支持文件解析和报文拆分，代码会快速面条化。
+
+3. **容错语义不同**
+   - Excel 面向人，追求错题本、部分成功、行级修复。
+   - 供应商同步面向机器，追求标准错误码、批次阻断、幂等重试。
+   - 把两者的错误模型揉成一套，会让人和机器都不好用。
+
+4. **优先级与背压不同**
+   - Excel 导表通常是高优先级交互任务，要求尽快反馈。
+   - 供应商同步更像低优先级高吞吐的后台洪峰，需要更严格的背压和限流。
+   - 如果不拆，凌晨同步会抢占商家白天操作的宝贵资源。
+
+所以，供应商同步链路在架构上应该做成：
+
+- 接入层独立
+  - Excel 走文件流接入
+  - ERP/ISV 走 API / MQ 接入
+- 执行层可复用
+  - 最终都沉淀为 `task_item`
+  - 后续共用校验、Diff、发布治理和补偿框架
+- 监控容灾独立
+  - Excel 盯错题本、部分成功和任务进度
+  - 供应商同步盯批次水位、checkpoint、死信和重试
+
+一句话收束就是：
+
+> Excel 批量链路和供应商定时同步链路可以共用“履约底座”，但不能共用“接入心智”和“容错模型”。  
+> 供应商同步必须单独拆分出来，才能保证 ERP 洪峰不会拖垮运营导表体验。
+
+#### 3.2.6 决策点 6：一次同步任务需要几个小时，是否需要任务分片
+
+当一次供应商同步任务可能持续几个小时，甚至覆盖 100w 级资源时，真正要回答的问题不是“能不能把任务切得更碎”，而是：
+
+> **面对慢源、强频控和长时间排队，最稳的长任务模型应该怎么选。**
+
+对 Agoda 这类供应商，推荐答案不是“任务分片并发拉取”，而是：
+
+- 上游接入层保持 **单 Worker 串行 Pull**
+- 每次只拉一页或一个 cursor
+- 每页成功后立即写快照、写状态、丢 MQ
+- 下游 Consumer 集群再慢慢做 `Diff / publish_version / 商品 RPC upsert`
+
+这里的核心不是分片，而是下面 5 个关键点：
+
+1. **统一时刻单例运行与断点续传**  
+   同步窗口可能横跨数小时，昨天的批次没跑完，今天的调度又来了。  
+   所以 `supplier_sync_batch` 必须具备 `status=RUNNING + lease_until` 的租约机制：  
+   - 如果存在未过期的运行中批次，本次调度直接阻断  
+   - 如果租约已过期，新 Worker 通过 CAS 接管批次，并从 `current_checkpoint` 继续跑
+
+2. **非对称双库物化分流**  
+   100w 酒店的巨型异构 JSON 不适合直接压到 MySQL。  
+   - `HBase / Object Store` 负责吞 RAW / NORMALIZED 快照
+   - MySQL 负责批次、状态、映射和治理锚点
+   这不是为了“上大数据组件”，而是为了把“存大对象”和“管状态”拆开。
+
+3. **接入层页级物化收拢**  
+   串行拉回一页后，不能做 500 次单条 Upsert。  
+   更稳的做法是：
+   - HBase 侧按页批量刷写原始快照
+   - MySQL 侧按页批量 Upsert 状态台账 / 行级锚点
+   - 再按页批量投递 MQ
+   接入层要尽量消灭单条循环写。
+
+4. **时间差下的版本保护**  
+   这类同步里，上游拉取和下游消费之间可能相隔数小时。  
+   - 供给侧负责忠实搬运，不承担最终过滤主权
+   - Consumer 在写商品主域前必须实时反查版本和锁定状态
+   - 商品中心在最终写入前用版本、主导权和幂等能力完成最后裁决
+   目标不是在供给侧裁掉数据，而是防止旧消息在长时间排队后覆盖新版本。
+
+5. **动态多阶计数器与终结标记**  
+   串行 Pull 在拉到最后一页前并不知道总对象数，所以不能沿用“固定总数计数器”的套路。  
+   更适合的是：
+   - Worker 每投一页就 `INCRBY`
+   - 拉到尾页时写入 `end_of_stream=true`
+   - 下游 Consumer 每处理一条就 `DECR`
+   - 计数归零且终结标记为真时，再触发收尾
+
+| 方案 | 优点 | 缺点 / 风险 | 适用场景 | 推荐结论 |
+| --- | --- | --- | --- | --- |
+| 方案 A：任务分片并发拉取 | 理论吞吐更高；单次窗口可能更短 | 接入复杂；容易把慢源打挂；恢复复杂；需要额外分片管理 | 供应商接口很快、允许并发拉取 | 不推荐 |
+| 方案 B：单 Worker 串行拉取，逐页 checkpoint，拉完即投 MQ | 接入最稳；对供应商友好；断点续传简单；容易做单例控制和动态计数 | 接入吞吐不高，但通常足够 | Agoda 这类慢源、频控严的同步 | 推荐 |
+
+推荐的长任务结构是：
+
+- 定时任务先创建或接管 `supplier_sync_batch`
+- 一个独占 Worker 串行拉取供应商页面
+- 每页成功后立即做页级物化：快照、状态台账、MQ 投递
+- `current_checkpoint` 只记录“已经安全拉回并送入 MQ 的最高水位线”
+- RAW / NORMALIZED 快照落 HBase / 对象存储
+- MySQL 只保留批次、状态台账、映射、治理锚点
+- 下游 Consumer 再慢慢做 `Diff / publish_version / 商品 RPC upsert`
+
+一句话收束就是：
+
+> 对于性能一般、频控严格、同步窗口很长的供应商，关键不是任务分片，而是 **单例运行、串行拉取、页级物化、下游强幂等与版本拦截**。  
+> 最合适的结构是“单 Worker 串行 Pull + checkpoint + MQ 异步消化”的线性流水线。
 
 ### 3.3 统一任务模型与执行框架
+
+入口隔离和执行资源划分已经在 `3.2.2` 定义完成。这一节开始只讨论统一任务锚点、状态机和抢占模型，而不再重复解释为什么要做四象限隔离。
 
 这里的“统一任务模型”不是指所有入口都共用一套执行线程池，而是指 **Local 单品、Excel、API/ISV 推送、运营批量编辑** 这些供给治理型入口共用一套治理任务锚点：
 
@@ -740,27 +1153,213 @@ stateDiagram-v2
 - `task` 状态不等于商品状态。`DONE` 只表示供给任务处理完了，不代表商品一定已经 `ONLINE`。
 - `task_item.READY` 也不等于正式发布成功，它只表示该对象已经完成供给平台治理，可以进入商品主域写侧的 `Draft / Staging / QC` 链路。
 
-### 3.4 接入层资源池与执行隔离策略
+#### 3.3.1 任务抢占设计
 
-供给平台的执行架构不能只讲“有任务表”，还要讲“不同任务跑在哪些资源池上”。
+异步任务模型一旦进入多 Worker 部署，就不能默认“只有一个执行器会来处理这条任务”。如果没有显式抢占机制，最常见的后果就是：
 
-| 链路 | 资源池 / 介质 | 设计原则 |
-| --- | --- | --- |
-| Local 单品创建/编辑 | 独立 Web 线程池 | 不排队，秒级返回 |
-| Local Excel 导入 | 独立 Excel Worker Pool | 保证分钟级反馈，不被 ERP 洪峰拖垮 |
-| Supplier Push | 独立 MQ + Consumer | 接口快速 ACK，后端慢消费 |
-| Supplier Pull | 独立 Batch Worker | 支持长任务、Checkpoint、Lease |
+- 两个 Worker 同时处理同一条任务
+- 旧进程恢复后覆盖新进程进度
+- 任务卡在 `RUNNING / PARSING` 无法恢复
+- 解析进度和执行进度被重复推进
 
-这一层要强调两个底线：
+因此，`product_supply_task` 建议内建一套 **数据库权威的任务抢占模型**，至少包括：
 
-1. Excel 导入与 Supplier ERP/API 推送不共用线程池。
-2. Supplier Push 和 Supplier Pull 也不应混在同一个执行池中，因为一个偏实时受理，一个偏长任务恢复。
+- `worker_id`
+- `lease_token`
+- `lease_until`
+- `heartbeat_at`
+- `parse_checkpoint` 或等价进度字段
 
-### 3.5 典型场景时序图：标准化、校验与变更编排
+推荐原则是：
 
-这一节不再抽象罗列“标准化、校验、Diff、路由”这些动作，而是直接按 4 类典型场景展开时序图。这样读者能更直观看到：供给平台负责接入、标准化、校验、任务编排和发布触发，但 `Draft / Staging / QC` 的资产主权始终留在商品主域写侧。
+- 任务事实以 MySQL 为权威
+- 抢占通过数据库 CAS 完成
+- 只有租约持有者才能续租、推进 checkpoint、结束任务
+- 只允许抢占租约过期任务，不强抢心跳正常任务
 
-#### 3.5.1 单个创建
+这套设计最好拆成“首次抢占、周期续租、租约过期接管、旧进程失效”四个阶段来看，避免把它误解成一次简单的 `UPDATE ... WHERE status='PENDING'`。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant SCH as "调度器 / 轮询器"
+    participant W1 as "Parser Worker-A"
+    participant T as "product_supply_task"
+
+    SCH->>T: 创建 task(status=PENDING, parse_checkpoint=0)
+    SCH-->>W1: 下发待抢占 task_id
+    W1->>T: CAS 抢占任务<br/>PENDING -> PARSING<br/>写 worker_id / lease_token / lease_until / heartbeat_at
+    alt rows_affected = 1
+        T-->>W1: 抢占成功
+        W1->>T: 写首个 parse_checkpoint
+        loop 解析期间周期续租
+            W1->>T: 更新 heartbeat_at / lease_until / parse_checkpoint
+        end
+        W1->>T: 解析完成后切换为 PROCESSING
+    else rows_affected = 0
+        T-->>W1: 抢占失败，任务已被其他 Worker 持有
+    end
+```
+
+这一小节最重要的不是“如何生成一个 `worker_id`”，而是把所有权边界钉死：
+
+| 设计点 | 说明 |
+| --- | --- |
+| DB 权威抢占 | 抢占不是“先查再改”，而是带条件的 `UPDATE` CAS。`rows_affected = 1` 才表示当前 Worker 真正拿到了执行权。 |
+| 双因子所有权 | `worker_id` 标识是哪台执行器，`lease_token` 标识本次抢占行为。只有两者同时匹配，才允许续租、推进 checkpoint 和结束任务。 |
+| 续租与心跳 | `heartbeat_at` 说明 Worker 还活着，`lease_until` 说明执行权何时失效。续租要周期执行，不能等整批解析完再更新。 |
+| 只抢过期任务 | 只允许抢占 `lease_until < now()` 的任务，不抢心跳正常任务，避免双 Worker 同时处理一条任务。 |
+| checkpoint 恢复 | 抢占恢复时不从头重跑，而是从 `parse_checkpoint` 或等价进度字段继续，允许小范围重复处理，真正防重依赖幂等键。 |
+| 旧进程失效 | 旧 Worker 即使恢复，也因为 `worker_id + lease_token` 不再匹配，无法继续推进任务状态，避免脏回写。 |
+
+这张图只保留任务抢占的最小闭环，重点是：
+
+- 第一次抢占必须由数据库 CAS 原子完成，不能先查再改。
+- 续租必须同时更新心跳、租约和 checkpoint。
+- 旧 Worker 失去租约后就不能再写回状态。
+
+#### 3.3.2 供给治理任务数据库权威抢占模型
+
+根据 `3.2.1 决策点 1：任务抢占使用 DB 还是 Redis 分布式锁`，供给平台统一采用 **MySQL CAS + Lease** 作为任务抢占模型，不再引入 Redis 分布式锁。原因很直接：对于 Excel 批量、运营批量编辑这类 B 端长任务，最重要的不是极限抢占吞吐，而是状态、租约、进度、恢复都必须沉淀在同一权威主表中。
+
+这个模型依赖两个核心前提：
+
+- **数据库是唯一状态权威**
+- **双因子所有权校验：`worker_id + lease_token`**
+
+`worker_id` 用来表达“哪台物理执行器正在持有任务”，`lease_token` 用来表达“这一次抢占行为的唯一租约实例”。只有两者同时匹配，当前 Worker 才有资格续租、推进 checkpoint、回写状态。这样即使旧 Worker 假死后恢复，也无法越权回写。
+
+```mermaid
+flowchart TD
+    DB["MySQL 任务权威状态台账"] --> CAS["CAS 抢占<br/>status=PENDING 或 lease_until 已过期"]
+    CAS --> WA["Parser Worker A<br/>抢占成功"]
+    CAS --> WB["Parser Worker B<br/>rows_affected=0 退避"]
+    WA --> HB["周期续租 + 推进 checkpoint"]
+    HB --> FAIL["Worker OOM / 假死 / 断电"]
+    FAIL --> EXPIRE["lease_until 到期"]
+    EXPIRE --> TAKEOVER["新 Worker CAS 接管"]
+    TAKEOVER --> BLOCK["旧 Worker 恢复后<br/>token 不匹配，DB 物理拦截回写"]
+```
+
+建议 `product_supply_task` 至少具备下面这些字段，来支撑数据库权威抢占：
+
+```sql
+ALTER TABLE `product_supply_task`
+ADD COLUMN `status` VARCHAR(32) NOT NULL DEFAULT 'PENDING' COMMENT '任务级状态机',
+ADD COLUMN `worker_id` VARCHAR(64) NULL COMMENT '当前持有任务的物理节点标识',
+ADD COLUMN `lease_token` VARCHAR(64) NULL COMMENT '每次抢占生成的唯一租约令牌(UUID)',
+ADD COLUMN `lease_until` DATETIME(3) NULL COMMENT '租约失效绝对截止时间',
+ADD COLUMN `heartbeat_at` DATETIME(3) NULL COMMENT '最后一次心跳时间',
+ADD COLUMN `parse_checkpoint` VARCHAR(512) NULL COMMENT '解析进度锚点 JSON',
+ADD COLUMN `last_heartbeat_stage` VARCHAR(64) NULL COMMENT '最后心跳所处阶段(CLAIMED/PARSING/DISPATCHING)',
+ADD INDEX `idx_status_lease` (`status`, `lease_until`);
+```
+
+首次抢占与僵尸接管可以统一为一条 CAS SQL：
+
+```java
+public Optional<TaskLease> tryClaimTask(Long taskId) {
+    String workerId = localHost() + "_" + threadId();
+    String leaseToken = UUID.randomUUID().toString();
+    Date now = new Date();
+    Date leaseUntil = new Date(now.getTime() + 30_000);
+
+    int rows = db.executeUpdate(
+        "UPDATE product_supply_task SET " +
+        " status = 'PARSING', worker_id = ?, lease_token = ?, " +
+        " lease_until = ?, heartbeat_at = ?, last_heartbeat_stage = 'CLAIMED' " +
+        "WHERE id = ? AND (" +
+        " status = 'PENDING' OR " +
+        " (status IN ('PARSING','PROCESSING') AND lease_until < ?)" +
+        ")",
+        workerId, leaseToken, leaseUntil, now, taskId, now
+    );
+
+    if (rows == 1) {
+        return Optional.of(new TaskLease(taskId, workerId, leaseToken));
+    }
+    return Optional.empty();
+}
+```
+
+周期续租和 checkpoint 推进必须绑定双因子所有权：
+
+```java
+public boolean renewLease(TaskLease lease, String checkpointJson, int parsedCount) {
+    Date now = new Date();
+    Date leaseUntil = new Date(now.getTime() + 30_000);
+
+    int rows = db.executeUpdate(
+        "UPDATE product_supply_task SET " +
+        " lease_until = ?, heartbeat_at = ?, parse_checkpoint = ?, parsed_count = ?, " +
+        " last_heartbeat_stage = 'PARSING' " +
+        "WHERE id = ? AND worker_id = ? AND lease_token = ? AND status = 'PARSING'",
+        leaseUntil, now, checkpointJson, parsedCount,
+        lease.getTaskId(), lease.getWorkerId(), lease.getLeaseToken()
+    );
+
+    return rows == 1;
+}
+```
+
+这套模型最重要的收益不是“谁先抢到了任务”，而是把下面四件事锁死在同一条数据库事实线上：
+
+- 抢占主权
+- 续租主权
+- 进度推进主权
+- 旧进程失效主权
+
+#### 3.3.3 全局发布协同与状态机转移矩阵
+
+根据 `3.1 平台定位与职责边界`，供给平台不持有正式态商品落库主权，也不持有库存账本主权。它真正持有的是 **任务编排主权、状态表达主权、结果归档主权**。因此，这里的状态机不能只写成“跑起来了 / 失败了”，而要能明确表达不同阶段的物理意义。
+
+`product_supply_task` 解决的是“这一批整体走到哪里了”，`product_supply_task_item` 解决的是“这一行具体成没成功、失败在哪一层”。
+
+**任务级状态转移矩阵**
+
+| 原始状态 | 触发事件 | 变更条件 / 校验卡点 | 目标状态 | 后置动作 / 物理回写 |
+| --- | --- | --- | --- | --- |
+| `PENDING` | `WorkerClaimEvent` | `tryClaimTask()` 成功，`rows_affected=1` | `PARSING` | 开启续租线程，启动流式解析器 |
+| `PENDING` | `UserCancelEvent` | 解析尚未开始，且用户手工撤回 | `CANCELED` | 释放文件句柄，写终态 |
+| `PARSING` | `ParseSuccessEvent` | 文件解析完毕，行级记录全部成功物化落盘 | `PROCESSING` | 批量投递 `task_item_id` 到 MQ |
+| `PARSING` | `ParseFatalErrorEvent` | 文件损坏、模板不匹配、本地 OOM 等不可恢复错误 | `FAILED` | 记录系统异常日志，不再分发消息 |
+| `PROCESSING` | `ItemCountZeroEvent` | Redis 计数器归零，或 DB 扫描确认所有行已完成 | `GENERATING_RESULT` | 唤醒结果归档 Worker |
+| `PROCESSING` | `BatchFatalErrorEvent` | 批次级系统异常，且不适合继续消费 | `FAILED` | 回填批次错误码，终止后续分发 |
+| `GENERATING_RESULT` | `ResultArchiveEvent` | 无错误行，或错题本已成功上传 OSS | `DONE / PARTIAL_SUCCESS` | 回填 `error_file_url` 与统计计数 |
+
+**行级明细状态转移矩阵**
+
+| 原始状态 | 触发事件 | 核心过滤与判断内核 | 目标状态 | 后置动作 / 物理回写 |
+| --- | --- | --- | --- | --- |
+| `INIT` | `ConsumerAcceptEvent` | Consumer 从队列拉取明细并成功占有 | `PROCESSING` | 进入标准化、校验与 Diff 组件 |
+| `PROCESSING` | `ValidateFailEvent` | 必填项缺失、类目映射失败、模板错误 | `FAILED` | 回填结构化错误码与友好提示 |
+| `PROCESSING` | `DiffNoOpEvent` | 仅更新场景触发：字段裁剪后无有效变更 | `SKIPPED` | 不调用商品主域写侧，直接 `DECR` |
+| `PROCESSING` | `RpcSubmitEvent` | 通过供给治理防线，商品主域已受理 | `SUBMITTED` | 回填 `draft_id / goods_id`，触发 `DECR` |
+| `PROCESSING` | `RpcTimeoutEvent` | 调商品主域写侧超时或 UNKNOWN | `PROCESSING` | 暂不 `DECR`，交给旁路自愈任务 |
+| `FAILED` | `RetryEvent` | 人工修复或补偿触发 | `INIT` | 重新进入队列等待处理 |
+
+这套矩阵的设计重点有两个：
+
+1. **任务级状态和行级状态必须分层表达**。否则你只能知道“这批差不多失败了”，却永远回答不了“哪一行失败、是校验失败还是写入超时”。
+2. **超时未知必须留在中间态**。`RpcTimeoutEvent` 不能简单写成 `FAILED`，否则旁路自愈和假失败拨正都会失去抓手。
+
+### 3.4 核心功能：单个创建和编辑
+
+#### 3.4.1 场景画像
+
+单个创建和单个编辑都属于强交互、低吞吐、秒级反馈的入口，但它们的难点并不相同：
+
+- 单个创建关注“从无到有”的受理、校验、建草稿和返回受理结果
+- 单个编辑关注“基于哪个正式版本改”的 `Diff`、`base_publish_version` 和字段主导权
+
+两者的共同点是：
+
+- 前端体验是同步的
+- 后端仍然要写轻量 `task(total_count=1, execution_mode=SYNC)`
+- 供给平台负责受理、标准化、校验和 RPC 编排
+- `Draft / Staging / QC` 主权仍在商品主域写侧
+
+#### 3.4.2 单个创建完整时序图
 
 ```mermaid
 sequenceDiagram
@@ -771,199 +1370,53 @@ sequenceDiagram
     participant V as "标准化/校验层"
     participant A as "Supply Application"
     participant P as "商品中心 RPC"
+    participant R as "product_supply_request_log"
+    participant H as "旁路自愈任务"
 
     U->>W: 提交单个商品创建表单
-    Note over W,T: 本地事务 Tx1：受理请求并初始化任务
-    W->>T: 创建轻量 task(total_count=1, execution_mode=SYNC)
-    W->>I: 创建 task_item(object_type=PRODUCT)
+    Note over W,T: Tx1：请求受理 + 先落盘
+    W->>T: 创建 task(total_count=1, execution_mode=SYNC)
+    W->>I: 创建 task_item(object_type=PRODUCT, business_fingerprint)
     W->>V: 标准化输入、模板校验、交易契约校验
     alt 校验失败
-        V-->>W: 直接返回字段级错误
+        V-->>W: 返回字段级错误
         W->>I: 更新 item=FAILED
         W->>T: 更新 task=FAILED
         W-->>U: 同步返回失败原因
     else 校验通过
-        Note over V,A: 本地事务 Tx2：组装创建命令
+        Note over V,A: Tx2：组装创建命令
         V->>A: 组装 CreateDraftCommand
+        A->>R: 记录请求日志(request_id, payload_hash)
         A->>P: CreateProductDraft RPC
-        P-->>A: 返回 draft_id / goods_id(可选) / audit_route
-        Note over A,T: 本地事务 Tx3：回填 RPC 受理结果
-        A->>I: 更新 item=SUBMITTED，记录 draft_id
-        A->>T: 更新 task=SUBMITTED，记录 draft_id
-        A-->>W: 返回受理结果
-        W-->>U: 返回 draft_id / task_id
-    end
-```
-
-这条链路如果要突出供给侧细节，关键不在商品中心后续如何审核和发布，而在于供给平台在调用 RPC 之前到底做了什么。推荐把职责拆成四层：
-
-1. **Web / BFF 层**  
-   负责接收表单、鉴权、幂等校验、保存 `task` 和返回同步结果。
-
-2. **标准化 / 校验层**  
-   负责把页面表单转成统一商品 DTO，并完成类目模板校验、字段格式校验、交易前契约校验。
-
-3. **Supply Application 层**  
-   负责把标准 DTO 组装成商品中心可识别的 `CreateDraftCommand`，并补齐任务上下文。
-
-4. **商品中心 RPC 边界**  
-   供给平台只调用“创建草稿”或“提交草稿”的语义化 RPC，不关心商品中心内部如何继续流转到 QC、发布和下游投影。
-
-如果要把供给侧写得更落地，建议不要只建一个 `task`，而是至少形成一个“请求受理 + 标准化校验 + RPC 调用”的最小闭环。下面这组就是单个创建链路里真正必要的供给侧表：
-
-```text
-1. product_supply_task
-   - task_id
-   - task_type=LOCAL_CREATE
-   - execution_mode=SYNC
-   - source_type=LOCAL_UI / MERCHANT_UI
-   - operator_id
-   - category_id
-   - payload_hash
-   - status
-
-2. product_supply_task_item
-   - item_id
-   - task_id
-   - object_type=PRODUCT
-   - object_key(client_generated_key / external_ref)
-   - normalized_snapshot
-   - status
-
-3. product_supply_request_log
-   - request_id
-   - task_id
-   - api_name=CreateProductDraft
-   - rpc_target=ProductWriteService
-   - request_payload_hash
-   - response_code
-   - response_message
-   - latency_ms
-   - created_at
-
-4. CreateDraftCommand
-   - request_id
-   - task_id
-   - item_id
-   - source_type
-   - operator_id
-   - category_id
-   - base_goods_id(新建为空)
-   - product_payload
-   - validation_summary
-   - idempotency_key
-```
-
-其中几张表的职责可以明确拆开：
-
-- `product_supply_task`
-  记录一次供给动作，回答“谁在什么时候发起了什么操作”。
-- `product_supply_task_item`
-  记录当前这次创建对应的对象级明细。虽然单个创建只有一条，但保留这一层后，单品和批量才能共用同一套治理模型。
-- `product_supply_request_log`
-  记录供给平台调用商品中心 RPC 的请求与返回，便于排查“供给侧已受理但商品中心未落 Draft”这类问题。
-
-对于单个创建链路，校验失败直接报错返回即可，不需要再额外落独立的“校验结果表”或“变更请求表”。这一层的重点是：
-
-- 供给侧要先把请求受理下来；
-- 要有 `task` 和 `task_item` 作为审计锚点；
-- 要把调用商品中心 RPC 的请求结果记录清楚；
-- 至于商品中心后续怎么进入 QC、怎么发布，不属于这一段要展开的范围。
-
-这一段还需要明确事务边界。供给侧至少有三个本地事务：
-
-1. **Tx1：请求受理事务**  
-   创建 `product_supply_task`、`product_supply_task_item`，确保请求先有审计锚点。
-
-2. **Tx2：校验与命令组装事务**  
-   校验失败直接返回；校验通过后组装 `CreateDraftCommand`。
-
-3. **Tx3：RPC 结果回填事务**  
-   商品中心返回 `draft_id` 后，回填 `task` / `task_item` 状态和 `draft_id`。
-
-供给侧不应追求把“本地落表 + 商品中心建 Draft RPC”做成跨服务分布式大事务。更合理的目标是：
-
-- 供给侧本地状态有完整审计链；
-- RPC 调用有明确请求日志；
-- 失败后可重试、可补偿、可追查。
-
-因此，供给平台调用商品中心时，RPC 可以细化成：
-
-```text
-ProductWriteService.CreateProductDraft(CreateProductDraftRequest)
-```
-
-请求里至少要有：
-
-```text
-request_id
-task_id
-source_type
-operator_id
-category_id
-product_payload
-payload_hash
-idempotency_key
-```
-
-同步返回建议只关心供给侧真正需要的结果：
-
-```text
-draft_id
-goods_id(optional)
-audit_route
-accepted
-error_code
-error_message
-```
-
-这样写的好处是：
-
-- 供给平台有完整的任务锚点和审计上下文。
-- 供给侧自己的状态沉淀是完整的，不会只剩一条 `task` 记录。
-- 商品中心拥有 `Draft` 资产主权。
-- 时序图不会越界写到商品中心内部细节，章节边界更清楚。
-
-#### 3.5.2 单个更新
-
-```mermaid
-sequenceDiagram
-    participant U as "运营/商家"
-    participant W as "供给平台 Web"
-    participant T as "product_supply_task"
-    participant V as "标准化/校验层"
-    participant D as "Diff/字段主导权"
-    participant P as "商品主域写侧"
-    participant Q as "QC/审核"
-    participant R as "发布编排"
-
-    U->>W: 提交单个商品编辑
-    W->>T: 创建轻量 task(total_count=1, execution_mode=SYNC)
-    W->>V: 标准化输入并做格式/契约校验
-    V->>D: 计算 Diff，判断字段主导权和风险级别
-    alt 无有效变更
-        D-->>W: 返回 no-op
-        W->>T: 更新 task=DONE
-        W-->>U: 返回无变更
-    else 有效变更
-        D->>P: 基于 base_publish_version 提交变更
-        P->>Q: 自动准入或进入人工审核
-        Q-->>P: 审核结果
-        alt 审核通过
-            P->>R: 触发 merge 与发布
-            R->>T: 更新 task=DONE
-            R-->>U: 返回更新成功
-        else 审核驳回
-            P-->>W: 返回驳回/冲突结果
-            W->>T: 更新 task=FAILED
-            W-->>U: 返回失败原因
+        alt 明确成功
+            P-->>A: 返回 draft_id / goods_id(可选) / audit_route
+            Note over A,T: Tx3：回填 RPC 结果
+            A->>R: 记录 response_code=SUCCESS
+            A->>I: 更新 item=SUBMITTED，记录 draft_id
+            A->>T: 更新 task=SUBMITTED，记录 draft_id
+            A-->>W: 返回受理结果
+            W-->>U: 返回 draft_id / task_id
+        else 超时未知 / 假失败
+            P--xA: timeout / unknown
+            A->>R: 记录 response_code=TIMEOUT_UNKNOWN
+            A->>I: 更新 item=PROCESSING
+            A->>T: 更新 task=PROCESSING
+            A-->>W: 返回处理中 / 请稍后刷新
+            H->>P: 依据 request_id / business_fingerprint 只读反查
+            alt 商品中心已成功受理
+                P-->>H: 返回 draft_id
+                H->>I: 回填 item=SUBMITTED, draft_id
+                H->>T: 回填 task=SUBMITTED
+            else 商品中心未成功创建
+                P-->>H: not found / failed
+                H->>I: 回填 item=FAILED
+                H->>T: 回填 task=FAILED
+            end
         end
     end
 ```
 
-这条链路比单个创建多了两个核心动作：一是基于正式版本做 `Diff` 和 `base_publish_version check`；二是字段主导权判断，避免供应商字段和运营字段互相覆盖。
-
-#### 3.5.3 批量创建 / 批量更新
+#### 3.4.3 单个编辑完整时序图
 
 ```mermaid
 sequenceDiagram
@@ -971,155 +1424,1197 @@ sequenceDiagram
     participant W as "供给平台 Web"
     participant T as "product_supply_task"
     participant I as "product_supply_task_item"
-    participant X as "Excel Worker / Batch Worker"
     participant V as "标准化/校验层"
-    participant P as "商品主域写侧"
-    participant Q as "QC/审核"
-    participant R as "发布编排"
+    participant D as "Diff/字段主导权"
+    participant A as "Supply Application"
+    participant P as "商品中心 RPC"
+    participant R as "product_supply_request_log"
+    participant H as "旁路自愈任务"
 
-    U->>W: 上传 Excel / 发起批量编辑
-    W->>T: 创建 task(execution_mode=ASYNC)
-    W-->>U: 返回 task_id / receipt_id
-    W->>X: 投递批量执行任务
-    loop 每一行/每一个对象
-        X->>I: 创建 task_item
-        X->>V: 标准化、模板校验、契约校验
-        alt 行级失败
-            V-->>I: 更新 item=FAILED，记录 error_code / error_message
-        else 行级成功
-            V->>P: 提交 Draft / 变更请求
-            P->>Q: 自动准入或审核
-            Q-->>P: 返回结果
-            alt 发布成功
-                P->>R: 触发发布
-                R->>I: 更新 item=PUBLISHED
-            else 驳回或失败
-                P-->>I: 更新 item=FAILED
+    U->>W: 提交单个商品编辑
+    W->>T: 创建 task(total_count=1, execution_mode=SYNC)
+    W->>I: 创建 task_item(object_type=PRODUCT, base_publish_version, business_fingerprint)
+    W->>V: 标准化输入并做格式/契约校验
+    V->>D: 计算 Diff，判断字段主导权和风险级别
+    alt 无有效变更
+        D-->>W: 返回 no-op
+        W->>I: 更新 item=SKIPPED
+        W->>T: 更新 task=DONE
+        W-->>U: 返回无变更
+    else 有效变更
+        D->>A: 组装 UpdateDraftCommand(base_publish_version)
+        A->>R: 记录请求日志(request_id, base_publish_version)
+        A->>P: UpdateProductDraft RPC
+        alt 明确成功
+            P-->>A: 返回 draft_id / audit_route / version_status
+            A->>R: 记录 response_code=SUCCESS
+            A->>I: 更新 item=SUBMITTED
+            A->>T: 更新 task=SUBMITTED
+            A-->>W: 返回受理结果
+            W-->>U: 返回 draft_id / task_id
+        else 版本冲突
+            P-->>A: VERSION_CONFLICT
+            A->>R: 记录 response_code=VERSION_CONFLICT
+            A->>I: 更新 item=FAILED
+            A->>T: 更新 task=FAILED
+            A-->>W: 返回版本已变化，请刷新后重试
+        else 超时未知 / 假失败
+            P--xA: timeout / unknown
+            A->>R: 记录 response_code=TIMEOUT_UNKNOWN
+            A->>I: 更新 item=PROCESSING
+            A->>T: 更新 task=PROCESSING
+            A-->>W: 返回处理中 / 请稍后刷新
+            H->>P: 依据 request_id / business_fingerprint 只读反查
+            alt 商品中心已成功受理且版本未冲突
+                P-->>H: 返回 draft_id / current_publish_version
+                H->>I: 回填 item=SUBMITTED, draft_id
+                H->>T: 回填 task=SUBMITTED
+            else 商品中心版本已演进
+                P-->>H: VERSION_CONFLICT
+                H->>I: 回填 item=FAILED
+                H->>T: 回填 task=FAILED
+            else 商品中心未成功处理
+                P-->>H: not found / failed
+                H->>I: 回填 item=FAILED
+                H->>T: 回填 task=FAILED
             end
         end
     end
-    X->>T: 汇总 success_count / failed_count / error_file_url
-    T-->>U: 前端轮询得到部分成功或全部完成
 ```
 
-这条链路的重点是：任务级状态和行级状态必须分离，批量链路允许部分成功，最终要能生成错题本或错误文件，而不是把整个批次一刀切打回。
+#### 3.4.4 关键设计点
 
-#### 3.5.4 供应商 Pull 场景
+| 设计点 | 说明 |
+| --- | --- |
+| 轻量任务锚点 | 单品同步链路也要写轻量 `task` 和 `task_item`，否则单品与批量的审计、补偿、发布追踪会分裂成两套口径。 |
+| 先落盘再透传 | 前端同步链路看似可以直接把 DTO 透传到商品中心，但工业级中台更稳的做法是“无条件先落盘”。这样单品、批量、API、ERP 同步都能百川归海到同一套操作日志、发布追踪和审计模型；同时还能在网络超时、进程假死、商品中心假失败时保留本地操作沙盒，不至于让商家输入在链路中蒸发。 |
+| 受理优先于 RPC | 单个创建的关键是“请求先受理，再校验，再调用商品中心 RPC”，不要把本地受理和跨服务 RPC 强行做成分布式大事务。 |
+| 业务指纹幂等 | 幂等 Key 不能直接对整段 JSON 做 MD5，因为请求里经常带时间戳、随机数、操作人等噪音字段。更合理的方式是抽取决定业务唯一性的核心特征，生成稳定的业务指纹，并作为 `task_item` 或等价明细记录的唯一键，从数据库层物理拦截狂点和重复重试。 |
+| 假失败自愈 | RPC 发生超时未知时，不能简单把超时当失败返回给前端。否则商家重试时会撞上本地幂等锁，形成“提示失败、实则成功、再次提交又冲突”的死局。更稳的做法是把任务定格在 `PROCESSING/UNKNOWN`，由旁路自愈任务拿业务指纹或请求键去商品中心只读反查，再把本地状态拨正为 `SUCCESS` 或 `FAILED`。 |
+| 编辑的版本约束 | 单个编辑比单个创建多两件事：一是基于当前正式版本做 `Diff`；二是带上 `base_publish_version` 防止旧版本覆盖新版本。 |
+| `base_publish_version` 的双向保护 | `base_publish_version` 不只是同步链路上的乐观锁，也是异步补偿链路的污染防线。同步提交时它能识别并发编辑冲突并柔性提示前端刷新；异步自愈或重放时，如果商品中心版本已经演进，乐观锁会在物理层阻断旧命令，确保补偿动作不会把新版本再覆盖脏。 |
+| 字段主导权 | 字段主导权判断必须出现在编辑链路里，避免运营人工修复字段被供应商来源字段反向覆盖。 |
+| RPC 边界 | 供给平台调用的是语义化 RPC，如 `CreateProductDraft`、`UpdateProductDraft`，而不是直接写商品中心内部表。 |
+
+#### 3.4.5 表和版本映射
+
+| 对象 | 作用 | 关键字段 |
+| --- | --- | --- |
+| `product_supply_task` | 单次同步交互的任务锚点 | `task_type / execution_mode / source_type / operator_id / status` |
+| `product_supply_task_item` | 单对象明细 | `object_type / object_key / normalized_snapshot / status` |
+| `product_supply_request_log` | 记录供给平台到商品中心 RPC 请求结果 | `request_id / api_name / request_payload_hash / response_code / latency_ms` |
+
+### 3.5 核心功能：Excel 批量创建和更新
+
+#### 3.5.1 场景画像
+
+Excel 批量创建和更新属于高交互异步任务：用户上传文件后会盯着进度条等结果，期望分钟级反馈，并且接受“部分成功、部分失败、最后给我错题本”。
+
+这条链路真正的工业级做法，不是“上传文件后一个线程从头跑到尾”，而是拆成四个阶段：
+
+1. **提交任务**：只收单，不处理，秒级返回 `task_id`
+2. **解析 Excel**：流式解析，行级明细落盘
+3. **处理任务**：通过 MQ 行级解耦，Consumer 匀速顶下游
+4. **产生结果文件**：汇总成功/失败/跳过，生成错题本
+
+这条链路的核心不是“批量更大”，而是：
+
+- 任务级状态和行级状态必须分离
+- 文件 IO、行级处理、商品中心 RPC、结果归档必须分阶段解耦
+- 创建和更新会混在同一批文件里
+- 更新行要带上 `base_publish_version` 或当前正式对象引用
+- 处理阶段要靠 MQ 削峰和背压，不能靠单机线程池硬顶
+- 收尾阶段要能在分布式消费结束后可靠触发，而不是人工扫表碰运气
+- 创建和更新虽然共享同一批量底座，但在阶段三“处理任务”的治理内核必须分流
+
+这里不再重复讨论为什么 Excel 批量链路必须任务化、分阶段和异步化，这个架构取舍已经在 `3.2.4 决策点 4：Excel 批量链路为什么不能继续用传统串行流程` 中统一说明。
+#### 3.5.2 批量任务状态机
+
+Excel 批量任务必须显式区分 **任务级状态机** 和 **行级状态机**。否则系统只能告诉运营“这批任务大概失败了”，却回答不了“哪一行失败、失败在哪个阶段、是否还能继续重试”。
+
+推荐把这一节的状态机写成更贴近 Excel 批量场景的两层：
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING
+    PENDING --> PARSING: parser worker claimed
+    PENDING --> CANCELED: withdrawn before parse
+    PARSING --> PROCESSING: rows persisted and MQ dispatched
+    PARSING --> FAILED: parse fatal error
+    PROCESSING --> GENERATING_RESULT: all items finished and result file ready to aggregate
+    PROCESSING --> FAILED: batch-level fatal error or all items failed
+    PROCESSING --> CANCELED: manually terminated
+    GENERATING_RESULT --> DONE: all items succeeded / no error file required
+    GENERATING_RESULT --> PARTIAL_SUCCESS: some items failed or skipped, error file generated
+    PARTIAL_SUCCESS --> DONE: manual repair or retry succeeded
+    PARTIAL_SUCCESS --> FAILED: retry exhausted / force close
+    FAILED --> PROCESSING: compensation retry / replay
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> INIT
+    INIT --> PROCESSING: consumer accepted
+    PROCESSING --> SUBMITTED: draft command accepted
+    PROCESSING --> SKIPPED: no-op / ownership deny
+    PROCESSING --> FAILED: validation error / publish error
+    FAILED --> INIT: row retry
+```
+
+这两层状态分别解决不同问题：
+
+| 层级 | 状态 | 含义 |
+| --- | --- | --- |
+| `task` | `PENDING` | 任务已受理，文件还未被 Parser Worker 抢占 |
+| `task` | `PARSING` | 正在流式解析 Excel，并持续推进 `parse_checkpoint` |
+| `task` | `PROCESSING` | 行级明细已落盘，正在 MQ 消费和调用商品主域 |
+| `task` | `GENERATING_RESULT` | 所有行已完成处理，正在汇总结果并生成错题本 |
+| `task` | `PARTIAL_SUCCESS` | 至少一部分行成功，但仍有失败或跳过项，需要错题本或重试 |
+| `task` | `DONE` | 全部有效行已成功处理，结果文件已生成或无需生成 |
+| `task` | `FAILED` | 解析致命失败、整批失败，或全部行失败 |
+| `task` | `CANCELED` | 执行前撤回或人工终止 |
+| `task_item` | `INIT` | 行已落盘，尚未进入消费处理 |
+| `task_item` | `PROCESSING` | 正在校验、Diff 或调用商品中心 RPC |
+| `task_item` | `SUBMITTED` | 行级命令已被商品主域受理 |
+| `task_item` | `SKIPPED` | 无有效变更、字段主导权不允许覆盖等 |
+| `task_item` | `FAILED` | 行级校验失败、版本冲突、RPC 失败等 |
+
+这套状态机有 3 个关键点：
+
+1. `PARSING` 是 Excel 批量独有的重要中间态，单个同步任务通常不会经历这个阶段。
+2. `PARTIAL_SUCCESS` 是批量任务里最关键的任务级状态之一，单个任务几乎不会真正用到它。
+3. `task_item` 的状态必须能独立重试，否则错题本修复和局部补偿就无从谈起。
+4. 创建和更新可以共用这套状态机外壳，但更新链路通常会多一个“实时补齐版本 + Diff 裁剪”的隐含处理层。
+5. `GENERATING_RESULT` 是批量任务专有的收尾态，它把“行级消费完成”和“任务最终归档”拆开，避免把结果文件生成逻辑硬塞回 `PROCESSING`。
+
+#### 3.5.3 批量创建与批量更新的核心差异
+
+批量创建和批量更新虽然共用同一套四阶段异步流水线外壳，但在阶段三“处理任务”的内核策略完全不同。两者最本质的差别，不是谁调用了不同的 RPC，而是它们对商品主数据做的是两种相反的物理动作：
+
+- 批量创建追求 **完备性与防冗余**
+- 批量更新追求 **增量安全与抗并发**
+
+也正因为如此，同一套 Excel 跑批外壳下，创建和更新必须走不同的卡点设计。
+
+**差异 1：对象存在性的前置判断不同**
+
+- 批量创建：
+  - 逻辑是“对象绝对不该存在”
+  - Consumer 拿到一行后，先基于 `business_fingerprint` 或等价唯一特征反查
+  - 如果系统里已经存在同指纹商品，该行直接失败并进入错题本，防止重复创建
+- 批量更新：
+  - 逻辑是“对象必须存在”
+  - Consumer 拿着 `goods_id / item_id / spu_id` 等正式对象标识反查
+  - 如果根本找不到对应正式商品，该行直接失败，因为失去了更新主体
+
+**差异 2：版本号的防御姿态不同**
+
+- 批量创建：
+  - 不依赖 `base_publish_version`
+  - 属于从 0 到 1 的初始化过程
+  - 创建命令只要满足完备性和防重要求即可
+- 批量更新：
+  - 必须在消费阶段实时反查并补齐 `base_publish_version`
+  - 更新命令必须显式带上版本约束
+  - 这是更新链路最关键的抗并发底线，用来阻断旧版本覆盖新版本
+
+**差异 3：数据剪裁与组装机制不同**
+
+- 批量创建：
+  - 更像胖报文
+  - 关注“合规的最小完备集”
+  - 少一个必填项就应直接失败
+- 批量更新：
+  - 更像瘦报文
+  - 先做 Diff
+  - 再做字段主导权裁剪
+  - 再做缺失字段补全
+  - 绝不能用 Excel 里的空字段覆盖线上已有值
+
+**差异 4：并发与锁竞争退避策略不同**
+
+- 批量创建：
+  - 风险点是重复创建和指纹碰撞
+  - 更依赖本地 `task_item` 唯一指纹索引
+  - 同批内还可以先做内存去重
+- 批量更新：
+  - 风险点是下游已存在热点行的锁竞争
+  - 更需要 `merchant_id / item_id` 局部 Hash 顺序路由
+  - 把无序并发写驯化成顺序消费，给下游主库卸压
+
+| 维度 | 批量创建 | 批量更新 |
+| --- | --- | --- |
+| 业务前置条件 | 对象绝对不该存在 | 对象必须存在 |
+| 版本号心智 | 无需关注 `base_publish_version` | 必须实时补齐 `base_publish_version` |
+| 报文完整度 | 胖报文，强调最小完备集 | 瘦报文，强调增量字段 |
+| 核心底层组件 | 标准化校验组件 | Diff 引擎 + 字段主导权矩阵 |
+| 防重 / 幂等主战场 | 本地唯一指纹索引 | 中台版本乐观锁 + 本地任务幂等 |
+| 下游主库风险 | 重复创建、索引分裂、资产冗余 | 热点行锁竞争、锁等待、版本回滚覆盖 |
+| 主要退避策略 | 指纹去重、同批内存 Group By | 局部 Hash 顺序路由、版本补齐、Diff 裁剪 |
+
+一句话收束就是：
+
+> 批量创建和批量更新共享的是同一种跑批外壳，但在处理内核上必须做“非对称卡点”：创建防冗余，更新防并发。
+
+#### 3.5.4 任务抢占与批量处理时序图
+
+##### 3.5.4.1 任务抢占时序图
 
 ```mermaid
 sequenceDiagram
-    participant S as "Supplier"
-    participant B as "supplier_sync_batch"
-    participant PULL as "Pull Worker"
-    participant SNAP as "supplier_sync_snapshot"
-    participant MAP as "Mapping/Diff 层"
+    autonumber
+    participant SCH as "调度器 / 轮询器"
+    participant W1 as "Parser Worker-A"
+    participant W2 as "Parser Worker-B"
+    participant MON as "任务巡检器"
     participant T as "product_supply_task"
-    participant P as "商品主域写侧"
-    participant Q as "QC/审核"
-    participant R as "发布编排"
 
-    B->>PULL: 启动批次，申请 lease / checkpoint
-    PULL->>S: 按页拉取供应商数据
-    S-->>PULL: 返回原始 payload
-    PULL->>SNAP: 保存 raw snapshot
-    PULL->>MAP: 做 mapping、标准化、Supplier Diff
-    alt 批次级关键错误
-        MAP-->>B: 标记 batch FAILED，写 dead letter
-    else 生成有效变更
-        MAP->>T: 按标准对象写入治理任务锚点
-        T->>P: 提交变更到商品主域写侧
-        P->>Q: 自动准入或审核
-        Q-->>P: 返回结果
-        P->>R: 触发发布与下游刷新
-        R-->>B: 回填批次进度与结果
-        B->>B: 更新 checkpoint，继续下一页
+    SCH->>T: 创建 task(status=PENDING, parse_checkpoint=0)
+    SCH->>T: 周期扫描候选任务<br/>status = 'PENDING' AND task_type = 'IMPORT'
+    SCH-->>W1: 下发待抢占 task_id
+
+    W1->>T: CAS 抢占任务<br/>UPDATE ... SET status='PARSING', worker_id, lease_token,<br/>lease_until, heartbeat_at, parse_checkpoint<br/>WHERE id=? AND status='PENDING'
+    alt rows_affected = 1
+        T-->>W1: 抢占成功，任务所有权归属 W1
+        W1->>T: 进入解析前初始化<br/>last_heartbeat_stage='CLAIMED'
+        W1->>T: 写首个 parse_checkpoint<br/>sheet=1,row_no=1,byte_offset=0
+
+        loop 解析期间周期续租
+            W1->>T: 更新 heartbeat_at / lease_until
+            W1->>T: 推进 parse_checkpoint / parsed_count
+            T-->>W1: rows_affected = 1
+        end
+
+        alt 解析完成
+            W1->>T: 提交解析结果<br/>parsed_count / success_count / failed_count
+            W1->>T: 切换 task 状态<br/>PARSING -> PROCESSING
+            W1->>T: 保留 worker_id / lease_token<br/>供后续处理阶段复用
+        else 解析异常 / OOM / 进程退出
+            W1--x T: 心跳停止，lease_until 逐渐到期
+        end
+    else rows_affected = 0
+        T-->>W1: 抢占失败，任务已被其他 Worker 持有
+        W1-->>SCH: 放弃执行，等待下次调度
+    end
+
+    MON->>T: 轮询僵尸任务<br/>status in ('PARSING','RUNNING') AND lease_until < now()
+    alt 发现租约已过期
+        MON-->>W2: 通知可接管任务
+        W2->>T: CAS 抢占过期任务<br/>WHERE id=? AND status IN ('PARSING','RUNNING')<br/>AND lease_until < now()
+        alt 接管成功
+            T-->>W2: rows_affected = 1
+            W2->>T: 覆盖 worker_id / lease_token / lease_until / heartbeat_at
+            W2->>T: 从 parse_checkpoint 继续解析<br/>允许局部重跑一小段
+        else 任务已被别的 Worker 接管
+            T-->>W2: rows_affected = 0
+            W2-->>MON: 放弃接管
+        end
+    else 心跳仍正常
+        MON-->>T: 记录任务健康，无需接管
+    end
+
+    W1->>T: 旧进程恢复后尝试续租或回写
+    T-->>W1: worker_id + lease_token 不匹配，更新失败
+    W1-->>SCH: 旧进程自动失效，不可写回状态
+```
+
+##### 3.5.4.2 批量创建完整时序图
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as "运营/商家"
+    participant W as "供给平台 Web"
+    participant OSS as "OSS / S3"
+    participant T as "product_supply_task"
+    participant I as "product_supply_task_item"
+    participant PX as "Parser Worker"
+    participant MQ as "Task Item MQ"
+    participant C as "Item Consumer"
+    participant V as "标准化/校验层"
+    participant P as "商品中心 RPC"
+    participant RC as "Redis Counter"
+    participant F as "Result File Worker"
+
+    U->>OSS: 上传 Excel
+    OSS-->>U: 返回 file_url
+    U->>W: 提交 file_url / 发起批量创建
+    W->>T: 创建 task(status=PENDING, execution_mode=ASYNC)
+    W-->>U: 返回 task_id / receipt_id
+    W->>PX: 投递解析任务
+    PX->>T: CAS 抢占任务(PENDING -> PARSING, worker_id, lease_token)
+    PX->>T: 更新 heartbeat_at / parse_checkpoint
+    loop 每一行
+        PX->>I: 批量写入 task_item(status=INIT, raw_row, normalized_snapshot)
+        PX->>T: 批量更新 parsed_count / parse_checkpoint / heartbeat_at
+    end
+    PX->>T: 更新 task=PROCESSING, total_count
+    PX->>RC: SET task:count:{task_id}=total_count
+    PX->>MQ: 投递每个 task_item_id
+    loop 每个 task_item 消费
+        C->>MQ: 消费 task_item_id
+        C->>I: 读取 task_item，更新 item=PROCESSING
+        C->>V: 标准化校验 / 模板校验 / 契约校验
+        alt 行级校验失败
+            V-->>I: 更新 item=FAILED，记录 error_code / error_message
+        else 创建行
+            V->>V: 基于 business_fingerprint 反查是否已存在
+            V->>P: CreateProductDraft RPC
+            P-->>I: 回填 draft_id / audit_route，更新 item=SUBMITTED
+        else 临时性网络失败
+            C-->>MQ: RECONSUME_LATER
+        end
+        C->>RC: DECR task:count:{task_id}
+        alt 计数归零
+            RC-->>C: 0
+            C->>F: 触发结果归档
+        end
+    end
+    F->>I: 汇总 success / failed / skipped
+    F->>OSS: 生成并上传错题本 Excel
+    F->>T: 回填 success_count / failed_count / skipped_count / error_file_url / status=DONE
+    T-->>U: 前端轮询得到部分成功或全部完成
+```
+
+##### 3.5.4.3 批量编辑完整时序图
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as "运营/商家"
+    participant W as "供给平台 Web"
+    participant OSS as "OSS / S3"
+    participant T as "product_supply_task"
+    participant I as "product_supply_task_item"
+    participant PX as "Parser Worker"
+    participant MQ as "Task Item MQ"
+    participant C as "Item Consumer"
+    participant V as "标准化/校验层"
+    participant D as "Diff/字段主导权"
+    participant P as "商品中心 RPC"
+    participant RC as "Redis Counter"
+    participant F as "Result File Worker"
+
+    U->>OSS: 上传 Excel
+    OSS-->>U: 返回 file_url
+    U->>W: 提交 file_url / 发起批量编辑
+    W->>T: 创建 task(status=PENDING, execution_mode=ASYNC)
+    W-->>U: 返回 task_id / receipt_id
+    W->>PX: 投递解析任务
+    PX->>T: CAS 抢占任务(PENDING -> PARSING, worker_id, lease_token)
+    PX->>T: 更新 heartbeat_at / parse_checkpoint
+    loop 每一行
+        PX->>I: 批量写入 task_item(status=INIT, raw_row, normalized_snapshot)
+        PX->>T: 批量更新 parsed_count / parse_checkpoint / heartbeat_at
+    end
+    PX->>T: 更新 task=PROCESSING, total_count
+    PX->>RC: SET task:count:{task_id}=total_count
+    PX->>MQ: 投递每个 task_item_id
+    loop 每个 task_item 消费
+        C->>MQ: 消费 task_item_id
+        C->>I: 读取 task_item，更新 item=PROCESSING
+        C->>V: 标准化校验 / 模板校验 / 契约校验
+        alt 行级校验失败
+            V-->>I: 更新 item=FAILED，记录 error_code / error_message
+        else 更新行
+            V->>P: 反查正式对象 / 当前 publish_version
+            V->>D: 补齐 base_publish_version，计算 Diff / 字段主导权
+            alt 无有效变更
+                D-->>I: 更新 item=SKIPPED
+            else 有效变更
+                D->>P: UpdateProductDraft RPC
+                P-->>I: 回填 draft_id / audit_route，更新 item=SUBMITTED
+            end
+        else 临时性网络失败
+            C-->>MQ: RECONSUME_LATER
+        end
+        C->>RC: DECR task:count:{task_id}
+        alt 计数归零
+            RC-->>C: 0
+            C->>F: 触发结果归档
+        end
+    end
+    F->>I: 汇总 success / failed / skipped
+    F->>OSS: 生成并上传错题本 Excel
+    F->>T: 回填 success_count / failed_count / skipped_count / error_file_url / status=DONE
+    T-->>U: 前端轮询得到部分成功或全部完成
+```
+
+#### 3.5.5 关键设计点
+
+##### 3.5.5.1 提交阶段的设计点
+
+| 设计点 | 说明 |
+| --- | --- |
+| 四阶段生命周期 | 批量任务要明确拆成“提交任务 → 解析 Excel → 处理任务 → 产生结果文件”四个阶段，而不是让一个线程从头跑到尾。 |
+| 新旧流程差异 | 新流程不是简单把旧流程异步化，而是显式拆出提交、解析、处理、收尾四阶段，并引入 `task/task_item` 分层状态、MQ 解耦和结果归档。 |
+| 提交阶段只收单 | 提交阶段只做文件合规校验、创建 `product_supply_task(status=PENDING)`、返回 `task_id`，不直接解析 Excel，也不直接写正式商品表。 |
+| 任务级中间态 | Excel 批量任务要显式经历 `PENDING -> PARSING -> PROCESSING`，这和单任务常见的 `CREATED -> RUNNING` 有明显差异。 |
+| 任务与行级分层 | `task` 和 `task_item` 必须拆开，Task 表达整批阶段，Item 表达第几行为什么失败。 |
+| 创建 vs 更新分流 | 创建和更新共享同一跑批外壳，但阶段三必须做非对称内核分流：创建追求完备性与防冗余，更新追求增量安全与抗并发。 |
+
+##### 3.5.5.2 Parser Worker 解析阶段的设计点
+
+| 设计点 | 说明 |
+| --- | --- |
+| Parser Worker 只解析不发布 | Parser Worker 的职责边界要非常窄：只负责抢占任务、流式解析文件、生成 `task_item` 和投递 MQ，不直接调用商品中心，也不做正式发布。 |
+| DB 任务抢占 | Parser Worker 建议通过数据库 CAS 抢占 `product_supply_task`：`PENDING -> PARSING`，并同时写入 `worker_id / lease_token / lease_until / heartbeat_at`。`rows_affected=1` 才表示抢占成功，`rows_affected=0` 说明任务已被其他执行器抢走。 |
+| 续租与恢复 | Parser 抢占后要持续更新 `heartbeat_at / lease_until / parse_checkpoint`。如果进程 OOM 或机器重启，新 Worker 只能抢占 `lease_until` 已过期的任务；如果心跳正常，就不允许强抢，避免双 Parser 同时切同一个文件。 |
+| 流式解析落盘 | 解析阶段必须流式读取 Excel，并把每一行转成 `product_supply_task_item` 持久化下来，避免一次性读大文件导致 OOM，也避免系统重启后整批数据蒸发。 |
+| 解析进度 checkpoint | 解析阶段要把 `parse_checkpoint` 作为权威恢复点持久化，至少记录 `sheet / row_no / byte_offset(或等价位置)`。恢复时允许从最近 checkpoint 附近重跑一小段，真正防重依赖幂等键和唯一索引。 |
+
+##### 3.5.5.3 处理与收尾阶段的设计点
+
+| 设计点 | 说明 |
+| --- | --- |
+| MQ 行级解耦 | 解析阶段结束后，不是单机线程池直接处理所有行，而是把 `task_item_id` 投递到 MQ，让 Consumer 集群按安全 QPS 匀速消费，实现削峰、背压和横向扩展。 |
+| 同批混合动作 | 创建行和更新行在同一个 Excel 里可以共存，但消费时要分流成 `CREATE / UPDATE / SKIP` 不同动作。 |
+| 创建的完备性校验 | 创建行必须满足最小完备集，并优先做业务指纹反查和唯一索引拦截，防止重复建品。 |
+| 更新的版本约束 | 更新行不能直接覆盖正式版本，仍然要经过 `Diff`、`base_publish_version` 和字段主导权判断。 |
+| 更新的版本补齐 | Excel 本身没有版本概念，更新行必须在消费第一秒实时补齐 `base_publish_version`，再进入更新命令组装。 |
+| 更新的顺序路由 | 对同商家、同商品或同热点对象的大量更新，建议做局部 Hash 顺序路由，降低下游行锁竞争和锁等待。 |
+| 行级沙盒隔离 | 某一行因为网络失败、版本冲突、校验失败而报错，只更新该 `task_item` 状态，绝不因为一行异常回滚整批任务。 |
+| MQ 重试与 DLQ | 临时网络失败、商品中心短暂抖动等可交给 MQ 自动重试；超过阈值的硬失败再回填 `task_item=FAILED` 或进入问题单。 |
+
+##### 3.5.5.4 结果文件与收尾阶段的设计点
+
+这一阶段的核心目标不是“再处理一批数据”，而是把分布式消费后的行级结果重新收口成一个商家可感知的最终产物。也就是：由谁来判断批次已经全部完成，谁来汇总成功/失败/跳过，谁来生成可下载的错题本 Excel，并把结果回填到主任务表。
+
+推荐做法是把“完成判定”和“结果文件生成”拆成两步：
+
+1. 在解析阶段结束后，由 `Parser Worker` 先把 Redis 原子计数器初始化为本批次总行数，例如 `SET task:count:{task_id} = total_count`。
+2. 所有 `task_item` 被 MQ Consumer 处理完后，无论成功、失败还是跳过，都在本地事务回写行级状态，然后执行一次 `DECR task:count:{task_id}`。
+3. 当某个 Consumer 执行 `DECR` 后拿到的结果正好等于 `0`，它就成为本批次的“终结者线程”，并先把主任务切换为 `GENERATING_RESULT`。
+4. 终结者线程异步汇总 `product_supply_task_item` 的行级状态，计算 `success_count / failed_count / skipped_count`。
+5. 如果存在失败行，就按照原始行数据 + `error_code / error_message` 流式生成错题本 Excel，上传到 OSS/S3，得到 `error_file_url`。
+6. 最后由终结者线程在一个轻量本地事务里回填 `product_supply_task`：`status=DONE` 或 `status=PARTIAL_SUCCESS`、`success_count`、`failed_count`、`skipped_count`、`error_file_url`。
+
+如果 Redis 计数器因为漏计、超时或者 Consumer 猝死没有自然归零，系统还需要一个旁路兜底定时器定期扫描 `PROCESSING` / `GENERATING_RESULT` 的任务和 `task_item` 状态：
+
+- 如果 DB 聚合结果已经显示所有行都处理完成，但 Redis 计数器没归零，则由定时器补触发一次 `GENERATING_RESULT` 和结果文件生成。
+- 如果 DB 仍然有未完成行，则任务继续保持 `PROCESSING`，等待后续 Consumer 或恢复 Worker 继续完成。
+
+这也是为什么“Redis 闪电收尾 + DB 旁路盘点”必须同时存在：
+
+- Redis 负责高性能、低成本地找出最后一个完成者。
+- DB 负责在异常场景下给出最终真相，避免计数器漏计把结果文件永远卡住。
+- 结果文件生成不是一个纯内存事件，而是一个必须能被数据库复核、补触发、补回填的任务收尾动作。
+
+| 设计点 | 说明 |
+| --- | --- |
+| Redis 终结者收尾 | 分布式消费后，不能靠扫表猜测是否结束。更稳的做法是用 Redis 原子计数器 `DECR task:count:{task_id}`，最后一个归零的 Consumer 触发结果文件生成和主任务收尾。 |
+| DB 旁路盘点 | 如果 Redis 漏计或 Consumer 猝死导致计数器悬空，旁路定时器需要扫描 `PROCESSING / GENERATING_RESULT` 的任务和 `task_item`，一旦 DB 已确认全量完成，就补触发结果文件生成和主任务回填。 |
+| 部分成功模型 | 批量任务允许部分成功，不应因为 1 行失败拖垮整批。 |
+| 错题本生成 | 错题本不能从日志拼，要从 `task_item.error_code / error_message` 和原始行数据动态生成，并回填 `error_file_url`。 |
+
+#### 3.5.6 批量链路交付级核心表结构
+
+对于 Excel 批量链路，真正的底座就是两张表：
+
+- `product_supply_task`：承载任务级状态机、双因子租约、错题本与统计计数
+- `product_supply_task_item`：承载行级明细沙盒、幂等、防冗余、错误归因
+
+下面这组 DDL 不要求你逐字段 1:1 照搬，但字段职责最好不要偏离。
+
+```sql
+CREATE TABLE `product_supply_task` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `receipt_id` VARCHAR(64) NOT NULL COMMENT '对外受理凭证号',
+  `task_type` VARCHAR(32) NOT NULL DEFAULT 'IMPORT' COMMENT 'IMPORT / SYNC / BATCH_EDIT',
+  `execution_mode` VARCHAR(32) NOT NULL DEFAULT 'ASYNC' COMMENT 'SYNC / ASYNC',
+  `source_type` VARCHAR(32) NOT NULL COMMENT 'MERCHANT_BACKEND / OPERATOR_ADMIN / ERP_API / SUPPLIER_PULL',
+  `operator_id` VARCHAR(64) NOT NULL COMMENT '操作人/系统标识',
+  `merchant_id` BIGINT NOT NULL COMMENT '商家/供应商ID',
+  `status` VARCHAR(32) NOT NULL DEFAULT 'PENDING' COMMENT '任务级状态机',
+  `worker_id` VARCHAR(64) DEFAULT NULL COMMENT '当前持有任务的物理节点',
+  `lease_token` VARCHAR(64) DEFAULT NULL COMMENT '当前租约令牌',
+  `lease_until` DATETIME(3) DEFAULT NULL COMMENT '租约到期时间',
+  `heartbeat_at` DATETIME(3) DEFAULT NULL COMMENT '最后心跳时间',
+  `last_heartbeat_stage` VARCHAR(64) DEFAULT NULL COMMENT '最后心跳阶段',
+  `parse_checkpoint` VARCHAR(512) DEFAULT NULL COMMENT '解析断点 JSON',
+  `file_url` VARCHAR(512) DEFAULT NULL COMMENT '原始 Excel 文件路径',
+  `error_file_url` VARCHAR(512) DEFAULT NULL COMMENT '错题本路径',
+  `total_count` INT NOT NULL DEFAULT 0 COMMENT '总有效行数',
+  `parsed_count` INT NOT NULL DEFAULT 0 COMMENT '已解析行数',
+  `success_count` INT NOT NULL DEFAULT 0 COMMENT '成功行数',
+  `failed_count` INT NOT NULL DEFAULT 0 COMMENT '失败行数',
+  `skipped_count` INT NOT NULL DEFAULT 0 COMMENT '跳过行数',
+  `gmt_create` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `gmt_modified` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_receipt_id` (`receipt_id`),
+  KEY `idx_status_lease` (`status`, `lease_until`),
+  KEY `idx_merchant_create` (`merchant_id`, `gmt_create`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供给平台统一任务控制主表';
+```
+
+```sql
+CREATE TABLE `product_supply_task_item` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '明细主键ID',
+  `task_id` BIGINT UNSIGNED NOT NULL COMMENT '关联任务ID',
+  `row_number` INT NOT NULL COMMENT 'Excel 绝对行号',
+  `object_type` VARCHAR(32) NOT NULL DEFAULT 'PRODUCT' COMMENT 'PRODUCT / COMBINED_PRODUCT / INVENTORY_COMMAND',
+  `goods_id` BIGINT UNSIGNED DEFAULT NULL COMMENT '正式商品ID',
+  `business_fingerprint` VARCHAR(64) NOT NULL COMMENT '业务指纹',
+  `base_publish_version` INT UNSIGNED DEFAULT NULL COMMENT '更新链路版本锚点',
+  `status` VARCHAR(32) NOT NULL DEFAULT 'INIT' COMMENT '行级状态机',
+  `raw_row_data` LONGTEXT DEFAULT NULL COMMENT '原始行数据快照',
+  `normalized_snapshot` LONGTEXT DEFAULT NULL COMMENT '标准化后 DTO 快照',
+  `error_code` VARCHAR(64) DEFAULT NULL COMMENT '结构化错误码',
+  `error_message` VARCHAR(1024) DEFAULT NULL COMMENT '友好错误提示',
+  `gmt_create` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `gmt_modified` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_task_fingerprint` (`task_id`, `business_fingerprint`),
+  KEY `idx_task_status` (`task_id`, `status`),
+  KEY `idx_goods_id` (`goods_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供给平台任务行级明细沙盒表';
+```
+
+这两张表最重要的设计收益不是“字段很全”，而是：
+
+- 抢占、续租、解析、处理、收尾全都能在数据库里找到权威锚点
+- 单行失败、局部重试、错题本回放都不需要回头翻日志
+- `task` 和 `task_item` 的边界天然支持部分成功和补偿闭环
+
+#### 3.5.7 四阶段流水线的全生命周期战术推演
+
+这一节把前面零散出现的“提交、解析、处理、收尾”收成一条完整流水线，方便直接指导实现。
+
+**阶段 1：提交任务（收单解耦面）**
+
+- 商家点击上传并提交
+- 供给平台 Web 只校验扩展名、文件大小、模板基础合法性
+- 创建唯一 `receipt_id`
+- 在 `product_supply_task` 中插入一条 `status=PENDING` 的任务
+- 立即返回 `receipt_id + task_id`
+
+这一阶段的目标不是处理业务，而是把“用户提交”可靠地转换成一个可追踪、可抢占、可恢复的任务锚点。
+
+**阶段 2：解析 Excel（流式物化面）**
+
+- Parser Worker 通过 `3.3.2` 的 CAS + Lease 模型抢占任务
+- 抢占成功后，把任务推进到 `PARSING`
+- 使用流式解析组件读取 Excel，而不是一次性全量读入内存
+- 每解析一批行，就批量插入 `product_supply_task_item`
+- 同时推进 `parse_checkpoint`
+- 解析完成后，把 `total_count` 写入 Redis 计数器，并把任务切到 `PROCESSING`
+- 随后批量投递 `task_item_id` 到 MQ
+
+这里的关键不是“能读 Excel”，而是把文件 IO 风险安全地转化成数据库里的原子行记录。
+
+**阶段 3：处理任务（异步治理分流面）**
+
+- Item Consumer 集群根据下游商品主域写侧的承载能力匀速消费
+- 创建行走“完备性 + 防冗余”路径
+- 更新行走“版本补齐 + Diff + 字段主导权裁剪”路径
+- 行处理结束后，立刻回写 `task_item.status / error_code / error_message`
+- 然后执行一次 `DECR task:count:{task_id}`
+
+这一步最重要的是 **行级沙盒隔离**：
+
+- 一行失败，只影响这一行
+- 不会把整批任务拖回滚
+- 也不会阻断其他行继续向前推进
+
+**阶段 4：产生结果文件（分布式收尾归档面）**
+
+- 某个 Consumer 执行 `DECR` 后返回值正好等于 `0`
+- 它成为“终结者线程”
+- 先把主任务从 `PROCESSING` 切到 `GENERATING_RESULT`
+- 然后聚合 `task_item` 状态
+- 若存在失败行，则用 `raw_row_data + error_message` 流式生成错题本 Excel
+- 上传 OSS / S3，得到 `error_file_url`
+- 最后回填主任务终态：
+
+```sql
+UPDATE product_supply_task
+SET status = IF(failed_count > 0, 'PARTIAL_SUCCESS', 'DONE'),
+    success_count = ?,
+    failed_count = ?,
+    skipped_count = ?,
+    error_file_url = ?
+WHERE id = ?;
+```
+
+如果 Redis 计数器漏计、Consumer 猝死或最后一个 `DECR` 没有自然归零，则由旁路定时器兜底：
+
+- 扫描 `PROCESSING / GENERATING_RESULT`
+- 聚合 `task_item`
+- 如果 DB 已确认没有未完成行，就补触发结果文件生成与主任务回填
+
+因此这一阶段不是“顺手做个文件导出”，而是整条异步流水线从分布式并发重新收敛为可交付结果的总收官。
+
+#### 3.5.8 表和版本映射
+
+| 对象 | 作用 | 关键字段 |
+| --- | --- | --- |
+| `product_supply_task` | 一次 Excel 批次任务 | `task_type=IMPORT / execution_mode=ASYNC / worker_id / lease_token / parse_checkpoint / error_file_url / success_count / failed_count` |
+| `product_supply_task_item` | 每一行的对象级状态 | `item_no / item_action / object_key / business_fingerprint / status / error_code / publish_record_id` |
+| `normalized_snapshot` | 每行标准化后的对象快照 | `category_id / product_payload / ext_json` |
+| `diff_summary` | 更新行差分摘要 | `changed_fields / risk_level / ownership_result` |
+| `draft_id` | 商品主域草稿引用 | `draft_id / audit_route` |
+| `base_publish_version` | 更新行的版本锚点 | `item_id / base_publish_version` |
+| `routing_key` | 更新行顺序路由键 | `hash(merchant_id,item_id)` |
+
+### 3.6 核心功能：供应商同步
+
+#### 3.6.1 场景画像
+
+供应商同步是整个供给平台里最复杂的一类自动化链路。它不只是 “Pull 一批 JSON 回来”，而是同时覆盖：
+
+- Supplier Push
+- Supplier Pull
+- Full Sync
+- Incremental Sync
+
+这条链路为什么要单独拆出来，在 `3.2.5` 已经做过统一决策：它可以复用批量治理底座，但不能和 Excel 批量共用接入层、线程池和错误模型。这里开始只讲供应商同步链路本身的实现。
+
+其中，Agoda 这类慢源 Pull 长任务最有代表性。它和单商品创建、Excel 导入最大的不同，不是“批量更大”，而是同时叠加了这些现实约束：
+
+- 供应商接口性能一般，QPS 严格受限
+- 同步窗口可能长达数小时，甚至 10 小时以上
+- 外部供应商接口不稳定，可能限流、超时、5xx、cursor 失效
+- 上游拉取与下游消费天然存在时间差，旧数据覆盖新数据是核心资损风险
+- 任务中断后必须能从 `current_checkpoint` 恢复，而不是从头重跑
+- 供应商原始返回值必须保留为证据和回放素材
+
+对 Agoda 这类供应商，更合适的是保持单 Worker 串行拉取：一次只拉一页或一个 cursor，每次成功拉回就立即推 MQ，然后推进 `current_checkpoint`。换句话说，`supplier_sync_batch` 只是管理“这次同步怎么跑”的外层壳，真正跑数时用的是“串行拉取 + checkpoint + MQ”的线性流水线，而不是并发切片。
+
+这里直接定调：
+
+> 对 Agoda 这类慢源，正确答案不是“分片并发拉”，而是“串行慢拉 + MQ 蓄水 + 下游并发消峰”。
+
+所以供应商同步这类链路的本质不是“收一批外部数据”，而是：
+
+> 如何在超长任务、不稳定外部系统和正式发布治理之间，实现 **可恢复、可追溯、可治理、可补偿**。
+
+#### 3.6.2 时序图
+
+##### 3.6.2.1 定时任务触发与串行接入落盘时序图
+
+```mermaid
+sequenceDiagram
+    participant SCH as "Scheduler / Cron"
+    participant ST as "supplier_sync_task"
+    participant SB as "supplier_sync_batch"
+    participant W as "Serial Pull Worker"
+    participant SUP as "Supplier API"
+    participant HDB as "HBase / Object Store"
+    participant MYSQL as "MySQL(batch/state_ledger/task_item)"
+    participant MQP as "Processing MQ"
+
+    SCH->>ST: 触发定时同步(sync_mode, data_scope, task_code)
+    SCH->>MYSQL: 查询最近 RUNNING batch 与 lease_until
+    alt 存在未过期 RUNNING 批次
+        MYSQL-->>SCH: 返回 running batch
+        SCH-->>SCH: 阻断本次触发
+    else 无运行中批次或租约已过期
+        SCH->>SB: 创建或接管 batch(RUNNING, current_checkpoint, sync_batch_version)
+        SCH->>MYSQL: 落盘 batch 元数据与租约
+        SCH->>W: 唤醒独占串行 Worker
+        W-->>SCH: ACK
+    end
+
+    loop 每个 page / cursor
+        W->>SUP: 按 current_checkpoint 串行拉取下一页
+        alt 鉴权失败 / 模板完全失配
+            SUP-->>W: fatal error
+            W->>MYSQL: 标记 batch FAILED，写批次级问题单
+        else 超时 / 5xx / cursor 失效
+            SUP-->>W: retryable error
+            W->>MYSQL: 回填页面级问题单，更新 retry_count / current_checkpoint
+        else 返回 payload
+            SUP-->>W: raw payload
+            W->>HDB: 批量保存 RAW snapshot
+            W->>MYSQL: 批量 upsert state_ledger / task_item(INIT, raw_ref, page_no, cursor)
+            W->>MQP: 批量发送本页消息(object_key, snapshot_ref)
+            W->>MYSQL: 推进 current_checkpoint / heartbeat_at / lease_until
+        end
+    end
+
+    W->>MYSQL: 尾页完成，回填 end_of_stream=true
+```
+
+这张图只回答一个问题：**定时器触发后，串行 Worker 如何在单线程拉取、落盘、投递 MQ、推进 checkpoint 之间形成一条线性的同步流水线。**
+
+这里的批次级运行状态，主要沉淀在 `supplier_sync_batch`。它记录的是“这次同步整体怎么跑、现在跑到哪、谁在跑、租约是否有效”，而不是每个酒店对象的明细结果。
+
+一个典型的 `supplier_sync_batch` 可以长这样：
+
+| 字段 | 含义 | Agoda 串行 Pull 示例 |
+| --- | --- | --- |
+| `batch_id` | 本次执行批次 ID | `sb_20260604_0001` |
+| `task_code` | 对应哪个业务同步任务 | `AGODA_HOTEL_PULL_DAILY` |
+| `status` | 批次状态 | `RUNNING` |
+| `sync_batch_version` | 本次批次版本号 | `20260604-1` |
+| `trigger_id` | 哪次调度触发的 | `xxljob-20260604-020000` |
+| `worker_id` | 当前执行 Worker | `sw-03` |
+| `lease_token` | 当前租约 Token | `lt_8f7a9c21` |
+| `lease_until` | 租约过期时间 | `2026-06-04 02:15:15` |
+| `heartbeat_at` | 最近心跳时间 | `2026-06-04 02:10:15` |
+| `current_checkpoint` | 已安全推进的游标 | `cursor=abc123&page=250` |
+| `last_checkpoint_at` | 最近推进 checkpoint 的时间 | `2026-06-04 02:09:58` |
+| `page_no` | 当前处理到第几页 | `250` |
+| `pulled_count` | 已成功拉回的对象数 | `125000` |
+| `enqueued_count` | 已成功投 MQ 的对象数 | `125000` |
+| `success_count` | 下游成功处理数 | `118420` |
+| `failed_count` | 下游失败处理数 | `312` |
+| `skipped_count` | 下游跳过数 | `6268` |
+| `end_of_stream` | 是否已经拉到尾页 | `false` |
+| `last_error_code` | 最近一次批次级错误码 | `` |
+| `last_error_message` | 最近一次批次级错误信息 | `` |
+
+如果用一条样例记录来表达，可以写成：
+
+```json
+{
+  "batch_id": "sb_20260604_0001",
+  "task_code": "AGODA_HOTEL_PULL_DAILY",
+  "status": "RUNNING",
+  "sync_batch_version": "20260604-1",
+  "trigger_id": "xxljob-20260604-020000",
+  "worker_id": "sw-03",
+  "lease_token": "lt_8f7a9c21",
+  "lease_until": "2026-06-04 02:15:15",
+  "heartbeat_at": "2026-06-04 02:10:15",
+  "current_checkpoint": "cursor=abc123&page=250",
+  "last_checkpoint_at": "2026-06-04 02:09:58",
+  "page_no": 250,
+  "pulled_count": 125000,
+  "enqueued_count": 125000,
+  "success_count": 118420,
+  "failed_count": 312,
+  "skipped_count": 6268,
+  "end_of_stream": false,
+  "last_error_code": null,
+  "last_error_message": null
+}
+```
+
+##### 3.6.2.2 处理阶段时序图
+
+```mermaid
+sequenceDiagram
+    participant MQP as "Processing MQ"
+    participant CONS as "Consumer (履约总控大脑)"
+    participant HDB as "HBase / Object Store"
+    participant SL as "supplier_sync_state_ledger"
+    participant P as "商品主域写侧"
+
+    loop 行级消费
+        CONS->>MQP: 拉取 item message (获取 outer_goods_id)
+        CONS->>HDB: 读取 RAW / NORMALIZED snapshot
+        CONS->>SL: CAS 强占状态：INIT -> PROCESSING
+        CONS->>P: 实时反查线上正式 DTO 与 publish_version
+        alt 运营锁定 / 线上版本已演进
+            P-->>CONS: REJECT_STALE_OR_LOCKED
+            CONS->>SL: 更新 state_ledger=SKIPPED
+        else READY_TO_UPSERT
+            P-->>CONS: ready
+            CONS->>SL: 更新 state_ledger=READY_TO_UPSERT
+        else mapping失败 / 字段缺失 / 高风险阻断
+            CONS->>SL: 更新 state_ledger=FAILED
+        end
     end
 ```
 
-这条链路最重要的边界是：供应商同步执行层独立建模，负责 `Batch / Checkpoint / Lease / Snapshot / DLQ`；但标准化后的有效变更仍然进入统一治理与发布编排链路，而不是绕过商品主域直接改正式商品。
+这张图只回答第三个问题：**Consumer 如何在处理阶段完成标准对象准备，并拦截因为队列时间差导致的旧数据覆盖新数据。**
 
-### 3.6 校验策略分流：Excel 与 ERP 为什么不能共用同一套容错机制
+##### 3.6.2.3 消费后请求商品主域写侧时序图
 
-这是供给平台里最容易被低估的一个设计点。两者都是“批量数据”，但容错心智完全不同。
+```mermaid
+sequenceDiagram
+    participant CONS as "Consumer (履约总控大脑)"
+    participant P as "商品主域写侧"
+    participant SL as "supplier_sync_state_ledger"
 
-#### Excel 导入
+    CONS->>SL: 读取 object_key / last_snapshot_ref
+    CONS->>P: 携带标准对象 + base_publish_version + ownership_result 发起写请求
+    alt 写入成功
+        P-->>CONS: UPSERT_ACCEPTED / Draft 已写入
+        CONS->>SL: 更新 state_ledger=SUCCESS
+    else 线上版本已演进或对象被锁定
+        P-->>CONS: SKIPPED_BY_VERSION_OR_LOCK
+        CONS->>SL: 更新 state_ledger=SKIPPED
+    else 映射失败 / 字段缺失 / 高风险阻断
+        P-->>CONS: REJECTED
+        CONS->>SL: 更新 state_ledger=FAILED
+    end
+```
 
-- 用户在页面前等待结果
-- 接受部分成功
-- 允许行级失败继续往下处理
-- 最终要产出错题本、错误文件、修复建议
+这张图只回答第四个问题：**Consumer 在完成处理后，如何把结果请求到商品主域写侧。**
 
-#### ERP / API 推送
+#### 3.6.3 关键设计点
 
-- 没有人盯进度条
-- 更关注接口高可用和标准错误码
-- 对关键批次错误通常采取整批阻断
-- 依赖幂等重试和批次隔离
+这里要特别强调一点：在 RAW / NORMALIZED 报文已经全量交给 `HBase / Object Store` 的情况下，MySQL 里的 `supplier_sync_state_ledger` 仍然不是可选项。
 
-因此，第 3 节要明确区分：
+如果说 `HBase` 是装满原始货物的“大仓库”，那么 `supplier_sync_state_ledger` 就是整条同步流水线的“调度指挥中心”。它负责承接四类关键主权：
 
-- **可行级跳过的错误**：字段格式错、个别映射缺失、单行类目异常
-- **必须整批失败的错误**：签名失败、密钥过期、核心模板不匹配、批次结构畸形
+- **并发主权**：Consumer 通过状态机和 CAS 抢占对象级执行权，避免 MQ 重投后的并发踩脚。
+- **对账主权**：大盘进度、成功/失败/跳过统计不能去扫 HBase，只能依赖 MySQL 轻量聚合。
+- **补偿主权**：失败对象必须能被精准捞出做二次重试，而不是把 100w 对象整批重跑。
+- **时间差防线**：消息在 MQ 里排队数小时后，Consumer 仍可结合状态台账和实时版本做写前保护，阻断旧数据覆盖新数据。
 
-### 3.7 发布编排与商品主域交互
+换句话说，`HBase` 负责“存数据”，`supplier_sync_state_ledger` 负责“驱动状态机”。没有这张表，整条长任务链路就会从“可对账、可恢复、可裁剪”的工业流水线，退化成一条状态不可见的黑盒。
 
-供给平台在这一层不做正式落库，而是负责把治理结果编排成可执行的发布动作。
+##### 3.6.3.1 定时触发与串行接入阶段的设计点
 
-重点内容：
+| 设计点 | 说明 |
+| --- | --- |
+| 单例运行与租约接管 | `supplier_sync_batch` 需要 `status=RUNNING + lease_until` 的单例控制。租约未过期时，新触发直接阻断；租约过期时，新 Worker 通过 CAS 接管并继承 `current_checkpoint`。 |
+| 串行 checkpoint 恢复 | Agoda 这类慢源不适合并发拉取。更稳的做法是一次只拉一页或一个 cursor，成功后推进 `current_checkpoint`，机器重启后从最近水位继续。 |
+| HBase 吞数据，MySQL 管状态 | 原始报文和标准化对象进入 HBase 或对象存储；MySQL 只负责批次、状态台账、映射和治理锚点。 |
+| 页级批量物化 | 串行拉回一页后，要按页批量写快照、批量 Upsert 状态台账、批量投 MQ，避免接入层做大量单条循环写。 |
+| 供给侧不做最终过滤裁决 | 上游供应商同步链路负责忠实搬运与状态推进，不基于本地镜像去做最终跳过判断。否则最容易因为失败状态、排队延迟或运营改动造成静默丢单。 |
+| Push / Pull 介质分离 | Push 更偏接口受理 + MQ 削峰，Pull 更偏单 Worker 串行拉取 + checkpoint；两者执行模型不同，但治理主线复用。 |
+| Supplier Mapping 独立持久化 | 外部资源和平台资源的映射不能只靠内存或日志，要有权威 `supplier_product_mapping_tab`。 |
 
-- 发布命令
-- `base_publish_version`
-- `product_publish_record`
-- `product_outbox_event`
-- 搜索 / 缓存 / 计价 / 营销协同
+##### 3.6.3.2 行级消费与商品主域写入阶段的设计点
+
+| 设计点 | 说明 |
+| --- | --- |
+| `supplier_sync_state_ledger` 是状态主权中心 | 这张表不是简单的辅助索引，而是整个长任务的状态机中枢。它记录对象当前是 `INIT / PROCESSING / SUCCESS / FAILED / SKIPPED`，用来支撑并发防踩脚、大盘聚合、局部重试和幽灵消息裁剪。 |
+| CAS 强占消费权 | Consumer 不能拿到消息就直接处理，而要先把对象状态从 `INIT` 原子推进到 `PROCESSING`，这样才能避免 MQ 重投或多机并发时重复处理同一对象。 |
+| 商品中心死守强幂等 | 最终去重、幂等和写拦截必须收敛到商品中心。供给侧允许忠实重发，商品主域用 `publish_version`、乐观锁和字段主导权做最终写前保护。 |
+| 版本反查防旧数据覆盖 | 由于拉取和消费之间可能相隔数小时，Consumer 必须在写商品主域前实时反查版本和锁定状态，拦截旧数据覆盖新数据。 |
+| 执行层与治理层边界 | Pull 执行层独立，Consumer 负责对象级消费控制和请求编排，但不能直接改正式商品表，只能通过商品主域写侧接口完成更新。 |
+| 对象级补偿必须可精准捞取 | 当 100w 对象里只有 1w 失败时，系统必须能直接通过 `state_ledger=FAILED` 拉出问题对象，而不是整批重跑。 |
+
+##### 3.6.3.3 收尾与对账阶段的设计点
+
+| 设计点 | 说明 |
+| --- | --- |
+| 对账与终结判定依赖状态台账 | 跑批进行中不能去遍历 HBase 里的海量 KV 做统计。更稳的方式是基于 `supplier_sync_state_ledger` 做轻量聚合，实时得出 `SUCCESS / FAILED / SKIPPED / PROCESSING` 大盘。 |
+| 动态计数器与终结标志 | 由于串行 Pull 事先不知道总量，接入层应采用 `INCRBY + end_of_stream + DECR` 的动态计数协议，而不是固定总数计数器。 |
+| DB 旁路盘点兜底 | Redis 或 Consumer 猝死导致收尾漏触发时，需要由 DB 旁路定时器盘点状态台账，补触发归档。 |
+
+#### 3.6.4 表和版本映射
+
+| 对象 | 作用 | 关键字段 |
+| --- | --- | --- |
+| `supplier_sync_task` | 定义同步任务 | `task_code / sync_mode / data_scope / concurrency_policy` |
+| `supplier_sync_batch` | 一次执行批次与租约控制 | `batch_id / status / sync_batch_version / current_checkpoint / worker_id / lease_token / lease_until / heartbeat_at / end_of_stream` |
+| `supplier_sync_state_ledger` | 供应商对象状态台账 | `supplier_id / outer_goods_id / last_batch_id / state / last_snapshot_ref` |
+| `supplier_product_mapping_tab` | 外部资源到平台资源映射 | `supplier_id / external_resource_id / internal_object_id / mapping_status` |
+| `publish_version` | 平台正式发布版本 | `item_id / publish_version` |
+
+#### 3.6.5 Agoda 酒店同步样例数据
+
+下面给一组简化样例，帮助把这些表和 Agoda 酒店同步场景串起来。这里默认同步对象是 `AGD_HOTEL_78231`，同步模式是串行 Pull，目标是把供应商侧的酒店基础信息、房型信息和价格/库存差异同步到平台治理链路。
+
+| 对象 | 样例数据 | 说明 |
+| --- | --- | --- |
+| `supplier_sync_task` | `task_code=AGODA_HOTEL_PULL_DAILY`<br>`sync_mode=PULL`<br>`data_scope=HOTEL`<br>`concurrency_policy=SINGLE_WORKER` | 业务级同步定义，表达“每天串行拉取 Agoda 酒店数据” |
+| `supplier_sync_batch` | `batch_id=sb_20260604_0001`<br>`status=RUNNING`<br>`sync_batch_version=20260604-1`<br>`current_checkpoint=cursor=abc123`<br>`worker_id=sw-03`<br>`lease_token=lt_8f7a`<br>`lease_until=2026-06-04 02:15:15`<br>`heartbeat_at=2026-06-04 02:10:15`<br>`end_of_stream=false` | 一次实际执行批次，记录当前拉到哪了、由谁跑、租约是否有效，以及是否已经拉到尾页 |
+| `supplier_sync_state_ledger` | `supplier_id=agoda`<br>`outer_goods_id=AGD_HOTEL_78231`<br>`last_batch_id=sb_20260604_0001`<br>`state=INIT`<br>`last_snapshot_ref=oss://agoda-sync/raw/78231.json` | 记录 Agoda 某个酒店对象在这次同步中的最新状态和最近快照引用，用来支撑状态推进、补偿和收口 |
+| `HBase / Object Store` | `raw_ref=oss://agoda-sync/raw/78231.json`<br>`normalized_ref=oss://agoda-sync/norm/78231.json` | 原始报文和标准化对象都沉淀到 HBase / 对象存储，供回放、复算和审计使用 |
+| `supplier_product_mapping_tab` | `supplier_id=agoda`<br>`external_resource_id=AGD_HOTEL_78231`<br>`internal_object_id=hotel_10086`<br>`mapping_status=ACTIVE` | 维护 Agoda 酒店 ID 到平台酒店对象 ID 的权威映射 |
+| `publish_version` | `item_id=hotel_10086`<br>`publish_version=18` | 平台当前正式发布版本，用于 Diff 和版本保护 |
+
+如果继续细化到对象级状态，可以直接在 `supplier_sync_state_ledger` 上看到这种结果：
+
+| 对象 | 样例数据 | 说明 |
+| --- | --- | --- |
+| `supplier_sync_state_ledger` | `supplier_id=agoda`<br>`outer_goods_id=AGD_HOTEL_78231`<br>`last_batch_id=sb_20260604_0001`<br>`state=SUCCESS`<br>`last_snapshot_ref=oss://agoda-sync/raw/78231.json` | 表示 Agoda 酒店 78231 在版本校验通过后成功进入商品主域写侧 |
+| `supplier_sync_state_ledger` | `supplier_id=agoda`<br>`outer_goods_id=AGD_HOTEL_78232`<br>`last_batch_id=sb_20260604_0001`<br>`state=SKIPPED`<br>`last_snapshot_ref=oss://agoda-sync/raw/78232.json` | 表示该对象在消费时发现线上版本已经演进或被运营锁定，因此不再请求商品主域写侧 |
+| `supplier_sync_state_ledger` | `supplier_id=agoda`<br>`outer_goods_id=AGD_HOTEL_78233`<br>`last_batch_id=sb_20260604_0001`<br>`state=FAILED`<br>`last_snapshot_ref=oss://agoda-sync/raw/78233.json` | 表示某个房型无法映射到平台对象，因此停留在失败状态，等待补偿或人工修复 |
+
+### 3.7 核心功能：库存
+
+#### 3.7.1 场景画像
+
+供给平台里的库存能力，不是库存中心那套账本、预占、确认、释放的权威事实模型，而是 **库存 B 端入口与操作编排层**。
+
+这一节要覆盖的，不只是“调库存”这种通用动作，更重要的是：**创建商品时，如何兼容创建库存**。
+
+在酒旅、到店餐饮、景区票务和本地生活券这类场景里，创建库存至少要支持 3 种完全不同的模式：
+
+1. **`QTY`：纯数字库存**
+
+   - 创建商品时，运营手工填写库存数字，例如 `100`
+   - 供给平台只需要声明初始数量
+   - 库存中心持有真实可售数量
+   - 下单时扣减的是数字，不是预先存在的券码
+
+2. **`SYS_GEN`：系统动态发券**
+
+   - 创建商品时，同样填写一个库存数字，例如 `500`
+   - 但用户支付成功后，平台会按规则动态生成核销券码或二维码
+   - 库存本体仍然是数量，券码只是履约载体
+   - 除了初始数量外，还要声明券码生成规则或生成策略
+
+3. **`EXT_POOL`：外部死码池**
+
+   - 创建商品时，不能把“手填数量”当成库存真相
+   - 运营必须上传 Excel 或外部批次文件，文件内包含真实券码、密码、有效期等信息
+   - 库存的真正来源是券码池里的有效行数
+   - 用户下单时不是“数字减一”，而是从券码池中占用一张真实的死码
+
+因此，供给平台在“创建商品”时，必须同步声明一项关键业务属性：
+
+- `inventory_mode = QTY / SYS_GEN / EXT_POOL`
+
+商品创建成功后，供给平台再根据这个模式，把库存初始化动作路由到不同的命令编排路径，而不是所有商品都走同一种 `CreateInventory`。
+
+这一节后续要覆盖的典型动作包括：
+
+- 初始化库存
+- 调整库存
+- 导入券码
+- 生码
+- 锁库存
+
+核心边界要先钉死：
+
+> 入口归供给，事实归库存。
+
+也就是说，供给平台负责承接操作入口、审批、权限、审计、错误文件和命令编排，但不持有库存事实、预占、账本或券码池权威状态。
+
+#### 3.7.2 创建商品时顺带创建库存的时序图
+
+```mermaid
+sequenceDiagram
+    participant U as "运营/商家"
+    participant W as "供给平台 Web"
+    participant T as "product_supply_task"
+    participant I as "product_supply_task_item"
+    participant S as "供给平台服务"
+    participant P as "商品主域写侧"
+    participant IC as "库存中心"
+    participant F as "错误文件/审计"
+
+    U->>W: 创建商品时选择 inventory_mode 并填写库存参数
+    W->>T: 创建 task
+    W->>I: 创建 task_item
+    W->>S: 提交商品与库存配置
+    S->>T: task=CREATED
+    S->>I: item=CREATED
+    S->>S: 校验商品参数 / inventory_mode / 权限 / 参数完整性
+    alt 校验失败
+        S->>I: 更新 item=FAILED，记录 error_code / error_message
+        S->>T: 更新 task=FAILED
+        S->>F: 记录错误文件 / 审计日志
+    else 校验通过
+        S->>T: task=CREATING_PRODUCT
+        S->>P: CreateDraft / SubmitCreate
+        alt 商品主域写侧失败
+            P-->>S: 返回 error_code / error_message
+            S->>I: 更新 item=FAILED
+            S->>T: 更新 task=FAILED
+            S->>F: 记录错误文件 / 审计日志
+        else 商品主域写侧成功
+            P-->>S: 返回 item_id / draft_id
+            S->>T: task=CREATING_INVENTORY
+            S->>S: 根据 inventory_mode 路由库存创建命令
+            alt QTY 纯数字库存
+                S->>IC: CreateInventory(item_id, init_quantity)
+            else SYS_GEN 系统动态发券
+                S->>IC: CreateInventory(item_id, init_quantity, voucher_rule)
+            else EXT_POOL 外部死码池
+                S->>IC: CreateInventory(item_id, pool_mode=EXT_POOL)
+                S->>IC: ImportCodeBatch(item_id, code_batch_file / code_rows)
+            end
+            alt 库存中心成功
+                IC-->>S: 返回 command_id / result
+                S->>I: 更新 item=DONE
+                S->>T: 更新 task=DONE
+            else 库存中心失败
+                IC-->>S: 返回 error_code / error_message
+                S->>I: 更新 item=FAILED
+                S->>T: 更新 task=INVENTORY_FAILED
+                S->>F: 记录错误文件 / 审计日志
+            end
+        end
+    end
+```
+
+这张图只回答一个问题：
+
+> 当“创建商品”和“创建库存”被收敛到同一个供给任务里时，供给中心如何先完成商品创建，再按库存类型路由库存初始化。
+
+因此它故意不展开库存中心内部怎么记账、怎么预占、怎么维护券码池，只强调供给中心这一侧的 4 个动作：
+
+- 商品创建和库存初始化共用一个任务锚点
+- 商品创建阶段必须先声明 `inventory_mode`
+- 供给中心先调商品主域写侧创建商品，再根据结果决定是否进入库存初始化
+- 供给中心先把库存初始化操作任务化、审计化
+- 供给中心根据 `inventory_mode` 决定库存初始化走哪条命令路径
+- `QTY` 和 `SYS_GEN` 都以“数量”为库存源头
+- `EXT_POOL` 以“券码池”为库存源头，手填数量不是最终真相
+
+#### 3.7.3 商品已存在时单独创建或增加库存的时序图
+
+如果商品已经创建完成，后续还需要支持一种更轻量的库存入口：**单独创建库存或增加库存**。这时不再需要走商品创建链路，而是直接围绕既有 `item_id` 发起库存操作。
+
+```mermaid
+sequenceDiagram
+    participant U as "运营/商家"
+    participant W as "供给平台 Web"
+    participant T as "product_supply_task"
+    participant I as "product_supply_task_item"
+    participant S as "供给平台服务"
+    participant IC as "库存中心"
+    participant F as "错误文件/审计"
+
+    U->>W: 基于已有 item_id 发起创建库存 / 增加库存
+    W->>T: 创建 task
+    W->>I: 创建 task_item
+    W->>S: 提交 item_id / inventory_mode / inventory_action
+    S->>T: task=CREATING_INVENTORY
+    S->>I: item=CREATED
+    S->>S: 校验 item_id / inventory_mode / 权限 / 参数完整性
+    alt 校验失败
+        S->>I: 更新 item=FAILED
+        S->>T: 更新 task=FAILED
+        S->>F: 记录错误文件 / 审计日志
+    else 校验通过
+        alt 创建或增加数量库存
+            S->>IC: CreateInventory / AdjustInventory(item_id, quantity)
+        else 创建或增加系统生券库存
+            S->>IC: CreateInventory / AdjustInventory(item_id, quantity, voucher_rule)
+        else 导入外部死码池
+            S->>IC: CreateInventory(item_id, pool_mode=EXT_POOL)
+            S->>IC: ImportCodeBatch(item_id, code_batch_file / code_rows)
+        end
+        alt 库存中心成功
+            IC-->>S: 返回 command_id / result
+            S->>I: 更新 item=DONE
+            S->>T: 更新 task=DONE
+        else 库存中心失败
+            IC-->>S: 返回 error_code / error_message
+            S->>I: 更新 item=FAILED
+            S->>T: 更新 task=INVENTORY_FAILED
+            S->>F: 记录错误文件 / 审计日志
+        end
+    end
+```
+
+这张补充图只回答另一个问题：
+
+> 当商品已经存在时，供给中心如何围绕既有 `item_id` 单独创建库存或增加库存。
+
+它和前一张图的区别在于：
+
+- 不再调用商品主域写侧创建商品
+- 任务直接从 `CREATING_INVENTORY` 开始
+- 入口重点变成已有商品的库存补建、补量、导码和补码
+
+#### 3.7.4 创建商品与创建库存共用任务的状态机
+
+当商品创建和库存初始化被收敛到同一个 `product_supply_task` 时，任务状态机要同时表达两段动作：
+
+- 商品是否已经成功创建
+- 库存是否已经成功初始化
+
+推荐的任务级状态如下：
+
+| 状态 | 含义 |
+| --- | --- |
+| `CREATED` | 任务刚被受理，商品和库存都还未开始处理 |
+| `CREATING_PRODUCT` | 供给中心正在请求商品主域写侧创建商品 |
+| `CREATING_INVENTORY` | 商品已创建成功，供给中心正在按 `inventory_mode` 请求库存中心初始化库存 |
+| `DONE` | 商品创建成功，库存初始化也成功，整个联合任务结束 |
+| `FAILED` | 商品创建阶段失败，库存阶段不会继续执行 |
+| `INVENTORY_FAILED` | 商品已创建成功，但库存初始化失败，需要错误文件、补偿或人工修复 |
+| `CANCELED` | 人工取消或系统撤销任务 |
+
+如果希望进一步表达行级明细，`product_supply_task_item` 可以保持轻量：
+
+| `task_item.status` | 含义 |
+| --- | --- |
+| `CREATED` | 明细刚受理 |
+| `FAILED` | 参数校验或执行失败 |
+| `DONE` | 商品与库存动作都已完成 |
+
+这个状态机的关键点不是追求状态越多越好，而是要明确区分两类失败：
+
+- **商品没建成**：`FAILED`
+- **商品建成了，但库存没建成**：`INVENTORY_FAILED`
+
+只有这样，运营侧才能知道是整单回退，还是只需要补库存。
+
+#### 3.7.5 关键设计点
+
+如果把这一节再往上提炼，供给平台在“商品创建 + 库存创建”这条链路上，真正要解决的是 4 个高风险技术点：
+
+1. 多模式库存建模怎么统一入口、分离事实。
+2. 商品创建和库存初始化如何用一个联合任务表达半成功。
+3. 单品页面直接改库存时，为什么不能把绝对值直接写回库存中心。
+4. 外部死码池为什么必须走“资源导入”，而不是“数量加减”。
+
+| 设计点 | 说明 |
+| --- | --- |
+| 商品创建必须显式声明库存模式 | 供给平台在创建商品时，不能只收商品信息而不收库存模式。至少要支持 `QTY / SYS_GEN / EXT_POOL` 三种模式，否则后续库存初始化会失去路由依据。 |
+| 创建商品时就要决定库存创建路径 | 这不是商品创建完成后的附属动作，而是商品创建契约的一部分。供给中心在创建商品时就要知道是走数量库存、系统生券，还是外部死码池。 |
+| 商品创建与库存初始化可以共用一个任务 | 对运营侧来说，这通常是“一次提交”。因此可以共用一个 `product_supply_task`，但状态机必须至少拆出 `CREATING_PRODUCT` 和 `CREATING_INVENTORY` 两段。 |
+| 多模式库存建模要“一元化商品契约，分流化库存命令” | 商品侧不应该为 `QTY / SYS_GEN / EXT_POOL` 割裂成三套建模，而是通过统一的 `inventory_mode` 把商品契约收口，再由供给中心的策略路由把库存初始化分流成不同命令。这样商品主域仍保持一元化表达，库存事实则在库存中心按模式落地。 |
+| 商品主数据与库存事实要在契约层耦合、在事实层解耦 | 商品创建时可以声明 `inventory_mode / init_quantity / voucher_rule` 等契约字段，但真正的库存余额、券码池、预占和账本仍归库存中心。 |
+| 命令入口与库存事实分离 | 供给平台承接的是库存操作入口，不是库存事实库。真正的余额、账本、预占、券码池权威状态仍归库存中心。 |
+| 操作要任务化 | 初始化库存、批量调库存、导入券码等操作都建议写入 `product_supply_task / task_item`，统一审计、补偿和错误文件输出。 |
+| `QTY` 与 `SYS_GEN` 共享数量型库存底座 | 这两类模式在创建商品时都可以录入初始数量。差异在于：`QTY` 只关心可售数，`SYS_GEN` 还要附带券码生成规则，但它们都不是预先导入死码池。 |
+| `EXT_POOL` 必须走池化库存模型 | 对外购死码场景，Excel 中的券码行才是真实库存来源。供给平台可以收“预计数量”做提示，但不能把手填数量当库存真相。 |
+| 券码导入与数量调整分离 | 券码导入是唯一资源导入问题，数量调整是数值变化问题，不能混成同一种库存命令模型。`ImportCodeBatch` 和 `AdjustInventory` 应走两套不同命令。 |
+| 动态发券与死码导入分离 | 系统生码是“支付后印券”，外部死码是“创建前已有券”。两者虽然都叫券，但库存建模完全不同，不能共用一张“券码导入”表来表达。 |
+| 联合任务必须显式表达“库存失败但商品已成功” | 商品创建成功、库存初始化失败，是本地生活和酒旅供给里最典型的半成功状态。用 `INVENTORY_FAILED` 单独承接这类失败，能避免重复建商品，也能把补偿动作收敛成“只补库存、不回滚商品”的柔性修复链路。 |
+| 单品页面编辑库存时，供给中心应把绝对值转成 Delta | 运营在页面上输入的是把 `20` 改成 `50` 这种绝对值，但供给中心发往库存中心的命令应是 `AdjustInventory(+30)`。否则在用户下单、高频扣减或多人盘点的并发窗口里，直接写绝对值会抹掉中间发生的真实库存变化。 |
+| Delta 调整要绑定 `base_inventory_version` | 把绝对值转换成 Delta 还不够。供给中心还应带上页面打开时看到的 `base_inventory_version`，让库存中心用乐观锁校验版本是否已被他人改动。版本冲突时，应返回可运营化的错误，而不是静默覆盖。 |
+| 供给平台保留审批与理由 | 库存变更往往涉及资损风险，供给平台应保留审批、操作理由、权限校验和审计日志。 |
+| 发布后可触发库存初始化 | 商品发布后，供给平台可以负责编排库存初始化或默认库存配置。对于 `EXT_POOL`，更常见的是“先创建库存容器，再导入券码批次”。 |
+| `EXT_POOL` 的数量必须强锚定资源行数 | 对外购死码商品，库存中心感知到的“加库存 1000”不应该来自一个手填数字，而必须来自成功导入的 1000 行有效券码。也就是说，库存数量是池化资源导入的影子结果，不是独立的人工输入事实。 |
+| 资源导入与数值变更要物理隔离 | `EXT_POOL` 的导码本质是唯一资源写入，`QTY / SYS_GEN` 的调库存本质是数值增量。两者在命令模型、幂等语义、审计要求和失败补偿上都不一样，必须分开建模。 |
+| 失败运营化 | 库存命令失败后，供给平台要能输出错误文件、审计日志和补偿入口，而不是让问题停留在下游日志里。 |
+| 不展开库存中心内部账本 | 这一节只讲供给侧库存能力，不在这里重复库存中心的 `inventory_balance / reservation / ledger` 内部模型。 |
+
+#### 3.7.6 表和版本映射
+
+| 对象 | 作用 | 关键字段 |
+| --- | --- | --- |
+| `product_supply_task` | 一次库存操作任务锚点 | `task_type / execution_mode / source_type / operator_id / status` |
+| `product_supply_task_item` | 单次库存操作明细 | `object_type / object_key / status / error_code / item_id` |
+| `inventory_mode` | 商品创建时声明的库存模式 | `QTY / SYS_GEN / EXT_POOL` |
+
+这一节刻意不再把库存入口拆成太多请求对象。对于供给平台来说，最重要的是：
+
+- 任务锚点是否存在
+- 任务明细是否能表达失败和补偿
+- 商品创建时是否声明了正确的 `inventory_mode`
+
+像 `base_inventory_version`、导码文件引用、券码规则等更细的字段，继续在 `3.7.5 关键设计点` 和具体时序图里表达即可，不必在这里再拆成一串对象清单。
+
+### 3.8 发布编排、商品主域交互与外部系统集成
+
+供给平台在这一层不做正式落库，而是负责把治理结果编排成可执行的发布动作，并把结果扩散给商品主域和外部协同系统。
+
+建议把这一节拆成三类内容来讲：
+
+1. **商品主域交互**
+
+   - 发布命令
+   - `base_publish_version`
+   - `product_publish_record`
+   - `Draft / Staging / QC / merge` 边界
+
+2. **外部系统集成**
+
+   - 搜索
+   - 缓存
+   - 计价
+   - 营销
+   - 数据平台 / 画像 / 订阅方
+
+3. **一致性表达**
+
+   - 供给平台不做正式落库
+   - 供给平台负责发布编排和跟踪
+   - 商品主域负责正式 merge
+   - 外部系统通过事件 / Outbox / 投影刷新感知
 
 这里要钉死一句：
 
-> 供给平台负责编排和触发发布；`Draft / Staging / QC / publish merge` 由商品主域写侧闭环完成。
+> 供给平台负责编排和触发发布；`Draft / Staging / QC / publish merge` 由商品主域写侧闭环完成；搜索、缓存、计价、营销和数据平台等外部系统通过投影刷新或事件订阅感知变更。
 
-### 3.8 库存运营入口设计
-
-供给平台要承接库存相关的 B 端操作入口，但不负责库存事实。
-
-推荐在这一小节只讲命令入口和边界，不深入库存内部模型：
-
-- `CreateInventory`
-- `AdjustInventory`
-- `ImportCodeBatch`
-- `GenerateCodeBatch`
-- `LockInventory`
-
-核心表达：
-
-- 入口归供给
-- 事实归库存
-- 发布后可触发库存初始化或库存变更任务
-- 供给平台保留权限、审批、操作理由、审计和错误文件能力
-
-### 3.9 供应商同步专项链路
-
-供应商同步要明确和 `3.3` 的关系：
-
-- 执行层独立
-- 治理层复用
-
-这一节建议覆盖的执行层模型：
-
-- `supplier_sync_task`
-- `supplier_sync_batch`
-- `supplier_sync_snapshot`
-- `supplier_sync_diff_log`
-- `supplier_sync_dead_letter`
-- `supplier_product_mapping_tab`
-
-以及四类关键能力：
-
-- Push / Pull / Full Sync / Incremental Sync
-- Batch / Checkpoint / Lease
-- Raw Snapshot 与标准化结果分离
-- 执行失败进入专项 DLQ，再进入统一治理链路
-
-### 3.10 异常处理与运营闭环
+### 3.9 异常处理与运营闭环
 
 供给平台最终要把失败运营化，而不是把问题藏在日志里。
 
@@ -1142,7 +2637,7 @@ sequenceDiagram
 - 能否下载错误文件修复
 - 是否可以重新投递
 
-### 3.11 供给平台表清单与使用场景
+### 3.10 供给平台表清单与使用场景
 
 这一小节建议显式列出供给平台权威表，避免和商品主域写侧、库存系统混淆。
 
@@ -1273,9 +2768,7 @@ sequenceDiagram
 | --- | --- | --- |
 | `supplier_sync_task` | 定义要同步什么、怎么同步 | 系统型同步问题 |
 | `supplier_sync_batch` | 一次执行批次、进度、水位、租约 | 系统型同步问题 |
-| `supplier_sync_snapshot` | 保存供应商原始数据快照 | 系统型同步问题 |
-| `supplier_sync_diff_log` | 记录供应商侧差异识别 | 系统型同步问题 |
-| `supplier_sync_dead_letter` | 分页失败、字段缺失、映射失败 | 系统型同步问题 |
+| `supplier_sync_state_ledger` | 记录对象级状态、水位和最近快照引用 | 系统型同步问题 |
 | `supplier_product_mapping_tab` | 外部资源到平台资源映射 | 系统型同步问题 |
 
 这里还要明确反向排除：
@@ -1288,33 +2781,30 @@ sequenceDiagram
 
 ---
 
-## 4. 正式商品模型：发布后平台到底沉淀什么
+## 4. 详细设计 - 商品中心
 
-### 4.1 正式商品的核心组成
+### 4.1 商品中心定位与职责边界
 
-商品中心沉淀的不是“后台录入过程”，而是正式交易契约：
+商品中心在这套架构里不是“后台录入页面的数据库”，而是 **商品主域写侧 + 正式读模型** 的组合体：
 
-- `Resource`：卖的是什么资源，例如酒店、门店、活动、充值运营商。
-- `SPU / SKU`：资源如何被定义为可售商品和规格。
-- `Offer / Rate Plan`：按什么渠道、价格、销售期、履约规则去卖。
-- `Input Schema`：用户下单前必须提供哪些信息。
-- `Fulfillment Rule`：发券、充值、出票、预约等怎么履约。
-- `Refund Rule`：退款、取消、售后口径。
-- `publish_version`：哪一个正式版本当前生效。
-- `Product Snapshot`：订单创建时引用或复制的解释事实。
+- 写侧负责 `Draft / Staging / Publish Version / Snapshot / Merge`
+- 读模型只承接已经发布的正式商品
+- 供给平台负责接入、清洗、任务编排和发布触发
+- QC 平台负责机审核、人工审核和审核 verdict
+- 库存系统负责库存事实、账本和预占释放
 
-### 4.2 决策点 8：正式商品表是否承接 `DRAFT / QC_PENDING / REJECTED`
+一句话说，商品中心沉淀的不是“后台录入过程”，而是正式交易契约与它的可发布版本。
 
-#### 方案对比
+### 4.2 商品写模型总体设计
 
-| 方案 | 优点 | 缺点 / 风险 | 适用场景 | 推荐结论 |
-| --- | --- | --- | --- | --- |
-| 方案 A：正式商品表混合流程状态 | 表少、查询直接 | 语义污染；状态机失控；误触发搜索和缓存刷新 | 小规模系统 | 不推荐 |
-| 方案 B：流程态留在供给与商品主域写侧，正式读模型只保存正式态 | 语义清晰；读写边界稳定；订单快照更可解释 | 发布编排更复杂 | 中大型平台 | 推荐 |
+这一层要显式拆开 4 种对象：
 
-#### 推荐方案
+- `Draft`：待审核、待发布、可被冻结的未生效草稿
+- `Staging`：已通过审核、待激活或待发布的预发版本
+- `Publish Version`：正式生效版本号
+- `Item`：正式可读、可交易的商品表达
 
-推荐方案 B。正式商品表中更适合出现的状态是：
+这里最重要的原则是：正式态不能混流程态。正式商品表更适合出现：
 
 ```text
 PUBLISHED / ONLINE / OFFLINE / ENDED / BANNED / ARCHIVED
@@ -1326,105 +2816,140 @@ PUBLISHED / ONLINE / OFFLINE / ENDED / BANNED / ARCHIVED
 DRAFT / QC_PENDING / REJECTED / PARSING / VALIDATING
 ```
 
----
+### 4.3 商品核心领域模型
 
-## 5. 供给入口统一治理：商品从哪里来
+商品中心沉淀的核心领域对象包括：
 
-### 5.1 统一治理，不是统一入口
+- `Resource`：卖的是什么资源，例如酒店、门店、活动、充值运营商
+- `SPU / SKU`：资源如何被定义为可售商品和规格
+- `Offer / Rate Plan`：按什么渠道、价格、销售期、履约规则去卖
+- `Input Schema`：下单前必须采集哪些用户输入
+- `Fulfillment Rule`：发券、充值、出票、预约等怎么履约
+- `Refund Rule`：退款、取消、售后口径
+- `Inventory Strategy`：声明用什么库存模式和扣减范围
 
-供给入口可以分散，但治理框架最好统一：
+### 4.4 草稿冻结、版本控制与快照模型
+
+这一节要回答 4 个核心问题：
+
+- `draft_id` 如何唯一标识一次待审草稿
+- `base_publish_version` 如何避免旧版本覆盖新版本
+- `publish_version` 如何标识当前正式版本
+- `item_snapshot` 如何为订单提供交易时解释事实
+
+商品中心必须保证：
+
+- QC 审的是冻结版本，而不是动态草稿
+- 新编辑生成新版本，而不是覆写旧版本
+- 订单只信快照，不信“当前商品可能又变了”
+
+### 4.5 商品审核输入与发布接口
+
+商品中心对外暴露的应该是语义化接口，而不是直接暴露内部表结构：
+
+- `CreateDraft`
+- `UpdateDraft`
+- `SubmitDraft`
+- `ReceiveQcVerdict`
+- `Publish`
+
+供给平台调用这些接口时，只负责提交标准 DTO 和任务上下文；商品中心内部如何落 `Draft / Staging`、如何等待 QC verdict、如何 merge，不应反向泄漏给供给侧。
+
+### 4.6 正式商品发布与本地 Merge
+
+推荐的正式发布链路是：
 
 ```text
-本地运营创建
-商家上传
-Excel 批量导入
-API / ISV 推送
-供应商 Pull / Push
-  ↓
-标准化
-  ↓
-Staging
-  ↓
-Validation / Diff / Review / Publish / Outbox
+校验 base_publish_version
+  → 写 Draft / Staging 对应的发布版本
+  → 本地事务 merge 到 Item
+  → 写 item snapshot
+  → 记录 publish version
 ```
 
-### 5.2 决策点 9：不同入口是多套流程，还是统一治理框架
+这样商品中心可以把“审核 verdict 已通过”和“正式态落库”收敛在本地事务闭环中，避免跨服务长事务。
 
-| 方案 | 优点 | 缺点 / 风险 | 适用场景 | 推荐结论 |
-| --- | --- | --- | --- | --- |
-| 方案 A：每个入口各做一套 | 每个团队可独立优化 | 规则分叉；一致性差；审计和补偿分散 | 极小团队、阶段性方案 | 不推荐 |
-| 方案 B：入口分开、标准化后治理合流 | 审核、发布、补偿、审计可复用 | 抽象设计要求更高 | 平台化系统 | 推荐 |
+### 4.7 发布后读模型与下游投影
 
-#### 推荐方案
+商品中心正式发布后，还要统一驱动：
 
-推荐方案 B。入口的差异保留在“接入层与执行策略”，治理则尽量收敛到统一主线。
+- 搜索索引刷新
+- 缓存刷新
+- 计价上下文更新
+- 营销圈品
+- 数据平台投影
+- 订单创单快照读取
 
----
+这里的关键是：发布不是“写一张商品表”，而是让一组正式契约一起进入可交易世界。
 
-## 6. 上架、QC 与运营编辑：生命周期里的关键控制点
+### 4.8 商品中心表清单与使用场景
 
-### 6.1 三类关键动作
+这一节建议显式列出商品主域的权威表：
 
-| 动作 | 关注点 |
-| --- | --- |
-| 新商品上架 | 从无到有，完整建模与准入 |
-| 已上线商品编辑 | 保护线上版本，控制变更风险 |
-| 强制下架 / 禁售 | 合规、风控、资损止血 |
+- `product_draft_tab`
+- `product_staging_tab`
+- `product_item_tab`
+- `publish_version`
+- `item_snapshot`
+- `product_qc_review`
 
-### 6.2 决策点 10：所有变更是否统一人工审核
+其中：
 
-| 方案 | 优点 | 缺点 / 风险 | 适用场景 | 推荐结论 |
-| --- | --- | --- | --- | --- |
-| 方案 A：全部人工审核 | 风险保守 | 效率低，运营成本高 | 早期高风险行业 | 局部可用 |
-| 方案 B：差异化审核 | 效率更高；风险更细粒度 | 需要规则引擎和审计 | 中大型平台 | 推荐 |
+- `product_draft_tab` 负责待审草稿
+- `product_staging_tab` 负责预发版本
+- `product_item_tab` 只负责正式商品
+- `publish_version` 负责版本切换与下游一致性
+- `item_snapshot` 负责订单解释事实
 
-推荐差异化审核：标题、类目、履约规则、退款规则等高风险字段走审核；小幅价格或库存变化可按策略旁路。
+### 4.9 异常处理与版本恢复
 
-### 6.3 决策点 11：运营编辑是否直接改正式商品
+商品中心最常见的异常包括：
 
-| 方案 | 优点 | 缺点 / 风险 | 适用场景 | 推荐结论 |
-| --- | --- | --- | --- | --- |
-| 方案 A：直接改正式商品 | 实现简单，立即生效 | 线上版本易被污染；缺少审计和回滚边界 | 低风险后台 | 不推荐作为默认 |
-| 方案 B：先进变更请求 / `Staging` 再审核发布 | 保护正式版本；易于比对和回滚 | 过程更长 | 中大型平台 | 推荐 |
+- 旧审核回调晚到，试图覆盖新版本
+- `base_publish_version` 不匹配
+- 发布成功但下游投影未刷新
+- Draft 已创建但 QC verdict 丢失
+- merge 失败导致新版本不生效
 
-#### 推荐方案
-
-高风险字段默认走方案 B；低风险、高频字段可在策略允许下走旁路更新，但必须仍然保留幂等、审计和回放能力。
-
----
-
-## 7. 库存如何接入生命周期，而不是孤立存在
-
-### 7.1 库存接入的三个层次
-
-1. 商品发布时声明库存策略与范围。
-2. 运营通过工作台发起库存相关动作。
-3. 库存系统维护可售承诺、账本与状态机。
-
-### 7.2 典型库存模式
-
-| 类型 | 适合场景 | 核心特点 |
-| --- | --- | --- |
-| 数量库存 | 实物、普通券类、门店配额 | 聚合数量模型 |
-| 券码库存 | 礼品卡、兑换码、卡密 | 一码一实例，必须有码池 |
-| 供应商库存 | 酒店、票务、实时报价商品 | 可售量受外部事实影响 |
-
-### 7.3 决策点 12：库存创建/补货入口归供给平台还是库存系统
-
-| 方案 | 优点 | 缺点 / 风险 | 适用场景 | 推荐结论 |
-| --- | --- | --- | --- | --- |
-| 方案 A：库存系统直接承接所有 B 端操作 | 路径最短 | 工作流、审核、文件任务、运营体验都堆进库存系统 | 简单内部系统 | 不推荐 |
-| 方案 B：供给/运营平台承接工作流，库存系统维护事实和账本 | 平台边界清晰；库存专注事实 | 需要命令协同 | 平台化交易系统 | 推荐 |
-
-#### 推荐方案
-
-推荐方案 B。供给平台发起 `CreateInventory / AdjustInventory / ImportCodeBatch / GenerateCodeBatch / LockInventory`，库存系统幂等执行并记录账本。
+这一层的目标不是“永不失败”，而是失败后能解释、能恢复、能阻断旧版本回滚污染线上正式态。
 
 ---
 
-## 8. 库存系统内部模型：可售承诺如何落地
+## 5. 详细设计 - 库存中心
 
-### 8.1 最小权威模型
+### 5.1 库存中心定位与职责边界
+
+库存中心管理的不是一个简单数字，而是平台对用户的一种 **可承诺供给能力**。
+
+它负责：
+
+- 库存对象与范围建模
+- 可售量、预占、确认、释放
+- 券码池、锁库存、账本
+- 对账、修复、热视图恢复
+
+它不负责：
+
+- B 端商品编辑
+- 商品审核流程
+- 正式商品资产主权
+
+### 5.2 库存对象、库存范围与库存键设计
+
+库存不是天然只按 SKU 管，而是按“承诺范围”管。推荐用 `inventory_key` 统一表达范围，典型维度包括：
+
+- 商品 / SKU
+- 门店
+- 日期
+- 渠道
+- 批次
+- 券码池
+
+不同业务差异，本质上都体现在 `inventory_key` 的范围维度上。
+
+### 5.3 通用库存模型
+
+库存中心的最小权威模型建议至少包括：
 
 | 模型 | 作用 |
 | --- | --- |
@@ -1434,41 +2959,236 @@ Validation / Diff / Review / Publish / Outbox
 | `inventory_ledger` | 每次变动的权威账本 |
 | `inventory_code_pool_xx` | 券码池权威表 |
 
-### 8.2 决策点 13：Redis 是否作为库存权威
+### 5.4 三类典型库存模式
 
-| 方案 | 优点 | 缺点 / 风险 | 适用场景 | 推荐结论 |
-| --- | --- | --- | --- | --- |
-| 方案 A：Redis 作为库存权威 | 热路径极快 | 崩溃恢复难；审计弱；对账困难 | 极简秒杀模型 | 不推荐 |
-| 方案 B：Redis 作为热视图，MySQL 账本为权威 | 易恢复；可对账；适配复杂库存 | 实现更重 | 多场景库存系统 | 推荐 |
+| 类型 | 适合场景 | 核心特点 |
+| --- | --- | --- |
+| 数量库存 | 实物、普通券类、门店配额 | 聚合数量模型 |
+| 券码库存 | 礼品卡、兑换码、卡密 | 一码一实例，必须有码池 |
+| 供应商库存 | 酒店、票务、实时报价商品 | 可售量受外部事实影响 |
 
-#### 推荐方案
+### 5.5 核心命令与接口设计
 
-推荐方案 B。Redis 负责高并发热路径，MySQL 账本负责最终解释和恢复。
+库存中心对外承接的核心命令包括：
+
+- `CreateInventory`
+- `AdjustInventory`
+- `LockInventory`
+- `ReserveInventory`
+- `ConfirmInventory`
+- `ReleaseInventory`
+- `ImportCodeBatch`
+- `GenerateCodeBatch`
+
+供给平台承接入口，库存中心幂等执行并落账。
+
+### 5.6 订单链路上的库存状态机
+
+库存状态不能只看“剩余多少”，还要看订单过程中的状态流转：
+
+- `AVAILABLE`
+- `RESERVED`
+- `CONFIRMED`
+- `RELEASED`
+- `LOCKED`
+
+这一节要讲清楚预占、确认、释放、回补、锁定与订单/支付/履约之间的关系。
+
+### 5.7 Redis 热视图与 MySQL 权威账本
+
+库存中心推荐采用：
+
+- Redis 负责热路径扣减和高并发读写
+- MySQL 账本负责最终解释和恢复
+
+也就是说，Redis 不应作为库存权威，而应作为热视图。
+
+### 5.8 券码池与唯一资源模型
+
+券码库存不是“数字库存”的一个附属字段，而是一套独立的一码一实例模型。这里重点展开：
+
+- 码池状态机
+- 导码
+- 生码
+- 发码
+- 回补
+- 泄露与重复发放防控
+
+### 5.9 库存异常、对账与修复闭环
+
+库存相关 QC、对账、补偿、坏码、巡检都放在库存中心，不再拆到单独章节。重点包括：
+
+- 负库存
+- 预占泄漏
+- Redis 与账本漂移
+- 券码坏码
+- 库存回补
+- 热视图重建
+- 人工修复
+
+### 5.10 高并发与热点治理
+
+高并发库存链路要重点处理：
+
+- 热点 SKU
+- Lua / CAS
+- 库存分片
+- 限流
+- 队列削峰
+- 幂等扣减
+
+### 5.11 库存中心表清单与使用场景
+
+这一节建议显式列出库存中心权威表：
+
+- `inventory_config`
+- `inventory_balance`
+- `inventory_reservation`
+- `inventory_ledger`
+- `inventory_code_pool_xx`
+- `inventory_reconcile_task`
+- `inventory_repair_task`
 
 ---
 
-## 9. 发布一致性：商品、库存、搜索、营销、订单如何一起生效
+## 6. 详细设计 - QC 和治理
 
-### 9.1 发布的目标
+### 6.1 QC 平台定位与职责边界
+
+这里的 QC 指的是 **商品侧 / 供给侧审核中心**，不指库存质检。
+
+QC 平台负责：
+
+- 机审核
+- 人工审核
+- 审核编排
+- 审核审计
+- 审核治理看板
+
+QC 平台不负责：
+
+- 正式商品主权
+- 商品本地 merge
+- 库存事实
+
+### 6.2 为什么 QC 要独立于供给平台和商品中心
+
+QC 独立出来的价值在于：
+
+- 审核规则演进更快
+- 人工审核工作台可以独立建设
+- 策略编排和审核审计不污染供给平台
+- 风控和合规逻辑不耦合进商品中心事务链路
+
+### 6.3 机审核设计
+
+机审核关注的是高频、可规则化的风险拦截，例如：
+
+- 敏感词
+- 类目规则
+- 素材规则
+- 资质规则
+- 价格异常规则
+- 交易契约异常规则
+
+推荐把机审核的结果分成：
+
+- 自动通过
+- 自动驳回
+- 转人工审核
+
+### 6.4 人工审核设计
+
+人工审核要解决的不是“再看一眼”，而是工作台和队列编排问题，包括：
+
+- 审核池
+- 抢单 / 分单
+- 审核结果
+- 审核备注
+- 驳回原因
+- 复审机制
+
+### 6.5 审核路由与分级策略
+
+审核不能一刀切，推荐差异化路由：
+
+- 低风险字段自动准入
+- 高风险字段转人工
+- 按字段风险分级
+- 按品类风险分级
+- 按供应商来源差异化审核
+
+### 6.6 审核对象与冻结快照
+
+这一节要明确：
+
+- QC 审的是冻结版本
+- 不是供给侧动态草稿
+- 也不是最终线上商品表
+
+这里要把 `draft_id / publish_version / snapshot` 的关系讲清楚，避免出现“审的是 A，发的是 B”。
+
+### 6.7 审核 verdict 与商品中心交互
+
+QC 平台回传的应该是轻量 verdict，而不是整份商品 DTO。例如：
+
+```json
+{
+  "draft_id": 555,
+  "publish_version": 102,
+  "result": "PASS"
+}
+```
+
+商品中心收到 verdict 后，再在本地事务里完成 merge 和正式发布。
+
+### 6.8 QC 治理闭环
+
+审核系统的闭环包括：
+
+- 驳回
+- 撤回
+- 重提
+- 审核超时
+- 回调乱序
+- 审计日志
+- 治理看板
+
+### 6.9 QC 表清单与使用场景
+
+这一节建议显式列出 QC 平台表：
+
+- `product_qc_review`
+- `product_qc_review_item`
+- `qc_rule`
+- `qc_route`
+- `qc_audit_log`
+- `qc_work_queue`
+
+---
+
+## 7. 发布一致性：商品、库存、搜索、营销、订单如何一起生效
+
+### 7.1 发布一致性的目标
 
 发布不是“把一行商品写进表”，而是让一组正式契约一起进入可交易世界：
 
-- 商品主数据正式生效。
-- 库存控制面或初始化命令就绪。
-- 搜索与缓存接收到新版本。
-- 计价、营销、数据平台拿到一致事件。
-- 订单以后只能基于快照解释。
+- 商品主数据正式生效
+- 库存控制面或初始化命令就绪
+- 搜索与缓存接收到新版本
+- 计价、营销、数据平台拿到一致事件
+- 订单以后只能基于快照解释
 
-### 9.2 决策点 14：发布时是否同步写下游系统
+### 7.2 决策点 7：发布时是否同步写下游系统
 
 | 方案 | 优点 | 缺点 / 风险 | 适用场景 | 推荐结论 |
 | --- | --- | --- | --- | --- |
 | 方案 A：发布事务内同步调用所有下游 | 逻辑直观 | 事务长、耦合重、下游故障放大 | 小系统 | 不推荐 |
 | 方案 B：正式主数据提交 + Outbox 异步投影 | 可恢复；幂等；下游解耦 | 最终一致，需要监控补偿 | 平台化架构 | 推荐 |
 
-#### 推荐方案
+### 7.3 Outbox、投影刷新与最终一致性
 
-推荐方案 B。一个常见的发布链路如下：
+推荐的发布链路如下：
 
 ```text
 Publish Command
@@ -1478,30 +3198,32 @@ Publish Command
   → 搜索 / 缓存 / 计价 / 营销 / 数据平台按版本消费
 ```
 
+### 7.4 订单为什么只信快照，不信最新商品
+
 订单系统不直接接受“商品被发布”的写入，而是在创单时读取当时有效的商品、库存、价格、履约上下文，并保存快照。
 
 ---
 
-## 10. 状态机与任务模型设计
+## 8. 状态机与任务模型设计
 
-### 10.1 不要用一个大状态字段表达全部生命周期
+### 8.1 生命周期不能只用一个大状态字段表达
 
 下面这些状态不是一个层面的东西：
 
-- `Draft` / `Staging`
-- `QC_PENDING` / `APPROVED` / `REJECTED`
-- `PUBLISHED` / `ONLINE` / `OFFLINE`
-- `RESERVED` / `CONFIRMED` / `RELEASED`
-- `RUNNING` / `FAILED` / `PARTIAL_SUCCESS`
+- `Draft / Staging`
+- `QC_PENDING / APPROVED / REJECTED`
+- `PUBLISHED / ONLINE / OFFLINE`
+- `RESERVED / CONFIRMED / RELEASED`
+- `RUNNING / FAILED / PARTIAL_SUCCESS`
 
-### 10.2 决策点 15：是否只用一个大状态字段表达全部生命周期
+### 8.2 决策点 8：是否只用一个大状态字段表达全部生命周期
 
 | 方案 | 优点 | 缺点 / 风险 | 适用场景 | 推荐结论 |
 | --- | --- | --- | --- | --- |
 | 方案 A：单一大状态字段 | 表面简单 | 状态爆炸；语义冲突；难扩展 | 原型期 | 不推荐 |
 | 方案 B：拆分任务状态、审核状态、正式商品状态、库存状态 | 语义清晰；便于治理 | 模型设计要求更高 | 中大型系统 | 推荐 |
 
-#### 推荐方案
+### 8.3 任务状态、审核状态、正式商品状态、库存状态的分层设计
 
 建议至少拆成四层：
 
@@ -1512,50 +3234,58 @@ Publish Command
 | 正式商品状态 | `ONLINE / OFFLINE / ENDED / BANNED / ARCHIVED` |
 | 库存状态 | `AVAILABLE / RESERVED / CONFIRMED / RELEASED / LOCKED` |
 
-### 10.3 任务模型
-
-批量与长链路建议采用：
-
-- `product_supply_task`
-- `product_supply_task_item`
-- `product_publish_record`
-
-供应商同步可在执行层再增加：
-
-- `supplier_sync_batch`
-- `supplier_sync_checkpoint`
-- `supplier_mapping`
-
 ---
 
-## 11. 异常治理：怎么发现问题、修复问题、避免资损
+## 9. 异常治理：怎么发现问题、修复问题、避免资损
 
-### 11.1 常见异常
+### 9.1 商品侧异常
 
-| 异常 | 典型表现 | 需要的治理能力 |
-| --- | --- | --- |
-| 校验失败 | 文件部分行失败、素材不合规 | 行级错误、错误文件、重提 |
-| 重复提交 | API 超时重试、消息重复消费 | 幂等键、唯一索引、状态机终态 |
-| 搜索 / 缓存漂移 | 商品已发布但列表未更新 | 版本比对、补偿刷新 |
-| 库存漂移 | Redis、账本、订单口径不一致 | 对账、修复任务、人工兜底 |
-| 供应商脏数据 | 错误价格、下架误推送 | 质量评分、灰度、隔离 |
+典型问题包括：
 
-### 11.2 决策点 16：失败后是重试覆盖，还是保留审计链路 + 补偿闭环
+- 版本冲突
+- Draft 丢失
+- 发布后搜索未刷新
+- 旧版本回调覆盖新版本
+
+### 9.2 库存侧异常
+
+典型问题包括：
+
+- Redis、账本、订单口径不一致
+- 负库存
+- 预占泄漏
+- 券码坏码
+
+### 9.3 供应商同步异常
+
+典型问题包括：
+
+- 错误价格
+- 下架误推送
+- 同步任务卡死
+- mapping 失效
+
+### 9.4 QC 侧异常
+
+典型问题包括：
+
+- 审核超时
+- 审核回调乱序
+- 规则误判
+- 人工审核积压
+
+### 9.5 决策点 9：失败后是重试覆盖，还是保留审计链路 + 补偿闭环
 
 | 方案 | 优点 | 缺点 / 风险 | 适用场景 | 推荐结论 |
 | --- | --- | --- | --- | --- |
 | 方案 A：失败后直接重试覆盖 | 逻辑简单 | 失败原因丢失；难对账；问题不可追 | 低风险内部工具 | 不推荐 |
 | 方案 B：保留审计链路 + 补偿闭环 | 可回放、可归因、可人工修复 | 成本更高 | 平台型业务 | 推荐 |
 
-#### 推荐方案
-
-推荐方案 B。真正的平台能力不只是自动成功，更是失败后还能解释、还能修回来。
-
 ---
 
-## 12. 典型业务场景串讲
+## 10. 典型业务场景串讲
 
-### 12.1 本地生活券商品创建到上线
+### 10.1 本地生活券商品创建到上线
 
 1. 运营在后台表单创建商品，先写 `Draft`。
 2. 系统做类目、素材、履约、退款、库存策略校验。
@@ -1563,14 +3293,14 @@ Publish Command
 4. 审核通过后发布到商品主域正式态，初始化库存配置。
 5. Outbox 驱动搜索、缓存、营销圈品刷新。
 
-### 12.2 券码库存导入与发码
+### 10.2 券码库存导入与发码
 
 1. 运营上传券码文件，供给平台创建批量任务。
 2. 解析成功后调用库存系统 `ImportCodeBatch`。
 3. 券码入 `inventory_code_pool_xx`，Redis 仅保存可发放热视图。
 4. 订单支付成功后预占并发码，失败则回补或标记人工处理。
 
-### 12.3 酒店商品同步与变更发布
+### 10.3 酒店商品同步与变更发布
 
 1. 供应商全量或增量拉取原始资源。
 2. 通过 `supplier_mapping` 映射到平台资源。
@@ -1578,14 +3308,14 @@ Publish Command
 4. 差异识别决定哪些字段自动更新，哪些字段进审核。
 5. 发布版本递增，下游按版本消费事件。
 
-### 12.4 运营批量编辑
+### 10.4 运营批量编辑
 
 1. 运营上传 Excel 批量改标题、价格、上下架。
 2. 系统为每行生成 `task_item` 和校验结果。
 3. 标题和类目等高风险字段进入审核；价格小改可旁路。
 4. 任务完成后生成错误文件和成功报告。
 
-### 12.5 风控强制下架
+### 10.5 风控强制下架
 
 1. 风控命中违规商品。
 2. 平台裁决链路直接将正式商品切为 `BANNED` 或 `OFFLINE`。
@@ -1594,7 +3324,7 @@ Publish Command
 
 ---
 
-## 13. 面试答辩与工程总结
+## 11. 面试答辩与工程总结
 
 如果要把这一章压缩成一句面试表达，可以这样说：
 
