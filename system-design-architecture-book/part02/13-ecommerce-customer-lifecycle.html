@@ -1,0 +1,1696 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第 32 章 电商用户 C 端搜索、交易、履约与售后全生命周期设计 - 系统设计与架构实战：原理、工程与电商案例</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="从系统设计方法论、核心基础设施、可靠性工程到电商业务架构实战；兼顾原理、工程落地、面试表达和完整业务案例。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-970a73d8.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-13610507.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">系统设计与架构实战：原理、工程与电商案例</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第-32-章-电商用户-c-端搜索交易履约与售后全生命周期设计"><a class="header" href="#第-32-章-电商用户-c-端搜索交易履约与售后全生命周期设计">第 32 章 电商用户 C 端搜索、交易、履约与售后全生命周期设计</a></h1>
+<blockquote>
+<p><strong>本章定位</strong>：如果第 31 章回答的是“平台怎样把商品供给进来、治理好、发布出去”，这一章回答的就是“用户怎样从发现商品一路走到支付、履约、核销与售后”。它不是对搜索、购物车、订单、支付四章的简单拼接，而是站在 <strong>C 端交易旅程</strong> 视角，把弱一致读链路、强一致交易链路、履约后链路以及解释历史事实的快照体系收敛成一条完整主线。</p>
+</blockquote>
+<p>如果前面的专题章节分别回答的是“某个系统内部怎么设计”，这一章回答的则是：</p>
+<ol>
+<li>用户在 C 端到底会经历哪些关键交易阶段。</li>
+<li>为什么搜索、详情、购物车、结算、订单、支付、履约、售后不能揉成一个系统。</li>
+<li>为什么搜索和详情可以弱一致，而下单和支付必须强校验。</li>
+<li>为什么订单之后不应该再依赖“最新商品真相”，而要依赖快照和履约事实。</li>
+<li>为什么真正难的不是画一条交易链路，而是跨商品、库存、营销、计价、订单、支付、履约之间的一致性和资损防控。</li>
+</ol>
+<p>建议配合以下章节交叉阅读：</p>
+<ul>
+<li><a href="../part02/07-search-discovery.html">第 26 章 搜索与导购</a></li>
+<li><a href="../part02/08-cart-checkout.html">第 27 章 购物车与结算</a></li>
+<li><a href="../part02/09-order-system.html">第 28 章 订单系统</a></li>
+<li><a href="../part02/10-payment-system.html">第 29 章 支付系统</a></li>
+<li><a href="../part02/03-product-center.html">第 21 章 商品中心系统</a></li>
+<li><a href="../part02/04-inventory-system.html">第 22 章 库存系统</a></li>
+<li><a href="../part02/06-pricing-system.html">第 25 章 计价系统设计与实现</a></li>
+</ul>
+<hr>
+<h2 id="1-核心使用场景c-端用户到底在完成什么交易动作"><a class="header" href="#1-核心使用场景c-端用户到底在完成什么交易动作">1. 核心使用场景：C 端用户到底在完成什么交易动作</a></h2>
+<p>很多团队讲 C 端架构时，会按系统模块切开：搜索一章、购物车一章、订单一章、支付一章。这样当然清楚，但读者很容易失去真正的主线，因为用户不会感知自己“正在使用哪个中台系统”，他只会感知：</p>
+<blockquote>
+<p>我能不能找到商品、看懂规则、拿到正确价格、顺利下单、正常支付、按承诺履约，以及出问题后能不能退款。</p>
+</blockquote>
+<h3 id="11-搜索与导购找商品"><a class="header" href="#11-搜索与导购找商品">1.1 搜索与导购找商品</a></h3>
+<p>用户进入平台后的第一步，通常不是直接下单，而是先找到“值得交易的候选集”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>用户动作</th><th>典型特征</th><th>系统重点</th></tr>
+</thead>
+<tbody>
+<tr><td>关键词搜索</td><td>搜品牌、搜型号、搜服务词</td><td>强相关性、结果多</td><td>Query 理解、召回、排序、Hydrate</td></tr>
+<tr><td>类目导购</td><td>逛频道、逛类目、逛店铺</td><td>弱文本、强筛选</td><td>类目树、Facet、稳定排序</td></tr>
+<tr><td>活动导购</td><td>进会场、看榜单、看运营专区</td><td>强陈列、强运营控制</td><td>搜索索引 + 运营露出 + 营销标</td></tr>
+</tbody>
+</table>
+</div>
+<p>这一阶段要回答几个问题：</p>
+<ol>
+<li>搜索结果页为什么可以弱一致。</li>
+<li>为什么列表页不直接读商品中心主库。</li>
+<li>为什么用户看到的“列表价”和最终下单价不一定完全相同。</li>
+</ol>
+<h3 id="12-详情页理解商品"><a class="header" href="#12-详情页理解商品">1.2 详情页理解商品</a></h3>
+<p>详情页是用户第一次把“可检索商品”理解为“可交易契约”的地方。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>用户关注点</th><th>背后依赖的域</th></tr>
+</thead>
+<tbody>
+<tr><td>商品标题、主图、卖点、规格</td><td>商品中心</td></tr>
+<tr><td>当前价格、到手价、阶梯价、实时价</td><td>计价中心</td></tr>
+<tr><td>库存是否充足、是否限购</td><td>库存中心</td></tr>
+<tr><td>活动、优惠券、赠品、满减露出</td><td>营销中心</td></tr>
+<tr><td>发货时效、门店核销、预约规则、退款规则</td><td>商品中心 / 履约规则域</td></tr>
+</tbody>
+</table>
+</div>
+<p>这意味着详情页本质上不是“查一张表”，而是一个 <strong>多域聚合页</strong>。它天然带来两个工程问题：</p>
+<ol>
+<li>详情页为什么不能直接等于下单事实。</li>
+<li>商品、价格、库存、营销版本不一致时，到底以谁为准。</li>
+</ol>
+<h3 id="13-加购与购物车暂存"><a class="header" href="#13-加购与购物车暂存">1.3 加购与购物车暂存</a></h3>
+<p>购物车表达的是“用户意愿”，而不是“交易事实”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>典型动作</th><th>关键差异</th></tr>
+</thead>
+<tbody>
+<tr><td>未登录加购</td><td>用 <code>cart_token</code> 暂存</td><td>允许匿名、弱一致、可过期</td></tr>
+<tr><td>登录后加购</td><td>绑定用户购物车</td><td>支持跨端同步</td></tr>
+<tr><td>登录合并</td><td>匿名购物车合并到用户态</td><td>要处理数量合并、失效商品、限购截断</td></tr>
+</tbody>
+</table>
+</div>
+<p>这里最重要的判断是：</p>
+<ul>
+<li>购物车里为什么不锁库存。</li>
+<li>为什么购物车允许展示价滞后，但结算必须实时试算。</li>
+</ul>
+<h3 id="14-结算校验与提交订单"><a class="header" href="#14-结算校验与提交订单">1.4 结算、校验与提交订单</a></h3>
+<p>结算页是整条 C 端链路第一次真正进入 <strong>强一致交易编排</strong> 的地方。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>结算阶段动作</th><th>关键系统</th></tr>
+</thead>
+<tbody>
+<tr><td>价格试算</td><td>计价系统</td></tr>
+<tr><td>库存预占</td><td>库存系统</td></tr>
+<tr><td>优惠校验 / 占用</td><td>营销系统</td></tr>
+<tr><td>地址与运费计算</td><td>地址 / 运费系统</td></tr>
+<tr><td>商品静态合规校验</td><td>商品中心</td></tr>
+</tbody>
+</table>
+</div>
+<p>这一步要回答：</p>
+<ol>
+<li>为什么购物车不锁库存，结算才预占库存。</li>
+<li>为什么订单提交前要再次做版本校验。</li>
+<li>为什么结算页的本质是一个短生命周期 Saga，而不是简单表单确认。</li>
+</ol>
+<h3 id="15-下单支付履约与售后"><a class="header" href="#15-下单支付履约与售后">1.5 下单、支付、履约与售后</a></h3>
+<p>用户点击“提交订单”之后，系统就从“交易前”进入“交易中与交易后”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th>用户看到的动作</th><th>系统主导域</th></tr>
+</thead>
+<tbody>
+<tr><td>下单</td><td>生成订单、等待支付</td><td>订单中心</td></tr>
+<tr><td>支付</td><td>调起收银台、支付结果回流</td><td>支付中心</td></tr>
+<tr><td>履约</td><td>发货、发码、预约、核销</td><td>履约 / 券码 / 供应商域</td></tr>
+<tr><td>售后</td><td>退款、退货、取消、争议</td><td>订单 / 支付 / 履约协同</td></tr>
+</tbody>
+</table>
+</div>
+<p>这阶段的核心问题包括：</p>
+<ol>
+<li>订单为什么必须保存商品、价格、履约快照。</li>
+<li>支付为什么不能直接决定商品状态和库存真相。</li>
+<li>为什么售后必须基于订单事实，而不是去查最新商品。</li>
+</ol>
+<h3 id="16-场景到系统问题的映射"><a class="header" href="#16-场景到系统问题的映射">1.6 场景到系统问题的映射</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景类型</th><th>典型问题</th></tr>
+</thead>
+<tbody>
+<tr><td>搜索导购</td><td>弱一致索引、动态 Hydrate、排序与活动露出</td></tr>
+<tr><td>商品详情</td><td>多域聚合、库存与价格展示口径、规则解释</td></tr>
+<tr><td>购物车</td><td>匿名暂存、登录合并、失效商品治理</td></tr>
+<tr><td>结算</td><td>价格试算、库存预占、优惠校验、提交前最终校验</td></tr>
+<tr><td>下单支付</td><td>幂等、快照、支付回调、状态机推进</td></tr>
+<tr><td>履约售后</td><td>发货 / 发码 / 核销、退款回补、历史订单解释</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="2-整体方案设计"><a class="header" href="#2-整体方案设计">2. 整体方案设计</a></h2>
+<p>这一节按照“先看系统边界，再看主链路，最后看关键决策”的顺序展开。先把商品、库存、计价、营销、订单、支付和履约各自的职责划清楚，再把这些系统放进一条 C 端完整交易主链路中理解，最后集中讨论搜索弱一致、详情聚合、结算预占、订单快照和售后事实这些关键设计选择。</p>
+<h3 id="21-系统边界和职责"><a class="header" href="#21-系统边界和职责">2.1 系统边界和职责</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>系统</th><th>负责什么</th><th>不负责什么</th></tr>
+</thead>
+<tbody>
+<tr><td>商品中心</td><td>正式商品契约、履约规则、退款规则、商品快照</td><td>购物车暂存、库存事实、支付状态</td></tr>
+<tr><td>搜索与导购</td><td>商品召回、排序、导购投影</td><td>商品正式真相、订单事实</td></tr>
+<tr><td>购物车与结算</td><td>用户意愿暂存、结算编排、试算与预占协同</td><td>正式创单、支付状态机</td></tr>
+<tr><td>计价系统</td><td>实时报价、到手价解释、价格快照</td><td>订单状态推进、库存扣减</td></tr>
+<tr><td>库存系统</td><td>可售库存事实、预占、确认、释放、消费</td><td>购物车、订单金额、营销规则</td></tr>
+<tr><td>营销系统</td><td>优惠规则、券可用性、权益占用与释放</td><td>商品正式态、库存总账</td></tr>
+<tr><td>订单系统</td><td>订单事实、订单状态机、交易快照</td><td>渠道支付、库存脚本实现</td></tr>
+<tr><td>支付系统</td><td>支付单、渠道交互、支付事实</td><td>订单商品解释、商品真相</td></tr>
+<tr><td>履约 / 核销 / 售后</td><td>发货、发码、核销、退款闭环</td><td>商品供给、搜索索引</td></tr>
+</tbody>
+</table>
+</div>
+<p>最重要的三条原则是：</p>
+<ol>
+<li>搜索和详情服务用户发现，订单和支付服务用户承诺，履约和售后服务用户交付。</li>
+<li>商品中心负责交易前契约，订单中心负责交易事实，支付中心负责资金事实。</li>
+<li>订单之后，任何解释都优先基于快照和履约事实，而不是基于最新主数据。</li>
+</ol>
+<h3 id="22-c-端交易主链路总览"><a class="header" href="#22-c-端交易主链路总览">2.2 C 端交易主链路总览</a></h3>
+<pre class="mermaid">
+flowchart LR
+    A["搜索 / 导购"] --&gt; B["商品详情页"]
+    B --&gt; C["购物车 / 直接购买"]
+    C --&gt; D["结算页试算与预占"]
+    D --&gt; E["创建订单"]
+    E --&gt; F["支付单创建与支付回调"]
+    F --&gt; G["履约 / 发货 / 发码 / 核销"]
+    G --&gt; H["退款 / 售后 / 对账闭环"]
+
+    B -.-&gt; P["商品中心正式契约"]
+    D -.-&gt; I["计价 / 库存 / 营销协同"]
+    E -.-&gt; S["商品 / 价格 / 履约快照"]
+    F -.-&gt; O["Outbox / 事件广播"]
+</pre>
+
+<p>这条主链路表达的是：</p>
+<ol>
+<li>搜索、列表和详情是交易前的信息发现链路，允许适度弱一致。</li>
+<li>结算、下单、支付是交易承诺链路，必须逐步收紧校验口径。</li>
+<li>履约和售后是交易后事实链路，必须围绕订单快照和支付结果闭环。</li>
+</ol>
+<h3 id="23-决策点-1为什么-c-端不能只用一个大前台服务承接全部链路"><a class="header" href="#23-决策点-1为什么-c-端不能只用一个大前台服务承接全部链路">2.3 决策点 1：为什么 C 端不能只用一个“大前台服务”承接全部链路</a></h3>
+<p>如果把搜索、详情、购物车、结算、订单、支付、履约全塞进一个“大前台交易服务”，短期当然看似简单，但长期一定会失控。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>缺点 / 风险</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：大一统前台服务</td><td>入口统一、联调简单</td><td>搜索弱一致和交易强一致混在一起；边界塌陷；状态机膨胀</td><td>不推荐</td></tr>
+<tr><td>方案 B：按交易旅程拆域</td><td>职责清晰；一致性口径可分层；便于扩容和治理</td><td>系统间编排更复杂</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐结论：</p>
+<ul>
+<li>搜索 / 导购负责发现。</li>
+<li>商品详情负责解释。</li>
+<li>购物车负责意愿暂存。</li>
+<li>结算负责强校验编排。</li>
+<li>订单负责承诺落地。</li>
+<li>支付负责资金事实。</li>
+<li>履约与售后负责交易后闭环。</li>
+</ul>
+<h3 id="24-决策点-2为什么搜索结果和详情页允许不同一致性口径"><a class="header" href="#24-决策点-2为什么搜索结果和详情页允许不同一致性口径">2.4 决策点 2：为什么搜索结果和详情页允许不同一致性口径</a></h3>
+<p>搜索结果页面对的是高 QPS 召回，详情页面对的是单商品强解释。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对象</th><th>推荐一致性</th><th>原因</th></tr>
+</thead>
+<tbody>
+<tr><td>搜索结果页</td><td>弱一致</td><td>索引是投影，允许短暂滞后</td></tr>
+<tr><td>详情页</td><td>近实时一致</td><td>需要展示交易前关键信息</td></tr>
+<tr><td>下单 / 支付</td><td>强校验</td><td>不能靠展示信息直接成交</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐结论：</p>
+<ul>
+<li>搜索索引和列表投影可以异步刷新。</li>
+<li>搜索结果页不是“所有字段都由 ES 直接吐出”；只有参与召回、过滤、排序且可容忍滞后的骨架字段进索引，高频强一致字段要通过商品中心、计价和库存批量 Hydrate。</li>
+<li>详情页必须以正式商品契约为底，再补充当前价、库存和营销。</li>
+<li>下单永远不能只信列表或详情页展示结果。</li>
+</ul>
+<h3 id="25-决策点-3为什么购物车不锁库存结算才预占库存"><a class="header" href="#25-决策点-3为什么购物车不锁库存结算才预占库存">2.5 决策点 3：为什么购物车不锁库存，结算才预占库存</a></h3>
+<p>购物车表达的是“想买”，不是“已经占用交易资源”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>风险</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>购物车加购即锁库存</td><td>大量僵尸占用；资源利用率极差；售罄假象</td><td>不推荐</td></tr>
+<tr><td>结算时再预占库存</td><td>只在交易临门一脚时收紧资源</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐结论：</p>
+<ul>
+<li>购物车只保存用户意愿。</li>
+<li>进入结算页时，库存中心才执行 <code>ReserveInventory</code>。</li>
+<li>支付失败、超时取消、风控拒绝后，必须显式释放预占。</li>
+</ul>
+<h3 id="26-决策点-4为什么订单必须保存商品--价格--履约快照"><a class="header" href="#26-决策点-4为什么订单必须保存商品--价格--履约快照">2.6 决策点 4：为什么订单必须保存商品 / 价格 / 履约快照</a></h3>
+<p>如果订单创建后还依赖“实时查最新商品”，未来只会产生解释灾难。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>事实</th><th>为什么要快照</th></tr>
+</thead>
+<tbody>
+<tr><td>商品标题、规格、履约规则</td><td>商品可能后续被改名、改规格、改退款口径</td></tr>
+<tr><td>价格与优惠结果</td><td>价格和活动经常变化</td></tr>
+<tr><td>履约参数</td><td>发码、预约、核销规则可能调整</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐结论：</p>
+<ul>
+<li>订单保存或引用创单时的商品快照、价格快照、履约快照。</li>
+<li>售后和客服解释历史订单时，只认快照，不认最新商品。</li>
+</ul>
+<h3 id="27-决策点-5为什么支付不能反向驱动订单主状态机"><a class="header" href="#27-决策点-5为什么支付不能反向驱动订单主状态机">2.7 决策点 5：为什么支付不能反向驱动订单主状态机</a></h3>
+<p>支付是资金事实，但不是订单全业务事实。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>风险</th><th>推荐结论</th></tr>
+</thead>
+<tbody>
+<tr><td>支付中心直接改订单所有主状态</td><td>状态主权错位；订单域被支付绑死</td><td>不推荐</td></tr>
+<tr><td>支付中心发支付事实事件，订单域自行推进状态</td><td>支付和订单解耦；幂等更清晰</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐结论：</p>
+<ul>
+<li>支付系统只负责支付单与支付结果。</li>
+<li>订单系统消费支付成功 / 失败事件，自行推进自己的状态机。</li>
+</ul>
+<h3 id="28-决策点-6为什么售后必须基于订单事实而不是回查最新商品"><a class="header" href="#28-决策点-6为什么售后必须基于订单事实而不是回查最新商品">2.8 决策点 6：为什么售后必须基于订单事实，而不是回查最新商品</a></h3>
+<p>退款、退货、取消和争议处理面对的是“历史承诺”，不是“当前最新售卖状态”。</p>
+<p>推荐结论：</p>
+<ul>
+<li>售后判断以订单快照、支付结果、履约状态和库存回补策略为准。</li>
+<li>不允许用最新商品标题、最新价格、最新规则反向解释旧单。</li>
+</ul>
+<hr>
+<h2 id="3-商品搜索导购与详情链路"><a class="header" href="#3-商品搜索导购与详情链路">3. 商品搜索、导购与详情链路</a></h2>
+<h3 id="31-场景画像"><a class="header" href="#31-场景画像">3.1 场景画像</a></h3>
+<p>从用户进入平台到决定“我要不要买”，通常依次经过两种读路径：</p>
+<ol>
+<li>搜索 / 导购结果页：看的是候选集。</li>
+<li>商品详情页：看的是交易前解释。</li>
+</ol>
+<p>这两条链路看起来都只是“读”，但它们的职责截然不同：</p>
+<ul>
+<li>搜索结果页服务于召回和转化，强调高吞吐和可排序。</li>
+<li>详情页服务于交易前理解，强调解释性和当前性。</li>
+</ul>
+<h3 id="32-关键技术点"><a class="header" href="#32-关键技术点">3.2 关键技术点</a></h3>
+<h4 id="321-搜索结果页本质上是弱一致投影"><a class="header" href="#321-搜索结果页本质上是弱一致投影">3.2.1 搜索结果页本质上是弱一致投影</a></h4>
+<p>搜索结果页的目标是高吞吐召回、排序和转化，不承担交易真相主权。它展示的是“当前最有可能被用户点击的候选集”，不是“此刻可以直接下单成交的最终合同”。</p>
+<p>因此，搜索页允许：</p>
+<ul>
+<li>索引异步刷新</li>
+<li>列表字段局部滞后</li>
+<li>某些弱展示字段降级缺失</li>
+</ul>
+<p>但它不能越界去承担：</p>
+<ul>
+<li>实时价格真相</li>
+<li>实时库存真相</li>
+<li>权益资格最终裁决</li>
+</ul>
+<h4 id="322-列表页的第一责任是高效召回和可排序而不是输出所有实时交易字段"><a class="header" href="#322-列表页的第一责任是高效召回和可排序而不是输出所有实时交易字段">3.2.2 列表页的第一责任是高效召回和可排序，而不是输出所有实时交易字段</a></h4>
+<p>这条链路里最关键的设计点，不是“多调了几个下游”，而是：<strong>搜索结果页到底哪些数据应该直接来自搜索中心，哪些数据应该回商品中心 / 计价 / 库存实时补齐</strong>。</p>
+<p>决策原则只有三条：</p>
+<ol>
+<li><strong>是否参与召回、过滤、排序</strong>：参与这些能力的字段，优先放到 ES。</li>
+<li><strong>变动频次高不高</strong>：高频变化字段不要把绝对真相压进 ES。</li>
+<li><strong>对准确性要求高不高</strong>：一旦字段直接影响成交，就应该让实时权威域说了算。</li>
+</ol>
+<p>因此，搜索结果页通常采用“<strong>ES 出骨架，商品中心与交易相关域补血肉</strong>”的模式：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段类型</th><th>主要来源</th><th>为什么这么设计</th></tr>
+</thead>
+<tbody>
+<tr><td>标题、副标题、主图、品牌、类目、属性标签</td><td>搜索中心 / ES</td><td>这些字段参与检索、过滤、聚合或高频展示，适合做索引骨架。</td></tr>
+<tr><td>上下架状态、可搜状态</td><td>搜索中心 / ES 过滤</td><td>必须在搜索阶段先过滤掉不可售对象，避免返回无意义结果。</td></tr>
+<tr><td>销量、评分、热度等排序因子</td><td>搜索中心 / ES</td><td>直接用于粗排或综合排序，允许弱一致。</td></tr>
+<tr><td>实时到手价、会员价、促销价</td><td>计价中心 / 商品中心 Hydrate</td><td>高敏感、高频变化，列表允许短暂滞后，但展示时最好用实时结果覆盖。</td></tr>
+<tr><td>绝对库存数、紧张库存文案</td><td>库存中心 Hydrate</td><td>属于高频高并发变化字段，不能让 ES 承担绝对数写入。</td></tr>
+<tr><td>活动标签、圈品命中、促销露出</td><td>营销中心 Hydrate</td><td>露出逻辑变化快，且失败时可以局部降级。</td></tr>
+<tr><td>冷门说明类字段</td><td>商品中心</td><td>不参与搜索与排序，没必要进 ES。</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个很实用的判断方法是：</p>
+<ul>
+<li><strong>只要字段决定“搜不搜得到、排在第几位、能不能按它筛选”</strong>，就应该优先放进 ES。</li>
+<li><strong>只要字段决定“现在到底多少钱、到底还有没有货、这个活动此刻还能不能领”</strong>，就应该优先让商品中心、计价或库存域返回实时结果。</li>
+</ul>
+<h4 id="323-详情页是多域聚合页但它依然只是交易前解释不是订单事实"><a class="header" href="#323-详情页是多域聚合页但它依然只是交易前解释不是订单事实">3.2.3 详情页是多域聚合页，但它依然只是“交易前解释”，不是订单事实</a></h4>
+<p>详情页虽然比列表页更接近交易真相，但它仍然只是用户下单前的解释界面。它需要把：</p>
+<ul>
+<li>正式商品契约</li>
+<li>当前价格</li>
+<li>当前库存摘要</li>
+<li>营销露出</li>
+<li>履约规则</li>
+</ul>
+<p>聚合成一个可理解的商品页面，但它仍然不能替代：</p>
+<ul>
+<li>结算页的价格试算</li>
+<li>预占库存</li>
+<li>优惠校验</li>
+<li>创单前最终版本校验</li>
+</ul>
+<h4 id="324-酒店搜索场景哪些信息来自-es哪些信息来自商品中心"><a class="header" href="#324-酒店搜索场景哪些信息来自-es哪些信息来自商品中心">3.2.4 酒店搜索场景：哪些信息来自 ES，哪些信息来自商品中心</a></h4>
+<p>酒店搜索比普通实物电商更复杂，因为它的库存和价格天然带有 <strong>日期维度</strong> 与 <strong>用户上下文</strong>。同一家酒店，在不同入住日、房型、会员等级和连住天数下，真实价格和真实可售状态都可能完全不同。</p>
+<p>因此在酒店搜索里，字段边界通常这样划：</p>
+<ul>
+<li><strong>来自搜索中心 / ES 的信息</strong>：
+<ul>
+<li>酒店名称、别名、地址、经纬度、星级、品牌、设施标签、商圈、地标、基础房型名</li>
+<li>粗粒度的 <code>has_room</code></li>
+<li>用于价格粗排的 <code>base_min_price</code></li>
+</ul>
+</li>
+<li><strong>来自商品中心 / 资源域的实时信息</strong>：
+<ul>
+<li>指定入住日到离店日之间的真实可售房态</li>
+<li>具体房型在该日期区间下的实时到手价、会员价、连住价</li>
+<li>退改政策、确认时效、最晚保留时间</li>
+</ul>
+</li>
+</ul>
+<p>所以酒店搜索的标准模式通常是：</p>
+<ol>
+<li>ES 先负责按城市、星级、地理位置、设施等条件召回和粗排。</li>
+<li>搜索服务拿着 <code>hotel_ids + checkin + checkout + user_id</code> 去商品中心 / 计价 / 库存资源域批量查询。</li>
+<li>用实时价格和真实房态覆盖掉 ES 的粗粒度字段，再返回给前端。</li>
+</ol>
+<p>这也解释了为什么列表页不能直接把 ES 的价格和库存当成交易真相：</p>
+<ul>
+<li>ES 擅长做大规模检索和排序。</li>
+<li>商品中心、计价、库存才是交易前最后的权威真相。</li>
+</ul>
+<h4 id="325-酒店搜索中的价格排序为什么要es-粗排商品中心精展"><a class="header" href="#325-酒店搜索中的价格排序为什么要es-粗排商品中心精展">3.2.5 酒店搜索中的价格排序：为什么要“ES 粗排，商品中心精展”</a></h4>
+<p>酒店搜索里，“按价格从低到高排序”是一个典型的工程取舍点。难点在于：<strong>ES 必须先拿到一个字段值才能完成全局排序，但酒店的真实价格又是动态计算出来的</strong>，它同时受到入住日期、连住天数、会员等级、售卖计划、实时促销和税费规则影响。</p>
+<p>如果试图把“所有用户、所有日期、所有房型组合下的真实到手价”全部塞进 ES，不但索引维度会爆炸，写入频率也会把搜索集群拖垮。因此，业界更常见也更稳妥的方案是：</p>
+<ol>
+<li><strong>ES 存基础价或粗粒度低价</strong>，例如 <code>base_min_price</code>。</li>
+<li><strong>ES 用这个基础价完成粗排和分页</strong>。</li>
+<li><strong>搜索服务再拿当前页酒店 ID 去商品中心 / 计价引擎算真实价</strong>。</li>
+<li><strong>前端最终展示真实价，而不是 ES 里的基础价</strong>。</li>
+</ol>
+<p>可以把它理解成两层排序：</p>
+<ul>
+<li><strong>第一层：ES 粗排</strong>
+<ul>
+<li>目标：快速筛出大体上价格更低的候选酒店。</li>
+<li>使用字段：<code>base_min_price</code>、地理距离、评分等低频或可容忍滞后的排序因子。</li>
+</ul>
+</li>
+<li><strong>第二层：商品中心精展</strong>
+<ul>
+<li>目标：把当前用户、当前日期区间下的真实到手价展示给用户。</li>
+<li>使用输入：<code>hotel_ids + checkin + checkout + user_id + member_level</code>。</li>
+</ul>
+</li>
+</ul>
+<p>这种做法的优点是：</p>
+<ul>
+<li>ES 可以继续承担高并发检索和翻页，不会因为实时价格频繁变动而被拖垮。</li>
+<li>商品中心只需要对当前页有限数量的酒店做实时算价，成本可控。</li>
+<li>最终展示价足够新鲜，不至于让用户看到完全错误的成交价格。</li>
+</ul>
+<p>它的代价也要诚实承认：<strong>可能存在轻微排序错位</strong>。例如某酒店在 ES 粗排时基础价更高，但在当前会员和促销条件下真实价反而更低。工程上通常接受这种小范围偏差，因为相比“绝对精确排序”，大促和高并发场景下的系统可用性更重要。</p>
+<p>如果业务规模较小，且平台对“价格排序绝对精准”要求极高，也可以采用“扩大召回 + 内存二次精排”的方案：</p>
+<ol>
+<li>ES 先按基础价或日期维度价格取前 50～100 条候选。</li>
+<li>商品中心批量算出这些候选的真实到手价。</li>
+<li>搜索服务在内存中对这批结果按真实价重新排序。</li>
+<li>最后截取前 20 条返回前端。</li>
+</ol>
+<p>这种方案体验更精确，但成本也更高：</p>
+<ul>
+<li>商品中心一次性算价对象更多；</li>
+<li>分页会更复杂；</li>
+<li>在高并发场景下更容易放大下游 RPC 压力。</li>
+</ul>
+<p>因此，对于大多数中大型酒旅平台，更推荐的默认结论是：</p>
+<blockquote>
+<p><strong>价格排序粗排交给 ES，真实价格展示交给商品中心；宁可接受轻微排序偏差，也不要让搜索集群承担实时交易字段的高频写压力。</strong></p>
+</blockquote>
+<h4 id="326-酒店搜索中的深翻页为什么不能一边无限翻页一边无限精排"><a class="header" href="#326-酒店搜索中的深翻页为什么不能一边无限翻页一边无限精排">3.2.6 酒店搜索中的深翻页：为什么不能一边无限翻页，一边无限精排</a></h4>
+<p>在 ES 里，深翻页不是看“一个城市总共有多少家酒店”，而是看 <strong><code>from + size</code> 有多深</strong>。默认情况下，<code>max_result_window = 10000</code>，超过这个窗口 ES 会直接拒绝请求。</p>
+<p>因此，“一个城市 1000 家酒店”本身不算问题；真正的问题是：</p>
+<ul>
+<li>用户是否在持续向后翻页；</li>
+<li>系统是否还想对越往后的结果继续做高成本的实时算价和二次精排。</li>
+</ul>
+<p>这也是酒店搜索比普通商品搜索更难的地方。因为一旦用户选择“按价格排序”，后端往往不只是简单翻页，而是在做：</p>
+<ol>
+<li>ES 先按基础价召回一批候选；</li>
+<li>商品中心对候选酒店批量算真实价；</li>
+<li>搜索服务在内存里重新精排；</li>
+<li>再截取当前页返回。</li>
+</ol>
+<p>如果对所有翻页都维持这套逻辑，哪怕用户只翻到第 3 页，后端也可能已经在做“前 100 条甚至前 300 条候选的批量算价和内存重排”，这就进入了<strong>类深翻页</strong>问题：不是 ES 一定先死，而是商品中心和 Hydrate 编排先被拖垮。</p>
+<p>酒店搜索里更稳妥的处理方式通常有三层：</p>
+<ol>
+<li>
+<p><strong>产品侧先限深</strong></p>
+<ul>
+<li>C 端列表采用懒加载，而不是允许无限页码跳转。</li>
+<li>滚到较深位置时，优先引导用户缩小日期、商圈、价格区间、设施等筛选范围。</li>
+<li>这一步往往比任何底层技术优化都更有效。</li>
+</ul>
+</li>
+<li>
+<p><strong>ES 侧用 <code>search_after</code>，不用无脑 <code>from + size</code></strong></p>
+<ul>
+<li>对 C 端连续下拉场景，使用 <code>search_after</code> 更合适。</li>
+<li>它不支持任意跳页，但非常适合移动端“下一页、再下一页”的滚动浏览。</li>
+<li>这样可以避免 ES 为了翻到更后面的页而反复丢弃前面的大量结果。</li>
+</ul>
+</li>
+<li>
+<p><strong>精排只保证前 N 条，后面自动降级</strong></p>
+<ul>
+<li>可以定义一个“最高精排桶”，例如只保证前 100 家酒店的价格排序绝对精准。</li>
+<li>前 100 条以内：走“扩大召回 + 批量算价 + 内存精排”。</li>
+<li>超过 100 条之后：只对当前页做实时价覆盖，不再对更大候选集做二次精排。</li>
+<li>这样既保住前几屏的用户体验，也不会让后端为极低转化概率的深页结果付出无限成本。</li>
+</ul>
+</li>
+</ol>
+<p>为了进一步保护商品中心的报价引擎，通常还会加一层 <strong>批量报价缓存</strong>：</p>
+<ul>
+<li>当用户带着同一组条件（如入住日、离店日、人数、会员等级）连续翻页时；</li>
+<li>商品中心第一次批量算出来的结果可以短暂缓存；</li>
+<li>后续翻页优先走缓存或 MGET，而不是每翻一页都重新全量计算。</li>
+</ul>
+<p>因此，这里的推荐结论可以落成：</p>
+<blockquote>
+<p><strong>酒店搜索要把“深翻页问题”和“动态价格排序问题”一起看。ES 负责可扩展的游标翻页，商品中心只为前部高价值结果做精排和算价，越往后越要主动降级，而不是对所有结果做无限精确排序。</strong></p>
+</blockquote>
+<h4 id="327-酒店房态与价格的秒级缓存一致性什么时候应该实时查什么时候必须缓存"><a class="header" href="#327-酒店房态与价格的秒级缓存一致性什么时候应该实时查什么时候必须缓存">3.2.7 酒店房态与价格的秒级缓存一致性：什么时候应该实时查，什么时候必须缓存</a></h4>
+<p>酒店搜索里还有一个非常高频的决策点：<strong>列表页到底应不应该实时去查 30 家酒店的价格和房态</strong>。</p>
+<p>这个问题没有统一答案，关键看两件事：</p>
+<ol>
+<li>单次批量查询的真实耗时能不能稳定控制在可接受范围内。</li>
+<li>高并发、大促、爬虫和跨境供应商抖动时，底层资源层能不能扛住放大的吞吐压力。</li>
+</ol>
+<p>如果你们的业务压测结果表明：</p>
+<ul>
+<li>同一批次实时查询 30 家酒店的价格与房态只需要大约 100ms；</li>
+<li>且这条链路经过了限流、隔离、超时和降级设计；</li>
+</ul>
+<p>那么列表页采用“<strong>ES 粗排 + 当前页 30 家实时查询</strong>”是完全合理的，并且会比死缓存带来更好的用户体验。因为它能显著减少“列表页看到 300 元有房，点进详情页变成 500 元或满房”的落差。</p>
+<p>但这里真正的难点，不是“单次 100ms 能不能做到”，而是以下三个工程问题。</p>
+<p><strong>第一，怎么扛住高并发下的整体吞吐量。</strong></p>
+<p>单次查 30 家只要 100ms，不代表在大促、暑期、国庆或被外部爬虫高频抓取时依然成立。因为一旦搜索 QPS 被放大，请求总量会迅速变成：</p>
+<ul>
+<li><code>搜索 QPS × 每次查询酒店数</code></li>
+</ul>
+<p>这时候真正需要保护的不是搜索服务本身，而是后面的：</p>
+<ul>
+<li>商品中心 / 报价引擎</li>
+<li>库存 / 房态资源层</li>
+<li>海外供应商接口</li>
+</ul>
+<p>因此更稳妥的做法是：</p>
+<ul>
+<li>在搜索服务到资源层之间做 <strong>线程池隔离 / 舱壁隔离</strong></li>
+<li>对供应商或报价 RPC 做 <strong>超时控制与限流</strong></li>
+<li>对异常来源流量做 <strong>防刷与防爬</strong></li>
+<li>超过保护阈值时，自动退化为“ES 基础价 + 粗房态”模式</li>
+</ul>
+<p>也就是说，<strong>实时查 30 家可以作为主路径，但必须有明确的降级开关</strong>。</p>
+<p><strong>第二，怎么避免慢供应商拖垮整个列表页。</strong></p>
+<p>酒店列表经常会混入海外供应商或跨境资源方，它们的接口 RT 波动可能远大于本地酒店资源系统。如果 30 家里有 2~3 家供应商超时，不能让整页结果跟着被拖慢。</p>
+<p>因此列表页更推荐采用：</p>
+<ul>
+<li>批量并行查询</li>
+<li>严格的总超时预算</li>
+<li>单酒店或单供应商分支的独立超时中断</li>
+</ul>
+<p>在这种模式下：</p>
+<ul>
+<li>100ms 内成功返回的酒店正常展示实时价</li>
+<li>超时或失败的酒店退化成 ES 基础价、基础房态或“参考价”文案</li>
+<li>绝不允许少数慢分支把整页响应时间拉穿</li>
+</ul>
+<p>换句话说，酒店列表的目标不是“每一条都实时且完整”，而是：</p>
+<blockquote>
+<p><strong>绝大多数酒店在预算时间内拿到实时结果，少量超时酒店局部降级，但整页体验必须稳定。</strong></p>
+</blockquote>
+<p><strong>第三，实时查和价格排序怎么同时成立。</strong></p>
+<p>这正是为什么前面 <code>3.2.5</code> 里强调“<strong>ES 粗排，商品中心精展</strong>”。</p>
+<p>因为即使当前页 30 家的实时查询只要 100ms，ES 在全局排序时也不可能提前知道所有酒店对当前用户、当前入住日期下的真实到手价。所以更现实的做法仍然是：</p>
+<ol>
+<li>ES 先按 <code>base_min_price</code> 做全局粗排。</li>
+<li>取出当前页 30 家酒店 ID。</li>
+<li>搜索服务实时查这 30 家的真实价格与真实房态。</li>
+<li>在内存中对这 30 条结果做一次轻量二次微调排序。</li>
+</ol>
+<p>这样可以兼顾：</p>
+<ul>
+<li>ES 的可扩展粗排能力</li>
+<li>当前页实时价格展示的准确性</li>
+<li>以及不把整条链路压成“全量动态排序”的系统风险</li>
+</ul>
+<p>因此，这里的推荐结论不是“必须缓存”或“必须实时查”，而是：</p>
+<blockquote>
+<p><strong>酒店列表页可以实时查当前页 30 家数据，但前提是这条路径经过限流、隔离、超时和降级保护；真正的主架构仍然是 ES 负责粗排，商品中心 / 报价引擎负责当前页实时修正。</strong></p>
+</blockquote>
+<p>如果业务已经压测证明当前页实时查询稳定在 100ms 左右，那么比起把价格和房态死死缓存住，这种“<strong>小批量实时查 + 局部降级 + 全局粗排</strong>”往往是更符合真实酒旅体验的工程方案。</p>
+<h4 id="328-hydrate-编排应该纯串行还是半并行"><a class="header" href="#328-hydrate-编排应该纯串行还是半并行">3.2.8 Hydrate 编排应该纯串行还是半并行</a></h4>
+<p>Hydrate 层最容易被低估的一个问题是：<strong>下游依赖到底应该串行调用，还是并行调用</strong>。</p>
+<p>如果完全按照“商品中心 -&gt; 库存中心 -&gt; 营销中心 -&gt; 计价中心”的直觉串行走，业务理解上很顺，但性能上很危险。因为只要每个 RPC 平均耗时 20ms，四段串行下来就已经接近 80ms；任意一个下游轻微抖动，整条列表页链路就会很容易冲到 150ms 以上。</p>
+<p>更稳妥的工程实践通常不是“全串行”，也不是“无脑全并行”，而是<strong>带依赖关系的半并行编排</strong>：</p>
+<ol>
+<li><strong>第一阶段并行</strong>
+<ul>
+<li>商品中心：拿商品卡片骨架、类目、品牌、商家等基础信息</li>
+<li>库存中心：拿库存摘要、是否有货、紧张状态</li>
+</ul>
+</li>
+<li><strong>第二阶段</strong>
+<ul>
+<li>营销中心：基于商品基础信息和用户上下文，先判断活动命中、优惠资格、券与满减露出</li>
+</ul>
+</li>
+<li><strong>第三阶段</strong>
+<ul>
+<li>计价中心：在拿到营销结果之后，再基于商品基础信息、营销结果和用户上下文计算展示价、会员价、到手价</li>
+</ul>
+</li>
+</ol>
+<p>这样做的原因是：</p>
+<ul>
+<li><strong>库存中心通常只依赖 item_id / sku_id</strong>，并不依赖商品标题、品牌、类目这些骨架字段；</li>
+<li><strong>商品中心也不依赖价格和库存</strong>，它本身就是卡片骨架来源；</li>
+<li><strong>营销中心</strong> 往往依赖商品类目、商家、售卖属性来判断露出与资格；</li>
+<li><strong>计价中心</strong> 在很多实现里并不是独立“拍脑袋算价”，而是要把营销命中的结果、优惠叠加关系、会员折扣、活动门槛一起折进最终展示价，所以它天然位于营销之后。</li>
+</ul>
+<p>这种编排的总耗时，更接近：</p>
+<ul>
+<li><code>max(商品中心, 库存中心) + 营销中心 + 计价中心</code></li>
+</ul>
+<p>而不是四段简单相加。所以它通常仍然明显优于“商品 -&gt; 库存 -&gt; 营销 -&gt; 计价”的纯串行模式，同时又不会像“盲目全并行”那样把前置依赖关系搞乱。</p>
+<p>如果业务继续追求更低的列表页延迟，还可以进一步演进到<strong>近似全并行</strong>：在计价中心和营销中心内部也冗余一份极简的商品基础信息，例如：</p>
+<ul>
+<li><code>item_id -&gt; 类目</code></li>
+<li><code>item_id -&gt; 商家</code></li>
+<li><code>item_id -&gt; 基础售卖属性</code></li>
+</ul>
+<p>这样一来，Hydrate 层在收到 ES 返回的 item_id 列表后，就可以：</p>
+<ul>
+<li>同时查商品中心</li>
+<li>同时查库存中心</li>
+<li>同时查营销中心</li>
+<li>等营销结果返回后，再调计价中心</li>
+</ul>
+<p>因为营销不再必须等待商品中心先返回类目信息，而计价至少不需要再回头额外查一次商品中心。这本质上是：</p>
+<blockquote>
+<p><strong>用数据冗余换实时编排延迟。</strong></p>
+</blockquote>
+<p>但要注意，这种“绝对并行”只适合在两个前提下使用：</p>
+<ol>
+<li>营销和计价中心内部维护的商品轻量副本足够新鲜；</li>
+<li>你们愿意承担多一层数据同步和一致性治理的复杂度。</li>
+</ol>
+<p>所以默认推荐结论是：</p>
+<blockquote>
+<p><strong>Hydrate 层优先采用“商品 + 库存第一阶段并行，营销第二阶段，计价第三阶段”的半并行架构；只有在对延迟极度敏感、且下游已经具备足够商品副本和营销结果缓存时，才继续压缩计价前置依赖。</strong></p>
+</blockquote>
+<h4 id="329-详情页的核心架构思想动静分离与多级缓存"><a class="header" href="#329-详情页的核心架构思想动静分离与多级缓存">3.2.9 详情页的核心架构思想：动静分离与多级缓存</a></h4>
+<p>商品详情页（PDP）是交易漏斗里最核心的读页面之一。它的特点是：</p>
+<ul>
+<li>流量极大</li>
+<li>读多写少</li>
+<li>高可用要求极苛刻</li>
+<li>用户对页面解释能力和加载速度都极其敏感</li>
+</ul>
+<p>因此，详情页不能做成“每次请求实时查所有下游”的重聚合链路，而要先做<strong>动静分离</strong>。</p>
+<p>从工程上看，详情页的数据通常可以拆成两类：</p>
+<ul>
+<li><strong>静态数据</strong>：
+<ul>
+<li>标题、副标题</li>
+<li>主图、详情图</li>
+<li>商品参数说明</li>
+<li>低频变化的文案和结构化描述</li>
+</ul>
+</li>
+<li><strong>动态数据</strong>：
+<ul>
+<li>当前到手价</li>
+<li>库存摘要</li>
+<li>当前用户可见的权益和促销露出</li>
+<li>配送时效、门店核销、预约规则、评价摘要</li>
+</ul>
+</li>
+</ul>
+<p>更稳妥的详情页架构通常是：</p>
+<ol>
+<li><strong>静态骨架优先</strong>
+<ul>
+<li>商品静态内容通过静态 JSON、静态片段或 CDN 化页面骨架快速返回。</li>
+<li>用户先看到稳定的页面结构、标题和主图，而不是等待所有后端系统都准备完毕。</li>
+</ul>
+</li>
+<li><strong>动态数据异步 Hydrate</strong>
+<ul>
+<li>前端或详情聚合层再去批量拿价格、库存、营销和履约数据。</li>
+<li>动态内容可以稍晚几十毫秒填充，但不能把首屏完全卡死。</li>
+</ul>
+</li>
+</ol>
+<p>为了让这条链路在大促和高并发下仍然稳定，通常要配合<strong>多级缓存</strong>：</p>
+<ul>
+<li><strong>CDN / 静态内容缓存</strong>
+<ul>
+<li>兜底标题、主图、详情骨架</li>
+</ul>
+</li>
+<li><strong>聚合层本地缓存（如 Caffeine）</strong>
+<ul>
+<li>缓住极短时间内的重复请求和热点详情</li>
+</ul>
+</li>
+<li><strong>分布式缓存（如 Redis）</strong>
+<ul>
+<li>缓住基础价、库存摘要、详情聚合片段或短期动态结果</li>
+</ul>
+</li>
+</ul>
+<p>这样做的目标不是追求“所有详情字段都绝对实时”，而是：</p>
+<blockquote>
+<p><strong>先保证详情页稳定打开，再保证动态关键信息足够新鲜，最后在创单前做最终强校验。</strong></p>
+</blockquote>
+<h4 id="3210-详情页里的实时计价库存摘要与大促降级"><a class="header" href="#3210-详情页里的实时计价库存摘要与大促降级">3.2.10 详情页里的实时计价、库存摘要与大促降级</a></h4>
+<p>详情页里最敏感的两个问题，永远是：</p>
+<ol>
+<li>现在多少钱</li>
+<li>现在还有没有货</li>
+</ol>
+<p>这两个字段之所以难，是因为它们都不适合做成简单的全量缓存。</p>
+<p>对于<strong>价格</strong>来说，真正的到手价往往同时受以下因素影响：</p>
+<ul>
+<li>会员等级</li>
+<li>商品基础价</li>
+<li>店铺活动</li>
+<li>平台券 / 品类券</li>
+<li>用户专属权益</li>
+</ul>
+<p>因此更常见的做法不是缓存“所有用户的最终价”，而是：</p>
+<ul>
+<li>缓存<strong>基础价 / 会员价矩阵 / 基础促销价</strong></li>
+<li>在详情请求进来时，再结合用户上下文和营销命中做轻量实时计算</li>
+</ul>
+<p>对于<strong>库存</strong>来说，详情页一般不追求展示精确库存数字，而是展示：</p>
+<ul>
+<li>有货</li>
+<li>无货</li>
+<li>紧张库存</li>
+<li>仅剩少量</li>
+</ul>
+<p>这样可以显著降低库存读压力，同时也避免把高频变化的绝对库存数暴露到前台。</p>
+<p>但真正的大问题出现在<strong>大促、热点商品和下游抖动</strong>场景下。此时详情页必须具备明确的降级能力：</p>
+<ul>
+<li><strong>计价服务超时</strong>
+<ul>
+<li>优先展示基础销售价或指导价</li>
+</ul>
+</li>
+<li><strong>库存摘要超时</strong>
+<ul>
+<li>退化为保守文案，如“库存确认中”或“请以下单时校验为准”</li>
+</ul>
+</li>
+<li><strong>营销露出超时</strong>
+<ul>
+<li>隐藏活动标签，不阻塞主页面</li>
+</ul>
+</li>
+<li><strong>Redis 或下游依赖异常</strong>
+<ul>
+<li>先用本地缓存或静态兜底页保证详情可打开</li>
+</ul>
+</li>
+</ul>
+<p>对热点商品，还要配合：</p>
+<ul>
+<li>热 Key 探测</li>
+<li>本地热点缓存</li>
+<li>限流与线程池隔离</li>
+</ul>
+<p>这样即使某个爆款详情在几秒内被打到极高 QPS，也不至于把 Redis、计价、库存或营销服务一起拖崩。</p>
+<p>所以详情页的核心不是“把所有数据都实时算到最准”，而是：</p>
+<blockquote>
+<p><strong>在可接受的一致性范围内，把最重要的动态字段算出来，把不重要的字段降级掉，并且永远保证详情页页面本身不因为单个下游故障而整体不可用。</strong></p>
+</blockquote>
+<h3 id="33-搜索结果页查询时序图"><a class="header" href="#33-搜索结果页查询时序图">3.3 搜索结果页查询时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant U as 用户
+    participant FE as 前端
+    participant GW as API Gateway
+    participant S as 搜索与导购服务
+    participant ES as 搜索索引
+    participant H as Hydrate 聚合层
+    participant P as 商品中心
+    participant PR as 计价中心
+    participant IV as 库存摘要服务
+    participant MK as 营销露出服务
+
+    U-&gt;&gt;FE: 输入关键词 / 进入类目页
+    FE-&gt;&gt;GW: SearchRequest
+    GW-&gt;&gt;S: 统一导购查询
+    S-&gt;&gt;ES: Query + Recall + Rank
+    ES--&gt;&gt;S: item_id 列表
+    S-&gt;&gt;H: 批量 Hydrate
+    par 第一阶段并行
+        H-&gt;&gt;P: 批量取商品卡片信息
+    and
+        H-&gt;&gt;IV: 批量取库存摘要
+    end
+    H-&gt;&gt;MK: 基于商品信息批量取活动标签
+    Note over H,MK: 营销结果返回后，Hydrate 才能继续向计价中心发起最后一个下游请求
+    H-&gt;&gt;PR: 基于商品信息 + 营销结果批量取展示价（最后请求）
+    H--&gt;&gt;S: 合并卡片 DTO
+    S--&gt;&gt;FE: 搜索 / 导购结果
+</pre>
+
+<h3 id="34-详情页聚合查询时序图"><a class="header" href="#34-详情页聚合查询时序图">3.4 详情页聚合查询时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant U as 用户
+    participant FE as 前端
+    participant GW as API Gateway
+    participant D as 详情聚合服务
+    participant P as 商品中心
+    participant PR as 计价中心
+    participant IV as 库存中心
+    participant MK as 营销中心
+
+    U-&gt;&gt;FE: 打开商品详情页
+    FE-&gt;&gt;GW: ItemDetailRequest(item_id)
+    GW-&gt;&gt;D: 详情聚合查询
+    D-&gt;&gt;P: 获取正式商品契约 / 履约规则
+    D-&gt;&gt;PR: 获取当前价 / 到手价
+    D-&gt;&gt;IV: 获取库存与限购摘要
+    D-&gt;&gt;MK: 获取活动、券与露出
+    D--&gt;&gt;FE: 详情页 DTO
+</pre>
+
+<hr>
+<h2 id="4-购物车与结算链路"><a class="header" href="#4-购物车与结算链路">4. 购物车与结算链路</a></h2>
+<h3 id="41-场景画像"><a class="header" href="#41-场景画像">4.1 场景画像</a></h3>
+<p>购物车和结算虽然常常出现在同一个前端页面体系里，但它们在系统设计上承担完全不同的角色：</p>
+<ul>
+<li>购物车是“意愿篮”，弱一致、可长期暂存。</li>
+<li>结算页是“交易前总校验器”，会触发价格试算、库存预占和优惠校验。</li>
+</ul>
+<h3 id="42-加购与购物车合并时序图"><a class="header" href="#42-加购与购物车合并时序图">4.2 加购与购物车合并时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant U as 用户
+    participant FE as 前端
+    participant C as 购物车服务
+    participant R as Redis 购物车主存
+    participant DB as 购物车备份表
+
+    U-&gt;&gt;FE: 点击加购
+    FE-&gt;&gt;C: AddToCart(item_id, sku_id, qty)
+    C-&gt;&gt;R: HSET / HINCRBY
+    C--&gt;&gt;FE: 加购成功
+    C-&gt;&gt;DB: 异步落库备份
+
+    U-&gt;&gt;FE: 登录
+    FE-&gt;&gt;C: MergeCart(cart_token, user_id)
+    C-&gt;&gt;R: 读取匿名桶和用户桶
+    C-&gt;&gt;R: 执行合并、限购截断、失效标记
+    C--&gt;&gt;FE: 返回合并后的购物车
+</pre>
+
+<h3 id="43-进入结算页的-saga-编排时序图"><a class="header" href="#43-进入结算页的-saga-编排时序图">4.3 进入结算页的 Saga 编排时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant U as 用户
+    participant FE as 前端
+    participant CO as 结算编排服务
+    participant P as 商品中心
+    participant PR as 计价系统
+    participant IV as 库存中心
+    participant MK as 营销中心
+    participant AD as 地址 / 运费服务
+
+    U-&gt;&gt;FE: 进入结算页
+    FE-&gt;&gt;CO: CheckoutPreview(selected_items)
+    CO-&gt;&gt;P: 批量校验商品正式态与履约规则
+    CO-&gt;&gt;PR: 价格试算
+    CO-&gt;&gt;IV: 预占库存
+    CO-&gt;&gt;MK: 权益校验 / 占用
+    CO-&gt;&gt;AD: 地址与运费计算
+    CO--&gt;&gt;FE: 结算确认页 (price_snapshot_id, reserve_ids, coupon_tokens)
+</pre>
+
+<h3 id="44-结算确认页失效与刷新时序图"><a class="header" href="#44-结算确认页失效与刷新时序图">4.4 结算确认页失效与刷新时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant FE as 前端
+    participant CO as 结算编排服务
+    participant P as 商品中心
+    participant PR as 计价系统
+    participant IV as 库存中心
+
+    FE-&gt;&gt;CO: SubmitCheckout(snapshot_id, reserve_ids)
+    CO-&gt;&gt;P: 校验商品版本
+    CO-&gt;&gt;PR: 校验价格快照是否仍有效
+    CO-&gt;&gt;IV: 校验预占是否仍有效
+    alt 任一快照失效
+        CO--&gt;&gt;FE: CHECKOUT_EXPIRED，需要刷新
+    else 校验全部通过
+        CO--&gt;&gt;FE: ALLOW_CREATE_ORDER
+    end
+</pre>
+
+<h3 id="45-关键技术点"><a class="header" href="#45-关键技术点">4.5 关键技术点</a></h3>
+<ol>
+<li>购物车不锁资源，只保存意愿。</li>
+<li>结算页是短生命周期的 Saga 编排器，负责把分散的规则、价格、库存和权益收敛成一次可提交的交易尝试。</li>
+<li>结算确认页必须携带价格快照、库存预占凭证和权益占用凭证。</li>
+<li>提交订单前必须再次做最终校验，防止“页面看到的是旧状态，点击下单时世界已经变了”。</li>
+</ol>
+<hr>
+<h2 id="5-下单支付与订单编排链路"><a class="header" href="#5-下单支付与订单编排链路">5. 下单、支付与订单编排链路</a></h2>
+<h3 id="51-场景画像"><a class="header" href="#51-场景画像">5.1 场景画像</a></h3>
+<p>用户点击“提交订单”时，系统会从“交易前校验”进入“交易事实落地”：</p>
+<ol>
+<li>订单中心基于结算凭证创建订单。</li>
+<li>订单保存商品、价格和履约快照。</li>
+<li>支付系统创建支付单并和外部渠道交互。</li>
+<li>支付结果回流后，订单状态推进。</li>
+<li>支付失败、超时取消或风控拒绝时，显式释放库存与权益。</li>
+</ol>
+<h3 id="52-关键技术点"><a class="header" href="#52-关键技术点">5.2 关键技术点</a></h3>
+<h4 id="521-订单应该在提交订单时创建还是在点击支付时创建"><a class="header" href="#521-订单应该在提交订单时创建还是在点击支付时创建">5.2.1 订单应该在“提交订单”时创建，还是在“点击支付”时创建</a></h4>
+<p>这在电商里是一个非常经典的交易架构决策点，通常有两种主流方案：</p>
+<ul>
+<li><strong>方案 A：提单时创单</strong>
+<ul>
+<li>用户点击“提交订单”时，先创建一笔待支付订单，再进入收银台选择支付渠道。</li>
+</ul>
+</li>
+<li><strong>方案 B：支付时创单</strong>
+<ul>
+<li>用户点击“立即支付”时才真正建单；支付成功后，再落最终订单事实。</li>
+</ul>
+</li>
+</ul>
+<p>二者的本质区别在于：<strong>库存锁定发生得早还是晚、订单事实生成得早还是晚</strong>。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>风险</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td>提单时创单</td><td>用户一旦进入收银台，库存和交易资格通常已经预留；支持待支付、催付、继续支付</td><td>更容易被恶意占库存；高并发时前置写库和锁资源压力更大</td><td>实物电商、大多数标准电商、酒店、机酒票务、重体验场景</td></tr>
+<tr><td>支付时创单</td><td>极大减轻前置创单压力；不容易被恶意占库存；更适合极端高并发</td><td>可能出现“钱付了但后置建单 / 扣库存失败”的补偿复杂度；用户体验更容易受损</td><td>秒杀、抢购、部分虚拟商品、部分极端高并发场景</td></tr>
+</tbody>
+</table>
+</div>
+<p>这章默认采用的是 <strong>方案 A：提单时创单</strong>。原因是本章的主线更偏向：</p>
+<ul>
+<li>购物车 -&gt; 结算 -&gt; 提交订单 -&gt; 支付 -&gt; 履约</li>
+</ul>
+<p>这类标准交易旅程。它的优点是：</p>
+<ul>
+<li>订单能够稳定承接商品、价格、履约快照；</li>
+<li>用户进入收银台后，交易关系已经明确；</li>
+<li>支付结果回调只需要推进订单状态，而不是同时承担“先建单、再扣库存、再补偿”的复杂责任。</li>
+</ul>
+<p>但也要明确：<strong>这不是唯一正确答案</strong>。如果业务是：</p>
+<ul>
+<li>极端高并发秒杀</li>
+<li>超稀缺票券抢购</li>
+<li>低客单价虚拟商品</li>
+</ul>
+<p>那么“支付时创单”往往更合理，因为它能把大量无效创单和恶意占坑挡在支付前面。</p>
+<p>因此这里更稳妥的结论是：</p>
+<blockquote>
+<p><strong>标准电商与重体验商品，优先采用“先创单、后支付”；极端高并发和强防刷场景，再考虑“支付时创单”。</strong></p>
+</blockquote>
+<h4 id="522-订单提交流程应该由独立聚合服务编排还是由订单中心自己协调下游"><a class="header" href="#522-订单提交流程应该由独立聚合服务编排还是由订单中心自己协调下游">5.2.2 订单提交流程应该由独立聚合服务编排，还是由订单中心自己协调下游</a></h4>
+<p>这也是交易架构里非常经典的一个分歧点，通常存在两种方案：</p>
+<ul>
+<li><strong>方案 A：单独起一个结算 / 交易聚合服务</strong>
+<ul>
+<li>由结算服务或 Trade-CO 统一去协调商品、库存、计价、营销，再把最终结果交给订单中心落单。</li>
+</ul>
+</li>
+<li><strong>方案 B：前端直接调用订单中心，由订单中心自己协调下游</strong>
+<ul>
+<li>订单中心既管订单写库，又去调用商品、库存、计价、营销这些服务完成前置校验与编排。</li>
+</ul>
+</li>
+</ul>
+<p>这两种方案的本质区别是：<strong>交易主流程编排逻辑，是放在订单领域之外的场景聚合层，还是直接压进订单中心内部。</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>风险</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td>独立聚合服务</td><td>订单中心更纯净；读写压力与场景编排隔离；更适合复杂结算页和多业务协同</td><td>多一跳 RPC；多一个服务需要治理</td><td>中大型电商、业务复杂、团队分工清晰、存在独立预结算页</td></tr>
+<tr><td>订单中心自己协调</td><td>链路短；服务更少；前期开发快</td><td>订单中心容易膨胀成万能大管家；读写混合；迭代风险高</td><td>小团队、早期系统、短期快速上线</td></tr>
+</tbody>
+</table>
+</div>
+<p>从工程演进角度看，很多系统早期会采用“订单中心自己协调”的方式快速上线，但随着以下问题出现，通常都会向独立聚合服务演进：</p>
+<ul>
+<li>结算页逻辑越来越复杂</li>
+<li>商品、计价、库存、营销团队开始独立演进</li>
+<li>订单中心既要承接创单写流量，又要承接大量预览与预结算读流量</li>
+<li>大促时希望把“重编排逻辑”和“订单写库主链路”物理隔离</li>
+</ul>
+<p>本章默认采用的是 <strong>方案 A：独立结算聚合服务编排，下游原子服务各自归位</strong>。原因是：</p>
+<ul>
+<li>结算页本身就天然是一个跨商品、库存、计价、营销、地址的聚合场景；</li>
+<li>订单中心更适合回归为“交易事实持久化 + 状态机推进”的原子领域服务；</li>
+<li>支付、履约、售后后续也都更容易围绕清晰的订单事实展开。</li>
+</ul>
+<p>因此这里的推荐结论是：</p>
+<blockquote>
+<p><strong>当系统存在独立的确认订单页 / 预结算页，且交易链路已经明显跨多个领域服务时，优先采用“结算聚合服务编排，下游原子服务落地”的架构；只有在系统非常轻量时，才让订单中心临时兼做协调者。</strong></p>
+</blockquote>
+<h4 id="523-创单接口的幂等性应该怎么设计"><a class="header" href="#523-创单接口的幂等性应该怎么设计">5.2.3 创单接口的幂等性应该怎么设计</a></h4>
+<p>创单接口的幂等性，不能只理解成“用户重复点按钮怎么办”。它真正要解决的是：</p>
+<ul>
+<li>同一个下单意图因为网络抖动、页面重试、MQ 重放或用户多次点击而重复到达时；</li>
+<li>系统最多只能创建一笔订单；</li>
+<li>如果第一次其实已经成功了，后续重试还应该尽量返回第一次成功的结果，而不是简单报错。</li>
+</ul>
+<p>这类设计在工程上通常不是靠单点手段，而是靠一套<strong>分层防御模型</strong>完成：</p>
+<ul>
+<li><strong>第一层：前端轻量防抖</strong>
+<ul>
+<li>用户点击“提交订单”后，按钮立刻置灰</li>
+<li>页面进入 loading 状态，减少肉眼可见的重复点击</li>
+</ul>
+</li>
+<li><strong>第二层：结算服务前置防重</strong>
+<ul>
+<li>用户进入确认订单页时，后端生成一个全局唯一的 <code>submit_token</code></li>
+<li>提交订单时，前端必须把这个 <code>submit_token</code> 原样透传回来</li>
+<li>结算服务先在 Redis 上做一次幂等拦截，例如：</li>
+<li><code>SET submit_lock:{submit_token} 1 NX EX 30</code></li>
+<li>如果没有拿到锁，说明相同提交意图正在处理中，或者已经处理过</li>
+</ul>
+</li>
+<li><strong>第三层：订单中心存储级最终兜底</strong>
+<ul>
+<li>Redis 分布式锁并不是绝对强一致的</li>
+<li>极端情况下，主从切换、锁过期或网络抖动仍然可能让重复请求穿透</li>
+<li>所以订单中心在落库时，仍然必须对 <code>submit_token</code> 做唯一约束</li>
+<li>即使两个请求同时穿透了 Redis，MySQL 也只能允许一笔订单真正写成功</li>
+</ul>
+</li>
+<li><strong>第四层：结果幂等与顺水推舟</strong>
+<ul>
+<li>如果第一次创单已经成功，但响应前端时网络丢包</li>
+<li>第二次相同请求进来，不应该只返回“重复提交”</li>
+<li>更好的做法是缓存 <code>submit_token -&gt; {status, order_id}</code></li>
+<li>后续重试命中后，直接返回第一次成功的 <code>order_id</code>，把用户平滑带到收银台</li>
+</ul>
+</li>
+</ul>
+<p>这几层的职责并不相同：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>防线</th><th>核心目标</th><th>典型实现</th></tr>
+</thead>
+<tbody>
+<tr><td>前端防抖</td><td>减少普通重复点击</td><td>按钮置灰、loading、防重复提交</td></tr>
+<tr><td>Redis 防重</td><td>前置消峰，保护下游资源</td><td><code>submit_token</code> + 分布式锁 / SETNX</td></tr>
+<tr><td>DB 唯一约束</td><td>存储层最终绝对幂等</td><td>订单表或防重表上的唯一索引</td></tr>
+<tr><td>结果缓存</td><td>平滑处理“成功但回包丢失”</td><td><code>submit_token -&gt; order_id</code> 结果映射</td></tr>
+</tbody>
+</table>
+</div>
+<p>面试里经常会被继续追问两个极端场景。</p>
+<p><strong>场景一：业务还没执行完，Redis 锁先过期怎么办？</strong></p>
+<p>如果创单链路比较长，固定的 <code>EX 30</code> 很容易在高峰期被打穿。更稳妥的工程实现通常是：</p>
+<ul>
+<li>使用具备看门狗续期能力的分布式锁实现；</li>
+<li>业务未结束时自动续期；</li>
+<li>业务结束后显式解锁。</li>
+</ul>
+<p>这样可以避免“创单事务还没跑完，锁却先失效”的幂等击穿问题。</p>
+<p><strong>场景二：Redis 锁挡住了大部分流量，但极端情况下仍然漏了怎么办？</strong></p>
+<p>这里真正的底线是：</p>
+<blockquote>
+<p><strong>Redis 负责前置消峰，MySQL 唯一键负责最终闭环。</strong></p>
+</blockquote>
+<p>也就是说，Redis 锁不是为了替代数据库唯一约束，而是为了减少无意义的重复流量冲击商品、库存、营销和订单中心。</p>
+<p>因此这里更稳妥的结论是：</p>
+<blockquote>
+<p><strong>创单幂等要做成“前端防抖 + 结算服务 submit_token 防重 + 订单中心唯一索引兜底 + 结果缓存顺水推舟”的四层模型。Redis 负责前置消峰，数据库负责最终绝对幂等。</strong></p>
+</blockquote>
+<h4 id="524-创单失败后库存预占和权益占用怎么做最终一致性补偿"><a class="header" href="#524-创单失败后库存预占和权益占用怎么做最终一致性补偿">5.2.4 创单失败后，库存预占和权益占用怎么做最终一致性补偿</a></h4>
+<p>这也是结算编排里非常关键的一道资损防线。</p>
+<p>在标准的提单链路里，前面往往已经发生了这些动作：</p>
+<ul>
+<li>价格快照已经生成</li>
+<li>库存已经预占，拿到了 <code>reserve_ids</code></li>
+<li>营销权益已经占用，拿到了 <code>coupon_tokens</code></li>
+</ul>
+<p>这时如果最后一步：</p>
+<ul>
+<li><code>结算服务 -&gt; 订单中心 CreateOrder</code></li>
+</ul>
+<p>在写库时因为数据库超时、网络断开、主从抖动等原因失败，系统就会落入一个非常危险的中间态：</p>
+<ul>
+<li>前端看到的是“创单失败”</li>
+<li>但库存和权益其实已经被前置链路冻结住了</li>
+</ul>
+<p>如果不处理，就会出现：</p>
+<ul>
+<li>僵尸库存预占</li>
+<li>优惠券被卡死</li>
+<li>用户无法再次下单</li>
+<li>商家可售资源被无故锁住</li>
+</ul>
+<p>这里不能靠 Seata / XA 这类强一致事务硬拉平，因为它们会把高并发交易主链路拖得过重。更可落地的做法是：</p>
+<ul>
+<li><strong>主链路快速失败</strong></li>
+<li><strong>异步补偿兜底</strong></li>
+<li><strong>延迟反查再兜底</strong></li>
+</ul>
+<p>推荐的补偿模型一般有两层：</p>
+<p><strong>第一层：消息补偿</strong></p>
+<p>当结算服务或订单中心感知到创单明确失败时，发布一条 <code>OrderCreateFailedEvent</code>：</p>
+<ul>
+<li>库存中心订阅后释放 <code>reserve_ids</code></li>
+<li>营销中心订阅后释放 <code>coupon_tokens</code></li>
+</ul>
+<p>这样可以把大部分“明确失败”的场景快速回滚掉，而不需要让前台请求同步等待所有补偿完成。</p>
+<p><strong>第二层：下游主动反查 + 延迟释放</strong></p>
+<p>为了防止消息丢失、网络抖动或“创单结果未知”这种灰色状态，库存中心和营销中心本身还应该有一层延迟自愈：</p>
+<ul>
+<li>在预占 / 占用成功时，挂一条延迟检查任务</li>
+<li>到达超时时间后，主动去订单中心反查：
+<ul>
+<li>这个 <code>reserve_ids</code> / <code>coupon_tokens</code> 对应的订单到底创建成功了吗</li>
+</ul>
+</li>
+<li>如果订单不存在，或者订单已经被关闭 / 取消，就自动释放资源</li>
+</ul>
+<p>这意味着：</p>
+<ul>
+<li>结算服务负责主流程编排</li>
+<li>订单中心负责创单真相</li>
+<li>库存和营销中心各自对自己的冻结资源负责自我救赎</li>
+</ul>
+<p>因此这里更稳妥的结论是：</p>
+<blockquote>
+<p><strong>创单失败后的最终一致性，不能依赖运行时强事务，而要依赖“失败事件补偿 + 延迟反查释放”的双层自愈机制。</strong></p>
+</blockquote>
+<h4 id="525-价格防篡改应该重新计算一遍还是依赖价格签名--版本核销"><a class="header" href="#525-价格防篡改应该重新计算一遍还是依赖价格签名--版本核销">5.2.5 价格防篡改应该重新计算一遍，还是依赖价格签名 / 版本核销</a></h4>
+<p>创单链路里还有一个非常关键的安全问题：<strong>前端提交的价格到底能不能信</strong>。</p>
+<p>如果黑客通过抓包改包，把前端传给 <code>SubmitOrder</code> 的金额从 5999 改成 0.01，而后端又没有做价格防篡改校验，就会直接造成巨大资损。</p>
+<p>这类防护一般有两种主流方案：</p>
+<ul>
+<li><strong>方案 A：无状态签名校验</strong>
+<ul>
+<li>预结算时由计价系统生成一个 <code>price_token</code></li>
+<li>它通常由 <code>item_id + user_id + price + timestamp + secret</code> 等因子签名得到</li>
+<li>创单时前端把价格和 <code>price_token</code> 一起透传回来</li>
+<li>结算服务或计价服务重新验签，确认价格未被改包</li>
+</ul>
+</li>
+<li><strong>方案 B：有状态版本核销</strong>
+<ul>
+<li>预结算时由计价系统生成一个 <code>price_version_id</code></li>
+<li>并把对应价格结果写到 Redis 或计价缓存中</li>
+<li>创单时前端只透传版本号</li>
+<li>后端按版本号回查真实价格，再以缓存中的真相落单</li>
+</ul>
+</li>
+</ul>
+<p>这两种方案的本质区别是：</p>
+<ul>
+<li>方案 A 更像“<strong>数学签名防篡改</strong>”</li>
+<li>方案 B 更像“<strong>后端状态核销防篡改</strong>”</li>
+</ul>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>风险</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td>无状态签名校验</td><td>不需要高频读 Redis；延迟低；更适合高并发</td><td>如果只做简单签名，天然不防重放；仍需额外处理超时窗口和 nonce</td><td>高并发场景、性能优先场景</td></tr>
+<tr><td>有状态版本核销</td><td>安全边界清晰；天然适合做一次性核销；方便过期控制</td><td>对 Redis / 状态存储依赖更强；预结算和创单时会增加缓存 IO 压力</td><td>安全要求高、流程较长、可接受缓存成本的场景</td></tr>
+</tbody>
+</table>
+</div>
+<p>工业界更常见的落地方式，往往是：</p>
+<ul>
+<li>以 <strong>无状态签名</strong> 作为主防线，防止前端改价</li>
+<li>再加上 <strong>时间窗口 + nonce 防重放</strong></li>
+<li>如有必要，再用轻量 Redis 记录短期 nonce 或一次性 token</li>
+</ul>
+<p>这样既能保持高并发下的低延迟，又能防止用户把一个合法的价格签名反复提交多次。</p>
+<p>因此这里更稳妥的结论是：</p>
+<blockquote>
+<p><strong>高并发电商链路里，优先采用“价格签名校验 + 时间窗口 / nonce 防重放”的轻量方案；只有在业务对一次性核销、价格版本冻结要求特别强时，再演进到有状态版本核销。</strong></p>
+</blockquote>
+<h4 id="526-订单快照应该由谁构建商品中心订单中心还是结算服务"><a class="header" href="#526-订单快照应该由谁构建商品中心订单中心还是结算服务">5.2.6 订单快照应该由谁构建：商品中心、订单中心，还是结算服务</a></h4>
+<p>订单快照的职责划分也是一个非常容易设计错的点。这里真正的问题不是“谁能拿到商品标题”，而是：</p>
+<ul>
+<li>谁手里拥有最完整的下单上下文；</li>
+<li>谁最适合在创单前把商品、价格、履约三类事实揉成一份订单解释材料；</li>
+<li>谁应该只负责持久化，而不要再次退化成交易大管家。</li>
+</ul>
+<p>这类职责一般会出现三种候选方案：</p>
+<ul>
+<li><strong>方案 A：由商品中心构建快照</strong>
+<ul>
+<li>看起来商品中心最懂商品，但它只拥有“当前商品真相”</li>
+<li>它并不知道这次交易用了什么券、最终成交价是多少、履约承诺是什么</li>
+<li>如果让商品中心在提单时参与组装订单快照，会把交易上下文反向污染到商品域</li>
+</ul>
+</li>
+<li><strong>方案 B：由订单中心构建快照</strong>
+<ul>
+<li>订单中心在收到创单请求时，理论上可以再去查商品、计价、营销、履约</li>
+<li>但这会让订单中心重新变成“大管家”</li>
+<li>创单链路的耗时、依赖数和失败面都会急剧上升</li>
+</ul>
+</li>
+<li><strong>方案 C：由结算服务构建快照，订单中心只负责落库</strong>
+<ul>
+<li>结算服务在提交订单前，本来就已经拿到了：</li>
+<li>商品静态信息</li>
+<li>价格明细和优惠分摊结果</li>
+<li>履约承诺与交付上下文</li>
+<li>它是最适合在内存里把这些信息揉成 <code>SnapshotDTO</code> 的那一层</li>
+<li>订单中心收到后，只需要把订单事实和快照 JSON 一起持久化</li>
+</ul>
+</li>
+</ul>
+<p>三种方案的关键差异如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>优点</th><th>风险</th><th>推荐度</th></tr>
+</thead>
+<tbody>
+<tr><td>商品中心构建</td><td>商品标题、主图、类目天然可得</td><td>职责越界；不拥有价格与履约上下文；容易把交易逻辑污染回商品域</td><td>不推荐</td></tr>
+<tr><td>订单中心构建</td><td>创单和落库在一个服务里闭环</td><td>订单中心重新退化成大管家；创单链路变重；依赖面暴涨</td><td>谨慎使用</td></tr>
+<tr><td>结算服务构建</td><td>最接近完整交易上下文；适合在创单前聚合和揉快照</td><td>需要明确快照字段边界，避免把无意义大字段塞进快照</td><td>推荐</td></tr>
+</tbody>
+</table>
+</div>
+<p>因此这里更稳妥的结论是：</p>
+<blockquote>
+<p><strong>订单快照应由结算服务在提交订单前完成组装，订单中心只负责把订单事实与快照结果持久化；商品中心提供静态契约，但不直接参与快照构建。</strong></p>
+</blockquote>
+<p>进一步说，快照也不能无限膨胀。真正应该进入订单快照的，通常是：</p>
+<ul>
+<li>商品 ID、SKU ID、标题、下单时主图 URL、规格属性；</li>
+<li>成交单价、原价、优惠分摊、券抵扣、运费、税费；</li>
+<li>履约类型、承诺送达时间、退改规则摘要。</li>
+</ul>
+<p>而像商品详情图文、长文本介绍、视频等大字段，不应该进入订单快照。订单列表查询也不应该把大 JSON 混在主表里，而应该通过独立的 <code>order_snapshot</code> 之类的附表按需读取。</p>
+<h4 id="527-订单中心负责交易事实编排商品中心负责交易前静态契约"><a class="header" href="#527-订单中心负责交易事实编排商品中心负责交易前静态契约">5.2.7 订单中心负责交易事实编排，商品中心负责交易前静态契约</a></h4>
+<p>商品中心负责“商品身份与价格合规”的静态校验，订单中心负责“交易行为与流水合规”的最终编排。</p>
+<h4 id="528-订单必须保存商品快照价格快照和履约快照"><a class="header" href="#528-订单必须保存商品快照价格快照和履约快照">5.2.8 订单必须保存商品快照、价格快照和履约快照</a></h4>
+<p>订单必须保存商品快照、价格快照和履约快照，而不是回读最新商品。</p>
+<h4 id="529-支付发起和支付结果回调是两条不同链路"><a class="header" href="#529-支付发起和支付结果回调是两条不同链路">5.2.9 支付发起和支付结果回调是两条不同链路</a></h4>
+<p>支付发起和支付结果回调是两条不同链路：前者负责创建支付单，后者负责提供支付事实。</p>
+<h4 id="5210-支付系统只提供支付事实订单系统自己推进状态机"><a class="header" href="#5210-支付系统只提供支付事实订单系统自己推进状态机">5.2.10 支付系统只提供支付事实，订单系统自己推进状态机</a></h4>
+<p>支付系统只提供支付事实，订单系统自行推进自己的状态机。</p>
+<h4 id="5211-支付成功之后订单中心再去编排库存确认权益确认和后续履约触发"><a class="header" href="#5211-支付成功之后订单中心再去编排库存确认权益确认和后续履约触发">5.2.11 支付成功之后，订单中心再去编排库存确认、权益确认和后续履约触发</a></h4>
+<p>支付成功回调之后，订单中心才去编排库存确认、权益确认和后续履约触发。</p>
+<h4 id="5212-支付失败超时取消和风控拒绝后库存和营销权益必须显式释放"><a class="header" href="#5212-支付失败超时取消和风控拒绝后库存和营销权益必须显式释放">5.2.12 支付失败、超时取消和风控拒绝后，库存和营销权益必须显式释放</a></h4>
+<p>支付失败、超时取消和风控拒绝后，库存和营销权益必须显式释放。</p>
+<h3 id="53-场景一提交订单时序图"><a class="header" href="#53-场景一提交订单时序图">5.3 场景一：提交订单时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant FE as 前端
+    participant CO as 结算服务
+    participant O as 订单中心
+    participant P as 商品中心
+    participant PR as 计价系统
+    participant IV as 库存中心
+    participant MK as 营销中心
+
+    FE-&gt;&gt;CO: SubmitOrder(snapshot_id, reserve_ids, coupon_tokens)
+    CO-&gt;&gt;P: 商品静态合规校验
+    CO-&gt;&gt;PR: 价格版本校验
+    CO-&gt;&gt;IV: 库存预占凭证校验
+    CO-&gt;&gt;MK: 权益占用凭证校验
+    CO-&gt;&gt;O: CreateOrder
+    O-&gt;&gt;O: 保存订单事实 + 商品/价格/履约快照
+    O--&gt;&gt;FE: order_id
+</pre>
+
+<h3 id="54-场景二提交支付时序图"><a class="header" href="#54-场景二提交支付时序图">5.4 场景二：提交支付时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant FE as 前端
+    participant PAY as 支付中心
+    participant CH as 支付渠道
+    participant O as 订单中心
+
+    FE-&gt;&gt;PAY: CreatePayment(order_id)
+    PAY-&gt;&gt;O: 校验订单状态与应付金额
+    PAY-&gt;&gt;CH: 预下单 / 拉起支付
+    CH--&gt;&gt;PAY: 返回支付受理结果 / pay_token
+    PAY--&gt;&gt;FE: 返回收银台拉起参数
+</pre>
+
+<h3 id="55-场景三支付结果回调与订单编排时序图"><a class="header" href="#55-场景三支付结果回调与订单编排时序图">5.5 场景三：支付结果回调与订单编排时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant CH as 支付渠道
+    participant PAY as 支付中心
+    participant O as 订单中心
+    participant IV as 库存中心
+    participant MK as 营销中心
+
+    CH--&gt;&gt;PAY: 支付成功回调
+    PAY-&gt;&gt;PAY: 验签 + 幂等 + 状态机推进
+    PAY-&gt;&gt;O: 发布 PaymentSucceeded 事件
+    O-&gt;&gt;O: 推进订单为 PAID
+    O-&gt;&gt;IV: 确认库存
+    O-&gt;&gt;MK: 确认权益消耗
+</pre>
+
+<h3 id="56-场景四支付失败与超时回滚时序图"><a class="header" href="#56-场景四支付失败与超时回滚时序图">5.6 场景四：支付失败与超时回滚时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant PAY as 支付中心
+    participant O as 订单中心
+    participant IV as 库存中心
+    participant MK as 营销中心
+
+    PAY-&gt;&gt;O: PaymentFailed / PaymentExpired
+    O-&gt;&gt;O: 推进订单为 CLOSED / PAYMENT_FAILED
+    O-&gt;&gt;IV: ReleaseInventory(reserve_ids)
+    O-&gt;&gt;MK: ReleaseCoupon / ReleasePromotionHold
+</pre>
+
+<hr>
+<h2 id="6-履约发货核销与售后闭环"><a class="header" href="#6-履约发货核销与售后闭环">6. 履约、发货、核销与售后闭环</a></h2>
+<h3 id="61-场景画像"><a class="header" href="#61-场景画像">6.1 场景画像</a></h3>
+<p>订单支付成功只是用户交易旅程的中点，不是终点。后面的系统挑战包括：</p>
+<ul>
+<li>实物商品怎么发货、签收、退货退款。</li>
+<li>券码商品怎么发码、核销、退款。</li>
+<li>酒旅、到店和预约型商品怎么预约、履约、取消和退款。</li>
+</ul>
+<p>这里最重要的统一原则是：</p>
+<blockquote>
+<p><strong>订单之后，系统不再回头依赖最新商品真相，而是基于订单快照和履约事实继续推进。</strong></p>
+</blockquote>
+<h3 id="62-履约发起时序图"><a class="header" href="#62-履约发起时序图">6.2 履约发起时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant O as 订单中心
+    participant F as 履约中心
+    participant W as 仓配 / 物流
+
+    O-&gt;&gt;F: OrderPaid
+    F-&gt;&gt;W: 创建发货任务
+    W--&gt;&gt;F: 返回受理结果 / logistics_task_id
+    F-&gt;&gt;O: 发布 FulfillmentCreated 事件
+    O-&gt;&gt;O: 推进订单为 TO_FULFILL / TO_SHIP
+</pre>
+
+<h3 id="63-履约结果回调与订单编排时序图"><a class="header" href="#63-履约结果回调与订单编排时序图">6.3 履约结果回调与订单编排时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant W as 仓配 / 物流 / 供应商
+    participant F as 履约中心
+    participant O as 订单中心
+    participant IV as 库存中心
+
+    W--&gt;&gt;F: 回调发货成功 / 履约完成 / 履约失败
+    F-&gt;&gt;F: 幂等校验 + 履约状态推进
+    F-&gt;&gt;O: 发布 FulfillmentUpdated 事件
+    alt 发货成功 / 履约完成
+        O-&gt;&gt;O: 推进订单为 SHIPPED / DELIVERED / FULFILLED
+        O-&gt;&gt;IV: 消费库存
+    else 履约失败 / 无法履约
+        O-&gt;&gt;O: 推进订单为 FULFILLMENT_FAILED
+    end
+</pre>
+
+<h3 id="64-券码发码与核销时序图"><a class="header" href="#64-券码发码与核销时序图">6.4 券码发码与核销时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant O as 订单中心
+    participant F as 发码 / 履约服务
+    participant IV as 库存中心
+    participant V as 券码池 / 核销系统
+
+    O-&gt;&gt;F: OrderPaid
+    F-&gt;&gt;IV: ConfirmInventory / AllocateCode
+    IV--&gt;&gt;F: 返回券码或资源实例
+    F-&gt;&gt;V: 发码 / 生成核销凭证
+    F-&gt;&gt;O: 发布 VoucherIssued 事件
+    V-&gt;&gt;V: 用户到店核销
+    V-&gt;&gt;O: 发布 VoucherConsumed 事件
+    O-&gt;&gt;O: 推进订单 / 子单状态
+</pre>
+
+<h3 id="65-售后退款与库存--权益回补时序图"><a class="header" href="#65-售后退款与库存--权益回补时序图">6.5 售后退款与库存 / 权益回补时序图</a></h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant U as 用户
+    participant AS as 售后服务
+    participant O as 订单中心
+    participant PAY as 支付中心
+    participant IV as 库存中心
+    participant MK as 营销中心
+
+    U-&gt;&gt;AS: 发起退款 / 取消 / 退货
+    AS-&gt;&gt;O: 校验订单快照、支付状态、履约状态
+    O--&gt;&gt;AS: 返回可退条件
+    AS-&gt;&gt;PAY: 发起退款
+    PAY--&gt;&gt;AS: 退款成功
+    AS-&gt;&gt;IV: 按规则回补库存
+    AS-&gt;&gt;MK: 回补或关闭权益
+    AS-&gt;&gt;O: 更新订单售后状态
+</pre>
+
+<h3 id="66-关键技术点"><a class="header" href="#66-关键技术点">6.6 关键技术点</a></h3>
+<ol>
+<li>实物、券码、预约型商品的履约路径不同，但都必须围绕订单快照推进。</li>
+<li>履约发起和履约结果回调是两条不同链路：前者负责创建履约任务，后者负责把外部履约事实回推给订单中心。</li>
+<li>订单中心始终是交易主状态机的拥有者，履约中心只发布履约事实，不直接改订单最终业务语义。</li>
+<li>发码、核销、发货和签收都不应该回头依赖最新商品主数据。</li>
+<li>售后退款要同时看订单事实、支付事实和履约事实，而不是看当前商品页展示什么。</li>
+<li>是否回补库存、是否回退权益、是否允许取消，必须按订单时的规则和当前履约状态共同决定。</li>
+</ol>
+<hr>
+<h2 id="7-典型业务场景串讲"><a class="header" href="#7-典型业务场景串讲">7. 典型业务场景串讲</a></h2>
+<h3 id="71-实物电商主链路"><a class="header" href="#71-实物电商主链路">7.1 实物电商主链路</a></h3>
+<p>用户搜索手机 → 看详情页 → 加购物车 → 进入结算页试算和预占 → 创建订单 → 支付成功 → 仓配发货 → 签收完成 → 可发起退货退款。</p>
+<p>这一链路的核心风险在于：</p>
+<ul>
+<li>列表页展示价与下单价不一致。</li>
+<li>支付失败后库存未释放。</li>
+<li>发货后退款和库存回补规则错乱。</li>
+</ul>
+<h3 id="72-券码--到店商品主链路"><a class="header" href="#72-券码--到店商品主链路">7.2 券码 / 到店商品主链路</a></h3>
+<p>用户搜索餐饮券或景区票 → 详情页看使用规则 → 结算页试算与预占 → 支付成功 → 发码 → 到店核销 → 核销完成 → 按规则退款或不可退。</p>
+<p>这一链路的核心风险在于：</p>
+<ul>
+<li>发空码。</li>
+<li>券码核销与订单状态不一致。</li>
+<li>退款后券码或权益没有正确回收。</li>
+</ul>
+<h3 id="73-酒旅--预约型商品主链路"><a class="header" href="#73-酒旅--预约型商品主链路">7.3 酒旅 / 预约型商品主链路</a></h3>
+<p>用户查看房型、日期、价格日历 → 结算页锁房 / 预占 → 创建订单 → 支付成功 → 预约 / 确认单生成 → 入住 / 出行 / 使用完成 → 按取消规则退款。</p>
+<p>这一链路的核心风险在于：</p>
+<ul>
+<li>详情页看见的日期价与下单时的真实价格不一致。</li>
+<li>预约资源已变动但订单仍按旧状态继续推进。</li>
+<li>售后取消没有依据订单时的规则解释。</li>
+</ul>
+<hr>
+<h2 id="8-面试答辩与工程总结"><a class="header" href="#8-面试答辩与工程总结">8. 面试答辩与工程总结</a></h2>
+<p>如果面试官问“C 端交易链路最难的地方是什么”，比较好的回答不是背一串系统名词，而是先给出总心智：</p>
+<blockquote>
+<p>C 端系统的难点，不是把搜索、购物车、订单、支付这些服务拆出来，而是让用户在整条交易旅程里既感受到响应足够快，又始终不会用旧价格、旧库存、旧规则成功交易，更不会在支付后、履约后和售后阶段失去解释依据。</p>
+</blockquote>
+<p>这章建议记住 6 句话：</p>
+<ol>
+<li>搜索结果页是弱一致投影，详情页是交易前解释，创单时再做强校验。</li>
+<li>购物车保存的是意愿，不是资源占用。</li>
+<li>结算页是一次短生命周期的 Saga，负责把价格、库存、营销和地址收敛成可提交交易。</li>
+<li>订单是交易事实，不是“重新查商品”的入口。</li>
+<li>支付系统提供资金事实，订单系统自己推进状态。</li>
+<li>订单之后，任何履约和售后都优先基于快照和履约事实解释。</li>
+</ol>
+<p>当你能把这 6 句话和上面的时序图、快照、预占、幂等、回补策略串起来时，这一章就不只是一个“电商流程介绍”，而是一套真正可落地、可答辩、可治理的 C 端全生命周期设计。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part02/12-ecommerce-product-supply-inventory-lifecycle.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part03/01-system-design-interview-overview.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part02/12-ecommerce-product-supply-inventory-lifecycle.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part03/01-system-design-interview-overview.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

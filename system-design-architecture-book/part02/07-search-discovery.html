@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-874b75f1.js";
+            window.path_to_searchindex_js = "../searchindex-970a73d8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-92ac6fa0.js"></script>
+        <script src="../toc-13610507.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -275,7 +275,7 @@ graph TB
 
 <p><strong>关键边界</strong>：搜索索引存放 <strong>相对静态或可容忍滞后</strong> 的字段（标题、类目、上架状态、部分排序特征）；<strong>易变字段</strong>（展示价、库存紧张度、活动标）优先 <strong>Hydrate</strong>，或在索引中以「粗粒度信号 + 版本」形式存在并与 Hydrate 对齐。</p>
 <p>在 <strong>非功能需求</strong> 上，建议把导购链路的 SLO 拆成「可分别报警」的三段：<strong>ES 召回 P99</strong>、<strong>应用内排序 P99</strong>、<strong>Hydrate 端到端成功率</strong>。很多团队只监控入口延迟，结果线上表现为「整体还不慢」，但 <strong>Hydrate 超时率缓慢爬升</strong>，直到大促才被计价或库存的连接池打爆一次性暴露。更稳妥的做法是把 Hydrate 每个依赖的 <strong>超时次数、空返回比例、批量大小分布</strong> 都做成 TopN 维度，并在压测脚本里显式模拟「半数依赖降级」。</p>
-<p><strong>容量估算</strong>：导购链路的容量估算答辩口径已统一收录到<a href="../part05/05-search-cart-order-payment-interview.html">第 31 章</a>。</p>
+<p><strong>容量估算</strong>：导购链路的容量估算答辩口径已统一收录到<a href="../part03/05-search-cart-order-payment-interview.html">第 37 章</a>。</p>
 <hr>
 <h2 id="262-统一导购查询服务"><a class="header" href="#262-统一导购查询服务">26.2 统一导购查询服务</a></h2>
 <h3 id="2621-场景识别scene-设计"><a class="header" href="#2621-场景识别scene-设计">26.2.1 场景识别（scene 设计）</a></h3>
@@ -746,7 +746,7 @@ func BuildKeywordDSL(site, cat, q string, from, size int) SearchBody {
 </tbody>
 </table>
 </div>
-<p><strong>答辩提示</strong>：深分页问题的标准答法已统一收录到<a href="../part05/05-search-cart-order-payment-interview.html">第 31 章</a>。</p>
+<p><strong>答辩提示</strong>：深分页问题的标准答法已统一收录到<a href="../part03/05-search-cart-order-payment-interview.html">第 37 章</a>。</p>
 <p><strong><code>search_after</code> 的工程细节</strong>：sort 数组必须 <strong>全链路稳定</strong>，任何「仅用于展示」的字段都不应参与 tie-break，否则会出现翻页跳变。常见做法是 <code>_score</code> + 业务排序字段 + 主键升序。客户端需要缓存上一页最后一条的 sort 值；若中间发生 <strong>索引刷新</strong> 导致顺序变化，产品上要接受「轻微抖动」或通过 <strong>会话级快照</strong>（成本更高）解决。</p>
 <p><strong>随机跳页的产品替代</strong>：电商 C 端常见替代是「跳到第 N 页」改为「继续浏览 / 相似推荐 / 细化筛选」，把深分页需求转化为 <strong>更强的约束</strong> 与 <strong>更相关的子集</strong>，既保护集群也提升转化。</p>
 <h3 id="2644-性能调优"><a class="header" href="#2644-性能调优">26.4.4 性能调优</a></h3>
@@ -824,7 +824,83 @@ func BuildKeywordDSL(site, cat, q string, from, size int) SearchBody {
 <li><strong>排序</strong>：可解释、可版本化、可回滚；重排承载运营与合规。</li>
 <li><strong>Hydrate</strong>：补齐易变展示字段；<strong>单卡失败不拖死整页</strong>。</li>
 </ul>
-<p><strong>答辩提示</strong>：搜索边界类追问已统一收录到<a href="../part05/05-search-cart-order-payment-interview.html">第 31 章</a>。</p>
+<h3 id="2655-决策点搜索服务哪些字段应该直接来自-es哪些应该回商品中心实时拉取"><a class="header" href="#2655-决策点搜索服务哪些字段应该直接来自-es哪些应该回商品中心实时拉取">26.5.5 决策点：搜索服务哪些字段应该直接来自 ES，哪些应该回商品中心实时拉取</a></h3>
+<p>这个问题的本质，不是“字段能不能塞进 ES”，而是：<strong>这个字段是否参与检索、过滤、排序，以及它的变动频次和准确性要求是否允许它停留在搜索投影里</strong>。</p>
+<p>建议用一个简单的四象限模型来判断：</p>
+<ul>
+<li><strong>纯 ES 模式</strong>：字段低频变化、弱一致可接受、且直接参与召回 / 过滤 / 排序。</li>
+<li><strong>纯商品中心模式</strong>：字段不参与搜索，仅在展示时偶尔需要，直接走商品中心批量读或缓存。</li>
+<li><strong>混合模式</strong>：字段既参与筛选 / 排序，又高频变化、强一致要求高；ES 只存粗信号或排序骨架，最终展示由商品中心、计价或库存系统批量覆盖。</li>
+<li><strong>忽略模式</strong>：既不影响搜索，也不需要在列表展示，就不应进 ES。</li>
+</ul>
+<p>落地时可以直接按下表执行：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段类型</th><th>是否进 ES</th><th>权威来源</th><th>列表展示从哪拿</th><th>决策理由</th></tr>
+</thead>
+<tbody>
+<tr><td>商品标题 / 副标题</td><td>是</td><td>商品中心</td><td>ES 直接输出</td><td>必须分词检索，且变动频率低。</td></tr>
+<tr><td>商品主图 URL</td><td>是</td><td>商品中心</td><td>ES 直接输出</td><td>不参与搜索，但列表高频展示，若不冗余会放大 RPC 扇出。</td></tr>
+<tr><td>类目 / 品牌 / 属性</td><td>是</td><td>商品中心</td><td>ES 直接输出</td><td>直接参与筛选、聚合与排序解释。</td></tr>
+<tr><td>销量 / 好评率 / 综合分</td><td>是</td><td>数据中心 / 搜索中心</td><td>ES 直接输出</td><td>用于排序与导购权重，允许分钟级刷新。</td></tr>
+<tr><td>上下架状态</td><td>是</td><td>商品中心</td><td>ES 过滤</td><td>必须在 ES 层先过滤掉不可售商品。</td></tr>
+<tr><td>绝对库存数</td><td>否</td><td>库存中心</td><td>库存中心 / 商品中心批量 Hydrate</td><td>高频、高并发更新，ES 不适合承接绝对数写入。</td></tr>
+<tr><td>实时到手价 / 促销价</td><td>混合</td><td>计价中心 / 商品中心</td><td>Hydrate 实时覆盖</td><td>ES 可存基础价用于粗排，最终展示价必须以实时价为准。</td></tr>
+<tr><td>冷门展示字段（如保质期说明、包装材质）</td><td>否</td><td>商品中心</td><td>商品中心批量读</td><td>不参与搜索，没必要浪费 ES 存储和内存。</td></tr>
+</tbody>
+</table>
+</div>
+<p>可以把这条规则概括为一句话：</p>
+<blockquote>
+<p><strong>ES 出骨架，商品中心、计价和库存补血肉。</strong></p>
+</blockquote>
+<h4 id="酒店搜索示例哪些信息存-es哪些信息走商品中心--资源域"><a class="header" href="#酒店搜索示例哪些信息存-es哪些信息走商品中心--资源域">酒店搜索示例：哪些信息存 ES，哪些信息走商品中心 / 资源域</a></h4>
+<p>酒旅搜索比实体电商更复杂，因为它的价格和库存天然带有 <strong>日期维度</strong> 和 <strong>用户上下文</strong>。同一家酒店，在不同入住日、房型、会员等级和连住天数下，价格与可售状态都可能完全不同。</p>
+<p>因此建议这样拆：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>信息类型</th><th>示例字段</th><th>放在哪里</th><th>原因</th></tr>
+</thead>
+<tbody>
+<tr><td>基础静态信息</td><td>酒店名称、别名、地址、经纬度、星级、品牌、设施标签、商圈、地标、基础房型名称</td><td>ES</td><td>参与文本检索、Geo 检索、筛选与排序，且更新频率低。</td></tr>
+<tr><td>粗粒度交易信号</td><td><code>has_room</code>、<code>base_min_price</code>、整体可售布尔状态</td><td>ES</td><td>支撑“有房过滤”和“价格粗排”，允许短暂滞后。</td></tr>
+<tr><td>实时库存</td><td>某入住日到离店日之间具体房型剩余间数</td><td>酒店商品中心 / 库存资源域</td><td>高并发、按日期格子变化，不能让 ES 承担这种写入压力。</td></tr>
+<tr><td>实时到手价</td><td>会员价、连住优惠价、含税到手价、早餐方案价</td><td>计价 / 商品中心</td><td>强依赖用户、日期、售卖计划，必须实时计算。</td></tr>
+<tr><td>售卖规则</td><td>退改政策、最晚保留时间、确认时效</td><td>商品中心 / 履约规则域</td><td>交易解释事实，详情和下单必须以权威域为准。</td></tr>
+</tbody>
+</table>
+</div>
+<p>酒店搜索的推荐链路通常是：</p>
+<ol>
+<li>搜索中心先用 ES 过滤出满足城市、星级、地理范围和设施条件的酒店骨架。</li>
+<li>ES 负责按 <code>base_min_price</code>、距离、评分等字段做粗排，返回酒店 ID、标题、主图、经纬度等静态字段。</li>
+<li>搜索服务拿着 <code>hotel_ids + checkin + checkout + user_id</code>，批量调用商品中心 / 计价 / 库存资源域，获取这次查询窗口下的真实价格和真实可售状态。</li>
+<li>用实时数据覆盖 ES 粗粒度结果，再返回给前端。</li>
+</ol>
+<p>这意味着：</p>
+<ul>
+<li><strong>价格排序</strong> 可以依赖 ES 中的基础低价做粗排；</li>
+<li><strong>最终展示价</strong> 必须以实时返回结果为准；</li>
+<li><strong>绝对房态库存</strong> 不应该写入 ES；</li>
+<li><strong>“仅剩 2 间”</strong> 这类文案也必须来自实时资源域，而不是搜索索引。</li>
+</ul>
+<p>一个简化的搜索编排伪代码如下：</p>
+<pre><code class="language-go">func SearchHotels(ctx context.Context, req SearchRequest) (SearchResult, error) {
+    esResult := esClient.SearchHotelIndex(ctx, req)
+
+    hotelIDs := esResult.HotelIDs()
+    realtimeMap, err := productCenter.BatchGetHotelRealtimeInfo(ctx, hotelIDs, req.CheckIn, req.CheckOut, req.UserID)
+    if err != nil {
+        return esResult.ToFallbackResult(), nil
+    }
+
+    return MergeHotelSkeletonAndRealtime(esResult, realtimeMap), nil
+}
+</code></pre>
+<p>这套设计的关键不是追求“所有数据都实时”，而是把 <strong>搜索的吞吐压力</strong> 和 <strong>交易字段的强一致压力</strong> 分层处理：ES 承担召回和粗排，商品中心 / 计价 / 库存承担交易前的最终真相。</p>
+<p><strong>答辩提示</strong>：搜索边界类追问已统一收录到<a href="../part03/05-search-cart-order-payment-interview.html">第 37 章</a>。</p>
 <hr>
 <h2 id="266-与上下游系统集成"><a class="header" href="#266-与上下游系统集成">26.6 与上下游系统集成</a></h2>
 <h3 id="2661-与商品中心集成索引数据来源"><a class="header" href="#2661-与商品中心集成索引数据来源">26.6.1 与商品中心集成（索引数据来源）</a></h3>
@@ -945,7 +1021,7 @@ sequenceDiagram
 <hr>
 <h2 id="269-本章小结"><a class="header" href="#269-本章小结">26.9 本章小结</a></h2>
 <p>搜索与导购是电商 <strong>读模型工程化</strong> 的主战场：<strong>统一 scene 与编排</strong> 降低系统熵；<strong>Elasticsearch</strong> 承担召回与部分粗排，但必须与商品、上架、生命周期、计价、库存、营销的 <strong>契约</strong> 清晰划分；<strong>Query → Recall → Rank → Hydrate</strong> 主链路上，一致性与体验通过 <strong>索引版本化 + Hydrate 限时降级 + 产品话术</strong> 组合兜底。与推荐系统保持 <strong>目标与架构边界</strong> 上的解耦，在特征与实验平台上 <strong>复用能力</strong>，是多数中大型平台的务实演进路径。</p>
-<p>本章答辩总结已统一收录到<a href="../part05/05-search-cart-order-payment-interview.html">第 31 章</a>。</p>
+<p>本章答辩总结已统一收录到<a href="../part03/05-search-cart-order-payment-interview.html">第 37 章</a>。</p>
 <p>从 <strong>演进路线</strong> 看，多数团队会经历「ES 直出 → 引入 Hydrate → 引入统一 scene 与 rank 版本 → 引入完整观测与对账」四阶段；每一阶段都能单独带来收益，但不要把四阶段压缩成一次「大爆炸重构」，否则会在大促窗口付出惨痛代价。最稳妥的切分是：<strong>先统一排序内核与日志字段</strong>，再逐步把易变字段迁出索引。</p>
 <hr>
 <h2 id="参考资料"><a class="header" href="#参考资料">参考资料</a></h2>

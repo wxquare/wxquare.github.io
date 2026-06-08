@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-874b75f1.js";
+            window.path_to_searchindex_js = "../searchindex-970a73d8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-92ac6fa0.js"></script>
+        <script src="../toc-13610507.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -1903,7 +1903,7 @@ input_schema_tab
   └─ 供应商同步：外部供给数据全量/增量/Push/刷新
 </code></pre>
 <p>这四类入口应该进入同一个“供给治理控制面”，共享任务模型、校验、审核、发布版本、Outbox、补偿和可观测性；但供应商同步因为存在长任务、Checkpoint、Raw Snapshot、Worker 租约、DLQ、数据新鲜度等复杂问题，可以单独展开成 <code>32.6.1.7</code> 和附录案例。</p>
-<p>相关答辩判断已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 31 章</a>。</p>
+<p>相关答辩判断已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
 <p>如果这条链路设计不好</p>
 <p>如果这条链路设计不好，问题会很快暴露到 C 端交易链路：列表页搜不到、详情页价格错误、下单时库存不可用、券码发放失败、供应商映射缺失、退款规则不完整。商品供给链路的核心不是“把商品写进数据库”，而是“让一个商品从供给入口到可被搜索、可被下单、可被履约、可被追溯”。</p>
 <p>这条链路的系统难点和解决方法可以先这样收敛：</p>
@@ -2142,7 +2142,7 @@ product_supply_dead_letter
 </tbody>
 </table>
 </div>
-<p>人工创建链路的答辩提示已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 31 章</a>。</p>
+<p>人工创建链路的答辩提示已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
 <p><strong>6. 批量导入链路</strong></p>
 <p>批量导入要按“任务 + 行级明细 + 暂存快照 + 错误文件”设计，不能把整个 Excel 读进内存后循环写正式表。</p>
 <pre><code class="language-text">下载模板
@@ -2428,7 +2428,7 @@ ProductCacheInvalidationRequired
   → 数据新鲜度
 </code></pre>
 <p>所以本章采用“主链路 + 专项链路”的写法：<code>30.6.1.6</code> 讲统一商品供给、运营与生命周期治理，完整设计见<a href="./05-product-supply-lifecycle-ops.html">第 24 章：商品供给、运营与生命周期治理</a>；<code>30.6.1.7</code> 专门讲供应商同步，因为它有长任务恢复、外部数据追溯和供应商质量治理等额外复杂度。</p>
-<p>本节答辩总结已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 31 章</a>。</p>
+<p>本节答辩总结已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
 <h5 id="30617-供应商商品同步链路"><a class="header" href="#30617-供应商商品同步链路">30.6.1.7 供应商商品同步链路</a></h5>
 <p>供应商同步链路解决的是”外部供给数据如何进入平台，并持续保持可用、可信、足够新鲜”的问题。它不是简单的定时任务，也不是把供应商字段原样搬进商品表，而是一个完整的数据治理链路：接入外部数据、适配不同协议、完成平台模型映射、校验数据质量、生成发布版本、刷新搜索缓存、通知下游系统，并在失败时可追踪、可补偿、可人工修复。</p>
 <p>从系统边界上看，它属于 <code>30.6.1.6</code> 里的供应商供给入口，但执行层要单独设计。统一供给平台负责发布模型、审核、Outbox 和质量治理；供应商同步专项链路负责外部协议适配、Raw Snapshot、Checkpoint、租约、批次版本、新鲜度和供应商质量治理。</p>
@@ -2566,7 +2566,7 @@ ProductCacheInvalidationRequired
 </table>
 </div>
 <p>质量校验要支持“部分成功”。例如酒店全量同步 100 万条房型数据，不能因为 100 条数据失败就整批失败。更合理的处理方式是：可处理数据继续写入，失败明细单独记录 <code>error_code</code>、<code>error_message</code>、<code>raw_payload_ref</code>，高风险数据不发布，进入人工修复或补偿队列。</p>
-<p>供应商同步失败治理的答辩提示已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 31 章</a>。</p>
+<p>供应商同步失败治理的答辩提示已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
 <p><strong>6. 新鲜度设计</strong></p>
 <p>不同数据的 TTL 不一样，不能使用统一缓存时间。</p>
 <div class="table-wrapper">
@@ -2853,7 +2853,7 @@ LIMIT 100;
 <pre><code class="language-text">Kafka DLQ：短期消息缓冲，可选
 MySQL DLQ：权威问题单和补偿状态
 </code></pre>
-<p>供应商同步 DLQ 的答辩总结已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 31 章</a>。</p>
+<p>供应商同步 DLQ 的答辩总结已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
 <p><strong>9. 监控设计</strong></p>
 <p><strong>9. 监控设计</strong></p>
 <p>供应商同步监控要分成技术指标、数据质量指标和业务影响指标。</p>
@@ -2897,7 +2897,7 @@ D-B 不可售率 = 下单前确认不可售 / 详情页可售点击
 </tbody>
 </table>
 </div>
-<p>供应商同步整体答辩总结已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 31 章</a>。</p>
+<p>供应商同步整体答辩总结已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
 <h5 id="30618-库存与可售设计"><a class="header" href="#30618-库存与可售设计">30.6.1.8 库存与可售设计</a></h5>
 <p>在本平台中库存没有独立拆服务，而是由商品中心内部的库存与可售域承接。这里的关键不是把库存字段放进商品主表，而是建立统一的库存抽象，屏蔽不同品类的库存来源差异。</p>
 <div class="table-wrapper">
@@ -2948,7 +2948,7 @@ D-B 不可售率 = 下单前确认不可售 / 详情页可售点击
 </tbody>
 </table>
 </div>
-<p>搜索导购的答辩总结已统一收录到<a href="../part05/03-ecommerce-architecture-interview.html">第 31 章</a>。</p>
+<p>搜索导购的答辩总结已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
 <hr>
 <h5 id="306110-跨系统集成与事件设计"><a class="header" href="#306110-跨系统集成与事件设计">30.6.1.10 跨系统集成与事件设计</a></h5>
 <p>商品中心位于交易前链路，需要向多个系统输出稳定契约。</p>
@@ -9062,7 +9062,7 @@ type Order struct {
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../part03/01-system-design-interview-overview.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../part02/12-ecommerce-product-supply-inventory-lifecycle.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -9076,7 +9076,7 @@ type Order struct {
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../part03/01-system-design-interview-overview.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../part02/12-ecommerce-product-supply-inventory-lifecycle.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
