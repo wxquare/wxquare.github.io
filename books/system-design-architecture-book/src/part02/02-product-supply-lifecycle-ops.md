@@ -4126,7 +4126,7 @@ supplier_mapping_snapshot
 
 ## 24.16 答辩材料
 
-本章相关总结、常见问题和参考要点已统一收录到[第 34 章](../part05/04-product-inventory-marketing-pricing-interview.md)。
+本章相关总结、常见问题和参考要点已统一收录到[第 36 章](../part03/04-product-inventory-marketing-pricing-interview.md)。
 
 **延伸阅读建议**：
 
@@ -4242,7 +4242,7 @@ flowchart LR
 | 失败不可运营 | 只在日志里记录导入失败 | 运营不知道怎么修 | MySQL DLQ + 错误文件 + 修复建议 + 重新投递 |
 | 质量缺陷长期存在 | 缺图、缺价、无库存、无履约规则 | 转化差、履约失败 | 商品质量巡检、质量分、自动下架或告警 |
 
-核心判断已统一收录到[第 34 章](../part05/04-product-inventory-marketing-pricing-interview.md)。
+核心判断已统一收录到[第 36 章](../part03/04-product-inventory-marketing-pricing-interview.md)。
 
 ### 24.17.4 总体架构
 
@@ -5098,7 +5098,7 @@ CREATE TABLE product_supply_dead_letter (
 
 ### 24.17.18 答辩材料
 
-本专题相关总结、常见问题和参考回答已统一收录到[第 34 章](../part05/04-product-inventory-marketing-pricing-interview.md)。
+本专题相关总结、常见问题和参考回答已统一收录到[第 36 章](../part03/04-product-inventory-marketing-pricing-interview.md)。
 
 
 ## 24.18 供应商数据同步链路
@@ -5368,7 +5368,7 @@ concurrency_policy = ALLOW_PARALLEL
   → 不重叠才允许创建
 ```
 
-相关答辩提示已统一收录到[第 31 章](../part05/03-ecommerce-architecture-interview.md)。
+相关答辩提示已统一收录到[第 35 章](../part03/03-ecommerce-architecture-interview.md)。
 
 ### 30.3 Batch 抢占
 
@@ -6122,7 +6122,7 @@ DLQ 修复率 = resolved_dlq_count / total_dlq_count
 
 ### 24.18.17 答辩材料
 
-本专题相关总结、常见问题和参考回答已统一收录到[第 31 章](../part05/03-ecommerce-architecture-interview.md)。
+本专题相关总结、常见问题和参考回答已统一收录到[第 35 章](../part03/03-ecommerce-architecture-interview.md)。
 
 ### 24.18.18 后续优化项目
 

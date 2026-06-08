@@ -1446,7 +1446,7 @@ publish_id / operation_id
 
 ## 21.15 答辩材料
 
-本章相关问题、总结话术和追问要点已统一收录到[第 34 章](../part05/04-product-inventory-marketing-pricing-interview.md)。
+本章相关问题、总结话术和追问要点已统一收录到[第 36 章](../part03/04-product-inventory-marketing-pricing-interview.md)。
 
 **延伸阅读建议**：
 

@@ -1734,7 +1734,7 @@ input_schema_tab
 
 这四类入口应该进入同一个“供给治理控制面”，共享任务模型、校验、审核、发布版本、Outbox、补偿和可观测性；但供应商同步因为存在长任务、Checkpoint、Raw Snapshot、Worker 租约、DLQ、数据新鲜度等复杂问题，可以单独展开成 `32.6.1.7` 和附录案例。
 
-相关答辩判断已统一收录到[第 31 章](../part05/03-ecommerce-architecture-interview.md)。
+相关答辩判断已统一收录到[第 35 章](../part03/03-ecommerce-architecture-interview.md)。
 
 如果这条链路设计不好
 
@@ -1973,7 +1973,7 @@ CREATE TABLE product_change_request (
 | **审核证据完整** | 审核员看到的是标准化后的商品快照、字段来源、风险命中和历史版本 |
 | **创建后不等于上线** | 发布成功后还要等待库存初始化、索引刷新、可售校验通过 |
 
-人工创建链路的答辩提示已统一收录到[第 31 章](../part05/03-ecommerce-architecture-interview.md)。
+人工创建链路的答辩提示已统一收录到[第 35 章](../part03/03-ecommerce-architecture-interview.md)。
 
 **6. 批量导入链路**
 
@@ -2270,7 +2270,7 @@ ProductCacheInvalidationRequired
 
 所以本章采用“主链路 + 专项链路”的写法：`30.6.1.6` 讲统一商品供给、运营与生命周期治理，完整设计见[第 24 章：商品供给、运营与生命周期治理](./05-product-supply-lifecycle-ops.md)；`30.6.1.7` 专门讲供应商同步，因为它有长任务恢复、外部数据追溯和供应商质量治理等额外复杂度。
 
-本节答辩总结已统一收录到[第 31 章](../part05/03-ecommerce-architecture-interview.md)。
+本节答辩总结已统一收录到[第 35 章](../part03/03-ecommerce-architecture-interview.md)。
 
 ##### 30.6.1.7 供应商商品同步链路
 
@@ -2406,7 +2406,7 @@ Sync Batch v102
 
 质量校验要支持“部分成功”。例如酒店全量同步 100 万条房型数据，不能因为 100 条数据失败就整批失败。更合理的处理方式是：可处理数据继续写入，失败明细单独记录 `error_code`、`error_message`、`raw_payload_ref`，高风险数据不发布，进入人工修复或补偿队列。
 
-供应商同步失败治理的答辩提示已统一收录到[第 31 章](../part05/03-ecommerce-architecture-interview.md)。
+供应商同步失败治理的答辩提示已统一收录到[第 35 章](../part03/03-ecommerce-architecture-interview.md)。
 
 **6. 新鲜度设计**
 
@@ -2696,7 +2696,7 @@ Kafka DLQ：短期消息缓冲，可选
 MySQL DLQ：权威问题单和补偿状态
 ```
 
-供应商同步 DLQ 的答辩总结已统一收录到[第 31 章](../part05/03-ecommerce-architecture-interview.md)。
+供应商同步 DLQ 的答辩总结已统一收录到[第 35 章](../part03/03-ecommerce-architecture-interview.md)。
 
 **9. 监控设计**
 
@@ -2737,7 +2737,7 @@ D-B 不可售率 = 下单前确认不可售 / 详情页可售点击
 | **Movie / Event** | 影片、影院、活动、场次、票种、套餐 | 座位图、最终票态、锁座结果 | 半同步半实时，座位相关必须实时确认 |
 | **Voucher / Gift Card** | 商户、品牌、面额、有效期、核销规则 | 本地券码池库存或供应商券码状态 | 更偏平台自营库存，重点是券码池和核销状态 |
 
-供应商同步整体答辩总结已统一收录到[第 31 章](../part05/03-ecommerce-architecture-interview.md)。
+供应商同步整体答辩总结已统一收录到[第 35 章](../part03/03-ecommerce-architecture-interview.md)。
 
 ##### 30.6.1.8 库存与可售设计
 
@@ -2790,7 +2790,7 @@ D-B 不可售率 = 下单前确认不可售 / 详情页可售点击
 | 降级 | 价格不可用时展示基础价，营销不可用时隐藏标签，库存不可用时弱提示 |
 | 新鲜度 | L 页允许缓存，D 页更接近实时，创单必须实时校验 |
 
-搜索导购的答辩总结已统一收录到[第 31 章](../part05/03-ecommerce-architecture-interview.md)。
+搜索导购的答辩总结已统一收录到[第 35 章](../part03/03-ecommerce-architecture-interview.md)。
 
 ---
 

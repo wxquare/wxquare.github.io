@@ -157,7 +157,7 @@ flowchart TB
 - **客户方（Downstream）**：订单与结算消费上述契约，但不应要求供应方暴露内部表结构。  
 - **防腐层（ACL）**：对接供应商、旧单体或外采营销引擎时，把外部模型挡在边界之外，避免污染核心域通用语言。
 
-**答辩提示**：业务架构图的表述模板已统一收录到[第 31 章](../part05/03-ecommerce-architecture-interview.md)。
+**答辩提示**：业务架构图的表述模板已统一收录到[第 35 章](../part03/03-ecommerce-architecture-interview.md)。
 
 ### 20.1.2 应用架构（微服务视角）
 
