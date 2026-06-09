@@ -38,6 +38,7 @@ toc: true
 > - [（十三）购物车与结算域](/system-design/32-ecommerce-cart-checkout/) — 加购暂存、结算预占、Saga 编排
 > - [（七）订单系统](/system-design/26-ecommerce-order-system/) — 订单创建、状态机、拆单、履约
 > - [（八）支付系统深度解析](/system-design/27-ecommerce-payment-system/) — 支付流程、退款、清结算、对账
+> - [（十五）核心业务长事务怎么处理](/system-design/34-ecommerce-long-transactions/) — 2PC、Saga、TCC 与改良版 Saga 选型
 
 ## 一、系统全景架构（EA + 4A 视角）
 
