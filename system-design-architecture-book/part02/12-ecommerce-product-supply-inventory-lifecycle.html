@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d82d289a.js";
+            window.path_to_searchindex_js = "../searchindex-f4dd3565.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-13610507.js"></script>
+        <script src="../toc-a47fd80d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -2933,61 +2933,486 @@ WHERE id = ?;
 <li>任务中断后必须能从 <code>current_checkpoint</code> 恢复，而不是从头重跑</li>
 <li>供应商原始返回值必须保留为证据和回放素材</li>
 </ul>
-<p>对 Agoda 这类供应商，更合适的是保持单 Worker 串行拉取：一次只拉一页或一个 cursor，每次成功拉回就立即推 MQ，然后推进 <code>current_checkpoint</code>。换句话说，<code>supplier_sync_batch</code> 只是管理“这次同步怎么跑”的外层壳，真正跑数时用的是“串行拉取 + checkpoint + MQ”的线性流水线，而不是并发切片。</p>
+<p>为了把这类长任务讲清楚，这里把供应商同步统一抽象成 4 个阶段：</p>
+<ol>
+<li><code>Phase 0: Sharder</code>，决定本次同步边界和分片颗粒度。</li>
+<li><code>Phase 1: Fetcher</code>，按照分片上下文去外部供应商拉原始数据。</li>
+<li><code>Phase 2: Transformer</code>，把原始 JSON / XML 映射成平台标准对象。</li>
+<li><code>Phase 3: Publisher</code>，把标准对象持久化、投递、发布到商品主域和治理链路。</li>
+</ol>
+<p>这 4 个阶段不是要求所有供应商都做成高并发切片框架，而是提供一个统一的执行心智。对 Agoda 这类慢源 Pull，<code>Phase 0</code> 仍然可以只产出一个或少量串行分片，<code>Phase 1</code> 保持单 Worker 慢拉，后面的 <code>Transformer / Publisher</code> 再通过 MQ 并发消峰。</p>
 <p>这里直接定调：</p>
 <blockquote>
-<p>对 Agoda 这类慢源，正确答案不是“分片并发拉”，而是“串行慢拉 + MQ 蓄水 + 下游并发消峰”。</p>
+<p>对 Agoda 这类慢源，正确答案不是“Fetcher 阶段盲目并发拉”，而是“Sharder 控边界，Fetcher 串行慢拉，Publisher 之后再用 MQ 蓄水和下游并发消峰”。</p>
 </blockquote>
 <p>所以供应商同步这类链路的本质不是“收一批外部数据”，而是：</p>
 <blockquote>
 <p>如何在超长任务、不稳定外部系统和正式发布治理之间，实现 <strong>可恢复、可追溯、可治理、可补偿</strong>。</p>
 </blockquote>
-<h4 id="362-时序图"><a class="header" href="#362-时序图">3.6.2 时序图</a></h4>
-<h5 id="3621-定时任务触发与串行接入落盘时序图"><a class="header" href="#3621-定时任务触发与串行接入落盘时序图">3.6.2.1 定时任务触发与串行接入落盘时序图</a></h5>
-<pre class="mermaid">
-sequenceDiagram
-    participant SCH as "Scheduler / Cron"
-    participant ST as "supplier_sync_task"
-    participant SB as "supplier_sync_batch"
-    participant W as "Serial Pull Worker"
-    participant SUP as "Supplier API"
-    participant HDB as "HBase / Object Store"
-    participant MYSQL as "MySQL(batch/state_ledger/task_item)"
-    participant MQP as "Processing MQ"
-
-    SCH-&gt;&gt;ST: 触发定时同步(sync_mode, data_scope, task_code)
-    SCH-&gt;&gt;MYSQL: 查询最近 RUNNING batch 与 lease_until
-    alt 存在未过期 RUNNING 批次
-        MYSQL--&gt;&gt;SCH: 返回 running batch
-        SCH--&gt;&gt;SCH: 阻断本次触发
-    else 无运行中批次或租约已过期
-        SCH-&gt;&gt;SB: 创建或接管 batch(RUNNING, current_checkpoint, sync_batch_version)
-        SCH-&gt;&gt;MYSQL: 落盘 batch 元数据与租约
-        SCH-&gt;&gt;W: 唤醒独占串行 Worker
-        W--&gt;&gt;SCH: ACK
-    end
-
-    loop 每个 page / cursor
-        W-&gt;&gt;SUP: 按 current_checkpoint 串行拉取下一页
-        alt 鉴权失败 / 模板完全失配
-            SUP--&gt;&gt;W: fatal error
-            W-&gt;&gt;MYSQL: 标记 batch FAILED，写批次级问题单
-        else 超时 / 5xx / cursor 失效
-            SUP--&gt;&gt;W: retryable error
-            W-&gt;&gt;MYSQL: 回填页面级问题单，更新 retry_count / current_checkpoint
-        else 返回 payload
-            SUP--&gt;&gt;W: raw payload
-            W-&gt;&gt;HDB: 批量保存 RAW snapshot
-            W-&gt;&gt;MYSQL: 批量 upsert state_ledger / task_item(INIT, raw_ref, page_no, cursor)
-            W-&gt;&gt;MQP: 批量发送本页消息(object_key, snapshot_ref)
-            W-&gt;&gt;MYSQL: 推进 current_checkpoint / heartbeat_at / lease_until
-        end
-    end
-
-    W-&gt;&gt;MYSQL: 尾页完成，回填 end_of_stream=true
-</pre>
-
-<p>这张图只回答一个问题：<strong>定时器触发后，串行 Worker 如何在单线程拉取、落盘、投递 MQ、推进 checkpoint 之间形成一条线性的同步流水线。</strong></p>
+<h4 id="362-整体设计和关键决策点"><a class="header" href="#362-整体设计和关键决策点">3.6.2 整体设计和关键决策点</a></h4>
+<p>在进入具体执行模型之前，可以先把这一节的核心设计收敛成几张总表。这样读者会先抓住骨架，再去看后面的分层展开、时序图和表结构。</p>
+<h5 id="3621-四阶段核心职责边界"><a class="header" href="#3621-四阶段核心职责边界">3.6.2.1 四阶段核心职责边界</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Phase</th><th>组件</th><th>核心职责</th><th>禁止事项</th><th>关键输出</th></tr>
+</thead>
+<tbody>
+<tr><td>0</td><td><code>Sharder</code></td><td>回答“这次同步边界是什么？切成多大单元？”</td><td>不做业务映射、不做最终裁决</td><td><code>ShardContext</code> 列表，至少包含 <code>batch_id / shard_id / payload / checkpoint</code></td></tr>
+<tr><td>1</td><td><code>Fetcher</code></td><td>忠实拉取 + checkpoint 推进 + RAW snapshot</td><td>不做语义转换、不做最终发布判断</td><td><code>RAW</code> 数据 + 推进 <code>current_checkpoint</code></td></tr>
+<tr><td>2</td><td><code>Transformer</code></td><td>外部 -&gt; 平台语义映射 + 标准化 + 基础风险标注</td><td>不做最终上线 / 下线裁决</td><td><code>Normalized</code> 标准模型 + <code>normalized_ref</code></td></tr>
+<tr><td>3</td><td><code>Publisher</code></td><td>写前保护 + Upsert 主域 + 状态机驱动</td><td>不直接改正式商品表</td><td><code>SUCCESS / SKIPPED / FAILED</code> + 投递结果</td></tr>
+</tbody>
+</table>
+</div>
+<p>这个拆分的最大价值在于：把“拉数据的不稳定”“翻译的复杂性”“发布的治理”彻底解耦。对于 Agoda 这类慢源、大体量、强治理场景，这种分层方式的长期维护性会明显高于“大 Consumer 泥球”。</p>
+<h5 id="3622-数据库表设计亮点"><a class="header" href="#3622-数据库表设计亮点">3.6.2.2 数据库表设计亮点</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表</th><th>角色定位</th><th>为什么重要</th></tr>
+</thead>
+<tbody>
+<tr><td><code>supplier_sync_task</code></td><td>作战计划模板 + 总控台</td><td>定义同步任务如何触发、采用哪种分片策略，并承接主任务级管理与观测</td></tr>
+<tr><td><code>supplier_sync_shard_task</code></td><td>分片级执行控制台</td><td>记录每个 shard 的执行上下文、checkpoint、失败定位与局部恢复</td></tr>
+<tr><td><code>supplier_sync_batch</code></td><td>批次级租约 + 进度总览</td><td>记录本次批次由谁在跑、跑到哪、是否还能被接管</td></tr>
+<tr><td><code>supplier_sync_state_ledger</code></td><td>对象级状态机中枢</td><td>承接并发防踩脚、对账、补偿、幽灵消息裁剪四大主权</td></tr>
+<tr><td><code>supplier_product_mapping_tab</code></td><td>映射权威</td><td>维护外部资源和平台资源之间的稳定映射关系</td></tr>
+</tbody>
+</table>
+</div>
+<p>这里最需要强调的是：<code>supplier_sync_state_ledger</code> 不是可选项，而是工业级流水线的指挥中心。没有它，100w+ 对象同步很容易退化成黑盒。</p>
+<h5 id="3623-关键设计点整理"><a class="header" href="#3623-关键设计点整理">3.6.2.3 关键设计点整理</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模块</th><th>当前设计</th><th>补充建议</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Sharder</code></td><td>支持 <code>Full / Delta / Cursor</code> 可插拔策略</td><td>增加 <code>shard_strategy_version</code>，保证策略升级后老批次仍可按原规则恢复</td></tr>
+<tr><td><code>Fetcher</code></td><td>Agoda 采用“串行 + 页级 checkpoint + 页级批量物化”</td><td>RAW snapshot 旁边补一个 <code>raw_hash</code>，辅助判断内容是否真的变化</td></tr>
+<tr><td><code>Transformer</code></td><td>将外部语义映射、标准化从 Fetcher 剥离</td><td>生成 <code>normalized_hash + field_version_map</code>，为 Publisher 提供更细粒度的字段主导权判断依据</td></tr>
+<tr><td><code>Publisher</code></td><td>CAS + 实时版本反查 + 写前保护</td><td>增加乐观字段主导权机制，例如价格、房态、状态可偏供应商主导，其它字段保留平台人工主导权</td></tr>
+<tr><td>全量 List 自动下线</td><td>批次收尾 + 时间戳打卡 + 候选集 + 比例熔断</td><td>建议增加 <code>offline_candidate_batch</code> 临时表，并配置最小存活比例阈值，防止大面积误下线</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张整理表不是要替代后面的小节，而是先把供应商同步设计的几个“高价值判断”显式列出来，方便读者快速建立全局心智。</p>
+<h5 id="3624-决策点纯串行--checkpoint还是分阶段--分片流水线"><a class="header" href="#3624-决策点纯串行--checkpoint还是分阶段--分片流水线">3.6.2.4 决策点：纯串行 + Checkpoint，还是分阶段 + 分片流水线</a></h5>
+<p>在真正展开四阶段执行模型之前，需要先回答一个更上层的问题：</p>
+<blockquote>
+<p>供应商同步到底应该继续采用“一个 Worker 从头拉到尾”的纯串行模式，还是应该升级成“分阶段 + 分片 + 中间状态可观测”的流水线模式。</p>
+</blockquote>
+<p>这是一个非常典型的架构分水岭。推荐先把两个方案明确摆出来：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>设计思路</th><th>优点</th><th>缺点</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：纯串行 + Checkpoint</td><td>只有一个 Worker 执行整个任务；每处理完一小批数据就持久化 <code>checkpoint</code>；失败或重启后从最新 checkpoint 继续</td><td>实现最简单；状态一致性最好；调试容易；故障定位直接</td><td>无法利用并行能力；速度慢；单 Worker 风险高；很难做局部重试</td><td>数据源本身不支持并发、总量可控、强顺序依赖明显的场景</td></tr>
+<tr><td>方案 B：分阶段 + 分片流水线</td><td>拆成 <code>Sharder -&gt; Fetcher -&gt; Transformer -&gt; Publisher</code> 四阶段，通过 MQ、状态表、快照存储解耦</td><td>职责边界清晰；可并行；支持任务级、批次级、分片级、对象级治理；支持局部重试、精准补偿、熔断和人工介入；可插拔扩展性强</td><td>实现复杂度更高；需要处理最终一致性、幽灵消息、旧数据覆盖；运维和监控成本更高</td><td>长任务、大体量、强治理、多供应商、多阶段协同的工业级同步场景</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果只从“最容易上线”看，方案 A 当然更轻；但一旦同步对象规模进入 100w 级、需要长期稳定运行、需要失败治理和人工介入，方案 A 很快就会暴露两个根本问题：</p>
+<ol>
+<li>它只能回答“任务有没有跑完”，很难回答“卡在哪、为什么卡、能不能局部恢复”。</li>
+<li>它把拉取、转换、发布和治理揉成一个执行体，后续每加一层能力，复杂度都会继续堆在同一个 Worker 里。</li>
+</ol>
+<p>也正因为如此，这一节最终选择方案 B 作为主方案。但这里也要讲清楚一个非常重要的现实判断：</p>
+<blockquote>
+<p>选择方案 B，不等于每个供应商都必须在每个阶段都高并发运行。</p>
+</blockquote>
+<p>对 Agoda 这种慢源、QPS 严格受限、上游接口不稳定的场景，更合理的落地方式其实是：</p>
+<ul>
+<li>在架构层选择方案 B，保留分阶段、可治理、可补偿的能力。</li>
+<li>在执行层让 <code>Fetcher</code> 继续采用偏串行的慢拉模式。</li>
+<li>把并发能力主要释放到 <code>Transformer / Publisher</code> 和错误处理链路，而不是上游盲目并发拉取。</li>
+</ul>
+<p>所以更准确的工程判断应该是：</p>
+<blockquote>
+<p>不是“方案 A 或方案 B 二选一”，而是“整体架构采用方案 B，但对慢源供应商在局部执行策略上保留方案 A 的串行心智”。</p>
+</blockquote>
+<p>这样做的结果是：</p>
+<ul>
+<li>既保住了 Agoda 场景下最关键的稳定性和 checkpoint 恢复能力；</li>
+<li>又不会把整个系统锁死在“单 Worker 黑盒长任务”的演进路径上。</li>
+</ul>
+<h5 id="3625-supplier_sync_state_ledger-为什么是关键中枢"><a class="header" href="#3625-supplier_sync_state_ledger-为什么是关键中枢">3.6.2.5 <code>supplier_sync_state_ledger</code> 为什么是关键中枢</a></h5>
+<p>这里要特别强调一点：在 RAW / NORMALIZED 报文已经全量交给 <code>HBase / Object Store</code> 的情况下，MySQL 里的 <code>supplier_sync_state_ledger</code> 仍然不是可选项。</p>
+<p>如果说 <code>HBase</code> 是装满原始货物的“大仓库”，那么 <code>supplier_sync_state_ledger</code> 就是整条同步流水线的“调度指挥中心”。它负责承接四类关键主权：</p>
+<ul>
+<li><strong>并发主权</strong>：Consumer 通过状态机和 CAS 抢占对象级执行权，避免 MQ 重投后的并发踩脚。</li>
+<li><strong>对账主权</strong>：大盘进度、成功/失败/跳过统计不能去扫 HBase，只能依赖 MySQL 轻量聚合。</li>
+<li><strong>补偿主权</strong>：失败对象必须能被精准捞出做二次重试，而不是把 100w 对象整批重跑。</li>
+<li><strong>时间差防线</strong>：消息在 MQ 里排队数小时后，Consumer 仍可结合状态台账和实时版本做写前保护，阻断旧数据覆盖新数据。</li>
+</ul>
+<p>换句话说，<code>HBase</code> 负责“存数据”，<code>supplier_sync_state_ledger</code> 负责“驱动状态机”。没有这张表，整条长任务链路就会从“可对账、可恢复、可裁剪”的工业流水线，退化成一条状态不可见的黑盒。</p>
+<h5 id="3626-phase-0-sharder-的设计点"><a class="header" href="#3626-phase-0-sharder-的设计点">3.6.2.6 Phase 0: Sharder 的设计点</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Sharder</code> 决定同步边界，不负责业务裁决</td><td>它只回答“这次同步要处理谁、切成多大颗粒度”，不负责酒店字段映射和商品最终发布裁决。</td></tr>
+<tr><td>分片策略必须可插拔</td><td>全量同步和增量同步的切法完全不同，至少要支持 <code>FullSharder / DeltaSharder / CursorSharder</code> 三类策略。</td></tr>
+<tr><td>分片策略要带版本号</td><td><code>shard_strategy_version</code> 建议显式落在主任务或批次上下文里。后续当分片规则升级时，老批次仍能按当时策略做恢复和复盘。</td></tr>
+<tr><td>shard 要能独立重试与补偿</td><td>一个 shard 失败时，应该允许局部重跑，而不是让整个 100w 任务回到起点。</td></tr>
+<tr><td>单例运行与租约接管</td><td><code>supplier_sync_batch</code> 需要 <code>status=RUNNING + lease_until</code> 的单例控制。租约未过期时，新触发直接阻断；租约过期时，新 Worker 通过 CAS 接管并继承 <code>current_checkpoint</code>。</td></tr>
+<tr><td>shard 元数据必须持久化</td><td><code>shard_id / sync_mode / page_range / hotel_id_list / checkpoint / status</code> 不能只在内存里，否则无法做断点续跑和精确补偿。</td></tr>
+<tr><td>慢源允许退化成单 shard 串行模式</td><td>Agoda 这类接口不稳定、QPS 严格受限的场景，即便有 <code>Sharder</code>，最终也可能只生成一个长串行 shard，这不是退步，而是工程上更稳。</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="3627-phase-1-fetcher-的设计点"><a class="header" href="#3627-phase-1-fetcher-的设计点">3.6.2.7 Phase 1: Fetcher 的设计点</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>串行 checkpoint 恢复</td><td>Agoda 这类慢源不适合并发拉取。更稳的做法是一次只拉一页或一个 cursor，成功后推进 <code>current_checkpoint</code>，机器重启后从最近水位继续。</td></tr>
+<tr><td>HBase 吞数据，MySQL 管状态</td><td>原始报文和标准化对象进入 HBase 或对象存储；MySQL 只负责批次、状态台账、映射和治理锚点。</td></tr>
+<tr><td>页级批量物化</td><td>串行拉回一页后，要按页批量写快照、批量 Upsert 状态台账、批量投 MQ，避免接入层做大量单条循环写。</td></tr>
+<tr><td>RAW 侧建议保留 <code>raw_hash</code></td><td>这不是最终跳过判断依据，但能明显提升重复页识别、问题排查和观测分析能力。</td></tr>
+<tr><td><code>Fetcher</code> 只忠实搬运，不做最终裁决</td><td>上游拉取层负责忠实搬运与状态推进，不基于本地镜像去做最终跳过判断。否则最容易因为失败状态、排队延迟或运营改动造成静默丢单。</td></tr>
+<tr><td>Push / Pull 介质分离</td><td>Push 更偏接口受理 + MQ 削峰，Pull 更偏单 Worker 串行拉取 + checkpoint；两者执行模型不同，但治理主线复用。</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="3628-phase-2-transformer-的设计点"><a class="header" href="#3628-phase-2-transformer-的设计点">3.6.2.8 Phase 2: Transformer 的设计点</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>映射与标准化应从 Fetcher 剥离</td><td>把外部接口抖动处理和内部语义转换拆开，能明显降低执行层复杂度。</td></tr>
+<tr><td>Transformer 产物要可回放</td><td>标准化后的对象也要落 <code>normalized_ref</code>，这样后续排障、复算、规则调整时不必重新打供应商接口。</td></tr>
+<tr><td>标准化结果建议带 <code>normalized_hash</code></td><td>它适合做观测、调试和局部重复短路，但不应替代商品主域最终幂等裁决。</td></tr>
+<tr><td>字段级主导权判断应有辅助信息</td><td><code>field_version_map</code> 或等价结构能帮助 Publisher 做更细粒度的字段主导权判断，而不是整对象盲覆盖。</td></tr>
+<tr><td>风险识别可以前移，但不做最终发布裁决</td><td>这一层可以标记异常价格、缺失字段、高风险类目，但不能越权决定是否覆盖正式商品。</td></tr>
+<tr><td>Supplier Mapping 独立持久化</td><td>外部资源和平台资源的映射不能只靠内存或日志，要有权威 <code>supplier_product_mapping_tab</code>。</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="3629-phase-3-publisher-的设计点"><a class="header" href="#3629-phase-3-publisher-的设计点">3.6.2.9 Phase 3: Publisher 的设计点</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>supplier_sync_state_ledger</code> 是状态主权中心</td><td>这张表不是简单的辅助索引，而是整个长任务的状态机中枢。它记录对象当前是 <code>INIT / PROCESSING / SUCCESS / FAILED / SKIPPED</code>，用来支撑并发防踩脚、大盘聚合、局部重试和幽灵消息裁剪。</td></tr>
+<tr><td>CAS 强占消费权</td><td>Publisher Consumer 不能拿到消息就直接处理，而要先把对象状态从 <code>INIT</code> 原子推进到 <code>PROCESSING</code>，这样才能避免 MQ 重投或多机并发时重复处理同一对象。</td></tr>
+<tr><td>供给侧允许做安全过滤，但不能做最终业务去重</td><td>供给侧可以基于 <code>state_ledger</code> 做同批次重复页、无映射死链、并发重投、以及“同批次内已明确成功投递过商品中心的重复消息”这类安全过滤；但不能仅凭 <code>hash_sign</code> 去猜测商品中心真相并直接裁决最终 <code>SKIPPED</code>。</td></tr>
+<tr><td><code>hash_sign</code> 只能做辅助观测或安全短路条件</td><td>如果状态台账里维护了 <code>hash_sign</code> / <code>payload_hash</code>，它更适合用于大盘分析、排障，以及配合“同批次已成功投递”做局部短路；不建议把它当作跨批次最终业务去重依据。</td></tr>
+<tr><td>商品中心死守强幂等</td><td>最终去重、幂等和写拦截必须收敛到商品中心。供给侧允许忠实重发，商品主域用 <code>publish_version</code>、乐观锁和字段主导权做最终写前保护。</td></tr>
+<tr><td>字段主导权要显式建模</td><td>供应商不一定对所有字段都有覆盖权。价格、房态、状态这类高动态字段可以偏供应商主导；标题、卖点、运营标签往往仍应以平台人工编辑为准。</td></tr>
+<tr><td>版本反查防旧数据覆盖</td><td>由于拉取和消费之间可能相隔数小时，Consumer 必须在写商品主域前实时反查版本和锁定状态，拦截旧数据覆盖新数据。</td></tr>
+<tr><td>执行层与治理层边界</td><td>Pull 执行层独立，Consumer 负责对象级消费控制和请求编排，但不能直接改正式商品表，只能通过商品主域写侧接口完成更新。</td></tr>
+<tr><td>对象级补偿必须可精准捞取</td><td>当 100w 对象里只有 1w 失败时，系统必须能直接通过 <code>state_ledger=FAILED</code> 拉出问题对象，而不是整批重跑。</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="36210-shard-失败与错误处理任务"><a class="header" href="#36210-shard-失败与错误处理任务">3.6.2.10 Shard 失败与错误处理任务</a></h5>
+<p>对于 Agoda 这类长任务，最忌讳的一件事就是把异常恢复逻辑塞回主同步链路，最后把 <code>Shard -&gt; Fetch -&gt; Transform -&gt; Publish</code> 重新写成一个满是分支的大黑盒。更稳的做法是：</p>
+<ol>
+<li>主同步任务负责正常生产和推进 shard。</li>
+<li>shard 失败时，只更新主表状态和 checkpoint，并写失败证据。</li>
+<li>专门的 <code>supplier_sync_error_task</code> 负责消费失败 shard，判断是自动重试、人工介入、跳过归档，还是柔性补偿。</li>
+</ol>
+<p>这里的关键分工是：</p>
+<ul>
+<li><code>supplier_sync_shard_task</code>：恢复主权表，记录“当前在哪个阶段、从哪恢复”。</li>
+<li><code>supplier_sync_shard_error_log</code>：失败审计表，记录“为什么失败、失败时上下文是什么”。</li>
+<li><code>supplier_sync_error_task</code>：异常治理表，记录“这次准备怎么处理失败 shard、处理结果如何”。</li>
+</ul>
+<p>这样设计的好处是：</p>
+<ul>
+<li>主同步任务保持干净，不被异常治理分支污染。</li>
+<li>大批量任务不会因为少量坏 shard 长时间卡死。</li>
+<li>失败治理从“看日志人工排查”升级成“显式任务化治理”。</li>
+</ul>
+<h5 id="36211-收尾与对账阶段的设计点"><a class="header" href="#36211-收尾与对账阶段的设计点">3.6.2.11 收尾与对账阶段的设计点</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>对账与终结判定依赖状态台账</td><td>跑批进行中不能去遍历 HBase 里的海量 KV 做统计。更稳的方式是基于 <code>supplier_sync_state_ledger</code> 做轻量聚合，实时得出 <code>SUCCESS / FAILED / SKIPPED / PROCESSING</code> 大盘。</td></tr>
+<tr><td>动态计数器与终结标志</td><td>由于串行 Pull 事先不知道总量，接入层应采用 <code>INCRBY + end_of_stream + DECR</code> 的动态计数协议，而不是固定总数计数器。</td></tr>
+<tr><td>DB 旁路盘点兜底</td><td>Redis 或 Consumer 猝死导致收尾漏触发时，需要由 DB 旁路定时器盘点状态台账，补触发归档。</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="36212-全量-list-下的自动下线设计点"><a class="header" href="#36212-全量-list-下的自动下线设计点">3.6.2.12 全量 List 下的自动下线设计点</a></h5>
+<p>当供应商只提供全量 List、不提供显式下线增量通知时，供应商同步链路必须自己解决“沉默的消失”：哪些对象本次没有再出现，因此应该被自动下线。</p>
+<p>这件事不适合设计成“每消费一条消息顺便判断一次”的行级逻辑，更合适的方式是把它设计成 <strong>批次收尾动作</strong>。因为只有等整批 List 拉取结束、且对象级消费已经完成收敛时，系统才知道“谁在本次真正缺席了”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>全量下线判断必须是批次级动作</td><td>下线不是单条对象能判断出来的，它依赖“本次全量 List 已经完整处理完”的全局前提，因此必须放在批次收尾阶段。</td></tr>
+<tr><td>时间戳游标是默认解法</td><td>批次启动时记录 <code>T_start</code>；本次 List 中命中的对象，在 <code>supplier_sync_state_ledger</code> 中刷新最近打卡时间；批次收尾时，再找出 <code>supplier_id</code> 下仍在线、但最近打卡时间早于 <code>T_start</code> 的对象，作为候选下线集。</td></tr>
+<tr><td>只有绝对安全瞬间才能触发下线盘点</td><td>必须同时满足 <code>end_of_stream=true</code> 且本批次对象处理已收敛，才能开始候选下线识别。不能在 MQ 还没消费完时提前执行，否则极易误杀还在排队的正常对象。</td></tr>
+<tr><td>先找候选下线集，再做比例熔断</td><td>候选下线对象不能直接批量执行下线。必须先计算占比；如果缺失比例异常高，默认视为供应商漏传、文件不完整或接口故障，自动下线应当立即熔断。</td></tr>
+<tr><td>影子快照表是高安全等级备选</td><td>如果业务对误下线极度敏感，可以先把本次全量 List 的对象主键完整写入影子快照表，再与当前在线集合做差集。这样更安全，但更重。</td></tr>
+<tr><td>下线应该通过统一治理链路发起</td><td>候选下线对象识别出来后，不应直接绕过商品主域写侧改正式状态，而应通过统一的下线命令或治理链路进入商品主域 / 库存协同。</td></tr>
+<tr><td>下线必须保留原因与批次归因</td><td>自动下线要记录 <code>off_reason / supplier_id / batch_id / trigger_id</code>，保证后续能够追溯“它是因为哪一次全量同步缺失而下线的”。</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="363-四阶段执行模型详情"><a class="header" href="#363-四阶段执行模型详情">3.6.3 四阶段执行模型详情</a></h4>
+<p>为了避免把架构分层埋进时序细节里，这里先单独定义供应商同步的四阶段执行模型，再在后面用时序图展开关键链路。这样读者会先知道职责边界，再去看具体执行顺序。</p>
+<h5 id="3631-phase-0-sharder任务分片器"><a class="header" href="#3631-phase-0-sharder任务分片器">3.6.3.1 Phase 0: Sharder（任务分片器）</a></h5>
+<p><code>Sharder</code> 不处理具体酒店数据，它只负责回答两个问题：</p>
+<ol>
+<li>这次同步的边界是什么。</li>
+<li>这次同步应该切成多大的独立执行单元。</li>
+</ol>
+<p>输入通常是主任务元数据，例如：</p>
+<ul>
+<li><code>supplier_id=agoda</code></li>
+<li><code>sync_mode=FULL / DELTA</code></li>
+<li><code>trigger_time</code></li>
+<li><code>task_code</code></li>
+</ul>
+<p>输出是一个 <code>ShardContext</code> 列表或流。每个 <code>ShardContext</code> 至少需要包含：</p>
+<ul>
+<li><code>batch_id</code></li>
+<li><code>shard_id</code></li>
+<li><code>sync_mode</code></li>
+<li><code>fetch_cursor / page_range / hotel_id_list / geo_scope</code></li>
+<li><code>checkpoint</code></li>
+<li><code>priority</code></li>
+</ul>
+<p>一个统一的 <code>ShardContext</code> 可以抽象成：</p>
+<pre><code class="language-json">{
+  "batch_id": "sb_20260604_0001",
+  "shard_id": "agoda-delta-023",
+  "supplier_id": "agoda",
+  "sync_mode": "DELTA",
+  "hotel_id_list": ["AGD_HOTEL_78231", "AGD_HOTEL_78232"],
+  "fetch_cursor": null,
+  "page_range": null,
+  "checkpoint": null,
+  "priority": 50
+}
+</code></pre>
+<p><code>Sharder</code> 最核心的价值是可插拔策略。典型策略如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>策略</th><th>适用场景</th><th>分片方法</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FullSharder</code></td><td>全量酒店同步</td><td>按酒店 ID 区间、国家/城市、页范围切分</td></tr>
+<tr><td><code>DeltaSharder</code></td><td>过去 1 小时变更同步</td><td>先查 Change Log，再按每 500 家一包切批</td></tr>
+<tr><td><code>CursorSharder</code></td><td>供应商只支持 cursor 连续拉取</td><td>只生成 1 个或极少数串行 shard</td></tr>
+</tbody>
+</table>
+</div>
+<p>对 Agoda 这类慢源，虽然可以在概念上保留 <code>Sharder</code>，但很多时候真正落地会退化成：</p>
+<ul>
+<li>全量同步时，只生成少量大 shard，甚至只有 1 个串行 shard。</li>
+<li>增量同步时，先通过 Change Log 拿到过去一段时间变化的酒店 ID，再按每 500 家一包切成多个 shard。</li>
+</ul>
+<p>在工程落地上，<code>Phase 0: Sharder</code> 至少需要两张表来承接主任务和分片任务：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表</th><th>职责</th><th>关键字段</th></tr>
+</thead>
+<tbody>
+<tr><td><code>supplier_sync_task</code></td><td>主任务定义与管理表，描述“这类同步任务是什么、何时触发、采用什么同步模式与分片策略”，同时承接任务开关、运行态观察、人工干预入口</td><td><code>task_code / supplier_id / sync_mode / data_scope / sharder_type / shard_strategy_version / cron_expr / status / last_run_at / next_run_at / last_batch_id</code></td></tr>
+<tr><td><code>supplier_sync_shard_task</code></td><td>分片任务执行与管理表，描述“这次批次被切出了哪些 shard、每个 shard 现在跑到哪”，同时承接 shard 级重试、卡点定位、补偿与人工接管</td><td><code>batch_id / shard_task_id / shard_no / shard_type / shard_payload / checkpoint / status / retry_count / worker_id / lease_until</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>这里的职责边界要非常明确：</p>
+<ol>
+<li><code>supplier_sync_task</code> 不是纯静态模板，它既回答“应该怎么跑”，也回答“这类任务现在整体跑得怎么样”。</li>
+<li><code>supplier_sync_shard_task</code> 也不是单纯技术分片，它既回答“这次具体切出了什么”，也回答“哪一片卡住了、哪一片失败了、哪一片该补偿”。</li>
+</ol>
+<p>可以把它理解成：</p>
+<ul>
+<li><code>supplier_sync_task</code> 是 Agoda 酒店同步这类任务的“作战计划模板 + 总控台”。</li>
+<li><code>supplier_sync_shard_task</code> 是 2026-06-04 这次增量同步真正拆出来的 100 个 shard 任务 + 分片级执行控制台。</li>
+</ul>
+<p>这两张表之所以必须同时承担 <strong>任务管理</strong>，核心原因只有一个：<strong>避免任务黑盒</strong>。如果它们只保存配置和少量执行元数据，那么一旦同步跑了 6 小时、卡在第 42 个 shard、某个供应商接口反复超时，平台只能看到“任务还没结束”，却不知道：</p>
+<ul>
+<li>当前主任务是卡在分片生成、数据拉取、转换还是发布。</li>
+<li>哪些 shard 已完成，哪些 shard 在重试，哪些 shard 已经失败待人工处理。</li>
+<li>是否需要整体暂停主任务，还是只重试个别 shard。</li>
+<li>当前失败是否是供应商全局故障，还是局部数据脏点。</li>
+</ul>
+<p>所以更准确的表达应该是：</p>
+<blockquote>
+<p><code>supplier_sync_task</code> 负责主任务级管理与可观测，<code>supplier_sync_shard_task</code> 负责 shard 级管理与可定位。两者合起来，才能把超长同步任务从黑盒变成可治理流水线。</p>
+</blockquote>
+<p>具体来说，建议它们共同承担以下管理能力：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>管理能力</th><th><code>supplier_sync_task</code></th><th><code>supplier_sync_shard_task</code></th></tr>
+</thead>
+<tbody>
+<tr><td>任务启停</td><td>主任务级启用、暂停、熔断</td><td>不承担</td></tr>
+<tr><td>运行总览</td><td>展示最近批次、整体成功率、最后运行时间</td><td>汇总到主任务</td></tr>
+<tr><td>进度定位</td><td>看到当前批次号、当前阶段、整体完成度</td><td>看到具体 shard 的 checkpoint 和卡点</td></tr>
+<tr><td>失败治理</td><td>判断是否需要整批终止或降级</td><td>精确定位失败 shard 并单片重试</td></tr>
+<tr><td>人工介入</td><td>平台运营或研发可暂停 / 恢复主任务</td><td>定向重跑某一片、摘除坏 shard、手动接管</td></tr>
+<tr><td>审计追踪</td><td>记录主任务级调度与状态变更</td><td>记录 shard 级重试、迁移、失败原因</td></tr>
+</tbody>
+</table>
+</div>
+<p>下面给一组简化样例数据。</p>
+<p>主任务样例：<code>supplier_sync_task</code></p>
+<pre><code class="language-json">{
+  "id": 2001,
+  "task_code": "AGODA_HOTEL_DELTA_SYNC",
+  "supplier_id": 88,
+  "sync_mode": "PULL",
+  "data_scope": "HOTEL",
+  "sharder_type": "DELTA_SHARDER",
+  "shard_strategy_version": "v3",
+  "concurrency_policy": "SERIAL_FETCH_PARALLEL_PUBLISH",
+  "status": "ACTIVE",
+  "cron_expr": "0 */1 * * * ?",
+  "last_run_at": "2026-06-04 01:00:00",
+  "next_run_at": "2026-06-04 02:00:00",
+  "last_batch_id": "sb_20260604_010000",
+  "last_run_status": "PARTIAL_SUCCESS",
+  "last_stage": "PUBLISHING",
+  "ext_json": {
+    "delta_window_minutes": 60,
+    "shard_size": 500,
+    "max_fetch_qps": 2,
+    "checkpoint_mode": "CHANGE_LOG_CURSOR"
+  }
+}
+</code></pre>
+<p>分片任务样例：<code>supplier_sync_shard_task</code></p>
+<pre><code class="language-json">[
+  {
+    "id": 910001,
+    "batch_id": "sb_20260604_020000",
+    "shard_task_id": "sst_20260604_0001",
+    "task_code": "AGODA_HOTEL_DELTA_SYNC",
+    "supplier_id": 88,
+    "shard_no": 1,
+    "shard_type": "HOTEL_ID_LIST",
+    "shard_payload": {
+      "hotel_ids": ["AGD_HOTEL_78231", "AGD_HOTEL_78232", "AGD_HOTEL_78233"],
+      "source_change_cursor": "chg_20260604015900_001"
+    },
+    "worker_id": "fetcher-03",
+    "lease_until": "2026-06-04 02:05:00",
+    "checkpoint": null,
+    "status": "INIT",
+    "retry_count": 0
+  },
+  {
+    "id": 910002,
+    "batch_id": "sb_20260604_020000",
+    "shard_task_id": "sst_20260604_0002",
+    "task_code": "AGODA_HOTEL_DELTA_SYNC",
+    "supplier_id": 88,
+    "shard_no": 2,
+    "shard_type": "HOTEL_ID_LIST",
+    "shard_payload": {
+      "hotel_ids": ["AGD_HOTEL_78731", "AGD_HOTEL_78732", "AGD_HOTEL_78733"],
+      "source_change_cursor": "chg_20260604015900_002"
+    },
+    "worker_id": "fetcher-04",
+    "lease_until": "2026-06-04 02:05:00",
+    "checkpoint": "hotel_id=AGD_HOTEL_78732",
+    "status": "RUNNING",
+    "retry_count": 1,
+    "last_error_code": "SUPPLIER_TIMEOUT"
+  }
+]
+</code></pre>
+<p>如果是全量同步，<code>supplier_sync_task</code> 不变，但 <code>supplier_sync_shard_task</code> 的 <code>shard_payload</code> 往往会换成 ID 区间或地理范围，例如：</p>
+<pre><code class="language-json">{
+  "batch_id": "sb_20260605_020000",
+  "shard_task_id": "sst_20260605_0042",
+  "task_code": "AGODA_HOTEL_FULL_SYNC",
+  "shard_no": 42,
+  "shard_type": "HOTEL_ID_RANGE",
+  "shard_payload": {
+    "start_hotel_id": 420000,
+    "end_hotel_id": 429999,
+    "country_code": "TH"
+  },
+  "checkpoint": "hotel_id=424120",
+  "status": "RUNNING",
+  "retry_count": 1
+}
+</code></pre>
+<h5 id="3632-phase-1-fetcher数据拉取器"><a class="header" href="#3632-phase-1-fetcher数据拉取器">3.6.3.2 Phase 1: Fetcher（数据拉取器）</a></h5>
+<p><code>Fetcher</code> 接收 <code>ShardContext</code> 后，真正去供应商侧拉数据。它的职责非常克制：</p>
+<ul>
+<li>调用供应商 API</li>
+<li>处理鉴权、限流、超时、重试</li>
+<li>维护当前 shard 的 <code>current_checkpoint</code></li>
+<li>把原始响应保存成 RAW snapshot</li>
+</ul>
+<p>它不负责做平台业务语义判断，也不负责最终商品裁决。</p>
+<p>对 Agoda 慢源，更推荐 <code>Fetcher</code> 保持串行慢拉：</p>
+<ul>
+<li>一次只拉一页或一个 cursor</li>
+<li>每成功一页就推进一次 <code>current_checkpoint</code></li>
+<li>每成功一页就落一次 RAW snapshot</li>
+<li>机器重启后从最近一次安全 checkpoint 继续</li>
+</ul>
+<p>为了让后续处理和排障更稳，推荐在 RAW snapshot 旁边同时保存一个轻量 <code>raw_hash</code>。它不是最终业务裁决依据，但很适合用于：</p>
+<ul>
+<li>辅助判断供应商本次返回内容是否真的变化</li>
+<li>观测重复页、脏页和异常重放</li>
+<li>给后续 <code>payload_hash / hash_sign</code> 提供更稳定的底层输入</li>
+</ul>
+<p>这一步的本质是：<strong>忠实搬运外部数据，并把“已经安全拉到哪里”这件事固化下来。</strong></p>
+<h5 id="3633-phase-2-transformer数据转换器"><a class="header" href="#3633-phase-2-transformer数据转换器">3.6.3.3 Phase 2: Transformer（数据转换器）</a></h5>
+<p><code>Transformer</code> 的输入是 RAW snapshot，输出是内部标准酒店模型。它主要做 4 类工作：</p>
+<ol>
+<li>外部字段映射，例如 Agoda 的酒店、房型、价格日历字段映射到平台内部模型。</li>
+<li>数据标准化，例如国家、城市、币种、时区、退款规则统一口径。</li>
+<li>基础校验与风险标注，例如字段缺失、模板失配、异常价格、可疑履约规则。</li>
+<li>生成平台标准对象快照，供后续 Publisher 使用。</li>
+</ol>
+<p>这一步建议只做“把外部语义翻译成平台语义”，不要在这里直接下最终发布裁决。因为：</p>
+<ul>
+<li><code>Transformer</code> 看得到原始数据，但看不到最终正式商品主权。</li>
+<li>它适合做结构化解释，不适合做最终线上覆盖裁决。</li>
+</ul>
+<p>推荐在标准化产物里额外生成两类辅助信息：</p>
+<ul>
+<li><code>normalized_hash</code>：标准化后的对象哈希，用于观测和局部去重短路。</li>
+<li><code>field_version_map</code>：记录本次变更覆盖了哪些字段，供 Publisher 做更细粒度的字段主导权判断。</li>
+</ul>
+<p>例如供应商只对价格、房态、上下架状态有主导权，而标题、卖点、运营标签仍以平台人工编辑为准时，<code>field_version_map</code> 能明显降低“整对象覆盖”的粗暴程度。</p>
+<h5 id="3634-phase-3-publisher数据发布器"><a class="header" href="#3634-phase-3-publisher数据发布器">3.6.3.4 Phase 3: Publisher（数据发布器）</a></h5>
+<p><code>Publisher</code> 的输入是标准酒店模型，输出是持久化和分发结果。它要承担的事情最多，但边界也最重要：</p>
+<ul>
+<li>Upsert <code>supplier_sync_state_ledger</code></li>
+<li>更新 <code>supplier_product_mapping_tab</code></li>
+<li>投递发布消息或调用商品主域写侧</li>
+<li>根据实时 <code>publish_version</code>、锁定状态、字段主导权做最终写前保护</li>
+<li>记录 <code>SUCCESS / FAILED / SKIPPED</code></li>
+</ul>
+<p>这一层才是供应商同步与商品主域、审核治理、版本保护真正接壤的地方。换句话说：</p>
+<blockquote>
+<p><code>Sharder</code> 决定怎么切，<code>Fetcher</code> 决定怎么拉，<code>Transformer</code> 决定怎么翻译，<code>Publisher</code> 决定怎么以平台规则落地。</p>
+</blockquote>
+<p>如果把这 4 步混在一起写成一个大 Consumer，短期能跑，长期几乎一定失控。</p>
+<h4 id="364-时序图"><a class="header" href="#364-时序图">3.6.4 时序图</a></h4>
 <p>这里的批次级运行状态，主要沉淀在 <code>supplier_sync_batch</code>。它记录的是“这次同步整体怎么跑、现在跑到哪、谁在跑、租约是否有效”，而不是每个酒店对象的明细结果。</p>
 <p>一个典型的 <code>supplier_sync_batch</code> 可以长这样：</p>
 <div class="table-wrapper">
@@ -3043,11 +3468,11 @@ sequenceDiagram
   "last_error_message": null
 }
 </code></pre>
-<h5 id="3622-处理阶段时序图"><a class="header" href="#3622-处理阶段时序图">3.6.2.2 处理阶段时序图</a></h5>
+<h5 id="3641-publisher-处理阶段时序图"><a class="header" href="#3641-publisher-处理阶段时序图">3.6.4.1 Publisher 处理阶段时序图</a></h5>
 <pre class="mermaid">
 sequenceDiagram
-    participant MQP as "Processing MQ"
-    participant CONS as "Consumer (履约总控大脑)"
+    participant MQP as "Publish MQ"
+    participant CONS as "Publisher Consumer"
     participant HDB as "HBase / Object Store"
     participant SL as "supplier_sync_state_ledger"
     participant P as "商品主域写侧"
@@ -3069,11 +3494,11 @@ sequenceDiagram
     end
 </pre>
 
-<p>这张图只回答第三个问题：<strong>Consumer 如何在处理阶段完成标准对象准备，并拦截因为队列时间差导致的旧数据覆盖新数据。</strong></p>
-<h5 id="3623-消费后请求商品主域写侧时序图"><a class="header" href="#3623-消费后请求商品主域写侧时序图">3.6.2.3 消费后请求商品主域写侧时序图</a></h5>
+<p>这张图只回答一个问题：<strong>Publisher 如何在真正落地前，拦截因为队列时间差导致的旧数据覆盖新数据。</strong></p>
+<h5 id="3642-publisher-请求商品主域写侧时序图"><a class="header" href="#3642-publisher-请求商品主域写侧时序图">3.6.4.2 Publisher 请求商品主域写侧时序图</a></h5>
 <pre class="mermaid">
 sequenceDiagram
-    participant CONS as "Consumer (履约总控大脑)"
+    participant CONS as "Publisher Consumer"
     participant P as "商品主域写侧"
     participant SL as "supplier_sync_state_ledger"
 
@@ -3091,126 +3516,26 @@ sequenceDiagram
     end
 </pre>
 
-<p>这张图只回答第四个问题：<strong>Consumer 在完成处理后，如何把结果请求到商品主域写侧。</strong></p>
-<h4 id="363-关键设计点"><a class="header" href="#363-关键设计点">3.6.3 关键设计点</a></h4>
-<p>这里要特别强调一点：在 RAW / NORMALIZED 报文已经全量交给 <code>HBase / Object Store</code> 的情况下，MySQL 里的 <code>supplier_sync_state_ledger</code> 仍然不是可选项。</p>
-<p>如果说 <code>HBase</code> 是装满原始货物的“大仓库”，那么 <code>supplier_sync_state_ledger</code> 就是整条同步流水线的“调度指挥中心”。它负责承接四类关键主权：</p>
-<ul>
-<li><strong>并发主权</strong>：Consumer 通过状态机和 CAS 抢占对象级执行权，避免 MQ 重投后的并发踩脚。</li>
-<li><strong>对账主权</strong>：大盘进度、成功/失败/跳过统计不能去扫 HBase，只能依赖 MySQL 轻量聚合。</li>
-<li><strong>补偿主权</strong>：失败对象必须能被精准捞出做二次重试，而不是把 100w 对象整批重跑。</li>
-<li><strong>时间差防线</strong>：消息在 MQ 里排队数小时后，Consumer 仍可结合状态台账和实时版本做写前保护，阻断旧数据覆盖新数据。</li>
-</ul>
-<p>换句话说，<code>HBase</code> 负责“存数据”，<code>supplier_sync_state_ledger</code> 负责“驱动状态机”。没有这张表，整条长任务链路就会从“可对账、可恢复、可裁剪”的工业流水线，退化成一条状态不可见的黑盒。</p>
-<h5 id="3631-定时触发与串行接入阶段的设计点"><a class="header" href="#3631-定时触发与串行接入阶段的设计点">3.6.3.1 定时触发与串行接入阶段的设计点</a></h5>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>设计点</th><th>说明</th></tr>
-</thead>
-<tbody>
-<tr><td>单例运行与租约接管</td><td><code>supplier_sync_batch</code> 需要 <code>status=RUNNING + lease_until</code> 的单例控制。租约未过期时，新触发直接阻断；租约过期时，新 Worker 通过 CAS 接管并继承 <code>current_checkpoint</code>。</td></tr>
-<tr><td>串行 checkpoint 恢复</td><td>Agoda 这类慢源不适合并发拉取。更稳的做法是一次只拉一页或一个 cursor，成功后推进 <code>current_checkpoint</code>，机器重启后从最近水位继续。</td></tr>
-<tr><td>HBase 吞数据，MySQL 管状态</td><td>原始报文和标准化对象进入 HBase 或对象存储；MySQL 只负责批次、状态台账、映射和治理锚点。</td></tr>
-<tr><td>页级批量物化</td><td>串行拉回一页后，要按页批量写快照、批量 Upsert 状态台账、批量投 MQ，避免接入层做大量单条循环写。</td></tr>
-<tr><td>供给侧不做最终过滤裁决</td><td>上游供应商同步链路负责忠实搬运与状态推进，不基于本地镜像去做最终跳过判断。否则最容易因为失败状态、排队延迟或运营改动造成静默丢单。</td></tr>
-<tr><td>Push / Pull 介质分离</td><td>Push 更偏接口受理 + MQ 削峰，Pull 更偏单 Worker 串行拉取 + checkpoint；两者执行模型不同，但治理主线复用。</td></tr>
-<tr><td>Supplier Mapping 独立持久化</td><td>外部资源和平台资源的映射不能只靠内存或日志，要有权威 <code>supplier_product_mapping_tab</code>。</td></tr>
-</tbody>
-</table>
-</div>
-<h5 id="3632-行级消费与商品主域写入阶段的设计点"><a class="header" href="#3632-行级消费与商品主域写入阶段的设计点">3.6.3.2 行级消费与商品主域写入阶段的设计点</a></h5>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>设计点</th><th>说明</th></tr>
-</thead>
-<tbody>
-<tr><td><code>supplier_sync_state_ledger</code> 是状态主权中心</td><td>这张表不是简单的辅助索引，而是整个长任务的状态机中枢。它记录对象当前是 <code>INIT / PROCESSING / SUCCESS / FAILED / SKIPPED</code>，用来支撑并发防踩脚、大盘聚合、局部重试和幽灵消息裁剪。</td></tr>
-<tr><td>CAS 强占消费权</td><td>Consumer 不能拿到消息就直接处理，而要先把对象状态从 <code>INIT</code> 原子推进到 <code>PROCESSING</code>，这样才能避免 MQ 重投或多机并发时重复处理同一对象。</td></tr>
-<tr><td>供给侧允许做安全过滤，但不能做最终业务去重</td><td>供给侧可以基于 <code>state_ledger</code> 做同批次重复页、无映射死链、并发重投、以及“同批次内已明确成功投递过商品中心的重复消息”这类安全过滤；但不能仅凭 <code>hash_sign</code> 去猜测商品中心真相并直接裁决最终 <code>SKIPPED</code>。</td></tr>
-<tr><td><code>hash_sign</code> 只能做辅助观测或安全短路条件</td><td>如果状态台账里维护了 <code>hash_sign</code> / <code>payload_hash</code>，它更适合用于大盘分析、排障，以及配合“同批次已成功投递”做局部短路；不建议把它当作跨批次最终业务去重依据。</td></tr>
-<tr><td>商品中心死守强幂等</td><td>最终去重、幂等和写拦截必须收敛到商品中心。供给侧允许忠实重发，商品主域用 <code>publish_version</code>、乐观锁和字段主导权做最终写前保护。</td></tr>
-<tr><td>版本反查防旧数据覆盖</td><td>由于拉取和消费之间可能相隔数小时，Consumer 必须在写商品主域前实时反查版本和锁定状态，拦截旧数据覆盖新数据。</td></tr>
-<tr><td>执行层与治理层边界</td><td>Pull 执行层独立，Consumer 负责对象级消费控制和请求编排，但不能直接改正式商品表，只能通过商品主域写侧接口完成更新。</td></tr>
-<tr><td>对象级补偿必须可精准捞取</td><td>当 100w 对象里只有 1w 失败时，系统必须能直接通过 <code>state_ledger=FAILED</code> 拉出问题对象，而不是整批重跑。</td></tr>
-</tbody>
-</table>
-</div>
-<h5 id="3633-收尾与对账阶段的设计点"><a class="header" href="#3633-收尾与对账阶段的设计点">3.6.3.3 收尾与对账阶段的设计点</a></h5>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>设计点</th><th>说明</th></tr>
-</thead>
-<tbody>
-<tr><td>对账与终结判定依赖状态台账</td><td>跑批进行中不能去遍历 HBase 里的海量 KV 做统计。更稳的方式是基于 <code>supplier_sync_state_ledger</code> 做轻量聚合，实时得出 <code>SUCCESS / FAILED / SKIPPED / PROCESSING</code> 大盘。</td></tr>
-<tr><td>动态计数器与终结标志</td><td>由于串行 Pull 事先不知道总量，接入层应采用 <code>INCRBY + end_of_stream + DECR</code> 的动态计数协议，而不是固定总数计数器。</td></tr>
-<tr><td>DB 旁路盘点兜底</td><td>Redis 或 Consumer 猝死导致收尾漏触发时，需要由 DB 旁路定时器盘点状态台账，补触发归档。</td></tr>
-</tbody>
-</table>
-</div>
-<h5 id="3634-全量-list-下的自动下线设计点"><a class="header" href="#3634-全量-list-下的自动下线设计点">3.6.3.4 全量 List 下的自动下线设计点</a></h5>
-<p>当供应商只提供全量 List、不提供显式下线增量通知时，供应商同步链路必须自己解决“沉默的消失”：哪些对象本次没有再出现，因此应该被自动下线。</p>
-<p>这件事不适合设计成“每消费一条消息顺便判断一次”的行级逻辑，更合适的方式是把它设计成 <strong>批次收尾动作</strong>。因为只有等整批 List 拉取结束、且对象级消费已经完成收敛时，系统才知道“谁在本次真正缺席了”。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>设计点</th><th>说明</th></tr>
-</thead>
-<tbody>
-<tr><td>全量下线判断必须是批次级动作</td><td>下线不是单条对象能判断出来的，它依赖“本次全量 List 已经完整处理完”的全局前提，因此必须放在批次收尾阶段。</td></tr>
-<tr><td>时间戳游标是默认解法</td><td>批次启动时记录 <code>T_start</code>；本次 List 中命中的对象，在 <code>supplier_sync_state_ledger</code> 中刷新最近打卡时间；批次收尾时，再找出 <code>supplier_id</code> 下仍在线、但最近打卡时间早于 <code>T_start</code> 的对象，作为候选下线集。</td></tr>
-<tr><td>只有绝对安全瞬间才能触发下线盘点</td><td>必须同时满足 <code>end_of_stream=true</code> 且本批次对象处理已收敛，才能开始候选下线识别。不能在 MQ 还没消费完时提前执行，否则极易误杀还在排队的正常对象。</td></tr>
-<tr><td>先找候选下线集，再做比例熔断</td><td>候选下线对象不能直接批量执行下线。必须先计算占比；如果缺失比例异常高，默认视为供应商漏传、文件不完整或接口故障，自动下线应当立即熔断。</td></tr>
-<tr><td>影子快照表是高安全等级备选</td><td>如果业务对误下线极度敏感，可以先把本次全量 List 的对象主键完整写入影子快照表，再与当前在线集合做差集。这样更安全，但更重。</td></tr>
-<tr><td>下线应该通过统一治理链路发起</td><td>候选下线对象识别出来后，不应直接绕过商品主域写侧改正式状态，而应通过统一的下线命令或治理链路进入商品主域 / 库存协同。</td></tr>
-<tr><td>下线必须保留原因与批次归因</td><td>自动下线要记录 <code>off_reason / supplier_id / batch_id / trigger_id</code>，保证后续能够追溯“它是因为哪一次全量同步缺失而下线的”。</td></tr>
-</tbody>
-</table>
-</div>
-<p>如果采用时间戳游标法，批次收尾时的候选下线识别通常会长这样：</p>
-<pre><code class="language-sql">UPDATE supplier_sync_state_ledger
-SET state = 'OFFLINE_CANDIDATE',
-    off_reason = 'SUPPLIER_MISSING_IN_FULL_LIST',
-    off_batch_id = :current_batch_id
-WHERE supplier_id = :supplier_id
-  AND state = 'ONLINE'
-  AND last_seen_at &lt; :batch_start_time;
-</code></pre>
-<p>这里的 <code>last_seen_at &lt; T_start</code> 不是“马上执行正式下线”，而是先把对象打入 <strong>候选下线集合</strong>。真正执行下线前，还要经过：</p>
-<ul>
-<li>下线比例熔断</li>
-<li>人工审核或自动风控</li>
-<li>批量异步投递下线命令</li>
-</ul>
-<p>这样整条链路的心智就很清楚：</p>
-<ol>
-<li>本批次出现过的对象完成“存活打卡”</li>
-<li>本批次结束后，没打卡的对象进入候选下线集</li>
-<li>候选下线集先经过风控比例熔断</li>
-<li>通过后再进入统一下线治理链路</li>
-</ol>
-<p>它的本质不是“查缺失”，而是：</p>
-<blockquote>
-<p>把供应商只给全量 List 的不确定性，收敛成一个可恢复、可熔断、可审计的批次收尾步骤。</p>
-</blockquote>
-<h4 id="364-表和版本映射"><a class="header" href="#364-表和版本映射">3.6.4 表和版本映射</a></h4>
+<p>这张图只回答最后一个问题：<strong>Publisher 在完成标准对象准备后，如何把结果请求到商品主域写侧。</strong></p>
+<h4 id="365-表和版本映射"><a class="header" href="#365-表和版本映射">3.6.5 表和版本映射</a></h4>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>对象</th><th>作用</th><th>关键字段</th></tr>
 </thead>
 <tbody>
-<tr><td><code>supplier_sync_task</code></td><td>定义同步任务</td><td><code>task_code / sync_mode / data_scope / concurrency_policy</code></td></tr>
+<tr><td><code>supplier_sync_task</code></td><td>定义和管理同步任务</td><td><code>task_code / sync_mode / data_scope / sharder_type / shard_strategy_version / concurrency_policy</code></td></tr>
 <tr><td><code>supplier_sync_batch</code></td><td>一次执行批次与租约控制</td><td><code>batch_id / status / sync_batch_version / current_checkpoint / worker_id / lease_token / lease_until / heartbeat_at / end_of_stream</code></td></tr>
+<tr><td><code>supplier_sync_shard_task</code></td><td>一次批次下的分片任务执行上下文</td><td><code>batch_id / shard_task_id / shard_no / shard_type / shard_payload / checkpoint / status / retry_count</code></td></tr>
+<tr><td><code>supplier_sync_error_task</code></td><td>shard 失败后的异常治理任务</td><td><code>error_task_id / source_shard_task_id / recovery_type / target_stage / status / start_checkpoint</code></td></tr>
+<tr><td><code>supplier_sync_shard_error_log</code></td><td>shard 级失败证据</td><td><code>shard_task_id / stage / error_code / error_message / checkpoint</code></td></tr>
 <tr><td><code>supplier_sync_state_ledger</code></td><td>供应商对象状态台账</td><td><code>supplier_id / outer_goods_id / last_batch_id / state / last_snapshot_ref</code></td></tr>
 <tr><td><code>supplier_product_mapping_tab</code></td><td>外部资源到平台资源映射</td><td><code>supplier_id / external_resource_id / internal_object_id / mapping_status</code></td></tr>
 <tr><td><code>publish_version</code></td><td>平台正式发布版本</td><td><code>item_id / publish_version</code></td></tr>
 </tbody>
 </table>
 </div>
-<h4 id="365-agoda-酒店同步样例数据"><a class="header" href="#365-agoda-酒店同步样例数据">3.6.5 Agoda 酒店同步样例数据</a></h4>
+<h4 id="366-agoda-酒店同步样例数据"><a class="header" href="#366-agoda-酒店同步样例数据">3.6.6 Agoda 酒店同步样例数据</a></h4>
 <p>下面给一组简化样例，帮助把这些表和 Agoda 酒店同步场景串起来。这里默认同步对象是 <code>AGD_HOTEL_78231</code>，同步模式是串行 Pull，目标是把供应商侧的酒店基础信息、房型信息和价格/库存差异同步到平台治理链路。</p>
 <div class="table-wrapper">
 <table>
@@ -3218,10 +3543,12 @@ WHERE supplier_id = :supplier_id
 <tr><th>对象</th><th>样例数据</th><th>说明</th></tr>
 </thead>
 <tbody>
-<tr><td><code>supplier_sync_task</code></td><td><code>task_code=AGODA_HOTEL_PULL_DAILY</code><br><code>sync_mode=PULL</code><br><code>data_scope=HOTEL</code><br><code>concurrency_policy=SINGLE_WORKER</code></td><td>业务级同步定义，表达“每天串行拉取 Agoda 酒店数据”</td></tr>
+<tr><td><code>supplier_sync_task</code></td><td><code>task_code=AGODA_HOTEL_PULL_DAILY</code><br><code>sync_mode=PULL</code><br><code>data_scope=HOTEL</code><br><code>sharder_type=DELTA_SHARDER</code><br><code>shard_strategy_version=v3</code><br><code>concurrency_policy=SINGLE_WORKER</code></td><td>业务级同步定义，表达“每天串行拉取 Agoda 酒店数据，并采用可插拔的分片策略”</td></tr>
 <tr><td><code>supplier_sync_batch</code></td><td><code>batch_id=sb_20260604_0001</code><br><code>status=RUNNING</code><br><code>sync_batch_version=20260604-1</code><br><code>current_checkpoint=cursor=abc123</code><br><code>worker_id=sw-03</code><br><code>lease_token=lt_8f7a</code><br><code>lease_until=2026-06-04 02:15:15</code><br><code>heartbeat_at=2026-06-04 02:10:15</code><br><code>end_of_stream=false</code></td><td>一次实际执行批次，记录当前拉到哪了、由谁跑、租约是否有效，以及是否已经拉到尾页</td></tr>
+<tr><td><code>supplier_sync_shard_task</code></td><td><code>batch_id=sb_20260604_0001</code><br><code>shard_task_id=sst_20260604_0023</code><br><code>shard_no=23</code><br><code>shard_type=HOTEL_ID_RANGE</code><br><code>shard_payload=[78231...78730]</code><br><code>status=RUNNING</code><br><code>checkpoint=hotel_id=78510</code></td><td>对四阶段框架里的 <code>ShardContext</code> 做持久化，表达“本批次切出的一个具体 shard task”</td></tr>
+<tr><td><code>supplier_sync_error_task</code></td><td><code>error_task_id=set_20260604_0007</code><br><code>source_shard_task_id=sst_20260604_0023</code><br><code>recovery_type=RETRY_PUBLISH</code><br><code>target_stage=PUBLISH</code><br><code>status=INIT</code><br><code>start_checkpoint=object_key=AGD_HOTEL_78510</code></td><td>当 shard 失败后，单独用错误处理任务承接恢复与治理，而不是污染主同步链路</td></tr>
 <tr><td><code>supplier_sync_state_ledger</code></td><td><code>supplier_id=agoda</code><br><code>outer_goods_id=AGD_HOTEL_78231</code><br><code>last_batch_id=sb_20260604_0001</code><br><code>state=INIT</code><br><code>last_snapshot_ref=oss://agoda-sync/raw/78231.json</code></td><td>记录 Agoda 某个酒店对象在这次同步中的最新状态和最近快照引用，用来支撑状态推进、补偿和收口</td></tr>
-<tr><td><code>HBase / Object Store</code></td><td><code>raw_ref=oss://agoda-sync/raw/78231.json</code><br><code>normalized_ref=oss://agoda-sync/norm/78231.json</code></td><td>原始报文和标准化对象都沉淀到 HBase / 对象存储，供回放、复算和审计使用</td></tr>
+<tr><td><code>HBase / Object Store</code></td><td><code>raw_ref=oss://agoda-sync/raw/78231.json</code><br><code>raw_hash=sha256:abc...</code><br><code>normalized_ref=oss://agoda-sync/norm/78231.json</code><br><code>normalized_hash=sha256:def...</code></td><td>原始报文和标准化对象都沉淀到 HBase / 对象存储，供回放、复算和审计使用</td></tr>
 <tr><td><code>supplier_product_mapping_tab</code></td><td><code>supplier_id=agoda</code><br><code>external_resource_id=AGD_HOTEL_78231</code><br><code>internal_object_id=hotel_10086</code><br><code>mapping_status=ACTIVE</code></td><td>维护 Agoda 酒店 ID 到平台酒店对象 ID 的权威映射</td></tr>
 <tr><td><code>publish_version</code></td><td><code>item_id=hotel_10086</code><br><code>publish_version=18</code></td><td>平台当前正式发布版本，用于 Diff 和版本保护</td></tr>
 </tbody>
@@ -3869,9 +4196,16 @@ sequenceDiagram
   `supplier_id` BIGINT NOT NULL COMMENT '供应商ID',
   `sync_mode` VARCHAR(16) NOT NULL COMMENT 'PULL / PUSH',
   `data_scope` VARCHAR(32) NOT NULL COMMENT 'HOTEL / PRODUCT / OFFER',
+  `sharder_type` VARCHAR(32) NOT NULL COMMENT 'FULL_SHARDER / DELTA_SHARDER / CURSOR_SHARDER',
+  `shard_strategy_version` VARCHAR(32) NOT NULL COMMENT '分片策略版本号',
   `concurrency_policy` VARCHAR(32) NOT NULL COMMENT 'SINGLE_WORKER / SERIAL_BATCH',
   `status` VARCHAR(16) NOT NULL COMMENT 'ACTIVE / PAUSED',
   `cron_expr` VARCHAR(64) DEFAULT NULL COMMENT '调度表达式',
+  `last_batch_id` VARCHAR(64) DEFAULT NULL COMMENT '最近一次执行批次',
+  `last_run_status` VARCHAR(32) DEFAULT NULL COMMENT '最近一次执行结果',
+  `last_stage` VARCHAR(32) DEFAULT NULL COMMENT '最近一次运行停留阶段',
+  `last_run_at` DATETIME(3) DEFAULT NULL COMMENT '最近一次运行时间',
+  `next_run_at` DATETIME(3) DEFAULT NULL COMMENT '下一次调度时间',
   `ext_json` JSON DEFAULT NULL COMMENT '扩展配置',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -3912,6 +4246,81 @@ sequenceDiagram
   KEY `idx_status_lease` (`status`, `lease_until`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商同步批次表';
 </code></pre>
+<h5 id="supplier_sync_shard_task"><a class="header" href="#supplier_sync_shard_task"><code>supplier_sync_shard_task</code></a></h5>
+<pre><code class="language-sql">CREATE TABLE `supplier_sync_shard_task` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `batch_id` VARCHAR(64) NOT NULL COMMENT '所属批次ID',
+  `shard_task_id` VARCHAR(64) NOT NULL COMMENT '分片任务ID',
+  `task_code` VARCHAR(64) NOT NULL COMMENT '业务任务编码',
+  `supplier_id` BIGINT NOT NULL COMMENT '供应商ID',
+  `shard_no` INT NOT NULL COMMENT '分片序号',
+  `shard_type` VARCHAR(32) NOT NULL COMMENT 'HOTEL_ID_LIST / HOTEL_ID_RANGE / GEO_SCOPE / CURSOR',
+  `shard_payload` JSON NOT NULL COMMENT '分片上下文，如酒店ID列表、ID范围、国家城市、cursor等',
+  `status` VARCHAR(32) NOT NULL COMMENT 'INIT / RUNNING / SUCCESS / FAILED / PARTIAL_SUCCESS / SKIPPED / PAUSED',
+  `checkpoint` VARCHAR(512) DEFAULT NULL COMMENT '当前分片checkpoint',
+  `retry_count` INT NOT NULL DEFAULT 0 COMMENT '重试次数',
+  `worker_id` VARCHAR(64) DEFAULT NULL COMMENT '当前执行worker',
+  `lease_token` VARCHAR(64) DEFAULT NULL COMMENT '租约令牌',
+  `lease_until` DATETIME(3) DEFAULT NULL COMMENT '租约到期时间',
+  `heartbeat_at` DATETIME(3) DEFAULT NULL COMMENT '最后心跳时间',
+  `pulled_count` BIGINT NOT NULL DEFAULT 0 COMMENT '该分片已拉取数量',
+  `published_count` BIGINT NOT NULL DEFAULT 0 COMMENT '该分片已发布数量',
+  `failed_count` BIGINT NOT NULL DEFAULT 0 COMMENT '该分片失败数量',
+  `last_error_code` VARCHAR(64) DEFAULT NULL COMMENT '最近错误码',
+  `last_error_message` VARCHAR(1024) DEFAULT NULL COMMENT '最近错误信息',
+  `ext_json` JSON DEFAULT NULL COMMENT '扩展上下文',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_shard_task_id` (`shard_task_id`),
+  KEY `idx_batch_id_status` (`batch_id`, `status`),
+  KEY `idx_task_code_batch_id` (`task_code`, `batch_id`),
+  KEY `idx_status_lease` (`status`, `lease_until`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商同步分片任务表';
+</code></pre>
+<h5 id="supplier_sync_error_task"><a class="header" href="#supplier_sync_error_task"><code>supplier_sync_error_task</code></a></h5>
+<pre><code class="language-sql">CREATE TABLE `supplier_sync_error_task` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `error_task_id` VARCHAR(64) NOT NULL COMMENT '错误处理任务ID',
+  `batch_id` VARCHAR(64) NOT NULL COMMENT '所属批次ID',
+  `source_shard_task_id` VARCHAR(64) NOT NULL COMMENT '来源分片任务ID',
+  `recovery_type` VARCHAR(32) NOT NULL COMMENT 'RETRY_FETCH / RETRY_TRANSFORM / RETRY_PUBLISH / MANUAL_REVIEW / SKIP',
+  `target_stage` VARCHAR(32) NOT NULL COMMENT 'FETCH / TRANSFORM / PUBLISH',
+  `status` VARCHAR(32) NOT NULL COMMENT 'INIT / RUNNING / SUCCESS / FAILED / CANCELED',
+  `start_checkpoint` VARCHAR(512) DEFAULT NULL COMMENT '恢复起点',
+  `retry_count` INT NOT NULL DEFAULT 0 COMMENT '重试次数',
+  `operator_type` VARCHAR(16) DEFAULT NULL COMMENT 'SYSTEM / OPS / SCHEDULER',
+  `operator_id` VARCHAR(64) DEFAULT NULL COMMENT '触发主体',
+  `last_error_code` VARCHAR(64) DEFAULT NULL COMMENT '最近错误码',
+  `last_error_message` VARCHAR(1024) DEFAULT NULL COMMENT '最近错误信息',
+  `ext_json` JSON DEFAULT NULL COMMENT '扩展上下文',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_error_task_id` (`error_task_id`),
+  KEY `idx_source_shard_task_id_status` (`source_shard_task_id`, `status`),
+  KEY `idx_batch_id_status` (`batch_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商同步错误处理任务表';
+</code></pre>
+<h5 id="supplier_sync_shard_error_log"><a class="header" href="#supplier_sync_shard_error_log"><code>supplier_sync_shard_error_log</code></a></h5>
+<pre><code class="language-sql">CREATE TABLE `supplier_sync_shard_error_log` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `batch_id` VARCHAR(64) NOT NULL COMMENT '所属批次ID',
+  `shard_task_id` VARCHAR(64) NOT NULL COMMENT '分片任务ID',
+  `stage` VARCHAR(32) NOT NULL COMMENT 'FETCH / TRANSFORM / PUBLISH',
+  `error_code` VARCHAR(64) NOT NULL COMMENT '错误码',
+  `error_message` VARCHAR(1024) DEFAULT NULL COMMENT '错误信息',
+  `checkpoint` VARCHAR(512) DEFAULT NULL COMMENT '失败时checkpoint',
+  `raw_ref` VARCHAR(512) DEFAULT NULL COMMENT '原始快照引用',
+  `normalized_ref` VARCHAR(512) DEFAULT NULL COMMENT '标准化快照引用',
+  `retry_count` INT NOT NULL DEFAULT 0 COMMENT '失败时重试次数',
+  `trace_id` VARCHAR(128) DEFAULT NULL COMMENT '链路追踪ID',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_shard_task_id_created_at` (`shard_task_id`, `created_at`),
+  KEY `idx_batch_id_stage` (`batch_id`, `stage`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商同步分片失败日志表';
+</code></pre>
 <h5 id="supplier_sync_state_ledger"><a class="header" href="#supplier_sync_state_ledger"><code>supplier_sync_state_ledger</code></a></h5>
 <pre><code class="language-sql">CREATE TABLE `supplier_sync_state_ledger` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
@@ -3920,6 +4329,8 @@ sequenceDiagram
   `last_batch_id` VARCHAR(64) DEFAULT NULL COMMENT '最近处理批次',
   `state` VARCHAR(32) NOT NULL COMMENT 'INIT / PROCESSING / SUCCESS / FAILED / SKIPPED / BLOCKED / OFFLINE_CANDIDATE',
   `last_snapshot_ref` VARCHAR(512) DEFAULT NULL COMMENT '最近快照引用',
+  `raw_hash` VARCHAR(128) DEFAULT NULL COMMENT '最近原始快照哈希',
+  `normalized_hash` VARCHAR(128) DEFAULT NULL COMMENT '最近标准化快照哈希',
   `payload_hash` VARCHAR(64) DEFAULT NULL COMMENT '供应商报文哈希，仅用于观测或安全短路',
   `last_seen_at` DATETIME(3) DEFAULT NULL COMMENT '最近打卡时间',
   `off_reason` VARCHAR(128) DEFAULT NULL COMMENT '下线原因',
@@ -5740,119 +6151,337 @@ WHERE inventory_key = :inventory_key
 <li>风控和合规逻辑不耦合进商品中心事务链路</li>
 </ul>
 <h3 id="63-机审核设计"><a class="header" href="#63-机审核设计">6.3 机审核设计</a></h3>
-<p>机审核关注的是高频、可规则化的风险拦截，例如：</p>
+<p>机审核不是“写几条正则就完事”，而是一套把高频可规则化风险前移拦截的执行系统。它的目标不是完全替代人工，而是把明显正确和明显错误的对象尽量自动化，让人工审核只处理真正需要判断的灰区。</p>
+<p>机审核典型覆盖以下风险面：</p>
 <ul>
-<li>敏感词</li>
-<li>类目规则</li>
-<li>素材规则</li>
-<li>资质规则</li>
-<li>价格异常规则</li>
-<li>交易契约异常规则</li>
+<li>敏感词与违规描述</li>
+<li>类目规则与属性约束</li>
+<li>主图 / 素材基础规则</li>
+<li>资质与证照完整性</li>
+<li>价格异常与履约承诺异常</li>
+<li>交易契约缺失，例如退款规则、预约规则、有效期缺失</li>
 </ul>
-<p>推荐把机审核的结果分成：</p>
+<p>从执行链路看，推荐拆成 4 层：</p>
+<ol>
+<li><strong>基础结构校验层</strong>：字段必填、格式、范围、枚举、跨字段依赖。</li>
+<li><strong>类目规则层</strong>：类目模板、属性完整性、品类专属约束。</li>
+<li><strong>风控合规模型层</strong>：敏感词、资质、素材风险评分。</li>
+<li><strong>发布风险裁决层</strong>：根据规则命中结果给出 <code>PASS / REJECT / MANUAL_REVIEW</code>。</li>
+</ol>
+<p>推荐使用“规则 + 策略路由 + 风险分值”三段式模型，而不是把所有结论硬编码在一个 if/else 里：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>负责什么</th><th>输出</th></tr>
+</thead>
+<tbody>
+<tr><td>规则执行器</td><td>执行单条规则</td><td>命中明细</td></tr>
+<tr><td>路由策略</td><td>根据来源、类目、字段集决定规则包</td><td>应执行规则集合</td></tr>
+<tr><td>裁决器</td><td>汇总命中明细并给出 verdict</td><td><code>PASS / REJECT / MANUAL_REVIEW</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐把机审核结果统一收敛为三类：</p>
 <ul>
-<li>自动通过</li>
-<li>自动驳回</li>
-<li>转人工审核</li>
+<li>自动通过：低风险且规则全部满足，可以直接进入发布或自动准入队列。</li>
+<li>自动驳回：存在确定性违规，必须回退给供给侧修改。</li>
+<li>转人工审核：规则只能判断出“有风险但不够确定”，需要人工裁决。</li>
 </ul>
+<p>这样设计的关键价值在于：规则系统只负责“发现风险”，真正的发布裁决仍然有一层独立的 verdict 模型，便于后续插入人工审核、风控加签、特殊品类白名单等流程。</p>
 <h3 id="64-人工审核设计"><a class="header" href="#64-人工审核设计">6.4 人工审核设计</a></h3>
-<p>人工审核要解决的不是“再看一眼”，而是工作台和队列编排问题，包括：</p>
+<p>人工审核要解决的不是“再看一眼”，而是把不确定性风险转化为可运营、可追责、可度量的工作流系统。很多团队的问题不在规则本身，而在审核池失控、抢单无序、标准不统一和积压无法消化。</p>
+<p>一个可用的人工审核系统，至少要解决 5 件事：</p>
+<ol>
+<li>审核对象怎么进池。</li>
+<li>审核任务怎么分发给合适的人。</li>
+<li>审核员看到的是哪一版冻结快照。</li>
+<li>驳回和复审怎么闭环。</li>
+<li>审核结果怎么沉淀成规则优化输入。</li>
+</ol>
+<p>推荐的人审工作台能力包括：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模块</th><th>核心能力</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>审核池</td><td>待审队列、优先级、SLA 倒计时</td><td>支持按类目、风险等级、来源分池</td></tr>
+<tr><td>分单机制</td><td>自动派单、抢单、回收重派</td><td>高价值类目优先自动派给专门审核组</td></tr>
+<tr><td>审核视图</td><td>冻结快照、Diff 高亮、历史 verdict</td><td>避免审核员自己拼上下文</td></tr>
+<tr><td>审核动作</td><td>通过、驳回、挂起、转审、加签</td><td>每种动作都要有明确状态流转</td></tr>
+<tr><td>复审体系</td><td>二审、抽检、申诉回流</td><td>用于高风险类目和质量校正</td></tr>
+</tbody>
+</table>
+</div>
+<p>在执行模型上，推荐把人工审核任务显式建模成“工作项”，而不是直接在商品草稿上打审核字段。因为审核任务天然带有：</p>
 <ul>
-<li>审核池</li>
-<li>抢单 / 分单</li>
-<li>审核结果</li>
-<li>审核备注</li>
-<li>驳回原因</li>
-<li>复审机制</li>
+<li>队列属性</li>
+<li>领取属性</li>
+<li>SLA 属性</li>
+<li>升级属性</li>
+<li>审计属性</li>
 </ul>
+<p>如果这些能力都塞回商品表或供给任务表里，后面只会越来越难治理。</p>
 <h3 id="65-审核路由与分级策略"><a class="header" href="#65-审核路由与分级策略">6.5 审核路由与分级策略</a></h3>
-<p>审核不能一刀切，推荐差异化路由：</p>
-<ul>
-<li>低风险字段自动准入</li>
-<li>高风险字段转人工</li>
-<li>按字段风险分级</li>
-<li>按品类风险分级</li>
-<li>按供应商来源差异化审核</li>
-</ul>
+<p>审核绝不能一刀切。真正的平台会根据 <strong>变更内容、品类风险、来源可信度、历史行为、发布时间窗口</strong> 做分层路由。</p>
+<p>推荐至少从 4 个维度做路由：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>典型取值</th><th>影响</th></tr>
+</thead>
+<tbody>
+<tr><td>字段风险</td><td>标题、主图、履约规则、价格、上下架、退款规则</td><td>决定是否允许自动准入</td></tr>
+<tr><td>品类风险</td><td>酒旅、医疗、教育、虚拟券码、高投诉类目</td><td>决定规则包和人审等级</td></tr>
+<tr><td>来源可信度</td><td>平台运营、头部商家、长尾商家、供应商同步</td><td>决定默认信任等级</td></tr>
+<tr><td>历史表现</td><td>命中率、申诉率、历史违规率</td><td>决定是否加严或放宽</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个常见但错误的做法是：只要改了商品就一律进人工审核。这样短期看“稳”，长期一定拖垮平台效率。</p>
+<p>更合理的路由策略通常是：</p>
+<ol>
+<li><strong>低风险字段小改动</strong>：例如副标题、运营标签、小幅价格修正，可走自动准入。</li>
+<li><strong>中风险结构性变更</strong>：例如履约规则、退款条件、素材变化，先过机审，再视命中情况转人工。</li>
+<li><strong>高风险关键变更</strong>：例如类目迁移、资质变更、上下架、供应商关键属性替换，强制进入人工审核。</li>
+<li><strong>平台强制裁决类事件</strong>：例如风控下架、法务拦截，可绕过普通审核队列，走高优先级裁决链路。</li>
+</ol>
+<p>审核分级的本质不是“谁都审一下”，而是用最小的人力成本把最大的风险拦下来。</p>
 <h3 id="66-审核对象与冻结快照"><a class="header" href="#66-审核对象与冻结快照">6.6 审核对象与冻结快照</a></h3>
-<p>这一节要明确：</p>
+<p>这一节是 QC 设计最关键的地方。QC 审的一定是 <strong>冻结快照</strong>，不能审供给侧正在被编辑的动态草稿，也不能直接审线上正式商品表。</p>
+<p>原因很简单：</p>
 <ul>
-<li>QC 审的是冻结版本</li>
-<li>不是供给侧动态草稿</li>
-<li>也不是最终线上商品表</li>
+<li>如果审核员看到的是动态草稿，那么在审核过程中，运营或商家继续编辑，就会出现“审的是 A，发的是 B”。</li>
+<li>如果审核员直接看正式商品表，就会把未生效变更和已上线资产混在一起，失去版本边界。</li>
 </ul>
-<p>这里要把 <code>draft_id / publish_version / snapshot</code> 的关系讲清楚，避免出现“审的是 A，发的是 B”。</p>
+<p>推荐采用以下对象关系：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对象</th><th>语义</th><th>是否可变</th></tr>
+</thead>
+<tbody>
+<tr><td><code>draft_id</code></td><td>运营中的当前编辑态</td><td>可变</td></tr>
+<tr><td><code>publish_version</code></td><td>一次提交审核 / 发布尝试的版本号</td><td>单调递增</td></tr>
+<tr><td><code>snapshot</code></td><td>本次送审冻结快照</td><td>不可变</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐链路如下：</p>
+<ol>
+<li>供给平台或商品中心维护可编辑 <code>Draft</code>。</li>
+<li>用户点击“提交审核”后，商品中心生成新的 <code>publish_version</code>。</li>
+<li>系统把对应字段冻结成送审 <code>snapshot</code>。</li>
+<li>QC 只对 <code>snapshot</code> 做机审和人审。</li>
+<li>QC 返回 verdict 时，必须带回 <code>draft_id + publish_version + snapshot_id</code> 或等价冻结标识。</li>
+<li>商品中心只允许对“当前待发布版本”执行 merge 和正式发布。</li>
+</ol>
+<pre class="mermaid">
+flowchart LR
+    A["可编辑 Draft"] --&gt; B["提交审核"]
+    B --&gt; C["冻结 Snapshot"]
+    C --&gt; D["机审核 / 人工审核"]
+    D --&gt; E["返回 verdict + publish_version"]
+    E --&gt; F["商品中心本地 merge 发布"]
+</pre>
+
+<p>这套模型的核心价值不是“多建一个快照表”，而是把审核对象从“会继续变化的编辑态”切成“可追责的冻结态”。这样后面无论是申诉、回放、抽检还是事故复盘，都知道当时到底审了什么。</p>
 <h3 id="67-审核-verdict-与商品中心交互"><a class="header" href="#67-审核-verdict-与商品中心交互">6.7 审核 verdict 与商品中心交互</a></h3>
-<p>QC 平台回传的应该是轻量 verdict，而不是整份商品 DTO。例如：</p>
+<p>QC 平台回传的应该是 <strong>轻量 verdict</strong>，而不是整份商品 DTO。QC 的职责是裁决，不是替商品中心做主数据写入。</p>
+<p>推荐回传结构如下：</p>
 <pre><code class="language-json">{
   "draft_id": 555,
   "publish_version": 102,
-  "result": "PASS"
+  "snapshot_id": 900123,
+  "result": "PASS",
+  "review_level": "AUTO",
+  "reason_codes": ["TITLE_OK", "PRICE_OK"]
 }
 </code></pre>
-<p>商品中心收到 verdict 后，再在本地事务里完成 merge 和正式发布。</p>
+<p>商品中心收到 verdict 后，再在本地事务里完成 merge 和正式发布。这里必须坚持两个边界：</p>
+<ol>
+<li>QC 不直写正式商品。</li>
+<li>商品中心不信任“没有版本号的审核结果”。</li>
+</ol>
+<p>推荐交互规则如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>商品中心动作</th></tr>
+</thead>
+<tbody>
+<tr><td><code>PASS</code> 且版本匹配</td><td>执行本地 merge，推进发布状态机</td></tr>
+<tr><td><code>REJECT</code> 且版本匹配</td><td>标记该版本驳回，保留驳回原因</td></tr>
+<tr><td>verdict 重复到达</td><td>依据 <code>publish_version</code> 和 <code>review_id</code> 幂等处理</td></tr>
+<tr><td>verdict 乱序到达</td><td>只接受当前待裁决版本，旧版本直接丢弃或归档</td></tr>
+<tr><td>verdict 针对已撤回版本</td><td>忽略并记审计日志</td></tr>
+</tbody>
+</table>
+</div>
+<p>也就是说，QC 更像法官，商品中心更像执行机关。法官只给结论，不帮你改资产；执行机关拿到结论后，在自己的事务边界里决定状态怎么推进、正式态怎么落库、事件怎么广播。</p>
 <h3 id="68-qc-治理闭环"><a class="header" href="#68-qc-治理闭环">6.8 QC 治理闭环</a></h3>
-<p>审核系统的闭环包括：</p>
-<ul>
-<li>驳回</li>
-<li>撤回</li>
-<li>重提</li>
-<li>审核超时</li>
-<li>回调乱序</li>
-<li>规则误判</li>
-<li>人工审核积压</li>
-<li>审计日志</li>
-<li>治理看板</li>
-</ul>
+<p>审核系统真正难的地方，往往不是单次“过还是不过”，而是长周期治理闭环。一个成熟的 QC 平台必须让错误能修、积压能控、规则能进化、事故能回放。</p>
+<p>推荐重点治理以下 8 类问题：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>问题</th><th>风险</th><th>处理策略</th></tr>
+</thead>
+<tbody>
+<tr><td>驳回后无法修复</td><td>业务反复重提、体验差</td><td>驳回原因结构化，支持字段级修复提示</td></tr>
+<tr><td>撤回后结果乱入</td><td>已撤回版本被误发布</td><td>verdict 必须携带版本号，商品中心做版本闸门</td></tr>
+<tr><td>审核超时</td><td>发布链路卡死</td><td>SLA 超时自动升级、转派或降级到人工池</td></tr>
+<tr><td>人工积压</td><td>大面积延迟上线</td><td>分池、扩容、自动准入比例调优</td></tr>
+<tr><td>规则误判</td><td>大量误杀或漏审</td><td>抽检集、申诉回流、误判复盘</td></tr>
+<tr><td>回调重复 / 乱序</td><td>状态错乱</td><td><code>review_id + publish_version</code> 幂等拦截</td></tr>
+<tr><td>审计不可追溯</td><td>事故无法复盘</td><td>全链路审计日志 + 冻结快照留存</td></tr>
+<tr><td>审核策略失效</td><td>旧规则挡不住新问题</td><td>规则版本化、灰度发布、效果监控</td></tr>
+</tbody>
+</table>
+</div>
+<p>治理闭环里最有价值的两个运营指标通常是：</p>
+<ol>
+<li><strong>审核吞吐指标</strong>：自动通过率、人工命中率、平均审核时长、SLA 超时率。</li>
+<li><strong>审核质量指标</strong>：误判率、申诉成功率、上线后追罚率、漏拦截事故数。</li>
+</ol>
+<p>只有把这两类指标一起看，平台才能知道自己是在“提效”，还是只是在“把风险放过去”。</p>
 <h3 id="69-qc-表清单与使用场景"><a class="header" href="#69-qc-表清单与使用场景">6.9 QC 表清单与使用场景</a></h3>
-<p>这一节建议显式列出 QC 平台表：</p>
-<ul>
-<li><code>product_qc_review</code></li>
-<li><code>product_qc_review_item</code></li>
-<li><code>qc_rule</code></li>
-<li><code>qc_route</code></li>
-<li><code>qc_audit_log</code></li>
-<li><code>qc_work_queue</code></li>
-</ul>
+<p>推荐把 QC 平台最少拆成以下几类表：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表</th><th>使用场景</th><th>关键边界</th></tr>
+</thead>
+<tbody>
+<tr><td><code>product_qc_review</code></td><td>一次审核主单，记录对象、版本、总体 verdict</td><td>审核主事实，不承接商品正式态</td></tr>
+<tr><td><code>product_qc_review_item</code></td><td>字段级 / 规则级命中结果</td><td>用于解释“为什么过 / 为什么不过”</td></tr>
+<tr><td><code>qc_rule</code></td><td>规则定义、版本、开关、阈值</td><td>规则配置，不直接承接审核结果</td></tr>
+<tr><td><code>qc_route</code></td><td>审核路由配置</td><td>控制对象该进哪个规则包、哪个审核池</td></tr>
+<tr><td><code>qc_work_queue</code></td><td>人审工作队列</td><td>队列与分单事实，不等于审核主单</td></tr>
+<tr><td><code>qc_audit_log</code></td><td>操作与状态流转审计</td><td>事故复盘与追责依据</td></tr>
+</tbody>
+</table>
+</div>
+<p>进一步可参考如下字段设计：</p>
+<h5 id="product_qc_review"><a class="header" href="#product_qc_review"><code>product_qc_review</code></a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>review_id</code></td><td>审核主单 ID</td></tr>
+<tr><td><code>draft_id</code></td><td>对应草稿 ID</td></tr>
+<tr><td><code>publish_version</code></td><td>本次提交审核版本</td></tr>
+<tr><td><code>snapshot_id</code></td><td>冻结快照 ID</td></tr>
+<tr><td><code>review_type</code></td><td>自动审 / 人工审 / 复审</td></tr>
+<tr><td><code>status</code></td><td><code>PENDING / REVIEWING / PASSED / REJECTED / CANCELED</code></td></tr>
+<tr><td><code>final_verdict</code></td><td>最终裁决</td></tr>
+<tr><td><code>priority</code></td><td>优先级</td></tr>
+<tr><td><code>created_at / updated_at</code></td><td>时间</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="product_qc_review_item"><a class="header" href="#product_qc_review_item"><code>product_qc_review_item</code></a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>item_id</code></td><td>明细主键</td></tr>
+<tr><td><code>review_id</code></td><td>所属审核主单</td></tr>
+<tr><td><code>field_path</code></td><td>命中字段路径</td></tr>
+<tr><td><code>rule_code</code></td><td>规则编码</td></tr>
+<tr><td><code>risk_level</code></td><td>风险等级</td></tr>
+<tr><td><code>result</code></td><td>命中结果</td></tr>
+<tr><td><code>reason_text</code></td><td>解释文本</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="qc_work_queue"><a class="header" href="#qc_work_queue"><code>qc_work_queue</code></a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>queue_item_id</code></td><td>工作项 ID</td></tr>
+<tr><td><code>review_id</code></td><td>对应审核主单</td></tr>
+<tr><td><code>queue_name</code></td><td>队列名称</td></tr>
+<tr><td><code>assignee</code></td><td>当前处理人</td></tr>
+<tr><td><code>sla_expire_at</code></td><td>SLA 到期时间</td></tr>
+<tr><td><code>status</code></td><td><code>WAITING / CLAIMED / DONE / EXPIRED</code></td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="qc_audit_log"><a class="header" href="#qc_audit_log"><code>qc_audit_log</code></a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>log_id</code></td><td>审计日志主键</td></tr>
+<tr><td><code>review_id</code></td><td>对应审核主单</td></tr>
+<tr><td><code>operator</code></td><td>操作人或系统</td></tr>
+<tr><td><code>action</code></td><td>抢单、通过、驳回、转审、撤回等动作</td></tr>
+<tr><td><code>detail</code></td><td>变更详情</td></tr>
+<tr><td><code>created_at</code></td><td>操作时间</td></tr>
+</tbody>
+</table>
+</div>
 <hr>
 <h2 id="7-典型业务场景串讲"><a class="header" href="#7-典型业务场景串讲">7. 典型业务场景串讲</a></h2>
 <h3 id="71-本地生活券商品创建到上线"><a class="header" href="#71-本地生活券商品创建到上线">7.1 本地生活券商品创建到上线</a></h3>
 <ol>
-<li>运营在后台表单创建商品，先写 <code>Draft</code>。</li>
-<li>系统做类目、素材、履约、退款、库存策略校验。</li>
-<li>低风险字段自动准入，高风险字段进入 QC。</li>
-<li>审核通过后发布到商品主域正式态，初始化库存配置。</li>
-<li>Outbox 驱动搜索、缓存、营销圈品刷新。</li>
+<li>运营在后台表单创建商品，供给平台调用商品中心生成 <code>Draft</code>。</li>
+<li>同步阶段完成字段校验、类目模板校验、库存模式声明和基础幂等防重。</li>
+<li>点击提交后生成 <code>publish_version</code> 并冻结 <code>snapshot</code>。</li>
+<li>机审核先处理敏感词、类目、资质和履约规则，低风险对象直接通过。</li>
+<li>高风险对象进入人工审核池，审核员基于冻结快照完成 verdict。</li>
+<li>商品中心收到 <code>PASS</code> verdict 后，本地 merge 到正式 <code>Item</code>，同时初始化库存配置。</li>
+<li>发布事件通过 Outbox 广播到搜索、营销、缓存、计价等下游。</li>
 </ol>
+<p>这个场景最重要的面试表达是：<strong>创建商品并不止是写一条商品记录，而是同时建立审核、发布和可售能力。</strong></p>
 <h3 id="72-券码库存导入与发码"><a class="header" href="#72-券码库存导入与发码">7.2 券码库存导入与发码</a></h3>
 <ol>
-<li>运营上传券码文件，供给平台创建批量任务。</li>
-<li>解析成功后调用库存系统 <code>ImportCodeBatch</code>。</li>
-<li>券码入 <code>inventory_code_pool_xx</code>，Redis 仅保存可发放热视图。</li>
-<li>订单支付成功后预占并发码，失败则回补或标记人工处理。</li>
+<li>运营先创建商品，并声明库存模式为 <code>EXT_POOL</code>。</li>
+<li>商品审核通过并发布后，供给平台允许发起券码导入任务。</li>
+<li>Excel 解析阶段完成坏码、重码、格式错误识别，并生成批次明细。</li>
+<li>库存系统把合法券码写入 <code>inventory_code_pool_xx</code>，同时更新聚合数量视图。</li>
+<li>用户下单支付成功后，库存系统按订单预占并分配唯一券码。</li>
+<li>若发码失败或履约回调异常，则通过账本和码池状态回放进行回补或人工修复。</li>
 </ol>
+<p>这个场景体现的是：<strong>商品创建和库存建立可以分阶段完成，但最终都要收敛到同一条受治理生命周期里。</strong></p>
 <h3 id="73-酒店商品同步与变更发布"><a class="header" href="#73-酒店商品同步与变更发布">7.3 酒店商品同步与变更发布</a></h3>
 <ol>
-<li>供应商全量或增量拉取原始资源。</li>
-<li>通过 <code>supplier_mapping</code> 映射到平台资源。</li>
-<li>归一化后进入 <code>Draft</code> 或供应商同步治理链路。</li>
-<li>差异识别决定哪些字段自动更新，哪些字段进审核。</li>
-<li>发布版本递增，下游按版本消费事件。</li>
+<li>定时任务触发供应商全量或增量同步，先把原始数据落到接入层。</li>
+<li>通过 <code>supplier_mapping</code> 识别平台已有资源，并对酒店房型、库存日期、取消规则做归一化。</li>
+<li>差异识别区分“无效更新”“低风险变更”“高风险变更”。</li>
+<li>无效更新直接过滤，低风险字段可自动发布，高风险字段冻结后进入 QC。</li>
+<li>审核通过后商品中心递增 <code>publish_version</code>，并广播到搜索、详情投影、计价和订单侧。</li>
+<li>下游只接受更高版本事件，避免供应商晚到旧数据反向覆盖最新状态。</li>
 </ol>
+<p>这个场景最能体现“供应商同步不是简单 Upsert，而是带治理能力的增量发布系统”。</p>
 <h3 id="74-运营批量编辑"><a class="header" href="#74-运营批量编辑">7.4 运营批量编辑</a></h3>
 <ol>
-<li>运营上传 Excel 批量改标题、价格、上下架。</li>
-<li>系统为每行生成 <code>task_item</code> 和校验结果。</li>
-<li>标题和类目等高风险字段进入审核；价格小改可旁路。</li>
-<li>任务完成后生成错误文件和成功报告。</li>
+<li>运营上传 Excel，供给平台创建批量任务主单与行级 <code>task_item</code>。</li>
+<li>Parser Worker 解析文件，做字段映射、数据清洗和模板校验。</li>
+<li>每一行根据变更类型路由到自动准入、人工审核或直接失败。</li>
+<li>通过的行生成新的 <code>publish_version</code> 并进入发布编排，失败的行写回错误文件。</li>
+<li>最终任务产出成功报告、失败报告和可重试对象集。</li>
 </ol>
+<p>这个场景体现的是：<strong>批量编辑真正难的是行级隔离、任务化和可恢复，不是一次把 Excel 跑完。</strong></p>
 <h3 id="75-风控强制下架"><a class="header" href="#75-风控强制下架">7.5 风控强制下架</a></h3>
 <ol>
-<li>风控命中违规商品。</li>
-<li>平台裁决链路直接将正式商品切为 <code>BANNED</code> 或 <code>OFFLINE</code>。</li>
-<li>搜索、营销、库存侧同步收敛到不可售。</li>
-<li>保留审计链路，必要时支持申诉和恢复。</li>
+<li>风控或法务系统命中高风险商品，发起高优先级平台裁决事件。</li>
+<li>商品中心不经过普通供给编辑流，直接把正式商品状态推进到 <code>BANNED</code> 或 <code>OFFLINE</code>。</li>
+<li>库存、搜索、营销、详情页投影和交易准入同时进入不可售收敛。</li>
+<li>审计日志记录触发来源、操作人、证据链和恢复条件。</li>
+<li>若后续申诉成功，再通过受控恢复链路重新进入审核和发布。</li>
 </ol>
+<p>这个场景反过来证明：<strong>平台不仅要支持“怎么上”，也要支持“怎么立刻下”。</strong></p>
 <hr>
 <h2 id="8-面试答辩与工程总结"><a class="header" href="#8-面试答辩与工程总结">8. 面试答辩与工程总结</a></h2>
 <p>如果要把这一章压缩成一句面试表达，可以这样说：</p>
@@ -5867,7 +6496,13 @@ WHERE inventory_key = :inventory_key
 <li>发布不能同步写所有下游，应该用版本化 + Outbox。</li>
 <li>真正的平台设计重点不是 CRUD，而是状态分层、任务化、审计、补偿和资损防控。</li>
 </ol>
-<p>如果读者能把这五个判断讲清楚，就已经从“会画商品系统架构图”进入“能解释平台治理设计”的阶段了。</p>
+<p>如果希望把这一章讲得更像一个成熟架构师，而不只是“会列系统名”，建议再补上三层表达：</p>
+<ol>
+<li><strong>业务视角</strong>：解释为什么商品创建天然连着审核、库存、搜索和订单，而不是孤立建档。</li>
+<li><strong>模型视角</strong>：解释 <code>Draft / Staging / Item / Snapshot / publish_version</code> 为什么必须分层。</li>
+<li><strong>治理视角</strong>：解释任务化、版本化、审计、补偿、对账为什么比 CRUD 更重要。</li>
+</ol>
+<p>如果读者能把这五个判断和这三层表达讲清楚，就已经从“会画商品系统架构图”进入“能解释平台治理设计”的阶段了。</p>
 
                     </main>
 

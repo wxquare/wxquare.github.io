@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d82d289a.js";
+            window.path_to_searchindex_js = "searchindex-f4dd3565.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-13610507.js"></script>
+        <script src="toc-a47fd80d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -10458,6 +10458,864 @@ WHERE inventory_key = :inventory_key
 追问：哪些资损风险应该事前拦截，哪些可以依赖事后对账？</p>
 </li>
 </ol>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="第-6-章-任务处理方法论从短任务长任务到-agent-协作"><a class="header" href="#第-6-章-任务处理方法论从短任务长任务到-agent-协作">第 6 章 任务处理方法论：从短任务、长任务到 Agent 协作</a></h1>
+<blockquote>
+<p>本章讨论的不是某个具体中间件，也不是某个特定框架的使用说明，而是一套跨传统后端系统、数据系统与 Agent 系统都成立的任务处理方法论。读完这一章，你应该能判断：一个任务到底该做成同步请求、异步消费、批处理、阶段化 Workflow、单 Agent、Stateful Agent Runtime，还是 Multi-Agent 协作系统。</p>
+</blockquote>
+<p>很多工程问题表面上长得完全不同。</p>
+<ul>
+<li>供应商酒店数据同步，要跑十个小时，中途还会遇到接口限流和分页游标失效。</li>
+<li>Spark 离线任务每天凌晨跑数仓加工，失败后要从某个 Stage 恢复，而不是全部重刷。</li>
+<li>Flink 实时作业一直在跑，单条事件处理很快，但整个作业要长期维护状态、Checkpoint 和 Exactly-once 语义。</li>
+<li>代码 Agent 需要理解需求、扫描代码、修改多个文件、跑测试、等待人工确认，再继续下一轮执行。</li>
+<li>多 Agent 调研系统要让 Planner 拆任务、Worker 并行查资料、Reviewer 审核结论，最后再统一收敛。</li>
+</ul>
+<p>如果只从技术栈看，这些系统横跨电商中台、大数据平台、流计算、机器学习和 AI Agent；如果只从执行方式看，它们却都属于同一类问题：<strong>任务无法在一次请求内闭环完成，必须跨时间、跨步骤、跨系统甚至跨角色持续推进。</strong></p>
+<p>这正是“任务处理方法论”要回答的问题。</p>
+<p>很多团队在系统早期都能把东西做出来，但一旦任务变长、链路变深、依赖变多，问题就开始集中爆发：</p>
+<ul>
+<li>原本同步函数能跑通的逻辑，放大后开始超时、阻塞、重试风暴。</li>
+<li>原本塞进一个 MQ Consumer 的任务，后来长成“大 Consumer 泥球”，没人敢动。</li>
+<li>原本只靠对话上下文驱动的 Agent，任务稍微复杂就忘记做到哪一步、哪些动作已经执行过、哪些结果需要人工确认。</li>
+<li>原本只想“加一个自动化”，最后却变成没有状态边界、没有审计、没有回退路径的危险系统。</li>
+</ul>
+<p>所以这一章不会从“工具怎么用”开始，而是从一个更根本的问题开始：<strong>任务应该如何被拆分、推进、治理和演进。</strong></p>
+<hr>
+<h2 id="61-背景目标与范围"><a class="header" href="#61-背景目标与范围">6.1 背景、目标与范围</a></h2>
+<h3 id="611-为什么现在要建立任务处理方法论"><a class="header" href="#611-为什么现在要建立任务处理方法论">6.1.1 为什么现在要建立任务处理方法论</a></h3>
+<p>系统设计讨论里，大家很容易把注意力放在“架构图长什么样”“数据库怎么拆”“缓存怎么配”“QPS 有多高”。这些当然重要，但在很多真实系统中，决定复杂度的往往不是单点组件，而是<strong>任务本身的执行形态</strong>。</p>
+<p>一个任务如果可以在单次请求里完成，工程重点通常是性能、正确性和接口契约；一个任务如果要持续十分钟、十小时甚至长期运行，工程重点立刻变成：</p>
+<ul>
+<li>怎么知道现在做到哪里了</li>
+<li>中间失败后从哪里恢复</li>
+<li>哪些步骤允许重试，哪些步骤不能重复执行</li>
+<li>哪些依赖失败可以降级，哪些失败必须阻断</li>
+<li>哪些结果必须经过审查、审批或人工确认</li>
+<li>当任务复杂到单个执行者已经扛不住时，是否需要拆成多个协作角色</li>
+</ul>
+<p>传统后端系统早就被这些问题教育过，所以有了同步请求、异步任务、批处理、状态机、Workflow、补偿、对账、审批、回滚这些工程实践。现在 Agent 系统之所以越来越像“长任务系统”，不是因为它们变得传统了，而是因为<strong>只要任务一旦跨边界推进，就一定会重新遇到同样的状态、恢复与治理问题。</strong></p>
+<p>这就是现在必须做这件事的原因：我们不需要再把“传统系统”和“Agent 系统”当成两套割裂的方法论，而应该用一套统一框架理解它们。</p>
+<h3 id="612-本章目标"><a class="header" href="#612-本章目标">6.1.2 本章目标</a></h3>
+<p>本章希望帮助读者建立三层能力。</p>
+<p>第一层能力，是<strong>判断能力</strong>。你需要能快速判断一个问题到底更像短任务还是长任务，它的复杂度主要来自执行跨度、认知复杂度，还是协作复杂度。</p>
+<p>第二层能力，是<strong>选型能力</strong>。面对同步任务、异步任务、Batch、Workflow、单 Agent、Stateful Agent Runtime、Multi-Agent 这些方案，能够知道它们分别适合什么场景、代价是什么、升级路径是什么。</p>
+<p>第三层能力，是<strong>治理意识</strong>。也就是理解：真正让任务系统进入生产可用状态的，不是“能跑起来”，而是“能恢复、能审计、能降级、能回退、能演进”。</p>
+<h3 id="613-成功标准"><a class="header" href="#613-成功标准">6.1.3 成功标准</a></h3>
+<p>如果这一章写得足够好，读者至少应该能回答以下问题：</p>
+<ol>
+<li>短任务和长任务到底怎么区分，为什么不能只按耗时判断。</li>
+<li>同步请求、异步任务、Batch、Workflow、Agent Runtime 和 Multi-Agent 分别是什么。</li>
+<li>当前真实工程里有哪些典型长任务场景，它们为什么天然是长任务。</li>
+<li>为什么很多 Agent 系统走着走着，会重新走到状态机、Checkpoint、审批和治理层上来。</li>
+<li>当一个系统从简单走向复杂时，应该如何渐进演进，而不是一开始就过度设计。</li>
+</ol>
+<h3 id="614-本章明确不做什么"><a class="header" href="#614-本章明确不做什么">6.1.4 本章明确不做什么</a></h3>
+<p>本章不尝试替代每一个具体领域的完整实现指南，例如：</p>
+<ul>
+<li>不展开讲 Spark 的算子执行机制和 Shuffle 内部细节。</li>
+<li>不展开讲 Flink 的状态后端、Barrier 对齐和 Watermark 算法实现。</li>
+<li>不展开讲某个特定 Agent 框架的 API 用法。</li>
+<li>不给出某个具体业务系统的全部表结构和部署脚本。</li>
+</ul>
+<p>本章要做的，是在这些具体技术之上，抽象出一套更稳定的任务处理方法论。</p>
+<hr>
+<h2 id="62-现状问题定义与典型长任务场景"><a class="header" href="#62-现状问题定义与典型长任务场景">6.2 现状、问题定义与典型长任务场景</a></h2>
+<h3 id="621-当前系统通常怎么处理任务"><a class="header" href="#621-当前系统通常怎么处理任务">6.2.1 当前系统通常怎么处理任务</a></h3>
+<p>大多数系统的任务处理方式，都经历过一个相似演进：</p>
+<ol>
+<li>最开始是同步函数或同步接口，逻辑简单、调用直接、状态靠内存和调用栈保存。</li>
+<li>接着为了削峰和解耦，开始把任务扔到 MQ 或后台 Worker。</li>
+<li>任务再复杂一点，就出现批处理、定时 Job、分片执行、重试队列和补偿任务。</li>
+<li>当任务带有明显阶段边界、审批节点和发布风险时，团队会走向显式 Workflow。</li>
+<li>当任务不再只是“执行规则”，而是要理解目标、动态规划步骤、根据中间结果调整策略时，Agent Runtime 开始出现。</li>
+<li>当规划、执行、审查三类职责冲突加剧，才会进一步考虑 Multi-Agent 协作。</li>
+</ol>
+<p>问题在于，很多团队虽然现实中已经走到了第 3、第 4 甚至第 5 步，但脑子里仍然停留在第 1 步：用短任务思维去理解长任务问题。</p>
+<h3 id="622-典型错误用短任务思维处理长任务"><a class="header" href="#622-典型错误用短任务思维处理长任务">6.2.2 典型错误：用短任务思维处理长任务</a></h3>
+<p>短任务思维的核心默认前提是：</p>
+<ul>
+<li>请求会很快结束</li>
+<li>执行现场不会丢</li>
+<li>出错后整体重试就行</li>
+<li>状态不需要被别人接手</li>
+<li>成功或失败很容易定义</li>
+</ul>
+<p>这些前提一旦放到长任务里，几乎全部失效。</p>
+<p>典型的错误做法包括：</p>
+<h4 id="把复杂长任务塞进一个同步接口"><a class="header" href="#把复杂长任务塞进一个同步接口">把复杂长任务塞进一个同步接口</a></h4>
+<p>最初看起来实现很快：前端发请求，后端一口气做完抓取、转换、写库、发消息和索引更新。但只要数据量一大、依赖一抖、步骤一多，就会变成超时、线程阻塞、调用链炸裂、失败后无法恢复的系统。</p>
+<h4 id="把复杂流程直接塞进一个-mq-consumer"><a class="header" href="#把复杂流程直接塞进一个-mq-consumer">把复杂流程直接塞进一个 MQ Consumer</a></h4>
+<p>这类系统刚开始往往运行正常，因为“反正异步了”。但异步只是把主链路压力移走，并没有解决状态治理。随着条件分支增加，Consumer 会长成一个没人敢改的大泥球：</p>
+<ul>
+<li>一个消息里同时处理抓取、校验、发布、通知</li>
+<li>出错时不知道该重试消息还是人工补数据</li>
+<li>顺序、幂等、状态边界全靠注释和经验维护</li>
+</ul>
+<h4 id="把-agent-的对话历史当成正式状态系统"><a class="header" href="#把-agent-的对话历史当成正式状态系统">把 Agent 的对话历史当成正式状态系统</a></h4>
+<p>这是当前很多 Agent 系统最容易犯的错误。对话上下文当然能保存一部分信息，但它并不等于状态机，也不等于 Checkpoint，更不等于审计日志。只要任务跨会话、跨时间、跨角色，单靠上下文窗口就会立刻暴露问题：</p>
+<ul>
+<li>模型忘记之前做过什么</li>
+<li>中断后不能安全恢复</li>
+<li>某个工具调用到底有没有落地副作用说不清</li>
+<li>某个结果到底有没有经过 reviewer 审核说不清</li>
+</ul>
+<h3 id="623-如果不改会发生什么"><a class="header" href="#623-如果不改会发生什么">6.2.3 如果不改，会发生什么</a></h3>
+<p>如果继续用错误的任务处理形态去承接更高复杂度的问题，后果通常不是“偶尔不优雅”，而是系统性失控：</p>
+<ul>
+<li>故障恢复时间持续拉长，因为没有恢复点，只能整批重跑。</li>
+<li>线上风险上升，因为危险副作用没有被阶段边界和审查机制隔离。</li>
+<li>团队维护成本上升，因为真正的任务状态散落在日志、数据库、队列和开发者脑子里。</li>
+<li>Agent 系统幻觉和误动作放大，因为缺少显式 reviewer、policy 和人工接管点。</li>
+</ul>
+<p>也就是说，问题并不是“有没有任务处理方法论都能做”，而是“没有方法论时，系统复杂度会以最坏的方式自己长出来”。</p>
+<h3 id="624-典型长任务场景"><a class="header" href="#624-典型长任务场景">6.2.4 典型长任务场景</a></h3>
+<p>下面这些场景，今天在工程实践中都天然属于长任务。</p>
+<h4 id="场景一供应商数据同步与主数据接入"><a class="header" href="#场景一供应商数据同步与主数据接入">场景一：供应商数据同步与主数据接入</a></h4>
+<p>例如酒店、机票、商品、库存、价格等供应商供给同步，或者 ERP / WMS / OMS / PIM 数据接入。</p>
+<p>这类任务通常具备这些特征：</p>
+<ul>
+<li>数据量大，需要分页、分片或游标推进</li>
+<li>外部系统慢且不稳定</li>
+<li>中途失败后不能从头重跑</li>
+<li>结果会影响正式业务数据，必须有治理和发布保护</li>
+</ul>
+<p>这正是 <code>Batch + Checkpoint + Workflow</code> 最典型的场景。</p>
+<h4 id="场景二机器学习模型训练与模型交付"><a class="header" href="#场景二机器学习模型训练与模型交付">场景二：机器学习模型训练与模型交付</a></h4>
+<p>模型训练不是一次普通函数调用，而是一条很长的流水线：</p>
+<ul>
+<li>数据准备</li>
+<li>特征工程</li>
+<li>训练</li>
+<li>评估</li>
+<li>产物导出</li>
+<li>模型注册</li>
+<li>灰度发布</li>
+</ul>
+<p>它天然需要：</p>
+<ul>
+<li>记录实验参数和版本</li>
+<li>保存中间产物</li>
+<li>按阶段恢复</li>
+<li>做上线前评估和审查</li>
+</ul>
+<p>所以它本质上是一个长任务系统，只是执行者不是传统业务服务，而是训练集群和实验平台。</p>
+<h4 id="场景三spark-大数据离线任务"><a class="header" href="#场景三spark-大数据离线任务">场景三：Spark 大数据离线任务</a></h4>
+<p>Spark 作业通常由多个 Stage、Shuffle、依赖表和资源调度共同构成。一个报表任务、画像计算任务或离线指标加工任务，虽然表面上是“跑个 ETL”，但实际上关注的是：</p>
+<ul>
+<li>数据分批和 DAG 拓扑</li>
+<li>上游依赖是否 ready</li>
+<li>某个 Stage 失败后如何恢复</li>
+<li>结果如何继续进入数仓、报表、特征平台</li>
+</ul>
+<p>这类任务更接近 <code>Batch / DAG Workflow</code>。</p>
+<h4 id="场景四flink--streaming-流处理任务"><a class="header" href="#场景四flink--streaming-流处理任务">场景四：Flink / Streaming 流处理任务</a></h4>
+<p>Flink 的特别之处在于：单条事件处理可能非常快，但整个作业是一个持续运行、持续维护状态、持续做 Checkpoint 和恢复的系统。</p>
+<p>它的“长”，不是一次任务执行十小时，而是作业生命周期本身长期存在。换句话说，它不是“长时间才结束”，而是“长期运行并持续维护状态”的长任务。</p>
+<h4 id="场景五agent-长任务处理"><a class="header" href="#场景五agent-长任务处理">场景五：Agent 长任务处理</a></h4>
+<p>例如：</p>
+<ul>
+<li>代码 Agent 理解需求、改多个文件、运行测试、失败后调整方案</li>
+<li>调研 Agent 分阶段检索、阅读、总结、交叉验证</li>
+<li>运维 Agent 查日志、查监控、生成诊断报告、等待人工确认后再继续</li>
+</ul>
+<p>这些任务之所以是长任务，不是因为模型思考得久，而是因为：</p>
+<ul>
+<li>任务有多个步骤</li>
+<li>步骤之间要传递中间状态</li>
+<li>经常要等待人或系统反馈</li>
+<li>工具调用带副作用，不能随便重试</li>
+</ul>
+<h4 id="场景六multi-agent-协作任务"><a class="header" href="#场景六multi-agent-协作任务">场景六：Multi-Agent 协作任务</a></h4>
+<p>例如复杂研发任务、深度研究任务、规划-执行-审查闭环系统。</p>
+<p>这类任务之所以更复杂，是因为它不仅要管理执行状态，还要管理：</p>
+<ul>
+<li>角色边界</li>
+<li>共享状态</li>
+<li>通信协议</li>
+<li>终止条件</li>
+<li>审查和仲裁机制</li>
+</ul>
+<p>它本质上是“协作型长任务”。</p>
+<h4 id="场景七复杂业务流程与审批链路"><a class="header" href="#场景七复杂业务流程与审批链路">场景七：复杂业务流程与审批链路</a></h4>
+<p>例如：</p>
+<ul>
+<li>订单履约编排</li>
+<li>售后退款流程</li>
+<li>资金结算和对账</li>
+<li>内容审核发布</li>
+<li>风控审批和人工复核</li>
+</ul>
+<p>这些任务显然不是单请求问题，而是带有组织角色、审批边界和正式业务副作用的长期推进问题。</p>
+<h4 id="场景八基础设施与平台运维任务"><a class="header" href="#场景八基础设施与平台运维任务">场景八：基础设施与平台运维任务</a></h4>
+<p>例如：</p>
+<ul>
+<li>大规模数据迁移</li>
+<li>集群升级</li>
+<li>灰度发布</li>
+<li>索引重建</li>
+<li>批量回刷缓存</li>
+</ul>
+<p>这类任务说明，长任务不仅存在于业务中台，也深度存在于基础设施层。</p>
+<h3 id="625-一个统一归纳"><a class="header" href="#625-一个统一归纳">6.2.5 一个统一归纳</a></h3>
+<p>从当前主流工程现实来看，长任务大致可以归纳为五大类：</p>
+<ol>
+<li><strong>大批量数据处理类</strong>：供应商同步、Spark ETL、索引重建。</li>
+<li><strong>持续运行状态类</strong>：Flink 实时任务、实时风控、持续流处理。</li>
+<li><strong>高认知多步骤类</strong>：代码 Agent、调研 Agent、运维 Agent。</li>
+<li><strong>多角色协作类</strong>：Multi-Agent 规划-执行-审查协作。</li>
+<li><strong>高风险业务流程类</strong>：审批、发布、结算、履约编排。</li>
+</ol>
+<p>这五类场景虽然技术栈不同，但都共享同一组约束：</p>
+<ul>
+<li>需要状态</li>
+<li>需要恢复</li>
+<li>需要治理</li>
+<li>需要审计</li>
+<li>往往需要分阶段推进</li>
+</ul>
+<hr>
+<h2 id="63-核心判断与关键设计决策"><a class="header" href="#63-核心判断与关键设计决策">6.3 核心判断与关键设计决策</a></h2>
+<p>在正式讲各种方案之前，先把这章最关键的几个判断讲清楚。</p>
+<h3 id="631-判断一短任务与长任务的区别不在耗时而在执行跨度"><a class="header" href="#631-判断一短任务与长任务的区别不在耗时而在执行跨度">6.3.1 判断一：短任务与长任务的区别，不在耗时，而在执行跨度</a></h3>
+<p>很多人以为“几秒内完成的是短任务，几小时完成的是长任务”。这是一种很常见但不准确的区分方式。</p>
+<p>更准确的判断标准是：<strong>任务是否需要跨边界持续推进。</strong></p>
+<p>这里的边界包括：</p>
+<ul>
+<li>跨请求边界</li>
+<li>跨进程边界</li>
+<li>跨时间边界</li>
+<li>跨步骤边界</li>
+<li>跨系统边界</li>
+<li>跨角色边界</li>
+</ul>
+<p>如果一个任务必须跨越这些边界中的多个，并且中途还需要持久化状态、支持恢复和接受治理，那么它本质上就是长任务。</p>
+<h3 id="632-判断二agent-不是另一套宇宙它只是更智能的执行单元"><a class="header" href="#632-判断二agent-不是另一套宇宙它只是更智能的执行单元">6.3.2 判断二：Agent 不是另一套宇宙，它只是更智能的执行单元</a></h3>
+<p>把“传统系统”和“Agent 系统”完全对立起来，是近几年很常见的一种认知误区。</p>
+<p>传统系统关注的是：</p>
+<ul>
+<li>任务定义</li>
+<li>状态推进</li>
+<li>幂等与补偿</li>
+<li>调度和治理</li>
+</ul>
+<p>Agent 系统在这些事情之外，多出来的不是“抛弃这些约束”，而是：</p>
+<ul>
+<li>更强的语义理解能力</li>
+<li>更强的动态规划能力</li>
+<li>更强的工具选择和路径调整能力</li>
+</ul>
+<p>所以更合理的理解是：<strong>Agent 给执行系统加了大脑，但并没有消灭任务系统的骨架。</strong></p>
+<h3 id="633-判断三不要按技术潮流选方案要按复杂度来源选方案"><a class="header" href="#633-判断三不要按技术潮流选方案要按复杂度来源选方案">6.3.3 判断三：不要按“技术潮流”选方案，要按复杂度来源选方案</a></h3>
+<p>一个方案是否合适，取决于复杂度主要来自哪里。</p>
+<p>如果复杂度来自执行跨度，就要先解决状态、恢复和阶段推进问题。<br>如果复杂度来自认知判断，就要考虑单 Agent 或 Runtime。<br>如果复杂度来自职责冲突和并行协作，才考虑 Multi-Agent。</p>
+<p>换句话说，合理的判断顺序应该是：</p>
+<pre><code class="language-text">先看执行跨度
+  → 再看认知复杂度
+  → 最后看协作复杂度
+</code></pre>
+<h3 id="634-判断四默认从最小可行执行单元开始"><a class="header" href="#634-判断四默认从最小可行执行单元开始">6.3.4 判断四：默认从最小可行执行单元开始</a></h3>
+<p>很多系统真正的问题不是“起点太简单”，而是“起点太复杂”。</p>
+<p>一个成熟架构师要克制地做决策：</p>
+<ul>
+<li>能用同步短任务解决，就不要先上 Workflow</li>
+<li>能用 Batch 解决，就不要默认上 Agent Runtime</li>
+<li>能用单 Agent 解决，就不要为了“更像 AI 系统”直接拆成多 Agent</li>
+</ul>
+<p>这不是保守，而是尊重复杂度成本。</p>
+<h3 id="635-判断五治理层不是附属品而是长任务系统的核心竞争力"><a class="header" href="#635-判断五治理层不是附属品而是长任务系统的核心竞争力">6.3.5 判断五：治理层不是附属品，而是长任务系统的核心竞争力</a></h3>
+<p>真正把系统带进生产环境的，不是“会执行”，而是“能在失败、异常和风险面前稳住”。</p>
+<p>所以一旦进入长任务语境，设计必须天然包含：</p>
+<ul>
+<li>状态边界</li>
+<li>审查边界</li>
+<li>恢复路径</li>
+<li>回退路径</li>
+<li>权限和预算约束</li>
+</ul>
+<hr>
+<h2 id="64-执行方案谱系总览与选型框架"><a class="header" href="#64-执行方案谱系总览与选型框架">6.4 执行方案谱系总览与选型框架</a></h2>
+<p>讲方法论，不能只讲抽象。我们还需要一个完整的“方案谱系”，把主流执行方案摆在同一张图上看。</p>
+<h3 id="641-七种主流执行方案"><a class="header" href="#641-七种主流执行方案">6.4.1 七种主流执行方案</a></h3>
+<p>从简单到复杂，可以把主流方案归纳成七类：</p>
+<ol>
+<li><strong>同步短任务</strong></li>
+<li><strong>异步任务 / MQ Consumer</strong></li>
+<li><strong>Batch / 分布式 Job</strong></li>
+<li><strong>阶段化 Workflow</strong></li>
+<li><strong>单 Agent</strong></li>
+<li><strong>Stateful Agent Runtime</strong></li>
+<li><strong>Multi-Agent</strong></li>
+</ol>
+<p>这七类方案不是互斥关系，也不意味着系统必须逐一经历。它们更像是一条复杂度逐级上升的执行谱系。</p>
+<h3 id="642-一个统一的选型维度"><a class="header" href="#642-一个统一的选型维度">6.4.2 一个统一的选型维度</a></h3>
+<p>判断该用哪一类方案时，我建议统一看九个维度：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>关注的问题</th></tr>
+</thead>
+<tbody>
+<tr><td>执行跨度</td><td>是否需要跨请求、跨时间、跨步骤推进</td></tr>
+<tr><td>状态持久化</td><td>中途失败后是否要从中间状态恢复</td></tr>
+<tr><td>流程灵活性</td><td>执行路径是预定义的还是动态规划的</td></tr>
+<tr><td>治理要求</td><td>是否需要审批、审查、审计、回退</td></tr>
+<tr><td>认知复杂度</td><td>是否需要推理、归纳、策略调整</td></tr>
+<tr><td>协作复杂度</td><td>是否需要多角色协作</td></tr>
+<tr><td>风险等级</td><td>任务副作用是否高风险</td></tr>
+<tr><td>工程成本</td><td>方案搭建、维护、观测成本有多高</td></tr>
+<tr><td>可演进性</td><td>后续是否容易平滑升级</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="643-一个很实用的决策顺序"><a class="header" href="#643-一个很实用的决策顺序">6.4.3 一个很实用的决策顺序</a></h3>
+<p>可以把选型过程压缩成下面这个顺序：</p>
+<ol>
+<li>如果不需要状态持久化，优先考虑 <code>同步短任务</code> 或 <code>单 Agent</code>。</li>
+<li>如果只是主链路不适合同步阻塞，但流程简单，优先考虑 <code>异步任务 / MQ Consumer</code>。</li>
+<li>如果要处理大批量对象并支持恢复，优先考虑 <code>Batch / 分布式 Job</code>。</li>
+<li>如果存在显式阶段边界和强治理要求，优先考虑 <code>阶段化 Workflow</code>。</li>
+<li>如果长任务同时需要动态规划和策略调整，升级到 <code>Stateful Agent Runtime</code>。</li>
+<li>只有当单执行单元无法同时承担规划、执行、审查职责时，才进入 <code>Multi-Agent</code>。</li>
+</ol>
+<p>接下来，我们按方案逐个展开。</p>
+<hr>
+<h2 id="65-方案一同步短任务"><a class="header" href="#65-方案一同步短任务">6.5 方案一：同步短任务</a></h2>
+<h3 id="651-定义与特点"><a class="header" href="#651-定义与特点">6.5.1 定义与特点</a></h3>
+<p>同步短任务是最基础、最常见的执行形态。它通常在单次请求、单次 RPC 或单次函数调用里闭环完成。</p>
+<p>它的典型特点是：</p>
+<ul>
+<li>请求内完成</li>
+<li>执行路径固定</li>
+<li>状态主要存在调用栈和内存里</li>
+<li>失败通常整体报错或整体重试</li>
+</ul>
+<h3 id="652-适用场景"><a class="header" href="#652-适用场景">6.5.2 适用场景</a></h3>
+<p>同步短任务适合以下类型的问题：</p>
+<ul>
+<li>查询接口</li>
+<li>单次规则计算</li>
+<li>单次写操作</li>
+<li>简单聚合接口</li>
+<li>轻量工具调用</li>
+<li>一次性问答型 Agent</li>
+</ul>
+<p>例如，一个商品详情查询接口、一个优惠券可用性校验接口、一个简单的 Seatalk 机器人问答，都更像短任务。</p>
+<h3 id="653-端到端链路与职责边界"><a class="header" href="#653-端到端链路与职责边界">6.5.3 端到端链路与职责边界</a></h3>
+<p>同步短任务的端到端链路通常很直接：</p>
+<pre><code class="language-text">Input
+  → Validation
+  → Business Logic
+  → Optional Dependency Calls
+  → Response
+</code></pre>
+<p>在这种模式下，职责边界比较清晰：</p>
+<ul>
+<li>网关负责接入、鉴权、限流</li>
+<li>应用负责执行业务逻辑</li>
+<li>下游服务或数据库负责提供依赖能力</li>
+</ul>
+<p>同步 / 异步边界几乎不存在，所有动作都发生在一个请求上下文里。</p>
+<h3 id="654-契约幂等与失败处理"><a class="header" href="#654-契约幂等与失败处理">6.5.4 契约、幂等与失败处理</a></h3>
+<p>同步短任务虽然简单，但并不意味着可以没有契约意识。</p>
+<p>至少要明确：</p>
+<ul>
+<li>请求字段的必填、可选和默认值</li>
+<li>响应字段的语义和兼容性</li>
+<li>写操作是否需要幂等键</li>
+<li>下游超时后是失败、重试还是默认降级</li>
+</ul>
+<p>短任务的失败处理通常比较直接：</p>
+<ul>
+<li>读请求：可整体重试或快速失败</li>
+<li>写请求：如果有副作用，必须明确幂等语义</li>
+</ul>
+<h3 id="655-优缺点与边界"><a class="header" href="#655-优缺点与边界">6.5.5 优缺点与边界</a></h3>
+<p>优点：</p>
+<ul>
+<li>实现成本低</li>
+<li>调试简单</li>
+<li>调用链直观</li>
+<li>对团队认知负担小</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>不擅长跨步骤恢复</li>
+<li>不适合长时间阻塞</li>
+<li>不适合复杂状态推进</li>
+<li>危险副作用治理能力弱</li>
+</ul>
+<p>边界很明确：<strong>一旦任务开始跨时间、跨步骤、跨系统持续推进，同步短任务就不应再继续硬扛。</strong></p>
+<hr>
+<h2 id="66-方案二异步任务与-mq-consumer"><a class="header" href="#66-方案二异步任务与-mq-consumer">6.6 方案二：异步任务与 MQ Consumer</a></h2>
+<h3 id="661-定义与特点"><a class="header" href="#661-定义与特点">6.6.1 定义与特点</a></h3>
+<p>异步任务的核心价值，是把“不适合同步阻塞的动作”从主链路中剥离出来。</p>
+<p>常见模式是：</p>
+<pre><code class="language-text">主请求
+  → 写 DB / 发 MQ
+  → 立即返回
+
+后台 Consumer / Worker
+  → 处理后续动作
+</code></pre>
+<h3 id="662-适用场景"><a class="header" href="#662-适用场景">6.6.2 适用场景</a></h3>
+<p>常见适用场景包括：</p>
+<ul>
+<li>发通知</li>
+<li>刷新缓存</li>
+<li>生成报表</li>
+<li>回写非核心下游</li>
+<li>执行轻量后台任务</li>
+</ul>
+<p>这类任务的共同点是：异步化能改善主链路体验，但任务本身通常仍然比较单一。</p>
+<h3 id="663-端到端链路与同步--异步边界"><a class="header" href="#663-端到端链路与同步--异步边界">6.6.3 端到端链路与同步 / 异步边界</a></h3>
+<p>异步任务的关键边界，在“主链路何时结束，后台任务何时接手”。</p>
+<p>常见链路是：</p>
+<pre><code class="language-text">Request
+  → Persist Intent / Publish Event
+  → Return
+
+Consumer
+  → Consume Message
+  → Execute Side Effect
+  → Ack / Retry / DLQ
+</code></pre>
+<p>这类系统里最重要的设计点不是“怎么发 MQ”，而是：</p>
+<ul>
+<li>消息什么时候被认为已可发布</li>
+<li>失败后由谁负责重试</li>
+<li>主链路和异步链路的状态怎么对齐</li>
+</ul>
+<h3 id="664-消息契约顺序与重试"><a class="header" href="#664-消息契约顺序与重试">6.6.4 消息契约、顺序与重试</a></h3>
+<p>异步任务至少要显式定义：</p>
+<ul>
+<li>消息体字段语义</li>
+<li>幂等键</li>
+<li>顺序要求</li>
+<li>消费成功的判定条件</li>
+<li>最大重试次数</li>
+<li>进入 DLQ 的条件</li>
+</ul>
+<p>如果这些没有定义清楚，异步化只会把问题从接口层转移到消息层。</p>
+<h3 id="665-常见反模式大-consumer-泥球"><a class="header" href="#665-常见反模式大-consumer-泥球">6.6.5 常见反模式：大 Consumer 泥球</a></h3>
+<p>这是非常值得警惕的反模式。</p>
+<p>当团队把“复杂长任务”都扔给一个 Consumer 处理时，系统会慢慢演化成：</p>
+<ul>
+<li>一个消息触发十几个副作用</li>
+<li>顺序逻辑、补偿逻辑、回退逻辑全部塞在一起</li>
+<li>状态只存在日志里，没有正式状态契约</li>
+</ul>
+<p>这说明系统已经超出了“异步任务”的适用边界，应该升级到 Batch 或 Workflow。</p>
+<h3 id="666-优缺点与边界"><a class="header" href="#666-优缺点与边界">6.6.6 优缺点与边界</a></h3>
+<p>优点：</p>
+<ul>
+<li>解耦主链路</li>
+<li>削峰填谷</li>
+<li>改善用户响应时间</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>状态通常较粗</li>
+<li>调试比同步任务复杂</li>
+<li>一旦流程变深，极易失控</li>
+</ul>
+<p>边界结论：<strong>异步任务解决的是“异步化”，不是“复杂长任务治理”。</strong></p>
+<hr>
+<h2 id="67-方案三batch-与分布式-job"><a class="header" href="#67-方案三batch-与分布式-job">6.7 方案三：Batch 与分布式 Job</a></h2>
+<h3 id="671-定义与特点"><a class="header" href="#671-定义与特点">6.7.1 定义与特点</a></h3>
+<p>Batch 与分布式 Job 是传统工程里最典型的长任务方案之一。它们面向的是大批量对象处理和较长时间窗口推进。</p>
+<p>它们的典型特点是：</p>
+<ul>
+<li>按批次组织任务</li>
+<li>按分片、分页、游标或时间窗口推进</li>
+<li>支持 Checkpoint</li>
+<li>支持续跑、重试和补偿</li>
+</ul>
+<h3 id="672-适用场景"><a class="header" href="#672-适用场景">6.7.2 适用场景</a></h3>
+<p>最常见的适用场景包括：</p>
+<ul>
+<li>供应商全量同步</li>
+<li>Spark 离线计算任务</li>
+<li>数仓 ETL</li>
+<li>索引重建</li>
+<li>大规模历史数据修复</li>
+<li>账务和库存对账</li>
+</ul>
+<h3 id="673-任务切分分片与-checkpoint"><a class="header" href="#673-任务切分分片与-checkpoint">6.7.3 任务切分、分片与 Checkpoint</a></h3>
+<p>Batch 的核心不是“后台慢慢跑”，而是<strong>可推进、可追踪、可恢复</strong>。</p>
+<p>所以它必须回答：</p>
+<ul>
+<li>任务如何切分成批次</li>
+<li>批次如何切分成分片或页</li>
+<li>每个分片完成到哪里算一个安全恢复点</li>
+</ul>
+<p>典型 Checkpoint 可以是：</p>
+<ul>
+<li>最后一页页码</li>
+<li>最后一个游标</li>
+<li>最后处理 ID</li>
+<li>已完成 shard 列表</li>
+</ul>
+<p>没有 Checkpoint 的 Batch，本质上只是一个长循环脚本，不是成熟的长任务方案。</p>
+<h3 id="674-状态契约与执行推进"><a class="header" href="#674-状态契约与执行推进">6.7.4 状态契约与执行推进</a></h3>
+<p>Batch 系统通常至少需要三层状态：</p>
+<ul>
+<li>任务级状态：这个批次是否开始、是否结束</li>
+<li>分片级状态：哪个 shard 完成了，哪个仍在跑</li>
+<li>对象级状态：哪条记录成功、失败、跳过或待补偿</li>
+</ul>
+<p>很多系统失败就失败在只有任务级状态，没有对象级状态。最终看起来“批次成功了”，但具体错了哪些对象，根本追不出来。</p>
+<h3 id="675-依赖风险与治理"><a class="header" href="#675-依赖风险与治理">6.7.5 依赖、风险与治理</a></h3>
+<p>Batch 方案的治理重点通常包括：</p>
+<ul>
+<li>并发度控制</li>
+<li>资源调度</li>
+<li>重试与 DLQ</li>
+<li>checkpoint 恢复</li>
+<li>人工补数据</li>
+<li>结果审计</li>
+</ul>
+<p>对于 Spark 这类任务，治理重点偏资源调度与 Stage 恢复；对于供应商同步这类任务，治理重点偏对象级状态、数据质量与发布保护。</p>
+<h3 id="676-优缺点与边界"><a class="header" href="#676-优缺点与边界">6.7.6 优缺点与边界</a></h3>
+<p>优点：</p>
+<ul>
+<li>非常适合大批量对象处理</li>
+<li>适合显式恢复</li>
+<li>工程实践成熟</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>交互性较弱</li>
+<li>对动态规划支持弱</li>
+<li>阶段治理能力取决于额外建模</li>
+</ul>
+<p>边界结论：<strong>当任务主要难点是“批量推进与恢复”，Batch 是主力方案；当难点进一步变成“阶段治理和强审计”，就该升级到 Workflow。</strong></p>
+<hr>
+<h2 id="68-方案四阶段化-workflow"><a class="header" href="#68-方案四阶段化-workflow">6.8 方案四：阶段化 Workflow</a></h2>
+<h3 id="681-定义与特点"><a class="header" href="#681-定义与特点">6.8.1 定义与特点</a></h3>
+<p>阶段化 Workflow 是在 Batch 之上进一步显式建模“阶段边界、职责边界和治理边界”的方案。</p>
+<p>它的核心思路不是把任务拆得越细越好，而是把<strong>天然不同性质的步骤</strong>拆开。</p>
+<h3 id="682-适用场景"><a class="header" href="#682-适用场景">6.8.2 适用场景</a></h3>
+<p>典型适用场景包括：</p>
+<ul>
+<li>供应商数据同步</li>
+<li>审批流</li>
+<li>复杂业务流程</li>
+<li>跨系统数据发布</li>
+<li>内容审核与正式发布</li>
+</ul>
+<h3 id="683-端到端链路与职责拆分"><a class="header" href="#683-端到端链路与职责拆分">6.8.3 端到端链路与职责拆分</a></h3>
+<p>以供应商同步为例，一个成熟的 Workflow 往往天然会拆成下面这类职责：</p>
+<ul>
+<li>Sharder：定义边界和调度单位</li>
+<li>Fetcher：负责忠实拉取外部数据</li>
+<li>Transformer：负责标准化和语义映射</li>
+<li>Publisher：负责正式发布和写前保护</li>
+</ul>
+<p>关键不在“分四步”，而在于：</p>
+<ul>
+<li>把慢源不稳定性和正式发布风险隔离开</li>
+<li>把原始数据、标准数据和正式数据隔离开</li>
+<li>让每个阶段都能独立观察、恢复和治理</li>
+</ul>
+<h3 id="684-状态事件与幂等"><a class="header" href="#684-状态事件与幂等">6.8.4 状态、事件与幂等</a></h3>
+<p>Workflow 的核心资产通常包括：</p>
+<ul>
+<li>阶段状态</li>
+<li>阶段间事件</li>
+<li>对象级状态 Ledger</li>
+<li>幂等约束</li>
+<li>版本保护</li>
+</ul>
+<p>这类系统特别适合引入显式状态机，因为“当前能不能进入下一阶段”本身就是一种正式业务规则。</p>
+<h3 id="685-降级熔断人工接管与回滚"><a class="header" href="#685-降级熔断人工接管与回滚">6.8.5 降级、熔断、人工接管与回滚</a></h3>
+<p>Workflow 系统之所以适合高风险场景，是因为它很容易内建治理能力：</p>
+<ul>
+<li>某一阶段异常时可以熔断，不继续放大影响</li>
+<li>某些对象异常时可以进入人工审查或补偿池</li>
+<li>发布前可以做 review gate</li>
+<li>高风险操作可以要求审批</li>
+</ul>
+<h3 id="686-优缺点与工程价值"><a class="header" href="#686-优缺点与工程价值">6.8.6 优缺点与工程价值</a></h3>
+<p>优点：</p>
+<ul>
+<li>职责边界清晰</li>
+<li>治理能力强</li>
+<li>审计和补偿更自然</li>
+<li>适合高风险长任务</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>建模成本高</li>
+<li>对前期设计要求高</li>
+<li>不适合边界尚不稳定的小任务</li>
+</ul>
+<p>边界结论：<strong>Workflow 不是为了让系统显得高级，而是为了解决强治理长任务的结构化问题。</strong></p>
+<hr>
+<h2 id="69-方案五单-agent"><a class="header" href="#69-方案五单-agent">6.9 方案五：单 Agent</a></h2>
+<h3 id="691-定义与特点"><a class="header" href="#691-定义与特点">6.9.1 定义与特点</a></h3>
+<p>单 Agent 的核心不是“有一个聊天机器人”，而是让一个执行单元同时具备：</p>
+<ul>
+<li>目标理解</li>
+<li>步骤规划</li>
+<li>工具选择</li>
+<li>结果整合</li>
+</ul>
+<p>在很多轻量任务里，它比规则系统灵活得多。</p>
+<h3 id="692-适用场景"><a class="header" href="#692-适用场景">6.9.2 适用场景</a></h3>
+<p>典型适用场景：</p>
+<ul>
+<li>问答</li>
+<li>查询分析</li>
+<li>轻量诊断</li>
+<li>一次性辅助任务</li>
+<li>小范围代码解释或修改建议</li>
+</ul>
+<h3 id="693-输入推理工具调用输出链路"><a class="header" href="#693-输入推理工具调用输出链路">6.9.3 输入、推理、工具调用、输出链路</a></h3>
+<p>单 Agent 的典型链路是：</p>
+<pre><code class="language-text">Input
+  → Reasoning
+  → Tool Selection
+  → Tool Execution
+  → Output
+</code></pre>
+<p>它非常适合“高认知密度、低执行跨度”的问题。</p>
+<h3 id="694-上下文结果和工具契约"><a class="header" href="#694-上下文结果和工具契约">6.9.4 上下文、结果和工具契约</a></h3>
+<p>单 Agent 虽然灵活，但仍然需要约束：</p>
+<ul>
+<li>输入边界要清楚</li>
+<li>工具权限要受控</li>
+<li>输出结构最好可解析</li>
+<li>高风险结果不能直接信任</li>
+</ul>
+<h3 id="695-失败审查与边界控制"><a class="header" href="#695-失败审查与边界控制">6.9.5 失败、审查与边界控制</a></h3>
+<p>单 Agent 最大的误区，是把“会推理”误当成“会治理”。</p>
+<p>它的天然边界包括：</p>
+<ul>
+<li>上下文窗口有限</li>
+<li>状态持久化能力弱</li>
+<li>恢复能力弱</li>
+<li>工具副作用控制弱</li>
+</ul>
+<p>所以单 Agent 更像“认知增强的短任务执行器”，而不是完整长任务系统。</p>
+<h3 id="696-优缺点与边界"><a class="header" href="#696-优缺点与边界">6.9.6 优缺点与边界</a></h3>
+<p>优点：</p>
+<ul>
+<li>灵活</li>
+<li>接入成本低</li>
+<li>对不确定输入友好</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>不擅长长链路恢复</li>
+<li>容易出现上下文膨胀</li>
+<li>治理能力取决于额外框架</li>
+</ul>
+<p>边界结论：<strong>单 Agent 适合做起点，但不能天然承担所有长任务系统职责。</strong></p>
+<hr>
+<h2 id="610-方案六stateful-agent-runtime"><a class="header" href="#610-方案六stateful-agent-runtime">6.10 方案六：Stateful Agent Runtime</a></h2>
+<h3 id="6101-定义与特点"><a class="header" href="#6101-定义与特点">6.10.1 定义与特点</a></h3>
+<p>Stateful Agent Runtime 的核心价值，在于把 Agent 从一次模型调用，提升为一个被 Runtime 托管的长任务执行单元。</p>
+<p>它典型会包含：</p>
+<ul>
+<li>Goal</li>
+<li>Planner</li>
+<li>Step Queue</li>
+<li>Executor</li>
+<li>State Store</li>
+<li>Reviewer</li>
+<li>Policy Layer</li>
+<li>Resume Loop</li>
+</ul>
+<h3 id="6102-适用场景"><a class="header" href="#6102-适用场景">6.10.2 适用场景</a></h3>
+<p>最典型的适用场景包括：</p>
+<ul>
+<li>代码 Agent</li>
+<li>调研 Agent</li>
+<li>运维 Agent</li>
+<li>多步业务助手</li>
+<li>需要暂停、恢复、审查的智能执行系统</li>
+</ul>
+<h3 id="6103-在-agent-中如何落地-task--step--state--checkpoint"><a class="header" href="#6103-在-agent-中如何落地-task--step--state--checkpoint">6.10.3 在 Agent 中如何落地 Task / Step / State / Checkpoint</a></h3>
+<p>这是 Runtime 和单 Agent 的根本区别。</p>
+<p>在 Runtime 中：</p>
+<ul>
+<li>Task 不再只是 prompt，而是正式任务定义</li>
+<li>Step 不再只是隐式思考过程，而是显式执行单元</li>
+<li>State 不是聊天历史，而是正式状态存储</li>
+<li>Checkpoint 是恢复边界，而不是“模型大概记得做到哪了”</li>
+</ul>
+<h3 id="6104-状态事件审查与策略契约"><a class="header" href="#6104-状态事件审查与策略契约">6.10.4 状态、事件、审查与策略契约</a></h3>
+<p>一个成熟的 Agent Runtime 至少要定义：</p>
+<ul>
+<li>任务状态</li>
+<li>步骤状态</li>
+<li>等待状态</li>
+<li>工具调用结果状态</li>
+<li>reviewer 通过 / 拒绝 / 返工状态</li>
+<li>预算和风险策略</li>
+</ul>
+<p>这说明它本质上已经重新走到长任务系统的核心结构上来了。</p>
+<h3 id="6105-暂停恢复人工确认回退与治理"><a class="header" href="#6105-暂停恢复人工确认回退与治理">6.10.5 暂停恢复、人工确认、回退与治理</a></h3>
+<p>这类系统天然要支持：</p>
+<ul>
+<li>中途暂停</li>
+<li>等待人工确认</li>
+<li>等待外部事件</li>
+<li>基于 checkpoint 恢复</li>
+<li>危险动作回退或阻断</li>
+</ul>
+<p>这些能力不是可选增强，而是 Agent 长任务要进入生产环境的基本要求。</p>
+<h3 id="6106-优缺点与升级条件"><a class="header" href="#6106-优缺点与升级条件">6.10.6 优缺点与升级条件</a></h3>
+<p>优点：</p>
+<ul>
+<li>保留 Agent 的认知灵活性</li>
+<li>具备长任务治理能力</li>
+<li>适合复杂多步任务</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>系统复杂度明显上升</li>
+<li>对观测和审计要求高</li>
+<li>设计失误时更容易出现隐蔽问题</li>
+</ul>
+<p>升级条件也很明确：<strong>当单 Agent 已经无法稳定承载长链路执行时，Runtime 才值得引入。</strong></p>
+<hr>
+<h2 id="611-方案七multi-agent-协作"><a class="header" href="#611-方案七multi-agent-协作">6.11 方案七：Multi-Agent 协作</a></h2>
+<h3 id="6111-定义与特点"><a class="header" href="#6111-定义与特点">6.11.1 定义与特点</a></h3>
+<p>Multi-Agent 不是“多几个模型一起聊”，而是把规划、执行、审查、协调等不同职责拆给不同角色化执行单元。</p>
+<h3 id="6112-适用场景"><a class="header" href="#6112-适用场景">6.11.2 适用场景</a></h3>
+<p>典型适用场景：</p>
+<ul>
+<li>复杂研发任务</li>
+<li>并行调研</li>
+<li>规划-执行-审查闭环</li>
+<li>跨领域分析任务</li>
+</ul>
+<h3 id="6113-角色划分与协作链路"><a class="header" href="#6113-角色划分与协作链路">6.11.3 角色划分与协作链路</a></h3>
+<p>最小可行结构通常是三角模型：</p>
+<ul>
+<li>Planner</li>
+<li>Worker</li>
+<li>Reviewer</li>
+</ul>
+<p>在此基础上可以继续扩展：</p>
+<ul>
+<li>Supervisor</li>
+<li>Router</li>
+<li>Specialist Agent</li>
+<li>Memory Manager</li>
+</ul>
+<h3 id="6114-共享状态消息契约与终止条件"><a class="header" href="#6114-共享状态消息契约与终止条件">6.11.4 共享状态、消息契约与终止条件</a></h3>
+<p>Multi-Agent 最难的地方，不是“再多接几个模型”，而是：</p>
+<ul>
+<li>状态谁持有</li>
+<li>消息如何交接</li>
+<li>什么时候返工</li>
+<li>什么时候结束</li>
+<li>谁拥有最终裁决权</li>
+</ul>
+<p>如果这些问题不显式定义，系统很快就会进入循环讨论、重复劳动和责任稀释。</p>
+<h3 id="6115-审查仲裁风险控制与人工接管"><a class="header" href="#6115-审查仲裁风险控制与人工接管">6.11.5 审查、仲裁、风险控制与人工接管</a></h3>
+<p>Multi-Agent 一旦落地，治理比单 Agent 更重要。</p>
+<p>需要重点控制：</p>
+<ul>
+<li>角色权限</li>
+<li>通信协议</li>
+<li>终止条件</li>
+<li>共享状态</li>
+<li>风险升级路径</li>
+<li>人工接管入口</li>
+</ul>
+<h3 id="6116-优缺点与过度设计边界"><a class="header" href="#6116-优缺点与过度设计边界">6.11.6 优缺点与过度设计边界</a></h3>
+<p>优点：</p>
+<ul>
+<li>适合复杂任务分治</li>
+<li>适合隔离职责冲突</li>
+<li>便于引入 reviewer 和 specialist</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>通信成本高</li>
+<li>责任边界复杂</li>
+<li>调试和治理难度高</li>
+<li>Token 和时间成本显著上升</li>
+</ul>
+<p>边界结论：<strong>Multi-Agent 不是默认架构，而是当单执行单元和单 Runtime 已经无法良好承载复杂职责时的一种受控分工机制。</strong></p>
+<hr>
+<h2 id="612-跨方案对比如何选择合适的任务处理方案"><a class="header" href="#612-跨方案对比如何选择合适的任务处理方案">6.12 跨方案对比：如何选择合适的任务处理方案</a></h2>
+<p>讲完七类方案后，我们需要把它们拉回同一张表里比较。</p>
+<h3 id="6121-一张统一对比表"><a class="header" href="#6121-一张统一对比表">6.12.1 一张统一对比表</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>状态持久化</th><th>恢复能力</th><th>流程灵活性</th><th>治理能力</th><th>工程成本</th><th>典型场景</th></tr>
+</thead>
+<tbody>
+<tr><td>同步短任务</td><td>弱</td><td>弱</td><td>低</td><td>低</td><td>低</td><td>查询、单次写入、轻量问答</td></tr>
+<tr><td>异步任务 / MQ Consumer</td><td>弱到中</td><td>中</td><td>低</td><td>低到中</td><td>低到中</td><td>通知、缓存刷新、轻量后台处理</td></tr>
+<tr><td>Batch / 分布式 Job</td><td>中到强</td><td>强</td><td>中</td><td>中</td><td>中</td><td>数据同步、Spark 任务、索引重建</td></tr>
+<tr><td>阶段化 Workflow</td><td>强</td><td>强</td><td>中</td><td>强</td><td>中到高</td><td>供应商同步、审批流、复杂发布</td></tr>
+<tr><td>单 Agent</td><td>弱到中</td><td>弱</td><td>强</td><td>弱</td><td>低到中</td><td>问答、分析、轻量诊断</td></tr>
+<tr><td>Stateful Agent Runtime</td><td>强</td><td>强</td><td>强</td><td>中到强</td><td>高</td><td>代码 Agent、调研 Agent、运维 Agent</td></tr>
+<tr><td>Multi-Agent</td><td>强</td><td>中到强</td><td>很强</td><td>中到强</td><td>很高</td><td>复杂协作、规划执行审查闭环</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="6122-一条渐进式升级路径"><a class="header" href="#6122-一条渐进式升级路径">6.12.2 一条渐进式升级路径</a></h3>
+<p>实践里最常用的升级路径通常是：</p>
+<pre><code class="language-text">同步短任务
+  → 异步任务
+  → Batch / Workflow
+  → 单 Agent
+  → Stateful Agent Runtime
+  → Multi-Agent
+</code></pre>
+<p>当然，系统不一定严格按这个顺序走，但背后的方法论是稳定的：</p>
+<ul>
+<li>先解决执行跨度</li>
+<li>再解决认知问题</li>
+<li>最后解决协作问题</li>
+</ul>
+<h3 id="6123-三个常用的选型建议"><a class="header" href="#6123-三个常用的选型建议">6.12.3 三个常用的选型建议</a></h3>
+<h4 id="建议一默认从最小可行方案起步"><a class="header" href="#建议一默认从最小可行方案起步">建议一：默认从最小可行方案起步</a></h4>
+<p>不要用 Multi-Agent 去解决一个同步接口就能解决的问题，也不要为一个短生命周期脚本搭一整套 Workflow 平台。</p>
+<h4 id="建议二一旦出现状态恢复需求就停止使用短任务思维"><a class="header" href="#建议二一旦出现状态恢复需求就停止使用短任务思维">建议二：一旦出现状态恢复需求，就停止使用短任务思维</a></h4>
+<p>这是很多系统的分水岭。只要你开始认真讨论 checkpoint、人工恢复、局部重试，就说明任务已经进入长任务语境。</p>
+<h4 id="建议三治理问题不能靠多加一点-prompt解决"><a class="header" href="#建议三治理问题不能靠多加一点-prompt解决">建议三：治理问题不能靠“多加一点 prompt”解决</a></h4>
+<p>很多 Agent 系统的问题，本质上不是模型不够聪明，而是状态、审查、权限和回退机制没建出来。</p>
+<hr>
+<h2 id="613-本章小结"><a class="header" href="#613-本章小结">6.13 本章小结</a></h2>
+<p>这一章想建立的，不是一套新名词，而是一种更稳定的系统设计视角。</p>
+<h3 id="6131-先分清复杂度来自哪里"><a class="header" href="#6131-先分清复杂度来自哪里">6.13.1 先分清复杂度来自哪里</a></h3>
+<p>系统设计里最容易犯的错误，是在错误的维度上用力。<br>有的任务难在执行跨度，有的难在认知判断，有的难在协作治理。方案选型必须先识别复杂度来源。</p>
+<h3 id="6132-短任务长任务agent-和-multi-agent-不是割裂概念"><a class="header" href="#6132-短任务长任务agent-和-multi-agent-不是割裂概念">6.13.2 短任务、长任务、Agent 和 Multi-Agent 不是割裂概念</a></h3>
+<p>它们本质上都是统一执行模型在不同复杂度区间下的不同实现。区别只是：</p>
+<ul>
+<li>执行跨度有多大</li>
+<li>状态是否需要外置持久化</li>
+<li>是否需要动态规划</li>
+<li>是否需要多角色协作</li>
+</ul>
+<h3 id="6133-真正成熟的任务系统拼的不是会不会执行而是会不会治理"><a class="header" href="#6133-真正成熟的任务系统拼的不是会不会执行而是会不会治理">6.13.3 真正成熟的任务系统，拼的不是“会不会执行”，而是“会不会治理”</a></h3>
+<p>无论你最后选择的是 Batch、Workflow、Agent Runtime 还是 Multi-Agent，只要系统进入长任务区间，就绕不开以下核心能力：</p>
+<ul>
+<li>状态</li>
+<li>恢复</li>
+<li>幂等</li>
+<li>补偿</li>
+<li>审计</li>
+<li>风险控制</li>
+<li>人工接管</li>
+</ul>
+<h3 id="6134-最后压缩成三条原则"><a class="header" href="#6134-最后压缩成三条原则">6.13.4 最后压缩成三条原则</a></h3>
+<p>如果要把本章压缩成三句话，我建议记住这三条：</p>
+<ol>
+<li><strong>先看执行跨度</strong>：是否需要跨边界持久推进。</li>
+<li><strong>再看认知复杂度</strong>：是否需要动态规划和工具选择。</li>
+<li><strong>最后看协作复杂度</strong>：是否需要角色分工与审查闭环。</li>
+</ol>
+<p>只有把这三个问题分开看，任务处理方案的选型才会真正清楚。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="第-20-章-电商系统全景图"><a class="header" href="#第-20-章-电商系统全景图">第 20 章 电商系统全景图</a></h1>
 <blockquote>
@@ -35810,61 +36668,486 @@ WHERE id = ?;
 <li>任务中断后必须能从 <code>current_checkpoint</code> 恢复，而不是从头重跑</li>
 <li>供应商原始返回值必须保留为证据和回放素材</li>
 </ul>
-<p>对 Agoda 这类供应商，更合适的是保持单 Worker 串行拉取：一次只拉一页或一个 cursor，每次成功拉回就立即推 MQ，然后推进 <code>current_checkpoint</code>。换句话说，<code>supplier_sync_batch</code> 只是管理“这次同步怎么跑”的外层壳，真正跑数时用的是“串行拉取 + checkpoint + MQ”的线性流水线，而不是并发切片。</p>
+<p>为了把这类长任务讲清楚，这里把供应商同步统一抽象成 4 个阶段：</p>
+<ol>
+<li><code>Phase 0: Sharder</code>，决定本次同步边界和分片颗粒度。</li>
+<li><code>Phase 1: Fetcher</code>，按照分片上下文去外部供应商拉原始数据。</li>
+<li><code>Phase 2: Transformer</code>，把原始 JSON / XML 映射成平台标准对象。</li>
+<li><code>Phase 3: Publisher</code>，把标准对象持久化、投递、发布到商品主域和治理链路。</li>
+</ol>
+<p>这 4 个阶段不是要求所有供应商都做成高并发切片框架，而是提供一个统一的执行心智。对 Agoda 这类慢源 Pull，<code>Phase 0</code> 仍然可以只产出一个或少量串行分片，<code>Phase 1</code> 保持单 Worker 慢拉，后面的 <code>Transformer / Publisher</code> 再通过 MQ 并发消峰。</p>
 <p>这里直接定调：</p>
 <blockquote>
-<p>对 Agoda 这类慢源，正确答案不是“分片并发拉”，而是“串行慢拉 + MQ 蓄水 + 下游并发消峰”。</p>
+<p>对 Agoda 这类慢源，正确答案不是“Fetcher 阶段盲目并发拉”，而是“Sharder 控边界，Fetcher 串行慢拉，Publisher 之后再用 MQ 蓄水和下游并发消峰”。</p>
 </blockquote>
 <p>所以供应商同步这类链路的本质不是“收一批外部数据”，而是：</p>
 <blockquote>
 <p>如何在超长任务、不稳定外部系统和正式发布治理之间，实现 <strong>可恢复、可追溯、可治理、可补偿</strong>。</p>
 </blockquote>
-<h4 id="362-时序图"><a class="header" href="#362-时序图">3.6.2 时序图</a></h4>
-<h5 id="3621-定时任务触发与串行接入落盘时序图"><a class="header" href="#3621-定时任务触发与串行接入落盘时序图">3.6.2.1 定时任务触发与串行接入落盘时序图</a></h5>
-<pre class="mermaid">
-sequenceDiagram
-    participant SCH as "Scheduler / Cron"
-    participant ST as "supplier_sync_task"
-    participant SB as "supplier_sync_batch"
-    participant W as "Serial Pull Worker"
-    participant SUP as "Supplier API"
-    participant HDB as "HBase / Object Store"
-    participant MYSQL as "MySQL(batch/state_ledger/task_item)"
-    participant MQP as "Processing MQ"
-
-    SCH-&gt;&gt;ST: 触发定时同步(sync_mode, data_scope, task_code)
-    SCH-&gt;&gt;MYSQL: 查询最近 RUNNING batch 与 lease_until
-    alt 存在未过期 RUNNING 批次
-        MYSQL--&gt;&gt;SCH: 返回 running batch
-        SCH--&gt;&gt;SCH: 阻断本次触发
-    else 无运行中批次或租约已过期
-        SCH-&gt;&gt;SB: 创建或接管 batch(RUNNING, current_checkpoint, sync_batch_version)
-        SCH-&gt;&gt;MYSQL: 落盘 batch 元数据与租约
-        SCH-&gt;&gt;W: 唤醒独占串行 Worker
-        W--&gt;&gt;SCH: ACK
-    end
-
-    loop 每个 page / cursor
-        W-&gt;&gt;SUP: 按 current_checkpoint 串行拉取下一页
-        alt 鉴权失败 / 模板完全失配
-            SUP--&gt;&gt;W: fatal error
-            W-&gt;&gt;MYSQL: 标记 batch FAILED，写批次级问题单
-        else 超时 / 5xx / cursor 失效
-            SUP--&gt;&gt;W: retryable error
-            W-&gt;&gt;MYSQL: 回填页面级问题单，更新 retry_count / current_checkpoint
-        else 返回 payload
-            SUP--&gt;&gt;W: raw payload
-            W-&gt;&gt;HDB: 批量保存 RAW snapshot
-            W-&gt;&gt;MYSQL: 批量 upsert state_ledger / task_item(INIT, raw_ref, page_no, cursor)
-            W-&gt;&gt;MQP: 批量发送本页消息(object_key, snapshot_ref)
-            W-&gt;&gt;MYSQL: 推进 current_checkpoint / heartbeat_at / lease_until
-        end
-    end
-
-    W-&gt;&gt;MYSQL: 尾页完成，回填 end_of_stream=true
-</pre>
-
-<p>这张图只回答一个问题：<strong>定时器触发后，串行 Worker 如何在单线程拉取、落盘、投递 MQ、推进 checkpoint 之间形成一条线性的同步流水线。</strong></p>
+<h4 id="362-整体设计和关键决策点"><a class="header" href="#362-整体设计和关键决策点">3.6.2 整体设计和关键决策点</a></h4>
+<p>在进入具体执行模型之前，可以先把这一节的核心设计收敛成几张总表。这样读者会先抓住骨架，再去看后面的分层展开、时序图和表结构。</p>
+<h5 id="3621-四阶段核心职责边界"><a class="header" href="#3621-四阶段核心职责边界">3.6.2.1 四阶段核心职责边界</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Phase</th><th>组件</th><th>核心职责</th><th>禁止事项</th><th>关键输出</th></tr>
+</thead>
+<tbody>
+<tr><td>0</td><td><code>Sharder</code></td><td>回答“这次同步边界是什么？切成多大单元？”</td><td>不做业务映射、不做最终裁决</td><td><code>ShardContext</code> 列表，至少包含 <code>batch_id / shard_id / payload / checkpoint</code></td></tr>
+<tr><td>1</td><td><code>Fetcher</code></td><td>忠实拉取 + checkpoint 推进 + RAW snapshot</td><td>不做语义转换、不做最终发布判断</td><td><code>RAW</code> 数据 + 推进 <code>current_checkpoint</code></td></tr>
+<tr><td>2</td><td><code>Transformer</code></td><td>外部 -&gt; 平台语义映射 + 标准化 + 基础风险标注</td><td>不做最终上线 / 下线裁决</td><td><code>Normalized</code> 标准模型 + <code>normalized_ref</code></td></tr>
+<tr><td>3</td><td><code>Publisher</code></td><td>写前保护 + Upsert 主域 + 状态机驱动</td><td>不直接改正式商品表</td><td><code>SUCCESS / SKIPPED / FAILED</code> + 投递结果</td></tr>
+</tbody>
+</table>
+</div>
+<p>这个拆分的最大价值在于：把“拉数据的不稳定”“翻译的复杂性”“发布的治理”彻底解耦。对于 Agoda 这类慢源、大体量、强治理场景，这种分层方式的长期维护性会明显高于“大 Consumer 泥球”。</p>
+<h5 id="3622-数据库表设计亮点"><a class="header" href="#3622-数据库表设计亮点">3.6.2.2 数据库表设计亮点</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表</th><th>角色定位</th><th>为什么重要</th></tr>
+</thead>
+<tbody>
+<tr><td><code>supplier_sync_task</code></td><td>作战计划模板 + 总控台</td><td>定义同步任务如何触发、采用哪种分片策略，并承接主任务级管理与观测</td></tr>
+<tr><td><code>supplier_sync_shard_task</code></td><td>分片级执行控制台</td><td>记录每个 shard 的执行上下文、checkpoint、失败定位与局部恢复</td></tr>
+<tr><td><code>supplier_sync_batch</code></td><td>批次级租约 + 进度总览</td><td>记录本次批次由谁在跑、跑到哪、是否还能被接管</td></tr>
+<tr><td><code>supplier_sync_state_ledger</code></td><td>对象级状态机中枢</td><td>承接并发防踩脚、对账、补偿、幽灵消息裁剪四大主权</td></tr>
+<tr><td><code>supplier_product_mapping_tab</code></td><td>映射权威</td><td>维护外部资源和平台资源之间的稳定映射关系</td></tr>
+</tbody>
+</table>
+</div>
+<p>这里最需要强调的是：<code>supplier_sync_state_ledger</code> 不是可选项，而是工业级流水线的指挥中心。没有它，100w+ 对象同步很容易退化成黑盒。</p>
+<h5 id="3623-关键设计点整理"><a class="header" href="#3623-关键设计点整理">3.6.2.3 关键设计点整理</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模块</th><th>当前设计</th><th>补充建议</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Sharder</code></td><td>支持 <code>Full / Delta / Cursor</code> 可插拔策略</td><td>增加 <code>shard_strategy_version</code>，保证策略升级后老批次仍可按原规则恢复</td></tr>
+<tr><td><code>Fetcher</code></td><td>Agoda 采用“串行 + 页级 checkpoint + 页级批量物化”</td><td>RAW snapshot 旁边补一个 <code>raw_hash</code>，辅助判断内容是否真的变化</td></tr>
+<tr><td><code>Transformer</code></td><td>将外部语义映射、标准化从 Fetcher 剥离</td><td>生成 <code>normalized_hash + field_version_map</code>，为 Publisher 提供更细粒度的字段主导权判断依据</td></tr>
+<tr><td><code>Publisher</code></td><td>CAS + 实时版本反查 + 写前保护</td><td>增加乐观字段主导权机制，例如价格、房态、状态可偏供应商主导，其它字段保留平台人工主导权</td></tr>
+<tr><td>全量 List 自动下线</td><td>批次收尾 + 时间戳打卡 + 候选集 + 比例熔断</td><td>建议增加 <code>offline_candidate_batch</code> 临时表，并配置最小存活比例阈值，防止大面积误下线</td></tr>
+</tbody>
+</table>
+</div>
+<p>这张整理表不是要替代后面的小节，而是先把供应商同步设计的几个“高价值判断”显式列出来，方便读者快速建立全局心智。</p>
+<h5 id="3624-决策点纯串行--checkpoint还是分阶段--分片流水线"><a class="header" href="#3624-决策点纯串行--checkpoint还是分阶段--分片流水线">3.6.2.4 决策点：纯串行 + Checkpoint，还是分阶段 + 分片流水线</a></h5>
+<p>在真正展开四阶段执行模型之前，需要先回答一个更上层的问题：</p>
+<blockquote>
+<p>供应商同步到底应该继续采用“一个 Worker 从头拉到尾”的纯串行模式，还是应该升级成“分阶段 + 分片 + 中间状态可观测”的流水线模式。</p>
+</blockquote>
+<p>这是一个非常典型的架构分水岭。推荐先把两个方案明确摆出来：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>设计思路</th><th>优点</th><th>缺点</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td>方案 A：纯串行 + Checkpoint</td><td>只有一个 Worker 执行整个任务；每处理完一小批数据就持久化 <code>checkpoint</code>；失败或重启后从最新 checkpoint 继续</td><td>实现最简单；状态一致性最好；调试容易；故障定位直接</td><td>无法利用并行能力；速度慢；单 Worker 风险高；很难做局部重试</td><td>数据源本身不支持并发、总量可控、强顺序依赖明显的场景</td></tr>
+<tr><td>方案 B：分阶段 + 分片流水线</td><td>拆成 <code>Sharder -&gt; Fetcher -&gt; Transformer -&gt; Publisher</code> 四阶段，通过 MQ、状态表、快照存储解耦</td><td>职责边界清晰；可并行；支持任务级、批次级、分片级、对象级治理；支持局部重试、精准补偿、熔断和人工介入；可插拔扩展性强</td><td>实现复杂度更高；需要处理最终一致性、幽灵消息、旧数据覆盖；运维和监控成本更高</td><td>长任务、大体量、强治理、多供应商、多阶段协同的工业级同步场景</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果只从“最容易上线”看，方案 A 当然更轻；但一旦同步对象规模进入 100w 级、需要长期稳定运行、需要失败治理和人工介入，方案 A 很快就会暴露两个根本问题：</p>
+<ol>
+<li>它只能回答“任务有没有跑完”，很难回答“卡在哪、为什么卡、能不能局部恢复”。</li>
+<li>它把拉取、转换、发布和治理揉成一个执行体，后续每加一层能力，复杂度都会继续堆在同一个 Worker 里。</li>
+</ol>
+<p>也正因为如此，这一节最终选择方案 B 作为主方案。但这里也要讲清楚一个非常重要的现实判断：</p>
+<blockquote>
+<p>选择方案 B，不等于每个供应商都必须在每个阶段都高并发运行。</p>
+</blockquote>
+<p>对 Agoda 这种慢源、QPS 严格受限、上游接口不稳定的场景，更合理的落地方式其实是：</p>
+<ul>
+<li>在架构层选择方案 B，保留分阶段、可治理、可补偿的能力。</li>
+<li>在执行层让 <code>Fetcher</code> 继续采用偏串行的慢拉模式。</li>
+<li>把并发能力主要释放到 <code>Transformer / Publisher</code> 和错误处理链路，而不是上游盲目并发拉取。</li>
+</ul>
+<p>所以更准确的工程判断应该是：</p>
+<blockquote>
+<p>不是“方案 A 或方案 B 二选一”，而是“整体架构采用方案 B，但对慢源供应商在局部执行策略上保留方案 A 的串行心智”。</p>
+</blockquote>
+<p>这样做的结果是：</p>
+<ul>
+<li>既保住了 Agoda 场景下最关键的稳定性和 checkpoint 恢复能力；</li>
+<li>又不会把整个系统锁死在“单 Worker 黑盒长任务”的演进路径上。</li>
+</ul>
+<h5 id="3625-supplier_sync_state_ledger-为什么是关键中枢"><a class="header" href="#3625-supplier_sync_state_ledger-为什么是关键中枢">3.6.2.5 <code>supplier_sync_state_ledger</code> 为什么是关键中枢</a></h5>
+<p>这里要特别强调一点：在 RAW / NORMALIZED 报文已经全量交给 <code>HBase / Object Store</code> 的情况下，MySQL 里的 <code>supplier_sync_state_ledger</code> 仍然不是可选项。</p>
+<p>如果说 <code>HBase</code> 是装满原始货物的“大仓库”，那么 <code>supplier_sync_state_ledger</code> 就是整条同步流水线的“调度指挥中心”。它负责承接四类关键主权：</p>
+<ul>
+<li><strong>并发主权</strong>：Consumer 通过状态机和 CAS 抢占对象级执行权，避免 MQ 重投后的并发踩脚。</li>
+<li><strong>对账主权</strong>：大盘进度、成功/失败/跳过统计不能去扫 HBase，只能依赖 MySQL 轻量聚合。</li>
+<li><strong>补偿主权</strong>：失败对象必须能被精准捞出做二次重试，而不是把 100w 对象整批重跑。</li>
+<li><strong>时间差防线</strong>：消息在 MQ 里排队数小时后，Consumer 仍可结合状态台账和实时版本做写前保护，阻断旧数据覆盖新数据。</li>
+</ul>
+<p>换句话说，<code>HBase</code> 负责“存数据”，<code>supplier_sync_state_ledger</code> 负责“驱动状态机”。没有这张表，整条长任务链路就会从“可对账、可恢复、可裁剪”的工业流水线，退化成一条状态不可见的黑盒。</p>
+<h5 id="3626-phase-0-sharder-的设计点"><a class="header" href="#3626-phase-0-sharder-的设计点">3.6.2.6 Phase 0: Sharder 的设计点</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Sharder</code> 决定同步边界，不负责业务裁决</td><td>它只回答“这次同步要处理谁、切成多大颗粒度”，不负责酒店字段映射和商品最终发布裁决。</td></tr>
+<tr><td>分片策略必须可插拔</td><td>全量同步和增量同步的切法完全不同，至少要支持 <code>FullSharder / DeltaSharder / CursorSharder</code> 三类策略。</td></tr>
+<tr><td>分片策略要带版本号</td><td><code>shard_strategy_version</code> 建议显式落在主任务或批次上下文里。后续当分片规则升级时，老批次仍能按当时策略做恢复和复盘。</td></tr>
+<tr><td>shard 要能独立重试与补偿</td><td>一个 shard 失败时，应该允许局部重跑，而不是让整个 100w 任务回到起点。</td></tr>
+<tr><td>单例运行与租约接管</td><td><code>supplier_sync_batch</code> 需要 <code>status=RUNNING + lease_until</code> 的单例控制。租约未过期时，新触发直接阻断；租约过期时，新 Worker 通过 CAS 接管并继承 <code>current_checkpoint</code>。</td></tr>
+<tr><td>shard 元数据必须持久化</td><td><code>shard_id / sync_mode / page_range / hotel_id_list / checkpoint / status</code> 不能只在内存里，否则无法做断点续跑和精确补偿。</td></tr>
+<tr><td>慢源允许退化成单 shard 串行模式</td><td>Agoda 这类接口不稳定、QPS 严格受限的场景，即便有 <code>Sharder</code>，最终也可能只生成一个长串行 shard，这不是退步，而是工程上更稳。</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="3627-phase-1-fetcher-的设计点"><a class="header" href="#3627-phase-1-fetcher-的设计点">3.6.2.7 Phase 1: Fetcher 的设计点</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>串行 checkpoint 恢复</td><td>Agoda 这类慢源不适合并发拉取。更稳的做法是一次只拉一页或一个 cursor，成功后推进 <code>current_checkpoint</code>，机器重启后从最近水位继续。</td></tr>
+<tr><td>HBase 吞数据，MySQL 管状态</td><td>原始报文和标准化对象进入 HBase 或对象存储；MySQL 只负责批次、状态台账、映射和治理锚点。</td></tr>
+<tr><td>页级批量物化</td><td>串行拉回一页后，要按页批量写快照、批量 Upsert 状态台账、批量投 MQ，避免接入层做大量单条循环写。</td></tr>
+<tr><td>RAW 侧建议保留 <code>raw_hash</code></td><td>这不是最终跳过判断依据，但能明显提升重复页识别、问题排查和观测分析能力。</td></tr>
+<tr><td><code>Fetcher</code> 只忠实搬运，不做最终裁决</td><td>上游拉取层负责忠实搬运与状态推进，不基于本地镜像去做最终跳过判断。否则最容易因为失败状态、排队延迟或运营改动造成静默丢单。</td></tr>
+<tr><td>Push / Pull 介质分离</td><td>Push 更偏接口受理 + MQ 削峰，Pull 更偏单 Worker 串行拉取 + checkpoint；两者执行模型不同，但治理主线复用。</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="3628-phase-2-transformer-的设计点"><a class="header" href="#3628-phase-2-transformer-的设计点">3.6.2.8 Phase 2: Transformer 的设计点</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>映射与标准化应从 Fetcher 剥离</td><td>把外部接口抖动处理和内部语义转换拆开，能明显降低执行层复杂度。</td></tr>
+<tr><td>Transformer 产物要可回放</td><td>标准化后的对象也要落 <code>normalized_ref</code>，这样后续排障、复算、规则调整时不必重新打供应商接口。</td></tr>
+<tr><td>标准化结果建议带 <code>normalized_hash</code></td><td>它适合做观测、调试和局部重复短路，但不应替代商品主域最终幂等裁决。</td></tr>
+<tr><td>字段级主导权判断应有辅助信息</td><td><code>field_version_map</code> 或等价结构能帮助 Publisher 做更细粒度的字段主导权判断，而不是整对象盲覆盖。</td></tr>
+<tr><td>风险识别可以前移，但不做最终发布裁决</td><td>这一层可以标记异常价格、缺失字段、高风险类目，但不能越权决定是否覆盖正式商品。</td></tr>
+<tr><td>Supplier Mapping 独立持久化</td><td>外部资源和平台资源的映射不能只靠内存或日志，要有权威 <code>supplier_product_mapping_tab</code>。</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="3629-phase-3-publisher-的设计点"><a class="header" href="#3629-phase-3-publisher-的设计点">3.6.2.9 Phase 3: Publisher 的设计点</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>supplier_sync_state_ledger</code> 是状态主权中心</td><td>这张表不是简单的辅助索引，而是整个长任务的状态机中枢。它记录对象当前是 <code>INIT / PROCESSING / SUCCESS / FAILED / SKIPPED</code>，用来支撑并发防踩脚、大盘聚合、局部重试和幽灵消息裁剪。</td></tr>
+<tr><td>CAS 强占消费权</td><td>Publisher Consumer 不能拿到消息就直接处理，而要先把对象状态从 <code>INIT</code> 原子推进到 <code>PROCESSING</code>，这样才能避免 MQ 重投或多机并发时重复处理同一对象。</td></tr>
+<tr><td>供给侧允许做安全过滤，但不能做最终业务去重</td><td>供给侧可以基于 <code>state_ledger</code> 做同批次重复页、无映射死链、并发重投、以及“同批次内已明确成功投递过商品中心的重复消息”这类安全过滤；但不能仅凭 <code>hash_sign</code> 去猜测商品中心真相并直接裁决最终 <code>SKIPPED</code>。</td></tr>
+<tr><td><code>hash_sign</code> 只能做辅助观测或安全短路条件</td><td>如果状态台账里维护了 <code>hash_sign</code> / <code>payload_hash</code>，它更适合用于大盘分析、排障，以及配合“同批次已成功投递”做局部短路；不建议把它当作跨批次最终业务去重依据。</td></tr>
+<tr><td>商品中心死守强幂等</td><td>最终去重、幂等和写拦截必须收敛到商品中心。供给侧允许忠实重发，商品主域用 <code>publish_version</code>、乐观锁和字段主导权做最终写前保护。</td></tr>
+<tr><td>字段主导权要显式建模</td><td>供应商不一定对所有字段都有覆盖权。价格、房态、状态这类高动态字段可以偏供应商主导；标题、卖点、运营标签往往仍应以平台人工编辑为准。</td></tr>
+<tr><td>版本反查防旧数据覆盖</td><td>由于拉取和消费之间可能相隔数小时，Consumer 必须在写商品主域前实时反查版本和锁定状态，拦截旧数据覆盖新数据。</td></tr>
+<tr><td>执行层与治理层边界</td><td>Pull 执行层独立，Consumer 负责对象级消费控制和请求编排，但不能直接改正式商品表，只能通过商品主域写侧接口完成更新。</td></tr>
+<tr><td>对象级补偿必须可精准捞取</td><td>当 100w 对象里只有 1w 失败时，系统必须能直接通过 <code>state_ledger=FAILED</code> 拉出问题对象，而不是整批重跑。</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="36210-shard-失败与错误处理任务"><a class="header" href="#36210-shard-失败与错误处理任务">3.6.2.10 Shard 失败与错误处理任务</a></h5>
+<p>对于 Agoda 这类长任务，最忌讳的一件事就是把异常恢复逻辑塞回主同步链路，最后把 <code>Shard -&gt; Fetch -&gt; Transform -&gt; Publish</code> 重新写成一个满是分支的大黑盒。更稳的做法是：</p>
+<ol>
+<li>主同步任务负责正常生产和推进 shard。</li>
+<li>shard 失败时，只更新主表状态和 checkpoint，并写失败证据。</li>
+<li>专门的 <code>supplier_sync_error_task</code> 负责消费失败 shard，判断是自动重试、人工介入、跳过归档，还是柔性补偿。</li>
+</ol>
+<p>这里的关键分工是：</p>
+<ul>
+<li><code>supplier_sync_shard_task</code>：恢复主权表，记录“当前在哪个阶段、从哪恢复”。</li>
+<li><code>supplier_sync_shard_error_log</code>：失败审计表，记录“为什么失败、失败时上下文是什么”。</li>
+<li><code>supplier_sync_error_task</code>：异常治理表，记录“这次准备怎么处理失败 shard、处理结果如何”。</li>
+</ul>
+<p>这样设计的好处是：</p>
+<ul>
+<li>主同步任务保持干净，不被异常治理分支污染。</li>
+<li>大批量任务不会因为少量坏 shard 长时间卡死。</li>
+<li>失败治理从“看日志人工排查”升级成“显式任务化治理”。</li>
+</ul>
+<h5 id="36211-收尾与对账阶段的设计点"><a class="header" href="#36211-收尾与对账阶段的设计点">3.6.2.11 收尾与对账阶段的设计点</a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>对账与终结判定依赖状态台账</td><td>跑批进行中不能去遍历 HBase 里的海量 KV 做统计。更稳的方式是基于 <code>supplier_sync_state_ledger</code> 做轻量聚合，实时得出 <code>SUCCESS / FAILED / SKIPPED / PROCESSING</code> 大盘。</td></tr>
+<tr><td>动态计数器与终结标志</td><td>由于串行 Pull 事先不知道总量，接入层应采用 <code>INCRBY + end_of_stream + DECR</code> 的动态计数协议，而不是固定总数计数器。</td></tr>
+<tr><td>DB 旁路盘点兜底</td><td>Redis 或 Consumer 猝死导致收尾漏触发时，需要由 DB 旁路定时器盘点状态台账，补触发归档。</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="36212-全量-list-下的自动下线设计点"><a class="header" href="#36212-全量-list-下的自动下线设计点">3.6.2.12 全量 List 下的自动下线设计点</a></h5>
+<p>当供应商只提供全量 List、不提供显式下线增量通知时，供应商同步链路必须自己解决“沉默的消失”：哪些对象本次没有再出现，因此应该被自动下线。</p>
+<p>这件事不适合设计成“每消费一条消息顺便判断一次”的行级逻辑，更合适的方式是把它设计成 <strong>批次收尾动作</strong>。因为只有等整批 List 拉取结束、且对象级消费已经完成收敛时，系统才知道“谁在本次真正缺席了”。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>设计点</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>全量下线判断必须是批次级动作</td><td>下线不是单条对象能判断出来的，它依赖“本次全量 List 已经完整处理完”的全局前提，因此必须放在批次收尾阶段。</td></tr>
+<tr><td>时间戳游标是默认解法</td><td>批次启动时记录 <code>T_start</code>；本次 List 中命中的对象，在 <code>supplier_sync_state_ledger</code> 中刷新最近打卡时间；批次收尾时，再找出 <code>supplier_id</code> 下仍在线、但最近打卡时间早于 <code>T_start</code> 的对象，作为候选下线集。</td></tr>
+<tr><td>只有绝对安全瞬间才能触发下线盘点</td><td>必须同时满足 <code>end_of_stream=true</code> 且本批次对象处理已收敛，才能开始候选下线识别。不能在 MQ 还没消费完时提前执行，否则极易误杀还在排队的正常对象。</td></tr>
+<tr><td>先找候选下线集，再做比例熔断</td><td>候选下线对象不能直接批量执行下线。必须先计算占比；如果缺失比例异常高，默认视为供应商漏传、文件不完整或接口故障，自动下线应当立即熔断。</td></tr>
+<tr><td>影子快照表是高安全等级备选</td><td>如果业务对误下线极度敏感，可以先把本次全量 List 的对象主键完整写入影子快照表，再与当前在线集合做差集。这样更安全，但更重。</td></tr>
+<tr><td>下线应该通过统一治理链路发起</td><td>候选下线对象识别出来后，不应直接绕过商品主域写侧改正式状态，而应通过统一的下线命令或治理链路进入商品主域 / 库存协同。</td></tr>
+<tr><td>下线必须保留原因与批次归因</td><td>自动下线要记录 <code>off_reason / supplier_id / batch_id / trigger_id</code>，保证后续能够追溯“它是因为哪一次全量同步缺失而下线的”。</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="363-四阶段执行模型详情"><a class="header" href="#363-四阶段执行模型详情">3.6.3 四阶段执行模型详情</a></h4>
+<p>为了避免把架构分层埋进时序细节里，这里先单独定义供应商同步的四阶段执行模型，再在后面用时序图展开关键链路。这样读者会先知道职责边界，再去看具体执行顺序。</p>
+<h5 id="3631-phase-0-sharder任务分片器"><a class="header" href="#3631-phase-0-sharder任务分片器">3.6.3.1 Phase 0: Sharder（任务分片器）</a></h5>
+<p><code>Sharder</code> 不处理具体酒店数据，它只负责回答两个问题：</p>
+<ol>
+<li>这次同步的边界是什么。</li>
+<li>这次同步应该切成多大的独立执行单元。</li>
+</ol>
+<p>输入通常是主任务元数据，例如：</p>
+<ul>
+<li><code>supplier_id=agoda</code></li>
+<li><code>sync_mode=FULL / DELTA</code></li>
+<li><code>trigger_time</code></li>
+<li><code>task_code</code></li>
+</ul>
+<p>输出是一个 <code>ShardContext</code> 列表或流。每个 <code>ShardContext</code> 至少需要包含：</p>
+<ul>
+<li><code>batch_id</code></li>
+<li><code>shard_id</code></li>
+<li><code>sync_mode</code></li>
+<li><code>fetch_cursor / page_range / hotel_id_list / geo_scope</code></li>
+<li><code>checkpoint</code></li>
+<li><code>priority</code></li>
+</ul>
+<p>一个统一的 <code>ShardContext</code> 可以抽象成：</p>
+<pre><code class="language-json">{
+  "batch_id": "sb_20260604_0001",
+  "shard_id": "agoda-delta-023",
+  "supplier_id": "agoda",
+  "sync_mode": "DELTA",
+  "hotel_id_list": ["AGD_HOTEL_78231", "AGD_HOTEL_78232"],
+  "fetch_cursor": null,
+  "page_range": null,
+  "checkpoint": null,
+  "priority": 50
+}
+</code></pre>
+<p><code>Sharder</code> 最核心的价值是可插拔策略。典型策略如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>策略</th><th>适用场景</th><th>分片方法</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FullSharder</code></td><td>全量酒店同步</td><td>按酒店 ID 区间、国家/城市、页范围切分</td></tr>
+<tr><td><code>DeltaSharder</code></td><td>过去 1 小时变更同步</td><td>先查 Change Log，再按每 500 家一包切批</td></tr>
+<tr><td><code>CursorSharder</code></td><td>供应商只支持 cursor 连续拉取</td><td>只生成 1 个或极少数串行 shard</td></tr>
+</tbody>
+</table>
+</div>
+<p>对 Agoda 这类慢源，虽然可以在概念上保留 <code>Sharder</code>，但很多时候真正落地会退化成：</p>
+<ul>
+<li>全量同步时，只生成少量大 shard，甚至只有 1 个串行 shard。</li>
+<li>增量同步时，先通过 Change Log 拿到过去一段时间变化的酒店 ID，再按每 500 家一包切成多个 shard。</li>
+</ul>
+<p>在工程落地上，<code>Phase 0: Sharder</code> 至少需要两张表来承接主任务和分片任务：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表</th><th>职责</th><th>关键字段</th></tr>
+</thead>
+<tbody>
+<tr><td><code>supplier_sync_task</code></td><td>主任务定义与管理表，描述“这类同步任务是什么、何时触发、采用什么同步模式与分片策略”，同时承接任务开关、运行态观察、人工干预入口</td><td><code>task_code / supplier_id / sync_mode / data_scope / sharder_type / shard_strategy_version / cron_expr / status / last_run_at / next_run_at / last_batch_id</code></td></tr>
+<tr><td><code>supplier_sync_shard_task</code></td><td>分片任务执行与管理表，描述“这次批次被切出了哪些 shard、每个 shard 现在跑到哪”，同时承接 shard 级重试、卡点定位、补偿与人工接管</td><td><code>batch_id / shard_task_id / shard_no / shard_type / shard_payload / checkpoint / status / retry_count / worker_id / lease_until</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>这里的职责边界要非常明确：</p>
+<ol>
+<li><code>supplier_sync_task</code> 不是纯静态模板，它既回答“应该怎么跑”，也回答“这类任务现在整体跑得怎么样”。</li>
+<li><code>supplier_sync_shard_task</code> 也不是单纯技术分片，它既回答“这次具体切出了什么”，也回答“哪一片卡住了、哪一片失败了、哪一片该补偿”。</li>
+</ol>
+<p>可以把它理解成：</p>
+<ul>
+<li><code>supplier_sync_task</code> 是 Agoda 酒店同步这类任务的“作战计划模板 + 总控台”。</li>
+<li><code>supplier_sync_shard_task</code> 是 2026-06-04 这次增量同步真正拆出来的 100 个 shard 任务 + 分片级执行控制台。</li>
+</ul>
+<p>这两张表之所以必须同时承担 <strong>任务管理</strong>，核心原因只有一个：<strong>避免任务黑盒</strong>。如果它们只保存配置和少量执行元数据，那么一旦同步跑了 6 小时、卡在第 42 个 shard、某个供应商接口反复超时，平台只能看到“任务还没结束”，却不知道：</p>
+<ul>
+<li>当前主任务是卡在分片生成、数据拉取、转换还是发布。</li>
+<li>哪些 shard 已完成，哪些 shard 在重试，哪些 shard 已经失败待人工处理。</li>
+<li>是否需要整体暂停主任务，还是只重试个别 shard。</li>
+<li>当前失败是否是供应商全局故障，还是局部数据脏点。</li>
+</ul>
+<p>所以更准确的表达应该是：</p>
+<blockquote>
+<p><code>supplier_sync_task</code> 负责主任务级管理与可观测，<code>supplier_sync_shard_task</code> 负责 shard 级管理与可定位。两者合起来，才能把超长同步任务从黑盒变成可治理流水线。</p>
+</blockquote>
+<p>具体来说，建议它们共同承担以下管理能力：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>管理能力</th><th><code>supplier_sync_task</code></th><th><code>supplier_sync_shard_task</code></th></tr>
+</thead>
+<tbody>
+<tr><td>任务启停</td><td>主任务级启用、暂停、熔断</td><td>不承担</td></tr>
+<tr><td>运行总览</td><td>展示最近批次、整体成功率、最后运行时间</td><td>汇总到主任务</td></tr>
+<tr><td>进度定位</td><td>看到当前批次号、当前阶段、整体完成度</td><td>看到具体 shard 的 checkpoint 和卡点</td></tr>
+<tr><td>失败治理</td><td>判断是否需要整批终止或降级</td><td>精确定位失败 shard 并单片重试</td></tr>
+<tr><td>人工介入</td><td>平台运营或研发可暂停 / 恢复主任务</td><td>定向重跑某一片、摘除坏 shard、手动接管</td></tr>
+<tr><td>审计追踪</td><td>记录主任务级调度与状态变更</td><td>记录 shard 级重试、迁移、失败原因</td></tr>
+</tbody>
+</table>
+</div>
+<p>下面给一组简化样例数据。</p>
+<p>主任务样例：<code>supplier_sync_task</code></p>
+<pre><code class="language-json">{
+  "id": 2001,
+  "task_code": "AGODA_HOTEL_DELTA_SYNC",
+  "supplier_id": 88,
+  "sync_mode": "PULL",
+  "data_scope": "HOTEL",
+  "sharder_type": "DELTA_SHARDER",
+  "shard_strategy_version": "v3",
+  "concurrency_policy": "SERIAL_FETCH_PARALLEL_PUBLISH",
+  "status": "ACTIVE",
+  "cron_expr": "0 */1 * * * ?",
+  "last_run_at": "2026-06-04 01:00:00",
+  "next_run_at": "2026-06-04 02:00:00",
+  "last_batch_id": "sb_20260604_010000",
+  "last_run_status": "PARTIAL_SUCCESS",
+  "last_stage": "PUBLISHING",
+  "ext_json": {
+    "delta_window_minutes": 60,
+    "shard_size": 500,
+    "max_fetch_qps": 2,
+    "checkpoint_mode": "CHANGE_LOG_CURSOR"
+  }
+}
+</code></pre>
+<p>分片任务样例：<code>supplier_sync_shard_task</code></p>
+<pre><code class="language-json">[
+  {
+    "id": 910001,
+    "batch_id": "sb_20260604_020000",
+    "shard_task_id": "sst_20260604_0001",
+    "task_code": "AGODA_HOTEL_DELTA_SYNC",
+    "supplier_id": 88,
+    "shard_no": 1,
+    "shard_type": "HOTEL_ID_LIST",
+    "shard_payload": {
+      "hotel_ids": ["AGD_HOTEL_78231", "AGD_HOTEL_78232", "AGD_HOTEL_78233"],
+      "source_change_cursor": "chg_20260604015900_001"
+    },
+    "worker_id": "fetcher-03",
+    "lease_until": "2026-06-04 02:05:00",
+    "checkpoint": null,
+    "status": "INIT",
+    "retry_count": 0
+  },
+  {
+    "id": 910002,
+    "batch_id": "sb_20260604_020000",
+    "shard_task_id": "sst_20260604_0002",
+    "task_code": "AGODA_HOTEL_DELTA_SYNC",
+    "supplier_id": 88,
+    "shard_no": 2,
+    "shard_type": "HOTEL_ID_LIST",
+    "shard_payload": {
+      "hotel_ids": ["AGD_HOTEL_78731", "AGD_HOTEL_78732", "AGD_HOTEL_78733"],
+      "source_change_cursor": "chg_20260604015900_002"
+    },
+    "worker_id": "fetcher-04",
+    "lease_until": "2026-06-04 02:05:00",
+    "checkpoint": "hotel_id=AGD_HOTEL_78732",
+    "status": "RUNNING",
+    "retry_count": 1,
+    "last_error_code": "SUPPLIER_TIMEOUT"
+  }
+]
+</code></pre>
+<p>如果是全量同步，<code>supplier_sync_task</code> 不变，但 <code>supplier_sync_shard_task</code> 的 <code>shard_payload</code> 往往会换成 ID 区间或地理范围，例如：</p>
+<pre><code class="language-json">{
+  "batch_id": "sb_20260605_020000",
+  "shard_task_id": "sst_20260605_0042",
+  "task_code": "AGODA_HOTEL_FULL_SYNC",
+  "shard_no": 42,
+  "shard_type": "HOTEL_ID_RANGE",
+  "shard_payload": {
+    "start_hotel_id": 420000,
+    "end_hotel_id": 429999,
+    "country_code": "TH"
+  },
+  "checkpoint": "hotel_id=424120",
+  "status": "RUNNING",
+  "retry_count": 1
+}
+</code></pre>
+<h5 id="3632-phase-1-fetcher数据拉取器"><a class="header" href="#3632-phase-1-fetcher数据拉取器">3.6.3.2 Phase 1: Fetcher（数据拉取器）</a></h5>
+<p><code>Fetcher</code> 接收 <code>ShardContext</code> 后，真正去供应商侧拉数据。它的职责非常克制：</p>
+<ul>
+<li>调用供应商 API</li>
+<li>处理鉴权、限流、超时、重试</li>
+<li>维护当前 shard 的 <code>current_checkpoint</code></li>
+<li>把原始响应保存成 RAW snapshot</li>
+</ul>
+<p>它不负责做平台业务语义判断，也不负责最终商品裁决。</p>
+<p>对 Agoda 慢源，更推荐 <code>Fetcher</code> 保持串行慢拉：</p>
+<ul>
+<li>一次只拉一页或一个 cursor</li>
+<li>每成功一页就推进一次 <code>current_checkpoint</code></li>
+<li>每成功一页就落一次 RAW snapshot</li>
+<li>机器重启后从最近一次安全 checkpoint 继续</li>
+</ul>
+<p>为了让后续处理和排障更稳，推荐在 RAW snapshot 旁边同时保存一个轻量 <code>raw_hash</code>。它不是最终业务裁决依据，但很适合用于：</p>
+<ul>
+<li>辅助判断供应商本次返回内容是否真的变化</li>
+<li>观测重复页、脏页和异常重放</li>
+<li>给后续 <code>payload_hash / hash_sign</code> 提供更稳定的底层输入</li>
+</ul>
+<p>这一步的本质是：<strong>忠实搬运外部数据，并把“已经安全拉到哪里”这件事固化下来。</strong></p>
+<h5 id="3633-phase-2-transformer数据转换器"><a class="header" href="#3633-phase-2-transformer数据转换器">3.6.3.3 Phase 2: Transformer（数据转换器）</a></h5>
+<p><code>Transformer</code> 的输入是 RAW snapshot，输出是内部标准酒店模型。它主要做 4 类工作：</p>
+<ol>
+<li>外部字段映射，例如 Agoda 的酒店、房型、价格日历字段映射到平台内部模型。</li>
+<li>数据标准化，例如国家、城市、币种、时区、退款规则统一口径。</li>
+<li>基础校验与风险标注，例如字段缺失、模板失配、异常价格、可疑履约规则。</li>
+<li>生成平台标准对象快照，供后续 Publisher 使用。</li>
+</ol>
+<p>这一步建议只做“把外部语义翻译成平台语义”，不要在这里直接下最终发布裁决。因为：</p>
+<ul>
+<li><code>Transformer</code> 看得到原始数据，但看不到最终正式商品主权。</li>
+<li>它适合做结构化解释，不适合做最终线上覆盖裁决。</li>
+</ul>
+<p>推荐在标准化产物里额外生成两类辅助信息：</p>
+<ul>
+<li><code>normalized_hash</code>：标准化后的对象哈希，用于观测和局部去重短路。</li>
+<li><code>field_version_map</code>：记录本次变更覆盖了哪些字段，供 Publisher 做更细粒度的字段主导权判断。</li>
+</ul>
+<p>例如供应商只对价格、房态、上下架状态有主导权，而标题、卖点、运营标签仍以平台人工编辑为准时，<code>field_version_map</code> 能明显降低“整对象覆盖”的粗暴程度。</p>
+<h5 id="3634-phase-3-publisher数据发布器"><a class="header" href="#3634-phase-3-publisher数据发布器">3.6.3.4 Phase 3: Publisher（数据发布器）</a></h5>
+<p><code>Publisher</code> 的输入是标准酒店模型，输出是持久化和分发结果。它要承担的事情最多，但边界也最重要：</p>
+<ul>
+<li>Upsert <code>supplier_sync_state_ledger</code></li>
+<li>更新 <code>supplier_product_mapping_tab</code></li>
+<li>投递发布消息或调用商品主域写侧</li>
+<li>根据实时 <code>publish_version</code>、锁定状态、字段主导权做最终写前保护</li>
+<li>记录 <code>SUCCESS / FAILED / SKIPPED</code></li>
+</ul>
+<p>这一层才是供应商同步与商品主域、审核治理、版本保护真正接壤的地方。换句话说：</p>
+<blockquote>
+<p><code>Sharder</code> 决定怎么切，<code>Fetcher</code> 决定怎么拉，<code>Transformer</code> 决定怎么翻译，<code>Publisher</code> 决定怎么以平台规则落地。</p>
+</blockquote>
+<p>如果把这 4 步混在一起写成一个大 Consumer，短期能跑，长期几乎一定失控。</p>
+<h4 id="364-时序图"><a class="header" href="#364-时序图">3.6.4 时序图</a></h4>
 <p>这里的批次级运行状态，主要沉淀在 <code>supplier_sync_batch</code>。它记录的是“这次同步整体怎么跑、现在跑到哪、谁在跑、租约是否有效”，而不是每个酒店对象的明细结果。</p>
 <p>一个典型的 <code>supplier_sync_batch</code> 可以长这样：</p>
 <div class="table-wrapper">
@@ -35920,11 +37203,11 @@ sequenceDiagram
   "last_error_message": null
 }
 </code></pre>
-<h5 id="3622-处理阶段时序图"><a class="header" href="#3622-处理阶段时序图">3.6.2.2 处理阶段时序图</a></h5>
+<h5 id="3641-publisher-处理阶段时序图"><a class="header" href="#3641-publisher-处理阶段时序图">3.6.4.1 Publisher 处理阶段时序图</a></h5>
 <pre class="mermaid">
 sequenceDiagram
-    participant MQP as "Processing MQ"
-    participant CONS as "Consumer (履约总控大脑)"
+    participant MQP as "Publish MQ"
+    participant CONS as "Publisher Consumer"
     participant HDB as "HBase / Object Store"
     participant SL as "supplier_sync_state_ledger"
     participant P as "商品主域写侧"
@@ -35946,11 +37229,11 @@ sequenceDiagram
     end
 </pre>
 
-<p>这张图只回答第三个问题：<strong>Consumer 如何在处理阶段完成标准对象准备，并拦截因为队列时间差导致的旧数据覆盖新数据。</strong></p>
-<h5 id="3623-消费后请求商品主域写侧时序图"><a class="header" href="#3623-消费后请求商品主域写侧时序图">3.6.2.3 消费后请求商品主域写侧时序图</a></h5>
+<p>这张图只回答一个问题：<strong>Publisher 如何在真正落地前，拦截因为队列时间差导致的旧数据覆盖新数据。</strong></p>
+<h5 id="3642-publisher-请求商品主域写侧时序图"><a class="header" href="#3642-publisher-请求商品主域写侧时序图">3.6.4.2 Publisher 请求商品主域写侧时序图</a></h5>
 <pre class="mermaid">
 sequenceDiagram
-    participant CONS as "Consumer (履约总控大脑)"
+    participant CONS as "Publisher Consumer"
     participant P as "商品主域写侧"
     participant SL as "supplier_sync_state_ledger"
 
@@ -35968,126 +37251,26 @@ sequenceDiagram
     end
 </pre>
 
-<p>这张图只回答第四个问题：<strong>Consumer 在完成处理后，如何把结果请求到商品主域写侧。</strong></p>
-<h4 id="363-关键设计点"><a class="header" href="#363-关键设计点">3.6.3 关键设计点</a></h4>
-<p>这里要特别强调一点：在 RAW / NORMALIZED 报文已经全量交给 <code>HBase / Object Store</code> 的情况下，MySQL 里的 <code>supplier_sync_state_ledger</code> 仍然不是可选项。</p>
-<p>如果说 <code>HBase</code> 是装满原始货物的“大仓库”，那么 <code>supplier_sync_state_ledger</code> 就是整条同步流水线的“调度指挥中心”。它负责承接四类关键主权：</p>
-<ul>
-<li><strong>并发主权</strong>：Consumer 通过状态机和 CAS 抢占对象级执行权，避免 MQ 重投后的并发踩脚。</li>
-<li><strong>对账主权</strong>：大盘进度、成功/失败/跳过统计不能去扫 HBase，只能依赖 MySQL 轻量聚合。</li>
-<li><strong>补偿主权</strong>：失败对象必须能被精准捞出做二次重试，而不是把 100w 对象整批重跑。</li>
-<li><strong>时间差防线</strong>：消息在 MQ 里排队数小时后，Consumer 仍可结合状态台账和实时版本做写前保护，阻断旧数据覆盖新数据。</li>
-</ul>
-<p>换句话说，<code>HBase</code> 负责“存数据”，<code>supplier_sync_state_ledger</code> 负责“驱动状态机”。没有这张表，整条长任务链路就会从“可对账、可恢复、可裁剪”的工业流水线，退化成一条状态不可见的黑盒。</p>
-<h5 id="3631-定时触发与串行接入阶段的设计点"><a class="header" href="#3631-定时触发与串行接入阶段的设计点">3.6.3.1 定时触发与串行接入阶段的设计点</a></h5>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>设计点</th><th>说明</th></tr>
-</thead>
-<tbody>
-<tr><td>单例运行与租约接管</td><td><code>supplier_sync_batch</code> 需要 <code>status=RUNNING + lease_until</code> 的单例控制。租约未过期时，新触发直接阻断；租约过期时，新 Worker 通过 CAS 接管并继承 <code>current_checkpoint</code>。</td></tr>
-<tr><td>串行 checkpoint 恢复</td><td>Agoda 这类慢源不适合并发拉取。更稳的做法是一次只拉一页或一个 cursor，成功后推进 <code>current_checkpoint</code>，机器重启后从最近水位继续。</td></tr>
-<tr><td>HBase 吞数据，MySQL 管状态</td><td>原始报文和标准化对象进入 HBase 或对象存储；MySQL 只负责批次、状态台账、映射和治理锚点。</td></tr>
-<tr><td>页级批量物化</td><td>串行拉回一页后，要按页批量写快照、批量 Upsert 状态台账、批量投 MQ，避免接入层做大量单条循环写。</td></tr>
-<tr><td>供给侧不做最终过滤裁决</td><td>上游供应商同步链路负责忠实搬运与状态推进，不基于本地镜像去做最终跳过判断。否则最容易因为失败状态、排队延迟或运营改动造成静默丢单。</td></tr>
-<tr><td>Push / Pull 介质分离</td><td>Push 更偏接口受理 + MQ 削峰，Pull 更偏单 Worker 串行拉取 + checkpoint；两者执行模型不同，但治理主线复用。</td></tr>
-<tr><td>Supplier Mapping 独立持久化</td><td>外部资源和平台资源的映射不能只靠内存或日志，要有权威 <code>supplier_product_mapping_tab</code>。</td></tr>
-</tbody>
-</table>
-</div>
-<h5 id="3632-行级消费与商品主域写入阶段的设计点"><a class="header" href="#3632-行级消费与商品主域写入阶段的设计点">3.6.3.2 行级消费与商品主域写入阶段的设计点</a></h5>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>设计点</th><th>说明</th></tr>
-</thead>
-<tbody>
-<tr><td><code>supplier_sync_state_ledger</code> 是状态主权中心</td><td>这张表不是简单的辅助索引，而是整个长任务的状态机中枢。它记录对象当前是 <code>INIT / PROCESSING / SUCCESS / FAILED / SKIPPED</code>，用来支撑并发防踩脚、大盘聚合、局部重试和幽灵消息裁剪。</td></tr>
-<tr><td>CAS 强占消费权</td><td>Consumer 不能拿到消息就直接处理，而要先把对象状态从 <code>INIT</code> 原子推进到 <code>PROCESSING</code>，这样才能避免 MQ 重投或多机并发时重复处理同一对象。</td></tr>
-<tr><td>供给侧允许做安全过滤，但不能做最终业务去重</td><td>供给侧可以基于 <code>state_ledger</code> 做同批次重复页、无映射死链、并发重投、以及“同批次内已明确成功投递过商品中心的重复消息”这类安全过滤；但不能仅凭 <code>hash_sign</code> 去猜测商品中心真相并直接裁决最终 <code>SKIPPED</code>。</td></tr>
-<tr><td><code>hash_sign</code> 只能做辅助观测或安全短路条件</td><td>如果状态台账里维护了 <code>hash_sign</code> / <code>payload_hash</code>，它更适合用于大盘分析、排障，以及配合“同批次已成功投递”做局部短路；不建议把它当作跨批次最终业务去重依据。</td></tr>
-<tr><td>商品中心死守强幂等</td><td>最终去重、幂等和写拦截必须收敛到商品中心。供给侧允许忠实重发，商品主域用 <code>publish_version</code>、乐观锁和字段主导权做最终写前保护。</td></tr>
-<tr><td>版本反查防旧数据覆盖</td><td>由于拉取和消费之间可能相隔数小时，Consumer 必须在写商品主域前实时反查版本和锁定状态，拦截旧数据覆盖新数据。</td></tr>
-<tr><td>执行层与治理层边界</td><td>Pull 执行层独立，Consumer 负责对象级消费控制和请求编排，但不能直接改正式商品表，只能通过商品主域写侧接口完成更新。</td></tr>
-<tr><td>对象级补偿必须可精准捞取</td><td>当 100w 对象里只有 1w 失败时，系统必须能直接通过 <code>state_ledger=FAILED</code> 拉出问题对象，而不是整批重跑。</td></tr>
-</tbody>
-</table>
-</div>
-<h5 id="3633-收尾与对账阶段的设计点"><a class="header" href="#3633-收尾与对账阶段的设计点">3.6.3.3 收尾与对账阶段的设计点</a></h5>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>设计点</th><th>说明</th></tr>
-</thead>
-<tbody>
-<tr><td>对账与终结判定依赖状态台账</td><td>跑批进行中不能去遍历 HBase 里的海量 KV 做统计。更稳的方式是基于 <code>supplier_sync_state_ledger</code> 做轻量聚合，实时得出 <code>SUCCESS / FAILED / SKIPPED / PROCESSING</code> 大盘。</td></tr>
-<tr><td>动态计数器与终结标志</td><td>由于串行 Pull 事先不知道总量，接入层应采用 <code>INCRBY + end_of_stream + DECR</code> 的动态计数协议，而不是固定总数计数器。</td></tr>
-<tr><td>DB 旁路盘点兜底</td><td>Redis 或 Consumer 猝死导致收尾漏触发时，需要由 DB 旁路定时器盘点状态台账，补触发归档。</td></tr>
-</tbody>
-</table>
-</div>
-<h5 id="3634-全量-list-下的自动下线设计点"><a class="header" href="#3634-全量-list-下的自动下线设计点">3.6.3.4 全量 List 下的自动下线设计点</a></h5>
-<p>当供应商只提供全量 List、不提供显式下线增量通知时，供应商同步链路必须自己解决“沉默的消失”：哪些对象本次没有再出现，因此应该被自动下线。</p>
-<p>这件事不适合设计成“每消费一条消息顺便判断一次”的行级逻辑，更合适的方式是把它设计成 <strong>批次收尾动作</strong>。因为只有等整批 List 拉取结束、且对象级消费已经完成收敛时，系统才知道“谁在本次真正缺席了”。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>设计点</th><th>说明</th></tr>
-</thead>
-<tbody>
-<tr><td>全量下线判断必须是批次级动作</td><td>下线不是单条对象能判断出来的，它依赖“本次全量 List 已经完整处理完”的全局前提，因此必须放在批次收尾阶段。</td></tr>
-<tr><td>时间戳游标是默认解法</td><td>批次启动时记录 <code>T_start</code>；本次 List 中命中的对象，在 <code>supplier_sync_state_ledger</code> 中刷新最近打卡时间；批次收尾时，再找出 <code>supplier_id</code> 下仍在线、但最近打卡时间早于 <code>T_start</code> 的对象，作为候选下线集。</td></tr>
-<tr><td>只有绝对安全瞬间才能触发下线盘点</td><td>必须同时满足 <code>end_of_stream=true</code> 且本批次对象处理已收敛，才能开始候选下线识别。不能在 MQ 还没消费完时提前执行，否则极易误杀还在排队的正常对象。</td></tr>
-<tr><td>先找候选下线集，再做比例熔断</td><td>候选下线对象不能直接批量执行下线。必须先计算占比；如果缺失比例异常高，默认视为供应商漏传、文件不完整或接口故障，自动下线应当立即熔断。</td></tr>
-<tr><td>影子快照表是高安全等级备选</td><td>如果业务对误下线极度敏感，可以先把本次全量 List 的对象主键完整写入影子快照表，再与当前在线集合做差集。这样更安全，但更重。</td></tr>
-<tr><td>下线应该通过统一治理链路发起</td><td>候选下线对象识别出来后，不应直接绕过商品主域写侧改正式状态，而应通过统一的下线命令或治理链路进入商品主域 / 库存协同。</td></tr>
-<tr><td>下线必须保留原因与批次归因</td><td>自动下线要记录 <code>off_reason / supplier_id / batch_id / trigger_id</code>，保证后续能够追溯“它是因为哪一次全量同步缺失而下线的”。</td></tr>
-</tbody>
-</table>
-</div>
-<p>如果采用时间戳游标法，批次收尾时的候选下线识别通常会长这样：</p>
-<pre><code class="language-sql">UPDATE supplier_sync_state_ledger
-SET state = 'OFFLINE_CANDIDATE',
-    off_reason = 'SUPPLIER_MISSING_IN_FULL_LIST',
-    off_batch_id = :current_batch_id
-WHERE supplier_id = :supplier_id
-  AND state = 'ONLINE'
-  AND last_seen_at &lt; :batch_start_time;
-</code></pre>
-<p>这里的 <code>last_seen_at &lt; T_start</code> 不是“马上执行正式下线”，而是先把对象打入 <strong>候选下线集合</strong>。真正执行下线前，还要经过：</p>
-<ul>
-<li>下线比例熔断</li>
-<li>人工审核或自动风控</li>
-<li>批量异步投递下线命令</li>
-</ul>
-<p>这样整条链路的心智就很清楚：</p>
-<ol>
-<li>本批次出现过的对象完成“存活打卡”</li>
-<li>本批次结束后，没打卡的对象进入候选下线集</li>
-<li>候选下线集先经过风控比例熔断</li>
-<li>通过后再进入统一下线治理链路</li>
-</ol>
-<p>它的本质不是“查缺失”，而是：</p>
-<blockquote>
-<p>把供应商只给全量 List 的不确定性，收敛成一个可恢复、可熔断、可审计的批次收尾步骤。</p>
-</blockquote>
-<h4 id="364-表和版本映射"><a class="header" href="#364-表和版本映射">3.6.4 表和版本映射</a></h4>
+<p>这张图只回答最后一个问题：<strong>Publisher 在完成标准对象准备后，如何把结果请求到商品主域写侧。</strong></p>
+<h4 id="365-表和版本映射"><a class="header" href="#365-表和版本映射">3.6.5 表和版本映射</a></h4>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>对象</th><th>作用</th><th>关键字段</th></tr>
 </thead>
 <tbody>
-<tr><td><code>supplier_sync_task</code></td><td>定义同步任务</td><td><code>task_code / sync_mode / data_scope / concurrency_policy</code></td></tr>
+<tr><td><code>supplier_sync_task</code></td><td>定义和管理同步任务</td><td><code>task_code / sync_mode / data_scope / sharder_type / shard_strategy_version / concurrency_policy</code></td></tr>
 <tr><td><code>supplier_sync_batch</code></td><td>一次执行批次与租约控制</td><td><code>batch_id / status / sync_batch_version / current_checkpoint / worker_id / lease_token / lease_until / heartbeat_at / end_of_stream</code></td></tr>
+<tr><td><code>supplier_sync_shard_task</code></td><td>一次批次下的分片任务执行上下文</td><td><code>batch_id / shard_task_id / shard_no / shard_type / shard_payload / checkpoint / status / retry_count</code></td></tr>
+<tr><td><code>supplier_sync_error_task</code></td><td>shard 失败后的异常治理任务</td><td><code>error_task_id / source_shard_task_id / recovery_type / target_stage / status / start_checkpoint</code></td></tr>
+<tr><td><code>supplier_sync_shard_error_log</code></td><td>shard 级失败证据</td><td><code>shard_task_id / stage / error_code / error_message / checkpoint</code></td></tr>
 <tr><td><code>supplier_sync_state_ledger</code></td><td>供应商对象状态台账</td><td><code>supplier_id / outer_goods_id / last_batch_id / state / last_snapshot_ref</code></td></tr>
 <tr><td><code>supplier_product_mapping_tab</code></td><td>外部资源到平台资源映射</td><td><code>supplier_id / external_resource_id / internal_object_id / mapping_status</code></td></tr>
 <tr><td><code>publish_version</code></td><td>平台正式发布版本</td><td><code>item_id / publish_version</code></td></tr>
 </tbody>
 </table>
 </div>
-<h4 id="365-agoda-酒店同步样例数据"><a class="header" href="#365-agoda-酒店同步样例数据">3.6.5 Agoda 酒店同步样例数据</a></h4>
+<h4 id="366-agoda-酒店同步样例数据"><a class="header" href="#366-agoda-酒店同步样例数据">3.6.6 Agoda 酒店同步样例数据</a></h4>
 <p>下面给一组简化样例，帮助把这些表和 Agoda 酒店同步场景串起来。这里默认同步对象是 <code>AGD_HOTEL_78231</code>，同步模式是串行 Pull，目标是把供应商侧的酒店基础信息、房型信息和价格/库存差异同步到平台治理链路。</p>
 <div class="table-wrapper">
 <table>
@@ -36095,10 +37278,12 @@ WHERE supplier_id = :supplier_id
 <tr><th>对象</th><th>样例数据</th><th>说明</th></tr>
 </thead>
 <tbody>
-<tr><td><code>supplier_sync_task</code></td><td><code>task_code=AGODA_HOTEL_PULL_DAILY</code><br><code>sync_mode=PULL</code><br><code>data_scope=HOTEL</code><br><code>concurrency_policy=SINGLE_WORKER</code></td><td>业务级同步定义，表达“每天串行拉取 Agoda 酒店数据”</td></tr>
+<tr><td><code>supplier_sync_task</code></td><td><code>task_code=AGODA_HOTEL_PULL_DAILY</code><br><code>sync_mode=PULL</code><br><code>data_scope=HOTEL</code><br><code>sharder_type=DELTA_SHARDER</code><br><code>shard_strategy_version=v3</code><br><code>concurrency_policy=SINGLE_WORKER</code></td><td>业务级同步定义，表达“每天串行拉取 Agoda 酒店数据，并采用可插拔的分片策略”</td></tr>
 <tr><td><code>supplier_sync_batch</code></td><td><code>batch_id=sb_20260604_0001</code><br><code>status=RUNNING</code><br><code>sync_batch_version=20260604-1</code><br><code>current_checkpoint=cursor=abc123</code><br><code>worker_id=sw-03</code><br><code>lease_token=lt_8f7a</code><br><code>lease_until=2026-06-04 02:15:15</code><br><code>heartbeat_at=2026-06-04 02:10:15</code><br><code>end_of_stream=false</code></td><td>一次实际执行批次，记录当前拉到哪了、由谁跑、租约是否有效，以及是否已经拉到尾页</td></tr>
+<tr><td><code>supplier_sync_shard_task</code></td><td><code>batch_id=sb_20260604_0001</code><br><code>shard_task_id=sst_20260604_0023</code><br><code>shard_no=23</code><br><code>shard_type=HOTEL_ID_RANGE</code><br><code>shard_payload=[78231...78730]</code><br><code>status=RUNNING</code><br><code>checkpoint=hotel_id=78510</code></td><td>对四阶段框架里的 <code>ShardContext</code> 做持久化，表达“本批次切出的一个具体 shard task”</td></tr>
+<tr><td><code>supplier_sync_error_task</code></td><td><code>error_task_id=set_20260604_0007</code><br><code>source_shard_task_id=sst_20260604_0023</code><br><code>recovery_type=RETRY_PUBLISH</code><br><code>target_stage=PUBLISH</code><br><code>status=INIT</code><br><code>start_checkpoint=object_key=AGD_HOTEL_78510</code></td><td>当 shard 失败后，单独用错误处理任务承接恢复与治理，而不是污染主同步链路</td></tr>
 <tr><td><code>supplier_sync_state_ledger</code></td><td><code>supplier_id=agoda</code><br><code>outer_goods_id=AGD_HOTEL_78231</code><br><code>last_batch_id=sb_20260604_0001</code><br><code>state=INIT</code><br><code>last_snapshot_ref=oss://agoda-sync/raw/78231.json</code></td><td>记录 Agoda 某个酒店对象在这次同步中的最新状态和最近快照引用，用来支撑状态推进、补偿和收口</td></tr>
-<tr><td><code>HBase / Object Store</code></td><td><code>raw_ref=oss://agoda-sync/raw/78231.json</code><br><code>normalized_ref=oss://agoda-sync/norm/78231.json</code></td><td>原始报文和标准化对象都沉淀到 HBase / 对象存储，供回放、复算和审计使用</td></tr>
+<tr><td><code>HBase / Object Store</code></td><td><code>raw_ref=oss://agoda-sync/raw/78231.json</code><br><code>raw_hash=sha256:abc...</code><br><code>normalized_ref=oss://agoda-sync/norm/78231.json</code><br><code>normalized_hash=sha256:def...</code></td><td>原始报文和标准化对象都沉淀到 HBase / 对象存储，供回放、复算和审计使用</td></tr>
 <tr><td><code>supplier_product_mapping_tab</code></td><td><code>supplier_id=agoda</code><br><code>external_resource_id=AGD_HOTEL_78231</code><br><code>internal_object_id=hotel_10086</code><br><code>mapping_status=ACTIVE</code></td><td>维护 Agoda 酒店 ID 到平台酒店对象 ID 的权威映射</td></tr>
 <tr><td><code>publish_version</code></td><td><code>item_id=hotel_10086</code><br><code>publish_version=18</code></td><td>平台当前正式发布版本，用于 Diff 和版本保护</td></tr>
 </tbody>
@@ -36746,9 +37931,16 @@ sequenceDiagram
   `supplier_id` BIGINT NOT NULL COMMENT '供应商ID',
   `sync_mode` VARCHAR(16) NOT NULL COMMENT 'PULL / PUSH',
   `data_scope` VARCHAR(32) NOT NULL COMMENT 'HOTEL / PRODUCT / OFFER',
+  `sharder_type` VARCHAR(32) NOT NULL COMMENT 'FULL_SHARDER / DELTA_SHARDER / CURSOR_SHARDER',
+  `shard_strategy_version` VARCHAR(32) NOT NULL COMMENT '分片策略版本号',
   `concurrency_policy` VARCHAR(32) NOT NULL COMMENT 'SINGLE_WORKER / SERIAL_BATCH',
   `status` VARCHAR(16) NOT NULL COMMENT 'ACTIVE / PAUSED',
   `cron_expr` VARCHAR(64) DEFAULT NULL COMMENT '调度表达式',
+  `last_batch_id` VARCHAR(64) DEFAULT NULL COMMENT '最近一次执行批次',
+  `last_run_status` VARCHAR(32) DEFAULT NULL COMMENT '最近一次执行结果',
+  `last_stage` VARCHAR(32) DEFAULT NULL COMMENT '最近一次运行停留阶段',
+  `last_run_at` DATETIME(3) DEFAULT NULL COMMENT '最近一次运行时间',
+  `next_run_at` DATETIME(3) DEFAULT NULL COMMENT '下一次调度时间',
   `ext_json` JSON DEFAULT NULL COMMENT '扩展配置',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -36789,6 +37981,81 @@ sequenceDiagram
   KEY `idx_status_lease` (`status`, `lease_until`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商同步批次表';
 </code></pre>
+<h5 id="supplier_sync_shard_task"><a class="header" href="#supplier_sync_shard_task"><code>supplier_sync_shard_task</code></a></h5>
+<pre><code class="language-sql">CREATE TABLE `supplier_sync_shard_task` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `batch_id` VARCHAR(64) NOT NULL COMMENT '所属批次ID',
+  `shard_task_id` VARCHAR(64) NOT NULL COMMENT '分片任务ID',
+  `task_code` VARCHAR(64) NOT NULL COMMENT '业务任务编码',
+  `supplier_id` BIGINT NOT NULL COMMENT '供应商ID',
+  `shard_no` INT NOT NULL COMMENT '分片序号',
+  `shard_type` VARCHAR(32) NOT NULL COMMENT 'HOTEL_ID_LIST / HOTEL_ID_RANGE / GEO_SCOPE / CURSOR',
+  `shard_payload` JSON NOT NULL COMMENT '分片上下文，如酒店ID列表、ID范围、国家城市、cursor等',
+  `status` VARCHAR(32) NOT NULL COMMENT 'INIT / RUNNING / SUCCESS / FAILED / PARTIAL_SUCCESS / SKIPPED / PAUSED',
+  `checkpoint` VARCHAR(512) DEFAULT NULL COMMENT '当前分片checkpoint',
+  `retry_count` INT NOT NULL DEFAULT 0 COMMENT '重试次数',
+  `worker_id` VARCHAR(64) DEFAULT NULL COMMENT '当前执行worker',
+  `lease_token` VARCHAR(64) DEFAULT NULL COMMENT '租约令牌',
+  `lease_until` DATETIME(3) DEFAULT NULL COMMENT '租约到期时间',
+  `heartbeat_at` DATETIME(3) DEFAULT NULL COMMENT '最后心跳时间',
+  `pulled_count` BIGINT NOT NULL DEFAULT 0 COMMENT '该分片已拉取数量',
+  `published_count` BIGINT NOT NULL DEFAULT 0 COMMENT '该分片已发布数量',
+  `failed_count` BIGINT NOT NULL DEFAULT 0 COMMENT '该分片失败数量',
+  `last_error_code` VARCHAR(64) DEFAULT NULL COMMENT '最近错误码',
+  `last_error_message` VARCHAR(1024) DEFAULT NULL COMMENT '最近错误信息',
+  `ext_json` JSON DEFAULT NULL COMMENT '扩展上下文',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_shard_task_id` (`shard_task_id`),
+  KEY `idx_batch_id_status` (`batch_id`, `status`),
+  KEY `idx_task_code_batch_id` (`task_code`, `batch_id`),
+  KEY `idx_status_lease` (`status`, `lease_until`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商同步分片任务表';
+</code></pre>
+<h5 id="supplier_sync_error_task"><a class="header" href="#supplier_sync_error_task"><code>supplier_sync_error_task</code></a></h5>
+<pre><code class="language-sql">CREATE TABLE `supplier_sync_error_task` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `error_task_id` VARCHAR(64) NOT NULL COMMENT '错误处理任务ID',
+  `batch_id` VARCHAR(64) NOT NULL COMMENT '所属批次ID',
+  `source_shard_task_id` VARCHAR(64) NOT NULL COMMENT '来源分片任务ID',
+  `recovery_type` VARCHAR(32) NOT NULL COMMENT 'RETRY_FETCH / RETRY_TRANSFORM / RETRY_PUBLISH / MANUAL_REVIEW / SKIP',
+  `target_stage` VARCHAR(32) NOT NULL COMMENT 'FETCH / TRANSFORM / PUBLISH',
+  `status` VARCHAR(32) NOT NULL COMMENT 'INIT / RUNNING / SUCCESS / FAILED / CANCELED',
+  `start_checkpoint` VARCHAR(512) DEFAULT NULL COMMENT '恢复起点',
+  `retry_count` INT NOT NULL DEFAULT 0 COMMENT '重试次数',
+  `operator_type` VARCHAR(16) DEFAULT NULL COMMENT 'SYSTEM / OPS / SCHEDULER',
+  `operator_id` VARCHAR(64) DEFAULT NULL COMMENT '触发主体',
+  `last_error_code` VARCHAR(64) DEFAULT NULL COMMENT '最近错误码',
+  `last_error_message` VARCHAR(1024) DEFAULT NULL COMMENT '最近错误信息',
+  `ext_json` JSON DEFAULT NULL COMMENT '扩展上下文',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_error_task_id` (`error_task_id`),
+  KEY `idx_source_shard_task_id_status` (`source_shard_task_id`, `status`),
+  KEY `idx_batch_id_status` (`batch_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商同步错误处理任务表';
+</code></pre>
+<h5 id="supplier_sync_shard_error_log"><a class="header" href="#supplier_sync_shard_error_log"><code>supplier_sync_shard_error_log</code></a></h5>
+<pre><code class="language-sql">CREATE TABLE `supplier_sync_shard_error_log` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `batch_id` VARCHAR(64) NOT NULL COMMENT '所属批次ID',
+  `shard_task_id` VARCHAR(64) NOT NULL COMMENT '分片任务ID',
+  `stage` VARCHAR(32) NOT NULL COMMENT 'FETCH / TRANSFORM / PUBLISH',
+  `error_code` VARCHAR(64) NOT NULL COMMENT '错误码',
+  `error_message` VARCHAR(1024) DEFAULT NULL COMMENT '错误信息',
+  `checkpoint` VARCHAR(512) DEFAULT NULL COMMENT '失败时checkpoint',
+  `raw_ref` VARCHAR(512) DEFAULT NULL COMMENT '原始快照引用',
+  `normalized_ref` VARCHAR(512) DEFAULT NULL COMMENT '标准化快照引用',
+  `retry_count` INT NOT NULL DEFAULT 0 COMMENT '失败时重试次数',
+  `trace_id` VARCHAR(128) DEFAULT NULL COMMENT '链路追踪ID',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_shard_task_id_created_at` (`shard_task_id`, `created_at`),
+  KEY `idx_batch_id_stage` (`batch_id`, `stage`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='供应商同步分片失败日志表';
+</code></pre>
 <h5 id="supplier_sync_state_ledger"><a class="header" href="#supplier_sync_state_ledger"><code>supplier_sync_state_ledger</code></a></h5>
 <pre><code class="language-sql">CREATE TABLE `supplier_sync_state_ledger` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
@@ -36797,6 +38064,8 @@ sequenceDiagram
   `last_batch_id` VARCHAR(64) DEFAULT NULL COMMENT '最近处理批次',
   `state` VARCHAR(32) NOT NULL COMMENT 'INIT / PROCESSING / SUCCESS / FAILED / SKIPPED / BLOCKED / OFFLINE_CANDIDATE',
   `last_snapshot_ref` VARCHAR(512) DEFAULT NULL COMMENT '最近快照引用',
+  `raw_hash` VARCHAR(128) DEFAULT NULL COMMENT '最近原始快照哈希',
+  `normalized_hash` VARCHAR(128) DEFAULT NULL COMMENT '最近标准化快照哈希',
   `payload_hash` VARCHAR(64) DEFAULT NULL COMMENT '供应商报文哈希，仅用于观测或安全短路',
   `last_seen_at` DATETIME(3) DEFAULT NULL COMMENT '最近打卡时间',
   `off_reason` VARCHAR(128) DEFAULT NULL COMMENT '下线原因',
@@ -38617,119 +39886,337 @@ WHERE inventory_key = :inventory_key
 <li>风控和合规逻辑不耦合进商品中心事务链路</li>
 </ul>
 <h3 id="63-机审核设计"><a class="header" href="#63-机审核设计">6.3 机审核设计</a></h3>
-<p>机审核关注的是高频、可规则化的风险拦截，例如：</p>
+<p>机审核不是“写几条正则就完事”，而是一套把高频可规则化风险前移拦截的执行系统。它的目标不是完全替代人工，而是把明显正确和明显错误的对象尽量自动化，让人工审核只处理真正需要判断的灰区。</p>
+<p>机审核典型覆盖以下风险面：</p>
 <ul>
-<li>敏感词</li>
-<li>类目规则</li>
-<li>素材规则</li>
-<li>资质规则</li>
-<li>价格异常规则</li>
-<li>交易契约异常规则</li>
+<li>敏感词与违规描述</li>
+<li>类目规则与属性约束</li>
+<li>主图 / 素材基础规则</li>
+<li>资质与证照完整性</li>
+<li>价格异常与履约承诺异常</li>
+<li>交易契约缺失，例如退款规则、预约规则、有效期缺失</li>
 </ul>
-<p>推荐把机审核的结果分成：</p>
+<p>从执行链路看，推荐拆成 4 层：</p>
+<ol>
+<li><strong>基础结构校验层</strong>：字段必填、格式、范围、枚举、跨字段依赖。</li>
+<li><strong>类目规则层</strong>：类目模板、属性完整性、品类专属约束。</li>
+<li><strong>风控合规模型层</strong>：敏感词、资质、素材风险评分。</li>
+<li><strong>发布风险裁决层</strong>：根据规则命中结果给出 <code>PASS / REJECT / MANUAL_REVIEW</code>。</li>
+</ol>
+<p>推荐使用“规则 + 策略路由 + 风险分值”三段式模型，而不是把所有结论硬编码在一个 if/else 里：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>负责什么</th><th>输出</th></tr>
+</thead>
+<tbody>
+<tr><td>规则执行器</td><td>执行单条规则</td><td>命中明细</td></tr>
+<tr><td>路由策略</td><td>根据来源、类目、字段集决定规则包</td><td>应执行规则集合</td></tr>
+<tr><td>裁决器</td><td>汇总命中明细并给出 verdict</td><td><code>PASS / REJECT / MANUAL_REVIEW</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐把机审核结果统一收敛为三类：</p>
 <ul>
-<li>自动通过</li>
-<li>自动驳回</li>
-<li>转人工审核</li>
+<li>自动通过：低风险且规则全部满足，可以直接进入发布或自动准入队列。</li>
+<li>自动驳回：存在确定性违规，必须回退给供给侧修改。</li>
+<li>转人工审核：规则只能判断出“有风险但不够确定”，需要人工裁决。</li>
 </ul>
+<p>这样设计的关键价值在于：规则系统只负责“发现风险”，真正的发布裁决仍然有一层独立的 verdict 模型，便于后续插入人工审核、风控加签、特殊品类白名单等流程。</p>
 <h3 id="64-人工审核设计"><a class="header" href="#64-人工审核设计">6.4 人工审核设计</a></h3>
-<p>人工审核要解决的不是“再看一眼”，而是工作台和队列编排问题，包括：</p>
+<p>人工审核要解决的不是“再看一眼”，而是把不确定性风险转化为可运营、可追责、可度量的工作流系统。很多团队的问题不在规则本身，而在审核池失控、抢单无序、标准不统一和积压无法消化。</p>
+<p>一个可用的人工审核系统，至少要解决 5 件事：</p>
+<ol>
+<li>审核对象怎么进池。</li>
+<li>审核任务怎么分发给合适的人。</li>
+<li>审核员看到的是哪一版冻结快照。</li>
+<li>驳回和复审怎么闭环。</li>
+<li>审核结果怎么沉淀成规则优化输入。</li>
+</ol>
+<p>推荐的人审工作台能力包括：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模块</th><th>核心能力</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>审核池</td><td>待审队列、优先级、SLA 倒计时</td><td>支持按类目、风险等级、来源分池</td></tr>
+<tr><td>分单机制</td><td>自动派单、抢单、回收重派</td><td>高价值类目优先自动派给专门审核组</td></tr>
+<tr><td>审核视图</td><td>冻结快照、Diff 高亮、历史 verdict</td><td>避免审核员自己拼上下文</td></tr>
+<tr><td>审核动作</td><td>通过、驳回、挂起、转审、加签</td><td>每种动作都要有明确状态流转</td></tr>
+<tr><td>复审体系</td><td>二审、抽检、申诉回流</td><td>用于高风险类目和质量校正</td></tr>
+</tbody>
+</table>
+</div>
+<p>在执行模型上，推荐把人工审核任务显式建模成“工作项”，而不是直接在商品草稿上打审核字段。因为审核任务天然带有：</p>
 <ul>
-<li>审核池</li>
-<li>抢单 / 分单</li>
-<li>审核结果</li>
-<li>审核备注</li>
-<li>驳回原因</li>
-<li>复审机制</li>
+<li>队列属性</li>
+<li>领取属性</li>
+<li>SLA 属性</li>
+<li>升级属性</li>
+<li>审计属性</li>
 </ul>
+<p>如果这些能力都塞回商品表或供给任务表里，后面只会越来越难治理。</p>
 <h3 id="65-审核路由与分级策略"><a class="header" href="#65-审核路由与分级策略">6.5 审核路由与分级策略</a></h3>
-<p>审核不能一刀切，推荐差异化路由：</p>
-<ul>
-<li>低风险字段自动准入</li>
-<li>高风险字段转人工</li>
-<li>按字段风险分级</li>
-<li>按品类风险分级</li>
-<li>按供应商来源差异化审核</li>
-</ul>
+<p>审核绝不能一刀切。真正的平台会根据 <strong>变更内容、品类风险、来源可信度、历史行为、发布时间窗口</strong> 做分层路由。</p>
+<p>推荐至少从 4 个维度做路由：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>典型取值</th><th>影响</th></tr>
+</thead>
+<tbody>
+<tr><td>字段风险</td><td>标题、主图、履约规则、价格、上下架、退款规则</td><td>决定是否允许自动准入</td></tr>
+<tr><td>品类风险</td><td>酒旅、医疗、教育、虚拟券码、高投诉类目</td><td>决定规则包和人审等级</td></tr>
+<tr><td>来源可信度</td><td>平台运营、头部商家、长尾商家、供应商同步</td><td>决定默认信任等级</td></tr>
+<tr><td>历史表现</td><td>命中率、申诉率、历史违规率</td><td>决定是否加严或放宽</td></tr>
+</tbody>
+</table>
+</div>
+<p>一个常见但错误的做法是：只要改了商品就一律进人工审核。这样短期看“稳”，长期一定拖垮平台效率。</p>
+<p>更合理的路由策略通常是：</p>
+<ol>
+<li><strong>低风险字段小改动</strong>：例如副标题、运营标签、小幅价格修正，可走自动准入。</li>
+<li><strong>中风险结构性变更</strong>：例如履约规则、退款条件、素材变化，先过机审，再视命中情况转人工。</li>
+<li><strong>高风险关键变更</strong>：例如类目迁移、资质变更、上下架、供应商关键属性替换，强制进入人工审核。</li>
+<li><strong>平台强制裁决类事件</strong>：例如风控下架、法务拦截，可绕过普通审核队列，走高优先级裁决链路。</li>
+</ol>
+<p>审核分级的本质不是“谁都审一下”，而是用最小的人力成本把最大的风险拦下来。</p>
 <h3 id="66-审核对象与冻结快照"><a class="header" href="#66-审核对象与冻结快照">6.6 审核对象与冻结快照</a></h3>
-<p>这一节要明确：</p>
+<p>这一节是 QC 设计最关键的地方。QC 审的一定是 <strong>冻结快照</strong>，不能审供给侧正在被编辑的动态草稿，也不能直接审线上正式商品表。</p>
+<p>原因很简单：</p>
 <ul>
-<li>QC 审的是冻结版本</li>
-<li>不是供给侧动态草稿</li>
-<li>也不是最终线上商品表</li>
+<li>如果审核员看到的是动态草稿，那么在审核过程中，运营或商家继续编辑，就会出现“审的是 A，发的是 B”。</li>
+<li>如果审核员直接看正式商品表，就会把未生效变更和已上线资产混在一起，失去版本边界。</li>
 </ul>
-<p>这里要把 <code>draft_id / publish_version / snapshot</code> 的关系讲清楚，避免出现“审的是 A，发的是 B”。</p>
+<p>推荐采用以下对象关系：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对象</th><th>语义</th><th>是否可变</th></tr>
+</thead>
+<tbody>
+<tr><td><code>draft_id</code></td><td>运营中的当前编辑态</td><td>可变</td></tr>
+<tr><td><code>publish_version</code></td><td>一次提交审核 / 发布尝试的版本号</td><td>单调递增</td></tr>
+<tr><td><code>snapshot</code></td><td>本次送审冻结快照</td><td>不可变</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐链路如下：</p>
+<ol>
+<li>供给平台或商品中心维护可编辑 <code>Draft</code>。</li>
+<li>用户点击“提交审核”后，商品中心生成新的 <code>publish_version</code>。</li>
+<li>系统把对应字段冻结成送审 <code>snapshot</code>。</li>
+<li>QC 只对 <code>snapshot</code> 做机审和人审。</li>
+<li>QC 返回 verdict 时，必须带回 <code>draft_id + publish_version + snapshot_id</code> 或等价冻结标识。</li>
+<li>商品中心只允许对“当前待发布版本”执行 merge 和正式发布。</li>
+</ol>
+<pre class="mermaid">
+flowchart LR
+    A["可编辑 Draft"] --&gt; B["提交审核"]
+    B --&gt; C["冻结 Snapshot"]
+    C --&gt; D["机审核 / 人工审核"]
+    D --&gt; E["返回 verdict + publish_version"]
+    E --&gt; F["商品中心本地 merge 发布"]
+</pre>
+
+<p>这套模型的核心价值不是“多建一个快照表”，而是把审核对象从“会继续变化的编辑态”切成“可追责的冻结态”。这样后面无论是申诉、回放、抽检还是事故复盘，都知道当时到底审了什么。</p>
 <h3 id="67-审核-verdict-与商品中心交互"><a class="header" href="#67-审核-verdict-与商品中心交互">6.7 审核 verdict 与商品中心交互</a></h3>
-<p>QC 平台回传的应该是轻量 verdict，而不是整份商品 DTO。例如：</p>
+<p>QC 平台回传的应该是 <strong>轻量 verdict</strong>，而不是整份商品 DTO。QC 的职责是裁决，不是替商品中心做主数据写入。</p>
+<p>推荐回传结构如下：</p>
 <pre><code class="language-json">{
   "draft_id": 555,
   "publish_version": 102,
-  "result": "PASS"
+  "snapshot_id": 900123,
+  "result": "PASS",
+  "review_level": "AUTO",
+  "reason_codes": ["TITLE_OK", "PRICE_OK"]
 }
 </code></pre>
-<p>商品中心收到 verdict 后，再在本地事务里完成 merge 和正式发布。</p>
+<p>商品中心收到 verdict 后，再在本地事务里完成 merge 和正式发布。这里必须坚持两个边界：</p>
+<ol>
+<li>QC 不直写正式商品。</li>
+<li>商品中心不信任“没有版本号的审核结果”。</li>
+</ol>
+<p>推荐交互规则如下：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>商品中心动作</th></tr>
+</thead>
+<tbody>
+<tr><td><code>PASS</code> 且版本匹配</td><td>执行本地 merge，推进发布状态机</td></tr>
+<tr><td><code>REJECT</code> 且版本匹配</td><td>标记该版本驳回，保留驳回原因</td></tr>
+<tr><td>verdict 重复到达</td><td>依据 <code>publish_version</code> 和 <code>review_id</code> 幂等处理</td></tr>
+<tr><td>verdict 乱序到达</td><td>只接受当前待裁决版本，旧版本直接丢弃或归档</td></tr>
+<tr><td>verdict 针对已撤回版本</td><td>忽略并记审计日志</td></tr>
+</tbody>
+</table>
+</div>
+<p>也就是说，QC 更像法官，商品中心更像执行机关。法官只给结论，不帮你改资产；执行机关拿到结论后，在自己的事务边界里决定状态怎么推进、正式态怎么落库、事件怎么广播。</p>
 <h3 id="68-qc-治理闭环"><a class="header" href="#68-qc-治理闭环">6.8 QC 治理闭环</a></h3>
-<p>审核系统的闭环包括：</p>
-<ul>
-<li>驳回</li>
-<li>撤回</li>
-<li>重提</li>
-<li>审核超时</li>
-<li>回调乱序</li>
-<li>规则误判</li>
-<li>人工审核积压</li>
-<li>审计日志</li>
-<li>治理看板</li>
-</ul>
+<p>审核系统真正难的地方，往往不是单次“过还是不过”，而是长周期治理闭环。一个成熟的 QC 平台必须让错误能修、积压能控、规则能进化、事故能回放。</p>
+<p>推荐重点治理以下 8 类问题：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>问题</th><th>风险</th><th>处理策略</th></tr>
+</thead>
+<tbody>
+<tr><td>驳回后无法修复</td><td>业务反复重提、体验差</td><td>驳回原因结构化，支持字段级修复提示</td></tr>
+<tr><td>撤回后结果乱入</td><td>已撤回版本被误发布</td><td>verdict 必须携带版本号，商品中心做版本闸门</td></tr>
+<tr><td>审核超时</td><td>发布链路卡死</td><td>SLA 超时自动升级、转派或降级到人工池</td></tr>
+<tr><td>人工积压</td><td>大面积延迟上线</td><td>分池、扩容、自动准入比例调优</td></tr>
+<tr><td>规则误判</td><td>大量误杀或漏审</td><td>抽检集、申诉回流、误判复盘</td></tr>
+<tr><td>回调重复 / 乱序</td><td>状态错乱</td><td><code>review_id + publish_version</code> 幂等拦截</td></tr>
+<tr><td>审计不可追溯</td><td>事故无法复盘</td><td>全链路审计日志 + 冻结快照留存</td></tr>
+<tr><td>审核策略失效</td><td>旧规则挡不住新问题</td><td>规则版本化、灰度发布、效果监控</td></tr>
+</tbody>
+</table>
+</div>
+<p>治理闭环里最有价值的两个运营指标通常是：</p>
+<ol>
+<li><strong>审核吞吐指标</strong>：自动通过率、人工命中率、平均审核时长、SLA 超时率。</li>
+<li><strong>审核质量指标</strong>：误判率、申诉成功率、上线后追罚率、漏拦截事故数。</li>
+</ol>
+<p>只有把这两类指标一起看，平台才能知道自己是在“提效”，还是只是在“把风险放过去”。</p>
 <h3 id="69-qc-表清单与使用场景"><a class="header" href="#69-qc-表清单与使用场景">6.9 QC 表清单与使用场景</a></h3>
-<p>这一节建议显式列出 QC 平台表：</p>
-<ul>
-<li><code>product_qc_review</code></li>
-<li><code>product_qc_review_item</code></li>
-<li><code>qc_rule</code></li>
-<li><code>qc_route</code></li>
-<li><code>qc_audit_log</code></li>
-<li><code>qc_work_queue</code></li>
-</ul>
+<p>推荐把 QC 平台最少拆成以下几类表：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>表</th><th>使用场景</th><th>关键边界</th></tr>
+</thead>
+<tbody>
+<tr><td><code>product_qc_review</code></td><td>一次审核主单，记录对象、版本、总体 verdict</td><td>审核主事实，不承接商品正式态</td></tr>
+<tr><td><code>product_qc_review_item</code></td><td>字段级 / 规则级命中结果</td><td>用于解释“为什么过 / 为什么不过”</td></tr>
+<tr><td><code>qc_rule</code></td><td>规则定义、版本、开关、阈值</td><td>规则配置，不直接承接审核结果</td></tr>
+<tr><td><code>qc_route</code></td><td>审核路由配置</td><td>控制对象该进哪个规则包、哪个审核池</td></tr>
+<tr><td><code>qc_work_queue</code></td><td>人审工作队列</td><td>队列与分单事实，不等于审核主单</td></tr>
+<tr><td><code>qc_audit_log</code></td><td>操作与状态流转审计</td><td>事故复盘与追责依据</td></tr>
+</tbody>
+</table>
+</div>
+<p>进一步可参考如下字段设计：</p>
+<h5 id="product_qc_review"><a class="header" href="#product_qc_review"><code>product_qc_review</code></a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>review_id</code></td><td>审核主单 ID</td></tr>
+<tr><td><code>draft_id</code></td><td>对应草稿 ID</td></tr>
+<tr><td><code>publish_version</code></td><td>本次提交审核版本</td></tr>
+<tr><td><code>snapshot_id</code></td><td>冻结快照 ID</td></tr>
+<tr><td><code>review_type</code></td><td>自动审 / 人工审 / 复审</td></tr>
+<tr><td><code>status</code></td><td><code>PENDING / REVIEWING / PASSED / REJECTED / CANCELED</code></td></tr>
+<tr><td><code>final_verdict</code></td><td>最终裁决</td></tr>
+<tr><td><code>priority</code></td><td>优先级</td></tr>
+<tr><td><code>created_at / updated_at</code></td><td>时间</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="product_qc_review_item"><a class="header" href="#product_qc_review_item"><code>product_qc_review_item</code></a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>item_id</code></td><td>明细主键</td></tr>
+<tr><td><code>review_id</code></td><td>所属审核主单</td></tr>
+<tr><td><code>field_path</code></td><td>命中字段路径</td></tr>
+<tr><td><code>rule_code</code></td><td>规则编码</td></tr>
+<tr><td><code>risk_level</code></td><td>风险等级</td></tr>
+<tr><td><code>result</code></td><td>命中结果</td></tr>
+<tr><td><code>reason_text</code></td><td>解释文本</td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="qc_work_queue"><a class="header" href="#qc_work_queue"><code>qc_work_queue</code></a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>queue_item_id</code></td><td>工作项 ID</td></tr>
+<tr><td><code>review_id</code></td><td>对应审核主单</td></tr>
+<tr><td><code>queue_name</code></td><td>队列名称</td></tr>
+<tr><td><code>assignee</code></td><td>当前处理人</td></tr>
+<tr><td><code>sla_expire_at</code></td><td>SLA 到期时间</td></tr>
+<tr><td><code>status</code></td><td><code>WAITING / CLAIMED / DONE / EXPIRED</code></td></tr>
+</tbody>
+</table>
+</div>
+<h5 id="qc_audit_log"><a class="header" href="#qc_audit_log"><code>qc_audit_log</code></a></h5>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>log_id</code></td><td>审计日志主键</td></tr>
+<tr><td><code>review_id</code></td><td>对应审核主单</td></tr>
+<tr><td><code>operator</code></td><td>操作人或系统</td></tr>
+<tr><td><code>action</code></td><td>抢单、通过、驳回、转审、撤回等动作</td></tr>
+<tr><td><code>detail</code></td><td>变更详情</td></tr>
+<tr><td><code>created_at</code></td><td>操作时间</td></tr>
+</tbody>
+</table>
+</div>
 <hr>
 <h2 id="7-典型业务场景串讲"><a class="header" href="#7-典型业务场景串讲">7. 典型业务场景串讲</a></h2>
 <h3 id="71-本地生活券商品创建到上线"><a class="header" href="#71-本地生活券商品创建到上线">7.1 本地生活券商品创建到上线</a></h3>
 <ol>
-<li>运营在后台表单创建商品，先写 <code>Draft</code>。</li>
-<li>系统做类目、素材、履约、退款、库存策略校验。</li>
-<li>低风险字段自动准入，高风险字段进入 QC。</li>
-<li>审核通过后发布到商品主域正式态，初始化库存配置。</li>
-<li>Outbox 驱动搜索、缓存、营销圈品刷新。</li>
+<li>运营在后台表单创建商品，供给平台调用商品中心生成 <code>Draft</code>。</li>
+<li>同步阶段完成字段校验、类目模板校验、库存模式声明和基础幂等防重。</li>
+<li>点击提交后生成 <code>publish_version</code> 并冻结 <code>snapshot</code>。</li>
+<li>机审核先处理敏感词、类目、资质和履约规则，低风险对象直接通过。</li>
+<li>高风险对象进入人工审核池，审核员基于冻结快照完成 verdict。</li>
+<li>商品中心收到 <code>PASS</code> verdict 后，本地 merge 到正式 <code>Item</code>，同时初始化库存配置。</li>
+<li>发布事件通过 Outbox 广播到搜索、营销、缓存、计价等下游。</li>
 </ol>
+<p>这个场景最重要的面试表达是：<strong>创建商品并不止是写一条商品记录，而是同时建立审核、发布和可售能力。</strong></p>
 <h3 id="72-券码库存导入与发码"><a class="header" href="#72-券码库存导入与发码">7.2 券码库存导入与发码</a></h3>
 <ol>
-<li>运营上传券码文件，供给平台创建批量任务。</li>
-<li>解析成功后调用库存系统 <code>ImportCodeBatch</code>。</li>
-<li>券码入 <code>inventory_code_pool_xx</code>，Redis 仅保存可发放热视图。</li>
-<li>订单支付成功后预占并发码，失败则回补或标记人工处理。</li>
+<li>运营先创建商品，并声明库存模式为 <code>EXT_POOL</code>。</li>
+<li>商品审核通过并发布后，供给平台允许发起券码导入任务。</li>
+<li>Excel 解析阶段完成坏码、重码、格式错误识别，并生成批次明细。</li>
+<li>库存系统把合法券码写入 <code>inventory_code_pool_xx</code>，同时更新聚合数量视图。</li>
+<li>用户下单支付成功后，库存系统按订单预占并分配唯一券码。</li>
+<li>若发码失败或履约回调异常，则通过账本和码池状态回放进行回补或人工修复。</li>
 </ol>
+<p>这个场景体现的是：<strong>商品创建和库存建立可以分阶段完成，但最终都要收敛到同一条受治理生命周期里。</strong></p>
 <h3 id="73-酒店商品同步与变更发布"><a class="header" href="#73-酒店商品同步与变更发布">7.3 酒店商品同步与变更发布</a></h3>
 <ol>
-<li>供应商全量或增量拉取原始资源。</li>
-<li>通过 <code>supplier_mapping</code> 映射到平台资源。</li>
-<li>归一化后进入 <code>Draft</code> 或供应商同步治理链路。</li>
-<li>差异识别决定哪些字段自动更新，哪些字段进审核。</li>
-<li>发布版本递增，下游按版本消费事件。</li>
+<li>定时任务触发供应商全量或增量同步，先把原始数据落到接入层。</li>
+<li>通过 <code>supplier_mapping</code> 识别平台已有资源，并对酒店房型、库存日期、取消规则做归一化。</li>
+<li>差异识别区分“无效更新”“低风险变更”“高风险变更”。</li>
+<li>无效更新直接过滤，低风险字段可自动发布，高风险字段冻结后进入 QC。</li>
+<li>审核通过后商品中心递增 <code>publish_version</code>，并广播到搜索、详情投影、计价和订单侧。</li>
+<li>下游只接受更高版本事件，避免供应商晚到旧数据反向覆盖最新状态。</li>
 </ol>
+<p>这个场景最能体现“供应商同步不是简单 Upsert，而是带治理能力的增量发布系统”。</p>
 <h3 id="74-运营批量编辑"><a class="header" href="#74-运营批量编辑">7.4 运营批量编辑</a></h3>
 <ol>
-<li>运营上传 Excel 批量改标题、价格、上下架。</li>
-<li>系统为每行生成 <code>task_item</code> 和校验结果。</li>
-<li>标题和类目等高风险字段进入审核；价格小改可旁路。</li>
-<li>任务完成后生成错误文件和成功报告。</li>
+<li>运营上传 Excel，供给平台创建批量任务主单与行级 <code>task_item</code>。</li>
+<li>Parser Worker 解析文件，做字段映射、数据清洗和模板校验。</li>
+<li>每一行根据变更类型路由到自动准入、人工审核或直接失败。</li>
+<li>通过的行生成新的 <code>publish_version</code> 并进入发布编排，失败的行写回错误文件。</li>
+<li>最终任务产出成功报告、失败报告和可重试对象集。</li>
 </ol>
+<p>这个场景体现的是：<strong>批量编辑真正难的是行级隔离、任务化和可恢复，不是一次把 Excel 跑完。</strong></p>
 <h3 id="75-风控强制下架"><a class="header" href="#75-风控强制下架">7.5 风控强制下架</a></h3>
 <ol>
-<li>风控命中违规商品。</li>
-<li>平台裁决链路直接将正式商品切为 <code>BANNED</code> 或 <code>OFFLINE</code>。</li>
-<li>搜索、营销、库存侧同步收敛到不可售。</li>
-<li>保留审计链路，必要时支持申诉和恢复。</li>
+<li>风控或法务系统命中高风险商品，发起高优先级平台裁决事件。</li>
+<li>商品中心不经过普通供给编辑流，直接把正式商品状态推进到 <code>BANNED</code> 或 <code>OFFLINE</code>。</li>
+<li>库存、搜索、营销、详情页投影和交易准入同时进入不可售收敛。</li>
+<li>审计日志记录触发来源、操作人、证据链和恢复条件。</li>
+<li>若后续申诉成功，再通过受控恢复链路重新进入审核和发布。</li>
 </ol>
+<p>这个场景反过来证明：<strong>平台不仅要支持“怎么上”，也要支持“怎么立刻下”。</strong></p>
 <hr>
 <h2 id="8-面试答辩与工程总结"><a class="header" href="#8-面试答辩与工程总结">8. 面试答辩与工程总结</a></h2>
 <p>如果要把这一章压缩成一句面试表达，可以这样说：</p>
@@ -38744,7 +40231,13 @@ WHERE inventory_key = :inventory_key
 <li>发布不能同步写所有下游，应该用版本化 + Outbox。</li>
 <li>真正的平台设计重点不是 CRUD，而是状态分层、任务化、审计、补偿和资损防控。</li>
 </ol>
-<p>如果读者能把这五个判断讲清楚，就已经从“会画商品系统架构图”进入“能解释平台治理设计”的阶段了。</p>
+<p>如果希望把这一章讲得更像一个成熟架构师，而不只是“会列系统名”，建议再补上三层表达：</p>
+<ol>
+<li><strong>业务视角</strong>：解释为什么商品创建天然连着审核、库存、搜索和订单，而不是孤立建档。</li>
+<li><strong>模型视角</strong>：解释 <code>Draft / Staging / Item / Snapshot / publish_version</code> 为什么必须分层。</li>
+<li><strong>治理视角</strong>：解释任务化、版本化、审计、补偿、对账为什么比 CRUD 更重要。</li>
+</ol>
+<p>如果读者能把这五个判断和这三层表达讲清楚，就已经从“会画商品系统架构图”进入“能解释平台治理设计”的阶段了。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="第-32-章-电商用户-c-端搜索交易履约与售后全生命周期设计"><a class="header" href="#第-32-章-电商用户-c-端搜索交易履约与售后全生命周期设计">第 32 章 电商用户 C 端搜索、交易、履约与售后全生命周期设计</a></h1>
 <blockquote>
@@ -39054,40 +40547,41 @@ flowchart LR
 <hr>
 <h2 id="3-商品搜索导购与详情链路"><a class="header" href="#3-商品搜索导购与详情链路">3. 商品搜索、导购与详情链路</a></h2>
 <h3 id="31-场景画像"><a class="header" href="#31-场景画像">3.1 场景画像</a></h3>
-<p>从用户进入平台到决定“我要不要买”，通常依次经过两种读路径：</p>
+<p>从用户进入平台到决定”我要不要买”，通常依次经过两种读路径：</p>
 <ol>
 <li>搜索 / 导购结果页：看的是候选集。</li>
 <li>商品详情页：看的是交易前解释。</li>
 </ol>
-<p>这两条链路看起来都只是“读”，但它们的职责截然不同：</p>
+<p>这两条链路看起来都只是”读”，但它们的职责截然不同：</p>
 <ul>
 <li>搜索结果页服务于召回和转化，强调高吞吐和可排序。</li>
 <li>详情页服务于交易前理解，强调解释性和当前性。</li>
 </ul>
+<p>从系统角度看，搜索、导购、详情之间不能揉成一个系统，也不能简单地串成一条长链路，而应该按各自的职责边界和一致性要求独立设计，再通过编排层聚合。</p>
 <h3 id="32-关键技术点"><a class="header" href="#32-关键技术点">3.2 关键技术点</a></h3>
-<h4 id="321-搜索结果页本质上是弱一致投影"><a class="header" href="#321-搜索结果页本质上是弱一致投影">3.2.1 搜索结果页本质上是弱一致投影</a></h4>
-<p>搜索结果页的目标是高吞吐召回、排序和转化，不承担交易真相主权。它展示的是“当前最有可能被用户点击的候选集”，不是“此刻可以直接下单成交的最终合同”。</p>
-<p>因此，搜索页允许：</p>
+<p>这一节先前置所有高价值架构结论，后续场景化时序图再展开具体调用关系。</p>
+<h4 id="321-为什么搜索导购详情不能揉成一个系统"><a class="header" href="#321-为什么搜索导购详情不能揉成一个系统">3.2.1 为什么搜索、导购、详情不能揉成一个系统</a></h4>
+<p>很多团队早期会把”商品搜索、类目导购、详情查询”统一塞进一个搜索服务里，代码复用率高，看起来也方便。但这会带来三个致命问题：</p>
 <ul>
-<li>索引异步刷新</li>
-<li>列表字段局部滞后</li>
-<li>某些弱展示字段降级缺失</li>
+<li><strong>职责塌陷</strong>：搜索负责高吞吐召回和排序，导购负责多维度筛选和聚合卡片展示，详情负责多域事实聚合。三者面对的下游依赖链、缓存策略、降级粒度完全不同，揉在一起只会让每个场景都背上不该背的依赖。</li>
+<li><strong>一致性口子撕裂开</strong>：搜索页天然允许弱一致，详情页需要近实时一致。如果把两个场景放在同一个服务里，开发人员很难在代码层面区分”这个字段可以滞后 5 分钟”和”这个字段必须实时校验”。</li>
+<li><strong>大促放大故障面</strong>：搜索页 QPS 远高于详情页。一旦合并在同一个服务里，高并发搜索流量会直接把详情页的计价、库存、营销下游一起拖垮。</li>
 </ul>
-<p>但它不能越界去承担：</p>
+<p>因此推荐结论很明确：</p>
 <ul>
-<li>实时价格真相</li>
-<li>实时库存真相</li>
-<li>权益资格最终裁决</li>
+<li>搜索服务解决召回、筛选、排序。</li>
+<li>导购服务解决聚合卡片展示。</li>
+<li>详情聚合服务解决多域事实聚合。</li>
 </ul>
-<h4 id="322-列表页的第一责任是高效召回和可排序而不是输出所有实时交易字段"><a class="header" href="#322-列表页的第一责任是高效召回和可排序而不是输出所有实时交易字段">3.2.2 列表页的第一责任是高效召回和可排序，而不是输出所有实时交易字段</a></h4>
-<p>这条链路里最关键的设计点，不是“多调了几个下游”，而是：<strong>搜索结果页到底哪些数据应该直接来自搜索中心，哪些数据应该回商品中心 / 计价 / 库存实时补齐</strong>。</p>
+<h4 id="322-哪些字段来自-es哪些字段来自商品中心"><a class="header" href="#322-哪些字段来自-es哪些字段来自商品中心">3.2.2 哪些字段来自 ES，哪些字段来自商品中心</a></h4>
+<p>这条链路里最关键的设计点，不是”多调了几个下游”，而是：<strong>搜索结果页到底哪些数据应该直接来自搜索中心，哪些数据应该回商品中心 / 计价 / 库存实时补齐</strong>。</p>
 <p>决策原则只有三条：</p>
 <ol>
 <li><strong>是否参与召回、过滤、排序</strong>：参与这些能力的字段，优先放到 ES。</li>
 <li><strong>变动频次高不高</strong>：高频变化字段不要把绝对真相压进 ES。</li>
 <li><strong>对准确性要求高不高</strong>：一旦字段直接影响成交，就应该让实时权威域说了算。</li>
 </ol>
-<p>因此，搜索结果页通常采用“<strong>ES 出骨架，商品中心与交易相关域补血肉</strong>”的模式：</p>
+<p>因此，搜索结果页通常采用”<strong>ES 出骨架，商品中心与交易相关域补血肉</strong>”的模式：</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -39106,231 +40600,28 @@ flowchart LR
 </div>
 <p>一个很实用的判断方法是：</p>
 <ul>
-<li><strong>只要字段决定“搜不搜得到、排在第几位、能不能按它筛选”</strong>，就应该优先放进 ES。</li>
-<li><strong>只要字段决定“现在到底多少钱、到底还有没有货、这个活动此刻还能不能领”</strong>，就应该优先让商品中心、计价或库存域返回实时结果。</li>
+<li><strong>只要字段决定”搜不搜得到、排在第几位、能不能按它筛选”</strong>，就应该优先放进 ES。</li>
+<li><strong>只要字段决定”现在到底多少钱、到底还有没有货、这个活动此刻还能不能领”</strong>，就应该优先让商品中心、计价或库存域返回实时结果。</li>
 </ul>
-<h4 id="323-详情页是多域聚合页但它依然只是交易前解释不是订单事实"><a class="header" href="#323-详情页是多域聚合页但它依然只是交易前解释不是订单事实">3.2.3 详情页是多域聚合页，但它依然只是“交易前解释”，不是订单事实</a></h4>
-<p>详情页虽然比列表页更接近交易真相，但它仍然只是用户下单前的解释界面。它需要把：</p>
+<h4 id="323-搜索结果页为什么只认-es-骨架不直接等于交易事实"><a class="header" href="#323-搜索结果页为什么只认-es-骨架不直接等于交易事实">3.2.3 搜索结果页为什么只认 ES 骨架，不直接等于交易事实</a></h4>
+<p>搜索结果页的目标是高吞吐召回、排序和转化，不承担交易真相主权。它展示的是”当前最有可能被用户点击的候选集”，不是”此刻可以直接下单成交的最终合同”。</p>
+<p>因此，搜索页允许：</p>
 <ul>
-<li>正式商品契约</li>
-<li>当前价格</li>
-<li>当前库存摘要</li>
-<li>营销露出</li>
-<li>履约规则</li>
+<li>索引异步刷新</li>
+<li>列表字段局部滞后</li>
+<li>某些弱展示字段降级缺失</li>
 </ul>
-<p>聚合成一个可理解的商品页面，但它仍然不能替代：</p>
+<p>但它不能越界去承担：</p>
 <ul>
-<li>结算页的价格试算</li>
-<li>预占库存</li>
-<li>优惠校验</li>
-<li>创单前最终版本校验</li>
+<li>实时价格真相</li>
+<li>实时库存真相</li>
+<li>权益资格最终裁决</li>
 </ul>
-<h4 id="324-酒店搜索场景哪些信息来自-es哪些信息来自商品中心"><a class="header" href="#324-酒店搜索场景哪些信息来自-es哪些信息来自商品中心">3.2.4 酒店搜索场景：哪些信息来自 ES，哪些信息来自商品中心</a></h4>
-<p>酒店搜索比普通实物电商更复杂，因为它的库存和价格天然带有 <strong>日期维度</strong> 与 <strong>用户上下文</strong>。同一家酒店，在不同入住日、房型、会员等级和连住天数下，真实价格和真实可售状态都可能完全不同。</p>
-<p>因此在酒店搜索里，字段边界通常这样划：</p>
-<ul>
-<li><strong>来自搜索中心 / ES 的信息</strong>：
-<ul>
-<li>酒店名称、别名、地址、经纬度、星级、品牌、设施标签、商圈、地标、基础房型名</li>
-<li>粗粒度的 <code>has_room</code></li>
-<li>用于价格粗排的 <code>base_min_price</code></li>
-</ul>
-</li>
-<li><strong>来自商品中心 / 资源域的实时信息</strong>：
-<ul>
-<li>指定入住日到离店日之间的真实可售房态</li>
-<li>具体房型在该日期区间下的实时到手价、会员价、连住价</li>
-<li>退改政策、确认时效、最晚保留时间</li>
-</ul>
-</li>
-</ul>
-<p>所以酒店搜索的标准模式通常是：</p>
-<ol>
-<li>ES 先负责按城市、星级、地理位置、设施等条件召回和粗排。</li>
-<li>搜索服务拿着 <code>hotel_ids + checkin + checkout + user_id</code> 去商品中心 / 计价 / 库存资源域批量查询。</li>
-<li>用实时价格和真实房态覆盖掉 ES 的粗粒度字段，再返回给前端。</li>
-</ol>
-<p>这也解释了为什么列表页不能直接把 ES 的价格和库存当成交易真相：</p>
-<ul>
-<li>ES 擅长做大规模检索和排序。</li>
-<li>商品中心、计价、库存才是交易前最后的权威真相。</li>
-</ul>
-<h4 id="325-酒店搜索中的价格排序为什么要es-粗排商品中心精展"><a class="header" href="#325-酒店搜索中的价格排序为什么要es-粗排商品中心精展">3.2.5 酒店搜索中的价格排序：为什么要“ES 粗排，商品中心精展”</a></h4>
-<p>酒店搜索里，“按价格从低到高排序”是一个典型的工程取舍点。难点在于：<strong>ES 必须先拿到一个字段值才能完成全局排序，但酒店的真实价格又是动态计算出来的</strong>，它同时受到入住日期、连住天数、会员等级、售卖计划、实时促销和税费规则影响。</p>
-<p>如果试图把“所有用户、所有日期、所有房型组合下的真实到手价”全部塞进 ES，不但索引维度会爆炸，写入频率也会把搜索集群拖垮。因此，业界更常见也更稳妥的方案是：</p>
-<ol>
-<li><strong>ES 存基础价或粗粒度低价</strong>，例如 <code>base_min_price</code>。</li>
-<li><strong>ES 用这个基础价完成粗排和分页</strong>。</li>
-<li><strong>搜索服务再拿当前页酒店 ID 去商品中心 / 计价引擎算真实价</strong>。</li>
-<li><strong>前端最终展示真实价，而不是 ES 里的基础价</strong>。</li>
-</ol>
-<p>可以把它理解成两层排序：</p>
-<ul>
-<li><strong>第一层：ES 粗排</strong>
-<ul>
-<li>目标：快速筛出大体上价格更低的候选酒店。</li>
-<li>使用字段：<code>base_min_price</code>、地理距离、评分等低频或可容忍滞后的排序因子。</li>
-</ul>
-</li>
-<li><strong>第二层：商品中心精展</strong>
-<ul>
-<li>目标：把当前用户、当前日期区间下的真实到手价展示给用户。</li>
-<li>使用输入：<code>hotel_ids + checkin + checkout + user_id + member_level</code>。</li>
-</ul>
-</li>
-</ul>
-<p>这种做法的优点是：</p>
-<ul>
-<li>ES 可以继续承担高并发检索和翻页，不会因为实时价格频繁变动而被拖垮。</li>
-<li>商品中心只需要对当前页有限数量的酒店做实时算价，成本可控。</li>
-<li>最终展示价足够新鲜，不至于让用户看到完全错误的成交价格。</li>
-</ul>
-<p>它的代价也要诚实承认：<strong>可能存在轻微排序错位</strong>。例如某酒店在 ES 粗排时基础价更高，但在当前会员和促销条件下真实价反而更低。工程上通常接受这种小范围偏差，因为相比“绝对精确排序”，大促和高并发场景下的系统可用性更重要。</p>
-<p>如果业务规模较小，且平台对“价格排序绝对精准”要求极高，也可以采用“扩大召回 + 内存二次精排”的方案：</p>
-<ol>
-<li>ES 先按基础价或日期维度价格取前 50～100 条候选。</li>
-<li>商品中心批量算出这些候选的真实到手价。</li>
-<li>搜索服务在内存中对这批结果按真实价重新排序。</li>
-<li>最后截取前 20 条返回前端。</li>
-</ol>
-<p>这种方案体验更精确，但成本也更高：</p>
-<ul>
-<li>商品中心一次性算价对象更多；</li>
-<li>分页会更复杂；</li>
-<li>在高并发场景下更容易放大下游 RPC 压力。</li>
-</ul>
-<p>因此，对于大多数中大型酒旅平台，更推荐的默认结论是：</p>
-<blockquote>
-<p><strong>价格排序粗排交给 ES，真实价格展示交给商品中心；宁可接受轻微排序偏差，也不要让搜索集群承担实时交易字段的高频写压力。</strong></p>
-</blockquote>
-<h4 id="326-酒店搜索中的深翻页为什么不能一边无限翻页一边无限精排"><a class="header" href="#326-酒店搜索中的深翻页为什么不能一边无限翻页一边无限精排">3.2.6 酒店搜索中的深翻页：为什么不能一边无限翻页，一边无限精排</a></h4>
-<p>在 ES 里，深翻页不是看“一个城市总共有多少家酒店”，而是看 <strong><code>from + size</code> 有多深</strong>。默认情况下，<code>max_result_window = 10000</code>，超过这个窗口 ES 会直接拒绝请求。</p>
-<p>因此，“一个城市 1000 家酒店”本身不算问题；真正的问题是：</p>
-<ul>
-<li>用户是否在持续向后翻页；</li>
-<li>系统是否还想对越往后的结果继续做高成本的实时算价和二次精排。</li>
-</ul>
-<p>这也是酒店搜索比普通商品搜索更难的地方。因为一旦用户选择“按价格排序”，后端往往不只是简单翻页，而是在做：</p>
-<ol>
-<li>ES 先按基础价召回一批候选；</li>
-<li>商品中心对候选酒店批量算真实价；</li>
-<li>搜索服务在内存里重新精排；</li>
-<li>再截取当前页返回。</li>
-</ol>
-<p>如果对所有翻页都维持这套逻辑，哪怕用户只翻到第 3 页，后端也可能已经在做“前 100 条甚至前 300 条候选的批量算价和内存重排”，这就进入了<strong>类深翻页</strong>问题：不是 ES 一定先死，而是商品中心和 Hydrate 编排先被拖垮。</p>
-<p>酒店搜索里更稳妥的处理方式通常有三层：</p>
-<ol>
-<li>
-<p><strong>产品侧先限深</strong></p>
-<ul>
-<li>C 端列表采用懒加载，而不是允许无限页码跳转。</li>
-<li>滚到较深位置时，优先引导用户缩小日期、商圈、价格区间、设施等筛选范围。</li>
-<li>这一步往往比任何底层技术优化都更有效。</li>
-</ul>
-</li>
-<li>
-<p><strong>ES 侧用 <code>search_after</code>，不用无脑 <code>from + size</code></strong></p>
-<ul>
-<li>对 C 端连续下拉场景，使用 <code>search_after</code> 更合适。</li>
-<li>它不支持任意跳页，但非常适合移动端“下一页、再下一页”的滚动浏览。</li>
-<li>这样可以避免 ES 为了翻到更后面的页而反复丢弃前面的大量结果。</li>
-</ul>
-</li>
-<li>
-<p><strong>精排只保证前 N 条，后面自动降级</strong></p>
-<ul>
-<li>可以定义一个“最高精排桶”，例如只保证前 100 家酒店的价格排序绝对精准。</li>
-<li>前 100 条以内：走“扩大召回 + 批量算价 + 内存精排”。</li>
-<li>超过 100 条之后：只对当前页做实时价覆盖，不再对更大候选集做二次精排。</li>
-<li>这样既保住前几屏的用户体验，也不会让后端为极低转化概率的深页结果付出无限成本。</li>
-</ul>
-</li>
-</ol>
-<p>为了进一步保护商品中心的报价引擎，通常还会加一层 <strong>批量报价缓存</strong>：</p>
-<ul>
-<li>当用户带着同一组条件（如入住日、离店日、人数、会员等级）连续翻页时；</li>
-<li>商品中心第一次批量算出来的结果可以短暂缓存；</li>
-<li>后续翻页优先走缓存或 MGET，而不是每翻一页都重新全量计算。</li>
-</ul>
-<p>因此，这里的推荐结论可以落成：</p>
-<blockquote>
-<p><strong>酒店搜索要把“深翻页问题”和“动态价格排序问题”一起看。ES 负责可扩展的游标翻页，商品中心只为前部高价值结果做精排和算价，越往后越要主动降级，而不是对所有结果做无限精确排序。</strong></p>
-</blockquote>
-<h4 id="327-酒店房态与价格的秒级缓存一致性什么时候应该实时查什么时候必须缓存"><a class="header" href="#327-酒店房态与价格的秒级缓存一致性什么时候应该实时查什么时候必须缓存">3.2.7 酒店房态与价格的秒级缓存一致性：什么时候应该实时查，什么时候必须缓存</a></h4>
-<p>酒店搜索里还有一个非常高频的决策点：<strong>列表页到底应不应该实时去查 30 家酒店的价格和房态</strong>。</p>
-<p>这个问题没有统一答案，关键看两件事：</p>
-<ol>
-<li>单次批量查询的真实耗时能不能稳定控制在可接受范围内。</li>
-<li>高并发、大促、爬虫和跨境供应商抖动时，底层资源层能不能扛住放大的吞吐压力。</li>
-</ol>
-<p>如果你们的业务压测结果表明：</p>
-<ul>
-<li>同一批次实时查询 30 家酒店的价格与房态只需要大约 100ms；</li>
-<li>且这条链路经过了限流、隔离、超时和降级设计；</li>
-</ul>
-<p>那么列表页采用“<strong>ES 粗排 + 当前页 30 家实时查询</strong>”是完全合理的，并且会比死缓存带来更好的用户体验。因为它能显著减少“列表页看到 300 元有房，点进详情页变成 500 元或满房”的落差。</p>
-<p>但这里真正的难点，不是“单次 100ms 能不能做到”，而是以下三个工程问题。</p>
-<p><strong>第一，怎么扛住高并发下的整体吞吐量。</strong></p>
-<p>单次查 30 家只要 100ms，不代表在大促、暑期、国庆或被外部爬虫高频抓取时依然成立。因为一旦搜索 QPS 被放大，请求总量会迅速变成：</p>
-<ul>
-<li><code>搜索 QPS × 每次查询酒店数</code></li>
-</ul>
-<p>这时候真正需要保护的不是搜索服务本身，而是后面的：</p>
-<ul>
-<li>商品中心 / 报价引擎</li>
-<li>库存 / 房态资源层</li>
-<li>海外供应商接口</li>
-</ul>
-<p>因此更稳妥的做法是：</p>
-<ul>
-<li>在搜索服务到资源层之间做 <strong>线程池隔离 / 舱壁隔离</strong></li>
-<li>对供应商或报价 RPC 做 <strong>超时控制与限流</strong></li>
-<li>对异常来源流量做 <strong>防刷与防爬</strong></li>
-<li>超过保护阈值时，自动退化为“ES 基础价 + 粗房态”模式</li>
-</ul>
-<p>也就是说，<strong>实时查 30 家可以作为主路径，但必须有明确的降级开关</strong>。</p>
-<p><strong>第二，怎么避免慢供应商拖垮整个列表页。</strong></p>
-<p>酒店列表经常会混入海外供应商或跨境资源方，它们的接口 RT 波动可能远大于本地酒店资源系统。如果 30 家里有 2~3 家供应商超时，不能让整页结果跟着被拖慢。</p>
-<p>因此列表页更推荐采用：</p>
-<ul>
-<li>批量并行查询</li>
-<li>严格的总超时预算</li>
-<li>单酒店或单供应商分支的独立超时中断</li>
-</ul>
-<p>在这种模式下：</p>
-<ul>
-<li>100ms 内成功返回的酒店正常展示实时价</li>
-<li>超时或失败的酒店退化成 ES 基础价、基础房态或“参考价”文案</li>
-<li>绝不允许少数慢分支把整页响应时间拉穿</li>
-</ul>
-<p>换句话说，酒店列表的目标不是“每一条都实时且完整”，而是：</p>
-<blockquote>
-<p><strong>绝大多数酒店在预算时间内拿到实时结果，少量超时酒店局部降级，但整页体验必须稳定。</strong></p>
-</blockquote>
-<p><strong>第三，实时查和价格排序怎么同时成立。</strong></p>
-<p>这正是为什么前面 <code>3.2.5</code> 里强调“<strong>ES 粗排，商品中心精展</strong>”。</p>
-<p>因为即使当前页 30 家的实时查询只要 100ms，ES 在全局排序时也不可能提前知道所有酒店对当前用户、当前入住日期下的真实到手价。所以更现实的做法仍然是：</p>
-<ol>
-<li>ES 先按 <code>base_min_price</code> 做全局粗排。</li>
-<li>取出当前页 30 家酒店 ID。</li>
-<li>搜索服务实时查这 30 家的真实价格与真实房态。</li>
-<li>在内存中对这 30 条结果做一次轻量二次微调排序。</li>
-</ol>
-<p>这样可以兼顾：</p>
-<ul>
-<li>ES 的可扩展粗排能力</li>
-<li>当前页实时价格展示的准确性</li>
-<li>以及不把整条链路压成“全量动态排序”的系统风险</li>
-</ul>
-<p>因此，这里的推荐结论不是“必须缓存”或“必须实时查”，而是：</p>
-<blockquote>
-<p><strong>酒店列表页可以实时查当前页 30 家数据，但前提是这条路径经过限流、隔离、超时和降级保护；真正的主架构仍然是 ES 负责粗排，商品中心 / 报价引擎负责当前页实时修正。</strong></p>
-</blockquote>
-<p>如果业务已经压测证明当前页实时查询稳定在 100ms 左右，那么比起把价格和房态死死缓存住，这种“<strong>小批量实时查 + 局部降级 + 全局粗排</strong>”往往是更符合真实酒旅体验的工程方案。</p>
-<h4 id="328-hydrate-编排应该纯串行还是半并行"><a class="header" href="#328-hydrate-编排应该纯串行还是半并行">3.2.8 Hydrate 编排应该纯串行还是半并行</a></h4>
+<p>这也意味着：<strong>下单前必须重新校验价格、库存、权益</strong>。搜索结果页拿到的是”可浏览卡片”，不是”可下单事实”。</p>
+<h4 id="324-搜索结果页的-hydrate-编排为什么不是纯串行也不是无脑全并行"><a class="header" href="#324-搜索结果页的-hydrate-编排为什么不是纯串行也不是无脑全并行">3.2.4 搜索结果页的 Hydrate 编排为什么不是纯串行，也不是无脑全并行</a></h4>
 <p>Hydrate 层最容易被低估的一个问题是：<strong>下游依赖到底应该串行调用，还是并行调用</strong>。</p>
-<p>如果完全按照“商品中心 -&gt; 库存中心 -&gt; 营销中心 -&gt; 计价中心”的直觉串行走，业务理解上很顺，但性能上很危险。因为只要每个 RPC 平均耗时 20ms，四段串行下来就已经接近 80ms；任意一个下游轻微抖动，整条列表页链路就会很容易冲到 150ms 以上。</p>
-<p>更稳妥的工程实践通常不是“全串行”，也不是“无脑全并行”，而是<strong>带依赖关系的半并行编排</strong>：</p>
+<p>如果完全按照”商品中心 -&gt; 库存中心 -&gt; 营销中心 -&gt; 计价中心”的直觉串行走，业务理解上很顺，但性能上很危险。因为只要每个 RPC 平均耗时 20ms，四段串行下来就已经接近 80ms；任意一个下游轻微抖动，整条列表页链路就会很容易冲到 150ms 以上。</p>
+<p>更稳妥的工程实践通常不是”全串行”，也不是”无脑全并行”，而是<strong>带依赖关系的半并行编排</strong>：</p>
 <ol>
 <li><strong>第一阶段并行</strong>
 <ul>
@@ -39354,13 +40645,13 @@ flowchart LR
 <li><strong>库存中心通常只依赖 item_id / sku_id</strong>，并不依赖商品标题、品牌、类目这些骨架字段；</li>
 <li><strong>商品中心也不依赖价格和库存</strong>，它本身就是卡片骨架来源；</li>
 <li><strong>营销中心</strong> 往往依赖商品类目、商家、售卖属性来判断露出与资格；</li>
-<li><strong>计价中心</strong> 在很多实现里并不是独立“拍脑袋算价”，而是要把营销命中的结果、优惠叠加关系、会员折扣、活动门槛一起折进最终展示价，所以它天然位于营销之后。</li>
+<li><strong>计价中心</strong> 在很多实现里并不是独立”拍脑袋算价”，而是要把营销命中的结果、优惠叠加关系、会员折扣、活动门槛一起折进最终展示价，所以它天然位于营销之后。</li>
 </ul>
 <p>这种编排的总耗时，更接近：</p>
 <ul>
 <li><code>max(商品中心, 库存中心) + 营销中心 + 计价中心</code></li>
 </ul>
-<p>而不是四段简单相加。所以它通常仍然明显优于“商品 -&gt; 库存 -&gt; 营销 -&gt; 计价”的纯串行模式，同时又不会像“盲目全并行”那样把前置依赖关系搞乱。</p>
+<p>而不是四段简单相加。所以它通常仍然明显优于”商品 -&gt; 库存 -&gt; 营销 -&gt; 计价”的纯串行模式，同时又不会像”盲目全并行”那样把前置依赖关系搞乱。</p>
 <p>如果业务继续追求更低的列表页延迟，还可以进一步演进到<strong>近似全并行</strong>：在计价中心和营销中心内部也冗余一份极简的商品基础信息，例如：</p>
 <ul>
 <li><code>item_id -&gt; 类目</code></li>
@@ -39378,16 +40669,16 @@ flowchart LR
 <blockquote>
 <p><strong>用数据冗余换实时编排延迟。</strong></p>
 </blockquote>
-<p>但要注意，这种“绝对并行”只适合在两个前提下使用：</p>
+<p>但要注意，这种”绝对并行”只适合在两个前提下使用：</p>
 <ol>
 <li>营销和计价中心内部维护的商品轻量副本足够新鲜；</li>
 <li>你们愿意承担多一层数据同步和一致性治理的复杂度。</li>
 </ol>
 <p>所以默认推荐结论是：</p>
 <blockquote>
-<p><strong>Hydrate 层优先采用“商品 + 库存第一阶段并行，营销第二阶段，计价第三阶段”的半并行架构；只有在对延迟极度敏感、且下游已经具备足够商品副本和营销结果缓存时，才继续压缩计价前置依赖。</strong></p>
+<p><strong>Hydrate 层优先采用”商品 + 库存第一阶段并行，营销第二阶段，计价第三阶段”的半并行架构；只有在对延迟极度敏感、且下游已经具备足够商品副本和营销结果缓存时，才继续压缩计价前置依赖。</strong></p>
 </blockquote>
-<h4 id="329-详情页的核心架构思想动静分离与多级缓存"><a class="header" href="#329-详情页的核心架构思想动静分离与多级缓存">3.2.9 详情页的核心架构思想：动静分离与多级缓存</a></h4>
+<h4 id="325-详情页为什么必须做动静分离"><a class="header" href="#325-详情页为什么必须做动静分离">3.2.5 详情页为什么必须做动静分离</a></h4>
 <p>商品详情页（PDP）是交易漏斗里最核心的读页面之一。它的特点是：</p>
 <ul>
 <li>流量极大</li>
@@ -39395,7 +40686,7 @@ flowchart LR
 <li>高可用要求极苛刻</li>
 <li>用户对页面解释能力和加载速度都极其敏感</li>
 </ul>
-<p>因此，详情页不能做成“每次请求实时查所有下游”的重聚合链路，而要先做<strong>动静分离</strong>。</p>
+<p>因此，详情页不能做成”每次请求实时查所有下游”的重聚合链路，而要先做<strong>动静分离</strong>。</p>
 <p>从工程上看，详情页的数据通常可以拆成两类：</p>
 <ul>
 <li><strong>静态数据</strong>：
@@ -39448,11 +40739,11 @@ flowchart LR
 </ul>
 </li>
 </ul>
-<p>这样做的目标不是追求“所有详情字段都绝对实时”，而是：</p>
+<p>这样做的目标不是追求”所有详情字段都绝对实时”，而是：</p>
 <blockquote>
 <p><strong>先保证详情页稳定打开，再保证动态关键信息足够新鲜，最后在创单前做最终强校验。</strong></p>
 </blockquote>
-<h4 id="3210-详情页里的实时计价库存摘要与大促降级"><a class="header" href="#3210-详情页里的实时计价库存摘要与大促降级">3.2.10 详情页里的实时计价、库存摘要与大促降级</a></h4>
+<h4 id="326-详情页里的实时计价库存摘要与大促降级"><a class="header" href="#326-详情页里的实时计价库存摘要与大促降级">3.2.6 详情页里的实时计价、库存摘要与大促降级</a></h4>
 <p>详情页里最敏感的两个问题，永远是：</p>
 <ol>
 <li>现在多少钱</li>
@@ -39467,7 +40758,7 @@ flowchart LR
 <li>平台券 / 品类券</li>
 <li>用户专属权益</li>
 </ul>
-<p>因此更常见的做法不是缓存“所有用户的最终价”，而是：</p>
+<p>因此更常见的做法不是缓存”所有用户的最终价”，而是：</p>
 <ul>
 <li>缓存<strong>基础价 / 会员价矩阵 / 基础促销价</strong></li>
 <li>在详情请求进来时，再结合用户上下文和营销命中做轻量实时计算</li>
@@ -39489,7 +40780,7 @@ flowchart LR
 </li>
 <li><strong>库存摘要超时</strong>
 <ul>
-<li>退化为保守文案，如“库存确认中”或“请以下单时校验为准”</li>
+<li>退化为保守文案，如”库存确认中”或”请以下单时校验为准”</li>
 </ul>
 </li>
 <li><strong>营销露出超时</strong>
@@ -39510,11 +40801,183 @@ flowchart LR
 <li>限流与线程池隔离</li>
 </ul>
 <p>这样即使某个爆款详情在几秒内被打到极高 QPS，也不至于把 Redis、计价、库存或营销服务一起拖崩。</p>
-<p>所以详情页的核心不是“把所有数据都实时算到最准”，而是：</p>
+<p>所以详情页的核心不是”把所有数据都实时算到最准”，而是：</p>
 <blockquote>
 <p><strong>在可接受的一致性范围内，把最重要的动态字段算出来，把不重要的字段降级掉，并且永远保证详情页页面本身不因为单个下游故障而整体不可用。</strong></p>
 </blockquote>
-<h3 id="33-搜索结果页查询时序图"><a class="header" href="#33-搜索结果页查询时序图">3.3 搜索结果页查询时序图</a></h3>
+<h4 id="327-搜索与详情的一致性边界怎么定"><a class="header" href="#327-搜索与详情的一致性边界怎么定">3.2.7 搜索与详情的一致性边界怎么定</a></h4>
+<p>第 2 节已经给出了整体一致性分层，这里把结论聚焦到搜索和详情内部：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>对象</th><th>推荐一致性</th><th>原因</th></tr>
+</thead>
+<tbody>
+<tr><td>搜索结果页</td><td>弱一致</td><td>索引是投影，允许短暂滞后</td></tr>
+<tr><td>详情页静态骨架</td><td>近实时一致</td><td>商品契约信息，变更频率低，可缓存</td></tr>
+<tr><td>详情页动态字段</td><td>允许短暂偏差</td><td>计价、库存、营销可能发生秒级变化</td></tr>
+<tr><td>创单 / 结算</td><td>强校验</td><td>不能靠展示信息直接成交</td></tr>
+</tbody>
+</table>
+</div>
+<p>推荐结论：</p>
+<ul>
+<li>搜索索引和列表投影可以异步刷新。</li>
+<li>搜索结果页不是”所有字段都由 ES 直接吐出”；只有参与召回、过滤、排序且可容忍滞后的骨架字段进索引，高频强一致字段要通过商品中心、计价和库存批量 Hydrate。</li>
+<li>详情页必须以正式商品契约为底，再补充当前价、库存和营销。</li>
+<li>下单永远不能只信列表或详情页展示结果。</li>
+</ul>
+<h4 id="328-为什么详情页之后还需要结算页和订单快照"><a class="header" href="#328-为什么详情页之后还需要结算页和订单快照">3.2.8 为什么详情页之后还需要结算页和订单快照</a></h4>
+<p>详情页虽然比列表页更接近交易真相，但它仍然只是用户下单前的解释界面。它需要把：</p>
+<ul>
+<li>正式商品契约</li>
+<li>当前价格</li>
+<li>当前库存摘要</li>
+<li>营销露出</li>
+<li>履约规则</li>
+</ul>
+<p>聚合成一个可理解的商品页面，但它仍然不能替代：</p>
+<ul>
+<li>结算页的价格试算</li>
+<li>预占库存</li>
+<li>优惠校验</li>
+<li>创单前最终版本校验</li>
+</ul>
+<p>一句话：<strong>搜索与详情只负责”看”，结算与订单才负责”认”</strong>。订单快照则是把”认下来的事实”持久化，确保后续履约和售后不再回头依赖最新商品真相。</p>
+<h4 id="329-高并发下如何保护搜索-hydrate-下游"><a class="header" href="#329-高并发下如何保护搜索-hydrate-下游">3.2.9 高并发下如何保护搜索 Hydrate 下游</a></h4>
+<p>搜索和详情链路的 Hydrate 阶段依赖多个下游：商品中心、库存中心、营销中心、计价中心。高并发下，这些下游很容易被放大后的请求量打穿。</p>
+<p>工程上推荐用分层保护策略：</p>
+<ul>
+<li><strong>批量接口</strong>：Hydrate 层不再逐条调用下游 RPC，而是按 item_id 列表做批量查询，减少 RPC 数量。</li>
+<li><strong>线程池隔离 / 舱壁隔离</strong>：为商品、库存、营销、计价分别分配独立线程池，避免某一个下游慢调用占满公共线程池。</li>
+<li><strong>超时控制</strong>：每个下游 RPC 独立设置超时时间，任一超时触发即时降级。</li>
+<li><strong>局部降级</strong>：超时后按字段维度降级（如计价超时不阻断整个卡片，只用基础价兜底），而不是整页失败。</li>
+<li><strong>热点缓存</strong>：热点商品在本地缓存和 Redis 里保护下游不被击穿。</li>
+</ul>
+<p>这些技术和 3.6 的场景三时序图互相呼应，形成”文字说明原则 + 图说明流程”的对照。</p>
+<h4 id="3210-为什么酒店要单独作为特殊场景处理"><a class="header" href="#3210-为什么酒店要单独作为特殊场景处理">3.2.10 为什么酒店要单独作为特殊场景处理</a></h4>
+<p>普通实物电商商品，信息变更以商品本身为主（价格、库存、活动）。但酒店天然带有 <strong>日期维度</strong> 与 <strong>用户上下文</strong>。同一家酒店，在不同入住日、房型、会员等级和连住天数下，真实价格和真实可售状态都可能完全不同。这意味着：</p>
+<ul>
+<li>酒店的”可检索属性”和”可交易真相”之间的鸿沟比普通商品大得多；</li>
+<li>搜索索引、详情聚合、结算校验三层之间的一致性治理复杂度远高于标品；</li>
+<li>价格排序、深翻页、实时房态一致性等问题需要专门的架构策略。</li>
+</ul>
+<p>因此本章将酒店相关内容统一收口到 3.8 节作为独立特殊场景处理。以下内容从 3.3 开始按场景化时序图展开。</p>
+<h3 id="33-场景一搜索索引视图的构建"><a class="header" href="#33-场景一搜索索引视图的构建">3.3 场景一：搜索索引视图的构建</a></h3>
+<p>在深入搜索结果页、详情页的查询链路之前，必须先回答一个更前置的问题：<strong>搜索中心的索引数据到底是怎么从商品中心同步过来的</strong>。</p>
+<p>电商系统中，商品中心是商品数据的“权威源“（Source of Truth），存储在关系型数据库（如 MySQL、TiDB）中。而搜索中心使用专业的搜索引擎（如 Elasticsearch、OpenSearch）构建倒排索引。搜索中心本质上不是另一套“商品数据库“，而是商品中心数据的 <strong>索引视图</strong>。因此，索引视图的构建质量直接决定了搜索、导购和详情链路上所有查询的可用性和准确性。</p>
+<h4 id="331-整体架构流程"><a class="header" href="#331-整体架构流程">3.3.1 整体架构流程</a></h4>
+<pre class="mermaid">
+flowchart LR
+    subgraph 商品中心
+        DB["商品中心 DB（MySQL / TiDB）"]
+    end
+    
+    subgraph 数据同步层
+        CDC["CDC 捕获（Canal / Flink CDC）"]
+        MQ["消息队列（Kafka / RocketMQ）"]
+    end
+    
+    subgraph 搜索中心
+        Consumer["搜索索引构建服务"]
+        ES["搜索索引（Elasticsearch）"]
+        API["搜索服务 API"]
+    end
+    
+    subgraph 消费端
+        Frontend["前端 / APP / 推荐系统"]
+    end
+    
+    DB --&gt;|"Binlog（INSERT/UPDATE/DELETE）"| CDC
+    DB --&gt;|"关键事件主动发布"| MQ
+    CDC --&gt;|"实时推送"| MQ
+    MQ --&gt;|"消费变更事件"| Consumer
+    Consumer --&gt;|"index / update / delete"| ES
+    ES --&gt;|"查询"| API
+    API --&gt;|"搜索结果"| Frontend
+</pre>
+
+<p>这条链路的核心思想是：<strong>商品中心负责写入真相，搜索中心通过可靠的异步管道构建索引视图，搜索服务再基于索引视图对外提供高吞吐的读能力</strong>。</p>
+<h4 id="332-数据同步机制"><a class="header" href="#332-数据同步机制">3.3.2 数据同步机制</a></h4>
+<p>搜索中心不能直接读写商品中心的库，而是通过以下方式同步数据。</p>
+<p><strong>（1）增量同步（推荐主路径）</strong></p>
+<ul>
+<li><strong>CDC（Change Data Capture）</strong>：使用 Canal、Flink CDC、Debezium 等工具监听商品中心数据库的 Binlog，捕获 <code>INSERT / UPDATE / DELETE</code> 操作，实时推送到 Kafka。</li>
+<li><strong>消息队列主动发布</strong>：商品中心在商品创建、更新、上下架、价格变更等关键事件时，主动发布事件到 Kafka / RocketMQ。搜索中心消费者订阅消息，解析后更新索引。</li>
+</ul>
+<p><strong>（2）全量同步</strong></p>
+<p>定时任务（每天 / 每周）或手动触发，通过 DataX、Spark 等工具全量导出商品数据重建索引。用于新品类上线、索引重建、Mapping 字段调整等场景。</p>
+<p><strong>（3）一致性保证</strong></p>
+<ul>
+<li>搜索结果是 <strong>最终一致</strong>，允许秒级延迟（电商搜索通常可接受 1~5 秒）。</li>
+<li>增量管道结合 Kafka 分区键（使用 <code>spu_id</code>），保证同一商品的消息有序消费。</li>
+<li>使用版本号或 <code>seq_no</code> 控制更新顺序，防止消息乱序导致旧数据覆盖新数据（详见 3.3.4）。</li>
+</ul>
+<h4 id="333-字段选择映射与-etl"><a class="header" href="#333-字段选择映射与-etl">3.3.3 字段选择、映射与 ETL</a></h4>
+<p>从商品中心提取关键字段并映射到搜索索引，是索引构建中最核心的设计决策。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段类型</th><th>示例字段</th><th>映射类型（Elasticsearch）</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td>全文检索</td><td><code>title</code>, <code>subtitle</code>, <code>desc</code></td><td><code>text</code>（IK / jieba 分词）</td><td>搜索匹配</td></tr>
+<tr><td>精确匹配 / 过滤</td><td><code>spu_id</code>, <code>sku_id</code>, <code>brand_id</code>, <code>category_id</code>, <code>status</code></td><td><code>keyword</code></td><td>精确过滤</td></tr>
+<tr><td>数值</td><td><code>price</code>, <code>sale_price</code>, <code>stock</code>, <code>sales</code>, <code>rating</code></td><td><code>integer</code> / <code>float</code> / <code>scaled_float</code></td><td>范围查询、排序</td></tr>
+<tr><td>数组 / 分面</td><td><code>attrs</code>（颜色、尺寸等规格属性）, <code>tags</code></td><td><code>nested</code> / <code>object</code></td><td>多维度筛选</td></tr>
+<tr><td>地理</td><td><code>location</code></td><td><code>geo_point</code></td><td>附近门店 / LBS 排序</td></tr>
+<tr><td>权重 / 时间</td><td><code>create_time</code>, <code>update_time</code>, <code>weight</code></td><td><code>date</code> / <code>integer</code></td><td>排序、boost</td></tr>
+</tbody>
+</table>
+</div>
+<p>在写入索引之前，通常还需要经过一层轻量 ETL：</p>
+<ul>
+<li><strong>清洗</strong>：去除 HTML 标签、特殊字符，统一单位。</li>
+<li><strong>丰富</strong>：拆分 SKU 属性为独立字段或 <code>nested</code> 对象；生成搜索建议（<code>completion suggester</code>）；加入同义词（“手机”→“智能手机”）；计算动态权重（销量 × 0.4 + 评分 × 0.3 + 新品加分等）。</li>
+<li><strong>去重</strong>：以 SPU 为维度聚合 SKU 信息。</li>
+</ul>
+<p><strong>索引构建方式</strong>：</p>
+<ul>
+<li><strong>单索引 + alias</strong>：大多数情况用一个主索引 + alias 切换。</li>
+<li><strong>零停机重建</strong>：新建索引 <code>products-2026-06-10-v2</code> → 全量导入 → 验证通过后切换 alias → 删除旧索引。
+<ul>
+<li>中小型项目用 <code>products_v2</code> 命名即可。</li>
+<li>中大型或亿级以上数据，推荐<strong>日期命名 + alias</strong> 的方式，天然支持滚动索引和按时间归档。</li>
+</ul>
+</li>
+</ul>
+<h4 id="334-版本控制与更新顺序保证"><a class="header" href="#334-版本控制与更新顺序保证">3.3.4 版本控制与更新顺序保证</a></h4>
+<p>搜索结果允许最终一致，但绝不能出现“旧数据覆盖新数据“。在 CDC / 消息队列场景下，网络乱序、消费者重平衡等都可能导致消息乱序到达，因此必须引入版本控制。</p>
+<p><strong>核心机制</strong>：</p>
+<ul>
+<li><strong>Elasticsearch 内置 <code>_version</code></strong>：每个文档都有内部版本号。使用 <code>version_type=external</code> 时，Elasticsearch 直接使用你传入的版本号（如商品 <code>update_time</code> 的毫秒时间戳，或数据库自增 <code>seq_no</code>）。只有当传入版本严格大于当前版本时才会写入，否则返回 <code>409 Conflict</code>。</li>
+<li><strong>消费者侧 seq_no 比对</strong>：在消费 Kafka 消息时，消费者先提取消息中携带的业务 <code>seq_no</code>，查询当前索引中该文档已存的 <code>seq_no</code>（自定义字段），仅在新 <code>seq_no</code> 更大时才执行更新。</li>
+<li><strong>Kafka 分区键</strong>：使用 <code>spu_id</code> 作为分区键，保证同一商品的消息天然有序。</li>
+</ul>
+<p>这套机制的核心原则是：</p>
+<blockquote>
+<p><strong>用版本号做乐观锁，旧消息到了直接丢弃，新消息到了才覆盖。网络乱序不伤害数据正确性。</strong></p>
+</blockquote>
+<h4 id="335-nested-对象与-sku-规格处理"><a class="header" href="#335-nested-对象与-sku-规格处理">3.3.5 Nested 对象与 SKU 规格处理</a></h4>
+<p><strong>Nested</strong> 是 Elasticsearch 中处理一对多关联字段的关键技术，在电商商品属性（多规格筛选）上几乎是必备。</p>
+<p><strong>为什么需要 Nested</strong>：普通 <code>object</code> 类型在数组场景下会被扁平化，导致 <code>key-value</code> 关联丢失。例如商品属性 <code>[{"颜色": "红色"}, {"尺寸": "XL"}]</code>，用 <code>object</code> 存储后，ES 会把所有 key 和 value 拆成两个独立集合，查询 <code>颜色=红色 AND 尺寸=XL</code> 时可能错误匹配到其他组合。而 <code>nested</code> 把每个对象作为独立的内部子文档存储，查询时必须使用 <code>nested query</code>，才能保证字段间的关联性。</p>
+<p><strong>电商典型用途</strong>：</p>
+<ul>
+<li>SKU 规格组合（颜色 + 尺码 + 版本）</li>
+<li>商品动态属性（不同类目下的属性差异大）</li>
+<li>商品标签列表、促销信息</li>
+</ul>
+<p><strong>注意事项</strong>：<code>nested</code> 会增加索引体积和查询开销（内部是隐藏的子文档），建议单个文档内 <code>nested</code> 对象不超过几百个。对于高频筛选的关键属性（如 <code>color</code>、<code>size</code>），可以同时提升为顶层 <code>keyword</code> 字段以加速过滤。</p>
+<h4 id="336-高并发与大促下的索引写入保护"><a class="header" href="#336-高并发与大促下的索引写入保护">3.3.6 高并发与大促下的索引写入保护</a></h4>
+<p>搜索索引不仅要承受高并发查询，还要承受商品变更带来的写入压力。大促期间，库存和价格高频变更会把写入放大到峰值，读写混合压力下 Elasticsearch 容易出现 <code>refresh</code> 积压和 GC 抖动。</p>
+<p>工程上的保护策略通常包括：</p>
+<ul>
+<li><strong>价格与库存不压进搜索索引</strong>：只在 ES 里保留用于排序的粗粒度 <code>base_min_price</code> 和 <code>has_stock</code> 标记，真实价格和库存摘要通过 Hydrate 层从商品中心、计价、库存服务实时补齐。这是 3.5、3.6、3.7 三张时序图的共同前提。</li>
+<li><strong>写入限流与批量提交</strong>：索引构建服务控制写入并发度，合并小请求为 <code>_bulk</code> 批量提交。</li>
+<li><strong>冷热分离</strong>：热数据（在售商品）与冷数据（下架 / 历史商品）分索引存放，减少单索引体积和写入放大面。</li>
+</ul>
+<h3 id="34-场景二搜索结果页查询时序图"><a class="header" href="#34-场景二搜索结果页查询时序图">3.4 场景二：搜索结果页查询时序图</a></h3>
+<p>这张图的主旨是：<strong>ES 负责召回、筛选、粗排，Hydrate 负责把搜索骨架补成用户能看的卡片</strong>。商品骨架 + 库存摘要并行查询，再查营销，最后请求计价（因为计价依赖营销结果）。</p>
 <pre class="mermaid">
 sequenceDiagram
     participant U as 用户
@@ -39546,7 +41009,15 @@ sequenceDiagram
     S--&gt;&gt;FE: 搜索 / 导购结果
 </pre>
 
-<h3 id="34-详情页聚合查询时序图"><a class="header" href="#34-详情页聚合查询时序图">3.4 详情页聚合查询时序图</a></h3>
+<blockquote>
+<p><strong>关键点</strong>：</p>
+<ul>
+<li>搜索页拿到的是”可浏览卡片”，不是”可下单事实”。</li>
+<li>计价请求是最后一步，因为它依赖营销结果。</li>
+</ul>
+</blockquote>
+<h3 id="35-场景三详情页聚合查询时序图"><a class="header" href="#35-场景三详情页聚合查询时序图">3.5 场景三：详情页聚合查询时序图</a></h3>
+<p>这张图的主旨是：<strong>详情页是一个多域聚合页</strong>——先拿商品正式态与履约规则作为骨架，再进入动态 Hydrate 补齐价格、库存、营销和履约摘要。详情页看到的动态值仍只是”当前展示真相”，后续进入结算与创单时仍需重新校验。</p>
 <pre class="mermaid">
 sequenceDiagram
     participant U as 用户
@@ -39557,17 +41028,291 @@ sequenceDiagram
     participant PR as 计价中心
     participant IV as 库存中心
     participant MK as 营销中心
+    participant FL as 履约规则 / 配送服务
 
     U-&gt;&gt;FE: 打开商品详情页
     FE-&gt;&gt;GW: ItemDetailRequest(item_id)
     GW-&gt;&gt;D: 详情聚合查询
+
+    Note over D,FL: 第一层：静态骨架（商品正式态 + 履约规则）
     D-&gt;&gt;P: 获取正式商品契约 / 履约规则
+    P--&gt;&gt;D: 商品静态契约
+    D-&gt;&gt;FL: 获取配送时效 / 履约摘要
+    FL--&gt;&gt;D: 履约摘要
+
+    Note over D,MK: 第二层：动态 Hydrate（价格、库存、营销）
     D-&gt;&gt;PR: 获取当前价 / 到手价
     D-&gt;&gt;IV: 获取库存与限购摘要
     D-&gt;&gt;MK: 获取活动、券与露出
-    D--&gt;&gt;FE: 详情页 DTO
+
+    D--&gt;&gt;FE: 详情页 DTO（静态骨架 + 动态数据）
 </pre>
 
+<blockquote>
+<p><strong>关键点</strong>：</p>
+<ul>
+<li>详情页看到的动态值仍然只是”当前展示真相”，不是最终交易事实。</li>
+<li>后续进入结算与创单时仍需重新校验价格、库存和权益。</li>
+</ul>
+</blockquote>
+<h3 id="36-场景四详情页动态-hydrate-与降级时序图"><a class="header" href="#36-场景四详情页动态-hydrate-与降级时序图">3.6 场景四：详情页动态 Hydrate 与降级时序图</a></h3>
+<p>这张图承接 3.2.5、3.2.6 和 3.2.9 中关于详情页动静分离、大促降级和高并发保护的内容，用一条时序图把”正常路径 + 降级路径”同时表达清楚。</p>
+<p>核心思想是：<strong>详情静态骨架优先返回，动态字段并行 / 半并行补齐；任一下游超时后，详情聚合服务按字段维度降级，而不是整页失败。</strong></p>
+<pre class="mermaid">
+sequenceDiagram
+    participant FE as 前端
+    participant D as 详情聚合服务
+    participant CDN as CDN / 静态缓存
+    participant Redis as Redis 缓存
+    participant P as 商品中心
+    participant PR as 计价中心
+    participant IV as 库存服务
+    participant MK as 营销服务
+
+    FE-&gt;&gt;D: 请求详情页(item_id, user_id)
+
+    Note over D,CDN: 第一步：静态骨架优先返回
+    D-&gt;&gt;CDN: 读静态骨架（标题、主图、详情片段）
+    CDN--&gt;&gt;D: 静态骨架
+    D--&gt;&gt;FE: 静态骨架流式返回 / 首屏 SSR
+
+    Note over D,MK: 第二步：动态字段并行 Hydrate
+    par 并行动态补齐
+        D-&gt;&gt;Redis: MGET 价格缓存
+        alt 缓存命中
+            Redis--&gt;&gt;D: 基础价 / 会员价矩阵
+        else 缓存未命中
+            D-&gt;&gt;PR: 实时计价
+            alt 计价正常
+                PR--&gt;&gt;D: 到手价
+            else 计价超时
+                Note over D: 降级：展示基础销售价 / 指导价
+            end
+        end
+    and
+        D-&gt;&gt;IV: 批量查库存摘要
+        alt 库存查询正常
+            IV--&gt;&gt;D: 库存摘要
+        else 库存超时
+            Note over D: 降级：展示”请以下单时校验为准”
+        end
+    and
+        D-&gt;&gt;MK: 批量查营销露出
+        alt 营销查询正常
+            MK--&gt;&gt;D: 活动标签 / 券信息
+        else 营销超时
+            Note over D: 降级：隐藏活动标签，不阻塞主页面
+        end
+    end
+
+    Note over D: 第三步：聚合结果，按字段维度局部降级
+    D--&gt;&gt;FE: 完整详情页 DTO（部分字段可见降级兜底值）
+</pre>
+
+<blockquote>
+<p><strong>降级分支总结</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>异常场景</th><th>降级策略</th><th>对用户体验的影响</th></tr>
+</thead>
+<tbody>
+<tr><td>计价超时</td><td>展示基础销售价 / 指导价</td><td>到手价可能不够精确，但不影响浏览决策</td></tr>
+<tr><td>库存摘要超时</td><td>展示”请以下单时校验为准”</td><td>用户无法在详情页看到库存余量</td></tr>
+<tr><td>营销露出超时</td><td>隐藏活动标签</td><td>用户看不到当前活动权益，但不阻塞页面</td></tr>
+<tr><td>Redis 缓存异常</td><td>走本地缓存 / CDN 兜底</td><td>动态数据可能不够新鲜，但不影响页面打开</td></tr>
+</tbody>
+</table>
+</div>
+</blockquote>
+<h3 id="37-特殊场景酒店搜索与动态报价"><a class="header" href="#37-特殊场景酒店搜索与动态报价">3.7 特殊场景：酒店搜索与动态报价</a></h3>
+<p>酒店搜索比普通实物电商更复杂，因为它的库存和价格天然带有 <strong>日期维度</strong> 与 <strong>用户上下文</strong>。同一家酒店，在不同入住日、房型、会员等级和连住天数下，真实价格和真实可售状态都可能完全不同。本节统一收口前面积累的酒店案例，用酒店证明：当商品是强时空属性资源时，搜索和详情链路必须做专门的动态报价与库存治理。</p>
+<h4 id="371-酒店哪些信息放-es哪些信息回商品中心--报价引擎"><a class="header" href="#371-酒店哪些信息放-es哪些信息回商品中心--报价引擎">3.7.1 酒店哪些信息放 ES，哪些信息回商品中心 / 报价引擎</a></h4>
+<p>酒店搜索的字段边界比标品电商更严格：</p>
+<ul>
+<li><strong>来自搜索中心 / ES 的信息</strong>：
+<ul>
+<li>酒店名称、别名、地址、经纬度、星级、品牌、设施标签、商圈、地标、基础房型名</li>
+<li>粗粒度的 <code>has_room</code></li>
+<li>用于价格粗排的 <code>base_min_price</code></li>
+</ul>
+</li>
+<li><strong>来自商品中心 / 报价引擎的实时信息</strong>：
+<ul>
+<li>指定入住日到离店日之间的真实可售房态</li>
+<li>具体房型在该日期区间下的实时到手价、会员价、连住价</li>
+<li>退改政策、确认时效、最晚保留时间</li>
+</ul>
+</li>
+</ul>
+<p>所以酒店搜索的标准模式通常是：</p>
+<ol>
+<li>ES 先负责按城市、星级、地理位置、设施等条件召回和粗排。</li>
+<li>搜索服务拿着 <code>hotel_ids + checkin + checkout + user_id</code> 去商品中心 / 计价 / 库存资源域批量查询。</li>
+<li>用实时价格和真实房态覆盖掉 ES 的粗粒度字段，再返回给前端。</li>
+</ol>
+<p>这也解释了为什么列表页不能直接把 ES 的价格和库存当成交易真相：</p>
+<ul>
+<li>ES 擅长做大规模检索和排序。</li>
+<li>商品中心、计价、库存才是交易前最后的权威真相。</li>
+</ul>
+<h4 id="372-酒店列表页如何做价格排序"><a class="header" href="#372-酒店列表页如何做价格排序">3.7.2 酒店列表页如何做价格排序</a></h4>
+<p>酒店搜索里，”按价格从低到高排序”是一个典型的工程取舍点。难点在于：<strong>ES 必须先拿到一个字段值才能完成全局排序，但酒店的真实价格又是动态计算出来的</strong>，它同时受到入住日期、连住天数、会员等级、售卖计划、实时促销和税费规则影响。</p>
+<p>如果试图把”所有用户、所有日期、所有房型组合下的真实到手价”全部塞进 ES，不但索引维度会爆炸，写入频率也会把搜索集群拖垮。因此主结论固定为：</p>
+<ol>
+<li><strong>ES 按 <code>base_min_price</code> 粗排</strong>：ES 用基础价完成全局排序和分页。</li>
+<li><strong>当前页实时查 30 家</strong>：搜索服务拿当前页酒店 ID 去商品中心 / 计价引擎算真实价。</li>
+<li><strong>当前页内存二次微调排序</strong>：对这 30 条结果按真实价做轻量重排，确保用户看到的顺序基于真实到手价。</li>
+</ol>
+<p>可以把它理解成两层排序：</p>
+<ul>
+<li><strong>第一层：ES 粗排</strong>
+<ul>
+<li>目标：快速筛出大体上价格更低的候选酒店。</li>
+<li>使用字段：<code>base_min_price</code>、地理距离、评分等低频或可容忍滞后的排序因子。</li>
+</ul>
+</li>
+<li><strong>第二层：当前页精展 + 微调</strong>
+<ul>
+<li>目标：把当前用户、当前日期区间下的真实到手价展示给用户，并在当前页内按真实价微调顺序。</li>
+<li>使用输入：<code>hotel_ids + checkin + checkout + user_id + member_level</code>。</li>
+</ul>
+</li>
+</ul>
+<p>这种做法的优点是：</p>
+<ul>
+<li>ES 可以继续承担高并发检索和翻页，不会因为实时价格频繁变动而被拖垮。</li>
+<li>商品中心只需要对当前页有限数量的酒店做实时算价，成本可控。</li>
+<li>最终展示价足够新鲜，不至于让用户看到完全错误的成交价格。</li>
+</ul>
+<p>它的代价也要诚实承认：<strong>可能存在轻微排序错位</strong>。例如某酒店在 ES 粗排时基础价更高，但在当前会员和促销条件下真实价反而更低。工程上通常接受这种小范围偏差，因为相比”绝对精确排序”，大促和高并发场景下的系统可用性更重要。</p>
+<h4 id="373-深翻页怎么处理"><a class="header" href="#373-深翻页怎么处理">3.7.3 深翻页怎么处理</a></h4>
+<p>在 ES 里，深翻页不是看”一个城市总共有多少家酒店”，而是看 <strong><code>from + size</code> 有多深</strong>。默认情况下，<code>max_result_window = 10000</code>，超过这个窗口 ES 会直接拒绝请求。</p>
+<p>因此，”一个城市 1000 家酒店”本身不算问题；真正的问题是：</p>
+<ul>
+<li>用户是否在持续向后翻页；</li>
+<li>系统是否还想对越往后的结果继续做高成本的实时算价和二次精排。</li>
+</ul>
+<p>这也是酒店搜索比普通商品搜索更难的地方。因为一旦用户选择”按价格排序”，后端往往不只是简单翻页，而是在做：</p>
+<ol>
+<li>ES 先按基础价召回一批候选；</li>
+<li>商品中心对候选酒店批量算真实价；</li>
+<li>搜索服务在内存里重新精排；</li>
+<li>再截取当前页返回。</li>
+</ol>
+<p>如果对所有翻页都维持这套逻辑，哪怕用户只翻到第 3 页，后端也可能已经在做”前 100 条甚至前 300 条候选的批量算价和内存重排”，这就进入了<strong>类深翻页</strong>问题：不是 ES 一定先死，而是商品中心和 Hydrate 编排先被拖垮。</p>
+<p>酒店搜索里更稳妥的处理方式通常有三层：</p>
+<ol>
+<li>
+<p><strong>产品侧先限深</strong></p>
+<ul>
+<li>C 端列表采用懒加载，而不是允许无限页码跳转。</li>
+<li>滚到较深位置时，优先引导用户缩小日期、商圈、价格区间、设施等筛选范围。</li>
+<li>这一步往往比任何底层技术优化都更有效。</li>
+</ul>
+</li>
+<li>
+<p><strong>ES 侧用 <code>search_after</code>，不用无脑 <code>from + size</code></strong></p>
+<ul>
+<li>对 C 端连续下拉场景，使用 <code>search_after</code> 更合适。</li>
+<li>它不支持任意跳页，但非常适合移动端”下一页、再下一页”的滚动浏览。</li>
+<li>这样可以避免 ES 为了翻到更后面的页而反复丢弃前面的大量结果。</li>
+</ul>
+</li>
+<li>
+<p><strong>精排只保证前 N 条，后面自动降级</strong></p>
+<ul>
+<li>可以定义一个”最高精排桶”，例如只保证前 100 家酒店的价格排序绝对精准。</li>
+<li>前 100 条以内：走”扩大召回 + 批量算价 + 内存精排”。</li>
+<li>超过 100 条之后：只对当前页做实时价覆盖，不再对更大候选集做二次精排。</li>
+<li>这样既保住前几屏的用户体验，也不会让后端为极低转化概率的深页结果付出无限成本。</li>
+</ul>
+</li>
+</ol>
+<p>为了进一步保护商品中心的报价引擎，通常还会加一层 <strong>批量报价缓存</strong>：</p>
+<ul>
+<li>当用户带着同一组条件（如入住日、离店日、人数、会员等级）连续翻页时；</li>
+<li>商品中心第一次批量算出来的结果可以短暂缓存；</li>
+<li>后续翻页优先走缓存或 MGET，而不是每翻一页都重新全量计算。</li>
+</ul>
+<p>因此，这里的推荐结论可以落成：</p>
+<blockquote>
+<p><strong>酒店搜索要把”深翻页问题”和”动态价格排序问题”一起看。ES 负责可扩展的游标翻页，商品中心只为前部高价值结果做精排和算价，越往后越要主动降级，而不是对所有结果做无限精确排序。</strong></p>
+</blockquote>
+<h4 id="374-房态与价格的一致性怎么处理"><a class="header" href="#374-房态与价格的一致性怎么处理">3.7.4 房态与价格的一致性怎么处理</a></h4>
+<p>酒店搜索里还有一个非常高频的决策点：<strong>列表页到底应不应该实时去查 30 家酒店的价格和房态</strong>。</p>
+<p>这个问题没有统一答案，关键看两件事：</p>
+<ol>
+<li>单次批量查询的真实耗时能不能稳定控制在可接受范围内。</li>
+<li>高并发、大促、爬虫和跨境供应商抖动时，底层资源层能不能扛住放大的吞吐压力。</li>
+</ol>
+<p>如果压测结果表明：</p>
+<ul>
+<li>同一批次实时查询 30 家酒店的价格与房态只需大约 100ms；</li>
+<li>且这条链路经过了限流、隔离、超时和降级设计；</li>
+</ul>
+<p>那么列表页采用”<strong>ES 粗排 + 当前页 30 家实时查询</strong>”是完全合理的，并且会比死缓存带来更好的用户体验。因为它能显著减少”列表页看到 300 元有房，点进详情页变成 500 元或满房”的落差。</p>
+<p>但这里真正的难点，不是”单次 100ms 能不能做到”，而是以下三个工程问题。</p>
+<p><strong>第一，怎么扛住高并发下的整体吞吐量。</strong></p>
+<p>单次查 30 家只要 100ms，不代表在大促、暑期、国庆或被外部爬虫高频抓取时依然成立。因为一旦搜索 QPS 被放大，请求总量会迅速变成：</p>
+<ul>
+<li><code>搜索 QPS × 每次查询酒店数</code></li>
+</ul>
+<p>这时候真正需要保护的不是搜索服务本身，而是后面的：</p>
+<ul>
+<li>商品中心 / 报价引擎</li>
+<li>库存 / 房态资源层</li>
+<li>海外供应商接口</li>
+</ul>
+<p>因此更稳妥的做法是：</p>
+<ul>
+<li>在搜索服务到资源层之间做 <strong>线程池隔离 / 舱壁隔离</strong></li>
+<li>对供应商或报价 RPC 做 <strong>超时控制与限流</strong></li>
+<li>对异常来源流量做 <strong>防刷与防爬</strong></li>
+<li>超过保护阈值时，自动退化为”ES 基础价 + 粗房态”模式</li>
+</ul>
+<p>也就是说，<strong>实时查 30 家可以作为主路径，但必须有明确的降级开关</strong>。</p>
+<p><strong>第二，怎么避免慢供应商拖垮整个列表页。</strong></p>
+<p>酒店列表经常会混入海外供应商或跨境资源方，它们的接口 RT 波动可能远大于本地酒店资源系统。如果 30 家里有 2~3 家供应商超时，不能让整页结果跟着被拖慢。</p>
+<p>因此列表页更推荐采用：</p>
+<ul>
+<li>批量并行查询</li>
+<li>严格的总超时预算</li>
+<li>单酒店或单供应商分支的独立超时中断</li>
+</ul>
+<p>在这种模式下：</p>
+<ul>
+<li>100ms 内成功返回的酒店正常展示实时价</li>
+<li>超时或失败的酒店退化成 ES 基础价、基础房态或”参考价”文案</li>
+<li>绝不允许少数慢分支把整页响应时间拉穿</li>
+</ul>
+<p><strong>第三，实时查和价格排序怎么同时成立。</strong></p>
+<p>这正是为什么 3.7.2 里强调”<strong>ES 粗排，当前页实时价覆盖 + 局部内存微调</strong>”。因为即使当前页 30 家的实时查询只要 100ms，ES 在全局排序时也不可能提前知道所有酒店对当前用户、当前入住日期下的真实到手价。所以更现实的做法仍然是：</p>
+<ol>
+<li>ES 先按 <code>base_min_price</code> 做全局粗排。</li>
+<li>取出当前页 30 家酒店 ID。</li>
+<li>搜索服务实时查这 30 家的真实价格与真实房态。</li>
+<li>在内存中对这 30 条结果做一次轻量二次微调排序。</li>
+</ol>
+<p>同时，<strong>必须在进入详情或结算时再做更强的校验</strong>，因为：</p>
+<ul>
+<li>列表页允许轻微延迟；</li>
+<li>当前页 30 家虽然可实时查，但受总超时预算约束；</li>
+<li>用户点进详情或进入结算时，才是真正要收紧校验口径的节点。</li>
+</ul>
+<p>因此，这里的推荐结论不是”必须缓存”或”必须实时查”，而是：</p>
+<blockquote>
+<p><strong>酒店列表页可以实时查当前页 30 家数据，但前提是这条路径经过限流、隔离、超时和降级保护；真正的主架构仍然是 ES 负责粗排，商品中心 / 报价引擎负责当前页实时修正；进入详情和结算时再做更强的真实性校验。</strong></p>
+</blockquote>
+<h3 id="38-搜索导购与详情链路的统一架构原则"><a class="header" href="#38-搜索导购与详情链路的统一架构原则">3.8 搜索、导购与详情链路的统一架构原则</a></h3>
+<p>最后，用 4 句话收口，和第 4、5、6 节保持风格一致：</p>
+<ol>
+<li>搜索负责召回和排序，不负责给出交易最终真相。</li>
+<li>详情页负责多域聚合展示，不负责生成交易事实。</li>
+<li>搜索与详情允许弱一致和局部降级，但结算与订单必须强校验。</li>
+<li>ES 提供骨架，商品、库存、营销、计价提供动态血肉，订单只认快照与凭证。</li>
+</ol>
+<p>把这 4 句话和第 3 节的技术要点、时序图、酒店特殊场景串在一起，搜索、导购与详情链路的全貌就已经足够清晰，也为后续第 4 节”购物车与结算链路”和第 5 节”下单、支付与订单编排链路”做好了准确的边界铺垫。</p>
 <hr>
 <h2 id="4-购物车与结算链路"><a class="header" href="#4-购物车与结算链路">4. 购物车与结算链路</a></h2>
 <h3 id="41-场景画像"><a class="header" href="#41-场景画像">4.1 场景画像</a></h3>
