@@ -10,6 +10,7 @@
 - [第 3 章 架构师的武器库](part01/03-architects-arsenal.md)
 - [第 4 章 编码原则与设计模式](part01/04-coding-principles-design-patterns.md)
 - [第 5 章 生产级系统保障：可靠性、恢复与资损防控](part01/05-production-resilience-safeguards.md)
+- [第 6 章 任务处理方法论：从短任务、长任务到 Agent 协作](part01/06-task-processing-methodology.md)
 
 ---
 
