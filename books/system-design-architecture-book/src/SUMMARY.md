@@ -14,6 +14,7 @@
 - [第 6 章 任务处理方法论：从短任务、长任务到 Agent 协作](part01/06-task-processing-methodology.md)
 - [第 7 章 高准确性与强一致性系统设计方法论：支付、库存与账务场景](part01/07-high-accuracy-strong-consistency-methodology.md)
 - [第 8 章 低延迟与复杂读场景系统设计方法论：搜索、推荐、广告与 Feed](part01/08-low-latency-complex-read-methodology.md)
+- [第 9 章 高并发写与热点场景系统设计方法论：秒杀、社交互动与流量洪峰处理](part01/09-high-write-throughput-hotspot-methodology.md)
 
 ---
 
