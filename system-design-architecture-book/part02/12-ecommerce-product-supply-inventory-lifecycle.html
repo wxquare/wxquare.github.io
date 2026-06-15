@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f4dd3565.js";
+            window.path_to_searchindex_js = "../searchindex-00a3b90f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a47fd80d.js"></script>
+        <script src="../toc-2706bc85.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -1758,7 +1758,7 @@ WHERE item_id = :item_id
 <blockquote>
 <p><strong>面对慢源、强频控和长时间排队，最稳的长任务模型应该怎么选。</strong></p>
 </blockquote>
-<p>对 Agoda 这类供应商，推荐答案不是“任务分片并发拉取”，而是：</p>
+<p>对某酒店供应商这类慢源供应商，推荐答案不是“任务分片并发拉取”，而是：</p>
 <ul>
 <li>上游接入层保持 <strong>单 Worker 串行 Pull</strong></li>
 <li>每次只拉一页或一个 cursor</li>
@@ -1817,7 +1817,7 @@ WHERE item_id = :item_id
 </thead>
 <tbody>
 <tr><td>方案 A：任务分片并发拉取</td><td>理论吞吐更高；单次窗口可能更短</td><td>接入复杂；容易把慢源打挂；恢复复杂；需要额外分片管理</td><td>供应商接口很快、允许并发拉取</td><td>不推荐</td></tr>
-<tr><td>方案 B：单 Worker 串行拉取，逐页 checkpoint，拉完即投 MQ</td><td>接入最稳；对供应商友好；断点续传简单；容易做单例控制和动态计数</td><td>接入吞吐不高，但通常足够</td><td>Agoda 这类慢源、频控严的同步</td><td>推荐</td></tr>
+<tr><td>方案 B：单 Worker 串行拉取，逐页 checkpoint，拉完即投 MQ</td><td>接入最稳；对供应商友好；断点续传简单；容易做单例控制和动态计数</td><td>接入吞吐不高，但通常足够</td><td>某酒店供应商这类慢源、频控严的同步</td><td>推荐</td></tr>
 </tbody>
 </table>
 </div>
@@ -2924,7 +2924,7 @@ WHERE id = ?;
 <li>Incremental Sync</li>
 </ul>
 <p>这条链路为什么要单独拆出来，在 <code>3.2.5</code> 已经做过统一决策：它可以复用批量治理底座，但不能和 Excel 批量共用接入层、线程池和错误模型。这里开始只讲供应商同步链路本身的实现。</p>
-<p>其中，Agoda 这类慢源 Pull 长任务最有代表性。它和单商品创建、Excel 导入最大的不同，不是“批量更大”，而是同时叠加了这些现实约束：</p>
+<p>其中，某酒店供应商这类慢源 Pull 长任务最有代表性。它和单商品创建、Excel 导入最大的不同，不是“批量更大”，而是同时叠加了这些现实约束：</p>
 <ul>
 <li>供应商接口性能一般，QPS 严格受限</li>
 <li>同步窗口可能长达数小时，甚至 10 小时以上</li>
@@ -2940,17 +2940,22 @@ WHERE id = ?;
 <li><code>Phase 2: Transformer</code>，把原始 JSON / XML 映射成平台标准对象。</li>
 <li><code>Phase 3: Publisher</code>，把标准对象持久化、投递、发布到商品主域和治理链路。</li>
 </ol>
-<p>这 4 个阶段不是要求所有供应商都做成高并发切片框架，而是提供一个统一的执行心智。对 Agoda 这类慢源 Pull，<code>Phase 0</code> 仍然可以只产出一个或少量串行分片，<code>Phase 1</code> 保持单 Worker 慢拉，后面的 <code>Transformer / Publisher</code> 再通过 MQ 并发消峰。</p>
+<p>这 4 个阶段不是要求所有供应商都做成高并发切片框架，而是提供一个统一的执行心智。对某酒店供应商这类慢源 Pull，<code>Phase 0</code> 仍然可以只产出一个或少量串行分片，<code>Phase 1</code> 保持单 Worker 慢拉，后面的 <code>Transformer / Publisher</code> 再通过 MQ 并发消峰。</p>
 <p>这里直接定调：</p>
 <blockquote>
-<p>对 Agoda 这类慢源，正确答案不是“Fetcher 阶段盲目并发拉”，而是“Sharder 控边界，Fetcher 串行慢拉，Publisher 之后再用 MQ 蓄水和下游并发消峰”。</p>
+<p>对某酒店供应商这类慢源，正确答案不是“Fetcher 阶段盲目并发拉”，而是“Sharder 控边界，Fetcher 串行慢拉，Publisher 之后再用 MQ 蓄水和下游并发消峰”。</p>
 </blockquote>
 <p>所以供应商同步这类链路的本质不是“收一批外部数据”，而是：</p>
 <blockquote>
 <p>如何在超长任务、不稳定外部系统和正式发布治理之间，实现 <strong>可恢复、可追溯、可治理、可补偿</strong>。</p>
 </blockquote>
-<h4 id="362-整体设计和关键决策点"><a class="header" href="#362-整体设计和关键决策点">3.6.2 整体设计和关键决策点</a></h4>
-<p>在进入具体执行模型之前，可以先把这一节的核心设计收敛成几张总表。这样读者会先抓住骨架，再去看后面的分层展开、时序图和表结构。</p>
+<h4 id="362-整体设计关键决策点"><a class="header" href="#362-整体设计关键决策点">3.6.2 整体设计：关键决策点</a></h4>
+<p>在进入具体执行模型之前，这一节先不急着铺所有细节，而是先把最重要的判断收口成一组“执行摘要”。这一节主要回答两件事：</p>
+<ul>
+<li>整体设计上，这条同步链路为什么要拆成四阶段，而不是继续停留在单 Worker 黑盒。</li>
+<li>关键决策上，为什么治理粒度要做到主任务、批次、分片、对象四层，而不是只做粗粒度状态。</li>
+</ul>
+<p>目标只有一个：让读者先看懂这条同步链路为什么要这样分层、为什么治理粒度要做到这里，然后再进入后面的任务治理、分层展开、时序图和表结构。</p>
 <h5 id="3621-四阶段核心职责边界"><a class="header" href="#3621-四阶段核心职责边界">3.6.2.1 四阶段核心职责边界</a></h5>
 <div class="table-wrapper">
 <table>
@@ -2965,40 +2970,9 @@ WHERE id = ?;
 </tbody>
 </table>
 </div>
-<p>这个拆分的最大价值在于：把“拉数据的不稳定”“翻译的复杂性”“发布的治理”彻底解耦。对于 Agoda 这类慢源、大体量、强治理场景，这种分层方式的长期维护性会明显高于“大 Consumer 泥球”。</p>
-<h5 id="3622-数据库表设计亮点"><a class="header" href="#3622-数据库表设计亮点">3.6.2.2 数据库表设计亮点</a></h5>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>表</th><th>角色定位</th><th>为什么重要</th></tr>
-</thead>
-<tbody>
-<tr><td><code>supplier_sync_task</code></td><td>作战计划模板 + 总控台</td><td>定义同步任务如何触发、采用哪种分片策略，并承接主任务级管理与观测</td></tr>
-<tr><td><code>supplier_sync_shard_task</code></td><td>分片级执行控制台</td><td>记录每个 shard 的执行上下文、checkpoint、失败定位与局部恢复</td></tr>
-<tr><td><code>supplier_sync_batch</code></td><td>批次级租约 + 进度总览</td><td>记录本次批次由谁在跑、跑到哪、是否还能被接管</td></tr>
-<tr><td><code>supplier_sync_state_ledger</code></td><td>对象级状态机中枢</td><td>承接并发防踩脚、对账、补偿、幽灵消息裁剪四大主权</td></tr>
-<tr><td><code>supplier_product_mapping_tab</code></td><td>映射权威</td><td>维护外部资源和平台资源之间的稳定映射关系</td></tr>
-</tbody>
-</table>
-</div>
-<p>这里最需要强调的是：<code>supplier_sync_state_ledger</code> 不是可选项，而是工业级流水线的指挥中心。没有它，100w+ 对象同步很容易退化成黑盒。</p>
-<h5 id="3623-关键设计点整理"><a class="header" href="#3623-关键设计点整理">3.6.2.3 关键设计点整理</a></h5>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>模块</th><th>当前设计</th><th>补充建议</th></tr>
-</thead>
-<tbody>
-<tr><td><code>Sharder</code></td><td>支持 <code>Full / Delta / Cursor</code> 可插拔策略</td><td>增加 <code>shard_strategy_version</code>，保证策略升级后老批次仍可按原规则恢复</td></tr>
-<tr><td><code>Fetcher</code></td><td>Agoda 采用“串行 + 页级 checkpoint + 页级批量物化”</td><td>RAW snapshot 旁边补一个 <code>raw_hash</code>，辅助判断内容是否真的变化</td></tr>
-<tr><td><code>Transformer</code></td><td>将外部语义映射、标准化从 Fetcher 剥离</td><td>生成 <code>normalized_hash + field_version_map</code>，为 Publisher 提供更细粒度的字段主导权判断依据</td></tr>
-<tr><td><code>Publisher</code></td><td>CAS + 实时版本反查 + 写前保护</td><td>增加乐观字段主导权机制，例如价格、房态、状态可偏供应商主导，其它字段保留平台人工主导权</td></tr>
-<tr><td>全量 List 自动下线</td><td>批次收尾 + 时间戳打卡 + 候选集 + 比例熔断</td><td>建议增加 <code>offline_candidate_batch</code> 临时表，并配置最小存活比例阈值，防止大面积误下线</td></tr>
-</tbody>
-</table>
-</div>
-<p>这张整理表不是要替代后面的小节，而是先把供应商同步设计的几个“高价值判断”显式列出来，方便读者快速建立全局心智。</p>
-<h5 id="3624-决策点纯串行--checkpoint还是分阶段--分片流水线"><a class="header" href="#3624-决策点纯串行--checkpoint还是分阶段--分片流水线">3.6.2.4 决策点：纯串行 + Checkpoint，还是分阶段 + 分片流水线</a></h5>
+<p>这个拆分的最大价值在于：把“拉数据的不稳定”“翻译的复杂性”“发布的治理”彻底解耦。对于某酒店供应商这类慢源、大体量、强治理场景，这种分层方式的长期维护性会明显高于“大 Consumer 泥球”。</p>
+<p>后文所有设计点，本质上都是围绕这四个职责边界展开，而不是额外发明新的执行层。</p>
+<h5 id="3622-总体架构选择为什么不是纯串行黑盒"><a class="header" href="#3622-总体架构选择为什么不是纯串行黑盒">3.6.2.2 总体架构选择：为什么不是纯串行黑盒</a></h5>
 <p>在真正展开四阶段执行模型之前，需要先回答一个更上层的问题：</p>
 <blockquote>
 <p>供应商同步到底应该继续采用“一个 Worker 从头拉到尾”的纯串行模式，还是应该升级成“分阶段 + 分片 + 中间状态可观测”的流水线模式。</p>
@@ -3024,7 +2998,7 @@ WHERE id = ?;
 <blockquote>
 <p>选择方案 B，不等于每个供应商都必须在每个阶段都高并发运行。</p>
 </blockquote>
-<p>对 Agoda 这种慢源、QPS 严格受限、上游接口不稳定的场景，更合理的落地方式其实是：</p>
+<p>对某酒店供应商这种慢源、QPS 严格受限、上游接口不稳定的场景，更合理的落地方式其实是：</p>
 <ul>
 <li>在架构层选择方案 B，保留分阶段、可治理、可补偿的能力。</li>
 <li>在执行层让 <code>Fetcher</code> 继续采用偏串行的慢拉模式。</li>
@@ -3036,89 +3010,133 @@ WHERE id = ?;
 </blockquote>
 <p>这样做的结果是：</p>
 <ul>
-<li>既保住了 Agoda 场景下最关键的稳定性和 checkpoint 恢复能力；</li>
+<li>既保住了某酒店供应商慢源场景下最关键的稳定性和 checkpoint 恢复能力；</li>
 <li>又不会把整个系统锁死在“单 Worker 黑盒长任务”的演进路径上。</li>
 </ul>
-<h5 id="3625-supplier_sync_state_ledger-为什么是关键中枢"><a class="header" href="#3625-supplier_sync_state_ledger-为什么是关键中枢">3.6.2.5 <code>supplier_sync_state_ledger</code> 为什么是关键中枢</a></h5>
-<p>这里要特别强调一点：在 RAW / NORMALIZED 报文已经全量交给 <code>HBase / Object Store</code> 的情况下，MySQL 里的 <code>supplier_sync_state_ledger</code> 仍然不是可选项。</p>
-<p>如果说 <code>HBase</code> 是装满原始货物的“大仓库”，那么 <code>supplier_sync_state_ledger</code> 就是整条同步流水线的“调度指挥中心”。它负责承接四类关键主权：</p>
+<h5 id="3623-任务治理粒度主任务批次分片对象是否都要建模"><a class="header" href="#3623-任务治理粒度主任务批次分片对象是否都要建模">3.6.2.3 任务治理粒度：主任务、批次、分片、对象是否都要建模</a></h5>
+<p>如果说上一小节回答的是“执行模型为什么不能继续停留在单 Worker 黑盒”，那么这一小节回答的就是另一个关键问题：</p>
+<blockquote>
+<p>既然已经进入长任务流水线，那状态和治理到底要做到多细？</p>
+</blockquote>
+<p>这一点建议直接用“四层治理粒度”来理解：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>粒度层</th><th>回答的问题</th><th>典型载体</th></tr>
+</thead>
+<tbody>
+<tr><td>主任务级</td><td>这类同步任务如何触发、是否启停、整体运行是否健康</td><td><code>supplier_sync_task</code></td></tr>
+<tr><td>批次级</td><td>这一次执行由谁在跑、跑到哪、租约是否有效</td><td><code>supplier_sync_batch</code></td></tr>
+<tr><td>分片级</td><td>哪个 shard 卡住了、失败了、是否可局部重试</td><td><code>supplier_sync_shard_task</code></td></tr>
+<tr><td>对象级</td><td>哪个对象成功、失败、跳过、是否待补偿</td><td><code>supplier_sync_state_ledger</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>换句话说：</p>
+<ul>
+<li>主任务级负责“任务定义和总控”</li>
+<li>批次级负责“租约和执行总览”</li>
+<li>分片级负责“局部调度和局部恢复”</li>
+<li>对象级负责“最终状态机和精准补偿”</li>
+</ul>
+<p>只有这四层同时存在，系统才能真正从“黑盒长循环”升级成“可治理流水线”。</p>
+<p>这里最需要强调的是：<code>supplier_sync_state_ledger</code> 不是可选项，而是工业级流水线的指挥中心。没有它，100w+ 对象同步很容易退化成黑盒。原因非常直接：</p>
 <ul>
 <li><strong>并发主权</strong>：Consumer 通过状态机和 CAS 抢占对象级执行权，避免 MQ 重投后的并发踩脚。</li>
 <li><strong>对账主权</strong>：大盘进度、成功/失败/跳过统计不能去扫 HBase，只能依赖 MySQL 轻量聚合。</li>
 <li><strong>补偿主权</strong>：失败对象必须能被精准捞出做二次重试，而不是把 100w 对象整批重跑。</li>
 <li><strong>时间差防线</strong>：消息在 MQ 里排队数小时后，Consumer 仍可结合状态台账和实时版本做写前保护，阻断旧数据覆盖新数据。</li>
 </ul>
-<p>换句话说，<code>HBase</code> 负责“存数据”，<code>supplier_sync_state_ledger</code> 负责“驱动状态机”。没有这张表，整条长任务链路就会从“可对账、可恢复、可裁剪”的工业流水线，退化成一条状态不可见的黑盒。</p>
-<h5 id="3626-phase-0-sharder-的设计点"><a class="header" href="#3626-phase-0-sharder-的设计点">3.6.2.6 Phase 0: Sharder 的设计点</a></h5>
+<p>在这套四层模型里，还要继续追问一步：</p>
+<blockquote>
+<p>如果已经接受“分阶段 + 分片流水线”的总体架构，那么主任务表和分片任务表是否可以继续简化，甚至完全去掉？</p>
+</blockquote>
+<p>答案是：<strong>可以简化，但不建议完全去掉。</strong></p>
+<p>先把三个层级的设计摆出来：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>设计点</th><th>说明</th></tr>
+<tr><th>方案</th><th>是否保留主任务表</th><th>是否保留分片任务表</th><th>适用场景</th><th>治理能力</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Sharder</code> 决定同步边界，不负责业务裁决</td><td>它只回答“这次同步要处理谁、切成多大颗粒度”，不负责酒店字段映射和商品最终发布裁决。</td></tr>
-<tr><td>分片策略必须可插拔</td><td>全量同步和增量同步的切法完全不同，至少要支持 <code>FullSharder / DeltaSharder / CursorSharder</code> 三类策略。</td></tr>
-<tr><td>分片策略要带版本号</td><td><code>shard_strategy_version</code> 建议显式落在主任务或批次上下文里。后续当分片规则升级时，老批次仍能按当时策略做恢复和复盘。</td></tr>
-<tr><td>shard 要能独立重试与补偿</td><td>一个 shard 失败时，应该允许局部重跑，而不是让整个 100w 任务回到起点。</td></tr>
-<tr><td>单例运行与租约接管</td><td><code>supplier_sync_batch</code> 需要 <code>status=RUNNING + lease_until</code> 的单例控制。租约未过期时，新触发直接阻断；租约过期时，新 Worker 通过 CAS 接管并继承 <code>current_checkpoint</code>。</td></tr>
-<tr><td>shard 元数据必须持久化</td><td><code>shard_id / sync_mode / page_range / hotel_id_list / checkpoint / status</code> 不能只在内存里，否则无法做断点续跑和精确补偿。</td></tr>
-<tr><td>慢源允许退化成单 shard 串行模式</td><td>Agoda 这类接口不稳定、QPS 严格受限的场景，即便有 <code>Sharder</code>，最终也可能只生成一个长串行 shard，这不是退步，而是工程上更稳。</td></tr>
+<tr><td>完整版（推荐生产）</td><td>保留（<code>supplier_sync_task</code>）</td><td>保留（<code>supplier_sync_shard_task</code>）</td><td>大规模、强治理、多供应商、需要人工介入</td><td>★★★★★</td></tr>
+<tr><td>简化版（可接受）</td><td>保留（轻量版）</td><td>去掉</td><td>中等规模、团队小、治理要求中等</td><td>★★★☆</td></tr>
+<tr><td>极简版</td><td>完全去掉</td><td>完全去掉</td><td>小项目、原型、单任务</td><td>★★</td></tr>
 </tbody>
 </table>
 </div>
-<h5 id="3627-phase-1-fetcher-的设计点"><a class="header" href="#3627-phase-1-fetcher-的设计点">3.6.2.7 Phase 1: Fetcher 的设计点</a></h5>
+<p>为什么说“可以简化”，是因为不是所有团队都需要一开始就把任务治理做满：</p>
+<ul>
+<li>如果供应商数量有限、批次规模中等、人工介入极少，确实可以只保留一个轻量 <code>supplier_sync_task</code> 主任务表，把 shard 直接作为内存对象或消息体投到 MQ。</li>
+<li>如果只是原型验证或单一供应商接入，甚至可以连主任务表都不做，只保留最基本的批次水位和对象级状态。</li>
+</ul>
+<p>但为什么又说“不建议完全去掉”，核心原因在于：<strong>分片任务表的价值，不只是为了多一张表，而是为了让每个 shard 成为可独立调度、可重试、可监控的单元。</strong></p>
+<p>一旦完全去掉 <code>supplier_sync_shard_task</code>，系统通常会退化成下面这种模式：</p>
+<ul>
+<li><code>Sharder</code> 把 shard 直接打进 MQ</li>
+<li><code>Fetcher / Publisher</code> 靠对象级 <code>state_ledger</code> 兜底</li>
+<li>失败后主要依赖日志和对象级状态做恢复</li>
+</ul>
+<p>这套模式在小规模下能跑，但会损失几个非常关键的治理能力：</p>
+<ol>
+<li>
+<p><strong>无法方便地对某个分片整体暂停、重跑或摘除</strong></p>
+<p>你可以重试单个对象，但很难回答“第 42 片整体是不是应该停下来人工排查”。</p>
+</li>
+<li>
+<p><strong>分片级进度、失败率和耗时统计会明显变难</strong></p>
+<p>主任务级只能看到大盘，对象级能看到细粒度结果，但中间缺失了最有价值的“分片级执行视角”。</p>
+</li>
+<li>
+<p><strong>Sharder 失败后的恢复逻辑会更绕</strong></p>
+<p>如果没有持久化的分片任务表，很多恢复动作都会退化成“重新算一遍 shard，再试图和现有 MQ / ledger 对齐”，实现和排障复杂度都会上升。</p>
+</li>
+</ol>
+<p>所以更稳的结论应该是：</p>
+<ul>
+<li><strong>生产级默认推荐完整版</strong>：主任务表 + 分片任务表都保留。</li>
+<li><strong>中等规模可以接受简化版</strong>：保留轻量主任务表，去掉分片任务表，但要明确接受分片级治理能力下降。</li>
+<li><strong>极简版只适合原型或非常小的单任务系统</strong>：它能跑通链路，但不应该作为长期演进目标。</li>
+</ul>
+<p>如果把这一判断和上面的方案 A / B 放在一起看，会更清楚：</p>
+<ul>
+<li>方案 A 主要是在执行策略上更接近“单 Worker 串行”。</li>
+<li>方案 B 是在架构分层上进入“分阶段 + 分片流水线”。</li>
+<li>而“主任务表 / 分片任务表是否完整保留”，是在方案 B 内部进一步决定治理能力要做到什么层级。</li>
+</ul>
+<p>也就是说，<strong>执行模型</strong> 和 <strong>治理建模粒度</strong> 是两个相关但不同的决策，不应该混成一件事。</p>
+<h5 id="3624-四阶段的关键设计摘要"><a class="header" href="#3624-四阶段的关键设计摘要">3.6.2.4 四阶段的关键设计摘要</a></h5>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>设计点</th><th>说明</th></tr>
+<tr><th>模块</th><th>当前设计</th><th>为什么重要</th></tr>
 </thead>
 <tbody>
-<tr><td>串行 checkpoint 恢复</td><td>Agoda 这类慢源不适合并发拉取。更稳的做法是一次只拉一页或一个 cursor，成功后推进 <code>current_checkpoint</code>，机器重启后从最近水位继续。</td></tr>
-<tr><td>HBase 吞数据，MySQL 管状态</td><td>原始报文和标准化对象进入 HBase 或对象存储；MySQL 只负责批次、状态台账、映射和治理锚点。</td></tr>
-<tr><td>页级批量物化</td><td>串行拉回一页后，要按页批量写快照、批量 Upsert 状态台账、批量投 MQ，避免接入层做大量单条循环写。</td></tr>
-<tr><td>RAW 侧建议保留 <code>raw_hash</code></td><td>这不是最终跳过判断依据，但能明显提升重复页识别、问题排查和观测分析能力。</td></tr>
-<tr><td><code>Fetcher</code> 只忠实搬运，不做最终裁决</td><td>上游拉取层负责忠实搬运与状态推进，不基于本地镜像去做最终跳过判断。否则最容易因为失败状态、排队延迟或运营改动造成静默丢单。</td></tr>
-<tr><td>Push / Pull 介质分离</td><td>Push 更偏接口受理 + MQ 削峰，Pull 更偏单 Worker 串行拉取 + checkpoint；两者执行模型不同，但治理主线复用。</td></tr>
+<tr><td><code>Sharder</code></td><td>支持 <code>Full / Delta / Cursor</code> 可插拔策略，并保留 <code>shard_strategy_version</code></td><td>让同一条同步主链路能适配不同供应商和不同同步模式，且便于老批次恢复与复盘</td></tr>
+<tr><td><code>Fetcher</code></td><td>慢源采用“串行 + 页级 checkpoint + 页级批量物化”</td><td>在不稳定上游前优先保证恢复能力和接入层稳定性，而不是盲目追求并发吞吐</td></tr>
+<tr><td><code>Transformer</code></td><td>外部语义映射、标准化和风险标注从 Fetcher 剥离</td><td>降低执行层复杂度，并为字段主导权判断、规则复算和对象回放做前置准备</td></tr>
+<tr><td><code>Publisher</code></td><td>CAS + 实时版本反查 + 写前保护</td><td>阻断旧数据覆盖新数据，把最终幂等、版本保护和正式落地收口到治理边界最清晰的位置</td></tr>
+<tr><td>收尾下线</td><td>批次收尾 + 时间戳打卡 + 候选集 + 比例熔断</td><td>避免把“全量缺席判断”做成行级黑逻辑，并降低大面积误下线风险</td></tr>
 </tbody>
 </table>
 </div>
-<h5 id="3628-phase-2-transformer-的设计点"><a class="header" href="#3628-phase-2-transformer-的设计点">3.6.2.8 Phase 2: Transformer 的设计点</a></h5>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>设计点</th><th>说明</th></tr>
-</thead>
-<tbody>
-<tr><td>映射与标准化应从 Fetcher 剥离</td><td>把外部接口抖动处理和内部语义转换拆开，能明显降低执行层复杂度。</td></tr>
-<tr><td>Transformer 产物要可回放</td><td>标准化后的对象也要落 <code>normalized_ref</code>，这样后续排障、复算、规则调整时不必重新打供应商接口。</td></tr>
-<tr><td>标准化结果建议带 <code>normalized_hash</code></td><td>它适合做观测、调试和局部重复短路，但不应替代商品主域最终幂等裁决。</td></tr>
-<tr><td>字段级主导权判断应有辅助信息</td><td><code>field_version_map</code> 或等价结构能帮助 Publisher 做更细粒度的字段主导权判断，而不是整对象盲覆盖。</td></tr>
-<tr><td>风险识别可以前移，但不做最终发布裁决</td><td>这一层可以标记异常价格、缺失字段、高风险类目，但不能越权决定是否覆盖正式商品。</td></tr>
-<tr><td>Supplier Mapping 独立持久化</td><td>外部资源和平台资源的映射不能只靠内存或日志，要有权威 <code>supplier_product_mapping_tab</code>。</td></tr>
-</tbody>
-</table>
-</div>
-<h5 id="3629-phase-3-publisher-的设计点"><a class="header" href="#3629-phase-3-publisher-的设计点">3.6.2.9 Phase 3: Publisher 的设计点</a></h5>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>设计点</th><th>说明</th></tr>
-</thead>
-<tbody>
-<tr><td><code>supplier_sync_state_ledger</code> 是状态主权中心</td><td>这张表不是简单的辅助索引，而是整个长任务的状态机中枢。它记录对象当前是 <code>INIT / PROCESSING / SUCCESS / FAILED / SKIPPED</code>，用来支撑并发防踩脚、大盘聚合、局部重试和幽灵消息裁剪。</td></tr>
-<tr><td>CAS 强占消费权</td><td>Publisher Consumer 不能拿到消息就直接处理，而要先把对象状态从 <code>INIT</code> 原子推进到 <code>PROCESSING</code>，这样才能避免 MQ 重投或多机并发时重复处理同一对象。</td></tr>
-<tr><td>供给侧允许做安全过滤，但不能做最终业务去重</td><td>供给侧可以基于 <code>state_ledger</code> 做同批次重复页、无映射死链、并发重投、以及“同批次内已明确成功投递过商品中心的重复消息”这类安全过滤；但不能仅凭 <code>hash_sign</code> 去猜测商品中心真相并直接裁决最终 <code>SKIPPED</code>。</td></tr>
-<tr><td><code>hash_sign</code> 只能做辅助观测或安全短路条件</td><td>如果状态台账里维护了 <code>hash_sign</code> / <code>payload_hash</code>，它更适合用于大盘分析、排障，以及配合“同批次已成功投递”做局部短路；不建议把它当作跨批次最终业务去重依据。</td></tr>
-<tr><td>商品中心死守强幂等</td><td>最终去重、幂等和写拦截必须收敛到商品中心。供给侧允许忠实重发，商品主域用 <code>publish_version</code>、乐观锁和字段主导权做最终写前保护。</td></tr>
-<tr><td>字段主导权要显式建模</td><td>供应商不一定对所有字段都有覆盖权。价格、房态、状态这类高动态字段可以偏供应商主导；标题、卖点、运营标签往往仍应以平台人工编辑为准。</td></tr>
-<tr><td>版本反查防旧数据覆盖</td><td>由于拉取和消费之间可能相隔数小时，Consumer 必须在写商品主域前实时反查版本和锁定状态，拦截旧数据覆盖新数据。</td></tr>
-<tr><td>执行层与治理层边界</td><td>Pull 执行层独立，Consumer 负责对象级消费控制和请求编排，但不能直接改正式商品表，只能通过商品主域写侧接口完成更新。</td></tr>
-<tr><td>对象级补偿必须可精准捞取</td><td>当 100w 对象里只有 1w 失败时，系统必须能直接通过 <code>state_ledger=FAILED</code> 拉出问题对象，而不是整批重跑。</td></tr>
-</tbody>
-</table>
-</div>
-<h5 id="36210-shard-失败与错误处理任务"><a class="header" href="#36210-shard-失败与错误处理任务">3.6.2.10 Shard 失败与错误处理任务</a></h5>
-<p>对于 Agoda 这类长任务，最忌讳的一件事就是把异常恢复逻辑塞回主同步链路，最后把 <code>Shard -&gt; Fetch -&gt; Transform -&gt; Publish</code> 重新写成一个满是分支的大黑盒。更稳的做法是：</p>
+<p>这张表的作用不是替代后文细节，而是先把最关键的五个工程判断压缩成“高价值摘要”。</p>
+<h5 id="3625-phase-0--3-的一句话设计判断"><a class="header" href="#3625-phase-0--3-的一句话设计判断">3.6.2.5 Phase 0 ~ 3 的一句话设计判断</a></h5>
+<p>如果把四阶段模型再压缩一层，每个 Phase 最重要的判断其实只有下面几句：</p>
+<ul>
+<li><code>Sharder</code>：决定同步边界，支持策略可插拔，并允许慢源退化成单 shard 串行模式。</li>
+<li><code>Fetcher</code>：负责忠实搬运和 checkpoint 推进，强调页级批量物化，不承担最终业务裁决。</li>
+<li><code>Transformer</code>：只做外部语义到平台语义的翻译、标准化和风险前移，不越权决定是否正式发布。</li>
+<li><code>Publisher</code>：对象级状态主权、最终版本保护和正式落地都收口在这一层，不能绕过商品主域写侧。</li>
+</ul>
+<p>这一小节的目标不是预演后文，而是帮读者先建立“每个 Phase 最值钱的一句话判断”。</p>
+<h4 id="363-整体设计任务治理"><a class="header" href="#363-整体设计任务治理">3.6.3 整体设计：任务治理</a></h4>
+<p>这一节开始，讨论重点会从“怎么设计执行链路”进一步切到“怎么治理长任务”。如果说前面的内容主要在回答架构和建模，那么这里开始回答的就是另一个更难的问题：</p>
+<blockquote>
+<p>当任务已经进入真实生产环境，开始面对慢源、脏数据、长尾失败、版本冲突和人工介入需求时，系统靠什么机制把风险兜住。</p>
+</blockquote>
+<h5 id="3631-异常治理shard-失败补偿与人工介入"><a class="header" href="#3631-异常治理shard-失败补偿与人工介入">3.6.3.1 异常治理：Shard 失败、补偿与人工介入</a></h5>
+<p>对于某酒店供应商这类长任务，最忌讳的一件事就是把异常恢复逻辑塞回主同步链路，最后把 <code>Shard -&gt; Fetch -&gt; Transform -&gt; Publish</code> 重新写成一个满是分支的大黑盒。更稳的做法是：</p>
 <ol>
 <li>主同步任务负责正常生产和推进 shard。</li>
 <li>shard 失败时，只更新主表状态和 checkpoint，并写失败证据。</li>
@@ -3136,41 +3154,54 @@ WHERE id = ?;
 <li>大批量任务不会因为少量坏 shard 长时间卡死。</li>
 <li>失败治理从“看日志人工排查”升级成“显式任务化治理”。</li>
 </ul>
-<h5 id="36211-收尾与对账阶段的设计点"><a class="header" href="#36211-收尾与对账阶段的设计点">3.6.2.11 收尾与对账阶段的设计点</a></h5>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>设计点</th><th>说明</th></tr>
-</thead>
-<tbody>
-<tr><td>对账与终结判定依赖状态台账</td><td>跑批进行中不能去遍历 HBase 里的海量 KV 做统计。更稳的方式是基于 <code>supplier_sync_state_ledger</code> 做轻量聚合，实时得出 <code>SUCCESS / FAILED / SKIPPED / PROCESSING</code> 大盘。</td></tr>
-<tr><td>动态计数器与终结标志</td><td>由于串行 Pull 事先不知道总量，接入层应采用 <code>INCRBY + end_of_stream + DECR</code> 的动态计数协议，而不是固定总数计数器。</td></tr>
-<tr><td>DB 旁路盘点兜底</td><td>Redis 或 Consumer 猝死导致收尾漏触发时，需要由 DB 旁路定时器盘点状态台账，补触发归档。</td></tr>
-</tbody>
-</table>
-</div>
-<h5 id="36212-全量-list-下的自动下线设计点"><a class="header" href="#36212-全量-list-下的自动下线设计点">3.6.2.12 全量 List 下的自动下线设计点</a></h5>
-<p>当供应商只提供全量 List、不提供显式下线增量通知时，供应商同步链路必须自己解决“沉默的消失”：哪些对象本次没有再出现，因此应该被自动下线。</p>
-<p>这件事不适合设计成“每消费一条消息顺便判断一次”的行级逻辑，更合适的方式是把它设计成 <strong>批次收尾动作</strong>。因为只有等整批 List 拉取结束、且对象级消费已经完成收敛时，系统才知道“谁在本次真正缺席了”。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>设计点</th><th>说明</th></tr>
-</thead>
-<tbody>
-<tr><td>全量下线判断必须是批次级动作</td><td>下线不是单条对象能判断出来的，它依赖“本次全量 List 已经完整处理完”的全局前提，因此必须放在批次收尾阶段。</td></tr>
-<tr><td>时间戳游标是默认解法</td><td>批次启动时记录 <code>T_start</code>；本次 List 中命中的对象，在 <code>supplier_sync_state_ledger</code> 中刷新最近打卡时间；批次收尾时，再找出 <code>supplier_id</code> 下仍在线、但最近打卡时间早于 <code>T_start</code> 的对象，作为候选下线集。</td></tr>
-<tr><td>只有绝对安全瞬间才能触发下线盘点</td><td>必须同时满足 <code>end_of_stream=true</code> 且本批次对象处理已收敛，才能开始候选下线识别。不能在 MQ 还没消费完时提前执行，否则极易误杀还在排队的正常对象。</td></tr>
-<tr><td>先找候选下线集，再做比例熔断</td><td>候选下线对象不能直接批量执行下线。必须先计算占比；如果缺失比例异常高，默认视为供应商漏传、文件不完整或接口故障，自动下线应当立即熔断。</td></tr>
-<tr><td>影子快照表是高安全等级备选</td><td>如果业务对误下线极度敏感，可以先把本次全量 List 的对象主键完整写入影子快照表，再与当前在线集合做差集。这样更安全，但更重。</td></tr>
-<tr><td>下线应该通过统一治理链路发起</td><td>候选下线对象识别出来后，不应直接绕过商品主域写侧改正式状态，而应通过统一的下线命令或治理链路进入商品主域 / 库存协同。</td></tr>
-<tr><td>下线必须保留原因与批次归因</td><td>自动下线要记录 <code>off_reason / supplier_id / batch_id / trigger_id</code>，保证后续能够追溯“它是因为哪一次全量同步缺失而下线的”。</td></tr>
-</tbody>
-</table>
-</div>
-<h4 id="363-四阶段执行模型详情"><a class="header" href="#363-四阶段执行模型详情">3.6.3 四阶段执行模型详情</a></h4>
-<p>为了避免把架构分层埋进时序细节里，这里先单独定义供应商同步的四阶段执行模型，再在后面用时序图展开关键链路。这样读者会先知道职责边界，再去看具体执行顺序。</p>
-<h5 id="3631-phase-0-sharder任务分片器"><a class="header" href="#3631-phase-0-sharder任务分片器">3.6.3.1 Phase 0: Sharder（任务分片器）</a></h5>
+<p>这里需要特别区分两类失败：</p>
+<ul>
+<li><strong>分片级失败</strong>：例如整个页拉取失败、某个 shard 持续超时、某片需要整体暂停。</li>
+<li><strong>对象级失败</strong>：例如某个酒店映射失败、某个对象版本冲突、某条记录被跳过。</li>
+</ul>
+<p>分片级失败强调“任务管理和恢复入口”，对象级失败强调“状态机和精准补偿”，两者不能混成一层。</p>
+<h5 id="3632-收尾对账与批次终结"><a class="header" href="#3632-收尾对账与批次终结">3.6.3.2 收尾、对账与批次终结</a></h5>
+<p>长任务真正困难的地方，不只是把对象拉回来、发出去，还在于最后怎么安全收口。</p>
+<p>收尾阶段至少要解决两件事：</p>
+<ol>
+<li><strong>这次批次什么时候算真正结束</strong></li>
+<li><strong>全量 List 模式下，哪些对象本次缺席，应不应该自动下线</strong></li>
+</ol>
+<p>先看批次终结判定。推荐的收口协议是：</p>
+<ul>
+<li>接入层用 <code>INCRBY + end_of_stream + DECR</code> 的动态计数模型推进</li>
+<li>大盘统计基于 <code>supplier_sync_state_ledger</code> 做轻量聚合</li>
+<li>如果 Consumer 猝死或 Redis 计数异常，再由 DB 旁路盘点补触发归档</li>
+</ul>
+<p>这意味着批次收尾不是“看最后一页拉完了没”，而是要同时看：</p>
+<ul>
+<li><code>end_of_stream=true</code></li>
+<li>对象级消费是否已经收敛</li>
+<li>大盘是否进入可归档状态</li>
+</ul>
+<p>再看全量 List 下的自动下线。它本质上不是行级逻辑，而是<strong>批次级治理动作</strong>：</p>
+<ul>
+<li>批次启动时记录 <code>T_start</code></li>
+<li>本批次命中的对象刷新最近打卡时间</li>
+<li>批次收尾时，找出仍在线但最近打卡时间早于 <code>T_start</code> 的对象，形成候选下线集</li>
+<li>先做比例熔断，再决定是否通过统一治理链路发起下线</li>
+</ul>
+<p>这里的关键判断只有两个：</p>
+<ul>
+<li>全量下线识别必须放在批次收尾，而不是行级消费里顺手判断</li>
+<li>候选下线集必须先做比例熔断和原因归因，不能直接批量改正式状态</li>
+</ul>
+<h5 id="3633-本节结论为什么这是一条工业级长任务流水线"><a class="header" href="#3633-本节结论为什么这是一条工业级长任务流水线">3.6.3.3 本节结论：为什么这是一条工业级长任务流水线</a></h5>
+<p>把 <code>3.6.2</code> 和 <code>3.6.3</code> 合在一起看，这条链路之所以值得单独建模，不是因为它“多了几个任务表”，而是因为它同时满足了工业级长任务系统的几个关键特征：</p>
+<ul>
+<li>它不是“大 Consumer 泥球”，而是显式分成 <code>Sharder / Fetcher / Transformer / Publisher</code> 四个职责边界。</li>
+<li>它不是“单 Worker 串行黑盒”，而是在总体架构上进入了可观测、可恢复、可补偿的流水线模式。</li>
+<li>它不是“只会拉数据”，而是把主任务、批次、分片、对象四层治理粒度都建了出来。</li>
+<li>它不是“跑完就结束”，而是把异常治理、批次终结、自动下线和正式发布保护都纳入了主设计。</li>
+</ul>
+<p>换句话说，<code>3.6.2</code> 讲的是整体设计和关键决策，<code>3.6.3</code> 讲的是任务治理；两者合在一起，才构成这类供应商同步真正的工程主体。</p>
+<p>所以这条链路的本质，不是一条“供应商拉取脚本”，而是一条 <strong>分阶段、强状态、可恢复、可治理</strong> 的工业级同步流水线。</p>
+<h4 id="364-phase-0-sharder-设计详情"><a class="header" href="#364-phase-0-sharder-设计详情">3.6.4 Phase 0: Sharder 设计详情</a></h4>
 <p><code>Sharder</code> 不处理具体酒店数据，它只负责回答两个问题：</p>
 <ol>
 <li>这次同步的边界是什么。</li>
@@ -3178,7 +3209,7 @@ WHERE id = ?;
 </ol>
 <p>输入通常是主任务元数据，例如：</p>
 <ul>
-<li><code>supplier_id=agoda</code></li>
+<li><code>supplier_id=hotel_supplier_a</code></li>
 <li><code>sync_mode=FULL / DELTA</code></li>
 <li><code>trigger_time</code></li>
 <li><code>task_code</code></li>
@@ -3195,10 +3226,10 @@ WHERE id = ?;
 <p>一个统一的 <code>ShardContext</code> 可以抽象成：</p>
 <pre><code class="language-json">{
   "batch_id": "sb_20260604_0001",
-  "shard_id": "agoda-delta-023",
-  "supplier_id": "agoda",
+  "shard_id": "hotel-supplier-delta-023",
+  "supplier_id": "hotel_supplier_a",
   "sync_mode": "DELTA",
-  "hotel_id_list": ["AGD_HOTEL_78231", "AGD_HOTEL_78232"],
+  "hotel_id_list": ["HOTEL_EXT_78231", "HOTEL_EXT_78232"],
   "fetch_cursor": null,
   "page_range": null,
   "checkpoint": null,
@@ -3218,7 +3249,7 @@ WHERE id = ?;
 </tbody>
 </table>
 </div>
-<p>对 Agoda 这类慢源，虽然可以在概念上保留 <code>Sharder</code>，但很多时候真正落地会退化成：</p>
+<p>对某酒店供应商这类慢源，虽然可以在概念上保留 <code>Sharder</code>，但很多时候真正落地会退化成：</p>
 <ul>
 <li>全量同步时，只生成少量大 shard，甚至只有 1 个串行 shard。</li>
 <li>增量同步时，先通过 Change Log 拿到过去一段时间变化的酒店 ID，再按每 500 家一包切成多个 shard。</li>
@@ -3242,7 +3273,7 @@ WHERE id = ?;
 </ol>
 <p>可以把它理解成：</p>
 <ul>
-<li><code>supplier_sync_task</code> 是 Agoda 酒店同步这类任务的“作战计划模板 + 总控台”。</li>
+<li><code>supplier_sync_task</code> 是某酒店供应商同步这类任务的“作战计划模板 + 总控台”。</li>
 <li><code>supplier_sync_shard_task</code> 是 2026-06-04 这次增量同步真正拆出来的 100 个 shard 任务 + 分片级执行控制台。</li>
 </ul>
 <p>这两张表之所以必须同时承担 <strong>任务管理</strong>，核心原因只有一个：<strong>避免任务黑盒</strong>。如果它们只保存配置和少量执行元数据，那么一旦同步跑了 6 小时、卡在第 42 个 shard、某个供应商接口反复超时，平台只能看到“任务还没结束”，却不知道：</p>
@@ -3276,7 +3307,7 @@ WHERE id = ?;
 <p>主任务样例：<code>supplier_sync_task</code></p>
 <pre><code class="language-json">{
   "id": 2001,
-  "task_code": "AGODA_HOTEL_DELTA_SYNC",
+  "task_code": "HOTEL_SUPPLIER_DELTA_SYNC",
   "supplier_id": 88,
   "sync_mode": "PULL",
   "data_scope": "HOTEL",
@@ -3304,12 +3335,12 @@ WHERE id = ?;
     "id": 910001,
     "batch_id": "sb_20260604_020000",
     "shard_task_id": "sst_20260604_0001",
-    "task_code": "AGODA_HOTEL_DELTA_SYNC",
+    "task_code": "HOTEL_SUPPLIER_DELTA_SYNC",
     "supplier_id": 88,
     "shard_no": 1,
     "shard_type": "HOTEL_ID_LIST",
     "shard_payload": {
-      "hotel_ids": ["AGD_HOTEL_78231", "AGD_HOTEL_78232", "AGD_HOTEL_78233"],
+      "hotel_ids": ["HOTEL_EXT_78231", "HOTEL_EXT_78232", "HOTEL_EXT_78233"],
       "source_change_cursor": "chg_20260604015900_001"
     },
     "worker_id": "fetcher-03",
@@ -3322,17 +3353,17 @@ WHERE id = ?;
     "id": 910002,
     "batch_id": "sb_20260604_020000",
     "shard_task_id": "sst_20260604_0002",
-    "task_code": "AGODA_HOTEL_DELTA_SYNC",
+    "task_code": "HOTEL_SUPPLIER_DELTA_SYNC",
     "supplier_id": 88,
     "shard_no": 2,
     "shard_type": "HOTEL_ID_LIST",
     "shard_payload": {
-      "hotel_ids": ["AGD_HOTEL_78731", "AGD_HOTEL_78732", "AGD_HOTEL_78733"],
+      "hotel_ids": ["HOTEL_EXT_78731", "HOTEL_EXT_78732", "HOTEL_EXT_78733"],
       "source_change_cursor": "chg_20260604015900_002"
     },
     "worker_id": "fetcher-04",
     "lease_until": "2026-06-04 02:05:00",
-    "checkpoint": "hotel_id=AGD_HOTEL_78732",
+    "checkpoint": "hotel_id=HOTEL_EXT_78732",
     "status": "RUNNING",
     "retry_count": 1,
     "last_error_code": "SUPPLIER_TIMEOUT"
@@ -3343,7 +3374,7 @@ WHERE id = ?;
 <pre><code class="language-json">{
   "batch_id": "sb_20260605_020000",
   "shard_task_id": "sst_20260605_0042",
-  "task_code": "AGODA_HOTEL_FULL_SYNC",
+  "task_code": "HOTEL_SUPPLIER_FULL_SYNC",
   "shard_no": 42,
   "shard_type": "HOTEL_ID_RANGE",
   "shard_payload": {
@@ -3356,7 +3387,7 @@ WHERE id = ?;
   "retry_count": 1
 }
 </code></pre>
-<h5 id="3632-phase-1-fetcher数据拉取器"><a class="header" href="#3632-phase-1-fetcher数据拉取器">3.6.3.2 Phase 1: Fetcher（数据拉取器）</a></h5>
+<h4 id="365-phase-1-fetcher-设计详情"><a class="header" href="#365-phase-1-fetcher-设计详情">3.6.5 Phase 1: Fetcher 设计详情</a></h4>
 <p><code>Fetcher</code> 接收 <code>ShardContext</code> 后，真正去供应商侧拉数据。它的职责非常克制：</p>
 <ul>
 <li>调用供应商 API</li>
@@ -3365,7 +3396,7 @@ WHERE id = ?;
 <li>把原始响应保存成 RAW snapshot</li>
 </ul>
 <p>它不负责做平台业务语义判断，也不负责最终商品裁决。</p>
-<p>对 Agoda 慢源，更推荐 <code>Fetcher</code> 保持串行慢拉：</p>
+<p>对某酒店供应商慢源，更推荐 <code>Fetcher</code> 保持串行慢拉：</p>
 <ul>
 <li>一次只拉一页或一个 cursor</li>
 <li>每成功一页就推进一次 <code>current_checkpoint</code></li>
@@ -3379,10 +3410,10 @@ WHERE id = ?;
 <li>给后续 <code>payload_hash / hash_sign</code> 提供更稳定的底层输入</li>
 </ul>
 <p>这一步的本质是：<strong>忠实搬运外部数据，并把“已经安全拉到哪里”这件事固化下来。</strong></p>
-<h5 id="3633-phase-2-transformer数据转换器"><a class="header" href="#3633-phase-2-transformer数据转换器">3.6.3.3 Phase 2: Transformer（数据转换器）</a></h5>
+<h4 id="366-phase-2-transformer-设计详情"><a class="header" href="#366-phase-2-transformer-设计详情">3.6.6 Phase 2: Transformer 设计详情</a></h4>
 <p><code>Transformer</code> 的输入是 RAW snapshot，输出是内部标准酒店模型。它主要做 4 类工作：</p>
 <ol>
-<li>外部字段映射，例如 Agoda 的酒店、房型、价格日历字段映射到平台内部模型。</li>
+<li>外部字段映射，例如某酒店供应商的酒店、房型、价格日历字段映射到平台内部模型。</li>
 <li>数据标准化，例如国家、城市、币种、时区、退款规则统一口径。</li>
 <li>基础校验与风险标注，例如字段缺失、模板失配、异常价格、可疑履约规则。</li>
 <li>生成平台标准对象快照，供后续 Publisher 使用。</li>
@@ -3398,7 +3429,7 @@ WHERE id = ?;
 <li><code>field_version_map</code>：记录本次变更覆盖了哪些字段，供 Publisher 做更细粒度的字段主导权判断。</li>
 </ul>
 <p>例如供应商只对价格、房态、上下架状态有主导权，而标题、卖点、运营标签仍以平台人工编辑为准时，<code>field_version_map</code> 能明显降低“整对象覆盖”的粗暴程度。</p>
-<h5 id="3634-phase-3-publisher数据发布器"><a class="header" href="#3634-phase-3-publisher数据发布器">3.6.3.4 Phase 3: Publisher（数据发布器）</a></h5>
+<h4 id="367-phase-3-publisher-设计详情"><a class="header" href="#367-phase-3-publisher-设计详情">3.6.7 Phase 3: Publisher 设计详情</a></h4>
 <p><code>Publisher</code> 的输入是标准酒店模型，输出是持久化和分发结果。它要承担的事情最多，但边界也最重要：</p>
 <ul>
 <li>Upsert <code>supplier_sync_state_ledger</code></li>
@@ -3412,17 +3443,16 @@ WHERE id = ?;
 <p><code>Sharder</code> 决定怎么切，<code>Fetcher</code> 决定怎么拉，<code>Transformer</code> 决定怎么翻译，<code>Publisher</code> 决定怎么以平台规则落地。</p>
 </blockquote>
 <p>如果把这 4 步混在一起写成一个大 Consumer，短期能跑，长期几乎一定失控。</p>
-<h4 id="364-时序图"><a class="header" href="#364-时序图">3.6.4 时序图</a></h4>
-<p>这里的批次级运行状态，主要沉淀在 <code>supplier_sync_batch</code>。它记录的是“这次同步整体怎么跑、现在跑到哪、谁在跑、租约是否有效”，而不是每个酒店对象的明细结果。</p>
+<p>在真正进入 Publisher 的对象级落地与主域交互之前，还需要补一个批次级视角。这里的批次级运行状态，主要沉淀在 <code>supplier_sync_batch</code>。它记录的是“这次同步整体怎么跑、现在跑到哪、谁在跑、租约是否有效”，而不是每个酒店对象的明细结果。</p>
 <p>一个典型的 <code>supplier_sync_batch</code> 可以长这样：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>字段</th><th>含义</th><th>Agoda 串行 Pull 示例</th></tr>
+<tr><th>字段</th><th>含义</th><th>某酒店供应商串行 Pull 示例</th></tr>
 </thead>
 <tbody>
 <tr><td><code>batch_id</code></td><td>本次执行批次 ID</td><td><code>sb_20260604_0001</code></td></tr>
-<tr><td><code>task_code</code></td><td>对应哪个业务同步任务</td><td><code>AGODA_HOTEL_PULL_DAILY</code></td></tr>
+<tr><td><code>task_code</code></td><td>对应哪个业务同步任务</td><td><code>HOTEL_SUPPLIER_PULL_DAILY</code></td></tr>
 <tr><td><code>status</code></td><td>批次状态</td><td><code>RUNNING</code></td></tr>
 <tr><td><code>sync_batch_version</code></td><td>本次批次版本号</td><td><code>20260604-1</code></td></tr>
 <tr><td><code>trigger_id</code></td><td>哪次调度触发的</td><td><code>xxljob-20260604-020000</code></td></tr>
@@ -3447,7 +3477,7 @@ WHERE id = ?;
 <p>如果用一条样例记录来表达，可以写成：</p>
 <pre><code class="language-json">{
   "batch_id": "sb_20260604_0001",
-  "task_code": "AGODA_HOTEL_PULL_DAILY",
+  "task_code": "HOTEL_SUPPLIER_PULL_DAILY",
   "status": "RUNNING",
   "sync_batch_version": "20260604-1",
   "trigger_id": "xxljob-20260604-020000",
@@ -3468,7 +3498,7 @@ WHERE id = ?;
   "last_error_message": null
 }
 </code></pre>
-<h5 id="3641-publisher-处理阶段时序图"><a class="header" href="#3641-publisher-处理阶段时序图">3.6.4.1 Publisher 处理阶段时序图</a></h5>
+<h5 id="3671-publisher-处理阶段时序图"><a class="header" href="#3671-publisher-处理阶段时序图">3.6.7.1 Publisher 处理阶段时序图</a></h5>
 <pre class="mermaid">
 sequenceDiagram
     participant MQP as "Publish MQ"
@@ -3495,7 +3525,7 @@ sequenceDiagram
 </pre>
 
 <p>这张图只回答一个问题：<strong>Publisher 如何在真正落地前，拦截因为队列时间差导致的旧数据覆盖新数据。</strong></p>
-<h5 id="3642-publisher-请求商品主域写侧时序图"><a class="header" href="#3642-publisher-请求商品主域写侧时序图">3.6.4.2 Publisher 请求商品主域写侧时序图</a></h5>
+<h5 id="3672-publisher-请求商品主域写侧时序图"><a class="header" href="#3672-publisher-请求商品主域写侧时序图">3.6.7.2 Publisher 请求商品主域写侧时序图</a></h5>
 <pre class="mermaid">
 sequenceDiagram
     participant CONS as "Publisher Consumer"
@@ -3517,7 +3547,7 @@ sequenceDiagram
 </pre>
 
 <p>这张图只回答最后一个问题：<strong>Publisher 在完成标准对象准备后，如何把结果请求到商品主域写侧。</strong></p>
-<h4 id="365-表和版本映射"><a class="header" href="#365-表和版本映射">3.6.5 表和版本映射</a></h4>
+<h4 id="368-表和版本映射"><a class="header" href="#368-表和版本映射">3.6.8 表和版本映射</a></h4>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -3535,21 +3565,21 @@ sequenceDiagram
 </tbody>
 </table>
 </div>
-<h4 id="366-agoda-酒店同步样例数据"><a class="header" href="#366-agoda-酒店同步样例数据">3.6.6 Agoda 酒店同步样例数据</a></h4>
-<p>下面给一组简化样例，帮助把这些表和 Agoda 酒店同步场景串起来。这里默认同步对象是 <code>AGD_HOTEL_78231</code>，同步模式是串行 Pull，目标是把供应商侧的酒店基础信息、房型信息和价格/库存差异同步到平台治理链路。</p>
+<h4 id="369-某酒店供应商同步样例数据"><a class="header" href="#369-某酒店供应商同步样例数据">3.6.9 某酒店供应商同步样例数据</a></h4>
+<p>下面给一组简化样例，帮助把这些表和某酒店供应商同步场景串起来。这里默认同步对象是 <code>HOTEL_EXT_78231</code>，同步模式是串行 Pull，目标是把供应商侧的酒店基础信息、房型信息和价格/库存差异同步到平台治理链路。</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>对象</th><th>样例数据</th><th>说明</th></tr>
 </thead>
 <tbody>
-<tr><td><code>supplier_sync_task</code></td><td><code>task_code=AGODA_HOTEL_PULL_DAILY</code><br><code>sync_mode=PULL</code><br><code>data_scope=HOTEL</code><br><code>sharder_type=DELTA_SHARDER</code><br><code>shard_strategy_version=v3</code><br><code>concurrency_policy=SINGLE_WORKER</code></td><td>业务级同步定义，表达“每天串行拉取 Agoda 酒店数据，并采用可插拔的分片策略”</td></tr>
+<tr><td><code>supplier_sync_task</code></td><td><code>task_code=HOTEL_SUPPLIER_PULL_DAILY</code><br><code>sync_mode=PULL</code><br><code>data_scope=HOTEL</code><br><code>sharder_type=DELTA_SHARDER</code><br><code>shard_strategy_version=v3</code><br><code>concurrency_policy=SINGLE_WORKER</code></td><td>业务级同步定义，表达“每天串行拉取某酒店供应商数据，并采用可插拔的分片策略”</td></tr>
 <tr><td><code>supplier_sync_batch</code></td><td><code>batch_id=sb_20260604_0001</code><br><code>status=RUNNING</code><br><code>sync_batch_version=20260604-1</code><br><code>current_checkpoint=cursor=abc123</code><br><code>worker_id=sw-03</code><br><code>lease_token=lt_8f7a</code><br><code>lease_until=2026-06-04 02:15:15</code><br><code>heartbeat_at=2026-06-04 02:10:15</code><br><code>end_of_stream=false</code></td><td>一次实际执行批次，记录当前拉到哪了、由谁跑、租约是否有效，以及是否已经拉到尾页</td></tr>
 <tr><td><code>supplier_sync_shard_task</code></td><td><code>batch_id=sb_20260604_0001</code><br><code>shard_task_id=sst_20260604_0023</code><br><code>shard_no=23</code><br><code>shard_type=HOTEL_ID_RANGE</code><br><code>shard_payload=[78231...78730]</code><br><code>status=RUNNING</code><br><code>checkpoint=hotel_id=78510</code></td><td>对四阶段框架里的 <code>ShardContext</code> 做持久化，表达“本批次切出的一个具体 shard task”</td></tr>
-<tr><td><code>supplier_sync_error_task</code></td><td><code>error_task_id=set_20260604_0007</code><br><code>source_shard_task_id=sst_20260604_0023</code><br><code>recovery_type=RETRY_PUBLISH</code><br><code>target_stage=PUBLISH</code><br><code>status=INIT</code><br><code>start_checkpoint=object_key=AGD_HOTEL_78510</code></td><td>当 shard 失败后，单独用错误处理任务承接恢复与治理，而不是污染主同步链路</td></tr>
-<tr><td><code>supplier_sync_state_ledger</code></td><td><code>supplier_id=agoda</code><br><code>outer_goods_id=AGD_HOTEL_78231</code><br><code>last_batch_id=sb_20260604_0001</code><br><code>state=INIT</code><br><code>last_snapshot_ref=oss://agoda-sync/raw/78231.json</code></td><td>记录 Agoda 某个酒店对象在这次同步中的最新状态和最近快照引用，用来支撑状态推进、补偿和收口</td></tr>
-<tr><td><code>HBase / Object Store</code></td><td><code>raw_ref=oss://agoda-sync/raw/78231.json</code><br><code>raw_hash=sha256:abc...</code><br><code>normalized_ref=oss://agoda-sync/norm/78231.json</code><br><code>normalized_hash=sha256:def...</code></td><td>原始报文和标准化对象都沉淀到 HBase / 对象存储，供回放、复算和审计使用</td></tr>
-<tr><td><code>supplier_product_mapping_tab</code></td><td><code>supplier_id=agoda</code><br><code>external_resource_id=AGD_HOTEL_78231</code><br><code>internal_object_id=hotel_10086</code><br><code>mapping_status=ACTIVE</code></td><td>维护 Agoda 酒店 ID 到平台酒店对象 ID 的权威映射</td></tr>
+<tr><td><code>supplier_sync_error_task</code></td><td><code>error_task_id=set_20260604_0007</code><br><code>source_shard_task_id=sst_20260604_0023</code><br><code>recovery_type=RETRY_PUBLISH</code><br><code>target_stage=PUBLISH</code><br><code>status=INIT</code><br><code>start_checkpoint=object_key=HOTEL_EXT_78510</code></td><td>当 shard 失败后，单独用错误处理任务承接恢复与治理，而不是污染主同步链路</td></tr>
+<tr><td><code>supplier_sync_state_ledger</code></td><td><code>supplier_id=hotel_supplier_a</code><br><code>outer_goods_id=HOTEL_EXT_78231</code><br><code>last_batch_id=sb_20260604_0001</code><br><code>state=INIT</code><br><code>last_snapshot_ref=oss://hotel-supplier-sync/raw/78231.json</code></td><td>记录某酒店供应商某个酒店对象在这次同步中的最新状态和最近快照引用，用来支撑状态推进、补偿和收口</td></tr>
+<tr><td><code>HBase / Object Store</code></td><td><code>raw_ref=oss://hotel-supplier-sync/raw/78231.json</code><br><code>raw_hash=sha256:abc...</code><br><code>normalized_ref=oss://hotel-supplier-sync/norm/78231.json</code><br><code>normalized_hash=sha256:def...</code></td><td>原始报文和标准化对象都沉淀到 HBase / 对象存储，供回放、复算和审计使用</td></tr>
+<tr><td><code>supplier_product_mapping_tab</code></td><td><code>supplier_id=hotel_supplier_a</code><br><code>external_resource_id=HOTEL_EXT_78231</code><br><code>internal_object_id=hotel_10086</code><br><code>mapping_status=ACTIVE</code></td><td>维护某酒店供应商酒店 ID 到平台酒店对象 ID 的权威映射</td></tr>
 <tr><td><code>publish_version</code></td><td><code>item_id=hotel_10086</code><br><code>publish_version=18</code></td><td>平台当前正式发布版本，用于 Diff 和版本保护</td></tr>
 </tbody>
 </table>
@@ -3561,9 +3591,9 @@ sequenceDiagram
 <tr><th>对象</th><th>样例数据</th><th>说明</th></tr>
 </thead>
 <tbody>
-<tr><td><code>supplier_sync_state_ledger</code></td><td><code>supplier_id=agoda</code><br><code>outer_goods_id=AGD_HOTEL_78231</code><br><code>last_batch_id=sb_20260604_0001</code><br><code>state=SUCCESS</code><br><code>last_snapshot_ref=oss://agoda-sync/raw/78231.json</code></td><td>表示 Agoda 酒店 78231 在版本校验通过后成功进入商品主域写侧</td></tr>
-<tr><td><code>supplier_sync_state_ledger</code></td><td><code>supplier_id=agoda</code><br><code>outer_goods_id=AGD_HOTEL_78232</code><br><code>last_batch_id=sb_20260604_0001</code><br><code>state=SKIPPED</code><br><code>last_snapshot_ref=oss://agoda-sync/raw/78232.json</code></td><td>表示该对象在消费时发现线上版本已经演进或被运营锁定，因此不再请求商品主域写侧</td></tr>
-<tr><td><code>supplier_sync_state_ledger</code></td><td><code>supplier_id=agoda</code><br><code>outer_goods_id=AGD_HOTEL_78233</code><br><code>last_batch_id=sb_20260604_0001</code><br><code>state=FAILED</code><br><code>last_snapshot_ref=oss://agoda-sync/raw/78233.json</code></td><td>表示某个房型无法映射到平台对象，因此停留在失败状态，等待补偿或人工修复</td></tr>
+<tr><td><code>supplier_sync_state_ledger</code></td><td><code>supplier_id=hotel_supplier_a</code><br><code>outer_goods_id=HOTEL_EXT_78231</code><br><code>last_batch_id=sb_20260604_0001</code><br><code>state=SUCCESS</code><br><code>last_snapshot_ref=oss://hotel-supplier-sync/raw/78231.json</code></td><td>表示某酒店供应商酒店 78231 在版本校验通过后成功进入商品主域写侧</td></tr>
+<tr><td><code>supplier_sync_state_ledger</code></td><td><code>supplier_id=hotel_supplier_a</code><br><code>outer_goods_id=HOTEL_EXT_78232</code><br><code>last_batch_id=sb_20260604_0001</code><br><code>state=SKIPPED</code><br><code>last_snapshot_ref=oss://hotel-supplier-sync/raw/78232.json</code></td><td>表示该对象在消费时发现线上版本已经演进或被运营锁定，因此不再请求商品主域写侧</td></tr>
+<tr><td><code>supplier_sync_state_ledger</code></td><td><code>supplier_id=hotel_supplier_a</code><br><code>outer_goods_id=HOTEL_EXT_78233</code><br><code>last_batch_id=sb_20260604_0001</code><br><code>state=FAILED</code><br><code>last_snapshot_ref=oss://hotel-supplier-sync/raw/78233.json</code></td><td>表示某个房型无法映射到平台对象，因此停留在失败状态，等待补偿或人工修复</td></tr>
 </tbody>
 </table>
 </div>

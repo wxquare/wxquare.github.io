@@ -1,0 +1,700 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第 8 章 低延迟与复杂读场景系统设计方法论：搜索、推荐、广告与 Feed - 系统设计与架构实战：原理、工程与电商案例</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="从系统设计方法论、核心基础设施、可靠性工程到电商业务架构实战；兼顾原理、工程落地、面试表达和完整业务案例。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-00a3b90f.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-2706bc85.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">系统设计与架构实战：原理、工程与电商案例</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第-8-章-低延迟与复杂读场景系统设计方法论搜索推荐广告与-feed"><a class="header" href="#第-8-章-低延迟与复杂读场景系统设计方法论搜索推荐广告与-feed">第 8 章 低延迟与复杂读场景系统设计方法论：搜索、推荐、广告与 Feed</a></h1>
+<blockquote>
+<p>当系统面对搜索、推荐、广告投放、Feed 流、详情页这类“用户一打开就要马上看到结果”的场景时，设计重点不再只是数据对不对，而是如何在复杂查询、高 QPS 和持续变化的数据之间，把延迟、吞吐和结果质量一起控制住。</p>
+</blockquote>
+<p>在上一章里，我们讨论了高准确性与强一致性系统的设计方法。那一类系统最关心的是“事实不能错”。<br>这一章讨论的是另一类非常典型、而且同样重要的系统问题：</p>
+<blockquote>
+<p>结果可以不是全链路瞬时强一致，但必须足够快、足够稳、足够能支撑复杂查询与排序。</p>
+</blockquote>
+<p>搜索、推荐、广告和 Feed 往往不会要求“每一条结果都和写库瞬时完全一致”，但它们对用户体验极其敏感：</p>
+<ul>
+<li>首屏慢 100 ms，点击率和转化率就可能下降</li>
+<li>排序抖动、召回不足、缓存失效，会直接影响 GMV 或广告收入</li>
+<li>高峰流量下，读链路一旦抖动，用户看到的就是白屏、空列表或结果乱序</li>
+</ul>
+<p>因此这类系统的核心问题不是“如何做全局强一致”，而是：</p>
+<blockquote>
+<p>如何围绕低延迟、高吞吐、复杂查询、多维排序和近实时更新，构建一条可扩展、可治理、可解释的读路径。</p>
+</blockquote>
+<h2 id="81-什么叫低延迟与复杂读场景"><a class="header" href="#81-什么叫低延迟与复杂读场景">8.1 什么叫低延迟与复杂读场景</a></h2>
+<p>先看这类系统的共同特征。</p>
+<h3 id="811-用户对响应时间极其敏感"><a class="header" href="#811-用户对响应时间极其敏感">8.1.1 用户对响应时间极其敏感</a></h3>
+<p>这类场景往往直接处在用户主路径上：</p>
+<ul>
+<li>搜索框输入后的结果页</li>
+<li>商品详情页</li>
+<li>首页 Feed 流</li>
+<li>广告召回与投放决策</li>
+<li>推荐卡片刷新</li>
+</ul>
+<p>它们的共同目标通常是：</p>
+<ul>
+<li><code>P99</code> 延迟控制在 <code>50-200 ms</code></li>
+<li>高峰下仍然保持稳定吞吐</li>
+<li>结果不能经常空、慢、乱、抖</li>
+</ul>
+<h3 id="812-查询模式比-oltp-复杂得多"><a class="header" href="#812-查询模式比-oltp-复杂得多">8.1.2 查询模式比 OLTP 复杂得多</a></h3>
+<p>这类系统的读取通常不是“按主键查一条记录”，而是：</p>
+<ul>
+<li>多条件过滤</li>
+<li>多字段排序</li>
+<li>打分与召回</li>
+<li>聚合统计</li>
+<li>分页与游标</li>
+<li>个性化特征拼接</li>
+</ul>
+<p>也就是说，它们面对的是复杂读，不是简单读。</p>
+<h3 id="813-读写压力不对称"><a class="header" href="#813-读写压力不对称">8.1.3 读写压力不对称</a></h3>
+<p>很多这类系统都有一个鲜明特征：</p>
+<ul>
+<li>写入频率未必极高</li>
+<li>但读取频率极高，而且带有尖峰流量</li>
+</ul>
+<p>例如：</p>
+<ul>
+<li>商品信息更新一天几次，但详情页每秒可能数十万次读取</li>
+<li>广告素材更新较慢，但广告检索和排序每秒大量请求</li>
+<li>酒店库存价格持续变化，但搜索请求量远远高于写请求</li>
+</ul>
+<p>这决定了它们必须围绕读路径做专门设计。</p>
+<h3 id="814-结果质量和系统性能是耦合在一起的"><a class="header" href="#814-结果质量和系统性能是耦合在一起的">8.1.4 结果质量和系统性能是耦合在一起的</a></h3>
+<p>搜索、推荐、广告和 Feed 的特别之处在于，性能问题不是纯技术问题，它直接影响业务结果：</p>
+<ul>
+<li>延迟过高会减少曝光和点击</li>
+<li>召回不足会降低交易转化</li>
+<li>排序不稳定会损害用户信任</li>
+<li>缓存策略不合理会带来陈旧结果或成本爆炸</li>
+</ul>
+<p>所以这类系统不是“把数据读出来”就够了，而是要在<strong>延迟、吞吐、相关性、时效性、成本</strong>之间做平衡。</p>
+<h2 id="82-为什么不能套用强一致系统的设计思路"><a class="header" href="#82-为什么不能套用强一致系统的设计思路">8.2 为什么不能套用强一致系统的设计思路</a></h2>
+<p>很多团队在做搜索、推荐或 Feed 时，会下意识沿用交易系统思路：所有读都回源数据库、写完立刻强一致可见、每次都现场实时计算。<br>这在低延迟复杂读场景里通常会迅速失效。</p>
+<p>原因很简单：这类系统的主要矛盾不是“写入事实是否瞬时统一”，而是“复杂结果能不能在极短时间内稳定产出”。</p>
+<h3 id="821-直接回源数据库通常扛不住复杂读"><a class="header" href="#821-直接回源数据库通常扛不住复杂读">8.2.1 直接回源数据库通常扛不住复杂读</a></h3>
+<p>如果把搜索、推荐、广告检索都直接落在交易数据库上，很快就会遇到：</p>
+<ul>
+<li>多条件查询慢</li>
+<li>排序成本高</li>
+<li>聚合和过滤打满数据库</li>
+<li>读流量挤压写流量</li>
+</ul>
+<p>所以这类系统通常必须接受一个事实：</p>
+<blockquote>
+<p>面向复杂读的系统，往往需要专门的数据组织方式，而不是直接复用交易库模型。</p>
+</blockquote>
+<h3 id="822-每次实时算通常扛不住延迟目标"><a class="header" href="#822-每次实时算通常扛不住延迟目标">8.2.2 “每次实时算”通常扛不住延迟目标</a></h3>
+<p>如果每个请求都现算召回、特征、排序、拼接和过滤，结果往往是：</p>
+<ul>
+<li>请求路径过长</li>
+<li>下游依赖过多</li>
+<li>P99 被拖高</li>
+<li>峰值时放大级联故障</li>
+</ul>
+<p>所以成熟系统普遍会把一部分计算前移：</p>
+<ul>
+<li>预计算</li>
+<li>预聚合</li>
+<li>物化视图</li>
+<li>离线或准实时索引构建</li>
+</ul>
+<h3 id="823-读系统需要接受近实时一致而不是瞬时全局一致"><a class="header" href="#823-读系统需要接受近实时一致而不是瞬时全局一致">8.2.3 读系统需要接受“近实时一致”而不是“瞬时全局一致”</a></h3>
+<p>搜索索引、缓存层、推荐候选池、广告特征库通常不会和源数据库绝对同时更新。<br>真正工程化的目标不是“完全零延迟一致”，而是：</p>
+<ul>
+<li>延迟窗口可控</li>
+<li>不一致范围可解释</li>
+<li>热门数据能优先收敛</li>
+<li>出错时能快速降级</li>
+</ul>
+<p>这和上一章的强一致系统，是完全不同的设计哲学。</p>
+<h2 id="83-设计原则先保护读路径再治理一致性窗口"><a class="header" href="#83-设计原则先保护读路径再治理一致性窗口">8.3 设计原则：先保护读路径，再治理一致性窗口</a></h2>
+<h3 id="831-读写分离是起点不是终点"><a class="header" href="#831-读写分离是起点不是终点">8.3.1 读写分离是起点，不是终点</a></h3>
+<p>在这类系统里，第一步通常都是把读模型从写模型里拆出来。</p>
+<p>写模型负责：</p>
+<ul>
+<li>交易事实</li>
+<li>后台配置</li>
+<li>权威数据写入</li>
+</ul>
+<p>读模型负责：</p>
+<ul>
+<li>检索</li>
+<li>聚合</li>
+<li>排序</li>
+<li>展示</li>
+<li>个性化查询</li>
+</ul>
+<p>但读写分离只是开始。真正关键的是，读模型必须为读场景本身优化，而不是简单复制一份表。</p>
+<h3 id="832-为查询设计数据而不是为存储设计数据"><a class="header" href="#832-为查询设计数据而不是为存储设计数据">8.3.2 为查询设计数据，而不是为存储设计数据</a></h3>
+<p>交易系统的建模往往围绕领域写入展开；<br>复杂读系统的建模则必须围绕查询模式展开。</p>
+<p>例如：</p>
+<ul>
+<li>搜索需要倒排索引、过滤字段、排序字段</li>
+<li>Feed 需要按用户、时间、权重组织候选集</li>
+<li>推荐需要召回池、特征视图、排序结果缓存</li>
+<li>详情页需要拼接好的展示视图和热点字段缓存</li>
+</ul>
+<p>也就是说，低延迟系统里的数据结构，很多时候不是“最规范”，而是“最适合读”。</p>
+<h3 id="833-尽量把昂贵计算前移到写时或异步路径"><a class="header" href="#833-尽量把昂贵计算前移到写时或异步路径">8.3.3 尽量把昂贵计算前移到写时或异步路径</a></h3>
+<p>这是复杂读系统最重要的原则之一。</p>
+<p>如果一个结果可以提前准备，就不要在请求现场临时拼装。</p>
+<p>典型做法包括：</p>
+<ul>
+<li>提前生成索引文档</li>
+<li>提前汇总统计结果</li>
+<li>提前构建用户候选集</li>
+<li>提前计算商品热度、质量分、CTR 预估特征</li>
+<li>提前准备详情页物化视图</li>
+</ul>
+<p>这样做的本质是：</p>
+<ul>
+<li>把请求时延换成异步计算成本</li>
+<li>把复杂链路换成可治理的离线 / 准实时链路</li>
+</ul>
+<h3 id="834-多级缓存不是优化项而是主设计对象"><a class="header" href="#834-多级缓存不是优化项而是主设计对象">8.3.4 多级缓存不是优化项，而是主设计对象</a></h3>
+<p>对搜索、推荐、广告、详情页来说，缓存通常不是“最后才加的加速器”，而是系统架构的一部分。</p>
+<p>常见缓存层包括：</p>
+<ul>
+<li>CDN / Edge Cache</li>
+<li>本地缓存</li>
+<li>Redis 分布式缓存</li>
+<li>结果缓存</li>
+<li>特征缓存</li>
+<li>候选集缓存</li>
+</ul>
+<p>设计重点不只是命中率，还包括：</p>
+<ul>
+<li>热点是否可控</li>
+<li>失效是否平滑</li>
+<li>是否会雪崩</li>
+<li>是否能防穿透</li>
+<li>陈旧数据是否在业务容忍范围内</li>
+</ul>
+<h3 id="835-延迟预算必须像资金预算一样被管理"><a class="header" href="#835-延迟预算必须像资金预算一样被管理">8.3.5 延迟预算必须像资金预算一样被管理</a></h3>
+<p>一条低延迟读链路，不应该靠“感觉上挺快”来治理，而要把延迟拆解到各个阶段：</p>
+<ul>
+<li>网关预算</li>
+<li>检索预算</li>
+<li>特征读取预算</li>
+<li>排序预算</li>
+<li>拼装预算</li>
+<li>回退预算</li>
+</ul>
+<p>只有这样，团队才能知道：</p>
+<ul>
+<li>慢在哪里</li>
+<li>哪一步最容易拖垮 <code>P99</code></li>
+<li>哪些依赖必须预取、并行化或裁剪</li>
+</ul>
+<h2 id="84-方案选型从搜索引擎缓存到-cqrs-与向量检索"><a class="header" href="#84-方案选型从搜索引擎缓存到-cqrs-与向量检索">8.4 方案选型：从搜索引擎、缓存到 CQRS 与向量检索</a></h2>
+<h3 id="841-elasticsearch--meilisearch复杂检索的主力"><a class="header" href="#841-elasticsearch--meilisearch复杂检索的主力">8.4.1 Elasticsearch / Meilisearch：复杂检索的主力</a></h3>
+<p>当场景涉及：</p>
+<ul>
+<li>关键词检索</li>
+<li>多维过滤</li>
+<li>相关性排序</li>
+<li>聚合统计</li>
+<li>近实时索引更新</li>
+</ul>
+<p>这时专门的搜索引擎通常比直接查数据库更合适。</p>
+<p><code>Elasticsearch</code> 更适合复杂检索和大规模扩展；<br><code>Meilisearch</code> 更轻量，适合中小型场景和更简单的搜索体验。</p>
+<p>适用场景：</p>
+<ul>
+<li>商品搜索</li>
+<li>酒店搜索</li>
+<li>内容检索</li>
+<li>条件筛选页</li>
+</ul>
+<p>限制：</p>
+<ul>
+<li>索引一致性不是瞬时强一致</li>
+<li>映射、分片、重建索引都有治理成本</li>
+</ul>
+<h3 id="842-redis-多级缓存高-qps-热点读的基础设施"><a class="header" href="#842-redis-多级缓存高-qps-热点读的基础设施">8.4.2 Redis 多级缓存：高 QPS 热点读的基础设施</a></h3>
+<p>缓存最适合处理：</p>
+<ul>
+<li>高频重复读取</li>
+<li>热点详情</li>
+<li>热门查询结果</li>
+<li>会话级个性化上下文</li>
+</ul>
+<p>常见组合是：</p>
+<ul>
+<li>本地缓存抗瞬时热点</li>
+<li>Redis 抗跨实例热点</li>
+<li>CDN 抗静态或半静态资源请求</li>
+</ul>
+<p>适用场景：</p>
+<ul>
+<li>商品详情页</li>
+<li>首页配置</li>
+<li>热门榜单</li>
+<li>短时间窗口的搜索结果</li>
+</ul>
+<p>限制：</p>
+<ul>
+<li>更新一致性难度高于读性能本身</li>
+<li>热点 key 和失效风暴需要专门治理</li>
+</ul>
+<h3 id="843-cqrs把写模型和读模型彻底分开"><a class="header" href="#843-cqrs把写模型和读模型彻底分开">8.4.3 CQRS：把写模型和读模型彻底分开</a></h3>
+<p>当一个系统同时存在：</p>
+<ul>
+<li>复杂写入约束</li>
+<li>复杂读路径诉求</li>
+</ul>
+<p>这时 <code>CQRS</code> 很有价值。</p>
+<p>它的重点不是“时髦架构名词”，而是承认：</p>
+<blockquote>
+<p>同一份业务数据，写入最优组织方式和读取最优组织方式往往不同。</p>
+</blockquote>
+<p>适用场景：</p>
+<ul>
+<li>商品中心写入复杂，但搜索和详情读取压力大</li>
+<li>广告配置后台写入不频繁，但投放查询极高频</li>
+<li>推荐系统后台训练与线上读取完全不同节奏</li>
+</ul>
+<h3 id="844-materialized-view详情页和聚合页的务实方案"><a class="header" href="#844-materialized-view详情页和聚合页的务实方案">8.4.4 Materialized View：详情页和聚合页的务实方案</a></h3>
+<p>如果页面最终展示逻辑相对稳定，但原始数据来源很多，那么物化视图通常是非常务实的解法。</p>
+<p>适用场景：</p>
+<ul>
+<li>商品详情页</li>
+<li>酒店详情页</li>
+<li>店铺首页</li>
+<li>聚合展示页</li>
+</ul>
+<p>优点：</p>
+<ul>
+<li>减少请求时拼装成本</li>
+<li>读路径更短</li>
+<li>更利于缓存</li>
+</ul>
+<p>限制：</p>
+<ul>
+<li>视图更新链路需要治理</li>
+<li>变更传播延迟需要被业务接受</li>
+</ul>
+<h3 id="845-fanoutfeed-与消息分发常见模式"><a class="header" href="#845-fanoutfeed-与消息分发常见模式">8.4.5 Fanout：Feed 与消息分发常见模式</a></h3>
+<p>在 Feed 场景里，常见问题是：</p>
+<ul>
+<li>是写时推送给所有用户</li>
+<li>还是读时按需拉取并排序</li>
+</ul>
+<p>这就是经典的 <code>Fanout-on-write</code> 与 <code>Fanout-on-read</code> 选择。</p>
+<p>适用判断：</p>
+<ul>
+<li>关注关系稳定、读多写少，可偏向写扩散</li>
+<li>超大 V、热点内容多、关系图复杂，可偏向读扩散</li>
+</ul>
+<p>成熟系统往往不是二选一，而是混合策略：</p>
+<ul>
+<li>普通用户走写扩散</li>
+<li>超级节点走读扩散</li>
+</ul>
+<h3 id="846-向量搜索适合语义检索与召回不适合作为唯一读模型"><a class="header" href="#846-向量搜索适合语义检索与召回不适合作为唯一读模型">8.4.6 向量搜索：适合语义检索与召回，不适合作为唯一读模型</a></h3>
+<p><code>Milvus</code> 及同类向量检索系统适合：</p>
+<ul>
+<li>语义搜索</li>
+<li>多模态召回</li>
+<li>推荐候选生成</li>
+</ul>
+<p>但它通常不单独承担完整线上读链路，而是作为召回层的一部分，再和：</p>
+<ul>
+<li>规则过滤</li>
+<li>倒排检索</li>
+<li>精排模型</li>
+<li>缓存和特征层</li>
+</ul>
+<p>一起组成完整方案。</p>
+<h3 id="847-一张务实选型表"><a class="header" href="#847-一张务实选型表">8.4.7 一张务实选型表</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景特征</th><th>推荐方案</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>关键词检索、多维过滤、相关性排序</td><td>Elasticsearch / Meilisearch</td><td>适合搜索主路径</td></tr>
+<tr><td>热点高频读取、结果短期复用强</td><td>Redis 多级缓存</td><td>适合详情页、榜单、热门结果</td></tr>
+<tr><td>读写模型差异大</td><td>CQRS</td><td>读写分离彻底化</td></tr>
+<tr><td>展示数据需要多源拼装</td><td>Materialized View</td><td>缩短请求路径</td></tr>
+<tr><td>Feed 大规模内容分发</td><td>Fanout 混合策略</td><td>平衡写放大和读放大</td></tr>
+<tr><td>语义检索、候选召回</td><td>向量搜索</td><td>更适合作为召回层</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="85-以搜索广告推荐feed-和详情页为例"><a class="header" href="#85-以搜索广告推荐feed-和详情页为例">8.5 以搜索、广告、推荐、Feed 和详情页为例</a></h2>
+<h3 id="851-搜索核心矛盾是召回排序与时效性"><a class="header" href="#851-搜索核心矛盾是召回排序与时效性">8.5.1 搜索：核心矛盾是召回、排序与时效性</a></h3>
+<p>搜索系统最常见的问题不是“查不到数据”，而是：</p>
+<ul>
+<li>查得慢</li>
+<li>排得不准</li>
+<li>新数据生效太慢</li>
+<li>过滤条件组合一多性能就崩</li>
+</ul>
+<p>搜索的核心设计通常包括：</p>
+<ul>
+<li>检索索引单独维护</li>
+<li>热门过滤和聚合结果缓存</li>
+<li>索引近实时更新</li>
+<li>排序字段提前准备</li>
+</ul>
+<h3 id="852-广告核心矛盾是时延预算极小但决策逻辑很复杂"><a class="header" href="#852-广告核心矛盾是时延预算极小但决策逻辑很复杂">8.5.2 广告：核心矛盾是时延预算极小，但决策逻辑很复杂</a></h3>
+<p>广告投放通常需要在极短时间内完成：</p>
+<ul>
+<li>候选召回</li>
+<li>预算过滤</li>
+<li>定向过滤</li>
+<li>出价与排序</li>
+<li>去重和频控</li>
+</ul>
+<p>因此广告系统很依赖：</p>
+<ul>
+<li>特征预加载</li>
+<li>候选池缓存</li>
+<li>多层过滤前移</li>
+<li>精排计算预算控制</li>
+</ul>
+<h3 id="853-推荐核心矛盾是个性化效果与在线成本的平衡"><a class="header" href="#853-推荐核心矛盾是个性化效果与在线成本的平衡">8.5.3 推荐：核心矛盾是个性化效果与在线成本的平衡</a></h3>
+<p>推荐系统常见的链路是：</p>
+<ul>
+<li>召回</li>
+<li>粗排</li>
+<li>精排</li>
+<li>重排</li>
+</ul>
+<p>如果所有步骤都在线做，成本会非常高。<br>所以工程上往往会把大量工作前移到：</p>
+<ul>
+<li>离线训练</li>
+<li>准实时特征生成</li>
+<li>候选集预计算</li>
+</ul>
+<p>线上只保留必须实时决策的部分。</p>
+<h3 id="854-feed核心矛盾是分发模型和热点控制"><a class="header" href="#854-feed核心矛盾是分发模型和热点控制">8.5.4 Feed：核心矛盾是分发模型和热点控制</a></h3>
+<p>Feed 流的问题通常不是单次查询复杂，而是：</p>
+<ul>
+<li>用户规模大</li>
+<li>内容更新快</li>
+<li>热点扩散强</li>
+<li>顺序和去重要求高</li>
+</ul>
+<p>它的架构重点往往在：</p>
+<ul>
+<li>写扩散还是读扩散</li>
+<li>游标分页和增量拉取</li>
+<li>热点内容缓存</li>
+<li>异步预聚合时间线</li>
+</ul>
+<h3 id="855-详情页核心矛盾是多源拼装与高命中率"><a class="header" href="#855-详情页核心矛盾是多源拼装与高命中率">8.5.5 详情页：核心矛盾是多源拼装与高命中率</a></h3>
+<p>详情页常见痛点是数据来源太多：</p>
+<ul>
+<li>商品基础信息</li>
+<li>价格</li>
+<li>库存</li>
+<li>营销</li>
+<li>评价</li>
+<li>推荐搭配</li>
+</ul>
+<p>如果全部请求时拼装，延迟和失败率都会显著上升。<br>所以成熟详情页通常依赖：</p>
+<ul>
+<li>物化视图</li>
+<li>局部字段独立缓存</li>
+<li>热点页预热</li>
+<li>动静分离</li>
+</ul>
+<h2 id="86-一致性与延迟如何取舍"><a class="header" href="#86-一致性与延迟如何取舍">8.6 一致性与延迟如何取舍</a></h2>
+<p>这类系统不是不需要一致性，而是需要一种不同于交易系统的一致性治理方式。</p>
+<h3 id="861-先定义一致性窗口"><a class="header" href="#861-先定义一致性窗口">8.6.1 先定义一致性窗口</a></h3>
+<p>不要笼统地说“允许一点延迟”，而要明确：</p>
+<ul>
+<li>搜索索引允许延迟多少秒</li>
+<li>推荐候选允许延迟多久</li>
+<li>缓存允许陈旧多久</li>
+<li>广告预算与投放状态允许多大偏差窗口</li>
+</ul>
+<p>只有把窗口数字化，系统才能治理。</p>
+<h3 id="862-热数据优先收敛冷数据延后收敛"><a class="header" href="#862-热数据优先收敛冷数据延后收敛">8.6.2 热数据优先收敛，冷数据延后收敛</a></h3>
+<p>不是所有数据都需要同样快地更新。</p>
+<p>例如：</p>
+<ul>
+<li>热门商品价格变更要优先刷新</li>
+<li>长尾内容索引延迟几十秒可能完全可接受</li>
+<li>活动期广告预算状态要更高频同步</li>
+</ul>
+<p>这类分层治理比“全量一视同仁”更现实。</p>
+<h3 id="863-读降级要比写降级更早准备"><a class="header" href="#863-读降级要比写降级更早准备">8.6.3 读降级要比写降级更早准备</a></h3>
+<p>在复杂读系统里，系统最常见的救命手段不是暂停写入，而是读路径降级：</p>
+<ul>
+<li>关闭部分排序特征</li>
+<li>降低召回深度</li>
+<li>只展示缓存结果</li>
+<li>跳过部分非核心拼装字段</li>
+<li>返回默认推荐或兜底列表</li>
+</ul>
+<p>读降级设计得越早，系统在高峰时越稳。</p>
+<h2 id="87-常见误区"><a class="header" href="#87-常见误区">8.7 常见误区</a></h2>
+<h3 id="871-直接拿交易库硬扛搜索和复杂筛选"><a class="header" href="#871-直接拿交易库硬扛搜索和复杂筛选">8.7.1 直接拿交易库硬扛搜索和复杂筛选</a></h3>
+<p>短期可用，长期一定会遇到查询性能和资源争抢问题。</p>
+<h3 id="872-过度迷信缓存命中率而忽视失效治理"><a class="header" href="#872-过度迷信缓存命中率而忽视失效治理">8.7.2 过度迷信缓存命中率，而忽视失效治理</a></h3>
+<p>高命中率不等于系统稳定。<br>如果热点失效后全量回源，系统一样会雪崩。</p>
+<h3 id="873-把所有计算都放在线上实时完成"><a class="header" href="#873-把所有计算都放在线上实时完成">8.7.3 把所有计算都放在线上实时完成</a></h3>
+<p>这样最容易把链路做长、把 <code>P99</code> 做坏、把下游依赖拖死。</p>
+<h3 id="874-只谈检索不谈排序和特征预算"><a class="header" href="#874-只谈检索不谈排序和特征预算">8.7.4 只谈检索，不谈排序和特征预算</a></h3>
+<p>很多低延迟系统真正慢的不是“查出来”，而是“排出来”。</p>
+<h3 id="875-没有为不一致设计解释机制"><a class="header" href="#875-没有为不一致设计解释机制">8.7.5 没有为不一致设计解释机制</a></h3>
+<p>如果价格更新后搜索结果短时间未刷新，系统至少要知道：</p>
+<ul>
+<li>哪一层没更新</li>
+<li>延迟窗口是否超标</li>
+<li>是否需要热点强刷</li>
+</ul>
+<p>否则“不一致”就只是不可定位的黑盒现象。</p>
+<h2 id="88-方法论沉淀如何做出务实选型"><a class="header" href="#88-方法论沉淀如何做出务实选型">8.8 方法论沉淀：如何做出务实选型</a></h2>
+<h3 id="881-五个判断句"><a class="header" href="#881-五个判断句">8.8.1 五个判断句</a></h3>
+<ol>
+<li>只要读链路处在主路径、对时延高度敏感，就要优先围绕读模型而不是写模型来设计。</li>
+<li>复杂读系统的关键不是“把数据查出来”，而是“把复杂结果在延迟预算内稳定产出”。</li>
+<li>能预计算的不要现场算，能缓存的不要重复算，能分层的不要一层做完。</li>
+<li>读系统的一致性治理重点不是瞬时全局一致，而是可控的一致性窗口、热点优先收敛和降级能力。</li>
+<li>真正成熟的低延迟系统，拼的不只是搜索引擎或缓存，而是索引、缓存、读模型、排序链路和治理能力的整体配合。</li>
+</ol>
+<h3 id="882-一句话表达"><a class="header" href="#882-一句话表达">8.8.2 一句话表达</a></h3>
+<p>如果把这一章压缩成一句可以直接复用的话，可以这样讲：</p>
+<blockquote>
+<p>低延迟与复杂读系统设计的核心，不是让所有数据实时强一致地回源读取，而是围绕查询模式重建读模型，用索引、缓存、预计算、物化视图和近实时更新，把复杂结果稳定地压进延迟预算里。</p>
+</blockquote>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part01/07-high-accuracy-strong-consistency-methodology.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part02/01-ecommerce-overview.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part01/07-high-accuracy-strong-consistency-methodology.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part02/01-ecommerce-overview.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
