@@ -1,0 +1,656 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第 9 章 高并发写与热点场景系统设计方法论：秒杀、社交互动与流量洪峰处理 - 系统设计与架构实战：原理、工程与电商案例</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="从系统设计方法论、核心基础设施、可靠性工程到电商业务架构实战；兼顾原理、工程落地、面试表达和完整业务案例。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-c2e55e9a.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-c6245090.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">系统设计与架构实战：原理、工程与电商案例</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第-9-章-高并发写与热点场景系统设计方法论秒杀社交互动与流量洪峰处理"><a class="header" href="#第-9-章-高并发写与热点场景系统设计方法论秒杀社交互动与流量洪峰处理">第 9 章 高并发写与热点场景系统设计方法论：秒杀、社交互动与流量洪峰处理</a></h1>
+<blockquote>
+<p>当系统面对秒杀、社交点赞、评论洪峰、直播互动、抢票、短视频上传这类“短时间内大量写入同时打向少数热点资源”的场景时，设计重点不再只是数据模型是否优雅，而是如何在极端流量下保护系统、保护资源、保护用户体验，并让写入结果最终可收敛。</p>
+</blockquote>
+<p>前两章里，我们分别讨论了两类常见方法论：</p>
+<ul>
+<li>高准确性与强一致性系统，重点是保护业务事实</li>
+<li>低延迟与复杂读系统，重点是保护读路径和延迟预算</li>
+</ul>
+<p>这一章讨论的是第三类非常典型的问题域：</p>
+<blockquote>
+<p>写入压力不是均匀分布的，而是会在极短时间内集中爆发，并且经常打在同一个资源、同一个分区、同一个库存窗口、同一个热门对象上。</p>
+</blockquote>
+<p>这类系统的核心矛盾通常不是“单次写入怎么做”，而是：</p>
+<ul>
+<li>流量洪峰能不能被拦住</li>
+<li>热点资源会不会被打穿</li>
+<li>后端写链路会不会雪崩</li>
+<li>结果会不会因为重复、乱序、超卖、回压而失控</li>
+</ul>
+<p>所以高并发写场景的关键，不是盲目“提 TPS”，而是：</p>
+<blockquote>
+<p>先把洪峰削平，把热点隔离，把写链路分层，再决定哪些结果必须立即确认，哪些结果可以异步收敛。</p>
+</blockquote>
+<h2 id="91-什么叫高并发写与热点场景"><a class="header" href="#91-什么叫高并发写与热点场景">9.1 什么叫高并发写与热点场景</a></h2>
+<p>先看这类系统的几个共同特征。</p>
+<h3 id="911-写流量会在短时间内陡增"><a class="header" href="#911-写流量会在短时间内陡增">9.1.1 写流量会在短时间内陡增</a></h3>
+<p>很多常规写系统的压力是相对平滑的，但高并发写场景往往不是。</p>
+<p>典型情况包括：</p>
+<ul>
+<li>秒杀活动开始的前几秒</li>
+<li>演唱会抢票开票瞬间</li>
+<li>直播间大促口令生效的几十秒</li>
+<li>热门内容发布后的评论、点赞洪峰</li>
+<li>短视频平台热点事件带来的上传或互动峰值</li>
+</ul>
+<p>这里最大的风险不是平均流量，而是瞬时峰值。</p>
+<h3 id="912-写入集中打向少数热点资源"><a class="header" href="#912-写入集中打向少数热点资源">9.1.2 写入集中打向少数热点资源</a></h3>
+<p>普通写流量的问题主要是总量大；<br>热点写流量的问题是大量请求同时写同一个对象。</p>
+<p>例如：</p>
+<ul>
+<li>同一个秒杀库存</li>
+<li>同一场演唱会同一票档</li>
+<li>同一个直播商品</li>
+<li>同一条爆款内容的点赞计数</li>
+<li>同一个明星帖子的评论楼层</li>
+</ul>
+<p>这意味着即使系统总吞吐看起来够，单个热点 key、单个分区、单行记录、单个队列仍然可能先被打爆。</p>
+<h3 id="913-业务常常要求快反馈但后端不一定能同步处理"><a class="header" href="#913-业务常常要求快反馈但后端不一定能同步处理">9.1.3 业务常常要求“快反馈”，但后端不一定能同步处理</a></h3>
+<p>用户在这些场景下通常希望立即得到反馈：</p>
+<ul>
+<li>抢到了还是没抢到</li>
+<li>点赞是否成功</li>
+<li>评论是否提交</li>
+<li>直播下单是否进入受理</li>
+</ul>
+<p>但后端真正的业务处理往往比前端反馈复杂得多：</p>
+<ul>
+<li>需要扣库存</li>
+<li>需要写订单</li>
+<li>需要生成异步任务</li>
+<li>需要做审核或风控</li>
+<li>需要做内容处理或媒体转码</li>
+</ul>
+<p>所以系统必须学会把“用户反馈时点”和“后端真正完成时点”分开设计。</p>
+<h3 id="914-问题常常不是平均处理能力而是极端不均匀"><a class="header" href="#914-问题常常不是平均处理能力而是极端不均匀">9.1.4 问题常常不是平均处理能力，而是极端不均匀</a></h3>
+<p>这类系统最容易误判的一点是：</p>
+<blockquote>
+<p>平均 TPS 够，不等于热点场景能扛住。</p>
+</blockquote>
+<p>因为真正的崩溃往往来自：</p>
+<ul>
+<li>单 key 热点</li>
+<li>单分区热点</li>
+<li>单机热点</li>
+<li>单库热点</li>
+<li>某个下游依赖在高峰时先超时</li>
+</ul>
+<p>因此高并发写系统设计，本质上要解决的是“局部极端不均匀”。</p>
+<h2 id="92-为什么不能用普通-oltp-写路径硬扛"><a class="header" href="#92-为什么不能用普通-oltp-写路径硬扛">9.2 为什么不能用普通 OLTP 写路径硬扛</a></h2>
+<p>很多系统在业务初期的写路径都很直接：</p>
+<ol>
+<li>请求进来</li>
+<li>鉴权校验</li>
+<li>直接写数据库</li>
+<li>同步返回成功</li>
+</ol>
+<p>这套方式在日常流量下很有效，但到了秒杀、抢票、社交热点等场景，很快就会暴露问题。</p>
+<h3 id="921-数据库不是洪峰吸收器"><a class="header" href="#921-数据库不是洪峰吸收器">9.2.1 数据库不是洪峰吸收器</a></h3>
+<p>如果海量请求直接落到数据库层，会立刻遇到：</p>
+<ul>
+<li>连接数打满</li>
+<li>行锁竞争</li>
+<li>热点索引竞争</li>
+<li>磁盘刷写压力暴涨</li>
+<li>主从延迟放大</li>
+</ul>
+<p>也就是说，数据库适合承担“最终事实存储”，但不应该成为第一道承压面。</p>
+<h3 id="922-同步全链路处理会把高峰直接扩散到所有下游"><a class="header" href="#922-同步全链路处理会把高峰直接扩散到所有下游">9.2.2 同步全链路处理会把高峰直接扩散到所有下游</a></h3>
+<p>如果请求必须同步走完：</p>
+<ul>
+<li>库存</li>
+<li>订单</li>
+<li>支付上下文</li>
+<li>风控</li>
+<li>内容审核</li>
+<li>推送通知</li>
+</ul>
+<p>那么高峰会被一层层传递下去，最终变成级联超时和雪崩。</p>
+<h3 id="923-热点冲突会让吞吐在局部迅速塌陷"><a class="header" href="#923-热点冲突会让吞吐在局部迅速塌陷">9.2.3 热点冲突会让吞吐在局部迅速塌陷</a></h3>
+<p>例如 10 万请求并发抢 100 件库存，问题不只是“请求多”，而是这些请求都争夺同一个库存事实。<br>这时单纯横向扩容应用实例，收益通常有限，因为瓶颈不在应用层总算力，而在共享热点资源。</p>
+<h3 id="924-用户体验不一定要求同步完成全部动作"><a class="header" href="#924-用户体验不一定要求同步完成全部动作">9.2.4 用户体验不一定要求“同步完成全部动作”</a></h3>
+<p>很多场景里，用户真正需要的是：</p>
+<ul>
+<li>请求被接受</li>
+<li>请求结果有明确状态</li>
+<li>最终结果能查到</li>
+</ul>
+<p>而不是必须在 50 ms 内把所有后续业务全部做完。</p>
+<p>所以工程上常见的关键转变是：</p>
+<blockquote>
+<p>不要把所有业务步骤都塞进同步写路径，而要把同步确认、异步处理和最终收敛拆开。</p>
+</blockquote>
+<h2 id="93-设计原则先削峰再控速再异步再落库"><a class="header" href="#93-设计原则先削峰再控速再异步再落库">9.3 设计原则：先削峰，再控速，再异步，再落库</a></h2>
+<h3 id="931-第一原则不要让洪峰直接打到最终存储"><a class="header" href="#931-第一原则不要让洪峰直接打到最终存储">9.3.1 第一原则：不要让洪峰直接打到最终存储</a></h3>
+<p>高并发写系统最重要的一件事，就是在真正写库之前先建立缓冲层和保护层。</p>
+<p>这层保护可以是：</p>
+<ul>
+<li>接口限流</li>
+<li>队列排队</li>
+<li>缓冲池</li>
+<li>Redis 预处理</li>
+<li>本地内存令牌</li>
+</ul>
+<p>核心思想是一样的：</p>
+<ul>
+<li>前面吸收波峰</li>
+<li>后面按系统可承受速率处理</li>
+</ul>
+<h3 id="932-先控制进入量再讨论处理量"><a class="header" href="#932-先控制进入量再讨论处理量">9.3.2 先控制进入量，再讨论处理量</a></h3>
+<p>很多团队一上来就想“怎么把后端撑大”，但真正成熟的系统会先问：</p>
+<ul>
+<li>多少请求值得进入系统</li>
+<li>多少请求应该直接拒绝</li>
+<li>多少请求应该排队等待</li>
+<li>多少请求应该只保留一次有效写入</li>
+</ul>
+<p>因为在极端高峰下，“全部接住”往往不是能力，而是灾难。</p>
+<h3 id="933-把同步写和异步写分层"><a class="header" href="#933-把同步写和异步写分层">9.3.3 把同步写和异步写分层</a></h3>
+<p>这类系统通常要把写路径分成三层：</p>
+<ol>
+<li><strong>入口受理层</strong>：校验、限流、幂等、快速返回</li>
+<li><strong>削峰缓冲层</strong>：队列、缓存、热点隔离、令牌分发</li>
+<li><strong>最终处理层</strong>：数据库写入、补偿、对账、状态推进</li>
+</ol>
+<p>这样做的好处是：</p>
+<ul>
+<li>同步链路更短</li>
+<li>异步链路更可控</li>
+<li>各层可以独立扩缩容和降级</li>
+</ul>
+<h3 id="934-热点资源要被单独设计而不是顺带处理"><a class="header" href="#934-热点资源要被单独设计而不是顺带处理">9.3.4 热点资源要被单独设计，而不是顺带处理</a></h3>
+<p>热点不是边角问题，而是这类系统的中心问题。</p>
+<p>要优先回答：</p>
+<ul>
+<li>热点 key 怎么识别</li>
+<li>热点数据放在哪一层先拦截</li>
+<li>单热点是否要独立分片</li>
+<li>热点读写是否需要专门队列</li>
+<li>超热资源是否要隔离出单独集群</li>
+</ul>
+<h3 id="935-幂等防重补偿必须默认开启"><a class="header" href="#935-幂等防重补偿必须默认开启">9.3.5 幂等、防重、补偿必须默认开启</a></h3>
+<p>高峰场景下，重试、超时、重复点击、客户端重发、消息重复投递都是常态。<br>所以系统必须默认：</p>
+<ul>
+<li>同一个请求可能来两次</li>
+<li>同一个消息可能消费两次</li>
+<li>同一个用户可能短时间连点十几次</li>
+</ul>
+<p>这意味着：</p>
+<ul>
+<li>入口需要幂等键</li>
+<li>核心状态变更要有唯一约束</li>
+<li>异步消费必须幂等</li>
+<li>补偿逻辑也必须幂等</li>
+</ul>
+<h2 id="94-方案选型从限流排队到-redismq-与分片"><a class="header" href="#94-方案选型从限流排队到-redismq-与分片">9.4 方案选型：从限流、排队到 Redis、MQ 与分片</a></h2>
+<h3 id="941-限流先决定谁能进来"><a class="header" href="#941-限流先决定谁能进来">9.4.1 限流：先决定谁能进来</a></h3>
+<p>限流是高并发写系统的第一道门槛。</p>
+<p>常见算法包括：</p>
+<ul>
+<li>令牌桶</li>
+<li>漏桶</li>
+<li>固定窗口</li>
+<li>滑动窗口</li>
+</ul>
+<p>适用场景：</p>
+<ul>
+<li>API 接口保护</li>
+<li>用户级频控</li>
+<li>活动入口控流</li>
+<li>下游保护</li>
+</ul>
+<p>重点不是“有没有限流”，而是：</p>
+<ul>
+<li>按用户限还是按资源限</li>
+<li>本地限还是全局限</li>
+<li>超限直接拒绝还是进入等待</li>
+</ul>
+<h3 id="942-排队与异步化把尖峰变成平峰"><a class="header" href="#942-排队与异步化把尖峰变成平峰">9.4.2 排队与异步化：把尖峰变成平峰</a></h3>
+<p>消息队列最适合吸收瞬时洪峰，把写压力变成后端可消费的平滑流量。</p>
+<p>适用场景：</p>
+<ul>
+<li>秒杀下单受理</li>
+<li>评论异步入库</li>
+<li>点赞异步聚合</li>
+<li>上传后异步转码</li>
+</ul>
+<p>优点：</p>
+<ul>
+<li>削峰填谷</li>
+<li>降低同步链路时长</li>
+<li>便于失败重试</li>
+</ul>
+<p>限制：</p>
+<ul>
+<li>不能无限排队</li>
+<li>排队时长需要可观测</li>
+<li>结果确认模式需要重新设计</li>
+</ul>
+<h3 id="943-redis--lua热点资源的快速原子预处理层"><a class="header" href="#943-redis--lua热点资源的快速原子预处理层">9.4.3 Redis + Lua：热点资源的快速原子预处理层</a></h3>
+<p>对于库存预减、热点计数、资格判断、去重写入等场景，<code>Redis + Lua</code> 是非常常见的方案。</p>
+<p>它适合做：</p>
+<ul>
+<li>秒杀库存预扣</li>
+<li>单用户去重购买校验</li>
+<li>点赞防重</li>
+<li>热门计数原子更新</li>
+</ul>
+<p>优点：</p>
+<ul>
+<li>单线程原子执行</li>
+<li>延迟低</li>
+<li>能在真正写库前先完成快速判定</li>
+</ul>
+<p>限制：</p>
+<ul>
+<li>Redis 不是最终事实账本</li>
+<li>结果仍需和后端状态收敛</li>
+<li>热点 key 本身仍需治理</li>
+</ul>
+<h3 id="944-分片与一致性哈希把热点拆散但不是万能药"><a class="header" href="#944-分片与一致性哈希把热点拆散但不是万能药">9.4.4 分片与一致性哈希：把热点拆散，但不是万能药</a></h3>
+<p>分片的价值在于把总量拆散，把负载摊平。<br>一致性哈希的价值在于减少扩缩容时的数据迁移成本。</p>
+<p>适用场景：</p>
+<ul>
+<li>评论分区</li>
+<li>点赞计数分桶</li>
+<li>上传任务路由</li>
+<li>用户写流量打散</li>
+</ul>
+<p>但要注意：</p>
+<ul>
+<li>如果所有请求都打同一个商品库存，单纯分片不一定解决根问题</li>
+<li>真正单热点资源，往往还需要资格预发放、分段库存、活动分仓等专门设计</li>
+</ul>
+<h3 id="945-数据库写缓冲与批量落库适合能稍后再写的场景"><a class="header" href="#945-数据库写缓冲与批量落库适合能稍后再写的场景">9.4.5 数据库写缓冲与批量落库：适合“能稍后再写”的场景</a></h3>
+<p>对于评论、点赞、日志、行为流、媒体元数据这类不要求每次强同步落库的场景，可以考虑：</p>
+<ul>
+<li>批量聚合写</li>
+<li>写缓冲</li>
+<li>日志式追加</li>
+<li>周期性刷盘</li>
+</ul>
+<p>优点：</p>
+<ul>
+<li>显著降低数据库写放大</li>
+<li>提高吞吐</li>
+</ul>
+<p>限制：</p>
+<ul>
+<li>不适合所有强一致业务</li>
+<li>刷盘失败、缓冲丢失、顺序要求都要治理</li>
+</ul>
+<h3 id="946-一张务实选型表"><a class="header" href="#946-一张务实选型表">9.4.6 一张务实选型表</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景特征</th><th>推荐方案</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>流量瞬时暴涨，需要先挡住入口</td><td>限流 / 频控</td><td>先保护系统边界</td></tr>
+<tr><td>洪峰大但允许异步处理</td><td>MQ / 排队</td><td>典型削峰填谷</td></tr>
+<tr><td>热点资源需要快速原子判断</td><td>Redis + Lua</td><td>适合预扣、去重、计数</td></tr>
+<tr><td>总写量大，负载可打散</td><td>分片 / 一致性哈希</td><td>适合评论、上传、用户流量</td></tr>
+<tr><td>写后可延迟入库</td><td>写缓冲 / 批量落库</td><td>适合行为流和互动数据</td></tr>
+<tr><td>需要同时解决库存与状态推进</td><td>Redis 预处理 + 异步订单链路</td><td>秒杀场景常见组合</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="95-以秒杀社交互动直播与抢票为例"><a class="header" href="#95-以秒杀社交互动直播与抢票为例">9.5 以秒杀、社交互动、直播与抢票为例</a></h2>
+<h3 id="951-秒杀核心矛盾是少量库存对抗海量请求"><a class="header" href="#951-秒杀核心矛盾是少量库存对抗海量请求">9.5.1 秒杀：核心矛盾是少量库存对抗海量请求</a></h3>
+<p>秒杀的关键不是“把所有请求都处理掉”，而是：</p>
+<ul>
+<li>谁有资格进入下一轮</li>
+<li>库存在哪一层先被拦住</li>
+<li>结果如何最终收敛成真实订单</li>
+</ul>
+<p>比较务实的路径通常是：</p>
+<ol>
+<li>接口限流和资格校验</li>
+<li>Redis 预扣库存或发放资格令牌</li>
+<li>成功者进入异步下单链路</li>
+<li>订单写库后最终确认</li>
+<li>失败订单触发补偿回补</li>
+</ol>
+<h3 id="952-社交点赞--评论核心矛盾是热点对象与低成本反馈"><a class="header" href="#952-社交点赞--评论核心矛盾是热点对象与低成本反馈">9.5.2 社交点赞 / 评论：核心矛盾是热点对象与低成本反馈</a></h3>
+<p>点赞和评论看似简单，但热点内容上可能同时出现：</p>
+<ul>
+<li>海量并发写</li>
+<li>重复点击</li>
+<li>计数放大</li>
+<li>排序和楼层竞争</li>
+</ul>
+<p>工程上常见做法是：</p>
+<ul>
+<li>点赞先做防重和异步聚合</li>
+<li>评论先受理再异步落库</li>
+<li>热门计数独立缓存</li>
+<li>长尾数据按普通路径处理</li>
+</ul>
+<h3 id="953-直播互动核心矛盾是洪峰极短反馈要快"><a class="header" href="#953-直播互动核心矛盾是洪峰极短反馈要快">9.5.3 直播互动：核心矛盾是洪峰极短、反馈要快</a></h3>
+<p>直播弹幕、抽奖、口令红包、互动投票等场景通常要求：</p>
+<ul>
+<li>几乎实时反馈</li>
+<li>能扛瞬时爆发</li>
+<li>不因单次活动拖垮全站</li>
+</ul>
+<p>因此会特别依赖：</p>
+<ul>
+<li>活动隔离</li>
+<li>房间级限流</li>
+<li>房间级队列</li>
+<li>热房间单独扩容</li>
+</ul>
+<h3 id="954-抢票核心矛盾是公平性库存一致性与热点保护"><a class="header" href="#954-抢票核心矛盾是公平性库存一致性与热点保护">9.5.4 抢票：核心矛盾是公平性、库存一致性与热点保护</a></h3>
+<p>抢票和秒杀很像，但通常更强调：</p>
+<ul>
+<li>座位或票档资源的唯一性</li>
+<li>顺序和公平性</li>
+<li>超时释放</li>
+<li>防刷和黄牛控制</li>
+</ul>
+<p>这类场景除了高并发写治理，还常常叠加强一致要求，因此经常会结合：</p>
+<ul>
+<li>限流</li>
+<li>排队</li>
+<li>预占库存</li>
+<li>状态机推进</li>
+<li>取消回补</li>
+</ul>
+<h2 id="96-热点治理库存一致性幂等与补偿"><a class="header" href="#96-热点治理库存一致性幂等与补偿">9.6 热点治理、库存一致性、幂等与补偿</a></h2>
+<h3 id="961-热点治理首先是识别热点"><a class="header" href="#961-热点治理首先是识别热点">9.6.1 热点治理首先是识别热点</a></h3>
+<p>很多系统做不好热点治理，不是不会分片，而是根本不知道热点在哪里。</p>
+<p>要重点观测：</p>
+<ul>
+<li>热点 key 分布</li>
+<li>单分区写入量</li>
+<li>热门活动资源命中率</li>
+<li>单对象写失败率</li>
+<li>单下游超时率</li>
+</ul>
+<h3 id="962-库存一致性不能只靠前置预扣"><a class="header" href="#962-库存一致性不能只靠前置预扣">9.6.2 库存一致性不能只靠前置预扣</a></h3>
+<p><code>Redis</code> 预扣很快，但它不是订单事实本身。<br>真正成熟的库存方案通常是：</p>
+<ul>
+<li>前面快速预扣或资格判断</li>
+<li>后面真实订单和库存事实落库</li>
+<li>最后通过补偿和对账收敛</li>
+</ul>
+<p>也就是说：</p>
+<blockquote>
+<p>预扣解决的是峰值入口，最终事实仍然要靠后端状态闭环。</p>
+</blockquote>
+<h3 id="963-幂等既要挡住入口也要挡住异步链路"><a class="header" href="#963-幂等既要挡住入口也要挡住异步链路">9.6.3 幂等既要挡住入口，也要挡住异步链路</a></h3>
+<p>入口幂等防的是重复提交；<br>异步幂等防的是重复消费和重复执行。</p>
+<p>两者都缺一不可。</p>
+<h3 id="964-补偿不是失败兜底而是主设计的一部分"><a class="header" href="#964-补偿不是失败兜底而是主设计的一部分">9.6.4 补偿不是失败兜底，而是主设计的一部分</a></h3>
+<p>在高并发写场景里，失败不是偶发，而是常态之一。<br>所以必须提前设计：</p>
+<ul>
+<li>订单创建失败如何回补</li>
+<li>消费超时如何重试</li>
+<li>热点状态不一致如何对账</li>
+<li>预扣成功但最终失败如何释放</li>
+</ul>
+<h2 id="97-常见误区"><a class="header" href="#97-常见误区">9.7 常见误区</a></h2>
+<h3 id="971-只想着扩容不想着控流"><a class="header" href="#971-只想着扩容不想着控流">9.7.1 只想着扩容，不想着控流</a></h3>
+<p>扩容能提升总量，但拦不住无上限洪峰。</p>
+<h3 id="972-让数据库承担第一波冲击"><a class="header" href="#972-让数据库承担第一波冲击">9.7.2 让数据库承担第一波冲击</a></h3>
+<p>这样最容易把最终存储层变成第一批牺牲者。</p>
+<h3 id="973-只做异步化不做结果确认设计"><a class="header" href="#973-只做异步化不做结果确认设计">9.7.3 只做异步化，不做结果确认设计</a></h3>
+<p>异步不是把问题藏起来。<br>用户成功、受理中、失败、待确认这些状态都必须被明确定义。</p>
+<h3 id="974-只做-redis-预扣不做后端事实闭环"><a class="header" href="#974-只做-redis-预扣不做后端事实闭环">9.7.4 只做 Redis 预扣，不做后端事实闭环</a></h3>
+<p>这样系统会很快陷入“缓存看起来对，数据库事实说不清”的状态。</p>
+<h3 id="975-把所有热点都当成同一种问题"><a class="header" href="#975-把所有热点都当成同一种问题">9.7.5 把所有热点都当成同一种问题</a></h3>
+<p>单库存热点、热门评论热点、直播房间热点、上传带宽热点，其实是不同层次的问题，方案不能一刀切。</p>
+<h2 id="98-方法论沉淀如何做出务实选型"><a class="header" href="#98-方法论沉淀如何做出务实选型">9.8 方法论沉淀：如何做出务实选型</a></h2>
+<h3 id="981-五个判断句"><a class="header" href="#981-五个判断句">9.8.1 五个判断句</a></h3>
+<ol>
+<li>高并发写系统的首要目标不是把所有请求都处理完，而是让系统在洪峰下仍然可控。</li>
+<li>先控进入量，再谈处理量；先保护热点，再谈整体吞吐。</li>
+<li>能异步的不要强同步，能削峰的不要直接落库，能分层的不要单链路硬扛。</li>
+<li>Redis、MQ、分片、批量写都只是局部手段，真正关键的是入口保护、状态设计和最终收敛。</li>
+<li>秒杀、抢票、社交互动看起来不同，但底层都在解决洪峰、热点、幂等、补偿和资源保护问题。</li>
+</ol>
+<h3 id="982-一句话表达"><a class="header" href="#982-一句话表达">9.8.2 一句话表达</a></h3>
+<p>如果把这一章压缩成一句可直接复用的话，可以这样讲：</p>
+<blockquote>
+<p>高并发写与热点场景系统设计的核心，不是把后端数据库做得足够抗打，而是先用限流、排队、预处理和热点隔离把洪峰削平，再用异步链路、幂等、补偿和状态闭环把最终结果收敛出来。</p>
+</blockquote>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part01/08-low-latency-complex-read-methodology.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part02/01-ecommerce-overview.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part01/08-low-latency-complex-read-methodology.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part02/01-ecommerce-overview.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
