@@ -1,0 +1,522 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第 4 章 大事务处理方法论：Saga、补偿与最终一致性 - 系统设计与架构实战：原理、工程与电商案例</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="从系统设计方法论、核心基础设施、可靠性工程到电商业务架构实战；兼顾原理、工程落地、面试表达和完整业务案例。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-2692b81f.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-de72842a.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">系统设计与架构实战：原理、工程与电商案例</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第-4-章-大事务处理方法论saga补偿与最终一致性"><a class="header" href="#第-4-章-大事务处理方法论saga补偿与最终一致性">第 4 章 大事务处理方法论：Saga、补偿与最终一致性</a></h1>
+<blockquote>
+<p>从电商创单出发，理解为什么关键业务动作会天然演化为大事务问题，以及如何在同步 RPC、Saga、TCC、Outbox 和补偿机制之间做出可恢复、可审计、可收敛的设计选择。</p>
+</blockquote>
+<p>很多工程师第一次听到“大事务”时，会自然联想到数据库事务、分布式事务，甚至 <code>2PC / XA</code>。这些概念当然重要，但如果把它们直接套到互联网业务里，往往会把问题理解偏。</p>
+<p>互联网系统里的大事务，真正要解决的不是“如何让多个数据库像一个数据库那样一起提交”，而是：</p>
+<blockquote>
+<p>当一个关键业务动作必须跨库存、营销、订单、支付、账务等多个系统共同完成时，系统应该如何在失败必然发生的现实里，仍然把结果收敛到可解释、可恢复、可补偿的状态。</p>
+</blockquote>
+<p>这也是为什么本章会从电商创单切入。创单不是唯一的大事务场景，但它最能把大事务设计里的关键矛盾一次性暴露出来：多系统、副作用、补偿、超时、幂等、状态收敛。</p>
+<p>这里先提前建立一个边界：</p>
+<ul>
+<li><strong>大事务方法论</strong>，关注的是一个关键节点的最终一致性。</li>
+<li><strong>长生命周期业务流程方法论</strong>，关注的是一个业务对象在多个阶段中的推进与治理。</li>
+</ul>
+<p>例如，订单从创单到支付、履约、售后，是一个长生命周期业务流程；而“创单”这个关键节点内部的锁库存、占优惠、落订单，则是一个典型大事务。下一章会专门展开长生命周期业务流程，本章只聚焦“大事务”本身。</p>
+<h2 id="51-大事务到底在解决什么问题"><a class="header" href="#51-大事务到底在解决什么问题">5.1 大事务到底在解决什么问题</a></h2>
+<p>先把三个经常混在一起的概念拆开：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>概念</th><th>解决的问题</th><th>典型手段</th></tr>
+</thead>
+<tbody>
+<tr><td>数据库事务</td><td>单库内的原子性和一致性</td><td>本地事务、锁、隔离级别</td></tr>
+<tr><td>分布式事务</td><td>多资源之间的提交一致性</td><td><code>2PC</code>、<code>XA</code>、<code>TCC</code></td></tr>
+<tr><td>业务大事务</td><td>跨系统业务目标如何推进和收敛</td><td>Saga、状态机、Workflow、补偿</td></tr>
+</tbody>
+</table>
+</div>
+<p>数据库事务关心的是“同一个数据库里的几条 SQL 要不要一起成功或失败”。<br>分布式事务关心的是“多个资源管理器之间能不能形成统一提交语义”。<br>业务大事务关心的则是“一个业务流程跨多个系统推进时，如何保证结果最终正确且过程可治理”。</p>
+<p>这三者并不是谁替代谁的关系，而是处理层次不同的问题。</p>
+<p>在互联网系统里，很多流程天生就不适合直接上 <code>2PC / XA</code>：</p>
+<ul>
+<li>支付网关、短信平台、物流系统、供应商接口都不可能加入你的本地事务。</li>
+<li>用户支付不是毫秒级动作，可能会等待几十秒、几分钟，甚至跨天。</li>
+<li>高并发下长时间持锁会迅速击穿吞吐和可用性。</li>
+<li>很多步骤天然只能做“确认 / 取消 / 补偿”，而不是“全局原子提交 / 回滚”。</li>
+</ul>
+<p>所以大事务设计的重点很少是“全局一次提交”，更常见的是：</p>
+<ol>
+<li>找到权威状态源。</li>
+<li>把业务流程拆成多个可提交、可恢复、可补偿的阶段。</li>
+<li>为每个阶段定义状态、超时、补偿和审计规则。</li>
+<li>确保流程在局部失败后仍然能够最终收敛。</li>
+</ol>
+<p>这也意味着，大事务系统的设计对象不是“接口调用顺序”，而是“状态推进机制”。</p>
+<h2 id="52-为什么创单节点天然是大事务"><a class="header" href="#52-为什么创单节点天然是大事务">5.2 为什么创单节点天然是大事务</a></h2>
+<p>电商创单看起来只是用户点了一次“提交订单”，但“创单”这个动作本身通常至少涉及下面这些子动作：</p>
+<ol>
+<li>校验商品是否仍然可售。</li>
+<li>校验价格、优惠、税费、运费是否仍然有效。</li>
+<li>预占库存或其他资源。</li>
+<li>创建订单主记录和订单行。</li>
+<li>生成支付单或支付上下文。</li>
+<li>为后续支付准备支付上下文。</li>
+</ol>
+<p>这条链路的真正难点，不在于步骤多，而在于每一步都可能拥有独立的本地事务和独立的失败语义：</p>
+<ul>
+<li>库存预占成功，但订单写库失败。</li>
+<li>订单创建成功，但支付发起失败。</li>
+<li>营销额度占用成功，但库存预占失败。</li>
+<li>支付上下文创建成功，但订单落库失败。</li>
+<li>订单超时取消后，库存释放和优惠释放只完成了一部分。</li>
+</ul>
+<p>所以创单节点天然带有四个大事务特征：</p>
+<ul>
+<li><strong>跨系统</strong>：库存、价格、订单、支付、履约通常不是同一个服务。</li>
+<li><strong>多副作用</strong>：库存、营销、订单、支付上下文都可能留下真实副作用。</li>
+<li><strong>可失败</strong>：任何一步都可能独立失败，而且失败之后未必能简单回滚。</li>
+<li><strong>需收敛</strong>：失败之后必须知道哪些动作要撤销、哪些状态要保留。</li>
+</ul>
+<p>用一句话概括：创单节点不是“一个接口调多个下游”，而是“一次业务动作里包含多个必须一起收敛的副作用”。</p>
+<p>订单生命周期当然还会继续进入支付、履约、售后，但那是下一章要讨论的长流程问题。本章只把“创单这一刻怎么做对”拆开讲透。</p>
+<h2 id="53-如何判断一个业务动作是不是大事务"><a class="header" href="#53-如何判断一个业务动作是不是大事务">5.3 如何判断一个业务动作是不是大事务</a></h2>
+<p>不是所有跨系统调用都值得上 Saga、TCC 或补偿编排。真正需要按大事务来设计的业务动作，通常至少满足下面几个判断维度：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>判断维度</th><th>典型问题</th></tr>
+</thead>
+<tbody>
+<tr><td>跨系统副作用</td><td>是否会同时修改库存、营销、订单、账务等多个系统</td></tr>
+<tr><td>失败代价</td><td>某一步部分成功后，是否会出现超卖、重复扣减、资损</td></tr>
+<tr><td>补偿需求</td><td>任一步失败后是否需要显式回收已有副作用</td></tr>
+<tr><td>幂等要求</td><td>重试时是否可能重复扣库存、重复占券、重复落单</td></tr>
+<tr><td>状态收敛</td><td>是否必须把结果收敛成“成功 / 失败 / 待补偿 / 待人工处理”</td></tr>
+<tr><td>可审计性</td><td>事后是否必须解释“哪些动作已执行、哪些动作已回滚”</td></tr>
+</tbody>
+</table>
+</div>
+<p>可以先记一个很实用的经验判断：</p>
+<ul>
+<li><strong>普通同步调用</strong>：步骤少、依赖少、失败后整体返回即可，没有明显跨系统副作用。</li>
+<li><strong>大事务设计</strong>：需要显式补偿、幂等和状态收敛，但问题仍集中在一个关键业务动作内部。</li>
+<li><strong>长流程编排</strong>：存在长等待、审批、人工介入和多阶段推进，已经超出单个业务动作的边界。</li>
+</ul>
+<p>对创单来说，如果只是“查库存 -&gt; 算价 -&gt; 落单”三步确认，短流程可能够用；但只要开始有库存预占、优惠占用、订单创建、失败补偿这些跨系统副作用，它就已经进入大事务问题域了。</p>
+<h2 id="54-四种主流方案的能力边界"><a class="header" href="#54-四种主流方案的能力边界">5.4 四种主流方案的能力边界</a></h2>
+<p>围绕创单这类关键节点，最常见的四种实现路线是：</p>
+<h3 id="541-同步-rpc--本地事务"><a class="header" href="#541-同步-rpc--本地事务">5.4.1 同步 RPC + 本地事务</a></h3>
+<p>做法是由一个入口服务串行调用库存、营销、订单等下游，所有动作尽量在一次同步请求里完成，本地状态通过单库事务保护。</p>
+<p>优点：</p>
+<ul>
+<li>实现简单，链路直观。</li>
+<li>对短流程最友好。</li>
+<li>不需要额外引入 Saga Coordinator。</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>一旦步骤变多，超时、重试、局部失败会迅速复杂化。</li>
+<li>中间状态不清晰，补偿难以标准化。</li>
+<li>对“部分成功后如何回收副作用”支持很弱。</li>
+</ul>
+<p>它适合副作用较少的短闭环动作，不适合复杂创单节点。</p>
+<h3 id="542-协同式-saga"><a class="header" href="#542-协同式-saga">5.4.2 协同式 Saga</a></h3>
+<p>做法是各系统通过事件彼此驱动：订单服务发事件，库存系统消费后再发事件，营销系统再消费，最终把整个业务动作收敛完成。</p>
+<p>优点：</p>
+<ul>
+<li>松耦合，系统自治性强。</li>
+<li>对异步链路友好。</li>
+<li>能顺着领域边界自然扩展。</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>全局副作用不容易一眼看清。</li>
+<li>补偿逻辑分散在多个系统里。</li>
+<li>审计和排障成本偏高。</li>
+</ul>
+<p>它适合多系统自治较强的场景，但对交易主链路来说，可见性往往不够。</p>
+<h3 id="543-编排式-saga"><a class="header" href="#543-编排式-saga">5.4.3 编排式 Saga</a></h3>
+<p>做法是引入一个协调者，由它显式推进业务动作：先预占库存，再占用优惠，再创建订单，失败时按策略触发补偿。</p>
+<p>优点：</p>
+<ul>
+<li>流程可见性强。</li>
+<li>补偿逻辑集中，便于治理。</li>
+<li>很适合创单、退款、发布这类有明确主控方的关键节点。</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>协调者本身会成为复杂系统。</li>
+<li>需要认真设计状态持久化、重试、幂等和高可用。</li>
+</ul>
+<p>它是很多互联网主交易链路里最常见的大事务折中方案。</p>
+<h3 id="544-tcc--预留确认取消模型"><a class="header" href="#544-tcc--预留确认取消模型">5.4.4 TCC / 预留确认取消模型</a></h3>
+<p>当副作用系统本身支持显式的 <code>Try / Confirm / Cancel</code> 语义时，可以进一步使用 <code>TCC</code>。</p>
+<p>优点：</p>
+<ul>
+<li>业务语义清晰，预留和确认边界明确。</li>
+<li>对库存、额度、余额这类可预占资源尤其自然。</li>
+<li>成功路径和取消路径都更可控。</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>要求参与方都暴露 <code>Try / Confirm / Cancel</code> 接口。</li>
+<li>对已有遗留系统改造成本高。</li>
+<li>不适合所有副作用场景。</li>
+</ul>
+<p>它更适合高价值资源的严谨控制，而不是所有普通业务动作。</p>
+<h3 id="545-一张对比表"><a class="header" href="#545-一张对比表">5.4.5 一张对比表</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>实现复杂度</th><th>状态可见性</th><th>补偿能力</th><th>审计能力</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td>同步 RPC + 本地事务</td><td>低</td><td>低</td><td>低</td><td>低</td><td>副作用少、同步闭环</td></tr>
+<tr><td>协同式 Saga</td><td>中</td><td>中偏低</td><td>中</td><td>中偏低</td><td>多系统异步协作</td></tr>
+<tr><td>编排式 Saga</td><td>中偏高</td><td>高</td><td>高</td><td>高</td><td>创单、退款、发布等主控节点</td></tr>
+<tr><td>TCC</td><td>高</td><td>高</td><td>高</td><td>高</td><td>库存、余额、额度等可预留资源</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="55-大事务系统的核心不是调接口而是状态收敛"><a class="header" href="#55-大事务系统的核心不是调接口而是状态收敛">5.5 大事务系统的核心不是“调接口”，而是“状态收敛”</a></h2>
+<p>很多失败的大事务系统，都犯了同一个错误：把大事务理解成“把多个下游接口按顺序调完”。这会导致系统看似有链路，实则没有治理能力。</p>
+<p>真正可生产的大事务系统，设计对象应该是“副作用之后如何收敛”，而不是“调用顺序”。</p>
+<p>以创单为例，比“库存接口调没调成功”更重要的问题是：</p>
+<ul>
+<li>当前创单动作处在“待执行”“部分成功”“待补偿”“已完成”还是“已失败”？</li>
+<li>当前库存预占是“未预占”“已预占”“待释放”还是“已确认”？</li>
+<li>当前营销额度是“未占用”“已占用”“待回补”还是“已回补”？</li>
+</ul>
+<p>一旦把系统设计成状态收敛问题，很多治理动作才有落点：</p>
+<ul>
+<li><strong>超时</strong>：不是简单重试接口，而是把状态推进到“待补偿 / 待人工确认”。</li>
+<li><strong>补偿</strong>：不是“反向再调一遍接口”，而是把已经产生的副作用有控制地回收。</li>
+<li><strong>幂等</strong>：不是只看请求 ID，而是同一状态迁移不能重复制造副作用。</li>
+<li><strong>人工接管</strong>：不是 DBA 直接改库，而是通过受控动作收敛状态。</li>
+</ul>
+<p>所以大事务系统设计时，必须优先回答：</p>
+<ol>
+<li>哪些副作用属于这个大事务边界？</li>
+<li>每个副作用的成功、失败和补偿语义是什么？</li>
+<li>超时如何转移？</li>
+<li>失败后由谁补偿？</li>
+<li>什么状态允许人工接管？</li>
+</ol>
+<p>这也是为什么很多成熟系统最后都会自然走向“显式状态机 + Saga / TCC / 补偿协调器”的设计。</p>
+<h2 id="56-状态机sagatcc-与-outbox-怎么选"><a class="header" href="#56-状态机sagatcc-与-outbox-怎么选">5.6 状态机、Saga、TCC 与 Outbox 怎么选</a></h2>
+<p>这里不要从“喜欢哪个框架”开始，而要从复杂度来源开始。</p>
+<h3 id="561-数据库状态机足够的情况"><a class="header" href="#561-数据库状态机足够的情况">5.6.1 数据库状态机足够的情况</a></h3>
+<p>如果流程满足下面这些特点，数据库状态机通常就够：</p>
+<ul>
+<li>步骤有限。</li>
+<li>主控服务明确。</li>
+<li>失败补偿比较简单。</li>
+<li>编排逻辑仍然能被一个服务清晰维护。</li>
+</ul>
+<p>典型例子：简单创单、简单退款、简单额度占用。</p>
+<h3 id="562-应用层-saga-更合适的情况"><a class="header" href="#562-应用层-saga-更合适的情况">5.6.2 应用层 Saga 更合适的情况</a></h3>
+<p>当业务动作已经明显跨系统、需要显式补偿和统一审计时，可以选择编排式 Saga。</p>
+<p>典型例子：交易主链路创单、售后退款、商品发布确认。</p>
+<h3 id="563-tcc-值得引入的情况"><a class="header" href="#563-tcc-值得引入的情况">5.6.3 TCC 值得引入的情况</a></h3>
+<p>如果参与方都能暴露明确的预留、确认、取消语义，那么引入 <code>TCC</code> 会更合理：</p>
+<ul>
+<li>资源本身可以被预占。</li>
+<li><code>Confirm</code> 和 <code>Cancel</code> 具有明确业务语义。</li>
+<li>失败代价高，不能依赖事后修账来兜底。</li>
+<li>参与方改造能力足够强。</li>
+</ul>
+<p>典型例子：库存冻结确认、钱包余额预扣、额度占用。</p>
+<h3 id="564-outbox-适合解决什么问题"><a class="header" href="#564-outbox-适合解决什么问题">5.6.4 Outbox 适合解决什么问题</a></h3>
+<p>很多团队会把 <code>Outbox Pattern</code> 误认为一种完整大事务方案。更准确地说，它解决的是：</p>
+<ul>
+<li>本地事务提交之后，事件如何可靠发出。</li>
+<li>避免“数据库写成功了，但消息没发出去”。</li>
+<li>为后续 Saga 或补偿链路提供稳定起点。</li>
+</ul>
+<p>所以 <code>Outbox</code> 通常不是独立的大事务终局方案，而是大事务体系里的可靠事件基座。</p>
+<h3 id="565-一个务实的升级路径"><a class="header" href="#565-一个务实的升级路径">5.6.5 一个务实的升级路径</a></h3>
+<p>建议遵循下面的演进顺序：</p>
+<ol>
+<li>先用同步短流程解决最简单问题。</li>
+<li>补偿和状态边界开始复杂时，升级到状态机 / Saga。</li>
+<li>关键资源需要明确预留确认时，再考虑 <code>TCC</code>。</li>
+<li>需要稳定事件桥接时，把 <code>Outbox</code> 作为基础设施补上。</li>
+</ol>
+<p>这条路径通常比一开始就追求“全局最强方案”更符合互联网系统的实际演进。</p>
+<h2 id="57-从创单扩展到其他关键业务动作"><a class="header" href="#57-从创单扩展到其他关键业务动作">5.7 从创单扩展到其他关键业务动作</a></h2>
+<p>创单并不是例外，它只是最典型的大事务样本。用同样的视角看，很多关键节点都属于同一类问题。</p>
+<h3 id="571-用户注册--认证流程"><a class="header" href="#571-用户注册--认证流程">5.7.1 用户注册 / 认证流程</a></h3>
+<p>注册往往不只是“写一条用户记录”，还会涉及账号创建、风控校验、实名状态更新、欢迎权益发放。只要这些动作跨多个系统共同完成，它就已经具备大事务特征。</p>
+<h3 id="572-退款--售后流程"><a class="header" href="#572-退款--售后流程">5.7.2 退款 / 售后流程</a></h3>
+<p>退款这个关键动作内部，同样可能涉及退款单创建、支付网关退款、权益回补、账务回冲等多个副作用，而且强依赖补偿和审计。</p>
+<h3 id="573-审核--发布流程"><a class="header" href="#573-审核--发布流程">5.7.3 审核 / 发布流程</a></h3>
+<p>商品发布里的 <code>Publish</code> 动作，虽然不是资金交易，但同样具备更新主数据、推送索引、清缓存、发事件等多个副作用，往往很适合编排式 Saga。</p>
+<h3 id="574-一个统一视角"><a class="header" href="#574-一个统一视角">5.7.4 一个统一视角</a></h3>
+<p>这些流程表面业务不同，但底层共性高度一致：</p>
+<ul>
+<li>都不是单库事务问题，而是跨系统副作用收敛问题。</li>
+<li>都需要显式状态。</li>
+<li>都需要超时、补偿和审计。</li>
+<li>都需要在简单方案和严格方案之间做选型。</li>
+</ul>
+<h2 id="58-方法论沉淀如何在真实系统中做出选择"><a class="header" href="#58-方法论沉淀如何在真实系统中做出选择">5.8 方法论沉淀：如何在真实系统中做出选择</a></h2>
+<p>到这里可以把整章压缩成一组可复用判断。</p>
+<h3 id="581-五个判断句"><a class="header" href="#581-五个判断句">5.8.1 五个判断句</a></h3>
+<ol>
+<li>只要一个关键业务动作跨多个系统和多个本地事务共同完成，它就可能是大事务问题。</li>
+<li>只要失败后不能简单整体回滚，就必须设计补偿和状态收敛。</li>
+<li>只要副作用真实存在，就必须先定义幂等和补偿，再谈重试。</li>
+<li>真正决定系统能否生产可用的，不是接口链路，而是状态收敛模型。</li>
+<li>选型顺序永远应该是：先解决一致性问题，再决定是否值得引入更重的协调机制。</li>
+</ol>
+<h3 id="582-一张务实选型表"><a class="header" href="#582-一张务实选型表">5.8.2 一张务实选型表</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景特征</th><th>推荐方案</th></tr>
+</thead>
+<tbody>
+<tr><td>步骤少、同步闭环、失败整体返回即可</td><td>同步 RPC + 本地事务</td></tr>
+<tr><td>跨系统、多步骤、需要补偿</td><td>应用层状态机 / 编排式 Saga</td></tr>
+<tr><td>多系统自治、事件天然存在、主控方不强</td><td>协同式 Saga</td></tr>
+<tr><td>资源可预占、确认取消边界清晰</td><td>TCC</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="583-面试与评审中的一句话表达"><a class="header" href="#583-面试与评审中的一句话表达">5.8.3 面试与评审中的一句话表达</a></h3>
+<p>如果要把这一章压缩成一句可直接复用的话，可以这样讲：</p>
+<blockquote>
+<p>互联网系统里的大事务，本质上不是把多个数据库事务绑成一个全局事务，而是把一个关键业务动作建模成可补偿、可幂等、可审计、可收敛的状态机；同步 RPC、Saga、TCC 和 Outbox 只是不同复杂度下的实现手段。</p>
+</blockquote>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part01/03-production-resilience-safeguards.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part01/05-long-lifecycle-business-process-methodology.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part01/03-production-resilience-safeguards.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part01/05-long-lifecycle-business-process-methodology.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
