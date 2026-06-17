@@ -6,11 +6,11 @@
 
 # 第一部分：系统设计方法论
 
-- [第 1 章 系统设计完全指南 和 方法论](part01/01-system-design-guide-methodology.md)
-- [第 2 章 架构师的武器库](part01/03-architects-arsenal.md)
-- [第 3 章 编码原则与设计模式](part01/04-coding-principles-design-patterns.md)
-- [第 4 章 生产级系统保障：可靠性、恢复与资损防控](part01/05-production-resilience-safeguards.md)
-- [第 5 章 大事务处理方法论：流程编排、Saga 与工作流系统](part01/06-large-transaction-orchestration.md)
+- [第 1 章 系统设计与方案写作：从问题定义到工程落地的决策方法](part01/01-system-design-guide-methodology.md)
+- [第 2 章 编码、重构与 Code Review：构建可演进代码的实践方法](part01/02-coding-principles-design-patterns.md)
+- [第 3 章 生产系统治理、保障与技术债务：韧性架构的动态平衡](part01/03-production-resilience-safeguards.md)
+- [第 4 章 大事务处理方法论：Saga、补偿与最终一致性](part01/04-large-transaction-orchestration.md)
+- [第 5 章 长生命周期业务流程方法论：状态机、编排、审批与恢复](part01/05-long-lifecycle-business-process-methodology.md)
 - [第 6 章 任务处理方法论：从短任务、长任务到 Agent 协作](part01/06-task-processing-methodology.md)
 - [第 7 章 高准确性与强一致性系统设计方法论：支付、库存与账务场景](part01/07-high-accuracy-strong-consistency-methodology.md)
 - [第 8 章 低延迟与复杂读场景系统设计方法论：搜索、推荐、广告与 Feed](part01/08-low-latency-complex-read-methodology.md)
