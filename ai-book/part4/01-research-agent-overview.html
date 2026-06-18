@@ -1,0 +1,588 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第25章 AI智能体研究现状、工程瓶颈与未来理想能力架构报告 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-f298987b.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-2c1b8508.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="ai智能体研究现状工程瓶颈与未来理想能力架构报告"><a class="header" href="#ai智能体研究现状工程瓶颈与未来理想能力架构报告">AI智能体研究现状、工程瓶颈与未来理想能力架构报告</a></h1>
+<blockquote>
+<p>本章回答四个问题：AI 智能体从哪里来、现在发展到什么程度、接下来最值得研究什么、以及它距离“理想智能体”还有多远。</p>
+</blockquote>
+<h2 id="阅读导航"><a class="header" href="#阅读导航">阅读导航</a></h2>
+<ul>
+<li><code>定义与范畴</code>：澄清“智能体”在不同研究传统中的含义。</li>
+<li><code>历史演进</code>：回顾从符号主义到 LLM agent 的关键里程碑。</li>
+<li><code>研究现状</code>：总结截至 2026 年 6 月 18 日的主流系统栈与代表性进展。</li>
+<li><code>研究方向</code>：区分短期工程重点与中长期能力问题。</li>
+<li><code>主要难点与瓶颈</code>：归纳当前最难被解决的结构性问题。</li>
+<li><code>理想智能体与现实差距</code>：对比目标形态与现状缺口。</li>
+<li><code>结论与建议</code>：给出面向研究、企业和治理的落地建议。</li>
+<li><code>附录：参考文章链接</code>：汇总本章涉及的论文、文档、榜单与治理资料，便于延伸阅读。</li>
+</ul>
+<h2 id="执行摘要"><a class="header" href="#执行摘要">执行摘要</a></h2>
+<p>本报告聚焦“AI智能体”这一概念在不同研究传统中的含义、从二十世纪中后期到二〇二六年六月十八日的历史演进、当下主流技术路线、关键研究方向、主要瓶颈，以及“理想智能体”与现有系统之间的结构性差距。整体结论是：智能体研究并非始于大语言模型，而是长期由三条主线共同推动——符号主义与认知架构、强化学习与行为控制、以及近年的基础模型驱动代理。今天的“智能体热”之所以爆发，本质上是大模型把语言理解、工具调用、跨任务迁移和自然交互统一到了一个可工程化的接口上，但它并没有消除早期研究中关于规划、记忆、信用分配、可解释性和安全控制的根本难题。</p>
+<p>从能力进展看，二〇二三年至二〇二六年的提升非常快，但呈现出“局部逼近、整体未解”的特征。网页与桌面操作方面，WebArena 原始论文中的最佳 GPT-4 代理只有 14.41% 任务成功率，而人类为 78.24%；OSWorld 原始论文中最佳模型仅 12.24%，人类超过 72.36%。到二〇二六年，官方或公开来源显示，前沿系统已把 WebArena-Verified、OSWorld-Verified 推进到 67.3% 和 75.0% 一类的水平，某些系统甚至在特定验证集上接近或超过原有人类基线；但与此同时，在更接近真实工作的 TheAgentCompany 上，最强基线自动完成率仍只有约 30%，在长程软件工程基准 SWE-Bench Pro 上，统一脚手架下的最佳公开结果仍低于 25%。这说明“短到中程、规则相对清晰、工具链可控”的任务正在快速被攻克，而“长程、开放世界、跨系统、带隐性约束”的真实工作自动化仍远未解决。</p>
+<p>研究前沿已经从“让模型会说”转向“让系统能做、做对、做稳、做得起、做得可审计”。因此，短中期最关键的投资方向并不是继续堆砌单一模型能力，而是围绕验证式执行环境、状态与记忆管理、测试时搜索与校验器、Agentic RL、协议安全、可观测性、人类审批与最小权限运行时等系统工程能力展开。官方开发文档也越来越清楚地把“编排、工具执行、审批、状态管理、可观测性”视为智能体系统的核心，而不再把智能体简化为一个会聊天的模型。</p>
+<p>理想智能体不应只是“更强的聊天机器人”，而应是一类具备目标澄清、长期记忆、因果建模、跨环境行动、可自我修复、可解释、可控、低成本、社会适应与安全协作能力的持续运行系统。与这一理想相比，当前主流系统的最大差距不在短时推理，而在长程鲁棒性、可靠记忆、真实世界安全边界、跨任务泛化的稳定性，以及“在不牺牲可审计性的前提下”进行高自主行动。</p>
+<h3 id="核心判断"><a class="header" href="#核心判断">核心判断</a></h3>
+<ul>
+<li>智能体研究不是从 LLM 才开始，而是符号主义、强化学习和基础模型代理三条路线长期汇流的结果。</li>
+<li>2023 年到 2026 年的进展非常快，但主要集中在“短到中程、可验证、工具边界清晰”的任务上。</li>
+<li>当前竞争重点已经从“模型会不会说”转向“系统能不能稳定执行、可审计、可控且成本可接受”。</li>
+<li>理想智能体与现实系统之间的最大鸿沟，仍然是长程鲁棒性、记忆治理、安全边界与高自主行动的可审计性。</li>
+</ul>
+<h2 id="定义与范畴"><a class="header" href="#定义与范畴">定义与范畴</a></h2>
+<p>“智能体”在 AI 领域并没有单一、跨范式一致的定义。经典 AI 教材将 agent 定义为“通过传感器感知环境、通过执行器作用于环境的实体”，并进一步强调“理性智能体”应在给定感知历史与先验知识的条件下，选择能最大化期望绩效的行动。这个定义的优点是抽象统一，适用于软件代理、机器人、博弈程序和网络服务，但它对内部实现没有限定。</p>
+<p>九十年代的自治智能体研究则更强调“自主性”。Franklin 与 Graesser 把自治智能体刻画为持续处于环境之中、能够自主感知并行动、以实现目标的一类系统；Wooldridge 与 Jennings 则把智能体的关键性质总结为自主性、反应性、主动性与社会能力。前者试图区分“agent”和一般程序，后者则把智能体研究分为 agent theory、agent architectures 与 multi-agent systems 等层面。这一时期的研究关注点更接近软件工程与分布式系统，而不仅是机器学习。</p>
+<p>如果按研究传统来划分，至少可以区分五类主要范畴。第一类是<strong>符号主义智能体</strong>，核心是显式知识表示、逻辑推理、规划与规则执行，代表脉络包括 GPS、物理符号系统假说、AOP、BDI 与 Soar。第二类是<strong>连接主义与行为式智能体</strong>，强调感知—行动闭环、分层控制、端到端表征学习与具身反应，Brooks 的 subsumption 体系是一个典型早期起点。第三类是<strong>强化学习智能体</strong>，以状态、动作、奖励与策略优化为中心，从 Q-learning、DQN 到 AlphaGo，再到多智能体 RL 与具身控制。第四类是<strong>多智能体系统</strong>，把多个自治实体之间的通信、协作、竞争与博弈视为研究对象。第五类则是今天最受关注的<strong>LLM 驱动智能体</strong>，它通常以基础模型作为“脑”，配合外部工具、检索、记忆、规划器、执行器和环境反馈，形成可执行的任务闭环。</p>
+<p>近两年，工程与产业界对“智能体”的定义又出现了新的收敛。OpenAI 的 Agents SDK 把智能体定义为“能够规划、调用工具、在专家之间协作并保持足够状态以完成多步骤任务的应用程序”；Google 的 ADK 则把重点放在“构建、调试、部署可靠 AI 智能体，并从单智能体扩展到多智能体系统”；Microsoft Agent Framework 进一步把编排、部署、中间件、终止条件和 guardrails 视作 agent runtime 的核心组成。换言之，现代工程语境中的“agent”已经不只是一个模型，而是“模型 + 工具 + 工作流 + 状态 + 审批 + 观测”的复合系统。</p>
+<p>为了便于后续讨论，可以先把不同范式的智能体放在同一个视角下比较：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>范畴</th><th>核心定义焦点</th><th>典型代表</th><th>优势</th><th>主要局限</th></tr>
+</thead>
+<tbody>
+<tr><td>符号主义智能体</td><td>显式知识、逻辑、规划、规则</td><td>GPS、AOP、BDI、Soar</td><td>可解释、约束清晰、适合高结构任务</td><td>对开放环境适应差，知识工程成本高</td></tr>
+<tr><td>行为式与连接主义智能体</td><td>感知—行动耦合、实时反应、表征学习</td><td>Brooks 分层控制、后来的深度控制</td><td>对动态环境响应快，适合具身与控制</td><td>难以显式规划与解释，高层目标处理弱</td></tr>
+<tr><td>强化学习智能体</td><td>奖励驱动策略优化</td><td>Q-learning、DQN、AlphaGo</td><td>能从交互中学策略，适合序列决策</td><td>样本效率低，奖励设计难，泛化脆弱</td></tr>
+<tr><td>多智能体系统</td><td>通信、协作、竞争、博弈</td><td>MADDPG、QMIX、SMAC</td><td>能分工协作，适合复杂任务分解</td><td>非平稳、信用分配难、评估复杂</td></tr>
+<tr><td>LLM驱动智能体</td><td>语言为中枢的规划、工具调用与状态管理</td><td>WebGPT、ReAct、Toolformer、Agents SDK</td><td>通用性强、开发门槛低、可跨任务迁移</td><td>长程稳定性、安全边界、成本与记忆仍弱</td></tr>
+<tr><td>具身与多模态智能体</td><td>语言、视觉、动作统一的闭环</td><td>Gato、SayCan、PaLM-E、RT-2</td><td>更接近真实世界行动</td><td>数据昂贵、泛化与安全验证更难</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="历史演进"><a class="header" href="#历史演进">历史演进</a></h2>
+<p>AI 智能体研究可以看作两次“大融合”的结果。第一次融合发生在二十世纪中后期：符号推理、问题求解、规划、认知架构与软件代理概念逐渐合流，形成了“把智能看作可表征、可推理、可执行的程序过程”的传统。第二次融合则发生在二〇一五年之后：深度学习、强化学习、Transformer、RLHF、多模态模型与工具调用体系逐步汇聚，最终在二〇二三年后形成今天所谓的 LLM agent 范式。</p>
+<p>下面的时间线用于快速建立“路线演进感”，表格则补充每个节点的方法与长期影响。</p>
+<pre class="mermaid">
+timeline
+    title AI智能体研究演进时间线
+    1950 : 图灵提出模仿游戏，把“机器智能”转化为可检验问题
+    1959 : GPS把问题求解程序化，奠定早期符号式智能体思路
+    1976 : 物理符号系统假说提出“符号系统是智能行动的必要且充分条件”
+    1986 : Brooks分层控制强调实时反应、具身性与行为式控制
+    1987 : Soar推动通用认知架构路线
+    1992 : Q-learning奠定可学习决策主体基础
+    1993-1997 : AOP、BDI、自治智能体分类与多智能体研究成熟
+    2015-2016 : DQN与AlphaGo带动深度强化学习智能体爆发
+    2017 : Transformer成为后续基础模型与LLM智能体底座
+    2021-2022 : WebGPT、InstructGPT、Gato、SayCan把搜索、对齐、通用性与具身结合
+    2023 : ReAct、Toolformer、Generative Agents、Voyager、Reflexion、MemGPT形成LLM agent方法簇
+    2024 : GAIA、WebArena、OSWorld、SWE-bench Verified把评测推进到真实网页、桌面与软件工程
+    2025-2026 : MCP、A2A、Agents SDK、Agent Framework、ChatGPT agent、Gemini Spark等推动生产化与互操作
+</pre>
+
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>时期</th><th>里程碑</th><th>贡献</th><th>方法</th><th>主要限制</th><th>长期影响</th></tr>
+</thead>
+<tbody>
+<tr><td>1950</td><td>图灵《Computing Machinery and Intelligence》</td><td>提出机器能否表现出智能行为的可操作问题框架</td><td>模仿游戏</td><td>不是可执行 agent 架构</td><td>设定了“行为可检验”的研究视角</td></tr>
+<tr><td>1959</td><td>GPS</td><td>早期通用问题求解程序</td><td>means-ends analysis、符号搜索</td><td>环境封闭、知识稀缺</td><td>奠定了规划式 agent 雏形</td></tr>
+<tr><td>1976</td><td>物理符号系统假说</td><td>将智能行动系统化为符号操作</td><td>符号表示与搜索</td><td>难处理感知、噪声与具身性</td><td>深刻影响认知架构与经典 AI</td></tr>
+<tr><td>1986</td><td>Brooks 分层控制</td><td>反驳“先建模后行动”的唯一路径</td><td>行为式、分层、实时反应</td><td>高层推理与语言能力弱</td><td>打开具身与行为式路线</td></tr>
+<tr><td>1987</td><td>Soar</td><td>追求通用认知架构与持续学习</td><td>规则系统、子目标、chunking</td><td>可扩展性与知识获取难</td><td>影响后续认知架构研究</td></tr>
+<tr><td>1992</td><td>Q-learning</td><td>为“会学的 agent”提供通用值函数框架</td><td>无模型 RL</td><td>离散条件强、样本效率限制大</td><td>成为现代 RL 基石</td></tr>
+<tr><td>1993</td><td>AOP</td><td>把“信念、能力、决策”作为程序抽象</td><td>mental-state 编程</td><td>与真实学习和感知结合弱</td><td>推动软件代理与 MAS</td></tr>
+<tr><td>1995</td><td>BDI Agents / Intelligent Agents</td><td>明确自治、反应、主动、社交等属性</td><td>心智状态 + 工程架构</td><td>难处理开放世界不确定性</td><td>成为软件 agent 教科书框架</td></tr>
+<tr><td>2015</td><td>DQN</td><td>用深度网络学习高维感知控制</td><td>深度强化学习</td><td>数据与稳定性问题突出</td><td>让神经智能体真正“能玩能学”</td></tr>
+<tr><td>2016</td><td>AlphaGo</td><td>证明深度网络 + 搜索 + 自博弈的威力</td><td>Policy/Value 网络 + MCTS</td><td>任务专用、工程复杂</td><td>推动“规划 + 学习”的融合</td></tr>
+<tr><td>2017</td><td>Transformer</td><td>提供高扩展的通用序列建模底座</td><td>自注意力</td><td>本身不是 agent</td><td>成为 LLM agent 的基础设施</td></tr>
+<tr><td>2021</td><td>WebGPT</td><td>把浏览网页与人类反馈结合到问答代理</td><td>浏览器动作 + 偏好优化</td><td>仍偏单任务问答</td><td>预示了“检索/浏览型 agent”</td></tr>
+<tr><td>2022</td><td>InstructGPT / Gato / SayCan</td><td>对齐、通用策略、具身可供性三条线并进</td><td>RLHF、多任务统一、LM+技能选择</td><td>可靠性与尺度成本高</td><td>为“通用代理”奠基</td></tr>
+<tr><td>2023</td><td>ReAct / Toolformer / Voyager / Reflexion / MemGPT / Generative Agents</td><td>形成“推理—行动—反思—记忆—社会模拟”方法簇</td><td>工具调用、文本反思、技能库、记忆层级</td><td>多为脚手架式提升，稳定性与评估不足</td><td>标志 LLM agent 研究范式成形</td></tr>
+<tr><td>2024-2026</td><td>WebArena / GAIA / OSWorld / SWE-bench Verified / MCP / A2A / Agents SDK 等</td><td>从论文原型走向可复现评测、协议与生产化运行时</td><td>真实网页、桌面、软件工程、协议互联、工作流编排</td><td>榜单碎片化、设置差异大、安全面扩大</td><td>进入“系统化智能体工程”阶段</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="研究现状"><a class="header" href="#研究现状">研究现状</a></h2>
+<p>截至二〇二六年六月十八日，主流智能体技术已经形成一个较为稳定的系统栈：以大模型或多模态模型作为中央策略器，外接搜索、代码执行、数据库、浏览器、桌面、API、文件系统等工具；通过 ReAct 式交替推理—行动循环、plan-and-act 分层规划、反思/校验器、记忆层级和多智能体分工来提升成功率；再用日志、轨迹、评估集、审批节点和 guardrails 去控制风险。这一架构的优势是通用、开发快、跨任务复用强；短板则是：高度依赖脚手架设计，推理成本高，长期状态脆弱，性能常常更多反映“系统编排质量”而不只是“底座模型质量”。</p>
+<p>从评测看，智能体领域已从静态 QA 转向交互式环境。GAIA 测通用助理的多步推理、浏览和文件处理；WebArena 测自托管网页任务；OSWorld 测真实桌面与跨应用操作；SWE-bench 系列测真实 GitHub issue 修复；TheAgentCompany 则更进一步，尝试模拟软件公司中的“数字员工”工作。不同基准分别评估 reasoning、tool use、browser use、computer use、coding 和 workplace automation，但它们的环境、允许工具、步数上限、是否验证版、是否自报成绩并不统一，因此跨基准和跨榜单“横向比较”必须非常谨慎。官方或追踪站点本身也明确提醒，很多排名反映的是“系统/脚手架配置”，而不是裸模型性能。</p>
+<p>如果只看“趋势”，进步非常显著。GAIA 原始论文中，人类答题者平均 92%，而带插件的 GPT-4 只有 15%；到二〇二六年五月，GAIA 官方测试榜单最高公开成绩已达到 93.02%。WebArena 原始论文中最佳 GPT-4 代理为 14.41%，而 OpenAI 的 CUA 在二〇二五年公开成绩为 58.1%，GPT‑5.4 在二〇二六年官方给出的 WebArena-Verified 成绩达到 67.3%。OSWorld 原始论文中最佳模型只有 12.24%，而 GPT‑5.4 在 OSWorld-Verified 上达到 75.0%。但这种迅速进步并不意味着“现实工作已被解决”：TheAgentCompany 的最强代理仍只能自动完成约 30% 任务；SWE-Bench Pro 统一脚手架下最佳仍低于 25%。这恰恰说明，当前系统擅长的是可验证、有限时长、接口相对清晰的任务，而非开放式企业流程。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>系统或平台</th><th>开源/商用</th><th>代表能力与公开指标</th><th>样本效率</th><th>可解释性</th><th>安全性</th><th>算力需求</th></tr>
+</thead>
+<tbody>
+<tr><td>mini-SWE-agent / SWE-agent</td><td>开源</td><td>官方称 mini-SWE-agent 在 SWE-bench Verified 上可达 74% 以上，是当前公开高水平 coding agent 代表之一。</td><td>高：多数能力来自预训练模型与最小 ReAct 脚手架，无需任务专训</td><td>中高：轨迹清晰，可复盘命令与补丁</td><td>依赖沙箱与执行环境，自身不内置强治理</td><td>中到高，取决于底座模型与并发评测规模</td></tr>
+<tr><td>OpenHands</td><td>开源</td><td>自托管开发者控制中心，可运行多种 coding agents，并公开 benchmark 基础设施；但平台本身没有单一固定指标，性能取决于后端模型与配置。</td><td>中高：偏“系统整合”而非环境内学习</td><td>高：工程轨迹、控制面清晰</td><td>可把代码与数据留在本地环境，安全边界更易自定义</td><td>中到高</td></tr>
+<tr><td>OpenAI 智能体栈</td><td>商用</td><td>ChatGPT agent 是 Operator 与 deep research 的自然演进；CUA 在 WebArena 为 58.1%，GPT‑5.4 在 WebArena-Verified 67.3%、OSWorld-Verified 75.0%。</td><td>高：大量任务依赖模型通用先验与工具接口，而不是环境训练</td><td>中：有 tracing、state、human review，但机理解释有限。</td><td>较强：官方强调 guardrails、human review、隔离 VM/浏览器。</td><td>高，尤其在 computer use 与长代理链上</td></tr>
+<tr><td>Anthropic Claude computer use + MCP</td><td>商用/开放协议</td><td>官方文档称 Claude 在 WebArena 上达到单智能体 SOTA，Opus 4.8 在 Online-Mind2Web 为 84%；MCP 已成主流工具接入标准之一。</td><td>高：主要靠提示、工具与服务端能力</td><td>中：轨迹可见，但内部决策仍黑箱</td><td>官方持续强化 prompt injection 防御，且要求最小权限 VM/容器。</td><td>高</td></tr>
+<tr><td>Google ADK + A2A + Gemini Spark</td><td>开源框架 + 商用品</td><td>ADK 支持从单智能体扩展到多智能体，A2A 面向 agent 互操作；Gemini Spark 标志 Google 把助手推进为持续运行的主动代理。</td><td>中高：框架强调工程扩展而非环境样本学习</td><td>高：内置构建、运行、评估与扩缩支持。</td><td>中高：企业集成强，但公开安全量化披露少于部分同行</td><td>中到高</td></tr>
+<tr><td>Microsoft Agent Framework / AutoGen</td><td>开源/商用混合</td><td>AutoGen 已进入 maintenance mode，新项目推荐 Agent Framework；后者强调中间件、termination、guardrails 与工作流部署。</td><td>中：偏编排与企业集成</td><td>高：工作流和中间件透明度较好</td><td>高：对 guardrails、终止条件和审批节点支持明确</td><td>中</td></tr>
+<tr><td>LangGraph</td><td>开源/商用混合</td><td>面向长时、有状态、多参与者 agent orchestration；强项在部署、管理与观测，不是单一 benchmark 冠军型系统。</td><td>中：主要依赖外部模型能力</td><td>高：状态图、轨迹、观测链条较清晰</td><td>中：取决于外接模型与运行策略</td><td>中</td></tr>
+</tbody>
+</table>
+</div>
+<p>当前的现实也越来越清楚：<strong>能力前沿正在从“模型尺度竞赛”转向“系统设计竞赛”</strong>。这一变化体现在三点上。第一，很多高分成绩来自模型、工具、检索、验证器、规则和提示工程的组合，而不是单模型调用。第二，协议层已成为研究前沿的一部分，MCP 与 A2A 说明 agent 生态开始把“互操作”当作基础设施问题来解。第三，开发框架越来越重视“可观察性、评估、人工审批、状态管理”，因为智能体已经不是一轮生成任务，而是会在时间中执行的“软件系统”。</p>
+<p>如果再往前看一步，二〇二五年至二〇二六年的一个更深层变化是：很多系统增益已经不再主要来自“把底座模型再换强一点”，而是来自<strong>推理期预算、运行时容器与技能抽象层</strong>的共同优化。像 FS-Researcher 这类工作把文件系统工作区当作可持续外部记忆，让证据构建与报告写作解耦，说明长程研究任务的上限并不只由上下文窗口决定，而越来越取决于运行时如何组织状态、检索与分工。<a href="https://arxiv.org/abs/2602.01566">FS-Researcher</a></p>
+<p>同样值得注意的是，近年的 agent 研究开始更明确地区分“底座模型能力”和“agent harness 能力”。一个稳妥的判断是：当任务跨越浏览器、代码、文件系统、API 与人工审批节点时，决定成功率的往往不是单次推理质量，而是执行循环、工具注册、上下文裁剪、状态存储、生命周期钩子与评估接口这些运行时层能力。也正因此，MCP、A2A、Agents SDK、Agent Framework 之类工作的重要性，不在于它们又提供了一套新语法，而在于它们把智能体逐步推向可组合、可治理、可审计的软件系统。</p>
+<p>从这个角度看，今天所谓“能力竞争”，越来越像三层耦合竞争：一是底座模型的推理与多模态能力，二是测试时搜索、reviewer / verifier 与反思回路带来的系统增益，三是 harness、skills、memory、protocol 这些运行时部件的工程质量。前沿系统的差异，已经越来越多地体现在这三层如何协同，而不是体现在“谁有一个更会聊天的模型”。</p>
+<h3 id="现状小结"><a class="header" href="#现状小结">现状小结</a></h3>
+<ul>
+<li>主流架构已经稳定为“模型 + 工具 + 工作流 + 记忆 + 评估/审批”的系统栈。</li>
+<li>榜单分数提升很快，但不同 benchmark 的环境、预算和权限差异很大，不能简单横向比较。</li>
+<li>当下的领先优势，越来越多来自系统编排、验证器和运行时设计，而不只是底座模型本身。</li>
+</ul>
+<h2 id="研究方向"><a class="header" href="#研究方向">研究方向</a></h2>
+<p>截至当前，研究方向已经明显分化为“短期可交付的工程增量”和“中长期面向通用智能体的能力问题”两大类。短期内，最有效的方向是提高长程任务成功率、降低成本、减少安全事故并增强可审计性；中期则是把外显脚手架方法沉淀成更可学习的 agent policy；长期才会触及因果世界模型、持续在线学习、具身泛化与 agent society 的治理问题。</p>
+<p>可以把这些方向粗略理解为三层：</p>
+<ul>
+<li><code>短期工程层</code>：验证式执行、状态管理、成本优化、审批与可观测性。</li>
+<li><code>中期学习层</code>：把外部脚手架经验沉淀为可训练策略，如 Agentic RL 与在线适应。</li>
+<li><code>长期能力层</code>：世界模型、因果推理、终身学习、具身泛化与社会协同治理。</li>
+</ul>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>研究方向</th><th>时间尺度</th><th>关键问题</th><th>代表工作</th><th>更合适的评估指标</th></tr>
+</thead>
+<tbody>
+<tr><td>通用智能体</td><td>中长期</td><td>如何让同一系统跨网页、代码、文档、桌面、沟通任务稳定迁移</td><td>Gato、GAIA、ChatGPT agent、Gemini Spark</td><td>跨基准平均成功率、任务覆盖面、迁移降幅</td></tr>
+<tr><td>可解释与可控代理</td><td>短中期</td><td>如何让行动理由、状态转移、审批边界可被人类审计</td><td>OpenAI Agents SDK、Microsoft Agent Framework、Google agent observability</td><td>轨迹完整率、人工接管率、审批命中率、误触发率</td></tr>
+<tr><td>长期记忆与终身学习</td><td>中长期</td><td>如何记住什么、何时检索、何时遗忘、何时反思</td><td>Generative Agents、Voyager、Reflexion、MemGPT</td><td>长程任务成功率、跨会话保持率、遗忘率、恢复成本</td></tr>
+<tr><td>Agentic RL 与在线适应</td><td>中期</td><td>如何把 tool use、用户交互和多步执行转成可训练策略</td><td>Agent Lightning、MUA-RL、ReTool</td><td>success rate、pass^k、多轮完成率、训练样本效率</td></tr>
+<tr><td>因果推断与世界模型</td><td>中长期</td><td>如何从相关性走向因果、从提示走向模拟和反事实规划</td><td>Language Agents Meet Causality、AWM、Blicket causal bias work</td><td>反事实正确率、探索效率、分布外稳健性</td></tr>
+<tr><td>多模态与具身交互</td><td>中长期</td><td>如何把视觉、语言、动作统一为可靠闭环</td><td>SayCan、PaLM-E、RT-2、OSWorld</td><td>真实任务成功率、跨环境泛化、操作精度、恢复能力</td></tr>
+<tr><td>多智能体协作与互操作</td><td>短中长期</td><td>何时分工比单体更优，协议如何设计，冲突如何解</td><td>MADDPG、QMIX、SMAC、A2A、AutoGen/Agent Framework</td><td>团队收益、通信成本、冲突率、协作稳定性</td></tr>
+<tr><td>社会、伦理与安全</td><td>短中长期</td><td>如何在高自主系统中控制注入、越权、欺骗和责任归属</td><td>Anthropic prompt injection defenses、OWASP、OpenAI safety docs、CAICT 报告</td><td>攻击成功率、越权率、误伤率、事件恢复时间</td></tr>
+<tr><td>能效与边缘部署</td><td>短中期</td><td>如何让 agent 更快、更便宜、更私密地运行</td><td>TinyAgent、SLM agent survey、MiniCPM-V edge work</td><td>cost per success、p95 latency、能耗/请求、隐私暴露面</td></tr>
+</tbody>
+</table>
+</div>
+<p>值得特别强调的是，<strong>测试时计算</strong>与<strong>验证器/审稿器结构</strong>有望在中短期内带来最现实的收益。ReAct、Tree of Thoughts、Graph of Thoughts、Reflexion、plan-and-act 以及 coding agent 中的 review loop 都说明：与其单纯追求更大的单次前向传播，不如让智能体拥有更好的搜索、回看、反思、校验和回退机制。对 agent 来说，“推理预算如何用”往往比“参数再大一点”更接近生产问题。</p>
+<p>进一步说，短中期真正值得投入的并不只是“会不会多想几步”，而是<strong>如何把测试时预算稳定地转化为系统级可靠性</strong>。这意味着 verifier、reviewer、jury、execution-based cross-validation 之类结构会越来越重要，因为它们把推理期扩展从“更长的思维链”推进为“可被环境反馈约束的搜索过程”。对软件工程、研究代理和高风险工具调用任务而言，这类结构往往比单次生成更接近真实工作的质量控制逻辑。</p>
+<p>与之并行的另一条主线，是把运行时治理直接视为研究问题而非部署细节。近年的 harness 研究、协议工作和生产框架都在指向同一件事：agent 的关键科学问题已经不只存在于模型内部，也存在于模型外部的执行容器、状态管理、工具权限、日志审计和人机协同边界之中。换言之，未来几年的重要研究方向，将不只是“提升模型能力”，还包括“把系统做得更稳、更可控、更容易验证”。</p>
+<h2 id="主要难点与瓶颈"><a class="header" href="#主要难点与瓶颈">主要难点与瓶颈</a></h2>
+<p>当前智能体研究的关键瓶颈，可以概括为六个方面：</p>
+<ol>
+<li>
+<p><strong>长程任务中的误差复利</strong><br>在多步交互里，任一步的局部误解、错误工具调用、状态遗漏或环境误读，都会在后续步骤不断放大。TheAgentCompany 中最强代理只能完成约 30% 任务、SWE-Bench Pro 最佳公开结果低于 25%，都说明从“能做一步”到“稳定做完一整件事”之间仍有巨大鸿沟。Plan-and-Act 之所以被提出，正是因为长程任务会暴露规划与执行糅合时的脆弱性。</p>
+</li>
+<li>
+<p><strong>记忆并不等于上下文长度</strong><br>更长的 context window 当然有帮助，但智能体真正需要的是：什么信息应被长期保留、什么应被压缩、什么时候该检索回来、什么时候该反思重写。MemGPT、Generative Agents、Voyager 和 Reflexion 都在尝试把“记忆”做成一层主动管理机制，而不是被动堆进上下文窗口；这恰恰说明长期记忆尚未被模型原生解决。这个问题在多智能体场景下会进一步放大，因为系统不仅要决定“记什么”，还要决定“谁能看什么、什么时候同步、用哪个版本为准”。如果没有明确的 scoping 规则，所谓共享记忆很容易退化为事实污染、重复劳动和过期上下文传播。</p>
+</li>
+<li>
+<p><strong>安全边界在 agent 场景里显著外移</strong><br>传统聊天模型的主要风险是生成不良内容，而 agent 的风险是“被输入影响后去调用外部工具、访问系统、执行动作”。Anthropic 直接把 prompt injection 称为 browser-based agents 最显著的安全挑战之一；OWASP 也把 prompt injection 视为 LLM 应用的核心风险；OpenAI 文档则明确要求在 computer use 中把页面内容视为不可信输入，并把高影响动作置于人工审批下。这意味着 agent 安全不是简单的模型对齐问题，而是输入隔离、权限最小化、审批、日志和运行时策略的系统问题。随着 skills 生态兴起，风险边界又向外扩了一层：第三方 SKILL.md、脚本和权限声明本身已经构成新的供应链攻击面。近期针对恶意 agent skills 的实证研究与检测框架都表明，这类风险既不是传统恶意代码扫描能完全覆盖的，也不是普通提示词安全就能解决的。<a href="https://arxiv.org/abs/2604.06550">SkillSieve</a></p>
+</li>
+<li>
+<p><strong>评价体系碎片化且可比性差</strong><br>同样叫“网页代理”，WebArena、WebArena-Verified、WebVoyager、BrowseComp 测的是不同事；同样叫“电脑使用”，OSWorld、OSWorld-Verified、不同步数上限和不同输入模态也会产生巨大的分数差异。GAIA、τ-bench、TheAgentCompany、SWE-bench 则分别对应通用助理、协作对话、数字员工和代码修复。今天的一个现实问题是：榜单越多，越容易“各赢一项”；真正缺的是跨环境、跨预算、跨风险等级、可复现实验设置下的综合评价。</p>
+</li>
+<li>
+<p><strong>训练数据与信用分配</strong><br>很多 agent 成功来自人工脚手架，而非模型真正学会了在环境中优化策略。Agent Lightning、MUA-RL 和 EDGE 等工作共同说明，agent 学习面临三个核心困难：轨迹长而稀疏、用户与环境是动态的、好的训练样本不容易采。也正因此，agent 训练到今天仍高度依赖合成数据、工具反馈和局部 reward 设计，尚未形成类似语言建模那样统一、稳定的规模化学习范式。</p>
+</li>
+<li>
+<p><strong>经济性与部署性</strong><br>前沿 agent 往往需要长上下文、多轮推理、频繁工具调用、截图/DOM/执行环境、日志与缓存，这些都会显著推高成本和延迟。Anthropic 在 computer use 发布时坦言其系统“slow and often error-prone”；而小模型与边缘 agent 方向之所以迅速升温，恰恰是因为现实应用要面对 token 成本、响应延迟、数据隐私和设备约束。换言之，很多 agent 难题并不只是“做不出来”，而是“做得出来但做不起”。在企业集成里，这个问题还会以另外三种更工程化的形式出现：把杂乱知识一股脑灌进向量库的 <code>Dumb RAG</code>，直接对接脆弱遗留 API 的 <code>Brittle Connector</code>，以及缺乏中断机制、只能靠高频轮询维持状态的 <code>Polling Tax</code>。它们共同说明，很多试点失败并不是因为模型完全无能，而是因为系统把非确定性的 agent 强行接在为确定性软件设计的旧接口上。</p>
+</li>
+</ol>
+<p>一个更稳妥的工程方向，是把 agent 从“主动高频询问一切”的流程，改造成“在受控状态下被事件唤醒”的流程。也就是说，长期看企业级 agent 更适合接入事件总线、Webhooks 和消息队列，而不是依赖持续轮询、无限上下文和层层嵌套的同步 API 链路。这样做不只为了省 token，更是为了把延迟、成本和故障传播范围控制在可治理的边界内。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>难点</th><th>为什么难</th><th>已有尝试</th><th>仍然存在的局限</th></tr>
+</thead>
+<tbody>
+<tr><td>长程规划与执行</td><td>误差复利、状态遗漏、局部最优</td><td>ReAct、plan-and-act、review loops</td><td>对开放世界仍脆弱，难处理隐性约束</td></tr>
+<tr><td>长期记忆</td><td>“记得住”不等于“记对/记该记的”</td><td>MemGPT、Generative Agents、Voyager</td><td>容易过时、污染、漂移，更新策略不稳定</td></tr>
+<tr><td>真实世界安全</td><td>不可信输入会影响工具调用与动作</td><td>Prompt injection defenses、guardrails、human review</td><td>仍难做到完备防御，误伤与漏判并存</td></tr>
+<tr><td>评估可比性</td><td>环境、预算、工具权限差异大</td><td>GAIA、WebArena、OSWorld、τ-bench、TheAgentCompany</td><td>很难形成统一结论，榜单容易“各说各话”</td></tr>
+<tr><td>学习与信用分配</td><td>轨迹长、奖励稀疏、用户动态</td><td>Agent Lightning、MUA-RL、EDGE</td><td>尚未形成统一可扩展训练范式</td></tr>
+<tr><td>经济性与部署</td><td>多轮链路带来高延迟和高 token 成本</td><td>小模型路由、TinyAgent、边缘 MLLM</td><td>复杂规划、开放推理仍常需大模型兜底</td></tr>
+<tr><td>治理与责任</td><td>agent 会执行动作而非只输出文本</td><td>中国信通院治理建议、企业审批机制</td><td>法规、审计、责任划分仍在早期阶段</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="理想智能体与现实差距"><a class="header" href="#理想智能体与现实差距">理想智能体与现实差距</a></h2>
+<p>理想智能体至少应满足八个条件。它应当能主动澄清目标而不是机械执行模糊命令；能建立和更新世界模型，进行因果与反事实规划；拥有可持续但可修正的长期记忆；能跨文本、网页、桌面、API 和物理环境稳健行动；在出错时能定位、解释并自行修复；对人类可解释、可审计、可中断；在安全上默认最小权限、默认高风险需审批；同时具备足够高的效率、隐私保护和社会协作能力。这样的系统更像“具有制度约束的软件同事”，而不只是“更会说话的模型”。这一理想并不是空想，它恰好对应了当前所有主流研究路线正在分别修补的能力缺口。</p>
+<p>如果把这些要求进一步落成系统设计语言，理想智能体至少应由四层能力共同支撑。第一层是<strong>运行时容器层</strong>：负责执行循环、沙箱隔离、生命周期钩子、日志审计与最小权限控制，保证 agent 的每一步都在可观测、可中断的边界内。第二层是<strong>技能与动作层</strong>：把工具调用从零散 API 提升到可复用的 skills、可执行代码动作空间和更明确的权限治理，使“会做事”不只是提示词碰运气。第三层是<strong>记忆与协同层</strong>：通过 user / run / agent / app 等不同作用域管理状态存储、共享事实与异步事件唤醒，避免把所有信息都挤进单一上下文。第四层是<strong>安全与伦理层</strong>：在语义防御、审批、多模型审计、危机阻断和合规日志之上，限定 agent 可以做什么、何时必须交还控制权。这样理解“理想智能体”，比单纯追求一个更强的基础模型，更接近真实系统的建设顺序。</p>
+<p>如果把这八个条件压缩成一句话，理想智能体应当同时具备：</p>
+<ul>
+<li><code>会澄清</code>：知道什么时候该追问和确认约束。</li>
+<li><code>会记忆</code>：知道什么该保留、什么该遗忘、什么该检索。</li>
+<li><code>会行动</code>：能在多环境中稳定执行，而不是只会生成文本。</li>
+<li><code>会纠错</code>：能发现失败、解释失败并进行恢复。</li>
+<li><code>可治理</code>：始终处于可审计、可中断、最小权限的制度边界内。</li>
+</ul>
+<p>下图是一个<strong>综合性、解释性</strong>的能力差距图。它不是单一 benchmark 的原始分数，而是根据上文涉及的公开基准、系统文档和安全资料，对当前前沿智能体在八个关键维度上的大致位置做出的归一化判断：短链工具使用、软件工程和 GUI 操作进展最快；长程规划、长期记忆、安全稳健与社会协同仍是最主要短板。其支撑依据包括 WebArena、OSWorld、TheAgentCompany、SWE-Bench Pro 以及官方安全文档。</p>
+<pre class="mermaid">
+xychart-beta
+    title "前沿智能体相对理想状态的综合差距"
+    x-axis ["工具","编码","GUI","规划","记忆","可控","安全","协同"]
+    y-axis "归一化评分" 0 --&gt; 10
+    bar [8,7,7,4,4,5,4,5]
+    line [10,10,10,10,10,10,10,10]
+</pre>
+
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>维度</th><th>理想状态</th><th>当前主流系统大致状态</th><th>关键证据</th><th>可行研究路线</th><th>优先级</th></tr>
+</thead>
+<tbody>
+<tr><td>目标理解与澄清</td><td>会主动追问、确认约束、生成可验证计划</td><td>多数系统仍偏执行导向，澄清不足</td><td>长程任务分数低、工作场景成功率有限。</td><td>计划器 + 约束检查器 + 用户澄清策略</td><td>最高</td></tr>
+<tr><td>长程规划</td><td>能把几十到上百步任务稳定完成</td><td>仍是最大瓶颈之一</td><td>TheAgentCompany 约 30%，SWE-Bench Pro &lt;25%。</td><td>测试时搜索、reviewer/verifier、hierarchical planning、Agentic RL</td><td>最高</td></tr>
+<tr><td>长期记忆</td><td>跨会话记忆准确、可更新、可遗忘</td><td>主要依赖外部内存层与检索</td><td>MemGPT、Voyager 等仍属架构补丁。</td><td>分层记忆、时间衰减、事实核验、记忆编辑</td><td>高</td></tr>
+<tr><td>多环境行动</td><td>文本、网页、桌面、物理世界均鲁棒</td><td>网页/桌面进展快，物理世界仍难</td><td>WebArena/OSWorld 快速提升，但具身泛化仍有限。</td><td>统一动作空间、world model、模拟器训练与真实校准</td><td>高</td></tr>
+<tr><td>自我修复</td><td>能定位失败原因并重试</td><td>已有反思与 reviewer，但不稳定</td><td>Reflexion 有效，但泛化与稳定性不足。</td><td>verifier-guided search、反事实回放、失败模板库</td><td>高</td></tr>
+<tr><td>可解释与可审计</td><td>既有行为轨迹，也有决策依据</td><td>轨迹层解释较好，机理解释较弱</td><td>开发框架强化 tracing/observability。</td><td>结构化决策日志、可回放状态机、因果 trace</td><td>高</td></tr>
+<tr><td>安全与可控</td><td>默认最小权限，高风险动作需审批</td><td>安全实践在进步，但注入仍根本未解</td><td>Anthropic/OpenAI/OWASP 均强调该风险。</td><td>输入隔离、最小权限、形式化工具约束、人审闭环</td><td>最高</td></tr>
+<tr><td>效率与部署</td><td>低延迟、低成本、可私有化</td><td>前沿 agent 常常昂贵且慢</td><td>computer use 仍慢，小模型边缘化成新方向。</td><td>小模型优先 + 大模型兜底、缓存、路由、局部执行</td><td>高</td></tr>
+<tr><td>社会适应与协同</td><td>能与人类和其他 agent 稳定协作</td><td>协议层刚起步，协同收益不稳定</td><td>A2A、MCP、MAS 与 agent society 研究正在形成。</td><td>互操作协议、信誉机制、冲突解决与责任分配</td><td>中高</td></tr>
+</tbody>
+</table>
+</div>
+<p>如果只给出一个最现实的研究路径排序，我会建议：<strong>先把“可验证长程任务成功率 + 安全运行时 + 状态管理 + 小模型路由”做到位，再讨论更宏大的通用智能体叙事</strong>。原因很简单：过去三年的经验一再表明，真实世界 agent 的主要收益不是来自“更会聊天”，而是来自“更能稳定完成任务”。而稳定性，来自验证、约束、观测、复盘和最小权限，不只来自模型本体的更强推理。</p>
+<h2 id="结论与建议"><a class="header" href="#结论与建议">结论与建议</a></h2>
+<p>综合历史与现状，可以得出一个相对稳健的判断：AI 智能体研究已经从“概念期与原型期”进入“系统工程期”，但距离“通用、可靠、低成本、可审计的理想智能体”仍有实质差距。这个差距不是单点模型能力差距，而是多方面的系统性缺口：长程规划、状态管理、真实环境 grounding、工具安全、协议治理、评测统一和部署经济性。过去三年最重要的启示，是 agent 不是 LLM 的一个“插件功能”，而是在模型之上重新建立的一层软件体系。</p>
+<h3 id="面向研究者"><a class="header" href="#面向研究者">面向研究者</a></h3>
+<p>对研究者而言，最值得投入的方向不是继续做“又一种脚手架”，而是围绕<strong>可复现环境、统一评测、验证器、agentic RL、长期记忆更新规则、因果/世界模型与协议安全</strong>建立更加通用的科学问题。特别是长程任务、开放约束与错误恢复，应成为比静态 benchmark 更优先的核心评价对象。</p>
+<h3 id="面向企业与机构"><a class="header" href="#面向企业与机构">面向企业与机构</a></h3>
+<p>对机构和企业而言，更可操作的建议是把智能体建设分成三个层级：</p>
+<ol>
+<li><strong>API-first 的低风险代理</strong>：优先落在检索、文档处理、受限工具调用和结构化工作流上。</li>
+<li><strong>带人审的高价值代理</strong>：适合代码修复、分析、报表、内部流程。</li>
+<li><strong>GUI/浏览器/桌面型高自主代理</strong>：必须运行在隔离环境、最小权限策略与全量审计日志之下。</li>
+</ol>
+<p>不要一开始就把最危险、最不稳定的代理形态投向生产。官方文档和治理报告都明确支持这种“分级部署、先易后难”的路径。</p>
+<p>如果再把顺序说得更直接一点，一个常见且可执行的落地路线是：<strong>先做受控 runtime，再做记忆治理，再做技能审计与事件驱动，最后才逐步提高自主性</strong>。原因是，缺乏运行时边界和状态治理时，新增的每一点自主能力都会放大系统风险；而在容器、权限、记忆和事件机制都可控后，智能体的能力扩张才更像“可管理的软件升级”，而不是“把更多不确定性推向生产环境”。</p>
+<h3 id="面向治理与标准制定"><a class="header" href="#面向治理与标准制定">面向治理与标准制定</a></h3>
+<p>对政策制定者与行业组织而言，优先事项应是<strong>建立 agent 运行时治理标准</strong>，而不是仅按模型名称做静态监管。更重要的标准包括：</p>
+<ul>
+<li>权限最小化</li>
+<li>人类审批节点</li>
+<li>事故与越权日志</li>
+<li>输入隔离</li>
+<li>工具注册与白名单</li>
+<li>第三方协议安全要求</li>
+<li>benchmark 与系统卡的披露规范</li>
+</ul>
+<p>就当前行业状态看，MCP、A2A、企业 agent runtime 与可观测性体系正在成为“智能体基础设施层”，这里既是创新高地，也是新的安全与治理边界。</p>
+<p>如果用一句话概括本报告的最终判断，那就是：<strong>当前智能体已经在局部任务上接近“可用”，但距离“可信赖的通用行动者”仍相差一个完整的软件与治理层</strong>。未来几年最有价值的研究，不会是单纯追求更像人的输出，而是构建更像“可靠制度”的 agent 系统。</p>
+<h2 id="附录参考文章链接"><a class="header" href="#附录参考文章链接">附录：参考文章链接</a></h2>
+<p>本章正文为了保持书稿可读性，没有在段落中密集保留脚注编号；如果你希望继续追溯原始资料，可以从下面这些公开文章、技术文档与榜单开始。</p>
+<h3 id="基础定义与经典脉络"><a class="header" href="#基础定义与经典脉络">基础定义与经典脉络</a></h3>
+<ul>
+<li><a href="https://aima.cs.berkeley.edu/4th-ed/pdfs/newchap02.pdf?utm_source=chatgpt.com">AIMA 第 2 章：Intelligent Agents</a></li>
+<li><a href="https://cbmm.mit.edu/sites/default/files/documents/turing.pdf?utm_source=chatgpt.com">Computing Machinery and Intelligence</a></li>
+<li><a href="https://people.csail.mit.edu/brooks/idocs/GPS1959.pdf?utm_source=chatgpt.com">REPORT ON A GENERAL PROBLEM-SOLVING PROGRAM</a></li>
+<li><a href="https://ai.stanford.edu/~nilsson/OnlinePubs-Nils/PublishedPapers/pssh.pdf?utm_source=chatgpt.com">The Physical Symbol System Hypothesis: Status and Prospects</a></li>
+<li><a href="https://people.csail.mit.edu/brooks/papers/how-to-build.pdf?utm_source=chatgpt.com">How to Build Complete Creatures Rather than Isolated Cognitive Simulators</a></li>
+<li><a href="https://soar.eecs.umich.edu/?utm_source=chatgpt.com">Soar Homepage</a></li>
+<li><a href="https://robotics.stanford.edu/~shoham/www%20papers/Agent%20Oriented%20Programming.pdf?utm_source=chatgpt.com">Agent Oriented Programming</a></li>
+<li><a href="https://cdn.aaai.org/ICMAS/1995/ICMAS95-042.pdf?utm_source=chatgpt.com">BDI Agents: From Theory to Practice</a></li>
+<li><a href="https://cse-robotics.engr.tamu.edu/dshell/cs631/papers/franklingraesser96agents.pdf?utm_source=chatgpt.com">Is it an Agent, or just a Program?: A Taxonomy for Autonomous Agents</a></li>
+</ul>
+<h3 id="强化学习与基础模型能力"><a class="header" href="#强化学习与基础模型能力">强化学习与基础模型能力</a></h3>
+<ul>
+<li><a href="https://www.gatsby.ucl.ac.uk/~dayan/papers/wd92.html?utm_source=chatgpt.com">Watkins &amp; Dayan (1992)</a></li>
+<li><a href="https://www.nature.com/articles/nature14236?utm_source=chatgpt.com">Human-level control through deep reinforcement learning</a></li>
+<li><a href="https://www.nature.com/articles/nature16961?utm_source=chatgpt.com">Mastering the game of Go with deep neural networks and tree search</a></li>
+<li><a href="https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf?utm_source=chatgpt.com">Attention Is All You Need</a></li>
+<li><a href="https://arxiv.org/abs/2203.02155?utm_source=chatgpt.com">Training language models to follow instructions with human feedback</a></li>
+<li><a href="https://arxiv.org/abs/2205.06175?utm_source=chatgpt.com">A Generalist Agent</a></li>
+<li><a href="https://arxiv.org/abs/2204.01691?utm_source=chatgpt.com">Do As I Can, Not As I Say: Grounding Language in Robotic Affordances</a></li>
+</ul>
+<h3 id="llm-agent-方法与记忆研究"><a class="header" href="#llm-agent-方法与记忆研究">LLM Agent 方法与记忆研究</a></h3>
+<ul>
+<li><a href="https://arxiv.org/abs/2112.09332?utm_source=chatgpt.com">WebGPT: Browser-assisted question-answering with human feedback</a></li>
+<li><a href="https://arxiv.org/abs/2210.03629?utm_source=chatgpt.com">ReAct: Synergizing Reasoning and Acting in Language Models</a></li>
+<li><a href="https://arxiv.org/abs/2304.03442?utm_source=chatgpt.com">Generative Agents: Interactive Simulacra of Human Behavior</a></li>
+<li><a href="https://arxiv.org/abs/2310.08560?utm_source=chatgpt.com">MemGPT: Towards LLMs as Operating Systems</a></li>
+<li><a href="https://arxiv.org/abs/2303.11366?utm_source=chatgpt.com">Reflexion: Language Agents with Verbal Reinforcement Learning</a></li>
+<li><a href="https://arxiv.org/abs/2503.09572?utm_source=chatgpt.com">Plan-and-Act: Improving Planning of Agents for Long-Horizon Tasks</a></li>
+<li><a href="https://proceedings.iclr.cc/paper_files/paper/2025/hash/5c5bc3553815adb4d1a8a5b8701e41a9-Abstract-Conference.html?utm_source=chatgpt.com">Language Agents Meet Causality – Bridging LLMs and Causal World Models</a></li>
+<li><a href="https://arxiv.org/abs/2504.19678?utm_source=chatgpt.com">From LLM Reasoning to Autonomous AI Agents: A Comprehensive Review</a></li>
+<li><a href="https://arxiv.org/abs/2503.21460?utm_source=chatgpt.com">Large Language Model Agent: A Survey on Methodology, Applications and Challenges</a></li>
+</ul>
+<h3 id="推理期扩展与-agentic-rl"><a class="header" href="#推理期扩展与-agentic-rl">推理期扩展与 Agentic RL</a></h3>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.01566">FS-Researcher: Test-Time Scaling for Long-Horizon Research Tasks with File-System-Based Agents</a></li>
+<li><a href="https://arxiv.org/abs/2606.17930">How Inference Compute Shapes Frontier LLM Evaluation</a></li>
+<li><a href="https://www.salesforce.com/blog/tex-test-time-scaling/">TEX: Test-Time Scaling Testing Agents via Execution-based Cross-Validation</a></li>
+<li><a href="https://arxiv.org/abs/2508.03680?utm_source=chatgpt.com">Agent Lightning: Train ANY AI Agents with Reinforcement Learning</a></li>
+</ul>
+<h3 id="评测榜单与真实任务环境"><a class="header" href="#评测榜单与真实任务环境">评测、榜单与真实任务环境</a></h3>
+<ul>
+<li><a href="https://arxiv.org/abs/2307.13854">WebArena: A Realistic Web Environment for Building Autonomous Agents</a></li>
+<li><a href="https://arxiv.org/abs/2311.12983?utm_source=chatgpt.com">GAIA: a benchmark for General AI Assistants</a></li>
+<li><a href="https://arxiv.org/pdf/2311.12983v1?utm_source=chatgpt.com">GAIA 论文 PDF</a></li>
+<li><a href="https://www.swebench.com/?utm_source=chatgpt.com">SWE-bench Leaderboards</a></li>
+<li><a href="https://proceedings.neurips.cc/paper_files/paper/2025/hash/0d744742f6fac4d1134c019b7cef3c8a-Abstract-Datasets_and_Benchmarks_Track.html?utm_source=chatgpt.com">TheAgentCompany: Benchmarking LLM Agents on Consequential Real World Tasks</a></li>
+<li><a href="https://leaderboard.steel.dev/leaderboards/webarena/">WebArena Leaderboard 2026</a></li>
+<li><a href="https://arxiv.org/abs/2409.00608?utm_source=chatgpt.com">TinyAgent: Function Calling at the Edge</a></li>
+</ul>
+<h3 id="工程框架运行时与互操作"><a class="header" href="#工程框架运行时与互操作">工程框架、运行时与互操作</a></h3>
+<ul>
+<li><a href="https://developers.openai.com/api/docs/guides/agents?utm_source=chatgpt.com">Agents SDK | OpenAI API</a></li>
+<li><a href="https://developers.openai.com/api/docs/guides/tools-computer-use?utm_source=chatgpt.com">Computer use | OpenAI API</a></li>
+<li><a href="https://openai.com/index/introducing-chatgpt-agent/?utm_source=chatgpt.com">Introducing ChatGPT agent: bridging research and action</a></li>
+<li><a href="https://openai.com/index/introducing-gpt-5-4/?utm_source=chatgpt.com">Introducing GPT‑5.4</a></li>
+<li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool?utm_source=chatgpt.com">Computer use tool - Claude API Docs</a></li>
+<li><a href="https://www.anthropic.com/news/model-context-protocol?utm_source=chatgpt.com">Introducing the Model Context Protocol</a></li>
+<li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/adk?hl=zh-cn&amp;utm_source=chatgpt.com">智能体开发套件 | Gemini Enterprise Agent Platform</a></li>
+<li><a href="https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/?utm_source=chatgpt.com">Announcing the Agent2Agent Protocol (A2A)</a></li>
+<li><a href="https://github.com/microsoft/autogen?utm_source=chatgpt.com">microsoft/autogen</a></li>
+<li><a href="https://docs.langchain.com/oss/python/langgraph/overview?utm_source=chatgpt.com">LangGraph overview</a></li>
+<li><a href="https://github.com/OpenHands/OpenHands?utm_source=chatgpt.com">OpenHands</a></li>
+<li><a href="https://docs.cloud.google.com/stackdriver/docs/observability/agent-observability?utm_source=chatgpt.com">Agent observability</a></li>
+</ul>
+<h3 id="harnessruntime-与协议"><a class="header" href="#harnessruntime-与协议">Harness、Runtime 与协议</a></h3>
+<ul>
+<li><a href="https://www.preprints.org/manuscript/202604.0428">Agent Harness for Large Language Model Agents: A Survey</a></li>
+<li><a href="https://github.com/RUCAIBox/awesome-agent-harness">awesome-agent-harness</a></li>
+<li><a href="https://www.anthropic.com/news/model-context-protocol?utm_source=chatgpt.com">Introducing the Model Context Protocol</a></li>
+<li><a href="https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/?utm_source=chatgpt.com">Announcing the Agent2Agent Protocol (A2A)</a></li>
+</ul>
+<h3 id="多智能体记忆与协同"><a class="header" href="#多智能体记忆与协同">多智能体记忆与协同</a></h3>
+<ul>
+<li><a href="https://mem0.ai/blog/multi-agent-memory-systems">How to Design Multi-Agent Memory Systems for Production</a></li>
+<li><a href="https://proceedings.neurips.cc/paper_files/paper/2025/hash/0d744742f6fac4d1134c019b7cef3c8a-Abstract-Datasets_and_Benchmarks_Track.html?utm_source=chatgpt.com">TheAgentCompany: Benchmarking LLM Agents on Consequential Real World Tasks</a></li>
+</ul>
+<h3 id="安全治理与风险控制"><a class="header" href="#安全治理与风险控制">安全、治理与风险控制</a></h3>
+<ul>
+<li><a href="https://www.anthropic.com/research/prompt-injection-defenses?utm_source=chatgpt.com">Mitigating the risk of prompt injections in browser use</a></li>
+<li><a href="https://www.anthropic.com/news/developing-computer-use?utm_source=chatgpt.com">Developing a computer use model</a></li>
+<li><a href="https://www.lib.szu.edu.cn/sites/szulib/files/2025-07/%E4%B8%AD%E5%9B%BD%E4%BF%A1%E9%80%9A%E9%99%A2%EF%BC%9A%E6%99%BA%E8%83%BD%E4%BD%93%E6%8A%80%E6%9C%AF%E5%92%8C%E5%BA%94%E7%94%A8%E7%A0%94%E7%A9%B6%E6%8A%A5%E5%91%8A.pdf?utm_source=chatgpt.com">智能体技术和应用研究报告</a></li>
+</ul>
+<h3 id="skills-与供应链安全"><a class="header" href="#skills-与供应链安全">Skills 与供应链安全</a></h3>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.20867">SoK: Agentic Skills – Beyond Tool Use in LLM Agents</a></li>
+<li><a href="https://arxiv.org/abs/2602.06547">Malicious Agent Skills in the Wild: A Large-Scale Security Empirical Study</a></li>
+<li><a href="https://arxiv.org/abs/2604.06550">SkillSieve: A Hierarchical Triage Framework for Detecting Malicious AI Agent Skills</a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part3/07-pkm-agent-case-study.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../appendix/glossary.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part3/07-pkm-agent-case-study.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../appendix/glossary.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
