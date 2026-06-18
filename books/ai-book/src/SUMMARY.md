@@ -46,6 +46,12 @@
 
 ---
 
+# 第四部分：AI 与 Research
+
+- [第25章 AI智能体研究现状、工程瓶颈与未来理想能力架构报告](part4/01-research-agent-overview.md)
+
+---
+
 # 附录
 
 - [附录A 术语表](appendix/glossary.md)
