@@ -1,4 +1,4 @@
-# 第24章 个人知识管理 Agent 实践
+# 第25章 个人知识管理 Agent 实践
 
 > "Knowledge is not information storage, it's continuous training." （知识不是信息存储，而是持续训练）—— Andrej Karpathy
 

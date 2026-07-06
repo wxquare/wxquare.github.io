@@ -1,4 +1,4 @@
-# 第19章 OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态
+# 第20章 OpenClaw 架构解析：个人 AI 助手的 Gateway、Runtime 与工具生态
 
 > OpenClaw 的核心价值不是“又一个聊天机器人”，而是把个人 AI 助手抽象成一个长期运行的本地 Gateway：接入多渠道消息，管理会话和上下文，调度 Agent Runtime，并用工具、技能、插件和沙箱控制行动边界。
 

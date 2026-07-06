@@ -492,7 +492,27 @@ Output Reserve：4K
 
 这说明模型结构、采样和工程控制是连在一起的。
 
-## 2.22 面试表达
+## 2.22 从模型原理到调用接口
+
+理解 Token、Embedding、Transformer 和上下文窗口之后，读者通常会自然追问一个工程问题：这些能力最终是怎样被系统消费的？
+
+答案是：模型不会直接暴露成“智能”，而是先被抽象成一套可调用协议，包括输入上下文、消息历史、结构化输出、工具调用、流式事件、usage 统计和厂商专有控制参数。也就是说，**LLM 的工程边界不是一段 Prompt，而是一组协议对象。**
+
+在这一章里，只需要先建立三个入口级认知：
+
+1. 系统提交给模型的，不只是用户问题，还包括规则、历史、上下文和工具定义。
+2. 模型返回的，不只是文本，还可能是 JSON、tool calls、thinking 信息和 token usage。
+3. Agent 工作流并不是底层 API 的原生字段，而是由 Runtime 把 Skill、Tool、Messages 和状态编排成多轮请求事务。
+
+这部分内容已经从“大模型基础”过渡到“系统如何消费模型能力”。为了避免第 2 章过早展开运行时细节，后续完整内容单独放到第二部分的 **第 12 章《LLM API 协议：模型能力如何被系统消费》**，其中会系统展开：
+
+- 统一抽象：输入、指令、上下文与输出；
+- Chat Completions、Responses 与消息协议；
+- 流式输出、结构化输出与 Tool Calling；
+- OpenAI、Anthropic、DeepSeek 等厂商差异；
+- Agent 工作流如何映射为模型请求。
+
+## 2.23 面试表达
 
 一句话版：
 
@@ -502,7 +522,7 @@ Output Reserve：4K
 
 > 我理解大模型基础时，会先看输入表示、模型结构和上下文约束。Tokenizer 决定文本如何变成 token，embedding 把 token ID 变成可计算向量，Transformer Decoder 用 attention、FFN 和位置编码逐层改写 hidden state。工程上我会特别关注 tokenizer、chat template、上下文长度、KV head 数、MoE、GQA/MLA 和后训练方式，因为它们会影响成本、延迟、长上下文能力、结构化输出和工具调用稳定性。
 
-## 2.23 自测问题
+## 2.24 自测问题
 
 1. 为什么 token 不等于字符或单词？
 2. LLM 内部 token embedding 和 RAG text embedding 的区别是什么？
@@ -514,8 +534,11 @@ Output Reserve：4K
 8. 设计 Agent 系统时，为什么要监控 token 占比和 discarded context？
 9. 为什么结构化输出失败不一定是 prompt 写得不够强？
 10. 读一个模型配置时，哪些字段会直接影响部署成本？
+11. OpenAI 的 `Responses API` 和传统 `messages` 风格接口在抽象上有什么差异？
+12. 为什么说 LLM API 输出不只是“一段字符串”？
+13. DeepSeek 这种兼容层方案的工程价值和风险分别是什么？
 
-## 2.24 参考资料
+## 2.25 参考资料
 
 - [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909)
 - [SentencePiece: A simple and language independent subword tokenizer](https://arxiv.org/abs/1808.06226)
@@ -530,3 +553,16 @@ Output Reserve：4K
 - [FlashAttention: Fast and Memory-Efficient Exact Attention](https://arxiv.org/abs/2205.14135)
 - [Mamba: Linear-Time Sequence Modeling with Selective State Spaces](https://arxiv.org/abs/2312.00752)
 - [DeepSeek-V3 Technical Report](https://arxiv.org/abs/2412.19437)
+- [OpenAI Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create)
+- [OpenAI Function Calling](https://developers.openai.com/api/docs/guides/function-calling)
+- [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
+- [OpenAI Prompt Caching](https://developers.openai.com/api/docs/guides/prompt-caching)
+- [OpenAI Images and Vision](https://developers.openai.com/api/docs/guides/images-vision)
+- [Anthropic Messages API](https://platform.claude.com/docs/en/api/messages)
+- [Anthropic Tool Use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview)
+- [Anthropic Prompt Caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)
+- [DeepSeek 首次调用 API](https://api-docs.deepseek.com/zh-cn/)
+- [DeepSeek 思考模式](https://api-docs.deepseek.com/zh-cn/guides/thinking_mode)
+- [DeepSeek Tool Calls](https://api-docs.deepseek.com/zh-cn/guides/tool_calls)
+- [DeepSeek JSON Output](https://api-docs.deepseek.com/zh-cn/guides/json_mode)
+- [DeepSeek 上下文硬盘缓存](https://api-docs.deepseek.com/zh-cn/guides/kv_cache)

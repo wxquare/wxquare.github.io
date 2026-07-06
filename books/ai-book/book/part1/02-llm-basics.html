@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f298987b.js";
+            window.path_to_searchindex_js = "../searchindex-b975dc1a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-baa2241e.js"></script>
+        <script src="../toc-31e96f17.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -542,7 +542,24 @@ Output Reserve：4K
 <li>用 eval 统计格式遵循率。</li>
 </ol>
 <p>这说明模型结构、采样和工程控制是连在一起的。</p>
-<h2 id="222-面试表达"><a class="header" href="#222-面试表达">2.22 面试表达</a></h2>
+<h2 id="222-从模型原理到调用接口"><a class="header" href="#222-从模型原理到调用接口">2.22 从模型原理到调用接口</a></h2>
+<p>理解 Token、Embedding、Transformer 和上下文窗口之后，读者通常会自然追问一个工程问题：这些能力最终是怎样被系统消费的？</p>
+<p>答案是：模型不会直接暴露成“智能”，而是先被抽象成一套可调用协议，包括输入上下文、消息历史、结构化输出、工具调用、流式事件、usage 统计和厂商专有控制参数。也就是说，<strong>LLM 的工程边界不是一段 Prompt，而是一组协议对象。</strong></p>
+<p>在这一章里，只需要先建立三个入口级认知：</p>
+<ol>
+<li>系统提交给模型的，不只是用户问题，还包括规则、历史、上下文和工具定义。</li>
+<li>模型返回的，不只是文本，还可能是 JSON、tool calls、thinking 信息和 token usage。</li>
+<li>Agent 工作流并不是底层 API 的原生字段，而是由 Runtime 把 Skill、Tool、Messages 和状态编排成多轮请求事务。</li>
+</ol>
+<p>这部分内容已经从“大模型基础”过渡到“系统如何消费模型能力”。为了避免第 2 章过早展开运行时细节，后续完整内容单独放到第二部分的 <strong>第 12 章《LLM API 协议：模型能力如何被系统消费》</strong>，其中会系统展开：</p>
+<ul>
+<li>统一抽象：输入、指令、上下文与输出；</li>
+<li>Chat Completions、Responses 与消息协议；</li>
+<li>流式输出、结构化输出与 Tool Calling；</li>
+<li>OpenAI、Anthropic、DeepSeek 等厂商差异；</li>
+<li>Agent 工作流如何映射为模型请求。</li>
+</ul>
+<h2 id="223-面试表达"><a class="header" href="#223-面试表达">2.23 面试表达</a></h2>
 <p>一句话版：</p>
 <blockquote>
 <p>LLM 处理的不是字符或单词，而是 tokenizer 切出来的 token。Token 会被映射成 embedding 向量进入 decoder-only Transformer；每层用 causal self-attention 读取历史 token，用 FFN 改写当前位置表示，最后通过 logits 和 decoding 生成下一个 token。上下文窗口限制的是一次推理能看到的 token 序列，它同时影响价格、延迟和 KV cache 显存。</p>
@@ -551,7 +568,7 @@ Output Reserve：4K
 <blockquote>
 <p>我理解大模型基础时，会先看输入表示、模型结构和上下文约束。Tokenizer 决定文本如何变成 token，embedding 把 token ID 变成可计算向量，Transformer Decoder 用 attention、FFN 和位置编码逐层改写 hidden state。工程上我会特别关注 tokenizer、chat template、上下文长度、KV head 数、MoE、GQA/MLA 和后训练方式，因为它们会影响成本、延迟、长上下文能力、结构化输出和工具调用稳定性。</p>
 </blockquote>
-<h2 id="223-自测问题"><a class="header" href="#223-自测问题">2.23 自测问题</a></h2>
+<h2 id="224-自测问题"><a class="header" href="#224-自测问题">2.24 自测问题</a></h2>
 <ol>
 <li>为什么 token 不等于字符或单词？</li>
 <li>LLM 内部 token embedding 和 RAG text embedding 的区别是什么？</li>
@@ -563,8 +580,11 @@ Output Reserve：4K
 <li>设计 Agent 系统时，为什么要监控 token 占比和 discarded context？</li>
 <li>为什么结构化输出失败不一定是 prompt 写得不够强？</li>
 <li>读一个模型配置时，哪些字段会直接影响部署成本？</li>
+<li>OpenAI 的 <code>Responses API</code> 和传统 <code>messages</code> 风格接口在抽象上有什么差异？</li>
+<li>为什么说 LLM API 输出不只是“一段字符串”？</li>
+<li>DeepSeek 这种兼容层方案的工程价值和风险分别是什么？</li>
 </ol>
-<h2 id="224-参考资料"><a class="header" href="#224-参考资料">2.24 参考资料</a></h2>
+<h2 id="225-参考资料"><a class="header" href="#225-参考资料">2.25 参考资料</a></h2>
 <ul>
 <li><a href="https://arxiv.org/abs/1508.07909">Neural Machine Translation of Rare Words with Subword Units</a></li>
 <li><a href="https://arxiv.org/abs/1808.06226">SentencePiece: A simple and language independent subword tokenizer</a></li>
@@ -579,6 +599,19 @@ Output Reserve：4K
 <li><a href="https://arxiv.org/abs/2205.14135">FlashAttention: Fast and Memory-Efficient Exact Attention</a></li>
 <li><a href="https://arxiv.org/abs/2312.00752">Mamba: Linear-Time Sequence Modeling with Selective State Spaces</a></li>
 <li><a href="https://arxiv.org/abs/2412.19437">DeepSeek-V3 Technical Report</a></li>
+<li><a href="https://developers.openai.com/api/reference/resources/responses/methods/create">OpenAI Responses API</a></li>
+<li><a href="https://developers.openai.com/api/docs/guides/function-calling">OpenAI Function Calling</a></li>
+<li><a href="https://developers.openai.com/api/docs/guides/structured-outputs">OpenAI Structured Outputs</a></li>
+<li><a href="https://developers.openai.com/api/docs/guides/prompt-caching">OpenAI Prompt Caching</a></li>
+<li><a href="https://developers.openai.com/api/docs/guides/images-vision">OpenAI Images and Vision</a></li>
+<li><a href="https://platform.claude.com/docs/en/api/messages">Anthropic Messages API</a></li>
+<li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview">Anthropic Tool Use</a></li>
+<li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Anthropic Prompt Caching</a></li>
+<li><a href="https://api-docs.deepseek.com/zh-cn/">DeepSeek 首次调用 API</a></li>
+<li><a href="https://api-docs.deepseek.com/zh-cn/guides/thinking_mode">DeepSeek 思考模式</a></li>
+<li><a href="https://api-docs.deepseek.com/zh-cn/guides/tool_calls">DeepSeek Tool Calls</a></li>
+<li><a href="https://api-docs.deepseek.com/zh-cn/guides/json_mode">DeepSeek JSON Output</a></li>
+<li><a href="https://api-docs.deepseek.com/zh-cn/guides/kv_cache">DeepSeek 上下文硬盘缓存</a></li>
 </ul>
 
                     </main>
@@ -616,22 +649,6 @@ Output Reserve：4K
         <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
         <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
         <script>

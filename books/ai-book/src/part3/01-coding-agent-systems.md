@@ -1,4 +1,4 @@
-# 第17章 AI Coding Agent 系统解析：从工作协议到 Harness 工程
+# 第18章 AI Coding Agent 系统解析：从工作协议到 Harness 工程
 
 > AI Coding Agent 的本质，不是“自动写代码”，而是把软件工程任务转化为可规划、可执行、可验证、可隔离、可审查的工程闭环。
 

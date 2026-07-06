@@ -1,4 +1,4 @@
-# 第12章 Agent 工具系统工程：Tool Calling、Skills 与 MCP
+# 第13章 Agent 工具系统工程：Tool Calling、Skills 与 MCP
 
 > "Tools are the hands and eyes of an Agent."
 > 工具是 Agent 的手和眼，但真正决定生产可用性的，是工具背后的契约、运行时、权限边界和复用机制。
@@ -1032,6 +1032,61 @@ MCP 标准传输主要包括 stdio 和 Streamable HTTP。
 |:---|:---|:---|:---|
 | stdio | 本地工具、IDE 插件、桌面应用 | 简单、隔离、容易启动子进程 | 凭据通常来自环境变量，不适合多租户远程服务 |
 | Streamable HTTP | 远程 MCP Server、企业平台、SaaS 集成 | 支持独立服务、会话、流式响应、OAuth | 需要认证、Origin 校验、会话管理和网络安全 |
+
+这两种传输在实际部署中进一步细分为三种架构形态：
+
+#### 本地独立型（Local Standalone）
+
+Server 完全在本地运行，不依赖任何外部网络服务。Host 通过 stdio 拉起一个子进程，直接通过 stdin/stdout 走 JSON-RPC 通信。
+
+```text
+子进程 (uvx mcp-server-time)
+  └─ 直接返回系统时间，零网络
+```
+
+典型场景：`uvx mcp-server-time`（返回系统时间）、`server-filesystem`（操作本地文件）、`server-sqlite`（查询本地数据库）。这些 Server **不需要 API Key、不连接外部网络**，是最简单的 MCP 探针，也适合验证 MCP Client 的基础设施是否正常。
+
+#### 本地桥接型（Local Bridge）
+
+Server 仍然作为本地子进程运行，但它的能力来自转发到外部服务的 API。子进程扮演**适配器**角色，把外部 REST API 封装成 MCP 的 tools/list + tools/call 接口。
+
+```text
+子进程 (npx @modelcontextprotocol/server-github)
+  └─ 通过 GitHub REST API ↗ https://api.github.com
+      ├─ GITHUB_PERSONAL_ACCESS_TOKEN 认证
+      ├─ tools/list → 返回 create_issue, list_issues, search_code…
+      └─ tools/call → 转发到 GitHub API
+```
+
+典型场景：`server-github`、`server-postgres`、`server-brave-search`、`Docker MCP`。它们以 MCP 的 stdio 传输运行在本机，但每个 tools/call 背后会发起 HTTP 请求到外部服务。**需要用户的 API Key 或 Token**，环境变量通过 `env` 字段显式传入子进程，其他环境变量被安全过滤。
+
+#### 远程 MCP（Remote MCP）
+
+Server 是独立部署的 HTTP 端点，Host 直接通过 URL 连接，无需在本机启动子进程。这是 Streamable HTTP 传输的典型形态，也是 SaaS 厂商官方支持 MCP 的主要方式。
+
+```text
+Hermes ── HTTPS ──→ https://mcp.linear.app/mcp
+                        └─ Linear 官方维护的 MCP 端点
+                            ├─ 需要 OAuth 2.1 PKCE 授权
+                            └─ 背后操作 Linear 的 API
+```
+
+典型场景：Linear、Stripe、Sentry、Figma、Cloudflare 等官方 MCP 端点。Server 运行在服务商的基础设施上，Host 做 HTTPS 连接和 OAuth 认证。**无需本机子进程、无需管理 API Key 文件**，但需要浏览器完成 OAuth 授权流程。
+
+#### 三种架构对比
+
+| 维度 | 本地独立型 | 本地桥接型 | 远程 MCP |
+|:---|:---|:---|:---|
+| 传输方式 | stdio | stdio | Streamable HTTP |
+| Server 位置 | 本地子进程 | 本地子进程 | 远程服务器 |
+| 谁启动 Server | Host（`command + args`） | Host（`command + args`） | 服务商 |
+| 是否连外部网络 | 否 | 是 | 是 |
+| 认证方式 | 无 | API Key / Token | OAuth 2.1 PKCE |
+| 适用场景 | 本地资源、验证探针 | 个人工具、开发环境 | 企业 SaaS、多用户治理 |
+| 环境隔离 | 安全过滤 | 安全过滤 | 无子进程 |
+| 典型配置 | `command + args` | `command + args + env` | `url + auth` |
+
+这三种架构对应了 MCP 生态中从"本地零配置"到"远程企业级"的完整光谱。选择时可以参考：只需要本地能力且不连外网，用本地独立型；需要对接外部服务的个人工具，用本地桥接型；需要多租户、OAuth 授权和企业治理，优先考虑远程 MCP。
 
 这两种传输对应了实践中常见的两种部署形态：
 

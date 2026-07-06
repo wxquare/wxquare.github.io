@@ -1,4 +1,4 @@
-# 第14章 Agent 记忆系统：Memory、会话与长期上下文
+# 第15章 Agent 记忆系统：Memory、会话与长期上下文
 
 > Agent Memory 的目标不是“让模型记住一切”，而是为 Agent 构建一套可治理、可追溯、可遗忘、可评估的外部状态与连续性系统。
 
@@ -1406,7 +1406,7 @@ summary:
 
 ```text
 USER_CONFIRMED_REQUIREMENT(depth=architecture_level)
-AGENT_READ_FILE(books/ai-book/src/part2/04-agent-memory.md)
+AGENT_READ_FILE(books/ai-book/src/part2/05-agent-memory.md)
 AGENT_PROPOSED_DESIGN(memory_control_plane)
 USER_APPROVED_DESIGN
 AGENT_REWROTE_FILE

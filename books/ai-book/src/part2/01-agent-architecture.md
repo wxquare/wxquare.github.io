@@ -26,7 +26,7 @@
 
 本章按五层展开：5.1 先判断是否真的需要 Agent，5.2 建立生产级 Agent Runtime 的最小骨架，5.3 展开核心组件的职责边界和后续章节地图，5.4 讨论组件如何组合成不同架构模式，5.5 用场景映射和检查清单校验设计是否完整。
 
-第 5 章不是把每个组件都讲透，而是给第二部分建立一张总图。第 6 章会深入工具、Skills、连接器与 MCP，第 7 章会展开 Agent 知识系统，第 8 章会展开 Agent 记忆系统，第 9 章会深入执行编排、状态机、多 Agent 协作和平台框架，第 10 章会系统讨论 Evals、Guardrails、Trace 和可观测性。理解了本章的边界图，后续章节就不再是零散专题，而是同一个 Runtime 的逐层展开。
+第 11 章不是把每个组件都讲透，而是给第二部分建立一张总图。第 12 章会先展开模型协议与系统消费边界，第 13 章会深入工具、Skills、连接器与 MCP，第 14 章会展开 Agent 知识系统，第 15 章会展开 Agent 记忆系统，第 16 章会深入执行编排、状态机、多 Agent 协作和平台框架，第 17 章会系统讨论 Evals、Guardrails、Trace 和可观测性。理解了本章的边界图，后续章节就不再是零散专题，而是同一个 Runtime 的逐层展开。
 
 ---
 
@@ -686,7 +686,7 @@ response.sent
 
 ## 11.3 Agent 核心组件：职责边界与后续章节地图
 
-5.3 不是要把每个组件都讲透，而是建立一张生产级 Agent Runtime 的组件地图。后续第 6 到第 10 章，会沿着这张地图逐层展开：工具系统、知识系统、记忆系统、执行编排、平台化、Evals、Guardrails 和可观测性。
+11.3 不是要把每个组件都讲透，而是建立一张生产级 Agent Runtime 的组件地图。后续第 12 到第 17 章，会沿着这张地图逐层展开：模型协议、工具系统、知识系统、记忆系统、执行编排、平台化、Evals、Guardrails 和可观测性。
 
 现代 Agent 系统已经不只是“模型 + 工具调用”。从 OpenAI Agents SDK、AgentKit、LangGraph、Google ADK、MCP、Anthropic Skills 这些工程实践可以看到，生产级 Agent 越来越像一个可治理的 Runtime：它要管理入口、任务契约、上下文、状态、能力、权限、人工控制、模型路由、Trace、评测和学习闭环。
 
@@ -711,11 +711,12 @@ flowchart LR
     end
 
     subgraph Chapters["后续章节地图"]
-        C6["第12章<br/>Tools / Skills / MCP"]
-        C7["第13章<br/>Agent 知识系统"]
-        C8["第14章<br/>Agent 记忆系统"]
-        C9["第15章<br/>执行编排与平台架构"]
-        C10["第16章<br/>Evals / Guardrails / Observability"]
+        C6["第12章<br/>LLM API 协议"]
+        C7["第13章<br/>Tools / Skills / MCP"]
+        C8["第14章<br/>Agent 知识系统"]
+        C9["第15章<br/>Agent 记忆系统"]
+        C10["第16章<br/>执行编排与平台架构"]
+        C11["第17章<br/>Evals / Guardrails / Observability"]
     end
 
     Intake --> Intent --> Planner --> Context --> Loop --> Verify --> Review
@@ -732,39 +733,40 @@ flowchart LR
     SkillUpdate -.-> Verify
 
     Capability -.-> C6
-    Context -.-> C7
-    Memory -.-> C8
-    Intake -.-> C9
-    Planner -.-> C9
-    State -.-> C9
-    Loop -.-> C9
-    Router -.-> C9
-    Policy -.-> C10
-    Verify -.-> C10
-    Review -.-> C10
-    Learn -.-> C8
-    Learn -.-> C10
+    Capability -.-> C7
+    Context -.-> C8
+    Memory -.-> C9
+    Intake -.-> C10
+    Planner -.-> C10
+    State -.-> C10
+    Loop -.-> C10
+    Router -.-> C10
+    Policy -.-> C11
+    Verify -.-> C11
+    Review -.-> C11
+    Learn -.-> C9
+    Learn -.-> C11
 ```
 
-这张图有两个读法：从左到右看，是一次 Agent 任务在 Runtime 内部的主要控制链路；从组件指向右侧章节看，是第二部分后续内容的阅读路线。也就是说，第 6 到第 10 章不是零散专题，而是这张 Runtime 图上的不同区域。
+这张图有两个读法：从左到右看，是一次 Agent 任务在 Runtime 内部的主要控制链路；从组件指向右侧章节看，是第二部分后续内容的阅读路线。也就是说，第 12 到第 17 章不是零散专题，而是这张 Runtime 图上的不同区域。
 
 下面这张表再给出组件地图：
 
 | 核心组件 | 主要职责 | 后续展开 |
 |:---|:---|:---|
-| Event & Intake Router | 接收聊天、API、告警、工单、Webhook、定时任务等入口 | 第15章工作流、第21章 DoD Agent |
-| Intent Normalizer | 把模糊输入变成结构化任务契约 | 第15章入口路由、第16章输入治理 |
-| Task Planner | 生成可执行、可验证、可修订的计划 | 第15章执行编排 |
-| Context Builder | 组织本轮任务需要的证据和上下文 | 第13章 Agent 知识系统 |
-| Memory Layer | 管理跨会话偏好、经验、历史任务和长期上下文 | 第14章记忆系统 |
-| Execution State & Checkpoint | 管理任务状态、暂停、恢复、重试、回放和幂等 | 第15章状态机、第14章记忆系统 |
-| Capability Registry | 统一管理 Skills、Tools、Connectors、MCP、Prompt 和 Workflow | 第12章工具系统、第15章平台架构 |
-| Policy Engine & Human Control Plane | 管理权限、风险、审批、接管、降级和回滚 | 第12章工具权限、第16章 Guardrails |
-| Agent Loop | 推动观察、决策、行动、修复和停止 | 第15章工作流与平台运行时 |
-| Model Router & Handoff Manager | 管理模型选择、专家委派、多 Agent 协作和跨 Agent 通信 | 第15章多 Agent 与平台架构 |
-| Verifier & Eval Harness | 运行时验证和离线回归评测 | 第16章 Evals |
-| Review Surface、Trace & Audit | 提供可审查输出、过程追踪和审计证据 | 第16章可观测性、第21章实战案例 |
-| Learning Loop | 把反馈、失败案例和复盘经验转化为能力演进 | 第14章记忆系统、第16章 Evals、第20章 Hermes |
+| Event & Intake Router | 接收聊天、API、告警、工单、Webhook、定时任务等入口 | 第16章工作流、第22章 DoD Agent |
+| Intent Normalizer | 把模糊输入变成结构化任务契约 | 第16章入口路由、第17章输入治理 |
+| Task Planner | 生成可执行、可验证、可修订的计划 | 第16章执行编排 |
+| Context Builder | 组织本轮任务需要的证据和上下文 | 第14章 Agent 知识系统 |
+| Memory Layer | 管理跨会话偏好、经验、历史任务和长期上下文 | 第15章记忆系统 |
+| Execution State & Checkpoint | 管理任务状态、暂停、恢复、重试、回放和幂等 | 第16章状态机、第15章记忆系统 |
+| Capability Registry | 统一管理 Skills、Tools、Connectors、MCP、Prompt 和 Workflow | 第12章模型协议、第13章工具系统、第16章平台架构 |
+| Policy Engine & Human Control Plane | 管理权限、风险、审批、接管、降级和回滚 | 第13章工具权限、第17章 Guardrails |
+| Agent Loop | 推动观察、决策、行动、修复和停止 | 第16章工作流与平台运行时 |
+| Model Router & Handoff Manager | 管理模型选择、专家委派、多 Agent 协作和跨 Agent 通信 | 第16章多 Agent 与平台架构 |
+| Verifier & Eval Harness | 运行时验证和离线回归评测 | 第17章 Evals |
+| Review Surface、Trace & Audit | 提供可审查输出、过程追踪和审计证据 | 第17章可观测性、第22章实战案例 |
+| Learning Loop | 把反馈、失败案例和复盘经验转化为能力演进 | 第15章记忆系统、第17章 Evals、第21章 Hermes |
 
 这些组件不一定都要独立成服务。MVP 可以从一个进程、几张表、几个配置和一套 trace schema 开始。但职责边界最好一开始就清楚：哪些事情由模型推理，哪些事情由 Runtime 裁决，哪些事情由人工确认，哪些事情只能通过评测和灰度后进入生产。
 
@@ -2343,7 +2345,7 @@ flowchart TD
 
 最后，场景映射和检查清单是架构设计的落地校验。一个方案图看起来完整不代表可上线，只有当任务、上下文、工具、策略、循环、验证、审查和生产治理都能被回答，Agent 系统才真正具备工程可行性。
 
-这条主线会贯穿后续章节：第 6 章深入 Agent 工具系统、Skills、连接器与 MCP；第 7 章展开 Agent 知识系统；第 8 章进入 Agent 记忆系统、会话和长期上下文；第 9 章展开工作流、状态机、Checkpoint、多 Agent 协作和平台架构；第 10 章系统讨论 Evals、Guardrails、Trace、Audit 和生产可观测性。
+这条主线会贯穿后续章节：第 12 章先定义模型协议如何被系统消费；第 13 章深入 Agent 工具系统、Skills、连接器与 MCP；第 14 章展开 Agent 知识系统；第 15 章进入 Agent 记忆系统、会话和长期上下文；第 16 章展开工作流、状态机、Checkpoint、多 Agent 协作和平台架构；第 17 章系统讨论 Evals、Guardrails、Trace、Audit 和生产可观测性。
 
 **关键洞察**
 

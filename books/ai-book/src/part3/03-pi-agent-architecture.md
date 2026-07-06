@@ -1,4 +1,4 @@
-# 第18章 Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程
+# 第19章 Pi Agent 架构解析：终端原生 Coding Agent Runtime、扩展系统与上下文工程
 
 > Pi 的核心价值不是“又一个命令行聊天工具”，而是把 Coding Agent 做成一个小内核、强扩展、可嵌入、可定制的终端原生 Agent Runtime：模型调用、工具执行、上下文构建、会话树、扩展系统、Skills、Prompt Templates 和 SDK 都围绕一个可复用的 harness 展开。
 
