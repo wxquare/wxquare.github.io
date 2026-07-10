@@ -8,6 +8,9 @@
 |------|------|
 | [在线博客](https://wxquare.github.io) | 浏览完整博客内容与专题导航 |
 | [AI Agent 工程实践](./books/ai-book/) | 从大模型基础到生产级智能体系统的系统化专题 |
+| [Agent 内容开发指南](./docs/agent-development-guide.md) | 仓库内 Agent 内容地图、维护边界与新增内容流程 |
+| [AGENTS.md](./AGENTS.md) | 仓库级协作入口，约束人类与 AI 协作者的统一工作方式 |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | 开源贡献流程、改动边界与提交前检查 |
 | [系统设计与架构实战](./books/system-design-architecture-book/) | 面向中高级工程师的系统设计、电商架构与可靠性实战 |
 
 ## 精选内容
