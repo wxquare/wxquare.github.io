@@ -1,0 +1,6968 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第 41 章 电商架构面试题精选（三）：搜索、购物车、订单与支付 - 系统设计与架构实战：原理、工程与电商案例</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="从系统设计方法论、核心基础设施、可靠性工程到电商业务架构实战；兼顾原理、工程落地、面试表达和完整业务案例。">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-e2c98a35.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-cc4e3045.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">系统设计与架构实战：原理、工程与电商案例</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第-41-章-电商架构面试题精选三搜索购物车订单与支付"><a class="header" href="#第-41-章-电商架构面试题精选三搜索购物车订单与支付">第 41 章 电商架构面试题精选（三）：搜索、购物车、订单与支付</a></h1>
+<blockquote>
+<p>本章是电商架构面试题库的第三部分，题库使用说明与面试官导航见<a href="./03-ecommerce-architecture-interview.html">第 43 章</a>。</p>
+</blockquote>
+<h2 id="411-搜索购物车订单与支付题库"><a class="header" href="#411-搜索购物车订单与支付题库">41.1 搜索、购物车、订单与支付题库</a></h2>
+<p>本专题聚焦电商交易核心链路，按题型拆成四个子章节：</p>
+<ul>
+<li><a href="./03-ecommerce-architecture-interview.html">35.3.1 搜索与导购</a></li>
+<li><a href="./03-ecommerce-architecture-interview.html">35.3.2 购物车与结算</a></li>
+<li><a href="./03-ecommerce-architecture-interview.html">35.3.3 订单系统</a></li>
+<li><a href="./03-ecommerce-architecture-interview.html">35.3.4 支付系统</a></li>
+</ul>
+<p>建议按用户链路顺序阅读：搜索发现、加入购物车、结算创单、支付闭环。</p>
+<hr>
+<h3 id="4111-搜索与导购10题"><a class="header" href="#4111-搜索与导购10题">41.1.1 搜索与导购（10题）</a></h3>
+<h5 id="-题目1电商搜索引擎的架构设计"><a class="header" href="#-题目1电商搜索引擎的架构设计">📊 题目1：电商搜索引擎的架构设计</a></h5>
+<p><strong>问题描述</strong>：
+电商平台每天有百万级搜索请求，需要支持全文搜索、属性筛选、排序。如何设计电商搜索引擎的整体架构？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+电商搜索的核心要素：</p>
+<ol>
+<li>海量数据（千万级商品）</li>
+<li>复杂查询（关键词+品类+价格区间+品牌）</li>
+<li>实时性（商品上下架实时更新）</li>
+<li>相关性排序（搜索“手机“优先展示热门手机）</li>
+<li>性能要求（毫秒级响应）</li>
+</ol>
+<p><strong>方案一：基于MySQL的搜索</strong></p>
+<p>核心思想：
+使用MySQL的LIKE查询和索引。</p>
+<p>实现：</p>
+<pre><code class="language-sql">SELECT * FROM products 
+WHERE title LIKE '%手机%' 
+  AND category_id = 10
+  AND price BETWEEN 1000 AND 5000
+ORDER BY sales DESC
+LIMIT 20;
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>实现简单</li>
+<li>无需额外组件</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>LIKE ‘%keyword%’ 无法使用索引，性能差</li>
+<li>不支持中文分词</li>
+<li>不支持相关性排序</li>
+<li>并发能力弱</li>
+</ul>
+<p>适用场景：</p>
+<ul>
+<li>小型电商（商品&lt;10万）</li>
+<li>简单搜索</li>
+</ul>
+<p><strong>方案二：Elasticsearch搜索（推荐）</strong></p>
+<p>核心思想：
+使用专业搜索引擎ES，支持全文搜索和复杂查询。</p>
+<p>架构：</p>
+<pre><code class="language-text">用户搜索 
+→ 搜索服务（API层）
+→ Elasticsearch集群
+→ 返回结果
+
+数据同步：
+商品变更 → Kafka → 同步Worker → ES索引
+</code></pre>
+<p>ES索引设计：</p>
+<pre><code class="language-json">{
+  "mappings": {
+    "properties": {
+      "productId": {"type": "keyword"},
+      "title": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "fields": {
+          "keyword": {"type": "keyword"}
+        }
+      },
+      "brand": {"type": "keyword"},
+      "categoryId": {"type": "long"},
+      "price": {"type": "double"},
+      "sales": {"type": "long"},
+      "stock": {"type": "long"},
+      "onSale": {"type": "boolean"},
+      "attrs": {
+        "type": "nested",
+        "properties": {
+          "name": {"type": "keyword"},
+          "value": {"type": "keyword"}
+        }
+      },
+      "createdAt": {"type": "date"}
+    }
+  }
+}
+</code></pre>
+<p>搜索查询：</p>
+<pre><code class="language-json">{
+  "query": {
+    "bool": {
+      "must": [
+        {"match": {"title": "手机"}}
+      ],
+      "filter": [
+        {"term": {"onSale": true}},
+        {"term": {"categoryId": 10}},
+        {"range": {"price": {"gte": 1000, "lte": 5000}}},
+        {"term": {"brand": "Apple"}}
+      ]
+    }
+  },
+  "sort": [
+    {"sales": {"order": "desc"}},
+    {"_score": {"order": "desc"}}
+  ],
+  "from": 0,
+  "size": 20
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>性能高（分布式搜索）</li>
+<li>支持复杂查询</li>
+<li>中文分词</li>
+<li>相关性排序</li>
+<li>实时性好</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>运维成本高</li>
+<li>数据同步复杂</li>
+</ul>
+<p><strong>方案三：混合架构</strong></p>
+<p>核心思想：
+ES负责搜索，MySQL负责详情查询。</p>
+<p>流程：</p>
+<pre><code class="language-text">1. 用户搜索"iPhone" 
+2. ES返回productId列表：[123, 456, 789]
+3. 根据productId批量查询MySQL获取完整商品信息
+4. 组装返回
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>ES只存储搜索字段，节省空间</li>
+<li>MySQL保证数据完整性</li>
+<li>职责分离</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>多次查询，延迟增加</li>
+<li>实现复杂</li>
+</ul>
+<p><strong>方案对比</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>性能</th><th>功能</th><th>运维成本</th><th>适用规模</th></tr>
+</thead>
+<tbody>
+<tr><td>MySQL</td><td>★★☆☆☆</td><td>★★☆☆☆</td><td>★★★★★</td><td>小型</td></tr>
+<tr><td>Elasticsearch</td><td>★★★★★</td><td>★★★★★</td><td>★★★☆☆</td><td>大型</td></tr>
+<tr><td>混合架构</td><td>★★★★☆</td><td>★★★★★</td><td>★★☆☆☆</td><td>超大型</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>推荐方案</strong>：
+采用<strong>Elasticsearch</strong>。</p>
+<p>实施要点：</p>
+<ol>
+<li>
+<p><strong>索引设计</strong>：</p>
+<pre><code>索引名称：products_v1
+分片数：5（根据数据量调整）
+副本数：2（高可用）
+
+字段类型选择：
+- keyword：不分词（品牌、类目ID）
+- text：分词（标题、描述）
+- nested：嵌套对象（属性列表）
+</code></pre>
+</li>
+<li>
+<p><strong>数据同步</strong>：</p>
+<pre><code>实时同步：
+- 商品创建/更新 → 发送Kafka消息
+- 同步Worker消费消息 → 更新ES
+- 延迟 &lt; 5秒
+
+全量同步（兜底）：
+- 每天凌晨全量同步
+- 对比MySQL和ES差异
+- 修复不一致数据
+</code></pre>
+</li>
+<li>
+<p><strong>搜索优化</strong>：</p>
+<pre><code>查询缓存：
+- 热门搜索词缓存（Redis）
+- TTL 5分钟
+
+搜索建议：
+- 输入"iph" → 建议"iPhone 15"
+- 使用completion suggester
+
+拼写纠错：
+- 输入"ipone" → 自动纠正为"iPhone"
+</code></pre>
+</li>
+<li>
+<p><strong>性能优化</strong>：</p>
+<pre><code>分页优化：
+- 浅分页：from+size（前10页）
+- 深分页：search_after（10页以后）
+
+字段裁剪：
+- 只返回必要字段
+- _source: ["productId", "title", "price"]
+
+路由优化：
+- 按类目路由到不同分片
+</code></pre>
+</li>
+<li>
+<p><strong>监控告警</strong>：</p>
+<pre><code>监控指标：
+- 搜索QPS
+- 搜索延迟P99
+- ES集群健康度
+- 索引大小
+
+告警：
+- 搜索延迟 &gt; 500ms
+- ES集群RED状态
+- 数据同步延迟 &gt; 1分钟
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计搜索的AB测试（不同排序策略）？</li>
+<li>搜索无结果时如何处理（推荐、纠错）？</li>
+<li>如何防止恶意搜索（刷流量、爬虫）？</li>
+</ol>
+<hr>
+<h5 id="-题目2搜索相关性排序算法设计"><a class="header" href="#-题目2搜索相关性排序算法设计">🔧 题目2：搜索相关性排序算法设计</a></h5>
+<p><strong>问题描述</strong>：
+用户搜索“手机“，返回1000个结果，如何排序保证用户最想要的商品排在前面？请设计相关性排序算法。</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+相关性排序的核心要素：</p>
+<ol>
+<li>文本相关性（标题匹配度）</li>
+<li>商品热度（销量、点击量）</li>
+<li>商品质量（评分、评价数）</li>
+<li>商品新鲜度（新品）</li>
+<li>个性化（用户偏好）</li>
+</ol>
+<p><strong>方案一：单一得分排序</strong></p>
+<p>核心思想：
+只按一个维度排序（如销量）。</p>
+<p>实现：</p>
+<pre><code class="language-text">SELECT * FROM products 
+WHERE title LIKE '%手机%'
+ORDER BY sales DESC
+LIMIT 20;
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>简单</li>
+<li>性能好</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>忽略相关性（标题匹配度差的商品可能排前面）</li>
+<li>马太效应（热门商品更热门）</li>
+</ul>
+<p><strong>方案二：多因子加权（推荐）</strong></p>
+<p>核心思想：
+综合多个因子，加权计算总分。</p>
+<p>算法：</p>
+<pre><code class="language-text">总分 = w1 × 文本相关性得分 +
+       w2 × 销量得分 +
+       w3 × 评分得分 +
+       w4 × 新鲜度得分
+
+各项得分计算：
+
+1. 文本相关性（ES _score）：
+   - 标题完全匹配：1.0
+   - 标题部分匹配：0.5-0.9
+   - 只在描述中匹配：0.1-0.4
+
+2. 销量得分：
+   - 归一化：sales_score = log(sales + 1) / log(max_sales)
+   - 取对数避免马太效应
+
+3. 评分得分：
+   - rating_score = (rating / 5.0) × log(review_count + 1)
+   - 考虑评分和评价数
+
+4. 新鲜度得分：
+   - freshness_score = 1.0 / (days_since_published + 1)
+   - 新品加权
+
+权重设置：
+w1 = 0.4（文本相关性最重要）
+w2 = 0.3（销量）
+w3 = 0.2（评分）
+w4 = 0.1（新鲜度）
+</code></pre>
+<p>ES实现：</p>
+<pre><code class="language-json">{
+  "query": {
+    "function_score": {
+      "query": {"match": {"title": "手机"}},
+      "functions": [
+        {
+          "field_value_factor": {
+            "field": "sales",
+            "modifier": "log1p",
+            "factor": 0.3
+          }
+        },
+        {
+          "field_value_factor": {
+            "field": "rating",
+            "factor": 0.2
+          }
+        },
+        {
+          "gauss": {
+            "createdAt": {
+              "origin": "now",
+              "scale": "30d",
+              "decay": 0.5
+            }
+          },
+          "weight": 0.1
+        }
+      ],
+      "score_mode": "sum",
+      "boost_mode": "sum"
+    }
+  }
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>综合考虑多因素</li>
+<li>可调整权重</li>
+<li>效果好</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>权重调优需要经验</li>
+<li>计算复杂</li>
+</ul>
+<p><strong>方案三：机器学习排序（LTR）</strong></p>
+<p>核心思想：
+使用机器学习模型预测点击率/转化率，按预测得分排序。</p>
+<p>流程：</p>
+<pre><code class="language-text">1. 特征工程：
+   - 文本特征：TF-IDF、BM25
+   - 商品特征：价格、销量、评分、库存
+   - 用户特征：历史行为、偏好品类
+   - 上下文特征：时间、地域
+
+2. 训练数据：
+   - 正样本：用户点击/购买的商品
+   - 负样本：展示但未点击的商品
+
+3. 模型训练：
+   - GBDT、XGBoost
+   - 或深度学习模型（Wide &amp; Deep）
+
+4. 在线预测：
+   - 搜索返回候选商品
+   - 模型预测点击率
+   - 按预测得分排序
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>效果最优</li>
+<li>自动学习最优权重</li>
+<li>支持个性化</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>需要算法团队</li>
+<li>需要大量训练数据</li>
+<li>冷启动问题</li>
+</ul>
+<p><strong>方案对比</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>效果</th><th>实施难度</th><th>计算成本</th><th>个性化</th></tr>
+</thead>
+<tbody>
+<tr><td>单一得分</td><td>★★☆☆☆</td><td>★★★★★</td><td>★★★★★</td><td>★☆☆☆☆</td></tr>
+<tr><td>多因子加权</td><td>★★★★☆</td><td>★★★☆☆</td><td>★★★★☆</td><td>★★☆☆☆</td></tr>
+<tr><td>机器学习</td><td>★★★★★</td><td>★★☆☆☆</td><td>★★★☆☆</td><td>★★★★★</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>推荐方案</strong>：
+采用<strong>多因子加权</strong>，逐步引入机器学习。</p>
+<p>实施要点：</p>
+<ol>
+<li>
+<p><strong>初期（多因子加权）</strong>：</p>
+<pre><code class="language-java">public double calculateScore(Product product, String keyword) {
+  // 1. 文本相关性（ES返回）
+  double textScore = product.getElasticSearchScore();
+  
+  // 2. 销量得分
+  double salesScore = Math.log(product.getSales() + 1) / 
+                      Math.log(maxSales);
+  
+  // 3. 评分得分
+  double ratingScore = (product.getRating() / 5.0) * 
+                       Math.log(product.getReviewCount() + 1);
+  
+  // 4. 新鲜度得分
+  long daysSince = ChronoUnit.DAYS.between(
+    product.getCreatedAt(), LocalDate.now()
+  );
+  double freshnessScore = 1.0 / (daysSince + 1);
+  
+  // 5. 加权求和
+  return 0.4 * textScore + 
+         0.3 * salesScore + 
+         0.2 * ratingScore + 
+         0.1 * freshnessScore;
+}
+</code></pre>
+</li>
+<li>
+<p><strong>权重调优</strong>：</p>
+<pre><code>AB测试：
+- A组：权重方案1（w1=0.4, w2=0.3, w3=0.2, w4=0.1）
+- B组：权重方案2（w1=0.5, w2=0.2, w3=0.2, w4=0.1）
+
+评估指标：
+- 点击率（CTR）
+- 转化率（CVR）
+- 用户停留时长
+
+选择效果最好的权重
+</code></pre>
+</li>
+<li>
+<p><strong>个性化因子</strong>：</p>
+<pre><code>用户偏好品牌：
+if (user.favoriteBrands.contains(product.brand)) {
+  score *= 1.2;  // 加权20%
+}
+
+用户价格偏好：
+if (product.price in user.priceRange) {
+  score *= 1.1;
+}
+
+用户浏览历史：
+if (user.recentlyViewedCategories.contains(product.category)) {
+  score *= 1.15;
+}
+</code></pre>
+</li>
+<li>
+<p><strong>排序规则</strong>：</p>
+<pre><code>规则1：置顶广告位
+- 前3个位置：竞价广告
+- 标注"广告"
+
+规则2：新品扶持
+- 7天内新品得分 × 1.5
+
+规则3：库存保护
+- 库存 &lt; 10件，降权（× 0.8）
+- 避免缺货商品排前面
+</code></pre>
+</li>
+<li>
+<p><strong>监控与迭代</strong>：</p>
+<pre><code>监控指标：
+- 搜索结果点击率
+- 搜索转化率
+- 平均点击位置
+
+定期优化：
+- 每月分析数据
+- 调整权重
+- 新增因子
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何处理搜索作弊（刷销量、刷好评）？</li>
+<li>长尾商品如何获得曝光机会？</li>
+<li>如何设计搜索排序的解释性（为何这个商品排第一）？</li>
+</ol>
+<hr>
+<h5 id="-题目3搜索建议suggest的实现"><a class="header" href="#-题目3搜索建议suggest的实现">💡 题目3：搜索建议（Suggest）的实现</a></h5>
+<p><strong>问题描述</strong>：
+用户输入“iph“，搜索框下方实时展示“iPhone 15“、“iPhone 14“等建议。如何实现搜索建议功能？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+搜索建议的核心要素：</p>
+<ol>
+<li>实时性（输入即显示）</li>
+<li>准确性（建议与输入相关）</li>
+<li>热度排序（热门建议优先）</li>
+<li>性能（毫秒级响应）</li>
+</ol>
+<p><strong>方案一：数据库LIKE查询</strong></p>
+<p>核心思想：
+从数据库查询以输入开头的关键词。</p>
+<p>实现：</p>
+<pre><code class="language-sql">-- 假设有关键词表
+SELECT keyword, search_count 
+FROM search_keywords 
+WHERE keyword LIKE 'iph%'
+ORDER BY search_count DESC
+LIMIT 10;
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>实现简单</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>性能差（每次输入都查库）</li>
+<li>前缀索引占用空间</li>
+<li>不支持中文拼音</li>
+</ul>
+<p><strong>方案二：Trie树（字典树）</strong></p>
+<p>核心思想：
+将热门搜索词构建为Trie树，内存查询。</p>
+<p>数据结构：</p>
+<pre><code class="language-text">Trie树示例（存储iPhone, iPad, iMac）：
+       root
+        |
+        i
+       / \
+      P   M
+     /|    \
+    h a     a
+    | |     |
+    o d     c
+    |
+    n
+    |
+    e
+
+每个节点存储：
+- 字符
+- 是否是词的结尾
+- 热度（search_count）
+</code></pre>
+<p>查询：</p>
+<pre><code class="language-java">public List&lt;String&gt; suggest(String prefix) {
+  TrieNode node = root;
+  
+  // 1. 定位到前缀节点
+  for (char c : prefix.toCharArray()) {
+    if (!node.children.containsKey(c)) {
+      return Collections.emptyList();
+    }
+    node = node.children.get(c);
+  }
+  
+  // 2. DFS收集所有以该前缀开头的词
+  List&lt;String&gt; results = new ArrayList&lt;&gt;();
+  dfs(node, prefix, results);
+  
+  // 3. 按热度排序
+  results.sort(Comparator.comparing(this::getHotness).reversed());
+  
+  return results.subList(0, Math.min(10, results.size()));
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>速度快（内存查询）</li>
+<li>空间效率高（共享前缀）</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>不支持中文拼音</li>
+<li>内存占用大（全量词库）</li>
+</ul>
+<p><strong>方案三：Elasticsearch Completion Suggester（推荐）</strong></p>
+<p>核心思想：
+使用ES的completion类型，支持高效前缀匹配。</p>
+<p>索引设计：</p>
+<pre><code class="language-json">{
+  "mappings": {
+    "properties": {
+      "keyword": {
+        "type": "completion",
+        "analyzer": "simple",
+        "search_analyzer": "simple"
+      },
+      "weight": {"type": "integer"}
+    }
+  }
+}
+</code></pre>
+<p>数据导入：</p>
+<pre><code class="language-json">{
+  "keyword": {
+    "input": ["iPhone 15", "iPhone15", "苹果15"],
+    "weight": 10000
+  }
+}
+</code></pre>
+<p>查询：</p>
+<pre><code class="language-json">{
+  "suggest": {
+    "keyword-suggest": {
+      "prefix": "iph",
+      "completion": {
+        "field": "keyword",
+        "size": 10,
+        "skip_duplicates": true
+      }
+    }
+  }
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>性能极高（FST结构）</li>
+<li>支持拼音、同义词</li>
+<li>支持热度排序（weight）</li>
+<li>分布式</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>需要ES</li>
+</ul>
+<p><strong>方案对比</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>性能</th><th>功能</th><th>实施难度</th><th>适用规模</th></tr>
+</thead>
+<tbody>
+<tr><td>数据库LIKE</td><td>★★☆☆☆</td><td>★★☆☆☆</td><td>★★★★★</td><td>小型</td></tr>
+<tr><td>Trie树</td><td>★★★★☆</td><td>★★★☆☆</td><td>★★★☆☆</td><td>中型</td></tr>
+<tr><td>ES Completion</td><td>★★★★★</td><td>★★★★★</td><td>★★★★☆</td><td>大型</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>推荐方案</strong>：
+采用<strong>ES Completion Suggester</strong>。</p>
+<p>实施要点：</p>
+<ol>
+<li>
+<p><strong>数据准备</strong>：</p>
+<pre><code>建议词来源：
+- 热门搜索词（用户历史搜索）
+- 商品标题（高销量商品）
+- 品牌名称
+- 类目名称
+- 运营配置词（促销活动）
+
+权重设置：
+- 用户搜索频次作为权重
+- 权重 = log(search_count + 1)
+</code></pre>
+</li>
+<li>
+<p><strong>拼音支持</strong>：</p>
+<pre><code>安装pinyin分词器：
+- elasticsearch-analysis-pinyin
+
+索引配置：
+{
+  "keyword": {
+    "type": "completion",
+    "analyzer": "pinyin_analyzer"
+  }
+}
+
+输入"pingguo" → 建议"苹果"、"iPhone"
+</code></pre>
+</li>
+<li>
+<p><strong>个性化建议</strong>：</p>
+<pre><code>用户维度：
+- 记录用户搜索历史（Redis）
+- 优先展示用户历史搜索
+
+示例：
+用户输入"ip"
+→ ES返回：["iPhone 15", "iPad Pro", "iPod"]
+→ 叠加用户历史：["iPhone 14"（历史搜索）, "iPhone 15", "iPad Pro"]
+→ 最终展示前10个
+</code></pre>
+</li>
+<li>
+<p><strong>缓存策略</strong>：</p>
+<pre><code>热门建议缓存：
+- 缓存TOP 1000热门前缀的建议结果
+- key: suggest:iph
+- value: ["iPhone 15", "iPhone 14", ...]
+- TTL: 10分钟
+
+减少ES压力
+</code></pre>
+</li>
+<li>
+<p><strong>建议词更新</strong>：</p>
+<pre><code>实时更新：
+- 用户搜索 → Kafka → 统计Worker → 更新ES
+
+定时更新（每小时）：
+- 统计最近1小时热搜词
+- 更新权重
+- 新增热搜词
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何防止建议词中的敏感词？</li>
+<li>搜索建议如何支持纠错（ipone → iPhone）？</li>
+<li>如何设计多语言的搜索建议？</li>
+</ol>
+<hr>
+<h5 id="-题目4商品筛选和多维度过滤的设计"><a class="header" href="#-题目4商品筛选和多维度过滤的设计">📊 题目4：商品筛选和多维度过滤的设计</a></h5>
+<p><strong>问题描述</strong>：
+用户搜索“手机“后，可以按品牌、价格区间、屏幕尺寸、内存等多个维度筛选。如何设计筛选系统？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+筛选系统的核心要素：</p>
+<ol>
+<li>动态筛选项（不同类目的筛选项不同）</li>
+<li>多条件组合（品牌AND价格区间AND内存）</li>
+<li>筛选项计数（显示每个选项的商品数量）</li>
+<li>性能（实时计算筛选结果）</li>
+</ol>
+<p><strong>方案一：前端筛选</strong></p>
+<p>核心思想：
+一次性返回所有结果，前端JavaScript筛选。</p>
+<p>流程：</p>
+<pre><code class="language-text">1. 搜索"手机" → 返回1000个商品（完整数据）
+2. 用户选择"Apple" → 前端过滤，显示Apple的商品
+3. 用户选择"8GB内存" → 再次前端过滤
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>后端简单</li>
+<li>筛选响应快（无需请求后端）</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>数据量大（传输1000个商品）</li>
+<li>不适合大规模数据</li>
+<li>筛选项计数不准（只能统计当前页）</li>
+</ul>
+<p>适用场景：</p>
+<ul>
+<li>数据量小（&lt;100条）</li>
+</ul>
+<p><strong>方案二：后端动态查询（推荐）</strong></p>
+<p>核心思想：
+每次筛选条件变化，重新查询后端。</p>
+<p>ES查询：</p>
+<pre><code class="language-json">{
+  "query": {
+    "bool": {
+      "must": [
+        {"match": {"title": "手机"}}
+      ],
+      "filter": [
+        {"term": {"brand": "Apple"}},
+        {"range": {"price": {"gte": 5000, "lte": 10000}}},
+        {"term": {"attrs.内存": "8GB"}},
+        {"term": {"attrs.屏幕尺寸": "6.1英寸"}}
+      ]
+    }
+  },
+  "aggs": {
+    "brands": {
+      "terms": {"field": "brand", "size": 20}
+    },
+    "price_ranges": {
+      "range": {
+        "field": "price",
+        "ranges": [
+          {"to": 1000},
+          {"from": 1000, "to": 3000},
+          {"from": 3000, "to": 5000},
+          {"from": 5000}
+        ]
+      }
+    }
+  },
+  "from": 0,
+  "size": 20
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>精确筛选</li>
+<li>支持筛选项计数（aggregation）</li>
+<li>适合大数据量</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>每次筛选都请求后端</li>
+<li>延迟略高</li>
+</ul>
+<p><strong>方案三：预计算筛选项</strong></p>
+<p>核心思想：
+提前计算每个筛选项的商品数量。</p>
+<p>设计：</p>
+<pre><code class="language-sql">filter_facet（筛选项预计算）
+├── category_id
+├── filter_name（品牌、价格区间、属性）
+├── filter_value
+├── product_count（该筛选项的商品数量）
+└── updated_at
+
+示例数据：
+category_id=10（手机）, filter_name="品牌", filter_value="Apple", product_count=500
+category_id=10, filter_name="价格", filter_value="5000-10000", product_count=300
+
+前端展示：
+品牌：
+- Apple (500)
+- 小米 (300)
+- 华为 (250)
+
+价格：
+- 1000以下 (100)
+- 1000-3000 (200)
+- 3000-5000 (150)
+- 5000以上 (300)
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>展示快（直接读缓存）</li>
+<li>减少ES压力</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>数据可能不准（预计算有延迟）</li>
+<li>存储成本高</li>
+</ul>
+<p><strong>方案对比</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>性能</th><th>准确性</th><th>实施难度</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td>前端筛选</td><td>★★★★★</td><td>★★★☆☆</td><td>★★★★★</td><td>小数据</td></tr>
+<tr><td>后端查询</td><td>★★★★☆</td><td>★★★★★</td><td>★★★☆☆</td><td>通用</td></tr>
+<tr><td>预计算</td><td>★★★★★</td><td>★★★☆☆</td><td>★★☆☆☆</td><td>超大规模</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>推荐方案</strong>：
+采用<strong>后端动态查询（ES Aggregation）</strong>。</p>
+<p>实施要点：</p>
+<ol>
+<li>
+<p><strong>筛选项配置</strong>：</p>
+<pre><code class="language-sql">category_filter_config（类目筛选配置）
+├── category_id
+├── filter_name（品牌、价格、属性名）
+├── filter_type（TERM/RANGE/NESTED）
+├── display_order（展示顺序）
+└── ...
+
+示例：
+手机类目：
+- 品牌（TERM）
+- 价格（RANGE: 0-1000, 1000-3000, ...）
+- 屏幕尺寸（NESTED: attrs.屏幕尺寸）
+- 内存（NESTED: attrs.内存）
+</code></pre>
+</li>
+<li>
+<p><strong>ES Aggregation查询</strong>：</p>
+<pre><code class="language-java">public SearchResponse searchWithFilters(
+  String keyword, 
+  Map&lt;String, List&lt;String&gt;&gt; filters
+) {
+  BoolQueryBuilder query = QueryBuilders.boolQuery()
+    .must(QueryBuilders.matchQuery("title", keyword));
+  
+  // 应用筛选条件
+  for (Map.Entry&lt;String, List&lt;String&gt;&gt; entry : filters.entrySet()) {
+    String filterName = entry.getKey();
+    List&lt;String&gt; values = entry.getValue();
+    
+    if (filterName.equals("brand")) {
+      query.filter(QueryBuilders.termsQuery("brand", values));
+    } else if (filterName.equals("price")) {
+      // 价格区间
+      for (String range : values) {
+        String[] parts = range.split("-");
+        query.filter(QueryBuilders.rangeQuery("price")
+          .gte(parts[0]).lte(parts[1]));
+      }
+    } else {
+      // 属性筛选
+      query.filter(QueryBuilders.nestedQuery(
+        "attrs",
+        QueryBuilders.boolQuery()
+          .must(QueryBuilders.termQuery("attrs.name", filterName))
+          .must(QueryBuilders.termsQuery("attrs.value", values)),
+        ScoreMode.None
+      ));
+    }
+  }
+  
+  // 聚合统计
+  SearchSourceBuilder source = new SearchSourceBuilder()
+    .query(query)
+    .aggregation(AggregationBuilders.terms("brands").field("brand"))
+    .aggregation(AggregationBuilders.range("price_ranges")
+      .field("price")
+      .addUnboundedTo(1000)
+      .addRange(1000, 3000)
+      .addRange(3000, 5000)
+      .addUnboundedFrom(5000));
+  
+  return client.search(source);
+}
+</code></pre>
+</li>
+<li>
+<p><strong>前端交互</strong>：</p>
+<pre><code>URL设计：
+/search?q=手机&amp;brand=Apple,小米&amp;price=5000-10000&amp;memory=8GB
+
+前端：
+- 用户点击筛选项 → 更新URL → 请求后端
+- 后端返回筛选结果 + 筛选项计数
+- 前端更新展示
+
+已选筛选展示：
+- 品牌：Apple ×  小米 ×
+- 价格：5000-10000 ×
+- 内存：8GB ×
+
+点击 × 取消该筛选
+</code></pre>
+</li>
+<li>
+<p><strong>性能优化</strong>：</p>
+<pre><code>筛选缓存：
+key: search:q=手机&amp;brand=Apple&amp;price=5000-10000
+value: {商品列表, 筛选项计数}
+TTL: 5分钟
+
+热门筛选组合预加载
+</code></pre>
+</li>
+<li>
+<p><strong>筛选项排序</strong>：</p>
+<pre><code>排序规则：
+1. 按配置的display_order
+2. 品牌按热度（商品数量）
+3. 价格区间固定顺序（低到高）
+4. 属性按字母顺序
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计筛选项的动态展示（只显示有商品的筛选项）？</li>
+<li>筛选条件过多时如何优化性能？</li>
+<li>如何设计筛选的撤销和重置功能？</li>
+</ol>
+<hr>
+<h5 id="-题目5搜索结果的无结果优化"><a class="header" href="#-题目5搜索结果的无结果优化">🔧 题目5：搜索结果的无结果优化</a></h5>
+<p><strong>问题描述</strong>：
+用户搜索“iPhne 15“（拼写错误），没有结果。如何优化无结果页，提升用户体验？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+无结果场景：</p>
+<ol>
+<li>拼写错误（iPhne → iPhone）</li>
+<li>搜索词过于精确（“iPhone 15 Pro Max 256GB 深空黑色”）</li>
+<li>商品确实不存在</li>
+<li>分词问题</li>
+</ol>
+<p>优化策略：</p>
+<ol>
+<li>自动纠错</li>
+<li>模糊搜索</li>
+<li>推荐相关商品</li>
+<li>引导用户</li>
+</ol>
+<p><strong>方案一：简单提示</strong></p>
+<p>核心思想：
+直接提示“没有找到相关商品“。</p>
+<p>优点：</p>
+<ul>
+<li>实现简单</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>用户体验差</li>
+<li>流失率高</li>
+</ul>
+<p><strong>方案二：拼写纠错（推荐）</strong></p>
+<p>核心思想：
+检测拼写错误，自动纠正或建议正确词。</p>
+<p>算法：</p>
+<pre><code class="language-text">1. 编辑距离（Levenshtein Distance）：
+   计算输入词和词库中词的编辑距离
+   编辑距离 &lt;= 2 → 认为是拼写错误
+   
+   示例：
+   "iPhne" vs "iPhone"
+   编辑距离 = 2（插入o，删除e）
+   
+2. 音似匹配（Soundex）：
+   "fone" 和 "phone" 发音相似
+   
+3. 键盘距离：
+   "iPhne" 中 n 和 o 在键盘上相邻，可能是误按
+</code></pre>
+<p>ES实现：</p>
+<pre><code class="language-json">{
+  "suggest": {
+    "text": "iPhne",
+    "simple_suggestion": {
+      "term": {
+        "field": "title",
+        "suggest_mode": "popular",
+        "min_word_length": 3
+      }
+    }
+  }
+}
+</code></pre>
+<p>展示：</p>
+<pre><code class="language-text">您搜索的是：iPhne
+→ 您是不是要找：iPhone？
+
+自动按"iPhone"搜索，展示结果
+</code></pre>
+<p><strong>方案三：模糊搜索+推荐</strong></p>
+<p>核心思想：
+放宽搜索条件，推荐相关商品。</p>
+<p>策略：</p>
+<pre><code class="language-text">1. 分词后部分匹配：
+   "iPhone 15 Pro Max 256GB" 搜索无结果
+   → 尝试搜索"iPhone 15 Pro Max"
+   → 再尝试"iPhone 15 Pro"
+   → 再尝试"iPhone 15"
+   
+2. 类目推荐：
+   用户搜索"iPhone" → 推荐"手机"类目热销商品
+   
+3. 关联推荐：
+   用户搜索"iPhone 充电器" → 推荐"iPhone 配件"
+   
+4. 热门推荐：
+   全站热销TOP 10
+</code></pre>
+<p><strong>方案四：引导式搜索</strong></p>
+<p>核心思想：
+引导用户重新搜索或浏览。</p>
+<p>页面设计：</p>
+<pre><code class="language-text">抱歉，没有找到 "iPhne 15" 的相关商品
+
+您可以：
+1. 检查拼写是否正确
+2. 尝试更通用的关键词（如"手机"而不是"iPhone 15 Pro Max"）
+3. 浏览以下分类：
+   - 手机 &gt; 智能手机
+   - 手机 &gt; 苹果手机
+   
+热门搜索：
+- iPhone 15
+- 小米14
+- 华为Mate 60
+
+推荐商品：
+[展示热销手机]
+</code></pre>
+<p><strong>方案对比</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>用户体验</th><th>转化率</th><th>实施难度</th></tr>
+</thead>
+<tbody>
+<tr><td>简单提示</td><td>★☆☆☆☆</td><td>★☆☆☆☆</td><td>★★★★★</td></tr>
+<tr><td>拼写纠错</td><td>★★★★☆</td><td>★★★★☆</td><td>★★★☆☆</td></tr>
+<tr><td>模糊搜索+推荐</td><td>★★★★★</td><td>★★★★★</td><td>★★☆☆☆</td></tr>
+<tr><td>引导式</td><td>★★★★☆</td><td>★★★☆☆</td><td>★★★★☆</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>推荐方案</strong>：
+采用<strong>拼写纠错+模糊搜索+推荐</strong>的组合。</p>
+<p>实施要点：</p>
+<ol>
+<li>
+<p><strong>纠错流程</strong>：</p>
+<pre><code>用户搜索 → ES查询 → 
+if (结果数 == 0) {
+  // 1. 尝试拼写纠错
+  corrected = spellChecker.correct(keyword);
+  if (corrected != keyword) {
+    results = search(corrected);
+    if (results.size() &gt; 0) {
+      return showCorrectedResults(corrected, results);
+    }
+  }
+  
+  // 2. 尝试模糊搜索
+  results = fuzzySearch(keyword);
+  if (results.size() &gt; 0) {
+    return showFuzzyResults(results);
+  }
+  
+  // 3. 推荐相关商品
+  recommended = recommend(keyword);
+  return showRecommended(recommended);
+}
+</code></pre>
+</li>
+<li>
+<p><strong>纠错词库</strong>：</p>
+<pre><code>来源：
+- 用户搜索日志（搜索A无结果，搜索B有结果）
+- 商品标题词库
+- 品牌名称
+- 常见错误（人工维护）
+
+存储：
+spell_correction
+├── wrong_word（错误词）
+├── correct_word（正确词）
+├── correction_count（纠正次数）
+└── ...
+</code></pre>
+</li>
+<li>
+<p><strong>模糊搜索策略</strong>：</p>
+<pre><code>策略1：降低匹配度要求
+minimum_should_match: "75%"（原本100%）
+
+策略2：增加同义词
+"手机" = "智能手机" = "移动电话"
+
+策略3：分词后部分匹配
+"iPhone 15 Pro Max" → ["iPhone", "15", "Pro", "Max"]
+匹配任意3个词即可
+</code></pre>
+</li>
+<li>
+<p><strong>推荐策略</strong>：</p>
+<pre><code>推荐来源：
+1. 类目热销（如果能识别类目）
+2. 全站热销（兜底）
+3. 相关搜索（"其他用户还搜索了..."）
+4. 促销商品（引导转化）
+</code></pre>
+</li>
+<li>
+<p><strong>监控优化</strong>：</p>
+<pre><code>监控指标：
+- 无结果搜索率（无结果搜索数/总搜索数）
+- 无结果页跳出率
+- 纠错成功率
+
+目标：
+- 无结果搜索率 &lt; 5%
+- 无结果页跳出率 &lt; 50%
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何处理恶意搜索（脏词、广告）？</li>
+<li>无结果搜索如何用于商品补货建议？</li>
+<li>如何设计多语言搜索的纠错？</li>
+</ol>
+<hr>
+<p>（继续生成后续5题…）</p>
+<p>由于内容较长，我将分批次完成。继续生成3.1的剩余5题：</p>
+<h5 id="-题目6搜索日志分析与优化"><a class="header" href="#-题目6搜索日志分析与优化">📊 题目6：搜索日志分析与优化</a></h5>
+<p><strong>问题描述</strong>：
+电商平台每天产生百万级搜索日志，如何分析搜索日志，发现问题并优化搜索体验？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+搜索日志分析的核心目标：</p>
+<ol>
+<li>发现热门搜索词</li>
+<li>识别无结果搜索</li>
+<li>分析用户搜索路径</li>
+<li>优化搜索排序</li>
+</ol>
+<p><strong>推荐方案</strong>：</p>
+<p>数据收集：</p>
+<pre><code class="language-text">搜索日志表：
+search_log
+├── log_id
+├── user_id
+├── keyword（搜索词）
+├── result_count（结果数量）
+├── clicked_products（点击的商品ID列表）
+├── converted（是否转化购买）
+├── search_time
+└── session_id
+</code></pre>
+<p>分析维度：</p>
+<ol>
+<li>
+<p><strong>热门搜索词Top榜</strong>：</p>
+<pre><code class="language-sql">SELECT keyword, COUNT(*) as search_count
+FROM search_log
+WHERE search_time &gt;= DATE_SUB(NOW(), INTERVAL 7 DAY)
+GROUP BY keyword
+ORDER BY search_count DESC
+LIMIT 100;
+
+用途：
+- 运营决策（备货）
+- 搜索建议（热词优先展示）
+- 广告投放
+</code></pre>
+</li>
+<li>
+<p><strong>无结果搜索分析</strong>：</p>
+<pre><code class="language-sql">SELECT keyword, COUNT(*) as count
+FROM search_log
+WHERE result_count = 0
+  AND search_time &gt;= DATE_SUB(NOW(), INTERVAL 1 DAY)
+GROUP BY keyword
+ORDER BY count DESC
+LIMIT 100;
+
+优化方向：
+- 拼写纠错词库补充
+- 商品补货建议
+- 同义词扩展
+</code></pre>
+</li>
+<li>
+<p><strong>点击率分析</strong>：</p>
+<pre><code class="language-sql">SELECT keyword, 
+       COUNT(*) as impressions,
+       SUM(CASE WHEN clicked_products IS NOT NULL THEN 1 ELSE 0 END) as clicks,
+       clicks / impressions as ctr
+FROM search_log
+GROUP BY keyword
+HAVING impressions &gt; 100
+ORDER BY ctr ASC
+LIMIT 100;
+
+低CTR关键词 → 排序策略需要优化
+</code></pre>
+</li>
+<li>
+<p><strong>转化漏斗</strong>：</p>
+<pre><code>搜索 → 点击 → 加购 → 下单 → 支付
+
+分析每个环节的转化率，找到瓶颈
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何识别恶意搜索（刷流量）？</li>
+<li>搜索日志如何用于个性化推荐？</li>
+<li>如何设计搜索AB测试平台？</li>
+</ol>
+<hr>
+<h5 id="-题目7跨境电商的多语言搜索"><a class="header" href="#-题目7跨境电商的多语言搜索">🔧 题目7：跨境电商的多语言搜索</a></h5>
+<p><strong>问题描述</strong>：
+跨境电商支持中文、英文、日文搜索。如何设计多语言搜索系统？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+多语言搜索的核心挑战：</p>
+<ol>
+<li>不同语言分词规则不同</li>
+<li>用户可能用中文搜英文商品</li>
+<li>同义词跨语言匹配</li>
+</ol>
+<p><strong>推荐方案</strong>：</p>
+<ol>
+<li>
+<p><strong>多语言索引</strong>：</p>
+<pre><code class="language-json">{
+  "mappings": {
+    "properties": {
+      "title": {
+        "properties": {
+          "zh": {"type": "text", "analyzer": "ik_max_word"},
+          "en": {"type": "text", "analyzer": "english"},
+          "ja": {"type": "text", "analyzer": "kuromoji"}
+        }
+      }
+    }
+  }
+}
+</code></pre>
+</li>
+<li>
+<p><strong>语言检测</strong>：</p>
+<pre><code class="language-java">String lang = LanguageDetector.detect(keyword);
+// keyword="手机" → lang="zh"
+// keyword="phone" → lang="en"
+
+根据语言选择搜索字段：
+if (lang == "zh") {
+  query = QueryBuilders.matchQuery("title.zh", keyword);
+} else if (lang == "en") {
+  query = QueryBuilders.matchQuery("title.en", keyword);
+}
+</code></pre>
+</li>
+<li>
+<p><strong>跨语言搜索</strong>：</p>
+<pre><code>用户输入中文"手机"，也能搜到英文标题"phone"
+
+方案：翻译API
+- 调用翻译API（Google Translate）
+- keyword="手机" → translate → "phone"
+- 搜索中文字段 OR 英文翻译
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何处理多语言同义词？</li>
+<li>不同国家的搜索习惯差异如何处理？</li>
+</ol>
+<hr>
+<h5 id="-题目8搜索性能优化"><a class="header" href="#-题目8搜索性能优化">💡 题目8：搜索性能优化</a></h5>
+<p><strong>问题描述</strong>：
+搜索响应时间P99达到2秒，用户体验差。如何优化搜索性能到100ms以内？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+搜索慢的常见原因：</p>
+<ol>
+<li>ES查询复杂（深度分页、大量聚合）</li>
+<li>索引设计不合理</li>
+<li>数据量大</li>
+<li>网络延迟</li>
+</ol>
+<p><strong>优化方案</strong>：</p>
+<ol>
+<li>
+<p><strong>查询优化</strong>：</p>
+<pre><code>避免深度分页：
+❌ from=10000, size=20（跳过1万条数据）
+✅ search_after（游标分页）
+
+减少聚合计算：
+❌ 聚合100个字段
+✅ 聚合最常用的10个字段
+
+字段裁剪：
+❌ 返回所有字段
+✅ _source: ["id", "title", "price"]
+</code></pre>
+</li>
+<li>
+<p><strong>缓存策略</strong>：</p>
+<pre><code>热门搜索缓存：
+key: search:q=iPhone&amp;page=1
+value: {商品列表}
+TTL: 5分钟
+
+命中率：70%+
+</code></pre>
+</li>
+<li>
+<p><strong>索引优化</strong>：</p>
+<pre><code>分片数量：
+- 单分片大小：20-50GB
+- 过多分片影响性能
+
+副本数量：
+- 副本数=2（高可用+读负载均衡）
+
+Segment合并：
+- 定期force_merge减少segment数量
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计搜索的降级方案（ES故障）？</li>
+<li>搜索性能如何监控和告警？</li>
+</ol>
+<hr>
+<h5 id="-题目9智能搜索nlpai"><a class="header" href="#-题目9智能搜索nlpai">📊 题目9：智能搜索（NLP+AI）</a></h5>
+<p><strong>问题描述</strong>：
+用户搜索“适合送女朋友的礼物“，如何理解用户意图，推荐合适商品？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+传统搜索只能匹配关键词，无法理解语义。</p>
+<p><strong>解决方案</strong>：</p>
+<ol>
+<li>
+<p><strong>意图识别</strong>：</p>
+<pre><code>NLP分析：
+"适合送女朋友的礼物" 
+→ 意图：礼物推荐
+→ 对象：女性
+→ 场景：送礼
+
+映射到类目：
+- 珠宝首饰
+- 化妆品
+- 鲜花
+</code></pre>
+</li>
+<li>
+<p><strong>语义搜索</strong>：</p>
+<pre><code>使用BERT等模型：
+- 将搜索词编码为向量
+- 商品标题也编码为向量
+- 计算向量相似度
+- 按相似度排序
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何训练电商领域的语义模型？</li>
+<li>语义搜索如何与传统搜索结合？</li>
+</ol>
+<hr>
+<h5 id="-题目10搜索结果的多样性优化"><a class="header" href="#-题目10搜索结果的多样性优化">🔧 题目10：搜索结果的多样性优化</a></h5>
+<p><strong>问题描述</strong>：
+用户搜索“手机“，前10个结果都是iPhone，缺乏多样性。如何优化搜索结果的多样性？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+多样性不足的问题：</p>
+<ol>
+<li>马太效应（热门商品更热门）</li>
+<li>用户需求多样，不都想要iPhone</li>
+<li>影响长尾商品曝光</li>
+</ol>
+<p><strong>优化方案</strong>：</p>
+<ol>
+<li>
+<p><strong>品牌打散</strong>：</p>
+<pre><code>规则：前10个结果中，同一品牌最多出现3次
+
+算法：
+1. 按相关性排序
+2. 遍历结果，统计品牌出现次数
+3. 如果某品牌超过阈值，跳过该商品，选下一个
+</code></pre>
+</li>
+<li>
+<p><strong>MMR算法（最大边际相关性）</strong>：</p>
+<pre><code>score = λ × relevance - (1-λ) × max_similarity
+
+relevance: 与查询的相关性
+max_similarity: 与已选结果的最大相似度
+λ: 权衡参数（0.7）
+
+每次选择score最高的商品，保证相关性和多样性
+</code></pre>
+</li>
+<li>
+<p><strong>类目多样性</strong>：</p>
+<pre><code>前10个结果覆盖2-3个子类目
+- 智能手机（5个）
+- 老人机（3个）
+- 游戏手机（2个）
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>多样性和相关性如何权衡？</li>
+<li>如何评估搜索结果的多样性？</li>
+</ol>
+<hr>
+<hr>
+<h3 id="4112-购物车与结算15题"><a class="header" href="#4112-购物车与结算15题">41.1.2 购物车与结算（15题）</a></h3>
+<h5 id="-题目1购物车的数据存储设计"><a class="header" href="#-题目1购物车的数据存储设计">📊 题目1：购物车的数据存储设计</a></h5>
+<p><strong>问题描述</strong>：
+用户将商品加入购物车，需要跨设备同步（手机APP、Web、小程序）。如何设计购物车的存储方案？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+购物车的核心要素：</p>
+<ol>
+<li>跨设备同步</li>
+<li>用户未登录也能加购</li>
+<li>数据持久化</li>
+<li>高并发读写</li>
+</ol>
+<p><strong>方案一：Cookie存储</strong></p>
+<p>核心思想：
+购物车数据存储在浏览器Cookie。</p>
+<p>优点：</p>
+<ul>
+<li>无需服务器存储</li>
+<li>减轻服务器压力</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>不能跨设备</li>
+<li>Cookie大小限制（4KB）</li>
+<li>不安全（可被篡改）</li>
+</ul>
+<p>适用场景：</p>
+<ul>
+<li>简单电商</li>
+<li>临时购物车</li>
+</ul>
+<p><strong>方案二：数据库存储（推荐）</strong></p>
+<p>核心思想：
+购物车存储在MySQL/Redis。</p>
+<p>设计：</p>
+<pre><code class="language-sql">shopping_cart
+├── cart_id
+├── user_id
+├── sku_id
+├── quantity
+├── selected（是否选中，用于结算）
+├── added_at
+└── updated_at
+
+索引：
+- PRIMARY KEY (cart_id)
+- UNIQUE KEY (user_id, sku_id)
+- INDEX (user_id)
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>跨设备同步</li>
+<li>数据持久化</li>
+<li>支持复杂操作</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>服务器存储成本</li>
+</ul>
+<p><strong>方案三：Redis+MySQL双写</strong></p>
+<p>核心思想：
+Redis提供高性能，MySQL保证持久化。</p>
+<p>架构：</p>
+<pre><code class="language-text">写操作：
+1. 写Redis（立即返回）
+2. 异步写MySQL
+
+读操作：
+1. 优先读Redis
+2. Redis不存在，读MySQL
+3. 回写Redis
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>性能高</li>
+<li>数据安全</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>数据同步复杂</li>
+</ul>
+<p><strong>推荐方案</strong>：
+采用<strong>Redis+MySQL双写</strong>。</p>
+<p>实施要点：</p>
+<ol>
+<li>
+<p><strong>未登录用户</strong>：</p>
+<pre><code>未登录：
+- 生成临时cart_id（存Cookie）
+- 购物车数据存Redis
+- key: cart:temp:{cart_id}
+
+登录后：
+- 合并临时购物车到用户购物车
+- 删除临时购物车
+</code></pre>
+</li>
+<li>
+<p><strong>购物车合并</strong>：</p>
+<pre><code class="language-java">public void mergeCart(String tempCartId, Long userId) {
+  List&lt;CartItem&gt; tempItems = getTempCart(tempCartId);
+  List&lt;CartItem&gt; userItems = getUserCart(userId);
+  
+  for (CartItem temp : tempItems) {
+    CartItem exist = findItem(userItems, temp.getSkuId());
+    if (exist != null) {
+      // 已存在，数量相加
+      exist.setQuantity(exist.getQuantity() + temp.getQuantity());
+    } else {
+      // 不存在，添加
+      userItems.add(temp);
+    }
+  }
+  
+  saveUserCart(userId, userItems);
+  deleteTempCart(tempCartId);
+}
+</code></pre>
+</li>
+<li>
+<p><strong>失效商品处理</strong>：</p>
+<pre><code>商品失效场景：
+- 商品下架
+- 商品删除
+- 库存不足
+
+展示：
+- 失效商品置灰
+- 提示"商品已下架"
+- 提供"删除"或"移入收藏"选项
+</code></pre>
+</li>
+<li>
+<p><strong>购物车清理</strong>：</p>
+<pre><code>定时任务（每天凌晨）：
+- 删除90天未更新的购物车
+- 减少存储成本
+</code></pre>
+</li>
+<li>
+<p><strong>购物车同步</strong>：</p>
+<pre><code>跨设备同步：
+- 用户在APP加购 → 写Redis+MySQL
+- 用户在Web打开 → 读Redis → 显示购物车
+
+实时同步（WebSocket）：
+- 用户在设备A加购
+- 推送到设备B
+- 设备B实时更新购物车数量
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>购物车数量显示在导航栏，如何实时更新？</li>
+<li>如何处理购物车中的促销信息过期？</li>
+<li>购物车数据如何备份和恢复？</li>
+</ol>
+<hr>
+<h5 id="-题目2购物车的价格计算"><a class="header" href="#-题目2购物车的价格计算">🔧 题目2：购物车的价格计算</a></h5>
+<p><strong>问题描述</strong>：
+购物车中有多个商品，每个商品可能有不同促销（满减、折扣、优惠券）。如何设计购物车的实时价格计算？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+购物车价格计算的复杂性：</p>
+<ol>
+<li>多商品组合</li>
+<li>多种促销叠加</li>
+<li>实时计算（用户修改数量即刻更新）</li>
+<li>价格明细展示</li>
+</ol>
+<p><strong>推荐方案</strong>：</p>
+<p>价格计算引擎：</p>
+<pre><code class="language-java">public CartPrice calculateCart(Cart cart) {
+  BigDecimal originalPrice = BigDecimal.ZERO;
+  BigDecimal discountAmount = BigDecimal.ZERO;
+  
+  // 1. 计算商品级优惠
+  for (CartItem item : cart.getItems()) {
+    originalPrice = originalPrice.add(
+      item.getPrice().multiply(new BigDecimal(item.getQuantity()))
+    );
+    
+    // 商品折扣
+    if (item.hasDiscount()) {
+      BigDecimal itemDiscount = calculateItemDiscount(item);
+      discountAmount = discountAmount.add(itemDiscount);
+    }
+  }
+  
+  // 2. 计算订单级优惠
+  BigDecimal subtotal = originalPrice.subtract(discountAmount);
+  
+  // 满减
+  BigDecimal fullReduceDiscount = calculateFullReduce(subtotal);
+  discountAmount = discountAmount.add(fullReduceDiscount);
+  
+  // 优惠券
+  if (cart.hasCoupon()) {
+    BigDecimal couponDiscount = calculateCoupon(cart.getCoupon(), subtotal);
+    discountAmount = discountAmount.add(couponDiscount);
+  }
+  
+  // 3. 最终价格
+  BigDecimal finalPrice = originalPrice.subtract(discountAmount);
+  
+  return new CartPrice(originalPrice, discountAmount, finalPrice);
+}
+</code></pre>
+<p>实时计算触发：</p>
+<pre><code class="language-text">触发时机：
+- 用户修改商品数量
+- 用户选择/取消优惠券
+- 用户勾选/取消商品
+- 商品价格变动（后台推送）
+
+性能优化：
+- 防抖（用户停止操作500ms后计算）
+- 缓存（相同购物车缓存5分钟）
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>购物车价格和下单后价格不一致如何处理？</li>
+<li>大促时购物车价格计算如何优化性能？</li>
+</ol>
+<hr>
+<h5 id="-题目3购物车的推荐功能"><a class="header" href="#-题目3购物车的推荐功能">💡 题目3：购物车的推荐功能</a></h5>
+<p><strong>问题描述</strong>：
+用户购物车中有商品A，如何推荐相关商品B，提升客单价？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐策略</strong>：</p>
+<ol>
+<li>
+<p><strong>关联推荐</strong>：</p>
+<pre><code>"买了还买"：
+- 统计购买商品A的用户还购买了哪些商品
+- 推荐高频商品
+
+示例：
+购物车有"iPhone 15" → 推荐"手机壳"、"钢化膜"、"充电器"
+</code></pre>
+</li>
+<li>
+<p><strong>凑单推荐</strong>：</p>
+<pre><code>购物车总价¥180
+满¥200减¥30
+
+推荐：再买¥20-30的商品，即可享受优惠
+</code></pre>
+</li>
+<li>
+<p><strong>替代推荐</strong>：</p>
+<pre><code>购物车中商品缺货 → 推荐同类商品
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>购物车推荐如何避免打扰用户？</li>
+<li>推荐商品点击率如何提升？</li>
+</ol>
+<hr>
+<h5 id="-题目4购物车的库存校验"><a class="header" href="#-题目4购物车的库存校验">📊 题目4：购物车的库存校验</a></h5>
+<p><strong>问题描述</strong>：
+用户加购物车时商品有货，结算时可能已无货。如何设计购物车的库存校验机制？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>校验时机</strong>：</p>
+<ol>
+<li>
+<p><strong>加购时校验</strong>：</p>
+<pre><code>用户点击"加入购物车" → 检查库存
+库存充足 → 允许加购
+库存不足 → 提示"库存不足"
+</code></pre>
+</li>
+<li>
+<p><strong>结算时校验</strong>：</p>
+<pre><code>用户点击"去结算" → 
+1. 批量查询购物车所有商品库存
+2. 标记缺货商品
+3. 展示：
+   - 有货商品（可结算）
+   - 缺货商品（置灰，不可结算）
+</code></pre>
+</li>
+<li>
+<p><strong>实时推送</strong>：</p>
+<pre><code>商品库存变化（如售罄） → WebSocket推送
+前端实时更新购物车状态
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>购物车中的商品是否需要预占库存？</li>
+<li>库存不足时如何引导用户？</li>
+</ol>
+<hr>
+<h5 id="-题目5购物车的性能优化"><a class="header" href="#-题目5购物车的性能优化">🔧 题目5：购物车的性能优化</a></h5>
+<p><strong>问题描述</strong>：
+大促期间，购物车服务QPS达10万+，如何优化购物车性能？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>优化方案</strong>：</p>
+<ol>
+<li>
+<p><strong>读写分离</strong>：</p>
+<pre><code>写操作（加购、删除）：
+- 写MySQL主库
+- 异步同步到Redis
+
+读操作（查询购物车）：
+- 读Redis（快）
+- 未命中读MySQL从库
+</code></pre>
+</li>
+<li>
+<p><strong>批量操作</strong>：</p>
+<pre><code>❌ 单个加购：N次请求
+✅ 批量加购：1次请求
+
+POST /api/cart/batch-add
+{
+  "items": [
+    {"skuId": "123", "quantity": 2},
+    {"skuId": "456", "quantity": 1}
+  ]
+}
+</code></pre>
+</li>
+<li>
+<p><strong>本地缓存</strong>：</p>
+<pre><code>热点用户购物车：
+- 加载到应用服务器内存
+- 减少Redis访问
+</code></pre>
+</li>
+<li>
+<p><strong>限流降级</strong>：</p>
+<pre><code>限流：
+- 单用户购物车操作频率限制（10次/分钟）
+
+降级：
+- Redis故障 → 降级到MySQL
+- MySQL故障 → 只读模式（不能加购）
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>购物车数据如何分片（sharding）？</li>
+<li>购物车服务如何实现高可用？</li>
+</ol>
+<hr>
+<h5 id="-题目6购物车商品失效的处理策略"><a class="header" href="#-题目6购物车商品失效的处理策略">📊 题目6：购物车商品失效的处理策略</a></h5>
+<p><strong>问题描述</strong>：
+用户购物车中的商品可能因为下架、删除、库存清零而失效。如何设计失效商品的处理策略，优化用户体验？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+商品失效场景：</p>
+<ol>
+<li>商品下架（运营操作）</li>
+<li>商品删除（商品不再销售）</li>
+<li>库存售罄（暂时缺货）</li>
+<li>商品涨价（价格变动）</li>
+<li>促销过期（活动结束）</li>
+</ol>
+<p><strong>方案一：定时批量检测</strong></p>
+<p>核心思想：
+定时任务扫描购物车，标记失效商品。</p>
+<p>实现：</p>
+<pre><code class="language-text">定时任务（每小时）：
+1. 查询所有购物车商品
+2. 批量查询商品状态
+3. 标记失效商品
+4. 更新购物车
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>批量处理，效率高</li>
+<li>服务器压力均匀</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>实时性差（最长延迟1小时）</li>
+<li>用户可能看到失效商品</li>
+</ul>
+<p><strong>方案二：实时校验（推荐）</strong></p>
+<p>核心思想：
+用户打开购物车时，实时校验商品状态。</p>
+<p>流程：</p>
+<pre><code class="language-text">用户打开购物车 →
+1. 查询购物车商品列表
+2. 批量查询商品最新状态（Redis缓存）
+3. 分类展示：
+   - 正常商品（可结算）
+   - 失效商品（置灰，不可结算）
+4. 标注失效原因
+</code></pre>
+<p>失效商品展示：</p>
+<pre><code class="language-text">[置灰显示]
+iPhone 15 Pro 256GB
+¥7999
+状态：该商品已下架
+操作：[删除] [移入收藏夹]
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>实时性好</li>
+<li>用户体验清晰</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>每次打开购物车都校验</li>
+<li>QPS增加</li>
+</ul>
+<p><strong>方案三：消息推送</strong></p>
+<p>核心思想：
+商品状态变化时，主动推送更新购物车。</p>
+<p>架构：</p>
+<pre><code class="language-text">商品下架 → 
+发布事件（Kafka）→ 
+购物车Worker消费 →
+1. 查询包含该商品的购物车
+2. 标记商品为失效
+3. WebSocket推送用户（如果在线）
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>实时性最好</li>
+<li>用户感知及时</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>架构复杂</li>
+<li>需要消息队列</li>
+</ul>
+<p><strong>方案对比</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>实时性</th><th>用户体验</th><th>实施难度</th><th>系统负载</th></tr>
+</thead>
+<tbody>
+<tr><td>定时检测</td><td>★★☆☆☆</td><td>★★★☆☆</td><td>★★★★★</td><td>★★★★☆</td></tr>
+<tr><td>实时校验</td><td>★★★★☆</td><td>★★★★★</td><td>★★★★☆</td><td>★★★☆☆</td></tr>
+<tr><td>消息推送</td><td>★★★★★</td><td>★★★★★</td><td>★★☆☆☆</td><td>★★★★☆</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>推荐方案</strong>：
+采用<strong>实时校验+消息推送</strong>的组合。</p>
+<p>实施要点：</p>
+<ol>
+<li>
+<p><strong>商品状态缓存</strong>：</p>
+<pre><code>Redis存储商品状态：
+key: product:status:{skuId}
+value: {
+  "onSale": true,
+  "stock": 100,
+  "price": 7999,
+  "promotionId": "xxx",
+  "updatedAt": 1679800000
+}
+TTL: 10分钟
+
+商品变更时主动刷新
+</code></pre>
+</li>
+<li>
+<p><strong>批量校验优化</strong>：</p>
+<pre><code class="language-java">public Map&lt;String, ProductStatus&gt; batchCheckStatus(List&lt;String&gt; skuIds) {
+  // 1. 批量查询Redis
+  List&lt;String&gt; keys = skuIds.stream()
+    .map(id -&gt; "product:status:" + id)
+    .collect(Collectors.toList());
+  
+  List&lt;ProductStatus&gt; cached = redis.mget(keys);
+  
+  // 2. 未命中的查数据库
+  Set&lt;String&gt; missingIds = findMissingIds(cached);
+  if (!missingIds.isEmpty()) {
+    Map&lt;String, ProductStatus&gt; fromDB = queryFromDB(missingIds);
+    // 写回Redis
+    cacheToRedis(fromDB);
+    cached.addAll(fromDB.values());
+  }
+  
+  return toMap(cached);
+}
+</code></pre>
+</li>
+<li>
+<p><strong>失效商品操作</strong>：</p>
+<pre><code>用户操作：
+1. 删除：直接从购物车删除
+2. 移入收藏夹：
+   - 加入收藏
+   - 从购物车删除
+   - 商品恢复上架时通知用户
+3. 查看替代品：
+   - 推荐同类商品
+   - 一键替换
+</code></pre>
+</li>
+<li>
+<p><strong>主动通知</strong>：</p>
+<pre><code>通知策略：
+- 商品下架 → App推送
+  "您购物车中的【iPhone 15】已下架"
+- 商品降价 → App推送
+  "您购物车中的【iPhone 15】降价了"
+- 库存恢复 → 收藏夹商品有货通知
+</code></pre>
+</li>
+<li>
+<p><strong>失效原因分类</strong>：</p>
+<pre><code>原因分类：
+- 已下架：运营下架
+- 已售罄：库存为0
+- 已删除：商品不存在
+- 已涨价：价格变动超过10%
+- 活动结束：促销过期
+
+针对性提示：
+- 已售罄 → "补货中，可先收藏"
+- 已涨价 → "当前价格¥xxx，加购时¥xxx"
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计购物车的自动清理（失效商品30天后自动删除）？</li>
+<li>失效商品是否计入购物车数量显示？</li>
+<li>如何处理部分失效（如只有某个规格缺货）？</li>
+</ol>
+<hr>
+<h5 id="-题目7购物车的跨平台同步设计"><a class="header" href="#-题目7购物车的跨平台同步设计">🔧 题目7：购物车的跨平台同步设计</a></h5>
+<p><strong>问题描述</strong>：
+用户在手机APP加购商品，打开电脑Web也能看到。如何实现购物车的跨平台实时同步？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+跨平台同步的核心要素：</p>
+<ol>
+<li>数据一致性（同一购物车）</li>
+<li>实时性（秒级同步）</li>
+<li>冲突处理（同时操作）</li>
+<li>离线支持</li>
+</ol>
+<p><strong>方案一：轮询同步</strong></p>
+<p>核心思想：
+客户端定时轮询服务器，获取最新购物车。</p>
+<p>实现：</p>
+<pre><code class="language-javascript">// 前端定时轮询
+setInterval(() =&gt; {
+  fetch('/api/cart')
+    .then(res =&gt; res.json())
+    .then(cart =&gt; {
+      if (cart.version &gt; localVersion) {
+        updateLocalCart(cart);
+      }
+    });
+}, 5000); // 每5秒轮询一次
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>实现简单</li>
+<li>兼容性好</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>实时性差（5秒延迟）</li>
+<li>浪费带宽（大部分请求无变化）</li>
+<li>服务器压力大</li>
+</ul>
+<p><strong>方案二：WebSocket推送（推荐）</strong></p>
+<p>核心思想：
+客户端与服务器建立长连接，服务器主动推送更新。</p>
+<p>架构：</p>
+<pre><code class="language-text">用户A在APP加购 →
+1. APP发送请求到服务器
+2. 服务器更新购物车
+3. 服务器通过WebSocket推送到用户A的所有设备
+4. Web端接收推送，更新购物车显示
+
+WebSocket消息格式：
+{
+  "type": "CART_UPDATE",
+  "action": "ADD_ITEM",
+  "data": {
+    "skuId": "123",
+    "quantity": 2
+  },
+  "version": 10,
+  "timestamp": 1679800000
+}
+</code></pre>
+<p>实现：</p>
+<pre><code class="language-java">// 服务端
+@Service
+public class CartService {
+  @Autowired
+  private WebSocketPushService pushService;
+  
+  public void addToCart(Long userId, String skuId, int quantity) {
+    // 1. 更新购物车
+    Cart cart = updateCart(userId, skuId, quantity);
+    
+    // 2. 推送到该用户所有在线设备
+    CartUpdateMessage msg = new CartUpdateMessage(
+      "ADD_ITEM", skuId, quantity, cart.getVersion()
+    );
+    pushService.pushToUser(userId, msg);
+  }
+}
+
+// 客户端
+websocket.onmessage = (event) =&gt; {
+  const msg = JSON.parse(event.data);
+  if (msg.type === 'CART_UPDATE') {
+    // 更新本地购物车
+    if (msg.version &gt; localCartVersion) {
+      applyCartUpdate(msg);
+    }
+  }
+};
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>实时性好（秒级）</li>
+<li>双向通信</li>
+<li>节省带宽</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>需要维护长连接</li>
+<li>服务器成本高</li>
+<li>需要心跳保活</li>
+</ul>
+<p><strong>方案三：长轮询</strong></p>
+<p>核心思想：
+客户端发起请求，服务器hold住请求，有更新时返回。</p>
+<p>实现：</p>
+<pre><code class="language-javascript">function longPoll() {
+  fetch('/api/cart/poll?version=' + localVersion)
+    .then(res =&gt; res.json())
+    .then(cart =&gt; {
+      if (cart.version &gt; localVersion) {
+        updateLocalCart(cart);
+      }
+      // 立即发起下一次轮询
+      longPoll();
+    })
+    .catch(() =&gt; {
+      // 失败后延迟重试
+      setTimeout(longPoll, 5000);
+    });
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>实时性较好</li>
+<li>兼容性好（不需要WebSocket）</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>服务器需要hold请求</li>
+<li>连接可能超时</li>
+</ul>
+<p><strong>方案对比</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>实时性</th><th>服务器成本</th><th>兼容性</th><th>实施难度</th></tr>
+</thead>
+<tbody>
+<tr><td>轮询</td><td>★★☆☆☆</td><td>★★☆☆☆</td><td>★★★★★</td><td>★★★★★</td></tr>
+<tr><td>WebSocket</td><td>★★★★★</td><td>★★★☆☆</td><td>★★★★☆</td><td>★★★☆☆</td></tr>
+<tr><td>长轮询</td><td>★★★★☆</td><td>★★☆☆☆</td><td>★★★★★</td><td>★★★★☆</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>推荐方案</strong>：
+采用<strong>WebSocket推送</strong>（支持WebSocket）+ <strong>轮询兜底</strong>（不支持时降级）。</p>
+<p>实施要点：</p>
+<ol>
+<li>
+<p><strong>连接管理</strong>：</p>
+<pre><code class="language-java">// 用户连接映射
+Map&lt;Long, Set&lt;WebSocketSession&gt;&gt; userSessions = new ConcurrentHashMap&lt;&gt;();
+
+// 用户连接时
+public void onConnect(Long userId, WebSocketSession session) {
+  userSessions.computeIfAbsent(userId, k -&gt; new ConcurrentHashSet&lt;&gt;())
+    .add(session);
+}
+
+// 用户断开时
+public void onDisconnect(Long userId, WebSocketSession session) {
+  Set&lt;WebSocketSession&gt; sessions = userSessions.get(userId);
+  if (sessions != null) {
+    sessions.remove(session);
+  }
+}
+
+// 推送消息
+public void pushToUser(Long userId, Object message) {
+  Set&lt;WebSocketSession&gt; sessions = userSessions.get(userId);
+  if (sessions != null) {
+    for (WebSocketSession session : sessions) {
+      if (session.isOpen()) {
+        session.sendMessage(new TextMessage(JSON.toJSONString(message)));
+      }
+    }
+  }
+}
+</code></pre>
+</li>
+<li>
+<p><strong>版本控制</strong>：</p>
+<pre><code>购物车版本号：
+- 每次修改version+1
+- 客户端记录本地version
+- 接收推送时检查version
+- 如果本地version更新，忽略旧推送
+
+冲突解决：
+- 客户端操作携带version
+- 服务端CAS更新
+- 失败则拉取最新数据重试
+</code></pre>
+</li>
+<li>
+<p><strong>心跳保活</strong>：</p>
+<pre><code class="language-javascript">// 客户端定时发送心跳
+setInterval(() =&gt; {
+  if (websocket.readyState === WebSocket.OPEN) {
+    websocket.send(JSON.stringify({type: 'PING'}));
+  }
+}, 30000); // 每30秒
+
+// 服务端响应心跳
+if (message.type === 'PING') {
+  session.sendMessage(new TextMessage('{"type":"PONG"}'));
+}
+</code></pre>
+</li>
+<li>
+<p><strong>降级策略</strong>：</p>
+<pre><code class="language-javascript">// 检测WebSocket支持
+if ('WebSocket' in window) {
+  connectWebSocket();
+} else {
+  // 降级到轮询
+  setInterval(pollCart, 10000);
+}
+
+// WebSocket断开时降级
+websocket.onclose = () =&gt; {
+  console.log('WebSocket断开，降级到轮询');
+  setInterval(pollCart, 10000);
+};
+</code></pre>
+</li>
+<li>
+<p><strong>离线支持</strong>：</p>
+<pre><code>离线操作：
+1. 用户离线时，操作保存到本地队列
+2. 用户上线后，批量同步到服务器
+3. 服务器合并操作，返回最终购物车
+
+冲突处理：
+- 添加：合并数量
+- 删除：以最新操作为准
+- 修改：以最新操作为准
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何处理网络不稳定导致的频繁重连？</li>
+<li>跨平台同步如何支持多账号（家庭共享）？</li>
+<li>WebSocket服务如何实现横向扩展？</li>
+</ol>
+<hr>
+<h5 id="-题目8购物车推荐算法设计"><a class="header" href="#-题目8购物车推荐算法设计">💡 题目8：购物车推荐算法设计</a></h5>
+<p><strong>问题描述</strong>：
+用户购物车有“iPhone 15“，如何推荐相关商品（配件、保险、AppleCare）提升客单价？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+购物车推荐的核心目标：</p>
+<ol>
+<li>提升客单价（关联销售）</li>
+<li>提升转化率（凑单满减）</li>
+<li>提升用户体验（需要的商品）</li>
+</ol>
+<p><strong>推荐策略</strong>：</p>
+<ol>
+<li>
+<p><strong>关联推荐（Frequently Bought Together）</strong>：</p>
+<pre><code class="language-sql">-- 统计商品关联
+SELECT b.sku_id, COUNT(*) as frequency
+FROM order_items a
+JOIN order_items b ON a.order_id = b.order_id
+WHERE a.sku_id = 'iPhone15' 
+  AND b.sku_id != 'iPhone15'
+GROUP BY b.sku_id
+ORDER BY frequency DESC
+LIMIT 10;
+
+结果：
+- 手机壳（购买率80%）
+- 钢化膜（购买率70%）
+- 充电器（购买率60%）
+</code></pre>
+</li>
+<li>
+<p><strong>凑单推荐</strong>：</p>
+<pre><code>购物车总价：¥180
+满减活动：满¥200减¥30
+
+推荐策略：
+- 推荐价格在¥20-¥50的商品
+- 优先推荐与购物车商品相关的
+- 标注"再买¥20即享满减"
+</code></pre>
+</li>
+<li>
+<p><strong>类目互补推荐</strong>：</p>
+<pre><code>购物车有"相机" → 推荐：
+- 存储卡
+- 相机包
+- 三脚架
+
+购物车有"婴儿奶粉" → 推荐：
+- 奶瓶
+- 尿不湿
+- 湿巾
+</code></pre>
+</li>
+<li>
+<p><strong>个性化推荐</strong>：</p>
+<pre><code>基于用户历史：
+- 用户A经常买Apple产品
+  → 推荐AppleCare+、AirPods
+- 用户B价格敏感
+  → 推荐高性价比配件
+</code></pre>
+</li>
+</ol>
+<p><strong>实施要点</strong>：</p>
+<ol>
+<li>
+<p><strong>关联规则挖掘</strong>：</p>
+<pre><code class="language-python"># 使用Apriori算法
+from mlxtend.frequent_patterns import apriori, association_rules
+
+# 构建购物篮矩阵
+basket = orders.groupby(['order_id', 'sku_id'])['quantity'].sum().unstack().fillna(0)
+basket = basket.applymap(lambda x: 1 if x &gt; 0 else 0)
+
+# 挖掘频繁项集
+frequent_itemsets = apriori(basket, min_support=0.01, use_colnames=True)
+
+# 生成关联规则
+rules = association_rules(frequent_itemsets, metric="confidence", min_threshold=0.5)
+
+# iPhone15 -&gt; 手机壳 (confidence=0.8, lift=2.5)
+</code></pre>
+</li>
+<li>
+<p><strong>推荐展示位置</strong>：</p>
+<pre><code>位置1：购物车下方
+"买了还买"：展示3-5个商品
+
+位置2：结算页
+"凑单优惠"：满减差额商品
+
+位置3：加购弹窗
+用户加购商品A → 弹窗推荐配件B
+</code></pre>
+</li>
+<li>
+<p><strong>推荐排序</strong>：</p>
+<pre><code>score = w1 × 关联度 + 
+        w2 × 利润率 + 
+        w3 × 库存充足度 +
+        w4 × 用户个性化得分
+
+w1=0.4, w2=0.3, w3=0.2, w4=0.1
+</code></pre>
+</li>
+<li>
+<p><strong>AB测试</strong>：</p>
+<pre><code>测试维度：
+- A组：展示3个推荐
+- B组：展示5个推荐
+- C组：不展示推荐
+
+评估指标：
+- 推荐点击率
+- 推荐加购率
+- 客单价提升
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>推荐商品如何避免干扰用户（显得推销）？</li>
+<li>推荐算法如何冷启动（新商品无关联数据）？</li>
+<li>推荐效果如何评估和持续优化？</li>
+</ol>
+<hr>
+<h5 id="-题目9购物车的结算流程设计"><a class="header" href="#-题目9购物车的结算流程设计">📊 题目9：购物车的结算流程设计</a></h5>
+<p><strong>问题描述</strong>：
+用户点击“去结算“，进入结算页面，需要选择地址、优惠券、支付方式。如何设计结算流程？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+结算流程的核心环节：</p>
+<ol>
+<li>确认商品（数量、价格）</li>
+<li>选择收货地址</li>
+<li>选择配送方式</li>
+<li>应用优惠（优惠券、积分）</li>
+<li>选择支付方式</li>
+<li>提交订单</li>
+</ol>
+<p><strong>方案一：单页结算</strong></p>
+<p>核心思想：
+所有信息在一个页面完成。</p>
+<p>页面布局：</p>
+<pre><code class="language-text">结算页：
+┌─────────────────┐
+│ 1. 收货地址      │
+│ [北京市朝阳区...] │
+├─────────────────┤
+│ 2. 商品清单      │
+│ iPhone 15 × 1   │
+│ ¥7999           │
+├─────────────────┤
+│ 3. 配送方式      │
+│ ○ 标准配送（免费）│
+│ ○ 次日达（¥10）  │
+├─────────────────┤
+│ 4. 优惠         │
+│ 优惠券：¥30     │
+│ 积分抵扣：¥10   │
+├─────────────────┤
+│ 5. 支付方式      │
+│ ○ 支付宝        │
+│ ○ 微信支付      │
+├─────────────────┤
+│ 总计：¥7959     │
+│ [提交订单]       │
+└─────────────────┘
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>流程简洁</li>
+<li>一目了然</li>
+<li>减少跳转</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>页面信息多</li>
+<li>移动端显示困难</li>
+</ul>
+<p><strong>方案二：分步结算（推荐）</strong></p>
+<p>核心思想：
+分多个步骤完成结算。</p>
+<p>流程：</p>
+<pre><code class="language-text">步骤1：选择地址
+→ 步骤2：确认商品和配送
+→ 步骤3：选择优惠
+→ 步骤4：支付
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>逻辑清晰</li>
+<li>移动端友好</li>
+<li>可保存中间状态</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>步骤多</li>
+<li>可能流失</li>
+</ul>
+<p><strong>推荐方案</strong>：
+PC端使用<strong>单页结算</strong>，移动端使用<strong>分步结算</strong>。</p>
+<p>实施要点：</p>
+<ol>
+<li>
+<p><strong>结算前校验</strong>：</p>
+<pre><code class="language-java">public CheckoutResult preCheckout(Long userId) {
+  // 1. 获取购物车
+  Cart cart = getCart(userId);
+  
+  // 2. 校验商品状态
+  List&lt;String&gt; invalidItems = new ArrayList&lt;&gt;();
+  for (CartItem item : cart.getItems()) {
+    Product product = productService.getProduct(item.getSkuId());
+    if (!product.isOnSale()) {
+      invalidItems.add(item.getSkuId() + "：已下架");
+    } else if (product.getStock() &lt; item.getQuantity()) {
+      invalidItems.add(item.getSkuId() + "：库存不足");
+    }
+  }
+  
+  if (!invalidItems.isEmpty()) {
+    return CheckoutResult.fail("部分商品无法结算", invalidItems);
+  }
+  
+  // 3. 计算价格
+  PriceDetail price = calculatePrice(cart);
+  
+  // 4. 返回结算信息
+  return CheckoutResult.success(cart, price);
+}
+</code></pre>
+</li>
+<li>
+<p><strong>地址选择</strong>：</p>
+<pre><code>展示用户地址列表：
+- 默认地址（置顶）
+- 最近使用地址
+- 其他地址
+
+新增地址：
+- 省市区三级联动
+- 详细地址输入
+- 联系人和电话
+- 设为默认地址
+</code></pre>
+</li>
+<li>
+<p><strong>优惠券选择</strong>：</p>
+<pre><code>展示可用优惠券：
+- 按优惠力度排序
+- 标注"最优"推荐
+- 显示使用门槛
+
+自动选择：
+- 默认选择优惠最大的券
+- 用户可手动切换
+
+不可用优惠券：
+- 置灰显示
+- 标注不可用原因（如"不满足使用条件"）
+</code></pre>
+</li>
+<li>
+<p><strong>价格实时计算</strong>：</p>
+<pre><code class="language-javascript">// 监听用户操作
+onChange = () =&gt; {
+  // 防抖：用户停止操作500ms后计算
+  clearTimeout(this.timer);
+  this.timer = setTimeout(() =&gt; {
+    this.calculatePrice();
+  }, 500);
+};
+
+calculatePrice = async () =&gt; {
+  const params = {
+    items: this.state.cartItems,
+    addressId: this.state.selectedAddress,
+    couponId: this.state.selectedCoupon,
+    usePoints: this.state.usePoints
+  };
+  
+  const result = await API.post('/api/order/calculate-price', params);
+  this.setState({ priceDetail: result });
+};
+</code></pre>
+</li>
+<li>
+<p><strong>订单确认信息</strong>：</p>
+<pre><code>最终确认页展示：
+- 收货人：张三 138****1234
+- 收货地址：北京市朝阳区xxx
+- 商品清单：iPhone 15 × 1
+- 配送方式：标准配送（预计3天送达）
+- 优惠明细：
+  * 商品折扣：-¥100
+  * 满减优惠：-¥30
+  * 优惠券：-¥20
+- 实付金额：¥7849
+
+用户确认无误后点击"提交订单"
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计结算页的防重复提交？</li>
+<li>结算过程中价格变动如何处理？</li>
+<li>结算流程如何优化转化率？</li>
+</ol>
+<hr>
+<h5 id="-题目10购物车的分享功能设计"><a class="header" href="#-题目10购物车的分享功能设计">🔧 题目10：购物车的分享功能设计</a></h5>
+<p><strong>问题描述</strong>：
+用户想分享购物车给朋友（如“帮我看看这些商品怎么样“），如何设计购物车分享功能？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+购物车分享的核心场景：</p>
+<ol>
+<li>征求意见（送礼选择）</li>
+<li>代购（帮朋友买）</li>
+<li>拼单（一起买更便宜）</li>
+</ol>
+<p><strong>方案一：生成分享链接</strong></p>
+<p>核心思想：
+生成唯一URL，包含购物车商品信息。</p>
+<p>实现：</p>
+<pre><code class="language-text">生成分享：
+1. 用户点击"分享购物车"
+2. 服务端生成分享ID
+3. 保存分享内容到数据库/Redis
+4. 返回分享链接
+
+分享链接：
+https://example.com/cart/share/abc123
+
+接收分享：
+1. 朋友点击链接
+2. 展示分享者的购物车商品
+3. 可一键导入到自己购物车
+</code></pre>
+<p>数据设计：</p>
+<pre><code class="language-sql">cart_share
+├── share_id（唯一ID）
+├── user_id（分享者）
+├── cart_snapshot（JSON，购物车快照）
+├── expire_at（过期时间）
+├── view_count（查看次数）
+└── created_at
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>实现简单</li>
+<li>支持任意平台</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>链接可能泄露</li>
+<li>分享内容是快照（不会实时更新）</li>
+</ul>
+<p><strong>方案二：生成二维码</strong></p>
+<p>核心思想：
+生成二维码，扫码查看购物车。</p>
+<p>实现：</p>
+<pre><code class="language-text">生成二维码：
+1. 生成分享链接（同方案一）
+2. 将链接转为二维码
+3. 展示二维码供分享
+
+扫码查看：
+1. 扫描二维码
+2. 跳转到分享页面
+3. 展示商品列表
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>线下分享方便</li>
+<li>移动端友好</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>仍是快照</li>
+</ul>
+<p><strong>方案三：实时共享购物车（推荐）</strong></p>
+<p>核心思想：
+创建共享购物车，多人实时协同。</p>
+<p>实现：</p>
+<pre><code class="language-text">创建共享：
+1. 用户创建共享购物车
+2. 生成共享ID和密码（可选）
+3. 邀请朋友加入
+
+实时同步：
+- 任何人添加/删除商品
+- 通过WebSocket实时同步给所有成员
+- 显示"张三添加了iPhone 15"
+
+共享购物车表：
+shared_cart
+├── shared_cart_id
+├── creator_id
+├── name（如"周末采购清单"）
+├── password（可选）
+├── members（成员列表）
+├── items（商品列表）
+└── created_at
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>实时协同</li>
+<li>支持多人编辑</li>
+<li>适合家庭、团队采购</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>实现复杂</li>
+<li>需要冲突处理</li>
+</ul>
+<p><strong>推荐方案</strong>：
+采用<strong>分享链接+实时共享</strong>的组合。</p>
+<p>实施要点：</p>
+<ol>
+<li>
+<p><strong>分享类型</strong>：</p>
+<pre><code>类型1：只读分享
+- 生成分享链接
+- 朋友只能查看，不能修改
+- 可一键导入到自己购物车
+
+类型2：协同编辑
+- 创建共享购物车
+- 邀请成员
+- 成员可添加/删除商品
+</code></pre>
+</li>
+<li>
+<p><strong>分享页面设计</strong>：</p>
+<pre><code>分享页头部：
+"张三分享了购物车给你"
+
+商品列表：
+[展示所有商品]
+
+操作按钮：
+- [全部加入我的购物车]
+- [选择部分加入]
+- [保存为我的收藏清单]
+</code></pre>
+</li>
+<li>
+<p><strong>隐私控制</strong>：</p>
+<pre><code>隐私选项：
+- 公开：任何人都可查看
+- 仅好友：需要登录且是好友
+- 密码保护：需要输入密码
+
+敏感信息隐藏：
+- 不显示价格（可选）
+- 不显示数量（可选）
+</code></pre>
+</li>
+<li>
+<p><strong>分享统计</strong>：</p>
+<pre><code>统计指标：
+- 分享次数
+- 查看人数
+- 转化人数（查看后购买）
+- 传播路径（A分享给B，B分享给C）
+</code></pre>
+</li>
+<li>
+<p><strong>场景化推荐</strong>：</p>
+<pre><code>场景1：送礼征询
+"想送女朋友礼物，帮我选一个"
+→ 展示多个候选商品
+→ 朋友投票或评论
+
+场景2：拼单
+"一起买，更便宜"
+→ 共享购物车
+→ 凑满减金额
+→ 分摊运费
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计购物车的协同冲突解决（同时删除同一商品）？</li>
+<li>分享购物车如何防止恶意刷单？</li>
+<li>共享购物车如何拆单结算（各付各的）？</li>
+</ol>
+<hr>
+<h5 id="-题目11购物车的满减凑单提示"><a class="header" href="#-题目11购物车的满减凑单提示">💡 题目11：购物车的满减凑单提示</a></h5>
+<p><strong>问题描述</strong>：
+购物车总价¥180，有满¥200减¥30活动。如何设计智能凑单提示，引导用户加购？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>：</p>
+<ol>
+<li>
+<p><strong>差额计算</strong>：</p>
+<pre><code>当前金额：¥180
+满减门槛：¥200
+差额：¥20
+
+提示："再买¥20，立减¥30"
+</code></pre>
+</li>
+<li>
+<p><strong>智能商品推荐</strong>：</p>
+<pre><code>推荐商品筛选条件：
+- 价格在¥20-¥50之间（差额附近）
+- 与购物车商品相关（配件、同类目）
+- 库存充足
+- 高评分
+
+排序：
+- 优先推荐价格接近差额的
+- 优先推荐关联度高的
+</code></pre>
+</li>
+<li>
+<p><strong>视觉引导</strong>：</p>
+<pre><code>进度条展示：
+[████████░░] 90% (¥180/¥200)
+"再买¥20，立减¥30，相当于打8.5折"
+
+推荐商品卡片：
+┌───────────┐
+│ 手机壳     │
+│ ¥29       │
+│ [加入购物车]│
+└───────────┘
+</code></pre>
+</li>
+<li>
+<p><strong>多档位满减</strong>：</p>
+<pre><code>满减档位：
+- 满¥100减¥10（已达成✓）
+- 满¥200减¥30（差¥20）
+- 满¥500减¥100（差¥320）
+
+提示优先显示最接近的下一档
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>凑单推荐如何避免过度营销（让用户反感）？</li>
+<li>多个满减活动同时存在时如何提示？</li>
+</ol>
+<hr>
+<h5 id="-题目12购物车的批量操作设计"><a class="header" href="#-题目12购物车的批量操作设计">📊 题目12：购物车的批量操作设计</a></h5>
+<p><strong>问题描述</strong>：
+用户购物车有50个商品，想批量删除、批量加入收藏。如何设计批量操作功能？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>：</p>
+<ol>
+<li>
+<p><strong>批量选择</strong>：</p>
+<pre><code>界面设计：
+[全选] 已选0件
+
+☑ 商品A  ¥100
+☑ 商品B  ¥200
+☐ 商品C  ¥300
+
+批量操作：
+[删除选中] [加入收藏] [移除失效商品]
+</code></pre>
+</li>
+<li>
+<p><strong>批量接口</strong>：</p>
+<pre><code class="language-java">POST /api/cart/batch-delete
+{
+  "skuIds": ["123", "456", "789"]
+}
+
+POST /api/cart/batch-move-to-favorite
+{
+  "skuIds": ["123", "456"]
+}
+</code></pre>
+</li>
+<li>
+<p><strong>事务处理</strong>：</p>
+<pre><code>批量操作的事务性：
+- 部分成功部分失败如何处理？
+
+方案A：全量事务
+- 全部成功才提交
+- 任一失败全部回滚
+
+方案B：部分成功（推荐）
+- 成功的操作提交
+- 失败的返回错误信息
+- 前端展示"成功X件，失败Y件"
+</code></pre>
+</li>
+<li>
+<p><strong>性能优化</strong>：</p>
+<pre><code>批量删除50个商品：
+❌ for循环50次DELETE
+✅ 一次DELETE WHERE sku_id IN (...)
+
+批量更新库存：
+❌ 50次UPDATE
+✅ 批量UPDATE CASE WHEN
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>批量操作如何支持撤销（Undo）？</li>
+<li>批量操作的进度如何展示？</li>
+</ol>
+<hr>
+<h5 id="-题目13购物车的收藏夹联动"><a class="header" href="#-题目13购物车的收藏夹联动">🔧 题目13：购物车的收藏夹联动</a></h5>
+<p><strong>问题描述</strong>：
+购物车和收藏夹如何联动？商品从购物车移入收藏，或从收藏加入购物车。</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>：</p>
+<ol>
+<li>
+<p><strong>数据模型</strong>：</p>
+<pre><code class="language-sql">favorite
+├── favorite_id
+├── user_id
+├── sku_id
+├── source（CART/BROWSE）
+├── added_at
+└── ...
+</code></pre>
+</li>
+<li>
+<p><strong>互相转换</strong>：</p>
+<pre><code>购物车 → 收藏夹：
+1. 用户点击"移入收藏"
+2. 加入收藏夹
+3. 从购物车删除
+4. 提示"已移入收藏夹"
+
+收藏夹 → 购物车：
+1. 用户点击"加入购物车"
+2. 加入购物车
+3. 保留在收藏夹（不删除）
+</code></pre>
+</li>
+<li>
+<p><strong>降价提醒</strong>：</p>
+<pre><code>收藏商品降价：
+- 监控收藏商品价格
+- 降价时推送通知
+- 引导用户加购
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>收藏夹和购物车的区别是什么？</li>
+<li>如何设计收藏夹的分组功能？</li>
+</ol>
+<hr>
+<h5 id="-题目14购物车的历史记录"><a class="header" href="#-题目14购物车的历史记录">💡 题目14：购物车的历史记录</a></h5>
+<p><strong>问题描述</strong>：
+用户删除了购物车商品，想恢复。如何设计购物车的历史记录功能？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>：</p>
+<ol>
+<li>
+<p><strong>软删除</strong>：</p>
+<pre><code class="language-sql">shopping_cart
+├── ...
+├── deleted_at（软删除标记）
+└── deleted（是否删除）
+
+查询购物车：
+SELECT * FROM shopping_cart 
+WHERE user_id=? AND deleted=0
+
+查询历史：
+SELECT * FROM shopping_cart 
+WHERE user_id=? AND deleted=1
+ORDER BY deleted_at DESC
+</code></pre>
+</li>
+<li>
+<p><strong>恢复功能</strong>：</p>
+<pre><code>历史记录页面：
+最近删除：
+- 商品A（3天前删除）[恢复]
+- 商品B（7天前删除）[恢复]
+
+恢复操作：
+UPDATE shopping_cart 
+SET deleted=0, deleted_at=NULL
+WHERE cart_id=?
+</code></pre>
+</li>
+<li>
+<p><strong>自动清理</strong>：</p>
+<pre><code>定时任务：
+- 删除30天后的历史记录
+- 减少存储成本
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>购物车历史记录是否需要版本控制（记录每次修改）？</li>
+<li>如何设计购物车的快照功能（保存多个购物清单）？</li>
+</ol>
+<hr>
+<h5 id="-题目15购物车的ab测试设计"><a class="header" href="#-题目15购物车的ab测试设计">📊 题目15：购物车的AB测试设计</a></h5>
+<p><strong>问题描述</strong>：
+想测试新的购物车布局对转化率的影响。如何设计购物车的AB测试？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>：</p>
+<ol>
+<li>
+<p><strong>分流策略</strong>：</p>
+<pre><code class="language-java">public String getCartVersion(Long userId) {
+  // 基于用户ID哈希分流
+  int hash = userId.hashCode();
+  if (hash % 2 == 0) {
+    return "A"; // 对照组
+  } else {
+    return "B"; // 实验组
+  }
+}
+</code></pre>
+</li>
+<li>
+<p><strong>实验设计</strong>：</p>
+<pre><code>对照组A（50%用户）：
+- 旧购物车布局
+
+实验组B（50%用户）：
+- 新购物车布局（优化后）
+
+评估指标：
+- 加购率
+- 结算率
+- 转化率
+- 客单价
+</code></pre>
+</li>
+<li>
+<p><strong>数据埋点</strong>：</p>
+<pre><code class="language-javascript">// 购物车页面浏览
+track('cart_view', {
+  version: 'A', // 或 'B'
+  cartItemCount: 5
+});
+
+// 点击结算
+track('cart_checkout_click', {
+  version: 'A',
+  cartTotal: 1000
+});
+
+// 完成下单
+track('order_created', {
+  version: 'A',
+  orderAmount: 1000
+});
+</code></pre>
+</li>
+<li>
+<p><strong>结果分析</strong>：</p>
+<pre><code>结果对比：
+| 指标 | A组 | B组 | 提升 |
+|------|-----|-----|------|
+| 结算率 | 60% | 65% | +8.3% |
+| 转化率 | 40% | 45% | +12.5% |
+| 客单价 | ¥800 | ¥850 | +6.25% |
+
+结论：B组效果更好，全量发布
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>AB测试如何保证结果的统计显著性？</li>
+<li>多个AB测试同时进行时如何隔离影响？</li>
+<li>如何设计购物车的渐进式发布（灰度发布）？</li>
+</ol>
+<hr>
+<hr>
+<h3 id="4113-订单系统15题"><a class="header" href="#4113-订单系统15题">41.1.3 订单系统（15题）</a></h3>
+<h5 id="-题目1订单状态机的设计"><a class="header" href="#-题目1订单状态机的设计">📊 题目1：订单状态机的设计</a></h5>
+<p><strong>问题描述</strong>：
+订单从创建到完成，经历多个状态（待支付、待发货、待收货、已完成）。如何设计订单状态机，保证状态流转的正确性？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+订单状态流转的核心要素：</p>
+<ol>
+<li>状态定义清晰</li>
+<li>流转规则明确</li>
+<li>防止非法跳转</li>
+<li>支持异常流程（取消、退款）</li>
+</ol>
+<p><strong>状态定义</strong>：</p>
+<pre><code class="language-text">正向流程：
+PENDING_PAYMENT（待支付）
+→ PAID（已支付/待发货）
+→ SHIPPED（已发货/待收货）
+→ RECEIVED（已收货/待评价）
+→ COMPLETED（已完成）
+
+逆向流程：
+CANCELLED（已取消）
+REFUNDING（退款中）
+REFUNDED（已退款）
+
+特殊状态：
+TIMEOUT（超时关闭）
+</code></pre>
+<p><strong>状态机实现</strong>：</p>
+<p>方案一：If-Else判断</p>
+<pre><code class="language-java">public void updateOrderStatus(Order order, OrderStatus newStatus) {
+  OrderStatus currentStatus = order.getStatus();
+  
+  if (currentStatus == PENDING_PAYMENT) {
+    if (newStatus == PAID || newStatus == CANCELLED || newStatus == TIMEOUT) {
+      order.setStatus(newStatus);
+    } else {
+      throw new IllegalStateException("非法状态转换");
+    }
+  } else if (currentStatus == PAID) {
+    if (newStatus == SHIPPED || newStatus == REFUNDING) {
+      order.setStatus(newStatus);
+    } else {
+      throw new IllegalStateException("非法状态转换");
+    }
+  }
+  // ... 更多判断
+}
+</code></pre>
+<p>缺点：</p>
+<ul>
+<li>代码冗长</li>
+<li>难以维护</li>
+<li>状态多时复杂度爆炸</li>
+</ul>
+<p>方案二：状态转换表（推荐）</p>
+<pre><code class="language-java">// 定义状态转换规则
+private static final Map&lt;OrderStatus, Set&lt;OrderStatus&gt;&gt; TRANSITIONS = Map.of(
+  PENDING_PAYMENT, Set.of(PAID, CANCELLED, TIMEOUT),
+  PAID, Set.of(SHIPPED, REFUNDING),
+  SHIPPED, Set.of(RECEIVED, REFUNDING),
+  RECEIVED, Set.of(COMPLETED, REFUNDING),
+  REFUNDING, Set.of(REFUNDED)
+);
+
+public void updateOrderStatus(Order order, OrderStatus newStatus) {
+  OrderStatus currentStatus = order.getStatus();
+  
+  Set&lt;OrderStatus&gt; allowedTransitions = TRANSITIONS.get(currentStatus);
+  if (allowedTransitions == null || !allowedTransitions.contains(newStatus)) {
+    throw new IllegalStateException(
+      String.format("不允许从%s转换到%s", currentStatus, newStatus)
+    );
+  }
+  
+  // 记录状态变更历史
+  OrderStatusHistory history = new OrderStatusHistory();
+  history.setOrderId(order.getId());
+  history.setFromStatus(currentStatus);
+  history.setToStatus(newStatus);
+  history.setOperator(getCurrentUser());
+  history.setReason(reason);
+  historyRepository.save(history);
+  
+  // 更新订单状态
+  order.setStatus(newStatus);
+  orderRepository.save(order);
+  
+  // 发布状态变更事件
+  eventPublisher.publish(new OrderStatusChangedEvent(order, currentStatus, newStatus));
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>规则清晰</li>
+<li>易于维护</li>
+<li>可扩展</li>
+</ul>
+<p><strong>状态流转图</strong>：</p>
+<pre><code class="language-text">                    ┌─&gt; CANCELLED
+                    │
+PENDING_PAYMENT ──┬─┴─&gt; PAID ───&gt; SHIPPED ───&gt; RECEIVED ───&gt; COMPLETED
+                  │                  │            │
+                  └─&gt; TIMEOUT        │            │
+                                     │            │
+                                     └─&gt; REFUNDING &lt;─┘
+                                            │
+                                            └─&gt; REFUNDED
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计订单的子状态（如待发货细分为待拣货、待打包、待出库）？</li>
+<li>订单状态变更如何触发后续操作（如发货后通知物流）？</li>
+<li>如何处理状态流转的并发冲突？</li>
+</ol>
+<hr>
+<h5 id="-题目2订单号生成规则"><a class="header" href="#-题目2订单号生成规则">🔧 题目2：订单号生成规则</a></h5>
+<p><strong>问题描述</strong>：
+订单号需要唯一、有序、不易被猜测。如何设计订单号生成规则？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>订单号设计要求</strong>：</p>
+<ol>
+<li>全局唯一</li>
+<li>趋势递增（便于分库分表）</li>
+<li>信息可读（包含时间、业务类型）</li>
+<li>安全性（不易被遍历）</li>
+<li>长度适中（15-20位）</li>
+</ol>
+<p><strong>方案一：数据库自增ID</strong></p>
+<p>优点：</p>
+<ul>
+<li>简单</li>
+<li>唯一</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>连续，易被猜测</li>
+<li>分布式环境难实现</li>
+<li>信息量少</li>
+</ul>
+<p><strong>方案二：UUID</strong></p>
+<p>优点：</p>
+<ul>
+<li>全局唯一</li>
+<li>无需中心化</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>无序（影响索引性能）</li>
+<li>长度太长（36位）</li>
+<li>无业务含义</li>
+</ul>
+<p><strong>方案三：Snowflake算法（推荐）</strong></p>
+<p>结构：</p>
+<pre><code class="language-text">64位Long型：
+1位符号位 + 41位时间戳 + 10位机器ID + 12位序列号
+
+示例：
+0 - 00000000000000000000000000000000000000000 - 0000000000 - 000000000000
+│   └─────────────41位时间戳─────────────────┘   └10位机器┘   └12位序列┘
+符号位
+
+生成的订单号：1234567890123456789（19位）
+</code></pre>
+<p>实现：</p>
+<pre><code class="language-java">public class SnowflakeIdGenerator {
+  // 起始时间戳（2020-01-01）
+  private final long epoch = 1577836800000L;
+  
+  // 机器ID（数据中心ID + 机器ID）
+  private final long workerId;
+  
+  // 序列号
+  private long sequence = 0L;
+  
+  // 上次生成ID的时间戳
+  private long lastTimestamp = -1L;
+  
+  public synchronized long nextId() {
+    long timestamp = System.currentTimeMillis();
+    
+    // 时钟回拨检测
+    if (timestamp &lt; lastTimestamp) {
+      throw new RuntimeException("时钟回拨");
+    }
+    
+    // 同一毫秒内
+    if (timestamp == lastTimestamp) {
+      sequence = (sequence + 1) &amp; 4095; // 4095=2^12-1
+      if (sequence == 0) {
+        // 序列号用完，等待下一毫秒
+        timestamp = waitNextMillis(lastTimestamp);
+      }
+    } else {
+      sequence = 0;
+    }
+    
+    lastTimestamp = timestamp;
+    
+    // 组装ID
+    return ((timestamp - epoch) &lt;&lt; 22) 
+         | (workerId &lt;&lt; 12) 
+         | sequence;
+  }
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>趋势递增</li>
+<li>高性能</li>
+<li>分布式友好</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>依赖机器时钟</li>
+<li>机器ID需要管理</li>
+</ul>
+<p><strong>方案四：业务规则拼接</strong></p>
+<p>结构：</p>
+<pre><code class="language-text">订单号格式：业务前缀 + 日期 + 随机数
+
+示例：
+OR20260418123456789
+│  └────┘└───────┘
+│   日期   随机数
+业务前缀（OR=Order）
+
+生成：
+String orderId = "OR" 
+               + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+               + RandomStringUtils.randomNumeric(9);
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>可读性强</li>
+<li>包含业务信息</li>
+<li>可自定义</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>需要保证随机数不重复</li>
+<li>长度较长</li>
+</ul>
+<p><strong>推荐方案</strong>：
+使用<strong>Snowflake算法</strong>生成基础ID，再转为业务订单号。</p>
+<p>实现：</p>
+<pre><code class="language-java">public String generateOrderNo() {
+  long snowflakeId = idGenerator.nextId();
+  
+  // 转为订单号（添加业务前缀）
+  return "OR" + snowflakeId;
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计订单号的校验规则（防止伪造）？</li>
+<li>订单号如何支持多业务类型（普通订单、预售订单、拼团订单）？</li>
+<li>分库分表场景下订单号如何设计路由键？</li>
+</ol>
+<hr>
+<h5 id="-题目3订单超时自动取消"><a class="header" href="#-题目3订单超时自动取消">💡 题目3：订单超时自动取消</a></h5>
+<p><strong>问题描述</strong>：
+用户下单30分钟未支付，订单自动关闭并释放库存。如何实现订单超时自动取消？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>方案一：定时任务扫描</strong></p>
+<p>核心思想：
+定时任务定期扫描超时订单。</p>
+<p>实现：</p>
+<pre><code class="language-java">@Scheduled(fixedDelay = 60000) // 每分钟执行
+public void cancelTimeoutOrders() {
+  // 查询超时未支付订单
+  List&lt;Order&gt; timeoutOrders = orderRepository.findByStatusAndCreateTimeBefore(
+    OrderStatus.PENDING_PAYMENT,
+    LocalDateTime.now().minus(30, ChronoUnit.MINUTES)
+  );
+  
+  for (Order order : timeoutOrders) {
+    try {
+      // 取消订单
+      orderService.cancel(order.getId(), "超时未支付自动取消");
+      
+      // 释放库存
+      inventoryService.release(order.getItems());
+      
+      // 通知用户
+      notificationService.send(order.getUserId(), "订单已超时关闭");
+    } catch (Exception e) {
+      log.error("取消订单失败", e);
+    }
+  }
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>实现简单</li>
+<li>可靠性高</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>实时性差（最长延迟1分钟）</li>
+<li>数据库扫描压力大</li>
+<li>定时任务单点故障</li>
+</ul>
+<p><strong>方案二：延迟队列（推荐）</strong></p>
+<p>核心思想：
+订单创建时发送延迟消息，30分钟后消费取消订单。</p>
+<p>使用RabbitMQ延迟队列：</p>
+<pre><code class="language-java">// 创建订单时
+public void createOrder(Order order) {
+  // 1. 保存订单
+  orderRepository.save(order);
+  
+  // 2. 发送延迟消息（30分钟后）
+  rabbitTemplate.convertAndSend(
+    "order.cancel.exchange",
+    "order.cancel.routing.key",
+    order.getId(),
+    message -&gt; {
+      message.getMessageProperties().setDelay(30 * 60 * 1000); // 30分钟
+      return message;
+    }
+  );
+}
+
+// 消费延迟消息
+@RabbitListener(queues = "order.cancel.queue")
+public void handleOrderCancel(Long orderId) {
+  Order order = orderRepository.findById(orderId);
+  
+  // 检查订单状态
+  if (order.getStatus() == OrderStatus.PENDING_PAYMENT) {
+    // 仍未支付，取消订单
+    orderService.cancel(orderId, "超时未支付自动取消");
+    inventoryService.release(order.getItems());
+  }
+  // 如果已支付，忽略
+}
+</code></pre>
+<p>使用Redis实现延迟队列：</p>
+<pre><code class="language-java">// 创建订单时
+public void createOrder(Order order) {
+  orderRepository.save(order);
+  
+  // 添加到Redis有序集合（Sorted Set）
+  long expireTime = System.currentTimeMillis() + 30 * 60 * 1000;
+  redis.zadd("order:timeout", expireTime, order.getId());
+}
+
+// 定时消费
+@Scheduled(fixedDelay = 1000) // 每秒执行
+public void processTimeoutOrders() {
+  long now = System.currentTimeMillis();
+  
+  // 获取已到期的订单ID
+  Set&lt;String&gt; orderIds = redis.zrangeByScore("order:timeout", 0, now);
+  
+  for (String orderId : orderIds) {
+    try {
+      // 处理超时订单
+      processTimeoutOrder(Long.parseLong(orderId));
+      
+      // 从集合中移除
+      redis.zrem("order:timeout", orderId);
+    } catch (Exception e) {
+      log.error("处理超时订单失败", e);
+    }
+  }
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>准确到秒</li>
+<li>分布式友好</li>
+<li>性能好</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>依赖消息队列</li>
+<li>需要处理消息丢失</li>
+</ul>
+<p><strong>方案三：时间轮算法</strong></p>
+<p>核心思想：
+使用时间轮数据结构管理超时任务。</p>
+<p>实现（Netty HashedWheelTimer）：</p>
+<pre><code class="language-java">private final HashedWheelTimer timer = new HashedWheelTimer(
+  1, TimeUnit.SECONDS,  // 每秒tick一次
+  60                     // 60个槽位
+);
+
+public void createOrder(Order order) {
+  orderRepository.save(order);
+  
+  // 添加超时任务
+  timer.newTimeout(timeout -&gt; {
+    Order latestOrder = orderRepository.findById(order.getId());
+    if (latestOrder.getStatus() == OrderStatus.PENDING_PAYMENT) {
+      orderService.cancel(order.getId(), "超时未支付自动取消");
+    }
+  }, 30, TimeUnit.MINUTES);
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>高性能</li>
+<li>精确度高</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>内存占用（任务在内存）</li>
+<li>单机方案（不支持分布式）</li>
+<li>服务重启任务丢失</li>
+</ul>
+<p><strong>方案对比</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>实时性</th><th>可靠性</th><th>分布式</th><th>实施难度</th></tr>
+</thead>
+<tbody>
+<tr><td>定时扫描</td><td>★★☆☆☆</td><td>★★★★★</td><td>★★★★☆</td><td>★★★★★</td></tr>
+<tr><td>延迟队列</td><td>★★★★★</td><td>★★★★☆</td><td>★★★★★</td><td>★★★☆☆</td></tr>
+<tr><td>时间轮</td><td>★★★★★</td><td>★★★☆☆</td><td>★★☆☆☆</td><td>★★★☆☆</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>推荐方案</strong>：
+采用<strong>延迟队列（RabbitMQ或Redis）</strong>。</p>
+<p>实施要点：</p>
+<ol>
+<li>
+<p><strong>幂等性保证</strong>：</p>
+<pre><code class="language-java">@Transactional
+public void cancel(Long orderId, String reason) {
+  Order order = orderRepository.findById(orderId);
+  
+  // 检查当前状态
+  if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
+    log.warn("订单{}状态不是待支付，跳过取消", orderId);
+    return; // 已被其他线程处理
+  }
+  
+  // CAS更新状态
+  int updated = orderRepository.updateStatus(
+    orderId, 
+    OrderStatus.CANCELLED,
+    OrderStatus.PENDING_PAYMENT // 期望的旧状态
+  );
+  
+  if (updated == 0) {
+    log.warn("订单{}取消失败，可能已被处理", orderId);
+    return;
+  }
+  
+  // 释放库存
+  inventoryService.release(order.getItems());
+}
+</code></pre>
+</li>
+<li>
+<p><strong>异常重试</strong>：</p>
+<pre><code>取消失败的处理：
+- 消息重新入队，稍后重试
+- 最多重试3次
+- 仍失败则记录告警，人工处理
+</code></pre>
+</li>
+<li>
+<p><strong>监控告警</strong>：</p>
+<pre><code>监控指标：
+- 超时订单数量
+- 取消成功率
+- 延迟队列堆积量
+
+告警：
+- 取消失败率 &gt; 1%
+- 延迟队列堆积 &gt; 10000
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计不同订单类型的不同超时时间（普通30分钟，秒杀10分钟）？</li>
+<li>订单超时取消如何通知用户？</li>
+<li>大促期间超时订单激增如何处理？</li>
+</ol>
+<hr>
+<h5 id="-题目4订单拆单与合单策略"><a class="header" href="#-题目4订单拆单与合单策略">📊 题目4：订单拆单与合单策略</a></h5>
+<p><strong>问题描述</strong>：
+用户购买多个商品，可能来自不同仓库或不同商家。如何设计订单拆单与合单策略？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+拆单场景：</p>
+<ol>
+<li>多仓库发货（就近发货）</li>
+<li>多商家发货（平台+第三方卖家）</li>
+<li>预售+现货（发货时间不同）</li>
+<li>自营+跨境（清关时间不同）</li>
+</ol>
+<p>合单场景：</p>
+<ol>
+<li>同一地址多笔订单（节省运费）</li>
+<li>同一商家商品（方便发货）</li>
+</ol>
+<p><strong>方案一：用户下单时拆单</strong></p>
+<p>核心思想：
+用户提交订单时，系统自动拆分为多个子订单。</p>
+<p>流程：</p>
+<pre><code class="language-text">用户购物车：
+- 商品A（北京仓）
+- 商品B（上海仓）
+- 商品C（北京仓）
+
+拆单规则：
+按仓库拆分：
+→ 子订单1：商品A + C（北京仓）
+→ 子订单2：商品B（上海仓）
+
+数据结构：
+parent_order（父订单）
+├── parent_order_id
+├── user_id
+├── total_amount
+└── status
+
+sub_order（子订单）
+├── sub_order_id
+├── parent_order_id
+├── warehouse_id
+├── items
+└── status
+</code></pre>
+<p>用户支付：</p>
+<pre><code class="language-text">用户支付父订单 → 分配金额到各子订单
+子订单独立发货、收货
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>逻辑清晰</li>
+<li>用户感知明确</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>用户体验复杂（多个运单号）</li>
+<li>退款复杂（部分退款）</li>
+</ul>
+<p><strong>方案二：后台自动拆单（推荐）</strong></p>
+<p>核心思想：
+用户下单时是一个订单，后台根据规则自动拆分为多个发货单。</p>
+<p>流程：</p>
+<pre><code class="language-text">用户下单：创建订单（单个）
+↓
+订单支付成功
+↓
+订单中心分析：需要拆单
+↓
+创建多个发货单（shipment）
+- 发货单1：商品A+C → 北京仓
+- 发货单2：商品B → 上海仓
+↓
+各仓库独立发货
+</code></pre>
+<p>数据结构：</p>
+<pre><code class="language-sql">order（订单）
+├── order_id
+├── user_id
+├── total_amount
+└── status
+
+shipment（发货单）
+├── shipment_id
+├── order_id
+├── warehouse_id
+├── items（发货商品）
+├── tracking_number（运单号）
+└── status
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>用户无感知（看到的是一个订单）</li>
+<li>退款简单（按订单退）</li>
+<li>灵活（可随时调整拆单规则）</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>实现复杂</li>
+<li>需要维护订单和发货单的关系</li>
+</ul>
+<p><strong>拆单规则</strong>：</p>
+<ol>
+<li>
+<p><strong>按仓库拆分</strong>：</p>
+<pre><code class="language-java">public List&lt;Shipment&gt; splitByWarehouse(Order order) {
+  // 1. 为每个商品选择最优仓库
+  Map&lt;String, Warehouse&gt; itemWarehouse = new HashMap&lt;&gt;();
+  for (OrderItem item : order.getItems()) {
+    Warehouse warehouse = selectWarehouse(item.getSkuId(), order.getAddress());
+    itemWarehouse.put(item.getSkuId(), warehouse);
+  }
+  
+  // 2. 按仓库分组
+  Map&lt;Warehouse, List&lt;OrderItem&gt;&gt; grouped = order.getItems().stream()
+    .collect(Collectors.groupBy(item -&gt; itemWarehouse.get(item.getSkuId())));
+  
+  // 3. 生成发货单
+  List&lt;Shipment&gt; shipments = new ArrayList&lt;&gt;();
+  for (Map.Entry&lt;Warehouse, List&lt;OrderItem&gt;&gt; entry : grouped.entrySet()) {
+    Shipment shipment = new Shipment();
+    shipment.setOrderId(order.getId());
+    shipment.setWarehouseId(entry.getKey().getId());
+    shipment.setItems(entry.getValue());
+    shipments.add(shipment);
+  }
+  
+  return shipments;
+}
+</code></pre>
+</li>
+<li>
+<p><strong>按商家拆分</strong>：</p>
+<pre><code>平台订单包含：
+- 自营商品（平台发货）
+- 第三方商品（商家发货）
+
+拆分：
+- 子订单1：自营商品
+- 子订单2：商家A的商品
+- 子订单3：商家B的商品
+</code></pre>
+</li>
+<li>
+<p><strong>按发货时间拆分</strong>：</p>
+<pre><code>订单包含：
+- 现货商品（立即发货）
+- 预售商品（15天后发货）
+
+拆分：
+- 发货单1：现货（立即发）
+- 发货单2：预售（延迟发）
+</code></pre>
+</li>
+</ol>
+<p><strong>合单策略</strong>：</p>
+<ol>
+<li>
+<p><strong>同地址合并</strong>：</p>
+<pre><code>用户A在1小时内下了3笔订单：
+- 订单1：商品A（北京仓）
+- 订单2：商品B（北京仓）
+- 订单3：商品C（上海仓）
+
+合单：
+- 发货单1：订单1+订单2的商品（北京仓合并发货）
+- 发货单2：订单3的商品（上海仓单独发货）
+
+好处：
+- 节省运费
+- 减少包裹数量
+</code></pre>
+</li>
+<li>
+<p><strong>运费优化</strong>：</p>
+<pre><code>规则：
+- 同一仓库、同一地址、24小时内的订单
+- 自动合并发货
+- 运费退还到用户余额
+</code></pre>
+</li>
+</ol>
+<p><strong>推荐方案</strong>：
+采用<strong>后台自动拆单</strong>。</p>
+<p>实施要点：</p>
+<ol>
+<li>
+<p><strong>拆单时机</strong>：</p>
+<pre><code>时机选择：
+- 订单支付后立即拆单（推荐）
+- 发货前拆单（更灵活）
+</code></pre>
+</li>
+<li>
+<p><strong>用户展示</strong>：</p>
+<pre><code>订单详情页：
+订单号：OR123456
+总金额：¥1000
+
+发货信息：
+- 包裹1：商品A+B（运单号：SF123）
+  状态：已发货
+- 包裹2：商品C（运单号：SF456）
+  状态：待发货
+</code></pre>
+</li>
+<li>
+<p><strong>退款处理</strong>：</p>
+<pre><code>部分商品退款：
+- 用户申请退商品A
+- 计算退款金额（商品价 + 分摊运费）
+- 只退部分金额
+- 其他商品正常履约
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计拆单的运费分摊规则？</li>
+<li>拆单后如何保证库存一致性？</li>
+<li>跨境订单的拆单有何特殊性？</li>
+</ol>
+<hr>
+<h5 id="-题目5订单的并发创建与幂等性"><a class="header" href="#-题目5订单的并发创建与幂等性">🔧 题目5：订单的并发创建与幂等性</a></h5>
+<p><strong>问题描述</strong>：
+用户可能重复点击“提交订单“按钮，导致创建多个订单。如何保证订单创建的幂等性？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+重复下单的原因：</p>
+<ol>
+<li>用户重复点击</li>
+<li>网络超时重试</li>
+<li>前端未防抖</li>
+<li>恶意刷单</li>
+</ol>
+<p><strong>方案一：前端防抖</strong></p>
+<p>核心思想：
+前端限制用户短时间内多次点击。</p>
+<p>实现：</p>
+<pre><code class="language-javascript">let submitting = false;
+
+function submitOrder() {
+  if (submitting) {
+    return; // 正在提交中，忽略
+  }
+  
+  submitting = true;
+  
+  fetch('/api/order/create', {
+    method: 'POST',
+    body: JSON.stringify(orderData)
+  })
+  .then(res =&gt; {
+    // 处理结果
+  })
+  .finally(() =&gt; {
+    submitting = false; // 完成后恢复
+  });
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>简单有效</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>仅防止前端重复</li>
+<li>无法防止恶意绕过前端</li>
+</ul>
+<p><strong>方案二：唯一索引（推荐）</strong></p>
+<p>核心思想：
+数据库层面保证唯一性。</p>
+<p>实现：</p>
+<pre><code class="language-sql">CREATE TABLE orders (
+  order_id BIGINT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  idempotent_key VARCHAR(64) UNIQUE, -- 幂等键
+  ...
+);
+
+CREATE UNIQUE INDEX uk_user_idempotent ON orders(user_id, idempotent_key);
+</code></pre>
+<p>创建订单：</p>
+<pre><code class="language-java">@Transactional
+public Order createOrder(OrderRequest request, String idempotentKey) {
+  try {
+    // 1. 构建订单
+    Order order = new Order();
+    order.setUserId(request.getUserId());
+    order.setIdempotentKey(idempotentKey);
+    order.setItems(request.getItems());
+    // ...
+    
+    // 2. 保存订单（唯一索引保证幂等）
+    orderRepository.save(order);
+    
+    // 3. 扣减库存
+    inventoryService.deduct(order.getItems());
+    
+    return order;
+  } catch (DuplicateKeyException e) {
+    // 幂等键重复，说明订单已创建
+    return orderRepository.findByIdempotentKey(idempotentKey);
+  }
+}
+</code></pre>
+<p>幂等键生成：</p>
+<pre><code class="language-java">// 方案1：前端生成UUID
+String idempotentKey = UUID.randomUUID().toString();
+
+// 方案2：后端生成（基于购物车内容）
+String idempotentKey = DigestUtils.md5Hex(
+  userId + ":" + cartItems.toString() + ":" + timestamp
+);
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>数据库层面保证</li>
+<li>可靠性高</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>依赖唯一索引</li>
+<li>需要生成幂等键</li>
+</ul>
+<p><strong>方案三：分布式锁</strong></p>
+<p>核心思想：
+使用Redis分布式锁，同一用户同时只能创建一个订单。</p>
+<p>实现：</p>
+<pre><code class="language-java">public Order createOrder(OrderRequest request) {
+  String lockKey = "order:create:" + request.getUserId();
+  
+  // 尝试获取锁
+  boolean locked = redisLock.tryLock(lockKey, 10, TimeUnit.SECONDS);
+  if (!locked) {
+    throw new BizException("正在创建订单，请勿重复提交");
+  }
+  
+  try {
+    // 创建订单
+    Order order = doCreateOrder(request);
+    return order;
+  } finally {
+    // 释放锁
+    redisLock.unlock(lockKey);
+  }
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>防止并发创建</li>
+<li>灵活控制</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>依赖Redis</li>
+<li>锁超时需要处理</li>
+</ul>
+<p><strong>方案四：Token机制</strong></p>
+<p>核心思想：
+用户进入结算页时，服务端生成唯一Token，提交订单时校验Token。</p>
+<p>流程：</p>
+<pre><code class="language-text">1. 用户进入结算页
+   → 请求服务端生成Token
+   → 服务端生成Token并存Redis
+   → 返回Token给前端
+
+2. 用户提交订单
+   → 携带Token
+   → 服务端校验Token是否存在
+   → 存在则删除Token，创建订单
+   → 不存在则拒绝（重复提交）
+</code></pre>
+<p>实现：</p>
+<pre><code class="language-java">// 生成Token
+public String generateOrderToken(Long userId) {
+  String token = UUID.randomUUID().toString();
+  String key = "order:token:" + token;
+  redis.setex(key, 300, userId.toString()); // 5分钟有效
+  return token;
+}
+
+// 创建订单（校验Token）
+@Transactional
+public Order createOrder(OrderRequest request, String token) {
+  String key = "order:token:" + token;
+  
+  // 检查Token是否存在
+  String userId = redis.get(key);
+  if (userId == null) {
+    throw new BizException("订单Token无效或已使用");
+  }
+  
+  // 验证Token归属
+  if (!userId.equals(request.getUserId().toString())) {
+    throw new BizException("订单Token不匹配");
+  }
+  
+  // 删除Token（保证一次性）
+  redis.del(key);
+  
+  // 创建订单
+  return doCreateOrder(request);
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>防止重复提交</li>
+<li>安全性高（Token一次性）</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>需要多次交互</li>
+<li>Token过期需要重新获取</li>
+</ul>
+<p><strong>方案对比</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>可靠性</th><th>易用性</th><th>性能</th><th>适用场景</th></tr>
+</thead>
+<tbody>
+<tr><td>前端防抖</td><td>★★☆☆☆</td><td>★★★★★</td><td>★★★★★</td><td>辅助手段</td></tr>
+<tr><td>唯一索引</td><td>★★★★★</td><td>★★★★☆</td><td>★★★★☆</td><td>通用</td></tr>
+<tr><td>分布式锁</td><td>★★★★☆</td><td>★★★☆☆</td><td>★★★☆☆</td><td>高并发</td></tr>
+<tr><td>Token机制</td><td>★★★★★</td><td>★★★☆☆</td><td>★★★★☆</td><td>安全性要求高</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>推荐方案</strong>：
+采用<strong>唯一索引+Token机制</strong>的组合。</p>
+<p>实施要点：</p>
+<ol>
+<li>
+<p><strong>多层防护</strong>：</p>
+<pre><code>L1：前端防抖（用户体验）
+L2：Token机制（防恶意）
+L3：唯一索引（最后防线）
+</code></pre>
+</li>
+<li>
+<p><strong>幂等键设计</strong>：</p>
+<pre><code>幂等键组成：
+userId + cartVersion + timestamp
+
+例如：
+123_v10_1679800000
+
+说明：
+- userId：用户ID
+- cartVersion：购物车版本（购物车内容变化版本号+1）
+- timestamp：提交时间戳（精确到秒）
+</code></pre>
+</li>
+<li>
+<p><strong>异常处理</strong>：</p>
+<pre><code class="language-java">try {
+  return createOrder(request, token);
+} catch (DuplicateKeyException e) {
+  // 唯一索引冲突，查询已存在的订单
+  Order existingOrder = findByIdempotentKey(idempotentKey);
+  return existingOrder;
+} catch (BizException e) {
+  // Token无效等业务异常
+  throw e;
+}
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计订单创建的限流（防止刷单）？</li>
+<li>订单创建失败如何回滚库存？</li>
+<li>分布式事务下如何保证订单创建的一致性？</li>
+</ol>
+<hr>
+<h5 id="-题目6订单的分布式事务设计saga模式"><a class="header" href="#-题目6订单的分布式事务设计saga模式">📊 题目6：订单的分布式事务设计（Saga模式）</a></h5>
+<p><strong>问题描述</strong>：
+订单创建涉及多个服务（订单服务、库存服务、优惠券服务、积分服务）。如何使用Saga模式保证分布式事务一致性？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+订单创建的分布式事务流程：</p>
+<ol>
+<li>扣减库存（库存服务）</li>
+<li>核销优惠券（营销服务）</li>
+<li>扣减积分（会员服务）</li>
+<li>创建订单（订单服务）</li>
+</ol>
+<p>任一环节失败，已执行的操作需要回滚。</p>
+<p><strong>Saga模式实现</strong>（使用Go）：</p>
+<pre><code class="language-go">package saga
+
+import (
+	"context"
+	"fmt"
+)
+
+// SagaStep 定义Saga步骤
+type SagaStep struct {
+	Name         string
+	Execute      func(ctx context.Context, data interface{}) error
+	Compensate   func(ctx context.Context, data interface{}) error
+}
+
+// SagaOrchestrator Saga编排器
+type SagaOrchestrator struct {
+	steps []SagaStep
+}
+
+// Execute 执行Saga
+func (s *SagaOrchestrator) Execute(ctx context.Context, data interface{}) error {
+	executedSteps := make([]int, 0)
+	
+	// 正向执行
+	for i, step := range s.steps {
+		if err := step.Execute(ctx, data); err != nil {
+			// 执行失败，触发补偿
+			s.compensate(ctx, data, executedSteps)
+			return fmt.Errorf("步骤 %s 执行失败: %w", step.Name, err)
+		}
+		executedSteps = append(executedSteps, i)
+	}
+	
+	return nil
+}
+
+// compensate 执行补偿
+func (s *SagaOrchestrator) compensate(ctx context.Context, data interface{}, executedSteps []int) {
+	// 反向补偿
+	for i := len(executedSteps) - 1; i &gt;= 0; i-- {
+		stepIndex := executedSteps[i]
+		step := s.steps[stepIndex]
+		
+		if err := step.Compensate(ctx, data); err != nil {
+			// 补偿失败，记录日志，转人工处理
+			log.Errorf("步骤 %s 补偿失败: %v", step.Name, err)
+		}
+	}
+}
+
+// 订单创建Saga示例
+func CreateOrderSaga(orderReq *CreateOrderRequest) error {
+	saga := &amp;SagaOrchestrator{
+		steps: []SagaStep{
+			// 步骤1：扣减库存
+			{
+				Name: "DeductInventory",
+				Execute: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					return inventoryService.Deduct(ctx, req.Items)
+				},
+				Compensate: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					return inventoryService.Release(ctx, req.Items)
+				},
+			},
+			// 步骤2：核销优惠券
+			{
+				Name: "UseCoupon",
+				Execute: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					if req.CouponID == "" {
+						return nil // 无优惠券，跳过
+					}
+					return couponService.Use(ctx, req.UserID, req.CouponID)
+				},
+				Compensate: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					if req.CouponID == "" {
+						return nil
+					}
+					return couponService.Release(ctx, req.UserID, req.CouponID)
+				},
+			},
+			// 步骤3：扣减积分
+			{
+				Name: "DeductPoints",
+				Execute: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					if req.PointsToUse == 0 {
+						return nil
+					}
+					return pointsService.Deduct(ctx, req.UserID, req.PointsToUse)
+				},
+				Compensate: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					if req.PointsToUse == 0 {
+						return nil
+					}
+					return pointsService.Refund(ctx, req.UserID, req.PointsToUse)
+				},
+			},
+			// 步骤4：创建订单
+			{
+				Name: "CreateOrder",
+				Execute: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					order := &amp;Order{
+						OrderID:   generateOrderID(),
+						UserID:    req.UserID,
+						Items:     req.Items,
+						Status:    OrderStatusPending,
+					}
+					return orderRepo.Create(ctx, order)
+				},
+				Compensate: func(ctx context.Context, data interface{}) error {
+					req := data.(*CreateOrderRequest)
+					// 订单创建失败不需要补偿（未持久化）
+					return nil
+				},
+			},
+		},
+	}
+	
+	return saga.Execute(context.Background(), orderReq)
+}
+</code></pre>
+<p><strong>优点</strong>：</p>
+<ul>
+<li>逻辑清晰（正向+补偿）</li>
+<li>解耦各服务</li>
+<li>支持长事务</li>
+</ul>
+<p><strong>缺点</strong>：</p>
+<ul>
+<li>实现复杂</li>
+<li>补偿可能失败（需要人工介入）</li>
+<li>中间状态可见（不是强一致性）</li>
+</ul>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>Saga补偿失败如何处理？</li>
+<li>如何设计Saga的可视化监控？</li>
+<li>Saga vs 2PC（两阶段提交）如何选择？</li>
+</ol>
+<hr>
+<h5 id="-题目7订单数据的分库分表设计"><a class="header" href="#-题目7订单数据的分库分表设计">🔧 题目7：订单数据的分库分表设计</a></h5>
+<p><strong>问题描述</strong>：
+订单表数据量达到亿级，单表查询性能下降。如何设计订单的分库分表方案？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+订单分库分表的核心要素：</p>
+<ol>
+<li>分片键选择（user_id还是order_id）</li>
+<li>分片数量（16、32、64、128）</li>
+<li>跨片查询（如运营查询某时间段订单）</li>
+<li>数据扩容</li>
+</ol>
+<p><strong>方案一：按user_id分片（推荐）</strong></p>
+<p>核心思想：
+同一用户的订单存储在同一分片。</p>
+<p>分片规则：</p>
+<pre><code class="language-go">// 分片数量
+const ShardCount = 64
+
+// 计算分片
+func GetShardIndex(userID int64) int {
+	return int(userID % ShardCount)
+}
+
+// 路由到数据源
+func GetDataSource(userID int64) *sql.DB {
+	shardIndex := GetShardIndex(userID)
+	return dataSources[shardIndex]
+}
+</code></pre>
+<p>表结构：</p>
+<pre><code class="language-sql">-- 64个库，每个库有orders表
+database_00.orders
+database_01.orders
+...
+database_63.orders
+
+订单ID生成：
+order_id = snowflake_id
+不包含分片信息（通过user_id路由）
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>用户维度查询高效（“我的订单”）</li>
+<li>单用户订单聚合容易</li>
+<li>避免跨库JOIN</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>按订单ID查询需要广播（查所有分片）</li>
+<li>数据可能不均匀（大客户订单多）</li>
+</ul>
+<p><strong>方案二：按order_id分片</strong></p>
+<p>核心思想：
+按订单ID散列分片。</p>
+<p>分片规则：</p>
+<pre><code class="language-go">func GetShardIndex(orderID int64) int {
+	return int(orderID % ShardCount)
+}
+</code></pre>
+<p>订单ID生成（包含分片信息）：</p>
+<pre><code class="language-go">// 订单ID结构：分片位 + Snowflake ID
+// 前6位：分片号（0-63）
+// 后13位：Snowflake ID
+
+func GenerateOrderID(userID int64) int64 {
+	shardIndex := GetShardIndex(userID)
+	snowflakeID := snowflake.Generate()
+	
+	// 组装：分片号（6位） + snowflake（13位）
+	return int64(shardIndex)*1e13 + snowflakeID
+}
+
+// 解析分片
+func ParseShard(orderID int64) int {
+	return int(orderID / 1e13)
+}
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>按订单ID查询高效（直接定位分片）</li>
+<li>数据均匀</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>用户维度查询需要广播</li>
+<li>“我的订单“查询慢</li>
+</ul>
+<p><strong>方案三：复合分片</strong></p>
+<p>核心思想：
+主表按user_id分片，建立order_id到分片的映射表。</p>
+<p>设计：</p>
+<pre><code class="language-text">主表（按user_id分片）：
+shard_00.orders
+shard_01.orders
+
+映射表（不分片，单独集群）：
+order_routing
+├── order_id（主键）
+├── shard_index（分片号）
+└── user_id
+
+查询流程：
+1. 按订单ID查询：
+   - 查询order_routing获取分片号
+   - 路由到对应分片查询
+
+2. 按用户ID查询：
+   - 直接路由到用户分片
+</code></pre>
+<p>优点：</p>
+<ul>
+<li>支持多种查询方式</li>
+<li>灵活</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>映射表是单点</li>
+<li>实现复杂</li>
+</ul>
+<p><strong>方案对比</strong>：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>方案</th><th>用户查询</th><th>订单查询</th><th>数据均匀度</th><th>实施难度</th></tr>
+</thead>
+<tbody>
+<tr><td>按user_id</td><td>★★★★★</td><td>★★☆☆☆</td><td>★★★☆☆</td><td>★★★★☆</td></tr>
+<tr><td>按order_id</td><td>★★☆☆☆</td><td>★★★★★</td><td>★★★★★</td><td>★★★★☆</td></tr>
+<tr><td>复合分片</td><td>★★★★★</td><td>★★★★★</td><td>★★★★★</td><td>★★☆☆☆</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>推荐方案</strong>：
+采用<strong>按user_id分片</strong>。</p>
+<p>实施要点（Go实现）：</p>
+<ol>
+<li>
+<p><strong>分片路由中间件</strong>：</p>
+<pre><code class="language-go">package sharding
+
+import (
+	"context"
+	"database/sql"
+)
+
+// ShardingManager 分片管理器
+type ShardingManager struct {
+	dataSources []*sql.DB
+	shardCount  int
+}
+
+// NewShardingManager 创建分片管理器
+func NewShardingManager(dsns []string) (*ShardingManager, error) {
+	dbs := make([]*sql.DB, len(dsns))
+	for i, dsn := range dsns {
+		db, err := sql.Open("mysql", dsn)
+		if err != nil {
+			return nil, err
+		}
+		dbs[i] = db
+	}
+	
+	return &amp;ShardingManager{
+		dataSources: dbs,
+		shardCount:  len(dsns),
+	}, nil
+}
+
+// GetDB 根据用户ID获取数据库连接
+func (sm *ShardingManager) GetDB(userID int64) *sql.DB {
+	shardIndex := userID % int64(sm.shardCount)
+	return sm.dataSources[shardIndex]
+}
+
+// ExecuteOnShard 在指定分片执行查询
+func (sm *ShardingManager) ExecuteOnShard(ctx context.Context, userID int64, 
+	fn func(*sql.DB) error) error {
+	db := sm.GetDB(userID)
+	return fn(db)
+}
+
+// Broadcast 广播到所有分片执行
+func (sm *ShardingManager) Broadcast(ctx context.Context, 
+	fn func(*sql.DB) error) []error {
+	errors := make([]error, 0)
+	for _, db := range sm.dataSources {
+		if err := fn(db); err != nil {
+			errors = append(errors, err)
+		}
+	}
+	return errors
+}
+</code></pre>
+</li>
+<li>
+<p><strong>订单Repository实现</strong>：</p>
+<pre><code class="language-go">type OrderRepository struct {
+	shardingMgr *ShardingManager
+}
+
+// Create 创建订单
+func (r *OrderRepository) Create(ctx context.Context, order *Order) error {
+	return r.shardingMgr.ExecuteOnShard(ctx, order.UserID, func(db *sql.DB) error {
+		query := `INSERT INTO orders (order_id, user_id, total_amount, status, created_at)
+		          VALUES (?, ?, ?, ?, ?)`
+		_, err := db.ExecContext(ctx, query, 
+			order.OrderID, order.UserID, order.TotalAmount, 
+			order.Status, time.Now())
+		return err
+	})
+}
+
+// FindByUserID 查询用户订单（单分片）
+func (r *OrderRepository) FindByUserID(ctx context.Context, userID int64, 
+	page, size int) ([]*Order, error) {
+	var orders []*Order
+	
+	err := r.shardingMgr.ExecuteOnShard(ctx, userID, func(db *sql.DB) error {
+		query := `SELECT * FROM orders 
+		          WHERE user_id=? 
+		          ORDER BY created_at DESC 
+		          LIMIT ? OFFSET ?`
+		rows, err := db.QueryContext(ctx, query, userID, size, (page-1)*size)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		
+		for rows.Next() {
+			order := &amp;Order{}
+			// 扫描数据...
+			orders = append(orders, order)
+		}
+		return nil
+	})
+	
+	return orders, err
+}
+
+// FindByOrderID 按订单ID查询（需要广播）
+func (r *OrderRepository) FindByOrderID(ctx context.Context, orderID int64) (*Order, error) {
+	// 方案1：广播到所有分片查询（慢）
+	for _, db := range r.shardingMgr.dataSources {
+		order, err := queryFromDB(db, orderID)
+		if err == nil &amp;&amp; order != nil {
+			return order, nil
+		}
+	}
+	return nil, ErrOrderNotFound
+	
+	// 方案2：维护order_id -&gt; user_id映射（推荐）
+	// userID := r.getOrderUserMapping(orderID)
+	// return r.FindByUserAndOrderID(ctx, userID, orderID)
+}
+</code></pre>
+</li>
+<li>
+<p><strong>订单ID包含分片信息</strong>：</p>
+<pre><code class="language-go">// 订单ID结构：6位分片号 + 13位Snowflake
+
+func GenerateOrderIDWithShard(userID int64) int64 {
+	shardIndex := userID % ShardCount
+	snowflakeID := snowflake.NextID()
+	
+	// 组装：前6位是分片号
+	return shardIndex*1e13 + snowflakeID
+}
+
+// 解析分片号
+func ParseShardFromOrderID(orderID int64) int {
+	return int(orderID / 1e13)
+}
+
+// 直接定位查询
+func (r *OrderRepository) FindByOrderIDFast(ctx context.Context, orderID int64) (*Order, error) {
+	shardIndex := ParseShardFromOrderID(orderID)
+	db := r.shardingMgr.dataSources[shardIndex]
+	
+	query := `SELECT * FROM orders WHERE order_id=?`
+	row := db.QueryRowContext(ctx, query, orderID)
+	
+	order := &amp;Order{}
+	err := row.Scan(&amp;order.OrderID, &amp;order.UserID, ...) 
+	return order, err
+}
+</code></pre>
+</li>
+<li>
+<p><strong>扩容方案</strong>：</p>
+<pre><code>扩容策略（64 → 128分片）：
+
+方案A：双写期
+1. 新建64个分片（总共128个）
+2. 新订单写入新分片规则
+3. 老订单保留在老分片
+4. 查询时先查新分片，未命中再查老分片
+
+方案B：一致性哈希
+1. 使用一致性哈希算法
+2. 扩容时只需迁移部分数据
+3. 数据迁移期间双写
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计分库分表的全局查询（如运营后台）？</li>
+<li>订单归档如何设计（冷热数据分离）？</li>
+<li>分库分表如何支持跨库JOIN？</li>
+</ol>
+<hr>
+<h5 id="-题目8订单履约流程的编排"><a class="header" href="#-题目8订单履约流程的编排">💡 题目8：订单履约流程的编排</a></h5>
+<p><strong>问题描述</strong>：
+订单支付成功后，需要依次执行：分配仓库、创建拣货单、打包、出库、创建运单、发货。如何设计订单履约流程的编排？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>：事件驱动+状态机</p>
+<p>架构（Go实现）：</p>
+<pre><code class="language-go">package fulfillment
+
+import (
+	"context"
+)
+
+// FulfillmentEvent 履约事件
+type FulfillmentEvent struct {
+	OrderID   int64
+	EventType string
+	Data      map[string]interface{}
+}
+
+// FulfillmentOrchestrator 履约编排器
+type FulfillmentOrchestrator struct {
+	eventBus EventBus
+}
+
+// OnOrderPaid 订单支付事件处理
+func (o *FulfillmentOrchestrator) OnOrderPaid(ctx context.Context, orderID int64) error {
+	// 1. 分配仓库
+	warehouse, err := o.allocateWarehouse(ctx, orderID)
+	if err != nil {
+		return err
+	}
+	
+	// 2. 创建拣货单
+	pickingOrder, err := o.createPickingOrder(ctx, orderID, warehouse.ID)
+	if err != nil {
+		return err
+	}
+	
+	// 3. 发布拣货事件
+	o.eventBus.Publish(&amp;FulfillmentEvent{
+		OrderID:   orderID,
+		EventType: "PickingOrderCreated",
+		Data: map[string]interface{}{
+			"pickingOrderID": pickingOrder.ID,
+			"warehouseID":    warehouse.ID,
+		},
+	})
+	
+	return nil
+}
+
+// OnPickingCompleted 拣货完成事件处理
+func (o *FulfillmentOrchestrator) OnPickingCompleted(ctx context.Context, event *FulfillmentEvent) error {
+	orderID := event.OrderID
+	
+	// 1. 打包
+	if err := o.pack(ctx, orderID); err != nil {
+		return err
+	}
+	
+	// 2. 出库
+	if err := o.outbound(ctx, orderID); err != nil {
+		return err
+	}
+	
+	// 3. 创建物流运单
+	trackingNumber, err := o.createShipment(ctx, orderID)
+	if err != nil {
+		return err
+	}
+	
+	// 4. 发布发货事件
+	o.eventBus.Publish(&amp;FulfillmentEvent{
+		OrderID:   orderID,
+		EventType: "OrderShipped",
+		Data: map[string]interface{}{
+			"trackingNumber": trackingNumber,
+		},
+	})
+	
+	return nil
+}
+
+// 事件监听器
+func (o *FulfillmentOrchestrator) Start() {
+	o.eventBus.Subscribe("OrderPaid", o.OnOrderPaid)
+	o.eventBus.Subscribe("PickingCompleted", o.OnPickingCompleted)
+	o.eventBus.Subscribe("PackingCompleted", o.OnPackingCompleted)
+	// ...
+}
+</code></pre>
+<p><strong>履约状态机</strong>：</p>
+<pre><code class="language-go">type FulfillmentStatus int
+
+const (
+	FulfillmentPending      FulfillmentStatus = 0  // 待履约
+	FulfillmentWarehouseAllocated FulfillmentStatus = 1  // 已分配仓库
+	FulfillmentPicking      FulfillmentStatus = 2  // 拣货中
+	FulfillmentPacked       FulfillmentStatus = 3  // 已打包
+	FulfillmentOutbound     FulfillmentStatus = 4  // 已出库
+	FulfillmentShipped      FulfillmentStatus = 5  // 已发货
+	FulfillmentReceived     FulfillmentStatus = 6  // 已签收
+)
+
+// 状态流转规则
+var fulfillmentTransitions = map[FulfillmentStatus][]FulfillmentStatus{
+	FulfillmentPending:            {FulfillmentWarehouseAllocated},
+	FulfillmentWarehouseAllocated: {FulfillmentPicking},
+	FulfillmentPicking:            {FulfillmentPacked},
+	FulfillmentPacked:             {FulfillmentOutbound},
+	FulfillmentOutbound:           {FulfillmentShipped},
+	FulfillmentShipped:            {FulfillmentReceived},
+}
+
+// UpdateStatus 更新履约状态
+func (o *FulfillmentOrchestrator) UpdateStatus(ctx context.Context, 
+	orderID int64, newStatus FulfillmentStatus) error {
+	// 1. 查询当前状态
+	currentStatus, err := o.getStatus(ctx, orderID)
+	if err != nil {
+		return err
+	}
+	
+	// 2. 检查状态流转是否合法
+	allowedTransitions := fulfillmentTransitions[currentStatus]
+	if !contains(allowedTransitions, newStatus) {
+		return fmt.Errorf("不允许从%v转换到%v", currentStatus, newStatus)
+	}
+	
+	// 3. 更新状态
+	return o.updateStatusInDB(ctx, orderID, newStatus)
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>履约流程如何支持异常处理（缺货、商品损坏）？</li>
+<li>多个发货单如何协调履约进度？</li>
+<li>履约时效如何监控和告警？</li>
+</ol>
+<hr>
+<h5 id="-题目9订单的退款和售后流程设计"><a class="header" href="#-题目9订单的退款和售后流程设计">📊 题目9：订单的退款和售后流程设计</a></h5>
+<p><strong>问题描述</strong>：
+用户申请退款（仅退款、退货退款），如何设计售后流程，保证资金安全和用户体验？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>退款场景</strong>：</p>
+<ol>
+<li>仅退款（未发货）</li>
+<li>退货退款（已发货）</li>
+<li>部分退款（退部分商品）</li>
+<li>售后退款（商品质量问题）</li>
+</ol>
+<p><strong>推荐方案</strong>（Go实现）：</p>
+<p>退款状态机：</p>
+<pre><code class="language-go">type RefundStatus int
+
+const (
+	RefundPending   RefundStatus = 0  // 待审核
+	RefundApproved  RefundStatus = 1  // 已同意
+	RefundRejected  RefundStatus = 2  // 已拒绝
+	RefundReturning RefundStatus = 3  // 退货中
+	RefundReturned  RefundStatus = 4  // 已退货
+	RefundCompleted RefundStatus = 5  // 已退款
+)
+
+// Refund 退款单
+type Refund struct {
+	RefundID     int64
+	OrderID      int64
+	UserID       int64
+	RefundType   string  // REFUND_ONLY, RETURN_REFUND
+	RefundAmount decimal.Decimal
+	Reason       string
+	Status       RefundStatus
+	CreatedAt    time.Time
+}
+
+// RefundService 退款服务
+type RefundService struct {
+	orderRepo   OrderRepository
+	paymentSvc  PaymentService
+	inventorySvc InventoryService
+}
+
+// CreateRefund 创建退款申请
+func (s *RefundService) CreateRefund(ctx context.Context, req *RefundRequest) (*Refund, error) {
+	// 1. 校验订单状态
+	order, err := s.orderRepo.FindByID(ctx, req.OrderID)
+	if err != nil {
+		return nil, err
+	}
+	
+	if order.Status != OrderStatusPaid &amp;&amp; order.Status != OrderStatusShipped {
+		return nil, errors.New("订单状态不允许退款")
+	}
+	
+	// 2. 校验退款金额
+	if req.RefundAmount.GreaterThan(order.PaidAmount) {
+		return nil, errors.New("退款金额超过实付金额")
+	}
+	
+	// 3. 创建退款单
+	refund := &amp;Refund{
+		RefundID:     generateRefundID(),
+		OrderID:      req.OrderID,
+		UserID:       req.UserID,
+		RefundType:   req.RefundType,
+		RefundAmount: req.RefundAmount,
+		Reason:       req.Reason,
+		Status:       RefundPending,
+		CreatedAt:    time.Now(),
+	}
+	
+	if err := s.refundRepo.Create(ctx, refund); err != nil {
+		return nil, err
+	}
+	
+	// 4. 自动审核（部分场景）
+	if s.shouldAutoApprove(refund) {
+		return s.Approve(ctx, refund.RefundID)
+	}
+	
+	return refund, nil
+}
+
+// Approve 审核通过退款
+func (s *RefundService) Approve(ctx context.Context, refundID int64) (*Refund, error) {
+	refund, err := s.refundRepo.FindByID(ctx, refundID)
+	if err != nil {
+		return nil, err
+	}
+	
+	// 1. 更新退款状态
+	refund.Status = RefundApproved
+	if err := s.refundRepo.Update(ctx, refund); err != nil {
+		return nil, err
+	}
+	
+	// 2. 根据退款类型处理
+	if refund.RefundType == "REFUND_ONLY" {
+		// 仅退款：直接退款
+		return s.processRefund(ctx, refund)
+	} else {
+		// 退货退款：等待用户退货
+		refund.Status = RefundReturning
+		s.refundRepo.Update(ctx, refund)
+		// 生成退货地址和快递单号
+		s.generateReturnLabel(ctx, refund)
+		return refund, nil
+	}
+}
+
+// processRefund 执行退款
+func (s *RefundService) processRefund(ctx context.Context, refund *Refund) (*Refund, error) {
+	// 1. 调用支付服务退款
+	if err := s.paymentSvc.Refund(ctx, refund.OrderID, refund.RefundAmount); err != nil {
+		return nil, fmt.Errorf("退款失败: %w", err)
+	}
+	
+	// 2. 回补库存
+	order, _ := s.orderRepo.FindByID(ctx, refund.OrderID)
+	if err := s.inventorySvc.Return(ctx, order.Items); err != nil {
+		log.Errorf("回补库存失败: %v", err)
+		// 不阻塞退款流程，记录异常任务
+		s.createCompensationTask(ctx, "ReturnInventory", refund.RefundID)
+	}
+	
+	// 3. 更新退款状态
+	refund.Status = RefundCompleted
+	if err := s.refundRepo.Update(ctx, refund); err != nil {
+		return nil, err
+	}
+	
+	// 4. 更新订单状态
+	s.orderRepo.UpdateStatus(ctx, refund.OrderID, OrderStatusRefunded)
+	
+	// 5. 发送通知
+	s.notifySvc.Send(ctx, refund.UserID, "退款已到账")
+	
+	return refund, nil
+}
+</code></pre>
+<p><strong>自动审核规则</strong>：</p>
+<pre><code class="language-go">func (s *RefundService) shouldAutoApprove(refund *Refund) bool {
+	// 自动同意条件：
+	// 1. 订单未发货
+	// 2. 退款金额 &lt; 500元
+	// 3. 用户信用良好
+	
+	order, _ := s.orderRepo.FindByID(context.Background(), refund.OrderID)
+	
+	if order.Status == OrderStatusPaid &amp;&amp;
+		refund.RefundAmount.LessThan(decimal.NewFromInt(500)) &amp;&amp;
+		s.userSvc.IsTrusted(refund.UserID) {
+		return true
+	}
+	
+	return false
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>退款失败如何重试和补偿？</li>
+<li>恶意退款如何识别和防范？</li>
+<li>部分退款如何计算退款金额（商品价+运费分摊）？</li>
+</ol>
+<hr>
+<h5 id="-题目10订单的异常处理缺货地址错误"><a class="header" href="#-题目10订单的异常处理缺货地址错误">🔧 题目10：订单的异常处理（缺货、地址错误）</a></h5>
+<p><strong>问题描述</strong>：
+订单履约过程中可能出现异常（缺货、地址无法送达、商品损坏）。如何设计异常处理流程？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>异常场景及处理方案</strong>：</p>
+<ol>
+<li>
+<p><strong>库存不足（超卖）</strong>：</p>
+<pre><code class="language-go">// 发现超卖
+func (s *FulfillmentService) HandleOutOfStock(ctx context.Context, orderID int64) error {
+	// 1. 联系用户
+	s.notifySvc.Send(ctx, order.UserID, "商品暂时缺货，为您申请退款")
+	
+	// 2. 创建退款
+	refund := &amp;Refund{
+		OrderID:      orderID,
+		RefundType:   "OUT_OF_STOCK",
+		RefundAmount: order.PaidAmount,
+		AutoApprove:  true,
+	}
+	return s.refundSvc.CreateRefund(ctx, refund)
+}
+</code></pre>
+</li>
+<li>
+<p><strong>地址无法送达</strong>：</p>
+<pre><code class="language-go">func (s *FulfillmentService) HandleUndeliverableAddress(ctx context.Context, 
+	orderID int64) error {
+	// 1. 通知用户修改地址
+	s.notifySvc.Send(ctx, order.UserID, "收货地址无法送达，请修改地址")
+	
+	// 2. 订单挂起
+	s.orderRepo.UpdateStatus(ctx, orderID, OrderStatusAddressError)
+	
+	// 3. 用户修改地址后重新履约
+	// 或超时自动退款
+	s.scheduleAutoRefund(ctx, orderID, 48*time.Hour)
+	
+	return nil
+}
+</code></pre>
+</li>
+<li>
+<p><strong>商品损坏</strong>：</p>
+<pre><code class="language-go">func (s *FulfillmentService) HandleDamaged(ctx context.Context, 
+	orderID int64, itemID string) error {
+	// 1. 记录损坏
+	s.logDamage(ctx, orderID, itemID)
+	
+	// 2. 检查是否有替代品
+	if hasReplace, err := s.inventorySvc.CheckStock(ctx, itemID); err == nil &amp;&amp; hasReplace {
+		// 有替代品，重新拣货
+		return s.repick(ctx, orderID, itemID)
+	}
+	
+	// 3. 无替代品，部分退款
+	item := s.getOrderItem(ctx, orderID, itemID)
+	return s.refundSvc.CreatePartialRefund(ctx, orderID, item.Amount)
+}
+</code></pre>
+</li>
+</ol>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>异常订单如何统计和分析？</li>
+<li>如何设计异常的自动化处理规则？</li>
+</ol>
+<hr>
+<h5 id="-题目11订单的搜索和查询优化"><a class="header" href="#-题目11订单的搜索和查询优化">💡 题目11：订单的搜索和查询优化</a></h5>
+<p><strong>问题描述</strong>：
+用户需要查询历史订单（按时间、状态、商品筛选），运营需要查询全部订单。如何设计订单查询系统？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>方案一：主从分离</strong></p>
+<p>用户查询（读从库）：</p>
+<pre><code class="language-go">// 查询我的订单
+func (r *OrderRepository) FindUserOrders(ctx context.Context, 
+	userID int64, filter *OrderFilter) ([]*Order, error) {
+	// 路由到从库
+	db := r.shardingMgr.GetReadDB(userID)
+	
+	query := `SELECT * FROM orders WHERE user_id=?`
+	args := []interface{}{userID}
+	
+	// 添加筛选条件
+	if filter.Status != "" {
+		query += ` AND status=?`
+		args = append(args, filter.Status)
+	}
+	
+	if !filter.StartTime.IsZero() {
+		query += ` AND created_at &gt;= ?`
+		args = append(args, filter.StartTime)
+	}
+	
+	query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`
+	args = append(args, filter.PageSize, filter.Offset)
+	
+	rows, err := db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	return scanOrders(rows)
+}
+</code></pre>
+<p><strong>方案二：ES同步（推荐）</strong></p>
+<p>架构：</p>
+<pre><code class="language-text">订单创建/更新 → Kafka → 同步Worker → Elasticsearch
+
+ES索引设计：
+{
+  "order_id": "123",
+  "user_id": 456,
+  "status": "PAID",
+  "total_amount": 1000,
+  "created_at": "2024-04-18T10:00:00Z",
+  "items": [
+    {"sku_id": "789", "title": "iPhone 15"}
+  ]
+}
+</code></pre>
+<p>查询实现：</p>
+<pre><code class="language-go">// 复杂查询用ES
+func (r *OrderRepository) SearchOrders(ctx context.Context, 
+	query *OrderSearchQuery) (*SearchResult, error) {
+	esQuery := elastic.NewBoolQuery()
+	
+	// 用户维度
+	if query.UserID &gt; 0 {
+		esQuery.Must(elastic.NewTermQuery("user_id", query.UserID))
+	}
+	
+	// 订单号
+	if query.OrderID != "" {
+		esQuery.Must(elastic.NewTermQuery("order_id", query.OrderID))
+	}
+	
+	// 状态
+	if len(query.Statuses) &gt; 0 {
+		esQuery.Must(elastic.NewTermsQuery("status", query.Statuses...))
+	}
+	
+	// 时间范围
+	if !query.StartTime.IsZero() || !query.EndTime.IsZero() {
+		rangeQuery := elastic.NewRangeQuery("created_at")
+		if !query.StartTime.IsZero() {
+			rangeQuery.Gte(query.StartTime)
+		}
+		if !query.EndTime.IsZero() {
+			rangeQuery.Lte(query.EndTime)
+		}
+		esQuery.Must(rangeQuery)
+	}
+	
+	// 商品筛选（嵌套查询）
+	if query.SkuID != "" {
+		esQuery.Must(elastic.NewNestedQuery("items",
+			elastic.NewTermQuery("items.sku_id", query.SkuID)))
+	}
+	
+	// 执行查询
+	searchResult, err := r.esClient.Search().
+		Index("orders").
+		Query(esQuery).
+		From(query.From).
+		Size(query.Size).
+		Sort("created_at", false).
+		Do(ctx)
+	
+	if err != nil {
+		return nil, err
+	}
+	
+	return parseESResult(searchResult), nil
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>订单数据如何归档（如1年前的订单）？</li>
+<li>分库分表+ES同步如何保证一致性？</li>
+</ol>
+<hr>
+<h5 id="-题目12订单的消息通知设计"><a class="header" href="#-题目12订单的消息通知设计">📊 题目12：订单的消息通知设计</a></h5>
+<p><strong>问题描述</strong>：
+订单状态变化时需要通知用户（下单成功、发货、签收）。如何设计消息通知系统？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>通知渠道</strong>：</p>
+<ol>
+<li>App推送</li>
+<li>短信</li>
+<li>微信公众号/服务号</li>
+<li>站内信</li>
+<li>邮件</li>
+</ol>
+<p><strong>推荐方案</strong>（Go实现）：</p>
+<pre><code class="language-go">package notification
+
+import (
+	"context"
+)
+
+// NotificationService 通知服务
+type NotificationService struct {
+	pushSvc     PushService     // App推送
+	smsSvc      SMSService      // 短信
+	wechatSvc   WechatService   // 微信
+	emailSvc    EmailService    // 邮件
+	inboxSvc    InboxService    // 站内信
+}
+
+// NotifyOrderStatusChanged 订单状态变更通知
+func (s *NotificationService) NotifyOrderStatusChanged(ctx context.Context, 
+	order *Order, oldStatus, newStatus OrderStatus) error {
+	
+	// 根据状态确定通知内容
+	template := s.getTemplate(newStatus)
+	
+	// 并行发送多渠道通知
+	errChan := make(chan error, 5)
+	
+	// 1. App推送（必发）
+	go func() {
+		errChan &lt;- s.pushSvc.Push(ctx, order.UserID, PushMessage{
+			Title:   template.Title,
+			Content: template.Content,
+			Data:    map[string]interface{}{"order_id": order.OrderID},
+		})
+	}()
+	
+	// 2. 短信（重要状态才发）
+	if s.shouldSendSMS(newStatus) {
+		go func() {
+			phone := s.getUserPhone(ctx, order.UserID)
+			errChan &lt;- s.smsSvc.Send(ctx, phone, template.SMSContent)
+		}()
+	} else {
+		errChan &lt;- nil
+	}
+	
+	// 3. 微信（用户已绑定才发）
+	go func() {
+		if openID := s.getUserWechatOpenID(ctx, order.UserID); openID != "" {
+			errChan &lt;- s.wechatSvc.SendTemplateMessage(ctx, openID, template.WechatTemplate)
+		} else {
+			errChan &lt;- nil
+		}
+	}()
+	
+	// 4. 站内信（必发）
+	go func() {
+		errChan &lt;- s.inboxSvc.Create(ctx, &amp;InboxMessage{
+			UserID:  order.UserID,
+			Title:   template.Title,
+			Content: template.Content,
+			Type:    "ORDER_UPDATE",
+		})
+	}()
+	
+	// 5. 邮件（用户订阅才发）
+	go func() {
+		if s.userHasEmailSubscription(ctx, order.UserID) {
+			email := s.getUserEmail(ctx, order.UserID)
+			errChan &lt;- s.emailSvc.Send(ctx, email, template.EmailContent)
+		} else {
+			errChan &lt;- nil
+		}
+	}()
+	
+	// 收集结果（至少一个渠道成功即可）
+	successCount := 0
+	for i := 0; i &lt; 5; i++ {
+		if err := &lt;-errChan; err == nil {
+			successCount++
+		}
+	}
+	
+	if successCount == 0 {
+		return errors.New("所有通知渠道都失败")
+	}
+	
+	return nil
+}
+
+// 通知模板
+func (s *NotificationService) getTemplate(status OrderStatus) *NotificationTemplate {
+	templates := map[OrderStatus]*NotificationTemplate{
+		OrderStatusPaid: {
+			Title:       "订单支付成功",
+			Content:     "您的订单已支付成功，我们将尽快为您发货",
+			SMSContent:  "【京东】您的订单已支付成功，预计3天内送达",
+		},
+		OrderStatusShipped: {
+			Title:       "订单已发货",
+			Content:     "您的订单已发货，快递单号：SF1234567890",
+			SMSContent:  "【京东】您的订单已发货，单号SF1234567890",
+		},
+		OrderStatusReceived: {
+			Title:       "订单已签收",
+			Content:     "您的订单已签收，期待您的评价",
+		},
+	}
+	
+	return templates[status]
+}
+
+// 是否发送短信
+func (s *NotificationService) shouldSendSMS(status OrderStatus) bool {
+	// 只有关键状态发短信（控制成本）
+	importantStatuses := []OrderStatus{
+		OrderStatusPaid,
+		OrderStatusShipped,
+		OrderStatusRefunded,
+	}
+	
+	for _, s := range importantStatuses {
+		if s == status {
+			return true
+		}
+	}
+	return false
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>通知失败如何重试？</li>
+<li>如何设计通知的用户偏好设置（关闭某些通知）？</li>
+<li>大批量通知如何限流（避免骚扰）？</li>
+</ol>
+<hr>
+<h5 id="-题目13订单数据的冷热分离"><a class="header" href="#-题目13订单数据的冷热分离">🔧 题目13：订单数据的冷热分离</a></h5>
+<p><strong>问题描述</strong>：
+订单数据90天后很少查询，但占用大量存储。如何设计订单数据的冷热分离？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>：</p>
+<pre><code class="language-go">// 冷热分离策略
+type OrderArchiveService struct {
+	hotDB  *sql.DB  // 热数据库（MySQL）
+	coldDB *sql.DB  // 冷数据库（可以是低成本存储）
+	ossClient OSSClient // 对象存储
+}
+
+// 归档策略
+func (s *OrderArchiveService) ArchiveOrders(ctx context.Context) error {
+	// 1. 查询90天前已完成的订单
+	cutoffTime := time.Now().AddDate(0, 0, -90)
+	
+	query := `SELECT * FROM orders 
+	          WHERE status IN ('COMPLETED', 'CANCELLED', 'REFUNDED')
+	          AND updated_at &lt; ?
+	          LIMIT 1000`
+	
+	rows, err := s.hotDB.QueryContext(ctx, query, cutoffTime)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	
+	orders := make([]*Order, 0)
+	for rows.Next() {
+		order := &amp;Order{}
+		// 扫描数据...
+		orders = append(orders, order)
+	}
+	
+	// 2. 写入冷库
+	for _, order := range orders {
+		if err := s.writeToArchive(ctx, order); err != nil {
+			log.Errorf("归档订单%d失败: %v", order.OrderID, err)
+			continue
+		}
+		
+		// 3. 删除热库数据
+		if err := s.deleteFromHot(ctx, order.OrderID); err != nil {
+			log.Errorf("删除热库订单%d失败: %v", order.OrderID, err)
+		}
+	}
+	
+	return nil
+}
+
+// 查询时智能路由
+func (s *OrderArchiveService) FindByID(ctx context.Context, orderID int64) (*Order, error) {
+	// 1. 先查热库
+	order, err := s.queryFromHot(ctx, orderID)
+	if err == nil &amp;&amp; order != nil {
+		return order, nil
+	}
+	
+	// 2. 查冷库
+	order, err = s.queryFromArchive(ctx, orderID)
+	if err == nil &amp;&amp; order != nil {
+		return order, nil
+	}
+	
+	return nil, ErrOrderNotFound
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>归档订单如何支持查询？</li>
+<li>冷数据恢复到热库的策略？</li>
+</ol>
+<hr>
+<h5 id="-题目14订单的限流和防刷"><a class="header" href="#-题目14订单的限流和防刷">💡 题目14：订单的限流和防刷</a></h5>
+<p><strong>问题描述</strong>：
+恶意用户频繁下单不支付，占用库存和系统资源。如何设计订单的限流和防刷机制？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>（Go实现）：</p>
+<pre><code class="language-go">package ratelimit
+
+import (
+	"context"
+	"fmt"
+	"time"
+	
+	"github.com/go-redis/redis/v8"
+)
+
+// OrderRateLimiter 订单限流器
+type OrderRateLimiter struct {
+	rdb *redis.Client
+}
+
+// CheckLimit 检查用户是否超过限流
+func (l *OrderRateLimiter) CheckLimit(ctx context.Context, userID int64) error {
+	// 限流规则：
+	// 1. 每分钟最多下单5次
+	// 2. 每小时最多下单20次
+	// 3. 每天最多50个待支付订单
+	
+	// 规则1：每分钟限流
+	key1 := fmt.Sprintf("order:limit:min:%d:%s", userID, time.Now().Format("200601021504"))
+	count1, err := l.rdb.Incr(ctx, key1).Result()
+	if err != nil {
+		return err
+	}
+	if count1 == 1 {
+		l.rdb.Expire(ctx, key1, time.Minute)
+	}
+	if count1 &gt; 5 {
+		return errors.New("下单太频繁，请稍后再试")
+	}
+	
+	// 规则2：每小时限流
+	key2 := fmt.Sprintf("order:limit:hour:%d:%s", userID, time.Now().Format("2006010215"))
+	count2, err := l.rdb.Incr(ctx, key2).Result()
+	if err != nil {
+		return err
+	}
+	if count2 == 1 {
+		l.rdb.Expire(ctx, key2, time.Hour)
+	}
+	if count2 &gt; 20 {
+		return errors.New("您今天下单次数过多，请明天再试")
+	}
+	
+	// 规则3：待支付订单数量限制
+	pendingCount, err := l.getPendingOrderCount(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if pendingCount &gt;= 50 {
+		return errors.New("您有过多待支付订单，请先完成支付")
+	}
+	
+	return nil
+}
+
+// 用户信用评分
+type UserCreditService struct {
+	repo UserCreditRepository
+}
+
+func (s *UserCreditService) CheckCredit(ctx context.Context, userID int64) error {
+	credit := s.repo.GetCredit(ctx, userID)
+	
+	// 信用分低于60分，禁止下单
+	if credit.Score &lt; 60 {
+		return errors.New("您的信用分过低，暂时无法下单")
+	}
+	
+	return nil
+}
+
+// 信用分扣减规则
+func (s *UserCreditService) UpdateCredit(ctx context.Context, userID int64, behavior string) {
+	switch behavior {
+	case "ORDER_TIMEOUT":
+		// 订单超时未支付：-5分
+		s.repo.DeductCredit(ctx, userID, 5, "订单超时未支付")
+	case "MALICIOUS_REFUND":
+		// 恶意退款：-10分
+		s.repo.DeductCredit(ctx, userID, 10, "恶意退款")
+	case "ORDER_COMPLETED":
+		// 订单完成：+1分
+		s.repo.AddCredit(ctx, userID, 1, "订单完成")
+	}
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何识别黄牛和恶意用户？</li>
+<li>限流策略如何针对不同用户等级差异化？</li>
+</ol>
+<hr>
+<h5 id="-题目15订单的实时数据统计"><a class="header" href="#-题目15订单的实时数据统计">📊 题目15：订单的实时数据统计</a></h5>
+<p><strong>问题描述</strong>：
+运营大盘需要实时显示订单量、GMV、转化率。如何设计订单的实时统计系统？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>：Flink流式计算</p>
+<pre><code class="language-go">// 实时统计指标
+type OrderMetrics struct {
+	Timestamp      time.Time
+	OrderCount     int64           // 订单数
+	GMV            decimal.Decimal // 交易额
+	PaidOrderCount int64           // 已支付订单数
+	AvgOrderAmount decimal.Decimal // 客单价
+}
+
+// 指标计算Worker（消费Kafka）
+func ConsumeOrderEvents(ctx context.Context) {
+	consumer := kafka.NewConsumer(...)
+	
+	for {
+		msg, err := consumer.ReadMessage(ctx)
+		if err != nil {
+			continue
+		}
+		
+		event := parseOrderEvent(msg.Value)
+		
+		switch event.Type {
+		case "OrderCreated":
+			// 订单数+1
+			metrics.IncrOrderCount()
+			
+		case "OrderPaid":
+			// 已支付订单数+1
+			metrics.IncrPaidOrderCount()
+			// GMV累加
+			metrics.AddGMV(event.Order.PaidAmount)
+			
+		case "OrderCancelled":
+			// 订单数-1（或单独统计取消数）
+			metrics.IncrCancelledOrderCount()
+		}
+		
+		// 定期刷新到Redis
+		if time.Now().Unix()%10 == 0 {
+			metrics.FlushToRedis()
+		}
+	}
+}
+
+// 实时大盘查询
+func GetRealTimeMetrics(ctx context.Context) (*OrderMetrics, error) {
+	// 从Redis读取实时指标
+	rdb := redis.NewClient(...)
+	
+	orderCount, _ := rdb.Get(ctx, "metrics:order:count").Int64()
+	gmv, _ := rdb.Get(ctx, "metrics:order:gmv").Float64()
+	paidCount, _ := rdb.Get(ctx, "metrics:order:paid_count").Int64()
+	
+	return &amp;OrderMetrics{
+		Timestamp:      time.Now(),
+		OrderCount:     orderCount,
+		GMV:            decimal.NewFromFloat(gmv),
+		PaidOrderCount: paidCount,
+		AvgOrderAmount: decimal.NewFromFloat(gmv).Div(decimal.NewFromInt(paidCount)),
+	}, nil
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>实时统计如何保证准确性（与离线对账）？</li>
+<li>多维度统计（按类目、品牌）如何设计？</li>
+</ol>
+<hr>
+<hr>
+<h3 id="4114-支付系统10题"><a class="header" href="#4114-支付系统10题">41.1.4 支付系统（10题）</a></h3>
+<h5 id="-题目1支付系统的整体架构设计"><a class="header" href="#-题目1支付系统的整体架构设计">📊 题目1：支付系统的整体架构设计</a></h5>
+<p><strong>问题描述</strong>：
+电商平台需要支持多种支付方式（支付宝、微信、银行卡）。如何设计支付系统的整体架构？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>问题分析</strong>：
+支付系统的核心要素：</p>
+<ol>
+<li>多渠道接入（支付宝、微信、银联）</li>
+<li>支付安全性</li>
+<li>异步回调处理</li>
+<li>对账和资金安全</li>
+</ol>
+<p><strong>架构设计</strong>（Go实现）：</p>
+<pre><code class="language-go">package payment
+
+import (
+	"context"
+	"time"
+)
+
+// PaymentChannel 支付渠道
+type PaymentChannel string
+
+const (
+	ChannelAlipay PaymentChannel = "ALIPAY"
+	ChannelWechat PaymentChannel = "WECHAT"
+	ChannelUnion  PaymentChannel = "UNION"
+)
+
+// PaymentService 支付服务
+type PaymentService struct {
+	alipayAdapter  PaymentAdapter
+	wechatAdapter  PaymentAdapter
+	unionAdapter   PaymentAdapter
+	paymentRepo    PaymentRepository
+	orderSvc       OrderService
+}
+
+// PaymentAdapter 支付适配器接口（适配器模式）
+type PaymentAdapter interface {
+	// 创建支付
+	CreatePayment(ctx context.Context, req *PaymentRequest) (*PaymentResponse, error)
+	// 查询支付状态
+	QueryPayment(ctx context.Context, paymentID string) (*PaymentStatus, error)
+	// 申请退款
+	Refund(ctx context.Context, req *RefundRequest) error
+	// 验证回调签名
+	VerifyCallback(callback *CallbackData) error
+}
+
+// Payment 支付单
+type Payment struct {
+	PaymentID       string
+	OrderID         int64
+	UserID          int64
+	Channel         PaymentChannel
+	Amount          decimal.Decimal
+	Status          PaymentStatus
+	ThirdPartyID    string  // 第三方支付单号
+	CallbackData    string  // 回调原始数据
+	CreatedAt       time.Time
+	PaidAt          *time.Time
+}
+
+// CreatePayment 创建支付
+func (s *PaymentService) CreatePayment(ctx context.Context, 
+	orderID int64, channel PaymentChannel) (*PaymentResponse, error) {
+	
+	// 1. 查询订单
+	order, err := s.orderSvc.GetOrder(ctx, orderID)
+	if err != nil {
+		return nil, err
+	}
+	
+	// 2. 校验订单状态
+	if order.Status != OrderStatusPending {
+		return nil, errors.New("订单状态不正确")
+	}
+	
+	// 3. 创建支付单
+	payment := &amp;Payment{
+		PaymentID: generatePaymentID(),
+		OrderID:   orderID,
+		UserID:    order.UserID,
+		Channel:   channel,
+		Amount:    order.TotalAmount,
+		Status:    PaymentStatusPending,
+		CreatedAt: time.Now(),
+	}
+	
+	if err := s.paymentRepo.Create(ctx, payment); err != nil {
+		return nil, err
+	}
+	
+	// 4. 调用支付渠道
+	adapter := s.getAdapter(channel)
+	resp, err := adapter.CreatePayment(ctx, &amp;PaymentRequest{
+		OutTradeNo:  payment.PaymentID,
+		Amount:      payment.Amount,
+		Subject:     fmt.Sprintf("订单%d支付", orderID),
+		NotifyURL:   "https://api.example.com/payment/callback",
+		ReturnURL:   "https://www.example.com/order/success",
+	})
+	
+	if err != nil {
+		return nil, err
+	}
+	
+	// 5. 保存第三方支付单号
+	payment.ThirdPartyID = resp.TradeNo
+	s.paymentRepo.Update(ctx, payment)
+	
+	return resp, nil
+}
+
+// 获取支付适配器
+func (s *PaymentService) getAdapter(channel PaymentChannel) PaymentAdapter {
+	switch channel {
+	case ChannelAlipay:
+		return s.alipayAdapter
+	case ChannelWechat:
+		return s.wechatAdapter
+	case ChannelUnion:
+		return s.unionAdapter
+	default:
+		return nil
+	}
+}
+
+// HandleCallback 处理支付回调
+func (s *PaymentService) HandleCallback(ctx context.Context, 
+	channel PaymentChannel, callback *CallbackData) error {
+	
+	// 1. 验证签名
+	adapter := s.getAdapter(channel)
+	if err := adapter.VerifyCallback(callback); err != nil {
+		return fmt.Errorf("签名验证失败: %w", err)
+	}
+	
+	// 2. 查询支付单
+	payment, err := s.paymentRepo.FindByID(ctx, callback.OutTradeNo)
+	if err != nil {
+		return err
+	}
+	
+	// 3. 幂等性检查
+	if payment.Status == PaymentStatusSuccess {
+		return nil // 已处理，直接返回
+	}
+	
+	// 4. 更新支付单状态
+	payment.Status = PaymentStatusSuccess
+	payment.PaidAt = &amp;callback.PayTime
+	payment.CallbackData = callback.RawData
+	
+	if err := s.paymentRepo.Update(ctx, payment); err != nil {
+		return err
+	}
+	
+	// 5. 更新订单状态
+	if err := s.orderSvc.MarkAsPaid(ctx, payment.OrderID); err != nil {
+		// 支付成功但订单更新失败，记录补偿任务
+		s.createCompensationTask(ctx, payment.PaymentID)
+		return err
+	}
+	
+	// 6. 发布支付成功事件
+	s.eventBus.Publish(&amp;PaymentSuccessEvent{
+		OrderID:   payment.OrderID,
+		PaymentID: payment.PaymentID,
+		Amount:    payment.Amount,
+	})
+	
+	return nil
+}
+</code></pre>
+<p><strong>支付宝适配器示例</strong>：</p>
+<pre><code class="language-go">type AlipayAdapter struct {
+	client *alipay.Client
+}
+
+func (a *AlipayAdapter) CreatePayment(ctx context.Context, 
+	req *PaymentRequest) (*PaymentResponse, error) {
+	
+	// 调用支付宝SDK
+	payReq := alipay.TradeAppPay{
+		OutTradeNo:  req.OutTradeNo,
+		TotalAmount: req.Amount.String(),
+		Subject:     req.Subject,
+		NotifyURL:   req.NotifyURL,
+	}
+	
+	orderStr, err := a.client.TradeAppPay(payReq)
+	if err != nil {
+		return nil, err
+	}
+	
+	return &amp;PaymentResponse{
+		PayData: orderStr, // APP端拉起支付宝所需的参数
+	}, nil
+}
+
+func (a *AlipayAdapter) VerifyCallback(callback *CallbackData) error {
+	// 验证支付宝回调签名
+	return a.client.VerifySign(callback.RawData)
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>支付系统如何实现高可用？</li>
+<li>支付渠道故障如何降级？</li>
+<li>支付回调丢失如何处理？</li>
+</ol>
+<hr>
+<h5 id="-题目2支付回调的幂等性处理"><a class="header" href="#-题目2支付回调的幂等性处理">🔧 题目2：支付回调的幂等性处理</a></h5>
+<p><strong>问题描述</strong>：
+支付回调可能重复发送（网络重试、第三方重推）。如何保证支付回调处理的幂等性？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>（Go实现）：</p>
+<pre><code class="language-go">// 幂等性处理
+func (s *PaymentService) HandleCallbackIdempotent(ctx context.Context, 
+	callback *CallbackData) error {
+	
+	paymentID := callback.OutTradeNo
+	lockKey := fmt.Sprintf("payment:callback:lock:%s", paymentID)
+	
+	// 1. 获取分布式锁
+	lock := redis.NewDistributedLock(s.rdb, lockKey)
+	acquired, err := lock.TryLock(ctx, 30*time.Second)
+	if err != nil {
+		return err
+	}
+	if !acquired {
+		// 其他请求正在处理，直接返回成功
+		return nil
+	}
+	defer lock.Unlock(ctx)
+	
+	// 2. 查询支付单
+	payment, err := s.paymentRepo.FindByID(ctx, paymentID)
+	if err != nil {
+		return err
+	}
+	
+	// 3. 状态检查（幂等性）
+	if payment.Status == PaymentStatusSuccess {
+		log.Infof("支付单%s已处理，跳过", paymentID)
+		return nil // 已成功，幂等返回
+	}
+	
+	// 4. 使用数据库行锁+版本号
+	affected, err := s.paymentRepo.UpdateStatusWithVersion(ctx, 
+		paymentID, 
+		PaymentStatusSuccess,
+		payment.Version,
+	)
+	
+	if err != nil {
+		return err
+	}
+	
+	if affected == 0 {
+		// 版本号不匹配，说明已被其他请求处理
+		log.Warnf("支付单%s已被处理，版本冲突", paymentID)
+		return nil
+	}
+	
+	// 5. 执行后续操作
+	return s.postPaymentProcess(ctx, payment)
+}
+
+// 数据库更新（带版本号）
+func (r *PaymentRepository) UpdateStatusWithVersion(ctx context.Context, 
+	paymentID string, newStatus PaymentStatus, expectedVersion int) (int64, error) {
+	
+	query := `UPDATE payments 
+	          SET status=?, version=version+1, updated_at=?
+	          WHERE payment_id=? AND version=? AND status!=?`
+	
+	result, err := r.db.ExecContext(ctx, query, 
+		newStatus, time.Now(), paymentID, expectedVersion, PaymentStatusSuccess)
+	if err != nil {
+		return 0, err
+	}
+	
+	return result.RowsAffected()
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计支付回调的重试机制？</li>
+<li>回调处理失败如何人工介入？</li>
+</ol>
+<hr>
+<h5 id="-题目3支付的对账系统设计"><a class="header" href="#-题目3支付的对账系统设计">💡 题目3：支付的对账系统设计</a></h5>
+<p><strong>问题描述</strong>：
+每天需要与支付宝、微信对账，确保平台账和渠道账一致。如何设计支付对账系统？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>对账流程</strong>（Go实现）：</p>
+<pre><code class="language-go">package reconciliation
+
+import (
+	"context"
+	"time"
+)
+
+// ReconciliationService 对账服务
+type ReconciliationService struct {
+	paymentRepo PaymentRepository
+	alipayClient *alipay.Client
+	wechatClient *wechat.Client
+}
+
+// DailyReconciliation 每日对账
+func (s *ReconciliationService) DailyReconciliation(ctx context.Context, date time.Time) error {
+	// 1. 下载渠道对账单
+	alipayBill, err := s.downloadAlipayBill(ctx, date)
+	if err != nil {
+		return err
+	}
+	
+	wechatBill, err := s.downloadWechatBill(ctx, date)
+	if err != nil {
+		return err
+	}
+	
+	// 2. 查询平台当日支付记录
+	platformRecords, err := s.paymentRepo.FindByDate(ctx, date)
+	if err != nil {
+		return err
+	}
+	
+	// 3. 三方对账
+	diff := s.compare(platformRecords, alipayBill, wechatBill)
+	
+	// 4. 处理差异
+	if err := s.handleDifferences(ctx, diff); err != nil {
+		return err
+	}
+	
+	// 5. 生成对账报告
+	report := s.generateReport(diff)
+	s.saveReport(ctx, report)
+	
+	return nil
+}
+
+// ReconciliationDiff 对账差异
+type ReconciliationDiff struct {
+	OnlyInPlatform   []*Payment  // 只在平台有
+	OnlyInChannel    []*ChannelRecord  // 只在渠道有
+	AmountMismatch   []*Mismatch  // 金额不一致
+	StatusMismatch   []*Mismatch  // 状态不一致
+}
+
+// compare 比对数据
+func (s *ReconciliationService) compare(platform []*Payment, 
+	alipay, wechat []*ChannelRecord) *ReconciliationDiff {
+	
+	diff := &amp;ReconciliationDiff{}
+	
+	// 构建平台数据map
+	platformMap := make(map[string]*Payment)
+	for _, p := range platform {
+		platformMap[p.ThirdPartyID] = p
+	}
+	
+	// 构建渠道数据map
+	channelMap := make(map[string]*ChannelRecord)
+	for _, c := range alipay {
+		channelMap[c.TradeNo] = c
+	}
+	for _, c := range wechat {
+		channelMap[c.TransactionID] = c
+	}
+	
+	// 比对
+	for tradeNo, channelRecord := range channelMap {
+		platformRecord, exists := platformMap[tradeNo]
+		
+		if !exists {
+			// 只在渠道有，平台无
+			diff.OnlyInChannel = append(diff.OnlyInChannel, channelRecord)
+		} else {
+			// 金额比对
+			if !platformRecord.Amount.Equal(channelRecord.Amount) {
+				diff.AmountMismatch = append(diff.AmountMismatch, &amp;Mismatch{
+					TradeNo:        tradeNo,
+					PlatformAmount: platformRecord.Amount,
+					ChannelAmount:  channelRecord.Amount,
+				})
+			}
+			
+			// 状态比对
+			if platformRecord.Status != channelRecord.Status {
+				diff.StatusMismatch = append(diff.StatusMismatch, &amp;Mismatch{
+					TradeNo:       tradeNo,
+					PlatformStatus: platformRecord.Status,
+					ChannelStatus:  channelRecord.Status,
+				})
+			}
+			
+			delete(platformMap, tradeNo)
+		}
+	}
+	
+	// 只在平台有的
+	for _, p := range platformMap {
+		diff.OnlyInPlatform = append(diff.OnlyInPlatform, p)
+	}
+	
+	return diff
+}
+
+// handleDifferences 处理差异
+func (s *ReconciliationService) handleDifferences(ctx context.Context, 
+	diff *ReconciliationDiff) error {
+	
+	// 1. 只在渠道有的（平台漏单）
+	for _, record := range diff.OnlyInChannel {
+		log.Warnf("平台漏单: %s", record.TradeNo)
+		// 补单：创建支付记录
+		s.createMissingPayment(ctx, record)
+	}
+	
+	// 2. 只在平台有的（渠道无记录，可能未支付成功）
+	for _, payment := range diff.OnlyInPlatform {
+		log.Warnf("渠道无记录: %s", payment.PaymentID)
+		// 主动查询第三方状态
+		s.queryThirdPartyStatus(ctx, payment)
+	}
+	
+	// 3. 金额不一致
+	for _, mismatch := range diff.AmountMismatch {
+		log.Errorf("金额不一致: %s, 平台=%v, 渠道=%v", 
+			mismatch.TradeNo, mismatch.PlatformAmount, mismatch.ChannelAmount)
+		// 转人工处理
+		s.createManualTask(ctx, "AMOUNT_MISMATCH", mismatch)
+	}
+	
+	// 4. 状态不一致
+	for _, mismatch := range diff.StatusMismatch {
+		log.Warnf("状态不一致: %s", mismatch.TradeNo)
+		// 以渠道状态为准，更新平台状态
+		s.syncStatus(ctx, mismatch)
+	}
+	
+	return nil
+}
+</code></pre>
+<p><strong>对账报告</strong>：</p>
+<pre><code class="language-go">type ReconciliationReport struct {
+	Date              time.Time
+	TotalCount        int
+	MatchCount        int
+	MismatchCount     int
+	OnlyInPlatform    int
+	OnlyInChannel     int
+	AmountMismatch    int
+	TotalAmount       decimal.Decimal
+	ChannelTotalAmount decimal.Decimal
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>对账差异如何自动修复？</li>
+<li>对账失败如何告警和处理？</li>
+<li>实时对账和T+1对账如何结合？</li>
+</ol>
+<hr>
+<h5 id="-题目4支付的异步回调处理"><a class="header" href="#-题目4支付的异步回调处理">📊 题目4：支付的异步回调处理</a></h5>
+<p><strong>问题描述</strong>：
+支付成功后，第三方通过回调通知平台。回调可能延迟、丢失、重复。如何设计健壮的回调处理机制？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>（Go实现）：</p>
+<pre><code class="language-go">// 回调处理器
+type CallbackHandler struct {
+	paymentSvc  *PaymentService
+	orderSvc    *OrderService
+	lockSvc     *DistributedLockService
+}
+
+// HandleCallback 处理回调
+func (h *CallbackHandler) HandleCallback(ctx context.Context, 
+	channel PaymentChannel, rawData []byte) error {
+	
+	// 1. 解析回调数据
+	callback, err := parseCallback(channel, rawData)
+	if err != nil {
+		return fmt.Errorf("解析回调失败: %w", err)
+	}
+	
+	// 2. 记录回调日志（用于排查问题）
+	h.logCallback(ctx, callback)
+	
+	// 3. 验证签名
+	adapter := h.paymentSvc.getAdapter(channel)
+	if err := adapter.VerifyCallback(callback); err != nil {
+		log.Errorf("回调签名验证失败: %v", err)
+		return err
+	}
+	
+	// 4. 幂等性处理（分布式锁）
+	lockKey := fmt.Sprintf("payment:callback:%s", callback.OutTradeNo)
+	acquired, err := h.lockSvc.TryLock(ctx, lockKey, 30*time.Second)
+	if err != nil {
+		return err
+	}
+	if !acquired {
+		log.Infof("回调%s正在处理中，跳过", callback.OutTradeNo)
+		return nil
+	}
+	defer h.lockSvc.Unlock(ctx, lockKey)
+	
+	// 5. 处理支付结果
+	return h.paymentSvc.HandleCallback(ctx, channel, callback)
+}
+
+// 主动查询（回调超时补偿）
+func (h *CallbackHandler) QueryPaymentStatus(ctx context.Context) {
+	// 定时任务：查询10分钟前创建但未回调的支付单
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+	
+	for range ticker.C {
+		cutoffTime := time.Now().Add(-10 * time.Minute)
+		
+		// 查询超时支付单
+		payments, err := h.paymentSvc.FindPendingPayments(ctx, cutoffTime)
+		if err != nil {
+			log.Errorf("查询超时支付单失败: %v", err)
+			continue
+		}
+		
+		for _, payment := range payments {
+			// 主动查询第三方状态
+			go func(p *Payment) {
+				adapter := h.paymentSvc.getAdapter(p.Channel)
+				status, err := adapter.QueryPayment(ctx, p.ThirdPartyID)
+				if err != nil {
+					log.Errorf("查询支付状态失败: %v", err)
+					return
+				}
+				
+				// 如果已支付，补偿处理
+				if status.Status == "SUCCESS" {
+					log.Warnf("支付单%s回调丢失，主动补偿", p.PaymentID)
+					h.paymentSvc.MarkAsPaid(ctx, p.PaymentID)
+				}
+			}(payment)
+		}
+	}
+}
+</code></pre>
+<p><strong>回调重试策略</strong>：</p>
+<pre><code class="language-go">// 回调处理失败时的重试
+func (h *CallbackHandler) retryCallback(ctx context.Context, 
+	callback *CallbackData) error {
+	
+	maxRetries := 5
+	backoff := []time.Duration{
+		1 * time.Second,
+		5 * time.Second,
+		30 * time.Second,
+		2 * time.Minute,
+		10 * time.Minute,
+	}
+	
+	for i := 0; i &lt; maxRetries; i++ {
+		err := h.HandleCallback(ctx, callback.Channel, callback.RawData)
+		if err == nil {
+			return nil // 成功
+		}
+		
+		log.Warnf("回调处理失败，第%d次重试: %v", i+1, err)
+		
+		if i &lt; maxRetries-1 {
+			time.Sleep(backoff[i])
+		}
+	}
+	
+	// 所有重试失败，记录人工任务
+	return h.createManualTask(ctx, "CALLBACK_FAILED", callback)
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>回调接口如何防止伪造（恶意请求）？</li>
+<li>回调处理超时如何设置？</li>
+</ol>
+<hr>
+<h5 id="-题目5支付的分账系统设计平台商家"><a class="header" href="#-题目5支付的分账系统设计平台商家">🔧 题目5：支付的分账系统设计（平台+商家）</a></h5>
+<p><strong>问题描述</strong>：
+B2B2C平台，用户支付100元，平台抽佣10%，商家获得90元。如何设计支付分账系统？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>（Go实现）：</p>
+<pre><code class="language-go">// Settlement 结算单
+type Settlement struct {
+	SettlementID   string
+	OrderID        int64
+	MerchantID     int64
+	TotalAmount    decimal.Decimal  // 订单总额
+	PlatformAmount decimal.Decimal  // 平台佣金
+	MerchantAmount decimal.Decimal  // 商家收入
+	Status         SettlementStatus
+	SettledAt      *time.Time
+}
+
+// SettlementService 结算服务
+type SettlementService struct {
+	settlementRepo SettlementRepository
+	paymentSvc     PaymentService
+}
+
+// CreateSettlement 创建结算单
+func (s *SettlementService) CreateSettlement(ctx context.Context, 
+	orderID int64) error {
+	
+	// 1. 查询订单
+	order := s.orderSvc.GetOrder(ctx, orderID)
+	
+	// 2. 计算佣金
+	commissionRate := s.getCommissionRate(ctx, order.MerchantID)
+	platformAmount := order.TotalAmount.Mul(commissionRate)
+	merchantAmount := order.TotalAmount.Sub(platformAmount)
+	
+	// 3. 创建结算单
+	settlement := &amp;Settlement{
+		SettlementID:   generateSettlementID(),
+		OrderID:        orderID,
+		MerchantID:     order.MerchantID,
+		TotalAmount:    order.TotalAmount,
+		PlatformAmount: platformAmount,
+		MerchantAmount: merchantAmount,
+		Status:         SettlementPending,
+	}
+	
+	return s.settlementRepo.Create(ctx, settlement)
+}
+
+// Settle 执行结算（T+N结算）
+func (s *SettlementService) Settle(ctx context.Context, merchantID int64, date time.Time) error {
+	// 1. 查询该商家待结算的订单
+	settlements, err := s.settlementRepo.FindPendingByMerchant(ctx, merchantID, date)
+	if err != nil {
+		return err
+	}
+	
+	// 2. 汇总金额
+	totalAmount := decimal.Zero
+	for _, s := range settlements {
+		totalAmount = totalAmount.Add(s.MerchantAmount)
+	}
+	
+	// 3. 调用支付渠道分账/转账
+	if err := s.paymentSvc.Transfer(ctx, &amp;TransferRequest{
+		ToAccount: s.getMerchantAccount(ctx, merchantID),
+		Amount:    totalAmount,
+		Remark:    fmt.Sprintf("商家%d的%s结算", merchantID, date.Format("2006-01-02")),
+	}); err != nil {
+		return err
+	}
+	
+	// 4. 更新结算单状态
+	for _, settlement := range settlements {
+		settlement.Status = SettlementCompleted
+		settlement.SettledAt = timePtr(time.Now())
+		s.settlementRepo.Update(ctx, settlement)
+	}
+	
+	return nil
+}
+
+// 佣金率配置
+func (s *SettlementService) getCommissionRate(ctx context.Context, merchantID int64) decimal.Decimal {
+	// 根据商家等级、类目等确定佣金率
+	merchant := s.merchantSvc.GetMerchant(ctx, merchantID)
+	
+	switch merchant.Level {
+	case "VIP":
+		return decimal.NewFromFloat(0.05) // 5%
+	case "GOLD":
+		return decimal.NewFromFloat(0.08) // 8%
+	default:
+		return decimal.NewFromFloat(0.10) // 10%
+	}
+}
+</code></pre>
+<p><strong>结算周期</strong>：</p>
+<pre><code class="language-text">T+0：实时结算（高成本，高信用商家）
+T+1：次日结算（平衡）
+T+7：周结算（标准）
+T+30：月结算（新商家）
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计结算的对账机制？</li>
+<li>商家提现如何设计？</li>
+<li>结算失败如何处理？</li>
+</ol>
+<hr>
+<h5 id="-题目6支付密码和安全设计"><a class="header" href="#-题目6支付密码和安全设计">📊 题目6：支付密码和安全设计</a></h5>
+<p><strong>问题描述</strong>：
+支付环节涉及资金安全，如何设计支付密码、短信验证码等安全机制？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>（Go实现）：</p>
+<pre><code class="language-go">// PaymentSecurityService 支付安全服务
+type PaymentSecurityService struct {
+	rdb        *redis.Client
+	smsSvc     SMSService
+	encryptSvc EncryptService
+}
+
+// VerifyPaymentPassword 验证支付密码
+func (s *PaymentSecurityService) VerifyPaymentPassword(ctx context.Context, 
+	userID int64, password string) error {
+	
+	// 1. 获取用户存储的支付密码（加密）
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	
+	if user.PaymentPassword == "" {
+		return errors.New("请先设置支付密码")
+	}
+	
+	// 2. 验证密码
+	if !s.encryptSvc.VerifyPassword(password, user.PaymentPassword) {
+		// 记录失败次数
+		failCount := s.incrFailCount(ctx, userID)
+		
+		// 超过5次锁定账户
+		if failCount &gt;= 5 {
+			s.lockAccount(ctx, userID, 30*time.Minute)
+			return errors.New("密码错误次数过多，账户已锁定30分钟")
+		}
+		
+		return fmt.Errorf("密码错误，还可尝试%d次", 5-failCount)
+	}
+	
+	// 3. 清除失败计数
+	s.clearFailCount(ctx, userID)
+	
+	return nil
+}
+
+// SendPaymentSMS 发送支付验证码
+func (s *PaymentSecurityService) SendPaymentSMS(ctx context.Context, 
+	userID int64, phone string) error {
+	
+	// 1. 限流检查（防止短信轰炸）
+	key := fmt.Sprintf("sms:limit:%s", phone)
+	count, err := s.rdb.Incr(ctx, key).Result()
+	if err != nil {
+		return err
+	}
+	if count == 1 {
+		s.rdb.Expire(ctx, key, time.Hour)
+	}
+	if count &gt; 5 {
+		return errors.New("发送次数过多，请1小时后再试")
+	}
+	
+	// 2. 生成6位验证码
+	code := fmt.Sprintf("%06d", rand.Intn(1000000))
+	
+	// 3. 存储验证码（5分钟有效）
+	codeKey := fmt.Sprintf("sms:code:%s", phone)
+	s.rdb.SetEX(ctx, codeKey, code, 5*time.Minute)
+	
+	// 4. 发送短信
+	return s.smsSvc.Send(ctx, phone, fmt.Sprintf("您的支付验证码是%s，5分钟内有效", code))
+}
+
+// VerifySMSCode 验证短信验证码
+func (s *PaymentSecurityService) VerifySMSCode(ctx context.Context, 
+	phone, code string) error {
+	
+	codeKey := fmt.Sprintf("sms:code:%s", phone)
+	
+	// 查询验证码
+	storedCode, err := s.rdb.Get(ctx, codeKey).Result()
+	if err == redis.Nil {
+		return errors.New("验证码已过期")
+	}
+	if err != nil {
+		return err
+	}
+	
+	// 验证
+	if storedCode != code {
+		return errors.New("验证码错误")
+	}
+	
+	// 验证成功，删除验证码（防止重复使用）
+	s.rdb.Del(ctx, codeKey)
+	
+	return nil
+}
+
+// 风控检查
+func (s *PaymentSecurityService) RiskCheck(ctx context.Context, 
+	userID int64, amount decimal.Decimal) error {
+	
+	// 规则1：大额支付需要额外验证
+	if amount.GreaterThan(decimal.NewFromInt(5000)) {
+		// 需要短信验证码或支付密码
+		return errors.New("REQUIRE_SMS_OR_PASSWORD")
+	}
+	
+	// 规则2：新用户限额
+	user := s.userSvc.GetUser(ctx, userID)
+	if user.RegisterDays() &lt; 7 &amp;&amp; amount.GreaterThan(decimal.NewFromInt(1000)) {
+		return errors.New("新用户单笔限额1000元")
+	}
+	
+	// 规则3：异常IP检测
+	ip := s.getRequestIP(ctx)
+	if s.isBlacklistIP(ctx, ip) {
+		return errors.New("异常IP，禁止支付")
+	}
+	
+	// 规则4：高频支付检测
+	recentPayments := s.getRecentPaymentCount(ctx, userID, 10*time.Minute)
+	if recentPayments &gt; 10 {
+		return errors.New("支付频率异常")
+	}
+	
+	return nil
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>支付密码如何加密存储？</li>
+<li>如何设计支付的二次确认（大额支付）？</li>
+<li>支付安全如何平衡用户体验？</li>
+</ol>
+<hr>
+<h5 id="-题目7支付渠道的路由和降级"><a class="header" href="#-题目7支付渠道的路由和降级">🔧 题目7：支付渠道的路由和降级</a></h5>
+<p><strong>问题描述</strong>：
+支付宝渠道故障时，如何自动切换到微信支付？如何设计支付渠道的路由和降级策略？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>（Go实现）：</p>
+<pre><code class="language-go">// ChannelRouter 支付渠道路由器
+type ChannelRouter struct {
+	healthChecker *ChannelHealthChecker
+	config        *RoutingConfig
+}
+
+// SelectChannel 选择支付渠道
+func (r *ChannelRouter) SelectChannel(ctx context.Context, 
+	preferredChannel PaymentChannel) (PaymentChannel, error) {
+	
+	// 1. 检查首选渠道健康状态
+	if r.healthChecker.IsHealthy(preferredChannel) {
+		return preferredChannel, nil
+	}
+	
+	log.Warnf("渠道%s不可用，尝试降级", preferredChannel)
+	
+	// 2. 降级到备用渠道
+	fallbackChannels := r.config.GetFallback(preferredChannel)
+	for _, channel := range fallbackChannels {
+		if r.healthChecker.IsHealthy(channel) {
+			log.Infof("降级到渠道%s", channel)
+			return channel, nil
+		}
+	}
+	
+	// 3. 所有渠道都不可用
+	return "", errors.New("支付渠道暂时不可用，请稍后再试")
+}
+
+// ChannelHealthChecker 渠道健康检查
+type ChannelHealthChecker struct {
+	rdb *redis.Client
+}
+
+func (c *ChannelHealthChecker) IsHealthy(channel PaymentChannel) bool {
+	key := fmt.Sprintf("payment:channel:health:%s", channel)
+	
+	// 从Redis读取健康状态
+	status, err := c.rdb.Get(context.Background(), key).Result()
+	if err != nil || status != "UP" {
+		return false
+	}
+	
+	return true
+}
+
+// 健康检查任务（心跳）
+func (c *ChannelHealthChecker) StartHealthCheck(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	
+	for range ticker.C {
+		// 对每个渠道执行健康检查
+		for _, channel := range AllChannels {
+			go c.checkChannel(ctx, channel)
+		}
+	}
+}
+
+func (c *ChannelHealthChecker) checkChannel(ctx context.Context, 
+	channel PaymentChannel) {
+	
+	adapter := getAdapter(channel)
+	
+	// 调用渠道健康检查接口（或创建1分钱订单测试）
+	err := adapter.HealthCheck(ctx)
+	
+	key := fmt.Sprintf("payment:channel:health:%s", channel)
+	if err != nil {
+		// 不健康
+		c.rdb.SetEX(ctx, key, "DOWN", 5*time.Minute)
+		log.Errorf("渠道%s健康检查失败: %v", channel, err)
+		
+		// 告警
+		c.alertSvc.Send(fmt.Sprintf("支付渠道%s故障", channel))
+	} else {
+		// 健康
+		c.rdb.SetEX(ctx, key, "UP", 5*time.Minute)
+	}
+}
+
+// 路由配置
+type RoutingConfig struct {
+	fallbacks map[PaymentChannel][]PaymentChannel
+}
+
+func NewRoutingConfig() *RoutingConfig {
+	return &amp;RoutingConfig{
+		fallbacks: map[PaymentChannel][]PaymentChannel{
+			ChannelAlipay: {ChannelWechat, ChannelUnion},  // 支付宝 → 微信 → 银联
+			ChannelWechat: {ChannelAlipay, ChannelUnion},
+			ChannelUnion:  {ChannelAlipay, ChannelWechat},
+		},
+	}
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计支付渠道的成本优化（选择手续费低的）？</li>
+<li>支付渠道限额如何处理？</li>
+</ol>
+<hr>
+<h5 id="-题目8支付的退款处理"><a class="header" href="#-题目8支付的退款处理">💡 题目8：支付的退款处理</a></h5>
+<p><strong>问题描述</strong>：
+用户申请退款，需要原路退回。如何设计退款流程，处理退款失败、部分退款等场景？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>（Go实现）：</p>
+<pre><code class="language-go">// RefundService 退款服务
+type RefundService struct {
+	paymentRepo PaymentRepository
+}
+
+// Refund 申请退款
+func (s *RefundService) Refund(ctx context.Context, req *RefundRequest) error {
+	// 1. 查询原支付记录
+	payment, err := s.paymentRepo.FindByOrderID(ctx, req.OrderID)
+	if err != nil {
+		return err
+	}
+	
+	// 2. 校验退款金额
+	if req.RefundAmount.GreaterThan(payment.Amount) {
+		return errors.New("退款金额超过支付金额")
+	}
+	
+	// 3. 检查是否已退款
+	totalRefunded, err := s.paymentRepo.GetTotalRefundedAmount(ctx, payment.PaymentID)
+	if err != nil {
+		return err
+	}
+	
+	if totalRefunded.Add(req.RefundAmount).GreaterThan(payment.Amount) {
+		return errors.New("累计退款金额超过支付金额")
+	}
+	
+	// 4. 创建退款记录
+	refund := &amp;PaymentRefund{
+		RefundID:    generateRefundID(),
+		PaymentID:   payment.PaymentID,
+		OrderID:     req.OrderID,
+		Amount:      req.RefundAmount,
+		Reason:      req.Reason,
+		Status:      RefundStatusPending,
+		CreatedAt:   time.Now(),
+	}
+	
+	if err := s.refundRepo.Create(ctx, refund); err != nil {
+		return err
+	}
+	
+	// 5. 调用第三方退款接口
+	adapter := s.getAdapter(payment.Channel)
+	err = adapter.Refund(ctx, &amp;ThirdPartyRefundRequest{
+		OutRefundNo:   refund.RefundID,
+		OutTradeNo:    payment.ThirdPartyID,
+		RefundAmount:  req.RefundAmount,
+		TotalAmount:   payment.Amount,
+		RefundReason:  req.Reason,
+	})
+	
+	if err != nil {
+		refund.Status = RefundStatusFailed
+		refund.FailReason = err.Error()
+		s.refundRepo.Update(ctx, refund)
+		return err
+	}
+	
+	// 6. 更新退款状态
+	refund.Status = RefundStatusSuccess
+	refund.RefundedAt = timePtr(time.Now())
+	s.refundRepo.Update(ctx, refund)
+	
+	return nil
+}
+
+// 退款重试（定时任务）
+func (s *RefundService) RetryFailedRefunds(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+	
+	for range ticker.C {
+		// 查询失败的退款（创建时间&lt;30分钟前）
+		refunds, err := s.refundRepo.FindFailed(ctx, time.Now().Add(-30*time.Minute))
+		if err != nil {
+			log.Errorf("查询失败退款失败: %v", err)
+			continue
+		}
+		
+		for _, refund := range refunds {
+			// 重试退款
+			go func(r *PaymentRefund) {
+				if r.RetryCount &gt;= 5 {
+					log.Errorf("退款%s重试次数过多，转人工处理", r.RefundID)
+					s.createManualTask(ctx, r.RefundID)
+					return
+				}
+				
+				payment, _ := s.paymentRepo.FindByID(ctx, r.PaymentID)
+				adapter := s.getAdapter(payment.Channel)
+				
+				err := adapter.Refund(ctx, &amp;ThirdPartyRefundRequest{
+					OutRefundNo:  r.RefundID,
+					OutTradeNo:   payment.ThirdPartyID,
+					RefundAmount: r.Amount,
+					TotalAmount:  payment.Amount,
+				})
+				
+				if err == nil {
+					r.Status = RefundStatusSuccess
+					r.RefundedAt = timePtr(time.Now())
+				} else {
+					r.RetryCount++
+					r.FailReason = err.Error()
+				}
+				
+				s.refundRepo.Update(ctx, r)
+			}(refund)
+		}
+	}
+}
+</code></pre>
+<p><strong>部分退款处理</strong>：</p>
+<pre><code class="language-go">// 部分退款（一单多件商品，退部分）
+func (s *RefundService) PartialRefund(ctx context.Context, 
+	orderID int64, items []RefundItem) error {
+	
+	// 1. 计算退款金额
+	var refundAmount decimal.Decimal
+	for _, item := range items {
+		itemAmount := item.Price.Mul(decimal.NewFromInt(int64(item.Quantity)))
+		refundAmount = refundAmount.Add(itemAmount)
+	}
+	
+	// 2. 分摊运费
+	order := s.orderSvc.GetOrder(ctx, orderID)
+	refundItemCount := len(items)
+	totalItemCount := len(order.Items)
+	
+	shippingRefund := order.ShippingFee.
+		Mul(decimal.NewFromInt(int64(refundItemCount))).
+		Div(decimal.NewFromInt(int64(totalItemCount)))
+	
+	refundAmount = refundAmount.Add(shippingRefund)
+	
+	// 3. 执行退款
+	return s.Refund(ctx, &amp;RefundRequest{
+		OrderID:      orderID,
+		RefundAmount: refundAmount,
+		RefundItems:  items,
+		Reason:       "部分退货",
+	})
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>退款失败如何通知用户？</li>
+<li>如何设计退款的限额控制（防止洗钱）？</li>
+</ol>
+<hr>
+<h5 id="-题目9支付的容灾和降级"><a class="header" href="#-题目9支付的容灾和降级">🔧 题目9：支付的容灾和降级</a></h5>
+<p><strong>问题描述</strong>：
+支付是核心链路，不能中断。如何设计支付系统的容灾和降级方案？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>（Go实现）：</p>
+<pre><code class="language-go">// PaymentFallbackService 支付降级服务
+type PaymentFallbackService struct {
+	primarySvc   *PaymentService
+	fallbackMode bool
+}
+
+// Pay 支付（带降级）
+func (s *PaymentFallbackService) Pay(ctx context.Context, 
+	req *PaymentRequest) (*PaymentResponse, error) {
+	
+	// 1. 尝试正常支付
+	resp, err := s.primarySvc.CreatePayment(ctx, req)
+	if err == nil {
+		return resp, nil
+	}
+	
+	log.Warnf("支付失败: %v，尝试降级", err)
+	
+	// 2. 降级方案
+	if s.shouldFallback(err) {
+		return s.fallbackPay(ctx, req)
+	}
+	
+	return nil, err
+}
+
+// 降级支付
+func (s *PaymentFallbackService) fallbackPay(ctx context.Context, 
+	req *PaymentRequest) (*PaymentResponse, error) {
+	
+	// 降级策略1：切换支付渠道
+	if req.Channel == ChannelAlipay {
+		req.Channel = ChannelWechat
+		return s.primarySvc.CreatePayment(ctx, req)
+	}
+	
+	// 降级策略2：使用货到付款
+	if s.isCODAvailable(req) {
+		return s.createCODOrder(ctx, req)
+	}
+	
+	// 降级策略3：延迟支付（订单保留，稍后支付）
+	return s.createDelayedPayment(ctx, req)
+}
+
+// 熔断器
+type CircuitBreaker struct {
+	failureThreshold int
+	timeout          time.Duration
+	state            CircuitState
+	failureCount     int
+	lastFailTime     time.Time
+}
+
+type CircuitState int
+
+const (
+	StateClosed CircuitState = 0  // 闭合（正常）
+	StateOpen   CircuitState = 1  // 开启（熔断）
+	StateHalfOpen CircuitState = 2  // 半开（尝试恢复）
+)
+
+func (cb *CircuitBreaker) Execute(ctx context.Context, 
+	fn func() error) error {
+	
+	// 检查熔断器状态
+	if cb.state == StateOpen {
+		// 检查是否可以尝试恢复
+		if time.Since(cb.lastFailTime) &gt; cb.timeout {
+			cb.state = StateHalfOpen
+		} else {
+			return errors.New("熔断器开启，拒绝请求")
+		}
+	}
+	
+	// 执行函数
+	err := fn()
+	
+	if err != nil {
+		cb.onFailure()
+	} else {
+		cb.onSuccess()
+	}
+	
+	return err
+}
+
+func (cb *CircuitBreaker) onFailure() {
+	cb.failureCount++
+	cb.lastFailTime = time.Now()
+	
+	if cb.failureCount &gt;= cb.failureThreshold {
+		cb.state = StateOpen
+		log.Warn("熔断器开启")
+	}
+}
+
+func (cb *CircuitBreaker) onSuccess() {
+	if cb.state == StateHalfOpen {
+		// 半开状态成功，恢复到闭合
+		cb.state = StateClosed
+		cb.failureCount = 0
+		log.Info("熔断器关闭，恢复正常")
+	}
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>如何设计支付系统的多机房容灾？</li>
+<li>支付降级后如何通知用户？</li>
+</ol>
+<hr>
+<h5 id="-题目10预授权支付的设计酒店租车场景"><a class="header" href="#-题目10预授权支付的设计酒店租车场景">📊 题目10：预授权支付的设计（酒店、租车场景）</a></h5>
+<p><strong>问题描述</strong>：
+酒店预订需要预授权（冻结资金但不扣款），退房时根据实际消费扣款。如何设计预授权支付？</p>
+<p><strong>答案</strong>：</p>
+<p><strong>推荐方案</strong>（Go实现）：</p>
+<pre><code class="language-go">// PreAuthService 预授权服务
+type PreAuthService struct {
+	paymentAdapter PaymentAdapter
+	preAuthRepo    PreAuthRepository
+}
+
+// PreAuthorize 预授权
+func (s *PreAuthService) PreAuthorize(ctx context.Context, 
+	req *PreAuthRequest) (*PreAuthResponse, error) {
+	
+	// 1. 创建预授权记录
+	preAuth := &amp;PreAuthorization{
+		PreAuthID:  generatePreAuthID(),
+		OrderID:    req.OrderID,
+		UserID:     req.UserID,
+		Amount:     req.Amount,  // 冻结金额
+		Status:     PreAuthStatusFrozen,
+		CreatedAt:  time.Now(),
+		ExpireAt:   time.Now().Add(30 * 24 * time.Hour), // 30天有效期
+	}
+	
+	if err := s.preAuthRepo.Create(ctx, preAuth); err != nil {
+		return nil, err
+	}
+	
+	// 2. 调用支付渠道预授权接口
+	resp, err := s.paymentAdapter.PreAuthorize(ctx, &amp;ThirdPartyPreAuthRequest{
+		OutRequestNo: preAuth.PreAuthID,
+		Amount:       req.Amount,
+		ExpireTime:   preAuth.ExpireAt,
+	})
+	
+	if err != nil {
+		preAuth.Status = PreAuthStatusFailed
+		s.preAuthRepo.Update(ctx, preAuth)
+		return nil, err
+	}
+	
+	// 3. 保存第三方预授权号
+	preAuth.ThirdPartyID = resp.AuthNo
+	s.preAuthRepo.Update(ctx, preAuth)
+	
+	return &amp;PreAuthResponse{
+		PreAuthID: preAuth.PreAuthID,
+		AuthNo:    resp.AuthNo,
+	}, nil
+}
+
+// Complete 完成预授权（实际扣款）
+func (s *PreAuthService) Complete(ctx context.Context, 
+	preAuthID string, actualAmount decimal.Decimal) error {
+	
+	// 1. 查询预授权
+	preAuth, err := s.preAuthRepo.FindByID(ctx, preAuthID)
+	if err != nil {
+		return err
+	}
+	
+	// 2. 校验金额
+	if actualAmount.GreaterThan(preAuth.Amount) {
+		return errors.New("实际金额超过预授权金额")
+	}
+	
+	// 3. 调用支付渠道完成预授权
+	err = s.paymentAdapter.CompletePreAuth(ctx, &amp;CompletePreAuthRequest{
+		AuthNo: preAuth.ThirdPartyID,
+		Amount: actualAmount,
+	})
+	
+	if err != nil {
+		return err
+	}
+	
+	// 4. 更新状态
+	preAuth.Status = PreAuthStatusCompleted
+	preAuth.ActualAmount = actualAmount
+	preAuth.CompletedAt = timePtr(time.Now())
+	s.preAuthRepo.Update(ctx, preAuth)
+	
+	// 5. 多余金额解冻
+	if actualAmount.LessThan(preAuth.Amount) {
+		unfreezeAmount := preAuth.Amount.Sub(actualAmount)
+		log.Infof("解冻多余金额: %v", unfreezeAmount)
+	}
+	
+	return nil
+}
+
+// Cancel 取消预授权
+func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
+	preAuth, err := s.preAuthRepo.FindByID(ctx, preAuthID)
+	if err != nil {
+		return err
+	}
+	
+	// 调用支付渠道取消预授权
+	err = s.paymentAdapter.CancelPreAuth(ctx, preAuth.ThirdPartyID)
+	if err != nil {
+		return err
+	}
+	
+	preAuth.Status = PreAuthStatusCancelled
+	s.preAuthRepo.Update(ctx, preAuth)
+	
+	return nil
+}
+</code></pre>
+<p><strong>延伸思考</strong>：</p>
+<ol>
+<li>预授权过期如何自动解冻？</li>
+<li>预授权场景下的对账如何设计？</li>
+</ol>
+<hr>
+<hr>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part03/08-product-inventory-marketing-pricing-questionbank.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part03/10-ecommerce-case-studies-interview.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part03/08-product-inventory-marketing-pricing-questionbank.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part03/10-ecommerce-case-studies-interview.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
+
+
+
+    </div>
+    </body>
+</html>

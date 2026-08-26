@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-0392ca55.css">
-        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2692b81f.js";
+            window.path_to_searchindex_js = "../searchindex-e2c98a35.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-de72842a.js"></script>
+        <script src="../toc-cc4e3045.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -4750,7 +4750,7 @@ CREATE TABLE saga_step (
 <hr>
 <h4 id="事件驱动架构"><a class="header" href="#事件驱动架构">事件驱动架构</a></h4>
 <p>事件驱动架构（EDA）把系统间的耦合从「知道对方的表结构」变为「订阅对方愿意公布的<strong>事实</strong>」。它与 DDD 的**领域事件（Domain Event）**天然契合：事件名应是业务过去式（<code>OrderPlaced</code>），而不是命令式（<code>PlaceOrder</code>）。</p>
-<p>EDA 并不自动带来解耦：如果事件载荷里塞满下游私有字段，或消费者之间隐式依赖顺序却缺乏分区策略，你只会得到「异步耦合的大泥球」。因此本章强调三件事：<strong>契约</strong>、<strong>顺序边界</strong>、<strong>可观测的投递语义</strong>。与第 16 章的事件发布实践结合时，请把「事件平台能力」与「领域建模能力」分开评估：Kafka 再强也替代不了你对聚合边界的判断。</p>
+<p>EDA 并不自动带来解耦：如果事件载荷里塞满下游私有字段，或消费者之间隐式依赖顺序却缺乏分区策略，你只会得到「异步耦合的大泥球」。因此本章强调三件事：<strong>契约</strong>、<strong>顺序边界</strong>、<strong>可观测的投递语义</strong>。与第 38 章的事件发布实践结合时，请把「事件平台能力」与「领域建模能力」分开评估：Kafka 再强也替代不了你对聚合边界的判断。</p>
 <h5 id="领域事件"><a class="header" href="#领域事件">领域事件</a></h5>
 <p>领域事件用于表达<strong>聚合内已发生且不可变的事实</strong>。好的事件：</p>
 <ul>
@@ -4791,7 +4791,7 @@ flowchart LR
 <li><strong>顺序与并行</strong>：能并行就并行（不同聚合互不相关），不能并行就必须把「会改变含义的顺序」收敛到单分区或单线程处理器。</li>
 <li><strong>背压</strong>：投影任务落后时，应有 lag 告警与降级读策略，避免把读路径拖死。</li>
 </ul>
-<p>与第 16 章「事件发布」对齐时，把「谁允许发什么事件」纳入治理：事件不是自由文本广播，而是<strong>受版本管理的契约</strong>。建议在仓库中维护 <code>events/</code> 目录（或 Buf Schema Registry），把破坏性变更当作发布流程的一部分。</p>
+<p>与第 38 章「事件发布」对齐时，把「谁允许发什么事件」纳入治理：事件不是自由文本广播，而是<strong>受版本管理的契约</strong>。建议在仓库中维护 <code>events/</code> 目录（或 Buf Schema Registry），把破坏性变更当作发布流程的一部分。</p>
 <h5 id="事件溯源event-sourcing"><a class="header" href="#事件溯源event-sourcing">事件溯源（Event Sourcing）</a></h5>
 <p>事件溯源（ES）把<strong>状态还原为事件流的折叠</strong>：<code>state = fold(events)</code>。它带来强大审计与回放能力，但也引入：</p>
 <ul>
@@ -4942,11 +4942,11 @@ CREATE TABLE IF NOT EXISTS outbox (
 <ul>
 <li>Relay 进程要<strong>独立扩容</strong>，与 API 进程分离；发布失败应<strong>退避重试</strong>并将多次失败送入死信队列人工处理。</li>
 <li>消息体应携带 <strong><code>event_id</code> / <code>aggregate_id</code> / <code>causation_id</code></strong>，与消费者表上的唯一约束联合实现端到端幂等。</li>
-<li>与第 16 章「事件发布」衔接时，把<strong>事件契约</strong>（JSON Schema / Protobuf）纳入 CI，避免「字段悄悄改名」造成投影脏写。</li>
+<li>与第 38 章「事件发布」衔接时，把<strong>事件契约</strong>（JSON Schema / Protobuf）纳入 CI，避免「字段悄悄改名」造成投影脏写。</li>
 </ul>
 <p><strong>Outbox 运维要点</strong>：<code>pending</code> 堆积通常不是 Kafka 坏了，而是 <strong>Relay 吞吐不足、DB 锁竞争、或下游拒绝消息</strong>。建议把以下指标做成仪表盘：<code>outbox_pending_count</code>、<code>relay_lag_seconds</code>、<code>publish_fail_rate</code>、<code>dead_letter_count</code>。出现持续堆积时，优先扩容 Relay 与检查热点 <code>aggregate_id</code>（大单事件风暴）。</p>
 <p><strong>顺序投递 vs 批量投递</strong>：某些支付相关事件需要严格顺序，Relay 可以按 <code>aggregate_id</code> 分区串行投递；而搜索增量可批量合并，降低总线开销。关键是不要把「所有事件都塞进一个全局顺序」里，否则系统吞吐会被最慢的消费者绑架。</p>
-<p><strong>与第 1 章 Outbox 小节的关系</strong>：第 1 章强调「领域事件异步化」的动机与边界；本章补齐 <strong>实现骨架、时序与运维指标</strong>，便于你在第 7–15 章落地到具体服务时直接对照检查清单。</p>
+<p><strong>与第 1 章 Outbox 小节的关系</strong>：第 1 章强调「领域事件异步化」的动机与边界；本章补齐 <strong>实现骨架、时序与运维指标</strong>，便于你在后续中间件与实战章节落地到具体服务时直接对照检查清单。</p>
 <hr>
 <h4 id="幂等性设计通用方案"><a class="header" href="#幂等性设计通用方案">幂等性设计通用方案</a></h4>
 <h5 id="幂等性的本质"><a class="header" href="#幂等性的本质">幂等性的本质</a></h5>
@@ -7015,7 +7015,7 @@ stateDiagram-v2
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-c22b7243.js"></script>
+        <script src="../book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../mermaid-eefea253.min.js"></script>

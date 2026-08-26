@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 30 章 B2B2C 平台完整架构 - 系统设计与架构实战：原理、工程与电商案例</title>
+        <title>第 34 章 B2B2C 平台完整架构 - 系统设计与架构实战：原理、工程与电商案例</title>
 
 
         <!-- Custom HTML head -->
@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-0392ca55.css">
-        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2692b81f.js";
+            window.path_to_searchindex_js = "../searchindex-e2c98a35.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-de72842a.js"></script>
+        <script src="../toc-cc4e3045.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,15 +177,15 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第-30-章-b2b2c-平台完整架构"><a class="header" href="#第-30-章-b2b2c-平台完整架构">第 30 章 B2B2C 平台完整架构</a></h1>
+                        <h1 id="第-34-章-b2b2c-平台完整架构"><a class="header" href="#第-34-章-b2b2c-平台完整架构">第 34 章 B2B2C 平台完整架构</a></h1>
 <blockquote>
 <p><strong>综合案例</strong>：一个中大型B2B2C电商平台的完整架构设计，从品类分析到技术选型，从系统设计到团队协作，覆盖200+人团队、日订单200万级的实战经验与架构决策。</p>
 </blockquote>
 <hr>
-<h2 id="301-项目背景与业务约束business-context"><a class="header" href="#301-项目背景与业务约束business-context">30.1 项目背景与业务约束（Business Context）</a></h2>
+<h2 id="341-项目背景与业务约束business-context"><a class="header" href="#341-项目背景与业务约束business-context">34.1 项目背景与业务约束（Business Context）</a></h2>
 <p>本章讨论的是一个中大型 B2B2C 聚合电商平台。它不是传统实物电商，也不是单一供应商商城，而是连接多类外部供应商与自营虚拟商品的平台型系统。平台侧负责商品组织、搜索导购、价格试算、营销、下单、支付和履约编排；供应商侧负责实际资源确认与数字履约。</p>
 <p>这个背景很重要。因为系统的核心复杂度不来自物流仓配，而来自<strong>多品类、多供应商、强实时交易和不一致外部接口</strong>的叠加：机票和酒店要求零超卖，充值和礼品卡允许失败后补偿，电子券又依赖本地券码池发放。不同品类背后的库存、价格、履约模型完全不同，直接决定后续的领域划分、服务边界和一致性策略。</p>
-<h4 id="3011-业务定位"><a class="header" href="#3011-业务定位">30.1.1 业务定位</a></h4>
+<h4 id="3411-业务定位"><a class="header" href="#3411-业务定位">34.1.1 业务定位</a></h4>
 <p>平台采用“聚合供应商 + 自营虚拟商品”的 B2B2C 模式，连接航司/GDS、酒店 OTA/PMS、运营商、院线、券码供应商等外部系统，同时保留部分自营业务能力。</p>
 <p><strong>业务范围</strong>：</p>
 <div class="table-wrapper">
@@ -201,7 +201,7 @@
 </table>
 </div>
 <p><strong>业务全景图</strong>：</p>
-<p><img src="../../images/b2b2c-business-overview.png" alt="B2B2C 数字商品平台业务全景"></p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../../images/b2b2c-business-overview.png" alt="B2B2C 数字商品平台业务全景"><span class="img-wrapper"><img src="../../images/b2b2c-business-overview.png" alt="B2B2C 数字商品平台业务全景"></span></label></p>
 <p>这张图展示了平台业务链路的四个关键视角：供应商供给侧负责资源供给与数字履约；平台核心能力负责商品、库存、价格、营销、订单、支付、履约和售后编排；本地商家与平台运营负责商品录入、审核、维护、促销和上下架；C 端用户则围绕搜索导购、结算下单、支付、履约结果和退款售后形成完整交易闭环。</p>
 <p>本平台的一个关键前提是<strong>无物流场景</strong>。所有商品都是虚拟数字商品，履约不经过仓库、分拣、配送，而是通过 API 调用、电子票、确认单、充值结果或券码完成。因此，本章不会讨论仓配、物流轨迹、签收等实物电商问题，而是聚焦数字商品平台中更核心的四类问题：</p>
 <ol>
@@ -210,7 +210,7 @@
 <li><strong>价格差异</strong>：机票动态定价、酒店日历价、充值固定面额、优惠券固定折扣价并存。</li>
 <li><strong>履约差异</strong>：有的品类同步返回结果，有的品类需要异步确认，有的品类需要本地分配唯一券码。</li>
 </ol>
-<h4 id="3012-业务与技术目标"><a class="header" href="#3012-业务与技术目标">30.1.2 业务与技术目标</a></h4>
+<h4 id="3412-业务与技术目标"><a class="header" href="#3412-业务与技术目标">34.1.2 业务与技术目标</a></h4>
 <p>平台的核心目标可以概括为以下目标：</p>
 <ol>
 <li><strong>交易链路要稳</strong>：订单创建、支付、履约不能丢数据，核心链路故障要快速恢复。</li>
@@ -261,7 +261,7 @@
 </tbody>
 </table>
 </div>
-<h4 id="3013-本章的核心架构命题"><a class="header" href="#3013-本章的核心架构命题">30.1.3 本章的核心架构命题</a></h4>
+<h4 id="3413-本章的核心架构命题"><a class="header" href="#3413-本章的核心架构命题">34.1.3 本章的核心架构命题</a></h4>
 <p>在上述业务背景下，架构设计的难点不是“要不要拆微服务”，而是<strong>如何在品类差异、供应商不确定性和交易一致性之间找到可演进的边界</strong>。</p>
 <p>本章后续会围绕四个问题展开：</p>
 <ol>
@@ -271,9 +271,9 @@
 <li><strong>如何沉淀架构决策</strong>：通过 ADR 记录关键取舍，避免团队在同一问题上反复争论。</li>
 </ol>
 <hr>
-<h2 id="302-品类业务模型分析business-architecture"><a class="header" href="#302-品类业务模型分析business-architecture">30.2 品类业务模型分析（Business Architecture）</a></h2>
+<h2 id="342-品类业务模型分析business-architecture"><a class="header" href="#342-品类业务模型分析business-architecture">34.2 品类业务模型分析（Business Architecture）</a></h2>
 <p>不同品类的业务模型存在显著差异，直接影响架构设计决策。理解这些差异是系统设计的基础。</p>
-<h4 id="3021-机票业务模型"><a class="header" href="#3021-机票业务模型">30.2.1 机票业务模型</a></h4>
+<h4 id="3421-机票业务模型"><a class="header" href="#3421-机票业务模型">34.2.1 机票业务模型</a></h4>
 <p><strong>业务特点</strong>：</p>
 <pre><code class="language-text">• 库存模型：实时库存（供应商侧），强依赖供应商实时查询
 • 价格模型：动态定价，实时波动（可能秒级变化）
@@ -329,7 +329,7 @@ func (s *FlightStockStrategy) CheckStock(ctx context.Context, req *StockRequest)
 <li>出票成功率：&gt; 99.5%</li>
 <li>出票平均时长：&lt; 30秒</li>
 </ul>
-<h4 id="3022-酒店业务模型"><a class="header" href="#3022-酒店业务模型">30.2.2 酒店业务模型</a></h4>
+<h4 id="3422-酒店业务模型"><a class="header" href="#3422-酒店业务模型">34.2.2 酒店业务模型</a></h4>
 <p><strong>业务特点</strong>：</p>
 <pre><code class="language-text">• 库存模型：房间数量（按日期维度管理）
 • 价格模型：日历房价（每个日期不同价格）
@@ -374,7 +374,7 @@ func (r *HotelRepo) GetCalendarPrice(hotelID, roomTypeID int64, checkIn, checkOu
 <li>长尾酒店：1小时缓存</li>
 <li>价格变更：主动失效缓存</li>
 </ul>
-<h4 id="3023-充值业务模型"><a class="header" href="#3023-充值业务模型">30.2.3 充值业务模型</a></h4>
+<h4 id="3423-充值业务模型"><a class="header" href="#3423-充值业务模型">34.2.3 充值业务模型</a></h4>
 <p><strong>业务特点</strong>：</p>
 <pre><code class="language-text">• 库存模型：无限库存（供应商侧无限制）
 • 价格模型：固定面额（10元、50元、100元）
@@ -412,7 +412,7 @@ func (s *RechargeStockStrategy) Reserve(ctx context.Context, req *ReserveRequest
     }, nil
 }
 </code></pre>
-<h4 id="3024-电子券业务模型"><a class="header" href="#3024-电子券业务模型">30.2.4 电子券业务模型</a></h4>
+<h4 id="3424-电子券业务模型"><a class="header" href="#3424-电子券业务模型">34.2.4 电子券业务模型</a></h4>
 <p><strong>业务特点</strong>：</p>
 <pre><code class="language-text">• 库存模型：固定库存（券码池）
 • 价格模型：固定折扣价
@@ -465,7 +465,7 @@ func (p *VoucherCodePool) ReserveCode(ctx context.Context, batchID string, order
     return 0, errors.New("券码池热队列需要回填")
 }
 </code></pre>
-<h4 id="3025-差异化设计策略"><a class="header" href="#3025-差异化设计策略">30.2.5 差异化设计策略</a></h4>
+<h4 id="3425-差异化设计策略"><a class="header" href="#3425-差异化设计策略">34.2.5 差异化设计策略</a></h4>
 <p>通过上述品类分析，我们提炼出三个核心设计维度：</p>
 <p><strong>维度1：库存管理类型</strong></p>
 <div class="table-wrapper">
@@ -536,9 +536,9 @@ func (f *CategoryStrategyFactory) GetStrategy(categoryType CategoryType) Categor
 <li><strong>可扩展性</strong>：新增品类只需新增策略，不影响主流程</li>
 </ol>
 <hr>
-<h2 id="303-ddd战略设计与系统边界application-architecture---设计过程"><a class="header" href="#303-ddd战略设计与系统边界application-architecture---设计过程">30.3 DDD战略设计与系统边界（Application Architecture - 设计过程）</a></h2>
-<p>基于32.2的品类业务分析，本节展示如何运用DDD战略设计方法，从业务领域识别限界上下文、划分系统边界、设计服务间集成方式，最终形成32.4的整体架构全貌。</p>
-<h4 id="3031-限界上下文识别"><a class="header" href="#3031-限界上下文识别">30.3.1 限界上下文识别</a></h4>
+<h2 id="343-ddd战略设计与系统边界application-architecture---设计过程"><a class="header" href="#343-ddd战略设计与系统边界application-architecture---设计过程">34.3 DDD战略设计与系统边界（Application Architecture - 设计过程）</a></h2>
+<p>基于34.2的品类业务分析，本节展示如何运用DDD战略设计方法，从业务领域识别限界上下文、划分系统边界、设计服务间集成方式，最终形成34.4的整体架构全貌。</p>
+<h4 id="3431-限界上下文识别"><a class="header" href="#3431-限界上下文识别">34.3.1 限界上下文识别</a></h4>
 <p><strong>限界上下文是DDD战略设计的核心概念</strong>，它定义了一个模型的适用边界。本系统通过事件风暴识别出12个核心限界上下文。</p>
 <p><strong>识别过程</strong>（事件风暴Workshop）：</p>
 <pre><code class="language-text">第1步：领域事件识别（橙色便签）
@@ -640,7 +640,7 @@ func (f *CategoryStrategyFactory) GetStrategy(categoryType CategoryType) Categor
 • 导致上下文职责不清晰
 • 团队协作困难
 </code></pre>
-<h4 id="3032-上下文映射关系"><a class="header" href="#3032-上下文映射关系">30.3.2 上下文映射关系</a></h4>
+<h4 id="3432-上下文映射关系"><a class="header" href="#3432-上下文映射关系">34.3.2 上下文映射关系</a></h4>
 <p><strong>上下文映射是限界上下文之间的关系</strong>，定义了它们如何协作、如何通信、谁主导谁跟随。</p>
 <p><strong>本系统的上下文映射图</strong>：</p>
 <pre class="mermaid">
@@ -733,7 +733,7 @@ Shared Kernel范围：
 </tbody>
 </table>
 </div>
-<h4 id="3033-边界划分实践案例"><a class="header" href="#3033-边界划分实践案例">30.3.3 边界划分实践案例</a></h4>
+<h4 id="3433-边界划分实践案例"><a class="header" href="#3433-边界划分实践案例">34.3.3 边界划分实践案例</a></h4>
 <pre><code class="language-text">┌──────────────────────────────────────────────────────┐
 │              接入层（API Gateway）                    │
 │  • 鉴权、限流、路由、协议转换                         │
@@ -776,7 +776,7 @@ Shared Kernel范围：
 </tbody>
 </table>
 </div>
-<h4 id="3034-微服务拆分实践"><a class="header" href="#3034-微服务拆分实践">30.3.4 微服务拆分实践</a></h4>
+<h4 id="3434-微服务拆分实践"><a class="header" href="#3434-微服务拆分实践">34.3.4 微服务拆分实践</a></h4>
 <p><strong>拆分原则</strong>：</p>
 <ol>
 <li><strong>按业务能力拆分</strong>（而非技术层次）</li>
@@ -816,7 +816,7 @@ Shared Kernel范围：
 </tbody>
 </table>
 </div>
-<h4 id="3035-服务依赖关系示例"><a class="header" href="#3035-服务依赖关系示例">30.3.5 服务依赖关系示例</a></h4>
+<h4 id="3435-服务依赖关系示例"><a class="header" href="#3435-服务依赖关系示例">34.3.5 服务依赖关系示例</a></h4>
 <pre class="mermaid">
 graph TB
     subgraph 接入层
@@ -879,7 +879,7 @@ graph TB
 <li><strong>异步解耦</strong>：非核心路径使用Kafka事件异步</li>
 <li><strong>降级友好</strong>：下游故障不影响上游核心功能</li>
 </ol>
-<h4 id="3036-数据流转示例"><a class="header" href="#3036-数据流转示例">30.3.6 数据流转示例</a></h4>
+<h4 id="3436-数据流转示例"><a class="header" href="#3436-数据流转示例">34.3.6 数据流转示例</a></h4>
 <p><strong>同步数据流（关键路径）</strong>：</p>
 <pre><code class="language-text">用户搜索商品：
 API Gateway → Search Aggregation 
@@ -900,14 +900,14 @@ API Gateway → Search Aggregation
 
 最终一致性：&lt; 5秒
 </code></pre>
-<p><strong>32.3小结</strong>：</p>
-<p>以上展示了系统的整体架构全貌：四层架构、12个核心微服务、服务依赖关系、数据流转模式。这些是32.3战略设计的具体落地——12个限界上下文对应12个微服务，上下文映射关系决定了服务间的集成方式。</p>
-<p>接下来32.5节将讨论技术选型决策，32.6节将深入各个系统的详细设计。</p>
+<p><strong>34.3小结</strong>：</p>
+<p>以上展示了系统的整体架构全貌：四层架构、12个核心微服务、服务依赖关系、数据流转模式。这些是34.3战略设计的具体落地——12个限界上下文对应12个微服务，上下文映射关系决定了服务间的集成方式。</p>
+<p>接下来34.5节将讨论技术选型决策，34.6节将深入各个系统的详细设计。</p>
 <hr>
-<h2 id="304-整体架构设计application-architecture---设计结果"><a class="header" href="#304-整体架构设计application-architecture---设计结果">30.4 整体架构设计（Application Architecture - 设计结果）</a></h2>
-<p>基于32.3节识别的12个限界上下文和上下文映射关系，本节展示如何将它们落地为具体的架构设计：四层架构、微服务拆分、服务依赖关系、数据流转模式。</p>
-<p><strong>32.3 → 32.4的映射关系</strong>：</p>
-<pre><code class="language-text">32.3 限界上下文           →    32.4 微服务
+<h2 id="344-整体架构设计application-architecture---设计结果"><a class="header" href="#344-整体架构设计application-architecture---设计结果">34.4 整体架构设计（Application Architecture - 设计结果）</a></h2>
+<p>基于34.3节识别的12个限界上下文和上下文映射关系，本节展示如何将它们落地为具体的架构设计：四层架构、微服务拆分、服务依赖关系、数据流转模式。</p>
+<p><strong>34.3 → 34.4的映射关系</strong>：</p>
+<pre><code class="language-text">34.3 限界上下文           →    34.4 微服务
 ├─ 订单上下文             →    Order Service
 ├─ 商品上下文             →    Product Center
 ├─ 库存上下文             →    Inventory Service
@@ -917,12 +917,12 @@ API Gateway → Search Aggregation
 ├─ 搜索上下文             →    Search Service
 └─ 供应商上下文           →    Supplier Gateway
 
-32.3 上下文映射           →    32.4 服务集成
+34.3 上下文映射           →    34.4 服务集成
 ├─ Customer-Supplier      →    同步RPC调用
 ├─ Anti-Corruption Layer  →    适配器模式
 └─ Published Language     →    Kafka事件
 </code></pre>
-<h4 id="3041-分层架构"><a class="header" href="#3041-分层架构">30.4.1 分层架构</a></h4>
+<h4 id="3441-分层架构"><a class="header" href="#3441-分层架构">34.4.1 分层架构</a></h4>
 <p>采用经典的四层架构，确保职责清晰、易于维护。</p>
 <p>基于前面识别的限界上下文和映射关系，本节通过实际案例展示如何划分边界、重构边界。</p>
 <p><strong>案例1：计价系统的边界重构</strong></p>
@@ -960,7 +960,7 @@ API Gateway → Search Aggregation
 <li>订单域只需调用库存域的 <code>Reserve</code> 接口</li>
 <li>降低耦合：订单域不需要了解库存的存储结构</li>
 </ul>
-<h4 id="3044-集成模式选择"><a class="header" href="#3044-集成模式选择">30.4.4 集成模式选择</a></h4>
+<h4 id="3444-集成模式选择"><a class="header" href="#3444-集成模式选择">34.4.4 集成模式选择</a></h4>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1003,7 +1003,7 @@ func (s *SearchService) HandleOrderCreated(ctx context.Context, event *OrderCrea
     return nil
 }
 </code></pre>
-<h4 id="3045-跨系统事务处理"><a class="header" href="#3045-跨系统事务处理">30.4.5 跨系统事务处理</a></h4>
+<h4 id="3445-跨系统事务处理"><a class="header" href="#3445-跨系统事务处理">34.4.5 跨系统事务处理</a></h4>
 <p><strong>Saga模式（编排）</strong>：</p>
 <pre><code class="language-go">// 订单创建Saga
 type CreateOrderSaga struct {
@@ -1059,7 +1059,7 @@ func (s *CreateOrderSaga) Execute(ctx context.Context, req *CreateOrderRequest) 
     return order, nil
 }
 </code></pre>
-<h4 id="3046-防腐层设计"><a class="header" href="#3046-防腐层设计">30.4.6 防腐层设计</a></h4>
+<h4 id="3446-防腐层设计"><a class="header" href="#3446-防腐层设计">34.4.6 防腐层设计</a></h4>
 <p><strong>防腐层（Anti-Corruption Layer）</strong>：</p>
 <pre><code class="language-go">// 供应商响应模型（外部）
 type SupplierFlightResponse struct {
@@ -1095,8 +1095,8 @@ func (a *FlightSupplierACL) TranslateStock(supplierResp *SupplierFlightResponse)
 <li>测试时可以使用Fake实现替代真实供应商</li>
 </ul>
 <hr>
-<h2 id="305-技术选型决策technology-architecture"><a class="header" href="#305-技术选型决策technology-architecture">30.5 技术选型决策（Technology Architecture）</a></h2>
-<h4 id="3051-选型原则"><a class="header" href="#3051-选型原则">30.5.1 选型原则</a></h4>
+<h2 id="345-技术选型决策technology-architecture"><a class="header" href="#345-技术选型决策technology-architecture">34.5 技术选型决策（Technology Architecture）</a></h2>
+<h4 id="3451-选型原则"><a class="header" href="#3451-选型原则">34.5.1 选型原则</a></h4>
 <p><strong>原则1：成熟度优先</strong></p>
 <ul>
 <li>优先选择生产级成熟技术（避免踩坑）</li>
@@ -1121,7 +1121,7 @@ func (a *FlightSupplierACL) TranslateStock(supplierResp *SupplierFlightResponse)
 <li>云服务按需使用（避免自建中间件）</li>
 <li>运维成本可接受</li>
 </ul>
-<h4 id="3052-go生态选型"><a class="header" href="#3052-go生态选型">30.5.2 Go生态选型</a></h4>
+<h4 id="3452-go生态选型"><a class="header" href="#3452-go生态选型">34.5.2 Go生态选型</a></h4>
 <p><strong>语言选择：Go</strong></p>
 <div class="table-wrapper">
 <table>
@@ -1189,7 +1189,7 @@ func InitializeApp() (*App, error) {
     return nil, nil
 }
 </code></pre>
-<h4 id="3054-数据库选型"><a class="header" href="#3054-数据库选型">30.5.4 数据库选型</a></h4>
+<h4 id="3454-数据库选型"><a class="header" href="#3454-数据库选型">34.5.4 数据库选型</a></h4>
 <p><strong>MySQL（主库）</strong></p>
 <div class="table-wrapper">
 <table>
@@ -1230,7 +1230,7 @@ func InitializeApp() (*App, error) {
 </tbody>
 </table>
 </div>
-<h4 id="3055-中间件选型"><a class="header" href="#3055-中间件选型">30.5.5 中间件选型</a></h4>
+<h4 id="3455-中间件选型"><a class="header" href="#3455-中间件选型">34.5.5 中间件选型</a></h4>
 <p><strong>Kafka（消息队列）</strong></p>
 <div class="table-wrapper">
 <table>
@@ -1257,11 +1257,11 @@ func InitializeApp() (*App, error) {
 <li>安全：mTLS加密</li>
 </ul>
 <hr>
-<h2 id="306-核心系统设计"><a class="header" href="#306-核心系统设计">30.6 核心系统设计</a></h2>
-<h3 id="306-核心系统设计application--data-architecture详细设计"><a class="header" href="#306-核心系统设计application--data-architecture详细设计">30.6 核心系统设计（Application + Data Architecture详细设计）</a></h3>
-<p>基于32.4的整体架构，本节深入每个核心系统的详细设计，包括应用层的业务逻辑设计和数据层的模型设计。</p>
-<h4 id="3061-商品中心设计"><a class="header" href="#3061-商品中心设计">30.6.1 商品中心设计</a></h4>
-<h5 id="30611-服务定位与职责"><a class="header" href="#30611-服务定位与职责">30.6.1.1 服务定位与职责</a></h5>
+<h2 id="346-核心系统设计"><a class="header" href="#346-核心系统设计">34.6 核心系统设计</a></h2>
+<h3 id="346-核心系统设计application--data-architecture详细设计"><a class="header" href="#346-核心系统设计application--data-architecture详细设计">34.6 核心系统设计（Application + Data Architecture详细设计）</a></h3>
+<p>基于34.4的整体架构，本节深入每个核心系统的详细设计，包括应用层的业务逻辑设计和数据层的模型设计。</p>
+<h4 id="3461-商品中心设计"><a class="header" href="#3461-商品中心设计">34.6.1 商品中心设计</a></h4>
+<h5 id="34611-服务定位与职责"><a class="header" href="#34611-服务定位与职责">34.6.1.1 服务定位与职责</a></h5>
 <p>一句话概括，<strong>商品中心 = 商品主数据 + 供给运营 + 库存管理 + 搜索导购中心</strong>。</p>
 <p>商品中心处在供应商供给、平台运营、C 端导购和交易系统之间。它不是简单的商品表 CRUD，也不是只维护标题、图片、类目和上下架状态的 PIM 系统；在数字商品平台里，商品中心还要承接商品如何进入平台、如何被运营维护、如何保持供应商数据新鲜、如何判断可售、如何支撑搜索列表和详情页，以及如何在下单前给订单系统提供稳定的商品快照和库存校验结果。</p>
 <p>由于团队规模和系统演进阶段限制，本平台没有独立拆分库存中心和搜索中心，库存能力与搜索导购能力都由商品中心内部模块承接。这里需要特别说明：<strong>库存和搜索归商品中心，不代表商品主数据、库存状态、搜索索引混在一起</strong>。商品中心内部仍然按六个域拆分，分别管理不同的数据模型、生命周期和对外契约，避免商品定义、库存状态、搜索索引、供应商模型和交易状态互相污染。</p>
@@ -1353,7 +1353,7 @@ func InitializeApp() (*App, error) {
 </div>
 <p>因此，商品中心的定位不是“商品表 CRUD 服务”，而是数字商品平台交易前链路的核心系统。它统一商品定义、库存能力和搜索导购能力，屏蔽供应商商品模型差异，对外稳定输出商品、库存、搜索结果和能力配置，并通过事件机制驱动营销、计价、订单和履约系统协同。</p>
 <hr>
-<h5 id="30612-核心设计挑战异构商品模型"><a class="header" href="#30612-核心设计挑战异构商品模型">30.6.1.2 核心设计挑战：异构商品模型</a></h5>
+<h5 id="34612-核心设计挑战异构商品模型"><a class="header" href="#34612-核心设计挑战异构商品模型">34.6.1.2 核心设计挑战：异构商品模型</a></h5>
 <p>数字商品平台的商品中心，最大的难点不是“字段很多”，而是<strong>不同品类对交易对象的定义并不相同</strong>。实物电商的交易对象通常比较稳定：用户买的是一个 SKU，平台围绕 SKU 管库存、价格、物流和售后即可。但 OTA、O2O 和虚拟商品不是这样。它们卖的可能是一次账户余额变更、一个数字凭证、一项到店服务权益、一个特定时间窗口内的资源确认权，或者一次供应商实时返回的临时报价。</p>
 <p>所以，这里的“商品”不能简单理解为 <code>Product + SKU</code>。更准确的说法是：<strong>商品中心要统一的是交易前的经营表达，而不是所有品类的实时交易状态</strong>。</p>
 <p><strong>1. 不同品类卖的不是同一种东西</strong></p>
@@ -1535,7 +1535,7 @@ Runtime Context       表达交易前运行时上下文
 </ol>
 <p>这一节的核心结论是：<strong>商品中心真正统一的是经营表达和交易前契约，而不是统一所有品类的实时资源状态</strong>。这是数字商品平台避免商品模型失控的关键。</p>
 <hr>
-<h5 id="30613-统一商品模型设计"><a class="header" href="#30613-统一商品模型设计">30.6.1.3 统一商品模型设计</a></h5>
+<h5 id="34613-统一商品模型设计"><a class="header" href="#34613-统一商品模型设计">34.6.1.3 统一商品模型设计</a></h5>
 <p>商品中心的统一模型目标不是把所有品类强行压成同一种 SKU，而是提供一个稳定的“商品表达框架”，让不同品类都能被运营、搜索、计价、下单和履约系统理解。</p>
 <p><strong>核心模型分层</strong>：</p>
 <div class="table-wrapper">
@@ -1580,7 +1580,7 @@ Runtime Context       表达交易前运行时上下文
 <li><strong>动态价格和实时库存不进商品主表</strong>：商品主表保存稳定定义，动态报价、房态、座位库存通过缓存、供应商查询和订单快照处理。</li>
 </ol>
 <hr>
-<h5 id="30614-商品中心核心表设计"><a class="header" href="#30614-商品中心核心表设计">30.6.1.4 商品中心核心表设计</a></h5>
+<h5 id="34614-商品中心核心表设计"><a class="header" href="#34614-商品中心核心表设计">34.6.1.4 商品中心核心表设计</a></h5>
 <p>商品中心的表设计要支撑三件事：稳定主数据、灵活品类差异、可追溯运营链路。下面是核心表的定位，不要求所有字段一次性设计到位，但边界要清晰。</p>
 <div class="table-wrapper">
 <table>
@@ -1829,7 +1829,7 @@ resource_ext_cinema_tab / resource_ext_route_tab
 </code></pre>
 <p>这样设计的原因是：不是所有资源都值得单独建完整模型，但高频检索、高频展示、高频排序的资源字段不能长期躲在 JSON 里。统一 <code>resource_tab</code> 负责身份和关系，扩展表负责高频业务字段。</p>
 <hr>
-<h5 id="30615-不同品类的数据存储样例"><a class="header" href="#30615-不同品类的数据存储样例">30.6.1.5 不同品类的数据存储样例</a></h5>
+<h5 id="34615-不同品类的数据存储样例"><a class="header" href="#34615-不同品类的数据存储样例">34.6.1.5 不同品类的数据存储样例</a></h5>
 <p>不同品类进入商品中心时，关键是判断“哪些信息稳定，哪些信息动态，哪些信息不应该沉淀”。下面按典型品类说明。</p>
 <div class="table-wrapper">
 <table>
@@ -1894,7 +1894,7 @@ input_schema_tab
 </code></pre>
 <p>这类商品的可售单元不是固定面额，而是“用户输入账号后形成的一次账单支付上下文”。因此商品中心只保存账单机构、输入规则、手续费规则和履约契约，具体账单金额进入计价上下文和订单快照。</p>
 <hr>
-<h5 id="30616-商品供给与运营链路"><a class="header" href="#30616-商品供给与运营链路">30.6.1.6 商品供给与运营链路</a></h5>
+<h5 id="34616-商品供给与运营链路"><a class="header" href="#34616-商品供给与运营链路">34.6.1.6 商品供给与运营链路</a></h5>
 <p>商品供给与运营链路解决的是“商品如何进入平台，以及上线后如何被持续维护”的问题。供应商同步本质上属于供给链路，但它不是唯一入口。更准确的划分是：</p>
 <pre><code class="language-text">商品供给与运营治理平台
   ├─ 人工创建/上传：运营/商家从 0 到 1 创建商品
@@ -1902,8 +1902,8 @@ input_schema_tab
   ├─ 运营编辑：标题、图片、类目、价格、库存、上下架、退款规则变更
   └─ 供应商同步：外部供给数据全量/增量/Push/刷新
 </code></pre>
-<p>这四类入口应该进入同一个“供给治理控制面”，共享任务模型、校验、审核、发布版本、Outbox、补偿和可观测性；但供应商同步因为存在长任务、Checkpoint、Raw Snapshot、Worker 租约、DLQ、数据新鲜度等复杂问题，可以单独展开成 <code>32.6.1.7</code> 和附录案例。</p>
-<p>相关答辩判断已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
+<p>这四类入口应该进入同一个“供给治理控制面”，共享任务模型、校验、审核、发布版本、Outbox、补偿和可观测性；但供应商同步因为存在长任务、Checkpoint、Raw Snapshot、Worker 租约、DLQ、数据新鲜度等复杂问题，可以单独展开成 <code>34.6.1.7</code> 和附录案例。</p>
+<p>相关答辩判断已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 43 章</a>。</p>
 <p>如果这条链路设计不好</p>
 <p>如果这条链路设计不好，问题会很快暴露到 C 端交易链路：列表页搜不到、详情页价格错误、下单时库存不可用、券码发放失败、供应商映射缺失、退款规则不完整。商品供给链路的核心不是“把商品写进数据库”，而是“让一个商品从供给入口到可被搜索、可被下单、可被履约、可被追溯”。</p>
 <p>这条链路的系统难点和解决方法可以先这样收敛：</p>
@@ -1980,7 +1980,7 @@ input_schema_tab
 <tr><td><strong>人工创建</strong></td><td>运营创建本地生活券、礼品卡、话费套餐、账单缴费入口</td><td>表单草稿 → 实时校验 → 提交审核 → 发布</td><td>字段漏填、类目选错、履约规则不完整</td><td>表单配置化、类目模板、强校验、完整审核</td></tr>
 <tr><td><strong>批量导入</strong></td><td>大促前批量创建套餐、门店、价格计划、券码池</td><td>上传文件 → 预校验 → 异步解析 → 分批处理 → 错误文件</td><td>大批量错误、重复导入、局部失败</td><td>任务化、行级状态、部分成功、失败文件、幂等 key</td></tr>
 <tr><td><strong>运营编辑</strong></td><td>改标题、图片、价格、库存、退款规则、上下架</td><td>读取线上版本 → 创建变更单 → Diff → 风险审核 → 发布</td><td>误操作、批量事故、覆盖供应商数据</td><td>字段主导权、版本锁、风险阈值、回滚</td></tr>
-<tr><td><strong>供应商同步</strong></td><td>酒店、影院、活动、票务等外部数据同步</td><td>同步任务 → Raw Snapshot → 标准化 → 映射 → Diff → 发布</td><td>接口不稳定、模型不一致、新鲜度、长任务失败</td><td>独立同步链路，见 <code>32.6.1.7</code></td></tr>
+<tr><td><strong>供应商同步</strong></td><td>酒店、影院、活动、票务等外部数据同步</td><td>同步任务 → Raw Snapshot → 标准化 → 映射 → Diff → 发布</td><td>接口不稳定、模型不一致、新鲜度、长任务失败</td><td>独立同步链路，见 <code>34.6.1.7</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -2142,7 +2142,7 @@ product_supply_dead_letter
 </tbody>
 </table>
 </div>
-<p>人工创建链路的答辩提示已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
+<p>人工创建链路的答辩提示已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 43 章</a>。</p>
 <p><strong>6. 批量导入链路</strong></p>
 <p>批量导入要按“任务 + 行级明细 + 暂存快照 + 错误文件”设计，不能把整个 Excel 读进内存后循环写正式表。</p>
 <pre><code class="language-text">下载模板
@@ -2427,11 +2427,11 @@ ProductCacheInvalidationRequired
   → Supplier Mapping
   → 数据新鲜度
 </code></pre>
-<p>所以本章采用“主链路 + 专项链路”的写法：<code>30.6.1.6</code> 讲统一商品供给、运营与生命周期治理，完整设计见<a href="./05-product-supply-lifecycle-ops.html">第 24 章：商品供给、运营与生命周期治理</a>；<code>30.6.1.7</code> 专门讲供应商同步，因为它有长任务恢复、外部数据追溯和供应商质量治理等额外复杂度。</p>
-<p>本节答辩总结已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
-<h5 id="30617-供应商商品同步链路"><a class="header" href="#30617-供应商商品同步链路">30.6.1.7 供应商商品同步链路</a></h5>
+<p>所以本章采用“主链路 + 专项链路”的写法：<code>34.6.1.6</code> 讲统一商品供给、运营与生命周期治理，完整设计见<a href="./02-product-supply-lifecycle-ops.html">第 26 章：商品供给、运营与生命周期治理</a>；<code>34.6.1.7</code> 专门讲供应商同步，因为它有长任务恢复、外部数据追溯和供应商质量治理等额外复杂度。</p>
+<p>本节答辩总结已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 43 章</a>。</p>
+<h5 id="34617-供应商商品同步链路"><a class="header" href="#34617-供应商商品同步链路">34.6.1.7 供应商商品同步链路</a></h5>
 <p>供应商同步链路解决的是”外部供给数据如何进入平台，并持续保持可用、可信、足够新鲜”的问题。它不是简单的定时任务，也不是把供应商字段原样搬进商品表，而是一个完整的数据治理链路：接入外部数据、适配不同协议、完成平台模型映射、校验数据质量、生成发布版本、刷新搜索缓存、通知下游系统，并在失败时可追踪、可补偿、可人工修复。</p>
-<p>从系统边界上看，它属于 <code>30.6.1.6</code> 里的供应商供给入口，但执行层要单独设计。统一供给平台负责发布模型、审核、Outbox 和质量治理；供应商同步专项链路负责外部协议适配、Raw Snapshot、Checkpoint、租约、批次版本、新鲜度和供应商质量治理。</p>
+<p>从系统边界上看，它属于 <code>34.6.1.6</code> 里的供应商供给入口，但执行层要单独设计。统一供给平台负责发布模型、审核、Outbox 和质量治理；供应商同步专项链路负责外部协议适配、Raw Snapshot、Checkpoint、租约、批次版本、新鲜度和供应商质量治理。</p>
 <p>在数字商品平台中，供应商同步的复杂度来自四个方面：</p>
 <ol>
 <li><strong>接口不稳定</strong>：供应商可能超时、限流、重复推送、乱序推送，也可能临时修改字段含义。</li>
@@ -2458,9 +2458,9 @@ ProductCacheInvalidationRequired
 </table>
 </div>
 <p><strong>供应商同步架构图与 Data Flow Diagram</strong>：</p>
-<p><img src="../../images/supplier-sync-architecture.png" alt="供应商数据同步链路架构图"></p>
-<p><img src="../../images/supplier-sync-data-flow.png" alt="供应商数据同步 Data Flow Diagram"></p>
-<p>完整的任务模型、Checkpoint、Worker 租约、DLQ 和监控指标，见<a href="./05-product-supply-lifecycle-ops.html">第 24 章：商品供给、运营与生命周期治理</a>。</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../../images/supplier-sync-architecture.png" alt="供应商数据同步链路架构图"><span class="img-wrapper"><img src="../../images/supplier-sync-architecture.png" alt="供应商数据同步链路架构图"></span></label></p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../../images/supplier-sync-data-flow.png" alt="供应商数据同步 Data Flow Diagram"><span class="img-wrapper"><img src="../../images/supplier-sync-data-flow.png" alt="供应商数据同步 Data Flow Diagram"></span></label></p>
+<p>完整的任务模型、Checkpoint、Worker 租约、DLQ 和监控指标，见<a href="./02-product-supply-lifecycle-ops.html">第 26 章：商品供给、运营与生命周期治理</a>。</p>
 <p>图中可以看到，供应商数据进入平台后会经过五个阶段：</p>
 <pre><code class="language-text">供应商数据源
   → 接入适配与同步任务
@@ -2566,7 +2566,7 @@ ProductCacheInvalidationRequired
 </table>
 </div>
 <p>质量校验要支持“部分成功”。例如酒店全量同步 100 万条房型数据，不能因为 100 条数据失败就整批失败。更合理的处理方式是：可处理数据继续写入，失败明细单独记录 <code>error_code</code>、<code>error_message</code>、<code>raw_payload_ref</code>，高风险数据不发布，进入人工修复或补偿队列。</p>
-<p>供应商同步失败治理的答辩提示已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
+<p>供应商同步失败治理的答辩提示已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 43 章</a>。</p>
 <p><strong>6. 新鲜度设计</strong></p>
 <p>不同数据的 TTL 不一样，不能使用统一缓存时间。</p>
 <div class="table-wrapper">
@@ -2853,7 +2853,7 @@ LIMIT 100;
 <pre><code class="language-text">Kafka DLQ：短期消息缓冲，可选
 MySQL DLQ：权威问题单和补偿状态
 </code></pre>
-<p>供应商同步 DLQ 的答辩总结已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
+<p>供应商同步 DLQ 的答辩总结已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 43 章</a>。</p>
 <p><strong>9. 监控设计</strong></p>
 <p><strong>9. 监控设计</strong></p>
 <p>供应商同步监控要分成技术指标、数据质量指标和业务影响指标。</p>
@@ -2897,8 +2897,8 @@ D-B 不可售率 = 下单前确认不可售 / 详情页可售点击
 </tbody>
 </table>
 </div>
-<p>供应商同步整体答辩总结已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
-<h5 id="30618-库存与可售设计"><a class="header" href="#30618-库存与可售设计">30.6.1.8 库存与可售设计</a></h5>
+<p>供应商同步整体答辩总结已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 43 章</a>。</p>
+<h5 id="34618-库存与可售设计"><a class="header" href="#34618-库存与可售设计">34.6.1.8 库存与可售设计</a></h5>
 <p>在本平台中库存没有独立拆服务，而是由商品中心内部的库存与可售域承接。这里的关键不是把库存字段放进商品主表，而是建立统一的库存抽象，屏蔽不同品类的库存来源差异。</p>
 <div class="table-wrapper">
 <table>
@@ -2921,7 +2921,7 @@ D-B 不可售率 = 下单前确认不可售 / 详情页可售点击
 </code></pre>
 <p>库存相关动作包括查询、预占、释放、扣减、回补和对账。对于 Flight/Hotel/Movie 这类实时库存，商品中心更多是统一入口和状态判断，真实资源确认仍然要通过供应商网关或供应商接入层完成。</p>
 <hr>
-<h5 id="30619-搜索与导购设计"><a class="header" href="#30619-搜索与导购设计">30.6.1.9 搜索与导购设计</a></h5>
+<h5 id="34619-搜索与导购设计"><a class="header" href="#34619-搜索与导购设计">34.6.1.9 搜索与导购设计</a></h5>
 <p>由于搜索也由商品中心负责，商品中心不仅要管理商品数据，还要负责把商品组织成用户可浏览、可搜索、可筛选、可点击的前台体验。</p>
 <p><strong>搜索导购链路</strong>：</p>
 <pre><code class="language-text">首页入口/类目导航
@@ -2948,9 +2948,9 @@ D-B 不可售率 = 下单前确认不可售 / 详情页可售点击
 </tbody>
 </table>
 </div>
-<p>搜索导购的答辩总结已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 35 章</a>。</p>
+<p>搜索导购的答辩总结已统一收录到<a href="../part03/03-ecommerce-architecture-interview.html">第 43 章</a>。</p>
 <hr>
-<h5 id="306110-跨系统集成与事件设计"><a class="header" href="#306110-跨系统集成与事件设计">30.6.1.10 跨系统集成与事件设计</a></h5>
+<h5 id="346110-跨系统集成与事件设计"><a class="header" href="#346110-跨系统集成与事件设计">34.6.1.10 跨系统集成与事件设计</a></h5>
 <p>商品中心位于交易前链路，需要向多个系统输出稳定契约。</p>
 <div class="table-wrapper">
 <table>
@@ -2985,7 +2985,7 @@ D-B 不可售率 = 下单前确认不可售 / 详情页可售点击
 </div>
 <p>事件发布建议使用 Outbox 或可靠消息机制，避免“商品已更新但事件丢失”导致搜索、营销、计价数据不一致。</p>
 <hr>
-<h5 id="306111-架构取舍与经验总结"><a class="header" href="#306111-架构取舍与经验总结">30.6.1.11 架构取舍与经验总结</a></h5>
+<h5 id="346111-架构取舍与经验总结"><a class="header" href="#346111-架构取舍与经验总结">34.6.1.11 架构取舍与经验总结</a></h5>
 <p><strong>1. 为什么没有独立拆库存中心和搜索中心？</strong></p>
 <p>这是团队规模和演进阶段下的取舍。库存和搜索都与商品强相关，早期拆成独立服务会增加团队协作、接口维护和数据一致性成本。把它们放在商品中心内部，可以减少跨服务调用，提高迭代效率。但内部必须按域隔离，避免主数据、库存状态和搜索索引混成一团。</p>
 <p><strong>2. 为什么不用一张大宽表？</strong></p>
@@ -3010,9 +3010,9 @@ D-B 不可售率 = 下单前确认不可售 / 详情页可售点击
 <p><strong>6. 如何避免商品中心变成“大泥球”？</strong></p>
 <p>关键是三条边界：内部按六个域拆分，数据库按主表/属性/扩展/映射/日志拆分，对外用 API 和事件契约隔离。即便物理上是一个商品中心，逻辑上也要保持清晰边界，为未来拆分成商品中台、库存中心、搜索中心留下演进空间。</p>
 <hr>
-<h5 id="306112-实现落地参考ddd-分层与代码组织"><a class="header" href="#306112-实现落地参考ddd-分层与代码组织">30.6.1.12 实现落地参考：DDD 分层与代码组织</a></h5>
-<p>前面 32.6.1.2 到 32.6.1.11 讨论的是商品中心的业务架构和数据架构。本节保留一个简化版 DDD 代码落地参考，用于说明 Product 聚合根、Repository、接口层、事件订阅和缓存如何组织。它不是上述完整商品中心的全量实现，而是帮助读者理解“架构如何落到代码”的最小示例。</p>
-<h6 id="3061121-八层模型的工程落地方式"><a class="header" href="#3061121-八层模型的工程落地方式">30.6.1.12.1 八层模型的工程落地方式</a></h6>
+<h5 id="346112-实现落地参考ddd-分层与代码组织"><a class="header" href="#346112-实现落地参考ddd-分层与代码组织">34.6.1.12 实现落地参考：DDD 分层与代码组织</a></h5>
+<p>前面 34.6.1.2 到 34.6.1.11 讨论的是商品中心的业务架构和数据架构。本节保留一个简化版 DDD 代码落地参考，用于说明 Product 聚合根、Repository、接口层、事件订阅和缓存如何组织。它不是上述完整商品中心的全量实现，而是帮助读者理解“架构如何落到代码”的最小示例。</p>
+<h6 id="3461121-八层模型的工程落地方式"><a class="header" href="#3461121-八层模型的工程落地方式">34.6.1.12.1 八层模型的工程落地方式</a></h6>
 <p>八层商品交易模型不建议直接落成八个服务或八组强耦合表。更合理的落地方式是：<strong>用八层模型识别品类差异，用品类能力矩阵沉淀差异，用 Runtime Context 输出交易前上下文，用 Category Strategy 执行动态差异，用供应商适配器隔离外部接口差异</strong>。</p>
 <pre><code class="language-text">八层商品交易模型
   → Category Capability Matrix  品类能力矩阵
@@ -3119,7 +3119,7 @@ MovieStrategy
 </code></pre>
 <p>这套落地方式的关键是：<strong>商品中心保存能力与规则，RuntimeContext 输出交易前上下文，订单保存交易快照，履约系统执行交付，售后系统执行退款规则</strong>。</p>
 <p><strong>领域模型设计思想</strong>：商品域的特点是“树形结构+读多写少“，与订单域的“复杂状态机+高并发写“完全不同。</p>
-<h6 id="3061122-product-聚合根示例"><a class="header" href="#3061122-product-聚合根示例">30.6.1.12.2 Product 聚合根示例</a></h6>
+<h6 id="3461122-product-聚合根示例"><a class="header" href="#3461122-product-聚合根示例">34.6.1.12.2 Product 聚合根示例</a></h6>
 <pre><code class="language-go">// Product聚合根（SKU维度）
 type Product struct {
     // 聚合根ID
@@ -3255,7 +3255,7 @@ func (spu *SPU) isValidSpecs(specs Specifications) bool {
     return true
 }
 </code></pre>
-<h6 id="3061123-聚合根方法"><a class="header" href="#3061123-聚合根方法">30.6.1.12.3 聚合根方法</a></h6>
+<h6 id="3461123-聚合根方法"><a class="header" href="#3461123-聚合根方法">34.6.1.12.3 聚合根方法</a></h6>
 <pre><code class="language-go">// 上架（状态转换）
 func (p *Product) OnShelf() error {
     if p.status == ProductOnShelf {
@@ -3353,7 +3353,7 @@ func (p *Product) Specs() Specifications {
     return p.specs
 }
 </code></pre>
-<h6 id="3061124-repository-模式防腐层"><a class="header" href="#3061124-repository-模式防腐层">30.6.1.12.4 Repository 模式（防腐层）</a></h6>
+<h6 id="3461124-repository-模式防腐层"><a class="header" href="#3461124-repository-模式防腐层">34.6.1.12.4 Repository 模式（防腐层）</a></h6>
 <pre><code class="language-go">// ProductRepository接口（领域层定义）
 type ProductRepository interface {
     // 查询
@@ -3469,8 +3469,8 @@ func (r *ProductRepositoryImpl) BatchFindBySKUIDs(ctx context.Context, skuIDs []
 }
 </code></pre>
 <hr>
-<h6 id="3061125-基础设施层infrastructure-layer"><a class="header" href="#3061125-基础设施层infrastructure-layer">30.6.1.12.5 基础设施层（Infrastructure Layer）</a></h6>
-<p>####### 32.6.1.12.5.1 核心存储设计</p>
+<h6 id="3461125-基础设施层infrastructure-layer"><a class="header" href="#3461125-基础设施层infrastructure-layer">34.6.1.12.5 基础设施层（Infrastructure Layer）</a></h6>
+<p>####### 34.6.1.12.5.1 核心存储设计</p>
 <p><strong>表结构设计</strong>：</p>
 <pre><code class="language-sql">-- SPU表（标准产品单元）
 CREATE TABLE product_spu (
@@ -3541,10 +3541,10 @@ db_index = category_id % 4
 </table>
 </div>
 <hr>
-<p>####### 32.6.1.12.5.2 缓存策略</p>
-<p>详见下文“32.6.1.12.8 三级缓存实现“。</p>
+<p>####### 34.6.1.12.5.2 缓存策略</p>
+<p>详见下文“34.6.1.12.8 三级缓存实现“。</p>
 <hr>
-<p>####### 32.6.1.12.5.3 消息中间件（Messaging）⭐️</p>
+<p>####### 34.6.1.12.5.3 消息中间件（Messaging）⭐️</p>
 <p><strong>职责划分</strong>：</p>
 <div class="table-wrapper">
 <table>
@@ -3631,10 +3631,10 @@ func (c *KafkaConsumer) Start(ctx context.Context) error {
 </tbody>
 </table>
 </div>
-<p>详见 <code>32.6.1.12.7.4 事件订阅者的分层设计</code>。</p>
+<p>详见 <code>34.6.1.12.7.4 事件订阅者的分层设计</code>。</p>
 <hr>
-<h6 id="3061126-接口层interface-layer"><a class="header" href="#3061126-接口层interface-layer">30.6.1.12.6 接口层（Interface Layer）</a></h6>
-<p>####### 32.6.1.12.6.1 gRPC 接口定义</p>
+<h6 id="3461126-接口层interface-layer"><a class="header" href="#3461126-接口层interface-layer">34.6.1.12.6 接口层（Interface Layer）</a></h6>
+<p>####### 34.6.1.12.6.1 gRPC 接口定义</p>
 <p><strong>核心接口</strong>（product.proto）：</p>
 <pre><code class="language-protobuf">// ProductService商品服务
 service ProductService {
@@ -3700,7 +3700,7 @@ enum ProductStatus {
     OFF_SHELF = 2;  // 下架
 }
 </code></pre>
-<p>####### 32.6.1.12.6.2 HTTP 接口（可选）</p>
+<p>####### 34.6.1.12.6.2 HTTP 接口（可选）</p>
 <pre><code class="language-go">// HTTP接口（供运营后台使用）
 GET    /api/v1/products/:sku_id           # 查询商品
 POST   /api/v1/products                    # 创建商品
@@ -3708,7 +3708,7 @@ PUT    /api/v1/products/:sku_id           # 更新商品
 POST   /api/v1/products/:sku_id/on-shelf  # 上架
 POST   /api/v1/products/:sku_id/off-shelf # 下架
 </code></pre>
-<p>####### 32.6.1.12.6.3 Event 接口（异步）⭐️</p>
+<p>####### 34.6.1.12.6.3 Event 接口（异步）⭐️</p>
 <p><strong>事件订阅接口</strong>（接收外部服务事件）：</p>
 <pre><code class="language-go">// ProductEventHandler 商品事件处理器（接口层）
 // 职责：适配外部事件消息 → 调用Application Service
@@ -3736,10 +3736,10 @@ const (
 <li>✅ 调用Application Service</li>
 <li>❌ 不负责Kafka连接（由Infrastructure Layer的Kafka Consumer负责）</li>
 </ul>
-<p>详见 <code>32.6.1.12.7.4 事件订阅者的分层设计</code>。</p>
+<p>详见 <code>34.6.1.12.7.4 事件订阅者的分层设计</code>。</p>
 <hr>
-<h6 id="3061127-应用服务层application-layer"><a class="header" href="#3061127-应用服务层application-layer">30.6.1.12.7 应用服务层（Application Layer）</a></h6>
-<p>####### 32.6.1.12.7.1 核心代码结构</p>
+<h6 id="3461127-应用服务层application-layer"><a class="header" href="#3461127-应用服务层application-layer">34.6.1.12.7 应用服务层（Application Layer）</a></h6>
+<p>####### 34.6.1.12.7.1 核心代码结构</p>
 <pre><code class="language-text">product-service/
 ├── cmd/
 │   └── main.go                          # 服务入口
@@ -3784,7 +3784,7 @@ const (
 └── go.mod
 </code></pre>
 <hr>
-<p>####### 32.6.1.12.7.2 核心应用服务实现</p>
+<p>####### 34.6.1.12.7.2 核心应用服务实现</p>
 <p><strong>应用服务层</strong>（product_service.go）：</p>
 <pre><code class="language-go">type ProductService struct {
     repo           domain.ProductRepository
@@ -3888,7 +3888,7 @@ func (s *ProductService) UpdateBasePrice(ctx context.Context, skuID int64, newPr
 }
 </code></pre>
 <hr>
-<p>####### 32.6.1.12.7.3 领域事件</p>
+<p>####### 34.6.1.12.7.3 领域事件</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -3942,7 +3942,7 @@ func (e *PriceChangedEvent) Type() string {
 }
 </code></pre>
 <hr>
-<p>####### 32.6.1.12.7.4 事件订阅者的分层设计 ⭐️</p>
+<p>####### 34.6.1.12.7.4 事件订阅者的分层设计 ⭐️</p>
 <p><strong>核心问题</strong>：DDD架构中，事件订阅者（Event Subscriber）应该放在哪一层？</p>
 <p>这是微服务架构中的经典设计问题。不同的分层方案会影响代码的复用性、可测试性和职责清晰度。</p>
 <p>####### 方案对比</p>
@@ -4461,7 +4461,7 @@ func (h *ProductEventHandler) markEventProcessed(ctx context.Context, eventID st
 </code></pre>
 <p><strong>示例代码</strong>：参见 <code>books/system-design-architecture-book/example-codes/product-service/</code> 完整 Demo</p>
 <hr>
-<h6 id="3061128-三级缓存实现infrastructure-layer-详细实现"><a class="header" href="#3061128-三级缓存实现infrastructure-layer-详细实现">30.6.1.12.8 三级缓存实现（Infrastructure Layer 详细实现）</a></h6>
+<h6 id="3461128-三级缓存实现infrastructure-layer-详细实现"><a class="header" href="#3461128-三级缓存实现infrastructure-layer-详细实现">34.6.1.12.8 三级缓存实现（Infrastructure Layer 详细实现）</a></h6>
 <p><strong>三级缓存架构</strong>：</p>
 <pre><code class="language-go">// L1: 本地缓存（1分钟）
 // 优点：延迟最低（&lt;1ms），适合热点商品
@@ -4490,7 +4490,7 @@ product:spu:{spu_id}                # SPU下所有SKU（Hash结构）
 product:category:{category_id}      # 类目商品列表（Set结构）
 </code></pre>
 <hr>
-<h6 id="3061129-完整示例代码-"><a class="header" href="#3061129-完整示例代码-">30.6.1.12.9 完整示例代码 ⭐️</a></h6>
+<h6 id="3461129-完整示例代码-"><a class="header" href="#3461129-完整示例代码-">34.6.1.12.9 完整示例代码 ⭐️</a></h6>
 <p>本章节的完整代码实现（包含 DDD 四层架构、事件发布订阅、三级缓存等）详见：</p>
 <p><strong>示例代码路径</strong>：<code>books/system-design-architecture-book/example-codes/product-service/</code></p>
 <p>这部分示例代码不是完整生产系统，而是为了帮助读者把前面的架构设计映射到工程结构中。它重点覆盖商品中心的 DDD 分层、聚合根、Repository、缓存、事件发布订阅和接口适配。前面讨论的供给运营、供应商同步、库存可售、搜索导购等能力，在真实项目中会继续扩展为更多应用服务和任务模块；示例工程先保留最小可读骨架，避免把主线淹没在实现细节里。</p>
@@ -4582,8 +4582,8 @@ go run cmd/main.go
 <li><strong>八层商品交易模型</strong>：通过 <code>ProductRuntimeContext</code> 展示 Topup、Gift Card、Flight、Hotel 的商品模型差异</li>
 </ol>
 <hr>
-<h4 id="3062-库存系统设计"><a class="header" href="#3062-库存系统设计">30.6.2 库存系统设计</a></h4>
-<p><strong>二维库存模型</strong>（参考32.2.5）：</p>
+<h4 id="3462-库存系统设计"><a class="header" href="#3462-库存系统设计">34.6.2 库存系统设计</a></h4>
+<p><strong>二维库存模型</strong>（参考34.2.5）：</p>
 <pre><code class="language-go">// 库存策略接口
 type StockStrategy interface {
     CheckStock(ctx context.Context, req *StockRequest) (*StockResponse, error)
@@ -4637,7 +4637,7 @@ func (r *StockRepo) Reserve(ctx context.Context, skuID int64, qty int, ttl time.
     return "", errors.New("库存不足")
 }
 </code></pre>
-<h4 id="3063-订单系统设计"><a class="header" href="#3063-订单系统设计">30.6.3 订单系统设计</a></h4>
+<h4 id="3463-订单系统设计"><a class="header" href="#3463-订单系统设计">34.6.3 订单系统设计</a></h4>
 <p><strong>状态机</strong>：</p>
 <pre><code class="language-go">type OrderStatus string
 
@@ -4674,7 +4674,7 @@ func (o *Order) TransitionTo(newStatus OrderStatus) error {
 • 分表：按 create_time 分表（按月归档，64表）
 • 路由表：order_route（order_id → db_index, table_index）
 </code></pre>
-<h4 id="3064-支付系统设计"><a class="header" href="#3064-支付系统设计">30.6.4 支付系统设计</a></h4>
+<h4 id="3464-支付系统设计"><a class="header" href="#3464-支付系统设计">34.6.4 支付系统设计</a></h4>
 <p><strong>支付流程</strong>：</p>
 <pre><code class="language-go">// Step 1: 创建支付单
 func (s *PaymentService) CreatePayment(ctx context.Context, orderID int64, amount int64) (*Payment, error) {
@@ -4751,7 +4751,7 @@ func (s *PaymentService) ReconcileHourly(ctx context.Context, hour time.Time) er
     return nil
 }
 </code></pre>
-<h4 id="3065-供应商集成设计"><a class="header" href="#3065-供应商集成设计">30.6.5 供应商集成设计</a></h4>
+<h4 id="3465-供应商集成设计"><a class="header" href="#3465-供应商集成设计">34.6.5 供应商集成设计</a></h4>
 <p><strong>适配器模式</strong>：</p>
 <pre><code class="language-go">// 供应商接口（统一抽象）
 type SupplierAdapter interface {
@@ -4817,7 +4817,7 @@ func (c *SupplierClient) QueryStock(ctx context.Context, req *Request) (*Respons
 }
 </code></pre>
 <hr>
-<h2 id="307-完整业务链路系统集成与数据流"><a class="header" href="#307-完整业务链路系统集成与数据流">30.7 完整业务链路（系统集成与数据流）</a></h2>
+<h2 id="347-完整业务链路系统集成与数据流"><a class="header" href="#347-完整业务链路系统集成与数据流">34.7 完整业务链路（系统集成与数据流）</a></h2>
 <p><strong>从子系统到完整链路</strong>：前面章节展示了各个子系统的内部设计（商品中心、库存、订单、支付、供应商集成），本章展示这些子系统如何协作，形成端到端的业务链路。</p>
 <p><strong>两条关键链路</strong>：</p>
 <ul>
@@ -4831,7 +4831,7 @@ func (c *SupplierClient) QueryStock(ctx context.Context, req *Request) (*Respons
 <li><strong>异常处理</strong>：跨系统的容错与补偿（Saga、重试、降级）</li>
 </ul>
 <hr>
-<h4 id="3071-b端商品生命周期完整链路"><a class="header" href="#3071-b端商品生命周期完整链路">30.7.1 B端商品生命周期完整链路</a></h4>
+<h4 id="3471-b端商品生命周期完整链路"><a class="header" href="#3471-b端商品生命周期完整链路">34.7.1 B端商品生命周期完整链路</a></h4>
 <p><strong>B端商品生命周期是平台运营的核心能力</strong>，决定了“商品如何进入、如何管理、如何退出“。本节展示从商品录入到下架归档的完整链路，涵盖供应商、运营、系统三方协作。</p>
 <p><strong>完整生命周期（7个阶段）</strong>：</p>
 <pre><code class="language-text">阶段1：商品录入（手动/批量/API）
@@ -6142,13 +6142,13 @@ func (s *ArchiveService) ArchiveProduct(ctx context.Context, skuID int64) error 
 </table>
 </div>
 <hr>
-<h4 id="3072-c端交易流完整链路"><a class="header" href="#3072-c端交易流完整链路">30.7.2 C端交易流完整链路</a></h4>
+<h4 id="3472-c端交易流完整链路"><a class="header" href="#3472-c端交易流完整链路">34.7.2 C端交易流完整链路</a></h4>
 <p><strong>交易流是电商的核心价值链</strong>，从用户搜索到完成支付的完整路径。本节展示五个阶段的设计与集成。</p>
 <p><strong>与B端链路的对比</strong>：</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>维度</th><th>B端链路（32.7.1）</th><th>C端链路（32.7.2）</th></tr>
+<tr><th>维度</th><th>B端链路（34.7.1）</th><th>C端链路（34.7.2）</th></tr>
 </thead>
 <tbody>
 <tr><td><strong>参与方</strong></td><td>供应商、运营、系统</td><td>用户、系统</td></tr>
@@ -6507,7 +6507,7 @@ func (s *CreateOrderSaga) Execute(ctx context.Context, req *CreateOrderRequest) 
 </table>
 </div>
 <hr>
-<h2 id="308-ddd战术设计实践"><a class="header" href="#308-ddd战术设计实践">30.8 DDD战术设计实践</a></h2>
+<h2 id="348-ddd战术设计实践"><a class="header" href="#348-ddd战术设计实践">34.8 DDD战术设计实践</a></h2>
 <p><strong>领域模型是系统设计的核心</strong>。本节展示如何在订单域应用DDD战术模式。</p>
 <h4 id="聚合设计order聚合根"><a class="header" href="#聚合设计order聚合根">聚合设计：Order聚合根</a></h4>
 <pre><code class="language-go">// Order聚合根
@@ -6741,7 +6741,7 @@ func (w *OutboxWorker) Run() {
 }
 </code></pre>
 <hr>
-<h2 id="309-架构决策记录adr"><a class="header" href="#309-架构决策记录adr">30.9 架构决策记录（ADR）</a></h2>
+<h2 id="349-架构决策记录adr"><a class="header" href="#349-架构决策记录adr">34.9 架构决策记录（ADR）</a></h2>
 <p>本节记录系统设计过程中的关键架构决策，包括决策背景、备选方案、最终决策及理由。<strong>ADR是架构演进的重要资产，帮助团队理解「为什么这样设计」，避免重复讨论。</strong></p>
 <h4 id="adr-001-计价中心数据输入方式"><a class="header" href="#adr-001-计价中心数据输入方式">ADR-001: 计价中心数据输入方式</a></h4>
 <p><strong>决策日期</strong>：2026-04-14<br><strong>状态</strong>：已采纳 ✓</p>
@@ -7503,8 +7503,8 @@ graph TB
 <li>价格变化拦截率（创单价格校验触发频率）</li>
 </ul>
 <hr>
-<h2 id="3010-高可用与性能优化infrastructure--operations"><a class="header" href="#3010-高可用与性能优化infrastructure--operations">30.10 高可用与性能优化（Infrastructure &amp; Operations）</a></h2>
-<h4 id="30101-高可用设计"><a class="header" href="#30101-高可用设计">30.10.1 高可用设计</a></h4>
+<h2 id="3410-高可用与性能优化infrastructure--operations"><a class="header" href="#3410-高可用与性能优化infrastructure--operations">34.10 高可用与性能优化（Infrastructure &amp; Operations）</a></h2>
+<h4 id="34101-高可用设计"><a class="header" href="#34101-高可用设计">34.10.1 高可用设计</a></h4>
 <p><strong>服务多副本部署</strong>：</p>
 <div class="table-wrapper">
 <table>
@@ -7556,7 +7556,7 @@ func (s *SearchAggregation) Search(ctx context.Context, req *SearchRequest) (*Se
     return s.buildResponse(products, promos)
 }
 </code></pre>
-<h4 id="30102-性能优化"><a class="header" href="#30102-性能优化">30.10.2 性能优化</a></h4>
+<h4 id="34102-性能优化"><a class="header" href="#34102-性能优化">34.10.2 性能优化</a></h4>
 <p><strong>缓存策略</strong>（多级缓存）：</p>
 <pre><code class="language-go">// L1: 本地缓存（进程内）
 type LocalCache struct {
@@ -7633,7 +7633,7 @@ WHERE user_id = ? AND create_time &gt; ?
 ORDER BY create_time DESC
 LIMIT 20;
 </code></pre>
-<h4 id="30103-容灾与降级"><a class="header" href="#30103-容灾与降级">30.10.3 容灾与降级</a></h4>
+<h4 id="34103-容灾与降级"><a class="header" href="#34103-容灾与降级">34.10.3 容灾与降级</a></h4>
 <p><strong>多机房部署</strong>：</p>
 <pre><code class="language-text">Region A（主）：
 • 写流量：100%
@@ -7663,8 +7663,8 @@ func (s *CheckoutService) Calculate(ctx context.Context, req *CalculateRequest) 
 }
 </code></pre>
 <hr>
-<h2 id="3011-团队组织与协作organization--governance"><a class="header" href="#3011-团队组织与协作organization--governance">30.11 团队组织与协作（Organization &amp; Governance）</a></h2>
-<h4 id="30111-团队结构"><a class="header" href="#30111-团队结构">30.11.1 团队结构</a></h4>
+<h2 id="3411-团队组织与协作organization--governance"><a class="header" href="#3411-团队组织与协作organization--governance">34.11 团队组织与协作（Organization &amp; Governance）</a></h2>
+<h4 id="34111-团队结构"><a class="header" href="#34111-团队结构">34.11.1 团队结构</a></h4>
 <p><strong>康威定律实践</strong>：系统架构反映组织沟通结构。</p>
 <pre><code class="language-text">订单团队（15人）
 ├─ 订单核心（5人）：订单创建、状态机
@@ -7696,7 +7696,7 @@ func (s *CheckoutService) Calculate(ctx context.Context, req *CalculateRequest) 
 </tbody>
 </table>
 </div>
-<h4 id="30112-协作流程"><a class="header" href="#30112-协作流程">30.11.2 协作流程</a></h4>
+<h4 id="34112-协作流程"><a class="header" href="#34112-协作流程">34.11.2 协作流程</a></h4>
 <p><strong>需求评审流程</strong>：</p>
 <pre><code class="language-text">1. 产品提需求（PRD）
    ↓
@@ -7918,7 +7918,7 @@ B. 新建拼团服务
 - ✓ 已完成：与订单服务集成
 - ✓ 已完成：灰度上线
 </code></pre>
-<h4 id="30113-技术治理"><a class="header" href="#30113-技术治理">30.11.3 技术治理</a></h4>
+<h4 id="34113-技术治理"><a class="header" href="#34113-技术治理">34.11.3 技术治理</a></h4>
 <p><strong>代码评审清单</strong>：</p>
 <ul>
 <li><input disabled="" type="checkbox"> 是否符合分层架构（依赖方向正确）</li>
@@ -7940,8 +7940,8 @@ B. 新建拼团服务
 | P2 | 代码 | 商品中心重复代码重构 | @王五 | 3天 |
 </code></pre>
 <hr>
-<h2 id="3012-上线与演进deployment--evolution"><a class="header" href="#3012-上线与演进deployment--evolution">30.12 上线与演进（Deployment &amp; Evolution）</a></h2>
-<h4 id="30121-上线策略"><a class="header" href="#30121-上线策略">30.12.1 上线策略</a></h4>
+<h2 id="3412-上线与演进deployment--evolution"><a class="header" href="#3412-上线与演进deployment--evolution">34.12 上线与演进（Deployment &amp; Evolution）</a></h2>
+<h4 id="34121-上线策略"><a class="header" href="#34121-上线策略">34.12.1 上线策略</a></h4>
 <p><strong>分阶段上线</strong>：</p>
 <pre><code class="language-text">阶段1：基础功能（2周）
 • 商品中心、库存服务、订单服务
@@ -7959,7 +7959,7 @@ B. 新建拼团服务
 • 双机房部署
 • 流量灰度切换
 </code></pre>
-<h4 id="30122-灰度发布"><a class="header" href="#30122-灰度发布">30.12.2 灰度发布</a></h4>
+<h4 id="34122-灰度发布"><a class="header" href="#34122-灰度发布">34.12.2 灰度发布</a></h4>
 <p><strong>灰度策略</strong>：</p>
 <pre><code class="language-go">// 灰度规则
 type GrayReleaseRule struct {
@@ -8003,7 +8003,7 @@ func (r *GrayRouter) Route(userID int64, region string) string {
 
 5. 下线老版本
 </code></pre>
-<h4 id="30123-监控告警"><a class="header" href="#30123-监控告警">30.12.3 监控告警</a></h4>
+<h4 id="34123-监控告警"><a class="header" href="#34123-监控告警">34.12.3 监控告警</a></h4>
 <p><strong>三级监控体系</strong>：</p>
 <div class="table-wrapper">
 <table>
@@ -8137,7 +8137,7 @@ func CreateOrder(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
 }
 </code></pre>
 <p><strong>告警规则</strong>：</p>
-<pre><code class="language-yaml"># Prometheus AlertManager规则
+<pre><code class="language-yaml">    # Prometheus AlertManager 规则
 groups:
   - name: order-service-alerts
     rules:
@@ -8291,7 +8291,7 @@ On-call工程师无法处理 → 升级到Team Lead
 Team Lead无法处理 → 升级到架构师
 架构师无法处理 → 升级到CTO
 </code></pre>
-<h4 id="30124-系统演进路径"><a class="header" href="#30124-系统演进路径">30.12.4 系统演进路径</a></h4>
+<h4 id="34124-系统演进路径"><a class="header" href="#34124-系统演进路径">34.12.4 系统演进路径</a></h4>
 <p><strong>已完成</strong>：</p>
 <ul>
 <li>✅ 基础架构搭建（微服务、服务发现、监控）</li>
@@ -8313,8 +8313,8 @@ Team Lead无法处理 → 升级到架构师
 <li>📅 区块链溯源（高端商品）</li>
 </ul>
 <hr>
-<h2 id="3013-经验总结lessons-learned"><a class="header" href="#3013-经验总结lessons-learned">30.13 经验总结（Lessons Learned）</a></h2>
-<h4 id="30131-成功经验"><a class="header" href="#30131-成功经验">30.13.1 成功经验</a></h4>
+<h2 id="3413-经验总结lessons-learned"><a class="header" href="#3413-经验总结lessons-learned">34.13 经验总结（Lessons Learned）</a></h2>
+<h4 id="34131-成功经验"><a class="header" href="#34131-成功经验">34.13.1 成功经验</a></h4>
 <p><strong>1. 架构决策记录（ADR）制度</strong></p>
 <p>价值：</p>
 <ul>
@@ -8381,7 +8381,7 @@ Team Lead无法处理 → 升级到架构师
 <li>API契约与代码一起版本管理</li>
 <li>CI自动运行契约测试</li>
 </ul>
-<h4 id="30132-踩过的坑"><a class="header" href="#30132-踩过的坑">30.13.2 踩过的坑</a></h4>
+<h4 id="34132-踩过的坑"><a class="header" href="#34132-踩过的坑">34.13.2 踩过的坑</a></h4>
 <p><strong>坑1：过早引入Event Sourcing</strong></p>
 <p><strong>问题</strong>：</p>
 <ul>
@@ -8447,7 +8447,7 @@ Team Lead无法处理 → 升级到架构师
 <li>缓存空值（TTL=1分钟）</li>
 <li>请求参数校验（前置拦截非法请求）</li>
 </ul>
-<h4 id="30133-改进方向"><a class="header" href="#30133-改进方向">30.13.3 改进方向</a></h4>
+<h4 id="34133-改进方向"><a class="header" href="#34133-改进方向">34.13.3 改进方向</a></h4>
 <p><strong>短期改进（3个月内）</strong>：</p>
 <ol>
 <li>
@@ -8725,8 +8725,8 @@ gantt
 </table>
 </div>
 <hr>
-<h2 id="3014-本章小结chapter-summary"><a class="header" href="#3014-本章小结chapter-summary">30.14 本章小结（Chapter Summary）</a></h2>
-<p>本章通过一个中大型B2B2C电商平台的完整案例，展示了从业务分析到技术落地的全过程，<strong>是全书知识点的综合实践验证</strong>。本章不仅覆盖了架构方法论（第 1-8 章），还深入展示了**供给运营系统（第 25 章）<strong>和</strong>C端核心交易流（第 26-29 章）**的完整实现，真正做到了“理论→实践→落地“的闭环。</p>
+<h2 id="3414-本章小结chapter-summary"><a class="header" href="#3414-本章小结chapter-summary">34.14 本章小结（Chapter Summary）</a></h2>
+<p>本章通过一个中大型B2B2C电商平台的完整案例，展示了从业务分析到技术落地的全过程，<strong>是全书知识点的综合实践验证</strong>。本章不仅覆盖了架构方法论（第 1-9 章），还深入展示了**供给运营系统（第 26 章）<strong>和</strong>C端核心交易流（第 30-33 章）**的完整实现，真正做到了“理论→实践→落地“的闭环。</p>
 <hr>
 <h4 id="核心要点回顾"><a class="header" href="#核心要点回顾">核心要点回顾</a></h4>
 <p><strong>1. 品类差异化设计是关键</strong></p>
@@ -8849,7 +8849,7 @@ func (a *FlightSupplierACL) TranslateStock(supplierResp) *StockResponse {
 <li>✅ <strong>降级</strong>：Marketing Service故障，降级为基础价</li>
 <li>✅ <strong>限流</strong>：令牌桶算法，QPS=500</li>
 </ul>
-<p><strong>6. 供给运营是平台的核心能力</strong>（新增32.5.6）</p>
+<p><strong>6. 供给运营是平台的核心能力</strong>（新增34.5.6）</p>
 <p><strong>三种核心场景</strong>：</p>
 <div class="table-wrapper">
 <table>
@@ -8871,7 +8871,7 @@ func (a *FlightSupplierACL) TranslateStock(supplierResp) *StockResponse {
 <li>✅ <strong>状态机</strong>：DRAFT → PENDING → APPROVED → PUBLISHED</li>
 <li>✅ <strong>与商品中心集成</strong>：审核通过后写入商品中心、初始化库存/价格</li>
 </ul>
-<p><strong>7. C端交易流贯穿整个业务链路</strong>（新增32.5.7）</p>
+<p><strong>7. C端交易流贯穿整个业务链路</strong>（新增34.5.7）</p>
 <p><strong>五个阶段完整设计</strong>：</p>
 <pre><code class="language-text">搜索（Query理解+ES召回+Hydrate）
    ↓ 转化率 &gt; 15%
@@ -8892,7 +8892,7 @@ func (a *FlightSupplierACL) TranslateStock(supplierResp) *StockResponse {
 <li>✅ <strong>Saga编排</strong>：下单时依次执行库存预占、优惠券锁定、价格计算、订单创建</li>
 <li>✅ <strong>强制实时查询</strong>：创单时不使用任何快照（ADR-009，安全优先）</li>
 </ul>
-<p><strong>8. DDD战术设计落地实践</strong>（新增32.5.8）</p>
+<p><strong>8. DDD战术设计落地实践</strong>（新增34.5.8）</p>
 <p><strong>Order聚合根设计</strong>：</p>
 <pre><code class="language-go">// 聚合根
 type Order struct {
@@ -8973,19 +8973,19 @@ type Order struct {
 <tr><th>前置章节</th><th>在本章的应用</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>第1章</strong>（架构方法论）</td><td>Clean Architecture分层、DDD战略设计（32.5.8）、CQRS读写分离</td></tr>
-<tr><td><strong>第2章</strong>（领域驱动设计）</td><td>12个限界上下文划分、上下文映射、防腐层（32.6.4）</td></tr>
-<tr><td><strong>第3章</strong>（代码整洁）</td><td>策略模式（品类策略）、适配器模式（供应商集成）、SOLID原则</td></tr>
+<tr><td><strong>第 1 章</strong>（架构方法论）</td><td>Clean Architecture分层、DDD战略设计（34.5.8）、CQRS读写分离</td></tr>
+<tr><td><strong>第 1 章</strong>（领域驱动设计）</td><td>12个限界上下文划分、上下文映射、防腐层（34.6.4）</td></tr>
+<tr><td><strong>第 2 章</strong>（代码整洁）</td><td>策略模式（品类策略）、适配器模式（供应商集成）、SOLID原则</td></tr>
 <tr><td><strong>第 7 章</strong>（架构质量保障）</td><td>ADR、代码评审清单、测试策略</td></tr>
-<tr><td><strong>第 22 章</strong>（商品中心）</td><td>SPU/SKU模型、类目属性、商品快照</td></tr>
-<tr><td><strong>第 23 章</strong>（库存系统）</td><td>二维库存模型、预占机制、超时释放（32.5.2）</td></tr>
-<tr><td><strong>第 24 章</strong>（营销系统）</td><td>营销规则引擎、优惠券锁定、最优解求解</td></tr>
-<tr><td><strong>第 25 章</strong>（供给运营）</td><td><strong>商品上架、供应商同步、运营编辑（32.5.6 新增）</strong></td></tr>
-<tr><td><strong>第 26 章</strong>（计价系统）</td><td>四层价格模型、试算接口、快照生成</td></tr>
-<tr><td><strong>第 27 章</strong>（搜索导购）</td><td><strong>Query→Recall→Rank→Hydrate链路（32.5.7 新增）</strong></td></tr>
-<tr><td><strong>第 28 章</strong>（购物车结算）</td><td><strong>未登录加购、登录合并、Saga编排（32.5.7 新增）</strong></td></tr>
-<tr><td><strong>第 29 章</strong>（订单系统）</td><td><strong>状态机、Saga模式、幂等性（32.5.7、32.5.8 新增）</strong></td></tr>
-<tr><td><strong>第 30 章</strong>（支付系统）</td><td>支付创建、回调处理、对账流程</td></tr>
+<tr><td><strong>第 25 章</strong>（商品中心）</td><td>SPU/SKU模型、类目属性、商品快照</td></tr>
+<tr><td><strong>第 27 章</strong>（库存系统）</td><td>二维库存模型、预占机制、超时释放（34.5.2）</td></tr>
+<tr><td><strong>第 28 章</strong>（营销系统）</td><td>营销规则引擎、优惠券锁定、最优解求解</td></tr>
+<tr><td><strong>第 26 章</strong>（供给运营）</td><td><strong>商品上架、供应商同步、运营编辑（34.5.6 新增）</strong></td></tr>
+<tr><td><strong>第 29 章</strong>（计价系统）</td><td>四层价格模型、试算接口、快照生成</td></tr>
+<tr><td><strong>第 30 章</strong>（搜索导购）</td><td><strong>Query→Recall→Rank→Hydrate链路（34.5.7 新增）</strong></td></tr>
+<tr><td><strong>第 31 章</strong>（购物车结算）</td><td><strong>未登录加购、登录合并、Saga编排（34.5.7 新增）</strong></td></tr>
+<tr><td><strong>第 32 章</strong>（订单系统）</td><td><strong>状态机、Saga模式、幂等性（34.5.7、34.5.8 新增）</strong></td></tr>
+<tr><td><strong>第 33 章</strong>（支付系统）</td><td>支付创建、回调处理、对账流程</td></tr>
 </tbody>
 </table>
 </div>
@@ -9102,7 +9102,7 @@ type Order struct {
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-c22b7243.js"></script>
+        <script src="../book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../mermaid-eefea253.min.js"></script>
