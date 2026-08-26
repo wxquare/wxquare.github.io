@@ -19,6 +19,26 @@ class TrainingResult:
     final_validation_loss: float
 
 
+LAB_ROOT = Path(__file__).resolve().parent
+OUTPUT_ROOT = (LAB_ROOT / "out").resolve()
+
+
+def output_directory(requested: str | Path) -> Path:
+    candidate = Path(requested)
+    resolved = candidate.resolve() if candidate.is_absolute() else (LAB_ROOT / candidate).resolve()
+    if not resolved.is_relative_to(OUTPUT_ROOT):
+        raise ValueError(f"checkpoint output directory must be inside {OUTPUT_ROOT}")
+    return resolved
+
+
+def configure_reproducibility(seed: int) -> None:
+    torch.manual_seed(seed)
+    torch.use_deterministic_algorithms(True, warn_only=True)
+    if torch.cuda.is_available():
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+
+
 def choose_device(requested: str | None = None) -> torch.device:
     if requested is not None:
         return torch.device(requested)
@@ -93,7 +113,8 @@ def train_text(
     model_config: ModelConfig | None = None,
     device: torch.device | None = None,
 ) -> TrainingResult:
-    torch.manual_seed(training_config.seed)
+    out_dir = output_directory(out_dir)
+    configure_reproducibility(training_config.seed)
     tokenizer = CharacterTokenizer.fit(text)
     config = model_config or smoke_model_config(len(tokenizer))
     if config.vocab_size != len(tokenizer):
@@ -158,7 +179,7 @@ def main() -> None:
     result = train_text(
         text,
         TrainingConfig(max_steps=args.max_steps, seed=args.seed),
-        args.out_dir,
+        output_directory(args.out_dir),
         model_config=_model_config(args.preset, len(tokenizer)),
         device=choose_device(args.device),
     )

@@ -22,6 +22,8 @@ python evaluate.py --checkpoint out/smoke/checkpoint.pt --input data/tiny-shakes
 python generate.py --checkpoint out/smoke/checkpoint.pt --prompt "ROMEO" --max-new-tokens 80 --temperature 0.8 --top-k 10
 ```
 
+Checkpoint 只能写在本实验目录的 `out/` 下；`--out-dir` 传入其他路径会报错。训练会固定随机种子、启用 PyTorch 确定性算法并在 CUDA 上关闭 cuDNN benchmark。不同 PyTorch 版本和设备后端（尤其是 MPS）仍可能报告不支持确定性实现的警告，此时请使用 CPU 获得最可复现的教学实验结果。
+
 `smoke` 是 2 层、48 维的小模型，适合验证流程；`default` 是 6 层、384 维、6 头、128 上下文的千万级模型配置：
 
 ```bash
