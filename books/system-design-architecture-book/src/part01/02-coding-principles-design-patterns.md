@@ -96,6 +96,8 @@ flowchart LR
 - 业务逻辑无法脱离接口或存储独立测试；
 - 每次改动都必须理解整条链路的全部技术细节。
 
+关于「这些职责在真实工程里如何落到目录结构上」，第 1 章给出了两套完整的 Go 目录映射（三层架构版与 DDD 版），2.7 节会基于可运行的 `example-codes/` 示例工程做完整走读。
+
 ### 2.2.2 用例编排层要显式，不要隐式散落
 
 业务系统最常见的腐化方式，不是类太多，而是“关键业务流程没有稳定的编排层”。于是下单的一部分逻辑藏在 Handler，另一部分藏在 Service，另一部分又埋在 Repository Hook 或异步消费者里。
@@ -424,6 +426,7 @@ Review 质量不只是 Reviewer 的责任，Author 同样负有很大责任。�
 - 领域规则是否仍由领域对象或用例层表达，而不是散落在外层。
 - 是否引入了新的隐式耦合，例如直接依赖具体实现、共享可变状态、万能工具类。
 - 新抽象是否真有稳定价值，还是为了“看起来高级”。
+- 目录结构与分层是否符合团队约定的映射（可对照第 1 章目录映射与 `example-codes/` 样例）。
 
 ### 2.6.3 可读性与可维护性
 
@@ -450,11 +453,177 @@ Review 质量不只是 Reviewer 的责任，Author 同样负有很大责任。�
 
 ---
 
-## 2.7 一个电商下单场景里的编码、重构与 Review
+## 2.7 优秀代码实践走读：从可运行示例看好代码的形状
+
+前面几节讲的是原则，这一节看实例。本书配套的 `books/system-design-architecture-book/example-codes/` 目录下有三个可编译运行的 Go 工程，它们不是玩具 Demo，而是刻意用来展示「代码结构如何承载架构意图」的对照样本：
+
+| 示例工程 | 展示重点 | 对应的代码问题 |
+| --- | --- | --- |
+| `example-codes/order-service` | 标准三层架构的自然形态 | 职责够清楚，但业务规则散落在 service，依赖具体实现 |
+| `example-codes/product-service` | DDD 四层架构、聚合根、值对象、领域事件、三级缓存、Outbox | 业务规则内聚到领域模型，依赖方向向内，可独立测试 |
+| `example-codes/common-services` | 全局 ID 等基础服务的薄封装 | 通用域不需要重抽象 |
+
+这一节从这三个工程里挑出五段代码，分别对应 2.2-2.4 的原则。读的时候建议对照源码完整看一遍——真实工程里的取舍细节（日志、注释、错误处理）比书上任何摘录都更有信息量。
+
+### 2.7.1 目录结构本身就是第一份「好代码」
+
+`product-service` 的顶层结构，几乎可以直接拿来当团队模板（完整树见第 34 章 34.6 节）：
+
+```text
+product-service/
+├── cmd/main.go                    # 入口：只做组装，不写业务
+└── internal/
+    ├── domain/                    # 领域层：聚合根、值对象、领域事件、Repository 接口
+    ├── application/               # 应用层：用例编排、DTO
+    ├── infrastructure/            # 基础设施：Repository 实现、缓存、Kafka
+    └── interfaces/                # 接口层：HTTP、gRPC、Event 三种触发方式
+```
+
+这个结构好在哪里，用 2.2 的视角看非常清楚：
+
+- **职责归属没有歧义**。一个新需求来了，「这段代码该放哪」有明确答案，这是 2.2.1 的落地。
+- **依赖方向物理可见**。`domain` 不 import 任何其他 internal 包，`interfaces` 和 `infrastructure` 都依赖内层——Review 时一条 import 就能发现跨层泄漏。
+- **三种入口（HTTP/gRPC/Event）平级**，都只做协议转换后调用同一个 application service，不存在「Kafka 消费者里藏着一版业务逻辑」的隐式编排问题（2.2.2）。
+
+相比之下，`order-service` 代表了大多数项目的现状：`application/service` 直接依赖 `infrastructure/persistence` 的具体实现，`model.Order` 是贫血对象。它的 README 自己也写明「这些正是后面引入 Clean Architecture、DDD 和 CQRS 的原因」。两个工程对照读，能直观看到 2.3 说的「腐化信号」长什么样、演进的终点长什么样。
+
+### 2.7.2 领域模型：业务规则内聚，而不是散落在 setter 之外
+
+`internal/domain/product.go` 中的 `Product` 聚合根，是 2.2.3「写业务语言」的完整范例。看它的上架方法：
+
+```go
+// OnShelf 上架
+func (p *Product) OnShelf() error {
+	if p.status == ProductStatusOnShelf {
+		return errors.New("商品已上架")
+	}
+	if p.basePrice.Amount() <= 0 {
+		return errors.New("商品价格必须大于0")
+	}
+	if len(p.images) == 0 {
+		return errors.New("商品必须有至少一张图片")
+	}
+
+	p.status = ProductStatusOnShelf
+	p.updatedAt = time.Now()
+
+	p.addDomainEvent(ProductOnShelfEvent{
+		SKUID:     p.skuID.Value(),
+		OnShelfAt: p.updatedAt,
+	})
+
+	return nil
+}
+```
+
+这段代码值得走读的四个点：
+
+1. **不变量由聚合根自己保护**。调用方不可能绕过「价格必须大于 0」这个规则——规则内聚在模型里，而不是靠每个调用方「记得检查」。这正是第 1 章「贫血 vs 充血」对比的完整版。
+2. **状态迁移表达为业务动词**。`OnShelf()`、`OffShelf(reason)`、`UpdateBasePrice(price)`，读代码就是在读业务流程，没有任何技术噪音。
+3. **每次状态变更留下领域事件**。事件在聚合内部积累，由应用层统一发布——「业务事实已经发生」这件事被显式建模，而不是散落在各处 `kafka.Send()`。
+4. **字段私有 + 只读 Getter**。外部无法直接把商品改成上架状态，只能走 `OnShelf()`，非法状态在类型层面就不存在。
+
+### 2.7.3 值对象：让非法输入在构造时就失败
+
+`internal/domain/value_objects.go` 里金额的处理方式，是业务系统最值得抄的一个习惯：
+
+```go
+// Price 值对象（使用分为单位，避免浮点精度问题）
+type Price struct {
+	amount   int64  // 金额（分）
+	currency string // 货币（CNY）
+}
+
+func NewPrice(amount int64, currency string) (Price, error) {
+	if amount < 0 {
+		return Price{}, errors.New("价格不能为负数")
+	}
+	if currency == "" {
+		currency = "CNY"
+	}
+	return Price{amount: amount, currency: currency}, nil
+}
+```
+
+两个设计决策都值得在 Review 中坚持：
+
+- **金额用「分」存 int64，不用 float64**。浮点精度问题在计价、退款分摊场景是真金白银的事故源（第 29 章计价系统会再次遇到这个约束）。
+- **校验收敛在构造函数**。`NewPrice` 是唯一能造出 `Price` 的地方，负数价格在系统中根本不可能存在——这比在每个使用处写 `if price < 0` 高一个量级，也正是 2.4.2「把变化点隔离」的实例。
+
+### 2.7.4 应用服务：编排显式、依赖抽象、失败语义清楚
+
+`internal/application/service/product_service.go` 展示了一个符合 2.2.2 的用例编排层：
+
+```go
+// EventPublisher is owned by the application layer.
+// Infrastructure adapters such as KafkaProducer implement it.
+type EventPublisher interface {
+	Publish(ctx context.Context, event domain.DomainEvent) error
+	PublishBatch(ctx context.Context, events []domain.DomainEvent) error
+}
+
+type ProductService struct {
+	repo           domain.ProductRepository
+	eventPublisher EventPublisher
+}
+
+func (s *ProductService) CreateProduct(ctx context.Context, req *dto.CreateProductRequest) (*dto.CreateProductResponse, error) {
+	// Step 1: 创建领域对象（校验和不变量在领域层完成）
+	product := domain.NewProduct(skuID, spu, req.SupplierSKU, price, specs)
+
+	// Step 2: 保存聚合根
+	if err := s.repo.Save(ctx, product); err != nil {
+		return nil, fmt.Errorf("保存商品失败: %w", err)
+	}
+
+	// Step 3: 发布聚合中积累的领域事件
+	if err := s.publishDomainEvents(ctx, product); err != nil {
+		...
+	}
+}
+```
+
+对应 2.4.3 和 2.4.4，这段代码的三个好习惯：
+
+- **接口在使用方定义**。`EventPublisher` 接口声明在 application 层、由 infrastructure 的 KafkaProducer 实现——依赖方向向内，单元测试时可以注入内存假实现，不需要起 Kafka。
+- **错误用 `%w` 包装并带业务语义**。`保存商品失败: %w` 既保留了错误链可供日志追溯，又给上层提供了可判断的上下文。
+- **流程步骤一眼可读**。建领域对象 → 保存 → 发事件，顺序显式。编排层的职责是「编排」，不是「什么都干」。
+
+### 2.7.5 测试：好结构让测试自然存在
+
+2.4.4 说「可测试性是架构清晰的副产品」，这个工程给出了证据。`product_center_service_test.go` 不需要任何外部依赖就能验证核心业务行为：
+
+```go
+func TestProductCenterPublishesSnapshotAndOutbox(t *testing.T) {
+	repo := persistence.NewProductCenterRepository()   // 内存实现
+	svc := NewProductCenterService(repo)
+
+	result, err := svc.PublishCommand(ctx, domain.PublishProductVersionCommand{...})
+
+	// 断言发布版本递增、快照内容正确、Outbox 事件已写入
+	snapshot, _ := repo.GetSnapshot(ctx, result.ItemID, result.PublishVersion)
+	events, _ := repo.ListOutbox(ctx, domain.OutboxPending)
+	...
+}
+```
+
+能写出这种测试，前提是前面所有的结构决策都做对了：依赖接口注入、核心逻辑不碰全局状态、Repository 有内存实现。反过来，2.8.1 节（下单反例）里那个把一切都揉在 Handler 里的写法，你想给它补一个「库存不足」的单元测试都无从下手——只能起数据库做脆弱的集成测试。**测试写不出来，往往就是结构腐化最早的报警器。**
+
+### 2.7.6 把示例工程用起来
+
+建议团队这样使用这些示例，而不是读完就忘：
+
+- **新人 Onboarding**：先跑通 `product-service`（`go run ./cmd`），再回答「我要加一个新的商品字段，应该改哪几层」。
+- **Review 参照系**：当 PR 里出现「这段逻辑该放哪层」的争论时，用示例工程的同类代码做参照，比抽象讨论快得多。
+- **重构对照目标**：迁移老代码时，把 `order-service`（现状）和 `product-service`（目标）摆在一起，演进路径就是 2.3.4 的「空中换引擎」。
+
+---
+
+## 2.8 一个电商下单场景里的编码、重构与 Review
 
 为了把原则落到具体场景，下面用一个简化的下单流程说明“代码怎么写”和“Review 怎么看”。
 
-### 2.7.1 一个不健康的实现
+### 2.8.1 一个不健康的实现
 
 ```go
 func (h *OrderHandler) Create(c *gin.Context) {
@@ -491,7 +660,7 @@ func (h *OrderHandler) Create(c *gin.Context) {
 - 没有超时、幂等、日志和观测点；
 - 几乎无法只针对业务规则编写单元测试。
 
-### 2.7.2 如果这是线上老代码，应该怎么重构
+### 2.8.2 如果这是线上老代码，应该怎么重构
 
 真实团队里更常见的情况不是“从零开始写一个更好的版本”，而是坏代码已经在线上跑了很久，周围还挂着依赖、监控、补偿脚本和历史调用。这个时候，最危险的做法往往不是不动，而是上来就想一口气彻底重写。
 
@@ -504,7 +673,7 @@ func (h *OrderHandler) Create(c *gin.Context) {
 
 这一阶段的目标不是“一次性得到完美代码”，而是让这段链路重新进入可控状态：可以测、可以审、可以继续演进。
 
-### 2.7.3 更合理的拆分
+### 2.8.3 更合理的拆分
 
 ```go
 type OrderHandler struct {
@@ -537,7 +706,7 @@ func (h *OrderHandler) Create(c *gin.Context) {
 
 好的结构不是为了“看起来分层”，而是为了让 Review 变得可行。
 
-### 2.7.4 Reviewer 在这个场景里应该怎么提问
+### 2.8.4 Reviewer 在这个场景里应该怎么提问
 
 看到类似下单链路时，Reviewer 至少应该追问这些问题：
 
@@ -551,13 +720,13 @@ func (h *OrderHandler) Create(c *gin.Context) {
 
 ---
 
-## 2.8 常见误区与团队实践建议
+## 2.9 常见误区与团队实践建议
 
-### 2.8.1 误区一：把 Review 当审批，不当协作
+### 2.9.1 误区一：把 Review 当审批，不当协作
 
 有些团队把 Review 理解成“有人点了 Approve 就行”，于是流程是有了，质量却没有提升。真正有效的 Review 应该是共同发现风险、澄清设计和统一标准，而不是机械签字。
 
-### 2.8.2 误区二：用 Review 替代设计
+### 2.9.2 误区二：用 Review 替代设计
 
 如果一个 PR 到了 Review 阶段才第一次暴露“模块边界错了”“方案方向不对”，说明前面的设计沟通已经缺位。Review 可以发现架构偏移，但不应该承担完整设计工作的全部责任。
 
@@ -567,7 +736,7 @@ func (h *OrderHandler) Create(c *gin.Context) {
 - 中等改动先在 Issue、文档或评论里对齐边界；
 - PR Review 重点核对“实现是否符合设计”，而不是从零开始发明设计。
 
-### 2.8.3 误区三：提交太大，导致没人真看
+### 2.9.3 误区三：提交太大，导致没人真看
 
 如果团队长期接受超大 PR，最终结果通常是：
 
@@ -577,15 +746,15 @@ func (h *OrderHandler) Create(c *gin.Context) {
 
 团队应该把“小步可审查”当成明确要求，而不是个人习惯。
 
-### 2.8.4 误区四：把风格争议交给人肉争论
+### 2.9.4 误区四：把风格争议交给人肉争论
 
 缩进、换行、 import 排序、基础 lint 规则，尽量交给自动化工具。人工注意力很贵，应该用来识别架构偏移、错误语义和未来维护成本，而不是反复争论空格。
 
-### 2.8.5 建议建立团队级样例、重构预算与评审文化
+### 2.9.5 建议建立团队级样例、重构预算与评审文化
 
 单靠口头要求，很难稳定提升团队编码、重构和 Review 水平。更有效的做法通常包括：
 
-- 为核心链路维护“代表团队标准”的样例实现；
+- 为核心链路维护“代表团队标准”的样例实现（本书的 `example-codes/` 三个 Go 工程就是这种样例的最小形态，见 2.7 节）；
 - 为高风险场景维护 Review Checklist；
 - 为历史包袱最重的模块预留明确的重构预算，而不是永远让它排在需求之后；
 - 在复盘中把真实事故沉淀成新的评审规则；
@@ -595,7 +764,7 @@ func (h *OrderHandler) Create(c *gin.Context) {
 
 ---
 
-## 2.9 本章小结
+## 2.10 本章小结
 
 编码、重构与 Code Review 不是架构之后的附属环节，而是架构能否真正落地的主战场。一个团队如果只会写设计文档，却不能持续写出边界清晰、错误可控、便于重构和审查的代码，系统质量最终仍会滑向混乱。
 

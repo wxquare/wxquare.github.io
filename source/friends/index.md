@@ -12,16 +12,13 @@ date: 2022-11-07 22:33:15
 - [宫水三叶 / ac_oier](https://leetcode.cn/u/ac_oier/)：算法题解与刷题训练。
 - [清华无忌](https://jincheng9.github.io/)：个人技术博客。
 - [CatCoding](https://catcoding.me/)：编程、写作、开源与中年程序员视角。
-- [Coder's Cat](https://coderscat.com/)：算法、系统与编程基础归档。
 - [Bojie Li 李博杰](https://01.me/)：网络、系统与基础设施。
-- [象点科技](https://www.pixdot.cn/)：AI 视觉检测与创业观察。
-- [纳芯微](https://www.novosns.com/)：半导体与智能硬件产业观察。
 - [陈皓 / 酷壳](https://coolshell.cn/)：工程师成长、架构与技术文化。
 - [元培 · 元视角](https://blog.yuanpei.me/)：个人技术与长期写作。
-- [Yupaits Notes](https://yupaits.com/)：学习博客维护参考。
 - [技术摘抄](https://lianglianglee.com/)：技术文章摘录与资料索引。
 - [indigox](https://www.indigox.me/)：个人技术博客。
 - 吕聘：智能硬件方向，待补链接。
+- [高继扬](https://jiyanggao.github.io/)
 
 ## 候选关注：AI 与大模型
 

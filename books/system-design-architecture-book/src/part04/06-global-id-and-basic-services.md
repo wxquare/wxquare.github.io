@@ -1,6 +1,6 @@
-# 第 14 章 全局 ID 体系与基础服务设计
+# 第 15 章 全局 ID 体系与基础服务设计
 
-## 14.1 为什么电商系统需要全局 ID 体系
+## 15.1 为什么电商系统需要全局 ID 体系
 
 在示例代码中，供给链路为了演示流程，使用了类似下面的写法：
 
@@ -42,7 +42,7 @@ s.repo.NextID(ctx, "draft")
 
 一句话概括：**ID 体系是电商系统的基础设施治理问题，不只是一个工具函数问题。**
 
-## 14.2 电商 ID 分类
+## 15.2 电商 ID 分类
 
 设计 ID 之前，先不要问“用不用 Snowflake”，而要问“这个 ID 表达什么业务语义”。下表给出电商系统中最常见的 ID 分类。
 
@@ -59,7 +59,7 @@ s.repo.NextID(ctx, "draft")
 
 例如，`sku_id` 通常是商品主数据的稳定实体 ID，适合使用 `BIGINT`，方便数据库索引、缓存 Key、消息体和下游系统引用；`order_no` 是对外业务单号，除了唯一之外，还要考虑客服查询、对账、不可枚举和格式兼容；`idempotency_key` 则不是普通 ID，它表达“同一次业务请求”，必须配合唯一索引和状态机来防止重复下单、重复扣款或重复退票。
 
-## 14.3 全场景 ID 清单
+## 15.3 全场景 ID 清单
 
 下面的矩阵不是要求所有公司都照抄，而是给出一个可评审的默认选择。实际落地时，可以根据规模、团队能力、数据库类型、是否多机房和是否对外开放 API 做取舍。
 
@@ -91,9 +91,9 @@ s.repo.NextID(ctx, "draft")
 3. `checkout_id` 不是订单号。结算会话可能失败、过期或被重试，只有创单成功后才产生订单。
 4. `idempotency_key` 的核心不是“看起来唯一”，而是业务上能判断“这是不是同一次请求”。
 
-## 14.4 常见发号方案对比
+## 15.4 常见发号方案对比
 
-### 14.4.1 DB 自增
+### 15.4.1 DB 自增
 
 DB 自增是最简单的方案：表主键使用 `AUTO_INCREMENT` 或数据库原生 identity。它适合单库单表、小规模后台配置、内部字典表和教学示例。
 
@@ -101,7 +101,7 @@ DB 自增是最简单的方案：表主键使用 `AUTO_INCREMENT` 或数据库�
 
 在电商系统中，DB 自增可以用于后台低频配置表，但不建议直接作为对外订单号、支付单号或全局 SKU ID。
 
-### 14.4.2 DB Sequence 表
+### 15.4.2 DB Sequence 表
 
 Sequence 表通过插入一张专门的序列表获取 `LastInsertId`，示例中的订单服务就有类似思路：
 
@@ -116,7 +116,7 @@ CREATE TABLE order_id_seq (
 
 它适合早期系统、低中并发内部单据和容易理解的教学实现。不适合高并发交易核心，也不适合直接对外暴露连续序列。
 
-### 14.4.3 Redis INCR
+### 15.4.3 Redis INCR
 
 Redis `INCR` 可以按 key 递增，例如：
 
@@ -134,7 +134,7 @@ ORD2026042900012345
 
 Redis INCR 适合活动流水、短期批次、低风险业务编号。核心订单和支付单如果使用 Redis INCR，必须设计持久化、主从切换和重复保护。
 
-### 14.4.4 Snowflake
+### 15.4.4 Snowflake
 
 Snowflake 是经典的分布式趋势递增 ID 方案。常见实现把一个 64 位整数拆成：
 
@@ -146,7 +146,7 @@ Snowflake 是经典的分布式趋势递增 ID 方案。常见实现把一个 64
 
 Snowflake 适合订单内部 ID、支付内部 ID、库存账本 ID、营销 ID，以及需要高并发写入的实体 ID。对外单号可以基于 Snowflake 再格式化，而不是直接暴露原始数字。
 
-### 14.4.5 Segment 号段
+### 15.4.5 Segment 号段
 
 Segment 号段，也叫 Hi-Lo 模式。核心思想是数据库只负责分配一段 ID，服务实例拿到号段后在本地内存中发号：
 
@@ -167,7 +167,7 @@ namespace、max_id、step、version
 
 Segment 非常适合 `item_id`、`spu_id`、`sku_id`、`campaign_id`、`coupon_id` 等电商主数据 ID。
 
-### 14.4.6 UUIDv7、ULID 与 KSUID
+### 15.4.6 UUIDv7、ULID 与 KSUID
 
 UUID、ULID、KSUID 都属于更偏字符串或 128 位标识的方案。相较传统 UUIDv4，UUIDv7、ULID 和 KSUID 更强调时间有序或近似时间有序，适合日志、事件、流程单据和跨服务追踪。
 
@@ -186,7 +186,7 @@ UUIDv7 已在 RFC 9562 中定义，它把 Unix 毫秒时间放在高位，并用
 | Segment 号段 | 半中心化 | 是 | 不依赖时钟、容量可控 | 号段浪费、依赖号段预取 | 商品、营销、主数据 |
 | UUIDv7 / ULID | 否 | 是 | 无需协调、跨服务方便 | 字段较长、索引成本高 | 流程单据、事件、链路 |
 
-## 14.5 推荐混合架构
+## 15.5 推荐混合架构
 
 生产电商系统更常见的不是“全站只用一个算法”，而是混合架构：
 
@@ -220,9 +220,9 @@ UUIDv7 已在 RFC 9562 中定义，它把 Unix 毫秒时间放在高位，并用
 
 这个混合架构可以同时满足性能、可读性、治理和扩展性。
 
-## 14.6 ID 服务架构
+## 15.6 ID 服务架构
 
-### 14.6.1 ID Registry
+### 15.6.1 ID Registry
 
 ID Registry 是 ID 体系的控制面，负责登记所有 namespace，例如：
 
@@ -252,7 +252,7 @@ event.outbox
 
 不要让业务代码直接传 `"draft"`、`"order"` 这种裸字符串。裸字符串无法治理，也无法做容量规划和审计。
 
-### 14.6.2 ID SDK
+### 15.6.2 ID SDK
 
 业务服务应该依赖 SDK，而不是直接访问 ID 表或自己拼接字符串。SDK 至少提供：
 
@@ -266,7 +266,7 @@ type Generator interface {
 
 SDK 可以封装本地缓存、号段预取、熔断降级、指标上报和错误转换。业务服务只关心“我要哪个 namespace 的 ID”。
 
-### 14.6.3 Generator Router
+### 15.6.3 Generator Router
 
 Generator Router 根据 namespace 配置路由到不同发号器：
 
@@ -280,7 +280,7 @@ checkout.session  -> ULID Generator
 
 这样可以把“业务 ID 规则”从业务代码中拿出来，避免仓储层、应用层、HTTP 层各自发明一套规则。
 
-### 14.6.4 Segment Generator
+### 15.6.4 Segment Generator
 
 Segment Generator 从数据库申请号段，然后在本地内存中发号。为了避免号段耗尽造成请求抖动，应该支持双 Buffer：
 
@@ -291,7 +291,7 @@ Segment Generator 从数据库申请号段，然后在本地内存中发号。�
 当前号段完全耗尽且无法预取时，返回明确错误。
 ```
 
-### 14.6.5 Snowflake Generator
+### 15.6.5 Snowflake Generator
 
 Snowflake Generator 的关键不是位运算，而是 worker 治理：
 
@@ -300,7 +300,7 @@ Snowflake Generator 的关键不是位运算，而是 worker 治理：
 3. 发现时钟回拨时，要短暂等待、切换 worker 或熔断，而不是继续发号。
 4. 多机房部署时，要预留 region 或 datacenter 位。
 
-### 14.6.6 ULID / UUIDv7 Generator
+### 15.6.6 ULID / UUIDv7 Generator
 
 这类生成器适合本地生成，但仍然要受 namespace 约束。推荐格式：
 
@@ -314,7 +314,7 @@ op_01JABCH...
 
 prefix 不是随意字符串，而是 Registry 中登记过的前缀。这样日志、排障和数据治理可以快速识别 ID 类型。
 
-### 14.6.7 Business Number Formatter
+### 15.6.7 Business Number Formatter
 
 业务单号通常不直接等于底层 ID。订单号可以设计为：
 
@@ -330,7 +330,7 @@ ORD20260429CN7K3F9Q2X
 
 这种格式便于客服和对账按日期定位，同时不直接暴露连续自增值。校验位可以降低人工录入错误。
 
-### 14.6.8 Observability / Audit / Admin
+### 15.6.8 Observability / Audit / Admin
 
 ID 服务必须可观测：
 
@@ -346,9 +346,9 @@ ID 服务必须可观测：
 
 高频 ID 不应把每次发号都同步写审计表，否则 ID 服务会被审计拖垮。更合理的方式是：常规路径打指标，异常路径写审计。
 
-## 14.7 关键业务 ID 设计
+## 15.7 关键业务 ID 设计
 
-### 14.7.1 `sku_id`、`spu_id` 与 `item_id`
+### 15.7.1 `sku_id`、`spu_id` 与 `item_id`
 
 `item_id` 是前台商品入口，`spu_id` 是商品定义层的标准品，`sku_id` 是具体销售规格。它们都属于长期稳定的主数据 ID，推荐使用 `BIGINT`。
 
@@ -369,7 +369,7 @@ product.sku  -> Segment
 
 两种方案都可行，但必须在附录和代码中讲清楚边界。
 
-### 14.7.2 `order_id` 与 `order_no`
+### 15.7.2 `order_id` 与 `order_no`
 
 订单建议内部主键和对外单号解耦：
 
@@ -393,7 +393,7 @@ order_no -> 对外业务单号，Snowflake 派生格式
 
 不要直接暴露 `ORD-1`、`ORD-2` 这类连续单号。它会暴露业务量，也容易被枚举。
 
-### 14.7.3 `checkout_id` 与 `idempotency_key`
+### 15.7.3 `checkout_id` 与 `idempotency_key`
 
 `checkout_id` 表达一次结算会话，`idempotency_key` 表达一次业务请求。它们可以相关，但不能混为一谈。
 
@@ -412,7 +412,7 @@ UNIQUE KEY uk_order_idempotency (user_id, idempotency_key)
 
 这样用户重复点击“提交订单”时，系统返回同一笔订单，而不是生成多笔订单。
 
-### 14.7.4 `payment_id`、渠道单号与对账
+### 15.7.4 `payment_id`、渠道单号与对账
 
 支付系统至少要区分三类编号：
 
@@ -424,7 +424,7 @@ UNIQUE KEY uk_order_idempotency (user_id, idempotency_key)
 
 平台调用渠道时，还需要一个稳定的渠道请求号，例如 `out_trade_no`。这个请求号通常应该由平台生成，并作为调用渠道的幂等键。不要用渠道返回单号作为平台支付单的唯一依据，因为渠道单号只有调用成功后才出现。
 
-### 14.7.5 `draft_id`、`staging_id` 与供给审核单
+### 15.7.5 `draft_id`、`staging_id` 与供给审核单
 
 供给流程 ID 推荐使用字符串：
 
@@ -438,7 +438,7 @@ qc_01J...
 
 关键边界是：Draft、Staging、QC 阶段的 ID 不应替代正式 `item_id`、`spu_id`、`sku_id`。只有发布事务成功后，商品中心才持有正式商品主数据 ID。
 
-### 14.7.6 `event_id` 与 Outbox 去重
+### 15.7.6 `event_id` 与 Outbox 去重
 
 事件 ID 需要支持幂等消费和重放。常见方案有两种：
 
@@ -459,7 +459,7 @@ CREATE TABLE event_consume_log (
 
 这样即使消息系统 at-least-once 投递，也能实现业务上的精确一次效果。
 
-## 14.8 容灾、风险与治理
+## 15.8 容灾、风险与治理
 
 | 风险 | 表现 | 缓解策略 |
 |------|------|----------|
@@ -473,9 +473,9 @@ CREATE TABLE event_consume_log (
 
 电商系统还要特别注意“唯一性不是只靠 ID 服务保证”。最终写入业务表时仍然要有唯一索引。ID 服务负责降低冲突概率和统一规则，业务数据库负责最后一道硬约束。
 
-## 14.9 数据库与接口设计
+## 15.9 数据库与接口设计
 
-### 14.9.1 Namespace 注册表
+### 15.9.1 Namespace 注册表
 
 ```sql
 CREATE TABLE id_namespace (
@@ -497,7 +497,7 @@ CREATE TABLE id_namespace (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='ID 命名空间注册表';
 ```
 
-### 14.9.2 Segment 号段表
+### 15.9.2 Segment 号段表
 
 ```sql
 CREATE TABLE id_segment (
@@ -522,7 +522,7 @@ WHERE namespace = ?
   AND version = ?;
 ```
 
-### 14.9.3 Snowflake Worker 租约表
+### 15.9.3 Snowflake Worker 租约表
 
 ```sql
 CREATE TABLE id_worker (
@@ -634,7 +634,7 @@ WHERE instance_id = ?
 
 实现时要把数据库时间作为租约判断的基准，减少不同机器本地时钟不一致带来的误判。实例本地还应维护一个租约看门狗：如果距离上次成功心跳已经超过安全阈值，即使数据库还没返回失败，也要先把 Snowflake Generator 标记为 not ready，避免长时间 GC、网络卡顿或容器暂停后继续使用已经可能被别人抢占的 `worker_id`。
 
-### 14.9.4 发号审计与异常记录
+### 15.9.4 发号审计与异常记录
 
 ```sql
 CREATE TABLE id_issue_log (
@@ -654,7 +654,7 @@ CREATE TABLE id_issue_log (
 
 审计表不应该记录所有高频发号请求。建议只记录关键 namespace、号段申请、异常、回拨和人工操作。
 
-### 14.9.5 Go SDK 接口
+### 15.9.5 Go SDK 接口
 
 ```go
 type Namespace string
@@ -685,7 +685,7 @@ type SupplyOpsService struct {
 }
 ```
 
-## 14.10 示例代码改造建议
+## 15.10 示例代码改造建议
 
 当前示例中的写法是：
 
@@ -738,7 +738,7 @@ orderNo := s.orderNoFormatter.Format(internalID, time.Now())
 
 本附录只给出改造方向，不要求立刻重构示例代码。教学代码可以保留简化实现，但正文要让读者知道生产系统应该如何演进。
 
-## 14.11 面试和架构评审要点
+## 15.11 面试和架构评审要点
 
 设计全局 ID 体系时，可以用下面的问题自查：
 
@@ -757,7 +757,7 @@ orderNo := s.orderNoFormatter.Format(internalID, time.Now())
 
 如果这些问题没有答案，就说明 ID 体系还停留在工具函数层面，没有进入基础设施治理层面。
 
-## 14.12 小结
+## 15.12 小结
 
 统一 ID 体系的重点不是某个算法，而是按业务语义治理 namespace、生成策略、暴露形式和失败处理。
 
