@@ -41,7 +41,13 @@
 - [第23章 企业知识助手：RAG、搜索、权限与知识治理落地实践](part3/02-enterprise-knowledge-assistant.md)
 - [第24章 从零实现一个可观测 Coding Agent](part3/08-mini-agent-observability.md)
 - [第25章 个人知识管理 Agent 实践](part3/07-pkm-agent-case-study.md)
-- [第26章 AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part3/09-research-agent-overview.md)
+- [第26章 持续进化的生活 Agent：从日常反馈到可信能力闭环](part3/10-daily-life-evolving-agent.md)
+
+---
+
+# 第四部分：前沿与研究
+
+- [第27章 AI 智能体研究现状、工程瓶颈与未来理想能力架构报告](part4/01-agent-frontier-research.md)
 
 ---
 
