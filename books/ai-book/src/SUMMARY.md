@@ -18,7 +18,7 @@
 
 # 第二部分：Agent 工程
 
-- [第8章 Agent 架构总纲：边界、Runtime 与模式选择](part2/01-agent-architecture.md)
+- [第8章 Agent 的演化与架构总纲：从对话应用到可治理 Runtime](part2/01-agent-architecture.md)
 - [第9章 Prompt Engineering 与结构化输出：从提示词到任务协议](part2/02-prompt-engineering.md)
 - [第10章 Context Engineering：从上下文注入到信息架构](part2/03-context-engineering.md)
 - [第11章 Harness Engineering：从模型调用到 Agent 运行环境](part2/04-harness-engineering.md)
