@@ -56,5 +56,5 @@
 - [附录A 术语表](appendix/glossary.md)
 - [附录B 参考资料与延伸阅读](appendix/references.md)
 - [附录C 常用工具与框架](appendix/tools.md)
-- [附录D 系统设计面试题与作品集模板](appendix/system-design-interview-portfolio.md)
-- [附录E LLM / Agent 面试题库与参考来源](appendix/llm-agent-interview-question-bank.md)
+- [附录D 系统设计思考题与项目实践模板](appendix/system-design-thinking-and-practice.md)
+- [附录E LLM / Agent 思考题与参考来源](appendix/llm-agent-thinking-questions.md)

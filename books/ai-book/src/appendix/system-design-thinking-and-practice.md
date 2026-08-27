@@ -1,25 +1,25 @@
-# 附录D 系统设计面试题与作品集模板
+# 附录D 系统设计思考题与项目实践模板
 
-> 面试材料不是正文主线，但它能帮助读者把 Agent 工程能力表达出来。好的面试回答不是“我用了某个模型”，而是“我知道如何把不确定的模型能力放进可验证、可观测、可回滚的工程系统里”。
+> 思考材料不是正文主线，但它能帮助读者梳理 Agent 工程能力。高质量的设计阐述不止是“我用了某个模型”，还应说明如何把不确定的模型能力放进可验证、可观测、可回滚的工程系统里。
 
 本附录面向两类场景：
 
-- 准备 LLM / Agent 相关岗位的系统设计面试；
-- 把自己的 Agent 项目整理成能展示工程能力的作品集。
+- 开展 LLM / Agent 的系统设计推演；
+- 将 Agent 项目整理为可复盘的项目实践材料。
 
 本附录不是从互联网上搬运题库，而是结合公开岗位描述和生产系统文章，抽象出更可能被考察的能力面。可参考的公开信号包括 [OpenAI Codex Agents 岗位描述](https://openai.com/careers/ai-systems-engineer-codex-agents-san-francisco/)、[OpenAI Agents SDK Tracing](https://openai.github.io/openai-agents-python/tracing/)、[OpenAI Agents SDK Guardrails](https://openai.github.io/openai-agents-python/guardrails/)、[Anthropic Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents)、[Anthropic Multi-agent Research System](https://www.anthropic.com/engineering/multi-agent-research-system) 和 [Anthropic Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)。
 
-本附录的题库参考来源保存在 `books/ai-book/src/appendix/llm-agent-interview-question-bank.md`，其中保留了来源链接、题型标签、摘要和可改写题目。
+本附录的题目参考来源保存在 `books/ai-book/src/appendix/llm-agent-thinking-questions.md`，其中保留了来源链接、主题标签、摘要和可改写问题。
 
 ---
 
-## D.1 LLM / Agent 岗位真实考察点
+## D.1 LLM / Agent 工程能力关注点
 
 真实岗位对 Agent 工程师的要求，通常不是“会不会调用 API”，而是能否把模型、工具、数据、权限、评估和运行时放到一个可靠系统里。
 
 ### 能力地图
 
-| 能力 | 面试官真正想听到什么 | 作品集中应该展示什么 |
+| 能力 | 评审者真正想听到什么 | 项目实践中应该展示什么 |
 | --- | --- | --- |
 | Agent Harness | 模型输出如何被解释、执行、暂停、重试、回滚 | 执行循环、状态机、工具调用日志 |
 | Context Engineering | 上下文如何构造、裁剪、检索和隔离 | 检索策略、Evidence Package、上下文预算 |
@@ -32,15 +32,15 @@
 | Reliability | 长任务如何处理重试、超时、状态恢复 | checkpoint、idempotency、dead letter queue |
 | Cost / Latency | 如何在质量、速度、成本之间做权衡 | 模型路由、缓存、batch、token 预算 |
 
-### 面试信号
+### 工程信号
 
-如果一个候选人只说：
+如果一个实践者只说：
 
 ```text
 用户输入 → LLM → 工具调用 → 返回结果
 ```
 
-这通常还不够。更强的回答会主动补上：
+这通常还不够。更完整的设计阐述会主动补上：
 
 ```text
 用户输入
@@ -54,7 +54,7 @@
   → Trace / Feedback / Eval 回流
 ```
 
-面试官常见追问：
+评审者常见追问：
 
 - 这个问题真的需要 Agent 吗？普通 workflow 能不能解决？
 - 证据不足时怎么办？
@@ -66,7 +66,7 @@
 
 ---
 
-## D.2 Agent 系统设计通用回答框架
+## D.2 Agent 系统设计通用推演框架
 
 回答 Agent 系统设计题时，不要一上来讲模型。先判断问题是否真的需要 Agent。
 
@@ -1180,9 +1180,9 @@ user_corrections
 
 ---
 
-## D.14 作品集项目材料包
+## D.14 项目实践材料包
 
-一个 Agent 项目作品集至少要准备六类材料：
+一个 Agent 项目项目实践至少要准备六类材料：
 
 ```text
 1. 一页项目介绍
@@ -1327,7 +1327,7 @@ Verifier / Evals / Observability
 
 ## D.15 GitHub README 模板
 
-作品集 README 不要写成“模型调用教程”，而要写成“工程系统说明”。
+项目实践 README 不要写成“模型调用教程”，而要写成“工程系统说明”。
 
 ````markdown
 # Enterprise Knowledge Assistant
@@ -1392,7 +1392,7 @@ Failure Modes
 
 ---
 
-## D.16 面试表达脚本
+## D.16 设计阐述框架
 
 ### 2 分钟版本
 
@@ -1470,7 +1470,7 @@ Agent 在诊断 CPU 告警时引用了数据库连接池 Runbook，导致建议�
 - 每次人工纠正都进入候选回归集。
 ```
 
-面试时讲失败，不要只说“后来优化 prompt”。更好的表达是：
+设计评审时讲失败，不要只说“后来优化 prompt”。更好的表达是：
 
 ```text
 我先用 trace 定位失败发生在 retrieval 阶段，而不是 generation 阶段；
@@ -1484,7 +1484,7 @@ Agent 在诊断 CPU 告警时引用了数据库连接池 Runbook，导致建议�
 
 这类题通常出现在大模型基础、机器人、自动驾驶、空间智能、多模态 Agent 或未来 AI 平台方向。基础阅读可以先看第一部分第6章：世界模型与具身智能。
 
-面试官不一定期待你写出机器人控制论文，但会看你能不能把“模型能力”放进真实行动系统：环境状态是什么，动作空间是什么，反馈如何进入闭环，失败如何恢复，安全如何保证，数据如何迭代。
+评审者不一定期待你写出机器人控制论文，但会看你能不能把“模型能力”放进真实行动系统：环境状态是什么，动作空间是什么，反馈如何进入闭环，失败如何恢复，安全如何保证，数据如何迭代。
 
 ### 高频题
 
@@ -1514,7 +1514,7 @@ Task / User Goal
   Data Loop: trace、失败样本、回归评估、再训练
 ```
 
-### 面试答案模板
+### 推演参考模板
 
 ```text
 我会先把具身系统拆成感知、状态估计、任务规划、动作策略、低层控制、安全层和数据闭环。LLM 或 embodied reasoning model 适合做高层任务理解和规划，但不能直接替代物理控制。VLA 或 skill policy 负责把视觉和语言条件转成动作，world model 用来预测候选动作后果、生成长尾仿真场景和做离线评估。安全层必须独立存在，包括速度/力限幅、碰撞检测、禁区、急停和人工接管。评估上看任务成功率、泛化、效率、安全违规、失败恢复和人工接管率，并把失败样本进入 regression eval。
@@ -1538,9 +1538,9 @@ Task / User Goal
 
 先暂停或进入安全姿态，再重新感知环境，判断是感知错误、规划错误、动作执行失败还是环境变化；必要时请求人工确认。失败 trace 要包含传感器、状态、动作、模型输出和安全事件，并进入回归集。
 
-### 作品集提示
+### 项目实践提示
 
-如果你想做相关项目，不建议一开始就造真实机器人。更可行的作品集方向是：
+如果你想做相关项目，不建议一开始就造真实机器人。更可行的项目实践方向是：
 
 - 基于仿真的 household robot / warehouse picking demo；
 - 一个 world model 论文调研和系统设计文档；
@@ -1550,7 +1550,7 @@ Task / User Goal
 
 ---
 
-## D.19 面试前检查清单
+## D.19 设计评审前检查清单
 
 ### 概念
 
@@ -1574,7 +1574,7 @@ Task / User Goal
 - [ ] 有离线 eval、线上指标和失败回流；
 - [ ] 有成本和延迟优化思路。
 
-### 项目作品集
+### 项目项目实践
 
 - [ ] 有一页项目介绍；
 - [ ] 有架构图；
@@ -1599,7 +1599,7 @@ Task / User Goal
 
 ## D.20 小结
 
-面试和作品集的目标不是展示“用了 AI”，而是展示你具备生产级 Agent 工程意识：
+设计评审和项目实践的目标不是展示“用了 AI”，而是展示你具备生产级 Agent 工程意识：
 
 - 能判断是否需要 Agent；
 - 能设计上下文、工具和工作流；

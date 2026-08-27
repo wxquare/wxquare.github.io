@@ -1623,7 +1623,7 @@ MVP 能跑，不代表可以生产使用。生产级 Coding Agent 还需要：
 
 ## 17.6 设计清单与常见反模式
 
-这一节把本章收束成设计清单。你可以用它评估一个 Coding Agent 系统，也可以用它准备系统设计面试。
+这一节把本章收束成设计清单。你可以用它评估一个 Coding Agent 系统，也可以用它准备系统设计评审。
 
 ### 17.6.1 Coding Agent Harness 设计清单
 
@@ -1785,9 +1785,9 @@ MVP 能跑，不代表可以生产使用。生产级 Coding Agent 还需要：
 - 每个任务独立验证；
 - 合并前统一 review。
 
-### 17.6.3 面试表达：如何讲清一个 Coding Agent 系统
+### 17.6.3 设计评审表达：如何讲清一个 Coding Agent 系统
 
-如果面试官问“你如何设计一个 Coding Agent”，不要只回答“接入 LLM 和工具调用”。可以这样表达：
+如果评审者问“你如何设计一个 Coding Agent”，不要只回答“接入 LLM 和工具调用”。可以这样表达：
 
 ```text
 我会把 Coding Agent 设计成 Model + Harness。

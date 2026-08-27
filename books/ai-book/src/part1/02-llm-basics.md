@@ -512,7 +512,7 @@ Output Reserve：4K
 - OpenAI、Anthropic、DeepSeek 等厂商差异；
 - Agent 工作流如何映射为模型请求。
 
-## 2.23 面试表达
+## 2.23 设计评审表达
 
 一句话版：
 
