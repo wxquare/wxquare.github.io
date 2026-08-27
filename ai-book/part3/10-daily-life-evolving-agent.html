@@ -1,0 +1,460 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>第26章 持续进化的生活 Agent：从日常反馈到可信能力闭环 - AI Agent 工程实践：从大模型基础到生产级智能体系统</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="面向工程师的 AI Agent 系统设计指南，涵盖大模型基础、Agent 运行时、工具调用、RAG、Memory、评估治理与生产级案例">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-da08e2e8.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-e52ea025.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Agent 工程实践：从大模型基础到生产级智能体系统</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/wxquare/wxquare.github.io" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="第26章-持续进化的生活-agent从日常反馈到可信能力闭环"><a class="header" href="#第26章-持续进化的生活-agent从日常反馈到可信能力闭环">第26章 持续进化的生活 Agent：从日常反馈到可信能力闭环</a></h1>
+<p>前面的章节讨论了如何构建一个能够调用工具、管理知识和完成多步任务的 Agent。但一个真正进入日常生活的 Agent 面对的不是一次性 benchmark，而是长期、变化且高度私密的环境：今天的日历安排、反复修改的待办、被拒绝的邮件草稿，以及每个人不同的工作和家庭节奏。</p>
+<p>这类系统最容易犯的错误，是把“记住了一次反馈”误当成“已经学会”。把一条对话直接写入长期记忆，或立即改写 Prompt，看似能让下一次表现更好，却会把偶然偏好、错误归因和敏感数据一起固化。持续进化应当是一条受控的软件交付链路：<strong>运行证据 → 评估 → 更新提案 → 独立验证 → 审阅 → 渐进发布或回滚</strong>。</p>
+<p>本章以“每周生活回顾 Agent”为例，说明如何把日历、待办、邮件、购物清单和个人知识组织成一个可长期运行、可审计、可撤销的系统。这里的“生活”不代表无限授权：Agent 可以准备建议和草稿；任何发送、购买、支付、删除或涉及健康、金融的动作，都必须保留给明确的用户确认。</p>
+<h2 id="261-长期运行的生活-agent范围授权与非目标"><a class="header" href="#261-长期运行的生活-agent范围授权与非目标">26.1 长期运行的生活 Agent：范围、授权与非目标</a></h2>
+<p>生活 Agent 的目标不是替用户接管生活，而是降低整理信息、发现遗漏和准备行动的成本。一个合适的最小闭环是：汇总一周事实，提出下周建议，收集用户对建议的修订，再将可复用的改进作为候选变更提交评估。</p>
+<h3 id="三层权限而不是一个自动执行开关"><a class="header" href="#三层权限而不是一个自动执行开关">三层权限，而不是一个“自动执行”开关</a></h3>
+<p>同一项能力应按风险拆成三个层级：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>权限层级</th><th>示例</th><th>默认策略</th><th>可接受的证据</th></tr>
+</thead>
+<tbody>
+<tr><td>建议</td><td>“周三下午可能适合完成报销”</td><td>可自动生成</td><td>可追溯的数据来源和推理说明</td></tr>
+<tr><td>草稿</td><td>根据会议纪要起草一封跟进邮件</td><td>可保存为草稿</td><td>用户可编辑、可放弃，未产生外部副作用</td></tr>
+<tr><td>外部动作</td><td>发送邮件、下单、支付、删除日历事件</td><td>必须逐次确认</td><td>明确意图、动作预览、目标和金额/范围确认</td></tr>
+</tbody>
+</table>
+</div>
+<p>“帮我处理一下”不是外部动作的授权。系统应在动作前展示对象、影响范围、关键参数和撤销方式；对支付、购买、医疗建议、投资与金融交易，默认只提供信息整理或建议，不替用户执行决策。</p>
+<h3 id="长期运行带来的四个边界"><a class="header" href="#长期运行带来的四个边界">长期运行带来的四个边界</a></h3>
+<ol>
+<li><strong>最小权限</strong>：只申请完成当前任务所需的日历、邮件或清单范围；不因“未来可能有用”扩大访问。</li>
+<li><strong>目的限定</strong>：为周回顾收集的会议标题，不应自动用于训练通用写作风格或分享给其他 Agent。</li>
+<li><strong>可见与可删除</strong>：用户能看到 Agent 保存了什么经验、为什么保存，以及如何更正或删除。</li>
+<li><strong>不把沉默当同意</strong>：没有点击建议、没有修改草稿，均不是可推广的偏好信号。</li>
+</ol>
+<p>这些边界是 <a href="../part2/04-harness-engineering.html">第11章 Harness 工程</a> 中权限、状态和恢复控制在个人场景的具体化。它们先于“让 Agent 更聪明”的目标。</p>
+<h3 id="记忆日志与学习的区别"><a class="header" href="#记忆日志与学习的区别">记忆、日志与学习的区别</a></h3>
+<ul>
+<li><strong>日志</strong>记录发生过什么，服务审计、排障和复盘；原始记录应不可变。</li>
+<li><strong>记忆</strong>保存经用户确认或可解释的稳定事实、偏好和上下文，服务后续个性化。</li>
+<li><strong>学习</strong>改变未来策略、Skill、工作流或 Harness，必须证明它对一组任务有效且没有破坏既有成功场景。</li>
+</ul>
+<p>因此，一句“我不喜欢早上安排深度工作”可以作为待确认的偏好候选；只有经过多次确认、存在来源与有效期后，才可能成为记忆。它更不应该直接变成一条全局 Prompt 规则。</p>
+<h2 id="262-以证据为先的运行数据模型"><a class="header" href="#262-以证据为先的运行数据模型">26.2 以证据为先的运行数据模型</a></h2>
+<p>受控进化的输入不是“模型的印象”，而是带边界的运行证据。每次执行都保留一个不可变轨迹，并在其上生成可审阅的经验卡。轨迹保留事实，经验卡表达可被反驳的假设；两者都不能绕过用户的删除与保留期策略。</p>
+<h3 id="原始轨迹让一次结果可以重放"><a class="header" href="#原始轨迹让一次结果可以重放">原始轨迹：让一次结果可以重放</a></h3>
+<p>一条最小轨迹至少包含：任务触发条件、被允许使用的上下文快照、模型与 Prompt/Skill 版本、工具调用与返回、用户确认点、最终结果和反馈。它与 <a href="../part2/03-context-engineering.html">第10章 Context 工程</a> 的证据和状态边界相呼应：复盘时不能只看最终回答，还要能解释 Agent 当时看到了什么。</p>
+<pre><code class="language-json">{
+  "run_id": "weekly-review-2026w34",
+  "task": "生成下周生活回顾建议",
+  "context_snapshot": ["calendar:week-34", "tasks:open", "shopping:pending"],
+  "versions": {"model": "approved-model", "skill": "weekly-review@1.3"},
+  "tool_events": ["calendar.list", "tasks.list", "shopping.list"],
+  "result": "提出 4 条建议，未执行外部动作",
+  "user_feedback": "接受 2 条、修订 1 条、拒绝 1 条",
+  "retention": "30d",
+  "sensitivity": "personal"
+}
+</code></pre>
+<p>示例中的标识符只是演示数据；生产系统应将内容与敏感等级分离存储，对原文进行访问控制、脱敏和按期删除。</p>
+<h3 id="经验卡从轨迹中提出而非宣告规律"><a class="header" href="#经验卡从轨迹中提出而非宣告规律">经验卡：从轨迹中提出、而非宣告规律</a></h3>
+<p>经验卡是对多次轨迹的结构化分析，不是新的事实源。它需要同时记录支持证据和反证：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>字段</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td>任务与环境</td><td>哪类日程、工具状态、约束下发生</td></tr>
+<tr><td>当前策略</td><td>使用了哪个 Prompt、Skill 或工作流</td></tr>
+<tr><td>结果</td><td>完成、人工接管、拒绝、遗漏或越权拦截</td></tr>
+<tr><td>证据与反证</td><td>支持假设的轨迹，以及不适用的相反案例</td></tr>
+<tr><td>变更假设</td><td>建议修改知识、Skill、工作流还是 Harness</td></tr>
+<tr><td>适用边界</td><td>只适用于哪些用户确认过的场景</td></tr>
+<tr><td>验证集</td><td>触发问题的样本和独立的保留样本</td></tr>
+</tbody>
+</table>
+</div>
+<p>例如，“周回顾遗漏了购物清单中的临期商品”不是直接修改规则的理由。只有在多条轨迹表明清单读取成功、但汇总 Skill 稳定漏掉日期字段时，才形成“将日期字段加入检查表”的 Skill 更新候选。</p>
+<h2 id="263-三层评估结果过程与质量验证"><a class="header" href="#263-三层评估结果过程与质量验证">26.3 三层评估：结果、过程与质量验证</a></h2>
+<p>生活任务的正确性通常不能只由模型自评。一次建议看起来通顺，不代表它节省了时间、正确使用了工具或尊重了权限。评估应分为结果、过程和质量三层，并把用户反馈作为证据的一部分而非唯一裁判。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>要回答的问题</th><th>周回顾示例</th><th>典型信号</th></tr>
+</thead>
+<tbody>
+<tr><td>结果</td><td>用户的问题是否被解决</td><td>下周关键冲突是否被发现</td><td>接受、完成、人工接管</td></tr>
+<tr><td>过程</td><td>是否以正确、安全的路径完成</td><td>是否先读取待办再提出安排</td><td>工具参数、确认点、越权拦截</td></tr>
+<tr><td>质量</td><td>输出是否准确、稳定、可解释</td><td>建议是否引用了真实日期与约束</td><td>人工抽检、规则校验、留出集</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="反馈应先归因再参与学习"><a class="header" href="#反馈应先归因再参与学习">反馈应先归因，再参与学习</a></h3>
+<p>用户将“周三下午”改成“周四上午”，可能代表偏好，也可能只是那一周的临时冲突。系统需要把反馈分层：</p>
+<ul>
+<li><strong>显式反馈</strong>：接受、拒绝、评分、填写原因；证据最强。</li>
+<li><strong>隐式修订</strong>：用户改写草稿、移动建议任务；需要结合上下文解释。</li>
+<li><strong>自动校验</strong>：日期是否存在、重复事件是否冲突、工具返回是否完整；能验证事实但不能推断偏好。</li>
+</ul>
+<p>把这三类信号统一写成“用户不喜欢周三”会产生错误的长期记忆。应该先在经验卡中保留不确定性，再由跨轨迹分析决定是否提出变更。</p>
+<h3 id="留出集防止只修好一次失败"><a class="header" href="#留出集防止只修好一次失败">留出集防止“只修好一次失败”</a></h3>
+<p>每个更新候选至少要经过两类任务：</p>
+<ol>
+<li><strong>触发集</strong>：确实暴露问题的历史轨迹，用来验证提案解决了原始失败；</li>
+<li><strong>留出集</strong>：未参与规则设计的历史任务，覆盖已成功的日程整理、草稿生成和权限确认场景，用来发现回归。</li>
+</ol>
+<p>这把 <a href="../part2/10-agent-evals-guardrails-observability.html">第17章 Agent 生产治理</a> 的 Evals 从“上线前测一次”延伸为每次能力更新的门禁。只有触发集改善、留出集不退化、权限检查仍完整的提案，才进入审阅。</p>
+<h2 id="264-更新路由知识promptskill工作流与-harness"><a class="header" href="#264-更新路由知识promptskill工作流与-harness">26.4 更新路由：知识、Prompt/Skill、工作流与 Harness</a></h2>
+<p>同一种失败不应由同一种手段修复。将所有经验都塞入记忆，会让检索噪声变大；把所有问题写进 Prompt，会形成难以审计的指令堆；把权限问题交给工作流，也会遗漏运行时的硬约束。更新路由的作用，是把证据送往正确的工程层。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>变化类型</th><th>进入位置</th><th>示例</th><th>必须附带的验证</th></tr>
+</thead>
+<tbody>
+<tr><td>已确认的稳定事实/偏好</td><td>知识或记忆</td><td>用户明确确认的会议时段偏好</td><td>来源、有效期、撤销入口</td></tr>
+<tr><td>可复用的任务策略</td><td>Prompt/Skill</td><td>周回顾先检查冲突再建议的步骤</td><td>最小 diff、触发集和留出集</td></tr>
+<tr><td>跨工具的重复流程</td><td>工作流</td><td>读日历→读待办→检测冲突→生成草稿</td><td>前置条件、动作、后置验证</td></tr>
+<tr><td>权限、重试、审计、恢复问题</td><td>Harness</td><td>外部动作前缺少确认卡片</td><td>策略测试、故障注入、审计记录</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="知识与记忆有来源可失效可撤回"><a class="header" href="#知识与记忆有来源可失效可撤回">知识与记忆：有来源、可失效、可撤回</a></h3>
+<p><a href="../part2/07-agent-knowledge-systems.html">第14章知识系统</a> 适合承载带来源的事实，<a href="../part2/08-agent-memory.html">第15章记忆</a> 适合承载经确认的个体化信息。两者都需要版本、来源、敏感等级和失效策略。对于“本周临时改为晚间购物”这类信息，应设置短保留期；对于“不要把工作会议安排在家长会时间”这类长期偏好，也应能被用户一键撤回。</p>
+<h3 id="prompt-与-skill最小差异而不是不断追加"><a class="header" href="#prompt-与-skill最小差异而不是不断追加">Prompt 与 Skill：最小差异，而不是不断追加</a></h3>
+<p>Skill 更新应像代码改动一样小、可定位：说明失败边界、只修改必要步骤、以触发集和留出集验证。比如把“检查日历”改为“读取可用时段和已有的不可移动事件”，比追加一段笼统的“请更仔细检查”更可测。</p>
+<p>工具使用和 Skill 契约应保持与 <a href="../part2/06-tool-calling-mcp.html">第13章工具、Skills 与 MCP</a> 一致：输入、权限、超时、失败语义和输出格式必须明确。经验卡不能绕过这些契约去产生隐式工具调用。</p>
+<h3 id="工作流与-harness把重复步骤和硬约束放在模型外"><a class="header" href="#工作流与-harness把重复步骤和硬约束放在模型外">工作流与 Harness：把重复步骤和硬约束放在模型外</a></h3>
+<p>若失败表现为固定的多步遗漏，应将其编译为工作流，并为每一步定义前置条件、动作和后置验证。例如，只有在日历与待办快照均完整时，才允许生成周计划；生成后必须检查建议是否占用已有不可移动事件。编排细节可回看 <a href="../part2/09-workflow-orchestration.html">第16章工作流编排</a>。</p>
+<p>若失败涉及权限、重试、并发、取消、审计或回滚，则应由 Harness 修复。模型可以提出建议，但不能移除确认门、扩大 token 或工具权限预算，或绕过事件日志。</p>
+<h2 id="265-受控发布闭环"><a class="header" href="#265-受控发布闭环">26.5 受控发布闭环</a></h2>
+<p>持续进化不是在生产环境中让 Agent 随意自我修改。更可靠的流程类似一次小型发布：</p>
+<pre><code class="language-text">运行轨迹与反馈
+        ↓
+跨轨迹证据聚合与经验卡
+        ↓
+知识 / Skill / 工作流 / Harness 更新提案
+        ↓
+触发集 + 留出集回归 + 安全检查
+        ↓
+人工审阅与版本记录
+        ↓
+小范围试运行 ──失败──→ 回滚到上一个已批准版本
+        ↓
+正式发布与持续观测
+</code></pre>
+<h3 id="提案必须能回答的六个问题"><a class="header" href="#提案必须能回答的六个问题">提案必须能回答的六个问题</a></h3>
+<p>在任何改动进入试运行前，提案至少需要写清：</p>
+<ol>
+<li>它由哪些轨迹触发，反证是什么？</li>
+<li>它改变哪一层能力，为什么不是其他层？</li>
+<li>它的最小 diff 是什么，影响哪些任务边界？</li>
+<li>触发集、留出集和安全检查的结果如何？</li>
+<li>谁能批准、试运行对象是什么、何时停止？</li>
+<li>出现何种指标退化时回滚，回滚到哪个版本？</li>
+</ol>
+<h3 id="人工审阅与渐进发布"><a class="header" href="#人工审阅与渐进发布">人工审阅与渐进发布</a></h3>
+<p>人工审阅不是逐句审核模型输出，而是审核能力变化的证据和风险。对只影响“建议”层的低风险 Skill，可以先在只读模式下对一小段历史任务重放；对“草稿”层变更，可先向少量用户展示新旧建议；任何涉及外部动作的变更，都必须重新确认权限与动作预览。</p>
+<p>发布记录至少包含版本号、变更摘要、评估结果、审阅人、试运行范围、指标与回滚条件。这样，当用户发现“新版本总把购物提醒放到工作时间”时，可以定位到具体变更，而不是在不可见的记忆里猜测原因。</p>
+<h2 id="266-案例每周生活回顾-agent"><a class="header" href="#266-案例每周生活回顾-agent">26.6 案例：每周生活回顾 Agent</a></h2>
+<p>下面用一个不接入真实账号的模拟案例串联全流程。每周日，Agent 读取经授权的日历、待办、邮件摘要和购物清单，生成下周建议；它不会发送邮件或创建支付订单。</p>
+<h3 id="第一步形成只读回顾"><a class="header" href="#第一步形成只读回顾">第一步：形成只读回顾</a></h3>
+<pre><code class="language-text">输入：日历快照、未完成待办、用户标注的邮件摘要、购物清单
+输出：冲突提示、待办聚类、可选安排、待确认的邮件草稿
+禁止：发送、购买、支付、删除、修改原始日历事件
+</code></pre>
+<p>输出中的每条建议要能追溯到数据来源。例如“将报销安排在周四上午”应列出未完成任务、可用时段和冲突检查结果，而不是只给一个无来源结论。</p>
+<h3 id="第二步采集反馈并生成经验卡"><a class="header" href="#第二步采集反馈并生成经验卡">第二步：采集反馈并生成经验卡</a></h3>
+<p>假设用户连续三周都把“整理购物清单”的建议移到晚间。系统不立即写入“晚间购物”的永久偏好，而是生成一张候选经验卡：</p>
+<pre><code class="language-text">假设：当工作日白天已有连续会议时，用户更愿意在晚间处理购物清单。
+证据：3 条接受后移动的周回顾轨迹。
+反证：1 条周末白天完成购物的轨迹。
+候选更新：周回顾 Skill 增加“优先选择非连续会议后的可用时段”。
+验证：4 条触发集 + 12 条未参与设计的留出集。
+权限：建议层；不创建日历事件。
+</code></pre>
+<p>这张卡保留了反证和适用边界，因此不会把“某几周的繁忙状态”错误泛化为永久习惯。</p>
+<h3 id="第三步路由验证与发布"><a class="header" href="#第三步路由验证与发布">第三步：路由、验证与发布</a></h3>
+<p>如果用户明确说“工作日白天不要安排购物”，可更新为有来源、可撤回的偏好记忆；如果只是周回顾遗漏了可用时段，则更新 Skill；如果每次都要读多个工具再做冲突检查，则把步骤编入工作流；如果建议错误地越过了“不可创建事件”边界，则修复 Harness。</p>
+<p>对候选 Skill 的验证可按以下顺序进行：</p>
+<ol>
+<li>在触发集上确认遗漏减少；</li>
+<li>在留出集上确认会议冲突、建议数量和用户修订率没有恶化；</li>
+<li>检查所有外部动作仍停在确认门前；</li>
+<li>由用户或指定审阅者批准后，以只读建议模式试运行；</li>
+<li>若人工接管率或越权拦截率超过阈值，立即回滚至上一个已批准版本。</li>
+</ol>
+<p>这个案例与 <a href="07-pkm-agent-case-study.html">第25章个人知识管理 Agent</a> 的关系是递进的：第 25 章解决“如何组织个人知识”，本章解决“如何让围绕这些知识运行的 Agent 在长期反馈中保持可信”。</p>
+<h2 id="267-上线检查清单与度量"><a class="header" href="#267-上线检查清单与度量">26.7 上线检查清单与度量</a></h2>
+<p>在把“会进化”作为卖点前，先回答下面的检查清单：</p>
+<ul>
+<li>是否区分了原始轨迹、经确认的记忆和待验证的学习提案？</li>
+<li>每项提案是否有来源、反证、适用边界、保留期与撤销方式？</li>
+<li>是否为建议、草稿、外部动作分别设置了权限和确认点？</li>
+<li>是否使用了独立的留出集，而不是只观察触发问题是否消失？</li>
+<li>是否记录了版本、审阅人、试运行范围、阈值与回滚入口？</li>
+<li>用户是否可以查看、修订和删除与自己相关的经验和偏好？</li>
+</ul>
+<p>建议从以下指标开始观测，而不是追求单一“智能度”分数：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>指标</th><th>说明</th><th>需要警惕的信号</th></tr>
+</thead>
+<tbody>
+<tr><td>任务成功率</td><td>建议最终帮助完成目标的比例</td><td>提升但用户负担增加，可能只是定义过宽</td></tr>
+<tr><td>人工接管率</td><td>用户必须重做或接管的比例</td><td>新版本突然升高，说明策略退化</td></tr>
+<tr><td>越权拦截率</td><td>Harness 拦下未经授权动作的次数</td><td>持续升高，说明模型或工作流在试探边界</td></tr>
+<tr><td>用户修订率</td><td>草稿和建议被实质修改的比例</td><td>上升时需区分偏好变化与输出质量下降</td></tr>
+<tr><td>回归通过率</td><td>留出集与安全检查的通过比例</td><td>低于阈值时禁止发布</td></tr>
+<tr><td>回滚恢复时间</td><td>从发现退化到恢复稳定版本的时间</td><td>时间过长说明版本和发布边界不清</td></tr>
+</tbody>
+</table>
+</div>
+<p>持续进化的终点不是让 Agent 获得无限自主权，而是让它在有限授权内更稳定地完成工作，并且在出错时能够解释、停止、修复和恢复。把这条闭环做好，生活 Agent 才能从一次性助手变成值得长期信任的伙伴。</p>
+<h2 id="参考与延伸阅读"><a class="header" href="#参考与延伸阅读">参考与延伸阅读</a></h2>
+<ul>
+<li><a href="../part2/03-context-engineering.html">第10章 Context 工程</a></li>
+<li><a href="../part2/04-harness-engineering.html">第11章 Harness 工程</a></li>
+<li><a href="../part2/06-tool-calling-mcp.html">第13章 工具、Skills 与 MCP</a></li>
+<li><a href="../part2/07-agent-knowledge-systems.html">第14章 Agent 知识系统</a></li>
+<li><a href="../part2/08-agent-memory.html">第15章 Agent Memory</a></li>
+<li><a href="../part2/09-workflow-orchestration.html">第16章 工作流编排</a></li>
+<li><a href="../part2/10-agent-evals-guardrails-observability.html">第17章 Agent 生产治理</a></li>
+<li><a href="07-pkm-agent-case-study.html">第25章 个人知识管理 Agent 实践</a></li>
+<li><a href="https://github.com/bojieli/ai-agent-book/blob/main/book/chapter9.md">AI Agent Book，第 9 章：持续进化</a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../part3/07-pkm-agent-case-study.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../part4/01-agent-frontier-research.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../part3/07-pkm-agent-case-study.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../part4/01-agent-frontier-research.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-1ddef08b.js"></script>
+
+
+
+    </div>
+    </body>
+</html>
