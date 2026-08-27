@@ -50,7 +50,7 @@ Release Gate
 
 ---
 
-## 16.1 为什么 Agent 治理比普通应用更难
+## 17.1 为什么 Agent 治理比普通应用更难
 
 传统后端系统的行为主要由代码决定，测试通常验证确定性逻辑。Agent 系统不同：
 
@@ -144,7 +144,7 @@ root_cause_layer = retrieval + reasoning
 
 ---
 
-## 16.2 Agent Evals：从样例测试到质量体系
+## 17.2 Agent Evals：从样例测试到质量体系
 
 Agent Eval 的目标不是证明模型“聪明”，而是持续回答：
 
@@ -532,7 +532,7 @@ LLM-as-Judge 也必须被评估。可以维护一组人工标注样本，定期�
 
 ---
 
-## 16.3 Guardrails：把安全边界放进系统
+## 17.3 Guardrails：把安全边界放进系统
 
 Guardrails 不是一条 prompt，而是一组运行时控制。
 
@@ -782,7 +782,7 @@ def decide_tool_call(user, env, tool, args, task_state):
 
 ---
 
-## 16.4 可观测性：让每一步都有证据
+## 17.4 可观测性：让每一步都有证据
 
 生产级 Agent 必须能回答四个问题：
 
@@ -1039,7 +1039,7 @@ Trace 越完整，越容易调试；但 trace 也可能包含敏感信息。生�
 
 ---
 
-## 16.5 治理控制面：把 Trace、Policy、Eval 和 Release Gate 连接起来
+## 17.5 治理控制面：把 Trace、Policy、Eval 和 Release Gate 连接起来
 
 当 Agent 进入生产环境，Evals、Guardrails 和 Observability 不能是三套孤立系统。它们应该共享同一个治理控制面。
 
@@ -1232,7 +1232,7 @@ Release Gate
 
 ---
 
-## 16.6 生命周期：从设计到持续改进
+## 17.6 生命周期：从设计到持续改进
 
 一个 Agent 从想法到生产，建议经过八个阶段。
 
@@ -1347,7 +1347,7 @@ release:
 
 ---
 
-## 16.7 失败诊断：从现象回到根因
+## 17.7 失败诊断：从现象回到根因
 
 Agent 失败不能只改 Prompt。需要系统化归因。
 
@@ -1432,7 +1432,7 @@ Agent 失败要先定位层级：
 
 ---
 
-## 16.8 生产治理参考架构
+## 17.8 生产治理参考架构
 
 把 Evals、Guardrails 和 Observability 放在一起，可以形成一个生产治理控制面。
 
@@ -1501,7 +1501,7 @@ flowchart TB
 
 ---
 
-## 16.9 治理检查清单
+## 17.9 治理检查清单
 
 ### Evals
 

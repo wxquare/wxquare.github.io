@@ -31,9 +31,9 @@
 
 ---
 
-## 15.1 从 Agent Loop 到 Workflow Runtime
+## 16.1 从 Agent Loop 到 Workflow Runtime
 
-### 15.1.1 最小 Agent Loop 的边界
+### 16.1.1 最小 Agent Loop 的边界
 
 最小 Agent Loop 通常长这样：
 
@@ -58,7 +58,7 @@ while not done:
 
 最小 loop 的问题不是“模型不够聪明”，而是缺少运行时结构。模型可以决定下一步，但系统必须决定哪些步骤可执行、哪些动作要暂停、哪些状态要持久化、哪些证据必须保留。
 
-### 15.1.2 为什么单 Agent 也需要显式编排
+### 16.1.2 为什么单 Agent 也需要显式编排
 
 很多人把 workflow 和 state machine 误认为多 Agent 专属能力。其实只要单 Agent 需要执行多步任务，就已经需要显式编排。
 
@@ -85,7 +85,7 @@ while not done:
 
 单 Agent 加上 workflow，不会让系统变复杂，反而会让复杂任务变得可控。
 
-### 15.1.3 控制流、状态、副作用、人工介入与可观测性
+### 16.1.3 控制流、状态、副作用、人工介入与可观测性
 
 生产级 Agent Runtime 至少要显式处理五类问题。
 
@@ -99,7 +99,7 @@ while not done:
 
 这五类问题决定了 Agent 能不能上线。模型可以生成计划，但系统必须管理执行计划的生命周期。
 
-### 15.1.4 Agent Demo 到 Agent Platform 的演进路径
+### 16.1.4 Agent Demo 到 Agent Platform 的演进路径
 
 一个常见演进路径是：
 
@@ -126,9 +126,9 @@ Agent Platform 不是一开始就要建设的东西。但如果每个团队都�
 
 ---
 
-## 15.2 单 Agent 执行编排：把任务组织成可靠过程
+## 16.2 单 Agent 执行编排：把任务组织成可靠过程
 
-### 15.2.1 Plan-and-Execute：计划与执行分离
+### 16.2.1 Plan-and-Execute：计划与执行分离
 
 Plan-and-Execute 把任务拆成两个阶段：
 
@@ -162,7 +162,7 @@ Execute: 按步骤执行、验证、修正和结束
 
 计划一旦结构化，Runtime 就能检查预算、权限、风险动作和完成条件。
 
-### 15.2.2 ReAct Loop：观察、思考、行动、反馈
+### 16.2.2 ReAct Loop：观察、思考、行动、反馈
 
 ReAct Loop 强调在推理和行动之间循环：
 
@@ -190,7 +190,7 @@ Observe -> Think -> Act -> Observe -> ...
 
 也就是说，ReAct 是 Agent 的认知循环，Workflow Runtime 是它的运行边界。
 
-### 15.2.3 Workflow：固定流程中的 LLM 节点
+### 16.2.3 Workflow：固定流程中的 LLM 节点
 
 有些业务流程本身比较稳定，只是其中某些节点需要 LLM 判断或生成。
 
@@ -209,7 +209,7 @@ Classify Ticket
 
 这种模式适合生产系统，因为它把不确定性限制在节点内部，而不是让整个流程都由模型自由决定。
 
-### 15.2.4 State Machine：显式状态转移
+### 16.2.4 State Machine：显式状态转移
 
 当任务有明确生命周期时，应该用 state machine 表示。
 
@@ -233,7 +233,7 @@ created
 
 不要把状态机藏在 prompt 里。状态应该由 Runtime 保存，模型只能基于状态提出建议或选择允许的动作。
 
-### 15.2.5 Checkpoint、Resume、Replay 与幂等
+### 16.2.5 Checkpoint、Resume、Replay 与幂等
 
 长任务必须考虑失败。模型调用可能超时，工具可能失败，进程可能重启，人类审批可能隔天才发生。
 
@@ -254,7 +254,7 @@ Resume -> continue from last safe checkpoint
 
 幂等设计尤其重要。一个“创建退款单”的工具如果在恢复时重复执行，就会造成真实业务事故。Runtime 必须记录 action id、request payload、response、状态和重试策略。
 
-### 15.2.6 Human-in-the-loop：审批、暂停与恢复
+### 16.2.6 Human-in-the-loop：审批、暂停与恢复
 
 Human-in-the-loop 不是在聊天里问一句“要继续吗”，而是 workflow state 的一部分。
 
@@ -279,9 +279,9 @@ Propose Action
 
 ---
 
-## 15.3 Workflow Pattern：单 Agent 和多 Agent 都适用
+## 16.3 Workflow Pattern：单 Agent 和多 Agent 都适用
 
-### 15.3.1 Sequential：顺序执行
+### 16.3.1 Sequential：顺序执行
 
 Sequential 是最基础的 workflow pattern。
 
@@ -297,7 +297,7 @@ Input -> Step 1 -> Step 2 -> Step 3 -> Output
 
 Sequential 可以由一个 Agent 执行，也可以由多个节点分别执行。重点是步骤关系，而不是 Agent 数量。
 
-### 15.3.2 Parallel：并行执行
+### 16.3.2 Parallel：并行执行
 
 Parallel 用于独立子任务并行处理。
 
@@ -316,7 +316,7 @@ Input -> -> Branch B -> Aggregator -> Output
 
 Parallel 的难点在聚合。Aggregator 不能只是拼接结果，它需要处理冲突、去重、排序、引用和证据充分性。
 
-### 15.3.3 Router：按意图分流
+### 16.3.3 Router：按意图分流
 
 Router 根据任务类型选择路径。
 
@@ -342,7 +342,7 @@ Router 可以由规则、分类模型或 LLM 实现。但生产系统中应该�
 
 低置信度或高风险任务应该进入澄清或人工路径。
 
-### 15.3.4 Evaluator-Optimizer：评估与迭代优化
+### 16.3.4 Evaluator-Optimizer：评估与迭代优化
 
 Evaluator-Optimizer 用于需要多轮改进的任务。
 
@@ -367,7 +367,7 @@ Generator -> Evaluator -> Feedback -> Generator
 
 没有退出条件的 evaluator loop 很容易变成无限循环。
 
-### 15.3.5 Orchestrator-Workers：编排者与工作者
+### 16.3.5 Orchestrator-Workers：编排者与工作者
 
 Orchestrator-Workers 把任务拆给多个 worker，再汇总结果。
 
@@ -392,7 +392,7 @@ Orchestrator
 
 如果 worker 接到的是模糊自然语言，合并成本会急剧上升。
 
-### 15.3.6 Fan-out：批量任务与并行处理
+### 16.3.6 Fan-out：批量任务与并行处理
 
 Fan-out 是 Orchestrator-Workers 的批量化形态。
 
@@ -410,7 +410,7 @@ Files[1..N] -> N workers -> Results -> Review / Merge
 
 Fan-out 的核心风险是冲突和质量不一致。应该尽量保证每个 worker 的写入范围不重叠，并在最后设置合并审查。
 
-### 15.3.7 Workflow 的验收标准、超时与预算
+### 16.3.7 Workflow 的验收标准、超时与预算
 
 Workflow 不能只定义步骤，还要定义运行边界。
 
@@ -435,9 +435,9 @@ workflow_policy:
 
 ---
 
-## 15.4 Multi-Agent 协作：执行编排的复杂形态
+## 16.4 Multi-Agent 协作：执行编排的复杂形态
 
-### 15.4.1 多 Agent 什么时候才必要
+### 16.4.1 多 Agent 什么时候才必要
 
 多 Agent 的价值不是“看起来更智能”，而是解决单 Agent 难以同时满足的工程诉求：
 
@@ -457,7 +457,7 @@ workflow_policy:
 
 判断标准不是任务复杂度本身，而是是否存在清晰的角色边界和可合并的输出。
 
-### 15.4.2 Planner / Executor
+### 16.4.2 Planner / Executor
 
 Planner / Executor 把计划和执行分离。
 
@@ -468,7 +468,7 @@ Executor: 按计划执行工具、修改文件或生成结果
 
 适合长任务和高风险任务。Planner 不直接执行副作用动作，Executor 也不能随意改变目标。计划变更需要回到 Planner 或用户确认。
 
-### 15.4.3 Writer / Reviewer
+### 16.4.3 Writer / Reviewer
 
 Writer / Reviewer 用于质量控制。
 
@@ -488,7 +488,7 @@ Writer -> Revision
 - 建议修复；
 - 是否阻塞发布。
 
-### 15.4.4 Researcher / Synthesizer
+### 16.4.4 Researcher / Synthesizer
 
 Researcher / Synthesizer 用于复杂研究任务。
 
@@ -499,7 +499,7 @@ Synthesizer: 组织结论、处理冲突、生成答案
 
 Researcher 不应该直接生成最终结论，Synthesizer 也不应该编造证据。两者之间应该传递 Evidence Packet，而不是自由文本摘要。
 
-### 15.4.5 Coordinator / Specialist
+### 16.4.5 Coordinator / Specialist
 
 Coordinator / Specialist 适合多领域任务。
 
@@ -513,7 +513,7 @@ Coordinator
 
 Coordinator 负责拆分、分配、合并和停止条件。Specialist 负责明确领域内的判断。
 
-### 15.4.6 多 Agent 的风险：成本、上下文丢失、无限循环、权限绕过
+### 16.4.6 多 Agent 的风险：成本、上下文丢失、无限循环、权限绕过
 
 多 Agent 常见失败模式：
 
@@ -529,9 +529,9 @@ Coordinator 负责拆分、分配、合并和停止条件。Specialist 负责明
 
 ---
 
-## 15.5 并行执行基础设施
+## 16.5 并行执行基础设施
 
-### 15.5.1 Git Worktrees：隔离工作区
+### 16.5.1 Git Worktrees：隔离工作区
 
 Coding Agent 的并行执行通常需要隔离文件系统状态。Git worktree 是一个实用基础设施。
 
@@ -549,7 +549,7 @@ git worktree add ../feature-payment feature/payment
 
 关键要求是写入范围要提前划分，避免多个 Agent 修改同一文件。
 
-### 15.5.2 Subagents：专家上下文
+### 16.5.2 Subagents：专家上下文
 
 Subagent 的核心价值是独立上下文。主 Agent 可以把一个边界清晰的任务交给专家 Agent，让它在自己的上下文中完成。
 
@@ -563,7 +563,7 @@ Subagent 的核心价值是独立上下文。主 Agent 可以把一个边界清�
 
 不适合把关键路径上的阻塞任务随意交给 subagent。下一步必须依赖的结果，主流程通常应该自己处理，或明确等待。
 
-### 15.5.3 Agent Teams：自动协调
+### 16.5.3 Agent Teams：自动协调
 
 Agent Team 把多个角色组织成固定拓扑。例如：
 
@@ -581,7 +581,7 @@ Team 的重点不是“让多个 Agent 聊天”，而是：
 - 有合并规则；
 - 有审计和成本记录。
 
-### 15.5.4 Batch / Fan-out：批量迁移、批量修复与批量评审
+### 16.5.4 Batch / Fan-out：批量迁移、批量修复与批量评审
 
 批量任务适合 fan-out。
 
@@ -602,7 +602,7 @@ Find targets
 - 最后统一格式化和测试；
 - 合并后的人工 review。
 
-### 15.5.5 并行任务的合并、冲突和审查边界
+### 16.5.5 并行任务的合并、冲突和审查边界
 
 并行执行的难点不在启动 worker，而在合并。
 
@@ -618,9 +618,9 @@ Find targets
 
 ---
 
-## 15.6 LangGraph：把 Agent 表示成有状态图
+## 16.6 LangGraph：把 Agent 表示成有状态图
 
-### 15.6.1 State、Node、Edge 与 Graph
+### 16.6.1 State、Node、Edge 与 Graph
 
 LangGraph 的核心抽象是有状态图。
 
@@ -633,7 +633,7 @@ LangGraph 的核心抽象是有状态图。
 
 这种设计适合把 Agent loop 拆成可观察的步骤。
 
-### 15.6.2 Durable Execution
+### 16.6.2 Durable Execution
 
 Durable Execution 让长任务可以在失败后恢复。关键是每一步状态都能持久化。
 
@@ -645,7 +645,7 @@ Resume after approval -> Node C
 
 这比保存聊天历史更可靠，因为 Runtime 知道当前状态、已完成动作和下一步允许动作。
 
-### 15.6.3 Human-in-the-loop
+### 16.6.3 Human-in-the-loop
 
 LangGraph 这类图式编排天然适合插入人工节点。
 
@@ -655,7 +655,7 @@ Diagnose -> Propose Action -> Human Approval -> Execute
 
 审批不是模型输出的一句话，而是图中的 interrupt / approval state。这样才能恢复和审计。
 
-### 15.6.4 Persistence 与 Replay
+### 16.6.4 Persistence 与 Replay
 
 Persistence 保存状态，Replay 用于调试和评估。
 
@@ -668,7 +668,7 @@ Replay 时要区分：
 
 这也是为什么工具副作用要有幂等键和 action log。
 
-### 15.6.5 适用场景与局限
+### 16.6.5 适用场景与局限
 
 适合 LangGraph 思路的场景：
 
@@ -682,9 +682,9 @@ Replay 时要区分：
 
 ---
 
-## 15.7 AutoGen：从多 Agent 对话到协作拓扑
+## 16.7 AutoGen：从多 Agent 对话到协作拓扑
 
-### 15.7.1 AgentChat、Core 与 Extensions
+### 16.7.1 AgentChat、Core 与 Extensions
 
 AutoGen 的价值在于多 Agent 编程模型。它把不同角色的 Agent、消息流、工具执行和团队模式组织起来。
 
@@ -696,7 +696,7 @@ AutoGen 的价值在于多 Agent 编程模型。它把不同角色的 Agent、�
 - 工具由谁执行；
 - 多角色结果如何合并。
 
-### 15.7.2 Team Pattern：多 Agent 不是群聊
+### 16.7.2 Team Pattern：多 Agent 不是群聊
 
 多 Agent 系统不应该是开放群聊，而应该是协作拓扑。
 
@@ -710,7 +710,7 @@ Writer / Reviewer Team
 
 不同拓扑对应不同控制策略。生产系统需要明确谁有最终决策权。
 
-### 15.7.3 工具执行和代码执行边界
+### 16.7.3 工具执行和代码执行边界
 
 多 Agent 中工具权限更容易出问题。不能因为某个 Agent 是“子角色”，就绕过工具权限。
 
@@ -722,7 +722,7 @@ Writer / Reviewer Team
 - 审批规则；
 - trace identity。
 
-### 15.7.4 多 Agent 系统的终止条件
+### 16.7.4 多 Agent 系统的终止条件
 
 多 Agent 最容易无限循环。终止条件必须外置。
 
@@ -738,7 +738,7 @@ team_policy:
 
 终止条件不应该完全交给参与对话的 Agent 自己判断。
 
-### 15.7.5 适用场景与局限
+### 16.7.5 适用场景与局限
 
 适合 AutoGen 思路的场景：
 
@@ -752,9 +752,9 @@ team_policy:
 
 ---
 
-## 15.8 Microsoft Agent Framework：企业化 Agent Runtime
+## 16.8 Microsoft Agent Framework：企业化 Agent Runtime
 
-### 15.8.1 Agents vs Workflows
+### 16.8.1 Agents vs Workflows
 
 企业级 Agent 系统通常同时需要 Agent 和 Workflow。
 
@@ -765,7 +765,7 @@ Workflow: 管理确定流程、状态、审批和恢复
 
 两者不是替代关系。生产系统常常是 workflow 调用 Agent，Agent 在节点内完成推理或工具选择。
 
-### 15.8.2 企业编排模式
+### 16.8.2 企业编排模式
 
 企业编排更关注：
 
@@ -779,7 +779,7 @@ Workflow: 管理确定流程、状态、审批和恢复
 
 这些能力往往比“模型能不能回答”更决定系统能否上线。
 
-### 15.8.3 Middleware、Telemetry 与企业接入
+### 16.8.3 Middleware、Telemetry 与企业接入
 
 企业平台需要在运行时统一处理横切能力：
 
@@ -794,7 +794,7 @@ Workflow: 管理确定流程、状态、审批和恢复
 
 Middleware 和 telemetry 的价值是让这些能力不散落在业务代码里。
 
-### 15.8.4 审批、恢复、部署与治理
+### 16.8.4 审批、恢复、部署与治理
 
 企业场景中，Agent Runtime 要能回答：
 
@@ -807,7 +807,7 @@ Middleware 和 telemetry 的价值是让这些能力不散落在业务代码里�
 
 这些能力和第 10 章生产治理直接衔接。
 
-### 15.8.5 适用场景与局限
+### 16.8.5 适用场景与局限
 
 适合企业级 Agent Framework 的场景：
 
@@ -821,9 +821,9 @@ Middleware 和 telemetry 的价值是让这些能力不散落在业务代码里�
 
 ---
 
-## 15.9 平台能力矩阵
+## 16.9 平台能力矩阵
 
-### 15.9.1 编排能力
+### 16.9.1 编排能力
 
 编排能力包括：
 
@@ -838,7 +838,7 @@ Middleware 和 telemetry 的价值是让这些能力不散落在业务代码里�
 
 编排层决定任务怎么走。
 
-### 15.9.2 状态与持久化能力
+### 16.9.2 状态与持久化能力
 
 状态能力包括：
 
@@ -852,7 +852,7 @@ Middleware 和 telemetry 的价值是让这些能力不散落在业务代码里�
 
 状态层决定任务能不能恢复。
 
-### 15.9.3 多 Agent 能力
+### 16.9.3 多 Agent 能力
 
 多 Agent 能力包括：
 
@@ -866,7 +866,7 @@ Middleware 和 telemetry 的价值是让这些能力不散落在业务代码里�
 
 多 Agent 层决定多个角色能不能协作而不是互相干扰。
 
-### 15.9.4 工具和资源接入能力
+### 16.9.4 工具和资源接入能力
 
 工具和资源接入可以通过函数调用、内部 API Gateway、Connector、MCP Server 等方式实现。
 
@@ -880,7 +880,7 @@ Integration Layer: tools / resources / connectors / MCP servers
 Governance Layer: policy / trace / eval / release gate
 ```
 
-### 15.9.5 治理、观测和部署能力
+### 16.9.5 治理、观测和部署能力
 
 治理能力包括：
 
@@ -895,7 +895,7 @@ Governance Layer: policy / trace / eval / release gate
 
 这些能力决定 Agent 能不能长期运行，而不仅是 demo 能不能跑通。
 
-### 15.9.6 框架选型对比表
+### 16.9.6 框架选型对比表
 
 | 维度 | LangGraph | AutoGen | Microsoft Agent Framework | 自研 Runtime |
 |:---|:---|:---|:---|:---|
@@ -909,9 +909,9 @@ Governance Layer: policy / trace / eval / release gate
 
 ---
 
-## 15.10 设计自己的 Agent 平台
+## 16.10 设计自己的 Agent 平台
 
-### 15.10.1 最小生产平台清单
+### 16.10.1 最小生产平台清单
 
 一个最小生产 Agent 平台不应该先追求可视化拖拽，而应该优先建设运行时底座。
 
@@ -925,7 +925,7 @@ Governance Layer: policy / trace / eval / release gate
 | Eval Harness | 回归集、失败样本、版本对比 | 模型或 prompt 一改就退化 |
 | Artifact Store | 报告、diff、图表、日志片段 | 输出散落在聊天里，无法审查 |
 
-### 15.10.2 控制面、执行面、集成面与治理面
+### 16.10.2 控制面、执行面、集成面与治理面
 
 可以把平台拆成四个面：
 
@@ -938,7 +938,7 @@ Governance Plane: trace / eval / audit / cost / monitoring
 
 这四个面不一定要拆成四个服务，但职责要清楚。
 
-### 15.10.3 生产级运行时事件模型
+### 16.10.3 生产级运行时事件模型
 
 Agent Runtime 应该把关键事件记录下来。
 
@@ -958,7 +958,7 @@ Agent Runtime 应该把关键事件记录下来。
 
 事件模型是 trace、eval、debug、audit 和 billing 的共同基础。
 
-### 15.10.4 多租户与权限边界
+### 16.10.4 多租户与权限边界
 
 平台化后必须处理多租户：
 
@@ -972,7 +972,7 @@ Agent Runtime 应该把关键事件记录下来。
 
 多 Agent 和 subagent 不能继承无限权限。每次 handoff 都应该重新计算权限和上下文边界。
 
-### 15.10.5 从单应用 Agent 到共享平台的演进路线
+### 16.10.5 从单应用 Agent 到共享平台的演进路线
 
 推荐演进路线：
 
@@ -989,9 +989,9 @@ single app agent
 
 ---
 
-## 15.11 工程取舍与选型清单
+## 16.11 工程取舍与选型清单
 
-### 15.11.1 图式编排 vs 自由 Agent Loop
+### 16.11.1 图式编排 vs 自由 Agent Loop
 
 自由 loop 灵活，图式编排可控。
 
@@ -1002,13 +1002,13 @@ single app agent
 - 高风险动作必须进入审批节点；
 - 长任务必须有 checkpoint。
 
-### 15.11.2 单 Agent vs 多 Agent
+### 16.11.2 单 Agent vs 多 Agent
 
 优先从单 Agent + Workflow 开始。只有当存在清晰角色边界、并行收益或互审需求时，再引入多 Agent。
 
 多 Agent 的收益必须超过协调成本。
 
-### 15.11.3 框架 vs 自研
+### 16.11.3 框架 vs 自研
 
 选择框架还是自研，取决于已有系统约束。
 
@@ -1026,7 +1026,7 @@ single app agent
 - 不希望引入重依赖；
 - 平台能力需要深度定制。
 
-### 15.11.4 平台化 vs 单应用内嵌
+### 16.11.4 平台化 vs 单应用内嵌
 
 单应用内嵌适合早期验证。平台化适合多团队复用。
 
@@ -1039,7 +1039,7 @@ single app agent
 - 需要统一 eval 和 release gate；
 - 长任务恢复成为共性问题。
 
-### 15.11.5 选型决策树
+### 16.11.5 选型决策树
 
 ```text
 任务是否有明确流程？
@@ -1065,9 +1065,9 @@ single app agent
 
 ---
 
-## 15.12 常见失败模式与修复路径
+## 16.12 常见失败模式与修复路径
 
-### 15.12.1 工作流卡死
+### 16.12.1 工作流卡死
 
 表现：
 
@@ -1082,7 +1082,7 @@ single app agent
 - 增加 fallback 和 human escalation；
 - trace 中记录卡住原因。
 
-### 15.12.2 状态丢失或重复执行
+### 16.12.2 状态丢失或重复执行
 
 表现：
 
@@ -1097,7 +1097,7 @@ single app agent
 - action log 记录请求和响应；
 - resume 时从状态恢复，不从聊天历史猜。
 
-### 15.12.3 多 Agent 循环争论
+### 16.12.3 多 Agent 循环争论
 
 表现：
 
@@ -1112,7 +1112,7 @@ single app agent
 - 引入 final decision owner；
 - 低置信度转人工。
 
-### 15.12.4 工具副作用失控
+### 16.12.4 工具副作用失控
 
 表现：
 
@@ -1129,7 +1129,7 @@ single app agent
 - audit log；
 - 最小权限。
 
-### 15.12.5 平台抽象过重
+### 16.12.5 平台抽象过重
 
 表现：
 
@@ -1144,7 +1144,7 @@ single app agent
 - 保留轻量 escape hatch；
 - 平台能力按复用痛点演进。
 
-### 15.12.6 Trace 不足导致无法复盘
+### 16.12.6 Trace 不足导致无法复盘
 
 表现：
 
