@@ -6,14 +6,15 @@
 
 ## 全书工程主线图
 
-本书按“**大模型 → Agent 工程 → Agent 应用与实战**”三部分展开。主线不是“学一堆工具名”，而是先理解模型能力与边界，再把模型放进可约束、可验证、可治理的 Agent 运行环境，最后用这套方法完成真实工作。
+本书按“**大模型 → Agent 工程 → Agent 应用与实战 → 前沿与研究**”四部分展开。主线不是“学一堆工具名”，而是先理解模型能力与边界，再把模型放进可约束、可验证、可治理的 Agent 运行环境，用这套方法完成真实工作，最后以研究型与前沿专题判断下一步能力边界。
 
 ```mermaid
 flowchart LR
     A["第一部分：大模型<br/>原理 / 训练 / 推理 / 边界"] --> B["第二部分：Agent 工程<br/>Prompt / Context / Harness"]
     B --> C["Agent Runtime<br/>工具 / 知识 / 记忆 / 编排"]
     C --> D["生产治理<br/>Evals / Guardrails / Observability"]
-    D --> E["第三部分：Agent 应用与实战<br/>Coding / 企业知识 / 告警 / PKM / Research"]
+    D --> E["第三部分：Agent 应用与实战<br/>Coding / 企业知识 / 告警 / PKM / 生活 Agent"]
+    E --> F["第四部分：前沿与研究<br/>Research Agent / 多模态 / 具身 / 长期学习"]
 ```
 
 ## 本书解决什么问题
