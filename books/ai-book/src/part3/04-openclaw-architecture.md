@@ -4,7 +4,7 @@
 
 ## 引言
 
-第 9 章已经分析了 LangGraph、AutoGen、MCP 这类 Agent 平台与编排框架；第 13 章分析了 AI Coding Agent，第 14 章进一步拆解了 Pi 这类终端原生 Coding Agent Runtime。本章继续分析一个更贴近个人生产力场景的成熟系统：OpenClaw。
+第 16 章已经分析了 LangGraph、AutoGen、MCP 这类 Agent 平台与编排框架；第 18 章分析了 AI Coding Agent，第 19 章进一步拆解了 Pi 这类终端原生 Coding Agent Runtime。本章继续分析一个更贴近个人生产力场景的成熟系统：OpenClaw。
 
 OpenClaw 的官方定位是个人 AI 助手。它运行在用户自己的设备或服务器上，通过一个长期运行的 Gateway 接入 WhatsApp、Telegram、Slack、Discord、Signal、iMessage、WebChat 等渠道，并把这些消息路由给 Agent Runtime。它还提供工具、技能、插件、会话、上下文、沙箱、移动节点和控制台等能力。
 
@@ -159,11 +159,11 @@ flowchart TB
 
 OpenClaw 最值得学习的地方，是它没有把所有东西堆进 Agent Loop。它把消息接入、会话路由、工具策略、上下文构建、沙箱执行拆到不同层，每层只承担一个主要职责。
 
-### 与第11章组件地图的对应关系
+### 与第8章组件地图的对应关系
 
 OpenClaw 的特点是 Gateway 很强。它不是只做一个 Agent Loop，而是先把多渠道入口、身份绑定、队列、会话、上下文、工具、插件和执行边界组织起来。用第 5 章组件地图来看，OpenClaw 对“入口路由、人类交互、上下文、工具扩展、权限边界”覆盖较完整，对“离线 Eval Harness、模型路由、长期学习闭环”的公开实现则相对弱一些。
 
-| 第11章组件 | OpenClaw 中的实现方式 | 实现状态与差异 |
+| 第8章组件 | OpenClaw 中的实现方式 | 实现状态与差异 |
 |:---|:---|:---|
 | Event & Intake Router | Channel Adapter、Gateway Ingress、Queue、WebChat、移动 / 桌面 Nodes | 强实现；这是 OpenClaw 的架构核心 |
 | Intent Normalizer | Inbound Normalization、Routing & Bindings、会话上下文共同决定任务入口 | 部分实现；更偏消息归一化和路由，任务契约需要 Runtime/Skill 进一步形成 |

@@ -325,11 +325,11 @@ Agent 执行
 
 这些模块的边界要清楚。模型可以建议行动，但工具和权限由 Runtime 控制；模型可以总结结果，但完成判定必须由 Verifier 和人审共同支撑。
 
-### 与第11章组件地图的对应关系
+### 与第8章组件地图的对应关系
 
 第 5 章把生产级 Agent Runtime 拆成 13 个核心组件。放到 Coding Agent 场景里，这些组件会更具体：入口不再只是聊天，而是 issue、diff、终端、IDE、PR、CI；上下文不再只是文档，而是代码仓库、Git 状态、测试输出、项目规则和历史变更。
 
-| 第11章组件 | Coding Agent 中的典型实现 | Claude Code / Cursor / Codex 的差异 |
+| 第8章组件 | Coding Agent 中的典型实现 | Claude Code / Cursor / Codex 的差异 |
 |:---|:---|:---|
 | Event & Intake Router | 接收自然语言任务、issue、PR 评论、终端命令、IDE 操作和后台任务 | Claude Code 偏终端入口，Cursor 偏 IDE 入口，Codex 同时覆盖本地任务和云端任务队列 |
 | Intent Normalizer | 把“修一下这个问题”转成 bugfix、refactor、test、review、explain、migration 等任务类型 | IDE 产品更依赖当前文件和选区，终端/云端产品更依赖任务说明、仓库和分支 |

@@ -1,4 +1,4 @@
-# 第9章 Context Engineering：从上下文注入到信息架构
+# 第10章 Context Engineering：从上下文注入到信息架构
 
 > Context Engineering 的核心不是“给模型更多资料”，而是为当前任务构建一个受控、可信、可追溯、可压缩、可评估的模型工作区。
 
@@ -47,7 +47,7 @@ flowchart TD
 
 ---
 
-## 9.1 为什么需要 Context Engineering：LLM 的上下文特性
+## 10.1 为什么需要 Context Engineering：LLM 的上下文特性
 
 要设计上下文系统，先要理解 LLM 在上下文上的几个工程特性。很多失败不是模型“笨”，而是我们给它的工作区不适合完成任务。
 
@@ -222,7 +222,7 @@ constraints: 不可违反的约束
 
 ---
 
-## 9.2 Context Engineering 的设计思路：从任务信息需求开始
+## 10.2 Context Engineering 的设计思路：从任务信息需求开始
 
 Context Engineering 的入口不是“我有哪些文档”，而是“当前任务为了正确执行，必须知道哪些信息”。
 
@@ -381,7 +381,7 @@ order-service 的超时时间是 3 秒。
 
 ---
 
-## 9.3 上下文类型系统：把信息按用途和风险拆开
+## 10.3 上下文类型系统：把信息按用途和风险拆开
 
 上下文应该有类型。没有类型的上下文，会在模型工作区里变成一团难以治理的文本。
 
@@ -675,7 +675,7 @@ execution_state:
   task_id: "ctx-chapter-rewrite-20260428"
   phase: "verification"
   changed_files:
-    - "books/ai-book/src/part1/09-context-engineering.md"
+    - "books/ai-book/src/part2/03-context-engineering.md"
   blocked_actions: []
   required_verification:
     - "cd books/ai-book && mdbook build"
@@ -693,7 +693,7 @@ execution_state:
 
 ---
 
-## 9.4 Context Package：把信息结构化交给模型
+## 10.4 Context Package：把信息结构化交给模型
 
 上下文不是简单拼接文本。生产系统更应该构建 Context Package，也就是一份结构化、带来源、带优先级、带边界的模型工作区。
 
@@ -714,7 +714,7 @@ execution_state:
 task:
   type: content_rewrite
   goal: "深化 Context Engineering 章节"
-  target_file: "books/ai-book/src/part1/09-context-engineering.md"
+  target_file: "books/ai-book/src/part2/03-context-engineering.md"
 
 current_user_instruction:
   content: "同样的道理，优化 Context Engineering：从上下文注入到信息架构"
@@ -731,7 +731,7 @@ project_rules:
     priority: hard
 
 authoritative_context:
-  - source: "books/ai-book/src/part1/10-harness-engineering.md"
+  - source: "books/ai-book/src/part2/04-harness-engineering.md"
     reason: "Harness 章已按用户满意方向深化，可作为风格参考"
 
 excluded_context:
@@ -877,7 +877,7 @@ excluded_context:
 
 ---
 
-## 9.5 优先级、可信度与冲突处理
+## 10.5 优先级、可信度与冲突处理
 
 上下文冲突是常态，不是异常。真实系统里，用户说法、旧文档、最新配置、历史案例、工具结果经常互相矛盾。
 
@@ -1000,7 +1000,7 @@ derived 上下文必须能追溯到原始来源。
 
 ---
 
-## 9.6 上下文预算与信息密度
+## 10.6 上下文预算与信息密度
 
 上下文窗口是资源，不是仓库。上下文越多，不一定越好。
 
@@ -1152,7 +1152,7 @@ Level 5: 人工确认或审批
 
 ---
 
-## 9.7 压缩与摘要：保留状态，而不是压扁文本
+## 10.7 压缩与摘要：保留状态，而不是压扁文本
 
 长任务一定需要压缩。但压缩不是把文本变短，而是把任务状态、证据和决策保留下来。
 
@@ -1258,8 +1258,8 @@ required_checks:
 ```text
 USER_SET_GOAL(rewrite_context_chapter)
 USER_CONFIRMED_STYLE(deep_architectural_explanation)
-AGENT_READ_FILE(books/ai-book/src/part1/09-context-engineering.md)
-AGENT_MODIFIED_FILE(books/ai-book/src/part1/09-context-engineering.md)
+AGENT_READ_FILE(books/ai-book/src/part2/03-context-engineering.md)
+AGENT_MODIFIED_FILE(books/ai-book/src/part2/03-context-engineering.md)
 AGENT_REQUIRED_VERIFICATION(mdbook_build, hexo_build)
 ```
 
@@ -1300,7 +1300,7 @@ AGENT_REQUIRED_VERIFICATION(mdbook_build, hexo_build)
 
 ---
 
-## 9.8 RAG：把检索当成上下文供应链
+## 10.8 RAG：把检索当成上下文供应链
 
 RAG 是 Context Engineering 的重要组成部分，但 RAG 不等于 Context Engineering。
 
@@ -1566,7 +1566,7 @@ RAG 的目标不是让模型“读过更多资料”，而是让它在正确任�
 
 ---
 
-## 9.9 Memory：长期记忆不是事实数据库
+## 10.9 Memory：长期记忆不是事实数据库
 
 Memory 是上下文来源之一，但它不是事实数据库，也不是权限系统。
 
@@ -1676,7 +1676,7 @@ Memory 的价值在于减少重复沟通，而不是替系统做判断。
 
 ---
 
-## 9.10 Context Rot 与上下文污染
+## 10.10 Context Rot 与上下文污染
 
 Context Rot 是长任务中非常常见的问题。它指上下文逐渐变旧、变脏、变冲突，最终让模型偏离当前任务。
 
@@ -1776,7 +1776,7 @@ retrieved_content:
 
 ---
 
-## 9.11 Context Firewall：用隔离保护任务质量
+## 10.11 Context Firewall：用隔离保护任务质量
 
 并不是所有上下文都应该共处一个会话。复杂任务需要上下文防火墙。
 
@@ -1895,7 +1895,7 @@ handoff:
     - "align depth with Harness chapter"
     - "include LLM characteristics, thinking path, best practices"
   changed_files:
-    - "books/ai-book/src/part1/09-context-engineering.md"
+    - "books/ai-book/src/part2/03-context-engineering.md"
   required_verification:
     - "cd books/ai-book && mdbook build"
     - "npm run clean && npm run build"
@@ -1905,7 +1905,7 @@ handoff:
 
 ---
 
-## 9.12 项目级上下文工程：把知识沉淀到仓库
+## 10.12 项目级上下文工程：把知识沉淀到仓库
 
 对 AI 编程和 AI 写作来说，最重要的上下文系统往往不是外部向量库，而是项目仓库本身。
 
@@ -2061,7 +2061,7 @@ context_map:
 
 ---
 
-## 9.13 上下文评估：让上下文系统可度量
+## 10.13 上下文评估：让上下文系统可度量
 
 如果上下文系统无法评估，就无法持续改进。
 
@@ -2182,7 +2182,7 @@ eval_case:
 
 ---
 
-## 9.14 从 Context 到 Harness
+## 10.14 从 Context 到 Harness
 
 Context Engineering 让模型拥有更好的工作区，但它仍然不能单独保证系统可靠。
 

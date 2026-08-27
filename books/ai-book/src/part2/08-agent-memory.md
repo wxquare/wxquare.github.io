@@ -1406,7 +1406,7 @@ summary:
 
 ```text
 USER_CONFIRMED_REQUIREMENT(depth=architecture_level)
-AGENT_READ_FILE(books/ai-book/src/part2/05-agent-memory.md)
+AGENT_READ_FILE(books/ai-book/src/part2/08-agent-memory.md)
 AGENT_PROPOSED_DESIGN(memory_control_plane)
 USER_APPROVED_DESIGN
 AGENT_REWROTE_FILE

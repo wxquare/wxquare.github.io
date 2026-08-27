@@ -1,4 +1,4 @@
-# 第8章 Prompt Engineering 与结构化输出：从提示词到任务协议
+# 第9章 Prompt Engineering 与结构化输出：从提示词到任务协议
 
 > Prompt Engineering 的目标不是写出一句“神奇提示词”，而是把任务目标、角色边界、上下文使用方式、工具调用规则、输出契约和失败处理设计成模型可执行、系统可校验、团队可迭代的任务协议。
 
@@ -50,7 +50,7 @@ Prompt Engineering 的真正价值，是把“模型自由发挥”变成“模�
 
 ---
 
-## 8.1 为什么需要 Prompt Engineering：LLM 的指令特性
+## 9.1 为什么需要 Prompt Engineering：LLM 的指令特性
 
 要深入理解 Prompt Engineering，先要理解 LLM 在指令执行上的工程特性。很多 Prompt 失败不是模型不听话，而是任务协议没有把模型的行为边界说清楚。
 
@@ -282,7 +282,7 @@ Prompt 不能单独解决：
 
 ---
 
-## 8.2 Prompt Engineering 的设计思路：从任务风险开始
+## 9.2 Prompt Engineering 的设计思路：从任务风险开始
 
 Prompt 设计不要从“怎么写一句话”开始，而要从任务风险和系统边界开始。
 
@@ -433,7 +433,7 @@ output_contract:
 
 ---
 
-## 8.3 Prompt 的层级架构：从角色到输出契约
+## 9.3 Prompt 的层级架构：从角色到输出契约
 
 生产级 Prompt 通常不是一段话，而是多层结构。
 
@@ -641,7 +641,7 @@ Prompt 必须定义模型什么时候应该停止。
 
 ---
 
-## 8.4 Task Protocol：把需求变成可执行协议
+## 9.4 Task Protocol：把需求变成可执行协议
 
 Prompt Engineering 的核心产物不是一句 prompt，而是 Task Protocol。
 
@@ -797,7 +797,7 @@ Workflow:
 
 ---
 
-## 8.5 角色、职责与边界：不要让模型扮演所有人
+## 9.5 角色、职责与边界：不要让模型扮演所有人
 
 Prompt 中的角色设计非常关键。角色设计不好，模型容易把多个职责混在一起。
 
@@ -892,7 +892,7 @@ Prompt 不能替代工具 ACL，但 Prompt 应该表达工具 ACL 的意图。
 
 ---
 
-## 8.6 Context Contract：Prompt 如何使用上下文
+## 9.6 Context Contract：Prompt 如何使用上下文
 
 Context Engineering 负责构建上下文，Prompt 负责告诉模型如何使用上下文。两者必须配合。
 
@@ -1023,7 +1023,7 @@ Prompt 应该规定冲突处理方式。
 
 ---
 
-## 8.7 Reasoning Contract：让推理过程可控、可审计
+## 9.7 Reasoning Contract：让推理过程可控、可审计
 
 Prompt 不能只约束最终答案，还要约束模型如何组织外部可见的推理结果。
 
@@ -1159,7 +1159,7 @@ Reasoning Contract 也要有失败策略。
 
 ---
 
-## 8.8 Output Contract：结构化输出是系统边界
+## 9.8 Output Contract：结构化输出是系统边界
 
 Agent 系统通常不应该只输出自然语言。自然语言适合人读，但不适合直接驱动系统。
 
@@ -1328,7 +1328,7 @@ Repair Prompt 的职责是修格式，不是重新推理。
 
 ---
 
-## 8.9 Prompt 与工具 Schema 的协同设计
+## 9.9 Prompt 与工具 Schema 的协同设计
 
 工具调用是 Agent 从“回答问题”走向“行动”的关键。Prompt 和工具 schema 必须一起设计。
 
@@ -1449,7 +1449,7 @@ Prompt 应要求：
 
 ---
 
-## 8.10 Few-shot、反例与决策边界
+## 9.10 Few-shot、反例与决策边界
 
 Few-shot 的价值不是让模型模仿语气，而是降低边界模糊。
 
@@ -1564,7 +1564,7 @@ Few-shot 应该包含这些情况。
 
 ---
 
-## 8.11 Prompt Chaining：把复杂任务拆成可控步骤
+## 9.11 Prompt Chaining：把复杂任务拆成可控步骤
 
 一个常见错误是让单个 Prompt 完成整个复杂任务。
 
@@ -1708,7 +1708,7 @@ Reviewer Prompt 应该采用审查姿态。
 
 ---
 
-## 8.12 失败策略：让模型知道何时停下来
+## 9.12 失败策略：让模型知道何时停下来
 
 生产 Prompt 必须设计失败路径。
 
@@ -1860,7 +1860,7 @@ high risk 动作包括：
 
 ---
 
-## 8.13 Prompt 版本管理、评估与回滚
+## 9.13 Prompt 版本管理、评估与回滚
 
 Prompt 是生产系统的一部分，应该像代码一样管理。
 
@@ -1997,7 +1997,7 @@ Prompt 回滚不应该靠临时复制旧文本。它应该是系统能力。
 
 ---
 
-## 8.14 Prompt 安全：指令冲突与 Prompt Injection
+## 9.14 Prompt 安全：指令冲突与 Prompt Injection
 
 Prompt 安全不是只写一句“不要被攻击”。它要处理指令层级、外部内容和工具权限之间的关系。
 
@@ -2102,7 +2102,7 @@ Prompt 安全不是一条规则，而是一组边界设计。
 
 ---
 
-## 8.15 常见失败模式与 Debug 路径
+## 9.15 常见失败模式与 Debug 路径
 
 Prompt 失败通常不是随机的。它有模式，也有系统化排查路径。
 
@@ -2195,7 +2195,7 @@ Prompt 是控制面之一，不是所有问题的垃圾桶。
 
 ---
 
-## 8.16 从 Prompt 到 Context
+## 9.16 从 Prompt 到 Context
 
 Prompt Engineering 是 AI 工程的第一层控制面。它让模型知道：
 

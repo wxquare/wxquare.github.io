@@ -1,4 +1,4 @@
-# 第10章 Harness Engineering：从模型调用到 Agent 运行环境
+# 第11章 Harness Engineering：从模型调用到 Agent 运行环境
 
 > Harness Engineering 的目标，不是让模型“更聪明”，而是让模型在一个可约束、可验证、可观测、可恢复的环境中工作。
 
@@ -31,7 +31,7 @@ Harness 是模型周围的运行环境。它包括上下文构建、工具系统
 
 ---
 
-## 10.1 为什么需要 Harness：LLM 的工程特性
+## 11.1 为什么需要 Harness：LLM 的工程特性
 
 要理解 Harness，先要理解 LLM 在工程系统里的几个基本特性。
 
@@ -128,7 +128,7 @@ Harness Engineering 的核心能力，就是把失败归因到系统层，并把
 
 ---
 
-## 10.2 Harness 的设计思路：从任务风险开始
+## 11.2 Harness 的设计思路：从任务风险开始
 
 不要一上来就选框架。设计 Harness 应该从任务风险和不确定性开始。
 
@@ -207,7 +207,7 @@ Harness 设计不能只问“成功路径是什么”，还要先问：
 
 ---
 
-## 10.3 Harness 的六层架构
+## 11.3 Harness 的六层架构
 
 一个生产级 Agent Harness 可以拆成六层。
 
@@ -251,13 +251,13 @@ flowchart TB
 
 从生产治理角度看，这六层还承担另一件事：为后续治理控制面提供事实来源。Context Layer 记录模型看到了什么，Tool Layer 记录模型想做什么和工具实际做了什么，Guardrail Layer 记录哪些风险被拦截，Eval Layer 证明候选版本是否可靠，Observability Layer 把线上失败转成可复盘的 trace。
 
-因此 Harness 不只是运行环境，也是治理数据的采集点。第 10 章会继续展开：这些 trace、policy decision、eval result 和 failure record 如何进入 Release Gate，决定一个 Agent 版本能不能发布。
+因此 Harness 不只是运行环境，也是治理数据的采集点。第 17 章会继续展开：这些 trace、policy decision、eval result 和 failure record 如何进入 Release Gate，决定一个 Agent 版本能不能发布。
 
 接下来逐层展开。
 
 ---
 
-## 10.4 Context Layer：给模型一个受控工作区
+## 11.4 Context Layer：给模型一个受控工作区
 
 Context Layer 负责回答：
 
@@ -347,7 +347,7 @@ constraints:
 
 ---
 
-## 10.5 Tool Layer：把外部能力变成安全工具
+## 11.5 Tool Layer：把外部能力变成安全工具
 
 工具是 Agent 的手。工具设计不好，模型能力越强，系统风险越大。
 
@@ -485,7 +485,7 @@ MCP 可以标准化工具暴露方式，但它不是安全边界本身。
 
 ---
 
-## 10.6 Workflow Layer：用确定性流程约束开放推理
+## 11.6 Workflow Layer：用确定性流程约束开放推理
 
 LLM 很适合在局部做判断，但不适合独自管理完整生命周期。
 
@@ -619,7 +619,7 @@ Plan 和 Execute 混在一个长会话里，容易引入上下文污染。更稳
 
 ---
 
-## 10.7 Guardrail Layer：不要把安全边界写成愿望
+## 11.7 Guardrail Layer：不要把安全边界写成愿望
 
 Prompt 可以提醒模型，但不能作为真正的安全边界。
 
@@ -711,7 +711,7 @@ if env == "production" and action mutates state:
 
 ---
 
-## 10.8 Eval Layer：模型自评不等于系统质量
+## 11.8 Eval Layer：模型自评不等于系统质量
 
 LLM 有一个重要特性：它很擅长解释自己的答案为什么合理，但这不等于答案真的正确。
 
@@ -792,7 +792,7 @@ LLM-as-Judge 可以评估语义质量，但要注意：
 
 ---
 
-## 10.9 Observability Layer：让 Agent 行为可复盘
+## 11.9 Observability Layer：让 Agent 行为可复盘
 
 传统后端系统看错误率、延迟、QPS。Agent 系统还要看“行为过程”。
 
@@ -884,7 +884,7 @@ human_rejected
 
 ---
 
-## 10.10 Harness 迭代：把失败沉淀成系统资产
+## 11.10 Harness 迭代：把失败沉淀成系统资产
 
 Harness Engineering 的成熟标志，是每次失败都能转化为系统资产。
 
@@ -985,7 +985,7 @@ LLM 的工程特性决定了 Harness 的必要性：
 
 当所有团队都能接入相似水平的模型时，差异不再主要来自“谁的模型更强”，而是来自“谁的 Harness 更可靠”。这也是工程师最有价值的地方：把不确定的模型能力，放进确定的工程系统里。
 
-下一部分将进入 Agent 架构与运行时设计，讨论 LLM 能力边界、Agent 架构决策、工具系统和工作流编排。等到第 10 章讨论生产治理时，你会再次看到这条主线：Harness 采集事实，治理控制面消费事实，并把失败变成下一次发布前的门禁。
+下一部分将进入 Agent 架构与运行时设计，讨论 LLM 能力边界、Agent 架构决策、工具系统和工作流编排。等到第 17 章讨论生产治理时，你会再次看到这条主线：Harness 采集事实，治理控制面消费事实，并把失败变成下一次发布前的门禁。
 
 ---
 
