@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b975dc1a.js";
+            window.path_to_searchindex_js = "../searchindex-a6afbc1d.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-31e96f17.js"></script>
+        <script src="../toc-654656d9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -383,7 +383,7 @@ flowchart LR
 <li>sampling 参数是否按任务类型配置？</li>
 <li>JSON / tool calling 是否需要 constrained decoding？</li>
 </ul>
-<h2 id="416-面试表达"><a class="header" href="#416-面试表达">4.16 面试表达</a></h2>
+<h2 id="416-设计评审表达"><a class="header" href="#416-设计评审表达">4.16 设计评审表达</a></h2>
 <p>一句话版：</p>
 <blockquote>
 <p>LLM 推理分为 prefill 和 decode。Prefill 处理输入并生成 KV cache，decode 一次生成一个 token 并复用历史 KV。KV cache 能显著加速生成，但显存随 batch size 和 context length 线性增长，所以工业界用 PagedAttention、continuous batching、prefix reuse、GQA/MQA/MLA、量化、offloading 和 cache-aware scheduling 优化。</p>
@@ -476,8 +476,8 @@ decode-heavy workload 需要优化 KV cache、batching 和 memory bandwidth
 <li><strong>看输出长度</strong>：reasoning 或 verbose prompt 可能让 decode 成本暴涨。</li>
 </ol>
 <p>只有把这些指标拆开，才能判断该优化 prompt、换模型、改 sampling、加 batching、做量化，还是换 serving engine。</p>
-<h2 id="423-面试加分表达从单机推理到服务化推理"><a class="header" href="#423-面试加分表达从单机推理到服务化推理">4.23 面试加分表达：从单机推理到服务化推理</a></h2>
-<p>面试里如果只讲 KV cache 公式，答案还停留在模型层。更好的表达是：</p>
+<h2 id="423-进阶设计推演从单机推理到服务化推理"><a class="header" href="#423-进阶设计推演从单机推理到服务化推理">4.23 进阶设计推演：从单机推理到服务化推理</a></h2>
+<p>设计评审里如果只讲 KV cache 公式，答案还停留在模型层。更好的表达是：</p>
 <blockquote>
 <p>单机推理关注一次 forward 怎么快；服务化推理关注多请求、多长度、多租户下如何稳定利用 GPU。KV cache 是连接模型层和系统层的关键状态，它既决定 decode 速度，也决定显存容量和调度策略。因此我会同时考虑模型结构、cache layout、batch scheduler、prefix reuse、admission control 和质量 eval。</p>
 </blockquote>
@@ -574,7 +574,7 @@ decode-heavy workload 需要优化 KV cache、batching 和 memory bandwidth
 <li>输出继续增长后的 KV。</li>
 </ul>
 <p>所以容量规划通常要保守，比如只按 60%-80% 可用 KV 空间做 admission control。</p>
-<p>这个估算能力非常适合面试，因为它能把模型结构、显存和服务并发连起来。</p>
+<p>这个估算能力非常适合设计评审，因为它能把模型结构、显存和服务并发连起来。</p>
 <h2 id="428-专家实践推理优化的优先级"><a class="header" href="#428-专家实践推理优化的优先级">4.28 专家实践：推理优化的优先级</a></h2>
 <p>当系统太慢或太贵时，可以按优先级尝试：</p>
 <ol>
@@ -641,6 +641,22 @@ decode-heavy workload 需要优化 KV cache、batching 和 memory bandwidth
         <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
         <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
 
 
         <script>

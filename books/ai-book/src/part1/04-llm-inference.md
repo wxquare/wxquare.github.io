@@ -274,7 +274,7 @@ Speculative decoding 用小模型或 draft head 先生成候选 token，再由�
 - sampling 参数是否按任务类型配置？
 - JSON / tool calling 是否需要 constrained decoding？
 
-## 4.16 面试表达
+## 4.16 设计评审表达
 
 一句话版：
 
@@ -395,9 +395,9 @@ reasoning 模型通常会生成更长的中间推理轨迹。这提升了复杂�
 
 只有把这些指标拆开，才能判断该优化 prompt、换模型、改 sampling、加 batching、做量化，还是换 serving engine。
 
-## 4.23 面试加分表达：从单机推理到服务化推理
+## 4.23 进阶设计推演：从单机推理到服务化推理
 
-面试里如果只讲 KV cache 公式，答案还停留在模型层。更好的表达是：
+设计评审里如果只讲 KV cache 公式，答案还停留在模型层。更好的表达是：
 
 > 单机推理关注一次 forward 怎么快；服务化推理关注多请求、多长度、多租户下如何稳定利用 GPU。KV cache 是连接模型层和系统层的关键状态，它既决定 decode 速度，也决定显存容量和调度策略。因此我会同时考虑模型结构、cache layout、batch scheduler、prefix reuse、admission control 和质量 eval。
 
@@ -526,7 +526,7 @@ KV cache 约为：
 
 所以容量规划通常要保守，比如只按 60%-80% 可用 KV 空间做 admission control。
 
-这个估算能力非常适合面试，因为它能把模型结构、显存和服务并发连起来。
+这个估算能力非常适合设计评审，因为它能把模型结构、显存和服务并发连起来。
 
 ## 4.28 专家实践：推理优化的优先级
 

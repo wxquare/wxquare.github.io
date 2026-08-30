@@ -1,4 +1,4 @@
-# 第 31 章 电商商品供给、库存、审核与运营全生命周期设计
+# 第 35 章 电商商品供给、库存、审核与运营全生命周期设计
 
 > **本章定位**：这不是对“商品中心”“供给平台”“库存系统”三篇文章的简单拼接，而是站在平台生命周期视角，把商品如何进入平台、如何被治理、如何形成正式交易契约、如何建立可售库存、如何持续编辑和运营、以及如何与搜索、营销、订单、履约保持一致，收敛成一条完整主线。
 
@@ -12,9 +12,9 @@
 
 建议配合以下章节交叉阅读：
 
-- [第 21 章 商品中心系统](../part02/03-product-center.md)
-- [第 22 章 库存系统](../part02/04-inventory-system.md)
-- [第 24 章 商品供给、编辑、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)
+- [第 25 章 商品中心系统](../part02/03-product-center.md)
+- [第 27 章 库存系统](../part02/04-inventory-system.md)
+- [第 26 章 商品供给、编辑、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)
 
 ---
 
@@ -4616,9 +4616,9 @@ func (old *ProductDTO) CustomDiff(new *ProductDTO) []ChangeLogDetail
 | `item_snapshot` | 订单解释事实 | 订单只信快照 |
 | `product_edit_history_log` | 记录商品 Draft/QC/Publish 三阶段历史 | 负责解释演进路径和字段 Diff，不承接正式商品真相 |
 
-如果后续第 6 章把 QC 平台表完全独立出来，则：
+如果后续第 5 章把 QC 平台表完全独立出来，则：
 
-- `product_qc_review` 在第 4 章只作为交互对象提及
+- `product_qc_review` 在第 3 章只作为交互对象提及
 - 不应列为商品中心权威表
 
 #### 4.10.2 每个表的 Schema

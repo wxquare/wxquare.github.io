@@ -291,12 +291,12 @@ flowchart TB
 
 这也对应第二部分的系统设计主线：
 
-- 第 5 章 Agent 架构：本章采用 Gateway + Runtime + Tool Plane + Policy Plane；
-- 第 6 章 Tool Calling / MCP：所有系统事实和动作都通过结构化工具暴露；
-- 第 7 章 Agent 知识系统：知识答疑使用检索、重排、引用和多步证据计划；
-- 第 8-9 章 Workflow / LangGraph：告警和问答都由状态机驱动，而不是无限循环；
-- 第 8 章 Memory：历史经验是线索，不是当前事实；
-- 第 10 章 Evals / Guardrails / Observability：上线前必须证明它不会乱答、乱查、乱执行。
+- 第 8 章 Agent 架构：本章采用 Gateway + Runtime + Tool Plane + Policy Plane；
+- 第 13 章 Tool Calling / MCP：所有系统事实和动作都通过结构化工具暴露；
+- 第 14 章 Agent 知识系统：知识答疑使用检索、重排、引用和多步证据计划；
+- 第 16 章 Workflow / LangGraph：告警和问答都由状态机驱动，而不是无限循环；
+- 第 15 章 Memory：历史经验是线索，不是当前事实；
+- 第 17 章 Evals / Guardrails / Observability：上线前必须证明它不会乱答、乱查、乱执行。
 
 ### 为什么不是纯 ReACT
 
@@ -1166,7 +1166,7 @@ DoD Agent 需要知识库，但不能把 RAG 当成万能答案。扩展为知�
 | 流程规范 | “改这个配置要谁审批？” | 政策文档 + 服务 owner + 审批系统 | 可选 |
 | 对比分析 | “A 方案和 B 方案哪个适合？” | 多文档、多轮检索、证据表 | 可能需要 |
 
-这里直接对应第 7 章 Agent 知识系统的分层：简单知识问答走生产级 RAG；复杂问题走 Agentic RAG，由模型先拆问题、再多轮检索、再综合验证。
+这里直接对应第 14 章 Agent 知识系统的分层：简单知识问答走生产级 RAG；复杂问题走 Agentic RAG，由模型先拆问题、再多轮检索、再综合验证。
 
 | 知识类型 | 示例 | 使用方式 |
 |:---|:---|:---|

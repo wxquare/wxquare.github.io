@@ -325,11 +325,11 @@ Agent 执行
 
 这些模块的边界要清楚。模型可以建议行动，但工具和权限由 Runtime 控制；模型可以总结结果，但完成判定必须由 Verifier 和人审共同支撑。
 
-### 与第11章组件地图的对应关系
+### 与第8章组件地图的对应关系
 
 第 5 章把生产级 Agent Runtime 拆成 13 个核心组件。放到 Coding Agent 场景里，这些组件会更具体：入口不再只是聊天，而是 issue、diff、终端、IDE、PR、CI；上下文不再只是文档，而是代码仓库、Git 状态、测试输出、项目规则和历史变更。
 
-| 第11章组件 | Coding Agent 中的典型实现 | Claude Code / Cursor / Codex 的差异 |
+| 第8章组件 | Coding Agent 中的典型实现 | Claude Code / Cursor / Codex 的差异 |
 |:---|:---|:---|
 | Event & Intake Router | 接收自然语言任务、issue、PR 评论、终端命令、IDE 操作和后台任务 | Claude Code 偏终端入口，Cursor 偏 IDE 入口，Codex 同时覆盖本地任务和云端任务队列 |
 | Intent Normalizer | 把“修一下这个问题”转成 bugfix、refactor、test、review、explain、migration 等任务类型 | IDE 产品更依赖当前文件和选区，终端/云端产品更依赖任务说明、仓库和分支 |
@@ -1623,7 +1623,7 @@ MVP 能跑，不代表可以生产使用。生产级 Coding Agent 还需要：
 
 ## 17.6 设计清单与常见反模式
 
-这一节把本章收束成设计清单。你可以用它评估一个 Coding Agent 系统，也可以用它准备系统设计面试。
+这一节把本章收束成设计清单。你可以用它评估一个 Coding Agent 系统，也可以用它准备系统设计评审。
 
 ### 17.6.1 Coding Agent Harness 设计清单
 
@@ -1785,9 +1785,9 @@ MVP 能跑，不代表可以生产使用。生产级 Coding Agent 还需要：
 - 每个任务独立验证；
 - 合并前统一 review。
 
-### 17.6.3 面试表达：如何讲清一个 Coding Agent 系统
+### 17.6.3 设计评审表达：如何讲清一个 Coding Agent 系统
 
-如果面试官问“你如何设计一个 Coding Agent”，不要只回答“接入 LLM 和工具调用”。可以这样表达：
+如果评审者问“你如何设计一个 Coding Agent”，不要只回答“接入 LLM 和工具调用”。可以这样表达：
 
 ```text
 我会把 Coding Agent 设计成 Model + Harness。

@@ -777,7 +777,7 @@ eval_case:
     - final_answer_has_evidence
 ```
 
-这就是第 10 章生产治理控制面在最小 Coding Agent 里的落点：Trace Writer 负责留下事实，Eval Runner 和 Release Gate 负责让旧失败不能静默复发。
+这就是第 17 章生产治理控制面在最小 Coding Agent 里的落点：Trace Writer 负责留下事实，Eval Runner 和 Release Gate 负责让旧失败不能静默复发。
 
 ---
 
@@ -1184,9 +1184,9 @@ Coding Agent 一旦能写文件和运行命令，就必须严肃处理风险。
 
 ---
 
-## 23.19 面试和作品集表达
+## 23.19 设计评审和项目实践表达
 
-如果你把这个 lab 做成作品集，不要只说“我做了一个能改代码的 Agent”。更好的表达是：
+如果你把这个 lab 做成项目实践，不要只说“我做了一个能改代码的 Agent”。更好的表达是：
 
 ```text
 我实现了一个可观测 Coding Agent MVP。
@@ -1203,7 +1203,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 后续如果要生产化，我会优先补 verifier final gate、patch preview、人类审批、eval dataset、模型版本灰度和 OpenTelemetry trace。
 ```
 
-面试官真正想听的不是“用了哪个模型”，而是你是否理解 Agent 系统的工程边界：
+评审者真正想听的不是“用了哪个模型”，而是你是否理解 Agent 系统的工程边界：
 
 - 模型负责推理；
 - Runtime 负责执行；
