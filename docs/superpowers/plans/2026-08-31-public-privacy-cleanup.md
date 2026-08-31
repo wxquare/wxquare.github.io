@@ -81,14 +81,14 @@ Expected: 返回 Pages 配置 JSON。将 `source.branch` 和 `source.path` 与 `
 Run:
 
 ```bash
-git -C /Users/xianguiwang/Projects/wxquare.github.io ls-tree -r --name-only origin/master about to_post
+git -C /Users/xianguiwang/Projects/wxquare.github.io -c core.quotePath=false ls-tree -r --name-only origin/master about to_post
 ```
 
-Expected: `about/` 13 个文件、`to_post/` 18 个文件。把每个路径映射为 `https://wxquare.github.io/<path>`，作为部署后的 404 清单。
+Expected: `about/` 14 个文件、`to_post/` 34 个文件。把每个路径映射为 `https://wxquare.github.io/<path>`，作为部署后的 404 清单。
 
 - [ ] **Step 6: 写入操作基线**
 
-先运行 `mkdir -p /Users/xianguiwang/Projects/wxquare-private/迁移归档/wxquare.github.io/2026-08-31`，再使用 `apply_patch` 创建 `OPERATION-BASELINE.md`，精确记录：执行日期 `2026-08-31`、public/private 当前 commit、远端每个 heads/tags SHA、Pages source、13+18 个旧发布路径、疑似 key 的 SHA-256 前 12 位 `fc29674c5e20`，以及“key 原文不得写入此文件”。
+先运行 `mkdir -p /Users/xianguiwang/Projects/wxquare-private/迁移归档/wxquare.github.io/2026-08-31`，再使用 `apply_patch` 创建 `OPERATION-BASELINE.md`，精确记录：执行日期 `2026-08-31`、public/private 当前 commit、远端每个 heads/tags SHA、Pages source、14+34 个旧发布路径、疑似 key 的 SHA-256 前 12 位 `fc29674c5e20`，以及“key 原文不得写入此文件”。
 
 - [ ] **Step 7: 验证基线文档不含 key 或电话**
 
@@ -662,7 +662,7 @@ Expected: 只有 `about/index.html`；没有 `to_post/` 或旧 About 附件。
 - Modify: `/Users/xianguiwang/Projects/wxquare-private/迁移归档/wxquare.github.io/2026-08-31/OPERATION-BASELINE.md`
 
 **Interfaces:**
-- Consumes: Task 1 的 31 个旧 URL 与部署后的 Pages。
+- Consumes: Task 1 的 48 个旧 URL 与部署后的 Pages。
 - Produces: About 内容证明、旧 URL 404 结果、PR/cache/fork 处置记录。
 
 - [ ] **Step 1: 验证 About 页面**
@@ -677,7 +677,7 @@ Expected: HTTP 200；私人联系内容只有允许邮箱，不含电话、简�
 
 - [ ] **Step 2: 验证全部旧 URL**
 
-对 `OPERATION-BASELINE.md` 中 13 个旧 About 文件和 18 个旧 to_post 文件逐个执行 `curl -sS -o /dev/null -w '%{http_code}'`。对 Markdown 源文件对应的 `.html`/目录 URL 同时检查。
+对 `OPERATION-BASELINE.md` 中 14 个旧 About 文件和 34 个旧 to_post 文件逐个执行 `curl -sS -o /dev/null -w '%{http_code}'`。对 Markdown 源文件对应的 `.html`/目录 URL 同时检查。
 
 Expected: 全部返回 404；若 GitHub Pages/CDN 尚未刷新，间隔不超过 60 秒复检并记录，不把暂时缓存视为完成。
 
