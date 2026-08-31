@@ -55,10 +55,10 @@
 补充事实：
 
 - `source/about/` 中扫描到一个唯一邮箱，分布在 10 个文件中；重建联系页时只保留这个邮箱。
-- 当前已发布的 `master` 中存在 34 个 `to_post` 文件/页面和 14 个 `about` 文件/页面。
+- 当前已发布的 `master` 中存在 18 个 `to_post` 文件/页面和 13 个 `about` 文件/页面；`gh-pages` 中这两个路径当前均为 0。
 - 当前远端分支为 `hexo`、`master`、`gh-pages`；当前没有 Git tag。
 - `_config.yml` 当前通过 Hexo Git deploy 把站点发布到 `master`。
-- public 工作区当前有一项未提交改动：README 中已从工作树删除疑似凭据。设计文档提交不得夹带这项改动。
+- README 中的疑似凭据已由 commit `347d2f92` 从当前 `hexo` 删除并推送到远端；旧 commit 中仍存在，必须继续执行历史重写。
 - 本机当前没有 `git-filter-repo`；实施前必须安装并确认版本不低于 GitHub 当前建议的 2.47。
 
 ## 目标目录状态
