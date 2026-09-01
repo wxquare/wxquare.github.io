@@ -6,15 +6,11 @@
 
 前面的章节已经讨论了 Prompt、Context、Harness、Tool Runtime、Workflow、RAG、Memory、Evals、Guardrails 和可观测性。第 13 章从成熟产品角度拆解了 Claude Code、Cursor、Codex 这类 AI Coding Agent 的系统设计，第 14 章又从 Pi 出发分析了终端原生 Coding Agent Runtime 的上下文、工具、扩展和 SDK 边界。
 
-本章把这些概念压缩进一个可以运行、可以测试、可以审查的实验项目：
+本章把这些概念压缩进一个**讲解性案例**：一个最小但完整的 Coding Agent。本文不附带配套源码、可执行项目或配置模板；其中的模块名、目录名、配置和代码片段都用于说明设计边界，而不是运行说明。
 
-```text
-books/ai-book/labs/coding-agent-mvp
-```
+该案例假定 Agent 能读取项目规则和仓库结构，让模型输出结构化 JSON action，通过工具注册表执行读文件、搜索、局部编辑、运行验证和查看 diff，并把每一步保存为 JSONL trace。
 
-这个 lab 实现的是一个最小但完整的 Coding Agent。它能读取项目规则和仓库结构，让模型输出结构化 JSON action，通过工具注册表执行读文件、搜索、局部编辑、运行测试和查看 diff，并把每一步保存为 JSONL trace。
-
-本章的目标不是复刻商业级 Coding Agent 的全部能力，而是让你亲手搭出一个工程骨架。这个骨架足够小，可以在一章里讲清楚；也足够完整，可以继续演进到生产级系统。
+本章的目标不是复刻商业级 Coding Agent 的全部能力，也不是给出一个可直接部署的原型，而是讲清一个可继续演进到生产级系统的工程骨架。
 
 ---
 
@@ -93,40 +89,9 @@ flowchart TD
 
 ---
 
-## 23.3 Lab 目录结构
+## 23.3 概念模块边界
 
-配套源码放在：
-
-```text
-books/ai-book/labs/coding-agent-mvp/
-```
-
-核心文件如下：
-
-```text
-coding-agent-mvp/
-├── README.md
-├── agent.py
-├── config.py
-├── context.py
-├── llm.py
-├── models.py
-├── policy.py
-├── run.py
-├── tools.py
-├── trace_writer.py
-├── verifier.py
-├── agent.config.example.toml
-├── requirements.txt
-├── demo/
-│   ├── AGENT.md
-│   ├── calculator.py
-│   └── test_calculator.py
-└── tests/
-    ├── test_config.py
-    ├── test_tools.py
-    └── test_trace_and_agent.py
-```
+为方便讨论，下面用一组**假设的模块名称**描述这一类 Runtime 的职责。它们不是本仓库的目录树，也不构成可运行项目：
 
 每个文件只负责一件事：
 
@@ -143,31 +108,13 @@ coding-agent-mvp/
 | `run.py` | CLI 入口，把配置、模型、Agent 和 trace 串起来 |
 | `tests/` | 验证配置、工具边界和 Agent Loop |
 
-这个拆分方式有一个重要好处：后续要把模型换成 OpenAI、Claude、Gemini 或本地模型时，只需要替换 `llm.py`；要把 shell 权限变严格时，优先改 `policy.py` 和 `tools.py`；要接入 LangSmith 或 OpenTelemetry 时，可以从 `trace_writer.py` 扩展。
+这个拆分方式有一个重要好处：后续要把模型换成 OpenAI、Claude、Gemini 或本地模型时，只需要替换 LLM Adapter；要把 shell 权限变严格时，优先调整 Policy Engine 和 Tool Runtime；要接入 LangSmith 或 OpenTelemetry 时，可以从 Trace Writer 扩展。
 
 ---
 
-## 23.4 环境准备与本地测试
+## 23.4 确定性控制面的验证范围
 
-进入 lab 目录：
-
-```bash
-cd books/ai-book/labs/coding-agent-mvp
-```
-
-安装 demo 测试依赖：
-
-```bash
-python3 -m pip install -r requirements.txt
-```
-
-先运行原型自己的测试：
-
-```bash
-python3 -m unittest discover -s tests -v
-```
-
-这一步不需要真实模型，也不需要 API key。测试覆盖的是确定性控制面：
+若把这一设计落地为自己的项目，首先应为确定性控制面编写测试；这些测试不需要真实模型，也不需要 API key。验证范围包括：
 
 - 配置文件是否能正确加载；
 - 路径沙箱是否阻止越界访问；
@@ -182,13 +129,7 @@ python3 -m unittest discover -s tests -v
 
 ## 23.5 配置模型和运行参数
 
-复制配置模板：
-
-```bash
-cp agent.config.example.toml agent.config.toml
-```
-
-示例配置：
+下面是**讲解性配置片段**，用来说明应被外置的运行时策略；不要将其视为本书配套文件或复制到生产环境：
 
 ```toml
 [llm]
@@ -217,9 +158,9 @@ timeout = 60
 2. `agent`：最大步数、是否自动编辑、是否自动执行 shell；
 3. `shell`：允许执行的命令和超时时间。
 
-示例配置采用安全默认值：允许读文件、搜索和查看 diff，但写文件与 shell 执行默认进入审批路径。运行本地 demo 时，可以复制一份 `agent.demo.toml`，在临时沙箱仓库中显式打开 `auto_edit=true` 和 `auto_shell=true`，并把 `allowed_commands` 收窄到测试命令。
+示例配置采用安全默认值：允许读文件、搜索和查看 diff，但写文件与 shell 执行默认进入审批路径。若在自己创建的临时沙箱中实验，可在独立的本地配置里显式开启 `auto_edit=true` 和 `auto_shell=true`，并把 `allowed_commands` 收窄到验证命令。
 
-`agent.config.toml` 已被 `.gitignore` 忽略，不要提交真实 API key。
+任何真实配置文件都不应提交 API key。
 
 ### 为什么配置要外置
 
@@ -227,7 +168,7 @@ timeout = 60
 
 | 环境 | 推荐策略 |
 |:---|:---|
-| 本地 demo | 在临时 `agent.demo.toml` 中显式开启 `auto_edit=true`、`auto_shell=true`，只允许测试命令 |
+| 临时沙箱 | 在独立本地配置中显式开启 `auto_edit=true`、`auto_shell=true`，只允许验证命令 |
 | 团队共享环境 | `auto_edit=true`，高风险 shell 需要审批 |
 | CI / eval | 使用固定模型版本、固定 temperature、固定数据集 |
 | 生产代码库 | 默认 read-only，按任务逐步开放写权限 |
@@ -846,32 +787,11 @@ def coding_agent_release_gate(eval_report):
 
 ---
 
-## 23.15 运行 Demo：从任务到 diff
+## 23.15 概念执行路径：从任务到 diff
 
-Demo 仓库在 `demo/` 下：
+以下是一个隔离的演示性代码仓库中可能发生的执行路径，而非本章提供的运行步骤或本仓库的配套示例。任务可以是：为 `calculator.py` 的 `divide` 函数补充除零错误处理，并新增相应测试。
 
-```text
-demo/
-├── AGENT.md
-├── calculator.py
-└── test_calculator.py
-```
-
-运行命令：
-
-```bash
-python3 run.py "给 calculator.py 的 divide 函数补充除零错误处理，并添加 pytest 测试。要求：b 为 0 时抛出 ValueError；保留原有正常除法行为；运行 pytest 验证。" --repo demo --config agent.demo.toml
-```
-
-前面的 `agent.config.toml` 是安全默认模板。要跑通这个本地 demo，需要复制一份临时 `agent.demo.toml`，并显式开启：
-
-```toml
-[agent]
-auto_edit = true
-auto_shell = true
-```
-
-这类配置只适合一次性 demo 仓库或可丢弃 worktree，不应该作为团队共享仓库或生产代码库的默认策略。
+这类具有编辑和 shell 权限的配置只适合一次性沙箱或可丢弃 worktree，不应该作为团队共享仓库或生产代码库的默认策略。
 
 理想执行路径大致是：
 
@@ -885,7 +805,7 @@ auto_shell = true
 7. final report。
 ```
 
-CLI 会输出：
+运行时最终报告可以包含：
 
 ```text
 status: done
@@ -919,9 +839,7 @@ Agent 工程的改进方式不是“再劝模型认真一点”，而是把失�
 
 ## 23.16 测试策略：先测 Runtime，再测模型效果
 
-这个 lab 的 `tests/` 目录故意不依赖真实模型。
-
-`test_tools.py` 应该覆盖：
+一个实际项目的测试套件应故意不依赖真实模型。以工具层测试为例，应覆盖：
 
 - 正常读取文件；
 - 阻止路径逃逸；
@@ -930,14 +848,14 @@ Agent 工程的改进方式不是“再劝模型认真一点”，而是把失�
 - shell allowlist；
 - `git_diff` 只读。
 
-`test_config.py` 应该覆盖：
+配置层测试应覆盖：
 
 - TOML 解析；
 - 默认配置；
 - shell allowlist；
 - 模型配置字段。
 
-`test_trace_and_agent.py` 用 `FakeLLM` 驱动 Agent Loop：
+Agent Loop 测试可用 `FakeLLM` 驱动：
 
 ```python
 llm = FakeLLM(
@@ -998,7 +916,7 @@ llm = FakeLLM(
 
 ## 23.17 从 MVP 演进到生产级 Coding Agent
 
-这个 lab 已经有了核心骨架，但离生产级系统还有明显距离。演进时建议按风险顺序，而不是按功能诱惑。
+这个概念案例已经有了核心骨架，但离生产级系统还有明显距离。演进时建议按风险顺序，而不是按功能诱惑。
 
 ### 阶段一：Read-only Agent
 
@@ -1186,7 +1104,7 @@ Coding Agent 一旦能写文件和运行命令，就必须严肃处理风险。
 
 ## 23.19 设计评审和项目实践表达
 
-如果你把这个 lab 做成项目实践，不要只说“我做了一个能改代码的 Agent”。更好的表达是：
+如果你把这套设计做成自己的项目实践，不要只说“我做了一个能改代码的 Agent”。更好的表达是：
 
 ```text
 我实现了一个可观测 Coding Agent MVP。
@@ -1280,7 +1198,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 
 ## 本章小结
 
-本章用 `books/ai-book/labs/coding-agent-mvp` 实现了一个可运行、可测试、可观测的 Coding Agent MVP。
+本章以一个讲解性 Coding Agent MVP 案例梳理了可观测 Runtime 的工程边界；本文不提供配套可运行项目。
 
 它的价值不在于功能复杂，而在于工程边界完整：
 
@@ -1300,7 +1218,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 
 > 生产级 Coding Agent 不是“一个会写代码的模型”，而是一个围绕模型建立的可控执行系统。
 
-如果第 13 章回答的是“成熟 Coding Agent 产品为什么这样设计”，第 14 章回答的是“可嵌入 Coding Agent Runtime 应该长什么样”，本章回答的就是“如何从零搭出这个设计的最小可运行版本”。
+如果第 13 章回答的是“成熟 Coding Agent 产品为什么这样设计”，第 14 章回答的是“可嵌入 Coding Agent Runtime 应该长什么样”，本章回答的就是“如何理解并设计这个 Runtime 的最小闭环”。
 
 ---
 
