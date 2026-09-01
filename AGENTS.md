@@ -49,6 +49,7 @@ http://localhost:4000
 - `public/`
 - `.deploy_git/`
 - `books/ai-book/book/`
+- `source/booklist/`、`source/pdf/`：只读遗留目录；Task 2 inventory 和 Task 4 convergence 前不得新增文件
 
 ## 4. 内容落点规则
 
@@ -64,11 +65,13 @@ http://localhost:4000
 
 ### 4.1 公开资料库治理
 
-- 只把 books、papers、slides 放入对应的 `source/library/<category>/`；博客草稿、个人或内部材料、秘密凭证和实验源码不得进入资料库。
-- 每个条目必须在 `source/library/index.md` 记录标题、作者或机构、类型、主题、原始 URL、本地路径或“仅外链”、再分发说明和加入日期。
+- books、papers、slides、other 分别放入 `source/library/books/`、`papers/`、`slides/`、`other/`；博客草稿、个人或内部材料、秘密凭证和实验源码不得进入资料库。
+- Other 仅用于经用户明确批准的公开项目补充文件，或类型边界明确但无法归入 book、paper、slide 的参考资料；不得作为授权不明、来源不明或未分类内容的兜底，也不得绕过来源、再分发和用户批准要求。
+- 每个条目必须在 `source/library/index.md` 记录标题、作者或机构、类型（book、paper、slide 或 other）、主题、原始 URL、本地路径或“仅外链”、再分发说明和加入日期。
 - 公开可访问不等于允许重新分发；授权或再分发边界无法确认时只保留原始链接，不上传本地副本。
 - 单个二进制文件超过 10 MiB 时默认只保留外链；本地托管需要用户单独批准存储方案。
 - 公开活动资料只在 `source/library/` 维护；其他文章需要引用时链接到资料库条目或原始来源，不复制活动副本。
+- `source/booklist/` 与 `source/pdf/` 在 Task 2 inventory 和 Task 4 convergence 前保持只读，不得新增资料。
 
 完整规则见 `docs/library-policy.md`。
 

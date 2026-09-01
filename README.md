@@ -43,7 +43,7 @@
 
 ### 公开参考资料
 
-`source/library/` 按 books、papers、slides 组织公开第三方技术资料，并记录来源与再分发说明；无法确认重新托管边界的资料只保留原始链接。博客与资料库只介绍或引用实验，不存放实验源码。
+`source/library/` 按 books、papers、slides、other 组织公开第三方技术资料，并记录来源与再分发说明；Other 只接收经批准且类型边界明确的补充资料，无法确认重新托管边界的资料只保留原始链接。现有 `source/booklist/` 与 `source/pdf/` 是只读遗留目录，在完成 inventory 和 convergence 前不得新增。博客与资料库只介绍或引用实验，不存放实验源码。
 
 ## 本地运行
 
@@ -86,6 +86,7 @@ http://localhost:4000
 │       ├── books/
 │       ├── papers/
 │       ├── slides/
+│       ├── other/
 │       └── index.md
 ├── books/
 │   ├── ai-book/                 # AI Agent 工程实践专题
