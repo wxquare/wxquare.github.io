@@ -43,7 +43,11 @@
 
 ### 公开参考资料
 
-`source/library/` 按 books、papers、slides、other 组织公开第三方技术资料，并记录来源与再分发说明；Other 只接收经批准且类型边界明确的补充资料，无法确认重新托管边界的资料只保留原始链接。现有 `source/booklist/` 与 `source/pdf/` 是只读遗留目录，在完成 inventory 和 convergence 前不得新增。博客与资料库只介绍或引用实验，不存放实验源码。
+`source/library/` 按 books、papers、slides、other 组织公开第三方技术资料，并记录来源与再分发说明；Other 只接收经批准且类型边界明确的补充资料，无法确认重新托管边界的资料只保留原始链接。`source/booklist/` 是已阻塞的只读遗留目录，完成逐条权威来源与元数据整理前保持原位；`source/pdf/` 是只读遗留目录，已批准的第一方演示资料将在 Task 4 迁入 `source/presentations/`。博客与资料库只介绍或引用实验，不存放实验源码。
+
+### 第一方公开演示资料
+
+`source/presentations/` 是本人创作或经用户明确确认为第一方且可公开演示资料的规范源目录，不属于第三方 `source/library/`。目录禁止凭证、个人隐私、公司内部和未公开工作材料；每份资料只保留一个 Git 源载荷。需要兼容旧 URL 时，由 Hexo 构建从规范源生成别名输出，不提交第二份源文件、符号链接或伪装成原格式的 HTML。
 
 ## 本地运行
 
@@ -82,12 +86,13 @@ http://localhost:4000
 │   ├── _posts/                  # 博客文章
 │   ├── about/                   # 联系页（仅邮箱）
 │   ├── diagrams/                # 图表源文件
-│   └── library/                 # 公开第三方参考资料与来源目录
-│       ├── books/
-│       ├── papers/
-│       ├── slides/
-│       ├── other/
-│       └── index.md
+│   ├── library/                 # 公开第三方参考资料与来源目录
+│   │   ├── books/
+│   │   ├── papers/
+│   │   ├── slides/
+│   │   ├── other/
+│   │   └── index.md
+│   └── presentations/           # 第一方公开演示资料的唯一 Git 源目录
 ├── books/
 │   ├── ai-book/                 # AI Agent 工程实践专题
 │   ├── system-design-architecture-book/  # 系统设计与架构专题

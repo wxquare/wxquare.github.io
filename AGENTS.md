@@ -39,6 +39,7 @@ http://localhost:4000
 - `source/about/`：最小联系页，仅允许邮箱；不得存放简历、电话或工作资料
 - `source/diagrams/`：图表源文件
 - `source/library/`：公开且适合公开保存的第三方参考资料与来源目录
+- `source/presentations/`：本人创作或经用户明确确认为第一方且可公开的演示资料；每份资料只有一个 Git 源载荷
 - `books/ai-book/src/`：AI Agent 书稿源码
 - `books/ai-book/labs/`：现有可运行 Agent 原型和实验；属于待协调的遗留项，不作为新增实验的目录模板
 - `docs/`：调研、迁移、整理文档
@@ -49,7 +50,8 @@ http://localhost:4000
 - `public/`
 - `.deploy_git/`
 - `books/ai-book/book/`
-- `source/booklist/`、`source/pdf/`：只读遗留目录；Task 2 inventory 和 Task 4 convergence 前不得新增文件
+- `source/booklist/`：已阻塞的只读遗留目录；逐条书目来源与元数据完成前保持原位，不得新增文件
+- `source/pdf/`：只读遗留目录；已批准文件只由 Task 4 迁入规范目录并建立构建期旧 URL 别名，不得新增文件
 
 ## 4. 内容落点规则
 
@@ -58,6 +60,7 @@ http://localhost:4000
 - 系统化 Agent 知识：`books/ai-book/src/`
 - 面向读者的博客文章：`source/_posts/AI/`
 - 公开第三方参考资料：`source/library/`
+- 第一方公开演示资料：`source/presentations/`
 - AI 协作规则、共享技能与工具配置：`AGENTS.md`、`.agents/`
 - 内部整理文档与迁移说明：`docs/`
 
@@ -71,11 +74,19 @@ http://localhost:4000
 - 公开可访问不等于允许重新分发；授权或再分发边界无法确认时只保留原始链接，不上传本地副本。
 - 单个二进制文件超过 10 MiB 时默认只保留外链；本地托管需要用户单独批准存储方案。
 - 公开活动资料只在 `source/library/` 维护；其他文章需要引用时链接到资料库条目或原始来源，不复制活动副本。
-- `source/booklist/` 与 `source/pdf/` 在 Task 2 inventory 和 Task 4 convergence 前保持只读，不得新增资料。
+- `source/booklist/` 保持阻塞和只读；其内容只能在权威 URL 与必填元数据齐全后逐条分解到资料库索引，逻辑索引目标不得作为 `git mv` 目标。
+- `source/pdf/` 保持只读，直到 Task 4 将已批准的第一方演示资料迁入 `source/presentations/` 并验证旧 URL 构建别名。
 
 完整规则见 `docs/library-policy.md`。
 
-### 4.2 实验仓库边界
+### 4.2 第一方公开演示资料边界
+
+- `source/presentations/` 只接收本人创作，或经用户明确确认为第一方且可公开的演示资料；第三方 slide 仍按来源与再分发规则进入 `source/library/slides/` 或仅保留外链。
+- 资料不得包含密码、Token、API Key、私钥、个人隐私、公司内部、客户或未公开工作材料。
+- 每份演示资料只保留一个 Git 跟踪的规范源文件。兼容旧 URL 时，Hexo 只能在构建阶段从规范源生成同字节输出；构建产物不是并行活动源。
+- 禁止为兼容 URL 提交第二份源载荷、符号链接，或用 HTML 内容伪装 PDF 等原始格式。
+
+### 4.3 实验仓库边界
 
 - 新增可运行实验必须放在 `/Users/xianguiwang/Projects/<project>/`，一个实验对应一个独立 Git 仓库，GitHub 仓库默认设为 Private。
 - `source/library/` 和博客文章不得包含实验源码；文章只保存实验介绍和仓库链接。
