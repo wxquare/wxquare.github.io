@@ -1,5 +1,6 @@
-# 关于
+---
+title: Contact
+date: 2026-08-31
+---
 
-这是 wxquare 的技术博客与知识库，持续分享系统设计、后端工程与 AI Agent 实践。
-
-站内内容以公开技术文章和专题书稿为主。
+xianguiwang0316@gmail.com

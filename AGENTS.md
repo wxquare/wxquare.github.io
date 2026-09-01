@@ -36,10 +36,12 @@ http://localhost:4000
 - `source/_posts/AI/`：AI 与 Agent 相关文章
 - `source/_posts/system-design/`：系统设计文章
 - `source/_posts/other/`：其他文章
-- `source/about/`：公开的简短站点介绍
+- `source/about/`：最小联系页，仅允许邮箱；不得存放简历、电话或工作资料
 - `source/diagrams/`：图表源文件
+- `source/library/`：公开且适合公开保存的第三方参考资料与来源目录
+- `source/presentations/`：本人创作或经用户明确确认为第一方且可公开的演示资料；每份资料只有一个 Git 源载荷
 - `books/ai-book/src/`：AI Agent 书稿源码
-- `books/ai-book/labs/`：可运行 Agent 原型和实验
+- `books/ai-book/labs/llm-from-scratch/`：唯一保留的遗留实验例外；不得在 `books/ai-book/labs/` 新增其他实验
 - `docs/`：调研、迁移、整理文档
 - `.agents/`：统一的 AI 协作资产与工具配置目录
 
@@ -48,6 +50,8 @@ http://localhost:4000
 - `public/`
 - `.deploy_git/`
 - `books/ai-book/book/`
+- `source/booklist/`：已阻塞的只读遗留目录；逐条书目来源与元数据完成前保持原位，不得新增文件
+- `source/pdf/`：不含活动源文件的遗留目录；`k8s-network.pdf` 已位于 `source/presentations/`，旧 URL 仅由构建期别名输出兼容，不得新增文件
 
 ## 4. 内容落点规则
 
@@ -55,11 +59,38 @@ http://localhost:4000
 
 - 系统化 Agent 知识：`books/ai-book/src/`
 - 面向读者的博客文章：`source/_posts/AI/`
-- 可运行原型与 demo：`books/ai-book/labs/`
+- 公开第三方参考资料：`source/library/`
+- 第一方公开演示资料：`source/presentations/`
 - AI 协作规则、共享技能与工具配置：`AGENTS.md`、`.agents/`
 - 内部整理文档与迁移说明：`docs/`
 
 不要把同一份长文同时维护在博客、书稿和 `docs/` 三处。
+
+### 4.1 公开资料库治理
+
+- books、papers、slides、other 分别放入 `source/library/books/`、`papers/`、`slides/`、`other/`；博客草稿、个人或内部材料、秘密凭证和实验源码不得进入资料库。
+- Other 仅用于经用户明确批准的公开项目补充文件，或类型边界明确但无法归入 book、paper、slide 的参考资料；不得作为授权不明、来源不明或未分类内容的兜底，也不得绕过来源、再分发和用户批准要求。
+- 每个条目必须在 `source/library/index.md` 记录标题、作者或机构、类型（book、paper、slide 或 other）、主题、原始 URL、本地路径或“仅外链”、再分发说明和加入日期。
+- 公开可访问不等于允许重新分发；授权或再分发边界无法确认时只保留原始链接，不上传本地副本。
+- 单个二进制文件超过 10 MiB 时默认只保留外链；本地托管需要用户单独批准存储方案。
+- 公开活动资料只在 `source/library/` 维护；其他文章需要引用时链接到资料库条目或原始来源，不复制活动副本。
+- `source/booklist/` 保持阻塞和只读；其内容只能在权威 URL 与必填元数据齐全后逐条分解到资料库索引，逻辑索引目标不得作为 `git mv` 目标。
+- `source/pdf/` 不含活动源文件；已批准的第一方演示资料位于 `source/presentations/`，旧 URL 由已验证的构建期别名兼容。
+
+完整规则见 `docs/library-policy.md`。
+
+### 4.2 第一方公开演示资料边界
+
+- `source/presentations/` 只接收本人创作，或经用户明确确认为第一方且可公开的演示资料；第三方 slide 仍按来源与再分发规则进入 `source/library/slides/` 或仅保留外链。
+- 资料不得包含密码、Token、API Key、私钥、个人隐私、公司内部、客户或未公开工作材料。
+- 每份演示资料只保留一个 Git 跟踪的规范源文件。兼容旧 URL 时，Hexo 只能在构建阶段从规范源生成同字节输出；构建产物不是并行活动源。
+- 禁止为兼容 URL 提交第二份源载荷、符号链接，或用 HTML 内容伪装 PDF 等原始格式。
+
+### 4.3 实验仓库边界
+
+- 新增可运行实验必须放在 `/Users/xianguiwang/Projects/<project>/`，一个实验对应一个独立 Git 仓库，GitHub 仓库默认设为 Private。
+- `source/library/` 和博客文章不得包含实验源码；文章只保存实验介绍和仓库链接。
+- `books/ai-book/labs/llm-from-scratch/` 是唯一保留的遗留例外；不得把 `books/ai-book/labs/` 作为新实验落点，也不得在其中恢复或新增其他实验。
 
 ## 5. 统一 AI 协作资产
 
@@ -77,6 +108,8 @@ http://localhost:4000
 │   ├── cursor/
 │   ├── skills/
 │   └── templates/
+└── bin/
+    └── pre-commit-check.sh
 ```
 
 ### 5.2 各资产职责
@@ -101,6 +134,8 @@ http://localhost:4000
   - Cursor 专属加载入口
 - `.agents/codex/config.toml`
   - Codex 专属配置
+- `bin/pre-commit-check.sh`
+  - 提交前检查脚本
 
 ## 6. 支持的 AI 工作面
 
@@ -139,6 +174,7 @@ Cursor 侧通过 `.cursorrules` 和自然语言提示完成同类任务。统一
 | 生成摘要 | `/generate-summary path/to/file.md` | 选中文章后要求生成三种长度摘要 |
 | 整理文章 | `/organize-posts` | 要求扫描文章结构并给整理建议 |
 | 检查链接 | `/link-check` | 要求检查内部/外部链接和图片引用 |
+| 发布前检查 | `bash bin/pre-commit-check.sh` | 终端执行同一脚本 |
 | 统计博客 | `/stats` | 要求统计分类、标签、文章数量 |
 
 ## 7. 核心工作流
@@ -160,6 +196,7 @@ Cursor 侧通过 `.cursorrules` 和自然语言提示完成同类任务。统一
 3. 参考模板补全结构
 4. 编写内容
 5. 运行文章审查
+6. 运行提交前检查
 
 ### 7.2 文章审查
 
@@ -315,9 +352,31 @@ tags:
 - 性能优化
 - 总结
 
-## 11. 本地构建
+## 11. 构建、校验与 Hook
 
-需要预览或确认站点可生成时，执行：
+### 11.1 提交前检查
+
+统一执行：
+
+```bash
+bash bin/pre-commit-check.sh
+```
+
+脚本负责：
+
+- 暂存 Markdown 文件的规范检查
+- Hexo 清理与构建验证
+
+### 11.2 Hook 行为
+
+当前 `.agents/claude/settings.json` 中的 Hook 负责：
+
+- 编辑文章后给出提示
+- Git 提交前自动运行 `bin/pre-commit-check.sh`
+
+### 11.3 构建即验证
+
+对内容改动，最低验证标准是：
 
 ```bash
 npm run clean

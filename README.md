@@ -7,6 +7,7 @@
 | 入口 | 说明 |
 |------|------|
 | [在线博客](https://wxquare.github.io) | 浏览完整博客内容与专题导航 |
+| [公开参考资料库](./source/library/index.md) | 浏览公开且适合公开保存的第三方技术资料及原始来源 |
 | [AI Agent 工程实践](./books/ai-book/) | 从大模型基础到生产级智能体系统的系统化专题 |
 | [Agent 内容开发指南](./docs/agent-development-guide.md) | 仓库内 Agent 内容地图、维护边界与新增内容流程 |
 | [AGENTS.md](./AGENTS.md) | 仓库级协作入口，约束人类与 AI 协作者的统一工作方式 |
@@ -34,11 +35,19 @@
 
 ### 电商架构与性能优化
 
-以电商链路为高密度样本，讨论首页、搜索、详情、购物车、计价、订单、支付、供应商同步与 B2B2C 平台演进，也包含面试表达与案例材料沉淀。
+以电商链路为高密度样本，讨论首页、搜索、详情、购物车、计价、订单、支付、供应商同步与 B2B2C 平台演进，沉淀可公开复用的技术案例与架构实践。
 
 ### 计算机基础
 
 补充操作系统、网络、Shell、Python、C++、Go 等基础能力，帮助把系统设计、工程实现和编码实践串起来。
+
+### 公开参考资料
+
+`source/library/` 按 books、papers、slides、other 组织公开第三方技术资料，并记录来源与再分发说明；Other 只接收经批准且类型边界明确的补充资料，无法确认重新托管边界的资料只保留原始链接。`source/booklist/` 是已阻塞的只读遗留目录，完成逐条权威来源与元数据整理前保持原位；`source/presentations/k8s-network.pdf` 已是第一方演示资料的规范源，旧 `/pdf/k8s-network.pdf` 由构建期兼容输出提供；`source/pdf/` 不含活动源文件。博客与资料库只介绍或引用实验，不存放实验源码。
+
+### 第一方公开演示资料
+
+`source/presentations/` 是本人创作或经用户明确确认为第一方且可公开演示资料的规范源目录，不属于第三方 `source/library/`。目录禁止凭证、个人隐私、公司内部和未公开工作材料；每份资料只保留一个 Git 源载荷。需要兼容旧 URL 时，由 Hexo 构建从规范源生成别名输出，不提交第二份源文件、符号链接或伪装成原格式的 HTML。
 
 ## 本地运行
 
@@ -75,8 +84,15 @@ http://localhost:4000
 .
 ├── source/
 │   ├── _posts/                  # 博客文章
-│   ├── about/                   # 关于页、简历、面试材料
-│   └── diagrams/                # 图表源文件
+│   ├── about/                   # 联系页（仅邮箱）
+│   ├── diagrams/                # 图表源文件
+│   ├── library/                 # 公开第三方参考资料与来源目录
+│   │   ├── books/
+│   │   ├── papers/
+│   │   ├── slides/
+│   │   ├── other/
+│   │   └── index.md
+│   └── presentations/           # 第一方公开演示资料的唯一 Git 源目录
 ├── books/
 │   ├── ai-book/                 # AI Agent 工程实践专题
 │   ├── system-design-architecture-book/  # 系统设计与架构专题

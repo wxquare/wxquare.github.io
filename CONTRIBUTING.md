@@ -31,9 +31,9 @@ http://localhost:4000
 
 - `source/_posts/AI/` for reader-facing AI and Agent blog posts
 - `source/_posts/system-design/` for system design articles
-- `source/about/` for the public site introduction
+- `source/about/` for the minimal contact page; email only; do not add resumes, phone numbers, or work materials
 - `books/ai-book/src/` for long-form Agent book chapters
-- `books/ai-book/labs/` for runnable Agent experiments
+- `books/ai-book/labs/llm-from-scratch/` is a retained legacy experiment; do not add new runnable experiments here. New experiments must use an independent Git repository under `/Users/xianguiwang/Projects/`, with GitHub visibility Private by default.
 - `docs/` for maintenance notes and internal organization docs
 
 Do not edit generated output directly:
@@ -65,9 +65,15 @@ Please follow these rules:
 - keep spaces between Chinese and English text
 - keep filenames descriptive and consistent with the existing series style
 
-## Local build
+## Validate before submitting
 
-To generate the site locally, run:
+Run:
+
+```bash
+bash bin/pre-commit-check.sh
+```
+
+Today this script performs the required repository validation:
 
 ```bash
 npm run clean
