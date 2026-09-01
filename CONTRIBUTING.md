@@ -31,7 +31,7 @@ http://localhost:4000
 
 - `source/_posts/AI/` for reader-facing AI and Agent blog posts
 - `source/_posts/system-design/` for system design articles
-- `source/about/` for resumes and interview materials
+- `source/about/` for the public site introduction
 - `books/ai-book/src/` for long-form Agent book chapters
 - `books/ai-book/labs/` for runnable Agent experiments
 - `docs/` for maintenance notes and internal organization docs
@@ -65,15 +65,9 @@ Please follow these rules:
 - keep spaces between Chinese and English text
 - keep filenames descriptive and consistent with the existing series style
 
-## Validate before submitting
+## Local build
 
-Run:
-
-```bash
-bash bin/pre-commit-check.sh
-```
-
-Today this script performs the required repository validation:
+To generate the site locally, run:
 
 ```bash
 npm run clean

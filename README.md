@@ -10,7 +10,7 @@
 | [AI Agent 工程实践](./books/ai-book/) | 从大模型基础到生产级智能体系统的系统化专题 |
 | [Agent 内容开发指南](./docs/agent-development-guide.md) | 仓库内 Agent 内容地图、维护边界与新增内容流程 |
 | [AGENTS.md](./AGENTS.md) | 仓库级协作入口，约束人类与 AI 协作者的统一工作方式 |
-| [CONTRIBUTING.md](./CONTRIBUTING.md) | 开源贡献流程、改动边界与提交前检查 |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | 开源贡献流程与改动边界 |
 | [系统设计与架构实战](./books/system-design-architecture-book/) | 面向中高级工程师的系统设计、电商架构与可靠性实战 |
 
 ## 精选内容
@@ -21,8 +21,6 @@
 - [系统可靠性工程：从故障恢复到治理闭环](./source/_posts/system-design/07-system-reliability-engineering.md)
 - [计价系统设计与实现](./source/_posts/system-design/24-ecommerce-pricing-engine.md)
 - [搜索与导购系统设计](./source/_posts/system-design/31-ecommerce-search-discovery.md)
-- [首页与导购链路性能优化面试材料](./source/about/material/homepage-performance-interview-material.md)
-- [计价引擎面试材料](./source/about/material/pricing-engine-interview-material.md)
 
 ## 内容地图
 

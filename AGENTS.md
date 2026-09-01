@@ -36,7 +36,7 @@ http://localhost:4000
 - `source/_posts/AI/`：AI 与 Agent 相关文章
 - `source/_posts/system-design/`：系统设计文章
 - `source/_posts/other/`：其他文章
-- `source/about/`：关于页、简历、面试材料
+- `source/about/`：公开的简短站点介绍
 - `source/diagrams/`：图表源文件
 - `books/ai-book/src/`：AI Agent 书稿源码
 - `books/ai-book/labs/`：可运行 Agent 原型和实验
@@ -77,8 +77,6 @@ http://localhost:4000
 │   ├── cursor/
 │   ├── skills/
 │   └── templates/
-└── bin/
-    └── pre-commit-check.sh
 ```
 
 ### 5.2 各资产职责
@@ -103,8 +101,6 @@ http://localhost:4000
   - Cursor 专属加载入口
 - `.agents/codex/config.toml`
   - Codex 专属配置
-- `bin/pre-commit-check.sh`
-  - 提交前检查脚本
 
 ## 6. 支持的 AI 工作面
 
@@ -143,7 +139,6 @@ Cursor 侧通过 `.cursorrules` 和自然语言提示完成同类任务。统一
 | 生成摘要 | `/generate-summary path/to/file.md` | 选中文章后要求生成三种长度摘要 |
 | 整理文章 | `/organize-posts` | 要求扫描文章结构并给整理建议 |
 | 检查链接 | `/link-check` | 要求检查内部/外部链接和图片引用 |
-| 发布前检查 | `bash bin/pre-commit-check.sh` | 终端执行同一脚本 |
 | 统计博客 | `/stats` | 要求统计分类、标签、文章数量 |
 
 ## 7. 核心工作流
@@ -165,7 +160,6 @@ Cursor 侧通过 `.cursorrules` 和自然语言提示完成同类任务。统一
 3. 参考模板补全结构
 4. 编写内容
 5. 运行文章审查
-6. 运行提交前检查
 
 ### 7.2 文章审查
 
@@ -321,31 +315,9 @@ tags:
 - 性能优化
 - 总结
 
-## 11. 构建、校验与 Hook
+## 11. 本地构建
 
-### 11.1 提交前检查
-
-统一执行：
-
-```bash
-bash bin/pre-commit-check.sh
-```
-
-脚本负责：
-
-- 暂存 Markdown 文件的规范检查
-- Hexo 清理与构建验证
-
-### 11.2 Hook 行为
-
-当前 `.agents/claude/settings.json` 中的 Hook 负责：
-
-- 编辑文章后给出提示
-- Git 提交前自动运行 `bin/pre-commit-check.sh`
-
-### 11.3 构建即验证
-
-对内容改动，最低验证标准是：
+需要预览或确认站点可生成时，执行：
 
 ```bash
 npm run clean
