@@ -43,7 +43,7 @@
 
 ### 公开参考资料
 
-`source/library/` 按 books、papers、slides、other 组织公开第三方技术资料，并记录来源与再分发说明；Other 只接收经批准且类型边界明确的补充资料，无法确认重新托管边界的资料只保留原始链接。`source/booklist/` 是已阻塞的只读遗留目录，完成逐条权威来源与元数据整理前保持原位；`source/pdf/` 是只读遗留目录，已批准的第一方演示资料将在 Task 4 迁入 `source/presentations/`。博客与资料库只介绍或引用实验，不存放实验源码。
+`source/library/` 按 books、papers、slides、other 组织公开第三方技术资料，并记录来源与再分发说明；Other 只接收经批准且类型边界明确的补充资料，无法确认重新托管边界的资料只保留原始链接。`source/booklist/` 是已阻塞的只读遗留目录，完成逐条权威来源与元数据整理前保持原位；`source/presentations/k8s-network.pdf` 已是第一方演示资料的规范源，旧 `/pdf/k8s-network.pdf` 由构建期兼容输出提供；`source/pdf/` 不含活动源文件。博客与资料库只介绍或引用实验，不存放实验源码。
 
 ### 第一方公开演示资料
 
