@@ -14,9 +14,9 @@
 
 ---
 
-## 23.1 项目目标与边界
+## 23.1 案例目标与边界
 
-本章实现的项目叫 **Coding Agent MVP**。
+本章使用一个最小但完整的 Coding Agent 作为讲解性案例，不对应任何已实现或可运行的配套项目。
 
 它解决一个窄但典型的问题：
 
@@ -1107,7 +1107,7 @@ Coding Agent 一旦能写文件和运行命令，就必须严肃处理风险。
 如果你把这套设计做成自己的项目实践，不要只说“我做了一个能改代码的 Agent”。更好的表达是：
 
 ```text
-我实现了一个可观测 Coding Agent MVP。
+我设计了一套可观测 Coding Agent Runtime 方案。
 
 它不是让模型直接操作文件系统，而是通过 Runtime 把模型输出限制为 JSON action。
 Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 diff 输出。
@@ -1198,7 +1198,7 @@ Runtime 负责做 policy check、路径沙箱、工具执行、trace 写入和 d
 
 ## 本章小结
 
-本章以一个讲解性 Coding Agent MVP 案例梳理了可观测 Runtime 的工程边界；本文不提供配套可运行项目。
+本章以一个讲解性 Coding Agent 案例梳理了可观测 Runtime 的工程边界；本文不提供配套可运行项目。
 
 它的价值不在于功能复杂，而在于工程边界完整：
 

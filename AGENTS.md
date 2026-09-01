@@ -41,7 +41,7 @@ http://localhost:4000
 - `source/library/`：公开且适合公开保存的第三方参考资料与来源目录
 - `source/presentations/`：本人创作或经用户明确确认为第一方且可公开的演示资料；每份资料只有一个 Git 源载荷
 - `books/ai-book/src/`：AI Agent 书稿源码
-- `books/ai-book/labs/`：现有可运行 Agent 原型和实验；属于待协调的遗留项，不作为新增实验的目录模板
+- `books/ai-book/labs/llm-from-scratch/`：唯一保留的遗留实验例外；不得在 `books/ai-book/labs/` 新增其他实验
 - `docs/`：调研、迁移、整理文档
 - `.agents/`：统一的 AI 协作资产与工具配置目录
 
@@ -90,7 +90,7 @@ http://localhost:4000
 
 - 新增可运行实验必须放在 `/Users/xianguiwang/Projects/<project>/`，一个实验对应一个独立 Git 仓库，GitHub 仓库默认设为 Private。
 - `source/library/` 和博客文章不得包含实验源码；文章只保存实验介绍和仓库链接。
-- `books/ai-book/labs/` 仍是包含可运行实验的遗留目录，后续需要单独协调；本任务不移动其中内容，也不得把它作为新实验的落点。
+- `books/ai-book/labs/llm-from-scratch/` 是唯一保留的遗留例外；不得把 `books/ai-book/labs/` 作为新实验落点，也不得在其中恢复或新增其他实验。
 
 ## 5. 统一 AI 协作资产
 

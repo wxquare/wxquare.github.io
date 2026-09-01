@@ -23,9 +23,12 @@ layout: page
 - 主题：视觉目标跟踪
 - 原始 URL：[votresult.png](https://github.com/foolwood/DaSiamRPN/blob/a2cf47acdd30c28be87e33275cabfe6d45f38d38/votresult.png)
 - 本地路径：[votresult.png](/library/other/DaSiamRPN/votresult.png)
+- 许可来源：[上游 LICENSE](https://github.com/foolwood/DaSiamRPN/blob/a2cf47acdd30c28be87e33275cabfe6d45f38d38/LICENSE)
+- 本地许可：[LICENSE](/library/other/DaSiamRPN/LICENSE)
 - 上游提交：`a2cf47acdd30c28be87e33275cabfe6d45f38d38`（`DaSiamRPN VOT2018`）
 - SHA-256：`e5da36f3d93857877e4c9a470796e31034efb1dd8cab5af2b687b4db2abc2ec6`
-- 再分发：上游仓库采用 MIT License；本地文件已与上述固定上游提交的 SHA-256 精确匹配。
+- 许可 SHA-256：`06a9e0a7d52dd7fc23a935054c3f3f25cde3cfc566a4873fdc9c46035d65db98`
+- 再分发：上游仓库采用 MIT License；本地文件已与上述固定上游提交的 SHA-256 精确匹配，完整版权与许可 notice 随本地副本保留。
 - 加入日期：2026-09-01
 
 ### DaSiamRPN installation instructions
