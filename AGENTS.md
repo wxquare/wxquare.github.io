@@ -38,8 +38,9 @@ http://localhost:4000
 - `source/_posts/other/`：其他文章
 - `source/about/`：最小联系页，仅允许邮箱；不得存放简历、电话或工作资料
 - `source/diagrams/`：图表源文件
+- `source/library/`：公开且适合公开保存的第三方参考资料与来源目录
 - `books/ai-book/src/`：AI Agent 书稿源码
-- `books/ai-book/labs/`：可运行 Agent 原型和实验
+- `books/ai-book/labs/`：现有可运行 Agent 原型和实验；属于待协调的遗留项，不作为新增实验的目录模板
 - `docs/`：调研、迁移、整理文档
 - `.agents/`：统一的 AI 协作资产与工具配置目录
 
@@ -55,11 +56,27 @@ http://localhost:4000
 
 - 系统化 Agent 知识：`books/ai-book/src/`
 - 面向读者的博客文章：`source/_posts/AI/`
-- 可运行原型与 demo：`books/ai-book/labs/`
+- 公开第三方参考资料：`source/library/`
 - AI 协作规则、共享技能与工具配置：`AGENTS.md`、`.agents/`
 - 内部整理文档与迁移说明：`docs/`
 
 不要把同一份长文同时维护在博客、书稿和 `docs/` 三处。
+
+### 4.1 公开资料库治理
+
+- 只把 books、papers、slides 放入对应的 `source/library/<category>/`；博客草稿、个人或内部材料、秘密凭证和实验源码不得进入资料库。
+- 每个条目必须在 `source/library/index.md` 记录标题、作者或机构、类型、主题、原始 URL、本地路径或“仅外链”、再分发说明和加入日期。
+- 公开可访问不等于允许重新分发；授权或再分发边界无法确认时只保留原始链接，不上传本地副本。
+- 单个二进制文件超过 10 MiB 时默认只保留外链；本地托管需要用户单独批准存储方案。
+- 公开活动资料只在 `source/library/` 维护；其他文章需要引用时链接到资料库条目或原始来源，不复制活动副本。
+
+完整规则见 `docs/library-policy.md`。
+
+### 4.2 实验仓库边界
+
+- 新增可运行实验必须放在 `/Users/xianguiwang/Projects/<project>/`，一个实验对应一个独立 Git 仓库，GitHub 仓库默认设为 Private。
+- `source/library/` 和博客文章不得包含实验源码；文章只保存实验介绍和仓库链接。
+- `books/ai-book/labs/` 仍是包含可运行实验的遗留目录，后续需要单独协调；本任务不移动其中内容，也不得把它作为新实验的落点。
 
 ## 5. 统一 AI 协作资产
 

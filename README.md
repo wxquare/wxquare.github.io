@@ -7,6 +7,7 @@
 | 入口 | 说明 |
 |------|------|
 | [在线博客](https://wxquare.github.io) | 浏览完整博客内容与专题导航 |
+| [公开参考资料库](./source/library/index.md) | 浏览公开且适合公开保存的第三方技术资料及原始来源 |
 | [AI Agent 工程实践](./books/ai-book/) | 从大模型基础到生产级智能体系统的系统化专题 |
 | [Agent 内容开发指南](./docs/agent-development-guide.md) | 仓库内 Agent 内容地图、维护边界与新增内容流程 |
 | [AGENTS.md](./AGENTS.md) | 仓库级协作入口，约束人类与 AI 协作者的统一工作方式 |
@@ -39,6 +40,10 @@
 ### 计算机基础
 
 补充操作系统、网络、Shell、Python、C++、Go 等基础能力，帮助把系统设计、工程实现和编码实践串起来。
+
+### 公开参考资料
+
+`source/library/` 按 books、papers、slides 组织公开第三方技术资料，并记录来源与再分发说明；无法确认重新托管边界的资料只保留原始链接。博客与资料库只介绍或引用实验，不存放实验源码。
 
 ## 本地运行
 
@@ -76,7 +81,12 @@ http://localhost:4000
 ├── source/
 │   ├── _posts/                  # 博客文章
 │   ├── about/                   # 联系页（仅邮箱）
-│   └── diagrams/                # 图表源文件
+│   ├── diagrams/                # 图表源文件
+│   └── library/                 # 公开第三方参考资料与来源目录
+│       ├── books/
+│       ├── papers/
+│       ├── slides/
+│       └── index.md
 ├── books/
 │   ├── ai-book/                 # AI Agent 工程实践专题
 │   ├── system-design-architecture-book/  # 系统设计与架构专题
