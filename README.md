@@ -21,8 +21,6 @@
 - [系统可靠性工程：从故障恢复到治理闭环](./source/_posts/system-design/07-system-reliability-engineering.md)
 - [计价系统设计与实现](./source/_posts/system-design/24-ecommerce-pricing-engine.md)
 - [搜索与导购系统设计](./source/_posts/system-design/31-ecommerce-search-discovery.md)
-- [首页与导购链路性能优化面试材料](./source/about/material/homepage-performance-interview-material.md)
-- [计价引擎面试材料](./source/about/material/pricing-engine-interview-material.md)
 
 ## 内容地图
 
@@ -36,7 +34,7 @@
 
 ### 电商架构与性能优化
 
-以电商链路为高密度样本，讨论首页、搜索、详情、购物车、计价、订单、支付、供应商同步与 B2B2C 平台演进，也包含面试表达与案例材料沉淀。
+以电商链路为高密度样本，讨论首页、搜索、详情、购物车、计价、订单、支付、供应商同步与 B2B2C 平台演进，沉淀可公开复用的技术案例与架构实践。
 
 ### 计算机基础
 
@@ -77,7 +75,7 @@ http://localhost:4000
 .
 ├── source/
 │   ├── _posts/                  # 博客文章
-│   ├── about/                   # 关于页、简历、面试材料
+│   ├── about/                   # 联系页（仅邮箱）
 │   └── diagrams/                # 图表源文件
 ├── books/
 │   ├── ai-book/                 # AI Agent 工程实践专题

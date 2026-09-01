@@ -36,7 +36,7 @@ http://localhost:4000
 - `source/_posts/AI/`：AI 与 Agent 相关文章
 - `source/_posts/system-design/`：系统设计文章
 - `source/_posts/other/`：其他文章
-- `source/about/`：关于页、简历、面试材料
+- `source/about/`：最小联系页，仅允许邮箱；不得存放简历、电话或工作资料
 - `source/diagrams/`：图表源文件
 - `books/ai-book/src/`：AI Agent 书稿源码
 - `books/ai-book/labs/`：可运行 Agent 原型和实验

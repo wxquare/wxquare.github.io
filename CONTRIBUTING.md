@@ -31,7 +31,7 @@ http://localhost:4000
 
 - `source/_posts/AI/` for reader-facing AI and Agent blog posts
 - `source/_posts/system-design/` for system design articles
-- `source/about/` for resumes and interview materials
+- `source/about/` for the minimal contact page; email only; do not add resumes, phone numbers, or work materials
 - `books/ai-book/src/` for long-form Agent book chapters
 - `books/ai-book/labs/` for runnable Agent experiments
 - `docs/` for maintenance notes and internal organization docs
