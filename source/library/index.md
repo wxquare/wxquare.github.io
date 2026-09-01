@@ -33,7 +33,8 @@ layout: page
 - 作者/机构：foolwood
 - 类型：other
 - 主题：视觉目标跟踪
-- 原始 URL：[run_install.sh](https://github.com/foolwood/DaSiamRPN/blob/master/run_install.sh)
+- 原始 URL：[run_install.sh](https://github.com/foolwood/DaSiamRPN/blob/a2cf47acdd30c28be87e33275cabfe6d45f38d38/run_install.sh)
 - 本地路径：仅外链
-- 再分发：仅链接官方上游；不发布私有本地副本。
+- 上游提交：`a2cf47acdd30c28be87e33275cabfe6d45f38d38`（包含 `run_install.sh`）
+- 再分发：仅链接上述固定官方上游；不发布私有本地副本。
 - 加入日期：2026-09-01
