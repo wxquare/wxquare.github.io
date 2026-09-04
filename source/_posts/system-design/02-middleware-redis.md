@@ -497,7 +497,6 @@ typedef struct dictEntry {
 } dictEntry;
 ```
 
-**可视化结构**：详见 [redis-hashtable.mmd](/diagrams/mermaid/redis-hashtable.mmd)
 
 ```
 dict
@@ -528,7 +527,6 @@ dict
 3. **每次增删改查操作时**，顺带迁移 `ht[0].table[rehashidx]` 的所有数据到 `ht[1]`
 4. 全部迁移完成后，释放 `ht[0]`，将 `ht[1]` 设为 `ht[0]`
 
-**可视化流程**：详见 [redis-rehash-process.mmd](/diagrams/mermaid/redis-rehash-process.mmd)
 
 **Rehash 期间的操作**：
 ```c
@@ -1748,22 +1746,12 @@ pool := &redis.Pool{
 本文包含详细的数据结构可视化图表，详见：
 
 ### Hash 相关
-- [redis-hashtable.mmd](/diagrams/mermaid/redis-hashtable.mmd) - Dict 和 Hashtable 结构
-- [redis-rehash-process.mmd](/diagrams/mermaid/redis-rehash-process.mmd) - 渐进式 Rehash 流程
-- [redis-hash-encoding.mmd](/diagrams/mermaid/redis-hash-encoding.mmd) - ziplist vs hashtable 对比
-- [redis-hashtable-preview.md](/diagrams/mermaid/redis-hashtable-preview.md) - 完整预览
 
 ### Ziplist 相关
-- [redis-ziplist-detail.mmd](/diagrams/mermaid/redis-ziplist-detail.mmd) - Ziplist 详细结构
-- [redis-ziplist-memory.mmd](/diagrams/mermaid/redis-ziplist-memory.mmd) - 内存布局实例
-- [redis-ziplist-hash-visual.mmd](/diagrams/mermaid/redis-ziplist-hash-visual.mmd) - Hash 实战可视化
-- [redis-ziplist-hash-preview.md](/diagrams/mermaid/redis-ziplist-hash-preview.md) - 实战预览 ⭐
 
 ### 实战案例
-- [redis-ziplist-hash-example.md](/diagrams/mermaid/redis-ziplist-hash-example.md) - Hash `{name:"iPhone", price:5999}` 完整分析（字节级）
 
 ### 数据结构对比
-- [redis-datastructure-comparison.mmd](/diagrams/mermaid/redis-datastructure-comparison.mmd) - ziplist vs linkedlist vs hashtable
 
 ---
 

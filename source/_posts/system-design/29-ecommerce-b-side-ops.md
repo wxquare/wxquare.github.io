@@ -129,10 +129,6 @@ toc: true
 
 ## 二、整体架构
 
-> **📊 可视化架构图**：
-> - [Excalidraw 架构图](../../diagrams/Excalidraw/listing-upload-architecture.excalidraw)（可在 [Excalidraw](https://excalidraw.com) 中打开编辑）
-> - [Mermaid 流程图](../../diagrams/mermaid/listing-upload-architecture.mmd)（可直接在支持 Mermaid 的编辑器中渲染）
-
 ### 2.1 多品类统一处理架构
 
 ```
@@ -6762,4 +6758,3 @@ func TestConcertTicketFlow(t *testing.T) {
 
 > **系列导航**
 > 本系列全部文章索引，详见{% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}。
-

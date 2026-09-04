@@ -48,8 +48,6 @@ toc: true
 
 #### 1.1.1 DDD 业务架构全景图
 
-![电商系统 DDD 业务架构](/diagrams/Excalidraw/ecommerce-ddd-business-architecture.excalidraw)
-
 > **图表说明**：使用颜色区分三类域 — 红色（核心域）、绿色（支撑域）、蓝色（通用域），清晰展示业务能力的层级关系与投资策略。可在 Excalidraw 中打开编辑查看完整细节。
 
 <details>
