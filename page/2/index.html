@@ -244,7 +244,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -336,7 +336,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -654,14 +654,7 @@
 </tr>
 </tbody></table>
 <hr>
-<h2 id="二、整体架构"><a href="#二、整体架构" class="headerlink" title="二、整体架构"></a>二、整体架构</h2><blockquote>
-<p><strong>📊 可视化架构图</strong>：</p>
-<ul>
-<li><a href="../../diagrams/Excalidraw/listing-upload-architecture.excalidraw">Excalidraw 架构图</a>（可在 <a href="https://excalidraw.com/">Excalidraw</a> 中打开编辑）</li>
-<li><a href="../../diagrams/mermaid/listing-upload-architecture.mmd">Mermaid 流程图</a>（可直接在支持 Mermaid 的编辑器中渲染）</li>
-</ul>
-</blockquote>
-<h3 id="2-1-多品类统一处理架构"><a href="#2-1-多品类统一处理架构" class="headerlink" title="2.1 多品类统一处理架构"></a>2.1 多品类统一处理架构</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│      B端多品类统一商品运营管理系统 (Multi-Category Unified System)   │</span><br><span class="line">├─────────────────────────────────────────────────────────────────────┤</span><br><span class="line">│                                                                      │</span><br><span class="line">│  【多品类 × 多数据源】输入层                                          │</span><br><span class="line">│  ┌────────────────────────────────────────────────────────────┐    │</span><br><span class="line">│  │  电子券    酒店     电影票   话费充值   礼品卡   本地服务    │    │</span><br><span class="line">│  │  (Deal)  (Hotel)  (Movie)  (TopUp)  (Giftcard)  (OPV)     │    │</span><br><span class="line">│  │    ↓        ↓        ↓        ↓         ↓         ↓        │    │</span><br><span class="line">│  │  运营表单 供应商Pull 供应商Push 运营批量 运营/商家 商家Portal │    │</span><br><span class="line">│  │  (免审核) (自动审核) (快速通道) (免审核)  (需审核) (人工审核)│    │</span><br><span class="line">│  └────────────────────────────────────────────────────────────┘    │</span><br><span class="line">│                           ↓                                          │</span><br><span class="line">│  【统一入口层】                                                       │</span><br><span class="line">│  ┌────────────────────────────────────────────────────────────┐    │</span><br><span class="line">│  │              Listing Upload Service                        │    │</span><br><span class="line">│  │  • 数据来源识别 (source_type + source_user_type)           │    │</span><br><span class="line">│  │  • 审核策略路由 (skip/auto/manual/fast_track)              │    │</span><br><span class="line">│  │  • 数据格式转换（供应商数据 → 平台模型）                    │    │</span><br><span class="line">│  │  • 任务创建（task_code 生成，雪花算法）                     │    │</span><br><span class="line">│  └────────────────────────────────────────────────────────────┘    │</span><br><span class="line">│                           ↓                                          │</span><br><span class="line">│  【统一状态机】（所有品类共享）                                       │</span><br><span class="line">│  ┌────────────────────────────────────────────────────────────┐    │</span><br><span class="line">│  │  DRAFT → Pending Audit → Approved/Rejected → Online        │    │</span><br><span class="line">│  │  • 状态流转规则一致                                         │    │</span><br><span class="line">│  │  • 策略模式适配差异                                         │    │</span><br><span class="line">│  └────────────────────────────────────────────────────────────┘    │</span><br><span class="line">│                           ↓                                          │</span><br><span class="line">│  【策略引擎层】（差异化处理）                                         │</span><br><span class="line">│  ┌────────────────────────────────────────────────────────────┐    │</span><br><span class="line">│  │  校验引擎        审核引擎        发布引擎                    │    │</span><br><span class="line">│  │  ├─ HotelRule   ├─ AutoAuditor  ├─ ItemCreator            │    │</span><br><span class="line">│  │  ├─ MovieRule   ├─ ManualQueue  ├─ SKUCreator             │    │</span><br><span class="line">│  │  ├─ DealRule    └─ FastTrack    ├─ AttributeCreator       │    │</span><br><span class="line">│  │  ├─ TopUpRule                    └─ CacheSyncer            │    │</span><br><span class="line">│  │  └─ ...                                                     │    │</span><br><span class="line">│  └────────────────────────────────────────────────────────────┘    │</span><br><span class="line">│                           ↓                                          │</span><br><span class="line">│  【商品已上线】                                                       │</span><br><span class="line">│                           ↓                                          │</span><br><span class="line">│  【运营管理侧】批量操作 &amp; 配置管理（统一后台）                         │</span><br><span class="line">│  ┌────────────────────────────────────────────────────────────┐    │</span><br><span class="line">│  │  商品管理      价格管理      库存管理      配置管理          │    │</span><br><span class="line">│  │  • 批量编辑    • 批量调价    • 批量设库    • 类目维护        │    │</span><br><span class="line">│  │  • 搜索筛选    • 促销配置    • 券码导入    • Entrance配置   │    │</span><br><span class="line">│  │  • 上下线      • Fee配置     • 对账修复    • Tag管理        │    │</span><br><span class="line">│  │                                                              │    │</span><br><span class="line">│  │  支持所有品类，统一入口，差异化配置                           │    │</span><br><span class="line">│  └────────────────────────────────────────────────────────────┘    │</span><br><span class="line">│                                                                      │</span><br><span class="line">└─────────────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+<h2 id="二、整体架构"><a href="#二、整体架构" class="headerlink" title="二、整体架构"></a>二、整体架构</h2><h3 id="2-1-多品类统一处理架构"><a href="#2-1-多品类统一处理架构" class="headerlink" title="2.1 多品类统一处理架构"></a>2.1 多品类统一处理架构</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│      B端多品类统一商品运营管理系统 (Multi-Category Unified System)   │</span><br><span class="line">├─────────────────────────────────────────────────────────────────────┤</span><br><span class="line">│                                                                      │</span><br><span class="line">│  【多品类 × 多数据源】输入层                                          │</span><br><span class="line">│  ┌────────────────────────────────────────────────────────────┐    │</span><br><span class="line">│  │  电子券    酒店     电影票   话费充值   礼品卡   本地服务    │    │</span><br><span class="line">│  │  (Deal)  (Hotel)  (Movie)  (TopUp)  (Giftcard)  (OPV)     │    │</span><br><span class="line">│  │    ↓        ↓        ↓        ↓         ↓         ↓        │    │</span><br><span class="line">│  │  运营表单 供应商Pull 供应商Push 运营批量 运营/商家 商家Portal │    │</span><br><span class="line">│  │  (免审核) (自动审核) (快速通道) (免审核)  (需审核) (人工审核)│    │</span><br><span class="line">│  └────────────────────────────────────────────────────────────┘    │</span><br><span class="line">│                           ↓                                          │</span><br><span class="line">│  【统一入口层】                                                       │</span><br><span class="line">│  ┌────────────────────────────────────────────────────────────┐    │</span><br><span class="line">│  │              Listing Upload Service                        │    │</span><br><span class="line">│  │  • 数据来源识别 (source_type + source_user_type)           │    │</span><br><span class="line">│  │  • 审核策略路由 (skip/auto/manual/fast_track)              │    │</span><br><span class="line">│  │  • 数据格式转换（供应商数据 → 平台模型）                    │    │</span><br><span class="line">│  │  • 任务创建（task_code 生成，雪花算法）                     │    │</span><br><span class="line">│  └────────────────────────────────────────────────────────────┘    │</span><br><span class="line">│                           ↓                                          │</span><br><span class="line">│  【统一状态机】（所有品类共享）                                       │</span><br><span class="line">│  ┌────────────────────────────────────────────────────────────┐    │</span><br><span class="line">│  │  DRAFT → Pending Audit → Approved/Rejected → Online        │    │</span><br><span class="line">│  │  • 状态流转规则一致                                         │    │</span><br><span class="line">│  │  • 策略模式适配差异                                         │    │</span><br><span class="line">│  └────────────────────────────────────────────────────────────┘    │</span><br><span class="line">│                           ↓                                          │</span><br><span class="line">│  【策略引擎层】（差异化处理）                                         │</span><br><span class="line">│  ┌────────────────────────────────────────────────────────────┐    │</span><br><span class="line">│  │  校验引擎        审核引擎        发布引擎                    │    │</span><br><span class="line">│  │  ├─ HotelRule   ├─ AutoAuditor  ├─ ItemCreator            │    │</span><br><span class="line">│  │  ├─ MovieRule   ├─ ManualQueue  ├─ SKUCreator             │    │</span><br><span class="line">│  │  ├─ DealRule    └─ FastTrack    ├─ AttributeCreator       │    │</span><br><span class="line">│  │  ├─ TopUpRule                    └─ CacheSyncer            │    │</span><br><span class="line">│  │  └─ ...                                                     │    │</span><br><span class="line">│  └────────────────────────────────────────────────────────────┘    │</span><br><span class="line">│                           ↓                                          │</span><br><span class="line">│  【商品已上线】                                                       │</span><br><span class="line">│                           ↓                                          │</span><br><span class="line">│  【运营管理侧】批量操作 &amp; 配置管理（统一后台）                         │</span><br><span class="line">│  ┌────────────────────────────────────────────────────────────┐    │</span><br><span class="line">│  │  商品管理      价格管理      库存管理      配置管理          │    │</span><br><span class="line">│  │  • 批量编辑    • 批量调价    • 批量设库    • 类目维护        │    │</span><br><span class="line">│  │  • 搜索筛选    • 促销配置    • 券码导入    • Entrance配置   │    │</span><br><span class="line">│  │  • 上下线      • Fee配置     • 对账修复    • Tag管理        │    │</span><br><span class="line">│  │                                                              │    │</span><br><span class="line">│  │  支持所有品类，统一入口，差异化配置                           │    │</span><br><span class="line">│  └────────────────────────────────────────────────────────────┘    │</span><br><span class="line">│                                                                      │</span><br><span class="line">└─────────────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
 
 <h3 id="2-2-分层架构"><a href="#2-2-分层架构" class="headerlink" title="2.2 分层架构"></a>2.2 分层架构</h3><h4 id="2-2-1-架构流程图（Mermaid）"><a href="#2-2-1-架构流程图（Mermaid）" class="headerlink" title="2.2.1 架构流程图（Mermaid）"></a>2.2.1 架构流程图（Mermaid）</h4><pre class="mermaid">graph TB
     subgraph 多品类数据入口层
@@ -3208,7 +3201,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -3390,14 +3383,7 @@
 </tr>
 </tbody></table>
 <hr>
-<h2 id="二、整体架构"><a href="#二、整体架构" class="headerlink" title="二、整体架构"></a>二、整体架构</h2><blockquote>
-<p><strong>📊 可视化架构图</strong>：</p>
-<ul>
-<li><a href="../../diagrams/Excalidraw/listing-upload-architecture.excalidraw">Excalidraw 架构图</a>（可在 <a href="https://excalidraw.com/">Excalidraw</a> 中打开编辑）</li>
-<li><a href="../../diagrams/mermaid/listing-upload-architecture.mmd">Mermaid 流程图</a>（可直接在支持 Mermaid 的编辑器中渲染）</li>
-</ul>
-</blockquote>
-<h3 id="2-1-分层架构"><a href="#2-1-分层架构" class="headerlink" title="2.1 分层架构"></a>2.1 分层架构</h3><h4 id="架构流程图（Mermaid）"><a href="#架构流程图（Mermaid）" class="headerlink" title="架构流程图（Mermaid）"></a>架构流程图（Mermaid）</h4><pre class="mermaid">graph TB
+<h2 id="二、整体架构"><a href="#二、整体架构" class="headerlink" title="二、整体架构"></a>二、整体架构</h2><h3 id="2-1-分层架构"><a href="#2-1-分层架构" class="headerlink" title="2.1 分层架构"></a>2.1 分层架构</h3><h4 id="架构流程图（Mermaid）"><a href="#架构流程图（Mermaid）" class="headerlink" title="架构流程图（Mermaid）"></a>架构流程图（Mermaid）</h4><pre class="mermaid">graph TB
     subgraph 数据入口层
         A1[运营上传<br/>表单/Excel<br/>免审核]
         A2[商家上传<br/>Portal/App<br/>人工审核+限流]
@@ -3899,7 +3885,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4867,7 +4853,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -6025,7 +6011,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -6720,7 +6706,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -8765,7 +8751,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -10034,7 +10020,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -10141,7 +10127,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -11478,7 +11464,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -12853,7 +12839,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -13685,7 +13671,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -13740,8 +13726,7 @@
 </ul>
 </blockquote>
 <h2 id="一、系统全景架构（EA-4A-视角）"><a href="#一、系统全景架构（EA-4A-视角）" class="headerlink" title="一、系统全景架构（EA + 4A 视角）"></a>一、系统全景架构（EA + 4A 视角）</h2><h3 id="1-1-业务架构（BA）：基于-DDD-的领域全景"><a href="#1-1-业务架构（BA）：基于-DDD-的领域全景" class="headerlink" title="1.1 业务架构（BA）：基于 DDD 的领域全景"></a>1.1 业务架构（BA）：基于 DDD 的领域全景</h3><p><strong>视角说明</strong>：采用 DDD（领域驱动设计）的<strong>核心域、支撑域、通用域</strong>三层结构，展示完整的电商业务能力。本章节帮助你理解<strong>业务价值</strong>与<strong>投资优先级</strong>的关系。</p>
-<h4 id="1-1-1-DDD-业务架构全景图"><a href="#1-1-1-DDD-业务架构全景图" class="headerlink" title="1.1.1 DDD 业务架构全景图"></a>1.1.1 DDD 业务架构全景图</h4><p><img src="/diagrams/Excalidraw/ecommerce-ddd-business-architecture.excalidraw" alt="电商系统 DDD 业务架构"></p>
-<blockquote>
+<h4 id="1-1-1-DDD-业务架构全景图"><a href="#1-1-1-DDD-业务架构全景图" class="headerlink" title="1.1.1 DDD 业务架构全景图"></a>1.1.1 DDD 业务架构全景图</h4><blockquote>
 <p><strong>图表说明</strong>：使用颜色区分三类域 — 红色（核心域）、绿色（支撑域）、蓝色（通用域），清晰展示业务能力的层级关系与投资策略。可在 Excalidraw 中打开编辑查看完整细节。</p>
 </blockquote>
 <details>
@@ -18311,7 +18296,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -19279,7 +19264,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -20094,7 +20079,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -20182,7 +20167,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -21161,7 +21146,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -21860,7 +21845,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 10:06:11" itemprop="dateModified" datetime="2026-09-04T10:06:11+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -22940,7 +22925,7 @@ type poolLocalInternal struct &#123;
 <p><strong>核心结构</strong>：经典拉链法哈希表</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Redis 字典结构（dict）</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dict</span> &#123;</span></span><br><span class="line">    dictht ht[<span class="number">2</span>];        <span class="comment">// 两个哈希表，ht[1] 用于 rehash</span></span><br><span class="line">    <span class="type">long</span> rehashidx;      <span class="comment">// rehash 进度，-1 表示未进行</span></span><br><span class="line">&#125; dict;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 哈希表结构（dictht）</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dictht</span> &#123;</span></span><br><span class="line">    dictEntry **table;   <span class="comment">// 哈希表数组（指针数组）</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> size;  <span class="comment">// 大小（2的幂次方）</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> used;  <span class="comment">// 已有节点数</span></span><br><span class="line">&#125; dictht;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 哈希节点（dictEntry）</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dictEntry</span> &#123;</span></span><br><span class="line">    <span class="type">void</span> *key;           <span class="comment">// 键</span></span><br><span class="line">    <span class="type">void</span> *value;         <span class="comment">// 值</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">dictEntry</span> *<span class="title">next</span>;</span>  <span class="comment">// 链表指针（解决冲突）</span></span><br><span class="line">&#125; dictEntry;</span><br></pre></td></tr></table></figure>
 
-<p><strong>可视化结构</strong>：详见 <a href="/diagrams/mermaid/redis-hashtable.mmd">redis-hashtable.mmd</a></p>
+
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">dict</span><br><span class="line">├── ht[0] (主哈希表)</span><br><span class="line">│   ├── table[0] → NULL</span><br><span class="line">│   ├── table[1] → entry(name:iPhone) → NULL</span><br><span class="line">│   ├── table[2] → entry(price:5999) → entry(stock:100) → NULL  (拉链法)</span><br><span class="line">│   └── ...</span><br><span class="line">└── ht[1] (rehash用)</span><br><span class="line">    └── NULL (未使用)</span><br></pre></td></tr></table></figure>
 
 <h4 id="4-渐进式-Rehash-机制（核心）"><a href="#4-渐进式-Rehash-机制（核心）" class="headerlink" title="4. 渐进式 Rehash 机制（核心）"></a>4. 渐进式 Rehash 机制（核心）</h4><p><strong>触发条件</strong>：</p>
@@ -22953,7 +22938,6 @@ type poolLocalInternal struct &#123;
 <li><strong>每次增删改查操作时</strong>，顺带迁移 <code>ht[0].table[rehashidx]</code> 的所有数据到 <code>ht[1]</code></li>
 <li>全部迁移完成后，释放 <code>ht[0]</code>，将 <code>ht[1]</code> 设为 <code>ht[0]</code></li>
 </ol>
-<p><strong>可视化流程</strong>：详见 <a href="/diagrams/mermaid/redis-rehash-process.mmd">redis-rehash-process.mmd</a></p>
 <p><strong>Rehash 期间的操作</strong>：</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">查找：先查 ht[<span class="number">0</span>]，未找到再查 ht[<span class="number">1</span>]</span><br><span class="line">新增：直接写入 ht[<span class="number">1</span>]（新数据不进旧表）</span><br><span class="line">删除/更新：在 ht[<span class="number">0</span>] 或 ht[<span class="number">1</span>] 中找到后操作</span><br></pre></td></tr></table></figure>
 
@@ -23614,25 +23598,7 @@ type poolLocalInternal struct &#123;
 
 <hr>
 <h2 id="可视化图表索引"><a href="#可视化图表索引" class="headerlink" title="可视化图表索引"></a>可视化图表索引</h2><p>本文包含详细的数据结构可视化图表，详见：</p>
-<h3 id="Hash-相关"><a href="#Hash-相关" class="headerlink" title="Hash 相关"></a>Hash 相关</h3><ul>
-<li><a href="/diagrams/mermaid/redis-hashtable.mmd">redis-hashtable.mmd</a> - Dict 和 Hashtable 结构</li>
-<li><a href="/diagrams/mermaid/redis-rehash-process.mmd">redis-rehash-process.mmd</a> - 渐进式 Rehash 流程</li>
-<li><a href="/diagrams/mermaid/redis-hash-encoding.mmd">redis-hash-encoding.mmd</a> - ziplist vs hashtable 对比</li>
-<li><a href="/diagrams/mermaid/redis-hashtable-preview.md">redis-hashtable-preview.md</a> - 完整预览</li>
-</ul>
-<h3 id="Ziplist-相关"><a href="#Ziplist-相关" class="headerlink" title="Ziplist 相关"></a>Ziplist 相关</h3><ul>
-<li><a href="/diagrams/mermaid/redis-ziplist-detail.mmd">redis-ziplist-detail.mmd</a> - Ziplist 详细结构</li>
-<li><a href="/diagrams/mermaid/redis-ziplist-memory.mmd">redis-ziplist-memory.mmd</a> - 内存布局实例</li>
-<li><a href="/diagrams/mermaid/redis-ziplist-hash-visual.mmd">redis-ziplist-hash-visual.mmd</a> - Hash 实战可视化</li>
-<li><a href="/diagrams/mermaid/redis-ziplist-hash-preview.md">redis-ziplist-hash-preview.md</a> - 实战预览 ⭐</li>
-</ul>
-<h3 id="实战案例"><a href="#实战案例" class="headerlink" title="实战案例"></a>实战案例</h3><ul>
-<li><a href="/diagrams/mermaid/redis-ziplist-hash-example.md">redis-ziplist-hash-example.md</a> - Hash <code>&#123;name:&quot;iPhone&quot;, price:5999&#125;</code> 完整分析（字节级）</li>
-</ul>
-<h3 id="数据结构对比"><a href="#数据结构对比" class="headerlink" title="数据结构对比"></a>数据结构对比</h3><ul>
-<li><a href="/diagrams/mermaid/redis-datastructure-comparison.mmd">redis-datastructure-comparison.mmd</a> - ziplist vs linkedlist vs hashtable</li>
-</ul>
-<hr>
+<h3 id="Hash-相关"><a href="#Hash-相关" class="headerlink" title="Hash 相关"></a>Hash 相关</h3><h3 id="Ziplist-相关"><a href="#Ziplist-相关" class="headerlink" title="Ziplist 相关"></a>Ziplist 相关</h3><h3 id="实战案例"><a href="#实战案例" class="headerlink" title="实战案例"></a>实战案例</h3><h3 id="数据结构对比"><a href="#数据结构对比" class="headerlink" title="数据结构对比"></a>数据结构对比</h3><hr>
 <h2 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h2><h3 id="官方文档"><a href="#官方文档" class="headerlink" title="官方文档"></a>官方文档</h3><ol>
 <li><a href="https://redis.io/docs/">Redis 官方文档</a></li>
 <li><a href="https://redis.io/commands/">Redis 命令参考</a></li>

@@ -688,7 +688,7 @@
 <p><strong>核心结构</strong>：经典拉链法哈希表</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Redis 字典结构（dict）</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dict</span> &#123;</span></span><br><span class="line">    dictht ht[<span class="number">2</span>];        <span class="comment">// 两个哈希表，ht[1] 用于 rehash</span></span><br><span class="line">    <span class="type">long</span> rehashidx;      <span class="comment">// rehash 进度，-1 表示未进行</span></span><br><span class="line">&#125; dict;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 哈希表结构（dictht）</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dictht</span> &#123;</span></span><br><span class="line">    dictEntry **table;   <span class="comment">// 哈希表数组（指针数组）</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> size;  <span class="comment">// 大小（2的幂次方）</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> used;  <span class="comment">// 已有节点数</span></span><br><span class="line">&#125; dictht;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 哈希节点（dictEntry）</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dictEntry</span> &#123;</span></span><br><span class="line">    <span class="type">void</span> *key;           <span class="comment">// 键</span></span><br><span class="line">    <span class="type">void</span> *value;         <span class="comment">// 值</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">dictEntry</span> *<span class="title">next</span>;</span>  <span class="comment">// 链表指针（解决冲突）</span></span><br><span class="line">&#125; dictEntry;</span><br></pre></td></tr></table></figure>
 
-<p><strong>可视化结构</strong>：详见 <a href="/diagrams/mermaid/redis-hashtable.mmd">redis-hashtable.mmd</a></p>
+
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">dict</span><br><span class="line">├── ht[0] (主哈希表)</span><br><span class="line">│   ├── table[0] → NULL</span><br><span class="line">│   ├── table[1] → entry(name:iPhone) → NULL</span><br><span class="line">│   ├── table[2] → entry(price:5999) → entry(stock:100) → NULL  (拉链法)</span><br><span class="line">│   └── ...</span><br><span class="line">└── ht[1] (rehash用)</span><br><span class="line">    └── NULL (未使用)</span><br></pre></td></tr></table></figure>
 
 <h4 id="4-渐进式-Rehash-机制（核心）"><a href="#4-渐进式-Rehash-机制（核心）" class="headerlink" title="4. 渐进式 Rehash 机制（核心）"></a>4. 渐进式 Rehash 机制（核心）</h4><p><strong>触发条件</strong>：</p>
@@ -701,7 +701,6 @@
 <li><strong>每次增删改查操作时</strong>，顺带迁移 <code>ht[0].table[rehashidx]</code> 的所有数据到 <code>ht[1]</code></li>
 <li>全部迁移完成后，释放 <code>ht[0]</code>，将 <code>ht[1]</code> 设为 <code>ht[0]</code></li>
 </ol>
-<p><strong>可视化流程</strong>：详见 <a href="/diagrams/mermaid/redis-rehash-process.mmd">redis-rehash-process.mmd</a></p>
 <p><strong>Rehash 期间的操作</strong>：</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">查找：先查 ht[<span class="number">0</span>]，未找到再查 ht[<span class="number">1</span>]</span><br><span class="line">新增：直接写入 ht[<span class="number">1</span>]（新数据不进旧表）</span><br><span class="line">删除/更新：在 ht[<span class="number">0</span>] 或 ht[<span class="number">1</span>] 中找到后操作</span><br></pre></td></tr></table></figure>
 
@@ -1362,25 +1361,7 @@
 
 <hr>
 <h2 id="可视化图表索引"><a href="#可视化图表索引" class="headerlink" title="可视化图表索引"></a>可视化图表索引</h2><p>本文包含详细的数据结构可视化图表，详见：</p>
-<h3 id="Hash-相关"><a href="#Hash-相关" class="headerlink" title="Hash 相关"></a>Hash 相关</h3><ul>
-<li><a href="/diagrams/mermaid/redis-hashtable.mmd">redis-hashtable.mmd</a> - Dict 和 Hashtable 结构</li>
-<li><a href="/diagrams/mermaid/redis-rehash-process.mmd">redis-rehash-process.mmd</a> - 渐进式 Rehash 流程</li>
-<li><a href="/diagrams/mermaid/redis-hash-encoding.mmd">redis-hash-encoding.mmd</a> - ziplist vs hashtable 对比</li>
-<li><a href="/diagrams/mermaid/redis-hashtable-preview.md">redis-hashtable-preview.md</a> - 完整预览</li>
-</ul>
-<h3 id="Ziplist-相关"><a href="#Ziplist-相关" class="headerlink" title="Ziplist 相关"></a>Ziplist 相关</h3><ul>
-<li><a href="/diagrams/mermaid/redis-ziplist-detail.mmd">redis-ziplist-detail.mmd</a> - Ziplist 详细结构</li>
-<li><a href="/diagrams/mermaid/redis-ziplist-memory.mmd">redis-ziplist-memory.mmd</a> - 内存布局实例</li>
-<li><a href="/diagrams/mermaid/redis-ziplist-hash-visual.mmd">redis-ziplist-hash-visual.mmd</a> - Hash 实战可视化</li>
-<li><a href="/diagrams/mermaid/redis-ziplist-hash-preview.md">redis-ziplist-hash-preview.md</a> - 实战预览 ⭐</li>
-</ul>
-<h3 id="实战案例"><a href="#实战案例" class="headerlink" title="实战案例"></a>实战案例</h3><ul>
-<li><a href="/diagrams/mermaid/redis-ziplist-hash-example.md">redis-ziplist-hash-example.md</a> - Hash <code>&#123;name:&quot;iPhone&quot;, price:5999&#125;</code> 完整分析（字节级）</li>
-</ul>
-<h3 id="数据结构对比"><a href="#数据结构对比" class="headerlink" title="数据结构对比"></a>数据结构对比</h3><ul>
-<li><a href="/diagrams/mermaid/redis-datastructure-comparison.mmd">redis-datastructure-comparison.mmd</a> - ziplist vs linkedlist vs hashtable</li>
-</ul>
-<hr>
+<h3 id="Hash-相关"><a href="#Hash-相关" class="headerlink" title="Hash 相关"></a>Hash 相关</h3><h3 id="Ziplist-相关"><a href="#Ziplist-相关" class="headerlink" title="Ziplist 相关"></a>Ziplist 相关</h3><h3 id="实战案例"><a href="#实战案例" class="headerlink" title="实战案例"></a>实战案例</h3><h3 id="数据结构对比"><a href="#数据结构对比" class="headerlink" title="数据结构对比"></a>数据结构对比</h3><hr>
 <h2 id="推荐阅读"><a href="#推荐阅读" class="headerlink" title="推荐阅读"></a>推荐阅读</h2><h3 id="官方文档"><a href="#官方文档" class="headerlink" title="官方文档"></a>官方文档</h3><ol>
 <li><a href="https://redis.io/docs/">Redis 官方文档</a></li>
 <li><a href="https://redis.io/commands/">Redis 命令参考</a></li>
