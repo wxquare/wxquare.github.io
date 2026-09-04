@@ -1,0 +1,144 @@
+@startuml
+autonumber
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+
+actor "Merchant (商家)" as Merchant
+participant "B端商家后台前端" as FE
+participant "云端对象存储 (OSS)" as OSS
+
+box "供给接入平台 (网关域 - 薄荷绿)" #E8F8F5
+    participant "任务/调度引擎\n(supply_task_tab)" as Task
+    participant "EasyExcel解析器\n(supplier_raw_item_tab)" as Parser
+    queue "商品供给集市 topic\n(MQ / Kafka)" as MQ
+    participant "数据处理 Worker\n(Consumer)" as Worker
+end box
+
+box "商品中心 (主数据域 - 浅蓝色)" #LightBlue
+    participant "全局统一主表\n(product_main_tab)" as Main
+    participant "工作台表/影子行\n(product_draft_tab)" as Draft
+    participant "线上核心交易表\n(product_item_tab)" as Item
+end box
+
+box "QC审核治理中心 (治理域 - 暖橙色)" #FFF3E0
+    participant "差异快照表\n(qc_diff_snapshot_tab)" as QCSnap
+    participant "QC规则引擎/人审\n(qc_task_tab)" as QCEngine
+end box
+
+== 阶段 1：同步链路 - 秒级文件接收 ==
+
+Merchant -> FE: 1. 拖入商品 Excel 批量文件，点击【确认上传】
+activate FE
+FE -> OSS: 2. 直传 Excel 文件流
+activate OSS
+OSS --> FE: 返回文件隔离加密 URL (excel_oss_url)
+deactivate OSS
+
+FE -> Task: 3. POST /api/v1/supply/task/create (带上 excel_oss_url)
+activate Task #LightSeaGreen
+Task -> Task: 4. **创建异步批次任务**\nStatus = INIT, Type = EXCEL_IMPORT
+Task --> FE: 5. 返回 Task_ID (秒级回执)
+deactivate Task
+
+FE --> Merchant: 6. 页面跳转至导入历史
+deactivate FE
+
+== 阶段 2：异步链路 - $O(1)$ 流式解析与投递 MQ ==
+
+... 任务进入队列等待调度 ...
+
+note over Task: 7. 定时调度/Worker群异步捞取到 INIT 任务
+[-> Task: 触发异步解析线程池
+activate Task #LightSeaGreen
+Task -> Task: 7a. 将任务状态变更为 PROCESSING
+
+Task -> Parser: 8. 触发 EasyExcel 流式引擎
+activate Parser #LightSeaGreen
+
+loop Excel 行级回调 (每一次读入一行，内存恒定)
+    Parser -> Parser: 9. **沙盒防腐**\nMD5 指纹去重，Schema 基础格式强校验
+    Parser -> Parser: 10. **沙盒落地**\n合格数据暂存入 supplier_raw_item_tab
+end
+deactivate Parser
+
+== 阶段 3：供给域内部削峰 - 攒批投递 MQ ==
+
+activate Parser #LightSeaGreen
+loop 攒批微循环 (每凑满 100 条标准数据)
+    Parser -> Parser: 11. **模型轻量翻译**\n组装为标准包装消息体 (List<RawGoodsMsg>)
+    Parser -[#Purple]> MQ: 12. **发送批量供给消息 (异步削峰)**\nsendMessage(SUPPLY_TOPIC, batch_json)
+    
+    Parser -> Task: 13. 快速上报文件解析进度
+    note right of Task: 商家前端此时轮询可见: “解析中 50%... 100%”
+end
+deactivate Parser
+
+Task -> Task: 14. 供给层文件解析流结束\n更新状态为: PARSED (等待下游消费)
+deactivate Task
+
+== 阶段 4：数据处理 Worker 控速消费并交付中台影子行 ==
+
+... MQ 消息进入队列等待消费 ...
+
+[-[#Purple]> MQ: 15. MQ 异步推/拉触发
+activate MQ #Purple
+MQ -[#Purple]\ Worker: 15a. 供给 Worker 批量消费消息 (SUPPLY_TOPIC)
+deactivate MQ
+
+activate Worker #LightSeaGreen
+Worker -> Main: 16. 批量 RPC 调用商品中台: batchCreateDraft(List<DTO>)
+activate Main #DodgerBlue
+
+Main -> Main: 17. **批量全局发号**\nSnowflake 批量发放 200 个 Goods_ID 并写入主表
+
+Main -> Draft: 18. **批量控制影子行**\nBatch Insert 批量写入 product_draft_tab\nBiz_Version = 1, Status = PENDING_REVIEW
+activate Draft #DodgerBlue
+Draft --> Main: 写入成功
+deactivate Draft
+
+Main --> Worker: 19. 返回处理完毕回执 (成功/失败明细)
+deactivate Main
+
+Worker -> Task: 20. **闭环更新任务表**\n根据中台返回结果，更新最终商品的成功/失败计数器\n若全量完成则状态推进为 SUCCESS / PARTIAL_FAIL
+activate Task #LightSeaGreen
+Task --> Worker: 更新成功
+deactivate Task
+
+Worker -> Worker: 21. **手动 ACK 签收**
+deactivate Worker
+
+== 阶段 5：商品中台异步驱动 QC 差异化治理与合流 ==
+
+Note over Draft, QCSnap: 22. 异步触发批量送审事件 (Batch_Task_ID)
+Draft -[#blue]> QCSnap: 发送 MQ 异步消息：大批量商品投递送审与新数据快照
+activate QCSnap #Orange
+
+QCSnap -> Item: 23. 批量反查线上当前生效的旧数据 (若为首次创建则为空)
+activate Item #DodgerBlue
+Item --> QCSnap: 返回当前线上老数据
+deactivate Item
+
+QCSnap -> QCSnap: 24. **运行差分(Diff)算法**\n对比送审新数据 vs 线上老数据\n将变化字段及其新旧值批量存入 diff_fields JSON 字段
+
+QCSnap -> QCEngine: 25. 唤醒批量审核任务流 (触发 qc_task_tab)
+deactivate QCSnap
+activate QCEngine #Orange
+
+QCEngine -> QCEngine: 26. **运行 QC 规则引擎**\n审核人员在后台读取 diff_fields 高亮展示差异\n(机审过滤 / 人工复核通过)
+
+QCEngine -> Item: 27. 审批通过，触发批量原子 Merge 算子
+deactivate QCEngine
+activate Item #DodgerBlue
+
+Item -> Item: 28. **动静合流与版本推進**\n将影子行的变动字段批量原子覆写至 item_tab\n状态强制同步为 ACTIVE\n批量同步更新 Main 表的 current_version
+
+Item -> Main: 29. 双删 C 端商详/搜索分布式缓存 (保证强一致性)
+activate Main #LightBlue
+Main --> Item: 缓存清除成功
+deactivate Main
+
+Item --> Merchant: 30. 异步通知/商家后台可见：您的批量商品已正式上架售卖！
+deactivate Item
+
+@endum
+@enduml

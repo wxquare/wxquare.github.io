@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.2.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha256-XOqroi11tY4EFQMR9ZYwZWKj5ZXiftSx36RRuC3anlA=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"yoursite.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.20.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"always","padding":18,"offset":12},"copycode":{"enable":true,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="电商系统设计（十五）（一致性与事务专题；总索引见（一）全景概览与领域划分）  （一）全景概览与领域划分 （三）库存系统 （四）营销系统深度解析 （七）订单系统 （八）支付系统深度解析 （十三）购物车与结算域 （十五）核心业务长事务怎么处理（本文）   引言在微服务电商系统里，最容易把架构打穿的一条链路就是： 12345678910111213用户点击下单    -&gt;校验价格    -&amp;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="电商系统设计（十五）：核心业务长事务怎么处理">
+<meta property="og:url" content="http://yoursite.com/2026/06/09/system-design/34-ecommerce-long-transactions/index.html">
+<meta property="og:site_name" content="wxquare&#39;s Blogs">
+<meta property="og:description" content="电商系统设计（十五）（一致性与事务专题；总索引见（一）全景概览与领域划分）  （一）全景概览与领域划分 （三）库存系统 （四）营销系统深度解析 （七）订单系统 （八）支付系统深度解析 （十三）购物车与结算域 （十五）核心业务长事务怎么处理（本文）   引言在微服务电商系统里，最容易把架构打穿的一条链路就是： 12345678910111213用户点击下单    -&gt;校验价格    -&amp;">
+<meta property="og:locale">
+<meta property="article:published_time" content="2026-06-09T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-04T09:17:40.396Z">
+<meta property="article:author" content="wxquare">
+<meta property="article:tag" content="e-commerce">
+<meta property="article:tag" content="inventory">
+<meta property="article:tag" content="distributed-transaction">
+<meta property="article:tag" content="saga">
+<meta property="article:tag" content="tcc">
+<meta property="article:tag" content="consistency">
+<meta property="article:tag" content="payment">
+<meta property="article:tag" content="long-transaction">
+<meta property="article:tag" content="2pc">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://yoursite.com/2026/06/09/system-design/34-ecommerce-long-transactions/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-Hans","comments":true,"permalink":"http://yoursite.com/2026/06/09/system-design/34-ecommerce-long-transactions/","path":"2026/06/09/system-design/34-ecommerce-long-transactions/","title":"电商系统设计（十五）：核心业务长事务怎么处理"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>电商系统设计（十五）：核心业务长事务怎么处理 | wxquare's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">wxquare's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-book"><a href="https://wxquare.github.io/ecommerce-book/" rel="section" target="_blank"><i class="fa fa-book fa-fw"></i>书籍项目</a></li><li class="menu-item menu-item-friends"><a href="/friends" rel="section"><i class="fa fa-user fa-fw"></i>Friends</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%95%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">引言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%B8%BA%E4%BB%80%E4%B9%88%E6%9C%AC%E5%9C%B0%E4%BA%8B%E5%8A%A1%E5%9C%A8%E8%BF%99%E9%87%8C%E5%BD%BB%E5%BA%95%E5%A4%B1%E6%95%88"><span class="nav-number">2.</span> <span class="nav-text">一、为什么本地事务在这里彻底失效</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E8%AF%84%E4%BC%B0%E9%95%BF%E4%BA%8B%E5%8A%A1%E6%96%B9%E6%A1%88%E6%97%B6%E7%9C%8B%E4%BB%80%E4%B9%88"><span class="nav-number">3.</span> <span class="nav-text">二、评估长事务方案时看什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E6%96%B9%E6%A1%88%E4%B8%80%EF%BC%9A2PC-XA%EF%BC%8C%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B1%82%E9%9D%A2%E7%9A%84%E5%BC%BA%E4%B8%80%E8%87%B4%E6%9E%B7%E9%94%81"><span class="nav-number">4.</span> <span class="nav-text">三、方案一：2PC &#x2F; XA，数据库层面的强一致枷锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B"><span class="nav-number">4.1.</span> <span class="nav-text">3.1 执行流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E5%AE%83%E4%B8%BA%E4%BB%80%E4%B9%88%E7%9C%8B%E8%B5%B7%E6%9D%A5%E5%BE%88%E7%BE%8E"><span class="nav-number">4.2.</span> <span class="nav-text">3.2 它为什么看起来很美</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E4%B8%BA%E4%BB%80%E4%B9%88%E7%94%B5%E5%95%86%E5%88%9B%E5%8D%95%E9%93%BE%E8%B7%AF%E9%87%8C%E5%87%A0%E4%B9%8E%E4%B8%8D%E7%94%A8%E5%AE%83"><span class="nav-number">4.3.</span> <span class="nav-text">3.3 为什么电商创单链路里几乎不用它</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E7%BB%93%E8%AE%BA"><span class="nav-number">4.4.</span> <span class="nav-text">3.4 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E6%96%B9%E6%A1%88%E4%BA%8C%EF%BC%9A%E7%BB%8F%E5%85%B8-Saga%EF%BC%8C%E5%85%88%E6%96%A9%E5%90%8E%E5%A5%8F%E7%9A%84%E6%9C%80%E7%BB%88%E4%B8%80%E8%87%B4"><span class="nav-number">5.</span> <span class="nav-text">四、方案二：经典 Saga，先斩后奏的最终一致</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B"><span class="nav-number">5.1.</span> <span class="nav-text">4.1 执行流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%AE%83%E7%9A%84%E4%BC%98%E5%8A%BF"><span class="nav-number">5.2.</span> <span class="nav-text">4.2 它的优势</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E5%AE%83%E7%9A%84%E7%A1%AC%E4%BC%A4"><span class="nav-number">5.3.</span> <span class="nav-text">4.3 它的硬伤</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E7%BC%BA%E4%B9%8F%E9%9A%94%E7%A6%BB%E6%80%A7%EF%BC%8C%E5%AE%B9%E6%98%93%E5%87%BA%E7%8E%B0%E2%80%9C%E5%83%B5%E5%B0%B8%E5%8D%A0%E4%BD%8D%E2%80%9D"><span class="nav-number">5.3.1.</span> <span class="nav-text">1. 缺乏隔离性，容易出现“僵尸占位”</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E7%BD%91%E7%BB%9C%E4%B9%B1%E5%BA%8F%E4%BC%9A%E6%94%BE%E5%A4%A7%E8%A1%A5%E5%81%BF%E5%A4%8D%E6%9D%82%E5%BA%A6"><span class="nav-number">5.3.2.</span> <span class="nav-text">2. 网络乱序会放大补偿复杂度</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E7%BB%93%E8%AE%BA"><span class="nav-number">5.4.</span> <span class="nav-text">4.4 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E6%96%B9%E6%A1%88%E4%B8%89%EF%BC%9A%E6%A0%87%E5%87%86-TCC%EF%BC%8C%E4%B8%9A%E5%8A%A1%E5%B1%82%E5%86%BB%E7%BB%93%E8%B5%84%E6%BA%90%E7%9A%84%E9%87%8D%E5%9E%8B%E6%AD%A6%E5%99%A8"><span class="nav-number">6.</span> <span class="nav-text">五、方案三：标准 TCC，业务层冻结资源的重型武器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B"><span class="nav-number">6.1.</span> <span class="nav-text">5.1 执行流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E5%AE%83%E7%9A%84%E4%BC%98%E5%8A%BF"><span class="nav-number">6.2.</span> <span class="nav-text">5.2 它的优势</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-%E5%AE%83%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">6.3.</span> <span class="nav-text">5.3 它的问题</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E7%A0%94%E5%8F%91%E6%88%90%E6%9C%AC%E6%9E%81%E9%AB%98"><span class="nav-number">6.3.1.</span> <span class="nav-text">1. 研发成本极高</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E5%90%8C%E6%AD%A5%E7%BC%96%E6%8E%92%E5%AE%B9%E6%98%93%E5%8D%A1%E6%AD%BB%E7%BA%BF%E7%A8%8B"><span class="nav-number">6.3.2.</span> <span class="nav-text">2. 同步编排容易卡死线程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E5%AF%B9%E5%A4%96%E9%83%A8%E7%B3%BB%E7%BB%9F%E8%A6%81%E6%B1%82%E9%AB%98"><span class="nav-number">6.3.3.</span> <span class="nav-text">3. 对外部系统要求高</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-4-%E7%BB%93%E8%AE%BA"><span class="nav-number">6.4.</span> <span class="nav-text">5.4 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81%E6%96%B9%E6%A1%88%E5%9B%9B%EF%BC%9A%E5%B7%A5%E4%B8%9A%E7%BA%A7%E6%94%B9%E8%89%AF%E7%89%88-Saga%EF%BC%8C%E7%8E%B0%E4%BB%A3%E7%94%B5%E5%95%86%E6%9C%80%E5%B8%B8%E8%A7%81%E7%9A%84%E6%8A%98%E4%B8%AD%E8%A7%A3"><span class="nav-number">7.</span> <span class="nav-text">六、方案四：工业级改良版 Saga，现代电商最常见的折中解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-%E6%A0%B8%E5%BF%83%E6%80%9D%E8%B7%AF"><span class="nav-number">7.1.</span> <span class="nav-text">6.1 核心思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-%E5%85%B8%E5%9E%8B%E6%B5%81%E7%A8%8B"><span class="nav-number">7.2.</span> <span class="nav-text">6.2 典型流程</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-Reserve%EF%BC%9A%E9%A2%84%E5%8D%A0%E8%B5%84%E6%BA%90"><span class="nav-number">7.2.1.</span> <span class="nav-text">1. Reserve：预占资源</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E6%9C%AC%E5%9C%B0%E8%90%BD%E5%BA%93%EF%BC%9A%E7%A1%AE%E7%AB%8B%E8%AE%A2%E5%8D%95%E4%BA%8B%E5%AE%9E"><span class="nav-number">7.2.2.</span> <span class="nav-text">2. 本地落库：确立订单事实</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E8%B7%B3%E8%BD%AC%E6%94%AF%E4%BB%98%EF%BC%9A%E4%B8%BB%E8%AF%B7%E6%B1%82%E5%BF%AB%E9%80%9F%E8%BF%94%E5%9B%9E"><span class="nav-number">7.2.3.</span> <span class="nav-text">3. 跳转支付：主请求快速返回</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-%E6%94%AF%E4%BB%98%E6%88%90%E5%8A%9F%E5%90%8E%E5%BC%82%E6%AD%A5-Confirm"><span class="nav-number">7.2.4.</span> <span class="nav-text">4. 支付成功后异步 Confirm</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-%E8%B6%85%E6%97%B6%E6%9C%AA%E6%94%AF%E4%BB%98%E6%88%96%E5%8F%96%E6%B6%88%E6%97%B6%E5%BC%82%E6%AD%A5-Cancel"><span class="nav-number">7.2.5.</span> <span class="nav-text">5. 超时未支付或取消时异步 Cancel</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-%E5%AE%83%E4%B8%BA%E4%BB%80%E4%B9%88%E6%9B%B4%E9%80%82%E5%90%88%E7%94%B5%E5%95%86"><span class="nav-number">7.3.</span> <span class="nav-text">6.3 它为什么更适合电商</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E5%85%BC%E9%A1%BE%E9%9A%94%E7%A6%BB%E6%80%A7%E5%92%8C%E5%90%9E%E5%90%90%E9%87%8F"><span class="nav-number">7.3.1.</span> <span class="nav-text">1. 兼顾隔离性和吞吐量</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E5%AF%B9%E6%94%AF%E4%BB%98%E7%BD%91%E5%85%B3%E9%9D%9E%E5%B8%B8%E5%8F%8B%E5%A5%BD"><span class="nav-number">7.3.2.</span> <span class="nav-text">2. 对支付网关非常友好</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E5%B7%A5%E7%A8%8B%E8%BE%B9%E7%95%8C%E6%B8%85%E6%99%B0"><span class="nav-number">7.3.3.</span> <span class="nav-text">3. 工程边界清晰</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-4-%E5%AE%83%E7%9A%84%E4%BB%A3%E4%BB%B7"><span class="nav-number">7.4.</span> <span class="nav-text">6.4 它的代价</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%83%E3%80%81%E5%9B%9B%E7%A7%8D%E6%96%B9%E6%A1%88%E7%BB%BC%E5%90%88%E5%AF%B9%E6%AF%94"><span class="nav-number">8.</span> <span class="nav-text">七、四种方案综合对比</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AB%E3%80%81%E6%88%91%E7%9A%84%E6%8E%A8%E8%8D%90%E9%80%89%E5%9E%8B"><span class="nav-number">9.</span> <span class="nav-text">八、我的推荐选型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#8-1-%E7%94%B5%E5%95%86%E5%88%9B%E5%8D%95%E9%93%BE%E8%B7%AF%EF%BC%9A%E4%BC%98%E5%85%88%E9%80%89%E6%94%B9%E8%89%AF%E7%89%88-Saga"><span class="nav-number">9.1.</span> <span class="nav-text">8.1 电商创单链路：优先选改良版 Saga</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-2-%E9%87%91%E8%9E%8D%E7%BA%A7%E8%B4%A6%E5%8A%A1%EF%BC%9A%E5%BF%85%E8%A6%81%E6%97%B6%E9%80%89%E6%8B%A9-TCC"><span class="nav-number">9.2.</span> <span class="nav-text">8.2 金融级账务：必要时选择 TCC</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-3-%E6%98%8E%E7%A1%AE%E4%B8%8D%E5%BB%BA%E8%AE%AE"><span class="nav-number">9.3.</span> <span class="nav-text">8.3 明确不建议</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B9%9D%E3%80%81%E6%94%B9%E8%89%AF%E7%89%88-Saga-%E7%9A%84%E8%90%BD%E5%9C%B0%E7%BB%86%E8%8A%82"><span class="nav-number">10.</span> <span class="nav-text">九、改良版 Saga 的落地细节</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#9-1-%E5%B9%82%E7%AD%89"><span class="nav-number">10.1.</span> <span class="nav-text">9.1 幂等</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-2-%E9%98%B2%E6%82%AC%E6%8C%82"><span class="nav-number">10.2.</span> <span class="nav-text">9.2 防悬挂</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-3-Outbox-%E5%BF%85%E9%A1%BB%E5%92%8C%E8%AE%A2%E5%8D%95%E6%9C%AC%E5%9C%B0%E4%BA%8B%E5%8A%A1%E5%90%8C%E6%8F%90%E4%BA%A4"><span class="nav-number">10.3.</span> <span class="nav-text">9.3 Outbox 必须和订单本地事务同提交</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-4-%E8%B6%85%E6%97%B6%E5%85%B3%E5%8D%95%E5%92%8C%E8%A1%A5%E5%81%BF%E9%97%AD%E7%8E%AF"><span class="nav-number">10.4.</span> <span class="nav-text">9.4 超时关单和补偿闭环</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#9-5-%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%80%A7"><span class="nav-number">10.5.</span> <span class="nav-text">9.5 可观测性</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E3%80%81%E9%9D%A2%E8%AF%95%E9%87%8C%E6%80%8E%E4%B9%88%E8%AE%B2%E8%BF%99%E4%BB%B6%E4%BA%8B"><span class="nav-number">11.</span> <span class="nav-text">十、面试里怎么讲这件事</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#10-1-%E5%85%88%E5%88%86%E5%9C%BA%E6%99%AF"><span class="nav-number">11.1.</span> <span class="nav-text">10.1 先分场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#10-2-%E5%86%8D%E8%AE%B2%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E8%83%BD%E7%94%A8%E6%9C%AC%E5%9C%B0%E4%BA%8B%E5%8A%A1"><span class="nav-number">11.2.</span> <span class="nav-text">10.2 再讲为什么不能用本地事务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#10-3-%E7%84%B6%E5%90%8E%E5%BF%AB%E9%80%9F%E5%AF%B9%E6%AF%94%E6%96%B9%E6%A1%88"><span class="nav-number">11.3.</span> <span class="nav-text">10.3 然后快速对比方案</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#10-4-%E6%9C%80%E5%90%8E%E8%A1%A5%E5%B7%A5%E7%A8%8B%E5%85%B3%E9%94%AE%E7%82%B9"><span class="nav-number">11.4.</span> <span class="nav-text">10.4 最后补工程关键点</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E4%B8%80%E3%80%81%E6%80%BB%E7%BB%93"><span class="nav-number">12.</span> <span class="nav-text">十一、总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="wxquare"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">wxquare</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">63</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">174</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/yourname" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;yourname" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="/xianguiwang0316@gmail.com" title="E-Mail → xianguiwang0316@gmail.com" rel="noopener me"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+<section class="site-series">
+  <div class="site-series-title">
+    <i class="fa fa-book"></i> 系列专题
+  </div>
+  <ul class="series-list">
+    <li class="series-item ecommerce">
+      <a href="/categories/电商系统设计/">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="series-name">电商系统设计</span>
+        <span class="series-count">13篇</span>
+      </a>
+    </li>
+    <li class="series-item architecture-clean-code">
+      <a href="/tags/architecture-and-clean-code/">
+        <i class="fa fa-sitemap"></i>
+        <span class="series-name">架构与整洁代码</span>
+        <span class="series-count">4篇</span>
+      </a>
+    </li>
+    <li class="series-item ai">
+      <a href="/categories/AI-与-Agent/">
+        <i class="fa fa-robot"></i>
+        <span class="series-name">AI 与 Agent</span>
+        <span class="series-count">7篇</span>
+      </a>
+    </li>
+    <li class="series-item system-design">
+      <a href="/categories/系统设计基础/">
+        <i class="fa fa-cogs"></i>
+        <span class="series-name">系统设计基础</span>
+        <span class="series-count">15篇</span>
+      </a>
+    </li>
+    <li class="series-item fundamentals">
+      <a href="/categories/计算机基础/">
+        <i class="fa fa-laptop"></i>
+        <span class="series-name">计算机基础</span>
+        <span class="series-count">6篇</span>
+      </a>
+    </li>
+  </ul>
+</section>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-Hans">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2026/06/09/system-design/34-ecommerce-long-transactions/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="wxquare">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="电商系统设计（十五）：核心业务长事务怎么处理 | wxquare's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          电商系统设计（十五）：核心业务长事务怎么处理
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2026-06-09 00:00:00" itemprop="dateCreated datePublished" datetime="2026-06-09T00:00:00+00:00">2026-06-09</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-09-04 09:17:40" itemprop="dateModified" datetime="2026-09-04T09:17:40+00:00">2026-09-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%94%B5%E5%95%86%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">电商系统设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><!-- toc -->
+
+<blockquote>
+<p><strong>电商系统设计（十五）</strong>（一致性与事务专题；总索引见<a href="/2025/05/01/system-design/20-ecommerce-overview/" title="电商系统设计（一）：全景概览与领域划分">（一）全景概览与领域划分</a>）</p>
+<ul>
+<li><a href="/2025/05/01/system-design/20-ecommerce-overview/" title="电商系统设计（一）：全景概览与领域划分">（一）全景概览与领域划分</a></li>
+<li><a href="/2025/05/29/system-design/22-ecommerce-inventory/" title="电商系统设计（三）：库存系统">（三）库存系统</a></li>
+<li><a href="/2025/06/12/system-design/23-ecommerce-marketing-system/" title="电商系统设计（四）：营销系统深度解析">（四）营销系统深度解析</a></li>
+<li><a href="/2025/07/24/system-design/26-ecommerce-order-system/" title="电商系统设计（七）：订单系统">（七）订单系统</a></li>
+<li><a href="/2025/08/07/system-design/27-ecommerce-payment-system/" title="电商系统设计（八）：支付系统深度解析">（八）支付系统深度解析</a></li>
+<li><a href="/2026/04/13/system-design/32-ecommerce-cart-checkout/" title="电商系统设计（十三）：购物车与结算域（Cart &amp; Checkout）">（十三）购物车与结算域</a></li>
+<li><strong>（十五）核心业务长事务怎么处理（本文）</strong></li>
+</ul>
+</blockquote>
+<h2 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h2><p>在微服务电商系统里，最容易把架构打穿的一条链路就是：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">用户点击下单</span><br><span class="line">    -&gt;</span><br><span class="line">校验价格</span><br><span class="line">    -&gt;</span><br><span class="line">锁库存</span><br><span class="line">    -&gt;</span><br><span class="line">锁优惠券</span><br><span class="line">    -&gt;</span><br><span class="line">创建订单</span><br><span class="line">    -&gt;</span><br><span class="line">跳转支付</span><br><span class="line">    -&gt;</span><br><span class="line">支付成功后最终扣减库存和核销营销资产</span><br></pre></td></tr></table></figure>
+
+<p>这条链路横跨订单中心、库存中心、营销中心、支付中心，天然就是一个典型的<strong>分布式长事务</strong>。一旦设计不当，就会出现下面几类问题：</p>
+<ul>
+<li>库存已经扣了，但订单创建失败，导致少卖或脏占用。</li>
+<li>优惠券已经核销，但用户支付超时，补偿路径复杂。</li>
+<li>支付网关回调慢或重复回调，导致状态机反复扭转。</li>
+<li>高并发下线程池、数据库锁和消息积压互相放大，最后拖垮结算链路。</li>
+</ul>
+<p>所以面试官问“长事务怎么处理”，本质上不是在考你会不会背 <code>Saga</code> 或 <code>TCC</code> 名词，而是在看你有没有能力在<strong>一致性、吞吐量、隔离性、研发成本、外部系统约束</strong>之间做架构权衡。</p>
+<p>本文会围绕四种主流方案展开：</p>
+<ul>
+<li><code>2PC / XA</code></li>
+<li>经典 <code>Saga</code></li>
+<li>标准 <code>TCC</code></li>
+<li>工业级改良版 <code>Saga</code></li>
+</ul>
+<p>然后给出我在电商创单链路里的推荐选型与落地姿势。</p>
+<h2 id="一、为什么本地事务在这里彻底失效"><a href="#一、为什么本地事务在这里彻底失效" class="headerlink" title="一、为什么本地事务在这里彻底失效"></a>一、为什么本地事务在这里彻底失效</h2><p>单体时代，我们可以把“扣库存、扣券、写订单、记支付单”放进一个数据库事务里，用本地事务一次提交。<br>但在微服务架构里，这条链路至少有三个变化：</p>
+<ol>
+<li>每个核心域都有独立数据库，事务边界被物理拆开。</li>
+<li>支付网关是第三方外部系统，不可能参加你的数据库事务。</li>
+<li>用户支付不是毫秒级完成，而是可能等待几十秒，甚至几分钟。</li>
+</ol>
+<p>这就意味着：</p>
+<ul>
+<li>不能再指望数据库的 <code>ACID</code> 替你兜底。</li>
+<li>不能把用户支付等待时间包进锁里。</li>
+<li>不能为了强一致，把整个系统的吞吐量换掉。</li>
+</ul>
+<p>因此，长事务设计的目标不再是“所有库同时提交”，而是：</p>
+<ul>
+<li>明确谁是<strong>权威状态源</strong>。</li>
+<li>明确哪些资源是<strong>预占</strong>，哪些动作是<strong>最终提交</strong>。</li>
+<li>明确失败后如何<strong>补偿</strong>、如何<strong>幂等</strong>、如何<strong>防悬挂</strong>。</li>
+</ul>
+<h2 id="二、评估长事务方案时看什么"><a href="#二、评估长事务方案时看什么" class="headerlink" title="二、评估长事务方案时看什么"></a>二、评估长事务方案时看什么</h2><p>在具体选方案之前，我一般先看五个维度：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>要回答的问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一致性级别</td>
+<td>需要强一致，还是最终一致就够了？</td>
+</tr>
+<tr>
+<td>隔离性</td>
+<td>中间状态能不能暴露给外部？是否允许“僵尸占位”？</td>
+</tr>
+<tr>
+<td>并发吞吐</td>
+<td>高峰期能不能扛住海量下单请求？</td>
+</tr>
+<tr>
+<td>外部系统兼容性</td>
+<td>能不能接支付网关、银行、三方清结算？</td>
+</tr>
+<tr>
+<td>开发维护成本</td>
+<td>业务代码要不要为事务额外维护大量补偿和状态机？</td>
+</tr>
+</tbody></table>
+<p>真正成熟的架构思路不是追求“理论最强”，而是选一个<strong>最符合业务体感</strong>的方案。</p>
+<h2 id="三、方案一：2PC-XA，数据库层面的强一致枷锁"><a href="#三、方案一：2PC-XA，数据库层面的强一致枷锁" class="headerlink" title="三、方案一：2PC / XA，数据库层面的强一致枷锁"></a>三、方案一：<code>2PC / XA</code>，数据库层面的强一致枷锁</h2><p><code>2PC</code> 的思路很直白：引入一个全局协调器，把所有本地事务拆成两阶段。</p>
+<h3 id="3-1-执行流程"><a href="#3-1-执行流程" class="headerlink" title="3.1 执行流程"></a>3.1 执行流程</h3><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Prepare：</span><br><span class="line">  协调器通知订单库、库存库、营销库执行本地 SQL</span><br><span class="line">  各库锁定数据，但不提交</span><br><span class="line"></span><br><span class="line">Commit / Rollback：</span><br><span class="line">  全部 Ready -&gt; 一起 Commit</span><br><span class="line">  任一失败 -&gt; 全部 Rollback</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-它为什么看起来很美"><a href="#3-2-它为什么看起来很美" class="headerlink" title="3.2 它为什么看起来很美"></a>3.2 它为什么看起来很美</h3><ul>
+<li>强一致，语义简单。</li>
+<li>理论上所有库要么一起成功，要么一起失败。</li>
+<li>应用层补偿逻辑最少。</li>
+</ul>
+<h3 id="3-3-为什么电商创单链路里几乎不用它"><a href="#3-3-为什么电商创单链路里几乎不用它" class="headerlink" title="3.3 为什么电商创单链路里几乎不用它"></a>3.3 为什么电商创单链路里几乎不用它</h3><p>核心问题有三个：</p>
+<ol>
+<li><p><strong>长时间持锁，吞吐量极差</strong><br>在订单、库存、营销多个库都进入 <code>Prepare</code> 后，底层锁会一直持有。结算高峰期，这几乎等价于主动制造锁竞争风暴。</p>
+</li>
+<li><p><strong>无法友好接入第三方支付</strong><br>支付网关不支持 <code>XA</code>，也不可能陪你一起持锁等待用户扫码。</p>
+</li>
+<li><p><strong>协调器故障风险高</strong><br>协调器如果卡住，整个事务可能进入悬而未决状态，底层资源被长期占用。</p>
+</li>
+</ol>
+<h3 id="3-4-结论"><a href="#3-4-结论" class="headerlink" title="3.4 结论"></a>3.4 结论</h3><p><code>2PC</code> 更像数据库世界里的强一致教科书，不适合高并发电商结算。<br>在“用户下单 -&gt; 等待支付”这类跨系统长事务里，它基本是工业界会主动避开的方案。</p>
+<h2 id="四、方案二：经典-Saga，先斩后奏的最终一致"><a href="#四、方案二：经典-Saga，先斩后奏的最终一致" class="headerlink" title="四、方案二：经典 Saga，先斩后奏的最终一致"></a>四、方案二：经典 <code>Saga</code>，先斩后奏的最终一致</h2><p>经典 <code>Saga</code> 的核心思想是：</p>
+<blockquote>
+<p>不再追求所有服务同时提交，而是把大事务拆成一连串本地事务；每个服务先执行正向动作，后面失败了再逆向补偿。</p>
+</blockquote>
+<h3 id="4-1-执行流程"><a href="#4-1-执行流程" class="headerlink" title="4.1 执行流程"></a>4.1 执行流程</h3><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">订单服务：创建订单</span><br><span class="line">    -&gt;</span><br><span class="line">库存服务：真扣库存</span><br><span class="line">    -&gt;</span><br><span class="line">营销服务：真核销优惠券</span><br><span class="line">    -&gt;</span><br><span class="line">支付服务：发起支付</span><br></pre></td></tr></table></figure>
+
+<p>如果后面某一步失败，就逆序补偿：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">支付失败</span><br><span class="line">    -&gt;</span><br><span class="line">营销服务：补偿券状态</span><br><span class="line">    -&gt;</span><br><span class="line">库存服务：加回库存</span><br><span class="line">    -&gt;</span><br><span class="line">订单服务：关闭订单</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-它的优势"><a href="#4-2-它的优势" class="headerlink" title="4.2 它的优势"></a>4.2 它的优势</h3><ul>
+<li>不长时间持锁。</li>
+<li>每个服务只做本地事务，吞吐量高。</li>
+<li>非常适合天然异步、允许最终一致的系统。</li>
+</ul>
+<h3 id="4-3-它的硬伤"><a href="#4-3-它的硬伤" class="headerlink" title="4.3 它的硬伤"></a>4.3 它的硬伤</h3><h4 id="1-缺乏隔离性，容易出现“僵尸占位”"><a href="#1-缺乏隔离性，容易出现“僵尸占位”" class="headerlink" title="1. 缺乏隔离性，容易出现“僵尸占位”"></a>1. 缺乏隔离性，容易出现“僵尸占位”</h4><p>如果用户 A 提单时已经真扣库存，但他在收银台停了 15 分钟不付款，这 15 分钟内用户 B 看到的就是“没货”。<br>即使最后库存补回来了，黄金销售窗口也已经丢失了。</p>
+<h4 id="2-网络乱序会放大补偿复杂度"><a href="#2-网络乱序会放大补偿复杂度" class="headerlink" title="2. 网络乱序会放大补偿复杂度"></a>2. 网络乱序会放大补偿复杂度</h4><p>如果“补库存”消息先到，而“扣库存”消息后到，就会出现：</p>
+<ul>
+<li>空补偿</li>
+<li>悬挂事务</li>
+<li>幽灵扣减</li>
+</ul>
+<p>为了兜住这些问题，每个服务都要维护幂等日志、状态判重、补偿防重，工程复杂度会迅速上升。</p>
+<h3 id="4-4-结论"><a href="#4-4-结论" class="headerlink" title="4.4 结论"></a>4.4 结论</h3><p>经典 <code>Saga</code> 的优点是轻，但太“莽”。<br>它适合一些弱隔离、后果可回滚的后台任务，不适合作为电商核心交易链路的默认方案。</p>
+<h2 id="五、方案三：标准-TCC，业务层冻结资源的重型武器"><a href="#五、方案三：标准-TCC，业务层冻结资源的重型武器" class="headerlink" title="五、方案三：标准 TCC，业务层冻结资源的重型武器"></a>五、方案三：标准 <code>TCC</code>，业务层冻结资源的重型武器</h2><p><code>TCC</code> 可以理解为把两阶段提交从数据库层提升到业务层。</p>
+<p>每个服务都必须提供三套接口：</p>
+<ul>
+<li><code>Try</code>：检查并预留资源</li>
+<li><code>Confirm</code>：最终提交</li>
+<li><code>Cancel</code>：释放预留资源</li>
+</ul>
+<h3 id="5-1-执行流程"><a href="#5-1-执行流程" class="headerlink" title="5.1 执行流程"></a>5.1 执行流程</h3><p>以库存为例：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Try：</span><br><span class="line">  可用库存 -1</span><br><span class="line">  锁定库存 +1</span><br><span class="line"></span><br><span class="line">Confirm：</span><br><span class="line">  锁定库存真正消费</span><br><span class="line"></span><br><span class="line">Cancel：</span><br><span class="line">  锁定库存释放回可用库存</span><br></pre></td></tr></table></figure>
+
+<p>优惠券、账户余额等资产也都要实现类似的冻结模型。</p>
+<h3 id="5-2-它的优势"><a href="#5-2-它的优势" class="headerlink" title="5.2 它的优势"></a>5.2 它的优势</h3><ul>
+<li>隔离性很好，中间状态只是冻结，不是真扣。</li>
+<li>失败时可以快速取消，不会产生经典 <code>Saga</code> 那种真扣后长时间占坑的问题。</li>
+<li>适合金融、账户、额度这类高价值资源。</li>
+</ul>
+<h3 id="5-3-它的问题"><a href="#5-3-它的问题" class="headerlink" title="5.3 它的问题"></a>5.3 它的问题</h3><h4 id="1-研发成本极高"><a href="#1-研发成本极高" class="headerlink" title="1. 研发成本极高"></a>1. 研发成本极高</h4><p>一个业务动作要手写 <code>Try / Confirm / Cancel</code> 三套逻辑，而且每套都要考虑幂等、悬挂、空回滚、防重。</p>
+<h4 id="2-同步编排容易卡死线程"><a href="#2-同步编排容易卡死线程" class="headerlink" title="2. 同步编排容易卡死线程"></a>2. 同步编排容易卡死线程</h4><p>标准 <code>TCC</code> 通常由结算服务同步 RPC 编排多个下游。<br>如果用户要等待支付完成，编排线程就会被长时间挂住，这对高并发链路非常不友好。</p>
+<h4 id="3-对外部系统要求高"><a href="#3-对外部系统要求高" class="headerlink" title="3. 对外部系统要求高"></a>3. 对外部系统要求高</h4><p>如果第三方支付、三方结算系统不支持“预授权 &#x2F; 预冻结”语义，<code>TCC</code> 也无法完整落地。</p>
+<h3 id="5-4-结论"><a href="#5-4-结论" class="headerlink" title="5.4 结论"></a>5.4 结论</h3><p><code>TCC</code> 不是不能用，而是要用在最值钱、最不能暴露中间态的地方。<br>比如核心账务划拨、余额冻结、授信额度，这类业务很适合；<br>但标准电商创单链路如果全量上 <code>TCC</code>，往往会显得过重。</p>
+<h2 id="六、方案四：工业级改良版-Saga，现代电商最常见的折中解"><a href="#六、方案四：工业级改良版-Saga，现代电商最常见的折中解" class="headerlink" title="六、方案四：工业级改良版 Saga，现代电商最常见的折中解"></a>六、方案四：工业级改良版 <code>Saga</code>，现代电商最常见的折中解</h2><p>这是我最推荐的方案，也是很多大厂在下单支付链路里真正采用的思路。</p>
+<p>它本质上是：</p>
+<blockquote>
+<p>吸收 <code>TCC</code> 的“先预占，再最终确认”思想，同时保留 <code>Saga</code> 的异步驱动能力，用本地事务 + <code>Outbox</code> 机制把同步重事务改造成可扩展的最终一致链路。</p>
+</blockquote>
+<h3 id="6-1-核心思路"><a href="#6-1-核心思路" class="headerlink" title="6.1 核心思路"></a>6.1 核心思路</h3><p>创单时，不去做不可逆的真扣减，而是先拿<strong>预占凭证</strong>：</p>
+<ul>
+<li>库存中心锁一个坑位，返回 <code>reserve_id</code></li>
+<li>营销中心锁一张券，返回 <code>coupon_token</code></li>
+</ul>
+<p>只要这些预占凭证有效，订单中心就在自己的本地事务里完成：</p>
+<ul>
+<li>写订单主表</li>
+<li>写价格、库存、营销快照</li>
+<li>写本地消息表 <code>Outbox</code></li>
+</ul>
+<p>这样用户就可以迅速进入收银台，不需要在主请求里等待最终扣减和支付完成。</p>
+<h3 id="6-2-典型流程"><a href="#6-2-典型流程" class="headerlink" title="6.2 典型流程"></a>6.2 典型流程</h3><h4 id="1-Reserve：预占资源"><a href="#1-Reserve：预占资源" class="headerlink" title="1. Reserve：预占资源"></a>1. Reserve：预占资源</h4><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">结算服务</span><br><span class="line">    -&gt;</span><br><span class="line">库存中心：TryReserve</span><br><span class="line">    -&gt;</span><br><span class="line">营销中心：TryLockCoupon</span><br></pre></td></tr></table></figure>
+
+<p>此时只是冻结资源，不发生最终消费。</p>
+<h4 id="2-本地落库：确立订单事实"><a href="#2-本地落库：确立订单事实" class="headerlink" title="2. 本地落库：确立订单事实"></a>2. 本地落库：确立订单事实</h4><p>订单中心开启本地事务，一次性写入：</p>
+<ul>
+<li><code>order</code></li>
+<li><code>order_snapshot</code></li>
+<li><code>outbox_event</code></li>
+</ul>
+<p>这里的关键是：订单事实和待发送事件在同一个数据库事务里提交。</p>
+<h4 id="3-跳转支付：主请求快速返回"><a href="#3-跳转支付：主请求快速返回" class="headerlink" title="3. 跳转支付：主请求快速返回"></a>3. 跳转支付：主请求快速返回</h4><p>前端拿到订单号后进入收银台。<br>这一步不再占着结算服务线程等待支付结果。</p>
+<h4 id="4-支付成功后异步-Confirm"><a href="#4-支付成功后异步-Confirm" class="headerlink" title="4. 支付成功后异步 Confirm"></a>4. 支付成功后异步 Confirm</h4><p>支付成功回调后，订单中心通过 <code>Outbox</code> 投递可靠消息：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">支付成功</span><br><span class="line">    -&gt;</span><br><span class="line">订单状态改为 PAID</span><br><span class="line">    -&gt;</span><br><span class="line">发布 ConfirmInventory / ConfirmCoupon</span><br><span class="line">    -&gt;</span><br><span class="line">库存中心真扣</span><br><span class="line">    -&gt;</span><br><span class="line">营销中心真核销</span><br></pre></td></tr></table></figure>
+
+<h4 id="5-超时未支付或取消时异步-Cancel"><a href="#5-超时未支付或取消时异步-Cancel" class="headerlink" title="5. 超时未支付或取消时异步 Cancel"></a>5. 超时未支付或取消时异步 Cancel</h4><p>如果用户超时未支付：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">订单超时关闭</span><br><span class="line">    -&gt;</span><br><span class="line">发布 CancelInventory / ReleaseCoupon</span><br><span class="line">    -&gt;</span><br><span class="line">库存中心释放预占</span><br><span class="line">    -&gt;</span><br><span class="line">营销中心释放券锁</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-3-它为什么更适合电商"><a href="#6-3-它为什么更适合电商" class="headerlink" title="6.3 它为什么更适合电商"></a>6.3 它为什么更适合电商</h3><h4 id="1-兼顾隔离性和吞吐量"><a href="#1-兼顾隔离性和吞吐量" class="headerlink" title="1. 兼顾隔离性和吞吐量"></a>1. 兼顾隔离性和吞吐量</h4><p>资源先冻结，不会像经典 <code>Saga</code> 一样真扣后长期占坑；<br>同时主请求又不会像标准 <code>TCC</code> 一样长期同步阻塞。</p>
+<h4 id="2-对支付网关非常友好"><a href="#2-对支付网关非常友好" class="headerlink" title="2. 对支付网关非常友好"></a>2. 对支付网关非常友好</h4><p>支付网关不需要参与事务，只需要作为状态机的一个外部开关：</p>
+<ul>
+<li>支付成功 -&gt; Confirm</li>
+<li>支付失败 &#x2F; 超时 -&gt; Cancel</li>
+</ul>
+<h4 id="3-工程边界清晰"><a href="#3-工程边界清晰" class="headerlink" title="3. 工程边界清晰"></a>3. 工程边界清晰</h4><p>每个服务只需要关心：</p>
+<ul>
+<li>如何预占</li>
+<li>如何确认</li>
+<li>如何取消</li>
+</ul>
+<p>而不需要把整个长事务同步编排到底。</p>
+<h3 id="6-4-它的代价"><a href="#6-4-它的代价" class="headerlink" title="6.4 它的代价"></a>6.4 它的代价</h3><p>这个方案也不是没有成本：</p>
+<ul>
+<li>需要设计清晰的资源预占模型</li>
+<li>需要 <code>Outbox</code> 或可靠消息机制</li>
+<li>需要状态机和补偿任务</li>
+<li>需要对幂等、重复回调、空取消做强约束</li>
+</ul>
+<p>但相比 <code>TCC</code> 全链路三接口化，它的复杂度明显更可控。</p>
+<h2 id="七、四种方案综合对比"><a href="#七、四种方案综合对比" class="headerlink" title="七、四种方案综合对比"></a>七、四种方案综合对比</h2><table>
+<thead>
+<tr>
+<th>对比维度</th>
+<th><code>2PC / XA</code></th>
+<th>经典 <code>Saga</code></th>
+<th>标准 <code>TCC</code></th>
+<th>改良版 <code>Saga</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一致性</td>
+<td>强一致</td>
+<td>最终一致</td>
+<td>业务强一致</td>
+<td>最终一致</td>
+</tr>
+<tr>
+<td>并发吞吐</td>
+<td>很低</td>
+<td>高</td>
+<td>中</td>
+<td>很高</td>
+</tr>
+<tr>
+<td>业务隔离性</td>
+<td>高</td>
+<td>差</td>
+<td>高</td>
+<td>高</td>
+</tr>
+<tr>
+<td>外部支付兼容性</td>
+<td>很差</td>
+<td>较好</td>
+<td>一般</td>
+<td>很好</td>
+</tr>
+<tr>
+<td>研发成本</td>
+<td>低到中</td>
+<td>中</td>
+<td>很高</td>
+<td>中</td>
+</tr>
+<tr>
+<td>高并发电商适配度</td>
+<td>差</td>
+<td>一般</td>
+<td>中</td>
+<td>很好</td>
+</tr>
+</tbody></table>
+<p>如果用一句话总结：</p>
+<ul>
+<li><code>2PC</code>：一致性最硬，但把系统锁死。</li>
+<li>经典 <code>Saga</code>：吞吐高，但容易产生脏占用和补偿泥潭。</li>
+<li>标准 <code>TCC</code>：最严谨，但太重。</li>
+<li>改良版 <code>Saga</code>：在电商场景下最平衡。</li>
+</ul>
+<h2 id="八、我的推荐选型"><a href="#八、我的推荐选型" class="headerlink" title="八、我的推荐选型"></a>八、我的推荐选型</h2><h3 id="8-1-电商创单链路：优先选改良版-Saga"><a href="#8-1-电商创单链路：优先选改良版-Saga" class="headerlink" title="8.1 电商创单链路：优先选改良版 Saga"></a>8.1 电商创单链路：优先选改良版 <code>Saga</code></h3><p>对“下单 -&gt; 库存 -&gt; 营销 -&gt; 支付”这条典型链路，我最推荐：</p>
+<blockquote>
+<p><strong>预占凭证 + 本地事务 + <code>Outbox</code> 异步 Confirm &#x2F; Cancel</strong></p>
+</blockquote>
+<p>原因很简单：</p>
+<ol>
+<li>用户支付是长等待动作，不能同步挂住线程。</li>
+<li>支付网关是外部系统，不能纳入强事务。</li>
+<li>库存和优惠券需要隔离，但不适合创单时就真扣。</li>
+<li>电商系统更看重吞吐量和可扩展性，而不是理论上的全局强一致。</li>
+</ol>
+<h3 id="8-2-金融级账务：必要时选择-TCC"><a href="#8-2-金融级账务：必要时选择-TCC" class="headerlink" title="8.2 金融级账务：必要时选择 TCC"></a>8.2 金融级账务：必要时选择 <code>TCC</code></h3><p>如果你处理的是：</p>
+<ul>
+<li>账户余额</li>
+<li>授信额度</li>
+<li>实际资金划拨</li>
+</ul>
+<p>那就要优先考虑 <code>TCC</code>，因为这类资产最怕中间态暴露。</p>
+<h3 id="8-3-明确不建议"><a href="#8-3-明确不建议" class="headerlink" title="8.3 明确不建议"></a>8.3 明确不建议</h3><ul>
+<li>不建议在核心交易流使用 <code>2PC</code></li>
+<li>不建议直接用经典 <code>Saga</code> 真扣库存后再等待支付</li>
+</ul>
+<h2 id="九、改良版-Saga-的落地细节"><a href="#九、改良版-Saga-的落地细节" class="headerlink" title="九、改良版 Saga 的落地细节"></a>九、改良版 <code>Saga</code> 的落地细节</h2><p>真正落地时，除了主流程，最重要的是这几个工程细节。</p>
+<h3 id="9-1-幂等"><a href="#9-1-幂等" class="headerlink" title="9.1 幂等"></a>9.1 幂等</h3><p>每一个 <code>Reserve / Confirm / Cancel</code> 都必须可幂等。</p>
+<p>例如库存中心：</p>
+<ul>
+<li>同一个 <code>reserve_id</code> 重复 <code>Confirm</code>，只能成功一次</li>
+<li>已经 <code>Cancel</code> 的预占，后续重复取消不能出错</li>
+<li>未成功 <code>Reserve</code> 的单据，不允许凭空 <code>Confirm</code></li>
+</ul>
+<h3 id="9-2-防悬挂"><a href="#9-2-防悬挂" class="headerlink" title="9.2 防悬挂"></a>9.2 防悬挂</h3><p>最典型的场景是：</p>
+<ul>
+<li><code>Cancel</code> 先到</li>
+<li><code>Reserve</code> 后到</li>
+</ul>
+<p>如果没有状态机保护，就可能出现已经宣告失败的事务又把资源锁上了。</p>
+<p>因此库存、营销这类服务内部都要维护预占状态机，例如：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">INIT -&gt; RESERVED -&gt; CONFIRMED</span><br><span class="line">INIT -&gt; RESERVED -&gt; CANCELED</span><br></pre></td></tr></table></figure>
+
+<p>非法状态跳转必须被拒绝。</p>
+<h3 id="9-3-Outbox-必须和订单本地事务同提交"><a href="#9-3-Outbox-必须和订单本地事务同提交" class="headerlink" title="9.3 Outbox 必须和订单本地事务同提交"></a>9.3 <code>Outbox</code> 必须和订单本地事务同提交</h3><p>如果订单写成功了，但待发送消息没写进去，后续确认或取消就丢了。<br>所以推荐的做法永远是：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">同一个本地事务里：</span><br><span class="line">  写订单</span><br><span class="line">  写快照</span><br><span class="line">  写 outbox_event</span><br></pre></td></tr></table></figure>
+
+<p>然后再由异步投递器把 <code>Outbox</code> 事件真正发出去。</p>
+<h3 id="9-4-超时关单和补偿闭环"><a href="#9-4-超时关单和补偿闭环" class="headerlink" title="9.4 超时关单和补偿闭环"></a>9.4 超时关单和补偿闭环</h3><p>不能只设计支付成功路径，必须设计支付失败和支付超时。</p>
+<p>典型做法：</p>
+<ul>
+<li>订单创建后写入超时关闭时间</li>
+<li>定时任务扫描未支付订单</li>
+<li>推进订单状态到 <code>CLOSED</code></li>
+<li>异步触发库存释放和券释放</li>
+</ul>
+<h3 id="9-5-可观测性"><a href="#9-5-可观测性" class="headerlink" title="9.5 可观测性"></a>9.5 可观测性</h3><p>长事务如果没有追踪能力，线上会非常痛苦。<br>建议至少有：</p>
+<ul>
+<li><code>trace_id</code></li>
+<li><code>order_id</code></li>
+<li><code>reserve_id</code></li>
+<li><code>coupon_token</code></li>
+<li><code>payment_id</code></li>
+<li>每一步状态流转时间</li>
+</ul>
+<p>这样你才能快速回答：</p>
+<ul>
+<li>卡在哪个节点？</li>
+<li>是预占失败，还是支付回调没来？</li>
+<li>是 Confirm 丢了，还是 Cancel 没消费？</li>
+</ul>
+<h2 id="十、面试里怎么讲这件事"><a href="#十、面试里怎么讲这件事" class="headerlink" title="十、面试里怎么讲这件事"></a>十、面试里怎么讲这件事</h2><p>如果面试官问你“电商长事务怎么处理”，一个比较完整的回答结构是：</p>
+<h3 id="10-1-先分场景"><a href="#10-1-先分场景" class="headerlink" title="10.1 先分场景"></a>10.1 先分场景</h3><p>“我会先区分是不是跨服务长事务，是否涉及支付这类外部系统，以及资源是需要真扣还是先冻结。”</p>
+<h3 id="10-2-再讲为什么不能用本地事务"><a href="#10-2-再讲为什么不能用本地事务" class="headerlink" title="10.2 再讲为什么不能用本地事务"></a>10.2 再讲为什么不能用本地事务</h3><p>“订单、库存、营销、支付是独立服务和独立数据库，用户支付又是长等待动作，所以不能再用单库事务，也不能长时间持锁等待支付完成。”</p>
+<h3 id="10-3-然后快速对比方案"><a href="#10-3-然后快速对比方案" class="headerlink" title="10.3 然后快速对比方案"></a>10.3 然后快速对比方案</h3><p>“<code>2PC</code> 强一致但吞吐量太差，也接不了外部支付；经典 <code>Saga</code> 最终一致但隔离性差；标准 <code>TCC</code> 能解决隔离问题，但研发成本和同步编排成本很高。对标准电商创单链路，我更推荐改良版 <code>Saga</code>：创单时只预占资源，订单本地落库后快速返回，由 <code>Outbox</code> 异步驱动支付成功后的 Confirm 和超时关闭后的 Cancel。”</p>
+<h3 id="10-4-最后补工程关键点"><a href="#10-4-最后补工程关键点" class="headerlink" title="10.4 最后补工程关键点"></a>10.4 最后补工程关键点</h3><p>“真正落地时，核心不只是选 <code>Saga</code>，而是把幂等、防悬挂、状态机、超时关单、可靠消息和补偿路径设计完整。”</p>
+<h2 id="十一、总结"><a href="#十一、总结" class="headerlink" title="十一、总结"></a>十一、总结</h2><p>长事务的本质不是“选一个事务协议”，而是：</p>
+<ul>
+<li>识别哪些动作必须强隔离</li>
+<li>识别哪些动作可以最终一致</li>
+<li>把用户长等待从主请求线程里拿掉</li>
+<li>让资源预占、订单事实、支付结果、补偿释放形成闭环</li>
+</ul>
+<p>在电商系统里，最实用的经验通常不是“理论上最强的一致性”，而是：</p>
+<blockquote>
+<p><strong>用预占代替真扣，用本地事务固化事实，用可靠异步完成最终收敛。</strong></p>
+</blockquote>
+<p>这也是为什么在标准创单支付链路里，我会优先选择**工业级改良版 <code>Saga</code>**，而不是 <code>2PC</code>、经典 <code>Saga</code> 或全链路标准 <code>TCC</code>。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/e-commerce/" rel="tag"># e-commerce</a>
+              <a href="/tags/inventory/" rel="tag"># inventory</a>
+              <a href="/tags/distributed-transaction/" rel="tag"># distributed-transaction</a>
+              <a href="/tags/saga/" rel="tag"># saga</a>
+              <a href="/tags/tcc/" rel="tag"># tcc</a>
+              <a href="/tags/consistency/" rel="tag"># consistency</a>
+              <a href="/tags/payment/" rel="tag"># payment</a>
+              <a href="/tags/long-transaction/" rel="tag"># long-transaction</a>
+              <a href="/tags/2pc/" rel="tag"># 2pc</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2026/05/08/other/ai-content-to-video-open-source-workflow/" rel="prev" title="从内容到短视频：用开源工具生成 3 分钟 AI 教程视频">
+                  <i class="fa fa-angle-left"></i> 从内容到短视频：用开源工具生成 3 分钟 AI 教程视频
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">wxquare</span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/sidebar.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+  <script class="next-config" data-name="mermaid" type="application/json">{"enable":true,"theme":{"light":"default","dark":"dark"},"js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js","integrity":"sha256-stuqcu2FrjYCXDOytWFA5SoUE/r3nkp6gTglzNSlavU="}}</script>
+  <script src="/js/third-party/tags/mermaid.js"></script>
+
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>

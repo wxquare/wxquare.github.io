@@ -1,0 +1,60 @@
+@startuml
+!theme plain
+title Excel 批量导入：提交任务
+
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 18
+skinparam BoxPadding 10
+
+skinparam participant {
+  BackgroundColor #f4f4f4
+  BorderColor #2c3e50
+  FontStyle bold
+  FontColor #2c3e50
+}
+
+skinparam database {
+  BackgroundColor #eef6ff
+  BorderColor #2c3e50
+  FontColor #2c3e50
+}
+
+skinparam queue {
+  BackgroundColor #fff7e6
+  BorderColor #8a5a00
+  FontColor #5c3b00
+}
+
+skinparam note {
+  BackgroundColor #fff8dc
+  BorderColor #d4ac0d
+  FontColor #333333
+}
+
+actor "Merchant" as merchant
+participant "Upload API" as api #e8f4f9
+participant "OSS / USS" as filestore #eef6ff
+database "product_supply_task" as taskdb #eef6ff
+
+merchant -> api: 1. 上传 Excel / 批量提交
+activate api
+api -> filestore: 2. 上传源文件到 OSS / USS
+activate filestore
+filestore --> api: input_file_ref / file_name / hash
+deactivate filestore
+
+api -> taskdb: 3. 创建 product_supply_task\nstatus=PENDING, execution_mode=ASYNC,\ninput_file_ref / file_name / input_file_hash
+activate taskdb
+taskdb --> api: task_id
+deactivate taskdb
+
+api --> merchant: 4. 返回 task_id
+deactivate api
+
+note right of api
+提交阶段只负责保存源文件和任务元数据，
+不直接解析 Excel，也不直接写正式商品表。
+end note
+
+@enduml

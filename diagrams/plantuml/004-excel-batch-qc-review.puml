@@ -1,0 +1,111 @@
+@startuml
+!theme plain
+title Excel 批量导入：QC 审核流
+
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 18
+skinparam BoxPadding 10
+
+skinparam participant {
+  BackgroundColor #f4f4f4
+  BorderColor #2c3e50
+  FontStyle bold
+  FontColor #2c3e50
+}
+
+skinparam database {
+  BackgroundColor #eef6ff
+  BorderColor #2c3e50
+  FontColor #2c3e50
+}
+
+skinparam queue {
+  BackgroundColor #fff7e6
+  BorderColor #8a5a00
+  FontColor #5c3b00
+}
+
+skinparam note {
+  BackgroundColor #fff8dc
+  BorderColor #d4ac0d
+  FontColor #333333
+}
+
+actor "Ops / QC Reviewer" as ops
+participant "QC API" as qcapi #e8f4f9
+database "product_qc_review" as qcdb #eef6ff
+database "product_qc_review_item" as qcitemdb #eef6ff
+database "product_supply_staging" as stagingdb #eef6ff
+database "product_supply_task_item" as itemdb #eef6ff
+participant "Publish Worker" as publish #eafaf1
+
+ops -> qcapi: 1. 打开审核单 / 查看风险命中和 Diff
+activate qcapi
+qcapi -> qcdb: 1.1 查询 product_qc_review
+activate qcdb
+qcdb --> qcapi: review header
+deactivate qcdb
+qcapi -> qcitemdb: 1.2 查询 product_qc_review_item
+activate qcitemdb
+qcitemdb --> qcapi: review items
+deactivate qcitemdb
+qcapi -> stagingdb: 1.3 查询 staging snapshot / diff
+activate stagingdb
+stagingdb --> qcapi: snapshot
+deactivate stagingdb
+qcapi --> ops: review context
+deactivate qcapi
+
+alt Ops 审核通过
+  ops -> qcapi: 2. 审核通过
+  activate qcapi
+  qcapi -> qcdb: 2.1 review.status = APPROVED\nreviewer_id / reviewed_at
+  activate qcdb
+  qcdb --> qcapi: updated
+  deactivate qcdb
+  qcapi -> qcitemdb: 2.2 review_item.status = APPROVED
+  activate qcitemdb
+  qcitemdb --> qcapi: updated
+  deactivate qcitemdb
+  qcapi -> stagingdb: 2.3 staging.status = APPROVED
+  activate stagingdb
+  stagingdb --> qcapi: updated
+  deactivate stagingdb
+  qcapi -> itemdb: 2.4 item.status = APPROVED
+  activate itemdb
+  itemdb --> qcapi: updated
+  deactivate itemdb
+  qcapi -> publish: 2.5 enqueue publish candidate
+  activate publish
+  publish --> qcapi: queued
+  deactivate publish
+  deactivate qcapi
+else Ops 驳回
+  ops -> qcapi: 2. 审核驳回 / 填写原因
+  activate qcapi
+  qcapi -> qcdb: 2.1 review.status = REJECTED\nreject_reason / reviewer_id
+  activate qcdb
+  qcdb --> qcapi: updated
+  deactivate qcdb
+  qcapi -> qcitemdb: 2.2 review_item.status = REJECTED
+  activate qcitemdb
+  qcitemdb --> qcapi: updated
+  deactivate qcitemdb
+  qcapi -> stagingdb: 2.3 staging.status = REJECTED
+  activate stagingdb
+  stagingdb --> qcapi: updated
+  deactivate stagingdb
+  qcapi -> itemdb: 2.4 item.status = REJECTED
+  activate itemdb
+  itemdb --> qcapi: updated
+  deactivate itemdb
+  deactivate qcapi
+end
+
+note over ops,publish
+审核通过后进入发布队列，
+驳回则停留在供给治理链路内等待修复。
+end note
+
+@enduml

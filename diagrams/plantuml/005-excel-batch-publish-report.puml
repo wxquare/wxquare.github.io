@@ -1,0 +1,101 @@
+@startuml
+!theme plain
+title Excel 批量导入：发布与错误报告
+
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 18
+skinparam BoxPadding 10
+
+skinparam participant {
+  BackgroundColor #f4f4f4
+  BorderColor #2c3e50
+  FontStyle bold
+  FontColor #2c3e50
+}
+
+skinparam database {
+  BackgroundColor #eef6ff
+  BorderColor #2c3e50
+  FontColor #2c3e50
+}
+
+skinparam queue {
+  BackgroundColor #fff7e6
+  BorderColor #8a5a00
+  FontColor #5c3b00
+}
+
+skinparam note {
+  BackgroundColor #fff8dc
+  BorderColor #d4ac0d
+  FontColor #333333
+}
+
+participant "Auto Approve / QC API" as trigger #e8f4f9
+participant "Publish Worker" as publish #eafaf1
+database "Formal Item Table" as itemtable #eef6ff
+queue "Outbox" as outbox #fff7e6
+database "product_supply_task_item" as itemdb #eef6ff
+database "product_supply_task" as taskdb #eef6ff
+participant "Error File / Report Generator" as report #fdf2e9
+
+trigger -> publish: 1. enqueue publish candidate\n来源: 自动准入 / QC 审核通过
+
+alt 发布成功
+  publish -> itemtable: 2. 发布正式商品表\n写 payload / publish_version
+  activate publish
+  activate itemtable
+  itemtable --> publish: published
+  deactivate itemtable
+
+  publish -> outbox: 3. 写 Outbox 事件
+  activate outbox
+  outbox --> publish: queued
+  deactivate outbox
+
+  publish -> itemdb: 4. 回写 item.status=PUBLISHED
+  activate itemdb
+  itemdb --> publish: updated
+  deactivate itemdb
+
+  publish -> taskdb: 5. 聚合 task progress / success_count
+  activate taskdb
+  taskdb --> publish: updated
+  deactivate taskdb
+  deactivate publish
+else 发布失败 / 驳回归档
+  publish -> outbox: 2. 写失败事件
+  activate publish
+  activate outbox
+  outbox --> publish: queued
+  deactivate outbox
+
+  publish -> report: 3. 生成错误文件 / 质量报告
+  activate report
+  report --> publish: error_file_ref / report_ref
+  deactivate report
+
+  publish -> taskdb: 3.1 回写 error_file_ref /\nreport_ref / error_file_name
+  activate taskdb
+  taskdb --> publish: updated
+  deactivate taskdb
+
+  publish -> itemdb: 4. 回写 item.status=FAILED 或 REJECTED
+  activate itemdb
+  itemdb --> publish: updated
+  deactivate itemdb
+
+  publish -> taskdb: 5. 聚合 failed_count / rejected_count
+  activate taskdb
+  taskdb --> publish: updated
+  deactivate taskdb
+  deactivate publish
+end
+
+note right of publish
+发布阶段只承接已经通过准入的候选项，
+并负责把成功与失败结果运营化归档。
+end note
+
+@enduml

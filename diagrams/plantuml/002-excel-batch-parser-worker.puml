@@ -1,0 +1,112 @@
+@startuml
+!theme plain
+title Excel 批量导入：Parser Worker 解析文件
+
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 18
+skinparam BoxPadding 10
+
+skinparam participant {
+  BackgroundColor #f4f4f4
+  BorderColor #2c3e50
+  FontStyle bold
+  FontColor #2c3e50
+}
+
+skinparam database {
+  BackgroundColor #eef6ff
+  BorderColor #2c3e50
+  FontColor #2c3e50
+}
+
+skinparam queue {
+  BackgroundColor #fff7e6
+  BorderColor #8a5a00
+  FontColor #5c3b00
+}
+
+skinparam note {
+  BackgroundColor #fff8dc
+  BorderColor #d4ac0d
+  FontColor #333333
+}
+
+actor "Parser Scheduler" as scheduler
+participant "Parser Worker" as parser #fdf2e9
+participant "OSS / USS" as filestore #eef6ff
+database "product_supply_task" as taskdb #eef6ff
+database "product_supply_task_item" as itemdb #eef6ff
+queue "Outbox" as outbox #fff7e6
+queue "Task Item MQ" as itemmq #fff7e6
+
+scheduler -> parser: 1. 触发解析任务
+activate parser
+parser -> taskdb: 2. CAS 抢占任务\nPENDING -> PARSING
+activate taskdb
+taskdb --> parser: claim ok
+deactivate taskdb
+
+parser -> taskdb: 3. 读取文件元数据\n校验 input_file_ref / hash / 模板版本 / 列结构
+activate taskdb
+taskdb --> parser: file metadata
+deactivate taskdb
+
+parser -> filestore: 4. 按 input_file_ref 读取源文件
+activate filestore
+filestore --> parser: file stream
+deactivate filestore
+
+loop 5. 流式解析文件，每 N 行一批
+  parser -> parser: 5.1 stream read\n不能一次性加载到内存
+  parser -> itemdb: 5.2 同事务写 task items\nstatus=PENDING
+  activate itemdb
+  itemdb --> parser: inserted
+  deactivate itemdb
+
+  parser -> outbox: 5.3 同事务写 Outbox\nTASK_ITEM_CREATED, task_item_id
+  activate outbox
+  outbox --> parser: queued
+  deactivate outbox
+
+  parser -> itemmq: 5.4 提交后立即发布 task_item_id
+  activate itemmq
+  itemmq --> parser: ack
+  deactivate itemmq
+
+  parser -> outbox: 5.5 更新 outbox.status=SENT
+  activate outbox
+  outbox --> parser: updated
+  deactivate outbox
+
+  parser -> taskdb: 5.6 update parsed_count\nparse_checkpoint / heartbeat_at
+  activate taskdb
+  taskdb --> parser: updated
+  deactivate taskdb
+end
+
+parser -> taskdb: 6. 写 total_count\nPARSING -> RUNNING
+activate taskdb
+taskdb --> parser: updated
+deactivate taskdb
+deactivate parser
+
+note right of parser
+parse_checkpoint 示例:
+{
+  "sheet": "Sheet1",
+  "row_no": 12000,
+  "byte_offset": 8842211
+}
+
+这一阶段结束时，
+TASK_ITEM_CREATED 已经投递到 MQ。
+end note
+
+note right of itemdb
+幂等兜底:
+UNIQUE(task_id, item_no)
+UNIQUE(task_id, idempotency_key)
+end note
+
+@enduml
