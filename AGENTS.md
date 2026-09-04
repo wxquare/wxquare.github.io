@@ -125,8 +125,8 @@ Agent 临时文档默认写入 `.agents/work/`，不要写入公开的 `docs/`�
 │   ├── cursor/
 │   ├── skills/
 │   └── templates/
-└── bin/
-    └── pre-commit-check.sh
+├── scripts/                     # Hexo 插件脚本
+├── tools/                       # 仓库级构建与校验工具
 ```
 
 ### 5.2 各资产职责
@@ -153,7 +153,7 @@ Agent 临时文档默认写入 `.agents/work/`，不要写入公开的 `docs/`�
   - Cursor 专属适配入口，不承载独立规范
 - `.agents/codex/config.toml`
   - Codex 专属配置
-- `bin/pre-commit-check.sh`
+- `tools/pre-commit-check.sh`
   - 提交前检查脚本
 
 规则职责边界：
@@ -199,7 +199,7 @@ Cursor 侧通过 `.cursorrules` 和自然语言提示完成同类任务。统一
 | 生成摘要 | `/generate-summary path/to/file.md` | 选中文章后要求生成三种长度摘要 |
 | 整理文章 | `/organize-posts` | 要求扫描文章结构并给整理建议 |
 | 检查链接 | `/link-check` | 要求检查内部/外部链接和图片引用 |
-| 发布前检查 | `bash bin/pre-commit-check.sh` | 终端执行同一脚本 |
+| 发布前检查 | `bash tools/pre-commit-check.sh` | 终端执行同一脚本 |
 | 统计博客 | `/stats` | 要求统计分类、标签、文章数量 |
 
 ## 7. 核心工作流
@@ -390,7 +390,7 @@ tags:
 统一执行：
 
 ```bash
-bash bin/pre-commit-check.sh
+bash tools/pre-commit-check.sh
 ```
 
 脚本负责：
@@ -404,7 +404,7 @@ bash bin/pre-commit-check.sh
 当前 `.agents/claude/settings.json` 中的 Hook 负责：
 
 - 编辑文章后给出提示
-- Git 提交前自动运行 `bin/pre-commit-check.sh`
+- Git 提交前自动运行 `tools/pre-commit-check.sh`
 
 ### 11.3 构建即验证
 
@@ -442,7 +442,7 @@ npm run build:books
 - 修改 `_config.yml` 后必须重启本地服务
 - 新增文章后建议先执行 `npm run clean`
 - 代码块没有语言标注会降低文章质量并增加构建风险
-- 把 shell 脚本放进 Hexo `scripts/` 目录会被 Hexo 当作插件脚本加载
+- 把未设计为 Hexo 插件的 JavaScript 放进 Hexo `scripts/` 目录时，必须确保被加载时不会执行 CLI 逻辑
 
 ## 14. 最佳实践
 

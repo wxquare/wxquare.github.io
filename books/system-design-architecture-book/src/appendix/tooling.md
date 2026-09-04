@@ -12,4 +12,4 @@ mdbook serve
 
 ## Mermaid
 
-`book.toml` 中 `additional-js` 指向与 `book.toml` 同目录下的 `mermaid.min.js` 与 `mermaid-init.js`；Mermaid 代码块由 `books/scripts/mermaid-preprocessor.py` 统一预处理。若升级版本，请同步检查这两个静态文件。
+`book.toml` 中 `additional-js` 指向与 `book.toml` 同目录下的 `mermaid.min.js` 与 `mermaid-init.js`；Mermaid 代码块由 `tools/mermaid-preprocessor.py` 统一预处理。若升级版本，请同步检查这两个静态文件。

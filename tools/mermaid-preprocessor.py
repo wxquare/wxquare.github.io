@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""A small mdBook preprocessor for Mermaid fences.
+"""mdBook preprocessor for Mermaid fences.
 
 It converts fenced `mermaid` code blocks into raw HTML blocks that Mermaid.js can
 render in the browser. This keeps the books independent from mdbook-mermaid's
 Rust version compatibility while still doing the Markdown transformation at
 build time.
+
+This is a repository build utility, not a Hexo plugin. mdBook invokes it through
+the preprocessor command configured in each book's ``book.toml``.
 """
 
 from __future__ import annotations

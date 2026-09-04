@@ -43,7 +43,7 @@
 
 ## 本地构建
 
-需安装 [mdBook](https://github.com/rust-lang/mdBook)。本书复用 `books/scripts/mermaid-preprocessor.py` 处理 Mermaid 图表。
+需安装 [mdBook](https://github.com/rust-lang/mdBook)。本书复用 `tools/mermaid-preprocessor.py` 处理 Mermaid 图表。
 
 ```bash
 cd books/system-design-architecture-book

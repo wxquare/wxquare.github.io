@@ -1,5 +1,9 @@
 'use strict';
 
+// Repository CLI utility: copies generated mdBook output into Hexo's public tree.
+// It solves the deployment layout problem without editing generated files by hand.
+// Invoke it with `npm run stage:books`; it is not a Hexo generator plugin.
+
 const fs = require('node:fs');
 const path = require('node:path');
 

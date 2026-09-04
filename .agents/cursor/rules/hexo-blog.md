@@ -10,6 +10,6 @@
 - 整理文章：`.agents/skills/organize-posts/SKILL.md`
 - 审查文章：`.agents/skills/review-post/SKILL.md`
 - 检查链接：`.agents/skills/link-check/SKILL.md`
-- 提交前验证：`bin/pre-commit-check.sh`
+- 提交前验证：`tools/pre-commit-check.sh`
 
 本文件不复制写作、分类、标签、图片、命名、教程或质量规则；长期规范只写入 `AGENTS.md`。

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Repository validation CLI: checks staged Markdown and verifies Hexo/mdBook builds.
+# It prevents malformed content and broken generated sites from being committed.
+# Invoke it with `bash tools/pre-commit-check.sh`.
+
 set -Eeuo pipefail
 
 REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"

@@ -8,7 +8,7 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const repoRoot = path.resolve(__dirname, '..');
-const sourceScript = path.join(repoRoot, 'bin', 'pre-commit-check.sh');
+const sourceScript = path.join(repoRoot, 'tools', 'pre-commit-check.sh');
 
 function runGit(cwd, args) {
   const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
@@ -16,7 +16,7 @@ function runGit(cwd, args) {
 }
 
 test('pre-commit check runs site and book builds for a valid staged Markdown file', () => {
-  assert.ok(fs.existsSync(sourceScript), 'bin/pre-commit-check.sh must exist');
+  assert.ok(fs.existsSync(sourceScript), 'tools/pre-commit-check.sh must exist');
 
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'wxquare-precommit-'));
 
@@ -48,7 +48,7 @@ test('pre-commit check runs site and book builds for a valid staged Markdown fil
     fs.writeFileSync(fakeNpm, '#!/bin/sh\nprintf "%s\\n" "$*" >> "$NPM_CALL_LOG"\n');
     fs.chmodSync(fakeNpm, 0o755);
 
-    const tempScript = path.join(tempRoot, 'bin', 'pre-commit-check.sh');
+    const tempScript = path.join(tempRoot, 'tools', 'pre-commit-check.sh');
     fs.mkdirSync(path.dirname(tempScript), { recursive: true });
     fs.copyFileSync(sourceScript, tempScript);
     fs.chmodSync(tempScript, 0o755);

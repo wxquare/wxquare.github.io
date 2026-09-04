@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { test } = require('node:test');
-const { stageBooks } = require('../bin/stage-books');
+const { stageBooks } = require('../tools/stage-books');
 
 test('stageBooks copies both mdBook outputs under the public site tree', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'wxquare-stage-books-'));

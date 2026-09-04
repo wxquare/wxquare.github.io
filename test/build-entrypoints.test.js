@@ -22,7 +22,7 @@ test('package exposes canonical Hexo and mdBook build entrypoints', () => {
     packageJson.scripts['build:books'],
     'npm run build:ai-book && npm run build:system-design-book'
   );
-  assert.equal(packageJson.scripts['stage:books'], 'node bin/stage-books.js');
+  assert.equal(packageJson.scripts['stage:books'], 'node tools/stage-books.js');
   assert.equal(
     packageJson.scripts['server:site'],
     'npm run clean && npm run build && npm run build:books && npm run stage:books && hexo server -p 3000'
@@ -53,6 +53,7 @@ test('one GitHub Actions workflow builds and publishes all site areas', () => {
   assert.doesNotMatch(workflow, /keep_files:/);
   assert.doesNotMatch(workflow, /cp\s+-R|cp\s+-r/);
   assert.match(workflow, /'scripts\/\*\*'/);
+  assert.match(workflow, /'tools\/\*\*'/);
 
   const buildIndex = workflow.indexOf('run: npm run clean && npm run build');
   const booksIndex = workflow.indexOf('run: npm run build:books');

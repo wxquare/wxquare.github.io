@@ -51,7 +51,7 @@ Read the writing and content-placement rules in `AGENTS.md`, especially sections
 Run:
 
 ```bash
-bash bin/pre-commit-check.sh
+bash tools/pre-commit-check.sh
 ```
 
 Today this script performs the required repository validation:

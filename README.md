@@ -144,12 +144,22 @@ public/
 │   │   └── index.md
 ├── books/
 │   ├── ai-book/                 # AI Agent 工程实践专题
-│   ├── system-design-architecture-book/  # 系统设计与架构专题
-│   └── scripts/                 # 共用构建脚本
+│   └── system-design-architecture-book/  # 系统设计与架构专题
+├── scripts/                     # 共用构建、校验与预处理脚本
 ├── docs/                        # 规划、设计与过程文档
 ├── _config.yml                  # Hexo 配置
 └── package.json                 # 项目依赖与脚本
 ```
+
+### 共用脚本
+
+根目录 `scripts/` 下的脚本用于仓库级构建和校验，不承担博客业务逻辑：
+
+- `tools/pre-commit-check.sh`：检查暂存 Markdown，并验证 Hexo 与 mdBook 构建，避免错误内容进入提交。
+- `tools/stage-books.js`：将两本 mdBook 的生成结果复制到 `public/`，供 Hexo 统一发布。
+- `tools/mermaid-preprocessor.py`：在 mdBook 构建期间把 Mermaid Markdown 代码块转换成 Mermaid.js 可渲染的 HTML。
+
+注意：Hexo 会递归加载 `scripts/` 下的文件，因此非 Hexo 插件脚本统一放在根目录 `tools/`，并通过 npm 或 mdBook 显式调用。
 
 ## 写作与维护约定
 
