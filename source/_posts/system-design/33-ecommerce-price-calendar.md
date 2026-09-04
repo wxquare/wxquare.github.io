@@ -14,7 +14,7 @@ tags:
   - system-design
 ---
 
-> **电商系统设计（十四）**（价格优化专题；总索引见[（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)）
+> **电商系统设计（十四）**（价格优化专题；总索引见{% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}）
 > 
 > 本文设计一个价格日历系统，参考 Google Flights、Booking.com、Airbnb 等业界实践，帮助用户快速找到最优惠的预订日期。适用于酒店、机票等按日期定价的商品品类。
 
@@ -780,7 +780,7 @@ Phase 5（1周）：压测优化
 ---
 
 > **相关文章：**
-> - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
-> - [（三）库存系统](/system-design/22-ecommerce-inventory/)
-> - [（五）定价引擎（Pricing Engine）](/system-design/24-ecommerce-pricing-engine/)
-> - [（六）定价域的 DDD 建模](/system-design/25-ecommerce-pricing-ddd/)
+> - {% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}
+> - {% post_link system-design/22-ecommerce-inventory （三）库存系统 %}
+> - {% post_link system-design/24-ecommerce-pricing-engine （五）定价引擎（Pricing Engine） %}
+> - {% post_link system-design/25-ecommerce-pricing-ddd （六）定价域的 DDD 建模 %}

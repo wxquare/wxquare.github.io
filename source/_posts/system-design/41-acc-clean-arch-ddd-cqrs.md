@@ -1728,7 +1728,7 @@ flowchart TD
 
 它们不是互相替代的关系，而是在不同维度上解决不同问题。在**真正复杂**的业务系统中，三者组合使用能发挥最大价值。
 
-**本专题下一篇**：[架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南](/system-design/42-acc-clean-code/)（实现层的函数、Pipeline 与整洁习惯）。全系列阅读顺序与评审清单见 [架构与整洁代码（四）](/system-design/44-acc-code-review/)。
+**本专题下一篇**：{% post_link system-design/42-acc-clean-code 架构与整洁代码（二）：复杂业务中的 Clean Code 实践指南 %}（实现层的函数、Pipeline 与整洁习惯）。全系列阅读顺序与评审清单见 {% post_link system-design/44-acc-code-review 架构与整洁代码（四） %}。
 
 ## 参考资料
 

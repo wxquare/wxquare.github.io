@@ -14,17 +14,17 @@ toc: true
 
 <!-- toc -->
 
-> **电商系统设计系列**（篇次与[（一）推荐阅读顺序](/system-design/20-ecommerce-overview/)一致）
-> - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
-> - [（二）商品中心系统](/system-design/21-ecommerce-product-center/)
+> **电商系统设计系列**（篇次与{% post_link system-design/20-ecommerce-overview （一）推荐阅读顺序 %}一致）
+> - {% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}
+> - {% post_link system-design/21-ecommerce-product-center （二）商品中心系统 %}
 > - **（三）库存系统**（本文）
-> - [（四）营销系统深度解析](/system-design/23-ecommerce-marketing-system/)
-> - [（五）计价引擎](/system-design/24-ecommerce-pricing-engine/)
-> - [（六）计价系统 DDD 实践](/system-design/25-ecommerce-pricing-ddd/)
-> - [（七）订单系统](/system-design/26-ecommerce-order-system/)
-> - [（八）支付系统深度解析](/system-design/27-ecommerce-payment-system/)
-> - [（九）商品上架系统](/system-design/28-ecommerce-listing/)
-> - [（十）B 端运营系统](/system-design/29-ecommerce-b-side-ops/)
+> - {% post_link system-design/23-ecommerce-marketing-system （四）营销系统深度解析 %}
+> - {% post_link system-design/24-ecommerce-pricing-engine （五）计价引擎 %}
+> - {% post_link system-design/25-ecommerce-pricing-ddd （六）计价系统 DDD 实践 %}
+> - {% post_link system-design/26-ecommerce-order-system （七）订单系统 %}
+> - {% post_link system-design/27-ecommerce-payment-system （八）支付系统深度解析 %}
+> - {% post_link system-design/28-ecommerce-listing （九）商品上架系统 %}
+> - {% post_link system-design/29-ecommerce-b-side-ops （十）B 端运营系统 %}
 
 本文是电商系统设计系列的第三篇，聚焦库存系统的设计与实现。
 
@@ -975,7 +975,7 @@ func (s *UnlimitedStrategy) UnbookStock(ctx context.Context, req *UnbookStockReq
 
 本章详细说明库存系统（主要以商品库存为例）如何与订单系统协作完成下单、支付、取消等核心流程。
 
-> **说明**：本章涉及商品库存和营销库存的协同，其中营销库存的详细设计请参阅[电商系统设计（四）：营销系统](/system-design/23-ecommerce-marketing-system/)第5章。本章重点展示系统交互边界和事务协调模式。
+> **说明**：本章涉及商品库存和营销库存的协同，其中营销库存的详细设计请参阅{% post_link system-design/23-ecommerce-marketing-system 电商系统设计（四）：营销系统 %}第5章。本章重点展示系统交互边界和事务协调模式。
 
 ### 10.1 交互边界设计原则
 
@@ -2790,7 +2790,7 @@ Topic: inventory.events (6 分区)
 - **最后防线**：支付确认时 MySQL 二次校验，防止超卖
 
 **营销库存**：
-- 本文保留了商品库存与营销库存的对比（2.3 节），营销库存的详细设计请参阅[电商系统设计（四）：营销系统](/system-design/23-ecommerce-marketing-system/)
+- 本文保留了商品库存与营销库存的对比（2.3 节），营销库存的详细设计请参阅{% post_link system-design/23-ecommerce-marketing-system 电商系统设计（四）：营销系统 %}
 
 ---
 
@@ -2811,8 +2811,8 @@ Topic: inventory.events (6 分区)
 
 > **系列导航**
 > 
-> 库存与价格在下单时的协作流程，详见[（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)中的 C 端用户旅程章节。
+> 库存与价格在下单时的协作流程，详见{% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}中的 C 端用户旅程章节。
 > 
-> 营销系统如何利用库存锁定实现秒杀活动，详见[（四）营销系统深度解析](/system-design/23-ecommerce-marketing-system/)。
+> 营销系统如何利用库存锁定实现秒杀活动，详见{% post_link system-design/23-ecommerce-marketing-system （四）营销系统深度解析 %}。
 > 
-> 订单系统如何编排库存扣减流程，详见[（七）订单系统](/system-design/26-ecommerce-order-system/)。
+> 订单系统如何编排库存扣减流程，详见{% post_link system-design/26-ecommerce-order-system （七）订单系统 %}。

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-本文件是仓库内唯一的 AI 协作入口。与 AI 开发指导、协作约束、工具工作流相关的规则，统一维护在这里，不再拆散到 `CLAUDE.md`、`README-AI-SETUP.md`、`README-CURSOR-USAGE.md`。
+本文件是仓库内唯一的 AI 协作入口和规范源。与 AI 开发指导、协作约束、工具工作流相关的规则，统一维护在这里，不再拆散到 `CLAUDE.md`、`README-AI-SETUP.md`、`README-CURSOR-USAGE.md`。其他入口只能引用本文件或执行其中定义的流程，不得复制规范。
 
 ## 1. 项目定位
 
@@ -19,6 +19,7 @@ npm install
 npm run server
 npm run clean
 npm run build
+npm run build:books
 ```
 
 本地预览地址：
@@ -35,6 +36,7 @@ http://localhost:4000
 
 - `source/_posts/AI/`：AI 与 Agent 相关文章
 - `source/_posts/system-design/`：系统设计文章
+- `source/_posts/fundamentals/`：计算机基础文章
 - `source/_posts/other/`：其他文章
 - `source/about/`：最小联系页，仅允许邮箱；不得存放简历、电话或工作资料
 - `source/diagrams/`：图表源文件
@@ -44,6 +46,8 @@ http://localhost:4000
 - `books/ai-book/labs/llm-from-scratch/`：唯一保留的遗留实验例外；不得在 `books/ai-book/labs/` 新增其他实验
 - `docs/`：调研、迁移、整理文档
 - `.agents/`：统一的 AI 协作资产与工具配置目录
+
+博客主分类规范在本文件第 4.4 节定义：`AI`、`system-design`、`fundamentals`、`other`。`.agents/config/post-categories.json` 是供工具读取的非规范目录映射；新增或统计文章时复用它，目录 slug 与 Front Matter 展示名可能不同，以本文件和映射中的 `label`、`frontMatterLabels` 为准。
 
 ### 3.2 不要直接编辑的目录
 
@@ -58,7 +62,7 @@ http://localhost:4000
 每类内容只保留一个主事实源：
 
 - 系统化 Agent 知识：`books/ai-book/src/`
-- 面向读者的博客文章：`source/_posts/AI/`
+- 面向读者的博客文章：`source/_posts/AI/`、`source/_posts/system-design/`、`source/_posts/fundamentals/`、`source/_posts/other/`
 - 公开第三方参考资料：`source/library/`
 - 第一方公开演示资料：`source/presentations/`
 - AI 协作规则、共享技能与工具配置：`AGENTS.md`、`.agents/`
@@ -68,9 +72,10 @@ http://localhost:4000
 
 ### 4.1 公开资料库治理
 
-- books、papers、slides、other 分别放入 `source/library/books/`、`papers/`、`slides/`、`other/`；博客草稿、个人或内部材料、秘密凭证和实验源码不得进入资料库。
-- Other 仅用于经用户明确批准的公开项目补充文件，或类型边界明确但无法归入 book、paper、slide 的参考资料；不得作为授权不明、来源不明或未分类内容的兜底，也不得绕过来源、再分发和用户批准要求。
-- 每个条目必须在 `source/library/index.md` 记录标题、作者或机构、类型（book、paper、slide 或 other）、主题、原始 URL、本地路径或“仅外链”、再分发说明和加入日期。
+- books、papers、slides、tutorials、other 分别放入 `source/library/books/`、`papers/`、`slides/`、`tutorials/`、`other/`；博客草稿、个人或内部材料、秘密凭证和实验源码不得进入资料库。
+- tutorials 用于公开教程、实验指南或课程型技术资料；它不是博客草稿或实验源码的存放目录。
+- Other 仅用于经用户明确批准的公开项目补充文件，或类型边界明确但无法归入 book、paper、slide、tutorial 的参考资料；不得作为授权不明、来源不明或未分类内容的兜底，也不得绕过来源、再分发和用户批准要求。
+- 每个条目必须在 `source/library/index.md` 记录标题、作者或机构、类型（book、paper、slide、tutorial 或 other）、主题、原始 URL、本地路径或“仅外链”、再分发说明和加入日期。
 - 公开可访问不等于允许重新分发；授权或再分发边界无法确认时只保留原始链接，不上传本地副本。
 - 单个二进制文件超过 10 MiB 时默认只保留外链；本地托管需要用户单独批准存储方案。
 - 公开活动资料只在 `source/library/` 维护；其他文章需要引用时链接到资料库条目或原始来源，不复制活动副本。
@@ -92,6 +97,17 @@ http://localhost:4000
 - `source/library/` 和博客文章不得包含实验源码；文章只保存实验介绍和仓库链接。
 - `books/ai-book/labs/llm-from-scratch/` 是唯一保留的遗留例外；不得把 `books/ai-book/labs/` 作为新实验落点，也不得在其中恢复或新增其他实验。
 
+### 4.4 博客文章规范（唯一来源）
+
+以下规则只在本文件维护；Cursor 规则、共享技能和贡献指南只负责引用或执行：
+
+- 博客主分类仅限 `AI`、`system-design`、`fundamentals`、`other`；目录映射由 `.agents/config/post-categories.json` 提供。`fundamentals` 对应计算机基础文章，默认 Front Matter 展示名为 `计算机基础`。
+- `source/library/tutorials/` 仅用于公开第三方教程、实验指南或课程资料；博客教程仍是博客文章，按主题放入博客主分类并使用 `.agents/templates/tech-tutorial.md`。
+- Front Matter 至少包含 `title`、`date`、`categories` 和 `tags`；`categories` 使用注册表允许的主分类映射，层级最多 2 层。
+- 标签至少保留 2 个；英文多词标签使用小写 kebab-case（如 `deep-learning`），产品名、缩写和专有名词保留官方拼写，禁止仅大小写不同的重复标签。
+- 图片路径使用站内 URL（如 `/images/diagram.png` 或 `/diagrams/flow.mmd`）；禁止本机绝对路径、仓库绝对路径和用外部镜像替代已托管的本地资源。
+- 所有代码块必须标注语言，中英文混排保留空格；文章命名和目录专属要求见本文件第 10 节。
+
 ## 5. 统一 AI 协作资产
 
 ### 5.1 当前目录结构
@@ -103,6 +119,7 @@ http://localhost:4000
 ├── .agents/
 │   ├── agents/
 │   ├── claude/
+│   ├── config/
 │   ├── codex/
 │   ├── commands/
 │   ├── cursor/
@@ -118,24 +135,32 @@ http://localhost:4000
   - 仓库级统一入口
   - 存放项目规则、工作流、约束和 AI 协作方式
 - `.cursorrules`
-  - Cursor 的补充规则入口
-  - 内容应与 `AGENTS.md` 保持一致，不再单独承载主规则
+  - Cursor 的适配入口
+  - 只负责加载本文件和路由执行流程，不承载独立规范
 - `.agents/claude/settings.json`
   - Claude 类工具的 Hook 与权限配置
 - `.agents/skills/`
   - 所有工具共享的技能主目录
 - `.agents/commands/`
   - 快捷命令
+- `.agents/config/post-categories.json`
+  - 博客主分类的机器可读目录映射；规范解释以 `AGENTS.md` 为准
 - `.agents/agents/`
   - 专项助手
 - `.agents/templates/`
   - 文章模板
 - `.agents/cursor/rules/`
-  - Cursor 专属加载入口
+  - Cursor 专属适配入口，不承载独立规范
 - `.agents/codex/config.toml`
   - Codex 专属配置
 - `bin/pre-commit-check.sh`
   - 提交前检查脚本
+
+规则职责边界：
+
+- `AGENTS.md` 是唯一规范源，维护分类、教程、Front Matter、标签、图片、命名和质量要求。
+- `.cursorrules` 与 `.agents/cursor/rules/` 只负责让 Cursor 加载 `AGENTS.md` 的相关章节。
+- `.agents/skills/` 与 `.agents/commands/` 只负责执行步骤、输入输出和命令；需要判断规范时回读 `AGENTS.md`。
 
 ## 6. 支持的 AI 工作面
 
@@ -264,7 +289,7 @@ Cursor 侧通过 `.cursorrules` 和自然语言提示完成同类任务。统一
 ```text
 创建一篇新的博客文章：
 - 标题：[标题]
-- 分类：[AI/system-design/other]
+- 分类：[AI/system-design/fundamentals/other]
 - 标签：[tag1, tag2, tag3]
 - 参考对应模板生成基础结构
 ```
@@ -319,10 +344,17 @@ tags:
 
 - 日期必须为 `YYYY-MM-DD`
 - 分类层级最多 2 层
+- 主分类必须来自 `.agents/config/post-categories.json` 中的 `AI`、`system-design`、`fundamentals` 或 `other`
 - 标签使用统一命名风格
 - 代码块必须声明语言
 - 中英文之间保留空格
-- 图片使用相对路径
+- 图片路径按第 4.4 节使用站内 URL
+
+### 10.6 教程与计算机基础文章
+
+- 技术教程文章使用 `.agents/templates/tech-tutorial.md`，但目录归属仍由主分类注册表和主题决定。
+- `source/_posts/fundamentals/` 专门收纳操作系统、网络、Shell 和编程语言基础文章；其默认 Front Matter 分类为 `计算机基础`。
+- `tutorials` 是资料库类型，不是博客主分类；不得创建 `source/_posts/tutorials/` 作为新的博客分类。
 
 ### 10.3 文件命名
 
@@ -366,6 +398,7 @@ bash bin/pre-commit-check.sh
 
 - 暂存 Markdown 文件的规范检查
 - Hexo 清理与构建验证
+- 两本 mdBook 书籍的构建验证（需要本地安装 mdBook 0.5.2）
 
 ### 11.2 Hook 行为
 
@@ -379,8 +412,10 @@ bash bin/pre-commit-check.sh
 对内容改动，最低验证标准是：
 
 ```bash
+npm test
 npm run clean
 npm run build
+npm run build:books
 ```
 
 如果修改了 `_config.yml`，还需要重启本地预览服务。
@@ -415,7 +450,7 @@ npm run build
 ### 14.1 规则维护
 
 - 新规则优先补充进 `AGENTS.md`
-- Cursor 专属补充才放进 `.cursorrules`
+    - Cursor 专属加载方式和交互适配才放进 `.cursorrules`；规范仍维护在 `AGENTS.md`
 - 不再把流程性说明分散写进多个 README
 
 ### 14.2 质量控制
@@ -433,6 +468,6 @@ npm run build
 ## 15. 相关文件
 
 - `CONTRIBUTING.md`：开源贡献流程
-- `.cursorrules`：Cursor 适配规则
+- `.cursorrules`：Cursor 适配入口
 - `.agents/templates/review-checklist.md`：审查清单
-- `docs/agent-development-guide.md`：Agent 内容地图与内容落点整理
+- `AGENTS.md`：Agent 内容地图、维护边界与内容落点整理

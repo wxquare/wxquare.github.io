@@ -14,25 +14,25 @@ tags:
   - consistency
 ---
 
-> **电商系统设计（十二）**（读路径专题；总索引见[（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)；续篇：[（十三）购物车与结算域](/system-design/32-ecommerce-cart-checkout/)）
-> - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
-> - [（二）商品中心系统](/system-design/21-ecommerce-product-center/)（索引与同步见第 5 章）
-> - [（三）库存系统](/system-design/22-ecommerce-inventory/)
-> - [（四）营销系统深度解析](/system-design/23-ecommerce-marketing-system/)
-> - [（五）计价引擎](/system-design/24-ecommerce-pricing-engine/)
-> - [（六）计价系统 DDD 实践](/system-design/25-ecommerce-pricing-ddd/)
-> - [（七）订单系统](/system-design/26-ecommerce-order-system/)
-> - [（八）支付系统深度解析](/system-design/27-ecommerce-payment-system/)
-> - [（九）商品上架系统](/system-design/28-ecommerce-listing/)
-> - [（十）B 端运营系统](/system-design/29-ecommerce-b-side-ops/)
-> - [（十一）商品生命周期管理](/system-design/30-ecommerce-product-lifecycle-management/)
+> **电商系统设计（十二）**（读路径专题；总索引见{% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}；续篇：{% post_link system-design/32-ecommerce-cart-checkout （十三）购物车与结算域 %}）
+> - {% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}
+> - {% post_link system-design/21-ecommerce-product-center （二）商品中心系统 %}（索引与同步见第 5 章）
+> - {% post_link system-design/22-ecommerce-inventory （三）库存系统 %}
+> - {% post_link system-design/23-ecommerce-marketing-system （四）营销系统深度解析 %}
+> - {% post_link system-design/24-ecommerce-pricing-engine （五）计价引擎 %}
+> - {% post_link system-design/25-ecommerce-pricing-ddd （六）计价系统 DDD 实践 %}
+> - {% post_link system-design/26-ecommerce-order-system （七）订单系统 %}
+> - {% post_link system-design/27-ecommerce-payment-system （八）支付系统深度解析 %}
+> - {% post_link system-design/28-ecommerce-listing （九）商品上架系统 %}
+> - {% post_link system-design/29-ecommerce-b-side-ops （十）B 端运营系统 %}
+> - {% post_link system-design/30-ecommerce-product-lifecycle-management （十一）商品生命周期管理 %}
 > - **（十二）搜索与导购（本文）**
 
 ## 引言
 
 搜索与结构化导购（类目列表、店铺内浏览）是电商平台最主要的 **读流量入口** 之一，直接影响转化与 GMV。与订单、支付等 **写路径** 不同，导购链路往往 **QPS 高、容忍短暂最终一致**，但必须处理好 **相关性、价格与库存展示口径、营销露出、以及索引滞后** 带来的用户预期落差。
 
-本文面向 **系统设计面试（A）** 与 **工程落地（B）**：用 **统一导购查询服务** 串起关键词搜索、类目导购、店铺内搜索；用 **Elasticsearch 查询侧专题** 补齐分析链、DSL 模式、深分页与性能要点。索引文档长什么样、如何从商品中心同步进 ES，仍以 [商品中心第 5 章](/system-design/21-ecommerce-product-center/) 为准，本篇不重复展开大段 mapping。
+本文面向 **系统设计面试（A）** 与 **工程落地（B）**：用 **统一导购查询服务** 串起关键词搜索、类目导购、店铺内搜索；用 **Elasticsearch 查询侧专题** 补齐分析链、DSL 模式、深分页与性能要点。索引文档长什么样、如何从商品中心同步进 ES，仍以 {% post_link system-design/21-ecommerce-product-center 商品中心第 5 章 %} 为准，本篇不重复展开大段 mapping。
 
 **适合读者**：准备电商 / 高并发读路径面试的候选人；负责搜索与列表的工程同学。
 
@@ -76,8 +76,8 @@ tags:
 ### 1.2 显式非目标
 
 - **首页 / 频道个性化 feed、重推荐系统**：不在正文展开（与「搜索召回」相邻但产品目标不同）；文末给扩展阅读方向即可。
-- **营销优惠叠加计算**：见[营销系统](/system-design/23-ecommerce-marketing-system/)，本篇只写列表读侧 **标签 / 圈品命中展示** 与失败降级。
-- **索引全量建模与多级缓存同步细节**：见[商品中心 5. 商品搜索与多级缓存](/system-design/21-ecommerce-product-center/)。
+- **营销优惠叠加计算**：见{% post_link system-design/23-ecommerce-marketing-system 营销系统 %}，本篇只写列表读侧 **标签 / 圈品命中展示** 与失败降级。
+- **索引全量建模与多级缓存同步细节**：见{% post_link system-design/21-ecommerce-product-center 商品中心 5. 商品搜索与多级缓存 %}。
 
 ### 1.3 与系列文章的分工
 
@@ -341,7 +341,7 @@ func (s *MerchandisingQuery) Hydrate(ctx context.Context, req HydrateRequest) (m
 
 ## 4. Elasticsearch 专题（方案 3）
 
-> **再次强调**：索引字段清单、nested 取舍、商品变更如何进索引，请以 [商品中心 §5.1](/system-design/21-ecommerce-product-center/) 为准。本节只写 **查询侧契约与反模式**。
+> **再次强调**：索引字段清单、nested 取舍、商品变更如何进索引，请以 {% post_link system-design/21-ecommerce-product-center 商品中心 §5.1 %} 为准。本节只写 **查询侧契约与反模式**。
 
 ### 4.1 分析链与中文分词
 
@@ -547,7 +547,7 @@ sequenceDiagram
 | 返回缺省策略 | 显式 `partial=true` | 前端可展示占位符或刷新提示 |
 | 缓存 | 短时本地缓存热门 SPU | TTL 极短，防击穿用 singleflight |
 
-计价只读接口建议支持 **批量 + 站点 + 会员等级** 维度，减少网络往返；与 [计价引擎](/system-design/24-ecommerce-pricing-engine/) 的「展示价场景」对齐命名，避免客户端混用「下单价」与「列表价」字段。
+计价只读接口建议支持 **批量 + 站点 + 会员等级** 维度，减少网络往返；与 {% post_link system-design/24-ecommerce-pricing-engine 计价引擎 %} 的「展示价场景」对齐命名，避免客户端混用「下单价」与「列表价」字段。
 
 ### 5.5 幂等与乱序事件
 
@@ -667,11 +667,11 @@ func ApplyProductEvent(doc ProductDoc, evt ProductEvent) (bool, error) {
 
 搜索与导购是电商 **读模型工程化** 的主战场：**统一 scene 流水线** 便于演进与面试叙述；**Elasticsearch** 承担召回与部分粗排，但必须与 **商品中心、上架与生命周期、计价、库存、营销** 的契约清晰划分；**一致性** 上承认列表弱一致，用 hydrate 超时策略与索引版本化兜底；**可观测性** 用 `query_id` + `rank_version` + 分桶指标闭环优化。
 
-**系列扩展阅读（不在本文展开）**：首页与 discovery feed 的推荐系统、Learning-to-Rank 在线学习、图搜与多模态检索；若你正在补齐交易链路，可接续阅读[订单系统](/system-design/26-ecommerce-order-system/)与[库存系统](/system-design/22-ecommerce-inventory/)。
+**系列扩展阅读（不在本文展开）**：首页与 discovery feed 的推荐系统、Learning-to-Rank 在线学习、图搜与多模态检索；若你正在补齐交易链路，可接续阅读{% post_link system-design/26-ecommerce-order-system 订单系统 %}与{% post_link system-design/22-ecommerce-inventory 库存系统 %}。
 
 ---
 
 ## 参考资料
 
 1. [Elasticsearch 官方文档](https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html) — 查询 DSL、分页与 profile。  
-2. 本系列：[商品中心](/system-design/21-ecommerce-product-center/) · [上架系统](/system-design/28-ecommerce-listing/) · [生命周期管理](/system-design/30-ecommerce-product-lifecycle-management/) · [营销系统](/system-design/23-ecommerce-marketing-system/) · [计价引擎](/system-design/24-ecommerce-pricing-engine/) · [库存系统](/system-design/22-ecommerce-inventory/)。
+2. 本系列：{% post_link system-design/21-ecommerce-product-center 商品中心 %} · {% post_link system-design/28-ecommerce-listing 上架系统 %} · {% post_link system-design/30-ecommerce-product-lifecycle-management 生命周期管理 %} · {% post_link system-design/23-ecommerce-marketing-system 营销系统 %} · {% post_link system-design/24-ecommerce-pricing-engine 计价引擎 %} · {% post_link system-design/22-ecommerce-inventory 库存系统 %}。

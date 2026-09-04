@@ -1,0 +1,61 @@
+name: Deploy Site
+
+on:
+  push:
+    branches: [ hexo ]
+    paths:
+      - '_config.yml'
+      - 'source/**'
+      - 'themes/**'
+      - 'books/**'
+      - 'bin/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-site.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: npm
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Setup mdBook
+      uses: peaceiris/actions-mdbook@v1
+      with:
+        mdbook-version: '0.5.2'
+
+    - name: Build Hexo site
+      run: npm run clean && npm run build
+
+    - name: Build books
+      run: npm run build:books
+
+    - name: Stage books in the site output
+      run: npm run stage:books
+
+    - name: Check generated internal links
+      run: npm run check:links
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./public
+        publish_branch: master
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'

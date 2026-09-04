@@ -4415,7 +4415,7 @@ Kafka Topic
   → Infrastructure (持久化)
 ```
 
-**示例代码**：参见 `books/system-design-architecture-book/example-codes/product-service/` 完整 Demo
+**示例代码**：参见 `~/Projects/system-design-architecture-examples/product-service/` 完整 Demo
 
 ---
 
@@ -4460,14 +4460,14 @@ product:category:{category_id}      # 类目商品列表（Set结构）
 
 本章节的完整代码实现（包含 DDD 四层架构、事件发布订阅、三级缓存等）详见：
 
-**示例代码路径**：`books/system-design-architecture-book/example-codes/product-service/`
+**示例代码路径**：`~/Projects/system-design-architecture-examples/product-service/`
 
 这部分示例代码不是完整生产系统，而是为了帮助读者把前面的架构设计映射到工程结构中。它重点覆盖商品中心的 DDD 分层、聚合根、Repository、缓存、事件发布订阅和接口适配。前面讨论的供给运营、供应商同步、库存可售、搜索导购等能力，在真实项目中会继续扩展为更多应用服务和任务模块；示例工程先保留最小可读骨架，避免把主线淹没在实现细节里。
 
 **目录结构**：
 
 ```text
-example-codes/product-service/
+~/Projects/system-design-architecture-examples/product-service/
 ├── README.md                               # 项目说明
 ├── QUICKSTART.md                           # 快速开始指南
 ├── EIGHT_LAYER_MODEL.md                    # 八层商品交易模型说明
@@ -4540,7 +4540,7 @@ example-codes/product-service/
 **运行 Demo**：
 
 ```bash
-cd books/system-design-architecture-book/example-codes/product-service
+cd ~/Projects/system-design-architecture-examples/product-service
 go run cmd/main.go
 ```
 

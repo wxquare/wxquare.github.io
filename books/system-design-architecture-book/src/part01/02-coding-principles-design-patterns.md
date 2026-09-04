@@ -96,7 +96,7 @@ flowchart LR
 - 业务逻辑无法脱离接口或存储独立测试；
 - 每次改动都必须理解整条链路的全部技术细节。
 
-关于「这些职责在真实工程里如何落到目录结构上」，第 1 章给出了两套完整的 Go 目录映射（三层架构版与 DDD 版），2.7 节会基于可运行的 `example-codes/` 示例工程做完整走读。
+关于「这些职责在真实工程里如何落到目录结构上」，第 1 章给出了两套完整的 Go 目录映射（三层架构版与 DDD 版），2.7 节会基于可运行的 `~/Projects/system-design-architecture-examples/` 示例工程做完整走读。示例工程独立于本书仓库维护。
 
 ### 2.2.2 用例编排层要显式，不要隐式散落
 
@@ -426,7 +426,7 @@ Review 质量不只是 Reviewer 的责任，Author 同样负有很大责任。�
 - 领域规则是否仍由领域对象或用例层表达，而不是散落在外层。
 - 是否引入了新的隐式耦合，例如直接依赖具体实现、共享可变状态、万能工具类。
 - 新抽象是否真有稳定价值，还是为了“看起来高级”。
-- 目录结构与分层是否符合团队约定的映射（可对照第 1 章目录映射与 `example-codes/` 样例）。
+- 目录结构与分层是否符合团队约定的映射（可对照第 1 章目录映射与 `~/Projects/system-design-architecture-examples/` 样例）。
 
 ### 2.6.3 可读性与可维护性
 
@@ -455,13 +455,13 @@ Review 质量不只是 Reviewer 的责任，Author 同样负有很大责任。�
 
 ## 2.7 优秀代码实践走读：从可运行示例看好代码的形状
 
-前面几节讲的是原则，这一节看实例。本书配套的 `books/system-design-architecture-book/example-codes/` 目录下有三个可编译运行的 Go 工程，它们不是玩具 Demo，而是刻意用来展示「代码结构如何承载架构意图」的对照样本：
+前面几节讲的是原则，这一节看实例。本书配套的 `~/Projects/system-design-architecture-examples/` 目录下有三个可编译运行的 Go 工程，它们不是玩具 Demo，而是刻意用来展示「代码结构如何承载架构意图」的对照样本。示例代码已从书籍仓库移出，避免书稿构建项目和可运行工程相互耦合：
 
 | 示例工程 | 展示重点 | 对应的代码问题 |
 | --- | --- | --- |
-| `example-codes/order-service` | 标准三层架构的自然形态 | 职责够清楚，但业务规则散落在 service，依赖具体实现 |
-| `example-codes/product-service` | DDD 四层架构、聚合根、值对象、领域事件、三级缓存、Outbox | 业务规则内聚到领域模型，依赖方向向内，可独立测试 |
-| `example-codes/common-services` | 全局 ID 等基础服务的薄封装 | 通用域不需要重抽象 |
+| `~/Projects/system-design-architecture-examples/order-service` | 标准三层架构的自然形态 | 职责够清楚，但业务规则散落在 service，依赖具体实现 |
+| `~/Projects/system-design-architecture-examples/product-service` | DDD 四层架构、聚合根、值对象、领域事件、三级缓存、Outbox | 业务规则内聚到领域模型，依赖方向向内，可独立测试 |
+| `~/Projects/system-design-architecture-examples/common-services` | 全局 ID 等基础服务的薄封装 | 通用域不需要重抽象 |
 
 这一节从这三个工程里挑出五段代码，分别对应 2.2-2.4 的原则。读的时候建议对照源码完整看一遍——真实工程里的取舍细节（日志、注释、错误处理）比书上任何摘录都更有信息量。
 
@@ -754,7 +754,7 @@ func (h *OrderHandler) Create(c *gin.Context) {
 
 单靠口头要求，很难稳定提升团队编码、重构和 Review 水平。更有效的做法通常包括：
 
-- 为核心链路维护“代表团队标准”的样例实现（本书的 `example-codes/` 三个 Go 工程就是这种样例的最小形态，见 2.7 节）；
+- 为核心链路维护“代表团队标准”的样例实现（本书的 `~/Projects/system-design-architecture-examples/` 三个 Go 工程就是这种样例的最小形态，见 2.7 节）；
 - 为高风险场景维护 Review Checklist；
 - 为历史包袱最重的模块预留明确的重构预算，而不是永远让它排在需求之后；
 - 在复盘中把真实事故沉淀成新的评审规则；

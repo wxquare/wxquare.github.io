@@ -1,43 +1,7 @@
-# AI 目录写作规范
+# Cursor 适配入口：AI 文章
 
-## 文章分类规则
+本文件只负责在 Cursor 处理 `source/_posts/AI/` 下的文章时选择上下文。规范唯一源是 [`AGENTS.md`](../../../AGENTS.md)。
 
-当处理 AI 目录下的 Markdown 文件时，遵循以下分类规范：
+处理 AI 文章前读取 `AGENTS.md` 第 3、4、7、10.1-10.4、11 节；目录和 Front Matter 映射按 `.agents/config/post-categories.json` 使用。
 
-- 深度学习相关文章归入子目录：
-  - `computer-vision/` - 计算机视觉相关
-  - `tensorflow/` - TensorFlow框架相关
-  - `tvm/` - TVM编译器相关
-- 系统设计类 AI 文章（如 22-ai-system-design.md）放在 AI 根目录
-- Agent 设计类文章（如 23-dod-agent-design.md）放在 AI 根目录
-- 文章命名：重要文章用数字前缀（如 22-xxx.md），技术笔记用描述性名称
-
-## 引用规范
-
-- 引用论文：使用标准格式 `[作者, 年份]`
-- 引用代码：提供 GitHub 链接或代码仓库链接
-- 引用图片：优先使用 Excalidraw 或 Mermaid，放在 `source/diagrams/`
-- 引用外部资源：确保链接有效，添加访问日期
-
-## 技术术语统一
-
-- 深度学习（不用 DL）
-- 神经网络（不用 NN）
-- 机器学习（不用 ML）
-- 卷积神经网络（不用 CNN）
-- 循环神经网络（不用 RNN）
-- 英文术语首次出现时加中文注释
-
-## 代码示例规范
-
-- Python 代码必须指定版本要求（如需要 Python 3.8+）
-- 提供完整的依赖列表
-- 代码示例要可运行，避免伪代码
-- 复杂算法提供时间复杂度和空间复杂度分析
-
-## 图表规范
-
-- 架构图使用 Excalidraw
-- 流程图使用 Mermaid
-- 数据流图使用 Mermaid
-- 所有图表文件命名要有意义，避免使用默认名称
+本文件不定义分类、子目录、命名、标签、图片、引用或代码规范。若发现缺少长期规则，应修改 `AGENTS.md`，不要在此追加副本。

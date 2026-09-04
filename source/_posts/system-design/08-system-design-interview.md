@@ -1811,13 +1811,13 @@ if result == 0 {
 
 ### 相关文章
 
-- [系统设计完全指南：从零基础到面试高手](/system-design/00-system-design-overview/)
-- [Redis 原理与实践](/system-design/02-middleware-redis/)
-- [异步和消息队列](/system-design/03-middleware-kafka/)
-- [搜索和 Elasticsearch](/system-design/04-middleware-elasticsearch/)
-- [电商系统设计](/system-design/13-e-commerce/)
-- [系统稳定性建设：方法论与实践](/system-design/07-system-reliability-engineering/)
-- [多品类统一库存系统设计](/system-design/18-inventory-system-design/)
+- {% post_link system-design/00-system-design-overview 系统设计完全指南：从零基础到面试高手 %}
+- {% post_link system-design/02-middleware-redis Redis 原理与实践 %}
+- {% post_link system-design/03-middleware-kafka 异步和消息队列 %}
+- {% post_link system-design/04-middleware-elasticsearch 搜索和 Elasticsearch %}
+- {% post_link system-design/20-ecommerce-overview 电商系统设计 %}
+- {% post_link system-design/07-system-reliability-engineering 系统稳定性建设：方法论与实践 %}
+- {% post_link system-design/22-ecommerce-inventory 多品类统一库存系统设计 %}
 
 ### 外部参考
 

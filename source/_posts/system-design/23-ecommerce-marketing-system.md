@@ -14,17 +14,17 @@ tags:
   - distributed-system
 ---
 
-> **电商系统设计系列**（篇次与[（一）推荐阅读顺序](/system-design/20-ecommerce-overview/)一致）
-> - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
-> - [（二）商品中心系统](/system-design/21-ecommerce-product-center/)
-> - [（三）库存系统](/system-design/22-ecommerce-inventory/)
+> **电商系统设计系列**（篇次与{% post_link system-design/20-ecommerce-overview （一）推荐阅读顺序 %}一致）
+> - {% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}
+> - {% post_link system-design/21-ecommerce-product-center （二）商品中心系统 %}
+> - {% post_link system-design/22-ecommerce-inventory （三）库存系统 %}
 > - **（四）营销系统深度解析**（本文）
-> - [（五）计价引擎](/system-design/24-ecommerce-pricing-engine/)
-> - [（六）计价系统 DDD 实践](/system-design/25-ecommerce-pricing-ddd/)
-> - [（七）订单系统](/system-design/26-ecommerce-order-system/)
-> - [（八）支付系统深度解析](/system-design/27-ecommerce-payment-system/)
-> - [（九）商品上架系统](/system-design/28-ecommerce-listing/)
-> - [（十）B 端运营系统](/system-design/29-ecommerce-b-side-ops/)
+> - {% post_link system-design/24-ecommerce-pricing-engine （五）计价引擎 %}
+> - {% post_link system-design/25-ecommerce-pricing-ddd （六）计价系统 DDD 实践 %}
+> - {% post_link system-design/26-ecommerce-order-system （七）订单系统 %}
+> - {% post_link system-design/27-ecommerce-payment-system （八）支付系统深度解析 %}
+> - {% post_link system-design/28-ecommerce-listing （九）商品上架系统 %}
+> - {% post_link system-design/29-ecommerce-b-side-ops （十）B 端运营系统 %}
 
 # 电商系统设计：营销系统深度解析
 
@@ -3376,7 +3376,7 @@ func (s *OrderService) CalculateMarketing(ctx context.Context, req *CalculateReq
 
 ### 11.4 相关系列文章
 
-- [电商系统设计：订单系统](/2026/04/07/system-design/26-ecommerce-order-system/)
-- [电商系统设计：商品中心深度解析](/2026/04/07/system-design/21-ecommerce-product-center/)
+- {% post_link system-design/26-ecommerce-order-system 电商系统设计：订单系统 %}
+- {% post_link system-design/21-ecommerce-product-center 电商系统设计：商品中心深度解析 %}
 
 源码路径：`source/_posts/system-design/26-ecommerce-order-system.md`、`27-ecommerce-product-center.md`。

@@ -29,8 +29,8 @@ http://localhost:4000
 
 ## Where to make changes
 
-- `source/_posts/AI/` for reader-facing AI and Agent blog posts
-- `source/_posts/system-design/` for system design articles
+- `AGENTS.md` is the normative source for post placement, writing conventions, category mappings, and AI collaboration rules.
+- Use `.agents/config/post-categories.json` only as the machine-readable category directory mapping used by tooling.
 - `source/about/` for the minimal contact page; email only; do not add resumes, phone numbers, or work materials
 - `books/ai-book/src/` for long-form Agent book chapters
 - `books/ai-book/labs/llm-from-scratch/` is a retained legacy experiment; do not add new runnable experiments here. New experiments must use an independent Git repository under `/Users/xianguiwang/Projects/`, with GitHub visibility Private by default.
@@ -44,26 +44,7 @@ Do not edit generated output directly:
 
 ## Writing conventions
 
-Every post should include valid front matter:
-
-```yaml
----
-title: 文章标题
-date: YYYY-MM-DD
-categories:
-  - 分类
-tags:
-  - tag
----
-```
-
-Please follow these rules:
-
-- category depth at most 2 levels
-- use relative image paths
-- specify languages for code fences
-- keep spaces between Chinese and English text
-- keep filenames descriptive and consistent with the existing series style
+Read the writing and content-placement rules in `AGENTS.md`, especially sections 3, 4, and 10. That document defines Front Matter, categories, tags, image paths, code blocks, naming, and content-type boundaries.
 
 ## Validate before submitting
 
@@ -76,6 +57,7 @@ bash bin/pre-commit-check.sh
 Today this script performs the required repository validation:
 
 ```bash
+npm test
 npm run clean
 npm run build
 ```
@@ -97,4 +79,4 @@ If your change affects repository collaboration rules or AI workflows, check:
 - `AGENTS.md`
 - `.cursorrules`
 - `.agents/`
-- `docs/agent-development-guide.md`
+- `docs/library-policy.md`

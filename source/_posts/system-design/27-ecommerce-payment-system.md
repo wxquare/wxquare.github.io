@@ -13,17 +13,17 @@ tags:
   - reconciliation
 ---
 
-> **电商系统设计系列**（篇次与[（一）推荐阅读顺序](/system-design/20-ecommerce-overview/)一致）
-> - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
-> - [（二）商品中心系统](/system-design/21-ecommerce-product-center/)
-> - [（三）库存系统](/system-design/22-ecommerce-inventory/)
-> - [（四）营销系统深度解析](/system-design/23-ecommerce-marketing-system/)
-> - [（五）计价引擎](/system-design/24-ecommerce-pricing-engine/)
-> - [（六）计价系统 DDD 实践](/system-design/25-ecommerce-pricing-ddd/)
-> - [（七）订单系统](/system-design/26-ecommerce-order-system/)
+> **电商系统设计系列**（篇次与{% post_link system-design/20-ecommerce-overview （一）推荐阅读顺序 %}一致）
+> - {% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}
+> - {% post_link system-design/21-ecommerce-product-center （二）商品中心系统 %}
+> - {% post_link system-design/22-ecommerce-inventory （三）库存系统 %}
+> - {% post_link system-design/23-ecommerce-marketing-system （四）营销系统深度解析 %}
+> - {% post_link system-design/24-ecommerce-pricing-engine （五）计价引擎 %}
+> - {% post_link system-design/25-ecommerce-pricing-ddd （六）计价系统 DDD 实践 %}
+> - {% post_link system-design/26-ecommerce-order-system （七）订单系统 %}
 > - **（八）支付系统深度解析**（本文）
-> - [（九）商品上架系统](/system-design/28-ecommerce-listing/)
-> - [（十）B 端运营系统](/system-design/29-ecommerce-b-side-ops/)
+> - {% post_link system-design/28-ecommerce-listing （九）商品上架系统 %}
+> - {% post_link system-design/29-ecommerce-b-side-ops （十）B 端运营系统 %}
 
 ## 引言
 
@@ -1511,9 +1511,9 @@ func AddToBlacklist(userID int64, reason string) {
 
 **参考资料**：
 
-- [26-电商订单系统](./26-ecommerce-order-system.md)
-- [22-电商库存系统](./22-ecommerce-inventory.md)
-- [28-电商营销系统](./28-ecommerce-marketing-system.md)
+- {% post_link system-design/26-ecommerce-order-system 26-电商订单系统 %}
+- {% post_link system-design/22-ecommerce-inventory 22-电商库存系统 %}
+- {% post_link system-design/23-ecommerce-marketing-system 28-电商营销系统 %}
 
 ---
 

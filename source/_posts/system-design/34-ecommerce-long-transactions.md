@@ -18,13 +18,13 @@ toc: true
 
 <!-- toc -->
 
-> **电商系统设计（十五）**（一致性与事务专题；总索引见[（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)）
-> - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
-> - [（三）库存系统](/system-design/22-ecommerce-inventory/)
-> - [（四）营销系统深度解析](/system-design/23-ecommerce-marketing-system/)
-> - [（七）订单系统](/system-design/26-ecommerce-order-system/)
-> - [（八）支付系统深度解析](/system-design/27-ecommerce-payment-system/)
-> - [（十三）购物车与结算域](/system-design/32-ecommerce-cart-checkout/)
+> **电商系统设计（十五）**（一致性与事务专题；总索引见{% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}）
+> - {% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}
+> - {% post_link system-design/22-ecommerce-inventory （三）库存系统 %}
+> - {% post_link system-design/23-ecommerce-marketing-system （四）营销系统深度解析 %}
+> - {% post_link system-design/26-ecommerce-order-system （七）订单系统 %}
+> - {% post_link system-design/27-ecommerce-payment-system （八）支付系统深度解析 %}
+> - {% post_link system-design/32-ecommerce-cart-checkout （十三）购物车与结算域 %}
 > - **（十五）核心业务长事务怎么处理（本文）**
 
 ## 引言

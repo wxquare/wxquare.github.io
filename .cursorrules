@@ -1,155 +1,19 @@
-# Hexo博客项目 - Cursor AI规则
+# Cursor 适配入口
 
-## 项目概述
-- 基于Hexo 7.2.0的静态博客
-- 主题：hexo-theme-next
-- 部署：GitHub Pages
-- 支持Mermaid图表和PDF生成
+本文件只负责把 Cursor 接入仓库规范，不维护独立规则。唯一规范源是 [`AGENTS.md`](./AGENTS.md)。
 
-## 目录结构
-- `source/_posts/AI/` - AI相关文章（包含computer-vision, tensorflow, tvm子目录）
-- `source/_posts/system-design/` - 系统设计文章
-- `source/_posts/other/` - 其他主题文章
-- `source/about/` - 关于页面和面试资料
-- `source/diagrams/` - Excalidraw图表文件
+## 加载顺序
 
-## 写作规范
-- 文章必须包含Front Matter（title, date, categories, tags）
-- 日期格式：YYYY-MM-DD
-- 分类层级：最多2层（如 AI/计算机视觉）
-- 标签：用小写，多个词用连字符连接（如 deep-learning）
-- 中文文章使用中文标点，英文文章使用英文标点
-- 代码块必须指定语言（如 ```python, ```go）
-- 中英文之间需要有空格
+1. 处理任何任务前先读取 `AGENTS.md`。
+2. 文章创建、整理或审查时重点读取第 3、4、7、10、11 节。
+3. AI 目录任务额外读取第 10.4 节；分类目录映射按 `.agents/config/post-categories.json` 供工具使用。
+4. 规则与本文件冲突时，以 `AGENTS.md` 为准，并将需要长期保留的规范补回 `AGENTS.md`。
 
-## 文章命名规范
-- 重要系列文章：使用数字前缀（如 `22-ai-system-design.md`）
-- 技术笔记：使用描述性名称（如 `tensorflow-model-quantization.md`）
-- 日期开头：用于时效性强的文章（如 `2026-03-07-OpenClaw深度调研.md`）
+## Cursor 操作路由
 
-## 创建新文章时
-当用户要求创建新文章时，请遵循以下步骤：
+- 新建文章：按 `AGENTS.md` 第 7.1 节执行；需要模板时使用 `.agents/skills/new-post/SKILL.md` 的执行步骤。
+- 审查文章：按 `AGENTS.md` 第 7.2 节执行，并参考 `.agents/skills/review-post/SKILL.md` 的检查流程。
+- 整理、统计、检查链接：分别使用 `.agents/skills/organize-posts/`、`.agents/commands/stats.md`、`.agents/skills/link-check/` 的执行步骤。
+- 构建和发布：遵循 `AGENTS.md` 第 11 节及 `bin/pre-commit-check.sh`。
 
-1. **询问基本信息**
-   - 文章标题（中文或英文）
-   - 分类（AI/system-design/other）
-   - 标签（至少2个）
-   - 是否需要数字前缀
-
-2. **确定文件路径**
-   - AI相关：询问是否需要子分类（computer-vision/tensorflow/tvm）
-   - system-design：询问是否需要数字前缀
-   - other：直接放在other目录
-
-3. **生成标准Front Matter**
-```yaml
----
-title: [文章标题]
-date: [YYYY-MM-DD]
-categories:
-  - [主分类]
-  - [子分类]（如果有）
-tags:
-  - [标签1]
-  - [标签2]
-  - [标签3]
----
-```
-
-4. **提供文章结构模板**
-   - 引言
-   - 核心内容（分小节）
-   - 总结
-   - 参考资料
-
-## 审查文章时
-详细审查清单见：`.agents/templates/review-checklist.md`（8 个维度，含 Front Matter、内容结构、代码质量、格式规范、技术准确性、SEO、可读性、链接检查）
-
-## 生成摘要时
-提供三种长度：一句话（20-30 字）、段落（100-150 字）、详细（300-500 字），同时建议标签、SEO 关键词和内部链接
-
-## AI文章特殊规范
-对于`source/_posts/AI/`目录下的文章：
-
-- 深度学习相关归入子目录（computer-vision/tensorflow/tvm）
-- 引用论文使用标准格式 [作者, 年份]
-- 引用代码提供GitHub链接
-- 技术术语统一：
-  - 深度学习（不用DL）
-  - 神经网络（不用NN）
-  - 机器学习（不用ML）
-- 英文术语首次出现时加中文注释
-
-## 系统设计文章规范
-对于`source/_posts/system-design/`目录下的文章：
-
-应包含以下章节：
-- 需求分析（功能需求、非功能需求）
-- 容量估算
-- 系统架构
-- 数据库设计
-- API设计
-- 高可用设计
-- 性能优化
-- 总结
-
-## Hexo 配置参考
-- 博客搭建与配置的完整记录：`source/_posts/other/基于Github双分支和Hexo搭建博客.md`
-- 遇到 Hexo 配置相关问题（主题设置、插件安装、公式渲染等）时，优先查阅并更新该文章
-- 新增配置技巧时，同步记录到该文章中
-
-## 常见陷阱
-- Front Matter 的 date 字段必须是字符串格式，不能是对象
-- 修改 _config.yml 后必须重启 server
-- 新增文章后需运行 `hexo clean` 清理缓存
-- 图片路径使用相对路径，不要使用绝对路径
-
-## 开发命令
-- 本地预览：`npm run server`
-- 生成静态文件：`npm run build`
-- 清理缓存：`npm run clean`
-- 部署：`npm run deploy`
-
-## 文章模板参考
-项目中有三个模板可供参考：
-- `.agents/templates/tech-tutorial.md` - 技术教程模板
-- `.agents/templates/system-design.md` - 系统设计模板
-- `.agents/templates/interview-prep.md` - 面试准备模板
-
-## Harness Engineering 工作原则
-
-### 1. 精简的入口文件
-- `AGENTS.md` 作为统一项目入口，提供全局概览
-- `.cursorrules` 作为 Cursor 适配规则，补充 Cursor 专属使用方式
-- 审查清单详见：`.agents/templates/review-checklist.md`
-
-### 2. 构建即验证（自验证回路）
-- 任何文章变更后必须运行 `npm run clean && npm run build`
-- 构建失败则修复后再继续，不能跳过
-- Front Matter 格式、代码块语言标注、中英文空格是必检项
-
-### 3. 上下文防火墙
-- 复杂任务（新建文章、大规模修改）：先在 Plan 模式讨论方案，再开新会话执行
-- 避免在单个长会话中完成多篇文章的创建或修改
-- 每个独立任务保持干净的上下文
-
-### 4. 架构约束（机械化执行）
-- 文章必须包含完整 Front Matter（title, date, categories, tags）——缺失则拒绝提交
-- 代码块必须指定语言——无语言标注则构建视为不通过
-- 系列文章必须使用数字前缀——不符合命名规范则修正
-
-### 5. 最小权限与回滚能力
-- ❌ 禁止修改 themes/ 目录下的文件
-- ❌ 禁止直接编辑 db.json
-- ❌ 禁止在文章中使用绝对路径引用图片
-- ❌ 禁止删除或修改 .deploy_git 目录
-- 关键操作前先 `git stash` 或确认可回滚
-
-### 6. 错误即规则（持续演进）
-- Agent 每犯一个新错误，将其补充到本文件的"常见陷阱"中
-- 从错误中提取约束，而非依赖记忆避免重犯
-
-### 7. 定期代码熵清理
-- 定期检查文章的链接有效性
-- 定期检查 Front Matter 的分类和标签一致性
-- 定期清理未使用的图片和资源文件
+Cursor 专属内容仅限加载方式、快捷操作和界面交互；分类、标签、图片、命名、教程及质量要求不得在此重复定义。

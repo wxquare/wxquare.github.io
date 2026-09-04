@@ -931,11 +931,11 @@ HTTP/1.1 400
 
 ### 各中间件详细专题
 
-- [存储与 MySQL 数据库](/2024/03/04/system-design/01-middleware-mysql/) - 建表规范、索引优化、分库分表
-- [Redis 原理与实践](/2024/03/06/system-design/02-middleware-redis/) - 数据结构、缓存策略、分布式锁
-- [异步和消息队列](/2024/03/10/system-design/03-middleware-kafka/) - Kafka 架构、消息语义、性能调优
-- [搜索和 Elasticsearch](/2024/03/07/system-design/04-middleware-elasticsearch/) - 索引设计、DSL 查询、性能优化
-- [Kubernetes 与 Docker](/2024/12/20/system-design/05-infrastructure-k8s-docker/) - 容器网络、Pod/Service、运维实践
+- {% post_link system-design/01-middleware-mysql 存储与 MySQL 数据库 %} - 建表规范、索引优化、分库分表
+- {% post_link system-design/02-middleware-redis Redis 原理与实践 %} - 数据结构、缓存策略、分布式锁
+- {% post_link system-design/03-middleware-kafka 异步和消息队列 %} - Kafka 架构、消息语义、性能调优
+- {% post_link system-design/04-middleware-elasticsearch 搜索和 Elasticsearch %} - 索引设计、DSL 查询、性能优化
+- {% post_link system-design/05-infrastructure-k8s-docker Kubernetes 与 Docker %} - 容器网络、Pod/Service、运维实践
 
 ## 框架和引擎
 ### 工作流引擎与任务编排
@@ -1008,7 +1008,7 @@ HTTP/1.1 400
 
 ## 系统稳定性建设
 
-> 详见 [互联网系统稳定性建设：方法论与实践](/2025/05/15/system-design/14-system-reliability/)
+> 详见 {% post_link system-design/07-system-reliability-engineering 互联网系统稳定性建设：方法论与实践 %}
 
 ## 系统设计实践
 - 设计类似于 Dropbox 的文件同步服务

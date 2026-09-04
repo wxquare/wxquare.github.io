@@ -28,7 +28,7 @@ toc: true
 
 ### 存储与数据库
 
-**[01-middleware-mysql.md](/2024/03/04/system-design/01-middleware-mysql/) ⭐⭐⭐⭐⭐**
+**{% post_link system-design/01-middleware-mysql 01-middleware-mysql.md %} ⭐⭐⭐⭐⭐**
 
 | 维度 | 内容 |
 |------|------|
@@ -40,7 +40,7 @@ toc: true
 
 ### 缓存系统
 
-**[02-middleware-redis.md](/2024/03/06/system-design/02-middleware-redis/) ⭐⭐⭐⭐⭐**
+**{% post_link system-design/02-middleware-redis 02-middleware-redis.md %} ⭐⭐⭐⭐⭐**
 
 | 维度 | 内容 |
 |------|------|
@@ -51,7 +51,7 @@ toc: true
 
 ### 消息队列
 
-**[03-middleware-kafka.md](/2024/03/10/system-design/03-middleware-kafka/) ⭐⭐⭐⭐⭐**
+**{% post_link system-design/03-middleware-kafka 03-middleware-kafka.md %} ⭐⭐⭐⭐⭐**
 
 | 维度 | 内容 |
 |------|------|
@@ -63,7 +63,7 @@ toc: true
 
 ### 搜索引擎
 
-**[04-middleware-elasticsearch.md](/2024/03/07/system-design/04-middleware-elasticsearch/) ⭐⭐⭐⭐**
+**{% post_link system-design/04-middleware-elasticsearch 04-middleware-elasticsearch.md %} ⭐⭐⭐⭐**
 
 | 维度 | 内容 |
 |------|------|
@@ -75,7 +75,7 @@ toc: true
 
 ### 容器与云原生
 
-**[05-infrastructure-k8s-docker.md](/2024/12/20/system-design/05-infrastructure-k8s-docker/) ⭐⭐⭐⭐⭐**
+**{% post_link system-design/05-infrastructure-k8s-docker 05-infrastructure-k8s-docker.md %} ⭐⭐⭐⭐⭐**
 
 | 维度 | 内容 |
 |------|------|
@@ -87,7 +87,7 @@ toc: true
 
 ### 技术设计方法论
 
-**[06-tech-design-methodology.md](/2025/04/01/system-design/06-tech-design-methodology/) ⭐⭐⭐⭐**
+**{% post_link system-design/06-tech-design-methodology 06-tech-design-methodology.md %} ⭐⭐⭐⭐**
 
 | 维度 | 内容 |
 |------|------|
@@ -98,7 +98,7 @@ toc: true
 
 ### 系统可靠性工程
 
-**[07-system-reliability-engineering.md](/2025/05/15/system-design/07-system-reliability-engineering/) ⭐⭐⭐⭐**
+**{% post_link system-design/07-system-reliability-engineering 07-system-reliability-engineering.md %} ⭐⭐⭐⭐**
 
 | 维度 | 内容 |
 |------|------|
@@ -109,7 +109,7 @@ toc: true
 
 ### 系统设计面试真题
 
-**[08-system-design-interview.md](/2025/06/25/system-design/08-system-design-interview/) ⭐⭐⭐⭐⭐**
+**{% post_link system-design/08-system-design-interview 08-system-design-interview.md %} ⭐⭐⭐⭐⭐**
 
 | 维度 | 内容 |
 |------|------|
@@ -290,27 +290,27 @@ toc: true
 
 | 场景 | 解决方案 | 技术实现 | 相关文章 |
 |------|----------|---------|---------|
-| 读多写少 | 缓存+读写分离 | Redis + MySQL主从 | [01](/2024/03/04/system-design/01-middleware-mysql/), [02](/2024/03/06/system-design/02-middleware-redis/) |
-| 写多读少 | 消息队列异步 | Kafka + 批量写入 | [03](/2024/03/10/system-design/03-middleware-kafka/) |
-| 两者都多 | 分库分表+缓存 | ShardingSphere + Redis集群 | [01](/2024/03/04/system-design/01-middleware-mysql/) |
-| 热点数据 | 多级缓存+CDN | 本地缓存+Redis+CDN | [02](/2024/03/06/system-design/02-middleware-redis/) |
+| 读多写少 | 缓存+读写分离 | Redis + MySQL主从 | {% post_link system-design/01-middleware-mysql 01 %}, {% post_link system-design/02-middleware-redis 02 %} |
+| 写多读少 | 消息队列异步 | Kafka + 批量写入 | {% post_link system-design/03-middleware-kafka 03 %} |
+| 两者都多 | 分库分表+缓存 | ShardingSphere + Redis集群 | {% post_link system-design/01-middleware-mysql 01 %} |
+| 热点数据 | 多级缓存+CDN | 本地缓存+Redis+CDN | {% post_link system-design/02-middleware-redis 02 %} |
 
 ### 可用性保障
 
 | 级别 | 年宕机时间 | 实现方案 | 相关文章 |
 |------|------------|----------|---------|
 | 99% | 3.65天 | 单机+定期备份 | - |
-| 99.9% | 8.76小时 | 主从复制+自动故障转移 | [01](/2024/03/04/system-design/01-middleware-mysql/) |
-| 99.99% | 52分钟 | 多可用区+负载均衡 | [07](/2025/05/15/system-design/07-system-reliability-engineering/) |
-| 99.999% | 5分钟 | 多地多活+智能路由 | [07](/2025/05/15/system-design/07-system-reliability-engineering/) |
+| 99.9% | 8.76小时 | 主从复制+自动故障转移 | {% post_link system-design/01-middleware-mysql 01 %} |
+| 99.99% | 52分钟 | 多可用区+负载均衡 | {% post_link system-design/07-system-reliability-engineering 07 %} |
+| 99.999% | 5分钟 | 多地多活+智能路由 | {% post_link system-design/07-system-reliability-engineering 07 %} |
 
 ### 数据一致性选择
 
 | 一致性级别 | 适用场景 | 技术实现 | 相关文章 |
 |------------|----------|----------|---------|
-| 强一致性 | 金融交易 | 分布式事务(2PC, TCC) | [08](/2025/06/25/system-design/08-system-design-interview/) |
-| 最终一致性 | 社交动态 | 消息队列+重试 | [03](/2024/03/10/system-design/03-middleware-kafka/) |
-| 会话一致性 | 用户会话 | 粘性会话+缓存 | [02](/2024/03/06/system-design/02-middleware-redis/) |
+| 强一致性 | 金融交易 | 分布式事务(2PC, TCC) | {% post_link system-design/08-system-design-interview 08 %} |
+| 最终一致性 | 社交动态 | 消息队列+重试 | {% post_link system-design/03-middleware-kafka 03 %} |
+| 会话一致性 | 用户会话 | 粘性会话+缓存 | {% post_link system-design/02-middleware-redis 02 %} |
 
 ---
 
@@ -351,7 +351,7 @@ toc: true
 1. 先看 [本文](#核心概念速查表) 了解全局
 2. 按顺序精读 01 → 05 中间件文章
 3. 每篇文章做笔记 + 画架构图
-4. 完成 [08-系统设计面试](/2025/06/25/system-design/08-system-design-interview/) 真题
+4. 完成 {% post_link system-design/08-system-design-interview 08-系统设计面试 %} 真题
 
 ### 如果你有一定基础（1-2 年经验）
 **建议路线**: 方案1（面试冲刺 1-2 周）
@@ -425,7 +425,7 @@ toc: true
 
 **系列导航**:
 - [所有系统设计文章 →](/archives/)
-- [下一篇：MySQL 深度解析 →](/2024/03/04/system-design/01-middleware-mysql/)
+- {% post_link system-design/01-middleware-mysql 下一篇：MySQL 深度解析 → %}
 
 **更新计划**:
 - 每周更新 1-2 篇深度技术文章

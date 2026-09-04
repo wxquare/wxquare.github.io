@@ -4,12 +4,13 @@
 
 ## 允许的资料类型
 
-公开技术资料按以下四类组织：
+公开技术资料按以下五类组织：
 
 - books：公开书籍、手册或长篇技术参考资料，路径为 `source/library/books/`
 - papers：公开论文、技术报告或标准文档，路径为 `source/library/papers/`
 - slides：公开会议、课程或技术分享的演示文稿，路径为 `source/library/slides/`
-- other：经用户明确批准的公开项目补充文件，或类型边界明确但无法归入 book、paper、slide 的参考资料，路径为 `source/library/other/`
+- tutorials：公开教程、实验指南或课程型技术资料，路径为 `source/library/tutorials/`
+- other：经用户明确批准的公开项目补充文件，或类型边界明确但无法归入 book、paper、slide、tutorial 的参考资料，路径为 `source/library/other/`
 
 每份资料只进入一个分类。博客文章、个人文件、内部材料和实验源码不属于公开参考资料库。
 
@@ -27,7 +28,7 @@ Other 是一等但严格受控的分类：使用前必须明确资料类型、�
 
 - 标题
 - 作者或机构
-- 类型：book、paper、slide 或 other
+- 类型：book、paper、slide、tutorial 或 other
 - 主题
 - 原始来源 URL
 - 本地文件路径或“仅外链”

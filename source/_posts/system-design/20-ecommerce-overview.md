@@ -22,23 +22,23 @@ toc: true
 > - **（一）全景概览与领域划分**（本文）— 建立全局认知，理解系统边界
 > 
 > **🏗️ 第二部分：数据与规则基础（系统地基）**
-> - [（二）商品中心系统](/system-design/21-ecommerce-product-center/) — SPU/SKU 模型、类目属性、商品快照
-> - [（三）库存系统](/system-design/22-ecommerce-inventory/) — 库存预占、扣减、对账、二维分类模型
-> - [（四）营销系统深度解析](/system-design/23-ecommerce-marketing-system/) — 优惠券、活动、补贴、圈品规则
-> - [（五）计价引擎](/system-design/24-ecommerce-pricing-engine/) — 价格计算、费用、快照、降级策略
-> - [（六）计价系统 DDD 实践](/system-design/25-ecommerce-pricing-ddd/) — 深入理解计价设计（与五对照阅读）
+> - {% post_link system-design/21-ecommerce-product-center （二）商品中心系统 %} — SPU/SKU 模型、类目属性、商品快照
+> - {% post_link system-design/22-ecommerce-inventory （三）库存系统 %} — 库存预占、扣减、对账、二维分类模型
+> - {% post_link system-design/23-ecommerce-marketing-system （四）营销系统深度解析 %} — 优惠券、活动、补贴、圈品规则
+> - {% post_link system-design/24-ecommerce-pricing-engine （五）计价引擎 %} — 价格计算、费用、快照、降级策略
+> - {% post_link system-design/25-ecommerce-pricing-ddd （六）计价系统 DDD 实践 %} — 深入理解计价设计（与五对照阅读）
 > 
 > **🏭 第三部分：B 端供给链路（商家如何上架商品）**
-> - [（九）商品上架系统](/system-design/28-ecommerce-listing/) — 审核流程、状态机、Saga 编排
-> - [（十）B 端运营系统](/system-design/29-ecommerce-b-side-ops/) — 批量管理、配置工具、稳定性保障
-> - [（十一）商品生命周期管理](/system-design/30-ecommerce-product-lifecycle-management/) — 上架、同步与运营编辑边界
+> - {% post_link system-design/28-ecommerce-listing （九）商品上架系统 %} — 审核流程、状态机、Saga 编排
+> - {% post_link system-design/29-ecommerce-b-side-ops （十）B 端运营系统 %} — 批量管理、配置工具、稳定性保障
+> - {% post_link system-design/30-ecommerce-product-lifecycle-management （十一）商品生命周期管理 %} — 上架、同步与运营编辑边界
 > 
 > **🛍️ 第四部分：C 端交易链路（用户如何购买商品）**
-> - [（十二）搜索与导购](/system-design/31-ecommerce-search-discovery/) — Query 理解、召回、排序、Hydrate 编排
-> - [（十三）购物车与结算域](/system-design/32-ecommerce-cart-checkout/) — 加购暂存、结算预占、Saga 编排
-> - [（七）订单系统](/system-design/26-ecommerce-order-system/) — 订单创建、状态机、拆单、履约
-> - [（八）支付系统深度解析](/system-design/27-ecommerce-payment-system/) — 支付流程、退款、清结算、对账
-> - [（十五）核心业务长事务怎么处理](/system-design/34-ecommerce-long-transactions/) — 2PC、Saga、TCC 与改良版 Saga 选型
+> - {% post_link system-design/31-ecommerce-search-discovery （十二）搜索与导购 %} — Query 理解、召回、排序、Hydrate 编排
+> - {% post_link system-design/32-ecommerce-cart-checkout （十三）购物车与结算域 %} — 加购暂存、结算预占、Saga 编排
+> - {% post_link system-design/26-ecommerce-order-system （七）订单系统 %} — 订单创建、状态机、拆单、履约
+> - {% post_link system-design/27-ecommerce-payment-system （八）支付系统深度解析 %} — 支付流程、退款、清结算、对账
+> - {% post_link system-design/34-ecommerce-long-transactions （十五）核心业务长事务怎么处理 %} — 2PC、Saga、TCC 与改良版 Saga 选型
 
 ## 一、系统全景架构（EA + 4A 视角）
 
@@ -162,9 +162,9 @@ graph TB
 
 | 子域 | 核心能力 | 技术挑战 | 本系列文章 | 为什么是核心域 |
 |------|---------|---------|-----------|-------------|
-| **交易域** | • 订单创建与状态流转<br/>• Saga 分布式事务编排<br/>• 拆单与履约协调 | 分布式一致性、<br/>状态机、补偿机制 | [（七）订单系统](/system-design/26-ecommerce-order-system/) | 订单准确性直接影响<br/>用户体验与平台信誉 |
-| **支付域** | • 支付流程编排<br/>• 退款与清结算<br/>• 三方支付对接与对账 | 资金安全、<br/>幂等性、对账 | [（八）支付系统](/system-design/27-ecommerce-payment-system/) | 资金安全是平台生命线，<br/>差一分钱都是大事故 |
-| **购物车<br/>与结算域** | • 加购暂存<br/>• 结算预占（库存/优惠）<br/>• 价格试算与订单预创建 | 高并发、<br/>Saga 编排、降级 | [（十三）购物车与结算](/system-design/32-ecommerce-cart-checkout/) | 转化漏斗关键卡点，<br/>直接影响 GMV |
+| **交易域** | • 订单创建与状态流转<br/>• Saga 分布式事务编排<br/>• 拆单与履约协调 | 分布式一致性、<br/>状态机、补偿机制 | {% post_link system-design/26-ecommerce-order-system （七）订单系统 %} | 订单准确性直接影响<br/>用户体验与平台信誉 |
+| **支付域** | • 支付流程编排<br/>• 退款与清结算<br/>• 三方支付对接与对账 | 资金安全、<br/>幂等性、对账 | {% post_link system-design/27-ecommerce-payment-system （八）支付系统 %} | 资金安全是平台生命线，<br/>差一分钱都是大事故 |
+| **购物车<br/>与结算域** | • 加购暂存<br/>• 结算预占（库存/优惠）<br/>• 价格试算与订单预创建 | 高并发、<br/>Saga 编排、降级 | {% post_link system-design/32-ecommerce-cart-checkout （十三）购物车与结算 %} | 转化漏斗关键卡点，<br/>直接影响 GMV |
 
 ##### 📦 支撑域（7 篇）— 支撑核心业务运转
 
@@ -172,24 +172,24 @@ graph TB
 
 | 子域 | 核心能力 | 技术挑战 | 本系列文章 | 为什么是支撑域 |
 |------|---------|---------|-----------|-------------|
-| **商品域** | • SPU/SKU 模型与类目属性<br/>• 商品快照（时间旅行）<br/>• 多级缓存与索引同步 | 数据建模、<br/>一致性、性能 | [（二）商品中心](/system-design/21-ecommerce-product-center/) | 交易的基础数据源，<br/>但建模逻辑行业通用 |
-| **库存域** | • 库存预占与扣减<br/>• 二维分类模型（可售/安全）<br/>• 库存对账与异常补偿 | 超卖防止、<br/>对账、分布式锁 | [（三）库存系统](/system-design/22-ecommerce-inventory/) | 保证可售性，<br/>但逻辑相对标准化 |
-| **计价域** | • 多维度价格计算<br/>• 费用配置与快照<br/>• DDD 领域建模实践 | 复杂规则、<br/>性能、降级 | [（五）计价引擎](/system-design/24-ecommerce-pricing-engine/)<br/>[（六）计价DDD](/system-design/25-ecommerce-pricing-ddd/) | 价格准确性核心，<br/>但规则可参考行业 |
-| **营销域** | • 优惠券与活动管理<br/>• 补贴规则与圈品策略<br/>• 营销效果分析 | 规则引擎、<br/>圈品性能、叠加 | [（四）营销系统](/system-design/23-ecommerce-marketing-system/) | 促进转化，<br/>但玩法可参考竞品 |
+| **商品域** | • SPU/SKU 模型与类目属性<br/>• 商品快照（时间旅行）<br/>• 多级缓存与索引同步 | 数据建模、<br/>一致性、性能 | {% post_link system-design/21-ecommerce-product-center （二）商品中心 %} | 交易的基础数据源，<br/>但建模逻辑行业通用 |
+| **库存域** | • 库存预占与扣减<br/>• 二维分类模型（可售/安全）<br/>• 库存对账与异常补偿 | 超卖防止、<br/>对账、分布式锁 | {% post_link system-design/22-ecommerce-inventory （三）库存系统 %} | 保证可售性，<br/>但逻辑相对标准化 |
+| **计价域** | • 多维度价格计算<br/>• 费用配置与快照<br/>• DDD 领域建模实践 | 复杂规则、<br/>性能、降级 | {% post_link system-design/24-ecommerce-pricing-engine （五）计价引擎 %}<br/>{% post_link system-design/25-ecommerce-pricing-ddd （六）计价DDD %} | 价格准确性核心，<br/>但规则可参考行业 |
+| **营销域** | • 优惠券与活动管理<br/>• 补贴规则与圈品策略<br/>• 营销效果分析 | 规则引擎、<br/>圈品性能、叠加 | {% post_link system-design/23-ecommerce-marketing-system （四）营销系统 %} | 促进转化，<br/>但玩法可参考竞品 |
 
 **B 端供给链路（3 篇）**
 
 | 子域 | 核心能力 | 技术挑战 | 本系列文章 | 为什么是支撑域 |
 |------|---------|---------|-----------|-------------|
-| **上架域** | • 流程编排（审核/发布）<br/>• 状态机与 Saga 事务<br/>• 异步补偿 | 流程编排、<br/>状态机、幂等 | [（九）商品上架](/system-design/28-ecommerce-listing/) | B 端供给入口，<br/>但流程逻辑可复用 |
-| **运营域** | • 批量管理工具<br/>• 配置平台与数据看板<br/>• 稳定性保障（限流/降级） | 批量性能、<br/>稳定性、监控 | [（十）B 端运营](/system-design/29-ecommerce-b-side-ops/) | B 端效率工具，<br/>但非核心差异化 |
-| **生命周期域** | • 上架/同步/编辑边界划分<br/>• 事件驱动架构<br/>• 状态管理 | 边界设计、<br/>事件一致性 | [（十一）生命周期管理](/system-design/30-ecommerce-product-lifecycle-management/) | 商品流转协调，<br/>但模式相对通用 |
+| **上架域** | • 流程编排（审核/发布）<br/>• 状态机与 Saga 事务<br/>• 异步补偿 | 流程编排、<br/>状态机、幂等 | {% post_link system-design/28-ecommerce-listing （九）商品上架 %} | B 端供给入口，<br/>但流程逻辑可复用 |
+| **运营域** | • 批量管理工具<br/>• 配置平台与数据看板<br/>• 稳定性保障（限流/降级） | 批量性能、<br/>稳定性、监控 | {% post_link system-design/29-ecommerce-b-side-ops （十）B 端运营 %} | B 端效率工具，<br/>但非核心差异化 |
+| **生命周期域** | • 上架/同步/编辑边界划分<br/>• 事件驱动架构<br/>• 状态管理 | 边界设计、<br/>事件一致性 | {% post_link system-design/30-ecommerce-product-lifecycle-management （十一）生命周期管理 %} | 商品流转协调，<br/>但模式相对通用 |
 
 ##### 🔧 通用域（3 篇 + N 个未详述）
 
 | 子域 | 核心能力 | 本系列覆盖 | 为什么是通用域 | 推荐方案 |
 |------|---------|-----------|-------------|---------|
-| **搜索域** | • Query 理解与召回<br/>• 排序与 Hydrate 编排<br/>• ES 查询优化 | ✅ [（十二）搜索与导购](/system-design/31-ecommerce-search-discovery/) | **重要性升级**：<br/>用户发现商品的主入口，<br/>但技术方案相对成熟 | 本系列详述<br/>（ES + 召回排序） |
+| **搜索域** | • Query 理解与召回<br/>• 排序与 Hydrate 编排<br/>• ES 查询优化 | ✅ {% post_link system-design/31-ecommerce-search-discovery （十二）搜索与导购 %} | **重要性升级**：<br/>用户发现商品的主入口，<br/>但技术方案相对成熟 | 本系列详述<br/>（ES + 召回排序） |
 | **用户域** | 注册登录、会员体系、SSO | ❌ 未详述 | 行业标准化，无差异化 | 采购 SSO / OAuth |
 | **商家域** | 商家入驻、资质审核 | ❌ 未详述 | 通用商家管理平台 | SaaS 商家后台 |
 | **消息域** | 短信/邮件、Push、站内信 | ❌ 未详述 | 消息推送标准化 | Kafka + 第三方推送 |
@@ -2467,8 +2467,8 @@ func (s *CartService) CheckPriceChange(ctx context.Context, snapshotCode string)
 ## 商品管理 Product Center
 
 
-> 商品上架系统的完整设计（状态机、审核策略、Saga 事务），详见[（九）商品上架系统](/system-design/28-ecommerce-listing/)。
-> 库存系统的完整设计（二维分类模型、策略模式、Redis/MySQL 双写），详见[（三）库存系统](/system-design/22-ecommerce-inventory/)。
+> 商品上架系统的完整设计（状态机、审核策略、Saga 事务），详见{% post_link system-design/28-ecommerce-listing （九）商品上架系统 %}。
+> 库存系统的完整设计（二维分类模型、策略模式、Redis/MySQL 双写），详见{% post_link system-design/22-ecommerce-inventory （三）库存系统 %}。
 
 
 ### 商品信息包括哪些内容
@@ -4169,7 +4169,7 @@ request 生成方法：时间戳 + 机器mac地址 + sequence
 ## 系统稳定性建设
 
 
-> B 端运营系统的稳定性设计和监控体系，详见[（十）B 端运营系统](/system-design/29-ecommerce-b-side-ops/)。
+> B 端运营系统的稳定性设计和监控体系，详见{% post_link system-design/29-ecommerce-b-side-ops （十）B 端运营系统 %}。
 
 
 ### Google 理论：怎样的系统算是稳定高可用的
@@ -4768,22 +4768,22 @@ func TestConcertTicketFlow(t *testing.T) {
 > **系列导航**（按推荐阅读顺序）
 > 
 > **🏗️ 数据与规则基础**
-> - [（二）商品中心系统](/system-design/21-ecommerce-product-center/)
-> - [（三）库存系统](/system-design/22-ecommerce-inventory/)
-> - [（四）营销系统深度解析](/system-design/23-ecommerce-marketing-system/)
-> - [（五）计价引擎](/system-design/24-ecommerce-pricing-engine/)
-> - [（六）计价系统 DDD 实践](/system-design/25-ecommerce-pricing-ddd/)
+> - {% post_link system-design/21-ecommerce-product-center （二）商品中心系统 %}
+> - {% post_link system-design/22-ecommerce-inventory （三）库存系统 %}
+> - {% post_link system-design/23-ecommerce-marketing-system （四）营销系统深度解析 %}
+> - {% post_link system-design/24-ecommerce-pricing-engine （五）计价引擎 %}
+> - {% post_link system-design/25-ecommerce-pricing-ddd （六）计价系统 DDD 实践 %}
 > 
 > **🏭 B 端供给链路**
-> - [（九）商品上架系统](/system-design/28-ecommerce-listing/)
-> - [（十）B 端运营系统](/system-design/29-ecommerce-b-side-ops/)
-> - [（十一）商品生命周期管理](/system-design/30-ecommerce-product-lifecycle-management/)
+> - {% post_link system-design/28-ecommerce-listing （九）商品上架系统 %}
+> - {% post_link system-design/29-ecommerce-b-side-ops （十）B 端运营系统 %}
+> - {% post_link system-design/30-ecommerce-product-lifecycle-management （十一）商品生命周期管理 %}
 > 
 > **🛍️ C 端交易链路**
-> - [（十二）搜索与导购](/system-design/31-ecommerce-search-discovery/)
-> - [（十三）购物车与结算域](/system-design/32-ecommerce-cart-checkout/)
-> - [（七）订单系统](/system-design/26-ecommerce-order-system/)
-> - [（八）支付系统深度解析](/system-design/27-ecommerce-payment-system/)
+> - {% post_link system-design/31-ecommerce-search-discovery （十二）搜索与导购 %}
+> - {% post_link system-design/32-ecommerce-cart-checkout （十三）购物车与结算域 %}
+> - {% post_link system-design/26-ecommerce-order-system （七）订单系统 %}
+> - {% post_link system-design/27-ecommerce-payment-system （八）支付系统深度解析 %}
 
 
 ## 参考:

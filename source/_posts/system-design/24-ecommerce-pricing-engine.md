@@ -14,17 +14,17 @@ toc: true
 
 <!-- toc -->
 
-> **电商系统设计系列**（篇次与[（一）推荐阅读顺序](/system-design/20-ecommerce-overview/)一致）
-> - [（一）全景概览与领域划分](/system-design/20-ecommerce-overview/)
-> - [（二）商品中心系统](/system-design/21-ecommerce-product-center/)
-> - [（三）库存系统](/system-design/22-ecommerce-inventory/)
-> - [（四）营销系统深度解析](/system-design/23-ecommerce-marketing-system/)
+> **电商系统设计系列**（篇次与{% post_link system-design/20-ecommerce-overview （一）推荐阅读顺序 %}一致）
+> - {% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}
+> - {% post_link system-design/21-ecommerce-product-center （二）商品中心系统 %}
+> - {% post_link system-design/22-ecommerce-inventory （三）库存系统 %}
+> - {% post_link system-design/23-ecommerce-marketing-system （四）营销系统深度解析 %}
 > - **（五）计价引擎**（本文）
-> - [（六）计价系统 DDD 实践](/system-design/25-ecommerce-pricing-ddd/)
-> - [（七）订单系统](/system-design/26-ecommerce-order-system/)
-> - [（八）支付系统深度解析](/system-design/27-ecommerce-payment-system/)
-> - [（九）商品上架系统](/system-design/28-ecommerce-listing/)
-> - [（十）B 端运营系统](/system-design/29-ecommerce-b-side-ops/)
+> - {% post_link system-design/25-ecommerce-pricing-ddd （六）计价系统 DDD 实践 %}
+> - {% post_link system-design/26-ecommerce-order-system （七）订单系统 %}
+> - {% post_link system-design/27-ecommerce-payment-system （八）支付系统深度解析 %}
+> - {% post_link system-design/28-ecommerce-listing （九）商品上架系统 %}
+> - {% post_link system-design/29-ecommerce-b-side-ops （十）B 端运营系统 %}
 
 本文是电商系统设计系列的第五篇，详述计价引擎的设计与实现。
 
@@ -4802,7 +4802,7 @@ supplier_pricing:
 
 ## 五、DDD 领域模型设计
 
-> 本章内容已独立为专题文章，详见：[领域驱动设计在电商计价系统中的实践](./25-ddd-pricing-engine-practice.md)
+> 本章内容已独立为专题文章，详见：{% post_link system-design/25-ecommerce-pricing-ddd 领域驱动设计在电商计价系统中的实践 %}
 >
 > 该文章涵盖：战略设计（统一语言、概念模型、子域划分、上下文映射）、战术设计（实体与值对象、聚合根、领域服务）、六边形架构实践、价格快照与一致性保障等内容。
 
@@ -5582,8 +5582,8 @@ func (sc *SafetyChecker) Check(req *PricingRequest, resp *PricingResponse) error
 
 ## 相关文章
 
-- [领域驱动设计在电商计价系统中的实践](./25-ddd-pricing-engine-practice.md) — DDD 战略/战术设计、六边形架构、价格快照一致性
-- [多品类统一商品运营管理系统设计](./23-b-side-operations-system.md)
+- {% post_link system-design/25-ecommerce-pricing-ddd 领域驱动设计在电商计价系统中的实践 %} — DDD 战略/战术设计、六边形架构、价格快照一致性
+- {% post_link system-design/29-ecommerce-b-side-ops 多品类统一商品运营管理系统设计 %}
 
 ## 参考资料
 
@@ -5600,4 +5600,4 @@ func (sc *SafetyChecker) Check(req *PricingRequest, resp *PricingResponse) error
 ---
 
 > **系列导航**
-> 计价系统的领域建模和 DDD 实践，详见[（六）计价系统 DDD 实践](/system-design/25-ecommerce-pricing-ddd/)。
+> 计价系统的领域建模和 DDD 实践，详见{% post_link system-design/25-ecommerce-pricing-ddd （六）计价系统 DDD 实践 %}。

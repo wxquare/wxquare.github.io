@@ -4,56 +4,47 @@ disable-model-invocation: true
 
 # /new-post - 创建新博客文章
 
-创建一篇新的博客文章，包含完整的Front Matter和基础结构。
+本技能只描述创建流程。开始前读取 [`AGENTS.md`](../../../AGENTS.md) 第 3、4、7.1、10、11 节；分类目录和 Front Matter 映射读取 `.agents/config/post-categories.json`。
 
-## 步骤
+## 执行步骤
 
-1. **询问用户基本信息**
-   - 文章标题（中文或英文）
-   - 分类（AI/system-design/other）
-   - 标签（至少2个，用逗号分隔）
-   - 是否需要数字前缀（用于系列文章）
+1. **收集基本信息**
+   - 标题
+   - 主分类 slug
+   - 标签
+   - 是否需要系列编号或其他文件名前缀
 
-2. **确定文章路径**
-   - AI相关：询问是否需要子分类
-     - computer-vision（计算机视觉）
-     - tensorflow（TensorFlow相关）
-     - tvm（TVM编译器相关）
-     - 或放在AI根目录
-   - system-design：询问是否需要数字前缀
-   - other：直接放在other目录
+2. **解析文章路径**
+   - 在注册表中按主分类 slug 查找 `directory`、`label`、`frontMatterLabels` 和 `subdirectories`。
+   - 如果用户要求子目录，确认它存在于该分类的 `subdirectories`，再拼接目标路径。
+   - 如果 slug 或子目录不在注册表中，先请用户选择有效值，不要自行创建新的分类。
 
 3. **生成文件名**
-   - 格式1：`YYYY-MM-DD-标题.md`（时效性文章）
-   - 格式2：`数字-标题.md`（系列文章）
-   - 格式3：`描述性名称.md`（技术笔记）
-   - 使用英文小写，单词用连字符连接
+   - 时效性文章：`YYYY-MM-DD-标题.md`
+   - 系列文章：`数字-标题.md`
+   - 技术笔记：描述性文件名
+   - 创建前检查目标路径是否已有同名文件。
 
-4. **创建文件内容**
+4. **创建文章骨架**
+
 ```yaml
 ---
 title: [文章标题]
 date: [YYYY-MM-DD]
 categories:
-  - [主分类]
-  - [子分类]（如果有）
+  - [注册表中的 Front Matter 展示名]
 tags:
   - [标签1]
   - [标签2]
-  - [标签3]
 ---
 
 ## 引言
 
-[在这里写文章的背景和目的]
+[文章背景和目的]
 
 ## 核心内容
 
-### 小节1
-
-[内容]
-
-### 小节2
+### 小节
 
 [内容]
 
@@ -63,38 +54,14 @@ tags:
 
 ## 参考资料
 
-- [参考链接1]
-- [参考链接2]
+- [参考链接]
 ```
 
-5. **询问额外需求**
-   - 是否需要创建配套的Excalidraw图表文件？
-   - 是否需要创建配套的代码示例目录？
-   - 是否立即打开文件进行编辑？
+5. **按规范补全内容**
+   - 使用 `AGENTS.md` 指定的 Front Matter、命名、标签、图片、代码块和内容结构规则。
+   - 技术教程可参考 `.agents/templates/tech-tutorial.md`；其他主题选择对应模板。
 
 6. **完成提示**
-   - 显示文件完整路径
-   - 提示下一步操作：
-     - 编辑文章内容
-     - 运行 `/review-post` 进行审查
-     - 运行 `npm run server` 预览
-
-## 示例
-
-**用户输入：**
-```
-/new-post
-标题：Codex使用指南
-分类：AI
-标签：Codex, ai-tools, productivity
-```
-
-**生成文件：**
-`source/_posts/AI/Codex-guide.md`
-
-## 注意事项
-
-- 文章标题要清晰描述内容
-- 标签选择要准确，便于分类和搜索
-- 日期使用当天日期
-- 确保文件名不与现有文章重复
+   - 输出新文件的绝对路径。
+   - 提示运行 `/review-post`、`npm run clean` 和 `npm run build`。
+   - 用户要求时再创建图表或代码示例目录，并遵守 `AGENTS.md` 的源码边界。

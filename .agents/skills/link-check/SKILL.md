@@ -7,6 +7,8 @@ description: 检查文章中的链接
 
 扫描所有文章中的链接，检查有效性，生成失效链接报告。
 
+路径规则以 [`AGENTS.md`](../../../AGENTS.md) 第 4.4、10、11 节为准；本技能只负责提取、检查和报告链接结果。
+
 ## 功能
 
 ### 1. 扫描链接
@@ -111,15 +113,9 @@ find source/_posts -name "*.md" -type f
 📝 详细报告已保存：.Codex/reports/link-check-YYYY-MM-DD.md
 ```
 
-## 检查规则
+## 规范来源
 
-### 内部链接
-```
-✅ 正确：../other/article.md
-✅ 正确：/images/diagram.png
-❌ 错误：/absolute/path/article.md
-❌ 错误：article.md（相对路径不明确）
-```
+内部链接和图片路径的合法形式、源码边界及资源归属统一查看 `AGENTS.md`。检查时只报告实际解析到的路径、文件存在性和可访问性，不在本技能中复制路径规则。
 
 ### 外部链接
 ```
