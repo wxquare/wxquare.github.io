@@ -40,12 +40,12 @@ http://localhost:4000
 - `source/_posts/other/`：其他文章
 - `source/about/`：最小联系页，仅允许邮箱；不得存放简历、电话或工作资料
 - `source/diagrams/`：图表源文件
-- `source/library/`：公开且适合公开保存的第三方参考资料与来源目录
-- `source/presentations/`：本人创作或经用户明确确认为第一方且可公开的演示资料；每份资料只有一个 Git 源载荷
+- `source/library/`：公开且适合公开保存的参考资料与来源目录；其中 `slides/` 为第三方演示，`presentations/` 为第一方演示
 - `books/ai-book/src/`：AI Agent 书稿源码
 - `books/ai-book/labs/llm-from-scratch/`：唯一保留的遗留实验例外；不得在 `books/ai-book/labs/` 新增其他实验
 - `docs/`：调研、迁移、整理文档
 - `.agents/`：统一的 AI 协作资产与工具配置目录
+- `.agents/work/`：Agent 临时工作文档目录；方案草稿、分析记录、迁移过程文档和其他临时产物默认放这里，默认不纳入 Git
 
 博客主分类规范在本文件第 4.4 节定义：`AI`、`system-design`、`fundamentals`、`other`。`.agents/config/post-categories.json` 是供工具读取的非规范目录映射；新增或统计文章时复用它，目录 slug 与 Front Matter 展示名可能不同，以本文件和映射中的 `label`、`frontMatterLabels` 为准。
 
@@ -55,7 +55,7 @@ http://localhost:4000
 - `.deploy_git/`
 - `books/ai-book/book/`
 - `source/booklist/`：已阻塞的只读遗留目录；逐条书目来源与元数据完成前保持原位，不得新增文件
-- `source/pdf/`：不含活动源文件的遗留目录；`k8s-network.pdf` 已位于 `source/presentations/`，旧 URL 仅由构建期别名输出兼容，不得新增文件
+- `source/pdf/`：不含活动源文件的遗留目录；`k8s-network.pdf` 已位于 `source/library/presentations/`，旧 URL 仅由构建期别名输出兼容，不得新增文件
 
 ## 4. 内容落点规则
 
@@ -63,30 +63,31 @@ http://localhost:4000
 
 - 系统化 Agent 知识：`books/ai-book/src/`
 - 面向读者的博客文章：`source/_posts/AI/`、`source/_posts/system-design/`、`source/_posts/fundamentals/`、`source/_posts/other/`
-- 公开第三方参考资料：`source/library/`
-- 第一方公开演示资料：`source/presentations/`
+- 公开参考资料与演示资料：`source/library/`（第三方演示在 `slides/`，第一方演示在 `presentations/`）
 - AI 协作规则、共享技能与工具配置：`AGENTS.md`、`.agents/`
 - 内部整理文档与迁移说明：`docs/`
+
+Agent 临时文档默认写入 `.agents/work/`，不要写入公开的 `docs/`。只有已经确认需要长期维护、公开发布或参与构建的内容，才迁移到合适的受版本控制目录。
 
 不要把同一份长文同时维护在博客、书稿和 `docs/` 三处。
 
 ### 4.1 公开资料库治理
 
-- books、papers、slides、tutorials、other 分别放入 `source/library/books/`、`papers/`、`slides/`、`tutorials/`、`other/`；博客草稿、个人或内部材料、秘密凭证和实验源码不得进入资料库。
-- tutorials 用于公开教程、实验指南或课程型技术资料；它不是博客草稿或实验源码的存放目录。
-- Other 仅用于经用户明确批准的公开项目补充文件，或类型边界明确但无法归入 book、paper、slide、tutorial 的参考资料；不得作为授权不明、来源不明或未分类内容的兜底，也不得绕过来源、再分发和用户批准要求。
-- 每个条目必须在 `source/library/index.md` 记录标题、作者或机构、类型（book、paper、slide、tutorial 或 other）、主题、原始 URL、本地路径或“仅外链”、再分发说明和加入日期。
+- books、papers、slides、presentations、other 分别放入 `source/library/books/`、`papers/`、`slides/`、`presentations/`、`other/`；博客草稿、个人或内部材料、秘密凭证和实验源码不得进入资料库。
+- `slides/` 仅用于第三方公开演示资料；`presentations/` 仅用于本人创作或经用户明确确认为第一方且可公开的演示资料。
+- Other 仅用于经用户明确批准的公开项目补充文件，或类型边界明确但无法归入 book、paper、slide、presentation 的参考资料；不得作为授权不明、来源不明或未分类内容的兜底，也不得绕过来源、再分发和用户批准要求。
+- 每个条目必须在 `source/library/index.md` 记录标题、作者或机构、类型（book、paper、slide、presentation 或 other）、主题、原始 URL 或来源说明、本地路径或“仅外链”、再分发说明和加入日期。
 - 公开可访问不等于允许重新分发；授权或再分发边界无法确认时只保留原始链接，不上传本地副本。
 - 单个二进制文件超过 10 MiB 时默认只保留外链；本地托管需要用户单独批准存储方案。
 - 公开活动资料只在 `source/library/` 维护；其他文章需要引用时链接到资料库条目或原始来源，不复制活动副本。
 - `source/booklist/` 保持阻塞和只读；其内容只能在权威 URL 与必填元数据齐全后逐条分解到资料库索引，逻辑索引目标不得作为 `git mv` 目标。
-- `source/pdf/` 不含活动源文件；已批准的第一方演示资料位于 `source/presentations/`，旧 URL 由已验证的构建期别名兼容。
+- `source/pdf/` 不含活动源文件；已批准的第一方演示资料位于 `source/library/presentations/`，旧 URL 由已验证的构建期别名兼容。
 
 完整规则见 `docs/library-policy.md`。
 
 ### 4.2 第一方公开演示资料边界
 
-- `source/presentations/` 只接收本人创作，或经用户明确确认为第一方且可公开的演示资料；第三方 slide 仍按来源与再分发规则进入 `source/library/slides/` 或仅保留外链。
+- `source/library/presentations/` 只接收本人创作，或经用户明确确认为第一方且可公开的演示资料；第三方 slide 仍按来源与再分发规则进入 `source/library/slides/` 或仅保留外链。
 - 资料不得包含密码、Token、API Key、私钥、个人隐私、公司内部、客户或未公开工作材料。
 - 每份演示资料只保留一个 Git 跟踪的规范源文件。兼容旧 URL 时，Hexo 只能在构建阶段从规范源生成同字节输出；构建产物不是并行活动源。
 - 禁止为兼容 URL 提交第二份源载荷、符号链接，或用 HTML 内容伪装 PDF 等原始格式。
@@ -102,7 +103,6 @@ http://localhost:4000
 以下规则只在本文件维护；Cursor 规则、共享技能和贡献指南只负责引用或执行：
 
 - 博客主分类仅限 `AI`、`system-design`、`fundamentals`、`other`；目录映射由 `.agents/config/post-categories.json` 提供。`fundamentals` 对应计算机基础文章，默认 Front Matter 展示名为 `计算机基础`。
-- `source/library/tutorials/` 仅用于公开第三方教程、实验指南或课程资料；博客教程仍是博客文章，按主题放入博客主分类并使用 `.agents/templates/tech-tutorial.md`。
 - Front Matter 至少包含 `title`、`date`、`categories` 和 `tags`；`categories` 使用注册表允许的主分类映射，层级最多 2 层。
 - 标签至少保留 2 个；英文多词标签使用小写 kebab-case（如 `deep-learning`），产品名、缩写和专有名词保留官方拼写，禁止仅大小写不同的重复标签。
 - 图片路径使用站内 URL（如 `/images/diagram.png` 或 `/diagrams/flow.mmd`）；禁止本机绝对路径、仓库绝对路径和用外部镜像替代已托管的本地资源。
@@ -354,7 +354,6 @@ tags:
 
 - 技术教程文章使用 `.agents/templates/tech-tutorial.md`，但目录归属仍由主分类注册表和主题决定。
 - `source/_posts/fundamentals/` 专门收纳操作系统、网络、Shell 和编程语言基础文章；其默认 Front Matter 分类为 `计算机基础`。
-- `tutorials` 是资料库类型，不是博客主分类；不得创建 `source/_posts/tutorials/` 作为新的博客分类。
 
 ### 10.3 文件命名
 

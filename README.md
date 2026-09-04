@@ -40,15 +40,9 @@
 
 补充操作系统、网络、Shell、Python、C++、Go 等基础能力，帮助把系统设计、工程实现和编码实践串起来。
 
-### 公开参考资料
+### 公开资料库
 
-`source/library/` 按 books、papers、slides、tutorials、other 组织公开第三方技术资料，并记录来源与再分发说明；其中 tutorials 仅用于公开教程、实验指南或课程型技术资料。Other 只接收经批准且类型边界明确的补充资料，无法确认重新托管边界的资料只保留原始链接。`source/booklist/` 是已阻塞的只读遗留目录，完成逐条权威来源与元数据整理前保持原位；`source/presentations/k8s-network.pdf` 已是第一方演示资料的规范源，旧 `/pdf/k8s-network.pdf` 由构建期兼容输出提供；`source/pdf/` 不含活动源文件。博客与资料库只介绍或引用实验，不存放实验源码。
-
-### 第一方公开演示资料
-
-`source/presentations/` 是本人创作或经用户明确确认为第一方且可公开演示资料的规范源目录，不属于第三方 `source/library/`。目录禁止凭证、个人隐私、公司内部和未公开工作材料；每份资料只保留一个 Git 源载荷。需要兼容旧 URL 时，由 Hexo 构建从规范源生成别名输出，不提交第二份源文件、符号链接或伪装成原格式的 HTML。
-
-当前公开演示资料：[DDIA 读书分享索引](/presentations/)。
+`source/library/` 是统一资料根目录，按 books、papers、slides、presentations、other 组织内容：`slides/` 保存第三方演示资料，`presentations/` 保存本人创作或确认可公开的第一方演示资料。每条记录都包含来源、再分发说明和本地路径；无法确认重新托管边界的资料只保留原始链接。Other 只接收经批准且类型边界明确的补充资料。`source/booklist/` 是已阻塞的只读遗留目录，`source/pdf/` 不含活动源文件；旧 `/presentations/` 和 `/pdf/k8s-network.pdf` URL 由构建期 alias 兼容。博客与资料库只介绍或引用实验，不存放实验源码。
 
 ## 本地运行
 
@@ -141,14 +135,13 @@ public/
 │   ├── _posts/                  # 博客文章
 │   ├── about/                   # 联系页（仅邮箱）
 │   ├── diagrams/                # 图表源文件
-│   ├── library/                 # 公开第三方参考资料与来源目录
+│   ├── library/                 # 公开参考资料与演示资料目录
 │   │   ├── books/
 │   │   ├── papers/
 │   │   ├── slides/
-│   │   ├── tutorials/
+│   │   ├── presentations/
 │   │   ├── other/
 │   │   └── index.md
-│   └── presentations/           # 第一方公开演示资料的唯一 Git 源目录
 ├── books/
 │   ├── ai-book/                 # AI Agent 工程实践专题
 │   ├── system-design-architecture-book/  # 系统设计与架构专题

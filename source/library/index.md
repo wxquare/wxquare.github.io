@@ -1,14 +1,12 @@
 ---
-title: 公开参考资料库
-date: 2026-08-31
+title: 公开资料库
+date: 2026-09-04
 layout: page
 ---
 
-本目录收录公开且适合公开保存的第三方技术资料；无法确认再分发边界的资料只保留原始链接。
+本目录收录公开且适合公开保存的第三方技术资料，以及本人创作或确认可公开的第一方演示资料；无法确认再分发边界的资料只保留原始链接。
 
-后续每条资料记录均包含标题、作者或机构、类型（book、paper、slide、tutorial 或 other）、主题、原始 URL、本地路径或“仅外链”、再分发说明和加入日期。详细准入与再分发边界以仓库文件 `docs/library-policy.md` 为准。
-
-其中 tutorials 仅用于公开教程、实验指南或课程型技术资料；教程正文与实验源码不属于博客文章或资料库的其他分类。
+每条资料记录均包含标题、作者或机构、类型（book、paper、slide、presentation 或 other）、主题、原始 URL 或来源说明、本地路径或“仅外链”、再分发说明和加入日期。详细准入与再分发边界以仓库文件 `docs/library-policy.md` 为准。
 
 ## Books
 
@@ -34,8 +32,6 @@ layout: page
 - 再分发：用户已明确批准本地托管该 PDF，并批准其超过 10 MiB 的单文件例外；版权归原作者和 O'Reilly Media，来源和再分发边界以官方条款为准。
 - 加入日期：2026-09-03
 
-## Papers
-
 ## Slides
 
 ### Designs, Lessons and Advice from Building Large Distributed Systems
@@ -60,7 +56,40 @@ layout: page
 - 再分发：用户已明确批准将本地 PDF 托管到 public；保留 Google 公开来源链接，版权和再分发边界以来源方条款为准。
 - 加入日期：2026-09-03
 
-## Tutorials
+## Presentations
+
+### 《数据密集型应用系统设计》读书分享（2020 PDF）
+
+- 作者/机构：本人
+- 类型：presentation
+- 主题：数据系统、分布式系统、可靠性和可扩展性
+- 原始来源：第一方读书分享材料，原始文件名为 `DDIA 分享.pdf`
+- 本地路径：[ddia-reading-share-2020.pdf](/library/presentations/ddia-reading-share-2020.pdf)
+- SHA-256：`f9563819486e0b35a555e2f298e8007157cc6c90490bb64c9040c16085b2bafd`
+- 再分发：本人创作，已确认可公开；内容为 25 页读书分享材料。
+- 加入日期：2026-09-03
+
+### 《数据密集型应用系统设计》读书分享（2022 PPTX）
+
+- 作者/机构：本人
+- 类型：presentation
+- 主题：数据系统、分布式系统、可靠性和可扩展性
+- 原始来源：第一方读书分享材料，原始文件名为 `DDIA 读书分享.pptx`
+- 本地路径：[ddia-reading-share-2022.pptx](/library/presentations/ddia-reading-share-2022.pptx)
+- SHA-256：`3904daca073c41d803122e13ea53206b0960f1325d9c5d89c4e5c956f59a4e90`
+- 再分发：本人创作，已确认可公开；内容为 18 页读书分享演示文稿。该文件超过 10 MiB，保留本地副本的存储例外沿用原公开演示资料确认。
+- 加入日期：2026-09-03
+
+### Kubernetes Network
+
+- 作者/机构：本人
+- 类型：presentation
+- 主题：Kubernetes 网络、容器网络、Service 和 Ingress
+- 原始来源：第一方本地演示资料；PDF 内保留相关参考链接
+- 本地路径：[k8s-network.pdf](/library/presentations/k8s-network.pdf)
+- SHA-256：`2acb5e5fa7f3831665acafb6b985c86edb4c32d5bc4c6c46693bc35e0cffe66f`
+- 再分发：本人创作，已确认可公开；资料内的第三方参考链接作为内容来源保留。
+- 加入日期：2026-09-04
 
 ## Other
 

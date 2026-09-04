@@ -1,16 +1,16 @@
 # 公开参考资料库治理规则
 
-`source/library/` 是本仓库公开第三方参考资料的规范入口和迁移目标。`source/booklist/` 是已阻塞的只读遗留目录，逐条权威来源与元数据完成前保持原位；`source/presentations/k8s-network.pdf` 已是第一方演示资料的规范源，旧 `/pdf/k8s-network.pdf` 仅作为构建期兼容输出；`source/pdf/` 不含活动源文件。两个遗留目录均不得新增文件。资料公开可读并不自动代表本仓库可以重新托管；不能确认再分发边界时，只记录原始链接。
+`source/library/` 是本仓库统一资料根目录。`source/booklist/` 是已阻塞的只读遗留目录，逐条权威来源与元数据完成前保持原位；`source/pdf/` 不含活动源文件。第一方演示资料位于 `source/library/presentations/`，旧 `/presentations/` 和 `/pdf/k8s-network.pdf` 仅作为构建期兼容输出。遗留目录均不得新增文件。资料公开可读并不自动代表本仓库可以重新托管；不能确认再分发边界时，只记录原始链接。
 
 ## 允许的资料类型
 
-公开技术资料按以下五类组织：
+公开资料按以下五类组织：
 
 - books：公开书籍、手册或长篇技术参考资料，路径为 `source/library/books/`
 - papers：公开论文、技术报告或标准文档，路径为 `source/library/papers/`
 - slides：公开会议、课程或技术分享的演示文稿，路径为 `source/library/slides/`
-- tutorials：公开教程、实验指南或课程型技术资料，路径为 `source/library/tutorials/`
-- other：经用户明确批准的公开项目补充文件，或类型边界明确但无法归入 book、paper、slide、tutorial 的参考资料，路径为 `source/library/other/`
+- presentations：本人创作或经用户明确确认可公开的第一方演示文稿，路径为 `source/library/presentations/`
+- other：经用户明确批准的公开项目补充文件，或类型边界明确但无法归入 book、paper、slide、presentation 的参考资料，路径为 `source/library/other/`
 
 每份资料只进入一个分类。博客文章、个人文件、内部材料和实验源码不属于公开参考资料库。
 
@@ -18,7 +18,7 @@ Other 是一等但严格受控的分类：使用前必须明确资料类型、�
 
 ## 与第一方公开演示资料的边界
 
-`source/presentations/` 是第一方公开演示资料的规范源目录，不属于第三方 `source/library/`。它只接收本人创作，或经用户明确确认为第一方且可公开的演示资料；第三方演示资料仍进入 `source/library/slides/` 或仅保留原始外链。
+`source/library/presentations/` 是第一方公开演示资料的规范源目录。它只接收本人创作，或经用户明确确认为第一方且可公开的演示资料；第三方演示资料进入 `source/library/slides/` 或仅保留原始外链。
 
 第一方演示资料同样禁止包含密码、Token、API Key、私钥、个人隐私、公司内部、客户或未公开工作材料。每份资料只保留一个 Git 跟踪的规范源载荷。旧 URL 必须兼容时，Hexo 可以在构建阶段从规范源生成同字节别名输出；该输出属于构建产物，不是第二个活动源。不得提交重复源文件、符号链接，或使用 HTML 内容伪装 PDF 等原始格式。
 
@@ -28,7 +28,7 @@ Other 是一等但严格受控的分类：使用前必须明确资料类型、�
 
 - 标题
 - 作者或机构
-- 类型：book、paper、slide、tutorial 或 other
+- 类型：book、paper、slide、presentation 或 other
 - 主题
 - 原始来源 URL
 - 本地文件路径或“仅外链”
@@ -52,7 +52,7 @@ Other 是一等但严格受控的分类：使用前必须明确资料类型、�
 
 ## 单一事实源
 
-- 公开第三方活动资料只在 `source/library/` 维护；第一方公开演示资料只在 `source/presentations/` 维护；其他仓库和目录不保留并行维护的活动副本。
+- 所有公开活动资料只在 `source/library/` 维护；第三方演示资料位于 `slides/`，第一方演示资料位于 `presentations/`，其他仓库和目录不保留并行维护的活动副本。
 - 仅外链条目以原始来源为事实源，本仓库不复制其载荷。
 - 不把同一资料复制到多个分类；需要从文章引用时，链接到资料库条目或原始来源。
 - 构建期 URL 别名只能读取规范源并生成输出，不得成为 Git 跟踪的并行源文件。
