@@ -54,18 +54,12 @@
 
 ---
 
-# 第四部分：系统设计面试
+# 第四部分：系统设计题库
 
-- [第 37 章 系统设计面试综合](part03/01-system-design-interview-overview.md)
-- [第 38 章 中间件与可靠性高频追问](part03/02-middleware-reliability-interview.md)
-- [第 39 章 电商架构面试题精选（一）：电商架构基础](part03/07-ecommerce-basics-interview.md)
-- [第 40 章 电商架构面试题精选（二）：商品、库存、营销与计价](part03/08-product-inventory-marketing-pricing-questionbank.md)
-- [第 41 章 电商架构面试题精选（三）：搜索、购物车、订单与支付](part03/09-search-cart-order-payment-questionbank.md)
-- [第 42 章 电商架构面试题精选（四）：综合实战案例](part03/10-ecommerce-case-studies-interview.md)
-- [第 43 章 电商架构面试题库：使用说明、导航与章节补充](part03/03-ecommerce-architecture-interview.md)
-- [第 44 章 商品、库存、营销与计价专题](part03/04-product-inventory-marketing-pricing-interview.md)
-- [第 45 章 搜索、购物车、订单与支付专题](part03/05-search-cart-order-payment-interview.md)
-- [第 46 章 白板答辩与容量估算表达](part03/06-whiteboard-capacity-estimation.md)
+- [第 37 章 系统设计题库：使用说明、双索引与训练路线](part03/01-questionbank-guide.md)
+- [第 38 章 通用系统设计题库](part03/02-general-questionbank.md)
+- [第 39 章 电商系统设计专项题库](part03/03-ecommerce-questionbank.md)
+- [第 40 章 系统设计模拟面试](part03/04-mock-interviews.md)
 
 ---
 
