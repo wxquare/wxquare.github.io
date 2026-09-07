@@ -45,7 +45,7 @@ http://localhost:4000
 - `books/ai-book/labs/llm-from-scratch/`：唯一保留的遗留实验例外；不得在 `books/ai-book/labs/` 新增其他实验
 - `docs/`：调研、迁移、整理文档
 - `.agents/`：统一的 AI 协作资产与工具配置目录
-- `.agents/work/`：Agent 临时工作文档目录；方案草稿、分析记录、迁移过程文档和其他临时产物默认放这里，默认不纳入 Git
+- `.agents/work/`：所有 Agent 的唯一工作目录；方案草稿、实施计划、分析记录、迁移过程文档和其他临时产物必须放这里，默认不纳入 Git
 
 博客主分类规范在本文件第 4.4 节定义：`AI`、`system-design`、`fundamentals`、`other`。`.agents/config/post-categories.json` 是供工具读取的非规范目录映射；新增或统计文章时复用它，目录 slug 与 Front Matter 展示名可能不同，以本文件和映射中的 `label`、`frontMatterLabels` 为准。
 
@@ -67,7 +67,7 @@ http://localhost:4000
 - AI 协作规则、共享技能与工具配置：`AGENTS.md`、`.agents/`
 - 内部整理文档与迁移说明：`docs/`
 
-Agent 临时文档默认写入 `.agents/work/`，不要写入公开的 `docs/`。只有已经确认需要长期维护、公开发布或参与构建的内容，才迁移到合适的受版本控制目录。
+所有 Agent 的工作目录和临时文档必须位于 `.agents/work/`，不得写入 `docs/`、仓库根目录或其他源码目录。只有已经确认需要长期维护、公开发布或参与构建的内容，才由用户明确确认后迁移到合适的受版本控制目录。
 
 不要把同一份长文同时维护在博客、书稿和 `docs/` 三处。
 
