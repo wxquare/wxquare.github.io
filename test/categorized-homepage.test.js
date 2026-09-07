@@ -1,6 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const path = require('node:path');
 const test = require('node:test');
 
 const {
@@ -84,4 +85,40 @@ test('buildHomepageGroups reports an unmapped categorized post', () => {
   );
 
   assert.deepEqual(warnings, [['unknown', ['未注册分类']]]);
+});
+
+test('registerCategorizedHomepage uses a uniquely named view for the root index generator', () => {
+  const registrations = [];
+  const filters = [];
+  const views = [];
+  const { registerCategorizedHomepage } = require('../scripts/categorized-homepage');
+  const context = {
+    base_dir: path.resolve(__dirname, '..'),
+    theme: { setView: (...args) => views.push(args) },
+    extend: {
+      filter: { register: (name, fn) => filters.push({ name, fn }) },
+      generator: { register: (name, fn) => registrations.push({ name, fn }) }
+    },
+    log: { warn: () => {} }
+  };
+
+  registerCategorizedHomepage(context);
+
+  assert.equal(registrations.length, 1);
+  assert.equal(registrations[0].name, 'index');
+  assert.equal(filters.length, 1);
+  assert.equal(filters[0].name, 'before_generate');
+  assert.equal(views.length, 0);
+  filters[0].fn();
+  assert.equal(views[0][0], 'categorized-homepage.njk');
+  assert.match(views[0][1], /page\.homepageMarkup/);
+  const routes = registrations[0].fn({
+    posts: [post('AI post', '2026-05-01', 'AI', 'ai-post/')],
+    categories: categoryArchives
+  });
+  assert.deepEqual(routes.map(route => route.path), ['index.html']);
+  assert.equal(routes[0].layout, 'categorized-homepage');
+  assert.equal(routes[0].data.__index, true);
+  assert.equal(routes[0].data.posts.length, 1);
+  assert.match(routes[0].data.homepageMarkup, /AI post/);
 });

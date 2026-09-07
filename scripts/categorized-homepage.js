@@ -1,5 +1,17 @@
 'use strict';
 
+const fs = require('node:fs');
+const path = require('node:path');
+
+const HOMEPAGE_INDEX_VIEW = `{% extends '_layout.njk' %}
+{% import '_macro/sidebar.njk' as sidebar_template with context %}
+
+{% block title %}{{ title }}{% if theme.index_with_subtitle and subtitle %} - {{ subtitle }}{% endif %}{% endblock %}
+{% block class %}index posts-expand categorized-homepage{% endblock %}
+{% block content %}{{ page.homepageMarkup | safe }}{% endblock %}
+{% block sidebar %}{{ sidebar_template.render(false) }}{% endblock %}
+`;
+
 function asArray(collection) {
   if (Array.isArray(collection)) return collection;
   if (collection && typeof collection.toArray === 'function') return collection.toArray();
@@ -73,4 +85,37 @@ function renderHomepageMarkup(groups) {
   return `<section class="categorized-home"><header class="categorized-home__intro"><h1>博客文章</h1><p>按主题浏览最新文章。</p><nav>${books}</nav></header>${sections}</section>`;
 }
 
-module.exports = { asArray, categoryNames, buildHomepageGroups, escapeHtml, renderHomepageMarkup };
+function registerCategorizedHomepage(hexoContext) {
+  const registryPath = path.join(hexoContext.base_dir, '.agents/config/post-categories.json');
+  const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
+
+  hexoContext.extend.filter.register('before_generate', () => {
+    hexoContext.theme.setView('categorized-homepage.njk', HOMEPAGE_INDEX_VIEW);
+  });
+  hexoContext.extend.generator.register('index', function categorizedHomepage(locals) {
+    const groups = buildHomepageGroups(locals.posts, registry, 5, (post, names) => {
+      hexoContext.log.warn(`Homepage omitted unmapped post ${post.source || post.path}: ${names.join(', ')}`);
+    }, locals.categories);
+
+    return [{
+      path: 'index.html',
+      layout: 'categorized-homepage',
+      data: {
+        __index: true,
+        posts: locals.posts,
+        homepageMarkup: renderHomepageMarkup(groups)
+      }
+    }];
+  });
+}
+
+if (typeof hexo !== 'undefined') registerCategorizedHomepage(hexo);
+
+module.exports = {
+  asArray,
+  categoryNames,
+  buildHomepageGroups,
+  escapeHtml,
+  renderHomepageMarkup,
+  registerCategorizedHomepage
+};
