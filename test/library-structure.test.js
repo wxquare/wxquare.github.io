@@ -14,3 +14,4 @@ assert.equal(exists('source/library/presentations'), true);
 assert.equal(exists('source/library/other'), true);
 assert.equal(exists('source/presentations'), false);
 assert.equal(exists('source/library/tutorials'), false);
+assert.equal(exists('themes/next/source/images/avatar.gif'), true);
