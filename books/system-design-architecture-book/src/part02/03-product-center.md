@@ -1446,7 +1446,7 @@ publish_id / operation_id
 
 ## 25.15 答辩材料
 
-本章相关问题、总结话术和追问要点已统一收录到[第 44 章](../part03/04-product-inventory-marketing-pricing-interview.md)。
+本章相关问题、总结话术和追问要点已统一收录到[第 44 章](../part03/03-ecommerce-questionbank.md#q-ecom-supply-054为什么商品供给与运营平台不能设计成商品中心的后台-crud)。
 
 **延伸阅读建议**：
 
