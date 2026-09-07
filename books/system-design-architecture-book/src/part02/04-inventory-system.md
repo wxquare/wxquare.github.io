@@ -34,7 +34,7 @@
 | 锁定库存 | 被风控、运营、活动或异常处理临时锁住 | `locked_stock` |
 | 已售库存 | 已经确认成交或已经出库 / 出码 / 出票 | `sold_stock/issued_stock` |
 
-库存语义混淆的答辩提示已统一收录到[第 44 章](../part03/03-ecommerce-questionbank.md#q-ecom-supply-019设计防止库存超卖的方案)。
+库存语义混淆的答辩提示已统一收录到[第 39 章的“防止库存超卖”题卡](../part03/03-ecommerce-questionbank.md#q-ecom-supply-019设计防止库存超卖的方案)。
 
 ### 27.1.2 从通用库存到虚拟商品库存
 

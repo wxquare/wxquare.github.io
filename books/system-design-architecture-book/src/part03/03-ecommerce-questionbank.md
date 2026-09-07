@@ -2,11 +2,15 @@
 
 本章将原电商架构、商品库存营销计价、交易链路、综合案例和补充答辩材料统一为可独立使用的题卡。所有迁移题卡保留原始来源定位与详细答案材料。
 
-## 电商平台架构与领域边界
+<a id="chapter39-reference-materials"></a>
+## 专题答辩资料与技术速查
 
-本节覆盖平台架构、服务边界与跨系统一致性。
+<a id="chapter39-interviewer-navigation"></a>
+### 面试官题库导航
 
-### 专题答辩资料：第 44 章综合题回答思路
+电商专项面试可按候选人的项目背景组合题卡：先用平台边界或商品建模题确认业务语义，再用库存、订单或支付题检查状态与一致性，最后用大促、同步或综合案例题观察恢复能力和长期取舍。60 至 90 分钟的面试通常覆盖一个架构题、一个交易或供给题，以及一个峰值或故障追问。
+
+### 专题答辩资料：商品、库存、营销与计价综合题回答思路
 
 如果题目要求设计“商品下单前链路”，可以按下面顺序讲：
 
@@ -18,9 +22,50 @@
 
 这个回答顺序能自然体现边界和协作，而不是把所有逻辑堆进订单系统。
 
+<a id="chapter39-business-architecture-template"></a>
 ### 专题答辩资料：业务架构图表述模板
 
 **面试与评审中的表述模板**：「业务架构图不是组织架构图；它描述的是能力边界与语义所有权。若两个团队共改一张宽表，通常意味着限界上下文识别失败或缺少明确的集成契约。」
+
+<a id="chapter39-reference-go-libraries"></a>
+### 专题答辩资料：常用 Go 库推荐
+
+下面的库按职责覆盖常见电商后端实现；实际选型仍应结合团队维护能力、许可证和当前版本兼容性判断。
+
+```go
+// Web框架
+github.com/gin-gonic/gin
+
+// ORM
+gorm.io/gorm
+
+// Redis
+github.com/go-redis/redis/v8
+
+// 消息队列
+github.com/Shopify/sarama  // Kafka
+github.com/streadway/amqp  // RabbitMQ
+
+// 分布式追踪
+go.opentelemetry.io/otel
+
+// 配置管理
+github.com/spf13/viper
+
+// 限流
+golang.org/x/time/rate
+
+// 日志
+go.uber.org/zap
+
+// 数值计算
+github.com/shopspring/decimal
+```
+
+<a id="chapter39-architecture"></a>
+## 电商平台架构与领域边界
+
+本节覆盖平台架构、服务边界与跨系统一致性。
 
 ### Q-ECOM-ARCH-001：如何设计一个中大型电商平台的服务拆分边界？
 
@@ -30,6 +75,11 @@
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-001 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`架构演进` |
+| 场景标签 | `中大型电商`、`平台架构` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:11` |
 
@@ -169,6 +219,8 @@
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:11`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -183,6 +235,11 @@
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-002 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`分布式一致性` |
+| 场景标签 | `中大型电商`、`平台架构`、`跨服务协作` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:111` |
 
@@ -326,6 +383,8 @@
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:111`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -340,6 +399,11 @@
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-003 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`可观测性` |
+| 场景标签 | `中大型电商`、`平台架构`、`故障定位` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:430` |
 
@@ -494,6 +558,8 @@
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:430`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -508,6 +574,11 @@
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-004 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`架构演进` |
+| 场景标签 | `中大型电商`、`平台架构` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:545` |
 
@@ -670,6 +741,8 @@
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:545`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -684,6 +757,11 @@
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-005 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`架构演进` |
+| 场景标签 | `中大型电商`、`平台架构` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:668` |
 
@@ -849,6 +927,8 @@
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:668`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -863,6 +943,11 @@
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-006 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`架构演进` |
+| 场景标签 | `中大型电商`、`平台架构` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:794` |
 
@@ -1041,6 +1126,8 @@
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:794`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -1055,6 +1142,11 @@
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-007 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`架构演进` |
+| 场景标签 | `中大型电商`、`平台架构` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:933` |
 
@@ -1259,6 +1351,8 @@ order/
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:933`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -1273,6 +1367,11 @@ order/
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-008 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`分布式一致性` |
+| 场景标签 | `中大型电商`、`平台架构`、`跨服务协作` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1268` |
 
@@ -1428,6 +1527,8 @@ order/
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1268`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -1442,6 +1543,11 @@ order/
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-009 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`分布式一致性` |
+| 场景标签 | `中大型电商`、`平台架构`、`跨服务协作` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1384` |
 
@@ -1666,6 +1772,8 @@ OrderPaid事件 →
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1384`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -1680,6 +1788,11 @@ OrderPaid事件 →
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-010 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`事件驱动` |
+| 场景标签 | `中大型电商`、`平台架构`、`异步集成` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1569` |
 
@@ -1854,6 +1967,8 @@ OrderPaid事件 →
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1569`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -1868,6 +1983,11 @@ OrderPaid事件 →
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-011 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`分布式一致性` |
+| 场景标签 | `中大型电商`、`平台架构`、`跨服务协作` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1704` |
 
@@ -2089,6 +2209,8 @@ T4失败 → C3: 返还积分 → C2: 释放库存 → C1: 取消订单
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1704`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -2103,6 +2225,11 @@ T4失败 → C3: 返还积分 → C2: 释放库存 → C1: 取消订单
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-012 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`事件驱动` |
+| 场景标签 | `中大型电商`、`平台架构`、`异步集成` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1886` |
 
@@ -2358,6 +2485,8 @@ OrderCompleted {
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1886`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -2372,6 +2501,11 @@ OrderCompleted {
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-013 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`分布式一致性` |
+| 场景标签 | `中大型电商`、`平台架构`、`跨服务协作` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2102` |
 
@@ -2645,6 +2779,8 @@ while (true) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2102`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -2659,6 +2795,11 @@ while (true) {
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-014 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`分布式一致性` |
+| 场景标签 | `中大型电商`、`平台架构`、`跨服务协作` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2336` |
 
@@ -2936,6 +3077,8 @@ public void payOrder(String orderId) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2336`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -2950,6 +3093,11 @@ public void payOrder(String orderId) {
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-015 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`分布式一致性` |
+| 场景标签 | `中大型电商`、`平台架构`、`跨服务协作` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2574` |
 
@@ -3234,6 +3382,8 @@ CREATE TABLE domain_events (
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2574`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -3248,6 +3398,11 @@ CREATE TABLE domain_events (
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-016 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`架构演进` |
+| 场景标签 | `中大型电商`、`平台架构` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2819` |
 
@@ -3500,6 +3655,8 @@ HLC = (physicalTime, logicalCounter)
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2819`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -3514,6 +3671,11 @@ HLC = (physicalTime, logicalCounter)
 | --- | --- |
 | 题目编号 | Q-ECOM-ARCH-017 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：服务边界、集成与架构演进 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`服务边界`、`架构演进` |
+| 场景标签 | `中大型电商`、`平台架构` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:3032` |
 
@@ -3834,17 +3996,20 @@ public class Order {
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:3032`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
 - 我是否解释了失败、重试、对账和补偿如何闭环？
 - 我是否给出了与业务规模相匹配的性能与可靠性取舍？
 
+<a id="chapter39-supply"></a>
 ## 商品、库存、营销与计价
 
 本节覆盖商品、供给、库存、营销与计价。
 
-### 专题答辩资料：第 44 章商品中心专题
+### 专题答辩资料：商品中心专题
 
 商品中心的核心不是“建几张商品表”，而是管理商品主数据、类目属性、SPU/SKU、上下架状态、审核流程和对外发布契约。
 
@@ -3858,7 +4023,7 @@ public class Order {
 
 答题时要强调：商品中心是主数据系统，不应该被搜索展示、库存扣减或营销规则污染。它负责定义“商品是什么”，不负责所有使用商品的场景。
 
-### 专题答辩资料：第 44 章库存系统专题
+### 专题答辩资料：库存系统专题
 
 库存系统的核心矛盾是“高并发可售判断”和“最终正确性”。库存不是一个简单数字，而是可售、锁定、已售、退回、供应商库存、门店库存、券码库存等多种语义的组合。
 
@@ -3872,7 +4037,7 @@ public class Order {
 
 好的回答通常会区分热路径和权威路径：热路径可以用 Redis 提升并发，权威路径要有库存流水、状态机、对账和补偿。
 
-### 专题答辩资料：第 44 章营销系统专题
+### 专题答辩资料：营销系统专题
 
 营销系统的难点在于规则复杂、活动叠加、预算控制和核销一致性。优惠券、满减、折扣、秒杀、会员价看起来都是“优惠”，但约束和核销方式不同。
 
@@ -3886,7 +4051,7 @@ public class Order {
 
 营销系统不要直接修改订单主状态。它通常通过试算、锁定、核销、释放这些动作与交易链路协作。
 
-### 专题答辩资料：第 44 章计价系统专题
+### 专题答辩资料：计价系统专题
 
 计价系统负责把商品价格、营销优惠、会员权益、税费、运费等因素合成为用户最终看到和支付的价格。它的关键是可解释、可追溯、可复算。
 
@@ -3956,6 +4121,11 @@ public class Order {
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-001 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:19` |
 
@@ -4133,6 +4303,8 @@ sku
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:19`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -4147,6 +4319,11 @@ sku
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-002 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:157` |
 
@@ -4420,6 +4597,8 @@ ProductDetail detail = new ProductDetail(
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:157`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -4434,6 +4613,11 @@ ProductDetail detail = new ProductDetail(
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-003 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:391` |
 
@@ -4685,6 +4869,8 @@ ProductDetail detail = new ProductDetail(
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:391`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -4699,6 +4885,11 @@ ProductDetail detail = new ProductDetail(
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-004 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:603` |
 
@@ -5090,6 +5281,8 @@ else:
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:603`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -5104,6 +5297,11 @@ else:
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-005 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:955` |
 
@@ -5386,6 +5584,8 @@ category_attr_group（属性分组）
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:955`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -5400,6 +5600,11 @@ category_attr_group（属性分组）
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-006 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1198` |
 
@@ -5636,6 +5841,8 @@ URL参数控制：
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1198`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -5650,6 +5857,11 @@ URL参数控制：
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-007 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1395` |
 
@@ -5888,6 +6100,8 @@ if (orderItem.productType == PHYSICAL) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1395`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -5902,6 +6116,11 @@ if (orderItem.productType == PHYSICAL) {
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-008 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1594` |
 
@@ -6163,6 +6382,8 @@ public class WorkflowEngine {
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1594`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -6177,6 +6398,11 @@ public class WorkflowEngine {
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-009 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1816` |
 
@@ -6411,6 +6637,8 @@ SKU生成逻辑：
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1816`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -6425,6 +6653,11 @@ SKU生成逻辑：
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-010 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2011` |
 
@@ -6668,6 +6901,8 @@ order_item
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2011`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -6682,6 +6917,11 @@ order_item
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-011 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2215` |
 
@@ -6924,6 +7164,8 @@ Flink计算逻辑：
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2215`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -6938,6 +7180,11 @@ Flink计算逻辑：
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-012 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2418` |
 
@@ -7209,6 +7456,8 @@ ik_smart：[小米, 手机, 13, Ultra, 5G, 智能手机]
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2418`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -7223,6 +7472,11 @@ ik_smart：[小米, 手机, 13, Ultra, 5G, 智能手机]
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-013 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2650` |
 
@@ -7458,6 +7712,8 @@ product_changelog（变更日志）
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2650`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -7472,6 +7728,11 @@ product_changelog（变更日志）
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-014 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2846` |
 
@@ -7705,6 +7966,8 @@ if (isVIPTenant(tenantId)) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2846`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -7719,6 +7982,11 @@ if (isVIPTenant(tenantId)) {
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-015 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3040` |
 
@@ -7949,6 +8217,8 @@ import_detail（导入明细，可选）
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3040`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -7963,6 +8233,11 @@ import_detail（导入明细，可选）
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-016 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3231` |
 
@@ -8212,6 +8487,8 @@ import_detail（导入明细，可选）
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3231`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -8226,6 +8503,11 @@ import_detail（导入明细，可选）
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-017 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3443` |
 
@@ -8335,6 +8617,8 @@ idempotency_key：防重复创建
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3443`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -8349,6 +8633,11 @@ idempotency_key：防重复创建
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-018 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3513` |
 
@@ -8477,6 +8766,8 @@ Sellable =
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3513`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -8491,6 +8782,11 @@ Sellable =
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-019 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3602` |
 
@@ -8741,6 +9037,8 @@ if (result == 1) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3602`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -8755,6 +9053,11 @@ if (result == 1) {
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-020 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3813` |
 
@@ -9036,6 +9339,8 @@ score = w1 * distance_score + w2 * stock_score + w3 * cost_score
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3813`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -9050,6 +9355,11 @@ score = w1 * distance_score + w2 * stock_score + w3 * cost_score
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-021 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4264` |
 
@@ -9302,6 +9612,8 @@ if (available_stock < 10% * total_stock) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4264`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -9316,6 +9628,11 @@ if (available_stock < 10% * total_stock) {
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-022 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4477` |
 
@@ -9538,6 +9855,8 @@ available_stock = physical_stock - sum(active_occupations)
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4477`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -9552,6 +9871,11 @@ available_stock = physical_stock - sum(active_occupations)
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-023 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4660` |
 
@@ -9788,6 +10112,8 @@ public void deductInventory(String skuId, int quantity) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4660`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -9802,6 +10128,11 @@ public void deductInventory(String skuId, int quantity) {
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-024 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4857` |
 
@@ -10042,6 +10373,8 @@ C类（低价值，50%）：每年盘点
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4857`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -10056,6 +10389,11 @@ C类（低价值，50%）：每年盘点
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-025 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5058` |
 
@@ -10267,6 +10605,8 @@ if (result == 1) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5058`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -10281,6 +10621,11 @@ if (result == 1) {
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-026 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5230` |
 
@@ -10555,6 +10900,8 @@ supplier_quota（供应商配额）
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5230`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -10569,6 +10916,11 @@ supplier_quota（供应商配额）
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-027 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5465` |
 
@@ -10819,6 +11171,8 @@ score = w1 * distance_score +
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5465`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -10833,6 +11187,11 @@ score = w1 * distance_score +
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-028 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5676` |
 
@@ -11089,6 +11448,8 @@ C类商品（50%商品，5%销售额）：
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5676`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -11103,6 +11464,11 @@ C类商品（50%商品，5%销售额）：
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-029 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5893` |
 
@@ -11360,6 +11726,8 @@ inventory_change_log（增量日志）
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5893`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -11374,6 +11742,11 @@ inventory_change_log（增量日志）
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-030 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6111` |
 
@@ -11620,6 +11993,8 @@ if (product.type == HIGH_VALUE) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6111`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -11634,6 +12009,11 @@ if (product.type == HIGH_VALUE) {
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-031 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6318` |
 
@@ -11895,6 +12275,8 @@ if (affected_rows == 1) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6318`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -11909,6 +12291,11 @@ if (affected_rows == 1) {
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-032 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6540` |
 
@@ -12154,6 +12541,8 @@ regional_inventory
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6540`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -12168,6 +12557,11 @@ regional_inventory
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-033 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`营销规则`、`权益核销` |
+| 场景标签 | `商品供给`、`营销活动` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6748` |
 
@@ -12508,6 +12902,8 @@ public BigDecimal calculate(Order order) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6748`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[营销系统](../part02/05-marketing-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -12522,6 +12918,11 @@ public BigDecimal calculate(Order order) {
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-034 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`营销规则`、`权益核销` |
+| 场景标签 | `商品供给`、`营销活动` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7049` |
 
@@ -12792,6 +13193,8 @@ coupon_code
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7049`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[营销系统](../part02/05-marketing-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -12806,6 +13209,11 @@ coupon_code
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-035 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7280` |
 
@@ -13059,6 +13467,8 @@ tier_3: >¥5000, 减¥500
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7280`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -13073,6 +13483,11 @@ tier_3: >¥5000, 减¥500
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-036 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7494` |
 
@@ -13314,6 +13729,8 @@ member_subscription
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7494`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -13328,6 +13745,11 @@ member_subscription
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-037 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`价格建模`、`规则计算` |
+| 场景标签 | `商品供给`、`价格试算` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7905` |
 
@@ -13564,6 +13986,8 @@ member_subscription
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7905`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[计价系统](../part02/06-pricing-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -13578,6 +14002,11 @@ member_subscription
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-038 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8102` |
 
@@ -13819,6 +14248,8 @@ exchange_rate（汇率表）
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8102`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -13833,6 +14264,11 @@ exchange_rate（汇率表）
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-039 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`营销规则`、`权益核销` |
+| 场景标签 | `商品供给`、`营销活动` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8304` |
 
@@ -14108,6 +14544,8 @@ public BigDecimal calculateBestPrice(Order order) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8304`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[营销系统](../part02/05-marketing-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -14122,6 +14560,11 @@ public BigDecimal calculateBestPrice(Order order) {
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-040 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8540` |
 
@@ -14372,6 +14815,8 @@ order_payment（支付记录）
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8540`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -14386,6 +14831,11 @@ order_payment（支付记录）
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-041 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`价格建模`、`规则计算` |
+| 场景标签 | `商品供给`、`价格试算` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8751` |
 
@@ -14621,6 +15071,8 @@ price = getPriceByUser(skuId, userId);
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8751`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[计价系统](../part02/06-pricing-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -14635,6 +15087,11 @@ price = getPriceByUser(skuId, userId);
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-042 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:173` |
 
@@ -14678,6 +15135,8 @@ price = getPriceByUser(skuId, userId);
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:173`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -14692,6 +15151,11 @@ price = getPriceByUser(skuId, userId);
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-043 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:177` |
 
@@ -14735,6 +15199,8 @@ price = getPriceByUser(skuId, userId);
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:177`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -14749,6 +15215,11 @@ price = getPriceByUser(skuId, userId);
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-044 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:181` |
 
@@ -14792,6 +15263,8 @@ price = getPriceByUser(skuId, userId);
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:181`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -14806,6 +15279,11 @@ price = getPriceByUser(skuId, userId);
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-045 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:185` |
 
@@ -14849,6 +15327,8 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:185`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -14863,6 +15343,11 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-046 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:189` |
 
@@ -14906,6 +15391,8 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:189`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -14920,6 +15407,11 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-047 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:193` |
 
@@ -14963,6 +15455,8 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:193`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -14977,6 +15471,11 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-048 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
+| 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:197` |
 
@@ -15020,6 +15519,8 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:197`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[库存系统](../part02/04-inventory-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15034,6 +15535,11 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-049 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:201` |
 
@@ -15077,6 +15583,8 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:201`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15091,6 +15599,11 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-050 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:205` |
 
@@ -15134,6 +15647,8 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:205`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15148,6 +15663,11 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-051 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:209` |
 
@@ -15191,6 +15711,8 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:209`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15205,6 +15727,11 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-052 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:213` |
 
@@ -15248,6 +15775,8 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:213`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15262,6 +15791,11 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-053 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:217` |
 
@@ -15307,6 +15841,8 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:217`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15321,6 +15857,11 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-054 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:255` |
 
@@ -15364,6 +15905,8 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:255`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15378,6 +15921,11 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-055 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:259` |
 
@@ -15421,6 +15969,8 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:259`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15435,6 +15985,11 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-056 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:263` |
 
@@ -15553,6 +16108,8 @@ supplier_sync_dead_letter
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:263`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15567,6 +16124,11 @@ supplier_sync_dead_letter
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-057 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:342` |
 
@@ -15610,6 +16172,8 @@ supplier_sync_dead_letter
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:342`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15624,6 +16188,11 @@ supplier_sync_dead_letter
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-058 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:348` |
 
@@ -15667,6 +16236,8 @@ supplier_sync_dead_letter
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:348`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15681,6 +16252,11 @@ supplier_sync_dead_letter
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-059 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:352` |
 
@@ -15724,6 +16300,8 @@ supplier_sync_dead_letter
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:352`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15738,6 +16316,11 @@ supplier_sync_dead_letter
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-060 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:356` |
 
@@ -15781,6 +16364,8 @@ supplier_sync_dead_letter
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:356`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15795,6 +16380,11 @@ supplier_sync_dead_letter
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-061 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:360` |
 
@@ -15838,6 +16428,8 @@ supplier_sync_dead_letter
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:360`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15852,6 +16444,11 @@ supplier_sync_dead_letter
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-062 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:364` |
 
@@ -15895,6 +16492,8 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:364`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15909,6 +16508,11 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-063 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:370` |
 
@@ -15952,6 +16556,8 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:370`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -15966,6 +16572,11 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-064 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:374` |
 
@@ -16009,6 +16620,8 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:374`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16023,6 +16636,11 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-065 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:378` |
 
@@ -16066,6 +16684,8 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:378`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16080,6 +16700,11 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-066 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:382` |
 
@@ -16123,6 +16748,8 @@ Publish 背后的实际流程是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:382`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16137,6 +16764,11 @@ Publish 背后的实际流程是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-067 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:386` |
 
@@ -16180,6 +16812,8 @@ Publish 背后的实际流程是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:386`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16194,6 +16828,11 @@ Publish 背后的实际流程是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-068 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:390` |
 
@@ -16237,6 +16876,8 @@ Publish 背后的实际流程是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:390`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16251,6 +16892,11 @@ Publish 背后的实际流程是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-069 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:396` |
 
@@ -16294,6 +16940,8 @@ Publish 背后的实际流程是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:396`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16308,6 +16956,11 @@ Publish 背后的实际流程是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-070 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:400` |
 
@@ -16351,6 +17004,8 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:400`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16365,6 +17020,11 @@ Parser Worker 和 Item Worker 为什么要拆开？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-071 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:404` |
 
@@ -16408,6 +17068,8 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:404`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16422,6 +17084,11 @@ Parser Worker 和 Item Worker 为什么要拆开？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-072 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:408` |
 
@@ -16465,6 +17132,8 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:408`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16479,6 +17148,11 @@ Parser Worker 和 Item Worker 为什么要拆开？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-073 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:414` |
 
@@ -16522,6 +17196,8 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:414`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16536,6 +17212,11 @@ Parser Worker 和 Item Worker 为什么要拆开？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-074 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:418` |
 
@@ -16579,6 +17260,8 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:418`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16593,6 +17276,11 @@ Parser Worker 和 Item Worker 为什么要拆开？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-075 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:422` |
 
@@ -16638,6 +17326,8 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:422`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16652,6 +17342,11 @@ Parser Worker 和 Item Worker 为什么要拆开？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-076 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:440` |
 
@@ -16695,6 +17390,8 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:440`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16709,6 +17406,11 @@ Parser Worker 和 Item Worker 为什么要拆开？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-077 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:444` |
 
@@ -16752,6 +17454,8 @@ Task 和 Batch 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:444`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16766,6 +17470,11 @@ Task 和 Batch 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-078 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:448` |
 
@@ -16809,6 +17518,8 @@ Checkpoint 是什么，什么时候更新？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:448`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16823,6 +17534,11 @@ Checkpoint 是什么，什么时候更新？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-079 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:454` |
 
@@ -16866,6 +17582,8 @@ worker 如何抢占任务？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:454`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16880,6 +17598,11 @@ worker 如何抢占任务？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-080 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:458` |
 
@@ -16923,6 +17646,8 @@ worker 如何抢占任务？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:458`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16937,6 +17662,11 @@ worker 如何抢占任务？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-081 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:462` |
 
@@ -16980,6 +17710,8 @@ worker 如何抢占任务？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:462`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -16994,6 +17726,11 @@ worker 如何抢占任务？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-082 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:466` |
 
@@ -17037,6 +17774,8 @@ worker 如何抢占任务？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:466`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17051,6 +17790,11 @@ worker 如何抢占任务？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-083 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:470` |
 
@@ -17094,6 +17838,8 @@ worker 如何抢占任务？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:470`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17108,6 +17854,11 @@ worker 如何抢占任务？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-084 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:476` |
 
@@ -17151,6 +17902,8 @@ worker 如何抢占任务？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:476`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17165,6 +17918,11 @@ worker 如何抢占任务？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-085 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:480` |
 
@@ -17208,6 +17966,8 @@ worker 如何抢占任务？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:480`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17222,6 +17982,11 @@ worker 如何抢占任务？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-086 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:484` |
 
@@ -17265,6 +18030,8 @@ checkpoint 更新失败怎么办？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:484`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17279,6 +18046,11 @@ checkpoint 更新失败怎么办？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-087 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:488` |
 
@@ -17322,6 +18094,8 @@ checkpoint 更新失败怎么办？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:488`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17336,6 +18110,11 @@ checkpoint 更新失败怎么办？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-088 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:494` |
 
@@ -17379,6 +18158,8 @@ Raw Snapshot 的价值是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:494`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17393,6 +18174,11 @@ Raw Snapshot 的价值是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-089 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:498` |
 
@@ -17436,6 +18222,8 @@ Raw Snapshot 的价值是什么？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:498`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17450,6 +18238,11 @@ Raw Snapshot 的价值是什么？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-090 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:502` |
 
@@ -17493,6 +18286,8 @@ DLQ 为什么建议用 MySQL，而不是只用消息队列？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:502`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17507,6 +18302,11 @@ DLQ 为什么建议用 MySQL，而不是只用消息队列？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-091 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:512` |
 
@@ -17550,6 +18350,8 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:512`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17564,6 +18366,11 @@ worker 可以从 Redis 中抢占任务吗？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-092 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:530` |
 
@@ -17607,6 +18414,8 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:530`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17621,6 +18430,11 @@ worker 可以从 Redis 中抢占任务吗？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-093 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:534` |
 
@@ -17664,6 +18478,8 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:534`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17678,6 +18494,11 @@ worker 可以从 Redis 中抢占任务吗？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-094 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:538` |
 
@@ -17721,6 +18542,8 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:538`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17735,6 +18558,11 @@ worker 可以从 Redis 中抢占任务吗？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-095 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:542` |
 
@@ -17778,6 +18606,8 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:542`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17792,6 +18622,11 @@ worker 可以从 Redis 中抢占任务吗？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-096 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:546` |
 
@@ -17835,6 +18670,8 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:546`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17849,6 +18686,11 @@ worker 可以从 Redis 中抢占任务吗？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-097 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:550` |
 
@@ -17892,6 +18734,8 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:550`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17906,6 +18750,11 @@ worker 可以从 Redis 中抢占任务吗？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-098 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:554` |
 
@@ -17949,6 +18798,8 @@ worker 可以从 Redis 中抢占任务吗？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:554`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -17963,6 +18814,11 @@ worker 可以从 Redis 中抢占任务吗？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-099 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:558` |
 
@@ -18006,6 +18862,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:558`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18020,6 +18878,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-100 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:562` |
 
@@ -18063,6 +18926,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:562`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18077,6 +18942,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-101 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:566` |
 
@@ -18120,6 +18990,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:566`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18134,6 +19006,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-102 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:570` |
 
@@ -18177,6 +19054,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:570`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18191,6 +19070,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-103 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:574` |
 
@@ -18234,6 +19118,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:574`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18248,6 +19134,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-104 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:578` |
 
@@ -18291,6 +19182,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:578`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18305,6 +19198,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-105 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:582` |
 
@@ -18348,6 +19246,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:582`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18362,6 +19262,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-106 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:586` |
 
@@ -18405,6 +19310,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:586`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18419,6 +19326,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-107 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:590` |
 
@@ -18462,6 +19374,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:590`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18476,6 +19390,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-108 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`价格建模`、`规则计算` |
+| 场景标签 | `商品供给`、`价格试算` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:594` |
 
@@ -18519,6 +19438,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:594`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[计价系统](../part02/06-pricing-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18533,6 +19454,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-109 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:598` |
 
@@ -18576,6 +19502,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:598`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18590,6 +19518,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-110 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:602` |
 
@@ -18633,6 +19566,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:602`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18647,6 +19582,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-111 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:606` |
 
@@ -18690,6 +19630,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:606`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18704,6 +19646,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-112 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:610` |
 
@@ -18747,6 +19694,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:610`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18761,6 +19710,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-113 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:614` |
 
@@ -18804,6 +19758,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:614`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18818,6 +19774,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-114 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 基础 |
+| 建议用时 | 15 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:618` |
 
@@ -18861,6 +19822,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:618`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18875,6 +19838,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-115 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:622` |
 
@@ -18918,6 +19886,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:622`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18932,6 +19902,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-116 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:626` |
 
@@ -18975,6 +19950,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:626`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -18989,6 +19966,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-117 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`供给治理`、`任务编排` |
+| 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:630` |
 
@@ -19032,6 +20014,8 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:630`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -19046,6 +20030,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-SUPPLY-118 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：商品、库存、营销、计价与供给治理 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `领域建模`、`商品建模`、`数据治理` |
+| 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:634` |
 
@@ -19089,17 +20078,20 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:634`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
 - 我是否解释了失败、重试、对账和补偿如何闭环？
 - 我是否给出了与业务规模相匹配的性能与可靠性取舍？
 
+<a id="chapter39-trade"></a>
 ## 搜索、购物车、订单与支付
 
 本节覆盖搜索、购物车、订单与支付。
 
-### 专题答辩资料：第 45 章搜索与导购专题
+### 专题答辩资料：搜索与导购专题
 
 搜索系统的核心是把商品主数据转化为适合检索和排序的读模型。它不应该成为商品权威存储，也不应该承担交易状态。
 
@@ -19113,7 +20105,7 @@ Draft 和 Staging 有什么区别？
 
 答题重点是区分主数据和读模型：商品中心负责权威事实，搜索系统负责检索体验，二者通过异步同步、补偿重建和一致性校验维持可接受的一致性。
 
-### 专题答辩资料：第 45 章购物车与结算专题
+### 专题答辩资料：购物车与结算专题
 
 购物车偏用户体验，结算偏交易前校验。购物车可以允许一定程度的弱一致，结算必须重新校验商品、价格、库存、营销和地址配送。
 
@@ -19127,7 +20119,7 @@ Draft 和 Staging 有什么区别？
 
 回答时要强调：购物车不是订单。购物车里的价格、库存和优惠都只是用户侧展示，结算和下单必须重新试算和锁定。
 
-### 专题答辩资料：第 45 章订单系统专题
+### 专题答辩资料：订单系统专题
 
 订单系统的核心是状态机和交易事实。它协调商品快照、价格快照、库存预占、营销核销、支付状态和履约状态，但不应该吞掉所有领域逻辑。
 
@@ -19141,7 +20133,7 @@ Draft 和 Staging 有什么区别？
 
 订单题最忌讳只画组件图。更好的回答是先讲状态流，再讲数据模型、核心事务、异步事件和补偿任务。
 
-### 专题答辩资料：第 45 章支付系统专题
+### 专题答辩资料：支付系统专题
 
 支付系统的核心是资金状态可信。支付回调天然会重复、乱序和延迟，因此支付单状态机、幂等处理、渠道对账和人工处理入口都很重要。
 
@@ -19155,7 +20147,7 @@ Draft 和 Staging 有什么区别？
 
 支付题的底线是不要把“收到回调”直接等同于“订单完成”。系统必须校验支付单、订单、金额、渠道流水和状态迁移是否合法。
 
-### 专题答辩资料：第 45 章主链路串联模板
+### 专题答辩资料：交易主链路串联模板
 
 如果让你设计电商交易链路，可以这样组织：
 
@@ -19225,6 +20217,11 @@ Draft 和 Staging 有什么区别？
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-001 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `搜索架构`、`读模型` |
+| 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:20` |
 
@@ -19501,6 +20498,8 @@ ES负责搜索，MySQL负责详情查询。
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:20`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[搜索与导购](../part02/07-search-discovery.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -19515,6 +20514,11 @@ ES负责搜索，MySQL负责详情查询。
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-002 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `搜索架构`、`读模型` |
+| 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:257` |
 
@@ -19819,6 +20823,8 @@ ES实现：
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:257`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[搜索与导购](../part02/07-search-discovery.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -19833,6 +20839,11 @@ ES实现：
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-003 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `搜索架构`、`读模型` |
+| 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:522` |
 
@@ -20110,6 +21121,8 @@ public List<String> suggest(String prefix) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:522`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[搜索与导购](../part02/07-search-discovery.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -20124,6 +21137,11 @@ public List<String> suggest(String prefix) {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-004 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `搜索架构`、`读模型` |
+| 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:760` |
 
@@ -20415,6 +21433,8 @@ category_id=10, filter_name="价格", filter_value="5000-10000", product_count=3
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:760`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[搜索与导购](../part02/07-search-discovery.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -20429,6 +21449,11 @@ category_id=10, filter_name="价格", filter_value="5000-10000", product_count=3
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-005 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `搜索架构`、`读模型` |
+| 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1012` |
 
@@ -20694,6 +21719,8 @@ ES实现：
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1012`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[搜索与导购](../part02/07-search-discovery.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -20708,6 +21735,11 @@ ES实现：
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-006 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `搜索架构`、`读模型` |
+| 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1238` |
 
@@ -20839,6 +21871,8 @@ search_log
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1238`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[搜索与导购](../part02/07-search-discovery.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -20853,6 +21887,11 @@ search_log
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-007 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `搜索架构`、`读模型` |
+| 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1330` |
 
@@ -20954,6 +21993,8 @@ search_log
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1330`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[搜索与导购](../part02/07-search-discovery.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -20968,6 +22009,11 @@ search_log
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-008 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `搜索架构`、`读模型` |
+| 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1392` |
 
@@ -21067,6 +22113,8 @@ search_log
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1392`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[搜索与导购](../part02/07-search-discovery.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -21081,6 +22129,11 @@ search_log
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-009 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `搜索架构`、`读模型` |
+| 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1452` |
 
@@ -21161,6 +22214,8 @@ search_log
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1452`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[搜索与导购](../part02/07-search-discovery.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -21175,6 +22230,11 @@ search_log
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-010 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `搜索架构`、`读模型` |
+| 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1493` |
 
@@ -21266,6 +22326,8 @@ search_log
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1493`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[搜索与导购](../part02/07-search-discovery.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -21280,6 +22342,11 @@ search_log
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-011 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `结算编排`、`交易前校验` |
+| 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1547` |
 
@@ -21483,6 +22550,8 @@ Redis提供高性能，MySQL保证持久化。
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1547`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -21497,6 +22566,11 @@ Redis提供高性能，MySQL保证持久化。
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-012 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `结算编排`、`交易前校验` |
+| 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1711` |
 
@@ -21610,6 +22684,8 @@ public CartPrice calculateCart(Cart cart) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1711`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -21624,6 +22700,11 @@ public CartPrice calculateCart(Cart cart) {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-013 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `结算编排`、`交易前校验` |
+| 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1785` |
 
@@ -21701,6 +22782,8 @@ public CartPrice calculateCart(Cart cart) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1785`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -21715,6 +22798,11 @@ public CartPrice calculateCart(Cart cart) {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-014 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `结算编排`、`交易前校验` |
+| 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1823` |
 
@@ -21792,6 +22880,8 @@ public CartPrice calculateCart(Cart cart) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1823`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -21806,6 +22896,11 @@ public CartPrice calculateCart(Cart cart) {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-015 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `结算编排`、`交易前校验` |
+| 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1861` |
 
@@ -21902,6 +22997,8 @@ public CartPrice calculateCart(Cart cart) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1861`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -21916,6 +23013,11 @@ public CartPrice calculateCart(Cart cart) {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-016 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `结算编排`、`交易前校验` |
+| 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1918` |
 
@@ -22144,6 +23246,8 @@ iPhone 15 Pro 256GB
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1918`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -22158,6 +23262,11 @@ iPhone 15 Pro 256GB
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-017 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `结算编排`、`交易前校验` |
+| 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2107` |
 
@@ -22450,6 +23559,8 @@ function longPoll() {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2107`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -22464,6 +23575,11 @@ function longPoll() {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-018 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `结算编排`、`交易前校验` |
+| 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2360` |
 
@@ -22631,6 +23747,8 @@ function longPoll() {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2360`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -22645,6 +23763,11 @@ function longPoll() {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-019 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `结算编排`、`交易前校验` |
+| 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2488` |
 
@@ -22875,6 +23998,8 @@ PC端使用**单页结算**，移动端使用**分步结算**。
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2488`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -22889,6 +24014,11 @@ PC端使用**单页结算**，移动端使用**分步结算**。
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-020 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `结算编排`、`交易前校验` |
+| 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2679` |
 
@@ -23118,6 +24248,8 @@ shared_cart
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2679`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -23132,6 +24264,11 @@ shared_cart
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-021 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `结算编排`、`交易前校验` |
+| 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2869` |
 
@@ -23232,6 +24369,8 @@ shared_cart
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2869`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -23246,6 +24385,11 @@ shared_cart
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-022 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `结算编排`、`交易前校验` |
+| 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2930` |
 
@@ -23352,6 +24496,8 @@ shared_cart
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2930`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -23366,6 +24512,11 @@ shared_cart
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-023 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `结算编排`、`交易前校验` |
+| 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2997` |
 
@@ -23453,6 +24604,8 @@ shared_cart
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2997`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -23467,6 +24620,11 @@ shared_cart
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-024 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `结算编排`、`交易前校验` |
+| 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3045` |
 
@@ -23558,6 +24716,8 @@ shared_cart
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3045`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -23572,6 +24732,11 @@ shared_cart
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-025 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `结算编排`、`交易前校验` |
+| 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3097` |
 
@@ -23690,6 +24855,8 @@ shared_cart
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3097`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -23704,6 +24871,11 @@ shared_cart
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-026 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `订单编排`、`状态机` |
+| 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3178` |
 
@@ -23868,6 +25040,8 @@ PENDING_PAYMENT ──┬─┴─> PAID ───> SHIPPED ───> RECEIVED 
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3178`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[订单系统](../part02/09-order-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -23882,6 +25056,11 @@ PENDING_PAYMENT ──┬─┴─> PAID ───> SHIPPED ───> RECEIVED 
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-027 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `订单编排`、`状态机` |
+| 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3303` |
 
@@ -24072,6 +25251,8 @@ public String generateOrderNo() {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3303`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[订单系统](../part02/09-order-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -24086,6 +25267,11 @@ public String generateOrderNo() {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-028 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `订单编排`、`状态机` |
+| 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3454` |
 
@@ -24357,6 +25543,8 @@ public void createOrder(Order order) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3454`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[订单系统](../part02/09-order-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -24371,6 +25559,11 @@ public void createOrder(Order order) {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-029 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `订单编排`、`状态机` |
+| 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3686` |
 
@@ -24640,6 +25833,8 @@ shipment（发货单）
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3686`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[订单系统](../part02/09-order-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -24654,6 +25849,11 @@ shipment（发货单）
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-030 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `订单编排`、`状态机` |
+| 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3916` |
 
@@ -24957,6 +26157,8 @@ public Order createOrder(OrderRequest request, String token) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3916`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[订单系统](../part02/09-order-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -24971,6 +26173,11 @@ public Order createOrder(OrderRequest request, String token) {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-031 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `订单编排`、`状态机` |
+| 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4180` |
 
@@ -25174,6 +26381,8 @@ func CreateOrderSaga(orderReq *CreateOrderRequest) error {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4180`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[订单系统](../part02/09-order-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -25188,6 +26397,11 @@ func CreateOrderSaga(orderReq *CreateOrderRequest) error {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-032 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `订单编排`、`状态机` |
+| 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4344` |
 
@@ -25546,6 +26760,8 @@ order_routing
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4344`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[订单系统](../part02/09-order-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -25560,6 +26776,11 @@ order_routing
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-033 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `订单编排`、`状态机` |
+| 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4663` |
 
@@ -25747,6 +26968,8 @@ func (o *FulfillmentOrchestrator) UpdateStatus(ctx context.Context,
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4663`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[订单系统](../part02/09-order-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -25761,6 +26984,11 @@ func (o *FulfillmentOrchestrator) UpdateStatus(ctx context.Context,
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-034 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `支付状态机`、`资金安全` |
+| 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4811` |
 
@@ -25973,6 +27201,8 @@ func (s *RefundService) shouldAutoApprove(refund *Refund) bool {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4811`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[支付系统](../part02/10-payment-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -25987,6 +27217,11 @@ func (s *RefundService) shouldAutoApprove(refund *Refund) bool {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-035 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `订单编排`、`状态机` |
+| 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4984` |
 
@@ -26096,6 +27331,8 @@ func (s *RefundService) shouldAutoApprove(refund *Refund) bool {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4984`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[订单系统](../part02/09-order-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -26110,6 +27347,11 @@ func (s *RefundService) shouldAutoApprove(refund *Refund) bool {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-036 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `订单编排`、`状态机` |
+| 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5054` |
 
@@ -26275,6 +27517,8 @@ func (r *OrderRepository) SearchOrders(ctx context.Context,
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5054`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[订单系统](../part02/09-order-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -26289,6 +27533,11 @@ func (r *OrderRepository) SearchOrders(ctx context.Context,
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-037 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `订单编排`、`状态机` |
+| 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5180` |
 
@@ -26480,6 +27729,8 @@ func (s *NotificationService) shouldSendSMS(status OrderStatus) bool {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5180`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[订单系统](../part02/09-order-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -26494,6 +27745,11 @@ func (s *NotificationService) shouldSendSMS(status OrderStatus) bool {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-038 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `订单编排`、`状态机` |
+| 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5332` |
 
@@ -26613,6 +27869,8 @@ func (s *OrderArchiveService) FindByID(ctx context.Context, orderID int64) (*Ord
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5332`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[订单系统](../part02/09-order-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -26627,6 +27885,11 @@ func (s *OrderArchiveService) FindByID(ctx context.Context, orderID int64) (*Ord
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-039 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `订单编排`、`状态机` |
+| 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5520` |
 
@@ -26747,6 +28010,8 @@ func GetRealTimeMetrics(ctx context.Context) (*OrderMetrics, error) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5520`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[订单系统](../part02/09-order-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -26761,6 +28026,11 @@ func GetRealTimeMetrics(ctx context.Context) (*OrderMetrics, error) {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-040 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `支付状态机`、`资金安全` |
+| 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5603` |
 
@@ -27021,6 +28291,8 @@ func (a *AlipayAdapter) VerifyCallback(callback *CallbackData) error {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5603`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[支付系统](../part02/10-payment-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -27035,6 +28307,11 @@ func (a *AlipayAdapter) VerifyCallback(callback *CallbackData) error {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-041 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `支付状态机`、`资金安全` |
+| 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5824` |
 
@@ -27160,6 +28437,8 @@ func (r *PaymentRepository) UpdateStatusWithVersion(ctx context.Context,
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5824`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[支付系统](../part02/10-payment-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -27174,6 +28453,11 @@ func (r *PaymentRepository) UpdateStatusWithVersion(ctx context.Context,
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-042 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `支付状态机`、`资金安全` |
+| 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5910` |
 
@@ -27397,6 +28681,8 @@ type ReconciliationReport struct {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5910`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[支付系统](../part02/10-payment-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -27411,6 +28697,11 @@ type ReconciliationReport struct {
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-043 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `支付状态机`、`资金安全` |
+| 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6094` |
 
@@ -27579,6 +28870,8 @@ func (h *CallbackHandler) retryCallback(ctx context.Context,
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6094`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[支付系统](../part02/10-payment-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -27593,6 +28886,11 @@ func (h *CallbackHandler) retryCallback(ctx context.Context,
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-044 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `支付状态机`、`资金安全` |
+| 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6223` |
 
@@ -27750,6 +29048,8 @@ T+30：月结算（新商家）
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6223`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[支付系统](../part02/10-payment-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -27764,6 +29064,11 @@ T+30：月结算（新商家）
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-045 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `支付状态机`、`资金安全` |
+| 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6341` |
 
@@ -27947,6 +29252,8 @@ func (s *PaymentSecurityService) RiskCheck(ctx context.Context,
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6341`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[支付系统](../part02/10-payment-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -27961,6 +29268,11 @@ func (s *PaymentSecurityService) RiskCheck(ctx context.Context,
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-046 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `支付状态机`、`资金安全` |
+| 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6599` |
 
@@ -28165,6 +29477,8 @@ func (s *RefundService) PartialRefund(ctx context.Context,
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6599`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[支付系统](../part02/10-payment-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -28179,6 +29493,11 @@ func (s *RefundService) PartialRefund(ctx context.Context,
 | --- | --- |
 | 题目编号 | Q-ECOM-TRADE-047 |
 | 题型 | 系统设计题 |
+| 范围 | 领域级：搜索、结算、订单与支付主链路 |
+| 难度 | 中等 |
+| 建议用时 | 30 分钟 |
+| 能力标签 | `支付状态机`、`资金安全` |
+| 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6887` |
 
@@ -28344,12 +29663,15 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6887`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[支付系统](../part02/10-payment-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
 - 我是否解释了失败、重试、对账和补偿如何闭环？
 - 我是否给出了与业务规模相匹配的性能与可靠性取舍？
 
+<a id="chapter39-peak"></a>
 ## 大促、秒杀、容量与可靠性
 
 本节覆盖大促、秒杀、容量与可靠性。
@@ -28366,6 +29688,11 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 | --- | --- |
 | 题目编号 | Q-ECOM-PEAK-001 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：峰值流量、容量规划与可靠性 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `容量规划`、`稳定性治理`、`容灾恢复` |
+| 场景标签 | `大促峰值`、`故障演练` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:215` |
 
@@ -28515,6 +29842,8 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:215`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -28529,6 +29858,11 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 | --- | --- |
 | 题目编号 | Q-ECOM-PEAK-002 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：峰值流量、容量规划与可靠性 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `容量规划`、`稳定性治理`、`容灾恢复` |
+| 场景标签 | `大促峰值`、`故障演练` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:325` |
 
@@ -28673,6 +30007,8 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:325`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -28687,6 +30023,11 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 | --- | --- |
 | 题目编号 | Q-ECOM-PEAK-003 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：峰值流量、容量规划与可靠性 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `容量规划`、`稳定性治理`、`可观测性` |
+| 场景标签 | `大促峰值`、`故障演练` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
 | 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1098` |
 
@@ -28894,6 +30235,8 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 
 迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1098`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -28908,6 +30251,11 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 | --- | --- |
 | 题目编号 | Q-ECOM-PEAK-004 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：峰值流量、容量规划与可靠性 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `容量规划`、`稳定性治理`、`削峰与预热` |
+| 场景标签 | `大促峰值`、`故障演练`、`秒杀活动` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4055` |
 
@@ -29156,6 +30504,8 @@ if (local_stock < 10) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4055`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -29170,6 +30520,11 @@ if (local_stock < 10) {
 | --- | --- |
 | 题目编号 | Q-ECOM-PEAK-005 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：峰值流量、容量规划与可靠性 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `容量规划`、`稳定性治理`、`削峰与预热` |
+| 场景标签 | `大促峰值`、`故障演练`、`秒杀活动` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
 | 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7696` |
 
@@ -29418,6 +30773,8 @@ if (product.is_seckill && isInSeckillTime()) {
 
 迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7696`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -29432,6 +30789,11 @@ if (product.is_seckill && isInSeckillTime()) {
 | --- | --- |
 | 题目编号 | Q-ECOM-PEAK-006 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：峰值流量、容量规划与可靠性 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `容量规划`、`稳定性治理`、`容灾恢复` |
+| 场景标签 | `大促峰值`、`故障演练` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5412` |
 
@@ -29579,6 +30941,8 @@ func (s *UserCreditService) UpdateCredit(ctx context.Context, userID int64, beha
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5412`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -29593,6 +30957,11 @@ func (s *UserCreditService) UpdateCredit(ctx context.Context, userID int64, beha
 | --- | --- |
 | 题目编号 | Q-ECOM-PEAK-007 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：峰值流量、容量规划与可靠性 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `容量规划`、`稳定性治理`、`支付降级` |
+| 场景标签 | `大促峰值`、`故障演练`、`支付高峰` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6485` |
 
@@ -29746,6 +31115,8 @@ func NewRoutingConfig() *RoutingConfig {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6485`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -29760,6 +31131,11 @@ func NewRoutingConfig() *RoutingConfig {
 | --- | --- |
 | 题目编号 | Q-ECOM-PEAK-008 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：峰值流量、容量规划与可靠性 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `容量规划`、`稳定性治理`、`支付降级` |
+| 场景标签 | `大促峰值`、`故障演练`、`支付高峰` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
 | 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6764` |
 
@@ -29922,6 +31298,8 @@ func (cb *CircuitBreaker) onSuccess() {
 
 迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6764`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -29936,6 +31314,11 @@ func (cb *CircuitBreaker) onSuccess() {
 | --- | --- |
 | 题目编号 | Q-ECOM-PEAK-009 |
 | 题型 | 系统设计题 |
+| 范围 | 平台级：峰值流量、容量规划与可靠性 |
+| 难度 | 进阶 |
+| 建议用时 | 45 分钟 |
+| 能力标签 | `容量规划`、`稳定性治理`、`容灾恢复` |
+| 场景标签 | `大促峰值`、`故障演练` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
 | 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:506` |
 
@@ -29979,12 +31362,15 @@ func (cb *CircuitBreaker) onSuccess() {
 
 迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:506`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
 - 我是否解释了失败、重试、对账和补偿如何闭环？
 - 我是否给出了与业务规模相匹配的性能与可靠性取舍？
 
+<a id="chapter39-cases"></a>
 ## 综合案例与白板题
 
 本节覆盖综合案例与白板设计。
@@ -29997,6 +31383,11 @@ func (cb *CircuitBreaker) onSuccess() {
 | --- | --- |
 | 题目编号 | Q-ECOM-CASE-001 |
 | 题型 | 综合案例 / 白板题 |
+| 范围 | 系统级：跨域方案设计与白板推演 |
+| 难度 | 进阶 |
+| 建议用时 | 60 分钟 |
+| 能力标签 | `系统设计`、`跨域权衡`、`高并发读` |
+| 场景标签 | `综合案例`、`白板推演`、`商品详情` |
 | 能力域 | 综合案例与白板设计 |
 | 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:13` |
 
@@ -30205,6 +31596,8 @@ QPS：100万
 
 迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:13`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[商品中心](../part02/03-product-center.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -30219,6 +31612,11 @@ QPS：100万
 | --- | --- |
 | 题目编号 | Q-ECOM-CASE-002 |
 | 题型 | 综合案例 / 白板题 |
+| 范围 | 系统级：跨域方案设计与白板推演 |
+| 难度 | 进阶 |
+| 建议用时 | 60 分钟 |
+| 能力标签 | `系统设计`、`跨域权衡`、`削峰与库存一致性` |
+| 场景标签 | `综合案例`、`白板推演`、`秒杀活动` |
 | 能力域 | 综合案例与白板设计 |
 | 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:182` |
 
@@ -30463,6 +31861,8 @@ func (s *SeckillService) CancelUnpaidOrders() {
 
 迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:182`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[营销系统](../part02/05-marketing-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -30477,6 +31877,11 @@ func (s *SeckillService) CancelUnpaidOrders() {
 | --- | --- |
 | 题目编号 | Q-ECOM-CASE-003 |
 | 题型 | 综合案例 / 白板题 |
+| 范围 | 系统级：跨域方案设计与白板推演 |
+| 难度 | 进阶 |
+| 建议用时 | 60 分钟 |
+| 能力标签 | `系统设计`、`跨域权衡`、`交易编排` |
+| 场景标签 | `综合案例`、`白板推演`、`订单履约` |
 | 能力域 | 综合案例与白板设计 |
 | 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:387` |
 
@@ -30646,6 +32051,8 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 
 迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:387`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[订单系统](../part02/09-order-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -30660,6 +32067,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 | --- | --- |
 | 题目编号 | Q-ECOM-CASE-004 |
 | 题型 | 综合案例 / 白板题 |
+| 范围 | 系统级：跨域方案设计与白板推演 |
+| 难度 | 进阶 |
+| 建议用时 | 60 分钟 |
+| 能力标签 | `系统设计`、`跨域权衡`、`韧性工程` |
+| 场景标签 | `综合案例`、`白板推演`、`大促峰值` |
 | 能力域 | 综合案例与白板设计 |
 | 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:517` |
 
@@ -30888,6 +32300,8 @@ func TestOrderCreate() {
 
 迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:517`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -30902,6 +32316,11 @@ func TestOrderCreate() {
 | --- | --- |
 | 题目编号 | Q-ECOM-CASE-005 |
 | 题型 | 综合案例 / 白板题 |
+| 范围 | 系统级：跨域方案设计与白板推演 |
+| 难度 | 进阶 |
+| 建议用时 | 60 分钟 |
+| 能力标签 | `系统设计`、`跨域权衡`、`资金安全` |
+| 场景标签 | `综合案例`、`白板推演`、`跨境支付` |
 | 能力域 | 综合案例与白板设计 |
 | 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:706` |
 
@@ -31120,6 +32539,8 @@ func (s *SettlementService) Settle(ctx context.Context,
 
 迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:706`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[支付系统](../part02/10-payment-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -31134,6 +32555,11 @@ func (s *SettlementService) Settle(ctx context.Context,
 | --- | --- |
 | 题目编号 | Q-ECOM-CASE-006 |
 | 题型 | 综合案例 / 白板题 |
+| 范围 | 系统级：跨域方案设计与白板推演 |
+| 难度 | 进阶 |
+| 建议用时 | 60 分钟 |
+| 能力标签 | `系统设计`、`跨域权衡`、`搜索架构` |
+| 场景标签 | `综合案例`、`白板推演`、`搜索导购` |
 | 能力域 | 综合案例与白板设计 |
 | 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:885` |
 
@@ -31353,6 +32779,8 @@ func (ltr *LearningToRank) extractFeatures(ctx context.Context,
 
 迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:885`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[搜索与导购](../part02/07-search-discovery.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -31367,6 +32795,11 @@ func (ltr *LearningToRank) extractFeatures(ctx context.Context,
 | --- | --- |
 | 题目编号 | Q-ECOM-CASE-007 |
 | 题型 | 综合案例 / 白板题 |
+| 范围 | 系统级：跨域方案设计与白板推演 |
+| 难度 | 进阶 |
+| 建议用时 | 60 分钟 |
+| 能力标签 | `系统设计`、`跨域权衡`、`韧性工程` |
+| 场景标签 | `综合案例`、`白板推演`、`大促峰值` |
 | 能力域 | 综合案例与白板设计 |
 | 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1065` |
 
@@ -31581,6 +33014,8 @@ var alertRules = []AlertRule{
 
 迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1065`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -31595,6 +33030,11 @@ var alertRules = []AlertRule{
 | --- | --- |
 | 题目编号 | Q-ECOM-CASE-008 |
 | 题型 | 综合案例 / 白板题 |
+| 范围 | 系统级：跨域方案设计与白板推演 |
+| 难度 | 进阶 |
+| 建议用时 | 60 分钟 |
+| 能力标签 | `系统设计`、`跨域权衡`、`交易编排` |
+| 场景标签 | `综合案例`、`白板推演`、`订单履约` |
 | 能力域 | 综合案例与白板设计 |
 | 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1240` |
 
@@ -31807,6 +33247,8 @@ func (c *InventoryConsumer) Consume(ctx context.Context, msg *OrderCreatedEvent)
 
 迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1240`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[订单系统](../part02/09-order-system.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -31821,6 +33263,11 @@ func (c *InventoryConsumer) Consume(ctx context.Context, msg *OrderCreatedEvent)
 | --- | --- |
 | 题目编号 | Q-ECOM-CASE-009 |
 | 题型 | 综合案例 / 白板题 |
+| 范围 | 系统级：跨域方案设计与白板推演 |
+| 难度 | 进阶 |
+| 建议用时 | 60 分钟 |
+| 能力标签 | `系统设计`、`跨域权衡`、`数据建模` |
+| 场景标签 | `综合案例`、`白板推演`、`用户运营` |
 | 能力域 | 综合案例与白板设计 |
 | 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1413` |
 
@@ -32004,6 +33451,8 @@ func (s *UserProfileService) calculateConsumptionLevel(
 
 迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1413`。本章不依赖旧 Part Four 文件链接。
 
+相关章节：[电商客户生命周期](../part02/13-ecommerce-customer-lifecycle.md)。
+
 #### 复盘清单
 
 - 我是否定义了数据所有权、状态机和跨域协作边界？
@@ -32018,6 +33467,11 @@ func (s *UserProfileService) calculateConsumptionLevel(
 | --- | --- |
 | 题目编号 | Q-ECOM-CASE-010 |
 | 题型 | 综合案例 / 白板题 |
+| 范围 | 系统级：跨域方案设计与白板推演 |
+| 难度 | 进阶 |
+| 建议用时 | 60 分钟 |
+| 能力标签 | `系统设计`、`跨域权衡`、`韧性工程` |
+| 场景标签 | `综合案例`、`白板推演`、`大促峰值` |
 | 能力域 | 综合案例与白板设计 |
 | 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1557` |
 
@@ -32147,6 +33601,8 @@ func GenerateReviewReport(ctx context.Context,
 #### 关联正文
 
 迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1557`。本章不依赖旧 Part Four 文件链接。
+
+相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
 
 #### 复盘清单
 
