@@ -69,6 +69,7 @@ test('renderHomepageMarkup escapes untrusted post text and emits archive and boo
   assert.match(html, /AI &lt;Agent&gt;/);
   assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
   assert.match(html, /a&amp;b/);
+  assert.match(html, /categorized-home__post-main/);
   assert.match(html, /\/categories\/AI-与-Agent\//);
   assert.match(html, /\/ai-book\//);
   assert.match(html, /\/system-design-architecture-book\//);

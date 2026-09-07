@@ -74,7 +74,7 @@ function renderHomepageMarkup(groups) {
     `<a class="categorized-home__book" href="${escapeHtml(href)}">${escapeHtml(label)}</a>`).join('');
   const sections = groups.map(group => {
     const rows = group.posts.length
-      ? group.posts.map(post => `<li class="categorized-home__post"><time datetime="${escapeHtml(post.date)}">${escapeHtml(post.date)}</time><a href="/${escapeHtml(post.path)}">${escapeHtml(post.title)}</a><span>${post.tags.map(tag => `<span class="categorized-home__tag">${escapeHtml(tag)}</span>`).join('')}</span></li>`).join('')
+      ? group.posts.map(post => `<li class="categorized-home__post"><time datetime="${escapeHtml(post.date)}">${escapeHtml(post.date)}</time><div class="categorized-home__post-main"><a href="/${escapeHtml(post.path)}">${escapeHtml(post.title)}</a><span class="categorized-home__tags">${post.tags.map(tag => `<span class="categorized-home__tag">${escapeHtml(tag)}</span>`).join('')}</span></div></li>`).join('')
       : '<li class="categorized-home__empty">暂无已发布文章。</li>';
     const archive = group.archivePath
       ? `<a href="/${escapeHtml(group.archivePath)}">查看全部</a>`
