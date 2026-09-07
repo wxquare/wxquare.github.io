@@ -1,0 +1,178 @@
+---
+title: 公开资料库
+date: 2026-09-04
+layout: page
+---
+
+本目录收录公开且适合公开保存的第三方技术资料，以及本人创作或确认可公开的第一方演示资料；无法确认再分发边界的资料只保留原始链接。
+
+每条资料记录均包含标题、作者或机构、类型（book、paper、slide、presentation 或 other）、主题、原始 URL 或来源说明、本地路径或“仅外链”、再分发说明和加入日期。详细准入与再分发边界以仓库文件 `docs/library-policy.md` 为准。
+
+## Books
+
+### 深入理解 AI Agent：设计原理与工程实践
+
+- 作者/机构：李博杰
+- 类型：book
+- 主题：AI Agent、上下文工程、记忆、知识库、工具、Coding Agent 和评估
+- 原始来源：用户提供的本地资料，文件内标注版本 v1.2（2026-07-22）
+- 本地路径：[AI-Agents-in-Depth-zh-CN.pdf](/library/books/AI-Agents-in-Depth-zh-CN.pdf)
+- SHA-256：`19dab0c60877d9ff122f63fe88ab4a1f35ab1b20b0aecea7e95ec9485d4e80e6`
+- 再分发：用户已明确批准本地托管；版权归原作者及相关权利人，公开使用前应遵守原始授权边界。
+- 加入日期：2026-09-04
+
+### 代码整洁之道
+
+- 作者/机构：原书作者及相关权利人
+- 类型：book
+- 主题：代码质量、可读性、重构和软件设计
+- 原始来源：用户提供的本地资料
+- 本地路径：[代码整洁之道.pdf](/library/books/代码整洁之道.pdf)
+- SHA-256：`c6af4eca66c4f7f947756d739d37230ff7f560a04f16397be4c13f645b3adf82`
+- 再分发：用户已明确批准本地托管；版权归原作者及相关权利人，公开使用前应遵守原始授权边界。
+- 加入日期：2026-09-04
+
+### 实现领域驱动设计
+
+- 作者/机构：原书作者及相关权利人
+- 类型：book
+- 主题：领域驱动设计、战略设计、战术设计和架构落地
+- 原始来源：用户提供的本地资料
+- 本地路径：[实现领域驱动设计.pdf](/library/books/实现领域驱动设计.pdf)
+- SHA-256：`170a6b70246b62e042288fee790a8cf3b24c408f11146b9574eea4e6720c954b`
+- 再分发：用户已明确批准本地托管；版权归原作者及相关权利人，公开使用前应遵守原始授权边界。
+- 加入日期：2026-09-04
+
+### 领域驱动设计：软件核心复杂性应对之道
+
+- 作者/机构：原书作者及相关权利人
+- 类型：book
+- 主题：领域驱动设计、统一语言、限界上下文和软件核心复杂性
+- 原始来源：用户提供的本地资料
+- 本地路径：[领域驱动设计：软件核心复杂性应对之道.pdf](/library/books/领域驱动设计：软件核心复杂性应对之道.pdf)
+- SHA-256：`13ca679c890fa73eddaab40bab36a1886f5723645475dff7675e9ffcc1140f9e`
+- 再分发：用户已明确批准本地托管；版权归原作者及相关权利人，公开使用前应遵守原始授权边界。
+- 加入日期：2026-09-04
+
+### Domain-Driven Design Quickly
+
+- 作者/机构：InfoQ.com；主要由 Abel Avram 总结，Floyd Marinescu 任编辑
+- 类型：book
+- 主题：领域驱动设计、统一语言和领域建模
+- 原始 URL：[InfoQ 官方下载页](https://www.infoq.com/minibooks/download/domain-driven-design-quickly/)
+- 本地路径：[DDD(领域驱动设计)-精简版.pdf](/library/books/DDD%28领域驱动设计%29-精简版.pdf)
+- SHA-256：`552cf54a8462baa2c77d8f7f2fc392c300f0c80e2adf17becbb76020ca2ebd55`
+- 再分发：用户已明确批准将本地 PDF 托管到 public；资料来源和再分发边界以 InfoQ 官方页面及其条款为准。
+- 加入日期：2026-09-03
+
+### Designing Data-Intensive Applications
+
+- 作者/机构：Martin Kleppmann；O'Reilly Media
+- 类型：book
+- 主题：数据系统、分布式系统、可靠性和可扩展性
+- 原始 URL：[O'Reilly 官方页面](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/copyright-page01.html)
+- 本地路径：[OReilly.Designing.Data-Intensive.Applications.pdf](/library/books/OReilly.Designing.Data-Intensive.Applications.pdf)
+- SHA-256：`3480da3ae9a353067c574924e296bee55b63adfb4af43cbb852a98fdd91e0394`
+- 再分发：用户已明确批准本地托管该 PDF，并批准其超过 10 MiB 的单文件例外；版权归原作者和 O'Reilly Media，来源和再分发边界以官方条款为准。
+- 加入日期：2026-09-03
+
+## Slides
+
+### Designs, Lessons and Advice from Building Large Distributed Systems
+
+- 作者/机构：Jeff Dean；LADIS 2009
+- 类型：slide
+- 主题：大规模分布式系统、性能和高可用性
+- 原始 URL：[Cornell 官方 PDF](https://www.cs.cornell.edu/projects/ladis2009/talks/dean-keynote-ladis2009.pdf)
+- 本地路径：[dean-keynote-ladis2009.pdf](/library/slides/dean-keynote-ladis2009.pdf)
+- SHA-256：`4b1d04c7e89bc3ae618f3638d67777e44c8803e3f05c9e34a87c4e510b961814`
+- 再分发：用户已明确批准将本地 PDF 托管到 public；保留 Cornell 公开来源链接，版权和再分发边界以来源方条款为准。
+- 加入日期：2026-09-03
+
+### Software Engineering Advice from Building Large-Scale Distributed Systems
+
+- 作者/机构：Jeff Dean；Google / Stanford CS295
+- 类型：slide
+- 主题：大规模分布式系统的软件工程实践
+- 原始 URL：[Google 官方 PDF](https://static.googleusercontent.com/media/research.google.com/en//people/jeff/stanford-295-talk.pdf)
+- 本地路径：[stanford-295-talk.pdf](/library/slides/stanford-295-talk.pdf)
+- SHA-256：`708ac0a79e5ddefebabaf2a273498412b72f6e97a984acd6fefb6029f1911b43`
+- 再分发：用户已明确批准将本地 PDF 托管到 public；保留 Google 公开来源链接，版权和再分发边界以来源方条款为准。
+- 加入日期：2026-09-03
+
+## Presentations
+
+### 《数据密集型应用系统设计》读书分享（2020 PDF）
+
+- 作者/机构：本人
+- 类型：presentation
+- 主题：数据系统、分布式系统、可靠性和可扩展性
+- 原始来源：第一方读书分享材料，原始文件名为 `DDIA 分享.pdf`
+- 本地路径：[ddia-reading-share-2020.pdf](/library/presentations/ddia-reading-share-2020.pdf)
+- SHA-256：`f9563819486e0b35a555e2f298e8007157cc6c90490bb64c9040c16085b2bafd`
+- 再分发：本人创作，已确认可公开；内容为 25 页读书分享材料。
+- 加入日期：2026-09-03
+
+### 《数据密集型应用系统设计》读书分享（2022 PPTX）
+
+- 作者/机构：本人
+- 类型：presentation
+- 主题：数据系统、分布式系统、可靠性和可扩展性
+- 原始来源：第一方读书分享材料，原始文件名为 `DDIA 读书分享.pptx`
+- 本地路径：[ddia-reading-share-2022.pptx](/library/presentations/ddia-reading-share-2022.pptx)
+- SHA-256：`3904daca073c41d803122e13ea53206b0960f1325d9c5d89c4e5c956f59a4e90`
+- 再分发：本人创作，已确认可公开；内容为 18 页读书分享演示文稿。该文件超过 10 MiB，保留本地副本的存储例外沿用原公开演示资料确认。
+- 加入日期：2026-09-03
+
+### Kubernetes Network
+
+- 作者/机构：本人
+- 类型：presentation
+- 主题：Kubernetes 网络、容器网络、Service 和 Ingress
+- 原始来源：第一方本地演示资料；PDF 内保留相关参考链接
+- 本地路径：[k8s-network.pdf](/library/presentations/k8s-network.pdf)
+- SHA-256：`2acb5e5fa7f3831665acafb6b985c86edb4c32d5bc4c6c46693bc35e0cffe66f`
+- 再分发：本人创作，已确认可公开；资料内的第三方参考链接作为内容来源保留。
+- 加入日期：2026-09-04
+
+## Other
+
+### DaSiamRPN VOT2018 result image
+
+- 作者/机构：foolwood
+- 类型：other
+- 主题：视觉目标跟踪
+- 原始 URL：[votresult.png](https://github.com/foolwood/DaSiamRPN/blob/a2cf47acdd30c28be87e33275cabfe6d45f38d38/votresult.png)
+- 本地路径：[votresult.png](/library/other/DaSiamRPN/votresult.png)
+- 许可来源：[上游 LICENSE](https://github.com/foolwood/DaSiamRPN/blob/a2cf47acdd30c28be87e33275cabfe6d45f38d38/LICENSE)
+- 本地许可：[LICENSE](/library/other/DaSiamRPN/LICENSE)
+- 上游提交：`a2cf47acdd30c28be87e33275cabfe6d45f38d38`（`DaSiamRPN VOT2018`）
+- SHA-256：`e5da36f3d93857877e4c9a470796e31034efb1dd8cab5af2b687b4db2abc2ec6`
+- 许可 SHA-256：`06a9e0a7d52dd7fc23a935054c3f3f25cde3cfc566a4873fdc9c46035d65db98`
+- 再分发：上游仓库采用 MIT License；本地文件已与上述固定上游提交的 SHA-256 精确匹配，完整版权与许可 notice 随本地副本保留。
+- 加入日期：2026-09-01
+
+### DaSiamRPN installation instructions
+
+- 作者/机构：foolwood
+- 类型：other
+- 主题：视觉目标跟踪
+- 原始 URL：[run_install.sh](https://github.com/foolwood/DaSiamRPN/blob/a2cf47acdd30c28be87e33275cabfe6d45f38d38/run_install.sh)
+- 本地路径：仅外链
+- 上游提交：`a2cf47acdd30c28be87e33275cabfe6d45f38d38`（包含 `run_install.sh`）
+- 再分发：仅链接上述固定官方上游；不发布私有本地副本。
+- 加入日期：2026-09-01
+
+### DaSiamRPN upstream README
+
+- 作者/机构：foolwood
+- 类型：other
+- 主题：视觉目标跟踪
+- 原始 URL：[README.md](https://github.com/foolwood/DaSiamRPN/blob/a2cf47acdd30c28be87e33275cabfe6d45f38d38/README.md)
+- 本地路径：[README.md](/library/other/DaSiamRPN/README.md)
+- 许可来源：[上游 LICENSE](https://github.com/foolwood/DaSiamRPN/blob/a2cf47acdd30c28be87e33275cabfe6d45f38d38/LICENSE)
+- 本地许可：[LICENSE](/library/other/DaSiamRPN/LICENSE)
+- 上游提交：`a2cf47acdd30c28be87e33275cabfe6d45f38d38`（`DaSiamRPN`）
+- SHA-256：`ead76ed205c9adbf8011371104edb30bacb1413d18b55b3aa1ee29d6cf0a83a`
+- 再分发：上游仓库采用 MIT License；本地副本保留上游说明及许可引用。
+- 加入日期：2026-09-03
