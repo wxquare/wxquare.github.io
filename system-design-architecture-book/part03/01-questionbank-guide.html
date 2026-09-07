@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 44 章 商品、库存、营销与计价专题 - 系统设计与架构实战：原理、工程与电商案例</title>
+        <title>第 37 章 系统设计题库：使用说明、双索引与训练路线 - 系统设计与架构实战：原理、工程与电商案例</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1eb2ef6e.js";
+            window.path_to_searchindex_js = "../searchindex-b9c9238d.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-bffc55bb.js"></script>
+        <script src="../toc-35b55e5b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,72 +177,126 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第-44-章-商品库存营销与计价专题"><a class="header" href="#第-44-章-商品库存营销与计价专题">第 44 章 商品、库存、营销与计价专题</a></h1>
-<p>商品、库存、营销和计价属于电商系统的供给与转化基础。面试中这类问题通常不只考单个系统，而是考候选人能否说清楚边界：商品负责什么，库存负责什么，营销和计价谁前谁后，哪些数据是权威数据，哪些可以异步同步。</p>
-<h2 id="商品中心"><a class="header" href="#商品中心">商品中心</a></h2>
-<p>商品中心的核心不是“建几张商品表”，而是管理商品主数据、类目属性、SPU/SKU、上下架状态、审核流程和对外发布契约。</p>
-<p>高频追问：</p>
+                        <h1 id="第-37-章-系统设计题库使用说明双索引与训练路线"><a class="header" href="#第-37-章-系统设计题库使用说明双索引与训练路线">第 37 章 系统设计题库：使用说明、双索引与训练路线</a></h1>
+<p>本题库把系统设计面试拆成可限时练习、可追问、可复盘的题卡。候选人用题卡训练稳定的判断和表达；面试官用相同结构观察需求理解、权威状态、链路设计和取舍能力。</p>
+<h2 id="题卡标签难度与建议用时约定"><a class="header" href="#题卡标签难度与建议用时约定">题卡标签、难度与建议用时约定</a></h2>
+<p>每张题卡的元信息使用同一套口径，便于候选人选题和面试官配题：</p>
 <ul>
-<li>SPU 和 SKU 如何建模？</li>
-<li>类目属性如何支持不同品类差异？</li>
-<li>商品草稿、审核态和线上态如何隔离？</li>
-<li>商品变更如何同步到搜索、推荐、库存和营销？</li>
-<li>商品中心和供应商商品数据是什么关系？</li>
+<li><code>能力标签</code>标记需要展示的可迁移能力，例如领域建模、状态机、容量规划、数据一致性、可观测性或架构演进；每题保留 2 至 4 个标签，避免只罗列中间件名称。</li>
+<li><code>场景标签</code>标记题目的业务和运行条件，例如商品供给、交易主链路、大促峰值、支付回调、故障演练或运营后台；它用于组合题目，不替代能力标签。</li>
+<li><code>范围</code>区分组件级、领域级、系统级和平台级问题。先从范围相近的题开始，再跨域组合。</li>
+<li><code>难度</code>分为<code>基础</code>、<code>中等</code>和<code>进阶</code>：基础题要求能说清核心概念和边界；中等题要求给出主链路、状态和失败处理；进阶题要求量化约束、权衡一致性与性能，并覆盖恢复和演进。</li>
+<li><code>建议用时</code>是一次完整口述练习的参考：基础题约 15 分钟，中等题约 30 分钟，进阶题约 45 分钟，综合案例可延长至 60 分钟。时间不足时优先保留目标、状态、主链路、失败处理和取舍。</li>
 </ul>
-<p>答题时要强调：商品中心是主数据系统，不应该被搜索展示、库存扣减或营销规则污染。它负责定义“商品是什么”，不负责所有使用商品的场景。</p>
-<h2 id="库存系统"><a class="header" href="#库存系统">库存系统</a></h2>
-<p>库存系统的核心矛盾是“高并发可售判断”和“最终正确性”。库存不是一个简单数字，而是可售、锁定、已售、退回、供应商库存、门店库存、券码库存等多种语义的组合。</p>
-<p>高频追问：</p>
-<ul>
-<li>如何防止超卖？</li>
-<li>Redis 预扣和 MySQL 账本如何配合？</li>
-<li>订单取消、支付超时后如何释放库存？</li>
-<li>多仓、多门店、日期库存如何建模？</li>
-<li>供应商实时库存和平台库存不一致怎么办？</li>
-</ul>
-<p>好的回答通常会区分热路径和权威路径：热路径可以用 Redis 提升并发，权威路径要有库存流水、状态机、对账和补偿。</p>
-<h2 id="营销系统"><a class="header" href="#营销系统">营销系统</a></h2>
-<p>营销系统的难点在于规则复杂、活动叠加、预算控制和核销一致性。优惠券、满减、折扣、秒杀、会员价看起来都是“优惠”，但约束和核销方式不同。</p>
-<p>高频追问：</p>
-<ul>
-<li>优惠券如何防止重复领取和重复使用？</li>
-<li>活动库存和商品库存有什么区别？</li>
-<li>多个优惠如何叠加和互斥？</li>
-<li>营销试算和最终核销如何保持一致？</li>
-<li>大促期间营销规则如何缓存和降级？</li>
-</ul>
-<p>营销系统不要直接修改订单主状态。它通常通过试算、锁定、核销、释放这些动作与交易链路协作。</p>
-<h2 id="计价系统"><a class="header" href="#计价系统">计价系统</a></h2>
-<p>计价系统负责把商品价格、营销优惠、会员权益、税费、运费等因素合成为用户最终看到和支付的价格。它的关键是可解释、可追溯、可复算。</p>
-<p>高频追问：</p>
-<ul>
-<li>计价结果如何防篡改？</li>
-<li>PDP、购物车、结算页和下单页价格不一致怎么办？</li>
-<li>价格快照应保存在哪里？</li>
-<li>计价和营销如何分工？</li>
-<li>多币种、多地区、多税率如何扩展？</li>
-</ul>
-<p>面试中可以用一句话概括：<strong>营销决定“能优惠多少”，计价决定“最终应付多少以及为什么”。</strong></p>
-<h2 id="综合题回答思路"><a class="header" href="#综合题回答思路">综合题回答思路</a></h2>
-<p>如果题目要求设计“商品下单前链路”，可以按下面顺序讲：</p>
+<p><a id="chapter37-candidate-workflow"></a></p>
+<h2 id="候选人训练工作流"><a class="header" href="#候选人训练工作流">候选人训练工作流</a></h2>
+<p>每次练习先选一张题卡和时长，按下面顺序作答：</p>
 <ol>
-<li>商品中心提供商品、SKU、类目和上下架状态。</li>
-<li>库存系统提供可售判断和预占能力。</li>
-<li>营销系统完成优惠试算、活动资格校验和权益锁定。</li>
-<li>计价系统汇总价格、优惠、运费、税费并生成价格明细。</li>
-<li>结算或订单系统保存必要快照，避免后续价格变化影响历史订单。</li>
+<li>澄清目标、核心用户、成功指标、约束和非目标。</li>
+<li>估算峰值请求、读写比例、数据增长、延迟预算和容量余量。</li>
+<li>先画高层主路径，再说明关键状态放在哪里。</li>
+<li>分开讲读路径如何加速、写路径如何保证正确性。</li>
+<li>补充超时、重试、幂等、降级、补偿、监控和人工处理。</li>
+<li>收束当前方案的边界、代价与下一阶段演进。</li>
 </ol>
-<p>这个回答顺序能自然体现边界和协作，而不是把所有逻辑堆进订单系统。</p>
+<p>开场可先说明：“我先确认目标和约束，再估算规模，画出主链路并拆开读写路径，随后说明失败处理，最后补充演进和取舍。”这能让面试官知道回答结构，也方便被打断后回到主线。</p>
+<p>练习结束后，不要只检查是否提到缓存、消息队列或分库分表；应检查每个组件是否有明确职责、权威事实是否清楚、失败后果是否被覆盖。</p>
+<h2 id="面试官评估工作流"><a class="header" href="#面试官评估工作流">面试官评估工作流</a></h2>
+<p>面试官先给出题干中的必要约束，观察候选人是否主动量化不完整信息，再沿候选人自己的假设追问。评估重点是：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>观察点</th><th>合格表现</th><th>深入表现</th></tr>
+</thead>
+<tbody>
+<tr><td>问题定义</td><td>先问目标、规模和边界</td><td>说明不同约束会改变哪些方案</td></tr>
+<tr><td>主链路</td><td>能顺序说明请求流转</td><td>明确同步点、异步点和用户可见结果</td></tr>
+<tr><td>状态与数据</td><td>能给出存储选择</td><td>区分权威状态、缓存和派生读模型</td></tr>
+<tr><td>风险处理</td><td>提到常见故障</td><td>说明幂等、补偿、对账和恢复责任</td></tr>
+<tr><td>取舍与演进</td><td>能说出优缺点</td><td>能给出当前边界和逐步演进条件</td></tr>
+</tbody>
+</table>
+</div>
+<p>递进追问应优先围绕候选人主动提出的数字、组件和承诺，例如“峰值再放大十倍怎么办”“缓存失效时谁是事实来源”“重试导致重复副作用如何收敛”。</p>
+<p><a id="chapter37-whiteboard-capacity"></a></p>
+<h2 id="白板与容量表达"><a class="header" href="#白板与容量表达">白板与容量表达</a></h2>
+<p>白板从少到多展开，避免一开始堆满组件：</p>
+<ol>
+<li>写出目标、核心指标和非目标。</li>
+<li>写出容量假设和峰值放大口径。</li>
+<li>画入口、应用服务、权威存储、缓存、异步链路和关键下游。</li>
+<li>用不同箭头或编号拆读路径与写路径。</li>
+<li>在有风险的边上标记超时、限流、幂等、重试或补偿。</li>
+<li>在图旁写当前瓶颈、监控指标和演进方向。</li>
+</ol>
+<p>容量估算至少覆盖读请求、写请求、峰值并发、读写比例、数据增长、带宽、热点、异步重试流量和外部依赖。估算不需要假装精确到机器数，但必须说明口径如何影响选择：读高时优先设计缓存和读模型，写高时考虑削峰、分片和异步化，热点集中时考虑预热、隔离和限流，消息量大时考虑积压、回压和消费恢复。</p>
+<p>可使用稳定句式：</p>
+<ul>
+<li>“这里先把权威数据和读模型分开。”</li>
+<li>“这条链路允许最终一致，但需要补偿和对账兜底。”</li>
+<li>“这个组件解决吞吐或延迟问题，不替代业务幂等。”</li>
+<li>“规模未到阈值前先保持简单实现，同时保留分片键和归档策略。”</li>
+<li>“故障时优先保护核心交易，非核心推荐、通知和营销能力可以降级。”</li>
+</ul>
+<h2 id="自我复盘方法"><a class="header" href="#自我复盘方法">自我复盘方法</a></h2>
+<p>每道题结束后按三层复盘：</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>层次</th><th>检查问题</th></tr>
+</thead>
+<tbody>
+<tr><td>结构</td><td>是否按目标、规模、链路、状态、失败、演进的顺序展开？</td></tr>
+<tr><td>内容</td><td>每个关键结论是否有业务约束或数量级依据？是否说明权威来源和失败处理？</td></tr>
+<tr><td>表达</td><td>是否先报结构、避免术语堆叠，并在结尾说明取舍和边界？</td></tr>
+</tbody>
+</table>
+</div>
+<p>把失分点记录为下一次可验证的动作，例如“下次先写读写比例”“下次补充支付回调的幂等键”，而不是笼统记为“加强可靠性”。复练时改变一个约束并重答，确认模板能够适应变化而不是死记答案。</p>
+<h2 id="按能力索引"><a class="header" href="#按能力索引">按能力索引</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>能力</th><th>题卡</th></tr>
+</thead>
+<tbody>
+<tr><td>需求澄清与范围</td><td><a href="02-general-questionbank.html#q-gen-scope-01系统设计面试与算法面试的区别是什么">Q-GEN-SCOPE-01</a>、<a href="02-general-questionbank.html#q-gen-scope-02设计秒杀系统前需要澄清什么">Q-GEN-SCOPE-02</a></td></tr>
+<tr><td>容量估算</td><td><a href="02-general-questionbank.html#q-gen-cap-01如何把容量估算转化为设计依据">Q-GEN-CAP-01</a></td></tr>
+<tr><td>权威状态与一致性</td><td><a href="02-general-questionbank.html#q-gen-data-01为什么核心交易状态要有权威来源">Q-GEN-DATA-01</a>、<a href="02-general-questionbank.html#q-gen-data-02系统设计题中如何回答一致性问题">Q-GEN-DATA-02</a>、<a href="02-general-questionbank.html#q-gen-data-03为什么核心交易状态通常放在-mysql">Q-GEN-DATA-03</a>、<a href="02-general-questionbank.html#q-gen-data-04库存扣减如何防止超卖">Q-GEN-DATA-04</a>、<a href="02-general-questionbank.html#q-gen-data-05缓存和数据库不一致怎么办">Q-GEN-DATA-05</a>、<a href="02-general-questionbank.html#q-gen-data-06分布式锁能解决所有并发问题吗">Q-GEN-DATA-06</a></td></tr>
+<tr><td>可靠性</td><td><a href="02-general-questionbank.html#q-gen-rel-01如何解释高可用">Q-GEN-REL-01</a>、<a href="02-general-questionbank.html#q-gen-rel-02超时重试与幂等如何协作">Q-GEN-REL-02</a>、<a href="02-general-questionbank.html#q-gen-rel-03什么时候用熔断什么时候用降级">Q-GEN-REL-03</a></td></tr>
+<tr><td>中间件选型</td><td><a href="02-general-questionbank.html#q-gen-mw-01什么场景应该引入消息队列">Q-GEN-MW-01</a>、<a href="02-general-questionbank.html#q-gen-mw-02检索场景为什么不总是使用-elasticsearch">Q-GEN-MW-02</a>、<a href="02-general-questionbank.html#q-gen-mw-03如何降低-kafka-消息丢失风险">Q-GEN-MW-03</a>、<a href="02-general-questionbank.html#q-gen-mw-04消息重复时如何保证结果正确">Q-GEN-MW-04</a>、<a href="02-general-questionbank.html#q-gen-mw-05何时选择-elasticsearch-而不是-mysql">Q-GEN-MW-05</a></td></tr>
+<tr><td>架构抽象与演进</td><td><a href="02-general-questionbank.html#q-gen-evo-01高频系统设计题的底层共性是什么">Q-GEN-EVO-01</a>、<a href="02-general-questionbank.html#q-gen-evo-02系统设计面试后如何复盘并改进">Q-GEN-EVO-02</a></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="按场景索引"><a class="header" href="#按场景索引">按场景索引</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>场景</th><th>题卡</th></tr>
+</thead>
+<tbody>
+<tr><td>面试方法与白板表达</td><td><a href="02-general-questionbank.html#q-gen-scope-01系统设计面试与算法面试的区别是什么">Q-GEN-SCOPE-01</a>、<a href="02-general-questionbank.html#q-gen-cap-01如何把容量估算转化为设计依据">Q-GEN-CAP-01</a>、<a href="02-general-questionbank.html#q-gen-evo-02系统设计面试后如何复盘并改进">Q-GEN-EVO-02</a></td></tr>
+<tr><td>秒杀、库存与交易</td><td><a href="02-general-questionbank.html#q-gen-scope-02设计秒杀系统前需要澄清什么">Q-GEN-SCOPE-02</a>、<a href="02-general-questionbank.html#q-gen-data-03为什么核心交易状态通常放在-mysql">Q-GEN-DATA-03</a>、<a href="02-general-questionbank.html#q-gen-data-04库存扣减如何防止超卖">Q-GEN-DATA-04</a></td></tr>
+<tr><td>缓存与并发控制</td><td><a href="02-general-questionbank.html#q-gen-data-05缓存和数据库不一致怎么办">Q-GEN-DATA-05</a>、<a href="02-general-questionbank.html#q-gen-data-06分布式锁能解决所有并发问题吗">Q-GEN-DATA-06</a></td></tr>
+<tr><td>异步消息</td><td><a href="02-general-questionbank.html#q-gen-mw-01什么场景应该引入消息队列">Q-GEN-MW-01</a>、<a href="02-general-questionbank.html#q-gen-mw-03如何降低-kafka-消息丢失风险">Q-GEN-MW-03</a>、<a href="02-general-questionbank.html#q-gen-mw-04消息重复时如何保证结果正确">Q-GEN-MW-04</a></td></tr>
+<tr><td>搜索与复杂查询</td><td><a href="02-general-questionbank.html#q-gen-mw-02检索场景为什么不总是使用-elasticsearch">Q-GEN-MW-02</a>、<a href="02-general-questionbank.html#q-gen-mw-05何时选择-elasticsearch-而不是-mysql">Q-GEN-MW-05</a></td></tr>
+<tr><td>故障治理与演进</td><td><a href="02-general-questionbank.html#q-gen-rel-01如何解释高可用">Q-GEN-REL-01</a>、<a href="02-general-questionbank.html#q-gen-rel-02超时重试与幂等如何协作">Q-GEN-REL-02</a>、<a href="02-general-questionbank.html#q-gen-rel-03什么时候用熔断什么时候用降级">Q-GEN-REL-03</a>、<a href="02-general-questionbank.html#q-gen-evo-01高频系统设计题的底层共性是什么">Q-GEN-EVO-01</a></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="训练路线"><a class="header" href="#训练路线">训练路线</a></h2>
+<p>先完成 <code>Q-GEN-SCOPE-01</code> 和 <code>Q-GEN-CAP-01</code>，建立答题顺序；再选择数据、可靠性和中间件题卡练习权威状态、异常和取舍；最后用 <code>Q-GEN-EVO-01</code> 做综合归纳，并以 <code>Q-GEN-EVO-02</code> 把失分点转成下一轮训练动作。短时练习先保证结构完整，长时练习再增加容量、追问和演进约束。</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../part03/03-ecommerce-architecture-interview.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../part02/13-ecommerce-customer-lifecycle.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../part03/05-search-cart-order-payment-interview.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../part03/02-general-questionbank.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -252,11 +306,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../part03/03-ecommerce-architecture-interview.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../part02/13-ecommerce-customer-lifecycle.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../part03/05-search-cart-order-payment-interview.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../part03/02-general-questionbank.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

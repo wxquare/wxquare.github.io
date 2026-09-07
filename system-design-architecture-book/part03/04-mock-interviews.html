@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 46 章 白板答辩与容量估算表达 - 系统设计与架构实战：原理、工程与电商案例</title>
+        <title>第 40 章 系统设计模拟面试 - 系统设计与架构实战：原理、工程与电商案例</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1eb2ef6e.js";
+            window.path_to_searchindex_js = "../searchindex-b9c9238d.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-bffc55bb.js"></script>
+        <script src="../toc-35b55e5b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,78 +177,99 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第-46-章-白板答辩与容量估算表达"><a class="header" href="#第-46-章-白板答辩与容量估算表达">第 46 章 白板答辩与容量估算表达</a></h1>
-<p>系统设计面试的白板表达，本质上是在有限时间内把问题拆开、把取舍讲清楚、把风险兜住。好的白板不是图画得复杂，而是让听的人知道每条线、每个组件、每个数据流为什么存在。</p>
-<h2 id="白板答辩顺序"><a class="header" href="#白板答辩顺序">白板答辩顺序</a></h2>
-<p>建议按下面的顺序组织：</p>
-<ol>
-<li><strong>确认目标</strong>：业务目标、核心指标、非目标。</li>
-<li><strong>估算规模</strong>：用户量、QPS、数据量、峰值、增长。</li>
-<li><strong>画主链路</strong>：入口、服务、存储、缓存、消息和下游。</li>
-<li><strong>拆读写路径</strong>：读路径如何加速，写路径如何保证正确性。</li>
-<li><strong>处理异常</strong>：超时、重试、幂等、补偿、降级。</li>
-<li><strong>说明演进</strong>：从简单方案到复杂方案如何平滑升级。</li>
-</ol>
-<p>先报结构再展开，会让你的回答更像技术方案评审，而不是临场背诵。</p>
-<h2 id="容量估算口径"><a class="header" href="#容量估算口径">容量估算口径</a></h2>
-<p>容量估算不要求精确，但要有口径。以电商下单链路为例，可以这样估：</p>
-<pre><code class="language-text">DAU = 1000 万
-高峰小时活跃 = DAU * 10% = 100 万
-下单转化 = 高峰活跃 * 5% = 5 万单/小时
-平均下单 QPS = 50000 / 3600 ≈ 14 QPS
-峰值放大 = 10 倍到 50 倍
-峰值下单 QPS ≈ 140 到 700 QPS
-</code></pre>
-<p>如果是大促秒杀，不能用均匀分布估算，要按活动瞬时峰值估算。例如 10 万人同时抢 1 万件商品，入口请求、库存扣减和排队系统的设计会完全不同。</p>
-<h2 id="常见估算维度"><a class="header" href="#常见估算维度">常见估算维度</a></h2>
+                        <h1 id="第-40-章-系统设计模拟面试"><a class="header" href="#第-40-章-系统设计模拟面试">第 40 章 系统设计模拟面试</a></h1>
+<p>本章提供基于题卡的限时模拟流程。候选人应在每个阶段主动报出假设、同步思考过程，并在结束时用自评问题复盘。</p>
+<h2 id="30-分钟通用后端系统设计"><a class="header" href="#30-分钟通用后端系统设计">30 分钟：通用后端系统设计</a></h2>
+<p>本场使用三张题卡：<a href="02-general-questionbank.html#q-gen-cap-01如何把容量估算转化为设计依据">Q-GEN-CAP-01</a>、<a href="02-general-questionbank.html#q-gen-data-01为什么核心交易状态要有权威来源">Q-GEN-DATA-01</a> 和 <a href="02-general-questionbank.html#q-gen-rel-02超时重试与幂等如何协作">Q-GEN-REL-02</a>。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>维度</th><th>估算内容</th></tr>
+<tr><th>阶段</th><th style="text-align: right">时长</th><th>候选人任务</th><th>面试官指引</th></tr>
 </thead>
 <tbody>
-<tr><td>读请求</td><td>首页、详情页、搜索、购物车刷新</td></tr>
-<tr><td>写请求</td><td>加购、结算、下单、支付回调、取消订单</td></tr>
-<tr><td>数据增长</td><td>订单、库存流水、支付单、消息、日志</td></tr>
-<tr><td>热点</td><td>秒杀商品、热门搜索词、大促活动</td></tr>
-<tr><td>异步流量</td><td>消息重试、索引同步、对账、补偿</td></tr>
-<tr><td>外部依赖</td><td>支付渠道、供应商接口、短信和通知</td></tr>
+<tr><td>开场与假设</td><td style="text-align: right">4 分钟</td><td>确认业务目标、使用者、规模口径和非目标。</td><td>只补充必要约束，记录候选人主动提出的假设。</td></tr>
+<tr><td>容量推导</td><td style="text-align: right">7 分钟</td><td>围绕 Q-GEN-CAP-01 给出计算口径，并把结果落到组件规模。</td><td>追问峰谷差异和余量来源，观察推导是否自洽。</td></tr>
+<tr><td>数据边界</td><td style="text-align: right">9 分钟</td><td>围绕 Q-GEN-DATA-01 说明关键状态、读写路径与责任边界。</td><td>要求明确每个关键状态的归属和更新顺序。</td></tr>
+<tr><td>可靠性追问</td><td style="text-align: right">7 分钟</td><td>围绕 Q-GEN-REL-02 处理调用失败、重复与恢复情形。</td><td>改变一个失败条件，观察方案是否仍能闭环。</td></tr>
+<tr><td>收束</td><td style="text-align: right">3 分钟</td><td>总结方案、主要风险和下一步验证项。</td><td>请候选人指出一个最需要取舍的决定。</td></tr>
 </tbody>
 </table>
 </div>
-<p>估算后要能落到设计选择：读请求高就考虑缓存和读模型，写请求高就考虑分片和削峰，热点集中就考虑预热、隔离和限流，异步流量大就关注积压和回压。</p>
-<h2 id="图应该画到什么粒度"><a class="header" href="#图应该画到什么粒度">图应该画到什么粒度</a></h2>
-<p>白板图不需要一开始画出所有细节。第一张图应该是主链路：</p>
-<pre><code class="language-text">Client -&gt; API Gateway -&gt; Application Service -&gt; DB
-                         -&gt; Cache
-                         -&gt; MQ -&gt; Downstream Services
-</code></pre>
-<p>然后根据追问展开局部，例如库存扣减、支付回调、搜索索引同步。不要一开始画十几个服务，否则容易失去重点。</p>
-<h2 id="面试表达句式"><a class="header" href="#面试表达句式">面试表达句式</a></h2>
-<p>可以使用下面这些句式让表达更稳定：</p>
+<p>面试官指引：</p>
 <ul>
-<li>“这里我先把权威数据和读模型分开。”</li>
-<li>“这条链路允许最终一致，但需要补偿和对账兜底。”</li>
-<li>“这个组件解决的是吞吐问题，不解决业务幂等问题。”</li>
-<li>“如果规模还没到这个量级，可以先用单库方案，保留分片键和归档策略。”</li>
-<li>“故障时优先保护下单和支付主链路，推荐、通知、非关键营销可以降级。”</li>
+<li>按题卡顺序推进，不朗读题卡正文，也不提前给出实现选项。</li>
+<li>候选人跳过假设或量化依据时，要求其补足依据后再进入下一阶段。</li>
+<li>记录其是否能把容量、数据权威和失败处理连接为同一条链路。</li>
 </ul>
-<p>这些句式的价值在于，它们把技术选择和业务取舍绑定在一起。</p>
-<h2 id="收尾方式"><a class="header" href="#收尾方式">收尾方式</a></h2>
-<p>回答结束前，最好主动补充风险和演进：</p>
-<ol>
-<li>当前方案的瓶颈在哪里。</li>
-<li>哪些数据需要监控。</li>
-<li>哪些地方需要降级和补偿。</li>
-<li>规模扩大后如何演进。</li>
-</ol>
-<p>一个完整的系统设计答案，不是把所有组件都说完，而是让面试官相信：你知道这个系统上线后会在哪里出问题，也知道如何提前布防。</p>
+<p>候选人自评问题：</p>
+<ul>
+<li>我是否在开始阶段说明了范围、数量级和关键假设？</li>
+<li>我是否明确了关键状态的归属，以及读写路径的责任边界？</li>
+<li>我是否对失败、重试和重复结果给出了可以验证的处理方式？</li>
+</ul>
+<h2 id="45-分钟电商专项系统设计"><a class="header" href="#45-分钟电商专项系统设计">45 分钟：电商专项系统设计</a></h2>
+<p>本场使用三张题卡：<a href="03-ecommerce-questionbank.html#q-ecom-arch-001如何设计一个中大型电商平台的服务拆分边界">Q-ECOM-ARCH-001</a>、<a href="03-ecommerce-questionbank.html#q-ecom-trade-026订单状态机的设计">Q-ECOM-TRADE-026</a> 和 <a href="03-ecommerce-questionbank.html#q-ecom-peak-004大促场景下的库存预热和削峰方案">Q-ECOM-PEAK-004</a>。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th style="text-align: right">时长</th><th>候选人任务</th><th>面试官指引</th></tr>
+</thead>
+<tbody>
+<tr><td>业务边界</td><td style="text-align: right">7 分钟</td><td>确认平台角色、交易范围和最重要的业务约束。</td><td>用一个边界变化检查候选人的领域划分。</td></tr>
+<tr><td>架构拆分</td><td style="text-align: right">11 分钟</td><td>围绕 Q-ECOM-ARCH-001 给出服务边界、依赖关系和核心接口。</td><td>追问边界两侧的数据归属与同步方式。</td></tr>
+<tr><td>交易主线</td><td style="text-align: right">13 分钟</td><td>围绕 Q-ECOM-TRADE-026 描述状态演进、触发条件和异常回退。</td><td>在中途插入一个重复或乱序事件，要求候选人调整说明。</td></tr>
+<tr><td>峰值追问</td><td style="text-align: right">9 分钟</td><td>围绕 Q-ECOM-PEAK-004 说明峰值前准备、入口控制和压力转移。</td><td>逐步提高流量或缩小资源，观察降级优先级。</td></tr>
+<tr><td>收束与复盘</td><td style="text-align: right">5 分钟</td><td>说明最关键的取舍、风险指标和验证计划。</td><td>请候选人比较一个备选方案并作出选择。</td></tr>
+</tbody>
+</table>
+</div>
+<p>面试官指引：</p>
+<ul>
+<li>先确认交易语义，再要求候选人画出架构与状态变化，避免只讨论组件名。</li>
+<li>每次追问只改变一个约束，保留候选人上一轮方案作为比较基线。</li>
+<li>重点观察服务边界、状态演进和峰值处理是否相互一致。</li>
+</ul>
+<p>候选人自评问题：</p>
+<ul>
+<li>我是否先确定了业务边界与数据归属，再划分服务职责？</li>
+<li>我是否完整说明了交易状态的进入、退出和异常分支？</li>
+<li>我是否把峰值措施与日常架构的责任边界说清楚？</li>
+</ul>
+<h2 id="60-分钟高级系统设计答辩"><a class="header" href="#60-分钟高级系统设计答辩">60 分钟：高级系统设计答辩</a></h2>
+<p>主案例使用 <a href="03-ecommerce-questionbank.html#q-ecom-case-002秒杀系统的完整设计">Q-ECOM-CASE-002</a>。递进追问依次使用 <a href="03-ecommerce-questionbank.html#q-ecom-supply-019设计防止库存超卖的方案">Q-ECOM-SUPPLY-019</a>、<a href="03-ecommerce-questionbank.html#q-ecom-trade-030订单的并发创建与幂等性">Q-ECOM-TRADE-030</a> 和 <a href="03-ecommerce-questionbank.html#q-ecom-peak-006订单的限流和防刷">Q-ECOM-PEAK-006</a>。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>阶段</th><th style="text-align: right">时长</th><th>候选人任务</th><th>面试官指引</th></tr>
+</thead>
+<tbody>
+<tr><td>约束协商</td><td style="text-align: right">8 分钟</td><td>明确目标、成功标准、规模口径、资源边界和不可接受的风险。</td><td>至少引入一个冲突约束，要求候选人排序优先级。</td></tr>
+<tr><td>白板架构</td><td style="text-align: right">15 分钟</td><td>围绕 Q-ECOM-CASE-002 在白板画出入口、核心链路、状态存储与依赖关系。</td><td>要求图中每条关键连线都说明方向、同步方式和失败后的去向。</td></tr>
+<tr><td>递进追问一</td><td style="text-align: right">10 分钟</td><td>围绕 Q-ECOM-SUPPLY-019 调整关键资源的并发控制与校验边界。</td><td>追问高并发下的结果判定和恢复责任。</td></tr>
+<tr><td>递进追问二</td><td style="text-align: right">10 分钟</td><td>围绕 Q-ECOM-TRADE-030 补充请求去重、状态衔接和异常后的可恢复性。</td><td>改变请求到达顺序，检查设计是否仍保持一致。</td></tr>
+<tr><td>递进追问三</td><td style="text-align: right">8 分钟</td><td>围绕 Q-ECOM-PEAK-006 说明入口保护、优先级和观测信号。</td><td>要求候选人给出触发保护与解除保护的判断依据。</td></tr>
+<tr><td>最终取舍讨论</td><td style="text-align: right">9 分钟</td><td>比较两个可行方案，说明可靠性、成本、复杂度和演进上的取舍。</td><td>质询最脆弱的假设，并要求候选人说明何时应推翻当前选择。</td></tr>
+</tbody>
+</table>
+</div>
+<p>面试官指引：</p>
+<ul>
+<li>白板阶段只要求结构、边界和关键流向；细节应在递进追问中按需展开。</li>
+<li>每张追问题卡都以前一阶段方案为前提，要求候选人明确哪些结论保持不变、哪些需要修改。</li>
+<li>最终讨论聚焦决策依据，避免把答辩变成对题卡正文的复述。</li>
+</ul>
+<p>候选人自评问题：</p>
+<ul>
+<li>我的白板是否让他人能看出边界、流向、状态位置和主要故障路径？</li>
+<li>我是否在每个递进追问后明确了保留的假设与修改的决定？</li>
+<li>我是否用业务影响、可靠性、成本和复杂度解释了最终取舍？</li>
+</ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../part03/05-search-cart-order-payment-interview.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../part03/03-ecommerce-questionbank.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -262,7 +283,7 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../part03/05-search-cart-order-payment-interview.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../part03/03-ecommerce-questionbank.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
