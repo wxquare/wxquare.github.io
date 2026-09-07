@@ -125,7 +125,8 @@ http://localhost:4000
 │   ├── commands/
 │   ├── cursor/
 │   ├── skills/
-│   └── templates/
+│   ├── templates/
+│   └── work/                    # Agent 临时工作文件，不纳入 Git
 ├── scripts/                     # Hexo 插件脚本
 ├── tools/                       # 仓库级构建与校验工具
 ```
@@ -147,6 +148,8 @@ http://localhost:4000
   - 专项助手
 - `.agents/templates/`
   - 文章模板
+- `.agents/work/`
+  - 所有 Agent 的临时工作文件，包括方案草稿、实施计划、分析记录和迁移过程文档；默认不纳入 Git
 - `.agents/cursor/rules/`
   - Cursor 专属适配入口，不承载独立规范
 - `.agents/codex/config.toml`
