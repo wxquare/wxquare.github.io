@@ -33,7 +33,6 @@
 - [第 20 章 Python 实践](part04/11-python-practice.md)
 - [第 21 章 C++ 实践](part04/12-cpp-practice.md)
 - [第 22 章 Go 语言实践](part04/13-go-practice.md)
-- [第 23 章 数据结构与算法题型速查](part04/14-data-structures-and-algorithms.md)
 
 ---
 

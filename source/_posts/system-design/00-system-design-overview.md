@@ -377,7 +377,6 @@ toc: true
 - **Mermaid** - 代码生成图表（本文同款）
 
 ### 练习平台
-- **[LeetCode 系统设计](https://leetcode.com/explore/interview/card/system-design/)** - 免费题库
 - **[system-design-primer](https://github.com/donnemartin/system-design-primer)** - GitHub 190k+ stars
 
 ### 我的文章合集
