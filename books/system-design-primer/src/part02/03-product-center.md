@@ -1446,7 +1446,7 @@ publish_id / operation_id
 
 ## 25.15 答辩材料
 
-本章相关问题、总结话术和追问要点已统一收录到[第 39 章的“商品供给与运营治理”题卡](../part03/03-ecommerce-questionbank.md#q-ecom-supply-054为什么商品供给与运营平台不能设计成商品中心的后台-crud)。
+本章相关问题、总结话术和追问要点已统一收录到[附录 D 的相应核心案例](../appendix/system-design-questionbank.md#q-sd-core-04商品供给到可售状态的全链路)。
 
 **延伸阅读建议**：
 

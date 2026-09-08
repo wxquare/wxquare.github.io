@@ -54,17 +54,9 @@
 
 ---
 
-# 第四部分：系统设计题库
-
-- [第 37 章 系统设计题库：使用说明、双索引与训练路线](part03/01-questionbank-guide.md)
-- [第 38 章 通用系统设计题库](part03/02-general-questionbank.md)
-- [第 39 章 电商系统设计专项题库](part03/03-ecommerce-questionbank.md)
-- [第 40 章 系统设计模拟面试](part03/04-mock-interviews.md)
-
----
-
 # 附录
 
 - [附录 A 术语表](appendix/glossary.md)
 - [附录 B 参考文献与外链](appendix/references.md)
 - [附录 C 工具与构建说明](appendix/tooling.md)
+- [附录 D 系统设计题库](appendix/system-design-questionbank.md)
