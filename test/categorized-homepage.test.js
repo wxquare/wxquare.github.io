@@ -72,7 +72,7 @@ test('renderHomepageMarkup escapes untrusted post text and emits archive and boo
   assert.match(html, /categorized-home__post-main/);
   assert.match(html, /\/categories\/AI-与-Agent\//);
   assert.match(html, /\/ai-book\//);
-  assert.match(html, /\/system-design-architecture-book\//);
+  assert.match(html, /\/system-design-primer\//);
 });
 
 test('buildHomepageGroups reports an unmapped categorized post', () => {

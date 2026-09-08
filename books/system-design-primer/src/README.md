@@ -1,4 +1,4 @@
-# 系统设计与架构实战：原理、工程与电商案例
+# System Design Primer
 
 这是一本面向中高级工程师、技术负责人和架构师的系统设计实践书。全书以系统设计方法论为主线，结合中间件、可靠性工程、工程治理和电商业务案例，帮助读者把“会画架构图”推进到“能落地、能治理、能复盘”的工程能力。
 
@@ -107,7 +107,7 @@
 需安装 [mdBook](https://github.com/rust-lang/mdBook)。本书复用 `tools/mermaid-preprocessor.py` 处理 Mermaid 图表。
 
 ```bash
-cd books/system-design-architecture-book
+cd books/system-design-primer
 mdbook build
 mdbook serve
 ```
@@ -115,11 +115,11 @@ mdbook serve
 也可以在仓库根目录生成到 Hexo 本地预览目录并启动服务：
 
 ```bash
-npm run server:system-design-architecture-book
+npm run server:system-design-primer
 ```
 
 启动后访问：
 
 ```text
-http://localhost:3000/system-design-architecture-book/
+http://localhost:3000/system-design-primer/
 ```

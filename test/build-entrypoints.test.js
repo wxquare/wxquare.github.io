@@ -15,23 +15,19 @@ test('package exposes canonical Hexo and mdBook build entrypoints', () => {
   assert.equal(packageJson.scripts.build, 'hexo generate');
   assert.equal(packageJson.scripts['build:ai-book'], 'mdbook build books/ai-book');
   assert.equal(
-    packageJson.scripts['build:system-design-book'],
-    'mdbook build books/system-design-architecture-book'
+    packageJson.scripts['build:system-design-primer'],
+    'mdbook build books/system-design-primer'
   );
   assert.equal(
     packageJson.scripts['build:books'],
-    'npm run build:ai-book && npm run build:system-design-book'
+    'npm run build:ai-book && npm run build:system-design-primer'
   );
   assert.equal(packageJson.scripts['stage:books'], 'node tools/stage-books.js');
   assert.equal(
     packageJson.scripts['server:site'],
     'npm run clean && npm run build && npm run build:books && npm run stage:books && hexo server -p 3000'
   );
-  assert.equal(
-    packageJson.scripts['server:system-design-architecture-book'],
-    'npm run server:site'
-  );
-  assert.equal(packageJson.scripts['build:system-design-architecture-book'], undefined);
+  assert.equal(packageJson.scripts['server:system-design-primer'], 'npm run server:site');
 });
 
 test('one GitHub Actions workflow builds and publishes all site areas', () => {

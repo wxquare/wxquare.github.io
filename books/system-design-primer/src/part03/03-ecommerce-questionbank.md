@@ -81,7 +81,7 @@ github.com/shopspring/decimal
 | 能力标签 | `领域建模`、`服务边界`、`架构演进` |
 | 场景标签 | `中大型电商`、`平台架构` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:11` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:11` |
 
 #### 题干与约束
 
@@ -217,7 +217,7 @@ github.com/shopspring/decimal
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:11`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:11`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -241,7 +241,7 @@ github.com/shopspring/decimal
 | 能力标签 | `领域建模`、`服务边界`、`分布式一致性` |
 | 场景标签 | `中大型电商`、`平台架构`、`跨服务协作` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:111` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:111` |
 
 #### 题干与约束
 
@@ -381,7 +381,7 @@ github.com/shopspring/decimal
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:111`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:111`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -405,7 +405,7 @@ github.com/shopspring/decimal
 | 能力标签 | `领域建模`、`服务边界`、`可观测性` |
 | 场景标签 | `中大型电商`、`平台架构`、`故障定位` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:430` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:430` |
 
 #### 题干与约束
 
@@ -556,7 +556,7 @@ github.com/shopspring/decimal
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:430`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:430`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -580,7 +580,7 @@ github.com/shopspring/decimal
 | 能力标签 | `领域建模`、`服务边界`、`架构演进` |
 | 场景标签 | `中大型电商`、`平台架构` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:545` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:545` |
 
 #### 题干与约束
 
@@ -739,7 +739,7 @@ github.com/shopspring/decimal
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:545`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:545`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -763,7 +763,7 @@ github.com/shopspring/decimal
 | 能力标签 | `领域建模`、`服务边界`、`架构演进` |
 | 场景标签 | `中大型电商`、`平台架构` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:668` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:668` |
 
 #### 题干与约束
 
@@ -925,7 +925,7 @@ github.com/shopspring/decimal
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:668`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:668`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -949,7 +949,7 @@ github.com/shopspring/decimal
 | 能力标签 | `领域建模`、`服务边界`、`架构演进` |
 | 场景标签 | `中大型电商`、`平台架构` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:794` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:794` |
 
 #### 题干与约束
 
@@ -1124,7 +1124,7 @@ github.com/shopspring/decimal
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:794`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:794`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -1148,7 +1148,7 @@ github.com/shopspring/decimal
 | 能力标签 | `领域建模`、`服务边界`、`架构演进` |
 | 场景标签 | `中大型电商`、`平台架构` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:933` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:933` |
 
 #### 题干与约束
 
@@ -1349,7 +1349,7 @@ order/
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:933`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:933`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -1373,7 +1373,7 @@ order/
 | 能力标签 | `领域建模`、`服务边界`、`分布式一致性` |
 | 场景标签 | `中大型电商`、`平台架构`、`跨服务协作` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1268` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:1268` |
 
 #### 题干与约束
 
@@ -1525,7 +1525,7 @@ order/
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1268`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:1268`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -1549,7 +1549,7 @@ order/
 | 能力标签 | `领域建模`、`服务边界`、`分布式一致性` |
 | 场景标签 | `中大型电商`、`平台架构`、`跨服务协作` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1384` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:1384` |
 
 #### 题干与约束
 
@@ -1770,7 +1770,7 @@ OrderPaid事件 →
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1384`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:1384`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -1794,7 +1794,7 @@ OrderPaid事件 →
 | 能力标签 | `领域建模`、`服务边界`、`事件驱动` |
 | 场景标签 | `中大型电商`、`平台架构`、`异步集成` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1569` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:1569` |
 
 #### 题干与约束
 
@@ -1965,7 +1965,7 @@ OrderPaid事件 →
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1569`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:1569`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -1989,7 +1989,7 @@ OrderPaid事件 →
 | 能力标签 | `领域建模`、`服务边界`、`分布式一致性` |
 | 场景标签 | `中大型电商`、`平台架构`、`跨服务协作` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1704` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:1704` |
 
 #### 题干与约束
 
@@ -2207,7 +2207,7 @@ T4失败 → C3: 返还积分 → C2: 释放库存 → C1: 取消订单
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1704`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:1704`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -2231,7 +2231,7 @@ T4失败 → C3: 返还积分 → C2: 释放库存 → C1: 取消订单
 | 能力标签 | `领域建模`、`服务边界`、`事件驱动` |
 | 场景标签 | `中大型电商`、`平台架构`、`异步集成` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1886` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:1886` |
 
 #### 题干与约束
 
@@ -2483,7 +2483,7 @@ OrderCompleted {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1886`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:1886`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -2507,7 +2507,7 @@ OrderCompleted {
 | 能力标签 | `领域建模`、`服务边界`、`分布式一致性` |
 | 场景标签 | `中大型电商`、`平台架构`、`跨服务协作` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2102` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:2102` |
 
 #### 题干与约束
 
@@ -2777,7 +2777,7 @@ while (true) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2102`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:2102`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -2801,7 +2801,7 @@ while (true) {
 | 能力标签 | `领域建模`、`服务边界`、`分布式一致性` |
 | 场景标签 | `中大型电商`、`平台架构`、`跨服务协作` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2336` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:2336` |
 
 #### 题干与约束
 
@@ -3075,7 +3075,7 @@ public void payOrder(String orderId) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2336`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:2336`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -3099,7 +3099,7 @@ public void payOrder(String orderId) {
 | 能力标签 | `领域建模`、`服务边界`、`分布式一致性` |
 | 场景标签 | `中大型电商`、`平台架构`、`跨服务协作` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2574` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:2574` |
 
 #### 题干与约束
 
@@ -3380,7 +3380,7 @@ CREATE TABLE domain_events (
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2574`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:2574`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -3404,7 +3404,7 @@ CREATE TABLE domain_events (
 | 能力标签 | `领域建模`、`服务边界`、`架构演进` |
 | 场景标签 | `中大型电商`、`平台架构` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2819` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:2819` |
 
 #### 题干与约束
 
@@ -3653,7 +3653,7 @@ HLC = (physicalTime, logicalCounter)
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:2819`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:2819`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -3677,7 +3677,7 @@ HLC = (physicalTime, logicalCounter)
 | 能力标签 | `领域建模`、`服务边界`、`架构演进` |
 | 场景标签 | `中大型电商`、`平台架构` |
 | 能力域 | 平台架构、服务边界与跨系统一致性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:3032` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:3032` |
 
 #### 题干与约束
 
@@ -3994,7 +3994,7 @@ public class Order {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:3032`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:3032`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商系统全景图](../part02/01-ecommerce-overview.md)。
 
@@ -4127,7 +4127,7 @@ public class Order {
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:19` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:19` |
 
 #### 题干与约束
 
@@ -4301,7 +4301,7 @@ sku
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:19`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:19`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -4325,7 +4325,7 @@ sku
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:157` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:157` |
 
 #### 题干与约束
 
@@ -4595,7 +4595,7 @@ ProductDetail detail = new ProductDetail(
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:157`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:157`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -4619,7 +4619,7 @@ ProductDetail detail = new ProductDetail(
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:391` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:391` |
 
 #### 题干与约束
 
@@ -4867,7 +4867,7 @@ ProductDetail detail = new ProductDetail(
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:391`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:391`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -4891,7 +4891,7 @@ ProductDetail detail = new ProductDetail(
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:603` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:603` |
 
 #### 题干与约束
 
@@ -5279,7 +5279,7 @@ else:
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:603`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:603`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -5303,7 +5303,7 @@ else:
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:955` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:955` |
 
 #### 题干与约束
 
@@ -5582,7 +5582,7 @@ category_attr_group（属性分组）
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:955`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:955`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -5606,7 +5606,7 @@ category_attr_group（属性分组）
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1198` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1198` |
 
 #### 题干与约束
 
@@ -5839,7 +5839,7 @@ URL参数控制：
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1198`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1198`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -5863,7 +5863,7 @@ URL参数控制：
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1395` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1395` |
 
 #### 题干与约束
 
@@ -6098,7 +6098,7 @@ if (orderItem.productType == PHYSICAL) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1395`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1395`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -6122,7 +6122,7 @@ if (orderItem.productType == PHYSICAL) {
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1594` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1594` |
 
 #### 题干与约束
 
@@ -6380,7 +6380,7 @@ public class WorkflowEngine {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1594`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1594`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -6404,7 +6404,7 @@ public class WorkflowEngine {
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1816` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1816` |
 
 #### 题干与约束
 
@@ -6635,7 +6635,7 @@ SKU生成逻辑：
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1816`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:1816`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -6659,7 +6659,7 @@ SKU生成逻辑：
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2011` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2011` |
 
 #### 题干与约束
 
@@ -6899,7 +6899,7 @@ order_item
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2011`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2011`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -6923,7 +6923,7 @@ order_item
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2215` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2215` |
 
 #### 题干与约束
 
@@ -7162,7 +7162,7 @@ Flink计算逻辑：
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2215`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2215`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -7186,7 +7186,7 @@ Flink计算逻辑：
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2418` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2418` |
 
 #### 题干与约束
 
@@ -7454,7 +7454,7 @@ ik_smart：[小米, 手机, 13, Ultra, 5G, 智能手机]
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2418`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2418`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -7478,7 +7478,7 @@ ik_smart：[小米, 手机, 13, Ultra, 5G, 智能手机]
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2650` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2650` |
 
 #### 题干与约束
 
@@ -7710,7 +7710,7 @@ product_changelog（变更日志）
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2650`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2650`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -7734,7 +7734,7 @@ product_changelog（变更日志）
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2846` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2846` |
 
 #### 题干与约束
 
@@ -7964,7 +7964,7 @@ if (isVIPTenant(tenantId)) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2846`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:2846`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -7988,7 +7988,7 @@ if (isVIPTenant(tenantId)) {
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3040` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3040` |
 
 #### 题干与约束
 
@@ -8215,7 +8215,7 @@ import_detail（导入明细，可选）
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3040`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3040`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -8239,7 +8239,7 @@ import_detail（导入明细，可选）
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3231` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3231` |
 
 #### 题干与约束
 
@@ -8485,7 +8485,7 @@ import_detail（导入明细，可选）
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3231`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3231`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -8509,7 +8509,7 @@ import_detail（导入明细，可选）
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3443` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3443` |
 
 #### 题干与约束
 
@@ -8615,7 +8615,7 @@ idempotency_key：防重复创建
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3443`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3443`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -8639,7 +8639,7 @@ idempotency_key：防重复创建
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3513` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3513` |
 
 #### 题干与约束
 
@@ -8764,7 +8764,7 @@ Sellable =
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3513`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3513`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -8788,7 +8788,7 @@ Sellable =
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3602` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3602` |
 
 #### 题干与约束
 
@@ -9035,7 +9035,7 @@ if (result == 1) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3602`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3602`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -9059,7 +9059,7 @@ if (result == 1) {
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3813` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3813` |
 
 #### 题干与约束
 
@@ -9337,7 +9337,7 @@ score = w1 * distance_score + w2 * stock_score + w3 * cost_score
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3813`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:3813`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -9361,7 +9361,7 @@ score = w1 * distance_score + w2 * stock_score + w3 * cost_score
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4264` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4264` |
 
 #### 题干与约束
 
@@ -9610,7 +9610,7 @@ if (available_stock < 10% * total_stock) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4264`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4264`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -9634,7 +9634,7 @@ if (available_stock < 10% * total_stock) {
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4477` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4477` |
 
 #### 题干与约束
 
@@ -9853,7 +9853,7 @@ available_stock = physical_stock - sum(active_occupations)
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4477`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4477`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -9877,7 +9877,7 @@ available_stock = physical_stock - sum(active_occupations)
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4660` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4660` |
 
 #### 题干与约束
 
@@ -10110,7 +10110,7 @@ public void deductInventory(String skuId, int quantity) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4660`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4660`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -10134,7 +10134,7 @@ public void deductInventory(String skuId, int quantity) {
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4857` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4857` |
 
 #### 题干与约束
 
@@ -10371,7 +10371,7 @@ C类（低价值，50%）：每年盘点
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4857`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4857`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -10395,7 +10395,7 @@ C类（低价值，50%）：每年盘点
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5058` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5058` |
 
 #### 题干与约束
 
@@ -10603,7 +10603,7 @@ if (result == 1) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5058`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5058`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -10627,7 +10627,7 @@ if (result == 1) {
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5230` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5230` |
 
 #### 题干与约束
 
@@ -10898,7 +10898,7 @@ supplier_quota（供应商配额）
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5230`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5230`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -10922,7 +10922,7 @@ supplier_quota（供应商配额）
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5465` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5465` |
 
 #### 题干与约束
 
@@ -11169,7 +11169,7 @@ score = w1 * distance_score +
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5465`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5465`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -11193,7 +11193,7 @@ score = w1 * distance_score +
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5676` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5676` |
 
 #### 题干与约束
 
@@ -11446,7 +11446,7 @@ C类商品（50%商品，5%销售额）：
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5676`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5676`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -11470,7 +11470,7 @@ C类商品（50%商品，5%销售额）：
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5893` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5893` |
 
 #### 题干与约束
 
@@ -11724,7 +11724,7 @@ inventory_change_log（增量日志）
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5893`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:5893`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -11748,7 +11748,7 @@ inventory_change_log（增量日志）
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6111` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6111` |
 
 #### 题干与约束
 
@@ -11991,7 +11991,7 @@ if (product.type == HIGH_VALUE) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6111`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6111`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -12015,7 +12015,7 @@ if (product.type == HIGH_VALUE) {
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6318` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6318` |
 
 #### 题干与约束
 
@@ -12273,7 +12273,7 @@ if (affected_rows == 1) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6318`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6318`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -12297,7 +12297,7 @@ if (affected_rows == 1) {
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6540` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6540` |
 
 #### 题干与约束
 
@@ -12539,7 +12539,7 @@ regional_inventory
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6540`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6540`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -12563,7 +12563,7 @@ regional_inventory
 | 能力标签 | `领域建模`、`营销规则`、`权益核销` |
 | 场景标签 | `商品供给`、`营销活动` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6748` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6748` |
 
 #### 题干与约束
 
@@ -12900,7 +12900,7 @@ public BigDecimal calculate(Order order) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6748`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6748`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[营销系统](../part02/05-marketing-system.md)。
 
@@ -12924,7 +12924,7 @@ public BigDecimal calculate(Order order) {
 | 能力标签 | `领域建模`、`营销规则`、`权益核销` |
 | 场景标签 | `商品供给`、`营销活动` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7049` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7049` |
 
 #### 题干与约束
 
@@ -13191,7 +13191,7 @@ coupon_code
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7049`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7049`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[营销系统](../part02/05-marketing-system.md)。
 
@@ -13215,7 +13215,7 @@ coupon_code
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7280` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7280` |
 
 #### 题干与约束
 
@@ -13465,7 +13465,7 @@ tier_3: >¥5000, 减¥500
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7280`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7280`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -13489,7 +13489,7 @@ tier_3: >¥5000, 减¥500
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7494` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7494` |
 
 #### 题干与约束
 
@@ -13727,7 +13727,7 @@ member_subscription
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7494`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7494`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -13751,7 +13751,7 @@ member_subscription
 | 能力标签 | `领域建模`、`价格建模`、`规则计算` |
 | 场景标签 | `商品供给`、`价格试算` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7905` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7905` |
 
 #### 题干与约束
 
@@ -13984,7 +13984,7 @@ member_subscription
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7905`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7905`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[计价系统](../part02/06-pricing-system.md)。
 
@@ -14008,7 +14008,7 @@ member_subscription
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8102` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8102` |
 
 #### 题干与约束
 
@@ -14246,7 +14246,7 @@ exchange_rate（汇率表）
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8102`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8102`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -14270,7 +14270,7 @@ exchange_rate（汇率表）
 | 能力标签 | `领域建模`、`营销规则`、`权益核销` |
 | 场景标签 | `商品供给`、`营销活动` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8304` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8304` |
 
 #### 题干与约束
 
@@ -14542,7 +14542,7 @@ public BigDecimal calculateBestPrice(Order order) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8304`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8304`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[营销系统](../part02/05-marketing-system.md)。
 
@@ -14566,7 +14566,7 @@ public BigDecimal calculateBestPrice(Order order) {
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8540` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8540` |
 
 #### 题干与约束
 
@@ -14813,7 +14813,7 @@ order_payment（支付记录）
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8540`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8540`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -14837,7 +14837,7 @@ order_payment（支付记录）
 | 能力标签 | `领域建模`、`价格建模`、`规则计算` |
 | 场景标签 | `商品供给`、`价格试算` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8751` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8751` |
 
 #### 题干与约束
 
@@ -15069,7 +15069,7 @@ price = getPriceByUser(skuId, userId);
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8751`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8751`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[计价系统](../part02/06-pricing-system.md)。
 
@@ -15093,7 +15093,7 @@ price = getPriceByUser(skuId, userId);
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:173` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:173` |
 
 #### 题干与约束
 
@@ -15133,7 +15133,7 @@ price = getPriceByUser(skuId, userId);
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:173`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:173`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -15157,7 +15157,7 @@ price = getPriceByUser(skuId, userId);
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:177` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:177` |
 
 #### 题干与约束
 
@@ -15197,7 +15197,7 @@ price = getPriceByUser(skuId, userId);
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:177`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:177`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -15221,7 +15221,7 @@ price = getPriceByUser(skuId, userId);
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:181` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:181` |
 
 #### 题干与约束
 
@@ -15261,7 +15261,7 @@ price = getPriceByUser(skuId, userId);
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:181`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:181`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -15285,7 +15285,7 @@ price = getPriceByUser(skuId, userId);
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:185` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:185` |
 
 #### 题干与约束
 
@@ -15325,7 +15325,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:185`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:185`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -15349,7 +15349,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:189` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:189` |
 
 #### 题干与约束
 
@@ -15389,7 +15389,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:189`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:189`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -15413,7 +15413,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:193` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:193` |
 
 #### 题干与约束
 
@@ -15453,7 +15453,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:193`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:193`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -15477,7 +15477,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | 能力标签 | `领域建模`、`库存一致性`、`并发控制` |
 | 场景标签 | `商品供给`、`库存履约` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:197` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:197` |
 
 #### 题干与约束
 
@@ -15517,7 +15517,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:197`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:197`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[库存系统](../part02/04-inventory-system.md)。
 
@@ -15541,7 +15541,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:201` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:201` |
 
 #### 题干与约束
 
@@ -15581,7 +15581,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:201`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:201`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -15605,7 +15605,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:205` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:205` |
 
 #### 题干与约束
 
@@ -15645,7 +15645,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:205`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:205`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -15669,7 +15669,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:209` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:209` |
 
 #### 题干与约束
 
@@ -15709,7 +15709,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:209`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:209`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -15733,7 +15733,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:213` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:213` |
 
 #### 题干与约束
 
@@ -15773,7 +15773,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:213`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:213`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -15797,7 +15797,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:217` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:217` |
 
 #### 题干与约束
 
@@ -15839,7 +15839,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:217`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:217`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -15863,7 +15863,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:255` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:255` |
 
 #### 题干与约束
 
@@ -15903,7 +15903,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:255`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:255`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -15927,7 +15927,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:259` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:259` |
 
 #### 题干与约束
 
@@ -15967,7 +15967,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:259`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:259`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -15991,7 +15991,7 @@ Product Item、SPU、SKU、Offer 的关系是什么？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:263` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:263` |
 
 #### 题干与约束
 
@@ -16106,7 +16106,7 @@ supplier_sync_dead_letter
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:263`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:263`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -16130,7 +16130,7 @@ supplier_sync_dead_letter
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:342` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:342` |
 
 #### 题干与约束
 
@@ -16170,7 +16170,7 @@ supplier_sync_dead_letter
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:342`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:342`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -16194,7 +16194,7 @@ supplier_sync_dead_letter
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:348` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:348` |
 
 #### 题干与约束
 
@@ -16234,7 +16234,7 @@ supplier_sync_dead_letter
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:348`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:348`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -16258,7 +16258,7 @@ supplier_sync_dead_letter
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:352` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:352` |
 
 #### 题干与约束
 
@@ -16298,7 +16298,7 @@ supplier_sync_dead_letter
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:352`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:352`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -16322,7 +16322,7 @@ supplier_sync_dead_letter
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:356` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:356` |
 
 #### 题干与约束
 
@@ -16362,7 +16362,7 @@ supplier_sync_dead_letter
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:356`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:356`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -16386,7 +16386,7 @@ supplier_sync_dead_letter
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:360` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:360` |
 
 #### 题干与约束
 
@@ -16426,7 +16426,7 @@ supplier_sync_dead_letter
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:360`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:360`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -16450,7 +16450,7 @@ supplier_sync_dead_letter
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:364` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:364` |
 
 #### 题干与约束
 
@@ -16490,7 +16490,7 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:364`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:364`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -16514,7 +16514,7 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:370` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:370` |
 
 #### 题干与约束
 
@@ -16554,7 +16554,7 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:370`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:370`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -16578,7 +16578,7 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:374` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:374` |
 
 #### 题干与约束
 
@@ -16618,7 +16618,7 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:374`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:374`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -16642,7 +16642,7 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:378` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:378` |
 
 #### 题干与约束
 
@@ -16682,7 +16682,7 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:378`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:378`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -16706,7 +16706,7 @@ Pending 阶段发现内容填错，还能直接编辑吗？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:382` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:382` |
 
 #### 题干与约束
 
@@ -16746,7 +16746,7 @@ Publish 背后的实际流程是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:382`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:382`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -16770,7 +16770,7 @@ Publish 背后的实际流程是什么？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:386` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:386` |
 
 #### 题干与约束
 
@@ -16810,7 +16810,7 @@ Publish 背后的实际流程是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:386`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:386`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -16834,7 +16834,7 @@ Publish 背后的实际流程是什么？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:390` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:390` |
 
 #### 题干与约束
 
@@ -16874,7 +16874,7 @@ Publish 背后的实际流程是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:390`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:390`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -16898,7 +16898,7 @@ Publish 背后的实际流程是什么？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:396` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:396` |
 
 #### 题干与约束
 
@@ -16938,7 +16938,7 @@ Publish 背后的实际流程是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:396`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:396`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -16962,7 +16962,7 @@ Publish 背后的实际流程是什么？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:400` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:400` |
 
 #### 题干与约束
 
@@ -17002,7 +17002,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:400`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:400`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -17026,7 +17026,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:404` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:404` |
 
 #### 题干与约束
 
@@ -17066,7 +17066,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:404`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:404`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -17090,7 +17090,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:408` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:408` |
 
 #### 题干与约束
 
@@ -17130,7 +17130,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:408`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:408`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -17154,7 +17154,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:414` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:414` |
 
 #### 题干与约束
 
@@ -17194,7 +17194,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:414`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:414`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -17218,7 +17218,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:418` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:418` |
 
 #### 题干与约束
 
@@ -17258,7 +17258,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:418`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:418`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -17282,7 +17282,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:422` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:422` |
 
 #### 题干与约束
 
@@ -17324,7 +17324,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:422`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:422`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -17348,7 +17348,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:440` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:440` |
 
 #### 题干与约束
 
@@ -17388,7 +17388,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:440`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:440`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -17412,7 +17412,7 @@ Parser Worker 和 Item Worker 为什么要拆开？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:444` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:444` |
 
 #### 题干与约束
 
@@ -17452,7 +17452,7 @@ Task 和 Batch 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:444`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:444`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -17476,7 +17476,7 @@ Task 和 Batch 有什么区别？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:448` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:448` |
 
 #### 题干与约束
 
@@ -17516,7 +17516,7 @@ Checkpoint 是什么，什么时候更新？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:448`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:448`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -17540,7 +17540,7 @@ Checkpoint 是什么，什么时候更新？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:454` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:454` |
 
 #### 题干与约束
 
@@ -17580,7 +17580,7 @@ worker 如何抢占任务？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:454`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:454`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -17604,7 +17604,7 @@ worker 如何抢占任务？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:458` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:458` |
 
 #### 题干与约束
 
@@ -17644,7 +17644,7 @@ worker 如何抢占任务？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:458`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:458`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -17668,7 +17668,7 @@ worker 如何抢占任务？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:462` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:462` |
 
 #### 题干与约束
 
@@ -17708,7 +17708,7 @@ worker 如何抢占任务？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:462`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:462`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -17732,7 +17732,7 @@ worker 如何抢占任务？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:466` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:466` |
 
 #### 题干与约束
 
@@ -17772,7 +17772,7 @@ worker 如何抢占任务？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:466`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:466`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -17796,7 +17796,7 @@ worker 如何抢占任务？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:470` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:470` |
 
 #### 题干与约束
 
@@ -17836,7 +17836,7 @@ worker 如何抢占任务？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:470`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:470`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -17860,7 +17860,7 @@ worker 如何抢占任务？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:476` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:476` |
 
 #### 题干与约束
 
@@ -17900,7 +17900,7 @@ worker 如何抢占任务？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:476`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:476`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -17924,7 +17924,7 @@ worker 如何抢占任务？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:480` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:480` |
 
 #### 题干与约束
 
@@ -17964,7 +17964,7 @@ worker 如何抢占任务？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:480`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:480`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -17988,7 +17988,7 @@ worker 如何抢占任务？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:484` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:484` |
 
 #### 题干与约束
 
@@ -18028,7 +18028,7 @@ checkpoint 更新失败怎么办？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:484`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:484`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -18052,7 +18052,7 @@ checkpoint 更新失败怎么办？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:488` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:488` |
 
 #### 题干与约束
 
@@ -18092,7 +18092,7 @@ checkpoint 更新失败怎么办？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:488`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:488`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -18116,7 +18116,7 @@ checkpoint 更新失败怎么办？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:494` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:494` |
 
 #### 题干与约束
 
@@ -18156,7 +18156,7 @@ Raw Snapshot 的价值是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:494`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:494`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -18180,7 +18180,7 @@ Raw Snapshot 的价值是什么？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:498` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:498` |
 
 #### 题干与约束
 
@@ -18220,7 +18220,7 @@ Raw Snapshot 的价值是什么？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:498`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:498`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -18244,7 +18244,7 @@ Raw Snapshot 的价值是什么？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:502` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:502` |
 
 #### 题干与约束
 
@@ -18284,7 +18284,7 @@ DLQ 为什么建议用 MySQL，而不是只用消息队列？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:502`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:502`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -18308,7 +18308,7 @@ DLQ 为什么建议用 MySQL，而不是只用消息队列？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:512` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:512` |
 
 #### 题干与约束
 
@@ -18348,7 +18348,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:512`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:512`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -18372,7 +18372,7 @@ worker 可以从 Redis 中抢占任务吗？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:530` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:530` |
 
 #### 题干与约束
 
@@ -18412,7 +18412,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:530`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:530`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -18436,7 +18436,7 @@ worker 可以从 Redis 中抢占任务吗？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:534` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:534` |
 
 #### 题干与约束
 
@@ -18476,7 +18476,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:534`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:534`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -18500,7 +18500,7 @@ worker 可以从 Redis 中抢占任务吗？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:538` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:538` |
 
 #### 题干与约束
 
@@ -18540,7 +18540,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:538`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:538`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -18564,7 +18564,7 @@ worker 可以从 Redis 中抢占任务吗？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:542` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:542` |
 
 #### 题干与约束
 
@@ -18604,7 +18604,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:542`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:542`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -18628,7 +18628,7 @@ worker 可以从 Redis 中抢占任务吗？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:546` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:546` |
 
 #### 题干与约束
 
@@ -18668,7 +18668,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:546`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:546`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -18692,7 +18692,7 @@ worker 可以从 Redis 中抢占任务吗？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:550` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:550` |
 
 #### 题干与约束
 
@@ -18732,7 +18732,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:550`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:550`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -18756,7 +18756,7 @@ worker 可以从 Redis 中抢占任务吗？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:554` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:554` |
 
 #### 题干与约束
 
@@ -18796,7 +18796,7 @@ worker 可以从 Redis 中抢占任务吗？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:554`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:554`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -18820,7 +18820,7 @@ worker 可以从 Redis 中抢占任务吗？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:558` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:558` |
 
 #### 题干与约束
 
@@ -18860,7 +18860,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:558`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:558`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -18884,7 +18884,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:562` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:562` |
 
 #### 题干与约束
 
@@ -18924,7 +18924,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:562`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:562`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -18948,7 +18948,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:566` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:566` |
 
 #### 题干与约束
 
@@ -18988,7 +18988,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:566`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:566`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -19012,7 +19012,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:570` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:570` |
 
 #### 题干与约束
 
@@ -19052,7 +19052,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:570`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:570`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -19076,7 +19076,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:574` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:574` |
 
 #### 题干与约束
 
@@ -19116,7 +19116,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:574`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:574`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -19140,7 +19140,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:578` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:578` |
 
 #### 题干与约束
 
@@ -19180,7 +19180,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:578`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:578`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -19204,7 +19204,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:582` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:582` |
 
 #### 题干与约束
 
@@ -19244,7 +19244,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:582`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:582`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -19268,7 +19268,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:586` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:586` |
 
 #### 题干与约束
 
@@ -19308,7 +19308,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:586`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:586`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -19332,7 +19332,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:590` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:590` |
 
 #### 题干与约束
 
@@ -19372,7 +19372,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:590`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:590`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -19396,7 +19396,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`价格建模`、`规则计算` |
 | 场景标签 | `商品供给`、`价格试算` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:594` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:594` |
 
 #### 题干与约束
 
@@ -19436,7 +19436,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:594`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:594`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[计价系统](../part02/06-pricing-system.md)。
 
@@ -19460,7 +19460,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:598` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:598` |
 
 #### 题干与约束
 
@@ -19500,7 +19500,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:598`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:598`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -19524,7 +19524,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:602` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:602` |
 
 #### 题干与约束
 
@@ -19564,7 +19564,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:602`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:602`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -19588,7 +19588,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:606` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:606` |
 
 #### 题干与约束
 
@@ -19628,7 +19628,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:606`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:606`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -19652,7 +19652,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:610` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:610` |
 
 #### 题干与约束
 
@@ -19692,7 +19692,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:610`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:610`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -19716,7 +19716,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:614` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:614` |
 
 #### 题干与约束
 
@@ -19756,7 +19756,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:614`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:614`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -19780,7 +19780,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:618` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:618` |
 
 #### 题干与约束
 
@@ -19820,7 +19820,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:618`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:618`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -19844,7 +19844,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:622` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:622` |
 
 #### 题干与约束
 
@@ -19884,7 +19884,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:622`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:622`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -19908,7 +19908,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:626` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:626` |
 
 #### 题干与约束
 
@@ -19948,7 +19948,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:626`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:626`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -19972,7 +19972,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`供给治理`、`任务编排` |
 | 场景标签 | `商品供给`、`运营后台` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:630` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:630` |
 
 #### 题干与约束
 
@@ -20012,7 +20012,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:630`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:630`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品供给、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)。
 
@@ -20036,7 +20036,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `领域建模`、`商品建模`、`数据治理` |
 | 场景标签 | `商品供给`、`商品主数据` |
 | 能力域 | 商品、供给、库存、营销与计价 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:634` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:634` |
 
 #### 题干与约束
 
@@ -20076,7 +20076,7 @@ Draft 和 Staging 有什么区别？
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:634`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:634`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -20223,7 +20223,7 @@ Draft 和 Staging 有什么区别？
 | 能力标签 | `搜索架构`、`读模型` |
 | 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:20` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:20` |
 
 #### 题干与约束
 
@@ -20496,7 +20496,7 @@ ES负责搜索，MySQL负责详情查询。
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:20`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:20`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[搜索与导购](../part02/07-search-discovery.md)。
 
@@ -20520,7 +20520,7 @@ ES负责搜索，MySQL负责详情查询。
 | 能力标签 | `搜索架构`、`读模型` |
 | 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:257` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:257` |
 
 #### 题干与约束
 
@@ -20821,7 +20821,7 @@ ES实现：
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:257`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:257`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[搜索与导购](../part02/07-search-discovery.md)。
 
@@ -20845,7 +20845,7 @@ ES实现：
 | 能力标签 | `搜索架构`、`读模型` |
 | 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:522` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:522` |
 
 #### 题干与约束
 
@@ -21119,7 +21119,7 @@ public List<String> suggest(String prefix) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:522`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:522`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[搜索与导购](../part02/07-search-discovery.md)。
 
@@ -21143,7 +21143,7 @@ public List<String> suggest(String prefix) {
 | 能力标签 | `搜索架构`、`读模型` |
 | 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:760` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:760` |
 
 #### 题干与约束
 
@@ -21431,7 +21431,7 @@ category_id=10, filter_name="价格", filter_value="5000-10000", product_count=3
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:760`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:760`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[搜索与导购](../part02/07-search-discovery.md)。
 
@@ -21455,7 +21455,7 @@ category_id=10, filter_name="价格", filter_value="5000-10000", product_count=3
 | 能力标签 | `搜索架构`、`读模型` |
 | 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1012` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1012` |
 
 #### 题干与约束
 
@@ -21717,7 +21717,7 @@ ES实现：
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1012`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1012`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[搜索与导购](../part02/07-search-discovery.md)。
 
@@ -21741,7 +21741,7 @@ ES实现：
 | 能力标签 | `搜索架构`、`读模型` |
 | 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1238` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1238` |
 
 #### 题干与约束
 
@@ -21869,7 +21869,7 @@ search_log
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1238`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1238`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[搜索与导购](../part02/07-search-discovery.md)。
 
@@ -21893,7 +21893,7 @@ search_log
 | 能力标签 | `搜索架构`、`读模型` |
 | 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1330` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1330` |
 
 #### 题干与约束
 
@@ -21991,7 +21991,7 @@ search_log
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1330`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1330`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[搜索与导购](../part02/07-search-discovery.md)。
 
@@ -22015,7 +22015,7 @@ search_log
 | 能力标签 | `搜索架构`、`读模型` |
 | 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1392` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1392` |
 
 #### 题干与约束
 
@@ -22111,7 +22111,7 @@ search_log
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1392`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1392`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[搜索与导购](../part02/07-search-discovery.md)。
 
@@ -22135,7 +22135,7 @@ search_log
 | 能力标签 | `搜索架构`、`读模型` |
 | 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1452` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1452` |
 
 #### 题干与约束
 
@@ -22212,7 +22212,7 @@ search_log
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1452`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1452`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[搜索与导购](../part02/07-search-discovery.md)。
 
@@ -22236,7 +22236,7 @@ search_log
 | 能力标签 | `搜索架构`、`读模型` |
 | 场景标签 | `搜索导购`、`高并发读` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1493` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1493` |
 
 #### 题干与约束
 
@@ -22324,7 +22324,7 @@ search_log
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1493`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1493`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[搜索与导购](../part02/07-search-discovery.md)。
 
@@ -22348,7 +22348,7 @@ search_log
 | 能力标签 | `结算编排`、`交易前校验` |
 | 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1547` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1547` |
 
 #### 题干与约束
 
@@ -22548,7 +22548,7 @@ Redis提供高性能，MySQL保证持久化。
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1547`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1547`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
 
@@ -22572,7 +22572,7 @@ Redis提供高性能，MySQL保证持久化。
 | 能力标签 | `结算编排`、`交易前校验` |
 | 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1711` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1711` |
 
 #### 题干与约束
 
@@ -22682,7 +22682,7 @@ public CartPrice calculateCart(Cart cart) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1711`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1711`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
 
@@ -22706,7 +22706,7 @@ public CartPrice calculateCart(Cart cart) {
 | 能力标签 | `结算编排`、`交易前校验` |
 | 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1785` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1785` |
 
 #### 题干与约束
 
@@ -22780,7 +22780,7 @@ public CartPrice calculateCart(Cart cart) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1785`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1785`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
 
@@ -22804,7 +22804,7 @@ public CartPrice calculateCart(Cart cart) {
 | 能力标签 | `结算编排`、`交易前校验` |
 | 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1823` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1823` |
 
 #### 题干与约束
 
@@ -22878,7 +22878,7 @@ public CartPrice calculateCart(Cart cart) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1823`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1823`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
 
@@ -22902,7 +22902,7 @@ public CartPrice calculateCart(Cart cart) {
 | 能力标签 | `结算编排`、`交易前校验` |
 | 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1861` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1861` |
 
 #### 题干与约束
 
@@ -22995,7 +22995,7 @@ public CartPrice calculateCart(Cart cart) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1861`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1861`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
 
@@ -23019,7 +23019,7 @@ public CartPrice calculateCart(Cart cart) {
 | 能力标签 | `结算编排`、`交易前校验` |
 | 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1918` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1918` |
 
 #### 题干与约束
 
@@ -23244,7 +23244,7 @@ iPhone 15 Pro 256GB
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:1918`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1918`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
 
@@ -23268,7 +23268,7 @@ iPhone 15 Pro 256GB
 | 能力标签 | `结算编排`、`交易前校验` |
 | 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2107` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2107` |
 
 #### 题干与约束
 
@@ -23557,7 +23557,7 @@ function longPoll() {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2107`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2107`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
 
@@ -23581,7 +23581,7 @@ function longPoll() {
 | 能力标签 | `结算编排`、`交易前校验` |
 | 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2360` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2360` |
 
 #### 题干与约束
 
@@ -23745,7 +23745,7 @@ function longPoll() {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2360`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2360`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
 
@@ -23769,7 +23769,7 @@ function longPoll() {
 | 能力标签 | `结算编排`、`交易前校验` |
 | 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2488` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2488` |
 
 #### 题干与约束
 
@@ -23996,7 +23996,7 @@ PC端使用**单页结算**，移动端使用**分步结算**。
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2488`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2488`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
 
@@ -24020,7 +24020,7 @@ PC端使用**单页结算**，移动端使用**分步结算**。
 | 能力标签 | `结算编排`、`交易前校验` |
 | 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2679` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2679` |
 
 #### 题干与约束
 
@@ -24246,7 +24246,7 @@ shared_cart
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2679`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2679`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
 
@@ -24270,7 +24270,7 @@ shared_cart
 | 能力标签 | `结算编排`、`交易前校验` |
 | 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2869` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2869` |
 
 #### 题干与约束
 
@@ -24367,7 +24367,7 @@ shared_cart
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2869`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2869`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
 
@@ -24391,7 +24391,7 @@ shared_cart
 | 能力标签 | `结算编排`、`交易前校验` |
 | 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2930` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2930` |
 
 #### 题干与约束
 
@@ -24494,7 +24494,7 @@ shared_cart
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2930`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2930`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
 
@@ -24518,7 +24518,7 @@ shared_cart
 | 能力标签 | `结算编排`、`交易前校验` |
 | 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2997` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2997` |
 
 #### 题干与约束
 
@@ -24602,7 +24602,7 @@ shared_cart
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:2997`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2997`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
 
@@ -24626,7 +24626,7 @@ shared_cart
 | 能力标签 | `结算编排`、`交易前校验` |
 | 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3045` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3045` |
 
 #### 题干与约束
 
@@ -24714,7 +24714,7 @@ shared_cart
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3045`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3045`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
 
@@ -24738,7 +24738,7 @@ shared_cart
 | 能力标签 | `结算编排`、`交易前校验` |
 | 场景标签 | `购物车`、`结算页` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3097` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3097` |
 
 #### 题干与约束
 
@@ -24853,7 +24853,7 @@ shared_cart
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3097`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3097`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[购物车与结算](../part02/08-cart-checkout.md)。
 
@@ -24877,7 +24877,7 @@ shared_cart
 | 能力标签 | `订单编排`、`状态机` |
 | 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3178` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3178` |
 
 #### 题干与约束
 
@@ -25038,7 +25038,7 @@ PENDING_PAYMENT ──┬─┴─> PAID ───> SHIPPED ───> RECEIVED 
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3178`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3178`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[订单系统](../part02/09-order-system.md)。
 
@@ -25062,7 +25062,7 @@ PENDING_PAYMENT ──┬─┴─> PAID ───> SHIPPED ───> RECEIVED 
 | 能力标签 | `订单编排`、`状态机` |
 | 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3303` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3303` |
 
 #### 题干与约束
 
@@ -25249,7 +25249,7 @@ public String generateOrderNo() {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3303`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3303`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[订单系统](../part02/09-order-system.md)。
 
@@ -25273,7 +25273,7 @@ public String generateOrderNo() {
 | 能力标签 | `订单编排`、`状态机` |
 | 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3454` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3454` |
 
 #### 题干与约束
 
@@ -25541,7 +25541,7 @@ public void createOrder(Order order) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3454`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3454`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[订单系统](../part02/09-order-system.md)。
 
@@ -25565,7 +25565,7 @@ public void createOrder(Order order) {
 | 能力标签 | `订单编排`、`状态机` |
 | 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3686` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3686` |
 
 #### 题干与约束
 
@@ -25831,7 +25831,7 @@ shipment（发货单）
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3686`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3686`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[订单系统](../part02/09-order-system.md)。
 
@@ -25855,7 +25855,7 @@ shipment（发货单）
 | 能力标签 | `订单编排`、`状态机` |
 | 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3916` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3916` |
 
 #### 题干与约束
 
@@ -26155,7 +26155,7 @@ public Order createOrder(OrderRequest request, String token) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:3916`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3916`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[订单系统](../part02/09-order-system.md)。
 
@@ -26179,7 +26179,7 @@ public Order createOrder(OrderRequest request, String token) {
 | 能力标签 | `订单编排`、`状态机` |
 | 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4180` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:4180` |
 
 #### 题干与约束
 
@@ -26379,7 +26379,7 @@ func CreateOrderSaga(orderReq *CreateOrderRequest) error {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4180`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:4180`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[订单系统](../part02/09-order-system.md)。
 
@@ -26403,7 +26403,7 @@ func CreateOrderSaga(orderReq *CreateOrderRequest) error {
 | 能力标签 | `订单编排`、`状态机` |
 | 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4344` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:4344` |
 
 #### 题干与约束
 
@@ -26758,7 +26758,7 @@ order_routing
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4344`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:4344`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[订单系统](../part02/09-order-system.md)。
 
@@ -26782,7 +26782,7 @@ order_routing
 | 能力标签 | `订单编排`、`状态机` |
 | 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4663` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:4663` |
 
 #### 题干与约束
 
@@ -26966,7 +26966,7 @@ func (o *FulfillmentOrchestrator) UpdateStatus(ctx context.Context,
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4663`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:4663`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[订单系统](../part02/09-order-system.md)。
 
@@ -26990,7 +26990,7 @@ func (o *FulfillmentOrchestrator) UpdateStatus(ctx context.Context,
 | 能力标签 | `支付状态机`、`资金安全` |
 | 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4811` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:4811` |
 
 #### 题干与约束
 
@@ -27199,7 +27199,7 @@ func (s *RefundService) shouldAutoApprove(refund *Refund) bool {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4811`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:4811`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[支付系统](../part02/10-payment-system.md)。
 
@@ -27223,7 +27223,7 @@ func (s *RefundService) shouldAutoApprove(refund *Refund) bool {
 | 能力标签 | `订单编排`、`状态机` |
 | 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4984` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:4984` |
 
 #### 题干与约束
 
@@ -27329,7 +27329,7 @@ func (s *RefundService) shouldAutoApprove(refund *Refund) bool {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:4984`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:4984`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[订单系统](../part02/09-order-system.md)。
 
@@ -27353,7 +27353,7 @@ func (s *RefundService) shouldAutoApprove(refund *Refund) bool {
 | 能力标签 | `订单编排`、`状态机` |
 | 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5054` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5054` |
 
 #### 题干与约束
 
@@ -27515,7 +27515,7 @@ func (r *OrderRepository) SearchOrders(ctx context.Context,
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5054`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5054`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[订单系统](../part02/09-order-system.md)。
 
@@ -27539,7 +27539,7 @@ func (r *OrderRepository) SearchOrders(ctx context.Context,
 | 能力标签 | `订单编排`、`状态机` |
 | 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5180` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5180` |
 
 #### 题干与约束
 
@@ -27727,7 +27727,7 @@ func (s *NotificationService) shouldSendSMS(status OrderStatus) bool {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5180`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5180`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[订单系统](../part02/09-order-system.md)。
 
@@ -27751,7 +27751,7 @@ func (s *NotificationService) shouldSendSMS(status OrderStatus) bool {
 | 能力标签 | `订单编排`、`状态机` |
 | 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5332` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5332` |
 
 #### 题干与约束
 
@@ -27867,7 +27867,7 @@ func (s *OrderArchiveService) FindByID(ctx context.Context, orderID int64) (*Ord
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5332`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5332`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[订单系统](../part02/09-order-system.md)。
 
@@ -27891,7 +27891,7 @@ func (s *OrderArchiveService) FindByID(ctx context.Context, orderID int64) (*Ord
 | 能力标签 | `订单编排`、`状态机` |
 | 场景标签 | `交易主链路`、`履约协作` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5520` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5520` |
 
 #### 题干与约束
 
@@ -28008,7 +28008,7 @@ func GetRealTimeMetrics(ctx context.Context) (*OrderMetrics, error) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5520`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5520`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[订单系统](../part02/09-order-system.md)。
 
@@ -28032,7 +28032,7 @@ func GetRealTimeMetrics(ctx context.Context) (*OrderMetrics, error) {
 | 能力标签 | `支付状态机`、`资金安全` |
 | 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5603` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5603` |
 
 #### 题干与约束
 
@@ -28289,7 +28289,7 @@ func (a *AlipayAdapter) VerifyCallback(callback *CallbackData) error {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5603`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5603`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[支付系统](../part02/10-payment-system.md)。
 
@@ -28313,7 +28313,7 @@ func (a *AlipayAdapter) VerifyCallback(callback *CallbackData) error {
 | 能力标签 | `支付状态机`、`资金安全` |
 | 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5824` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5824` |
 
 #### 题干与约束
 
@@ -28435,7 +28435,7 @@ func (r *PaymentRepository) UpdateStatusWithVersion(ctx context.Context,
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5824`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5824`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[支付系统](../part02/10-payment-system.md)。
 
@@ -28459,7 +28459,7 @@ func (r *PaymentRepository) UpdateStatusWithVersion(ctx context.Context,
 | 能力标签 | `支付状态机`、`资金安全` |
 | 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5910` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5910` |
 
 #### 题干与约束
 
@@ -28679,7 +28679,7 @@ type ReconciliationReport struct {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5910`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5910`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[支付系统](../part02/10-payment-system.md)。
 
@@ -28703,7 +28703,7 @@ type ReconciliationReport struct {
 | 能力标签 | `支付状态机`、`资金安全` |
 | 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6094` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6094` |
 
 #### 题干与约束
 
@@ -28868,7 +28868,7 @@ func (h *CallbackHandler) retryCallback(ctx context.Context,
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6094`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6094`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[支付系统](../part02/10-payment-system.md)。
 
@@ -28892,7 +28892,7 @@ func (h *CallbackHandler) retryCallback(ctx context.Context,
 | 能力标签 | `支付状态机`、`资金安全` |
 | 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6223` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6223` |
 
 #### 题干与约束
 
@@ -29046,7 +29046,7 @@ T+30：月结算（新商家）
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6223`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6223`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[支付系统](../part02/10-payment-system.md)。
 
@@ -29070,7 +29070,7 @@ T+30：月结算（新商家）
 | 能力标签 | `支付状态机`、`资金安全` |
 | 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6341` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6341` |
 
 #### 题干与约束
 
@@ -29250,7 +29250,7 @@ func (s *PaymentSecurityService) RiskCheck(ctx context.Context,
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6341`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6341`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[支付系统](../part02/10-payment-system.md)。
 
@@ -29274,7 +29274,7 @@ func (s *PaymentSecurityService) RiskCheck(ctx context.Context,
 | 能力标签 | `支付状态机`、`资金安全` |
 | 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6599` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6599` |
 
 #### 题干与约束
 
@@ -29475,7 +29475,7 @@ func (s *RefundService) PartialRefund(ctx context.Context,
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6599`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6599`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[支付系统](../part02/10-payment-system.md)。
 
@@ -29499,7 +29499,7 @@ func (s *RefundService) PartialRefund(ctx context.Context,
 | 能力标签 | `支付状态机`、`资金安全` |
 | 场景标签 | `支付回调`、`资金链路` |
 | 能力域 | 搜索、购物车、订单与支付 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6887` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6887` |
 
 #### 题干与约束
 
@@ -29661,7 +29661,7 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6887`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6887`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[支付系统](../part02/10-payment-system.md)。
 
@@ -29694,7 +29694,7 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 | 能力标签 | `容量规划`、`稳定性治理`、`容灾恢复` |
 | 场景标签 | `大促峰值`、`故障演练` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:215` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:215` |
 
 #### 题干与约束
 
@@ -29840,7 +29840,7 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:215`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:215`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
 
@@ -29864,7 +29864,7 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 | 能力标签 | `容量规划`、`稳定性治理`、`容灾恢复` |
 | 场景标签 | `大促峰值`、`故障演练` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:325` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:325` |
 
 #### 题干与约束
 
@@ -30005,7 +30005,7 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:325`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:325`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
 
@@ -30029,7 +30029,7 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 | 能力标签 | `容量规划`、`稳定性治理`、`可观测性` |
 | 场景标签 | `大促峰值`、`故障演练` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
-| 来源 | `books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1098` |
+| 来源 | `books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:1098` |
 
 #### 题干与约束
 
@@ -30233,7 +30233,7 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/07-ecommerce-basics-interview.md:1098`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/07-ecommerce-basics-interview.md:1098`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
 
@@ -30257,7 +30257,7 @@ func (s *PreAuthService) Cancel(ctx context.Context, preAuthID string) error {
 | 能力标签 | `容量规划`、`稳定性治理`、`削峰与预热` |
 | 场景标签 | `大促峰值`、`故障演练`、`秒杀活动` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4055` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4055` |
 
 #### 题干与约束
 
@@ -30502,7 +30502,7 @@ if (local_stock < 10) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4055`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:4055`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
 
@@ -30526,7 +30526,7 @@ if (local_stock < 10) {
 | 能力标签 | `容量规划`、`稳定性治理`、`削峰与预热` |
 | 场景标签 | `大促峰值`、`故障演练`、`秒杀活动` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
-| 来源 | `books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7696` |
+| 来源 | `books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7696` |
 
 #### 题干与约束
 
@@ -30771,7 +30771,7 @@ if (product.is_seckill && isInSeckillTime()) {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7696`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7696`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
 
@@ -30795,7 +30795,7 @@ if (product.is_seckill && isInSeckillTime()) {
 | 能力标签 | `容量规划`、`稳定性治理`、`容灾恢复` |
 | 场景标签 | `大促峰值`、`故障演练` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5412` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5412` |
 
 #### 题干与约束
 
@@ -30939,7 +30939,7 @@ func (s *UserCreditService) UpdateCredit(ctx context.Context, userID int64, beha
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:5412`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5412`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
 
@@ -30963,7 +30963,7 @@ func (s *UserCreditService) UpdateCredit(ctx context.Context, userID int64, beha
 | 能力标签 | `容量规划`、`稳定性治理`、`支付降级` |
 | 场景标签 | `大促峰值`、`故障演练`、`支付高峰` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6485` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6485` |
 
 #### 题干与约束
 
@@ -31113,7 +31113,7 @@ func NewRoutingConfig() *RoutingConfig {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6485`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6485`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
 
@@ -31137,7 +31137,7 @@ func NewRoutingConfig() *RoutingConfig {
 | 能力标签 | `容量规划`、`稳定性治理`、`支付降级` |
 | 场景标签 | `大促峰值`、`故障演练`、`支付高峰` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
-| 来源 | `books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6764` |
+| 来源 | `books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6764` |
 
 #### 题干与约束
 
@@ -31296,7 +31296,7 @@ func (cb *CircuitBreaker) onSuccess() {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/09-search-cart-order-payment-questionbank.md:6764`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:6764`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
 
@@ -31320,7 +31320,7 @@ func (cb *CircuitBreaker) onSuccess() {
 | 能力标签 | `容量规划`、`稳定性治理`、`容灾恢复` |
 | 场景标签 | `大促峰值`、`故障演练` |
 | 能力域 | 大促、秒杀、容量与可靠性 |
-| 来源 | `books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:506` |
+| 来源 | `books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:506` |
 
 #### 题干与约束
 
@@ -31360,7 +31360,7 @@ func (cb *CircuitBreaker) onSuccess() {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/03-ecommerce-architecture-interview.md:506`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:506`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
 
@@ -31389,7 +31389,7 @@ func (cb *CircuitBreaker) onSuccess() {
 | 能力标签 | `系统设计`、`跨域权衡`、`高并发读` |
 | 场景标签 | `综合案例`、`白板推演`、`商品详情` |
 | 能力域 | 综合案例与白板设计 |
-| 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:13` |
+| 来源 | `books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:13` |
 
 #### 题干与约束
 
@@ -31594,7 +31594,7 @@ QPS：100万
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:13`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:13`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[商品中心](../part02/03-product-center.md)。
 
@@ -31618,7 +31618,7 @@ QPS：100万
 | 能力标签 | `系统设计`、`跨域权衡`、`削峰与库存一致性` |
 | 场景标签 | `综合案例`、`白板推演`、`秒杀活动` |
 | 能力域 | 综合案例与白板设计 |
-| 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:182` |
+| 来源 | `books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:182` |
 
 #### 题干与约束
 
@@ -31859,7 +31859,7 @@ func (s *SeckillService) CancelUnpaidOrders() {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:182`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:182`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[营销系统](../part02/05-marketing-system.md)。
 
@@ -31883,7 +31883,7 @@ func (s *SeckillService) CancelUnpaidOrders() {
 | 能力标签 | `系统设计`、`跨域权衡`、`交易编排` |
 | 场景标签 | `综合案例`、`白板推演`、`订单履约` |
 | 能力域 | 综合案例与白板设计 |
-| 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:387` |
+| 来源 | `books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:387` |
 
 #### 题干与约束
 
@@ -32049,7 +32049,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:387`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:387`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[订单系统](../part02/09-order-system.md)。
 
@@ -32073,7 +32073,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 | 能力标签 | `系统设计`、`跨域权衡`、`韧性工程` |
 | 场景标签 | `综合案例`、`白板推演`、`大促峰值` |
 | 能力域 | 综合案例与白板设计 |
-| 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:517` |
+| 来源 | `books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:517` |
 
 #### 题干与约束
 
@@ -32298,7 +32298,7 @@ func TestOrderCreate() {
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:517`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:517`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
 
@@ -32322,7 +32322,7 @@ func TestOrderCreate() {
 | 能力标签 | `系统设计`、`跨域权衡`、`资金安全` |
 | 场景标签 | `综合案例`、`白板推演`、`跨境支付` |
 | 能力域 | 综合案例与白板设计 |
-| 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:706` |
+| 来源 | `books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:706` |
 
 #### 题干与约束
 
@@ -32537,7 +32537,7 @@ func (s *SettlementService) Settle(ctx context.Context,
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:706`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:706`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[支付系统](../part02/10-payment-system.md)。
 
@@ -32561,7 +32561,7 @@ func (s *SettlementService) Settle(ctx context.Context,
 | 能力标签 | `系统设计`、`跨域权衡`、`搜索架构` |
 | 场景标签 | `综合案例`、`白板推演`、`搜索导购` |
 | 能力域 | 综合案例与白板设计 |
-| 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:885` |
+| 来源 | `books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:885` |
 
 #### 题干与约束
 
@@ -32777,7 +32777,7 @@ func (ltr *LearningToRank) extractFeatures(ctx context.Context,
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:885`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:885`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[搜索与导购](../part02/07-search-discovery.md)。
 
@@ -32801,7 +32801,7 @@ func (ltr *LearningToRank) extractFeatures(ctx context.Context,
 | 能力标签 | `系统设计`、`跨域权衡`、`韧性工程` |
 | 场景标签 | `综合案例`、`白板推演`、`大促峰值` |
 | 能力域 | 综合案例与白板设计 |
-| 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1065` |
+| 来源 | `books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:1065` |
 
 #### 题干与约束
 
@@ -33012,7 +33012,7 @@ var alertRules = []AlertRule{
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1065`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:1065`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
 
@@ -33036,7 +33036,7 @@ var alertRules = []AlertRule{
 | 能力标签 | `系统设计`、`跨域权衡`、`交易编排` |
 | 场景标签 | `综合案例`、`白板推演`、`订单履约` |
 | 能力域 | 综合案例与白板设计 |
-| 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1240` |
+| 来源 | `books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:1240` |
 
 #### 题干与约束
 
@@ -33245,7 +33245,7 @@ func (c *InventoryConsumer) Consume(ctx context.Context, msg *OrderCreatedEvent)
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1240`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:1240`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[订单系统](../part02/09-order-system.md)。
 
@@ -33269,7 +33269,7 @@ func (c *InventoryConsumer) Consume(ctx context.Context, msg *OrderCreatedEvent)
 | 能力标签 | `系统设计`、`跨域权衡`、`数据建模` |
 | 场景标签 | `综合案例`、`白板推演`、`用户运营` |
 | 能力域 | 综合案例与白板设计 |
-| 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1413` |
+| 来源 | `books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:1413` |
 
 #### 题干与约束
 
@@ -33449,7 +33449,7 @@ func (s *UserProfileService) calculateConsumptionLevel(
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1413`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:1413`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[电商客户生命周期](../part02/13-ecommerce-customer-lifecycle.md)。
 
@@ -33473,7 +33473,7 @@ func (s *UserProfileService) calculateConsumptionLevel(
 | 能力标签 | `系统设计`、`跨域权衡`、`韧性工程` |
 | 场景标签 | `综合案例`、`白板推演`、`大促峰值` |
 | 能力域 | 综合案例与白板设计 |
-| 来源 | `books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1557` |
+| 来源 | `books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:1557` |
 
 #### 题干与约束
 
@@ -33600,7 +33600,7 @@ func GenerateReviewReport(ctx context.Context,
 
 #### 关联正文
 
-迁移来源：`books/system-design-architecture-book/src/part03/10-ecommerce-case-studies-interview.md:1557`。本章不依赖旧 Part Four 文件链接。
+迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:1557`。本章不依赖旧 Part Four 文件链接。
 
 相关章节：[生产韧性与稳定性保障](../part01/03-production-resilience-safeguards.md)。
 

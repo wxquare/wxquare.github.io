@@ -13,7 +13,7 @@ test('legacy ecommerce-book page guides readers to both current books', () => {
   const bookList = fs.readFileSync(path.join(root, 'source/booklist/index.md'), 'utf8');
 
   for (const content of [legacyPage, bookList]) {
-    assert.match(content, /\/system-design-architecture-book\//);
+    assert.match(content, /\/system-design-primer\//);
     assert.match(content, /\/ai-book\//);
   }
   assert.match(menuConfig, /^  book: \/booklist\/ \|\| fa fa-book$/m);

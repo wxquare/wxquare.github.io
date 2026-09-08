@@ -68,7 +68,7 @@ function buildHomepageGroups(posts, registry, limit = 5, onUnmapped = () => {}, 
 function renderHomepageMarkup(groups) {
   const bookLinks = [
     ['AI Agent 工程实践', '/ai-book/'],
-    ['系统设计与架构实战', '/system-design-architecture-book/']
+    ['System Design Primer', '/system-design-primer/']
   ];
   const books = bookLinks.map(([label, href]) =>
     `<a class="categorized-home__book" href="${escapeHtml(href)}">${escapeHtml(label)}</a>`).join('');

@@ -1,4 +1,4 @@
-# 系统设计与架构实战：原理、工程与电商案例
+# System Design Primer
 
 [前言与使用说明](README.md)
 

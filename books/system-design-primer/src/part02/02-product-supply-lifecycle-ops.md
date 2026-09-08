@@ -58,9 +58,9 @@
 
 图源文件：
 
-- `books/system-design-architecture-book/images/product-create-publish-swimlane.svg`
-- `books/system-design-architecture-book/images/product-lifecycle-state-machine.svg`
-- `books/system-design-architecture-book/images/product-supply-data-flow.svg`
+- `books/system-design-primer/images/product-create-publish-swimlane.svg`
+- `books/system-design-primer/images/product-lifecycle-state-machine.svg`
+- `books/system-design-primer/images/product-supply-data-flow.svg`
 
 ---
 
@@ -4252,8 +4252,8 @@ flowchart LR
 
 图源文件：
 
-- `books/system-design-architecture-book/images/product-supply-ops-architecture.png`
-- `books/system-design-architecture-book/images/product-supply-ops-architecture.svg`
+- `books/system-design-primer/images/product-supply-ops-architecture.png`
+- `books/system-design-primer/images/product-supply-ops-architecture.svg`
 - `source/diagrams/Excalidraw/product-supply-ops-architecture.excalidraw`
 
 ```text
@@ -5166,10 +5166,10 @@ Data Flow Diagram 见：
 
 图文件：
 
-- `books/system-design-architecture-book/images/supplier-sync-architecture.png`
-- `books/system-design-architecture-book/images/supplier-sync-architecture.svg`
-- `books/system-design-architecture-book/images/supplier-sync-data-flow.png`
-- `books/system-design-architecture-book/images/supplier-sync-data-flow.svg`
+- `books/system-design-primer/images/supplier-sync-architecture.png`
+- `books/system-design-primer/images/supplier-sync-architecture.svg`
+- `books/system-design-primer/images/supplier-sync-data-flow.png`
+- `books/system-design-primer/images/supplier-sync-data-flow.svg`
 
 ### 26.18.5 任务模型
 

@@ -3,7 +3,7 @@ date: 2022-11-07 22:33:15
 ---
 
 ##  计算机
-- [《系统设计与架构实战：原理、工程与电商案例》](/system-design-architecture-book/)
+- [《System Design Primer》](/system-design-primer/)
 - [《程序员系统设计与面试指南》](/system-design-book/)
 - [《AI Agent 工程实践》](/ai-book/)
 - 《Go语言学习笔记》
