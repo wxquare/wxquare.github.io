@@ -12,9 +12,9 @@
 
 建议配合以下章节交叉阅读：
 
-- [第 25 章 商品中心系统](../part02/03-product-center.md)
-- [第 27 章 库存系统](../part02/04-inventory-system.md)
-- [第 26 章 商品供给、编辑、运营与生命周期治理](../part02/02-product-supply-lifecycle-ops.md)
+- [第 25 章 商品中心系统](../part03/02-product-center.md)
+- [第 27 章 库存系统](../part03/04-inventory-system.md)
+- [第 26 章 商品供给、编辑、运营与生命周期治理](../part03/03-product-supply-lifecycle-ops.md)
 
 ---
 

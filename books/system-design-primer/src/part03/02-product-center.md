@@ -25,7 +25,7 @@
 
 完整的供给治理链路见：
 
-- [第 26 章：商品供给、运营与生命周期治理](./02-product-supply-lifecycle-ops.md)
+- [第 26 章：商品供给、运营与生命周期治理](./03-product-supply-lifecycle-ops.md)
 
 ---
 
@@ -1452,7 +1452,7 @@ publish_id / operation_id
 
 - [第 27 章：库存系统](./04-inventory-system.md)
 - [第 28 章：营销系统](./05-marketing-system.md)
-- [第 26 章：商品供给、运营与生命周期治理](./02-product-supply-lifecycle-ops.md)
-- [第 26 章：商品供给、运营与生命周期治理](./02-product-supply-lifecycle-ops.md)
+- [第 26 章：商品供给、运营与生命周期治理](./03-product-supply-lifecycle-ops.md)
+- [第 26 章：商品供给、运营与生命周期治理](./03-product-supply-lifecycle-ops.md)
 
 ---

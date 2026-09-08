@@ -26,7 +26,7 @@ test('question bank is a single appendix and retains every legacy question ID', 
     /附录 D 系统设计题库.*appendix\/system-design-questionbank\.md/
   );
   assert.doesNotMatch(summary, /# 第四部分：系统设计题库/);
-  assert.doesNotMatch(summary, /part03\//);
+  assert.match(summary, /# 第三部分：电商系统设计实战/);
 
   const coverageIndex = questionBank
     .split('## 历史详细参考材料', 1)[0]
@@ -63,21 +63,21 @@ test('question types have requirements appropriate to their learning objective',
 });
 
 test('book links point to the appendix instead of a removed question-bank chapter', () => {
-  const partTwoFiles = [
-    'part02/01-ecommerce-overview.md',
-    'part02/02-product-supply-lifecycle-ops.md',
-    'part02/03-product-center.md',
-    'part02/04-inventory-system.md',
-    'part02/07-search-discovery.md',
-    'part02/08-cart-checkout.md',
-    'part02/09-order-system.md',
-    'part02/10-payment-system.md',
-    'part02/11-b2b2c-platform-architecture.md',
+  const partThreeFiles = [
+    'part03/01-ecommerce-overview.md',
+    'part03/02-product-center.md',
+    'part03/03-product-supply-lifecycle-ops.md',
+    'part03/04-inventory-system.md',
+    'part03/07-search-discovery.md',
+    'part03/08-cart-checkout.md',
+    'part03/09-order-system.md',
+    'part03/10-payment-system.md',
+    'part03/11-b2b2c-platform-architecture.md',
   ];
 
-  for (const file of partTwoFiles) {
+  for (const file of partThreeFiles) {
     const content = read(file);
     assert.doesNotMatch(content, /第 38 章的相应核心案例/);
-    assert.doesNotMatch(content, /\.\.\/part03\//);
+    assert.doesNotMatch(content, /\.\.\/part04\//);
   }
 });

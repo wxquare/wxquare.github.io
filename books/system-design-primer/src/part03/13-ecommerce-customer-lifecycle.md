@@ -12,13 +12,13 @@
 
 建议配合以下章节交叉阅读：
 
-- [第 30 章 搜索与导购](../part02/07-search-discovery.md)
-- [第 31 章 购物车与结算](../part02/08-cart-checkout.md)
-- [第 32 章 订单系统](../part02/09-order-system.md)
-- [第 33 章 支付系统](../part02/10-payment-system.md)
-- [第 25 章 商品中心系统](../part02/03-product-center.md)
-- [第 27 章 库存系统](../part02/04-inventory-system.md)
-- [第 29 章 计价系统设计与实现](../part02/06-pricing-system.md)
+- [第 30 章 搜索与导购](../part03/07-search-discovery.md)
+- [第 31 章 购物车与结算](../part03/08-cart-checkout.md)
+- [第 32 章 订单系统](../part03/09-order-system.md)
+- [第 33 章 支付系统](../part03/10-payment-system.md)
+- [第 25 章 商品中心系统](../part03/02-product-center.md)
+- [第 27 章 库存系统](../part03/04-inventory-system.md)
+- [第 29 章 计价系统设计与实现](../part03/06-pricing-system.md)
 
 ---
 

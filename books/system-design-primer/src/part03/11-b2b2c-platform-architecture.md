@@ -2268,7 +2268,7 @@ ProductCacheInvalidationRequired
   → 数据新鲜度
 ```
 
-所以本章采用“主链路 + 专项链路”的写法：`34.6.1.6` 讲统一商品供给、运营与生命周期治理，完整设计见[第 26 章：商品供给、运营与生命周期治理](./02-product-supply-lifecycle-ops.md)；`34.6.1.7` 专门讲供应商同步，因为它有长任务恢复、外部数据追溯和供应商质量治理等额外复杂度。
+所以本章采用“主链路 + 专项链路”的写法：`34.6.1.6` 讲统一商品供给、运营与生命周期治理，完整设计见[第 26 章：商品供给、运营与生命周期治理](./03-product-supply-lifecycle-ops.md)；`34.6.1.7` 专门讲供应商同步，因为它有长任务恢复、外部数据追溯和供应商质量治理等额外复杂度。
 
 本节答辩总结已统一收录到[附录 D 的相应核心案例](../appendix/system-design-questionbank.md#q-sd-core-11多仓多币种-b2b2c-平台)。
 
@@ -2305,7 +2305,7 @@ ProductCacheInvalidationRequired
 
 ![供应商数据同步 Data Flow Diagram](../../images/supplier-sync-data-flow.png)
 
-完整的任务模型、Checkpoint、Worker 租约、DLQ 和监控指标，见[第 26 章：商品供给、运营与生命周期治理](./02-product-supply-lifecycle-ops.md)。
+完整的任务模型、Checkpoint、Worker 租约、DLQ 和监控指标，见[第 26 章：商品供给、运营与生命周期治理](./03-product-supply-lifecycle-ops.md)。
 
 图中可以看到，供应商数据进入平台后会经过五个阶段：
 
