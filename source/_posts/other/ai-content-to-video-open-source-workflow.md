@@ -15,6 +15,8 @@ tags:
 
 这篇文章记录完整过程：如何从一段书稿内容出发，生成视频脚本、10 张竖屏图文页、AI 配音、Kdenlive 工程文件，并最终导出 MP4。
 
+这套视频脚本和素材已迁移到通用视频制作项目 `/Users/xianguiwang/Projects/video-production/`，本文中的命令从该仓库根目录执行。
+
 ## 一、目标：把文章变成可发布的视频资产
 
 这次的目标不是做一个炫技 demo，而是跑通一个可以重复使用的内容生产流程：
@@ -31,13 +33,13 @@ tags:
 最终产物包括：
 
 ```text
-books/ai-book/video-scripts/01-llm-boundaries-3min.md
-books/ai-book/video-scripts/render-llm-boundaries-assets.mjs
-books/ai-book/video-assets/01-llm-boundaries-3min/png/
-books/ai-book/video-assets/01-llm-boundaries-3min/svg/
-books/ai-book/video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav
-books/ai-book/video-assets/01-llm-boundaries-3min/llm-boundaries-with-audio.kdenlive
-books/ai-book/video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min-final.mp4
+video-scripts/01-llm-boundaries-3min.md
+video-scripts/render-llm-boundaries-assets.mjs
+video-assets/01-llm-boundaries-3min/png/
+video-assets/01-llm-boundaries-3min/svg/
+video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav
+video-assets/01-llm-boundaries-3min/llm-boundaries-with-audio.kdenlive
+video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min-final.mp4
 ```
 
 整套方案用到的工具如下：
@@ -125,17 +127,17 @@ AI 配音：Piper TTS
 生成命令：
 
 ```bash
-node books/ai-book/video-scripts/render-llm-boundaries-assets.mjs
+node video-scripts/render-llm-boundaries-assets.mjs
 ```
 
 脚本输出：
 
 ```text
-books/ai-book/video-assets/01-llm-boundaries-3min/svg/
-books/ai-book/video-assets/01-llm-boundaries-3min/png/
-books/ai-book/video-assets/01-llm-boundaries-3min/shot-list.csv
-books/ai-book/video-assets/01-llm-boundaries-3min/llm-boundaries-image-only.mlt
-books/ai-book/video-assets/01-llm-boundaries-3min/llm-boundaries-image-only.kdenlive
+video-assets/01-llm-boundaries-3min/svg/
+video-assets/01-llm-boundaries-3min/png/
+video-assets/01-llm-boundaries-3min/shot-list.csv
+video-assets/01-llm-boundaries-3min/llm-boundaries-image-only.mlt
+video-assets/01-llm-boundaries-3min/llm-boundaries-image-only.kdenlive
 ```
 
 每张 PNG 都是 1080x1920，适合抖音、视频号、小红书、B 站竖屏等场景。
@@ -143,7 +145,7 @@ books/ai-book/video-assets/01-llm-boundaries-3min/llm-boundaries-image-only.kden
 可以用下面命令检查图片尺寸：
 
 ```bash
-file books/ai-book/video-assets/01-llm-boundaries-3min/png/*.png
+file video-assets/01-llm-boundaries-3min/png/*.png
 ```
 
 ## 五、第三步：用 Piper 生成开源 AI 配音
@@ -189,7 +191,7 @@ curl -L "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/zh/zh_CN/hua
 我把视频脚本中的“完整口播稿”单独保存为：
 
 ```text
-books/ai-book/video-assets/01-llm-boundaries-3min/voiceover/voiceover.txt
+video-assets/01-llm-boundaries-3min/voiceover/voiceover.txt
 ```
 
 这里要注意几件事：
@@ -208,8 +210,8 @@ books/ai-book/video-assets/01-llm-boundaries-3min/voiceover/voiceover.txt
 /private/tmp/piper-tts-venv/bin/piper \
   -m /private/tmp/piper-models/zh_CN-huayan-medium/zh_CN-huayan-medium.onnx \
   -c /private/tmp/piper-models/zh_CN-huayan-medium/zh_CN-huayan-medium.onnx.json \
-  -i books/ai-book/video-assets/01-llm-boundaries-3min/voiceover/voiceover.txt \
-  -f books/ai-book/video-assets/01-llm-boundaries-3min/voiceover/voiceover.wav \
+  -i video-assets/01-llm-boundaries-3min/voiceover/voiceover.txt \
+  -f video-assets/01-llm-boundaries-3min/voiceover/voiceover.wav \
   --sentence-silence 0.25
 ```
 
@@ -219,8 +221,8 @@ books/ai-book/video-assets/01-llm-boundaries-3min/voiceover/voiceover.txt
 /private/tmp/piper-tts-venv/bin/piper \
   -m /private/tmp/piper-models/zh_CN-huayan-medium/zh_CN-huayan-medium.onnx \
   -c /private/tmp/piper-models/zh_CN-huayan-medium/zh_CN-huayan-medium.onnx.json \
-  -i books/ai-book/video-assets/01-llm-boundaries-3min/voiceover/voiceover.txt \
-  -f books/ai-book/video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav \
+  -i video-assets/01-llm-boundaries-3min/voiceover/voiceover.txt \
+  -f video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav \
   --length-scale 1.55 \
   --sentence-silence 0.6
 ```
@@ -228,7 +230,7 @@ books/ai-book/video-assets/01-llm-boundaries-3min/voiceover/voiceover.txt
 检查音频时长：
 
 ```bash
-python3 -c "import wave; p='books/ai-book/video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav'; w=wave.open(p); print(w.getnframes()/w.getframerate(), w.getframerate(), w.getnchannels())"
+python3 -c "import wave; p='video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav'; w=wave.open(p); print(w.getnframes()/w.getframerate(), w.getframerate(), w.getnchannels())"
 ```
 
 本次结果大约是：
@@ -244,22 +246,22 @@ python3 -c "import wave; p='books/ai-book/video-assets/01-llm-boundaries-3min/vo
 有了图文页和配音之后，就可以生成带音频轨的 MLT / Kdenlive 工程：
 
 ```bash
-node books/ai-book/video-scripts/render-llm-boundaries-assets.mjs \
-  --audio books/ai-book/video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav
+node video-scripts/render-llm-boundaries-assets.mjs \
+  --audio video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav
 ```
 
 生成结果：
 
 ```text
-books/ai-book/video-assets/01-llm-boundaries-3min/llm-boundaries-with-audio.mlt
-books/ai-book/video-assets/01-llm-boundaries-3min/llm-boundaries-with-audio.kdenlive
+video-assets/01-llm-boundaries-3min/llm-boundaries-with-audio.mlt
+video-assets/01-llm-boundaries-3min/llm-boundaries-with-audio.kdenlive
 ```
 
 如果要手工微调，可以用 Kdenlive 打开：
 
 ```bash
 open -a /Applications/kdenlive.app \
-  books/ai-book/video-assets/01-llm-boundaries-3min/llm-boundaries-with-audio.kdenlive
+  video-assets/01-llm-boundaries-3min/llm-boundaries-with-audio.kdenlive
 ```
 
 打开后可以继续调整：
@@ -285,15 +287,15 @@ Kdenlive 的 macOS 应用内部自带 `melt`、`ffmpeg` 和 `ffprobe`：
 先创建输出目录：
 
 ```bash
-mkdir -p books/ai-book/video-assets/01-llm-boundaries-3min/output
+mkdir -p video-assets/01-llm-boundaries-3min/output
 ```
 
 直接调用 `melt` 渲染 MLT 文件：
 
 ```bash
 /Applications/kdenlive.app/Contents/MacOS/melt \
-  books/ai-book/video-assets/01-llm-boundaries-3min/llm-boundaries-with-audio.mlt \
-  -consumer avformat:books/ai-book/video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min.mp4 \
+  video-assets/01-llm-boundaries-3min/llm-boundaries-with-audio.mlt \
+  -consumer avformat:video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min.mp4 \
   vcodec=libx264 \
   acodec=aac \
   video_off=0 \
@@ -323,8 +325,8 @@ max_volume: -91.0 dB
 ```bash
 /Applications/kdenlive.app/Contents/MacOS/ffmpeg \
   -y \
-  -i books/ai-book/video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min.mp4 \
-  -i books/ai-book/video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav \
+  -i video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min.mp4 \
+  -i video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav \
   -map 0:v:0 \
   -map 1:a:0 \
   -c:v copy \
@@ -333,19 +335,19 @@ max_volume: -91.0 dB
   -af apad \
   -shortest \
   -movflags +faststart \
-  books/ai-book/video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min-final.mp4
+  video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min-final.mp4
 ```
 
 最终使用：
 
 ```text
-books/ai-book/video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min-final.mp4
+video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min-final.mp4
 ```
 
 不要使用中间文件：
 
 ```text
-books/ai-book/video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min.mp4
+video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min.mp4
 ```
 
 它的视频正常，但音频有问题。
@@ -361,7 +363,7 @@ books/ai-book/video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min.mp4
   -v error \
   -show_entries format=duration,size \
   -show_streams \
-  books/ai-book/video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min-final.mp4
+  video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min-final.mp4
 ```
 
 本次结果：
@@ -379,7 +381,7 @@ books/ai-book/video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min.mp4
 
 ```bash
 /Applications/kdenlive.app/Contents/MacOS/ffmpeg \
-  -i books/ai-book/video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min-final.mp4 \
+  -i video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min-final.mp4 \
   -af volumedetect \
   -vn -sn -dn \
   -f null /dev/null
@@ -400,15 +402,15 @@ max_volume: -0.1 dB
 /Applications/kdenlive.app/Contents/MacOS/ffmpeg \
   -y \
   -ss 00:02:10 \
-  -i books/ai-book/video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min-final.mp4 \
+  -i video-assets/01-llm-boundaries-3min/output/llm-boundaries-3min-final.mp4 \
   -frames:v 1 \
-  books/ai-book/video-assets/01-llm-boundaries-3min/output/preview-02m10s.png
+  video-assets/01-llm-boundaries-3min/output/preview-02m10s.png
 ```
 
 检查图片：
 
 ```bash
-file books/ai-book/video-assets/01-llm-boundaries-3min/output/preview-02m10s.png
+file video-assets/01-llm-boundaries-3min/output/preview-02m10s.png
 ```
 
 应输出：
@@ -424,14 +426,14 @@ PNG image data, 1080 x 1920
 先确认 `voiceover-180s.wav` 文件存在：
 
 ```bash
-ls -lh books/ai-book/video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav
+ls -lh video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav
 ```
 
 如果 Kdenlive 时间线里没有音频轨，重新生成项目：
 
 ```bash
-node books/ai-book/video-scripts/render-llm-boundaries-assets.mjs \
-  --audio books/ai-book/video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav
+node video-scripts/render-llm-boundaries-assets.mjs \
+  --audio video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav
 ```
 
 ### 2. `kdenlive --render` 卡住
@@ -463,20 +465,20 @@ Piper 适合先跑通链路。如果后续要提高中文自然度，可以考�
 可以直接编辑 SVG：
 
 ```text
-books/ai-book/video-assets/01-llm-boundaries-3min/svg/
+video-assets/01-llm-boundaries-3min/svg/
 ```
 
 也可以修改生成脚本：
 
 ```text
-books/ai-book/video-scripts/render-llm-boundaries-assets.mjs
+video-scripts/render-llm-boundaries-assets.mjs
 ```
 
 然后重新生成：
 
 ```bash
-node books/ai-book/video-scripts/render-llm-boundaries-assets.mjs \
-  --audio books/ai-book/video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav
+node video-scripts/render-llm-boundaries-assets.mjs \
+  --audio video-assets/01-llm-boundaries-3min/voiceover/voiceover-180s.wav
 ```
 
 ## 十三、下一条视频如何复用
@@ -484,9 +486,9 @@ node books/ai-book/video-scripts/render-llm-boundaries-assets.mjs \
 下一条视频可以复用这套结构：
 
 ```text
-books/ai-book/video-scripts/02-xxx-3min.md
-books/ai-book/video-scripts/render-xxx-assets.mjs
-books/ai-book/video-assets/02-xxx-3min/
+video-scripts/02-xxx-3min.md
+video-scripts/render-xxx-assets.mjs
+video-assets/02-xxx-3min/
 ```
 
 流程保持不变：

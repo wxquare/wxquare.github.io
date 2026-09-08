@@ -42,7 +42,6 @@ http://localhost:4000
 - `source/diagrams/`：图表源文件
 - `source/library/`：公开且适合公开保存的参考资料与来源目录；其中 `slides/` 为第三方演示，`presentations/` 为第一方演示
 - `books/ai-book/src/`：AI Agent 书稿源码
-- `books/ai-book/labs/llm-from-scratch/`：唯一保留的遗留实验例外；不得在 `books/ai-book/labs/` 新增其他实验
 - `docs/`：调研、迁移、整理文档
 - `.agents/`：统一的 AI 协作资产与工具配置目录
 - `.agents/work/`：所有 Agent 的唯一工作目录；方案草稿、实施计划、分析记录、迁移过程文档和其他临时产物必须放这里，默认不纳入 Git
@@ -98,7 +97,8 @@ http://localhost:4000
 
 - 新增可运行实验必须放在 `/Users/xianguiwang/Projects/<project>/`，一个实验对应一个独立 Git 仓库，GitHub 仓库默认设为 Private。
 - `source/library/` 和博客文章不得包含实验源码；文章只保存实验介绍和仓库链接。
-- `books/ai-book/labs/llm-from-scratch/` 是唯一保留的遗留例外；不得把 `books/ai-book/labs/` 作为新实验落点，也不得在其中恢复或新增其他实验。
+- `labs/llm-from-scratch/` 已迁移到 `/Users/xianguiwang/Projects/llm-from-scratch/`；`books/ai-book/labs/` 不再保留可运行实验。
+- `books/ai-book/video-scripts/` 与 `books/ai-book/video-assets/` 已迁移到通用视频制作仓库 `/Users/xianguiwang/Projects/video-production/`；`books/ai-book/` 不再维护视频制作资料。
 
 ### 4.4 博客文章规范（唯一来源）
 
