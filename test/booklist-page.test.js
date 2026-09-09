@@ -12,6 +12,8 @@ const booklist = fs.readFileSync(
 );
 
 test('booklist presents curated routes and verified destinations', () => {
+  assert.match(booklist, /把零散经验沉淀成可复用的知识，让未来的自己少走一遍已经走过的弯路。/);
+
   for (const heading of [
     '系统设计与数据系统',
     '软件设计与代码质量',

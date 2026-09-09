@@ -3,6 +3,8 @@ title: 我的阅读书单
 date: 2026-09-09 00:00:00
 ---
 
+> 把零散经验沉淀成可复用的知识，让未来的自己少走一遍已经走过的弯路。
+
 ## 正在维护的书籍
 
 - [System Design Primer](/system-design-primer/)
