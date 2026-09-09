@@ -123,6 +123,46 @@
 
 复盘时检查三层问题：结构上是否先讲约束、主链路和权威状态；内容上是否每个结论都有依据、边界和代价；表达上是否能用简短结论收束而不堆砌术语。下一次练习只选择一个能验证的改进动作。
 
+## 外部题目覆盖索引
+
+本节用于记录外部开源题库与本书题库的覆盖关系。外部仓库只作为题目发现、主题补齐、图解参考和面试训练方法来源，不直接复制整篇答案。导入任何内容前，必须重新确认仓库当前版本、许可证、原作者署名要求和题目是否已经被本附录覆盖。
+
+### 索引字段
+
+| 字段 | 含义 |
+| --- | --- |
+| `source_repo` | 外部仓库名称和入口链接 |
+| `source_question_or_topic` | 外部题目、题型或主题；优先记录稳定标题，不记录大段原文 |
+| `source_license` | 仓库声明的许可证；未确认时标记为“待核验” |
+| `local_capability` | 对应本书的能力域、章节或训练入口 |
+| `difficulty` | 基础、进阶、高级或 Staff+ |
+| `question_type` | 核心案例、约束变体、快问快答、LLD、图解或面试流程 |
+| `deduplicated` | `未审校`、`候选`、`已合并` 或 `拒绝` |
+
+### 推荐来源
+
+| `source_repo` | 主要覆盖 | `source_license` | 本地映射 | 处理策略 |
+| --- | --- | --- | --- | --- |
+| [`Hamzaa6296/system-design-interview-question`](https://github.com/Hamzaa6296/system-design-interview-question) | 基础概念、缓存、数据库、分片、一致性、消息队列、微服务、安全、限流、搜索、通知、可观测性、HLD、LLD 和 Staff+ 题目 | 仓库含 `LICENSE`，具体授权范围待逐项核验 | 第 1-9 章、第 10-22 章、规范题库和快问快答 | 作为第一轮覆盖扫描源，重点发现本书尚未覆盖的领域和题型 |
+| [`donnemartin/system-design-primer`](https://github.com/donnemartin/system-design-primer) | 系统设计主题索引、容量估算、经典设计题、样例解法、架构图、面向对象设计和 Anki 练习 | CC BY 4.0；保留署名并标明修改 | 第 1 章、第 7-9 章、第 10-16 章、规范题库和复盘材料 | 用于补经典题、标准术语和可对照的解题结构，不复制完整答案 |
+| [`karanpratapsingh/system-design`](https://github.com/karanpratapsingh/system-design) | 可扩展性、分布式系统、微服务、缓存、数据库、消息和系统设计面试基础 | 仓库声明 CC BY-NC-ND 4.0；不直接改编或复制正文 | 第 1 章、第 3-9 章和第 10-16 章 | 用于补通用架构概念、取舍清单和术语索引 |
+| [`ByteByteGoHq/system-design-101`](https://github.com/ByteByteGoHq/system-design-101) | API、HTTP、负载均衡、数据库、缓存、云架构和分布式系统的图解材料 | 许可证待核验；图片和文字分别审查 | 第 1 章、第 8 章和第 10-18 章 | 只记录图解主题和外部链接，除非确认授权，不复制图片或重绘原图 |
+| [`jguamie/system-design`](https://github.com/jguamie/system-design) | Google 风格系统设计答题流程、需求澄清、规模判断、取舍表达、模拟面试和分布式系统阅读路线 | CC BY 4.0；保留署名并标明修改 | 候选人训练、面试官评估、模拟面试和第 1 章 | 用于补面试过程、评估标准和答题节奏，不把其流程当作唯一模板 |
+
+### 记录模板
+
+后续每发现一条有价值的外部题目，先按下面格式登记，再决定是否转化为本书题卡：
+
+| `source_repo` | `source_question_or_topic` | `source_license` | `local_capability` | `difficulty` | `question_type` | `deduplicated` |
+| --- | --- | --- | --- | --- | --- | --- |
+| `Hamzaa6296/system-design-interview-question` | `Design a notification system` | `待核验` | 通知、异步任务、可靠性 | 进阶 | 核心案例 | 未审校 |
+
+判定为 `已合并` 前，至少完成三项检查：
+
+1. 本书现有题库中没有同一核心约束，只是换了业务名。
+2. 外部题目能补充一个新的业务约束、故障注入、能力域或训练形式。
+3. 许可证允许当前使用方式；如果只能引用标题或链接，就只保留索引，不复制正文。
+
 ## 规范题库
 
 本章按可迁移的设计能力组织题目，而不是按中间件名称或业务目录堆叠题卡。每次练习先选择题型：核心案例训练完整决策，约束变体训练在条件变化后修正方案，快问快答训练一个明确的判断边界。
