@@ -24,10 +24,10 @@ date: 2026-09-09 00:00:00
 
 - [深入理解 AI Agent：设计原理与工程实践](/library/books/AI-Agents-in-Depth-zh-CN.pdf)（李博杰）— 覆盖上下文工程、记忆、知识库、工具、Coding Agent 和评估的系统实践。
 - [AI Engineering](https://www.oreilly.com/library/view/ai-engineering/9781098166298/)（Chip Huyen）— 从模型选择、提示、RAG 到推理优化，讨论生成式 AI 的生产化。
-- [Designing Machine Learning Systems](https://www.oreilly.com/library/view/designing-machine-learning/9781098107956/)（Chip Huyen）— 从数据、评估到部署和监控，理解完整机器学习系统。
 - [Hands-On Large Language Models](https://www.oreilly.com/library/view/hands-on-large-language/9781098150952/)（Jay Alammar、Maarten Grootendorst）— 从 Transformer 到微调、RAG 与生成应用，是理解 LLM 实践的高密度入门书。
 - [Build a Large Language Model (From Scratch)](https://www.manning.com/books/build-a-large-language-model-from-scratch)（Sebastian Raschka）— 从数据准备到预训练和微调，亲手走完 LLM 的关键实现环节。
 - [Deep Learning](https://www.deeplearningbook.org/)（Ian Goodfellow、Yoshua Bengio、Aaron Courville）— 深度学习理论与方法的经典基础，帮助理解今天大模型技术的来处。
+- [Designing Machine Learning Systems](https://www.oreilly.com/library/view/designing-machine-learning/9781098107956/)（Chip Huyen）— 从数据、评估到部署和监控，理解完整机器学习系统。
 
 ## 思维、商业与人文
 
