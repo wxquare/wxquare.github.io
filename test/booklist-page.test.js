@@ -15,9 +15,7 @@ test('booklist presents curated routes and verified destinations', () => {
   assert.match(booklist, /把零散经验沉淀成可复用的知识，让未来的自己少走一遍已经走过的弯路。/);
 
   for (const heading of [
-    '系统设计与数据系统',
-    '软件设计与代码质量',
-    '编程语言与基础',
+    '互联网系统设计',
     'AI 与 Agent',
     '思维、商业与人文'
   ]) {
@@ -29,6 +27,7 @@ test('booklist presents curated routes and verified destinations', () => {
   assert.match(booklist, /\]\(\/ai-book\/\)/);
   assert.doesNotMatch(booklist, /\]\(\/library\/\)/);
   assert.match(booklist, /https:\/\/www\.oreilly\.com\//);
+  assert.match(booklist, /AI-Agents-in-Depth-zh-CN\.pdf/);
   assert.doesNotMatch(booklist, /github\.com\/backstudy\/bookrack/);
 });
 
@@ -36,5 +35,5 @@ test('booklist stays within the native NexT reading style', () => {
   assert.doesNotMatch(booklist, /<style[\s>]/i);
   assert.doesNotMatch(booklist, /class="booklist/);
   assert.doesNotMatch(booklist, /CURATED READING/);
-  assert.match(booklist, /^## 系统设计与数据系统$/m);
+  assert.match(booklist, /^## 互联网系统设计$/m);
 });
