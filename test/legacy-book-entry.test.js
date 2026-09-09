@@ -11,10 +11,13 @@ const aliasScript = path.join(root, 'scripts/legacy-book-alias.js');
 test('canonical booklist page guides readers to both current books', () => {
   const bookList = fs.readFileSync(path.join(root, 'source/booklist/index.md'), 'utf8');
   const menuConfig = fs.readFileSync(path.join(root, 'themes/next/_config.yml'), 'utf8');
+  const zhCN = fs.readFileSync(path.join(root, 'themes/next/languages/zh-CN.yml'), 'utf8');
 
   assert.match(bookList, /\/system-design-primer\//);
   assert.match(bookList, /\/ai-book\//);
   assert.match(menuConfig, /^  book: \/booklist\/ \|\| fa fa-book$/m);
+  assert.doesNotMatch(menuConfig, /^  categories: \/categories\/ \|\| fa fa-th$/m);
+  assert.match(zhCN, /^  book: Books$/m);
   assert.doesNotMatch(bookList, /\/ecommerce-book\//);
   assert.equal(fs.existsSync(path.join(root, 'source/ecommerce-book/index.md')), false);
 });

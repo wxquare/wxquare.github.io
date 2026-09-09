@@ -10,6 +10,7 @@ const config = fs.readFileSync(path.join(__dirname, '..', '_config.yml'), 'utf8'
 test('native homepage contains the curated reader entry points', () => {
   assert.match(homepage, /^layout: page$/m);
   assert.match(homepage, /^permalink: \/$/m);
+  assert.match(homepage, /^toc:\n  enable: false$/m);
   assert.equal(packageJson.dependencies['hexo-generator-index'], undefined);
   assert.doesNotMatch(config, /^index_generator:/m);
   const links = [

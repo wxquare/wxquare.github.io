@@ -2,6 +2,8 @@
 title: 首页
 layout: page
 permalink: /
+toc:
+  enable: false
 ---
 
 这里整理了我持续维护的技术项目、学习资料与代表文章，主题聚焦 AI、Agent、系统设计和工程实践。
