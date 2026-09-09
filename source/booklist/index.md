@@ -3,24 +3,23 @@ title: 书籍项目
 date: 2026-09-09 00:00:00
 ---
 
-这是一个面向工程师的精选阅读路线，按主题整理，优先链接到作者、出版社和官方项目页。
+## 正在维护的书籍
 
 - [System Design Primer](/system-design-primer/)
 - [AI Agent 工程实践](/ai-book/)
-- [公开资料库](/library/)
 
 ## 系统设计与数据系统
 
-- [Designing Data-Intensive Applications](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/)（Martin Kleppmann）— 从可靠性、可扩展性到流处理，建立现代数据系统的判断框架；[站内资料库](/library/)。
+- [Designing Data-Intensive Applications](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/)（Martin Kleppmann）— 从可靠性、可扩展性到流处理，建立现代数据系统的判断框架。
 - [Site Reliability Engineering](https://sre.google/books/)（Betsy Beyer 等）— 用 SLO、错误预算和自动化运维理解生产系统的可靠性。
 - [System Design Primer](/system-design-primer/)（本站专题）— 通过需求澄清、容量估算和关键取舍训练系统设计表达。
 
 ## 软件设计与代码质量
 
-- [Clean Code](https://www.oreilly.com/library/view/clean-code-a/9780136083238/)（Robert C. Martin）— 从命名、函数和边界训练代码审美；[站内资料库](/library/)。
-- [Domain-Driven Design](https://www.domainlanguage.com/ddd/)（Eric Evans）— 用统一语言和限界上下文处理复杂业务；[站内资料库](/library/)。
-- [Implementing Domain-Driven Design](https://www.oreilly.com/library/view/implementing-domain-driven/9780133039900/)（Vaughn Vernon）— 将聚合、领域事件和仓储等概念落到工程实践；[站内资料库](/library/)。
-- [Domain-Driven Design Quickly](https://www.infoq.com/minibooks/domain-driven-design-quickly/)（Abel Avram）— 进入经典原著前的精炼导读；[站内资料库](/library/)。
+- [Clean Code](https://www.oreilly.com/library/view/clean-code-a/9780136083238/)（Robert C. Martin）— 从命名、函数和边界训练代码审美。
+- [Domain-Driven Design](https://www.domainlanguage.com/ddd/)（Eric Evans）— 用统一语言和限界上下文处理复杂业务。
+- [Implementing Domain-Driven Design](https://www.oreilly.com/library/view/implementing-domain-driven/9780133039900/)（Vaughn Vernon）— 将聚合、领域事件和仓储等概念落到工程实践。
+- [Domain-Driven Design Quickly](https://www.infoq.com/minibooks/domain-driven-design-quickly/)（Abel Avram）— 进入经典原著前的精炼导读。
 
 ## 编程语言与基础
 
@@ -42,4 +41,4 @@ date: 2026-09-09 00:00:00
 - [Sapiens](https://www.ynharari.com/book/sapiens-2/)（Yuval Noah Harari）— 从宏观历史重新理解协作、制度与技术。
 - [The Three-Body Problem](https://us.macmillan.com/books/9780765382030/thethreebodyproblem)（刘慈欣）— 在科学想象与文明尺度之间转换视角。
 
-外部链接优先指向作者、出版社或官方项目页。本站只提供已登记在公开资料库中的合规资料入口，不提供来源或授权不明的电子书下载。
+外部链接优先指向作者、出版社或官方项目页，不提供来源或授权不明的电子书下载。

@@ -22,9 +22,10 @@ test('booklist presents curated routes and verified destinations', () => {
     assert.match(booklist, new RegExp(`^## ${heading}$`, 'm'));
   }
 
+  assert.match(booklist, /^## 正在维护的书籍$/m);
   assert.match(booklist, /\]\(\/system-design-primer\/\)/);
   assert.match(booklist, /\]\(\/ai-book\/\)/);
-  assert.match(booklist, /\]\(\/library\/\)/);
+  assert.doesNotMatch(booklist, /\]\(\/library\/\)/);
   assert.match(booklist, /https:\/\/www\.oreilly\.com\//);
   assert.doesNotMatch(booklist, /github\.com\/backstudy\/bookrack/);
 });
