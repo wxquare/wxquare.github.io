@@ -13,33 +13,36 @@ const expectedAliases = [
   ['/2026/04/03/00-vibe-coding-vs-spec-coding/', 'AI/00-vibe-coding-vs-spec-coding'],
   ['/2026/04/03/02-agent-system-design-guid/', 'AI/02-agent-system-design-guid'],
   ['/2026/04/03/03-dod-agent-design/', 'AI/03-dod-agent-design'],
-  ['/2026/04/07/system-design/21-ecommerce-product-center/', 'system-design/21-ecommerce-product-center'],
-  ['/2026/04/07/system-design/26-ecommerce-order-system/', 'system-design/26-ecommerce-order-system'],
   ['/system-design/00-system-design-overview/', 'system-design/00-system-design-overview'],
   ['/system-design/02-middleware-redis/', 'system-design/02-middleware-redis'],
   ['/system-design/03-middleware-kafka/', 'system-design/03-middleware-kafka'],
   ['/system-design/04-middleware-elasticsearch/', 'system-design/04-middleware-elasticsearch'],
   ['/system-design/07-system-reliability-engineering/', 'system-design/07-system-reliability-engineering'],
-  ['/system-design/13-e-commerce/', 'system-design/20-ecommerce-overview'],
-  ['/system-design/18-inventory-system-design/', 'system-design/22-ecommerce-inventory'],
-  ['/system-design/20-ecommerce-overview/', 'system-design/20-ecommerce-overview'],
-  ['/system-design/21-ecommerce-product-center/', 'system-design/21-ecommerce-product-center'],
-  ['/system-design/22-ecommerce-inventory/', 'system-design/22-ecommerce-inventory'],
-  ['/system-design/23-ecommerce-marketing-system/', 'system-design/23-ecommerce-marketing-system'],
-  ['/system-design/24-ecommerce-pricing-engine/', 'system-design/24-ecommerce-pricing-engine'],
   ['/system-design/25-ecommerce-pricing-ddd/', 'system-design/25-ecommerce-pricing-ddd'],
-  ['/system-design/26-ecommerce-order-system/', 'system-design/26-ecommerce-order-system'],
-  ['/system-design/27-ecommerce-payment-system/', 'system-design/27-ecommerce-payment-system'],
   ['/system-design/28-ecommerce-listing/', 'system-design/28-ecommerce-listing'],
   ['/system-design/29-ecommerce-b-side-ops/', 'system-design/29-ecommerce-b-side-ops'],
   ['/system-design/30-ecommerce-product-lifecycle-management/', 'system-design/30-ecommerce-product-lifecycle-management'],
-  ['/system-design/31-ecommerce-search-discovery/', 'system-design/31-ecommerce-search-discovery'],
-  ['/system-design/32-ecommerce-cart-checkout/', 'system-design/32-ecommerce-cart-checkout'],
   ['/system-design/34-ecommerce-long-transactions/', 'system-design/34-ecommerce-long-transactions'],
   ['/system-design/41-acc-clean-arch-ddd-cqrs/', 'system-design/41-acc-clean-arch-ddd-cqrs'],
   ['/system-design/42-acc-clean-code/', 'system-design/42-acc-clean-code'],
   ['/system-design/43-acc-ddd-notes/', 'system-design/43-acc-ddd-notes'],
   ['/system-design/44-acc-code-review/', 'system-design/44-acc-code-review']
+];
+
+const expectedBookAliases = [
+  ['/2026/04/07/system-design/21-ecommerce-product-center/', '/books/system-design-primer/part03/02-product-center.html'],
+  ['/2026/04/07/system-design/26-ecommerce-order-system/', '/books/system-design-primer/part03/09-order-system.html'],
+  ['/system-design/13-e-commerce/', '/books/system-design-primer/part03/01-ecommerce-overview.html'],
+  ['/system-design/18-inventory-system-design/', '/books/system-design-primer/part03/04-inventory-system.html'],
+  ['/system-design/20-ecommerce-overview/', '/books/system-design-primer/part03/01-ecommerce-overview.html'],
+  ['/system-design/21-ecommerce-product-center/', '/books/system-design-primer/part03/02-product-center.html'],
+  ['/system-design/22-ecommerce-inventory/', '/books/system-design-primer/part03/04-inventory-system.html'],
+  ['/system-design/23-ecommerce-marketing-system/', '/books/system-design-primer/part03/05-marketing-system.html'],
+  ['/system-design/24-ecommerce-pricing-engine/', '/books/system-design-primer/part03/06-pricing-system.html'],
+  ['/system-design/26-ecommerce-order-system/', '/books/system-design-primer/part03/09-order-system.html'],
+  ['/system-design/27-ecommerce-payment-system/', '/books/system-design-primer/part03/10-payment-system.html'],
+  ['/system-design/31-ecommerce-search-discovery/', '/books/system-design-primer/part03/07-search-discovery.html'],
+  ['/system-design/32-ecommerce-cart-checkout/', '/books/system-design-primer/part03/08-cart-checkout.html']
 ];
 
 function mockConfig() {
@@ -82,12 +85,15 @@ test('legacy post alias generator emits all compatibility redirects', () => {
     };
     const generated = registrations[0].fn.call(context);
 
-    assert.equal(generated.length, expectedAliases.length);
-    assert.deepEqual(generated.map((item) => item.path), expectedAliases.map(([route]) => `${route.slice(1)}index.html`));
+    assert.equal(generated.length, expectedAliases.length + expectedBookAliases.length);
+    assert.deepEqual(
+      generated.map((item) => item.path).sort(),
+      [...expectedAliases, ...expectedBookAliases].map(([route]) => `${route.slice(1)}index.html`).sort()
+    );
 
     const redirect = generated.find((item) => item.path === 'system-design/13-e-commerce/index.html');
     assert.match(redirect.data, /rel="canonical"/);
-    assert.match(redirect.data, /\/2026\/04\/01\/system-design\/20-ecommerce-overview\//);
+    assert.match(redirect.data, /\/books\/system-design-primer\/part03\/01-ecommerce-overview\.html/);
     assert.match(redirect.data, /location\.replace/);
   } finally {
     delete require.cache[aliasScript];

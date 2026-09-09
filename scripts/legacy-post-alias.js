@@ -9,28 +9,28 @@ const aliases = [
   { path: '/2026/04/03/00-vibe-coding-vs-spec-coding/', slug: 'AI/00-vibe-coding-vs-spec-coding' },
   { path: '/2026/04/03/02-agent-system-design-guid/', slug: 'AI/02-agent-system-design-guid' },
   { path: '/2026/04/03/03-dod-agent-design/', slug: 'AI/03-dod-agent-design' },
-  { path: '/2026/04/07/system-design/21-ecommerce-product-center/', slug: 'system-design/21-ecommerce-product-center' },
-  { path: '/2026/04/07/system-design/26-ecommerce-order-system/', slug: 'system-design/26-ecommerce-order-system' },
+  { path: '/2026/04/07/system-design/21-ecommerce-product-center/', target: '/books/system-design-primer/part03/02-product-center.html' },
+  { path: '/2026/04/07/system-design/26-ecommerce-order-system/', target: '/books/system-design-primer/part03/09-order-system.html' },
   { path: '/system-design/00-system-design-overview/', slug: 'system-design/00-system-design-overview' },
   { path: '/system-design/02-middleware-redis/', slug: 'system-design/02-middleware-redis' },
   { path: '/system-design/03-middleware-kafka/', slug: 'system-design/03-middleware-kafka' },
   { path: '/system-design/04-middleware-elasticsearch/', slug: 'system-design/04-middleware-elasticsearch' },
   { path: '/system-design/07-system-reliability-engineering/', slug: 'system-design/07-system-reliability-engineering' },
-  { path: '/system-design/13-e-commerce/', slug: 'system-design/20-ecommerce-overview' },
-  { path: '/system-design/18-inventory-system-design/', slug: 'system-design/22-ecommerce-inventory' },
-  { path: '/system-design/20-ecommerce-overview/', slug: 'system-design/20-ecommerce-overview' },
-  { path: '/system-design/21-ecommerce-product-center/', slug: 'system-design/21-ecommerce-product-center' },
-  { path: '/system-design/22-ecommerce-inventory/', slug: 'system-design/22-ecommerce-inventory' },
-  { path: '/system-design/23-ecommerce-marketing-system/', slug: 'system-design/23-ecommerce-marketing-system' },
-  { path: '/system-design/24-ecommerce-pricing-engine/', slug: 'system-design/24-ecommerce-pricing-engine' },
+  { path: '/system-design/13-e-commerce/', target: '/books/system-design-primer/part03/01-ecommerce-overview.html' },
+  { path: '/system-design/18-inventory-system-design/', target: '/books/system-design-primer/part03/04-inventory-system.html' },
+  { path: '/system-design/20-ecommerce-overview/', target: '/books/system-design-primer/part03/01-ecommerce-overview.html' },
+  { path: '/system-design/21-ecommerce-product-center/', target: '/books/system-design-primer/part03/02-product-center.html' },
+  { path: '/system-design/22-ecommerce-inventory/', target: '/books/system-design-primer/part03/04-inventory-system.html' },
+  { path: '/system-design/23-ecommerce-marketing-system/', target: '/books/system-design-primer/part03/05-marketing-system.html' },
+  { path: '/system-design/24-ecommerce-pricing-engine/', target: '/books/system-design-primer/part03/06-pricing-system.html' },
   { path: '/system-design/25-ecommerce-pricing-ddd/', slug: 'system-design/25-ecommerce-pricing-ddd' },
-  { path: '/system-design/26-ecommerce-order-system/', slug: 'system-design/26-ecommerce-order-system' },
-  { path: '/system-design/27-ecommerce-payment-system/', slug: 'system-design/27-ecommerce-payment-system' },
+  { path: '/system-design/26-ecommerce-order-system/', target: '/books/system-design-primer/part03/09-order-system.html' },
+  { path: '/system-design/27-ecommerce-payment-system/', target: '/books/system-design-primer/part03/10-payment-system.html' },
   { path: '/system-design/28-ecommerce-listing/', slug: 'system-design/28-ecommerce-listing' },
   { path: '/system-design/29-ecommerce-b-side-ops/', slug: 'system-design/29-ecommerce-b-side-ops' },
   { path: '/system-design/30-ecommerce-product-lifecycle-management/', slug: 'system-design/30-ecommerce-product-lifecycle-management' },
-  { path: '/system-design/31-ecommerce-search-discovery/', slug: 'system-design/31-ecommerce-search-discovery' },
-  { path: '/system-design/32-ecommerce-cart-checkout/', slug: 'system-design/32-ecommerce-cart-checkout' },
+  { path: '/system-design/31-ecommerce-search-discovery/', target: '/books/system-design-primer/part03/07-search-discovery.html' },
+  { path: '/system-design/32-ecommerce-cart-checkout/', target: '/books/system-design-primer/part03/08-cart-checkout.html' },
   { path: '/system-design/34-ecommerce-long-transactions/', slug: 'system-design/34-ecommerce-long-transactions' },
   { path: '/system-design/41-acc-clean-arch-ddd-cqrs/', slug: 'system-design/41-acc-clean-arch-ddd-cqrs' },
   { path: '/system-design/42-acc-clean-code/', slug: 'system-design/42-acc-clean-code' },
@@ -77,10 +77,10 @@ function registerLegacyPostAlias(hexoContext) {
     const posts = asArray(this.locals.get('posts'));
 
     return aliases.map((alias) => {
-      const post = posts.find((candidate) => candidate.slug === alias.slug);
-      if (!post) throw new Error(`Missing post for legacy alias: ${alias.slug}`);
+      const post = alias.slug && posts.find((candidate) => candidate.slug === alias.slug);
+      if (alias.slug && !post) throw new Error(`Missing post for legacy alias: ${alias.slug}`);
 
-      const targetUrl = url_for.call(this, post.path);
+      const targetUrl = alias.target || url_for.call(this, post.path);
       return {
         path: `${alias.path.replace(/^\/+/, '')}index.html`,
         data: redirectHtml(targetUrl)
