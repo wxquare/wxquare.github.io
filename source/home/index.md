@@ -23,7 +23,7 @@ toc:
 
 ## 持续更新与推荐
 
-- [高频系统设计面试题速查手册](/2026/04/07/system-design/08-system-design-interview/)
+- [1-10年互联网后端工程师系统设计面试50题（电商优先）](/2026/04/07/system-design/08-system-design-interview/)
 - [LeetCode 题目索引](https://github.com/wxquare/leetcode-primer/blob/master/leetcode/README.md)
 - [从 Vibe Coding 到 Spec Coding：AI 编程范式的演进与实践](/2026/04/03/AI/00-vibe-coding-vs-spec-coding/)
 - [AI Agent 系统设计完整指南：从思考到实践](/2026/04/03/AI/02-agent-system-design-guid/)
