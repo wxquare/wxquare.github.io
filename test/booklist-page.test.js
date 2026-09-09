@@ -19,18 +19,19 @@ test('booklist presents curated routes and verified destinations', () => {
     'AI 与 Agent',
     '思维、商业与人文'
   ]) {
-    assert.match(booklist, new RegExp(`<h2[^>]*>${heading}</h2>`));
+    assert.match(booklist, new RegExp(`^## ${heading}$`, 'm'));
   }
 
-  assert.match(booklist, /href="\/system-design-primer\/"/);
-  assert.match(booklist, /href="\/ai-book\/"/);
-  assert.match(booklist, /href="\/library\/"/);
+  assert.match(booklist, /\]\(\/system-design-primer\/\)/);
+  assert.match(booklist, /\]\(\/ai-book\/\)/);
+  assert.match(booklist, /\]\(\/library\/\)/);
   assert.match(booklist, /https:\/\/www\.oreilly\.com\//);
   assert.doesNotMatch(booklist, /github\.com\/backstudy\/bookrack/);
 });
 
-test('booklist defines scoped responsive card styles', () => {
-  assert.match(booklist, /\.booklist\s*\{/);
-  assert.match(booklist, /\.booklist__grid\s*\{/);
-  assert.match(booklist, /@media\s*\(max-width:\s*640px\)/);
+test('booklist stays within the native NexT reading style', () => {
+  assert.doesNotMatch(booklist, /<style[\s>]/i);
+  assert.doesNotMatch(booklist, /class="booklist/);
+  assert.doesNotMatch(booklist, /CURATED READING/);
+  assert.match(booklist, /^## 系统设计与数据系统$/m);
 });
