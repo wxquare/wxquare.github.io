@@ -24,6 +24,7 @@ toc:
 ## 持续更新与推荐
 
 - [1-10年互联网后端工程师系统设计面试50题（电商优先）](/2026/04/07/system-design/08-system-design-interview/)
+- [AI 与 AI Agent 开发高频面试 50 题（工程与架构优先）](/2026/09/09/AI/07-ai-agent-development-interview-50/)
 - [LeetCode 题目索引](https://github.com/wxquare/leetcode-primer/blob/master/leetcode/README.md)
 - [从 Vibe Coding 到 Spec Coding：AI 编程范式的演进与实践](/2026/04/03/AI/00-vibe-coding-vs-spec-coding/)
 - [AI Agent 系统设计完整指南：从思考到实践](/2026/04/03/AI/02-agent-system-design-guid/)
