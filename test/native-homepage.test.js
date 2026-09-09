@@ -22,11 +22,24 @@ test('native homepage contains the curated reader entry points', () => {
     '/2026/04/03/system-design/43-acc-ddd-notes/',
     '/2026/04/03/AI/02-agent-system-design-guid/',
     '/2026/05/08/other/ai-content-to-video-open-source-workflow/',
-    '/2026/06/09/system-design/34-ecommerce-long-transactions/',
-    '/2026/04/16/system-design/33-ecommerce-price-calendar/',
-    '/2026/04/10/system-design/30-ecommerce-product-lifecycle-management/',
-    '/2026/04/07/AI/06-harness-engineering/',
     '/2026/04/05/AI/04-karpathy-evolving-knowledge-base/'
   ];
   for (const link of links) assert.ok(homepage.includes(link), `missing ${link}`);
+});
+
+test('homepage distinguishes public projects from private exploration', () => {
+  for (const link of [
+    'https://github.com/wxquare/leetcode-primer',
+    'https://github.com/wxquare/wxquare.github.io',
+    'https://github.com/wxquare/leetcode-primer/blob/master/leetcode/README.md'
+  ]) assert.ok(homepage.includes(link), `missing public link ${link}`);
+
+  for (const [name, repository] of [
+    ['SkillForge', 'skillforge'],
+    ['Investment Assistant', 'investment-assistant'],
+    ['wxquare-private', 'wxquare-private']
+  ]) {
+    assert.ok(homepage.includes(name));
+    assert.ok(!homepage.includes(`https://github.com/wxquare/${repository}`));
+  }
 });
