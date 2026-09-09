@@ -11,6 +11,13 @@ const booklist = fs.readFileSync(
   'utf8'
 );
 
+function booksInSection(heading) {
+  const sectionStart = booklist.indexOf(`## ${heading}`);
+  const nextSection = booklist.indexOf('\n## ', sectionStart + 1);
+  const section = booklist.slice(sectionStart, nextSection === -1 ? undefined : nextSection);
+  return section.match(/^- \[/gm) || [];
+}
+
 test('booklist presents curated routes and verified destinations', () => {
   assert.match(booklist, /把零散经验沉淀成可复用的知识，让未来的自己少走一遍已经走过的弯路。/);
 
@@ -36,4 +43,10 @@ test('booklist stays within the native NexT reading style', () => {
   assert.doesNotMatch(booklist, /class="booklist/);
   assert.doesNotMatch(booklist, /CURATED READING/);
   assert.match(booklist, /^## 互联网系统设计$/m);
+});
+
+test('each reading category recommends six books', () => {
+  for (const heading of ['互联网系统设计', 'AI 与 Agent', '思维、商业与人文']) {
+    assert.equal(booksInSection(heading).length, 6, `${heading} should contain six books`);
+  }
 });
