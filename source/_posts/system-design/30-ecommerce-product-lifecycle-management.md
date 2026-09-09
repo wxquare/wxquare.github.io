@@ -12,7 +12,7 @@ tags:
   - data-consistency
 ---
 
-> **电商系统设计（十一）**（衔接{% post_link system-design/28-ecommerce-listing （九）商品上架系统 %}与{% post_link system-design/29-ecommerce-b-side-ops （十）B 端运营系统 %}，总索引见{% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}；续篇：{% post_link system-design/31-ecommerce-search-discovery （十二）搜索与导购 %}）
+> **电商系统设计（十一）**（衔接{% post_link system-design/28-ecommerce-listing （九）商品上架系统 %}与{% post_link system-design/29-ecommerce-b-side-ops （十）B 端运营系统 %}，总索引见[（一）全景概览与领域划分](/books/system-design-primer/part03/01-ecommerce-overview.html)；续篇：[（十二）搜索与导购](/books/system-design-primer/part03/07-search-discovery.html)）
 
 ## 引言：为什么需要区分三种操作场景
 
@@ -3316,4 +3316,3 @@ graph TD
 - Martin Fowler - [Application Idempotency](https://martinfowler.com/)
 - [Saga Pattern in Microservices](https://microservices.io/patterns/data/saga.html)
 - [Event Sourcing and CQRS](https://martinfowler.com/eaaDev/EventSourcing.html)
-

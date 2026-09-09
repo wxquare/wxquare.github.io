@@ -134,10 +134,10 @@ DDD（领域驱动设计）正是为了解决这些问题而生。
 
 **与电商系列文章的关系**：
 本文使用电商场景作为贯穿案例，与以下文章形成呼应：
-- {% post_link system-design/20-ecommerce-overview 20-ecommerce-overview.md %} - 电商系统概览
+- [20-ecommerce-overview.md](/books/system-design-primer/part03/01-ecommerce-overview.html) - 电商系统概览
 - {% post_link system-design/28-ecommerce-listing 21-ecommerce-listing.md %} - 商品列表
-- {% post_link system-design/22-ecommerce-inventory 22-ecommerce-inventory.md %} - 库存系统
-- {% post_link system-design/27-ecommerce-payment-system 29-ecommerce-payment-system.md %} - 支付系统
+- [22-ecommerce-inventory.md](/books/system-design-primer/part03/04-inventory-system.html) - 库存系统
+- [29-ecommerce-payment-system.md](/books/system-design-primer/part03/10-payment-system.html) - 支付系统
 - 阅读系列文时，可对照本文中的上下文划分，看同一能力在概览、列表、库存、支付等文中分别落在哪个子域、由哪个团队主责。
 - 若你当前只负责其中一条链路（例如支付回调），仍建议先浏览订单全路径，再深入自己的上下文，避免局部优化破坏全局一致性。
 
@@ -3620,10 +3620,10 @@ public class OrderJpaEntity {
 2. Vaughn Vernon, *Implementing Domain-Driven Design*, Addison-Wesley, 2013（中文版：《实现领域驱动设计》，电子工业出版社，2014）。
 3. Martin Fowler, *Patterns of Enterprise Application Architecture*, Addison-Wesley, 2002.
 4. 本站：{% post_link system-design/41-acc-clean-arch-ddd-cqrs Clean Architecture + DDD + CQRS %}。
-5. 本站：{% post_link system-design/20-ecommerce-overview 电商系统概览 %}。
+5. 本站：[电商系统概览](/books/system-design-primer/part03/01-ecommerce-overview.html)。
 6. 本站：{% post_link system-design/28-ecommerce-listing 电商商品列表 / 订单相关 %}。
-7. 本站：{% post_link system-design/22-ecommerce-inventory 电商库存系统 %}。
-8. 本站：{% post_link system-design/27-ecommerce-payment-system 电商支付系统 %}。
+7. 本站：[电商库存系统](/books/system-design-primer/part03/04-inventory-system.html)。
+8. 本站：[电商支付系统](/books/system-design-primer/part03/10-payment-system.html)。
 9. Martin Fowler, [Event Sourcing](https://martinfowler.com/eaaDev/EventSourcing.html)（在线短文）。
 10. Microsoft Learn, [Domain-Driven design](https://learn.microsoft.com/en-us/azure/architecture/microservices/model/domain-analysis)（Azure Architecture Center，英文）。
 

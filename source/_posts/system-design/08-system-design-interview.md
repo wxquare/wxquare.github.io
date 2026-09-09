@@ -1815,9 +1815,9 @@ if result == 0 {
 - {% post_link system-design/02-middleware-redis Redis 原理与实践 %}
 - {% post_link system-design/03-middleware-kafka 异步和消息队列 %}
 - {% post_link system-design/04-middleware-elasticsearch 搜索和 Elasticsearch %}
-- {% post_link system-design/20-ecommerce-overview 电商系统设计 %}
+- [电商系统设计](/books/system-design-primer/part03/01-ecommerce-overview.html)
 - {% post_link system-design/07-system-reliability-engineering 系统稳定性建设：方法论与实践 %}
-- {% post_link system-design/22-ecommerce-inventory 多品类统一库存系统设计 %}
+- [多品类统一库存系统设计](/books/system-design-primer/part03/04-inventory-system.html)
 
 ### 外部参考
 

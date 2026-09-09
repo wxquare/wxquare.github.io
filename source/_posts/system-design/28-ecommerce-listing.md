@@ -14,19 +14,19 @@ toc: true
 
 <!-- toc -->
 
-> **电商系统设计系列**（篇次与{% post_link system-design/20-ecommerce-overview （一）推荐阅读顺序 %}一致）
-> - {% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}
-> - {% post_link system-design/21-ecommerce-product-center （二）商品中心系统 %}
-> - {% post_link system-design/22-ecommerce-inventory （三）库存系统 %}
-> - {% post_link system-design/23-ecommerce-marketing-system （四）营销系统深度解析 %}
-> - {% post_link system-design/24-ecommerce-pricing-engine （五）计价引擎 %}
+> **电商系统设计系列**（篇次与[（一）推荐阅读顺序](/books/system-design-primer/part03/01-ecommerce-overview.html)一致）
+> - [（一）全景概览与领域划分](/books/system-design-primer/part03/01-ecommerce-overview.html)
+> - [（二）商品中心系统](/books/system-design-primer/part03/02-product-center.html)
+> - [（三）库存系统](/books/system-design-primer/part03/04-inventory-system.html)
+> - [（四）营销系统深度解析](/books/system-design-primer/part03/05-marketing-system.html)
+> - [（五）计价引擎](/books/system-design-primer/part03/06-pricing-system.html)
 > - {% post_link system-design/25-ecommerce-pricing-ddd （六）计价系统 DDD 实践 %}
-> - {% post_link system-design/26-ecommerce-order-system （七）订单系统 %}
-> - {% post_link system-design/27-ecommerce-payment-system （八）支付系统深度解析 %}
+> - [（七）订单系统](/books/system-design-primer/part03/09-order-system.html)
+> - [（八）支付系统深度解析](/books/system-design-primer/part03/10-payment-system.html)
 > - **（九）商品上架系统**（本文）
 > - {% post_link system-design/29-ecommerce-b-side-ops （十）B 端运营系统 %}
 
-本文是电商系统设计系列的第九篇（运营管理层），建议先阅读{% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}与{% post_link system-design/21-ecommerce-product-center （二）商品中心系统 %}了解商品主数据与领域边界。
+本文是电商系统设计系列的第九篇（运营管理层），建议先阅读[（一）全景概览与领域划分](/books/system-design-primer/part03/01-ecommerce-overview.html)与[（二）商品中心系统](/books/system-design-primer/part03/02-product-center.html)了解商品主数据与领域边界。
 
 ## 一、背景与挑战
 
@@ -1542,4 +1542,4 @@ supplierPullScheduler.Register("concert", &SupplierPullConfig{
 ---
 
 > **系列导航**
-> 上架完成后，商品的库存管理详见{% post_link system-design/22-ecommerce-inventory （三）库存系统 %}，价格配置详见{% post_link system-design/24-ecommerce-pricing-engine （五）计价引擎 %}。
+> 上架完成后，商品的库存管理详见[（三）库存系统](/books/system-design-primer/part03/04-inventory-system.html)，价格配置详见[（五）计价引擎](/books/system-design-primer/part03/06-pricing-system.html)。

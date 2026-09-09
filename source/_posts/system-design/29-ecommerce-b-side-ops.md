@@ -14,15 +14,15 @@ toc: true
 
 <!-- toc -->
 
-> **电商系统设计系列**（篇次与{% post_link system-design/20-ecommerce-overview （一）推荐阅读顺序 %}一致）
-> - {% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}
-> - {% post_link system-design/21-ecommerce-product-center （二）商品中心系统 %}
-> - {% post_link system-design/22-ecommerce-inventory （三）库存系统 %}
-> - {% post_link system-design/23-ecommerce-marketing-system （四）营销系统深度解析 %}
-> - {% post_link system-design/24-ecommerce-pricing-engine （五）计价引擎 %}
+> **电商系统设计系列**（篇次与[（一）推荐阅读顺序](/books/system-design-primer/part03/01-ecommerce-overview.html)一致）
+> - [（一）全景概览与领域划分](/books/system-design-primer/part03/01-ecommerce-overview.html)
+> - [（二）商品中心系统](/books/system-design-primer/part03/02-product-center.html)
+> - [（三）库存系统](/books/system-design-primer/part03/04-inventory-system.html)
+> - [（四）营销系统深度解析](/books/system-design-primer/part03/05-marketing-system.html)
+> - [（五）计价引擎](/books/system-design-primer/part03/06-pricing-system.html)
 > - {% post_link system-design/25-ecommerce-pricing-ddd （六）计价系统 DDD 实践 %}
-> - {% post_link system-design/26-ecommerce-order-system （七）订单系统 %}
-> - {% post_link system-design/27-ecommerce-payment-system （八）支付系统深度解析 %}
+> - [（七）订单系统](/books/system-design-primer/part03/09-order-system.html)
+> - [（八）支付系统深度解析](/books/system-design-primer/part03/10-payment-system.html)
 > - {% post_link system-design/28-ecommerce-listing （九）商品上架系统 %}
 > - **（十）B 端运营系统**（本文）
 
@@ -6749,12 +6749,12 @@ func TestConcertTicketFlow(t *testing.T) {
 
 ## 附录：相关文档
 
-1. {% post_link system-design/22-ecommerce-inventory 多品类统一库存系统设计 %}
-2. {% post_link system-design/24-ecommerce-pricing-engine 多品类统一价格管理与计价系统设计 %}
-3. {% post_link system-design/22-ecommerce-inventory 统一商品·库存·价格管理系统设计 %}
-4. {% post_link system-design/20-ecommerce-overview 电商系统设计全景 %}
+1. [多品类统一库存系统设计](/books/system-design-primer/part03/04-inventory-system.html)
+2. [多品类统一价格管理与计价系统设计](/books/system-design-primer/part03/06-pricing-system.html)
+3. [统一商品·库存·价格管理系统设计](/books/system-design-primer/part03/04-inventory-system.html)
+4. [电商系统设计全景](/books/system-design-primer/part03/01-ecommerce-overview.html)
 
 ---
 
 > **系列导航**
-> 本系列全部文章索引，详见{% post_link system-design/20-ecommerce-overview （一）全景概览与领域划分 %}。
+> 本系列全部文章索引，详见[（一）全景概览与领域划分](/books/system-design-primer/part03/01-ecommerce-overview.html)。
