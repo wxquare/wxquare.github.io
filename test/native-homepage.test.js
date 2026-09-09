@@ -4,10 +4,14 @@ const path = require('node:path');
 const test = require('node:test');
 
 const homepage = fs.readFileSync(path.join(__dirname, '..', 'source/home/index.md'), 'utf8');
+const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+const config = fs.readFileSync(path.join(__dirname, '..', '_config.yml'), 'utf8');
 
 test('native homepage contains the curated reader entry points', () => {
   assert.match(homepage, /^layout: page$/m);
   assert.match(homepage, /^permalink: \/$/m);
+  assert.equal(packageJson.dependencies['hexo-generator-index'], undefined);
+  assert.doesNotMatch(config, /^index_generator:/m);
   const links = [
     '/ai-book/',
     '/system-design-primer/',
