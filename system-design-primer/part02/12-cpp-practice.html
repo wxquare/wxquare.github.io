@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 20 章 Python 实践 - System Design Primer</title>
+        <title>第 21 章 C++ 实践 - System Design Primer</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e22aec9e.js";
+            window.path_to_searchindex_js = "../searchindex-5be5c0f8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a6324ee9.js"></script>
+        <script src="../toc-db1d8004.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,91 +177,87 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第-20-章-python-实践"><a class="header" href="#第-20-章-python-实践">第 20 章 Python 实践</a></h1>
-<p>Python 在系统设计语境中的价值，通常不在核心高性能路径，而在于快速验证、自动化编排、数据处理和工程胶水。它开发效率高、生态丰富，适合把复杂系统周围的重复劳动和分析任务快速固化下来。本章不展开 Python 语言全貌，而是聚焦系统设计读者最常见的工程用途和性能边界。</p>
-<h2 id="python-的工程用途"><a class="header" href="#python-的工程用途">Python 的工程用途</a></h2>
-<p>Python 最大的优势是“写得快、改得快、库多”。这使它非常适合做离线处理、运维脚本、数据清洗、实验原型、模型推理封装、测试工具以及跨语言系统之间的胶水层。在真实工程里，很多服务并不会把 Python 放在最核心的性能敏感模块，却会大量依赖它完成周边自动化和流程打通。</p>
-<p>一个很典型的场景，是把 C++ 实现的视觉算法抽取成更易使用的 Python 接口。这个例子说明了 Python 的实际定位：不是替代底层高性能实现，而是提供更友好的调度层、实验层和业务集成层。当项目既想保留 C/C++ 性能，又希望让上层调用更灵活时，Python 往往是折中方案。</p>
-<p>跨语言集成时要特别关注依赖和部署复杂度。比如通过 SWIG 为 C++ 库生成 Python 调用接口，如果第三方依赖默认是动态链接，最终部署就可能非常脆弱。这个案例强调将 OpenCV、ViSP 等依赖按静态方式编译，本质上是在提醒系统设计读者：工程交付不只是“代码能跑”，还包括依赖边界是否可控、部署环境是否稳定。</p>
-<p>因此，评价 Python 是否适合某项任务，不应只看运行速度，还要综合考虑交付周期、生态支持、接口灵活性和可维护性。对很多自动化和分析类任务来说，Python 的高开发效率本身就是系统整体效率的一部分。</p>
-<h2 id="常用语法与标准库"><a class="header" href="#常用语法与标准库">常用语法与标准库</a></h2>
-<p>系统设计读者使用 Python，通常不需要深入语言冷门特性，但需要掌握一套足够稳定的工程工具箱。最常见的就是基础数据结构、文件与路径处理、序列化、子进程调用、时间处理、日志、异常处理和并发标准库。</p>
-<p>Python 的常见数据结构如 <code>list</code>、<code>dict</code>、<code>set</code>、<code>tuple</code> 足以覆盖大量自动化脚本需求。<code>pathlib</code>、<code>os</code>、<code>shutil</code> 适合处理文件和目录；<code>json</code>、<code>csv</code>、<code>pickle</code> 负责常见数据编解码；<code>subprocess</code> 负责和 Shell、系统命令集成；<code>logging</code> 提供结构清晰的日志输出；<code>argparse</code> 则让一次性脚本更容易演化成可复用工具。</p>
-<p>掌握这些标准库的意义，在于减少“为了一个简单任务引入重型框架”的冲动。很多工程脚本之所以后期难维护，不是因为 Python 不够强，而是因为脚本从一开始就没有遵守基本的输入输出、异常处理和模块划分习惯。即使是临时工具，也应尽量做到参数明确、日志可读、错误可解释。</p>
-<p>如果工作内容涉及算法验证或数据分析，NumPy、Pandas、Requests、Click、Typer 等生态也很常用。但在系统设计场景下，更重要的是理解它们解决的问题类型：是为了高效处理数组和表格，还是为了快速构造 HTTP 客户端与命令行工具。这样你在选型时会更有边界感。</p>
-<h2 id="自动化与数据处理"><a class="header" href="#自动化与数据处理">自动化与数据处理</a></h2>
-<p>自动化是 Python 最稳定的主场之一。批量改文件、调用外部程序、解析日志、汇总指标、生成报告、封装内部平台接口，这些任务用 Python 实现往往既清晰又足够快。相比 Shell，Python 更适合处理稍复杂的控制流、异常分支和结构化数据；相比 Go 或 C++，它启动门槛更低，迭代速度更快。</p>
-<p>数据处理也是 Python 的强项。常见优化思路很有代表性：先理解整体流程，再用 <code>cProfile</code> 找热点，然后考虑算法剪枝、矩阵运算替代循环、任务拆分并行、必要时下沉到 C/C++ 或 GPU。这个顺序非常重要，因为很多性能问题并不是语言本身造成的，而是算法路径、数据布局和无意义工作过多。</p>
-<p>如果你需要快速处理一批日志或实验数据，Python 的典型工作流通常是：</p>
+                        <h1 id="第-21-章-c-实践"><a class="header" href="#第-21-章-c-实践">第 21 章 C++ 实践</a></h1>
+<p>C++ 在系统设计语境中的价值，主要体现在高性能基础组件、底层库、客户端 SDK、算法与系统软件等领域。系统设计工程师不一定每天写 C++，但理解它的对象模型、内存语义、STL 和常见性能陷阱，能帮助你更好地阅读底层组件实现、分析性能问题并和基础设施团队高效协作。</p>
+<h2 id="内存模型与对象生命周期"><a class="header" href="#内存模型与对象生命周期">内存模型与对象生命周期</a></h2>
+<p>C++ 的核心工程价值之一，是把对象生命周期和资源管理显式暴露给开发者。与自动垃圾回收语言不同，C++ 要求你明确知道对象在哪分配、何时构造、何时析构、谁负责释放，以及拷贝和移动各自意味着什么。很多性能问题和稳定性问题，都来自这些边界没有被讲清楚。</p>
+<p>对象可以分配在栈上，也可以分配在堆上。栈对象生命周期随作用域结束自动结束，开销小、行为明确；堆对象更灵活，但需要显式释放或依赖智能指针托管。<code>new/delete</code> 与 <code>malloc/free</code> 的差异也必须分清：前者是 C++ 语义，负责调用构造和析构；后者只是分配和释放原始内存。把两者混用，往往会埋下未定义行为。</p>
+<p>深拷贝、浅拷贝、移动语义和资源所有权是理解 C++ 生命周期的关键。带有堆内存、文件句柄、锁或网络连接的对象，如果只做默认浅拷贝，就可能导致双重释放或悬垂引用。C++11 引入移动语义，本质上是让资源所有权可以转移而不是重复复制，从而减少不必要的分配与释放成本。系统设计里凡是高性能对象池、缓冲区管理、连接对象管理，都离不开这一层语义。</p>
+<p>初始化列表、<code>const</code>、引用成员、<code>explicit</code>、<code>=default</code>、<code>=delete</code> 等语言特性，也是工程代码里常见的边界声明工具。它们的重要性不在于语法细节，而在于明确表达“这个对象是否可拷贝”“是否允许隐式转换”“哪些成员必须在构造时就初始化”。好的 C++ 代码会主动用这些机制降低误用空间。</p>
+<p>多态与对象模型同样要理解到工程层。虚函数带来运行期动态绑定和更灵活的扩展点，但也引入虚表、额外间接调用和更复杂的继承布局。虚析构函数为什么重要、RTTI 依赖什么、菱形继承为什么麻烦，这些问题看似偏语言，其实都与大型代码库的可维护性和二进制兼容有关。</p>
+<h2 id="stl-容器与算法"><a class="header" href="#stl-容器与算法">STL 容器与算法</a></h2>
+<p>STL 的价值不是“提供了很多容器”，而是为常见数据访问模式提供了成熟的数据结构和算法抽象。系统设计工程师使用 STL 时，重点不是背出 17 种容器，而是知道在不同读写模型下该如何选型，以及这些容器在时间复杂度、内存布局和迭代器稳定性上的差异。</p>
+<p><code>vector</code> 连续存储、缓存友好，适合高频遍历和尾部追加，是最常见的默认选择。<code>list</code> 插入删除灵活，但局部性差，现代工程里使用场景远少于初学者想象。<code>deque</code> 适合双端操作。<code>map</code> 基于有序树结构，适合需要范围查询和有序遍历的场景；<code>unordered_map</code> 基于哈希，均摊查找更快，但内存开销、最坏情况和迭代顺序都不同。</p>
+<p>优先队列、集合、字符串容器和算法库同样很常用。<code>priority_queue</code> 适合调度、TopK、定时任务等场景；<code>set</code> 和 <code>unordered_set</code> 适合去重与成员判断；<code>sort</code>、<code>lower_bound</code>、<code>accumulate</code> 这类算法则帮助你把“数据结构 + 操作”写得更明确。系统设计里的很多基础模块，例如定时器、缓存淘汰、路由表、倒排索引局部结构，都能映射到这些容器选择上。</p>
+<p>容器失效和线程安全是面试高频坑。向 <code>vector</code> 追加元素可能触发扩容，导致原有指针和迭代器失效；删除 <code>map</code>、<code>unordered_map</code>、<code>list</code> 中元素时，各容器失效规则也不同。STL 容器通常不默认提供并发安全保障，因此在多线程环境下需要外部同步。理解这些边界，比单纯记住复杂度表更重要，因为线上 bug 很多正出在“以为还能继续用那个指针”。</p>
+<p>STL 的内存管理也值得关注。容器增长、缩容、释放内存和分配器策略会直接影响 RSS 和性能抖动。很多人误以为容器清空后内存一定回到操作系统，实际上并不总是如此。系统设计里如果某个模块频繁创建大对象容器、突发扩容又不及时回收，内存峰值问题会很明显。</p>
+<h2 id="字符串与字符处理"><a class="header" href="#字符串与字符处理">字符串与字符处理</a></h2>
+<p>字符串在系统里无处不在：协议解析、日志格式化、配置读取、序列化、路径处理、键名拼接。C++ 中处理字符串时，性能问题和安全问题都很容易出现，因此这是一个很值得单独关注的主题。</p>
+<p>首先要区分 C 风格字符串和 <code>std::string</code>。前者以空字符结尾，容易产生越界、未终止和缓冲区覆盖问题；后者封装了长度和存储，更适合现代工程。即便如此，<code>std::string</code> 也不是完全没有成本：频繁拷贝、反复拼接、隐式临时对象构造都会带来分配放大。对性能敏感路径，应尽量减少无意义复制，优先使用引用、视图或预分配策略。</p>
+<p>字符处理里常见的工程细节包括编码、长度与容量、格式化和解析。日志和协议处理时，经常要面对 UTF-8 与字节长度不一致、路径或分隔符清洗、大小写转换、子串提取等问题。现代 C++ 代码更倾向于使用标准库提供的安全接口，而不是大量手写指针运算。</p>
+<p>字符串问题还经常和接口边界绑在一起。例如 <code>extern "C"</code> 处理跨语言接口时，需要格外注意 ABI 和字符串内存所有权；网络协议解析时则必须明确消息边界和异常输入处理。很多看似“只是个字符串”的 bug，最终都演变成崩溃、乱码、日志污染或安全风险。</p>
+<h2 id="性能优化与常见陷阱"><a class="header" href="#性能优化与常见陷阱">性能优化与常见陷阱</a></h2>
+<p>C++ 的性能优势并不是自动获得的。它给了开发者更多控制权，也意味着更多犯错空间。真正的优化应该从测量开始。常用的 <code>time</code>、<code>top</code>、<code>perf</code>、<code>gprof</code>、<code>valgrind</code>、<code>gdb</code> 等工具，构成了性能与稳定性分析的基础工具箱。只有先知道时间和内存消耗在哪，优化才不会变成拍脑袋。</p>
+<p>常见性能问题通常集中在几类：</p>
 <ul>
-<li>用标准库或 Pandas 读入结构化数据。</li>
-<li>先做过滤和字段抽取。</li>
-<li>再做聚合、统计和可视化。</li>
-<li>最后将结果输出成报告、文件或接口请求。</li>
+<li>频繁动态分配与释放导致碎片和锁竞争。</li>
+<li>不必要的深拷贝和字符串拼接导致额外内存流量。</li>
+<li>容器选型不当，导致复杂度或局部性很差。</li>
+<li>虚函数、异常、RTTI 等高级特性在热路径被滥用。</li>
+<li>锁粒度过粗、共享状态过多，导致并发扩展性差。</li>
 </ul>
-<p>这种流程和系统设计里的离线链路很相似。它强调数据先被组织起来，再进入分析与动作，而不是把所有逻辑写成难以复用的临时循环。</p>
-<p>跨语言自动化也是 Python 非常常见的角色。通过 C 扩展、SWIG、ctypes 或 CFFI，可以把高性能组件暴露给 Python 调用。这样做的前提是边界要清楚：性能敏感逻辑放在底层，编排和实验放在 Python 层。只要边界混乱，性能问题和部署问题就会一起放大。</p>
-<h2 id="调试性能与常见坑"><a class="header" href="#调试性能与常见坑">调试、性能与常见坑</a></h2>
-<p>Python 性能慢，首先不是因为“它解释执行”这么简单，而是因为动态类型、对象模型和运行时调度带来了额外开销。需要关注三个关键原因：动态类型需要在运行期做更多判断，CPython 的 GIL 会限制 CPU 密集型多线程并行，默认解释器没有通用 JIT。理解这三个因素，有助于你判断一个任务慢在语言本身、任务模型，还是算法路径。</p>
-<p>调试性能时，最有价值的习惯不是凭感觉改代码，而是先做 profile。<code>cProfile</code>、<code>pstats</code>、火焰图和调用图能帮助你确定热点函数；然后再考虑是否通过减少循环、改用向量化、预分配数据结构、批处理请求、减少对象创建等方式优化。如果热点仍然集中在少数重计算路径，再考虑多进程、Numba、Cython 或 C/C++ 重写。</p>
-<p>GIL 是系统设计读者必须理解的经典追问。它意味着在 CPython 中，CPU 密集型任务即使开多个线程，也不能真正并行执行 Python 字节码；但 I/O 密集型任务在阻塞时会释放 GIL，因此多线程仍然有价值。换句话说，面对 CPU 密集任务，更应优先考虑多进程、原生扩展或把计算下沉到底层库；面对 I/O 密集任务，线程和异步模型则仍然有效。</p>
-<p>多进程测试和 <code>multiprocessing</code> 示例，提醒的是一个工程边界：不要因为 Python 有线程 API，就默认它适合所有并发场景。正确做法是先判断瓶颈类型，再选并发模型。除此之外，Python 常见坑还包括：</p>
-<ul>
-<li>误把临时脚本写成无法维护的单文件泥团。</li>
-<li>忽视依赖打包，导致环境一换就不能运行。</li>
-<li>在大数据量上频繁做 Python 层循环而不做批处理。</li>
-<li>过早并发，却没有先完成单线程 profile 和算法剪枝。</li>
-</ul>
+<p>与此同时，C++ 也有一批经典稳定性陷阱：悬垂指针、重复释放、越界访问、未初始化变量、对象切片、析构顺序错误、链接符号缺失、ABI 不兼容等。编译、链接、core dump、<code>undefined symbol</code>、<code>pkg-config</code>、<code>find_package</code>、<code>ldd</code> 这些内容提醒我们，很多 C++ 问题并不出在业务逻辑，而是出在构建、链接和运行时环境边界。</p>
+<p>对系统设计读者来说，更重要的是建立一个现实判断：C++ 很适合写性能敏感、资源受控、生命周期明确的模块，但它要求更严格的工程纪律。RAII、智能指针、明确所有权、少用原始裸指针、谨慎设计继承层次、避免过度模板炫技，这些习惯比零散记忆语法更有价值。</p>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
-<p>Python 在系统设计中的定位非常清晰：它是高效率的工程工具语言，适合自动化、数据处理、原型验证和跨语言整合，但不应被默认放到最苛刻的高性能核心路径里。</p>
-<p>这一章最重要的结论有：</p>
+<p>C++ 在系统设计体系中的角色，是为高性能与底层控制力提供支撑。理解它的对象生命周期、资源管理和容器行为，能帮助你更稳地处理基础组件、性能优化和疑难问题定位。</p>
+<p>这一章最值得保留的结论是：</p>
 <ul>
-<li>Python 的最大优势是开发效率和生态，不是原始性能。</li>
-<li>自动化和数据处理是 Python 最稳定、最有性价比的战场。</li>
-<li>性能优化要先 profile，再判断是算法、运行时还是语言边界问题。</li>
-<li>GIL 决定了 CPU 密集和 I/O 密集任务在并发模型上的不同选择。</li>
+<li>C++ 的强大建立在显式生命周期和资源所有权管理之上。</li>
+<li>STL 选型应围绕访问模式、复杂度、内存布局和失效规则展开。</li>
+<li>字符串和字符处理既是性能问题，也是安全问题。</li>
+<li>性能优化必须依赖测量工具，很多问题最终落在内存、链接和对象边界上。</li>
 </ul>
 <h2 id="本章面试题与追问"><a class="header" href="#本章面试题与追问">本章面试题与追问</a></h2>
 <ol>
 <li>
-<p>Python 在系统设计工程里最适合承担哪些角色？
-追问：为什么很多团队会用 Python 做自动化和数据处理，却不用它承载最核心的高性能路径？</p>
+<p><code>new/delete</code> 和 <code>malloc/free</code> 的本质区别是什么？
+追问：为什么在 C++ 对象语义里混用它们会很危险？</p>
 </li>
 <li>
-<p>动态类型为什么会影响 Python 性能？
-追问：这种成本换来了哪些开发效率上的收益？</p>
+<p>什么是浅拷贝，什么是深拷贝？
+追问：如果一个对象内部持有堆内存或文件句柄，默认拷贝会带来哪些风险？</p>
 </li>
 <li>
-<p>GIL 到底限制了什么？
-追问：为什么 I/O 密集型任务仍然可以从 Python 多线程中受益？</p>
+<p>移动语义解决了什么问题？
+追问：在什么场景下它比传统拷贝更能体现工程价值？</p>
 </li>
 <li>
-<p>面对 CPU 密集型 Python 程序，你会优先怎么优化？
-追问：为什么通常应先做 profile，而不是直接上多进程或重写语言？</p>
+<p>为什么初始化列表在 C++ 中很重要？
+追问：哪些成员必须通过初始化列表初始化，为什么？</p>
 </li>
 <li>
-<p><code>cProfile</code> 这类工具在性能优化中的作用是什么？
-追问：如果 profile 显示热点在少数几个循环里，你会有哪些典型手段？</p>
+<p><code>vector</code> 和 <code>list</code>、<code>map</code> 和 <code>unordered_map</code> 应该如何取舍？
+追问：如果既关注性能又关注遍历顺序或范围查询，你会怎么选？</p>
 </li>
 <li>
-<p>Python 和 C/C++ 混合编程常见于哪些场景？
-追问：如果要通过 SWIG 或其他方式暴露底层能力，为什么部署依赖管理很关键？</p>
+<p>什么是迭代器失效？
+追问：为什么这类问题在线上经常表现成偶发崩溃而不是稳定复现？</p>
 </li>
 <li>
-<p>自动化脚本为什么常用 Python 而不是完全依赖 Shell？
-追问：什么情况下你会认为任务复杂度已经超过了 Shell 的舒适区？</p>
+<p>为什么虚析构函数在多态基类中通常必不可少？
+追问：如果没有虚析构，删除派生类对象时会出现什么问题？</p>
 </li>
 <li>
-<p>多进程和多线程在 Python 里该如何取舍？
-追问：如果任务同时包含网络 I/O 和部分 CPU 计算，你会如何拆分？</p>
+<p>C++ 字符串处理最常见的性能坑有哪些？
+追问：为什么频繁拼接和隐式拷贝会在热路径上带来明显代价？</p>
 </li>
 <li>
-<p>为什么“先理解算法流程再谈并行”是更稳妥的优化顺序？
-追问：如果大量时间花在无意义计算上，并发为什么可能只是放大浪费？</p>
+<p>你会如何定位一个 C++ 程序的性能热点或内存问题？
+追问：<code>perf</code>、<code>valgrind</code>、<code>gdb</code> 这类工具各自更适合哪类问题？</p>
 </li>
 <li>
-<p>Python 工程里最常见的非性能类坑有哪些？
-追问：如果一个脚本会长期存在并被多人使用，你会优先补哪些工程化能力？</p>
+<p>为什么很多 C++ 问题最终落在构建、链接和运行环境边界上？
+追问：如果出现 <code>undefined symbol</code>，你会从哪些方向排查？</p>
 </li>
 </ol>
 
@@ -269,11 +265,11 @@
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../part04/10-bash-shell-practice.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../part02/11-python-practice.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../part04/12-cpp-practice.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../part02/13-go-practice.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -283,11 +279,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../part04/10-bash-shell-practice.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../part02/11-python-practice.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../part04/12-cpp-practice.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../part02/13-go-practice.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

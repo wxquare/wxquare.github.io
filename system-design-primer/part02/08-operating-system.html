@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 19 章 Bash 与 Shell 实用 - System Design Primer</title>
+        <title>第 17 章 操作系统基础 - System Design Primer</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e22aec9e.js";
+            window.path_to_searchindex_js = "../searchindex-5be5c0f8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a6324ee9.js"></script>
+        <script src="../toc-db1d8004.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,91 +177,94 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第-19-章-bash-与-shell-实用"><a class="header" href="#第-19-章-bash-与-shell-实用">第 19 章 Bash 与 Shell 实用</a></h1>
-<p>Shell 不是系统设计主线的一部分，但它是工程师处理机器、日志和批量任务时最常用的放大器。真正有价值的 Shell 能力，并不是背命令大全，而是把零散命令组织成可靠的排查链路和自动化片段。本章只保留系统设计读者最常用的命令组织、文本处理和日志排查能力。</p>
-<h2 id="shell-基础与命令组织"><a class="header" href="#shell-基础与命令组织">Shell 基础与命令组织</a></h2>
-<p>Shell 的价值在于把命令、文件、环境变量和退出码组织成一条可重复执行的流程。相较于图形界面，Shell 更适合线上故障排查、批量处理和轻量自动化，因为它天然能够组合已有工具，而不必为每个小任务都写完整程序。</p>
-<p>系统设计工程师最常用的不是“所有命令”，而是少数高频操作：查帮助、找路径、看目录、数文件、比较差异、跟踪日志、查找目标文件、打包压缩和远程复制。比如 <code>man</code> 和 <code>info</code> 负责看手册，<code>which</code> 和 <code>whereis</code> 帮助确认可执行文件位置，<code>find</code> 负责按条件搜索文件，<code>tail -f</code> 适合实时跟日志，<code>diff</code> 用于比较配置差异，<code>tar</code> 负责打包和解包。</p>
-<p>命令组织里最实用的是退出码语义。<code>cmd1 &amp;&amp; cmd2</code> 表示只有前一个命令成功才继续；<code>cmd1 || cmd2</code> 表示前一个命令失败才执行后者。这种基于退出状态的组织方式，比把命令机械串起来更安全。很多一次性排查脚本看似简单，真正避免误操作的关键反而是正确使用条件执行和显式失败。</p>
-<p>环境变量也是 Shell 工作流的一部分。系统级环境通常由 <code>/etc/profile</code> 和 <code>/etc/profile.d</code> 管理，用户级环境由 <code>~/.bash_profile</code>、<code>~/.profile</code>、<code>~/.bashrc</code> 等文件控制。理解这些加载路径，能帮助你解释“为什么在终端里能运行，服务里却找不到命令”“为什么某个库路径在当前会话生效、重开后又失效”。</p>
-<p>对系统设计读者来说，Shell 最重要的心智模型是：命令不是孤立按钮，而是可以通过参数、退出码、重定向和环境变量编排的小组件。只要这个模型建立起来，后面的文本处理和自动化就顺了。</p>
-<h2 id="文本处理与管道"><a class="header" href="#文本处理与管道">文本处理与管道</a></h2>
-<p>管道是 Shell 最强大的抽象之一。它把前一个命令的标准输出直接作为后一个命令的标准输入，让你可以把过滤、切分、统计、排序等动作串成数据流处理链。工程上处理日志、CSV、配置文件和监控输出时，管道往往比临时写脚本更快。</p>
-<p>文本处理的第一原则是先缩小数据范围，再做昂贵分析。比如先用 <code>grep</code> 过滤出某类请求，再用 <code>awk</code> 取出关心的列，接着用 <code>sort</code>、<code>uniq -c</code> 做聚合统计，最后再排序找出热点。一类典型命令是：</p>
-<pre><code class="language-bash">cat access.csv | grep "keyword" | awk -F ',' '{print $2,$5,$6}' | sort | uniq -c | sort -rk 1
-</code></pre>
-<p>它的意义不在于语法花哨，而在于体现了常见排查顺序：筛选样本、抽取字段、聚合去重、按频次排序。线上日志分析时，这种“逐步缩小”的方式比一次性写很复杂的正则更稳妥。</p>
-<p>还要注意标准输入、标准输出和标准错误的分工。很多排查命令之所以可以无缝组合，就是因为它们默认遵守这一约定。理解这一点后，你会更容易写出能被其他命令接住的输出，而不是只能在终端上肉眼阅读的杂乱信息。</p>
-<p>文本处理并不意味着所有事都该交给 Shell。数据量过大、逻辑过于复杂或者需要稳定复用时，应及时切换到 Python、Go 等更适合编排的语言。优秀的工程习惯不是“全都用 Shell”，而是知道它在轻量链式处理场景下最有性价比。</p>
-<h2 id="grepsedawk-实战"><a class="header" href="#grepsedawk-实战">grep、sed、awk 实战</a></h2>
-<p><code>grep</code>、<code>sed</code>、<code>awk</code> 是 Shell 文本处理的三件套。<code>grep</code> 负责过滤匹配行，<code>sed</code> 负责流式替换和简单编辑，<code>awk</code> 负责按字段切分、计算和重组输出。系统设计工程师不需要追求花式写法，但需要熟练掌握它们在排查链路里的典型角色。</p>
-<p><code>grep</code> 最适合做快速收敛。比如查看某关键词在日志中出现次数、找出某个错误码相关请求、排除噪声样本。配合 <code>-v</code> 可以反向过滤，配合 <code>-n</code> 可以带行号，配合 <code>-c</code> 可以快速计数。排查大日志时，先 <code>grep</code> 再做后续处理，通常能显著减少认知负担。</p>
-<p><code>sed</code> 更适合做结构化替换和批量清洗，例如把某类前缀去掉、统一分隔符、抽取固定模式、删除无关行。它的优势在于保持流式处理，不必把整个文件读入内存。虽然现代工程里很多人更习惯用 Python 处理文本，但在一次性修正、批量替换和流水线里，<code>sed</code> 仍然很高效。</p>
-<p><code>awk</code> 则是日志分析中的利器。它天然按分隔符切字段，能做条件判断、聚合和简单计算。例如根据逗号分割提取第 2、第 5、第 6 列，再配合排序统计错误来源；或者从 Nginx 日志里抽取状态码、耗时和 URI，快速定位最慢接口。你可以把它理解成“适合小型结构化文本的即时查询语言”。</p>
-<p>实战中常见的模式是：</p>
+                        <h1 id="第-17-章-操作系统基础"><a class="header" href="#第-17-章-操作系统基础">第 17 章 操作系统基础</a></h1>
+<p>系统设计并不要求你像内核开发者那样实现调度器和页表，但要求你在分析线上瓶颈、评估并发模型和解释性能问题时，能够把操作系统概念落到工程现实里。本章保留和系统设计最相关的操作系统知识：任务调度、虚拟内存、文件系统、I/O 模型，以及这些概念在服务端工程中的实际含义。</p>
+<h2 id="进程线程与调度"><a class="header" href="#进程线程与调度">进程、线程与调度</a></h2>
+<p>进程是资源分配的基本单位，线程是操作系统调度的基本单位。一个进程拥有独立地址空间、文件描述符表和资源上下文；同一进程内的多个线程共享代码段、堆、打开的文件和大部分全局状态。协程则更轻量，通常由语言运行时或用户态调度器管理，例如 Go 的 Goroutine。系统设计里常见的并发方案，本质上是在这三类执行单元之间做取舍。</p>
+<p>判断并发模型时，至少要回答三件事：隔离性、调度成本、通信方式。多进程隔离性好，单个进程崩溃不容易直接拖垮其他进程，但进程间通信和上下文切换成本更高。多线程共享内存更方便，适合高吞吐服务端程序，但锁竞争、共享状态失控和局部故障扩散也更明显。协程进一步降低了切换成本，更适合高并发 I/O 场景，但它不是免费的线程替代品，底层依旧依赖线程和操作系统调度。</p>
+<p>Linux 进程常见状态包括运行态、可中断睡眠、不可中断睡眠、僵尸态和停止态。面试中问这些状态，不是为了背枚举值，而是为了判断你能否解释诸如“为什么这个进程看起来卡死”“为什么 kill 不掉”“为什么机器 load 很高但 CPU 不高”这类问题。比如不可中断睡眠往往意味着线程在等磁盘或某类内核资源；僵尸进程说明子进程已退出，但父进程没有调用 <code>wait</code> 或 <code>waitpid</code> 回收状态。</p>
+<p>调度层面要理解两个点。第一，时间片和公平性并不意味着所有任务“绝对平均”，调度器会综合优先级、可运行队列和任务类型决定谁先执行。第二，系统设计里的“并发能力”不只取决于语言层 API，也取决于底层调度代价。线程数暴涨会带来更重的内核切换和更大的栈内存开销，最终体现为吞吐下降、尾延迟升高和机器负载异常。</p>
+<p>进程创建也经常出现在面试追问里。<code>fork</code> 利用写时复制创建子进程，真正昂贵的不是“马上复制整片内存”，而是复制页表并在后续写入时再触发页面复制。因此，<code>fork</code> 之后立刻 <code>exec</code> 是典型优化路径。如果父进程退出而子进程仍在运行，子进程会变成孤儿进程并被 <code>init</code> 收养；如果子进程退出而父进程不回收，就会形成僵尸进程。线上服务出现大量僵尸进程，往往反映的是进程管理逻辑失控，而不是单纯的资源不足。</p>
+<h2 id="内存管理与虚拟内存"><a class="header" href="#内存管理与虚拟内存">内存管理与虚拟内存</a></h2>
+<p>系统设计读者最该掌握的不是页表实现细节，而是“虚拟内存如何塑造程序行为”。每个进程看到的都是自己的虚拟地址空间，通常包含代码段、全局数据区、堆、栈以及映射区域。CPU 访问虚拟地址时，操作系统通过页表将它翻译为物理地址，TLB 则缓存热点映射，减少频繁查表成本。</p>
+<p>这种设计带来三个直接收益。第一，隔离性更强，不同进程默认不能随意访问彼此内存。第二，地址空间比物理内存更灵活，程序可以按需分配和映射。第三，结合分页、换页和共享页机制，系统能够更高效地使用有限内存。工程里一旦出现内存抖动、缺页异常过多、交换分区频繁使用，服务性能通常会明显恶化。</p>
+<p>理解页错误非常重要。程序访问的页不在物理内存时会触发缺页异常，操作系统可能从磁盘装入页面、更新页表并恢复执行。如果内存压力过高，页面频繁在内存和磁盘之间来回交换，就会出现抖动，表现为 CPU 忙于内核态和 I/O，业务吞吐反而下降。这也是为什么线上高延迟问题不应只看 CPU，还要结合 <code>free</code>、<code>vmstat</code>、<code>top</code>、<code>/proc/&lt;pid&gt;/status</code> 以及 RSS、VIRT、页错误等指标一起判断。</p>
+<p>栈和堆的区别在工程里也很实用。栈上对象通常生命周期短、分配释放快，但空间有限；堆更灵活，适合动态对象，却也更容易带来碎片、泄漏和分配开销。很多语言运行时都会在堆管理上做大量优化，例如缓存小对象、批量申请内存、延迟释放等。即使使用了 GC 语言，理解“对象为什么会逃逸到堆上”仍然对性能分析有帮助。</p>
+<p>缓存置换算法是另一个常见追问。FIFO、LRU、LFU 不是让你机械背结论，而是要求你理解不同访问模式下的淘汰策略。系统设计里的缓存层也是同样的问题：热点数据是否稳定、扫描型流量是否会污染缓存、淘汰成本是否可接受。如果你明白操作系统和缓存系统都在解决“有限存储下保留高价值数据”的问题，很多设计取舍就容易串起来。</p>
+<h2 id="文件系统与-io-模型"><a class="header" href="#文件系统与-io-模型">文件系统与 I/O 模型</a></h2>
+<p>文件系统是把磁盘组织成目录、文件、inode 和数据块的规则体系。对服务端工程来说，关键不是把 ext4 的每个结构都记住，而是理解“文件名”和“文件内容”并不是一回事：目录项负责名字到 inode 的映射，inode 负责元数据和数据块位置。于是一个文件的读取往往包含路径解析、权限校验、inode 查找、页缓存命中或磁盘读取等多个步骤。</p>
+<p>“执行 <code>ls</code> 时系统里发生了什么”是很典型的综合题。用户态程序触发系统调用，内核读取目录项和 inode，可能命中页缓存，也可能发起磁盘 I/O，然后把结果返回给用户态格式化输出。这个过程提醒我们：很多看似简单的命令都跨越了用户态、内核态、页缓存和文件系统层。系统设计里讨论日志系统、对象存储网关、搜索索引持久化时，理解这条链路会更扎实。</p>
+<p>I/O 模型则直接影响服务并发能力。阻塞 I/O 易于编写，但一个线程在读写期间可能长期等待；非阻塞 I/O 能减少无效等待，但需要事件通知机制；I/O 多路复用通过 <code>select</code>、<code>poll</code>、<code>epoll</code> 等机制让一个线程监听多个描述符，是高并发网络服务常见基础。它的核心价值不是“复用某个神秘对象”，而是让线程只在事件就绪时处理真正有数据的连接。</p>
+<p><code>select</code> 的问题在于需要在用户态和内核态之间反复拷贝描述符集合、遍历所有待监听句柄，而且可监听数量有限。<code>epoll</code> 则把关注的文件描述符注册到内核中，等待阶段只返回就绪事件，避免每轮全量扫描。这也是为什么现代 Linux 网络服务器大量采用 <code>epoll</code>，再在用户态配合线程池、协程池或 reactor 模型组织业务执行。</p>
+<p>文件 I/O 与网络 I/O 在工程上常常联系在一起。日志写盘、WAL 刷新、快照生成、消息落盘、连接读写都属于 I/O 密集场景。判断瓶颈时，除了看“磁盘快不快”“网卡带宽够不够”，还要看同步写还是异步写、是否命中页缓存、系统调用频率是否过高、是否存在短小随机 I/O 放大问题。</p>
+<h2 id="并发同步与死锁"><a class="header" href="#并发同步与死锁">并发同步与死锁</a></h2>
+<p>共享状态一旦进入多线程或多进程环境，同步就不可回避。互斥锁保证同一时刻只有一个执行单元进入临界区；读写锁适合读多写少；条件变量负责等待某个条件成立；信号量可用于限制并发度；原子操作适合短小、无阻塞的共享状态更新。系统设计里选择同步原语，不应只按“谁快”，而应看共享数据范围、竞争频率、临界区长度和故障恢复方式。</p>
+<p>进程间同步与线程间同步也要区分。线程共享地址空间，天然能通过锁保护共享内存；进程则需要借助共享内存、管道、消息队列、Unix 域套接字等 IPC 机制，再额外配合同步手段。很多工程师在线上排查问题时会混淆“通信”和“同步”两个概念：能把数据送过去，不代表并发访问就是安全的。</p>
+<p>死锁的四个必要条件是互斥、占有且等待、不可抢占和循环等待。理解这四个条件的意义在于，你可以从中推导治理思路：统一加锁顺序、缩小临界区、避免锁内阻塞调用、在必要时引入超时与回滚机制。系统设计中谈分布式锁时，这套思路同样适用。只不过范围从单机内存对象扩展成跨节点资源，代价和失败模式更重。</p>
+<p>线上死锁通常不只表现为“程序卡住”。更常见的信号是请求大量堆积、少数线程长期占锁、CPU 不高但延迟飙升。此时需要结合线程栈、锁等待、<code>pstack</code>、<code>gdb</code>、<code>jstack</code> 或语言运行时导出的 goroutine dump 去定位。理解同步原语，是为了更快地把“线程很多”“连接很多”还原成真正的阻塞因果链。</p>
+<p>还要警惕“sleep 不是同步”。在线程里加 <code>sleep</code> 常常只是把竞争窗口随机化，不能替代锁、条件变量和显式事件通知。类似地，忙等虽然能降低某些极端低延迟场景中的唤醒成本，但如果无节制使用，会把 CPU 烧在空转上。工程实践里，正确的同步目标从来不是“代码看起来能跑”，而是“语义明确、竞争可控、故障可恢复”。</p>
+<h2 id="工程场景中的操作系统知识"><a class="header" href="#工程场景中的操作系统知识">工程场景中的操作系统知识</a></h2>
+<p>操作系统知识在系统设计中最常见的价值，是帮助你解释现象和做容量边界判断。比如一个网关服务为什么更适合事件驱动模型？因为它面对的是大量连接和较长 I/O 等待，线程一对一会把资源浪费在切换和栈空间上。再比如一个任务计算服务为什么可以接受多进程或多线程池？因为它更关注 CPU 利用率、故障隔离和执行队列控制。</p>
+<p>当线上服务出现“CPU 打满、延迟升高、内存上涨、磁盘繁忙、load 高但吞吐低”等问题时，操作系统概念就是第一层解释框架。CPU 高要区分是用户态计算、锁竞争还是系统调用放大；内存高要区分是业务对象变多、缓存积压、页缓存增长还是泄漏；磁盘忙要区分是顺序写、随机读、同步刷盘还是日志风暴；连接多则要进一步判断是正常 keep-alive、半连接堆积还是 TIME_WAIT、CLOSE_WAIT 异常。</p>
+<p>系统设计面试也喜欢把这些概念放进开放题里追问。例如：</p>
 <ul>
-<li>用 <code>grep</code> 做第一层过滤。</li>
-<li>用 <code>awk</code> 抽字段、做统计。</li>
-<li>用 <code>sed</code> 做格式清洗或替换。</li>
-<li>用 <code>sort</code>、<code>uniq</code>、<code>head</code> 输出最终结论。</li>
+<li>为什么高并发服务器普遍采用非阻塞 I/O 和事件循环？</li>
+<li>为什么 <code>fork</code> 后立刻 <code>exec</code> 成本不高？</li>
+<li>为什么僵尸进程会耗尽 PID 资源而孤儿进程通常不是问题？</li>
+<li>为什么数据库刷盘、消息落盘和日志刷盘都离不开页缓存、同步策略和文件系统语义？</li>
 </ul>
-<p>这类链式处理和系统设计题中的“数据流分阶段处理”其实很像。先做粗筛，再做聚合，最后输出热点。掌握它们，能让你在面对海量日志时更有节奏感。</p>
-<h2 id="日志排查与自动化脚本"><a class="header" href="#日志排查与自动化脚本">日志排查与自动化脚本</a></h2>
-<p>线上排查时，Shell 的最大价值是把“人肉重复动作”变成稳定脚本。日志查看是最典型场景。<code>tail -f</code> 适合追实时新增日志，<code>grep</code> 适合筛错误关键词，<code>lsof</code>、<code>ps</code>、<code>top</code>、<code>free</code>、<code>df</code>、<code>iostat</code>、<code>sar</code> 则帮助你把应用日志和系统资源状态关联起来。</p>
-<p>常见的系统信息命令包括：<code>uname -a</code> 查看内核版本，<code>cat /proc/cpuinfo</code> 和 <code>cat /proc/meminfo</code> 查看硬件与内存信息，<code>ulimit -a</code> 查看进程资源限制，<code>ipcs</code> 查看 IPC 资源，<code>nvidia-smi</code> 查看 GPU 情况。系统设计里讨论容量和故障时，很多判断必须落到这些基础信息上。</p>
-<p>Shell 对网络排查同样有效。<code>netstat</code> 或 <code>ss</code> 可以看端口与连接状态，<code>lsof -i:port</code> 可以定位谁占用了端口，<code>ping</code> 和 <code>traceroute</code> 用于连通性验证，<code>scp</code> 和 <code>ssh</code> 则是远程运维的基本工具。<code>nc</code> 既能充当简单客户端，也能临时监听端口，非常适合验证某条网络路径是否真的能通。</p>
-<p>这里还需要保留两个很实用的基准思路。第一，用 <code>dd</code> 配合 <code>/dev/zero</code>、<code>/dev/null</code> 粗测磁盘读写性能，帮助区分磁盘写慢、读慢还是读写竞争。第二，用 <code>nc</code> 配合 <code>time</code> 临时构造网络数据流，快速估算两台机器之间的吞吐上限。它们都不替代专业压测工具，但足够帮助你在故障现场先判断瓶颈大致落在哪一层。</p>
-<p>自动化脚本的核心不是“写得复杂”，而是让结果稳定可复现。好的小脚本通常会包含清晰的输入参数、显式的失败处理、必要的输出说明，以及尽量少的副作用。只要能把重复检查、日志采样、批量拉取和环境初始化收敛成几个可靠脚本，排障效率就会明显提升。</p>
+<p>如果你能把这些问题讲成“操作系统如何影响服务行为”，而不是背一堆术语，本章的目标就达到了。</p>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
-<p>Shell 对系统设计读者来说，是工程执行力的补足。它不负责设计架构，但负责让你更快地看见系统状态、清洗数据、定位热点并把重复动作自动化。</p>
-<p>这一章最值得带走的要点是：</p>
+<p>操作系统知识在系统设计中的作用，不是让你写内核，而是让你更准确地理解程序如何被调度、内存如何被管理、I/O 为什么会成为瓶颈，以及并发问题为什么会以某种形式暴露出来。</p>
+<p>这一章最值得保留的判断框架有四个：</p>
 <ul>
-<li>Shell 的核心能力是组合，不是命令背诵。</li>
-<li>管道让多个小工具可以像数据流处理系统一样协同工作。</li>
-<li><code>grep</code>、<code>sed</code>、<code>awk</code> 是日志排查和文本处理的高性价比工具。</li>
-<li>系统信息、网络状态和简单基准测试都可以通过 Shell 快速完成第一轮判断。</li>
+<li>并发模型是隔离性、切换成本和通信方式的平衡。</li>
+<li>内存问题不仅是“占用高”，更是页错误、回收、换页和对象生命周期的问题。</li>
+<li>文件系统和 I/O 模型决定了服务端程序在高并发下的扩展边界。</li>
+<li>同步原语和死锁治理是工程可靠性的基础，而不是语法细节。</li>
 </ul>
+<p>把这些概念和后续的网络、语言运行时、缓存与消息系统结合起来，很多线上现象都会更容易解释。</p>
 <h2 id="本章面试题与追问"><a class="header" href="#本章面试题与追问">本章面试题与追问</a></h2>
 <ol>
 <li>
-<p>为什么说 Shell 最大的价值是“组合已有工具”？
-追问：相比单独敲命令，管道和退出码语义解决了什么工程问题？</p>
+<p>进程、线程和协程的本质区别是什么？
+追问：如果要做高并发网络服务，你会优先考虑哪种并发模型，为什么？</p>
 </li>
 <li>
-<p><code>cmd1 &amp;&amp; cmd2</code> 和 <code>cmd1 || cmd2</code> 分别适合什么场景？
-追问：为什么自动化脚本里显式处理失败比“继续执行”更重要？</p>
+<p>为什么说线程共享内存既是优势也是风险？
+追问：如果一个服务改成多进程模型，哪些通信和同步问题会随之变化？</p>
 </li>
 <li>
-<p>日志排查时为什么通常先过滤、再聚合、最后排序？
-追问：如果原始日志很大，这样的顺序会带来什么收益？</p>
+<p><code>fork</code> 为什么通常比直觉中更快？
+追问：写时复制解决了什么问题，又会在什么场景下真正触发拷贝成本？</p>
 </li>
 <li>
-<p><code>grep</code>、<code>sed</code>、<code>awk</code> 三者在职责上有什么区别？
-追问：如果你要从日志中抽取某几列并按频次统计，为什么 <code>awk</code> 往往更合适？</p>
+<p>僵尸进程和孤儿进程分别是什么？
+追问：如果线上出现大量僵尸进程，你首先怀疑哪类代码路径？</p>
 </li>
 <li>
-<p>管道为什么适合处理日志和命令输出？
-追问：标准输出和标准错误分离，对脚本编排有什么帮助？</p>
+<p>虚拟内存的价值是什么？
+追问：缺页异常、TLB 和交换分区分别会怎样影响服务性能？</p>
 </li>
 <li>
-<p>你会用哪些命令快速查看系统 CPU、内存、磁盘和打开文件状态？
-追问：这些信息和应用日志结合后，能帮助你判断哪些类型的问题？</p>
+<p>栈和堆的区别在工程上意味着什么？
+追问：为什么有些程序内存看起来很多，但真正的业务对象不一定很多？</p>
 </li>
 <li>
-<p><code>tail -f</code>、<code>grep</code> 和 <code>sort | uniq -c</code> 常常怎样配合使用？
-追问：这种命令链为什么很像一个简化版的数据处理流水线？</p>
+<p><code>select</code> 和 <code>epoll</code> 的核心区别是什么？
+追问：为什么事件驱动模型在高连接数场景下更有优势？</p>
 </li>
 <li>
-<p><code>dd</code> 和 <code>nc</code> 为什么能帮助做粗粒度性能判断？
-追问：它们适合拿来验证什么，不适合替代什么？</p>
+<p>什么是 I/O 多路复用？
+追问：它解决的是“并发数”问题、“吞吐量”问题，还是“线程利用率”问题？</p>
 </li>
 <li>
-<p>环境变量加载路径为什么值得工程师理解？
-追问：为什么“终端里能执行、服务里不能执行”常常和环境加载顺序有关？</p>
+<p>死锁产生的四个必要条件是什么？
+追问：在线程很多、CPU 不高但请求卡住的场景里，你会如何判断是否存在死锁？</p>
 </li>
 <li>
-<p>什么样的 Shell 脚本算是工程上可靠的小工具？
-追问：如果脚本会被多人反复执行，你最先补上的保护措施是什么？</p>
+<p>为什么系统设计工程师也需要理解文件系统和页缓存？
+追问：数据库刷盘、日志写入和消息持久化为什么都离不开这些基础知识？</p>
 </li>
 </ol>
 
@@ -269,11 +272,11 @@
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../part04/09-computer-networking.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../part02/07-tech-stack-selection.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../part04/11-python-practice.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../part02/09-computer-networking.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -283,11 +286,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../part04/09-computer-networking.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../part02/07-tech-stack-selection.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../part04/11-python-practice.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../part02/09-computer-networking.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

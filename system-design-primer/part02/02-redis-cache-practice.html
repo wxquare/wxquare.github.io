@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 12 章 Kafka：消息队列与异步 - System Design Primer</title>
+        <title>第 11 章 Redis：缓存原理与实践 - System Design Primer</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e22aec9e.js";
+            window.path_to_searchindex_js = "../searchindex-5be5c0f8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a6324ee9.js"></script>
+        <script src="../toc-db1d8004.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,207 +177,238 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第-12-章-kafka消息队列与异步"><a class="header" href="#第-12-章-kafka消息队列与异步">第 12 章 Kafka：消息队列与异步</a></h1>
-<p>Kafka 在系统设计里的核心价值，是把同步强耦合链路改造成可缓冲、可回放、可扩展的异步数据流。它并不只是“消息中转站”，而是围绕顺序写、分区并行和副本复制构建出来的一整套高吞吐日志系统。</p>
-<h2 id="kafka-基础模型"><a class="header" href="#kafka-基础模型">Kafka 基础模型</a></h2>
-<p>Kafka 的基本对象包括 Broker、Topic、Partition、Producer、Consumer 和 Consumer Group。理解它们之间的关系，是看懂顺序性、吞吐与高可用的前提。</p>
+                        <h1 id="第-11-章-redis缓存原理与实践"><a class="header" href="#第-11-章-redis缓存原理与实践">第 11 章 Redis：缓存原理与实践</a></h1>
+<p>Redis 在系统设计中的定位不只是“快一点的 KV”。它既可以做缓存，也可以承担计数、排行榜、延时任务、分布式协调等角色。要用好 Redis，关键在于先理解它为什么快、擅长什么，再明确哪些问题不该交给它解决。</p>
+<h2 id="redis-的核心模型与高性能来源"><a class="header" href="#redis-的核心模型与高性能来源">Redis 的核心模型与高性能来源</a></h2>
+<p>Redis 的核心特征可以概括为三点：内存存储、单线程命令执行模型、面向场景设计的数据结构。绝大多数请求直接命中内存，避免了磁盘寻址；单线程把命令串行化，减少锁竞争；而 String、Hash、List、Set、ZSet 又让很多业务需求能以接近 O(1) 或 O(log n) 的方式完成。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>组件</th><th>作用</th></tr>
+<tr><th>特性</th><th>价值</th></tr>
 </thead>
 <tbody>
-<tr><td>Broker</td><td>存储和转发消息的服务节点</td></tr>
-<tr><td>Topic</td><td>业务主题，逻辑上的消息分类</td></tr>
-<tr><td>Partition</td><td>Topic 的物理分片，承载并行与扩展</td></tr>
-<tr><td>Producer</td><td>生产消息</td></tr>
-<tr><td>Consumer</td><td>消费消息</td></tr>
-<tr><td>Consumer Group</td><td>多消费者协同消费的逻辑组</td></tr>
+<tr><td>内存存储</td><td>微秒到毫秒级访问延迟</td></tr>
+<tr><td>单线程命令执行</td><td>避免复杂锁竞争与上下文切换</td></tr>
+<tr><td>多路复用 IO</td><td>用一个线程处理大量连接</td></tr>
+<tr><td>场景化数据结构</td><td>减少业务层重复造轮子</td></tr>
 </tbody>
 </table>
 </div>
-<p>Kafka 的一个关键设计是“分区内有序、全局无序”。只要消息落在同一个 Partition，就会按 offset 单调递增排列；但跨 Partition 不承诺全局顺序。因此，业务若要求“同一订单内的状态变更严格有序”，通常做法不是把 Topic 只设成一个分区，而是按订单 ID 作为 key 路由到固定分区。</p>
-<p>副本模型则决定了 Kafka 的高可用边界：</p>
-<ul>
-<li>Leader：对外承担读写。</li>
-<li>Follower：从 Leader 复制数据。</li>
-<li>ISR：与 Leader 保持同步的副本集合。</li>
-</ul>
-<p>Leader 故障时，只从 ISR 中选新 Leader，才能尽量避免数据倒退。如果允许落后副本直接上位，就会提升可用性但增加丢数据风险。</p>
-<h2 id="写入消费与消费组"><a class="header" href="#写入消费与消费组">写入、消费与消费组</a></h2>
-<p><strong>写入路径。</strong> Producer 发送消息时，通常会经历序列化、分区选择、批量打包、网络发送、Broker 追加写日志、Follower 同步、返回确认这一流程。影响写入体验的几个关键参数包括：</p>
-<ul>
-<li><code>acks</code>：控制等待多少副本确认。</li>
-<li><code>batch.size</code> 与 <code>linger.ms</code>：控制批量发送效果。</li>
-<li>重试与幂等配置：决定失败重发后的可靠性和顺序风险。</li>
-</ul>
-<p><strong>消费路径。</strong> Consumer 不是被推送消息，而是主动拉取。拉取模型让消费者能按自己的节奏处理，也方便批量读取与偏移量管理。消费完成后是否提交 offset，直接决定可靠性语义。</p>
-<p><strong>Consumer Group。</strong> Consumer Group 用于实现负载均衡。一个分区在同一消费组内只能被一个消费者消费，所以：</p>
-<ul>
-<li>分区数少于消费者数时，多余消费者会空闲。</li>
-<li>要提升组内并行度，分区数必须足够。</li>
-</ul>
-<p>消费组最大的治理点在于 Rebalance。以下情况会触发重新分配：</p>
+<p>“Redis 为什么快”通常可以从四个角度回答：</p>
 <ol>
-<li>消费者加入或退出。</li>
-<li>Topic 分区数变化。</li>
-<li>心跳超时或消费线程长时间卡住。</li>
+<li>数据主要在内存中，避免磁盘 IO。</li>
+<li>数据结构专门为高频操作设计。</li>
+<li>命令执行串行化，减少锁开销。</li>
+<li>网络层使用 IO 多路复用支撑高并发连接。</li>
 </ol>
-<p>Rebalance 的代价并不小，它会导致一段时间消费暂停，还可能造成重复消费。因此要特别关注超时参数、消费逻辑时长和实例重启策略。</p>
-<h2 id="顺序性可靠性与幂等"><a class="header" href="#顺序性可靠性与幂等">顺序性、可靠性与幂等</a></h2>
-<p><strong>顺序性。</strong> Kafka 的顺序保证是分层次的：</p>
+<p>但这套高性能模型也天然带来边界：大 Key、复杂脚本、阻塞命令、全量扫描都会拖慢整个实例。Redis 的快，建立在“单次操作足够短小”这个前提之上。</p>
+<h2 id="数据结构与典型使用模式"><a class="header" href="#数据结构与典型使用模式">数据结构与典型使用模式</a></h2>
+<p><strong>String。</strong> Redis String 的底层是 SDS，而不是 C 风格字符串。SDS 通过记录长度与剩余空间，避免了频繁遍历和越界问题，适合计数器、分布式 ID、简单对象缓存、限流键等场景。</p>
+<p>常见模式：</p>
 <ul>
-<li>同一 Partition 内天然有序。</li>
-<li>多 Partition 并行时，全局无序。</li>
-<li>Producer 开启重试且允许过多飞行中的请求时，可能破坏同分区重试顺序。</li>
+<li><code>INCR</code> 做访问计数、库存扣减、限流计数。</li>
+<li><code>SET key value EX ttl</code> 做简单对象缓存。</li>
+<li>短字符串走 <code>embstr</code> 编码，整数值可走 <code>int</code> 编码，节省内存和分配成本。</li>
 </ul>
-<p>所以对顺序敏感的业务，一般要同时做三件事：</p>
-<ol>
-<li>用业务 key 固定分区。</li>
-<li>控制生产端重试配置，避免乱序重发。</li>
-<li>让消费端按分区串行处理关键链路。</li>
-</ol>
-<p><strong>可靠性语义。</strong></p>
+<p><strong>Hash。</strong> Hash 适合存储字段较少、需要局部更新的对象，例如商品基础信息、Session、用户状态。相比把整个 JSON 放进 String，Hash 的优势是可以只更新一个字段，不必整对象反序列化再回写。</p>
+<p>Redis 会在“小对象”与“大对象”之间切换编码：</p>
+<ul>
+<li>小 Hash 倾向使用紧凑编码，节省内存。</li>
+<li>字段数或字段长度超过阈值后切到哈希表，实现更快查找。</li>
+</ul>
+<p>工程上要警惕“大 Hash”：</p>
+<ul>
+<li><code>HGETALL</code> 可能阻塞。</li>
+<li>集群中容易形成热点。</li>
+<li>持久化和复制的代价会明显上升。</li>
+</ul>
+<p><strong>List。</strong> List 适合先进先出队列、最近浏览、时间线等场景。现代 Redis 使用 quicklist，把多个小块组织起来，在插入效率和内存占用之间做折中。</p>
+<p>典型模式：</p>
+<ul>
+<li><code>LPUSH</code> + <code>RPOP</code> 做简单队列。</li>
+<li><code>BRPOP</code> 做阻塞消费。</li>
+<li><code>LPUSH</code> + <code>LTRIM</code> 保留“最近 10 条浏览记录”。</li>
+</ul>
+<p>如果业务需要可靠消费、回溯和消费组语义，List 往往只是过渡方案，最终还是会演进到专业 MQ。</p>
+<p><strong>Set。</strong> Set 适合标签、去重、共同好友、点赞用户集合等场景。它擅长的是“存在性”和“集合运算”，例如交集、并集、差集。</p>
+<p><strong>ZSet。</strong> ZSet 通过 score 排序，典型用于排行榜、延时队列、推荐权重排序。它在小数据量时可以走紧凑编码，规模变大后通常用跳表加哈希表组合，同时兼顾按成员查询和按分值范围查询。</p>
+<p>一个实用判断是：如果需求里同时出现“排名”“TopN”“定时到期”“按权重取前几名”，优先想到 ZSet。</p>
+<h2 id="持久化复制与集群"><a class="header" href="#持久化复制与集群">持久化、复制与集群</a></h2>
+<p>Redis 的数据虽然主要在内存里，但线上系统通常不会接受“进程一挂数据全没”，因此要根据业务要求配置持久化与高可用。</p>
+<p><strong>持久化。</strong></p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>语义</th><th>特点</th><th>常见做法</th></tr>
+<tr><th>方案</th><th>特点</th><th>适用场景</th></tr>
 </thead>
 <tbody>
-<tr><td>At-most-once</td><td>可能丢，不重复</td><td>自动提交 offset，弱确认</td></tr>
-<tr><td>At-least-once</td><td>不丢，但可能重复</td><td><code>acks=all</code> + 手动提交 offset</td></tr>
-<tr><td>Exactly-once</td><td>端到端成本最高</td><td>Producer 幂等/事务 + 消费端幂等</td></tr>
+<tr><td>RDB</td><td>周期快照，文件紧凑，恢复快</td><td>可接受少量数据回退</td></tr>
+<tr><td>AOF</td><td>追加写命令，恢复更细粒度</td><td>更关注数据完整性</td></tr>
 </tbody>
 </table>
 </div>
-<p>常见的“不丢消息”配置是：</p>
+<p>RDB 的优势是生成文件紧凑、恢复速度快，对冷备和全量恢复友好；缺点是两次快照之间的数据可能丢失。AOF 的优势是更接近操作日志，数据损失窗口更小；代价是文件更大、重写和恢复时间更长。很多生产环境会结合两者使用，在恢复速度和数据完整性之间做平衡。</p>
+<p><strong>主从复制。</strong> 主从模式主要解决读扩展和基础灾备：</p>
 <ul>
-<li>Producer 用 <code>acks=all</code></li>
-<li>Broker 设置合理副本数和 <code>min.insync.replicas</code></li>
-<li>关闭 <code>unclean.leader.election</code></li>
-<li>Consumer 业务处理成功后再提交 offset</li>
+<li>主节点负责写入。</li>
+<li>从节点异步追赶主节点。</li>
+<li>可以承接只读流量。</li>
 </ul>
-<p>但要明确，Kafka 的可靠性是链路整体属性，不是单个参数就能保证。比如 <code>acks=all</code> 如果此时 ISR 已经只剩 Leader，本质上依然是退化状态。</p>
-<p><strong>幂等。</strong> Kafka 的 Producer 幂等可以减少重试导致的重复写入，但它主要解决“Producer 到 Broker”这一段。真正的端到端幂等，仍然要靠业务侧保证，例如：</p>
+<p>它的问题也很明确：存在复制延迟，且主节点故障后还需要额外机制完成自动切换。</p>
+<p><strong>Sentinel 与 Cluster。</strong> Sentinel 在主从之上补上监控、故障检测和自动切换能力，适合单分片但希望具备自动主备切换的场景。它解决的是“主挂了怎么办”，不解决“容量不够怎么办”。</p>
+<p>Cluster 则进一步提供数据分片能力，把 key 映射到 16384 个槽位，实现横向扩容。它更适合缓存容量和吞吐都持续增长的业务，但同时引入了新的限制：</p>
 <ul>
-<li>用订单号做数据库唯一键。</li>
-<li>用状态机限制非法重复更新。</li>
-<li>用去重表或 Redis 记录已处理消息 ID。</li>
+<li>多 key 操作必须考虑槽位分布。</li>
+<li>跨槽事务与 Lua 脚本受到限制。</li>
+<li>热点 key 依然可能把单节点打爆。</li>
 </ul>
-<p>因此，“Kafka 开了幂等就万事大吉”是一个常见误解。</p>
-<h2 id="高吞吐设计原理"><a class="header" href="#高吞吐设计原理">高吞吐设计原理</a></h2>
-<p>Kafka 的高吞吐并不是因为它“把数据放进内存队列”，而是因为它把磁盘和网络用到了极致。</p>
-<p><strong>顺序写磁盘。</strong> Kafka 把消息追加到日志尾部，避免了随机写的磁盘寻道开销。顺序写对磁盘极其友好，这是它在持久化前提下仍能做出高吞吐的基础。</p>
-<p><strong>Page Cache。</strong> Kafka 尽量利用操作系统页缓存，而不是自己在 JVM 堆中维护大块缓存。好处是：</p>
+<p>因此，Redis Cluster 不是“开了就自动水平扩展一切问题”，它只是把容量问题显式搬到了分片治理层。</p>
+<h2 id="缓存设计与一致性问题"><a class="header" href="#缓存设计与一致性问题">缓存设计与一致性问题</a></h2>
+<p>缓存设计的核心不是“把什么放进去”，而是先想清楚：失效后能不能接受短暂不一致，回源流量能不能扛住，以及命中率下降时怎么保护数据库。</p>
+<p><strong>常见缓存模式。</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>模式</th><th>做法</th><th>特点</th></tr>
+</thead>
+<tbody>
+<tr><td>Cache Aside + TTL</td><td>读缓存未命中回源 DB，再回填缓存</td><td>最常见，简单但有不一致窗口</td></tr>
+<tr><td>定时刷新</td><td>后台任务周期性刷新</td><td>读路径稳定，但实现复杂</td></tr>
+<tr><td>写 DB 同时写缓存</td><td>一次请求更新两处</td><td>并发下顺序问题多</td></tr>
+<tr><td>写 DB 后删缓存</td><td>工程上最常见</td><td>需处理删失败与并发覆盖</td></tr>
+</tbody>
+</table>
+</div>
+<p>大多数业务会落在“先更新 DB，再删除缓存”这一范式上，因为直接写缓存更容易在并发场景里出现旧值覆盖新值的问题。但它也不是银弹，还要考虑：</p>
 <ul>
-<li>热数据读写往往直接命中内存。</li>
-<li>JVM 堆不必过大，GC 压力更小。</li>
-<li>文件缓存由 OS 统一管理，更适合顺序日志场景。</li>
+<li>删除缓存失败怎么办</li>
+<li>主从延迟导致回源读到旧值怎么办</li>
+<li>热点 key 失效瞬间如何避免打穿 DB</li>
 </ul>
-<p>这也是为什么 Kafka 机器的内存不能被 JVM 堆吃光，否则 Page Cache 不足会让性能明显下滑。</p>
-<p><strong>零拷贝。</strong> Kafka 在发送消息给消费者时会尽量利用 <code>sendfile</code> 等能力，让数据从 Page Cache 直接进入网卡，减少用户态与内核态之间的多次拷贝和上下文切换。</p>
-<p><strong>批量与压缩。</strong> Producer 会把多条消息打成 batch，再统一发送；Broker 和网络层又能对 batch 做压缩。这意味着单条消息的协议开销和系统调用次数被均摊，从而进一步提升吞吐。</p>
-<p><strong>分区并行。</strong> Partition 把单线程日志扩展成了“多条顺序日志并行处理”的模型。它是 Kafka 横向扩容的核心手段，但也是顺序性与运维复杂度的来源。</p>
-<h2 id="积压延迟与回压处理"><a class="header" href="#积压延迟与回压处理">积压、延迟与回压处理</a></h2>
-<p>消费积压不是一个单一问题，它可能来自生产端突增、消费逻辑变慢、下游依赖超时、分区数不足，或者 Rebalance 频繁引发的停顿。</p>
-<p><strong>排查顺序。</strong></p>
+<p>因此工程上常会叠加重试、延迟双删或 MQ 补偿，但要注意复杂度不能超过问题本身。</p>
+<p><strong>三类典型异常。</strong></p>
 <ol>
-<li>先看 Lag，确认是哪些 Topic、哪些分区积压。</li>
-<li>再看消费端处理时长，确认是不是业务逻辑慢。</li>
-<li>检查消费者实例数与分区数的关系，避免“加了实例却没有并行收益”。</li>
-<li>检查是否频繁 Rebalance、GC、网络抖动或下游超时。</li>
+<li>
+<p>缓存穿透：大量请求访问根本不存在的数据。
+常见治理是布隆过滤器、空值缓存和参数校验。</p>
+</li>
+<li>
+<p>缓存击穿：单个热点 key 过期瞬间，大量流量回源。
+常见治理是互斥锁、singleflight、热点预热和永不过期加异步刷新。</p>
+</li>
+<li>
+<p>缓存雪崩：一批 key 同时失效，导致回源洪峰。
+常见治理是 TTL 加随机抖动、多级缓存、限流降级和熔断保护。</p>
+</li>
 </ol>
-<p><strong>常见应对手段。</strong></p>
+<p><strong>容量与淘汰。</strong> 内存规划至少要回答三个问题：</p>
 <ul>
-<li>临时扩消费者实例，但不超过分区数。</li>
-<li>增加分区数以提升并行度，但要评估顺序和迁移影响。</li>
-<li>把重逻辑异步化，缩短消费线程阻塞时间。</li>
-<li>对非核心消息允许降级、丢弃或跳过。</li>
-<li>调整 <code>max.poll.interval.ms</code>、批量参数和消费线程模型。</li>
+<li>目标命中率是多少</li>
+<li>能接受什么淘汰策略</li>
+<li>过期删除对 CPU 与内存的平衡如何取舍</li>
 </ul>
-<p><strong>回压思路。</strong> Kafka 自身能缓冲流量，但它不能无限吞掉下游故障。真正稳定的系统需要在 Producer、Consumer、下游服务之间形成回压闭环，例如：</p>
+<p>Redis 常见淘汰策略包括 <code>allkeys-lru</code>、<code>allkeys-lfu</code>、<code>volatile-lru</code> 等。业务热点分布明显时，LFU 往往比 LRU 更稳；而“永不过期 + noeviction”如果没有容量保护，通常只是在把风险后移。</p>
+<h2 id="分布式锁与常见误区"><a class="header" href="#分布式锁与常见误区">分布式锁与常见误区</a></h2>
+<p>Redis 可以实现分布式锁，但它适合的是“高性能互斥协调”，而不是“绝对强一致事务锁”。</p>
+<p>最基础的正确姿势是：</p>
+<ol>
+<li>使用 <code>SET key value NX EX seconds</code> 原子加锁。</li>
+<li>value 要写唯一请求标识，解锁时校验“是不是自己加的锁”。</li>
+<li>解锁要通过 Lua 脚本保证比较与删除原子执行。</li>
+</ol>
+<p>只做 <code>SETNX</code> 而不带过期时间，是最典型的线上事故源头之一，因为进程崩溃后锁会永久残留。另一类常见误区是：</p>
 <ul>
-<li>Producer 端限速或降级。</li>
-<li>Consumer 端控制并发和批量。</li>
-<li>下游数据库或搜索服务承压时主动减速。</li>
+<li>锁超时时间拍脑袋设置，业务执行时间稍长就提前过期。</li>
+<li>误把锁当作幂等，实际上锁只能限并发，不能替代状态校验。</li>
+<li>在 Cluster 下对多 key 脚本与锁语义理解不清。</li>
 </ul>
-<p>否则 Kafka 只是把问题从“实时失败”变成“延迟爆炸”。</p>
-<h2 id="常见线上问题与排查"><a class="header" href="#常见线上问题与排查">常见线上问题与排查</a></h2>
-<p><strong>Rebalance 频繁，导致重复消费。</strong> 当消费逻辑过慢、心跳超时或实例频繁重启时，消费组会不断重平衡。排查时重点看：</p>
+<p>对于库存扣减、支付状态流转这类关键链路，更稳妥的做法通常是“数据库约束/乐观锁 + Redis 锁或限流”组合，而不是把一致性全压在 Redis 锁上。</p>
+<h2 id="热点问题与线上治理"><a class="header" href="#热点问题与线上治理">热点问题与线上治理</a></h2>
+<p>Redis 的线上治理重点，不是单纯“调大机器”，而是尽量把问题前移到模型和 key 设计阶段。</p>
+<p><strong>大 Key。</strong> 大 Key 典型定义可以粗略理解为：</p>
 <ul>
-<li><code>session.timeout.ms</code></li>
-<li><code>max.poll.interval.ms</code></li>
-<li>消费业务是否阻塞</li>
-<li>是否缺少静态成员配置</li>
+<li>String 值很大，例如超过 10KB 甚至更高。</li>
+<li>Hash/List/Set/ZSet 元素数过多，例如上万级。</li>
 </ul>
-<p><strong>分区数量不足，扩容无效。</strong> 很多“加机器不生效”的根因，不是消费者不够，而是 Topic 分区不够。一个分区只能被组内一个消费者处理，多加出来的实例根本拿不到任务。</p>
-<p><strong><code>acks=1</code> 或副本配置不当导致丢消息。</strong> 只等 Leader 确认时，如果 Leader 写完但 Follower 还没同步就宕机，消息就可能丢失。此类问题通常要结合 <code>acks</code>、<code>min.insync.replicas</code> 和 ISR 监控一起看。</p>
-<p><strong>Page Cache 不足，吞吐骤降。</strong> 如果把 JVM 堆设得过大，OS 没有足够内存做页缓存，Kafka 会频繁读盘，吞吐和延迟都会恶化。</p>
-<p><strong>retention 配置不合理，磁盘打满。</strong> Kafka 的本质是日志系统，不设置合理保留时间和容量上限，就等于默认“消息永久堆积”。日志类 Topic 特别容易在这件事上出事故。</p>
-<p><strong>重点监控项。</strong></p>
+<p>风险包括：</p>
+<ul>
+<li>单次命令耗时长，阻塞主线程。</li>
+<li>复制、持久化和迁移成本高。</li>
+<li>集群迁移时容易形成长尾。</li>
+</ul>
+<p>治理手段包括拆 key、拆对象、避免 <code>HGETALL</code>/<code>LRANGE 0 -1</code> 之类全量命令，以及用 <code>redis-cli --bigkeys</code> 做巡检。</p>
+<p><strong>热 Key。</strong> 热 Key 问题的本质是流量集中到单个 key 所在实例。即便集群分片足够多，只要热点集中，单点依然会被打满。治理思路通常包括：</p>
+<ul>
+<li>本地缓存或多级缓存分担读流量。</li>
+<li>热点 key 主动预热、延长 TTL。</li>
+<li>在极端场景下做 key 复制或业务层读扩散。</li>
+</ul>
+<p><strong>阻塞型命令与扫描。</strong> 生产环境应避免直接使用 <code>KEYS *</code> 这类 O(N) 命令。全量扫描优先用 <code>SCAN</code>，大集合遍历要限制批次，避免在单线程模型里把维护脚本跑成线上事故。</p>
+<p><strong>监控维度。</strong></p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>类别</th><th>指标</th></tr>
 </thead>
 <tbody>
-<tr><td>吞吐</td><td><code>MessagesInPerSec</code>、<code>BytesInPerSec</code></td></tr>
-<tr><td>延迟</td><td>请求平均延迟、批量发送耗时</td></tr>
-<tr><td>副本</td><td><code>UnderReplicatedPartitions</code>、ISR 收缩次数</td></tr>
-<tr><td>消费</td><td>Consumer Lag、Rebalance 次数</td></tr>
-<tr><td>资源</td><td>磁盘使用率、Page Cache 压力、网络带宽</td></tr>
+<tr><td>延迟</td><td>命令耗时、慢查询日志</td></tr>
+<tr><td>内存</td><td>used_memory、碎片率、淘汰次数</td></tr>
+<tr><td>键分布</td><td>大 Key、热 Key、过期键数量</td></tr>
+<tr><td>持久化</td><td>RDB/AOF 执行时长、失败次数</td></tr>
+<tr><td>复制</td><td>主从延迟、断链、全量同步次数</td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
-<p>Kafka 的工程价值可以总结为三层：</p>
+<p>Redis 的工程价值在于用合适的数据结构快速解决高频访问问题，但它的所有优势都建立在“数据模型简洁、单次命令短小、容量边界清楚”之上。</p>
+<p>这一章可以提炼为四个判断：</p>
 <ul>
-<li>用 Topic 和 Partition 把同步调用改造成可扩展的异步日志流。</li>
-<li>用副本、ISR、offset 与消费组支撑可靠性和高可用。</li>
-<li>用顺序写、Page Cache、零拷贝、批量压缩支撑高吞吐。</li>
+<li>把 Redis 当缓存时，先想一致性与回源保护。</li>
+<li>把 Redis 当数据结构服务时，先按访问模式选 String、Hash、List、Set、ZSet。</li>
+<li>把 Redis 当高可用系统时，先分清持久化、主从、Sentinel、Cluster 各自解决什么问题。</li>
+<li>把 Redis 当分布式协调组件时，先明确它只能提供有限互斥，不替代数据库事务语义。</li>
 </ul>
-<p>真正落地时，最难的往往不是“会不会发消息”，而是能否在顺序、可靠性、吞吐、积压治理之间做清晰取舍。</p>
 <h2 id="本章面试题与追问"><a class="header" href="#本章面试题与追问">本章面试题与追问</a></h2>
 <ol>
 <li>
-<p>Kafka 的核心组件有哪些，它和普通消息队列最大的差异是什么？
-追问：为什么说 Kafka 更像分布式日志系统，而不只是消息转发器？</p>
+<p>Redis 为什么快？
+追问：单线程是不是性能瓶颈，什么时候它反而是优势？</p>
 </li>
 <li>
-<p>为什么 Kafka 只能保证分区内有序，不能天然保证全局有序？
-追问：如果订单状态要求严格有序，你会怎么设计分区策略？</p>
+<p>String、Hash、List、Set、ZSet 分别适合哪些业务场景？
+追问：商品详情缓存为什么很多场景更适合 Hash 而不是整段 JSON String？</p>
 </li>
 <li>
-<p>Consumer Group 是如何实现负载均衡的？
-追问：为什么消费者数量超过分区数量后，再扩容也没有收益？</p>
+<p>Redis Hash 的紧凑编码和哈希表编码分别适合什么场景？
+追问：为什么大 Hash 会成为线上风险？</p>
 </li>
 <li>
-<p>Rebalance 是什么，为什么它会影响线上稳定性？
-追问：如果线上频繁重复消费，你会优先检查哪几个超时和消费参数？</p>
+<p>RDB 和 AOF 怎么选？
+追问：如果业务既想恢复快，又不想丢太多数据，通常怎么组合？</p>
 </li>
 <li>
-<p>Kafka 如何保证消息不丢失？
-追问：为什么 <code>acks=all</code> 也不能脱离 ISR 状态单独谈可靠性？</p>
+<p>Sentinel 和 Cluster 分别解决什么问题？
+追问：为什么 Cluster 解决了容量扩展，却没有自动解决热 Key 问题？</p>
 </li>
 <li>
-<p>Producer 幂等和业务幂等有什么区别？
-追问：为什么 Kafka 自带幂等仍然不能替代数据库唯一键或状态机设计？</p>
+<p>你会如何设计缓存和 DB 的一致性方案？
+追问：为什么很多团队选择“先更新 DB，再删除缓存”，而不是直接更新缓存？</p>
 </li>
 <li>
-<p>Kafka 为什么这么快？
-追问：顺序写、Page Cache、零拷贝、批量压缩分别解决了什么瓶颈？</p>
+<p>缓存穿透、击穿、雪崩分别是什么？
+追问：如果是明星商品详情页热点 key 过期，你会优先怎么保护 DB？</p>
 </li>
 <li>
-<p>什么是 HW 和 LEO？
-追问：为什么消费者通常只能读到 HW 之前的数据？</p>
+<p>Redis 分布式锁的正确实现方式是什么？
+追问：为什么解锁必须校验 value，并且通常要用 Lua 脚本？</p>
 </li>
 <li>
-<p>Kafka 出现消费积压时，你会如何分层排查？
-追问：如果 Lag 很高，但消费者 CPU 并不高，可能说明什么问题？</p>
+<p>什么是大 Key 和热 Key，分别有什么危害？
+追问：如果你发现某个 key 读 QPS 极高，但又不能简单加机器，你会从哪几种方向治理？</p>
 </li>
 <li>
-<p>Topic 的 retention 应该如何设置？
-追问：如果日志类 Topic 把磁盘打满，除了临时清理，你会如何从治理角度避免再次发生？</p>
+<p>什么时候不应该继续用 Redis，而应该引入专业 MQ 或数据库能力？
+追问：如果需要可靠消费、消息回溯和消费组，你为什么不会优先选择 Redis List？</p>
 </li>
 </ol>
 
@@ -385,11 +416,11 @@
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../part04/02-redis-cache-practice.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../part02/01-mysql-storage-database.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../part04/04-elasticsearch-search-index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../part02/03-kafka-message-queue-async.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -399,11 +430,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../part04/02-redis-cache-practice.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../part02/01-mysql-storage-database.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../part04/04-elasticsearch-search-index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../part02/03-kafka-message-queue-async.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

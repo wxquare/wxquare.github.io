@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>第 13 章 Elasticsearch：搜索与索引 - System Design Primer</title>
+        <title>第 19 章 Bash 与 Shell 实用 - System Design Primer</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e22aec9e.js";
+            window.path_to_searchindex_js = "../searchindex-5be5c0f8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a6324ee9.js"></script>
+        <script src="../toc-db1d8004.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -177,189 +177,91 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="第-13-章-elasticsearch搜索与索引"><a class="header" href="#第-13-章-elasticsearch搜索与索引">第 13 章 Elasticsearch：搜索与索引</a></h1>
-<p>Elasticsearch 的价值不在于“能查文本”，而在于它把全文检索、过滤、聚合和分布式扩展组合成了一套可落地的搜索系统。面试和工程实践里，真正拉开差距的不是会不会写 Query DSL，而是能否解释清楚倒排索引、分片副本、写入刷新、相关性排序和线上治理之间的关系。</p>
-<h2 id="倒排索引与搜索基础"><a class="header" href="#倒排索引与搜索基础">倒排索引与搜索基础</a></h2>
-<p>关系型数据库更擅长精确查找和事务处理，而搜索系统更擅长从大量文本中找出“最相关”的结果。支撑这一点的核心结构就是倒排索引。</p>
-<p>倒排索引会把“词项到文档”的关系提前建好。以酒店搜索为例，文档里出现过“Jakarta”“airport”“hotel”这些词，索引中就会记录这些词分别出现在哪些文档、出现次数多少、位置在哪。查询时不再遍历全部文档，而是直接定位词项对应的 posting list，再做交并集、过滤和打分。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>结构</th><th>作用</th></tr>
-</thead>
-<tbody>
-<tr><td>Document</td><td>一条被索引的业务记录</td></tr>
-<tr><td>Term</td><td>分词后得到的词项</td></tr>
-<tr><td>Posting List</td><td>某个词项命中的文档列表</td></tr>
-<tr><td>Segment</td><td>Lucene 的底层不可变索引段</td></tr>
-<tr><td>Analyzer</td><td>文本分析链路，负责分词与归一化</td></tr>
-</tbody>
-</table>
-</div>
-<p>这种模型决定了 Elasticsearch 适合搜索、筛选、统计三类操作的组合，但不适合高频事务更新、强一致约束和复杂联表。工程上一个常见误区是把它当主数据库使用，结果在更新频繁、字段约束严格的场景里付出很高代价。</p>
-<h2 id="索引分片与副本"><a class="header" href="#索引分片与副本">索引、分片与副本</a></h2>
-<p>索引可以理解成一类文档的逻辑集合，而真正承载数据的是分片。主分片负责承接写入与查询，副本分片用于容灾和读扩展。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>概念</th><th>作用</th><th>设计关注点</th></tr>
-</thead>
-<tbody>
-<tr><td>Index</td><td>逻辑数据集</td><td>一般按业务域或生命周期拆分</td></tr>
-<tr><td>Primary Shard</td><td>主分片</td><td>决定水平扩展上限，创建后不易直接调整</td></tr>
-<tr><td>Replica Shard</td><td>副本分片</td><td>提升可用性和查询并发</td></tr>
-<tr><td>Routing</td><td>路由规则</td><td>影响写入均衡、查询范围和热点风险</td></tr>
-</tbody>
-</table>
-</div>
-<p>分片不是越多越好。分片过多会带来更多元数据、更多小段文件和更重的协调开销；分片过少则会限制并行度和扩容空间。经验上更重要的是让单分片大小、文档量、查询模式和节点资源处于平衡状态。</p>
-<p>副本也不是单纯“多一份更安全”。副本数增加后，读吞吐和容灾能力会上升，但写入链路需要等待更多复制动作，磁盘和网络成本也会增加。面试里经常会追问“分片和副本分别解决什么问题”，要回答清楚：分片解决容量和并行，副本解决可用性和读扩展。</p>
-<h2 id="写入链路与查询链路"><a class="header" href="#写入链路与查询链路">写入链路与查询链路</a></h2>
-<p>Elasticsearch 的写入不是“直接落成可查的数据结构”，而是先经过协调、路由、写入内存缓冲与 translog，再在 refresh 后对搜索可见。</p>
-<p>一条文档写入链路通常可以拆成以下阶段：</p>
-<ol>
-<li>客户端请求先到协调节点。</li>
-<li>协调节点根据 <code>_id</code> 或自定义 routing 计算目标主分片。</li>
-<li>主分片先写内存 buffer 和 translog，再并行复制给副本。</li>
-<li>达到确认条件后向客户端返回成功。</li>
-<li>后台 refresh 把内存中的数据转换成新的 segment，使其对搜索可见。</li>
-</ol>
-<p>这也是为什么 Elasticsearch 常被称为 near real-time search。写成功不代表立刻能被检索到，中间存在一个 refresh 窗口。</p>
-<p>查询链路同样分为两段：</p>
-<ol>
-<li>Query Phase：协调节点把查询分发到相关分片，各分片本地完成匹配、过滤和打分。</li>
-<li>Fetch Phase：协调节点汇总 Top N 命中文档，再向对应分片拉取 <code>_source</code> 等完整内容。</li>
-</ol>
-<p>如果没有 routing 限定，查询通常会广播到多个分片。分片数越多，跨分片协调成本越高，因此“查询慢”不一定是单机算力不足，也可能是索引设计把简单请求放大成了全局扫描。</p>
-<h2 id="mapping分词与相关性"><a class="header" href="#mapping分词与相关性">Mapping、分词与相关性</a></h2>
-<p>Mapping 决定字段如何被索引和查询，是搜索质量与资源成本的分水岭。最常见的字段选择是 <code>text</code> 和 <code>keyword</code>：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>字段类型</th><th>适用场景</th><th>特点</th></tr>
-</thead>
-<tbody>
-<tr><td><code>text</code></td><td>标题、描述、评论等全文字段</td><td>会分词，适合 match 查询</td></tr>
-<tr><td><code>keyword</code></td><td>ID、状态、国家码、精确标签</td><td>不分词，适合过滤、聚合、排序</td></tr>
-</tbody>
-</table>
-</div>
-<p>一个常见实践是为同一业务字段同时保留全文与精确子字段，例如名称字段既支持中文分词搜索，也支持 <code>.keyword</code> 做精确匹配和聚合。</p>
-<p>Analyzer 一般由字符过滤、Tokenizer、Token Filter 三部分组成。中文场景常见的分词策略是索引时更细、查询时稍粗，用来兼顾召回和精确度。若分词器选择不当，常见问题包括：</p>
+                        <h1 id="第-19-章-bash-与-shell-实用"><a class="header" href="#第-19-章-bash-与-shell-实用">第 19 章 Bash 与 Shell 实用</a></h1>
+<p>Shell 不是系统设计主线的一部分，但它是工程师处理机器、日志和批量任务时最常用的放大器。真正有价值的 Shell 能力，并不是背命令大全，而是把零散命令组织成可靠的排查链路和自动化片段。本章只保留系统设计读者最常用的命令组织、文本处理和日志排查能力。</p>
+<h2 id="shell-基础与命令组织"><a class="header" href="#shell-基础与命令组织">Shell 基础与命令组织</a></h2>
+<p>Shell 的价值在于把命令、文件、环境变量和退出码组织成一条可重复执行的流程。相较于图形界面，Shell 更适合线上故障排查、批量处理和轻量自动化，因为它天然能够组合已有工具，而不必为每个小任务都写完整程序。</p>
+<p>系统设计工程师最常用的不是“所有命令”，而是少数高频操作：查帮助、找路径、看目录、数文件、比较差异、跟踪日志、查找目标文件、打包压缩和远程复制。比如 <code>man</code> 和 <code>info</code> 负责看手册，<code>which</code> 和 <code>whereis</code> 帮助确认可执行文件位置，<code>find</code> 负责按条件搜索文件，<code>tail -f</code> 适合实时跟日志，<code>diff</code> 用于比较配置差异，<code>tar</code> 负责打包和解包。</p>
+<p>命令组织里最实用的是退出码语义。<code>cmd1 &amp;&amp; cmd2</code> 表示只有前一个命令成功才继续；<code>cmd1 || cmd2</code> 表示前一个命令失败才执行后者。这种基于退出状态的组织方式，比把命令机械串起来更安全。很多一次性排查脚本看似简单，真正避免误操作的关键反而是正确使用条件执行和显式失败。</p>
+<p>环境变量也是 Shell 工作流的一部分。系统级环境通常由 <code>/etc/profile</code> 和 <code>/etc/profile.d</code> 管理，用户级环境由 <code>~/.bash_profile</code>、<code>~/.profile</code>、<code>~/.bashrc</code> 等文件控制。理解这些加载路径，能帮助你解释“为什么在终端里能运行，服务里却找不到命令”“为什么某个库路径在当前会话生效、重开后又失效”。</p>
+<p>对系统设计读者来说，Shell 最重要的心智模型是：命令不是孤立按钮，而是可以通过参数、退出码、重定向和环境变量编排的小组件。只要这个模型建立起来，后面的文本处理和自动化就顺了。</p>
+<h2 id="文本处理与管道"><a class="header" href="#文本处理与管道">文本处理与管道</a></h2>
+<p>管道是 Shell 最强大的抽象之一。它把前一个命令的标准输出直接作为后一个命令的标准输入，让你可以把过滤、切分、统计、排序等动作串成数据流处理链。工程上处理日志、CSV、配置文件和监控输出时，管道往往比临时写脚本更快。</p>
+<p>文本处理的第一原则是先缩小数据范围，再做昂贵分析。比如先用 <code>grep</code> 过滤出某类请求，再用 <code>awk</code> 取出关心的列，接着用 <code>sort</code>、<code>uniq -c</code> 做聚合统计，最后再排序找出热点。一类典型命令是：</p>
+<pre><code class="language-bash">cat access.csv | grep "keyword" | awk -F ',' '{print $2,$5,$6}' | sort | uniq -c | sort -rk 1
+</code></pre>
+<p>它的意义不在于语法花哨，而在于体现了常见排查顺序：筛选样本、抽取字段、聚合去重、按频次排序。线上日志分析时，这种“逐步缩小”的方式比一次性写很复杂的正则更稳妥。</p>
+<p>还要注意标准输入、标准输出和标准错误的分工。很多排查命令之所以可以无缝组合，就是因为它们默认遵守这一约定。理解这一点后，你会更容易写出能被其他命令接住的输出，而不是只能在终端上肉眼阅读的杂乱信息。</p>
+<p>文本处理并不意味着所有事都该交给 Shell。数据量过大、逻辑过于复杂或者需要稳定复用时，应及时切换到 Python、Go 等更适合编排的语言。优秀的工程习惯不是“全都用 Shell”，而是知道它在轻量链式处理场景下最有性价比。</p>
+<h2 id="grepsedawk-实战"><a class="header" href="#grepsedawk-实战">grep、sed、awk 实战</a></h2>
+<p><code>grep</code>、<code>sed</code>、<code>awk</code> 是 Shell 文本处理的三件套。<code>grep</code> 负责过滤匹配行，<code>sed</code> 负责流式替换和简单编辑，<code>awk</code> 负责按字段切分、计算和重组输出。系统设计工程师不需要追求花式写法，但需要熟练掌握它们在排查链路里的典型角色。</p>
+<p><code>grep</code> 最适合做快速收敛。比如查看某关键词在日志中出现次数、找出某个错误码相关请求、排除噪声样本。配合 <code>-v</code> 可以反向过滤，配合 <code>-n</code> 可以带行号，配合 <code>-c</code> 可以快速计数。排查大日志时，先 <code>grep</code> 再做后续处理，通常能显著减少认知负担。</p>
+<p><code>sed</code> 更适合做结构化替换和批量清洗，例如把某类前缀去掉、统一分隔符、抽取固定模式、删除无关行。它的优势在于保持流式处理，不必把整个文件读入内存。虽然现代工程里很多人更习惯用 Python 处理文本，但在一次性修正、批量替换和流水线里，<code>sed</code> 仍然很高效。</p>
+<p><code>awk</code> 则是日志分析中的利器。它天然按分隔符切字段，能做条件判断、聚合和简单计算。例如根据逗号分割提取第 2、第 5、第 6 列，再配合排序统计错误来源；或者从 Nginx 日志里抽取状态码、耗时和 URI，快速定位最慢接口。你可以把它理解成“适合小型结构化文本的即时查询语言”。</p>
+<p>实战中常见的模式是：</p>
 <ul>
-<li>召回过低：用户输入的词被切得太碎或根本切不出来。</li>
-<li>噪声过高：停用词、同义词配置不合理，结果相关性下降。</li>
-<li>聚合错误：把本该用 <code>keyword</code> 的字段误建成 <code>text</code>。</li>
+<li>用 <code>grep</code> 做第一层过滤。</li>
+<li>用 <code>awk</code> 抽字段、做统计。</li>
+<li>用 <code>sed</code> 做格式清洗或替换。</li>
+<li>用 <code>sort</code>、<code>uniq</code>、<code>head</code> 输出最终结论。</li>
 </ul>
-<p>相关性评分常以 BM25 为基础。它综合考虑词频、逆文档频率和字段长度，因此高频词、长文本和多字段查询都会影响最终排序。线上搜索体验差，往往不是“ES 算法不行”，而是字段权重、分词规则、过滤条件和业务排序混在一起没有分层治理。</p>
-<h2 id="深分页与性能优化"><a class="header" href="#深分页与性能优化">深分页与性能优化</a></h2>
-<p>深分页是 Elasticsearch 的经典问题。<code>from + size</code> 在页码很深时，协调节点仍需要让各分片先取回更多候选，再做全局排序和截断，因此页数越深，CPU、内存和网络成本越高。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>方案</th><th>适用场景</th><th>特点</th></tr>
-</thead>
-<tbody>
-<tr><td><code>from + size</code></td><td>浅分页、后台列表</td><td>简单直接，但深页成本高</td></tr>
-<tr><td>Scroll</td><td>批量导出、离线扫描</td><td>基于快照，不适合实时翻页</td></tr>
-<tr><td><code>search_after</code></td><td>面向用户的连续翻页</td><td>依赖稳定排序，性能更可控</td></tr>
-</tbody>
-</table>
-</div>
-<p>除了分页，性能优化还要同时看写入、查询和索引模型三层。</p>
-<p>写入侧重点：</p>
-<ul>
-<li>批量写入而不是单条刷入。</li>
-<li>控制 refresh 和副本策略，避免高峰期频繁生成小 segment。</li>
-<li>让路由更均匀，避免热点主分片。</li>
-</ul>
-<p>查询侧重点：</p>
-<ul>
-<li>能 filter 就不要全靠 score。</li>
-<li>缩小搜索范围，例如按时间、租户、业务域切索引。</li>
-<li>对高频聚合与排序字段提前建好合适的数据类型。</li>
-</ul>
-<p>索引侧重点：</p>
-<ul>
-<li>避免过宽 mapping 和无意义的动态字段爆炸。</li>
-<li>控制单分片大小，减少过多小分片。</li>
-<li>对冷热数据分层，降低热节点负担。</li>
-</ul>
-<h2 id="集群治理与常见问题"><a class="header" href="#集群治理与常见问题">集群治理与常见问题</a></h2>
-<p>搜索集群的事故很多不是出在“查不出来”，而是出在治理：脑裂风险、分片失衡、写入堆积、段合并抖动、磁盘水位过高、mapping 失控。</p>
-<p>常见问题与排查重点可以归纳如下：</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>问题</th><th>常见原因</th><th>处理方向</th></tr>
-</thead>
-<tbody>
-<tr><td>写入延迟升高</td><td>bulk 太小、refresh 太频繁、磁盘吃紧</td><td>调整批量、观察 translog 和 merge</td></tr>
-<tr><td>查询抖动</td><td>深分页、跨太多分片、缓存命中差</td><td>收缩查询范围，优化排序和过滤</td></tr>
-<tr><td>分片不均衡</td><td>routing 偏斜、热点租户集中</td><td>重设路由策略或拆索引</td></tr>
-<tr><td>磁盘高水位</td><td>副本过多、冷热分层缺失、保留周期过长</td><td>清理旧索引，做 ILM 或冷热迁移</td></tr>
-<tr><td>集群不稳定</td><td>主节点选举异常、节点抖动、GC 压力大</td><td>先稳控制面，再排查 JVM 和硬件</td></tr>
-</tbody>
-</table>
-</div>
-<p>旧版本 Elasticsearch 里常被问到“脑裂”问题，本质是网络分区下多个节点都认为自己可以成为主节点。现代集群通过更严格的选主与法定人数机制降低了这类问题，但工程原则没有变：控制面节点要稳定，选主规则要清楚，不能把主节点和重查询节点混成一团。</p>
-<p>日常治理最值得监控的维度包括：</p>
-<ul>
-<li>集群健康：节点数、主分片/副本分片分配、未分配分片。</li>
-<li>写入链路：bulk 延迟、拒绝数、translog、refresh 和 merge 时间。</li>
-<li>查询链路：QPS、P95/P99 延迟、慢查询、缓存命中率。</li>
-<li>资源层：CPU、堆内存、GC、磁盘水位、网络带宽。</li>
-</ul>
+<p>这类链式处理和系统设计题中的“数据流分阶段处理”其实很像。先做粗筛，再做聚合，最后输出热点。掌握它们，能让你在面对海量日志时更有节奏感。</p>
+<h2 id="日志排查与自动化脚本"><a class="header" href="#日志排查与自动化脚本">日志排查与自动化脚本</a></h2>
+<p>线上排查时，Shell 的最大价值是把“人肉重复动作”变成稳定脚本。日志查看是最典型场景。<code>tail -f</code> 适合追实时新增日志，<code>grep</code> 适合筛错误关键词，<code>lsof</code>、<code>ps</code>、<code>top</code>、<code>free</code>、<code>df</code>、<code>iostat</code>、<code>sar</code> 则帮助你把应用日志和系统资源状态关联起来。</p>
+<p>常见的系统信息命令包括：<code>uname -a</code> 查看内核版本，<code>cat /proc/cpuinfo</code> 和 <code>cat /proc/meminfo</code> 查看硬件与内存信息，<code>ulimit -a</code> 查看进程资源限制，<code>ipcs</code> 查看 IPC 资源，<code>nvidia-smi</code> 查看 GPU 情况。系统设计里讨论容量和故障时，很多判断必须落到这些基础信息上。</p>
+<p>Shell 对网络排查同样有效。<code>netstat</code> 或 <code>ss</code> 可以看端口与连接状态，<code>lsof -i:port</code> 可以定位谁占用了端口，<code>ping</code> 和 <code>traceroute</code> 用于连通性验证，<code>scp</code> 和 <code>ssh</code> 则是远程运维的基本工具。<code>nc</code> 既能充当简单客户端，也能临时监听端口，非常适合验证某条网络路径是否真的能通。</p>
+<p>这里还需要保留两个很实用的基准思路。第一，用 <code>dd</code> 配合 <code>/dev/zero</code>、<code>/dev/null</code> 粗测磁盘读写性能，帮助区分磁盘写慢、读慢还是读写竞争。第二，用 <code>nc</code> 配合 <code>time</code> 临时构造网络数据流，快速估算两台机器之间的吞吐上限。它们都不替代专业压测工具，但足够帮助你在故障现场先判断瓶颈大致落在哪一层。</p>
+<p>自动化脚本的核心不是“写得复杂”，而是让结果稳定可复现。好的小脚本通常会包含清晰的输入参数、显式的失败处理、必要的输出说明，以及尽量少的副作用。只要能把重复检查、日志采样、批量拉取和环境初始化收敛成几个可靠脚本，排障效率就会明显提升。</p>
 <h2 id="本章小结"><a class="header" href="#本章小结">本章小结</a></h2>
-<p>Elasticsearch 的核心不是某个 API，而是“倒排索引 + 分片副本 + 近实时刷新 + 相关性排序”这套整体模型。</p>
-<p>可以把本章总结为四个判断：</p>
+<p>Shell 对系统设计读者来说，是工程执行力的补足。它不负责设计架构，但负责让你更快地看见系统状态、清洗数据、定位热点并把重复动作自动化。</p>
+<p>这一章最值得带走的要点是：</p>
 <ul>
-<li>做搜索系统时，先想倒排索引和分词，而不是 SQL 心智。</li>
-<li>做集群规划时，先分清分片解决扩展，副本解决高可用。</li>
-<li>做性能优化时，先找出是写入、查询还是索引模型出了问题。</li>
-<li>做线上治理时，先稳住控制面、分片布局和磁盘水位，再谈复杂调优。</li>
+<li>Shell 的核心能力是组合，不是命令背诵。</li>
+<li>管道让多个小工具可以像数据流处理系统一样协同工作。</li>
+<li><code>grep</code>、<code>sed</code>、<code>awk</code> 是日志排查和文本处理的高性价比工具。</li>
+<li>系统信息、网络状态和简单基准测试都可以通过 Shell 快速完成第一轮判断。</li>
 </ul>
 <h2 id="本章面试题与追问"><a class="header" href="#本章面试题与追问">本章面试题与追问</a></h2>
 <ol>
 <li>
-<p>Elasticsearch 和 MySQL 在检索模型上有什么根本区别？
-追问：为什么全文检索不适合用普通 B+ 树硬扛？</p>
+<p>为什么说 Shell 最大的价值是“组合已有工具”？
+追问：相比单独敲命令，管道和退出码语义解决了什么工程问题？</p>
 </li>
 <li>
-<p>什么是倒排索引？它的核心结构包括哪些部分？
-追问：posting list 里为什么不仅要记文档 ID，还常常要记位置和词频？</p>
+<p><code>cmd1 &amp;&amp; cmd2</code> 和 <code>cmd1 || cmd2</code> 分别适合什么场景？
+追问：为什么自动化脚本里显式处理失败比“继续执行”更重要？</p>
 </li>
 <li>
-<p>分片和副本分别解决什么问题？
-追问：为什么分片数不是越多越好？</p>
+<p>日志排查时为什么通常先过滤、再聚合、最后排序？
+追问：如果原始日志很大，这样的顺序会带来什么收益？</p>
 </li>
 <li>
-<p>Elasticsearch 的写入为什么是 near real-time，而不是绝对实时？
-追问：translog、refresh、segment 各自起什么作用？</p>
+<p><code>grep</code>、<code>sed</code>、<code>awk</code> 三者在职责上有什么区别？
+追问：如果你要从日志中抽取某几列并按频次统计，为什么 <code>awk</code> 往往更合适？</p>
 </li>
 <li>
-<p>一次搜索请求大致会经过哪些阶段？
-追问：为什么跨很多分片的查询更容易变慢？</p>
+<p>管道为什么适合处理日志和命令输出？
+追问：标准输出和标准错误分离，对脚本编排有什么帮助？</p>
 </li>
 <li>
-<p><code>text</code> 和 <code>keyword</code> 有什么区别？
-追问：如果把聚合字段错误地建成 <code>text</code>，线上会有什么后果？</p>
+<p>你会用哪些命令快速查看系统 CPU、内存、磁盘和打开文件状态？
+追问：这些信息和应用日志结合后，能帮助你判断哪些类型的问题？</p>
 </li>
 <li>
-<p>Analyzer 的作用是什么？
-追问：为什么搜索质量问题很多时候本质上是分词和字段设计问题？</p>
+<p><code>tail -f</code>、<code>grep</code> 和 <code>sort | uniq -c</code> 常常怎样配合使用？
+追问：这种命令链为什么很像一个简化版的数据处理流水线？</p>
 </li>
 <li>
-<p>BM25 主要在衡量什么？
-追问：为什么业务排序经常需要和相关性评分拆开设计？</p>
+<p><code>dd</code> 和 <code>nc</code> 为什么能帮助做粗粒度性能判断？
+追问：它们适合拿来验证什么，不适合替代什么？</p>
 </li>
 <li>
-<p>深分页为什么慢？<code>scroll</code> 和 <code>search_after</code> 分别适合什么场景？
-追问：如果用户要持续翻页看搜索结果，你会优先推荐哪种方案？</p>
+<p>环境变量加载路径为什么值得工程师理解？
+追问：为什么“终端里能执行、服务里不能执行”常常和环境加载顺序有关？</p>
 </li>
 <li>
-<p>Elasticsearch 集群线上最常见的治理问题有哪些？
-追问：如果磁盘水位持续升高且分片未分配，你会先检查什么？</p>
+<p>什么样的 Shell 脚本算是工程上可靠的小工具？
+追问：如果脚本会被多人反复执行，你最先补上的保护措施是什么？</p>
 </li>
 </ol>
 
@@ -367,11 +269,11 @@
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../part04/03-kafka-message-queue-async.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../part02/09-computer-networking.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../part04/05-kubernetes-docker.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../part02/11-python-practice.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -381,11 +283,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../part04/03-kafka-message-queue-async.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../part02/09-computer-networking.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../part04/05-kubernetes-docker.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../part02/11-python-practice.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

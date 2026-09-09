@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e22aec9e.js";
+            window.path_to_searchindex_js = "../searchindex-5be5c0f8.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a6324ee9.js"></script>
+        <script src="../toc-db1d8004.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -602,6 +602,64 @@
 <li>是否演练过。</li>
 </ul>
 <p>降级开关必须纳入配置治理。不要让任何人可以在没有审批、没有审计、没有回滚方案的情况下打开“允许使用缓存价创单”这类高风险开关。</p>
+<h4 id="3457-中间件关键配置redis-与-mysql"><a class="header" href="#3457-中间件关键配置redis-与-mysql">3.4.5.7 中间件关键配置：Redis 与 MySQL</a></h4>
+<p>中间件配置不能只按“默认值能用”来管理。连接池、超时和生命周期参数直接决定系统离故障有多远，也需要像代码一样做评审、压测和灰度。</p>
+<p><strong>MySQL 关键配置</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>配置</th><th>含义</th><th>建议与作用</th></tr>
+</thead>
+<tbody>
+<tr><td><code>max_connections</code></td><td>MySQL 服务端最大连接数</td><td>上限必须大于所有应用实例连接池之和，并预留监控、迁移和手工运维连接</td></tr>
+<tr><td><code>wait_timeout</code></td><td>非交互空闲连接超时</td><td>应大于应用侧最大空闲时间，否则连接会被服务端提前关闭</td></tr>
+<tr><td><code>interactive_timeout</code></td><td>交互式空闲连接超时</td><td>运维客户端连接受此限制，通常比 <code>wait_timeout</code> 更宽松</td></tr>
+<tr><td><code>MaxOpenConns</code></td><td>应用侧最大打开连接数</td><td>决定并发 SQL 上限，过大打满 MySQL，过小限制吞吐</td></tr>
+<tr><td><code>MaxIdleConns</code></td><td>应用侧最大空闲连接数</td><td>保留合理空闲连接以减少建连开销，不需要追求等于 <code>MaxOpenConns</code></td></tr>
+<tr><td><code>ConnMaxLifetime</code></td><td>连接最长存活时间</td><td>应小于或等于 MySQL/代理空闲断开时间，避免复用失效连接</td></tr>
+<tr><td><code>ConnMaxIdleTime</code></td><td>空闲连接最长保留时间</td><td>可回收长时间闲置连接，降低应用和 MySQL 资源占用</td></tr>
+<tr><td><code>connectTimeout</code></td><td>建连超时</td><td>防止 MySQL 不可达时请求无限等待</td></tr>
+<tr><td><code>readTimeout</code></td><td>读取响应超时</td><td>防止慢 SQL 长期占用应用线程；超时后连接通常需要丢弃，不能无脑复用</td></tr>
+<tr><td><code>writeTimeout</code></td><td>写入响应超时</td><td>防止网络写入卡死；写超时后必须处理不确定结果，不能直接重试</td></tr>
+<tr><td><code>max_execution_time</code></td><td>单个 SELECT 执行时间上限</td><td>在数据库侧兜底，防止慢 SQL 长期占 CPU</td></tr>
+<tr><td><code>lock_wait_timeout</code></td><td>锁等待超时</td><td>防止热点行锁把事务拖死</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Redis 关键配置</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>配置</th><th>含义</th><th>建议与作用</th></tr>
+</thead>
+<tbody>
+<tr><td><code>maxclients</code></td><td>Redis 服务端最大客户端连接数</td><td>上限必须大于所有应用实例连接池之和，并预留监控和管理连接</td></tr>
+<tr><td><code>timeout</code></td><td>空闲连接超时</td><td>配合客户端 <code>IdleTimeout</code> 清理闲置连接</td></tr>
+<tr><td><code>MaxActive</code> / <code>PoolSize</code></td><td>客户端最大活跃连接数</td><td>控制单实例并发上限，池满时会排队或等待</td></tr>
+<tr><td><code>MaxIdle</code> / <code>MinIdleConns</code></td><td>客户端空闲连接上限/下限</td><td>保留足够空闲连接，减少 Redis 建连开销</td></tr>
+<tr><td><code>PoolTimeout</code></td><td>获取连接等待上限</td><td>防止连接池耗尽时请求无限等待</td></tr>
+<tr><td><code>IdleTimeout</code></td><td>空闲连接回收时间</td><td>避免连接长期闲置占资源</td></tr>
+<tr><td><code>DialConnectTimeout</code></td><td>建连超时</td><td>防止 Redis 不可达时请求被拖住</td></tr>
+<tr><td><code>DialReadTimeout</code></td><td>读响应超时</td><td>Redis 单线程串行执行命令，慢命令会拖长所有等待者</td></tr>
+<tr><td><code>DialWriteTimeout</code></td><td>写请求超时</td><td>防止网络或 Redis 故障时命令悬挂</td></tr>
+<tr><td><code>MaxRetries</code></td><td>命令失败重试次数</td><td>读命令可配置，写命令需评估幂等和放大风险</td></tr>
+</tbody>
+</table>
+</div>
+<p>配置评审时至少检查三组关系：</p>
+<ol>
+<li>应用连接池总连接数是否小于中间件服务端连接数上限，并预留恢复窗口。</li>
+<li>应用连接生命周期是否小于或等于中间件和网络层空闲断开时间。</li>
+<li>超时是否覆盖建连、读、写和获取连接，而不是只配一个请求总超时。</li>
+</ol>
+<p>常见事故与配置关系：</p>
+<ul>
+<li>MySQL 连接池被打满：通常是慢 SQL、长事务或连接池过大，而不是单个参数写错。</li>
+<li>MySQL 偶发断连：通常是 <code>wait_timeout</code>、代理空闲超时小于应用 <code>ConnMaxLifetime</code>。</li>
+<li>Redis 请求排队变慢：连接池本身通常不是首要瓶颈，慢命令、大 key、热点 key 更容易放大延迟。</li>
+<li>Redis 获取连接超时：可能是连接池过小、客户端未归还连接，或 Redis 慢命令占满连接。</li>
+</ul>
+<p>中间件参数建议先按保守值上线，再通过压测、监控和事故复盘调整。不能只相信官方默认值，也不能把参数改成只看 QPS 不看尾部延迟。</p>
 <h3 id="346-变更治理多数生产事故根子都在变更"><a class="header" href="#346-变更治理多数生产事故根子都在变更">3.4.6 变更治理：多数生产事故，根子都在变更</a></h3>
 <p>生产系统不是运行时自己突然变坏的，更多时候，是某次代码发布、配置修改、数据回填、规则切换或外部依赖接入，把原本潜伏的脆弱性显露出来。很多团队把稳定性问题归咎于“流量太大”或“依赖太差”，但回头复盘会发现，真正点燃事故的火种，往往还是变更。</p>
 <p>所以，成熟的生产治理一定把变更当成最高风险动作之一，而不是默认“上线成功就代表变更安全”。一套可执行的变更治理，至少应该包含下面几层：</p>
