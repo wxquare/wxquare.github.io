@@ -42,7 +42,7 @@
 
 ### 公开资料库
 
-`source/library/` 是统一资料根目录，按 books、papers、slides、presentations、other 组织内容：`slides/` 保存第三方演示资料，`presentations/` 保存本人创作或确认可公开的第一方演示资料。每条记录都包含来源、再分发说明和本地路径；无法确认重新托管边界的资料只保留原始链接。Other 只接收经批准且类型边界明确的补充资料。`source/booklist/` 是已阻塞的只读遗留目录，`source/pdf/` 不含活动源文件；旧 `/presentations/` 和 `/pdf/k8s-network.pdf` URL 由构建期 alias 兼容。博客与资料库只介绍或引用实验，不存放实验源码。
+`source/library/` 是统一资料根目录，按 books、papers、slides、presentations、other 组织内容：`slides/` 保存第三方演示资料，`presentations/` 保存本人创作或确认可公开的第一方演示资料。每条记录都包含来源、再分发说明和本地路径；无法确认重新托管边界的资料只保留原始链接。Other 只接收经批准且类型边界明确的补充资料。`source/booklist/` 是已阻塞的只读遗留目录，`source/pdf/` 不含活动源文件；旧 `/presentations/`、`/pdf/k8s-network.pdf` 和 `/ecommerce-book/` URL 由构建期 alias 兼容，其中 `/ecommerce-book/` 跳转到 `/booklist/`。博客与资料库只介绍或引用实验，不存放实验源码。
 
 ## 本地运行
 

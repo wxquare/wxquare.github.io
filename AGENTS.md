@@ -54,6 +54,7 @@ http://localhost:4000
 - `.deploy_git/`
 - `books/ai-book/book/`
 - `source/booklist/`：已阻塞的只读遗留目录；逐条书目来源与元数据完成前保持原位，不得新增文件
+- `source/ecommerce-book/`：不再作为源目录维护；旧 `/ecommerce-book/` URL 由构建期 `legacy-book-alias` 跳转到 `/booklist/`
 - `source/pdf/`：不含活动源文件的遗留目录；`k8s-network.pdf` 已位于 `source/library/presentations/`，旧 URL 仅由构建期别名输出兼容，不得新增文件
 
 ## 4. 内容落点规则
@@ -82,6 +83,7 @@ http://localhost:4000
 - 单个二进制文件超过 10 MiB 时默认只保留外链；本地托管需要用户单独批准存储方案。
 - 公开活动资料只在 `source/library/` 维护；其他文章需要引用时链接到资料库条目或原始来源，不复制活动副本。
 - `source/booklist/` 保持阻塞和只读；其内容只能在权威 URL 与必填元数据齐全后逐条分解到资料库索引，逻辑索引目标不得作为 `git mv` 目标。
+- `source/ecommerce-book/` 不再维护源页面；旧 `/ecommerce-book/` URL 由构建期 `legacy-book-alias` 重定向到 `/booklist/`。
 - `source/pdf/` 不含活动源文件；已批准的第一方演示资料位于 `source/library/presentations/`，旧 URL 由已验证的构建期别名兼容。
 
 完整规则见 `docs/library-policy.md`。
