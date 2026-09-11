@@ -23,6 +23,7 @@ toc:
 
 ## 持续更新与推荐
 
+- [电商 Agent 项目全景调研报告](/2026/09/11/AI/08-agent-electronic-commerce-research-report/)
 - [1-10年互联网后端工程师系统设计面试50题（电商优先）](/2026/04/07/system-design/08-system-design-interview/)
 - [AI 与 AI Agent 开发高频面试 50 题（工程与架构优先）](/2026/09/09/AI/07-ai-agent-development-interview-50/)
 - [LeetCode 题目索引](https://github.com/wxquare/leetcode-primer/blob/master/leetcode/README.md)
