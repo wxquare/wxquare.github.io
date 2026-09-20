@@ -6,7 +6,7 @@
 
 # 第一部分：系统设计方法论
 
-- [第 1 章 系统设计与方案写作：从问题定义到工程落地的决策方法](part01/01-system-design-guide-methodology.md)
+- [第 1 章 系统设计与架构方法论：从业务建模到工程落地](part01/01-system-design-guide-methodology.md)
 - [第 2 章 编码、重构与 Code Review：构建可演进代码的实践方法](part01/02-coding-principles-design-patterns.md)
 - [第 3 章 生产系统治理、保障与技术债务：韧性架构的动态平衡](part01/03-production-resilience-safeguards.md)
 - [第 4 章 大事务处理方法论：Saga、补偿与最终一致性](part01/04-large-transaction-orchestration.md)
@@ -59,4 +59,4 @@
 - [附录 A 术语表](appendix/glossary.md)
 - [附录 B 参考文献与外链](appendix/references.md)
 - [附录 C 工具与构建说明](appendix/tooling.md)
-- [附录 D 系统设计题库](appendix/system-design-questionbank.md)
+- [附录 D 系统设计题库与面试追问](appendix/system-design-questionbank.md)
