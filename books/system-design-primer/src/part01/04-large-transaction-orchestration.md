@@ -605,9 +605,11 @@ event_id
 
 系统的价值不是承诺不会失败，而是让失败后的事实、责任和修复路径可见：发生了什么、哪些动作已生效、哪些结果未知、谁拥有权威事实、下一步由谁推进，以及何时回到成功、已补偿、待对账或待人工处理。
 
-### 参考资料
+### 参考文献与延伸阅读
 
-1. Hector Garcia-Molina, Kenneth Salem, [“Sagas”](https://doi.org/10.1145/38713.38742), *Proceedings of the 1987 ACM SIGMOD International Conference on Management of Data*, 1987。
+本节汇总正文引用源，供延伸阅读；正文编号用于就近说明，链接优先指向原始论文或官方页面。
+
+1. Hector Garcia-Molina, Kenneth Salem, [“Sagas”](https://doi.org/10.1145/38713.38742), ACM SIGMOD, 1987。
 2. Pat Helland, [“Life beyond Distributed Transactions: an Apostate’s Opinion”](https://www.cidrdb.org/cidr2007/papers/cidr07p15.pdf), CIDR 2007, 2007。
 3. AWS Prescriptive Guidance, [“Saga patterns”](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/saga-patterns.html)。
 4. AWS Prescriptive Guidance, [“Transactional outbox pattern”](https://docs.aws.amazon.com/en_en/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html)。
