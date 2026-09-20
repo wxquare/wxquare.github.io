@@ -603,14 +603,9 @@ event_id
 
 ### 参考资料
 
-[1] Hector Garcia-Molina, Kenneth Salem, “Sagas”, *Proceedings of the 1987 ACM SIGMOD International Conference on Management of Data*, 1987, https://doi.org/10.1145/38713.38742，加入日期：2026-09-20。
-
-[2] Pat Helland, “Life beyond Distributed Transactions: an Apostate’s Opinion”, CIDR 2007, 2007, https://www.cidrdb.org/cidr2007/papers/cidr07p15.pdf，加入日期：2026-09-20。
-
-[3] AWS Prescriptive Guidance, “Saga patterns”, https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/saga-patterns.html，加入日期：2026-09-20。
-
-[4] AWS Prescriptive Guidance, “Transactional outbox pattern”, https://docs.aws.amazon.com/en_en/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html，加入日期：2026-09-20。
-
-[5] Malcolm Featonby, “Making retries safe with idempotent APIs”, Amazon Builders’ Library, 2021, https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/，加入日期：2026-09-20。
-
-[6] Oracle, “Try-Confirm/Cancel Transaction Protocol”, *MicroTx Distributed Transactions Developer’s Guide*, https://docs.oracle.com/en/database/oracle/transaction-manager-for-microservices/26.1/tmmdv/tcc-transaction-model.html，加入日期：2026-09-20。
+1. Hector Garcia-Molina, Kenneth Salem, [“Sagas”](https://doi.org/10.1145/38713.38742), *Proceedings of the 1987 ACM SIGMOD International Conference on Management of Data*, 1987。
+2. Pat Helland, [“Life beyond Distributed Transactions: an Apostate’s Opinion”](https://www.cidrdb.org/cidr2007/papers/cidr07p15.pdf), CIDR 2007, 2007。
+3. AWS Prescriptive Guidance, [“Saga patterns”](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/saga-patterns.html)。
+4. AWS Prescriptive Guidance, [“Transactional outbox pattern”](https://docs.aws.amazon.com/en_en/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html)。
+5. Malcolm Featonby, [“Making retries safe with idempotent APIs”](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/), Amazon Builders’ Library, 2021。
+6. Oracle, [“Try-Confirm/Cancel Transaction Protocol”](https://docs.oracle.com/en/database/oracle/transaction-manager-for-microservices/26.1/tmmdv/tcc-transaction-model.html), *MicroTx Distributed Transactions Developer’s Guide*。
