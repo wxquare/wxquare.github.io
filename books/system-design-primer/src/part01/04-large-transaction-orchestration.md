@@ -37,11 +37,13 @@
 
 真实互联网业务经常不满足这些前提：支付网关、短信平台和物流供应商不会加入你的数据库事务；用户支付和人工审批不能长期持有数据库锁；短信、支付受理和供应商订单也不一定存在真正的回滚。业务上更常见的动作是取消占用、冲正流水、标记失败和等待对账。
 
-Helland 在讨论大规模系统时，把这类现实概括为：应用程序往往不能假设存在覆盖所有业务对象和外部系统的全局分布式事务。[2] 这不是对强一致的否定，而是提醒设计者：一致性语义必须和参与者能力、业务时限以及恢复路径一起定义。
+Helland 在讨论大规模系统时，把这类现实概括为：应用程序往往不能假设存在覆盖所有业务对象和外部系统的全局分布式事务。[2] 它提醒设计者：一致性语义必须和参与者能力、业务时限以及恢复路径一起定义。
+
+《凤凰架构》把它归纳为多服务、多数据源的事务问题，强调按业务一致性与隔离性需求选型。[7]
 
 因此，本章的核心问题不是“有没有一种更强的事务框架”，而是：业务动作的最小边界是什么，哪些步骤会留下副作用，每种结果和补偿分别意味着什么，请求中断后能否从持久化事实恢复，以及谁有权判断最终应为成功、已补偿、待对账还是待人工处理。
 
-这组问题把“大事务”从接口编排问题转换成状态收敛问题。
+这把“大事务”从接口编排转成状态收敛。
 
 ## 4.2 约束与指标：为什么创单节点天然是大事务
 
@@ -186,7 +188,9 @@ Saga 最初就是为长时间事务提出的分解思路：把一个长事务拆
 
 它的优点是领域自治强，服务之间不依赖中央协调者；当事件本来就是领域边界时，协同式设计可以自然扩展。代价是全局路径分散，补偿逻辑散落在多个服务中，参与方增加后依赖关系容易变成隐形拓扑，排障者必须从事件链拼出完整历史。AWS 的 Saga 指南也提示，编舞式方案的参与方增加后依赖追踪会变难。[3]
 
-它更适合多系统自治、主控方不强、事件关系天然存在的场景；如果交易主链路需要一个统一视角来判断是否成功、是否补偿，协同式 Saga 往往需要额外建设事务视图或审计投影。
+Seata 中文文档将 Saga 定义为先提交本地事务，失败后补偿前序参与者，并支持状态机编排正向与补偿节点。[8]
+
+它适合多系统自治、主控方不强且事件边界存在的场景；若主链路需要判断成功或补偿，需建设事务视图或审计投影。
 
 ### 4.4.3 编排式 Saga
 
@@ -456,7 +460,7 @@ WHERE transaction_id = :transaction_id
 
 库存不足是业务拒绝，重试不会让库存凭空增加；数据库连接短暂失败是技术失败，可能重试成功。错误码、异常类型和下游契约必须能让协调器区分这两类结果。
 
-重试还要受到截止时间和预算约束。一次创单动作有自己的 `deadline`，每个步骤只能消耗一部分预算；不能让库存已经过期后，协调器仍然无限重试营销。指数退避和随机抖动可以降低同步重试的拥塞，但不能替代幂等。AWS 对幂等 API 的说明强调，安全重试的关键是让服务识别重复请求并返回与第一次处理一致的结果。[5]
+重试还要受到截止时间和预算约束。创单有自己的 `deadline`，各步骤只能消耗部分预算；不能让库存已经过期后，协调器仍然无限重试营销。指数退避和抖动能缓解拥塞，但不能替代幂等。AWS 对幂等 API 的说明强调，安全重试的关键是让服务识别重复请求并返回与第一次处理一致的结果。[5]
 
 ### 4.10.2 结果未知必须先查询
 
@@ -608,4 +612,6 @@ event_id
 3. AWS Prescriptive Guidance, [“Saga patterns”](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/saga-patterns.html)。
 4. AWS Prescriptive Guidance, [“Transactional outbox pattern”](https://docs.aws.amazon.com/en_en/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html)。
 5. Malcolm Featonby, [“Making retries safe with idempotent APIs”](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/), Amazon Builders’ Library, 2021。
-6. Oracle, [“Try-Confirm/Cancel Transaction Protocol”](https://docs.oracle.com/en/database/oracle/transaction-manager-for-microservices/26.1/tmmdv/tcc-transaction-model.html), *MicroTx Distributed Transactions Developer’s Guide*。
+6. Apache Seata，[“Seata TCC 模式”](https://seata.apache.org/zh-cn/docs/next/user/mode/tcc/)。
+7. 周志明，《凤凰架构》“分布式事务”章节，[在线阅读](https://icyfenix.cn/architect-perspective/general-architecture/transaction/distributed.html)。
+8. Apache Seata，[“Seata Saga 模式”](https://seata.apache.org/zh-cn/docs/user/mode/saga/)。
