@@ -65,8 +65,7 @@ test('question types have requirements appropriate to their learning objective',
 test('book links point to the appendix instead of a removed question-bank chapter', () => {
   const partThreeFiles = [
     'part03/01-ecommerce-overview.md',
-    'part03/02-product-center.md',
-    'part03/03-product-supply-lifecycle-ops.md',
+    'part03/02-product-center-supply-lifecycle.md',
     'part03/04-inventory-system.md',
     'part03/07-search-discovery.md',
     'part03/08-cart-checkout.md',
