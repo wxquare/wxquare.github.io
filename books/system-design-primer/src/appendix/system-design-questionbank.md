@@ -925,7 +925,7 @@
 #### 常见失分点
 宣称缓存天然强一致；没有对账；把最终一致当作不处理失败。
 #### 关联正文
-[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 7 章 高准确性与强一致性](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 32 章 订单系统](../part03/09-order-system.md)
+[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 7 章 高准确性与强一致性](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 36 章 订单系统](../part03/13-ecommerce-customer-lifecycle.md)
 #### 复盘清单
 - 我是否明确了每类状态的权威来源？
 - 我是否说明了发现和修复偏差的闭环？
@@ -987,7 +987,7 @@
 #### 常见失分点
 把 MySQL 说成所有数据的唯一选择；忽略读写分离、分片和归档；把消息当存储替代品。
 #### 关联正文
-[第 7 章 高准确性与强一致性](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 27 章 库存系统](../part03/04-inventory-system.md)、[第 32 章 订单系统](../part03/09-order-system.md)
+[第 7 章 高准确性与强一致性](../part01/07-high-accuracy-strong-consistency-methodology.md)、[第 27 章 库存系统](../part03/04-inventory-system.md)、[第 36 章 订单系统](../part03/13-ecommerce-customer-lifecycle.md)
 #### 复盘清单
 - 我是否说清了权威状态需要的能力？
 - 我是否说明了缓存和消息不承担什么职责？
@@ -1208,7 +1208,7 @@
 #### 常见失分点
 事务内同步发送消息且无补偿；以为消息顺序等于业务正确；忽略积压和死信。
 #### 关联正文
-[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 6 章 任务处理](../part01/06-task-processing-methodology.md)、[第 32 章 订单系统](../part03/09-order-system.md)
+[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 6 章 任务处理](../part01/06-task-processing-methodology.md)、[第 36 章 订单系统](../part03/13-ecommerce-customer-lifecycle.md)
 #### 复盘清单
 - 我是否说明了消息队列不承担的职责？
 - 我是否覆盖投递、消费、积压和补偿？
@@ -1301,7 +1301,7 @@
 #### 常见失分点
 仅依赖消息 ID 的内存去重；没有持久化约束；混淆投递幂等和业务幂等。
 #### 关联正文
-[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 5 章 长生命周期业务流程](../part01/05-long-lifecycle-business-process-methodology.md)、[第 32 章 订单系统](../part03/09-order-system.md)
+[第 4 章 大事务处理](../part01/04-large-transaction-orchestration.md)、[第 5 章 长生命周期业务流程](../part01/05-long-lifecycle-business-process-methodology.md)、[第 36 章 订单系统](../part03/13-ecommerce-customer-lifecycle.md)
 #### 复盘清单
 - 我是否明确了幂等键对应的业务语义？
 - 我是否说明了重复与崩溃后的恢复？
@@ -14337,7 +14337,7 @@ public BigDecimal calculate(Order order) {
 
 迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:6748`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[营销系统](../part03/05-marketing-system.md)。
+相关章节：[营销系统](../part03/05-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -14628,7 +14628,7 @@ coupon_code
 
 迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7049`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[营销系统](../part03/05-marketing-system.md)。
+相关章节：[营销系统](../part03/05-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -15421,7 +15421,7 @@ member_subscription
 
 迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:7905`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[计价系统](../part03/06-pricing-system.md)。
+相关章节：[计价系统](../part03/05-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -15979,7 +15979,7 @@ public BigDecimal calculateBestPrice(Order order) {
 
 迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8304`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[营销系统](../part03/05-marketing-system.md)。
+相关章节：[营销系统](../part03/05-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -16506,7 +16506,7 @@ price = getPriceByUser(skuId, userId);
 
 迁移来源：`books/system-design-primer/src/part03/08-product-inventory-marketing-pricing-questionbank.md:8751`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[计价系统](../part03/06-pricing-system.md)。
+相关章节：[计价系统](../part03/05-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -20873,7 +20873,7 @@ Draft 和 Staging 有什么区别？
 
 迁移来源：`books/system-design-primer/src/part03/03-ecommerce-architecture-interview.md:594`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[计价系统](../part03/06-pricing-system.md)。
+相关章节：[计价系统](../part03/05-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -23985,7 +23985,7 @@ Redis提供高性能，MySQL保证持久化。
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1547`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[购物车与结算](../part03/08-cart-checkout.md)。
+相关章节：[购物车与结算](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -24119,7 +24119,7 @@ public CartPrice calculateCart(Cart cart) {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1711`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[购物车与结算](../part03/08-cart-checkout.md)。
+相关章节：[购物车与结算](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -24217,7 +24217,7 @@ public CartPrice calculateCart(Cart cart) {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1785`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[购物车与结算](../part03/08-cart-checkout.md)。
+相关章节：[购物车与结算](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -24315,7 +24315,7 @@ public CartPrice calculateCart(Cart cart) {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1823`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[购物车与结算](../part03/08-cart-checkout.md)。
+相关章节：[购物车与结算](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -24432,7 +24432,7 @@ public CartPrice calculateCart(Cart cart) {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1861`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[购物车与结算](../part03/08-cart-checkout.md)。
+相关章节：[购物车与结算](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -24681,7 +24681,7 @@ iPhone 15 Pro 256GB
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:1918`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[购物车与结算](../part03/08-cart-checkout.md)。
+相关章节：[购物车与结算](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -24994,7 +24994,7 @@ function longPoll() {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2107`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[购物车与结算](../part03/08-cart-checkout.md)。
+相关章节：[购物车与结算](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -25182,7 +25182,7 @@ function longPoll() {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2360`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[购物车与结算](../part03/08-cart-checkout.md)。
+相关章节：[购物车与结算](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -25433,7 +25433,7 @@ PC端使用**单页结算**，移动端使用**分步结算**。
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2488`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[购物车与结算](../part03/08-cart-checkout.md)。
+相关章节：[购物车与结算](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -25683,7 +25683,7 @@ shared_cart
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2679`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[购物车与结算](../part03/08-cart-checkout.md)。
+相关章节：[购物车与结算](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -25804,7 +25804,7 @@ shared_cart
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2869`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[购物车与结算](../part03/08-cart-checkout.md)。
+相关章节：[购物车与结算](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -25931,7 +25931,7 @@ shared_cart
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2930`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[购物车与结算](../part03/08-cart-checkout.md)。
+相关章节：[购物车与结算](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -26039,7 +26039,7 @@ shared_cart
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:2997`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[购物车与结算](../part03/08-cart-checkout.md)。
+相关章节：[购物车与结算](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -26151,7 +26151,7 @@ shared_cart
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3045`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[购物车与结算](../part03/08-cart-checkout.md)。
+相关章节：[购物车与结算](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -26290,7 +26290,7 @@ shared_cart
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3097`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[购物车与结算](../part03/08-cart-checkout.md)。
+相关章节：[购物车与结算](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -26475,7 +26475,7 @@ PENDING_PAYMENT ──┬─┴─> PAID ───> SHIPPED ───> RECEIVED 
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3178`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[订单系统](../part03/09-order-system.md)。
+相关章节：[订单系统](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -26686,7 +26686,7 @@ public String generateOrderNo() {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3303`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[订单系统](../part03/09-order-system.md)。
+相关章节：[订单系统](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -26978,7 +26978,7 @@ public void createOrder(Order order) {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3454`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[订单系统](../part03/09-order-system.md)。
+相关章节：[订单系统](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -27268,7 +27268,7 @@ shipment（发货单）
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3686`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[订单系统](../part03/09-order-system.md)。
+相关章节：[订单系统](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -27592,7 +27592,7 @@ public Order createOrder(OrderRequest request, String token) {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:3916`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[订单系统](../part03/09-order-system.md)。
+相关章节：[订单系统](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -27816,7 +27816,7 @@ func CreateOrderSaga(orderReq *CreateOrderRequest) error {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:4180`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[订单系统](../part03/09-order-system.md)。
+相关章节：[订单系统](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -28195,7 +28195,7 @@ order_routing
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:4344`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[订单系统](../part03/09-order-system.md)。
+相关章节：[订单系统](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -28403,7 +28403,7 @@ func (o *FulfillmentOrchestrator) UpdateStatus(ctx context.Context,
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:4663`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[订单系统](../part03/09-order-system.md)。
+相关章节：[订单系统](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -28766,7 +28766,7 @@ func (s *RefundService) shouldAutoApprove(refund *Refund) bool {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:4984`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[订单系统](../part03/09-order-system.md)。
+相关章节：[订单系统](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -28952,7 +28952,7 @@ func (r *OrderRepository) SearchOrders(ctx context.Context,
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5054`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[订单系统](../part03/09-order-system.md)。
+相关章节：[订单系统](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -29164,7 +29164,7 @@ func (s *NotificationService) shouldSendSMS(status OrderStatus) bool {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5180`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[订单系统](../part03/09-order-system.md)。
+相关章节：[订单系统](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -29304,7 +29304,7 @@ func (s *OrderArchiveService) FindByID(ctx context.Context, orderID int64) (*Ord
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5332`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[订单系统](../part03/09-order-system.md)。
+相关章节：[订单系统](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -29445,7 +29445,7 @@ func GetRealTimeMetrics(ctx context.Context) (*OrderMetrics, error) {
 
 迁移来源：`books/system-design-primer/src/part03/09-search-cart-order-payment-questionbank.md:5520`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[订单系统](../part03/09-order-system.md)。
+相关章节：[订单系统](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -33296,7 +33296,7 @@ func (s *SeckillService) CancelUnpaidOrders() {
 
 迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:182`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[营销系统](../part03/05-marketing-system.md)。
+相关章节：[营销系统](../part03/05-marketing-pricing-system.md)。
 
 #### 复盘清单
 
@@ -33486,7 +33486,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 
 迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:387`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[订单系统](../part03/09-order-system.md)。
+相关章节：[订单系统](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 
@@ -34682,7 +34682,7 @@ func (c *InventoryConsumer) Consume(ctx context.Context, msg *OrderCreatedEvent)
 
 迁移来源：`books/system-design-primer/src/part03/10-ecommerce-case-studies-interview.md:1240`。本章不依赖旧 Part Four 文件链接。
 
-相关章节：[订单系统](../part03/09-order-system.md)。
+相关章节：[订单系统](../part03/13-ecommerce-customer-lifecycle.md)。
 
 #### 复盘清单
 

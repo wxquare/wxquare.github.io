@@ -69,8 +69,8 @@ test('book links point to the appendix instead of a removed question-bank chapte
     'part03/03-product-supply-lifecycle-ops.md',
     'part03/04-inventory-system.md',
     'part03/07-search-discovery.md',
-    'part03/08-cart-checkout.md',
-    'part03/09-order-system.md',
+    '../archive/part03/08-cart-checkout.md',
+    '../archive/part03/09-order-system.md',
     'part03/10-payment-system.md',
     'part03/11-b2b2c-platform-architecture.md',
   ];
